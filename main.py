@@ -121,7 +121,7 @@ class App(tk.Tk):
         ttk.Button(abtns, text="削除", width=16, command=self.delete_action).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
         ttk.Button(abtns, text="上へ", width=16, command=lambda: self.move_action(-1)).pack(pady=6)
-        ttk.Button(abtns, text="下へ", width=16, command=lambda: self.move_action(1)).pack(pady=6)
+        ttk.Button(abtns, text="下へ", width=16, command=lambda: self.move_action(+1)).pack(pady=6)
 
         # 下段：保存/読込
         bottom = ttk.Frame(outer)
@@ -469,7 +469,7 @@ class App(tk.Tk):
         self._update_status()
 
     def _on_trigger_key(self, key: str):
-        # フックは別スレッドで来る可能性があるのでロック  再入防止（key単位）
+        # フックは別スレッドで来る可能性があるのでロック + 再入防止（key単位）
         key = normalize_key_name(key)
         with self._lock:
             if key in self._reentry_guard:
@@ -493,7 +493,29 @@ class App(tk.Tk):
         finally:
             with self._lock:
                 self._reentry_guard.discard(key)
-            self.after(0, self._update_status)
+            # UI更新はメインスレッドで：押されたトリガーを左で選択状態にする
+            self.after(0, lambda k=key: self._select_trigger_by_key(k))
+
+    def _select_trigger_by_key(self, key: str):
+        """押されたトリガーキーに対応する行をトリガー一覧で選択し、右側表示も更新する（UIスレッド専用）"""
+        key = normalize_key_name(key)
+        triggers = self.data.get("triggers", [])
+        target_idx = None
+        for i, t in enumerate(triggers):
+            if normalize_key_name(t.get("key", "")) == key:
+                target_idx = i
+                break
+        if target_idx is None:
+            self._update_status()
+            return
+
+        # すでに同じ行が選択されていればそのままでもOKだが、見た目を確実に更新するため明示的にセット
+        self.trigger_list.selection_clear(0, tk.END)
+        self.trigger_list.selection_set(target_idx)
+        self.trigger_list.activate(target_idx)
+        self.trigger_list.see(target_idx)
+        self._refresh_actions()
+        self._update_status()
 
     def _find_trigger_by_key(self, key: str):
         key = normalize_key_name(key)
