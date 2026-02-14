@@ -15,10 +15,10 @@ DEFAULT_CONFIG = {
             "key": "f1",
             "suppress": True,
             "actions": [
-                {"type": "hotkey", "value": "ctrlc"},
-                {"type": "hotkey", "value": "alttab"},
-                {"type": "hotkey", "value": "ctrltab"},
-                {"type": "hotkey", "value": "ctrlc"},
+                {"type": "hotkey", "value": "ctrl+c"},
+                {"type": "hotkey", "value": "alt+tab"},
+                {"type": "hotkey", "value": "ctrl+tab"},
+                {"type": "hotkey", "value": "ctrl+c"},
                 {"type": "hotkey", "value": "f2"},
                 {"type": "text", "value": "テストネーム"},
             ],
@@ -28,7 +28,7 @@ DEFAULT_CONFIG = {
             "suppress": True,
             "actions": [
                 {"type": "text", "value": "F2のシーケンス 1"},
-                {"type": "hotkey", "value": "ctrlv"},
+                {"type": "hotkey", "value": "ctrl+v"},
             ],
         },
     ]
@@ -90,7 +90,7 @@ class App(tk.Tk):
         left = ttk.LabelFrame(mid, text="トリガー一覧（選択して編集）", padding=10)
         left.pack(side="left", fill="y")
 
-        self.trigger_list = tk.Listbox(left, height=12, width=22)
+        self.trigger_list = tk.Listbox(left, height=12, width=22, exportselection=False)
         self.trigger_list.pack(side="top", fill="y", expand=False)
         self.trigger_list.bind("<<ListboxSelect>>", lambda _e: self._refresh_actions())
 
@@ -107,7 +107,7 @@ class App(tk.Tk):
         right = ttk.LabelFrame(mid, text="出力シーケンス（選択中トリガーの内容）", padding=10)
         right.pack(side="left", fill="both", expand=True, padx=(12, 0))
 
-        self.action_list = tk.Listbox(right, height=18)
+        self.action_list = tk.Listbox(right, height=18, exportselection=False)
         self.action_list.pack(side="left", fill="both", expand=True)
 
         sb = ttk.Scrollbar(right, orient="vertical", command=self.action_list.yview)
@@ -158,12 +158,13 @@ class App(tk.Tk):
         self._update_status()
 
     def _refresh_actions(self):
-        self.action_list.delete(0, tk.END)
+        #self.action_list.delete(0, tk.END)
         trig = self._selected_trigger()
         if not trig:
             self._sync_suppress_checkbox()
             self._update_status()
             return
+        self.action_list.delete(0, tk.END)
         actions = trig.get("actions", [])
         for i, a in enumerate(actions):
             t = a.get("type", "")
