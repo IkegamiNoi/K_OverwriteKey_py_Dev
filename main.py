@@ -57,7 +57,8 @@ class App(tk.Tk):
         self._lock = threading.Lock()
         self._indices = {}          # key -> next index
         self._reentry_guard = set() # keys currently sending (prevent recursion)
-
+        self._programmatic_action_select = False  # action_list選択をコード側で変更中か
+ 
         self._build_ui()
         self._load_if_exists()
         self._refresh_triggers()
@@ -109,6 +110,8 @@ class App(tk.Tk):
 
         self.action_list = tk.Listbox(right, height=18, exportselection=False)
         self.action_list.pack(side="left", fill="both", expand=True)
+        # ユーザーがシーケンス一覧の選択を変えたら「次に実行」をその位置に変更
+        self.action_list.bind("<<ListboxSelect>>", self._on_action_list_select)
 
         sb = ttk.Scrollbar(right, orient="vertical", command=self.action_list.yview)
         sb.pack(side="left", fill="y")
@@ -158,13 +161,12 @@ class App(tk.Tk):
         self._update_status()
 
     def _refresh_actions(self):
-        #self.action_list.delete(0, tk.END)
+        self.action_list.delete(0, tk.END)
         trig = self._selected_trigger()
         if not trig:
             self._sync_suppress_checkbox()
             self._update_status()
             return
-        self.action_list.delete(0, tk.END)
         actions = trig.get("actions", [])
         for i, a in enumerate(actions):
             t = a.get("type", "")
@@ -179,8 +181,53 @@ class App(tk.Tk):
             self._indices[key] %= len(actions)
         else:
             self._indices[key] = 0
+        # 「次に実行する行」を選択状態にする
+        self._select_next_action_row(key)
         self._sync_suppress_checkbox()
         self._update_status()
+
+    def _select_next_action_row(self, key: str):
+        """現在の next index（self._indices[key]）を action_list 上で選択表示する（UIスレッド専用）"""
+        key = normalize_key_name(key)
+        actions = self._find_trigger_by_key(key).get("actions", []) if self._find_trigger_by_key(key) else []
+        if not actions:
+            self.action_list.selection_clear(0, tk.END)
+            return
+        idx = self._indices.get(key, 0)
+        if idx < 0:
+            idx = 0
+        if idx >= len(actions):
+            idx = len(actions) - 1
+            self._indices[key] = idx
+        self._programmatic_action_select = True
+        try:
+            self.action_list.selection_clear(0, tk.END)
+            self.action_list.selection_set(idx)
+            self.action_list.activate(idx)
+            self.action_list.see(idx)
+        finally:
+            self._programmatic_action_select = False
+
+    def _on_action_list_select(self, _event=None):
+        """ユーザーが action_list の行を選んだら、その行を『次に実行』として indices に反映"""
+        if self._programmatic_action_select:
+            return
+        key = self._selected_trigger_key()
+        if not key:
+            return
+        sel = self.action_list.curselection()
+        if not sel:
+            return
+        idx = int(sel[0])
+        trig = self._find_trigger_by_key(key)
+        if not trig:
+            return
+        actions = trig.get("actions", [])
+        if not actions:
+            return
+        if 0 <= idx < len(actions):
+            self._indices[key] = idx
+            self._update_status()
 
     # ---------------- Config IO ----------------
     def _load_if_exists(self):
@@ -493,7 +540,7 @@ class App(tk.Tk):
         finally:
             with self._lock:
                 self._reentry_guard.discard(key)
-            # UI更新はメインスレッドで：押されたトリガーを左で選択状態にする
+            # UI更新はメインスレッドで：押されたトリガーを左で選択 + 次の行を右で選択
             self.after(0, lambda k=key: self._select_trigger_by_key(k))
 
     def _select_trigger_by_key(self, key: str):
