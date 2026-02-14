@@ -462,8 +462,10 @@ class App(tk.Tk):
         if j < 0 or j >= len(actions):
             return
         actions[idx], actions[j] = actions[j], actions[idx]
+        key = self._selected_trigger_key()
+        if key:
+            self._indices[key] = j
         self._refresh_actions()
-        self.action_list.selection_set(j)
 
     # ---------------- Hook logic ----------------
     def start_hook(self):
