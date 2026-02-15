@@ -60,6 +60,7 @@ class App(tk.Tk):
         self._indices = {}          # key -> next index
         self._reentry_guard = set() # keys currently sending (prevent recursion)
         self._programmatic_action_select = False  # action_list選択をコード側で変更中か
+        self._error_dialog_open = False           # エラーダイアログ多重表示防止
  
         self._build_ui()
         #self._load_if_exists()
@@ -669,13 +670,50 @@ class App(tk.Tk):
         # 送信中にトリガーが混ざっても暴走しないように、短時間だけ抑制したい場合はここで工夫可能。
         # まずはシンプルに送信。
         if t == "hotkey":
-            # keyboard は "ctrl+c" のような表記でOK
+            error_msg  = self.is_valid_hotkey(v) 
+            if  error_msg  != '':
+                # アプリを止めない。UIスレッドで原因を表示
+                self.after(0, lambda kk=t, aa=action, ee=error_msg : self._show_action_error(kk, aa, ee))
+                return
+            # keyboard は "ctrl+c" のような表記でOK（打ち間違いだと例外が出ることがある）
             keyboard.send(v)
         elif t == "text":
             keyboard.write(v)
         else:
             # 不明タイプはテキスト扱い
             keyboard.write(str(v))
+            
+    def is_valid_hotkey(self, hotkey: str) -> str:
+         # 例: "ctrl+tab" -> ["ctrl", "tab"]
+        parts = [p.strip() for p in hotkey.split("+") if p.strip()]
+        if not parts:
+            return False
+        try:
+            for p in parts:
+                keyboard.key_to_scan_codes(p)  # 各キー単体ならOKか
+            return ""
+        except Exception as e:
+            return str(e)
+
+    def _show_action_error(self, trigger_key: str, action: dict, err: Exception):
+        """送信エラーをUIスレッドで表示（多重表示は抑止）"""
+        if self._error_dialog_open:
+            return
+        self._error_dialog_open = True
+        try:
+            t = (action.get("type") or "").strip().lower()
+            v = action.get("value") or ""
+            msg = (
+                "キー送信中にエラーが発生しました。\n"
+                f"送信キーに間違いがあります。修正してください。\n\n"
+                #f"トリガー: {normalize_key_name(trigger_key)}\n"
+                f"種別: {t}\n"
+                f"値: {v}\n\n"
+                #f"エラー: {type(err).__name__}: {err}"
+            )
+            messagebox.showerror("送信エラー", msg)
+        finally:
+            self._error_dialog_open = False
 
     # ---------------- Close ----------------
     def on_close(self):
