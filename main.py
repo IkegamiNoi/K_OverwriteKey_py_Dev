@@ -49,7 +49,9 @@ class App(tk.Tk):
         self.title("Key Replacer Sequencer (Multi Trigger)")
         self.geometry("980x560")
 
-        self.config_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "config.json")
+        self.base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.config_path = os.path.join(self.base_dir, "settings\config.json")  # 実際に読込/保存する本体JSON（既定）
+        self.startup_path = os.path.join(self.base_dir, "settings\startup.json")  # 起動時に参照する“外部指定”ファイル
         self.data = safe_deepcopy(DEFAULT_CONFIG)
 
         self.hook_active = False
@@ -60,7 +62,8 @@ class App(tk.Tk):
         self._programmatic_action_select = False  # action_list選択をコード側で変更中か
  
         self._build_ui()
-        self._load_if_exists()
+        #self._load_if_exists()
+        self._load_startup_and_config()
         self._refresh_triggers()
         self._refresh_actions()
         self._update_status()
@@ -135,7 +138,84 @@ class App(tk.Tk):
         ttk.Button(bottom, text="保存（config.json）", command=self.save_config).pack(side="left")
         ttk.Button(bottom, text="別名で保存…", command=self.save_as).pack(side="left", padx=(8, 0))
         ttk.Button(bottom, text="読込…", command=self.load_from).pack(side="left", padx=(8, 0))
+        ttk.Button(bottom, text="起動時に読むJSONを指定…", command=self.set_startup_config).pack(side="left", padx=(8, 0))
         ttk.Button(bottom, text="例を復元", command=self.restore_default).pack(side="right")
+
+    # ---------------- Startup config ----------------
+    def _load_startup_and_config(self):
+        """
+        startup.json があればそれを読み、そこに書かれた config_path を起動時に読み込む。
+        無い場合は従来通り self.config_path（= ./config.json）を読み込む。
+        """
+        # まず既定パス（./config.json）をセットした状態で、startup.json を見に行く
+        startup = None
+        if os.path.exists(self.startup_path):
+            try:
+                with open(self.startup_path, "r", encoding="utf-8") as f:
+                    startup = json.load(f)
+            except Exception as e:
+                messagebox.showwarning("startup.json 読込失敗", f"startup.json の読込に失敗しました。\n{e}\n\n既定の config.json を読み込みます。")
+
+        if isinstance(startup, dict):
+            cfg = startup.get("config_path")
+            prompt_if_missing = bool(startup.get("prompt_if_missing", True))
+            if cfg:
+                # 相対パスはアプリフォルダ基準にする
+                cfg_path = cfg
+                if not os.path.isabs(cfg_path):
+                    cfg_path = os.path.join(self.base_dir, cfg_path)
+                if os.path.exists(cfg_path):
+                    self.config_path = cfg_path
+                else:
+                    # 指定先が無い
+                    if prompt_if_missing:
+                        picked = filedialog.askopenfilename(
+                            title="起動時に読み込むJSONが見つかりません。別のJSONを選択してください。",
+                            filetypes=[("JSON", "*.json"), ("All", "*.*")]
+                        )
+                        if picked:
+                            self.config_path = picked
+                            # startup.json を更新して次回も同じに
+                            self._write_startup({"config_path": self._to_rel_if_possible(picked), "prompt_if_missing": True})
+                    # promptしない場合は既定の config.json にフォールバック
+
+        # 最終的に決まった self.config_path を読み込む（従来のロジックへ）
+        self._load_if_exists()
+
+    def _write_startup(self, data: dict):
+        try:
+            with open(self.startup_path, "w", encoding="utf-8") as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
+        except Exception as e:
+            messagebox.showerror("startup.json 保存失敗", str(e))
+
+    def _to_rel_if_possible(self, path: str) -> str:
+        """base_dir 配下なら相対パスで保存（持ち運びしやすくする）"""
+        try:
+            rel = os.path.relpath(path, self.base_dir)
+            # ".." を含むなら無理に相対化しない
+            if rel.startswith(".."):
+                return path
+            return rel
+        except Exception:
+            return path
+
+    def set_startup_config(self):
+        """ユーザーが起動時に読み込む本体JSON（出力シーケンス）を選び、startup.json に保存する"""
+        path = filedialog.askopenfilename(
+            title="起動時に読み込むJSONを選択",
+            filetypes=[("JSON", "*.json"), ("All", "*.*")]
+        )
+        if not path:
+            return
+        self.config_path = path
+        self._write_startup({"config_path": self._to_rel_if_possible(path), "prompt_if_missing": True})
+        # その場で読み込みも反映
+        self._load_if_exists()
+        self._indices = {}
+        self._refresh_triggers()
+        self._refresh_actions()
+        messagebox.showinfo("設定", f"次回起動時はこのJSONを読み込みます:\n{path}")
 
     def _update_status(self):
         state = "ON" if self.hook_active else "OFF"
