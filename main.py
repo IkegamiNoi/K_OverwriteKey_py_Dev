@@ -56,6 +56,8 @@ class App(tk.Tk):
 
         self.hook_active = False
         self._hook_handles = {}     # key -> hook_handle
+        self._hook_suspended_by_dialog = False
+        self._hook_was_active_before_dialog = False
         self._lock = threading.Lock()
         self._indices = {}          # key -> next index
         self._reentry_guard = set() # keys currently sending (prevent recursion)
@@ -70,6 +72,26 @@ class App(tk.Tk):
         self._update_status()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
+
+    # ---------------- Hook suspend/resume for modal dialogs ----------------
+    def suspend_hook_for_dialog(self):
+        """モーダルダイアログ表示中の誤爆を防ぐため、フックを一時停止（元がONのときだけ）"""
+        if self._hook_suspended_by_dialog:
+            return
+        self._hook_was_active_before_dialog = bool(self.hook_active)
+        self._hook_suspended_by_dialog = True
+        if self._hook_was_active_before_dialog:
+            self.stop_hook()
+
+    def resume_hook_after_dialog(self):
+        """一時停止したフックを元に戻す（元がONなら再開）"""
+        if not self._hook_suspended_by_dialog:
+            return
+        was_on = self._hook_was_active_before_dialog
+        self._hook_suspended_by_dialog = False
+        self._hook_was_active_before_dialog = False
+        if was_on:
+            self.start_hook()
 
     # ---------------- UI ----------------
     def _build_ui(self):
@@ -750,6 +772,14 @@ class ActionDialog(tk.Toplevel):
         self.title(title)
         self.resizable(False, False)
 
+        # ダイアログ中のキー操作がフックで実行されないように一時停止
+        self.parent.suspend_hook_for_dialog()
+
+        # hotkey 記録用
+        self._recording = False
+        self._mods_down = set()   # {"ctrl","shift","alt","windows"}
+        self._last_nonmod = None  # 直近の非修飾キー
+
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
 
@@ -757,14 +787,21 @@ class ActionDialog(tk.Toplevel):
         self.type_var = tk.StringVar(value="hotkey")
         self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=["hotkey", "text"], state="readonly", width=12)
         self.type_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
+        self.type_combo.bind("<<ComboboxSelected>>", lambda _e: self._sync_capture_ui())
 
         ttk.Label(frm, text="値（hotkey例: ctrl+c / text例: テスト）").grid(row=1, column=0, sticky="w", pady=(10, 0))
         self.value_var = tk.StringVar(value="")
         self.value_entry = ttk.Entry(frm, textvariable=self.value_var, width=42)
         self.value_entry.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(10, 0))
 
+        # hotkey のときだけ「記録」UIを出す
+        self.capture_btn = ttk.Button(frm, text="キー入力で記録", command=self._toggle_recording)
+        self.capture_btn.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
+        self.capture_hint = ttk.Label(frm, text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
+        self.capture_hint.grid(row=3, column=0, columnspan=2, sticky="w", pady=(6, 0))
+
         btns = ttk.Frame(frm)
-        btns.grid(row=2, column=0, columnspan=2, sticky="e", pady=(14, 0))
+        btns.grid(row=4, column=0, columnspan=2, sticky="e", pady=(14, 0))
         ttk.Button(btns, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
@@ -775,6 +812,8 @@ class ActionDialog(tk.Toplevel):
         self.value_entry.focus_set()
         self.grab_set()
         self.transient(parent)
+        
+        self._sync_capture_ui()
 
     def on_ok(self):
         t = (self.type_var.get() or "").strip().lower()
@@ -788,6 +827,121 @@ class ActionDialog(tk.Toplevel):
         self.parent._dialog_result = {"type": t, "value": v}
         self.destroy()
 
+
+    def destroy(self):
+        # 記録中のバインドを剥がす
+        self._stop_recording()
+        # ダイアログ終了でフックを必要なら再開
+        self.parent.resume_hook_after_dialog()
+        super().destroy()
+
+    def _sync_capture_ui(self):
+        t = (self.type_var.get() or "").strip().lower()
+        is_hotkey = (t == "hotkey")
+        if not is_hotkey:
+            # text のときは記録UIを無効化し、記録も止める
+            self._stop_recording()
+            self.capture_btn.configure(state="disabled", text="キー入力で記録")
+            self.capture_hint.configure(text="※text は通常の文字入力です（記録は hotkey のみ）")
+        else:
+            self.capture_btn.configure(state="normal")
+            self.capture_hint.configure(text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
+
+    def _toggle_recording(self):
+        t = (self.type_var.get() or "").strip().lower()
+        if t != "hotkey":
+            return
+        if self._recording:
+            self._stop_recording()
+        else:
+            self._start_recording()
+
+    def _start_recording(self):
+        self._recording = True
+        self._mods_down.clear()
+        self._last_nonmod = None
+        self.capture_btn.configure(text="記録停止")
+        # 記録モード中は Entry にフォーカスしておく（表示を分かりやすく）
+        self.value_entry.focus_set()
+        # キーイベントは dialog 全体で拾う（Entry 以外をクリックしても記録できる）
+        self.bind("<KeyPress>", self._on_key_press, add="+")
+        self.bind("<KeyRelease>", self._on_key_release, add="+")
+
+    def _stop_recording(self):
+        if not getattr(self, "_recording", False):
+            return
+        self._recording = False
+        self.capture_btn.configure(text="キー入力で記録")
+        try:
+            self.unbind("<KeyPress>")
+            self.unbind("<KeyRelease>")
+        except Exception:
+            pass
+
+    def _on_key_press(self, event):
+        if not self._recording:
+            return
+        key = self._normalize_tk_key(event.keysym)
+        if key == "esc":
+            self._stop_recording()
+            return "break"
+
+        if key in ("ctrl", "shift", "alt", "windows"):
+            self._mods_down.add(key)
+            # 修飾キーだけでは確定しない
+            self._update_hotkey_preview()
+            return "break"
+
+        # 非修飾キー：ここで確定（ctrl+tab など）
+        self._last_nonmod = key
+        self._update_hotkey_preview(finalize=True)
+        # 1回の組み合わせを取ったら自動で記録を止める（好みで外せる）
+        self._stop_recording()
+        return "break"
+
+    def _on_key_release(self, event):
+        if not self._recording:
+            return
+        key = self._normalize_tk_key(event.keysym)
+        if key in self._mods_down:
+            self._mods_down.discard(key)
+            self._update_hotkey_preview()
+            return "break"
+
+    def _update_hotkey_preview(self, finalize: bool = False):
+        # 表示順を固定（keyboard の表記に寄せる）
+        order = ["ctrl", "alt", "shift", "windows"]
+        mods = [m for m in order if m in self._mods_down]
+        parts = mods[:]
+        if self._last_nonmod:
+            parts.append(self._last_nonmod)
+        if not parts:
+            return
+        self.value_var.set("+".join(parts))
+        if finalize:
+            self.value_entry.icursor(tk.END)
+
+    def _normalize_tk_key(self, keysym: str) -> str:
+        # Tk の keysym を keyboard ライブラリで使う表記に寄せる
+        k = (keysym or "").lower()
+        mapping = {
+            "control_l": "ctrl", "control_r": "ctrl",
+            "shift_l": "shift", "shift_r": "shift",
+            "alt_l": "alt", "alt_r": "alt",
+            "super_l": "windows", "super_r": "windows",
+            "win_l": "windows", "win_r": "windows",
+            "return": "enter",
+            "escape": "esc",
+            "space": "space",
+            "prior": "page up",
+            "next": "page down",
+            "backspace": "backspace",
+            "tab": "tab",
+        }
+        if k in mapping:
+            return mapping[k]
+        # F1 などは "f1" になる
+        return k
 
 if __name__ == "__main__":
     app = App()
