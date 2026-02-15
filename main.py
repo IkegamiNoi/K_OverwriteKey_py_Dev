@@ -670,30 +670,50 @@ class App(tk.Tk):
         # 送信中にトリガーが混ざっても暴走しないように、短時間だけ抑制したい場合はここで工夫可能。
         # まずはシンプルに送信。
         if t == "hotkey":
-            error_msg  = self.is_valid_hotkey(v) 
-            if  error_msg  != '':
+            err_msg, normalized = self.validate_hotkey(v)
+            if err_msg:
                 # アプリを止めない。UIスレッドで原因を表示
-                self.after(0, lambda kk=t, aa=action, ee=error_msg : self._show_action_error(kk, aa, ee))
+                self.after(0, lambda kk=t, aa=action, ee=err_msg: self._show_action_error(kk, aa, ee))
                 return
             # keyboard は "ctrl+c" のような表記でOK（打ち間違いだと例外が出ることがある）
-            keyboard.send(v)
+            keyboard.send(normalized)
         elif t == "text":
             keyboard.write(v)
         else:
             # 不明タイプはテキスト扱い
             keyboard.write(str(v))
             
-    def is_valid_hotkey(self, hotkey: str) -> str:
-         # 例: "ctrl+tab" -> ["ctrl", "tab"]
-        parts = [p.strip() for p in hotkey.split("+") if p.strip()]
-        if not parts:
-            return False
+    def validate_hotkey(self, hotkey: str) -> tuple[str, str]:
+        """
+        hotkey を検証し、(エラーメッセージ, 正規化したhotkey) を返す。
+        エラーなしならエラーメッセージは ""。
+        """
+        s = (hotkey or "").strip()
+        if not s:
+            return "hotkey が空です。", ""
+
+        # split結果を保持して空要素を検出する（ctrl++c / +ctrl+c / ctrl+c+ を弾く）
+        raw = s.split("+")
+        parts = [p.strip().lower() for p in raw]
+
+        if any(p == "" for p in parts):
+            return "hotkey の '+' の前後が空です（例: 'ctrl++c' や '+ctrl+c' や 'ctrl+c+' は不可）。", ""
+
+        # ここで正規化（余分な空白・大文字を吸収）
+        normalized = "+".join(parts)
+
+        # 同一キーの重複を弾く（例: ctrl+ctrl+c）
+        if len(set(parts)) != len(parts):
+            return "hotkey に同じキーが重複しています（例: 'ctrl+ctrl+c'）。", ""
+
+        # キー名の妥当性チェック（各キー単体が解決できるか）
         try:
             for p in parts:
-                keyboard.key_to_scan_codes(p)  # 各キー単体ならOKか
-            return ""
+                keyboard.key_to_scan_codes(p)
         except Exception as e:
-            return str(e)
+            return f"不明なキー名があります: '{p}'（詳細: {e}）", ""
+
+        return "", normalized
 
     def _show_action_error(self, trigger_key: str, action: dict, err: Exception):
         """送信エラーをUIスレッドで表示（多重表示は抑止）"""
@@ -709,7 +729,7 @@ class App(tk.Tk):
                 #f"トリガー: {normalize_key_name(trigger_key)}\n"
                 f"種別: {t}\n"
                 f"値: {v}\n\n"
-                #f"エラー: {type(err).__name__}: {err}"
+                f"エラー: {err}"
             )
             messagebox.showerror("送信エラー", msg)
         finally:
