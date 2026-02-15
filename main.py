@@ -112,6 +112,8 @@ class App(tk.Tk):
         self.action_list.pack(side="left", fill="both", expand=True)
         # ユーザーがシーケンス一覧の選択を変えたら「次に実行」をその位置に変更
         self.action_list.bind("<<ListboxSelect>>", self._on_action_list_select)
+        # ダブルクリックで編集
+        self.action_list.bind("<Double-Button-1>", self._on_action_double_click)
 
         sb = ttk.Scrollbar(right, orient="vertical", command=self.action_list.yview)
         sb.pack(side="left", fill="y")
@@ -228,6 +230,13 @@ class App(tk.Tk):
         if 0 <= idx < len(actions):
             self._indices[key] = idx
             self._update_status()
+
+    def _on_action_double_click(self, _event=None):
+        """シーケンス一覧をダブルクリックしたら編集を開く"""
+        # 選択行が無いときは何もしない
+        if not self.action_list.curselection():
+            return
+        self.edit_action()
 
     # ---------------- Config IO ----------------
     def _load_if_exists(self):
