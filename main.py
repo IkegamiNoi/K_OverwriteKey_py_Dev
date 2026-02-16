@@ -31,6 +31,16 @@ DEFAULT_CONFIG = {
                 {"type": "hotkey", "value": "ctrl+v"},
             ],
         },
+    ],
+    "hotkey_presets": [
+        {"label": "Alt+Tab", "value": "alt+tab"},
+        {"label": "Win+D", "value": "windows+d"},
+        {"label": "Win+E", "value": "windows+e"},
+        {"label": "Ctrl+Shift+Esc", "value": "ctrl+shift+esc"},
+        {"label": "Win+R", "value": "windows+r"},
+        {"label": "Win+Tab", "value": "windows+tab"},
+        {"label": "Win+X", "value": "windows+x"},
+        {"label": "Alt+F4", "value": "alt+f4"}
     ]
 }
 
@@ -799,9 +809,34 @@ class ActionDialog(tk.Toplevel):
         self.capture_btn.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
         self.capture_hint = ttk.Label(frm, text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
         self.capture_hint.grid(row=3, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        
+        # OSショートカット用プリセット（hotkeyのときのみ有効）
+        presets = ttk.LabelFrame(frm, text="OSショートカット（プリセット）", padding=8)
+        presets.grid(row=4, column=0, columnspan=2, sticky="we", pady=(10, 0))
+        presets.grid_columnconfigure(0, weight=1)
+        presets.grid_columnconfigure(1, weight=1)
+        presets.grid_columnconfigure(2, weight=1)
+        presets.grid_columnconfigure(3, weight=1)
+
+        self.preset_buttons = []
+        def add_preset(text: str, hotkey: str, r: int, c: int):
+            b = ttk.Button(presets, text=text, command=lambda hk=hotkey: self._apply_preset(hk))
+            b.grid(row=r, column=c, padx=4, pady=4, sticky="we")
+            self.preset_buttons.append(b)
+
+        add_preset("Alt+Tab", "alt+tab", 0, 0)
+        add_preset("Win+D", "windows+d", 0, 1)
+        add_preset("Win+E", "windows+e", 0, 2)
+        add_preset("Ctrl+Shift+Esc", "ctrl+shift+esc", 0, 3)
+
+        # よく使うもの（必要なら増やせる）
+        add_preset("Win+R", "windows+r", 1, 0)
+        add_preset("Win+Tab", "windows+tab", 1, 1)
+        add_preset("Win+X", "windows+x", 1, 2)
+        add_preset("Alt+F4", "alt+f4", 1, 3)
 
         btns = ttk.Frame(frm)
-        btns.grid(row=4, column=0, columnspan=2, sticky="e", pady=(14, 0))
+        btns.grid(row=5, column=0, columnspan=2, sticky="e", pady=(14, 0))
         ttk.Button(btns, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
@@ -843,9 +878,20 @@ class ActionDialog(tk.Toplevel):
             self._stop_recording()
             self.capture_btn.configure(state="disabled", text="キー入力で記録")
             self.capture_hint.configure(text="※text は通常の文字入力です（記録は hotkey のみ）")
+            # プリセットも無効化
+            for b in getattr(self, "preset_buttons", []):
+                b.configure(state="disabled")
         else:
             self.capture_btn.configure(state="normal")
             self.capture_hint.configure(text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
+            for b in getattr(self, "preset_buttons", []):
+                b.configure(state="normal")
+
+    def _apply_preset(self, hotkey: str):
+        """プリセットボタンで hotkey を値欄にセット"""
+        self.value_var.set(hotkey)
+        self.value_entry.focus_set()
+        self.value_entry.icursor(tk.END)
 
     def _toggle_recording(self):
         t = (self.type_var.get() or "").strip().lower()
