@@ -7,6 +7,10 @@ from tkinter import ttk, messagebox, filedialog, simpledialog
 # グローバルキーボードフック/送信
 # pip install keyboard
 import keyboard
+# マウス操作
+# pip install pyautogui pynput
+import pyautogui
+from pynput import mouse
 
 
 DEFAULT_CONFIG = {
@@ -60,8 +64,8 @@ class App(tk.Tk):
         self.geometry("980x560")
 
         self.base_dir = os.path.dirname(os.path.abspath(__file__))
-        self.config_path = os.path.join(self.base_dir, "settings\config.json")  # 実際に読込/保存する本体JSON（既定）
-        self.startup_path = os.path.join(self.base_dir, "settings\startup.json")  # 起動時に参照する“外部指定”ファイル
+        self.config_path = os.path.join(self.base_dir, r"settings\config.json")  # 実際に読込/保存する本体JSON（既定）
+        self.startup_path = os.path.join(self.base_dir, r"settings\startup.json")  # 起動時に参照する“外部指定”ファイル
         self.data = safe_deepcopy(DEFAULT_CONFIG)
 
         self.hook_active = False
@@ -134,7 +138,7 @@ class App(tk.Tk):
         tbtns = ttk.Frame(left)
         tbtns.pack(fill="x", pady=(10, 0))
         ttk.Button(tbtns, text="追加", command=self.add_trigger).pack(fill="x", pady=(0, 6))
-        ttk.Button(tbtns, text="名前変更", command=self.rename_trigger).pack(fill="x", pady=6)
+        ttk.Button(tbtns, text="トリガー変更", command=self.rename_trigger).pack(fill="x", pady=6)
         ttk.Button(tbtns, text="削除", command=self.delete_trigger).pack(fill="x", pady=6)
 
         self.suppress_var = tk.BooleanVar(value=True)
@@ -719,6 +723,29 @@ class App(tk.Tk):
             keyboard.send(normalized)
         elif t == "text":
             keyboard.write(v)
+        elif t == "mouse_click":
+            # 例: {"type":"mouse_click","x":100,"y":200,"button":"left","clicks":1}
+            try:
+                x = int(action.get("x"))
+                y = int(action.get("y"))
+            except Exception:
+                self.after(0, lambda: messagebox.showerror("送信エラー", "mouse_click の x/y が不正です（整数で指定してください）。"))
+                return
+            button = (action.get("button") or "left").strip().lower()
+            clicks = action.get("clicks", 1)
+            try:
+                clicks = int(clicks)
+            except Exception:
+                clicks = 1
+            if clicks < 1:
+                clicks = 1
+            if button not in ("left", "right", "middle"):
+                button = "left"
+            # 実行
+            try:
+                pyautogui.click(x=x, y=y, button=button, clicks=clicks)
+            except Exception as e:
+                self.after(0, lambda: messagebox.showerror("送信エラー", f"mouse_click の実行に失敗しました。\n{type(e).__name__}: {e}"))
         else:
             # 不明タイプはテキスト扱い
             keyboard.write(str(v))
@@ -803,7 +830,7 @@ class ActionDialog(tk.Toplevel):
 
         ttk.Label(frm, text="種類").grid(row=0, column=0, sticky="w")
         self.type_var = tk.StringVar(value="hotkey")
-        self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=["hotkey", "text"], state="readonly", width=12)
+        self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=["hotkey", "text", "mouse_click"], state="readonly", width=12)
         self.type_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
         self.type_combo.bind("<<ComboboxSelected>>", lambda _e: self._sync_capture_ui())
 
@@ -830,16 +857,49 @@ class ActionDialog(tk.Toplevel):
         self._rebuild_preset_buttons()
 
         self.preset_edit_btn = ttk.Button(frm, text="プリセット編集…", command=self._open_preset_manager)
-        self.preset_edit_btn.grid(row=5, column=0, sticky="w", padx=(8, 0), pady=(10, 0))
+        self.preset_edit_btn.grid(row=6, column=0, sticky="w", padx=(8, 0), pady=(10, 0))
 
         btns = ttk.Frame(frm)
-        btns.grid(row=5, column=1, columnspan=2, sticky="e", pady=(14, 0))
+        btns.grid(row=6, column=1, columnspan=2, sticky="e", pady=(14, 0))
         ttk.Button(btns, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
+
+        # mouse_click 用UI（座標/ボタン/回数）
+        self.mouse_frame = ttk.LabelFrame(frm, text="マウスクリック設定", padding=8)
+        self.mouse_frame.grid(row=5, column=0, columnspan=2, sticky="we", pady=(10, 0))
+        self.mouse_frame.grid_columnconfigure(1, weight=1)
+
+        ttk.Label(self.mouse_frame, text="X").grid(row=0, column=0, sticky="w")
+        self.mouse_x_var = tk.StringVar(value="")
+        ttk.Entry(self.mouse_frame, textvariable=self.mouse_x_var, width=10).grid(row=0, column=1, sticky="w", padx=(8, 0))
+
+        ttk.Label(self.mouse_frame, text="Y").grid(row=0, column=2, sticky="w", padx=(16, 0))
+        self.mouse_y_var = tk.StringVar(value="")
+        ttk.Entry(self.mouse_frame, textvariable=self.mouse_y_var, width=10).grid(row=0, column=3, sticky="w", padx=(8, 0))
+
+        ttk.Label(self.mouse_frame, text="ボタン").grid(row=1, column=0, sticky="w", pady=(8, 0))
+        self.mouse_btn_var = tk.StringVar(value="left")
+        self.mouse_btn_combo = ttk.Combobox(self.mouse_frame, textvariable=self.mouse_btn_var, values=["left", "right", "middle"], state="readonly", width=10)
+        self.mouse_btn_combo.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
+
+        ttk.Label(self.mouse_frame, text="回数").grid(row=1, column=2, sticky="w", padx=(16, 0), pady=(8, 0))
+        self.mouse_clicks_var = tk.StringVar(value="1")
+        ttk.Entry(self.mouse_frame, textvariable=self.mouse_clicks_var, width=10).grid(row=1, column=3, sticky="w", padx=(8, 0), pady=(8, 0))
+
+        self.mouse_capture_btn = ttk.Button(self.mouse_frame, text="クリック位置を取得", command=self._capture_mouse_position)
+        self.mouse_capture_btn.grid(row=2, column=0, columnspan=4, sticky="w", pady=(8, 0))
+        self.mouse_hint = ttk.Label(self.mouse_frame, text="※押したあと、画面上の任意の場所を1回クリックすると座標が入ります")
+        self.mouse_hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(6, 0))
 
         if initial:
             self.type_var.set((initial.get("type") or "hotkey").strip().lower())
             self.value_var.set(initial.get("value") or "")
+            # mouse_click の初期値
+            if (initial.get("type") or "").strip().lower() == "mouse_click":
+                if "x" in initial: self.mouse_x_var.set(str(initial.get("x")))
+                if "y" in initial: self.mouse_y_var.set(str(initial.get("y")))
+                if "button" in initial: self.mouse_btn_var.set(str(initial.get("button")))
+                if "clicks" in initial: self.mouse_clicks_var.set(str(initial.get("clicks")))
 
         self.value_entry.focus_set()
         self.grab_set()
@@ -850,14 +910,61 @@ class ActionDialog(tk.Toplevel):
     def on_ok(self):
         t = (self.type_var.get() or "").strip().lower()
         v = self.value_var.get()
-        if not v:
-            messagebox.showerror("入力エラー", "値が空です。")
-            return
-        if t not in ("hotkey", "text"):
+        if t not in ("hotkey", "text", "mouse_click"):
             messagebox.showerror("入力エラー", "種類が不正です。")
             return
-        self.parent._dialog_result = {"type": t, "value": v}
+        if t in ("hotkey", "text"):
+            if not v:
+                messagebox.showerror("入力エラー", "値が空です。")
+                return
+            self.parent._dialog_result = {"type": t, "value": v}
+        else:
+            # mouse_click
+            sx = self.mouse_x_var.get().strip()
+            sy = self.mouse_y_var.get().strip()
+            if not sx or not sy:
+                messagebox.showerror("入力エラー", "mouse_click の X/Y が空です。")
+                return
+            try:
+                x = int(sx); y = int(sy)
+            except Exception:
+                messagebox.showerror("入力エラー", "mouse_click の X/Y は整数で入力してください。")
+                return
+            btn = (self.mouse_btn_var.get() or "left").strip().lower()
+            clicks_s = (self.mouse_clicks_var.get() or "1").strip()
+            try:
+                clicks = int(clicks_s)
+            except Exception:
+                clicks = 1
+            if clicks < 1:
+                clicks = 1
+            if btn not in ("left", "right", "middle"):
+                btn = "left"
+            self.parent._dialog_result = {"type": "mouse_click", "x": x, "y": y, "button": btn, "clicks": clicks}
         self.destroy()
+
+    def _capture_mouse_position(self):
+        """次の1クリックで画面座標を取得して X/Y に反映"""
+        # 誤爆を避ける：ボタン連打防止
+        self.mouse_capture_btn.configure(state="disabled")
+        self.mouse_hint.configure(text="…取得中：画面上の任意の場所を1回クリックしてください（右クリックでも可）")
+
+        def on_click(x, y, button, pressed):
+            if pressed:
+                # 1回目の押下で確定
+                try:
+                    self.after(0, lambda: self.mouse_x_var.set(str(int(x))))
+                    self.after(0, lambda: self.mouse_y_var.set(str(int(y))))
+                    self.after(0, lambda: self.mouse_hint.configure(text=f"取得しました: ({int(x)}, {int(y)})"))
+                finally:
+                    self.after(0, lambda: self.mouse_capture_btn.configure(state="normal"))
+                return False  # stop listener
+            return True
+
+        # listener は別スレッドで動く
+        listener = mouse.Listener(on_click=on_click)
+        listener.daemon = True
+        listener.start()
 
     def _toggle_recording(self):
         t = (self.type_var.get() or "").strip().lower()
@@ -980,6 +1087,13 @@ class ActionDialog(tk.Toplevel):
             self.capture_hint.configure(text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
             for b in getattr(self, "preset_buttons", []):
                 b.configure(state="normal")
+                
+        # mouse_click UI の表示制御
+        if hasattr(self, "mouse_frame"):
+            if t == "mouse_click":
+                self.mouse_frame.grid()  # 表示
+            else:
+                self.mouse_frame.grid_remove()  # 非表示
 
     def _apply_preset(self, hotkey: str):
         """プリセットボタンで hotkey を値欄にセット"""
