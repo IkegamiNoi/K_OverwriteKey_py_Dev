@@ -171,6 +171,7 @@ class App(tk.Tk):
         ttk.Button(bottom, text="保存（config.json）", command=self.save_config).pack(side="left")
         ttk.Button(bottom, text="別名で保存…", command=self.save_as).pack(side="left", padx=(8, 0))
         ttk.Button(bottom, text="読込…", command=self.load_from).pack(side="left", padx=(8, 0))
+        ttk.Button(bottom, text="プリセット編集…", command=self.open_preset_manager).pack(side="left", padx=(8, 0))
         ttk.Button(bottom, text="起動時に読むJSONを指定…", command=self.set_startup_config).pack(side="left", padx=(8, 0))
         ttk.Button(bottom, text="例を復元", command=self.restore_default).pack(side="right")
 
@@ -365,6 +366,10 @@ class App(tk.Tk):
             old_key = normalize_key_name(self.data.get("trigger_key", "f1"))
             old_actions = self.data.get("actions", [])
             self.data = {"triggers": [{"key": old_key, "suppress": True, "actions": old_actions}]}
+            
+        # プリセットが無ければデフォルトを補う（既存ユーザー互換）
+        if "hotkey_presets" not in self.data or not isinstance(self.data.get("hotkey_presets"), list):
+            self.data["hotkey_presets"] = safe_deepcopy(DEFAULT_CONFIG.get("hotkey_presets", []))
 
     def save_config(self):
         try:
@@ -410,6 +415,9 @@ class App(tk.Tk):
             messagebox.showinfo("読込", f"読み込みました:\n{path}")
         except Exception as e:
             messagebox.showerror("読込失敗", str(e))
+
+    def open_preset_manager(self):
+        PresetManagerDialog(self, title="ホットキープリセット編集").wait_window()
 
     def restore_default(self):
         if messagebox.askyesno("確認", "例の設定に戻します。よろしいですか？"):
@@ -810,33 +818,22 @@ class ActionDialog(tk.Toplevel):
         self.capture_hint = ttk.Label(frm, text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
         self.capture_hint.grid(row=3, column=0, columnspan=2, sticky="w", pady=(6, 0))
         
-        # OSショートカット用プリセット（hotkeyのときのみ有効）
-        presets = ttk.LabelFrame(frm, text="OSショートカット（プリセット）", padding=8)
-        presets.grid(row=4, column=0, columnspan=2, sticky="we", pady=(10, 0))
-        presets.grid_columnconfigure(0, weight=1)
-        presets.grid_columnconfigure(1, weight=1)
-        presets.grid_columnconfigure(2, weight=1)
-        presets.grid_columnconfigure(3, weight=1)
+        # OSショートカット用プリセット（JSONから生成 / hotkeyのときのみ有効）
+        self.presets_frame = ttk.LabelFrame(frm, text="OSショートカット（プリセット）", padding=8)
+        self.presets_frame.grid(row=4, column=0, columnspan=2, sticky="we", pady=(10, 0))
+        self.presets_frame.grid_columnconfigure(0, weight=1)
+        self.presets_frame.grid_columnconfigure(1, weight=1)
+        self.presets_frame.grid_columnconfigure(2, weight=1)
+        self.presets_frame.grid_columnconfigure(3, weight=1)
 
         self.preset_buttons = []
-        def add_preset(text: str, hotkey: str, r: int, c: int):
-            b = ttk.Button(presets, text=text, command=lambda hk=hotkey: self._apply_preset(hk))
-            b.grid(row=r, column=c, padx=4, pady=4, sticky="we")
-            self.preset_buttons.append(b)
+        self._rebuild_preset_buttons()
 
-        add_preset("Alt+Tab", "alt+tab", 0, 0)
-        add_preset("Win+D", "windows+d", 0, 1)
-        add_preset("Win+E", "windows+e", 0, 2)
-        add_preset("Ctrl+Shift+Esc", "ctrl+shift+esc", 0, 3)
-
-        # よく使うもの（必要なら増やせる）
-        add_preset("Win+R", "windows+r", 1, 0)
-        add_preset("Win+Tab", "windows+tab", 1, 1)
-        add_preset("Win+X", "windows+x", 1, 2)
-        add_preset("Alt+F4", "alt+f4", 1, 3)
+        self.preset_edit_btn = ttk.Button(frm, text="プリセット編集…", command=self._open_preset_manager)
+        self.preset_edit_btn.grid(row=5, column=0, sticky="w", padx=(8, 0), pady=(10, 0))
 
         btns = ttk.Frame(frm)
-        btns.grid(row=5, column=0, columnspan=2, sticky="e", pady=(14, 0))
+        btns.grid(row=5, column=1, columnspan=2, sticky="e", pady=(14, 0))
         ttk.Button(btns, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
@@ -861,37 +858,6 @@ class ActionDialog(tk.Toplevel):
             return
         self.parent._dialog_result = {"type": t, "value": v}
         self.destroy()
-
-
-    def destroy(self):
-        # 記録中のバインドを剥がす
-        self._stop_recording()
-        # ダイアログ終了でフックを必要なら再開
-        self.parent.resume_hook_after_dialog()
-        super().destroy()
-
-    def _sync_capture_ui(self):
-        t = (self.type_var.get() or "").strip().lower()
-        is_hotkey = (t == "hotkey")
-        if not is_hotkey:
-            # text のときは記録UIを無効化し、記録も止める
-            self._stop_recording()
-            self.capture_btn.configure(state="disabled", text="キー入力で記録")
-            self.capture_hint.configure(text="※text は通常の文字入力です（記録は hotkey のみ）")
-            # プリセットも無効化
-            for b in getattr(self, "preset_buttons", []):
-                b.configure(state="disabled")
-        else:
-            self.capture_btn.configure(state="normal")
-            self.capture_hint.configure(text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
-            for b in getattr(self, "preset_buttons", []):
-                b.configure(state="normal")
-
-    def _apply_preset(self, hotkey: str):
-        """プリセットボタンで hotkey を値欄にセット"""
-        self.value_var.set(hotkey)
-        self.value_entry.focus_set()
-        self.value_entry.icursor(tk.END)
 
     def _toggle_recording(self):
         t = (self.type_var.get() or "").strip().lower()
@@ -988,6 +954,182 @@ class ActionDialog(tk.Toplevel):
             return mapping[k]
         # F1 などは "f1" になる
         return k
+
+    def destroy(self):
+        # 記録中のバインドを剥がす
+        self._stop_recording()
+        # ダイアログ終了でフックを必要なら再開
+        self.parent.resume_hook_after_dialog()
+        super().destroy()
+
+    def _sync_capture_ui(self):
+        t = (self.type_var.get() or "").strip().lower()
+        is_hotkey = (t == "hotkey")
+        if not is_hotkey:
+            # text のときは記録UIを無効化し、記録も止める
+            self._stop_recording()
+            self.capture_btn.configure(state="disabled", text="キー入力で記録")
+            self.capture_hint.configure(text="※text は通常の文字入力です（記録は hotkey のみ）")
+            # プリセットも無効化
+            for b in getattr(self, "preset_buttons", []):
+                b.configure(state="disabled")
+            if hasattr(self, "preset_edit_btn"):
+                self.preset_edit_btn.configure(state="disabled")
+        else:
+            self.capture_btn.configure(state="normal")
+            self.capture_hint.configure(text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
+            for b in getattr(self, "preset_buttons", []):
+                b.configure(state="normal")
+
+    def _apply_preset(self, hotkey: str):
+        """プリセットボタンで hotkey を値欄にセット"""
+        self.value_var.set(hotkey)
+        self.value_entry.focus_set()
+        self.value_entry.icursor(tk.END)
+
+    def _rebuild_preset_buttons(self):
+        """親の data['hotkey_presets'] からプリセットボタンを作り直す"""
+        # 既存を破棄
+        for b in getattr(self, "preset_buttons", []):
+            try:
+                b.destroy()
+            except Exception:
+                pass
+        self.preset_buttons = []
+
+        presets = self.parent.data.get("hotkey_presets", [])
+        if not isinstance(presets, list):
+            presets = []
+
+        # 4列で並べる
+        cols = 4
+        r = 0
+        c = 0
+        for p in presets:
+            label = str(p.get("label", "")).strip()
+            value = str(p.get("value", "")).strip()
+            if not label or not value:
+                continue
+            b = ttk.Button(self.presets_frame, text=label, command=lambda hk=value: self._apply_preset(hk))
+            b.grid(row=r, column=c, padx=4, pady=4, sticky="we")
+            self.preset_buttons.append(b)
+            c += 1
+            if c >= cols:
+                c = 0
+                r += 1
+
+        # 現在のタイプに応じて enable/disable
+        self._sync_capture_ui()
+
+    def _open_preset_manager(self):
+        """プリセット編集ダイアログを開き、戻ったらボタンを再生成"""
+        PresetManagerDialog(self.parent, title="ホットキープリセット編集").wait_window()
+        self._rebuild_preset_buttons()
+
+
+class PresetManagerDialog(tk.Toplevel):
+    """App.data['hotkey_presets'] を編集する"""
+    def __init__(self, parent: App, title: str = "プリセット編集"):
+        super().__init__(parent)
+        self.parent = parent
+        self.title(title)
+        self.resizable(False, False)
+
+        self._temp = safe_deepcopy(parent.data.get("hotkey_presets", []))
+        if not isinstance(self._temp, list):
+            self._temp = []
+
+        frm = ttk.Frame(self, padding=12)
+        frm.pack(fill="both", expand=True)
+
+        ttk.Label(frm, text="プリセット一覧").grid(row=0, column=0, sticky="w")
+        self.listbox = tk.Listbox(frm, height=12, width=56, exportselection=False)
+        self.listbox.grid(row=1, column=0, rowspan=6, sticky="nsew", padx=(0, 10))
+
+        btns = ttk.Frame(frm)
+        btns.grid(row=1, column=1, sticky="n")
+        ttk.Button(btns, text="追加", width=14, command=self.add).pack(pady=(0, 6))
+        ttk.Button(btns, text="編集", width=14, command=self.edit).pack(pady=6)
+        ttk.Button(btns, text="削除", width=14, command=self.delete).pack(pady=6)
+        ttk.Separator(btns).pack(fill="x", pady=10)
+        ttk.Button(btns, text="上へ", width=14, command=lambda: self.move(-1)).pack(pady=6)
+        ttk.Button(btns, text="下へ", width=14, command=lambda: self.move(+1)).pack(pady=6)
+
+        bottom = ttk.Frame(frm)
+        bottom.grid(row=7, column=0, columnspan=2, sticky="e", pady=(12, 0))
+        ttk.Button(bottom, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
+        ttk.Button(bottom, text="キャンセル", command=self.destroy).pack(side="left")
+
+        frm.grid_columnconfigure(0, weight=1)
+        frm.grid_rowconfigure(1, weight=1)
+
+        self._refresh()
+        self.grab_set()
+        self.transient(parent)
+
+    def _refresh(self):
+        self.listbox.delete(0, tk.END)
+        for i, p in enumerate(self._temp):
+            label = str(p.get("label", ""))
+            value = str(p.get("value", ""))
+            self.listbox.insert(tk.END, f"{i+1:02d}. {label}  ->  {value}")
+
+    def _sel(self):
+        s = self.listbox.curselection()
+        return int(s[0]) if s else None
+
+    def add(self):
+        label = simpledialog.askstring("追加", "ボタン表示名（例: Win+D）", parent=self)
+        if not label:
+            return
+        value = simpledialog.askstring("追加", "hotkey値（例: windows+d）", parent=self)
+        if not value:
+            return
+        self._temp.append({"label": label.strip(), "value": value.strip()})
+        self._refresh()
+        self.listbox.selection_set(len(self._temp) - 1)
+
+    def edit(self):
+        idx = self._sel()
+        if idx is None:
+            messagebox.showinfo("編集", "編集したい行を選択してください。")
+            return
+        cur = self._temp[idx]
+        label = simpledialog.askstring("編集", "ボタン表示名", initialvalue=str(cur.get("label", "")), parent=self)
+        if not label:
+            return
+        value = simpledialog.askstring("編集", "hotkey値", initialvalue=str(cur.get("value", "")), parent=self)
+        if not value:
+            return
+        self._temp[idx] = {"label": label.strip(), "value": value.strip()}
+        self._refresh()
+        self.listbox.selection_set(idx)
+
+    def delete(self):
+        idx = self._sel()
+        if idx is None:
+            messagebox.showinfo("削除", "削除したい行を選択してください。")
+            return
+        if messagebox.askyesno("確認", "選択したプリセットを削除しますか？"):
+            del self._temp[idx]
+            self._refresh()
+
+    def move(self, delta: int):
+        idx = self._sel()
+        if idx is None:
+            messagebox.showinfo("移動", "移動したい行を選択してください。")
+            return
+        j = idx + delta
+        if j < 0 or j >= len(self._temp):
+            return
+        self._temp[idx], self._temp[j] = self._temp[j], self._temp[idx]
+        self._refresh()
+        self.listbox.selection_set(j)
+
+    def on_ok(self):
+        # 保存して閉じる（※保存自体は親の保存ボタンで行う運用）
+        self.parent.data["hotkey_presets"] = self._temp
+        self.destroy()
 
 if __name__ == "__main__":
     app = App()
