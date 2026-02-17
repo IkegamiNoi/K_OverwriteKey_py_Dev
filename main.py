@@ -1085,7 +1085,13 @@ class PresetManagerDialog(tk.Toplevel):
         value = simpledialog.askstring("追加", "hotkey値（例: windows+d）", parent=self)
         if not value:
             return
-        self._temp.append({"label": label.strip(), "value": value.strip()})
+        # 追加時に hotkey を検証して不正なら弾く（即時UIエラー）
+        err_msg, normalized = self.parent.validate_hotkey(value.strip())
+        if err_msg:
+            messagebox.showerror("不正なhotkey", f"プリセットの hotkey 値が不正です。\n\n入力: {value}\n理由: {err_msg}")
+            return
+
+        self._temp.append({"label": label.strip(), "value": normalized})
         self._refresh()
         self.listbox.selection_set(len(self._temp) - 1)
 
@@ -1101,7 +1107,13 @@ class PresetManagerDialog(tk.Toplevel):
         value = simpledialog.askstring("編集", "hotkey値", initialvalue=str(cur.get("value", "")), parent=self)
         if not value:
             return
-        self._temp[idx] = {"label": label.strip(), "value": value.strip()}
+        # 編集時に hotkey を検証して不正なら弾く（即時UIエラー）
+        err_msg, normalized = self.parent.validate_hotkey(value.strip())
+        if err_msg:
+            messagebox.showerror("不正なhotkey", f"プリセットの hotkey 値が不正です。\n\n入力: {value}\n理由: {err_msg}")
+            return
+
+        self._temp[idx] = {"label": label.strip(), "value": normalized}
         self._refresh()
         self.listbox.selection_set(idx)
 
