@@ -134,6 +134,8 @@ class App(tk.Tk):
         self.trigger_list = tk.Listbox(left, height=12, width=22, exportselection=False)
         self.trigger_list.pack(side="top", fill="y", expand=False)
         self.trigger_list.bind("<<ListboxSelect>>", lambda _e: self._refresh_actions())
+        # ダブルクリックで「トリガー変更」（= rename_trigger）を開く
+        self.trigger_list.bind("<Double-Button-1>", self._on_trigger_double_click)
 
         tbtns = ttk.Frame(left)
         tbtns.pack(fill="x", pady=(10, 0))
@@ -349,6 +351,12 @@ class App(tk.Tk):
             self._indices[key] = idx
             self._update_status()
 
+    def _on_trigger_double_click(self, _event=None):
+        """トリガー一覧をダブルクリックしたらトリガー変更（rename_trigger）を開く"""
+        if not self.trigger_list.curselection():
+            return
+        self.rename_trigger()
+
     def _on_action_double_click(self, _event=None):
         """シーケンス一覧をダブルクリックしたら編集を開く"""
         # 選択行が無いときは何もしない
@@ -497,7 +505,7 @@ class App(tk.Tk):
             messagebox.showinfo("変更", "変更したいトリガーを選択してください。")
             return
         old = normalize_key_name(t.get("key", ""))
-        new = simpledialog.askstring("名前変更", f"新しいトリガーキー（現在: {old}）", initialvalue=old, parent=self)
+        new = simpledialog.askstring("トリガー変更", f"新しいトリガーキー（現在: {old}）", initialvalue=old, parent=self)
         if not new:
             return
         new = normalize_key_name(new)
