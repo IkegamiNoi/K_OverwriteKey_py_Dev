@@ -18,6 +18,7 @@ DEFAULT_CONFIG = {
         {
             "key": "f1",
             "suppress": True,
+            "label": "",
             "actions": [
                 {"type": "hotkey", "value": "ctrl+c"},
                 {"type": "hotkey", "value": "alt+tab"},
@@ -30,6 +31,7 @@ DEFAULT_CONFIG = {
         {
             "key": "f2",
             "suppress": True,
+            "label": "",
             "actions": [
                 {"type": "text", "value": "F2のシーケンス 1"},
                 {"type": "hotkey", "value": "ctrl+v"},
@@ -271,7 +273,11 @@ class App(tk.Tk):
         triggers = self.data.get("triggers", [])
         for i, t in enumerate(triggers):
             k = normalize_key_name(t.get("key", ""))
-            self.trigger_list.insert(tk.END, f"{i+1:02d}. {k}")
+            label = (t.get("label") or "").strip()
+            if label:
+                self.trigger_list.insert(tk.END, f"{i+1:02d}. {k}: {label}")
+            else:
+                self.trigger_list.insert(tk.END, f"{i+1:02d}. {k}")
             if k not in self._indices:
                 self._indices[k] = 0
 
@@ -377,11 +383,16 @@ class App(tk.Tk):
         if "triggers" not in self.data and "trigger_key" in self.data:
             old_key = normalize_key_name(self.data.get("trigger_key", "f1"))
             old_actions = self.data.get("actions", [])
-            self.data = {"triggers": [{"key": old_key, "suppress": True, "actions": old_actions}]}
+            self.data = {"triggers": [{"key": old_key, "label": "", "suppress": True, "actions": old_actions}]}
             
         # プリセットが無ければデフォルトを補う（既存ユーザー互換）
         if "hotkey_presets" not in self.data or not isinstance(self.data.get("hotkey_presets"), list):
             self.data["hotkey_presets"] = safe_deepcopy(DEFAULT_CONFIG.get("hotkey_presets", []))
+
+        # trigger の label 欠落を補う（既存データ互換）
+        for t in self.data.get("triggers", []) if isinstance(self.data.get("triggers"), list) else []:
+            if "label" not in t:
+                t["label"] = ""
 
     def save_config(self):
         try:
@@ -478,10 +489,13 @@ class App(tk.Tk):
 
     # ---------------- Trigger CRUD ----------------
     def add_trigger(self):
-        key = simpledialog.askstring("追加", "トリガーキーを入力（例: f1, f2, caps lock）", parent=self)
-        if not key:
+        dlg = TriggerDialog(self, title="トリガー追加")
+        dlg.wait_window()
+        res = getattr(dlg, "result", None)
+        if not res:
             return
-        key = normalize_key_name(key)
+        key = normalize_key_name(res.get("key", ""))
+        label = (res.get("label") or "").strip()
         if not key:
             return
         triggers = self.data.setdefault("triggers", [])
@@ -489,7 +503,7 @@ class App(tk.Tk):
         if any(normalize_key_name(t.get("key", "")) == key for t in triggers):
             messagebox.showerror("追加できません", f"すでに存在します: {key}")
             return
-        triggers.append({"key": key, "suppress": True, "actions": []})
+        triggers.append({"key": key, "label": label, "suppress": True, "actions": []})
         self._indices.setdefault(key, 0)
         self._refresh_triggers()
         # 末尾を選択
@@ -505,10 +519,14 @@ class App(tk.Tk):
             messagebox.showinfo("変更", "変更したいトリガーを選択してください。")
             return
         old = normalize_key_name(t.get("key", ""))
-        new = simpledialog.askstring("トリガー変更", f"新しいトリガーキー（現在: {old}）", initialvalue=old, parent=self)
-        if not new:
+        cur_label = (t.get("label") or "").strip()
+        dlg = TriggerDialog(self, title="トリガー変更", initial_key=old, initial_label=cur_label)
+        dlg.wait_window()
+        res = getattr(dlg, "result", None)
+        if not res:
             return
-        new = normalize_key_name(new)
+        new = normalize_key_name(res.get("key", ""))
+        new_label = (res.get("label") or "").strip()
         if not new:
             return
         triggers = self.data.get("triggers", [])
@@ -521,6 +539,7 @@ class App(tk.Tk):
         if old in self._indices:
             del self._indices[old]
         t["key"] = new
+        t["label"] = new_label
         self._refresh_triggers()
         if self.hook_active:
             self.start_hook()
@@ -1283,6 +1302,50 @@ class PresetManagerDialog(tk.Toplevel):
     def on_ok(self):
         # 保存して閉じる（※保存自体は親の保存ボタンで行う運用）
         self.parent.data["hotkey_presets"] = self._temp
+        self.destroy()
+
+class TriggerDialog(tk.Toplevel):
+    """トリガーキー + ラベル を入力するダイアログ（追加/変更で共通）"""
+    def __init__(self, parent: App, title: str, initial_key: str = "", initial_label: str = ""):
+        super().__init__(parent)
+        self.parent = parent
+        self.title(title)
+        self.resizable(False, False)
+        self.result = None
+
+        frm = ttk.Frame(self, padding=12)
+        frm.pack(fill="both", expand=True)
+        frm.grid_columnconfigure(1, weight=1)
+
+        ttk.Label(frm, text="トリガー").grid(row=0, column=0, sticky="w")
+        self.key_var = tk.StringVar(value=initial_key or "")
+        self.key_entry = ttk.Entry(frm, textvariable=self.key_var, width=28)
+        self.key_entry.grid(row=0, column=1, sticky="we", padx=(8, 0))
+
+        ttk.Label(frm, text="ラベル").grid(row=1, column=0, sticky="w", pady=(10, 0))
+        self.label_var = tk.StringVar(value=initial_label or "")
+        self.label_entry = ttk.Entry(frm, textvariable=self.label_var, width=42)
+        self.label_entry.grid(row=1, column=1, sticky="we", padx=(8, 0), pady=(10, 0))
+
+        hint = ttk.Label(frm, text="例）トリガー: f1 / ラベル: コピー→ウィンドウ切替→貼り付け")
+        hint.grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
+
+        btns = ttk.Frame(frm)
+        btns.grid(row=3, column=0, columnspan=2, sticky="e", pady=(14, 0))
+        ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
+        ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
+
+        self.key_entry.focus_set()
+        self.grab_set()
+        self.transient(parent)
+
+    def _ok(self):
+        key = normalize_key_name(self.key_var.get())
+        label = (self.label_var.get() or "").strip()
+        if not key:
+            messagebox.showerror("入力エラー", "トリガーが空です。")
+            return
+        self.result = {"key": key, "label": label}
         self.destroy()
 
 if __name__ == "__main__":
