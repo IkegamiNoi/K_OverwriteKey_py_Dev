@@ -1077,10 +1077,27 @@ class PresetManagerDialog(tk.Toplevel):
     def _sel(self):
         s = self.listbox.curselection()
         return int(s[0]) if s else None
+    
+    def _norm_label(self, s: str) -> str:
+        return (s or "").strip().lower()
+
+    def _label_exists(self, label: str, exclude_index: int | None = None) -> bool:
+        target = self._norm_label(label)
+        if not target:
+            return False
+        for i, p in enumerate(self._temp):
+            if exclude_index is not None and i == exclude_index:
+                continue
+            if self._norm_label(str(p.get("label", ""))) == target:
+                return True
+        return False
 
     def add(self):
         label = simpledialog.askstring("追加", "ボタン表示名（例: Win+D）", parent=self)
         if not label:
+            return
+        if self._label_exists(label):
+            messagebox.showerror("追加できません", f"同名のプリセットが既に存在します。\n\nlabel: {label.strip()}")
             return
         value = simpledialog.askstring("追加", "hotkey値（例: windows+d）", parent=self)
         if not value:
@@ -1103,6 +1120,9 @@ class PresetManagerDialog(tk.Toplevel):
         cur = self._temp[idx]
         label = simpledialog.askstring("編集", "ボタン表示名", initialvalue=str(cur.get("label", "")), parent=self)
         if not label:
+            return
+        if self._label_exists(label, exclude_index=idx):
+            messagebox.showerror("変更できません", f"同名のプリセットが既に存在します。\n\nlabel: {label.strip()}")
             return
         value = simpledialog.askstring("編集", "hotkey値", initialvalue=str(cur.get("value", "")), parent=self)
         if not value:
