@@ -1225,6 +1225,8 @@ class PresetManagerDialog(tk.Toplevel):
         ttk.Label(frm, text="プリセット一覧").grid(row=0, column=0, sticky="w")
         self.listbox = tk.Listbox(frm, height=12, width=56, exportselection=False)
         self.listbox.grid(row=1, column=0, rowspan=6, sticky="nsew", padx=(0, 10))
+        # ダブルクリックで編集
+        self.listbox.bind("<Double-Button-1>", self._on_double_click)
 
         btns = ttk.Frame(frm)
         btns.grid(row=1, column=1, sticky="n")
@@ -1246,6 +1248,12 @@ class PresetManagerDialog(tk.Toplevel):
         self._refresh()
         self.grab_set()
         self.transient(parent)
+
+    def _on_double_click(self, _event=None):
+        """プリセット一覧をダブルクリックしたら編集を開く"""
+        if not self.listbox.curselection():
+            return
+        self.edit()
 
     def _refresh(self):
         self.listbox.delete(0, tk.END)
