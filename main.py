@@ -300,8 +300,21 @@ class App(tk.Tk):
         actions = trig.get("actions", [])
         for i, a in enumerate(actions):
             t = a.get("type", "")
-            v = a.get("value", "")
-            self.action_list.insert(tk.END, f"{i+1:02d}. [{t}] {v}")
+            # 表示用 value（mouse_click は value ではなく x,y を表示）
+            if (a.get("type") or "").strip().lower() == "mouse_click":
+                x = a.get("x", "")
+                y = a.get("y", "")
+                btn = a.get("button", "left")
+                clicks = a.get("clicks", 1)
+                v_disp = f"({x}, {y}) {btn} x{clicks}"
+            else:
+                v_disp = a.get("value", "")
+
+            label = (a.get("label") or "").strip()
+            if label:
+                self.action_list.insert(tk.END, f"{i+1:02d}. [{t}] {v_disp}: {label}")
+            else:
+                self.action_list.insert(tk.END, f"{i+1:02d}. [{t}] {v_disp}")
 
         key = normalize_key_name(trig.get("key", ""))
         if key not in self._indices:
@@ -395,6 +408,12 @@ class App(tk.Tk):
         for t in self.data.get("triggers", []) if isinstance(self.data.get("triggers"), list) else []:
             if "label" not in t:
                 t["label"] = ""
+            # action の label 欠落を補う（既存データ互換）
+            actions = t.get("actions", [])
+            if isinstance(actions, list):
+                for a in actions:
+                    if isinstance(a, dict) and "label" not in a:
+                        a["label"] = ""
 
     def save_config(self):
         try:
@@ -856,6 +875,9 @@ class ActionDialog(tk.Toplevel):
 
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
+        # 4列に拡張（値＋ラベルを同じ行に置くため）
+        frm.grid_columnconfigure(1, weight=1)
+        frm.grid_columnconfigure(3, weight=1)
 
         ttk.Label(frm, text="種類").grid(row=0, column=0, sticky="w")
         self.type_var = tk.StringVar(value="hotkey")
@@ -865,6 +887,14 @@ class ActionDialog(tk.Toplevel):
 
         ttk.Label(frm, text="値（hotkey例: ctrl+c / text例: テスト）").grid(row=1, column=0, sticky="w", pady=(10, 0))
         self.value_var = tk.StringVar(value="")
+        self.value_entry = ttk.Entry(frm, textvariable=self.value_var, width=28)
+        self.value_entry.grid(row=1, column=1, sticky="we", padx=(8, 0), pady=(10, 0))
+
+        # 追加：シーケンス用ラベル（任意）
+        ttk.Label(frm, text="ラベル").grid(row=1, column=2, sticky="w", padx=(12, 0), pady=(10, 0))
+        self.action_label_var = tk.StringVar(value="")
+        self.action_label_entry = ttk.Entry(frm, textvariable=self.action_label_var, width=22)
+        self.action_label_entry.grid(row=1, column=3, sticky="we", padx=(8, 0), pady=(10, 0))
         self.value_entry = ttk.Entry(frm, textvariable=self.value_var, width=42)
         self.value_entry.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(10, 0))
 
@@ -872,11 +902,11 @@ class ActionDialog(tk.Toplevel):
         self.capture_btn = ttk.Button(frm, text="キー入力で記録", command=self._toggle_recording)
         self.capture_btn.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
         self.capture_hint = ttk.Label(frm, text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
-        self.capture_hint.grid(row=3, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        self.capture_hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(6, 0))
         
         # OSショートカット用プリセット（JSONから生成 / hotkeyのときのみ有効）
         self.presets_frame = ttk.LabelFrame(frm, text="OSショートカット（プリセット）", padding=8)
-        self.presets_frame.grid(row=4, column=0, columnspan=2, sticky="we", pady=(10, 0))
+        self.presets_frame.grid(row=4, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.presets_frame.grid_columnconfigure(0, weight=1)
         self.presets_frame.grid_columnconfigure(1, weight=1)
         self.presets_frame.grid_columnconfigure(2, weight=1)
@@ -895,7 +925,7 @@ class ActionDialog(tk.Toplevel):
 
         # mouse_click 用UI（座標/ボタン/回数）
         self.mouse_frame = ttk.LabelFrame(frm, text="マウスクリック設定", padding=8)
-        self.mouse_frame.grid(row=5, column=0, columnspan=2, sticky="we", pady=(10, 0))
+        self.mouse_frame.grid(row=5, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.mouse_frame.grid_columnconfigure(1, weight=1)
 
         ttk.Label(self.mouse_frame, text="X").grid(row=0, column=0, sticky="w")
@@ -923,6 +953,7 @@ class ActionDialog(tk.Toplevel):
         if initial:
             self.type_var.set((initial.get("type") or "hotkey").strip().lower())
             self.value_var.set(initial.get("value") or "")
+            self.action_label_var.set(initial.get("label") or "")
             # mouse_click の初期値
             if (initial.get("type") or "").strip().lower() == "mouse_click":
                 if "x" in initial: self.mouse_x_var.set(str(initial.get("x")))
@@ -939,6 +970,7 @@ class ActionDialog(tk.Toplevel):
     def on_ok(self):
         t = (self.type_var.get() or "").strip().lower()
         v = self.value_var.get()
+        label = (self.action_label_var.get() or "").strip()
         if t not in ("hotkey", "text", "mouse_click"):
             messagebox.showerror("入力エラー", "種類が不正です。")
             return
@@ -946,7 +978,7 @@ class ActionDialog(tk.Toplevel):
             if not v:
                 messagebox.showerror("入力エラー", "値が空です。")
                 return
-            self.parent._dialog_result = {"type": t, "value": v}
+            self.parent._dialog_result = {"type": t, "value": v, "label": label}
         else:
             # mouse_click
             sx = self.mouse_x_var.get().strip()
@@ -969,7 +1001,7 @@ class ActionDialog(tk.Toplevel):
                 clicks = 1
             if btn not in ("left", "right", "middle"):
                 btn = "left"
-            self.parent._dialog_result = {"type": "mouse_click", "x": x, "y": y, "button": btn, "clicks": clicks}
+            self.parent._dialog_result = {"type": "mouse_click", "x": x, "y": y, "button": btn, "clicks": clicks, "label": label}
         self.destroy()
 
     def _capture_mouse_position(self):
@@ -1121,8 +1153,11 @@ class ActionDialog(tk.Toplevel):
         if hasattr(self, "mouse_frame"):
             if t == "mouse_click":
                 self.mouse_frame.grid()  # 表示
+                # mouse_click は value を使わないので無効化（ラベルは使う）
+                self.value_entry.configure(state="disabled")
             else:
                 self.mouse_frame.grid_remove()  # 非表示
+                self.value_entry.configure(state="normal")
 
     def _apply_preset(self, hotkey: str):
         """プリセットボタンで hotkey を値欄にセット"""
