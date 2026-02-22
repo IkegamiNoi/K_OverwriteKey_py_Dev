@@ -47,7 +47,9 @@ DEFAULT_CONFIG = {
         {"label": "Win+Tab", "value": "windows+tab"},
         {"label": "Win+X", "value": "windows+x"},
         {"label": "Alt+F4", "value": "alt+f4"}
-    ]
+    ],
+    # フック停止用トリガー（トリガー一覧とは別枠）
+    "hook_stop_key": ""
 }
 
 
@@ -72,6 +74,8 @@ class App(tk.Tk):
 
         self.hook_active = False
         self._hook_handles = {}     # key -> hook_handle
+        self._stop_hook_handle = None
+        
         # ダイアログのネストに対応するためカウンタ方式にする
         self._hook_suspend_count = 0
         self._hook_was_active_before_dialog = False
@@ -82,11 +86,11 @@ class App(tk.Tk):
         self._error_dialog_open = False           # エラーダイアログ多重表示防止
  
         self._build_ui()
-        #self._load_if_exists()
         self._load_startup_and_config()
         self._refresh_triggers()
         self._refresh_actions()
         self._update_status()
+        self._sync_hook_stop_key_ui()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
 
@@ -124,6 +128,20 @@ class App(tk.Tk):
         self.stop_btn = ttk.Button(top, text="停止（フックOFF）", command=self.stop_hook, state="disabled")
         self.start_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         self.stop_btn.grid(row=0, column=1, sticky="w")
+        
+        # ---- フック停止用トリガー ----
+        #hook_box = ttk.LabelFrame(outer, text="フック", padding=10)
+        # ※既に hook_box がある場合は作らず、その中に以下だけ追加してください
+        # hook_box.pack(...) 等は既存のまま
+
+        ttk.Label(top, text="フック停止トリガー").grid(row=0, column=2, sticky="w")
+        self.stop_key_var = tk.StringVar(value=str(self.data.get("hook_stop_key", "")))
+        self.stop_key_entry = ttk.Entry(top, textvariable=self.stop_key_var, width=16)
+        self.stop_key_entry.grid(row=0, column=3, sticky="w", padx=(8, 0))
+        self.stop_key_entry.bind("<Key>", lambda e: "break")
+
+        ttk.Button(top, text="適用", command=self.apply_stop_key).grid(row=0, column=4, sticky="w", padx=(8, 0))
+        ttk.Label(top, text="※開始（フックON）中のみ編集可 / トリガー一覧と重複不可").grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
 
         self.status_var = tk.StringVar(value="")
         ttk.Label(top, textvariable=self.status_var).grid(row=1, column=0, columnspan=6, sticky="w", pady=(8, 0))
@@ -404,6 +422,10 @@ class App(tk.Tk):
         if "hotkey_presets" not in self.data or not isinstance(self.data.get("hotkey_presets"), list):
             self.data["hotkey_presets"] = safe_deepcopy(DEFAULT_CONFIG.get("hotkey_presets", []))
 
+        # 停止キーが無ければ補う
+        if "hook_stop_key" not in self.data:
+            self.data["hook_stop_key"] = ""
+
         # trigger の label 欠落を補う（既存データ互換）
         for t in self.data.get("triggers", []) if isinstance(self.data.get("triggers"), list) else []:
             if "label" not in t:
@@ -524,6 +546,11 @@ class App(tk.Tk):
         if any(normalize_key_name(t.get("key", "")) == key for t in triggers):
             messagebox.showerror("追加できません", f"すでに存在します: {key}")
             return
+        # フック停止トリガーとの重複チェック
+        stop_key = normalize_key_name(self.data.get("hook_stop_key", ""))
+        if stop_key and key == stop_key:
+            messagebox.showerror("追加できません", f"このキーはフック停止トリガーに設定されています:\n{key}")
+            return
         triggers.append({"key": key, "label": label, "suppress": True, "actions": []})
         self._indices.setdefault(key, 0)
         self._refresh_triggers()
@@ -553,6 +580,10 @@ class App(tk.Tk):
         triggers = self.data.get("triggers", [])
         if any(normalize_key_name(x.get("key", "")) == new for x in triggers if x is not t):
             messagebox.showerror("変更できません", f"すでに存在します: {new}")
+            return
+        stop_key = normalize_key_name(self.data.get("hook_stop_key", ""))
+        if stop_key and new == stop_key:
+            messagebox.showerror("変更できません", f"このキーはフック停止トリガーに設定されています:\n{new}")
             return
         # indices の移し替え
         self._indices.setdefault(old, 0)
@@ -670,6 +701,8 @@ class App(tk.Tk):
             # 既存フック解除 → 全再登録（設定変更を確実に反映）
             self.stop_hook()
             self.hook_active = True
+            self._install_stop_hook()
+            self._sync_hook_stop_key_ui()
             self._hook_handles = {}
             for k, sup in usable:
                 self._indices.setdefault(k, 0)
@@ -693,12 +726,81 @@ class App(tk.Tk):
                 pass
         self._hook_handles = {}
         self.hook_active = False
+        self._uninstall_stop_hook()
+        self._sync_hook_stop_key_ui()
         if hasattr(self, "start_btn"):
             self.start_btn.configure(state="normal")
         if hasattr(self, "stop_btn"):
             self.stop_btn.configure(state="disabled")
         self._update_status()
 
+    def _install_stop_hook(self):
+        """停止トリガーを（設定されていれば）suppress=True で登録"""
+        self._uninstall_stop_hook()
+        key = normalize_key_name(self.data.get("hook_stop_key", ""))
+        if not key:
+            return
+
+        def _on_stop(_e=None):
+            # keyboardのコールバックは別スレッドになり得るのでUIスレッドで止める
+            self.after(0, self.stop_hook)
+
+        try:
+            # 停止キーは必ず抑止（要件）
+            self._stop_hook_handle = keyboard.on_press_key(key, lambda e: _on_stop(e), suppress=True)
+        except Exception as e:
+            self._stop_hook_handle = None
+            self.after(0, lambda: messagebox.showerror("フック設定失敗", f"停止トリガーの登録に失敗しました:\n{key}\n\n{type(e).__name__}: {e}"))
+
+    def _uninstall_stop_hook(self):
+        try:
+            if self._stop_hook_handle is not None:
+                keyboard.unhook(self._stop_hook_handle)
+        except Exception:
+            pass
+        self._stop_hook_handle = None
+
+    def _sync_hook_stop_key_ui(self):
+        """開始（フックON）中のみ停止トリガー欄を有効化"""
+        if not hasattr(self, "stop_key_entry"):
+            return
+        #state = "normal" if self.hook_active else "readonly"
+        #self.stop_key_entry.configure(state=state)
+
+    def apply_stop_key(self):
+        """停止トリガーを設定（重複禁止）。hook_stop_key に保存し、フックON中なら反映する。"""
+        #if not self.hook_active:
+        #    messagebox.showinfo("設定", "開始（フックON）中のみ変更できます。")
+        #    return
+
+        key = normalize_key_name(self.stop_key_var.get())
+        # 空OK（無効化したい場合）
+        if key:
+            # トリガー一覧との重複禁止
+            triggers = self.data.get("triggers", [])
+            if any(normalize_key_name(t.get("key", "")) == key for t in triggers):
+                messagebox.showerror("設定できません", f"停止トリガーがトリガー一覧と重複しています:\n{key}")
+                return
+
+            # 単キーのみ想定（今の設計に合わせる）
+            if "+" in key:
+                messagebox.showerror("設定できません", "停止トリガーは単キーのみ対応です（例: f12）。")
+                return
+
+            # キー名の妥当性チェック（送信ではなく、存在チェックとして）
+            try:
+                keyboard.key_to_scan_codes(key)
+            except Exception as e:
+                messagebox.showerror("設定できません", f"不明なキー名です:\n{key}\n\n{e}")
+                return
+
+        # 保存
+        self.data["hook_stop_key"] = key
+
+        # フックON中なら反映（いったん再登録）
+        self._install_stop_hook()
+        messagebox.showinfo("設定", f"フック停止トリガーを設定しました:\n{key if key else '(未設定)'}")
+        
     def _on_trigger_key(self, key: str):
         # フックは別スレッドで来る可能性があるのでロック + 再入防止（key単位）
         key = normalize_key_name(key)
