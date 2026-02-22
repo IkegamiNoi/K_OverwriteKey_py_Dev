@@ -885,24 +885,23 @@ class ActionDialog(tk.Toplevel):
         self.type_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
         self.type_combo.bind("<<ComboboxSelected>>", lambda _e: self._sync_capture_ui())
 
-        ttk.Label(frm, text="値（hotkey例: ctrl+c / text例: テスト）").grid(row=1, column=0, sticky="w", pady=(10, 0))
+        ttk.Label(frm, text="値").grid(row=1, column=0, sticky="w", pady=(10, 0))
         self.value_var = tk.StringVar(value="")
-        self.value_entry = ttk.Entry(frm, textvariable=self.value_var, width=28)
-        self.value_entry.grid(row=1, column=1, sticky="we", padx=(8, 0), pady=(10, 0))
-
-        # 追加：シーケンス用ラベル（任意）
-        ttk.Label(frm, text="ラベル").grid(row=1, column=2, sticky="w", padx=(12, 0), pady=(10, 0))
-        self.action_label_var = tk.StringVar(value="")
-        self.action_label_entry = ttk.Entry(frm, textvariable=self.action_label_var, width=22)
-        self.action_label_entry.grid(row=1, column=3, sticky="we", padx=(8, 0), pady=(10, 0))
         self.value_entry = ttk.Entry(frm, textvariable=self.value_var, width=42)
-        self.value_entry.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(10, 0))
+        self.value_entry.grid(row=1, column=1, columnspan=3, sticky="we", padx=(8, 0), pady=(10, 0))
 
         # hotkey のときだけ「記録」UIを出す
         self.capture_btn = ttk.Button(frm, text="キー入力で記録", command=self._toggle_recording)
         self.capture_btn.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
+        # ヒントはボタンの右側に置く（行を空けてラベル欄を下へ移すため）
         self.capture_hint = ttk.Label(frm, text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
-        self.capture_hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(6, 0))
+        self.capture_hint.grid(row=2, column=2, columnspan=2, sticky="w", padx=(12, 0), pady=(8, 0))
+
+        # シーケンス用ラベル（任意）：キー入力で記録ボタンの1行下へ移動
+        ttk.Label(frm, text="ラベル").grid(row=3, column=0, sticky="w", pady=(6, 0))
+        self.action_label_var = tk.StringVar(value="")
+        self.action_label_entry = ttk.Entry(frm, textvariable=self.action_label_var, width=42)
+        self.action_label_entry.grid(row=3, column=1, columnspan=3, sticky="we", padx=(8, 0), pady=(6, 0))
         
         # OSショートカット用プリセット（JSONから生成 / hotkeyのときのみ有効）
         self.presets_frame = ttk.LabelFrame(frm, text="OSショートカット（プリセット）", padding=8)
