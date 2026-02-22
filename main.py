@@ -915,12 +915,12 @@ class ActionDialog(tk.Toplevel):
         self._rebuild_preset_buttons()
 
         self.preset_edit_btn = ttk.Button(frm, text="プリセット編集…", command=self._open_preset_manager)
-        self.preset_edit_btn.grid(row=6, column=0, sticky="w", padx=(8, 0), pady=(10, 0))
+        self.preset_edit_btn.grid(row=6, column=0, sticky="w", padx=(8, 0), pady=(14, 0))
 
         btns = ttk.Frame(frm)
-        btns.grid(row=6, column=1, columnspan=2, sticky="e", pady=(14, 0))
+        btns.grid(row=6, column=2, columnspan=2, sticky="e", pady=(14, 0))
         ttk.Button(btns, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
-        ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
+        ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left", padx=(0, 8))
 
         # mouse_click 用UI（座標/ボタン/回数）
         self.mouse_frame = ttk.LabelFrame(frm, text="マウスクリック設定", padding=8)
