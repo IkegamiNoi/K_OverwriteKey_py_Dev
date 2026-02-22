@@ -72,7 +72,8 @@ class App(tk.Tk):
 
         self.hook_active = False
         self._hook_handles = {}     # key -> hook_handle
-        self._hook_suspended_by_dialog = False
+        # ダイアログのネストに対応するためカウンタ方式にする
+        self._hook_suspend_count = 0
         self._hook_was_active_before_dialog = False
         self._lock = threading.Lock()
         self._indices = {}          # key -> next index
@@ -91,23 +92,24 @@ class App(tk.Tk):
 
     # ---------------- Hook suspend/resume for modal dialogs ----------------
     def suspend_hook_for_dialog(self):
-        """モーダルダイアログ表示中の誤爆を防ぐため、フックを一時停止（元がONのときだけ）"""
-        if self._hook_suspended_by_dialog:
-            return
-        self._hook_was_active_before_dialog = bool(self.hook_active)
-        self._hook_suspended_by_dialog = True
-        if self._hook_was_active_before_dialog:
-            self.stop_hook()
+        """編集系ダイアログ表示中の誤爆を防ぐため、フックを一時停止（ネスト対応）"""
+        self._hook_suspend_count += 1
+        if self._hook_suspend_count == 1:
+            self._hook_was_active_before_dialog = bool(self.hook_active)
+            if self._hook_was_active_before_dialog:
+                self.stop_hook()
 
     def resume_hook_after_dialog(self):
-        """一時停止したフックを元に戻す（元がONなら再開）"""
-        if not self._hook_suspended_by_dialog:
+        """一時停止したフックを元に戻す（ネスト対応。最後のダイアログが閉じた時だけ復帰）"""
+        if self._hook_suspend_count <= 0:
+            self._hook_suspend_count = 0
             return
-        was_on = self._hook_was_active_before_dialog
-        self._hook_suspended_by_dialog = False
-        self._hook_was_active_before_dialog = False
-        if was_on:
-            self.start_hook()
+        self._hook_suspend_count -= 1
+        if self._hook_suspend_count == 0:
+            was_on = self._hook_was_active_before_dialog
+            self._hook_was_active_before_dialog = False
+            if was_on:
+                self.start_hook()
 
     # ---------------- UI ----------------
     def _build_ui(self):
@@ -1175,6 +1177,9 @@ class PresetManagerDialog(tk.Toplevel):
         self.parent = parent
         self.title(title)
         self.resizable(False, False)
+        
+        # 編集中の誤爆防止
+        self.parent.suspend_hook_for_dialog()
 
         self._temp = safe_deepcopy(parent.data.get("hotkey_presets", []))
         if not isinstance(self._temp, list):
@@ -1304,6 +1309,10 @@ class PresetManagerDialog(tk.Toplevel):
         self.parent.data["hotkey_presets"] = self._temp
         self.destroy()
 
+    def destroy(self):
+        # ダイアログ終了でフックを必要なら再開
+        self.parent.resume_hook_after_dialog()
+        super().destroy()
 class TriggerDialog(tk.Toplevel):
     """トリガーキー + ラベル を入力するダイアログ（追加/変更で共通）"""
     def __init__(self, parent: App, title: str, initial_key: str = "", initial_label: str = ""):
@@ -1313,6 +1322,9 @@ class TriggerDialog(tk.Toplevel):
         self.resizable(False, False)
         self.result = None
         self._capturing = False
+        
+        # 編集中の誤爆防止
+        self.parent.suspend_hook_for_dialog()
 
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
@@ -1353,6 +1365,8 @@ class TriggerDialog(tk.Toplevel):
         
     def destroy(self):
         self._stop_capture()
+        # ダイアログ終了でフックを必要なら再開
+        self.parent.resume_hook_after_dialog()
         super().destroy()
 
     def _toggle_capture(self):
