@@ -135,7 +135,7 @@ class App(tk.Tk):
         left = ttk.LabelFrame(mid, text="トリガー一覧（選択して編集）", padding=10)
         left.pack(side="left", fill="y")
 
-        self.trigger_list = tk.Listbox(left, height=12, width=22, exportselection=False)
+        self.trigger_list = tk.Listbox(left, height=12, width=26, exportselection=False)
         self.trigger_list.pack(side="top", fill="y", expand=False)
         self.trigger_list.bind("<<ListboxSelect>>", lambda _e: self._refresh_actions())
         # ダブルクリックで「トリガー変更」（= rename_trigger）を開く
@@ -178,7 +178,7 @@ class App(tk.Tk):
         bottom = ttk.Frame(outer)
         bottom.pack(fill="x", pady=(12, 0))
 
-        ttk.Button(bottom, text="保存（config.json）", command=self.save_config).pack(side="left")
+        ttk.Button(bottom, text="保存", command=self.save_config).pack(side="left")
         ttk.Button(bottom, text="別名で保存…", command=self.save_as).pack(side="left", padx=(8, 0))
         ttk.Button(bottom, text="読込…", command=self.load_from).pack(side="left", padx=(8, 0))
         ttk.Button(bottom, text="プリセット編集…", command=self.open_preset_manager).pack(side="left", padx=(8, 0))
