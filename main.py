@@ -427,6 +427,9 @@ class App(tk.Tk):
         # 停止キーが無ければ補う
         if "hook_stop_key" not in self.data:
             self.data["hook_stop_key"] = ""
+        # UIへ反映（UI生成後に呼ばれる場合はガード）
+        if hasattr(self, "stop_key_var"):
+            self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
 
         # trigger の label 欠落を補う（既存データ互換）
         for t in self.data.get("triggers", []) if isinstance(self.data.get("triggers"), list) else []:
@@ -443,6 +446,11 @@ class App(tk.Tk):
         try:
             with open(self.config_path, "w", encoding="utf-8") as f:
                 json.dump(self.data, f, ensure_ascii=False, indent=2)
+            # 保険：停止トリガーが未定義なら空で入れる（保存から漏れないように）
+            if "hook_stop_key" not in self.data:
+                self.data["hook_stop_key"] = ""
+            with open(self.config_path, "w", encoding="utf-8") as f:
+                json.dump(self.data, f, ensure_ascii=False, indent=2)
             messagebox.showinfo("保存", f"保存しました:\n{self.config_path}")
         except Exception as e:
             messagebox.showerror("保存失敗", str(e))
@@ -456,6 +464,8 @@ class App(tk.Tk):
         if not path:
             return
         try:
+            if "hook_stop_key" not in self.data:
+                self.data["hook_stop_key"] = ""
             with open(path, "w", encoding="utf-8") as f:
                 json.dump(self.data, f, ensure_ascii=False, indent=2)
             messagebox.showinfo("保存", f"保存しました:\n{path}")
@@ -477,6 +487,14 @@ class App(tk.Tk):
                 old_key = normalize_key_name(self.data.get("trigger_key", "f1"))
                 old_actions = self.data.get("actions", [])
                 self.data = {"triggers": [{"key": old_key, "suppress": True, "actions": old_actions}]}
+            if "hook_stop_key" not in self.data:
+                self.data["hook_stop_key"] = ""
+            if hasattr(self, "stop_key_var"):
+                self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
+
+            # フックON中なら停止トリガー登録も更新
+            if getattr(self, "hook_active", False):
+                self._install_stop_hook()
             self._indices = {}
             self._refresh_triggers()
             self._refresh_actions()
@@ -1033,6 +1051,7 @@ class App(tk.Tk):
 
         self.data["hook_stop_key"] = ""
         if hasattr(self, "stop_key_var"):
+            self.data["hook_stop_key"] = ""
             self.stop_key_var.set("")
 
         # フックON中なら停止トリガーのフックだけ解除
