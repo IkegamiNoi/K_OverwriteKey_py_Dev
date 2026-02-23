@@ -138,6 +138,9 @@ class App(tk.Tk):
 
         self.stop_key_capture_btn = ttk.Button(top, text="キー入力で取得", command=self._toggle_stop_key_capture)
         self.stop_key_capture_btn.grid(row=0, column=4, sticky="w", padx=(8, 0))
+        
+        self.stop_key_clear_btn = ttk.Button(top, text="クリア", command=self.clear_stop_key)
+        self.stop_key_clear_btn.grid(row=0, column=5, sticky="w", padx=(8, 0))
 
         self.stop_key_hint = ttk.Label(top, text="※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
         self.stop_key_hint.grid(row=1, column=2, columnspan=3, sticky="w", pady=(6, 0))
@@ -159,14 +162,14 @@ class App(tk.Tk):
         self.trigger_list.bind("<Double-Button-1>", self._on_trigger_double_click)
 
         tbtns = ttk.Frame(left)
-        tbtns.pack(fill="x", pady=(10, 0))
-        ttk.Button(tbtns, text="追加", command=self.add_trigger).pack(fill="x", pady=(0, 6))
-        ttk.Button(tbtns, text="トリガー変更", command=self.rename_trigger).pack(fill="x", pady=6)
-        ttk.Button(tbtns, text="削除", command=self.delete_trigger).pack(fill="x", pady=6)
+        tbtns.pack(fill="x", pady=(6, 0))
+        ttk.Button(tbtns, text="追加", command=self.add_trigger).pack(fill="x", pady=(0, 3))
+        ttk.Button(tbtns, text="トリガー変更", command=self.rename_trigger).pack(fill="x", pady=3)
+        ttk.Button(tbtns, text="削除", command=self.delete_trigger).pack(fill="x", pady=3)
 
         self.suppress_var = tk.BooleanVar(value=True)
         self.suppress_chk = ttk.Checkbutton(left, text="トリガーキーを抑止（suppress）", variable=self.suppress_var, command=self.update_suppress)
-        self.suppress_chk.pack(anchor="w", pady=(10, 0))
+        self.suppress_chk.pack(anchor="w", pady=(6, 0))
 
         right = ttk.LabelFrame(mid, text="出力シーケンス（選択中トリガーの内容）", padding=10)
         right.pack(side="left", fill="both", expand=True, padx=(12, 0))
@@ -920,6 +923,8 @@ class App(tk.Tk):
         self._capturing_stop_key = True
         if hasattr(self, "stop_key_capture_btn"):
             self.stop_key_capture_btn.configure(text="取得中…（Escで停止）")
+        if hasattr(self, "stop_key_clear_btn"):
+            self.stop_key_clear_btn.configure(state="disabled")
         if hasattr(self, "stop_key_hint"):
             self.stop_key_hint.configure(text="取得中：停止トリガーにしたいキーを1回押してください（Escでキャンセル）")
 
@@ -944,6 +949,8 @@ class App(tk.Tk):
 
         if hasattr(self, "stop_key_capture_btn"):
             self.stop_key_capture_btn.configure(text="キー入力で取得")
+        if hasattr(self, "stop_key_clear_btn"):
+            self.stop_key_clear_btn.configure(state="normal")
         if hasattr(self, "stop_key_hint"):
             self.stop_key_hint.configure(text="※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
 
@@ -1017,6 +1024,24 @@ class App(tk.Tk):
             "next": "page down",
         }
         return mapping.get(k, k)
+
+    def clear_stop_key(self):
+        """停止トリガーを未設定（空）に戻す"""
+        # キャプチャ中なら終了（フックの一時停止も戻す）
+        if getattr(self, "_capturing_stop_key", False):
+            self._stop_stop_key_capture(cancel=True)
+
+        self.data["hook_stop_key"] = ""
+        if hasattr(self, "stop_key_var"):
+            self.stop_key_var.set("")
+
+        # フックON中なら停止トリガーのフックだけ解除
+        # （他のトリガーフックはそのまま）
+        if getattr(self, "hook_active", False):
+            self._uninstall_stop_hook()
+
+        if hasattr(self, "stop_key_hint"):
+            self.stop_key_hint.configure(text="未設定にしました。※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
 
     # ---------------- Close ----------------
     def on_close(self):
