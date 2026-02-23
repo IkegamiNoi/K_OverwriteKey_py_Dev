@@ -74,6 +74,9 @@ class App(tk.Tk):
 
         self.hook_active = False
         self.always_on_top_var = tk.BooleanVar(value=False)
+        self._compact_mode = False
+        self._full_geometry = None  # 省略表示へ入る前の geometry を記憶
+        self.always_on_top_var = tk.BooleanVar(value=False)
         
         self._hook_handles = {}     # key -> hook_handle
         self._stop_hook_handle = None
@@ -123,10 +126,12 @@ class App(tk.Tk):
         outer.pack(fill="both", expand=True)
 
         top = ttk.Frame(outer)
-        top.pack(fill="both", expand=True, pady=(12, 0))
+        top.pack(fill="x", expand=False, pady=(12, 0))
+        self._ui_top = top
         # 上段：フック操作
         hook_box = ttk.LabelFrame(top, text="フック", padding=10)
         hook_box.pack(side="left", fill="y")
+        self._ui_hook_box = hook_box
 
         self.start_btn = ttk.Button(hook_box, text="開始（フックON）", command=self.start_hook)
         self.stop_btn = ttk.Button(hook_box, text="停止（フックOFF）", command=self.stop_hook, state="disabled")
@@ -156,6 +161,7 @@ class App(tk.Tk):
         # ---- 常に手前（Topmost） ----
         topmost_frame = ttk.LabelFrame(top, text="表示", padding=(10, 6))
         topmost_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
+        self._ui_topmost_frame = topmost_frame
         self.topmost_chk = ttk.Checkbutton(
             topmost_frame,
             text="常に手前",
@@ -164,12 +170,21 @@ class App(tk.Tk):
         )
         self.topmost_chk.grid(row=0, column=0, sticky="w")
         
+        # 省略表示/フル復帰（同じ枠内。どちらか一方だけ表示）
+        self.compact_btn = ttk.Button(topmost_frame, text="省略表示", command=self._enter_compact_mode)
+        self.compact_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
+        self.full_btn = ttk.Button(topmost_frame, text="フルに戻す", command=self._exit_compact_mode)
+        self.full_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
+        self.full_btn.grid_remove()       
+        
         # 中段：左=トリガー一覧 / 右=アクション
         mid = ttk.Frame(outer)
         mid.pack(fill="both", expand=True, pady=(12, 0))
+        self._ui_mid = mid
 
         left = ttk.LabelFrame(mid, text="トリガー一覧（選択して編集）", padding=10)
         left.pack(side="left", fill="y")
+        self._ui_left = left
 
         # トリガー一覧（スクロール対応）
         trigger_list_frame = ttk.Frame(left)
@@ -197,6 +212,7 @@ class App(tk.Tk):
 
         right = ttk.LabelFrame(mid, text="出力シーケンス（選択中トリガーの内容）", padding=10)
         right.pack(side="left", fill="both", expand=True, padx=(12, 0))
+        self._ui_right = right
 
         self.action_list = tk.Listbox(right, height=18, exportselection=False)
         self.action_list.pack(side="left", fill="both", expand=True)
@@ -220,6 +236,7 @@ class App(tk.Tk):
         # 下段：保存/読込
         bottom = ttk.Frame(outer)
         bottom.pack(fill="x", pady=(12, 0))
+        self._ui_bottom = bottom
 
         ttk.Button(bottom, text="保存", command=self.save_config).pack(side="left")
         ttk.Button(bottom, text="別名で保存…", command=self.save_as).pack(side="left", padx=(8, 0))
@@ -227,6 +244,118 @@ class App(tk.Tk):
         ttk.Button(bottom, text="プリセット編集…", command=self.open_preset_manager).pack(side="left", padx=(8, 0))
         ttk.Button(bottom, text="起動時に読むJSONを指定…", command=self.set_startup_config).pack(side="left", padx=(8, 0))
         ttk.Button(bottom, text="例を復元", command=self.restore_default).pack(side="right")
+
+    def _apply_always_on_top(self):
+        """チェック状態に応じてウィンドウを常に手前にする"""
+        try:
+            self.attributes("-topmost", bool(self.always_on_top_var.get()))
+        except Exception:
+            pass
+
+    def _enter_compact_mode(self):
+        if self._compact_mode:
+            return
+        # 現在のサイズを復元できるように記憶（ユーザーが手で変えていても戻せる）
+        try:
+            self._full_geometry = self.geometry()
+        except Exception:
+            self._full_geometry = None
+        self._set_compact_mode(True)
+
+    def _exit_compact_mode(self):
+        if not self._compact_mode:
+            return
+        self._set_compact_mode(False)
+
+    def _set_compact_mode(self, enabled: bool):
+        self._compact_mode = bool(enabled)
+        if self._compact_mode:
+            self._apply_compact_layout()
+            self._apply_compact_geometry()
+        else:
+            self._apply_full_layout()
+            self._restore_full_geometry()
+        self._update_status()
+
+    def _apply_compact_layout(self):
+        # ボタン表示切替
+        if hasattr(self, "compact_btn") and hasattr(self, "full_btn"):
+            self.compact_btn.grid_remove()
+            self.full_btn.grid()
+
+        # フック枠：停止トリガーの取得/クリアを省略（表示だけ残す）
+        if hasattr(self, "stop_key_capture_btn"):
+            self.stop_key_capture_btn.grid_remove()
+        if hasattr(self, "stop_key_clear_btn"):
+            self.stop_key_clear_btn.grid_remove()
+
+        # top 内を縦並びに再pack（同じウィジェットを再配置）
+        if hasattr(self, "_ui_hook_box") and hasattr(self, "_ui_topmost_frame"):
+            self._ui_hook_box.pack_forget()
+            self._ui_topmost_frame.pack_forget()
+            self._ui_hook_box.pack(side="top", fill="x", expand=False)
+            self._ui_topmost_frame.pack(side="top", fill="x", expand=False, pady=(8, 0))
+
+        # mid：右（出力シーケンス）を隠し、左（トリガー一覧）だけにする
+        if hasattr(self, "_ui_right"):
+            self._ui_right.pack_forget()
+        if hasattr(self, "_ui_left"):
+            self._ui_left.pack_forget()
+            self._ui_left.pack(side="top", fill="both", expand=True)
+
+        # bottom（保存/読込）を隠す
+        if hasattr(self, "_ui_bottom"):
+            self._ui_bottom.pack_forget()
+
+    def _apply_full_layout(self):
+        # ボタン表示切替
+        if hasattr(self, "compact_btn") and hasattr(self, "full_btn"):
+            self.full_btn.grid_remove()
+            self.compact_btn.grid()
+
+        # 停止トリガーの取得/クリアを戻す
+        if hasattr(self, "stop_key_capture_btn"):
+            self.stop_key_capture_btn.grid()
+        if hasattr(self, "stop_key_clear_btn"):
+            self.stop_key_clear_btn.grid()
+
+        # top：左右並びに戻す
+        if hasattr(self, "_ui_hook_box") and hasattr(self, "_ui_topmost_frame"):
+            self._ui_hook_box.pack_forget()
+            self._ui_topmost_frame.pack_forget()
+            self._ui_hook_box.pack(side="left", fill="y")
+            self._ui_topmost_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
+
+        # mid：左/右を左右並びに戻す
+        if hasattr(self, "_ui_left") and hasattr(self, "_ui_right"):
+            self._ui_left.pack_forget()
+            self._ui_right.pack_forget()
+            self._ui_left.pack(side="left", fill="y")
+            self._ui_right.pack(side="left", fill="both", expand=True, padx=(12, 0))
+
+        # bottom を戻す
+        if hasattr(self, "_ui_bottom"):
+            self._ui_bottom.pack(fill="x", pady=(12, 0))
+
+    def _apply_compact_geometry(self):
+        """省略表示時のサイズ（細め）へ"""
+        try:
+            # 高さは現状維持、幅だけ細めに寄せる（トリガー一覧程度）
+            self.update_idletasks()
+            h = max(360, int(self.winfo_height() or 560))
+            w = 360
+            self.geometry(f"{w}x{h}")
+        except Exception:
+            pass
+
+    def _restore_full_geometry(self):
+        """省略表示に入る前のサイズへ復元（取れていれば）"""
+        if not self._full_geometry:
+            return
+        try:
+            self.geometry(self._full_geometry)
+        except Exception:
+            pass
 
     def _apply_always_on_top(self):
         """チェック状態に応じてウィンドウを常に手前にする"""
@@ -314,12 +443,43 @@ class App(tk.Tk):
 
     def _update_status(self):
         state = "ON" if self.hook_active else "OFF"
+        sel_key = self._selected_trigger_key() or "(未選択)"
+        if getattr(self, "_compact_mode", False):
+            # 省略表示：ON/OFF + 選択中トリガー + 次に実行（行の内容）
+            line = self._get_next_action_summary(sel_key)
+            self.status_var.set(f"フック: {state} / 選択: {sel_key} / 次: {line}")
+            return
+
         triggers = self.data.get("triggers", [])
         keys = [normalize_key_name(t.get("key", "")) for t in triggers if t.get("key")]
         keys_text = ", ".join(keys) if keys else "(未設定)"
-        sel_key = self._selected_trigger_key() or "(未選択)"
         next_i = self._indices.get(sel_key, 0) + 1 if sel_key in self._indices else 0
         self.status_var.set(f"フック: {state} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}")
+
+    def _get_next_action_summary(self, trigger_key: str) -> str:
+        """省略表示用：次に実行されるアクションを1行で返す"""
+        key = normalize_key_name(trigger_key or "")
+        trig = self._find_trigger_by_key(key) if key and key != "(未選択)" else None
+        if not trig:
+            return "(なし)"
+        actions = trig.get("actions", [])
+        if not actions:
+            return "(なし)"
+        idx = int(self._indices.get(key, 0) or 0) % len(actions)
+        a = actions[idx] if 0 <= idx < len(actions) else None
+        if not isinstance(a, dict):
+            return "(なし)"
+
+        t = (a.get("type") or "").strip().lower()
+        if t == "mouse_click":
+            x = a.get("x", "")
+            y = a.get("y", "")
+            btn = a.get("button", "left")
+            clicks = a.get("clicks", 1)
+            return f"{idx+1:02d}. [mouse_click] ({x}, {y}) {btn} x{clicks}"
+        else:
+            v = a.get("value", "")
+            return f"{idx+1:02d}. [{t}] {v}"
 
     def _refresh_triggers(self):
         self.trigger_list.delete(0, tk.END)
