@@ -156,8 +156,16 @@ class App(tk.Tk):
         left = ttk.LabelFrame(mid, text="トリガー一覧（選択して編集）", padding=10)
         left.pack(side="left", fill="y")
 
-        self.trigger_list = tk.Listbox(left, height=12, width=26, exportselection=False)
-        self.trigger_list.pack(side="top", fill="y", expand=False)
+        # トリガー一覧（スクロール対応）
+        trigger_list_frame = ttk.Frame(left)
+        trigger_list_frame.pack(side="top", fill="y", expand=False)
+
+        self.trigger_list = tk.Listbox(trigger_list_frame, height=12, width=26, exportselection=False)
+        self.trigger_list.pack(side="left", fill="y", expand=False)
+
+        trigger_list_sb = ttk.Scrollbar(trigger_list_frame, orient="vertical", command=self.trigger_list.yview)
+        trigger_list_sb.pack(side="left", fill="y")
+        self.trigger_list.configure(yscrollcommand=trigger_list_sb.set)
         self.trigger_list.bind("<<ListboxSelect>>", lambda _e: self._refresh_actions())
         # ダブルクリックで「トリガー変更」（= rename_trigger）を開く
         self.trigger_list.bind("<Double-Button-1>", self._on_trigger_double_click)
@@ -1436,12 +1444,17 @@ class PresetManagerDialog(tk.Toplevel):
 
         ttk.Label(frm, text="プリセット一覧").grid(row=0, column=0, sticky="w")
         self.listbox = tk.Listbox(frm, height=12, width=56, exportselection=False)
-        self.listbox.grid(row=1, column=0, rowspan=6, sticky="nsew", padx=(0, 10))
+        self.listbox.grid(row=1, column=0, rowspan=6, sticky="nsew", padx=(0, 0))
+
+        # スクロールバー（プリセット一覧）
+        presets_sb = ttk.Scrollbar(frm, orient="vertical", command=self.listbox.yview)
+        presets_sb.grid(row=1, column=1, rowspan=6, sticky="ns", padx=(6, 10))
+        self.listbox.configure(yscrollcommand=presets_sb.set)
         # ダブルクリックで編集
         self.listbox.bind("<Double-Button-1>", self._on_double_click)
 
         btns = ttk.Frame(frm)
-        btns.grid(row=1, column=1, sticky="n")
+        btns.grid(row=1, column=2, sticky="n")
         ttk.Button(btns, text="追加", width=14, command=self.add).pack(pady=(0, 6))
         ttk.Button(btns, text="編集", width=14, command=self.edit).pack(pady=6)
         ttk.Button(btns, text="削除", width=14, command=self.delete).pack(pady=6)
@@ -1450,7 +1463,7 @@ class PresetManagerDialog(tk.Toplevel):
         ttk.Button(btns, text="下へ", width=14, command=lambda: self.move(+1)).pack(pady=6)
 
         bottom = ttk.Frame(frm)
-        bottom.grid(row=7, column=0, columnspan=2, sticky="e", pady=(12, 0))
+        bottom.grid(row=7, column=0, columnspan=3, sticky="e", pady=(12, 0))
         ttk.Button(bottom, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(bottom, text="キャンセル", command=self.destroy).pack(side="left")
 
