@@ -73,6 +73,8 @@ class App(tk.Tk):
         self.data = safe_deepcopy(DEFAULT_CONFIG)
 
         self.hook_active = False
+        self.always_on_top_var = tk.BooleanVar(value=False)
+        
         self._hook_handles = {}     # key -> hook_handle
         self._stop_hook_handle = None
         self._capturing_stop_key = False
@@ -120,17 +122,19 @@ class App(tk.Tk):
         outer = ttk.Frame(self, padding=12)
         outer.pack(fill="both", expand=True)
 
+        top = ttk.Frame(outer)
+        top.pack(fill="both", expand=True, pady=(12, 0))
         # 上段：フック操作
-        top = ttk.LabelFrame(outer, text="フック", padding=10)
-        top.pack(fill="x")
+        hook_box = ttk.LabelFrame(top, text="フック", padding=10)
+        hook_box.pack(side="left", fill="y")
 
-        self.start_btn = ttk.Button(top, text="開始（フックON）", command=self.start_hook)
-        self.stop_btn = ttk.Button(top, text="停止（フックOFF）", command=self.stop_hook, state="disabled")
+        self.start_btn = ttk.Button(hook_box, text="開始（フックON）", command=self.start_hook)
+        self.stop_btn = ttk.Button(hook_box, text="停止（フックOFF）", command=self.stop_hook, state="disabled")
         self.start_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         self.stop_btn.grid(row=0, column=1, sticky="w")
         
         # ---- フック停止用トリガー ----
-        hook_frame = ttk.Frame(top)
+        hook_frame = ttk.Frame(hook_box)
         hook_frame.grid(row=0, column=3, sticky="w")
         ttk.Label(hook_frame, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
         self.stop_key_var = tk.StringVar(value=str(self.data.get("hook_stop_key", "")))
@@ -142,13 +146,24 @@ class App(tk.Tk):
         self.stop_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
         self.stop_key_clear_btn = ttk.Button(hook_frame, text="クリア", command=self.clear_stop_key)
         self.stop_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
-        
-        self.stop_key_hint = ttk.Label(top, text="※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
+
+        self.stop_key_hint = ttk.Label(hook_box, text="※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
         self.stop_key_hint.grid(row=1, column=2, columnspan=3, sticky="w", pady=(6, 0))
 
         self.status_var = tk.StringVar(value="")
-        ttk.Label(top, textvariable=self.status_var).grid(row=2, column=0, columnspan=6, sticky="w", pady=(8, 0))
+        ttk.Label(hook_box, textvariable=self.status_var).grid(row=2, column=0, columnspan=6, sticky="w", pady=(8, 0))
 
+        # ---- 常に手前（Topmost） ----
+        topmost_frame = ttk.LabelFrame(top, text="表示", padding=(10, 6))
+        topmost_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
+        self.topmost_chk = ttk.Checkbutton(
+            topmost_frame,
+            text="常に手前",
+            variable=self.always_on_top_var,
+            command=self._apply_always_on_top,
+        )
+        self.topmost_chk.grid(row=0, column=0, sticky="w")
+        
         # 中段：左=トリガー一覧 / 右=アクション
         mid = ttk.Frame(outer)
         mid.pack(fill="both", expand=True, pady=(12, 0))
@@ -212,6 +227,14 @@ class App(tk.Tk):
         ttk.Button(bottom, text="プリセット編集…", command=self.open_preset_manager).pack(side="left", padx=(8, 0))
         ttk.Button(bottom, text="起動時に読むJSONを指定…", command=self.set_startup_config).pack(side="left", padx=(8, 0))
         ttk.Button(bottom, text="例を復元", command=self.restore_default).pack(side="right")
+
+    def _apply_always_on_top(self):
+        """チェック状態に応じてウィンドウを常に手前にする"""
+        try:
+            self.attributes("-topmost", bool(self.always_on_top_var.get()))
+        except Exception:
+            # 失敗してもアプリは止めない
+            pass
 
     # ---------------- Startup config ----------------
     def _load_startup_and_config(self):
