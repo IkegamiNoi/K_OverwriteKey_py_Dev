@@ -130,18 +130,19 @@ class App(tk.Tk):
         self.stop_btn.grid(row=0, column=1, sticky="w")
         
         # ---- フック停止用トリガー ----
-        ttk.Label(top, text="フック停止トリガー:").grid(row=0, column=2, sticky="w")
+        hook_frame = ttk.Frame(top)
+        hook_frame.grid(row=0, column=3, sticky="w")
+        ttk.Label(hook_frame, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
         self.stop_key_var = tk.StringVar(value=str(self.data.get("hook_stop_key", "")))
-        # 入力はキャプチャのみ：表示専用
-        self.stop_key_entry = ttk.Entry(top, textvariable=self.stop_key_var, width=16, state="readonly")
-        self.stop_key_entry.grid(row=0, column=3, sticky="w", padx=(0, 0))
-
-        self.stop_key_capture_btn = ttk.Button(top, text="キー入力で取得", command=self._toggle_stop_key_capture)
-        self.stop_key_capture_btn.grid(row=0, column=4, sticky="w", padx=(8, 0))
         
-        self.stop_key_clear_btn = ttk.Button(top, text="クリア", command=self.clear_stop_key)
-        self.stop_key_clear_btn.grid(row=0, column=5, sticky="w", padx=(8, 0))
-
+        # 入力はキャプチャのみ：表示専用
+        self.stop_key_entry = ttk.Entry(hook_frame, textvariable=self.stop_key_var, width=8, state="readonly")
+        self.stop_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
+        self.stop_key_capture_btn = ttk.Button(hook_frame, text="キー入力で取得", command=self._toggle_stop_key_capture)
+        self.stop_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
+        self.stop_key_clear_btn = ttk.Button(hook_frame, text="クリア", command=self.clear_stop_key)
+        self.stop_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
+        
         self.stop_key_hint = ttk.Label(top, text="※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
         self.stop_key_hint.grid(row=1, column=2, columnspan=3, sticky="w", pady=(6, 0))
 
@@ -180,10 +181,9 @@ class App(tk.Tk):
         self.action_list.bind("<<ListboxSelect>>", self._on_action_list_select)
         # ダブルクリックで編集
         self.action_list.bind("<Double-Button-1>", self._on_action_double_click)
-
-        sb = ttk.Scrollbar(right, orient="vertical", command=self.action_list.yview)
-        sb.pack(side="left", fill="y")
-        self.action_list.configure(yscrollcommand=sb.set)
+        action_list_sb = ttk.Scrollbar(right, orient="vertical", command=self.action_list.yview)
+        action_list_sb.pack(side="left", fill="y")
+        self.action_list.configure(yscrollcommand=action_list_sb.set)
 
         abtns = ttk.Frame(right)
         abtns.pack(side="left", fill="y", padx=(12, 0))
