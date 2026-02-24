@@ -178,11 +178,11 @@ class App(tk.Tk):
         self.mid = ttk.Frame(outer)
         self.mid.pack(fill="both", expand=True, pady=(12, 0))
 
-        self.left = ttk.LabelFrame(self.mid, text="トリガー一覧（選択して編集）", padding=10)
-        self.left.pack(side="left", fill="y")
+        self.trigger_box = ttk.LabelFrame(self.mid, text="トリガー一覧（選択して編集）", padding=10)
+        self.trigger_box.pack(side="left", fill="y")
 
         # トリガー一覧（スクロール対応）
-        trigger_list_frame = ttk.Frame(self.left)
+        trigger_list_frame = ttk.Frame(self.trigger_box)
         trigger_list_frame.pack(side="top", fill="y", expand=False)
 
         self.trigger_list = tk.Listbox(trigger_list_frame, height=12, width=26, exportselection=False)
@@ -195,30 +195,30 @@ class App(tk.Tk):
         # ダブルクリックで「トリガー変更」（= rename_trigger）を開く
         self.trigger_list.bind("<Double-Button-1>", self._on_trigger_double_click)
 
-        tbtns = ttk.Frame(self.left)
+        tbtns = ttk.Frame(self.trigger_box)
         tbtns.pack(fill="x", pady=(6, 0))
         ttk.Button(tbtns, text="追加", command=self.add_trigger).pack(fill="x", pady=(0, 3))
         ttk.Button(tbtns, text="トリガー変更", command=self.rename_trigger).pack(fill="x", pady=3)
         ttk.Button(tbtns, text="削除", command=self.delete_trigger).pack(fill="x", pady=3)
 
         self.suppress_var = tk.BooleanVar(value=True)
-        self.suppress_chk = ttk.Checkbutton(self.left, text="トリガーキーを抑止（suppress）", variable=self.suppress_var, command=self.update_suppress)
+        self.suppress_chk = ttk.Checkbutton(self.trigger_box, text="トリガーキーを抑止（suppress）", variable=self.suppress_var, command=self.update_suppress)
         self.suppress_chk.pack(anchor="w", pady=(6, 0))
 
-        self.right = ttk.LabelFrame(self.mid, text="出力シーケンス（選択中トリガーの内容）", padding=10)
-        self.right.pack(side="left", fill="both", expand=True, padx=(12, 0))
+        self.sequence_box = ttk.LabelFrame(self.mid, text="出力シーケンス（選択中トリガーの内容）", padding=10)
+        self.sequence_box.pack(side="left", fill="both", expand=True, padx=(12, 0))
 
-        self.action_list = tk.Listbox(self.right, height=18, exportselection=False)
+        self.action_list = tk.Listbox(self.sequence_box, height=18, exportselection=False)
         self.action_list.pack(side="left", fill="both", expand=True)
         # ユーザーがシーケンス一覧の選択を変えたら「次に実行」をその位置に変更
         self.action_list.bind("<<ListboxSelect>>", self._on_action_list_select)
         # ダブルクリックで編集
         self.action_list.bind("<Double-Button-1>", self._on_action_double_click)
-        action_list_sb = ttk.Scrollbar(self.right, orient="vertical", command=self.action_list.yview)
+        action_list_sb = ttk.Scrollbar(self.sequence_box, orient="vertical", command=self.action_list.yview)
         action_list_sb.pack(side="left", fill="y")
         self.action_list.configure(yscrollcommand=action_list_sb.set)
 
-        abtns = ttk.Frame(self.right)
+        abtns = ttk.Frame(self.sequence_box)
         abtns.pack(side="left", fill="y", padx=(12, 0))
         ttk.Button(abtns, text="追加", width=16, command=self.add_action).pack(pady=(0, 6))
         ttk.Button(abtns, text="編集", width=16, command=self.edit_action).pack(pady=6)
@@ -290,11 +290,11 @@ class App(tk.Tk):
             self.topmost_frame.pack(side="top", fill="x", expand=False, pady=(8, 0))
 
         # mid：右（出力シーケンス）を隠し、左（トリガー一覧）だけにする
-        if hasattr(self, "right"):
-            self.right.pack_forget()
-        if hasattr(self, "left"):
-            self.left.pack_forget()
-            self.left.pack(side="top", fill="both", expand=True)
+        if hasattr(self, "sequence_box"):
+            self.sequence_box.pack_forget()
+        if hasattr(self, "trigger_box"):
+            self.trigger_box.pack_forget()
+            self.trigger_box.pack(side="top", fill="both", expand=True)
 
         # bottom（保存/読込）を隠す
         if hasattr(self, "bottom"):
@@ -320,11 +320,11 @@ class App(tk.Tk):
             self.topmost_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
 
         # mid：左/右を左右並びに戻す
-        if hasattr(self, "left") and hasattr(self, "right"):
-            self.left.pack_forget()
-            self.right.pack_forget()
-            self.left.pack(side="left", fill="y")
-            self.right.pack(side="left", fill="both", expand=True, padx=(12, 0))
+        if hasattr(self, "trigger_box") and hasattr(self, "sequence_box"):
+            self.trigger_box.pack_forget()
+            self.sequence_box.pack_forget()
+            self.trigger_box.pack(side="left", fill="y")
+            self.sequence_box.pack(side="left", fill="both", expand=True, padx=(12, 0))
 
         # bottom を戻す
         if hasattr(self, "bottom"):
