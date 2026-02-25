@@ -137,17 +137,17 @@ class App(tk.Tk):
         self.stop_btn.grid(row=0, column=1, sticky="w")
         
         # ---- フック停止用トリガー ----
-        hook_frame = ttk.Frame(self.hook_frame)
-        hook_frame.grid(row=0, column=3, sticky="w")
-        ttk.Label(hook_frame, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
+        self.stop_key_frame = ttk.Frame(self.hook_frame)
+        self.stop_key_frame.grid(row=0, column=3, sticky="w")
+        ttk.Label(self.stop_key_frame, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
         self.stop_key_var = tk.StringVar(value=str(self.data.get("hook_stop_key", "")))
         
         # 入力はキャプチャのみ：表示専用
-        self.stop_key_entry = ttk.Entry(hook_frame, textvariable=self.stop_key_var, width=8, state="readonly")
+        self.stop_key_entry = ttk.Entry(self.stop_key_frame, textvariable=self.stop_key_var, width=8, state="readonly")
         self.stop_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
-        self.stop_key_capture_btn = ttk.Button(hook_frame, text="キー入力で取得", command=self._toggle_stop_key_capture)
+        self.stop_key_capture_btn = ttk.Button(self.stop_key_frame, text="キー入力で取得", command=self._toggle_stop_key_capture)
         self.stop_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
-        self.stop_key_clear_btn = ttk.Button(hook_frame, text="クリア", command=self.clear_stop_key)
+        self.stop_key_clear_btn = ttk.Button(self.stop_key_frame, text="クリア", command=self.clear_stop_key)
         self.stop_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
 
         self.stop_key_hint = ttk.Label(self.hook_frame, text="※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
@@ -281,6 +281,13 @@ class App(tk.Tk):
             self.stop_key_capture_btn.grid_remove()
         if hasattr(self, "stop_key_clear_btn"):
             self.stop_key_clear_btn.grid_remove()
+        # 注意書きも省略表示では不要
+        if hasattr(self, "stop_key_hint"):
+            self.stop_key_hint.grid_remove()
+
+        # 停止トリガー表示（ラベル+表示欄）を開始/停止ボタンの下へ移動
+        if hasattr(self, "stop_key_frame"):
+            self.stop_key_frame.grid_configure(row=1, column=0, columnspan=2, sticky="w", pady=(6, 0))
 
         # top 内を縦並びに再pack（同じウィジェットを再配置）
         if hasattr(self, "hook_frame") and hasattr(self, "display_frame"):
@@ -311,6 +318,13 @@ class App(tk.Tk):
             self.stop_key_capture_btn.grid()
         if hasattr(self, "stop_key_clear_btn"):
             self.stop_key_clear_btn.grid()
+        # 注意書きを戻す
+        if hasattr(self, "stop_key_hint"):
+            self.stop_key_hint.grid()
+
+        # 停止トリガー表示を元の位置へ戻す
+        if hasattr(self, "stop_key_frame"):
+            self.stop_key_frame.grid_configure(row=0, column=3, sticky="w", pady=0, columnspan=1)
 
         # top：左右並びに戻す
         if hasattr(self, "hook_frame") and hasattr(self, "display_frame"):
