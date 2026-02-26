@@ -128,7 +128,18 @@ class App(tk.Tk):
         # 共有Var（両Viewで同じ状態を参照）
         self.stop_key_var = tk.StringVar(value=str(self.data.get("hook_stop_key", "")))
         self.status_var = tk.StringVar(value="")
-
+        self.suppress_var = tk.BooleanVar(value=True)
+        self.start_btn: ttk.Button
+        self.stop_btn: ttk.Button
+        self.stop_key_frame: ttk.Frame
+        self.stop_key_entry: ttk.Entry
+        self.stop_key_capture_btn: ttk.Button
+        self.stop_key_clear_btn: ttk.Button
+        self.stop_key_hint: ttk.Label
+        self.topmost_chk: ttk.Checkbutton
+        self.compact_btn: ttk.Button
+        self.suppress_chk: ttk.Checkbutton
+        
         # 2画面（フル/省略）を用意し、pack_forgetで切替
         self.full_view = FullView(self.outer, app=self)
         self.compact_view = CompactView(self.outer, app=self)
