@@ -183,13 +183,6 @@ class App(tk.Tk):
         self._refresh_actions()  # full側のシーケンス表示を復帰
         self._update_status()
 
-    def _apply_always_on_top(self):
-        """チェック状態に応じてウィンドウを常に手前にする"""
-        try:
-            self.attributes("-topmost", bool(self.always_on_top_var.get()))
-        except Exception:
-            pass
-
     def _apply_compact_geometry(self):
         """省略表示時のサイズ（細め）へ"""
         try:
@@ -676,8 +669,8 @@ class App(tk.Tk):
         self._indices.setdefault(key, 0)
         self._refresh_triggers()
         # 末尾を選択
-        self.trigger_list.selection_clear(0, tk.END)
-        self.trigger_list.selection_set(len(triggers) - 1)
+        #Sself.trigger_list.selection_clear(0, tk.END)
+        self._set_selected_trigger_index(len(triggers) - 1)
         self._refresh_actions()
         if self.hook_active:
             self.start_hook()
@@ -766,7 +759,14 @@ class App(tk.Tk):
         if getattr(self, "_dialog_result", None):
             trig["actions"][idx] = self._dialog_result
             self._refresh_actions()
-            self.action_list.selection_set(idx)
+            # action_list は FullView 側にある（選択表示を復帰）
+            try:
+                self.full_view.action_list.selection_clear(0, tk.END)
+                self.full_view.action_list.selection_set(idx)
+                self.full_view.action_list.activate(idx)
+                self.full_view.action_list.see(idx)
+            except Exception:
+                pass
             self._dialog_result = None
 
     def delete_action(self):
@@ -1333,13 +1333,13 @@ class CompactView(ttk.Frame):
 
         self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
         self.display_frame.pack(side="top", fill="x", expand=False, pady=(8, 0))
-        self.topmost_chk = ttk.Checkbutton(
+        app.topmost_chk = ttk.Checkbutton(
             self.display_frame,
             text="常に手前",
             variable=app.always_on_top_var,
             command=app._apply_always_on_top,
         )
-        self.topmost_chk.grid(row=0, column=0, sticky="w")
+        app.topmost_chk.grid(row=0, column=0, sticky="w")
         self.full_btn = ttk.Button(self.display_frame, text="フルに戻す", command=app.show_full_view)
         self.full_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
 
@@ -1656,6 +1656,8 @@ class ActionDialog(tk.Toplevel):
             self.capture_hint.configure(text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
             for b in getattr(self, "preset_buttons", []):
                 b.configure(state="normal")
+            if hasattr(self, "preset_edit_btn"):
+                self.preset_edit_btn.configure(state="normal")
                 
         # mouse_click UI の表示制御
         if hasattr(self, "mouse_frame"):
