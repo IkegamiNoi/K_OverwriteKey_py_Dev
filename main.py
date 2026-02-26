@@ -139,6 +139,8 @@ class App(tk.Tk):
         self.topmost_chk: ttk.Checkbutton
         self.compact_btn: ttk.Button
         self.suppress_chk: ttk.Checkbutton
+        self.compact_start_btn: ttk.Button
+        self.compact_stop_btn: ttk.Button
         
         # 2画面（フル/省略）を用意し、pack_forgetで切替
         self.full_view = FullView(self.outer, app=self)
@@ -827,8 +829,15 @@ class App(tk.Tk):
                 # keyごとにコールバックを束縛
                 handle = keyboard.on_press_key(k, lambda e, kk=k: self._on_trigger_key(kk), suppress=sup)
                 self._hook_handles[k] = handle
-            self.start_btn.configure(state="disabled")
-            self.stop_btn.configure(state="normal")
+            # Full/Compact 両方のボタン状態を同期
+            if hasattr(self, "start_btn"):
+                self.start_btn.configure(state="disabled")
+            if hasattr(self, "stop_btn"):
+                self.stop_btn.configure(state="normal")
+            if hasattr(self, "compact_start_btn"):
+                self.compact_start_btn.configure(state="disabled")
+            if hasattr(self, "compact_stop_btn"):
+                self.compact_stop_btn.configure(state="normal")
             self._update_status()
         except Exception as e:
             self.hook_active = False
@@ -845,10 +854,15 @@ class App(tk.Tk):
         self._hook_handles = {}
         self.hook_active = False
         self._uninstall_stop_hook()
+        # Full/Compact 両方のボタン状態を同期
         if hasattr(self, "start_btn"):
             self.start_btn.configure(state="normal")
         if hasattr(self, "stop_btn"):
             self.stop_btn.configure(state="disabled")
+        if hasattr(self, "compact_start_btn"):
+            self.compact_start_btn.configure(state="normal")
+        if hasattr(self, "compact_stop_btn"):
+            self.compact_stop_btn.configure(state="disabled")
         self._update_status()
 
     def _install_stop_hook(self):
@@ -1303,6 +1317,10 @@ class CompactView(ttk.Frame):
         self.stop_btn = ttk.Button(self.hook_frame, text="停止（フックOFF）", command=app.stop_hook, state="disabled")
         self.start_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         self.stop_btn.grid(row=0, column=1, sticky="w")
+        
+        # App側でも参照できるように保持（フック開始/停止時のstate同期用）
+        app.compact_start_btn = self.start_btn
+        app.compact_stop_btn = self.stop_btn
 
         # 停止トリガー表示のみ（Entryだけ）
         stop_line = ttk.Frame(self.hook_frame)
