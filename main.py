@@ -76,7 +76,7 @@ class App(tk.Tk):
         self.always_on_top_var = tk.BooleanVar(value=False)
         self._compact_mode = False
         self._full_geometry = None  # 省略表示へ入る前の geometry を記憶
-        self.always_on_top_var = tk.BooleanVar(value=False)
+        self._selected_trigger_idx = 0  # Full/Compact で選択を共有する
         
         self._hook_handles = {}     # key -> hook_handle
         self._stop_hook_handle = None
@@ -122,121 +122,53 @@ class App(tk.Tk):
 
     # ---------------- UI ----------------
     def _build_ui(self):
-        outer = ttk.Frame(self, padding=12)
-        outer.pack(fill="both", expand=True)
+        self.outer = ttk.Frame(self, padding=12)
+        self.outer.pack(fill="both", expand=True)
 
-        self.header_area  = ttk.Frame(outer)
-        self.header_area.pack(fill="x", expand=False, pady=(12, 0))
-        # 上段：フック操作
-        self.hook_frame = ttk.LabelFrame(self.header_area, text="フック", padding=10)
-        self.hook_frame.pack(side="left", fill="y")
-
-        self.start_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=self.start_hook)
-        self.stop_btn = ttk.Button(self.hook_frame, text="停止（フックOFF）", command=self.stop_hook, state="disabled")
-        self.start_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
-        self.stop_btn.grid(row=0, column=1, sticky="w")
-        
-        # ---- フック停止用トリガー ----
-        self.stop_key_frame = ttk.Frame(self.hook_frame)
-        self.stop_key_frame.grid(row=0, column=3, sticky="w")
-        ttk.Label(self.stop_key_frame, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
+        # 共有Var（両Viewで同じ状態を参照）
         self.stop_key_var = tk.StringVar(value=str(self.data.get("hook_stop_key", "")))
-        
-        # 入力はキャプチャのみ：表示専用
-        self.stop_key_entry = ttk.Entry(self.stop_key_frame, textvariable=self.stop_key_var, width=8, state="readonly")
-        self.stop_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
-        self.stop_key_capture_btn = ttk.Button(self.stop_key_frame, text="キー入力で取得", command=self._toggle_stop_key_capture)
-        self.stop_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
-        self.stop_key_clear_btn = ttk.Button(self.stop_key_frame, text="クリア", command=self.clear_stop_key)
-        self.stop_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
-
-        self.stop_key_hint = ttk.Label(self.hook_frame, text="※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
-        self.stop_key_hint.grid(row=1, column=2, columnspan=3, sticky="w", pady=(6, 0))
-
         self.status_var = tk.StringVar(value="")
-        ttk.Label(self.hook_frame, textvariable=self.status_var).grid(row=2, column=0, columnspan=6, sticky="w", pady=(8, 0))
 
-        # ---- 常に手前（Topmost） ----
-        self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
-        self.display_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
-        self.topmost_chk = ttk.Checkbutton(
-            self.display_frame,
-            text="常に手前",
-            variable=self.always_on_top_var,
-            command=self._apply_always_on_top,
-        )
-        self.topmost_chk.grid(row=0, column=0, sticky="w")
-        
-        # 省略表示/フル復帰（同じ枠内。どちらか一方だけ表示）
-        self.compact_btn = ttk.Button(self.display_frame, text="省略表示", command=self._enter_compact_mode)
-        self.compact_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
-        self.full_btn = ttk.Button(self.display_frame, text="フルに戻す", command=self._exit_compact_mode)
-        self.full_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
-        self.full_btn.grid_remove()       
-        
-        # 中段：左=トリガー一覧 / 右=アクション
-        self.main_area = ttk.Frame(outer)
-        self.main_area.pack(fill="both", expand=True, pady=(12, 0))
+        # 2画面（フル/省略）を用意し、pack_forgetで切替
+        self.full_view = FullView(self.outer, app=self)
+        self.compact_view = CompactView(self.outer, app=self)
 
-        self.trigger_box = ttk.LabelFrame(self.main_area, text="トリガー一覧（選択して編集）", padding=10)
-        self.trigger_box.pack(side="left", fill="y")
+        self.full_view.pack(fill="both", expand=True)
+        # compact_view は最初は非表示
 
-        # トリガー一覧（スクロール対応）
-        trigger_list_frame = ttk.Frame(self.trigger_box)
-        trigger_list_frame.pack(side="top", fill="y", expand=False)
+    def show_compact_view(self):
+        if getattr(self, "_capturing_stop_key", False):
+            # 停止トリガーキャプチャ中に切替すると紛らわしいので止める（安全）
+            return
+        if self._compact_mode:
+            return
+        try:
+            self._full_geometry = self.geometry()
+        except Exception:
+            self._full_geometry = None
+        self._compact_mode = True
+        try:
+            self.full_view.pack_forget()
+        except Exception:
+            pass
+        self.compact_view.pack(fill="both", expand=True)
+        self._apply_compact_geometry()
+        self._sync_trigger_selection_to_views()
+        self._update_status()
 
-        self.trigger_list = tk.Listbox(trigger_list_frame, height=12, width=26, exportselection=False)
-        self.trigger_list.pack(side="left", fill="y", expand=False)
-
-        trigger_list_sb = ttk.Scrollbar(trigger_list_frame, orient="vertical", command=self.trigger_list.yview)
-        trigger_list_sb.pack(side="left", fill="y")
-        self.trigger_list.configure(yscrollcommand=trigger_list_sb.set)
-        self.trigger_list.bind("<<ListboxSelect>>", lambda _e: self._refresh_actions())
-        # ダブルクリックで「トリガー変更」（= rename_trigger）を開く
-        self.trigger_list.bind("<Double-Button-1>", self._on_trigger_double_click)
-
-        tbtns = ttk.Frame(self.trigger_box)
-        tbtns.pack(fill="x", pady=(6, 0))
-        ttk.Button(tbtns, text="追加", command=self.add_trigger).pack(fill="x", pady=(0, 3))
-        ttk.Button(tbtns, text="トリガー変更", command=self.rename_trigger).pack(fill="x", pady=3)
-        ttk.Button(tbtns, text="削除", command=self.delete_trigger).pack(fill="x", pady=3)
-
-        self.suppress_var = tk.BooleanVar(value=True)
-        self.suppress_chk = ttk.Checkbutton(self.trigger_box, text="トリガーキーを抑止（suppress）", variable=self.suppress_var, command=self.update_suppress)
-        self.suppress_chk.pack(anchor="w", pady=(6, 0))
-
-        self.sequence_box = ttk.LabelFrame(self.main_area, text="出力シーケンス（選択中トリガーの内容）", padding=10)
-        self.sequence_box.pack(side="left", fill="both", expand=True, padx=(12, 0))
-
-        self.action_list = tk.Listbox(self.sequence_box, height=18, exportselection=False)
-        self.action_list.pack(side="left", fill="both", expand=True)
-        # ユーザーがシーケンス一覧の選択を変えたら「次に実行」をその位置に変更
-        self.action_list.bind("<<ListboxSelect>>", self._on_action_list_select)
-        # ダブルクリックで編集
-        self.action_list.bind("<Double-Button-1>", self._on_action_double_click)
-        action_list_sb = ttk.Scrollbar(self.sequence_box, orient="vertical", command=self.action_list.yview)
-        action_list_sb.pack(side="left", fill="y")
-        self.action_list.configure(yscrollcommand=action_list_sb.set)
-
-        abtns = ttk.Frame(self.sequence_box)
-        abtns.pack(side="left", fill="y", padx=(12, 0))
-        ttk.Button(abtns, text="追加", width=16, command=self.add_action).pack(pady=(0, 6))
-        ttk.Button(abtns, text="編集", width=16, command=self.edit_action).pack(pady=6)
-        ttk.Button(abtns, text="削除", width=16, command=self.delete_action).pack(pady=6)
-        ttk.Separator(abtns).pack(fill="x", pady=10)
-        ttk.Button(abtns, text="上へ", width=16, command=lambda: self.move_action(-1)).pack(pady=6)
-        ttk.Button(abtns, text="下へ", width=16, command=lambda: self.move_action(+1)).pack(pady=6)
-
-        # 下段：保存/読込
-        self.footer_area = ttk.Frame(outer)
-        self.footer_area.pack(fill="x", pady=(12, 0))
-
-        ttk.Button(self.footer_area, text="保存", command=self.save_config).pack(side="left")
-        ttk.Button(self.footer_area, text="別名で保存…", command=self.save_as).pack(side="left", padx=(8, 0))
-        ttk.Button(self.footer_area, text="読込…", command=self.load_from).pack(side="left", padx=(8, 0))
-        ttk.Button(self.footer_area, text="プリセット編集…", command=self.open_preset_manager).pack(side="left", padx=(8, 0))
-        ttk.Button(self.footer_area, text="起動時に読むJSONを指定…", command=self.set_startup_config).pack(side="left", padx=(8, 0))
-        ttk.Button(self.footer_area, text="例を復元", command=self.restore_default).pack(side="right")
+    def show_full_view(self):
+        if not self._compact_mode:
+            return
+        self._compact_mode = False
+        try:
+            self.compact_view.pack_forget()
+        except Exception:
+            pass
+        self.full_view.pack(fill="both", expand=True)
+        self._restore_full_geometry()
+        self._sync_trigger_selection_to_views()
+        self._refresh_actions()  # full側のシーケンス表示を復帰
+        self._update_status()
 
     def _apply_always_on_top(self):
         """チェック状態に応じてウィンドウを常に手前にする"""
@@ -244,105 +176,6 @@ class App(tk.Tk):
             self.attributes("-topmost", bool(self.always_on_top_var.get()))
         except Exception:
             pass
-
-    def _enter_compact_mode(self):
-        if self._compact_mode:
-            return
-        # 現在のサイズを復元できるように記憶（ユーザーが手で変えていても戻せる）
-        try:
-            self._full_geometry = self.geometry()
-        except Exception:
-            self._full_geometry = None
-        self._set_compact_mode(True)
-
-    def _exit_compact_mode(self):
-        if not self._compact_mode:
-            return
-        self._set_compact_mode(False)
-
-    def _set_compact_mode(self, enabled: bool):
-        self._compact_mode = bool(enabled)
-        if self._compact_mode:
-            self._apply_compact_layout()
-            self._apply_compact_geometry()
-        else:
-            self._apply_full_layout()
-            self._restore_full_geometry()
-        self._update_status()
-
-    def _apply_compact_layout(self):
-        # ボタン表示切替
-        if hasattr(self, "compact_btn") and hasattr(self, "full_btn"):
-            self.compact_btn.grid_remove()
-            self.full_btn.grid()
-
-        # フック枠：停止トリガーの取得/クリアを省略（表示だけ残す）
-        if hasattr(self, "stop_key_capture_btn"):
-            self.stop_key_capture_btn.grid_remove()
-        if hasattr(self, "stop_key_clear_btn"):
-            self.stop_key_clear_btn.grid_remove()
-        # 注意書きも省略表示では不要
-        if hasattr(self, "stop_key_hint"):
-            self.stop_key_hint.grid_remove()
-
-        # 停止トリガー表示（ラベル+表示欄）を開始/停止ボタンの下へ移動
-        if hasattr(self, "stop_key_frame"):
-            self.stop_key_frame.grid_configure(row=1, column=0, columnspan=2, sticky="w", pady=(6, 0))
-
-        # top 内を縦並びに再pack（同じウィジェットを再配置）
-        if hasattr(self, "hook_frame") and hasattr(self, "display_frame"):
-            self.hook_frame.pack_forget()
-            self.display_frame.pack_forget()
-            self.hook_frame.pack(side="top", fill="x", expand=False)
-            self.display_frame.pack(side="top", fill="x", expand=False, pady=(8, 0))
-
-        # mid：右（出力シーケンス）を隠し、左（トリガー一覧）だけにする
-        if hasattr(self, "sequence_box"):
-            self.sequence_box.pack_forget()
-        if hasattr(self, "trigger_box"):
-            self.trigger_box.pack_forget()
-            self.trigger_box.pack(side="top", fill="both", expand=True)
-
-        # bottom（保存/読込）を隠す
-        if hasattr(self, "footer_area"):
-            self.footer_area.pack_forget()
-
-    def _apply_full_layout(self):
-        # ボタン表示切替
-        if hasattr(self, "compact_btn") and hasattr(self, "full_btn"):
-            self.full_btn.grid_remove()
-            self.compact_btn.grid()
-
-        # 停止トリガーの取得/クリアを戻す
-        if hasattr(self, "stop_key_capture_btn"):
-            self.stop_key_capture_btn.grid()
-        if hasattr(self, "stop_key_clear_btn"):
-            self.stop_key_clear_btn.grid()
-        # 注意書きを戻す
-        if hasattr(self, "stop_key_hint"):
-            self.stop_key_hint.grid()
-
-        # 停止トリガー表示を元の位置へ戻す
-        if hasattr(self, "stop_key_frame"):
-            self.stop_key_frame.grid_configure(row=0, column=3, sticky="w", pady=0, columnspan=1)
-
-        # top：左右並びに戻す
-        if hasattr(self, "hook_frame") and hasattr(self, "display_frame"):
-            self.hook_frame.pack_forget()
-            self.display_frame.pack_forget()
-            self.hook_frame.pack(side="left", fill="y")
-            self.display_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
-
-        # mid：左/右を左右並びに戻す
-        if hasattr(self, "trigger_box") and hasattr(self, "sequence_box"):
-            self.trigger_box.pack_forget()
-            self.sequence_box.pack_forget()
-            self.trigger_box.pack(side="left", fill="y")
-            self.sequence_box.pack(side="left", fill="both", expand=True, padx=(12, 0))
-
-        # bottom を戻す
-        if hasattr(self, "footer_area"):
-            self.footer_area.pack(fill="x", pady=(12, 0))
 
     def _apply_compact_geometry(self):
         """省略表示時のサイズ（細め）へ"""
@@ -363,6 +196,40 @@ class App(tk.Tk):
             self.geometry(self._full_geometry)
         except Exception:
             pass
+
+    def _sync_trigger_selection_to_views(self):
+        """現在の選択idxを、Full/Compact両方のトリガーListboxへ反映"""
+        idx = int(getattr(self, "_selected_trigger_idx", 0) or 0)
+        # Full
+        try:
+            lb = self.full_view.trigger_list
+            lb.selection_clear(0, tk.END)
+            if lb.size() > 0:
+                idx = max(0, min(idx, lb.size() - 1))
+                lb.selection_set(idx)
+                lb.activate(idx)
+                lb.see(idx)
+        except Exception:
+            pass
+        # Compact
+        try:
+            lb = self.compact_view.trigger_list
+            lb.selection_clear(0, tk.END)
+            if lb.size() > 0:
+                idx = max(0, min(idx, lb.size() - 1))
+                lb.selection_set(idx)
+                lb.activate(idx)
+                lb.see(idx)
+        except Exception:
+            pass
+
+    def _set_selected_trigger_index(self, idx: int):
+        self._selected_trigger_idx = int(idx)
+        self._sync_trigger_selection_to_views()
+        # フル画面なら右側も追従
+        if not self._compact_mode:
+            self._refresh_actions()
+        self._update_status()
 
     def _apply_always_on_top(self):
         """チェック状態に応じてウィンドウを常に手前にする"""
@@ -489,27 +356,51 @@ class App(tk.Tk):
             return f"{idx+1:02d}. [{t}] {v}"
 
     def _refresh_triggers(self):
-        self.trigger_list.delete(0, tk.END)
+        # Full/Compact 両方に反映
+        try:
+            self.full_view.trigger_list.delete(0, tk.END)
+        except Exception:
+            pass
+        try:
+            self.compact_view.trigger_list.delete(0, tk.END)
+        except Exception:
+            pass
         triggers = self.data.get("triggers", [])
         for i, t in enumerate(triggers):
             k = normalize_key_name(t.get("key", ""))
             label = (t.get("label") or "").strip()
             if label:
-                self.trigger_list.insert(tk.END, f"{i+1:02d}. {k}: {label}")
+                s = f"{i+1:02d}. {k}: {label}"
             else:
-                self.trigger_list.insert(tk.END, f"{i+1:02d}. {k}")
+                s = f"{i+1:02d}. {k}"
+            try:
+                self.full_view.trigger_list.insert(tk.END, s)
+            except Exception:
+                pass
+            try:
+                self.compact_view.trigger_list.insert(tk.END, s)
+            except Exception:
+                pass
             if k not in self._indices:
                 self._indices[k] = 0
 
-        # 選択を維持/補正
+        # 選択を維持/補正（共通idx）
         if triggers:
-            if not self.trigger_list.curselection():
-                self.trigger_list.selection_set(0)
+            if getattr(self, "_selected_trigger_idx", None) is None:
+                self._selected_trigger_idx = 0
+            self._selected_trigger_idx = max(0, min(int(self._selected_trigger_idx), len(triggers) - 1))
+            self._sync_trigger_selection_to_views()
         self._sync_suppress_checkbox()
         self._update_status()
 
     def _refresh_actions(self):
-        self.action_list.delete(0, tk.END)
+        # 省略画面では右側（action_list）が無いので、フル側のみ更新
+        try:
+            self.full_view.action_list.delete(0, tk.END)
+        except Exception:
+            self._sync_suppress_checkbox()
+            self._update_status()
+            return
         trig = self._selected_trigger()
         if not trig:
             self._sync_suppress_checkbox()
@@ -530,9 +421,9 @@ class App(tk.Tk):
 
             label = (a.get("label") or "").strip()
             if label:
-                self.action_list.insert(tk.END, f"{i+1:02d}. [{t}] {v_disp}: {label}")
+                self.full_view.action_list.insert(tk.END, f"{i+1:02d}. [{t}] {v_disp}: {label}")
             else:
-                self.action_list.insert(tk.END, f"{i+1:02d}. [{t}] {v_disp}")
+                self.full_view.action_list.insert(tk.END, f"{i+1:02d}. [{t}] {v_disp}")
 
         key = normalize_key_name(trig.get("key", ""))
         if key not in self._indices:
@@ -552,7 +443,7 @@ class App(tk.Tk):
         key = normalize_key_name(key)
         actions = self._find_trigger_by_key(key).get("actions", []) if self._find_trigger_by_key(key) else []
         if not actions:
-            self.action_list.selection_clear(0, tk.END)
+            self.full_view.action_list.selection_clear(0, tk.END)
             return
         idx = self._indices.get(key, 0)
         if idx < 0:
@@ -562,10 +453,10 @@ class App(tk.Tk):
             self._indices[key] = idx
         self._programmatic_action_select = True
         try:
-            self.action_list.selection_clear(0, tk.END)
-            self.action_list.selection_set(idx)
-            self.action_list.activate(idx)
-            self.action_list.see(idx)
+            self.full_view.action_list.selection_clear(0, tk.END)
+            self.full_view.action_list.selection_set(idx)
+            self.full_view.action_list.activate(idx)
+            self.full_view.action_list.see(idx)
         finally:
             self._programmatic_action_select = False
 
@@ -592,14 +483,12 @@ class App(tk.Tk):
 
     def _on_trigger_double_click(self, _event=None):
         """トリガー一覧をダブルクリックしたらトリガー変更（rename_trigger）を開く"""
-        if not self.trigger_list.curselection():
-            return
         self.rename_trigger()
 
     def _on_action_double_click(self, _event=None):
         """シーケンス一覧をダブルクリックしたら編集を開く"""
         # 選択行が無いときは何もしない
-        if not self.action_list.curselection():
+        if not self.full_view.action_list.curselection():
             return
         self.edit_action()
 
@@ -712,10 +601,11 @@ class App(tk.Tk):
 
     # ---------------- Trigger selection/helpers ----------------
     def _selected_trigger_index(self):
-        sel = self.trigger_list.curselection()
-        if not sel:
+        # Full/Compact どちらのListboxでも選択は共通idxとして扱う
+        idx = getattr(self, "_selected_trigger_idx", None)
+        if idx is None:
             return None
-        return int(sel[0])
+        return int(idx)
 
     def _selected_trigger(self):
         idx = self._selected_trigger_index()
@@ -833,7 +723,7 @@ class App(tk.Tk):
 
     # ---------------- Actions CRUD (selected trigger) ----------------
     def _selected_action_index(self):
-        sel = self.action_list.curselection()
+        sel = self.full_view.action_list.curselection()
         if not sel:
             return None
         return int(sel[0])
@@ -1018,10 +908,8 @@ class App(tk.Tk):
             return
 
         # すでに同じ行が選択されていればそのままでもOKだが、見た目を確実に更新するため明示的にセット
-        self.trigger_list.selection_clear(0, tk.END)
-        self.trigger_list.selection_set(target_idx)
-        self.trigger_list.activate(target_idx)
-        self.trigger_list.see(target_idx)
+        self._selected_trigger_idx = int(target_idx)
+        self._sync_trigger_selection_to_views()
         self._refresh_actions()
         self._update_status()
 
@@ -1266,6 +1154,188 @@ class App(tk.Tk):
             self.stop_hook()
         finally:
             self.destroy()
+
+
+class FullView(ttk.Frame):
+    """フル画面UI"""
+    def __init__(self, parent, app: App):
+        super().__init__(parent)
+        self.app = app
+
+        # header
+        self.header_area = ttk.Frame(self, padding=0)
+        self.header_area.pack(fill="x", expand=False, pady=(12, 0))
+
+        self.hook_frame = ttk.LabelFrame(self.header_area, text="フック", padding=10)
+        self.hook_frame.pack(side="left", fill="y")
+
+        app.start_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.start_hook)
+        app.stop_btn = ttk.Button(self.hook_frame, text="停止（フックOFF）", command=app.stop_hook, state="disabled")
+        app.start_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
+        app.stop_btn.grid(row=0, column=1, sticky="w")
+
+        # フック停止トリガー（フル：取得/クリアあり）
+        app.stop_key_frame = ttk.Frame(self.hook_frame)
+        app.stop_key_frame.grid(row=0, column=3, sticky="w")
+        ttk.Label(app.stop_key_frame, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
+        app.stop_key_entry = ttk.Entry(app.stop_key_frame, textvariable=app.stop_key_var, width=8, state="readonly")
+        app.stop_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
+        app.stop_key_capture_btn = ttk.Button(app.stop_key_frame, text="キー入力で取得", command=app._toggle_stop_key_capture)
+        app.stop_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
+        app.stop_key_clear_btn = ttk.Button(app.stop_key_frame, text="クリア", command=app.clear_stop_key)
+        app.stop_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
+
+        app.stop_key_hint = ttk.Label(self.hook_frame, text="※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
+        app.stop_key_hint.grid(row=1, column=2, columnspan=3, sticky="w", pady=(6, 0))
+
+        ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=2, column=0, columnspan=6, sticky="w", pady=(8, 0))
+
+        # 表示
+        self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
+        self.display_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
+        app.topmost_chk = ttk.Checkbutton(
+            self.display_frame,
+            text="常に手前",
+            variable=app.always_on_top_var,
+            command=app._apply_always_on_top,
+        )
+        app.topmost_chk.grid(row=0, column=0, sticky="w")
+        # 省略表示へ
+        app.compact_btn = ttk.Button(self.display_frame, text="省略表示", command=app.show_compact_view)
+        app.compact_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
+
+        # main
+        self.main_area = ttk.Frame(self)
+        self.main_area.pack(fill="both", expand=True, pady=(12, 0))
+
+        self.trigger_box = ttk.LabelFrame(self.main_area, text="トリガー一覧（選択して編集）", padding=10)
+        self.trigger_box.pack(side="left", fill="y")
+
+        # トリガー一覧（スクロール）
+        tl_frame = ttk.Frame(self.trigger_box)
+        tl_frame.pack(side="top", fill="y", expand=False)
+        self.trigger_list = tk.Listbox(tl_frame, height=12, width=26, exportselection=False)
+        self.trigger_list.pack(side="left", fill="y", expand=False)
+        sb = ttk.Scrollbar(tl_frame, orient="vertical", command=self.trigger_list.yview)
+        sb.pack(side="left", fill="y")
+        self.trigger_list.configure(yscrollcommand=sb.set)
+        self.trigger_list.bind("<<ListboxSelect>>", lambda _e: app._set_selected_trigger_index(self._cur_sel_or(app._selected_trigger_idx)))
+        self.trigger_list.bind("<Double-Button-1>", app._on_trigger_double_click)
+
+        tbtns = ttk.Frame(self.trigger_box)
+        tbtns.pack(fill="x", pady=(6, 0))
+        ttk.Button(tbtns, text="追加", command=app.add_trigger).pack(fill="x", pady=(0, 3))
+        ttk.Button(tbtns, text="トリガー変更", command=app.rename_trigger).pack(fill="x", pady=3)
+        ttk.Button(tbtns, text="削除", command=app.delete_trigger).pack(fill="x", pady=3)
+
+        app.suppress_chk = ttk.Checkbutton(
+            self.trigger_box,
+            text="トリガーキーを抑止（suppress）",
+            variable=app.suppress_var,
+            command=app.update_suppress,
+        )
+        app.suppress_chk.pack(anchor="w", pady=(6, 0))
+
+        self.sequence_box = ttk.LabelFrame(self.main_area, text="出力シーケンス（選択中トリガーの内容）", padding=10)
+        self.sequence_box.pack(side="left", fill="both", expand=True, padx=(12, 0))
+
+        self.action_list = tk.Listbox(self.sequence_box, height=18, exportselection=False)
+        self.action_list.pack(side="left", fill="both", expand=True)
+        self.action_list.bind("<<ListboxSelect>>", app._on_action_list_select)
+        self.action_list.bind("<Double-Button-1>", app._on_action_double_click)
+        asb = ttk.Scrollbar(self.sequence_box, orient="vertical", command=self.action_list.yview)
+        asb.pack(side="left", fill="y")
+        self.action_list.configure(yscrollcommand=asb.set)
+
+        abtns = ttk.Frame(self.sequence_box)
+        abtns.pack(side="left", fill="y", padx=(12, 0))
+        ttk.Button(abtns, text="追加", width=16, command=app.add_action).pack(pady=(0, 6))
+        ttk.Button(abtns, text="編集", width=16, command=app.edit_action).pack(pady=6)
+        ttk.Button(abtns, text="削除", width=16, command=app.delete_action).pack(pady=6)
+        ttk.Separator(abtns).pack(fill="x", pady=10)
+        ttk.Button(abtns, text="上へ", width=16, command=lambda: app.move_action(-1)).pack(pady=6)
+        ttk.Button(abtns, text="下へ", width=16, command=lambda: app.move_action(+1)).pack(pady=6)
+
+        # footer
+        self.footer_area = ttk.Frame(self)
+        self.footer_area.pack(fill="x", pady=(12, 0))
+        ttk.Button(self.footer_area, text="保存", command=app.save_config).pack(side="left")
+        ttk.Button(self.footer_area, text="別名で保存…", command=app.save_as).pack(side="left", padx=(8, 0))
+        ttk.Button(self.footer_area, text="読込…", command=app.load_from).pack(side="left", padx=(8, 0))
+        ttk.Button(self.footer_area, text="プリセット編集…", command=app.open_preset_manager).pack(side="left", padx=(8, 0))
+        ttk.Button(self.footer_area, text="起動時に読むJSONを指定…", command=app.set_startup_config).pack(side="left", padx=(8, 0))
+        ttk.Button(self.footer_area, text="例を復元", command=app.restore_default).pack(side="right")
+
+    def _cur_sel_or(self, default_idx: int) -> int:
+        try:
+            s = self.trigger_list.curselection()
+            return int(s[0]) if s else int(default_idx)
+        except Exception:
+            return int(default_idx)
+
+
+class CompactView(ttk.Frame):
+    """省略画面UI（開始/停止、停止トリガー表示のみ、ステータス、常に手前、フル復帰、トリガー一覧）"""
+    def __init__(self, parent, app: App):
+        super().__init__(parent)
+        self.app = app
+
+        # 縦並びで “トリガー一覧程度の幅” を想定（geometryはApp側で調整）
+        self.header_area = ttk.Frame(self, padding=0)
+        self.header_area.pack(fill="x", expand=False, pady=(12, 0))
+
+        self.hook_frame = ttk.LabelFrame(self.header_area, text="フック", padding=10)
+        self.hook_frame.pack(side="top", fill="x", expand=False)
+
+        # 開始/停止（Appの同名メソッドを呼ぶ。ウィジェットは別物でOK）
+        self.start_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.start_hook)
+        self.stop_btn = ttk.Button(self.hook_frame, text="停止（フックOFF）", command=app.stop_hook, state="disabled")
+        self.start_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
+        self.stop_btn.grid(row=0, column=1, sticky="w")
+
+        # 停止トリガー表示のみ（Entryだけ）
+        stop_line = ttk.Frame(self.hook_frame)
+        stop_line.grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        ttk.Label(stop_line, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
+        self.stop_key_entry = ttk.Entry(stop_line, textvariable=app.stop_key_var, width=8, state="readonly")
+        self.stop_key_entry.grid(row=0, column=1, sticky="w")
+
+        ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
+
+        self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
+        self.display_frame.pack(side="top", fill="x", expand=False, pady=(8, 0))
+        self.topmost_chk = ttk.Checkbutton(
+            self.display_frame,
+            text="常に手前",
+            variable=app.always_on_top_var,
+            command=app._apply_always_on_top,
+        )
+        self.topmost_chk.grid(row=0, column=0, sticky="w")
+        self.full_btn = ttk.Button(self.display_frame, text="フルに戻す", command=app.show_full_view)
+        self.full_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
+
+        # トリガー一覧のみ
+        self.main_area = ttk.Frame(self)
+        self.main_area.pack(fill="both", expand=True, pady=(12, 0))
+        self.trigger_box = ttk.LabelFrame(self.main_area, text="トリガー一覧", padding=10)
+        self.trigger_box.pack(side="top", fill="both", expand=True)
+
+        tl_frame = ttk.Frame(self.trigger_box)
+        tl_frame.pack(side="top", fill="both", expand=True)
+        self.trigger_list = tk.Listbox(tl_frame, height=16, width=26, exportselection=False)
+        self.trigger_list.pack(side="left", fill="both", expand=True)
+        sb = ttk.Scrollbar(tl_frame, orient="vertical", command=self.trigger_list.yview)
+        sb.pack(side="left", fill="y")
+        self.trigger_list.configure(yscrollcommand=sb.set)
+        self.trigger_list.bind("<<ListboxSelect>>", lambda _e: app._set_selected_trigger_index(self._cur_sel_or(app._selected_trigger_idx)))
+        self.trigger_list.bind("<Double-Button-1>", app._on_trigger_double_click)
+
+    def _cur_sel_or(self, default_idx: int) -> int:
+        try:
+            s = self.trigger_list.curselection()
+            return int(s[0]) if s else int(default_idx)
+        except Exception:
+            return int(default_idx)
 
 
 class ActionDialog(tk.Toplevel):
