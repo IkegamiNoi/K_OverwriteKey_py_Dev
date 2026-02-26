@@ -480,7 +480,7 @@ class App(tk.Tk):
         key = self._selected_trigger_key()
         if not key:
             return
-        sel = self.action_list.curselection()
+        sel = self.full_view.action_list.curselection()
         if not sel:
             return
         idx = int(sel[0])
