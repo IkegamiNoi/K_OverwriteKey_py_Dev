@@ -1,14 +1,14 @@
 import json
 import os
 import threading
+import time
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog, simpledialog
 
+# pip install keyboard pyautogui pynput
 # グローバルキーボードフック/送信
-# pip install keyboard
 import keyboard
 # マウス操作
-# pip install pyautogui pynput
 import pyautogui
 from pynput import mouse
 
@@ -19,6 +19,7 @@ DEFAULT_CONFIG = {
             "key": "f1",
             "suppress": True,
             "label": "",
+            "run_to_end": False,
             "actions": [
                 {"type": "hotkey", "value": "ctrl+c"},
                 {"type": "hotkey", "value": "alt+tab"},
@@ -32,6 +33,7 @@ DEFAULT_CONFIG = {
             "key": "f2",
             "suppress": True,
             "label": "",
+            "run_to_end": False,
             "actions": [
                 {"type": "text", "value": "F2のシーケンス 1"},
                 {"type": "hotkey", "value": "ctrl+v"},
@@ -90,6 +92,14 @@ class App(tk.Tk):
         self._reentry_guard = set() # keys currently sending (prevent recursion)
         self._programmatic_action_select = False  # action_list選択をコード側で変更中か
         self._error_dialog_open = False           # エラーダイアログ多重表示防止
+        
+        # ---- 連続実行（run_to_end）状態 ----
+        self._chain_running = False
+        self._chain_paused = False
+        self._chain_key = None
+        self._chain_stop_event = threading.Event()
+        self._chain_pause_event = threading.Event()
+        self._chain_thread = None
  
         self._build_ui()
         self._load_startup_and_config()
@@ -129,6 +139,7 @@ class App(tk.Tk):
         self.stop_key_var = tk.StringVar(value=str(self.data.get("hook_stop_key", "")))
         self.status_var = tk.StringVar(value="")
         self.suppress_var = tk.BooleanVar(value=True)
+        self.run_to_end_var = tk.BooleanVar(value=False)
         self.start_btn: ttk.Button
         self.stop_btn: ttk.Button
         self.stop_key_frame: ttk.Frame
@@ -139,6 +150,7 @@ class App(tk.Tk):
         self.topmost_chk: ttk.Checkbutton
         self.compact_btn: ttk.Button
         self.suppress_chk: ttk.Checkbutton
+        self.run_to_end_chk: ttk.Checkbutton
         self.compact_start_btn: ttk.Button
         self.compact_stop_btn: ttk.Button
         
@@ -333,7 +345,22 @@ class App(tk.Tk):
         triggers = self.data.get("triggers", [])
         keys = [normalize_key_name(t.get("key", "")) for t in triggers if t.get("key")]
         keys_text = ", ".join(keys) if keys else "(未設定)"
-        next_i = self._indices.get(sel_key, 0) + 1 if sel_key in self._indices else 0
+        # 「次」は run_to_end の場合、終端（len）なら次回は先頭なので 1 を出す
+        next_i = 0
+        try:
+            trig = self._find_trigger_by_key(sel_key) if sel_key and sel_key != "(未選択)" else None
+            actions = trig.get("actions", []) if trig else []
+            idx = int(self._indices.get(sel_key, 0) or 0) if sel_key in self._indices else 0
+            if actions:
+                if bool(trig.get("run_to_end", False)) and idx >= len(actions):
+                    next_i = 1
+                else:
+                    # 通常は idx+1（=次に実行される行番号）
+                    next_i = min(idx, len(actions)-1) + 1
+            else:
+                next_i = 0
+        except Exception:
+            next_i = 0
         self.status_var.set(f"フック: {state} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}")
 
     def _get_next_action_summary(self, trigger_key: str) -> str:
@@ -345,7 +372,12 @@ class App(tk.Tk):
         actions = trig.get("actions", [])
         if not actions:
             return "(なし)"
-        idx = int(self._indices.get(key, 0) or 0) % len(actions)
+        idx_raw = int(self._indices.get(key, 0) or 0)
+        # run_to_end で終端にいる（len）なら、次回は先頭から
+        if bool(trig.get("run_to_end", False)) and idx_raw >= len(actions):
+            idx = 0
+        else:
+            idx = idx_raw % len(actions)
         a = actions[idx] if 0 <= idx < len(actions) else None
         if not isinstance(a, dict):
             return "(なし)"
@@ -405,11 +437,13 @@ class App(tk.Tk):
             self.full_view.action_list.delete(0, tk.END)
         except Exception:
             self._sync_suppress_checkbox()
+            self._sync_run_to_end_checkbox()
             self._update_status()
             return
         trig = self._selected_trigger()
         if not trig:
             self._sync_suppress_checkbox()
+            self._sync_run_to_end_checkbox()
             self._update_status()
             return
         actions = trig.get("actions", [])
@@ -435,13 +469,24 @@ class App(tk.Tk):
         if key not in self._indices:
             self._indices[key] = 0
         # index補正
-        if actions:
-            self._indices[key] %= len(actions)
-        else:
+        if not actions:
             self._indices[key] = 0
+        else:
+            if bool(trig.get("run_to_end", False)):
+                # run_to_end: 0..len を許す（lenは「終端＝次回は先頭」）
+                idx = int(self._indices.get(key, 0) or 0)
+                if idx < 0:
+                    idx = 0
+                if idx > len(actions):
+                    idx = len(actions)
+                self._indices[key] = idx
+            else:
+                # 従来: 循環
+                self._indices[key] %= len(actions)
         # 「次に実行する行」を選択状態にする
         self._select_next_action_row(key)
         self._sync_suppress_checkbox()
+        self._sync_run_to_end_checkbox()
         self._update_status()
 
     def _select_next_action_row(self, key: str):
@@ -451,12 +496,18 @@ class App(tk.Tk):
         if not actions:
             self.full_view.action_list.selection_clear(0, tk.END)
             return
-        idx = self._indices.get(key, 0)
-        if idx < 0:
+        trig = self._find_trigger_by_key(key)
+        idx_raw = int(self._indices.get(key, 0) or 0)
+        # run_to_end で終端（len）なら次回は先頭なので、先頭をハイライト
+        if trig and bool(trig.get("run_to_end", False)) and idx_raw >= len(actions):
             idx = 0
-        if idx >= len(actions):
-            idx = len(actions) - 1
-            self._indices[key] = idx
+        else:
+            idx = idx_raw
+            if idx < 0:
+                idx = 0
+            if idx >= len(actions):
+                idx = len(actions) - 1
+                self._indices[key] = idx
         self._programmatic_action_select = True
         try:
             self.full_view.action_list.selection_clear(0, tk.END)
@@ -528,6 +579,8 @@ class App(tk.Tk):
         for t in self.data.get("triggers", []) if isinstance(self.data.get("triggers"), list) else []:
             if "label" not in t:
                 t["label"] = ""
+            if "run_to_end" not in t:
+                t["run_to_end"] = False
             # action の label 欠落を補う（既存データ互換）
             actions = t.get("actions", [])
             if isinstance(actions, list):
@@ -635,6 +688,13 @@ class App(tk.Tk):
             return
         self.suppress_var.set(bool(t.get("suppress", True)))
 
+    def _sync_run_to_end_checkbox(self):
+        t = self._selected_trigger()
+        if not t:
+            self.run_to_end_var.set(False)
+            return
+        self.run_to_end_var.set(bool(t.get("run_to_end", False)))
+
     def update_suppress(self):
         t = self._selected_trigger()
         if not t:
@@ -643,6 +703,17 @@ class App(tk.Tk):
         # フックON中なら再登録が必要（設定反映）
         if self.hook_active:
             self.start_hook()
+
+    def update_run_to_end(self):
+        """連続実行（run_to_end）を現在のトリガーへ反映"""
+        t = self._selected_trigger()
+        if not t:
+            return
+        t["run_to_end"] = bool(self.run_to_end_var.get())
+        # UI表示（次の行ハイライト/ステータス）を即反映
+        if not getattr(self, "_compact_mode", False):
+            self._refresh_actions()
+        self._update_status()
 
     # ---------------- Trigger CRUD ----------------
     def add_trigger(self):
@@ -665,13 +736,15 @@ class App(tk.Tk):
         if stop_key and key == stop_key:
             messagebox.showerror("追加できません", f"このキーはフック停止トリガーに設定されています:\n{key}")
             return
-        triggers.append({"key": key, "label": label, "suppress": True, "actions": []})
+        triggers.append({"key": key, "label": label, "suppress": True, "run_to_end": False, "actions": []})
         self._indices.setdefault(key, 0)
         self._refresh_triggers()
         # 末尾を選択
-        #Sself.trigger_list.selection_clear(0, tk.END)
-        self._set_selected_trigger_index(len(triggers) - 1)
-        self._refresh_actions()
+        try:
+            self.full_view.trigger_list.selection_clear(0, tk.END)
+            self.full_view.trigger_list.selection_set(len(triggers) - 1)
+        except Exception:
+            pass
         if self.hook_active:
             self.start_hook()
 
@@ -846,6 +919,8 @@ class App(tk.Tk):
             self._update_status()
 
     def stop_hook(self):
+        # 連続実行中なら止める
+        self._stop_chain(force=True)
         for _k, h in list(self._hook_handles.items()):
             try:
                 keyboard.unhook(h)
@@ -894,6 +969,11 @@ class App(tk.Tk):
     def _on_trigger_key(self, key: str):
         # フックは別スレッドで来る可能性があるのでロック + 再入防止（key単位）
         key = normalize_key_name(key)
+        
+        # 連続実行中（未一時停止）なら、対象キー以外は無効
+        if self._chain_running and (not self._chain_paused) and self._chain_key and key != self._chain_key:
+            return
+
         with self._lock:
             if key in self._reentry_guard:
                 return
@@ -906,11 +986,15 @@ class App(tk.Tk):
             actions = trig.get("actions", [])
             if not actions:
                 return
+            # run_to_end: 連続実行（開始/一時停止/再開）
+            if bool(trig.get("run_to_end", False)):
+                self._chain_start_or_toggle(key)
+                return
+
+            # 通常: 1回押すごとに1行（従来の循環動作）
             i = self._indices.get(key, 0) % len(actions)
             action = actions[i]
-
             self._perform_action(action)
-
             with self._lock:
                 self._indices[key] = (i + 1) % len(actions)
         finally:
@@ -918,6 +1002,105 @@ class App(tk.Tk):
                 self._reentry_guard.discard(key)
             # UI更新はメインスレッドで：押されたトリガーを左で選択 + 次の行を右で選択
             self.after(0, lambda k=key: self._select_trigger_by_key(k))
+
+    # ---------------- Chain run (run_to_end) ----------------
+    def _chain_start_or_toggle(self, key: str):
+        """run_to_end のトリガー押下時：開始 / 一時停止 / 再開 を切替"""
+        key = normalize_key_name(key)
+
+        # すでに同キーで連続実行中なら toggle
+        if self._chain_running and self._chain_key == key:
+            if self._chain_paused:
+                # 再開
+                self._chain_paused = False
+                self._chain_pause_event.clear()
+                self.after(0, self._update_status)
+            else:
+                # 一時停止（この状態では他トリガーも使えるようにする）
+                self._chain_paused = True
+                self._chain_pause_event.set()
+                self.after(0, self._update_status)
+            return
+
+        # 別キーで連続実行中（未一時停止）なら無視（要件：他トリガー抑止）
+        if self._chain_running and (not self._chain_paused):
+            return
+
+        # 連続実行開始：対象を切替
+        self._stop_chain(force=True)
+        self._chain_key = key
+        self._chain_running = True
+        self._chain_paused = False
+        self._chain_stop_event.clear()
+        self._chain_pause_event.clear()
+
+        th = threading.Thread(target=self._chain_worker, args=(key,), daemon=True)
+        self._chain_thread = th
+        th.start()
+        self.after(0, self._update_status)
+
+    def _stop_chain(self, force: bool = False):
+        """連続実行を停止（force=Trueなら問答無用で停止）"""
+        if not self._chain_running and not force:
+            return
+        self._chain_stop_event.set()
+        self._chain_pause_event.clear()
+        self._chain_running = False
+        self._chain_paused = False
+        self._chain_key = None
+
+    def _chain_worker(self, key: str):
+        """別スレッド：indices[key] から最後まで実行し、完走したら indices を len(actions) にして終了"""
+        key = normalize_key_name(key)
+        while not self._chain_stop_event.is_set():
+            # 一時停止中
+            if self._chain_pause_event.is_set():
+                time.sleep(0.05)
+                continue
+
+            trig = self._find_trigger_by_key(key)
+            if not trig:
+                break
+            actions = trig.get("actions", [])
+            if not actions:
+                break
+
+            with self._lock:
+                idx = int(self._indices.get(key, 0) or 0)
+
+            # 終端（len）なら、次回は先頭から（要件1-A）
+            if idx >= len(actions):
+                idx = 0
+                with self._lock:
+                    self._indices[key] = 0
+
+            action = actions[idx]
+            self._perform_action(action)
+
+            with self._lock:
+                self._indices[key] = idx + 1
+                done = (self._indices[key] >= len(actions))
+
+            # UI更新（選択/ステータス）
+            self.after(0, lambda k=key: self._select_trigger_by_key(k))
+
+            if done:
+                # 完走：次回は先頭からになるよう indices は len のまま保持（表示は先頭を指す）
+                self._chain_stop_event.set()
+                break
+
+            # 連打で重くならない程度に少し間を置く（必要なら調整）
+            time.sleep(0.01)
+
+        # 終了処理（UIスレッド側へ寄せる）
+        def _finish():
+            self._chain_running = False
+            self._chain_paused = False
+            self._chain_key = None
+            self._chain_stop_event.clear()
+            self._chain_pause_event.clear()
+            self._update_status()
+        self.after(0, _finish)
 
     def _select_trigger_by_key(self, key: str):
         """押されたトリガーキーに対応する行をトリガー一覧で選択し、右側表示も更新する（UIスレッド専用）"""
@@ -1280,6 +1463,15 @@ class FullView(ttk.Frame):
         ttk.Separator(abtns).pack(fill="x", pady=10)
         ttk.Button(abtns, text="上へ", width=16, command=lambda: app.move_action(-1)).pack(pady=6)
         ttk.Button(abtns, text="下へ", width=16, command=lambda: app.move_action(+1)).pack(pady=6)
+        ttk.Separator(abtns).pack(fill="x", pady=10)
+        # 連続実行（run_to_end）
+        app.run_to_end_chk = ttk.Checkbutton(
+            abtns,
+            text="連続実行",
+            variable=app.run_to_end_var,
+            command=app.update_run_to_end,
+        )
+        app.run_to_end_chk.pack(anchor="w", pady=(8, 0))
 
         # footer
         self.footer_area = ttk.Frame(self)
