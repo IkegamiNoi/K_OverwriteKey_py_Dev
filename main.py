@@ -20,6 +20,7 @@ DEFAULT_CONFIG = {
             "suppress": True,
             "label": "",
             "run_to_end": False,
+            "run_to_end_delay_ms": 300,
             "actions": [
                 {"type": "hotkey", "value": "ctrl+c"},
                 {"type": "hotkey", "value": "alt+tab"},
@@ -34,6 +35,7 @@ DEFAULT_CONFIG = {
             "suppress": True,
             "label": "",
             "run_to_end": False,
+            "run_to_end_delay_ms": 300,
             "actions": [
                 {"type": "text", "value": "F2のシーケンス 1"},
                 {"type": "hotkey", "value": "ctrl+v"},
@@ -94,6 +96,9 @@ class App(tk.Tk):
         self._error_dialog_open = False           # エラーダイアログ多重表示防止
         
         # ---- 連続実行（run_to_end）状態 ----
+        self._run_to_end_key = None       # 現在連続実行中のトリガーkey（Noneなら未実行）
+        self._run_to_end_paused = False   # 一時停止中か
+        self._run_to_end_after_id = None  # after の戻り値（キャンセル用）
         self._chain_running = False
         self._chain_paused = False
         self._chain_key = None
@@ -140,6 +145,8 @@ class App(tk.Tk):
         self.status_var = tk.StringVar(value="")
         self.suppress_var = tk.BooleanVar(value=True)
         self.run_to_end_var = tk.BooleanVar(value=False)
+        self.run_to_end_delay_var = tk.StringVar(value="300")
+        self.run_to_end_delay_entry: ttk.Entry
         self.start_btn: ttk.Button
         self.stop_btn: ttk.Button
         self.stop_key_frame: ttk.Frame
@@ -429,6 +436,7 @@ class App(tk.Tk):
             self._selected_trigger_idx = max(0, min(int(self._selected_trigger_idx), len(triggers) - 1))
             self._sync_trigger_selection_to_views()
         self._sync_suppress_checkbox()
+        self._sync_run_to_end_ui()
         self._update_status()
 
     def _refresh_actions(self):
@@ -437,13 +445,13 @@ class App(tk.Tk):
             self.full_view.action_list.delete(0, tk.END)
         except Exception:
             self._sync_suppress_checkbox()
-            self._sync_run_to_end_checkbox()
+            self._sync_run_to_end_ui()
             self._update_status()
             return
         trig = self._selected_trigger()
         if not trig:
             self._sync_suppress_checkbox()
-            self._sync_run_to_end_checkbox()
+            self._sync_run_to_end_ui()
             self._update_status()
             return
         actions = trig.get("actions", [])
@@ -486,7 +494,7 @@ class App(tk.Tk):
         # 「次に実行する行」を選択状態にする
         self._select_next_action_row(key)
         self._sync_suppress_checkbox()
-        self._sync_run_to_end_checkbox()
+        self._sync_run_to_end_ui()
         self._update_status()
 
     def _select_next_action_row(self, key: str):
@@ -581,6 +589,8 @@ class App(tk.Tk):
                 t["label"] = ""
             if "run_to_end" not in t:
                 t["run_to_end"] = False
+            if "run_to_end_delay_ms" not in t:
+                t["run_to_end_delay_ms"] = 300
             # action の label 欠落を補う（既存データ互換）
             actions = t.get("actions", [])
             if isinstance(actions, list):
@@ -688,12 +698,59 @@ class App(tk.Tk):
             return
         self.suppress_var.set(bool(t.get("suppress", True)))
 
-    def _sync_run_to_end_checkbox(self):
+    # ---------------- run_to_end UI sync/update ----------------
+    def _sync_run_to_end_ui(self):
+        """選択中トリガーの run_to_end / delay を UI へ反映"""
         t = self._selected_trigger()
         if not t:
             self.run_to_end_var.set(False)
+            self.run_to_end_delay_var.set("300")
+            try:
+                if hasattr(self, "run_to_end_delay_entry"):
+                    self.run_to_end_delay_entry.configure(state="disabled")
+            except Exception:
+                pass
             return
+
         self.run_to_end_var.set(bool(t.get("run_to_end", False)))
+        d = t.get("run_to_end_delay_ms", 300)
+        try:
+            d = int(d)
+        except Exception:
+            d = 300
+        if d < 0:
+            d = 0
+        self.run_to_end_delay_var.set(str(d))
+        try:
+            if hasattr(self, "run_to_end_delay_entry"):
+                self.run_to_end_delay_entry.configure(state=("normal" if self.run_to_end_var.get() else "disabled"))
+        except Exception:
+            pass
+
+    def update_run_to_end(self):
+        """チェック変更を選択中トリガーへ保存（トリガーごと）"""
+        t = self._selected_trigger()
+        if not t:
+            return
+        t["run_to_end"] = bool(self.run_to_end_var.get())
+        # Entry の活性も追従
+        self._sync_run_to_end_ui()
+
+    def update_run_to_end_delay(self, _event=None):
+        """間隔(ms) を選択中トリガーへ保存（トリガーごと）"""
+        t = self._selected_trigger()
+        if not t:
+            return
+        s = (self.run_to_end_delay_var.get() or "").strip()
+        try:
+            v = int(s)
+        except Exception:
+            v = 300
+        if v < 0:
+            v = 0
+        t["run_to_end_delay_ms"] = v
+        # 表示を正規化（"00300" 等を "300" に）
+        self.run_to_end_delay_var.set(str(v))
 
     def update_suppress(self):
         t = self._selected_trigger()
@@ -967,41 +1024,154 @@ class App(tk.Tk):
         self._stop_hook_handle = None
     
     def _on_trigger_key(self, key: str):
-        # フックは別スレッドで来る可能性があるのでロック + 再入防止（key単位）
+       # keyboardコールバックは別スレッドになり得るため、ロジックはUIスレッドへ寄せる
+        k = normalize_key_name(key)
+        self.after(0, lambda kk=k: self._on_trigger_key_ui(kk))
+
+    def _on_trigger_key_ui(self, key: str):
+        """UIスレッド専用：単発 or 連続実行を判定して動かす"""
         key = normalize_key_name(key)
-        
-        # 連続実行中（未一時停止）なら、対象キー以外は無効
-        if self._chain_running and (not self._chain_paused) and self._chain_key and key != self._chain_key:
+
+        # 連続実行中は「同じトリガーなら一時停止/再開」「他トリガーは抑止」
+        if self._run_to_end_key is not None:
+            if key != self._run_to_end_key:
+                return
+            # 同じトリガー：トグル
+            if not self._run_to_end_paused:
+                self._run_to_end_pause()
+            else:
+                self._run_to_end_resume()
+            self._update_status()
             return
 
+        # 通常時：トリガー設定を見て分岐
+        trig = self._find_trigger_by_key(key)
+        if not trig:
+            return
+        actions = trig.get("actions", [])
+        if not actions:
+            return
+
+        if bool(trig.get("run_to_end", False)):
+            # 連続実行開始（現在の next index から最後まで）
+            self._run_to_end_start(key)
+            return
+
+        # ---- 単発実行（従来通り：次へ進めて循環）----
+        # 再入防止（UIスレッドでも保険として維持）
         with self._lock:
             if key in self._reentry_guard:
                 return
             self._reentry_guard.add(key)
-
         try:
-            trig = self._find_trigger_by_key(key)
-            if not trig:
-                return
-            actions = trig.get("actions", [])
-            if not actions:
-                return
-            # run_to_end: 連続実行（開始/一時停止/再開）
-            if bool(trig.get("run_to_end", False)):
-                self._chain_start_or_toggle(key)
-                return
-
-            # 通常: 1回押すごとに1行（従来の循環動作）
             i = self._indices.get(key, 0) % len(actions)
-            action = actions[i]
-            self._perform_action(action)
+            self._perform_action(actions[i])
             with self._lock:
                 self._indices[key] = (i + 1) % len(actions)
         finally:
             with self._lock:
                 self._reentry_guard.discard(key)
-            # UI更新はメインスレッドで：押されたトリガーを左で選択 + 次の行を右で選択
-            self.after(0, lambda k=key: self._select_trigger_by_key(k))
+            self._select_trigger_by_key(key)
+
+    # ---------------- run_to_end engine ----------------
+    def _run_to_end_start(self, key: str):
+        key = normalize_key_name(key)
+        trig = self._find_trigger_by_key(key)
+        if not trig:
+            return
+        actions = trig.get("actions", [])
+        if not actions:
+            return
+
+        self._run_to_end_key = key
+        self._run_to_end_paused = False
+
+        # 選択も追従（見た目更新）
+        self._select_trigger_by_key(key)
+
+        # 最初の1発を即実行し、その後は after で回す
+        self._run_to_end_step()
+
+    def _run_to_end_pause(self):
+        self._run_to_end_paused = True
+        if self._run_to_end_after_id is not None:
+            try:
+                self.after_cancel(self._run_to_end_after_id)
+            except Exception:
+                pass
+        self._run_to_end_after_id = None
+
+    def _run_to_end_resume(self):
+        self._run_to_end_paused = False
+        self._run_to_end_step(schedule_only=True)
+
+    def _run_to_end_stop(self):
+        # after を止める
+        if self._run_to_end_after_id is not None:
+            try:
+                self.after_cancel(self._run_to_end_after_id)
+            except Exception:
+                pass
+        self._run_to_end_after_id = None
+        self._run_to_end_key = None
+        self._run_to_end_paused = False
+        self._update_status()
+
+    def _run_to_end_step(self, schedule_only: bool = False):
+        """連続実行：現在indexから最後まで実行。最後に到達したら停止＆indexを先頭へ戻す。"""
+        key = self._run_to_end_key
+        if not key:
+            return
+        if self._run_to_end_paused:
+            return
+        trig = self._find_trigger_by_key(key)
+        if not trig:
+            self._run_to_end_stop()
+            return
+        actions = trig.get("actions", [])
+        if not actions:
+            self._run_to_end_stop()
+            return
+
+        # delay(ms) 取得（トリガーごと）
+        delay = trig.get("run_to_end_delay_ms", 300)
+        try:
+            delay = int(delay)
+        except Exception:
+            delay = 300
+        if delay < 0:
+            delay = 0
+
+        i = int(self._indices.get(key, 0) or 0)
+        if i < 0:
+            i = 0
+
+        # schedule_only=True のときは「次の実行」だけ予約（直ちには実行しない）
+        if schedule_only:
+            self._run_to_end_after_id = self.after(delay, self._run_to_end_step)
+            return
+
+        # 終端を超えていたら停止（安全）
+        if i >= len(actions):
+            self._indices[key] = 0
+            self._run_to_end_stop()
+            self._select_trigger_by_key(key)
+            return
+
+        # 実行
+        self._perform_action(actions[i])
+        self._indices[key] = i + 1
+        self._select_trigger_by_key(key)
+
+        # 次が最後を超えたら、要件通り「最後まで実行して停止」＋次回は先頭から
+        if self._indices[key] >= len(actions):
+            self._indices[key] = 0
+            self._run_to_end_stop()
+            self._select_trigger_by_key(key)
+            return
+
+        # 次を予約
+        self._run_to_end_after_id = self.after(delay, self._run_to_end_step)
 
     # ---------------- Chain run (run_to_end) ----------------
     def _chain_start_or_toggle(self, key: str):
@@ -1472,6 +1642,16 @@ class FullView(ttk.Frame):
             command=app.update_run_to_end,
         )
         app.run_to_end_chk.pack(anchor="w", pady=(8, 0))
+
+        # 連続実行 間隔（ms） ※トリガーごと / デフォルト300
+        delay_line = ttk.Frame(abtns)
+        delay_line.pack(fill="x", pady=(6, 0))
+        ttk.Label(delay_line, text="間隔(ms)").pack(side="left")
+        app.run_to_end_delay_entry = ttk.Entry(delay_line, width=8, textvariable=app.run_to_end_delay_var)
+        app.run_to_end_delay_entry.pack(side="left", padx=(8, 0))
+        # Enter / フォーカスアウトで保存
+        app.run_to_end_delay_entry.bind("<Return>", app.update_run_to_end_delay)
+        app.run_to_end_delay_entry.bind("<FocusOut>", app.update_run_to_end_delay)
 
         # footer
         self.footer_area = ttk.Frame(self)
