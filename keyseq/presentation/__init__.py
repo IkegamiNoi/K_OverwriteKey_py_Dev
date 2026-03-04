@@ -1,0 +1,2 @@
+"""Presentation layer (Tkinter UI)."""
+
