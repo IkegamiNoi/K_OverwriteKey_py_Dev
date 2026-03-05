@@ -622,15 +622,6 @@ class App(tk.Tk):
         except Exception:
             pass
 
-    def update_run_to_end(self):
-        """チェック変更を選択中トリガーへ保存（トリガーごと）"""
-        t = self._selected_trigger()
-        if not t:
-            return
-        t["run_to_end"] = bool(self.run_to_end_var.get())
-        # Entry の活性も追従
-        self._sync_run_to_end_ui()
-
     def update_run_to_end_delay(self, _event=None):
         """間隔(ms) を選択中トリガーへ保存（トリガーごと）"""
         t = self._selected_trigger()
@@ -662,6 +653,7 @@ class App(tk.Tk):
         if not t:
             return
         t["run_to_end"] = bool(self.run_to_end_var.get())
+        self._sync_run_to_end_ui()
         # UI表示（次の行ハイライト/ステータス）を即反映
         if not getattr(self, "_compact_mode", False):
             self._refresh_actions()
