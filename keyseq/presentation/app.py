@@ -302,6 +302,27 @@ class App(tk.Tk):
             self._refresh_actions()
         self._update_status()
 
+    def _find_trigger_by_key(self, key: str):
+        return self.trigger_service.find_trigger_by_key(self.data, key)
+
+    def _select_trigger_by_key(self, key: str):
+        """押されたトリガーキーに対応する行をトリガー一覧で選択し、右側表示も更新する（UI専用）"""
+        key = normalize_key_name(key)
+        triggers = self.data.get("triggers", [])
+        target_idx = None
+        for i, t in enumerate(triggers):
+            if normalize_key_name(t.get("key", "")) == key:
+                target_idx = i
+                break
+
+        if target_idx is None:
+            self._update_status()
+            return
+
+        self._selected_trigger_idx = int(target_idx)
+        self._sync_trigger_selection_to_views()
+        self._refresh_actions()
+        self._update_status()
     def _apply_always_on_top(self):
         """チェック状態に応じてウィンドウを常に手前にする"""
         try:
@@ -310,7 +331,6 @@ class App(tk.Tk):
             # 失敗してもアプリは止めない
             pass
 
-    # ---------------- Startup config ----------------
     # ---------------- Startup config ----------------
     def _load_startup_and_config(self):
         """
@@ -1206,3 +1226,4 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+
