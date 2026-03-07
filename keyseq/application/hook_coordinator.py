@@ -59,7 +59,7 @@ class HookCoordinator:
             return False
 
     def install_stop_hook(self, key: str, on_stop: Callable[[], None], on_error: Callable[[str, str], None]) -> None:
-        self._uninstall_stop_hook()
+        self.uninstall_stop_hook()
         key = normalize_key_name(key)
         if not key:
             return
@@ -91,3 +91,4 @@ class HookCoordinator:
         except Exception:
             pass
         self._stop_hook_handle = None
+
