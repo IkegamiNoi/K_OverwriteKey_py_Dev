@@ -25,17 +25,13 @@ class FullView(ttk.Frame):
 
         self.hook_frame = ttk.LabelFrame(self.header_area, text="フック", padding=10)
         self.hook_frame.pack(side="left", fill="y")
-
-        app.start_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.start_hook)
-        app.stop_btn = ttk.Button(self.hook_frame, text="停止（フックOFF）", command=app.stop_hook, state="disabled")
+        app.hook_toggle_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.toggle_hook)
         app.trigger_toggle_btn = ttk.Button(self.hook_frame, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
-        app.start_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
-        app.stop_btn.grid(row=0, column=1, sticky="w")
-        app.trigger_toggle_btn.grid(row=0, column=2, padx=(8, 0), sticky="w")
-
+        app.hook_toggle_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
+        app.trigger_toggle_btn.grid(row=0, column=1, padx=(8, 0), sticky="w")
         # フック停止トリガー（フル：取得/クリアあり）
         app.stop_key_frame = ttk.Frame(self.hook_frame)
-        app.stop_key_frame.grid(row=0, column=3, sticky="w")
+        app.stop_key_frame.grid(row=0, column=2, sticky="w")
         ttk.Label(app.stop_key_frame, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
         app.stop_key_entry = ttk.Entry(app.stop_key_frame, textvariable=app.stop_key_var, width=8, state="readonly")
         app.stop_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
@@ -46,7 +42,7 @@ class FullView(ttk.Frame):
 
         # 通常トリガー有効/無効トグルキー（フル：取得/クリアあり）
         app.toggle_key_frame = ttk.Frame(self.hook_frame)
-        app.toggle_key_frame.grid(row=0, column=4, sticky="w", padx=(12, 0))
+        app.toggle_key_frame.grid(row=0, column=3, sticky="w", padx=(12, 0))
         ttk.Label(app.toggle_key_frame, text="有効/無効トグルキー: ").grid(row=0, column=0, sticky="w")
         app.toggle_key_entry = ttk.Entry(app.toggle_key_frame, textvariable=app.toggle_key_var, width=8, state="readonly")
         app.toggle_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
@@ -56,9 +52,9 @@ class FullView(ttk.Frame):
         app.toggle_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
 
         app.stop_key_hint = ttk.Label(self.hook_frame, text="※停止キー/トグルキーのキャプチャ中はフックを一時停止します")
-        app.stop_key_hint.grid(row=1, column=2, columnspan=4, sticky="w", pady=(6, 0))
+        app.stop_key_hint.grid(row=1, column=1, columnspan=4, sticky="w", pady=(6, 0))
         app.toggle_key_hint = ttk.Label(self.hook_frame, text="※停止キー・トグルキー・トリガー一覧の重複は禁止（Escでキャンセル）")
-        app.toggle_key_hint.grid(row=2, column=2, columnspan=4, sticky="w", pady=(2, 0))
+        app.toggle_key_hint.grid(row=2, column=1, columnspan=4, sticky="w", pady=(2, 0))
 
         ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=3, column=0, columnspan=8, sticky="w", pady=(8, 0))
 
@@ -179,33 +175,28 @@ class CompactView(ttk.Frame):
         self.hook_frame.pack(side="top", fill="x", expand=False)
 
         # 開始/停止（Appの同名メソッドを呼ぶ。ウィジェットは別物でOK）
-        self.start_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.start_hook)
-        self.stop_btn = ttk.Button(self.hook_frame, text="停止（フックOFF）", command=app.stop_hook, state="disabled")
+        self.hook_toggle_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.toggle_hook)
         self.trigger_toggle_btn = ttk.Button(self.hook_frame, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
-        self.start_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
-        self.stop_btn.grid(row=0, column=1, sticky="w")
-        self.trigger_toggle_btn.grid(row=0, column=2, padx=(8, 0), sticky="w")
-
+        self.hook_toggle_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
+        self.trigger_toggle_btn.grid(row=0, column=1, padx=(8, 0), sticky="w")
         # App側でも参照できるように保持（フック開始/停止時のstate同期用）
-        app.compact_start_btn = self.start_btn
-        app.compact_stop_btn = self.stop_btn
+        app.compact_hook_toggle_btn = self.hook_toggle_btn
         app.compact_trigger_toggle_btn = self.trigger_toggle_btn
-
         # 停止トリガー表示のみ（Entryだけ）
         stop_line = ttk.Frame(self.hook_frame)
-        stop_line.grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
+        stop_line.grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 0))
         ttk.Label(stop_line, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
         self.stop_key_entry = ttk.Entry(stop_line, textvariable=app.stop_key_var, width=8, state="readonly")
         self.stop_key_entry.grid(row=0, column=1, sticky="w")
 
         # トグルキー表示のみ（Entryだけ）
         toggle_line = ttk.Frame(self.hook_frame)
-        toggle_line.grid(row=2, column=0, columnspan=3, sticky="w", pady=(4, 0))
+        toggle_line.grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 0))
         ttk.Label(toggle_line, text="有効/無効トグルキー: ").grid(row=0, column=0, sticky="w")
         self.toggle_key_entry = ttk.Entry(toggle_line, textvariable=app.toggle_key_var, width=8, state="readonly")
         self.toggle_key_entry.grid(row=0, column=1, sticky="w")
 
-        ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=3, column=0, columnspan=3, sticky="w", pady=(8, 0))
+        ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=3, column=0, columnspan=2, sticky="w", pady=(8, 0))
 
         self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
         self.display_frame.pack(side="top", fill="x", expand=False, pady=(8, 0))
@@ -588,9 +579,3 @@ class ActionDialog(tk.Toplevel):
         """プリセット編集ダイアログを開き、戻ったらボタンを再生成"""
         PresetManagerDialog(self.parent, title="ホットキープリセット編集").wait_window()
         self._rebuild_preset_buttons()
-
-
-
-
-
-

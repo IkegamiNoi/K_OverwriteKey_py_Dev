@@ -72,6 +72,7 @@ class App(tk.Tk):
         self._refresh_triggers()
         self._refresh_actions()
         self._update_status()
+        self._sync_hook_toggle_buttons()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
     # ---------------- State compatibility aliases ----------------
@@ -196,9 +197,9 @@ class App(tk.Tk):
         self.run_to_end_var = tk.BooleanVar(value=False)
         self.run_to_end_delay_var = tk.StringVar(value="300")
         self.run_to_end_delay_entry: ttk.Entry
-        self.start_btn: ttk.Button
-        self.stop_btn: ttk.Button
+        self.hook_toggle_btn: ttk.Button
         self.trigger_toggle_btn: ttk.Button
+        self.compact_hook_toggle_btn: ttk.Button
         self.compact_trigger_toggle_btn: ttk.Button
         self.stop_key_frame: ttk.Frame
         self.stop_key_entry: ttk.Entry
@@ -210,8 +211,6 @@ class App(tk.Tk):
         self.compact_btn: ttk.Button
         self.suppress_chk: ttk.Checkbutton
         self.run_to_end_chk: ttk.Checkbutton
-        self.compact_start_btn: ttk.Button
-        self.compact_stop_btn: ttk.Button
         self.toggle_key_frame: ttk.Frame
         self.toggle_key_entry: ttk.Entry
         self.toggle_key_capture_btn: ttk.Button
@@ -946,6 +945,21 @@ class App(tk.Tk):
         self._refresh_actions()
 
     # ---------------- Hook logic ----------------
+    def _sync_hook_toggle_buttons(self):
+        if not hasattr(self, "hook_toggle_btn"):
+            return
+
+        text = "停止（フックOFF）" if self.hook_active else "開始（フックON）"
+        try:
+            self.hook_toggle_btn.configure(text=text, state="normal")
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "compact_hook_toggle_btn"):
+                self.compact_hook_toggle_btn.configure(text=text, state="normal")
+        except Exception:
+            pass
+
     def _sync_trigger_toggle_buttons(self):
         if not hasattr(self, "trigger_toggle_btn"):
             return
@@ -990,19 +1004,13 @@ class App(tk.Tk):
         )
 
         if not started:
+            self._sync_hook_toggle_buttons()
             self._sync_trigger_toggle_buttons()
             return
 
         self.hook_active = True
         self.triggers_enabled = desired_trigger_state
-        if hasattr(self, "start_btn"):
-            self.start_btn.configure(state="disabled")
-        if hasattr(self, "stop_btn"):
-            self.stop_btn.configure(state="normal")
-        if hasattr(self, "compact_start_btn"):
-            self.compact_start_btn.configure(state="disabled")
-        if hasattr(self, "compact_stop_btn"):
-            self.compact_stop_btn.configure(state="normal")
+        self._sync_hook_toggle_buttons()
         self._sync_trigger_toggle_buttons()
         self._update_status()
 
@@ -1014,17 +1022,15 @@ class App(tk.Tk):
         if reset_trigger_mode:
             self.triggers_enabled = True
 
-        if hasattr(self, "start_btn"):
-            self.start_btn.configure(state="normal")
-        if hasattr(self, "stop_btn"):
-            self.stop_btn.configure(state="disabled")
-        if hasattr(self, "compact_start_btn"):
-            self.compact_start_btn.configure(state="normal")
-        if hasattr(self, "compact_stop_btn"):
-            self.compact_stop_btn.configure(state="disabled")
-
+        self._sync_hook_toggle_buttons()
         self._sync_trigger_toggle_buttons()
         self._update_status()
+
+    def toggle_hook(self):
+        if self.hook_active:
+            self.stop_hook()
+        else:
+            self.start_hook()
 
     def toggle_triggers_enabled(self):
         if not self.hook_active:
@@ -1438,18 +1444,3 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
