@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Callable
 
@@ -14,7 +14,17 @@ class InputGateway:
         *,
         suppress: bool,
     ):
-        return keyboard.on_press_key(key, callback, suppress=suppress)
+        # hook_key+suppress を使い、押下(down)のみを上位へ渡す。
+        # これにより制御キー（停止/トグル）の抑止を安定させる。
+        def _wrapped(event):
+            try:
+                if getattr(event, "event_type", None) != "down":
+                    return
+            except Exception:
+                pass
+            callback(event)
+
+        return keyboard.hook_key(key, _wrapped, suppress=suppress)
 
     def unregister_hook(self, handle) -> None:
         keyboard.unhook(handle)
@@ -30,4 +40,3 @@ class InputGateway:
 
     def click_mouse(self, x: int, y: int, button: str, clicks: int) -> None:
         pyautogui.click(x=x, y=y, button=button, clicks=clicks)
-
