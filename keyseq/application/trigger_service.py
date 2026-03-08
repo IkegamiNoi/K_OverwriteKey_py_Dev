@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 from typing import Any
 
@@ -40,3 +40,7 @@ class TriggerService:
         stop_key = normalize_key_name(data.get("hook_stop_key", ""))
         return bool(stop_key) and normalize_key_name(key) == stop_key
 
+    @staticmethod
+    def is_toggle_key_conflict(data: dict[str, Any], key: str) -> bool:
+        toggle_key = normalize_key_name(data.get("hook_toggle_key", ""))
+        return bool(toggle_key) and normalize_key_name(key) == toggle_key

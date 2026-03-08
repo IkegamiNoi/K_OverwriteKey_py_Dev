@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import json
 from typing import Any
@@ -44,6 +44,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
         {"label": "Alt+F4", "value": "alt+f4"},
     ],
     "hook_stop_key": "",
+    "hook_toggle_key": "",
 }
 
 
@@ -127,6 +128,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
         config["hotkey_presets"] = normalized_presets
 
     config["hook_stop_key"] = normalize_key_name(config.get("hook_stop_key", ""))
+    config["hook_toggle_key"] = normalize_key_name(config.get("hook_toggle_key", ""))
     return config
 
 
@@ -161,4 +163,6 @@ def format_preset_list_item(index: int, preset: dict[str, Any]) -> str:
     if label:
         return f"{index + 1:02d}. {value}: {label}"
     return f"{index + 1:02d}. {value}"
+
+
 

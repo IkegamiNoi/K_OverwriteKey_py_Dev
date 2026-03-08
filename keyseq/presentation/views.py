@@ -1,4 +1,4 @@
-from __future__ import annotations
+﻿from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
@@ -11,6 +11,7 @@ from keyseq.presentation.dialogs import PresetManagerDialog
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
+
 
 class FullView(ttk.Frame):
     """フル画面UI"""
@@ -27,8 +28,10 @@ class FullView(ttk.Frame):
 
         app.start_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.start_hook)
         app.stop_btn = ttk.Button(self.hook_frame, text="停止（フックOFF）", command=app.stop_hook, state="disabled")
+        app.trigger_toggle_btn = ttk.Button(self.hook_frame, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
         app.start_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         app.stop_btn.grid(row=0, column=1, sticky="w")
+        app.trigger_toggle_btn.grid(row=0, column=2, padx=(8, 0), sticky="w")
 
         # フック停止トリガー（フル：取得/クリアあり）
         app.stop_key_frame = ttk.Frame(self.hook_frame)
@@ -41,10 +44,23 @@ class FullView(ttk.Frame):
         app.stop_key_clear_btn = ttk.Button(app.stop_key_frame, text="クリア", command=app.clear_stop_key)
         app.stop_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
 
-        app.stop_key_hint = ttk.Label(self.hook_frame, text="※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
-        app.stop_key_hint.grid(row=1, column=2, columnspan=3, sticky="w", pady=(6, 0))
+        # 通常トリガー有効/無効トグルキー（フル：取得/クリアあり）
+        app.toggle_key_frame = ttk.Frame(self.hook_frame)
+        app.toggle_key_frame.grid(row=0, column=4, sticky="w", padx=(12, 0))
+        ttk.Label(app.toggle_key_frame, text="有効/無効トグルキー: ").grid(row=0, column=0, sticky="w")
+        app.toggle_key_entry = ttk.Entry(app.toggle_key_frame, textvariable=app.toggle_key_var, width=8, state="readonly")
+        app.toggle_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
+        app.toggle_key_capture_btn = ttk.Button(app.toggle_key_frame, text="キー入力で取得", command=app._toggle_toggle_key_capture)
+        app.toggle_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
+        app.toggle_key_clear_btn = ttk.Button(app.toggle_key_frame, text="クリア", command=app.clear_toggle_key)
+        app.toggle_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
 
-        ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=2, column=0, columnspan=6, sticky="w", pady=(8, 0))
+        app.stop_key_hint = ttk.Label(self.hook_frame, text="※停止キー/トグルキーのキャプチャ中はフックを一時停止します")
+        app.stop_key_hint.grid(row=1, column=2, columnspan=4, sticky="w", pady=(6, 0))
+        app.toggle_key_hint = ttk.Label(self.hook_frame, text="※停止キー・トグルキー・トリガー一覧の重複は禁止（Escでキャンセル）")
+        app.toggle_key_hint.grid(row=2, column=2, columnspan=4, sticky="w", pady=(2, 0))
+
+        ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=3, column=0, columnspan=8, sticky="w", pady=(8, 0))
 
         # 表示
         self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
@@ -150,7 +166,7 @@ class FullView(ttk.Frame):
 
 
 class CompactView(ttk.Frame):
-    """省略画面UI（開始/停止、停止トリガー表示のみ、ステータス、常に手前、フル復帰、トリガー一覧）"""
+    """省略画面UI（開始/停止、通常トリガーON/OFF、制御キー表示、ステータス、常に手前、フル復帰、トリガー一覧）"""
     def __init__(self, parent, app: App):
         super().__init__(parent)
         self.app = app
@@ -165,21 +181,31 @@ class CompactView(ttk.Frame):
         # 開始/停止（Appの同名メソッドを呼ぶ。ウィジェットは別物でOK）
         self.start_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.start_hook)
         self.stop_btn = ttk.Button(self.hook_frame, text="停止（フックOFF）", command=app.stop_hook, state="disabled")
+        self.trigger_toggle_btn = ttk.Button(self.hook_frame, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
         self.start_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         self.stop_btn.grid(row=0, column=1, sticky="w")
-        
+        self.trigger_toggle_btn.grid(row=0, column=2, padx=(8, 0), sticky="w")
+
         # App側でも参照できるように保持（フック開始/停止時のstate同期用）
         app.compact_start_btn = self.start_btn
         app.compact_stop_btn = self.stop_btn
+        app.compact_trigger_toggle_btn = self.trigger_toggle_btn
 
         # 停止トリガー表示のみ（Entryだけ）
         stop_line = ttk.Frame(self.hook_frame)
-        stop_line.grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        stop_line.grid(row=1, column=0, columnspan=3, sticky="w", pady=(6, 0))
         ttk.Label(stop_line, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
         self.stop_key_entry = ttk.Entry(stop_line, textvariable=app.stop_key_var, width=8, state="readonly")
         self.stop_key_entry.grid(row=0, column=1, sticky="w")
 
-        ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        # トグルキー表示のみ（Entryだけ）
+        toggle_line = ttk.Frame(self.hook_frame)
+        toggle_line.grid(row=2, column=0, columnspan=3, sticky="w", pady=(4, 0))
+        ttk.Label(toggle_line, text="有効/無効トグルキー: ").grid(row=0, column=0, sticky="w")
+        self.toggle_key_entry = ttk.Entry(toggle_line, textvariable=app.toggle_key_var, width=8, state="readonly")
+        self.toggle_key_entry.grid(row=0, column=1, sticky="w")
+
+        ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=3, column=0, columnspan=3, sticky="w", pady=(8, 0))
 
         self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
         self.display_frame.pack(side="top", fill="x", expand=False, pady=(8, 0))
@@ -215,7 +241,6 @@ class CompactView(ttk.Frame):
             return int(s[0]) if s else int(default_idx)
         except Exception:
             return int(default_idx)
-
 
 class ActionDialog(tk.Toplevel):
     def __init__(self, parent: App, title: str, initial: dict | None = None):
@@ -563,5 +588,9 @@ class ActionDialog(tk.Toplevel):
         """プリセット編集ダイアログを開き、戻ったらボタンを再生成"""
         PresetManagerDialog(self.parent, title="ホットキープリセット編集").wait_window()
         self._rebuild_preset_buttons()
+
+
+
+
 
 

@@ -1,4 +1,4 @@
-import os
+﻿import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -64,6 +64,8 @@ class App(tk.Tk):
         self._programmatic_action_select = False  # action_list選択をコード側で変更中か
         self._error_dialog_open = False           # エラーダイアログ多重表示防止
         self._capturing_stop_key = False
+        self._capturing_toggle_key = False
+        self.triggers_enabled = True
 
         self._build_ui()
         self._load_startup_and_config()
@@ -167,7 +169,7 @@ class App(tk.Tk):
         if self._hook_suspend_count == 1:
             self._hook_was_active_before_dialog = bool(self.hook_active)
             if self._hook_was_active_before_dialog:
-                self.stop_hook()
+                self.stop_hook(reset_trigger_mode=False)
 
     def resume_hook_after_dialog(self):
         """一時停止したフックを元に戻す（ネスト対応。最後のダイアログが閉じた時だけ復帰）"""
@@ -188,6 +190,7 @@ class App(tk.Tk):
 
         # 共有Var（両Viewで同じ状態を参照）
         self.stop_key_var = tk.StringVar(value=str(self.data.get("hook_stop_key", "")))
+        self.toggle_key_var = tk.StringVar(value=str(self.data.get("hook_toggle_key", "")))
         self.status_var = tk.StringVar(value="")
         self.suppress_var = tk.BooleanVar(value=True)
         self.run_to_end_var = tk.BooleanVar(value=False)
@@ -195,17 +198,24 @@ class App(tk.Tk):
         self.run_to_end_delay_entry: ttk.Entry
         self.start_btn: ttk.Button
         self.stop_btn: ttk.Button
+        self.trigger_toggle_btn: ttk.Button
+        self.compact_trigger_toggle_btn: ttk.Button
         self.stop_key_frame: ttk.Frame
         self.stop_key_entry: ttk.Entry
         self.stop_key_capture_btn: ttk.Button
         self.stop_key_clear_btn: ttk.Button
         self.stop_key_hint: ttk.Label
+        self.toggle_key_hint: ttk.Label
         self.topmost_chk: ttk.Checkbutton
         self.compact_btn: ttk.Button
         self.suppress_chk: ttk.Checkbutton
         self.run_to_end_chk: ttk.Checkbutton
         self.compact_start_btn: ttk.Button
         self.compact_stop_btn: ttk.Button
+        self.toggle_key_frame: ttk.Frame
+        self.toggle_key_entry: ttk.Entry
+        self.toggle_key_capture_btn: ttk.Button
+        self.toggle_key_clear_btn: ttk.Button
         
         # 2画面（フル/省略）を用意し、pack_forgetで切替
         self.full_view = FullView(self.outer, app=self)
@@ -215,8 +225,8 @@ class App(tk.Tk):
         # compact_view は最初は非表示
 
     def show_compact_view(self):
-        if getattr(self, "_capturing_stop_key", False):
-            # 停止トリガーキャプチャ中に切替すると紛らわしいので止める（安全）
+        if getattr(self, "_capturing_stop_key", False) or getattr(self, "_capturing_toggle_key", False):
+            # 制御キーキャプチャ中に切替すると紛らわしいので止める（安全）
             return
         if self._compact_mode:
             return
@@ -403,12 +413,13 @@ class App(tk.Tk):
         messagebox.showinfo("設定", f"次回起動時はこのJSONを読み込みます:\n{path}")
 
     def _update_status(self):
-        state = "ON" if self.hook_active else "OFF"
+        hook_state = "ON" if self.hook_active else "OFF"
+        trigger_state = "ON" if self.triggers_enabled else "OFF"
         sel_key = self._selected_trigger_key() or "(未選択)"
         if getattr(self, "_compact_mode", False):
-            # 省略表示：ON/OFF + 選択中トリガー + 次に実行（行の内容）
+            # 省略表示：ON/OFF + 通常トリガー有効状態 + 選択中トリガー + 次に実行（行の内容）
             line = self._get_next_action_summary(sel_key)
-            self.status_var.set(f"フック: {state} / 選択: {sel_key} / 次: {line}")
+            self.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} / 選択: {sel_key} / 次: {line}")
             return
 
         triggers = self.data.get("triggers", [])
@@ -430,7 +441,9 @@ class App(tk.Tk):
                 next_i = 0
         except Exception:
             next_i = 0
-        self.status_var.set(f"フック: {state} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}")
+        self.status_var.set(
+            f"フック: {hook_state} / 通常トリガー: {trigger_state} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}"
+        )
 
     def _get_next_action_summary(self, trigger_key: str) -> str:
         """省略表示用：次に実行されるアクションを1行で返す"""
@@ -611,6 +624,8 @@ class App(tk.Tk):
         # UIへ反映（UI生成後に呼ばれる場合はガード）
         if hasattr(self, "stop_key_var"):
             self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
+        if hasattr(self, "toggle_key_var"):
+            self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
 
     def save_config(self):
         try:
@@ -644,10 +659,13 @@ class App(tk.Tk):
             self.data = self.config_service.load(path)
             if hasattr(self, "stop_key_var"):
                 self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
+            if hasattr(self, "toggle_key_var"):
+                self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
 
-            # フックON中なら停止トリガー登録も更新
+            # フックON中なら制御キーのフックも更新
             if getattr(self, "hook_active", False):
                 self._install_stop_hook()
+                self._install_toggle_hook()
             self._indices = {}
             self._refresh_triggers()
             self._refresh_actions()
@@ -661,6 +679,10 @@ class App(tk.Tk):
     def restore_default(self):
         if messagebox.askyesno("確認", "例の設定に戻します。よろしいですか？"):
             self.data = self.config_service.new_default_data()
+            if hasattr(self, "stop_key_var"):
+                self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
+            if hasattr(self, "toggle_key_var"):
+                self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
             self._indices = {}
             self._refresh_triggers()
             self._refresh_actions()
@@ -781,6 +803,9 @@ class App(tk.Tk):
         if self.trigger_service.is_stop_key_conflict(self.data, key):
             messagebox.showerror("追加できません", f"このキーはフック停止トリガーに設定されています:\n{key}")
             return
+        if self.trigger_service.is_toggle_key_conflict(self.data, key):
+            messagebox.showerror("追加できません", f"このキーは有効/無効トグルキーに設定されています:\n{key}")
+            return
         triggers.append({"key": key, "label": label, "suppress": True, "run_to_end": False, "actions": []})
         self._indices.setdefault(key, 0)
         self._refresh_triggers()
@@ -814,6 +839,9 @@ class App(tk.Tk):
             return
         if self.trigger_service.is_stop_key_conflict(self.data, new):
             messagebox.showerror("変更できません", f"このキーはフック停止トリガーに設定されています:\n{new}")
+            return
+        if self.trigger_service.is_toggle_key_conflict(self.data, new):
+            messagebox.showerror("変更できません", f"このキーは有効/無効トグルキーに設定されています:\n{new}")
             return
         # indices の移し替え
         self._indices.setdefault(old, 0)
@@ -918,9 +946,34 @@ class App(tk.Tk):
         self._refresh_actions()
 
     # ---------------- Hook logic ----------------
+    def _sync_trigger_toggle_buttons(self):
+        if not hasattr(self, "trigger_toggle_btn"):
+            return
+
+        if not self.hook_active:
+            text = "通常トリガー無効化"
+            state = "disabled"
+        elif self.triggers_enabled:
+            text = "通常トリガー無効化"
+            state = "normal"
+        else:
+            text = "通常トリガー有効化"
+            state = "normal"
+
+        try:
+            self.trigger_toggle_btn.configure(text=text, state=state)
+        except Exception:
+            pass
+        try:
+            if hasattr(self, "compact_trigger_toggle_btn"):
+                self.compact_trigger_toggle_btn.configure(text=text, state=state)
+        except Exception:
+            pass
+
     def start_hook(self):
+        desired_trigger_state = bool(self.triggers_enabled)
         if self.hook_active:
-            self.stop_hook()
+            self.stop_hook(reset_trigger_mode=False)
 
         def _on_error(title: str, msg: str) -> None:
             self.after(0, lambda: messagebox.showerror(title, msg))
@@ -930,13 +983,18 @@ class App(tk.Tk):
             on_key_event=self._on_trigger_key,
             stop_key=self.data.get("hook_stop_key", ""),
             on_stop=lambda: self.after(0, self.stop_hook),
+            toggle_key=self.data.get("hook_toggle_key", ""),
+            on_toggle=lambda: self.after(0, self.toggle_triggers_enabled),
             on_error=_on_error,
+            enable_triggers=desired_trigger_state,
         )
 
         if not started:
+            self._sync_trigger_toggle_buttons()
             return
 
         self.hook_active = True
+        self.triggers_enabled = desired_trigger_state
         if hasattr(self, "start_btn"):
             self.start_btn.configure(state="disabled")
         if hasattr(self, "stop_btn"):
@@ -945,13 +1003,16 @@ class App(tk.Tk):
             self.compact_start_btn.configure(state="disabled")
         if hasattr(self, "compact_stop_btn"):
             self.compact_stop_btn.configure(state="normal")
+        self._sync_trigger_toggle_buttons()
         self._update_status()
 
-    def stop_hook(self):
+    def stop_hook(self, *, reset_trigger_mode: bool = True):
         self.sequence_runner.stop_run_to_end()
         self.sequence_runner.stop_chain(force=True)
         self.hook_coordinator.stop()
         self.hook_active = False
+        if reset_trigger_mode:
+            self.triggers_enabled = True
 
         if hasattr(self, "start_btn"):
             self.start_btn.configure(state="normal")
@@ -962,6 +1023,37 @@ class App(tk.Tk):
         if hasattr(self, "compact_stop_btn"):
             self.compact_stop_btn.configure(state="disabled")
 
+        self._sync_trigger_toggle_buttons()
+        self._update_status()
+
+    def toggle_triggers_enabled(self):
+        if not self.hook_active:
+            return
+
+        if self.triggers_enabled:
+            # 無効化した瞬間に連続実行中を止める
+            self.sequence_runner.stop_run_to_end()
+            self.sequence_runner.stop_chain(force=True)
+            self.hook_coordinator.disable_trigger_hooks()
+            self.triggers_enabled = False
+        else:
+            def _on_error(title: str, msg: str) -> None:
+                self.after(0, lambda: messagebox.showerror(title, msg))
+
+            enabled = self.hook_coordinator.enable_trigger_hooks(
+                triggers=self.data.get("triggers", []),
+                on_key_event=self._on_trigger_key,
+                on_error=_on_error,
+            )
+            if not enabled:
+                self._sync_trigger_toggle_buttons()
+                self._update_status()
+                return
+            self.triggers_enabled = True
+
+        if not getattr(self, "_compact_mode", False):
+            self._refresh_actions()
+        self._sync_trigger_toggle_buttons()
         self._update_status()
 
     def _install_stop_hook(self):
@@ -978,6 +1070,21 @@ class App(tk.Tk):
 
     def _uninstall_stop_hook(self):
         self.hook_coordinator.uninstall_stop_hook()
+
+    def _install_toggle_hook(self):
+        """通常トリガー有効/無効トグルキーを（設定されていれば）suppress=True で登録"""
+        key = normalize_key_name(self.data.get("hook_toggle_key", ""))
+        if not key:
+            return
+
+        self.hook_coordinator.install_toggle_hook(
+            key,
+            on_toggle=lambda: self.after(0, self.toggle_triggers_enabled),
+            on_error=lambda title, msg: self.after(0, lambda: messagebox.showerror(title, msg)),
+        )
+
+    def _uninstall_toggle_hook(self):
+        self.hook_coordinator.uninstall_toggle_hook()
 
     def _on_trigger_key(self, key: str):
         """
@@ -1082,7 +1189,13 @@ class App(tk.Tk):
         finally:
             self._error_dialog_open = False
 
-    # ---------------- Stop Triger logic ----------------
+    # ---------------- Control key capture logic ----------------
+    def _restore_control_key_hints(self):
+        if hasattr(self, "stop_key_hint"):
+            self.stop_key_hint.configure(text="※停止キー/トグルキーのキャプチャ中はフックを一時停止します")
+        if hasattr(self, "toggle_key_hint"):
+            self.toggle_key_hint.configure(text="※停止キー・トグルキー・トリガー一覧の重複は禁止（Escでキャンセル）")
+
     def _toggle_stop_key_capture(self):
         if self._capturing_stop_key:
             self._stop_stop_key_capture(cancel=True)
@@ -1091,6 +1204,9 @@ class App(tk.Tk):
 
     def _start_stop_key_capture(self):
         """停止トリガーをキャプチャ開始（キャプチャ中はフックを一時停止）"""
+        if getattr(self, "_capturing_toggle_key", False):
+            self._stop_toggle_key_capture(cancel=True)
+
         self._capturing_stop_key = True
         if hasattr(self, "stop_key_capture_btn"):
             self.stop_key_capture_btn.configure(text="取得中…（Escで停止）")
@@ -1122,8 +1238,8 @@ class App(tk.Tk):
             self.stop_key_capture_btn.configure(text="キー入力で取得")
         if hasattr(self, "stop_key_clear_btn"):
             self.stop_key_clear_btn.configure(state="normal")
-        if hasattr(self, "stop_key_hint"):
-            self.stop_key_hint.configure(text="※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
+
+        self._restore_control_key_hints()
 
         # 一時停止していたフックを元に戻す
         self.resume_hook_after_dialog()
@@ -1155,7 +1271,10 @@ class App(tk.Tk):
         # トリガー一覧との重複禁止（キャプチャ確定時にチェック）
         if self.trigger_service.key_exists(self.data, key):
             messagebox.showerror("設定できません", f"停止トリガーがトリガー一覧と重複しています:\n{key}")
-            return "break"  # キャプチャ継続はしない（要件通り「そのまま適用」できないので止める）
+            return "break"
+        if self.trigger_service.is_toggle_key_conflict(self.data, key):
+            messagebox.showerror("設定できません", f"停止トリガーがトグルキーと重複しています:\n{key}")
+            return "break"
 
         # 妥当性チェック
         try:
@@ -1171,13 +1290,95 @@ class App(tk.Tk):
 
         # キャプチャ終了（この時点で resume により、元がONなら start_hook が呼ばれる）
         self._stop_stop_key_capture(cancel=False)
+        return "break"
 
-        # ただし「元がOFF」の場合は start_hook は呼ばれないので、ここでは何もしない。
-        # 「元がON」の場合は resume→start_hook→_install_stop_hook が走る。
+    def _toggle_toggle_key_capture(self):
+        if self._capturing_toggle_key:
+            self._stop_toggle_key_capture(cancel=True)
+        else:
+            self._start_toggle_key_capture()
+
+    def _start_toggle_key_capture(self):
+        """有効/無効トグルキーをキャプチャ開始（キャプチャ中はフックを一時停止）"""
+        if getattr(self, "_capturing_stop_key", False):
+            self._stop_stop_key_capture(cancel=True)
+
+        self._capturing_toggle_key = True
+        if hasattr(self, "toggle_key_capture_btn"):
+            self.toggle_key_capture_btn.configure(text="取得中…（Escで停止）")
+        if hasattr(self, "toggle_key_clear_btn"):
+            self.toggle_key_clear_btn.configure(state="disabled")
+        if hasattr(self, "toggle_key_hint"):
+            self.toggle_key_hint.configure(text="取得中：トリガー有効/無効にしたいキーを1回押してください（Escでキャンセル）")
+
+        self.suspend_hook_for_dialog()
+
+        if hasattr(self, "toggle_key_entry"):
+            self.toggle_key_entry.focus_set()
+
+        self.bind("<KeyPress>", self._on_toggle_key_capture_keypress, add="+")
+
+    def _stop_toggle_key_capture(self, cancel: bool = False):
+        if not getattr(self, "_capturing_toggle_key", False):
+            return
+        self._capturing_toggle_key = False
+        try:
+            self.unbind("<KeyPress>")
+        except Exception:
+            pass
+
+        if hasattr(self, "toggle_key_capture_btn"):
+            self.toggle_key_capture_btn.configure(text="キー入力で取得")
+        if hasattr(self, "toggle_key_clear_btn"):
+            self.toggle_key_clear_btn.configure(state="normal")
+
+        self._restore_control_key_hints()
+
+        self.resume_hook_after_dialog()
+
+        if cancel:
+            return
+
+    def _on_toggle_key_capture_keypress(self, event):
+        """通常トリガー有効/無効トグルキーのキャプチャ（単キー）"""
+        if not self._capturing_toggle_key:
+            return
+
+        key = self._normalize_tk_key_for_trigger(event.keysym)
+
+        if key == "esc":
+            self._stop_toggle_key_capture(cancel=True)
+            return "break"
+
+        if key in ("ctrl", "shift", "alt", "windows"):
+            return "break"
+
+        if "+" in key:
+            messagebox.showerror("設定できません", "トグルキーは単キーのみ対応です（例: f11）。")
+            return "break"
+
+        if self.trigger_service.key_exists(self.data, key):
+            messagebox.showerror("設定できません", f"トグルキーがトリガー一覧と重複しています:\n{key}")
+            return "break"
+        if self.trigger_service.is_stop_key_conflict(self.data, key):
+            messagebox.showerror("設定できません", f"トグルキーが停止キーと重複しています:\n{key}")
+            return "break"
+
+        try:
+            self.input_gateway.validate_key_name(key)
+        except Exception as e:
+            messagebox.showerror("設定できません", f"不明なキー名です:\n{key}\n\n{e}")
+            return "break"
+
+        self.data["hook_toggle_key"] = key
+        if hasattr(self, "toggle_key_var"):
+            self.toggle_key_var.set(key)
+
+        self._stop_toggle_key_capture(cancel=False)
         return "break"
 
     def _normalize_tk_key_for_trigger(self, keysym: str) -> str:
-        """Tk keysym を keyboard 用の単キー名に寄せる（停止トリガー/トリガー用）"""
+        """Tk keysym を keyboard 用の単キー名に寄せる（制御トリガー/通常トリガー用）"""
         k = (keysym or "").lower()
         mapping = {
             "control_l": "ctrl", "control_r": "ctrl",
@@ -1197,22 +1398,33 @@ class App(tk.Tk):
 
     def clear_stop_key(self):
         """停止トリガーを未設定（空）に戻す"""
-        # キャプチャ中なら終了（フックの一時停止も戻す）
         if getattr(self, "_capturing_stop_key", False):
             self._stop_stop_key_capture(cancel=True)
 
         self.data["hook_stop_key"] = ""
         if hasattr(self, "stop_key_var"):
-            self.data["hook_stop_key"] = ""
             self.stop_key_var.set("")
 
-        # フックON中なら停止トリガーのフックだけ解除
-        # （他のトリガーフックはそのまま）
+        # フックON中なら停止トリガーのフックだけ解除（他のフックは維持）
         if getattr(self, "hook_active", False):
             self._uninstall_stop_hook()
 
-        if hasattr(self, "stop_key_hint"):
-            self.stop_key_hint.configure(text="未設定にしました。※キャプチャ中はフックを一時停止します / トリガー一覧と重複不可（Escでキャンセル）")
+        self._restore_control_key_hints()
+
+    def clear_toggle_key(self):
+        """有効/無効トグルキーを未設定（空）に戻す"""
+        if getattr(self, "_capturing_toggle_key", False):
+            self._stop_toggle_key_capture(cancel=True)
+
+        self.data["hook_toggle_key"] = ""
+        if hasattr(self, "toggle_key_var"):
+            self.toggle_key_var.set("")
+
+        # フックON中ならトグルキーのフックだけ解除（他のフックは維持）
+        if getattr(self, "hook_active", False):
+            self._uninstall_toggle_hook()
+
+        self._restore_control_key_hints()
 
     # ---------------- Close ----------------
     def on_close(self):
@@ -1226,4 +1438,18 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
