@@ -27,7 +27,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Key Replacer Sequencer (Multi Trigger)")
-        self.geometry("980x560")
+        self.geometry("980x660")
 
         self.repository = JsonRepository()
         self.config_service = ConfigService(self.repository)
@@ -414,7 +414,6 @@ class App(tk.Tk):
         if getattr(self, "_compact_mode", False):
             # 省略表示：ON/OFF + 通常トリガー有効状態 + 選択中トリガー + 次に実行（行の内容）
             line = self._get_next_action_summary(sel_key)
-            #self.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} / 選択: {sel_key} / 次: {line}")
             self.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} \n選択: {sel_key} / 次: {line}")
             return
 
@@ -653,6 +652,7 @@ class App(tk.Tk):
             return
         try:
             self.data = self.config_service.load(path)
+            self.config_path = path
             if hasattr(self, "stop_key_var"):
                 self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
             if hasattr(self, "toggle_key_var"):
@@ -1424,3 +1424,4 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+
