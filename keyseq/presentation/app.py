@@ -201,17 +201,15 @@ class App(tk.Tk):
         self.trigger_toggle_btn: ttk.Button
         self.compact_hook_toggle_btn: ttk.Button
         self.compact_trigger_toggle_btn: ttk.Button
-        self.stop_key_frame: ttk.Frame
         self.stop_key_entry: ttk.Entry
         self.stop_key_capture_btn: ttk.Button
         self.stop_key_clear_btn: ttk.Button
-        self.stop_key_hint: ttk.Label
-        self.toggle_key_hint: ttk.Label
+        #self.stop_key_hint: ttk.Label
+        #self.toggle_key_hint: ttk.Label
         self.topmost_chk: ttk.Checkbutton
         self.compact_btn: ttk.Button
         self.suppress_chk: ttk.Checkbutton
         self.run_to_end_chk: ttk.Checkbutton
-        self.toggle_key_frame: ttk.Frame
         self.toggle_key_entry: ttk.Entry
         self.toggle_key_capture_btn: ttk.Button
         self.toggle_key_clear_btn: ttk.Button
@@ -1197,11 +1195,11 @@ class App(tk.Tk):
             self._error_dialog_open = False
 
     # ---------------- Control key capture logic ----------------
-    def _restore_control_key_hints(self):
-        if hasattr(self, "stop_key_hint"):
-            self.stop_key_hint.configure(text="※停止キー/トグルキーのキャプチャ中はフックを一時停止します")
-        if hasattr(self, "toggle_key_hint"):
-            self.toggle_key_hint.configure(text="※停止キー・トグルキー・トリガー一覧の重複は禁止（Escでキャンセル）")
+    #def _restore_control_key_hints(self):
+    #    if hasattr(self, "stop_key_hint"):
+    #        self.stop_key_hint.configure(text="※停止キー/トグルキーのキャプチャ中はフックを一時停止します")
+    #    if hasattr(self, "toggle_key_hint"):
+    #        self.toggle_key_hint.configure(text="※停止キー・トグルキー・トリガー一覧の重複は禁止（Escでキャンセル）")
 
     def _toggle_stop_key_capture(self):
         if self._capturing_stop_key:
@@ -1219,8 +1217,8 @@ class App(tk.Tk):
             self.stop_key_capture_btn.configure(text="取得中…（Escで停止）")
         if hasattr(self, "stop_key_clear_btn"):
             self.stop_key_clear_btn.configure(state="disabled")
-        if hasattr(self, "stop_key_hint"):
-            self.stop_key_hint.configure(text="取得中：停止トリガーにしたいキーを1回押してください（Escでキャンセル）")
+        #if hasattr(self, "stop_key_hint"):
+        #    self.stop_key_hint.configure(text="取得中：停止トリガーにしたいキーを1回押してください（Escでキャンセル）")
 
         # キャプチャ中なのでフックを一時停止（開始中なら止まる / 終了時に元に戻る）
         self.suspend_hook_for_dialog()
@@ -1246,7 +1244,7 @@ class App(tk.Tk):
         if hasattr(self, "stop_key_clear_btn"):
             self.stop_key_clear_btn.configure(state="normal")
 
-        self._restore_control_key_hints()
+        #self._restore_control_key_hints()
 
         # 一時停止していたフックを元に戻す
         self.resume_hook_after_dialog()
@@ -1315,8 +1313,8 @@ class App(tk.Tk):
             self.toggle_key_capture_btn.configure(text="取得中…（Escで停止）")
         if hasattr(self, "toggle_key_clear_btn"):
             self.toggle_key_clear_btn.configure(state="disabled")
-        if hasattr(self, "toggle_key_hint"):
-            self.toggle_key_hint.configure(text="取得中：トリガー有効/無効にしたいキーを1回押してください（Escでキャンセル）")
+        #if hasattr(self, "toggle_key_hint"):
+        #    self.toggle_key_hint.configure(text="取得中：トリガー有効/無効にしたいキーを1回押してください（Escでキャンセル）")
 
         self.suspend_hook_for_dialog()
 
@@ -1339,7 +1337,7 @@ class App(tk.Tk):
         if hasattr(self, "toggle_key_clear_btn"):
             self.toggle_key_clear_btn.configure(state="normal")
 
-        self._restore_control_key_hints()
+        #self._restore_control_key_hints()
 
         self.resume_hook_after_dialog()
 
@@ -1416,7 +1414,7 @@ class App(tk.Tk):
         if getattr(self, "hook_active", False):
             self._uninstall_stop_hook()
 
-        self._restore_control_key_hints()
+        #self._restore_control_key_hints()
 
     def clear_toggle_key(self):
         """有効/無効トグルキーを未設定（空）に戻す"""
@@ -1431,7 +1429,7 @@ class App(tk.Tk):
         if getattr(self, "hook_active", False):
             self._uninstall_toggle_hook()
 
-        self._restore_control_key_hints()
+        #self._restore_control_key_hints()
 
     # ---------------- Close ----------------
     def on_close(self):
