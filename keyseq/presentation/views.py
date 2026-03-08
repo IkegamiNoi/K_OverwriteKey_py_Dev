@@ -23,42 +23,61 @@ class FullView(ttk.Frame):
         self.header_area = ttk.Frame(self, padding=0)
         self.header_area.pack(fill="x", expand=False, pady=(12, 0))
 
+        # フックラベルフレーム
         self.hook_frame = ttk.LabelFrame(self.header_area, text="フック", padding=10)
         self.hook_frame.pack(side="left", fill="y")
-        app.hook_toggle_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.toggle_hook)
-        app.trigger_toggle_btn = ttk.Button(self.hook_frame, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
+        
+        # フックラベルフレーム1行目
+        self.hook_line1 = ttk.Frame(self.hook_frame)
+        self.hook_line1.pack(side="top", fill="x")
+        #app.hook_toggle_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.toggle_hook)
+        #app.trigger_toggle_btn = ttk.Button(self.hook_frame, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
+        app.hook_toggle_btn = ttk.Button(self.hook_line1, text="開始（フックON）", command=app.toggle_hook)
+        app.trigger_toggle_btn = ttk.Button(self.hook_line1, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
         app.hook_toggle_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         app.trigger_toggle_btn.grid(row=0, column=1, padx=(8, 0), sticky="w")
+        
+        # フックラベルフレーム2行目
+        self.hook_line2 = ttk.Frame(self.hook_frame)
+        self.hook_line2.pack(side="top", fill="x")
         # フック停止トリガー（フル：取得/クリアあり）
-        app.stop_key_frame = ttk.Frame(self.hook_frame)
-        app.stop_key_frame.grid(row=0, column=2, sticky="w")
-        ttk.Label(app.stop_key_frame, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
-        app.stop_key_entry = ttk.Entry(app.stop_key_frame, textvariable=app.stop_key_var, width=8, state="readonly")
+        #app.stop_key_frame = ttk.Frame(self.hook_frame)
+        #app.stop_key_frame.grid(row=0, column=2, sticky="w")
+        #ttk.Label(app.stop_key_frame, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
+        #app.stop_key_entry = ttk.Entry(app.stop_key_frame, textvariable=app.stop_key_var, width=8, state="readonly")
+        ttk.Label(self.hook_line2, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
+        app.stop_key_entry = ttk.Entry(self.hook_line2, textvariable=app.stop_key_var, width=8, state="readonly")
         app.stop_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
-        app.stop_key_capture_btn = ttk.Button(app.stop_key_frame, text="キー入力で取得", command=app._toggle_stop_key_capture)
+        #app.stop_key_capture_btn = ttk.Button(app.stop_key_frame, text="キー入力で取得", command=app._toggle_stop_key_capture)
+        app.stop_key_capture_btn = ttk.Button(self.hook_line2, text="キー入力で取得", command=app._toggle_stop_key_capture)
         app.stop_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
-        app.stop_key_clear_btn = ttk.Button(app.stop_key_frame, text="クリア", command=app.clear_stop_key)
+        #app.stop_key_clear_btn = ttk.Button(app.stop_key_frame, text="クリア", command=app.clear_stop_key)
+        app.stop_key_clear_btn = ttk.Button(self.hook_line2, text="クリア", command=app.clear_stop_key)
         app.stop_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
 
         # 通常トリガー有効/無効トグルキー（フル：取得/クリアあり）
-        app.toggle_key_frame = ttk.Frame(self.hook_frame)
-        app.toggle_key_frame.grid(row=0, column=3, sticky="w", padx=(12, 0))
-        ttk.Label(app.toggle_key_frame, text="有効/無効トグルキー: ").grid(row=0, column=0, sticky="w")
-        app.toggle_key_entry = ttk.Entry(app.toggle_key_frame, textvariable=app.toggle_key_var, width=8, state="readonly")
-        app.toggle_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
-        app.toggle_key_capture_btn = ttk.Button(app.toggle_key_frame, text="キー入力で取得", command=app._toggle_toggle_key_capture)
-        app.toggle_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
-        app.toggle_key_clear_btn = ttk.Button(app.toggle_key_frame, text="クリア", command=app.clear_toggle_key)
-        app.toggle_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
+        #app.toggle_key_frame = ttk.Frame(self.hook_frame)
+        #app.toggle_key_frame.grid(row=0, column=3, sticky="w", padx=(12, 0))
+        #ttk.Label(app.toggle_key_frame, text="有効/無効トグルキー: ").grid(row=0, column=0, sticky="w")
+        #app.toggle_key_entry = ttk.Entry(app.toggle_key_frame, textvariable=app.toggle_key_var, width=8, state="readonly")
+        ttk.Label(self.hook_line2, text="有効/無効トグルキー: ").grid(row=1, column=0, sticky="w")
+        app.toggle_key_entry = ttk.Entry(self.hook_line2, textvariable=app.toggle_key_var, width=8, state="readonly")
+        app.toggle_key_entry.grid(row=1, column=1, sticky="w", padx=(0, 0))
+        #app.toggle_key_capture_btn = ttk.Button(app.toggle_key_frame, text="キー入力で取得", command=app._toggle_toggle_key_capture)
+        app.toggle_key_capture_btn = ttk.Button(self.hook_line2, text="キー入力で取得", command=app._toggle_toggle_key_capture)
+        app.toggle_key_capture_btn.grid(row=1, column=2, sticky="w", padx=(8, 0))
+        #app.toggle_key_clear_btn = ttk.Button(app.toggle_key_frame, text="クリア", command=app.clear_toggle_key)
+        app.toggle_key_clear_btn = ttk.Button(self.hook_line2, text="クリア", command=app.clear_toggle_key)
+        app.toggle_key_clear_btn.grid(row=1, column=3, sticky="w", padx=(8, 0))
 
-        app.stop_key_hint = ttk.Label(self.hook_frame, text="※停止キー/トグルキーのキャプチャ中はフックを一時停止します")
-        app.stop_key_hint.grid(row=1, column=1, columnspan=4, sticky="w", pady=(6, 0))
-        app.toggle_key_hint = ttk.Label(self.hook_frame, text="※停止キー・トグルキー・トリガー一覧の重複は禁止（Escでキャンセル）")
-        app.toggle_key_hint.grid(row=2, column=1, columnspan=4, sticky="w", pady=(2, 0))
+        #app.stop_key_hint = ttk.Label(self.hook_frame, text="※停止キー/トグルキーのキャプチャ中はフックを一時停止します")
+        #app.stop_key_hint.grid(row=1, column=1, columnspan=4, sticky="w", pady=(6, 0))
+        #app.toggle_key_hint = ttk.Label(self.hook_frame, text="※停止キー・トグルキー・トリガー一覧の重複は禁止（Escでキャンセル）")
+        #app.toggle_key_hint.grid(row=2, column=1, columnspan=4, sticky="w", pady=(2, 0))
 
-        ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=3, column=0, columnspan=8, sticky="w", pady=(8, 0))
-
-        # 表示
+        #ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=3, column=0, columnspan=8, sticky="w", pady=(8, 0))
+        ttk.Label(self.hook_frame, textvariable=app.status_var).pack(side="top")
+        # 表示ラベルフレーム
         self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
         self.display_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
         app.topmost_chk = ttk.Checkbutton(
@@ -171,32 +190,47 @@ class CompactView(ttk.Frame):
         self.header_area = ttk.Frame(self, padding=0)
         self.header_area.pack(fill="x", expand=False, pady=(12, 0))
 
+        # フックラベルフレーム
         self.hook_frame = ttk.LabelFrame(self.header_area, text="フック", padding=10)
         self.hook_frame.pack(side="top", fill="x", expand=False)
 
+        # フックラベルフレーム1行目
+        self.compact_hook_line1 = ttk.Frame(self.hook_frame)
+        self.compact_hook_line1.pack(side="top", fill="x")
         # 開始/停止（Appの同名メソッドを呼ぶ。ウィジェットは別物でOK）
-        self.hook_toggle_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.toggle_hook)
-        self.trigger_toggle_btn = ttk.Button(self.hook_frame, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
+        #self.hook_toggle_btn = ttk.Button(self.hook_frame, text="開始（フックON）", command=app.toggle_hook)
+        #self.trigger_toggle_btn = ttk.Button(self.hook_frame, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
+        self.hook_toggle_btn = ttk.Button(self.compact_hook_line1, text="開始（フックON）", command=app.toggle_hook)
+        self.trigger_toggle_btn = ttk.Button(self.compact_hook_line1, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
         self.hook_toggle_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         self.trigger_toggle_btn.grid(row=0, column=1, padx=(8, 0), sticky="w")
         # App側でも参照できるように保持（フック開始/停止時のstate同期用）
         app.compact_hook_toggle_btn = self.hook_toggle_btn
         app.compact_trigger_toggle_btn = self.trigger_toggle_btn
+        
+        # フックラベルフレーム2行目
+        self.compact_hook_line2 = ttk.Frame(self.hook_frame)
+        self.compact_hook_line2.pack(side="top", fill="x")
         # 停止トリガー表示のみ（Entryだけ）
-        stop_line = ttk.Frame(self.hook_frame)
-        stop_line.grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 0))
-        ttk.Label(stop_line, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
-        self.stop_key_entry = ttk.Entry(stop_line, textvariable=app.stop_key_var, width=8, state="readonly")
+        #stop_line = ttk.Frame(self.hook_frame)
+        #stop_line.grid(row=1, column=0, columnspan=2, sticky="w", pady=(6, 0))
+        #ttk.Label(stop_line, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
+        #self.stop_key_entry = ttk.Entry(stop_line, textvariable=app.stop_key_var, width=8, state="readonly")
+        ttk.Label(self.compact_hook_line2, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
+        self.stop_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.stop_key_var, width=8, state="readonly")
         self.stop_key_entry.grid(row=0, column=1, sticky="w")
 
         # トグルキー表示のみ（Entryだけ）
-        toggle_line = ttk.Frame(self.hook_frame)
-        toggle_line.grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 0))
-        ttk.Label(toggle_line, text="有効/無効トグルキー: ").grid(row=0, column=0, sticky="w")
-        self.toggle_key_entry = ttk.Entry(toggle_line, textvariable=app.toggle_key_var, width=8, state="readonly")
-        self.toggle_key_entry.grid(row=0, column=1, sticky="w")
+        #toggle_line = ttk.Frame(self.hook_frame)
+        #toggle_line.grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        #ttk.Label(toggle_line, text="有効/無効トグルキー: ").grid(row=0, column=0, sticky="w")
+        #self.toggle_key_entry = ttk.Entry(toggle_line, textvariable=app.toggle_key_var, width=8, state="readonly")
+        ttk.Label(self.compact_hook_line2, text="有効/無効トグルキー: ").grid(row=1, column=0, sticky="w")
+        self.toggle_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.toggle_key_var, width=8, state="readonly")
+        self.toggle_key_entry.grid(row=1, column=1, sticky="w")
 
-        ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=3, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        #ttk.Label(self.hook_frame, textvariable=app.status_var).grid(row=3, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        ttk.Label(self.hook_frame, textvariable=app.status_var).pack(side="top", fill="x")
 
         self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
         self.display_frame.pack(side="top", fill="x", expand=False, pady=(8, 0))

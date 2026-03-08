@@ -418,7 +418,8 @@ class App(tk.Tk):
         if getattr(self, "_compact_mode", False):
             # 省略表示：ON/OFF + 通常トリガー有効状態 + 選択中トリガー + 次に実行（行の内容）
             line = self._get_next_action_summary(sel_key)
-            self.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} / 選択: {sel_key} / 次: {line}")
+            #self.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} / 選択: {sel_key} / 次: {line}")
+            self.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} \n選択: {sel_key} / 次: {line}")
             return
 
         triggers = self.data.get("triggers", [])
