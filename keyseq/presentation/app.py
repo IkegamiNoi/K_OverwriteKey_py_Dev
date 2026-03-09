@@ -28,12 +28,20 @@ def normalize_key_name(s: str) -> str:
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
-        apply_global_theme(self, font_delta_pt=-1)
-        self.title("Key Replacer Sequencer (Multi Trigger)")
-        self.geometry("780x660")
 
         self.repository = JsonRepository()
         self.config_service = ConfigService(self.repository)
+
+        self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        self.config_path = os.path.join(self.base_dir, r"settings\config.json")  # 実際に読込/保存する本体JSON（既定）
+        self.startup_path = os.path.join(self.base_dir, r"settings\startup.json")  # 起動時に参照する“外部指定”ファイル
+        self._startup_settings = self._load_startup_settings()
+        self._ui_font_delta_pt = self._coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
+        apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
+
+        self.title("Key Replacer Sequencer (Multi Trigger)")
+        self.geometry("780x660")
+
         self.trigger_service = TriggerService()
         self.input_gateway = InputGateway()
         self.state = AppState()
@@ -50,9 +58,6 @@ class App(tk.Tk):
             after_cancel=self.after_cancel,
         )
 
-        self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.config_path = os.path.join(self.base_dir, r"settings\config.json")  # 実際に読込/保存する本体JSON（既定）
-        self.startup_path = os.path.join(self.base_dir, r"settings\startup.json")  # 起動時に参照する“外部指定”ファイル
         self.data = self.config_service.new_default_data()
 
         self.hook_active = False
@@ -200,6 +205,7 @@ class App(tk.Tk):
         self.status_var = tk.StringVar(value="")
         self.file_status_var = tk.StringVar(value="")
         self.flash_message_var = tk.StringVar(value="")
+        self.ui_font_delta_var = tk.IntVar(value=int(self._ui_font_delta_pt))
         self.suppress_var = tk.BooleanVar(value=True)
         self.run_to_end_var = tk.BooleanVar(value=False)
         self.run_to_end_delay_var = tk.StringVar(value="300")
@@ -271,6 +277,27 @@ class App(tk.Tk):
         if auto_clear and msg:
             self._flash_after_id = self.after(4000, self._clear_flash_message)
 
+    def set_ui_font_delta(self, delta: int):
+        new_delta = self._coerce_font_delta(delta)
+        if new_delta == int(getattr(self, "_ui_font_delta_pt", 0)):
+            return
+
+        self._ui_font_delta_pt = new_delta
+        if hasattr(self, "ui_font_delta_var"):
+            self.ui_font_delta_var.set(int(new_delta))
+
+        apply_global_theme(self, font_delta_pt=new_delta)
+        self._write_startup({"ui_font_delta_pt": new_delta})
+
+        if hasattr(self, "menubar"):
+            self._build_menu()
+
+        if new_delta == 0:
+            self._set_flash_message("フォントサイズを標準にしました。")
+        else:
+            self._set_flash_message(f"フォントサイズを {new_delta:+d} にしました。")
+
+
     def _build_menu(self):
         menubar = tk.Menu(self)
 
@@ -287,6 +314,19 @@ class App(tk.Tk):
 
         settings_menu = tk.Menu(menubar, tearoff=False)
         settings_menu.add_command(label="プリセット編集…", command=self.open_preset_manager, accelerator="Ctrl+Alt+P")
+        settings_menu.add_separator()
+
+        font_menu = tk.Menu(settings_menu, tearoff=False)
+        for delta in (-3, -2, -1, 0, 1, 2, 3):
+            label = "標準 (0)" if delta == 0 else f"{delta:+d}"
+            font_menu.add_radiobutton(
+                label=label,
+                value=delta,
+                variable=self.ui_font_delta_var,
+                command=lambda d=delta: self.set_ui_font_delta(d),
+            )
+        settings_menu.add_cascade(label="フォントサイズ", menu=font_menu)
+
         menubar.add_cascade(label="設定", menu=settings_menu)
 
         self.config(menu=menubar)
@@ -452,47 +492,82 @@ class App(tk.Tk):
             pass
 
     # ---------------- Startup config ----------------
-    def _load_startup_and_config(self):
-        """
-        startup.json があればそれを読み、そこに書かれた config_path を起動時に読み込む。
-        無い場合は従来通り self.config_path（= ./config.json）を読み込む。
-        """
+    def _coerce_font_delta(self, value: any) -> int:
+        try:
+            v = int(value)
+        except Exception:
+            v = 0
+        if v < -3:
+            v = -3
+        if v > 3:
+            v = 3
+        return v
+
+    def _load_startup_settings(self) -> dict[str, any]:
         startup = {}
         try:
             startup = self.config_service.load_startup(self.startup_path)
         except Exception as e:
             startup = {}
-            messagebox.showwarning("startup.json 読込失敗", f"startup.json の読込に失敗しました。\n{e}\n\n既定の config.json を読み込みます。")
+            messagebox.showwarning(
+                "startup.json 読込失敗",
+                f"startup.json の読込に失敗しました。\n{e}\n\n既定設定で起動します。",
+            )
 
-        if isinstance(startup, dict):
-            cfg = startup.get("config_path")
-            prompt_if_missing = bool(startup.get("prompt_if_missing", True))
-            if cfg:
-                cfg_path = cfg if os.path.isabs(cfg) else os.path.join(self.base_dir, cfg)
-                if os.path.exists(cfg_path):
-                    self.config_path = cfg_path
-                elif prompt_if_missing:
-                    picked = filedialog.askopenfilename(
-                        title="起動時に読み込むJSONが見つかりません。別のJSONを選択してください。",
-                        filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        if not isinstance(startup, dict):
+            startup = {}
+
+        startup["ui_font_delta_pt"] = self._coerce_font_delta(startup.get("ui_font_delta_pt", 0))
+        startup["prompt_if_missing"] = bool(startup.get("prompt_if_missing", True))
+        return startup
+
+    def _load_startup_and_config(self):
+        """
+        startup.json があればそれを読み、そこに書かれた config_path を起動時に読み込む。
+        無い場合は従来通り self.config_path（= ./config.json）を読み込む。
+        """
+        startup = dict(getattr(self, "_startup_settings", {}) or {})
+
+        cfg = startup.get("config_path")
+        prompt_if_missing = bool(startup.get("prompt_if_missing", True))
+        if cfg:
+            cfg_path = cfg if os.path.isabs(cfg) else os.path.join(self.base_dir, cfg)
+            if os.path.exists(cfg_path):
+                self.config_path = cfg_path
+            elif prompt_if_missing:
+                picked = filedialog.askopenfilename(
+                    title="起動時に読み込むJSONが見つかりません。別のJSONを選択してください。",
+                    filetypes=[("JSON", "*.json"), ("All", "*.*")],
+                )
+                if picked:
+                    self.config_path = picked
+                    self._write_startup(
+                        {
+                            "config_path": self.config_service.resolve_startup_relative_path(
+                                picked,
+                                self.base_dir,
+                            ),
+                            "prompt_if_missing": True,
+                        }
                     )
-                    if picked:
-                        self.config_path = picked
-                        self._write_startup(
-                            {
-                                "config_path": self.config_service.resolve_startup_relative_path(
-                                    picked,
-                                    self.base_dir,
-                                ),
-                                "prompt_if_missing": True,
-                            }
-                        )
 
         self._load_if_exists()
 
     def _write_startup(self, data: dict[str, any]):
+        base = {
+            "prompt_if_missing": True,
+            "ui_font_delta_pt": 0,
+        }
+        current = getattr(self, "_startup_settings", {})
+        if isinstance(current, dict):
+            base.update(current)
+        if isinstance(data, dict):
+            base.update(data)
+        base["ui_font_delta_pt"] = self._coerce_font_delta(base.get("ui_font_delta_pt", 0))
+
         try:
-            self.config_service.save_startup(self.startup_path, data)
+            self.config_service.save_startup(self.startup_path, base)
+            self._startup_settings = base
         except Exception as e:
             messagebox.showerror("startup.json 保存失敗", str(e))
 
@@ -1586,3 +1661,5 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+
+

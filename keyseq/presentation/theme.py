@@ -3,8 +3,22 @@ from tkinter import font as tkfont
 from tkinter import ttk
 
 
-def _smaller_size(size: int, delta_pt: int) -> int:
-    """Return one-step smaller size for both point-size and pixel-size fonts."""
+_NAMED_FONTS = (
+    "TkDefaultFont",
+    "TkTextFont",
+    "TkMenuFont",
+    "TkHeadingFont",
+    "TkCaptionFont",
+    "TkSmallCaptionFont",
+    "TkIconFont",
+    "TkTooltipFont",
+)
+
+# Captured once from the runtime default so re-apply does not accumulate.
+_BASE_FONT_SIZES: dict[str, int] = {}
+
+
+def _apply_delta(size: int, delta_pt: int) -> int:
     if size == 0:
         return size
     if size > 0:
@@ -13,33 +27,34 @@ def _smaller_size(size: int, delta_pt: int) -> int:
     return min(-1, size - delta_pt)
 
 
-def _shrink_named_font(name: str, delta_pt: int) -> None:
+def _get_named_font(name: str):
     try:
-        f = tkfont.nametofont(name)
+        return tkfont.nametofont(name)
     except tk.TclError:
+        return None
+
+
+def _capture_base_sizes() -> None:
+    if _BASE_FONT_SIZES:
         return
-    size = int(f.cget("size"))
-    f.configure(size=_smaller_size(size, delta_pt))
+    for name in _NAMED_FONTS:
+        f = _get_named_font(name)
+        if f is None:
+            continue
+        _BASE_FONT_SIZES[name] = int(f.cget("size"))
 
 
-def apply_global_theme(root: tk.Misc, *, font_delta_pt: int = -1) -> None:
-    """Apply shared UI theme across the app."""
-    if font_delta_pt == 0:
-        return
+def apply_global_theme(root: tk.Misc, *, font_delta_pt: int = 0) -> None:
+    """Apply shared UI theme across the app with absolute delta from default."""
+    _capture_base_sizes()
 
-    for name in (
-        "TkDefaultFont",
-        "TkTextFont",
-        "TkMenuFont",
-        "TkHeadingFont",
-        "TkCaptionFont",
-        "TkSmallCaptionFont",
-        "TkIconFont",
-        "TkTooltipFont",
-    ):
-        _shrink_named_font(name, font_delta_pt)
+    for name in _NAMED_FONTS:
+        f = _get_named_font(name)
+        if f is None:
+            continue
+        base = _BASE_FONT_SIZES.get(name, int(f.cget("size")))
+        f.configure(size=_apply_delta(base, int(font_delta_pt)))
 
-    # Explicitly bind common ttk styles to default named fonts.
     default_font = tkfont.nametofont("TkDefaultFont")
     text_font = tkfont.nametofont("TkTextFont")
     style = ttk.Style(root)
