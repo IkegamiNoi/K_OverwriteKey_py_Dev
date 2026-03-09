@@ -1,4 +1,5 @@
 ﻿import os
+import copy
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -66,6 +67,8 @@ class App(tk.Tk):
         self._capturing_stop_key = False
         self._capturing_toggle_key = False
         self.triggers_enabled = True
+        self._is_dirty = False
+        self._flash_after_id = None
 
         self._build_ui()
         self._load_startup_and_config()
@@ -193,6 +196,8 @@ class App(tk.Tk):
         self.stop_key_var = tk.StringVar(value=str(self.data.get("hook_stop_key", "")))
         self.toggle_key_var = tk.StringVar(value=str(self.data.get("hook_toggle_key", "")))
         self.status_var = tk.StringVar(value="")
+        self.file_status_var = tk.StringVar(value="")
+        self.flash_message_var = tk.StringVar(value="")
         self.suppress_var = tk.BooleanVar(value=True)
         self.run_to_end_var = tk.BooleanVar(value=False)
         self.run_to_end_delay_var = tk.StringVar(value="300")
@@ -220,6 +225,49 @@ class App(tk.Tk):
         # compact_view は最初は非表示
         self._build_menu()
         self._bind_menu_shortcuts()
+        self._build_status_area()
+
+    def _build_status_area(self):
+        # フック/トリガー状態表示（1行または2行）
+        self.runtime_status_frame = ttk.LabelFrame(self, text="ステータス", padding=(10, 6))
+        self.runtime_status_frame.pack(side="top", fill="x", padx=12, pady=(0, 4))
+        ttk.Label(self.runtime_status_frame, textvariable=self.status_var, anchor="w", justify="left").pack(fill="x")
+        
+        # 共通ステータスバー（左: ファイル状態 / 中央: 一時メッセージ）
+        self.status_bar = tk.Frame(self, bd=1, relief="sunken", bg="#f3f3f3")
+        self.status_bar.pack(side="bottom", fill="x")
+        self.status_bar.grid_columnconfigure(0, weight=1)
+        self.status_bar.grid_columnconfigure(1, weight=1)
+        self.status_bar.grid_columnconfigure(2, weight=1)
+        tk.Label(self.status_bar, textvariable=self.file_status_var, bg="#f3f3f3", anchor="w", justify="left").grid(row=0, column=0, sticky="w")
+        tk.Label(self.status_bar, textvariable=self.flash_message_var, bg="#f3f3f3", anchor="center", justify="center").grid(row=0, column=1, sticky="ew")
+        tk.Label(self.status_bar, text="", anchor="e").grid(row=0, column=2, sticky="e")
+
+        self._update_file_status()
+
+    def _update_file_status(self):
+        name = os.path.basename(self.config_path or "") or "(未設定)"
+        save_state = "未保存" if self._is_dirty else "保存済み"
+        self.file_status_var.set(f"ファイル: {name} / {save_state}")
+
+    def _set_dirty(self, value: bool):
+        self._is_dirty = bool(value)
+        self._update_file_status()
+
+    def _clear_flash_message(self):
+        self._flash_after_id = None
+        self.flash_message_var.set("")
+
+    def _set_flash_message(self, msg: str, *, auto_clear: bool = True):
+        try:
+            if self._flash_after_id:
+                self.after_cancel(self._flash_after_id)
+                self._flash_after_id = None
+        except Exception:
+            self._flash_after_id = None
+        self.flash_message_var.set(str(msg or ""))
+        if auto_clear and msg:
+            self._flash_after_id = self.after(4000, self._clear_flash_message)
 
     def _build_menu(self):
         menubar = tk.Menu(self)
@@ -470,6 +518,8 @@ class App(tk.Tk):
         self.state.reset_indices()
         self._refresh_triggers()
         self._refresh_actions()
+        self._set_dirty(False)
+        self._set_flash_message("起動時読み込み設定を更新しました。")
         messagebox.showinfo("設定", f"次回起動時はこのJSONを読み込みます:\n{path}")
 
     def _update_status(self):
@@ -686,12 +736,16 @@ class App(tk.Tk):
             self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
         if hasattr(self, "toggle_key_var"):
             self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+        self._set_dirty(False)
 
     def save_config(self):
         try:
             self.data = self.config_service.save(self.config_path, self.data)
+            self._set_dirty(False)
+            self._set_flash_message("保存しました。")
             messagebox.showinfo("保存", f"保存しました:\n{self.config_path}")
         except Exception as e:
+            self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
 
     def save_as(self):
@@ -704,8 +758,12 @@ class App(tk.Tk):
             return
         try:
             self.data = self.config_service.save(path, self.data)
+            self.config_path = path
+            self._set_dirty(False)
+            self._set_flash_message("別名で保存しました。")
             messagebox.showinfo("保存", f"保存しました:\n{path}")
         except Exception as e:
+            self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
 
     def load_from(self):
@@ -730,12 +788,21 @@ class App(tk.Tk):
             self._indices = {}
             self._refresh_triggers()
             self._refresh_actions()
+            self._set_dirty(False)
+            self._set_flash_message("読み込みました。")
             messagebox.showinfo("読込", f"読み込みました:\n{path}")
         except Exception as e:
+            self._set_flash_message(f"読込失敗: {e}", auto_clear=False)
             messagebox.showerror("読込失敗", str(e))
 
     def open_preset_manager(self):
+        before = copy.deepcopy(self.data.get("hotkey_presets", []))
         PresetManagerDialog(self, title="ホットキープリセット編集").wait_window()
+        after = self.data.get("hotkey_presets", [])
+        if before != after:
+            self._set_dirty(True)
+            self._set_flash_message("プリセットを更新しました。")
+
 
     def restore_default(self):
         if messagebox.askyesno("確認", "例の設定に戻します。よろしいですか？"):
@@ -747,6 +814,8 @@ class App(tk.Tk):
             self._indices = {}
             self._refresh_triggers()
             self._refresh_actions()
+            self._set_dirty(True)
+            self._set_flash_message("例の設定に戻しました（未保存）。")
 
     # ---------------- Trigger selection/helpers ----------------
     def _selected_trigger_index(self):
@@ -819,15 +888,22 @@ class App(tk.Tk):
             v = 300
         if v < 0:
             v = 0
+        old_v = int(t.get("run_to_end_delay_ms", 300) or 300)
         t["run_to_end_delay_ms"] = v
         # 表示を正規化（"00300" 等を "300" に）
         self.run_to_end_delay_var.set(str(v))
+        if old_v != v:
+            self._set_dirty(True)
 
     def update_suppress(self):
         t = self._selected_trigger()
         if not t:
             return
-        t["suppress"] = bool(self.suppress_var.get())
+        new_v = bool(self.suppress_var.get())
+        old_v = bool(t.get("suppress", True))
+        t["suppress"] = new_v
+        if old_v != new_v:
+            self._set_dirty(True)
         # フックON中なら再登録が必要（設定反映）
         if self.hook_active:
             self.start_hook()
@@ -837,7 +913,11 @@ class App(tk.Tk):
         t = self._selected_trigger()
         if not t:
             return
-        t["run_to_end"] = bool(self.run_to_end_var.get())
+        new_v = bool(self.run_to_end_var.get())
+        old_v = bool(t.get("run_to_end", False))
+        t["run_to_end"] = new_v
+        if old_v != new_v:
+            self._set_dirty(True)
         self._sync_run_to_end_ui()
         # UI表示（次の行ハイライト/ステータス）を即反映
         if not getattr(self, "_compact_mode", False):
@@ -870,6 +950,7 @@ class App(tk.Tk):
         triggers.append({"key": key, "label": label, "suppress": True, "run_to_end": False, "actions": []})
         self._indices.setdefault(key, 0)
         self._refresh_triggers()
+        self._set_dirty(True)
         # 末尾を選択
         try:
             self.full_view.trigger_list.selection_clear(0, tk.END)
@@ -912,6 +993,7 @@ class App(tk.Tk):
         t["key"] = new
         t["label"] = new_label
         self._refresh_triggers()
+        self._set_dirty(True)
         if self.hook_active:
             self.start_hook()
 
@@ -929,6 +1011,7 @@ class App(tk.Tk):
             self._indices.pop(key, None)
             self._refresh_triggers()
             self._refresh_actions()
+            self._set_dirty(True)
             if self.hook_active:
                 self.start_hook()
 
@@ -948,6 +1031,7 @@ class App(tk.Tk):
         if getattr(self, "_dialog_result", None):
             trig.setdefault("actions", []).append(self._dialog_result)
             self._refresh_actions()
+            self._set_dirty(True)
             self._dialog_result = None
 
     def edit_action(self):
@@ -964,6 +1048,7 @@ class App(tk.Tk):
         if getattr(self, "_dialog_result", None):
             trig["actions"][idx] = self._dialog_result
             self._refresh_actions()
+            self._set_dirty(True)
             # action_list は FullView 側にある（選択表示を復帰）
             try:
                 self.full_view.action_list.selection_clear(0, tk.END)
@@ -986,6 +1071,7 @@ class App(tk.Tk):
         if messagebox.askyesno("確認", "選択した行を削除しますか？"):
             del trig["actions"][idx]
             self._refresh_actions()
+            self._set_dirty(True)
 
     def move_action(self, delta: int):
         trig = self._selected_trigger()
@@ -1005,6 +1091,7 @@ class App(tk.Tk):
         if key:
             self._indices[key] = j
         self._refresh_actions()
+        self._set_dirty(True)
 
     # ---------------- Hook logic ----------------
     def _sync_hook_toggle_buttons(self):
@@ -1345,6 +1432,7 @@ class App(tk.Tk):
         self.data["hook_stop_key"] = key
         if hasattr(self, "stop_key_var"):
             self.stop_key_var.set(key)
+        self._set_dirty(True)
 
         # キャプチャ終了（この時点で resume により、元がONなら start_hook が呼ばれる）
         self._stop_stop_key_capture(cancel=False)
@@ -1427,6 +1515,7 @@ class App(tk.Tk):
         self.data["hook_toggle_key"] = key
         if hasattr(self, "toggle_key_var"):
             self.toggle_key_var.set(key)
+        self._set_dirty(True)
 
         self._stop_toggle_key_capture(cancel=False)
         return "break"
@@ -1455,9 +1544,12 @@ class App(tk.Tk):
         if getattr(self, "_capturing_stop_key", False):
             self._stop_stop_key_capture(cancel=True)
 
+        old = str(self.data.get("hook_stop_key", ""))
         self.data["hook_stop_key"] = ""
         if hasattr(self, "stop_key_var"):
             self.stop_key_var.set("")
+        if old:
+            self._set_dirty(True)
 
         # フックON中なら停止トリガーのフックだけ解除（他のフックは維持）
         if getattr(self, "hook_active", False):
@@ -1468,9 +1560,12 @@ class App(tk.Tk):
         if getattr(self, "_capturing_toggle_key", False):
             self._stop_toggle_key_capture(cancel=True)
 
+        old = str(self.data.get("hook_toggle_key", ""))
         self.data["hook_toggle_key"] = ""
         if hasattr(self, "toggle_key_var"):
             self.toggle_key_var.set("")
+        if old:
+            self._set_dirty(True)
 
         # フックON中ならトグルキーのフックだけ解除（他のフックは維持）
         if getattr(self, "hook_active", False):
@@ -1489,4 +1584,3 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
-

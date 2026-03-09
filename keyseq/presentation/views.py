@@ -55,8 +55,6 @@ class FullView(ttk.Frame):
         app.toggle_key_capture_btn.grid(row=1, column=2, sticky="w", padx=(8, 0))
         app.toggle_key_clear_btn = ttk.Button(self.full_hook_line2, text="クリア", command=app.clear_toggle_key)
         app.toggle_key_clear_btn.grid(row=1, column=3, sticky="w", padx=(8, 0))
-
-        ttk.Label(self.hook_frame, textvariable=app.status_var).pack(side="top")
         # 表示ラベルフレーム
         self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
         self.display_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
@@ -199,8 +197,6 @@ class CompactView(ttk.Frame):
         ttk.Label(self.compact_hook_line2, text="有効/無効トグルキー: ").grid(row=1, column=0, sticky="w")
         self.toggle_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.toggle_key_var, width=8, state="readonly")
         self.toggle_key_entry.grid(row=1, column=1, sticky="w")
-
-        ttk.Label(self.hook_frame, textvariable=app.status_var).pack(side="top", fill="x")
 
         self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
         self.display_frame.pack(side="top", fill="x", expand=False, pady=(8, 0))
@@ -583,3 +579,4 @@ class ActionDialog(tk.Toplevel):
         """プリセット編集ダイアログを開き、戻ったらボタンを再生成"""
         PresetManagerDialog(self.parent, title="ホットキープリセット編集").wait_window()
         self._rebuild_preset_buttons()
+
