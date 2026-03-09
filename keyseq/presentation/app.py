@@ -5,6 +5,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from keyseq.presentation.dialogs import ActionDialog, PresetDialog, PresetManagerDialog, TriggerDialog
 from keyseq.presentation.views import CompactView, FullView
+from keyseq.presentation.theme import apply_global_theme
 
 
 from keyseq.application.config_service import ConfigService
@@ -27,6 +28,7 @@ def normalize_key_name(s: str) -> str:
 class App(tk.Tk):
     def __init__(self):
         super().__init__()
+        apply_global_theme(self, font_delta_pt=-1)
         self.title("Key Replacer Sequencer (Multi Trigger)")
         self.geometry("780x660")
 
