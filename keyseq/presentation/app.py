@@ -218,6 +218,71 @@ class App(tk.Tk):
 
         self.full_view.pack(fill="both", expand=True)
         # compact_view は最初は非表示
+        self._build_menu()
+        self._bind_menu_shortcuts()
+
+    def _build_menu(self):
+        menubar = tk.Menu(self)
+
+        file_menu = tk.Menu(menubar, tearoff=False)
+        file_menu.add_command(label="保存", command=self.save_config, accelerator="Ctrl+S")
+        file_menu.add_command(label="別名で保存…", command=self.save_as, accelerator="Ctrl+Shift+S")
+        file_menu.add_command(label="読込…", command=self.load_from, accelerator="Ctrl+O")
+        file_menu.add_separator()
+        file_menu.add_command(label="起動時に読むJSONを指定…", command=self.set_startup_config)
+        file_menu.add_command(label="例を復元", command=self.restore_default)
+        file_menu.add_separator()
+        file_menu.add_command(label="終了", command=self.on_close)
+        menubar.add_cascade(label="ファイル", menu=file_menu)
+
+        settings_menu = tk.Menu(menubar, tearoff=False)
+        settings_menu.add_command(label="プリセット編集…", command=self.open_preset_manager, accelerator="Ctrl+Alt+P")
+        menubar.add_cascade(label="設定", menu=settings_menu)
+
+        self.config(menu=menubar)
+        self.menubar = menubar
+
+    def _bind_menu_shortcuts(self):
+        self.bind("<Control-s>", self._on_shortcut_save, add="+")
+        self.bind("<Control-S>", self._on_shortcut_save, add="+")
+        self.bind("<Control-o>", self._on_shortcut_load, add="+")
+        self.bind("<Control-O>", self._on_shortcut_load, add="+")
+        self.bind("<Control-Shift-s>", self._on_shortcut_save_as, add="+")
+        self.bind("<Control-Shift-S>", self._on_shortcut_save_as, add="+")
+        self.bind("<Control-Alt-p>", self._on_shortcut_open_preset_manager, add="+")
+        self.bind("<Control-Alt-P>", self._on_shortcut_open_preset_manager, add="+")
+
+    def _is_menu_shortcut_enabled(self) -> bool:
+        if getattr(self, "_capturing_stop_key", False) or getattr(self, "_capturing_toggle_key", False):
+            return False
+        try:
+            return self.focus_displayof() is not None
+        except Exception:
+            return False
+
+    def _on_shortcut_save(self, _event=None):
+        if not self._is_menu_shortcut_enabled():
+            return "break"
+        self.save_config()
+        return "break"
+
+    def _on_shortcut_save_as(self, _event=None):
+        if not self._is_menu_shortcut_enabled():
+            return "break"
+        self.save_as()
+        return "break"
+
+    def _on_shortcut_load(self, _event=None):
+        if not self._is_menu_shortcut_enabled():
+            return "break"
+        self.load_from()
+        return "break"
+
+    def _on_shortcut_open_preset_manager(self, _event=None):
+        if not self._is_menu_shortcut_enabled():
+            return "break"
+        self.open_preset_manager()
+        return "break"
 
     def show_compact_view(self):
         if getattr(self, "_capturing_stop_key", False) or getattr(self, "_capturing_toggle_key", False):

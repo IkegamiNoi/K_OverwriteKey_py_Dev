@@ -142,15 +142,6 @@ class FullView(ttk.Frame):
         app.run_to_end_delay_entry.bind("<Return>", app.update_run_to_end_delay)
         app.run_to_end_delay_entry.bind("<FocusOut>", app.update_run_to_end_delay)
 
-        # footer
-        self.footer_area = ttk.Frame(self)
-        self.footer_area.pack(fill="x", pady=(12, 0))
-        ttk.Button(self.footer_area, text="保存", command=app.save_config).pack(side="left")
-        ttk.Button(self.footer_area, text="別名で保存…", command=app.save_as).pack(side="left", padx=(8, 0))
-        ttk.Button(self.footer_area, text="読込…", command=app.load_from).pack(side="left", padx=(8, 0))
-        ttk.Button(self.footer_area, text="プリセット編集…", command=app.open_preset_manager).pack(side="left", padx=(8, 0))
-        ttk.Button(self.footer_area, text="起動時に読むJSONを指定…", command=app.set_startup_config).pack(side="left", padx=(8, 0))
-        ttk.Button(self.footer_area, text="例を復元", command=app.restore_default).pack(side="right")
 
     def _cur_sel_or(self, default_idx: int) -> int:
         try:
