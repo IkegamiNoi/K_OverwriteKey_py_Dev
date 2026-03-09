@@ -239,17 +239,27 @@ class App(tk.Tk):
         # フック/トリガー状態表示（1行または2行）
         self.runtime_status_frame = ttk.LabelFrame(self, text="ステータス", padding=(10, 6))
         self.runtime_status_frame.pack(side="top", fill="x", padx=12, pady=(0, 4))
-        ttk.Label(self.runtime_status_frame, textvariable=self.status_var, anchor="w", justify="left").pack(fill="x")
-        
-        # 共通ステータスバー（左: ファイル状態 / 中央: 一時メッセージ）
-        self.status_bar = tk.Frame(self, bd=1, relief="sunken", bg="#f3f3f3")
+        ttk.Label(self.runtime_status_frame, textvariable=self.status_var, anchor="w", justify="left").pack(fill="x")        # 共通ステータスバー（左: ファイル状態 / 中央: 一時メッセージ）
+        self.status_bar = ttk.Frame(self, style="Statusbar.TFrame")
         self.status_bar.pack(side="bottom", fill="x")
         self.status_bar.grid_columnconfigure(0, weight=1)
         self.status_bar.grid_columnconfigure(1, weight=1)
         self.status_bar.grid_columnconfigure(2, weight=1)
-        tk.Label(self.status_bar, textvariable=self.file_status_var, bg="#f3f3f3", anchor="w", justify="left").grid(row=0, column=0, sticky="w")
-        tk.Label(self.status_bar, textvariable=self.flash_message_var, bg="#f3f3f3", anchor="center", justify="center").grid(row=0, column=1, sticky="ew")
-        tk.Label(self.status_bar, text="", anchor="e").grid(row=0, column=2, sticky="e")
+        ttk.Label(
+            self.status_bar,
+            textvariable=self.file_status_var,
+            style="Statusbar.TLabel",
+            anchor="w",
+            justify="left",
+        ).grid(row=0, column=0, sticky="w")
+        ttk.Label(
+            self.status_bar,
+            textvariable=self.flash_message_var,
+            style="Statusbar.TLabel",
+            anchor="center",
+            justify="center",
+        ).grid(row=0, column=1, sticky="ew")
+        ttk.Label(self.status_bar, text="", style="Statusbar.TLabel", anchor="e").grid(row=0, column=2, sticky="e")
 
         self._update_file_status()
 
@@ -1661,5 +1671,6 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+
 
 
