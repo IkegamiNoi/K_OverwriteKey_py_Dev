@@ -27,7 +27,7 @@ class App(tk.Tk):
     def __init__(self):
         super().__init__()
         self.title("Key Replacer Sequencer (Multi Trigger)")
-        self.geometry("980x660")
+        self.geometry("780x660")
 
         self.repository = JsonRepository()
         self.config_service = ConfigService(self.repository)
@@ -324,7 +324,7 @@ class App(tk.Tk):
             # 高さは現状維持、幅だけ細めに寄せる（トリガー一覧程度）
             self.update_idletasks()
             h = max(360, int(self.winfo_height() or 560))
-            w = 360
+            w = 270
             self.geometry(f"{w}x{h}")
         except Exception:
             pass
