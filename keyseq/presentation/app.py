@@ -5,7 +5,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from keyseq.presentation.dialogs import ActionDialog, PresetDialog, PresetManagerDialog, TriggerDialog
 from keyseq.presentation.views import CompactView, FullView
-from keyseq.presentation.theme import apply_global_theme
+from keyseq.presentation.theme import apply_global_theme, apply_statusbar_style
 
 
 from keyseq.application.config_service import ConfigService
@@ -76,8 +76,8 @@ class App(tk.Tk):
         self.triggers_enabled = True
         self._is_dirty = False
         self._flash_after_id = None
-
         self._build_ui()
+        self.after_idle(self._init_statusbar_style_after_idle)
         self._load_startup_and_config()
         self._refresh_triggers()
         self._refresh_actions()
@@ -287,6 +287,9 @@ class App(tk.Tk):
         if auto_clear and msg:
             self._flash_after_id = self.after(4000, self._clear_flash_message)
 
+    def _init_statusbar_style_after_idle(self):
+        apply_statusbar_style(self)
+
     def set_ui_font_delta(self, delta: int):
         new_delta = self._coerce_font_delta(delta)
         if new_delta == int(getattr(self, "_ui_font_delta_pt", 0)):
@@ -295,8 +298,8 @@ class App(tk.Tk):
         self._ui_font_delta_pt = new_delta
         if hasattr(self, "ui_font_delta_var"):
             self.ui_font_delta_var.set(int(new_delta))
-
         apply_global_theme(self, font_delta_pt=new_delta)
+        self.after_idle(self._init_statusbar_style_after_idle)
         self._write_startup({"ui_font_delta_pt": new_delta})
 
         if hasattr(self, "menubar"):
@@ -1671,6 +1674,9 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+
+
+
 
 
 
