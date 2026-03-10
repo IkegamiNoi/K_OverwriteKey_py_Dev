@@ -63,7 +63,7 @@ def _get_or_create_statusbar_font(root: tk.Misc) -> tkfont.Font:
     return status_font
 
 
-def apply_statusbar_style(root: tk.Misc) -> None:
+def _configure_statusbar_style(style: ttk.Style, root: tk.Misc) -> None:
     default_font = tkfont.nametofont("TkDefaultFont")
     status_font = _get_or_create_statusbar_font(root)
 
@@ -71,7 +71,6 @@ def apply_statusbar_style(root: tk.Misc) -> None:
     status_actual["size"] = _one_step_smaller(int(default_font.cget("size")))
     status_font.configure(**status_actual)
 
-    style = ttk.Style(root)
     style.configure("Statusbar.TFrame", borderwidth=1, relief="sunken")
     style.configure("Statusbar.TLabel", font=status_font)
 
@@ -99,4 +98,5 @@ def apply_global_theme(root: tk.Misc, *, font_delta_pt: int = 0) -> None:
     style.configure("TCombobox", font=text_font)
     style.configure("TMenubutton", font=default_font)
 
-    apply_statusbar_style(root)
+    # Configure status-bar style in the same update turn.
+    _configure_statusbar_style(style, root)

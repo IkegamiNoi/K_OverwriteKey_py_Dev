@@ -5,7 +5,7 @@ from tkinter import filedialog, messagebox, ttk
 
 from keyseq.presentation.dialogs import ActionDialog, PresetDialog, PresetManagerDialog, TriggerDialog
 from keyseq.presentation.views import CompactView, FullView
-from keyseq.presentation.theme import apply_global_theme, apply_statusbar_style
+from keyseq.presentation.theme import apply_global_theme
 
 
 from keyseq.application.config_service import ConfigService
@@ -77,7 +77,6 @@ class App(tk.Tk):
         self._is_dirty = False
         self._flash_after_id = None
         self._build_ui()
-        self.after_idle(self._init_statusbar_style_after_idle)
         self._load_startup_and_config()
         self._refresh_triggers()
         self._refresh_actions()
@@ -239,7 +238,8 @@ class App(tk.Tk):
         # フック/トリガー状態表示（1行または2行）
         self.runtime_status_frame = ttk.LabelFrame(self, text="ステータス", padding=(10, 6))
         self.runtime_status_frame.pack(side="top", fill="x", padx=12, pady=(0, 4))
-        ttk.Label(self.runtime_status_frame, textvariable=self.status_var, anchor="w", justify="left").pack(fill="x")        # 共通ステータスバー（左: ファイル状態 / 中央: 一時メッセージ）
+        ttk.Label(self.runtime_status_frame, textvariable=self.status_var, anchor="w", justify="left").pack(fill="x")
+        # 共通ステータスバー（左: ファイル状態 / 中央: 一時メッセージ）
         self.status_bar = ttk.Frame(self, style="Statusbar.TFrame")
         self.status_bar.pack(side="bottom", fill="x")
         self.status_bar.grid_columnconfigure(0, weight=1)
@@ -287,9 +287,6 @@ class App(tk.Tk):
         if auto_clear and msg:
             self._flash_after_id = self.after(4000, self._clear_flash_message)
 
-    def _init_statusbar_style_after_idle(self):
-        apply_statusbar_style(self)
-
     def set_ui_font_delta(self, delta: int):
         new_delta = self._coerce_font_delta(delta)
         if new_delta == int(getattr(self, "_ui_font_delta_pt", 0)):
@@ -299,7 +296,6 @@ class App(tk.Tk):
         if hasattr(self, "ui_font_delta_var"):
             self.ui_font_delta_var.set(int(new_delta))
         apply_global_theme(self, font_delta_pt=new_delta)
-        self.after_idle(self._init_statusbar_style_after_idle)
         self._write_startup({"ui_font_delta_pt": new_delta})
 
         if hasattr(self, "menubar"):
