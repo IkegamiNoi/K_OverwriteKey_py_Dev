@@ -847,6 +847,7 @@ class App(tk.Tk):
         self.data = self.config_service.new_default_data()
         self.data["triggers"] = []
         self.data = self.config_service.normalize_runtime_data(self.data)
+        self.config_path = ""
 
         if hasattr(self, "stop_key_var"):
             self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
@@ -879,6 +880,9 @@ class App(tk.Tk):
         self._set_dirty(False)
 
     def save_config(self, *, show_success_dialog: bool = True) -> bool:
+        if not self.config_path:
+            return self.save_as(show_success_dialog=show_success_dialog)
+
         try:
             self.data = self.config_service.save(self.config_path, self.data)
             self._set_dirty(False)
@@ -1737,6 +1741,7 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+
 
 
 
