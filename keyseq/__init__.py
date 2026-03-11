@@ -1,0 +1,1 @@
+"""Key sequence application package."""
