@@ -77,7 +77,7 @@ class FullView(ttk.Frame):
         ttk.Button(self.file_frame, text="別名で保存...", width=18, command=app.save_as).pack(fill="x", pady=4)
         ttk.Button(self.file_frame, text="読込...", width=18, command=app.load_from).pack(fill="x", pady=4)
 
-        ttk.Button(self.file_frame, text="追加機能1（準備中）", width=18, state="disabled").pack(fill="x", pady=4)
+        ttk.Button(self.file_frame, text="新規作成", width=18, command=app.new_config).pack(fill="x", pady=4)
 
         # main
         self.main_area = ttk.Frame(self)
@@ -579,4 +579,5 @@ class ActionDialog(tk.Toplevel):
         """プリセット編集ダイアログを開き、戻ったらボタンを再生成"""
         PresetManagerDialog(self.parent, title="ホットキープリセット編集").wait_window()
         self._rebuild_preset_buttons()
+
 

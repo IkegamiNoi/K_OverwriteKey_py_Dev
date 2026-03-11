@@ -311,6 +311,8 @@ class App(tk.Tk):
         menubar = tk.Menu(self)
 
         file_menu = tk.Menu(menubar, tearoff=False)
+        file_menu.add_command(label="新規作成", command=self.new_config, accelerator="Ctrl+N")
+        file_menu.add_separator()
         file_menu.add_command(label="保存", command=self.save_config, accelerator="Ctrl+S")
         file_menu.add_command(label="別名で保存…", command=self.save_as, accelerator="Ctrl+Shift+S")
         file_menu.add_command(label="読込…", command=self.load_from, accelerator="Ctrl+O")
@@ -342,6 +344,8 @@ class App(tk.Tk):
         self.menubar = menubar
 
     def _bind_menu_shortcuts(self):
+        self.bind("<Control-n>", self._on_shortcut_new, add="+")
+        self.bind("<Control-N>", self._on_shortcut_new, add="+")
         self.bind("<Control-s>", self._on_shortcut_save, add="+")
         self.bind("<Control-S>", self._on_shortcut_save, add="+")
         self.bind("<Control-o>", self._on_shortcut_load, add="+")
@@ -363,6 +367,12 @@ class App(tk.Tk):
         if not self._is_menu_shortcut_enabled():
             return "break"
         self.save_config()
+        return "break"
+
+    def _on_shortcut_new(self, _event=None):
+        if not self._is_menu_shortcut_enabled():
+            return "break"
+        self.new_config()
         return "break"
 
     def _on_shortcut_save_as(self, _event=None):
@@ -585,6 +595,9 @@ class App(tk.Tk):
 
     def set_startup_config(self):
         """ユーザーが起動時に読み込む本体JSON（出力シーケンス）を選び、startup.json に保存する"""
+        if not self._confirm_save_if_dirty("起動時に読むJSONの変更"):
+            return
+
         path = filedialog.askopenfilename(
             title="起動時に読み込むJSONを選択",
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
@@ -810,6 +823,47 @@ class App(tk.Tk):
         self.edit_action()
 
     # ---------------- Config IO ----------------
+    def _confirm_save_if_dirty(self, action_name: str) -> bool:
+        if not self._is_dirty:
+            return True
+
+        result = messagebox.askyesnocancel(
+            "未保存の変更",
+            f"未保存の変更があります。\n{action_name}の前に保存しますか？",
+        )
+        if result is None:
+            return False
+        if result is False:
+            return True
+
+        if self.config_path:
+            return self.save_config(show_success_dialog=False)
+        return self.save_as(show_success_dialog=False)
+
+    def new_config(self):
+        if not self._confirm_save_if_dirty("新規作成"):
+            return
+
+        self.data = self.config_service.new_default_data()
+        self.data["triggers"] = []
+        self.data = self.config_service.normalize_runtime_data(self.data)
+
+        if hasattr(self, "stop_key_var"):
+            self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
+        if hasattr(self, "toggle_key_var"):
+            self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+
+        if getattr(self, "hook_active", False):
+            self._install_stop_hook()
+            self._install_toggle_hook()
+
+        self.state.reset_indices()
+        self._selected_trigger_idx = 0
+        self._refresh_triggers()
+        self._refresh_actions()
+        self._set_dirty(True)
+        self._set_flash_message("新規作成しました（未保存）。")
+
     def _load_if_exists(self):
         try:
             self.data, _ = self.config_service.load_if_exists(self.config_path)
@@ -824,35 +878,44 @@ class App(tk.Tk):
             self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
         self._set_dirty(False)
 
-    def save_config(self):
+    def save_config(self, *, show_success_dialog: bool = True) -> bool:
         try:
             self.data = self.config_service.save(self.config_path, self.data)
             self._set_dirty(False)
             self._set_flash_message("保存しました。")
-            messagebox.showinfo("保存", f"保存しました:\n{self.config_path}")
+            if show_success_dialog:
+                messagebox.showinfo("保存", f"保存しました:\n{self.config_path}")
+            return True
         except Exception as e:
             self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
+            return False
 
-    def save_as(self):
+    def save_as(self, *, show_success_dialog: bool = True) -> bool:
         path = filedialog.asksaveasfilename(
             title="別名で保存",
             defaultextension=".json",
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
         )
         if not path:
-            return
+            return False
         try:
             self.data = self.config_service.save(path, self.data)
             self.config_path = path
             self._set_dirty(False)
             self._set_flash_message("別名で保存しました。")
-            messagebox.showinfo("保存", f"保存しました:\n{path}")
+            if show_success_dialog:
+                messagebox.showinfo("保存", f"保存しました:\n{path}")
+            return True
         except Exception as e:
             self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
+            return False
 
     def load_from(self):
+        if not self._confirm_save_if_dirty("読込"):
+            return
+
         path = filedialog.askopenfilename(
             title="読込",
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
@@ -872,6 +935,7 @@ class App(tk.Tk):
                 self._install_stop_hook()
                 self._install_toggle_hook()
             self._indices = {}
+            self._selected_trigger_idx = 0
             self._refresh_triggers()
             self._refresh_actions()
             self._set_dirty(False)
@@ -898,6 +962,7 @@ class App(tk.Tk):
             if hasattr(self, "toggle_key_var"):
                 self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
             self._indices = {}
+            self._selected_trigger_idx = 0
             self._refresh_triggers()
             self._refresh_actions()
             self._set_dirty(True)
@@ -1660,6 +1725,8 @@ class App(tk.Tk):
 
     # ---------------- Close ----------------
     def on_close(self):
+        if not self._confirm_save_if_dirty("終了"):
+            return
         try:
             self.stop_hook()
         finally:
@@ -1670,6 +1737,7 @@ class App(tk.Tk):
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+
 
 
 
