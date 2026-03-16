@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from keyseq.presentation.dialogs import ActionDialog, PresetDialog, PresetManagerDialog, TriggerDialog
+from keyseq.presentation.keyboard_window import KeyboardWindow
 from keyseq.presentation.views import CompactView, FullView
 from keyseq.presentation.theme import apply_global_theme
 
@@ -76,6 +77,7 @@ class App(tk.Tk):
         self.triggers_enabled = True
         self._is_dirty = False
         self._flash_after_id = None
+        self.keyboard_window: KeyboardWindow | None = None
         self._build_ui()
         self._load_startup_and_config()
         self._refresh_triggers()
@@ -325,6 +327,7 @@ class App(tk.Tk):
 
         settings_menu = tk.Menu(menubar, tearoff=False)
         settings_menu.add_command(label="プリセット編集…", command=self.open_preset_manager, accelerator="Ctrl+Alt+P")
+        settings_menu.add_command(label="キーボードUIを開く", command=self.open_keyboard_window)
         settings_menu.add_separator()
 
         font_menu = tk.Menu(settings_menu, tearoff=False)
@@ -392,6 +395,37 @@ class App(tk.Tk):
             return "break"
         self.open_preset_manager()
         return "break"
+
+    def open_keyboard_window(self):
+        window = getattr(self, "keyboard_window", None)
+        if window is not None:
+            try:
+                if window.winfo_exists():
+                    window.deiconify()
+                    window.lift()
+                    window.focus_force()
+                    self._refresh_keyboard_window()
+                    return
+            except Exception:
+                self.keyboard_window = None
+
+        self.keyboard_window = KeyboardWindow(self, on_close=self._on_keyboard_window_closed)
+        self._refresh_keyboard_window()
+
+    def _on_keyboard_window_closed(self):
+        self.keyboard_window = None
+
+    def _refresh_keyboard_window(self):
+        window = getattr(self, "keyboard_window", None)
+        if window is None:
+            return
+        try:
+            if not window.winfo_exists():
+                self.keyboard_window = None
+                return
+            window.update_from_config(self.data)
+        except Exception:
+            pass
 
     def show_compact_view(self):
         if getattr(self, "_capturing_stop_key", False) or getattr(self, "_capturing_toggle_key", False):
@@ -717,6 +751,7 @@ class App(tk.Tk):
             self._sync_trigger_selection_to_views()
         self._sync_suppress_checkbox()
         self._sync_run_to_end_ui()
+        self._refresh_keyboard_window()
         self._update_status()
 
     def _refresh_actions(self):
@@ -1732,6 +1767,12 @@ class App(tk.Tk):
         if not self._confirm_save_if_dirty("終了"):
             return
         try:
+            if self.keyboard_window is not None:
+                try:
+                    if self.keyboard_window.winfo_exists():
+                        self.keyboard_window.destroy()
+                except Exception:
+                    pass
             self.stop_hook()
         finally:
             self.destroy()

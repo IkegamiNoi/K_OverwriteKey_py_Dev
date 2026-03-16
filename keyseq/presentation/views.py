@@ -68,6 +68,9 @@ class FullView(ttk.Frame):
         # 省略表示へ
         app.compact_btn = ttk.Button(self.display_frame, text="省略表示", command=app.show_compact_view)
         app.compact_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
+        ttk.Button(self.display_frame, text="キーボードUI", command=app.open_keyboard_window).grid(
+            row=2, column=0, sticky="w", pady=(10, 0)
+        )
 
         # ファイル操作（表示フレームの右側）
         self.file_frame = ttk.LabelFrame(self.header_area, text="ファイル", padding=(10, 6))
@@ -209,6 +212,9 @@ class CompactView(ttk.Frame):
         app.topmost_chk.grid(row=0, column=0, sticky="w")
         self.full_btn = ttk.Button(self.display_frame, text="フルに戻す", command=app.show_full_view)
         self.full_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
+        ttk.Button(self.display_frame, text="キーボードUI", command=app.open_keyboard_window).grid(
+            row=2, column=0, sticky="w", pady=(10, 0)
+        )
 
         # トリガー一覧のみ
         self.main_area = ttk.Frame(self)
