@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from keyseq.presentation.dialogs import ActionDialog, PresetDialog, PresetManagerDialog, TriggerDialog
+from keyseq.presentation.keyboard_layouts import DEFAULT_LAYOUT_ID, resolve_keyboard_layout
 from keyseq.presentation.keyboard_window import KeyboardWindow
 from keyseq.presentation.views import CompactView, FullView
 from keyseq.presentation.theme import apply_global_theme
@@ -36,6 +37,8 @@ class App(tk.Tk):
         self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.config_path = os.path.join(self.base_dir, r"settings\config.json")  # 実際に読込/保存する本体JSON（既定）
         self.startup_path = os.path.join(self.base_dir, r"settings\startup.json")  # 起動時に参照する“外部指定”ファイル
+        self.keyboard_layout_path = os.path.join(self.base_dir, r"settings\keyboard_layout.json")
+        self.keyboard_layout_id = DEFAULT_LAYOUT_ID
         self._startup_settings = self._load_startup_settings()
         self._ui_font_delta_pt = self._coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
@@ -397,10 +400,12 @@ class App(tk.Tk):
         return "break"
 
     def open_keyboard_window(self):
+        layout = self._get_current_keyboard_layout()
         window = getattr(self, "keyboard_window", None)
         if window is not None:
             try:
                 if window.winfo_exists():
+                    window.update_layout(layout)
                     window.deiconify()
                     window.lift()
                     window.focus_force()
@@ -409,7 +414,7 @@ class App(tk.Tk):
             except Exception:
                 self.keyboard_window = None
 
-        self.keyboard_window = KeyboardWindow(self, on_close=self._on_keyboard_window_closed)
+        self.keyboard_window = KeyboardWindow(self, layout=layout, on_close=self._on_keyboard_window_closed)
         self._refresh_keyboard_window()
 
     def _on_keyboard_window_closed(self):
@@ -423,9 +428,16 @@ class App(tk.Tk):
             if not window.winfo_exists():
                 self.keyboard_window = None
                 return
+            window.update_layout(self._get_current_keyboard_layout())
             window.update_from_config(self.data)
         except Exception:
             pass
+
+    def _get_current_keyboard_layout(self):
+        return resolve_keyboard_layout(
+            json_path=self.keyboard_layout_path,
+            layout_id=self.keyboard_layout_id,
+        )
 
     def show_compact_view(self):
         if getattr(self, "_capturing_stop_key", False) or getattr(self, "_capturing_toggle_key", False):
