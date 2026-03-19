@@ -71,6 +71,14 @@ class FullView(ttk.Frame):
         ttk.Button(self.display_frame, text="キーボードUI", command=app.open_keyboard_window).grid(
             row=2, column=0, sticky="w", pady=(10, 0)
         )
+        app.keyboard_layout_combo = ttk.Combobox(
+            self.display_frame,
+            textvariable=app.keyboard_layout_var,
+            state="readonly",
+            width=18,
+        )
+        app.keyboard_layout_combo.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(10, 0))
+        app.keyboard_layout_combo.bind("<<ComboboxSelected>>", app.on_keyboard_layout_selected)
 
         # ファイル操作（表示フレームの右側）
         self.file_frame = ttk.LabelFrame(self.header_area, text="ファイル", padding=(10, 6))
@@ -215,6 +223,14 @@ class CompactView(ttk.Frame):
         ttk.Button(self.display_frame, text="キーボードUI", command=app.open_keyboard_window).grid(
             row=2, column=0, sticky="w", pady=(10, 0)
         )
+        app.compact_keyboard_layout_combo = ttk.Combobox(
+            self.display_frame,
+            textvariable=app.keyboard_layout_var,
+            state="readonly",
+            width=18,
+        )
+        app.compact_keyboard_layout_combo.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(10, 0))
+        app.compact_keyboard_layout_combo.bind("<<ComboboxSelected>>", app.on_keyboard_layout_selected)
 
         # トリガー一覧のみ
         self.main_area = ttk.Frame(self)

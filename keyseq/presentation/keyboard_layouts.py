@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from dataclasses import dataclass
 
 
@@ -19,6 +20,13 @@ class KeyboardLayout:
     layout_id: str
     display_name: str
     keys: tuple[KeySpec, ...]
+
+
+@dataclass(frozen=True)
+class KeyboardLayoutEntry:
+    layout: KeyboardLayout
+    source: str
+    path: str | None = None
 
 
 DEFAULT_LAYOUT_ID = "us_tkl"
@@ -122,30 +130,163 @@ BUILTIN_LAYOUTS: dict[str, KeyboardLayout] = {
 }
 
 
-def keyboard_layout_from_dict(data: dict) -> KeyboardLayout:
+def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -> dict:
     if not isinstance(data, dict):
-        raise ValueError("Keyboard layout data must be a dict.")
+        raise ValueError("JSONルートは object である必要があります。")
 
-    layout_id = str(data.get("layout_id") or "").strip()
+    for required_key in ("layout_id", "display_name", "keys"):
+        if required_key not in data:
+            raise ValueError(f"{required_key} がありません。")
+
+    layout_id_value = data.get("layout_id")
+    if not isinstance(layout_id_value, str):
+        raise ValueError("layout_id は文字列である必要があります。")
+    layout_id = layout_id_value.strip()
     if not layout_id:
-        raise ValueError("layout_id is required.")
+        raise ValueError("layout_id が空です。")
 
-    display_name = str(data.get("display_name") or layout_id).strip() or layout_id
+    if existing_layout_ids and layout_id in {str(v).strip() for v in existing_layout_ids if str(v).strip()}:
+        raise ValueError(f"layout_id '{layout_id}' は既に存在します。")
+
+    display_name_value = data.get("display_name")
+    if not isinstance(display_name_value, str):
+        raise ValueError("display_name は文字列である必要があります。")
+    display_name = display_name_value.strip()
+    if not display_name:
+        raise ValueError("display_name が空です。")
+
     raw_keys = data.get("keys")
-    if not isinstance(raw_keys, list) or not raw_keys:
-        raise ValueError("keys must be a non-empty list.")
+    if not isinstance(raw_keys, list):
+        raise ValueError("keys が配列ではありません。")
+    if not raw_keys:
+        raise ValueError("keys が空です。")
 
-    keys: list[KeySpec] = []
-    for raw_key in raw_keys:
-        keys.append(_keyspec_from_dict(raw_key))
+    normalized_keys: list[dict] = []
+    seen_key_ids: set[str] = set()
+    for index, raw_key in enumerate(raw_keys):
+        key_prefix = f"keys[{index}]"
+        if not isinstance(raw_key, dict):
+            raise ValueError(f"{key_prefix} は object である必要があります。")
 
-    return KeyboardLayout(layout_id=layout_id, display_name=display_name, keys=tuple(keys))
+        for required_key in ("id", "label", "x", "y", "w", "h"):
+            if required_key not in raw_key:
+                raise ValueError(f"{key_prefix}.{required_key} がありません。")
+
+        key_id_value = raw_key.get("id")
+        if not isinstance(key_id_value, str):
+            raise ValueError(f"{key_prefix}.id は文字列である必要があります。")
+        key_id = key_id_value.strip()
+        if not key_id:
+            raise ValueError(f"{key_prefix}.id が空です。")
+        if key_id in seen_key_ids:
+            raise ValueError(f"{key_prefix}.id が重複しています: {key_id}")
+        seen_key_ids.add(key_id)
+
+        label_value = raw_key.get("label")
+        if not isinstance(label_value, str):
+            raise ValueError(f"{key_prefix}.label は文字列である必要があります。")
+
+        x = _coerce_float(raw_key.get("x"), f"{key_prefix}.x")
+        y = _coerce_float(raw_key.get("y"), f"{key_prefix}.y")
+        w = _coerce_float(raw_key.get("w"), f"{key_prefix}.w")
+        h = _coerce_float(raw_key.get("h"), f"{key_prefix}.h")
+
+        if x < 0:
+            raise ValueError(f"{key_prefix}.x は 0 以上である必要があります。")
+        if y < 0:
+            raise ValueError(f"{key_prefix}.y は 0 以上である必要があります。")
+        if w <= 0:
+            raise ValueError(f"{key_prefix}.w は 0 より大きい必要があります。")
+        if h <= 0:
+            raise ValueError(f"{key_prefix}.h は 0 より大きい必要があります。")
+
+        normalized_keys.append(
+            {
+                "id": key_id,
+                "label": label_value,
+                "x": x,
+                "y": y,
+                "w": w,
+                "h": h,
+            }
+        )
+
+    return {
+        "layout_id": layout_id,
+        "display_name": display_name,
+        "keys": normalized_keys,
+    }
 
 
-def load_layout_from_json(path: str) -> KeyboardLayout:
+def keyboard_layout_from_dict(data: dict, *, existing_layout_ids: set[str] | None = None) -> KeyboardLayout:
+    normalized = validate_layout_json(data, existing_layout_ids=existing_layout_ids)
+    keys = [
+        KeySpec(
+            id=key_data["id"],
+            label=key_data["label"],
+            x=key_data["x"],
+            y=key_data["y"],
+            w=key_data["w"],
+            h=key_data["h"],
+        )
+        for key_data in normalized["keys"]
+    ]
+    return KeyboardLayout(
+        layout_id=normalized["layout_id"],
+        display_name=normalized["display_name"],
+        keys=tuple(keys),
+    )
+
+
+def load_layout_from_json(path: str, *, existing_layout_ids: set[str] | None = None) -> KeyboardLayout:
     with open(path, "r", encoding="utf-8") as f:
         data = json.load(f)
-    return keyboard_layout_from_dict(data)
+    return keyboard_layout_from_dict(data, existing_layout_ids=existing_layout_ids)
+
+
+def save_layout_to_json(path: str, layout: KeyboardLayout) -> None:
+    directory = os.path.dirname(path)
+    if directory:
+        os.makedirs(directory, exist_ok=True)
+    with open(path, "w", encoding="utf-8") as f:
+        json.dump(layout_to_dict(layout), f, ensure_ascii=False, indent=2)
+
+
+def layout_to_dict(layout: KeyboardLayout) -> dict:
+    return {
+        "layout_id": layout.layout_id,
+        "display_name": layout.display_name,
+        "keys": [
+            {
+                "id": key.id,
+                "label": key.label,
+                "x": key.x,
+                "y": key.y,
+                "w": key.w,
+                "h": key.h,
+            }
+            for key in layout.keys
+        ],
+    }
+
+
+def collect_keyboard_layouts(layout_dir: str | None = None) -> dict[str, KeyboardLayoutEntry]:
+    layouts: dict[str, KeyboardLayoutEntry] = {
+        layout_id: KeyboardLayoutEntry(layout=layout, source="builtin", path=None)
+        for layout_id, layout in BUILTIN_LAYOUTS.items()
+    }
+
+    if layout_dir and os.path.isdir(layout_dir):
+        for name in sorted(os.listdir(layout_dir)):
+            if not name.lower().endswith(".json"):
+                continue
+            path = os.path.join(layout_dir, name)
+            try:
+                layout = load_layout_from_json(path, existing_layout_ids=set(layouts.keys()))
+            except Exception:
+                continue
+            layouts[layout.layout_id] = KeyboardLayoutEntry(layout=layout, source="external", path=path)
+    return layouts
 
 
 def resolve_keyboard_layout(*, json_path: str | None = None, layout_id: str | None = None) -> KeyboardLayout:
@@ -163,27 +304,8 @@ def resolve_keyboard_layout(*, json_path: str | None = None, layout_id: str | No
     return BUILTIN_LAYOUTS[DEFAULT_LAYOUT_ID]
 
 
-def _keyspec_from_dict(data: dict) -> KeySpec:
-    if not isinstance(data, dict):
-        raise ValueError("Each key definition must be a dict.")
-
-    key_id = str(data.get("id") or "").strip()
-    if not key_id:
-        raise ValueError("Key id is required.")
-
-    label = str(data.get("label") or key_id)
-    x = _coerce_float(data.get("x"), "x")
-    y = _coerce_float(data.get("y"), "y")
-    w = _coerce_float(data.get("w", 1.0), "w")
-    h = _coerce_float(data.get("h", 1.0), "h")
-    if w <= 0 or h <= 0:
-        raise ValueError("Key width/height must be positive.")
-
-    return KeySpec(id=key_id, label=label, x=x, y=y, w=w, h=h)
-
-
 def _coerce_float(value, field_name: str) -> float:
     try:
         return float(value)
     except Exception as exc:
-        raise ValueError(f"{field_name} must be numeric.") from exc
+        raise ValueError(f"{field_name} は数値である必要があります。") from exc

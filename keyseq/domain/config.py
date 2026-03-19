@@ -45,6 +45,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     ],
     "hook_stop_key": "",
     "hook_toggle_key": "",
+    "keyboard_layout": "us_tkl",
 }
 
 
@@ -129,6 +130,11 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
 
     config["hook_stop_key"] = normalize_key_name(config.get("hook_stop_key", ""))
     config["hook_toggle_key"] = normalize_key_name(config.get("hook_toggle_key", ""))
+    layout_id = config.get("keyboard_layout", "us_tkl")
+    if not isinstance(layout_id, str):
+        layout_id = "us_tkl"
+    layout_id = layout_id.strip() or "us_tkl"
+    config["keyboard_layout"] = layout_id
     return config
 
 

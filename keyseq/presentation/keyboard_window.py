@@ -15,6 +15,17 @@ _LOOKUP_KEY_BY_ID = {
     "alt_r": "alt",
     "windows_l": "windows",
     "windows_r": "windows",
+    "grave": "`",
+    "caps_lock": "caps lock",
+    "page_up": "page up",
+    "page_down": "page down",
+    "print_screen": "print screen",
+    "scroll_lock": "scroll lock",
+    "left_bracket": "[",
+    "right_bracket": "]",
+    "backslash": "\\",
+    "semicolon": ";",
+    "quote": "'",
 }
 
 
