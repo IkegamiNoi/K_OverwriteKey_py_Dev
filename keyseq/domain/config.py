@@ -46,6 +46,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "hook_stop_key": "",
     "hook_toggle_key": "",
     "keyboard_layout": "us_tkl",
+    "external_keyboard_layouts": [],
 }
 
 
@@ -135,6 +136,21 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
         layout_id = "us_tkl"
     layout_id = layout_id.strip() or "us_tkl"
     config["keyboard_layout"] = layout_id
+
+    raw_external_layouts = config.get("external_keyboard_layouts")
+    normalized_external_layouts: list[dict[str, str]] = []
+    if isinstance(raw_external_layouts, list):
+        for item in raw_external_layouts:
+            if isinstance(item, str):
+                path = item.strip()
+            elif isinstance(item, dict):
+                path = str(item.get("path") or "").strip()
+            else:
+                continue
+            if not path:
+                continue
+            normalized_external_layouts.append({"path": path})
+    config["external_keyboard_layouts"] = normalized_external_layouts
     return config
 
 

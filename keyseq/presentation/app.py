@@ -10,7 +10,7 @@ from keyseq.presentation.keyboard_layouts import (
     collect_keyboard_layouts,
     load_layout_from_json,
     resolve_keyboard_layout,
-    save_layout_to_json,
+    resolve_registered_layout_path,
 )
 from keyseq.presentation.keyboard_window import KeyboardWindow
 from keyseq.presentation.views import CompactView, FullView
@@ -47,6 +47,8 @@ class App(tk.Tk):
         self.keyboard_layouts_dir = os.path.join(self.base_dir, "keylayout")
         self.keyboard_layout_id = DEFAULT_LAYOUT_ID
         self._keyboard_layout_entries: dict[str, KeyboardLayoutEntry] = {}
+        self._keyboard_layout_display_to_id: dict[str, str] = {}
+        self._keyboard_layout_id_to_display: dict[str, str] = {}
         self._startup_settings = self._load_startup_settings()
         self._ui_font_delta_pt = self._coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
@@ -451,6 +453,13 @@ class App(tk.Tk):
     def _get_current_keyboard_layout(self):
         entry = self._keyboard_layout_entries.get(str(self.keyboard_layout_id).strip())
         if entry is not None:
+            if entry.source == "external" and entry.path:
+                try:
+                    return load_layout_from_json(
+                        resolve_registered_layout_path(entry.path, base_dir=self.base_dir)
+                    )
+                except Exception:
+                    pass
             return entry.layout
         return resolve_keyboard_layout(layout_id=self.keyboard_layout_id)
 
@@ -464,11 +473,15 @@ class App(tk.Tk):
         return DEFAULT_LAYOUT_ID
 
     def _reload_keyboard_layouts(self):
-        self._keyboard_layout_entries = collect_keyboard_layouts(self.keyboard_layouts_dir)
+        self._keyboard_layout_entries = collect_keyboard_layouts(
+            self.data.get("external_keyboard_layouts", []),
+            base_dir=self.base_dir,
+        )
         self._sync_keyboard_layout_controls()
 
     def _sync_keyboard_layout_controls(self):
-        layout_ids = list(self._keyboard_layout_entries.keys())
+        self._rebuild_keyboard_layout_display_maps()
+        display_values = list(self._keyboard_layout_display_to_id.keys())
         selected = str(self.data.get("keyboard_layout", self.keyboard_layout_id or DEFAULT_LAYOUT_ID)).strip()
         if selected not in self._keyboard_layout_entries:
             selected = self._get_fallback_keyboard_layout_id()
@@ -476,17 +489,16 @@ class App(tk.Tk):
         self.keyboard_layout_id = selected
         self.data["keyboard_layout"] = selected
         if hasattr(self, "keyboard_layout_var"):
-            self.keyboard_layout_var.set(selected)
+            self.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
 
-        state = "readonly" if layout_ids else "disabled"
+        state = "readonly" if display_values else "disabled"
         for name in ("keyboard_layout_combo", "compact_keyboard_layout_combo"):
             combo = getattr(self, name, None)
             if combo is None:
                 continue
             try:
-                combo.configure(values=layout_ids, state=state)
-                if selected:
-                    combo.set(selected)
+                combo.configure(values=display_values, state=state)
+                combo.set(self._keyboard_layout_id_to_display.get(selected, ""))
             except Exception:
                 pass
 
@@ -513,14 +525,14 @@ class App(tk.Tk):
         self.keyboard_layout_id = selected
         self.data["keyboard_layout"] = selected
         if hasattr(self, "keyboard_layout_var"):
-            self.keyboard_layout_var.set(selected)
+            self.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
 
         for name in ("keyboard_layout_combo", "compact_keyboard_layout_combo"):
             combo = getattr(self, name, None)
             if combo is None:
                 continue
             try:
-                combo.set(selected)
+                combo.set(self._keyboard_layout_id_to_display.get(selected, ""))
             except Exception:
                 pass
 
@@ -530,7 +542,7 @@ class App(tk.Tk):
         return True
 
     def on_keyboard_layout_selected(self, _event=None):
-        selected = str(self.keyboard_layout_var.get() or "").strip()
+        selected = self._keyboard_layout_display_to_id.get(str(self.keyboard_layout_var.get() or "").strip(), "")
         self._set_keyboard_layout_selection(selected, persist=True)
 
     def add_external_keyboard_layout(self):
@@ -544,13 +556,18 @@ class App(tk.Tk):
 
         try:
             layout = load_layout_from_json(path, existing_layout_ids=set(self._keyboard_layout_entries.keys()))
-            dst_path = os.path.join(self.keyboard_layouts_dir, f"{layout.layout_id}.json")
-            save_layout_to_json(dst_path, layout)
+            registrations = list(self.data.get("external_keyboard_layouts", []))
+            stored_path = self._to_rel_if_possible(path)
+            if any(str(item.get("path") or "").strip() == stored_path for item in registrations if isinstance(item, dict)):
+                raise ValueError("同じJSONファイルは既に登録されています。")
+            registrations.append({"path": stored_path})
+            self.data["external_keyboard_layouts"] = registrations
         except Exception as e:
             messagebox.showerror("レイアウト追加失敗", str(e))
             return
 
         self._reload_keyboard_layouts()
+        self._persist_keyboard_layout_selection()
         self._set_flash_message(f"外部レイアウトを追加しました: {layout.layout_id}")
 
     def delete_keyboard_layout(self):
@@ -577,6 +594,13 @@ class App(tk.Tk):
         if not messagebox.askyesno("確認", f"外部レイアウト '{target_id}' を削除しますか？"):
             return
 
+        registrations = list(self.data.get("external_keyboard_layouts", []))
+        self.data["external_keyboard_layouts"] = [
+            item
+            for item in registrations
+            if str(item.get("path") or "").strip() != str(entry.path or "").strip()
+        ]
+
         if target_id == self.keyboard_layout_id:
             changed = self._set_keyboard_layout_selection(
                 self._get_fallback_keyboard_layout_id(exclude=target_id),
@@ -584,15 +608,28 @@ class App(tk.Tk):
             )
             if not changed:
                 return
-
-        try:
-            os.remove(entry.path)
-        except Exception as e:
-            messagebox.showerror("レイアウト削除失敗", str(e))
-            return
+        else:
+            if not self._persist_keyboard_layout_selection():
+                return
 
         self._reload_keyboard_layouts()
         self._set_flash_message(f"外部レイアウトを削除しました: {target_id}")
+
+    def _rebuild_keyboard_layout_display_maps(self):
+        self._keyboard_layout_display_to_id = {}
+        self._keyboard_layout_id_to_display = {}
+        display_counts: dict[str, int] = {}
+
+        for entry in self._keyboard_layout_entries.values():
+            display_name = (entry.layout.display_name or "").strip() or entry.layout.layout_id
+            display_counts[display_name] = display_counts.get(display_name, 0) + 1
+
+        for layout_id, entry in self._keyboard_layout_entries.items():
+            display_name = (entry.layout.display_name or "").strip() or layout_id
+            if display_counts.get(display_name, 0) > 1:
+                display_name = f"{display_name} [{layout_id}]"
+            self._keyboard_layout_display_to_id[display_name] = layout_id
+            self._keyboard_layout_id_to_display[layout_id] = display_name
 
     def show_compact_view(self):
         if getattr(self, "_capturing_stop_key", False) or getattr(self, "_capturing_toggle_key", False):

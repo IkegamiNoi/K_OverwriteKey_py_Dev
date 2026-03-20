@@ -270,23 +270,30 @@ def layout_to_dict(layout: KeyboardLayout) -> dict:
     }
 
 
-def collect_keyboard_layouts(layout_dir: str | None = None) -> dict[str, KeyboardLayoutEntry]:
+def collect_keyboard_layouts(registrations=None, *, base_dir: str | None = None) -> dict[str, KeyboardLayoutEntry]:
     layouts: dict[str, KeyboardLayoutEntry] = {
         layout_id: KeyboardLayoutEntry(layout=layout, source="builtin", path=None)
         for layout_id, layout in BUILTIN_LAYOUTS.items()
     }
 
-    if layout_dir and os.path.isdir(layout_dir):
-        for name in sorted(os.listdir(layout_dir)):
-            if not name.lower().endswith(".json"):
-                continue
-            path = os.path.join(layout_dir, name)
-            try:
-                layout = load_layout_from_json(path, existing_layout_ids=set(layouts.keys()))
-            except Exception:
-                continue
-            layouts[layout.layout_id] = KeyboardLayoutEntry(layout=layout, source="external", path=path)
+    if not isinstance(registrations, list):
+        return layouts
+
+    for registration in registrations:
+        stored_path = _get_registration_path(registration)
+        if not stored_path:
+            continue
+        resolved_path = _resolve_layout_path(stored_path, base_dir)
+        try:
+            layout = load_layout_from_json(resolved_path, existing_layout_ids=set(layouts.keys()))
+        except Exception:
+            continue
+        layouts[layout.layout_id] = KeyboardLayoutEntry(layout=layout, source="external", path=stored_path)
     return layouts
+
+
+def resolve_registered_layout_path(path: str, *, base_dir: str | None = None) -> str:
+    return _resolve_layout_path(path, base_dir)
 
 
 def resolve_keyboard_layout(*, json_path: str | None = None, layout_id: str | None = None) -> KeyboardLayout:
@@ -309,3 +316,17 @@ def _coerce_float(value, field_name: str) -> float:
         return float(value)
     except Exception as exc:
         raise ValueError(f"{field_name} は数値である必要があります。") from exc
+
+
+def _get_registration_path(registration) -> str:
+    if isinstance(registration, str):
+        return registration.strip()
+    if isinstance(registration, dict):
+        return str(registration.get("path") or "").strip()
+    return ""
+
+
+def _resolve_layout_path(path: str, base_dir: str | None) -> str:
+    if os.path.isabs(path) or not base_dir:
+        return path
+    return os.path.join(base_dir, path)
