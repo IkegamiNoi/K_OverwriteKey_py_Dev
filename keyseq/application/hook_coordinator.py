@@ -11,6 +11,7 @@ class HookCoordinator:
         self._hook_handles: dict[str, object] = {}
         self._stop_hook_handle: object | None = None
         self._toggle_hook_handle: object | None = None
+        self._input_event_hook_handle: object | None = None
 
     @property
     def hook_handles(self) -> dict[str, object]:
@@ -24,10 +25,15 @@ class HookCoordinator:
     def toggle_hook_handle(self) -> object | None:
         return self._toggle_hook_handle
 
+    @property
+    def input_event_hook_handle(self) -> object | None:
+        return self._input_event_hook_handle
+
     def start(
         self,
         triggers: Sequence[dict],
         on_key_event: Callable[[str], None],
+        on_input_event: Callable[[object], None] | None,
         stop_key: str,
         on_stop: Callable[[], None],
         toggle_key: str,
@@ -48,6 +54,7 @@ class HookCoordinator:
         self.stop()
 
         try:
+            self.install_input_event_hook(on_input_event, on_error)
             self.install_stop_hook(stop_key, on_stop, on_error)
             self.install_toggle_hook(toggle_key, on_toggle, on_error)
             if enable_triggers:
@@ -88,6 +95,21 @@ class HookCoordinator:
                 pass
         self._hook_handles = {}
 
+    def install_input_event_hook(
+        self,
+        on_input_event: Callable[[object], None] | None,
+        on_error: Callable[[str, str], None],
+    ) -> None:
+        self.uninstall_input_event_hook()
+        if on_input_event is None:
+            return
+
+        try:
+            self._input_event_hook_handle = self.input_gateway.register_global_hook(on_input_event)
+        except Exception as e:
+            self._input_event_hook_handle = None
+            on_error("フック設定失敗", f"入力イベント監視の登録に失敗しました。\n\n{type(e).__name__}: {e}")
+
     def install_stop_hook(self, key: str, on_stop: Callable[[], None], on_error: Callable[[str, str], None]) -> None:
         self.uninstall_stop_hook()
         key = normalize_key_name(key)
@@ -122,8 +144,18 @@ class HookCoordinator:
 
     def stop(self) -> None:
         self.disable_trigger_hooks()
+        self.uninstall_input_event_hook()
         self.uninstall_stop_hook()
         self.uninstall_toggle_hook()
+
+    def uninstall_input_event_hook(self) -> None:
+        if self._input_event_hook_handle is None:
+            return
+        try:
+            self.input_gateway.unregister_hook(self._input_event_hook_handle)
+        except Exception:
+            pass
+        self._input_event_hook_handle = None
 
     def uninstall_stop_hook(self) -> None:
         if self._stop_hook_handle is None:

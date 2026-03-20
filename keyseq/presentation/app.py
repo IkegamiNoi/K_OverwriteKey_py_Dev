@@ -20,6 +20,7 @@ from keyseq.presentation.theme import apply_global_theme
 from keyseq.application.config_service import ConfigService
 from keyseq.application.app_state import AppState
 from keyseq.application.hook_coordinator import HookCoordinator
+from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.trigger_service import TriggerService
 from keyseq.domain.config import (
@@ -58,6 +59,7 @@ class App(tk.Tk):
 
         self.trigger_service = TriggerService()
         self.input_gateway = InputGateway()
+        self.key_state_manager = KeyStateManager()
         self.state = AppState()
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
@@ -1539,9 +1541,11 @@ class App(tk.Tk):
         def _on_error(title: str, msg: str) -> None:
             self.after(0, lambda: messagebox.showerror(title, msg))
 
+        self.key_state_manager.clear()
         started = self.hook_coordinator.start(
             triggers=self.data.get("triggers", []),
             on_key_event=self._on_trigger_key,
+            on_input_event=self._on_input_event,
             stop_key=self.data.get("hook_stop_key", ""),
             on_stop=lambda: self.after(0, self.stop_hook),
             toggle_key=self.data.get("hook_toggle_key", ""),
@@ -1565,6 +1569,7 @@ class App(tk.Tk):
         self.sequence_runner.stop_run_to_end()
         self.sequence_runner.stop_chain(force=True)
         self.hook_coordinator.stop()
+        self.key_state_manager.clear()
         self.hook_active = False
         if reset_trigger_mode:
             self.triggers_enabled = True
@@ -1646,6 +1651,9 @@ class App(tk.Tk):
         """
         k = normalize_key_name(key)
         self.after(0, lambda kk=k: self.sequence_runner.handle_key(kk))
+
+    def _on_input_event(self, event: object):
+        self.key_state_manager.handle_event(event)
 
     def _perform_action(self, action: dict):
         t = (action.get("type") or "").strip().lower()

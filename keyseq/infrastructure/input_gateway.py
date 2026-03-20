@@ -7,6 +7,12 @@ import pyautogui
 
 
 class InputGateway:
+    def register_global_hook(
+        self,
+        callback: Callable[[object], None],
+    ):
+        return keyboard.hook(callback, suppress=False)
+
     def register_key_hook(
         self,
         key: str,
