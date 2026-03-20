@@ -35,6 +35,12 @@ class InputGateway:
     def unregister_hook(self, handle) -> None:
         keyboard.unhook(handle)
 
+    def press_key(self, key: str) -> None:
+        keyboard.press(key)
+
+    def release_key(self, key: str) -> None:
+        keyboard.release(key)
+
     def send_hotkey(self, hotkey: str) -> None:
         keyboard.send(hotkey)
 

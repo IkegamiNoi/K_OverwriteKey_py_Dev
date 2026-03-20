@@ -1,6 +1,5 @@
 ﻿import os
 import copy
-import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -18,10 +17,11 @@ from keyseq.presentation.views import CompactView, FullView
 from keyseq.presentation.theme import apply_global_theme
 
 
+from keyseq.application.action_executor import ActionExecutor
 from keyseq.application.config_service import ConfigService
 from keyseq.application.app_state import AppState
 from keyseq.application.hook_coordinator import HookCoordinator
-from keyseq.application.input_router import InputRouter, StopHookAction, ToggleModeAction, TriggerAction
+from keyseq.application.input_router import InputRouter
 from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.trigger_service import TriggerService
@@ -62,8 +62,15 @@ class App(tk.Tk):
         self.trigger_service = TriggerService()
         self.input_gateway = InputGateway()
         self.key_state_manager = KeyStateManager()
-        self._send_guard_count = 0
-        self._send_guard_lock = threading.RLock()
+        self.action_executor = ActionExecutor(
+            input_gateway=self.input_gateway,
+            validate_hotkey=self.validate_hotkey,
+            on_action_error=lambda action, err: self._show_action_error("", action, err),
+            on_runtime_error=lambda title, msg: messagebox.showerror(title, msg),
+            on_stop_hook=self.stop_hook,
+            on_toggle_mode=self.toggle_triggers_enabled,
+            on_trigger=lambda key: self.sequence_runner.handle_key(key),
+        )
         self.input_router = InputRouter(
             key_state_manager=self.key_state_manager,
             get_send_guard_count=self._get_send_guard_count,
@@ -228,17 +235,7 @@ class App(tk.Tk):
         return int(self._hook_suspend_count)
 
     def _get_send_guard_count(self) -> int:
-        with self._send_guard_lock:
-            return int(self._send_guard_count)
-
-    def _enter_send_guard(self) -> None:
-        with self._send_guard_lock:
-            self._send_guard_count += 1
-
-    def _exit_send_guard(self) -> None:
-        with self._send_guard_lock:
-            if self._send_guard_count > 0:
-                self._send_guard_count -= 1
+        return int(self.action_executor.send_guard_count)
 
     # ---------------- UI ----------------
     def _build_ui(self):
@@ -1686,68 +1683,10 @@ class App(tk.Tk):
         if not actions:
             return
         for action in actions:
-            self.after(0, lambda aa=action: self._dispatch_router_action(aa))
-
-    def _dispatch_router_action(self, action: object):
-        if isinstance(action, StopHookAction):
-            self.stop_hook()
-            return
-        if isinstance(action, ToggleModeAction):
-            self.toggle_triggers_enabled()
-            return
-        if isinstance(action, TriggerAction):
-            self.sequence_runner.handle_key(action.key)
+            self.after(0, lambda aa=action: self.action_executor.execute_router_action(aa))
 
     def _perform_action(self, action: dict):
-        t = (action.get("type") or "").strip().lower()
-        v = action.get("value") or ""
-
-        # 送信中にトリガーが混ざっても暴走しないように、短時間だけ抑制したい場合はここで工夫可能。
-        # まずはシンプルに送信。
-        if t == "hotkey":
-            err_msg, normalized = self.validate_hotkey(v)
-            if err_msg:
-                # アプリを止めない。UIスレッドで原因を表示
-                self.after(0, lambda kk=t, aa=action, ee=err_msg: self._show_action_error(kk, aa, ee))
-                return
-            # keyboard は "ctrl+c" のような表記でOK（打ち間違いだと例外が出ることがある）
-            self._enter_send_guard()
-            try:
-                self.input_gateway.send_hotkey(normalized)
-            finally:
-                self._exit_send_guard()
-        elif t == "text":
-            self._enter_send_guard()
-            try:
-                self.input_gateway.write_text(v)
-            finally:
-                self._exit_send_guard()
-        elif t == "mouse_click":
-            # 例: {"type":"mouse_click","x":100,"y":200,"button":"left","clicks":1}
-            try:
-                x = int(action.get("x"))
-                y = int(action.get("y"))
-            except Exception:
-                self.after(0, lambda: messagebox.showerror("送信エラー", "mouse_click の x/y が不正です（整数で指定してください）。"))
-                return
-            button = (action.get("button") or "left").strip().lower()
-            clicks = action.get("clicks", 1)
-            try:
-                clicks = int(clicks)
-            except Exception:
-                clicks = 1
-            if clicks < 1:
-                clicks = 1
-            if button not in ("left", "right", "middle"):
-                button = "left"
-            # 実行
-            try:
-                self.input_gateway.click_mouse(x=x, y=y, button=button, clicks=clicks)
-            except Exception as e:
-                self.after(0, lambda: messagebox.showerror("送信エラー", f"mouse_click の実行に失敗しました。\n{type(e).__name__}: {e}"))
-        else:
-            # 不明タイプはテキスト扱い
-            self.input_gateway.write_text(str(v))
+        self.action_executor.execute(action)
             
     def validate_hotkey(self, hotkey: str) -> tuple[str, str]:
         """
