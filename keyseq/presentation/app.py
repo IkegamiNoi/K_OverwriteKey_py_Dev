@@ -1,5 +1,6 @@
 ﻿import os
 import copy
+import threading
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
@@ -20,6 +21,7 @@ from keyseq.presentation.theme import apply_global_theme
 from keyseq.application.config_service import ConfigService
 from keyseq.application.app_state import AppState
 from keyseq.application.hook_coordinator import HookCoordinator
+from keyseq.application.input_router import InputRouter, StopHookAction, ToggleModeAction, TriggerAction
 from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.trigger_service import TriggerService
@@ -60,6 +62,17 @@ class App(tk.Tk):
         self.trigger_service = TriggerService()
         self.input_gateway = InputGateway()
         self.key_state_manager = KeyStateManager()
+        self._send_guard_count = 0
+        self._send_guard_lock = threading.RLock()
+        self.input_router = InputRouter(
+            key_state_manager=self.key_state_manager,
+            get_send_guard_count=self._get_send_guard_count,
+            get_hook_pause_count=self._get_hook_pause_count,
+            get_stop_key=lambda: self.data.get("hook_stop_key", ""),
+            get_toggle_key=lambda: self.data.get("hook_toggle_key", ""),
+            get_triggers_enabled=lambda: bool(self.triggers_enabled),
+            find_trigger=self._find_trigger_by_key,
+        )
         self.state = AppState()
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
@@ -210,6 +223,22 @@ class App(tk.Tk):
             self._hook_was_active_before_dialog = False
             if was_on:
                 self.start_hook()
+
+    def _get_hook_pause_count(self) -> int:
+        return int(self._hook_suspend_count)
+
+    def _get_send_guard_count(self) -> int:
+        with self._send_guard_lock:
+            return int(self._send_guard_count)
+
+    def _enter_send_guard(self) -> None:
+        with self._send_guard_lock:
+            self._send_guard_count += 1
+
+    def _exit_send_guard(self) -> None:
+        with self._send_guard_lock:
+            if self._send_guard_count > 0:
+                self._send_guard_count -= 1
 
     # ---------------- UI ----------------
     def _build_ui(self):
@@ -1653,7 +1682,21 @@ class App(tk.Tk):
         self.after(0, lambda kk=k: self.sequence_runner.handle_key(kk))
 
     def _on_input_event(self, event: object):
-        self.key_state_manager.handle_event(event)
+        actions = self.input_router.handle(event)
+        if not actions:
+            return
+        for action in actions:
+            self.after(0, lambda aa=action: self._dispatch_router_action(aa))
+
+    def _dispatch_router_action(self, action: object):
+        if isinstance(action, StopHookAction):
+            self.stop_hook()
+            return
+        if isinstance(action, ToggleModeAction):
+            self.toggle_triggers_enabled()
+            return
+        if isinstance(action, TriggerAction):
+            self.sequence_runner.handle_key(action.key)
 
     def _perform_action(self, action: dict):
         t = (action.get("type") or "").strip().lower()
@@ -1668,9 +1711,17 @@ class App(tk.Tk):
                 self.after(0, lambda kk=t, aa=action, ee=err_msg: self._show_action_error(kk, aa, ee))
                 return
             # keyboard は "ctrl+c" のような表記でOK（打ち間違いだと例外が出ることがある）
-            self.input_gateway.send_hotkey(normalized)
+            self._enter_send_guard()
+            try:
+                self.input_gateway.send_hotkey(normalized)
+            finally:
+                self._exit_send_guard()
         elif t == "text":
-            self.input_gateway.write_text(v)
+            self._enter_send_guard()
+            try:
+                self.input_gateway.write_text(v)
+            finally:
+                self._exit_send_guard()
         elif t == "mouse_click":
             # 例: {"type":"mouse_click","x":100,"y":200,"button":"left","clicks":1}
             try:

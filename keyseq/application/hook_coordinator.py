@@ -119,7 +119,7 @@ class HookCoordinator:
         try:
             self._stop_hook_handle = self.input_gateway.register_key_hook(
                 key,
-                lambda _e: on_stop(),
+                lambda _e: None,
                 suppress=True,
             )
         except Exception as e:
@@ -135,7 +135,7 @@ class HookCoordinator:
         try:
             self._toggle_hook_handle = self.input_gateway.register_key_hook(
                 key,
-                lambda _e: on_toggle(),
+                lambda _e: None,
                 suppress=True,
             )
         except Exception as e:
@@ -187,9 +187,11 @@ class HookCoordinator:
     def _register_trigger_hooks(self, usable: Sequence[tuple[str, bool]], on_key_event: Callable[[str], None]) -> None:
         self._hook_handles = {}
         for k, suppress in usable:
+            if not suppress:
+                continue
             self._hook_handles[k] = self.input_gateway.register_key_hook(
                 k,
-                lambda _e, kk=k: on_key_event(kk),
+                lambda _e: None,
                 suppress=suppress,
             )
 
