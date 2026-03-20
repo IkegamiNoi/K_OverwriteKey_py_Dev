@@ -1679,11 +1679,10 @@ class App(tk.Tk):
         self.after(0, lambda kk=k: self.sequence_runner.handle_key(kk))
 
     def _on_input_event(self, event: object):
-        actions = self.input_router.handle(event)
-        if not actions:
-            return
-        for action in actions:
+        route = self.input_router.handle(event)
+        for action in route.actions:
             self.after(0, lambda aa=action: self.action_executor.execute_router_action(aa))
+        return route.accept
 
     def _perform_action(self, action: dict):
         self.action_executor.execute(action)

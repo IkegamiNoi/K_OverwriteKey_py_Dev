@@ -55,12 +55,6 @@ class HookCoordinator:
 
         try:
             self.install_input_event_hook(on_input_event, on_error)
-            self.install_stop_hook(stop_key, on_stop, on_error)
-            self.install_toggle_hook(toggle_key, on_toggle, on_error)
-            if enable_triggers:
-                self._register_trigger_hooks(usable, on_key_event)
-            else:
-                self._hook_handles = {}
             return True
         except Exception as e:
             on_error("開始失敗", f"フックの開始に失敗しました。\n{e}")
@@ -78,21 +72,9 @@ class HookCoordinator:
             on_error("有効化できません", "アクションが入っているトリガーがありません。")
             return False
 
-        self.disable_trigger_hooks()
-        try:
-            self._register_trigger_hooks(usable, on_key_event)
-            return True
-        except Exception as e:
-            self.disable_trigger_hooks()
-            on_error("有効化失敗", f"通常トリガーの有効化に失敗しました。\n{e}")
-            return False
+        return True
 
     def disable_trigger_hooks(self) -> None:
-        for _k, h in list(self._hook_handles.items()):
-            try:
-                self.input_gateway.unregister_hook(h)
-            except Exception:
-                pass
         self._hook_handles = {}
 
     def install_input_event_hook(
@@ -105,42 +87,19 @@ class HookCoordinator:
             return
 
         try:
-            self._input_event_hook_handle = self.input_gateway.register_global_hook(on_input_event)
+            self._input_event_hook_handle = self.input_gateway.register_global_hook(
+                on_input_event,
+                suppress=True,
+            )
         except Exception as e:
             self._input_event_hook_handle = None
             on_error("フック設定失敗", f"入力イベント監視の登録に失敗しました。\n\n{type(e).__name__}: {e}")
 
     def install_stop_hook(self, key: str, on_stop: Callable[[], None], on_error: Callable[[str, str], None]) -> None:
-        self.uninstall_stop_hook()
-        key = normalize_key_name(key)
-        if not key:
-            return
-
-        try:
-            self._stop_hook_handle = self.input_gateway.register_key_hook(
-                key,
-                lambda _e: None,
-                suppress=True,
-            )
-        except Exception as e:
-            self._stop_hook_handle = None
-            on_error("フック設定失敗", f"停止トリガーの登録に失敗しました:\n{key}\n\n{type(e).__name__}: {e}")
+        self._stop_hook_handle = None
 
     def install_toggle_hook(self, key: str, on_toggle: Callable[[], None], on_error: Callable[[str, str], None]) -> None:
-        self.uninstall_toggle_hook()
-        key = normalize_key_name(key)
-        if not key:
-            return
-
-        try:
-            self._toggle_hook_handle = self.input_gateway.register_key_hook(
-                key,
-                lambda _e: None,
-                suppress=True,
-            )
-        except Exception as e:
-            self._toggle_hook_handle = None
-            on_error("フック設定失敗", f"トグルキーの登録に失敗しました:\n{key}\n\n{type(e).__name__}: {e}")
+        self._toggle_hook_handle = None
 
     def stop(self) -> None:
         self.disable_trigger_hooks()
@@ -186,14 +145,6 @@ class HookCoordinator:
 
     def _register_trigger_hooks(self, usable: Sequence[tuple[str, bool]], on_key_event: Callable[[str], None]) -> None:
         self._hook_handles = {}
-        for k, suppress in usable:
-            if not suppress:
-                continue
-            self._hook_handles[k] = self.input_gateway.register_key_hook(
-                k,
-                lambda _e: None,
-                suppress=suppress,
-            )
 
     def _validate_startable(
         self,

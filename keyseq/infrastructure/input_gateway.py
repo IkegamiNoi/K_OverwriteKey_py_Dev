@@ -9,9 +9,11 @@ import pyautogui
 class InputGateway:
     def register_global_hook(
         self,
-        callback: Callable[[object], None],
+        callback: Callable[[object], bool | None],
+        *,
+        suppress: bool = False,
     ):
-        return keyboard.hook(callback, suppress=False)
+        return keyboard.hook(callback, suppress=suppress)
 
     def register_key_hook(
         self,
