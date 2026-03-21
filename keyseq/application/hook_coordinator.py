@@ -41,9 +41,10 @@ class HookCoordinator:
         on_error: Callable[[str, str], None],
         *,
         enable_triggers: bool = True,
+        has_keymaps: bool = False,
     ) -> bool:
         usable = self._collect_usable_triggers(triggers)
-        if not self._validate_startable(triggers, usable, on_error):
+        if not self._validate_startable(triggers, usable, on_error, has_keymaps=has_keymaps):
             return False
 
         stop_key = normalize_key_name(stop_key)
@@ -66,9 +67,11 @@ class HookCoordinator:
         triggers: Sequence[dict],
         on_key_event: Callable[[str], None],
         on_error: Callable[[str, str], None],
+        *,
+        has_keymaps: bool = False,
     ) -> bool:
         usable = self._collect_usable_triggers(triggers)
-        if not usable:
+        if not usable and not has_keymaps:
             on_error("有効化できません", "アクションが入っているトリガーがありません。")
             return False
 
@@ -151,11 +154,13 @@ class HookCoordinator:
         triggers: Sequence[dict],
         usable: Sequence[tuple[str, bool]],
         on_error: Callable[[str, str], None],
+        *,
+        has_keymaps: bool = False,
     ) -> bool:
-        if not triggers:
+        if not triggers and not has_keymaps:
             on_error("開始できません", "トリガーが1件も登録されていません。")
             return False
-        if not usable:
+        if not usable and not has_keymaps:
             on_error("開始できません", "アクションが入っているトリガーがありません。")
             return False
         return True

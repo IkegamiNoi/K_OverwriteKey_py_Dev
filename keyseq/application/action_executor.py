@@ -3,7 +3,13 @@ from __future__ import annotations
 import threading
 from typing import Callable
 
-from keyseq.application.input_router import StopHookAction, ToggleModeAction, TriggerAction
+from keyseq.application.input_router import (
+    SendKeyAction,
+    StopHookAction,
+    SwitchKeymapAction,
+    ToggleModeAction,
+    TriggerAction,
+)
 
 
 class ActionExecutor:
@@ -16,6 +22,7 @@ class ActionExecutor:
         on_runtime_error: Callable[[str, str], None],
         on_stop_hook: Callable[[], None],
         on_toggle_mode: Callable[[], None],
+        on_switch_keymap: Callable[[], None],
         on_trigger: Callable[[str], None],
     ) -> None:
         self.input_gateway = input_gateway
@@ -24,6 +31,7 @@ class ActionExecutor:
         self._on_runtime_error = on_runtime_error
         self._on_stop_hook = on_stop_hook
         self._on_toggle_mode = on_toggle_mode
+        self._on_switch_keymap = on_switch_keymap
         self._on_trigger = on_trigger
         self._send_guard_count = 0
         self._send_guard_lock = threading.RLock()
@@ -56,8 +64,14 @@ class ActionExecutor:
         if isinstance(action, ToggleModeAction):
             self._on_toggle_mode()
             return
+        if isinstance(action, SwitchKeymapAction):
+            self._on_switch_keymap()
+            return
         if isinstance(action, TriggerAction):
             self._on_trigger(action.key)
+            return
+        if isinstance(action, SendKeyAction):
+            self._send_mapped_key(action.target_key)
 
     def _execute_hotkey(self, action: dict, hotkey: str) -> None:
         error_message, normalized = self._validate_hotkey(hotkey)
@@ -75,6 +89,16 @@ class ActionExecutor:
         self._enter_send_guard()
         try:
             self.input_gateway.write_text(text)
+        finally:
+            self._exit_send_guard()
+
+    def _send_mapped_key(self, key: str) -> None:
+        self._enter_send_guard()
+        try:
+            self.input_gateway.press_key(key)
+            self.input_gateway.release_key(key)
+        except Exception as e:
+            self._on_runtime_error("キー送信エラー", f"キーマップ送信に失敗しました。\n{type(e).__name__}: {e}")
         finally:
             self._exit_send_guard()
 

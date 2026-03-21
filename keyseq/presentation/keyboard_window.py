@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import font as tkfont
 from tkinter import ttk
 
+from keyseq.application.keymap_service import KeymapService
 from keyseq.presentation.keyboard_layouts import KeyboardLayout, resolve_keyboard_layout
 
 _LOOKUP_KEY_BY_ID = {
@@ -61,7 +62,7 @@ class KeyboardWindow(tk.Toplevel):
         self._update_summary()
         self.redraw()
 
-    def update_from_config(self, data: dict | None) -> None:
+    def update_from_config(self, data: dict | None, *, custom_enabled: bool = True) -> None:
         trigger_map: dict[str, str] = {}
         kind_map: dict[str, str] = {}
 
@@ -79,6 +80,19 @@ class KeyboardWindow(tk.Toplevel):
                 continue
             trigger_map[key] = str(index + 1)
             kind_map[key] = "trigger"
+
+        if custom_enabled and isinstance(data, dict):
+            active_keymap = KeymapService.get_active_keymap(data)
+            if isinstance(active_keymap, dict):
+                mappings = active_keymap.get("mappings", {})
+                if isinstance(mappings, dict):
+                    for raw_source, raw_target in mappings.items():
+                        source = normalize_key_name(str(raw_source or ""))
+                        target = normalize_key_name(str(raw_target or ""))
+                        if not source or not target or source in trigger_map:
+                            continue
+                        trigger_map[source] = target
+                        kind_map[source] = "keymap"
 
         self._display_map = trigger_map
         self._kind_map = kind_map
@@ -133,6 +147,10 @@ class KeyboardWindow(tk.Toplevel):
                 fill = "#dcecff"
                 outline = "#4c7ed9"
                 text_fill = "#163a78"
+            elif kind == "keymap":
+                fill = "#e8f6df"
+                outline = "#5c9c3b"
+                text_fill = "#214d18"
 
             canvas.create_rectangle(
                 x1,
@@ -156,7 +174,16 @@ class KeyboardWindow(tk.Toplevel):
 
     def _update_summary(self) -> None:
         layout_name = getattr(self._layout, "display_name", "") or getattr(self._layout, "layout_id", "")
-        if self._display_map:
-            self.summary_var.set(f"レイアウト: {layout_name} / 表示: trigger は番号、未設定キーは元キーです。")
-        else:
-            self.summary_var.set(f"レイアウト: {layout_name} / 表示中の trigger はありません。未設定キーは元キーです。")
+        if not self._kind_map:
+            self.summary_var.set(f"レイアウト: {layout_name} / 表示中の trigger・keymap はありません。未設定キーは元キーです。")
+            return
+
+        has_trigger = any(kind == "trigger" for kind in self._kind_map.values())
+        has_keymap = any(kind == "keymap" for kind in self._kind_map.values())
+        if has_trigger and has_keymap:
+            self.summary_var.set(f"レイアウト: {layout_name} / trigger は番号、keymap は出力キー、未設定キーは元キーです。")
+            return
+        if has_trigger:
+            self.summary_var.set(f"レイアウト: {layout_name} / trigger は番号、未設定キーは元キーです。")
+            return
+        self.summary_var.set(f"レイアウト: {layout_name} / keymap は出力キー、未設定キーは元キーです。")

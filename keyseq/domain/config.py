@@ -45,8 +45,11 @@ DEFAULT_CONFIG: dict[str, Any] = {
     ],
     "hook_stop_key": "",
     "hook_toggle_key": "",
+    "hook_keymap_toggle_key": "",
     "keyboard_layout": "us_tkl",
     "external_keyboard_layouts": [],
+    "keymaps": [],
+    "active_keymap_id": "",
 }
 
 
@@ -131,6 +134,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
 
     config["hook_stop_key"] = normalize_key_name(config.get("hook_stop_key", ""))
     config["hook_toggle_key"] = normalize_key_name(config.get("hook_toggle_key", ""))
+    config["hook_keymap_toggle_key"] = normalize_key_name(config.get("hook_keymap_toggle_key", ""))
     layout_id = config.get("keyboard_layout", "us_tkl")
     if not isinstance(layout_id, str):
         layout_id = "us_tkl"
@@ -151,6 +155,46 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
                 continue
             normalized_external_layouts.append({"path": path})
     config["external_keyboard_layouts"] = normalized_external_layouts
+
+    raw_keymaps = config.get("keymaps")
+    normalized_keymaps: list[dict[str, Any]] = []
+    seen_keymap_ids: set[str] = set()
+    if isinstance(raw_keymaps, list):
+        for item in raw_keymaps:
+            if not isinstance(item, dict):
+                continue
+
+            keymap_id = normalize_key_name(item.get("id", ""))
+            if not keymap_id or keymap_id in seen_keymap_ids:
+                continue
+
+            raw_mappings = item.get("mappings")
+            normalized_mappings: dict[str, str] = {}
+            if isinstance(raw_mappings, dict):
+                for raw_source, raw_target in raw_mappings.items():
+                    source = normalize_key_name(str(raw_source or ""))
+                    target = normalize_key_name(str(raw_target or ""))
+                    if not source or not target:
+                        continue
+                    normalized_mappings[source] = target
+
+            normalized_keymaps.append(
+                {
+                    "id": keymap_id,
+                    "label": (item.get("label") or "").strip(),
+                    "mappings": normalized_mappings,
+                }
+            )
+            seen_keymap_ids.add(keymap_id)
+    config["keymaps"] = normalized_keymaps
+
+    active_keymap_id = normalize_key_name(config.get("active_keymap_id", ""))
+    keymap_ids = [str(item.get("id") or "") for item in normalized_keymaps]
+    if active_keymap_id and active_keymap_id not in keymap_ids:
+        active_keymap_id = ""
+    if not active_keymap_id and keymap_ids:
+        active_keymap_id = keymap_ids[0]
+    config["active_keymap_id"] = active_keymap_id
     return config
 
 

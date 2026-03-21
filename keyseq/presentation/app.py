@@ -22,6 +22,7 @@ from keyseq.application.config_service import ConfigService
 from keyseq.application.app_state import AppState
 from keyseq.application.hook_coordinator import HookCoordinator
 from keyseq.application.input_router import InputRouter
+from keyseq.application.keymap_service import KeymapService
 from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.trigger_service import TriggerService
@@ -60,6 +61,7 @@ class App(tk.Tk):
         self.geometry("780x660")
 
         self.trigger_service = TriggerService()
+        self.keymap_service = KeymapService()
         self.input_gateway = InputGateway()
         self.key_state_manager = KeyStateManager()
         self.action_executor = ActionExecutor(
@@ -69,6 +71,7 @@ class App(tk.Tk):
             on_runtime_error=lambda title, msg: messagebox.showerror(title, msg),
             on_stop_hook=self.stop_hook,
             on_toggle_mode=self.toggle_triggers_enabled,
+            on_switch_keymap=self.switch_active_keymap,
             on_trigger=lambda key: self.sequence_runner.handle_key(key),
         )
         self.input_router = InputRouter(
@@ -77,8 +80,10 @@ class App(tk.Tk):
             get_hook_pause_count=self._get_hook_pause_count,
             get_stop_key=lambda: self.data.get("hook_stop_key", ""),
             get_toggle_key=lambda: self.data.get("hook_toggle_key", ""),
+            get_keymap_toggle_key=lambda: self.data.get("hook_keymap_toggle_key", ""),
             get_triggers_enabled=lambda: bool(self.triggers_enabled),
             find_trigger=self._find_trigger_by_key,
+            find_keymap_target=self._find_keymap_target,
         )
         self.state = AppState()
 
@@ -474,7 +479,7 @@ class App(tk.Tk):
                 self.keyboard_window = None
                 return
             window.update_layout(self._get_current_keyboard_layout())
-            window.update_from_config(self.data)
+            window.update_from_config(self.data, custom_enabled=bool(self.hook_active and self.triggers_enabled))
         except Exception:
             pass
 
@@ -750,6 +755,63 @@ class App(tk.Tk):
     def _find_trigger_by_key(self, key: str):
         return self.trigger_service.find_trigger_by_key(self.data, key)
 
+    def _find_keymap_target(self, key: str) -> str:
+        return self.keymap_service.find_mapping_target(self.data, key)
+
+    def _get_active_keymap_text(self) -> str:
+        label = self.keymap_service.get_active_keymap_label(self.data)
+        if not label:
+            return "(なし)"
+        if not (self.hook_active and self.triggers_enabled):
+            return f"{label} (待機)"
+        return label
+
+    def _get_keymap_toggle_key(self) -> str:
+        return normalize_key_name(self.data.get("hook_keymap_toggle_key", ""))
+
+    def _validate_hook_configuration(self) -> bool:
+        control_keys = {
+            "停止キー": normalize_key_name(self.data.get("hook_stop_key", "")),
+            "有効/無効トグルキー": normalize_key_name(self.data.get("hook_toggle_key", "")),
+            "キーマップ切替キー": self._get_keymap_toggle_key(),
+        }
+        seen_control_keys: dict[str, str] = {}
+        for label, key in control_keys.items():
+            if not key:
+                continue
+            if key in seen_control_keys:
+                messagebox.showerror("開始できません", f"{seen_control_keys[key]}と{label}が重複しています:\n{key}")
+                return False
+            seen_control_keys[key] = label
+
+        keymap_source_keys = self.keymap_service.collect_source_keys(self.data)
+        trigger_keys = {
+            normalize_key_name(t.get("key", ""))
+            for t in self.data.get("triggers", [])
+            if normalize_key_name(t.get("key", ""))
+        }
+
+        for label, key in control_keys.items():
+            if not key:
+                continue
+            if key in trigger_keys:
+                messagebox.showerror("開始できません", f"{label}が通常トリガーと重複しています:\n{key}")
+                return False
+            if key in keymap_source_keys:
+                messagebox.showerror("開始できません", f"{label}がキーマップ元キーと重複しています:\n{key}")
+                return False
+
+        return True
+
+    def switch_active_keymap(self) -> None:
+        next_keymap_id = self.keymap_service.cycle_active_keymap(self.data)
+        self._refresh_keyboard_window()
+        self._update_status()
+        if next_keymap_id:
+            self._set_flash_message(f"アクティブなキーマップを切り替えました: {self._get_active_keymap_text()}")
+        else:
+            self._set_flash_message("切り替え可能なキーマップがありません。")
+
     def _select_trigger_by_key(self, key: str):
         """押されたトリガーキーに対応する行をトリガー一覧で選択し、右側表示も更新する（UI専用）"""
         key = normalize_key_name(key)
@@ -890,11 +952,12 @@ class App(tk.Tk):
     def _update_status(self):
         hook_state = "ON" if self.hook_active else "OFF"
         trigger_state = "ON" if self.triggers_enabled else "OFF"
+        keymap_text = self._get_active_keymap_text()
         sel_key = self._selected_trigger_key() or "(未選択)"
         if getattr(self, "_compact_mode", False):
             # 省略表示：ON/OFF + 通常トリガー有効状態 + 選択中トリガー + 次に実行（行の内容）
             line = self._get_next_action_summary(sel_key)
-            self.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} \n選択: {sel_key} / 次: {line}")
+            self.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} / キーマップ: {keymap_text}\n選択: {sel_key} / 次: {line}")
             return
 
         triggers = self.data.get("triggers", [])
@@ -917,7 +980,7 @@ class App(tk.Tk):
         except Exception:
             next_i = 0
         self.status_var.set(
-            f"フック: {hook_state} / 通常トリガー: {trigger_state} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}"
+            f"フック: {hook_state} / 通常トリガー: {trigger_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}"
         )
 
     def _get_next_action_summary(self, trigger_key: str) -> str:
@@ -1373,6 +1436,9 @@ class App(tk.Tk):
         if self.trigger_service.is_toggle_key_conflict(self.data, key):
             messagebox.showerror("追加できません", f"このキーは有効/無効トグルキーに設定されています:\n{key}")
             return
+        if self._get_keymap_toggle_key() == key:
+            messagebox.showerror("追加できません", f"このキーはキーマップ切替キーに設定されています:\n{key}")
+            return
         triggers.append({"key": key, "label": label, "suppress": True, "run_to_end": False, "actions": []})
         self._indices.setdefault(key, 0)
         self._refresh_triggers()
@@ -1410,6 +1476,9 @@ class App(tk.Tk):
             return
         if self.trigger_service.is_toggle_key_conflict(self.data, new):
             messagebox.showerror("変更できません", f"このキーは有効/無効トグルキーに設定されています:\n{new}")
+            return
+        if self._get_keymap_toggle_key() == new:
+            messagebox.showerror("変更できません", f"このキーはキーマップ切替キーに設定されています:\n{new}")
             return
         # indices の移し替え
         self._indices.setdefault(old, 0)
@@ -1564,6 +1633,11 @@ class App(tk.Tk):
         if self.hook_active:
             self.stop_hook(reset_trigger_mode=False)
 
+        if not self._validate_hook_configuration():
+            self._sync_hook_toggle_buttons()
+            self._sync_trigger_toggle_buttons()
+            return
+
         def _on_error(title: str, msg: str) -> None:
             self.after(0, lambda: messagebox.showerror(title, msg))
 
@@ -1578,6 +1652,7 @@ class App(tk.Tk):
             on_toggle=lambda: self.after(0, self.toggle_triggers_enabled),
             on_error=_on_error,
             enable_triggers=desired_trigger_state,
+            has_keymaps=self.keymap_service.has_any_mapping(self.data),
         )
 
         if not started:
@@ -1589,6 +1664,7 @@ class App(tk.Tk):
         self.triggers_enabled = desired_trigger_state
         self._sync_hook_toggle_buttons()
         self._sync_trigger_toggle_buttons()
+        self._refresh_keyboard_window()
         self._update_status()
 
     def stop_hook(self, *, reset_trigger_mode: bool = True):
@@ -1602,6 +1678,7 @@ class App(tk.Tk):
 
         self._sync_hook_toggle_buttons()
         self._sync_trigger_toggle_buttons()
+        self._refresh_keyboard_window()
         self._update_status()
 
     def toggle_hook(self):
@@ -1628,6 +1705,7 @@ class App(tk.Tk):
                 triggers=self.data.get("triggers", []),
                 on_key_event=self._on_trigger_key,
                 on_error=_on_error,
+                has_keymaps=self.keymap_service.has_any_mapping(self.data),
             )
             if not enabled:
                 self._sync_trigger_toggle_buttons()
@@ -1638,6 +1716,7 @@ class App(tk.Tk):
         if not getattr(self, "_compact_mode", False):
             self._refresh_actions()
         self._sync_trigger_toggle_buttons()
+        self._refresh_keyboard_window()
         self._update_status()
 
     def _install_stop_hook(self):
@@ -1815,6 +1894,12 @@ class App(tk.Tk):
         if self.trigger_service.is_toggle_key_conflict(self.data, key):
             messagebox.showerror("設定できません", f"停止トリガーがトグルキーと重複しています:\n{key}")
             return "break"
+        if self._get_keymap_toggle_key() == key:
+            messagebox.showerror("設定できません", f"停止トリガーがキーマップ切替キーと重複しています:\n{key}")
+            return "break"
+        if self.keymap_service.source_key_exists(self.data, key):
+            messagebox.showerror("設定できません", f"停止トリガーがキーマップ元キーと重複しています:\n{key}")
+            return "break"
 
         # 妥当性チェック
         try:
@@ -1899,6 +1984,12 @@ class App(tk.Tk):
             return "break"
         if self.trigger_service.is_stop_key_conflict(self.data, key):
             messagebox.showerror("設定できません", f"トグルキーが停止キーと重複しています:\n{key}")
+            return "break"
+        if self._get_keymap_toggle_key() == key:
+            messagebox.showerror("設定できません", f"トグルキーがキーマップ切替キーと重複しています:\n{key}")
+            return "break"
+        if self.keymap_service.source_key_exists(self.data, key):
+            messagebox.showerror("設定できません", f"トグルキーがキーマップ元キーと重複しています:\n{key}")
             return "break"
 
         try:
