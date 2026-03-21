@@ -78,7 +78,7 @@ class KeyboardWindow(tk.Toplevel):
         self.redraw()
 
     def update_from_config(self, data: dict | None, *, custom_enabled: bool = True) -> None:
-        trigger_map: dict[str, str] = {}
+        display_map: dict[str, str] = {}
         kind_map: dict[str, str] = {}
 
         triggers = []
@@ -93,7 +93,7 @@ class KeyboardWindow(tk.Toplevel):
             key = normalize_key_name(trigger.get("key", ""))
             if not key:
                 continue
-            trigger_map[key] = str(index + 1)
+            display_map[key] = str(index + 1)
             kind_map[key] = "trigger"
 
         if custom_enabled and isinstance(data, dict):
@@ -104,12 +104,29 @@ class KeyboardWindow(tk.Toplevel):
                     for raw_source, raw_target in mappings.items():
                         source = normalize_key_name(str(raw_source or ""))
                         target = normalize_key_name(str(raw_target or ""))
-                        if not source or not target or source in trigger_map:
+                        if not source or not target or source in display_map:
                             continue
-                        trigger_map[source] = target
+                        display_map[source] = target
                         kind_map[source] = "keymap"
 
-        self._display_map = trigger_map
+        # 予約キーは最後に上書きして優先順位を守る。
+        if isinstance(data, dict):
+            keymap_toggle_key = normalize_key_name(data.get("hook_keymap_toggle_key", ""))
+            if keymap_toggle_key:
+                display_map[keymap_toggle_key] = "KEYMAP"
+                kind_map[keymap_toggle_key] = "keymap_toggle"
+
+            mode_toggle_key = normalize_key_name(data.get("hook_toggle_key", ""))
+            if mode_toggle_key:
+                display_map[mode_toggle_key] = "MODE"
+                kind_map[mode_toggle_key] = "mode_toggle"
+
+            stop_key = normalize_key_name(data.get("hook_stop_key", ""))
+            if stop_key:
+                display_map[stop_key] = "STOP"
+                kind_map[stop_key] = "stop"
+
+        self._display_map = display_map
         self._kind_map = kind_map
         self._update_summary()
         self.redraw()
@@ -158,18 +175,8 @@ class KeyboardWindow(tk.Toplevel):
             kind = self._kind_map.get(lookup_key, "normal")
             self._key_bounds.append((lookup_key, x1, y1, x2, y2))
 
-            fill = "#ffffff"
-            outline = "#aab4c3"
-            text_fill = "#24313f"
+            fill, outline, text_fill = self.set_key_color(kind)
             width = 2
-            if kind == "trigger":
-                fill = "#dcecff"
-                outline = "#4c7ed9"
-                text_fill = "#163a78"
-            elif kind == "keymap":
-                fill = "#e8f6df"
-                outline = "#5c9c3b"
-                text_fill = "#214d18"
             if lookup_key == self._editing_source_key:
                 outline = "#d97706"
                 width = 3
@@ -193,6 +200,19 @@ class KeyboardWindow(tk.Toplevel):
                 width=max(10, (x2 - x1) - 8),
                 justify="center",
             )
+
+    def set_key_color(self, kind: str) -> tuple[str, str, str]:
+        if kind == "stop":
+            return "#fde2e2", "#c62828", "#7f1d1d"
+        if kind == "mode_toggle":
+            return "#ffe8cc", "#ef6c00", "#8a3c00"
+        if kind == "keymap_toggle":
+            return "#f3e8ff", "#8e24aa", "#5b1a72"
+        if kind == "trigger":
+            return "#dcecff", "#4c7ed9", "#163a78"
+        if kind == "keymap":
+            return "#e8f6df", "#5c9c3b", "#214d18"
+        return "#ffffff", "#aab4c3", "#24313f"
 
     def _find_key_at_point(self, x: float, y: float) -> str:
         for key, x1, y1, x2, y2 in self._key_bounds:
@@ -292,12 +312,33 @@ class KeyboardWindow(tk.Toplevel):
             return
         if not self._kind_map:
             self.summary_var.set(
-                f"レイアウト: {layout_name} / 表示中の trigger・keymap はありません。左クリックで編集、右クリックでクリアできます。"
+                f"レイアウト: {layout_name} / 予約キー・trigger・keymap が無い状態です。左クリックで編集、右クリックでクリアできます。"
             )
             return
 
         has_trigger = any(kind == "trigger" for kind in self._kind_map.values())
         has_keymap = any(kind == "keymap" for kind in self._kind_map.values())
+        has_reserved = any(kind in {"stop", "mode_toggle", "keymap_toggle"} for kind in self._kind_map.values())
+        if has_reserved and has_trigger and has_keymap:
+            self.summary_var.set(
+                f"レイアウト: {layout_name} / STOP・MODE・KEYMAP・trigger・keymap を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
+            )
+            return
+        if has_reserved and has_trigger:
+            self.summary_var.set(
+                f"レイアウト: {layout_name} / STOP・MODE・KEYMAP と trigger を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
+            )
+            return
+        if has_reserved and has_keymap:
+            self.summary_var.set(
+                f"レイアウト: {layout_name} / STOP・MODE・KEYMAP と keymap を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
+            )
+            return
+        if has_reserved:
+            self.summary_var.set(
+                f"レイアウト: {layout_name} / STOP・MODE・KEYMAP を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
+            )
+            return
         if has_trigger and has_keymap:
             self.summary_var.set(
                 f"レイアウト: {layout_name} / trigger は番号、keymap は出力キー、未設定キーは元キーです。左クリックで編集、右クリックでクリアできます。"
