@@ -4,6 +4,9 @@ from typing import Any
 
 from keyseq.domain.config import normalize_key_name
 
+DEFAULT_KEYMAP_ID = "default"
+DEFAULT_KEYMAP_LABEL = "Default"
+
 
 class KeymapService:
     @staticmethod
@@ -103,3 +106,65 @@ class KeymapService:
 
         data["active_keymap_id"] = next_id
         return next_id
+
+    @staticmethod
+    def ensure_active_keymap(data: dict[str, Any]) -> dict[str, Any]:
+        current = KeymapService.get_active_keymap(data)
+        if isinstance(current, dict):
+            mappings = current.get("mappings")
+            if not isinstance(mappings, dict):
+                current["mappings"] = {}
+            current.setdefault("label", "")
+            return current
+
+        keymaps = KeymapService.get_keymaps(data)
+        if not keymaps:
+            created = {
+                "id": DEFAULT_KEYMAP_ID,
+                "label": DEFAULT_KEYMAP_LABEL,
+                "mappings": {},
+            }
+            data["keymaps"] = [created]
+            data["active_keymap_id"] = DEFAULT_KEYMAP_ID
+            return created
+
+        fallback = keymaps[0]
+        fallback.setdefault("label", "")
+        mappings = fallback.get("mappings")
+        if not isinstance(mappings, dict):
+            fallback["mappings"] = {}
+        data["active_keymap_id"] = normalize_key_name(fallback.get("id", ""))
+        return fallback
+
+    @staticmethod
+    def set_mapping(data: dict[str, Any], source_key: str, target_key: str) -> tuple[str, bool]:
+        keymap = KeymapService.ensure_active_keymap(data)
+        keymap_id = normalize_key_name(keymap.get("id", ""))
+        source = normalize_key_name(source_key)
+        target = normalize_key_name(target_key)
+        mappings = keymap.setdefault("mappings", {})
+        if not isinstance(mappings, dict):
+            mappings = {}
+            keymap["mappings"] = mappings
+        previous = normalize_key_name(mappings.get(source, ""))
+        mappings[source] = target
+        data["active_keymap_id"] = keymap_id
+        return keymap_id, previous != target
+
+    @staticmethod
+    def clear_mapping(data: dict[str, Any], source_key: str) -> tuple[str, bool]:
+        keymap = KeymapService.get_active_keymap(data)
+        if not isinstance(keymap, dict):
+            return "", False
+
+        mappings = keymap.get("mappings", {})
+        if not isinstance(mappings, dict):
+            keymap["mappings"] = {}
+            return normalize_key_name(keymap.get("id", "")), False
+
+        source = normalize_key_name(source_key)
+        if source not in mappings:
+            return normalize_key_name(keymap.get("id", "")), False
+
+        del mappings[source]
+        return normalize_key_name(keymap.get("id", "")), True

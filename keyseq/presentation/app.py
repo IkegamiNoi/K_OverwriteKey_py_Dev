@@ -464,7 +464,13 @@ class App(tk.Tk):
             except Exception:
                 self.keyboard_window = None
 
-        self.keyboard_window = KeyboardWindow(self, layout=layout, on_close=self._on_keyboard_window_closed)
+        self.keyboard_window = KeyboardWindow(
+            self,
+            layout=layout,
+            on_close=self._on_keyboard_window_closed,
+            on_assign_keymap=self.assign_keymap_from_keyboard_ui,
+            on_clear_keymap=self.clear_keymap_from_keyboard_ui,
+        )
         self._refresh_keyboard_window()
 
     def _on_keyboard_window_closed(self):
@@ -479,7 +485,7 @@ class App(tk.Tk):
                 self.keyboard_window = None
                 return
             window.update_layout(self._get_current_keyboard_layout())
-            window.update_from_config(self.data, custom_enabled=bool(self.hook_active and self.triggers_enabled))
+            window.update_from_config(self.data, custom_enabled=True)
         except Exception:
             pass
 
@@ -811,6 +817,53 @@ class App(tk.Tk):
             self._set_flash_message(f"アクティブなキーマップを切り替えました: {self._get_active_keymap_text()}")
         else:
             self._set_flash_message("切り替え可能なキーマップがありません。")
+
+    def assign_keymap_from_keyboard_ui(self, source_key: str, target_key: str) -> bool:
+        source = normalize_key_name(source_key)
+        target = normalize_key_name(target_key)
+        if not source or not target:
+            return False
+        if "+" in target:
+            messagebox.showerror("設定できません", "キーマップは単キーのみ対応です。")
+            return False
+        if source in {
+            normalize_key_name(self.data.get("hook_stop_key", "")),
+            normalize_key_name(self.data.get("hook_toggle_key", "")),
+            self._get_keymap_toggle_key(),
+        }:
+            messagebox.showerror("設定できません", f"このキーは予約キーのため、キーマップ元キーにできません:\n{source}")
+            return False
+
+        try:
+            self.input_gateway.validate_key_name(target)
+        except Exception as e:
+            messagebox.showerror("設定できません", f"不明なキー名です:\n{target}\n\n{e}")
+            return False
+
+        keymap_id, changed = self.keymap_service.set_mapping(self.data, source, target)
+        self._refresh_keyboard_window()
+        self._update_status()
+        if changed:
+            self._set_dirty(True)
+            self._set_flash_message(f"キーマップを更新しました: {source} -> {target} ({keymap_id})")
+        else:
+            self._set_flash_message(f"キーマップは変更なしです: {source} -> {target}")
+        return True
+
+    def clear_keymap_from_keyboard_ui(self, source_key: str) -> bool:
+        source = normalize_key_name(source_key)
+        if not source:
+            return False
+        keymap_id, changed = self.keymap_service.clear_mapping(self.data, source)
+        self._refresh_keyboard_window()
+        self._update_status()
+        if changed:
+            self._set_dirty(True)
+            self._set_flash_message(f"キーマップをクリアしました: {source} ({keymap_id})")
+            return True
+
+        self._set_flash_message(f"クリア対象のキーマップはありません: {source}")
+        return False
 
     def _select_trigger_by_key(self, key: str):
         """押されたトリガーキーに対応する行をトリガー一覧で選択し、右側表示も更新する（UI専用）"""
