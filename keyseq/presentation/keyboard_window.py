@@ -56,6 +56,7 @@ class KeyboardWindow(tk.Toplevel):
         self._kind_map: dict[str, str] = {}
         self._key_bounds: list[tuple[str, float, float, float, float]] = []
         self._editing_source_key: str | None = None
+        self._show_physical_key_labels = False
 
         container = ttk.Frame(self, padding=10)
         container.pack(fill="both", expand=True)
@@ -77,7 +78,14 @@ class KeyboardWindow(tk.Toplevel):
         self._update_summary()
         self.redraw()
 
-    def update_from_config(self, data: dict | None, *, custom_enabled: bool = True) -> None:
+    def update_from_config(
+        self,
+        data: dict | None,
+        *,
+        custom_enabled: bool = True,
+        show_physical_key_labels: bool = False,
+    ) -> None:
+        self._show_physical_key_labels = bool(show_physical_key_labels)
         display_map: dict[str, str] = {}
         kind_map: dict[str, str] = {}
 
@@ -172,6 +180,7 @@ class KeyboardWindow(tk.Toplevel):
             y2 = (spec.y + spec.h) * unit - pad
             lookup_key = _LOOKUP_KEY_BY_ID.get(spec.id, spec.id)
             display = self._display_map.get(lookup_key, spec.label)
+            sub_display = spec.label if self._show_physical_key_labels else ""
             kind = self._kind_map.get(lookup_key, "normal")
             self._key_bounds.append((lookup_key, x1, y1, x2, y2))
 
@@ -190,16 +199,28 @@ class KeyboardWindow(tk.Toplevel):
                 outline=outline,
                 width=width,
             )
-            font_size = max(6, int(unit * (0.22 if len(display) > 4 else 0.28)))
+            show_sub = bool(sub_display)
+            font_size = max(6, int(unit * (0.20 if show_sub else (0.22 if len(display) > 4 else 0.28))))
             canvas.create_text(
                 (x1 + x2) / 2,
-                (y1 + y2) / 2,
+                (y1 + y2) / 2 - (unit * 0.12 if show_sub else 0),
                 text=display,
                 fill=text_fill,
                 font=(font_family, font_size, "bold"),
                 width=max(10, (x2 - x1) - 8),
                 justify="center",
             )
+            if show_sub:
+                sub_font_size = max(5, int(unit * 0.14))
+                canvas.create_text(
+                    (x1 + x2) / 2,
+                    y2 - max(8, unit * 0.18),
+                    text=sub_display,
+                    fill="#4f5d73",
+                    font=(font_family, sub_font_size),
+                    width=max(10, (x2 - x1) - 8),
+                    justify="center",
+                )
 
     def set_key_color(self, kind: str) -> tuple[str, str, str]:
         if kind == "stop":

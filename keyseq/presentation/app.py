@@ -258,6 +258,9 @@ class App(tk.Tk):
         self.run_to_end_var = tk.BooleanVar(value=False)
         self.run_to_end_delay_var = tk.StringVar(value="300")
         self.keyboard_layout_var = tk.StringVar(value=str(self.data.get("keyboard_layout", DEFAULT_LAYOUT_ID)))
+        self.keyboard_show_physical_key_labels_var = tk.BooleanVar(
+            value=bool(self.data.get("keyboard_show_physical_key_labels", False))
+        )
         self.run_to_end_delay_entry: ttk.Entry
         self.hook_toggle_btn: ttk.Button
         self.trigger_toggle_btn: ttk.Button
@@ -382,6 +385,12 @@ class App(tk.Tk):
         settings_menu.add_command(label="外部レイアウトを追加…", command=self.add_external_keyboard_layout)
         settings_menu.add_command(label="レイアウトを削除…", command=self.delete_keyboard_layout)
         settings_menu.add_separator()
+        settings_menu.add_checkbutton(
+            label="物理キー名を表示",
+            variable=self.keyboard_show_physical_key_labels_var,
+            command=self.toggle_keyboard_show_physical_key_labels,
+        )
+        settings_menu.add_separator()
 
         font_menu = tk.Menu(settings_menu, tearoff=False)
         for delta in (-3, -2, -1, 0, 1, 2, 3):
@@ -485,7 +494,11 @@ class App(tk.Tk):
                 self.keyboard_window = None
                 return
             window.update_layout(self._get_current_keyboard_layout())
-            window.update_from_config(self.data, custom_enabled=True)
+            window.update_from_config(
+                self.data,
+                custom_enabled=True,
+                show_physical_key_labels=bool(self.keyboard_show_physical_key_labels_var.get()),
+            )
         except Exception:
             pass
 
@@ -555,6 +568,11 @@ class App(tk.Tk):
             self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
             return False
+
+    def toggle_keyboard_show_physical_key_labels(self):
+        self.data["keyboard_show_physical_key_labels"] = bool(self.keyboard_show_physical_key_labels_var.get())
+        self._refresh_keyboard_window()
+        self._persist_keyboard_layout_selection()
 
     def _set_keyboard_layout_selection(self, layout_id: str, *, persist: bool = False):
         selected = str(layout_id or "").strip()
@@ -1236,6 +1254,8 @@ class App(tk.Tk):
             self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
         if hasattr(self, "toggle_key_var"):
             self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+        if hasattr(self, "keyboard_show_physical_key_labels_var"):
+            self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
         self._sync_keyboard_layout_controls()
 
         if getattr(self, "hook_active", False):
@@ -1261,6 +1281,8 @@ class App(tk.Tk):
             self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
         if hasattr(self, "toggle_key_var"):
             self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+        if hasattr(self, "keyboard_show_physical_key_labels_var"):
+            self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
         self._sync_keyboard_layout_controls()
         self._set_dirty(False)
 
@@ -1318,6 +1340,8 @@ class App(tk.Tk):
                 self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
             if hasattr(self, "toggle_key_var"):
                 self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+            if hasattr(self, "keyboard_show_physical_key_labels_var"):
+                self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
             self._sync_keyboard_layout_controls()
 
             # フックON中なら制御キーのフックも更新
@@ -1351,6 +1375,8 @@ class App(tk.Tk):
                 self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
             if hasattr(self, "toggle_key_var"):
                 self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+            if hasattr(self, "keyboard_show_physical_key_labels_var"):
+                self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
             self._sync_keyboard_layout_controls()
             self._indices = {}
             self._selected_trigger_idx = 0
