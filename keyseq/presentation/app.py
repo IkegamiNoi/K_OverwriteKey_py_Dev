@@ -70,7 +70,7 @@ class App(tk.Tk):
             on_action_error=lambda action, err: self._show_action_error("", action, err),
             on_runtime_error=lambda title, msg: messagebox.showerror(title, msg),
             on_stop_hook=self.stop_hook,
-            on_toggle_mode=self.toggle_triggers_enabled,
+            on_toggle_mode=self.toggle_custom_input_enabled,
             on_switch_keymap=self.switch_active_keymap,
             on_trigger=lambda key: self.sequence_runner.handle_key(key),
         )
@@ -81,7 +81,7 @@ class App(tk.Tk):
             get_stop_key=lambda: self.data.get("hook_stop_key", ""),
             get_toggle_key=lambda: self.data.get("hook_toggle_key", ""),
             get_keymap_toggle_key=lambda: self.data.get("hook_keymap_toggle_key", ""),
-            get_triggers_enabled=lambda: bool(self.triggers_enabled),
+            get_custom_input_enabled=lambda: bool(self.custom_input_enabled),
             find_trigger=self._find_trigger_by_key,
             find_keymap_target=self._find_keymap_target,
         )
@@ -114,7 +114,7 @@ class App(tk.Tk):
         self._error_dialog_open = False           # エラーダイアログ多重表示防止
         self._capturing_stop_key = False
         self._capturing_toggle_key = False
-        self.triggers_enabled = True
+        self.custom_input_enabled = True
         self._is_dirty = False
         self._flash_after_id = None
         self.keyboard_window: KeyboardWindow | None = None
@@ -222,7 +222,7 @@ class App(tk.Tk):
         if self._hook_suspend_count == 1:
             self._hook_was_active_before_dialog = bool(self.hook_active)
             if self._hook_was_active_before_dialog:
-                self.stop_hook(reset_trigger_mode=False)
+                self.stop_hook(reset_custom_input_mode=False)
 
     def resume_hook_after_dialog(self):
         """一時停止したフックを元に戻す（ネスト対応。最後のダイアログが閉じた時だけ復帰）"""
@@ -786,7 +786,7 @@ class App(tk.Tk):
         label = self.keymap_service.get_active_keymap_label(self.data)
         if not label:
             return "(なし)"
-        if not (self.hook_active and self.triggers_enabled):
+        if not (self.hook_active and self.custom_input_enabled):
             return f"{label} (待機)"
         return label
 
@@ -1022,7 +1022,7 @@ class App(tk.Tk):
 
     def _update_status(self):
         hook_state = "ON" if self.hook_active else "OFF"
-        trigger_state = "ON" if self.triggers_enabled else "OFF"
+        trigger_state = "ON" if self.custom_input_enabled else "OFF"
         keymap_text = self._get_active_keymap_text()
         sel_key = self._selected_trigger_key() or "(未選択)"
         if getattr(self, "_compact_mode", False):
@@ -1258,10 +1258,6 @@ class App(tk.Tk):
             self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
         self._sync_keyboard_layout_controls()
 
-        if getattr(self, "hook_active", False):
-            self._install_stop_hook()
-            self._install_toggle_hook()
-
         self.state.reset_indices()
         self._selected_trigger_idx = 0
         self._refresh_triggers()
@@ -1344,10 +1340,6 @@ class App(tk.Tk):
                 self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
             self._sync_keyboard_layout_controls()
 
-            # フックON中なら制御キーのフックも更新
-            if getattr(self, "hook_active", False):
-                self._install_stop_hook()
-                self._install_toggle_hook()
             self._indices = {}
             self._selected_trigger_idx = 0
             self._refresh_triggers()
@@ -1690,7 +1682,7 @@ class App(tk.Tk):
         if not self.hook_active:
             text = "通常トリガー無効化"
             state = "disabled"
-        elif self.triggers_enabled:
+        elif self.custom_input_enabled:
             text = "通常トリガー無効化"
             state = "normal"
         else:
@@ -1708,9 +1700,9 @@ class App(tk.Tk):
             pass
 
     def start_hook(self):
-        desired_trigger_state = bool(self.triggers_enabled)
+        desired_custom_input_state = bool(self.custom_input_enabled)
         if self.hook_active:
-            self.stop_hook(reset_trigger_mode=False)
+            self.stop_hook(reset_custom_input_mode=False)
 
         if not self._validate_hook_configuration():
             self._sync_hook_toggle_buttons()
@@ -1723,14 +1715,8 @@ class App(tk.Tk):
         self.key_state_manager.clear()
         started = self.hook_coordinator.start(
             triggers=self.data.get("triggers", []),
-            on_key_event=self._on_trigger_key,
             on_input_event=self._on_input_event,
-            stop_key=self.data.get("hook_stop_key", ""),
-            on_stop=lambda: self.after(0, self.stop_hook),
-            toggle_key=self.data.get("hook_toggle_key", ""),
-            on_toggle=lambda: self.after(0, self.toggle_triggers_enabled),
             on_error=_on_error,
-            enable_triggers=desired_trigger_state,
             has_keymaps=self.keymap_service.has_any_mapping(self.data),
         )
 
@@ -1740,20 +1726,20 @@ class App(tk.Tk):
             return
 
         self.hook_active = True
-        self.triggers_enabled = desired_trigger_state
+        self.custom_input_enabled = desired_custom_input_state
         self._sync_hook_toggle_buttons()
         self._sync_trigger_toggle_buttons()
         self._refresh_keyboard_window()
         self._update_status()
 
-    def stop_hook(self, *, reset_trigger_mode: bool = True):
+    def stop_hook(self, *, reset_custom_input_mode: bool = True):
         self.sequence_runner.stop_run_to_end()
         self.sequence_runner.stop_chain(force=True)
         self.hook_coordinator.stop()
         self.key_state_manager.clear()
         self.hook_active = False
-        if reset_trigger_mode:
-            self.triggers_enabled = True
+        if reset_custom_input_mode:
+            self.custom_input_enabled = True
 
         self._sync_hook_toggle_buttons()
         self._sync_trigger_toggle_buttons()
@@ -1766,23 +1752,21 @@ class App(tk.Tk):
         else:
             self.start_hook()
 
-    def toggle_triggers_enabled(self):
+    def toggle_custom_input_enabled(self):
         if not self.hook_active:
             return
 
-        if self.triggers_enabled:
+        if self.custom_input_enabled:
             # 無効化した瞬間に連続実行中を止める
             self.sequence_runner.stop_run_to_end()
             self.sequence_runner.stop_chain(force=True)
-            self.hook_coordinator.disable_trigger_hooks()
-            self.triggers_enabled = False
+            self.custom_input_enabled = False
         else:
             def _on_error(title: str, msg: str) -> None:
                 self.after(0, lambda: messagebox.showerror(title, msg))
 
-            enabled = self.hook_coordinator.enable_trigger_hooks(
+            enabled = self.hook_coordinator.can_enable_custom_input(
                 triggers=self.data.get("triggers", []),
-                on_key_event=self._on_trigger_key,
                 on_error=_on_error,
                 has_keymaps=self.keymap_service.has_any_mapping(self.data),
             )
@@ -1790,7 +1774,7 @@ class App(tk.Tk):
                 self._sync_trigger_toggle_buttons()
                 self._update_status()
                 return
-            self.triggers_enabled = True
+            self.custom_input_enabled = True
 
         if not getattr(self, "_compact_mode", False):
             self._refresh_actions()
@@ -1798,43 +1782,8 @@ class App(tk.Tk):
         self._refresh_keyboard_window()
         self._update_status()
 
-    def _install_stop_hook(self):
-        """停止トリガーを（設定されていれば）suppress=True で登録"""
-        key = normalize_key_name(self.data.get("hook_stop_key", ""))
-        if not key:
-            return
-
-        self.hook_coordinator.install_stop_hook(
-            key,
-            on_stop=lambda: self.after(0, self.stop_hook),
-            on_error=lambda title, msg: self.after(0, lambda: messagebox.showerror(title, msg)),
-        )
-
-    def _uninstall_stop_hook(self):
-        self.hook_coordinator.uninstall_stop_hook()
-
-    def _install_toggle_hook(self):
-        """通常トリガー有効/無効トグルキーを（設定されていれば）suppress=True で登録"""
-        key = normalize_key_name(self.data.get("hook_toggle_key", ""))
-        if not key:
-            return
-
-        self.hook_coordinator.install_toggle_hook(
-            key,
-            on_toggle=lambda: self.after(0, self.toggle_triggers_enabled),
-            on_error=lambda title, msg: self.after(0, lambda: messagebox.showerror(title, msg)),
-        )
-
-    def _uninstall_toggle_hook(self):
-        self.hook_coordinator.uninstall_toggle_hook()
-
-    def _on_trigger_key(self, key: str):
-        """
-        keyboard callback is potentially called from hook thread;
-        execute app actions on the Tk UI thread.
-        """
-        k = normalize_key_name(key)
-        self.after(0, lambda kk=k: self.sequence_runner.handle_key(kk))
+    def toggle_triggers_enabled(self):
+        self.toggle_custom_input_enabled()
 
     def _on_input_event(self, event: object):
         route = self.input_router.handle(event)
@@ -2116,10 +2065,6 @@ class App(tk.Tk):
         if old:
             self._set_dirty(True)
 
-        # フックON中なら停止トリガーのフックだけ解除（他のフックは維持）
-        if getattr(self, "hook_active", False):
-            self._uninstall_stop_hook()
-
     def clear_toggle_key(self):
         """有効/無効トグルキーを未設定（空）に戻す"""
         if getattr(self, "_capturing_toggle_key", False):
@@ -2131,11 +2076,6 @@ class App(tk.Tk):
             self.toggle_key_var.set("")
         if old:
             self._set_dirty(True)
-
-        # フックON中ならトグルキーのフックだけ解除（他のフックは維持）
-        if getattr(self, "hook_active", False):
-            self._uninstall_toggle_hook()
-
 
     # ---------------- Close ----------------
     def on_close(self):

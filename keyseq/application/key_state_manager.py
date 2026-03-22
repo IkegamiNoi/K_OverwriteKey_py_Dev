@@ -43,9 +43,6 @@ _MODIFIER_ALIASES = {
     "cmd": "windows",
 }
 
-_MODIFIER_ORDER = ("shift", "ctrl", "alt", "windows")
-
-
 class KeyStateManager:
     def __init__(self) -> None:
         self._pressed_keys: set[str] = set()
@@ -91,15 +88,6 @@ class KeyStateManager:
             return False
         with self._lock:
             return normalized in self._pressed_keys
-
-    def get_modifiers(self) -> tuple[str, ...]:
-        with self._lock:
-            modifiers = [
-                modifier
-                for modifier in _MODIFIER_ORDER
-                if modifier in self._pressed_keys
-            ]
-        return tuple(modifiers)
 
     def _extract_key_name(self, event: object) -> str:
         candidates: Iterable[object] = (

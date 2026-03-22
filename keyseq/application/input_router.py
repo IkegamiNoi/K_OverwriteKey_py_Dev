@@ -30,7 +30,6 @@ class TriggerAction:
 class SendKeyAction:
     source_key: str
     target_key: str
-    modifiers: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -49,7 +48,7 @@ class InputRouter:
         get_stop_key: Callable[[], str],
         get_toggle_key: Callable[[], str],
         get_keymap_toggle_key: Callable[[], str],
-        get_triggers_enabled: Callable[[], bool],
+        get_custom_input_enabled: Callable[[], bool],
         find_trigger: Callable[[str], dict[str, Any] | None],
         find_keymap_target: Callable[[str], str],
     ) -> None:
@@ -59,7 +58,7 @@ class InputRouter:
         self._get_stop_key = get_stop_key
         self._get_toggle_key = get_toggle_key
         self._get_keymap_toggle_key = get_keymap_toggle_key
-        self._get_triggers_enabled = get_triggers_enabled
+        self._get_custom_input_enabled = get_custom_input_enabled
         self._find_trigger = find_trigger
         self._find_keymap_target = find_keymap_target
 
@@ -91,7 +90,7 @@ class InputRouter:
         if keymap_toggle_key and key == keymap_toggle_key:
             return InputRoute(actions=(SwitchKeymapAction(),), accept=False)
 
-        if not self._get_triggers_enabled():
+        if not self._get_custom_input_enabled():
             return InputRoute()
 
         trigger = self._find_trigger(key)
@@ -106,7 +105,6 @@ class InputRouter:
                     SendKeyAction(
                         source_key=key,
                         target_key=keymap_target,
-                        modifiers=self._key_state_manager.get_modifiers(),
                     ),
                 ),
                 accept=False,
