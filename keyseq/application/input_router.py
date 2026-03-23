@@ -51,6 +51,7 @@ class InputRouter:
         get_custom_input_enabled: Callable[[], bool],
         find_trigger: Callable[[str], dict[str, Any] | None],
         find_keymap_target: Callable[[str], str],
+        resolve_scan_code: Callable[[object], str] | None = None,
     ) -> None:
         self._key_state_manager = key_state_manager
         self._get_send_guard_count = get_send_guard_count
@@ -61,6 +62,7 @@ class InputRouter:
         self._get_custom_input_enabled = get_custom_input_enabled
         self._find_trigger = find_trigger
         self._find_keymap_target = find_keymap_target
+        self._resolve_scan_code = resolve_scan_code
 
     def handle(self, event: object) -> InputRoute:
         if self._get_send_guard_count() > 0:
@@ -115,6 +117,10 @@ class InputRouter:
     def _extract_key_name(self, event: object) -> str:
         for value in (getattr(event, "name", ""), getattr(event, "key", "")):
             normalized = normalize_key_name(str(value or ""))
+            if normalized:
+                return normalized
+        if callable(self._resolve_scan_code):
+            normalized = normalize_key_name(str(self._resolve_scan_code(getattr(event, "scan_code", None)) or ""))
             if normalized:
                 return normalized
         return ""

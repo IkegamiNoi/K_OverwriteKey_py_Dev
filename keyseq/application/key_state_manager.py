@@ -44,9 +44,10 @@ _MODIFIER_ALIASES = {
 }
 
 class KeyStateManager:
-    def __init__(self) -> None:
+    def __init__(self, *, resolve_scan_code=None) -> None:
         self._pressed_keys: set[str] = set()
         self._lock = threading.RLock()
+        self._resolve_scan_code = resolve_scan_code
 
     @property
     def pressed_keys(self) -> frozenset[str]:
@@ -96,6 +97,10 @@ class KeyStateManager:
         )
         for candidate in candidates:
             normalized = self._normalize_key(candidate)
+            if normalized:
+                return normalized
+        if callable(self._resolve_scan_code):
+            normalized = self._normalize_key(self._resolve_scan_code(getattr(event, "scan_code", None)))
             if normalized:
                 return normalized
         return ""

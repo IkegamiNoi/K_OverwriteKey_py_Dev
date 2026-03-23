@@ -4,6 +4,7 @@ import json
 import os
 from dataclasses import dataclass
 
+from keyseq.domain.key_identifiers import resolve_known_key_name_from_scan_code
 
 @dataclass(frozen=True)
 class KeySpec:
@@ -13,6 +14,7 @@ class KeySpec:
     y: float
     w: float = 1.0
     h: float = 1.0
+    scan_code: int | None = None
 
 
 @dataclass(frozen=True)
@@ -200,6 +202,10 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
         if h <= 0:
             raise ValueError(f"{key_prefix}.h は 0 より大きい必要があります。")
 
+        scan_code = None
+        if "scan_code" in raw_key and raw_key.get("scan_code") not in ("", None):
+            scan_code = _coerce_int(raw_key.get("scan_code"), f"{key_prefix}.scan_code")
+
         normalized_keys.append(
             {
                 "id": key_id,
@@ -208,6 +214,7 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
                 "y": y,
                 "w": w,
                 "h": h,
+                "scan_code": scan_code,
             }
         )
 
@@ -228,6 +235,7 @@ def keyboard_layout_from_dict(data: dict, *, existing_layout_ids: set[str] | Non
             y=key_data["y"],
             w=key_data["w"],
             h=key_data["h"],
+            scan_code=key_data.get("scan_code"),
         )
         for key_data in normalized["keys"]
     ]
@@ -264,6 +272,7 @@ def layout_to_dict(layout: KeyboardLayout) -> dict:
                 "y": key.y,
                 "w": key.w,
                 "h": key.h,
+                **({"scan_code": key.scan_code} if key.scan_code is not None else {}),
             }
             for key in layout.keys
         ],
@@ -318,6 +327,13 @@ def _coerce_float(value, field_name: str) -> float:
         raise ValueError(f"{field_name} は数値である必要があります。") from exc
 
 
+def _coerce_int(value, field_name: str) -> int:
+    try:
+        return int(value)
+    except Exception as exc:
+        raise ValueError(f"{field_name} は整数である必要があります。") from exc
+
+
 def _get_registration_path(registration) -> str:
     if isinstance(registration, str):
         return registration.strip()
@@ -330,3 +346,19 @@ def _resolve_layout_path(path: str, base_dir: str | None) -> str:
     if os.path.isabs(path) or not base_dir:
         return path
     return os.path.join(base_dir, path)
+
+
+def resolve_key_id_from_scan_code(layout: KeyboardLayout | None, scan_code: object) -> str:
+    try:
+        normalized_scan_code = int(scan_code)
+    except Exception:
+        return ""
+
+    if layout is not None:
+        for key_spec in getattr(layout, "keys", ()) or ():
+            if key_spec.scan_code is None:
+                continue
+            if int(key_spec.scan_code) == normalized_scan_code:
+                return str(key_spec.id or "").strip()
+
+    return resolve_known_key_name_from_scan_code(normalized_scan_code)

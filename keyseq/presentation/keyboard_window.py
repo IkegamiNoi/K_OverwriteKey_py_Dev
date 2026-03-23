@@ -5,7 +5,11 @@ from tkinter import font as tkfont
 from tkinter import ttk
 
 from keyseq.application.keymap_service import KeymapService
-from keyseq.presentation.keyboard_layouts import KeyboardLayout, resolve_keyboard_layout
+from keyseq.presentation.keyboard_layouts import (
+    KeyboardLayout,
+    resolve_key_id_from_scan_code,
+    resolve_keyboard_layout,
+)
 
 _LOOKUP_KEY_BY_ID = {
     "shift_l": "shift",
@@ -282,7 +286,7 @@ class KeyboardWindow(tk.Toplevel):
         if not self._editing_source_key:
             return None
 
-        key = self._normalize_tk_key(event.keysym)
+        key = self._normalize_tk_key(event)
         if key == "esc":
             self._cancel_edit(resume_hook=True)
             return "break"
@@ -301,8 +305,9 @@ class KeyboardWindow(tk.Toplevel):
         self._cancel_edit(resume_hook=True)
         return "break"
 
-    def _normalize_tk_key(self, keysym: str) -> str:
-        k = (keysym or "").lower()
+    def _normalize_tk_key(self, event: object) -> str:
+        keysym = str(getattr(event, "keysym", "") or "")
+        k = keysym.lower()
         mapping = {
             "control_l": "ctrl",
             "control_r": "ctrl",
@@ -322,7 +327,14 @@ class KeyboardWindow(tk.Toplevel):
             "prior": "page up",
             "next": "page down",
         }
-        return mapping.get(k, k)
+        if k in mapping:
+            return mapping[k]
+
+        resolved = resolve_key_id_from_scan_code(self._layout, getattr(event, "keycode", None))
+        if resolved:
+            return normalize_key_name(resolved)
+
+        return k
 
     def _update_summary(self) -> None:
         layout_name = getattr(self._layout, "display_name", "") or getattr(self._layout, "layout_id", "")

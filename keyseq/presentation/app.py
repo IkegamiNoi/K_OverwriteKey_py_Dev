@@ -9,6 +9,7 @@ from keyseq.presentation.keyboard_layouts import (
     KeyboardLayoutEntry,
     collect_keyboard_layouts,
     load_layout_from_json,
+    resolve_key_id_from_scan_code,
     resolve_keyboard_layout,
     resolve_registered_layout_path,
 )
@@ -63,7 +64,7 @@ class App(tk.Tk):
         self.trigger_service = TriggerService()
         self.keymap_service = KeymapService()
         self.input_gateway = InputGateway()
-        self.key_state_manager = KeyStateManager()
+        self.key_state_manager = KeyStateManager(resolve_scan_code=self._resolve_key_name_from_scan_code)
         self.action_executor = ActionExecutor(
             input_gateway=self.input_gateway,
             validate_hotkey=self.validate_hotkey,
@@ -84,6 +85,7 @@ class App(tk.Tk):
             get_custom_input_enabled=lambda: bool(self.custom_input_enabled),
             find_trigger=self._find_trigger_by_key,
             find_keymap_target=self._find_keymap_target,
+            resolve_scan_code=self._resolve_key_name_from_scan_code,
         )
         self.state = AppState()
 
@@ -781,6 +783,9 @@ class App(tk.Tk):
 
     def _find_keymap_target(self, key: str) -> str:
         return self.keymap_service.find_mapping_target(self.data, key)
+
+    def _resolve_key_name_from_scan_code(self, scan_code: object) -> str:
+        return normalize_key_name(resolve_key_id_from_scan_code(self._get_current_keyboard_layout(), scan_code))
 
     def _get_active_keymap_text(self) -> str:
         label = self.keymap_service.get_active_keymap_label(self.data)
