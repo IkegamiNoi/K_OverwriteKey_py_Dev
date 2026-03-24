@@ -31,6 +31,7 @@ from keyseq.domain.config import (
     format_action_list_item,
     format_trigger_list_item,
 )
+from keyseq.domain.key_identifiers import SPECIAL_KEY_NAMES, is_special_key_name
 from keyseq.infrastructure.input_gateway import InputGateway
 from keyseq.infrastructure.json_repository import JsonRepository
 
@@ -786,6 +787,40 @@ class App(tk.Tk):
 
     def _resolve_key_name_from_scan_code(self, scan_code: object) -> str:
         return normalize_key_name(resolve_key_id_from_scan_code(self._get_current_keyboard_layout(), scan_code))
+
+    def _should_debug_special_key_event(self, event: object, resolved_key: str) -> bool:
+        if not bool(self.data.get("debug_jis_special_key_events", False)):
+            return False
+        if normalize_key_name(str(getattr(event, "event_type", "") or "")) != "down":
+            return False
+
+        raw_name = normalize_key_name(str(getattr(event, "name", "") or ""))
+        if is_special_key_name(raw_name) or is_special_key_name(resolved_key):
+            return True
+
+        try:
+            scan_code = int(getattr(event, "scan_code", None))
+        except Exception:
+            return False
+
+        layout = self._get_current_keyboard_layout()
+        for key_spec in getattr(layout, "keys", ()) or ():
+            if str(getattr(key_spec, "id", "") or "").strip() not in SPECIAL_KEY_NAMES:
+                continue
+            try:
+                if int(getattr(key_spec, "scan_code", None)) == scan_code:
+                    return True
+            except Exception:
+                continue
+        return False
+
+    def _debug_special_key_event(self, event: object, resolved_key: str) -> None:
+        print(
+            "[JIS special key debug] "
+            f"event.name={getattr(event, 'name', '')!r} "
+            f"event.scan_code={getattr(event, 'scan_code', None)!r} "
+            f"resolved_key={resolved_key!r}"
+        )
 
     def _get_active_keymap_text(self) -> str:
         label = self.keymap_service.get_active_keymap_label(self.data)
@@ -1791,6 +1826,9 @@ class App(tk.Tk):
         self.toggle_custom_input_enabled()
 
     def _on_input_event(self, event: object):
+        resolved_key = self._resolve_key_name_from_scan_code(getattr(event, "scan_code", None))
+        if self._should_debug_special_key_event(event, resolved_key):
+            self._debug_special_key_event(event, resolved_key)
         route = self.input_router.handle(event)
         for action in route.actions:
             self.after(0, lambda aa=action: self.action_executor.execute_router_action(aa))

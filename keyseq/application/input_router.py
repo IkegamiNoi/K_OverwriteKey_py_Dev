@@ -115,12 +115,12 @@ class InputRouter:
         return InputRoute()
 
     def _extract_key_name(self, event: object) -> str:
-        for value in (getattr(event, "name", ""), getattr(event, "key", "")):
-            normalized = normalize_key_name(str(value or ""))
-            if normalized:
-                return normalized
         if callable(self._resolve_scan_code):
             normalized = normalize_key_name(str(self._resolve_scan_code(getattr(event, "scan_code", None)) or ""))
+            if normalized:
+                return normalized
+        for value in (getattr(event, "name", ""), getattr(event, "key", "")):
+            normalized = normalize_key_name(str(value or ""))
             if normalized:
                 return normalized
         return ""

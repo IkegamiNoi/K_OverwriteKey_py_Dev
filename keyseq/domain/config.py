@@ -48,6 +48,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "hook_keymap_toggle_key": "",
     "keyboard_layout": "us_tkl",
     "keyboard_show_physical_key_labels": False,
+    "debug_jis_special_key_events": False,
     "external_keyboard_layouts": [],
     "keymaps": [],
     "active_keymap_id": "",
@@ -142,6 +143,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     layout_id = layout_id.strip() or "us_tkl"
     config["keyboard_layout"] = layout_id
     config["keyboard_show_physical_key_labels"] = bool(config.get("keyboard_show_physical_key_labels", False))
+    config["debug_jis_special_key_events"] = bool(config.get("debug_jis_special_key_events", False))
 
     raw_external_layouts = config.get("external_keyboard_layouts")
     normalized_external_layouts: list[dict[str, str]] = []

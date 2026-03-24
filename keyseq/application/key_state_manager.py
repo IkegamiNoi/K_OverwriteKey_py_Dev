@@ -91,16 +91,16 @@ class KeyStateManager:
             return normalized in self._pressed_keys
 
     def _extract_key_name(self, event: object) -> str:
+        if callable(self._resolve_scan_code):
+            normalized = self._normalize_key(self._resolve_scan_code(getattr(event, "scan_code", None)))
+            if normalized:
+                return normalized
         candidates: Iterable[object] = (
             getattr(event, "name", ""),
             getattr(event, "key", ""),
         )
         for candidate in candidates:
             normalized = self._normalize_key(candidate)
-            if normalized:
-                return normalized
-        if callable(self._resolve_scan_code):
-            normalized = self._normalize_key(self._resolve_scan_code(getattr(event, "scan_code", None)))
             if normalized:
                 return normalized
         return ""

@@ -5,7 +5,7 @@
     {"id": "esc", "label": "Esc", "x": 0.0, "y": 0.0, "w": 1.0, "h": 1.0},
     {"id": "f1", "label": "F1", "x": 2.0, "y": 0.0, "w": 1.0, "h": 1.0},
     {"id": "f2", "label": "F2", "x": 3.0, "y": 0.0, "w": 1.0, "h": 1.0},
-    {"id": "zenkaku_hankaku", "label": "半角/全角", "x": 0.0, "y": 1.2, "w": 1.0, "h": 1.0},
+    {"id": "zenkaku_hankaku", "label": "Han/Zen", "scan_code": 41, "x": 0.0, "y": 1.2, "w": 1.0, "h": 1.0},
     {"id": "1", "label": "1", "x": 1.0, "y": 1.2, "w": 1.0, "h": 1.0},
     {"id": "2", "label": "2", "x": 2.0, "y": 1.2, "w": 1.0, "h": 1.0},
     {"id": "tab", "label": "Tab", "x": 0.0, "y": 2.2, "w": 1.5, "h": 1.0},
@@ -16,9 +16,9 @@
     {"id": "enter", "label": "Enter", "x": 12.0, "y": 2.2, "w": 2.0, "h": 2.0},
     {"id": "shift_l", "label": "Shift", "x": 0.0, "y": 4.2, "w": 2.25, "h": 1.0},
     {"id": "shift_r", "label": "Shift", "x": 11.0, "y": 4.2, "w": 2.75, "h": 1.0},
-    {"id": "muhenkan", "label": "無変換", "x": 3.0, "y": 5.2, "w": 1.5, "h": 1.0},
-    {"id": "henkan", "label": "変換", "x": 4.5, "y": 5.2, "w": 1.5, "h": 1.0},
-    {"id": "kana", "label": "かな", "x": 6.0, "y": 5.2, "w": 1.5, "h": 1.0},
+    {"id": "muhenkan", "label": "Muhenkan", "scan_code": 123, "x": 3.0, "y": 5.2, "w": 1.5, "h": 1.0},
+    {"id": "henkan", "label": "Henkan", "scan_code": 121, "x": 4.5, "y": 5.2, "w": 1.5, "h": 1.0},
+    {"id": "kana", "label": "Kana", "scan_code": 112, "x": 6.0, "y": 5.2, "w": 1.5, "h": 1.0},
     {"id": "space", "label": "Space", "x": 7.5, "y": 5.2, "w": 3.0, "h": 1.0}
   ]
 }

@@ -13,6 +13,7 @@ _SPECIAL_KEY_NAME_TO_SCAN_CODE = {
 _SPECIAL_SCAN_CODE_TO_KEY_NAME = {
     scan_code: key_name for key_name, scan_code in _SPECIAL_KEY_NAME_TO_SCAN_CODE.items()
 }
+SPECIAL_KEY_NAMES = frozenset(_SPECIAL_KEY_NAME_TO_SCAN_CODE)
 
 
 def resolve_known_scan_code_from_key_name(key_name: str) -> int | None:
@@ -28,3 +29,7 @@ def resolve_known_key_name_from_scan_code(scan_code: object) -> str:
     except Exception:
         return ""
     return _SPECIAL_SCAN_CODE_TO_KEY_NAME.get(normalized_scan_code, "")
+
+
+def is_special_key_name(key_name: str) -> bool:
+    return normalize_key_name(key_name) in SPECIAL_KEY_NAMES
