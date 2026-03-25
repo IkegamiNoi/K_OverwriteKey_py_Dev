@@ -51,6 +51,88 @@ class KeymapService:
         return normalize_key_name(keymap.get("id", ""))
 
     @staticmethod
+    def set_active_keymap_id(data: dict[str, Any], keymap_id: str) -> bool:
+        normalized = normalize_key_name(keymap_id)
+        if not normalized:
+            changed = bool(normalize_key_name(data.get("active_keymap_id", "")))
+            data["active_keymap_id"] = ""
+            return changed
+
+        if not KeymapService.find_keymap(data, normalized):
+            return False
+
+        current = KeymapService.get_active_keymap_id(data)
+        data["active_keymap_id"] = normalized
+        return current != normalized
+
+    @staticmethod
+    def create_keymap(data: dict[str, Any]) -> dict[str, Any]:
+        keymaps = data.get("keymaps")
+        if not isinstance(keymaps, list):
+            keymaps = []
+            data["keymaps"] = keymaps
+        had_keymaps = bool(keymaps)
+
+        existing_ids = {
+            normalize_key_name(item.get("id", ""))
+            for item in keymaps
+            if isinstance(item, dict)
+        }
+        index = 1
+        while True:
+            keymap_id = f"keymap_{index}"
+            if keymap_id not in existing_ids:
+                break
+            index += 1
+
+        created = {
+            "id": keymap_id,
+            "label": "",
+            "mappings": {},
+        }
+        keymaps.append(created)
+
+        if not had_keymaps:
+            data["active_keymap_id"] = keymap_id
+
+        return created
+
+    @staticmethod
+    def delete_keymap(data: dict[str, Any], keymap_id: str) -> tuple[bool, str]:
+        keymaps = data.get("keymaps")
+        if not isinstance(keymaps, list):
+            data["keymaps"] = []
+            data["active_keymap_id"] = ""
+            return False, ""
+
+        target = normalize_key_name(keymap_id)
+        if not target:
+            return False, KeymapService.get_active_keymap_id(data)
+
+        target_index = None
+        for index, keymap in enumerate(keymaps):
+            if normalize_key_name(keymap.get("id", "")) == target:
+                target_index = index
+                break
+        if target_index is None:
+            return False, KeymapService.get_active_keymap_id(data)
+
+        was_active = KeymapService.get_active_keymap_id(data) == target
+        del keymaps[target_index]
+
+        if not keymaps:
+            data["active_keymap_id"] = ""
+            return True, ""
+
+        remaining_ids = [normalize_key_name(item.get("id", "")) for item in keymaps]
+        current_active = normalize_key_name(data.get("active_keymap_id", ""))
+        if was_active or current_active not in remaining_ids:
+            fallback_index = min(target_index, len(keymaps) - 1)
+            data["active_keymap_id"] = remaining_ids[fallback_index]
+
+        return True, KeymapService.get_active_keymap_id(data)
+
+    @staticmethod
     def find_mapping_target(data: dict[str, Any], source_key: str) -> str:
         keymap = KeymapService.get_active_keymap(data)
         if not isinstance(keymap, dict):

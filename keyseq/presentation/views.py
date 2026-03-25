@@ -128,6 +128,27 @@ class FullView(ttk.Frame):
             justify="left",
         ).grid(row=2, column=1, columnspan=3, sticky="we", pady=(6, 0))
 
+        self.keymap_manage_frame = ttk.LabelFrame(self, text="キーマップ管理", padding=10)
+        self.keymap_manage_frame.pack(fill="x", expand=False, pady=(12, 0))
+
+        keymap_list_frame = ttk.Frame(self.keymap_manage_frame)
+        keymap_list_frame.pack(side="left", fill="both", expand=True)
+        app.keymap_listbox = tk.Listbox(keymap_list_frame, height=5, width=36, exportselection=False)
+        app.keymap_listbox.pack(side="left", fill="both", expand=True)
+        app.keymap_listbox.bind("<<ListboxSelect>>", app._on_keymap_list_select)
+        keymap_list_scrollbar = ttk.Scrollbar(keymap_list_frame, orient="vertical", command=app.keymap_listbox.yview)
+        keymap_list_scrollbar.pack(side="left", fill="y")
+        app.keymap_listbox.configure(yscrollcommand=keymap_list_scrollbar.set)
+
+        keymap_btns = ttk.Frame(self.keymap_manage_frame)
+        keymap_btns.pack(side="left", fill="y", padx=(12, 0))
+        app.keymap_add_btn = ttk.Button(keymap_btns, text="追加", width=14, command=app._add_keymap)
+        app.keymap_add_btn.pack(fill="x", pady=(0, 4))
+        app.keymap_delete_btn = ttk.Button(keymap_btns, text="削除", width=14, command=app._delete_keymap)
+        app.keymap_delete_btn.pack(fill="x", pady=4)
+        app.keymap_select_btn = ttk.Button(keymap_btns, text="選択", width=14, command=app._select_keymap)
+        app.keymap_select_btn.pack(fill="x", pady=4)
+
         # main
         self.main_area = ttk.Frame(self)
         self.main_area.pack(fill="both", expand=True, pady=(12, 0))

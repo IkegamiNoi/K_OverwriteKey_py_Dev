@@ -276,6 +276,10 @@ class App(tk.Tk):
         self.stop_key_entry: ttk.Entry
         self.stop_key_capture_btn: ttk.Button
         self.stop_key_clear_btn: ttk.Button
+        self.keymap_listbox: tk.Listbox
+        self.keymap_add_btn: ttk.Button
+        self.keymap_delete_btn: ttk.Button
+        self.keymap_select_btn: ttk.Button
         self.topmost_chk: ttk.Checkbutton
         self.compact_btn: ttk.Button
         self.suppress_chk: ttk.Checkbutton
@@ -833,6 +837,140 @@ class App(tk.Tk):
                 lines.append(f"{marker}{index:02d}. {display_name}")
             self.keymap_switch_candidates_var.set("\n".join(lines))
 
+    def _selected_keymap_list_index(self) -> int | None:
+        """keymap 管理Listboxの選択行を返す。"""
+        if not hasattr(self, "keymap_listbox"):
+            return None
+        try:
+            selection = self.keymap_listbox.curselection()
+            if not selection:
+                return None
+            return int(selection[0])
+        except Exception:
+            return None
+
+    def _sync_keymap_manage_buttons(self) -> None:
+        """keymap 件数に応じて管理ボタン状態を揃える。"""
+        has_keymaps = bool(self.keymap_service.get_keymaps(self.data))
+        state = "normal" if has_keymaps else "disabled"
+        if hasattr(self, "keymap_delete_btn"):
+            self.keymap_delete_btn.configure(state=state)
+        if hasattr(self, "keymap_select_btn"):
+            self.keymap_select_btn.configure(state=state)
+
+    def _refresh_keymap_list_ui(self, preferred_index: int | None = None) -> None:
+        """keymap 管理一覧の表示内容と選択を更新する。"""
+        if not hasattr(self, "keymap_listbox"):
+            return
+
+        listbox = self.keymap_listbox
+        try:
+            current_index = self._selected_keymap_list_index()
+            listbox.delete(0, tk.END)
+        except Exception:
+            self._sync_keymap_manage_buttons()
+            return
+
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        active_id = self.keymap_service.get_active_keymap_id(self.data)
+        if not keymaps:
+            listbox.insert(tk.END, "キーマップは未登録です")
+            listbox.selection_clear(0, tk.END)
+            self._sync_keymap_manage_buttons()
+            return
+
+        for index, keymap in enumerate(keymaps, start=1):
+            keymap_id = normalize_key_name(keymap.get("id", ""))
+            marker = "> " if keymap_id and keymap_id == active_id else "  "
+            display_name = self._format_keymap_display_name(keymap) or f"keymap-{index}"
+            listbox.insert(tk.END, f"{marker}{index:02d}. {display_name}")
+
+        target_index = preferred_index
+        if target_index is None:
+            target_index = current_index
+        if target_index is None:
+            active_index = next(
+                (
+                    index
+                    for index, keymap in enumerate(keymaps)
+                    if normalize_key_name(keymap.get("id", "")) == active_id
+                ),
+                0,
+            )
+            target_index = active_index
+
+        target_index = max(0, min(int(target_index), len(keymaps) - 1))
+        listbox.selection_clear(0, tk.END)
+        listbox.selection_set(target_index)
+        listbox.activate(target_index)
+        listbox.see(target_index)
+        self._sync_keymap_manage_buttons()
+
+    def _on_keymap_list_select(self, _event=None) -> None:
+        self._sync_keymap_manage_buttons()
+
+    def _add_keymap(self) -> None:
+        """空の keymap を追加する。"""
+        created = self.keymap_service.create_keymap(self.data)
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        preferred_index = max(0, len(keymaps) - 1)
+        self._refresh_keymap_list_ui(preferred_index=preferred_index)
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        self._set_dirty(True)
+        self._set_flash_message(f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}")
+
+    def _delete_keymap(self) -> None:
+        """選択中の keymap を削除する。"""
+        index = self._selected_keymap_list_index()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if index is None or not keymaps or not (0 <= index < len(keymaps)):
+            messagebox.showinfo("削除", "削除したい keymap を選択してください。")
+            return
+
+        target = keymaps[index]
+        target_name = self._format_keymap_display_name(target) or normalize_key_name(target.get("id", ""))
+        if not messagebox.askyesno("確認", f"keymap を削除しますか？\n\n{target_name}"):
+            return
+
+        deleted, next_active_id = self.keymap_service.delete_keymap(self.data, target.get("id", ""))
+        if not deleted:
+            messagebox.showerror("削除できません", "選択した keymap を削除できませんでした。")
+            return
+
+        remaining_count = len(self.keymap_service.get_keymaps(self.data))
+        preferred_index = None if remaining_count <= 0 else min(index, remaining_count - 1)
+        self._refresh_keymap_list_ui(preferred_index=preferred_index)
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        self._set_dirty(True)
+        if next_active_id:
+            self._set_flash_message(f"キーマップを削除しました: {target_name} / 現在: {self._get_active_keymap_text()}")
+        else:
+            self._set_flash_message(f"キーマップを削除しました: {target_name}")
+
+    def _select_keymap(self) -> None:
+        """選択中の keymap を active にする。"""
+        index = self._selected_keymap_list_index()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if index is None or not keymaps or not (0 <= index < len(keymaps)):
+            messagebox.showinfo("選択", "アクティブにしたい keymap を選択してください。")
+            return
+
+        target = keymaps[index]
+        changed = self.keymap_service.set_active_keymap_id(self.data, target.get("id", ""))
+        self._refresh_keymap_list_ui(preferred_index=index)
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        if changed:
+            self._set_dirty(True)
+            self._set_flash_message(f"アクティブなキーマップを選択しました: {self._get_active_keymap_text()}")
+        else:
+            self._set_flash_message(f"アクティブなキーマップは変更なしです: {self._get_active_keymap_text()}")
+
     def _resolve_key_name_from_scan_code(self, scan_code: object) -> str:
         return normalize_key_name(resolve_key_id_from_scan_code(self._get_current_keyboard_layout(), scan_code))
 
@@ -917,6 +1055,7 @@ class App(tk.Tk):
 
     def switch_active_keymap(self) -> None:
         next_keymap_id = self.keymap_service.cycle_active_keymap(self.data)
+        self._refresh_keymap_list_ui()
         self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
@@ -948,6 +1087,7 @@ class App(tk.Tk):
             return False
 
         keymap_id, changed = self.keymap_service.set_mapping(self.data, source, target)
+        self._refresh_keymap_list_ui()
         self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
@@ -963,6 +1103,7 @@ class App(tk.Tk):
         if not source:
             return False
         keymap_id, changed = self.keymap_service.clear_mapping(self.data, source)
+        self._refresh_keymap_list_ui()
         self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
@@ -1208,6 +1349,7 @@ class App(tk.Tk):
             self._sync_trigger_selection_to_views()
         self._sync_suppress_checkbox()
         self._sync_run_to_end_ui()
+        self._refresh_keymap_list_ui()
         self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
