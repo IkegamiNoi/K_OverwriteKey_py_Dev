@@ -256,6 +256,10 @@ class App(tk.Tk):
         self.status_var = tk.StringVar(value="")
         self.file_status_var = tk.StringVar(value="")
         self.flash_message_var = tk.StringVar(value="")
+        self.keymap_switch_key_var = tk.StringVar(value="未設定")
+        self.keymap_switch_description_var = tk.StringVar(value="")
+        self.keymap_switch_active_var = tk.StringVar(value="未登録")
+        self.keymap_switch_candidates_var = tk.StringVar(value="キーマップは未登録です")
         self.ui_font_delta_var = tk.IntVar(value=int(self._ui_font_delta_pt))
         self.suppress_var = tk.BooleanVar(value=True)
         self.run_to_end_var = tk.BooleanVar(value=False)
@@ -785,6 +789,50 @@ class App(tk.Tk):
     def _find_keymap_target(self, key: str) -> str:
         return self.keymap_service.find_mapping_target(self.data, key)
 
+    def _format_keymap_display_name(self, keymap: dict | None) -> str:
+        if not isinstance(keymap, dict):
+            return ""
+        keymap_id = normalize_key_name(keymap.get("id", ""))
+        label = str(keymap.get("label") or "").strip()
+        if label and keymap_id and normalize_key_name(label) != keymap_id:
+            return f"{label} ({keymap_id})"
+        return label or keymap_id
+
+    def _refresh_keymap_switch_ui(self) -> None:
+        toggle_key = self._get_keymap_toggle_key()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        active_id = self.keymap_service.get_active_keymap_id(self.data)
+        active_keymap = self.keymap_service.get_active_keymap(self.data)
+        active_name = self._format_keymap_display_name(active_keymap)
+        if not active_name and keymaps:
+            active_name = self._format_keymap_display_name(keymaps[0])
+
+        if hasattr(self, "keymap_switch_key_var"):
+            self.keymap_switch_key_var.set(toggle_key or "未設定")
+        if hasattr(self, "keymap_switch_active_var"):
+            self.keymap_switch_active_var.set(active_name or "未登録")
+        if hasattr(self, "keymap_switch_description_var"):
+            if not keymaps:
+                description = "登録済み keymap がありません。"
+            elif not toggle_key:
+                description = "切替キーは未設定です。設定すると、切替キーを押すたびに登録済み keymap を順番に巡回します。"
+            else:
+                description = "切替キーを押すたびに、登録済み keymap を順番に巡回切替します。"
+            self.keymap_switch_description_var.set(description)
+
+        if hasattr(self, "keymap_switch_candidates_var"):
+            if not keymaps:
+                self.keymap_switch_candidates_var.set("キーマップは未登録です")
+                return
+
+            lines: list[str] = []
+            for index, keymap in enumerate(keymaps, start=1):
+                keymap_id = normalize_key_name(keymap.get("id", ""))
+                marker = "> " if keymap_id and keymap_id == active_id else "  "
+                display_name = self._format_keymap_display_name(keymap) or f"keymap-{index}"
+                lines.append(f"{marker}{index:02d}. {display_name}")
+            self.keymap_switch_candidates_var.set("\n".join(lines))
+
     def _resolve_key_name_from_scan_code(self, scan_code: object) -> str:
         return normalize_key_name(resolve_key_id_from_scan_code(self._get_current_keyboard_layout(), scan_code))
 
@@ -869,6 +917,7 @@ class App(tk.Tk):
 
     def switch_active_keymap(self) -> None:
         next_keymap_id = self.keymap_service.cycle_active_keymap(self.data)
+        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
         if next_keymap_id:
@@ -899,6 +948,7 @@ class App(tk.Tk):
             return False
 
         keymap_id, changed = self.keymap_service.set_mapping(self.data, source, target)
+        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
         if changed:
@@ -913,6 +963,7 @@ class App(tk.Tk):
         if not source:
             return False
         keymap_id, changed = self.keymap_service.clear_mapping(self.data, source)
+        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
         if changed:
@@ -1157,6 +1208,7 @@ class App(tk.Tk):
             self._sync_trigger_selection_to_views()
         self._sync_suppress_checkbox()
         self._sync_run_to_end_ui()
+        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
 
