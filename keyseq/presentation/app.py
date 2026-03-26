@@ -1,7 +1,7 @@
 ﻿import os
 import copy
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
 from keyseq.presentation.dialogs import ActionDialog, LayoutDeleteDialog, PresetDialog, PresetManagerDialog, TriggerDialog
 from keyseq.presentation.keyboard_layouts import (
@@ -278,6 +278,7 @@ class App(tk.Tk):
         self.stop_key_clear_btn: ttk.Button
         self.keymap_listbox: tk.Listbox
         self.keymap_add_btn: ttk.Button
+        self.keymap_rename_btn: ttk.Button
         self.keymap_delete_btn: ttk.Button
         self.keymap_select_btn: ttk.Button
         self.topmost_chk: ttk.Checkbutton
@@ -798,8 +799,6 @@ class App(tk.Tk):
             return ""
         keymap_id = normalize_key_name(keymap.get("id", ""))
         label = str(keymap.get("label") or "").strip()
-        if label and keymap_id and normalize_key_name(label) != keymap_id:
-            return f"{label} ({keymap_id})"
         return label or keymap_id
 
     def _refresh_keymap_switch_ui(self) -> None:
@@ -853,6 +852,8 @@ class App(tk.Tk):
         """keymap 件数に応じて管理ボタン状態を揃える。"""
         has_keymaps = bool(self.keymap_service.get_keymaps(self.data))
         state = "normal" if has_keymaps else "disabled"
+        if hasattr(self, "keymap_rename_btn"):
+            self.keymap_rename_btn.configure(state=state)
         if hasattr(self, "keymap_delete_btn"):
             self.keymap_delete_btn.configure(state=state)
         if hasattr(self, "keymap_select_btn"):
@@ -909,6 +910,10 @@ class App(tk.Tk):
     def _on_keymap_list_select(self, _event=None) -> None:
         self._sync_keymap_manage_buttons()
 
+    def _on_keymap_list_double_click(self, _event=None) -> None:
+        """一覧ダブルクリックで選択中 keymap を active にする。"""
+        self._select_keymap()
+
     def _add_keymap(self) -> None:
         """空の keymap を追加する。"""
         created = self.keymap_service.create_keymap(self.data)
@@ -920,6 +925,46 @@ class App(tk.Tk):
         self._update_status()
         self._set_dirty(True)
         self._set_flash_message(f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}")
+
+    def _rename_keymap_label(self) -> None:
+        """選択中 keymap の表示ラベルだけを更新する。"""
+        index = self._selected_keymap_list_index()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if index is None or not keymaps or not (0 <= index < len(keymaps)):
+            messagebox.showinfo("名前変更", "名前変更したい keymap を選択してください。")
+            return
+
+        target = keymaps[index]
+        keymap_id = normalize_key_name(target.get("id", ""))
+        current_label = str(target.get("label") or "").strip()
+        self.suspend_hook_for_dialog()
+        try:
+            new_label = simpledialog.askstring(
+                "名前変更",
+                f"keymap の表示名を入力してください。\n空欄にすると id 表示に戻ります。\n\nid: {keymap_id}",
+                initialvalue=current_label,
+                parent=self,
+            )
+        finally:
+            self.resume_hook_after_dialog()
+        if new_label is None:
+            return
+
+        normalized_label = str(new_label).strip()
+        if normalized_label == current_label:
+            self._set_flash_message(f"keymap 名は変更なしです: {self._format_keymap_display_name(target) or keymap_id}")
+            return
+
+        target["label"] = normalized_label
+        self._refresh_keymap_list_ui(preferred_index=index)
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        self._set_dirty(True)
+        if normalized_label:
+            self._set_flash_message(f"keymap 名を変更しました: {normalized_label}")
+        else:
+            self._set_flash_message(f"keymap 名をクリアしました: {keymap_id}")
 
     def _delete_keymap(self) -> None:
         """選択中の keymap を削除する。"""
