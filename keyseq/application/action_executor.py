@@ -5,6 +5,7 @@ from typing import Callable
 
 from keyseq.application.input_router import (
     SendKeyAction,
+    SelectKeymapAction,
     StopHookAction,
     SwitchKeymapAction,
     ToggleModeAction,
@@ -23,6 +24,7 @@ class ActionExecutor:
         on_stop_hook: Callable[[], None],
         on_toggle_mode: Callable[[], None],
         on_switch_keymap: Callable[[], None],
+        on_select_keymap: Callable[[str], None],
         on_trigger: Callable[[str], None],
     ) -> None:
         self.input_gateway = input_gateway
@@ -32,6 +34,7 @@ class ActionExecutor:
         self._on_stop_hook = on_stop_hook
         self._on_toggle_mode = on_toggle_mode
         self._on_switch_keymap = on_switch_keymap
+        self._on_select_keymap = on_select_keymap
         self._on_trigger = on_trigger
         self._send_guard_count = 0
         self._send_guard_lock = threading.RLock()
@@ -66,6 +69,9 @@ class ActionExecutor:
             return
         if isinstance(action, SwitchKeymapAction):
             self._on_switch_keymap()
+            return
+        if isinstance(action, SelectKeymapAction):
+            self._on_select_keymap(action.keymap_id)
             return
         if isinstance(action, TriggerAction):
             self._on_trigger(action.key)

@@ -22,6 +22,11 @@ class SwitchKeymapAction:
 
 
 @dataclass(frozen=True)
+class SelectKeymapAction:
+    keymap_id: str
+
+
+@dataclass(frozen=True)
 class TriggerAction:
     key: str
 
@@ -49,6 +54,7 @@ class InputRouter:
         get_toggle_key: Callable[[], str],
         get_keymap_toggle_key: Callable[[], str],
         get_custom_input_enabled: Callable[[], bool],
+        find_keymap_switch_target: Callable[[str], str],
         find_trigger: Callable[[str], dict[str, Any] | None],
         find_keymap_target: Callable[[str], str],
         resolve_scan_code: Callable[[object], str] | None = None,
@@ -60,6 +66,7 @@ class InputRouter:
         self._get_toggle_key = get_toggle_key
         self._get_keymap_toggle_key = get_keymap_toggle_key
         self._get_custom_input_enabled = get_custom_input_enabled
+        self._find_keymap_switch_target = find_keymap_switch_target
         self._find_trigger = find_trigger
         self._find_keymap_target = find_keymap_target
         self._resolve_scan_code = resolve_scan_code
@@ -94,6 +101,10 @@ class InputRouter:
 
         if not self._get_custom_input_enabled():
             return InputRoute()
+
+        direct_keymap_id = normalize_key_name(self._find_keymap_switch_target(key))
+        if direct_keymap_id:
+            return InputRoute(actions=(SelectKeymapAction(keymap_id=direct_keymap_id),), accept=False)
 
         trigger = self._find_trigger(key)
         if self._has_actions(trigger):

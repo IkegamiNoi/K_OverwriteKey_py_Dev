@@ -128,6 +128,14 @@ class FullView(ttk.Frame):
             justify="left",
         ).grid(row=2, column=1, columnspan=3, sticky="we", pady=(6, 0))
 
+        ttk.Label(self.keymap_switch_frame, text="直接切替:").grid(row=3, column=0, sticky="nw", pady=(6, 0))
+        ttk.Label(
+            self.keymap_switch_frame,
+            textvariable=app.keymap_switch_direct_keys_var,
+            anchor="w",
+            justify="left",
+        ).grid(row=3, column=1, columnspan=3, sticky="we", pady=(6, 0))
+
         self.keymap_manage_frame = ttk.LabelFrame(self, text="キーマップ管理", padding=10)
         self.keymap_manage_frame.pack(fill="x", expand=False, pady=(12, 0))
 
@@ -151,6 +159,39 @@ class FullView(ttk.Frame):
         app.keymap_delete_btn.pack(fill="x", pady=4)
         app.keymap_select_btn = ttk.Button(keymap_btns, text="選択", width=14, command=app._select_keymap)
         app.keymap_select_btn.pack(fill="x", pady=4)
+
+        self.keymap_switch_keys_manage_frame = ttk.LabelFrame(self.keymap_manage_frame, text="切替キー設定", padding=8)
+        self.keymap_switch_keys_manage_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
+
+        keymap_switch_keys_list_frame = ttk.Frame(self.keymap_switch_keys_manage_frame)
+        keymap_switch_keys_list_frame.pack(side="left", fill="both", expand=True)
+        app.keymap_switch_key_listbox = tk.Listbox(keymap_switch_keys_list_frame, height=5, width=28, exportselection=False)
+        app.keymap_switch_key_listbox.pack(side="left", fill="both", expand=True)
+        app.keymap_switch_key_listbox.bind("<<ListboxSelect>>", app._on_keymap_switch_key_list_select)
+        keymap_switch_keys_scrollbar = ttk.Scrollbar(
+            keymap_switch_keys_list_frame,
+            orient="vertical",
+            command=app.keymap_switch_key_listbox.yview,
+        )
+        keymap_switch_keys_scrollbar.pack(side="left", fill="y")
+        app.keymap_switch_key_listbox.configure(yscrollcommand=keymap_switch_keys_scrollbar.set)
+
+        keymap_switch_key_btns = ttk.Frame(self.keymap_switch_keys_manage_frame)
+        keymap_switch_key_btns.pack(side="left", fill="y", padx=(12, 0))
+        app.keymap_switch_key_add_btn = ttk.Button(
+            keymap_switch_key_btns,
+            text="割当追加",
+            width=14,
+            command=app._toggle_keymap_switch_key_capture,
+        )
+        app.keymap_switch_key_add_btn.pack(fill="x", pady=(0, 4))
+        app.keymap_switch_key_remove_btn = ttk.Button(
+            keymap_switch_key_btns,
+            text="割当削除",
+            width=14,
+            command=app._remove_keymap_switch_key,
+        )
+        app.keymap_switch_key_remove_btn.pack(fill="x", pady=4)
 
         # main
         self.main_area = ttk.Frame(self)

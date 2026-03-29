@@ -52,6 +52,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "external_keyboard_layouts": [],
     "keymaps": [],
     "active_keymap_id": "",
+    "keymap_switch_keys": {},
 }
 
 
@@ -199,6 +200,19 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     if not active_keymap_id and keymap_ids:
         active_keymap_id = keymap_ids[0]
     config["active_keymap_id"] = active_keymap_id
+
+    raw_keymap_switch_keys = config.get("keymap_switch_keys")
+    normalized_keymap_switch_keys: dict[str, str] = {}
+    if isinstance(raw_keymap_switch_keys, dict):
+        for raw_key, raw_keymap_id in raw_keymap_switch_keys.items():
+            switch_key = normalize_key_name(str(raw_key or ""))
+            keymap_id = normalize_key_name(str(raw_keymap_id or ""))
+            if not switch_key or not keymap_id:
+                continue
+            if keymap_id not in keymap_ids:
+                continue
+            normalized_keymap_switch_keys[switch_key] = keymap_id
+    config["keymap_switch_keys"] = normalized_keymap_switch_keys
     return config
 
 
