@@ -123,10 +123,14 @@ class KeyboardWindow(tk.Toplevel):
 
         # 予約キーは最後に上書きして優先順位を守る。
         if isinstance(data, dict):
-            keymap_toggle_key = normalize_key_name(data.get("hook_keymap_toggle_key", ""))
-            if keymap_toggle_key:
-                display_map[keymap_toggle_key] = "KEYMAP"
-                kind_map[keymap_toggle_key] = "keymap_toggle"
+            switch_items = sorted(KeymapService.get_keymap_switch_keys(data).items(), key=lambda item: normalize_key_name(item[0]))
+            for index, (raw_switch_key, raw_keymap_id) in enumerate(switch_items, start=1):
+                switch_key = normalize_key_name(str(raw_switch_key or ""))
+                keymap_id = normalize_key_name(str(raw_keymap_id or ""))
+                if not switch_key or not keymap_id or not KeymapService.find_keymap(data, keymap_id):
+                    continue
+                display_map[switch_key] = f"KM{index}"
+                kind_map[switch_key] = "keymap_switch"
 
             mode_toggle_key = normalize_key_name(data.get("hook_toggle_key", ""))
             if mode_toggle_key:
@@ -231,8 +235,8 @@ class KeyboardWindow(tk.Toplevel):
             return "#fde2e2", "#c62828", "#7f1d1d"
         if kind == "mode_toggle":
             return "#ffe8cc", "#ef6c00", "#8a3c00"
-        if kind == "keymap_toggle":
-            return "#f3e8ff", "#8e24aa", "#5b1a72"
+        if kind == "keymap_switch":
+            return "#ede9fe", "#6d28d9", "#4c1d95"
         if kind == "trigger":
             return "#dcecff", "#4c7ed9", "#163a78"
         if kind == "keymap":
@@ -351,25 +355,25 @@ class KeyboardWindow(tk.Toplevel):
 
         has_trigger = any(kind == "trigger" for kind in self._kind_map.values())
         has_keymap = any(kind == "keymap" for kind in self._kind_map.values())
-        has_reserved = any(kind in {"stop", "mode_toggle", "keymap_toggle"} for kind in self._kind_map.values())
+        has_reserved = any(kind in {"stop", "mode_toggle", "keymap_switch"} for kind in self._kind_map.values())
         if has_reserved and has_trigger and has_keymap:
             self.summary_var.set(
-                f"レイアウト: {layout_name} / STOP・MODE・KEYMAP・trigger・keymap を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
+                f"レイアウト: {layout_name} / STOP・MODE・KM切替・trigger・keymap を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
             )
             return
         if has_reserved and has_trigger:
             self.summary_var.set(
-                f"レイアウト: {layout_name} / STOP・MODE・KEYMAP と trigger を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
+                f"レイアウト: {layout_name} / STOP・MODE・KM切替 と trigger を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
             )
             return
         if has_reserved and has_keymap:
             self.summary_var.set(
-                f"レイアウト: {layout_name} / STOP・MODE・KEYMAP と keymap を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
+                f"レイアウト: {layout_name} / STOP・MODE・KM切替 と keymap を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
             )
             return
         if has_reserved:
             self.summary_var.set(
-                f"レイアウト: {layout_name} / STOP・MODE・KEYMAP を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
+                f"レイアウト: {layout_name} / STOP・MODE・KM切替 を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
             )
             return
         if has_trigger and has_keymap:

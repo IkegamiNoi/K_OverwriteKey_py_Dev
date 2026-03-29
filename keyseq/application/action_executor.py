@@ -7,7 +7,6 @@ from keyseq.application.input_router import (
     SendKeyAction,
     SelectKeymapAction,
     StopHookAction,
-    SwitchKeymapAction,
     ToggleModeAction,
     TriggerAction,
 )
@@ -23,7 +22,6 @@ class ActionExecutor:
         on_runtime_error: Callable[[str, str], None],
         on_stop_hook: Callable[[], None],
         on_toggle_mode: Callable[[], None],
-        on_switch_keymap: Callable[[], None],
         on_select_keymap: Callable[[str], None],
         on_trigger: Callable[[str], None],
     ) -> None:
@@ -33,7 +31,6 @@ class ActionExecutor:
         self._on_runtime_error = on_runtime_error
         self._on_stop_hook = on_stop_hook
         self._on_toggle_mode = on_toggle_mode
-        self._on_switch_keymap = on_switch_keymap
         self._on_select_keymap = on_select_keymap
         self._on_trigger = on_trigger
         self._send_guard_count = 0
@@ -66,9 +63,6 @@ class ActionExecutor:
             return
         if isinstance(action, ToggleModeAction):
             self._on_toggle_mode()
-            return
-        if isinstance(action, SwitchKeymapAction):
-            self._on_switch_keymap()
             return
         if isinstance(action, SelectKeymapAction):
             self._on_select_keymap(action.keymap_id)

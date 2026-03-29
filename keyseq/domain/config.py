@@ -45,7 +45,6 @@ DEFAULT_CONFIG: dict[str, Any] = {
     ],
     "hook_stop_key": "",
     "hook_toggle_key": "",
-    "hook_keymap_toggle_key": "",
     "keyboard_layout": "us_tkl",
     "keyboard_show_physical_key_labels": False,
     "debug_jis_special_key_events": False,
@@ -137,7 +136,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
 
     config["hook_stop_key"] = normalize_key_name(config.get("hook_stop_key", ""))
     config["hook_toggle_key"] = normalize_key_name(config.get("hook_toggle_key", ""))
-    config["hook_keymap_toggle_key"] = normalize_key_name(config.get("hook_keymap_toggle_key", ""))
+    config.pop("hook_keymap_toggle_key", None)
     layout_id = config.get("keyboard_layout", "us_tkl")
     if not isinstance(layout_id, str):
         layout_id = "us_tkl"
@@ -203,6 +202,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
 
     raw_keymap_switch_keys = config.get("keymap_switch_keys")
     normalized_keymap_switch_keys: dict[str, str] = {}
+    seen_switch_target_ids: set[str] = set()
     if isinstance(raw_keymap_switch_keys, dict):
         for raw_key, raw_keymap_id in raw_keymap_switch_keys.items():
             switch_key = normalize_key_name(str(raw_key or ""))
@@ -211,7 +211,10 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
                 continue
             if keymap_id not in keymap_ids:
                 continue
+            if keymap_id in seen_switch_target_ids:
+                continue
             normalized_keymap_switch_keys[switch_key] = keymap_id
+            seen_switch_target_ids.add(keymap_id)
     config["keymap_switch_keys"] = normalized_keymap_switch_keys
     return config
 

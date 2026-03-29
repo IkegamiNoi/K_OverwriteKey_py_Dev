@@ -90,52 +90,6 @@ class FullView(ttk.Frame):
 
         ttk.Button(self.file_frame, text="新規作成", width=18, command=app.new_config).pack(fill="x", pady=4)
 
-        self.keymap_switch_frame = ttk.LabelFrame(self, text="キーマップ切替", padding=10)
-        self.keymap_switch_frame.pack(fill="x", expand=False, pady=(12, 0))
-        self.keymap_switch_frame.grid_columnconfigure(1, weight=1)
-        self.keymap_switch_frame.grid_columnconfigure(3, weight=1)
-
-        ttk.Label(self.keymap_switch_frame, text="切替キー:").grid(row=0, column=0, sticky="nw")
-        ttk.Label(
-            self.keymap_switch_frame,
-            textvariable=app.keymap_switch_key_var,
-            anchor="w",
-            justify="left",
-        ).grid(row=0, column=1, sticky="nw")
-
-        ttk.Label(self.keymap_switch_frame, text="現在:").grid(row=0, column=2, sticky="nw", padx=(16, 0))
-        ttk.Label(
-            self.keymap_switch_frame,
-            textvariable=app.keymap_switch_active_var,
-            anchor="w",
-            justify="left",
-        ).grid(row=0, column=3, sticky="nw")
-
-        ttk.Label(self.keymap_switch_frame, text="動作:").grid(row=1, column=0, sticky="nw", pady=(6, 0))
-        ttk.Label(
-            self.keymap_switch_frame,
-            textvariable=app.keymap_switch_description_var,
-            anchor="w",
-            justify="left",
-            wraplength=520,
-        ).grid(row=1, column=1, columnspan=3, sticky="we", pady=(6, 0))
-
-        ttk.Label(self.keymap_switch_frame, text="候補:").grid(row=2, column=0, sticky="nw", pady=(6, 0))
-        ttk.Label(
-            self.keymap_switch_frame,
-            textvariable=app.keymap_switch_candidates_var,
-            anchor="w",
-            justify="left",
-        ).grid(row=2, column=1, columnspan=3, sticky="we", pady=(6, 0))
-
-        ttk.Label(self.keymap_switch_frame, text="直接切替:").grid(row=3, column=0, sticky="nw", pady=(6, 0))
-        ttk.Label(
-            self.keymap_switch_frame,
-            textvariable=app.keymap_switch_direct_keys_var,
-            anchor="w",
-            justify="left",
-        ).grid(row=3, column=1, columnspan=3, sticky="we", pady=(6, 0))
-
         self.keymap_manage_frame = ttk.LabelFrame(self, text="キーマップ管理", padding=10)
         self.keymap_manage_frame.pack(fill="x", expand=False, pady=(12, 0))
 
@@ -160,7 +114,7 @@ class FullView(ttk.Frame):
         app.keymap_select_btn = ttk.Button(keymap_btns, text="選択", width=14, command=app._select_keymap)
         app.keymap_select_btn.pack(fill="x", pady=4)
 
-        self.keymap_switch_keys_manage_frame = ttk.LabelFrame(self.keymap_manage_frame, text="切替キー設定", padding=8)
+        self.keymap_switch_keys_manage_frame = ttk.LabelFrame(self.keymap_manage_frame, text="キーマップ切替", padding=8)
         self.keymap_switch_keys_manage_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
 
         keymap_switch_keys_list_frame = ttk.Frame(self.keymap_switch_keys_manage_frame)
@@ -180,14 +134,21 @@ class FullView(ttk.Frame):
         keymap_switch_key_btns.pack(side="left", fill="y", padx=(12, 0))
         app.keymap_switch_key_add_btn = ttk.Button(
             keymap_switch_key_btns,
-            text="割当追加",
+            text="追加",
             width=14,
-            command=app._toggle_keymap_switch_key_capture,
+            command=app._start_keymap_switch_key_add_capture,
         )
         app.keymap_switch_key_add_btn.pack(fill="x", pady=(0, 4))
+        app.keymap_switch_key_change_btn = ttk.Button(
+            keymap_switch_key_btns,
+            text="変更",
+            width=14,
+            command=app._start_keymap_switch_key_change_capture,
+        )
+        app.keymap_switch_key_change_btn.pack(fill="x", pady=4)
         app.keymap_switch_key_remove_btn = ttk.Button(
             keymap_switch_key_btns,
-            text="割当削除",
+            text="削除",
             width=14,
             command=app._remove_keymap_switch_key,
         )

@@ -17,11 +17,6 @@ class ToggleModeAction:
 
 
 @dataclass(frozen=True)
-class SwitchKeymapAction:
-    pass
-
-
-@dataclass(frozen=True)
 class SelectKeymapAction:
     keymap_id: str
 
@@ -52,7 +47,6 @@ class InputRouter:
         get_hook_pause_count: Callable[[], int],
         get_stop_key: Callable[[], str],
         get_toggle_key: Callable[[], str],
-        get_keymap_toggle_key: Callable[[], str],
         get_custom_input_enabled: Callable[[], bool],
         find_keymap_switch_target: Callable[[str], str],
         find_trigger: Callable[[str], dict[str, Any] | None],
@@ -64,7 +58,6 @@ class InputRouter:
         self._get_hook_pause_count = get_hook_pause_count
         self._get_stop_key = get_stop_key
         self._get_toggle_key = get_toggle_key
-        self._get_keymap_toggle_key = get_keymap_toggle_key
         self._get_custom_input_enabled = get_custom_input_enabled
         self._find_keymap_switch_target = find_keymap_switch_target
         self._find_trigger = find_trigger
@@ -94,10 +87,6 @@ class InputRouter:
         toggle_key = normalize_key_name(self._get_toggle_key())
         if toggle_key and key == toggle_key:
             return InputRoute(actions=(ToggleModeAction(),), accept=False)
-
-        keymap_toggle_key = normalize_key_name(self._get_keymap_toggle_key())
-        if keymap_toggle_key and key == keymap_toggle_key:
-            return InputRoute(actions=(SwitchKeymapAction(),), accept=False)
 
         if not self._get_custom_input_enabled():
             return InputRoute()

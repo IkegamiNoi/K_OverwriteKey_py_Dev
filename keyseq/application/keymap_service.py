@@ -159,6 +159,10 @@ class KeymapService:
             switch_keys = {}
             data["keymap_switch_keys"] = switch_keys
 
+        existing_switch_key = KeymapService.find_switch_key_for_keymap(data, normalized_keymap_id)
+        if existing_switch_key and existing_switch_key != switch_key:
+            return False
+
         previous = normalize_key_name(switch_keys.get(switch_key, ""))
         switch_keys[switch_key] = normalized_keymap_id
         return previous != normalized_keymap_id
@@ -190,6 +194,24 @@ class KeymapService:
         if not KeymapService.find_keymap(data, keymap_id):
             return ""
         return keymap_id
+
+    @staticmethod
+    def find_switch_key_for_keymap(data: dict[str, Any], keymap_id: str, *, exclude_key: str = "") -> str:
+        normalized_keymap_id = normalize_key_name(keymap_id)
+        excluded = normalize_key_name(exclude_key)
+        if not normalized_keymap_id:
+            return ""
+        if not KeymapService.find_keymap(data, normalized_keymap_id):
+            return ""
+
+        for switch_key, target_keymap_id in KeymapService.get_keymap_switch_keys(data).items():
+            normalized_switch_key = normalize_key_name(str(switch_key or ""))
+            if not normalized_switch_key or normalized_switch_key == excluded:
+                continue
+            if normalize_key_name(str(target_keymap_id or "")) != normalized_keymap_id:
+                continue
+            return normalized_switch_key
+        return ""
 
     @staticmethod
     def find_mapping_target(data: dict[str, Any], source_key: str) -> str:
@@ -224,29 +246,6 @@ class KeymapService:
         if not normalized:
             return False
         return normalized in KeymapService.collect_source_keys(data)
-
-    @staticmethod
-    def cycle_active_keymap(data: dict[str, Any]) -> str:
-        keymaps = KeymapService.get_keymaps(data)
-        if not keymaps:
-            data["active_keymap_id"] = ""
-            return ""
-
-        keymap_ids = [normalize_key_name(item.get("id", "")) for item in keymaps]
-        keymap_ids = [item for item in keymap_ids if item]
-        if not keymap_ids:
-            data["active_keymap_id"] = ""
-            return ""
-
-        current = KeymapService.get_active_keymap_id(data)
-        if current not in keymap_ids:
-            next_id = keymap_ids[0]
-        else:
-            index = keymap_ids.index(current)
-            next_id = keymap_ids[(index + 1) % len(keymap_ids)]
-
-        data["active_keymap_id"] = next_id
-        return next_id
 
     @staticmethod
     def ensure_active_keymap(data: dict[str, Any]) -> dict[str, Any]:
