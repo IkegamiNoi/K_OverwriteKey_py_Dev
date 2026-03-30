@@ -277,13 +277,9 @@ class App(tk.Tk):
         self.stop_key_clear_btn: ttk.Button
         self.keymap_listbox: tk.Listbox
         self.keymap_add_btn: ttk.Button
-        self.keymap_rename_btn: ttk.Button
+        self.keymap_edit_btn: ttk.Button
         self.keymap_delete_btn: ttk.Button
         self.keymap_select_btn: ttk.Button
-        self.keymap_switch_key_listbox: tk.Listbox
-        self.keymap_switch_key_add_btn: ttk.Button
-        self.keymap_switch_key_change_btn: ttk.Button
-        self.keymap_switch_key_remove_btn: ttk.Button
         self.topmost_chk: ttk.Checkbutton
         self.compact_btn: ttk.Button
         self.suppress_chk: ttk.Checkbutton
@@ -807,6 +803,13 @@ class App(tk.Tk):
         label = str(keymap.get("label") or "").strip()
         return label or keymap_id
 
+    def _format_keymap_list_entry(self, index: int, keymap: dict) -> str:
+        keymap_id = normalize_key_name(keymap.get("id", ""))
+        marker = "> " if keymap_id and keymap_id == self.keymap_service.get_active_keymap_id(self.data) else "  "
+        switch_key = self.keymap_service.find_switch_key_for_keymap(self.data, keymap_id) or "-"
+        display_name = self._format_keymap_display_name(keymap) or f"keymap-{index + 1}"
+        return f"{marker}{index + 1:02d}. {switch_key}: {display_name}"
+
     def _get_sorted_keymap_switch_items(self) -> list[tuple[str, str]]:
         items = list(self.keymap_service.get_keymap_switch_keys(self.data).items())
         return sorted(
@@ -819,7 +822,7 @@ class App(tk.Tk):
         )
 
     def _refresh_keymap_switch_ui(self) -> None:
-        self._refresh_keymap_switch_key_list_ui()
+        self._refresh_keymap_list_ui()
 
     def _selected_keymap_list_index(self) -> int | None:
         """keymap 管理Listboxの選択行を返す。"""
@@ -835,10 +838,10 @@ class App(tk.Tk):
 
     def _sync_keymap_manage_buttons(self) -> None:
         """keymap 件数に応じて管理ボタン状態を揃える。"""
-        has_keymaps = bool(self.keymap_service.get_keymaps(self.data))
-        state = "normal" if has_keymaps else "disabled"
-        if hasattr(self, "keymap_rename_btn"):
-            self.keymap_rename_btn.configure(state=state)
+        has_selection = self._selected_keymap_list_index() is not None and bool(self.keymap_service.get_keymaps(self.data))
+        state = "normal" if has_selection else "disabled"
+        if hasattr(self, "keymap_edit_btn"):
+            self.keymap_edit_btn.configure(state=state)
         if hasattr(self, "keymap_delete_btn"):
             self.keymap_delete_btn.configure(state=state)
         if hasattr(self, "keymap_select_btn"):
@@ -915,18 +918,15 @@ class App(tk.Tk):
             return
 
         keymaps = self.keymap_service.get_keymaps(self.data)
-        active_id = self.keymap_service.get_active_keymap_id(self.data)
         if not keymaps:
             listbox.insert(tk.END, "キーマップは未登録です")
             listbox.selection_clear(0, tk.END)
             self._sync_keymap_manage_buttons()
             return
 
-        for index, keymap in enumerate(keymaps, start=1):
-            keymap_id = normalize_key_name(keymap.get("id", ""))
-            marker = "> " if keymap_id and keymap_id == active_id else "  "
-            display_name = self._format_keymap_display_name(keymap) or f"keymap-{index}"
-            listbox.insert(tk.END, f"{marker}{index:02d}. {display_name}")
+        active_id = self.keymap_service.get_active_keymap_id(self.data)
+        for index, keymap in enumerate(keymaps):
+            listbox.insert(tk.END, self._format_keymap_list_entry(index, keymap))
 
         target_index = preferred_index
         if target_index is None:
@@ -956,8 +956,8 @@ class App(tk.Tk):
         self._sync_keymap_switch_key_buttons()
 
     def _on_keymap_list_double_click(self, _event=None) -> None:
-        """一覧ダブルクリックで選択中 keymap を active にする。"""
-        self._select_keymap()
+        """一覧ダブルクリックで選択中 keymap の編集導線を開く。"""
+        self._edit_selected_keymap()
 
     def _start_keymap_switch_key_add_capture(self) -> None:
         index = self._selected_keymap_list_index()
@@ -1234,6 +1234,24 @@ class App(tk.Tk):
 
         target = keymaps[index]
         self.activate_keymap_by_id(target.get("id", ""), preferred_index=index, mark_dirty=True, show_flash=True)
+
+    def _edit_selected_keymap(self) -> None:
+        """選択中の keymap を active にして、キーボードUI編集へ入る。"""
+        index = self._selected_keymap_list_index()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if index is None or not keymaps or not (0 <= index < len(keymaps)):
+            messagebox.showinfo("変更", "編集したい keymap を選択してください。")
+            return
+
+        target = keymaps[index]
+        target_id = normalize_key_name(target.get("id", ""))
+        if not self.activate_keymap_by_id(target_id, preferred_index=index, mark_dirty=False, show_flash=False):
+            messagebox.showerror("変更できません", "選択した keymap を編集対象にできませんでした。")
+            return
+
+        self.open_keyboard_window()
+        target_name = self._format_keymap_display_name(target) or target_id
+        self._set_flash_message(f"キーボードUIで編集します: {target_name}")
 
     def activate_keymap_by_id(
         self,

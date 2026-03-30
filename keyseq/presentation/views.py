@@ -90,76 +90,36 @@ class FullView(ttk.Frame):
 
         ttk.Button(self.file_frame, text="新規作成", width=18, command=app.new_config).pack(fill="x", pady=4)
 
-        self.keymap_manage_frame = ttk.LabelFrame(self, text="キーマップ管理", padding=10)
-        self.keymap_manage_frame.pack(fill="x", expand=False, pady=(12, 0))
+        # main
+        self.main_area = ttk.Frame(self)
+        self.main_area.pack(fill="both", expand=True, pady=(12, 0))
 
-        keymap_list_frame = ttk.Frame(self.keymap_manage_frame)
-        keymap_list_frame.pack(side="left", fill="both", expand=True)
-        app.keymap_listbox = tk.Listbox(keymap_list_frame, height=5, width=36, exportselection=False)
-        app.keymap_listbox.pack(side="left", fill="both", expand=True)
+        self.keymap_box = ttk.LabelFrame(self.main_area, text="キーマップ管理", padding=10)
+        self.keymap_box.pack(side="left", fill="y")
+
+        keymap_list_frame = ttk.Frame(self.keymap_box)
+        keymap_list_frame.pack(side="top", fill="y", expand=False)
+        app.keymap_listbox = tk.Listbox(keymap_list_frame, height=12, width=26, exportselection=False)
+        app.keymap_listbox.pack(side="left", fill="y", expand=False)
         app.keymap_listbox.bind("<<ListboxSelect>>", app._on_keymap_list_select)
         app.keymap_listbox.bind("<Double-Button-1>", app._on_keymap_list_double_click)
         keymap_list_scrollbar = ttk.Scrollbar(keymap_list_frame, orient="vertical", command=app.keymap_listbox.yview)
         keymap_list_scrollbar.pack(side="left", fill="y")
         app.keymap_listbox.configure(yscrollcommand=keymap_list_scrollbar.set)
 
-        keymap_btns = ttk.Frame(self.keymap_manage_frame)
-        keymap_btns.pack(side="left", fill="y", padx=(12, 0))
-        app.keymap_add_btn = ttk.Button(keymap_btns, text="追加", width=14, command=app._add_keymap)
-        app.keymap_add_btn.pack(fill="x", pady=(0, 4))
-        app.keymap_rename_btn = ttk.Button(keymap_btns, text="名前変更", width=14, command=app._rename_keymap_label)
-        app.keymap_rename_btn.pack(fill="x", pady=4)
-        app.keymap_delete_btn = ttk.Button(keymap_btns, text="削除", width=14, command=app._delete_keymap)
-        app.keymap_delete_btn.pack(fill="x", pady=4)
-        app.keymap_select_btn = ttk.Button(keymap_btns, text="選択", width=14, command=app._select_keymap)
-        app.keymap_select_btn.pack(fill="x", pady=4)
-
-        self.keymap_switch_keys_manage_frame = ttk.LabelFrame(self.keymap_manage_frame, text="キーマップ切替", padding=8)
-        self.keymap_switch_keys_manage_frame.pack(side="left", fill="both", expand=True, padx=(12, 0))
-
-        keymap_switch_keys_list_frame = ttk.Frame(self.keymap_switch_keys_manage_frame)
-        keymap_switch_keys_list_frame.pack(side="left", fill="both", expand=True)
-        app.keymap_switch_key_listbox = tk.Listbox(keymap_switch_keys_list_frame, height=5, width=28, exportselection=False)
-        app.keymap_switch_key_listbox.pack(side="left", fill="both", expand=True)
-        app.keymap_switch_key_listbox.bind("<<ListboxSelect>>", app._on_keymap_switch_key_list_select)
-        keymap_switch_keys_scrollbar = ttk.Scrollbar(
-            keymap_switch_keys_list_frame,
-            orient="vertical",
-            command=app.keymap_switch_key_listbox.yview,
-        )
-        keymap_switch_keys_scrollbar.pack(side="left", fill="y")
-        app.keymap_switch_key_listbox.configure(yscrollcommand=keymap_switch_keys_scrollbar.set)
-
-        keymap_switch_key_btns = ttk.Frame(self.keymap_switch_keys_manage_frame)
-        keymap_switch_key_btns.pack(side="left", fill="y", padx=(12, 0))
-        app.keymap_switch_key_add_btn = ttk.Button(
-            keymap_switch_key_btns,
-            text="追加",
-            width=14,
-            command=app._start_keymap_switch_key_add_capture,
-        )
-        app.keymap_switch_key_add_btn.pack(fill="x", pady=(0, 4))
-        app.keymap_switch_key_change_btn = ttk.Button(
-            keymap_switch_key_btns,
-            text="変更",
-            width=14,
-            command=app._start_keymap_switch_key_change_capture,
-        )
-        app.keymap_switch_key_change_btn.pack(fill="x", pady=4)
-        app.keymap_switch_key_remove_btn = ttk.Button(
-            keymap_switch_key_btns,
-            text="削除",
-            width=14,
-            command=app._remove_keymap_switch_key,
-        )
-        app.keymap_switch_key_remove_btn.pack(fill="x", pady=4)
-
-        # main
-        self.main_area = ttk.Frame(self)
-        self.main_area.pack(fill="both", expand=True, pady=(12, 0))
+        keymap_btns = ttk.Frame(self.keymap_box)
+        keymap_btns.pack(fill="x", pady=(6, 0))
+        app.keymap_add_btn = ttk.Button(keymap_btns, text="追加", command=app._add_keymap)
+        app.keymap_add_btn.pack(fill="x", pady=(0, 3))
+        app.keymap_edit_btn = ttk.Button(keymap_btns, text="変更", command=app._edit_selected_keymap)
+        app.keymap_edit_btn.pack(fill="x", pady=3)
+        app.keymap_delete_btn = ttk.Button(keymap_btns, text="削除", command=app._delete_keymap)
+        app.keymap_delete_btn.pack(fill="x", pady=3)
+        app.keymap_select_btn = ttk.Button(keymap_btns, text="選択", command=app._select_keymap)
+        app.keymap_select_btn.pack(fill="x", pady=3)
 
         self.trigger_box = ttk.LabelFrame(self.main_area, text="トリガー一覧（選択して編集）", padding=10)
-        self.trigger_box.pack(side="left", fill="y")
+        self.trigger_box.pack(side="left", fill="y", padx=(12, 0))
 
         # トリガー一覧（スクロール）
         tl_frame = ttk.Frame(self.trigger_box)
