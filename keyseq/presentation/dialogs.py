@@ -761,8 +761,9 @@ class KeymapEditDialog(tk.Toplevel):
     def _start_capture(self):
         self._capturing = True
         self.capture_btn.configure(text="取得中…（Escで停止）")
+        self.label_entry.configure(state="disabled")
         self.hint.configure(text="取得中：切替キーにしたいキーを1回押してください（Escでキャンセル）")
-        self.label_entry.focus_set()
+        self.capture_btn.focus_set()
         self.bind("<KeyPress>", self._on_capture_keypress, add="+")
 
     def _stop_capture(self):
@@ -770,6 +771,7 @@ class KeymapEditDialog(tk.Toplevel):
             return
         self._capturing = False
         self.capture_btn.configure(text="キー入力で取得")
+        self.label_entry.configure(state="normal")
         self.hint.configure(text="例) 切替キー: 1\nラベル: numpad")
         try:
             self.unbind("<KeyPress>")
