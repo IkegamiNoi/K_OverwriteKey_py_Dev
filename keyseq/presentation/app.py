@@ -1612,6 +1612,20 @@ class App(tk.Tk):
         無い場合は既定の本体JSONを読み込む。
         """
         startup = dict(getattr(self, "_startup_settings", {}) or {})
+        self.config_path = self.config_service.resolve_startup_config_path(
+            startup,
+            self.base_dir,
+            self.config_path,
+        )
+
+        split_data = self.config_service.try_load_split_runtime_data(
+            startup,
+            config_root=self.config_root,
+        )
+        if split_data is not None:
+            self.data = split_data
+            self._apply_loaded_data_to_ui()
+            return
 
         cfg = startup.get("config_path")
         prompt_if_missing = bool(startup.get("prompt_if_missing", True))
@@ -1942,15 +1956,7 @@ class App(tk.Tk):
             messagebox.showwarning("読込失敗", f"config.json の読込に失敗しました。\n{e}\n\n例の設定で起動します。")
             self.data = self.config_service.new_default_data()
 
-        # UIへ反映（UI生成後に呼ばれる場合はガード）
-        if hasattr(self, "stop_key_var"):
-            self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
-        if hasattr(self, "toggle_key_var"):
-            self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
-        if hasattr(self, "keyboard_show_physical_key_labels_var"):
-            self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
-        self._sync_keyboard_layout_controls()
-        self._set_dirty(False)
+        self._apply_loaded_data_to_ui()
 
     def save_config(self, *, show_success_dialog: bool = True) -> bool:
         if not self.config_path:
@@ -2014,13 +2020,7 @@ class App(tk.Tk):
         try:
             self.data = self.config_service.load(path)
             self.config_path = path
-            if hasattr(self, "stop_key_var"):
-                self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
-            if hasattr(self, "toggle_key_var"):
-                self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
-            if hasattr(self, "keyboard_show_physical_key_labels_var"):
-                self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
-            self._sync_keyboard_layout_controls()
+            self._apply_loaded_data_to_ui()
 
             self._indices = {}
             self._selected_trigger_idx = 0
@@ -2032,6 +2032,16 @@ class App(tk.Tk):
         except Exception as e:
             self._set_flash_message(f"読込失敗: {e}", auto_clear=False)
             messagebox.showerror("読込失敗", str(e))
+
+    def _apply_loaded_data_to_ui(self):
+        if hasattr(self, "stop_key_var"):
+            self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
+        if hasattr(self, "toggle_key_var"):
+            self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+        if hasattr(self, "keyboard_show_physical_key_labels_var"):
+            self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
+        self._sync_keyboard_layout_controls()
+        self._set_dirty(False)
 
     def open_preset_manager(self):
         before = copy.deepcopy(self.data.get("hotkey_presets", []))
