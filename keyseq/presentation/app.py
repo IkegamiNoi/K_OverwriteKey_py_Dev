@@ -55,9 +55,12 @@ class App(tk.Tk):
         self.config_service = ConfigService(self.repository)
 
         self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.config_path = os.path.join(self.base_dir, r"settings\config.json")  # 実際に読込/保存する本体JSON（既定）
-        self.startup_path = os.path.join(self.base_dir, r"settings\startup.json")  # 起動時に参照する“外部指定”ファイル
-        self.keyboard_layouts_dir = os.path.join(self.base_dir, "keylayout")
+        self.config_root = os.path.join(self.base_dir, "config")
+        self.user_root = os.path.join(self.config_root, "user")
+        os.makedirs(self.user_root, exist_ok=True)
+        self.startup_path = self._resolve_startup_path()
+        self.config_path = self._resolve_config_path()
+        self.keyboard_layouts_dir = self._resolve_keylayout_dir()
         self.keyboard_layout_id = DEFAULT_LAYOUT_ID
         self._keyboard_layout_entries: dict[str, KeyboardLayoutEntry] = {}
         self._keyboard_layout_display_to_id: dict[str, str] = {}
@@ -1521,6 +1524,70 @@ class App(tk.Tk):
             v = 3
         return v
 
+    def _preferred_startup_path(self) -> str:
+        return os.path.join(self.config_root, "config.json")
+
+    def _preferred_config_path(self) -> str:
+        return os.path.join(self.user_root, "config.json")
+
+    def _legacy_settings_dir(self) -> str:
+        return os.path.join(self.base_dir, "settings")
+
+    def _resolve_startup_path(self) -> str:
+        new_path = self._preferred_startup_path()
+        old_path = os.path.join(self._legacy_settings_dir(), "startup.json")
+        return new_path if os.path.exists(new_path) else old_path
+
+    def _resolve_config_path(self) -> str:
+        new_path = self._preferred_config_path()
+        old_path = os.path.join(self._legacy_settings_dir(), "config.json")
+        return new_path if os.path.exists(new_path) else old_path
+
+    def _resolve_keylayout_dir(self) -> str:
+        new_path = os.path.join(self.user_root, "keylayout")
+        old_path = os.path.join(self.base_dir, "keylayout")
+        return new_path if os.path.exists(new_path) else old_path
+
+    def _is_within_legacy_settings(self, path: str) -> bool:
+        if not path:
+            return False
+        try:
+            return os.path.commonpath([os.path.abspath(path), os.path.abspath(self._legacy_settings_dir())]) == os.path.abspath(self._legacy_settings_dir())
+        except Exception:
+            return False
+
+    def _normalize_config_save_path(self, path: str) -> str:
+        if not path:
+            return self._preferred_config_path()
+        if not self._is_within_legacy_settings(path):
+            return path
+        filename = os.path.basename(path) or "config.json"
+        return os.path.join(self.user_root, filename)
+
+    def _suggest_config_dialog_path(self) -> str:
+        current = str(getattr(self, "config_path", "") or "").strip()
+        if current:
+            return self._normalize_config_save_path(current)
+        return self._preferred_config_path()
+
+    def _sync_startup_config_path(self, old_path: str, new_path: str):
+        current = getattr(self, "_startup_settings", {})
+        if not isinstance(current, dict):
+            return
+
+        stored_path = str(current.get("config_path") or "").strip()
+        if not stored_path:
+            return
+
+        resolved_path = stored_path if os.path.isabs(stored_path) else os.path.join(self.base_dir, stored_path)
+        try:
+            if os.path.abspath(resolved_path) != os.path.abspath(old_path):
+                return
+        except Exception:
+            return
+
+        self._write_startup({"config_path": self._to_rel_if_possible(new_path)})
+
     def _load_startup_settings(self) -> dict[str, any]:
         startup = {}
         try:
@@ -1541,8 +1608,8 @@ class App(tk.Tk):
 
     def _load_startup_and_config(self):
         """
-        startup.json があればそれを読み、そこに書かれた config_path を起動時に読み込む。
-        無い場合は従来通り self.config_path（= ./config.json）を読み込む。
+        起動設定JSON があればそれを読み、そこに書かれた config_path を起動時に読み込む。
+        無い場合は既定の本体JSONを読み込む。
         """
         startup = dict(getattr(self, "_startup_settings", {}) or {})
 
@@ -1584,6 +1651,7 @@ class App(tk.Tk):
         base["ui_font_delta_pt"] = self._coerce_font_delta(base.get("ui_font_delta_pt", 0))
 
         try:
+            self.startup_path = self._preferred_startup_path()
             self.config_service.save_startup(self.startup_path, base)
             self._startup_settings = base
         except Exception as e:
@@ -1889,11 +1957,16 @@ class App(tk.Tk):
             return self.save_as(show_success_dialog=show_success_dialog)
 
         try:
-            self.data = self.config_service.save(self.config_path, self.data)
+            previous_path = self.config_path
+            save_path = self._normalize_config_save_path(self.config_path)
+            self.data = self.config_service.save(save_path, self.data)
+            self.config_path = save_path
+            if previous_path and os.path.abspath(save_path) != os.path.abspath(previous_path):
+                self._sync_startup_config_path(previous_path, save_path)
             self._set_dirty(False)
             self._set_flash_message("保存しました。")
             if show_success_dialog:
-                messagebox.showinfo("保存", f"保存しました:\n{self.config_path}")
+                messagebox.showinfo("保存", f"保存しました:\n{save_path}")
             return True
         except Exception as e:
             self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
@@ -1901,20 +1974,27 @@ class App(tk.Tk):
             return False
 
     def save_as(self, *, show_success_dialog: bool = True) -> bool:
+        suggested_path = self._suggest_config_dialog_path()
         path = filedialog.asksaveasfilename(
             title="別名で保存",
+            initialdir=os.path.dirname(suggested_path) if os.path.dirname(suggested_path) else self.user_root,
+            initialfile=os.path.basename(suggested_path),
             defaultextension=".json",
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
         )
         if not path:
             return False
         try:
-            self.data = self.config_service.save(path, self.data)
-            self.config_path = path
+            previous_path = self.config_path
+            save_path = self._normalize_config_save_path(path)
+            self.data = self.config_service.save(save_path, self.data)
+            self.config_path = save_path
+            if previous_path and os.path.abspath(save_path) != os.path.abspath(previous_path):
+                self._sync_startup_config_path(previous_path, save_path)
             self._set_dirty(False)
             self._set_flash_message("別名で保存しました。")
             if show_success_dialog:
-                messagebox.showinfo("保存", f"保存しました:\n{path}")
+                messagebox.showinfo("保存", f"保存しました:\n{save_path}")
             return True
         except Exception as e:
             self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
