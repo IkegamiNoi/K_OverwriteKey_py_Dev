@@ -582,9 +582,7 @@ class App(tk.Tk):
             self._set_dirty(True)
             return True
         try:
-            self.data = self.config_service.save(self.config_path, self.data)
-            self._set_dirty(False)
-            return True
+            return self.save_config(show_success_dialog=False)
         except Exception as e:
             self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
@@ -1963,12 +1961,17 @@ class App(tk.Tk):
             return self.save_as(show_success_dialog=show_success_dialog)
 
         try:
-            previous_path = self.config_path
             save_path = self._normalize_config_save_path(self.config_path)
-            self.data = self.config_service.save(save_path, self.data)
+            self.data, startup_payload = self.config_service.save_runtime_data(
+                save_path,
+                self.data,
+                config_root=self.config_root,
+                startup_data=self._startup_settings,
+                keep_legacy_copy=True,
+            )
             self.config_path = save_path
-            if previous_path and os.path.abspath(save_path) != os.path.abspath(previous_path):
-                self._sync_startup_config_path(previous_path, save_path)
+            self.startup_path = self._preferred_startup_path()
+            self._startup_settings = startup_payload
             self._set_dirty(False)
             self._set_flash_message("保存しました。")
             if show_success_dialog:
@@ -1991,12 +1994,17 @@ class App(tk.Tk):
         if not path:
             return False
         try:
-            previous_path = self.config_path
             save_path = self._normalize_config_save_path(path)
-            self.data = self.config_service.save(save_path, self.data)
+            self.data, startup_payload = self.config_service.save_runtime_data(
+                save_path,
+                self.data,
+                config_root=self.config_root,
+                startup_data=self._startup_settings,
+                keep_legacy_copy=True,
+            )
             self.config_path = save_path
-            if previous_path and os.path.abspath(save_path) != os.path.abspath(previous_path):
-                self._sync_startup_config_path(previous_path, save_path)
+            self.startup_path = self._preferred_startup_path()
+            self._startup_settings = startup_payload
             self._set_dirty(False)
             self._set_flash_message("別名で保存しました。")
             if show_success_dialog:
