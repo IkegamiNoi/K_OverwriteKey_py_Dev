@@ -4,6 +4,7 @@ ChatGPT_new_thread.md
 ChatGPT_context.md
 settings/
 old/
+config/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
