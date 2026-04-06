@@ -1,0 +1,17 @@
+{
+  "trigger_set_path": "user/trigger_sets/default.json",
+  "hotkey_presets_path": "user/hotkey_presets/default.json",
+  "active_keymap_path": "user/keymaps/default.json",
+  "keymaps": [
+    {
+      "path": "user/keymaps/default.json",
+      "switch_key": "f6"
+    }
+  ],
+  "hook_stop_key": "f12",
+  "hook_toggle_key": "",
+  "keyboard_layout": "us_tkl",
+  "keyboard_show_physical_key_labels": false,
+  "debug_jis_special_key_events": false,
+  "external_keyboard_layouts": []
+}

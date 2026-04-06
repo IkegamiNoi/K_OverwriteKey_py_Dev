@@ -1,0 +1,20 @@
+{
+  "hotkey_presets": [
+        {
+      "label": "Alt+Tab",
+      "value": "alt+tab"
+    },
+    {
+      "label": "Win+D",
+      "value": "windows+d"
+    },
+    {
+      "label": "Win+E",
+      "value": "windows+e"
+    },
+    {
+      "label": "Ctrl+Shift+Esc",
+      "value": "ctrl+shift+esc"
+    }
+  ]
+}
