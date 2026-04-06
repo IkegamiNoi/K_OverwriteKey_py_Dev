@@ -22,6 +22,15 @@ class ConfigService:
     def new_default_data(self) -> dict[str, Any]:
         return safe_deepcopy(DEFAULT_CONFIG)
 
+    def new_empty_data(self) -> dict[str, Any]:
+        data = self.new_default_data()
+        data["triggers"] = []
+        data["hotkey_presets"] = []
+        data["keymaps"] = []
+        data["active_keymap_id"] = ""
+        data["keymap_switch_keys"] = {}
+        return ensure_config_compatibility(data)
+
     def normalize_runtime_data(self, data: Any) -> dict[str, Any]:
         return ensure_config_compatibility(data)
 
@@ -29,6 +38,13 @@ class ConfigService:
         if not os.path.exists(path):
             return self.new_default_data(), False
         return self.load(path), True
+
+    def load(self, path: str) -> dict[str, Any]:
+        loaded = self.repository.load_json(path)
+        return ensure_config_compatibility(loaded)
+
+    def load_legacy_runtime_data(self, path: str) -> dict[str, Any]:
+        return self.load(path)
 
     def load_runtime_data(
         self,
@@ -42,9 +58,20 @@ class ConfigService:
             return split_data, True
         return self.load_if_exists(fallback_path)
 
-    def load(self, path: str) -> dict[str, Any]:
-        loaded = self.repository.load_json(path)
-        return ensure_config_compatibility(loaded)
+    def load_runtime_data_from_keymap_set_path(
+        self,
+        keymap_set_path: str,
+        *,
+        config_root: str | None = None,
+    ) -> dict[str, Any]:
+        resolved_keymap_set_path = os.path.abspath(keymap_set_path)
+        resolved_config_root = os.path.abspath(config_root) if config_root else self._infer_config_root_from_keymap_set_path(resolved_keymap_set_path)
+        if not os.path.exists(resolved_keymap_set_path):
+            raise FileNotFoundError(resolved_keymap_set_path)
+        return self._load_split_config(
+            config_root=resolved_config_root,
+            keymap_set_path=resolved_keymap_set_path,
+        )
 
     def try_load_split_runtime_data(
         self,
@@ -102,46 +129,54 @@ class ConfigService:
         self.repository.save_json(path, self._sanitize_runtime_for_storage(normalized))
         return normalized
 
+    def export_runtime_data(self, path: str, data: Any) -> dict[str, Any]:
+        normalized = ensure_config_compatibility(data)
+        self.repository.save_json(path, self._sanitize_runtime_for_storage(normalized))
+        return normalized
+
     def save_runtime_data(
         self,
-        path: str,
+        keymap_set_path: str,
         data: Any,
         *,
         config_root: str,
         startup_data: Any = None,
-        keep_legacy_copy: bool = True,
+        keep_legacy_copy: bool = False,
+        legacy_path: str = "",
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         normalized = ensure_config_compatibility(data)
         sanitized_legacy = self._sanitize_runtime_for_storage(normalized)
+        resolved_config_root = os.path.abspath(config_root)
+        resolved_keymap_set_path = os.path.abspath(keymap_set_path) if keymap_set_path else self._default_keymap_set_path(resolved_config_root)
+
         payloads = self._build_split_save_payloads(
             normalized,
-            config_root=config_root,
+            config_root=resolved_config_root,
             startup_data=startup_data,
-            legacy_path=path if keep_legacy_copy else "",
+            keymap_set_path=resolved_keymap_set_path,
+            legacy_path=legacy_path if keep_legacy_copy else "",
         )
 
-        self._ensure_split_config_dirs(config_root)
-        self.repository.save_json(self._startup_entry_path(config_root), payloads["startup"])
+        self._ensure_split_config_dirs(resolved_config_root)
+        self.repository.save_json(self._startup_entry_path(resolved_config_root), payloads["startup"])
+        self.repository.save_json(resolved_keymap_set_path, payloads["keymap_set"])
         self.repository.save_json(
-            self._resolve_config_relative_path(self.KEYMAP_SET_RELATIVE_PATH, config_root),
-            payloads["keymap_set"],
-        )
-        self.repository.save_json(
-            self._resolve_config_relative_path(self.TRIGGER_SET_RELATIVE_PATH, config_root),
+            self._resolve_config_relative_path(self.TRIGGER_SET_RELATIVE_PATH, resolved_config_root),
             payloads["trigger_set"],
         )
         self.repository.save_json(
-            self._resolve_config_relative_path(self.HOTKEY_PRESETS_RELATIVE_PATH, config_root),
+            self._resolve_config_relative_path(self.HOTKEY_PRESETS_RELATIVE_PATH, resolved_config_root),
             payloads["hotkey_presets"],
         )
         for item in payloads["keymaps"]:
             self.repository.save_json(
-                self._resolve_config_relative_path(str(item["path"]), config_root),
+                self._resolve_config_relative_path(str(item["path"]), resolved_config_root),
                 item["payload"],
             )
 
-        if keep_legacy_copy and path:
-            self.repository.save_json(path, sanitized_legacy)
+        if keep_legacy_copy:
+            target_legacy_path = legacy_path or self._default_legacy_config_path(resolved_config_root)
+            self.repository.save_json(target_legacy_path, sanitized_legacy)
 
         return normalized, payloads["startup"]
 
@@ -298,6 +333,7 @@ class ConfigService:
         *,
         config_root: str,
         startup_data: Any,
+        keymap_set_path: str,
         legacy_path: str,
     ) -> dict[str, Any]:
         keymap_payloads = self._build_keymap_payloads(runtime)
@@ -309,6 +345,7 @@ class ConfigService:
         startup_payload = self._build_startup_payload(
             startup_data,
             config_root=config_root,
+            keymap_set_path=keymap_set_path,
             legacy_path=legacy_path,
         )
         keymap_set_payload = self._build_keymap_set_payload(runtime, keymap_paths_by_id)
@@ -342,22 +379,23 @@ class ConfigService:
         startup_data: Any,
         *,
         config_root: str,
+        keymap_set_path: str,
         legacy_path: str,
     ) -> dict[str, Any]:
-        payload = {}
+        payload: dict[str, Any] = {}
         if isinstance(startup_data, dict):
             payload.update(safe_deepcopy(startup_data))
 
-        base_dir = os.path.dirname(config_root)
-        payload["keymap_set_path"] = self._to_config_relative_path(
-            self._resolve_config_relative_path(self.KEYMAP_SET_RELATIVE_PATH, config_root),
-            config_root,
-        )
-        payload["ui_font_delta_pt"] = int(payload.get("ui_font_delta_pt", 0) or 0)
+        payload.pop("config_path", None)
+        payload["keymap_set_path"] = self._to_config_relative_path(keymap_set_path, config_root)
+        try:
+            payload["ui_font_delta_pt"] = int(payload.get("ui_font_delta_pt", 0) or 0)
+        except Exception:
+            payload["ui_font_delta_pt"] = 0
         payload["last_used_directory"] = str(payload.get("last_used_directory") or "")
         payload["prompt_if_missing"] = bool(payload.get("prompt_if_missing", True))
         if legacy_path:
-            payload["config_path"] = self.resolve_startup_relative_path(legacy_path, base_dir)
+            payload["config_path"] = self.resolve_startup_relative_path(legacy_path, os.path.dirname(config_root))
         return payload
 
     def _build_keymap_set_payload(
@@ -544,6 +582,15 @@ class ConfigService:
 
     def _startup_entry_path(self, config_root: str) -> str:
         return os.path.join(config_root, "config.json")
+
+    def _default_keymap_set_path(self, config_root: str) -> str:
+        return self._resolve_config_relative_path(self.KEYMAP_SET_RELATIVE_PATH, config_root)
+
+    def _default_legacy_config_path(self, config_root: str) -> str:
+        return self._resolve_config_relative_path(self.LEGACY_CONFIG_RELATIVE_PATH, config_root)
+
+    def _infer_config_root_from_keymap_set_path(self, keymap_set_path: str) -> str:
+        return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(keymap_set_path))))
 
     def _to_config_relative_path(self, path: str, config_root: str) -> str:
         try:

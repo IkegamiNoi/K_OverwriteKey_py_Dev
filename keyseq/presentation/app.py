@@ -391,9 +391,12 @@ class App(tk.Tk):
         file_menu.add_separator()
         file_menu.add_command(label="保存", command=self.save_config, accelerator="Ctrl+S")
         file_menu.add_command(label="別名で保存…", command=self.save_as, accelerator="Ctrl+Shift+S")
-        file_menu.add_command(label="読込…", command=self.load_from, accelerator="Ctrl+O")
+        file_menu.add_command(label="読込（keymap_set）…", command=self.load_from, accelerator="Ctrl+O")
         file_menu.add_separator()
-        file_menu.add_command(label="起動時に読むJSONを指定…", command=self.set_startup_config)
+        file_menu.add_command(label="Import...", command=self.import_config)
+        file_menu.add_command(label="Export...", command=self.export_config)
+        file_menu.add_separator()
+        file_menu.add_command(label="起動時に読む keymap_set を指定…", command=self.set_startup_config)
         file_menu.add_command(label="例を復元", command=self.restore_default)
         file_menu.add_separator()
         file_menu.add_command(label="終了", command=self.on_close)
@@ -1525,6 +1528,12 @@ class App(tk.Tk):
     def _preferred_startup_path(self) -> str:
         return os.path.join(self.config_root, "config.json")
 
+    def _preferred_keymap_set_path(self) -> str:
+        return os.path.join(self.config_root, "user", "keymap_sets", "default.json")
+
+    def _preferred_keymap_sets_dir(self) -> str:
+        return os.path.dirname(self._preferred_keymap_set_path())
+
     def _preferred_config_path(self) -> str:
         return os.path.join(self.user_root, "config.json")
 
@@ -1537,7 +1546,7 @@ class App(tk.Tk):
         return new_path if os.path.exists(new_path) else old_path
 
     def _resolve_config_path(self) -> str:
-        new_path = self._preferred_config_path()
+        new_path = self._preferred_keymap_set_path()
         old_path = os.path.join(self._legacy_settings_dir(), "config.json")
         return new_path if os.path.exists(new_path) else old_path
 
@@ -1556,17 +1565,33 @@ class App(tk.Tk):
 
     def _normalize_config_save_path(self, path: str) -> str:
         if not path:
-            return self._preferred_config_path()
-        if not self._is_within_legacy_settings(path):
-            return path
-        filename = os.path.basename(path) or "config.json"
-        return os.path.join(self.user_root, filename)
+            return self._preferred_keymap_set_path()
+        if self._is_within_legacy_settings(path):
+            return self._preferred_keymap_set_path()
+        return path
 
     def _suggest_config_dialog_path(self) -> str:
         current = str(getattr(self, "config_path", "") or "").strip()
         if current:
             return self._normalize_config_save_path(current)
-        return self._preferred_config_path()
+        return self._preferred_keymap_set_path()
+
+    def _is_within_config_root(self, path: str) -> bool:
+        if not path:
+            return False
+        try:
+            return os.path.commonpath([os.path.abspath(path), os.path.abspath(self.config_root)]) == os.path.abspath(self.config_root)
+        except Exception:
+            return False
+
+    def _config_relative_path(self, path: str) -> str:
+        try:
+            relative_path = os.path.relpath(path, self.config_root)
+            if relative_path.startswith(".."):
+                return ""
+            return relative_path.replace("\\", "/")
+        except Exception:
+            return ""
 
     def _sync_startup_config_path(self, old_path: str, new_path: str):
         current = getattr(self, "_startup_settings", {})
@@ -1606,60 +1631,42 @@ class App(tk.Tk):
 
     def _load_startup_and_config(self):
         """
-        起動設定JSON があればそれを読み、そこに書かれた config_path を起動時に読み込む。
-        無い場合は既定の本体JSONを読み込む。
+        起動設定JSON があれば split 構成の keymap_set を読み込む。
+        無い場合や split 構成が読めない場合は空データで起動する。
         """
         startup = dict(getattr(self, "_startup_settings", {}) or {})
-        self.config_path = self.config_service.resolve_startup_config_path(
-            startup,
-            self.base_dir,
-            self.config_path,
-        )
+        stored_keymap_set_path = str(startup.get("keymap_set_path") or "").strip()
+        self.config_path = self._preferred_keymap_set_path()
 
-        split_data = self.config_service.try_load_split_runtime_data(
-            startup,
-            config_root=self.config_root,
-        )
-        if split_data is not None:
-            self.data = split_data
-            self._apply_loaded_data_to_ui()
-            return
-
-        cfg = startup.get("config_path")
-        prompt_if_missing = bool(startup.get("prompt_if_missing", True))
-        if cfg:
-            cfg_path = cfg if os.path.isabs(cfg) else os.path.join(self.base_dir, cfg)
-            if os.path.exists(cfg_path):
-                self.config_path = cfg_path
-            elif prompt_if_missing:
-                picked = filedialog.askopenfilename(
-                    title="起動時に読み込むJSONが見つかりません。別のJSONを選択してください。",
-                    filetypes=[("JSON", "*.json"), ("All", "*.*")],
-                )
-                if picked:
-                    self.config_path = picked
-                    self._write_startup(
-                        {
-                            "config_path": self.config_service.resolve_startup_relative_path(
-                                picked,
-                                self.base_dir,
-                            ),
-                            "prompt_if_missing": True,
-                        }
+        if stored_keymap_set_path:
+            resolved_keymap_set_path = os.path.join(self.config_root, stored_keymap_set_path)
+            if os.path.exists(resolved_keymap_set_path):
+                try:
+                    self.data = self.config_service.load_runtime_data_from_keymap_set_path(
+                        resolved_keymap_set_path,
+                        config_root=self.config_root,
                     )
+                    self.config_path = resolved_keymap_set_path
+                    self._apply_loaded_data_to_ui()
+                    return
+                except Exception:
+                    pass
 
-        self._load_if_exists()
+        self.data = self.config_service.new_empty_data()
+        self._apply_loaded_data_to_ui()
 
     def _write_startup(self, data: dict[str, any]):
         base = {
             "prompt_if_missing": True,
             "ui_font_delta_pt": 0,
+            "last_used_directory": "",
         }
         current = getattr(self, "_startup_settings", {})
         if isinstance(current, dict):
             base.update(current)
         if isinstance(data, dict):
             base.update(data)
+        base.pop("config_path", None)
         base["ui_font_delta_pt"] = self._coerce_font_delta(base.get("ui_font_delta_pt", 0))
 
         try:
@@ -1673,32 +1680,44 @@ class App(tk.Tk):
         return self.config_service.resolve_startup_relative_path(path, self.base_dir)
 
     def set_startup_config(self):
-        """ユーザーが起動時に読み込む本体JSON（出力シーケンス）を選び、startup.json に保存する"""
+        """ユーザーが起動時に読み込む keymap_set.json を選び、起動設定へ保存する"""
         if not self._confirm_save_if_dirty("起動時に読むJSONの変更"):
             return
 
         path = filedialog.askopenfilename(
-            title="起動時に読み込むJSONを選択",
+            title="起動時に読み込む keymap_set.json を選択",
+            initialdir=self._preferred_keymap_sets_dir() if os.path.isdir(self._preferred_keymap_sets_dir()) else self.config_root,
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         )
         if not path:
             return
+        if not self._is_within_config_root(path):
+            messagebox.showerror("設定", "keymap_set.json は config フォルダ配下から選択してください。")
+            return
+
+        relative_path = self._config_relative_path(path)
+        if not relative_path:
+            messagebox.showerror("設定", "keymap_set.json の相対パスを解決できませんでした。")
+            return
+
+        try:
+            self.data = self.config_service.load_runtime_data_from_keymap_set_path(
+                path,
+                config_root=self.config_root,
+            )
+        except Exception as e:
+            messagebox.showerror("設定", str(e))
+            return
 
         self.config_path = path
-        self._write_startup(
-            {
-                "config_path": self._to_rel_if_possible(path),
-                "prompt_if_missing": True,
-            }
-        )
-
-        self._load_if_exists()
+        self._write_startup({"keymap_set_path": relative_path, "prompt_if_missing": True})
+        self._apply_loaded_data_to_ui()
         self.state.reset_indices()
         self._refresh_triggers()
         self._refresh_actions()
         self._set_dirty(False)
         self._set_flash_message("起動時読み込み設定を更新しました。")
-        messagebox.showinfo("設定", f"次回起動時はこのJSONを読み込みます:\n{path}")
+        messagebox.showinfo("設定", f"次回起動時はこの keymap_set を読み込みます:\n{path}")
 
     def _update_status(self):
         hook_state = "ON" if self.hook_active else "OFF"
@@ -1930,7 +1949,7 @@ class App(tk.Tk):
         self.data = self.config_service.new_default_data()
         self.data["triggers"] = []
         self.data = self.config_service.normalize_runtime_data(self.data)
-        self.config_path = ""
+        self.config_path = self._preferred_keymap_set_path()
 
         if hasattr(self, "stop_key_var"):
             self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
@@ -1957,9 +1976,6 @@ class App(tk.Tk):
         self._apply_loaded_data_to_ui()
 
     def save_config(self, *, show_success_dialog: bool = True) -> bool:
-        if not self.config_path:
-            return self.save_as(show_success_dialog=show_success_dialog)
-
         try:
             save_path = self._normalize_config_save_path(self.config_path)
             self.data, startup_payload = self.config_service.save_runtime_data(
@@ -1967,7 +1983,7 @@ class App(tk.Tk):
                 self.data,
                 config_root=self.config_root,
                 startup_data=self._startup_settings,
-                keep_legacy_copy=True,
+                keep_legacy_copy=False,
             )
             self.config_path = save_path
             self.startup_path = self._preferred_startup_path()
@@ -1985,13 +2001,16 @@ class App(tk.Tk):
     def save_as(self, *, show_success_dialog: bool = True) -> bool:
         suggested_path = self._suggest_config_dialog_path()
         path = filedialog.asksaveasfilename(
-            title="別名で保存",
-            initialdir=os.path.dirname(suggested_path) if os.path.dirname(suggested_path) else self.user_root,
+            title="別名で保存（keymap_set）",
+            initialdir=self._preferred_keymap_sets_dir() if os.path.isdir(self._preferred_keymap_sets_dir()) else self.config_root,
             initialfile=os.path.basename(suggested_path),
             defaultextension=".json",
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
         )
         if not path:
+            return False
+        if not self._is_within_config_root(path):
+            messagebox.showerror("保存失敗", "keymap_set.json は config フォルダ配下に保存してください。")
             return False
         try:
             save_path = self._normalize_config_save_path(path)
@@ -2000,7 +2019,7 @@ class App(tk.Tk):
                 self.data,
                 config_root=self.config_root,
                 startup_data=self._startup_settings,
-                keep_legacy_copy=True,
+                keep_legacy_copy=False,
             )
             self.config_path = save_path
             self.startup_path = self._preferred_startup_path()
@@ -2020,13 +2039,20 @@ class App(tk.Tk):
             return
 
         path = filedialog.askopenfilename(
-            title="読込",
+            title="keymap_set.json を読込",
+            initialdir=self._preferred_keymap_sets_dir() if os.path.isdir(self._preferred_keymap_sets_dir()) else self.config_root,
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
         )
         if not path:
             return
+        if not self._is_within_config_root(path):
+            messagebox.showerror("読込失敗", "keymap_set.json は config フォルダ配下から選択してください。")
+            return
         try:
-            self.data = self.config_service.load(path)
+            self.data = self.config_service.load_runtime_data_from_keymap_set_path(
+                path,
+                config_root=self.config_root,
+            )
             self.config_path = path
             self._apply_loaded_data_to_ui()
 
@@ -2040,6 +2066,50 @@ class App(tk.Tk):
         except Exception as e:
             self._set_flash_message(f"読込失敗: {e}", auto_clear=False)
             messagebox.showerror("読込失敗", str(e))
+
+    def import_config(self):
+        if not self._confirm_save_if_dirty("Import"):
+            return
+
+        path = filedialog.askopenfilename(
+            title="Import",
+            initialdir=self.user_root if os.path.isdir(self.user_root) else self.base_dir,
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            self.data = self.config_service.load_legacy_runtime_data(path)
+            if not self.config_path:
+                self.config_path = self._preferred_keymap_set_path()
+            self._apply_loaded_data_to_ui()
+            self.state.reset_indices()
+            self._refresh_triggers()
+            self._refresh_actions()
+            self._set_dirty(True)
+            self._set_flash_message("Import しました。")
+            messagebox.showinfo("Import", f"単一JSONを取り込みました:\n{path}")
+        except Exception as e:
+            self._set_flash_message(f"Import 失敗: {e}", auto_clear=False)
+            messagebox.showerror("Import 失敗", str(e))
+
+    def export_config(self):
+        path = filedialog.asksaveasfilename(
+            title="Export",
+            initialdir=self.user_root if os.path.isdir(self.user_root) else self.base_dir,
+            initialfile="config.json",
+            defaultextension=".json",
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            self.config_service.export_runtime_data(path, self.data)
+            self._set_flash_message("Export しました。")
+            messagebox.showinfo("Export", f"単一JSONを書き出しました:\n{path}")
+        except Exception as e:
+            self._set_flash_message(f"Export 失敗: {e}", auto_clear=False)
+            messagebox.showerror("Export 失敗", str(e))
 
     def _apply_loaded_data_to_ui(self):
         if hasattr(self, "stop_key_var"):
