@@ -84,9 +84,9 @@ class FullView(ttk.Frame):
         self.file_frame = ttk.LabelFrame(self.header_area, text="ファイル", padding=(10, 6))
         self.file_frame.pack(side="right", fill="y", padx=(12, 0))
 
-        ttk.Button(self.file_frame, text="保存", width=18, command=app.save_config).pack(fill="x", pady=(0, 4))
+        ttk.Button(self.file_frame, text="保存", width=18, command=app.save_keymap_set).pack(fill="x", pady=(0, 4))
         ttk.Button(self.file_frame, text="別名で保存...", width=18, command=app.save_as).pack(fill="x", pady=4)
-        ttk.Button(self.file_frame, text="読込...", width=18, command=app.load_from).pack(fill="x", pady=4)
+        ttk.Button(self.file_frame, text="読込...", width=18, command=app.load_keymap_set_from).pack(fill="x", pady=4)
 
         ttk.Button(self.file_frame, text="新規作成", width=18, command=app.new_config).pack(fill="x", pady=4)
 

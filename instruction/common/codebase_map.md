@@ -37,6 +37,14 @@ infrastructure
 
 - UI全体の管理
 - View切替（Full / Compact）
+- 分離JSONの現在の構成セットパス（keymap_set_path）を管理
+- 通常の保存/読込/起動時読込は keymap_set.json を入口にする
+
+### ConfigService
+
+- 単一JSON互換の読込/書出
+- split構成の読込/保存
+- config配下は相対、外部は絶対のパス保存ルールを扱う
 
 ---
 

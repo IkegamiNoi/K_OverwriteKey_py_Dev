@@ -59,7 +59,7 @@ class App(tk.Tk):
         self.user_root = os.path.join(self.config_root, "user")
         os.makedirs(self.user_root, exist_ok=True)
         self.startup_path = self._resolve_startup_path()
-        self.config_path = self._resolve_config_path()
+        self.keymap_set_path = self._resolve_keymap_set_path()
         self.keyboard_layouts_dir = self._resolve_keylayout_dir()
         self.keyboard_layout_id = DEFAULT_LAYOUT_ID
         self._keyboard_layout_entries: dict[str, KeyboardLayoutEntry] = {}
@@ -340,7 +340,7 @@ class App(tk.Tk):
         self._update_file_status()
 
     def _update_file_status(self):
-        name = os.path.basename(self.config_path or "") or "(未設定)"
+        name = os.path.basename(self.keymap_set_path or "") or "(未設定)"
         save_state = "未保存" if self._is_dirty else "保存済み"
         self.file_status_var.set(f"ファイル: {name} / {save_state}")
 
@@ -389,14 +389,14 @@ class App(tk.Tk):
         file_menu = tk.Menu(menubar, tearoff=False)
         file_menu.add_command(label="新規作成", command=self.new_config, accelerator="Ctrl+N")
         file_menu.add_separator()
-        file_menu.add_command(label="保存", command=self.save_config, accelerator="Ctrl+S")
+        file_menu.add_command(label="保存", command=self.save_keymap_set, accelerator="Ctrl+S")
         file_menu.add_command(label="別名で保存…", command=self.save_as, accelerator="Ctrl+Shift+S")
-        file_menu.add_command(label="読込（keymap_set）…", command=self.load_from, accelerator="Ctrl+O")
+        file_menu.add_command(label="読込（構成セット）…", command=self.load_keymap_set_from, accelerator="Ctrl+O")
         file_menu.add_separator()
         file_menu.add_command(label="Import...", command=self.import_config)
         file_menu.add_command(label="Export...", command=self.export_config)
         file_menu.add_separator()
-        file_menu.add_command(label="起動時に読む keymap_set を指定…", command=self.set_startup_config)
+        file_menu.add_command(label="起動時に読む構成セットを指定…", command=self.set_startup_keymap_set)
         file_menu.add_command(label="例を復元", command=self.restore_default)
         file_menu.add_separator()
         file_menu.add_command(label="終了", command=self.on_close)
@@ -455,7 +455,7 @@ class App(tk.Tk):
     def _on_shortcut_save(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.save_config()
+        self.save_keymap_set()
         return "break"
 
     def _on_shortcut_new(self, _event=None):
@@ -473,7 +473,7 @@ class App(tk.Tk):
     def _on_shortcut_load(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.load_from()
+        self.load_keymap_set_from()
         return "break"
 
     def _on_shortcut_open_preset_manager(self, _event=None):
@@ -581,11 +581,11 @@ class App(tk.Tk):
         self._refresh_keyboard_window()
 
     def _persist_keyboard_layout_selection(self):
-        if not self.config_path:
+        if not self.keymap_set_path:
             self._set_dirty(True)
             return True
         try:
-            return self.save_config(show_success_dialog=False)
+            return self.save_keymap_set(show_success_dialog=False)
         except Exception as e:
             self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
@@ -1545,7 +1545,9 @@ class App(tk.Tk):
         old_path = os.path.join(self._legacy_settings_dir(), "startup.json")
         return new_path if os.path.exists(new_path) else old_path
 
-    def _resolve_config_path(self) -> str:
+    def _resolve_keymap_set_path(self, path: str = "") -> str:
+        if path:
+            return path if os.path.isabs(path) else os.path.normpath(os.path.join(self.config_root, path))
         new_path = self._preferred_keymap_set_path()
         old_path = os.path.join(self._legacy_settings_dir(), "config.json")
         return new_path if os.path.exists(new_path) else old_path
@@ -1563,35 +1565,33 @@ class App(tk.Tk):
         except Exception:
             return False
 
-    def _normalize_config_save_path(self, path: str) -> str:
+    def _normalize_keymap_set_save_path(self, path: str) -> str:
         if not path:
             return self._preferred_keymap_set_path()
         if self._is_within_legacy_settings(path):
             return self._preferred_keymap_set_path()
         return path
 
-    def _suggest_config_dialog_path(self) -> str:
-        current = str(getattr(self, "config_path", "") or "").strip()
+    def _suggest_keymap_set_dialog_path(self) -> str:
+        current = str(getattr(self, "keymap_set_path", "") or "").strip()
         if current:
-            return self._normalize_config_save_path(current)
+            return self._normalize_keymap_set_save_path(current)
         return self._preferred_keymap_set_path()
 
-    def _is_within_config_root(self, path: str) -> bool:
-        if not path:
-            return False
-        try:
-            return os.path.commonpath([os.path.abspath(path), os.path.abspath(self.config_root)]) == os.path.abspath(self.config_root)
-        except Exception:
-            return False
+    def _suggest_keymap_set_dialog_dir(self) -> str:
+        current = str(getattr(self, "keymap_set_path", "") or "").strip()
+        if current:
+            current_dir = os.path.dirname(os.path.abspath(current))
+            if os.path.isdir(current_dir):
+                return current_dir
 
-    def _config_relative_path(self, path: str) -> str:
-        try:
-            relative_path = os.path.relpath(path, self.config_root)
-            if relative_path.startswith(".."):
-                return ""
-            return relative_path.replace("\\", "/")
-        except Exception:
-            return ""
+        preferred_dir = self._preferred_keymap_sets_dir()
+        if os.path.isdir(preferred_dir):
+            return preferred_dir
+        return self.config_root
+
+    def _to_config_relative_or_absolute(self, path: str) -> str:
+        return self.config_service._to_config_relative_or_absolute(path, self.config_root)
 
     def _sync_startup_config_path(self, old_path: str, new_path: str):
         current = getattr(self, "_startup_settings", {})
@@ -1636,17 +1636,17 @@ class App(tk.Tk):
         """
         startup = dict(getattr(self, "_startup_settings", {}) or {})
         stored_keymap_set_path = str(startup.get("keymap_set_path") or "").strip()
-        self.config_path = self._preferred_keymap_set_path()
+        self.keymap_set_path = self._preferred_keymap_set_path()
 
         if stored_keymap_set_path:
-            resolved_keymap_set_path = os.path.join(self.config_root, stored_keymap_set_path)
+            resolved_keymap_set_path = self._resolve_keymap_set_path(stored_keymap_set_path)
             if os.path.exists(resolved_keymap_set_path):
                 try:
                     self.data = self.config_service.load_runtime_data_from_keymap_set_path(
                         resolved_keymap_set_path,
                         config_root=self.config_root,
                     )
-                    self.config_path = resolved_keymap_set_path
+                    self.keymap_set_path = resolved_keymap_set_path
                     self._apply_loaded_data_to_ui()
                     return
                 except Exception:
@@ -1679,25 +1679,17 @@ class App(tk.Tk):
     def _to_rel_if_possible(self, path: str) -> str:
         return self.config_service.resolve_startup_relative_path(path, self.base_dir)
 
-    def set_startup_config(self):
+    def set_startup_keymap_set(self):
         """ユーザーが起動時に読み込む keymap_set.json を選び、起動設定へ保存する"""
         if not self._confirm_save_if_dirty("起動時に読むJSONの変更"):
             return
 
         path = filedialog.askopenfilename(
             title="起動時に読み込む keymap_set.json を選択",
-            initialdir=self._preferred_keymap_sets_dir() if os.path.isdir(self._preferred_keymap_sets_dir()) else self.config_root,
+            initialdir=self._suggest_keymap_set_dialog_dir(),
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         )
         if not path:
-            return
-        if not self._is_within_config_root(path):
-            messagebox.showerror("設定", "keymap_set.json は config フォルダ配下から選択してください。")
-            return
-
-        relative_path = self._config_relative_path(path)
-        if not relative_path:
-            messagebox.showerror("設定", "keymap_set.json の相対パスを解決できませんでした。")
             return
 
         try:
@@ -1709,8 +1701,8 @@ class App(tk.Tk):
             messagebox.showerror("設定", str(e))
             return
 
-        self.config_path = path
-        self._write_startup({"keymap_set_path": relative_path, "prompt_if_missing": True})
+        self.keymap_set_path = path
+        self._write_startup({"keymap_set_path": self._to_config_relative_or_absolute(path), "prompt_if_missing": True})
         self._apply_loaded_data_to_ui()
         self.state.reset_indices()
         self._refresh_triggers()
@@ -1938,8 +1930,8 @@ class App(tk.Tk):
         if result is False:
             return True
 
-        if self.config_path:
-            return self.save_config(show_success_dialog=False)
+        if self.keymap_set_path:
+            return self.save_keymap_set(show_success_dialog=False)
         return self.save_as(show_success_dialog=False)
 
     def new_config(self):
@@ -1949,7 +1941,7 @@ class App(tk.Tk):
         self.data = self.config_service.new_default_data()
         self.data["triggers"] = []
         self.data = self.config_service.normalize_runtime_data(self.data)
-        self.config_path = self._preferred_keymap_set_path()
+        self.keymap_set_path = self._preferred_keymap_set_path()
 
         if hasattr(self, "stop_key_var"):
             self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
@@ -1968,16 +1960,16 @@ class App(tk.Tk):
 
     def _load_if_exists(self):
         try:
-            self.data, _ = self.config_service.load_if_exists(self.config_path)
+            self.data, _ = self.config_service.load_if_exists(self.keymap_set_path)
         except Exception as e:
             messagebox.showwarning("読込失敗", f"config.json の読込に失敗しました。\n{e}\n\n例の設定で起動します。")
             self.data = self.config_service.new_default_data()
 
         self._apply_loaded_data_to_ui()
 
-    def save_config(self, *, show_success_dialog: bool = True) -> bool:
+    def save_keymap_set(self, *, show_success_dialog: bool = True) -> bool:
         try:
-            save_path = self._normalize_config_save_path(self.config_path)
+            save_path = self._normalize_keymap_set_save_path(self.keymap_set_path)
             self.data, startup_payload = self.config_service.save_runtime_data(
                 save_path,
                 self.data,
@@ -1985,7 +1977,7 @@ class App(tk.Tk):
                 startup_data=self._startup_settings,
                 keep_legacy_copy=False,
             )
-            self.config_path = save_path
+            self.keymap_set_path = save_path
             self.startup_path = self._preferred_startup_path()
             self._startup_settings = startup_payload
             self._set_dirty(False)
@@ -1999,21 +1991,18 @@ class App(tk.Tk):
             return False
 
     def save_as(self, *, show_success_dialog: bool = True) -> bool:
-        suggested_path = self._suggest_config_dialog_path()
+        suggested_path = self._suggest_keymap_set_dialog_path()
         path = filedialog.asksaveasfilename(
             title="別名で保存（keymap_set）",
-            initialdir=self._preferred_keymap_sets_dir() if os.path.isdir(self._preferred_keymap_sets_dir()) else self.config_root,
+            initialdir=self._suggest_keymap_set_dialog_dir(),
             initialfile=os.path.basename(suggested_path),
             defaultextension=".json",
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
         )
         if not path:
             return False
-        if not self._is_within_config_root(path):
-            messagebox.showerror("保存失敗", "keymap_set.json は config フォルダ配下に保存してください。")
-            return False
         try:
-            save_path = self._normalize_config_save_path(path)
+            save_path = self._normalize_keymap_set_save_path(path)
             self.data, startup_payload = self.config_service.save_runtime_data(
                 save_path,
                 self.data,
@@ -2021,7 +2010,7 @@ class App(tk.Tk):
                 startup_data=self._startup_settings,
                 keep_legacy_copy=False,
             )
-            self.config_path = save_path
+            self.keymap_set_path = save_path
             self.startup_path = self._preferred_startup_path()
             self._startup_settings = startup_payload
             self._set_dirty(False)
@@ -2034,26 +2023,23 @@ class App(tk.Tk):
             messagebox.showerror("保存失敗", str(e))
             return False
 
-    def load_from(self):
+    def load_keymap_set_from(self):
         if not self._confirm_save_if_dirty("読込"):
             return
 
         path = filedialog.askopenfilename(
             title="keymap_set.json を読込",
-            initialdir=self._preferred_keymap_sets_dir() if os.path.isdir(self._preferred_keymap_sets_dir()) else self.config_root,
+            initialdir=self._suggest_keymap_set_dialog_dir(),
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
         )
         if not path:
-            return
-        if not self._is_within_config_root(path):
-            messagebox.showerror("読込失敗", "keymap_set.json は config フォルダ配下から選択してください。")
             return
         try:
             self.data = self.config_service.load_runtime_data_from_keymap_set_path(
                 path,
                 config_root=self.config_root,
             )
-            self.config_path = path
+            self.keymap_set_path = path
             self._apply_loaded_data_to_ui()
 
             self._indices = {}
@@ -2080,8 +2066,8 @@ class App(tk.Tk):
             return
         try:
             self.data = self.config_service.load_legacy_runtime_data(path)
-            if not self.config_path:
-                self.config_path = self._preferred_keymap_set_path()
+            if not self.keymap_set_path:
+                self.keymap_set_path = self._preferred_keymap_set_path()
             self._apply_loaded_data_to_ui()
             self.state.reset_indices()
             self._refresh_triggers()

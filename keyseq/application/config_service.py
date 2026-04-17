@@ -387,7 +387,7 @@ class ConfigService:
             payload.update(safe_deepcopy(startup_data))
 
         payload.pop("config_path", None)
-        payload["keymap_set_path"] = self._to_config_relative_path(keymap_set_path, config_root)
+        payload["keymap_set_path"] = self._to_config_relative_or_absolute(keymap_set_path, config_root)
         try:
             payload["ui_font_delta_pt"] = int(payload.get("ui_font_delta_pt", 0) or 0)
         except Exception:
@@ -592,14 +592,19 @@ class ConfigService:
     def _infer_config_root_from_keymap_set_path(self, keymap_set_path: str) -> str:
         return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(keymap_set_path))))
 
-    def _to_config_relative_path(self, path: str, config_root: str) -> str:
+    def _to_config_relative_or_absolute(self, path: str, config_root: str) -> str:
+        absolute_path = os.path.abspath(path)
+        absolute_config_root = os.path.abspath(config_root)
         try:
-            relative_path = os.path.relpath(path, config_root)
-            if relative_path.startswith(".."):
-                return self._normalize_path_separators(path)
-            return self._normalize_path_separators(relative_path)
+            if os.path.commonpath([absolute_path, absolute_config_root]) == absolute_config_root:
+                relative_path = os.path.relpath(absolute_path, absolute_config_root)
+                return self._normalize_path_separators(relative_path)
         except Exception:
-            return self._normalize_path_separators(path)
+            pass
+        return self._normalize_path_separators(absolute_path)
+
+    def _to_config_relative_path(self, path: str, config_root: str) -> str:
+        return self._to_config_relative_or_absolute(path, config_root)
 
     def _resolve_config_relative_path(self, path: str, config_root: str) -> str:
         normalized = str(path or "").strip()
