@@ -13,8 +13,14 @@ class ConfigService:
     TRIGGER_SET_RELATIVE_PATH = os.path.join("user", "trigger_sets", "default.json")
     HOTKEY_PRESETS_RELATIVE_PATH = os.path.join("user", "hotkey_presets", "default.json")
     KEYMAPS_RELATIVE_DIR = os.path.join("user", "keymaps")
+    SEQUENCES_RELATIVE_DIR = os.path.join("user", "sequences")
     LEGACY_CONFIG_RELATIVE_PATH = os.path.join("user", "config.json")
     INTERNAL_KEYMAP_SOURCE_PATH = "_keymap_source_path"
+    INTERNAL_KEYMAP_IMPORTED = "_keymap_imported"
+    INTERNAL_KEYMAP_DIRTY = "_keymap_dirty"
+    INTERNAL_SEQUENCE_SOURCE_PATH = "_sequence_source_path"
+    INTERNAL_SEQUENCE_IMPORTED = "_sequence_imported"
+    INTERNAL_SEQUENCE_DIRTY = "_sequence_dirty"
 
     def __init__(self, repository: JsonRepository):
         self.repository = repository
@@ -134,6 +140,106 @@ class ConfigService:
         self.repository.save_json(path, self._sanitize_runtime_for_storage(normalized))
         return normalized
 
+    def load_keymap_file(
+        self,
+        path: str,
+        *,
+        used_keymap_ids: set[str] | None = None,
+        imported: bool = True,
+    ) -> dict[str, Any]:
+        raw_keymap = self.repository.load_json(path)
+        if not isinstance(raw_keymap, dict):
+            raise ValueError("keymap JSON の形式が不正です。")
+        used_ids = used_keymap_ids if used_keymap_ids is not None else set()
+        keymap_id = self._generate_keymap_id(path, raw_keymap, used_ids)
+        mappings = raw_keymap.get("mappings")
+        if not isinstance(mappings, dict):
+            mappings = {}
+        keymap = {
+            "id": keymap_id,
+            "label": str(raw_keymap.get("label") or "").strip(),
+            "mappings": safe_deepcopy(mappings),
+            self.INTERNAL_KEYMAP_SOURCE_PATH: path,
+            self.INTERNAL_KEYMAP_IMPORTED: bool(imported),
+            self.INTERNAL_KEYMAP_DIRTY: False,
+        }
+        return ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [keymap])[0]
+
+    def save_keymap_file(self, path: str, keymap: dict[str, Any]) -> dict[str, Any]:
+        normalized = ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [])
+        if not normalized:
+            raise ValueError("保存できる keymap がありません。")
+        item = normalized[0]
+        payload = self._build_keymap_file_payload(item)
+        self.repository.save_json(path, payload)
+        saved = safe_deepcopy(item)
+        saved[self.INTERNAL_KEYMAP_SOURCE_PATH] = path
+        saved[self.INTERNAL_KEYMAP_IMPORTED] = False
+        saved[self.INTERNAL_KEYMAP_DIRTY] = False
+        return saved
+
+    def load_sequence_file(self, path: str, *, imported: bool = True) -> dict[str, Any]:
+        raw_sequence = self.repository.load_json(path)
+        if not isinstance(raw_sequence, dict):
+            raise ValueError("sequence JSON の形式が不正です。")
+        sequence = self._normalize_sequence_payload(raw_sequence)
+        sequence[self.INTERNAL_SEQUENCE_SOURCE_PATH] = path
+        sequence[self.INTERNAL_SEQUENCE_IMPORTED] = bool(imported)
+        sequence[self.INTERNAL_SEQUENCE_DIRTY] = False
+        return sequence
+
+    def save_sequence_file(self, path: str, trigger: dict[str, Any]) -> dict[str, Any]:
+        payload = self._build_sequence_payload(trigger)
+        self.repository.save_json(path, payload)
+        sequence = self._normalize_sequence_payload(payload)
+        sequence[self.INTERNAL_SEQUENCE_SOURCE_PATH] = path
+        sequence[self.INTERNAL_SEQUENCE_IMPORTED] = False
+        sequence[self.INTERNAL_SEQUENCE_DIRTY] = False
+        return sequence
+
+    def load_trigger_set_file(
+        self,
+        path: str,
+        *,
+        config_root: str,
+        imported: bool = True,
+    ) -> list[dict[str, Any]]:
+        payload = self.repository.load_json(path)
+        if not isinstance(payload, dict):
+            raise ValueError("trigger_set JSON の形式が不正です。")
+        return self._load_triggers_from_trigger_set(payload, config_root=config_root, imported=imported)
+
+    def save_trigger_set_file(
+        self,
+        path: str,
+        data: dict[str, Any],
+        *,
+        config_root: str,
+    ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        normalized = ensure_config_compatibility(data)
+        trigger_payload, sequence_items = self._build_trigger_set_payloads(
+            normalized,
+            config_root=os.path.abspath(config_root),
+            trigger_set_path=os.path.abspath(path),
+        )
+        for item in sequence_items:
+            self.repository.save_json(str(item["resolved_path"]), item["payload"])
+        self.repository.save_json(path, trigger_payload)
+
+        triggers = safe_deepcopy(normalized.get("triggers", [])) if isinstance(normalized.get("triggers"), list) else []
+        by_key = {
+            normalize_key_name(str(item.get("key") or "")): str(item.get("resolved_path") or "")
+            for item in sequence_items
+            if isinstance(item, dict)
+        }
+        for trigger in triggers:
+            key = normalize_key_name(str(trigger.get("key") or ""))
+            if key in by_key:
+                trigger[self.INTERNAL_SEQUENCE_SOURCE_PATH] = by_key[key]
+            trigger[self.INTERNAL_SEQUENCE_IMPORTED] = False
+            trigger[self.INTERNAL_SEQUENCE_DIRTY] = False
+        return triggers, trigger_payload
+
     def save_runtime_data(
         self,
         keymap_set_path: str,
@@ -143,11 +249,13 @@ class ConfigService:
         startup_data: Any = None,
         keep_legacy_copy: bool = False,
         legacy_path: str = "",
+        split_base_dir: str = "",
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         normalized = ensure_config_compatibility(data)
         sanitized_legacy = self._sanitize_runtime_for_storage(normalized)
         resolved_config_root = os.path.abspath(config_root)
         resolved_keymap_set_path = os.path.abspath(keymap_set_path) if keymap_set_path else self._default_keymap_set_path(resolved_config_root)
+        resolved_split_base_dir = os.path.abspath(split_base_dir) if split_base_dir else ""
 
         payloads = self._build_split_save_payloads(
             normalized,
@@ -155,22 +263,28 @@ class ConfigService:
             startup_data=startup_data,
             keymap_set_path=resolved_keymap_set_path,
             legacy_path=legacy_path if keep_legacy_copy else "",
+            split_base_dir=resolved_split_base_dir,
         )
 
         self._ensure_split_config_dirs(resolved_config_root)
         self.repository.save_json(self._startup_entry_path(resolved_config_root), payloads["startup"])
         self.repository.save_json(resolved_keymap_set_path, payloads["keymap_set"])
         self.repository.save_json(
-            self._resolve_config_relative_path(self.TRIGGER_SET_RELATIVE_PATH, resolved_config_root),
+            str(payloads["trigger_set_path"]),
             payloads["trigger_set"],
         )
         self.repository.save_json(
-            self._resolve_config_relative_path(self.HOTKEY_PRESETS_RELATIVE_PATH, resolved_config_root),
+            str(payloads["hotkey_presets_path"]),
             payloads["hotkey_presets"],
         )
         for item in payloads["keymaps"]:
             self.repository.save_json(
                 self._resolve_config_relative_path(str(item["path"]), resolved_config_root),
+                item["payload"],
+            )
+        for item in payloads["sequences"]:
+            self.repository.save_json(
+                str(item["resolved_path"]),
                 item["payload"],
             )
 
@@ -208,9 +322,8 @@ class ConfigService:
             keymap_set.get("external_keyboard_layouts"),
             config_root=config_root,
         )
-        runtime["triggers"] = self._load_named_list(
+        runtime["triggers"] = self._load_trigger_set(
             keymap_set.get("trigger_set_path"),
-            root_key="triggers",
             config_root=config_root,
         )
         runtime["hotkey_presets"] = self._load_named_list(
@@ -303,8 +416,61 @@ class ConfigService:
                 "label": str(raw_keymap.get("label") or "").strip(),
                 "mappings": safe_deepcopy(mappings),
                 self.INTERNAL_KEYMAP_SOURCE_PATH: stored_path,
+                self.INTERNAL_KEYMAP_IMPORTED: False,
+                self.INTERNAL_KEYMAP_DIRTY: False,
             },
         }
+
+    def _load_trigger_set(self, path_value: Any, *, config_root: str) -> list[dict[str, Any]]:
+        stored_path = str(path_value or "").strip()
+        if not stored_path:
+            return []
+
+        resolved_path = self._resolve_config_relative_path(stored_path, config_root)
+        loaded = self._load_optional_json(resolved_path)
+        if not isinstance(loaded, dict):
+            return []
+        return self._load_triggers_from_trigger_set(loaded, config_root=config_root, imported=False)
+
+    def _load_triggers_from_trigger_set(
+        self,
+        trigger_set: dict[str, Any],
+        *,
+        config_root: str,
+        imported: bool,
+    ) -> list[dict[str, Any]]:
+        raw_triggers = trigger_set.get("triggers")
+        if not isinstance(raw_triggers, list):
+            return []
+
+        triggers: list[dict[str, Any]] = []
+        for raw_trigger in raw_triggers:
+            if not isinstance(raw_trigger, dict):
+                continue
+
+            trigger = {
+                "key": normalize_key_name(str(raw_trigger.get("key") or "")),
+                "suppress": bool(raw_trigger.get("suppress", True)),
+                "label": str(raw_trigger.get("label") or "").strip(),
+                "run_to_end": bool(raw_trigger.get("run_to_end", False)),
+                "run_to_end_delay_ms": self._coerce_nonnegative_int(raw_trigger.get("run_to_end_delay_ms", 300), 300),
+                "actions": safe_deepcopy(raw_trigger.get("actions", []))
+                if isinstance(raw_trigger.get("actions"), list)
+                else [],
+            }
+            sequence_path = str(raw_trigger.get("sequence_path") or "").strip()
+            if sequence_path:
+                resolved_sequence_path = self._resolve_config_relative_path(sequence_path, config_root)
+                sequence = self._load_optional_json(resolved_sequence_path)
+                if isinstance(sequence, dict):
+                    normalized_sequence = self._normalize_sequence_payload(sequence)
+                    trigger.update(normalized_sequence)
+                    trigger[self.INTERNAL_SEQUENCE_SOURCE_PATH] = sequence_path
+                    trigger[self.INTERNAL_SEQUENCE_IMPORTED] = bool(imported)
+                    trigger[self.INTERNAL_SEQUENCE_DIRTY] = False
+            triggers.append(trigger)
+
+        return ensure_config_compatibility({"triggers": triggers}).get("triggers", [])
 
     def _load_named_list(
         self,
@@ -335,8 +501,21 @@ class ConfigService:
         startup_data: Any,
         keymap_set_path: str,
         legacy_path: str,
+        split_base_dir: str,
     ) -> dict[str, Any]:
-        keymap_payloads = self._build_keymap_payloads(runtime)
+        keymaps_dir = os.path.join(split_base_dir, "keymaps") if split_base_dir else ""
+        sequences_dir = os.path.join(split_base_dir, "sequences") if split_base_dir else ""
+        trigger_set_path = (
+            os.path.join(split_base_dir, "trigger_sets", "default.json")
+            if split_base_dir
+            else self._resolve_config_relative_path(self.TRIGGER_SET_RELATIVE_PATH, config_root)
+        )
+        hotkey_presets_path = (
+            os.path.join(split_base_dir, "hotkey_presets", "default.json")
+            if split_base_dir
+            else self._resolve_config_relative_path(self.HOTKEY_PRESETS_RELATIVE_PATH, config_root)
+        )
+        keymap_payloads = self._build_keymap_payloads(runtime, config_root=config_root, keymaps_dir=keymaps_dir)
         keymap_paths_by_id = {
             str(item["id"]): str(item["path"])
             for item in keymap_payloads
@@ -348,12 +527,19 @@ class ConfigService:
             keymap_set_path=keymap_set_path,
             legacy_path=legacy_path,
         )
-        keymap_set_payload = self._build_keymap_set_payload(runtime, keymap_paths_by_id)
-        trigger_payload = {
-            "triggers": safe_deepcopy(runtime.get("triggers", []))
-            if isinstance(runtime.get("triggers"), list)
-            else []
-        }
+        keymap_set_payload = self._build_keymap_set_payload(
+            runtime,
+            keymap_paths_by_id,
+            config_root=config_root,
+            trigger_set_path=trigger_set_path,
+            hotkey_presets_path=hotkey_presets_path,
+        )
+        trigger_payload, sequence_payloads = self._build_trigger_set_payloads(
+            runtime,
+            config_root=config_root,
+            trigger_set_path=trigger_set_path,
+            sequences_dir=sequences_dir,
+        )
         hotkey_presets_payload = {
             "hotkey_presets": safe_deepcopy(runtime.get("hotkey_presets", []))
             if isinstance(runtime.get("hotkey_presets"), list)
@@ -369,9 +555,12 @@ class ConfigService:
         return {
             "startup": startup_payload,
             "keymap_set": keymap_set_payload,
+            "trigger_set_path": trigger_set_path,
             "trigger_set": trigger_payload,
+            "hotkey_presets_path": hotkey_presets_path,
             "hotkey_presets": hotkey_presets_payload,
             "keymaps": serialized_keymaps,
+            "sequences": sequence_payloads,
         }
 
     def _build_startup_payload(
@@ -402,6 +591,10 @@ class ConfigService:
         self,
         runtime: dict[str, Any],
         keymap_paths_by_id: dict[str, str],
+        *,
+        config_root: str,
+        trigger_set_path: str,
+        hotkey_presets_path: str,
     ) -> dict[str, Any]:
         keymap_entries: list[dict[str, Any]] = []
         switch_keys = runtime.get("keymap_switch_keys", {})
@@ -435,8 +628,8 @@ class ConfigService:
             active_keymap_path = str(keymap_entries[0].get("path") or "")
 
         return {
-            "trigger_set_path": self._normalize_path_separators(self.TRIGGER_SET_RELATIVE_PATH),
-            "hotkey_presets_path": self._normalize_path_separators(self.HOTKEY_PRESETS_RELATIVE_PATH),
+            "trigger_set_path": self._to_config_relative_or_absolute(trigger_set_path, config_root),
+            "hotkey_presets_path": self._to_config_relative_or_absolute(hotkey_presets_path, config_root),
             "active_keymap_path": active_keymap_path,
             "keymaps": keymap_entries,
             "hook_stop_key": normalize_key_name(runtime.get("hook_stop_key", "")),
@@ -449,7 +642,13 @@ class ConfigService:
             else [],
         }
 
-    def _build_keymap_payloads(self, runtime: dict[str, Any]) -> list[dict[str, Any]]:
+    def _build_keymap_payloads(
+        self,
+        runtime: dict[str, Any],
+        *,
+        config_root: str,
+        keymaps_dir: str = "",
+    ) -> list[dict[str, Any]]:
         keymaps = runtime.get("keymaps", [])
         if not isinstance(keymaps, list):
             return []
@@ -464,21 +663,191 @@ class ConfigService:
             if not keymap_id:
                 continue
 
-            base_name = self._resolve_keymap_file_base_name(keymap)
-            relative_path = self._allocate_unique_keymap_path(base_name, used_relative_paths)
+            stored_path = str(keymap.get(self.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
+            if stored_path:
+                resolved_path = self._resolve_config_relative_path(stored_path, config_root)
+                relative_path = self._to_config_relative_or_absolute(resolved_path, config_root)
+                normalized_for_collision = self._normalize_path_separators(relative_path)
+                if normalized_for_collision in used_relative_paths:
+                    base_name = self._resolve_keymap_file_base_name(keymap)
+                    relative_path = self._allocate_unique_keymap_path(base_name, used_relative_paths)
+                else:
+                    used_relative_paths.add(normalized_for_collision)
+            else:
+                base_name = self._resolve_keymap_file_base_name(keymap)
+                if keymaps_dir:
+                    relative_path = self._allocate_unique_absolute_path(
+                        keymaps_dir,
+                        base_name,
+                        "keymap",
+                        used_relative_paths,
+                        config_root,
+                    )
+                else:
+                    relative_path = self._allocate_unique_keymap_path(base_name, used_relative_paths)
             resolved_paths.append(
                 {
                     "id": keymap_id,
                     "path": relative_path,
-                    "payload": {
-                        "label": str(keymap.get("label") or "").strip(),
-                        "mappings": safe_deepcopy(keymap.get("mappings", {}))
-                        if isinstance(keymap.get("mappings"), dict)
-                        else {},
-                    },
+                    "payload": self._build_keymap_file_payload(keymap),
                 }
             )
         return resolved_paths
+
+    def _build_keymap_file_payload(self, keymap: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "label": str(keymap.get("label") or "").strip(),
+            "mappings": safe_deepcopy(keymap.get("mappings", {}))
+            if isinstance(keymap.get("mappings"), dict)
+            else {},
+        }
+
+    def _build_trigger_set_payloads(
+        self,
+        runtime: dict[str, Any],
+        *,
+        config_root: str,
+        trigger_set_path: str,
+        sequences_dir: str = "",
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        triggers = runtime.get("triggers", [])
+        if not isinstance(triggers, list):
+            return {"triggers": []}, []
+
+        used_paths: set[str] = set()
+        trigger_entries: list[dict[str, Any]] = []
+        sequence_payloads: list[dict[str, Any]] = []
+        for trigger in triggers:
+            if not isinstance(trigger, dict):
+                continue
+
+            key = normalize_key_name(str(trigger.get("key") or ""))
+            if not key:
+                continue
+
+            sequence_path = self._resolve_sequence_save_path(
+                trigger,
+                config_root=config_root,
+                trigger_set_path=trigger_set_path,
+                sequences_dir=sequences_dir,
+                used_paths=used_paths,
+            )
+            resolved_sequence_path = self._resolve_config_relative_path(sequence_path, config_root)
+            stored_sequence_path = self._to_config_relative_or_absolute(resolved_sequence_path, config_root)
+            trigger_entries.append(
+                {
+                    "key": key,
+                    "suppress": bool(trigger.get("suppress", True)),
+                    "sequence_path": stored_sequence_path,
+                }
+            )
+            sequence_payloads.append(
+                {
+                    "key": key,
+                    "path": stored_sequence_path,
+                    "resolved_path": resolved_sequence_path,
+                    "payload": self._build_sequence_payload(trigger),
+                }
+            )
+
+        return {"triggers": trigger_entries}, sequence_payloads
+
+    def _resolve_sequence_save_path(
+        self,
+        trigger: dict[str, Any],
+        *,
+        config_root: str,
+        trigger_set_path: str,
+        sequences_dir: str,
+        used_paths: set[str],
+    ) -> str:
+        source_path = str(trigger.get(self.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
+        if source_path:
+            resolved_source_path = self._resolve_config_relative_path(source_path, config_root)
+            stored_source_path = self._to_config_relative_or_absolute(resolved_source_path, config_root)
+            normalized_source_path = self._normalize_path_separators(stored_source_path)
+            if normalized_source_path not in used_paths:
+                used_paths.add(normalized_source_path)
+                return stored_source_path
+
+        base_name = self._resolve_sequence_file_base_name(trigger)
+        if self._is_default_trigger_set_area(trigger_set_path, config_root):
+            return self._allocate_unique_relative_path(self.SEQUENCES_RELATIVE_DIR, base_name, "sequence", used_paths)
+
+        sequence_dir = sequences_dir or os.path.join(os.path.dirname(os.path.abspath(trigger_set_path)), "sequences")
+        return self._allocate_unique_absolute_path(sequence_dir, base_name, "sequence", used_paths, config_root)
+
+    def _build_sequence_payload(self, trigger: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "label": str(trigger.get("label") or "").strip(),
+            "run_to_end": bool(trigger.get("run_to_end", False)),
+            "run_to_end_delay_ms": self._coerce_nonnegative_int(trigger.get("run_to_end_delay_ms", 300), 300),
+            "actions": safe_deepcopy(trigger.get("actions", []))
+            if isinstance(trigger.get("actions"), list)
+            else [],
+        }
+
+    def _normalize_sequence_payload(self, sequence: dict[str, Any]) -> dict[str, Any]:
+        return {
+            "label": str(sequence.get("label") or "").strip(),
+            "run_to_end": bool(sequence.get("run_to_end", False)),
+            "run_to_end_delay_ms": self._coerce_nonnegative_int(sequence.get("run_to_end_delay_ms", 300), 300),
+            "actions": safe_deepcopy(sequence.get("actions", []))
+            if isinstance(sequence.get("actions"), list)
+            else [],
+        }
+
+    def _resolve_sequence_file_base_name(self, trigger: dict[str, Any]) -> str:
+        for candidate in (trigger.get("label"), trigger.get("key"), "sequence"):
+            slug = self._slugify_file_stem(candidate)
+            if slug:
+                return slug
+        return "sequence"
+
+    def _is_default_trigger_set_area(self, trigger_set_path: str, config_root: str) -> bool:
+        try:
+            trigger_sets_dir = os.path.join(os.path.abspath(config_root), "user", "trigger_sets")
+            return os.path.commonpath([os.path.abspath(trigger_set_path), trigger_sets_dir]) == trigger_sets_dir
+        except Exception:
+            return False
+
+    def _allocate_unique_relative_path(
+        self,
+        relative_dir: str,
+        base_name: str,
+        fallback: str,
+        used_paths: set[str],
+    ) -> str:
+        stem = self._slugify_file_stem(base_name) or fallback
+        index = 1
+        while True:
+            suffix = "" if index == 1 else f"_{index}"
+            candidate = os.path.join(relative_dir, f"{stem}{suffix}.json")
+            normalized_candidate = self._normalize_path_separators(candidate)
+            if normalized_candidate not in used_paths:
+                used_paths.add(normalized_candidate)
+                return normalized_candidate
+            index += 1
+
+    def _allocate_unique_absolute_path(
+        self,
+        directory: str,
+        base_name: str,
+        fallback: str,
+        used_paths: set[str],
+        config_root: str,
+    ) -> str:
+        stem = self._slugify_file_stem(base_name) or fallback
+        index = 1
+        while True:
+            suffix = "" if index == 1 else f"_{index}"
+            candidate = os.path.join(directory, f"{stem}{suffix}.json")
+            stored = self._to_config_relative_or_absolute(candidate, config_root)
+            normalized_candidate = self._normalize_path_separators(stored)
+            if normalized_candidate not in used_paths:
+                used_paths.add(normalized_candidate)
+                return stored
+            index += 1
 
     def _resolve_keymap_file_base_name(self, keymap: dict[str, Any]) -> str:
         source_path = str(keymap.get(self.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
@@ -511,6 +880,19 @@ class ConfigService:
 
     def _sanitize_runtime_for_storage(self, data: dict[str, Any]) -> dict[str, Any]:
         sanitized = safe_deepcopy(data)
+        raw_triggers = sanitized.get("triggers")
+        if isinstance(raw_triggers, list):
+            cleaned_triggers: list[dict[str, Any]] = []
+            for trigger in raw_triggers:
+                if not isinstance(trigger, dict):
+                    continue
+                cleaned = safe_deepcopy(trigger)
+                cleaned.pop(self.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+                cleaned.pop(self.INTERNAL_SEQUENCE_IMPORTED, None)
+                cleaned.pop(self.INTERNAL_SEQUENCE_DIRTY, None)
+                cleaned_triggers.append(cleaned)
+            sanitized["triggers"] = cleaned_triggers
+
         raw_keymaps = sanitized.get("keymaps")
         if isinstance(raw_keymaps, list):
             cleaned_keymaps: list[dict[str, Any]] = []
@@ -519,6 +901,8 @@ class ConfigService:
                     continue
                 cleaned = safe_deepcopy(keymap)
                 cleaned.pop(self.INTERNAL_KEYMAP_SOURCE_PATH, None)
+                cleaned.pop(self.INTERNAL_KEYMAP_IMPORTED, None)
+                cleaned.pop(self.INTERNAL_KEYMAP_DIRTY, None)
                 cleaned_keymaps.append(cleaned)
             sanitized["keymaps"] = cleaned_keymaps
         return sanitized
@@ -579,6 +963,7 @@ class ConfigService:
         os.makedirs(os.path.join(config_root, "user", "keymaps"), exist_ok=True)
         os.makedirs(os.path.join(config_root, "user", "trigger_sets"), exist_ok=True)
         os.makedirs(os.path.join(config_root, "user", "hotkey_presets"), exist_ok=True)
+        os.makedirs(os.path.join(config_root, "user", "sequences"), exist_ok=True)
 
     def _startup_entry_path(self, config_root: str) -> str:
         return os.path.join(config_root, "config.json")
@@ -618,11 +1003,23 @@ class ConfigService:
         return str(path or "").replace("\\", "/")
 
     def _slugify_keymap_file_stem(self, value: Any) -> str:
+        return self._slugify_file_stem(value)
+
+    def _slugify_file_stem(self, value: Any) -> str:
         normalized = normalize_key_name(str(value or ""))
         normalized = normalized.replace("\\", "_").replace("/", "_")
         normalized = re.sub(r"[^a-z0-9_-]+", "_", normalized)
         normalized = re.sub(r"_+", "_", normalized).strip("_")
         return normalized
+
+    def _coerce_nonnegative_int(self, value: Any, default: int) -> int:
+        try:
+            number = int(value)
+        except Exception:
+            number = int(default)
+        if number < 0:
+            number = 0
+        return number
 
     def _load_optional_json(self, path: str) -> Any:
         if not path or not os.path.exists(path):

@@ -39,12 +39,16 @@ infrastructure
 - View切替（Full / Compact）
 - 分離JSONの現在の構成セットパス（keymap_set_path）を管理
 - 通常の保存/読込/起動時読込は keymap_set.json を入口にする
+- keymap / trigger_set / sequence の個別保存・個別読込UIを管理
+- 個別保存用の source path / imported / dirty 状態をUI操作に反映する
 
 ### ConfigService
 
 - 単一JSON互換の読込/書出
 - split構成の読込/保存
 - config配下は相対、外部は絶対のパス保存ルールを扱う
+- trigger_set と sequence の分離保存・読込を扱う
+- keymap / trigger_set / sequence の個別ファイル保存・読込を扱う
 
 ---
 
@@ -54,6 +58,7 @@ infrastructure
 - 編集機能
 - トリガー管理
 - シーケンス管理
+- keymap / trigger_set / sequence の個別保存ボタン
 
 ### CompactView
 - 簡易表示

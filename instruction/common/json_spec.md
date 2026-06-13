@@ -54,7 +54,28 @@
 
 - 通常読込では `keymap_set.json` を直接選択する
 - `config/config.json` は起動時に読む `keymap_set_path` を保持する
-- `keymap_set.json` は trigger / hotkey preset / keymap の実体JSONをファイルパスで参照する
+- `keymap_set.json` は trigger_set / hotkey preset / keymap の実体JSONをファイルパスで参照する
+
+---
+
+## 個別JSON
+
+### trigger_set
+
+- `config/user/trigger_sets/` 配下に保存する
+- `triggers[]` は `key` / `suppress` / `sequence_path` を持つ
+- `sequence_path` は出力シーケンスJSONへの参照
+
+### sequence
+
+- `config/user/sequences/` 配下に保存する
+- `label` / `run_to_end` / `run_to_end_delay_ms` / `actions` を持つ
+- `run_to_end` / `run_to_end_delay_ms` はUI上の「連続実行」「間隔(ms)」
+
+### 旧形式互換
+
+- 旧形式の `triggers[].label` / `triggers[].run_to_end` / `triggers[].run_to_end_delay_ms` / `triggers[].actions` は読込互換を維持する
+- 保存時は trigger_set + sequence の新形式へ寄せる
 
 ---
 
@@ -63,4 +84,4 @@
 - `config` 配下のパスは `config` ルート基準の相対パスで保存する
 - `config` 配下ではない外部パスは絶対パスで保存する
 - 読込時は絶対パスをそのまま使い、相対パスは `config` ルート基準で解決する
-- 将来の trigger / keymap 個別保存でも同じルールを適用する
+- trigger_set / sequence / keymap 個別保存でも同じルールを適用する

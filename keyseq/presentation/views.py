@@ -117,6 +117,10 @@ class FullView(ttk.Frame):
         app.keymap_delete_btn.pack(fill="x", pady=3)
         app.keymap_select_btn = ttk.Button(keymap_btns, text="選択", command=app._select_keymap)
         app.keymap_select_btn.pack(fill="x", pady=3)
+        ttk.Separator(keymap_btns).pack(fill="x", pady=6)
+        ttk.Button(keymap_btns, text="保存", command=app.save_selected_keymap).pack(fill="x", pady=3)
+        ttk.Button(keymap_btns, text="別名で保存", command=app.save_selected_keymap_as).pack(fill="x", pady=3)
+        ttk.Button(keymap_btns, text="読込", command=app.load_keymap_file).pack(fill="x", pady=3)
 
         self.trigger_box = ttk.LabelFrame(self.main_area, text="トリガー一覧（選択して編集）", padding=10)
         self.trigger_box.pack(side="left", fill="y", padx=(12, 0))
@@ -137,6 +141,10 @@ class FullView(ttk.Frame):
         ttk.Button(tbtns, text="追加", command=app.add_trigger).pack(fill="x", pady=(0, 3))
         ttk.Button(tbtns, text="トリガー変更", command=app.rename_trigger).pack(fill="x", pady=3)
         ttk.Button(tbtns, text="削除", command=app.delete_trigger).pack(fill="x", pady=3)
+        ttk.Separator(tbtns).pack(fill="x", pady=6)
+        ttk.Button(tbtns, text="保存", command=app.save_trigger_set_file).pack(fill="x", pady=3)
+        ttk.Button(tbtns, text="別名で保存", command=app.save_trigger_set_file_as).pack(fill="x", pady=3)
+        ttk.Button(tbtns, text="読込", command=app.load_trigger_set_file).pack(fill="x", pady=3)
 
         app.suppress_chk = ttk.Checkbutton(
             self.trigger_box,
@@ -165,6 +173,10 @@ class FullView(ttk.Frame):
         ttk.Separator(abtns).pack(fill="x", pady=10)
         ttk.Button(abtns, text="上へ", width=16, command=lambda: app.move_action(-1)).pack(pady=6)
         ttk.Button(abtns, text="下へ", width=16, command=lambda: app.move_action(+1)).pack(pady=6)
+        ttk.Separator(abtns).pack(fill="x", pady=10)
+        ttk.Button(abtns, text="保存", width=16, command=app.save_selected_sequence).pack(pady=6)
+        ttk.Button(abtns, text="別名で保存", width=16, command=app.save_selected_sequence_as).pack(pady=6)
+        ttk.Button(abtns, text="読込", width=16, command=app.load_sequence_file).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
         # 連続実行（run_to_end）
         app.run_to_end_chk = ttk.Checkbutton(

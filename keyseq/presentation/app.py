@@ -132,6 +132,9 @@ class App(tk.Tk):
         self._keymap_switch_capture_original_key = ""
         self.custom_input_enabled = True
         self._is_dirty = False
+        self._trigger_set_source_path = ""
+        self._trigger_set_imported = False
+        self._trigger_set_dirty = False
         self._flash_after_id = None
         self.keyboard_window: KeyboardWindow | None = None
         self._build_ui()
@@ -347,6 +350,47 @@ class App(tk.Tk):
     def _set_dirty(self, value: bool):
         self._is_dirty = bool(value)
         self._update_file_status()
+
+    def _mark_keymap_dirty(self, keymap: dict | None = None) -> None:
+        target = keymap
+        if target is None:
+            target = self.keymap_service.get_active_keymap(self.data)
+        if isinstance(target, dict):
+            target[self.config_service.INTERNAL_KEYMAP_DIRTY] = True
+        self._set_dirty(True)
+
+    def _mark_trigger_set_dirty(self) -> None:
+        self._trigger_set_dirty = True
+        self._set_dirty(True)
+
+    def _mark_sequence_dirty(self, trigger: dict | None = None) -> None:
+        target = trigger if isinstance(trigger, dict) else self._selected_trigger()
+        if isinstance(target, dict):
+            target[self.config_service.INTERNAL_SEQUENCE_DIRTY] = True
+        self._set_dirty(True)
+
+    def _has_individual_dirty(self) -> bool:
+        if bool(getattr(self, "_trigger_set_dirty", False)):
+            return True
+        for trigger in self.data.get("triggers", []):
+            if isinstance(trigger, dict) and bool(trigger.get(self.config_service.INTERNAL_SEQUENCE_DIRTY, False)):
+                return True
+        for keymap in self.keymap_service.get_keymaps(self.data):
+            if isinstance(keymap, dict) and bool(keymap.get(self.config_service.INTERNAL_KEYMAP_DIRTY, False)):
+                return True
+        return False
+
+    def _clear_individual_dirty_flags(self) -> None:
+        self._trigger_set_dirty = False
+        self._trigger_set_imported = False
+        for trigger in self.data.get("triggers", []):
+            if isinstance(trigger, dict):
+                trigger[self.config_service.INTERNAL_SEQUENCE_DIRTY] = False
+                trigger[self.config_service.INTERNAL_SEQUENCE_IMPORTED] = False
+        for keymap in self.keymap_service.get_keymaps(self.data):
+            if isinstance(keymap, dict):
+                keymap[self.config_service.INTERNAL_KEYMAP_DIRTY] = False
+                keymap[self.config_service.INTERNAL_KEYMAP_IMPORTED] = False
 
     def _clear_flash_message(self):
         self._flash_after_id = None
@@ -1162,7 +1206,7 @@ class App(tk.Tk):
         self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
-        self._set_dirty(True)
+        self._mark_keymap_dirty(created)
         self._set_flash_message(f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}")
 
     def _rename_keymap_label(self) -> None:
@@ -1199,7 +1243,7 @@ class App(tk.Tk):
         self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
-        self._set_dirty(True)
+        self._mark_keymap_dirty(target)
         if normalized_label:
             self._set_flash_message(f"keymap 名を変更しました: {normalized_label}")
         else:
@@ -1315,7 +1359,7 @@ class App(tk.Tk):
         self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
-        self._set_dirty(True)
+        self._mark_keymap_dirty(keymap)
         self._set_flash_message(f"キーマップを変更しました: {self._format_keymap_display_name(keymap) or keymap_id}")
         return True
 
@@ -1464,7 +1508,7 @@ class App(tk.Tk):
         self._refresh_keyboard_window()
         self._update_status()
         if changed:
-            self._set_dirty(True)
+            self._mark_keymap_dirty(self.keymap_service.find_keymap(self.data, keymap_id))
             self._set_flash_message(f"キーマップを更新しました: {source} -> {target} ({keymap_id})")
         else:
             self._set_flash_message(f"キーマップは変更なしです: {source} -> {target}")
@@ -1480,7 +1524,7 @@ class App(tk.Tk):
         self._refresh_keyboard_window()
         self._update_status()
         if changed:
-            self._set_dirty(True)
+            self._mark_keymap_dirty(self.keymap_service.find_keymap(self.data, keymap_id))
             self._set_flash_message(f"キーマップをクリアしました: {source} ({keymap_id})")
             return True
 
@@ -1533,6 +1577,15 @@ class App(tk.Tk):
 
     def _preferred_keymap_sets_dir(self) -> str:
         return os.path.dirname(self._preferred_keymap_set_path())
+
+    def _preferred_keymaps_dir(self) -> str:
+        return os.path.join(self.config_root, "user", "keymaps")
+
+    def _preferred_trigger_sets_dir(self) -> str:
+        return os.path.join(self.config_root, "user", "trigger_sets")
+
+    def _preferred_sequences_dir(self) -> str:
+        return os.path.join(self.config_root, "user", "sequences")
 
     def _preferred_config_path(self) -> str:
         return os.path.join(self.user_root, "config.json")
@@ -1592,6 +1645,25 @@ class App(tk.Tk):
 
     def _to_config_relative_or_absolute(self, path: str) -> str:
         return self.config_service._to_config_relative_or_absolute(path, self.config_root)
+
+    def _is_within_config_root(self, path: str) -> bool:
+        try:
+            return os.path.commonpath([os.path.abspath(path), os.path.abspath(self.config_root)]) == os.path.abspath(self.config_root)
+        except Exception:
+            return False
+
+    def _choose_split_base_dir_for_keymap_set(self, save_path: str) -> str:
+        if self._is_within_config_root(save_path):
+            return ""
+        use_nearby = messagebox.askyesno(
+            "保存先の確認",
+            "構成セットがデフォルト外に保存されます。\n"
+            "keymaps / trigger_sets / sequences も構成セット周辺に保存しますか？\n\n"
+            "「いいえ」の場合はデフォルト保存先を使います。",
+        )
+        if not use_nearby:
+            return ""
+        return os.path.dirname(os.path.abspath(save_path))
 
     def _sync_startup_config_path(self, old_path: str, new_path: str):
         current = getattr(self, "_startup_settings", {})
@@ -1916,9 +1988,337 @@ class App(tk.Tk):
             return
         self.edit_action()
 
+    # ---------------- Individual JSON IO ----------------
+    def _json_dialog_initial_dir(self, preferred_dir: str, source_path: str = "") -> str:
+        if source_path:
+            directory = os.path.dirname(os.path.abspath(source_path))
+            if os.path.isdir(directory):
+                return directory
+        if os.path.isdir(preferred_dir):
+            return preferred_dir
+        return self.user_root if os.path.isdir(self.user_root) else self.base_dir
+
+    def _filename_stem(self, path: str) -> str:
+        return os.path.splitext(os.path.basename(str(path or "")))[0]
+
+    def _suggest_json_path(self, directory: str, label: str, fallback: str) -> str:
+        stem = self.config_service._slugify_file_stem(label) or fallback
+        return os.path.join(directory, f"{stem}.json")
+
+    def _choose_save_path_with_collision(self, *, title: str, suggested_path: str) -> str:
+        path = suggested_path
+        if os.path.exists(path):
+            result = messagebox.askyesnocancel(
+                "保存先の確認",
+                f"同名ファイルが既にあります。\n\n{path}\n\n上書きしますか？\n「いいえ」で別名保存します。",
+            )
+            if result is None:
+                return ""
+            if result is False:
+                path = filedialog.asksaveasfilename(
+                    title=title,
+                    initialdir=os.path.dirname(os.path.abspath(suggested_path)),
+                    initialfile=os.path.basename(suggested_path),
+                    defaultextension=".json",
+                    filetypes=[("JSON", "*.json"), ("All", "*.*")],
+                )
+        return path or ""
+
+    def _ask_link_label_to_filename(self, *, title: str, path: str) -> bool:
+        dialog = tk.Toplevel(self)
+        dialog.title(title)
+        dialog.resizable(False, False)
+        self.suspend_hook_for_dialog()
+        result = {"ok": False, "link": False}
+        link_var = tk.BooleanVar(value=False)
+
+        frame = ttk.Frame(dialog, padding=12)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text=f"保存名: {self._filename_stem(path)}").pack(anchor="w")
+        ttk.Checkbutton(frame, text="ラベル名も保存名に合わせる", variable=link_var).pack(anchor="w", pady=(10, 0))
+        buttons = ttk.Frame(frame)
+        buttons.pack(fill="x", pady=(12, 0))
+
+        def on_ok():
+            result["ok"] = True
+            result["link"] = bool(link_var.get())
+            dialog.destroy()
+
+        def on_cancel():
+            dialog.destroy()
+
+        ttk.Button(buttons, text="OK", command=on_ok).pack(side="right")
+        ttk.Button(buttons, text="キャンセル", command=on_cancel).pack(side="right", padx=(0, 8))
+        dialog.transient(self)
+        dialog.grab_set()
+        dialog.protocol("WM_DELETE_WINDOW", on_cancel)
+        try:
+            dialog.wait_window()
+        finally:
+            self.resume_hook_after_dialog()
+        if not result["ok"]:
+            raise RuntimeError("キャンセルされました。")
+        return bool(result["link"])
+
+    def _selected_keymap_for_io(self) -> tuple[int, dict] | tuple[None, None]:
+        index = self._selected_keymap_list_index()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if index is None or not keymaps or not (0 <= index < len(keymaps)):
+            messagebox.showinfo("キーマップ", "対象のキーマップを選択してください。")
+            return None, None
+        return index, keymaps[index]
+
+    def save_selected_keymap(self) -> bool:
+        index, keymap = self._selected_keymap_for_io()
+        if keymap is None:
+            return False
+        source_path = str(keymap.get(self.config_service.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
+        if source_path and bool(keymap.get(self.config_service.INTERNAL_KEYMAP_IMPORTED, False)) and bool(keymap.get(self.config_service.INTERNAL_KEYMAP_DIRTY, False)):
+            if messagebox.askyesno("保存", "読込で持ってきたキーマップです。\n別名で保存しますか？"):
+                return self.save_selected_keymap_as()
+        if not source_path:
+            label = str(keymap.get("label") or keymap.get("id") or "keymap").strip()
+            suggested = self._suggest_json_path(self._preferred_keymaps_dir(), label, "keymap")
+            source_path = self._choose_save_path_with_collision(title="キーマップを保存", suggested_path=suggested)
+            if not source_path:
+                return False
+        return self._save_keymap_to_path(index, keymap, source_path)
+
+    def save_selected_keymap_as(self) -> bool:
+        index, keymap = self._selected_keymap_for_io()
+        if keymap is None:
+            return False
+        source_path = str(keymap.get(self.config_service.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
+        label = str(keymap.get("label") or keymap.get("id") or "keymap").strip()
+        suggested = self._suggest_json_path(
+            self._json_dialog_initial_dir(self._preferred_keymaps_dir(), source_path),
+            label,
+            "keymap",
+        )
+        path = filedialog.asksaveasfilename(
+            title="キーマップを別名で保存",
+            initialdir=os.path.dirname(os.path.abspath(suggested)),
+            initialfile=os.path.basename(suggested),
+            defaultextension=".json",
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return False
+        try:
+            if self._ask_link_label_to_filename(title="キーマップ名の連動", path=path):
+                keymap["label"] = self._filename_stem(path)
+        except RuntimeError:
+            return False
+        return self._save_keymap_to_path(index, keymap, path)
+
+    def _save_keymap_to_path(self, index: int, keymap: dict, path: str) -> bool:
+        try:
+            saved = self.config_service.save_keymap_file(path, keymap)
+            self.keymap_service.get_keymaps(self.data)[index] = saved
+            self._refresh_keymap_list_ui(preferred_index=index)
+            self._refresh_keymap_switch_ui()
+            self._refresh_keyboard_window()
+            self._set_flash_message("キーマップを保存しました。")
+            messagebox.showinfo("保存", f"キーマップを保存しました:\n{path}")
+            return True
+        except Exception as e:
+            self._set_flash_message(f"キーマップ保存失敗: {e}", auto_clear=False)
+            messagebox.showerror("保存失敗", str(e))
+            return False
+
+    def load_keymap_file(self) -> None:
+        path = filedialog.askopenfilename(
+            title="キーマップを読込",
+            initialdir=self._json_dialog_initial_dir(self._preferred_keymaps_dir()),
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            used_ids = {normalize_key_name(item.get("id", "")) for item in self.keymap_service.get_keymaps(self.data)}
+            keymap = self.config_service.load_keymap_file(path, used_keymap_ids=used_ids, imported=True)
+            keymaps = self.data.setdefault("keymaps", [])
+            if not isinstance(keymaps, list):
+                keymaps = []
+                self.data["keymaps"] = keymaps
+            keymaps.append(keymap)
+            index = len(keymaps) - 1
+            if not self.data.get("active_keymap_id"):
+                self.data["active_keymap_id"] = normalize_key_name(keymap.get("id", ""))
+            self._refresh_keymap_list_ui(preferred_index=index)
+            self._refresh_keymap_switch_ui()
+            self._refresh_keyboard_window()
+            self._set_dirty(True)
+            self._set_flash_message("キーマップを読み込みました。")
+            messagebox.showinfo("読込", f"キーマップを読み込みました:\n{path}")
+        except Exception as e:
+            self._set_flash_message(f"キーマップ読込失敗: {e}", auto_clear=False)
+            messagebox.showerror("読込失敗", str(e))
+
+    def save_trigger_set_file(self) -> bool:
+        path = str(getattr(self, "_trigger_set_source_path", "") or "").strip()
+        if path and self._trigger_set_imported and self._trigger_set_dirty:
+            if messagebox.askyesno("保存", "読込で持ってきたトリガー一覧です。\n別名で保存しますか？"):
+                return self.save_trigger_set_file_as()
+        if not path:
+            suggested = self._suggest_json_path(self._preferred_trigger_sets_dir(), "trigger_set", "trigger_set")
+            path = self._choose_save_path_with_collision(title="トリガー一覧を保存", suggested_path=suggested)
+            if not path:
+                return False
+        return self._save_trigger_set_to_path(path)
+
+    def save_trigger_set_file_as(self) -> bool:
+        source_path = str(getattr(self, "_trigger_set_source_path", "") or "").strip()
+        suggested = self._suggest_json_path(
+            self._json_dialog_initial_dir(self._preferred_trigger_sets_dir(), source_path),
+            self._filename_stem(source_path) or "trigger_set",
+            "trigger_set",
+        )
+        path = filedialog.asksaveasfilename(
+            title="トリガー一覧を別名で保存",
+            initialdir=os.path.dirname(os.path.abspath(suggested)),
+            initialfile=os.path.basename(suggested),
+            defaultextension=".json",
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return False
+        return self._save_trigger_set_to_path(path)
+
+    def _save_trigger_set_to_path(self, path: str) -> bool:
+        try:
+            triggers, _payload = self.config_service.save_trigger_set_file(path, self.data, config_root=self.config_root)
+            self.data["triggers"] = triggers
+            self._trigger_set_source_path = path
+            self._trigger_set_imported = False
+            self._trigger_set_dirty = False
+            self._refresh_triggers()
+            self._refresh_actions()
+            self._set_flash_message("トリガー一覧を保存しました。")
+            messagebox.showinfo("保存", f"トリガー一覧を保存しました:\n{path}")
+            return True
+        except Exception as e:
+            self._set_flash_message(f"トリガー一覧保存失敗: {e}", auto_clear=False)
+            messagebox.showerror("保存失敗", str(e))
+            return False
+
+    def load_trigger_set_file(self) -> None:
+        if not self._confirm_save_if_dirty("トリガー一覧読込"):
+            return
+        path = filedialog.askopenfilename(
+            title="トリガー一覧を読込",
+            initialdir=self._json_dialog_initial_dir(self._preferred_trigger_sets_dir()),
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            self.data["triggers"] = self.config_service.load_trigger_set_file(
+                path,
+                config_root=self.config_root,
+                imported=True,
+            )
+            self._trigger_set_source_path = path
+            self._trigger_set_imported = True
+            self._trigger_set_dirty = False
+            self.state.reset_indices()
+            self._selected_trigger_idx = 0
+            self._refresh_triggers()
+            self._refresh_actions()
+            self._set_dirty(True)
+            self._set_flash_message("トリガー一覧を読み込みました。")
+            messagebox.showinfo("読込", f"トリガー一覧を読み込みました:\n{path}")
+        except Exception as e:
+            self._set_flash_message(f"トリガー一覧読込失敗: {e}", auto_clear=False)
+            messagebox.showerror("読込失敗", str(e))
+
+    def save_selected_sequence(self) -> bool:
+        trigger = self._selected_trigger()
+        if not trigger:
+            messagebox.showinfo("出力シーケンス", "対象のトリガーを選択してください。")
+            return False
+        source_path = str(trigger.get(self.config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
+        if source_path and bool(trigger.get(self.config_service.INTERNAL_SEQUENCE_IMPORTED, False)) and bool(trigger.get(self.config_service.INTERNAL_SEQUENCE_DIRTY, False)):
+            if messagebox.askyesno("保存", "読込で持ってきた出力シーケンスです。\n別名で保存しますか？"):
+                return self.save_selected_sequence_as()
+        if not source_path:
+            label = str(trigger.get("label") or trigger.get("key") or "sequence").strip()
+            suggested = self._suggest_json_path(self._preferred_sequences_dir(), label, "sequence")
+            source_path = self._choose_save_path_with_collision(title="出力シーケンスを保存", suggested_path=suggested)
+            if not source_path:
+                return False
+        return self._save_sequence_to_path(trigger, source_path)
+
+    def save_selected_sequence_as(self) -> bool:
+        trigger = self._selected_trigger()
+        if not trigger:
+            messagebox.showinfo("出力シーケンス", "対象のトリガーを選択してください。")
+            return False
+        source_path = str(trigger.get(self.config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
+        label = str(trigger.get("label") or trigger.get("key") or "sequence").strip()
+        suggested = self._suggest_json_path(
+            self._json_dialog_initial_dir(self._preferred_sequences_dir(), source_path),
+            label,
+            "sequence",
+        )
+        path = filedialog.asksaveasfilename(
+            title="出力シーケンスを別名で保存",
+            initialdir=os.path.dirname(os.path.abspath(suggested)),
+            initialfile=os.path.basename(suggested),
+            defaultextension=".json",
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return False
+        try:
+            if self._ask_link_label_to_filename(title="出力シーケンス名の連動", path=path):
+                trigger["label"] = self._filename_stem(path)
+        except RuntimeError:
+            return False
+        return self._save_sequence_to_path(trigger, path)
+
+    def _save_sequence_to_path(self, trigger: dict, path: str) -> bool:
+        try:
+            sequence = self.config_service.save_sequence_file(path, trigger)
+            trigger.update(sequence)
+            self._mark_trigger_set_dirty()
+            self._refresh_triggers()
+            self._refresh_actions()
+            self._set_flash_message("出力シーケンスを保存しました。")
+            messagebox.showinfo("保存", f"出力シーケンスを保存しました:\n{path}")
+            return True
+        except Exception as e:
+            self._set_flash_message(f"出力シーケンス保存失敗: {e}", auto_clear=False)
+            messagebox.showerror("保存失敗", str(e))
+            return False
+
+    def load_sequence_file(self) -> None:
+        trigger = self._selected_trigger()
+        if not trigger:
+            messagebox.showinfo("出力シーケンス", "読込先のトリガーを選択してください。")
+            return
+        path = filedialog.askopenfilename(
+            title="出力シーケンスを読込",
+            initialdir=self._json_dialog_initial_dir(self._preferred_sequences_dir()),
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            sequence = self.config_service.load_sequence_file(path, imported=True)
+            trigger.update(sequence)
+            self._mark_trigger_set_dirty()
+            self._refresh_triggers()
+            self._refresh_actions()
+            self._set_flash_message("出力シーケンスを読み込みました。")
+            messagebox.showinfo("読込", f"出力シーケンスを読み込みました:\n{path}")
+        except Exception as e:
+            self._set_flash_message(f"出力シーケンス読込失敗: {e}", auto_clear=False)
+            messagebox.showerror("読込失敗", str(e))
+
     # ---------------- Config IO ----------------
     def _confirm_save_if_dirty(self, action_name: str) -> bool:
-        if not self._is_dirty:
+        if not self._is_dirty and not self._has_individual_dirty():
             return True
 
         result = messagebox.askyesnocancel(
@@ -1970,16 +2370,19 @@ class App(tk.Tk):
     def save_keymap_set(self, *, show_success_dialog: bool = True) -> bool:
         try:
             save_path = self._normalize_keymap_set_save_path(self.keymap_set_path)
+            split_base_dir = self._choose_split_base_dir_for_keymap_set(save_path)
             self.data, startup_payload = self.config_service.save_runtime_data(
                 save_path,
                 self.data,
                 config_root=self.config_root,
                 startup_data=self._startup_settings,
                 keep_legacy_copy=False,
+                split_base_dir=split_base_dir,
             )
             self.keymap_set_path = save_path
             self.startup_path = self._preferred_startup_path()
             self._startup_settings = startup_payload
+            self._clear_individual_dirty_flags()
             self._set_dirty(False)
             self._set_flash_message("保存しました。")
             if show_success_dialog:
@@ -2003,16 +2406,19 @@ class App(tk.Tk):
             return False
         try:
             save_path = self._normalize_keymap_set_save_path(path)
+            split_base_dir = self._choose_split_base_dir_for_keymap_set(save_path)
             self.data, startup_payload = self.config_service.save_runtime_data(
                 save_path,
                 self.data,
                 config_root=self.config_root,
                 startup_data=self._startup_settings,
                 keep_legacy_copy=False,
+                split_base_dir=split_base_dir,
             )
             self.keymap_set_path = save_path
             self.startup_path = self._preferred_startup_path()
             self._startup_settings = startup_payload
+            self._clear_individual_dirty_flags()
             self._set_dirty(False)
             self._set_flash_message("別名で保存しました。")
             if show_success_dialog:
@@ -2098,6 +2504,9 @@ class App(tk.Tk):
             messagebox.showerror("Export 失敗", str(e))
 
     def _apply_loaded_data_to_ui(self):
+        self._trigger_set_source_path = ""
+        self._trigger_set_imported = False
+        self._trigger_set_dirty = False
         if hasattr(self, "stop_key_var"):
             self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
         if hasattr(self, "toggle_key_var"):
@@ -2105,6 +2514,7 @@ class App(tk.Tk):
         if hasattr(self, "keyboard_show_physical_key_labels_var"):
             self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
         self._sync_keyboard_layout_controls()
+        self._clear_individual_dirty_flags()
         self._set_dirty(False)
 
     def open_preset_manager(self):
@@ -2209,7 +2619,7 @@ class App(tk.Tk):
         # 表示を正規化（"00300" 等を "300" に）
         self.run_to_end_delay_var.set(str(v))
         if old_v != v:
-            self._set_dirty(True)
+            self._mark_sequence_dirty(t)
 
     def update_suppress(self):
         t = self._selected_trigger()
@@ -2219,7 +2629,7 @@ class App(tk.Tk):
         old_v = bool(t.get("suppress", True))
         t["suppress"] = new_v
         if old_v != new_v:
-            self._set_dirty(True)
+            self._mark_trigger_set_dirty()
         # フックON中なら再登録が必要（設定反映）
         if self.hook_active:
             self.start_hook()
@@ -2233,7 +2643,7 @@ class App(tk.Tk):
         old_v = bool(t.get("run_to_end", False))
         t["run_to_end"] = new_v
         if old_v != new_v:
-            self._set_dirty(True)
+            self._mark_sequence_dirty(t)
         self._sync_run_to_end_ui()
         # UI表示（次の行ハイライト/ステータス）を即反映
         if not getattr(self, "_compact_mode", False):
@@ -2269,7 +2679,8 @@ class App(tk.Tk):
         triggers.append({"key": key, "label": label, "suppress": True, "run_to_end": False, "actions": []})
         self._indices.setdefault(key, 0)
         self._refresh_triggers()
-        self._set_dirty(True)
+        self._mark_trigger_set_dirty()
+        self._mark_sequence_dirty(triggers[-1])
         # 末尾を選択
         try:
             self.full_view.trigger_list.selection_clear(0, tk.END)
@@ -2315,7 +2726,10 @@ class App(tk.Tk):
         t["key"] = new
         t["label"] = new_label
         self._refresh_triggers()
-        self._set_dirty(True)
+        if old != new:
+            self._mark_trigger_set_dirty()
+        if cur_label != new_label:
+            self._mark_sequence_dirty(t)
         if self.hook_active:
             self.start_hook()
 
@@ -2333,7 +2747,7 @@ class App(tk.Tk):
             self._indices.pop(key, None)
             self._refresh_triggers()
             self._refresh_actions()
-            self._set_dirty(True)
+            self._mark_trigger_set_dirty()
             if self.hook_active:
                 self.start_hook()
 
@@ -2353,7 +2767,7 @@ class App(tk.Tk):
         if getattr(self, "_dialog_result", None):
             trig.setdefault("actions", []).append(self._dialog_result)
             self._refresh_actions()
-            self._set_dirty(True)
+            self._mark_sequence_dirty(trig)
             self._dialog_result = None
 
     def edit_action(self):
@@ -2370,7 +2784,7 @@ class App(tk.Tk):
         if getattr(self, "_dialog_result", None):
             trig["actions"][idx] = self._dialog_result
             self._refresh_actions()
-            self._set_dirty(True)
+            self._mark_sequence_dirty(trig)
             # action_list は FullView 側にある（選択表示を復帰）
             try:
                 self.full_view.action_list.selection_clear(0, tk.END)
@@ -2393,7 +2807,7 @@ class App(tk.Tk):
         if messagebox.askyesno("確認", "選択した行を削除しますか？"):
             del trig["actions"][idx]
             self._refresh_actions()
-            self._set_dirty(True)
+            self._mark_sequence_dirty(trig)
 
     def move_action(self, delta: int):
         trig = self._selected_trigger()
@@ -2413,7 +2827,7 @@ class App(tk.Tk):
         if key:
             self._indices[key] = j
         self._refresh_actions()
-        self._set_dirty(True)
+        self._mark_sequence_dirty(trig)
 
     # ---------------- Hook logic ----------------
     def _sync_hook_toggle_buttons(self):

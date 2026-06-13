@@ -117,6 +117,13 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             a["label"] = (a.get("label") or "").strip()
             normalized_actions.append(a)
         t["actions"] = normalized_actions
+        for key in (
+            "_sequence_source_path",
+            "_sequence_imported",
+            "_sequence_dirty",
+        ):
+            if key in trigger:
+                t[key] = safe_deepcopy(trigger.get(key))
         normalized_triggers.append(t)
     config["triggers"] = normalized_triggers
 
@@ -189,6 +196,13 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
                     "mappings": normalized_mappings,
                 }
             )
+            for key in (
+                "_keymap_source_path",
+                "_keymap_imported",
+                "_keymap_dirty",
+            ):
+                if key in item:
+                    normalized_keymaps[-1][key] = safe_deepcopy(item.get(key))
             seen_keymap_ids.add(keymap_id)
     config["keymaps"] = normalized_keymaps
 
