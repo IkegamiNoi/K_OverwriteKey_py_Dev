@@ -111,7 +111,7 @@ class FullView(ttk.Frame):
         keymap_btns.pack(fill="x", pady=(6, 0))
         app.keymap_add_btn = ttk.Button(keymap_btns, text="追加", command=app._add_keymap)
         app.keymap_add_btn.pack(fill="x", pady=(0, 3))
-        app.keymap_edit_btn = ttk.Button(keymap_btns, text="変更", command=app._edit_selected_keymap)
+        app.keymap_edit_btn = ttk.Button(keymap_btns, text="キーマップ変更", command=app._edit_selected_keymap)
         app.keymap_edit_btn.pack(fill="x", pady=3)
         app.keymap_delete_btn = ttk.Button(keymap_btns, text="削除", command=app._delete_keymap)
         app.keymap_delete_btn.pack(fill="x", pady=3)
