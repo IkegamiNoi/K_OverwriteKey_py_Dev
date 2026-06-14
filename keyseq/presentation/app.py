@@ -70,7 +70,7 @@ class App(tk.Tk):
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
 
         self.title("Key Replacer Sequencer (Multi Trigger)")
-        self.geometry("780x660")
+        self.geometry("780x700")
 
         self.trigger_service = TriggerService()
         self.keymap_service = KeymapService()
