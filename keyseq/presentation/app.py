@@ -344,7 +344,7 @@ class App(tk.Tk):
 
     def _update_file_status(self):
         name = os.path.basename(self.keymap_set_path or "") or "(未設定)"
-        save_state = "未保存" if self._is_dirty else "保存済み"
+        save_state = "未保存" if self._is_dirty or self._has_individual_dirty() else "保存済み"
         self.file_status_var.set(f"ファイル: {name} / {save_state}")
 
     def _set_dirty(self, value: bool):
@@ -2005,6 +2005,10 @@ class App(tk.Tk):
         stem = self.config_service._slugify_file_stem(label) or fallback
         return os.path.join(directory, f"{stem}.json")
 
+    def _keymap_set_file_stem(self) -> str:
+        stem = self._filename_stem(str(getattr(self, "keymap_set_path", "") or ""))
+        return self.config_service._slugify_file_stem(stem) or "trigger_set"
+
     def _choose_save_path_with_collision(self, *, title: str, suggested_path: str) -> str:
         path = suggested_path
         if os.path.exists(path):
@@ -2161,7 +2165,7 @@ class App(tk.Tk):
             if messagebox.askyesno("保存", "読込で持ってきたトリガー一覧です。\n別名で保存しますか？"):
                 return self.save_trigger_set_file_as()
         if not path:
-            suggested = self._suggest_json_path(self._preferred_trigger_sets_dir(), "trigger_set", "trigger_set")
+            suggested = self._suggest_json_path(self._preferred_trigger_sets_dir(), self._keymap_set_file_stem(), "trigger_set")
             path = self._choose_save_path_with_collision(title="トリガー一覧を保存", suggested_path=suggested)
             if not path:
                 return False
@@ -2171,7 +2175,7 @@ class App(tk.Tk):
         source_path = str(getattr(self, "_trigger_set_source_path", "") or "").strip()
         suggested = self._suggest_json_path(
             self._json_dialog_initial_dir(self._preferred_trigger_sets_dir(), source_path),
-            self._filename_stem(source_path) or "trigger_set",
+            self._filename_stem(source_path) or self._keymap_set_file_stem(),
             "trigger_set",
         )
         path = filedialog.asksaveasfilename(

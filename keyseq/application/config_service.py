@@ -1006,10 +1006,38 @@ class ConfigService:
         return self._slugify_file_stem(value)
 
     def _slugify_file_stem(self, value: Any) -> str:
-        normalized = normalize_key_name(str(value or ""))
-        normalized = normalized.replace("\\", "_").replace("/", "_")
-        normalized = re.sub(r"[^a-z0-9_-]+", "_", normalized)
-        normalized = re.sub(r"_+", "_", normalized).strip("_")
+        normalized = str(value or "").strip()
+        normalized = re.sub(r'[\\/:*?"<>|]+', "_", normalized)
+        normalized = re.sub(r"_+", "_", normalized)
+        normalized = normalized.strip(" ._")
+        if not normalized:
+            return ""
+        reserved_names = {
+            "con",
+            "prn",
+            "aux",
+            "nul",
+            "com1",
+            "com2",
+            "com3",
+            "com4",
+            "com5",
+            "com6",
+            "com7",
+            "com8",
+            "com9",
+            "lpt1",
+            "lpt2",
+            "lpt3",
+            "lpt4",
+            "lpt5",
+            "lpt6",
+            "lpt7",
+            "lpt8",
+            "lpt9",
+        }
+        if normalized.lower() in reserved_names:
+            normalized = f"{normalized}_"
         return normalized
 
     def _coerce_nonnegative_int(self, value: Any, default: int) -> int:

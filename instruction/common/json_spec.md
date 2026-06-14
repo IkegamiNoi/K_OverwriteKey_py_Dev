@@ -71,6 +71,9 @@
 - `config/user/sequences/` 配下に保存する
 - `label` / `run_to_end` / `run_to_end_delay_ms` / `actions` を持つ
 - `run_to_end` / `run_to_end_delay_ms` はUI上の「連続実行」「間隔(ms)」
+- sequence の新規保存ファイル名は label 由来にし、日本語 label もそのまま候補に使う
+- ファイル名では Windows 禁止文字のみ `_` に置換する
+- trigger_set の新規保存ファイル名は現在の keymap_set ファイル名由来にする
 
 ### 旧形式互換
 
