@@ -1,22 +1,44 @@
 ﻿import os
 import copy
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, messagebox, simpledialog, ttk
 
-from keyseq.presentation.dialogs import ActionDialog, PresetDialog, PresetManagerDialog, TriggerDialog
+from keyseq.presentation.dialogs import (
+    ActionDialog,
+    KeymapEditDialog,
+    LayoutDeleteDialog,
+    PresetDialog,
+    PresetManagerDialog,
+    TriggerDialog,
+)
+from keyseq.presentation.keyboard_layouts import (
+    DEFAULT_LAYOUT_ID,
+    KeyboardLayoutEntry,
+    collect_keyboard_layouts,
+    load_layout_from_json,
+    resolve_key_id_from_scan_code,
+    resolve_keyboard_layout,
+    resolve_registered_layout_path,
+)
+from keyseq.presentation.keyboard_window import KeyboardWindow
 from keyseq.presentation.views import CompactView, FullView
 from keyseq.presentation.theme import apply_global_theme
 
 
+from keyseq.application.action_executor import ActionExecutor
 from keyseq.application.config_service import ConfigService
 from keyseq.application.app_state import AppState
 from keyseq.application.hook_coordinator import HookCoordinator
+from keyseq.application.input_router import InputRouter
+from keyseq.application.keymap_service import KeymapService
+from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.trigger_service import TriggerService
 from keyseq.domain.config import (
     format_action_list_item,
     format_trigger_list_item,
 )
+from keyseq.domain.key_identifiers import SPECIAL_KEY_NAMES, is_special_key_name
 from keyseq.infrastructure.input_gateway import InputGateway
 from keyseq.infrastructure.json_repository import JsonRepository
 
@@ -33,17 +55,49 @@ class App(tk.Tk):
         self.config_service = ConfigService(self.repository)
 
         self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        self.config_path = os.path.join(self.base_dir, r"settings\config.json")  # 実際に読込/保存する本体JSON（既定）
-        self.startup_path = os.path.join(self.base_dir, r"settings\startup.json")  # 起動時に参照する“外部指定”ファイル
+        self.config_root = os.path.join(self.base_dir, "config")
+        self.user_root = os.path.join(self.config_root, "user")
+        os.makedirs(self.user_root, exist_ok=True)
+        self.startup_path = self._resolve_startup_path()
+        self.keymap_set_path = self._resolve_keymap_set_path()
+        self.keyboard_layouts_dir = self._resolve_keylayout_dir()
+        self.keyboard_layout_id = DEFAULT_LAYOUT_ID
+        self._keyboard_layout_entries: dict[str, KeyboardLayoutEntry] = {}
+        self._keyboard_layout_display_to_id: dict[str, str] = {}
+        self._keyboard_layout_id_to_display: dict[str, str] = {}
         self._startup_settings = self._load_startup_settings()
         self._ui_font_delta_pt = self._coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
 
         self.title("Key Replacer Sequencer (Multi Trigger)")
-        self.geometry("780x660")
+        self.geometry("780x700")
 
         self.trigger_service = TriggerService()
+        self.keymap_service = KeymapService()
         self.input_gateway = InputGateway()
+        self.key_state_manager = KeyStateManager(resolve_scan_code=self._resolve_key_name_from_scan_code)
+        self.action_executor = ActionExecutor(
+            input_gateway=self.input_gateway,
+            validate_hotkey=self.validate_hotkey,
+            on_action_error=lambda action, err: self._show_action_error("", action, err),
+            on_runtime_error=lambda title, msg: messagebox.showerror(title, msg),
+            on_stop_hook=self.stop_hook,
+            on_toggle_mode=self.toggle_custom_input_enabled,
+            on_select_keymap=lambda keymap_id: self.activate_keymap_by_id(keymap_id, mark_dirty=False, show_flash=True),
+            on_trigger=lambda key: self.sequence_runner.handle_key(key),
+        )
+        self.input_router = InputRouter(
+            key_state_manager=self.key_state_manager,
+            get_send_guard_count=self._get_send_guard_count,
+            get_hook_pause_count=self._get_hook_pause_count,
+            get_stop_key=lambda: self.data.get("hook_stop_key", ""),
+            get_toggle_key=lambda: self.data.get("hook_toggle_key", ""),
+            get_custom_input_enabled=lambda: bool(self.custom_input_enabled),
+            find_keymap_switch_target=self._find_keymap_switch_target_id,
+            find_trigger=self._find_trigger_by_key,
+            find_keymap_target=self._find_keymap_target,
+            resolve_scan_code=self._resolve_key_name_from_scan_code,
+        )
         self.state = AppState()
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
@@ -73,11 +127,19 @@ class App(tk.Tk):
         self._error_dialog_open = False           # エラーダイアログ多重表示防止
         self._capturing_stop_key = False
         self._capturing_toggle_key = False
-        self.triggers_enabled = True
+        self._capturing_keymap_switch_key = False
+        self._keymap_switch_capture_target_id = ""
+        self._keymap_switch_capture_original_key = ""
+        self.custom_input_enabled = True
         self._is_dirty = False
+        self._trigger_set_source_path = ""
+        self._trigger_set_imported = False
+        self._trigger_set_dirty = False
         self._flash_after_id = None
+        self.keyboard_window: KeyboardWindow | None = None
         self._build_ui()
         self._load_startup_and_config()
+        self._reload_keyboard_layouts()
         self._refresh_triggers()
         self._refresh_actions()
         self._update_status()
@@ -179,7 +241,7 @@ class App(tk.Tk):
         if self._hook_suspend_count == 1:
             self._hook_was_active_before_dialog = bool(self.hook_active)
             if self._hook_was_active_before_dialog:
-                self.stop_hook(reset_trigger_mode=False)
+                self.stop_hook(reset_custom_input_mode=False)
 
     def resume_hook_after_dialog(self):
         """一時停止したフックを元に戻す（ネスト対応。最後のダイアログが閉じた時だけ復帰）"""
@@ -192,6 +254,12 @@ class App(tk.Tk):
             self._hook_was_active_before_dialog = False
             if was_on:
                 self.start_hook()
+
+    def _get_hook_pause_count(self) -> int:
+        return int(self._hook_suspend_count)
+
+    def _get_send_guard_count(self) -> int:
+        return int(self.action_executor.send_guard_count)
 
     # ---------------- UI ----------------
     def _build_ui(self):
@@ -208,6 +276,10 @@ class App(tk.Tk):
         self.suppress_var = tk.BooleanVar(value=True)
         self.run_to_end_var = tk.BooleanVar(value=False)
         self.run_to_end_delay_var = tk.StringVar(value="300")
+        self.keyboard_layout_var = tk.StringVar(value=str(self.data.get("keyboard_layout", DEFAULT_LAYOUT_ID)))
+        self.keyboard_show_physical_key_labels_var = tk.BooleanVar(
+            value=bool(self.data.get("keyboard_show_physical_key_labels", False))
+        )
         self.run_to_end_delay_entry: ttk.Entry
         self.hook_toggle_btn: ttk.Button
         self.trigger_toggle_btn: ttk.Button
@@ -216,10 +288,17 @@ class App(tk.Tk):
         self.stop_key_entry: ttk.Entry
         self.stop_key_capture_btn: ttk.Button
         self.stop_key_clear_btn: ttk.Button
+        self.keymap_listbox: tk.Listbox
+        self.keymap_add_btn: ttk.Button
+        self.keymap_edit_btn: ttk.Button
+        self.keymap_delete_btn: ttk.Button
+        self.keymap_select_btn: ttk.Button
         self.topmost_chk: ttk.Checkbutton
         self.compact_btn: ttk.Button
         self.suppress_chk: ttk.Checkbutton
         self.run_to_end_chk: ttk.Checkbutton
+        self.keyboard_layout_combo: ttk.Combobox
+        self.compact_keyboard_layout_combo: ttk.Combobox
         self.toggle_key_entry: ttk.Entry
         self.toggle_key_capture_btn: ttk.Button
         self.toggle_key_clear_btn: ttk.Button
@@ -264,13 +343,54 @@ class App(tk.Tk):
         self._update_file_status()
 
     def _update_file_status(self):
-        name = os.path.basename(self.config_path or "") or "(未設定)"
-        save_state = "未保存" if self._is_dirty else "保存済み"
+        name = os.path.basename(self.keymap_set_path or "") or "(未設定)"
+        save_state = "未保存" if self._is_dirty or self._has_individual_dirty() else "保存済み"
         self.file_status_var.set(f"ファイル: {name} / {save_state}")
 
     def _set_dirty(self, value: bool):
         self._is_dirty = bool(value)
         self._update_file_status()
+
+    def _mark_keymap_dirty(self, keymap: dict | None = None) -> None:
+        target = keymap
+        if target is None:
+            target = self.keymap_service.get_active_keymap(self.data)
+        if isinstance(target, dict):
+            target[self.config_service.INTERNAL_KEYMAP_DIRTY] = True
+        self._set_dirty(True)
+
+    def _mark_trigger_set_dirty(self) -> None:
+        self._trigger_set_dirty = True
+        self._set_dirty(True)
+
+    def _mark_sequence_dirty(self, trigger: dict | None = None) -> None:
+        target = trigger if isinstance(trigger, dict) else self._selected_trigger()
+        if isinstance(target, dict):
+            target[self.config_service.INTERNAL_SEQUENCE_DIRTY] = True
+        self._set_dirty(True)
+
+    def _has_individual_dirty(self) -> bool:
+        if bool(getattr(self, "_trigger_set_dirty", False)):
+            return True
+        for trigger in self.data.get("triggers", []):
+            if isinstance(trigger, dict) and bool(trigger.get(self.config_service.INTERNAL_SEQUENCE_DIRTY, False)):
+                return True
+        for keymap in self.keymap_service.get_keymaps(self.data):
+            if isinstance(keymap, dict) and bool(keymap.get(self.config_service.INTERNAL_KEYMAP_DIRTY, False)):
+                return True
+        return False
+
+    def _clear_individual_dirty_flags(self) -> None:
+        self._trigger_set_dirty = False
+        self._trigger_set_imported = False
+        for trigger in self.data.get("triggers", []):
+            if isinstance(trigger, dict):
+                trigger[self.config_service.INTERNAL_SEQUENCE_DIRTY] = False
+                trigger[self.config_service.INTERNAL_SEQUENCE_IMPORTED] = False
+        for keymap in self.keymap_service.get_keymaps(self.data):
+            if isinstance(keymap, dict):
+                keymap[self.config_service.INTERNAL_KEYMAP_DIRTY] = False
+                keymap[self.config_service.INTERNAL_KEYMAP_IMPORTED] = False
 
     def _clear_flash_message(self):
         self._flash_after_id = None
@@ -313,11 +433,14 @@ class App(tk.Tk):
         file_menu = tk.Menu(menubar, tearoff=False)
         file_menu.add_command(label="新規作成", command=self.new_config, accelerator="Ctrl+N")
         file_menu.add_separator()
-        file_menu.add_command(label="保存", command=self.save_config, accelerator="Ctrl+S")
+        file_menu.add_command(label="保存", command=self.save_keymap_set, accelerator="Ctrl+S")
         file_menu.add_command(label="別名で保存…", command=self.save_as, accelerator="Ctrl+Shift+S")
-        file_menu.add_command(label="読込…", command=self.load_from, accelerator="Ctrl+O")
+        file_menu.add_command(label="読込（構成セット）…", command=self.load_keymap_set_from, accelerator="Ctrl+O")
         file_menu.add_separator()
-        file_menu.add_command(label="起動時に読むJSONを指定…", command=self.set_startup_config)
+        file_menu.add_command(label="Import...", command=self.import_config)
+        file_menu.add_command(label="Export...", command=self.export_config)
+        file_menu.add_separator()
+        file_menu.add_command(label="起動時に読む構成セットを指定…", command=self.set_startup_keymap_set)
         file_menu.add_command(label="例を復元", command=self.restore_default)
         file_menu.add_separator()
         file_menu.add_command(label="終了", command=self.on_close)
@@ -325,6 +448,16 @@ class App(tk.Tk):
 
         settings_menu = tk.Menu(menubar, tearoff=False)
         settings_menu.add_command(label="プリセット編集…", command=self.open_preset_manager, accelerator="Ctrl+Alt+P")
+        settings_menu.add_command(label="キーボードUIを開く", command=self.open_keyboard_window)
+        settings_menu.add_separator()
+        settings_menu.add_command(label="外部レイアウトを追加…", command=self.add_external_keyboard_layout)
+        settings_menu.add_command(label="レイアウトを削除…", command=self.delete_keyboard_layout)
+        settings_menu.add_separator()
+        settings_menu.add_checkbutton(
+            label="物理キー名を表示",
+            variable=self.keyboard_show_physical_key_labels_var,
+            command=self.toggle_keyboard_show_physical_key_labels,
+        )
         settings_menu.add_separator()
 
         font_menu = tk.Menu(settings_menu, tearoff=False)
@@ -366,7 +499,7 @@ class App(tk.Tk):
     def _on_shortcut_save(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.save_config()
+        self.save_keymap_set()
         return "break"
 
     def _on_shortcut_new(self, _event=None):
@@ -384,7 +517,7 @@ class App(tk.Tk):
     def _on_shortcut_load(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.load_from()
+        self.load_keymap_set_from()
         return "break"
 
     def _on_shortcut_open_preset_manager(self, _event=None):
@@ -392,6 +525,234 @@ class App(tk.Tk):
             return "break"
         self.open_preset_manager()
         return "break"
+
+    def open_keyboard_window(self):
+        layout = self._get_current_keyboard_layout()
+        window = getattr(self, "keyboard_window", None)
+        if window is not None:
+            try:
+                if window.winfo_exists():
+                    window.update_layout(layout)
+                    window.deiconify()
+                    window.lift()
+                    window.focus_force()
+                    self._refresh_keyboard_window()
+                    return
+            except Exception:
+                self.keyboard_window = None
+
+        self.keyboard_window = KeyboardWindow(
+            self,
+            layout=layout,
+            on_close=self._on_keyboard_window_closed,
+            on_assign_keymap=self.assign_keymap_from_keyboard_ui,
+            on_clear_keymap=self.clear_keymap_from_keyboard_ui,
+        )
+        self._refresh_keyboard_window()
+
+    def _on_keyboard_window_closed(self):
+        self.keyboard_window = None
+
+    def _refresh_keyboard_window(self):
+        window = getattr(self, "keyboard_window", None)
+        if window is None:
+            return
+        try:
+            if not window.winfo_exists():
+                self.keyboard_window = None
+                return
+            window.update_layout(self._get_current_keyboard_layout())
+            window.update_from_config(
+                self.data,
+                custom_enabled=True,
+                show_physical_key_labels=bool(self.keyboard_show_physical_key_labels_var.get()),
+            )
+        except Exception:
+            pass
+
+    def _get_current_keyboard_layout(self):
+        entry = self._keyboard_layout_entries.get(str(self.keyboard_layout_id).strip())
+        if entry is not None:
+            if entry.source == "external" and entry.path:
+                try:
+                    return load_layout_from_json(
+                        resolve_registered_layout_path(entry.path, base_dir=self.base_dir)
+                    )
+                except Exception:
+                    pass
+            return entry.layout
+        return resolve_keyboard_layout(layout_id=self.keyboard_layout_id)
+
+    def _get_fallback_keyboard_layout_id(self, *, exclude: str | None = None) -> str:
+        excluded = (exclude or "").strip()
+        if DEFAULT_LAYOUT_ID in self._keyboard_layout_entries and DEFAULT_LAYOUT_ID != excluded:
+            return DEFAULT_LAYOUT_ID
+        for layout_id in self._keyboard_layout_entries.keys():
+            if layout_id != excluded:
+                return layout_id
+        return DEFAULT_LAYOUT_ID
+
+    def _reload_keyboard_layouts(self):
+        self._keyboard_layout_entries = collect_keyboard_layouts(
+            self.data.get("external_keyboard_layouts", []),
+            base_dir=self.base_dir,
+        )
+        self._sync_keyboard_layout_controls()
+
+    def _sync_keyboard_layout_controls(self):
+        self._rebuild_keyboard_layout_display_maps()
+        display_values = list(self._keyboard_layout_display_to_id.keys())
+        selected = str(self.data.get("keyboard_layout", self.keyboard_layout_id or DEFAULT_LAYOUT_ID)).strip()
+        if selected not in self._keyboard_layout_entries:
+            selected = self._get_fallback_keyboard_layout_id()
+
+        self.keyboard_layout_id = selected
+        self.data["keyboard_layout"] = selected
+        if hasattr(self, "keyboard_layout_var"):
+            self.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
+
+        state = "readonly" if display_values else "disabled"
+        for name in ("keyboard_layout_combo", "compact_keyboard_layout_combo"):
+            combo = getattr(self, name, None)
+            if combo is None:
+                continue
+            try:
+                combo.configure(values=display_values, state=state)
+                combo.set(self._keyboard_layout_id_to_display.get(selected, ""))
+            except Exception:
+                pass
+
+        self._refresh_keyboard_window()
+
+    def _persist_keyboard_layout_selection(self):
+        if not self.keymap_set_path:
+            self._set_dirty(True)
+            return True
+        try:
+            return self.save_keymap_set(show_success_dialog=False)
+        except Exception as e:
+            self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
+            messagebox.showerror("保存失敗", str(e))
+            return False
+
+    def toggle_keyboard_show_physical_key_labels(self):
+        self.data["keyboard_show_physical_key_labels"] = bool(self.keyboard_show_physical_key_labels_var.get())
+        self._refresh_keyboard_window()
+        self._persist_keyboard_layout_selection()
+
+    def _set_keyboard_layout_selection(self, layout_id: str, *, persist: bool = False):
+        selected = str(layout_id or "").strip()
+        if selected not in self._keyboard_layout_entries:
+            selected = self._get_fallback_keyboard_layout_id()
+
+        self.keyboard_layout_id = selected
+        self.data["keyboard_layout"] = selected
+        if hasattr(self, "keyboard_layout_var"):
+            self.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
+
+        for name in ("keyboard_layout_combo", "compact_keyboard_layout_combo"):
+            combo = getattr(self, name, None)
+            if combo is None:
+                continue
+            try:
+                combo.set(self._keyboard_layout_id_to_display.get(selected, ""))
+            except Exception:
+                pass
+
+        self._refresh_keyboard_window()
+        if persist:
+            return self._persist_keyboard_layout_selection()
+        return True
+
+    def on_keyboard_layout_selected(self, _event=None):
+        selected = self._keyboard_layout_display_to_id.get(str(self.keyboard_layout_var.get() or "").strip(), "")
+        self._set_keyboard_layout_selection(selected, persist=True)
+
+    def add_external_keyboard_layout(self):
+        path = filedialog.askopenfilename(
+            title="外部レイアウトを追加",
+            initialdir=self.keyboard_layouts_dir if os.path.isdir(self.keyboard_layouts_dir) else self.base_dir,
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return
+
+        try:
+            layout = load_layout_from_json(path, existing_layout_ids=set(self._keyboard_layout_entries.keys()))
+            registrations = list(self.data.get("external_keyboard_layouts", []))
+            stored_path = self._to_rel_if_possible(path)
+            if any(str(item.get("path") or "").strip() == stored_path for item in registrations if isinstance(item, dict)):
+                raise ValueError("同じJSONファイルは既に登録されています。")
+            registrations.append({"path": stored_path})
+            self.data["external_keyboard_layouts"] = registrations
+        except Exception as e:
+            messagebox.showerror("レイアウト追加失敗", str(e))
+            return
+
+        self._reload_keyboard_layouts()
+        self._persist_keyboard_layout_selection()
+        self._set_flash_message(f"外部レイアウトを追加しました: {layout.layout_id}")
+
+    def delete_keyboard_layout(self):
+        items = [
+            (layout_id, entry.layout.display_name)
+            for layout_id, entry in self._keyboard_layout_entries.items()
+            if entry.source == "external" and entry.path
+        ]
+        if not items:
+            messagebox.showinfo("レイアウト削除", "削除できる外部レイアウトがありません。")
+            return
+
+        dlg = LayoutDeleteDialog(self, title="レイアウトを削除", items=items)
+        dlg.wait_window()
+        target_id = getattr(dlg, "result", None)
+        if not target_id:
+            return
+
+        entry = self._keyboard_layout_entries.get(target_id)
+        if entry is None or entry.source != "external" or not entry.path:
+            messagebox.showerror("レイアウト削除", "削除対象のレイアウト情報を取得できませんでした。")
+            return
+
+        if not messagebox.askyesno("確認", f"外部レイアウト '{target_id}' を削除しますか？"):
+            return
+
+        registrations = list(self.data.get("external_keyboard_layouts", []))
+        self.data["external_keyboard_layouts"] = [
+            item
+            for item in registrations
+            if str(item.get("path") or "").strip() != str(entry.path or "").strip()
+        ]
+
+        if target_id == self.keyboard_layout_id:
+            changed = self._set_keyboard_layout_selection(
+                self._get_fallback_keyboard_layout_id(exclude=target_id),
+                persist=True,
+            )
+            if not changed:
+                return
+        else:
+            if not self._persist_keyboard_layout_selection():
+                return
+
+        self._reload_keyboard_layouts()
+        self._set_flash_message(f"外部レイアウトを削除しました: {target_id}")
+
+    def _rebuild_keyboard_layout_display_maps(self):
+        self._keyboard_layout_display_to_id = {}
+        self._keyboard_layout_id_to_display = {}
+        display_counts: dict[str, int] = {}
+
+        for entry in self._keyboard_layout_entries.values():
+            display_name = (entry.layout.display_name or "").strip() or entry.layout.layout_id
+            display_counts[display_name] = display_counts.get(display_name, 0) + 1
+
+        for layout_id, entry in self._keyboard_layout_entries.items():
+            display_name = (entry.layout.display_name or "").strip() or layout_id
+            if display_counts.get(display_name, 0) > 1:
+                display_name = f"{display_name} [{layout_id}]"
+            self._keyboard_layout_display_to_id[display_name] = layout_id
+            self._keyboard_layout_id_to_display[layout_id] = display_name
 
     def show_compact_view(self):
         if getattr(self, "_capturing_stop_key", False) or getattr(self, "_capturing_toggle_key", False):
@@ -484,6 +845,692 @@ class App(tk.Tk):
     def _find_trigger_by_key(self, key: str):
         return self.trigger_service.find_trigger_by_key(self.data, key)
 
+    def _find_keymap_target(self, key: str) -> str:
+        return self.keymap_service.find_mapping_target(self.data, key)
+
+    def _find_keymap_switch_target_id(self, key: str) -> str:
+        return self.keymap_service.get_keymap_by_switch_key(self.data, key)
+
+    def _format_keymap_display_name(self, keymap: dict | None) -> str:
+        if not isinstance(keymap, dict):
+            return ""
+        keymap_id = normalize_key_name(keymap.get("id", ""))
+        label = str(keymap.get("label") or "").strip()
+        return label or keymap_id
+
+    def _format_keymap_list_entry(self, index: int, keymap: dict) -> str:
+        keymap_id = normalize_key_name(keymap.get("id", ""))
+        marker = "> " if keymap_id and keymap_id == self.keymap_service.get_active_keymap_id(self.data) else "  "
+        switch_key = self.keymap_service.find_switch_key_for_keymap(self.data, keymap_id) or "-"
+        display_name = self._format_keymap_display_name(keymap) or f"keymap-{index + 1}"
+        return f"{marker}{index + 1:02d}. {switch_key}: {display_name}"
+
+    def _get_sorted_keymap_switch_items(self) -> list[tuple[str, str]]:
+        items = list(self.keymap_service.get_keymap_switch_keys(self.data).items())
+        return sorted(
+            [
+                (normalize_key_name(key), normalize_key_name(keymap_id))
+                for key, keymap_id in items
+                if normalize_key_name(key) and normalize_key_name(keymap_id)
+            ],
+            key=lambda item: item[0],
+        )
+
+    def _refresh_keymap_switch_ui(self) -> None:
+        self._refresh_keymap_list_ui()
+
+    def _selected_keymap_list_index(self) -> int | None:
+        """keymap 管理Listboxの選択行を返す。"""
+        if not hasattr(self, "keymap_listbox"):
+            return None
+        try:
+            selection = self.keymap_listbox.curselection()
+            if not selection:
+                return None
+            return int(selection[0])
+        except Exception:
+            return None
+
+    def _sync_keymap_manage_buttons(self) -> None:
+        """keymap 件数に応じて管理ボタン状態を揃える。"""
+        has_selection = self._selected_keymap_list_index() is not None and bool(self.keymap_service.get_keymaps(self.data))
+        state = "normal" if has_selection else "disabled"
+        if hasattr(self, "keymap_edit_btn"):
+            self.keymap_edit_btn.configure(state=state)
+        if hasattr(self, "keymap_delete_btn"):
+            self.keymap_delete_btn.configure(state=state)
+        if hasattr(self, "keymap_select_btn"):
+            self.keymap_select_btn.configure(state=state)
+
+    def _selected_keymap_switch_key_index(self) -> int | None:
+        if not hasattr(self, "keymap_switch_key_listbox"):
+            return None
+        try:
+            selection = self.keymap_switch_key_listbox.curselection()
+            if not selection:
+                return None
+            return int(selection[0])
+        except Exception:
+            return None
+
+    def _sync_keymap_switch_key_buttons(self) -> None:
+        has_keymaps = bool(self.keymap_service.get_keymaps(self.data))
+        has_switch_selection = self._selected_keymap_switch_key_index() is not None and bool(self._get_sorted_keymap_switch_items())
+        is_capturing = bool(self._capturing_keymap_switch_key)
+        if hasattr(self, "keymap_switch_key_add_btn"):
+            self.keymap_switch_key_add_btn.configure(state=("normal" if has_keymaps and not is_capturing else "disabled"))
+        if hasattr(self, "keymap_switch_key_change_btn"):
+            self.keymap_switch_key_change_btn.configure(state=("normal" if has_switch_selection and not is_capturing else "disabled"))
+        if hasattr(self, "keymap_switch_key_remove_btn"):
+            self.keymap_switch_key_remove_btn.configure(state=("normal" if has_switch_selection and not is_capturing else "disabled"))
+
+    def _refresh_keymap_switch_key_list_ui(self, preferred_index: int | None = None) -> None:
+        if not hasattr(self, "keymap_switch_key_listbox"):
+            return
+
+        listbox = self.keymap_switch_key_listbox
+        try:
+            current_index = self._selected_keymap_switch_key_index()
+            listbox.delete(0, tk.END)
+        except Exception:
+            self._sync_keymap_switch_key_buttons()
+            return
+
+        items = self._get_sorted_keymap_switch_items()
+        if not items:
+            listbox.insert(tk.END, "切替キーは未設定です")
+            listbox.selection_clear(0, tk.END)
+            self._sync_keymap_switch_key_buttons()
+            return
+
+        for index, (switch_key, keymap_id) in enumerate(items, start=1):
+            display_name = self._format_keymap_display_name(self.keymap_service.find_keymap(self.data, keymap_id)) or keymap_id
+            listbox.insert(tk.END, f"{index:02d}. {switch_key} -> {display_name}")
+
+        target_index = preferred_index
+        if target_index is None:
+            target_index = current_index
+        if target_index is None:
+            target_index = 0
+        target_index = max(0, min(int(target_index), len(items) - 1))
+        listbox.selection_clear(0, tk.END)
+        listbox.selection_set(target_index)
+        listbox.activate(target_index)
+        listbox.see(target_index)
+        self._sync_keymap_switch_key_buttons()
+
+    def _refresh_keymap_list_ui(self, preferred_index: int | None = None) -> None:
+        """keymap 管理一覧の表示内容と選択を更新する。"""
+        if not hasattr(self, "keymap_listbox"):
+            return
+
+        listbox = self.keymap_listbox
+        try:
+            current_index = self._selected_keymap_list_index()
+            listbox.delete(0, tk.END)
+        except Exception:
+            self._sync_keymap_manage_buttons()
+            return
+
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if not keymaps:
+            listbox.insert(tk.END, "キーマップは未登録です")
+            listbox.selection_clear(0, tk.END)
+            self._sync_keymap_manage_buttons()
+            return
+
+        active_id = self.keymap_service.get_active_keymap_id(self.data)
+        for index, keymap in enumerate(keymaps):
+            listbox.insert(tk.END, self._format_keymap_list_entry(index, keymap))
+
+        target_index = preferred_index
+        if target_index is None:
+            target_index = current_index
+        if target_index is None:
+            active_index = next(
+                (
+                    index
+                    for index, keymap in enumerate(keymaps)
+                    if normalize_key_name(keymap.get("id", "")) == active_id
+                ),
+                0,
+            )
+            target_index = active_index
+
+        target_index = max(0, min(int(target_index), len(keymaps) - 1))
+        listbox.selection_clear(0, tk.END)
+        listbox.selection_set(target_index)
+        listbox.activate(target_index)
+        listbox.see(target_index)
+        self._sync_keymap_manage_buttons()
+
+    def _on_keymap_list_select(self, _event=None) -> None:
+        self._sync_keymap_manage_buttons()
+
+    def _on_keymap_switch_key_list_select(self, _event=None) -> None:
+        self._sync_keymap_switch_key_buttons()
+
+    def _on_keymap_list_double_click(self, _event=None) -> None:
+        """一覧ダブルクリックで選択中 keymap の編集導線を開く。"""
+        self._edit_selected_keymap()
+
+    def _start_keymap_switch_key_add_capture(self) -> None:
+        index = self._selected_keymap_list_index()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if index is None or not keymaps or not (0 <= index < len(keymaps)):
+            messagebox.showinfo("追加", "割当先の keymap を選択してください。")
+            return
+
+        target = keymaps[index]
+        target_id = normalize_key_name(target.get("id", ""))
+        if not target_id:
+            messagebox.showerror("追加できません", "選択中の keymap を特定できません。")
+            return
+        existing_switch_key = self.keymap_service.find_switch_key_for_keymap(self.data, target_id)
+        if existing_switch_key:
+            messagebox.showerror("追加できません", f"選択中の keymap には既に直接切替キーが設定されています:\n{existing_switch_key}")
+            return
+
+        self._start_keymap_switch_key_capture(mode="add", target_id=target_id, original_key="")
+
+    def _start_keymap_switch_key_change_capture(self) -> None:
+        index = self._selected_keymap_switch_key_index()
+        items = self._get_sorted_keymap_switch_items()
+        if index is None or not items or not (0 <= index < len(items)):
+            messagebox.showinfo("変更", "変更したい切替キーを選択してください。")
+            return
+
+        switch_key, keymap_id = items[index]
+        self._start_keymap_switch_key_capture(mode="change", target_id=keymap_id, original_key=switch_key)
+
+    def _start_keymap_switch_key_capture(self, *, mode: str, target_id: str, original_key: str) -> None:
+        if getattr(self, "_capturing_stop_key", False):
+            self._stop_stop_key_capture(cancel=True)
+        if getattr(self, "_capturing_toggle_key", False):
+            self._stop_toggle_key_capture(cancel=True)
+
+        self._capturing_keymap_switch_key = True
+        self._keymap_switch_capture_target_id = normalize_key_name(target_id)
+        self._keymap_switch_capture_original_key = normalize_key_name(original_key)
+        if hasattr(self, "keymap_switch_key_add_btn"):
+            self.keymap_switch_key_add_btn.configure(text=("入力中…（Escで停止）" if mode == "add" else "追加"))
+        if hasattr(self, "keymap_switch_key_change_btn"):
+            self.keymap_switch_key_change_btn.configure(text=("入力中…（Escで停止）" if mode == "change" else "変更"))
+
+        self.suspend_hook_for_dialog()
+        if mode == "change" and hasattr(self, "keymap_switch_key_listbox"):
+            self.keymap_switch_key_listbox.focus_set()
+        elif hasattr(self, "keymap_listbox"):
+            self.keymap_listbox.focus_set()
+        self.bind("<KeyPress>", self._on_keymap_switch_key_capture_keypress, add="+")
+        self._sync_keymap_switch_key_buttons()
+
+    def _stop_keymap_switch_key_capture(self, cancel: bool = False) -> None:
+        if not getattr(self, "_capturing_keymap_switch_key", False):
+            return
+        self._capturing_keymap_switch_key = False
+        self._keymap_switch_capture_target_id = ""
+        self._keymap_switch_capture_original_key = ""
+        try:
+            self.unbind("<KeyPress>")
+        except Exception:
+            pass
+
+        if hasattr(self, "keymap_switch_key_add_btn"):
+            self.keymap_switch_key_add_btn.configure(text="追加")
+        if hasattr(self, "keymap_switch_key_change_btn"):
+            self.keymap_switch_key_change_btn.configure(text="変更")
+        self.resume_hook_after_dialog()
+        self._sync_keymap_switch_key_buttons()
+
+        if cancel:
+            return
+
+    def _validate_keymap_switch_assignment(self, key: str, *, target_id: str, exclude_switch_key: str = "") -> bool:
+        if self.trigger_service.is_stop_key_conflict(self.data, key):
+            messagebox.showerror("設定できません", f"直接切替キーが停止キーと重複しています:\n{key}")
+            return False
+        if self.trigger_service.is_toggle_key_conflict(self.data, key):
+            messagebox.showerror("設定できません", f"直接切替キーがモード切替キーと重複しています:\n{key}")
+            return False
+        if self.trigger_service.key_exists(self.data, key):
+            messagebox.showerror("設定できません", f"直接切替キーが通常トリガーと重複しています:\n{key}")
+            return False
+        if self.keymap_service.source_key_exists(self.data, key):
+            messagebox.showerror("設定できません", f"直接切替キーがキーマップ元キーと重複しています:\n{key}")
+            return False
+
+        existing_target_id = self.keymap_service.get_keymap_by_switch_key(self.data, key)
+        normalized_target_id = normalize_key_name(target_id)
+        excluded_key = normalize_key_name(exclude_switch_key)
+        if existing_target_id and key != excluded_key:
+            existing_name = self._format_keymap_display_name(self.keymap_service.find_keymap(self.data, existing_target_id)) or existing_target_id
+            messagebox.showerror("設定できません", f"この切替キーは既に使用されています:\n{key} -> {existing_name}")
+            return False
+
+        existing_switch_key = self.keymap_service.find_switch_key_for_keymap(
+            self.data,
+            normalized_target_id,
+            exclude_key=excluded_key,
+        )
+        if existing_switch_key and existing_switch_key != key:
+            target_name = self._format_keymap_display_name(self.keymap_service.find_keymap(self.data, normalized_target_id)) or normalized_target_id
+            messagebox.showerror("設定できません", f"この keymap には既に直接切替キーがあります:\n{existing_switch_key} -> {target_name}")
+            return False
+
+        try:
+            self.input_gateway.validate_key_name(key)
+        except Exception as e:
+            messagebox.showerror("設定できません", f"不明なキー名です:\n{key}\n\n{e}")
+            return False
+
+        return True
+
+    def _on_keymap_switch_key_capture_keypress(self, event):
+        if not self._capturing_keymap_switch_key:
+            return
+
+        key = self._normalize_tk_key_for_trigger(event.keysym)
+        if key == "esc":
+            self._stop_keymap_switch_key_capture(cancel=True)
+            return "break"
+        if key in ("ctrl", "shift", "alt", "windows"):
+            return "break"
+        if "+" in key:
+            messagebox.showerror("設定できません", "直接切替キーは単キーのみ対応です。")
+            return "break"
+
+        target_id = normalize_key_name(self._keymap_switch_capture_target_id)
+        if not target_id or not self.keymap_service.find_keymap(self.data, target_id):
+            self._stop_keymap_switch_key_capture(cancel=True)
+            messagebox.showerror("設定できません", "割当先の keymap が見つかりません。")
+            return "break"
+        original_key = normalize_key_name(self._keymap_switch_capture_original_key)
+        if not self._validate_keymap_switch_assignment(key, target_id=target_id, exclude_switch_key=original_key):
+            return "break"
+
+        changed = False
+        if original_key and original_key != key:
+            changed = self.keymap_service.remove_keymap_switch_key(self.data, original_key) or changed
+        changed = self.keymap_service.set_keymap_switch_key(self.data, key, target_id) or changed
+        target = self.keymap_service.find_keymap(self.data, target_id)
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        action_label = "変更" if original_key else "設定"
+        target_name = self._format_keymap_display_name(target) or target_id
+        if changed:
+            self._set_dirty(True)
+            if original_key and original_key != key:
+                self._set_flash_message(f"直接切替キーを変更しました: {original_key} -> {key} ({target_name})")
+            else:
+                self._set_flash_message(f"直接切替キーを{action_label}しました: {key} -> {target_name}")
+        else:
+            self._set_flash_message(f"直接切替キーは変更なしです: {key}")
+
+        preferred_index = next(
+            (item_index for item_index, (switch_key, _) in enumerate(self._get_sorted_keymap_switch_items()) if switch_key == key),
+            None,
+        )
+        self._refresh_keymap_switch_key_list_ui(preferred_index=preferred_index)
+        self._stop_keymap_switch_key_capture(cancel=False)
+        return "break"
+
+    def _remove_keymap_switch_key(self) -> None:
+        index = self._selected_keymap_switch_key_index()
+        items = self._get_sorted_keymap_switch_items()
+        if index is None or not items or not (0 <= index < len(items)):
+            messagebox.showinfo("削除", "削除したい切替キーを選択してください。")
+            return
+
+        switch_key, keymap_id = items[index]
+        if not self.keymap_service.remove_keymap_switch_key(self.data, switch_key):
+            messagebox.showerror("削除できません", "選択した切替キーを削除できませんでした。")
+            return
+
+        preferred_index = None if len(items) <= 1 else min(index, len(items) - 2)
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        self._set_dirty(True)
+        self._refresh_keymap_switch_key_list_ui(preferred_index=preferred_index)
+        target_name = self._format_keymap_display_name(self.keymap_service.find_keymap(self.data, keymap_id)) or keymap_id
+        self._set_flash_message(f"直接切替キーを削除しました: {switch_key} -> {target_name}")
+
+    def _add_keymap(self) -> None:
+        """空の keymap を追加する。"""
+        created = self.keymap_service.create_keymap(self.data)
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        preferred_index = max(0, len(keymaps) - 1)
+        self._refresh_keymap_list_ui(preferred_index=preferred_index)
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        self._mark_keymap_dirty(created)
+        self._set_flash_message(f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}")
+
+    def _rename_keymap_label(self) -> None:
+        """選択中 keymap の表示ラベルだけを更新する。"""
+        index = self._selected_keymap_list_index()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if index is None or not keymaps or not (0 <= index < len(keymaps)):
+            messagebox.showinfo("名前変更", "名前変更したい keymap を選択してください。")
+            return
+
+        target = keymaps[index]
+        keymap_id = normalize_key_name(target.get("id", ""))
+        current_label = str(target.get("label") or "").strip()
+        self.suspend_hook_for_dialog()
+        try:
+            new_label = simpledialog.askstring(
+                "名前変更",
+                f"keymap の表示名を入力してください。\n空欄にすると id 表示に戻ります。\n\nid: {keymap_id}",
+                initialvalue=current_label,
+                parent=self,
+            )
+        finally:
+            self.resume_hook_after_dialog()
+        if new_label is None:
+            return
+
+        normalized_label = str(new_label).strip()
+        if normalized_label == current_label:
+            self._set_flash_message(f"keymap 名は変更なしです: {self._format_keymap_display_name(target) or keymap_id}")
+            return
+
+        target["label"] = normalized_label
+        self._refresh_keymap_list_ui(preferred_index=index)
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        self._mark_keymap_dirty(target)
+        if normalized_label:
+            self._set_flash_message(f"keymap 名を変更しました: {normalized_label}")
+        else:
+            self._set_flash_message(f"keymap 名をクリアしました: {keymap_id}")
+
+    def _delete_keymap(self) -> None:
+        """選択中の keymap を削除する。"""
+        index = self._selected_keymap_list_index()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if index is None or not keymaps or not (0 <= index < len(keymaps)):
+            messagebox.showinfo("削除", "削除したい keymap を選択してください。")
+            return
+
+        target = keymaps[index]
+        target_name = self._format_keymap_display_name(target) or normalize_key_name(target.get("id", ""))
+        if not messagebox.askyesno("確認", f"keymap を削除しますか？\n\n{target_name}"):
+            return
+
+        deleted, next_active_id = self.keymap_service.delete_keymap(self.data, target.get("id", ""))
+        if not deleted:
+            messagebox.showerror("削除できません", "選択した keymap を削除できませんでした。")
+            return
+
+        remaining_count = len(self.keymap_service.get_keymaps(self.data))
+        preferred_index = None if remaining_count <= 0 else min(index, remaining_count - 1)
+        self._refresh_keymap_list_ui(preferred_index=preferred_index)
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        self._set_dirty(True)
+        if next_active_id:
+            self._set_flash_message(f"キーマップを削除しました: {target_name} / 現在: {self._get_active_keymap_text()}")
+        else:
+            self._set_flash_message(f"キーマップを削除しました: {target_name}")
+
+    def _select_keymap(self) -> None:
+        """選択中の keymap を active にする。"""
+        index = self._selected_keymap_list_index()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if index is None or not keymaps or not (0 <= index < len(keymaps)):
+            messagebox.showinfo("選択", "アクティブにしたい keymap を選択してください。")
+            return
+
+        target = keymaps[index]
+        self.activate_keymap_by_id(target.get("id", ""), preferred_index=index, mark_dirty=True, show_flash=True)
+
+    def _edit_selected_keymap(self) -> None:
+        """選択中の keymap をダイアログで編集する。"""
+        index = self._selected_keymap_list_index()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if index is None or not keymaps or not (0 <= index < len(keymaps)):
+            messagebox.showinfo("変更", "編集したい keymap を選択してください。")
+            return
+
+        target = keymaps[index]
+        target_id = normalize_key_name(target.get("id", ""))
+        if not target_id:
+            messagebox.showerror("変更できません", "選択した keymap を特定できませんでした。")
+            return
+
+        current_switch_key = self.keymap_service.find_switch_key_for_keymap(self.data, target_id)
+        dlg = KeymapEditDialog(
+            self,
+            title="キーマップ変更",
+            initial_key=current_switch_key,
+            initial_label=str(target.get("label") or "").strip(),
+        )
+        dlg.wait_window()
+        result = getattr(dlg, "result", None)
+        if not result:
+            return
+
+        self._apply_keymap_edit(
+            target,
+            new_label=result.get("label", ""),
+            new_key=result.get("key", ""),
+            preferred_index=index,
+        )
+
+    def _apply_keymap_edit(self, keymap: dict, *, new_label: str, new_key: str, preferred_index: int | None = None) -> bool:
+        keymap_id = normalize_key_name(keymap.get("id", ""))
+        if not keymap_id:
+            return False
+
+        normalized_label = str(new_label or "").strip()
+        normalized_key = normalize_key_name(new_key)
+        current_label = str(keymap.get("label") or "").strip()
+        current_switch_key = self.keymap_service.find_switch_key_for_keymap(self.data, keymap_id)
+
+        if normalized_key and not self._validate_keymap_switch_assignment(
+            normalized_key,
+            target_id=keymap_id,
+            exclude_switch_key=current_switch_key,
+        ):
+            return False
+
+        changed = False
+        if normalized_label != current_label:
+            keymap["label"] = normalized_label
+            changed = True
+
+        if current_switch_key and current_switch_key != normalized_key:
+            changed = self.keymap_service.remove_keymap_switch_key(self.data, current_switch_key) or changed
+
+        if normalized_key and normalized_key != current_switch_key:
+            changed = self.keymap_service.set_keymap_switch_key(self.data, normalized_key, keymap_id) or changed
+
+        if not changed:
+            self._set_flash_message(f"キーマップは変更なしです: {self._format_keymap_display_name(keymap) or keymap_id}")
+            return False
+
+        self._refresh_keymap_list_ui(preferred_index=preferred_index)
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        self._mark_keymap_dirty(keymap)
+        self._set_flash_message(f"キーマップを変更しました: {self._format_keymap_display_name(keymap) or keymap_id}")
+        return True
+
+    def activate_keymap_by_id(
+        self,
+        keymap_id: str,
+        *,
+        preferred_index: int | None = None,
+        mark_dirty: bool = False,
+        show_flash: bool = True,
+    ) -> bool:
+        target_id = normalize_key_name(keymap_id)
+        if not target_id:
+            return False
+
+        changed = self.keymap_service.set_active_keymap_id(self.data, target_id)
+        active_id = self.keymap_service.get_active_keymap_id(self.data)
+        if active_id != target_id:
+            return False
+
+        if preferred_index is None:
+            keymaps = self.keymap_service.get_keymaps(self.data)
+            preferred_index = next(
+                (index for index, keymap in enumerate(keymaps) if normalize_key_name(keymap.get("id", "")) == target_id),
+                None,
+            )
+
+        self._refresh_keymap_list_ui(preferred_index=preferred_index)
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        if changed and mark_dirty:
+            self._set_dirty(True)
+        if show_flash:
+            if changed:
+                self._set_flash_message(f"アクティブなキーマップを切り替えました: {self._get_active_keymap_text()}")
+            else:
+                self._set_flash_message(f"アクティブなキーマップは変更なしです: {self._get_active_keymap_text()}")
+        return True
+
+    def _resolve_key_name_from_scan_code(self, scan_code: object) -> str:
+        return normalize_key_name(resolve_key_id_from_scan_code(self._get_current_keyboard_layout(), scan_code))
+
+    def _should_debug_special_key_event(self, event: object, resolved_key: str) -> bool:
+        if not bool(self.data.get("debug_jis_special_key_events", False)):
+            return False
+        if normalize_key_name(str(getattr(event, "event_type", "") or "")) != "down":
+            return False
+
+        raw_name = normalize_key_name(str(getattr(event, "name", "") or ""))
+        if is_special_key_name(raw_name) or is_special_key_name(resolved_key):
+            return True
+
+        try:
+            scan_code = int(getattr(event, "scan_code", None))
+        except Exception:
+            return False
+
+        layout = self._get_current_keyboard_layout()
+        for key_spec in getattr(layout, "keys", ()) or ():
+            if str(getattr(key_spec, "id", "") or "").strip() not in SPECIAL_KEY_NAMES:
+                continue
+            try:
+                if int(getattr(key_spec, "scan_code", None)) == scan_code:
+                    return True
+            except Exception:
+                continue
+        return False
+
+    def _debug_special_key_event(self, event: object, resolved_key: str) -> None:
+        print(
+            "[JIS special key debug] "
+            f"event.name={getattr(event, 'name', '')!r} "
+            f"event.scan_code={getattr(event, 'scan_code', None)!r} "
+            f"resolved_key={resolved_key!r}"
+        )
+
+    def _get_active_keymap_text(self) -> str:
+        label = self.keymap_service.get_active_keymap_label(self.data)
+        if not label:
+            return "(なし)"
+        if not (self.hook_active and self.custom_input_enabled):
+            return f"{label} (待機)"
+        return label
+
+    def _validate_hook_configuration(self) -> bool:
+        control_keys = {
+            "停止キー": normalize_key_name(self.data.get("hook_stop_key", "")),
+            "有効/無効トグルキー": normalize_key_name(self.data.get("hook_toggle_key", "")),
+        }
+        seen_control_keys: dict[str, str] = {}
+        for label, key in control_keys.items():
+            if not key:
+                continue
+            if key in seen_control_keys:
+                messagebox.showerror("開始できません", f"{seen_control_keys[key]}と{label}が重複しています:\n{key}")
+                return False
+            seen_control_keys[key] = label
+
+        keymap_source_keys = self.keymap_service.collect_source_keys(self.data)
+        trigger_keys = {
+            normalize_key_name(t.get("key", ""))
+            for t in self.data.get("triggers", [])
+            if normalize_key_name(t.get("key", ""))
+        }
+
+        for label, key in control_keys.items():
+            if not key:
+                continue
+            if key in trigger_keys:
+                messagebox.showerror("開始できません", f"{label}が通常トリガーと重複しています:\n{key}")
+                return False
+            if key in keymap_source_keys:
+                messagebox.showerror("開始できません", f"{label}がキーマップ元キーと重複しています:\n{key}")
+                return False
+
+        return True
+
+    def assign_keymap_from_keyboard_ui(self, source_key: str, target_key: str) -> bool:
+        source = normalize_key_name(source_key)
+        target = normalize_key_name(target_key)
+        if not source or not target:
+            return False
+        if "+" in target:
+            messagebox.showerror("設定できません", "キーマップは単キーのみ対応です。")
+            return False
+        if source in {
+            normalize_key_name(self.data.get("hook_stop_key", "")),
+            normalize_key_name(self.data.get("hook_toggle_key", "")),
+        }:
+            messagebox.showerror("設定できません", f"このキーは予約キーのため、キーマップ元キーにできません:\n{source}")
+            return False
+        if self.keymap_service.get_keymap_by_switch_key(self.data, source):
+            messagebox.showerror("設定できません", f"このキーはキーマップ直接切替キーに設定されています:\n{source}")
+            return False
+
+        try:
+            self.input_gateway.validate_key_name(target)
+        except Exception as e:
+            messagebox.showerror("設定できません", f"不明なキー名です:\n{target}\n\n{e}")
+            return False
+
+        keymap_id, changed = self.keymap_service.set_mapping(self.data, source, target)
+        self._refresh_keymap_list_ui()
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        if changed:
+            self._mark_keymap_dirty(self.keymap_service.find_keymap(self.data, keymap_id))
+            self._set_flash_message(f"キーマップを更新しました: {source} -> {target} ({keymap_id})")
+        else:
+            self._set_flash_message(f"キーマップは変更なしです: {source} -> {target}")
+        return True
+
+    def clear_keymap_from_keyboard_ui(self, source_key: str) -> bool:
+        source = normalize_key_name(source_key)
+        if not source:
+            return False
+        keymap_id, changed = self.keymap_service.clear_mapping(self.data, source)
+        self._refresh_keymap_list_ui()
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
+        self._update_status()
+        if changed:
+            self._mark_keymap_dirty(self.keymap_service.find_keymap(self.data, keymap_id))
+            self._set_flash_message(f"キーマップをクリアしました: {source} ({keymap_id})")
+            return True
+
+        self._set_flash_message(f"クリア対象のキーマップはありません: {source}")
+        return False
+
     def _select_trigger_by_key(self, key: str):
         """押されたトリガーキーに対応する行をトリガー一覧で選択し、右側表示も更新する（UI専用）"""
         key = normalize_key_name(key)
@@ -522,6 +1569,120 @@ class App(tk.Tk):
             v = 3
         return v
 
+    def _preferred_startup_path(self) -> str:
+        return os.path.join(self.config_root, "config.json")
+
+    def _preferred_keymap_set_path(self) -> str:
+        return os.path.join(self.config_root, "user", "keymap_sets", "default.json")
+
+    def _preferred_keymap_sets_dir(self) -> str:
+        return os.path.dirname(self._preferred_keymap_set_path())
+
+    def _preferred_keymaps_dir(self) -> str:
+        return os.path.join(self.config_root, "user", "keymaps")
+
+    def _preferred_trigger_sets_dir(self) -> str:
+        return os.path.join(self.config_root, "user", "trigger_sets")
+
+    def _preferred_sequences_dir(self) -> str:
+        return os.path.join(self.config_root, "user", "sequences")
+
+    def _preferred_config_path(self) -> str:
+        return os.path.join(self.user_root, "config.json")
+
+    def _legacy_settings_dir(self) -> str:
+        return os.path.join(self.base_dir, "settings")
+
+    def _resolve_startup_path(self) -> str:
+        new_path = self._preferred_startup_path()
+        old_path = os.path.join(self._legacy_settings_dir(), "startup.json")
+        return new_path if os.path.exists(new_path) else old_path
+
+    def _resolve_keymap_set_path(self, path: str = "") -> str:
+        if path:
+            return path if os.path.isabs(path) else os.path.normpath(os.path.join(self.config_root, path))
+        new_path = self._preferred_keymap_set_path()
+        old_path = os.path.join(self._legacy_settings_dir(), "config.json")
+        return new_path if os.path.exists(new_path) else old_path
+
+    def _resolve_keylayout_dir(self) -> str:
+        new_path = os.path.join(self.user_root, "keylayout")
+        old_path = os.path.join(self.base_dir, "keylayout")
+        return new_path if os.path.exists(new_path) else old_path
+
+    def _is_within_legacy_settings(self, path: str) -> bool:
+        if not path:
+            return False
+        try:
+            return os.path.commonpath([os.path.abspath(path), os.path.abspath(self._legacy_settings_dir())]) == os.path.abspath(self._legacy_settings_dir())
+        except Exception:
+            return False
+
+    def _normalize_keymap_set_save_path(self, path: str) -> str:
+        if not path:
+            return self._preferred_keymap_set_path()
+        if self._is_within_legacy_settings(path):
+            return self._preferred_keymap_set_path()
+        return path
+
+    def _suggest_keymap_set_dialog_path(self) -> str:
+        current = str(getattr(self, "keymap_set_path", "") or "").strip()
+        if current:
+            return self._normalize_keymap_set_save_path(current)
+        return self._preferred_keymap_set_path()
+
+    def _suggest_keymap_set_dialog_dir(self) -> str:
+        current = str(getattr(self, "keymap_set_path", "") or "").strip()
+        if current:
+            current_dir = os.path.dirname(os.path.abspath(current))
+            if os.path.isdir(current_dir):
+                return current_dir
+
+        preferred_dir = self._preferred_keymap_sets_dir()
+        if os.path.isdir(preferred_dir):
+            return preferred_dir
+        return self.config_root
+
+    def _to_config_relative_or_absolute(self, path: str) -> str:
+        return self.config_service._to_config_relative_or_absolute(path, self.config_root)
+
+    def _is_within_config_root(self, path: str) -> bool:
+        try:
+            return os.path.commonpath([os.path.abspath(path), os.path.abspath(self.config_root)]) == os.path.abspath(self.config_root)
+        except Exception:
+            return False
+
+    def _choose_split_base_dir_for_keymap_set(self, save_path: str) -> str:
+        if self._is_within_config_root(save_path):
+            return ""
+        use_nearby = messagebox.askyesno(
+            "保存先の確認",
+            "構成セットがデフォルト外に保存されます。\n"
+            "keymaps / trigger_sets / sequences も構成セット周辺に保存しますか？\n\n"
+            "「いいえ」の場合はデフォルト保存先を使います。",
+        )
+        if not use_nearby:
+            return ""
+        return os.path.dirname(os.path.abspath(save_path))
+
+    def _sync_startup_config_path(self, old_path: str, new_path: str):
+        current = getattr(self, "_startup_settings", {})
+        if not isinstance(current, dict):
+            return
+
+        stored_path = str(current.get("config_path") or "").strip()
+        if not stored_path:
+            return
+
+        resolved_path = stored_path if os.path.isabs(stored_path) else os.path.join(self.base_dir, stored_path)
+        try:
+            if os.path.abspath(resolved_path) != os.path.abspath(old_path):
+                return
+        except Exception:
+            return
+
+        self._write_startup({"config_path": self._to_rel_if_possible(new_path)})
+
     def _load_startup_settings(self) -> dict[str, any]:
         startup = {}
         try:
@@ -542,49 +1703,46 @@ class App(tk.Tk):
 
     def _load_startup_and_config(self):
         """
-        startup.json があればそれを読み、そこに書かれた config_path を起動時に読み込む。
-        無い場合は従来通り self.config_path（= ./config.json）を読み込む。
+        起動設定JSON があれば split 構成の keymap_set を読み込む。
+        無い場合や split 構成が読めない場合は空データで起動する。
         """
         startup = dict(getattr(self, "_startup_settings", {}) or {})
+        stored_keymap_set_path = str(startup.get("keymap_set_path") or "").strip()
+        self.keymap_set_path = self._preferred_keymap_set_path()
 
-        cfg = startup.get("config_path")
-        prompt_if_missing = bool(startup.get("prompt_if_missing", True))
-        if cfg:
-            cfg_path = cfg if os.path.isabs(cfg) else os.path.join(self.base_dir, cfg)
-            if os.path.exists(cfg_path):
-                self.config_path = cfg_path
-            elif prompt_if_missing:
-                picked = filedialog.askopenfilename(
-                    title="起動時に読み込むJSONが見つかりません。別のJSONを選択してください。",
-                    filetypes=[("JSON", "*.json"), ("All", "*.*")],
-                )
-                if picked:
-                    self.config_path = picked
-                    self._write_startup(
-                        {
-                            "config_path": self.config_service.resolve_startup_relative_path(
-                                picked,
-                                self.base_dir,
-                            ),
-                            "prompt_if_missing": True,
-                        }
+        if stored_keymap_set_path:
+            resolved_keymap_set_path = self._resolve_keymap_set_path(stored_keymap_set_path)
+            if os.path.exists(resolved_keymap_set_path):
+                try:
+                    self.data = self.config_service.load_runtime_data_from_keymap_set_path(
+                        resolved_keymap_set_path,
+                        config_root=self.config_root,
                     )
+                    self.keymap_set_path = resolved_keymap_set_path
+                    self._apply_loaded_data_to_ui()
+                    return
+                except Exception:
+                    pass
 
-        self._load_if_exists()
+        self.data = self.config_service.new_empty_data()
+        self._apply_loaded_data_to_ui()
 
     def _write_startup(self, data: dict[str, any]):
         base = {
             "prompt_if_missing": True,
             "ui_font_delta_pt": 0,
+            "last_used_directory": "",
         }
         current = getattr(self, "_startup_settings", {})
         if isinstance(current, dict):
             base.update(current)
         if isinstance(data, dict):
             base.update(data)
+        base.pop("config_path", None)
         base["ui_font_delta_pt"] = self._coerce_font_delta(base.get("ui_font_delta_pt", 0))
 
         try:
+            self.startup_path = self._preferred_startup_path()
             self.config_service.save_startup(self.startup_path, base)
             self._startup_settings = base
         except Exception as e:
@@ -593,42 +1751,47 @@ class App(tk.Tk):
     def _to_rel_if_possible(self, path: str) -> str:
         return self.config_service.resolve_startup_relative_path(path, self.base_dir)
 
-    def set_startup_config(self):
-        """ユーザーが起動時に読み込む本体JSON（出力シーケンス）を選び、startup.json に保存する"""
+    def set_startup_keymap_set(self):
+        """ユーザーが起動時に読み込む keymap_set.json を選び、起動設定へ保存する"""
         if not self._confirm_save_if_dirty("起動時に読むJSONの変更"):
             return
 
         path = filedialog.askopenfilename(
-            title="起動時に読み込むJSONを選択",
+            title="起動時に読み込む keymap_set.json を選択",
+            initialdir=self._suggest_keymap_set_dialog_dir(),
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         )
         if not path:
             return
 
-        self.config_path = path
-        self._write_startup(
-            {
-                "config_path": self._to_rel_if_possible(path),
-                "prompt_if_missing": True,
-            }
-        )
+        try:
+            self.data = self.config_service.load_runtime_data_from_keymap_set_path(
+                path,
+                config_root=self.config_root,
+            )
+        except Exception as e:
+            messagebox.showerror("設定", str(e))
+            return
 
-        self._load_if_exists()
+        self.keymap_set_path = path
+        self._write_startup({"keymap_set_path": self._to_config_relative_or_absolute(path), "prompt_if_missing": True})
+        self._apply_loaded_data_to_ui()
         self.state.reset_indices()
         self._refresh_triggers()
         self._refresh_actions()
         self._set_dirty(False)
         self._set_flash_message("起動時読み込み設定を更新しました。")
-        messagebox.showinfo("設定", f"次回起動時はこのJSONを読み込みます:\n{path}")
+        messagebox.showinfo("設定", f"次回起動時はこの keymap_set を読み込みます:\n{path}")
 
     def _update_status(self):
         hook_state = "ON" if self.hook_active else "OFF"
-        trigger_state = "ON" if self.triggers_enabled else "OFF"
+        trigger_state = "ON" if self.custom_input_enabled else "OFF"
+        keymap_text = self._get_active_keymap_text()
         sel_key = self._selected_trigger_key() or "(未選択)"
         if getattr(self, "_compact_mode", False):
             # 省略表示：ON/OFF + 通常トリガー有効状態 + 選択中トリガー + 次に実行（行の内容）
             line = self._get_next_action_summary(sel_key)
-            self.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} \n選択: {sel_key} / 次: {line}")
+            self.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} / キーマップ: {keymap_text}\n選択: {sel_key} / 次: {line}")
             return
 
         triggers = self.data.get("triggers", [])
@@ -651,7 +1814,7 @@ class App(tk.Tk):
         except Exception:
             next_i = 0
         self.status_var.set(
-            f"フック: {hook_state} / 通常トリガー: {trigger_state} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}"
+            f"フック: {hook_state} / 通常トリガー: {trigger_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}"
         )
 
     def _get_next_action_summary(self, trigger_key: str) -> str:
@@ -717,6 +1880,9 @@ class App(tk.Tk):
             self._sync_trigger_selection_to_views()
         self._sync_suppress_checkbox()
         self._sync_run_to_end_ui()
+        self._refresh_keymap_list_ui()
+        self._refresh_keymap_switch_ui()
+        self._refresh_keyboard_window()
         self._update_status()
 
     def _refresh_actions(self):
@@ -822,9 +1988,341 @@ class App(tk.Tk):
             return
         self.edit_action()
 
+    # ---------------- Individual JSON IO ----------------
+    def _json_dialog_initial_dir(self, preferred_dir: str, source_path: str = "") -> str:
+        if source_path:
+            directory = os.path.dirname(os.path.abspath(source_path))
+            if os.path.isdir(directory):
+                return directory
+        if os.path.isdir(preferred_dir):
+            return preferred_dir
+        return self.user_root if os.path.isdir(self.user_root) else self.base_dir
+
+    def _filename_stem(self, path: str) -> str:
+        return os.path.splitext(os.path.basename(str(path or "")))[0]
+
+    def _suggest_json_path(self, directory: str, label: str, fallback: str) -> str:
+        stem = self.config_service._slugify_file_stem(label) or fallback
+        return os.path.join(directory, f"{stem}.json")
+
+    def _keymap_set_file_stem(self) -> str:
+        stem = self._filename_stem(str(getattr(self, "keymap_set_path", "") or ""))
+        return self.config_service._slugify_file_stem(stem) or "trigger_set"
+
+    def _choose_save_path_with_collision(self, *, title: str, suggested_path: str) -> str:
+        path = suggested_path
+        if os.path.exists(path):
+            result = messagebox.askyesnocancel(
+                "保存先の確認",
+                f"同名ファイルが既にあります。\n\n{path}\n\n上書きしますか？\n「いいえ」で別名保存します。",
+            )
+            if result is None:
+                return ""
+            if result is False:
+                path = filedialog.asksaveasfilename(
+                    title=title,
+                    initialdir=os.path.dirname(os.path.abspath(suggested_path)),
+                    initialfile=os.path.basename(suggested_path),
+                    defaultextension=".json",
+                    filetypes=[("JSON", "*.json"), ("All", "*.*")],
+                )
+        return path or ""
+
+    def _ask_link_label_to_filename(self, *, title: str, path: str) -> bool:
+        dialog = tk.Toplevel(self)
+        dialog.title(title)
+        dialog.resizable(False, False)
+        self.suspend_hook_for_dialog()
+        result = {"ok": False, "link": False}
+        link_var = tk.BooleanVar(value=False)
+
+        frame = ttk.Frame(dialog, padding=12)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text=f"保存名: {self._filename_stem(path)}").pack(anchor="w")
+        ttk.Checkbutton(frame, text="ラベル名も保存名に合わせる", variable=link_var).pack(anchor="w", pady=(10, 0))
+        buttons = ttk.Frame(frame)
+        buttons.pack(fill="x", pady=(12, 0))
+
+        def on_ok():
+            result["ok"] = True
+            result["link"] = bool(link_var.get())
+            dialog.destroy()
+
+        def on_cancel():
+            dialog.destroy()
+
+        ttk.Button(buttons, text="OK", command=on_ok).pack(side="right")
+        ttk.Button(buttons, text="キャンセル", command=on_cancel).pack(side="right", padx=(0, 8))
+        dialog.transient(self)
+        dialog.grab_set()
+        dialog.protocol("WM_DELETE_WINDOW", on_cancel)
+        try:
+            dialog.wait_window()
+        finally:
+            self.resume_hook_after_dialog()
+        if not result["ok"]:
+            raise RuntimeError("キャンセルされました。")
+        return bool(result["link"])
+
+    def _selected_keymap_for_io(self) -> tuple[int, dict] | tuple[None, None]:
+        index = self._selected_keymap_list_index()
+        keymaps = self.keymap_service.get_keymaps(self.data)
+        if index is None or not keymaps or not (0 <= index < len(keymaps)):
+            messagebox.showinfo("キーマップ", "対象のキーマップを選択してください。")
+            return None, None
+        return index, keymaps[index]
+
+    def save_selected_keymap(self) -> bool:
+        index, keymap = self._selected_keymap_for_io()
+        if keymap is None:
+            return False
+        source_path = str(keymap.get(self.config_service.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
+        if source_path and bool(keymap.get(self.config_service.INTERNAL_KEYMAP_IMPORTED, False)) and bool(keymap.get(self.config_service.INTERNAL_KEYMAP_DIRTY, False)):
+            if messagebox.askyesno("保存", "読込で持ってきたキーマップです。\n別名で保存しますか？"):
+                return self.save_selected_keymap_as()
+        if not source_path:
+            label = str(keymap.get("label") or keymap.get("id") or "keymap").strip()
+            suggested = self._suggest_json_path(self._preferred_keymaps_dir(), label, "keymap")
+            source_path = self._choose_save_path_with_collision(title="キーマップを保存", suggested_path=suggested)
+            if not source_path:
+                return False
+        return self._save_keymap_to_path(index, keymap, source_path)
+
+    def save_selected_keymap_as(self) -> bool:
+        index, keymap = self._selected_keymap_for_io()
+        if keymap is None:
+            return False
+        source_path = str(keymap.get(self.config_service.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
+        label = str(keymap.get("label") or keymap.get("id") or "keymap").strip()
+        suggested = self._suggest_json_path(
+            self._json_dialog_initial_dir(self._preferred_keymaps_dir(), source_path),
+            label,
+            "keymap",
+        )
+        path = filedialog.asksaveasfilename(
+            title="キーマップを別名で保存",
+            initialdir=os.path.dirname(os.path.abspath(suggested)),
+            initialfile=os.path.basename(suggested),
+            defaultextension=".json",
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return False
+        try:
+            if self._ask_link_label_to_filename(title="キーマップ名の連動", path=path):
+                keymap["label"] = self._filename_stem(path)
+        except RuntimeError:
+            return False
+        return self._save_keymap_to_path(index, keymap, path)
+
+    def _save_keymap_to_path(self, index: int, keymap: dict, path: str) -> bool:
+        try:
+            saved = self.config_service.save_keymap_file(path, keymap)
+            self.keymap_service.get_keymaps(self.data)[index] = saved
+            self._refresh_keymap_list_ui(preferred_index=index)
+            self._refresh_keymap_switch_ui()
+            self._refresh_keyboard_window()
+            self._set_flash_message("キーマップを保存しました。")
+            messagebox.showinfo("保存", f"キーマップを保存しました:\n{path}")
+            return True
+        except Exception as e:
+            self._set_flash_message(f"キーマップ保存失敗: {e}", auto_clear=False)
+            messagebox.showerror("保存失敗", str(e))
+            return False
+
+    def load_keymap_file(self) -> None:
+        path = filedialog.askopenfilename(
+            title="キーマップを読込",
+            initialdir=self._json_dialog_initial_dir(self._preferred_keymaps_dir()),
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            used_ids = {normalize_key_name(item.get("id", "")) for item in self.keymap_service.get_keymaps(self.data)}
+            keymap = self.config_service.load_keymap_file(path, used_keymap_ids=used_ids, imported=True)
+            keymaps = self.data.setdefault("keymaps", [])
+            if not isinstance(keymaps, list):
+                keymaps = []
+                self.data["keymaps"] = keymaps
+            keymaps.append(keymap)
+            index = len(keymaps) - 1
+            if not self.data.get("active_keymap_id"):
+                self.data["active_keymap_id"] = normalize_key_name(keymap.get("id", ""))
+            self._refresh_keymap_list_ui(preferred_index=index)
+            self._refresh_keymap_switch_ui()
+            self._refresh_keyboard_window()
+            self._set_dirty(True)
+            self._set_flash_message("キーマップを読み込みました。")
+            messagebox.showinfo("読込", f"キーマップを読み込みました:\n{path}")
+        except Exception as e:
+            self._set_flash_message(f"キーマップ読込失敗: {e}", auto_clear=False)
+            messagebox.showerror("読込失敗", str(e))
+
+    def save_trigger_set_file(self) -> bool:
+        path = str(getattr(self, "_trigger_set_source_path", "") or "").strip()
+        if path and self._trigger_set_imported and self._trigger_set_dirty:
+            if messagebox.askyesno("保存", "読込で持ってきたトリガー一覧です。\n別名で保存しますか？"):
+                return self.save_trigger_set_file_as()
+        if not path:
+            suggested = self._suggest_json_path(self._preferred_trigger_sets_dir(), self._keymap_set_file_stem(), "trigger_set")
+            path = self._choose_save_path_with_collision(title="トリガー一覧を保存", suggested_path=suggested)
+            if not path:
+                return False
+        return self._save_trigger_set_to_path(path)
+
+    def save_trigger_set_file_as(self) -> bool:
+        source_path = str(getattr(self, "_trigger_set_source_path", "") or "").strip()
+        suggested = self._suggest_json_path(
+            self._json_dialog_initial_dir(self._preferred_trigger_sets_dir(), source_path),
+            self._filename_stem(source_path) or self._keymap_set_file_stem(),
+            "trigger_set",
+        )
+        path = filedialog.asksaveasfilename(
+            title="トリガー一覧を別名で保存",
+            initialdir=os.path.dirname(os.path.abspath(suggested)),
+            initialfile=os.path.basename(suggested),
+            defaultextension=".json",
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return False
+        return self._save_trigger_set_to_path(path)
+
+    def _save_trigger_set_to_path(self, path: str) -> bool:
+        try:
+            triggers, _payload = self.config_service.save_trigger_set_file(path, self.data, config_root=self.config_root)
+            self.data["triggers"] = triggers
+            self._trigger_set_source_path = path
+            self._trigger_set_imported = False
+            self._trigger_set_dirty = False
+            self._refresh_triggers()
+            self._refresh_actions()
+            self._set_flash_message("トリガー一覧を保存しました。")
+            messagebox.showinfo("保存", f"トリガー一覧を保存しました:\n{path}")
+            return True
+        except Exception as e:
+            self._set_flash_message(f"トリガー一覧保存失敗: {e}", auto_clear=False)
+            messagebox.showerror("保存失敗", str(e))
+            return False
+
+    def load_trigger_set_file(self) -> None:
+        if not self._confirm_save_if_dirty("トリガー一覧読込"):
+            return
+        path = filedialog.askopenfilename(
+            title="トリガー一覧を読込",
+            initialdir=self._json_dialog_initial_dir(self._preferred_trigger_sets_dir()),
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            self.data["triggers"] = self.config_service.load_trigger_set_file(
+                path,
+                config_root=self.config_root,
+                imported=True,
+            )
+            self._trigger_set_source_path = path
+            self._trigger_set_imported = True
+            self._trigger_set_dirty = False
+            self.state.reset_indices()
+            self._selected_trigger_idx = 0
+            self._refresh_triggers()
+            self._refresh_actions()
+            self._set_dirty(True)
+            self._set_flash_message("トリガー一覧を読み込みました。")
+            messagebox.showinfo("読込", f"トリガー一覧を読み込みました:\n{path}")
+        except Exception as e:
+            self._set_flash_message(f"トリガー一覧読込失敗: {e}", auto_clear=False)
+            messagebox.showerror("読込失敗", str(e))
+
+    def save_selected_sequence(self) -> bool:
+        trigger = self._selected_trigger()
+        if not trigger:
+            messagebox.showinfo("出力シーケンス", "対象のトリガーを選択してください。")
+            return False
+        source_path = str(trigger.get(self.config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
+        if source_path and bool(trigger.get(self.config_service.INTERNAL_SEQUENCE_IMPORTED, False)) and bool(trigger.get(self.config_service.INTERNAL_SEQUENCE_DIRTY, False)):
+            if messagebox.askyesno("保存", "読込で持ってきた出力シーケンスです。\n別名で保存しますか？"):
+                return self.save_selected_sequence_as()
+        if not source_path:
+            label = str(trigger.get("label") or trigger.get("key") or "sequence").strip()
+            suggested = self._suggest_json_path(self._preferred_sequences_dir(), label, "sequence")
+            source_path = self._choose_save_path_with_collision(title="出力シーケンスを保存", suggested_path=suggested)
+            if not source_path:
+                return False
+        return self._save_sequence_to_path(trigger, source_path)
+
+    def save_selected_sequence_as(self) -> bool:
+        trigger = self._selected_trigger()
+        if not trigger:
+            messagebox.showinfo("出力シーケンス", "対象のトリガーを選択してください。")
+            return False
+        source_path = str(trigger.get(self.config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
+        label = str(trigger.get("label") or trigger.get("key") or "sequence").strip()
+        suggested = self._suggest_json_path(
+            self._json_dialog_initial_dir(self._preferred_sequences_dir(), source_path),
+            label,
+            "sequence",
+        )
+        path = filedialog.asksaveasfilename(
+            title="出力シーケンスを別名で保存",
+            initialdir=os.path.dirname(os.path.abspath(suggested)),
+            initialfile=os.path.basename(suggested),
+            defaultextension=".json",
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return False
+        try:
+            if self._ask_link_label_to_filename(title="出力シーケンス名の連動", path=path):
+                trigger["label"] = self._filename_stem(path)
+        except RuntimeError:
+            return False
+        return self._save_sequence_to_path(trigger, path)
+
+    def _save_sequence_to_path(self, trigger: dict, path: str) -> bool:
+        try:
+            sequence = self.config_service.save_sequence_file(path, trigger)
+            trigger.update(sequence)
+            self._mark_trigger_set_dirty()
+            self._refresh_triggers()
+            self._refresh_actions()
+            self._set_flash_message("出力シーケンスを保存しました。")
+            messagebox.showinfo("保存", f"出力シーケンスを保存しました:\n{path}")
+            return True
+        except Exception as e:
+            self._set_flash_message(f"出力シーケンス保存失敗: {e}", auto_clear=False)
+            messagebox.showerror("保存失敗", str(e))
+            return False
+
+    def load_sequence_file(self) -> None:
+        trigger = self._selected_trigger()
+        if not trigger:
+            messagebox.showinfo("出力シーケンス", "読込先のトリガーを選択してください。")
+            return
+        path = filedialog.askopenfilename(
+            title="出力シーケンスを読込",
+            initialdir=self._json_dialog_initial_dir(self._preferred_sequences_dir()),
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            sequence = self.config_service.load_sequence_file(path, imported=True)
+            trigger.update(sequence)
+            self._mark_trigger_set_dirty()
+            self._refresh_triggers()
+            self._refresh_actions()
+            self._set_flash_message("出力シーケンスを読み込みました。")
+            messagebox.showinfo("読込", f"出力シーケンスを読み込みました:\n{path}")
+        except Exception as e:
+            self._set_flash_message(f"出力シーケンス読込失敗: {e}", auto_clear=False)
+            messagebox.showerror("読込失敗", str(e))
+
     # ---------------- Config IO ----------------
     def _confirm_save_if_dirty(self, action_name: str) -> bool:
-        if not self._is_dirty:
+        if not self._is_dirty and not self._has_individual_dirty():
             return True
 
         result = messagebox.askyesnocancel(
@@ -836,8 +2334,8 @@ class App(tk.Tk):
         if result is False:
             return True
 
-        if self.config_path:
-            return self.save_config(show_success_dialog=False)
+        if self.keymap_set_path:
+            return self.save_keymap_set(show_success_dialog=False)
         return self.save_as(show_success_dialog=False)
 
     def new_config(self):
@@ -847,16 +2345,15 @@ class App(tk.Tk):
         self.data = self.config_service.new_default_data()
         self.data["triggers"] = []
         self.data = self.config_service.normalize_runtime_data(self.data)
-        self.config_path = ""
+        self.keymap_set_path = self._preferred_keymap_set_path()
 
         if hasattr(self, "stop_key_var"):
             self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
         if hasattr(self, "toggle_key_var"):
             self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
-
-        if getattr(self, "hook_active", False):
-            self._install_stop_hook()
-            self._install_toggle_hook()
+        if hasattr(self, "keyboard_show_physical_key_labels_var"):
+            self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
+        self._sync_keyboard_layout_controls()
 
         self.state.reset_indices()
         self._selected_trigger_idx = 0
@@ -867,28 +2364,33 @@ class App(tk.Tk):
 
     def _load_if_exists(self):
         try:
-            self.data, _ = self.config_service.load_if_exists(self.config_path)
+            self.data, _ = self.config_service.load_if_exists(self.keymap_set_path)
         except Exception as e:
             messagebox.showwarning("読込失敗", f"config.json の読込に失敗しました。\n{e}\n\n例の設定で起動します。")
             self.data = self.config_service.new_default_data()
 
-        # UIへ反映（UI生成後に呼ばれる場合はガード）
-        if hasattr(self, "stop_key_var"):
-            self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
-        if hasattr(self, "toggle_key_var"):
-            self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
-        self._set_dirty(False)
+        self._apply_loaded_data_to_ui()
 
-    def save_config(self, *, show_success_dialog: bool = True) -> bool:
-        if not self.config_path:
-            return self.save_as(show_success_dialog=show_success_dialog)
-
+    def save_keymap_set(self, *, show_success_dialog: bool = True) -> bool:
         try:
-            self.data = self.config_service.save(self.config_path, self.data)
+            save_path = self._normalize_keymap_set_save_path(self.keymap_set_path)
+            split_base_dir = self._choose_split_base_dir_for_keymap_set(save_path)
+            self.data, startup_payload = self.config_service.save_runtime_data(
+                save_path,
+                self.data,
+                config_root=self.config_root,
+                startup_data=self._startup_settings,
+                keep_legacy_copy=False,
+                split_base_dir=split_base_dir,
+            )
+            self.keymap_set_path = save_path
+            self.startup_path = self._preferred_startup_path()
+            self._startup_settings = startup_payload
+            self._clear_individual_dirty_flags()
             self._set_dirty(False)
             self._set_flash_message("保存しました。")
             if show_success_dialog:
-                messagebox.showinfo("保存", f"保存しました:\n{self.config_path}")
+                messagebox.showinfo("保存", f"保存しました:\n{save_path}")
             return True
         except Exception as e:
             self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
@@ -896,48 +2398,60 @@ class App(tk.Tk):
             return False
 
     def save_as(self, *, show_success_dialog: bool = True) -> bool:
+        suggested_path = self._suggest_keymap_set_dialog_path()
         path = filedialog.asksaveasfilename(
-            title="別名で保存",
+            title="別名で保存（keymap_set）",
+            initialdir=self._suggest_keymap_set_dialog_dir(),
+            initialfile=os.path.basename(suggested_path),
             defaultextension=".json",
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
         )
         if not path:
             return False
         try:
-            self.data = self.config_service.save(path, self.data)
-            self.config_path = path
+            save_path = self._normalize_keymap_set_save_path(path)
+            split_base_dir = self._choose_split_base_dir_for_keymap_set(save_path)
+            self.data, startup_payload = self.config_service.save_runtime_data(
+                save_path,
+                self.data,
+                config_root=self.config_root,
+                startup_data=self._startup_settings,
+                keep_legacy_copy=False,
+                split_base_dir=split_base_dir,
+            )
+            self.keymap_set_path = save_path
+            self.startup_path = self._preferred_startup_path()
+            self._startup_settings = startup_payload
+            self._clear_individual_dirty_flags()
             self._set_dirty(False)
             self._set_flash_message("別名で保存しました。")
             if show_success_dialog:
-                messagebox.showinfo("保存", f"保存しました:\n{path}")
+                messagebox.showinfo("保存", f"保存しました:\n{save_path}")
             return True
         except Exception as e:
             self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
             return False
 
-    def load_from(self):
+    def load_keymap_set_from(self):
         if not self._confirm_save_if_dirty("読込"):
             return
 
         path = filedialog.askopenfilename(
-            title="読込",
+            title="keymap_set.json を読込",
+            initialdir=self._suggest_keymap_set_dialog_dir(),
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
         )
         if not path:
             return
         try:
-            self.data = self.config_service.load(path)
-            self.config_path = path
-            if hasattr(self, "stop_key_var"):
-                self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
-            if hasattr(self, "toggle_key_var"):
-                self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+            self.data = self.config_service.load_runtime_data_from_keymap_set_path(
+                path,
+                config_root=self.config_root,
+            )
+            self.keymap_set_path = path
+            self._apply_loaded_data_to_ui()
 
-            # フックON中なら制御キーのフックも更新
-            if getattr(self, "hook_active", False):
-                self._install_stop_hook()
-                self._install_toggle_hook()
             self._indices = {}
             self._selected_trigger_idx = 0
             self._refresh_triggers()
@@ -948,6 +2462,64 @@ class App(tk.Tk):
         except Exception as e:
             self._set_flash_message(f"読込失敗: {e}", auto_clear=False)
             messagebox.showerror("読込失敗", str(e))
+
+    def import_config(self):
+        if not self._confirm_save_if_dirty("Import"):
+            return
+
+        path = filedialog.askopenfilename(
+            title="Import",
+            initialdir=self.user_root if os.path.isdir(self.user_root) else self.base_dir,
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            self.data = self.config_service.load_legacy_runtime_data(path)
+            if not self.keymap_set_path:
+                self.keymap_set_path = self._preferred_keymap_set_path()
+            self._apply_loaded_data_to_ui()
+            self.state.reset_indices()
+            self._refresh_triggers()
+            self._refresh_actions()
+            self._set_dirty(True)
+            self._set_flash_message("Import しました。")
+            messagebox.showinfo("Import", f"単一JSONを取り込みました:\n{path}")
+        except Exception as e:
+            self._set_flash_message(f"Import 失敗: {e}", auto_clear=False)
+            messagebox.showerror("Import 失敗", str(e))
+
+    def export_config(self):
+        path = filedialog.asksaveasfilename(
+            title="Export",
+            initialdir=self.user_root if os.path.isdir(self.user_root) else self.base_dir,
+            initialfile="config.json",
+            defaultextension=".json",
+            filetypes=[("JSON", "*.json"), ("All", "*.*")],
+        )
+        if not path:
+            return
+        try:
+            self.config_service.export_runtime_data(path, self.data)
+            self._set_flash_message("Export しました。")
+            messagebox.showinfo("Export", f"単一JSONを書き出しました:\n{path}")
+        except Exception as e:
+            self._set_flash_message(f"Export 失敗: {e}", auto_clear=False)
+            messagebox.showerror("Export 失敗", str(e))
+
+    def _apply_loaded_data_to_ui(self):
+        self._trigger_set_source_path = ""
+        self._trigger_set_imported = False
+        self._trigger_set_dirty = False
+        if hasattr(self, "stop_key_var"):
+            self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
+        if hasattr(self, "toggle_key_var"):
+            self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+        if hasattr(self, "keyboard_show_physical_key_labels_var"):
+            self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
+        self._sync_keyboard_layout_controls()
+        self._clear_individual_dirty_flags()
+        self._set_dirty(False)
 
     def open_preset_manager(self):
         before = copy.deepcopy(self.data.get("hotkey_presets", []))
@@ -965,6 +2537,9 @@ class App(tk.Tk):
                 self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
             if hasattr(self, "toggle_key_var"):
                 self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+            if hasattr(self, "keyboard_show_physical_key_labels_var"):
+                self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
+            self._sync_keyboard_layout_controls()
             self._indices = {}
             self._selected_trigger_idx = 0
             self._refresh_triggers()
@@ -1048,7 +2623,7 @@ class App(tk.Tk):
         # 表示を正規化（"00300" 等を "300" に）
         self.run_to_end_delay_var.set(str(v))
         if old_v != v:
-            self._set_dirty(True)
+            self._mark_sequence_dirty(t)
 
     def update_suppress(self):
         t = self._selected_trigger()
@@ -1058,7 +2633,7 @@ class App(tk.Tk):
         old_v = bool(t.get("suppress", True))
         t["suppress"] = new_v
         if old_v != new_v:
-            self._set_dirty(True)
+            self._mark_trigger_set_dirty()
         # フックON中なら再登録が必要（設定反映）
         if self.hook_active:
             self.start_hook()
@@ -1072,7 +2647,7 @@ class App(tk.Tk):
         old_v = bool(t.get("run_to_end", False))
         t["run_to_end"] = new_v
         if old_v != new_v:
-            self._set_dirty(True)
+            self._mark_sequence_dirty(t)
         self._sync_run_to_end_ui()
         # UI表示（次の行ハイライト/ステータス）を即反映
         if not getattr(self, "_compact_mode", False):
@@ -1102,10 +2677,14 @@ class App(tk.Tk):
         if self.trigger_service.is_toggle_key_conflict(self.data, key):
             messagebox.showerror("追加できません", f"このキーは有効/無効トグルキーに設定されています:\n{key}")
             return
+        if self.keymap_service.get_keymap_by_switch_key(self.data, key):
+            messagebox.showerror("追加できません", f"このキーはキーマップ直接切替キーに設定されています:\n{key}")
+            return
         triggers.append({"key": key, "label": label, "suppress": True, "run_to_end": False, "actions": []})
         self._indices.setdefault(key, 0)
         self._refresh_triggers()
-        self._set_dirty(True)
+        self._mark_trigger_set_dirty()
+        self._mark_sequence_dirty(triggers[-1])
         # 末尾を選択
         try:
             self.full_view.trigger_list.selection_clear(0, tk.END)
@@ -1140,6 +2719,9 @@ class App(tk.Tk):
         if self.trigger_service.is_toggle_key_conflict(self.data, new):
             messagebox.showerror("変更できません", f"このキーは有効/無効トグルキーに設定されています:\n{new}")
             return
+        if self.keymap_service.get_keymap_by_switch_key(self.data, new):
+            messagebox.showerror("変更できません", f"このキーはキーマップ直接切替キーに設定されています:\n{new}")
+            return
         # indices の移し替え
         self._indices.setdefault(old, 0)
         self._indices.setdefault(new, self._indices.get(old, 0))
@@ -1148,7 +2730,10 @@ class App(tk.Tk):
         t["key"] = new
         t["label"] = new_label
         self._refresh_triggers()
-        self._set_dirty(True)
+        if old != new:
+            self._mark_trigger_set_dirty()
+        if cur_label != new_label:
+            self._mark_sequence_dirty(t)
         if self.hook_active:
             self.start_hook()
 
@@ -1166,7 +2751,7 @@ class App(tk.Tk):
             self._indices.pop(key, None)
             self._refresh_triggers()
             self._refresh_actions()
-            self._set_dirty(True)
+            self._mark_trigger_set_dirty()
             if self.hook_active:
                 self.start_hook()
 
@@ -1186,7 +2771,7 @@ class App(tk.Tk):
         if getattr(self, "_dialog_result", None):
             trig.setdefault("actions", []).append(self._dialog_result)
             self._refresh_actions()
-            self._set_dirty(True)
+            self._mark_sequence_dirty(trig)
             self._dialog_result = None
 
     def edit_action(self):
@@ -1203,7 +2788,7 @@ class App(tk.Tk):
         if getattr(self, "_dialog_result", None):
             trig["actions"][idx] = self._dialog_result
             self._refresh_actions()
-            self._set_dirty(True)
+            self._mark_sequence_dirty(trig)
             # action_list は FullView 側にある（選択表示を復帰）
             try:
                 self.full_view.action_list.selection_clear(0, tk.END)
@@ -1226,7 +2811,7 @@ class App(tk.Tk):
         if messagebox.askyesno("確認", "選択した行を削除しますか？"):
             del trig["actions"][idx]
             self._refresh_actions()
-            self._set_dirty(True)
+            self._mark_sequence_dirty(trig)
 
     def move_action(self, delta: int):
         trig = self._selected_trigger()
@@ -1246,7 +2831,7 @@ class App(tk.Tk):
         if key:
             self._indices[key] = j
         self._refresh_actions()
-        self._set_dirty(True)
+        self._mark_sequence_dirty(trig)
 
     # ---------------- Hook logic ----------------
     def _sync_hook_toggle_buttons(self):
@@ -1271,7 +2856,7 @@ class App(tk.Tk):
         if not self.hook_active:
             text = "通常トリガー無効化"
             state = "disabled"
-        elif self.triggers_enabled:
+        elif self.custom_input_enabled:
             text = "通常トリガー無効化"
             state = "normal"
         else:
@@ -1289,22 +2874,24 @@ class App(tk.Tk):
             pass
 
     def start_hook(self):
-        desired_trigger_state = bool(self.triggers_enabled)
+        desired_custom_input_state = bool(self.custom_input_enabled)
         if self.hook_active:
-            self.stop_hook(reset_trigger_mode=False)
+            self.stop_hook(reset_custom_input_mode=False)
+
+        if not self._validate_hook_configuration():
+            self._sync_hook_toggle_buttons()
+            self._sync_trigger_toggle_buttons()
+            return
 
         def _on_error(title: str, msg: str) -> None:
             self.after(0, lambda: messagebox.showerror(title, msg))
 
+        self.key_state_manager.clear()
         started = self.hook_coordinator.start(
             triggers=self.data.get("triggers", []),
-            on_key_event=self._on_trigger_key,
-            stop_key=self.data.get("hook_stop_key", ""),
-            on_stop=lambda: self.after(0, self.stop_hook),
-            toggle_key=self.data.get("hook_toggle_key", ""),
-            on_toggle=lambda: self.after(0, self.toggle_triggers_enabled),
+            on_input_event=self._on_input_event,
             on_error=_on_error,
-            enable_triggers=desired_trigger_state,
+            has_keymaps=self.keymap_service.has_any_mapping(self.data),
         )
 
         if not started:
@@ -1313,21 +2900,24 @@ class App(tk.Tk):
             return
 
         self.hook_active = True
-        self.triggers_enabled = desired_trigger_state
+        self.custom_input_enabled = desired_custom_input_state
         self._sync_hook_toggle_buttons()
         self._sync_trigger_toggle_buttons()
+        self._refresh_keyboard_window()
         self._update_status()
 
-    def stop_hook(self, *, reset_trigger_mode: bool = True):
+    def stop_hook(self, *, reset_custom_input_mode: bool = True):
         self.sequence_runner.stop_run_to_end()
         self.sequence_runner.stop_chain(force=True)
         self.hook_coordinator.stop()
+        self.key_state_manager.clear()
         self.hook_active = False
-        if reset_trigger_mode:
-            self.triggers_enabled = True
+        if reset_custom_input_mode:
+            self.custom_input_enabled = True
 
         self._sync_hook_toggle_buttons()
         self._sync_trigger_toggle_buttons()
+        self._refresh_keyboard_window()
         self._update_status()
 
     def toggle_hook(self):
@@ -1336,116 +2926,50 @@ class App(tk.Tk):
         else:
             self.start_hook()
 
-    def toggle_triggers_enabled(self):
+    def toggle_custom_input_enabled(self):
         if not self.hook_active:
             return
 
-        if self.triggers_enabled:
+        if self.custom_input_enabled:
             # 無効化した瞬間に連続実行中を止める
             self.sequence_runner.stop_run_to_end()
             self.sequence_runner.stop_chain(force=True)
-            self.hook_coordinator.disable_trigger_hooks()
-            self.triggers_enabled = False
+            self.custom_input_enabled = False
         else:
             def _on_error(title: str, msg: str) -> None:
                 self.after(0, lambda: messagebox.showerror(title, msg))
 
-            enabled = self.hook_coordinator.enable_trigger_hooks(
+            enabled = self.hook_coordinator.can_enable_custom_input(
                 triggers=self.data.get("triggers", []),
-                on_key_event=self._on_trigger_key,
                 on_error=_on_error,
+                has_keymaps=self.keymap_service.has_any_mapping(self.data),
             )
             if not enabled:
                 self._sync_trigger_toggle_buttons()
                 self._update_status()
                 return
-            self.triggers_enabled = True
+            self.custom_input_enabled = True
 
         if not getattr(self, "_compact_mode", False):
             self._refresh_actions()
         self._sync_trigger_toggle_buttons()
+        self._refresh_keyboard_window()
         self._update_status()
 
-    def _install_stop_hook(self):
-        """停止トリガーを（設定されていれば）suppress=True で登録"""
-        key = normalize_key_name(self.data.get("hook_stop_key", ""))
-        if not key:
-            return
+    def toggle_triggers_enabled(self):
+        self.toggle_custom_input_enabled()
 
-        self.hook_coordinator.install_stop_hook(
-            key,
-            on_stop=lambda: self.after(0, self.stop_hook),
-            on_error=lambda title, msg: self.after(0, lambda: messagebox.showerror(title, msg)),
-        )
-
-    def _uninstall_stop_hook(self):
-        self.hook_coordinator.uninstall_stop_hook()
-
-    def _install_toggle_hook(self):
-        """通常トリガー有効/無効トグルキーを（設定されていれば）suppress=True で登録"""
-        key = normalize_key_name(self.data.get("hook_toggle_key", ""))
-        if not key:
-            return
-
-        self.hook_coordinator.install_toggle_hook(
-            key,
-            on_toggle=lambda: self.after(0, self.toggle_triggers_enabled),
-            on_error=lambda title, msg: self.after(0, lambda: messagebox.showerror(title, msg)),
-        )
-
-    def _uninstall_toggle_hook(self):
-        self.hook_coordinator.uninstall_toggle_hook()
-
-    def _on_trigger_key(self, key: str):
-        """
-        keyboard callback is potentially called from hook thread;
-        execute app actions on the Tk UI thread.
-        """
-        k = normalize_key_name(key)
-        self.after(0, lambda kk=k: self.sequence_runner.handle_key(kk))
+    def _on_input_event(self, event: object):
+        resolved_key = self._resolve_key_name_from_scan_code(getattr(event, "scan_code", None))
+        if self._should_debug_special_key_event(event, resolved_key):
+            self._debug_special_key_event(event, resolved_key)
+        route = self.input_router.handle(event)
+        for action in route.actions:
+            self.after(0, lambda aa=action: self.action_executor.execute_router_action(aa))
+        return route.accept
 
     def _perform_action(self, action: dict):
-        t = (action.get("type") or "").strip().lower()
-        v = action.get("value") or ""
-
-        # 送信中にトリガーが混ざっても暴走しないように、短時間だけ抑制したい場合はここで工夫可能。
-        # まずはシンプルに送信。
-        if t == "hotkey":
-            err_msg, normalized = self.validate_hotkey(v)
-            if err_msg:
-                # アプリを止めない。UIスレッドで原因を表示
-                self.after(0, lambda kk=t, aa=action, ee=err_msg: self._show_action_error(kk, aa, ee))
-                return
-            # keyboard は "ctrl+c" のような表記でOK（打ち間違いだと例外が出ることがある）
-            self.input_gateway.send_hotkey(normalized)
-        elif t == "text":
-            self.input_gateway.write_text(v)
-        elif t == "mouse_click":
-            # 例: {"type":"mouse_click","x":100,"y":200,"button":"left","clicks":1}
-            try:
-                x = int(action.get("x"))
-                y = int(action.get("y"))
-            except Exception:
-                self.after(0, lambda: messagebox.showerror("送信エラー", "mouse_click の x/y が不正です（整数で指定してください）。"))
-                return
-            button = (action.get("button") or "left").strip().lower()
-            clicks = action.get("clicks", 1)
-            try:
-                clicks = int(clicks)
-            except Exception:
-                clicks = 1
-            if clicks < 1:
-                clicks = 1
-            if button not in ("left", "right", "middle"):
-                button = "left"
-            # 実行
-            try:
-                self.input_gateway.click_mouse(x=x, y=y, button=button, clicks=clicks)
-            except Exception as e:
-                self.after(0, lambda: messagebox.showerror("送信エラー", f"mouse_click の実行に失敗しました。\n{type(e).__name__}: {e}"))
-        else:
-            # 不明タイプはテキスト扱い
-            self.input_gateway.write_text(str(v))
+        self.action_executor.execute(action)
             
     def validate_hotkey(self, hotkey: str) -> tuple[str, str]:
         """
@@ -1575,6 +3099,12 @@ class App(tk.Tk):
         if self.trigger_service.is_toggle_key_conflict(self.data, key):
             messagebox.showerror("設定できません", f"停止トリガーがトグルキーと重複しています:\n{key}")
             return "break"
+        if self.keymap_service.get_keymap_by_switch_key(self.data, key):
+            messagebox.showerror("設定できません", f"停止トリガーがキーマップ直接切替キーと重複しています:\n{key}")
+            return "break"
+        if self.keymap_service.source_key_exists(self.data, key):
+            messagebox.showerror("設定できません", f"停止トリガーがキーマップ元キーと重複しています:\n{key}")
+            return "break"
 
         # 妥当性チェック
         try:
@@ -1660,6 +3190,12 @@ class App(tk.Tk):
         if self.trigger_service.is_stop_key_conflict(self.data, key):
             messagebox.showerror("設定できません", f"トグルキーが停止キーと重複しています:\n{key}")
             return "break"
+        if self.keymap_service.get_keymap_by_switch_key(self.data, key):
+            messagebox.showerror("設定できません", f"トグルキーがキーマップ直接切替キーと重複しています:\n{key}")
+            return "break"
+        if self.keymap_service.source_key_exists(self.data, key):
+            messagebox.showerror("設定できません", f"トグルキーがキーマップ元キーと重複しています:\n{key}")
+            return "break"
 
         try:
             self.input_gateway.validate_key_name(key)
@@ -1706,10 +3242,6 @@ class App(tk.Tk):
         if old:
             self._set_dirty(True)
 
-        # フックON中なら停止トリガーのフックだけ解除（他のフックは維持）
-        if getattr(self, "hook_active", False):
-            self._uninstall_stop_hook()
-
     def clear_toggle_key(self):
         """有効/無効トグルキーを未設定（空）に戻す"""
         if getattr(self, "_capturing_toggle_key", False):
@@ -1722,16 +3254,17 @@ class App(tk.Tk):
         if old:
             self._set_dirty(True)
 
-        # フックON中ならトグルキーのフックだけ解除（他のフックは維持）
-        if getattr(self, "hook_active", False):
-            self._uninstall_toggle_hook()
-
-
     # ---------------- Close ----------------
     def on_close(self):
         if not self._confirm_save_if_dirty("終了"):
             return
         try:
+            if self.keyboard_window is not None:
+                try:
+                    if self.keyboard_window.winfo_exists():
+                        self.keyboard_window.destroy()
+                except Exception:
+                    pass
             self.stop_hook()
         finally:
             self.destroy()

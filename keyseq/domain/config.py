@@ -45,6 +45,13 @@ DEFAULT_CONFIG: dict[str, Any] = {
     ],
     "hook_stop_key": "",
     "hook_toggle_key": "",
+    "keyboard_layout": "us_tkl",
+    "keyboard_show_physical_key_labels": False,
+    "debug_jis_special_key_events": False,
+    "external_keyboard_layouts": [],
+    "keymaps": [],
+    "active_keymap_id": "",
+    "keymap_switch_keys": {},
 }
 
 
@@ -110,6 +117,13 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             a["label"] = (a.get("label") or "").strip()
             normalized_actions.append(a)
         t["actions"] = normalized_actions
+        for key in (
+            "_sequence_source_path",
+            "_sequence_imported",
+            "_sequence_dirty",
+        ):
+            if key in trigger:
+                t[key] = safe_deepcopy(trigger.get(key))
         normalized_triggers.append(t)
     config["triggers"] = normalized_triggers
 
@@ -129,6 +143,93 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
 
     config["hook_stop_key"] = normalize_key_name(config.get("hook_stop_key", ""))
     config["hook_toggle_key"] = normalize_key_name(config.get("hook_toggle_key", ""))
+    config.pop("hook_keymap_toggle_key", None)
+    layout_id = config.get("keyboard_layout", "us_tkl")
+    if not isinstance(layout_id, str):
+        layout_id = "us_tkl"
+    layout_id = layout_id.strip() or "us_tkl"
+    config["keyboard_layout"] = layout_id
+    config["keyboard_show_physical_key_labels"] = bool(config.get("keyboard_show_physical_key_labels", False))
+    config["debug_jis_special_key_events"] = bool(config.get("debug_jis_special_key_events", False))
+
+    raw_external_layouts = config.get("external_keyboard_layouts")
+    normalized_external_layouts: list[dict[str, str]] = []
+    if isinstance(raw_external_layouts, list):
+        for item in raw_external_layouts:
+            if isinstance(item, str):
+                path = item.strip()
+            elif isinstance(item, dict):
+                path = str(item.get("path") or "").strip()
+            else:
+                continue
+            if not path:
+                continue
+            normalized_external_layouts.append({"path": path})
+    config["external_keyboard_layouts"] = normalized_external_layouts
+
+    raw_keymaps = config.get("keymaps")
+    normalized_keymaps: list[dict[str, Any]] = []
+    seen_keymap_ids: set[str] = set()
+    if isinstance(raw_keymaps, list):
+        for item in raw_keymaps:
+            if not isinstance(item, dict):
+                continue
+
+            keymap_id = normalize_key_name(item.get("id", ""))
+            if not keymap_id or keymap_id in seen_keymap_ids:
+                continue
+
+            raw_mappings = item.get("mappings")
+            normalized_mappings: dict[str, str] = {}
+            if isinstance(raw_mappings, dict):
+                for raw_source, raw_target in raw_mappings.items():
+                    source = normalize_key_name(str(raw_source or ""))
+                    target = normalize_key_name(str(raw_target or ""))
+                    if not source or not target:
+                        continue
+                    normalized_mappings[source] = target
+
+            normalized_keymaps.append(
+                {
+                    "id": keymap_id,
+                    "label": (item.get("label") or "").strip(),
+                    "mappings": normalized_mappings,
+                }
+            )
+            for key in (
+                "_keymap_source_path",
+                "_keymap_imported",
+                "_keymap_dirty",
+            ):
+                if key in item:
+                    normalized_keymaps[-1][key] = safe_deepcopy(item.get(key))
+            seen_keymap_ids.add(keymap_id)
+    config["keymaps"] = normalized_keymaps
+
+    active_keymap_id = normalize_key_name(config.get("active_keymap_id", ""))
+    keymap_ids = [str(item.get("id") or "") for item in normalized_keymaps]
+    if active_keymap_id and active_keymap_id not in keymap_ids:
+        active_keymap_id = ""
+    if not active_keymap_id and keymap_ids:
+        active_keymap_id = keymap_ids[0]
+    config["active_keymap_id"] = active_keymap_id
+
+    raw_keymap_switch_keys = config.get("keymap_switch_keys")
+    normalized_keymap_switch_keys: dict[str, str] = {}
+    seen_switch_target_ids: set[str] = set()
+    if isinstance(raw_keymap_switch_keys, dict):
+        for raw_key, raw_keymap_id in raw_keymap_switch_keys.items():
+            switch_key = normalize_key_name(str(raw_key or ""))
+            keymap_id = normalize_key_name(str(raw_keymap_id or ""))
+            if not switch_key or not keymap_id:
+                continue
+            if keymap_id not in keymap_ids:
+                continue
+            if keymap_id in seen_switch_target_ids:
+                continue
+            normalized_keymap_switch_keys[switch_key] = keymap_id
+            seen_switch_target_ids.add(keymap_id)
+    config["keymap_switch_keys"] = normalized_keymap_switch_keys
     return config
 
 

@@ -5,8 +5,18 @@ from typing import Callable
 import keyboard
 import pyautogui
 
+from keyseq.domain.key_identifiers import resolve_known_scan_code_from_key_name
+
 
 class InputGateway:
+    def register_global_hook(
+        self,
+        callback: Callable[[object], bool | None],
+        *,
+        suppress: bool = False,
+    ):
+        return keyboard.hook(callback, suppress=suppress)
+
     def register_key_hook(
         self,
         key: str,
@@ -29,6 +39,12 @@ class InputGateway:
     def unregister_hook(self, handle) -> None:
         keyboard.unhook(handle)
 
+    def press_key(self, key: str) -> None:
+        keyboard.press(key)
+
+    def release_key(self, key: str) -> None:
+        keyboard.release(key)
+
     def send_hotkey(self, hotkey: str) -> None:
         keyboard.send(hotkey)
 
@@ -36,7 +52,12 @@ class InputGateway:
         keyboard.write(text)
 
     def validate_key_name(self, key_name: str) -> None:
-        keyboard.key_to_scan_codes(key_name)
+        try:
+            keyboard.key_to_scan_codes(key_name)
+        except Exception:
+            scan_code = resolve_known_scan_code_from_key_name(str(key_name or ""))
+            if scan_code is None:
+                raise
 
     def click_mouse(self, x: int, y: int, button: str, clicks: int) -> None:
         pyautogui.click(x=x, y=y, button=button, clicks=clicks)

@@ -68,14 +68,25 @@ class FullView(ttk.Frame):
         # 省略表示へ
         app.compact_btn = ttk.Button(self.display_frame, text="省略表示", command=app.show_compact_view)
         app.compact_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
+        ttk.Button(self.display_frame, text="キーボードUI", command=app.open_keyboard_window).grid(
+            row=2, column=0, sticky="w", pady=(10, 0)
+        )
+        app.keyboard_layout_combo = ttk.Combobox(
+            self.display_frame,
+            textvariable=app.keyboard_layout_var,
+            state="readonly",
+            width=18,
+        )
+        app.keyboard_layout_combo.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(10, 0))
+        app.keyboard_layout_combo.bind("<<ComboboxSelected>>", app.on_keyboard_layout_selected)
 
         # ファイル操作（表示フレームの右側）
         self.file_frame = ttk.LabelFrame(self.header_area, text="ファイル", padding=(10, 6))
         self.file_frame.pack(side="right", fill="y", padx=(12, 0))
 
-        ttk.Button(self.file_frame, text="保存", width=18, command=app.save_config).pack(fill="x", pady=(0, 4))
+        ttk.Button(self.file_frame, text="保存", width=18, command=app.save_keymap_set).pack(fill="x", pady=(0, 4))
         ttk.Button(self.file_frame, text="別名で保存...", width=18, command=app.save_as).pack(fill="x", pady=4)
-        ttk.Button(self.file_frame, text="読込...", width=18, command=app.load_from).pack(fill="x", pady=4)
+        ttk.Button(self.file_frame, text="読込...", width=18, command=app.load_keymap_set_from).pack(fill="x", pady=4)
 
         ttk.Button(self.file_frame, text="新規作成", width=18, command=app.new_config).pack(fill="x", pady=4)
 
@@ -83,8 +94,36 @@ class FullView(ttk.Frame):
         self.main_area = ttk.Frame(self)
         self.main_area.pack(fill="both", expand=True, pady=(12, 0))
 
+        self.keymap_box = ttk.LabelFrame(self.main_area, text="キーマップ管理", padding=10)
+        self.keymap_box.pack(side="left", fill="y")
+
+        keymap_list_frame = ttk.Frame(self.keymap_box)
+        keymap_list_frame.pack(side="top", fill="y", expand=False)
+        app.keymap_listbox = tk.Listbox(keymap_list_frame, height=12, width=26, exportselection=False)
+        app.keymap_listbox.pack(side="left", fill="y", expand=False)
+        app.keymap_listbox.bind("<<ListboxSelect>>", app._on_keymap_list_select)
+        app.keymap_listbox.bind("<Double-Button-1>", app._on_keymap_list_double_click)
+        keymap_list_scrollbar = ttk.Scrollbar(keymap_list_frame, orient="vertical", command=app.keymap_listbox.yview)
+        keymap_list_scrollbar.pack(side="left", fill="y")
+        app.keymap_listbox.configure(yscrollcommand=keymap_list_scrollbar.set)
+
+        keymap_btns = ttk.Frame(self.keymap_box)
+        keymap_btns.pack(fill="x", pady=(6, 0))
+        app.keymap_add_btn = ttk.Button(keymap_btns, text="追加", command=app._add_keymap)
+        app.keymap_add_btn.pack(fill="x", pady=(0, 3))
+        app.keymap_edit_btn = ttk.Button(keymap_btns, text="キーマップ変更", command=app._edit_selected_keymap)
+        app.keymap_edit_btn.pack(fill="x", pady=3)
+        app.keymap_delete_btn = ttk.Button(keymap_btns, text="削除", command=app._delete_keymap)
+        app.keymap_delete_btn.pack(fill="x", pady=3)
+        app.keymap_select_btn = ttk.Button(keymap_btns, text="選択", command=app._select_keymap)
+        app.keymap_select_btn.pack(fill="x", pady=3)
+        ttk.Separator(keymap_btns).pack(fill="x", pady=6)
+        ttk.Button(keymap_btns, text="保存", command=app.save_selected_keymap).pack(fill="x", pady=3)
+        ttk.Button(keymap_btns, text="別名で保存", command=app.save_selected_keymap_as).pack(fill="x", pady=3)
+        ttk.Button(keymap_btns, text="読込", command=app.load_keymap_file).pack(fill="x", pady=3)
+
         self.trigger_box = ttk.LabelFrame(self.main_area, text="トリガー一覧（選択して編集）", padding=10)
-        self.trigger_box.pack(side="left", fill="y")
+        self.trigger_box.pack(side="left", fill="y", padx=(12, 0))
 
         # トリガー一覧（スクロール）
         tl_frame = ttk.Frame(self.trigger_box)
@@ -102,6 +141,10 @@ class FullView(ttk.Frame):
         ttk.Button(tbtns, text="追加", command=app.add_trigger).pack(fill="x", pady=(0, 3))
         ttk.Button(tbtns, text="トリガー変更", command=app.rename_trigger).pack(fill="x", pady=3)
         ttk.Button(tbtns, text="削除", command=app.delete_trigger).pack(fill="x", pady=3)
+        ttk.Separator(tbtns).pack(fill="x", pady=6)
+        ttk.Button(tbtns, text="保存", command=app.save_trigger_set_file).pack(fill="x", pady=3)
+        ttk.Button(tbtns, text="別名で保存", command=app.save_trigger_set_file_as).pack(fill="x", pady=3)
+        ttk.Button(tbtns, text="読込", command=app.load_trigger_set_file).pack(fill="x", pady=3)
 
         app.suppress_chk = ttk.Checkbutton(
             self.trigger_box,
@@ -130,6 +173,10 @@ class FullView(ttk.Frame):
         ttk.Separator(abtns).pack(fill="x", pady=10)
         ttk.Button(abtns, text="上へ", width=16, command=lambda: app.move_action(-1)).pack(pady=6)
         ttk.Button(abtns, text="下へ", width=16, command=lambda: app.move_action(+1)).pack(pady=6)
+        ttk.Separator(abtns).pack(fill="x", pady=10)
+        ttk.Button(abtns, text="保存", width=16, command=app.save_selected_sequence).pack(pady=6)
+        ttk.Button(abtns, text="別名で保存", width=16, command=app.save_selected_sequence_as).pack(pady=6)
+        ttk.Button(abtns, text="読込", width=16, command=app.load_sequence_file).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
         # 連続実行（run_to_end）
         app.run_to_end_chk = ttk.Checkbutton(
@@ -209,6 +256,17 @@ class CompactView(ttk.Frame):
         app.topmost_chk.grid(row=0, column=0, sticky="w")
         self.full_btn = ttk.Button(self.display_frame, text="フルに戻す", command=app.show_full_view)
         self.full_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
+        ttk.Button(self.display_frame, text="キーボードUI", command=app.open_keyboard_window).grid(
+            row=2, column=0, sticky="w", pady=(10, 0)
+        )
+        app.compact_keyboard_layout_combo = ttk.Combobox(
+            self.display_frame,
+            textvariable=app.keyboard_layout_var,
+            state="readonly",
+            width=18,
+        )
+        app.compact_keyboard_layout_combo.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(10, 0))
+        app.compact_keyboard_layout_combo.bind("<<ComboboxSelected>>", app.on_keyboard_layout_selected)
 
         # トリガー一覧のみ
         self.main_area = ttk.Frame(self)
