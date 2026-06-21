@@ -1,5 +1,6 @@
 ﻿import os
 import copy
+import re
 import tkinter as tk
 from tkinter import filedialog, messagebox, simpledialog, ttk
 
@@ -1621,9 +1622,16 @@ class App(tk.Tk):
     def _normalize_keymap_set_save_path(self, path: str) -> str:
         if not path:
             return self._preferred_keymap_set_path()
-        if self._is_within_legacy_settings(path):
+        normalized = os.path.normpath(str(path).strip())
+        if not os.path.isabs(normalized):
+            parts = re.split(r"[\\/]+", normalized)
+            if parts and parts[0] == "config":
+                normalized = os.path.normpath(os.path.join(self.base_dir, normalized))
+            else:
+                normalized = os.path.normpath(os.path.join(self.config_root, normalized))
+        if self._is_within_legacy_settings(normalized):
             return self._preferred_keymap_set_path()
-        return path
+        return normalized
 
     def _suggest_keymap_set_dialog_path(self) -> str:
         current = str(getattr(self, "keymap_set_path", "") or "").strip()
