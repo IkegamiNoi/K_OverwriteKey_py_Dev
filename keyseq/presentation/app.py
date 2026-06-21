@@ -133,6 +133,7 @@ class App(tk.Tk):
         self._keymap_switch_capture_original_key = ""
         self.custom_input_enabled = True
         self._is_dirty = False
+        self._config_dirty = False
         self._trigger_set_source_path = ""
         self._trigger_set_imported = False
         self._trigger_set_dirty = False
@@ -345,11 +346,15 @@ class App(tk.Tk):
 
     def _update_file_status(self):
         name = os.path.basename(self.keymap_set_path or "") or "(未設定)"
-        save_state = "未保存" if self._is_dirty or self._has_individual_dirty() else "保存済み"
+        save_state = "未保存" if self._has_unsaved_changes() else "保存済み"
         self.file_status_var.set(f"ファイル: {name} / {save_state}")
 
-    def _set_dirty(self, value: bool):
+    def _set_dirty(self, value: bool, *, config_dirty: bool = True):
         self._is_dirty = bool(value)
+        if value and config_dirty:
+            self._config_dirty = True
+        if not value:
+            self._config_dirty = False
         self._update_file_status()
 
     def _mark_keymap_dirty(self, keymap: dict | None = None) -> None:
@@ -358,17 +363,24 @@ class App(tk.Tk):
             target = self.keymap_service.get_active_keymap(self.data)
         if isinstance(target, dict):
             target[self.config_service.INTERNAL_KEYMAP_DIRTY] = True
-        self._set_dirty(True)
+        self._set_dirty(True, config_dirty=False)
 
     def _mark_trigger_set_dirty(self) -> None:
         self._trigger_set_dirty = True
-        self._set_dirty(True)
+        self._set_dirty(True, config_dirty=False)
 
     def _mark_sequence_dirty(self, trigger: dict | None = None) -> None:
         target = trigger if isinstance(trigger, dict) else self._selected_trigger()
         if isinstance(target, dict):
             target[self.config_service.INTERNAL_SEQUENCE_DIRTY] = True
-        self._set_dirty(True)
+        self._set_dirty(True, config_dirty=False)
+
+    def _has_unsaved_changes(self) -> bool:
+        return bool(getattr(self, "_config_dirty", False)) or self._has_individual_dirty()
+
+    def _sync_dirty_state(self) -> None:
+        self._is_dirty = self._has_unsaved_changes()
+        self._update_file_status()
 
     def _has_individual_dirty(self) -> bool:
         if bool(getattr(self, "_trigger_set_dirty", False)):
@@ -2130,6 +2142,7 @@ class App(tk.Tk):
             self._refresh_keymap_list_ui(preferred_index=index)
             self._refresh_keymap_switch_ui()
             self._refresh_keyboard_window()
+            self._sync_dirty_state()
             self._set_flash_message("キーマップを保存しました。")
             messagebox.showinfo("保存", f"キーマップを保存しました:\n{path}")
             return True
@@ -2206,6 +2219,7 @@ class App(tk.Tk):
             self._trigger_set_dirty = False
             self._refresh_triggers()
             self._refresh_actions()
+            self._sync_dirty_state()
             self._set_flash_message("トリガー一覧を保存しました。")
             messagebox.showinfo("保存", f"トリガー一覧を保存しました:\n{path}")
             return True
@@ -2330,7 +2344,7 @@ class App(tk.Tk):
 
     # ---------------- Config IO ----------------
     def _confirm_save_if_dirty(self, action_name: str) -> bool:
-        if not self._is_dirty and not self._has_individual_dirty():
+        if not self._has_unsaved_changes():
             return True
 
         result = messagebox.askyesnocancel(
