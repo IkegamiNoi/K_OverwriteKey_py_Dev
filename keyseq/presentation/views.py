@@ -102,6 +102,7 @@ class FullView(ttk.Frame):
         app.keymap_listbox = tk.Listbox(keymap_list_frame, height=12, width=26, exportselection=False)
         app.keymap_listbox.pack(side="left", fill="y", expand=False)
         app.keymap_listbox.bind("<<ListboxSelect>>", app._on_keymap_list_select)
+        app.keymap_listbox.bind("<KeyRelease>", app._on_keymap_list_focus_index_change)
         app.keymap_listbox.bind("<Double-Button-1>", app._on_keymap_list_double_click)
         keymap_list_scrollbar = ttk.Scrollbar(keymap_list_frame, orient="vertical", command=app.keymap_listbox.yview)
         keymap_list_scrollbar.pack(side="left", fill="y")
@@ -133,7 +134,8 @@ class FullView(ttk.Frame):
         sb = ttk.Scrollbar(tl_frame, orient="vertical", command=self.trigger_list.yview)
         sb.pack(side="left", fill="y")
         self.trigger_list.configure(yscrollcommand=sb.set)
-        self.trigger_list.bind("<<ListboxSelect>>", lambda _e: app._set_selected_trigger_index(self._cur_sel_or(app._selected_trigger_idx)))
+        self.trigger_list.bind("<<ListboxSelect>>", app._on_trigger_list_focus_index_change)
+        self.trigger_list.bind("<KeyRelease>", app._on_trigger_list_focus_index_change)
         self.trigger_list.bind("<Double-Button-1>", app._on_trigger_double_click)
 
         tbtns = ttk.Frame(self.trigger_box)
@@ -160,6 +162,7 @@ class FullView(ttk.Frame):
         self.action_list = tk.Listbox(self.sequence_box, height=18, exportselection=False)
         self.action_list.pack(side="left", fill="both", expand=True)
         self.action_list.bind("<<ListboxSelect>>", app._on_action_list_select)
+        self.action_list.bind("<KeyRelease>", app._on_action_list_focus_index_change)
         self.action_list.bind("<Double-Button-1>", app._on_action_double_click)
         asb = ttk.Scrollbar(self.sequence_box, orient="vertical", command=self.action_list.yview)
         asb.pack(side="left", fill="y")
@@ -281,7 +284,8 @@ class CompactView(ttk.Frame):
         sb = ttk.Scrollbar(tl_frame, orient="vertical", command=self.trigger_list.yview)
         sb.pack(side="left", fill="y")
         self.trigger_list.configure(yscrollcommand=sb.set)
-        self.trigger_list.bind("<<ListboxSelect>>", lambda _e: app._set_selected_trigger_index(self._cur_sel_or(app._selected_trigger_idx)))
+        self.trigger_list.bind("<<ListboxSelect>>", app._on_trigger_list_focus_index_change)
+        self.trigger_list.bind("<KeyRelease>", app._on_trigger_list_focus_index_change)
         self.trigger_list.bind("<Double-Button-1>", app._on_trigger_double_click)
 
     def _cur_sel_or(self, default_idx: int) -> int:

@@ -855,6 +855,37 @@ class App(tk.Tk):
             self._refresh_actions()
         self._update_status()
 
+    def _focused_listbox_index(self, listbox: tk.Listbox, item_count: int) -> int | None:
+        """Listboxにフォーカスがある場合はactive行を、なければ選択行を返す。"""
+        if item_count <= 0:
+            return None
+        try:
+            if self.focus_get() is listbox:
+                index = int(listbox.index(tk.ACTIVE))
+                if 0 <= index < item_count:
+                    return index
+            selection = listbox.curselection()
+            if selection:
+                index = int(selection[0])
+                if 0 <= index < item_count:
+                    return index
+        except Exception:
+            return None
+        return None
+
+    def _sync_listbox_selection_to_focus(self, listbox: tk.Listbox, item_count: int) -> int | None:
+        index = self._focused_listbox_index(listbox, item_count)
+        if index is None:
+            return None
+        try:
+            listbox.selection_clear(0, tk.END)
+            listbox.selection_set(index)
+            listbox.activate(index)
+            listbox.see(index)
+        except Exception:
+            return None
+        return index
+
     def _find_trigger_by_key(self, key: str):
         return self.trigger_service.find_trigger_by_key(self.data, key)
 
@@ -896,13 +927,7 @@ class App(tk.Tk):
         """keymap 管理Listboxの選択行を返す。"""
         if not hasattr(self, "keymap_listbox"):
             return None
-        try:
-            selection = self.keymap_listbox.curselection()
-            if not selection:
-                return None
-            return int(selection[0])
-        except Exception:
-            return None
+        return self._focused_listbox_index(self.keymap_listbox, len(self.keymap_service.get_keymaps(self.data)))
 
     def _sync_keymap_manage_buttons(self) -> None:
         """keymap 件数に応じて管理ボタン状態を揃える。"""
@@ -918,13 +943,7 @@ class App(tk.Tk):
     def _selected_keymap_switch_key_index(self) -> int | None:
         if not hasattr(self, "keymap_switch_key_listbox"):
             return None
-        try:
-            selection = self.keymap_switch_key_listbox.curselection()
-            if not selection:
-                return None
-            return int(selection[0])
-        except Exception:
-            return None
+        return self._focused_listbox_index(self.keymap_switch_key_listbox, len(self._get_sorted_keymap_switch_items()))
 
     def _sync_keymap_switch_key_buttons(self) -> None:
         has_keymaps = bool(self.keymap_service.get_keymaps(self.data))
@@ -1018,10 +1037,19 @@ class App(tk.Tk):
         self._sync_keymap_manage_buttons()
 
     def _on_keymap_list_select(self, _event=None) -> None:
+        self._sync_listbox_selection_to_focus(self.keymap_listbox, len(self.keymap_service.get_keymaps(self.data)))
         self._sync_keymap_manage_buttons()
 
     def _on_keymap_switch_key_list_select(self, _event=None) -> None:
+        self._sync_listbox_selection_to_focus(self.keymap_switch_key_listbox, len(self._get_sorted_keymap_switch_items()))
         self._sync_keymap_switch_key_buttons()
+
+    def _on_keymap_list_focus_index_change(self, _event=None) -> None:
+        self._on_keymap_list_select()
+
+    def _on_keymap_switch_key_focus_index_change(self, _event=None) -> None:
+        if hasattr(self, "keymap_switch_key_listbox"):
+            self._on_keymap_switch_key_list_select()
 
     def _on_keymap_list_double_click(self, _event=None) -> None:
         """一覧ダブルクリックで選択中 keymap の編集導線を開く。"""
@@ -1983,19 +2011,32 @@ class App(tk.Tk):
         key = self._selected_trigger_key()
         if not key:
             return
-        sel = self.full_view.action_list.curselection()
-        if not sel:
-            return
-        idx = int(sel[0])
         trig = self._find_trigger_by_key(key)
         if not trig:
             return
         actions = trig.get("actions", [])
         if not actions:
             return
+        idx = self._sync_listbox_selection_to_focus(self.full_view.action_list, len(actions))
+        if idx is None:
+            return
         if 0 <= idx < len(actions):
             self._indices[key] = idx
             self._update_status()
+
+    def _on_action_list_focus_index_change(self, _event=None):
+        self._on_action_list_select()
+
+    def _on_trigger_list_focus_index_change(self, event=None):
+        triggers = self.data.get("triggers", [])
+        widget = getattr(event, "widget", None)
+        if not isinstance(widget, tk.Listbox):
+            widget = None
+        if widget is None:
+            return
+        idx = self._sync_listbox_selection_to_focus(widget, len(triggers))
+        if idx is not None:
+            self._set_selected_trigger_index(idx)
 
     def _on_trigger_double_click(self, _event=None):
         """トリガー一覧をダブルクリックしたらトリガー変更（rename_trigger）を開く"""
@@ -2703,16 +2744,12 @@ class App(tk.Tk):
             messagebox.showerror("追加できません", f"このキーはキーマップ直接切替キーに設定されています:\n{key}")
             return
         triggers.append({"key": key, "label": label, "suppress": True, "run_to_end": False, "actions": []})
+        new_index = len(triggers) - 1
         self._indices.setdefault(key, 0)
         self._refresh_triggers()
         self._mark_trigger_set_dirty()
         self._mark_sequence_dirty(triggers[-1])
-        # 末尾を選択
-        try:
-            self.full_view.trigger_list.selection_clear(0, tk.END)
-            self.full_view.trigger_list.selection_set(len(triggers) - 1)
-        except Exception:
-            pass
+        self._set_selected_trigger_index(new_index)
         if self.hook_active:
             self.start_hook()
 
@@ -2779,10 +2816,13 @@ class App(tk.Tk):
 
     # ---------------- Actions CRUD (selected trigger) ----------------
     def _selected_action_index(self):
-        sel = self.full_view.action_list.curselection()
-        if not sel:
+        trig = self._selected_trigger()
+        if not trig:
             return None
-        return int(sel[0])
+        actions = trig.get("actions", [])
+        if not isinstance(actions, list):
+            return None
+        return self._focused_listbox_index(self.full_view.action_list, len(actions))
 
     def add_action(self):
         trig = self._selected_trigger()
