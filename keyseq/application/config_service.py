@@ -536,7 +536,7 @@ class ConfigService:
             payload.update(safe_deepcopy(startup_data))
 
         payload.pop("config_path", None)
-        payload["keymap_set_path"] = self._to_config_relative_or_absolute(keymap_set_path, config_root)
+        payload["keymap_set_path"] = self.to_config_relative_or_absolute(keymap_set_path, config_root)
         try:
             payload["ui_font_delta_pt"] = int(payload.get("ui_font_delta_pt", 0) or 0)
         except Exception:
@@ -588,8 +588,8 @@ class ConfigService:
             active_keymap_path = str(keymap_entries[0].get("path") or "")
 
         return {
-            "trigger_set_path": self._to_config_relative_or_absolute(trigger_set_path, config_root),
-            "hotkey_presets_path": self._to_config_relative_or_absolute(hotkey_presets_path, config_root),
+            "trigger_set_path": self.to_config_relative_or_absolute(trigger_set_path, config_root),
+            "hotkey_presets_path": self.to_config_relative_or_absolute(hotkey_presets_path, config_root),
             "active_keymap_path": active_keymap_path,
             "keymaps": keymap_entries,
             "hook_stop_key": normalize_key_name(runtime.get("hook_stop_key", "")),
@@ -627,7 +627,7 @@ class ConfigService:
             stored_path = str(keymap.get(self.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
             if stored_path:
                 resolved_path = self._resolve_config_relative_path(stored_path, config_root)
-                relative_path = self._to_config_relative_or_absolute(resolved_path, config_root)
+                relative_path = self.to_config_relative_or_absolute(resolved_path, config_root)
                 normalized_for_collision = self._normalize_path_separators(relative_path)
                 if normalized_for_collision in used_relative_paths:
                     base_name = self._resolve_keymap_file_base_name(keymap)
@@ -694,7 +694,7 @@ class ConfigService:
                 used_paths=used_paths,
             )
             resolved_sequence_path = self._resolve_config_relative_path(sequence_path, config_root)
-            stored_sequence_path = self._to_config_relative_or_absolute(resolved_sequence_path, config_root)
+            stored_sequence_path = self.to_config_relative_or_absolute(resolved_sequence_path, config_root)
             trigger_entries.append(
                 {
                     "key": key,
@@ -725,7 +725,7 @@ class ConfigService:
         source_path = str(trigger.get(self.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
         if source_path:
             resolved_source_path = self._resolve_config_relative_path(source_path, config_root)
-            stored_source_path = self._to_config_relative_or_absolute(resolved_source_path, config_root)
+            stored_source_path = self.to_config_relative_or_absolute(resolved_source_path, config_root)
             normalized_source_path = self._normalize_path_separators(stored_source_path)
             if normalized_source_path not in used_paths:
                 used_paths.add(normalized_source_path)
@@ -766,7 +766,7 @@ class ConfigService:
 
     def _resolve_sequence_file_base_name(self, trigger: dict[str, Any]) -> str:
         for candidate in (trigger.get("label"), trigger.get("key"), "sequence"):
-            slug = self._slugify_file_stem(candidate)
+            slug = self.slugify_file_stem(candidate)
             if slug:
                 return slug
         return "sequence"
@@ -785,7 +785,7 @@ class ConfigService:
         fallback: str,
         used_paths: set[str],
     ) -> str:
-        stem = self._slugify_file_stem(base_name) or fallback
+        stem = self.slugify_file_stem(base_name) or fallback
         index = 1
         while True:
             suffix = "" if index == 1 else f"_{index}"
@@ -804,12 +804,12 @@ class ConfigService:
         used_paths: set[str],
         config_root: str,
     ) -> str:
-        stem = self._slugify_file_stem(base_name) or fallback
+        stem = self.slugify_file_stem(base_name) or fallback
         index = 1
         while True:
             suffix = "" if index == 1 else f"_{index}"
             candidate = os.path.join(directory, f"{stem}{suffix}.json")
-            stored = self._to_config_relative_or_absolute(candidate, config_root)
+            stored = self.to_config_relative_or_absolute(candidate, config_root)
             normalized_candidate = self._normalize_path_separators(stored)
             if normalized_candidate not in used_paths:
                 used_paths.add(normalized_candidate)
@@ -823,18 +823,18 @@ class ConfigService:
             source_prefix = self._normalize_path_separators(self.KEYMAPS_RELATIVE_DIR) + "/"
             if normalized_source.startswith(source_prefix):
                 filename = os.path.splitext(os.path.basename(normalized_source))[0]
-                slug = self._slugify_keymap_file_stem(filename)
+                slug = self.slugify_file_stem(filename)
                 if slug:
                     return slug
 
         for candidate in (keymap.get("id"), keymap.get("label"), "keymap"):
-            slug = self._slugify_keymap_file_stem(candidate)
+            slug = self.slugify_file_stem(candidate)
             if slug:
                 return slug
         return "keymap"
 
     def _allocate_unique_keymap_path(self, base_name: str, used_relative_paths: set[str]) -> str:
-        stem = self._slugify_keymap_file_stem(base_name) or "keymap"
+        stem = self.slugify_file_stem(base_name) or "keymap"
         index = 1
         while True:
             suffix = "" if index == 1 else f"_{index}"
@@ -944,7 +944,7 @@ class ConfigService:
     def _infer_config_root_from_keymap_set_path(self, keymap_set_path: str) -> str:
         return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(keymap_set_path))))
 
-    def _to_config_relative_or_absolute(self, path: str, config_root: str) -> str:
+    def to_config_relative_or_absolute(self, path: str, config_root: str) -> str:
         absolute_path = os.path.abspath(path)
         absolute_config_root = os.path.abspath(config_root)
         try:
@@ -967,10 +967,8 @@ class ConfigService:
     def _normalize_path_separators(self, path: str) -> str:
         return str(path or "").replace("\\", "/")
 
-    def _slugify_keymap_file_stem(self, value: Any) -> str:
-        return self._slugify_file_stem(value)
 
-    def _slugify_file_stem(self, value: Any) -> str:
+    def slugify_file_stem(self, value: Any) -> str:
         normalized = str(value or "").strip()
         normalized = re.sub(r'[\\/:*?"<>|]+', "_", normalized)
         normalized = re.sub(r"_+", "_", normalized)

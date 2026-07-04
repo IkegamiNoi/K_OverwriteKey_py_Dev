@@ -127,22 +127,22 @@ class PathHelperTest(unittest.TestCase):
     def setUp(self):
         self.service = ConfigService(JsonRepository())
 
-    def test_slugify_file_stem(self):
-        self.assertEqual(self.service._slugify_file_stem("a/b:c"), "a_b_c")
-        self.assertEqual(self.service._slugify_file_stem("con"), "con_")
-        self.assertEqual(self.service._slugify_file_stem("  "), "")
-        self.assertEqual(self.service._slugify_file_stem("..name.."), "name")
+    def test_public_slug_generation(self):
+        self.assertEqual(self.service.slugify_file_stem("a/b:c"), "a_b_c")
+        self.assertEqual(self.service.slugify_file_stem("con"), "con_")
+        self.assertEqual(self.service.slugify_file_stem("  "), "")
+        self.assertEqual(self.service.slugify_file_stem("..name.."), "name")
 
-    def test_to_config_relative_or_absolute(self):
+    def test_public_config_relative_or_absolute(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             inside = os.path.join(root, "user", "x.json")
             outside = os.path.join(tmp, "outside.json")
             self.assertEqual(
-                self.service._to_config_relative_or_absolute(inside, root), "user/x.json"
+                self.service.to_config_relative_or_absolute(inside, root), "user/x.json"
             )
             self.assertEqual(
-                self.service._to_config_relative_or_absolute(outside, root),
+                self.service.to_config_relative_or_absolute(outside, root),
                 os.path.abspath(outside).replace("\\", "/"),
             )
 

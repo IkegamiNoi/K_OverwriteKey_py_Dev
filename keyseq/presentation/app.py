@@ -1405,7 +1405,7 @@ class App(tk.Tk):
         return self.config_root
 
     def _to_config_relative_or_absolute(self, path: str) -> str:
-        return self.config_service._to_config_relative_or_absolute(path, self.config_root)
+        return self.config_service.to_config_relative_or_absolute(path, self.config_root)
 
     def _is_within_config_root(self, path: str) -> bool:
         try:
@@ -1775,12 +1775,12 @@ class App(tk.Tk):
         return os.path.splitext(os.path.basename(str(path or "")))[0]
 
     def _suggest_json_path(self, directory: str, label: str, fallback: str) -> str:
-        stem = self.config_service._slugify_file_stem(label) or fallback
+        stem = self.config_service.slugify_file_stem(label) or fallback
         return os.path.join(directory, f"{stem}.json")
 
     def _keymap_set_file_stem(self) -> str:
         stem = self._filename_stem(str(getattr(self, "keymap_set_path", "") or ""))
-        return self.config_service._slugify_file_stem(stem) or "trigger_set"
+        return self.config_service.slugify_file_stem(stem) or "trigger_set"
 
     def _choose_save_path_with_collision(self, *, title: str, suggested_path: str) -> str:
         path = suggested_path
