@@ -834,10 +834,6 @@ class App(tk.Tk):
         display_name = self._format_keymap_display_name(keymap) or f"keymap-{index + 1}"
         return f"{marker}{index + 1:02d}. {switch_key}: {display_name}"
 
-
-    def _refresh_keymap_switch_ui(self) -> None:
-        self._refresh_keymap_list_ui()
-
     def _selected_keymap_list_index(self) -> int | None:
         """keymap 管理Listboxの選択行を返す。"""
         if not hasattr(self, "keymap_listbox"):
@@ -968,7 +964,6 @@ class App(tk.Tk):
         keymaps = self.keymap_service.get_keymaps(self.data)
         preferred_index = max(0, len(keymaps) - 1)
         self._refresh_keymap_list_ui(preferred_index=preferred_index)
-        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
         self._mark_keymap_dirty(created)
@@ -1005,7 +1000,6 @@ class App(tk.Tk):
 
         target["label"] = normalized_label
         self._refresh_keymap_list_ui(preferred_index=index)
-        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
         self._mark_keymap_dirty(target)
@@ -1035,7 +1029,6 @@ class App(tk.Tk):
         remaining_count = len(self.keymap_service.get_keymaps(self.data))
         preferred_index = None if remaining_count <= 0 else min(index, remaining_count - 1)
         self._refresh_keymap_list_ui(preferred_index=preferred_index)
-        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
         self._set_dirty(True)
@@ -1121,7 +1114,6 @@ class App(tk.Tk):
             return False
 
         self._refresh_keymap_list_ui(preferred_index=preferred_index)
-        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
         self._mark_keymap_dirty(keymap)
@@ -1153,7 +1145,6 @@ class App(tk.Tk):
             )
 
         self._refresh_keymap_list_ui(preferred_index=preferred_index)
-        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
         if changed and mark_dirty:
@@ -1269,7 +1260,6 @@ class App(tk.Tk):
 
         keymap_id, changed = self.keymap_service.set_mapping(self.data, source, target)
         self._refresh_keymap_list_ui()
-        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
         if changed:
@@ -1285,7 +1275,6 @@ class App(tk.Tk):
             return False
         keymap_id, changed = self.keymap_service.clear_mapping(self.data, source)
         self._refresh_keymap_list_ui()
-        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
         if changed:
@@ -1653,7 +1642,6 @@ class App(tk.Tk):
         self._sync_suppress_checkbox()
         self._sync_run_to_end_ui()
         self._refresh_keymap_list_ui()
-        self._refresh_keymap_switch_ui()
         self._refresh_keyboard_window()
         self._update_status()
 
@@ -1905,7 +1893,6 @@ class App(tk.Tk):
             saved = self.config_service.save_keymap_file(path, keymap)
             self.keymap_service.get_keymaps(self.data)[index] = saved
             self._refresh_keymap_list_ui(preferred_index=index)
-            self._refresh_keymap_switch_ui()
             self._refresh_keyboard_window()
             self._sync_dirty_state()
             self._set_flash_message("キーマップを保存しました。")
@@ -1936,7 +1923,6 @@ class App(tk.Tk):
             if not self.data.get("active_keymap_id"):
                 self.data["active_keymap_id"] = normalize_key_name(keymap.get("id", ""))
             self._refresh_keymap_list_ui(preferred_index=index)
-            self._refresh_keymap_switch_ui()
             self._refresh_keyboard_window()
             self._set_dirty(True)
             self._set_flash_message("キーマップを読み込みました。")
