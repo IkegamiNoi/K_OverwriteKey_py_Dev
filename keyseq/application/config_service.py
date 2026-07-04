@@ -6,6 +6,7 @@ from typing import Any
 
 from keyseq.domain.config import (
     DEFAULT_CONFIG,
+    DEFAULT_KEYBOARD_LAYOUT_ID,
     DEFAULT_RUN_TO_END_DELAY_MS,
     coerce_nonnegative_int,
     ensure_config_compatibility,
@@ -593,7 +594,8 @@ class ConfigService:
             "keymaps": keymap_entries,
             "hook_stop_key": normalize_key_name(runtime.get("hook_stop_key", "")),
             "hook_toggle_key": normalize_key_name(runtime.get("hook_toggle_key", "")),
-            "keyboard_layout": str(runtime.get("keyboard_layout") or "us_tkl").strip() or "us_tkl",
+            "keyboard_layout": str(runtime.get("keyboard_layout") or DEFAULT_KEYBOARD_LAYOUT_ID).strip()
+            or DEFAULT_KEYBOARD_LAYOUT_ID,
             "keyboard_show_physical_key_labels": bool(runtime.get("keyboard_show_physical_key_labels", False)),
             "debug_jis_special_key_events": bool(runtime.get("debug_jis_special_key_events", False)),
             "external_keyboard_layouts": safe_deepcopy(runtime.get("external_keyboard_layouts", []))

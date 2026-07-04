@@ -4,6 +4,7 @@ import json
 import os
 from dataclasses import dataclass
 
+from keyseq.domain.config import DEFAULT_KEYBOARD_LAYOUT_ID
 from keyseq.domain.key_identifiers import resolve_known_key_name_from_scan_code
 
 @dataclass(frozen=True)
@@ -31,7 +32,7 @@ class KeyboardLayoutEntry:
     path: str | None = None
 
 
-DEFAULT_LAYOUT_ID = "us_tkl"
+DEFAULT_LAYOUT_ID = DEFAULT_KEYBOARD_LAYOUT_ID
 
 _DEFAULT_US_TKL_KEYS: tuple[KeySpec, ...] = (
     KeySpec("esc", "Esc", 0.0, 0.0),

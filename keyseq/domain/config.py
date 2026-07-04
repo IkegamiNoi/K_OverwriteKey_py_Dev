@@ -5,6 +5,7 @@ from typing import Any
 
 
 DEFAULT_RUN_TO_END_DELAY_MS = 300
+DEFAULT_KEYBOARD_LAYOUT_ID = "us_tkl"
 
 
 def coerce_nonnegative_int(value: Any, default: int) -> int:
@@ -58,7 +59,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     ],
     "hook_stop_key": "",
     "hook_toggle_key": "",
-    "keyboard_layout": "us_tkl",
+    "keyboard_layout": DEFAULT_KEYBOARD_LAYOUT_ID,
     "keyboard_show_physical_key_labels": False,
     "debug_jis_special_key_events": False,
     "external_keyboard_layouts": [],
@@ -153,10 +154,10 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     config["hook_stop_key"] = normalize_key_name(config.get("hook_stop_key", ""))
     config["hook_toggle_key"] = normalize_key_name(config.get("hook_toggle_key", ""))
     config.pop("hook_keymap_toggle_key", None)
-    layout_id = config.get("keyboard_layout", "us_tkl")
+    layout_id = config.get("keyboard_layout", DEFAULT_KEYBOARD_LAYOUT_ID)
     if not isinstance(layout_id, str):
-        layout_id = "us_tkl"
-    layout_id = layout_id.strip() or "us_tkl"
+        layout_id = DEFAULT_KEYBOARD_LAYOUT_ID
+    layout_id = layout_id.strip() or DEFAULT_KEYBOARD_LAYOUT_ID
     config["keyboard_layout"] = layout_id
     config["keyboard_show_physical_key_labels"] = bool(config.get("keyboard_show_physical_key_labels", False))
     config["debug_jis_special_key_events"] = bool(config.get("debug_jis_special_key_events", False))
