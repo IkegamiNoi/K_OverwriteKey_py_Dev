@@ -22,6 +22,7 @@ from keyseq.presentation.keyboard_layouts import (
     resolve_registered_layout_path,
 )
 from keyseq.presentation.keyboard_window import KeyboardWindow
+from keyseq.presentation.tk_keys import normalize_tk_keysym
 from keyseq.presentation.views import CompactView, FullView
 from keyseq.presentation.theme import apply_global_theme
 
@@ -2986,22 +2987,7 @@ class App(tk.Tk):
 
     def _normalize_tk_key_for_trigger(self, keysym: str) -> str:
         """Tk keysym を keyboard 用の単キー名に寄せる（制御トリガー/通常トリガー用）"""
-        k = (keysym or "").lower()
-        mapping = {
-            "control_l": "ctrl", "control_r": "ctrl",
-            "shift_l": "shift", "shift_r": "shift",
-            "alt_l": "alt", "alt_r": "alt",
-            "super_l": "windows", "super_r": "windows",
-            "win_l": "windows", "win_r": "windows",
-            "return": "enter",
-            "escape": "esc",
-            "space": "space",
-            "tab": "tab",
-            "backspace": "backspace",
-            "prior": "page up",
-            "next": "page down",
-        }
-        return mapping.get(k, k)
+        return normalize_tk_keysym(keysym)
 
     def clear_stop_key(self):
         """停止トリガーを未設定（空）に戻す"""

@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from pynput import mouse
 
 from keyseq.domain.config import format_preset_list_item, safe_deepcopy, normalize_key_name
+from keyseq.presentation.tk_keys import normalize_tk_keysym
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -255,25 +256,7 @@ class ActionDialog(tk.Toplevel):
 
     def _normalize_tk_key(self, keysym: str) -> str:
         # Tk の keysym を keyboard ライブラリで使う表記に寄せる
-        k = (keysym or "").lower()
-        mapping = {
-            "control_l": "ctrl", "control_r": "ctrl",
-            "shift_l": "shift", "shift_r": "shift",
-            "alt_l": "alt", "alt_r": "alt",
-            "super_l": "windows", "super_r": "windows",
-            "win_l": "windows", "win_r": "windows",
-            "return": "enter",
-            "escape": "esc",
-            "space": "space",
-            "prior": "page up",
-            "next": "page down",
-            "backspace": "backspace",
-            "tab": "tab",
-        }
-        if k in mapping:
-            return mapping[k]
-        # F1 などは "f1" になる
-        return k
+        return normalize_tk_keysym(keysym)
 
     def destroy(self):
         # 記録中のバインドを剥がす
@@ -676,22 +659,7 @@ class TriggerDialog(tk.Toplevel):
 
     def _normalize_tk_key(self, keysym: str) -> str:
         # Tkのkeysymを keyboard ライブラリの表記に寄せる（トリガー用）
-        k = (keysym or "").lower()
-        mapping = {
-            "control_l": "ctrl", "control_r": "ctrl",
-            "shift_l": "shift", "shift_r": "shift",
-            "alt_l": "alt", "alt_r": "alt",
-            "super_l": "windows", "super_r": "windows",
-            "win_l": "windows", "win_r": "windows",
-            "return": "enter",
-            "escape": "esc",
-            "space": "space",
-            "tab": "tab",
-            "backspace": "backspace",
-            "prior": "page up",
-            "next": "page down",
-        }
-        return mapping.get(k, k)
+        return normalize_tk_keysym(keysym)
 
 
 class KeymapEditDialog(tk.Toplevel):
@@ -793,22 +761,7 @@ class KeymapEditDialog(tk.Toplevel):
         return "break"
 
     def _normalize_tk_key(self, keysym: str) -> str:
-        k = (keysym or "").lower()
-        mapping = {
-            "control_l": "ctrl", "control_r": "ctrl",
-            "shift_l": "shift", "shift_r": "shift",
-            "alt_l": "alt", "alt_r": "alt",
-            "super_l": "windows", "super_r": "windows",
-            "win_l": "windows", "win_r": "windows",
-            "return": "enter",
-            "escape": "esc",
-            "space": "space",
-            "tab": "tab",
-            "backspace": "backspace",
-            "prior": "page up",
-            "next": "page down",
-        }
-        return mapping.get(k, k)
+        return normalize_tk_keysym(keysym)
 
 
 class LayoutDeleteDialog(tk.Toplevel):

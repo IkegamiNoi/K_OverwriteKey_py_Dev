@@ -11,6 +11,7 @@ from keyseq.presentation.keyboard_layouts import (
     resolve_key_id_from_scan_code,
     resolve_keyboard_layout,
 )
+from keyseq.presentation.tk_keys import TK_KEYSYM_TO_KEYBOARD_NAME
 
 _LOOKUP_KEY_BY_ID = {
     "shift_l": "shift",
@@ -308,27 +309,8 @@ class KeyboardWindow(tk.Toplevel):
     def _normalize_tk_key(self, event: object) -> str:
         keysym = str(getattr(event, "keysym", "") or "")
         k = keysym.lower()
-        mapping = {
-            "control_l": "ctrl",
-            "control_r": "ctrl",
-            "shift_l": "shift",
-            "shift_r": "shift",
-            "alt_l": "alt",
-            "alt_r": "alt",
-            "super_l": "windows",
-            "super_r": "windows",
-            "win_l": "windows",
-            "win_r": "windows",
-            "return": "enter",
-            "escape": "esc",
-            "space": "space",
-            "tab": "tab",
-            "backspace": "backspace",
-            "prior": "page up",
-            "next": "page down",
-        }
-        if k in mapping:
-            return mapping[k]
+        if k in TK_KEYSYM_TO_KEYBOARD_NAME:
+            return TK_KEYSYM_TO_KEYBOARD_NAME[k]
 
         resolved = resolve_key_id_from_scan_code(self._layout, getattr(event, "keycode", None))
         if resolved:
