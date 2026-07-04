@@ -2221,14 +2221,6 @@ class App(tk.Tk):
         self._set_dirty(True)
         self._set_flash_message("新規作成しました（未保存）。")
 
-    def _load_if_exists(self):
-        try:
-            self.data, _ = self.config_service.load_if_exists(self.keymap_set_path)
-        except Exception as e:
-            messagebox.showwarning("読込失敗", f"config.json の読込に失敗しました。\n{e}\n\n例の設定で起動します。")
-            self.data = self.config_service.new_default_data()
-
-        self._apply_loaded_data_to_ui()
 
     def save_keymap_set(self, *, show_success_dialog: bool = True) -> bool:
         try:

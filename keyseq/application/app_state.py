@@ -2,7 +2,7 @@
 
 import threading
 from dataclasses import dataclass, field
-from typing import Any, Callable
+from typing import Any
 
 
 @dataclass
@@ -32,7 +32,3 @@ class AppState:
 
     def get_selected_index(self) -> int:
         return int(self.selected_trigger_idx)
-
-    def request_main_thread(self, callback: Callable[[], None], *args, **kwargs) -> None:
-        """Adapter hook kept for compatibility in case caller injects scheduling."""
-        callback(*args, **kwargs)

@@ -40,10 +40,6 @@ class ConfigService:
     def normalize_runtime_data(self, data: Any) -> dict[str, Any]:
         return ensure_config_compatibility(data)
 
-    def load_if_exists(self, path: str) -> tuple[dict[str, Any], bool]:
-        if not os.path.exists(path):
-            return self.new_default_data(), False
-        return self.load(path), True
 
     def load(self, path: str) -> dict[str, Any]:
         loaded = self.repository.load_json(path)
@@ -52,17 +48,6 @@ class ConfigService:
     def load_legacy_runtime_data(self, path: str) -> dict[str, Any]:
         return self.load(path)
 
-    def load_runtime_data(
-        self,
-        startup: Any,
-        *,
-        config_root: str,
-        fallback_path: str,
-    ) -> tuple[dict[str, Any], bool]:
-        split_data = self.try_load_split_runtime_data(startup, config_root=config_root)
-        if split_data is not None:
-            return split_data, True
-        return self.load_if_exists(fallback_path)
 
     def load_runtime_data_from_keymap_set_path(
         self,
@@ -79,27 +64,6 @@ class ConfigService:
             keymap_set_path=resolved_keymap_set_path,
         )
 
-    def try_load_split_runtime_data(
-        self,
-        startup: Any,
-        *,
-        config_root: str,
-    ) -> dict[str, Any] | None:
-        if not isinstance(startup, dict):
-            return None
-
-        keymap_set_path = str(startup.get("keymap_set_path") or "").strip()
-        if not keymap_set_path:
-            return None
-
-        resolved_keymap_set_path = self._resolve_config_relative_path(keymap_set_path, config_root)
-        if not os.path.exists(resolved_keymap_set_path):
-            return None
-
-        try:
-            return self._load_split_config(config_root=config_root, keymap_set_path=resolved_keymap_set_path)
-        except Exception:
-            return None
 
     def load_startup(self, startup_path: str) -> dict[str, Any]:
         if not os.path.exists(startup_path):
@@ -109,17 +73,6 @@ class ConfigService:
     def save_startup(self, path: str, data: Any) -> None:
         self.repository.save_json(path, data)
 
-    def resolve_startup_config_path(self, startup: dict[str, Any], base_dir: str, default_path: str) -> str:
-        config_path = default_path
-        if not isinstance(startup, dict):
-            return config_path
-        cfg = startup.get("config_path")
-        if not cfg:
-            return config_path
-        cfg_path = cfg if os.path.isabs(cfg) else os.path.join(base_dir, cfg)
-        if os.path.exists(cfg_path):
-            return cfg_path
-        return config_path
 
     def resolve_startup_relative_path(self, path: str, base_dir: str) -> str:
         try:
@@ -130,10 +83,6 @@ class ConfigService:
         except Exception:
             return path
 
-    def save(self, path: str, data: Any) -> dict[str, Any]:
-        normalized = ensure_config_compatibility(data)
-        self.repository.save_json(path, self._sanitize_runtime_for_storage(normalized))
-        return normalized
 
     def export_runtime_data(self, path: str, data: Any) -> dict[str, Any]:
         normalized = ensure_config_compatibility(data)
@@ -988,8 +937,6 @@ class ConfigService:
             pass
         return self._normalize_path_separators(absolute_path)
 
-    def _to_config_relative_path(self, path: str, config_root: str) -> str:
-        return self._to_config_relative_or_absolute(path, config_root)
 
     def _resolve_config_relative_path(self, path: str, config_root: str) -> str:
         normalized = str(path or "").strip()

@@ -252,31 +252,6 @@ def load_layout_from_json(path: str, *, existing_layout_ids: set[str] | None = N
     return keyboard_layout_from_dict(data, existing_layout_ids=existing_layout_ids)
 
 
-def save_layout_to_json(path: str, layout: KeyboardLayout) -> None:
-    directory = os.path.dirname(path)
-    if directory:
-        os.makedirs(directory, exist_ok=True)
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(layout_to_dict(layout), f, ensure_ascii=False, indent=2)
-
-
-def layout_to_dict(layout: KeyboardLayout) -> dict:
-    return {
-        "layout_id": layout.layout_id,
-        "display_name": layout.display_name,
-        "keys": [
-            {
-                "id": key.id,
-                "label": key.label,
-                "x": key.x,
-                "y": key.y,
-                "w": key.w,
-                "h": key.h,
-                **({"scan_code": key.scan_code} if key.scan_code is not None else {}),
-            }
-            for key in layout.keys
-        ],
-    }
 
 
 def collect_keyboard_layouts(registrations=None, *, base_dir: str | None = None) -> dict[str, KeyboardLayoutEntry]:
