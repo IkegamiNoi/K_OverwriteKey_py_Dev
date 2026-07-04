@@ -2134,13 +2134,7 @@ class App(tk.Tk):
         self.data = self.config_service.normalize_runtime_data(self.data)
         self.keymap_set_path = self._preferred_keymap_set_path()
 
-        if hasattr(self, "stop_key_var"):
-            self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
-        if hasattr(self, "toggle_key_var"):
-            self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
-        if hasattr(self, "keyboard_show_physical_key_labels_var"):
-            self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
-        self._sync_keyboard_layout_controls()
+        self._sync_control_vars_from_data()
 
         self.state.reset_indices()
         self._selected_trigger_idx = 0
@@ -2278,15 +2272,21 @@ class App(tk.Tk):
         self._trigger_set_source_path = ""
         self._trigger_set_imported = False
         self._trigger_set_dirty = False
+        self._sync_control_vars_from_data()
+        self._clear_individual_dirty_flags()
+        self._set_dirty(False)
+
+    def _sync_control_vars_from_data(self) -> None:
+        """data の内容を制御キー表示・レイアウト選択などの共有 Var へ反映する。"""
         if hasattr(self, "stop_key_var"):
             self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
         if hasattr(self, "toggle_key_var"):
             self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
         if hasattr(self, "keyboard_show_physical_key_labels_var"):
-            self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
+            self.keyboard_show_physical_key_labels_var.set(
+                bool(self.data.get("keyboard_show_physical_key_labels", False))
+            )
         self._sync_keyboard_layout_controls()
-        self._clear_individual_dirty_flags()
-        self._set_dirty(False)
 
     def open_preset_manager(self):
         before = copy.deepcopy(self.data.get("hotkey_presets", []))
@@ -2300,13 +2300,7 @@ class App(tk.Tk):
     def restore_default(self):
         if messagebox.askyesno("確認", "例の設定に戻します。よろしいですか？"):
             self.data = self.config_service.new_default_data()
-            if hasattr(self, "stop_key_var"):
-                self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
-            if hasattr(self, "toggle_key_var"):
-                self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
-            if hasattr(self, "keyboard_show_physical_key_labels_var"):
-                self.keyboard_show_physical_key_labels_var.set(bool(self.data.get("keyboard_show_physical_key_labels", False)))
-            self._sync_keyboard_layout_controls()
+            self._sync_control_vars_from_data()
             self._indices = {}
             self._selected_trigger_idx = 0
             self._refresh_triggers()
