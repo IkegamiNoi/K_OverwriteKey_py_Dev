@@ -14,15 +14,8 @@ class AppState:
     run_to_end_paused: bool = False
     run_to_end_after_id: Any = None
 
-    chain_running: bool = False
-    chain_paused: bool = False
-    chain_key: str | None = None
-    chain_thread: threading.Thread | None = None
-
     lock: threading.Lock = field(default_factory=threading.Lock, init=False)
     reentry_guard: set[str] = field(default_factory=set, init=False)
-    chain_stop_event: threading.Event = field(default_factory=threading.Event, init=False)
-    chain_pause_event: threading.Event = field(default_factory=threading.Event, init=False)
 
     def reset_indices(self) -> None:
         self.indices = {}

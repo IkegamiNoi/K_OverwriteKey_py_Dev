@@ -2687,7 +2687,6 @@ class App(tk.Tk):
 
     def stop_hook(self, *, reset_custom_input_mode: bool = True):
         self.sequence_runner.stop_run_to_end()
-        self.sequence_runner.stop_chain(force=True)
         self.hook_coordinator.stop()
         self.key_state_manager.clear()
         self.hook_active = False
@@ -2712,7 +2711,6 @@ class App(tk.Tk):
         if self.custom_input_enabled:
             # 無効化した瞬間に連続実行中を止める
             self.sequence_runner.stop_run_to_end()
-            self.sequence_runner.stop_chain(force=True)
             self.custom_input_enabled = False
         else:
             def _on_error(title: str, msg: str) -> None:
