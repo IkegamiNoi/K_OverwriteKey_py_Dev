@@ -5,6 +5,7 @@ from tkinter import font as tkfont
 from tkinter import ttk
 
 from keyseq.application.keymap_service import KeymapService
+from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
     resolve_key_id_from_scan_code,
@@ -32,11 +33,6 @@ _LOOKUP_KEY_BY_ID = {
     "semicolon": ";",
     "quote": "'",
 }
-
-
-def normalize_key_name(value: str) -> str:
-    return (value or "").strip().lower()
-
 
 class KeyboardWindow(tk.Toplevel):
     def __init__(

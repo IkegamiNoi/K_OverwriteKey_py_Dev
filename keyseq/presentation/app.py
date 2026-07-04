@@ -38,15 +38,11 @@ from keyseq.application.trigger_service import TriggerService
 from keyseq.domain.config import (
     format_action_list_item,
     format_trigger_list_item,
+    normalize_key_name,
 )
 from keyseq.domain.key_identifiers import SPECIAL_KEY_NAMES, is_special_key_name
 from keyseq.infrastructure.input_gateway import InputGateway
 from keyseq.infrastructure.json_repository import JsonRepository
-
-
-def normalize_key_name(s: str) -> str:
-    return (s or "").strip().lower()
-
 
 class App(tk.Tk):
     def __init__(self):
