@@ -14,6 +14,8 @@ class JsonRepository:
         directory = os.path.dirname(path)
         if directory:
             os.makedirs(directory, exist_ok=True)
-        with open(path, "w", encoding="utf-8") as file:
+        temp_path = f"{path}.tmp"
+        with open(temp_path, "w", encoding="utf-8") as file:
             json.dump(data, file, ensure_ascii=False, indent=2)
+        os.replace(temp_path, path)
 
