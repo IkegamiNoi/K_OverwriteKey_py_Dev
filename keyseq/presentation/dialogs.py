@@ -293,7 +293,7 @@ class ActionDialog(tk.Toplevel):
                 # mouse_click は value を使わないので無効化（ラベルは使う）
                 self.value_entry.configure(state="disabled")
             else:
-                self.mouse_frame.grid_remove()  # ��\��
+                self.mouse_frame.grid_remove()  # 非表示
                 self.value_entry.configure(state="normal")
 
     def _apply_preset(self, hotkey: str):
