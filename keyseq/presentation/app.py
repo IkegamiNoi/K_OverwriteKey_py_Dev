@@ -516,8 +516,11 @@ class App(tk.Tk):
                     return load_layout_from_json(
                         resolve_registered_layout_path(entry.path, base_dir=self.base_dir)
                     )
-                except Exception:
-                    pass
+                except Exception as e:
+                    self._set_flash_message(
+                        f"構成セットの読込に失敗したため、空の状態で起動しました: {e}",
+                        auto_clear=False,
+                    )
             return entry.layout
         return resolve_keyboard_layout(layout_id=self.keyboard_layout_id)
 
