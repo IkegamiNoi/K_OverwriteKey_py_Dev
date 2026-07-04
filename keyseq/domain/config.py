@@ -4,6 +4,19 @@ import json
 from typing import Any
 
 
+DEFAULT_RUN_TO_END_DELAY_MS = 300
+
+
+def coerce_nonnegative_int(value: Any, default: int) -> int:
+    try:
+        number = int(value)
+    except Exception:
+        number = int(default)
+    if number < 0:
+        number = 0
+    return number
+
+
 DEFAULT_CONFIG: dict[str, Any] = {
     "triggers": [
         {
@@ -11,7 +24,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "suppress": True,
             "label": "",
             "run_to_end": False,
-            "run_to_end_delay_ms": 300,
+            "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
             "actions": [
                 {"type": "hotkey", "value": "ctrl+c"},
                 {"type": "hotkey", "value": "alt+tab"},
@@ -26,7 +39,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
             "suppress": True,
             "label": "",
             "run_to_end": False,
-            "run_to_end_delay_ms": 300,
+            "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
             "actions": [
                 {"type": "text", "value": "sequence_1"},
                 {"type": "hotkey", "value": "ctrl+v"},
@@ -79,7 +92,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
                 "label": "",
                 "suppress": True,
                 "run_to_end": False,
-                "run_to_end_delay_ms": 300,
+                "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
                 "actions": old_actions,
             }
         ]
@@ -97,14 +110,10 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
         t["suppress"] = bool(t.get("suppress", True))
         t["run_to_end"] = bool(t.get("run_to_end", False))
 
-        delay = t.get("run_to_end_delay_ms", 300)
-        try:
-            delay = int(delay)
-        except Exception:
-            delay = 300
-        if delay < 0:
-            delay = 0
-        t["run_to_end_delay_ms"] = delay
+        t["run_to_end_delay_ms"] = coerce_nonnegative_int(
+            t.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
+            DEFAULT_RUN_TO_END_DELAY_MS,
+        )
 
         actions = t.get("actions")
         if not isinstance(actions, list):

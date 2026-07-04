@@ -37,6 +37,8 @@ from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.trigger_service import TriggerService
 from keyseq.domain.config import (
+    DEFAULT_RUN_TO_END_DELAY_MS,
+    coerce_nonnegative_int,
     format_action_list_item,
     format_trigger_list_item,
     normalize_key_name,
@@ -200,7 +202,7 @@ class App(tk.Tk):
         self.ui_font_delta_var = tk.IntVar(value=int(self._ui_font_delta_pt))
         self.suppress_var = tk.BooleanVar(value=True)
         self.run_to_end_var = tk.BooleanVar(value=False)
-        self.run_to_end_delay_var = tk.StringVar(value="300")
+        self.run_to_end_delay_var = tk.StringVar(value=str(DEFAULT_RUN_TO_END_DELAY_MS))
         self.keyboard_layout_var = tk.StringVar(value=str(self.data.get("keyboard_layout", DEFAULT_LAYOUT_ID)))
         self.keyboard_show_physical_key_labels_var = tk.BooleanVar(
             value=bool(self.data.get("keyboard_show_physical_key_labels", False))
@@ -2360,7 +2362,7 @@ class App(tk.Tk):
         t = self._selected_trigger()
         if not t:
             self.run_to_end_var.set(False)
-            self.run_to_end_delay_var.set("300")
+            self.run_to_end_delay_var.set(str(DEFAULT_RUN_TO_END_DELAY_MS))
             try:
                 if hasattr(self, "run_to_end_delay_entry"):
                     self.run_to_end_delay_entry.configure(state="disabled")
@@ -2369,13 +2371,10 @@ class App(tk.Tk):
             return
 
         self.run_to_end_var.set(bool(t.get("run_to_end", False)))
-        d = t.get("run_to_end_delay_ms", 300)
-        try:
-            d = int(d)
-        except Exception:
-            d = 300
-        if d < 0:
-            d = 0
+        d = coerce_nonnegative_int(
+            t.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
+            DEFAULT_RUN_TO_END_DELAY_MS,
+        )
         self.run_to_end_delay_var.set(str(d))
         try:
             if hasattr(self, "run_to_end_delay_entry"):
@@ -2389,13 +2388,11 @@ class App(tk.Tk):
         if not t:
             return
         s = (self.run_to_end_delay_var.get() or "").strip()
-        try:
-            v = int(s)
-        except Exception:
-            v = 300
-        if v < 0:
-            v = 0
-        old_v = int(t.get("run_to_end_delay_ms", 300) or 300)
+        v = coerce_nonnegative_int(s, DEFAULT_RUN_TO_END_DELAY_MS)
+        old_v = int(
+            t.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS)
+            or DEFAULT_RUN_TO_END_DELAY_MS
+        )
         t["run_to_end_delay_ms"] = v
         # 表示を正規化（"00300" 等を "300" に）
         self.run_to_end_delay_var.set(str(v))

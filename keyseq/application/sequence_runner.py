@@ -2,7 +2,7 @@
 
 from typing import Any, Callable
 
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
 
 
 class SequenceRunner:
@@ -124,13 +124,10 @@ class SequenceRunner:
             self.stop_run_to_end()
             return
 
-        delay = trig.get("run_to_end_delay_ms", 300)
-        try:
-            delay = int(delay)
-        except Exception:
-            delay = 300
-        if delay < 0:
-            delay = 0
+        delay = coerce_nonnegative_int(
+            trig.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
+            DEFAULT_RUN_TO_END_DELAY_MS,
+        )
 
         i = int(self.state.indices.get(key, 0) or 0)
         if i < 0:

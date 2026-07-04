@@ -4,7 +4,14 @@ import os
 import re
 from typing import Any
 
-from keyseq.domain.config import DEFAULT_CONFIG, ensure_config_compatibility, normalize_key_name, safe_deepcopy
+from keyseq.domain.config import (
+    DEFAULT_CONFIG,
+    DEFAULT_RUN_TO_END_DELAY_MS,
+    coerce_nonnegative_int,
+    ensure_config_compatibility,
+    normalize_key_name,
+    safe_deepcopy,
+)
 from keyseq.infrastructure.json_repository import JsonRepository
 
 
@@ -402,7 +409,10 @@ class ConfigService:
                 "suppress": bool(raw_trigger.get("suppress", True)),
                 "label": str(raw_trigger.get("label") or "").strip(),
                 "run_to_end": bool(raw_trigger.get("run_to_end", False)),
-                "run_to_end_delay_ms": self._coerce_nonnegative_int(raw_trigger.get("run_to_end_delay_ms", 300), 300),
+                "run_to_end_delay_ms": self._coerce_nonnegative_int(
+                    raw_trigger.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
+                    DEFAULT_RUN_TO_END_DELAY_MS,
+                ),
                 "actions": safe_deepcopy(raw_trigger.get("actions", []))
                 if isinstance(raw_trigger.get("actions"), list)
                 else [],
@@ -730,7 +740,10 @@ class ConfigService:
         return {
             "label": str(trigger.get("label") or "").strip(),
             "run_to_end": bool(trigger.get("run_to_end", False)),
-            "run_to_end_delay_ms": self._coerce_nonnegative_int(trigger.get("run_to_end_delay_ms", 300), 300),
+            "run_to_end_delay_ms": self._coerce_nonnegative_int(
+                trigger.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
+                DEFAULT_RUN_TO_END_DELAY_MS,
+            ),
             "actions": safe_deepcopy(trigger.get("actions", []))
             if isinstance(trigger.get("actions"), list)
             else [],
@@ -740,7 +753,10 @@ class ConfigService:
         return {
             "label": str(sequence.get("label") or "").strip(),
             "run_to_end": bool(sequence.get("run_to_end", False)),
-            "run_to_end_delay_ms": self._coerce_nonnegative_int(sequence.get("run_to_end_delay_ms", 300), 300),
+            "run_to_end_delay_ms": self._coerce_nonnegative_int(
+                sequence.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
+                DEFAULT_RUN_TO_END_DELAY_MS,
+            ),
             "actions": safe_deepcopy(sequence.get("actions", []))
             if isinstance(sequence.get("actions"), list)
             else [],
@@ -988,13 +1004,7 @@ class ConfigService:
         return normalized
 
     def _coerce_nonnegative_int(self, value: Any, default: int) -> int:
-        try:
-            number = int(value)
-        except Exception:
-            number = int(default)
-        if number < 0:
-            number = 0
-        return number
+        return coerce_nonnegative_int(value, default)
 
     def _load_optional_json(self, path: str) -> Any:
         if not path or not os.path.exists(path):
