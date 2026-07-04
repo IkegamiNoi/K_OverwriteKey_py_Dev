@@ -128,9 +128,6 @@ class App(tk.Tk):
         self._error_dialog_open = False           # エラーダイアログ多重表示防止
         self._capturing_stop_key = False
         self._capturing_toggle_key = False
-        self._capturing_keymap_switch_key = False
-        self._keymap_switch_capture_target_id = ""
-        self._keymap_switch_capture_original_key = ""
         self.custom_input_enabled = True
         self._is_dirty = False
         self._config_dirty = False
@@ -909,16 +906,6 @@ class App(tk.Tk):
         display_name = self._format_keymap_display_name(keymap) or f"keymap-{index + 1}"
         return f"{marker}{index + 1:02d}. {switch_key}: {display_name}"
 
-    def _get_sorted_keymap_switch_items(self) -> list[tuple[str, str]]:
-        items = list(self.keymap_service.get_keymap_switch_keys(self.data).items())
-        return sorted(
-            [
-                (normalize_key_name(key), normalize_key_name(keymap_id))
-                for key, keymap_id in items
-                if normalize_key_name(key) and normalize_key_name(keymap_id)
-            ],
-            key=lambda item: item[0],
-        )
 
     def _refresh_keymap_switch_ui(self) -> None:
         self._refresh_keymap_list_ui()
@@ -940,56 +927,8 @@ class App(tk.Tk):
         if hasattr(self, "keymap_select_btn"):
             self.keymap_select_btn.configure(state=state)
 
-    def _selected_keymap_switch_key_index(self) -> int | None:
-        if not hasattr(self, "keymap_switch_key_listbox"):
-            return None
-        return self._focused_listbox_index(self.keymap_switch_key_listbox, len(self._get_sorted_keymap_switch_items()))
 
-    def _sync_keymap_switch_key_buttons(self) -> None:
-        has_keymaps = bool(self.keymap_service.get_keymaps(self.data))
-        has_switch_selection = self._selected_keymap_switch_key_index() is not None and bool(self._get_sorted_keymap_switch_items())
-        is_capturing = bool(self._capturing_keymap_switch_key)
-        if hasattr(self, "keymap_switch_key_add_btn"):
-            self.keymap_switch_key_add_btn.configure(state=("normal" if has_keymaps and not is_capturing else "disabled"))
-        if hasattr(self, "keymap_switch_key_change_btn"):
-            self.keymap_switch_key_change_btn.configure(state=("normal" if has_switch_selection and not is_capturing else "disabled"))
-        if hasattr(self, "keymap_switch_key_remove_btn"):
-            self.keymap_switch_key_remove_btn.configure(state=("normal" if has_switch_selection and not is_capturing else "disabled"))
 
-    def _refresh_keymap_switch_key_list_ui(self, preferred_index: int | None = None) -> None:
-        if not hasattr(self, "keymap_switch_key_listbox"):
-            return
-
-        listbox = self.keymap_switch_key_listbox
-        try:
-            current_index = self._selected_keymap_switch_key_index()
-            listbox.delete(0, tk.END)
-        except Exception:
-            self._sync_keymap_switch_key_buttons()
-            return
-
-        items = self._get_sorted_keymap_switch_items()
-        if not items:
-            listbox.insert(tk.END, "切替キーは未設定です")
-            listbox.selection_clear(0, tk.END)
-            self._sync_keymap_switch_key_buttons()
-            return
-
-        for index, (switch_key, keymap_id) in enumerate(items, start=1):
-            display_name = self._format_keymap_display_name(self.keymap_service.find_keymap(self.data, keymap_id)) or keymap_id
-            listbox.insert(tk.END, f"{index:02d}. {switch_key} -> {display_name}")
-
-        target_index = preferred_index
-        if target_index is None:
-            target_index = current_index
-        if target_index is None:
-            target_index = 0
-        target_index = max(0, min(int(target_index), len(items) - 1))
-        listbox.selection_clear(0, tk.END)
-        listbox.selection_set(target_index)
-        listbox.activate(target_index)
-        listbox.see(target_index)
-        self._sync_keymap_switch_key_buttons()
 
     def _refresh_keymap_list_ui(self, preferred_index: int | None = None) -> None:
         """keymap 管理一覧の表示内容と選択を更新する。"""
@@ -1040,92 +979,18 @@ class App(tk.Tk):
         self._sync_listbox_selection_to_focus(self.keymap_listbox, len(self.keymap_service.get_keymaps(self.data)))
         self._sync_keymap_manage_buttons()
 
-    def _on_keymap_switch_key_list_select(self, _event=None) -> None:
-        self._sync_listbox_selection_to_focus(self.keymap_switch_key_listbox, len(self._get_sorted_keymap_switch_items()))
-        self._sync_keymap_switch_key_buttons()
 
     def _on_keymap_list_focus_index_change(self, _event=None) -> None:
         self._on_keymap_list_select()
 
-    def _on_keymap_switch_key_focus_index_change(self, _event=None) -> None:
-        if hasattr(self, "keymap_switch_key_listbox"):
-            self._on_keymap_switch_key_list_select()
 
     def _on_keymap_list_double_click(self, _event=None) -> None:
         """一覧ダブルクリックで選択中 keymap の編集導線を開く。"""
         self._edit_selected_keymap()
 
-    def _start_keymap_switch_key_add_capture(self) -> None:
-        index = self._selected_keymap_list_index()
-        keymaps = self.keymap_service.get_keymaps(self.data)
-        if index is None or not keymaps or not (0 <= index < len(keymaps)):
-            messagebox.showinfo("追加", "割当先の keymap を選択してください。")
-            return
 
-        target = keymaps[index]
-        target_id = normalize_key_name(target.get("id", ""))
-        if not target_id:
-            messagebox.showerror("追加できません", "選択中の keymap を特定できません。")
-            return
-        existing_switch_key = self.keymap_service.find_switch_key_for_keymap(self.data, target_id)
-        if existing_switch_key:
-            messagebox.showerror("追加できません", f"選択中の keymap には既に直接切替キーが設定されています:\n{existing_switch_key}")
-            return
 
-        self._start_keymap_switch_key_capture(mode="add", target_id=target_id, original_key="")
 
-    def _start_keymap_switch_key_change_capture(self) -> None:
-        index = self._selected_keymap_switch_key_index()
-        items = self._get_sorted_keymap_switch_items()
-        if index is None or not items or not (0 <= index < len(items)):
-            messagebox.showinfo("変更", "変更したい切替キーを選択してください。")
-            return
-
-        switch_key, keymap_id = items[index]
-        self._start_keymap_switch_key_capture(mode="change", target_id=keymap_id, original_key=switch_key)
-
-    def _start_keymap_switch_key_capture(self, *, mode: str, target_id: str, original_key: str) -> None:
-        if getattr(self, "_capturing_stop_key", False):
-            self._stop_stop_key_capture(cancel=True)
-        if getattr(self, "_capturing_toggle_key", False):
-            self._stop_toggle_key_capture(cancel=True)
-
-        self._capturing_keymap_switch_key = True
-        self._keymap_switch_capture_target_id = normalize_key_name(target_id)
-        self._keymap_switch_capture_original_key = normalize_key_name(original_key)
-        if hasattr(self, "keymap_switch_key_add_btn"):
-            self.keymap_switch_key_add_btn.configure(text=("入力中…（Escで停止）" if mode == "add" else "追加"))
-        if hasattr(self, "keymap_switch_key_change_btn"):
-            self.keymap_switch_key_change_btn.configure(text=("入力中…（Escで停止）" if mode == "change" else "変更"))
-
-        self.suspend_hook_for_dialog()
-        if mode == "change" and hasattr(self, "keymap_switch_key_listbox"):
-            self.keymap_switch_key_listbox.focus_set()
-        elif hasattr(self, "keymap_listbox"):
-            self.keymap_listbox.focus_set()
-        self.bind("<KeyPress>", self._on_keymap_switch_key_capture_keypress, add="+")
-        self._sync_keymap_switch_key_buttons()
-
-    def _stop_keymap_switch_key_capture(self, cancel: bool = False) -> None:
-        if not getattr(self, "_capturing_keymap_switch_key", False):
-            return
-        self._capturing_keymap_switch_key = False
-        self._keymap_switch_capture_target_id = ""
-        self._keymap_switch_capture_original_key = ""
-        try:
-            self.unbind("<KeyPress>")
-        except Exception:
-            pass
-
-        if hasattr(self, "keymap_switch_key_add_btn"):
-            self.keymap_switch_key_add_btn.configure(text="追加")
-        if hasattr(self, "keymap_switch_key_change_btn"):
-            self.keymap_switch_key_change_btn.configure(text="変更")
-        self.resume_hook_after_dialog()
-        self._sync_keymap_switch_key_buttons()
-
-        if cancel:
-            return
 
     def _validate_keymap_switch_assignment(self, key: str, *, target_id: str, exclude_switch_key: str = "") -> bool:
         if self.trigger_service.is_stop_key_conflict(self.data, key):
@@ -1167,76 +1032,7 @@ class App(tk.Tk):
 
         return True
 
-    def _on_keymap_switch_key_capture_keypress(self, event):
-        if not self._capturing_keymap_switch_key:
-            return
 
-        key = self._normalize_tk_key_for_trigger(event.keysym)
-        if key == "esc":
-            self._stop_keymap_switch_key_capture(cancel=True)
-            return "break"
-        if key in ("ctrl", "shift", "alt", "windows"):
-            return "break"
-        if "+" in key:
-            messagebox.showerror("設定できません", "直接切替キーは単キーのみ対応です。")
-            return "break"
-
-        target_id = normalize_key_name(self._keymap_switch_capture_target_id)
-        if not target_id or not self.keymap_service.find_keymap(self.data, target_id):
-            self._stop_keymap_switch_key_capture(cancel=True)
-            messagebox.showerror("設定できません", "割当先の keymap が見つかりません。")
-            return "break"
-        original_key = normalize_key_name(self._keymap_switch_capture_original_key)
-        if not self._validate_keymap_switch_assignment(key, target_id=target_id, exclude_switch_key=original_key):
-            return "break"
-
-        changed = False
-        if original_key and original_key != key:
-            changed = self.keymap_service.remove_keymap_switch_key(self.data, original_key) or changed
-        changed = self.keymap_service.set_keymap_switch_key(self.data, key, target_id) or changed
-        target = self.keymap_service.find_keymap(self.data, target_id)
-        self._refresh_keymap_switch_ui()
-        self._refresh_keyboard_window()
-        self._update_status()
-        action_label = "変更" if original_key else "設定"
-        target_name = self._format_keymap_display_name(target) or target_id
-        if changed:
-            self._set_dirty(True)
-            if original_key and original_key != key:
-                self._set_flash_message(f"直接切替キーを変更しました: {original_key} -> {key} ({target_name})")
-            else:
-                self._set_flash_message(f"直接切替キーを{action_label}しました: {key} -> {target_name}")
-        else:
-            self._set_flash_message(f"直接切替キーは変更なしです: {key}")
-
-        preferred_index = next(
-            (item_index for item_index, (switch_key, _) in enumerate(self._get_sorted_keymap_switch_items()) if switch_key == key),
-            None,
-        )
-        self._refresh_keymap_switch_key_list_ui(preferred_index=preferred_index)
-        self._stop_keymap_switch_key_capture(cancel=False)
-        return "break"
-
-    def _remove_keymap_switch_key(self) -> None:
-        index = self._selected_keymap_switch_key_index()
-        items = self._get_sorted_keymap_switch_items()
-        if index is None or not items or not (0 <= index < len(items)):
-            messagebox.showinfo("削除", "削除したい切替キーを選択してください。")
-            return
-
-        switch_key, keymap_id = items[index]
-        if not self.keymap_service.remove_keymap_switch_key(self.data, switch_key):
-            messagebox.showerror("削除できません", "選択した切替キーを削除できませんでした。")
-            return
-
-        preferred_index = None if len(items) <= 1 else min(index, len(items) - 2)
-        self._refresh_keymap_switch_ui()
-        self._refresh_keyboard_window()
-        self._update_status()
-        self._set_dirty(True)
-        self._refresh_keymap_switch_key_list_ui(preferred_index=preferred_index)
-        target_name = self._format_keymap_display_name(self.keymap_service.find_keymap(self.data, keymap_id)) or keymap_id
-        self._set_flash_message(f"直接切替キーを削除しました: {switch_key} -> {target_name}")
 
     def _add_keymap(self) -> None:
         """空の keymap を追加する。"""
