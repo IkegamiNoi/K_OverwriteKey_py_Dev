@@ -2151,30 +2151,11 @@ class App(tk.Tk):
 
 
     def save_keymap_set(self, *, show_success_dialog: bool = True) -> bool:
-        try:
-            save_path = self._normalize_keymap_set_save_path(self.keymap_set_path)
-            split_base_dir = self._choose_split_base_dir_for_keymap_set(save_path)
-            self.data, startup_payload = self.config_service.save_runtime_data(
-                save_path,
-                self.data,
-                config_root=self.config_root,
-                startup_data=self._startup_settings,
-                keep_legacy_copy=False,
-                split_base_dir=split_base_dir,
-            )
-            self.keymap_set_path = save_path
-            self.startup_path = self._preferred_startup_path()
-            self._startup_settings = startup_payload
-            self._clear_individual_dirty_flags()
-            self._set_dirty(False)
-            self._set_flash_message("保存しました。")
-            if show_success_dialog:
-                messagebox.showinfo("保存", f"保存しました:\n{save_path}")
-            return True
-        except Exception as e:
-            self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
-            messagebox.showerror("保存失敗", str(e))
-            return False
+        return self._save_keymap_set_to(
+            self.keymap_set_path,
+            flash_message="保存しました。",
+            show_success_dialog=show_success_dialog,
+        )
 
     def save_as(self, *, show_success_dialog: bool = True) -> bool:
         suggested_path = self._suggest_keymap_set_dialog_path()
@@ -2187,6 +2168,13 @@ class App(tk.Tk):
         )
         if not path:
             return False
+        return self._save_keymap_set_to(
+            path,
+            flash_message="別名で保存しました。",
+            show_success_dialog=show_success_dialog,
+        )
+
+    def _save_keymap_set_to(self, path: str, *, flash_message: str, show_success_dialog: bool) -> bool:
         try:
             save_path = self._normalize_keymap_set_save_path(path)
             split_base_dir = self._choose_split_base_dir_for_keymap_set(save_path)
@@ -2203,7 +2191,7 @@ class App(tk.Tk):
             self._startup_settings = startup_payload
             self._clear_individual_dirty_flags()
             self._set_dirty(False)
-            self._set_flash_message("別名で保存しました。")
+            self._set_flash_message(flash_message)
             if show_success_dialog:
                 messagebox.showinfo("保存", f"保存しました:\n{save_path}")
             return True
