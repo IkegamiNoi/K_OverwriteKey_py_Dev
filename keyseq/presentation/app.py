@@ -22,6 +22,10 @@ from keyseq.presentation.keyboard_layouts import (
     resolve_registered_layout_path,
 )
 from keyseq.presentation.keyboard_window import KeyboardWindow
+from keyseq.presentation.listbox_utils import (
+    focused_listbox_index,
+    sync_listbox_selection_to_focus,
+)
 from keyseq.presentation.tk_keys import normalize_tk_keysym
 from keyseq.presentation.views import CompactView, FullView
 from keyseq.presentation.theme import apply_global_theme
@@ -784,35 +788,10 @@ class App(tk.Tk):
         self._update_status()
 
     def _focused_listbox_index(self, listbox: tk.Listbox, item_count: int) -> int | None:
-        """Listboxにフォーカスがある場合はactive行を、なければ選択行を返す。"""
-        if item_count <= 0:
-            return None
-        try:
-            if self.focus_get() is listbox:
-                index = int(listbox.index(tk.ACTIVE))
-                if 0 <= index < item_count:
-                    return index
-            selection = listbox.curselection()
-            if selection:
-                index = int(selection[0])
-                if 0 <= index < item_count:
-                    return index
-        except Exception:
-            return None
-        return None
+        return focused_listbox_index(self, listbox, item_count)
 
     def _sync_listbox_selection_to_focus(self, listbox: tk.Listbox, item_count: int) -> int | None:
-        index = self._focused_listbox_index(listbox, item_count)
-        if index is None:
-            return None
-        try:
-            listbox.selection_clear(0, tk.END)
-            listbox.selection_set(index)
-            listbox.activate(index)
-            listbox.see(index)
-        except Exception:
-            return None
-        return index
+        return sync_listbox_selection_to_focus(self, listbox, item_count)
 
     def _find_trigger_by_key(self, key: str):
         return self.trigger_service.find_trigger_by_key(self.data, key)
