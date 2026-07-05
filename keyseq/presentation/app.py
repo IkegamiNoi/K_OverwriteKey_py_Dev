@@ -23,12 +23,12 @@ from keyseq.presentation.keyboard_layouts import (
 )
 from keyseq.presentation.config_paths import ConfigPaths
 from keyseq.presentation.dirty_state import DirtyStateTracker
+from keyseq.presentation.key_capture import SingleKeyCaptureController
 from keyseq.presentation.keyboard_window import KeyboardWindow
 from keyseq.presentation.listbox_utils import (
     focused_listbox_index,
     sync_listbox_selection_to_focus,
 )
-from keyseq.presentation.tk_keys import normalize_tk_keysym
 from keyseq.presentation.views import CompactView, FullView
 from keyseq.presentation.theme import apply_global_theme
 
@@ -118,6 +118,38 @@ class App(tk.Tk):
             config_service=self.config_service,
             on_change=self._update_file_status,
         )
+        self._stop_key_capture = SingleKeyCaptureController(
+            self,
+            data_key="hook_stop_key",
+            var_attr="stop_key_var",
+            capture_btn_attr="stop_key_capture_btn",
+            clear_btn_attr="stop_key_clear_btn",
+            focus_entry_attr="stop_key_entry",
+            label="停止トリガー",
+            single_key_example="f12",
+            conflict_checks=[
+                (lambda app, key: app.trigger_service.key_exists(app.data, key), "トリガー一覧"),
+                (lambda app, key: app.trigger_service.is_toggle_key_conflict(app.data, key), "トグルキー"),
+                (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), "キーマップ直接切替キー"),
+                (lambda app, key: app.keymap_service.source_key_exists(app.data, key), "キーマップ元キー"),
+            ],
+        )
+        self._toggle_key_capture = SingleKeyCaptureController(
+            self,
+            data_key="hook_toggle_key",
+            var_attr="toggle_key_var",
+            capture_btn_attr="toggle_key_capture_btn",
+            clear_btn_attr="toggle_key_clear_btn",
+            focus_entry_attr="toggle_key_entry",
+            label="トグルキー",
+            single_key_example="f11",
+            conflict_checks=[
+                (lambda app, key: app.trigger_service.key_exists(app.data, key), "トリガー一覧"),
+                (lambda app, key: app.trigger_service.is_stop_key_conflict(app.data, key), "停止キー"),
+                (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), "キーマップ直接切替キー"),
+                (lambda app, key: app.keymap_service.source_key_exists(app.data, key), "キーマップ元キー"),
+            ],
+        )
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
         self.sequence_runner = SequenceRunner(
@@ -144,8 +176,6 @@ class App(tk.Tk):
         self._hook_was_active_before_dialog = False
         self._programmatic_action_select = False  # action_list選択をコード側で変更中か
         self._error_dialog_open = False           # エラーダイアログ多重表示防止
-        self._capturing_stop_key = False
-        self._capturing_toggle_key = False
         self.custom_input_enabled = True
         self._flash_after_id = None
         self.keyboard_window: KeyboardWindow | None = None
@@ -2681,220 +2711,45 @@ class App(tk.Tk):
             self._error_dialog_open = False
 
     # ---------------- Control key capture logic ----------------
+    @property
+    def _capturing_stop_key(self) -> bool:
+        return self._stop_key_capture.capturing
+
+    @property
+    def _capturing_toggle_key(self) -> bool:
+        return self._toggle_key_capture.capturing
+
     def _toggle_stop_key_capture(self):
-        if self._capturing_stop_key:
-            self._stop_stop_key_capture(cancel=True)
+        if self._stop_key_capture.capturing:
+            self._stop_key_capture.stop(cancel=True)
         else:
             self._start_stop_key_capture()
 
     def _start_stop_key_capture(self):
-        """停止トリガーをキャプチャ開始（キャプチャ中はフックを一時停止）"""
-        if getattr(self, "_capturing_toggle_key", False):
-            self._stop_toggle_key_capture(cancel=True)
-
-        self._capturing_stop_key = True
-        if hasattr(self, "stop_key_capture_btn"):
-            self.stop_key_capture_btn.configure(text="取得中…（Escで停止）")
-        if hasattr(self, "stop_key_clear_btn"):
-            self.stop_key_clear_btn.configure(state="disabled")
-
-        # キャプチャ中なのでフックを一時停止（開始中なら止まる / 終了時に元に戻る）
-        self.suspend_hook_for_dialog()
-
-        # フォーカスは表示欄に（入力はしないが、キーを拾いやすくする）
-        if hasattr(self, "stop_key_entry"):
-            self.stop_key_entry.focus_set()
-
-        # ルートで拾う
-        self.bind("<KeyPress>", self._on_stop_key_capture_keypress, add="+")
+        self._toggle_key_capture.stop(cancel=True)
+        self._stop_key_capture.start()
 
     def _stop_stop_key_capture(self, cancel: bool = False):
-        if not getattr(self, "_capturing_stop_key", False):
-            return
-        self._capturing_stop_key = False
-        try:
-            self.unbind("<KeyPress>")
-        except Exception:
-            pass
+        self._stop_key_capture.stop(cancel=cancel)
 
-        if hasattr(self, "stop_key_capture_btn"):
-            self.stop_key_capture_btn.configure(text="キー入力で取得")
-        if hasattr(self, "stop_key_clear_btn"):
-            self.stop_key_clear_btn.configure(state="normal")
-
-        # 一時停止していたフックを元に戻す
-        self.resume_hook_after_dialog()
-
-        if cancel:
-            return
-
-    def _on_stop_key_capture_keypress(self, event):
-        """停止トリガーのキャプチャ（単キー）"""
-        if not self._capturing_stop_key:
-            return
-
-        key = self._normalize_tk_key_for_trigger(event.keysym)
-
-        # Esc はキャンセル
-        if key == "esc":
-            self._stop_stop_key_capture(cancel=True)
-            return "break"
-
-        # 修飾キー単体は無視
-        if key in ("ctrl", "shift", "alt", "windows"):
-            return "break"
-
-        # 単キーのみ（ここに来る時点で "+" は入らないが保険）
-        if "+" in key:
-            messagebox.showerror("設定できません", "停止トリガーは単キーのみ対応です（例: f12）。")
-            return "break"
-
-        # トリガー一覧との重複禁止（キャプチャ確定時にチェック）
-        if self.trigger_service.key_exists(self.data, key):
-            messagebox.showerror("設定できません", f"停止トリガーがトリガー一覧と重複しています:\n{key}")
-            return "break"
-        if self.trigger_service.is_toggle_key_conflict(self.data, key):
-            messagebox.showerror("設定できません", f"停止トリガーがトグルキーと重複しています:\n{key}")
-            return "break"
-        if self.keymap_service.get_keymap_by_switch_key(self.data, key):
-            messagebox.showerror("設定できません", f"停止トリガーがキーマップ直接切替キーと重複しています:\n{key}")
-            return "break"
-        if self.keymap_service.source_key_exists(self.data, key):
-            messagebox.showerror("設定できません", f"停止トリガーがキーマップ元キーと重複しています:\n{key}")
-            return "break"
-
-        # 妥当性チェック
-        try:
-            self.input_gateway.validate_key_name(key)
-        except Exception as e:
-            messagebox.showerror("設定できません", f"不明なキー名です:\n{key}\n\n{e}")
-            return "break"
-
-        # 重複OKならそのまま適用（保存→表示更新）
-        self.data["hook_stop_key"] = key
-        if hasattr(self, "stop_key_var"):
-            self.stop_key_var.set(key)
-        self._set_dirty(True)
-
-        # キャプチャ終了（この時点で resume により、元がONなら start_hook が呼ばれる）
-        self._stop_stop_key_capture(cancel=False)
-        return "break"
+    def clear_stop_key(self):
+        self._stop_key_capture.clear()
 
     def _toggle_toggle_key_capture(self):
-        if self._capturing_toggle_key:
-            self._stop_toggle_key_capture(cancel=True)
+        if self._toggle_key_capture.capturing:
+            self._toggle_key_capture.stop(cancel=True)
         else:
             self._start_toggle_key_capture()
 
     def _start_toggle_key_capture(self):
-        """有効/無効トグルキーをキャプチャ開始（キャプチャ中はフックを一時停止）"""
-        if getattr(self, "_capturing_stop_key", False):
-            self._stop_stop_key_capture(cancel=True)
-
-        self._capturing_toggle_key = True
-        if hasattr(self, "toggle_key_capture_btn"):
-            self.toggle_key_capture_btn.configure(text="取得中…（Escで停止）")
-        if hasattr(self, "toggle_key_clear_btn"):
-            self.toggle_key_clear_btn.configure(state="disabled")
-
-        self.suspend_hook_for_dialog()
-
-        if hasattr(self, "toggle_key_entry"):
-            self.toggle_key_entry.focus_set()
-
-        self.bind("<KeyPress>", self._on_toggle_key_capture_keypress, add="+")
+        self._stop_key_capture.stop(cancel=True)
+        self._toggle_key_capture.start()
 
     def _stop_toggle_key_capture(self, cancel: bool = False):
-        if not getattr(self, "_capturing_toggle_key", False):
-            return
-        self._capturing_toggle_key = False
-        try:
-            self.unbind("<KeyPress>")
-        except Exception:
-            pass
-
-        if hasattr(self, "toggle_key_capture_btn"):
-            self.toggle_key_capture_btn.configure(text="キー入力で取得")
-        if hasattr(self, "toggle_key_clear_btn"):
-            self.toggle_key_clear_btn.configure(state="normal")
-
-        self.resume_hook_after_dialog()
-
-        if cancel:
-            return
-
-    def _on_toggle_key_capture_keypress(self, event):
-        """通常トリガー有効/無効トグルキーのキャプチャ（単キー）"""
-        if not self._capturing_toggle_key:
-            return
-
-        key = self._normalize_tk_key_for_trigger(event.keysym)
-
-        if key == "esc":
-            self._stop_toggle_key_capture(cancel=True)
-            return "break"
-
-        if key in ("ctrl", "shift", "alt", "windows"):
-            return "break"
-
-        if "+" in key:
-            messagebox.showerror("設定できません", "トグルキーは単キーのみ対応です（例: f11）。")
-            return "break"
-
-        if self.trigger_service.key_exists(self.data, key):
-            messagebox.showerror("設定できません", f"トグルキーがトリガー一覧と重複しています:\n{key}")
-            return "break"
-        if self.trigger_service.is_stop_key_conflict(self.data, key):
-            messagebox.showerror("設定できません", f"トグルキーが停止キーと重複しています:\n{key}")
-            return "break"
-        if self.keymap_service.get_keymap_by_switch_key(self.data, key):
-            messagebox.showerror("設定できません", f"トグルキーがキーマップ直接切替キーと重複しています:\n{key}")
-            return "break"
-        if self.keymap_service.source_key_exists(self.data, key):
-            messagebox.showerror("設定できません", f"トグルキーがキーマップ元キーと重複しています:\n{key}")
-            return "break"
-
-        try:
-            self.input_gateway.validate_key_name(key)
-        except Exception as e:
-            messagebox.showerror("設定できません", f"不明なキー名です:\n{key}\n\n{e}")
-            return "break"
-
-        self.data["hook_toggle_key"] = key
-        if hasattr(self, "toggle_key_var"):
-            self.toggle_key_var.set(key)
-        self._set_dirty(True)
-
-        self._stop_toggle_key_capture(cancel=False)
-        return "break"
-
-    def _normalize_tk_key_for_trigger(self, keysym: str) -> str:
-        """Tk keysym を keyboard 用の単キー名に寄せる（制御トリガー/通常トリガー用）"""
-        return normalize_tk_keysym(keysym)
-
-    def clear_stop_key(self):
-        """停止トリガーを未設定（空）に戻す"""
-        if getattr(self, "_capturing_stop_key", False):
-            self._stop_stop_key_capture(cancel=True)
-
-        old = str(self.data.get("hook_stop_key", ""))
-        self.data["hook_stop_key"] = ""
-        if hasattr(self, "stop_key_var"):
-            self.stop_key_var.set("")
-        if old:
-            self._set_dirty(True)
+        self._toggle_key_capture.stop(cancel=cancel)
 
     def clear_toggle_key(self):
-        """有効/無効トグルキーを未設定（空）に戻す"""
-        if getattr(self, "_capturing_toggle_key", False):
-            self._stop_toggle_key_capture(cancel=True)
-
-        old = str(self.data.get("hook_toggle_key", ""))
-        self.data["hook_toggle_key"] = ""
-        if hasattr(self, "toggle_key_var"):
-            self.toggle_key_var.set("")
-        if old:
-            self._set_dirty(True)
+        self._toggle_key_capture.clear()
 
     # ---------------- Close ----------------
     def on_close(self):
