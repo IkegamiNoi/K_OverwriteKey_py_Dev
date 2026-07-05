@@ -44,8 +44,8 @@ class ConfigIoController:
 
         self._app.state.reset_indices()
         self._app._selected_trigger_idx = 0
-        self._app._refresh_triggers()
-        self._app._refresh_actions()
+        self._app.trigger_panel.refresh_triggers()
+        self._app.trigger_panel.refresh_actions()
         self._app.dirty_tracker.set_dirty(True)
         self._app._set_flash_message("新規作成しました（未保存）。")
 
@@ -120,8 +120,8 @@ class ConfigIoController:
 
             self._app._indices = {}
             self._app._selected_trigger_idx = 0
-            self._app._refresh_triggers()
-            self._app._refresh_actions()
+            self._app.trigger_panel.refresh_triggers()
+            self._app.trigger_panel.refresh_actions()
             self._app.dirty_tracker.set_dirty(False)
             self._app._set_flash_message("読み込みました。")
             messagebox.showinfo("読込", f"読み込みました:\n{path}")
@@ -146,8 +146,8 @@ class ConfigIoController:
                 self._app.keymap_set_path = self._app.paths.preferred_keymap_set_path()
             self.apply_loaded_data_to_ui()
             self._app.state.reset_indices()
-            self._app._refresh_triggers()
-            self._app._refresh_actions()
+            self._app.trigger_panel.refresh_triggers()
+            self._app.trigger_panel.refresh_actions()
             self._app.dirty_tracker.set_dirty(True)
             self._app._set_flash_message("Import しました。")
             messagebox.showinfo("Import", f"単一JSONを取り込みました:\n{path}")
@@ -179,8 +179,8 @@ class ConfigIoController:
             self._app._sync_control_vars_from_data()
             self._app._indices = {}
             self._app._selected_trigger_idx = 0
-            self._app._refresh_triggers()
-            self._app._refresh_actions()
+            self._app.trigger_panel.refresh_triggers()
+            self._app.trigger_panel.refresh_actions()
             self._app.dirty_tracker.set_dirty(True)
             self._app._set_flash_message("例の設定に戻しました（未保存）。")
 
@@ -210,8 +210,8 @@ class ConfigIoController:
         self.write_startup({"keymap_set_path": self._app.paths.to_config_relative_or_absolute(path), "prompt_if_missing": True})
         self.apply_loaded_data_to_ui()
         self._app.state.reset_indices()
-        self._app._refresh_triggers()
-        self._app._refresh_actions()
+        self._app.trigger_panel.refresh_triggers()
+        self._app.trigger_panel.refresh_actions()
         self._app.dirty_tracker.set_dirty(False)
         self._app._set_flash_message("起動時読み込み設定を更新しました。")
         messagebox.showinfo("設定", f"次回起動時はこの keymap_set を読み込みます:\n{path}")
@@ -471,8 +471,8 @@ class ConfigIoController:
             self._app.dirty_tracker.trigger_set_source_path = path
             self._app.dirty_tracker.trigger_set_imported = False
             self._app.dirty_tracker.trigger_set_dirty = False
-            self._app._refresh_triggers()
-            self._app._refresh_actions()
+            self._app.trigger_panel.refresh_triggers()
+            self._app.trigger_panel.refresh_actions()
             self._app.dirty_tracker.sync_dirty_state()
             self._app._set_flash_message("トリガー一覧を保存しました。")
             messagebox.showinfo("保存", f"トリガー一覧を保存しました:\n{path}")
@@ -503,8 +503,8 @@ class ConfigIoController:
             self._app.dirty_tracker.trigger_set_dirty = False
             self._app.state.reset_indices()
             self._app._selected_trigger_idx = 0
-            self._app._refresh_triggers()
-            self._app._refresh_actions()
+            self._app.trigger_panel.refresh_triggers()
+            self._app.trigger_panel.refresh_actions()
             self._app.dirty_tracker.set_dirty(True)
             self._app._set_flash_message("トリガー一覧を読み込みました。")
             messagebox.showinfo("読込", f"トリガー一覧を読み込みました:\n{path}")
@@ -513,7 +513,7 @@ class ConfigIoController:
             messagebox.showerror("読込失敗", str(e))
 
     def save_selected_sequence(self) -> bool:
-        trigger = self._app._selected_trigger()
+        trigger = self._app.trigger_panel.selected_trigger()
         if not trigger:
             messagebox.showinfo("出力シーケンス", "対象のトリガーを選択してください。")
             return False
@@ -530,7 +530,7 @@ class ConfigIoController:
         return self.save_sequence_to_path(trigger, source_path)
 
     def save_selected_sequence_as(self) -> bool:
-        trigger = self._app._selected_trigger()
+        trigger = self._app.trigger_panel.selected_trigger()
         if not trigger:
             messagebox.showinfo("出力シーケンス", "対象のトリガーを選択してください。")
             return False
@@ -562,8 +562,8 @@ class ConfigIoController:
             sequence = self._app.config_service.save_sequence_file(path, trigger)
             trigger.update(sequence)
             self._app.dirty_tracker.mark_trigger_set_dirty()
-            self._app._refresh_triggers()
-            self._app._refresh_actions()
+            self._app.trigger_panel.refresh_triggers()
+            self._app.trigger_panel.refresh_actions()
             self._app._set_flash_message("出力シーケンスを保存しました。")
             messagebox.showinfo("保存", f"出力シーケンスを保存しました:\n{path}")
             return True
@@ -573,7 +573,7 @@ class ConfigIoController:
             return False
 
     def load_sequence_file(self) -> None:
-        trigger = self._app._selected_trigger()
+        trigger = self._app.trigger_panel.selected_trigger()
         if not trigger:
             messagebox.showinfo("出力シーケンス", "読込先のトリガーを選択してください。")
             return
@@ -588,8 +588,8 @@ class ConfigIoController:
             sequence = self._app.config_service.load_sequence_file(path, imported=True)
             trigger.update(sequence)
             self._app.dirty_tracker.mark_trigger_set_dirty()
-            self._app._refresh_triggers()
-            self._app._refresh_actions()
+            self._app.trigger_panel.refresh_triggers()
+            self._app.trigger_panel.refresh_actions()
             self._app._set_flash_message("出力シーケンスを読み込みました。")
             messagebox.showinfo("読込", f"出力シーケンスを読み込みました:\n{path}")
         except Exception as e:

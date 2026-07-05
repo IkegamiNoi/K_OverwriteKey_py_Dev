@@ -151,7 +151,7 @@ class KeymapPanelController:
         preferred_index = max(0, len(keymaps) - 1)
         self.refresh_keymap_list_ui(preferred_index=preferred_index)
         self._app.layout.refresh_keyboard_window()
-        self._app._update_status()
+        self._app.trigger_panel.update_status()
         self._app.mark_keymap_dirty(created)
         self._app._set_flash_message(f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}")
 
@@ -187,7 +187,7 @@ class KeymapPanelController:
         target["label"] = normalized_label
         self.refresh_keymap_list_ui(preferred_index=index)
         self._app.layout.refresh_keyboard_window()
-        self._app._update_status()
+        self._app.trigger_panel.update_status()
         self._app.mark_keymap_dirty(target)
         if normalized_label:
             self._app._set_flash_message(f"keymap 名を変更しました: {normalized_label}")
@@ -216,7 +216,7 @@ class KeymapPanelController:
         preferred_index = None if remaining_count <= 0 else min(index, remaining_count - 1)
         self.refresh_keymap_list_ui(preferred_index=preferred_index)
         self._app.layout.refresh_keyboard_window()
-        self._app._update_status()
+        self._app.trigger_panel.update_status()
         self._app.dirty_tracker.set_dirty(True)
         if next_active_id:
             self._app._set_flash_message(f"キーマップを削除しました: {target_name} / 現在: {self.get_active_keymap_text()}")
@@ -301,7 +301,7 @@ class KeymapPanelController:
 
         self.refresh_keymap_list_ui(preferred_index=preferred_index)
         self._app.layout.refresh_keyboard_window()
-        self._app._update_status()
+        self._app.trigger_panel.update_status()
         self._app.mark_keymap_dirty(keymap)
         self._app._set_flash_message(f"キーマップを変更しました: {self.format_keymap_display_name(keymap) or keymap_id}")
         return True
@@ -332,7 +332,7 @@ class KeymapPanelController:
 
         self.refresh_keymap_list_ui(preferred_index=preferred_index)
         self._app.layout.refresh_keyboard_window()
-        self._app._update_status()
+        self._app.trigger_panel.update_status()
         if changed and mark_dirty:
             self._app.dirty_tracker.set_dirty(True)
         if show_flash:
@@ -377,7 +377,7 @@ class KeymapPanelController:
         keymap_id, changed = self._app.keymap_service.set_mapping(self._app.data, source, target)
         self.refresh_keymap_list_ui()
         self._app.layout.refresh_keyboard_window()
-        self._app._update_status()
+        self._app.trigger_panel.update_status()
         if changed:
             self._app.mark_keymap_dirty(self._app.keymap_service.find_keymap(self._app.data, keymap_id))
             self._app._set_flash_message(f"キーマップを更新しました: {source} -> {target} ({keymap_id})")
@@ -392,7 +392,7 @@ class KeymapPanelController:
         keymap_id, changed = self._app.keymap_service.clear_mapping(self._app.data, source)
         self.refresh_keymap_list_ui()
         self._app.layout.refresh_keyboard_window()
-        self._app._update_status()
+        self._app.trigger_panel.update_status()
         if changed:
             self._app.mark_keymap_dirty(self._app.keymap_service.find_keymap(self._app.data, keymap_id))
             self._app._set_flash_message(f"キーマップをクリアしました: {source} ({keymap_id})")

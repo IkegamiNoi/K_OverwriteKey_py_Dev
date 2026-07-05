@@ -143,9 +143,9 @@ class App(tk.Tk):
             state=self.state,
             find_trigger=self._find_trigger_by_key,
             perform_action=self._perform_action,
-            select_trigger=self._select_trigger_by_key,
-            refresh_actions=self._refresh_actions,
-            update_status=self._update_status,
+            select_trigger=lambda key: self.trigger_panel.select_trigger_by_key(key),
+            refresh_actions=lambda: self.trigger_panel.refresh_actions(),
+            update_status=lambda: self.trigger_panel.update_status(),
             after=self.after,
             after_cancel=self.after_cancel,
         )
@@ -162,9 +162,9 @@ class App(tk.Tk):
         self._build_ui()
         self.config_io.load_startup_and_config()
         self.layout.reload_keyboard_layouts()
-        self._refresh_triggers()
-        self._refresh_actions()
-        self._update_status()
+        self.trigger_panel.refresh_triggers()
+        self.trigger_panel.refresh_actions()
+        self.trigger_panel.update_status()
         self.hook.sync_hook_toggle_buttons()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
@@ -282,7 +282,7 @@ class App(tk.Tk):
 
 
     def mark_sequence_dirty(self, trigger: dict | None = None) -> None:
-        target = trigger if isinstance(trigger, dict) else self._selected_trigger()
+        target = trigger if isinstance(trigger, dict) else self.trigger_panel.selected_trigger()
         self.dirty_tracker.mark_sequence_dirty(target)
 
 
@@ -438,8 +438,8 @@ class App(tk.Tk):
             pass
         self.compact_view.pack(fill="both", expand=True)
         self._apply_compact_geometry()
-        self._sync_trigger_selection_to_views()
-        self._update_status()
+        self.trigger_panel.sync_trigger_selection_to_views()
+        self.trigger_panel.update_status()
 
     def show_full_view(self):
         if not self._compact_mode:
@@ -451,9 +451,9 @@ class App(tk.Tk):
             pass
         self.full_view.pack(fill="both", expand=True)
         self._restore_full_geometry()
-        self._sync_trigger_selection_to_views()
-        self._refresh_actions()  # full側のシーケンス表示を復帰
-        self._update_status()
+        self.trigger_panel.sync_trigger_selection_to_views()
+        self.trigger_panel.refresh_actions()  # full側のシーケンス表示を復帰
+        self.trigger_panel.update_status()
 
     def _apply_compact_geometry(self):
         """省略表示時のサイズ（細め）へ"""
@@ -475,10 +475,6 @@ class App(tk.Tk):
         except Exception:
             pass
 
-    def _sync_trigger_selection_to_views(self):
-        return self.trigger_panel.sync_trigger_selection_to_views()
-    def _set_selected_trigger_index(self, idx: int):
-        return self.trigger_panel.set_selected_trigger_index(idx)
     def _focused_listbox_index(self, listbox: tk.Listbox, item_count: int) -> int | None:
         return focused_listbox_index(self, listbox, item_count)
 
@@ -494,8 +490,6 @@ class App(tk.Tk):
     def _find_keymap_switch_target_id(self, key: str) -> str:
         return self.keymap_service.get_keymap_by_switch_key(self.data, key)
 
-    def _select_trigger_by_key(self, key: str):
-        return self.trigger_panel.select_trigger_by_key(key)
     def _apply_always_on_top(self):
         """チェック状態に応じてウィンドウを常に手前にする"""
         try:
@@ -543,23 +537,6 @@ class App(tk.Tk):
         return startup
 
 
-    def _update_status(self):
-        return self.trigger_panel.update_status()
-    def _refresh_triggers(self):
-        return self.trigger_panel.refresh_triggers()
-    def _refresh_actions(self):
-        return self.trigger_panel.refresh_actions()
-    def _on_action_list_select(self, _event=None):
-        return self.trigger_panel.on_action_list_select(_event)
-    def _on_action_list_focus_index_change(self, _event=None):
-        return self.trigger_panel.on_action_list_focus_index_change(_event)
-    def _on_trigger_list_focus_index_change(self, event=None):
-        return self.trigger_panel.on_trigger_list_focus_index_change(event)
-    def _on_trigger_double_click(self, _event=None):
-        return self.trigger_panel.on_trigger_double_click(_event)
-    def _on_action_double_click(self, _event=None):
-        return self.trigger_panel.on_action_double_click(_event)
-
     def keymap_set_file_stem(self) -> str:
         return self.paths.keymap_set_file_stem(str(getattr(self, "keymap_set_path", "") or ""))
 
@@ -583,33 +560,6 @@ class App(tk.Tk):
             self.dirty_tracker.set_dirty(True)
             self._set_flash_message("プリセットを更新しました。")
 
-
-    # ---------------- Trigger selection/helpers ----------------
-    def _selected_trigger(self):
-        return self.trigger_panel.selected_trigger()
-    # ---------------- run_to_end UI sync/update ----------------
-    def update_run_to_end_delay(self, _event=None):
-        return self.trigger_panel.update_run_to_end_delay(_event)
-    def update_suppress(self):
-        return self.trigger_panel.update_suppress()
-    def update_run_to_end(self):
-        return self.trigger_panel.update_run_to_end()
-    # ---------------- Trigger CRUD ----------------
-    def add_trigger(self):
-        return self.trigger_panel.add_trigger()
-    def rename_trigger(self):
-        return self.trigger_panel.rename_trigger()
-    def delete_trigger(self):
-        return self.trigger_panel.delete_trigger()
-    # ---------------- Actions CRUD (selected trigger) ----------------
-    def add_action(self):
-        return self.trigger_panel.add_action()
-    def edit_action(self):
-        return self.trigger_panel.edit_action()
-    def delete_action(self):
-        return self.trigger_panel.delete_action()
-    def move_action(self, delta: int):
-        return self.trigger_panel.move_action(delta)
     def _perform_action(self, action: dict):
         self.action_executor.execute(action)
             

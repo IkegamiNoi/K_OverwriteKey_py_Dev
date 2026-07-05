@@ -112,7 +112,7 @@ class HookController:
         self.sync_hook_toggle_buttons()
         self.sync_trigger_toggle_buttons()
         self._app.layout.refresh_keyboard_window()
-        self._app._update_status()
+        self._app.trigger_panel.update_status()
 
     def stop_hook(self, *, reset_custom_input_mode: bool = True):
         self._app.sequence_runner.stop_run_to_end()
@@ -125,7 +125,7 @@ class HookController:
         self.sync_hook_toggle_buttons()
         self.sync_trigger_toggle_buttons()
         self._app.layout.refresh_keyboard_window()
-        self._app._update_status()
+        self._app.trigger_panel.update_status()
 
     def toggle_hook(self):
         if self.hook_active:
@@ -152,15 +152,15 @@ class HookController:
             )
             if not enabled:
                 self.sync_trigger_toggle_buttons()
-                self._app._update_status()
+                self._app.trigger_panel.update_status()
                 return
             self.custom_input_enabled = True
 
         if not getattr(self._app, "_compact_mode", False):
-            self._app._refresh_actions()
+            self._app.trigger_panel.refresh_actions()
         self.sync_trigger_toggle_buttons()
         self._app.layout.refresh_keyboard_window()
-        self._app._update_status()
+        self._app.trigger_panel.update_status()
 
     def toggle_triggers_enabled(self):
         self.toggle_custom_input_enabled()

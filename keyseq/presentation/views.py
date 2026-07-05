@@ -130,15 +130,15 @@ class FullView(ttk.Frame):
         sb = ttk.Scrollbar(tl_frame, orient="vertical", command=self.trigger_list.yview)
         sb.pack(side="left", fill="y")
         self.trigger_list.configure(yscrollcommand=sb.set)
-        self.trigger_list.bind("<<ListboxSelect>>", app._on_trigger_list_focus_index_change)
-        self.trigger_list.bind("<KeyRelease>", app._on_trigger_list_focus_index_change)
-        self.trigger_list.bind("<Double-Button-1>", app._on_trigger_double_click)
+        self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_focus_index_change)
+        self.trigger_list.bind("<KeyRelease>", app.trigger_panel.on_trigger_list_focus_index_change)
+        self.trigger_list.bind("<Double-Button-1>", app.trigger_panel.on_trigger_double_click)
 
         tbtns = ttk.Frame(self.trigger_box)
         tbtns.pack(fill="x", pady=(6, 0))
-        ttk.Button(tbtns, text="追加", command=app.add_trigger).pack(fill="x", pady=(0, 3))
-        ttk.Button(tbtns, text="トリガー変更", command=app.rename_trigger).pack(fill="x", pady=3)
-        ttk.Button(tbtns, text="削除", command=app.delete_trigger).pack(fill="x", pady=3)
+        ttk.Button(tbtns, text="追加", command=app.trigger_panel.add_trigger).pack(fill="x", pady=(0, 3))
+        ttk.Button(tbtns, text="トリガー変更", command=app.trigger_panel.rename_trigger).pack(fill="x", pady=3)
+        ttk.Button(tbtns, text="削除", command=app.trigger_panel.delete_trigger).pack(fill="x", pady=3)
         ttk.Separator(tbtns).pack(fill="x", pady=6)
         ttk.Button(tbtns, text="保存", command=app.config_io.save_trigger_set_file).pack(fill="x", pady=3)
         ttk.Button(tbtns, text="別名で保存", command=app.config_io.save_trigger_set_file_as).pack(fill="x", pady=3)
@@ -148,7 +148,7 @@ class FullView(ttk.Frame):
             self.trigger_box,
             text="トリガーキーを抑止（suppress）",
             variable=app.suppress_var,
-            command=app.update_suppress,
+            command=app.trigger_panel.update_suppress,
         )
         app.suppress_chk.pack(anchor="w", pady=(6, 0))
 
@@ -157,21 +157,21 @@ class FullView(ttk.Frame):
 
         self.action_list = tk.Listbox(self.sequence_box, height=18, exportselection=False)
         self.action_list.pack(side="left", fill="both", expand=True)
-        self.action_list.bind("<<ListboxSelect>>", app._on_action_list_select)
-        self.action_list.bind("<KeyRelease>", app._on_action_list_focus_index_change)
-        self.action_list.bind("<Double-Button-1>", app._on_action_double_click)
+        self.action_list.bind("<<ListboxSelect>>", app.trigger_panel.on_action_list_select)
+        self.action_list.bind("<KeyRelease>", app.trigger_panel.on_action_list_focus_index_change)
+        self.action_list.bind("<Double-Button-1>", app.trigger_panel.on_action_double_click)
         asb = ttk.Scrollbar(self.sequence_box, orient="vertical", command=self.action_list.yview)
         asb.pack(side="left", fill="y")
         self.action_list.configure(yscrollcommand=asb.set)
 
         abtns = ttk.Frame(self.sequence_box)
         abtns.pack(side="left", fill="y", padx=(12, 0))
-        ttk.Button(abtns, text="追加", width=16, command=app.add_action).pack(pady=(0, 6))
-        ttk.Button(abtns, text="編集", width=16, command=app.edit_action).pack(pady=6)
-        ttk.Button(abtns, text="削除", width=16, command=app.delete_action).pack(pady=6)
+        ttk.Button(abtns, text="追加", width=16, command=app.trigger_panel.add_action).pack(pady=(0, 6))
+        ttk.Button(abtns, text="編集", width=16, command=app.trigger_panel.edit_action).pack(pady=6)
+        ttk.Button(abtns, text="削除", width=16, command=app.trigger_panel.delete_action).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
-        ttk.Button(abtns, text="上へ", width=16, command=lambda: app.move_action(-1)).pack(pady=6)
-        ttk.Button(abtns, text="下へ", width=16, command=lambda: app.move_action(+1)).pack(pady=6)
+        ttk.Button(abtns, text="上へ", width=16, command=lambda: app.trigger_panel.move_action(-1)).pack(pady=6)
+        ttk.Button(abtns, text="下へ", width=16, command=lambda: app.trigger_panel.move_action(+1)).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
         ttk.Button(abtns, text="保存", width=16, command=app.config_io.save_selected_sequence).pack(pady=6)
         ttk.Button(abtns, text="別名で保存", width=16, command=app.config_io.save_selected_sequence_as).pack(pady=6)
@@ -182,7 +182,7 @@ class FullView(ttk.Frame):
             abtns,
             text="連続実行",
             variable=app.run_to_end_var,
-            command=app.update_run_to_end,
+            command=app.trigger_panel.update_run_to_end,
         )
         app.run_to_end_chk.pack(anchor="w", pady=(8, 0))
 
@@ -193,8 +193,8 @@ class FullView(ttk.Frame):
         app.run_to_end_delay_entry = ttk.Entry(delay_line, width=8, textvariable=app.run_to_end_delay_var)
         app.run_to_end_delay_entry.pack(side="left", padx=(8, 0))
         # Enter / フォーカスアウトで保存
-        app.run_to_end_delay_entry.bind("<Return>", app.update_run_to_end_delay)
-        app.run_to_end_delay_entry.bind("<FocusOut>", app.update_run_to_end_delay)
+        app.run_to_end_delay_entry.bind("<Return>", app.trigger_panel.update_run_to_end_delay)
+        app.run_to_end_delay_entry.bind("<FocusOut>", app.trigger_panel.update_run_to_end_delay)
 
 
 class CompactView(ttk.Frame):
@@ -272,7 +272,7 @@ class CompactView(ttk.Frame):
         sb = ttk.Scrollbar(tl_frame, orient="vertical", command=self.trigger_list.yview)
         sb.pack(side="left", fill="y")
         self.trigger_list.configure(yscrollcommand=sb.set)
-        self.trigger_list.bind("<<ListboxSelect>>", app._on_trigger_list_focus_index_change)
-        self.trigger_list.bind("<KeyRelease>", app._on_trigger_list_focus_index_change)
-        self.trigger_list.bind("<Double-Button-1>", app._on_trigger_double_click)
+        self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_focus_index_change)
+        self.trigger_list.bind("<KeyRelease>", app.trigger_panel.on_trigger_list_focus_index_change)
+        self.trigger_list.bind("<Double-Button-1>", app.trigger_panel.on_trigger_double_click)
 
