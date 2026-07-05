@@ -21,6 +21,7 @@ from keyseq.presentation.keyboard_layouts import (
     resolve_keyboard_layout,
     resolve_registered_layout_path,
 )
+from keyseq.presentation.config_paths import ConfigPaths
 from keyseq.presentation.keyboard_window import KeyboardWindow
 from keyseq.presentation.listbox_utils import (
     focused_listbox_index,
@@ -62,6 +63,12 @@ class App(tk.Tk):
         self.config_root = os.path.join(self.base_dir, "config")
         self.user_root = os.path.join(self.config_root, "user")
         os.makedirs(self.user_root, exist_ok=True)
+        self.paths = ConfigPaths(
+            base_dir=self.base_dir,
+            config_root=self.config_root,
+            user_root=self.user_root,
+            config_service=self.config_service,
+        )
         self.startup_path = self._resolve_startup_path()
         self.keymap_set_path = self._resolve_keymap_set_path()
         self.keyboard_layouts_dir = self._resolve_keylayout_dir()
@@ -1306,91 +1313,52 @@ class App(tk.Tk):
         return v
 
     def _preferred_startup_path(self) -> str:
-        return os.path.join(self.config_root, "config.json")
+        return self.paths.preferred_startup_path()
 
     def _preferred_keymap_set_path(self) -> str:
-        return os.path.join(self.config_root, "user", "keymap_sets", "default.json")
+        return self.paths.preferred_keymap_set_path()
 
     def _preferred_keymap_sets_dir(self) -> str:
-        return os.path.dirname(self._preferred_keymap_set_path())
+        return self.paths.preferred_keymap_sets_dir()
 
     def _preferred_keymaps_dir(self) -> str:
-        return os.path.join(self.config_root, "user", "keymaps")
+        return self.paths.preferred_keymaps_dir()
 
     def _preferred_trigger_sets_dir(self) -> str:
-        return os.path.join(self.config_root, "user", "trigger_sets")
+        return self.paths.preferred_trigger_sets_dir()
 
     def _preferred_sequences_dir(self) -> str:
-        return os.path.join(self.config_root, "user", "sequences")
+        return self.paths.preferred_sequences_dir()
 
     def _legacy_settings_dir(self) -> str:
-        return os.path.join(self.base_dir, "settings")
+        return self.paths.legacy_settings_dir()
 
     def _resolve_startup_path(self) -> str:
-        new_path = self._preferred_startup_path()
-        old_path = os.path.join(self._legacy_settings_dir(), "startup.json")
-        return new_path if os.path.exists(new_path) else old_path
+        return self.paths.resolve_startup_path()
 
     def _resolve_keymap_set_path(self, path: str = "") -> str:
-        if path:
-            return path if os.path.isabs(path) else os.path.normpath(os.path.join(self.config_root, path))
-        new_path = self._preferred_keymap_set_path()
-        old_path = os.path.join(self._legacy_settings_dir(), "config.json")
-        return new_path if os.path.exists(new_path) else old_path
+        return self.paths.resolve_keymap_set_path(path)
 
     def _resolve_keylayout_dir(self) -> str:
-        new_path = os.path.join(self.user_root, "keylayout")
-        old_path = os.path.join(self.base_dir, "keylayout")
-        return new_path if os.path.exists(new_path) else old_path
+        return self.paths.resolve_keylayout_dir()
 
     def _is_within_legacy_settings(self, path: str) -> bool:
-        if not path:
-            return False
-        try:
-            return os.path.commonpath([os.path.abspath(path), os.path.abspath(self._legacy_settings_dir())]) == os.path.abspath(self._legacy_settings_dir())
-        except Exception:
-            return False
+        return self.paths.is_within_legacy_settings(path)
 
     def _normalize_keymap_set_save_path(self, path: str) -> str:
-        if not path:
-            return self._preferred_keymap_set_path()
-        normalized = os.path.normpath(str(path).strip())
-        if not os.path.isabs(normalized):
-            parts = re.split(r"[\\/]+", normalized)
-            if parts and parts[0] == "config":
-                normalized = os.path.normpath(os.path.join(self.base_dir, normalized))
-            else:
-                normalized = os.path.normpath(os.path.join(self.config_root, normalized))
-        if self._is_within_legacy_settings(normalized):
-            return self._preferred_keymap_set_path()
-        return normalized
+        return self.paths.normalize_keymap_set_save_path(path)
 
     def _suggest_keymap_set_dialog_path(self) -> str:
-        current = str(getattr(self, "keymap_set_path", "") or "").strip()
-        if current:
-            return self._normalize_keymap_set_save_path(current)
-        return self._preferred_keymap_set_path()
+        return self.paths.suggest_keymap_set_dialog_path(str(getattr(self, "keymap_set_path", "") or ""))
 
     def _suggest_keymap_set_dialog_dir(self) -> str:
-        current = str(getattr(self, "keymap_set_path", "") or "").strip()
-        if current:
-            current_dir = os.path.dirname(os.path.abspath(current))
-            if os.path.isdir(current_dir):
-                return current_dir
-
-        preferred_dir = self._preferred_keymap_sets_dir()
-        if os.path.isdir(preferred_dir):
-            return preferred_dir
-        return self.config_root
+        return self.paths.suggest_keymap_set_dialog_dir(str(getattr(self, "keymap_set_path", "") or ""))
 
     def _to_config_relative_or_absolute(self, path: str) -> str:
-        return self.config_service.to_config_relative_or_absolute(path, self.config_root)
+        return self.paths.to_config_relative_or_absolute(path)
 
     def _is_within_config_root(self, path: str) -> bool:
-        try:
-            return os.path.commonpath([os.path.abspath(path), os.path.abspath(self.config_root)]) == os.path.abspath(self.config_root)
-        except Exception:
-            return False
+        return self.paths.is_within_config_root(path)
 
     def _choose_split_base_dir_for_keymap_set(self, save_path: str) -> str:
         if self._is_within_config_root(save_path):
@@ -1471,7 +1439,7 @@ class App(tk.Tk):
             messagebox.showerror("startup.json 保存失敗", str(e))
 
     def _to_rel_if_possible(self, path: str) -> str:
-        return self.config_service.resolve_startup_relative_path(path, self.base_dir)
+        return self.paths.to_rel_if_possible(path)
 
     def set_startup_keymap_set(self):
         """ユーザーが起動時に読み込む keymap_set.json を選び、起動設定へ保存する"""
@@ -1724,24 +1692,16 @@ class App(tk.Tk):
 
     # ---------------- Individual JSON IO ----------------
     def _json_dialog_initial_dir(self, preferred_dir: str, source_path: str = "") -> str:
-        if source_path:
-            directory = os.path.dirname(os.path.abspath(source_path))
-            if os.path.isdir(directory):
-                return directory
-        if os.path.isdir(preferred_dir):
-            return preferred_dir
-        return self.user_root if os.path.isdir(self.user_root) else self.base_dir
+        return self.paths.json_dialog_initial_dir(preferred_dir, source_path)
 
     def _filename_stem(self, path: str) -> str:
-        return os.path.splitext(os.path.basename(str(path or "")))[0]
+        return self.paths.filename_stem(path)
 
     def _suggest_json_path(self, directory: str, label: str, fallback: str) -> str:
-        stem = self.config_service.slugify_file_stem(label) or fallback
-        return os.path.join(directory, f"{stem}.json")
+        return self.paths.suggest_json_path(directory, label, fallback)
 
     def _keymap_set_file_stem(self) -> str:
-        stem = self._filename_stem(str(getattr(self, "keymap_set_path", "") or ""))
-        return self.config_service.slugify_file_stem(stem) or "trigger_set"
+        return self.paths.keymap_set_file_stem(str(getattr(self, "keymap_set_path", "") or ""))
 
     def _choose_save_path_with_collision(self, *, title: str, suggested_path: str) -> str:
         path = suggested_path
