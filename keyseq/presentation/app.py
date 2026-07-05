@@ -1344,9 +1344,6 @@ class App(tk.Tk):
     def _preferred_sequences_dir(self) -> str:
         return os.path.join(self.config_root, "user", "sequences")
 
-    def _preferred_config_path(self) -> str:
-        return os.path.join(self.user_root, "config.json")
-
     def _legacy_settings_dir(self) -> str:
         return os.path.join(self.base_dir, "settings")
 
@@ -1428,24 +1425,6 @@ class App(tk.Tk):
         if not use_nearby:
             return ""
         return os.path.dirname(os.path.abspath(save_path))
-
-    def _sync_startup_config_path(self, old_path: str, new_path: str):
-        current = getattr(self, "_startup_settings", {})
-        if not isinstance(current, dict):
-            return
-
-        stored_path = str(current.get("config_path") or "").strip()
-        if not stored_path:
-            return
-
-        resolved_path = stored_path if os.path.isabs(stored_path) else os.path.join(self.base_dir, stored_path)
-        try:
-            if os.path.abspath(resolved_path) != os.path.abspath(old_path):
-                return
-        except Exception:
-            return
-
-        self._write_startup({"config_path": self._to_rel_if_possible(new_path)})
 
     def _load_startup_settings(self) -> dict[str, any]:
         startup = {}
