@@ -57,8 +57,8 @@ class App(tk.Tk):
             user_root=self.user_root,
             config_service=self.config_service,
         )
-        self.startup_path = self._resolve_startup_path()
-        self.keymap_set_path = self._resolve_keymap_set_path()
+        self.startup_path = self.paths.resolve_startup_path()
+        self.keymap_set_path = self.paths.resolve_keymap_set_path()
         self._startup_settings = self._load_startup_settings()
         self._ui_font_delta_pt = self._coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
@@ -279,58 +279,19 @@ class App(tk.Tk):
 
     def _update_file_status(self):
         name = os.path.basename(self.keymap_set_path or "") or "(未設定)"
-        save_state = "未保存" if self._has_unsaved_changes() else "保存済み"
+        save_state = "未保存" if self.dirty_tracker.has_unsaved_changes() else "保存済み"
         self.file_status_var.set(f"ファイル: {name} / {save_state}")
 
-    @property
-    def _trigger_set_source_path(self) -> str:
-        return self.dirty_tracker.trigger_set_source_path
-
-    @_trigger_set_source_path.setter
-    def _trigger_set_source_path(self, value: str) -> None:
-        self.dirty_tracker.trigger_set_source_path = str(value or "")
-
-    @property
-    def _trigger_set_imported(self) -> bool:
-        return self.dirty_tracker.trigger_set_imported
-
-    @_trigger_set_imported.setter
-    def _trigger_set_imported(self, value: bool) -> None:
-        self.dirty_tracker.trigger_set_imported = bool(value)
-
-    @property
-    def _trigger_set_dirty(self) -> bool:
-        return self.dirty_tracker.trigger_set_dirty
-
-    @_trigger_set_dirty.setter
-    def _trigger_set_dirty(self, value: bool) -> None:
-        self.dirty_tracker.trigger_set_dirty = bool(value)
-
-    def _set_dirty(self, value: bool, *, config_dirty: bool = True):
-        self.dirty_tracker.set_dirty(value, config_dirty=config_dirty)
 
     def mark_keymap_dirty(self, keymap: dict | None = None) -> None:
         target = keymap if keymap is not None else self.keymap_service.get_active_keymap(self.data)
         self.dirty_tracker.mark_keymap_dirty(target)
 
-    def _mark_trigger_set_dirty(self) -> None:
-        self.dirty_tracker.mark_trigger_set_dirty()
 
     def mark_sequence_dirty(self, trigger: dict | None = None) -> None:
         target = trigger if isinstance(trigger, dict) else self._selected_trigger()
         self.dirty_tracker.mark_sequence_dirty(target)
 
-    def _has_unsaved_changes(self) -> bool:
-        return self.dirty_tracker.has_unsaved_changes()
-
-    def _sync_dirty_state(self) -> None:
-        self.dirty_tracker.sync_dirty_state()
-
-    def _has_individual_dirty(self) -> bool:
-        return self.dirty_tracker.has_individual_dirty()
-
-    def _clear_individual_dirty_flags(self) -> None:
-        self.dirty_tracker.clear_individual_dirty_flags()
 
     def _clear_flash_message(self):
         self._flash_after_id = None
@@ -356,7 +317,7 @@ class App(tk.Tk):
         if hasattr(self, "ui_font_delta_var"):
             self.ui_font_delta_var.set(int(new_delta))
         apply_global_theme(self, font_delta_pt=new_delta)
-        self._write_startup({"ui_font_delta_pt": new_delta})
+        self.config_io.write_startup({"ui_font_delta_pt": new_delta})
 
         if hasattr(self, "menubar"):
             self._build_menu()
@@ -371,17 +332,17 @@ class App(tk.Tk):
         menubar = tk.Menu(self)
 
         file_menu = tk.Menu(menubar, tearoff=False)
-        file_menu.add_command(label="新規作成", command=self.new_config, accelerator="Ctrl+N")
+        file_menu.add_command(label="新規作成", command=self.config_io.new_config, accelerator="Ctrl+N")
         file_menu.add_separator()
-        file_menu.add_command(label="保存", command=self.save_keymap_set, accelerator="Ctrl+S")
-        file_menu.add_command(label="別名で保存…", command=self.save_as, accelerator="Ctrl+Shift+S")
-        file_menu.add_command(label="読込（構成セット）…", command=self.load_keymap_set_from, accelerator="Ctrl+O")
+        file_menu.add_command(label="保存", command=self.config_io.save_keymap_set, accelerator="Ctrl+S")
+        file_menu.add_command(label="別名で保存…", command=self.config_io.save_as, accelerator="Ctrl+Shift+S")
+        file_menu.add_command(label="読込（構成セット）…", command=self.config_io.load_keymap_set_from, accelerator="Ctrl+O")
         file_menu.add_separator()
-        file_menu.add_command(label="Import...", command=self.import_config)
-        file_menu.add_command(label="Export...", command=self.export_config)
+        file_menu.add_command(label="Import...", command=self.config_io.import_config)
+        file_menu.add_command(label="Export...", command=self.config_io.export_config)
         file_menu.add_separator()
-        file_menu.add_command(label="起動時に読む構成セットを指定…", command=self.set_startup_keymap_set)
-        file_menu.add_command(label="例を復元", command=self.restore_default)
+        file_menu.add_command(label="起動時に読む構成セットを指定…", command=self.config_io.set_startup_keymap_set)
+        file_menu.add_command(label="例を復元", command=self.config_io.restore_default)
         file_menu.add_separator()
         file_menu.add_command(label="終了", command=self.on_close)
         menubar.add_cascade(label="ファイル", menu=file_menu)
@@ -439,25 +400,25 @@ class App(tk.Tk):
     def _on_shortcut_save(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.save_keymap_set()
+        self.config_io.save_keymap_set()
         return "break"
 
     def _on_shortcut_new(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.new_config()
+        self.config_io.new_config()
         return "break"
 
     def _on_shortcut_save_as(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.save_as()
+        self.config_io.save_as()
         return "break"
 
     def _on_shortcut_load(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.load_keymap_set_from()
+        self.config_io.load_keymap_set_from()
         return "break"
 
     def _on_shortcut_open_preset_manager(self, _event=None):
@@ -645,53 +606,13 @@ class App(tk.Tk):
             v = 3
         return v
 
-    def _preferred_startup_path(self) -> str:
-        return self.paths.preferred_startup_path()
 
-    def _preferred_keymap_set_path(self) -> str:
-        return self.paths.preferred_keymap_set_path()
-
-    def _preferred_keymap_sets_dir(self) -> str:
-        return self.paths.preferred_keymap_sets_dir()
-
-    def _preferred_keymaps_dir(self) -> str:
-        return self.paths.preferred_keymaps_dir()
-
-    def _preferred_trigger_sets_dir(self) -> str:
-        return self.paths.preferred_trigger_sets_dir()
-
-    def _preferred_sequences_dir(self) -> str:
-        return self.paths.preferred_sequences_dir()
-
-    def _legacy_settings_dir(self) -> str:
-        return self.paths.legacy_settings_dir()
-
-    def _resolve_startup_path(self) -> str:
-        return self.paths.resolve_startup_path()
-
-    def _resolve_keymap_set_path(self, path: str = "") -> str:
-        return self.paths.resolve_keymap_set_path(path)
-
-    def _resolve_keylayout_dir(self) -> str:
-        return self.paths.resolve_keylayout_dir()
-
-    def _is_within_legacy_settings(self, path: str) -> bool:
-        return self.paths.is_within_legacy_settings(path)
-
-    def _normalize_keymap_set_save_path(self, path: str) -> str:
-        return self.paths.normalize_keymap_set_save_path(path)
-
-    def _suggest_keymap_set_dialog_path(self) -> str:
+    def suggest_keymap_set_dialog_path(self) -> str:
         return self.paths.suggest_keymap_set_dialog_path(str(getattr(self, "keymap_set_path", "") or ""))
 
-    def _suggest_keymap_set_dialog_dir(self) -> str:
+    def suggest_keymap_set_dialog_dir(self) -> str:
         return self.paths.suggest_keymap_set_dialog_dir(str(getattr(self, "keymap_set_path", "") or ""))
 
-    def _to_config_relative_or_absolute(self, path: str) -> str:
-        return self.paths.to_config_relative_or_absolute(path)
-
-    def _is_within_config_root(self, path: str) -> bool:
-        return self.paths.is_within_config_root(path)
 
     def _load_startup_settings(self) -> dict[str, any]:
         startup = {}
@@ -711,14 +632,6 @@ class App(tk.Tk):
         startup["prompt_if_missing"] = bool(startup.get("prompt_if_missing", True))
         return startup
 
-    def _write_startup(self, data: dict[str, any]):
-        return self.config_io.write_startup(data)
-
-    def _to_rel_if_possible(self, path: str) -> str:
-        return self.paths.to_rel_if_possible(path)
-
-    def set_startup_keymap_set(self):
-        return self.config_io.set_startup_keymap_set()
 
     def _update_status(self):
         return self.trigger_panel.update_status()
@@ -736,70 +649,9 @@ class App(tk.Tk):
         return self.trigger_panel.on_trigger_double_click(_event)
     def _on_action_double_click(self, _event=None):
         return self.trigger_panel.on_action_double_click(_event)
-    # ---------------- Individual JSON IO ----------------
-    def _json_dialog_initial_dir(self, preferred_dir: str, source_path: str = "") -> str:
-        return self.paths.json_dialog_initial_dir(preferred_dir, source_path)
 
-    def _filename_stem(self, path: str) -> str:
-        return self.paths.filename_stem(path)
-
-    def _suggest_json_path(self, directory: str, label: str, fallback: str) -> str:
-        return self.paths.suggest_json_path(directory, label, fallback)
-
-    def _keymap_set_file_stem(self) -> str:
+    def keymap_set_file_stem(self) -> str:
         return self.paths.keymap_set_file_stem(str(getattr(self, "keymap_set_path", "") or ""))
-
-    def save_selected_keymap(self) -> bool:
-        return self.config_io.save_selected_keymap()
-
-    def save_selected_keymap_as(self) -> bool:
-        return self.config_io.save_selected_keymap_as()
-
-    def load_keymap_file(self) -> None:
-        return self.config_io.load_keymap_file()
-
-    def save_trigger_set_file(self) -> bool:
-        return self.config_io.save_trigger_set_file()
-
-    def save_trigger_set_file_as(self) -> bool:
-        return self.config_io.save_trigger_set_file_as()
-
-    def load_trigger_set_file(self) -> None:
-        return self.config_io.load_trigger_set_file()
-
-    def save_selected_sequence(self) -> bool:
-        return self.config_io.save_selected_sequence()
-
-    def save_selected_sequence_as(self) -> bool:
-        return self.config_io.save_selected_sequence_as()
-
-    def load_sequence_file(self) -> None:
-        return self.config_io.load_sequence_file()
-
-    # ---------------- Config IO ----------------
-    def _confirm_save_if_dirty(self, action_name: str) -> bool:
-        return self.config_io.confirm_save_if_dirty(action_name)
-
-    def new_config(self):
-        return self.config_io.new_config()
-
-    def save_keymap_set(self, *, show_success_dialog: bool = True) -> bool:
-        return self.config_io.save_keymap_set(show_success_dialog=show_success_dialog)
-
-    def save_as(self, *, show_success_dialog: bool = True) -> bool:
-        return self.config_io.save_as(show_success_dialog=show_success_dialog)
-
-    def load_keymap_set_from(self):
-        return self.config_io.load_keymap_set_from()
-
-    def import_config(self):
-        return self.config_io.import_config()
-
-    def export_config(self):
-        return self.config_io.export_config()
-
-    def _apply_loaded_data_to_ui(self):
-        return self.config_io.apply_loaded_data_to_ui()
 
     def _sync_control_vars_from_data(self) -> None:
         """data の内容を制御キー表示・レイアウト選択などの共有 Var へ反映する。"""
@@ -818,12 +670,9 @@ class App(tk.Tk):
         PresetManagerDialog(self, title="ホットキープリセット編集").wait_window()
         after = self.data.get("hotkey_presets", [])
         if before != after:
-            self._set_dirty(True)
+            self.dirty_tracker.set_dirty(True)
             self._set_flash_message("プリセットを更新しました。")
 
-
-    def restore_default(self):
-        return self.config_io.restore_default()
 
     # ---------------- Trigger selection/helpers ----------------
     def _selected_trigger(self):
@@ -909,7 +758,7 @@ class App(tk.Tk):
 
     # ---------------- Close ----------------
     def on_close(self):
-        if not self._confirm_save_if_dirty("終了"):
+        if not self.config_io.confirm_save_if_dirty("終了"):
             return
         try:
             if self.keyboard_window is not None:
@@ -923,15 +772,8 @@ class App(tk.Tk):
             self.destroy()
 
 
-
 if __name__ == "__main__":
     app = App()
     app.mainloop()
-
-
-
-
-
-
 
 

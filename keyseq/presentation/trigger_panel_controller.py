@@ -345,7 +345,7 @@ class TriggerPanelController:
         old_v = bool(t.get("suppress", True))
         t["suppress"] = new_v
         if old_v != new_v:
-            self._app._mark_trigger_set_dirty()
+            self._app.dirty_tracker.mark_trigger_set_dirty()
         # フックON中なら再登録が必要（設定反映）
         if self._app.hook.hook_active:
             self._app.hook.start_hook()
@@ -396,7 +396,7 @@ class TriggerPanelController:
         new_index = len(triggers) - 1
         self._app._indices.setdefault(key, 0)
         self.refresh_triggers()
-        self._app._mark_trigger_set_dirty()
+        self._app.dirty_tracker.mark_trigger_set_dirty()
         self._app.mark_sequence_dirty(triggers[-1])
         self.set_selected_trigger_index(new_index)
         if self._app.hook.hook_active:
@@ -439,7 +439,7 @@ class TriggerPanelController:
         t["label"] = new_label
         self.refresh_triggers()
         if old != new:
-            self._app._mark_trigger_set_dirty()
+            self._app.dirty_tracker.mark_trigger_set_dirty()
         if cur_label != new_label:
             self._app.mark_sequence_dirty(t)
         if self._app.hook.hook_active:
@@ -459,7 +459,7 @@ class TriggerPanelController:
             self._app._indices.pop(key, None)
             self.refresh_triggers()
             self.refresh_actions()
-            self._app._mark_trigger_set_dirty()
+            self._app.dirty_tracker.mark_trigger_set_dirty()
             if self._app.hook.hook_active:
                 self._app.hook.start_hook()
 

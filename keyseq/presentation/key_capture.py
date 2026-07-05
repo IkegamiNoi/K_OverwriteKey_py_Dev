@@ -89,7 +89,7 @@ class SingleKeyCaptureController:
         if hasattr(self._app, self._var_attr):
             getattr(self._app, self._var_attr).set("")
         if old:
-            self._app._set_dirty(True)
+            self._app.dirty_tracker.set_dirty(True)
 
     def on_keypress(self, event):
         """単キーのキャプチャ確定処理"""
@@ -129,7 +129,7 @@ class SingleKeyCaptureController:
         self._app.data[self._data_key] = key
         if hasattr(self._app, self._var_attr):
             getattr(self._app, self._var_attr).set(key)
-        self._app._set_dirty(True)
+        self._app.dirty_tracker.set_dirty(True)
 
         # キャプチャ終了（この時点で resume により、元がONなら start_hook が呼ばれる）
         self.stop(cancel=False)

@@ -217,7 +217,7 @@ class KeymapPanelController:
         self.refresh_keymap_list_ui(preferred_index=preferred_index)
         self._app._refresh_keyboard_window()
         self._app._update_status()
-        self._app._set_dirty(True)
+        self._app.dirty_tracker.set_dirty(True)
         if next_active_id:
             self._app._set_flash_message(f"キーマップを削除しました: {target_name} / 現在: {self.get_active_keymap_text()}")
         else:
@@ -334,7 +334,7 @@ class KeymapPanelController:
         self._app._refresh_keyboard_window()
         self._app._update_status()
         if changed and mark_dirty:
-            self._app._set_dirty(True)
+            self._app.dirty_tracker.set_dirty(True)
         if show_flash:
             if changed:
                 self._app._set_flash_message(f"アクティブなキーマップを切り替えました: {self.get_active_keymap_text()}")

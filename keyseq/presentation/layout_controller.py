@@ -27,7 +27,7 @@ class LayoutController:
         self._keyboard_layout_display_to_id = {}
         self._keyboard_layout_id_to_display = {}
         self.keyboard_window = None
-        self.keyboard_layouts_dir = app._resolve_keylayout_dir()
+        self.keyboard_layouts_dir = app.paths.resolve_keylayout_dir()
 
     def open_keyboard_window(self):
         layout = self.get_current_keyboard_layout()
@@ -132,10 +132,10 @@ class LayoutController:
 
     def persist_keyboard_layout_selection(self):
         if not self._app.keymap_set_path:
-            self._app._set_dirty(True)
+            self._app.dirty_tracker.set_dirty(True)
             return True
         try:
-            return self._app.save_keymap_set(show_success_dialog=False)
+            return self._app.config_io.save_keymap_set(show_success_dialog=False)
         except Exception as e:
             self._app._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
@@ -186,7 +186,7 @@ class LayoutController:
         try:
             layout = load_layout_from_json(path, existing_layout_ids=set(self._keyboard_layout_entries.keys()))
             registrations = list(self._app.data.get("external_keyboard_layouts", []))
-            stored_path = self._app._to_rel_if_possible(path)
+            stored_path = self._app.paths.to_rel_if_possible(path)
             if any(str(item.get("path") or "").strip() == stored_path for item in registrations if isinstance(item, dict)):
                 raise ValueError("同じJSONファイルは既に登録されています。")
             registrations.append({"path": stored_path})
