@@ -48,8 +48,8 @@ class LayoutController:
             self._app,
             layout=layout,
             on_close=self.on_keyboard_window_closed,
-            on_assign_keymap=self._app.assign_keymap_from_keyboard_ui,
-            on_clear_keymap=self._app.clear_keymap_from_keyboard_ui,
+            on_assign_keymap=self._app.keymap_panel.assign_keymap_from_keyboard_ui,
+            on_clear_keymap=self._app.keymap_panel.clear_keymap_from_keyboard_ui,
         )
         self.refresh_keyboard_window()
 

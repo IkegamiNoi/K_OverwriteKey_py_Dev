@@ -77,7 +77,7 @@ class App(tk.Tk):
             on_runtime_error=lambda title, msg: messagebox.showerror(title, msg),
             on_stop_hook=lambda: self.hook.stop_hook(),
             on_toggle_mode=lambda: self.hook.toggle_custom_input_enabled(),
-            on_select_keymap=lambda keymap_id: self.activate_keymap_by_id(keymap_id, mark_dirty=False, show_flash=True),
+            on_select_keymap=lambda keymap_id: self.keymap_panel.activate_keymap_by_id(keymap_id, mark_dirty=False, show_flash=True),
             on_trigger=lambda key: self.sequence_runner.handle_key(key),
         )
         self.input_router = InputRouter(
@@ -493,58 +493,6 @@ class App(tk.Tk):
 
     def _find_keymap_switch_target_id(self, key: str) -> str:
         return self.keymap_service.get_keymap_by_switch_key(self.data, key)
-
-    def _selected_keymap_list_index(self) -> int | None:
-        return self.keymap_panel.selected_keymap_list_index()
-
-    def _refresh_keymap_list_ui(self, preferred_index: int | None = None) -> None:
-        return self.keymap_panel.refresh_keymap_list_ui(preferred_index=preferred_index)
-
-    def _on_keymap_list_select(self, _event=None) -> None:
-        return self.keymap_panel.on_keymap_list_select(_event)
-
-    def _on_keymap_list_focus_index_change(self, _event=None) -> None:
-        return self.keymap_panel.on_keymap_list_focus_index_change(_event)
-
-    def _on_keymap_list_double_click(self, _event=None) -> None:
-        return self.keymap_panel.on_keymap_list_double_click(_event)
-
-    def _add_keymap(self) -> None:
-        return self.keymap_panel.add_keymap()
-
-    def _delete_keymap(self) -> None:
-        return self.keymap_panel.delete_keymap()
-
-    def _select_keymap(self) -> None:
-        return self.keymap_panel.select_keymap()
-
-    def _edit_selected_keymap(self) -> None:
-        return self.keymap_panel.edit_selected_keymap()
-
-    def activate_keymap_by_id(
-        self,
-        keymap_id: str,
-        *,
-        preferred_index: int | None = None,
-        mark_dirty: bool = False,
-        show_flash: bool = True,
-    ) -> bool:
-        return self.keymap_panel.activate_keymap_by_id(
-            keymap_id,
-            preferred_index=preferred_index,
-            mark_dirty=mark_dirty,
-            show_flash=show_flash,
-        )
-
-
-    def _get_active_keymap_text(self) -> str:
-        return self.keymap_panel.get_active_keymap_text()
-
-    def assign_keymap_from_keyboard_ui(self, source_key: str, target_key: str) -> bool:
-        return self.keymap_panel.assign_keymap_from_keyboard_ui(source_key, target_key)
-
-    def clear_keymap_from_keyboard_ui(self, source_key: str) -> bool:
-        return self.keymap_panel.clear_keymap_from_keyboard_ui(source_key)
 
     def _select_trigger_by_key(self, key: str):
         return self.trigger_panel.select_trigger_by_key(key)

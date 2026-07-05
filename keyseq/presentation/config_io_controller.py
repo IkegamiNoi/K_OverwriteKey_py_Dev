@@ -341,7 +341,7 @@ class ConfigIoController:
         return bool(result["link"])
 
     def selected_keymap_for_io(self) -> "tuple[int, dict] | tuple[None, None]":
-        index = self._app._selected_keymap_list_index()
+        index = self._app.keymap_panel.selected_keymap_list_index()
         keymaps = self._app.keymap_service.get_keymaps(self._app.data)
         if index is None or not keymaps or not (0 <= index < len(keymaps)):
             messagebox.showinfo("キーマップ", "対象のキーマップを選択してください。")
@@ -395,7 +395,7 @@ class ConfigIoController:
         try:
             saved = self._app.config_service.save_keymap_file(path, keymap)
             self._app.keymap_service.get_keymaps(self._app.data)[index] = saved
-            self._app._refresh_keymap_list_ui(preferred_index=index)
+            self._app.keymap_panel.refresh_keymap_list_ui(preferred_index=index)
             self._app.layout.refresh_keyboard_window()
             self._app.dirty_tracker.sync_dirty_state()
             self._app._set_flash_message("キーマップを保存しました。")
@@ -425,7 +425,7 @@ class ConfigIoController:
             index = len(keymaps) - 1
             if not self._app.data.get("active_keymap_id"):
                 self._app.data["active_keymap_id"] = normalize_key_name(keymap.get("id", ""))
-            self._app._refresh_keymap_list_ui(preferred_index=index)
+            self._app.keymap_panel.refresh_keymap_list_ui(preferred_index=index)
             self._app.layout.refresh_keyboard_window()
             self._app.dirty_tracker.set_dirty(True)
             self._app._set_flash_message("キーマップを読み込みました。")

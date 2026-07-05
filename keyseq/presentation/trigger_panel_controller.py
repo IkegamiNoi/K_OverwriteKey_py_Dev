@@ -148,7 +148,7 @@ class TriggerPanelController:
             self.sync_trigger_selection_to_views()
         self.sync_suppress_checkbox()
         self.sync_run_to_end_ui()
-        self._app._refresh_keymap_list_ui()
+        self._app.keymap_panel.refresh_keymap_list_ui()
         self._app.layout.refresh_keyboard_window()
         self.update_status()
 
@@ -258,7 +258,7 @@ class TriggerPanelController:
     def update_status(self):
         hook_state = "ON" if self._app.hook.hook_active else "OFF"
         trigger_state = "ON" if self._app.hook.custom_input_enabled else "OFF"
-        keymap_text = self._app._get_active_keymap_text()
+        keymap_text = self._app.keymap_panel.get_active_keymap_text()
         sel_key = self.selected_trigger_key() or "(未選択)"
         if getattr(self._app, "_compact_mode", False):
             # 省略表示：ON/OFF + 通常トリガー有効状態 + 選択中トリガー + 次に実行（行の内容）
