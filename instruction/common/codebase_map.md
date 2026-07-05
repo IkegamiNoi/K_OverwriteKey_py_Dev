@@ -35,12 +35,23 @@ infrastructure
 
 ### App
 
-- UI全体の管理
-- View切替（Full / Compact）
-- 分離JSONの現在の構成セットパス（keymap_set_path）を管理
-- 通常の保存/読込/起動時読込は keymap_set.json を入口にする
-- keymap / trigger_set / sequence の個別保存・個別読込UIを管理
-- 個別保存用の source path / imported / dirty 状態をUI操作に反映する
+- Tk ルートウィンドウ・View切替（Full / Compact）・メニュー
+- 各コントローラの生成と配線
+- 外部（views / dialogs / keyboard_window）向けファサード（同名の委譲メソッド群）
+- 分離JSONの現在の構成セットパス（keymap_set_path）・startup 設定を保持
+
+計画02で App の責務を以下のコントローラ／ヘルパへ分割した（presentation 層内の再配置。
+views / dialogs / keyboard_window からはすべて App ファサード経由で従来どおり呼ばれる）:
+
+- ConfigPaths（config_paths.py）: 設定ファイルの配置規約とパス解決
+- DirtyStateTracker（dirty_state.py）: 未保存状態の一元管理
+- SingleKeyCaptureController（key_capture.py）: 停止キー/トグルキーのキャプチャ
+- ConfigIoController（config_io_controller.py）: 構成セット・個別JSONの保存/読込フロー
+- LayoutController（layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理
+- KeymapPanelController（keymap_panel_controller.py）: キーマップ管理パネル
+- TriggerPanelController（trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示
+- HookController（hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
+- listbox_utils.py: Listbox 選択ヘルパ（モジュール関数）
 
 ### ConfigService
 
