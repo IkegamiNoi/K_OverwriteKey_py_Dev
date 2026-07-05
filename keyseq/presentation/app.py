@@ -69,7 +69,7 @@ class App(tk.Tk):
         self.trigger_service = TriggerService()
         self.keymap_service = KeymapService()
         self.input_gateway = InputGateway()
-        self.key_state_manager = KeyStateManager(resolve_scan_code=self._resolve_key_name_from_scan_code)
+        self.key_state_manager = KeyStateManager(resolve_scan_code=lambda sc: self.layout.resolve_key_name_from_scan_code(sc))
         self.action_executor = ActionExecutor(
             input_gateway=self.input_gateway,
             validate_hotkey=self.validate_hotkey,
@@ -90,7 +90,7 @@ class App(tk.Tk):
             find_keymap_switch_target=self._find_keymap_switch_target_id,
             find_trigger=self._find_trigger_by_key,
             find_keymap_target=self._find_keymap_target,
-            resolve_scan_code=self._resolve_key_name_from_scan_code,
+            resolve_scan_code=lambda sc: self.layout.resolve_key_name_from_scan_code(sc),
         )
         self.state = AppState()
         # --- controllers (計画02で順次追加) ---
@@ -161,7 +161,7 @@ class App(tk.Tk):
         self._flash_after_id = None
         self._build_ui()
         self.config_io.load_startup_and_config()
-        self._reload_keyboard_layouts()
+        self.layout.reload_keyboard_layouts()
         self._refresh_triggers()
         self._refresh_actions()
         self._update_status()
@@ -185,13 +185,6 @@ class App(tk.Tk):
     def _indices(self, value: dict[str, int]) -> None:
         self.state.indices = dict(value) if isinstance(value, dict) else {}
 
-    @property
-    def keyboard_window(self):
-        return self.layout.keyboard_window
-
-    @keyboard_window.setter
-    def keyboard_window(self, value) -> None:
-        self.layout.keyboard_window = value
 
     def _get_send_guard_count(self) -> int:
         return int(self.action_executor.send_guard_count)
@@ -349,15 +342,15 @@ class App(tk.Tk):
 
         settings_menu = tk.Menu(menubar, tearoff=False)
         settings_menu.add_command(label="プリセット編集…", command=self.open_preset_manager, accelerator="Ctrl+Alt+P")
-        settings_menu.add_command(label="キーボードUIを開く", command=self.open_keyboard_window)
+        settings_menu.add_command(label="キーボードUIを開く", command=self.layout.open_keyboard_window)
         settings_menu.add_separator()
-        settings_menu.add_command(label="外部レイアウトを追加…", command=self.add_external_keyboard_layout)
-        settings_menu.add_command(label="レイアウトを削除…", command=self.delete_keyboard_layout)
+        settings_menu.add_command(label="外部レイアウトを追加…", command=self.layout.add_external_keyboard_layout)
+        settings_menu.add_command(label="レイアウトを削除…", command=self.layout.delete_keyboard_layout)
         settings_menu.add_separator()
         settings_menu.add_checkbutton(
             label="物理キー名を表示",
             variable=self.keyboard_show_physical_key_labels_var,
-            command=self.toggle_keyboard_show_physical_key_labels,
+            command=self.layout.toggle_keyboard_show_physical_key_labels,
         )
         settings_menu.add_separator()
 
@@ -427,29 +420,6 @@ class App(tk.Tk):
         self.open_preset_manager()
         return "break"
 
-    def open_keyboard_window(self):
-        return self.layout.open_keyboard_window()
-
-    def _refresh_keyboard_window(self):
-        return self.layout.refresh_keyboard_window()
-
-    def _reload_keyboard_layouts(self):
-        return self.layout.reload_keyboard_layouts()
-
-    def _sync_keyboard_layout_controls(self):
-        return self.layout.sync_keyboard_layout_controls()
-
-    def toggle_keyboard_show_physical_key_labels(self):
-        return self.layout.toggle_keyboard_show_physical_key_labels()
-
-    def on_keyboard_layout_selected(self, _event=None):
-        return self.layout.on_keyboard_layout_selected(_event)
-
-    def add_external_keyboard_layout(self):
-        return self.layout.add_external_keyboard_layout()
-
-    def delete_keyboard_layout(self):
-        return self.layout.delete_keyboard_layout()
 
     def show_compact_view(self):
         if self.stop_key_capture.capturing or self.toggle_key_capture.capturing:
@@ -566,14 +536,6 @@ class App(tk.Tk):
             show_flash=show_flash,
         )
 
-    def _resolve_key_name_from_scan_code(self, scan_code: object) -> str:
-        return self.layout.resolve_key_name_from_scan_code(scan_code)
-
-    def _should_debug_special_key_event(self, event: object, resolved_key: str) -> bool:
-        return self.layout.should_debug_special_key_event(event, resolved_key)
-
-    def _debug_special_key_event(self, event: object, resolved_key: str) -> None:
-        return self.layout.debug_special_key_event(event, resolved_key)
 
     def _get_active_keymap_text(self) -> str:
         return self.keymap_panel.get_active_keymap_text()
@@ -663,7 +625,7 @@ class App(tk.Tk):
             self.keyboard_show_physical_key_labels_var.set(
                 bool(self.data.get("keyboard_show_physical_key_labels", False))
             )
-        self._sync_keyboard_layout_controls()
+        self.layout.sync_keyboard_layout_controls()
 
     def open_preset_manager(self):
         before = copy.deepcopy(self.data.get("hotkey_presets", []))
@@ -761,10 +723,10 @@ class App(tk.Tk):
         if not self.config_io.confirm_save_if_dirty("終了"):
             return
         try:
-            if self.keyboard_window is not None:
+            if self.layout.keyboard_window is not None:
                 try:
-                    if self.keyboard_window.winfo_exists():
-                        self.keyboard_window.destroy()
+                    if self.layout.keyboard_window.winfo_exists():
+                        self.layout.keyboard_window.destroy()
                 except Exception:
                     pass
             self.hook.stop_hook()

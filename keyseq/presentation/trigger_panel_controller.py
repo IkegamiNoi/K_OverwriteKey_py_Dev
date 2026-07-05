@@ -149,7 +149,7 @@ class TriggerPanelController:
         self.sync_suppress_checkbox()
         self.sync_run_to_end_ui()
         self._app._refresh_keymap_list_ui()
-        self._app._refresh_keyboard_window()
+        self._app.layout.refresh_keyboard_window()
         self.update_status()
 
     def refresh_actions(self):

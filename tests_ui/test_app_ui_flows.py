@@ -87,10 +87,10 @@ class AppUiFlowsTest(unittest.TestCase):
         self.assertIn("Main", first)
 
     def test_keyboard_window_opens_and_closes(self):
-        self.app.open_keyboard_window()
-        self.assertIsNotNone(self.app.keyboard_window)
-        self.app.keyboard_window._handle_close()
-        self.assertIsNone(self.app.keyboard_window)
+        self.app.layout.open_keyboard_window()
+        self.assertIsNotNone(self.app.layout.keyboard_window)
+        self.app.layout.keyboard_window._handle_close()
+        self.assertIsNone(self.app.layout.keyboard_window)
 
 
 if __name__ == "__main__":

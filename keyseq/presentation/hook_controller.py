@@ -111,7 +111,7 @@ class HookController:
         self.custom_input_enabled = desired_custom_input_state
         self.sync_hook_toggle_buttons()
         self.sync_trigger_toggle_buttons()
-        self._app._refresh_keyboard_window()
+        self._app.layout.refresh_keyboard_window()
         self._app._update_status()
 
     def stop_hook(self, *, reset_custom_input_mode: bool = True):
@@ -124,7 +124,7 @@ class HookController:
 
         self.sync_hook_toggle_buttons()
         self.sync_trigger_toggle_buttons()
-        self._app._refresh_keyboard_window()
+        self._app.layout.refresh_keyboard_window()
         self._app._update_status()
 
     def toggle_hook(self):
@@ -159,7 +159,7 @@ class HookController:
         if not getattr(self._app, "_compact_mode", False):
             self._app._refresh_actions()
         self.sync_trigger_toggle_buttons()
-        self._app._refresh_keyboard_window()
+        self._app.layout.refresh_keyboard_window()
         self._app._update_status()
 
     def toggle_triggers_enabled(self):
@@ -199,9 +199,9 @@ class HookController:
         return True
 
     def on_input_event(self, event: object):
-        resolved_key = self._app._resolve_key_name_from_scan_code(getattr(event, "scan_code", None))
-        if self._app._should_debug_special_key_event(event, resolved_key):
-            self._app._debug_special_key_event(event, resolved_key)
+        resolved_key = self._app.layout.resolve_key_name_from_scan_code(getattr(event, "scan_code", None))
+        if self._app.layout.should_debug_special_key_event(event, resolved_key):
+            self._app.layout.debug_special_key_event(event, resolved_key)
         route = self._app.input_router.handle(event)
         for action in route.actions:
             self._app.after(0, lambda aa=action: self._app.action_executor.execute_router_action(aa))
