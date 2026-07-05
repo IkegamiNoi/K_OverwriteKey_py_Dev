@@ -7,25 +7,18 @@ from tkinter import filedialog, messagebox, simpledialog, ttk
 from keyseq.presentation.dialogs import (
     ActionDialog,
     KeymapEditDialog,
-    LayoutDeleteDialog,
     PresetDialog,
     PresetManagerDialog,
     TriggerDialog,
 )
 from keyseq.presentation.keyboard_layouts import (
     DEFAULT_LAYOUT_ID,
-    KeyboardLayoutEntry,
-    collect_keyboard_layouts,
-    load_layout_from_json,
-    resolve_key_id_from_scan_code,
-    resolve_keyboard_layout,
-    resolve_registered_layout_path,
 )
 from keyseq.presentation.config_io_controller import ConfigIoController
 from keyseq.presentation.config_paths import ConfigPaths
 from keyseq.presentation.dirty_state import DirtyStateTracker
 from keyseq.presentation.key_capture import SingleKeyCaptureController
-from keyseq.presentation.keyboard_window import KeyboardWindow
+from keyseq.presentation.layout_controller import LayoutController
 from keyseq.presentation.listbox_utils import (
     focused_listbox_index,
     sync_listbox_selection_to_focus,
@@ -50,7 +43,6 @@ from keyseq.domain.config import (
     format_trigger_list_item,
     normalize_key_name,
 )
-from keyseq.domain.key_identifiers import SPECIAL_KEY_NAMES, is_special_key_name
 from keyseq.infrastructure.input_gateway import InputGateway
 from keyseq.infrastructure.json_repository import JsonRepository
 
@@ -73,11 +65,6 @@ class App(tk.Tk):
         )
         self.startup_path = self._resolve_startup_path()
         self.keymap_set_path = self._resolve_keymap_set_path()
-        self.keyboard_layouts_dir = self._resolve_keylayout_dir()
-        self.keyboard_layout_id = DEFAULT_LAYOUT_ID
-        self._keyboard_layout_entries: dict[str, KeyboardLayoutEntry] = {}
-        self._keyboard_layout_display_to_id: dict[str, str] = {}
-        self._keyboard_layout_id_to_display: dict[str, str] = {}
         self._startup_settings = self._load_startup_settings()
         self._ui_font_delta_pt = self._coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
@@ -152,6 +139,7 @@ class App(tk.Tk):
             ],
         )
         self._config_io = ConfigIoController(self)
+        self._layout = LayoutController(self)
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
         self.sequence_runner = SequenceRunner(
@@ -180,7 +168,6 @@ class App(tk.Tk):
         self._error_dialog_open = False           # エラーダイアログ多重表示防止
         self.custom_input_enabled = True
         self._flash_after_id = None
-        self.keyboard_window: KeyboardWindow | None = None
         self._build_ui()
         self._config_io.load_startup_and_config()
         self._reload_keyboard_layouts()
@@ -206,6 +193,14 @@ class App(tk.Tk):
     @_indices.setter
     def _indices(self, value: dict[str, int]) -> None:
         self.state.indices = dict(value) if isinstance(value, dict) else {}
+
+    @property
+    def keyboard_window(self):
+        return self._layout.keyboard_window
+
+    @keyboard_window.setter
+    def keyboard_window(self, value) -> None:
+        self._layout.keyboard_window = value
 
     # ---------------- Hook suspend/resume for modal dialogs ----------------
     def suspend_hook_for_dialog(self):
@@ -505,235 +500,28 @@ class App(tk.Tk):
         return "break"
 
     def open_keyboard_window(self):
-        layout = self._get_current_keyboard_layout()
-        window = getattr(self, "keyboard_window", None)
-        if window is not None:
-            try:
-                if window.winfo_exists():
-                    window.update_layout(layout)
-                    window.deiconify()
-                    window.lift()
-                    window.focus_force()
-                    self._refresh_keyboard_window()
-                    return
-            except Exception:
-                self.keyboard_window = None
-
-        self.keyboard_window = KeyboardWindow(
-            self,
-            layout=layout,
-            on_close=self._on_keyboard_window_closed,
-            on_assign_keymap=self.assign_keymap_from_keyboard_ui,
-            on_clear_keymap=self.clear_keymap_from_keyboard_ui,
-        )
-        self._refresh_keyboard_window()
-
-    def _on_keyboard_window_closed(self):
-        self.keyboard_window = None
+        return self._layout.open_keyboard_window()
 
     def _refresh_keyboard_window(self):
-        window = getattr(self, "keyboard_window", None)
-        if window is None:
-            return
-        try:
-            if not window.winfo_exists():
-                self.keyboard_window = None
-                return
-            window.update_layout(self._get_current_keyboard_layout())
-            window.update_from_config(
-                self.data,
-                custom_enabled=True,
-                show_physical_key_labels=bool(self.keyboard_show_physical_key_labels_var.get()),
-            )
-        except Exception:
-            pass
-
-    def _get_current_keyboard_layout(self):
-        entry = self._keyboard_layout_entries.get(str(self.keyboard_layout_id).strip())
-        if entry is not None:
-            if entry.source == "external" and entry.path:
-                try:
-                    return load_layout_from_json(
-                        resolve_registered_layout_path(entry.path, base_dir=self.base_dir)
-                    )
-                except Exception as e:
-                    self._set_flash_message(
-                        f"構成セットの読込に失敗したため、空の状態で起動しました: {e}",
-                        auto_clear=False,
-                    )
-            return entry.layout
-        return resolve_keyboard_layout(layout_id=self.keyboard_layout_id)
-
-    def _get_fallback_keyboard_layout_id(self, *, exclude: str | None = None) -> str:
-        excluded = (exclude or "").strip()
-        if DEFAULT_LAYOUT_ID in self._keyboard_layout_entries and DEFAULT_LAYOUT_ID != excluded:
-            return DEFAULT_LAYOUT_ID
-        for layout_id in self._keyboard_layout_entries.keys():
-            if layout_id != excluded:
-                return layout_id
-        return DEFAULT_LAYOUT_ID
+        return self._layout.refresh_keyboard_window()
 
     def _reload_keyboard_layouts(self):
-        self._keyboard_layout_entries = collect_keyboard_layouts(
-            self.data.get("external_keyboard_layouts", []),
-            base_dir=self.base_dir,
-        )
-        self._sync_keyboard_layout_controls()
+        return self._layout.reload_keyboard_layouts()
 
     def _sync_keyboard_layout_controls(self):
-        self._rebuild_keyboard_layout_display_maps()
-        display_values = list(self._keyboard_layout_display_to_id.keys())
-        selected = str(self.data.get("keyboard_layout", self.keyboard_layout_id or DEFAULT_LAYOUT_ID)).strip()
-        if selected not in self._keyboard_layout_entries:
-            selected = self._get_fallback_keyboard_layout_id()
-
-        self.keyboard_layout_id = selected
-        self.data["keyboard_layout"] = selected
-        if hasattr(self, "keyboard_layout_var"):
-            self.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
-
-        state = "readonly" if display_values else "disabled"
-        for name in ("keyboard_layout_combo", "compact_keyboard_layout_combo"):
-            combo = getattr(self, name, None)
-            if combo is None:
-                continue
-            try:
-                combo.configure(values=display_values, state=state)
-                combo.set(self._keyboard_layout_id_to_display.get(selected, ""))
-            except Exception:
-                pass
-
-        self._refresh_keyboard_window()
-
-    def _persist_keyboard_layout_selection(self):
-        if not self.keymap_set_path:
-            self._set_dirty(True)
-            return True
-        try:
-            return self.save_keymap_set(show_success_dialog=False)
-        except Exception as e:
-            self._set_flash_message(f"保存失敗: {e}", auto_clear=False)
-            messagebox.showerror("保存失敗", str(e))
-            return False
+        return self._layout.sync_keyboard_layout_controls()
 
     def toggle_keyboard_show_physical_key_labels(self):
-        self.data["keyboard_show_physical_key_labels"] = bool(self.keyboard_show_physical_key_labels_var.get())
-        self._refresh_keyboard_window()
-        self._persist_keyboard_layout_selection()
-
-    def _set_keyboard_layout_selection(self, layout_id: str, *, persist: bool = False):
-        selected = str(layout_id or "").strip()
-        if selected not in self._keyboard_layout_entries:
-            selected = self._get_fallback_keyboard_layout_id()
-
-        self.keyboard_layout_id = selected
-        self.data["keyboard_layout"] = selected
-        if hasattr(self, "keyboard_layout_var"):
-            self.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
-
-        for name in ("keyboard_layout_combo", "compact_keyboard_layout_combo"):
-            combo = getattr(self, name, None)
-            if combo is None:
-                continue
-            try:
-                combo.set(self._keyboard_layout_id_to_display.get(selected, ""))
-            except Exception:
-                pass
-
-        self._refresh_keyboard_window()
-        if persist:
-            return self._persist_keyboard_layout_selection()
-        return True
+        return self._layout.toggle_keyboard_show_physical_key_labels()
 
     def on_keyboard_layout_selected(self, _event=None):
-        selected = self._keyboard_layout_display_to_id.get(str(self.keyboard_layout_var.get() or "").strip(), "")
-        self._set_keyboard_layout_selection(selected, persist=True)
+        return self._layout.on_keyboard_layout_selected(_event)
 
     def add_external_keyboard_layout(self):
-        path = filedialog.askopenfilename(
-            title="外部レイアウトを追加",
-            initialdir=self.keyboard_layouts_dir if os.path.isdir(self.keyboard_layouts_dir) else self.base_dir,
-            filetypes=[("JSON", "*.json"), ("All", "*.*")],
-        )
-        if not path:
-            return
-
-        try:
-            layout = load_layout_from_json(path, existing_layout_ids=set(self._keyboard_layout_entries.keys()))
-            registrations = list(self.data.get("external_keyboard_layouts", []))
-            stored_path = self._to_rel_if_possible(path)
-            if any(str(item.get("path") or "").strip() == stored_path for item in registrations if isinstance(item, dict)):
-                raise ValueError("同じJSONファイルは既に登録されています。")
-            registrations.append({"path": stored_path})
-            self.data["external_keyboard_layouts"] = registrations
-        except Exception as e:
-            messagebox.showerror("レイアウト追加失敗", str(e))
-            return
-
-        self._reload_keyboard_layouts()
-        self._persist_keyboard_layout_selection()
-        self._set_flash_message(f"外部レイアウトを追加しました: {layout.layout_id}")
+        return self._layout.add_external_keyboard_layout()
 
     def delete_keyboard_layout(self):
-        items = [
-            (layout_id, entry.layout.display_name)
-            for layout_id, entry in self._keyboard_layout_entries.items()
-            if entry.source == "external" and entry.path
-        ]
-        if not items:
-            messagebox.showinfo("レイアウト削除", "削除できる外部レイアウトがありません。")
-            return
-
-        dlg = LayoutDeleteDialog(self, title="レイアウトを削除", items=items)
-        dlg.wait_window()
-        target_id = getattr(dlg, "result", None)
-        if not target_id:
-            return
-
-        entry = self._keyboard_layout_entries.get(target_id)
-        if entry is None or entry.source != "external" or not entry.path:
-            messagebox.showerror("レイアウト削除", "削除対象のレイアウト情報を取得できませんでした。")
-            return
-
-        if not messagebox.askyesno("確認", f"外部レイアウト '{target_id}' を削除しますか？"):
-            return
-
-        registrations = list(self.data.get("external_keyboard_layouts", []))
-        self.data["external_keyboard_layouts"] = [
-            item
-            for item in registrations
-            if str(item.get("path") or "").strip() != str(entry.path or "").strip()
-        ]
-
-        if target_id == self.keyboard_layout_id:
-            changed = self._set_keyboard_layout_selection(
-                self._get_fallback_keyboard_layout_id(exclude=target_id),
-                persist=True,
-            )
-            if not changed:
-                return
-        else:
-            if not self._persist_keyboard_layout_selection():
-                return
-
-        self._reload_keyboard_layouts()
-        self._set_flash_message(f"外部レイアウトを削除しました: {target_id}")
-
-    def _rebuild_keyboard_layout_display_maps(self):
-        self._keyboard_layout_display_to_id = {}
-        self._keyboard_layout_id_to_display = {}
-        display_counts: dict[str, int] = {}
-
-        for entry in self._keyboard_layout_entries.values():
-            display_name = (entry.layout.display_name or "").strip() or entry.layout.layout_id
-            display_counts[display_name] = display_counts.get(display_name, 0) + 1
-
-        for layout_id, entry in self._keyboard_layout_entries.items():
-            display_name = (entry.layout.display_name or "").strip() or layout_id
-            if display_counts.get(display_name, 0) > 1:
-                display_name = f"{display_name} [{layout_id}]"
-            self._keyboard_layout_display_to_id[display_name] = layout_id
-            self._keyboard_layout_id_to_display[layout_id] = display_name
+        return self._layout.delete_keyboard_layout()
 
     def show_compact_view(self):
         if getattr(self, "_capturing_stop_key", False) or getattr(self, "_capturing_toggle_key", False):
@@ -1175,41 +963,13 @@ class App(tk.Tk):
         return True
 
     def _resolve_key_name_from_scan_code(self, scan_code: object) -> str:
-        return normalize_key_name(resolve_key_id_from_scan_code(self._get_current_keyboard_layout(), scan_code))
+        return self._layout.resolve_key_name_from_scan_code(scan_code)
 
     def _should_debug_special_key_event(self, event: object, resolved_key: str) -> bool:
-        if not bool(self.data.get("debug_jis_special_key_events", False)):
-            return False
-        if normalize_key_name(str(getattr(event, "event_type", "") or "")) != "down":
-            return False
-
-        raw_name = normalize_key_name(str(getattr(event, "name", "") or ""))
-        if is_special_key_name(raw_name) or is_special_key_name(resolved_key):
-            return True
-
-        try:
-            scan_code = int(getattr(event, "scan_code", None))
-        except Exception:
-            return False
-
-        layout = self._get_current_keyboard_layout()
-        for key_spec in getattr(layout, "keys", ()) or ():
-            if str(getattr(key_spec, "id", "") or "").strip() not in SPECIAL_KEY_NAMES:
-                continue
-            try:
-                if int(getattr(key_spec, "scan_code", None)) == scan_code:
-                    return True
-            except Exception:
-                continue
-        return False
+        return self._layout.should_debug_special_key_event(event, resolved_key)
 
     def _debug_special_key_event(self, event: object, resolved_key: str) -> None:
-        print(
-            "[JIS special key debug] "
-            f"event.name={getattr(event, 'name', '')!r} "
-            f"event.scan_code={getattr(event, 'scan_code', None)!r} "
-            f"resolved_key={resolved_key!r}"
-        )
+        return self._layout.debug_special_key_event(event, resolved_key)
 
     def _get_active_keymap_text(self) -> str:
         label = self.keymap_service.get_active_keymap_label(self.data)
