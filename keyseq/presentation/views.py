@@ -40,7 +40,7 @@ class FullView(ttk.Frame):
         app.stop_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
         app.stop_key_capture_btn = ttk.Button(self.full_hook_line2, text="キー入力で取得", command=app.toggle_stop_key_capture)
         app.stop_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
-        app.stop_key_clear_btn = ttk.Button(self.full_hook_line2, text="クリア", command=app.clear_stop_key)
+        app.stop_key_clear_btn = ttk.Button(self.full_hook_line2, text="クリア", command=app.stop_key_capture.clear)
         app.stop_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
 
         # 通常トリガー有効/無効トグルキー（フル：取得/クリアあり）
@@ -49,7 +49,7 @@ class FullView(ttk.Frame):
         app.toggle_key_entry.grid(row=1, column=1, sticky="w", padx=(0, 0))
         app.toggle_key_capture_btn = ttk.Button(self.full_hook_line2, text="キー入力で取得", command=app.toggle_toggle_key_capture)
         app.toggle_key_capture_btn.grid(row=1, column=2, sticky="w", padx=(8, 0))
-        app.toggle_key_clear_btn = ttk.Button(self.full_hook_line2, text="クリア", command=app.clear_toggle_key)
+        app.toggle_key_clear_btn = ttk.Button(self.full_hook_line2, text="クリア", command=app.toggle_key_capture.clear)
         app.toggle_key_clear_btn.grid(row=1, column=3, sticky="w", padx=(8, 0))
         # 表示ラベルフレーム
         self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))

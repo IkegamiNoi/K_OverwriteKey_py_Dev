@@ -429,7 +429,7 @@ class App(tk.Tk):
         self.bind("<Control-Alt-P>", self._on_shortcut_open_preset_manager, add="+")
 
     def _is_menu_shortcut_enabled(self) -> bool:
-        if getattr(self, "_capturing_stop_key", False) or getattr(self, "_capturing_toggle_key", False):
+        if self.stop_key_capture.capturing or self.toggle_key_capture.capturing:
             return False
         try:
             return self.focus_displayof() is not None
@@ -491,7 +491,7 @@ class App(tk.Tk):
         return self.layout.delete_keyboard_layout()
 
     def show_compact_view(self):
-        if getattr(self, "_capturing_stop_key", False) or getattr(self, "_capturing_toggle_key", False):
+        if self.stop_key_capture.capturing or self.toggle_key_capture.capturing:
             # 制御キーキャプチャ中に切替すると紛らわしいので止める（安全）
             return
         if self._compact_mode:
@@ -886,15 +886,7 @@ class App(tk.Tk):
 
         return "", normalized
 
-    # ---------------- Control key capture logic ----------------
-    @property
-    def _capturing_stop_key(self) -> bool:
-        return self.stop_key_capture.capturing
-
-    @property
-    def _capturing_toggle_key(self) -> bool:
-        return self.toggle_key_capture.capturing
-
+    # ---------------- Control key capture logic (相互排他の調整役。App に残す) ----------------
     def toggle_stop_key_capture(self):
         if self.stop_key_capture.capturing:
             self.stop_key_capture.stop(cancel=True)
@@ -905,12 +897,6 @@ class App(tk.Tk):
         self.toggle_key_capture.stop(cancel=True)
         self.stop_key_capture.start()
 
-    def _stop_stop_key_capture(self, cancel: bool = False):
-        self.stop_key_capture.stop(cancel=cancel)
-
-    def clear_stop_key(self):
-        self.stop_key_capture.clear()
-
     def toggle_toggle_key_capture(self):
         if self.toggle_key_capture.capturing:
             self.toggle_key_capture.stop(cancel=True)
@@ -920,12 +906,6 @@ class App(tk.Tk):
     def start_toggle_key_capture(self):
         self.stop_key_capture.stop(cancel=True)
         self.toggle_key_capture.start()
-
-    def _stop_toggle_key_capture(self, cancel: bool = False):
-        self.toggle_key_capture.stop(cancel=cancel)
-
-    def clear_toggle_key(self):
-        self.toggle_key_capture.clear()
 
     # ---------------- Close ----------------
     def on_close(self):
