@@ -36,12 +36,15 @@ infrastructure
 ### App
 
 - Tk ルートウィンドウ・View切替（Full / Compact）・メニュー
-- 各コントローラの生成と配線
-- 外部（views / dialogs / keyboard_window）向けファサード（同名の委譲メソッド群）
+- 各コントローラの生成と配線（コールバックはラムダで包み、実行時に `self.<コントローラ>.…` を解決）
+- 調整役メソッド（キャプチャ相互排他: `toggle_stop_key_capture` / `start_stop_key_capture` / `toggle_toggle_key_capture` / `start_toggle_key_capture`、ダーティ既定解決: `mark_keymap_dirty` / `mark_sequence_dirty`）
+- dialogs 向け契約（`validate_hotkey` / `_dialog_result`）と、状態依存でパスを詰め替える薄メソッド（`suggest_keymap_set_dialog_path` / `suggest_keymap_set_dialog_dir` / `keymap_set_file_stem`）
 - 分離JSONの現在の構成セットパス（keymap_set_path）・startup 設定を保持
 
-計画02で App の責務を以下のコントローラ／ヘルパへ分割した（presentation 層内の再配置。
-views / dialogs / keyboard_window からはすべて App ファサード経由で従来どおり呼ばれる）:
+計画02で App の責務を以下のコントローラ／ヘルパへ分割し、計画03で **views / dialogs / keyboard_window は
+App の委譲メソッドを介さず、コントローラを `app.<名前>`（`app.config_io` / `app.hook` / `app.layout` /
+`app.keymap_panel` / `app.trigger_panel` / `app.dirty_tracker` / `app.stop_key_capture` /
+`app.toggle_key_capture` / `app.paths`）経由で直接参照する**ようにした（App から委譲ボイラープレートを削除）:
 
 - ConfigPaths（config_paths.py）: 設定ファイルの配置規約とパス解決
 - DirtyStateTracker（dirty_state.py）: 未保存状態の一元管理
