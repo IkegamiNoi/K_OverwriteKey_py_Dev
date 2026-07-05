@@ -17,10 +17,6 @@ from keyseq.presentation.key_capture import SingleKeyCaptureController
 from keyseq.presentation.keymap_panel_controller import KeymapPanelController
 from keyseq.presentation.layout_controller import LayoutController
 from keyseq.presentation.trigger_panel_controller import TriggerPanelController
-from keyseq.presentation.listbox_utils import (
-    focused_listbox_index,
-    sync_listbox_selection_to_focus,
-)
 from keyseq.presentation.views import CompactView, FullView
 from keyseq.presentation.theme import apply_global_theme
 
@@ -474,12 +470,6 @@ class App(tk.Tk):
             self.geometry(self._full_geometry)
         except Exception:
             pass
-
-    def _focused_listbox_index(self, listbox: tk.Listbox, item_count: int) -> int | None:
-        return focused_listbox_index(self, listbox, item_count)
-
-    def _sync_listbox_selection_to_focus(self, listbox: tk.Listbox, item_count: int) -> int | None:
-        return sync_listbox_selection_to_focus(self, listbox, item_count)
 
     def _find_trigger_by_key(self, key: str):
         return self.trigger_service.find_trigger_by_key(self.data, key)
