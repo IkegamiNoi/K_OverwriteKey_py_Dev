@@ -166,7 +166,7 @@ class KeymapPanelController:
         target = keymaps[index]
         keymap_id = normalize_key_name(target.get("id", ""))
         current_label = str(target.get("label") or "").strip()
-        self._app.suspend_hook_for_dialog()
+        self._app.hook.suspend_hook_for_dialog()
         try:
             new_label = simpledialog.askstring(
                 "名前変更",
@@ -175,7 +175,7 @@ class KeymapPanelController:
                 parent=self._app,
             )
         finally:
-            self._app.resume_hook_after_dialog()
+            self._app.hook.resume_hook_after_dialog()
         if new_label is None:
             return
 
@@ -346,7 +346,7 @@ class KeymapPanelController:
         label = self._app.keymap_service.get_active_keymap_label(self._app.data)
         if not label:
             return "(なし)"
-        if not (self._app.hook_active and self._app.custom_input_enabled):
+        if not (self._app.hook.hook_active and self._app.hook.custom_input_enabled):
             return f"{label} (待機)"
         return label
 

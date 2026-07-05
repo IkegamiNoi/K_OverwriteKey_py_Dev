@@ -256,8 +256,8 @@ class TriggerPanelController:
             pass
 
     def update_status(self):
-        hook_state = "ON" if self._app.hook_active else "OFF"
-        trigger_state = "ON" if self._app.custom_input_enabled else "OFF"
+        hook_state = "ON" if self._app.hook.hook_active else "OFF"
+        trigger_state = "ON" if self._app.hook.custom_input_enabled else "OFF"
         keymap_text = self._app._get_active_keymap_text()
         sel_key = self.selected_trigger_key() or "(未選択)"
         if getattr(self._app, "_compact_mode", False):
@@ -347,8 +347,8 @@ class TriggerPanelController:
         if old_v != new_v:
             self._app._mark_trigger_set_dirty()
         # フックON中なら再登録が必要（設定反映）
-        if self._app.hook_active:
-            self._app.start_hook()
+        if self._app.hook.hook_active:
+            self._app.hook.start_hook()
 
     def update_run_to_end(self):
         """連続実行（run_to_end）を現在のトリガーへ反映"""
@@ -399,8 +399,8 @@ class TriggerPanelController:
         self._app._mark_trigger_set_dirty()
         self._app.mark_sequence_dirty(triggers[-1])
         self.set_selected_trigger_index(new_index)
-        if self._app.hook_active:
-            self._app.start_hook()
+        if self._app.hook.hook_active:
+            self._app.hook.start_hook()
 
     def rename_trigger(self):
         t = self.selected_trigger()
@@ -442,8 +442,8 @@ class TriggerPanelController:
             self._app._mark_trigger_set_dirty()
         if cur_label != new_label:
             self._app.mark_sequence_dirty(t)
-        if self._app.hook_active:
-            self._app.start_hook()
+        if self._app.hook.hook_active:
+            self._app.hook.start_hook()
 
     def delete_trigger(self):
         idx = self.selected_trigger_index()
@@ -460,8 +460,8 @@ class TriggerPanelController:
             self.refresh_triggers()
             self.refresh_actions()
             self._app._mark_trigger_set_dirty()
-            if self._app.hook_active:
-                self._app.start_hook()
+            if self._app.hook.hook_active:
+                self._app.hook.start_hook()
 
     # ---------------- Actions CRUD (selected trigger) ----------------
     def selected_action_index(self):

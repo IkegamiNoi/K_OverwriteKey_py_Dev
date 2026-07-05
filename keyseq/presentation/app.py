@@ -73,20 +73,20 @@ class App(tk.Tk):
         self.action_executor = ActionExecutor(
             input_gateway=self.input_gateway,
             validate_hotkey=self.validate_hotkey,
-            on_action_error=lambda action, err: self._show_action_error("", action, err),
+            on_action_error=lambda action, err: self.hook.show_action_error("", action, err),
             on_runtime_error=lambda title, msg: messagebox.showerror(title, msg),
-            on_stop_hook=self.stop_hook,
-            on_toggle_mode=self.toggle_custom_input_enabled,
+            on_stop_hook=lambda: self.hook.stop_hook(),
+            on_toggle_mode=lambda: self.hook.toggle_custom_input_enabled(),
             on_select_keymap=lambda keymap_id: self.activate_keymap_by_id(keymap_id, mark_dirty=False, show_flash=True),
             on_trigger=lambda key: self.sequence_runner.handle_key(key),
         )
         self.input_router = InputRouter(
             key_state_manager=self.key_state_manager,
             get_send_guard_count=self._get_send_guard_count,
-            get_hook_pause_count=self._get_hook_pause_count,
+            get_hook_pause_count=lambda: self.hook.get_hook_pause_count(),
             get_stop_key=lambda: self.data.get("hook_stop_key", ""),
             get_toggle_key=lambda: self.data.get("hook_toggle_key", ""),
-            get_custom_input_enabled=lambda: bool(self.custom_input_enabled),
+            get_custom_input_enabled=lambda: bool(self.hook.custom_input_enabled),
             find_keymap_switch_target=self._find_keymap_switch_target_id,
             find_trigger=self._find_trigger_by_key,
             find_keymap_target=self._find_keymap_target,
@@ -165,7 +165,7 @@ class App(tk.Tk):
         self._refresh_triggers()
         self._refresh_actions()
         self._update_status()
-        self._sync_hook_toggle_buttons()
+        self.hook.sync_hook_toggle_buttons()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
     # ---------------- State compatibility aliases ----------------
@@ -192,24 +192,6 @@ class App(tk.Tk):
     @keyboard_window.setter
     def keyboard_window(self, value) -> None:
         self.layout.keyboard_window = value
-
-    @property
-    def hook_active(self) -> bool:
-        return self.hook.hook_active
-
-    @property
-    def custom_input_enabled(self) -> bool:
-        return self.hook.custom_input_enabled
-
-    # ---------------- Hook suspend/resume for modal dialogs ----------------
-    def suspend_hook_for_dialog(self):
-        return self.hook.suspend_hook_for_dialog()
-
-    def resume_hook_after_dialog(self):
-        return self.hook.resume_hook_after_dialog()
-
-    def _get_hook_pause_count(self) -> int:
-        return self.hook.get_hook_pause_count()
 
     def _get_send_guard_count(self) -> int:
         return int(self.action_executor.send_guard_count)
@@ -869,19 +851,6 @@ class App(tk.Tk):
         return self.trigger_panel.delete_action()
     def move_action(self, delta: int):
         return self.trigger_panel.move_action(delta)
-    # ---------------- Hook logic ----------------
-    def _sync_hook_toggle_buttons(self):
-        return self.hook.sync_hook_toggle_buttons()
-    def start_hook(self):
-        return self.hook.start_hook()
-    def stop_hook(self, *, reset_custom_input_mode: bool = True):
-        return self.hook.stop_hook(reset_custom_input_mode=reset_custom_input_mode)
-    def toggle_hook(self):
-        return self.hook.toggle_hook()
-    def toggle_custom_input_enabled(self):
-        return self.hook.toggle_custom_input_enabled()
-    def toggle_triggers_enabled(self):
-        return self.hook.toggle_triggers_enabled()
     def _perform_action(self, action: dict):
         self.action_executor.execute(action)
             
@@ -917,8 +886,6 @@ class App(tk.Tk):
 
         return "", normalized
 
-    def _show_action_error(self, trigger_key: str, action: dict, err: Exception):
-        return self.hook.show_action_error(trigger_key, action, err)
     # ---------------- Control key capture logic ----------------
     @property
     def _capturing_stop_key(self) -> bool:
@@ -971,7 +938,7 @@ class App(tk.Tk):
                         self.keyboard_window.destroy()
                 except Exception:
                     pass
-            self.stop_hook()
+            self.hook.stop_hook()
         finally:
             self.destroy()
 

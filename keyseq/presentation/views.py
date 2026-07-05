@@ -26,8 +26,8 @@ class FullView(ttk.Frame):
         # フックラベルフレーム1行目
         self.full_hook_line1 = ttk.Frame(self.hook_frame)
         self.full_hook_line1.pack(side="top", fill="x")
-        app.hook_toggle_btn = ttk.Button(self.full_hook_line1, text="開始（フックON）", command=app.toggle_hook)
-        app.trigger_toggle_btn = ttk.Button(self.full_hook_line1, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
+        app.hook_toggle_btn = ttk.Button(self.full_hook_line1, text="開始（フックON）", command=app.hook.toggle_hook)
+        app.trigger_toggle_btn = ttk.Button(self.full_hook_line1, text="通常トリガー無効化", command=app.hook.toggle_triggers_enabled, state="disabled")
         app.hook_toggle_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         app.trigger_toggle_btn.grid(row=0, column=1, padx=(8, 0), sticky="w")
         
@@ -215,8 +215,8 @@ class CompactView(ttk.Frame):
         self.compact_hook_line1 = ttk.Frame(self.hook_frame)
         self.compact_hook_line1.pack(side="top", fill="x")
         # 開始/停止（Appの同名メソッドを呼ぶ。ウィジェットは別物でOK）
-        self.hook_toggle_btn = ttk.Button(self.compact_hook_line1, text="開始（フックON）", command=app.toggle_hook)
-        self.trigger_toggle_btn = ttk.Button(self.compact_hook_line1, text="通常トリガー無効化", command=app.toggle_triggers_enabled, state="disabled")
+        self.hook_toggle_btn = ttk.Button(self.compact_hook_line1, text="開始（フックON）", command=app.hook.toggle_hook)
+        self.trigger_toggle_btn = ttk.Button(self.compact_hook_line1, text="通常トリガー無効化", command=app.hook.toggle_triggers_enabled, state="disabled")
         self.hook_toggle_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         self.trigger_toggle_btn.grid(row=0, column=1, padx=(8, 0), sticky="w")
         # App側でも参照できるように保持（フック開始/停止時のstate同期用）

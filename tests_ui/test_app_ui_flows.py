@@ -65,11 +65,11 @@ class AppUiFlowsTest(unittest.TestCase):
 
     def test_hook_suspend_counter_nesting(self):
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
-        self.app.suspend_hook_for_dialog()
-        self.app.suspend_hook_for_dialog()
+        self.app.hook.suspend_hook_for_dialog()
+        self.app.hook.suspend_hook_for_dialog()
         self.assertEqual(self.app.hook.get_hook_pause_count(), 2)
-        self.app.resume_hook_after_dialog()
-        self.app.resume_hook_after_dialog()
+        self.app.hook.resume_hook_after_dialog()
+        self.app.hook.resume_hook_after_dialog()
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_stop_key_capture_start_and_cancel(self):

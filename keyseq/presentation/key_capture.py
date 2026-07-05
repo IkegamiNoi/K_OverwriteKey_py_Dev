@@ -50,7 +50,7 @@ class SingleKeyCaptureController:
             getattr(self._app, self._clear_btn_attr).configure(state="disabled")
 
         # キャプチャ中なのでフックを一時停止（開始中なら止まる / 終了時に元に戻る）
-        self._app.suspend_hook_for_dialog()
+        self._app.hook.suspend_hook_for_dialog()
 
         # フォーカスは表示欄に（入力はしないが、キーを拾いやすくする）
         if hasattr(self._app, self._focus_entry_attr):
@@ -74,7 +74,7 @@ class SingleKeyCaptureController:
             getattr(self._app, self._clear_btn_attr).configure(state="normal")
 
         # 一時停止していたフックを元に戻す
-        self._app.resume_hook_after_dialog()
+        self._app.hook.resume_hook_after_dialog()
 
         if cancel:
             return

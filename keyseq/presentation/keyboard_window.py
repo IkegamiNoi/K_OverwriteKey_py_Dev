@@ -266,8 +266,8 @@ class KeyboardWindow(tk.Toplevel):
         return "break"
 
     def _begin_edit(self, source_key: str) -> None:
-        if not self._editing_source_key and hasattr(self.master, "suspend_hook_for_dialog"):
-            self.master.suspend_hook_for_dialog()
+        if not self._editing_source_key and hasattr(self.master, "hook"):
+            self.master.hook.suspend_hook_for_dialog()
         self._editing_source_key = normalize_key_name(source_key)
         self.focus_force()
         self.canvas.focus_set()
@@ -278,8 +278,8 @@ class KeyboardWindow(tk.Toplevel):
         if not self._editing_source_key:
             return
         self._editing_source_key = None
-        if resume_hook and hasattr(self.master, "resume_hook_after_dialog"):
-            self.master.resume_hook_after_dialog()
+        if resume_hook and hasattr(self.master, "hook"):
+            self.master.hook.resume_hook_after_dialog()
         self._update_summary()
         self.redraw()
 

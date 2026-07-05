@@ -20,7 +20,7 @@ class ActionDialog(tk.Toplevel):
         self.resizable(False, False)
 
         # ダイアログ中のキー操作がフックで実行されないように一時停止
-        self.parent.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog()
 
         # hotkey 記録用
         self._recording = False
@@ -262,7 +262,7 @@ class ActionDialog(tk.Toplevel):
         # 記録中のバインドを剥がす
         self._stop_recording()
         # ダイアログ終了でフックを必要なら再開
-        self.parent.resume_hook_after_dialog()
+        self.parent.hook.resume_hook_after_dialog()
         super().destroy()
 
     def _sync_capture_ui(self):
@@ -351,7 +351,7 @@ class PresetManagerDialog(tk.Toplevel):
         self.resizable(False, False)
         
         # 編集中の誤爆防止
-        self.parent.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog()
 
         self._temp = safe_deepcopy(parent.data.get("hotkey_presets", []))
         if not isinstance(self._temp, list):
@@ -509,7 +509,7 @@ class PresetManagerDialog(tk.Toplevel):
 
     def destroy(self):
         # ダイアログ終了でフックを必要なら再開
-        self.parent.resume_hook_after_dialog()
+        self.parent.hook.resume_hook_after_dialog()
         super().destroy()
 
 class PresetDialog(tk.Toplevel):
@@ -569,7 +569,7 @@ class TriggerDialog(tk.Toplevel):
         self._capturing = False
         
         # 編集中の誤爆防止
-        self.parent.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog()
 
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
@@ -611,7 +611,7 @@ class TriggerDialog(tk.Toplevel):
     def destroy(self):
         self._stop_capture()
         # ダイアログ終了でフックを必要なら再開
-        self.parent.resume_hook_after_dialog()
+        self.parent.hook.resume_hook_after_dialog()
         super().destroy()
 
     def _toggle_capture(self):
@@ -672,7 +672,7 @@ class KeymapEditDialog(tk.Toplevel):
         self.result = None
         self._capturing = False
 
-        self.parent.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog()
 
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
@@ -713,7 +713,7 @@ class KeymapEditDialog(tk.Toplevel):
 
     def destroy(self):
         self._stop_capture()
-        self.parent.resume_hook_after_dialog()
+        self.parent.hook.resume_hook_after_dialog()
         super().destroy()
 
     def _clear_key(self):
@@ -773,7 +773,7 @@ class LayoutDeleteDialog(tk.Toplevel):
         self.result = None
         self._items = list(items)
 
-        self.parent.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog()
 
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
@@ -816,6 +816,6 @@ class LayoutDeleteDialog(tk.Toplevel):
         self.destroy()
 
     def destroy(self):
-        self.parent.resume_hook_after_dialog()
+        self.parent.hook.resume_hook_after_dialog()
         super().destroy()
 

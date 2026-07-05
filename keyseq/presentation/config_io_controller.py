@@ -308,7 +308,7 @@ class ConfigIoController:
         dialog = tk.Toplevel(self._app)
         dialog.title(title)
         dialog.resizable(False, False)
-        self._app.suspend_hook_for_dialog()
+        self._app.hook.suspend_hook_for_dialog()
         result = {"ok": False, "link": False}
         link_var = tk.BooleanVar(value=False)
 
@@ -335,7 +335,7 @@ class ConfigIoController:
         try:
             dialog.wait_window()
         finally:
-            self._app.resume_hook_after_dialog()
+            self._app.hook.resume_hook_after_dialog()
         if not result["ok"]:
             raise RuntimeError("キャンセルされました。")
         return bool(result["link"])
