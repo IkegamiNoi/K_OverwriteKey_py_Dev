@@ -335,7 +335,7 @@ class TriggerPanelController:
         # 表示を正規化（"00300" 等を "300" に）
         self._app.run_to_end_delay_var.set(str(v))
         if old_v != v:
-            self._app._mark_sequence_dirty(t)
+            self._app.mark_sequence_dirty(t)
 
     def update_suppress(self):
         t = self.selected_trigger()
@@ -359,7 +359,7 @@ class TriggerPanelController:
         old_v = bool(t.get("run_to_end", False))
         t["run_to_end"] = new_v
         if old_v != new_v:
-            self._app._mark_sequence_dirty(t)
+            self._app.mark_sequence_dirty(t)
         self.sync_run_to_end_ui()
         # UI表示（次の行ハイライト/ステータス）を即反映
         if not getattr(self._app, "_compact_mode", False):
@@ -397,7 +397,7 @@ class TriggerPanelController:
         self._app._indices.setdefault(key, 0)
         self.refresh_triggers()
         self._app._mark_trigger_set_dirty()
-        self._app._mark_sequence_dirty(triggers[-1])
+        self._app.mark_sequence_dirty(triggers[-1])
         self.set_selected_trigger_index(new_index)
         if self._app.hook_active:
             self._app.start_hook()
@@ -441,7 +441,7 @@ class TriggerPanelController:
         if old != new:
             self._app._mark_trigger_set_dirty()
         if cur_label != new_label:
-            self._app._mark_sequence_dirty(t)
+            self._app.mark_sequence_dirty(t)
         if self._app.hook_active:
             self._app.start_hook()
 
@@ -482,7 +482,7 @@ class TriggerPanelController:
         if getattr(self._app, "_dialog_result", None):
             trig.setdefault("actions", []).append(self._app._dialog_result)
             self.refresh_actions()
-            self._app._mark_sequence_dirty(trig)
+            self._app.mark_sequence_dirty(trig)
             self._app._dialog_result = None
 
     def edit_action(self):
@@ -499,7 +499,7 @@ class TriggerPanelController:
         if getattr(self._app, "_dialog_result", None):
             trig["actions"][idx] = self._app._dialog_result
             self.refresh_actions()
-            self._app._mark_sequence_dirty(trig)
+            self._app.mark_sequence_dirty(trig)
             # action_list は FullView 側にある（選択表示を復帰）
             try:
                 self._app.full_view.action_list.selection_clear(0, tk.END)
@@ -522,7 +522,7 @@ class TriggerPanelController:
         if messagebox.askyesno("確認", "選択した行を削除しますか？"):
             del trig["actions"][idx]
             self.refresh_actions()
-            self._app._mark_sequence_dirty(trig)
+            self._app.mark_sequence_dirty(trig)
 
     def move_action(self, delta: int):
         trig = self.selected_trigger()
@@ -542,7 +542,7 @@ class TriggerPanelController:
         if key:
             self._app._indices[key] = j
         self.refresh_actions()
-        self._app._mark_sequence_dirty(trig)
+        self._app.mark_sequence_dirty(trig)
 
     def on_action_list_select(self, _event=None):
         """ユーザーが action_list の行を選んだら、その行を『次に実行』として indices に反映"""

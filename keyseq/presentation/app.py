@@ -94,13 +94,13 @@ class App(tk.Tk):
         )
         self.state = AppState()
         # --- controllers (計画02で順次追加) ---
-        self._dirty_tracker = DirtyStateTracker(
+        self.dirty_tracker = DirtyStateTracker(
             get_data=lambda: self.data,
             keymap_service=self.keymap_service,
             config_service=self.config_service,
             on_change=self._update_file_status,
         )
-        self._stop_key_capture = SingleKeyCaptureController(
+        self.stop_key_capture = SingleKeyCaptureController(
             self,
             data_key="hook_stop_key",
             var_attr="stop_key_var",
@@ -116,7 +116,7 @@ class App(tk.Tk):
                 (lambda app, key: app.keymap_service.source_key_exists(app.data, key), "キーマップ元キー"),
             ],
         )
-        self._toggle_key_capture = SingleKeyCaptureController(
+        self.toggle_key_capture = SingleKeyCaptureController(
             self,
             data_key="hook_toggle_key",
             var_attr="toggle_key_var",
@@ -132,11 +132,11 @@ class App(tk.Tk):
                 (lambda app, key: app.keymap_service.source_key_exists(app.data, key), "キーマップ元キー"),
             ],
         )
-        self._config_io = ConfigIoController(self)
-        self._layout = LayoutController(self)
-        self._keymap_panel = KeymapPanelController(self)
-        self._trigger_panel = TriggerPanelController(self)
-        self._hook = HookController(self)
+        self.config_io = ConfigIoController(self)
+        self.layout = LayoutController(self)
+        self.keymap_panel = KeymapPanelController(self)
+        self.trigger_panel = TriggerPanelController(self)
+        self.hook = HookController(self)
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
         self.sequence_runner = SequenceRunner(
@@ -160,7 +160,7 @@ class App(tk.Tk):
         self._programmatic_action_select = False  # action_list選択をコード側で変更中か
         self._flash_after_id = None
         self._build_ui()
-        self._config_io.load_startup_and_config()
+        self.config_io.load_startup_and_config()
         self._reload_keyboard_layouts()
         self._refresh_triggers()
         self._refresh_actions()
@@ -187,29 +187,29 @@ class App(tk.Tk):
 
     @property
     def keyboard_window(self):
-        return self._layout.keyboard_window
+        return self.layout.keyboard_window
 
     @keyboard_window.setter
     def keyboard_window(self, value) -> None:
-        self._layout.keyboard_window = value
+        self.layout.keyboard_window = value
 
     @property
     def hook_active(self) -> bool:
-        return self._hook.hook_active
+        return self.hook.hook_active
 
     @property
     def custom_input_enabled(self) -> bool:
-        return self._hook.custom_input_enabled
+        return self.hook.custom_input_enabled
 
     # ---------------- Hook suspend/resume for modal dialogs ----------------
     def suspend_hook_for_dialog(self):
-        return self._hook.suspend_hook_for_dialog()
+        return self.hook.suspend_hook_for_dialog()
 
     def resume_hook_after_dialog(self):
-        return self._hook.resume_hook_after_dialog()
+        return self.hook.resume_hook_after_dialog()
 
     def _get_hook_pause_count(self) -> int:
-        return self._hook.get_hook_pause_count()
+        return self.hook.get_hook_pause_count()
 
     def _get_send_guard_count(self) -> int:
         return int(self.action_executor.send_guard_count)
@@ -302,53 +302,53 @@ class App(tk.Tk):
 
     @property
     def _trigger_set_source_path(self) -> str:
-        return self._dirty_tracker.trigger_set_source_path
+        return self.dirty_tracker.trigger_set_source_path
 
     @_trigger_set_source_path.setter
     def _trigger_set_source_path(self, value: str) -> None:
-        self._dirty_tracker.trigger_set_source_path = str(value or "")
+        self.dirty_tracker.trigger_set_source_path = str(value or "")
 
     @property
     def _trigger_set_imported(self) -> bool:
-        return self._dirty_tracker.trigger_set_imported
+        return self.dirty_tracker.trigger_set_imported
 
     @_trigger_set_imported.setter
     def _trigger_set_imported(self, value: bool) -> None:
-        self._dirty_tracker.trigger_set_imported = bool(value)
+        self.dirty_tracker.trigger_set_imported = bool(value)
 
     @property
     def _trigger_set_dirty(self) -> bool:
-        return self._dirty_tracker.trigger_set_dirty
+        return self.dirty_tracker.trigger_set_dirty
 
     @_trigger_set_dirty.setter
     def _trigger_set_dirty(self, value: bool) -> None:
-        self._dirty_tracker.trigger_set_dirty = bool(value)
+        self.dirty_tracker.trigger_set_dirty = bool(value)
 
     def _set_dirty(self, value: bool, *, config_dirty: bool = True):
-        self._dirty_tracker.set_dirty(value, config_dirty=config_dirty)
+        self.dirty_tracker.set_dirty(value, config_dirty=config_dirty)
 
-    def _mark_keymap_dirty(self, keymap: dict | None = None) -> None:
+    def mark_keymap_dirty(self, keymap: dict | None = None) -> None:
         target = keymap if keymap is not None else self.keymap_service.get_active_keymap(self.data)
-        self._dirty_tracker.mark_keymap_dirty(target)
+        self.dirty_tracker.mark_keymap_dirty(target)
 
     def _mark_trigger_set_dirty(self) -> None:
-        self._dirty_tracker.mark_trigger_set_dirty()
+        self.dirty_tracker.mark_trigger_set_dirty()
 
-    def _mark_sequence_dirty(self, trigger: dict | None = None) -> None:
+    def mark_sequence_dirty(self, trigger: dict | None = None) -> None:
         target = trigger if isinstance(trigger, dict) else self._selected_trigger()
-        self._dirty_tracker.mark_sequence_dirty(target)
+        self.dirty_tracker.mark_sequence_dirty(target)
 
     def _has_unsaved_changes(self) -> bool:
-        return self._dirty_tracker.has_unsaved_changes()
+        return self.dirty_tracker.has_unsaved_changes()
 
     def _sync_dirty_state(self) -> None:
-        self._dirty_tracker.sync_dirty_state()
+        self.dirty_tracker.sync_dirty_state()
 
     def _has_individual_dirty(self) -> bool:
-        return self._dirty_tracker.has_individual_dirty()
+        return self.dirty_tracker.has_individual_dirty()
 
     def _clear_individual_dirty_flags(self) -> None:
-        self._dirty_tracker.clear_individual_dirty_flags()
+        self.dirty_tracker.clear_individual_dirty_flags()
 
     def _clear_flash_message(self):
         self._flash_after_id = None
@@ -485,28 +485,28 @@ class App(tk.Tk):
         return "break"
 
     def open_keyboard_window(self):
-        return self._layout.open_keyboard_window()
+        return self.layout.open_keyboard_window()
 
     def _refresh_keyboard_window(self):
-        return self._layout.refresh_keyboard_window()
+        return self.layout.refresh_keyboard_window()
 
     def _reload_keyboard_layouts(self):
-        return self._layout.reload_keyboard_layouts()
+        return self.layout.reload_keyboard_layouts()
 
     def _sync_keyboard_layout_controls(self):
-        return self._layout.sync_keyboard_layout_controls()
+        return self.layout.sync_keyboard_layout_controls()
 
     def toggle_keyboard_show_physical_key_labels(self):
-        return self._layout.toggle_keyboard_show_physical_key_labels()
+        return self.layout.toggle_keyboard_show_physical_key_labels()
 
     def on_keyboard_layout_selected(self, _event=None):
-        return self._layout.on_keyboard_layout_selected(_event)
+        return self.layout.on_keyboard_layout_selected(_event)
 
     def add_external_keyboard_layout(self):
-        return self._layout.add_external_keyboard_layout()
+        return self.layout.add_external_keyboard_layout()
 
     def delete_keyboard_layout(self):
-        return self._layout.delete_keyboard_layout()
+        return self.layout.delete_keyboard_layout()
 
     def show_compact_view(self):
         if getattr(self, "_capturing_stop_key", False) or getattr(self, "_capturing_toggle_key", False):
@@ -563,9 +563,9 @@ class App(tk.Tk):
             pass
 
     def _sync_trigger_selection_to_views(self):
-        return self._trigger_panel.sync_trigger_selection_to_views()
+        return self.trigger_panel.sync_trigger_selection_to_views()
     def _set_selected_trigger_index(self, idx: int):
-        return self._trigger_panel.set_selected_trigger_index(idx)
+        return self.trigger_panel.set_selected_trigger_index(idx)
     def _focused_listbox_index(self, listbox: tk.Listbox, item_count: int) -> int | None:
         return focused_listbox_index(self, listbox, item_count)
 
@@ -582,31 +582,31 @@ class App(tk.Tk):
         return self.keymap_service.get_keymap_by_switch_key(self.data, key)
 
     def _selected_keymap_list_index(self) -> int | None:
-        return self._keymap_panel.selected_keymap_list_index()
+        return self.keymap_panel.selected_keymap_list_index()
 
     def _refresh_keymap_list_ui(self, preferred_index: int | None = None) -> None:
-        return self._keymap_panel.refresh_keymap_list_ui(preferred_index=preferred_index)
+        return self.keymap_panel.refresh_keymap_list_ui(preferred_index=preferred_index)
 
     def _on_keymap_list_select(self, _event=None) -> None:
-        return self._keymap_panel.on_keymap_list_select(_event)
+        return self.keymap_panel.on_keymap_list_select(_event)
 
     def _on_keymap_list_focus_index_change(self, _event=None) -> None:
-        return self._keymap_panel.on_keymap_list_focus_index_change(_event)
+        return self.keymap_panel.on_keymap_list_focus_index_change(_event)
 
     def _on_keymap_list_double_click(self, _event=None) -> None:
-        return self._keymap_panel.on_keymap_list_double_click(_event)
+        return self.keymap_panel.on_keymap_list_double_click(_event)
 
     def _add_keymap(self) -> None:
-        return self._keymap_panel.add_keymap()
+        return self.keymap_panel.add_keymap()
 
     def _delete_keymap(self) -> None:
-        return self._keymap_panel.delete_keymap()
+        return self.keymap_panel.delete_keymap()
 
     def _select_keymap(self) -> None:
-        return self._keymap_panel.select_keymap()
+        return self.keymap_panel.select_keymap()
 
     def _edit_selected_keymap(self) -> None:
-        return self._keymap_panel.edit_selected_keymap()
+        return self.keymap_panel.edit_selected_keymap()
 
     def activate_keymap_by_id(
         self,
@@ -616,7 +616,7 @@ class App(tk.Tk):
         mark_dirty: bool = False,
         show_flash: bool = True,
     ) -> bool:
-        return self._keymap_panel.activate_keymap_by_id(
+        return self.keymap_panel.activate_keymap_by_id(
             keymap_id,
             preferred_index=preferred_index,
             mark_dirty=mark_dirty,
@@ -624,25 +624,25 @@ class App(tk.Tk):
         )
 
     def _resolve_key_name_from_scan_code(self, scan_code: object) -> str:
-        return self._layout.resolve_key_name_from_scan_code(scan_code)
+        return self.layout.resolve_key_name_from_scan_code(scan_code)
 
     def _should_debug_special_key_event(self, event: object, resolved_key: str) -> bool:
-        return self._layout.should_debug_special_key_event(event, resolved_key)
+        return self.layout.should_debug_special_key_event(event, resolved_key)
 
     def _debug_special_key_event(self, event: object, resolved_key: str) -> None:
-        return self._layout.debug_special_key_event(event, resolved_key)
+        return self.layout.debug_special_key_event(event, resolved_key)
 
     def _get_active_keymap_text(self) -> str:
-        return self._keymap_panel.get_active_keymap_text()
+        return self.keymap_panel.get_active_keymap_text()
 
     def assign_keymap_from_keyboard_ui(self, source_key: str, target_key: str) -> bool:
-        return self._keymap_panel.assign_keymap_from_keyboard_ui(source_key, target_key)
+        return self.keymap_panel.assign_keymap_from_keyboard_ui(source_key, target_key)
 
     def clear_keymap_from_keyboard_ui(self, source_key: str) -> bool:
-        return self._keymap_panel.clear_keymap_from_keyboard_ui(source_key)
+        return self.keymap_panel.clear_keymap_from_keyboard_ui(source_key)
 
     def _select_trigger_by_key(self, key: str):
-        return self._trigger_panel.select_trigger_by_key(key)
+        return self.trigger_panel.select_trigger_by_key(key)
     def _apply_always_on_top(self):
         """チェック状態に応じてウィンドウを常に手前にする"""
         try:
@@ -730,30 +730,30 @@ class App(tk.Tk):
         return startup
 
     def _write_startup(self, data: dict[str, any]):
-        return self._config_io.write_startup(data)
+        return self.config_io.write_startup(data)
 
     def _to_rel_if_possible(self, path: str) -> str:
         return self.paths.to_rel_if_possible(path)
 
     def set_startup_keymap_set(self):
-        return self._config_io.set_startup_keymap_set()
+        return self.config_io.set_startup_keymap_set()
 
     def _update_status(self):
-        return self._trigger_panel.update_status()
+        return self.trigger_panel.update_status()
     def _refresh_triggers(self):
-        return self._trigger_panel.refresh_triggers()
+        return self.trigger_panel.refresh_triggers()
     def _refresh_actions(self):
-        return self._trigger_panel.refresh_actions()
+        return self.trigger_panel.refresh_actions()
     def _on_action_list_select(self, _event=None):
-        return self._trigger_panel.on_action_list_select(_event)
+        return self.trigger_panel.on_action_list_select(_event)
     def _on_action_list_focus_index_change(self, _event=None):
-        return self._trigger_panel.on_action_list_focus_index_change(_event)
+        return self.trigger_panel.on_action_list_focus_index_change(_event)
     def _on_trigger_list_focus_index_change(self, event=None):
-        return self._trigger_panel.on_trigger_list_focus_index_change(event)
+        return self.trigger_panel.on_trigger_list_focus_index_change(event)
     def _on_trigger_double_click(self, _event=None):
-        return self._trigger_panel.on_trigger_double_click(_event)
+        return self.trigger_panel.on_trigger_double_click(_event)
     def _on_action_double_click(self, _event=None):
-        return self._trigger_panel.on_action_double_click(_event)
+        return self.trigger_panel.on_action_double_click(_event)
     # ---------------- Individual JSON IO ----------------
     def _json_dialog_initial_dir(self, preferred_dir: str, source_path: str = "") -> str:
         return self.paths.json_dialog_initial_dir(preferred_dir, source_path)
@@ -768,56 +768,56 @@ class App(tk.Tk):
         return self.paths.keymap_set_file_stem(str(getattr(self, "keymap_set_path", "") or ""))
 
     def save_selected_keymap(self) -> bool:
-        return self._config_io.save_selected_keymap()
+        return self.config_io.save_selected_keymap()
 
     def save_selected_keymap_as(self) -> bool:
-        return self._config_io.save_selected_keymap_as()
+        return self.config_io.save_selected_keymap_as()
 
     def load_keymap_file(self) -> None:
-        return self._config_io.load_keymap_file()
+        return self.config_io.load_keymap_file()
 
     def save_trigger_set_file(self) -> bool:
-        return self._config_io.save_trigger_set_file()
+        return self.config_io.save_trigger_set_file()
 
     def save_trigger_set_file_as(self) -> bool:
-        return self._config_io.save_trigger_set_file_as()
+        return self.config_io.save_trigger_set_file_as()
 
     def load_trigger_set_file(self) -> None:
-        return self._config_io.load_trigger_set_file()
+        return self.config_io.load_trigger_set_file()
 
     def save_selected_sequence(self) -> bool:
-        return self._config_io.save_selected_sequence()
+        return self.config_io.save_selected_sequence()
 
     def save_selected_sequence_as(self) -> bool:
-        return self._config_io.save_selected_sequence_as()
+        return self.config_io.save_selected_sequence_as()
 
     def load_sequence_file(self) -> None:
-        return self._config_io.load_sequence_file()
+        return self.config_io.load_sequence_file()
 
     # ---------------- Config IO ----------------
     def _confirm_save_if_dirty(self, action_name: str) -> bool:
-        return self._config_io.confirm_save_if_dirty(action_name)
+        return self.config_io.confirm_save_if_dirty(action_name)
 
     def new_config(self):
-        return self._config_io.new_config()
+        return self.config_io.new_config()
 
     def save_keymap_set(self, *, show_success_dialog: bool = True) -> bool:
-        return self._config_io.save_keymap_set(show_success_dialog=show_success_dialog)
+        return self.config_io.save_keymap_set(show_success_dialog=show_success_dialog)
 
     def save_as(self, *, show_success_dialog: bool = True) -> bool:
-        return self._config_io.save_as(show_success_dialog=show_success_dialog)
+        return self.config_io.save_as(show_success_dialog=show_success_dialog)
 
     def load_keymap_set_from(self):
-        return self._config_io.load_keymap_set_from()
+        return self.config_io.load_keymap_set_from()
 
     def import_config(self):
-        return self._config_io.import_config()
+        return self.config_io.import_config()
 
     def export_config(self):
-        return self._config_io.export_config()
+        return self.config_io.export_config()
 
     def _apply_loaded_data_to_ui(self):
-        return self._config_io.apply_loaded_data_to_ui()
+        return self.config_io.apply_loaded_data_to_ui()
 
     def _sync_control_vars_from_data(self) -> None:
         """data の内容を制御キー表示・レイアウト選択などの共有 Var へ反映する。"""
@@ -841,47 +841,47 @@ class App(tk.Tk):
 
 
     def restore_default(self):
-        return self._config_io.restore_default()
+        return self.config_io.restore_default()
 
     # ---------------- Trigger selection/helpers ----------------
     def _selected_trigger(self):
-        return self._trigger_panel.selected_trigger()
+        return self.trigger_panel.selected_trigger()
     # ---------------- run_to_end UI sync/update ----------------
     def update_run_to_end_delay(self, _event=None):
-        return self._trigger_panel.update_run_to_end_delay(_event)
+        return self.trigger_panel.update_run_to_end_delay(_event)
     def update_suppress(self):
-        return self._trigger_panel.update_suppress()
+        return self.trigger_panel.update_suppress()
     def update_run_to_end(self):
-        return self._trigger_panel.update_run_to_end()
+        return self.trigger_panel.update_run_to_end()
     # ---------------- Trigger CRUD ----------------
     def add_trigger(self):
-        return self._trigger_panel.add_trigger()
+        return self.trigger_panel.add_trigger()
     def rename_trigger(self):
-        return self._trigger_panel.rename_trigger()
+        return self.trigger_panel.rename_trigger()
     def delete_trigger(self):
-        return self._trigger_panel.delete_trigger()
+        return self.trigger_panel.delete_trigger()
     # ---------------- Actions CRUD (selected trigger) ----------------
     def add_action(self):
-        return self._trigger_panel.add_action()
+        return self.trigger_panel.add_action()
     def edit_action(self):
-        return self._trigger_panel.edit_action()
+        return self.trigger_panel.edit_action()
     def delete_action(self):
-        return self._trigger_panel.delete_action()
+        return self.trigger_panel.delete_action()
     def move_action(self, delta: int):
-        return self._trigger_panel.move_action(delta)
+        return self.trigger_panel.move_action(delta)
     # ---------------- Hook logic ----------------
     def _sync_hook_toggle_buttons(self):
-        return self._hook.sync_hook_toggle_buttons()
+        return self.hook.sync_hook_toggle_buttons()
     def start_hook(self):
-        return self._hook.start_hook()
+        return self.hook.start_hook()
     def stop_hook(self, *, reset_custom_input_mode: bool = True):
-        return self._hook.stop_hook(reset_custom_input_mode=reset_custom_input_mode)
+        return self.hook.stop_hook(reset_custom_input_mode=reset_custom_input_mode)
     def toggle_hook(self):
-        return self._hook.toggle_hook()
+        return self.hook.toggle_hook()
     def toggle_custom_input_enabled(self):
-        return self._hook.toggle_custom_input_enabled()
+        return self.hook.toggle_custom_input_enabled()
     def toggle_triggers_enabled(self):
-        return self._hook.toggle_triggers_enabled()
+        return self.hook.toggle_triggers_enabled()
     def _perform_action(self, action: dict):
         self.action_executor.execute(action)
             
@@ -918,47 +918,47 @@ class App(tk.Tk):
         return "", normalized
 
     def _show_action_error(self, trigger_key: str, action: dict, err: Exception):
-        return self._hook.show_action_error(trigger_key, action, err)
+        return self.hook.show_action_error(trigger_key, action, err)
     # ---------------- Control key capture logic ----------------
     @property
     def _capturing_stop_key(self) -> bool:
-        return self._stop_key_capture.capturing
+        return self.stop_key_capture.capturing
 
     @property
     def _capturing_toggle_key(self) -> bool:
-        return self._toggle_key_capture.capturing
+        return self.toggle_key_capture.capturing
 
-    def _toggle_stop_key_capture(self):
-        if self._stop_key_capture.capturing:
-            self._stop_key_capture.stop(cancel=True)
+    def toggle_stop_key_capture(self):
+        if self.stop_key_capture.capturing:
+            self.stop_key_capture.stop(cancel=True)
         else:
-            self._start_stop_key_capture()
+            self.start_stop_key_capture()
 
-    def _start_stop_key_capture(self):
-        self._toggle_key_capture.stop(cancel=True)
-        self._stop_key_capture.start()
+    def start_stop_key_capture(self):
+        self.toggle_key_capture.stop(cancel=True)
+        self.stop_key_capture.start()
 
     def _stop_stop_key_capture(self, cancel: bool = False):
-        self._stop_key_capture.stop(cancel=cancel)
+        self.stop_key_capture.stop(cancel=cancel)
 
     def clear_stop_key(self):
-        self._stop_key_capture.clear()
+        self.stop_key_capture.clear()
 
-    def _toggle_toggle_key_capture(self):
-        if self._toggle_key_capture.capturing:
-            self._toggle_key_capture.stop(cancel=True)
+    def toggle_toggle_key_capture(self):
+        if self.toggle_key_capture.capturing:
+            self.toggle_key_capture.stop(cancel=True)
         else:
-            self._start_toggle_key_capture()
+            self.start_toggle_key_capture()
 
-    def _start_toggle_key_capture(self):
-        self._stop_key_capture.stop(cancel=True)
-        self._toggle_key_capture.start()
+    def start_toggle_key_capture(self):
+        self.stop_key_capture.stop(cancel=True)
+        self.toggle_key_capture.start()
 
     def _stop_toggle_key_capture(self, cancel: bool = False):
-        self._toggle_key_capture.stop(cancel=cancel)
+        self.toggle_key_capture.stop(cancel=cancel)
 
     def clear_toggle_key(self):
-        self._toggle_key_capture.clear()
+        self.toggle_key_capture.clear()
 
     # ---------------- Close ----------------
     def on_close(self):

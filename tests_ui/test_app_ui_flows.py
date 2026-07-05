@@ -26,13 +26,13 @@ class AppUiFlowsTest(unittest.TestCase):
             }
         )
         cls.app.state.reset_indices()
-        cls.app._refresh_triggers()
-        cls.app._refresh_actions()
+        cls.app.trigger_panel.refresh_triggers()
+        cls.app.trigger_panel.refresh_actions()
 
     @classmethod
     def tearDownClass(cls):
         try:
-            cls.app._set_dirty(False)
+            cls.app.dirty_tracker.set_dirty(False)
         finally:
             cls.app.destroy()
 
@@ -41,19 +41,19 @@ class AppUiFlowsTest(unittest.TestCase):
         self.assertEqual(self.app.compact_view.trigger_list.size(), 2)
 
     def test_selection_updates_status(self):
-        self.app._set_selected_trigger_index(1)
+        self.app.trigger_panel.set_selected_trigger_index(1)
         self.assertIn("選択中: f2", self.app.status_var.get())
-        self.app._set_selected_trigger_index(0)
+        self.app.trigger_panel.set_selected_trigger_index(0)
         self.assertIn("選択中: f1", self.app.status_var.get())
 
     def test_status_shows_hook_off(self):
-        self.app._update_status()
+        self.app.trigger_panel.update_status()
         self.assertIn("フック: OFF", self.app.status_var.get())
 
     def test_dirty_flag_reflected_in_file_status(self):
-        self.app._set_dirty(True)
+        self.app.dirty_tracker.set_dirty(True)
         self.assertIn("未保存", self.app.file_status_var.get())
-        self.app._set_dirty(False)
+        self.app.dirty_tracker.set_dirty(False)
         self.assertIn("保存済み", self.app.file_status_var.get())
 
     def test_compact_and_full_view_switch(self):
@@ -64,24 +64,24 @@ class AppUiFlowsTest(unittest.TestCase):
         self.assertFalse(self.app._compact_mode)
 
     def test_hook_suspend_counter_nesting(self):
-        self.assertEqual(self.app._get_hook_pause_count(), 0)
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
         self.app.suspend_hook_for_dialog()
         self.app.suspend_hook_for_dialog()
-        self.assertEqual(self.app._get_hook_pause_count(), 2)
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 2)
         self.app.resume_hook_after_dialog()
         self.app.resume_hook_after_dialog()
-        self.assertEqual(self.app._get_hook_pause_count(), 0)
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_stop_key_capture_start_and_cancel(self):
-        self.app._start_stop_key_capture()
-        self.assertTrue(self.app._capturing_stop_key)
-        self.assertEqual(self.app._get_hook_pause_count(), 1)
-        self.app._stop_stop_key_capture(cancel=True)
-        self.assertFalse(self.app._capturing_stop_key)
-        self.assertEqual(self.app._get_hook_pause_count(), 0)
+        self.app.start_stop_key_capture()
+        self.assertTrue(self.app.stop_key_capture.capturing)
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+        self.app.stop_key_capture.stop(cancel=True)
+        self.assertFalse(self.app.stop_key_capture.capturing)
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_keymap_list_shows_active_marker(self):
-        self.app._refresh_keymap_list_ui()
+        self.app.keymap_panel.refresh_keymap_list_ui()
         first = self.app.keymap_listbox.get(0)
         self.assertTrue(first.startswith("> "))
         self.assertIn("Main", first)

@@ -152,7 +152,7 @@ class KeymapPanelController:
         self.refresh_keymap_list_ui(preferred_index=preferred_index)
         self._app._refresh_keyboard_window()
         self._app._update_status()
-        self._app._mark_keymap_dirty(created)
+        self._app.mark_keymap_dirty(created)
         self._app._set_flash_message(f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}")
 
     def rename_keymap_label(self) -> None:
@@ -188,7 +188,7 @@ class KeymapPanelController:
         self.refresh_keymap_list_ui(preferred_index=index)
         self._app._refresh_keyboard_window()
         self._app._update_status()
-        self._app._mark_keymap_dirty(target)
+        self._app.mark_keymap_dirty(target)
         if normalized_label:
             self._app._set_flash_message(f"keymap 名を変更しました: {normalized_label}")
         else:
@@ -302,7 +302,7 @@ class KeymapPanelController:
         self.refresh_keymap_list_ui(preferred_index=preferred_index)
         self._app._refresh_keyboard_window()
         self._app._update_status()
-        self._app._mark_keymap_dirty(keymap)
+        self._app.mark_keymap_dirty(keymap)
         self._app._set_flash_message(f"キーマップを変更しました: {self.format_keymap_display_name(keymap) or keymap_id}")
         return True
 
@@ -379,7 +379,7 @@ class KeymapPanelController:
         self._app._refresh_keyboard_window()
         self._app._update_status()
         if changed:
-            self._app._mark_keymap_dirty(self._app.keymap_service.find_keymap(self._app.data, keymap_id))
+            self._app.mark_keymap_dirty(self._app.keymap_service.find_keymap(self._app.data, keymap_id))
             self._app._set_flash_message(f"キーマップを更新しました: {source} -> {target} ({keymap_id})")
         else:
             self._app._set_flash_message(f"キーマップは変更なしです: {source} -> {target}")
@@ -394,7 +394,7 @@ class KeymapPanelController:
         self._app._refresh_keyboard_window()
         self._app._update_status()
         if changed:
-            self._app._mark_keymap_dirty(self._app.keymap_service.find_keymap(self._app.data, keymap_id))
+            self._app.mark_keymap_dirty(self._app.keymap_service.find_keymap(self._app.data, keymap_id))
             self._app._set_flash_message(f"キーマップをクリアしました: {source} ({keymap_id})")
             return True
 
