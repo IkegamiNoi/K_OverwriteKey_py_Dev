@@ -18,6 +18,28 @@ tests_ui による特性テストで観測可能な契約は固定済みだが�
 | S3 ConfigPaths 抽出 | 完了 | refactor: パス解決をConfigPathsへ抽出した。 |
 | S4 DirtyStateTracker 抽出 | 完了 | refactor: ダーティ状態管理をDirtyStateTrackerへ抽出した。 |
 | S5 SingleKeyCaptureController 抽出 | 完了（自動検証のみ） | refactor: 停止/トグルキーのキャプチャをSingleKeyCaptureControllerへ統合した。 |
+| S6 ConfigIoController 抽出 | 完了（自動検証＋保存/読込ラウンドトリップ確認） | refactor: 保存・読込フローをConfigIoControllerへ抽出した。 |
+| S7 LayoutController 抽出 | 完了 | refactor: レイアウト管理とKeyboardWindow開閉をLayoutControllerへ抽出した。 |
+| S8 KeymapPanelController 抽出 | 完了 | refactor: キーマップ管理パネルをKeymapPanelControllerへ抽出した。 |
+| S9 TriggerPanelController 抽出 | 完了 | refactor: トリガー/シーケンスパネルをTriggerPanelControllerへ抽出した。 |
+| S10 HookController 抽出 | 完了（自動検証のみ・手動6項目は要利用者確認） | refactor: フック制御をHookControllerへ抽出した。 |
+
+## S6 手動確認項目（利用者確認推奨）
+新規作成→トリガー追加→保存→読込→Export→Import→別名保存を一巡し、各操作後の
+ステータスバー表示（未保存/保存済み・フラッシュ文言）が従来どおりであること。
+※プログラムによる save→load ラウンドトリップは Claude 側で実行し正常を確認済み。
+
+## S10 手動確認項目（必須・要利用者確認）
+※この環境では実キー入力・グローバルフック挙動を観測できないため未実施。
+`py main.py`（要 PYTHONPATH=. または通常起動）で確認前に必ず停止キーを設定した上で:
+1. トリガー(例 hotkey: ctrl+c)登録→開始(ON)→トリガーキーで実行→停止(OFF)
+2. フックON中に編集ダイアログを開く→トリガーキー無反応→閉じると自動復帰して発火
+   （ダイアログのネストでも復帰は最後の1回のみ）
+3. 停止キーでフックが止まる
+4. トグルキーで通常トリガーの有効/無効が切替
+5. suppress チェックON/OFFでキーが飲まれる/通る
+6. text送信で送信文字により再トリガーしない（send guard）
+※ tests_ui の test_hook_suspend_counter_nesting がサスペンドカウンタ契約を固定済み。
 
 ## S5 の手動確認項目（利用者にお願いしたい）
 `py main.py` で起動し（※要 PYTHONPATH=. または通常起動）:

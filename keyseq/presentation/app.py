@@ -1,15 +1,10 @@
 ﻿import os
 import copy
-import re
 import tkinter as tk
-from tkinter import filedialog, messagebox, simpledialog, ttk
+from tkinter import messagebox, ttk
 
 from keyseq.presentation.dialogs import (
-    ActionDialog,
-    KeymapEditDialog,
-    PresetDialog,
     PresetManagerDialog,
-    TriggerDialog,
 )
 from keyseq.presentation.keyboard_layouts import (
     DEFAULT_LAYOUT_ID,
@@ -17,6 +12,7 @@ from keyseq.presentation.keyboard_layouts import (
 from keyseq.presentation.config_io_controller import ConfigIoController
 from keyseq.presentation.config_paths import ConfigPaths
 from keyseq.presentation.dirty_state import DirtyStateTracker
+from keyseq.presentation.hook_controller import HookController
 from keyseq.presentation.key_capture import SingleKeyCaptureController
 from keyseq.presentation.keymap_panel_controller import KeymapPanelController
 from keyseq.presentation.layout_controller import LayoutController
@@ -40,10 +36,6 @@ from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.trigger_service import TriggerService
 from keyseq.domain.config import (
     DEFAULT_RUN_TO_END_DELAY_MS,
-    coerce_nonnegative_int,
-    format_action_list_item,
-    format_trigger_list_item,
-    normalize_key_name,
 )
 from keyseq.infrastructure.input_gateway import InputGateway
 from keyseq.infrastructure.json_repository import JsonRepository
@@ -144,6 +136,7 @@ class App(tk.Tk):
         self._layout = LayoutController(self)
         self._keymap_panel = KeymapPanelController(self)
         self._trigger_panel = TriggerPanelController(self)
+        self._hook = HookController(self)
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
         self.sequence_runner = SequenceRunner(
@@ -159,18 +152,12 @@ class App(tk.Tk):
 
         self.data = self.config_service.new_default_data()
 
-        self.hook_active = False
         self.always_on_top_var = tk.BooleanVar(value=False)
         self._compact_mode = False
         self._full_geometry = None  # 省略表示へ入る前の geometry を記憶
         self._selected_trigger_idx = 0  # Full/Compact で選択を共有する
 
-        # ダイアログのネストに対応するためカウンタ方式にする
-        self._hook_suspend_count = 0
-        self._hook_was_active_before_dialog = False
         self._programmatic_action_select = False  # action_list選択をコード側で変更中か
-        self._error_dialog_open = False           # エラーダイアログ多重表示防止
-        self.custom_input_enabled = True
         self._flash_after_id = None
         self._build_ui()
         self._config_io.load_startup_and_config()
@@ -206,29 +193,23 @@ class App(tk.Tk):
     def keyboard_window(self, value) -> None:
         self._layout.keyboard_window = value
 
+    @property
+    def hook_active(self) -> bool:
+        return self._hook.hook_active
+
+    @property
+    def custom_input_enabled(self) -> bool:
+        return self._hook.custom_input_enabled
+
     # ---------------- Hook suspend/resume for modal dialogs ----------------
     def suspend_hook_for_dialog(self):
-        """編集系ダイアログ表示中の誤爆を防ぐため、フックを一時停止（ネスト対応）"""
-        self._hook_suspend_count += 1
-        if self._hook_suspend_count == 1:
-            self._hook_was_active_before_dialog = bool(self.hook_active)
-            if self._hook_was_active_before_dialog:
-                self.stop_hook(reset_custom_input_mode=False)
+        return self._hook.suspend_hook_for_dialog()
 
     def resume_hook_after_dialog(self):
-        """一時停止したフックを元に戻す（ネスト対応。最後のダイアログが閉じた時だけ復帰）"""
-        if self._hook_suspend_count <= 0:
-            self._hook_suspend_count = 0
-            return
-        self._hook_suspend_count -= 1
-        if self._hook_suspend_count == 0:
-            was_on = self._hook_was_active_before_dialog
-            self._hook_was_active_before_dialog = False
-            if was_on:
-                self.start_hook()
+        return self._hook.resume_hook_after_dialog()
 
     def _get_hook_pause_count(self) -> int:
-        return int(self._hook_suspend_count)
+        return self._hook.get_hook_pause_count()
 
     def _get_send_guard_count(self) -> int:
         return int(self.action_executor.send_guard_count)
@@ -654,39 +635,6 @@ class App(tk.Tk):
     def _get_active_keymap_text(self) -> str:
         return self._keymap_panel.get_active_keymap_text()
 
-    def _validate_hook_configuration(self) -> bool:
-        control_keys = {
-            "停止キー": normalize_key_name(self.data.get("hook_stop_key", "")),
-            "有効/無効トグルキー": normalize_key_name(self.data.get("hook_toggle_key", "")),
-        }
-        seen_control_keys: dict[str, str] = {}
-        for label, key in control_keys.items():
-            if not key:
-                continue
-            if key in seen_control_keys:
-                messagebox.showerror("開始できません", f"{seen_control_keys[key]}と{label}が重複しています:\n{key}")
-                return False
-            seen_control_keys[key] = label
-
-        keymap_source_keys = self.keymap_service.collect_source_keys(self.data)
-        trigger_keys = {
-            normalize_key_name(t.get("key", ""))
-            for t in self.data.get("triggers", [])
-            if normalize_key_name(t.get("key", ""))
-        }
-
-        for label, key in control_keys.items():
-            if not key:
-                continue
-            if key in trigger_keys:
-                messagebox.showerror("開始できません", f"{label}が通常トリガーと重複しています:\n{key}")
-                return False
-            if key in keymap_source_keys:
-                messagebox.showerror("開始できません", f"{label}がキーマップ元キーと重複しています:\n{key}")
-                return False
-
-        return True
-
     def assign_keymap_from_keyboard_ui(self, source_key: str, target_key: str) -> bool:
         return self._keymap_panel.assign_keymap_from_keyboard_ui(source_key, target_key)
 
@@ -923,137 +871,17 @@ class App(tk.Tk):
         return self._trigger_panel.move_action(delta)
     # ---------------- Hook logic ----------------
     def _sync_hook_toggle_buttons(self):
-        if not hasattr(self, "hook_toggle_btn"):
-            return
-
-        text = "停止（フックOFF）" if self.hook_active else "開始（フックON）"
-        try:
-            self.hook_toggle_btn.configure(text=text, state="normal")
-        except Exception:
-            pass
-        try:
-            if hasattr(self, "compact_hook_toggle_btn"):
-                self.compact_hook_toggle_btn.configure(text=text, state="normal")
-        except Exception:
-            pass
-
-    def _sync_trigger_toggle_buttons(self):
-        if not hasattr(self, "trigger_toggle_btn"):
-            return
-
-        if not self.hook_active:
-            text = "通常トリガー無効化"
-            state = "disabled"
-        elif self.custom_input_enabled:
-            text = "通常トリガー無効化"
-            state = "normal"
-        else:
-            text = "通常トリガー有効化"
-            state = "normal"
-
-        try:
-            self.trigger_toggle_btn.configure(text=text, state=state)
-        except Exception:
-            pass
-        try:
-            if hasattr(self, "compact_trigger_toggle_btn"):
-                self.compact_trigger_toggle_btn.configure(text=text, state=state)
-        except Exception:
-            pass
-
+        return self._hook.sync_hook_toggle_buttons()
     def start_hook(self):
-        desired_custom_input_state = bool(self.custom_input_enabled)
-        if self.hook_active:
-            self.stop_hook(reset_custom_input_mode=False)
-
-        if not self._validate_hook_configuration():
-            self._sync_hook_toggle_buttons()
-            self._sync_trigger_toggle_buttons()
-            return
-
-        def _on_error(title: str, msg: str) -> None:
-            self.after(0, lambda: messagebox.showerror(title, msg))
-
-        self.key_state_manager.clear()
-        started = self.hook_coordinator.start(
-            triggers=self.data.get("triggers", []),
-            on_input_event=self._on_input_event,
-            on_error=_on_error,
-            has_keymaps=self.keymap_service.has_any_mapping(self.data),
-        )
-
-        if not started:
-            self._sync_hook_toggle_buttons()
-            self._sync_trigger_toggle_buttons()
-            return
-
-        self.hook_active = True
-        self.custom_input_enabled = desired_custom_input_state
-        self._sync_hook_toggle_buttons()
-        self._sync_trigger_toggle_buttons()
-        self._refresh_keyboard_window()
-        self._update_status()
-
+        return self._hook.start_hook()
     def stop_hook(self, *, reset_custom_input_mode: bool = True):
-        self.sequence_runner.stop_run_to_end()
-        self.hook_coordinator.stop()
-        self.key_state_manager.clear()
-        self.hook_active = False
-        if reset_custom_input_mode:
-            self.custom_input_enabled = True
-
-        self._sync_hook_toggle_buttons()
-        self._sync_trigger_toggle_buttons()
-        self._refresh_keyboard_window()
-        self._update_status()
-
+        return self._hook.stop_hook(reset_custom_input_mode=reset_custom_input_mode)
     def toggle_hook(self):
-        if self.hook_active:
-            self.stop_hook()
-        else:
-            self.start_hook()
-
+        return self._hook.toggle_hook()
     def toggle_custom_input_enabled(self):
-        if not self.hook_active:
-            return
-
-        if self.custom_input_enabled:
-            # 無効化した瞬間に連続実行中を止める
-            self.sequence_runner.stop_run_to_end()
-            self.custom_input_enabled = False
-        else:
-            def _on_error(title: str, msg: str) -> None:
-                self.after(0, lambda: messagebox.showerror(title, msg))
-
-            enabled = self.hook_coordinator.can_enable_custom_input(
-                triggers=self.data.get("triggers", []),
-                on_error=_on_error,
-                has_keymaps=self.keymap_service.has_any_mapping(self.data),
-            )
-            if not enabled:
-                self._sync_trigger_toggle_buttons()
-                self._update_status()
-                return
-            self.custom_input_enabled = True
-
-        if not getattr(self, "_compact_mode", False):
-            self._refresh_actions()
-        self._sync_trigger_toggle_buttons()
-        self._refresh_keyboard_window()
-        self._update_status()
-
+        return self._hook.toggle_custom_input_enabled()
     def toggle_triggers_enabled(self):
-        self.toggle_custom_input_enabled()
-
-    def _on_input_event(self, event: object):
-        resolved_key = self._resolve_key_name_from_scan_code(getattr(event, "scan_code", None))
-        if self._should_debug_special_key_event(event, resolved_key):
-            self._debug_special_key_event(event, resolved_key)
-        route = self.input_router.handle(event)
-        for action in route.actions:
-            self.after(0, lambda aa=action: self.action_executor.execute_router_action(aa))
-        return route.accept
-
+        return self._hook.toggle_triggers_enabled()
     def _perform_action(self, action: dict):
         self.action_executor.execute(action)
             
@@ -1090,25 +918,7 @@ class App(tk.Tk):
         return "", normalized
 
     def _show_action_error(self, trigger_key: str, action: dict, err: Exception):
-        """送信エラーをUIスレッドで表示（多重表示は抑止）"""
-        if self._error_dialog_open:
-            return
-        self._error_dialog_open = True
-        try:
-            t = (action.get("type") or "").strip().lower()
-            v = action.get("value") or ""
-            msg = (
-                "キー送信中にエラーが発生しました。\n"
-                f"送信キーに間違いがあります。修正してください。\n\n"
-                #f"トリガー: {normalize_key_name(trigger_key)}\n"
-                f"種別: {t}\n"
-                f"値: {v}\n\n"
-                f"エラー: {err}"
-            )
-            messagebox.showerror("送信エラー", msg)
-        finally:
-            self._error_dialog_open = False
-
+        return self._hook.show_action_error(trigger_key, action, err)
     # ---------------- Control key capture logic ----------------
     @property
     def _capturing_stop_key(self) -> bool:
