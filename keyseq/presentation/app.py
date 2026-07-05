@@ -22,6 +22,7 @@ from keyseq.presentation.keyboard_layouts import (
     resolve_registered_layout_path,
 )
 from keyseq.presentation.config_paths import ConfigPaths
+from keyseq.presentation.dirty_state import DirtyStateTracker
 from keyseq.presentation.keyboard_window import KeyboardWindow
 from keyseq.presentation.listbox_utils import (
     focused_listbox_index,
@@ -110,6 +111,13 @@ class App(tk.Tk):
             resolve_scan_code=self._resolve_key_name_from_scan_code,
         )
         self.state = AppState()
+        # --- controllers (計画02で順次追加) ---
+        self._dirty_tracker = DirtyStateTracker(
+            get_data=lambda: self.data,
+            keymap_service=self.keymap_service,
+            config_service=self.config_service,
+            on_change=self._update_file_status,
+        )
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
         self.sequence_runner = SequenceRunner(
@@ -139,11 +147,6 @@ class App(tk.Tk):
         self._capturing_stop_key = False
         self._capturing_toggle_key = False
         self.custom_input_enabled = True
-        self._is_dirty = False
-        self._config_dirty = False
-        self._trigger_set_source_path = ""
-        self._trigger_set_imported = False
-        self._trigger_set_dirty = False
         self._flash_after_id = None
         self.keyboard_window: KeyboardWindow | None = None
         self._build_ui()
@@ -285,61 +288,55 @@ class App(tk.Tk):
         save_state = "未保存" if self._has_unsaved_changes() else "保存済み"
         self.file_status_var.set(f"ファイル: {name} / {save_state}")
 
+    @property
+    def _trigger_set_source_path(self) -> str:
+        return self._dirty_tracker.trigger_set_source_path
+
+    @_trigger_set_source_path.setter
+    def _trigger_set_source_path(self, value: str) -> None:
+        self._dirty_tracker.trigger_set_source_path = str(value or "")
+
+    @property
+    def _trigger_set_imported(self) -> bool:
+        return self._dirty_tracker.trigger_set_imported
+
+    @_trigger_set_imported.setter
+    def _trigger_set_imported(self, value: bool) -> None:
+        self._dirty_tracker.trigger_set_imported = bool(value)
+
+    @property
+    def _trigger_set_dirty(self) -> bool:
+        return self._dirty_tracker.trigger_set_dirty
+
+    @_trigger_set_dirty.setter
+    def _trigger_set_dirty(self, value: bool) -> None:
+        self._dirty_tracker.trigger_set_dirty = bool(value)
+
     def _set_dirty(self, value: bool, *, config_dirty: bool = True):
-        self._is_dirty = bool(value)
-        if value and config_dirty:
-            self._config_dirty = True
-        if not value:
-            self._config_dirty = False
-        self._update_file_status()
+        self._dirty_tracker.set_dirty(value, config_dirty=config_dirty)
 
     def _mark_keymap_dirty(self, keymap: dict | None = None) -> None:
-        target = keymap
-        if target is None:
-            target = self.keymap_service.get_active_keymap(self.data)
-        if isinstance(target, dict):
-            target[self.config_service.INTERNAL_KEYMAP_DIRTY] = True
-        self._set_dirty(True, config_dirty=False)
+        target = keymap if keymap is not None else self.keymap_service.get_active_keymap(self.data)
+        self._dirty_tracker.mark_keymap_dirty(target)
 
     def _mark_trigger_set_dirty(self) -> None:
-        self._trigger_set_dirty = True
-        self._set_dirty(True, config_dirty=False)
+        self._dirty_tracker.mark_trigger_set_dirty()
 
     def _mark_sequence_dirty(self, trigger: dict | None = None) -> None:
         target = trigger if isinstance(trigger, dict) else self._selected_trigger()
-        if isinstance(target, dict):
-            target[self.config_service.INTERNAL_SEQUENCE_DIRTY] = True
-        self._set_dirty(True, config_dirty=False)
+        self._dirty_tracker.mark_sequence_dirty(target)
 
     def _has_unsaved_changes(self) -> bool:
-        return bool(getattr(self, "_config_dirty", False)) or self._has_individual_dirty()
+        return self._dirty_tracker.has_unsaved_changes()
 
     def _sync_dirty_state(self) -> None:
-        self._is_dirty = self._has_unsaved_changes()
-        self._update_file_status()
+        self._dirty_tracker.sync_dirty_state()
 
     def _has_individual_dirty(self) -> bool:
-        if bool(getattr(self, "_trigger_set_dirty", False)):
-            return True
-        for trigger in self.data.get("triggers", []):
-            if isinstance(trigger, dict) and bool(trigger.get(self.config_service.INTERNAL_SEQUENCE_DIRTY, False)):
-                return True
-        for keymap in self.keymap_service.get_keymaps(self.data):
-            if isinstance(keymap, dict) and bool(keymap.get(self.config_service.INTERNAL_KEYMAP_DIRTY, False)):
-                return True
-        return False
+        return self._dirty_tracker.has_individual_dirty()
 
     def _clear_individual_dirty_flags(self) -> None:
-        self._trigger_set_dirty = False
-        self._trigger_set_imported = False
-        for trigger in self.data.get("triggers", []):
-            if isinstance(trigger, dict):
-                trigger[self.config_service.INTERNAL_SEQUENCE_DIRTY] = False
-                trigger[self.config_service.INTERNAL_SEQUENCE_IMPORTED] = False
-        for keymap in self.keymap_service.get_keymaps(self.data):
-            if isinstance(keymap, dict):
-                keymap[self.config_service.INTERNAL_KEYMAP_DIRTY] = False
-                keymap[self.config_service.INTERNAL_KEYMAP_IMPORTED] = False
+        self._dirty_tracker.clear_individual_dirty_flags()
 
     def _clear_flash_message(self):
         self._flash_after_id = None
