@@ -7,8 +7,8 @@
 ## 現在の参照先
 
 - 現在フェーズは**未確定**。次フェーズ開始時に `/phase_start` で起票し、ここを差し替える。
-- テンプレート導入前の経緯・過去計画は `instructions/history/archive/` を参照
-  （凍結済み。直近のリファクタ計画 01〜03 は `archive/modified_proposal/`）。
+- テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
+  過去のリファクタ計画・提案書（01〜04）は `instructions/modified_proposal/`（次採番 05）。
 
 ## 次採番
 

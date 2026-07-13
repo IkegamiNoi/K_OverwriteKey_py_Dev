@@ -19,4 +19,6 @@
 
 - `archive/json_separate/` — 分離JSON化の仕様検討
 - `archive/keyboard_ui/` — キーボードUI関連の仕様検討・修正履歴
-- `archive/modified_proposal/` — リファクタ計画 01〜03（安全網 / App分割 / View直結束ね直し）
+
+過去のリファクタ計画・提案書（01〜04）は `instructions/modified_proposal/`
+（`/refactor_check` の提案書置き場。次採番 05）にある。
