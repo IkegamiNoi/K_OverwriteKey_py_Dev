@@ -1,0 +1,50 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat .claude_data/state/handoff.md .claude_data/state/session.md 2>/dev/null || echo 'state files not initialized yet'"
+          }
+        ]
+      }
+    ],
+    "SubagentStop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "model": "haiku",
+            "prompt": "直前にサブエージェントが完了しました。\n\n.claude_data/state/session.md を更新する必要があるかチェックしてください。\n以下のいずれかに該当する場合は、メイン Claude へ session.md 更新を促す指示を返してください:\n- サブエージェントが新規ファイルを作成した\n- サブエージェントが既存ファイルを変更した\n- サブエージェントがレビュー判定を出した（採用/修正採用/保留/除外）\n- サブエージェントがテスト/analyze の結果を報告した\n\n該当する場合は {\"ok\": false, \"reason\": \"サブエージェント完了に伴い、メイン Claude は次ターンで .claude/commands/save_state.md の指示に従って .claude_data/state/session.md を更新してください。とくに last_action.{who, summary, result_files, verified} と next_action を必ず反映してください。\"} を返してください。\n\n該当しない場合は {\"ok\": true} を返してください。",
+            "timeout": 15
+          }
+        ]
+      }
+    ],
+    "PreCompact": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "mkdir -p .claude_data/state/checkpoints && cp .claude_data/state/session.md .claude_data/state/checkpoints/$(date +%Y-%m-%d_%H-%M-%S)_pre-compact.md 2>/dev/null && echo 'checkpoint saved before compact. メイン Claude は圧縮後セッションでも .claude_data/state/session.md を確認すること。'"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "prompt",
+            "model": "haiku",
+            "prompt": "直前の Claude の応答を見て、以下のいずれかに該当するか判定してください:\n- タスク区切り（タスクの完了報告など）\n- 重要な判断（採用/修正採用/保留/除外）\n- 大きな実装ブロックの完了\n- ユーザーが「ここで一区切り」を示唆した\n\n該当しない場合は必ず {\"ok\": true} を返してください。\n\nタスク区切り（タスクの完了報告）に該当する場合は {\"ok\": false, \"reason\": \"このタイミングで /save_state を実行して .claude_data/state/session.md を更新し、続けて .claude/commands/task_commit.md の手順に従って完了タスクをタスク単位で git コミットすることを推奨します。\"} を返してください。\n\nそれ以外（重要な判断・実装ブロックの完了・一区切り）に該当する場合は {\"ok\": false, \"reason\": \"このタイミングで /save_state を実行して .claude_data/state/session.md を更新することを推奨します。session.md が古いまま中断するとトークン浪費の原因になります。\"} を返してください。",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

@@ -1,0 +1,14 @@
+[
+  {
+    "id": 1,
+    "name": "Codex併用（既定）",
+    "dir": "codex",
+    "description": "実装を codex-implementer (Codex CLI) へ委任し、統合テスト・フェーズ区切り・暫定仕様確定前に Codex レビューを併用する構成。Codex CLI とプラグインが必要。"
+  },
+  {
+    "id": 2,
+    "name": "Claudeのみ（非Codex環境）",
+    "dir": "claude_only",
+    "description": "Codex CLI を使わない環境向け。実装は implementer、レビューは reviewer で完結する構成。codex-* エージェント定義は削除される（モード 1 へ戻すと復元）。"
+  }
+]

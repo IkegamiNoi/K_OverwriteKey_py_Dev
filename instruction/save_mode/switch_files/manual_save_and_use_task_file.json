@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-settings.json",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|resume|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "cat .claude_data/state/handoff.md .claude_data/state/session.md 2>/dev/null || echo 'state files not initialized yet'"
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "matcher": "task_\\d{2}",
+        "hooks": [
+          {
+            "type": "prompt",
+            "model": "haiku",
+            "prompt": "次のユーザープロンプトを見て、task_XX_xxxx の実装に着手しようとしている場合のみチェックを行ってください。該当しない場合は必ず {\"ok\": true} を返してください。\n\n該当する場合は以下を確認してください:\n- instructions/phase/current.md を読む指示がされているか、または既に読んでいるか\n- 対象タスクファイルが特定されているか\n- 実装スコープ（対象・非対象）が明確か\n- 前タスクが完了しているか\n\n全て満たしている場合は {\"ok\": true} を返してください。\n不足がある場合は {\"ok\": false, \"reason\": \"不足内容\"} を返してください。",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}
