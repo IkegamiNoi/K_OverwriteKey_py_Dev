@@ -79,8 +79,8 @@
 - `.claude/rules/agent_selection.md` — メイン/サブエージェントの分担（実装エージェントの既定とフォールバック / 起票=メイン + 調査=Explore / 統合確認・メトリクス収集=verifier / レビューのタイミング別使い分け。構成は `instructions/agent_mode/` で Codex 併用 / Claude のみ を切り替え）
 - `.claude/rules/anti_patterns.md`
 - `.claude/rules/file_organization_rules.md` — ファイル配置・肥大化対策（分割時の親フォルダ方式 / 昇格ルール / 恒久互換レイヤー禁止）
-- `.claude/rules/flutter_rules.md` / `.claude/rules/python_rules.md` — 言語別ルール
-- `.claude/rules/implementation.md` / `.claude/rules/implementation_py.md` — 実装ポリシー
+- `.claude/rules/python_rules.md` — 言語別ルール（Python）
+- `.claude/rules/implementation.md` — 実装ポリシー
 - `.claude/rules/review.md`
 - `.claude/rules/spec_change_workflow.md` — 仕様変更は2モード（直接改訂 / 暫定仕様先行）。多岐・探索的なら暫定仕様書から（境界は同ファイル「モードの選択」節）
 - `.claude/rules/task_execution.md`
