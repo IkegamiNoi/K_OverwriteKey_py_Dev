@@ -37,12 +37,10 @@
 ⑥フォルダ化で発見しやすくなるか → ⑦保守性。
 迷ったら: **共通化しない・近くに置く・昇格は後回し・発見しやすさと保守性を優先**。
 
-## ■ 本リポジトリへの適用注記（EDIT REQUIRED — プロジェクトの言語・構成に合わせて書き換える）
+## ■ 本リポジトリへの適用注記（Python / オニオン構成・レイヤ first）
 
-> 以下は Python / オニオン構成（レイヤ first）での読み替え例。
-
-- Private = 親ファイル専用パッケージ（例: `src/presentation/input_controller/`）/
-  Feature Shared = レイヤフォルダ直下（「機能」=レイヤと読み替え）/ Global Shared = `src/shared/`
+- Private = 親ファイル専用パッケージ（例: `keyseq/presentation/xxx/`）/
+  Feature Shared = レイヤフォルダ直下（「機能」=レイヤと読み替え）/ Global Shared = `keyseq/shared/`（必要になった時点で作成）
 - パッケージ `__init__.py` の再輸出（公開面の定義）は互換レイヤー禁止の**対象外**。
   禁止対象は「移動前の旧パスに残す横流し専用モジュール」
 - `shared/` 配下にオニオン層名（`domain` 等）を使わない。補助モジュールにも雑多名を付けず

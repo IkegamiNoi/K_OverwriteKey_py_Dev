@@ -1,0 +1,80 @@
+## 5. JSON 仕様
+
+### 5.1 重要ルール（後方互換）
+
+* 後方互換必須
+* 既存キーの削除禁止
+* 既存キーの意味変更禁止
+* 未定義キーは無視する
+
+※設計変更タスクの場合は、指示された範囲でのみ変更可能。
+
+### 5.2 基本構造（単一JSON互換）
+
+```json
+{
+  "triggers": [...],
+  "hotkey_presets": [...],
+  "hook_stop_key": "f12"
+}
+```
+
+### 5.3 拡張キー
+
+#### run_to_end
+
+* 型: bool
+* 連続実行
+
+#### run_to_end_delay_ms
+
+* 型: int
+* デフォルト: 300
+
+### 5.4 分離JSONの本流
+
+| 機能 | 形式 |
+| --- | --- |
+| 保存 | split |
+| 読込 | split |
+| 起動 | split |
+| Import | 単一JSON |
+| Export | 単一JSON |
+
+### 5.5 split 読込
+
+* 通常読込では `keymap_set.json` を直接選択する
+* `config/config.json` は起動時に読む `keymap_set_path` を保持する
+* `keymap_set.json` は trigger_set / hotkey preset / keymap の実体JSONをファイルパスで参照する
+
+### 5.6 個別JSON
+
+#### trigger_set
+
+* `config/user/trigger_sets/` 配下に保存する
+* `triggers[]` は `key` / `suppress` / `sequence_path` を持つ
+* `sequence_path` は出力シーケンスJSONへの参照
+
+#### sequence
+
+* `config/user/sequences/` 配下に保存する
+* `label` / `run_to_end` / `run_to_end_delay_ms` / `actions` を持つ
+* `run_to_end` / `run_to_end_delay_ms` は UI 上の「連続実行」「間隔(ms)」
+* sequence の新規保存ファイル名は label 由来にし、日本語 label もそのまま候補に使う
+* ファイル名では Windows 禁止文字のみ `_` に置換する
+* trigger_set の新規保存ファイル名は現在の keymap_set ファイル名由来にする
+
+#### 旧形式互換
+
+* 旧形式の `triggers[].label` / `triggers[].run_to_end` / `triggers[].run_to_end_delay_ms` /
+  `triggers[].actions` は読込互換を維持する
+* 保存時は trigger_set + sequence の新形式へ寄せる
+
+### 5.7 パス保存ルール
+
+* `config` 配下のパスは `config` ルート基準の相対パスで保存する
+* `config` 配下ではない外部パスは絶対パスで保存する
+* 読込時は絶対パスをそのまま使い、相対パスは `config` ルート基準で解決する
+* trigger_set / sequence / keymap 個別保存でも同じルールを適用する
+
+---
