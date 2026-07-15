@@ -47,6 +47,9 @@ description: 直前のやりとりから .claude_data/state/session.md を更新
 - `blockers`（無ければ「なし」と明記）
 
 ## 推奨フィールド
+- `last_commit_location`（最終コミットを行ったブランチ / worktree 名。**現在の作業場所ではない**。
+  現在地はセッション開始時に SessionStart hook が注入する git 実測値〔branch / worktree_root〕が正。
+  `worktree:` という名前でこのフィールドを書いてはならない — 現在地と誤読される）
 - `last_action.result_files`（変更したファイルのプロジェクト相対パス）
 - `last_action.verified`（最新のチェック結果。キーはプロジェクトのチェック項目に合わせる。
   例〔Python の場合〕: `compile` / `ruff` / `mypy` / `pytest`、

@@ -6,7 +6,7 @@
 
 last_updated: 2026-07-15T23:20:00
 phase: instructions/modified_proposal/04_widget_split_plan.md（フェーズ番号は未確定 / current.md 参照）
-worktree: refactor/04-widget-split（worktree: template-merge-cleanup-52e942）
+last_commit_location: refactor/04-widget-split（worktree: template-merge-cleanup-52e942）※最終コミット場所。現在地はセッション開始時の git 実測値が正
 
 ## current
 focus: 計画04 Widget分割リファクタ実行中。W0完了・W1完了(コミット済)、W1手動UI確認待ち→次はW2着手。

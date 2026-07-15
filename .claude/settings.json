@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "cat .claude_data/state/handoff.md .claude_data/state/session.md 2>/dev/null || echo 'state files not initialized yet'"
+            "command": "echo '## 現在の実行環境（git 実測。以下の state ファイル内の worktree / branch 記述より常にこちらが正）'; echo \"branch: $(git branch --show-current 2>/dev/null || echo unknown)\"; echo \"worktree_root: $(git rev-parse --show-toplevel 2>/dev/null || echo unknown)\"; echo '---'; cat .claude_data/state/handoff.md .claude_data/state/session.md 2>/dev/null || echo 'state files not initialized yet'"
           }
         ]
       }
