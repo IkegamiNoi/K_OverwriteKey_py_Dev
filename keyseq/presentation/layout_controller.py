@@ -68,7 +68,7 @@ class LayoutController:
             window.update_from_config(
                 self._app.data,
                 custom_enabled=True,
-                show_physical_key_labels=bool(self._app.keyboard_show_physical_key_labels_var.get()),
+                show_physical_key_labels=bool(self._app.ui_vars.keyboard_show_physical_key_labels_var.get()),
             )
         except Exception:
             pass
@@ -114,8 +114,7 @@ class LayoutController:
 
         self.keyboard_layout_id = selected
         self._app.data["keyboard_layout"] = selected
-        if hasattr(self._app, "keyboard_layout_var"):
-            self._app.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
+        self._app.ui_vars.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
 
         state = "readonly" if display_values else "disabled"
         for name in ("keyboard_layout_combo", "compact_keyboard_layout_combo"):
@@ -142,7 +141,7 @@ class LayoutController:
             return False
 
     def toggle_keyboard_show_physical_key_labels(self):
-        self._app.data["keyboard_show_physical_key_labels"] = bool(self._app.keyboard_show_physical_key_labels_var.get())
+        self._app.data["keyboard_show_physical_key_labels"] = bool(self._app.ui_vars.keyboard_show_physical_key_labels_var.get())
         self.refresh_keyboard_window()
         self.persist_keyboard_layout_selection()
 
@@ -153,8 +152,7 @@ class LayoutController:
 
         self.keyboard_layout_id = selected
         self._app.data["keyboard_layout"] = selected
-        if hasattr(self._app, "keyboard_layout_var"):
-            self._app.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
+        self._app.ui_vars.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
 
         for name in ("keyboard_layout_combo", "compact_keyboard_layout_combo"):
             combo = getattr(self._app, name, None)
@@ -171,7 +169,7 @@ class LayoutController:
         return True
 
     def on_keyboard_layout_selected(self, _event=None):
-        selected = self._keyboard_layout_display_to_id.get(str(self._app.keyboard_layout_var.get() or "").strip(), "")
+        selected = self._keyboard_layout_display_to_id.get(str(self._app.ui_vars.keyboard_layout_var.get() or "").strip(), "")
         self.set_keyboard_layout_selection(selected, persist=True)
 
     def add_external_keyboard_layout(self):

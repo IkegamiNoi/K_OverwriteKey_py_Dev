@@ -6,9 +6,6 @@ from tkinter import messagebox, ttk
 from keyseq.presentation.dialogs import (
     PresetManagerDialog,
 )
-from keyseq.presentation.keyboard_layouts import (
-    DEFAULT_LAYOUT_ID,
-)
 from keyseq.presentation.config_io_controller import ConfigIoController
 from keyseq.presentation.config_paths import ConfigPaths
 from keyseq.presentation.dirty_state import DirtyStateTracker
@@ -17,6 +14,7 @@ from keyseq.presentation.key_capture import SingleKeyCaptureController
 from keyseq.presentation.keymap_panel_controller import KeymapPanelController
 from keyseq.presentation.layout_controller import LayoutController
 from keyseq.presentation.trigger_panel_controller import TriggerPanelController
+from keyseq.presentation.ui_vars import UiVars
 from keyseq.presentation.views import CompactView, FullView
 from keyseq.presentation.theme import apply_global_theme
 
@@ -30,9 +28,6 @@ from keyseq.application.keymap_service import KeymapService
 from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.trigger_service import TriggerService
-from keyseq.domain.config import (
-    DEFAULT_RUN_TO_END_DELAY_MS,
-)
 from keyseq.infrastructure.input_gateway import InputGateway
 from keyseq.infrastructure.json_repository import JsonRepository
 
@@ -58,6 +53,8 @@ class App(tk.Tk):
         self._startup_settings = self._load_startup_settings()
         self._ui_font_delta_pt = self._coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
+        self.data = self.config_service.new_default_data()
+        self.ui_vars = UiVars(self)
 
         self.title("Key Replacer Sequencer (Multi Trigger)")
         self.geometry("780x820")
@@ -99,7 +96,7 @@ class App(tk.Tk):
         self.stop_key_capture = SingleKeyCaptureController(
             self,
             data_key="hook_stop_key",
-            var_attr="stop_key_var",
+            var=self.ui_vars.stop_key_var,
             capture_btn_attr="stop_key_capture_btn",
             clear_btn_attr="stop_key_clear_btn",
             focus_entry_attr="stop_key_entry",
@@ -115,7 +112,7 @@ class App(tk.Tk):
         self.toggle_key_capture = SingleKeyCaptureController(
             self,
             data_key="hook_toggle_key",
-            var_attr="toggle_key_var",
+            var=self.ui_vars.toggle_key_var,
             capture_btn_attr="toggle_key_capture_btn",
             clear_btn_attr="toggle_key_clear_btn",
             focus_entry_attr="toggle_key_entry",
@@ -146,9 +143,6 @@ class App(tk.Tk):
             after_cancel=self.after_cancel,
         )
 
-        self.data = self.config_service.new_default_data()
-
-        self.always_on_top_var = tk.BooleanVar(value=False)
         self._compact_mode = False
         self._full_geometry = None  # 省略表示へ入る前の geometry を記憶
         self._selected_trigger_idx = 0  # Full/Compact で選択を共有する
@@ -190,20 +184,6 @@ class App(tk.Tk):
         self.outer = ttk.Frame(self, padding=12)
         self.outer.pack(fill="both", expand=True)
 
-        # 共有Var（両Viewで同じ状態を参照）
-        self.stop_key_var = tk.StringVar(value=str(self.data.get("hook_stop_key", "")))
-        self.toggle_key_var = tk.StringVar(value=str(self.data.get("hook_toggle_key", "")))
-        self.status_var = tk.StringVar(value="")
-        self.file_status_var = tk.StringVar(value="")
-        self.flash_message_var = tk.StringVar(value="")
-        self.ui_font_delta_var = tk.IntVar(value=int(self._ui_font_delta_pt))
-        self.suppress_var = tk.BooleanVar(value=True)
-        self.run_to_end_var = tk.BooleanVar(value=False)
-        self.run_to_end_delay_var = tk.StringVar(value=str(DEFAULT_RUN_TO_END_DELAY_MS))
-        self.keyboard_layout_var = tk.StringVar(value=str(self.data.get("keyboard_layout", DEFAULT_LAYOUT_ID)))
-        self.keyboard_show_physical_key_labels_var = tk.BooleanVar(
-            value=bool(self.data.get("keyboard_show_physical_key_labels", False))
-        )
         self.run_to_end_delay_entry: ttk.Entry
         self.hook_toggle_btn: ttk.Button
         self.trigger_toggle_btn: ttk.Button
@@ -241,7 +221,7 @@ class App(tk.Tk):
         # フック/トリガー状態表示（1行または2行）
         self.runtime_status_frame = ttk.LabelFrame(self, text="ステータス", padding=(10, 6))
         self.runtime_status_frame.pack(side="top", fill="x", padx=12, pady=(0, 4))
-        ttk.Label(self.runtime_status_frame, textvariable=self.status_var, anchor="w", justify="left").pack(fill="x")
+        ttk.Label(self.runtime_status_frame, textvariable=self.ui_vars.status_var, anchor="w", justify="left").pack(fill="x")
         # 共通ステータスバー（左: ファイル状態 / 中央: 一時メッセージ）
         self.status_bar = ttk.Frame(self, style="Statusbar.TFrame")
         self.status_bar.pack(side="bottom", fill="x")
@@ -250,14 +230,14 @@ class App(tk.Tk):
         self.status_bar.grid_columnconfigure(2, weight=1)
         ttk.Label(
             self.status_bar,
-            textvariable=self.file_status_var,
+            textvariable=self.ui_vars.file_status_var,
             style="Statusbar.TLabel",
             anchor="w",
             justify="left",
         ).grid(row=0, column=0, sticky="w")
         ttk.Label(
             self.status_bar,
-            textvariable=self.flash_message_var,
+            textvariable=self.ui_vars.flash_message_var,
             style="Statusbar.TLabel",
             anchor="center",
             justify="center",
@@ -269,7 +249,7 @@ class App(tk.Tk):
     def _update_file_status(self):
         name = os.path.basename(self.keymap_set_path or "") or "(未設定)"
         save_state = "未保存" if self.dirty_tracker.has_unsaved_changes() else "保存済み"
-        self.file_status_var.set(f"ファイル: {name} / {save_state}")
+        self.ui_vars.file_status_var.set(f"ファイル: {name} / {save_state}")
 
 
     def mark_keymap_dirty(self, keymap: dict | None = None) -> None:
@@ -284,7 +264,7 @@ class App(tk.Tk):
 
     def _clear_flash_message(self):
         self._flash_after_id = None
-        self.flash_message_var.set("")
+        self.ui_vars.flash_message_var.set("")
 
     def _set_flash_message(self, msg: str, *, auto_clear: bool = True):
         try:
@@ -293,7 +273,7 @@ class App(tk.Tk):
                 self._flash_after_id = None
         except Exception:
             self._flash_after_id = None
-        self.flash_message_var.set(str(msg or ""))
+        self.ui_vars.flash_message_var.set(str(msg or ""))
         if auto_clear and msg:
             self._flash_after_id = self.after(4000, self._clear_flash_message)
 
@@ -303,8 +283,7 @@ class App(tk.Tk):
             return
 
         self._ui_font_delta_pt = new_delta
-        if hasattr(self, "ui_font_delta_var"):
-            self.ui_font_delta_var.set(int(new_delta))
+        self.ui_vars.ui_font_delta_var.set(int(new_delta))
         apply_global_theme(self, font_delta_pt=new_delta)
         self.config_io.write_startup({"ui_font_delta_pt": new_delta})
 
@@ -345,7 +324,7 @@ class App(tk.Tk):
         settings_menu.add_separator()
         settings_menu.add_checkbutton(
             label="物理キー名を表示",
-            variable=self.keyboard_show_physical_key_labels_var,
+            variable=self.ui_vars.keyboard_show_physical_key_labels_var,
             command=self.layout.toggle_keyboard_show_physical_key_labels,
         )
         settings_menu.add_separator()
@@ -356,7 +335,7 @@ class App(tk.Tk):
             font_menu.add_radiobutton(
                 label=label,
                 value=delta,
-                variable=self.ui_font_delta_var,
+                variable=self.ui_vars.ui_font_delta_var,
                 command=lambda d=delta: self.set_ui_font_delta(d),
             )
         settings_menu.add_cascade(label="フォントサイズ", menu=font_menu)
@@ -483,7 +462,7 @@ class App(tk.Tk):
     def _apply_always_on_top(self):
         """チェック状態に応じてウィンドウを常に手前にする"""
         try:
-            self.attributes("-topmost", bool(self.always_on_top_var.get()))
+            self.attributes("-topmost", bool(self.ui_vars.always_on_top_var.get()))
         except Exception:
             # 失敗してもアプリは止めない
             pass
@@ -532,14 +511,11 @@ class App(tk.Tk):
 
     def _sync_control_vars_from_data(self) -> None:
         """data の内容を制御キー表示・レイアウト選択などの共有 Var へ反映する。"""
-        if hasattr(self, "stop_key_var"):
-            self.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
-        if hasattr(self, "toggle_key_var"):
-            self.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
-        if hasattr(self, "keyboard_show_physical_key_labels_var"):
-            self.keyboard_show_physical_key_labels_var.set(
-                bool(self.data.get("keyboard_show_physical_key_labels", False))
-            )
+        self.ui_vars.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
+        self.ui_vars.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+        self.ui_vars.keyboard_show_physical_key_labels_var.set(
+            bool(self.data.get("keyboard_show_physical_key_labels", False))
+        )
         self.layout.sync_keyboard_layout_controls()
 
     def open_preset_manager(self):

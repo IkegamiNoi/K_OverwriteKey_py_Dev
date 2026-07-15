@@ -42,24 +42,24 @@ class AppUiFlowsTest(unittest.TestCase):
 
     def test_selection_updates_status(self):
         self.app.trigger_panel.set_selected_trigger_index(1)
-        self.assertIn("選択中: f2", self.app.status_var.get())
+        self.assertIn("選択中: f2", self.app.ui_vars.status_var.get())
         self.app.trigger_panel.set_selected_trigger_index(0)
-        self.assertIn("選択中: f1", self.app.status_var.get())
+        self.assertIn("選択中: f1", self.app.ui_vars.status_var.get())
 
     def test_status_shows_hook_off(self):
         self.app.trigger_panel.update_status()
-        self.assertIn("フック: OFF", self.app.status_var.get())
+        self.assertIn("フック: OFF", self.app.ui_vars.status_var.get())
 
     def test_dirty_flag_reflected_in_file_status(self):
         self.app.dirty_tracker.set_dirty(True)
-        self.assertIn("未保存", self.app.file_status_var.get())
+        self.assertIn("未保存", self.app.ui_vars.file_status_var.get())
         self.app.dirty_tracker.set_dirty(False)
-        self.assertIn("保存済み", self.app.file_status_var.get())
+        self.assertIn("保存済み", self.app.ui_vars.file_status_var.get())
 
     def test_compact_and_full_view_switch(self):
         self.app.show_compact_view()
         self.assertTrue(self.app._compact_mode)
-        self.assertIn("選択:", self.app.status_var.get())
+        self.assertIn("選択:", self.app.ui_vars.status_var.get())
         self.app.show_full_view()
         self.assertFalse(self.app._compact_mode)
 

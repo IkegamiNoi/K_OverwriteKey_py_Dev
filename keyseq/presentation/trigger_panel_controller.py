@@ -226,16 +226,16 @@ class TriggerPanelController:
     def sync_suppress_checkbox(self):
         t = self.selected_trigger()
         if not t:
-            self._app.suppress_var.set(True)
+            self._app.ui_vars.suppress_var.set(True)
             return
-        self._app.suppress_var.set(bool(t.get("suppress", True)))
+        self._app.ui_vars.suppress_var.set(bool(t.get("suppress", True)))
 
     def sync_run_to_end_ui(self):
         """選択中トリガーの run_to_end / delay を UI へ反映"""
         t = self.selected_trigger()
         if not t:
-            self._app.run_to_end_var.set(False)
-            self._app.run_to_end_delay_var.set(str(DEFAULT_RUN_TO_END_DELAY_MS))
+            self._app.ui_vars.run_to_end_var.set(False)
+            self._app.ui_vars.run_to_end_delay_var.set(str(DEFAULT_RUN_TO_END_DELAY_MS))
             try:
                 if hasattr(self._app, "run_to_end_delay_entry"):
                     self._app.run_to_end_delay_entry.configure(state="disabled")
@@ -243,15 +243,15 @@ class TriggerPanelController:
                 pass
             return
 
-        self._app.run_to_end_var.set(bool(t.get("run_to_end", False)))
+        self._app.ui_vars.run_to_end_var.set(bool(t.get("run_to_end", False)))
         d = coerce_nonnegative_int(
             t.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
             DEFAULT_RUN_TO_END_DELAY_MS,
         )
-        self._app.run_to_end_delay_var.set(str(d))
+        self._app.ui_vars.run_to_end_delay_var.set(str(d))
         try:
             if hasattr(self._app, "run_to_end_delay_entry"):
-                self._app.run_to_end_delay_entry.configure(state=("normal" if self._app.run_to_end_var.get() else "disabled"))
+                self._app.run_to_end_delay_entry.configure(state=("normal" if self._app.ui_vars.run_to_end_var.get() else "disabled"))
         except Exception:
             pass
 
@@ -263,7 +263,7 @@ class TriggerPanelController:
         if getattr(self._app, "_compact_mode", False):
             # 省略表示：ON/OFF + 通常トリガー有効状態 + 選択中トリガー + 次に実行（行の内容）
             line = self.get_next_action_summary(sel_key)
-            self._app.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} / キーマップ: {keymap_text}\n選択: {sel_key} / 次: {line}")
+            self._app.ui_vars.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} / キーマップ: {keymap_text}\n選択: {sel_key} / 次: {line}")
             return
 
         triggers = self._app.data.get("triggers", [])
@@ -285,7 +285,7 @@ class TriggerPanelController:
                 next_i = 0
         except Exception:
             next_i = 0
-        self._app.status_var.set(
+        self._app.ui_vars.status_var.set(
             f"フック: {hook_state} / 通常トリガー: {trigger_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}"
         )
 
@@ -325,7 +325,7 @@ class TriggerPanelController:
         t = self.selected_trigger()
         if not t:
             return
-        s = (self._app.run_to_end_delay_var.get() or "").strip()
+        s = (self._app.ui_vars.run_to_end_delay_var.get() or "").strip()
         v = coerce_nonnegative_int(s, DEFAULT_RUN_TO_END_DELAY_MS)
         old_v = int(
             t.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS)
@@ -333,7 +333,7 @@ class TriggerPanelController:
         )
         t["run_to_end_delay_ms"] = v
         # 表示を正規化（"00300" 等を "300" に）
-        self._app.run_to_end_delay_var.set(str(v))
+        self._app.ui_vars.run_to_end_delay_var.set(str(v))
         if old_v != v:
             self._app.mark_sequence_dirty(t)
 
@@ -341,7 +341,7 @@ class TriggerPanelController:
         t = self.selected_trigger()
         if not t:
             return
-        new_v = bool(self._app.suppress_var.get())
+        new_v = bool(self._app.ui_vars.suppress_var.get())
         old_v = bool(t.get("suppress", True))
         t["suppress"] = new_v
         if old_v != new_v:
@@ -355,7 +355,7 @@ class TriggerPanelController:
         t = self.selected_trigger()
         if not t:
             return
-        new_v = bool(self._app.run_to_end_var.get())
+        new_v = bool(self._app.ui_vars.run_to_end_var.get())
         old_v = bool(t.get("run_to_end", False))
         t["run_to_end"] = new_v
         if old_v != new_v:

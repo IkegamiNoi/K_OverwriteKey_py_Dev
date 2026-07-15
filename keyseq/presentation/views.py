@@ -36,7 +36,7 @@ class FullView(ttk.Frame):
         self.full_hook_line2.pack(side="top", fill="x")
         # フック停止トリガー（フル：取得/クリアあり）
         ttk.Label(self.full_hook_line2, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
-        app.stop_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.stop_key_var, width=8, state="readonly")
+        app.stop_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.ui_vars.stop_key_var, width=8, state="readonly")
         app.stop_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
         app.stop_key_capture_btn = ttk.Button(self.full_hook_line2, text="キー入力で取得", command=app.toggle_stop_key_capture)
         app.stop_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
@@ -45,7 +45,7 @@ class FullView(ttk.Frame):
 
         # 通常トリガー有効/無効トグルキー（フル：取得/クリアあり）
         ttk.Label(self.full_hook_line2, text="有効/無効トグルキー: ").grid(row=1, column=0, sticky="w")
-        app.toggle_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.toggle_key_var, width=8, state="readonly")
+        app.toggle_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.ui_vars.toggle_key_var, width=8, state="readonly")
         app.toggle_key_entry.grid(row=1, column=1, sticky="w", padx=(0, 0))
         app.toggle_key_capture_btn = ttk.Button(self.full_hook_line2, text="キー入力で取得", command=app.toggle_toggle_key_capture)
         app.toggle_key_capture_btn.grid(row=1, column=2, sticky="w", padx=(8, 0))
@@ -57,7 +57,7 @@ class FullView(ttk.Frame):
         app.topmost_chk = ttk.Checkbutton(
             self.display_frame,
             text="常に手前",
-            variable=app.always_on_top_var,
+            variable=app.ui_vars.always_on_top_var,
             command=app._apply_always_on_top,
         )
         app.topmost_chk.grid(row=0, column=0, sticky="w")
@@ -69,7 +69,7 @@ class FullView(ttk.Frame):
         )
         app.keyboard_layout_combo = ttk.Combobox(
             self.display_frame,
-            textvariable=app.keyboard_layout_var,
+            textvariable=app.ui_vars.keyboard_layout_var,
             state="readonly",
             width=18,
         )
@@ -147,7 +147,7 @@ class FullView(ttk.Frame):
         app.suppress_chk = ttk.Checkbutton(
             self.trigger_box,
             text="トリガーキーを抑止（suppress）",
-            variable=app.suppress_var,
+            variable=app.ui_vars.suppress_var,
             command=app.trigger_panel.update_suppress,
         )
         app.suppress_chk.pack(anchor="w", pady=(6, 0))
@@ -181,7 +181,7 @@ class FullView(ttk.Frame):
         app.run_to_end_chk = ttk.Checkbutton(
             abtns,
             text="連続実行",
-            variable=app.run_to_end_var,
+            variable=app.ui_vars.run_to_end_var,
             command=app.trigger_panel.update_run_to_end,
         )
         app.run_to_end_chk.pack(anchor="w", pady=(8, 0))
@@ -190,7 +190,7 @@ class FullView(ttk.Frame):
         delay_line = ttk.Frame(abtns)
         delay_line.pack(fill="x", pady=(6, 0))
         ttk.Label(delay_line, text="間隔(ms)").pack(side="left")
-        app.run_to_end_delay_entry = ttk.Entry(delay_line, width=8, textvariable=app.run_to_end_delay_var)
+        app.run_to_end_delay_entry = ttk.Entry(delay_line, width=8, textvariable=app.ui_vars.run_to_end_delay_var)
         app.run_to_end_delay_entry.pack(side="left", padx=(8, 0))
         # Enter / フォーカスアウトで保存
         app.run_to_end_delay_entry.bind("<Return>", app.trigger_panel.update_run_to_end_delay)
@@ -228,12 +228,12 @@ class CompactView(ttk.Frame):
         self.compact_hook_line2.pack(side="top", fill="x")
         # 停止トリガー表示のみ（Entryだけ）
         ttk.Label(self.compact_hook_line2, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
-        self.stop_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.stop_key_var, width=8, state="readonly")
+        self.stop_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.ui_vars.stop_key_var, width=8, state="readonly")
         self.stop_key_entry.grid(row=0, column=1, sticky="w")
 
         # トグルキー表示のみ（Entryだけ）
         ttk.Label(self.compact_hook_line2, text="有効/無効トグルキー: ").grid(row=1, column=0, sticky="w")
-        self.toggle_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.toggle_key_var, width=8, state="readonly")
+        self.toggle_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.ui_vars.toggle_key_var, width=8, state="readonly")
         self.toggle_key_entry.grid(row=1, column=1, sticky="w")
 
         self.display_frame = ttk.LabelFrame(self.header_area, text="表示", padding=(10, 6))
@@ -241,7 +241,7 @@ class CompactView(ttk.Frame):
         app.topmost_chk = ttk.Checkbutton(
             self.display_frame,
             text="常に手前",
-            variable=app.always_on_top_var,
+            variable=app.ui_vars.always_on_top_var,
             command=app._apply_always_on_top,
         )
         app.topmost_chk.grid(row=0, column=0, sticky="w")
@@ -252,7 +252,7 @@ class CompactView(ttk.Frame):
         )
         app.compact_keyboard_layout_combo = ttk.Combobox(
             self.display_frame,
-            textvariable=app.keyboard_layout_var,
+            textvariable=app.ui_vars.keyboard_layout_var,
             state="readonly",
             width=18,
         )

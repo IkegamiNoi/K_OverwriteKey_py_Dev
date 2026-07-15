@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tkinter as tk
 from tkinter import messagebox
 
 from keyseq.presentation.tk_keys import normalize_tk_keysym
@@ -16,7 +17,7 @@ class SingleKeyCaptureController:
         app,
         *,
         data_key: str,            # "hook_stop_key" / "hook_toggle_key"
-        var_attr: str,            # "stop_key_var" / "toggle_key_var"
+        var: tk.StringVar,
         capture_btn_attr: str,    # "stop_key_capture_btn" / "toggle_key_capture_btn"
         clear_btn_attr: str,      # "stop_key_clear_btn" / "toggle_key_clear_btn"
         focus_entry_attr: str,    # "stop_key_entry" / "toggle_key_entry"
@@ -26,7 +27,7 @@ class SingleKeyCaptureController:
     ) -> None:
         self._app = app
         self._data_key = data_key
-        self._var_attr = var_attr
+        self._var = var
         self._capture_btn_attr = capture_btn_attr
         self._clear_btn_attr = clear_btn_attr
         self._focus_entry_attr = focus_entry_attr
@@ -86,8 +87,7 @@ class SingleKeyCaptureController:
 
         old = str(self._app.data.get(self._data_key, ""))
         self._app.data[self._data_key] = ""
-        if hasattr(self._app, self._var_attr):
-            getattr(self._app, self._var_attr).set("")
+        self._var.set("")
         if old:
             self._app.dirty_tracker.set_dirty(True)
 
@@ -127,8 +127,7 @@ class SingleKeyCaptureController:
 
         # 重複OKならそのまま適用（保存→表示更新）
         self._app.data[self._data_key] = key
-        if hasattr(self._app, self._var_attr):
-            getattr(self._app, self._var_attr).set(key)
+        self._var.set(key)
         self._app.dirty_tracker.set_dirty(True)
 
         # キャプチャ終了（この時点で resume により、元がONなら start_hook が呼ばれる）
