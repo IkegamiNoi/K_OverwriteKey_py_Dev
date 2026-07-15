@@ -26,8 +26,16 @@
 
 ## ■ python 実行コマンド（EDIT REQUIRED）
 
-> プロジェクト初期化時に、この環境で使う python 実行コマンド（例: `py.exe` の絶対パス、
-> `.venv` の python 等）をここに記載する。
+この環境の python 実行コマンドはリポジトリルートの `.venv` を使う（`keyboard` /
+`pyautogui` / `pynput` 等の依存はこの `.venv` にのみ導入済み。グローバルの `py`
+ランチャには入っていないため使わない）。
+
+- 実行パス: `<リポジトリルート>\.venv\Scripts\python.exe`
+  - 絶対パス例: `C:\Users\ikega\Documents\GitHub\python_dev\K_OverwriteKey_py_Dev\.venv\Scripts\python.exe`
+  - worktree からの相対パス例: `..\..\..\.venv\Scripts\python.exe`
+- 標準検証もこの python で実行する（`compileall` / `unittest discover -s tests` /
+  `unittest discover -s tests_ui` / `-m tests.smoke_app`）。
+- 一部の計画書は `py` ランチャ前提で記述されているが、実環境ではこの `.venv` に読み替える。
 
 ## ■ テスト・確認
 
