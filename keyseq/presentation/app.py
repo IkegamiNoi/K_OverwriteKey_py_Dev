@@ -16,6 +16,8 @@ from keyseq.presentation.layout_controller import LayoutController
 from keyseq.presentation.trigger_panel_controller import TriggerPanelController
 from keyseq.presentation.ui_vars import UiVars
 from keyseq.presentation.views import CompactView, FullView
+from keyseq.presentation.views.menu_bar import build_menu_bar, bind_menu_shortcuts
+from keyseq.presentation.views.status_bar import build_status_area
 from keyseq.presentation.theme import apply_global_theme
 
 
@@ -213,38 +215,9 @@ class App(tk.Tk):
 
         self.full_view.pack(fill="both", expand=True)
         # compact_view は最初は非表示
-        self._build_menu()
-        self._bind_menu_shortcuts()
-        self._build_status_area()
-
-    def _build_status_area(self):
-        # フック/トリガー状態表示（1行または2行）
-        self.runtime_status_frame = ttk.LabelFrame(self, text="ステータス", padding=(10, 6))
-        self.runtime_status_frame.pack(side="top", fill="x", padx=12, pady=(0, 4))
-        ttk.Label(self.runtime_status_frame, textvariable=self.ui_vars.status_var, anchor="w", justify="left").pack(fill="x")
-        # 共通ステータスバー（左: ファイル状態 / 中央: 一時メッセージ）
-        self.status_bar = ttk.Frame(self, style="Statusbar.TFrame")
-        self.status_bar.pack(side="bottom", fill="x")
-        self.status_bar.grid_columnconfigure(0, weight=1)
-        self.status_bar.grid_columnconfigure(1, weight=1)
-        self.status_bar.grid_columnconfigure(2, weight=1)
-        ttk.Label(
-            self.status_bar,
-            textvariable=self.ui_vars.file_status_var,
-            style="Statusbar.TLabel",
-            anchor="w",
-            justify="left",
-        ).grid(row=0, column=0, sticky="w")
-        ttk.Label(
-            self.status_bar,
-            textvariable=self.ui_vars.flash_message_var,
-            style="Statusbar.TLabel",
-            anchor="center",
-            justify="center",
-        ).grid(row=0, column=1, sticky="ew")
-        ttk.Label(self.status_bar, text="", style="Statusbar.TLabel", anchor="e").grid(row=0, column=2, sticky="e")
-
-        self._update_file_status()
+        build_menu_bar(self)
+        bind_menu_shortcuts(self)
+        build_status_area(self, self)
 
     def _update_file_status(self):
         name = os.path.basename(self.keymap_set_path or "") or "(未設定)"
@@ -288,74 +261,13 @@ class App(tk.Tk):
         self.config_io.write_startup({"ui_font_delta_pt": new_delta})
 
         if hasattr(self, "menubar"):
-            self._build_menu()
+            build_menu_bar(self)
 
         if new_delta == 0:
             self._set_flash_message("フォントサイズを標準にしました。")
         else:
             self._set_flash_message(f"フォントサイズを {new_delta:+d} にしました。")
 
-
-    def _build_menu(self):
-        menubar = tk.Menu(self)
-
-        file_menu = tk.Menu(menubar, tearoff=False)
-        file_menu.add_command(label="新規作成", command=self.config_io.new_config, accelerator="Ctrl+N")
-        file_menu.add_separator()
-        file_menu.add_command(label="保存", command=self.config_io.save_keymap_set, accelerator="Ctrl+S")
-        file_menu.add_command(label="別名で保存…", command=self.config_io.save_as, accelerator="Ctrl+Shift+S")
-        file_menu.add_command(label="読込（構成セット）…", command=self.config_io.load_keymap_set_from, accelerator="Ctrl+O")
-        file_menu.add_separator()
-        file_menu.add_command(label="Import...", command=self.config_io.import_config)
-        file_menu.add_command(label="Export...", command=self.config_io.export_config)
-        file_menu.add_separator()
-        file_menu.add_command(label="起動時に読む構成セットを指定…", command=self.config_io.set_startup_keymap_set)
-        file_menu.add_command(label="例を復元", command=self.config_io.restore_default)
-        file_menu.add_separator()
-        file_menu.add_command(label="終了", command=self.on_close)
-        menubar.add_cascade(label="ファイル", menu=file_menu)
-
-        settings_menu = tk.Menu(menubar, tearoff=False)
-        settings_menu.add_command(label="プリセット編集…", command=self.open_preset_manager, accelerator="Ctrl+Alt+P")
-        settings_menu.add_command(label="キーボードUIを開く", command=self.layout.open_keyboard_window)
-        settings_menu.add_separator()
-        settings_menu.add_command(label="外部レイアウトを追加…", command=self.layout.add_external_keyboard_layout)
-        settings_menu.add_command(label="レイアウトを削除…", command=self.layout.delete_keyboard_layout)
-        settings_menu.add_separator()
-        settings_menu.add_checkbutton(
-            label="物理キー名を表示",
-            variable=self.ui_vars.keyboard_show_physical_key_labels_var,
-            command=self.layout.toggle_keyboard_show_physical_key_labels,
-        )
-        settings_menu.add_separator()
-
-        font_menu = tk.Menu(settings_menu, tearoff=False)
-        for delta in (-3, -2, -1, 0, 1, 2, 3):
-            label = "標準 (0)" if delta == 0 else f"{delta:+d}"
-            font_menu.add_radiobutton(
-                label=label,
-                value=delta,
-                variable=self.ui_vars.ui_font_delta_var,
-                command=lambda d=delta: self.set_ui_font_delta(d),
-            )
-        settings_menu.add_cascade(label="フォントサイズ", menu=font_menu)
-
-        menubar.add_cascade(label="設定", menu=settings_menu)
-
-        self.config(menu=menubar)
-        self.menubar = menubar
-
-    def _bind_menu_shortcuts(self):
-        self.bind("<Control-n>", self._on_shortcut_new, add="+")
-        self.bind("<Control-N>", self._on_shortcut_new, add="+")
-        self.bind("<Control-s>", self._on_shortcut_save, add="+")
-        self.bind("<Control-S>", self._on_shortcut_save, add="+")
-        self.bind("<Control-o>", self._on_shortcut_load, add="+")
-        self.bind("<Control-O>", self._on_shortcut_load, add="+")
-        self.bind("<Control-Shift-s>", self._on_shortcut_save_as, add="+")
-        self.bind("<Control-Shift-S>", self._on_shortcut_save_as, add="+")
-        self.bind("<Control-Alt-p>", self._on_shortcut_open_preset_manager, add="+")
-        self.bind("<Control-Alt-P>", self._on_shortcut_open_preset_manager, add="+")
 
     def _is_menu_shortcut_enabled(self) -> bool:
         if self.stop_key_capture.capturing or self.toggle_key_capture.capturing:
