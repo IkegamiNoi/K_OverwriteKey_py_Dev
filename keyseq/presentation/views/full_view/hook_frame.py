@@ -1,0 +1,42 @@
+from __future__ import annotations
+
+from tkinter import ttk
+from typing import TYPE_CHECKING
+
+
+if TYPE_CHECKING:
+    from keyseq.presentation.app import App
+
+
+class FullHookFrame(ttk.LabelFrame):
+    def __init__(self, parent, app: App):
+        super().__init__(parent, text="フック", padding=10)
+
+        # フックラベルフレーム1行目
+        self.full_hook_line1 = ttk.Frame(self)
+        self.full_hook_line1.pack(side="top", fill="x")
+        app.hook_toggle_btn = ttk.Button(self.full_hook_line1, text="開始（フックON）", command=app.hook.toggle_hook)
+        app.trigger_toggle_btn = ttk.Button(self.full_hook_line1, text="通常トリガー無効化", command=app.hook.toggle_triggers_enabled, state="disabled")
+        app.hook_toggle_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
+        app.trigger_toggle_btn.grid(row=0, column=1, padx=(8, 0), sticky="w")
+
+        # フックラベルフレーム2行目
+        self.full_hook_line2 = ttk.Frame(self)
+        self.full_hook_line2.pack(side="top", fill="x")
+        # フック停止トリガー（フル：取得/クリアあり）
+        ttk.Label(self.full_hook_line2, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
+        app.stop_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.ui_vars.stop_key_var, width=8, state="readonly")
+        app.stop_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
+        app.stop_key_capture_btn = ttk.Button(self.full_hook_line2, text="キー入力で取得", command=app.toggle_stop_key_capture)
+        app.stop_key_capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
+        app.stop_key_clear_btn = ttk.Button(self.full_hook_line2, text="クリア", command=app.stop_key_capture.clear)
+        app.stop_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
+
+        # 通常トリガー有効/無効トグルキー（フル：取得/クリアあり）
+        ttk.Label(self.full_hook_line2, text="有効/無効トグルキー: ").grid(row=1, column=0, sticky="w")
+        app.toggle_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.ui_vars.toggle_key_var, width=8, state="readonly")
+        app.toggle_key_entry.grid(row=1, column=1, sticky="w", padx=(0, 0))
+        app.toggle_key_capture_btn = ttk.Button(self.full_hook_line2, text="キー入力で取得", command=app.toggle_toggle_key_capture)
+        app.toggle_key_capture_btn.grid(row=1, column=2, sticky="w", padx=(8, 0))
+        app.toggle_key_clear_btn = ttk.Button(self.full_hook_line2, text="クリア", command=app.toggle_key_capture.clear)
+        app.toggle_key_clear_btn.grid(row=1, column=3, sticky="w", padx=(8, 0))
