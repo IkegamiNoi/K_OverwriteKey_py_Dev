@@ -3,7 +3,7 @@ import unittest
 from keyseq.application.config_service import ConfigService
 from keyseq.application.keymap_service import KeymapService
 from keyseq.infrastructure.json_repository import JsonRepository
-from keyseq.presentation.dirty_state import DirtyStateTracker
+from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
 
 
 class DirtyStateTrackerTest(unittest.TestCase):

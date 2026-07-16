@@ -6,16 +6,17 @@ from tkinter import messagebox, ttk
 from keyseq.presentation.dialogs import (
     PresetManagerDialog,
 )
-from keyseq.presentation.config_io_controller import ConfigIoController
+from keyseq.presentation.controllers.config_io_controller import ConfigIoController
 from keyseq.presentation.config_paths import ConfigPaths
-from keyseq.presentation.dirty_state import DirtyStateTracker
-from keyseq.presentation.hook_controller import HookController
-from keyseq.presentation.key_capture import SingleKeyCaptureController
-from keyseq.presentation.keymap_panel_controller import KeymapPanelController
-from keyseq.presentation.layout_controller import LayoutController
-from keyseq.presentation.trigger_panel_controller import TriggerPanelController
+from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
+from keyseq.presentation.controllers.hook_controller import HookController
+from keyseq.presentation.controllers.key_capture import SingleKeyCaptureController
+from keyseq.presentation.controllers.keymap_panel_controller import KeymapPanelController
+from keyseq.presentation.controllers.layout_controller import LayoutController
+from keyseq.presentation.controllers.trigger_panel_controller import TriggerPanelController
 from keyseq.presentation.ui_vars import UiVars
-from keyseq.presentation.views import CompactView, FullView
+from keyseq.presentation.views.compact_view.compact_view import CompactView
+from keyseq.presentation.views.full_view.full_view import FullView
 from keyseq.presentation.views.menu_bar import build_menu_bar, bind_menu_shortcuts
 from keyseq.presentation.views.status_bar import build_status_area
 from keyseq.presentation.theme import apply_global_theme
