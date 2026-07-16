@@ -33,27 +33,31 @@ class KeymapPanelController:
 
     def selected_keymap_list_index(self) -> int | None:
         """keymap 管理Listboxの選択行を返す。"""
-        if not hasattr(self._app, "keymap_listbox"):
+        keymap_box = getattr(getattr(self._app, "full_view", None), "keymap_box", None)
+        listbox = getattr(keymap_box, "keymap_listbox", None)
+        if listbox is None:
             return None
-        return focused_listbox_index(self._app, self._app.keymap_listbox, len(self._app.keymap_service.get_keymaps(self._app.data)))
+        return focused_listbox_index(self._app, listbox, len(self._app.keymap_service.get_keymaps(self._app.data)))
 
     def sync_keymap_manage_buttons(self) -> None:
         """keymap 件数に応じて管理ボタン状態を揃える。"""
         has_selection = self.selected_keymap_list_index() is not None and bool(self._app.keymap_service.get_keymaps(self._app.data))
         state = "normal" if has_selection else "disabled"
-        if hasattr(self._app, "keymap_edit_btn"):
-            self._app.keymap_edit_btn.configure(state=state)
-        if hasattr(self._app, "keymap_delete_btn"):
-            self._app.keymap_delete_btn.configure(state=state)
-        if hasattr(self._app, "keymap_select_btn"):
-            self._app.keymap_select_btn.configure(state=state)
+        keymap_box = getattr(getattr(self._app, "full_view", None), "keymap_box", None)
+        if keymap_box is not None:
+            keymap_box.keymap_edit_btn.configure(state=state)
+        if keymap_box is not None:
+            keymap_box.keymap_delete_btn.configure(state=state)
+        if keymap_box is not None:
+            keymap_box.keymap_select_btn.configure(state=state)
 
     def refresh_keymap_list_ui(self, preferred_index: int | None = None) -> None:
         """keymap 管理一覧の表示内容と選択を更新する。"""
-        if not hasattr(self._app, "keymap_listbox"):
+        keymap_box = getattr(getattr(self._app, "full_view", None), "keymap_box", None)
+        listbox = getattr(keymap_box, "keymap_listbox", None)
+        if listbox is None:
             return
 
-        listbox = self._app.keymap_listbox
         try:
             current_index = self.selected_keymap_list_index()
             listbox.delete(0, tk.END)
@@ -94,7 +98,7 @@ class KeymapPanelController:
         self.sync_keymap_manage_buttons()
 
     def on_keymap_list_select(self, _event=None) -> None:
-        sync_listbox_selection_to_focus(self._app, self._app.keymap_listbox, len(self._app.keymap_service.get_keymaps(self._app.data)))
+        sync_listbox_selection_to_focus(self._app, self._app.full_view.keymap_box.keymap_listbox, len(self._app.keymap_service.get_keymaps(self._app.data)))
         self.sync_keymap_manage_buttons()
 
     def on_keymap_list_focus_index_change(self, _event=None) -> None:

@@ -28,6 +28,10 @@ class LayoutController:
         self._keyboard_layout_id_to_display = {}
         self.keyboard_window = None
         self.keyboard_layouts_dir = app.paths.resolve_keylayout_dir()
+        self._layout_combos = []
+
+    def register_layout_combo(self, combo) -> None:
+        self._layout_combos.append(combo)
 
     def open_keyboard_window(self):
         layout = self.get_current_keyboard_layout()
@@ -117,10 +121,7 @@ class LayoutController:
         self._app.ui_vars.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
 
         state = "readonly" if display_values else "disabled"
-        for name in ("keyboard_layout_combo", "compact_keyboard_layout_combo"):
-            combo = getattr(self._app, name, None)
-            if combo is None:
-                continue
+        for combo in self._layout_combos:
             try:
                 combo.configure(values=display_values, state=state)
                 combo.set(self._keyboard_layout_id_to_display.get(selected, ""))
@@ -154,10 +155,7 @@ class LayoutController:
         self._app.data["keyboard_layout"] = selected
         self._app.ui_vars.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
 
-        for name in ("keyboard_layout_combo", "compact_keyboard_layout_combo"):
-            combo = getattr(self._app, name, None)
-            if combo is None:
-                continue
+        for combo in self._layout_combos:
             try:
                 combo.set(self._keyboard_layout_id_to_display.get(selected, ""))
             except Exception:

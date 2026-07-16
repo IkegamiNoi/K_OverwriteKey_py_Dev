@@ -24,6 +24,7 @@ class FullTriggerBox(ttk.LabelFrame):
         self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_focus_index_change)
         self.trigger_list.bind("<KeyRelease>", app.trigger_panel.on_trigger_list_focus_index_change)
         self.trigger_list.bind("<Double-Button-1>", app.trigger_panel.on_trigger_double_click)
+        app.trigger_panel.register_trigger_list(self.trigger_list)
 
         tbtns = ttk.Frame(self)
         tbtns.pack(fill="x", pady=(6, 0))
@@ -35,10 +36,10 @@ class FullTriggerBox(ttk.LabelFrame):
         ttk.Button(tbtns, text="別名で保存", command=app.config_io.save_trigger_set_file_as).pack(fill="x", pady=3)
         ttk.Button(tbtns, text="読込", command=app.config_io.load_trigger_set_file).pack(fill="x", pady=3)
 
-        app.suppress_chk = ttk.Checkbutton(
+        self.suppress_chk = ttk.Checkbutton(
             self,
             text="トリガーキーを抑止（suppress）",
             variable=app.ui_vars.suppress_var,
             command=app.trigger_panel.update_suppress,
         )
-        app.suppress_chk.pack(anchor="w", pady=(6, 0))
+        self.suppress_chk.pack(anchor="w", pady=(6, 0))

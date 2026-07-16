@@ -21,9 +21,7 @@ class CompactHookFrame(ttk.LabelFrame):
         self.trigger_toggle_btn = ttk.Button(self.compact_hook_line1, text="通常トリガー無効化", command=app.hook.toggle_triggers_enabled, state="disabled")
         self.hook_toggle_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         self.trigger_toggle_btn.grid(row=0, column=1, padx=(8, 0), sticky="w")
-        # App側でも参照できるように保持（フック開始/停止時のstate同期用）
-        app.compact_hook_toggle_btn = self.hook_toggle_btn
-        app.compact_trigger_toggle_btn = self.trigger_toggle_btn
+        app.hook.register_hook_buttons(self.hook_toggle_btn, self.trigger_toggle_btn)
         
         # フックラベルフレーム2行目
         self.compact_hook_line2 = ttk.Frame(self)

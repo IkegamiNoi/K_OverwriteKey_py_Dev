@@ -36,20 +36,20 @@ class SequenceBox(ttk.LabelFrame):
         ttk.Button(abtns, text="読込", width=16, command=app.config_io.load_sequence_file).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
         # 連続実行（run_to_end）
-        app.run_to_end_chk = ttk.Checkbutton(
+        self.run_to_end_chk = ttk.Checkbutton(
             abtns,
             text="連続実行",
             variable=app.ui_vars.run_to_end_var,
             command=app.trigger_panel.update_run_to_end,
         )
-        app.run_to_end_chk.pack(anchor="w", pady=(8, 0))
+        self.run_to_end_chk.pack(anchor="w", pady=(8, 0))
 
         # 連続実行 間隔（ms） ※トリガーごと / デフォルト300
         delay_line = ttk.Frame(abtns)
         delay_line.pack(fill="x", pady=(6, 0))
         ttk.Label(delay_line, text="間隔(ms)").pack(side="left")
-        app.run_to_end_delay_entry = ttk.Entry(delay_line, width=8, textvariable=app.ui_vars.run_to_end_delay_var)
-        app.run_to_end_delay_entry.pack(side="left", padx=(8, 0))
+        self.run_to_end_delay_entry = ttk.Entry(delay_line, width=8, textvariable=app.ui_vars.run_to_end_delay_var)
+        self.run_to_end_delay_entry.pack(side="left", padx=(8, 0))
         # Enter / フォーカスアウトで保存
-        app.run_to_end_delay_entry.bind("<Return>", app.trigger_panel.update_run_to_end_delay)
-        app.run_to_end_delay_entry.bind("<FocusOut>", app.trigger_panel.update_run_to_end_delay)
+        self.run_to_end_delay_entry.bind("<Return>", app.trigger_panel.update_run_to_end_delay)
+        self.run_to_end_delay_entry.bind("<FocusOut>", app.trigger_panel.update_run_to_end_delay)

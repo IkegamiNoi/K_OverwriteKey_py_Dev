@@ -23,3 +23,4 @@ class CompactTriggerBox(ttk.LabelFrame):
         self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_focus_index_change)
         self.trigger_list.bind("<KeyRelease>", app.trigger_panel.on_trigger_list_focus_index_change)
         self.trigger_list.bind("<Double-Button-1>", app.trigger_panel.on_trigger_double_click)
+        app.trigger_panel.register_trigger_list(self.trigger_list)

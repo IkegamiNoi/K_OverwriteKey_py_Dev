@@ -18,9 +18,6 @@ class SingleKeyCaptureController:
         *,
         data_key: str,            # "hook_stop_key" / "hook_toggle_key"
         var: tk.StringVar,
-        capture_btn_attr: str,    # "stop_key_capture_btn" / "toggle_key_capture_btn"
-        clear_btn_attr: str,      # "stop_key_clear_btn" / "toggle_key_clear_btn"
-        focus_entry_attr: str,    # "stop_key_entry" / "toggle_key_entry"
         label: str,               # "停止トリガー" / "トグルキー"
         single_key_example: str,  # "f12" / "f11"
         conflict_checks,          # list[tuple[Callable[[App, str], bool], str]]
@@ -28,13 +25,18 @@ class SingleKeyCaptureController:
         self._app = app
         self._data_key = data_key
         self._var = var
-        self._capture_btn_attr = capture_btn_attr
-        self._clear_btn_attr = clear_btn_attr
-        self._focus_entry_attr = focus_entry_attr
+        self._entry = None
+        self._capture_btn = None
+        self._clear_btn = None
         self._label = label
         self._single_key_example = single_key_example
         self._conflict_checks = conflict_checks
         self.capturing = False
+
+    def register_widgets(self, entry, capture_btn, clear_btn) -> None:
+        self._entry = entry
+        self._capture_btn = capture_btn
+        self._clear_btn = clear_btn
 
     def toggle(self) -> None:
         if self.capturing:
@@ -45,17 +47,17 @@ class SingleKeyCaptureController:
     def start(self) -> None:
         """キャプチャ開始（キャプチャ中はフックを一時停止）"""
         self.capturing = True
-        if hasattr(self._app, self._capture_btn_attr):
-            getattr(self._app, self._capture_btn_attr).configure(text="取得中…（Escで停止）")
-        if hasattr(self._app, self._clear_btn_attr):
-            getattr(self._app, self._clear_btn_attr).configure(state="disabled")
+        if self._capture_btn is not None:
+            self._capture_btn.configure(text="取得中…（Escで停止）")
+        if self._clear_btn is not None:
+            self._clear_btn.configure(state="disabled")
 
         # キャプチャ中なのでフックを一時停止（開始中なら止まる / 終了時に元に戻る）
         self._app.hook.suspend_hook_for_dialog()
 
         # フォーカスは表示欄に（入力はしないが、キーを拾いやすくする）
-        if hasattr(self._app, self._focus_entry_attr):
-            getattr(self._app, self._focus_entry_attr).focus_set()
+        if self._entry is not None:
+            self._entry.focus_set()
 
         # ルートで拾う
         self._app.bind("<KeyPress>", self.on_keypress, add="+")
@@ -69,10 +71,10 @@ class SingleKeyCaptureController:
         except Exception:
             pass
 
-        if hasattr(self._app, self._capture_btn_attr):
-            getattr(self._app, self._capture_btn_attr).configure(text="キー入力で取得")
-        if hasattr(self._app, self._clear_btn_attr):
-            getattr(self._app, self._clear_btn_attr).configure(state="normal")
+        if self._capture_btn is not None:
+            self._capture_btn.configure(text="キー入力で取得")
+        if self._clear_btn is not None:
+            self._clear_btn.configure(state="normal")
 
         # 一時停止していたフックを元に戻す
         self._app.hook.resume_hook_after_dialog()

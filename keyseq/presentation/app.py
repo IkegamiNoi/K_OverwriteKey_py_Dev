@@ -99,9 +99,6 @@ class App(tk.Tk):
             self,
             data_key="hook_stop_key",
             var=self.ui_vars.stop_key_var,
-            capture_btn_attr="stop_key_capture_btn",
-            clear_btn_attr="stop_key_clear_btn",
-            focus_entry_attr="stop_key_entry",
             label="停止トリガー",
             single_key_example="f12",
             conflict_checks=[
@@ -115,9 +112,6 @@ class App(tk.Tk):
             self,
             data_key="hook_toggle_key",
             var=self.ui_vars.toggle_key_var,
-            capture_btn_attr="toggle_key_capture_btn",
-            clear_btn_attr="toggle_key_clear_btn",
-            focus_entry_attr="toggle_key_entry",
             label="トグルキー",
             single_key_example="f11",
             conflict_checks=[
@@ -186,29 +180,6 @@ class App(tk.Tk):
         self.outer = ttk.Frame(self, padding=12)
         self.outer.pack(fill="both", expand=True)
 
-        self.run_to_end_delay_entry: ttk.Entry
-        self.hook_toggle_btn: ttk.Button
-        self.trigger_toggle_btn: ttk.Button
-        self.compact_hook_toggle_btn: ttk.Button
-        self.compact_trigger_toggle_btn: ttk.Button
-        self.stop_key_entry: ttk.Entry
-        self.stop_key_capture_btn: ttk.Button
-        self.stop_key_clear_btn: ttk.Button
-        self.keymap_listbox: tk.Listbox
-        self.keymap_add_btn: ttk.Button
-        self.keymap_edit_btn: ttk.Button
-        self.keymap_delete_btn: ttk.Button
-        self.keymap_select_btn: ttk.Button
-        self.topmost_chk: ttk.Checkbutton
-        self.compact_btn: ttk.Button
-        self.suppress_chk: ttk.Checkbutton
-        self.run_to_end_chk: ttk.Checkbutton
-        self.keyboard_layout_combo: ttk.Combobox
-        self.compact_keyboard_layout_combo: ttk.Combobox
-        self.toggle_key_entry: ttk.Entry
-        self.toggle_key_capture_btn: ttk.Button
-        self.toggle_key_clear_btn: ttk.Button
-        
         # 2画面（フル/省略）を用意し、pack_forgetで切替
         self.full_view = FullView(self.outer, app=self)
         self.compact_view = CompactView(self.outer, app=self)

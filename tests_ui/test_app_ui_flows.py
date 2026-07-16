@@ -82,7 +82,7 @@ class AppUiFlowsTest(unittest.TestCase):
 
     def test_keymap_list_shows_active_marker(self):
         self.app.keymap_panel.refresh_keymap_list_ui()
-        first = self.app.keymap_listbox.get(0)
+        first = self.app.full_view.keymap_box.keymap_listbox.get(0)
         self.assertTrue(first.startswith("> "))
         self.assertIn("Main", first)
 

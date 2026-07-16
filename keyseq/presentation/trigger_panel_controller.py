@@ -22,33 +22,25 @@ class TriggerPanelController:
 
     def __init__(self, app) -> None:
         self._app = app
+        self._trigger_lists = []
+
+    def register_trigger_list(self, listbox) -> None:
+        self._trigger_lists.append(listbox)
 
     # ---------------- 選択系 ----------------
     def sync_trigger_selection_to_views(self):
         """現在の選択idxを、Full/Compact両方のトリガーListboxへ反映"""
         idx = int(getattr(self._app, "_selected_trigger_idx", 0) or 0)
-        # Full
-        try:
-            lb = self._app.full_view.trigger_list
-            lb.selection_clear(0, tk.END)
-            if lb.size() > 0:
-                idx = max(0, min(idx, lb.size() - 1))
-                lb.selection_set(idx)
-                lb.activate(idx)
-                lb.see(idx)
-        except Exception:
-            pass
-        # Compact
-        try:
-            lb = self._app.compact_view.trigger_list
-            lb.selection_clear(0, tk.END)
-            if lb.size() > 0:
-                idx = max(0, min(idx, lb.size() - 1))
-                lb.selection_set(idx)
-                lb.activate(idx)
-                lb.see(idx)
-        except Exception:
-            pass
+        for lb in self._trigger_lists:
+            try:
+                lb.selection_clear(0, tk.END)
+                if lb.size() > 0:
+                    idx = max(0, min(idx, lb.size() - 1))
+                    lb.selection_set(idx)
+                    lb.activate(idx)
+                    lb.see(idx)
+            except Exception:
+                pass
 
     def set_selected_trigger_index(self, idx: int):
         self._app._selected_trigger_idx = int(idx)
@@ -117,26 +109,20 @@ class TriggerPanelController:
     # ---------------- 表示系 ----------------
     def refresh_triggers(self):
         # Full/Compact 両方に反映
-        try:
-            self._app.full_view.trigger_list.delete(0, tk.END)
-        except Exception:
-            pass
-        try:
-            self._app.compact_view.trigger_list.delete(0, tk.END)
-        except Exception:
-            pass
+        for trigger_list in self._trigger_lists:
+            try:
+                trigger_list.delete(0, tk.END)
+            except Exception:
+                pass
         triggers = self._app.data.get("triggers", [])
         for i, t in enumerate(triggers):
             k = normalize_key_name(t.get("key", ""))
             s = format_trigger_list_item(i, t)
-            try:
-                self._app.full_view.trigger_list.insert(tk.END, s)
-            except Exception:
-                pass
-            try:
-                self._app.compact_view.trigger_list.insert(tk.END, s)
-            except Exception:
-                pass
+            for trigger_list in self._trigger_lists:
+                try:
+                    trigger_list.insert(tk.END, s)
+                except Exception:
+                    pass
             if k not in self._app._indices:
                 self._app._indices[k] = 0
 
@@ -237,8 +223,10 @@ class TriggerPanelController:
             self._app.ui_vars.run_to_end_var.set(False)
             self._app.ui_vars.run_to_end_delay_var.set(str(DEFAULT_RUN_TO_END_DELAY_MS))
             try:
-                if hasattr(self._app, "run_to_end_delay_entry"):
-                    self._app.run_to_end_delay_entry.configure(state="disabled")
+                sequence_box = getattr(getattr(self._app, "full_view", None), "sequence_box", None)
+                run_to_end_delay_entry = getattr(sequence_box, "run_to_end_delay_entry", None)
+                if run_to_end_delay_entry is not None:
+                    run_to_end_delay_entry.configure(state="disabled")
             except Exception:
                 pass
             return
@@ -250,8 +238,10 @@ class TriggerPanelController:
         )
         self._app.ui_vars.run_to_end_delay_var.set(str(d))
         try:
-            if hasattr(self._app, "run_to_end_delay_entry"):
-                self._app.run_to_end_delay_entry.configure(state=("normal" if self._app.ui_vars.run_to_end_var.get() else "disabled"))
+            sequence_box = getattr(getattr(self._app, "full_view", None), "sequence_box", None)
+            run_to_end_delay_entry = getattr(sequence_box, "run_to_end_delay_entry", None)
+            if run_to_end_delay_entry is not None:
+                run_to_end_delay_entry.configure(state=("normal" if self._app.ui_vars.run_to_end_var.get() else "disabled"))
         except Exception:
             pass
 

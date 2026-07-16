@@ -15,6 +15,10 @@ class HookController:
         self.hook_suspend_count = 0
         self.hook_was_active_before_dialog = False
         self.error_dialog_open = False
+        self._hook_button_pairs = []
+
+    def register_hook_buttons(self, hook_btn, trigger_btn) -> None:
+        self._hook_button_pairs.append((hook_btn, trigger_btn))
 
     # ---------------- Hook suspend/resume for modal dialogs ----------------
     def suspend_hook_for_dialog(self):
@@ -42,24 +46,14 @@ class HookController:
 
     # ---------------- Hook toggle button sync ----------------
     def sync_hook_toggle_buttons(self):
-        if not hasattr(self._app, "hook_toggle_btn"):
-            return
-
         text = "停止（フックOFF）" if self.hook_active else "開始（フックON）"
-        try:
-            self._app.hook_toggle_btn.configure(text=text, state="normal")
-        except Exception:
-            pass
-        try:
-            if hasattr(self._app, "compact_hook_toggle_btn"):
-                self._app.compact_hook_toggle_btn.configure(text=text, state="normal")
-        except Exception:
-            pass
+        for hook_btn, _trigger_btn in self._hook_button_pairs:
+            try:
+                hook_btn.configure(text=text, state="normal")
+            except Exception:
+                pass
 
     def sync_trigger_toggle_buttons(self):
-        if not hasattr(self._app, "trigger_toggle_btn"):
-            return
-
         if not self.hook_active:
             text = "通常トリガー無効化"
             state = "disabled"
@@ -70,15 +64,11 @@ class HookController:
             text = "通常トリガー有効化"
             state = "normal"
 
-        try:
-            self._app.trigger_toggle_btn.configure(text=text, state=state)
-        except Exception:
-            pass
-        try:
-            if hasattr(self._app, "compact_trigger_toggle_btn"):
-                self._app.compact_trigger_toggle_btn.configure(text=text, state=state)
-        except Exception:
-            pass
+        for _hook_btn, trigger_btn in self._hook_button_pairs:
+            try:
+                trigger_btn.configure(text=text, state=state)
+            except Exception:
+                pass
 
     # ---------------- Hook logic ----------------
     def start_hook(self):
