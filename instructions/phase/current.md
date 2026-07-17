@@ -6,13 +6,19 @@
 
 ## 現在の参照先
 
-- 現在フェーズは**未確定**。次フェーズ開始時に `/phase_start` で起票し、ここを差し替える。
+- **[01_view_ref_cleanup](01_view_ref_cleanup/phase.md)** — View 参照の後始末。
+  計画04 で意図的に残した残存参照 2 件（`views/status_bar.py` の生やし / View の `trigger_list` alias）を解消する。
+  presentation のみ・スキーマ変更なし・**挙動不変**。
+  - モード: **直接改訂モード**（仕様変更なし・暫定仕様なし）。番号対応: phase 01 / 暫定 なし /
+    判断は `.claude_data/state/decisions.md` → 完了時 `decisions_archive/01_view_ref_cleanup.md`。
+  - 起票元: ユーザー要望（2026-07-17）+ 本ファイル「別タスク化候補」（計画04 W7 の残課題のうち機械的なもの）。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
   過去のリファクタ計画・提案書（01〜04）は `instructions/modified_proposal/`（次採番 05）。
+  計画04 は完了済（W0〜W7・手動確認まで完了）。
 
 ## 次採番
 
-- 次フェーズは **`01_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- 次フェーズは **`02_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
 
 ## 次フェーズ候補（参考）
 
