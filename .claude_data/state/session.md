@@ -9,14 +9,25 @@ phase: instructions/modified_proposal/04_widget_split_plan.md（フェーズ番�
 last_commit_location: claude/w1-physical-verification-647a57（worktree: w1-physical-verification-647a57）※最終コミット場所。現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: 計画04 Widget分割リファクタ実行中。W0〜W5完了・W1〜W4手動確認OK済、W5完了(コミット済 1b86f60)→W5手動確認待ち【省略禁止】→次はW6(controllers/移動・re-export削除)。
-mode: pending_review             # W5はverifier全緑・reviewer完了可・codex-adversarial approve済。残るは W5 のユーザー手動UI確認【省略禁止】。
+focus: 計画04（Widget分割・フォルダ再編・挙動不変）は **W0〜W7 全項目完了**。手動確認も全て完了（W5の省略禁止項目・W7のフック6項目を含む）。残: 計画04完了に伴う記録整理（decisions記録 / current.md / refactor_check の要否をユーザー確認中）。
+mode: ready                      # 実装・検証・レビュー・手動確認はすべて完了。
 
 ## last_action
-ts: 2026-07-16T02:00:00
+ts: 2026-07-16T03:00:00
 who: main
 summary: |
-  W4手動UI確認OK（ユーザー報告）。W5(ウィジェット生やしの解消・登録方式)を codex-implementer で実装(最大リスク)。
+  W5手動確認OK→W6(controllers/移動・re-export削除)実施→W6手動確認要件なし→W7(最終)実施→フック手動確認6項目OK。
+  【W6】7コントローラを controllers/ へ100% rename移動(内容差分0)、controllers/__init__.py(空)追加、
+  W3/W4の移行用 re-export を除去し views/__init__.py を空パッケージマーカーへ(案A)。app.py/tests/test_dirty_state.py は
+  import行のみ更新。恒久互換レイヤーなし。verifier全緑→reviewer完了可→コミット(fa7afa2)。
+  【W7】①app.py 41メソッドを分類(Tkルート管理/生成と配線/View切替/調整役/dialogs契約)。どれにも属さない残留=
+  次期課題として列挙(移動せず): validate_hotkey実装本体(~31行)/_load_startup_settings(~17)/_coerce_font_delta(~10)/
+  set_ui_font_delta(~17)。②標準検証フル全緑＋フック手動6項目(計画02 S10)ユーザーOK。
+  ③app.py 実測=413行(**目安300行を113行超過**。主因は__init__の配線~120行=正当な残留。次期課題~75行を移しても~338行見込み)。
+  ④codebase_map.md 更新(フォルダ構成図の§1.1化・App/UiVars/各Widget責務・W5の登録方式とApp→View→Widgetパスを追記)。
+  ⑤最終報告=下記 result_files/verified 参照。→W7コミット(codebase_map+session.md)。
+  ---- 以下は W5 の記録 ----
+  W5(ウィジェット生やしの解消・登録方式)を codex-implementer で実装(最大リスク)。
   View→App の逆流(app.xxx = widget)を全廃。
   登録方式(複数View共有): HookController.register_hook_buttons+_hook_button_pairs走査 /
   LayoutController.register_layout_combo+_layout_combos走査 /
@@ -40,20 +51,15 @@ verified:
   smoke: pass
 
 ## next_action
-- （ユーザー）W5手動UI確認【計画上 省略禁止・確認前に停止キー設定】:
-  ① フックON/OFF でフル・省略**両方**のボタン文言（開始（フックON）⇔停止（フックOFF）/ 通常トリガー無効化⇔有効化）が同期切替。
-  ② キャプチャ取得中のボタン文言変化（"取得中…（Escで停止）"）と Esc キャンセルで復帰（停止キー/トグルキー両方）。
-  ③ キーマップ管理ボタン（キーマップ変更/削除/選択）の活性・非活性。
-  ④ レイアウトコンボ2箇所（フル/省略）の同期。
-  失敗時は `git revert 1b86f60`。
-- W6着手: codex-implementer に計画04「W6: 種類別フォルダへの移動」を依頼。
-  ①controllers/ フォルダ新設し §1.1 の7ファイル(config_io_controller/dirty_state/hook_controller/key_capture/
-  keymap_panel_controller/layout_controller/trigger_panel_controller)を git mv+__init__.py+全import更新(内容はimport行以外不変)。
-  ②views/__init__.py の re-export(FullView/CompactView)を削除し参照元(app.py/tests_ui)を新パスへ更新→
-  【案A注記】W6は「views.py削除」を「views/__init__.py の re-export除去」と読み替え(views/ はパッケージのまま残す)。
-  ③ui_vars/config_paths/listbox_utils/tk_keys/theme/dialogs/keyboard_window/keyboard_layouts は presentation 直下に残す。
-  完了条件: 旧パス参照0件→標準検証。実装環境: python=`..\..\..\.venv\Scripts\python.exe`。
-- W6実装後: verifier → reviewer → メイン判定 → 1コミット。
+- （ユーザー確認待ち）計画04 完了に伴う記録整理の要否。本作業は `instructions/phase/NN_<topic>/` の
+  **フェーズではなく `instructions/modified_proposal/04_...` のリファクタ計画**であり、`current.md` は
+  「現在フェーズ未確定」のまま。そのため task_execution.md「フェーズ完了時」チェックリストが素直に適用できない:
+  - decisions_archive/<NN_topic>.md 作成 → 対象フェーズが無い（decisions.md も未使用テンプレのまま）
+  - current.md の完了記載更新・次採番 → 現在フェーズ未確定のため差し替え対象なし
+  - backlog INDEX 更新 → 起票元 idea の有無を要確認
+  - `/refactor_check` 実行 → リファクタ計画直後のため要否をユーザー判断
+  提案: 最低限 decisions.md へ【案A】等の判断を記録する（実施済みなら本項目を消す）。
+- 次フェーズ着手時は `/phase_start` で起票し current.md を差し替える（次採番 `01_<topic>`）。
 
 ## blockers
 - なし（Codex実行環境は修復済み・稼働確認済み）。
@@ -64,6 +70,7 @@ verified:
 - 計画書 instructions/modified_proposal/04_widget_split_plan.md が規範。1項目=1コミット、W0→W7順。§4「やらないこと」厳守（Full/Compact間のWidget共通化禁止・文言/レイアウト値不変・後続先取り禁止）。
 - 計画書内パスの `instruction/`(単数)は実体 `instructions/`(複数)に読み替える。
 - W5(生やし解消)とW7(フック手動6項目)の手動確認は計画上省略禁止。確認前に停止キー設定。
-- 済コミット: 6db24c2(python_rules) / e5d8653(W1 UiVars) / 7436710(W2 メニュー/ステータス移設) / d18b019(W3 CompactView分割) / 78b5c04(W4 FullView分割) / 1b86f60(W5 生やし解消・登録方式)。ブランチ claude/w1-physical-verification-647a57。
+- 済コミット: 6db24c2(python_rules) / e5d8653(W1 UiVars) / 7436710(W2 メニュー/ステータス移設) / d18b019(W3 CompactView分割) / 78b5c04(W4 FullView分割) / 1b86f60(W5 生やし解消・登録方式) / fa7afa2(W6 controllers/移動・re-export削除)。ブランチ claude/w1-physical-verification-647a57。
+- W1〜W5 の手動UI確認は**全てユーザー確認OK済**（W5 の省略禁止項目も完了）。W6 に手動確認要件なし。
 - 【W5後の alias 整理結果】compact/full の trigger_list View alias は tests_ui 依存で**残置**(W6でも維持)。action_list は app.full_view.action_list のまま据え置き。
 - 【案A確定事項】計画書中の `views.py` は W2 以降 `keyseq/presentation/views/__init__.py` と読み替える（views/ パッケージ化済み。W3/W4 の re-export・W6 の削除も __init__.py 側で行う）。
