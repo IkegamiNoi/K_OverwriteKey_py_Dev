@@ -6,8 +6,13 @@
 
 ## 現在の参照先
 
-- 現在フェーズは**未確定**。次フェーズ開始時に `/phase_start` で起票し、ここを差し替える。
-  着手候補は下記「次フェーズ候補」を参照。
+- **[02_hotkey_validation](02_hotkey_validation/phase.md)** — hotkey 検証の層移設。
+  App に住む hotkey 検証を domain / application へ移し、App は dialogs 契約の薄い委譲に留める。
+  application → presentation の**層の逆転を解消**し、`tk.Tk` 無しで単体テストできるようにする。
+  domain / application / presentation の 3 層・スキーマ変更なし・**挙動不変**。
+  - モード: **暫定仕様先行モード**。主入力 = [暫定仕様 01](../history/01_hotkey_validation.md)（v1.0・ユーザー確定済）。
+    番号対応: phase 02 / 暫定 01 / decisions `decisions_archive/02_hotkey_validation.md`。
+  - 起票元: [idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)。
 - 直前の完了フェーズ: `01_view_ref_cleanup`（2026-07-17 完了）。
   要約・判断は [decisions_archive/01_view_ref_cleanup.md](../../.claude_data/state/decisions_archive/01_view_ref_cleanup.md) が正。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -16,7 +21,8 @@
 
 ## 次採番
 
-- 次フェーズは **`02_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- 次フェーズは **`03_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。次採番は **`02_<topic>`**。
 
 ## 次フェーズ候補（参考）
 
@@ -26,9 +32,8 @@
 （3フェーズに分割。1件1フェーズにはしない）。**1 の後始末は `01_view_ref_cleanup` で完了済**:
 
 1. ~~後始末~~ → **完了**（`01_view_ref_cleanup`・2026-07-17）
-2. **[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)（次に着手）** — hotkey 検証を domain へ。
-   設計判断を伴うため `/spec_draft`（暫定仕様先行モード）推奨
-3. [idea_02](../backlog/idea_02_startup_font_settings_cleanup.md) — 起動設定/フォント クラスタ（初期化順序の解決が前提）
+2. ~~[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)~~ → **着手中**（`02_hotkey_validation`・上記「現在の参照先」）
+3. **[idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)（次の候補）** — 起動設定/フォント クラスタ（初期化順序の解決が前提）
 
 ## 別タスク化候補
 

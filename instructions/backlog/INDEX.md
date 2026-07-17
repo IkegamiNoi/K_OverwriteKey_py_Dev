@@ -27,5 +27,5 @@
 
 | ID | ファイル | 概要 | 状態 |
 |---|---|---|---|
-| idea_01 | [idea_01_hotkey_validation_to_domain.md](idea_01_hotkey_validation_to_domain.md) | App に住む hotkey 検証ロジック（約31行）を domain / application へ移し、App は dialogs 契約の薄い委譲に留める。application → presentation の逆転を解消し、`tk.Tk` なしで単体テストできるようにする。 | **着手**（→ 暫定仕様 [01](../history/01_hotkey_validation.md)・v1.0 ユーザー確定済）|
+| idea_01 | [idea_01_hotkey_validation_to_domain.md](idea_01_hotkey_validation_to_domain.md) | App に住む hotkey 検証ロジック（約31行）を domain / application へ移し、App は dialogs 契約の薄い委譲に留める。application → presentation の逆転を解消し、`tk.Tk` なしで単体テストできるようにする。 | **着手**（→ 暫定仕様 [01](../history/01_hotkey_validation.md)・v1.0 ユーザー確定済 / phase [02_hotkey_validation](../phase/02_hotkey_validation/phase.md)）|
 | idea_02 | [idea_02_startup_font_settings_cleanup.md](idea_02_startup_font_settings_cleanup.md) | 起動設定/フォントの3メソッド（`_load_startup_settings` / `_coerce_font_delta` / `set_ui_font_delta`）の責務混在と controller → App private 逆参照を解消。初期化順序の解決が前提。 | 未着手（検討段階・計画04 W7 の残留ロジック分類から分離）|

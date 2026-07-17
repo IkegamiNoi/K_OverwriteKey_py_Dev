@@ -11,6 +11,9 @@
 >   案 C 採用 / parts 再構成の廃止 / 命名 `validate_hotkey_syntax` / 安全網テストは追加し移設後も残す。**
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: [idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)（計画04 W7 の残留ロジック分類から分離）。
+> 実装フェーズ: [02_hotkey_validation](../phase/02_hotkey_validation/phase.md)。
+> **番号対応: phase 02 / 暫定 01 / decisions `decisions_archive/02_hotkey_validation.md`**
+> （暫定仕様は phase とは独立採番のため番号が一致しない）。
 > ユーザー方針（2026-07-17）: 計画04 の次期課題は 3 分割し「後始末（完了）→ **本件** → idea_02」の順で進める。
 
 ---
