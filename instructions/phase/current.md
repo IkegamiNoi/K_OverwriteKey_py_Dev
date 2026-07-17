@@ -6,12 +6,10 @@
 
 ## 現在の参照先
 
-- **[01_view_ref_cleanup](01_view_ref_cleanup/phase.md)** — View 参照の後始末。
-  計画04 で意図的に残した残存参照 2 件（`views/status_bar.py` の生やし / View の `trigger_list` alias）を解消する。
-  presentation のみ・スキーマ変更なし・**挙動不変**。
-  - モード: **直接改訂モード**（仕様変更なし・暫定仕様なし）。番号対応: phase 01 / 暫定 なし /
-    判断は `.claude_data/state/decisions.md` → 完了時 `decisions_archive/01_view_ref_cleanup.md`。
-  - 起票元: ユーザー要望（2026-07-17）+ 本ファイル「別タスク化候補」（計画04 W7 の残課題のうち機械的なもの）。
+- 現在フェーズは**未確定**。次フェーズ開始時に `/phase_start` で起票し、ここを差し替える。
+  着手候補は下記「次フェーズ候補」を参照。
+- 直前の完了フェーズ: `01_view_ref_cleanup`（2026-07-17 完了）。
+  要約・判断は [decisions_archive/01_view_ref_cleanup.md](../../.claude_data/state/decisions_archive/01_view_ref_cleanup.md) が正。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
   過去のリファクタ計画・提案書（01〜04）は `instructions/modified_proposal/`（次採番 05）。
   計画04 は完了済（W0〜W7・手動確認まで完了）。
@@ -25,11 +23,11 @@
 （`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする）
 
 計画04 の次期課題は「後始末 → hotkey検証 → 起動設定/フォント」の順で進める方針
-（3フェーズに分割。1件1フェーズにはしない）:
+（3フェーズに分割。1件1フェーズにはしない）。**1 の後始末は `01_view_ref_cleanup` で完了済**:
 
-1. **後始末**（次に着手）— `views/status_bar.py` の生やし + View の `trigger_list` alias 解消。
-   計画04 W5/W6 のやり残し。挙動不変・機械的。下記「別タスク化候補」参照
-2. [idea_01](../backlog/idea_01_hotkey_validation_to_domain.md) — hotkey 検証を domain へ（設計判断あり。`/spec_draft` 推奨）
+1. ~~後始末~~ → **完了**（`01_view_ref_cleanup`・2026-07-17）
+2. **[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)（次に着手）** — hotkey 検証を domain へ。
+   設計判断を伴うため `/spec_draft`（暫定仕様先行モード）推奨
 3. [idea_02](../backlog/idea_02_startup_font_settings_cleanup.md) — 起動設定/フォント クラスタ（初期化順序の解決が前提）
 
 ## 別タスク化候補
@@ -39,15 +37,15 @@
 計画04 W7 の次期課題（app.py の「どの責務分類にも属さない残留ロジック」。app.py は 489 行で目安 300 行を超過）
 のうち、設計判断を伴う 2 クラスタは idea へ移した →
 [idea_01](../backlog/idea_01_hotkey_validation_to_domain.md) / [idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)。
-以下は残る機械的な後始末（次フェーズ候補 1「後始末」の中身）:
+機械的な後始末 2 件（`views/status_bar.py` の生やし / View の `trigger_list` alias）は
+**`01_view_ref_cleanup` で解消済**（2026-07-17）。
 
-- 計画04 W5 の対象外で残存した生やし: `views/status_bar.py:6,10` の `app.runtime_status_frame` /
-  `app.status_bar`。**grep 済: この 2 つは `build_status_area` 内でしか使われておらず読み手なし**
-  （W5 で処理した write-only 生やしと同型）→ ローカル変数化するだけで解消
-- 計画04 の暫定措置: View の `trigger_list` alias（`full_view.py` / `compact_view.py` の
-  `self.trigger_list = self.trigger_box.trigger_list`）は tests_ui が `app.<view>.trigger_list` を
-  参照するため残置中。**W5 で `keymap_listbox` の参照経路を変更した前例あり**（アサーション不変なら
-  参照経路の変更は可）→ tests_ui を `app.full_view.trigger_box.trigger_list` へ変えれば alias を削除できる
+- `action_list` alias（`full_view.py` の `self.action_list = self.sequence_box.action_list`）は**据え置き中**。
+  `trigger_list` と違い production（`controllers/trigger_panel_controller.py`）が
+  `app.full_view.action_list` を実際に使う**生きた参照経路**であり、計画04 §1.3-2 の
+  「App → View → Widget のパス」を満たすため。所有 Widget 経由（`full_view.sequence_box.action_list`）へ
+  統一したくなった場合のみ単独タスク化する（判断根拠は
+  [decisions_archive/01_view_ref_cleanup.md](../../.claude_data/state/decisions_archive/01_view_ref_cleanup.md)）
 
 ## 作業開始時の指示
 

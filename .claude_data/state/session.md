@@ -9,13 +9,30 @@ phase: instructions/modified_proposal/04_widget_split_plan.md（フェーズ番�
 last_commit_location: claude/w1-physical-verification-647a57（worktree: w1-physical-verification-647a57）※最終コミット場所。現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: 計画04（Widget分割・フォルダ再編・挙動不変）は **W0〜W7 全項目完了**。手動確認も全て完了（W5の省略禁止項目・W7のフック6項目を含む）。残: 計画04完了に伴う記録整理（decisions記録 / current.md / refactor_check の要否をユーザー確認中）。
-mode: ready                      # 実装・検証・レビュー・手動確認はすべて完了。
+focus: フェーズ **01_view_ref_cleanup 完了**（task_01/02/03・実機目視OK・refactor_check「不要」）。計画04 も完了済。現在フェーズは**未確定**。次は idea_01（hotkey検証を domain へ）の起票待ち。
+mode: ready                      # 全タスク完了・git クリーン。次フェーズ起票（/phase_start）待ち。
 
 ## last_action
-ts: 2026-07-16T03:00:00
+ts: 2026-07-17T00:00:00
 who: main
 summary: |
+  【フェーズ 01_view_ref_cleanup 完了】計画04 完了後、次期課題を整理して3分割する方針をユーザー承認
+  （後始末 → idea_01 hotkey検証 → idea_02 起動設定/フォント。1件1フェーズにはしない）。
+  後回し2件を idea として起票(86c3a4f)。フェーズ 01_view_ref_cleanup を起票(1ec8873・reviewer完了可)。
+  task_01(66f1d4c): views/status_bar.py の app.runtime_status_frame / app.status_bar をローカル変数化。
+    着手前grepで読み手なしを再確認（W5のwrite-only生やしと同型）。差分は app. 除去の識別子変更のみ。
+  task_02(bfdf616): full_view.py / compact_view.py の trigger_list alias を削除。W5で production は
+    _trigger_lists 登録方式へ移行済＝alias は tests_ui 専用の遺物だった。tests_ui は参照経路のみ変更
+    （app.<view>.trigger_box.trigger_list。アサーション不変）。
+    ★action_list alias は据え置き（単一View所有で production が app.full_view.action_list を使用中＝
+      計画04 §1.3-2 の App→View→Widget パス。trigger_list と性質が違う。取り違え注意）。
+  task_03(本コミット): refactor_check「不要」(M1〜M6該当なし・3ファイル/+11-15行)。
+    decisions_archive/01_view_ref_cleanup.md 作成 / decisions.md にアーカイブ索引を新設 /
+    current.md をフェーズ完了状態へ（現在の参照先=未確定・別タスク化候補から解消済2件を削除）。
+    codebase_map・spec_detail の更新は不要と判断（挙動不変・生やし/aliasは記載対象外）。
+  全タスクで verifier全緑(compile/59/9/smoke) + reviewer「完了可」。実機目視OK（ステータスバー表示 /
+  フル・省略のトリガー一覧と選択共有）。
+  ---- 以下は計画04（完了済）の記録 ----
   W5手動確認OK→W6(controllers/移動・re-export削除)実施→W6手動確認要件なし→W7(最終)実施→フック手動確認6項目OK。
   【W6】7コントローラを controllers/ へ100% rename移動(内容差分0)、controllers/__init__.py(空)追加、
   W3/W4の移行用 re-export を除去し views/__init__.py を空パッケージマーカーへ(案A)。app.py/tests/test_dirty_state.py は
@@ -53,15 +70,15 @@ verified:
   smoke: pass
 
 ## next_action
-- **計画04 は完了**（W0〜W7 全項目 + 全手動確認 + decisions記録 + /refactor_check 実行済）。
-- 次フェーズ着手時は `/phase_start` で起票し `current.md` を差し替える（次採番 `01_<topic>`）。
-  次フェーズ候補は `instructions/backlog/INDEX.md` の idea、および下記の次期課題から選ぶ。
-- 次期課題（計画04 W7 で列挙。`current.md` の「別タスク化候補」にも追記済み）:
-  1. `validate_hotkey` の実装本体(~31行)を domain/application へ（App は薄い委譲に）
-  2. `_load_startup_settings`(~17行) を ConfigIoController / ConfigPaths へ
-  3. `_coerce_font_delta`(~10行) を theme.py 等へ
-  4. `set_ui_font_delta`(~17行) の責務混在（フォント適用+永続化+フラッシュ）を切り出し
-  5. `views/status_bar.py` の `app.runtime_status_frame` / `app.status_bar` 生やし（W5 対象外で残存）
+- **計画04・フェーズ 01_view_ref_cleanup ともに完了**。現在フェーズは未確定（`current.md` 参照）。
+- 次は **[idea_01](../../instructions/backlog/idea_01_hotkey_validation_to_domain.md)（hotkey 検証を domain へ）** の起票。
+  設計判断（domain / application のどちらへ置くか・`input_gateway.validate_key_name` 依存の扱い）を伴うため
+  **`/spec_draft` で暫定仕様書を先に書く（暫定仕様先行モード）**ことを推奨。
+  → 暫定仕様をユーザー確定 → `/phase_start` で `02_<topic>` を起票（次採番は current.md が正）。
+  → 着手時は `backlog/INDEX.md` の idea_01 行を「**着手**（→ リンク）」へ更新すること。
+- その次は [idea_02](../../instructions/backlog/idea_02_startup_font_settings_cleanup.md)（起動設定/フォント クラスタ。初期化順序の解決が前提）。
+- 据え置き中: `action_list` alias（`full_view.py`）。production が使う生きたパスのため据え置き
+  （判断根拠は `decisions_archive/01_view_ref_cleanup.md`）。
 
 ## blockers
 - なし（Codex実行環境は修復済み・稼働確認済み）。
@@ -69,10 +86,15 @@ verified:
 ## resume_hints
 - **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**
 - 実装は codex-implementer が既定（agent_selection.md）。Codexは .venv python を sandbox junction 経由で起動できないため、標準検証はメイン側/verifier が .venv で実行する分担。
-- 計画書 instructions/modified_proposal/04_widget_split_plan.md が規範。1項目=1コミット、W0→W7順。§4「やらないこと」厳守（Full/Compact間のWidget共通化禁止・文言/レイアウト値不変・後続先取り禁止）。
+- **計画04（instructions/modified_proposal/04_widget_split_plan.md）は完了済**。以降の規範はフェーズ定義
+  （`instructions/phase/current.md` → 各 `phase.md`）。計画04 は経緯の参照先として読む。
 - 計画書内パスの `instruction/`(単数)は実体 `instructions/`(複数)に読み替える。
-- W5(生やし解消)とW7(フック手動6項目)の手動確認は計画上省略禁止。確認前に停止キー設定。
-- 済コミット: 6db24c2(python_rules) / e5d8653(W1 UiVars) / 7436710(W2 メニュー/ステータス移設) / d18b019(W3 CompactView分割) / 78b5c04(W4 FullView分割) / 1b86f60(W5 生やし解消・登録方式) / fa7afa2(W6 controllers/移動・re-export削除)。ブランチ claude/w1-physical-verification-647a57。
-- W1〜W5 の手動UI確認は**全てユーザー確認OK済**（W5 の省略禁止項目も完了）。W6 に手動確認要件なし。
-- 【W5後の alias 整理結果】compact/full の trigger_list View alias は tests_ui 依存で**残置**(W6でも維持)。action_list は app.full_view.action_list のまま据え置き。
+- 過去の判断は `.claude_data/state/decisions.md`（アーカイブ索引あり）+ `decisions_archive/<phase>.md`。
+- **app.py の行数計測は `wc -l` を使う**（489行）。計画書指定の PowerShell `Measure-Object -Line` は
+  空行を数えず 413 を返す＝誤解の元（過去に誤報告あり）。
+- 済コミット（計画04）: 6db24c2(python_rules) / e5d8653(W1 UiVars) / 7436710(W2 メニュー/ステータス移設) / d18b019(W3 CompactView分割) / 78b5c04(W4 FullView分割) / 1b86f60(W5 生やし解消・登録方式) / fa7afa2(W6 controllers/移動・re-export削除) / 550efbc(W7 codebase_map) / 731fb7d(判断記録・refactor_check)。
+- 済コミット（フェーズ01）: 86c3a4f(idea起票) / 1ec8873(フェーズ起票) / 66f1d4c(task_01) / bfdf616(task_02)。ブランチ claude/w1-physical-verification-647a57。
+- 計画04 の手動UI確認（W1〜W5・W7のフック6項目）とフェーズ01の実機目視は**全てユーザー確認OK済**。
+- 【alias の最終状態】trigger_list View alias は**削除済**（フェーズ01 task_02）。
+  **action_list alias は据え置き**（`full_view.py`。production が `app.full_view.action_list` を使う生きたパス＝計画04 §1.3-2 準拠）。取り違え注意。
 - 【案A確定事項】計画書中の `views.py` は W2 以降 `keyseq/presentation/views/__init__.py` と読み替える（views/ パッケージ化済み。W3/W4 の re-export・W6 の削除も __init__.py 側で行う）。

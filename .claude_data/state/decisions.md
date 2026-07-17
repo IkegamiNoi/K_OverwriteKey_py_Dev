@@ -2,6 +2,18 @@
 
 > 採用 / 修正して採用 / 保留 / 除外 の判断を時系列で記録。
 > 後続フェーズで「なぜそうしたか」を辿れるようにする。
+> **完了フェーズの判断は `decisions_archive/<phase>.md` へ集約し、本ファイルには索引のみ残す。**
+
+---
+
+## アーカイブ索引
+
+| フェーズ | アーカイブ | 概要 |
+|---|---|---|
+| 01_view_ref_cleanup | [01_view_ref_cleanup.md](decisions_archive/01_view_ref_cleanup.md) | View 参照の後始末（2026-07-17 完了）。status_bar 生やしのローカル変数化 / trigger_list alias 削除。**action_list alias は据え置き**（production が使う生きたパスのため。取り違え注意）。refactor_check: 不要 |
+
+※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
+（`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
 
 ## 凡例
 - **採用**: 仕様適合・依存方向・責務に問題なし、そのまま取り込む
