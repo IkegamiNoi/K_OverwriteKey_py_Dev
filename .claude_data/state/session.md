@@ -23,7 +23,9 @@ summary: |
   【W7】①app.py 41メソッドを分類(Tkルート管理/生成と配線/View切替/調整役/dialogs契約)。どれにも属さない残留=
   次期課題として列挙(移動せず): validate_hotkey実装本体(~31行)/_load_startup_settings(~17)/_coerce_font_delta(~10)/
   set_ui_font_delta(~17)。②標準検証フル全緑＋フック手動6項目(計画02 S10)ユーザーOK。
-  ③app.py 実測=413行(**目安300行を113行超過**。主因は__init__の配線~120行=正当な残留。次期課題~75行を移しても~338行見込み)。
+  ③app.py 実測=**489行**(`wc -l`。空行除くと412行)。**目安300行を189行超過**。主因は__init__の配線~122行=正当な残留。
+    次期課題~75行を移しても~414行見込み。※計画§W7-3指定の `(Get-Content|Measure-Object -Line).Lines` は
+    PowerShell仕様で空行を数えず413を返す=誤解の元。**今後は `wc -l` を使う**（当初413行と誤報告し訂正済）。
   ④codebase_map.md 更新(フォルダ構成図の§1.1化・App/UiVars/各Widget責務・W5の登録方式とApp→View→Widgetパスを追記)。
   ⑤最終報告=下記 result_files/verified 参照。→W7コミット(codebase_map+session.md)。
   ---- 以下は W5 の記録 ----
@@ -51,15 +53,15 @@ verified:
   smoke: pass
 
 ## next_action
-- （ユーザー確認待ち）計画04 完了に伴う記録整理の要否。本作業は `instructions/phase/NN_<topic>/` の
-  **フェーズではなく `instructions/modified_proposal/04_...` のリファクタ計画**であり、`current.md` は
-  「現在フェーズ未確定」のまま。そのため task_execution.md「フェーズ完了時」チェックリストが素直に適用できない:
-  - decisions_archive/<NN_topic>.md 作成 → 対象フェーズが無い（decisions.md も未使用テンプレのまま）
-  - current.md の完了記載更新・次採番 → 現在フェーズ未確定のため差し替え対象なし
-  - backlog INDEX 更新 → 起票元 idea の有無を要確認
-  - `/refactor_check` 実行 → リファクタ計画直後のため要否をユーザー判断
-  提案: 最低限 decisions.md へ【案A】等の判断を記録する（実施済みなら本項目を消す）。
-- 次フェーズ着手時は `/phase_start` で起票し current.md を差し替える（次採番 `01_<topic>`）。
+- **計画04 は完了**（W0〜W7 全項目 + 全手動確認 + decisions記録 + /refactor_check 実行済）。
+- 次フェーズ着手時は `/phase_start` で起票し `current.md` を差し替える（次採番 `01_<topic>`）。
+  次フェーズ候補は `instructions/backlog/INDEX.md` の idea、および下記の次期課題から選ぶ。
+- 次期課題（計画04 W7 で列挙。`current.md` の「別タスク化候補」にも追記済み）:
+  1. `validate_hotkey` の実装本体(~31行)を domain/application へ（App は薄い委譲に）
+  2. `_load_startup_settings`(~17行) を ConfigIoController / ConfigPaths へ
+  3. `_coerce_font_delta`(~10行) を theme.py 等へ
+  4. `set_ui_font_delta`(~17行) の責務混在（フォント適用+永続化+フラッシュ）を切り出し
+  5. `views/status_bar.py` の `app.runtime_status_frame` / `app.status_bar` 生やし（W5 対象外で残存）
 
 ## blockers
 - なし（Codex実行環境は修復済み・稼働確認済み）。

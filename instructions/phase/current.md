@@ -22,6 +22,14 @@
 
 （継続保留、ソース変更を伴う細かい負債。`/refactor_check` からの追記先もここ）
 
+- 計画04 W7 の次期課題（app.py の「どの責務分類にも属さない残留ロジック」。app.py は 489 行で目安 300 行を超過）:
+  `validate_hotkey` の実装本体(~31行) を domain/application へ移し App は薄い委譲に /
+  `_load_startup_settings`(~17行) を ConfigIoController・ConfigPaths へ / `_coerce_font_delta`(~10行) を theme.py 等へ /
+  `set_ui_font_delta`(~17行) の責務混在（フォント適用+永続化+フラッシュ）を切り出し
+- 計画04 W5 の対象外で残存した生やし: `views/status_bar.py` の `app.runtime_status_frame` / `app.status_bar`
+- 計画04 の暫定措置: View の `trigger_list` alias（full/compact）は tests_ui が
+  `app.<view>.trigger_list` を参照するため残置中。テスト側の参照経路を見直せば解消可能
+
 ## 作業開始時の指示
 
 Claude は作業開始時に、このファイルで指定された参照先の `phase.md` を必ず読んでください。
