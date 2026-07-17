@@ -18,17 +18,30 @@
 
 （`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする）
 
+計画04 の次期課題は「後始末 → hotkey検証 → 起動設定/フォント」の順で進める方針
+（3フェーズに分割。1件1フェーズにはしない）:
+
+1. **後始末**（次に着手）— `views/status_bar.py` の生やし + View の `trigger_list` alias 解消。
+   計画04 W5/W6 のやり残し。挙動不変・機械的。下記「別タスク化候補」参照
+2. [idea_01](../backlog/idea_01_hotkey_validation_to_domain.md) — hotkey 検証を domain へ（設計判断あり。`/spec_draft` 推奨）
+3. [idea_02](../backlog/idea_02_startup_font_settings_cleanup.md) — 起動設定/フォント クラスタ（初期化順序の解決が前提）
+
 ## 別タスク化候補
 
 （継続保留、ソース変更を伴う細かい負債。`/refactor_check` からの追記先もここ）
 
-- 計画04 W7 の次期課題（app.py の「どの責務分類にも属さない残留ロジック」。app.py は 489 行で目安 300 行を超過）:
-  `validate_hotkey` の実装本体(~31行) を domain/application へ移し App は薄い委譲に /
-  `_load_startup_settings`(~17行) を ConfigIoController・ConfigPaths へ / `_coerce_font_delta`(~10行) を theme.py 等へ /
-  `set_ui_font_delta`(~17行) の責務混在（フォント適用+永続化+フラッシュ）を切り出し
-- 計画04 W5 の対象外で残存した生やし: `views/status_bar.py` の `app.runtime_status_frame` / `app.status_bar`
-- 計画04 の暫定措置: View の `trigger_list` alias（full/compact）は tests_ui が
-  `app.<view>.trigger_list` を参照するため残置中。テスト側の参照経路を見直せば解消可能
+計画04 W7 の次期課題（app.py の「どの責務分類にも属さない残留ロジック」。app.py は 489 行で目安 300 行を超過）
+のうち、設計判断を伴う 2 クラスタは idea へ移した →
+[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md) / [idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)。
+以下は残る機械的な後始末（次フェーズ候補 1「後始末」の中身）:
+
+- 計画04 W5 の対象外で残存した生やし: `views/status_bar.py:6,10` の `app.runtime_status_frame` /
+  `app.status_bar`。**grep 済: この 2 つは `build_status_area` 内でしか使われておらず読み手なし**
+  （W5 で処理した write-only 生やしと同型）→ ローカル変数化するだけで解消
+- 計画04 の暫定措置: View の `trigger_list` alias（`full_view.py` / `compact_view.py` の
+  `self.trigger_list = self.trigger_box.trigger_list`）は tests_ui が `app.<view>.trigger_list` を
+  参照するため残置中。**W5 で `keymap_listbox` の参照経路を変更した前例あり**（アサーション不変なら
+  参照経路の変更は可）→ tests_ui を `app.full_view.trigger_box.trigger_list` へ変えれば alias を削除できる
 
 ## 作業開始時の指示
 
