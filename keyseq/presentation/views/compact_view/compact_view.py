@@ -33,5 +33,4 @@ class CompactView(ttk.Frame):
         self.main_area = ttk.Frame(self)
         self.main_area.pack(fill="both", expand=True, pady=(12, 0))
         self.trigger_box = CompactTriggerBox(self.main_area, app)
-        self.trigger_list = self.trigger_box.trigger_list
         self.trigger_box.pack(side="top", fill="both", expand=True)

@@ -37,8 +37,8 @@ class AppUiFlowsTest(unittest.TestCase):
             cls.app.destroy()
 
     def test_trigger_lists_populated(self):
-        self.assertEqual(self.app.full_view.trigger_list.size(), 2)
-        self.assertEqual(self.app.compact_view.trigger_list.size(), 2)
+        self.assertEqual(self.app.full_view.trigger_box.trigger_list.size(), 2)
+        self.assertEqual(self.app.compact_view.trigger_box.trigger_list.size(), 2)
 
     def test_selection_updates_status(self):
         self.app.trigger_panel.set_selected_trigger_index(1)

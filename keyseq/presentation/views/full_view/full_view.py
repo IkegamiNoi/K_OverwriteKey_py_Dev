@@ -45,7 +45,6 @@ class FullView(ttk.Frame):
         self.keymap_box.pack(side="left", fill="y")
 
         self.trigger_box = FullTriggerBox(self.main_area, app)
-        self.trigger_list = self.trigger_box.trigger_list
         self.trigger_box.pack(side="left", fill="y", padx=(12, 0))
 
         self.sequence_box = SequenceBox(self.main_area, app)
