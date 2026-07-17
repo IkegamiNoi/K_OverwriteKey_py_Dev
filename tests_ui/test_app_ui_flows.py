@@ -92,6 +92,48 @@ class AppUiFlowsTest(unittest.TestCase):
         self.app.layout.keyboard_window._handle_close()
         self.assertIsNone(self.app.layout.keyboard_window)
 
+    def test_validate_hotkey_empty(self):
+        self.assertEqual(
+            self.app.validate_hotkey(""),
+            ("hotkey が空です。", ""),
+        )
+
+    def test_validate_hotkey_whitespace_only(self):
+        self.assertEqual(
+            self.app.validate_hotkey("   "),
+            ("hotkey が空です。", ""),
+        )
+
+    def test_validate_hotkey_empty_around_plus(self):
+        expected = (
+            "hotkey の '+' の前後が空です（例: 'ctrl++c' や '+ctrl+c' や 'ctrl+c+' は不可）。",
+            "",
+        )
+        for hotkey in ("ctrl++c", "+ctrl+c", "ctrl+c+"):
+            with self.subTest(hotkey=hotkey):
+                self.assertEqual(self.app.validate_hotkey(hotkey), expected)
+
+    def test_validate_hotkey_duplicate_key(self):
+        self.assertEqual(
+            self.app.validate_hotkey("ctrl+ctrl+c"),
+            ("hotkey に同じキーが重複しています（例: 'ctrl+ctrl+c'）。", ""),
+        )
+
+    def test_validate_hotkey_unknown_key_name(self):
+        message, normalized = self.app.validate_hotkey("ctrl+keyseq_invalid_unknown_key_9f4c")
+        self.assertTrue(
+            message.startswith(
+                "不明なキー名があります: 'keyseq_invalid_unknown_key_9f4c'（詳細: "
+            )
+        )
+        self.assertEqual(normalized, "")
+
+    def test_validate_hotkey_valid(self):
+        self.assertEqual(self.app.validate_hotkey("ctrl+c"), ("", "ctrl+c"))
+
+    def test_validate_hotkey_normalizes_whitespace_and_case(self):
+        self.assertEqual(self.app.validate_hotkey(" Ctrl + C "), ("", "ctrl+c"))
+
 
 if __name__ == "__main__":
     unittest.main()
