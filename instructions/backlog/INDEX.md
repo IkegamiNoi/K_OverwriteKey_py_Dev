@@ -27,5 +27,5 @@
 
 | ID | ファイル | 概要 | 状態 |
 |---|---|---|---|
-| idea_02 | [idea_02_startup_font_settings_cleanup.md](idea_02_startup_font_settings_cleanup.md) | 起動設定/フォントの3メソッド（`_load_startup_settings` / `_coerce_font_delta` / `set_ui_font_delta`）の責務混在と controller → App private 逆参照を解消。初期化順序の解決が前提。 | 未着手（検討段階・計画04 W7 の残留ロジック分類から分離）|
+| idea_02 | [idea_02_startup_font_settings_cleanup.md](idea_02_startup_font_settings_cleanup.md) | 起動設定/フォントの3メソッド（`_load_startup_settings` / `_coerce_font_delta` / `set_ui_font_delta`）の責務混在と controller → App private 逆参照を解消。初期化順序の解決が前提。 | **着手**（→ 暫定仕様 [02](../history/02_startup_font_settings_cleanup.md)・v1.0 ユーザー確定済 / phase [03_startup_font_settings_cleanup](../phase/03_startup_font_settings_cleanup/phase.md)）|
 | idea_03 | [idea_03_action_hotkey_save_normalization.md](idea_03_action_hotkey_save_normalization.md) | アクション hotkey の保存経路がプリセットと非対称で生値のまま保存される点を統一。実行時は正規化されるため実害はないが JSON に生値が残る。保存/読込どちらで正規化するか等は要設計。 | 未着手（検討段階・phase 02 task_04 の実機目視から分離）|

@@ -6,11 +6,15 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズなし**（フェーズ 02_hotkey_validation は 2026-07-18 完了）。
-  次フェーズ **`03_<topic>`** は未起票。着手時に `/phase_start` で起票する（次候補は下記「次フェーズ候補」）。
+- **[03_startup_font_settings_cleanup](03_startup_font_settings_cleanup/phase.md)** — 起動設定 / フォント設定クラスタの整理。
+  App の起動設定読込・フォント設定 3 メソッド（`_coerce_font_delta` / `_load_startup_settings` / `set_ui_font_delta`）を
+  整理し、責務混在・controller → App private 逆参照・初期化順序の制約・ui_vars の App private 依存を解消する。
+  **presentation 内の再編に限定・スキーマ変更なし・挙動不変**。
+  - モード: **暫定仕様先行モード**。主入力 = [暫定仕様 02](../history/02_startup_font_settings_cleanup.md)（v1.0・ユーザー確定済）。
+    番号対応: phase 03 / 暫定 02 / decisions `decisions_archive/03_startup_font_settings_cleanup.md`。
+  - 起票元: [idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)。
 - 直前の完了フェーズ: `02_hotkey_validation`（2026-07-18 完了）。hotkey 検証を presentation →
-  domain / application へ層移設し**層の逆転を解消**（挙動不変）。正本 `spec_detail/` への昇格は不要
-  （hotkey 検証の記述がなく担当層は codebase_map.md が正）。
+  domain / application へ層移設し**層の逆転を解消**（挙動不変）。
   要約・判断は [decisions_archive/02_hotkey_validation.md](../../.claude_data/state/decisions_archive/02_hotkey_validation.md) が正。
 - 一つ前の完了フェーズ: `01_view_ref_cleanup`（2026-07-17 完了）。
   要約・判断は [decisions_archive/01_view_ref_cleanup.md](../../.claude_data/state/decisions_archive/01_view_ref_cleanup.md) が正。
@@ -20,19 +24,19 @@
 
 ## 次採番
 
-- 次フェーズは **`03_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
-- 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。次採番は **`02_<topic>`**。
+- 次フェーズは **`04_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。次採番は **`03_<topic>`**。
 
 ## 次フェーズ候補（参考）
 
 （`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする）
 
 計画04 の次期課題は「後始末 → hotkey検証 → 起動設定/フォント」の順で進める方針
-（3フェーズに分割。1件1フェーズにはしない）。**1・2 は完了済**:
+（3フェーズに分割。1件1フェーズにはしない）。**1〜3 すべて着手済**:
 
 1. ~~後始末~~ → **完了**（`01_view_ref_cleanup`・2026-07-17）
 2. ~~[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)~~ → **完了**（`02_hotkey_validation`・2026-07-18）
-3. **[idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)（次の候補）** — 起動設定/フォント クラスタ（初期化順序の解決が前提）
+3. ~~[idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)~~ → **着手中**（`03_startup_font_settings_cleanup`・上記「現在の参照先」）
 
 その他の未着手 idea: [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の
 保存時正規化/検証の統一。phase 02 task_04 から分離・優先度低・要設計）。
