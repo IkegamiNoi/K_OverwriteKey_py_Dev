@@ -6,14 +6,13 @@
 
 ## 現在の参照先
 
-- **[02_hotkey_validation](02_hotkey_validation/phase.md)** — hotkey 検証の層移設。
-  App に住む hotkey 検証を domain / application へ移し、App は dialogs 契約の薄い委譲に留める。
-  application → presentation の**層の逆転を解消**し、`tk.Tk` 無しで単体テストできるようにする。
-  domain / application / presentation の 3 層・スキーマ変更なし・**挙動不変**。
-  - モード: **暫定仕様先行モード**。主入力 = [暫定仕様 01](../history/01_hotkey_validation.md)（v1.0・ユーザー確定済）。
-    番号対応: phase 02 / 暫定 01 / decisions `decisions_archive/02_hotkey_validation.md`。
-  - 起票元: [idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)。
-- 直前の完了フェーズ: `01_view_ref_cleanup`（2026-07-17 完了）。
+- **アクティブなフェーズなし**（フェーズ 02_hotkey_validation は 2026-07-18 完了）。
+  次フェーズ **`03_<topic>`** は未起票。着手時に `/phase_start` で起票する（次候補は下記「次フェーズ候補」）。
+- 直前の完了フェーズ: `02_hotkey_validation`（2026-07-18 完了）。hotkey 検証を presentation →
+  domain / application へ層移設し**層の逆転を解消**（挙動不変）。正本 `spec_detail/` への昇格は不要
+  （hotkey 検証の記述がなく担当層は codebase_map.md が正）。
+  要約・判断は [decisions_archive/02_hotkey_validation.md](../../.claude_data/state/decisions_archive/02_hotkey_validation.md) が正。
+- 一つ前の完了フェーズ: `01_view_ref_cleanup`（2026-07-17 完了）。
   要約・判断は [decisions_archive/01_view_ref_cleanup.md](../../.claude_data/state/decisions_archive/01_view_ref_cleanup.md) が正。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
   過去のリファクタ計画・提案書（01〜04）は `instructions/modified_proposal/`（次採番 05）。
@@ -29,11 +28,14 @@
 （`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする）
 
 計画04 の次期課題は「後始末 → hotkey検証 → 起動設定/フォント」の順で進める方針
-（3フェーズに分割。1件1フェーズにはしない）。**1 の後始末は `01_view_ref_cleanup` で完了済**:
+（3フェーズに分割。1件1フェーズにはしない）。**1・2 は完了済**:
 
 1. ~~後始末~~ → **完了**（`01_view_ref_cleanup`・2026-07-17）
-2. ~~[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)~~ → **着手中**（`02_hotkey_validation`・上記「現在の参照先」）
+2. ~~[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)~~ → **完了**（`02_hotkey_validation`・2026-07-18）
 3. **[idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)（次の候補）** — 起動設定/フォント クラスタ（初期化順序の解決が前提）
+
+その他の未着手 idea: [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の
+保存時正規化/検証の統一。phase 02 task_04 から分離・優先度低・要設計）。
 
 ## 別タスク化候補
 

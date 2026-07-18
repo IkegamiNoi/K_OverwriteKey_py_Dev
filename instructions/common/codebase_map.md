@@ -89,6 +89,7 @@ keyseq/presentation/
 - View切替（`show_full_view` / `show_compact_view` と geometry の退避・復元）
 - 調整役メソッド（キャプチャ相互排他: `toggle_stop_key_capture` / `start_stop_key_capture` / `toggle_toggle_key_capture` / `start_toggle_key_capture`、ダーティ既定解決: `mark_keymap_dirty` / `mark_sequence_dirty`、フラッシュメッセージ、`_sync_control_vars_from_data`）
 - dialogs 向け契約（`validate_hotkey` / `_dialog_result` / `_perform_action` / `open_preset_manager`）と、状態依存でパスを詰め替える薄メソッド（`suggest_keymap_set_dialog_path` / `suggest_keymap_set_dialog_dir` / `keymap_set_file_stem`）
+  - `validate_hotkey` は**検証ロジックを持たず** `HotkeyService.validate`（application）への**薄い委譲**（実体は下記 HotkeyService / `domain/hotkey.py`）。dialogs 契約維持のため残す
 - 配線用の薄いヘルパ（`_get_send_guard_count` / `_find_trigger_by_key` / `_find_keymap_target` / `_find_keymap_switch_target_id`）
 - 分離JSONの現在の構成セットパス（keymap_set_path）・startup 設定を保持
 
@@ -138,6 +139,21 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 - config配下は相対、外部は絶対のパス保存ルールを扱う
 - trigger_set と sequence の分離保存・読込を扱う
 - keymap / trigger_set / sequence の個別ファイル保存・読込を扱う
+
+### HotkeyService（application/hotkey_service.py）/ domain/hotkey.py
+
+hotkey 文字列の検証（文法検査 + キー名検証 + 正規化）を担う。フェーズ 02_hotkey_validation で
+App から層移設した（挙動不変）。公開契約は `(エラーメッセージ, 正規化hotkey)`。
+
+- **`domain/hotkey.py::validate_hotkey_syntax(hotkey)`** — 純粋な**文法検査**（空 / `+` 前後空 / 重複）と
+  正規化（trim + 小文字化 + `+` 連結）。標準ライブラリのみ・注入なし・クラスなし。
+  `(error, normalized, parts)` を返す（`parts` は application がキー名検証に使う内部インターフェース）。
+- **`HotkeyService.validate(hotkey)`** — domain の文法検査を呼び、エラーが無ければ各キーに
+  キー名検証を適用する**合成**役。キー名検証は `validate_key_name: Callable` を DI で受け取る
+  （`App` が `input_gateway.validate_key_name` を注入）。文法エラー優先の順序を保つ。
+- 呼び出し側: `App.validate_hotkey`（dialogs 経由・薄い委譲）と `ActionExecutor`（実行時・注入経由）。
+  **`ActionExecutor` は `App.validate_hotkey` ではなく `HotkeyService.validate` を注入で受け取る**
+  （application → presentation の層の逆転を解消済み）。
 
 ---
 

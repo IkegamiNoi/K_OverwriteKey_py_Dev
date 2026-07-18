@@ -1,15 +1,21 @@
 # 暫定仕様 01: hotkey 検証ロジックの層移設（hotkey_validation）
 
-> 状態: **未凍結・v1.0・主入力・ユーザー確定済（2026-07-17）・実装着手可**。
-> 本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
+> 状態: **凍結（v1.1・2026-07-18）**。フェーズ 02_hotkey_validation 完了（task_01〜05）。
+> **正本 `spec_detail/` への昇格は不要**（spec_detail に hotkey 検証の記述がなく、担当層の割り当ては
+> `spec_detail/architecture.md` §3.5 により codebase_map.md が正。挙動不変のため仕様変更なし。task_05 Explore 調査で裏取り）。
+> 本書はフェーズの確定設計として凍結し、以後は改訂しない（判断履歴は
+> `.claude_data/state/decisions_archive/02_hotkey_validation.md` が正）。
 >
 > 版歴:
 > - v0.1 起票。
 > - v0.2: 起票時 reviewer レビュー（判定「採用」・事実誤認 0 件）の参考指摘を反映し、
 >   §4.2 に `validate` の実装形（`try` がループ全体を包む形）を明記。`p` の値がずれる実装事故を防ぐため。
-> - **v1.0: 敵対的レビュー（codex-adversarial-reviewer）の指摘処理と §6 確認事項 4 件のユーザー確定を反映。
->   案 C 採用 / parts 再構成の廃止 / 命名 `validate_hotkey_syntax` / 安全網テストは追加し移設後も残す。**
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> - v1.0: 敵対的レビュー（codex-adversarial-reviewer）の指摘処理と §6 確認事項 4 件のユーザー確定を反映。
+>   案 C 採用 / parts 再構成の廃止 / 命名 `validate_hotkey_syntax` / 安全網テストは追加し移設後も残す。
+> - **v1.1（凍結・2026-07-18）: task_04 実機目視で判明したアクション hotkey の保存非対称を受け、
+>   §6-11 の文言を実装に合わせて補正（プリセット＝保存時正規化 / アクション＝実行時正規化。
+>   アクション保存時の正規化・検証は [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md) で対応予定）。
+>   正本昇格は不要と確定し本書を凍結。**
 > 起票元: [idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)（計画04 W7 の残留ロジック分類から分離）。
 > 実装フェーズ: [02_hotkey_validation](../phase/02_hotkey_validation/phase.md)。
 > **番号対応: phase 02 / 暫定 01 / decisions `decisions_archive/02_hotkey_validation.md`**
@@ -228,7 +234,7 @@ def validate(self, hotkey: str) -> tuple[str, str]:
 | 8 | `tests/test_hotkey_service.py` が fake `validate_key_name` の注入で pass | §4.4 |
 | 9 | 移設前に追加した特性テスト（tests_ui）が**移設後も無変更で pass** | §4.4 |
 | 10 | 標準検証 4 項目が全緑（compile clean / tests **59+新規** / tests_ui **9+新規** / smoke pass。`.venv` python） | — |
-| 11 | 実機目視: アクション編集ダイアログで不正 hotkey（`ctrl++c` / `ctrl+ctrl+c` / 空 / 不明キー）を入力してエラーが従来どおり出る。正常 hotkey が正規化されて保存される。hotkey アクションが実行される | §4.3 |
+| 11 | 実機目視（2026-07-18 ユーザー確認済）: **プリセットダイアログ**で正常 hotkey が正規化されて保存される（`Ctrl + C` → `ctrl+c`）／不正 hotkey でエラーが従来どおり出る。**hotkey アクション**が実行される（実行時に正規化して送出）。**アクション（シーケンス）の value は保存時には正規化されず生値のまま**であり、これは移設前と同一の既存挙動（保存時正規化はプリセット経路のみ）。アクション保存時の正規化・検証の統一は [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md) で対応予定（本フェーズ対象外・挙動不変） | §4.3 |
 
 ## §7 スコープ外（本フェーズでやらない）
 
