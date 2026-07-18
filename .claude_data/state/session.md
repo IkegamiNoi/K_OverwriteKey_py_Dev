@@ -4,61 +4,51 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-17T12:00:00
+last_updated: 2026-07-18T00:00:00
 phase: instructions/phase/02_hotkey_validation/phase.md（主入力＝暫定仕様 instructions/history/01_hotkey_validation.md v1.0）
-last_commit_location: claude/w1-physical-verification-647a57（worktree: w1-physical-verification-647a57）※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/task-04-progression-dc2eeb（worktree: worktree-state-tracking-da2833）※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: フェーズ 02_hotkey_validation 実行中（hotkey 検証を presentation → domain/application へ移設・挙動不変）。task_01〜03 完了・コミット済。**次は task_04（配線の差し替え＝このフェーズの山場・初めて実挙動に影響）**。
-mode: ready                      # git クリーン・標準検証全緑。task_04 のタスク定義起票から。
+focus: フェーズ 02_hotkey_validation 実行中。task_01〜04 のコード実装完了・コミット済。**task_04 は自動ゲート（verifier / reviewer / codex-reviewer）を通過。残るは実機目視（ユーザー実施）のみ**。次は task_05_finalize_records（正本反映・記録）。
+mode: awaiting_manual            # task_04 の実機目視待ち。目視 OK 後 task_05 へ。
 
 ## last_action
-ts: 2026-07-17T12:00:00
+ts: 2026-07-18T00:00:00
 who: main
 summary: |
-  【フェーズ 02_hotkey_validation・task_01〜03 完了】設計は暫定仕様 01（v1.0・ユーザー確定済）が正。
-  task_01(5ca5799) 安全網: 現行 App.validate_hotkey の特性テストを tests_ui へ7件追加（実装無変更）。
-    移設後も無変更で pass することが挙動不変の証明になる。「不明なキー名」は {e}（keyboard 由来）を
-    完全一致で固定せず startswith で前半のみ固定。
-  task_02(2e0efa7) domain: keyseq/domain/hotkey.py::validate_hotkey_syntax 新規（①〜⑥の文法検査を
-    1文字一致で移設。⑦キー名検証は含まない）+ tests/test_hotkey.py 9件。tk.Tk もモックも不要で pass
-    ＝テスト容易性を達成。標準ライブラリのみ・注入なし・クラスなし（既存 domain スタイル準拠）。
-  task_03(c0b782a) application: keyseq/application/hotkey_service.py::HotkeyService 新規
-    （domain の文法検査を呼び、文法エラーは即 return＝現行の順序。domain の parts をそのまま使い
-    再 split しない。⑦を担当。validate_key_name を Callable で DI）+ tests/test_hotkey_service.py 9件。
-  **この時点で新モジュールは誰からも呼ばれていない**（現行 App.validate_hotkey がそのまま動作中）。
-  差し替えは task_04。全タスクで verifier 全緑 + reviewer「完了可」。
+  【フェーズ 02_hotkey_validation・task_04 コード完了（実機目視待ち）】設計は暫定仕様 01（v1.0）が正。
+  task_04 presentation 配線差し替え（暫定仕様 §4.3）を codex-implementer で実装。差分は
+  keyseq/presentation/app.py のみ（+4/-27）:
+    1. import 追加 `from keyseq.application.hotkey_service import HotkeyService`
+    2. __init__ で input_gateway 生成後・ActionExecutor 生成前に
+       `self.hotkey_service = HotkeyService(validate_key_name=self.input_gateway.validate_key_name)`
+    3. ActionExecutor 注入元を `self.validate_hotkey` → `self.hotkey_service.validate`（＝層の逆転が解消）
+    4. App.validate_hotkey を `return self.hotkey_service.validate(hotkey)` の薄い委譲へ（docstring 維持・削除せず）
+  対象外（action_executor.py / hotkey_service.py / hotkey.py / dialogs.py）は無変更を確認。
+  自動ゲート全通過: verifier 全緑（77/16/smoke。特性テスト7件が無変更で pass＝挙動不変の証明）/
+  reviewer「完了可・指摘なし」/ codex-reviewer「指摘なし」。
 result_files:
-  - keyseq/domain/hotkey.py（新規）/ tests/test_hotkey.py（新規9件）
-  - keyseq/application/hotkey_service.py（新規）/ tests/test_hotkey_service.py（新規9件）
-  - tests_ui/test_app_ui_flows.py（特性テスト7件を追加。既存は無変更）
+  - keyseq/presentation/app.py（委譲化・HotkeyService 生成・注入元差し替え）
+  - instructions/phase/02_hotkey_validation/tasks/task_04_presentation_delegation.md（タスク定義・新規起票）
 verified:
   compile: clean
-  test(tests): pass 77          # 59(基準) + 9(test_hotkey) + 9(test_hotkey_service)
-  test(tests_ui): pass 16       # 9(基準) + 7(特性テスト)
+  test(tests): pass 77          # 変化なし
+  test(tests_ui): pass 16       # 特性テスト7件を含め無変更で pass（挙動不変の証明）
   smoke: pass
 
 ## next_action
-- **task_04_presentation_delegation に着手**（フェーズの山場・初めて実挙動に影響する）。
-  `/task_new` でタスク定義を起票 → codex-implementer → verifier → reviewer → **codex-reviewer で二次レビュー** →
-  コミット → **実機目視**。内容（暫定仕様 §4.3 が正）:
-  1. `app.py` の `input_gateway` 生成後・`ActionExecutor` 生成前に
-     `self.hotkey_service = HotkeyService(validate_key_name=self.input_gateway.validate_key_name)` を生成
-  2. **`app.py:71` の注入元を差し替え**: `validate_hotkey=self.validate_hotkey`
-     → `validate_hotkey=self.hotkey_service.validate` ＝**層の逆転が解消**
-  3. `App.validate_hotkey` を薄い委譲へ（`return self.hotkey_service.validate(hotkey)`。
-     dialogs 契約のため**削除しない**。docstring は現行維持）
-  4. **`application/action_executor.py` は変更しない**（シグネチャ不変・注入元が変わるだけ）
-  - 検証の主役は **task_01 の特性テスト7件が無変更で pass** すること（挙動不変の証明）
-  - 実機目視: アクション編集ダイアログで不正 hotkey（空 / `ctrl++c` / `ctrl+ctrl+c` / 不明キー）の
-    エラー表示・正常 hotkey の正規化保存・hotkey アクションの実行（暫定仕様 §6-11）
-- その後 task_05_finalize_records（正本反映・記録）: 暫定仕様の**正本昇格 + 凍結** /
-  `codebase_map.md` 更新 / `decisions_archive/02_hotkey_validation.md` / `decisions.md` 索引 /
-  `current.md` 完了記載・次採番 / **`backlog/INDEX.md` の idea_01 を完了にして `INDEX_done.md` へ移動** /
-  `/refactor_check`。
+- **task_04 の実機目視をユーザーが実施**（コミット済。目視で挙動不変を最終確認）:
+  アクション編集ダイアログで不正 hotkey（空 / `ctrl++c` / `ctrl+ctrl+c` / 不明キー）の
+  エラー表示・正常 hotkey の正規化保存・hotkey アクションの実行（暫定仕様 §6-11）。
+- 目視 OK 後 **task_05_finalize_records（正本反映・記録・最終タスク）**: `/task_new` で起票 →
+  暫定仕様の**正本昇格 + 凍結**（§8。hotkey 検証の仕様節が spec_detail にあるか要調査。無ければ昇格不要） /
+  `codebase_map.md` 更新（HotkeyService / domain/hotkey.py 追記・App 責務を薄い委譲へ整理） /
+  `decisions_archive/02_hotkey_validation.md` 作成 / `decisions.md` アーカイブ索引 /
+  `current.md` 完了記載・次採番（次フェーズ 03） /
+  **`backlog/INDEX.md` の idea_01 を完了にして `INDEX_done.md` へ移動** / `/refactor_check` 実行と判定記載。
 
 ## blockers
-- なし（git クリーン・標準検証全緑）。
+- task_04 の実機目視が未実施（コード・自動検証は完了。目視待ち）。
 
 ## resume_hints
 - **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**

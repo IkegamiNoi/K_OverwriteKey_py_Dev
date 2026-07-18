@@ -25,6 +25,7 @@ from keyseq.presentation.theme import apply_global_theme
 from keyseq.application.action_executor import ActionExecutor
 from keyseq.application.config_service import ConfigService
 from keyseq.application.app_state import AppState
+from keyseq.application.hotkey_service import HotkeyService
 from keyseq.application.hook_coordinator import HookCoordinator
 from keyseq.application.input_router import InputRouter
 from keyseq.application.keymap_service import KeymapService
@@ -65,10 +66,11 @@ class App(tk.Tk):
         self.trigger_service = TriggerService()
         self.keymap_service = KeymapService()
         self.input_gateway = InputGateway()
+        self.hotkey_service = HotkeyService(validate_key_name=self.input_gateway.validate_key_name)
         self.key_state_manager = KeyStateManager(resolve_scan_code=lambda sc: self.layout.resolve_key_name_from_scan_code(sc))
         self.action_executor = ActionExecutor(
             input_gateway=self.input_gateway,
-            validate_hotkey=self.validate_hotkey,
+            validate_hotkey=self.hotkey_service.validate,
             on_action_error=lambda action, err: self.hook.show_action_error("", action, err),
             on_runtime_error=lambda title, msg: messagebox.showerror(title, msg),
             on_stop_hook=lambda: self.hook.stop_hook(),
@@ -418,32 +420,7 @@ class App(tk.Tk):
         hotkey を検証し、(エラーメッセージ, 正規化したhotkey) を返す。
         エラーなしならエラーメッセージは ""。
         """
-        s = (hotkey or "").strip()
-        if not s:
-            return "hotkey が空です。", ""
-
-        # split結果を保持して空要素を検出する（ctrl++c / +ctrl+c / ctrl+c+ を弾く）
-        raw = s.split("+")
-        parts = [p.strip().lower() for p in raw]
-
-        if any(p == "" for p in parts):
-            return "hotkey の '+' の前後が空です（例: 'ctrl++c' や '+ctrl+c' や 'ctrl+c+' は不可）。", ""
-
-        # ここで正規化（余分な空白・大文字を吸収）
-        normalized = "+".join(parts)
-
-        # 同一キーの重複を弾く（例: ctrl+ctrl+c）
-        if len(set(parts)) != len(parts):
-            return "hotkey に同じキーが重複しています（例: 'ctrl+ctrl+c'）。", ""
-
-        # キー名の妥当性チェック（各キー単体が解決できるか）
-        try:
-            for p in parts:
-                self.input_gateway.validate_key_name(p)
-        except Exception as e:
-            return f"不明なキー名があります: '{p}'（詳細: {e}）", ""
-
-        return "", normalized
+        return self.hotkey_service.validate(hotkey)
 
     # ---------------- Control key capture logic (相互排他の調整役。App に残す) ----------------
     def toggle_stop_key_capture(self):
