@@ -9,14 +9,21 @@ phase: instructions/phase/02_hotkey_validation/phase.md（主入力＝暫定仕�
 last_commit_location: claude/task-04-progression-dc2eeb（worktree: worktree-state-tracking-da2833）※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: フェーズ 02_hotkey_validation 実行中。task_01〜04 のコード実装完了・コミット済。**task_04 は自動ゲート（verifier / reviewer / codex-reviewer）を通過。残るは実機目視（ユーザー実施）のみ**。次は task_05_finalize_records（正本反映・記録）。
-mode: awaiting_manual            # task_04 の実機目視待ち。目視 OK 後 task_05 へ。
+focus: フェーズ 02_hotkey_validation 実行中。**task_01〜04 完了・コミット済（task_04 は実機目視までユーザー確認済＝挙動不変を確認）**。次は最終タスク task_05_finalize_records（正本反映・記録）。
+mode: ready                      # task_04 完了。task_05 の起票から。
 
 ## last_action
 ts: 2026-07-18T00:00:00
 who: main
 summary: |
-  【フェーズ 02_hotkey_validation・task_04 コード完了（実機目視待ち）】設計は暫定仕様 01（v1.0）が正。
+  【フェーズ 02_hotkey_validation・task_04 完了（実機目視までユーザー確認済）】設計は暫定仕様 01（v1.0）が正。
+  実機目視結果（ユーザー）: プリセットダイアログの正規化保存 OK / hotkey アクションの実行 OK。挙動不変を確認。
+  実機目視中に判明（task_04 とは無関係の既存非対称）: アクション（シーケンス）の hotkey は
+  ActionDialog.on_ok が生値のまま保存（プリセットは normalized 保存・実行時は正規化される）。
+  → ユーザー判断: (A) 今フェーズでは触らず idea_03 として起票済（優先度低・要設計・挙動変更を伴う）。
+    (B) 暫定仕様 §6-11 の文言は「プリセット＝保存時正規化／アクション＝実行時正規化・アクション保存時
+    正規化は idea_03 で対応予定」と補正する（idea_03 実施を前提とした文言）＝ task_05 で実施。
+  --- 以下 task_04 の実装内容 ---
   task_04 presentation 配線差し替え（暫定仕様 §4.3）を codex-implementer で実装。差分は
   keyseq/presentation/app.py のみ（+4/-27）:
     1. import 追加 `from keyseq.application.hotkey_service import HotkeyService`
@@ -37,18 +44,19 @@ verified:
   smoke: pass
 
 ## next_action
-- **task_04 の実機目視をユーザーが実施**（コミット済。目視で挙動不変を最終確認）:
-  アクション編集ダイアログで不正 hotkey（空 / `ctrl++c` / `ctrl+ctrl+c` / 不明キー）の
-  エラー表示・正常 hotkey の正規化保存・hotkey アクションの実行（暫定仕様 §6-11）。
-- 目視 OK 後 **task_05_finalize_records（正本反映・記録・最終タスク）**: `/task_new` で起票 →
+- **task_05_finalize_records（正本反映・記録・最終タスク）に着手**: `/task_new` で起票 →
   暫定仕様の**正本昇格 + 凍結**（§8。hotkey 検証の仕様節が spec_detail にあるか要調査。無ければ昇格不要） /
+  **暫定仕様 §6-11 の文言補正**（プリセット＝保存時正規化／アクション＝実行時正規化。アクション保存時
+    正規化は idea_03 で対応予定と明記。ユーザー承認済＝上記 last_action の (B)） /
   `codebase_map.md` 更新（HotkeyService / domain/hotkey.py 追記・App 責務を薄い委譲へ整理） /
-  `decisions_archive/02_hotkey_validation.md` 作成 / `decisions.md` アーカイブ索引 /
+  `decisions_archive/02_hotkey_validation.md` 作成（idea_03 分離・§6-11 補正の判断も集約） / `decisions.md` アーカイブ索引 /
   `current.md` 完了記載・次採番（次フェーズ 03） /
   **`backlog/INDEX.md` の idea_01 を完了にして `INDEX_done.md` へ移動** / `/refactor_check` 実行と判定記載。
+- 派生 idea: [idea_03](../../instructions/backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey
+  の保存時正規化/検証の統一・未着手・優先度低）。
 
 ## blockers
-- task_04 の実機目視が未実施（コード・自動検証は完了。目視待ち）。
+- なし（task_04 完了・git クリーン想定・標準検証全緑）。
 
 ## resume_hints
 - **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**
