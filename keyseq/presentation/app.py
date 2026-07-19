@@ -66,7 +66,7 @@ class App(tk.Tk):
         self._ui_font_delta_pt = coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
         self.data = self.config_service.new_default_data()
-        self.ui_vars = UiVars(self)
+        self.ui_vars = UiVars(self, ui_font_delta_pt=self._ui_font_delta_pt)
 
         self.title("Key Replacer Sequencer (Multi Trigger)")
         self.geometry("780x820")
@@ -232,19 +232,24 @@ class App(tk.Tk):
         if auto_clear and msg:
             self._flash_after_id = self.after(4000, self._clear_flash_message)
 
-    def set_ui_font_delta(self, delta: int):
+    def _apply_font_delta(self, delta: int) -> bool:
         new_delta = coerce_font_delta(delta)
         if new_delta == int(getattr(self, "_ui_font_delta_pt", 0)):
-            return
+            return False
 
         self._ui_font_delta_pt = new_delta
         self.ui_vars.ui_font_delta_var.set(int(new_delta))
         apply_global_theme(self, font_delta_pt=new_delta)
         self.config_io.write_startup({"ui_font_delta_pt": new_delta})
+        return True
 
+    def set_ui_font_delta(self, delta: int):
+        if not self._apply_font_delta(delta):
+            return
         if hasattr(self, "menubar"):
             build_menu_bar(self)
 
+        new_delta = self._ui_font_delta_pt
         if new_delta == 0:
             self._set_flash_message("フォントサイズを標準にしました。")
         else:
