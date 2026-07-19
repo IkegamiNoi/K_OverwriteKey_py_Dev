@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.presentation.theme import coerce_font_delta
 
 
 class ConfigIoController:
@@ -275,7 +276,7 @@ class ConfigIoController:
         if isinstance(data, dict):
             base.update(data)
         base.pop("config_path", None)
-        base["ui_font_delta_pt"] = self._app._coerce_font_delta(base.get("ui_font_delta_pt", 0))
+        base["ui_font_delta_pt"] = coerce_font_delta(base.get("ui_font_delta_pt", 0))
 
         try:
             self._app.startup_path = self._app.paths.preferred_startup_path()

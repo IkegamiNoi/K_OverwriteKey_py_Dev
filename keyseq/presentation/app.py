@@ -19,7 +19,7 @@ from keyseq.presentation.views.compact_view.compact_view import CompactView
 from keyseq.presentation.views.full_view.full_view import FullView
 from keyseq.presentation.views.menu_bar import build_menu_bar, bind_menu_shortcuts
 from keyseq.presentation.views.status_bar import build_status_area
-from keyseq.presentation.theme import apply_global_theme
+from keyseq.presentation.theme import apply_global_theme, coerce_font_delta
 
 
 from keyseq.application.action_executor import ActionExecutor
@@ -55,7 +55,7 @@ class App(tk.Tk):
         self.startup_path = self.paths.resolve_startup_path()
         self.keymap_set_path = self.paths.resolve_keymap_set_path()
         self._startup_settings = self._load_startup_settings()
-        self._ui_font_delta_pt = self._coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
+        self._ui_font_delta_pt = coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
         self.data = self.config_service.new_default_data()
         self.ui_vars = UiVars(self)
@@ -225,7 +225,7 @@ class App(tk.Tk):
             self._flash_after_id = self.after(4000, self._clear_flash_message)
 
     def set_ui_font_delta(self, delta: int):
-        new_delta = self._coerce_font_delta(delta)
+        new_delta = coerce_font_delta(delta)
         if new_delta == int(getattr(self, "_ui_font_delta_pt", 0)):
             return
 
@@ -354,18 +354,6 @@ class App(tk.Tk):
             pass
 
     # ---------------- Startup config ----------------
-    def _coerce_font_delta(self, value: any) -> int:
-        try:
-            v = int(value)
-        except Exception:
-            v = 0
-        if v < -3:
-            v = -3
-        if v > 3:
-            v = 3
-        return v
-
-
     def suggest_keymap_set_dialog_path(self) -> str:
         return self.paths.suggest_keymap_set_dialog_path(str(getattr(self, "keymap_set_path", "") or ""))
 
@@ -387,7 +375,7 @@ class App(tk.Tk):
         if not isinstance(startup, dict):
             startup = {}
 
-        startup["ui_font_delta_pt"] = self._coerce_font_delta(startup.get("ui_font_delta_pt", 0))
+        startup["ui_font_delta_pt"] = coerce_font_delta(startup.get("ui_font_delta_pt", 0))
         startup["prompt_if_missing"] = bool(startup.get("prompt_if_missing", True))
         return startup
 

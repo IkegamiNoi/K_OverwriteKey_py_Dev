@@ -4,49 +4,54 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-19T23:15:00
+last_updated: 2026-07-19T23:45:00
 phase: instructions/phase/03_startup_font_settings_cleanup/phase.md（主入力＝暫定仕様 instructions/history/02_startup_font_settings_cleanup.md v1.0）
 last_commit_location: claude/phase-03-task-01-a60716（worktree: priceless-fermat-2a15c1）※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **フェーズ 03 task_01（安全網の特性テスト）完了・全緑・reviewer 採用。次は task_02（coerce → theme.py 移設）**。
-mode: pending_review              # task_01 完了。task_02 実装着手待ち。
+focus: **フェーズ 03 task_02（coerce → theme.py 移設）完了・全緑・reviewer 採用。次は task_03（startup_settings.py 切り出し）**。
+mode: pending_review              # task_02 完了・コミット済。task_03 実装着手待ち。
 
 ## last_action
-ts: 2026-07-19T23:15:00
+ts: 2026-07-19T23:45:00
 who: main
 summary: |
-  【phase 03 task_01_characterization_test 完了】
-  現行3メソッド（App._coerce_font_delta / _load_startup_settings / set_ui_font_delta）の特性テストを
-  新規追加（tests_ui/test_startup_font_characterization.py・4本）。**実装コード keyseq/ は無変更**。
-  - 方針: 3メソッドは現時点で App 専用のため App インスタンス経由で現行挙動を固定（tk 不要な自由関数向け
-    ユニットテストは移設タスク task_02/03 で追加）。task_01 の制約〔依存なし・実装不変〕から一意。
-  - 実装は codex-implementer（.venv 起動不可のため未検証で提出）→ verifier が .venv で全緑確認 →
-    reviewer 5観点「採用（完了可）」。
-  - reviewer 申し送り: 未知キー保持テストは config_io_controller.write_startup の挙動も併せて固定。
-    task_02（config_io_controller.py:278 逆参照解消）着手時に当該テストが green 維持かを確認対象に含める。
+  【phase 03 task_02_theme_coerce_font_delta 完了】
+  負債②（逆参照）解消。`theme.py` にモジュール純関数 `coerce_font_delta` を新規追加（現行
+  App._coerce_font_delta のロジックを 1:1 不変移設）→ 呼び出し元4箇所差し替え（app.py 58/228/390・
+  config_io_controller.py:278 の `self._app._coerce_font_delta` 逆参照除去）→ App._coerce_font_delta 削除。
+  - 安全網維持: tests_ui の特性テスト coerce 呼び出しを theme.coerce_font_delta へ付け替え（アサーション不変）。
+  - 前進ユニット: tk 不要の coerce 単体テスト tests/test_theme_coerce.py 新規（5 ケース）。
+  - 実装 codex-implementer → verifier 全緑 → reviewer 5観点「採用（完了可）・指摘なし」。
+  - 受け入れ条件: `git grep "_coerce_font_delta" -- keyseq/` 0件・コードの `_app._coerce_font_delta` 0件（残りは docs/state の経緯記述のみ）。
 result_files:
-  - tests_ui/test_startup_font_characterization.py（新規）
-  - instructions/phase/03_startup_font_settings_cleanup/tasks/task_01_characterization_test.md（新規・起票）
+  - keyseq/presentation/theme.py（coerce_font_delta 追加）
+  - keyseq/presentation/app.py（import・呼び出し3箇所・メソッド削除）
+  - keyseq/presentation/controllers/config_io_controller.py（import・逆参照除去）
+  - tests_ui/test_startup_font_characterization.py（coerce 呼び出し先付け替え）
+  - tests/test_theme_coerce.py（新規）
+  - instructions/phase/03_startup_font_settings_cleanup/tasks/task_02_theme_coerce_font_delta.md（新規・起票）
 verified:
   compile: clean
-  test(tests): pass 77
-  test(tests_ui): pass 20         # 基準16 + 新規4
+  test(tests): pass 82            # 基準77 + coerce 5
+  test(tests_ui): pass 20
   smoke: pass
 
 ## next_action
-- **task_02_theme_coerce_font_delta を起票（/task_new）→ codex-implementer へ実装委任**:
-  `keyseq/presentation/theme.py` にモジュール純関数 `coerce_font_delta(value)->int` を新規追加（現行
-  App._coerce_font_delta のロジックを不変移設）→ 呼び出し元4箇所差し替え（app.py:58/228/390 と
-  controllers/config_io_controller.py:278 の逆参照 `self._app._coerce_font_delta` → `theme.coerce_font_delta`）
-  → `App._coerce_font_delta` 削除。tk 不要の coerce 単体テストを tests/ に追加。暫定仕様 §4。
-- 検証は verifier（.venv 全緑 + `git grep "_coerce_font_delta"` 0 件 / `git grep "_app._coerce_font_delta"` 0 件）、
-  レビューは reviewer。緑＋採用なら /save_state → /task_commit（確認不要・standing 許可済）。
-- 以降 task_03（startup_settings.py）→ task_04（font apply/uivars・二次レビュー codex-reviewer 併用・**実機目視=ユーザー**）→
-  task_05（正本反映・記録）。
+- **task_03_startup_settings_loader を起票（/task_new）→ codex-implementer へ実装委任**:
+  新規 `keyseq/presentation/startup_settings.py` に `load_startup_settings(config_service, startup_path, *, on_read_error) -> dict`
+  を作成（I/O は `config_service.load_startup` 直依存・**未知キー全保持**・`ui_font_delta_pt`=`theme.coerce_font_delta` /
+  `prompt_if_missing`=bool 正規化・**真理値表どおり例外時のみ on_read_error(exc)**）→ `App._load_startup_settings` 削除・
+  `app.py:57` を新ローダ呼び出しに差し替え（on_read_error に `messagebox.showwarning("startup.json 読込失敗", ...)` を注入）。
+  tk 不要のローダ単体テスト（真理値表4分岐 + 未知キー保持 + on_read_error 呼出/文言）を tests/ に追加。暫定仕様 §5。
+- **注意**: 初期化順序を壊さない（config_service〔app.py:43〕のみ依存・config_io〔:127〕に非依存・:57 実行位置保持）。
+  安全網 test_load_startup_settings_* は App._load_startup_settings 削除で破綻するため、呼び出し先を新ローダへ付け替える
+  （アサーション不変。§8 の真理値表/未知キー契約を維持）。
+- 検証は verifier（.venv 全緑 + 受け入れ条件 §8-3/§8-4）、レビューは reviewer。緑＋採用なら /save_state → /task_commit（standing 許可済）。
+- 以降 task_04（font apply/uivars・二次レビュー codex-reviewer 併用・**実機目視=ユーザー**）→ task_05（正本反映・記録）。
 
 ## blockers
-- なし（task_01 完了・git クリーン・標準検証全緑）。
+- なし（task_02 完了・git クリーン・標準検証全緑）。
 
 ## resume_hints
 - **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**

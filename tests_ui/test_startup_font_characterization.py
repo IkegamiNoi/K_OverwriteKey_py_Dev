@@ -3,6 +3,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from keyseq.presentation import app as app_module
+from keyseq.presentation import theme
 
 
 class StartupFontCharacterizationTest(unittest.TestCase):
@@ -47,7 +48,7 @@ class StartupFontCharacterizationTest(unittest.TestCase):
 
         for value, expected in cases:
             with self.subTest(value=value):
-                self.assertEqual(self.app._coerce_font_delta(value), expected)
+                self.assertEqual(theme.coerce_font_delta(value), expected)
 
     def test_load_startup_settings_truth_table(self):
         read_error = ValueError("broken json")

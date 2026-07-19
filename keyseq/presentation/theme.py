@@ -75,6 +75,19 @@ def _configure_statusbar_style(style: ttk.Style, root: tk.Misc) -> None:
     style.configure("Statusbar.TLabel", font=status_font)
 
 
+def coerce_font_delta(value) -> int:
+    """int 化し -3..+3 にクランプ。失敗時 0。フォント差分の唯一の正規化点。"""
+    try:
+        v = int(value)
+    except Exception:
+        v = 0
+    if v < -3:
+        v = -3
+    if v > 3:
+        v = 3
+    return v
+
+
 def apply_global_theme(root: tk.Misc, *, font_delta_pt: int = 0) -> None:
     """Apply shared UI theme across the app with absolute delta from default."""
     _capture_base_sizes()
