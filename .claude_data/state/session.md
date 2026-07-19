@@ -4,54 +4,55 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-19T23:45:00
+last_updated: 2026-07-20T00:10:00
 phase: instructions/phase/03_startup_font_settings_cleanup/phase.md（主入力＝暫定仕様 instructions/history/02_startup_font_settings_cleanup.md v1.0）
 last_commit_location: claude/phase-03-task-01-a60716（worktree: priceless-fermat-2a15c1）※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **フェーズ 03 task_02（coerce → theme.py 移設）完了・全緑・reviewer 採用。次は task_03（startup_settings.py 切り出し）**。
-mode: pending_review              # task_02 完了・コミット済。task_03 実装着手待ち。
+focus: **フェーズ 03 task_03（startup_settings.py 切り出し）完了・全緑・reviewer 採用。次は task_04（font apply/uivars・案A分割 + UiVars 引数化・二次レビュー + 実機目視ゲート）**。
+mode: pending_review              # task_03 完了・コミット済。task_04 実装着手待ち。
 
 ## last_action
-ts: 2026-07-19T23:45:00
+ts: 2026-07-20T00:10:00
 who: main
 summary: |
-  【phase 03 task_02_theme_coerce_font_delta 完了】
-  負債②（逆参照）解消。`theme.py` にモジュール純関数 `coerce_font_delta` を新規追加（現行
-  App._coerce_font_delta のロジックを 1:1 不変移設）→ 呼び出し元4箇所差し替え（app.py 58/228/390・
-  config_io_controller.py:278 の `self._app._coerce_font_delta` 逆参照除去）→ App._coerce_font_delta 削除。
-  - 安全網維持: tests_ui の特性テスト coerce 呼び出しを theme.coerce_font_delta へ付け替え（アサーション不変）。
-  - 前進ユニット: tk 不要の coerce 単体テスト tests/test_theme_coerce.py 新規（5 ケース）。
+  【phase 03 task_03_startup_settings_loader 完了】
+  負債①（責務混在）・③（初期化順序制約）解消。新規 `presentation/startup_settings.py` に
+  `load_startup_settings(config_service, startup_path, *, on_read_error) -> dict` を作成（現行
+  App._load_startup_settings を 1:1 不変移設・未知キー全保持・messagebox/config_io 非依存）→
+  app.py の呼び出しを新ローダへ差し替え（on_read_error に警告 lambda 注入・文言1文字一致）→ App._load_startup_settings 削除。
+  - テスト再編: tk 不要の tests/test_startup_settings.py 新規（真理値表4分岐+未知キー保持+正規化）。
+    tests_ui は truth_table 撤去（tests/ が同等以上に担保）・write_startup ラウンドトリップ（§8-12）維持・
+    警告文言テスト test_startup_read_error_warning_text 追加（§8-8）。coerce/set_ui_font_delta メソッドは無改変。
   - 実装 codex-implementer → verifier 全緑 → reviewer 5観点「採用（完了可）・指摘なし」。
-  - 受け入れ条件: `git grep "_coerce_font_delta" -- keyseq/` 0件・コードの `_app._coerce_font_delta` 0件（残りは docs/state の経緯記述のみ）。
+  - 受け入れ条件: `grep "_load_startup_settings" keyseq/` 0件 / startup_settings.py に config_io・messagebox 0件 /
+    初期化順序 load_startup_settings(L58) < UiVars(L69) < ConfigIoController(L135)。
 result_files:
-  - keyseq/presentation/theme.py（coerce_font_delta 追加）
-  - keyseq/presentation/app.py（import・呼び出し3箇所・メソッド削除）
-  - keyseq/presentation/controllers/config_io_controller.py（import・逆参照除去）
-  - tests_ui/test_startup_font_characterization.py（coerce 呼び出し先付け替え）
-  - tests/test_theme_coerce.py（新規）
-  - instructions/phase/03_startup_font_settings_cleanup/tasks/task_02_theme_coerce_font_delta.md（新規・起票）
+  - keyseq/presentation/startup_settings.py（新規）
+  - keyseq/presentation/app.py（import・呼び出し差し替え・メソッド削除）
+  - tests/test_startup_settings.py（新規）
+  - tests_ui/test_startup_font_characterization.py（loader 特性テスト再編）
+  - instructions/phase/03_startup_font_settings_cleanup/tasks/task_03_startup_settings_loader.md（新規・起票）
 verified:
   compile: clean
-  test(tests): pass 82            # 基準77 + coerce 5
-  test(tests_ui): pass 20
+  test(tests): pass 86            # 82 + startup ローダ4
+  test(tests_ui): pass 20         # truth_table -1・警告文言 +1
   smoke: pass
 
 ## next_action
-- **task_03_startup_settings_loader を起票（/task_new）→ codex-implementer へ実装委任**:
-  新規 `keyseq/presentation/startup_settings.py` に `load_startup_settings(config_service, startup_path, *, on_read_error) -> dict`
-  を作成（I/O は `config_service.load_startup` 直依存・**未知キー全保持**・`ui_font_delta_pt`=`theme.coerce_font_delta` /
-  `prompt_if_missing`=bool 正規化・**真理値表どおり例外時のみ on_read_error(exc)**）→ `App._load_startup_settings` 削除・
-  `app.py:57` を新ローダ呼び出しに差し替え（on_read_error に `messagebox.showwarning("startup.json 読込失敗", ...)` を注入）。
-  tk 不要のローダ単体テスト（真理値表4分岐 + 未知キー保持 + on_read_error 呼出/文言）を tests/ に追加。暫定仕様 §5。
-- **注意**: 初期化順序を壊さない（config_service〔app.py:43〕のみ依存・config_io〔:127〕に非依存・:57 実行位置保持）。
-  安全網 test_load_startup_settings_* は App._load_startup_settings 削除で破綻するため、呼び出し先を新ローダへ付け替える
-  （アサーション不変。§8 の真理値表/未知キー契約を維持）。
-- 検証は verifier（.venv 全緑 + 受け入れ条件 §8-3/§8-4）、レビューは reviewer。緑＋採用なら /save_state → /task_commit（standing 許可済）。
-- 以降 task_04（font apply/uivars・二次レビュー codex-reviewer 併用・**実機目視=ユーザー**）→ task_05（正本反映・記録）。
+- **task_04_font_apply_and_uivars を起票（/task_new）→ codex-implementer へ実装委任**（暫定仕様 §6・案A確定）:
+  - `set_ui_font_delta` を案A分割: `_apply_font_delta(delta)->bool`（coerce→差分なしFalse→_ui_font_delta_pt更新→
+    ui_vars.ui_font_delta_var.set→apply_global_theme→config_io.write_startup→True）+ `set_ui_font_delta`（`if _apply_font_delta(delta): build_menu_bar + フラッシュ`）。
+  - `UiVars.__init__` を引数化: `UiVars(self, ui_font_delta_pt=self._ui_font_delta_pt)`（app.py:61相当）。ui_vars.py:17 の `master._ui_font_delta_pt` 直読み廃止（受け入れ条件 §8-5）。
+  - `_ui_font_delta_pt` の所有は App のまま。**案B（FontSettingsController）は実装しない**。
+  - **メニュー再構築副作用の保持**: フォント変更で build_menu_bar のみ・bind_menu_shortcuts 非呼出（§8-7・安全網 test_set_ui_font_delta が担保）。
+- **task_04 は二次レビュー併用**（codex-reviewer を reviewer と併用・agent_selection.md）。
+- **task_04 完了後に実機目視（ユーザー）ゲート**: 起動〔正常/欠損/破損/非dict〕のフォント適用・警告挙動、メニューからのフォント変更の即時反映・永続化・再起動保持、keymap_set_path 構成の起動復元（暫定仕様 §8-11,12）。**ここはユーザー確認が必須**。
+- 検証は verifier（.venv 全緑 + 受け入れ条件 §8-5/§8-6/§8-7）、レビューは reviewer + codex-reviewer。緑＋採用なら /save_state → /task_commit（standing 許可済）。実機目視はユーザーへ依頼して停止。
+- 以降 task_05（正本反映・記録: 昇格判断・凍結・codebase_map・decisions_archive/03・idea_02 の INDEX_done 移動・refactor_check）。
 
 ## blockers
-- なし（task_02 完了・git クリーン・標準検証全緑）。
+- なし（task_03 完了・git クリーン・標準検証全緑）。
 
 ## resume_hints
 - **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**

@@ -1,6 +1,6 @@
 """起動設定とフォント設定の現行 App 挙動を固定する特性テスト。"""
 import unittest
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from keyseq.presentation import app as app_module
 from keyseq.presentation import theme
@@ -50,64 +50,14 @@ class StartupFontCharacterizationTest(unittest.TestCase):
             with self.subTest(value=value):
                 self.assertEqual(theme.coerce_font_delta(value), expected)
 
-    def test_load_startup_settings_truth_table(self):
-        read_error = ValueError("broken json")
-        cases = (
-            ("missing", {}, {"ui_font_delta_pt": 0, "prompt_if_missing": True}, None),
-            ("read_error", read_error, {"ui_font_delta_pt": 0, "prompt_if_missing": True}, read_error),
-            ("non_dict_string", "not a dict", {"ui_font_delta_pt": 0, "prompt_if_missing": True}, None),
-            ("non_dict_list", [], {"ui_font_delta_pt": 0, "prompt_if_missing": True}, None),
-            ("valid_dict", {"ui_font_delta_pt": "5", "prompt_if_missing": 0}, {"ui_font_delta_pt": 3, "prompt_if_missing": False}, None),
-        )
-
-        for name, startup, expected, expected_error in cases:
-            with self.subTest(case=name):
-                showwarning = Mock()
-                with patch.object(self.app.config_service, "load_startup") as load_startup, patch.object(
-                    app_module.messagebox,
-                    "showwarning",
-                    showwarning,
-                ):
-                    if isinstance(startup, Exception):
-                        load_startup.side_effect = startup
-                    else:
-                        load_startup.return_value = startup
-                    result = self.app._load_startup_settings()
-
-                self.assertEqual(result, expected)
-                load_startup.assert_called_once_with(self.app.startup_path)
-                if expected_error is None:
-                    showwarning.assert_not_called()
-                else:
-                    showwarning.assert_called_once_with(
-                        "startup.json 読込失敗",
-                        f"startup.json の読込に失敗しました。\n{expected_error}\n\n既定設定で起動します。",
-                    )
-
     def test_load_startup_settings_preserves_unknown_keys_through_save(self):
-        startup = {
+        loaded_startup = {
             "keymap_set_path": "X.json",
             "last_used_directory": "D",
-            "ui_font_delta_pt": "1",
+            "ui_font_delta_pt": 1,
+            "prompt_if_missing": True,
         }
-        with patch.object(self.app.config_service, "load_startup", return_value=startup), patch.object(
-            app_module.messagebox,
-            "showwarning",
-        ) as showwarning:
-            result = self.app._load_startup_settings()
-
-        self.assertEqual(
-            result,
-            {
-                "keymap_set_path": "X.json",
-                "last_used_directory": "D",
-                "ui_font_delta_pt": 1,
-                "prompt_if_missing": True,
-            },
-        )
-        showwarning.assert_not_called()
-
-        self.app._startup_settings = result
+        self.app._startup_settings = loaded_startup
         with patch.object(self.app.config_service, "save_startup") as save_startup:
             self.app.config_io.write_startup({"ui_font_delta_pt": 2})
 
@@ -123,6 +73,21 @@ class StartupFontCharacterizationTest(unittest.TestCase):
         )
         self.assertEqual(self.app._startup_settings["keymap_set_path"], "X.json")
         self.assertEqual(self.app._startup_settings["last_used_directory"], "D")
+
+    def test_startup_read_error_warning_text(self):
+        read_error = ValueError("broken json")
+        with patch.object(app_module.ConfigService, "load_startup", side_effect=read_error), patch.object(
+            app_module.os,
+            "makedirs",
+        ), patch.object(app_module.messagebox, "showwarning") as showwarning:
+            app = app_module.App()
+        try:
+            showwarning.assert_called_once_with(
+                "startup.json 読込失敗",
+                f"startup.json の読込に失敗しました。\n{read_error}\n\n既定設定で起動します。",
+            )
+        finally:
+            app.destroy()
 
     def test_set_ui_font_delta_applies_only_real_changes(self):
         self.app._ui_font_delta_pt = 0

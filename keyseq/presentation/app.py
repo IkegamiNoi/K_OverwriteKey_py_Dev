@@ -19,6 +19,7 @@ from keyseq.presentation.views.compact_view.compact_view import CompactView
 from keyseq.presentation.views.full_view.full_view import FullView
 from keyseq.presentation.views.menu_bar import build_menu_bar, bind_menu_shortcuts
 from keyseq.presentation.views.status_bar import build_status_area
+from keyseq.presentation.startup_settings import load_startup_settings
 from keyseq.presentation.theme import apply_global_theme, coerce_font_delta
 
 
@@ -54,7 +55,14 @@ class App(tk.Tk):
         )
         self.startup_path = self.paths.resolve_startup_path()
         self.keymap_set_path = self.paths.resolve_keymap_set_path()
-        self._startup_settings = self._load_startup_settings()
+        self._startup_settings = load_startup_settings(
+            self.config_service,
+            self.startup_path,
+            on_read_error=lambda exc: messagebox.showwarning(
+                "startup.json 読込失敗",
+                f"startup.json の読込に失敗しました。\n{exc}\n\n既定設定で起動します。",
+            ),
+        )
         self._ui_font_delta_pt = coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
         self.data = self.config_service.new_default_data()
@@ -359,25 +367,6 @@ class App(tk.Tk):
 
     def suggest_keymap_set_dialog_dir(self) -> str:
         return self.paths.suggest_keymap_set_dialog_dir(str(getattr(self, "keymap_set_path", "") or ""))
-
-
-    def _load_startup_settings(self) -> dict[str, any]:
-        startup = {}
-        try:
-            startup = self.config_service.load_startup(self.startup_path)
-        except Exception as e:
-            startup = {}
-            messagebox.showwarning(
-                "startup.json 読込失敗",
-                f"startup.json の読込に失敗しました。\n{e}\n\n既定設定で起動します。",
-            )
-
-        if not isinstance(startup, dict):
-            startup = {}
-
-        startup["ui_font_delta_pt"] = coerce_font_delta(startup.get("ui_font_delta_pt", 0))
-        startup["prompt_if_missing"] = bool(startup.get("prompt_if_missing", True))
-        return startup
 
 
     def keymap_set_file_stem(self) -> str:
