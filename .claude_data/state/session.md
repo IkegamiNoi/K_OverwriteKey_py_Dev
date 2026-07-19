@@ -4,45 +4,49 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-18T03:00:00
+last_updated: 2026-07-19T23:15:00
 phase: instructions/phase/03_startup_font_settings_cleanup/phase.md（主入力＝暫定仕様 instructions/history/02_startup_font_settings_cleanup.md v1.0）
-last_commit_location: claude/task-04-progression-dc2eeb（worktree: worktree-state-tracking-da2833）※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/phase-03-task-01-a60716（worktree: priceless-fermat-2a15c1）※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **フェーズ 03_startup_font_settings_cleanup 起票済・実装未着手**。起動設定/フォント 3 メソッドを整理（presentation 内再編・挙動不変）。暫定仕様 02 は v1.0 でユーザー確定済。次は task_01（安全網の特性テスト）の起票・実装から。
-mode: ready                      # phase 03 起票完了。task_01 から着手。
+focus: **フェーズ 03 task_01（安全網の特性テスト）完了・全緑・reviewer 採用。次は task_02（coerce → theme.py 移設）**。
+mode: pending_review              # task_01 完了。task_02 実装着手待ち。
 
 ## last_action
-ts: 2026-07-18T03:00:00
+ts: 2026-07-19T23:15:00
 who: main
 summary: |
-  【フェーズ 03_startup_font_settings_cleanup 起票（暫定仕様 02 v1.0 確定）】
-  idea_02 に着手。暫定仕様先行モードで暫定仕様 02 を起票 → reviewer「完了可・事実誤認0」＋
-  codex-adversarial-reviewer の指摘3件を反映（v0.2）→ ユーザー確定5件（v1.0・実装着手可）:
-    1. coerce_font_delta → theme.py の純関数（逆参照解消）
-    2. 起動設定ローダ → 新規 presentation/startup_settings.py（config_service 直依存で初期化順序を壊さない）
-    3. フォント設定の責務分離 = 案A（最小抽出）確定・案B（FontSettingsController）は今フェーズ見送り（初期化順序未解決）
-    4. エラー通知 → on_read_error(exc) コールバック注入（真理値表: 欠損=無警告/例外=警告1回/非dict=無警告。文言不変）
-    5. 未知キー全保持の契約（keymap_set_path 等を保持・既知2キーのみ正規化。後方互換の要・実コードで裏取り）
-  phase 03 phase.md 起票（task_01〜05・依存順）→ reviewer「完了可」。current.md を phase03 参照へ・
-  INDEX の idea_02 を着手に更新。すべてコミット済（624753e ほか）。**実装コードは未変更**。
+  【phase 03 task_01_characterization_test 完了】
+  現行3メソッド（App._coerce_font_delta / _load_startup_settings / set_ui_font_delta）の特性テストを
+  新規追加（tests_ui/test_startup_font_characterization.py・4本）。**実装コード keyseq/ は無変更**。
+  - 方針: 3メソッドは現時点で App 専用のため App インスタンス経由で現行挙動を固定（tk 不要な自由関数向け
+    ユニットテストは移設タスク task_02/03 で追加）。task_01 の制約〔依存なし・実装不変〕から一意。
+  - 実装は codex-implementer（.venv 起動不可のため未検証で提出）→ verifier が .venv で全緑確認 →
+    reviewer 5観点「採用（完了可）」。
+  - reviewer 申し送り: 未知キー保持テストは config_io_controller.write_startup の挙動も併せて固定。
+    task_02（config_io_controller.py:278 逆参照解消）着手時に当該テストが green 維持かを確認対象に含める。
+result_files:
+  - tests_ui/test_startup_font_characterization.py（新規）
+  - instructions/phase/03_startup_font_settings_cleanup/tasks/task_01_characterization_test.md（新規・起票）
 verified:
-  compile: clean                 # 起票のみ・コード無変更
-  test(tests): pass 77           # 基準（未変更）
-  test(tests_ui): pass 16        # 基準（未変更）
+  compile: clean
+  test(tests): pass 77
+  test(tests_ui): pass 20         # 基準16 + 新規4
   smoke: pass
 
 ## next_action
-- **task_01_characterization_test（安全網）に着手**: `/task_new` で起票 → 現行 3 メソッドの特性テストを新規追加
-  （coerce 純関数 / startup ローダの真理値表〔欠損・例外・非dict・正常〕+ on_read_error 呼出/文言 /
-   **未知キー保持** / フォント変更フロー〔差分なし早期 return・build_menu_bar のみ〕）。**実装は変更しない**。
-  移設後も無変更で pass することが挙動不変の証明になる。
-- 以降 task_02（theme.coerce_font_delta）→ task_03（startup_settings.py）→ task_04（font apply/uivars・二次レビュー併用）→
-  task_05（正本反映・記録: 昇格判断・凍結・codebase_map・decisions_archive/03・idea_02 の INDEX_done 移動・refactor_check）。
-- 実装は codex-implementer 既定・標準検証は verifier・コミットはメイン（agent_selection.md）。
+- **task_02_theme_coerce_font_delta を起票（/task_new）→ codex-implementer へ実装委任**:
+  `keyseq/presentation/theme.py` にモジュール純関数 `coerce_font_delta(value)->int` を新規追加（現行
+  App._coerce_font_delta のロジックを不変移設）→ 呼び出し元4箇所差し替え（app.py:58/228/390 と
+  controllers/config_io_controller.py:278 の逆参照 `self._app._coerce_font_delta` → `theme.coerce_font_delta`）
+  → `App._coerce_font_delta` 削除。tk 不要の coerce 単体テストを tests/ に追加。暫定仕様 §4。
+- 検証は verifier（.venv 全緑 + `git grep "_coerce_font_delta"` 0 件 / `git grep "_app._coerce_font_delta"` 0 件）、
+  レビューは reviewer。緑＋採用なら /save_state → /task_commit（確認不要・standing 許可済）。
+- 以降 task_03（startup_settings.py）→ task_04（font apply/uivars・二次レビュー codex-reviewer 併用・**実機目視=ユーザー**）→
+  task_05（正本反映・記録）。
 
 ## blockers
-- なし（phase 03 起票完了・暫定仕様 v1.0 確定・git クリーン・標準検証全緑）。
+- なし（task_01 完了・git クリーン・標準検証全緑）。
 
 ## resume_hints
 - **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**
