@@ -4,50 +4,49 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-20T00:40:00
-phase: instructions/phase/03_startup_font_settings_cleanup/phase.md（主入力＝暫定仕様 instructions/history/02_startup_font_settings_cleanup.md v1.0）
+last_updated: 2026-07-20T01:05:00
+phase: （アクティブなし）フェーズ 03_startup_font_settings_cleanup 完了 2026-07-20。次フェーズ未確定（次採番 04）
 last_commit_location: claude/phase-03-task-01-a60716（worktree: priceless-fermat-2a15c1）※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **フェーズ 03 task_04（案A分割 + UiVars 引数化）実装完了・全緑・reviewer + codex-reviewer 採用。実機目視（ユーザー）待ちで停止中。目視 pass 後に task_05（正本反映・記録）**。
-mode: blocked                    # 実機目視（ユーザー必須ゲート）待ち。目視 pass まで task_05 に進まない。
+focus: **フェーズ 03_startup_font_settings_cleanup 完了（task_01〜05・挙動不変・実機目視 OK）。次フェーズ未確定（ユーザー方針確認待ち）**。
+mode: completed                  # phase 03 完了。次フェーズ着手はユーザー方針確認から。
 
 ## last_action
-ts: 2026-07-20T00:40:00
+ts: 2026-07-20T01:05:00
 who: main
 summary: |
-  【phase 03 task_04_font_apply_and_uivars 実装完了・実機目視待ち】
-  負債①（set_ui_font_delta 責務混在）・④（ui_vars の App private 直読み）解消。案A分割:
-  `_apply_font_delta(delta)->bool`（coerce→差分なしFalse→状態更新→var.set→apply_global_theme→write_startup→True）と
-  `set_ui_font_delta`（早期return→hasattr menubar ガードで build_menu_bar→フラッシュ）。**bind_menu_shortcuts 非呼出を維持**。
-  `UiVars.__init__(self, master, ui_font_delta_pt: int)` 引数化・`master._ui_font_delta_pt` 直読み廃止・app.py 生成箇所を追随。
-  - _ui_font_delta_pt の所有は App のまま。**案B は実装せず**。特性テスト無改変で pass（挙動不変の証明）。
-  - 実装 codex-implementer → verifier 全緑 → reviewer 5観点「完了可」＋ codex-reviewer「指摘なし」（二次レビュー併用）。
-  - 受け入れ条件: ui_vars.py に `_ui_font_delta_pt` 0件（§8-5）/ _apply_font_delta・set_ui_font_delta 分離（§8-6）/
-    フォント適用系メソッド内に bind_menu_shortcuts 無し（§8-7）/ UiVars 生成 app.py 1箇所のみ追随。
+  【phase 03 task_05_finalize_records 完了 → フェーズ 03 完了】
+  正本反映・記録（文書のみ・コード無変更）。実機目視ユーザー OK（2026-07-20）を受け最終化:
+  - 正本昇格判断: **spec_detail 昇格不要**（startup/font_delta/coerce の担当層記述なし・grep 0件。
+    担当層は architecture.md §3.5 により codebase_map.md が正）。暫定仕様 02 を **v1.0 で凍結**。
+  - codebase_map.md 更新（startup_settings.py 追記 / theme.coerce_font_delta / App のフォント適用分割・
+    起動設定読込委譲 / UiVars 引数化）/ decisions_archive/03 作成 + decisions.md 索引 / current.md 完了記載・次採番04 /
+    backlog INDEX の idea_02 を INDEX_done へ移動。
+  - **【罠再発・修正済】codebase_map.md / INDEX / INDEX_done を最初 main リポジトリ側パスへ誤編集**（worktree 未反映）→
+    reviewer 差戻し（NG 2件）→ worktree 側へ再適用・main 側 revert → **reviewer 再レビュー採用（完了可）**。
+  - /refactor_check: **不要**（M1〜M6 非該当。verifier がメトリクス収集・判定はメイン）。
 result_files:
-  - keyseq/presentation/app.py（set_ui_font_delta 分割・UiVars 生成引数化）
-  - keyseq/presentation/ui_vars.py（__init__ 引数化・private 直読み廃止）
-  - instructions/phase/03_startup_font_settings_cleanup/tasks/task_04_font_apply_and_uivars.md（新規・起票）
+  - instructions/history/02_startup_font_settings_cleanup.md（凍結）
+  - instructions/common/codebase_map.md（責務反映）
+  - .claude_data/state/decisions_archive/03_startup_font_settings_cleanup.md（新規）
+  - .claude_data/state/decisions.md（索引）/ instructions/phase/current.md（完了・次採番）
+  - instructions/backlog/INDEX.md / INDEX_done.md（idea_02 移動）
+  - instructions/phase/03_startup_font_settings_cleanup/tasks/task_05_finalize_records.md（新規・起票）
 verified:
-  compile: clean
+  compile: clean                 # task_05 はコード無変更。task_04 時点の全緑を維持
   test(tests): pass 86
-  test(tests_ui): pass 20         # test_set_ui_font_delta_applies_only_real_changes 無改変 pass
+  test(tests_ui): pass 20
   smoke: pass
 
 ## next_action
-- **【ユーザー必須ゲート】実機目視**（暫定仕様 §8-11,12・目視 pass まで task_05 に進まない）:
-  1. 起動時 startup.json〔正常 / 欠損 / 破損 / 非dict〕のフォント適用と警告（正常・欠損・非dict=警告なし / 破損のみ「startup.json 読込失敗」警告）。
-  2. メニューからのフォント変更 → 即時反映・永続化・再起動後の保持。
-  3. `keymap_set_path` を持つ構成の起動復元（構成が読める）。
-  - 実行: `..\..\..\.venv\Scripts\python.exe -m keyseq`（or main.py）。結果をユーザーがメインへ報告。
-- **目視 pass 後**: task_04 を完了確定 → /save_state → /task_commit（task_04 は実装コミット済のため目視結果を state に記録）→ **task_05_finalize_records** に着手。
-- task_05（正本反映・記録・最終）: 昇格判断（spec_detail 要否）+ 暫定仕様 02 凍結 / codebase_map.md 更新 /
-  decisions_archive/03_startup_font_settings_cleanup.md 作成 + decisions.md 索引 / current.md 完了記載・次採番 /
-  backlog INDEX の idea_02 を INDEX_done へ移動 / `/refactor_check` 実行と判定記載。
+- **フェーズ 03 完了。次フェーズは未確定** → ユーザーに方針確認する。着手候補は `instructions/backlog/INDEX.md`:
+  - [idea_03](../../instructions/backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の保存時正規化・優先度低・要設計）。
+  - 案B（FontSettingsController 新設）: phase 03 で見送り。フォント設定拡張が必要になった時点で初期化順序設計を詰めて idea 化。
+- 次フェーズ着手時は `/phase_start` で起票（次採番 phase 04）。暫定仕様が必要なら独立採番の暫定 03 を起票。
 
 ## blockers
-- **実機目視（ユーザー実施）待ち**。目視 pass まで task_05（正本反映）に進まない。実装・自動検証・レビューは完了・全緑。
+- なし（フェーズ 03 完了・全緑・実機目視 OK・git は task_05 コミット待ちのみ）。
 
 ## resume_hints
 - **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**
@@ -58,12 +57,12 @@ verified:
 - 実装は codex-implementer が既定（agent_selection.md）。Codex は sandbox から `.venv` python を起動できないため、
   標準検証はメイン側/verifier が `.venv` で実行する分担。**Codex 申告のテスト結果は信用せず必ず verifier で実行する**。
 - **【罠】`git grep` は追跡済みファイルしか検索しない**。新規（未追跡）ファイルの確認には**直接 `grep`** を使う。
-- **app.py の行数計測は `wc -l`**（現 466 行）。PowerShell `Measure-Object -Line` は空行を数えず誤解の元。
-- phase 03 の要注意点（暫定仕様 02）: ①未知キー全保持（keymap_set_path 消失防止・最優先の後方互換）
-  ②エラー通知の真理値表を保つ（欠損=無警告/例外=警告1回/非dict=無警告・文言1文字一致）
-  ③初期化順序（起動設定ローダは config_service〔:43〕のみ依存・config_io〔:127〕に依存しない）
-  ④メニュー再構築は build_menu_bar のみ（bind_menu_shortcuts を呼ばない副作用を保持）⑤案B は実装しない。
+- **app.py の行数計測は `wc -l`**（phase 03 完了時 448 行）。PowerShell `Measure-Object -Line` は空行を数えず誤解の元。
+- **【罠再発・要徹底】codebase_map.md / backlog INDEX 等の instructions 配下も worktree のパスで編集する**。
+  Read/Grep で main リポジトリ側の絶対パス（`...\K_OverwriteKey_py_Dev\instructions\...`）を掴むと、そのまま
+  main 側を編集して worktree に反映されない（phase 03 task_05 で再発・reviewer が検出）。編集は必ず worktree ルート配下のパスで行う。
 - 過去の判断は `.claude_data/state/decisions.md`（アーカイブ索引あり）+ `decisions_archive/<phase>.md`。
-  完了済: 計画04 / 01_view_ref_cleanup（2026-07-17）/ 02_hotkey_validation（2026-07-18）。
+  完了済: 計画04 / 01_view_ref_cleanup（2026-07-17）/ 02_hotkey_validation（2026-07-18）/ 03_startup_font_settings_cleanup（2026-07-20）。
 - 未着手 idea: [idea_03](../../instructions/backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の保存時正規化・優先度低）。
+  将来 idea 候補: 案B（FontSettingsController・初期化順序設計が前提）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。

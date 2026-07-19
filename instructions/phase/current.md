@@ -6,18 +6,15 @@
 
 ## 現在の参照先
 
-- **[03_startup_font_settings_cleanup](03_startup_font_settings_cleanup/phase.md)** — 起動設定 / フォント設定クラスタの整理。
-  App の起動設定読込・フォント設定 3 メソッド（`_coerce_font_delta` / `_load_startup_settings` / `set_ui_font_delta`）を
-  整理し、責務混在・controller → App private 逆参照・初期化順序の制約・ui_vars の App private 依存を解消する。
-  **presentation 内の再編に限定・スキーマ変更なし・挙動不変**。
-  - モード: **暫定仕様先行モード**。主入力 = [暫定仕様 02](../history/02_startup_font_settings_cleanup.md)（v1.0・ユーザー確定済）。
-    番号対応: phase 03 / 暫定 02 / decisions `decisions_archive/03_startup_font_settings_cleanup.md`。
-  - 起票元: [idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)。
-- 直前の完了フェーズ: `02_hotkey_validation`（2026-07-18 完了）。hotkey 検証を presentation →
+- **アクティブなフェーズなし**（`03_startup_font_settings_cleanup` 完了 2026-07-20）。次フェーズは未確定。
+  着手候補は `instructions/backlog/INDEX.md`（下記「次フェーズ候補」）。次採番は `04_<topic>`。
+  次フェーズ着手時はユーザーに方針確認すること。
+- 直前の完了フェーズ: `03_startup_font_settings_cleanup`（2026-07-20 完了）。起動設定/フォント3メソッドを整理し
+  4 負債（責務混在・controller→App private 逆参照・初期化順序制約・ui_vars 直読み）を挙動不変で解消。
+  要約・判断は [decisions_archive/03_startup_font_settings_cleanup.md](../../.claude_data/state/decisions_archive/03_startup_font_settings_cleanup.md) が正。
+- 一つ前の完了フェーズ: `02_hotkey_validation`（2026-07-18 完了）。hotkey 検証を presentation →
   domain / application へ層移設し**層の逆転を解消**（挙動不変）。
   要約・判断は [decisions_archive/02_hotkey_validation.md](../../.claude_data/state/decisions_archive/02_hotkey_validation.md) が正。
-- 一つ前の完了フェーズ: `01_view_ref_cleanup`（2026-07-17 完了）。
-  要約・判断は [decisions_archive/01_view_ref_cleanup.md](../../.claude_data/state/decisions_archive/01_view_ref_cleanup.md) が正。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
   過去のリファクタ計画・提案書（01〜04）は `instructions/modified_proposal/`（次採番 05）。
   計画04 は完了済（W0〜W7・手動確認まで完了）。
@@ -36,10 +33,13 @@
 
 1. ~~後始末~~ → **完了**（`01_view_ref_cleanup`・2026-07-17）
 2. ~~[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)~~ → **完了**（`02_hotkey_validation`・2026-07-18）
-3. ~~[idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)~~ → **着手中**（`03_startup_font_settings_cleanup`・上記「現在の参照先」）
+3. ~~[idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)~~ → **完了**（`03_startup_font_settings_cleanup`・2026-07-20）
 
-その他の未着手 idea: [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の
-保存時正規化/検証の統一。phase 02 task_04 から分離・優先度低・要設計）。
+**計画04 由来の3フェーズはすべて完了**。次フェーズは未確定（ユーザー方針確認）。未着手 idea:
+- [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の保存時正規化/検証の統一。
+  phase 02 task_04 から分離・優先度低・要設計）。
+- **案B（FontSettingsController 新設）**: phase 03 で見送り。フォント設定項目の拡張が必要になった時点で
+  初期化順序設計を詰めてから idea 化（判断は decisions_archive/03）。
 
 ## 別タスク化候補
 
@@ -57,6 +57,8 @@
   「App → View → Widget のパス」を満たすため。所有 Widget 経由（`full_view.sequence_box.action_list`）へ
   統一したくなった場合のみ単独タスク化する（判断根拠は
   [decisions_archive/01_view_ref_cleanup.md](../../.claude_data/state/decisions_archive/01_view_ref_cleanup.md)）
+- `controllers/config_io_controller.py` が **598 行**で目安 600 行に接近（phase 03 /refactor_check で検出・当該フェーズは +1 行のみ）。
+  次フェーズ以降の `/refactor_check` で再判定する。現時点では単独タスク化しない（本フェーズ範囲外の既存負債）。
 
 ## 作業開始時の指示
 

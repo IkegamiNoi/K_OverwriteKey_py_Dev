@@ -1,7 +1,9 @@
 # 暫定仕様 02: 起動設定 / フォント設定クラスタの整理（startup_font_settings_cleanup）
 
-> 状態: **未凍結・v1.0・主入力・ユーザー確定済（2026-07-18）・実装着手可**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結・v1.0（フェーズ 03 完了 2026-07-20）**。本書がこのフェーズの確定設計だった。
+> 正本昇格判断: **spec_detail への昇格は不要**（起動設定/フォントの担当層を規定する節が存在せず、
+> 担当層は `architecture.md §3.5` により `codebase_map.md` が正。挙動不変ゆえ仕様変更なし）。
+> 追従更新は `codebase_map.md` のみ実施。判断履歴は `.claude_data/state/decisions_archive/03_startup_font_settings_cleanup.md`。
 > 起票元: [idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)（計画04 W7 の残留ロジック分類から分離）。
 > 実装フェーズ: **phase 03**（`/phase_start` で起票予定）。
 > **番号対応: phase 03 / 暫定 02 / decisions `decisions_archive/03_<topic>.md`**（暫定仕様は phase と独立採番）。

@@ -69,7 +69,8 @@ keyseq/presentation/
     keyboard_layouts.py
     keyboard_window.py
     listbox_utils.py
-    theme.py
+    startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
+    theme.py                   # フォント/テーマ適用 + coerce_font_delta（フォント差分 -3..+3 正規化の唯一点）
     tk_keys.py
 ```
 
@@ -92,11 +93,17 @@ keyseq/presentation/
   - `validate_hotkey` は**検証ロジックを持たず** `HotkeyService.validate`（application）への**薄い委譲**（実体は下記 HotkeyService / `domain/hotkey.py`）。dialogs 契約維持のため残す
 - 配線用の薄いヘルパ（`_get_send_guard_count` / `_find_trigger_by_key` / `_find_keymap_target` / `_find_keymap_switch_target_id`）
 - 分離JSONの現在の構成セットパス（keymap_set_path）・startup 設定を保持
+  - 起動設定の**読込ロジックは持たず** `startup_settings.load_startup_settings`（presentation・`config_service` 直依存）へ委譲し、
+    UI 通知（`messagebox`）だけを `on_read_error` ラムダで注入する（`__init__` 内）。フォント差分の正規化は `theme.coerce_font_delta`
+- フォントサイズ設定（`_ui_font_delta_pt` を App 保持）: `_apply_font_delta`（状態更新・`apply_global_theme`・`config_io.write_startup` 永続化）と
+  `set_ui_font_delta`（メニュー再構築 `build_menu_bar` のみ + フラッシュ通知）に分割。差分なしは早期 return（`bind_menu_shortcuts` は呼ばない）
 
 ### UiVars（ui_vars.py）
 
 - View / コントローラ間で共有する **Tk 変数（StringVar / BooleanVar / IntVar 等）のホルダー**。
   App 生成直後に 1 度だけ作られ、差し替わらない（`app.ui_vars.<変数名>` で参照）。
+- **App private を直読みしない**: `ui_font_delta_var` の初期値は `__init__(self, master, ui_font_delta_pt: int)` の
+  引数で受け取る（`master._ui_font_delta_pt` の直読みを廃止）。他の初期値は `master.data.get(...)` から取得。
 - **`AppState`（application 層）とは別物**。UiVars は Tk に依存する presentation 層の部品であり、
   選択インデックス等のアプリ状態は引き続き `AppState` が持つ。混ぜない。
 - Tk 変数はアプリ生存中に差し替わらないため、Widget・コントローラがコンストラクタで受け取って保持してよい。
