@@ -51,9 +51,9 @@ ConfigIoController の責務分割（config_io_controller_split）
 1. `instructions/history/03_config_io_controller_split.md`（**主入力・設計の正**）
 2. `keyseq/presentation/controllers/config_io_controller.py`（分割対象）
 3. `keyseq/presentation/controllers/dirty_state.py`（E の source_path 周辺の確認用）
-4. `tests_ui/test_startup_font_characterization.py`（**読む理由は 2 つ**: task_01 では特性テストの
-   monkeypatch 手法の先例として / task_04 では `config_io` を参照する 30 箇所の 1 つとして修正対象）
-5. 呼び出し元 8 ファイル（task_04 で着手する時のみ。それまで読まない）:
+4. `tests_ui/test_startup_font_characterization.py`（**読む理由は 2 つ**: task_01 / task_02 では特性テストの
+   monkeypatch 手法の先例として / task_05 では `config_io` を参照する 30 箇所の 1 つとして修正対象）
+5. 呼び出し元 8 ファイル（task_05 で着手する時のみ。それまで読まない）:
    `views/menu_bar.py` / `app.py` / `views/full_view/{file_frame,trigger_box,sequence_box,keymap_box}.py` /
    `controllers/layout_controller.py`
 6. `instructions/common/codebase_map.md`（最終タスクのみ）
@@ -64,14 +64,21 @@ ConfigIoController の責務分割（config_io_controller_split）
 
 | # | タスク | 概要 |
 |---|---|---|
-| task_01 | `characterization_tests` | 暫定仕様 §7-2 の経路に対する特性テストを追加。**分割前のコードで pass すること**が完了条件。規模が過大なら分割方針をユーザーへ相談する |
-| task_02 | `split_individual_json_io` | D / E / F を `config_io/{keymap,trigger_set,sequence}_file_io.py` へ分割（共通化しない） |
-| task_03 | `split_keymap_set_and_startup` | A + A' / B / C を `config_io/{keymap_set_io,startup_io,io_dialogs}.py` へ分割 |
-| task_04 | `replace_call_sites` | 外部 30 箇所の差し替え（対応表 → 機械的置換 → `grep -rn "config_io\."` 残存 0 件） |
-| task_05 | `finalize_records` | 正本反映（`codebase_map.md`）・暫定仕様 03 の凍結・`decisions_archive/04` 作成・`current.md` 更新・`/refactor_check` |
+| task_01 | `characterization_tests_individual_json` | 特性テスト①: C（共有ダイアログ）+ D / E / F（個別 JSON IO）。**分割前のコードで pass すること**が完了条件 |
+| task_02 | `characterization_tests_keymap_set_startup` | 特性テスト②: A（構成セット）+ B（起動設定）。同上 |
+| task_03 | `split_individual_json_io` | D / E / F を `config_io/{keymap,trigger_set,sequence}_file_io.py` へ分割（共通化しない） |
+| task_04 | `split_keymap_set_and_startup` | A + A' / B / C を `config_io/{keymap_set_io,startup_io,io_dialogs}.py` へ分割 |
+| task_05 | `replace_call_sites` | 外部 30 箇所の差し替え（対応表 → 機械的置換 → `grep -rn "config_io\."` 残存 0 件） |
+| task_06 | `finalize_records` | 正本反映（`codebase_map.md`）・暫定仕様 03 の凍結・`decisions_archive/04` 作成・`current.md` 更新・`/refactor_check` |
 
-- task_02 と task_03 の順序は「依存の少ない D/E/F を先」とする。D/E/F が持つクラスタ外依存は
-  **2 系統**あり、いずれも task_03 まで元の場所に残るため、task_02 では**参照経路のみ調整**する:
+**特性テストを 2 タスクに分けた理由**（2026-07-23・task_01 起票時に見積り）: 暫定仕様 §7-2 の経路表は
+全体で **約 55〜60 ケース / テストメソッド 25 本前後**になり、1 タスクとしては大きすぎるため
+（暫定仕様 §7-2 末尾「この表が過大なら分割の前にユーザーへ相談する」に基づく判断）。
+分割の対象単位（task_03 = D/E/F、task_04 = A/B/C）と対応させ、**守る対象と安全網を対にする**。
+C は task_04 で分割されるが、D/E/F から呼ばれるため特性テストは task_01 側に置く。
+
+- task_03 と task_04 の順序は「依存の少ない D/E/F を先」とする。D/E/F が持つクラスタ外依存は
+  **2 系統**あり、いずれも task_04 まで元の場所に残るため、task_03 では**参照経路のみ調整**する:
   - **C（共有ダイアログヘルパ）** — `choose_save_path_with_collision`（D:363 / E:445 / F:528）と
     `ask_link_label_to_filename`（D:389 / F:555。**E は呼ばない**）
   - **A（構成セット）** — `confirm_save_if_dirty`。**E の `load_trigger_set_file`（:487）のみ**が呼ぶ
@@ -92,9 +99,9 @@ ConfigIoController の責務分割（config_io_controller_split）
    新設していないか。
 4. **スコープ外への波及がないか**。`self._app.` の書き換え・`config_service` の変更・
    ダイアログ文言の変更が入っていないか。
-5. task_04 は**対応表どおりの機械的置換**になっているか（ついでの整理が混入していないか）。
+5. task_05 は**対応表どおりの機械的置換**になっているか（ついでの整理が混入していないか）。
 
-- タスク単位の必須レビューは `reviewer`。**task_04 完了時（統合）とフェーズ完了判定前は
+- タスク単位の必須レビューは `reviewer`。**task_05 完了時（統合）とフェーズ完了判定前は
   Codex レビューを併用する**（`.claude/rules/agent_selection.md`）。
 - 実機目視はユーザー。最低限「保存 / 読込 / 別名保存 / Import / Export / 起動設定変更 /
   keymap・トリガー一覧・シーケンスの個別保存読込」を確認してもらう。
