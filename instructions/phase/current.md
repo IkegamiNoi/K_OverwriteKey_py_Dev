@@ -38,8 +38,9 @@
 **計画04 由来の3フェーズはすべて完了**。次フェーズは未確定（ユーザー方針確認）。未着手 idea:
 - [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の保存時正規化/検証の統一。
   phase 02 task_04 から分離・優先度低・要設計）。
-- **案B（FontSettingsController 新設）**: phase 03 で見送り。フォント設定項目の拡張が必要になった時点で
-  初期化順序設計を詰めてから idea 化（判断は decisions_archive/03）。
+- [idea_04](../backlog/idea_04_font_settings_controller.md)（FontSettingsController 新設 = phase 03 の案B。
+  2026-07-23 に idea 化済）**状態は保留**。着手トリガー（idea_04 に 5 件明記）が発生するまで着手しない。
+  着手時は初期化順序設計の暫定仕様が先に必要（判断は decisions_archive/03）。
 
 ## 別タスク化候補
 
