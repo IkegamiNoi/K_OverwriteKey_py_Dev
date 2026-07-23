@@ -6,9 +6,13 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズなし**（`03_startup_font_settings_cleanup` 完了 2026-07-20）。次フェーズは未確定。
-  着手候補は `instructions/backlog/INDEX.md`（下記「次フェーズ候補」）。次採番は `04_<topic>`。
-  次フェーズ着手時はユーザーに方針確認すること。
+- **アクティブ: [04_config_io_controller_split](04_config_io_controller_split/phase.md)**（2026-07-23 起票）。
+  `config_io_controller.py`（598 行）を `controllers/config_io/` 配下の 6 モジュールへ分割する（**挙動不変**）。
+  - 主入力（設計の正）: [暫定仕様 03](../history/03_config_io_controller_split.md)（v0.4・ユーザー確定済）
+  - 番号対応: phase 04 / 暫定 03 / decisions 04
+  - 起票元: ユーザー要望（2026-07-23）。下記「別タスク化候補」の 598 行の項目
+  - 派生 idea: [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)（本フェーズ完了後に着手）/
+    [idea_06](../backlog/idea_06_individual_json_io_unification.md)（保留）
 - 直前の完了フェーズ: `03_startup_font_settings_cleanup`（2026-07-20 完了）。起動設定/フォント3メソッドを整理し
   4 負債（責務混在・controller→App private 逆参照・初期化順序制約・ui_vars 直読み）を挙動不変で解消。
   要約・判断は [decisions_archive/03_startup_font_settings_cleanup.md](../../.claude_data/state/decisions_archive/03_startup_font_settings_cleanup.md) が正。
@@ -21,8 +25,8 @@
 
 ## 次採番
 
-- 次フェーズは **`04_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
-- 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。次採番は **`03_<topic>`**。
+- 次フェーズは **`05_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。次採番は **`04_<topic>`**。
 
 ## 次フェーズ候補（参考）
 
@@ -35,7 +39,10 @@
 2. ~~[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)~~ → **完了**（`02_hotkey_validation`・2026-07-18）
 3. ~~[idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)~~ → **完了**（`03_startup_font_settings_cleanup`・2026-07-20）
 
-**計画04 由来の3フェーズはすべて完了**。次フェーズは未確定（ユーザー方針確認）。未着手 idea:
+**計画04 由来の3フェーズはすべて完了**。現在は phase 04（計画04 由来ではない・別タスク化候補からの着手）。
+phase 04 完了後の候補:
+- [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)（trigger_set の source_path 不整合。
+  **phase 04 の完了が着手条件**・挙動変更を伴うため仕様変更フロー）。
 - [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の保存時正規化/検証の統一。
   phase 02 task_04 から分離・優先度低・要設計）。
 - [idea_04](../backlog/idea_04_font_settings_controller.md)（FontSettingsController 新設 = phase 03 の案B。
@@ -58,8 +65,13 @@
   「App → View → Widget のパス」を満たすため。所有 Widget 経由（`full_view.sequence_box.action_list`）へ
   統一したくなった場合のみ単独タスク化する（判断根拠は
   [decisions_archive/01_view_ref_cleanup.md](../../.claude_data/state/decisions_archive/01_view_ref_cleanup.md)）
-- `controllers/config_io_controller.py` が **598 行**で目安 600 行に接近（phase 03 /refactor_check で検出・当該フェーズは +1 行のみ）。
-  次フェーズ以降の `/refactor_check` で再判定する。現時点では単独タスク化しない（本フェーズ範囲外の既存負債）。
+- ~~`controllers/config_io_controller.py` が **598 行**で目安 600 行に接近~~ →
+  **[04_config_io_controller_split](04_config_io_controller_split/phase.md) として着手**（2026-07-23・ユーザー判断）。
+  `/refactor_check` の再判定を待たず独立した設計タスクとした（M1・M3 非該当。根拠は
+  [暫定仕様 03](../history/03_config_io_controller_split.md)「着手根拠」）。
+- [idea_06](../backlog/idea_06_individual_json_io_unification.md)（個別 JSON IO 3 種の共通化）は
+  **保留**。着手条件は phase 04 完了 + [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)
+  の解消 + 共通化の実需（3 条件すべて）。
 
 ## 作業開始時の指示
 
