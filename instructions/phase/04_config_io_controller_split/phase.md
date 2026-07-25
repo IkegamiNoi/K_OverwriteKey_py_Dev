@@ -65,7 +65,7 @@ ConfigIoController の責務分割（config_io_controller_split）
 | # | タスク | 概要 |
 |---|---|---|
 | task_01 | `characterization_tests_individual_json` | 特性テスト①: C（共有ダイアログ）+ D / E / F（個別 JSON IO）。**分割前のコードで pass すること**が完了条件 |
-| task_02 | `characterization_tests_keymap_set_startup` | 特性テスト②: A（構成セット）+ B（起動設定）。同上 |
+| task_02 | `characterization_tests_keymap_set_startup` | 特性テスト②: A（構成セット）+ B（起動設定）。**A/B は config_service へ委譲するため、バイト列比較ではなくコントローラの変換ロジック（渡す引数）を固定**。同上 |
 | task_03 | `split_individual_json_io` | D / E / F を `config_io/{keymap,trigger_set,sequence}_file_io.py` へ分割（共通化しない） |
 | task_04 | `split_keymap_set_and_startup` | A + A' / B / C を `config_io/{keymap_set_io,startup_io,io_dialogs}.py` へ分割 |
 | task_05 | `replace_call_sites` | 外部 30 箇所の差し替え（対応表 → 機械的置換 → `grep -rn "config_io\."` 残存 0 件） |
