@@ -11,6 +11,12 @@ from unittest.mock import Mock, patch
 from keyseq.presentation import app as app_module
 
 
+def _expected_json_bytes(text: str) -> bytes:
+    """config_service はテキストモードで書き出すため、改行はプラットフォーム依存になる。
+    内容・キー順・インデントの変化は検出しつつ、改行差（LF/CRLF）だけを吸収する。"""
+    return text.replace("\n", os.linesep).encode("utf-8")
+
+
 def _dialog_io(app):
     return app.config_io
 
@@ -326,7 +332,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.assertTrue(_keymap_io(self.app).save_keymap_to_path(0, keymap, path))
             self.assertEqual(
                 Path(path).read_bytes(),
-                b'{\n  "label": "Map",\n  "mappings": {}\n}',
+                _expected_json_bytes('{\n  "label": "Map",\n  "mappings": {}\n}'),
             )
         self.assertEqual(
             calls,
@@ -435,12 +441,12 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             self.app.config_root = directory
             path = os.path.join(directory, "triggers.json")
-            expected = (
+            expected = _expected_json_bytes(
                 "{\n  \"triggers\": [\n    {\n      \"key\": \"a\",\n"
                 "      \"suppress\": true,\n"
                 "      \"sequence_path\": \"sequences/Run.json\"\n"
                 "    }\n  ]\n}"
-            ).encode()
+            )
             with patch.object(self.app.trigger_panel, "refresh_triggers", side_effect=lambda: calls.append("triggers")), patch.object(
                 self.app.trigger_panel,
                 "refresh_actions",
@@ -625,7 +631,10 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.assertTrue(_sequence_io(self.app).save_sequence_to_path(trigger, path))
             self.assertEqual(
                 Path(path).read_bytes(),
-                b'{\n  "label": "Run",\n  "run_to_end": false,\n  "run_to_end_delay_ms": 300,\n  "actions": []\n}',
+                _expected_json_bytes(
+                    '{\n  "label": "Run",\n  "run_to_end": false,\n'
+                    '  "run_to_end_delay_ms": 300,\n  "actions": []\n}'
+                ),
             )
         self.assertEqual(trigger[self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH], path)
         self.assertFalse(trigger[self.app.config_service.INTERNAL_SEQUENCE_IMPORTED])

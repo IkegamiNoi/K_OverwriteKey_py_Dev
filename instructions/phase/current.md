@@ -13,6 +13,8 @@
   - 起票元: ユーザー要望（2026-07-23）。下記「別タスク化候補」の 598 行の項目
   - 派生 idea: [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)（本フェーズ完了後に着手）/
     [idea_06](../backlog/idea_06_individual_json_io_unification.md)（保留）
+  - 進捗: **task_01（特性テスト① C+D/E/F）完了**（2026-07-24・19件 pass・reviewer 採用・production 無変更）。
+    次は task_02（A+B の特性テスト）。以降 task_03〜06。
 - 直前の完了フェーズ: `03_startup_font_settings_cleanup`（2026-07-20 完了）。起動設定/フォント3メソッドを整理し
   4 負債（責務混在・controller→App private 逆参照・初期化順序制約・ui_vars 直読み）を挙動不変で解消。
   要約・判断は [decisions_archive/03_startup_font_settings_cleanup.md](../../.claude_data/state/decisions_archive/03_startup_font_settings_cleanup.md) が正。
