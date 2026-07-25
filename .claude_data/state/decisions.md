@@ -95,6 +95,27 @@
 
 ---
 
+## 2026-07-24〜 (phase 04: config_io_controller 分割・挙動不変)
+
+規範: 暫定仕様 `instructions/history/03_config_io_controller_split.md`（v0.4）。番号対応: phase 04 / 暫定 03 / decisions 04。
+
+### task_03（D/E/F 分割）: 特性テストの mock 境界の扱い — **修正して採用**（ユーザー確定 2026-07-24）
+- 分割で、task_01 の特性テストが「内部メソッド `save_X_to_path` を accessor（`app.config_io`）経由で mock」
+  していたため mock が外れ、実メソッドが走って未 patch の `messagebox` でハングした（安全網が挙動変化を検知）。
+  **production は挙動不変**（内部呼び出し `self.save_X_to_path` が新オブジェクトに束縛されただけ）。
+- 「特性テストを本体無変更で pass」は**原理的に不可能**と判明（`ask_link_label`=C ヘルパと `save_X_to_path`=D
+  メソッドが別オブジェクトへ分割され、1 アクセサで両方 patch できない）。
+- 採用: **境界 mock へ書き換え（Option A・ユーザー選択）**。内部メソッド mock →
+  境界（`config_service.save_X_file` / `messagebox` / refresh）mock へ移行。**assert する挙動（保存パス・
+  ダイアログ文言・E のラベル連動なし）は保持**（reviewer 確認）。
+- **codex-reviewer の P2「特性テストの不変性が崩れている」= 上記 Option A の再指摘。ユーザー再確認の上
+  受諾**（2026-07-24）。Codex の代替案（分割モジュールの内部呼び出しを wrapper 経由にして元テストを無変更で通す）は
+  循環委譲・task_05 での破綻・非 verbatim のため却下。
+- レビュー: reviewer=完了可（採用）/ codex-reviewer=P2 のみ（裁定済）。verifier: 新規 19+35 pass / tests 86 /
+  tests_ui 74 / smoke / application・domain 無変更。
+
+---
+
 ## 運用メモ
 
 - 1 タスク完了時に reviewer 判定をここへ転記する

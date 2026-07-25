@@ -4,59 +4,63 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-24T02:00:00
-phase: instructions/phase/04_config_io_controller_split（task_01・02 完了・task_03 未着手）
+last_updated: 2026-07-24T03:00:00
+phase: instructions/phase/04_config_io_controller_split（task_01〜03 完了・task_04 未着手）
 last_commit_location: claude/proposal-b-inquiry-7db89e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 04 task_02（特性テスト② A+B）完了（35件 pass・reviewer 採用・production 無変更）。task_01・02 で分割の安全網が揃った。次は task_03（D/E/F 分割・Codex 既定）**。
+focus: **phase 04 task_03（D/E/F を config_io/ 配下3モジュールへ分割）完了（挙動不変・reviewer 採用・codex-reviewer P2 裁定済）。次は task_04（A+A'/B/C 分割）**。
 mode: completed
 
 ## last_action
-ts: 2026-07-24T02:00:00
+ts: 2026-07-24T03:00:00
 who: main
 summary: |
-  【phase 04 task_02（特性テスト② A+B）完了】
-  - `tests_ui/test_config_io_characterization_keymap_set_startup.py`（テスト35本）を追加。**分割前の現行コードで固定**。
-    A（構成セット: confirm_save_if_dirty 5分岐 / save_keymap_set_to 成功・例外 / choose_split_base_dir 3分岐 /
-    load_keymap_set_from / new_config / import_config / export_config / restore_default / set_startup_keymap_set）+
-    B（起動設定: write_startup / load_startup_and_config）を覆う。
-  - **現挙動を「直さず固定」**: `set_startup_keymap_set` は write_startup 内の保存失敗を握りつぶした後も
-    データ適用・dirty 解除・成功 showinfo を続行する / `load_startup_and_config` は読込例外を `except: pass`
-    で握りつぶし空データ fallback（:261-262）。両方を現状の正として固定。
-  - **A/B 特有**: 単一 JSON を直接書かず config_service へ委譲するため、バイト列比較ではなく
-    コントローラが config_service へ渡す引数（write_startup のマージ後 dict 等）を assert。
-  - 設計制約遵守（task_01 と同一）: patch は tkinter 属性 or app インスタンス属性（config_service/paths/dirty_tracker）。
-    `os.path.exists` は patch せず tempfile で分岐を作る（分割耐性）。呼び出し口はアクセサ（`_config_set_io`/`_startup_io`）。
-  - **実装はメイン**（task_02 は production 無変更のテストで Codex の並列性が効かないため。ユーザー承認済み方針）。
-  - **reviewer 判定: 修正要（軽微）1件 → 対応済**。`import_config` の confirm=False 分岐テスト欠落を1件追加（34→35件）。
+  【phase 04 task_03（D/E/F 分割）完了】
+  - `config_io/` パッケージを新設し D/E/F を3モジュールへ**verbatim 移設**（keymap_file_io / trigger_set_file_io /
+    sequence_file_io）。ConfigIoController は D/E/F を委譲メソッド化（移行期の一時ラッパー・task_05 で削除予定）。
+    C/A ヘルパは ConfigIoController に残置し、新モジュールから `self._app.config_io.<helper>` 経由で呼ぶ。
+  - **E の既存不整合は「直さず」そのまま移設**（_trigger_set_source_path 未定義・到達不能 askyesno・_as のラベル連動なし）。
+  - **Codex 実装（ハングなし）→ 特性テストが退行検知**: task_01 テストが内部メソッド `save_X_to_path` を
+    accessor 経由 mock していたため分割で mock が外れ実 messagebox でハング（production は挙動不変）。
+  - **ユーザー判断 Option A（境界 mock へ修正）で対応**: 影響6テストを内部メソッド mock → 境界
+    （config_service/messagebox/refresh）mock へ書き換え。assert する挙動は保持。faulthandler で残ハング1件
+    （fake がコピー返却でリスト差し替え→後続 pop 無効化）も特定・修正（fake は同一オブジェクトを返す）。
+  - **レビュー**: reviewer=完了可（採用）/ codex-reviewer=P2「テスト不変性が崩れた」1件 → Option A の再指摘として
+    **ユーザー再確認の上受諾**（decisions 記録済）。**ハング監視（Monitor）を Codex 投入時にセットで運用**し、両ジョブとも
+    JOB_ENDED を正しく検知（STALLED 誤検知なし）。
 result_files:
-  - tests_ui/test_config_io_characterization_keymap_set_startup.py（新規・35件 pass。コミット対象）
-  - instructions/phase/04_config_io_controller_split/tasks/task_02_...md（新規・タスク定義）
-  - instructions/phase/04_config_io_controller_split/phase.md（task_02 行の1行更新）
+  - keyseq/presentation/controllers/config_io/（新規4ファイル: __init__ / keymap_file_io / trigger_set_file_io / sequence_file_io）
+  - keyseq/presentation/controllers/config_io_controller.py（D/E/F を委譲化・251行削減）
+  - tests_ui/test_config_io_characterization.py（内部mock→境界mockへ書き換え・19件 pass 維持）
+  - instructions/phase/04_config_io_controller_split/tasks/task_03_...md（新規）
+  - .claude_data/state/decisions.md（phase 04 セクション + task_03 の P2 裁定を記録）
 verified:
   compile: clean
   test(tests): pass 86
-  test(tests_ui): pass 74          # 既存39 + 新規35
+  test(tests_ui): pass 74          # 19 + 35 + 既存20
   smoke: pass
-  production_untouched: yes        # git diff で keyseq/ の変更 0 件
+  production_scope: presentation のみ（application・domain 無変更）
 
 ## next_action
-- **task_03（D/E/F を分割）を起票して着手する**。`controllers/config_io/{keymap_file_io,trigger_set_file_io,
-  sequence_file_io}.py` へ D/E/F を移す（暫定仕様 §3・§5=案1 共通化しない）。**挙動不変**・E の不整合はそのまま移設。
-  安全網は task_01 の `tests_ui/test_config_io_characterization.py`（分割後もテスト本体を変えず pass すること）。
-  C（共有ダイアログ）と A（confirm_save_if_dirty）への依存は task_04 まで元の場所に残るため、task_03 では参照経路のみ調整。
-- その後 task_04（A+A'/B/C 分割）→ task_05（呼び出し元30箇所差し替え・案B）→ task_06（正本反映＋実機目視ゲート）。
-- **実装分担（ユーザー承認済み）**: **task_03 から codex-implementer 既定に戻す**（分割本体）。
-  **Codex 投入時はジョブログ停滞の Monitor をセットで**仕掛ける（手順は `instructions/common/rules_detail/codex_operations.md`）。
-  Codex 申告は信用せず verifier で `.venv` 再実行。task_01・02 の特性テストは production 無変更のためメイン実装だった。
-- タスクが緑＋reviewer 採用なら確認なしで `/save_state`→`/task_commit`（ユーザー standing 許可）。
+- **task_04（A+A'/B/C を分割）を起票して着手する**。A（構成セット）+ A'（choose_split_base_dir）→ `keymap_set_io.py` /
+  B（起動設定）→ `startup_io.py` / C（共有ダイアログ）→ `io_dialogs.py`（暫定仕様 §3）。**挙動不変**。
+  安全網は task_02 の `test_config_io_characterization_keymap_set_startup.py`（35件）+ task_01（19件）。
+  **注意**: C/A が新モジュールへ移ると、D/E/F（task_03 分割済）が `self._app.config_io.<helper>` で呼ぶ参照が影響を受ける。
+  委譲を維持するか config_io パッケージ内参照へ調整する（挙動不変を保つ）。
+- その後 task_05（呼び出し元30箇所差し替え・案B / 委譲層削除）→ task_06（正本反映＋実機目視ゲート）。
+- **実装分担**: task_04 も分割本体なので codex-implementer 既定。**Codex 投入時は必ず Monitor をセット**
+  （新ジョブ log 出現待ち → status=running かつ約4分沈黙で STALLED。手順は `instructions/common/rules_detail/codex_operations.md`）。
+  Codex 申告は信用せず verifier で `.venv` 再実行。統合退行のため codex-reviewer 併用。
+- **特性テストが再退行したら**: task_03 と同様に production の挙動不変を確認し、テスト側 mock を境界へ調整
+  （内部メソッド mock は分割で外れる。境界 mock が正）。
+- タスクが緑＋reviewer(+codex-reviewer) 採用なら確認なしで `/save_state`→`/task_commit`（standing 許可）。
   **フェーズの実機目視は task_06 の前にまとめて実施（ユーザー必須ゲート）**。
 
 ## blockers
-- なし（task_01・02 完了・全緑・reviewer 採用）。次は task_03（D/E/F 分割）の起票・着手。
-- 留意: **codex-implementer が不安定**（`collaboration tool: wait` ハング・companion 側の根本原因で再発しうる）。
-  task_03 以降で本格投入する際はジョブログ停滞の Monitor をセットで。手順は運用手順書参照。
+- なし（task_01〜03 完了・全緑・reviewer 採用・codex-reviewer P2 裁定済）。次は task_04（A/B/C 分割）。
+- 留意: **codex-implementer は不安定だが今回 task_03 の実装・review とも正常完了**（ハングなし）。
+  Monitor 運用が有効に機能（両ジョブとも JOB_ENDED を正しく検知・STALLED 誤検知なし）。task_04 でも Monitor をセットで。
 
 ## resume_hints
 - **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**

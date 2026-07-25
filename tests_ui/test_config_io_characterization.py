@@ -170,6 +170,48 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.assertEqual(suspend.call_count, resume.call_count)
             self.assertEqual(suspend.call_count, 1)
 
+    # ---- 分割耐性のための境界 mock ヘルパ ----
+    # save_X_to_path を内部メソッドとして直接 mock すると、分割でオブジェクト同一性が変わり
+    # patch が外れる。代わりにその外部境界（config_service / refresh / messagebox）を無害化して
+    # 実 save_X_to_path を走らせ、save_calls に保存呼び出しを記録して「どのパスへ保存したか」を固定する。
+    def _keymap_save_patches(self, save_calls):
+        def fake_save(path, keymap):
+            save_calls.append((path, keymap))
+            # 実 save_keymap_to_path は get_keymaps()[index] = saved でリスト要素を差し替える。
+            # コピーを返すと後続ブロックが差し替え後の別オブジェクトを掴むため、同一オブジェクトを返す。
+            return keymap
+        return (
+            patch.object(self.app.config_service, "save_keymap_file", side_effect=fake_save),
+            patch.object(self.app.keymap_panel, "refresh_keymap_list_ui"),
+            patch.object(self.app.layout, "refresh_keyboard_window"),
+            patch.object(self.app.dirty_tracker, "sync_dirty_state"),
+            patch.object(tkinter.messagebox, "showinfo"),
+        )
+
+    def _trigger_set_save_patches(self, save_calls):
+        def fake_save(path, data, *, config_root):
+            save_calls.append((path, data.get("triggers")))
+            return list(data.get("triggers") or []), {}
+        return (
+            patch.object(self.app.config_service, "save_trigger_set_file", side_effect=fake_save),
+            patch.object(self.app.trigger_panel, "refresh_triggers"),
+            patch.object(self.app.trigger_panel, "refresh_actions"),
+            patch.object(self.app.dirty_tracker, "sync_dirty_state"),
+            patch.object(tkinter.messagebox, "showinfo"),
+        )
+
+    def _sequence_save_patches(self, save_calls):
+        def fake_save(path, trigger):
+            save_calls.append((path, trigger))
+            return {}
+        return (
+            patch.object(self.app.config_service, "save_sequence_file", side_effect=fake_save),
+            patch.object(self.app.dirty_tracker, "mark_trigger_set_dirty"),
+            patch.object(self.app.trigger_panel, "refresh_triggers"),
+            patch.object(self.app.trigger_panel, "refresh_actions"),
+            patch.object(tkinter.messagebox, "showinfo"),
+        )
+
     # C: 共有ダイアログヘルパ
     def test_choose_save_path_with_collision_all_branches(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -256,63 +298,67 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app.config_service.INTERNAL_KEYMAP_DIRTY: True,
             }
         )
+        # imported+dirty+yes → save_selected_keymap_as 経由で別名パスへ保存される
+        save_calls = []
+        p = self._keymap_save_patches(save_calls)
         with patch.object(self.app.keymap_panel, "selected_keymap_list_index", return_value=0), patch.object(
-            tkinter.messagebox,
-            "askyesno",
-            return_value=True,
-        ) as ask, patch.object(_keymap_io(self.app), "save_selected_keymap_as", return_value=True) as save_as:
+            tkinter.messagebox, "askyesno", return_value=True
+        ) as ask, patch.object(
+            tkinter.filedialog, "asksaveasfilename", return_value="C:/as/map.json"
+        ), patch.object(_dialog_io(self.app), "ask_link_label_to_filename", return_value=False), p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_keymap_io(self.app).save_selected_keymap())
             ask.assert_called_once_with("保存", "読込で持ってきたキーマップです。\n別名で保存しますか？")
-            save_as.assert_called_once_with()
+            self.assertEqual(save_calls, [("C:/as/map.json", keymap)])
 
+        # imported+dirty+no → 既存 source パスへ保存
+        save_calls = []
+        p = self._keymap_save_patches(save_calls)
         with patch.object(self.app.keymap_panel, "selected_keymap_list_index", return_value=0), patch.object(
-            tkinter.messagebox,
-            "askyesno",
-            return_value=False,
-        ) as ask, patch.object(_keymap_io(self.app), "save_keymap_to_path", return_value=True) as save_to:
+            tkinter.messagebox, "askyesno", return_value=False
+        ) as ask, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_keymap_io(self.app).save_selected_keymap())
             ask.assert_called_once_with("保存", "読込で持ってきたキーマップです。\n別名で保存しますか？")
-            save_to.assert_called_once_with(0, keymap, source)
+            self.assertEqual(save_calls, [(source, keymap)])
 
+        # source なし → choose_save_path_with_collision の返すパスへ保存
         keymap.pop(self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH)
+        save_calls = []
+        p = self._keymap_save_patches(save_calls)
         with patch.object(self.app.keymap_panel, "selected_keymap_list_index", return_value=0), patch.object(
-            _keymap_io(self.app),
-            "choose_save_path_with_collision",
-            return_value="C:/new/map.json",
-        ) as choose, patch.object(_keymap_io(self.app), "save_keymap_to_path", return_value=True) as save_to:
+            _dialog_io(self.app), "choose_save_path_with_collision", return_value="C:/new/map.json"
+        ) as choose, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_keymap_io(self.app).save_selected_keymap())
             self.assertEqual(choose.call_args.kwargs["title"], "キーマップを保存")
-            save_to.assert_called_once_with(0, keymap, "C:/new/map.json")
+            self.assertEqual(save_calls, [("C:/new/map.json", keymap)])
 
     def test_keymap_save_as_links_label_and_cancel_does_not_save(self):
         keymap = {"id": "map", "label": "Before", "mappings": {}}
         self.app.data["keymaps"] = [keymap]
+        save_calls = []
+        p = self._keymap_save_patches(save_calls)
         with patch.object(self.app.keymap_panel, "selected_keymap_list_index", return_value=0), patch.object(
-            tkinter.filedialog,
-            "asksaveasfilename",
-            return_value="C:/new/After.json",
-        ) as ask_save, patch.object(_keymap_io(self.app), "ask_link_label_to_filename", return_value=True) as link, patch.object(
-            _keymap_io(self.app),
-            "save_keymap_to_path",
-            return_value=True,
-        ) as save_to:
+            tkinter.filedialog, "asksaveasfilename", return_value="C:/new/After.json"
+        ) as ask_save, patch.object(
+            _dialog_io(self.app), "ask_link_label_to_filename", return_value=True
+        ) as link, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_keymap_io(self.app).save_selected_keymap_as())
             self.assertEqual(ask_save.call_args.kwargs["title"], "キーマップを別名で保存")
             link.assert_called_once_with(title="キーマップ名の連動", path="C:/new/After.json")
             self.assertEqual(keymap["label"], "After")
-            save_to.assert_called_once_with(0, keymap, "C:/new/After.json")
+            self.assertEqual(save_calls, [("C:/new/After.json", keymap)])
 
+        # ask_link がキャンセル（RuntimeError）→ 保存しない
+        save_calls = []
+        p = self._keymap_save_patches(save_calls)
         with patch.object(self.app.keymap_panel, "selected_keymap_list_index", return_value=0), patch.object(
-            tkinter.filedialog,
-            "asksaveasfilename",
-            return_value="C:/new/cancel.json",
+            tkinter.filedialog, "asksaveasfilename", return_value="C:/new/cancel.json"
         ), patch.object(
-            _keymap_io(self.app),
+            _dialog_io(self.app),
             "ask_link_label_to_filename",
             side_effect=RuntimeError("キャンセルされました。"),
-        ), patch.object(_keymap_io(self.app), "save_keymap_to_path") as save_to:
+        ), p[0], p[1], p[2], p[3], p[4]:
             self.assertFalse(_keymap_io(self.app).save_selected_keymap_as())
-            save_to.assert_not_called()
+            self.assertEqual(save_calls, [])
 
     def test_keymap_save_to_path_writes_bytes_refreshes_and_reports_in_order(self):
         keymap = {"id": "map", "label": "Map", "mappings": {}}
@@ -405,32 +451,33 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         self.app.dirty_tracker.trigger_set_source_path = "C:/loaded/triggers.json"
         self.app.dirty_tracker.trigger_set_imported = True
         self.app.dirty_tracker.trigger_set_dirty = True
+        save_calls = []
+        p = self._trigger_set_save_patches(save_calls)
         with patch.object(tkinter.messagebox, "askyesno") as ask, patch.object(
-            _trigger_set_io(self.app),
-            "choose_save_path_with_collision",
-            return_value="C:/new/triggers.json",
-        ) as choose, patch.object(_trigger_set_io(self.app), "save_trigger_set_to_path", return_value=True) as save_to:
+            _dialog_io(self.app), "choose_save_path_with_collision", return_value="C:/new/triggers.json"
+        ) as choose, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
             ask.assert_not_called()
             self.assertEqual(choose.call_args.kwargs["title"], "トリガー一覧を保存")
-            save_to.assert_called_once_with("C:/new/triggers.json")
+            self.assertEqual([c[0] for c in save_calls], ["C:/new/triggers.json"])
 
     def test_trigger_set_save_as_never_links_label_and_cancel_returns_false(self):
+        save_calls = []
+        p = self._trigger_set_save_patches(save_calls)
         with patch.object(tkinter.filedialog, "asksaveasfilename", return_value="C:/new/triggers.json") as ask_save, patch.object(
-            _trigger_set_io(self.app),
-            "ask_link_label_to_filename",
-        ) as link, patch.object(_trigger_set_io(self.app), "save_trigger_set_to_path", return_value=True) as save_to:
+            _dialog_io(self.app), "ask_link_label_to_filename"
+        ) as link, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file_as())
             self.assertEqual(ask_save.call_args.kwargs["title"], "トリガー一覧を別名で保存")
-            link.assert_not_called()
-            save_to.assert_called_once_with("C:/new/triggers.json")
+            link.assert_not_called()  # E: save_as はラベル連動を呼ばない
+            self.assertEqual([c[0] for c in save_calls], ["C:/new/triggers.json"])
 
-        with patch.object(tkinter.filedialog, "asksaveasfilename", return_value=""), patch.object(
-            _trigger_set_io(self.app),
-            "save_trigger_set_to_path",
-        ) as save_to:
+        # asksaveasfilename キャンセル → 保存しない
+        save_calls = []
+        p = self._trigger_set_save_patches(save_calls)
+        with patch.object(tkinter.filedialog, "asksaveasfilename", return_value=""), p[0], p[1], p[2], p[3], p[4]:
             self.assertFalse(_trigger_set_io(self.app).save_trigger_set_file_as())
-            save_to.assert_not_called()
+            self.assertEqual(save_calls, [])
 
     def test_trigger_set_save_to_path_writes_bytes_updates_dirty_and_reports(self):
         trigger = {"key": "a", "label": "Run", "actions": []}
@@ -557,62 +604,66 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app.config_service.INTERNAL_SEQUENCE_DIRTY: True,
             }
         )
+        # imported+dirty+yes → save_selected_sequence_as 経由で別名パスへ保存される
+        save_calls = []
+        p = self._sequence_save_patches(save_calls)
         with patch.object(self.app.trigger_panel, "selected_trigger", return_value=trigger), patch.object(
-            tkinter.messagebox,
-            "askyesno",
-            return_value=True,
-        ) as ask, patch.object(_sequence_io(self.app), "save_selected_sequence_as", return_value=True) as save_as:
+            tkinter.messagebox, "askyesno", return_value=True
+        ) as ask, patch.object(
+            tkinter.filedialog, "asksaveasfilename", return_value="C:/as/run.json"
+        ), patch.object(_dialog_io(self.app), "ask_link_label_to_filename", return_value=False), p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_sequence_io(self.app).save_selected_sequence())
             ask.assert_called_once_with("保存", "読込で持ってきた出力シーケンスです。\n別名で保存しますか？")
-            save_as.assert_called_once_with()
+            self.assertEqual(save_calls, [("C:/as/run.json", trigger)])
 
+        # imported+dirty+no → 既存 source パスへ保存
+        save_calls = []
+        p = self._sequence_save_patches(save_calls)
         with patch.object(self.app.trigger_panel, "selected_trigger", return_value=trigger), patch.object(
-            tkinter.messagebox,
-            "askyesno",
-            return_value=False,
-        ) as ask, patch.object(_sequence_io(self.app), "save_sequence_to_path", return_value=True) as save_to:
+            tkinter.messagebox, "askyesno", return_value=False
+        ) as ask, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_sequence_io(self.app).save_selected_sequence())
             ask.assert_called_once_with("保存", "読込で持ってきた出力シーケンスです。\n別名で保存しますか？")
-            save_to.assert_called_once_with(trigger, source)
+            self.assertEqual(save_calls, [(source, trigger)])
 
+        # source なし → choose_save_path_with_collision の返すパスへ保存
         trigger.pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH)
+        save_calls = []
+        p = self._sequence_save_patches(save_calls)
         with patch.object(self.app.trigger_panel, "selected_trigger", return_value=trigger), patch.object(
-            _sequence_io(self.app),
-            "choose_save_path_with_collision",
-            return_value="C:/new/run.json",
-        ) as choose, patch.object(_sequence_io(self.app), "save_sequence_to_path", return_value=True) as save_to:
+            _dialog_io(self.app), "choose_save_path_with_collision", return_value="C:/new/run.json"
+        ) as choose, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_sequence_io(self.app).save_selected_sequence())
             self.assertEqual(choose.call_args.kwargs["title"], "出力シーケンスを保存")
-            save_to.assert_called_once_with(trigger, "C:/new/run.json")
+            self.assertEqual(save_calls, [("C:/new/run.json", trigger)])
 
     def test_sequence_save_as_links_label_and_cancel_does_not_save(self):
         trigger = {"key": "a", "label": "Before", "actions": []}
+        save_calls = []
+        p = self._sequence_save_patches(save_calls)
         with patch.object(self.app.trigger_panel, "selected_trigger", return_value=trigger), patch.object(
-            tkinter.filedialog,
-            "asksaveasfilename",
-            return_value="C:/new/After.json",
-        ) as ask_save, patch.object(_sequence_io(self.app), "ask_link_label_to_filename", return_value=True) as link, patch.object(
-            _sequence_io(self.app),
-            "save_sequence_to_path",
-            return_value=True,
-        ) as save_to:
+            tkinter.filedialog, "asksaveasfilename", return_value="C:/new/After.json"
+        ) as ask_save, patch.object(
+            _dialog_io(self.app), "ask_link_label_to_filename", return_value=True
+        ) as link, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_sequence_io(self.app).save_selected_sequence_as())
             self.assertEqual(ask_save.call_args.kwargs["title"], "出力シーケンスを別名で保存")
             link.assert_called_once_with(title="出力シーケンス名の連動", path="C:/new/After.json")
             self.assertEqual(trigger["label"], "After")
-            save_to.assert_called_once_with(trigger, "C:/new/After.json")
+            self.assertEqual(save_calls, [("C:/new/After.json", trigger)])
 
+        # ask_link がキャンセル（RuntimeError）→ 保存しない
+        save_calls = []
+        p = self._sequence_save_patches(save_calls)
         with patch.object(self.app.trigger_panel, "selected_trigger", return_value=trigger), patch.object(
-            tkinter.filedialog,
-            "asksaveasfilename",
-            return_value="C:/new/cancel.json",
+            tkinter.filedialog, "asksaveasfilename", return_value="C:/new/cancel.json"
         ), patch.object(
-            _sequence_io(self.app),
+            _dialog_io(self.app),
             "ask_link_label_to_filename",
             side_effect=RuntimeError("キャンセルされました。"),
-        ), patch.object(_sequence_io(self.app), "save_sequence_to_path") as save_to:
+        ), p[0], p[1], p[2], p[3], p[4]:
             self.assertFalse(_sequence_io(self.app).save_selected_sequence_as())
-            save_to.assert_not_called()
+            self.assertEqual(save_calls, [])
 
     def test_sequence_save_to_path_writes_bytes_updates_trigger_and_marks_dirty(self):
         trigger = {"key": "a", "label": "Run", "actions": []}
