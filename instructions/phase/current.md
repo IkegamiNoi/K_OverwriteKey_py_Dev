@@ -13,10 +13,10 @@
   - 起票元: ユーザー要望（2026-07-23）。下記「別タスク化候補」の 598 行の項目
   - 派生 idea: [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)（本フェーズ完了後に着手）/
     [idea_06](../backlog/idea_06_individual_json_io_unification.md)（保留）
-  - 進捗: **task_01（特性テスト①・19件）+ task_02（特性テスト②・35件）+ task_03（D/E/F 分割）完了**
-    （2026-07-24・挙動不変・reviewer 採用・codex-reviewer P2 裁定済）。task_03 で D/E/F を `config_io/` へ
-    verbatim 分割（委譲層は task_05 で削除予定）。特性テストは内部 mock→境界 mock へ調整（判断は decisions 04）。
-    次は task_04（A/B/C 分割）→ 05（呼び出し元差し替え・委譲層削除）→ 06（正本反映＋実機目視）。
+  - 進捗: **task_01・02（特性テスト 19+35件）+ task_03（D/E/F 分割）+ task_04（A/B/C 分割）完了**
+    （2026-07-24・挙動不変・reviewer 採用・codex-reviewer clear）。ConfigIoController は 114 行の完全ファサード化。
+    特性テストは task_03=境界 mock / task_04=アクセサ切替で調整（判断は decisions 04・タスクごとに最適手段を選択）。
+    次は **task_05（呼び出し元30箇所差し替え・案B + 委譲層削除）→ task_06（正本反映＋実機目視ゲート）**。
 - 直前の完了フェーズ: `03_startup_font_settings_cleanup`（2026-07-20 完了）。起動設定/フォント3メソッドを整理し
   4 負債（責務混在・controller→App private 逆参照・初期化順序制約・ui_vars 直読み）を挙動不変で解消。
   要約・判断は [decisions_archive/03_startup_font_settings_cleanup.md](../../.claude_data/state/decisions_archive/03_startup_font_settings_cleanup.md) が正。

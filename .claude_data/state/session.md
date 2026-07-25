@@ -4,37 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-24T03:00:00
-phase: instructions/phase/04_config_io_controller_split（task_01〜03 完了・task_04 未着手）
+last_updated: 2026-07-24T04:00:00
+phase: instructions/phase/04_config_io_controller_split（task_01〜04 完了・task_05 未着手）
 last_commit_location: claude/proposal-b-inquiry-7db89e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 04 task_03（D/E/F を config_io/ 配下3モジュールへ分割）完了（挙動不変・reviewer 採用・codex-reviewer P2 裁定済）。次は task_04（A+A'/B/C 分割）**。
+focus: **phase 04 task_04（A+A'/B/C を config_io/ 配下3モジュールへ分割・ConfigIoController を114行の完全ファサード化）完了（挙動不変・reviewer 採用・codex-reviewer clean）。次は task_05（呼び出し元30箇所差し替え + 委譲層削除）**。
 mode: completed
 
 ## last_action
-ts: 2026-07-24T03:00:00
+ts: 2026-07-24T04:00:00
 who: main
 summary: |
-  【phase 04 task_03（D/E/F 分割）完了】
-  - `config_io/` パッケージを新設し D/E/F を3モジュールへ**verbatim 移設**（keymap_file_io / trigger_set_file_io /
-    sequence_file_io）。ConfigIoController は D/E/F を委譲メソッド化（移行期の一時ラッパー・task_05 で削除予定）。
-    C/A ヘルパは ConfigIoController に残置し、新モジュールから `self._app.config_io.<helper>` 経由で呼ぶ。
-  - **E の既存不整合は「直さず」そのまま移設**（_trigger_set_source_path 未定義・到達不能 askyesno・_as のラベル連動なし）。
-  - **Codex 実装（ハングなし）→ 特性テストが退行検知**: task_01 テストが内部メソッド `save_X_to_path` を
-    accessor 経由 mock していたため分割で mock が外れ実 messagebox でハング（production は挙動不変）。
-  - **ユーザー判断 Option A（境界 mock へ修正）で対応**: 影響6テストを内部メソッド mock → 境界
-    （config_service/messagebox/refresh）mock へ書き換え。assert する挙動は保持。faulthandler で残ハング1件
-    （fake がコピー返却でリスト差し替え→後続 pop 無効化）も特定・修正（fake は同一オブジェクトを返す）。
-  - **レビュー**: reviewer=完了可（採用）/ codex-reviewer=P2「テスト不変性が崩れた」1件 → Option A の再指摘として
-    **ユーザー再確認の上受諾**（decisions 記録済）。**ハング監視（Monitor）を Codex 投入時にセットで運用**し、両ジョブとも
-    JOB_ENDED を正しく検知（STALLED 誤検知なし）。
+  【phase 04 task_04（A+A'/B/C 分割）完了】
+  - A（構成セット）+A'（choose_split_base_dir）→ `keymap_set_io.py`（KeymapSetIo）/ B（起動設定）→ `startup_io.py`
+    （StartupIo）/ C（共有ダイアログ）→ `io_dialogs.py`（IoDialogs）へ**verbatim 移設**。
+  - **ConfigIoController は 387→114 行の完全ファサード**（全メソッドが委譲・task_05 で削除予定）。
+    クロスモジュール呼び出しは 2 箇所のみ facade 経由（set_startup_keymap_set→write_startup /
+    load_startup_and_config→apply_loaded_data_to_ui）。それ以外は同一クラスタ内 self.。
+  - **D/E/F（task_03 分割済）は無変更で動作**（facade 経由で C/A ヘルパを解決）。E の不整合も無変更。
+  - **task_02 テストの調整はアクセサ切替を採用**（ユーザー確定・Option A の境界 mock だと apply 周りで
+    set_dirty 回数アサーションを緩める必要が出るため）。`_config_set_io`→`app.config_io._keymap_set_io` /
+    `_startup_io`→`_startup_io` へ向け、クロスモジュール2箇所（write_startup/apply）のみ facade patch へ。
+    **アサーション非緩和で 35 件 pass**（詳細は decisions 04）。
+  - Codex 実装・codex-reviewer とも**ハングなし**（Monitor が両ジョブとも JOB_ENDED を正検知）。
+  - **レビュー**: reviewer=完了可（採用・アサーション非緩和を git diff で確認）/ codex-reviewer=**指摘なし（clean）**。
 result_files:
-  - keyseq/presentation/controllers/config_io/（新規4ファイル: __init__ / keymap_file_io / trigger_set_file_io / sequence_file_io）
-  - keyseq/presentation/controllers/config_io_controller.py（D/E/F を委譲化・251行削減）
-  - tests_ui/test_config_io_characterization.py（内部mock→境界mockへ書き換え・19件 pass 維持）
-  - instructions/phase/04_config_io_controller_split/tasks/task_03_...md（新規）
-  - .claude_data/state/decisions.md（phase 04 セクション + task_03 の P2 裁定を記録）
+  - keyseq/presentation/controllers/config_io/{keymap_set_io,startup_io,io_dialogs}.py（新規3ファイル）
+  - keyseq/presentation/controllers/config_io_controller.py（A/B/C も委譲化・114行の完全ファサード）
+  - tests_ui/test_config_io_characterization_keymap_set_startup.py（アクセサ切替・35件 pass 維持）
+  - instructions/phase/04_config_io_controller_split/tasks/task_04_...md（新規）
+  - .claude_data/state/decisions.md（task_04 のアクセサ切替判断を記録）
 verified:
   compile: clean
   test(tests): pass 86
@@ -43,23 +43,24 @@ verified:
   production_scope: presentation のみ（application・domain 無変更）
 
 ## next_action
-- **task_04（A+A'/B/C を分割）を起票して着手する**。A（構成セット）+ A'（choose_split_base_dir）→ `keymap_set_io.py` /
-  B（起動設定）→ `startup_io.py` / C（共有ダイアログ）→ `io_dialogs.py`（暫定仕様 §3）。**挙動不変**。
-  安全網は task_02 の `test_config_io_characterization_keymap_set_startup.py`（35件）+ task_01（19件）。
-  **注意**: C/A が新モジュールへ移ると、D/E/F（task_03 分割済）が `self._app.config_io.<helper>` で呼ぶ参照が影響を受ける。
-  委譲を維持するか config_io パッケージ内参照へ調整する（挙動不変を保つ）。
-- その後 task_05（呼び出し元30箇所差し替え・案B / 委譲層削除）→ task_06（正本反映＋実機目視ゲート）。
-- **実装分担**: task_04 も分割本体なので codex-implementer 既定。**Codex 投入時は必ず Monitor をセット**
-  （新ジョブ log 出現待ち → status=running かつ約4分沈黙で STALLED。手順は `instructions/common/rules_detail/codex_operations.md`）。
-  Codex 申告は信用せず verifier で `.venv` 再実行。統合退行のため codex-reviewer 併用。
-- **特性テストが再退行したら**: task_03 と同様に production の挙動不変を確認し、テスト側 mock を境界へ調整
-  （内部メソッド mock は分割で外れる。境界 mock が正）。
+- **task_05（呼び出し元30箇所差し替え・案B + 委譲層削除）を起票して着手する**。ConfigIoController の委譲ファサードを
+  削除し、呼び出し元 8 ファイル 30 箇所（menu_bar 8 / app.py 7 / file_frame 4 / trigger_box・sequence_box・keymap_box 各3 /
+  layout_controller 1 / tests_ui 1）を `app.config_io.<method>` → `app.<新名>.<method>` へ差し替える（暫定仕様 §4=案B）。
+  **app に 6 分割オブジェクトを公開**（`app.keymap_set_io` / `app.startup_io` / `app.io_dialogs` / `app.keymap_io` /
+  `app.trigger_set_io` / `app.sequence_io`）。分割モジュール間の facade 経由呼び出し（write_startup / apply /
+  D/E/F の C/A ヘルパ呼び出し）も新参照へ調整。**特性テストのアクセサ（`_config_set_io` 等）も新 app 参照へ最終調整**。
+  差し替え後 `grep -rn "config_io\." keyseq main.py tests tests_ui` で**残存 0 件**を確認（案B の完了条件）。
+- その後 **task_06（正本反映: codebase_map.md 更新・暫定仕様 03 凍結・decisions_archive/04 作成・
+  current.md 完了記載・/refactor_check）+ 実機目視ゲート**。
+- **実装分担**: task_05 は機械的置換中心だが広範。codex-implementer 既定 + Monitor + codex-reviewer 併用
+  （phase.md が Codex 統合レビューを本命とする箇所）。Codex 申告は信用せず verifier で `.venv` 再実行。
+- **【ユーザー必須ゲート】task_06 正本反映の前に実機目視**（保存/読込/別名保存/Import/Export/起動設定変更/
+  keymap・トリガー一覧・シーケンスの個別保存読込）。ここで必ず停止しユーザーへ実機確認を依頼する。
 - タスクが緑＋reviewer(+codex-reviewer) 採用なら確認なしで `/save_state`→`/task_commit`（standing 許可）。
-  **フェーズの実機目視は task_06 の前にまとめて実施（ユーザー必須ゲート）**。
 
 ## blockers
-- なし（task_01〜03 完了・全緑・reviewer 採用・codex-reviewer P2 裁定済）。次は task_04（A/B/C 分割）。
-- 留意: **codex-implementer は不安定だが今回 task_03 の実装・review とも正常完了**（ハングなし）。
+- なし（task_01〜04 完了・全緑・reviewer 採用・codex-reviewer clean）。次は task_05（呼び出し元差し替え + 委譲層削除）。
+- 留意: **codex-implementer は task_03・04 とも実装・review 正常完了**（ハングなし・Monitor 有効）。
   Monitor 運用が有効に機能（両ジョブとも JOB_ENDED を正しく検知・STALLED 誤検知なし）。task_04 でも Monitor をセットで。
 
 ## resume_hints

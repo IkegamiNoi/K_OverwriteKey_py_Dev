@@ -114,6 +114,21 @@
 - レビュー: reviewer=完了可（採用）/ codex-reviewer=P2 のみ（裁定済）。verifier: 新規 19+35 pass / tests 86 /
   tests_ui 74 / smoke / application・domain 無変更。
 
+### task_04（A/B/C 分割）: 特性テストの調整 — **アクセサ切替を採用**（ユーザー確定 2026-07-24）
+- A/B/C を KeymapSetIo / StartupIo / IoDialogs へ分割。ConfigIoController は 114 行の完全ファサード
+  （全メソッド委譲・task_05 で削除予定）。クロスモジュール呼び出しは 2 箇所のみ facade 経由
+  （set_startup_keymap_set→write_startup / load_startup_and_config→apply_loaded_data_to_ui）。
+- task_02 の特性テストが内部 A/B メソッドを accessor 経由 mock していたため分割で外れた。
+  **task_03 の Option A（境界 mock）を task_02 に一律適用すると、apply_loaded_data_to_ui 周りで
+  set_dirty の呼び出し回数アサーションを緩める必要が生じる**（フェーズの「テストを緩めない」方針と衝突）。
+- 採用: **アクセサ切替**（`_config_set_io`→`app.config_io._keymap_set_io` / `_startup_io`→`_startup_io`）。
+  同一クラスタ内 mock はそのまま intercept され**アサーションを一切緩めず 35 件 pass**。クロスモジュール 2 箇所
+  （write_startup / apply）のみ facade patch へ。task_05 のアクセサ切替を前倒しする形。
+- **task_03 で Option B を見送った理由（C と D が別クラスタで 1 アクセサ不可）は task_04 の A/B には非該当**
+  （同一クラスタ内で完結するため成立）。task ごとに最適な手段を選ぶ（境界 mock / アクセサ切替）。
+- レビュー: reviewer=完了可（採用・アサーション非緩和を確認）/ codex-reviewer=指摘なし（clean）。
+  verifier: 19+35 pass / tests 86 / tests_ui 74 / smoke / application・domain 無変更。
+
 ---
 
 ## 運用メモ

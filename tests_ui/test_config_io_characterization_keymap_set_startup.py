@@ -22,11 +22,16 @@ from keyseq.presentation import app as app_module
 
 
 def _config_set_io(app):
-    return app.config_io
+    # task_04 で A/A' は KeymapSetIo へ分割済み。同一クラスタ内メソッド（confirm_save_if_dirty /
+    # save_keymap_set / apply_loaded_data_to_ui 等）を self. で呼ぶため、分割オブジェクトを返して
+    # patch が内部呼び出しを intercept できるようにする（task_05 の差し替え時にここを再調整）。
+    # クロスモジュール呼び出し（write_startup 等）は facade `app.config_io` 経由なので、
+    # そのケースは各テストで `app.config_io` を直接 patch する。
+    return app.config_io._keymap_set_io
 
 
 def _startup_io(app):
-    return app.config_io
+    return app.config_io._startup_io
 
 
 class KeymapSetStartupCharacterizationTest(unittest.TestCase):
@@ -392,9 +397,10 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             tkinter.filedialog, "askopenfilename", return_value="k.json"
         ), patch.object(
             self.app.config_service, "load_runtime_data_from_keymap_set_path", side_effect=ValueError("bad")
-        ), patch.object(_config_set_io(self.app), "write_startup") as write_startup, patch.object(
+        ), patch.object(self.app.config_io, "write_startup") as write_startup, patch.object(
             tkinter.messagebox, "showerror"
         ) as showerror:
+            # write_startup は B（StartupIo）でクロスモジュール。set_startup は facade 経由で呼ぶため facade を patch。
             _config_set_io(self.app).set_startup_keymap_set()
             showerror.assert_called_once()
             write_startup.assert_not_called()  # 読込例外時は後続を実行しない
@@ -478,7 +484,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 self.app.paths, "resolve_keymap_set_path", return_value=existing
             ), patch.object(
                 self.app.config_service, "load_runtime_data_from_keymap_set_path", return_value={"loaded": True}
-            ) as load, patch.object(_startup_io(self.app), "apply_loaded_data_to_ui") as apply_ui, patch.object(
+            ) as load, patch.object(self.app.config_io, "apply_loaded_data_to_ui") as apply_ui, patch.object(
                 self.app.config_service, "new_empty_data"
             ) as new_empty:
                 _startup_io(self.app).load_startup_and_config()
@@ -494,7 +500,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         with patch.object(self.app.paths, "preferred_keymap_set_path", return_value="default.json"), patch.object(
             self.app.paths, "resolve_keymap_set_path", return_value=missing
         ), patch.object(self.app.config_service, "new_empty_data", return_value={"empty": True}), patch.object(
-            _startup_io(self.app), "apply_loaded_data_to_ui"
+            self.app.config_io, "apply_loaded_data_to_ui"
         ) as apply_ui:
             _startup_io(self.app).load_startup_and_config()
         self.assertEqual(self.app.data, {"empty": True})
@@ -514,7 +520,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 self.app.config_service, "load_runtime_data_from_keymap_set_path", side_effect=ValueError("corrupt")
             ), patch.object(
                 self.app.config_service, "new_empty_data", return_value={"empty": True}
-            ), patch.object(_startup_io(self.app), "apply_loaded_data_to_ui"):
+            ), patch.object(self.app.config_io, "apply_loaded_data_to_ui"):
                 _startup_io(self.app).load_startup_and_config()
             # 例外は握りつぶされ、空データにフォールバックする
             self.assertEqual(self.app.data, {"empty": True})
