@@ -64,8 +64,8 @@ verified:
 
 ## blockers
 - **task_01 未完了**（3 件 fail・修正方針は確定済）。
-- **codex-implementer が不安定**。ジョブは復旧したが `collaboration tool: wait` ハングの根本原因は
-  companion 側にあり再発しうる。再委任するならジョブログの監視をセットで行う。
+- **codex-implementer が不安定**。`collaboration tool: wait` ハングの根本原因は companion 側にあり再発しうる。
+  本格投入時はジョブログ停滞の監視（Monitor）をセットで。手順は下記 resume_hints の運用手順書参照。
 
 ## resume_hints
 - **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**
@@ -76,12 +76,9 @@ verified:
 - 特性テストの設計制約: **patch は `tkinter` モジュール属性に対して行う**（実装モジュール変数を patch すると
   task_03/04 の分割でテストが壊れる）/ 呼び出し口はテスト内アクセサ（`_dialog_io` / `_keymap_io` /
   `_trigger_set_io` / `_sequence_io`）に集約（task_05 の差し替えに備える）/ 保存 JSON はバイト列比較。
-- **【Codex 運用】ジョブ状態は `node "<plugin>/scripts/codex-companion.mjs" status --all` で確認する**。
-  **Bash からのみ `shared session` が見える**（PowerShell だと `direct startup` で「No job found」になる）。
-  `cancel` を Bash から打つ場合は `MSYS2_ARG_CONV_EXCL='*'` を付けないと `taskkill /PID` が壊れる。
-  state: `C:\Users\ikega\.claude\plugins\data\codex-inline\state\worktree-state-tracking-da2833-*\`
-- **【訂正】Codex は `.venv` python を実行できる**（今回のジョブログで `pwsh` 経由の実行が exit 0 を確認）。
-  ただし **Codex の申告を鵜呑みにせず verifier で再実行する運用は維持**（今回 19件全 ERROR を検出できた）。
+- **【Codex 運用の手順書】ジョブが詰まった / cancel が効かない / ハング検知 / state 手修復は
+  `instructions/common/rules_detail/codex_operations.md` を読む**（`.claude/rules/agent_selection.md` 冒頭にポインタ）。
+  **Codex 申告のテスト結果は信用せず必ず verifier で `.venv` 再実行**（今回 19件全 ERROR を検出）。
 - **【罠】state ファイル・`instructions/` 配下・code は必ず worktree のパスで編集する**。
   main リポジトリ側の絶対パスを編集すると commit から漏れる（phase 02・03 で再発）。
 - **【罠】`git grep` は追跡済みファイルしか検索しない**。新規（未追跡）ファイルの確認には**直接 `grep`** を使う。

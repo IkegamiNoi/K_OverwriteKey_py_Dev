@@ -66,15 +66,11 @@ smoke pass / production_untouched yes）と一致することを確認する。
 
 ## 注意事項・blockers
 - blockers: **task_01 未完了**（3 件 fail・修正方針は確定済）。
-- **codex-implementer が不安定**。ジョブは復旧したが `collaboration tool: wait` から復帰しないハングの
-  根本原因は companion 側にあり再発しうる。再委任するならジョブログの監視をセットで行う。
-- **【Codex 運用】ジョブ状態は `node "<plugin>/scripts/codex-companion.mjs" status --all` で確認**。
-  **Bash からのみ `shared session` が見える**（PowerShell だと `direct startup` で「No job found」）。
-  Bash から `cancel` する場合は `MSYS2_ARG_CONV_EXCL='*'` が必要（無いと `taskkill /PID` が MSYS パス変換で壊れる）。
-  PID 消滅済みのジョブは cancel できず記録が running のまま残り、**後続タスクが `phase: starting` で全て詰まる**
-  → state を手動修復する。state: `C:\Users\ikega\.claude\plugins\data\codex-inline\state\worktree-state-tracking-da2833-*\`
-- **【訂正】Codex は `.venv` python を実行できる**（ジョブログで `pwsh` 経由の実行が exit 0 を確認）。
-  ただし **Codex 申告のテスト結果は信用せず必ず verifier で再実行**（今回 19件全 ERROR を検出できた）。
+- **codex-implementer が不安定**。`collaboration tool: wait` から復帰しないハングの根本原因は
+  companion 側にあり再発しうる。**Codex を本格投入するタスクではジョブログ停滞の監視（Monitor）をセットで**。
+- **【Codex 運用の手順書】ジョブが詰まった / cancel が効かない / ハング検知 / state 手修復は
+  `instructions/common/rules_detail/codex_operations.md` を読む**（要点は `.claude/rules/agent_selection.md`
+  冒頭のポインタ）。**Codex 申告のテスト結果は信用せず必ず verifier で `.venv` 再実行**（今回 19件全 ERROR を検出）。
 - **【罠・再発済】worktree と main は別コピー**。`.claude_data/` だけでなく **`instructions/` や code も**、
   main リポジトリ側の絶対パス（パスに `.claude\worktrees\<name>\` を含まない）を編集すると worktree に反映されず commit から漏れる。
   Read/Grep が main 側パスを返すことがあるため、**編集は必ず worktree ルート配下のパス**で行う。

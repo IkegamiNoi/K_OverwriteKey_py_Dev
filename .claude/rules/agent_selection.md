@@ -4,6 +4,12 @@
 実装は Codex を既定とし、Claude 系エージェントはフォールバックとする。
 （非 Codex 環境向け構成への切り替えは `instructions/agent_mode/switch_agent_mode.py`）
 
+> **Codex CLI ランタイム（companion）の操作**（ジョブが詰まった / cancel が効かない /
+> ハングを検知したい / state を手修復したい）は `instructions/common/rules_detail/codex_operations.md`
+> を参照する（必要時のみ）。要点: ①Codex の自己申告を信じず必ず verifier で `.venv` 再実行
+> ②ハング検知はログ停滞で見る（`wait` キーワードでは判定不可）③Bash から cancel するときは
+> `MSYS_NO_PATHCONV=1` をその一発だけ前置き ④PID 消滅ジョブは state 手修復。
+
 ---
 
 ## ■ 実装（コードを書く作業）
