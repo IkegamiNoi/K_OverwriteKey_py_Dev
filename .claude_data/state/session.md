@@ -4,19 +4,28 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-26T12:00:00
-phase: instructions/phase/04_config_io_controller_split（**task_01〜06 完了＝フェーズ完了**。次は phase 05 未確定）
+last_updated: 2026-07-27T12:00:00
+phase: **フェーズ間（phase 04 完了・phase 05 未起票）**。保存系リデザインの暫定仕様 04〜07 をユーザー確定済（未実装）
 last_commit_location: claude/task-06-proceed-eb9f1b ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 04（config_io_controller 分割）task_06（正本反映）まで完了＝フェーズ完了。実機目視 OK 済・全緑・reviewer 採用・refactor_check 不要。次フェーズ 05 未確定（有力候補 idea_05）**。
+focus: **保存系リデザインの暫定仕様 4 本（04=α/05=β/06=γ/07=プリセット）を敵対的レビュー反映・ユーザー確定まで完了（コミット dfa8f95）。次は Phase α（暫定04）を `/phase_start` で phase 05 として起票し実装着手**。
 mode: completed
 
 ## last_action
-ts: 2026-07-26T12:00:00
+ts: 2026-07-27T12:00:00
 who: main
 summary: |
-  【phase 04 task_06（正本反映・記録）完了＝フェーズ完了】文書作業のみ・コード変更なし。
+  【保存系リデザインの暫定仕様 04〜07 を起票・敵対的レビュー・ユーザー確定（コミット dfa8f95）】
+  - ユーザー要望（保存系統の改善・点1〜5）を 4 フェーズへ分割し設計討議 → 暫定仕様先行モードで起票:
+    04 α（新規=空パス/保存先ディレクトリ化/prompt_if_missing 撤去・v0.3）/ 05 β（子ファイル保存の確認ダイアログ+
+    参照元記録・idea_05 内包・v0.2）/ 06 γ（停止/トグルキーの config.json 既定化+個別指定・v0.2）/
+    07（プリセットの config.json グローバル化・v0.2）。
+  - 各仕様に codex-adversarial-reviewer を実施（04=指摘4 / 05=critical1+high3 / 06=6 / 07=4）→ 全指摘を精査し
+    ユーザー確定のうえ v0.2/v0.3 へ反映。idea_07（参照元の掃除機能）/ idea_08（keymap_set 個別プリセット）を起票。
+  - フェーズ番号対応（予定）: **Phase α=phase05/暫定04 / β=phase06/暫定05 / γ=phase07/暫定06 / プリセット=phase08/暫定07**。
+  【（前タスク: phase 04 task_06 正本反映・完了。詳細は decisions_archive/04）】
+  - config_io_controller.py（598行）を config_io/ 6クラスへ分割完了・codebase_map 反映・refactor_check 不要。
   - `codebase_map.md`: presentation ツリー図に `controllers/config_io/`（6ファイル）追記 / コントローラ節の
     ConfigIoController 行を6クラス（KeymapSetIo/StartupIo/IoDialogs/KeymapFileIo/TriggerSetFileIo/SequenceFileIo）
     + App 公開名へ差し替え / `config_io.write_startup`→`startup_io.write_startup` / `app.config_io`例→`app.keymap_set_io`。
@@ -28,33 +37,36 @@ summary: |
   - **検証**: verifier=全緑（compile clean / tests 86 / tests_ui 74 / smoke pass / 旧ファサード参照0件）。
     **レビュー**: reviewer=完了可（採用・指摘なし・文書と実構成が完全一致）。
 result_files:
-  - instructions/common/codebase_map.md（ツリー図 + コントローラ節を6クラス構成へ）
-  - instructions/history/03_config_io_controller_split.md（凍結・正本反映済ヘッダ）
-  - .claude_data/state/decisions_archive/04_config_io_controller_split.md（新規・判断集約 + refactor_check判定）
-  - .claude_data/state/decisions.md（アーカイブ索引に04追加 + 詳細セクション削除）
-  - instructions/phase/current.md（04完了・次採番05/暫定04）
-  - instructions/phase/04_config_io_controller_split/tasks/task_06_finalize_records.md（新規起票）
+  - instructions/history/04_keymap_set_new_and_default_dir.md（新規・v0.3 確定）
+  - instructions/history/05_child_file_save_dialog.md（新規・v0.2 確定）
+  - instructions/history/06_hook_keys_global_default.md（新規・v0.2 確定）
+  - instructions/history/07_hotkey_presets_global.md（新規・v0.2 確定）
+  - instructions/backlog/idea_07_reference_link_cleanup.md / idea_08_per_keymap_set_preset_ownership.md（新規）
+  - instructions/backlog/INDEX.md（idea_07/08 追加）
 verified:
-  compile: clean
-  test(tests): pass 86
-  test(tests_ui): pass 74          # 19 + 35 + 既存20
-  smoke: pass
-  refactor_check: 不要
-  production_scope: コード変更なし（文書のみ）
+  spec_review: codex-adversarial-reviewer 実施済（全4本）・指摘反映・ユーザー確定
+  commit: dfa8f95
+  production_scope: 文書のみ（実装は未着手）
 
 ## next_action
-- **phase 04 は完了（task_01〜06・実機目視 OK・全緑・reviewer 採用・refactor_check 不要）**。残りは `/task_commit` で
-  task_06 の文書変更をコミットするのみ（standing 許可により実行済／実行予定）。
-- **次フェーズ（phase 05）は未確定**。着手時はユーザーに方針確認し `/phase_start` で起票する。有力候補は
-  **[idea_05](../../instructions/backlog/idea_05_trigger_set_source_path_inconsistency.md)**（trigger_set の source_path 不整合修正。
-  phase 04 完了により着手条件を満たした・**挙動変更を伴うため暫定仕様先行モード＝spec_change_workflow の仕様変更フロー**）。
-  他候補: idea_03（アクション hotkey 保存正規化・優先度低）/ idea_04（FontSettingsController・保留）/ idea_06（D/E/F 共通化・保留）。
+- **保存系リデザインの暫定仕様 4 本は確定・コミット済（dfa8f95）**。次は **Phase α（暫定 04）を `/phase_start` で
+  phase 05 として起票し、実装に着手**する（順序: α→β→γ→プリセット。α は独立・小さいので先行）。
+  - Phase α のタスク: new_config の空パス化 / save_keymap_set の空パス→別名分岐 / import_config の無条件クリア /
+    起動時ディレクトリ骨格作成 / 別名保存 initialfile=`keymap_set.json` / prompt_if_missing 撤去（新規出力停止・残置許容）。
+  - **α は挙動変更フェーズ**（挙動不変ではない）。特性テストで新挙動を固定する（暫定 04 §8）。
+- 実装は `.claude/rules/agent_selection.md` の既定（codex-implementer）へ委任。各タスクで reviewer 必須。
+- β/γ/プリセットは α 完了後に順次 `/phase_start`（暫定 05/06/07 が設計の正）。
+- idea 位置づけ更新（β 起票時）: idea_05→β 内包・idea_06→β 達成見込みを INDEX へ反映。
 
 ## blockers
-- なし（phase 04 完了）。
+- なし。次は Phase α の `/phase_start`（ユーザー着手指示待ち）。
 
 ## resume_hints
 - **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**
+- **保存系リデザインの設計の正は暫定仕様 04〜07（すべてユーザー確定・v0.2/v0.3）**。番号対応は
+  Phase α=phase05/暫定04 / β=phase06/暫定05 / γ=phase07/暫定06 / プリセット=phase08/暫定07。
+  討議の全経緯（点1〜5・敵対レビュー4本の指摘と対応）は各暫定仕様の版履歴と §確定事項に集約済。
+  依存: α→β の順（β は α のディレクトリ化前提・idea_05 内包）。γ は独立。プリセット07 は β とカスケード除外で協調。
 - phase 04 は完了・アーカイブ済（判断は `decisions_archive/04_config_io_controller_split.md` が正）。config_io は
   `controllers/config_io/` の6クラスへ分割済（App が `app.keymap_set_io` 等で直接公開・`config_io` 名は消滅）。
 - **次候補 idea_05（E=trigger_set の source_path 不整合修正）は挙動変更を伴う**。着手時は spec_change_workflow の
