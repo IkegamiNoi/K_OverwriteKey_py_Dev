@@ -6,23 +6,15 @@
 
 ## 現在の参照先
 
-- **アクティブ: [04_config_io_controller_split](04_config_io_controller_split/phase.md)**（2026-07-23 起票）。
-  `config_io_controller.py`（598 行）を `controllers/config_io/` 配下の 6 モジュールへ分割する（**挙動不変**）。
-  - 主入力（設計の正）: [暫定仕様 03](../history/03_config_io_controller_split.md)（v0.4・ユーザー確定済）
-  - 番号対応: phase 04 / 暫定 03 / decisions 04
-  - 起票元: ユーザー要望（2026-07-23）。下記「別タスク化候補」の 598 行の項目
-  - 派生 idea: [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)（本フェーズ完了後に着手）/
-    [idea_06](../backlog/idea_06_individual_json_io_unification.md)（保留）
-  - 進捗: **task_01〜05 完了**（2026-07-26・挙動不変・reviewer 採用・codex-reviewer clean）。
-    task_03=D/E/F 分割 / task_04=A/B/C 分割 / **task_05=ファサード削除 + 呼び出し元30箇所差し替え（案B・config_io 名消滅）**。
-    分割は全完了。特性テストは task ごとに境界 mock / アクセサ切替で調整（decisions 04）。
-    残るは **task_06（正本反映）のみ。その前に実機目視のユーザー必須ゲート**（次アクション）。
-- 直前の完了フェーズ: `03_startup_font_settings_cleanup`（2026-07-20 完了）。起動設定/フォント3メソッドを整理し
+- **アクティブ: なし**（`04_config_io_controller_split` 完了 = 2026-07-26）。**次フェーズ `05_<topic>` は未確定**。
+  次フェーズ着手時はユーザーに方針確認し、`/phase_start` で起票してから本節を差し替える。
+- 直前の完了フェーズ: `04_config_io_controller_split`（2026-07-26 完了）。`config_io_controller.py`（598 行）を
+  `controllers/config_io/` 配下の 6 クラスへ分割し（案B・呼び出し元30箇所差し替え・`config_io` 名消滅・互換レイヤーなし）、
+  挙動不変で保守性を回復。要約・判断は
+  [decisions_archive/04_config_io_controller_split.md](../../.claude_data/state/decisions_archive/04_config_io_controller_split.md) が正。
+- 一つ前の完了フェーズ: `03_startup_font_settings_cleanup`（2026-07-20 完了）。起動設定/フォント3メソッドを整理し
   4 負債（責務混在・controller→App private 逆参照・初期化順序制約・ui_vars 直読み）を挙動不変で解消。
   要約・判断は [decisions_archive/03_startup_font_settings_cleanup.md](../../.claude_data/state/decisions_archive/03_startup_font_settings_cleanup.md) が正。
-- 一つ前の完了フェーズ: `02_hotkey_validation`（2026-07-18 完了）。hotkey 検証を presentation →
-  domain / application へ層移設し**層の逆転を解消**（挙動不変）。
-  要約・判断は [decisions_archive/02_hotkey_validation.md](../../.claude_data/state/decisions_archive/02_hotkey_validation.md) が正。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
   過去のリファクタ計画・提案書（01〜04）は `instructions/modified_proposal/`（次採番 05）。
   計画04 は完了済（W0〜W7・手動確認まで完了）。
@@ -43,10 +35,10 @@
 2. ~~[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)~~ → **完了**（`02_hotkey_validation`・2026-07-18）
 3. ~~[idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)~~ → **完了**（`03_startup_font_settings_cleanup`・2026-07-20）
 
-**計画04 由来の3フェーズはすべて完了**。現在は phase 04（計画04 由来ではない・別タスク化候補からの着手）。
-phase 04 完了後の候補:
+**計画04 由来の3フェーズはすべて完了**。`04_config_io_controller_split` も完了（2026-07-26・計画04 由来ではない）。
+次フェーズ（`05_<topic>`）候補:
 - [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)（trigger_set の source_path 不整合。
-  **phase 04 の完了が着手条件**・挙動変更を伴うため仕様変更フロー）。
+  **phase 04 完了により着手条件を満たした**・挙動変更を伴うため仕様変更フロー）。**有力候補**。
 - [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の保存時正規化/検証の統一。
   phase 02 task_04 から分離・優先度低・要設計）。
 - [idea_04](../backlog/idea_04_font_settings_controller.md)（FontSettingsController 新設 = phase 03 の案B。
@@ -74,8 +66,8 @@ phase 04 完了後の候補:
   `/refactor_check` の再判定を待たず独立した設計タスクとした（M1・M3 非該当。根拠は
   [暫定仕様 03](../history/03_config_io_controller_split.md)「着手根拠」）。
 - [idea_06](../backlog/idea_06_individual_json_io_unification.md)（個別 JSON IO 3 種の共通化）は
-  **保留**。着手条件は phase 04 完了 + [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)
-  の解消 + 共通化の実需（3 条件すべて）。
+  **保留**。着手条件は phase 04 完了（**充足・2026-07-26**）+ [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)
+  の解消 + 共通化の実需（残り 2 条件が未充足）。
 
 ## 作業開始時の指示
 

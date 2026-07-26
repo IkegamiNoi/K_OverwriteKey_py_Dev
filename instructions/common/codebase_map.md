@@ -41,7 +41,13 @@ keyseq/presentation/
     app.py                     # Tk ルート・生成と配線（組み立て）・View切替・調整役・dialogs向け契約
     ui_vars.py                 # UiVars: View / コントローラ間で共有する Tk 変数ホルダー
     controllers/               # 種類別フォルダ
-        config_io_controller.py
+        config_io/             # 構成セット・個別JSONの保存/読込を6クラスへ分割（所有者フォルダ・計画04）
+            keymap_set_io.py   # KeymapSetIo: 構成セット（keymap_set）+ 専用ヘルパ
+            startup_io.py      # StartupIo: 起動設定（startup.json）read/write
+            io_dialogs.py      # IoDialogs: 共有ダイアログヘルパ（保存パス衝突 / ラベル連動）
+            keymap_file_io.py  # KeymapFileIo: keymap 個別 JSON
+            trigger_set_file_io.py  # TriggerSetFileIo: trigger_set 個別 JSON
+            sequence_file_io.py     # SequenceFileIo: sequence 個別 JSON
         dirty_state.py
         hook_controller.py
         key_capture.py
@@ -95,7 +101,7 @@ keyseq/presentation/
 - 分離JSONの現在の構成セットパス（keymap_set_path）・startup 設定を保持
   - 起動設定の**読込ロジックは持たず** `startup_settings.load_startup_settings`（presentation・`config_service` 直依存）へ委譲し、
     UI 通知（`messagebox`）だけを `on_read_error` ラムダで注入する（`__init__` 内）。フォント差分の正規化は `theme.coerce_font_delta`
-- フォントサイズ設定（`_ui_font_delta_pt` を App 保持）: `_apply_font_delta`（状態更新・`apply_global_theme`・`config_io.write_startup` 永続化）と
+- フォントサイズ設定（`_ui_font_delta_pt` を App 保持）: `_apply_font_delta`（状態更新・`apply_global_theme`・`startup_io.write_startup` 永続化）と
   `set_ui_font_delta`（メニュー再構築 `build_menu_bar` のみ + フラッシュ通知）に分割。差分なしは早期 return（`bind_menu_shortcuts` は呼ばない）
 
 ### UiVars（ui_vars.py）
@@ -111,14 +117,20 @@ keyseq/presentation/
 ### コントローラ（controllers/）
 
 計画02で App の責務を以下のコントローラ／ヘルパへ分割し、計画03で **views / dialogs / keyboard_window は
-App の委譲メソッドを介さず、コントローラを `app.<名前>`（`app.config_io` / `app.hook` / `app.layout` /
+App の委譲メソッドを介さず、コントローラを `app.<名前>`（`app.keymap_set_io` / `app.hook` / `app.layout` /
 `app.keymap_panel` / `app.trigger_panel` / `app.dirty_tracker` / `app.stop_key_capture` /
 `app.toggle_key_capture` / `app.paths`）経由で直接参照する**ようにした（App から委譲ボイラープレートを削除）:
 
 - ConfigPaths（config_paths.py ※presentation 直下）: 設定ファイルの配置規約とパス解決
 - DirtyStateTracker（controllers/dirty_state.py）: 未保存状態の一元管理
 - SingleKeyCaptureController（controllers/key_capture.py）: 停止キー/トグルキーのキャプチャ
-- ConfigIoController（controllers/config_io_controller.py）: 構成セット・個別JSONの保存/読込フロー
+- config_io/（controllers/config_io/）: 構成セット・個別JSONの保存/読込フローを**6クラスへ分割**（計画04で `config_io_controller.py` を廃止）。App が各クラスを直接公開し、`app.<名前>.<method>` で参照する:
+  - KeymapSetIo（keymap_set_io.py = `app.keymap_set_io`）: 構成セット（keymap_set）の new/save/save_as/load/import/export/restore + 起動構成セット指定・読込データのUI適用
+  - StartupIo（startup_io.py = `app.startup_io`）: 起動設定（startup.json）の read/write
+  - IoDialogs（io_dialogs.py = `app.io_dialogs`）: 共有ダイアログヘルパ（保存パス衝突解決 / ラベル連動ファイル名）
+  - KeymapFileIo（keymap_file_io.py = `app.keymap_io`）: keymap 個別 JSON の保存/読込
+  - TriggerSetFileIo（trigger_set_file_io.py = `app.trigger_set_io`）: trigger_set 個別 JSON の保存/読込
+  - SequenceFileIo（sequence_file_io.py = `app.sequence_io`）: sequence 個別 JSON の保存/読込
 - LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理
 - KeymapPanelController（controllers/keymap_panel_controller.py）: キーマップ管理パネル
 - TriggerPanelController（controllers/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示

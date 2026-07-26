@@ -13,6 +13,7 @@
 | 01_view_ref_cleanup | [01_view_ref_cleanup.md](decisions_archive/01_view_ref_cleanup.md) | View 参照の後始末（2026-07-17 完了）。status_bar 生やしのローカル変数化 / trigger_list alias 削除。**action_list alias は据え置き**（production が使う生きたパスのため。取り違え注意）。refactor_check: 不要 |
 | 02_hotkey_validation | [02_hotkey_validation.md](decisions_archive/02_hotkey_validation.md) | hotkey 検証を presentation → domain/application へ層移設（2026-07-18 完了・挙動不変）。設計案 C（domain=文法検査 / application=HotkeyService）/ 層の逆転を解消 / 安全網の特性テスト。**正本昇格は不要**（spec_detail に記述なし＝担当層は codebase_map.md が正）。実機目視で判明したアクション hotkey の保存非対称は **idea_03 へ分離**し §6-11 を補正。refactor_check: 不要 |
 | 03_startup_font_settings_cleanup | [03_startup_font_settings_cleanup.md](decisions_archive/03_startup_font_settings_cleanup.md) | 起動設定/フォント3メソッドの整理（2026-07-20 完了・挙動不変）。coerce→`theme.py`純関数 / 起動設定ローダ→新規`startup_settings.py`（config_service直依存・未知キー全保持・on_read_error注入） / `set_ui_font_delta`案A分割 / UiVars引数化。**案B（FontSettingsController）は将来idea化**。**正本昇格は不要**（spec_detailに記述なし＝担当層はcodebase_map.mdが正）。refactor_check: 不要 |
+| 04_config_io_controller_split | [04_config_io_controller_split.md](decisions_archive/04_config_io_controller_split.md) | `config_io_controller.py`（598行）を `controllers/config_io/` の**6クラスへ分割**（2026-07-26 完了・挙動不変）。§4=案B（呼び出し元30箇所差し替え・`config_io_controller.py`削除・**config_io名消滅**・互換レイヤーなし）/ §5=案1（共通化しない）/ §1「既存の不整合」（E の source_path 分断）は**直さず移設**→idea_05。特性テストは task ごとに境界mock / アクセサ切替で調整（**アサーション非緩和**）。**正本昇格は不要**（spec_detailに config_io 記述なし＝担当層はcodebase_map.mdが正）。refactor_check: 不要（M3 の同型3ブロックは既存重複の移設で idea_06〔D/E/F共通化・保留〕がカバー済＝既知。他は非該当） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -92,55 +93,6 @@
   2インスタンスは設計上の意図的分離）。M5（申し送りコメント）も新規追加0件。
 - なお本フェーズは挙動不変リファクタであり、`/refactor_check` の「挙動不変が前提のフェーズは
   スキップしてよい」に該当したが、ユーザー判断で実行した。
-
----
-
-## 2026-07-24〜 (phase 04: config_io_controller 分割・挙動不変)
-
-規範: 暫定仕様 `instructions/history/03_config_io_controller_split.md`（v0.4）。番号対応: phase 04 / 暫定 03 / decisions 04。
-
-### task_03（D/E/F 分割）: 特性テストの mock 境界の扱い — **修正して採用**（ユーザー確定 2026-07-24）
-- 分割で、task_01 の特性テストが「内部メソッド `save_X_to_path` を accessor（`app.config_io`）経由で mock」
-  していたため mock が外れ、実メソッドが走って未 patch の `messagebox` でハングした（安全網が挙動変化を検知）。
-  **production は挙動不変**（内部呼び出し `self.save_X_to_path` が新オブジェクトに束縛されただけ）。
-- 「特性テストを本体無変更で pass」は**原理的に不可能**と判明（`ask_link_label`=C ヘルパと `save_X_to_path`=D
-  メソッドが別オブジェクトへ分割され、1 アクセサで両方 patch できない）。
-- 採用: **境界 mock へ書き換え（Option A・ユーザー選択）**。内部メソッド mock →
-  境界（`config_service.save_X_file` / `messagebox` / refresh）mock へ移行。**assert する挙動（保存パス・
-  ダイアログ文言・E のラベル連動なし）は保持**（reviewer 確認）。
-- **codex-reviewer の P2「特性テストの不変性が崩れている」= 上記 Option A の再指摘。ユーザー再確認の上
-  受諾**（2026-07-24）。Codex の代替案（分割モジュールの内部呼び出しを wrapper 経由にして元テストを無変更で通す）は
-  循環委譲・task_05 での破綻・非 verbatim のため却下。
-- レビュー: reviewer=完了可（採用）/ codex-reviewer=P2 のみ（裁定済）。verifier: 新規 19+35 pass / tests 86 /
-  tests_ui 74 / smoke / application・domain 無変更。
-
-### task_04（A/B/C 分割）: 特性テストの調整 — **アクセサ切替を採用**（ユーザー確定 2026-07-24）
-- A/B/C を KeymapSetIo / StartupIo / IoDialogs へ分割。ConfigIoController は 114 行の完全ファサード
-  （全メソッド委譲・task_05 で削除予定）。クロスモジュール呼び出しは 2 箇所のみ facade 経由
-  （set_startup_keymap_set→write_startup / load_startup_and_config→apply_loaded_data_to_ui）。
-- task_02 の特性テストが内部 A/B メソッドを accessor 経由 mock していたため分割で外れた。
-  **task_03 の Option A（境界 mock）を task_02 に一律適用すると、apply_loaded_data_to_ui 周りで
-  set_dirty の呼び出し回数アサーションを緩める必要が生じる**（フェーズの「テストを緩めない」方針と衝突）。
-- 採用: **アクセサ切替**（`_config_set_io`→`app.config_io._keymap_set_io` / `_startup_io`→`_startup_io`）。
-  同一クラスタ内 mock はそのまま intercept され**アサーションを一切緩めず 35 件 pass**。クロスモジュール 2 箇所
-  （write_startup / apply）のみ facade patch へ。task_05 のアクセサ切替を前倒しする形。
-- **task_03 で Option B を見送った理由（C と D が別クラスタで 1 アクセサ不可）は task_04 の A/B には非該当**
-  （同一クラスタ内で完結するため成立）。task ごとに最適な手段を選ぶ（境界 mock / アクセサ切替）。
-- レビュー: reviewer=完了可（採用・アサーション非緩和を確認）/ codex-reviewer=指摘なし（clean）。
-  verifier: 19+35 pass / tests 86 / tests_ui 74 / smoke / application・domain 無変更。
-
-### task_05（呼び出し元差し替え + ファサード削除）: **採用**（2026-07-25/26）
-- 案B のとおり `config_io_controller.py` を削除し、App が 6 分割オブジェクトを直接公開
-  （keymap_set_io / startup_io / io_dialogs / keymap_io / trigger_set_io / sequence_io）。
-  外部 30 箇所 + 内部クロスモジュール 9 箇所 + app.py 内部 7 箇所を「メソッド→所有オブジェクト」対応表どおり
-  機械的に差し替え。**`config_io` 名は完全消滅**（互換エイリアスなし）。
-- テスト 3 ファイルのアクセサを owner オブジェクトへ最終調整（`_dialog_io`→io_dialogs / `_keymap_io`→keymap_io /
-  `_trigger_set_io`→trigger_set_io / `_sequence_io`→sequence_io / `_config_set_io`→keymap_set_io /
-  `_startup_io`→startup_io）。cross-cluster patch も owner へ（trigger_set の confirm→keymap_set_io /
-  write_startup→startup_io / apply→keymap_set_io）。**アサーション非緩和**。
-- レビュー: reviewer=完了可（採用）/ codex-reviewer=指摘なし（clean）。verifier: 全緑・config_io 消滅・
-  controller 削除・application/domain/main.py 無変更。Codex 実装・review とも**ハングなし**（Monitor 有効）。
-- **残: task_06（正本反映）。その前に実機目視のユーザー必須ゲート**。
 
 ---
 

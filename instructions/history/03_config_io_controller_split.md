@@ -1,7 +1,11 @@
 # 暫定仕様 03: ConfigIoController の責務分割（config_io_controller_split）
 
-> 状態: **未凍結・v0.4・主入力・ユーザー確定済**。本書がこのフェーズの確定設計
-> （フェーズ中は正本を直接改訂しない）。
+> 状態: **凍結・v0.4・正本反映済（2026-07-26・phase 04 task_06）**。本書はこのフェーズの確定設計であり、
+> 以後は編集しない（履歴として凍結）。正本反映の結果は下記「§8 正本反映」および
+> `.claude_data/state/decisions_archive/04_config_io_controller_split.md` を参照。
+> **spec_detail への昇格は不要**（`config_io` の言及が spec_detail に 0 件・再 grep 済。担当層は
+> `architecture.md §3.5` により `codebase_map.md` が正）。`codebase_map.md` の「コントローラ（controllers/）」節と
+> ツリー図を分割後の6クラス構成へ更新済。
 > 版履歴: v0.1 起票（2026-07-23）→ **v0.2** reviewer 指摘 2 件を反映（§4 の恒久ファサード案を
 > 除外し 3 案へ再編 / §7 条件 2 に `load_startup_and_config` の 3 分岐を追加）→
 > **v0.3** 敵対的レビュー指摘 4 件を反映（§1 に「既存の不整合」節を追加 / §1 の着手根拠から
