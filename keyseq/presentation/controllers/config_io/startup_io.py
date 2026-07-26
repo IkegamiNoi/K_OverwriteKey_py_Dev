@@ -26,13 +26,13 @@ class StartupIo:
                         config_root=self._app.config_root,
                     )
                     self._app.keymap_set_path = resolved_keymap_set_path
-                    self._app.config_io.apply_loaded_data_to_ui()
+                    self._app.keymap_set_io.apply_loaded_data_to_ui()
                     return
                 except Exception:
                     pass
 
         self._app.data = self._app.config_service.new_empty_data()
-        self._app.config_io.apply_loaded_data_to_ui()
+        self._app.keymap_set_io.apply_loaded_data_to_ui()
 
     def write_startup(self, data: dict[str, any]):
         base = {

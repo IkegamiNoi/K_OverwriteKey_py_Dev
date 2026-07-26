@@ -59,7 +59,7 @@ class StartupFontCharacterizationTest(unittest.TestCase):
         }
         self.app._startup_settings = loaded_startup
         with patch.object(self.app.config_service, "save_startup") as save_startup:
-            self.app.config_io.write_startup({"ui_font_delta_pt": 2})
+            self.app.startup_io.write_startup({"ui_font_delta_pt": 2})
 
         save_startup.assert_called_once()
         self.assertEqual(
@@ -94,7 +94,7 @@ class StartupFontCharacterizationTest(unittest.TestCase):
         self.app.ui_vars.ui_font_delta_var.set(0)
         self.app.ui_vars.flash_message_var.set("unchanged")
 
-        with patch.object(self.app.config_io, "write_startup") as write_startup, patch.object(
+        with patch.object(self.app.startup_io, "write_startup") as write_startup, patch.object(
             app_module,
             "apply_global_theme",
         ) as apply_global_theme, patch.object(app_module, "build_menu_bar") as build_menu_bar, patch.object(

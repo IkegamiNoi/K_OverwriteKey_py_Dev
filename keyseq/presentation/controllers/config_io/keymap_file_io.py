@@ -27,7 +27,7 @@ class KeymapFileIo:
         if not source_path:
             label = str(keymap.get("label") or keymap.get("id") or "keymap").strip()
             suggested = self._app.paths.suggest_json_path(self._app.paths.preferred_keymaps_dir(), label, "keymap")
-            source_path = self._app.config_io.choose_save_path_with_collision(title="キーマップを保存", suggested_path=suggested)
+            source_path = self._app.io_dialogs.choose_save_path_with_collision(title="キーマップを保存", suggested_path=suggested)
             if not source_path:
                 return False
         return self.save_keymap_to_path(index, keymap, source_path)
@@ -53,7 +53,7 @@ class KeymapFileIo:
         if not path:
             return False
         try:
-            if self._app.config_io.ask_link_label_to_filename(title="キーマップ名の連動", path=path):
+            if self._app.io_dialogs.ask_link_label_to_filename(title="キーマップ名の連動", path=path):
                 keymap["label"] = self._app.paths.filename_stem(path)
         except RuntimeError:
             return False

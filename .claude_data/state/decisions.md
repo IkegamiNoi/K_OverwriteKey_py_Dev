@@ -129,6 +129,19 @@
 - レビュー: reviewer=完了可（採用・アサーション非緩和を確認）/ codex-reviewer=指摘なし（clean）。
   verifier: 19+35 pass / tests 86 / tests_ui 74 / smoke / application・domain 無変更。
 
+### task_05（呼び出し元差し替え + ファサード削除）: **採用**（2026-07-25/26）
+- 案B のとおり `config_io_controller.py` を削除し、App が 6 分割オブジェクトを直接公開
+  （keymap_set_io / startup_io / io_dialogs / keymap_io / trigger_set_io / sequence_io）。
+  外部 30 箇所 + 内部クロスモジュール 9 箇所 + app.py 内部 7 箇所を「メソッド→所有オブジェクト」対応表どおり
+  機械的に差し替え。**`config_io` 名は完全消滅**（互換エイリアスなし）。
+- テスト 3 ファイルのアクセサを owner オブジェクトへ最終調整（`_dialog_io`→io_dialogs / `_keymap_io`→keymap_io /
+  `_trigger_set_io`→trigger_set_io / `_sequence_io`→sequence_io / `_config_set_io`→keymap_set_io /
+  `_startup_io`→startup_io）。cross-cluster patch も owner へ（trigger_set の confirm→keymap_set_io /
+  write_startup→startup_io / apply→keymap_set_io）。**アサーション非緩和**。
+- レビュー: reviewer=完了可（採用）/ codex-reviewer=指摘なし（clean）。verifier: 全緑・config_io 消滅・
+  controller 削除・application/domain/main.py 無変更。Codex 実装・review とも**ハングなし**（Monitor 有効）。
+- **残: task_06（正本反映）。その前に実機目視のユーザー必須ゲート**。
+
 ---
 
 ## 運用メモ

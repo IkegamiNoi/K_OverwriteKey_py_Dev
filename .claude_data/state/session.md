@@ -4,37 +4,39 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-24T04:00:00
-phase: instructions/phase/04_config_io_controller_split（task_01〜04 完了・task_05 未着手）
+last_updated: 2026-07-26T00:00:00
+phase: instructions/phase/04_config_io_controller_split（task_01〜05 完了・task_06=正本反映のみ残・**実機目視ゲート待ち**）
 last_commit_location: claude/proposal-b-inquiry-7db89e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 04 task_04（A+A'/B/C を config_io/ 配下3モジュールへ分割・ConfigIoController を114行の完全ファサード化）完了（挙動不変・reviewer 採用・codex-reviewer clean）。次は task_05（呼び出し元30箇所差し替え + 委譲層削除）**。
+focus: **phase 04 task_05（ConfigIo/ファサード削除 + 呼び出し元30箇所を6分割オブジェクトへ差し替え・案B）完了（挙動不変・config_io 名消滅・reviewer 採用・codex-reviewer clean）。分割は全完了。残るは task_06（正本反映）のみで、その前に実機目視のユーザー必須ゲート**。
 mode: completed
 
 ## last_action
-ts: 2026-07-24T04:00:00
+ts: 2026-07-26T00:00:00
 who: main
 summary: |
-  【phase 04 task_04（A+A'/B/C 分割）完了】
+  【phase 04 task_05（呼び出し元差し替え + ファサード削除）完了】
+  - 案B: `config_io_controller.py` を削除し、App が6分割オブジェクトを直接公開
+    （keymap_set_io / startup_io / io_dialogs / keymap_io / trigger_set_io / sequence_io・app.py:142-147）。
+  - 差し替え: 外部30箇所（menu_bar 8 / file_frame 4 / keymap/sequence/trigger_box 各3 / layout 1 / app.py 7）+
+    内部クロスモジュール9箇所（self._app.config_io.X → self._app.<owner>.X）。**config_io 名は完全消滅**。
+  - テスト3ファイルのアクセサを owner へ最終調整（メイン担当）。cross-cluster patch も owner へ
+    （trigger_set の confirm→keymap_set_io / write_startup→startup_io / apply→keymap_set_io）。アサーション非緩和。
+  - Codex 実装・codex-reviewer とも**ハングなし**（Monitor が両ジョブとも JOB_ENDED を正検知）。
+  - **レビュー**: reviewer=完了可（採用・参考指摘1件=古いコメント→修正済）/ codex-reviewer=**指摘なし（clean）**。
+  【（以下は前タスク: task_04 A+A'/B/C 分割・完了）】
   - A（構成セット）+A'（choose_split_base_dir）→ `keymap_set_io.py`（KeymapSetIo）/ B（起動設定）→ `startup_io.py`
     （StartupIo）/ C（共有ダイアログ）→ `io_dialogs.py`（IoDialogs）へ**verbatim 移設**。
-  - **ConfigIoController は 387→114 行の完全ファサード**（全メソッドが委譲・task_05 で削除予定）。
-    クロスモジュール呼び出しは 2 箇所のみ facade 経由（set_startup_keymap_set→write_startup /
-    load_startup_and_config→apply_loaded_data_to_ui）。それ以外は同一クラスタ内 self.。
-  - **D/E/F（task_03 分割済）は無変更で動作**（facade 経由で C/A ヘルパを解決）。E の不整合も無変更。
-  - **task_02 テストの調整はアクセサ切替を採用**（ユーザー確定・Option A の境界 mock だと apply 周りで
-    set_dirty 回数アサーションを緩める必要が出るため）。`_config_set_io`→`app.config_io._keymap_set_io` /
-    `_startup_io`→`_startup_io` へ向け、クロスモジュール2箇所（write_startup/apply）のみ facade patch へ。
-    **アサーション非緩和で 35 件 pass**（詳細は decisions 04）。
-  - Codex 実装・codex-reviewer とも**ハングなし**（Monitor が両ジョブとも JOB_ENDED を正検知）。
-  - **レビュー**: reviewer=完了可（採用・アサーション非緩和を git diff で確認）/ codex-reviewer=**指摘なし（clean）**。
+    ConfigIoController を114行の完全ファサード化。テスト調整はアクセサ切替（decisions 04）。reviewer 採用/codex-reviewer clean。
+    ※詳細は decisions 04 と task_05 コミット手前の task_04 コミット（67f8f19）参照。
 result_files:
-  - keyseq/presentation/controllers/config_io/{keymap_set_io,startup_io,io_dialogs}.py（新規3ファイル）
-  - keyseq/presentation/controllers/config_io_controller.py（A/B/C も委譲化・114行の完全ファサード）
-  - tests_ui/test_config_io_characterization_keymap_set_startup.py（アクセサ切替・35件 pass 維持）
-  - instructions/phase/04_config_io_controller_split/tasks/task_04_...md（新規）
-  - .claude_data/state/decisions.md（task_04 のアクセサ切替判断を記録）
+  - keyseq/presentation/controllers/config_io_controller.py（**削除**・ファサード消滅）
+  - keyseq/presentation/app.py（6分割オブジェクトを直接公開・内部7箇所差し替え）
+  - keyseq/presentation/controllers/config_io/*.py（内部クロスモジュール9箇所を facade→owner）
+  - views/menu_bar.py / full_view/{file_frame,keymap_box,sequence_box,trigger_box}.py / layout_controller.py（外部差し替え）
+  - tests_ui/{test_config_io_characterization, ..._keymap_set_startup, test_startup_font_characterization}.py（アクセサを owner へ）
+  - instructions/phase/04_config_io_controller_split/tasks/task_05_...md（新規）/ decisions.md（task_05 記録）
 verified:
   compile: clean
   test(tests): pass 86
@@ -43,24 +45,26 @@ verified:
   production_scope: presentation のみ（application・domain 無変更）
 
 ## next_action
-- **task_05（呼び出し元30箇所差し替え・案B + 委譲層削除）を起票して着手する**。ConfigIoController の委譲ファサードを
-  削除し、呼び出し元 8 ファイル 30 箇所（menu_bar 8 / app.py 7 / file_frame 4 / trigger_box・sequence_box・keymap_box 各3 /
-  layout_controller 1 / tests_ui 1）を `app.config_io.<method>` → `app.<新名>.<method>` へ差し替える（暫定仕様 §4=案B）。
-  **app に 6 分割オブジェクトを公開**（`app.keymap_set_io` / `app.startup_io` / `app.io_dialogs` / `app.keymap_io` /
-  `app.trigger_set_io` / `app.sequence_io`）。分割モジュール間の facade 経由呼び出し（write_startup / apply /
-  D/E/F の C/A ヘルパ呼び出し）も新参照へ調整。**特性テストのアクセサ（`_config_set_io` 等）も新 app 参照へ最終調整**。
-  差し替え後 `grep -rn "config_io\." keyseq main.py tests tests_ui` で**残存 0 件**を確認（案B の完了条件）。
-- その後 **task_06（正本反映: codebase_map.md 更新・暫定仕様 03 凍結・decisions_archive/04 作成・
-  current.md 完了記載・/refactor_check）+ 実機目視ゲート**。
-- **実装分担**: task_05 は機械的置換中心だが広範。codex-implementer 既定 + Monitor + codex-reviewer 併用
-  （phase.md が Codex 統合レビューを本命とする箇所）。Codex 申告は信用せず verifier で `.venv` 再実行。
-- **【ユーザー必須ゲート】task_06 正本反映の前に実機目視**（保存/読込/別名保存/Import/Export/起動設定変更/
-  keymap・トリガー一覧・シーケンスの個別保存読込）。ここで必ず停止しユーザーへ実機確認を依頼する。
-- タスクが緑＋reviewer(+codex-reviewer) 採用なら確認なしで `/save_state`→`/task_commit`（standing 許可）。
+- **【最優先・ユーザー必須ゲート】実機目視を依頼する**。task_05 でファサード削除・呼び出し元差し替えが完了し、
+  分割は全完了。**task_06（正本反映）に進む前に、ユーザーが実機でアプリを動かして確認**する:
+  保存 / 読込 / 別名で保存 / Import / Export / 起動時に読む構成セット指定 /
+  keymap・トリガー一覧・出力シーケンスの個別保存・読込。**目視 OK を得るまで task_06 に着手しない**。
+- **実機目視 OK 後に task_06（正本反映）を起票・着手する**（`/task_new` → 実装はメイン=文書作業）:
+  - `instructions/common/codebase_map.md` の「コントローラ（controllers/）」節を更新
+    （ConfigIoController 削除 / config_io パッケージ6クラス〔KeymapSetIo/StartupIo/IoDialogs/KeymapFileIo/
+    TriggerSetFileIo/SequenceFileIo〕を app.<名>.<method> で参照する構成へ / ツリー図 :44）。
+  - **暫定仕様 03 を凍結**（ヘッダを「凍結・正本反映済」へ）。**spec_detail 昇格の要否を判定**
+    （§8: config_io の担当層記述が spec_detail にあるか grep。無ければ昇格不要＝担当層は codebase_map.md が正）。
+  - `decisions_archive/04_config_io_controller_split.md` を作成し decisions.md phase 04 セクションを集約・索引化。
+  - `current.md` の完了記載・次採番（phase 05 / 暫定 04）。
+  - 起票元は `current.md` 別タスク化候補（idea 由来ではないため INDEX 移動は不要）。
+  - **`/refactor_check` 実行**（変更ファイル対象・M1〜M6。挙動不変フェーズだが判定は出す）。
+- タスクが緑＋reviewer 採用なら確認なしで `/save_state`→`/task_commit`（standing 許可）。
 
 ## blockers
-- なし（task_01〜04 完了・全緑・reviewer 採用・codex-reviewer clean）。次は task_05（呼び出し元差し替え + 委譲層削除）。
-- 留意: **codex-implementer は task_03・04 とも実装・review 正常完了**（ハングなし・Monitor 有効）。
+- **task_05 完了。次は実機目視のユーザー必須ゲート**（ここで停止）。目視 OK 後に task_06（正本反映）。
+- 分割は全完了（config_io 名消滅・controller 削除・app が6オブジェクト公開・全緑）。
+- 留意: **codex-implementer は task_03・04・05 とも実装・review 正常完了**（ハングなし・Monitor 有効）。
   Monitor 運用が有効に機能（両ジョブとも JOB_ENDED を正しく検知・STALLED 誤検知なし）。task_04 でも Monitor をセットで。
 
 ## resume_hints

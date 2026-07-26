@@ -18,19 +18,19 @@ def _expected_json_bytes(text: str) -> bytes:
 
 
 def _dialog_io(app):
-    return app.config_io
+    return app.io_dialogs
 
 
 def _keymap_io(app):
-    return app.config_io
+    return app.keymap_io
 
 
 def _trigger_set_io(app):
-    return app.config_io
+    return app.trigger_set_io
 
 
 def _sequence_io(app):
-    return app.config_io
+    return app.sequence_io
 
 
 class _FakeDialog:
@@ -530,7 +530,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         showerror.assert_called_once_with("保存失敗", "disk full")
 
     def test_trigger_set_load_confirms_first_then_success_empty_and_exception(self):
-        with patch.object(_trigger_set_io(self.app), "confirm_save_if_dirty", return_value=False) as confirm, patch.object(
+        with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=False) as confirm, patch.object(
             tkinter.filedialog,
             "askopenfilename",
         ) as ask_open:
@@ -541,7 +541,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             path = os.path.join(directory, "triggers.json")
             Path(path).write_bytes(b'{"triggers": []}')
-            with patch.object(_trigger_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+            with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True), patch.object(
                 tkinter.filedialog,
                 "askopenfilename",
                 return_value=path,
@@ -564,7 +564,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             flash.assert_called_once_with("トリガー一覧を読み込みました。")
             showinfo.assert_called_once_with("読込", f"トリガー一覧を読み込みました:\n{path}")
 
-        with patch.object(_trigger_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+        with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True), patch.object(
             tkinter.filedialog,
             "askopenfilename",
             return_value="",
@@ -573,7 +573,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             load.assert_not_called()
 
         error = ValueError("bad trigger set")
-        with patch.object(_trigger_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+        with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True), patch.object(
             tkinter.filedialog,
             "askopenfilename",
             return_value="C:/bad.json",

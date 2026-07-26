@@ -13,7 +13,7 @@ class TriggerSetFileIo:
                 return self.save_trigger_set_file_as()
         if not path:
             suggested = self._app.paths.suggest_json_path(self._app.paths.preferred_trigger_sets_dir(), self._app.keymap_set_file_stem(), "trigger_set")
-            path = self._app.config_io.choose_save_path_with_collision(title="トリガー一覧を保存", suggested_path=suggested)
+            path = self._app.io_dialogs.choose_save_path_with_collision(title="トリガー一覧を保存", suggested_path=suggested)
             if not path:
                 return False
         return self.save_trigger_set_to_path(path)
@@ -55,7 +55,7 @@ class TriggerSetFileIo:
             return False
 
     def load_trigger_set_file(self) -> None:
-        if not self._app.config_io.confirm_save_if_dirty("トリガー一覧読込"):
+        if not self._app.keymap_set_io.confirm_save_if_dirty("トリガー一覧読込"):
             return
         path = filedialog.askopenfilename(
             title="トリガー一覧を読込",

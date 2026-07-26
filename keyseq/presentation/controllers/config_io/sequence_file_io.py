@@ -18,7 +18,7 @@ class SequenceFileIo:
         if not source_path:
             label = str(trigger.get("label") or trigger.get("key") or "sequence").strip()
             suggested = self._app.paths.suggest_json_path(self._app.paths.preferred_sequences_dir(), label, "sequence")
-            source_path = self._app.config_io.choose_save_path_with_collision(title="出力シーケンスを保存", suggested_path=suggested)
+            source_path = self._app.io_dialogs.choose_save_path_with_collision(title="出力シーケンスを保存", suggested_path=suggested)
             if not source_path:
                 return False
         return self.save_sequence_to_path(trigger, source_path)
@@ -45,7 +45,7 @@ class SequenceFileIo:
         if not path:
             return False
         try:
-            if self._app.config_io.ask_link_label_to_filename(title="出力シーケンス名の連動", path=path):
+            if self._app.io_dialogs.ask_link_label_to_filename(title="出力シーケンス名の連動", path=path):
                 trigger["label"] = self._app.paths.filename_stem(path)
         except RuntimeError:
             return False

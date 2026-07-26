@@ -31,9 +31,9 @@ class SequenceBox(ttk.LabelFrame):
         ttk.Button(abtns, text="上へ", width=16, command=lambda: app.trigger_panel.move_action(-1)).pack(pady=6)
         ttk.Button(abtns, text="下へ", width=16, command=lambda: app.trigger_panel.move_action(+1)).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
-        ttk.Button(abtns, text="保存", width=16, command=app.config_io.save_selected_sequence).pack(pady=6)
-        ttk.Button(abtns, text="別名で保存", width=16, command=app.config_io.save_selected_sequence_as).pack(pady=6)
-        ttk.Button(abtns, text="読込", width=16, command=app.config_io.load_sequence_file).pack(pady=6)
+        ttk.Button(abtns, text="保存", width=16, command=app.sequence_io.save_selected_sequence).pack(pady=6)
+        ttk.Button(abtns, text="別名で保存", width=16, command=app.sequence_io.save_selected_sequence_as).pack(pady=6)
+        ttk.Button(abtns, text="読込", width=16, command=app.sequence_io.load_sequence_file).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
         # 連続実行（run_to_end）
         self.run_to_end_chk = ttk.Checkbutton(

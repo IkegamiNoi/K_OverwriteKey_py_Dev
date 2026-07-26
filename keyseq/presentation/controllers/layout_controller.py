@@ -135,7 +135,7 @@ class LayoutController:
             self._app.dirty_tracker.set_dirty(True)
             return True
         try:
-            return self._app.config_io.save_keymap_set(show_success_dialog=False)
+            return self._app.keymap_set_io.save_keymap_set(show_success_dialog=False)
         except Exception as e:
             self._app._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))

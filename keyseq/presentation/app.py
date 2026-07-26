@@ -6,7 +6,14 @@ from tkinter import messagebox, ttk
 from keyseq.presentation.dialogs import (
     PresetManagerDialog,
 )
-from keyseq.presentation.controllers.config_io_controller import ConfigIoController
+from keyseq.presentation.controllers.config_io import (
+    IoDialogs,
+    KeymapFileIo,
+    KeymapSetIo,
+    SequenceFileIo,
+    StartupIo,
+    TriggerSetFileIo,
+)
 from keyseq.presentation.config_paths import ConfigPaths
 from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
 from keyseq.presentation.controllers.hook_controller import HookController
@@ -132,7 +139,12 @@ class App(tk.Tk):
                 (lambda app, key: app.keymap_service.source_key_exists(app.data, key), "キーマップ元キー"),
             ],
         )
-        self.config_io = ConfigIoController(self)
+        self.keymap_set_io = KeymapSetIo(self)
+        self.startup_io = StartupIo(self)
+        self.io_dialogs = IoDialogs(self)
+        self.keymap_io = KeymapFileIo(self)
+        self.trigger_set_io = TriggerSetFileIo(self)
+        self.sequence_io = SequenceFileIo(self)
         self.layout = LayoutController(self)
         self.keymap_panel = KeymapPanelController(self)
         self.trigger_panel = TriggerPanelController(self)
@@ -157,7 +169,7 @@ class App(tk.Tk):
         self._programmatic_action_select = False  # action_list選択をコード側で変更中か
         self._flash_after_id = None
         self._build_ui()
-        self.config_io.load_startup_and_config()
+        self.startup_io.load_startup_and_config()
         self.layout.reload_keyboard_layouts()
         self.trigger_panel.refresh_triggers()
         self.trigger_panel.refresh_actions()
@@ -240,7 +252,7 @@ class App(tk.Tk):
         self._ui_font_delta_pt = new_delta
         self.ui_vars.ui_font_delta_var.set(int(new_delta))
         apply_global_theme(self, font_delta_pt=new_delta)
-        self.config_io.write_startup({"ui_font_delta_pt": new_delta})
+        self.startup_io.write_startup({"ui_font_delta_pt": new_delta})
         return True
 
     def set_ui_font_delta(self, delta: int):
@@ -267,25 +279,25 @@ class App(tk.Tk):
     def _on_shortcut_save(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.config_io.save_keymap_set()
+        self.keymap_set_io.save_keymap_set()
         return "break"
 
     def _on_shortcut_new(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.config_io.new_config()
+        self.keymap_set_io.new_config()
         return "break"
 
     def _on_shortcut_save_as(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.config_io.save_as()
+        self.keymap_set_io.save_as()
         return "break"
 
     def _on_shortcut_load(self, _event=None):
         if not self._is_menu_shortcut_enabled():
             return "break"
-        self.config_io.load_keymap_set_from()
+        self.keymap_set_io.load_keymap_set_from()
         return "break"
 
     def _on_shortcut_open_preset_manager(self, _event=None):
@@ -427,7 +439,7 @@ class App(tk.Tk):
 
     # ---------------- Close ----------------
     def on_close(self):
-        if not self.config_io.confirm_save_if_dirty("終了"):
+        if not self.keymap_set_io.confirm_save_if_dirty("終了"):
             return
         try:
             if self.layout.keyboard_window is not None:
