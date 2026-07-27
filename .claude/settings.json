@@ -7,7 +7,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "echo '## 現在の実行環境（git 実測。以下の state ファイル内の worktree / branch 記述より常にこちらが正）'; echo \"branch: $(git branch --show-current 2>/dev/null || echo unknown)\"; echo \"worktree_root: $(git rev-parse --show-toplevel 2>/dev/null || echo unknown)\"; echo '---'; cat .claude_data/state/handoff.md .claude_data/state/session.md 2>/dev/null || echo 'state files not initialized yet'"
+            "command": "echo '## 現在の実行環境（git 実測。以下の state ファイル内の worktree / branch 記述より常にこちらが正）'; echo \"branch: $(git branch --show-current 2>/dev/null || echo unknown)\"; echo \"worktree_root: $(git rev-parse --show-toplevel 2>/dev/null || echo unknown)\"; [ -d .venv ] || echo '【要対応】作業ツリー直下に .venv がありません。この作業ツリーでは python 検証（compileall / unittest / smoke）と Codex への実装委任を実行できません。作成手順は .claude/rules/python_rules.md の「python 実行コマンド」節。'; echo '---'; cat .claude_data/state/handoff.md .claude_data/state/session.md 2>/dev/null || echo 'state files not initialized yet'"
           }
         ]
       }
