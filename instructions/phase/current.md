@@ -6,8 +6,14 @@
 
 ## 現在の参照先
 
-- **アクティブ: なし**（`04_config_io_controller_split` 完了 = 2026-07-26）。**次フェーズ `05_<topic>` は未確定**。
-  次フェーズ着手時はユーザーに方針確認し、`/phase_start` で起票してから本節を差し替える。
+- **アクティブ: [05_keymap_set_new_and_default_dir](05_keymap_set_new_and_default_dir/phase.md)**
+  （起票 2026-07-27・保存系リデザインの **Phase α**）。構成セットの新規作成を「ファイルなし」にし、
+  保存の空パスを別名保存へ分岐、既定保存先を固定 `default.json` からディレクトリ
+  `config/user/keymap_sets/` へ移し、死にフラグ `prompt_if_missing` を撤去する。**挙動変更フェーズ**。
+  主入力（設計の正）: [暫定仕様 04](../history/04_keymap_set_new_and_default_dir.md)（v0.3・ユーザー確定済）。
+  判断履歴: `.claude_data/state/decisions.md`（アーカイブは完了時に `decisions_archive/05_keymap_set_new_and_default_dir.md`）。
+  起票元: ユーザー要望（2026-07-26〜27・保存系統の改善討議。idea 由来ではない）。
+  番号対応: phase 05 / 暫定 04 / decisions 05。
 - 直前の完了フェーズ: `04_config_io_controller_split`（2026-07-26 完了）。`config_io_controller.py`（598 行）を
   `controllers/config_io/` 配下の 6 クラスへ分割し（案B・呼び出し元30箇所差し替え・`config_io` 名消滅・互換レイヤーなし）、
   挙動不変で保守性を回復。要約・判断は
@@ -21,8 +27,10 @@
 
 ## 次採番
 
-- 次フェーズは **`05_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
-- 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。次採番は **`04_<topic>`**。
+- 次フェーズは **`06_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+  保存系リデザインの予定: **β=phase 06 / γ=phase 07 / プリセット=phase 08**。
+- 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
+  04〜07 は起票済（04=α / 05=β / 06=γ / 07=プリセット）。次採番は **`08_<topic>`**。
 
 ## 次フェーズ候補（参考）
 
@@ -36,9 +44,9 @@
 3. ~~[idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)~~ → **完了**（`03_startup_font_settings_cleanup`・2026-07-20）
 
 **計画04 由来の3フェーズはすべて完了**。`04_config_io_controller_split` も完了（2026-07-26・計画04 由来ではない）。
-次フェーズ（`05_<topic>`）候補:
+phase 05 は**保存系リデザイン Phase α**（ユーザー要望・2026-07-27 起票）で確定。以降の候補:
 - [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)（trigger_set の source_path 不整合。
-  **phase 04 完了により着手条件を満たした**・挙動変更を伴うため仕様変更フロー）。**有力候補**。
+  着手条件は充足済だが、**Phase β〔phase 06・暫定 05〕が内包する**ため単独フェーズにはしない）。
 - [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の保存時正規化/検証の統一。
   phase 02 task_04 から分離・優先度低・要設計）。
 - [idea_04](../backlog/idea_04_font_settings_controller.md)（FontSettingsController 新設 = phase 03 の案B。

@@ -4,62 +4,61 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-27T12:00:00
-phase: **フェーズ間（phase 04 完了・phase 05 未起票）**。保存系リデザインの暫定仕様 04〜07 をユーザー確定済（未実装）
-last_commit_location: claude/task-06-proceed-eb9f1b ※現在地はセッション開始時の git 実測値が正
+last_updated: 2026-07-27T22:45:00
+phase: instructions/phase/05_keymap_set_new_and_default_dir（**Phase α・起票完了・task_01 未起票**）
+last_commit_location: claude/opus5-prompt-tuning-f6076e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **保存系リデザインの暫定仕様 4 本（04=α/05=β/06=γ/07=プリセット）を敵対的レビュー反映・ユーザー確定まで完了（コミット dfa8f95）。次は Phase α（暫定04）を `/phase_start` で phase 05 として起票し実装着手**。
-mode: completed
+focus: **Phase α（phase 05_keymap_set_new_and_default_dir）を起票完了（reviewer 整合チェック=完了可・未コミット）。次は task_01（startup_dir_skeleton）を `/task_new` で起票し codex-implementer へ実装委任**。
+mode: implementing
 
 ## last_action
-ts: 2026-07-27T12:00:00
+ts: 2026-07-27T22:45:00
 who: main
 summary: |
-  【保存系リデザインの暫定仕様 04〜07 を起票・敵対的レビュー・ユーザー確定（コミット dfa8f95）】
-  - ユーザー要望（保存系統の改善・点1〜5）を 4 フェーズへ分割し設計討議 → 暫定仕様先行モードで起票:
-    04 α（新規=空パス/保存先ディレクトリ化/prompt_if_missing 撤去・v0.3）/ 05 β（子ファイル保存の確認ダイアログ+
-    参照元記録・idea_05 内包・v0.2）/ 06 γ（停止/トグルキーの config.json 既定化+個別指定・v0.2）/
-    07（プリセットの config.json グローバル化・v0.2）。
-  - 各仕様に codex-adversarial-reviewer を実施（04=指摘4 / 05=critical1+high3 / 06=6 / 07=4）→ 全指摘を精査し
-    ユーザー確定のうえ v0.2/v0.3 へ反映。idea_07（参照元の掃除機能）/ idea_08（keymap_set 個別プリセット）を起票。
-  - フェーズ番号対応（予定）: **Phase α=phase05/暫定04 / β=phase06/暫定05 / γ=phase07/暫定06 / プリセット=phase08/暫定07**。
-  【（前タスク: phase 04 task_06 正本反映・完了。詳細は decisions_archive/04）】
-  - config_io_controller.py（598行）を config_io/ 6クラスへ分割完了・codebase_map 反映・refactor_check 不要。
-  - `codebase_map.md`: presentation ツリー図に `controllers/config_io/`（6ファイル）追記 / コントローラ節の
-    ConfigIoController 行を6クラス（KeymapSetIo/StartupIo/IoDialogs/KeymapFileIo/TriggerSetFileIo/SequenceFileIo）
-    + App 公開名へ差し替え / `config_io.write_startup`→`startup_io.write_startup` / `app.config_io`例→`app.keymap_set_io`。
-  - spec_detail 昇格要否: `config_io` 言及0件（再grep）→ **昇格不要**（担当層は codebase_map.md が正・architecture §3.5）。
-  - 暫定仕様 03 を**凍結**（ヘッダ「凍結・正本反映済」）。`decisions_archive/04_config_io_controller_split.md` 新規作成し
-    decisions.md の phase 04 詳細を集約・索引化（詳細セクション削除）。
-  - `current.md`: アクティブ=なし（04完了）/ 次採番 phase 05・暫定 04 明記 / idea_05 を有力候補・idea_06 の条件充足更新。
-  - task_06 定義起票。**/refactor_check 判定=不要**（M3 の同型3ブロックは既存重複の移設で idea_06〔保留〕がカバー済＝既知。他は非該当）。
-  - **検証**: verifier=全緑（compile clean / tests 86 / tests_ui 74 / smoke pass / 旧ファサード参照0件）。
-    **レビュー**: reviewer=完了可（採用・指摘なし・文書と実構成が完全一致）。
+  【Opus5 向け指示文の改修（コミット 43c1094 / 0c73758・ユーザーがコミット）】
+  - `.claude/rules/output_style.md` を新設（応答の簡潔性 / 進捗報告のカデンス / 文書成果物の分量 /
+    自己訂正の言及制限 / 委任量の抑制 / 検証の重ね過ぎ禁止）。CLAUDE.md に参照 + 末尾 `<tone_preference>`。
+  - **レビュアーを 2 本立てに分離**: `reviewer`（sonnet・単一タスクの実装差分）/ **`deep-reviewer`（opus・新設。
+    設計文書 / 複数タスクを跨ぐ差分 / フェーズ完了判定。5観点 + 前提・未定義挙動・矛盾・実装可能性・正本整合・代替案）**。
+    agent_selection.md のレビュー表を Claude 側 / Codex 側の 2 列へ再構成。spec_draft の起票時レビューは deep-reviewer へ。
+  - `/phase_start` の phase.md レビューを**整合チェック限定**に縮小（設計の再レビューはしない = 三重レビューの解消）。
+  - **不具合修正**: `switch_files/codex/` 側の agent_selection.md が live 版から乖離しており、モード切替で
+    Codex 運用ノート等が巻き戻る状態だった → live を正として同期。deep-reviewer は switch_files 管理外＝両モードで残る。
+  【Phase α（phase 05）起票（未コミット）】
+  - `instructions/phase/05_keymap_set_new_and_default_dir/phase.md` を新規作成（主入力=暫定 04 v0.3）。
+    タスク 6 本: 01 起動時ディレクトリ骨格 / 02 新規=空パス+保存の空パス→別名分岐+initialfile / 03 Import 後クリア+
+    空起動 path 空+default.json 用途整理 / 04 prompt_if_missing 撤去 / 05 統合退行 / 06 正本反映。
+  - `current.md`: アクティブを phase 05 へ差し替え / 次採番 06（β=06・γ=07・プリセット=08）/ 暫定次採番 08 /
+    idea_05 は「Phase β が内包」へ更新（単独フェーズ化しない）。
+  - **レビュー**: reviewer（整合チェック限定）=**完了可**。軽微指摘 1 件（task_05 に受入 7・8 のタグ明記）を反映済。
+  - 起票元はユーザー要望であり idea 由来ではないため backlog/INDEX.md の更新対象なし。
 result_files:
-  - instructions/history/04_keymap_set_new_and_default_dir.md（新規・v0.3 確定）
-  - instructions/history/05_child_file_save_dialog.md（新規・v0.2 確定）
-  - instructions/history/06_hook_keys_global_default.md（新規・v0.2 確定）
-  - instructions/history/07_hotkey_presets_global.md（新規・v0.2 確定）
-  - instructions/backlog/idea_07_reference_link_cleanup.md / idea_08_per_keymap_set_preset_ownership.md（新規）
-  - instructions/backlog/INDEX.md（idea_07/08 追加）
+  - instructions/phase/05_keymap_set_new_and_default_dir/phase.md（新規・未コミット）
+  - instructions/phase/current.md（アクティブ / 次採番 / 次フェーズ候補・未コミット）
+  - .claude/rules/output_style.md・.claude/agents/deep-reviewer.md（新規・コミット済）
+  - CLAUDE.md / .claude/rules/agent_selection.md / .claude/agents/reviewer.md /
+    .claude/commands/{phase_start,spec_draft}.md / switch_files 両モードの agent_selection.md（コミット済）
 verified:
-  spec_review: codex-adversarial-reviewer 実施済（全4本）・指摘反映・ユーザー確定
-  commit: dfa8f95
-  production_scope: 文書のみ（実装は未着手）
+  review: reviewer 整合チェック=完了可（主入力との齟齬なし / 受入 1〜8 と §10 の割当漏れなし / リンク・番号対応・
+    「読むファイル」9 パスの実在をすべて確認）
+  commit: 43c1094 + 0c73758（指示文改修のみ）。phase 05 起票分は**未コミット**
+  production_scope: 文書のみ（keyseq/ の実装は未着手）
 
 ## next_action
-- **保存系リデザインの暫定仕様 4 本は確定・コミット済（dfa8f95）**。次は **Phase α（暫定 04）を `/phase_start` で
-  phase 05 として起票し、実装に着手**する（順序: α→β→γ→プリセット。α は独立・小さいので先行）。
-  - Phase α のタスク: new_config の空パス化 / save_keymap_set の空パス→別名分岐 / import_config の無条件クリア /
-    起動時ディレクトリ骨格作成 / 別名保存 initialfile=`keymap_set.json` / prompt_if_missing 撤去（新規出力停止・残置許容）。
-  - **α は挙動変更フェーズ**（挙動不変ではない）。特性テストで新挙動を固定する（暫定 04 §8）。
-- 実装は `.claude/rules/agent_selection.md` の既定（codex-implementer）へ委任。各タスクで reviewer 必須。
-- β/γ/プリセットは α 完了後に順次 `/phase_start`（暫定 05/06/07 が設計の正）。
-- idea 位置づけ更新（β 起票時）: idea_05→β 内包・idea_06→β 達成見込みを INDEX へ反映。
+- **phase 05 の起票分（phase.md + current.md）を `/task_commit` でコミット**する（未コミット）。
+- 次に **task_01（`startup_dir_skeleton`）を `/task_new` で
+  `instructions/phase/05_keymap_set_new_and_default_dir/tasks/task_01_startup_dir_skeleton.md` へ起票**し、
+  `codex-implementer` へ実装委任する（暫定 04 §5「起動時ディレクトリ作成」・受入 2 が根拠）。
+  - 内容: `keyseq/presentation/app.py` の起動時に `config/user/{keymap_sets,keymaps,trigger_sets,hotkey_presets,sequences}`
+    を一括作成（`config_service._ensure_split_config_dirs` 相当を再利用）。**config.json は起動時に書かない**。
+  - 完了条件に「reviewer 採用」を必ず含める。新挙動は特性テストで固定（暫定 04 §8）。
+- 以降 task_02〜06 は phase.md「タスク」表の順で進める（各タスクで reviewer 必須・
+  task_05 統合と完了判定前は Codex レビュー + `deep-reviewer` を併用）。
+- **α は挙動変更フェーズ**（挙動不変ではない）。β/γ/プリセットは α 完了後に順次 `/phase_start`。
 
 ## blockers
-- なし。次は Phase α の `/phase_start`（ユーザー着手指示待ち）。
+- なし。
 
 ## resume_hints
 - **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**
@@ -69,8 +68,11 @@ verified:
   依存: α→β の順（β は α のディレクトリ化前提・idea_05 内包）。γ は独立。プリセット07 は β とカスケード除外で協調。
 - phase 04 は完了・アーカイブ済（判断は `decisions_archive/04_config_io_controller_split.md` が正）。config_io は
   `controllers/config_io/` の6クラスへ分割済（App が `app.keymap_set_io` 等で直接公開・`config_io` 名は消滅）。
-- **次候補 idea_05（E=trigger_set の source_path 不整合修正）は挙動変更を伴う**。着手時は spec_change_workflow の
-  仕様変更フロー（暫定仕様先行モード）で。既存不整合の詳細は暫定仕様 03 §1「既存の不整合」/ idea_05 に記載。
+- **レビュアーは 2 本立て**（2026-07-27〜）: `reviewer`（sonnet・単一タスクの実装差分）/ `deep-reviewer`（opus・
+  設計文書 / 複数タスクを跨ぐ差分 / フェーズ完了判定）。使い分けは `.claude/rules/agent_selection.md` のレビュー表が正。
+  出力の作法（応答・進捗報告・文書分量・委任量）は `.claude/rules/output_style.md`。
+- idea_05（trigger_set の source_path 不整合）は **Phase β が内包**する（単独フェーズ化しない）。
+  既存不整合の詳細は暫定仕様 03 §1「既存の不整合」/ idea_05 に記載。
 - **【Codex 運用の手順書】ジョブが詰まった / cancel が効かない / ハング検知 / state 手修復は
   `instructions/common/rules_detail/codex_operations.md` を読む**（`.claude/rules/agent_selection.md` 冒頭にポインタ）。
   **Codex 申告のテスト結果は信用せず必ず verifier で `.venv` 再実行**（今回 19件全 ERROR を検出）。
@@ -80,6 +82,7 @@ verified:
 - 行数計測は `wc -l`（PowerShell `Measure-Object -Line` は空行を数えず誤解の元）。
 - 過去の判断は `.claude_data/state/decisions.md`（アーカイブ索引あり）+ `decisions_archive/<phase>.md`。
   完了済の直近 3 件: 02_hotkey_validation / 03_startup_font_settings_cleanup / 04_config_io_controller_split。
-- 未着手 idea: idea_05（trigger_set source_path・**着手条件充足＝有力候補**）/ idea_03（hotkey 保存時正規化・優先度低）。
+- 未着手 idea: idea_05（trigger_set source_path・**Phase β で内包**）/ idea_03（hotkey 保存時正規化・優先度低）/
+  idea_07（参照元の掃除・β 完了後）/ idea_08（keymap_set 個別プリセット・プリセット案2 完了後）。
   保留 idea: idea_04（FontSettingsController）/ idea_06（D/E/F 共通化）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
