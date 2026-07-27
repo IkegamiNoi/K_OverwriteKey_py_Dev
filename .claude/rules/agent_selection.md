@@ -20,11 +20,10 @@
 - 呼び出し時は以下をプロンプトに含める
   - 対象タスク定義ファイルのパス
   - 実装対象範囲と対象外の明記
-  - **タスクに対応する単体テストの実行まで**を実装範囲に含めること
-  - **python は作業ツリー直下の `.venv`**（`.\.venv\Scripts\python.exe`）を使うこと。
-    Codex のサンドボックスは cwd 配下しか実行できないため、**ツリー外の venv を指示しない**
-    （`.claude/rules/python_rules.md` / `codex_operations.md` §0。worktree に `.venv` が
-    無い場合は委任前にメインセッションが作成する）
+  - **テストコードの追加・修正まで**を実装範囲に含めること（**テストの実行は依頼しない**）
+- **python 実行を伴う検証を Codex に依頼しない**。Codex はサンドボックス制約で python を
+  一切起動できず、必ず「未実行」で返る（venv を worktree 内へ置いても不可。詳細は
+  `instructions/common/rules_detail/codex_operations.md` §0）。実測は `verifier` が行う
 
 ### フォールバック: `implementer`（Claude）
 
@@ -57,7 +56,8 @@
 
 ## ■ 動作確認・テスト実行
 
-- タスク単位の単体テスト実行は実装委任に含める（上記 codex-implementer への指示事項）
+- **タスク単位の単体テスト実行も `verifier` へ委任する**（Codex は python を実行できないため。
+  Codex はテストコードの追加・修正までを担当し、実測は verifier が行う）
 - 統合確認（テストスイート全体・smoke 等）は **`verifier` エージェント**へ
   委任し、メインセッションは pass/fail + 失敗詳細の要約のみ受け取る
   （テストの生ログをメイン文脈へ載せない）。判定・完了宣言はメインセッションが行う

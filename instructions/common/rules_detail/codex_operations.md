@@ -21,22 +21,26 @@
   `C:\Users\ikega\.claude\plugins\data\codex-inline\state\<worktree名>-<hash>\`
   配下に `state.json`（全ジョブの索引）/ `jobs/<job-id>.json` と `.log` / `broker.json`。
 
-### 【重要】Codex が実行できるのは作業ツリー配下のみ → **venv は worktree 内に置く**
+### 【重要】Codex は python を実行できない（回避不能）→ **検証は verifier に一本化**
+
+**Codex にテスト実行を依頼しない**。python 実行を伴う検証は `verifier` の責務
+（`.claude/rules/agent_selection.md`）。以下は 2026-07-27〜28 に実測で確定した結論。
 
 - companion は `task --write` を **`sandbox: "workspace-write"`** で起動する
   （`scripts/codex-companion.mjs`）。書込・**実行**が許されるのは **cwd（= worktree）配下のみ**。
-- そのため**ツリー外の python は起動できない**。リポジトリルートの `.venv` を worktree 相対
-  （`..\..\..\.venv\...`）で指すと、`pwsh` 経由でも拒否される（実測: `Resolve-Path` /
-  `Get-Command` は exit 0、python 実行のみ exit 1。phase 05 task_01・2026-07-27 のジョブログ）。
-  「Codex は `.venv` python を実行できる」という旧メモ（2026-07-24）は worktree 外での実測。
-- **対処（2026-07-27 採用）**: **worktree 直下に `.venv` を作る**。サンドボックス内に python が入るため
-  Codex が単体テストまで実行でき、main の作業ツリーや他 worktree には一切触れない。
-  作成手順とパス規約は `.claude/rules/python_rules.md`。**新しい worktree を作ったら最初に作成する**
-  （`.venv` は `.gitignore` 済み）。
-- 却下した代替: `--cwd <リポジトリルート>`（companion に `-C/--cwd` あり）。サンドボックス境界は
-  広がるが、**main の作業ツリー・他 worktree・`.git` まで書込可能圏に入る**うえ、Codex が自動で読む
-  `AGENTS.md` → `CLAUDE.md` / `.claude/rules/` が **main ブランチ版（＝作業中ブランチより古い）**に
-  なるため不採用。
+  ツリー外の python 起動は `pwsh` 経由でも拒否される（実測: `Resolve-Path` / `Get-Command` は
+  exit 0、python 実行のみ exit 1）。
+- **venv を worktree 内へ置いても解決しない**（2026-07-28 実測・試行して失敗）。Windows の venv の
+  `Scripts\python.exe` は **255KB のランチャ**にすぎず、`pyvenv.cfg` の `home` / `executable` が指す
+  **base インタプリタ**（`C:\Users\ikega\AppData\Local\Python\pythoncore-3.14-64`）を起動する。
+  この base はユーザープロファイル配下＝ワークスペース外のため、やはり拒否される
+  （`Unable to create process using ...`）。
+- **`--cwd <リポジトリルート>` でも解決しない**。base python はリポジトリの外にあるため、境界を
+  リポジトリルートまで広げても届かない（加えて main の作業ツリー・他 worktree・`.git` が書込可能圏に
+  入り、Codex が自動で読む `AGENTS.md` → `CLAUDE.md` / `.claude/rules/` が **main ブランチ版**になる）。
+- 理論上の唯一の解は **python 本体（144MB）を作業ツリーへ持ち込む**ことだが、worktree ごとの
+  複製コストに見合わないため採らない。
+- 旧メモ「Codex は `.venv` python を実行できる」（2026-07-24 記載）は**誤り**。
 
 ### 【重要】Codex の自己申告を信じない
 

@@ -49,10 +49,6 @@ verified:
   実機目視: 未実施（task_05 でまとめて依頼する方針）
 
 ## next_action
-- **【ユーザー判断待ち】venv 配置と Codex への検証委任の方針**。worktree 内 venv でも Codex は
-  python を起動できないことが判明したため、①ルールを「検証は verifier へ一本化」へ戻し、
-  venv もリポジトリルートへ戻す（worktree 内 `.venv` と SessionStart の欠落検知は撤去）か、
-  ②worktree 内 venv は維持したまま検証だけ verifier へ一本化するかを決める。**推奨は ①**（根拠が消えたため）。
 - **task_03（`import_and_empty_start_path`）を `/task_new` で起票**し、`codex-implementer` へ委任する
   （暫定 04 §5 / **受入条件 3・4** が根拠）。
   - 内容: `keymap_set_io.import_config`（:148 付近）の `keymap_set_path = preferred_keymap_set_path()` を廃し
@@ -69,10 +65,9 @@ verified:
 - なし。
 
 ## resume_hints
-- **python は必ず作業ツリー直下の `.\.venv\Scripts\python.exe` を使う**（2026-07-27 に方式変更。
-  worktree ごとに `.venv` を持つ。ツリー外の `..\..\..\.venv` は Codex のサンドボックスが実行を拒否するため使わない）。
-  グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**新しい worktree では最初に `.venv` を作成する**
-  （手順は `.claude/rules/python_rules.md`。`.venv` は .gitignore 済み）。
+- **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
+  グローバル `py` は依存欠落で tests_ui/smoke が落ちる。
+  （2026-07-27 に worktree 内 venv を試したが Codex の制約は解消せず、2026-07-28 にルート方式へ戻した）
 - **保存系リデザインの設計の正は暫定仕様 04〜07（すべてユーザー確定・v0.2/v0.3）**。番号対応は
   Phase α=phase05/暫定04 / β=phase06/暫定05 / γ=phase07/暫定06 / プリセット=phase08/暫定07。
   討議の全経緯（点1〜5・敵対レビュー4本の指摘と対応）は各暫定仕様の版履歴と §確定事項に集約済。
