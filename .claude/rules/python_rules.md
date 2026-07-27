@@ -26,16 +26,23 @@
 
 ## ■ python 実行コマンド（EDIT REQUIRED）
 
-この環境の python 実行コマンドはリポジトリルートの `.venv` を使う（`keyboard` /
-`pyautogui` / `pynput` 等の依存はこの `.venv` にのみ導入済み。グローバルの `py`
-ランチャには入っていないため使わない）。
+python は **作業ツリー直下の `.venv`** を使う（`keyboard` / `pyautogui` / `pynput` 等の依存は
+`.venv` にのみ導入済み。グローバルの `py` ランチャには入っていないため使わない）。
 
-- 実行パス: `<リポジトリルート>\.venv\Scripts\python.exe`
-  - 絶対パス例: `C:\Users\ikega\Documents\GitHub\python_dev\K_OverwriteKey_py_Dev\.venv\Scripts\python.exe`
-  - worktree からの相対パス例: `..\..\..\.venv\Scripts\python.exe`
+- 実行パス: **`.\.venv\Scripts\python.exe`**（現在の作業ツリーのルートから見た相対パス）
+  - worktree で作業中なら **その worktree 直下の `.venv`**。メインチェックアウトならリポジトリルートの `.venv`。
+  - **`..\..\..\.venv`（ツリー外の venv）は使わない**。Codex はサンドボックス（cwd 配下のみ）の制約で
+    作業ツリー外の python を起動できず、検証が必ず「未実行」で返るため
+    （`instructions/common/rules_detail/codex_operations.md` §0）。
+- **worktree に `.venv` が無い場合は最初に作成する**（`.venv` は `.gitignore` 済み・コミット対象外）:
+  ```
+  "C:\Users\ikega\AppData\Local\Python\pythoncore-3.14-64\python.exe" -m venv .venv
+  .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+  ```
 - 標準検証もこの python で実行する（`compileall` / `unittest discover -s tests` /
   `unittest discover -s tests_ui` / `-m tests.smoke_app`）。
-- 一部の計画書は `py` ランチャ前提で記述されているが、実環境ではこの `.venv` に読み替える。
+- 一部の計画書・過去のタスク定義は `py` ランチャや `..\..\..\.venv` 前提で記述されているが、
+  実環境では作業ツリー直下の `.venv` に読み替える。
 
 ## ■ テスト・確認
 

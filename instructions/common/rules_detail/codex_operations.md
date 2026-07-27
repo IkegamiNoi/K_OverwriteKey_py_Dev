@@ -21,21 +21,22 @@
   `C:\Users\ikega\.claude\plugins\data\codex-inline\state\<worktree名>-<hash>\`
   配下に `state.json`（全ジョブの索引）/ `jobs/<job-id>.json` と `.log` / `broker.json`。
 
-### 【重要】worktree 内の Codex は `.venv` python を実行できない（構造的制約）
-
-**Codex にテスト実行を依頼しない**。python 実行を伴う検証は `verifier` の責務
-（`.claude/rules/agent_selection.md`）。理由:
+### 【重要】Codex が実行できるのは作業ツリー配下のみ → **venv は worktree 内に置く**
 
 - companion は `task --write` を **`sandbox: "workspace-write"`** で起動する
-  （`scripts/codex-companion.mjs`）。書込・実行が許されるのは **cwd（= worktree）配下のみ**。
-- `.venv` は**リポジトリルート**（worktree の外）にあるため、`..\..\..\.venv\Scripts\python.exe` の
-  **起動だけが拒否**される。`pwsh` 経由でも同じ（実測: `Resolve-Path` / `Get-Command` は exit 0、
-  python 実行のみ exit 1。phase 05 task_01・2026-07-27 のジョブログ）。
-- → **worktree で作業する限り毎回再現する**。「Codex は `.venv` python を実行できる」という
-  旧メモ（2026-07-24 記載）は worktree 外での実測であり、現行の運用形態には当てはまらない。
-- 回避したい場合の選択肢は `--cwd <リポジトリルート>`（companion に `-C/--cwd` あり。worktree も
-  `.venv` も同一ルート配下に入る）。ただし **Codex が main の作業ツリーを誤って編集する事故**の
-  危険が上がるため既定にはしない（phase 02・03 で再発した罠）。採用するならユーザー判断で。
+  （`scripts/codex-companion.mjs`）。書込・**実行**が許されるのは **cwd（= worktree）配下のみ**。
+- そのため**ツリー外の python は起動できない**。リポジトリルートの `.venv` を worktree 相対
+  （`..\..\..\.venv\...`）で指すと、`pwsh` 経由でも拒否される（実測: `Resolve-Path` /
+  `Get-Command` は exit 0、python 実行のみ exit 1。phase 05 task_01・2026-07-27 のジョブログ）。
+  「Codex は `.venv` python を実行できる」という旧メモ（2026-07-24）は worktree 外での実測。
+- **対処（2026-07-27 採用）**: **worktree 直下に `.venv` を作る**。サンドボックス内に python が入るため
+  Codex が単体テストまで実行でき、main の作業ツリーや他 worktree には一切触れない。
+  作成手順とパス規約は `.claude/rules/python_rules.md`。**新しい worktree を作ったら最初に作成する**
+  （`.venv` は `.gitignore` 済み）。
+- 却下した代替: `--cwd <リポジトリルート>`（companion に `-C/--cwd` あり）。サンドボックス境界は
+  広がるが、**main の作業ツリー・他 worktree・`.git` まで書込可能圏に入る**うえ、Codex が自動で読む
+  `AGENTS.md` → `CLAUDE.md` / `.claude/rules/` が **main ブランチ版（＝作業中ブランチより古い）**に
+  なるため不採用。
 
 ### 【重要】Codex の自己申告を信じない
 

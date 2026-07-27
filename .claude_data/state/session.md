@@ -62,7 +62,10 @@ verified:
 - なし。
 
 ## resume_hints
-- **python は必ず `..\..\..\.venv\Scripts\python.exe`（worktree相対）を使う。グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**
+- **python は必ず作業ツリー直下の `.\.venv\Scripts\python.exe` を使う**（2026-07-27 に方式変更。
+  worktree ごとに `.venv` を持つ。ツリー外の `..\..\..\.venv` は Codex のサンドボックスが実行を拒否するため使わない）。
+  グローバル `py` は依存欠落で tests_ui/smoke が落ちる。**新しい worktree では最初に `.venv` を作成する**
+  （手順は `.claude/rules/python_rules.md`。`.venv` は .gitignore 済み）。
 - **保存系リデザインの設計の正は暫定仕様 04〜07（すべてユーザー確定・v0.2/v0.3）**。番号対応は
   Phase α=phase05/暫定04 / β=phase06/暫定05 / γ=phase07/暫定06 / プリセット=phase08/暫定07。
   討議の全経緯（点1〜5・敵対レビュー4本の指摘と対応）は各暫定仕様の版履歴と §確定事項に集約済。
@@ -76,9 +79,9 @@ verified:
   既存不整合の詳細は暫定仕様 03 §1「既存の不整合」/ idea_05 に記載。
 - **【Codex 運用の手順書】ジョブが詰まった / cancel が効かない / ハング検知 / state 手修復は
   `instructions/common/rules_detail/codex_operations.md` を読む**（`.claude/rules/agent_selection.md` 冒頭にポインタ）。
-  **Codex 申告のテスト結果は信用せず必ず verifier で `.venv` 再実行**（phase 04 で 19件全 ERROR を検出）。
-  **Codex の sandbox は `.venv` python の起動自体を拒否することがある**（phase 05 task_01 で発生・検証 1〜4 が
-  未実行のまま返る）。実装差分そのものは有効なので、verifier で実測してから reviewer へ回せばよい。
+  **Codex 申告のテスト結果は信用せず必ず verifier で再実行**（phase 04 で 19件全 ERROR を検出）。
+  Codex のサンドボックスは**作業ツリー配下しか実行できない**ため venv を worktree 内に置く方式へ変更した
+  （2026-07-27・phase 05 task_01 で発覚。詳細と却下案〔--cwd 拡大〕は codex_operations.md §0）。
 - **【罠】state ファイル・`instructions/` 配下・code は必ず worktree のパスで編集する**。
   main リポジトリ側の絶対パスを編集すると commit から漏れる（phase 02・03 で再発）。
 - **【罠】`git grep` は追跡済みファイルしか検索しない**。新規（未追跡）ファイルの確認には**直接 `grep`** を使う。
