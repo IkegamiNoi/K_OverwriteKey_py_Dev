@@ -542,7 +542,6 @@ class ConfigService:
         except Exception:
             payload["ui_font_delta_pt"] = 0
         payload["last_used_directory"] = str(payload.get("last_used_directory") or "")
-        payload["prompt_if_missing"] = bool(payload.get("prompt_if_missing", True))
         if legacy_path:
             payload["config_path"] = self.resolve_startup_relative_path(legacy_path, os.path.dirname(config_root))
         return payload

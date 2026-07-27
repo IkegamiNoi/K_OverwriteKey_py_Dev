@@ -77,6 +77,37 @@ class SaveLoadRoundTripTest(unittest.TestCase):
             self.assertEqual(loaded["hook_stop_key"], "f12")
             self.assertEqual(loaded["keyboard_layout"], "us_tkl")
 
+    def test_save_runtime_data_omits_prompt_if_missing_without_existing_value(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            service = ConfigService(JsonRepository())
+
+            _, startup = service.save_runtime_data(
+                "",
+                make_runtime_data(),
+                config_root=root,
+                startup_data={},
+                split_base_dir="",
+            )
+
+            self.assertNotIn("prompt_if_missing", startup)
+
+    def test_save_runtime_data_preserves_existing_prompt_if_missing_value(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            service = ConfigService(JsonRepository())
+
+            _, startup = service.save_runtime_data(
+                "",
+                make_runtime_data(),
+                config_root=root,
+                startup_data={"prompt_if_missing": True},
+                split_base_dir="",
+            )
+
+            self.assertEqual(startup["prompt_if_missing"], True)
+            self.assertEqual(startup["keymap_set_path"], "user/keymap_sets/default.json")
+
 
 class KeymapFileIoTest(unittest.TestCase):
     def test_save_and_load_keymap_file(self):

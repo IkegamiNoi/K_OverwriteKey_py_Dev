@@ -4,65 +4,64 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-28T01:00:00
-phase: instructions/phase/05_keymap_set_new_and_default_dir（**Phase α・task_03 完了 / 全 6 タスク中 3 完了**）
-last_commit_location: claude/opus5-prompt-tuning-f6076e ※現在地はセッション開始時の git 実測値が正
+last_updated: 2026-07-28T02:30:00
+phase: instructions/phase/05_keymap_set_new_and_default_dir（**Phase α・task_04 完了 / 全 6 タスク中 4 完了**）
+last_commit_location: claude/task-04-9c166c ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase α の task_03（Import 後の無条件クリア + 空起動時 path の空化）完了（verifier 全緑・reviewer 完了可・指摘なし）。次は task_04（remove_prompt_if_missing）を `/task_new` で起票し codex-implementer へ委任**。
+focus: **Phase α の task_04（死にフラグ `prompt_if_missing` の撤去）完了（verifier 全緑・reviewer 完了可・指摘なし）。次は task_05（integration_recheck）を `/task_new` で起票し、統合退行 + 実機目視をユーザーへ依頼**。
 mode: implementing
 
 ## last_action
-ts: 2026-07-28T01:00:00
+ts: 2026-07-28T02:30:00
 who: main
 summary: |
-  【task_03（import_and_empty_start_path）完了】
-  - 起票時のコード実読で 2 点を確定: ① **`config_paths.py` は変更しない**。`save_keymap_set_to` の
-    呼び出し元は `save_keymap_set`（task_02 で空パス分岐済）と `save_as`（空なら return False）のみで、
-    空パスが `normalize_keymap_set_save_path` へ到達しないため、暫定仕様 §5 の「据え置き可」条件を満たす
-    （監査のみ実施・`tests/test_config_paths.py` も無変更）② `app.py:64` の `keymap_set_path` 初期化は
-    `:172` の `load_startup_and_config` が必ず上書きするため触らない（上書きされない経路を見つけたら
-    実装を止めて報告、という条件付きで委任）。
-  - 実装（codex-implementer）: `import_config` の成功経路を**無条件クリア**へ（例外経路は不変）/
-    `load_startup_and_config` 冒頭の `preferred_keymap_set_path()` 代入を `""` へ（stored path 読込成功時に
-    resolved を入れる既存経路は維持）/ 既存テスト 2 本を新挙動へ更新 + 新規 2 本。
-  - **今回から Codex にテスト実行を依頼しない運用**（静的確認のみ報告）。報告に「未実行 FAIL」が並ばなくなった。
-  - **検証**（verifier・全緑）: compile clean / tests **87**（増減なし）/ tests_ui **82**（+2）/ smoke pass /
-    `preferred_keymap_set_path` は config_io 配下 0 件。
-  - **レビュー**: reviewer=**完了可・指摘なし**（無条件クリア / 例外経路不変 / stored path 成功経路の回帰なし /
-    対象外ファイル〔config_paths・app.py・tests/test_config_paths〕に差分なし）。
-  【（前タスク: task_02 完了・詳細は git log 2616668）】
-  - `new_config` 空パス化 / `save_keymap_set` の空パス→`save_as` 委譲 / `save_as` の `initialfile` 条件分岐。
-  - 【重要】**Codex は python を一切実行できない**ことが確定（venv の `Scripts\python.exe` は 255KB の
-    ランチャで、`pyvenv.cfg` が指す base インタプリタがワークスペース外にあるため拒否される）。
-    worktree 内 venv も `--cwd` 拡大も無効 → **venv はリポジトリルート・検証は verifier 一本化**へ確定
-    （2026-07-28・詳細は codex_operations.md §0）。
+  【task_04（remove_prompt_if_missing）完了】
+  - 起票時の grep で撤去 4 箇所と影響テストを確定。**`tests_ui/test_startup_font_characterization.py` は
+    無修正が正**（`_startup_settings` 側に既存値が入る入力なので撤去後も保存 dict に残る＝
+    **残置許容〔受入 6〕の回帰テストになる**）ことをタスク定義へ明記して委任した。
+  - 実装（codex-implementer）: `config_service._build_startup_payload` の正規化 1 行 /
+    `startup_settings.load_startup_settings` の型ガード（+ docstring）/ `startup_io.write_startup` の
+    base 既定 / `keymap_set_io.set_startup_keymap_set` の write_startup 引数 — の 4 箇所を削除。
+    **`pop` は追加せず能動削除しない**（未知キー保持契約）。
+  - テスト: `tests/test_startup_settings.py` の期待値 4 箇所更新（未知キーケースは入力 `0` がそのまま残る
+    期待へ）/ `tests_ui/..._keymap_set_startup.py` の write_startup 期待値更新 + 新規 2 本 /
+    `tests/test_config_service.py` に受入 5・6 の新規 2 本。
+  - **レイヤ跨ぎ**: 本タスクのみ application（`config_service.py` 1 行）へ差分が入る（暫定仕様 §2 想定内）。
+  - **検証**（verifier・全緑）: compile clean / tests **89**（+2）/ tests_ui **84**（+2）/ smoke pass /
+    `grep -rn prompt_if_missing keyseq/` = **0 件** / `test_startup_font_characterization.py` は
+    差分なしのまま 4 テスト pass。
+  - **レビュー**: reviewer=**完了可・指摘なし**（撤去 4 箇所限定 / `pop` なし / 新挙動固定 /
+    対象外ファイルへの差分なし）。
 result_files:
-  - keyseq/presentation/controllers/config_io/keymap_set_io.py（import_config の無条件クリア）
-  - keyseq/presentation/controllers/config_io/startup_io.py（空起動時の keymap_set_path 空化）
-  - tests_ui/test_config_io_characterization_keymap_set_startup.py（既存 2 本更新 + 新規 2 本）
-  - instructions/phase/05_keymap_set_new_and_default_dir/tasks/task_03_import_and_empty_start_path.md（新規）
+  - keyseq/application/config_service.py（_build_startup_payload の正規化 1 行削除）
+  - keyseq/presentation/startup_settings.py（型ガード削除 + docstring）
+  - keyseq/presentation/controllers/config_io/startup_io.py（write_startup base 既定）
+  - keyseq/presentation/controllers/config_io/keymap_set_io.py（set_startup_keymap_set の引数）
+  - tests/test_startup_settings.py（期待値 4 箇所）/ tests/test_config_service.py（新規 2 本）
+  - tests_ui/test_config_io_characterization_keymap_set_startup.py（期待値更新 + 新規 2 本）
+  - instructions/phase/05_keymap_set_new_and_default_dir/tasks/task_04_remove_prompt_if_missing.md（新規）
 verified:
   compile: clean
-  tests: pass 87（増減なし）
-  tests_ui: pass 82（ベースライン 80 → +2）
+  tests: pass 89（ベースライン 87 → +2）
+  tests_ui: pass 84（ベースライン 82 → +2）
   smoke: pass
   review: reviewer=完了可（指摘なし）
-  実機目視: 未実施（task_05 でまとめて依頼する方針）
+  実機目視: 未実施（task_05 でまとめて依頼）
 
 ## next_action
-- **task_04（`remove_prompt_if_missing`）を `/task_new` で起票**し、`codex-implementer` へ委任する
-  （暫定 04 §6 / **受入条件 5・6** が根拠）。
-  - 除去対象は 4 箇所: `config_service.py` の `payload["prompt_if_missing"] = bool(...)` 正規化行 /
-    `startup_settings.py` の型ガード行 / `startup_io.write_startup` の base 既定 /
-    `keymap_set_io.set_startup_keymap_set` が書く辞書。
-  - **既存 config.json に残る値は能動削除しない**（未知キー保持契約。受入は「**新規作成される**
-    config.json に含まれない」で判定）。application 層（config_service）に触れる唯一のタスク。
-  - 既存テストで config.json のキー集合を固定している箇所（例:
-    `test_write_startup_merges_defaults_current_and_arg` は base に `prompt_if_missing: True` を期待）を
-    新挙動へ更新する必要がある。起票時に grep で洗い出すこと。
-- 以降 task_03〜06 は phase.md「タスク」表の順で進める（各タスクで reviewer 必須・
-  task_05 統合と完了判定前は Codex レビュー + `deep-reviewer` を併用）。
+- **task_05（`integration_recheck`）を `/task_new` で起票**する（暫定 04 §8 / **受入条件 7・8**）。
+  - 実装差分はほぼ無い**通し確認タスク**: `tests` / `tests_ui` / smoke 全 pass（verifier）+
+    **非変更経路の回帰確認**（既存パスへの上書き保存 / 読込 / 別名保存 / Import / Export）。
+    不足があれば回帰テストを追加する。
+  - **実機目視をユーザーへ依頼する**（phase.md「レビュー方針」の 6 項目: 新規作成→保存で別名保存が出る /
+    既存セットの上書き保存 / 別名保存の初期ディレクトリ〔`config/user/keymap_sets/`〕とファイル名
+    〔`keymap_set.json`〕/ Import 後の保存 / stored セットが無い起動 / 既存 `prompt_if_missing` 付き
+    config.json での起動）。
+  - **task_05 は複数タスクを跨ぐ統合のため `deep-reviewer` + Codex レビュー（`codex-reviewer`）を併用**する
+    （`.claude/rules/agent_selection.md`）。
+- その後 **task_06（`finalize_records`）**: 正本反映（`data_schema.md` / `codebase_map.md`）+ 暫定仕様 04 凍結 +
+  `decisions_archive/05` 作成 + `current.md` 更新 + `/refactor_check` でフェーズ完了。
 - **α は挙動変更フェーズ**（挙動不変ではない）。β/γ/プリセットは α 完了後に順次 `/phase_start`。
 
 ## blockers

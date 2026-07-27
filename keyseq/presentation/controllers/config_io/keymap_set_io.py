@@ -208,7 +208,7 @@ class KeymapSetIo:
             return
 
         self._app.keymap_set_path = path
-        self._app.startup_io.write_startup({"keymap_set_path": self._app.paths.to_config_relative_or_absolute(path), "prompt_if_missing": True})
+        self._app.startup_io.write_startup({"keymap_set_path": self._app.paths.to_config_relative_or_absolute(path)})
         self.apply_loaded_data_to_ui()
         self._app.state.reset_indices()
         self._app.trigger_panel.refresh_triggers()

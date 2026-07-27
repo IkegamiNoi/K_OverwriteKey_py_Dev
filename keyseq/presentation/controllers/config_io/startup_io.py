@@ -36,7 +36,6 @@ class StartupIo:
 
     def write_startup(self, data: dict[str, any]):
         base = {
-            "prompt_if_missing": True,
             "ui_font_delta_pt": 0,
             "last_used_directory": "",
         }

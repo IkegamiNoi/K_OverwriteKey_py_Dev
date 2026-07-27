@@ -468,6 +468,23 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             showerror.assert_called_once()
             write_startup.assert_not_called()  # 読込例外時は後続を実行しない
 
+    def test_set_startup_keymap_set_writes_only_keymap_set_path(self):
+        patches = self._silence_refresh()
+        with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+            tkinter.filedialog, "askopenfilename", return_value="k.json"
+        ), patch.object(
+            self.app.config_service, "load_runtime_data_from_keymap_set_path", return_value={"loaded": True}
+        ), patch.object(
+            self.app.paths, "to_config_relative_or_absolute", return_value="user/keymap_sets/k.json"
+        ), patch.object(self.app.startup_io, "write_startup") as write_startup, patch.object(
+            _config_set_io(self.app), "apply_loaded_data_to_ui"
+        ), patch.object(self.app.dirty_tracker, "set_dirty"), patch.object(
+            self.app, "_set_flash_message"
+        ), patch.object(tkinter.messagebox, "showinfo"), patches[0], patches[1], patches[2], patches[3]:
+            _config_set_io(self.app).set_startup_keymap_set()
+
+        write_startup.assert_called_once_with({"keymap_set_path": "user/keymap_sets/k.json"})
+
     def test_set_startup_keymap_set_continues_after_write_startup_save_failure(self):
         # 現挙動: write_startup 内で save 失敗を握りつぶした後も、
         # データ適用・dirty 解除・成功 showinfo を続行する（暫定仕様 §7-2）。
@@ -510,13 +527,21 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         self.assertEqual(
             saved["base"],
             {
-                "prompt_if_missing": True,
                 "ui_font_delta_pt": 2,
                 "last_used_directory": "D",
                 "keymap_set_path": "X.json",
             },
         )
         self.assertEqual(self.app._startup_settings, saved["base"])
+
+    def test_write_startup_omits_prompt_if_missing_without_existing_value(self):
+        saved = {}
+        with patch.object(self.app.paths, "preferred_startup_path", return_value="startup.json"), patch.object(
+            self.app.config_service, "save_startup", side_effect=lambda path, base: saved.update({"base": dict(base)})
+        ):
+            _startup_io(self.app).write_startup({"ui_font_delta_pt": 0})
+
+        self.assertNotIn("prompt_if_missing", saved["base"])
 
     def test_write_startup_drops_config_path_and_coerces_font_delta(self):
         self.app._startup_settings = {"config_path": "should_be_removed"}

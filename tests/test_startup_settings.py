@@ -28,7 +28,7 @@ class StartupSettingsTest(unittest.TestCase):
             on_read_error=read_errors.append,
         )
 
-        self.assertEqual(result, {"ui_font_delta_pt": 0, "prompt_if_missing": True})
+        self.assertEqual(result, {"ui_font_delta_pt": 0})
         self.assertEqual(config_service.calls, [self.startup_path])
         self.assertEqual(read_errors, [])
 
@@ -43,7 +43,7 @@ class StartupSettingsTest(unittest.TestCase):
             on_read_error=read_errors.append,
         )
 
-        self.assertEqual(result, {"ui_font_delta_pt": 0, "prompt_if_missing": True})
+        self.assertEqual(result, {"ui_font_delta_pt": 0})
         self.assertEqual(config_service.calls, [self.startup_path])
         self.assertEqual(read_errors, [read_error])
         self.assertIs(read_errors[0], read_error)
@@ -58,7 +58,7 @@ class StartupSettingsTest(unittest.TestCase):
             on_read_error=read_errors.append,
         )
 
-        self.assertEqual(result, {"ui_font_delta_pt": 0, "prompt_if_missing": True})
+        self.assertEqual(result, {"ui_font_delta_pt": 0})
         self.assertEqual(config_service.calls, [self.startup_path])
         self.assertEqual(read_errors, [])
 
@@ -87,7 +87,7 @@ class StartupSettingsTest(unittest.TestCase):
                 "last_used_directory": "D",
                 "custom_setting": {"enabled": True},
                 "ui_font_delta_pt": 3,
-                "prompt_if_missing": False,
+                "prompt_if_missing": 0,
             },
         )
         self.assertEqual(config_service.calls, [self.startup_path])
