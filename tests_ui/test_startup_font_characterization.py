@@ -14,14 +14,17 @@ class StartupFontCharacterizationTest(unittest.TestCase):
             "load_startup",
             return_value={},
         )
-        cls._makedirs_patch = patch.object(app_module.os, "makedirs")
+        cls._split_config_dirs_patch = patch.object(
+            app_module.ConfigService,
+            "ensure_split_config_dirs",
+        )
         cls._load_startup_patch.start()
-        cls._makedirs_patch.start()
+        cls._split_config_dirs_patch.start()
         try:
             cls.app = app_module.App()
             cls.app.update_idletasks()
         finally:
-            cls._makedirs_patch.stop()
+            cls._split_config_dirs_patch.stop()
             cls._load_startup_patch.stop()
 
     @classmethod
@@ -77,8 +80,8 @@ class StartupFontCharacterizationTest(unittest.TestCase):
     def test_startup_read_error_warning_text(self):
         read_error = ValueError("broken json")
         with patch.object(app_module.ConfigService, "load_startup", side_effect=read_error), patch.object(
-            app_module.os,
-            "makedirs",
+            app_module.ConfigService,
+            "ensure_split_config_dirs",
         ), patch.object(app_module.messagebox, "showwarning") as showwarning:
             app = app_module.App()
         try:

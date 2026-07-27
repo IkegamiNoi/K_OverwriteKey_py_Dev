@@ -223,7 +223,7 @@ class ConfigService:
             split_base_dir=resolved_split_base_dir,
         )
 
-        self._ensure_split_config_dirs(resolved_config_root)
+        self.ensure_split_config_dirs(resolved_config_root)
         self.repository.save_json(self._startup_entry_path(resolved_config_root), payloads["startup"])
         self.repository.save_json(resolved_keymap_set_path, payloads["keymap_set"])
         self.repository.save_json(
@@ -923,7 +923,7 @@ class ConfigService:
             suffix += 1
         return candidate
 
-    def _ensure_split_config_dirs(self, config_root: str) -> None:
+    def ensure_split_config_dirs(self, config_root: str) -> None:
         os.makedirs(config_root, exist_ok=True)
         os.makedirs(os.path.join(config_root, "user"), exist_ok=True)
         os.makedirs(os.path.join(config_root, "user", "keymap_sets"), exist_ok=True)

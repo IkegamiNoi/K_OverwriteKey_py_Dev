@@ -4,56 +4,57 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-27T22:45:00
-phase: instructions/phase/05_keymap_set_new_and_default_dir（**Phase α・起票完了・task_01 未起票**）
+last_updated: 2026-07-27T23:30:00
+phase: instructions/phase/05_keymap_set_new_and_default_dir（**Phase α・task_01 完了 / 全 6 タスク中 1 完了**）
 last_commit_location: claude/opus5-prompt-tuning-f6076e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase α（phase 05_keymap_set_new_and_default_dir）を起票完了（reviewer 整合チェック=完了可・未コミット）。次は task_01（startup_dir_skeleton）を `/task_new` で起票し codex-implementer へ実装委任**。
+focus: **Phase α の task_01（起動時ディレクトリ骨格作成）完了（verifier 全緑・reviewer 完了可・指摘なし）。次は task_02（new_config_empty_path）を `/task_new` で起票し codex-implementer へ委任**。
 mode: implementing
 
 ## last_action
-ts: 2026-07-27T22:45:00
+ts: 2026-07-27T23:30:00
 who: main
 summary: |
-  【Opus5 向け指示文の改修（コミット 43c1094 / 0c73758・ユーザーがコミット）】
-  - `.claude/rules/output_style.md` を新設（応答の簡潔性 / 進捗報告のカデンス / 文書成果物の分量 /
-    自己訂正の言及制限 / 委任量の抑制 / 検証の重ね過ぎ禁止）。CLAUDE.md に参照 + 末尾 `<tone_preference>`。
-  - **レビュアーを 2 本立てに分離**: `reviewer`（sonnet・単一タスクの実装差分）/ **`deep-reviewer`（opus・新設。
-    設計文書 / 複数タスクを跨ぐ差分 / フェーズ完了判定。5観点 + 前提・未定義挙動・矛盾・実装可能性・正本整合・代替案）**。
-    agent_selection.md のレビュー表を Claude 側 / Codex 側の 2 列へ再構成。spec_draft の起票時レビューは deep-reviewer へ。
-  - `/phase_start` の phase.md レビューを**整合チェック限定**に縮小（設計の再レビューはしない = 三重レビューの解消）。
-  - **不具合修正**: `switch_files/codex/` 側の agent_selection.md が live 版から乖離しており、モード切替で
-    Codex 運用ノート等が巻き戻る状態だった → live を正として同期。deep-reviewer は switch_files 管理外＝両モードで残る。
-  【Phase α（phase 05）起票（未コミット）】
-  - `instructions/phase/05_keymap_set_new_and_default_dir/phase.md` を新規作成（主入力=暫定 04 v0.3）。
-    タスク 6 本: 01 起動時ディレクトリ骨格 / 02 新規=空パス+保存の空パス→別名分岐+initialfile / 03 Import 後クリア+
-    空起動 path 空+default.json 用途整理 / 04 prompt_if_missing 撤去 / 05 統合退行 / 06 正本反映。
-  - `current.md`: アクティブを phase 05 へ差し替え / 次採番 06（β=06・γ=07・プリセット=08）/ 暫定次採番 08 /
-    idea_05 は「Phase β が内包」へ更新（単独フェーズ化しない）。
-  - **レビュー**: reviewer（整合チェック限定）=**完了可**。軽微指摘 1 件（task_05 に受入 7・8 のタグ明記）を反映済。
-  - 起票元はユーザー要望であり idea 由来ではないため backlog/INDEX.md の更新対象なし。
+  【task_01（startup_dir_skeleton）完了 = Phase α 最初の実装タスク】
+  - 起票: `tasks/task_01_startup_dir_skeleton.md`。コード実読で暫定仕様に無い判断 2 点をタスク定義で先に確定させた:
+    ① `_ensure_split_config_dirs` は private のため presentation から直呼びできない → **公開名へリネーム**
+    （新メソッド追加ではなくリネーム。互換エイリアス禁止）② 既存 tests_ui が `app_module.os.makedirs` を
+    patch して実ディレクトリ作成を止めており、作成処理が config_service 側へ移ると patch をすり抜けて
+    リポジトリ配下に実ディレクトリが作られる → **patch 対象を `ConfigService.ensure_split_config_dirs` へ差し替え**。
+  - 実装（codex-implementer）: config_service のリネーム + 内部呼び出し追従 / `app.py:56` の
+    `os.makedirs(user_root)` を `ensure_split_config_dirs(config_root)` へ**置換** / 新規テスト 3 本。
+  - **Codex は sandbox 制約で python 検証 1〜4 を実行できず未実行申告** → 運用ルールどおり verifier で `.venv` 再実行。
+  - **検証**（verifier・全緑）: compile clean / tests **87**（+1）/ tests_ui **76**（+2）/ smoke pass /
+    `_ensure_split_config_dirs` 残存 0 件 / `config/` 配下に未追跡ディレクトリなし。
+  - **レビュー**: reviewer=**完了可・必須指摘なし**（リネーム完全・置換であり追加でない・既存テストを緩めていない・
+    task_02〜04 の先取りなし）。参考指摘 1 件: 新規 tests_ui の `save_json` 未呼び出しアサーションは
+    「config.json 非書込」より広い保証（現状は意図どおりで修正不要）。
 result_files:
-  - instructions/phase/05_keymap_set_new_and_default_dir/phase.md（新規・未コミット）
-  - instructions/phase/current.md（アクティブ / 次採番 / 次フェーズ候補・未コミット）
-  - .claude/rules/output_style.md・.claude/agents/deep-reviewer.md（新規・コミット済）
-  - CLAUDE.md / .claude/rules/agent_selection.md / .claude/agents/reviewer.md /
-    .claude/commands/{phase_start,spec_draft}.md / switch_files 両モードの agent_selection.md（コミット済）
+  - keyseq/application/config_service.py（`ensure_split_config_dirs` へリネーム + 内部呼び出し追従）
+  - keyseq/presentation/app.py（起動時の makedirs を置換）
+  - tests/test_config_service.py（+1・7 ディレクトリ作成の単体テスト）
+  - tests_ui/test_startup_font_characterization.py（patch 対象の差し替えのみ）
+  - tests_ui/test_startup_dir_skeleton.py（新規・+2・起動時呼び出し / config.json 非書込）
+  - instructions/phase/05_keymap_set_new_and_default_dir/tasks/task_01_startup_dir_skeleton.md（新規）
 verified:
-  review: reviewer 整合チェック=完了可（主入力との齟齬なし / 受入 1〜8 と §10 の割当漏れなし / リンク・番号対応・
-    「読むファイル」9 パスの実在をすべて確認）
-  commit: 43c1094 + 0c73758（指示文改修のみ）。phase 05 起票分は**未コミット**
-  production_scope: 文書のみ（keyseq/ の実装は未着手）
+  compile: clean
+  tests: pass 87（ベースライン 86 → +1）
+  tests_ui: pass 76（ベースライン 74 → +2）
+  smoke: pass
+  review: reviewer=完了可（指摘なし）
+  実機目視: 未実施（task_05 でまとめて依頼する方針）
 
 ## next_action
-- **phase 05 の起票分（phase.md + current.md）を `/task_commit` でコミット**する（未コミット）。
-- 次に **task_01（`startup_dir_skeleton`）を `/task_new` で
-  `instructions/phase/05_keymap_set_new_and_default_dir/tasks/task_01_startup_dir_skeleton.md` へ起票**し、
-  `codex-implementer` へ実装委任する（暫定 04 §5「起動時ディレクトリ作成」・受入 2 が根拠）。
-  - 内容: `keyseq/presentation/app.py` の起動時に `config/user/{keymap_sets,keymaps,trigger_sets,hotkey_presets,sequences}`
-    を一括作成（`config_service._ensure_split_config_dirs` 相当を再利用）。**config.json は起動時に書かない**。
-  - 完了条件に「reviewer 採用」を必ず含める。新挙動は特性テストで固定（暫定 04 §8）。
-- 以降 task_02〜06 は phase.md「タスク」表の順で進める（各タスクで reviewer 必須・
+- **task_02（`new_config_empty_path`）を `/task_new` で
+  `instructions/phase/05_keymap_set_new_and_default_dir/tasks/task_02_new_config_empty_path.md` へ起票**し、
+  `codex-implementer` へ実装委任する（暫定 04 §3・§4・§7-1 / **受入条件 1** が根拠）。
+  - 内容: `keymap_set_io.py` の `new_config`（:33）で `keymap_set_path` を **空文字**にする /
+    `save_keymap_set`（:44-49）の先頭で空パスなら `save_as(...)` へ委譲 /
+    `save_as`（:51-66）の `initialfile` を固定 `default.json` ではなく **`keymap_set.json`**（一般名）にする。
+  - `confirm_save_if_dirty`（:9-24）は既存の空パス分岐で正しいため**変更しない**（二重に save_as へ回さない）。
+  - `save_keymap_set_to` のロジック（正規化・分割保存・ダイアログ）は**変更しない**。
+- 以降 task_03〜06 は phase.md「タスク」表の順で進める（各タスクで reviewer 必須・
   task_05 統合と完了判定前は Codex レビュー + `deep-reviewer` を併用）。
 - **α は挙動変更フェーズ**（挙動不変ではない）。β/γ/プリセットは α 完了後に順次 `/phase_start`。
 
@@ -75,7 +76,9 @@ verified:
   既存不整合の詳細は暫定仕様 03 §1「既存の不整合」/ idea_05 に記載。
 - **【Codex 運用の手順書】ジョブが詰まった / cancel が効かない / ハング検知 / state 手修復は
   `instructions/common/rules_detail/codex_operations.md` を読む**（`.claude/rules/agent_selection.md` 冒頭にポインタ）。
-  **Codex 申告のテスト結果は信用せず必ず verifier で `.venv` 再実行**（今回 19件全 ERROR を検出）。
+  **Codex 申告のテスト結果は信用せず必ず verifier で `.venv` 再実行**（phase 04 で 19件全 ERROR を検出）。
+  **Codex の sandbox は `.venv` python の起動自体を拒否することがある**（phase 05 task_01 で発生・検証 1〜4 が
+  未実行のまま返る）。実装差分そのものは有効なので、verifier で実測してから reviewer へ回せばよい。
 - **【罠】state ファイル・`instructions/` 配下・code は必ず worktree のパスで編集する**。
   main リポジトリ側の絶対パスを編集すると commit から漏れる（phase 02・03 で再発）。
 - **【罠】`git grep` は追跡済みファイルしか検索しない**。新規（未追跡）ファイルの確認には**直接 `grep`** を使う。

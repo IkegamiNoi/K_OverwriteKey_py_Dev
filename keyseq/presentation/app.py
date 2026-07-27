@@ -53,7 +53,7 @@ class App(tk.Tk):
         self.base_dir = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
         self.config_root = os.path.join(self.base_dir, "config")
         self.user_root = os.path.join(self.config_root, "user")
-        os.makedirs(self.user_root, exist_ok=True)
+        self.config_service.ensure_split_config_dirs(self.config_root)
         self.paths = ConfigPaths(
             base_dir=self.base_dir,
             config_root=self.config_root,

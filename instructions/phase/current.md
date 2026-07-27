@@ -14,6 +14,7 @@
   判断履歴: `.claude_data/state/decisions.md`（アーカイブは完了時に `decisions_archive/05_keymap_set_new_and_default_dir.md`）。
   起票元: ユーザー要望（2026-07-26〜27・保存系統の改善討議。idea 由来ではない）。
   番号対応: phase 05 / 暫定 04 / decisions 05。
+  進捗: **task_01（起動時ディレクトリ骨格）完了**（2026-07-27）。次は task_02（新規=空パス + 保存の空パス→別名分岐）。
 - 直前の完了フェーズ: `04_config_io_controller_split`（2026-07-26 完了）。`config_io_controller.py`（598 行）を
   `controllers/config_io/` 配下の 6 クラスへ分割し（案B・呼び出し元30箇所差し替え・`config_io` 名消滅・互換レイヤーなし）、
   挙動不変で保守性を回復。要約・判断は

@@ -147,5 +147,26 @@ class PathHelperTest(unittest.TestCase):
             )
 
 
+class EnsureSplitConfigDirsTest(unittest.TestCase):
+    def test_creates_all_directories_and_allows_existing_directories(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            service = ConfigService(JsonRepository())
+
+            service.ensure_split_config_dirs(root)
+            service.ensure_split_config_dirs(root)
+
+            for relative_path in (
+                "",
+                "user",
+                os.path.join("user", "keymap_sets"),
+                os.path.join("user", "keymaps"),
+                os.path.join("user", "trigger_sets"),
+                os.path.join("user", "hotkey_presets"),
+                os.path.join("user", "sequences"),
+            ):
+                self.assertTrue(os.path.isdir(os.path.join(root, relative_path)))
+
+
 if __name__ == "__main__":
     unittest.main()
