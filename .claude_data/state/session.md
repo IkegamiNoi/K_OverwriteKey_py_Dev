@@ -4,56 +4,63 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-27T23:30:00
-phase: instructions/phase/05_keymap_set_new_and_default_dir（**Phase α・task_01 完了 / 全 6 タスク中 1 完了**）
+last_updated: 2026-07-28T00:20:00
+phase: instructions/phase/05_keymap_set_new_and_default_dir（**Phase α・task_02 完了 / 全 6 タスク中 2 完了**）
 last_commit_location: claude/opus5-prompt-tuning-f6076e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase α の task_01（起動時ディレクトリ骨格作成）完了（verifier 全緑・reviewer 完了可・指摘なし）。次は task_02（new_config_empty_path）を `/task_new` で起票し codex-implementer へ委任**。
+focus: **Phase α の task_02（新規=空パス + 保存の空パス→別名分岐 + initialfile）完了（verifier 全緑・reviewer 完了可・指摘なし）。次は task_03（import_and_empty_start_path）を `/task_new` で起票し codex-implementer へ委任**。
 mode: implementing
 
 ## last_action
-ts: 2026-07-27T23:30:00
+ts: 2026-07-28T00:20:00
 who: main
 summary: |
-  【task_01（startup_dir_skeleton）完了 = Phase α 最初の実装タスク】
-  - 起票: `tasks/task_01_startup_dir_skeleton.md`。コード実読で暫定仕様に無い判断 2 点をタスク定義で先に確定させた:
-    ① `_ensure_split_config_dirs` は private のため presentation から直呼びできない → **公開名へリネーム**
-    （新メソッド追加ではなくリネーム。互換エイリアス禁止）② 既存 tests_ui が `app_module.os.makedirs` を
-    patch して実ディレクトリ作成を止めており、作成処理が config_service 側へ移ると patch をすり抜けて
-    リポジトリ配下に実ディレクトリが作られる → **patch 対象を `ConfigService.ensure_split_config_dirs` へ差し替え**。
-  - 実装（codex-implementer）: config_service のリネーム + 内部呼び出し追従 / `app.py:56` の
-    `os.makedirs(user_root)` を `ensure_split_config_dirs(config_root)` へ**置換** / 新規テスト 3 本。
-  - **Codex は sandbox 制約で python 検証 1〜4 を実行できず未実行申告** → 運用ルールどおり verifier で `.venv` 再実行。
-  - **検証**（verifier・全緑）: compile clean / tests **87**（+1）/ tests_ui **76**（+2）/ smoke pass /
-    `_ensure_split_config_dirs` 残存 0 件 / `config/` 配下に未追跡ディレクトリなし。
-  - **レビュー**: reviewer=**完了可・必須指摘なし**（リネーム完全・置換であり追加でない・既存テストを緩めていない・
-    task_02〜04 の先取りなし）。参考指摘 1 件: 新規 tests_ui の `save_json` 未呼び出しアサーションは
-    「config.json 非書込」より広い保証（現状は意図どおりで修正不要）。
+  【task_02（new_config_empty_path）完了 + Codex の python 実行制約の再調査】
+  - 起票時にコードと既存テストを実読し、判断 3 点をタスク定義で確定: ① 既存特性テスト
+    `test_new_config_success` が**旧挙動を固定**していた（`preferred_keymap_set_path` を patch し
+    `keymap_set_path=="k.json"` を期待）→ 新挙動へ更新する指示を明記 ② `initialfile` の実装場所は
+    `save_as`（presentation）に置く（`config_paths.py` は task_03 が触るため境界を分離）
+    ③ 空パス時のみ一般名 `keymap_set.json`、非空時は従来どおり現在ファイル名（別名保存の慣習を維持）。
+  - 実装（codex-implementer）: `new_config` の path 空化 / `save_keymap_set` の空パス→`save_as` 委譲 /
+    `save_as` の `initialfile` 条件分岐（定数 `DEFAULT_KEYMAP_SET_FILENAME`）/ 既存テスト更新 + 新規 4 本。
+    `confirm_save_if_dirty` と `save_keymap_set_to` は不変。
+  - **検証**（verifier・全緑）: compile clean / tests **87**（増減なし）/ tests_ui **80**（+4）/ smoke pass /
+    `preferred_keymap_set_path` は `import_config` 内の 1 件のみ（`new_config` 内 0 件）。
+  - **レビュー**: reviewer=**完了可・指摘なし**（空パス化は new_config のみ・二重委譲なし・
+    save_as は initialfile のみ変更・テストを緩めていない・task_03/04 の先取りなし）。
+  - 【重要な発見】**worktree 内 venv でも Codex は python を起動できない**。`.venv/Scripts/python.exe` は
+    255KB のランチャで、`pyvenv.cfg` の `home`/`executable` が
+    `C:\Users\ikega\AppData\Local\Python\pythoncore-3.14-64`（**ワークスペース外**）を指すため、
+    サンドボックスが base インタプリタの起動を拒否する（"Unable to create process using ..."）。
+    → **却下した `--cwd` 拡大案でも同じ理由で解決しなかった**（base python はリポジトリの外）。
+    Codex に python を実行させるには 144MB の python 本体を worktree へ持ち込むしかなく非現実的。
+    **venv 配置と検証委任先の方針はユーザー判断待ち**（下記 next_action）。
 result_files:
-  - keyseq/application/config_service.py（`ensure_split_config_dirs` へリネーム + 内部呼び出し追従）
-  - keyseq/presentation/app.py（起動時の makedirs を置換）
-  - tests/test_config_service.py（+1・7 ディレクトリ作成の単体テスト）
-  - tests_ui/test_startup_font_characterization.py（patch 対象の差し替えのみ）
-  - tests_ui/test_startup_dir_skeleton.py（新規・+2・起動時呼び出し / config.json 非書込）
-  - instructions/phase/05_keymap_set_new_and_default_dir/tasks/task_01_startup_dir_skeleton.md（新規）
+  - keyseq/presentation/controllers/config_io/keymap_set_io.py（new_config / save_keymap_set / save_as）
+  - tests_ui/test_config_io_characterization_keymap_set_startup.py（既存 1 本更新 + 新規 4 本）
+  - instructions/phase/05_keymap_set_new_and_default_dir/tasks/task_02_new_config_empty_path.md（新規）
 verified:
   compile: clean
-  tests: pass 87（ベースライン 86 → +1）
-  tests_ui: pass 76（ベースライン 74 → +2）
+  tests: pass 87（増減なし）
+  tests_ui: pass 80（ベースライン 76 → +4）
   smoke: pass
   review: reviewer=完了可（指摘なし）
   実機目視: 未実施（task_05 でまとめて依頼する方針）
 
 ## next_action
-- **task_02（`new_config_empty_path`）を `/task_new` で
-  `instructions/phase/05_keymap_set_new_and_default_dir/tasks/task_02_new_config_empty_path.md` へ起票**し、
-  `codex-implementer` へ実装委任する（暫定 04 §3・§4・§7-1 / **受入条件 1** が根拠）。
-  - 内容: `keymap_set_io.py` の `new_config`（:33）で `keymap_set_path` を **空文字**にする /
-    `save_keymap_set`（:44-49）の先頭で空パスなら `save_as(...)` へ委譲 /
-    `save_as`（:51-66）の `initialfile` を固定 `default.json` ではなく **`keymap_set.json`**（一般名）にする。
-  - `confirm_save_if_dirty`（:9-24）は既存の空パス分岐で正しいため**変更しない**（二重に save_as へ回さない）。
-  - `save_keymap_set_to` のロジック（正規化・分割保存・ダイアログ）は**変更しない**。
+- **【ユーザー判断待ち】venv 配置と Codex への検証委任の方針**。worktree 内 venv でも Codex は
+  python を起動できないことが判明したため、①ルールを「検証は verifier へ一本化」へ戻し、
+  venv もリポジトリルートへ戻す（worktree 内 `.venv` と SessionStart の欠落検知は撤去）か、
+  ②worktree 内 venv は維持したまま検証だけ verifier へ一本化するかを決める。**推奨は ①**（根拠が消えたため）。
+- **task_03（`import_and_empty_start_path`）を `/task_new` で起票**し、`codex-implementer` へ委任する
+  （暫定 04 §5 / **受入条件 3・4** が根拠）。
+  - 内容: `keymap_set_io.import_config`（:148 付近）の `keymap_set_path = preferred_keymap_set_path()` を廃し
+    **成功時は無条件で空** / `startup_io.load_startup_and_config` の空起動時 `keymap_set_path` を**空**にする /
+    `config_paths.py` の `default.json` 用途（`preferred_keymap_set_path` / `normalize_keymap_set_save_path`）が
+    **保存ターゲットとして到達しない**ことを grep で確認し整理する（suggest 系の補助用途としては残してよい）。
+  - `tests/test_config_paths.py` が `normalize_keymap_set_save_path("")` → `default.json` を固定しているため、
+    据え置き / 変更のどちらを選ぶかで期待値の扱いを task 定義に明記すること。
 - 以降 task_03〜06 は phase.md「タスク」表の順で進める（各タスクで reviewer 必須・
   task_05 統合と完了判定前は Codex レビュー + `deep-reviewer` を併用）。
 - **α は挙動変更フェーズ**（挙動不変ではない）。β/γ/プリセットは α 完了後に順次 `/phase_start`。
@@ -80,8 +87,10 @@ verified:
 - **【Codex 運用の手順書】ジョブが詰まった / cancel が効かない / ハング検知 / state 手修復は
   `instructions/common/rules_detail/codex_operations.md` を読む**（`.claude/rules/agent_selection.md` 冒頭にポインタ）。
   **Codex 申告のテスト結果は信用せず必ず verifier で再実行**（phase 04 で 19件全 ERROR を検出）。
-  Codex のサンドボックスは**作業ツリー配下しか実行できない**ため venv を worktree 内に置く方式へ変更した
-  （2026-07-27・phase 05 task_01 で発覚。詳細と却下案〔--cwd 拡大〕は codex_operations.md §0）。
+  **Codex は python をまったく実行できない**（サンドボックスは作業ツリー配下のみ実行可。venv を worktree 内へ
+  置いても `.venv/Scripts/python.exe` は 255KB のランチャで、base インタプリタ
+  `C:\Users\ikega\AppData\Local\Python\pythoncore-3.14-64`〔ツリー外〕の起動が拒否される。2026-07-28 実測）。
+  → **python 検証は verifier で行う**。Codex への委任にテスト実行を含めない。
 - **【罠】state ファイル・`instructions/` 配下・code は必ず worktree のパスで編集する**。
   main リポジトリ側の絶対パスを編集すると commit から漏れる（phase 02・03 で再発）。
 - **【罠】`git grep` は追跡済みファイルしか検索しない**。新規（未追跡）ファイルの確認には**直接 `grep`** を使う。

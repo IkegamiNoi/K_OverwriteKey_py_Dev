@@ -2,6 +2,9 @@ import os
 from tkinter import filedialog, messagebox
 
 
+DEFAULT_KEYMAP_SET_FILENAME = "keymap_set.json"
+
+
 class KeymapSetIo:
     def __init__(self, app) -> None:
         self._app = app
@@ -30,7 +33,7 @@ class KeymapSetIo:
         self._app.data = self._app.config_service.new_default_data()
         self._app.data["triggers"] = []
         self._app.data = self._app.config_service.normalize_runtime_data(self._app.data)
-        self._app.keymap_set_path = self._app.paths.preferred_keymap_set_path()
+        self._app.keymap_set_path = ""
 
         self._app._sync_control_vars_from_data()
 
@@ -42,6 +45,8 @@ class KeymapSetIo:
         self._app._set_flash_message("新規作成しました（未保存）。")
 
     def save_keymap_set(self, *, show_success_dialog: bool = True) -> bool:
+        if not self._app.keymap_set_path:
+            return self.save_as(show_success_dialog=show_success_dialog)
         return self.save_keymap_set_to(
             self._app.keymap_set_path,
             flash_message="保存しました。",
@@ -50,10 +55,15 @@ class KeymapSetIo:
 
     def save_as(self, *, show_success_dialog: bool = True) -> bool:
         suggested_path = self._app.suggest_keymap_set_dialog_path()
+        initialfile = (
+            os.path.basename(suggested_path)
+            if self._app.keymap_set_path
+            else DEFAULT_KEYMAP_SET_FILENAME
+        )
         path = filedialog.asksaveasfilename(
             title="別名で保存（keymap_set）",
             initialdir=self._app.suggest_keymap_set_dialog_dir(),
-            initialfile=os.path.basename(suggested_path),
+            initialfile=initialfile,
             defaultextension=".json",
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
         )

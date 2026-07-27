@@ -136,6 +136,42 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             save_as.assert_called_once_with(show_success_dialog=False)
             save.assert_not_called()
 
+    def test_save_keymap_set_empty_path_delegates_to_save_as(self):
+        with patch.object(_config_set_io(self.app), "save_as", return_value=True) as save_as, patch.object(
+            _config_set_io(self.app), "save_keymap_set_to"
+        ) as save_to:
+            self.assertTrue(_config_set_io(self.app).save_keymap_set(show_success_dialog=False))
+        save_as.assert_called_once_with(show_success_dialog=False)
+        save_to.assert_not_called()
+
+    def test_save_keymap_set_nonempty_path_saves_to_current_path(self):
+        self.app.keymap_set_path = "current.json"
+        with patch.object(_config_set_io(self.app), "save_as") as save_as, patch.object(
+            _config_set_io(self.app), "save_keymap_set_to", return_value=True
+        ) as save_to:
+            self.assertTrue(_config_set_io(self.app).save_keymap_set(show_success_dialog=False))
+        save_to.assert_called_once_with(
+            "current.json",
+            flash_message="保存しました。",
+            show_success_dialog=False,
+        )
+        save_as.assert_not_called()
+
+    def test_save_as_empty_path_uses_default_initialfile(self):
+        with patch.object(self.app, "suggest_keymap_set_dialog_path", return_value="default.json"), patch.object(
+            self.app, "suggest_keymap_set_dialog_dir", return_value="config"
+        ), patch.object(tkinter.filedialog, "asksaveasfilename", return_value="") as ask:
+            self.assertFalse(_config_set_io(self.app).save_as())
+        self.assertEqual(ask.call_args.kwargs["initialfile"], "keymap_set.json")
+
+    def test_save_as_nonempty_path_uses_current_filename_initialfile(self):
+        self.app.keymap_set_path = "current.json"
+        with patch.object(self.app, "suggest_keymap_set_dialog_path", return_value="directory/current.json"), patch.object(
+            self.app, "suggest_keymap_set_dialog_dir", return_value="directory"
+        ), patch.object(tkinter.filedialog, "asksaveasfilename", return_value="") as ask:
+            self.assertFalse(_config_set_io(self.app).save_as())
+        self.assertEqual(ask.call_args.kwargs["initialfile"], "current.json")
+
     # ===================== A: save_keymap_set_to =====================
     def test_save_keymap_set_to_success_updates_state(self):
         calls = []
@@ -287,11 +323,10 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             self.app.config_service, "new_default_data", return_value={"d": 1}
         ), patch.object(
             self.app.config_service, "normalize_runtime_data", side_effect=lambda d: d
-        ), patch.object(self.app.paths, "preferred_keymap_set_path", return_value="k.json"), patch.object(
-            self.app.dirty_tracker, "set_dirty"
+        ), patch.object(self.app.dirty_tracker, "set_dirty"
         ) as set_dirty, self._record_flash(calls), patches[0], patches[1], patches[2], patches[3]:
             _config_set_io(self.app).new_config()
-        self.assertEqual(self.app.keymap_set_path, "k.json")
+        self.assertEqual(self.app.keymap_set_path, "")
         self.assertEqual(self.app.data.get("triggers"), [])
         set_dirty.assert_called_once_with(True)
         self.assertIn(("flash", "新規作成しました（未保存）。", {}), calls)
