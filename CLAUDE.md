@@ -52,7 +52,9 @@
 - タスク外の機能追加・無関係なリファクタ・大規模構造変更をしない
 - 実装は原則、既定の実装エージェントへ委任する（既定エージェントとフォールバック条件は
   `.claude/rules/agent_selection.md`。エージェント構成は `instructions/agent_mode/` で
-  Codex 併用 / Claude のみ を切り替える）
+  Codex 併用 / Claude のみ を切り替える）。
+  ここで定義された委任はユーザー確定済みの運用であり、都度の許可確認は不要。
+  一方、**定義外の委任・多重起動は行わない**（量の抑制は `.claude/rules/output_style.md`）
 
 ---
 
@@ -81,6 +83,14 @@
 - `.claude/rules/file_organization_rules.md` — ファイル配置・肥大化対策（分割時の親フォルダ方式 / 昇格ルール / 恒久互換レイヤー禁止）
 - `.claude/rules/python_rules.md` — 言語別ルール（Python）
 - `.claude/rules/implementation.md` — 実装ポリシー
+- `.claude/rules/output_style.md` — 応答・進捗報告・文書分量・委任量の作法（出力の量と形）
 - `.claude/rules/review.md`
 - `.claude/rules/spec_change_workflow.md` — 仕様変更は2モード（直接改訂 / 暫定仕様先行）。多岐・探索的なら暫定仕様書から（境界は同ファイル「モードの選択」節）
 - `.claude/rules/task_execution.md`
+
+---
+
+<tone_preference>
+応答・進捗報告・文書成果物はいずれも簡潔に。結論から述べ、委任は必要最小限にとどめる
+（詳細は `.claude/rules/output_style.md`）。
+</tone_preference>
