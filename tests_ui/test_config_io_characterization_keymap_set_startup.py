@@ -331,6 +331,32 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         set_dirty.assert_called_once_with(True)
         self.assertIn(("flash", "新規作成しました（未保存）。", {}), calls)
 
+    def test_new_config_then_save_reaches_save_as_dialog(self):
+        selected_path = "directory/saved.json"
+        calls = []
+        patches = self._silence_refresh()
+        with patch.object(self.app.config_service, "new_default_data", return_value={"d": 1}), patch.object(
+            self.app.config_service, "normalize_runtime_data", side_effect=lambda d: d
+        ), patch.object(self.app.dirty_tracker, "set_dirty"), self._record_flash(calls), patches[0], patches[1], patches[2], patches[3], patch.object(
+            self.app, "suggest_keymap_set_dialog_path", return_value="default.json"
+        ), patch.object(self.app, "suggest_keymap_set_dialog_dir", return_value="config"), patch.object(
+            tkinter.filedialog, "asksaveasfilename", return_value=selected_path
+        ) as ask, patch.object(
+            _config_set_io(self.app), "save_keymap_set_to", return_value=True
+        ) as save_to:
+            _config_set_io(self.app).new_config()
+            self.assertEqual(self.app.keymap_set_path, "")
+            self.assertTrue(_config_set_io(self.app).save_keymap_set(show_success_dialog=False))
+
+        self.assertIn(("flash", "新規作成しました（未保存）。", {}), calls)
+        ask.assert_called_once()
+        self.assertEqual(ask.call_args.kwargs["initialfile"], "keymap_set.json")
+        save_to.assert_called_once_with(
+            selected_path,
+            flash_message="別名で保存しました。",
+            show_success_dialog=False,
+        )
+
     def test_import_config_confirm_false_early_return(self):
         with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=False), patch.object(
             tkinter.filedialog, "askopenfilename"
@@ -612,6 +638,8 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 _startup_io(self.app).load_startup_and_config()
             # 例外は握りつぶされ、空データにフォールバックする
             self.assertEqual(self.app.data, {"empty": True})
+            # 読込例外時も keymap_set_path は空のまま（受入 4）
+            self.assertEqual(self.app.keymap_set_path, "")
 
 
 if __name__ == "__main__":

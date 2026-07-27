@@ -96,6 +96,29 @@
 
 ---
 
+## 2026-07-28 (phase 05: Phase α = 新規作成と保存先ディレクトリの整理)
+
+> 設計判断の主体は暫定仕様 [04](../../instructions/history/04_keymap_set_new_and_default_dir.md) の
+> 版履歴・§確定事項（v0.3・ユーザー確定済）。ここには**フェーズ進行中に発生した判断**のみ記録する。
+> フェーズ完了時に `decisions_archive/05_keymap_set_new_and_default_dir.md` へ集約する。
+
+### 【task_05 統合レビュー】deep-reviewer 指摘2: レガシー `settings/` 配下への別名保存
+- 検出: `config_paths.normalize_keymap_set_save_path`（`:72-73`）は保存先がレガシー
+  `<base_dir>/settings/` 配下だと**選択パスを捨てて `config/user/keymap_sets/default.json` を返す**。
+  暫定仕様 04 §2「`default.json` への無言の自動保存・自動フォールバックを廃止」の**残存経路**
+  （task_03 の監査は「空パスが到達しない」ことのみ確認しており網から漏れていた）。
+- 判定: **保留（後続へ）** — ユーザー判断（2026-07-28）で
+  [idea_09](../../instructions/backlog/idea_09_legacy_settings_save_path_fallback.md) を起票し、
+  Phase α のスコープは広げない。既存挙動であり新規退行ではなく、レガシーディレクトリを能動的に
+  選んだ場合のみ発生するため優先度低。着手時は挙動変更＝仕様変更フロー必須。
+- 同レビューの他の指摘: 指摘5（受入 4 の読込例外時に `keymap_set_path == ""` が未固定）→ **修正して採用**
+  （assert 1 行追加・再検証 pass）。指摘1（`data_schema.md:65` の子ファイル命名が keymap_set 名の存在を
+  前提。空パス時のフォールバックが正本未定義）→ **修正して採用**（task_06 の正本反映項目に追加）。
+  指摘3・4・6・7（低・参考）→ **保留**（task_06 で記録のみ）。
+- Codex レビュー（`codex-reviewer`・同一差分）は**指摘なし**。
+
+---
+
 ## 運用メモ
 
 - 1 タスク完了時に reviewer 判定をここへ転記する

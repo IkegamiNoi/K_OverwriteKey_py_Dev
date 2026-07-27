@@ -76,6 +76,13 @@ class ConfigPathsTest(unittest.TestCase):
             self.config_root,
         )
 
+    def test_suggest_dialog_dir_uses_preferred_keymap_sets_dir_when_present(self):
+        os.makedirs(self.paths.preferred_keymap_sets_dir())
+        self.assertEqual(
+            self.paths.suggest_keymap_set_dialog_dir(""),
+            self.paths.preferred_keymap_sets_dir(),
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
