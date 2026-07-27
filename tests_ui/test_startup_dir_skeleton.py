@@ -32,7 +32,12 @@ class StartupDirSkeletonTest(unittest.TestCase):
     def test_startup_creates_split_config_directories(self):
         self._ensure_dirs.assert_called_once_with(self.app.config_root)
 
-    def test_startup_does_not_write_config_json(self):
+    def test_startup_does_not_persist_anything(self):
+        """起動時は config.json を含め一切保存しない（作成は初回保存時。暫定仕様 04 §2）。
+
+        保存全般を対象にした意図的な広い固定。起動時に永続化が増えたらそれ自体が
+        仕様変更であり、本テストが落ちるのが正しい。
+        """
         self._save_json.assert_not_called()
 
 

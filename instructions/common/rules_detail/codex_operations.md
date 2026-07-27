@@ -21,10 +21,26 @@
   `C:\Users\ikega\.claude\plugins\data\codex-inline\state\<worktree名>-<hash>\`
   配下に `state.json`（全ジョブの索引）/ `jobs/<job-id>.json` と `.log` / `broker.json`。
 
+### 【重要】worktree 内の Codex は `.venv` python を実行できない（構造的制約）
+
+**Codex にテスト実行を依頼しない**。python 実行を伴う検証は `verifier` の責務
+（`.claude/rules/agent_selection.md`）。理由:
+
+- companion は `task --write` を **`sandbox: "workspace-write"`** で起動する
+  （`scripts/codex-companion.mjs`）。書込・実行が許されるのは **cwd（= worktree）配下のみ**。
+- `.venv` は**リポジトリルート**（worktree の外）にあるため、`..\..\..\.venv\Scripts\python.exe` の
+  **起動だけが拒否**される。`pwsh` 経由でも同じ（実測: `Resolve-Path` / `Get-Command` は exit 0、
+  python 実行のみ exit 1。phase 05 task_01・2026-07-27 のジョブログ）。
+- → **worktree で作業する限り毎回再現する**。「Codex は `.venv` python を実行できる」という
+  旧メモ（2026-07-24 記載）は worktree 外での実測であり、現行の運用形態には当てはまらない。
+- 回避したい場合の選択肢は `--cwd <リポジトリルート>`（companion に `-C/--cwd` あり。worktree も
+  `.venv` も同一ルート配下に入る）。ただし **Codex が main の作業ツリーを誤って編集する事故**の
+  危険が上がるため既定にはしない（phase 02・03 で再発した罠）。採用するならユーザー判断で。
+
 ### 【重要】Codex の自己申告を信じない
 
-- **Codex は `.venv` python を実行できる**（旧メモの「実行できない」は誤り。`pwsh` 経由の実行を実測）。
-- ただし **Codex の「テストが通った」等の申告は鵜呑みにせず、必ず `verifier` が `.venv` で再実行**する。
+- テスト実行を依頼しない運用でも、**「静的確認した」「差分は範囲内」等の申告は鵜呑みにしない**。
+  最終的な pass/fail は必ず `verifier` が `.venv` で実測する。
   実例: 申告が届かないまま「19 件全 ERROR」だったケースを verifier 実行で検出できた。
   検証コマンドは `.claude/rules/python_rules.md`（`.venv` 必須）。
 
