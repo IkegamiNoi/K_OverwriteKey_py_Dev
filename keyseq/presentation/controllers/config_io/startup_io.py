@@ -15,7 +15,7 @@ class StartupIo:
         """
         startup = dict(getattr(self._app, "_startup_settings", {}) or {})
         stored_keymap_set_path = str(startup.get("keymap_set_path") or "").strip()
-        self._app.keymap_set_path = self._app.paths.preferred_keymap_set_path()
+        self._app.keymap_set_path = ""
 
         if stored_keymap_set_path:
             resolved_keymap_set_path = self._app.paths.resolve_keymap_set_path(stored_keymap_set_path)

@@ -354,14 +354,30 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ), patch.object(
             self.app.config_service, "load_legacy_runtime_data", return_value={"legacy": True}
         ), patch.object(_config_set_io(self.app), "apply_loaded_data_to_ui"), patch.object(
-            self.app.paths, "preferred_keymap_set_path", return_value="k.json"
-        ), patch.object(self.app.dirty_tracker, "set_dirty") as set_dirty, self._record_flash(calls), patch.object(
+            self.app.dirty_tracker, "set_dirty"
+        ) as set_dirty, self._record_flash(calls), patch.object(
             tkinter.messagebox, "showinfo"
         ) as showinfo, patches[0], patches[1], patches[2], patches[3]:
             _config_set_io(self.app).import_config()
         self.assertEqual(self.app.data, {"legacy": True})
+        self.assertEqual(self.app.keymap_set_path, "")
         set_dirty.assert_called_once_with(True)
         showinfo.assert_called_once()
+
+    def test_import_config_success_clears_nonempty_keymap_set_path(self):
+        self.app.keymap_set_path = "current.json"
+        patches = self._silence_refresh()
+        with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+            tkinter.filedialog, "askopenfilename", return_value="legacy.json"
+        ), patch.object(
+            self.app.config_service, "load_legacy_runtime_data", return_value={"legacy": True}
+        ), patch.object(_config_set_io(self.app), "apply_loaded_data_to_ui"), patch.object(
+            self.app.dirty_tracker, "set_dirty"
+        ), patch.object(self.app, "_set_flash_message"), patch.object(
+            tkinter.messagebox, "showinfo"
+        ), patches[0], patches[1], patches[2], patches[3]:
+            _config_set_io(self.app).import_config()
+        self.assertEqual(self.app.keymap_set_path, "")
 
     def test_import_config_exception(self):
         with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
@@ -373,6 +389,18 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ) as showerror:
             _config_set_io(self.app).import_config()
             showerror.assert_called_once()
+
+    def test_import_config_exception_preserves_nonempty_keymap_set_path(self):
+        self.app.keymap_set_path = "current.json"
+        with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+            tkinter.filedialog, "askopenfilename", return_value="legacy.json"
+        ), patch.object(
+            self.app.config_service, "load_legacy_runtime_data", side_effect=ValueError("bad")
+        ), patch.object(self.app, "_set_flash_message"), patch.object(
+            tkinter.messagebox, "showerror"
+        ):
+            _config_set_io(self.app).import_config()
+        self.assertEqual(self.app.keymap_set_path, "current.json")
 
     def test_export_config_empty_path_returns(self):
         with patch.object(tkinter.filedialog, "asksaveasfilename", return_value=""), patch.object(
@@ -539,7 +567,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ) as apply_ui:
             _startup_io(self.app).load_startup_and_config()
         self.assertEqual(self.app.data, {"empty": True})
-        self.assertEqual(self.app.keymap_set_path, "default.json")
+        self.assertEqual(self.app.keymap_set_path, "")
         apply_ui.assert_called_once_with()
 
     def test_load_startup_and_config_swallows_load_exception_and_falls_back(self):

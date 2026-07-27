@@ -4,59 +4,63 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-28T00:20:00
-phase: instructions/phase/05_keymap_set_new_and_default_dir（**Phase α・task_02 完了 / 全 6 タスク中 2 完了**）
+last_updated: 2026-07-28T01:00:00
+phase: instructions/phase/05_keymap_set_new_and_default_dir（**Phase α・task_03 完了 / 全 6 タスク中 3 完了**）
 last_commit_location: claude/opus5-prompt-tuning-f6076e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase α の task_02（新規=空パス + 保存の空パス→別名分岐 + initialfile）完了（verifier 全緑・reviewer 完了可・指摘なし）。次は task_03（import_and_empty_start_path）を `/task_new` で起票し codex-implementer へ委任**。
+focus: **Phase α の task_03（Import 後の無条件クリア + 空起動時 path の空化）完了（verifier 全緑・reviewer 完了可・指摘なし）。次は task_04（remove_prompt_if_missing）を `/task_new` で起票し codex-implementer へ委任**。
 mode: implementing
 
 ## last_action
-ts: 2026-07-28T00:20:00
+ts: 2026-07-28T01:00:00
 who: main
 summary: |
-  【task_02（new_config_empty_path）完了 + Codex の python 実行制約の再調査】
-  - 起票時にコードと既存テストを実読し、判断 3 点をタスク定義で確定: ① 既存特性テスト
-    `test_new_config_success` が**旧挙動を固定**していた（`preferred_keymap_set_path` を patch し
-    `keymap_set_path=="k.json"` を期待）→ 新挙動へ更新する指示を明記 ② `initialfile` の実装場所は
-    `save_as`（presentation）に置く（`config_paths.py` は task_03 が触るため境界を分離）
-    ③ 空パス時のみ一般名 `keymap_set.json`、非空時は従来どおり現在ファイル名（別名保存の慣習を維持）。
-  - 実装（codex-implementer）: `new_config` の path 空化 / `save_keymap_set` の空パス→`save_as` 委譲 /
-    `save_as` の `initialfile` 条件分岐（定数 `DEFAULT_KEYMAP_SET_FILENAME`）/ 既存テスト更新 + 新規 4 本。
-    `confirm_save_if_dirty` と `save_keymap_set_to` は不変。
-  - **検証**（verifier・全緑）: compile clean / tests **87**（増減なし）/ tests_ui **80**（+4）/ smoke pass /
-    `preferred_keymap_set_path` は `import_config` 内の 1 件のみ（`new_config` 内 0 件）。
-  - **レビュー**: reviewer=**完了可・指摘なし**（空パス化は new_config のみ・二重委譲なし・
-    save_as は initialfile のみ変更・テストを緩めていない・task_03/04 の先取りなし）。
-  - 【重要な発見】**worktree 内 venv でも Codex は python を起動できない**。`.venv/Scripts/python.exe` は
-    255KB のランチャで、`pyvenv.cfg` の `home`/`executable` が
-    `C:\Users\ikega\AppData\Local\Python\pythoncore-3.14-64`（**ワークスペース外**）を指すため、
-    サンドボックスが base インタプリタの起動を拒否する（"Unable to create process using ..."）。
-    → **却下した `--cwd` 拡大案でも同じ理由で解決しなかった**（base python はリポジトリの外）。
-    Codex に python を実行させるには 144MB の python 本体を worktree へ持ち込むしかなく非現実的。
-    **venv 配置と検証委任先の方針はユーザー判断待ち**（下記 next_action）。
+  【task_03（import_and_empty_start_path）完了】
+  - 起票時のコード実読で 2 点を確定: ① **`config_paths.py` は変更しない**。`save_keymap_set_to` の
+    呼び出し元は `save_keymap_set`（task_02 で空パス分岐済）と `save_as`（空なら return False）のみで、
+    空パスが `normalize_keymap_set_save_path` へ到達しないため、暫定仕様 §5 の「据え置き可」条件を満たす
+    （監査のみ実施・`tests/test_config_paths.py` も無変更）② `app.py:64` の `keymap_set_path` 初期化は
+    `:172` の `load_startup_and_config` が必ず上書きするため触らない（上書きされない経路を見つけたら
+    実装を止めて報告、という条件付きで委任）。
+  - 実装（codex-implementer）: `import_config` の成功経路を**無条件クリア**へ（例外経路は不変）/
+    `load_startup_and_config` 冒頭の `preferred_keymap_set_path()` 代入を `""` へ（stored path 読込成功時に
+    resolved を入れる既存経路は維持）/ 既存テスト 2 本を新挙動へ更新 + 新規 2 本。
+  - **今回から Codex にテスト実行を依頼しない運用**（静的確認のみ報告）。報告に「未実行 FAIL」が並ばなくなった。
+  - **検証**（verifier・全緑）: compile clean / tests **87**（増減なし）/ tests_ui **82**（+2）/ smoke pass /
+    `preferred_keymap_set_path` は config_io 配下 0 件。
+  - **レビュー**: reviewer=**完了可・指摘なし**（無条件クリア / 例外経路不変 / stored path 成功経路の回帰なし /
+    対象外ファイル〔config_paths・app.py・tests/test_config_paths〕に差分なし）。
+  【（前タスク: task_02 完了・詳細は git log 2616668）】
+  - `new_config` 空パス化 / `save_keymap_set` の空パス→`save_as` 委譲 / `save_as` の `initialfile` 条件分岐。
+  - 【重要】**Codex は python を一切実行できない**ことが確定（venv の `Scripts\python.exe` は 255KB の
+    ランチャで、`pyvenv.cfg` が指す base インタプリタがワークスペース外にあるため拒否される）。
+    worktree 内 venv も `--cwd` 拡大も無効 → **venv はリポジトリルート・検証は verifier 一本化**へ確定
+    （2026-07-28・詳細は codex_operations.md §0）。
 result_files:
-  - keyseq/presentation/controllers/config_io/keymap_set_io.py（new_config / save_keymap_set / save_as）
-  - tests_ui/test_config_io_characterization_keymap_set_startup.py（既存 1 本更新 + 新規 4 本）
-  - instructions/phase/05_keymap_set_new_and_default_dir/tasks/task_02_new_config_empty_path.md（新規）
+  - keyseq/presentation/controllers/config_io/keymap_set_io.py（import_config の無条件クリア）
+  - keyseq/presentation/controllers/config_io/startup_io.py（空起動時の keymap_set_path 空化）
+  - tests_ui/test_config_io_characterization_keymap_set_startup.py（既存 2 本更新 + 新規 2 本）
+  - instructions/phase/05_keymap_set_new_and_default_dir/tasks/task_03_import_and_empty_start_path.md（新規）
 verified:
   compile: clean
   tests: pass 87（増減なし）
-  tests_ui: pass 80（ベースライン 76 → +4）
+  tests_ui: pass 82（ベースライン 80 → +2）
   smoke: pass
   review: reviewer=完了可（指摘なし）
   実機目視: 未実施（task_05 でまとめて依頼する方針）
 
 ## next_action
-- **task_03（`import_and_empty_start_path`）を `/task_new` で起票**し、`codex-implementer` へ委任する
-  （暫定 04 §5 / **受入条件 3・4** が根拠）。
-  - 内容: `keymap_set_io.import_config`（:148 付近）の `keymap_set_path = preferred_keymap_set_path()` を廃し
-    **成功時は無条件で空** / `startup_io.load_startup_and_config` の空起動時 `keymap_set_path` を**空**にする /
-    `config_paths.py` の `default.json` 用途（`preferred_keymap_set_path` / `normalize_keymap_set_save_path`）が
-    **保存ターゲットとして到達しない**ことを grep で確認し整理する（suggest 系の補助用途としては残してよい）。
-  - `tests/test_config_paths.py` が `normalize_keymap_set_save_path("")` → `default.json` を固定しているため、
-    据え置き / 変更のどちらを選ぶかで期待値の扱いを task 定義に明記すること。
+- **task_04（`remove_prompt_if_missing`）を `/task_new` で起票**し、`codex-implementer` へ委任する
+  （暫定 04 §6 / **受入条件 5・6** が根拠）。
+  - 除去対象は 4 箇所: `config_service.py` の `payload["prompt_if_missing"] = bool(...)` 正規化行 /
+    `startup_settings.py` の型ガード行 / `startup_io.write_startup` の base 既定 /
+    `keymap_set_io.set_startup_keymap_set` が書く辞書。
+  - **既存 config.json に残る値は能動削除しない**（未知キー保持契約。受入は「**新規作成される**
+    config.json に含まれない」で判定）。application 層（config_service）に触れる唯一のタスク。
+  - 既存テストで config.json のキー集合を固定している箇所（例:
+    `test_write_startup_merges_defaults_current_and_arg` は base に `prompt_if_missing: True` を期待）を
+    新挙動へ更新する必要がある。起票時に grep で洗い出すこと。
 - 以降 task_03〜06 は phase.md「タスク」表の順で進める（各タスクで reviewer 必須・
   task_05 統合と完了判定前は Codex レビュー + `deep-reviewer` を併用）。
 - **α は挙動変更フェーズ**（挙動不変ではない）。β/γ/プリセットは α 完了後に順次 `/phase_start`。

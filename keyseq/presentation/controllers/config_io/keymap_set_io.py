@@ -144,8 +144,7 @@ class KeymapSetIo:
             return
         try:
             self._app.data = self._app.config_service.load_legacy_runtime_data(path)
-            if not self._app.keymap_set_path:
-                self._app.keymap_set_path = self._app.paths.preferred_keymap_set_path()
+            self._app.keymap_set_path = ""
             self.apply_loaded_data_to_ui()
             self._app.state.reset_indices()
             self._app.trigger_panel.refresh_triggers()
