@@ -97,6 +97,36 @@
 
 ---
 
+## 2026-07-29 (Phase β / phase 06: 進行中)
+
+### 【task_05 起票前】パスが変わる子の上位保存必須（暫定仕様 05 §2・§8）を UI でどう扱うか
+- 選択肢: ①一覧のラジオで「保存しない」を静的に選べなくする ②`SavePlanError` をユーザー向けに差し戻す
+  ③依存が起きた行だけ動的に無効化 ④**OK 押下時に確認ダイアログ** → **④を採用**（ユーザー確定）
+- 親子で扱いを分ける: **親 keymap_set は問わない**（「保存」操作自体が明示済みのため、子の別名保存で
+  索引パスが変わっても無確認で保存してよい）/ **trigger_set（＝孫 sequence に対する子）は問う**
+  （保存が必要になった理由が分かる必要があるため。選択肢は 保存 / 別名保存 / 選び直す）
+- 一覧のラジオは静的に無効化しない（「保存しない」は常に選べる）。`SavePlanError` は
+  **UI から到達しない内部不変条件の番人**として残す。
+- 併せて確定: **dirty でない子は `ACTION_SKIP`。ただし保存先ファイルが未作成なら `ACTION_SAVE`**
+  （skip すると keymap_set の索引パスが空になり索引切れを起こすため）。受入条件 2 の実装形。
+- 起票: [task_05_save_dialog_ui.md](../../instructions/phase/06_child_file_save_dialog/tasks/task_05_save_dialog_ui.md)
+
+### 【task_05 定義】codex-adversarial-reviewer 指摘 2 件（high）→ **両方採用**（ユーザー確定 2026-07-29）
+- **①保存先解決の陳腐化**: `_resolve_sequence_save_path`（`config_service.py:1169-1192`）は
+  trigger_set の保存先が `config/user/trigger_sets/` 配下かで sequence の既定保存先を切り替えるため、
+  **trigger_set を別名保存すると他の子の保存先が変わる**。`targets` を初回 1 回だけ解決する設計では
+  一覧の表示パス・共有状況・非 dirty 子の SKIP/SAVE が陳腐化し、索引切れと無確認上書きが起こり得た。
+  → `resolve_child_save_targets` / `collect_child_save_rows` に `save_plan` を追加し、
+  **保存経路を while ループ化して trigger_set の保存先が変わるたび再解決 + 一覧再表示**する。
+- **②依存確認の既定ボタン**: `askyesnocancel` は「はい（上書き）」が既定のため、所有元不明・別構成の
+  trigger_set を Enter で上書きできてしまい、§5 の安全側既定が依存経路だけ後退していた。
+  → `default=messagebox.NO`（`SHARE_UNKNOWN` / `SHARE_OTHER_PARENT` のとき）へ切り替える。
+  専用ダイアログの新造はしない。
+- 不変条件として task_05 の設計メモへ明記: **提示した保存先と実際に書く先を一致させる** /
+  **未知・別の上位の保存先を明示操作なしに上書きしない**。
+
+---
+
 ## 運用メモ
 
 - 1 タスク完了時に reviewer 判定をここへ転記する
