@@ -98,7 +98,12 @@ keyseq/presentation/
 - dialogs 向け契約（`validate_hotkey` / `_dialog_result` / `_perform_action` / `open_preset_manager`）と、状態依存でパスを詰め替える薄メソッド（`suggest_keymap_set_dialog_path` / `suggest_keymap_set_dialog_dir` / `keymap_set_file_stem`）
   - `validate_hotkey` は**検証ロジックを持たず** `HotkeyService.validate`（application）への**薄い委譲**（実体は下記 HotkeyService / `domain/hotkey.py`）。dialogs 契約維持のため残す
 - 配線用の薄いヘルパ（`_get_send_guard_count` / `_find_trigger_by_key` / `_find_keymap_target` / `_find_keymap_switch_target_id`）
+- 起動時に設定ディレクトリ骨格（`config/user/{keymap_sets,keymaps,trigger_sets,hotkey_presets,sequences}`）を
+  `config_service.ensure_split_config_dirs` で一括作成する。**`config/config.json` は起動時に書かない**
+  （最初に設定が永続化された時点で作成。keymap_set 保存 / フォント変更 / 起動時読込先の指定）
 - 分離JSONの現在の構成セットパス（keymap_set_path）・startup 設定を保持
+  - `keymap_set_path` は「新規作成 / Import 成功 / 起動時に stored セットが読めない」の 3 経路で**空**になる
+    （＝ファイルなし。次の保存が別名保存になる。仕様は `spec_detail/data_schema.md` §5.4）
   - 起動設定の**読込ロジックは持たず** `startup_settings.load_startup_settings`（presentation・`config_service` 直依存）へ委譲し、
     UI 通知（`messagebox`）だけを `on_read_error` ラムダで注入する（`__init__` 内）。フォント差分の正規化は `theme.coerce_font_delta`
 - フォントサイズ設定（`_ui_font_delta_pt` を App 保持）: `_apply_font_delta`（状態更新・`apply_global_theme`・`startup_io.write_startup` 永続化）と
@@ -126,7 +131,10 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
 - SingleKeyCaptureController（controllers/key_capture.py）: 停止キー/トグルキーのキャプチャ
 - config_io/（controllers/config_io/）: 構成セット・個別JSONの保存/読込フローを**6クラスへ分割**（計画04で `config_io_controller.py` を廃止）。App が各クラスを直接公開し、`app.<名前>.<method>` で参照する:
   - KeymapSetIo（keymap_set_io.py = `app.keymap_set_io`）: 構成セット（keymap_set）の new/save/save_as/load/import/export/restore + 起動構成セット指定・読込データのUI適用
-  - StartupIo（startup_io.py = `app.startup_io`）: 起動設定（startup.json）の read/write
+    - 新規作成は `keymap_set_path` を空にし、`save_keymap_set` は空パスなら `save_as` へ委譲する（別名保存の初期名は `keymap_set.json`）。Import 成功時は**無条件で**空にする
+    - 保存成功時は `config_service.save_runtime_data` が startup payload ごと `config/config.json` を書き直し、`keymap_set_path` が保存先へ更新される（`write_startup` は経由しない。「起動時に読むJSONを設定」メニュー側とは**別経路で同じキーを書く**点に注意）
+  - StartupIo（startup_io.py = `app.startup_io`）: 起動設定（`config/config.json`。旧 `settings/startup.json` は読込フォールバックのみ）の read/write
+    - 起動時は stored `keymap_set_path` が実在すれば読み込み、無い / 読めない場合は**無言で空データ起動**し `keymap_set_path` を空にする
   - IoDialogs（io_dialogs.py = `app.io_dialogs`）: 共有ダイアログヘルパ（保存パス衝突解決 / ラベル連動ファイル名）
   - KeymapFileIo（keymap_file_io.py = `app.keymap_io`）: keymap 個別 JSON の保存/読込
   - TriggerSetFileIo（trigger_set_file_io.py = `app.trigger_set_io`）: trigger_set 個別 JSON の保存/読込

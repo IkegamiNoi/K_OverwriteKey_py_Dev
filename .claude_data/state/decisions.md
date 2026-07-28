@@ -14,6 +14,7 @@
 | 02_hotkey_validation | [02_hotkey_validation.md](decisions_archive/02_hotkey_validation.md) | hotkey 検証を presentation → domain/application へ層移設（2026-07-18 完了・挙動不変）。設計案 C（domain=文法検査 / application=HotkeyService）/ 層の逆転を解消 / 安全網の特性テスト。**正本昇格は不要**（spec_detail に記述なし＝担当層は codebase_map.md が正）。実機目視で判明したアクション hotkey の保存非対称は **idea_03 へ分離**し §6-11 を補正。refactor_check: 不要 |
 | 03_startup_font_settings_cleanup | [03_startup_font_settings_cleanup.md](decisions_archive/03_startup_font_settings_cleanup.md) | 起動設定/フォント3メソッドの整理（2026-07-20 完了・挙動不変）。coerce→`theme.py`純関数 / 起動設定ローダ→新規`startup_settings.py`（config_service直依存・未知キー全保持・on_read_error注入） / `set_ui_font_delta`案A分割 / UiVars引数化。**案B（FontSettingsController）は将来idea化**。**正本昇格は不要**（spec_detailに記述なし＝担当層はcodebase_map.mdが正）。refactor_check: 不要 |
 | 04_config_io_controller_split | [04_config_io_controller_split.md](decisions_archive/04_config_io_controller_split.md) | `config_io_controller.py`（598行）を `controllers/config_io/` の**6クラスへ分割**（2026-07-26 完了・挙動不変）。§4=案B（呼び出し元30箇所差し替え・`config_io_controller.py`削除・**config_io名消滅**・互換レイヤーなし）/ §5=案1（共通化しない）/ §1「既存の不整合」（E の source_path 分断）は**直さず移設**→idea_05。特性テストは task ごとに境界mock / アクセサ切替で調整（**アサーション非緩和**）。**正本昇格は不要**（spec_detailに config_io 記述なし＝担当層はcodebase_map.mdが正）。refactor_check: 不要（M3 の同型3ブロックは既存重複の移設で idea_06〔D/E/F共通化・保留〕がカバー済＝既知。他は非該当） |
+| 05_keymap_set_new_and_default_dir | [05_keymap_set_new_and_default_dir.md](decisions_archive/05_keymap_set_new_and_default_dir.md) | 新規作成と保存先ディレクトリの整理 = 保存系リデザイン **Phase α**（2026-07-28 完了・**挙動変更**）。新規作成/Import 成功/空起動で `keymap_set_path` を空にし、空パスの保存は別名保存へ分岐。既定保存先を固定 `default.json` から**ディレクトリ `config/user/keymap_sets/`** へ移し、起動時にディレクトリ骨格を一括作成。死にフラグ `prompt_if_missing` は新規出力停止（**既存値は残置許容・`pop` しない**）。正本 `data_schema.md` §5.4・§5.6 へ昇格済。**未対応の残存経路 = [idea_09](../../instructions/backlog/idea_09_legacy_settings_save_path_fallback.md)**（レガシー `settings/` 配下選択時の `default.json` フォールバック・ユーザー判断で後続送り）。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -93,29 +94,6 @@
   2インスタンスは設計上の意図的分離）。M5（申し送りコメント）も新規追加0件。
 - なお本フェーズは挙動不変リファクタであり、`/refactor_check` の「挙動不変が前提のフェーズは
   スキップしてよい」に該当したが、ユーザー判断で実行した。
-
----
-
-## 2026-07-28 (phase 05: Phase α = 新規作成と保存先ディレクトリの整理)
-
-> 設計判断の主体は暫定仕様 [04](../../instructions/history/04_keymap_set_new_and_default_dir.md) の
-> 版履歴・§確定事項（v0.3・ユーザー確定済）。ここには**フェーズ進行中に発生した判断**のみ記録する。
-> フェーズ完了時に `decisions_archive/05_keymap_set_new_and_default_dir.md` へ集約する。
-
-### 【task_05 統合レビュー】deep-reviewer 指摘2: レガシー `settings/` 配下への別名保存
-- 検出: `config_paths.normalize_keymap_set_save_path`（`:72-73`）は保存先がレガシー
-  `<base_dir>/settings/` 配下だと**選択パスを捨てて `config/user/keymap_sets/default.json` を返す**。
-  暫定仕様 04 §2「`default.json` への無言の自動保存・自動フォールバックを廃止」の**残存経路**
-  （task_03 の監査は「空パスが到達しない」ことのみ確認しており網から漏れていた）。
-- 判定: **保留（後続へ）** — ユーザー判断（2026-07-28）で
-  [idea_09](../../instructions/backlog/idea_09_legacy_settings_save_path_fallback.md) を起票し、
-  Phase α のスコープは広げない。既存挙動であり新規退行ではなく、レガシーディレクトリを能動的に
-  選んだ場合のみ発生するため優先度低。着手時は挙動変更＝仕様変更フロー必須。
-- 同レビューの他の指摘: 指摘5（受入 4 の読込例外時に `keymap_set_path == ""` が未固定）→ **修正して採用**
-  （assert 1 行追加・再検証 pass）。指摘1（`data_schema.md:65` の子ファイル命名が keymap_set 名の存在を
-  前提。空パス時のフォールバックが正本未定義）→ **修正して採用**（task_06 の正本反映項目に追加）。
-  指摘3・4・6・7（低・参考）→ **保留**（task_06 で記録のみ）。
-- Codex レビュー（`codex-reviewer`・同一差分）は**指摘なし**。
 
 ---
 

@@ -6,23 +6,13 @@
 
 ## 現在の参照先
 
-- **アクティブ: [05_keymap_set_new_and_default_dir](05_keymap_set_new_and_default_dir/phase.md)**
-  （起票 2026-07-27・保存系リデザインの **Phase α**）。構成セットの新規作成を「ファイルなし」にし、
-  保存の空パスを別名保存へ分岐、既定保存先を固定 `default.json` からディレクトリ
-  `config/user/keymap_sets/` へ移し、死にフラグ `prompt_if_missing` を撤去する。**挙動変更フェーズ**。
-  主入力（設計の正）: [暫定仕様 04](../history/04_keymap_set_new_and_default_dir.md)（v0.3・ユーザー確定済）。
-  判断履歴: `.claude_data/state/decisions.md`（アーカイブは完了時に `decisions_archive/05_keymap_set_new_and_default_dir.md`）。
-  起票元: ユーザー要望（2026-07-26〜27・保存系統の改善討議。idea 由来ではない）。
-  番号対応: phase 05 / 暫定 04 / decisions 05。
-  進捗: **task_01〜04 完了**（2026-07-27〜28。骨格作成 / 新規=空パス + 保存の別名分岐 / Import・空起動の path 空化 /
-  `prompt_if_missing` 撤去）。次は task_05（統合退行 + 実機目視）→ task_06（正本反映）。
-- 直前の完了フェーズ: `04_config_io_controller_split`（2026-07-26 完了）。`config_io_controller.py`（598 行）を
-  `controllers/config_io/` 配下の 6 クラスへ分割し（案B・呼び出し元30箇所差し替え・`config_io` 名消滅・互換レイヤーなし）、
-  挙動不変で保守性を回復。要約・判断は
-  [decisions_archive/04_config_io_controller_split.md](../../.claude_data/state/decisions_archive/04_config_io_controller_split.md) が正。
-- 一つ前の完了フェーズ: `03_startup_font_settings_cleanup`（2026-07-20 完了）。起動設定/フォント3メソッドを整理し
-  4 負債（責務混在・controller→App private 逆参照・初期化順序制約・ui_vars 直読み）を挙動不変で解消。
-  要約・判断は [decisions_archive/03_startup_font_settings_cleanup.md](../../.claude_data/state/decisions_archive/03_startup_font_settings_cleanup.md) が正。
+- **アクティブ: なし**（次フェーズ未確定。着手前にユーザーへ方針確認 →「作業開始時の指示」）。
+  保存系リデザインの予定は **β=phase 06（暫定 05）/ γ=phase 07（暫定 06）/ プリセット=phase 08（暫定 07）**。
+  暫定仕様 05〜07 は起票済・ユーザー確定済のため、着手時は `/phase_start` から入れる。
+  **依存: α→β の順**（β は α のディレクトリ化を前提とし、[idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md) を内包する）。γ は独立。
+- 直前の完了フェーズ: [05_keymap_set_new_and_default_dir](../../.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md)（2026-07-28 完了・保存系リデザイン **Phase α**）。
+  **完了フェーズの要約は本ファイルに置かない**。経緯・判断は `.claude_data/state/decisions.md`「アーカイブ索引」
+  → `decisions_archive/<phase>.md` が正。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
   過去のリファクタ計画・提案書（01〜04）は `instructions/modified_proposal/`（次採番 05）。
   計画04 は完了済（W0〜W7・手動確認まで完了）。
@@ -45,10 +35,14 @@
 2. ~~[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)~~ → **完了**（`02_hotkey_validation`・2026-07-18）
 3. ~~[idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)~~ → **完了**（`03_startup_font_settings_cleanup`・2026-07-20）
 
-**計画04 由来の3フェーズはすべて完了**。`04_config_io_controller_split` も完了（2026-07-26・計画04 由来ではない）。
-phase 05 は**保存系リデザイン Phase α**（ユーザー要望・2026-07-27 起票）で確定。以降の候補:
+**計画04 由来の3フェーズはすべて完了**。`04_config_io_controller_split`（2026-07-26）・
+`05_keymap_set_new_and_default_dir`（Phase α・2026-07-28）も完了。
+**次の本命は保存系リデザインの Phase β**（phase 06 / 暫定 05・ユーザー確定済）。以降の候補:
 - [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)（trigger_set の source_path 不整合。
   着手条件は充足済だが、**Phase β〔phase 06・暫定 05〕が内包する**ため単独フェーズにはしない）。
+- [idea_09](../backlog/idea_09_legacy_settings_save_path_fallback.md)（別名保存でレガシー `settings/` 配下を選ぶと
+  `default.json` へ無言フォールバックする残存経路。Phase α の deep-reviewer 指摘2 から分離・**優先度低**・
+  着手時は仕様変更フロー必須）。
 - [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の保存時正規化/検証の統一。
   phase 02 task_04 から分離・優先度低・要設計）。
 - [idea_04](../backlog/idea_04_font_settings_controller.md)（FontSettingsController 新設 = phase 03 の案B。
@@ -78,6 +72,12 @@ phase 05 は**保存系リデザイン Phase α**（ユーザー要望・2026-07
 - [idea_06](../backlog/idea_06_individual_json_io_unification.md)（個別 JSON IO 3 種の共通化）は
   **保留**。着手条件は phase 04 完了（**充足・2026-07-26**）+ [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)
   の解消 + 共通化の実需（残り 2 条件が未充足）。
+- `app.py:64` の `keymap_set_path = resolve_keymap_set_path()` 初期化と、それが使う
+  `config_paths.resolve_keymap_set_path()` の**引数なし分岐が実質デッド**（起動時に `load_startup_and_config` が
+  必ず上書きするため）。**据え置き**（phase 05 の deep-reviewer 指摘3・実害なし）。
+  同指摘4（`DEFAULT_KEYMAP_SET_FILENAME` を ConfigPaths 側へ寄せれば `save_as` の分岐が不要になる代替案）も
+  挙動同値のため据え置き。まとめて触りたくなった時のみ単独タスク化する
+  （判断根拠は [decisions_archive/05](../../.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md)）
 
 ## 作業開始時の指示
 

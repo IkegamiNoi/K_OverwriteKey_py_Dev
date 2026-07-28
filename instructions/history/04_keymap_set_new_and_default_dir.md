@@ -1,8 +1,12 @@
 # 暫定仕様 04: 新規作成と保存先ディレクトリの整理（keymap_set_new_and_default_dir）
 
-> 状態: **未凍結・v0.3・主入力・ユーザー確定済（実装着手可）**。本書がこのフェーズ（保存系リデザインの
-> Phase α）の確定設計（フェーズ中は正本を直接改訂しない）。フェーズ末タスクで正本
-> `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結（正本へ昇格済・phase 05 完了 2026-07-28）**。以後**本書は改訂しない**（履歴として保存）。
+> 昇格先: `instructions/common/spec_detail/data_schema.md` **§5.4 配下「keymap_set の保存先と『ファイルなし』状態」**
+> （新規/Import/空起動の 3 経路・既定ディレクトリ・別名保存分岐・初期名 `keymap_set.json`）と
+> **§5.6**（keymap_set 未設定時の trigger_set ファイル名フォールバック）/
+> `instructions/common/codebase_map.md`（App の起動時ディレクトリ作成・KeymapSetIo・StartupIo の責務）。
+> 判断履歴は `.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md` が正。
+> （凍結前の状態: v0.3・主入力・ユーザー確定済。フェーズ中は本書が正で、正本は直接改訂しなかった）
 > 版履歴: v0.1 起票（2026-07-27）→ **v0.2** codex-adversarial-reviewer 指摘 4 件を反映
 > （① Import 後の path 無条件クリア / ② 子ファイル共有の制約を明記し複数独立セット対応を β へ後送り /
 > ③ `prompt_if_missing` は残置許容へ方針変更・受入条件を緩和 / ④ 起動時にディレクトリ骨格を一括作成）→

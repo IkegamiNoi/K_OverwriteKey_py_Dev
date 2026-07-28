@@ -41,9 +41,12 @@ task_05 の統合レビューにおける `deep-reviewer` 指摘2。
 3. **案 C: 案内した上で既定へ誘導** — 確認ダイアログを出し、`config/user/keymap_sets/` 配下への
    保存を提案する（初期ファイル名は `keymap_set.json`）。
 
-いずれも**挙動変更**であり、`spec_change_workflow.md` に従って正本
-（`spec_detail/`）側の記述と併せて確定する必要がある。テストは `tests/test_config_paths.py`
-（`test_normalize_keymap_set_save_path` がレガシー分岐を現挙動として固定済み）の更新を伴う。
+**【重要・2026-07-28 更新】** Phase α の完了時に正本 `spec_detail/data_schema.md` §5.4 が
+「固定 `default.json` を既定の保存ターゲットにしない」を規定し、本経路を**【実装未追従】**として明記した。
+したがって本件は「仕様をどうするか」ではなく **`spec_change_workflow.md` の (B) 実装修正**が既定であり、
+ユーザー判断が要るのは**案 A〜C のどれで追従させるか**のみ（正本を緩める＝実装に合わせる選択をする場合のみ
+仕様変更フローに戻る）。テストは `tests/test_config_paths.py`
+（`test_normalize_keymap_set_save_path` がレガシー分岐を**旧挙動として**固定済み）の更新を伴う。
 
 ## 想定スコープ
 
@@ -52,7 +55,8 @@ task_05 の統合レビューにおける `deep-reviewer` 指摘2。
 - **含まない**: レガシー**読込**（`resolve_keymap_set_path` / `resolve_startup_path` /
   `is_within_legacy_settings` 自体）の廃止。旧 `settings/` 構成のマイグレーション機能の新設。
 - **影響レイヤ**: presentation のみ（`config_paths.py` + `keymap_set_io.py`）。スキーマ不変。
-- **仕様変更**: **あり**（案 A〜C いずれも保存先決定の挙動が変わる）。着手時は暫定仕様先行モードか
-  直接改訂かを規模で判断する（単一ファイル・少数条項なら直接改訂で足りる見込み）。
+- **仕様変更**: **原則なし**（正本 §5.4 が既に「`default.json` を既定の保存ターゲットにしない」を規定済み。
+  本件は正本へ実装を追従させる修正）。ただし案 A〜C のどれを採るかで**エラー表示やダイアログ挙動**が変わるため、
+  選択後に正本へ 1 行追記する可能性はある。
 - **着手条件**: 特になし（Phase α 完了後であればいつでも可）。優先度は**低**
   （レガシーディレクトリを能動的に選んだ場合のみ発生。既存挙動で新規退行ではない）。
