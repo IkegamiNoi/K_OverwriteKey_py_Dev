@@ -412,6 +412,7 @@ class ConfigService:
         config_root: str,
         keymap_set_path: str,
         split_base_dir: str = "",
+        save_plan: SavePlan | None = None,
     ) -> dict[tuple[str, str], str]:
         """ACTION_SAVE 時の子ファイル保存先を、書き込まずに解決する。"""
         runtime = ensure_config_compatibility(data)
@@ -429,7 +430,7 @@ class ConfigService:
             keymap_set_path=resolved_keymap_set_path,
             legacy_path="",
             split_base_dir=resolved_split_base_dir,
-            save_plan=SavePlan(),
+            save_plan=save_plan or SavePlan(),
         )
 
         targets = {
@@ -444,6 +445,57 @@ class ConfigService:
                 sequence["resolved_path"]
             )
         return targets
+
+    def find_dependency_blocked_sequences(
+        self,
+        data: Any,
+        *,
+        config_root: str,
+        keymap_set_path: str,
+        split_base_dir: str = "",
+        save_plan: SavePlan,
+    ) -> list[str]:
+        """trigger_set を保存しない計画で、保存先が変わる sequence を返す。"""
+        runtime = ensure_config_compatibility(data)
+        resolved_config_root = os.path.abspath(config_root)
+        resolved_keymap_set_path = (
+            os.path.abspath(keymap_set_path)
+            if keymap_set_path
+            else self._default_keymap_set_path(resolved_config_root)
+        )
+        payloads = self._build_split_save_payloads(
+            runtime,
+            config_root=resolved_config_root,
+            startup_data=None,
+            keymap_set_path=resolved_keymap_set_path,
+            legacy_path="",
+            split_base_dir=os.path.abspath(split_base_dir) if split_base_dir else "",
+            save_plan=save_plan,
+        )
+        return self._sequence_keys_requiring_trigger_set_save(save_plan, payloads)
+
+    def _sequence_keys_requiring_trigger_set_save(
+        self,
+        save_plan: SavePlan,
+        payloads: dict[str, Any],
+    ) -> list[str]:
+        trigger_set_entry = save_plan.entry_for(CHILD_TRIGGER_SET)
+        if trigger_set_entry is None or trigger_set_entry.action != ACTION_SKIP:
+            return []
+        return [
+            str(item["key"])
+            for item in payloads["sequences"]
+            if not item["skip"] and self._sequence_save_path_changed(item)
+        ]
+
+    @staticmethod
+    def _sequence_save_path_changed(item: dict[str, Any]) -> bool:
+        source_path = str(item.get("source_path") or "")
+        return item["action"] == ACTION_SAVE_AS or (
+            not source_path
+            or os.path.normcase(os.path.abspath(str(item["resolved_path"])))
+            != os.path.normcase(os.path.abspath(source_path))
+        )
 
     def read_parent_refs(self, path: str) -> list[str] | None:
         """子JSONの参照元を読み、読めない場合や未知の場合は None を返す。"""
@@ -729,19 +781,11 @@ class ConfigService:
                         f"別名保存先のディレクトリを作成できません: {entry.kind}:{entry.key}"
                     ) from exc
 
-        trigger_set_entry = save_plan.entry_for(CHILD_TRIGGER_SET)
-        if trigger_set_entry is not None and trigger_set_entry.action == ACTION_SKIP:
-            for item in payloads["sequences"]:
-                source_path = str(item.get("source_path") or "")
-                path_changed = item["action"] == ACTION_SAVE_AS or (
-                    not source_path
-                    or os.path.normcase(os.path.abspath(str(item["resolved_path"])))
-                    != os.path.normcase(os.path.abspath(source_path))
-                )
-                if not item["skip"] and path_changed:
-                    raise SavePlanError(
-                        f"sequence {item['key']} の保存先変更には trigger_set の保存が必要です。"
-                    )
+        blocked_keys = self._sequence_keys_requiring_trigger_set_save(save_plan, payloads)
+        if blocked_keys:
+            raise SavePlanError(
+                f"sequence {blocked_keys[0]} の保存先変更には trigger_set の保存が必要です。"
+            )
 
     def _apply_saved_child_paths(
         self,

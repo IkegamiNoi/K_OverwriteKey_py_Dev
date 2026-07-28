@@ -9,6 +9,7 @@ from keyseq.application.save_plan import (
     CHILD_KEYMAP,
     CHILD_SEQUENCE,
     CHILD_TRIGGER_SET,
+    SavePlan,
 )
 from keyseq.domain.config import normalize_key_name
 
@@ -77,6 +78,8 @@ def collect_child_save_rows(
     config_service,
     config_root,
     keymap_set_path,
+    split_base_dir: str = "",
+    save_plan: SavePlan | None = None,
 ) -> list[ChildSaveRow]:
     if not isinstance(data, dict):
         return []
@@ -85,6 +88,8 @@ def collect_child_save_rows(
         data,
         config_root=config_root,
         keymap_set_path=keymap_set_path,
+        split_base_dir=split_base_dir,
+        save_plan=save_plan,
     )
     keymap_parent = _stored_parent_path(
         config_service,
@@ -110,7 +115,7 @@ def collect_child_save_rows(
             if not key or not target_path:
                 continue
             rows.append(
-                _build_row(
+                build_row(
                     kind=CHILD_KEYMAP,
                     key=key,
                     display_name=str(keymap.get("label") or "").strip() or key,
@@ -122,7 +127,7 @@ def collect_child_save_rows(
             )
     if bool(dirty_tracker.trigger_set_dirty):
         rows.append(
-            _build_row(
+            build_row(
                 kind=CHILD_TRIGGER_SET,
                 key="",
                 display_name="トリガー一覧",
@@ -144,7 +149,7 @@ def collect_child_save_rows(
             if not key or not target_path:
                 continue
             rows.append(
-                _build_row(
+                build_row(
                     kind=CHILD_SEQUENCE,
                     key=key,
                     display_name=str(trigger.get("label") or "").strip() or key,
@@ -157,7 +162,7 @@ def collect_child_save_rows(
     return rows
 
 
-def _build_row(
+def build_row(
     *,
     kind: str,
     key: str,

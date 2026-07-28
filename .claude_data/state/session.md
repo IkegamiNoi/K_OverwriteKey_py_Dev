@@ -4,56 +4,67 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-28T21:10:00
+last_updated: 2026-07-29T07:50:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
-last_commit_location: claude/phase-beta-bfbdd2 ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/child-file-path-save-confirm-4507e3 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β task_04（dirty な子の収集・保存先解決・共有状況判定・既定アクション）完了。次は task_05（保存確認ダイアログ UI と保存経路への挟み込み）の `/task_new` 起票**。
+focus: **Phase β task_05（子ファイル保存確認ダイアログの実装と保存経路への挟み込み）完了。次は task_06（受入条件 §10 の統合退行・特性テスト更新・実機目視）の `/task_new` 起票**。
 mode: implementing
 
 ## last_action
-ts: 2026-07-28T21:10:00
+ts: 2026-07-29T07:50:00
 who: main
 summary: |
-  【task_04（dirty_children_and_share_state）完了】実装は `codex-implementer` へ委任。暫定仕様 05 §3・§4・§5。
-  - **新規 `keyseq/presentation/controllers/config_io/child_save_rows.py`**（209 行・**tkinter を import しない**
-    純ロジック・App ではなく値を引数で受ける）: `SHARE_*` / `ChildSaveRow` / `judge_share_state` /
-    `share_text_for` / `default_action_for` / `collect_child_save_rows`。行順は keymap → trigger_set → sequence。
-  - **application へ公開 API 2 本**: `resolve_child_save_targets()`（**空 `SavePlan()` で task_03 の解決経路を
-    そのまま再利用**・書き込みなし）/ `read_parent_refs(path)`（無い・壊れ・キー無しは `None`・例外なし）。
-  - **§5 の判定は `target_path`（これから上書きする相手のファイル）から読む**（runtime の refs は使わない。
-    別名保存・既定命名変更で書き込み先が変わると誤判定するため）。
-  - **`SHARE_NEW` を 1 状態追加**（§5 の表に無い判断）: 保存先ファイルが存在しない → 既定は**保存**。
-    未知に倒すと新規の子すべてで別名保存ダイアログが出て実用に耐えないため。**task_07 で正本に明記する**。
-  - 安全側の既定を維持: `_parent_refs` が **None も空リストも UNKNOWN**、`current_parent` が空文字も UNKNOWN →
-    いずれも **別名保存**。`SHARE_OTHER_PARENT` も別名保存。
-  - **【メイン修正 1 行】** `_build_split_save_payloads` の `serialized_keymaps` に `"resolved_path"` を追加
-    （新 API が参照するキーが欠けており `KeyError` で新規テスト 5 件が error。sequences 側は既に露出済みで対称化）。
+  【task_05（save_dialog_ui）起票 → 実装 → 完了】実装は `codex-implementer` へ委任。暫定仕様 05 §3・§5・§8。
+  - **ユーザー確定（依存関係の UI 上の扱い）**: 親 keymap_set は**問わない**（「保存」操作自体が明示のため
+    子の別名保存で索引パスが変わっても無確認保存）/ **trigger_set は問う**（＝孫 sequence に対する子。
+    保存が必要な理由が分かる必要がある）→ **OK 押下時に確認ダイアログ**（保存 / 別名保存 / 選び直す）。
+    一覧のラジオは**静的に無効化しない**。`SavePlanError` は UI から到達しない内部不変条件の番人として残す。
+  - **非 dirty 子は `ACTION_SKIP`。ただし保存先が未作成なら `ACTION_SAVE`**（skip すると keymap_set の
+    索引パスが空になり索引切れになるため。受入条件 2 の実装形）。
+  - **敵対的レビュー（起票直後・task_05 定義が対象）で high 2 件 → 両方採用**:
+    ① `_resolve_sequence_save_path` は trigger_set の保存先が `user/trigger_sets/` 配下かで sequence の
+    既定保存先を切り替えるため、**trigger_set を別名保存すると他の子の保存先が変わる** →
+    `resolve_child_save_targets` / `collect_child_save_rows` に `save_plan` を追加し、保存経路を
+    **while ループ化して保存先が変わるたび再解決 + 一覧再表示**。
+    ② `askyesnocancel` の既定が「はい（上書き）」で §5 の安全側既定が依存経路だけ後退 →
+    **`default=messagebox.NO`**（`SHARE_UNKNOWN` / `SHARE_OTHER_PARENT` のとき）。
+  - **新規 2 モジュール**: `child_save_plan.py`（91 行・tkinter 非依存の純変換）/
+    `child_save_dialog.py`（145 行・モーダル一覧 + 別名保存先の一括選択 + 依存確認）。
+  - **`dirty_state.clear_individual_dirty_flags` に選択的クリアを追加**（SKIP した子の dirty を残す。
+    引数なしの呼び出しは従来と同一挙動）。保存後は `sync_dirty_state()` で残存 dirty を表示へ反映。
+  - **【メイン修正 2 箇所】** 新規テストの期待値誤り（`copy.json` → `Copy.json`。`slugify_file_stem` は
+    大文字小文字を変換しない）/ `keymap_set_io.py` の空行 2 行（reviewer 参考指摘）。
 result_files:
-  - keyseq/presentation/controllers/config_io/child_save_rows.py（新規）
-  - keyseq/application/config_service.py（公開 API 2 本 + resolved_path 露出）
-  - tests/test_child_save_rows.py（新規・7 件）
-  - instructions/phase/06_child_file_save_dialog/tasks/task_04_dirty_children_and_share_state.md（新規）
+  - keyseq/presentation/controllers/config_io/child_save_dialog.py（新規）
+  - keyseq/presentation/controllers/config_io/child_save_plan.py（新規）
+  - keyseq/presentation/controllers/config_io/keymap_set_io.py（239→414 行・保存オーケストレーション）
+  - keyseq/presentation/controllers/config_io/child_save_rows.py（save_plan / split_base_dir / build_row 公開）
+  - keyseq/presentation/controllers/dirty_state.py（選択的クリア）
+  - keyseq/application/config_service.py（`find_dependency_blocked_sequences` + `resolve_child_save_targets` に save_plan）
+  - keyseq/presentation/app.py（ChildSaveDialog 登録・2 行）
+  - tests/test_child_save_plan.py・tests/test_dependency_query.py・tests_ui/test_child_save_dialog.py（新規）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_05_save_dialog_ui.md（新規）
 verified:
   compile: clean
-  tests: pass 119（112 + 新規 7）
-  tests_ui: pass 86（無変更）
+  tests: pass 128（119 + 新規 9）
+  tests_ui: pass 95（86 + 新規 9）
   smoke: pass
-  review: reviewer = **完了可**（§5 の安全側既定・target_path から読む・二重実装なし・依存方向を確認。必須指摘なし）
-    参考 2 件（任意）: ① keymap の display_name フォールバックが生 id ではなく正規化キー
-    ② `collect_child_save_rows` が `keymap_service.get_keymaps` を経由せず `data["keymaps"]` を直接走査（挙動差なし）
+  review: codex-adversarial-reviewer（**task_05 定義**）= needs-attention → high 2 件を定義へ反映済 /
+    reviewer（**実装差分**）= **完了可**（5 観点すべて OK・二重実装なし・想定外の先行実装なし）
+    参考 1 件（任意）: `keymap_set_io._collect_child_save_plan` が約 64 行（関数 30 行目安の超過）。
+    分割検討は `/refactor_check`（フェーズ末）へ申し送り
 
 ## next_action
-- **task_05（`save_dialog_ui`）を `/task_new` で起票する**。内容は暫定仕様 05 §3:
-  ① 子ファイル保存確認ダイアログ（一覧・列 = 種別 / 対象名 / 保存先パス / 共有状況 / **ラジオ 3 択**。
-  既定は task_04 の `default_action`）② 別名保存を選んだ行の保存先を `asksaveasfilename` で決める
-  ③ 選択結果を **`SavePlan` へ変換**して `save_runtime_data` へ渡す（task_03 の実行契約に乗せる）
-  ④ `keymap_set_io.save_keymap_set_to` への挟み込み（**dirty な子が無ければダイアログを出さない**）。
-  依存関係（パスが変わる子の上位は skip 不可）は **UI 側でも選べないようにする**か、`SavePlanError` を
-  ユーザー向けメッセージに変換するかを設計で決める。tests_ui は monkeypatch でダイアログ選択を駆動する。
+- **task_06（`integration_regression`）を `/task_new` で起票する**。内容は暫定仕様 05 §10 の受入条件 1〜11:
+  ① 既存特性テスト（`tests_ui/test_config_io_characterization*.py` / `tests/test_config_service.py`）の
+  期待値を**挙動変更後**の値へ更新 ② 受入条件のうち自動化できるものを特性テストで固定
+  （保存 JSON はバイト列比較）③ **実機目視**（ダイアログの見え方・行数が多いときのはみ出し・
+  依存確認の文面と既定ボタン・別名保存のパス選択）。
 - 起票後: `codex-implementer` へ委任（テスト実行は依頼しない）→ **書き込み停止を確認してから** `verifier` 実測 →
-  `reviewer` → `/save_state` + `/task_commit`。
+  **`deep-reviewer` + `codex-reviewer`**（統合確認は 2 本立て・`agent_selection.md` のレビュー表）→
+  `/save_state` + `/task_commit`。実機目視はユーザーが行い結果を報告する。
 
 ## blockers
 - なし。
@@ -80,7 +91,10 @@ verified:
   presentation は task_05 でこの計画を組み立てて渡す。
 - **task_04 で入った土台**: `config_io/child_save_rows.py` の `collect_child_save_rows(...)` が行モデル
   （`ChildSaveRow`: kind / key / display_name / target_path / share_state / share_text / default_action）を返す。
-  task_05 のダイアログはこれを並べ、選択結果を `SavePlan` へ変換するだけでよい。
+- **task_05 で入った土台**: `config_io/child_save_dialog.py`（UI）+ `child_save_plan.py`（選択 → `SavePlan` の純変換）+
+  `keymap_set_io._collect_child_save_plan`（**再解決ループ**）。**不変条件 2 つを壊さないこと**:
+  ① 提示した保存先と実際に書く先を一致させる（trigger_set の保存先が変わったら必ず再解決 + 一覧再表示）
+  ② 未知・別の上位に属す保存先を明示操作なしに上書きしない（一覧の既定 + 依存確認の既定ボタン両方）。
 - **申し送り（task_04/05 で考慮 or refactor_check / task_07）**: ① slugify 後に別々の keymap_set 名が同一 stem へ
   丸まる衝突（受入条件 8 の範囲外）② `dirty_tracker.trigger_set_imported` は読み手不在の残置状態
   ③ **task_07 の正本反映で `INTERNAL_TRIGGER_SET_SOURCE_PATH` を runtime 内部キーとして `data_schema.md` に明記**。

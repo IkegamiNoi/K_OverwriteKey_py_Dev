@@ -1,6 +1,19 @@
 import os
 from tkinter import filedialog, messagebox
 
+from keyseq.application.save_plan import (
+    ACTION_SAVE_AS,
+    ACTION_SKIP,
+    CHILD_KEYMAP,
+    CHILD_SEQUENCE,
+    CHILD_TRIGGER_SET,
+    ChildSaveEntry,
+    SavePlan,
+)
+from keyseq.domain.config import normalize_key_name
+from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
+from keyseq.presentation.controllers.config_io.child_save_rows import build_row, collect_child_save_rows
+
 
 DEFAULT_KEYMAP_SET_FILENAME = "keymap_set.json"
 
@@ -79,6 +92,11 @@ class KeymapSetIo:
         try:
             save_path = self._app.paths.normalize_keymap_set_save_path(path)
             split_base_dir = self.choose_split_base_dir_for_keymap_set(save_path)
+            save_plan = self._collect_child_save_plan(save_path, split_base_dir)
+            if save_plan is None:
+                self._app._set_flash_message("保存を中止しました。")
+                return False
+            skipped_dirty_children = self._skipped_dirty_children(save_plan)
             self._app.data, startup_payload = self._app.config_service.save_runtime_data(
                 save_path,
                 self._app.data,
@@ -86,12 +104,14 @@ class KeymapSetIo:
                 startup_data=self._app._startup_settings,
                 keep_legacy_copy=False,
                 split_base_dir=split_base_dir,
+                save_plan=save_plan,
             )
             self._app.keymap_set_path = save_path
             self._app.startup_path = self._app.paths.preferred_startup_path()
             self._app._startup_settings = startup_payload
-            self._app.dirty_tracker.clear_individual_dirty_flags()
+            self._clear_saved_child_dirty_flags(*skipped_dirty_children)
             self._app.dirty_tracker.set_dirty(False)
+            self._app.dirty_tracker.sync_dirty_state()
             self._app._set_flash_message(flash_message)
             if show_success_dialog:
                 messagebox.showinfo("保存", f"保存しました:\n{save_path}")
@@ -100,6 +120,160 @@ class KeymapSetIo:
             self._app._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
             return False
+
+    def _collect_child_save_plan(self, save_path: str, split_base_dir: str) -> SavePlan | None:
+        pending = SavePlan()
+        show_recalculation_notice = False
+        while True:
+            targets = self._app.config_service.resolve_child_save_targets(
+                self._app.data,
+                config_root=self._app.config_root,
+                keymap_set_path=save_path,
+                split_base_dir=split_base_dir,
+                save_plan=pending,
+            )
+            rows = collect_child_save_rows(
+                data=self._app.data,
+                dirty_tracker=self._app.dirty_tracker,
+                config_service=self._app.config_service,
+                config_root=self._app.config_root,
+                keymap_set_path=save_path,
+                split_base_dir=split_base_dir,
+                save_plan=pending,
+            )
+            self._app.child_save_dialog.show_recalculation_notice = show_recalculation_notice
+            choices = {} if not rows else self._app.child_save_dialog.ask_child_save_actions(rows)
+            if choices is None:
+                return None
+            plan = build_save_plan(data=self._app.data, rows=rows, choices=choices, targets=targets)
+            trigger_entry = plan.entry_for(CHILD_TRIGGER_SET)
+            if trigger_entry and self._trigger_target_changed(
+                trigger_entry,
+                targets,
+                save_path,
+                split_base_dir,
+            ):
+                pending = SavePlan(entries=(trigger_entry,))
+                show_recalculation_notice = True
+                continue
+            blocked = self._app.config_service.find_dependency_blocked_sequences(
+                self._app.data,
+                config_root=self._app.config_root,
+                keymap_set_path=save_path,
+                split_base_dir=split_base_dir,
+                save_plan=plan,
+            )
+            if not blocked:
+                return plan
+            trigger_row = self._trigger_set_row(rows, targets, save_path)
+            action = self._app.child_save_dialog.confirm_trigger_set_dependency(
+                blocked_labels=self._blocked_labels(blocked),
+                trigger_set_row=trigger_row,
+            )
+            if not action:
+                pending = SavePlan()
+                show_recalculation_notice = False
+                continue
+            confirmed = ChildSaveEntry(
+                CHILD_TRIGGER_SET,
+                "",
+                action,
+                self._app.child_save_dialog.trigger_set_save_as_path if action == ACTION_SAVE_AS else "",
+            )
+            if self._trigger_target_changed(confirmed, targets, save_path, split_base_dir):
+                pending = SavePlan(entries=(confirmed,))
+                show_recalculation_notice = True
+                continue
+            return self._replace_trigger_set_entry(plan, confirmed)
+
+    def _trigger_target_changed(
+        self,
+        entry: ChildSaveEntry,
+        targets: dict[tuple[str, str], str],
+        save_path: str,
+        split_base_dir: str,
+    ) -> bool:
+        planned_targets = self._app.config_service.resolve_child_save_targets(
+            self._app.data,
+            config_root=self._app.config_root,
+            keymap_set_path=save_path,
+            split_base_dir=split_base_dir,
+            save_plan=SavePlan(entries=(entry,)),
+        )
+        current_target = targets[(CHILD_TRIGGER_SET, "")]
+        planned_target = planned_targets[(CHILD_TRIGGER_SET, "")]
+        return os.path.normcase(os.path.abspath(planned_target)) != os.path.normcase(os.path.abspath(current_target))
+
+    def _trigger_set_row(self, rows, targets, save_path: str):
+        for row in rows:
+            if row.kind == CHILD_TRIGGER_SET:
+                return row
+        return build_row(
+            kind=CHILD_TRIGGER_SET,
+            key="",
+            display_name="トリガー一覧",
+            target_path=targets[(CHILD_TRIGGER_SET, "")],
+            current_parent=self._app.config_service.to_config_relative_or_absolute(
+                save_path,
+                self._app.config_root,
+            ),
+            config_service=self._app.config_service,
+            config_root=self._app.config_root,
+        )
+
+    def _blocked_labels(self, blocked_keys: list[str]) -> list[str]:
+        labels = {}
+        for trigger in self._app.data.get("triggers", []):
+            if isinstance(trigger, dict):
+                key = normalize_key_name(str(trigger.get("key") or ""))
+                labels[key] = str(trigger.get("label") or "").strip() or key
+        return [labels.get(key, key) for key in blocked_keys]
+
+    @staticmethod
+    def _replace_trigger_set_entry(plan: SavePlan, entry: ChildSaveEntry) -> SavePlan:
+        return SavePlan(entries=tuple(entry if item.kind == CHILD_TRIGGER_SET else item for item in plan.entries))
+
+    def _skipped_dirty_children(self, save_plan: SavePlan) -> tuple[list[str], list[str], bool]:
+        skipped_keymaps = [
+            normalize_key_name(str(item.get("id") or ""))
+            for item in self._app.data.get("keymaps", [])
+            if isinstance(item, dict)
+            and bool(item.get(self._app.config_service.INTERNAL_KEYMAP_DIRTY, False))
+            and self._is_skipped(save_plan, CHILD_KEYMAP, normalize_key_name(str(item.get("id") or "")))
+        ]
+        skipped_sequences = [
+            normalize_key_name(str(item.get("key") or ""))
+            for item in self._app.data.get("triggers", [])
+            if isinstance(item, dict)
+            and bool(item.get(self._app.config_service.INTERNAL_SEQUENCE_DIRTY, False))
+            and self._is_skipped(save_plan, CHILD_SEQUENCE, normalize_key_name(str(item.get("key") or "")))
+        ]
+        skip_trigger_set = bool(self._app.dirty_tracker.trigger_set_dirty) and self._is_skipped(
+            save_plan,
+            CHILD_TRIGGER_SET,
+            "",
+        )
+        return skipped_keymaps, skipped_sequences, skip_trigger_set
+
+    def _clear_saved_child_dirty_flags(
+        self,
+        skipped_keymaps: list[str],
+        skipped_sequences: list[str],
+        skip_trigger_set: bool,
+    ) -> None:
+        if skipped_keymaps or skipped_sequences or skip_trigger_set:
+            self._app.dirty_tracker.clear_individual_dirty_flags(
+                skipped_keymap_ids=skipped_keymaps,
+                skipped_sequence_keys=skipped_sequences,
+                skip_trigger_set=skip_trigger_set,
+            )
+            return
+        self._app.dirty_tracker.clear_individual_dirty_flags()
+
+    @staticmethod
+    def _is_skipped(save_plan: SavePlan, kind: str, key: str) -> bool:
+        entry = save_plan.entry_for(kind, key)
+        return entry is not None and entry.action == ACTION_SKIP
 
     def load_keymap_set_from(self):
         if not self.confirm_save_if_dirty("読込"):
