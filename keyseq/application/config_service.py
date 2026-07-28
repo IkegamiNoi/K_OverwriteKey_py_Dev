@@ -18,7 +18,7 @@ from keyseq.infrastructure.json_repository import JsonRepository
 
 class ConfigService:
     KEYMAP_SET_RELATIVE_PATH = os.path.join("user", "keymap_sets", "default.json")
-    TRIGGER_SET_RELATIVE_PATH = os.path.join("user", "trigger_sets", "default.json")
+    TRIGGER_SETS_RELATIVE_DIR = os.path.join("user", "trigger_sets")
     HOTKEY_PRESETS_RELATIVE_PATH = os.path.join("user", "hotkey_presets", "default.json")
     KEYMAPS_RELATIVE_DIR = os.path.join("user", "keymaps")
     SEQUENCES_RELATIVE_DIR = os.path.join("user", "sequences")
@@ -618,10 +618,10 @@ class ConfigService:
     ) -> dict[str, Any]:
         keymaps_dir = os.path.join(split_base_dir, "keymaps") if split_base_dir else ""
         sequences_dir = os.path.join(split_base_dir, "sequences") if split_base_dir else ""
-        trigger_set_path = (
-            os.path.join(split_base_dir, "trigger_sets", "default.json")
-            if split_base_dir
-            else self._resolve_config_relative_path(self.TRIGGER_SET_RELATIVE_PATH, config_root)
+        trigger_set_path = self._default_trigger_set_path(
+            keymap_set_path,
+            config_root=config_root,
+            split_base_dir=split_base_dir,
         )
         hotkey_presets_path = (
             os.path.join(split_base_dir, "hotkey_presets", "default.json")
@@ -1150,6 +1150,22 @@ class ConfigService:
 
     def _default_keymap_set_path(self, config_root: str) -> str:
         return self._resolve_config_relative_path(self.KEYMAP_SET_RELATIVE_PATH, config_root)
+
+    def _default_trigger_set_path(
+        self,
+        keymap_set_path: str,
+        *,
+        config_root: str,
+        split_base_dir: str,
+    ) -> str:
+        stem = self.slugify_file_stem(os.path.splitext(os.path.basename(keymap_set_path))[0])
+        filename = f"{stem or 'default'}.json"
+        if split_base_dir:
+            return os.path.join(split_base_dir, "trigger_sets", filename)
+        return self._resolve_config_relative_path(
+            os.path.join(self.TRIGGER_SETS_RELATIVE_DIR, filename),
+            config_root,
+        )
 
     def _default_legacy_config_path(self, config_root: str) -> str:
         return self._resolve_config_relative_path(self.LEGACY_CONFIG_RELATIVE_PATH, config_root)

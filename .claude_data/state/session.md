@@ -4,53 +4,55 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-28T07:05:00
+last_updated: 2026-07-28T08:00:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
 last_commit_location: claude/phase-beta-bfbdd2 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β task_01（参照元記録 `_parent_refs` の読み書き基盤）完了。次は task_02（trigger_set の source_path 接続＝idea_05 内包 + 既定命名の keymap_set stem 基準化）の `/task_new` 起票**。
+focus: **Phase β task_02（trigger_set の source_path 接続 + 既定命名の stem 基準化）完了。次は task_03（保存計画の型と application 側実行契約）の `/task_new` 起票**。
 mode: implementing
 
 ## last_action
-ts: 2026-07-28T07:05:00
+ts: 2026-07-28T08:00:00
 who: main
 summary: |
-  【task_01（parent_refs_schema）完了】実装は `codex-implementer` へ委任。application 限定 + presentation は引数配線のみ。
-  - `config_service.py`: 定数 4 種（ファイル側 `_parent_refs` / runtime 側 keymap・sequence・trigger_set トップレベル）+
-    純関数ヘルパ `_normalize_parent_refs` / `_merge_parent_ref` を追加。読込・保存・split 保存の全経路へ親参照を伝搬。
-    `_sanitize_runtime_for_storage` で新内部キーを除去（レガシー export へ漏らさない）。
-  - **`None`（キー無し＝未知）と `[]`（既知・参照元ゼロ）の区別を全経路で維持**（§5 の「未知→別名保存」既定の前提）。
-    reviewer が `or []` 等での握りつぶし無しを確認。
-  - **後方互換**: 親未指定なら出力 JSON 不変。既存の完全一致アサート（`tests/test_config_service.py:125`）を
-    **書き換えずに pass**。
-  - presentation 3 ファイルは `parent_ref` / `config_root` を渡す引数追加のみ（判定・分岐なし）。
-  - **【メイン修正】tests_ui のハング解消**: `_keymap_save_patches` 等の `fake_save` が新キーワード引数を受けられず
-    TypeError → 未patch の `messagebox.showerror` がモーダル表示でハングしていた。モック署名に
-    `parent_ref` / `config_root` を追加（3 行・検証意図は不変）。
-  - domain `ensure_config_compatibility` の keymap ホワイトリスト再構築で内部キーが落ちる件は、application 側で
-    明示復元して回避（reviewer 確認済）。
+  【task_02（trigger_set_source_and_naming）完了】実装は `codex-implementer` へ委任。暫定仕様 05 §6・§7。
+  - **idea_05 解消**: `trigger_set_file_io` の保存経路が読んでいた**存在しない App 属性**
+    `_trigger_set_source_path` を `dirty_tracker.trigger_set_source_path` へ接続（2 箇所）。
+    keymap / sequence と対称になり、source_path あり→直接上書き / なし→衝突ダイアログ。
+    到達不能だった「読込で持ってきた…別名で保存しますか？」`askyesno` は **§7 どおり復活させず削除**。
+  - **trigger_set 既定命名**: 固定 `TRIGGER_SET_RELATIVE_PATH`（`user/trigger_sets/default.json`）を廃止し、
+    `TRIGGER_SETS_RELATIVE_DIR` + 新規 `_default_trigger_set_path()`（**keymap_set の stem 基準**・
+    空 stem は `"default"`）へ。`split_base_dir`（構成セット周辺保存）経路も同様にした
+    （§6 本文は config_root 内が対象だが、同一フォルダ複数セットで同じ衝突が起きるため趣旨に合わせた。reviewer 承認）。
+  - **後方互換**: 既定 keymap_set（`default.json`）なら stem = `default` で保存先は従来どおり。
+    `SaveLoadRoundTripTest::test_round_trip_preserves_content` は**書き換えずに pass**。
+    読込側・keymap_set 索引・`_is_default_trigger_set_area`（→ sequences は `user/sequences/` のまま）は無変更。
+  - `hotkey_presets` / keymaps / sequences の命名は不変（指摘④「trigger_set のみ変更」を遵守）。
+  - `dirty_tracker.trigger_set_imported` は**唯一の読み手が消えたが撤去せず残置**（task_05 で使うか判断 →
+    使わなければ task_07 の `/refactor_check` で撤去可否を判定）。
 result_files:
   - keyseq/application/config_service.py
-  - keyseq/presentation/controllers/config_io/{keymap_file_io,sequence_file_io,trigger_set_file_io}.py
-  - tests/test_config_service.py（`ParentRefsSchemaTest` 7 件追加）
-  - tests_ui/test_config_io_characterization.py（モック署名 3 行）
-  - instructions/phase/06_child_file_save_dialog/tasks/task_01_parent_refs_schema.md（新規）
+  - keyseq/presentation/controllers/config_io/trigger_set_file_io.py
+  - tests/test_config_service.py（`TriggerSetDefaultPathTest` 5 件新規 + 既存 1 件の期待値更新）
+  - tests_ui/test_config_io_characterization.py（既存 1 件を改名・拡張 + 新規 1 件）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_02_trigger_set_source_and_naming.md（新規）
 verified:
   compile: clean
-  tests: pass 97（ベースライン 90 + 新規 7）
-  tests_ui: pass 85（ハング解消後・再実測）
+  tests: pass 102（97 + 新規 5）
+  tests_ui: pass 86（85 + 新規 1）
   smoke: pass
-  review: reviewer = **完了可**（5 観点 + 重点 6 点すべて OK。指摘は参考 2 件〔到達不能ガード分岐 /
-    `config_service.py` が 1262 行 → `/refactor_check` へ送る〕）
+  review: reviewer = **完了可**（重点 7 点すべて OK）。参考指摘 1 件 = slugify 後に別々の keymap_set 名が
+    同一 stem へ丸まる衝突（例 `game*.json` と `game?.json` → `game_.json`）は受入条件 8 の範囲外・将来の穴
 
 ## next_action
-- **task_02（`trigger_set_source_and_naming`）を `/task_new` で起票する**。内容は暫定仕様 05 §6・§7:
-  ① trigger_set の source_path 分断を接続（**案1＝`dirty_tracker.trigger_set_source_path` へ寄せる**軸。
-  読み手が未定義 App 属性を見ている現状を解消 = idea_05 内包。旧「別名で保存しますか？」個別ダイアログは復活させない）/
-  ② config_root 内の trigger_set 既定パスを固定 `user/trigger_sets/default.json`
-  （`config_service.py:468-471`）から **keymap_set の stem 基準**へ変更（§10 受入 8）。
-  既存の特性テストが旧挙動を固定しているため、**起票前に対象テストを grep で洗い出してタスク定義へ明記**する。
+- **task_03（`save_plan_execution`）を `/task_new` で起票する**。内容は暫定仕様 05 §2・§8:
+  保存計画の型（子ごとに 保存 / 別名パス / スキップ ＋ 依存関係）と **application 側の実行契約**
+  （事前検証 → 書き込み / パスが変わる子の上位は保存必須 / **行ごとの粒度**〔選んだ子だけ書く〕/
+  失敗時は旧索引を維持）。`save_runtime_data` を計画駆動へ作り替える。
+  **既定計画＝全保存でダイアログ導入前の既存挙動と等価**であることを確認してから task_05 へ進む（挙動変更の切り分け）。
+  起票前に、`save_runtime_data` の書き込み順を固定している既存テスト（`tests_ui/test_config_io_characterization*.py`）を
+  grep で洗い出してタスク定義へ明記する。
 - 起票後: `codex-implementer` へ委任（テスト実行は依頼しない）→ `verifier` 実測 → `reviewer` → `/save_state` + `/task_commit`。
 
 ## blockers
@@ -69,8 +71,12 @@ verified:
 - **task_01 で入った土台**（後続はこれを使う): `PARENT_REFS_KEY = "_parent_refs"`（子JSON 側）/
   `INTERNAL_{KEYMAP,SEQUENCE,TRIGGER_SET}_PARENT_REFS`（runtime 側。trigger_set のみ `data` トップレベル）/
   `_normalize_parent_refs`（**未知は `None`・既知ゼロは `[]`**）/ `_merge_parent_ref`（重複排除・順序保持）。
-- **`config_service.py` は 1262 行**（task_01 で +269）。分割是非は**フェーズ末の `/refactor_check` で判定**する
+- **task_02 で入った変更**: trigger_set の保存先は `_default_trigger_set_path()`（keymap_set stem 基準）。
+  個別保存経路は `dirty_tracker.trigger_set_source_path` を読む（keymap / sequence と対称）。
+- **`config_service.py` は 1262 行 →（task_02 で微増）**。分割是非は**フェーズ末の `/refactor_check` で判定**する
   （task 途中では触らない。reviewer からの申し送り）。
+- **申し送り（task_04/05 で考慮 or refactor_check）**: ① slugify 後に別々の keymap_set 名が同一 stem へ丸まる
+  衝突（受入条件 8 の範囲外）② `dirty_tracker.trigger_set_imported` は読み手不在の残置状態。
 - Phase β の主な触点: `config_service.save_runtime_data`(200-252) / `_build_split_save_payloads`(456-) /
   `config_io/keymap_set_io.py`(`save_keymap_set_to`:78-102) / `controllers/dirty_state.py`（idea_05 の当事者）/
   `config_io/io_dialogs.py`（`choose_save_path_with_collision`）。

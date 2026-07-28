@@ -7,10 +7,7 @@ class TriggerSetFileIo:
         self._app = app
 
     def save_trigger_set_file(self) -> bool:
-        path = str(getattr(self._app, "_trigger_set_source_path", "") or "").strip()
-        if path and self._app.dirty_tracker.trigger_set_imported and self._app.dirty_tracker.trigger_set_dirty:
-            if messagebox.askyesno("保存", "読込で持ってきたトリガー一覧です。\n別名で保存しますか？"):
-                return self.save_trigger_set_file_as()
+        path = str(self._app.dirty_tracker.trigger_set_source_path or "").strip()
         if not path:
             suggested = self._app.paths.suggest_json_path(self._app.paths.preferred_trigger_sets_dir(), self._app.keymap_set_file_stem(), "trigger_set")
             path = self._app.io_dialogs.choose_save_path_with_collision(title="トリガー一覧を保存", suggested_path=suggested)
@@ -19,7 +16,7 @@ class TriggerSetFileIo:
         return self.save_trigger_set_to_path(path)
 
     def save_trigger_set_file_as(self) -> bool:
-        source_path = str(getattr(self._app, "_trigger_set_source_path", "") or "").strip()
+        source_path = str(self._app.dirty_tracker.trigger_set_source_path or "").strip()
         suggested = self._app.paths.suggest_json_path(
             self._app.paths.json_dialog_initial_dir(self._app.paths.preferred_trigger_sets_dir(), source_path),
             self._app.paths.filename_stem(source_path) or self._app.keymap_set_file_stem(),

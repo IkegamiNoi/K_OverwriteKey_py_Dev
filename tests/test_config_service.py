@@ -279,14 +279,14 @@ class ParentRefsSchemaTest(unittest.TestCase):
 
             keymap = JsonRepository().load_json(os.path.join(root, "user", "keymaps", "km1.json"))
             trigger_set = JsonRepository().load_json(
-                os.path.join(root, "user", "trigger_sets", "default.json")
+                os.path.join(root, "user", "trigger_sets", "main.json")
             )
             sequence = JsonRepository().load_json(
                 os.path.join(root, "user", "sequences", "copy.json")
             )
             self.assertEqual(keymap["_parent_refs"], ["user/keymap_sets/main.json"])
             self.assertEqual(trigger_set["_parent_refs"], ["user/keymap_sets/main.json"])
-            self.assertEqual(sequence["_parent_refs"], ["user/trigger_sets/default.json"])
+            self.assertEqual(sequence["_parent_refs"], ["user/trigger_sets/main.json"])
 
     def test_export_does_not_leak_parent_ref_runtime_keys(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -306,6 +306,88 @@ class ParentRefsSchemaTest(unittest.TestCase):
             self.assertNotIn(self.service.INTERNAL_TRIGGER_SET_PARENT_REFS, exported)
             self.assertNotIn(self.service.INTERNAL_KEYMAP_PARENT_REFS, exported["keymaps"][0])
             self.assertNotIn(self.service.INTERNAL_SEQUENCE_PARENT_REFS, exported["triggers"][0])
+
+
+class TriggerSetDefaultPathTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def test_keymap_set_stem_names_trigger_set_and_keeps_sequences_in_default_area(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "gaming.json")
+            self.service.save_runtime_data(
+                keymap_set_path,
+                make_runtime_data(),
+                config_root=root,
+                startup_data={},
+            )
+
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "gaming.json")
+            self.assertTrue(os.path.exists(trigger_set_path))
+            self.assertTrue(os.path.exists(os.path.join(root, "user", "sequences", "copy.json")))
+            keymap_set = JsonRepository().load_json(keymap_set_path)
+            trigger_set = JsonRepository().load_json(trigger_set_path)
+            self.assertEqual(keymap_set["trigger_set_path"], "user/trigger_sets/gaming.json")
+            self.assertEqual(trigger_set["triggers"][0]["sequence_path"], "user/sequences/copy.json")
+
+    def test_default_keymap_set_keeps_legacy_trigger_set_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self.service.save_runtime_data("", make_runtime_data(), config_root=root, startup_data={})
+
+            self.assertTrue(
+                os.path.exists(os.path.join(root, "user", "trigger_sets", "default.json"))
+            )
+
+    def test_multiple_keymap_sets_do_not_share_default_trigger_set_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            paths = [
+                os.path.join(root, "user", "keymap_sets", "gaming.json"),
+                os.path.join(root, "user", "keymap_sets", "coding.json"),
+            ]
+            gaming_data = make_runtime_data()
+            coding_data = make_runtime_data()
+            coding_data["triggers"][0]["key"] = "f2"
+            for path, data in zip(paths, (gaming_data, coding_data)):
+                self.service.save_runtime_data(path, data, config_root=root, startup_data={})
+
+            for stem, path, key in zip(("gaming", "coding"), paths, ("f1", "f2")):
+                trigger_set_path = os.path.join(root, "user", "trigger_sets", f"{stem}.json")
+                self.assertTrue(os.path.exists(trigger_set_path))
+                keymap_set = JsonRepository().load_json(path)
+                trigger_set = JsonRepository().load_json(trigger_set_path)
+                self.assertEqual(keymap_set["trigger_set_path"], f"user/trigger_sets/{stem}.json")
+                self.assertEqual(trigger_set["triggers"][0]["key"], key)
+
+    def test_empty_keymap_set_stem_falls_back_to_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            path = self.service._default_trigger_set_path(
+                os.path.join(root, "user", "keymap_sets", "..."),
+                config_root=root,
+                split_base_dir="",
+            )
+
+            self.assertEqual(path, os.path.join(root, "user", "trigger_sets", "default.json"))
+
+    def test_split_base_dir_uses_keymap_set_stem_for_trigger_set(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            split_base_dir = os.path.join(tmp, "sets")
+            keymap_set_path = os.path.join(split_base_dir, "gaming.json")
+            self.service.save_runtime_data(
+                keymap_set_path,
+                make_runtime_data(),
+                config_root=root,
+                startup_data={},
+                split_base_dir=split_base_dir,
+            )
+
+            self.assertTrue(
+                os.path.exists(os.path.join(split_base_dir, "trigger_sets", "gaming.json"))
+            )
 
 
 class PathHelperTest(unittest.TestCase):

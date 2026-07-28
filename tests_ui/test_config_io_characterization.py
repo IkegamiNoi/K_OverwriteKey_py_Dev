@@ -446,11 +446,21 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         showerror.assert_called_once_with("読込失敗", "bad keymap")
 
     # E: trigger_set 個別 JSON IO
-    def test_trigger_set_save_uses_collision_not_unreachable_import_prompt(self):
-        # idea_05 で変更予定: dirty_tracker の source_path はこの保存経路の読取先ではない。
+    def test_trigger_set_save_uses_dirty_tracker_source_path(self):
         self.app.dirty_tracker.trigger_set_source_path = "C:/loaded/triggers.json"
         self.app.dirty_tracker.trigger_set_imported = True
         self.app.dirty_tracker.trigger_set_dirty = True
+        save_calls = []
+        p = self._trigger_set_save_patches(save_calls)
+        with patch.object(tkinter.messagebox, "askyesno") as ask, patch.object(
+            _dialog_io(self.app), "choose_save_path_with_collision", return_value="C:/new/triggers.json"
+        ) as choose, p[0], p[1], p[2], p[3], p[4]:
+            self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
+            ask.assert_not_called()
+            choose.assert_not_called()
+            self.assertEqual([c[0] for c in save_calls], ["C:/loaded/triggers.json"])
+
+        self.app.dirty_tracker.trigger_set_source_path = ""
         save_calls = []
         p = self._trigger_set_save_patches(save_calls)
         with patch.object(tkinter.messagebox, "askyesno") as ask, patch.object(
@@ -478,6 +488,23 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         with patch.object(tkinter.filedialog, "asksaveasfilename", return_value=""), p[0], p[1], p[2], p[3], p[4]:
             self.assertFalse(_trigger_set_io(self.app).save_trigger_set_file_as())
             self.assertEqual(save_calls, [])
+
+    def test_trigger_set_save_as_uses_dirty_tracker_source_path_for_initial_values(self):
+        with tempfile.TemporaryDirectory() as directory:
+            source_path = os.path.join(directory, "loaded", "triggers.json")
+            os.makedirs(os.path.dirname(source_path))
+            self.app.dirty_tracker.trigger_set_source_path = source_path
+            save_calls = []
+            p = self._trigger_set_save_patches(save_calls)
+            with patch.object(
+                tkinter.filedialog,
+                "asksaveasfilename",
+                return_value=os.path.join(directory, "saved.json"),
+            ) as ask_save, p[0], p[1], p[2], p[3], p[4]:
+                self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file_as())
+
+            self.assertEqual(ask_save.call_args.kwargs["initialdir"], os.path.dirname(source_path))
+            self.assertEqual(ask_save.call_args.kwargs["initialfile"], "triggers.json")
 
     def test_trigger_set_save_to_path_writes_bytes_updates_dirty_and_reports(self):
         trigger = {"key": "a", "label": "Run", "actions": []}
