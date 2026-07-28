@@ -4,56 +4,61 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-28T08:00:00
+last_updated: 2026-07-28T20:30:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
 last_commit_location: claude/phase-beta-bfbdd2 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β task_02（trigger_set の source_path 接続 + 既定命名の stem 基準化）完了。次は task_03（保存計画の型と application 側実行契約）の `/task_new` 起票**。
+focus: **Phase β task_03（保存計画 SavePlan の導入と `save_runtime_data` の計画駆動化）完了。次は task_04（dirty な子の収集と §5 共有状況判定）の `/task_new` 起票**。
 mode: implementing
 
 ## last_action
-ts: 2026-07-28T08:00:00
+ts: 2026-07-28T20:30:00
 who: main
 summary: |
-  【task_02（trigger_set_source_and_naming）完了】実装は `codex-implementer` へ委任。暫定仕様 05 §6・§7。
-  - **idea_05 解消**: `trigger_set_file_io` の保存経路が読んでいた**存在しない App 属性**
-    `_trigger_set_source_path` を `dirty_tracker.trigger_set_source_path` へ接続（2 箇所）。
-    keymap / sequence と対称になり、source_path あり→直接上書き / なし→衝突ダイアログ。
-    到達不能だった「読込で持ってきた…別名で保存しますか？」`askyesno` は **§7 どおり復活させず削除**。
-  - **trigger_set 既定命名**: 固定 `TRIGGER_SET_RELATIVE_PATH`（`user/trigger_sets/default.json`）を廃止し、
-    `TRIGGER_SETS_RELATIVE_DIR` + 新規 `_default_trigger_set_path()`（**keymap_set の stem 基準**・
-    空 stem は `"default"`）へ。`split_base_dir`（構成セット周辺保存）経路も同様にした
-    （§6 本文は config_root 内が対象だが、同一フォルダ複数セットで同じ衝突が起きるため趣旨に合わせた。reviewer 承認）。
-  - **後方互換**: 既定 keymap_set（`default.json`）なら stem = `default` で保存先は従来どおり。
-    `SaveLoadRoundTripTest::test_round_trip_preserves_content` は**書き換えずに pass**。
-    読込側・keymap_set 索引・`_is_default_trigger_set_area`（→ sequences は `user/sequences/` のまま）は無変更。
-  - `hotkey_presets` / keymaps / sequences の命名は不変（指摘④「trigger_set のみ変更」を遵守）。
-  - `dirty_tracker.trigger_set_imported` は**唯一の読み手が消えたが撤去せず残置**（task_05 で使うか判断 →
-    使わなければ task_07 の `/refactor_check` で撤去可否を判定）。
+  【task_03（save_plan_execution）完了】実装は `codex-implementer` へ委任。application 限定・presentation 無変更。
+  暫定仕様 05 §2 指摘②③・§8。
+  - **新規 `keyseq/application/save_plan.py`**（36 行・dataclass のみ）: `ChildSaveEntry` / `SavePlan` /
+    `SavePlanError` + 定数（`CHILD_*` / `ACTION_SAVE|SAVE_AS|SKIP`）。**entries に無い子の既定は保存**（＝全保存と等価）。
+  - `config_service.save_runtime_data` に `save_plan=None` を追加し計画駆動へ。**§8 の 4 契約を実装**:
+    ①事前検証 → 書き込みの 2 相（違反は `SavePlanError`・**1 バイトも書かない**）②依存関係の強制
+    （パスが変わる子の上位を skip 不可）③粒度（skip の子は書かない・trigger_set 保存が全 sequence を巻き込まない）
+    ④**書き込み順序を子 → 親 → startup へ反転**（失敗時に親索引・config.json が旧状態のまま残る）。
+  - **skip の索引規則**（タスク定義で新たに決めた穴埋め）: 既存ファイルあり → 旧パス維持 /
+    既存なし → 索引に載せない。keymap / sequence / trigger_set の 3 種で一貫。
+  - **想定外の追加 = `INTERNAL_TRIGGER_SET_SOURCE_PATH`（runtime 内部キー）**: reviewer 判定 **採用**
+    （task_02 定義が「trigger_set の source_path の書き込み先反映は task_03 の担当」と明示委譲済み。
+    keymap / sequence と対称・子JSON には出力されない）。
+  - **【メイン修正 1 行】** `_build_keymap_set_payload` の `trigger_set_path` 変換に空文字ガードを追加。
+    空文字を `to_config_relative_or_absolute` に通すと `os.path.abspath("")` で **cwd に化ける**実バグで、
+    「skip かつ既存なしは索引に載せない」規則が壊れていた（reviewer 妥当と判定）。
+  - **等価性**: `save_plan=None` / 空計画の出力は現状と同じ（書き込み順序のみ変更）。
+    `tests/test_config_service.py` は**未変更のまま全 pass**。
+  - 【Codex 運用メモ】フォワーダが最終出力を返さないまま完了通知が来る事象が発生。**ファイル mtime の停滞監視**
+    （bash バックグラウンド）で書き込み終了を判定した。**早すぎる検証で「実装途中の fail」を掴んだ**ので、
+    次回も安定を確認してから verifier を回す。
 result_files:
+  - keyseq/application/save_plan.py（新規）
   - keyseq/application/config_service.py
-  - keyseq/presentation/controllers/config_io/trigger_set_file_io.py
-  - tests/test_config_service.py（`TriggerSetDefaultPathTest` 5 件新規 + 既存 1 件の期待値更新）
-  - tests_ui/test_config_io_characterization.py（既存 1 件を改名・拡張 + 新規 1 件）
-  - instructions/phase/06_child_file_save_dialog/tasks/task_02_trigger_set_source_and_naming.md（新規）
+  - tests/test_save_plan.py（新規・10 件）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_03_save_plan_execution.md（新規）
 verified:
   compile: clean
-  tests: pass 102（97 + 新規 5）
-  tests_ui: pass 86（85 + 新規 1）
+  tests: pass 112（102 + 新規 10）
+  tests_ui: pass 86（無変更）
   smoke: pass
-  review: reviewer = **完了可**（重点 7 点すべて OK）。参考指摘 1 件 = slugify 後に別々の keymap_set 名が
-    同一 stem へ丸まる衝突（例 `game*.json` と `game?.json` → `game_.json`）は受入条件 8 の範囲外・将来の穴
+  review: reviewer = **完了可**（§8 の 4 契約・等価性・責務分離・skip 索引規則の一貫性を確認。必須指摘なし）
+    参考 1 件 → task_07 で `data_schema.md` に `INTERNAL_TRIGGER_SET_SOURCE_PATH` を runtime 内部キーとして明記する
 
 ## next_action
-- **task_03（`save_plan_execution`）を `/task_new` で起票する**。内容は暫定仕様 05 §2・§8:
-  保存計画の型（子ごとに 保存 / 別名パス / スキップ ＋ 依存関係）と **application 側の実行契約**
-  （事前検証 → 書き込み / パスが変わる子の上位は保存必須 / **行ごとの粒度**〔選んだ子だけ書く〕/
-  失敗時は旧索引を維持）。`save_runtime_data` を計画駆動へ作り替える。
-  **既定計画＝全保存でダイアログ導入前の既存挙動と等価**であることを確認してから task_05 へ進む（挙動変更の切り分け）。
-  起票前に、`save_runtime_data` の書き込み順を固定している既存テスト（`tests_ui/test_config_io_characterization*.py`）を
-  grep で洗い出してタスク定義へ明記する。
-- 起票後: `codex-implementer` へ委任（テスト実行は依頼しない）→ `verifier` 実測 → `reviewer` → `/save_state` + `/task_commit`。
+- **task_04（`dirty_children_and_share_state`）を `/task_new` で起票する**。内容は暫定仕様 05 §3-1・§4・§5:
+  ① dirty な子の収集（`dirty_state.has_individual_dirty` の走査を流用。dirty な keymap / trigger_set / 各 sequence）
+  ② **共有状況の判定**（`_parent_refs` の 4 状態 = **未知 / 単独 / 共有〔N 個〕/ 別の上位に属す**）と
+  **既定ラジオの決定**（未知・別の上位 → **別名保存** / 単独・共有 → 保存）
+  ③ 行モデル（種別 / 対象名 / 保存先パス / 共有状況 / 既定アクション）の生成。**UI は作らない**（task_05）。
+  判定ロジックは純関数として置き、`SavePlan` へ変換できる形にする（application は判断を持たない＝ task_03 の前提）。
+- 起票後: `codex-implementer` へ委任（テスト実行は依頼しない）→ **書き込み停止を確認してから** `verifier` 実測 →
+  `reviewer` → `/save_state` + `/task_commit`。
 
 ## blockers
 - なし。
@@ -75,8 +80,14 @@ verified:
   個別保存経路は `dirty_tracker.trigger_set_source_path` を読む（keymap / sequence と対称）。
 - **`config_service.py` は 1262 行 →（task_02 で微増）**。分割是非は**フェーズ末の `/refactor_check` で判定**する
   （task 途中では触らない。reviewer からの申し送り）。
-- **申し送り（task_04/05 で考慮 or refactor_check）**: ① slugify 後に別々の keymap_set 名が同一 stem へ丸まる
-  衝突（受入条件 8 の範囲外）② `dirty_tracker.trigger_set_imported` は読み手不在の残置状態。
+- **task_03 で入った土台**: `keyseq/application/save_plan.py`（`SavePlan` / `ChildSaveEntry` / `SavePlanError`）。
+  `save_runtime_data(..., save_plan=...)` が事前検証 → 子 → 親 → startup の順で実行する。
+  presentation は task_05 でこの計画を組み立てて渡す。
+- **申し送り（task_04/05 で考慮 or refactor_check / task_07）**: ① slugify 後に別々の keymap_set 名が同一 stem へ
+  丸まる衝突（受入条件 8 の範囲外）② `dirty_tracker.trigger_set_imported` は読み手不在の残置状態
+  ③ **task_07 の正本反映で `INTERNAL_TRIGGER_SET_SOURCE_PATH` を runtime 内部キーとして `data_schema.md` に明記**。
+- **【Codex 運用】フォワーダが最終出力を返さず完了通知だけ来ることがある**。その場合は worktree のファイル
+  mtime が停滞するまで待ってから verifier を回す（早すぎると実装途中の fail を掴む。2026-07-28 実測）。
 - Phase β の主な触点: `config_service.save_runtime_data`(200-252) / `_build_split_save_payloads`(456-) /
   `config_io/keymap_set_io.py`(`save_keymap_set_to`:78-102) / `controllers/dirty_state.py`（idea_05 の当事者）/
   `config_io/io_dialogs.py`（`choose_save_path_with_collision`）。

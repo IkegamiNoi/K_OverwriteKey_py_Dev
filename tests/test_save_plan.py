@@ -1,0 +1,398 @@
+import os
+import tempfile
+import unittest
+
+from keyseq.application.config_service import ConfigService
+from keyseq.application.save_plan import (
+    ACTION_SAVE,
+    ACTION_SAVE_AS,
+    ACTION_SKIP,
+    CHILD_KEYMAP,
+    CHILD_SEQUENCE,
+    CHILD_TRIGGER_SET,
+    ChildSaveEntry,
+    SavePlan,
+    SavePlanError,
+)
+from keyseq.infrastructure.json_repository import JsonRepository
+
+
+def make_runtime_data():
+    return {
+        "triggers": [
+            {
+                "key": "f1",
+                "suppress": True,
+                "label": "copy",
+                "run_to_end": False,
+                "run_to_end_delay_ms": 300,
+                "actions": [{"type": "text", "value": "hello", "label": ""}],
+            }
+        ],
+        "hotkey_presets": [{"label": "Alt+Tab", "value": "alt+tab"}],
+        "hook_stop_key": "f12",
+        "hook_toggle_key": "",
+        "keyboard_layout": "us_tkl",
+        "keyboard_show_physical_key_labels": False,
+        "debug_jis_special_key_events": False,
+        "external_keyboard_layouts": [],
+        "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"}}],
+        "active_keymap_id": "km1",
+        "keymap_switch_keys": {"1": "km1"},
+    }
+
+
+class RecordingRepository(JsonRepository):
+    def __init__(self):
+        self.saved_paths: list[str] = []
+        self.fail_path = ""
+
+    def save_json(self, path, data):
+        self.saved_paths.append(path)
+        if self.fail_path and os.path.normcase(path) == os.path.normcase(self.fail_path):
+            raise OSError("simulated write failure")
+        super().save_json(path, data)
+
+
+class SavePlanTest(unittest.TestCase):
+    def setUp(self):
+        self.repository = RecordingRepository()
+        self.service = ConfigService(self.repository)
+
+    def _save(self, root, data=None, plan=None):
+        return self.service.save_runtime_data(
+            os.path.join(root, "user", "keymap_sets", "main.json"),
+            data or make_runtime_data(),
+            config_root=root,
+            startup_data={},
+            save_plan=plan,
+        )
+
+    def test_none_and_empty_plan_have_equivalent_output(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            none_root = os.path.join(tmp, "none")
+            empty_root = os.path.join(tmp, "empty")
+            self._save(none_root)
+            self._save(empty_root, plan=SavePlan())
+
+            relative_paths = (
+                "config.json",
+                os.path.join("user", "keymap_sets", "main.json"),
+                os.path.join("user", "trigger_sets", "main.json"),
+                os.path.join("user", "hotkey_presets", "default.json"),
+                os.path.join("user", "keymaps", "km1.json"),
+                os.path.join("user", "sequences", "copy.json"),
+            )
+            for relative_path in relative_paths:
+                self.assertEqual(
+                    JsonRepository().load_json(os.path.join(none_root, relative_path)),
+                    JsonRepository().load_json(os.path.join(empty_root, relative_path)),
+                )
+            self.assertEqual(
+                JsonRepository().load_json(
+                    os.path.join(none_root, "user", "keymap_sets", "main.json")
+                ),
+                {
+                    "trigger_set_path": "user/trigger_sets/main.json",
+                    "hotkey_presets_path": "user/hotkey_presets/default.json",
+                    "active_keymap_path": "user/keymaps/km1.json",
+                    "keymaps": [{"path": "user/keymaps/km1.json", "switch_key": "1"}],
+                    "hook_stop_key": "f12",
+                    "hook_toggle_key": "",
+                    "keyboard_layout": "us_tkl",
+                    "keyboard_show_physical_key_labels": False,
+                    "debug_jis_special_key_events": False,
+                    "external_keyboard_layouts": [],
+                },
+            )
+            self.assertEqual(
+                JsonRepository().load_json(
+                    os.path.join(none_root, "user", "trigger_sets", "main.json")
+                ),
+                {
+                    "triggers": [
+                        {
+                            "key": "f1",
+                            "suppress": True,
+                            "sequence_path": "user/sequences/copy.json",
+                        }
+                    ],
+                    "_parent_refs": ["user/keymap_sets/main.json"],
+                },
+            )
+            self.assertEqual(
+                JsonRepository().load_json(
+                    os.path.join(none_root, "user", "keymaps", "km1.json")
+                ),
+                {
+                    "label": "Main",
+                    "mappings": {"a": "b"},
+                    "_parent_refs": ["user/keymap_sets/main.json"],
+                },
+            )
+            self.assertEqual(
+                JsonRepository().load_json(
+                    os.path.join(none_root, "user", "sequences", "copy.json")
+                ),
+                {
+                    "label": "copy",
+                    "run_to_end": False,
+                    "run_to_end_delay_ms": 300,
+                    "actions": [{"type": "text", "value": "hello", "label": ""}],
+                    "_parent_refs": ["user/trigger_sets/main.json"],
+                },
+            )
+            self.assertEqual(
+                JsonRepository().load_json(
+                    os.path.join(none_root, "user", "hotkey_presets", "default.json")
+                ),
+                {"hotkey_presets": [{"label": "Alt+Tab", "value": "alt+tab"}]},
+            )
+            self.assertEqual(
+                JsonRepository().load_json(os.path.join(none_root, "config.json")),
+                {
+                    "keymap_set_path": "user/keymap_sets/main.json",
+                    "ui_font_delta_pt": 0,
+                    "last_used_directory": "",
+                },
+            )
+
+    def test_single_skip_omits_only_the_selected_child(self):
+        cases = (
+            (
+                ChildSaveEntry(CHILD_KEYMAP, "km1", ACTION_SKIP),
+                "user/keymaps/km1.json",
+                ("user/sequences/copy.json", "user/trigger_sets/main.json"),
+            ),
+            (
+                ChildSaveEntry(CHILD_SEQUENCE, "f1", ACTION_SKIP),
+                "user/sequences/copy.json",
+                ("user/keymaps/km1.json", "user/trigger_sets/main.json"),
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            for index, (entry, skipped_path, written_paths) in enumerate(cases):
+                root = os.path.join(tmp, str(index))
+                self._save(root, plan=SavePlan((entry,)))
+
+                self.assertFalse(os.path.exists(os.path.join(root, skipped_path)))
+                for written_path in written_paths:
+                    self.assertTrue(os.path.exists(os.path.join(root, written_path)))
+                self.assertTrue(
+                    os.path.exists(os.path.join(root, "user", "hotkey_presets", "default.json"))
+                )
+
+    def test_skipped_trigger_set_does_not_write_when_sequence_path_is_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            sequence_path = os.path.join(root, "user", "sequences", "copy.json")
+            JsonRepository().save_json(sequence_path, {"label": "old", "actions": []})
+            data = make_runtime_data()
+            data["triggers"][0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH] = (
+                "user/sequences/copy.json"
+            )
+            self._save(
+                root,
+                data=data,
+                plan=SavePlan((ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SKIP),)),
+            )
+
+            self.assertFalse(
+                os.path.exists(os.path.join(root, "user", "trigger_sets", "main.json"))
+            )
+            self.assertTrue(os.path.exists(sequence_path))
+            self.assertTrue(os.path.exists(os.path.join(root, "user", "keymaps", "km1.json")))
+
+    def test_trigger_set_does_not_write_skipped_sequence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save(
+                root,
+                plan=SavePlan((ChildSaveEntry(CHILD_SEQUENCE, "f1", ACTION_SKIP),)),
+            )
+
+            self.assertFalse(os.path.exists(os.path.join(root, "user", "sequences", "copy.json")))
+            trigger_set = JsonRepository().load_json(
+                os.path.join(root, "user", "trigger_sets", "main.json")
+            )
+            self.assertEqual(trigger_set["triggers"][0]["sequence_path"], "")
+
+    def test_save_as_updates_parent_indexes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            trigger_set_path = os.path.join(root, "custom", "triggers.json")
+            sequence_path = os.path.join(root, "custom", "copy.json")
+            keymap_path = os.path.join(root, "custom", "main.json")
+            saved, _ = self._save(
+                root,
+                plan=SavePlan(
+                    (
+                        ChildSaveEntry(
+                            CHILD_TRIGGER_SET,
+                            "",
+                            ACTION_SAVE_AS,
+                            trigger_set_path,
+                        ),
+                        ChildSaveEntry(CHILD_SEQUENCE, "f1", ACTION_SAVE_AS, sequence_path),
+                        ChildSaveEntry(CHILD_KEYMAP, "km1", ACTION_SAVE_AS, keymap_path),
+                    )
+                ),
+            )
+
+            self.assertTrue(os.path.exists(trigger_set_path))
+            self.assertTrue(os.path.exists(sequence_path))
+            self.assertTrue(os.path.exists(keymap_path))
+            keymap_set = JsonRepository().load_json(
+                os.path.join(root, "user", "keymap_sets", "main.json")
+            )
+            trigger_set = JsonRepository().load_json(trigger_set_path)
+            self.assertEqual(keymap_set["trigger_set_path"], "custom/triggers.json")
+            self.assertEqual(keymap_set["keymaps"][0]["path"], "custom/main.json")
+            self.assertEqual(trigger_set["triggers"][0]["sequence_path"], "custom/copy.json")
+            self.assertEqual(
+                saved[self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+                "custom/triggers.json",
+            )
+            self.assertEqual(
+                saved["keymaps"][0][self.service.INTERNAL_KEYMAP_SOURCE_PATH],
+                "custom/main.json",
+            )
+            self.assertEqual(
+                saved["triggers"][0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+                "custom/copy.json",
+            )
+
+    def test_invalid_plan_writes_no_files(self):
+        invalid_plans = (
+            SavePlan((ChildSaveEntry("unknown", "", ACTION_SKIP),)),
+            SavePlan((ChildSaveEntry(CHILD_KEYMAP, "missing", ACTION_SKIP),)),
+            SavePlan((ChildSaveEntry(CHILD_SEQUENCE, "f1", "invalid"),)),
+            SavePlan((ChildSaveEntry(CHILD_SEQUENCE, "f1", ACTION_SAVE_AS),)),
+            SavePlan(
+                (
+                    ChildSaveEntry(CHILD_KEYMAP, "km1", ACTION_SKIP),
+                    ChildSaveEntry(CHILD_KEYMAP, "km1", ACTION_SKIP),
+                )
+            ),
+            SavePlan(
+                (
+                    ChildSaveEntry(CHILD_SEQUENCE, "f1", ACTION_SAVE_AS, "new-copy.json"),
+                    ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SKIP),
+                )
+            ),
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            for index, plan in enumerate(invalid_plans):
+                root = os.path.join(tmp, str(index))
+                with self.assertRaises(SavePlanError):
+                    self._save(root, plan=plan)
+                self.assertFalse(os.path.exists(os.path.join(root, "config.json")))
+                self.assertFalse(
+                    os.path.exists(os.path.join(root, "user", "keymap_sets", "main.json"))
+                )
+                self.assertEqual(self.repository.saved_paths, [])
+
+    def test_save_to_changed_sequence_path_requires_trigger_set_save(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            data = make_runtime_data()
+            data["triggers"][0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH] = (
+                "user/sequences/shared.json"
+            )
+            second_trigger = dict(data["triggers"][0])
+            second_trigger["key"] = "f2"
+            second_trigger["label"] = "paste"
+            data["triggers"].append(second_trigger)
+
+            with self.assertRaises(SavePlanError):
+                self._save(
+                    root,
+                    data=data,
+                    plan=SavePlan(
+                        (
+                            ChildSaveEntry(CHILD_SEQUENCE, "f2", ACTION_SAVE),
+                            ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SKIP),
+                        )
+                    ),
+                )
+
+            self.assertEqual(self.repository.saved_paths, [])
+            self.assertFalse(os.path.exists(os.path.join(root, "config.json")))
+
+    def test_skip_keeps_existing_indexes_and_omits_missing_indexes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "existing")
+            self._save(root)
+            loaded = self.service.load_runtime_data_from_keymap_set_path(
+                os.path.join(root, "user", "keymap_sets", "main.json"),
+                config_root=root,
+            )
+            self.assertEqual(
+                loaded[self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+                "user/trigger_sets/main.json",
+            )
+            plan = SavePlan(
+                (
+                    ChildSaveEntry(CHILD_KEYMAP, "km1", ACTION_SKIP),
+                    ChildSaveEntry(CHILD_SEQUENCE, "f1", ACTION_SKIP),
+                    ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SKIP),
+                )
+            )
+            self._save(root, data=loaded, plan=plan)
+            keymap_set = JsonRepository().load_json(
+                os.path.join(root, "user", "keymap_sets", "main.json")
+            )
+            self.assertEqual(keymap_set["keymaps"][0]["path"], "user/keymaps/km1.json")
+            self.assertEqual(keymap_set["trigger_set_path"], "user/trigger_sets/main.json")
+            trigger_set = JsonRepository().load_json(
+                os.path.join(root, "user", "trigger_sets", "main.json")
+            )
+            self.assertEqual(trigger_set["triggers"][0]["sequence_path"], "user/sequences/copy.json")
+
+            missing_root = os.path.join(tmp, "missing")
+            self._save(missing_root, plan=plan)
+            missing_keymap_set = JsonRepository().load_json(
+                os.path.join(missing_root, "user", "keymap_sets", "main.json")
+            )
+            self.assertEqual(missing_keymap_set["keymaps"], [])
+            self.assertEqual(missing_keymap_set["trigger_set_path"], "")
+
+    def test_child_write_failure_keeps_parent_and_startup_indexes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save(root)
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            startup_path = os.path.join(root, "config.json")
+            previous_keymap_set = JsonRepository().load_json(keymap_set_path)
+            previous_startup = JsonRepository().load_json(startup_path)
+            self.repository.fail_path = os.path.join(root, "user", "sequences", "copy.json")
+
+            with self.assertRaises(OSError):
+                self._save(root)
+
+            self.assertEqual(JsonRepository().load_json(keymap_set_path), previous_keymap_set)
+            self.assertEqual(JsonRepository().load_json(startup_path), previous_startup)
+
+    def test_writes_children_before_parent_and_startup(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save(root)
+            relative_paths = [
+                os.path.relpath(path, root).replace("\\", "/")
+                for path in self.repository.saved_paths
+            ]
+            self.assertEqual(
+                relative_paths,
+                [
+                    "user/sequences/copy.json",
+                    "user/trigger_sets/main.json",
+                    "user/keymaps/km1.json",
+                    "user/hotkey_presets/default.json",
+                    "user/keymap_sets/main.json",
+                    "config.json",
+                ],
+            )
+
+
+if __name__ == "__main__":
+    unittest.main()
