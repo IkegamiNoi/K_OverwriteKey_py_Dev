@@ -405,6 +405,53 @@ class ConfigService:
             self._apply_saved_child_paths(normalized, payloads, resolved_config_root)
         return normalized, payloads["startup"]
 
+    def resolve_child_save_targets(
+        self,
+        data: Any,
+        *,
+        config_root: str,
+        keymap_set_path: str,
+        split_base_dir: str = "",
+    ) -> dict[tuple[str, str], str]:
+        """ACTION_SAVE 時の子ファイル保存先を、書き込まずに解決する。"""
+        runtime = ensure_config_compatibility(data)
+        resolved_config_root = os.path.abspath(config_root)
+        resolved_keymap_set_path = (
+            os.path.abspath(keymap_set_path)
+            if keymap_set_path
+            else self._default_keymap_set_path(resolved_config_root)
+        )
+        resolved_split_base_dir = os.path.abspath(split_base_dir) if split_base_dir else ""
+        payloads = self._build_split_save_payloads(
+            runtime,
+            config_root=resolved_config_root,
+            startup_data=None,
+            keymap_set_path=resolved_keymap_set_path,
+            legacy_path="",
+            split_base_dir=resolved_split_base_dir,
+            save_plan=SavePlan(),
+        )
+
+        targets = {
+            (CHILD_TRIGGER_SET, ""): os.path.abspath(payloads["trigger_set_path"]),
+        }
+        for keymap in payloads["keymaps"]:
+            targets[(CHILD_KEYMAP, str(keymap["id"]))] = os.path.abspath(
+                keymap["resolved_path"]
+            )
+        for sequence in payloads["sequences"]:
+            targets[(CHILD_SEQUENCE, str(sequence["key"]))] = os.path.abspath(
+                sequence["resolved_path"]
+            )
+        return targets
+
+    def read_parent_refs(self, path: str) -> list[str] | None:
+        """子JSONの参照元を読み、読めない場合や未知の場合は None を返す。"""
+        payload = self._load_optional_json(path)
+        if not isinstance(payload, dict):
+            return None
+        return self._normalize_parent_refs(payload.get(self.PARENT_REFS_KEY))
+
     def _load_split_config(self, *, config_root: str, keymap_set_path: str) -> dict[str, Any]:
         keymap_set = self._load_optional_json(keymap_set_path)
         if not isinstance(keymap_set, dict):
@@ -823,6 +870,7 @@ class ConfigService:
         serialized_keymaps = [
             {
                 "path": str(item["path"]),
+                "resolved_path": str(item["resolved_path"]),
                 "payload": item["payload"],
                 "id": item["id"],
                 "skip": item["skip"],

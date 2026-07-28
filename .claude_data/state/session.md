@@ -4,59 +4,54 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-28T20:30:00
+last_updated: 2026-07-28T21:10:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
 last_commit_location: claude/phase-beta-bfbdd2 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β task_03（保存計画 SavePlan の導入と `save_runtime_data` の計画駆動化）完了。次は task_04（dirty な子の収集と §5 共有状況判定）の `/task_new` 起票**。
+focus: **Phase β task_04（dirty な子の収集・保存先解決・共有状況判定・既定アクション）完了。次は task_05（保存確認ダイアログ UI と保存経路への挟み込み）の `/task_new` 起票**。
 mode: implementing
 
 ## last_action
-ts: 2026-07-28T20:30:00
+ts: 2026-07-28T21:10:00
 who: main
 summary: |
-  【task_03（save_plan_execution）完了】実装は `codex-implementer` へ委任。application 限定・presentation 無変更。
-  暫定仕様 05 §2 指摘②③・§8。
-  - **新規 `keyseq/application/save_plan.py`**（36 行・dataclass のみ）: `ChildSaveEntry` / `SavePlan` /
-    `SavePlanError` + 定数（`CHILD_*` / `ACTION_SAVE|SAVE_AS|SKIP`）。**entries に無い子の既定は保存**（＝全保存と等価）。
-  - `config_service.save_runtime_data` に `save_plan=None` を追加し計画駆動へ。**§8 の 4 契約を実装**:
-    ①事前検証 → 書き込みの 2 相（違反は `SavePlanError`・**1 バイトも書かない**）②依存関係の強制
-    （パスが変わる子の上位を skip 不可）③粒度（skip の子は書かない・trigger_set 保存が全 sequence を巻き込まない）
-    ④**書き込み順序を子 → 親 → startup へ反転**（失敗時に親索引・config.json が旧状態のまま残る）。
-  - **skip の索引規則**（タスク定義で新たに決めた穴埋め）: 既存ファイルあり → 旧パス維持 /
-    既存なし → 索引に載せない。keymap / sequence / trigger_set の 3 種で一貫。
-  - **想定外の追加 = `INTERNAL_TRIGGER_SET_SOURCE_PATH`（runtime 内部キー）**: reviewer 判定 **採用**
-    （task_02 定義が「trigger_set の source_path の書き込み先反映は task_03 の担当」と明示委譲済み。
-    keymap / sequence と対称・子JSON には出力されない）。
-  - **【メイン修正 1 行】** `_build_keymap_set_payload` の `trigger_set_path` 変換に空文字ガードを追加。
-    空文字を `to_config_relative_or_absolute` に通すと `os.path.abspath("")` で **cwd に化ける**実バグで、
-    「skip かつ既存なしは索引に載せない」規則が壊れていた（reviewer 妥当と判定）。
-  - **等価性**: `save_plan=None` / 空計画の出力は現状と同じ（書き込み順序のみ変更）。
-    `tests/test_config_service.py` は**未変更のまま全 pass**。
-  - 【Codex 運用メモ】フォワーダが最終出力を返さないまま完了通知が来る事象が発生。**ファイル mtime の停滞監視**
-    （bash バックグラウンド）で書き込み終了を判定した。**早すぎる検証で「実装途中の fail」を掴んだ**ので、
-    次回も安定を確認してから verifier を回す。
+  【task_04（dirty_children_and_share_state）完了】実装は `codex-implementer` へ委任。暫定仕様 05 §3・§4・§5。
+  - **新規 `keyseq/presentation/controllers/config_io/child_save_rows.py`**（209 行・**tkinter を import しない**
+    純ロジック・App ではなく値を引数で受ける）: `SHARE_*` / `ChildSaveRow` / `judge_share_state` /
+    `share_text_for` / `default_action_for` / `collect_child_save_rows`。行順は keymap → trigger_set → sequence。
+  - **application へ公開 API 2 本**: `resolve_child_save_targets()`（**空 `SavePlan()` で task_03 の解決経路を
+    そのまま再利用**・書き込みなし）/ `read_parent_refs(path)`（無い・壊れ・キー無しは `None`・例外なし）。
+  - **§5 の判定は `target_path`（これから上書きする相手のファイル）から読む**（runtime の refs は使わない。
+    別名保存・既定命名変更で書き込み先が変わると誤判定するため）。
+  - **`SHARE_NEW` を 1 状態追加**（§5 の表に無い判断）: 保存先ファイルが存在しない → 既定は**保存**。
+    未知に倒すと新規の子すべてで別名保存ダイアログが出て実用に耐えないため。**task_07 で正本に明記する**。
+  - 安全側の既定を維持: `_parent_refs` が **None も空リストも UNKNOWN**、`current_parent` が空文字も UNKNOWN →
+    いずれも **別名保存**。`SHARE_OTHER_PARENT` も別名保存。
+  - **【メイン修正 1 行】** `_build_split_save_payloads` の `serialized_keymaps` に `"resolved_path"` を追加
+    （新 API が参照するキーが欠けており `KeyError` で新規テスト 5 件が error。sequences 側は既に露出済みで対称化）。
 result_files:
-  - keyseq/application/save_plan.py（新規）
-  - keyseq/application/config_service.py
-  - tests/test_save_plan.py（新規・10 件）
-  - instructions/phase/06_child_file_save_dialog/tasks/task_03_save_plan_execution.md（新規）
+  - keyseq/presentation/controllers/config_io/child_save_rows.py（新規）
+  - keyseq/application/config_service.py（公開 API 2 本 + resolved_path 露出）
+  - tests/test_child_save_rows.py（新規・7 件）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_04_dirty_children_and_share_state.md（新規）
 verified:
   compile: clean
-  tests: pass 112（102 + 新規 10）
+  tests: pass 119（112 + 新規 7）
   tests_ui: pass 86（無変更）
   smoke: pass
-  review: reviewer = **完了可**（§8 の 4 契約・等価性・責務分離・skip 索引規則の一貫性を確認。必須指摘なし）
-    参考 1 件 → task_07 で `data_schema.md` に `INTERNAL_TRIGGER_SET_SOURCE_PATH` を runtime 内部キーとして明記する
+  review: reviewer = **完了可**（§5 の安全側既定・target_path から読む・二重実装なし・依存方向を確認。必須指摘なし）
+    参考 2 件（任意）: ① keymap の display_name フォールバックが生 id ではなく正規化キー
+    ② `collect_child_save_rows` が `keymap_service.get_keymaps` を経由せず `data["keymaps"]` を直接走査（挙動差なし）
 
 ## next_action
-- **task_04（`dirty_children_and_share_state`）を `/task_new` で起票する**。内容は暫定仕様 05 §3-1・§4・§5:
-  ① dirty な子の収集（`dirty_state.has_individual_dirty` の走査を流用。dirty な keymap / trigger_set / 各 sequence）
-  ② **共有状況の判定**（`_parent_refs` の 4 状態 = **未知 / 単独 / 共有〔N 個〕/ 別の上位に属す**）と
-  **既定ラジオの決定**（未知・別の上位 → **別名保存** / 単独・共有 → 保存）
-  ③ 行モデル（種別 / 対象名 / 保存先パス / 共有状況 / 既定アクション）の生成。**UI は作らない**（task_05）。
-  判定ロジックは純関数として置き、`SavePlan` へ変換できる形にする（application は判断を持たない＝ task_03 の前提）。
+- **task_05（`save_dialog_ui`）を `/task_new` で起票する**。内容は暫定仕様 05 §3:
+  ① 子ファイル保存確認ダイアログ（一覧・列 = 種別 / 対象名 / 保存先パス / 共有状況 / **ラジオ 3 択**。
+  既定は task_04 の `default_action`）② 別名保存を選んだ行の保存先を `asksaveasfilename` で決める
+  ③ 選択結果を **`SavePlan` へ変換**して `save_runtime_data` へ渡す（task_03 の実行契約に乗せる）
+  ④ `keymap_set_io.save_keymap_set_to` への挟み込み（**dirty な子が無ければダイアログを出さない**）。
+  依存関係（パスが変わる子の上位は skip 不可）は **UI 側でも選べないようにする**か、`SavePlanError` を
+  ユーザー向けメッセージに変換するかを設計で決める。tests_ui は monkeypatch でダイアログ選択を駆動する。
 - 起票後: `codex-implementer` へ委任（テスト実行は依頼しない）→ **書き込み停止を確認してから** `verifier` 実測 →
   `reviewer` → `/save_state` + `/task_commit`。
 
@@ -83,6 +78,9 @@ verified:
 - **task_03 で入った土台**: `keyseq/application/save_plan.py`（`SavePlan` / `ChildSaveEntry` / `SavePlanError`）。
   `save_runtime_data(..., save_plan=...)` が事前検証 → 子 → 親 → startup の順で実行する。
   presentation は task_05 でこの計画を組み立てて渡す。
+- **task_04 で入った土台**: `config_io/child_save_rows.py` の `collect_child_save_rows(...)` が行モデル
+  （`ChildSaveRow`: kind / key / display_name / target_path / share_state / share_text / default_action）を返す。
+  task_05 のダイアログはこれを並べ、選択結果を `SavePlan` へ変換するだけでよい。
 - **申し送り（task_04/05 で考慮 or refactor_check / task_07）**: ① slugify 後に別々の keymap_set 名が同一 stem へ
   丸まる衝突（受入条件 8 の範囲外）② `dirty_tracker.trigger_set_imported` は読み手不在の残置状態
   ③ **task_07 の正本反映で `INTERNAL_TRIGGER_SET_SOURCE_PATH` を runtime 内部キーとして `data_schema.md` に明記**。
