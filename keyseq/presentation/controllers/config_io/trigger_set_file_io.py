@@ -38,7 +38,12 @@ class TriggerSetFileIo:
 
     def save_trigger_set_to_path(self, path: str) -> bool:
         try:
-            triggers, _payload = self._app.config_service.save_trigger_set_file(path, self._app.data, config_root=self._app.config_root)
+            triggers, _payload = self._app.config_service.save_trigger_set_file(
+                path,
+                self._app.data,
+                config_root=self._app.config_root,
+                parent_ref=self._app.keymap_set_path,
+            )
             self._app.data["triggers"] = triggers
             self._app.dirty_tracker.trigger_set_source_path = path
             self._app.dirty_tracker.trigger_set_imported = False

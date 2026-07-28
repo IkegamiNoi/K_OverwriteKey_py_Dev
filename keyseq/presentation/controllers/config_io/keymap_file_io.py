@@ -61,7 +61,12 @@ class KeymapFileIo:
 
     def save_keymap_to_path(self, index: int, keymap: dict, path: str) -> bool:
         try:
-            saved = self._app.config_service.save_keymap_file(path, keymap)
+            saved = self._app.config_service.save_keymap_file(
+                path,
+                keymap,
+                parent_ref=self._app.keymap_set_path,
+                config_root=self._app.config_root,
+            )
             self._app.keymap_service.get_keymaps(self._app.data)[index] = saved
             self._app.keymap_panel.refresh_keymap_list_ui(preferred_index=index)
             self._app.layout.refresh_keyboard_window()

@@ -53,7 +53,12 @@ class SequenceFileIo:
 
     def save_sequence_to_path(self, trigger: dict, path: str) -> bool:
         try:
-            sequence = self._app.config_service.save_sequence_file(path, trigger)
+            sequence = self._app.config_service.save_sequence_file(
+                path,
+                trigger,
+                parent_ref=self._app.dirty_tracker.trigger_set_source_path,
+                config_root=self._app.config_root,
+            )
             trigger.update(sequence)
             self._app.dirty_tracker.mark_trigger_set_dirty()
             self._app.trigger_panel.refresh_triggers()

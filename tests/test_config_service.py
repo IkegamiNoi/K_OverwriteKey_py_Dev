@@ -153,6 +153,161 @@ class SequenceFileIoTest(unittest.TestCase):
             self.assertTrue(loaded["_sequence_imported"])
 
 
+class ParentRefsSchemaTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def test_normalize_parent_refs_preserves_unknown_and_known_empty(self):
+        self.assertIsNone(self.service._normalize_parent_refs(None))
+        self.assertEqual(self.service._normalize_parent_refs([]), [])
+        self.assertEqual(
+            self.service._normalize_parent_refs(["a", "a", "b"]),
+            ["a", "b"],
+        )
+        for value in ("x", {}, None):
+            self.assertIsNone(self.service._normalize_parent_refs(value))
+        self.assertEqual(
+            self.service._normalize_parent_refs([" ", 1, " a ", "a"]),
+            ["a"],
+        )
+
+    def test_merge_parent_ref_normalizes_and_deduplicates_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            inside = os.path.join(root, "user", "keymap_sets", "main.json")
+            outside = os.path.join(tmp, "outside.json")
+            self.assertEqual(
+                self.service._merge_parent_ref(None, inside, config_root=root),
+                ["user/keymap_sets/main.json"],
+            )
+            self.assertEqual(
+                self.service._merge_parent_ref(
+                    ["user\\keymap_sets\\main.json"],
+                    inside,
+                    config_root=root,
+                ),
+                ["user\\keymap_sets\\main.json"],
+            )
+            self.assertEqual(
+                self.service._merge_parent_ref(None, "", config_root=root),
+                [],
+            )
+            self.assertEqual(
+                self.service._merge_parent_ref(None, outside, config_root=root),
+                [os.path.abspath(outside).replace("\\", "/")],
+            )
+
+    def test_save_keymap_file_records_parent_only_when_provided(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            path = os.path.join(root, "user", "keymaps", "main.json")
+            parent_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            self.service.save_keymap_file(
+                path,
+                {"id": "km1", "label": "Main", "mappings": {"a": "b"}},
+                parent_ref=parent_path,
+                config_root=root,
+            )
+            self.assertEqual(
+                JsonRepository().load_json(path)["_parent_refs"],
+                ["user/keymap_sets/main.json"],
+            )
+
+            no_parent_path = os.path.join(root, "user", "keymaps", "no_parent.json")
+            self.service.save_keymap_file(
+                no_parent_path,
+                {"id": "km2", "label": "No parent", "mappings": {"a": "b"}},
+            )
+            self.assertNotIn("_parent_refs", JsonRepository().load_json(no_parent_path))
+
+    def test_keymap_and_sequence_round_trip_parent_refs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_path = os.path.join(root, "keymap.json")
+            sequence_path = os.path.join(root, "sequence.json")
+            JsonRepository().save_json(
+                keymap_path,
+                {"label": "Main", "mappings": {"a": "b"}, "_parent_refs": ["parent.json"]},
+            )
+            JsonRepository().save_json(
+                sequence_path,
+                {
+                    "label": "copy",
+                    "run_to_end": False,
+                    "run_to_end_delay_ms": 300,
+                    "actions": [],
+                    "_parent_refs": ["trigger_set.json"],
+                },
+            )
+
+            keymap = self.service.load_keymap_file(keymap_path, used_keymap_ids=set())
+            sequence = self.service.load_sequence_file(sequence_path)
+            self.service.save_keymap_file(keymap_path, keymap)
+            self.service.save_sequence_file(sequence_path, sequence)
+
+            self.assertEqual(JsonRepository().load_json(keymap_path)["_parent_refs"], ["parent.json"])
+            self.assertEqual(
+                JsonRepository().load_json(sequence_path)["_parent_refs"],
+                ["trigger_set.json"],
+            )
+
+    def test_existing_files_without_parent_refs_remain_unknown(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            keymap_path = os.path.join(tmp, "keymap.json")
+            sequence_path = os.path.join(tmp, "sequence.json")
+            JsonRepository().save_json(keymap_path, {"label": "Main", "mappings": {}})
+            JsonRepository().save_json(
+                sequence_path,
+                {"label": "copy", "run_to_end": False, "run_to_end_delay_ms": 300, "actions": []},
+            )
+
+            keymap = self.service.load_keymap_file(keymap_path, used_keymap_ids=set())
+            sequence = self.service.load_sequence_file(sequence_path)
+            self.assertNotIn(self.service.INTERNAL_KEYMAP_PARENT_REFS, keymap)
+            self.assertNotIn(self.service.INTERNAL_SEQUENCE_PARENT_REFS, sequence)
+
+    def test_save_runtime_data_records_all_parent_refs(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            self.service.save_runtime_data(
+                keymap_set_path,
+                make_runtime_data(),
+                config_root=root,
+                startup_data={},
+            )
+
+            keymap = JsonRepository().load_json(os.path.join(root, "user", "keymaps", "km1.json"))
+            trigger_set = JsonRepository().load_json(
+                os.path.join(root, "user", "trigger_sets", "default.json")
+            )
+            sequence = JsonRepository().load_json(
+                os.path.join(root, "user", "sequences", "copy.json")
+            )
+            self.assertEqual(keymap["_parent_refs"], ["user/keymap_sets/main.json"])
+            self.assertEqual(trigger_set["_parent_refs"], ["user/keymap_sets/main.json"])
+            self.assertEqual(sequence["_parent_refs"], ["user/trigger_sets/default.json"])
+
+    def test_export_does_not_leak_parent_ref_runtime_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = os.path.join(tmp, "export.json")
+            data = make_runtime_data()
+            data[self.service.INTERNAL_TRIGGER_SET_PARENT_REFS] = ["keymap_set.json"]
+            data["keymaps"][0][self.service.INTERNAL_KEYMAP_PARENT_REFS] = ["keymap_set.json"]
+            data["triggers"][0][self.service.INTERNAL_SEQUENCE_PARENT_REFS] = ["trigger_set.json"]
+
+            sanitized = self.service._sanitize_runtime_for_storage(data)
+            self.assertNotIn(self.service.INTERNAL_TRIGGER_SET_PARENT_REFS, sanitized)
+            self.assertNotIn(self.service.INTERNAL_KEYMAP_PARENT_REFS, sanitized["keymaps"][0])
+            self.assertNotIn(self.service.INTERNAL_SEQUENCE_PARENT_REFS, sanitized["triggers"][0])
+
+            self.service.export_runtime_data(path, data)
+            exported = JsonRepository().load_json(path)
+            self.assertNotIn(self.service.INTERNAL_TRIGGER_SET_PARENT_REFS, exported)
+            self.assertNotIn(self.service.INTERNAL_KEYMAP_PARENT_REFS, exported["keymaps"][0])
+            self.assertNotIn(self.service.INTERNAL_SEQUENCE_PARENT_REFS, exported["triggers"][0])
+
+
 class PathHelperTest(unittest.TestCase):
     # 注意: R14 でメソッドが公開名に変わったら、このテストの呼び出しも新名に更新する
     def setUp(self):

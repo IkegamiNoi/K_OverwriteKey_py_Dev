@@ -175,7 +175,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
     # patch が外れる。代わりにその外部境界（config_service / refresh / messagebox）を無害化して
     # 実 save_X_to_path を走らせ、save_calls に保存呼び出しを記録して「どのパスへ保存したか」を固定する。
     def _keymap_save_patches(self, save_calls):
-        def fake_save(path, keymap):
+        def fake_save(path, keymap, *, parent_ref="", config_root=""):
             save_calls.append((path, keymap))
             # 実 save_keymap_to_path は get_keymaps()[index] = saved でリスト要素を差し替える。
             # コピーを返すと後続ブロックが差し替え後の別オブジェクトを掴むため、同一オブジェクトを返す。
@@ -189,7 +189,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         )
 
     def _trigger_set_save_patches(self, save_calls):
-        def fake_save(path, data, *, config_root):
+        def fake_save(path, data, *, config_root, parent_ref=""):
             save_calls.append((path, data.get("triggers")))
             return list(data.get("triggers") or []), {}
         return (
@@ -201,7 +201,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         )
 
     def _sequence_save_patches(self, save_calls):
-        def fake_save(path, trigger):
+        def fake_save(path, trigger, *, parent_ref="", config_root=""):
             save_calls.append((path, trigger))
             return {}
         return (

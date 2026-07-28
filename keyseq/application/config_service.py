@@ -29,6 +29,10 @@ class ConfigService:
     INTERNAL_SEQUENCE_SOURCE_PATH = "_sequence_source_path"
     INTERNAL_SEQUENCE_IMPORTED = "_sequence_imported"
     INTERNAL_SEQUENCE_DIRTY = "_sequence_dirty"
+    PARENT_REFS_KEY = "_parent_refs"
+    INTERNAL_KEYMAP_PARENT_REFS = "_keymap_parent_refs"
+    INTERNAL_SEQUENCE_PARENT_REFS = "_sequence_parent_refs"
+    INTERNAL_TRIGGER_SET_PARENT_REFS = "_trigger_set_parent_refs"
 
     def __init__(self, repository: JsonRepository):
         self.repository = repository
@@ -120,16 +124,36 @@ class ConfigService:
             self.INTERNAL_KEYMAP_IMPORTED: bool(imported),
             self.INTERNAL_KEYMAP_DIRTY: False,
         }
-        return ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [keymap])[0]
+        parent_refs = self._normalize_parent_refs(raw_keymap.get(self.PARENT_REFS_KEY))
+        normalized = ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [keymap])[0]
+        if parent_refs is not None:
+            normalized[self.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
+        return normalized
 
-    def save_keymap_file(self, path: str, keymap: dict[str, Any]) -> dict[str, Any]:
+    def save_keymap_file(
+        self,
+        path: str,
+        keymap: dict[str, Any],
+        *,
+        parent_ref: str = "",
+        config_root: str = "",
+    ) -> dict[str, Any]:
         normalized = ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [])
         if not normalized:
             raise ValueError("保存できる keymap がありません。")
         item = normalized[0]
-        payload = self._build_keymap_file_payload(item)
+        parent_refs = self._normalize_parent_refs(keymap.get(self.INTERNAL_KEYMAP_PARENT_REFS))
+        if parent_refs is not None:
+            item[self.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
+        payload = self._build_keymap_file_payload(
+            item,
+            parent_ref=parent_ref,
+            config_root=config_root,
+        )
         self.repository.save_json(path, payload)
         saved = safe_deepcopy(item)
+        if self.PARENT_REFS_KEY in payload:
+            saved[self.INTERNAL_KEYMAP_PARENT_REFS] = safe_deepcopy(payload[self.PARENT_REFS_KEY])
         saved[self.INTERNAL_KEYMAP_SOURCE_PATH] = path
         saved[self.INTERNAL_KEYMAP_IMPORTED] = False
         saved[self.INTERNAL_KEYMAP_DIRTY] = False
@@ -140,15 +164,31 @@ class ConfigService:
         if not isinstance(raw_sequence, dict):
             raise ValueError("sequence JSON の形式が不正です。")
         sequence = self._normalize_sequence_payload(raw_sequence)
+        parent_refs = self._normalize_parent_refs(raw_sequence.get(self.PARENT_REFS_KEY))
+        if parent_refs is not None:
+            sequence[self.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
         sequence[self.INTERNAL_SEQUENCE_SOURCE_PATH] = path
         sequence[self.INTERNAL_SEQUENCE_IMPORTED] = bool(imported)
         sequence[self.INTERNAL_SEQUENCE_DIRTY] = False
         return sequence
 
-    def save_sequence_file(self, path: str, trigger: dict[str, Any]) -> dict[str, Any]:
-        payload = self._build_sequence_payload(trigger)
+    def save_sequence_file(
+        self,
+        path: str,
+        trigger: dict[str, Any],
+        *,
+        parent_ref: str = "",
+        config_root: str = "",
+    ) -> dict[str, Any]:
+        payload = self._build_sequence_payload(
+            trigger,
+            parent_ref=parent_ref,
+            config_root=config_root,
+        )
         self.repository.save_json(path, payload)
         sequence = self._normalize_sequence_payload(payload)
+        if self.PARENT_REFS_KEY in payload:
+            sequence[self.INTERNAL_SEQUENCE_PARENT_REFS] = safe_deepcopy(payload[self.PARENT_REFS_KEY])
         sequence[self.INTERNAL_SEQUENCE_SOURCE_PATH] = path
         sequence[self.INTERNAL_SEQUENCE_IMPORTED] = False
         sequence[self.INTERNAL_SEQUENCE_DIRTY] = False
@@ -164,7 +204,12 @@ class ConfigService:
         payload = self.repository.load_json(path)
         if not isinstance(payload, dict):
             raise ValueError("trigger_set JSON の形式が不正です。")
-        return self._load_triggers_from_trigger_set(payload, config_root=config_root, imported=imported)
+        triggers, _parent_refs = self._load_triggers_from_trigger_set(
+            payload,
+            config_root=config_root,
+            imported=imported,
+        )
+        return triggers
 
     def save_trigger_set_file(
         self,
@@ -172,12 +217,23 @@ class ConfigService:
         data: dict[str, Any],
         *,
         config_root: str,
+        parent_ref: str = "",
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         normalized = ensure_config_compatibility(data)
+        raw_triggers = data.get("triggers") if isinstance(data.get("triggers"), list) else []
+        normalized_triggers = normalized.get("triggers", [])
+        for raw_trigger, trigger in zip(
+            (item for item in raw_triggers if isinstance(item, dict)),
+            normalized_triggers,
+        ):
+            parent_refs = self._normalize_parent_refs(raw_trigger.get(self.INTERNAL_SEQUENCE_PARENT_REFS))
+            if parent_refs is not None:
+                trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
         trigger_payload, sequence_items = self._build_trigger_set_payloads(
             normalized,
             config_root=os.path.abspath(config_root),
             trigger_set_path=os.path.abspath(path),
+            parent_ref=parent_ref,
         )
         for item in sequence_items:
             self.repository.save_json(str(item["resolved_path"]), item["payload"])
@@ -193,8 +249,20 @@ class ConfigService:
             key = normalize_key_name(str(trigger.get("key") or ""))
             if key in by_key:
                 trigger[self.INTERNAL_SEQUENCE_SOURCE_PATH] = by_key[key]
+            sequence_item = next(
+                (item for item in sequence_items if normalize_key_name(str(item.get("key") or "")) == key),
+                None,
+            )
+            if isinstance(sequence_item, dict) and self.PARENT_REFS_KEY in sequence_item.get("payload", {}):
+                trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = safe_deepcopy(
+                    sequence_item["payload"][self.PARENT_REFS_KEY]
+                )
             trigger[self.INTERNAL_SEQUENCE_IMPORTED] = False
             trigger[self.INTERNAL_SEQUENCE_DIRTY] = False
+        if self.PARENT_REFS_KEY in trigger_payload:
+            data[self.INTERNAL_TRIGGER_SET_PARENT_REFS] = safe_deepcopy(
+                trigger_payload[self.PARENT_REFS_KEY]
+            )
         return triggers, trigger_payload
 
     def save_runtime_data(
@@ -209,6 +277,37 @@ class ConfigService:
         split_base_dir: str = "",
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         normalized = ensure_config_compatibility(data)
+        raw_keymaps = (
+            data.get("keymaps")
+            if isinstance(data, dict) and isinstance(data.get("keymaps"), list)
+            else []
+        )
+        normalized_keymaps = normalized.get("keymaps", [])
+        parent_refs_by_id = {
+            normalize_key_name(keymap.get("id", "")): parent_refs
+            for keymap in raw_keymaps
+            if isinstance(keymap, dict)
+            for parent_refs in [self._normalize_parent_refs(keymap.get(self.INTERNAL_KEYMAP_PARENT_REFS))]
+            if parent_refs is not None
+        }
+        for keymap in normalized_keymaps:
+            parent_refs = parent_refs_by_id.get(normalize_key_name(keymap.get("id", "")))
+            if parent_refs is not None:
+                keymap[self.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
+
+        raw_triggers = (
+            data.get("triggers")
+            if isinstance(data, dict) and isinstance(data.get("triggers"), list)
+            else []
+        )
+        normalized_triggers = normalized.get("triggers", [])
+        for raw_trigger, trigger in zip(
+            (item for item in raw_triggers if isinstance(item, dict)),
+            normalized_triggers,
+        ):
+            parent_refs = self._normalize_parent_refs(raw_trigger.get(self.INTERNAL_SEQUENCE_PARENT_REFS))
+            if parent_refs is not None:
+                trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
         sanitized_legacy = self._sanitize_runtime_for_storage(normalized)
         resolved_config_root = os.path.abspath(config_root)
         resolved_keymap_set_path = os.path.abspath(keymap_set_path) if keymap_set_path else self._default_keymap_set_path(resolved_config_root)
@@ -222,6 +321,33 @@ class ConfigService:
             legacy_path=legacy_path if keep_legacy_copy else "",
             split_base_dir=resolved_split_base_dir,
         )
+
+        keymap_parent_refs_by_id = {
+            str(item.get("id") or ""): item["payload"][self.PARENT_REFS_KEY]
+            for item in payloads["keymaps"]
+            if self.PARENT_REFS_KEY in item.get("payload", {})
+        }
+        for keymap in normalized_keymaps:
+            parent_refs = keymap_parent_refs_by_id.get(str(keymap.get("id") or ""))
+            if parent_refs is not None:
+                keymap[self.INTERNAL_KEYMAP_PARENT_REFS] = safe_deepcopy(parent_refs)
+
+        sequence_parent_refs_by_key = {
+            normalize_key_name(str(item.get("key") or "")): item["payload"][self.PARENT_REFS_KEY]
+            for item in payloads["sequences"]
+            if self.PARENT_REFS_KEY in item.get("payload", {})
+        }
+        for trigger in normalized_triggers:
+            parent_refs = sequence_parent_refs_by_key.get(
+                normalize_key_name(str(trigger.get("key") or ""))
+            )
+            if parent_refs is not None:
+                trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = safe_deepcopy(parent_refs)
+
+        if self.PARENT_REFS_KEY in payloads["trigger_set"]:
+            normalized[self.INTERNAL_TRIGGER_SET_PARENT_REFS] = safe_deepcopy(
+                payloads["trigger_set"][self.PARENT_REFS_KEY]
+            )
 
         self.ensure_split_config_dirs(resolved_config_root)
         self.repository.save_json(self._startup_entry_path(resolved_config_root), payloads["startup"])
@@ -279,10 +405,13 @@ class ConfigService:
             keymap_set.get("external_keyboard_layouts"),
             config_root=config_root,
         )
-        runtime["triggers"] = self._load_trigger_set(
+        triggers, trigger_set_parent_refs = self._load_trigger_set(
             keymap_set.get("trigger_set_path"),
             config_root=config_root,
         )
+        runtime["triggers"] = triggers
+        if trigger_set_parent_refs is not None:
+            runtime[self.INTERNAL_TRIGGER_SET_PARENT_REFS] = trigger_set_parent_refs
         runtime["hotkey_presets"] = self._load_named_list(
             keymap_set.get("hotkey_presets_path"),
             root_key="hotkey_presets",
@@ -334,7 +463,13 @@ class ConfigService:
         runtime["keymaps"] = keymaps
         runtime["active_keymap_id"] = active_keymap_id
         runtime["keymap_switch_keys"] = keymap_switch_keys
-        return ensure_config_compatibility(runtime)
+        normalized = ensure_config_compatibility(runtime)
+        normalized_keymaps = normalized.get("keymaps", [])
+        for keymap, normalized_keymap in zip(keymaps, normalized_keymaps):
+            parent_refs = self._normalize_parent_refs(keymap.get(self.INTERNAL_KEYMAP_PARENT_REFS))
+            if parent_refs is not None:
+                normalized_keymap[self.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
+        return normalized
 
     def _load_keymap_entry(
         self,
@@ -365,7 +500,7 @@ class ConfigService:
         if not isinstance(mappings, dict):
             mappings = {}
 
-        return {
+        loaded_entry = {
             "resolved_path": resolved_path,
             "switch_key": switch_key,
             "keymap": {
@@ -377,16 +512,25 @@ class ConfigService:
                 self.INTERNAL_KEYMAP_DIRTY: False,
             },
         }
+        parent_refs = self._normalize_parent_refs(raw_keymap.get(self.PARENT_REFS_KEY))
+        if parent_refs is not None:
+            loaded_entry["keymap"][self.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
+        return loaded_entry
 
-    def _load_trigger_set(self, path_value: Any, *, config_root: str) -> list[dict[str, Any]]:
+    def _load_trigger_set(
+        self,
+        path_value: Any,
+        *,
+        config_root: str,
+    ) -> tuple[list[dict[str, Any]], list[str] | None]:
         stored_path = str(path_value or "").strip()
         if not stored_path:
-            return []
+            return [], None
 
         resolved_path = self._resolve_config_relative_path(stored_path, config_root)
         loaded = self._load_optional_json(resolved_path)
         if not isinstance(loaded, dict):
-            return []
+            return [], None
         return self._load_triggers_from_trigger_set(loaded, config_root=config_root, imported=False)
 
     def _load_triggers_from_trigger_set(
@@ -395,10 +539,11 @@ class ConfigService:
         *,
         config_root: str,
         imported: bool,
-    ) -> list[dict[str, Any]]:
+    ) -> tuple[list[dict[str, Any]], list[str] | None]:
+        trigger_set_parent_refs = self._normalize_parent_refs(trigger_set.get(self.PARENT_REFS_KEY))
         raw_triggers = trigger_set.get("triggers")
         if not isinstance(raw_triggers, list):
-            return []
+            return [], trigger_set_parent_refs
 
         triggers: list[dict[str, Any]] = []
         for raw_trigger in raw_triggers:
@@ -425,12 +570,20 @@ class ConfigService:
                 if isinstance(sequence, dict):
                     normalized_sequence = self._normalize_sequence_payload(sequence)
                     trigger.update(normalized_sequence)
+                    parent_refs = self._normalize_parent_refs(sequence.get(self.PARENT_REFS_KEY))
+                    if parent_refs is not None:
+                        trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
                     trigger[self.INTERNAL_SEQUENCE_SOURCE_PATH] = sequence_path
                     trigger[self.INTERNAL_SEQUENCE_IMPORTED] = bool(imported)
                     trigger[self.INTERNAL_SEQUENCE_DIRTY] = False
             triggers.append(trigger)
 
-        return ensure_config_compatibility({"triggers": triggers}).get("triggers", [])
+        normalized = ensure_config_compatibility({"triggers": triggers}).get("triggers", [])
+        for trigger, normalized_trigger in zip(triggers, normalized):
+            parent_refs = self._normalize_parent_refs(trigger.get(self.INTERNAL_SEQUENCE_PARENT_REFS))
+            if parent_refs is not None:
+                normalized_trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
+        return normalized, trigger_set_parent_refs
 
     def _load_named_list(
         self,
@@ -475,7 +628,12 @@ class ConfigService:
             if split_base_dir
             else self._resolve_config_relative_path(self.HOTKEY_PRESETS_RELATIVE_PATH, config_root)
         )
-        keymap_payloads = self._build_keymap_payloads(runtime, config_root=config_root, keymaps_dir=keymaps_dir)
+        keymap_payloads = self._build_keymap_payloads(
+            runtime,
+            config_root=config_root,
+            keymaps_dir=keymaps_dir,
+            parent_ref=keymap_set_path,
+        )
         keymap_paths_by_id = {
             str(item["id"]): str(item["path"])
             for item in keymap_payloads
@@ -499,6 +657,7 @@ class ConfigService:
             config_root=config_root,
             trigger_set_path=trigger_set_path,
             sequences_dir=sequences_dir,
+            parent_ref=keymap_set_path,
         )
         hotkey_presets_payload = {
             "hotkey_presets": safe_deepcopy(runtime.get("hotkey_presets", []))
@@ -608,6 +767,7 @@ class ConfigService:
         *,
         config_root: str,
         keymaps_dir: str = "",
+        parent_ref: str = "",
     ) -> list[dict[str, Any]]:
         keymaps = runtime.get("keymaps", [])
         if not isinstance(keymaps, list):
@@ -649,18 +809,38 @@ class ConfigService:
                 {
                     "id": keymap_id,
                     "path": relative_path,
-                    "payload": self._build_keymap_file_payload(keymap),
+                    "payload": self._build_keymap_file_payload(
+                        keymap,
+                        parent_ref=parent_ref,
+                        config_root=config_root,
+                    ),
                 }
             )
         return resolved_paths
 
-    def _build_keymap_file_payload(self, keymap: dict[str, Any]) -> dict[str, Any]:
-        return {
+    def _build_keymap_file_payload(
+        self,
+        keymap: dict[str, Any],
+        *,
+        parent_ref: str = "",
+        config_root: str = "",
+    ) -> dict[str, Any]:
+        payload = {
             "label": str(keymap.get("label") or "").strip(),
             "mappings": safe_deepcopy(keymap.get("mappings", {}))
             if isinstance(keymap.get("mappings"), dict)
             else {},
         }
+        parent_refs = self._normalize_parent_refs(keymap.get(self.INTERNAL_KEYMAP_PARENT_REFS))
+        if parent_ref:
+            parent_refs = self._merge_parent_ref(
+                parent_refs,
+                parent_ref,
+                config_root=config_root,
+            )
+        if parent_refs is not None:
+            payload[self.PARENT_REFS_KEY] = parent_refs
+        return payload
 
     def _build_trigger_set_payloads(
         self,
@@ -669,10 +849,11 @@ class ConfigService:
         config_root: str,
         trigger_set_path: str,
         sequences_dir: str = "",
+        parent_ref: str = "",
     ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
         triggers = runtime.get("triggers", [])
         if not isinstance(triggers, list):
-            return {"triggers": []}, []
+            triggers = []
 
         used_paths: set[str] = set()
         trigger_entries: list[dict[str, Any]] = []
@@ -706,11 +887,25 @@ class ConfigService:
                     "key": key,
                     "path": stored_sequence_path,
                     "resolved_path": resolved_sequence_path,
-                    "payload": self._build_sequence_payload(trigger),
+                    "payload": self._build_sequence_payload(
+                        trigger,
+                        parent_ref=trigger_set_path,
+                        config_root=config_root,
+                    ),
                 }
             )
 
-        return {"triggers": trigger_entries}, sequence_payloads
+        payload = {"triggers": trigger_entries}
+        parent_refs = self._normalize_parent_refs(runtime.get(self.INTERNAL_TRIGGER_SET_PARENT_REFS))
+        if parent_ref:
+            parent_refs = self._merge_parent_ref(
+                parent_refs,
+                parent_ref,
+                config_root=config_root,
+            )
+        if parent_refs is not None:
+            payload[self.PARENT_REFS_KEY] = parent_refs
+        return payload, sequence_payloads
 
     def _resolve_sequence_save_path(
         self,
@@ -737,8 +932,14 @@ class ConfigService:
         sequence_dir = sequences_dir or os.path.join(os.path.dirname(os.path.abspath(trigger_set_path)), "sequences")
         return self._allocate_unique_absolute_path(sequence_dir, base_name, "sequence", used_paths, config_root)
 
-    def _build_sequence_payload(self, trigger: dict[str, Any]) -> dict[str, Any]:
-        return {
+    def _build_sequence_payload(
+        self,
+        trigger: dict[str, Any],
+        *,
+        parent_ref: str = "",
+        config_root: str = "",
+    ) -> dict[str, Any]:
+        payload = {
             "label": str(trigger.get("label") or "").strip(),
             "run_to_end": bool(trigger.get("run_to_end", False)),
             "run_to_end_delay_ms": self._coerce_nonnegative_int(
@@ -749,6 +950,16 @@ class ConfigService:
             if isinstance(trigger.get("actions"), list)
             else [],
         }
+        parent_refs = self._normalize_parent_refs(trigger.get(self.INTERNAL_SEQUENCE_PARENT_REFS))
+        if parent_ref:
+            parent_refs = self._merge_parent_ref(
+                parent_refs,
+                parent_ref,
+                config_root=config_root,
+            )
+        if parent_refs is not None:
+            payload[self.PARENT_REFS_KEY] = parent_refs
+        return payload
 
     def _normalize_sequence_payload(self, sequence: dict[str, Any]) -> dict[str, Any]:
         return {
@@ -846,6 +1057,7 @@ class ConfigService:
 
     def _sanitize_runtime_for_storage(self, data: dict[str, Any]) -> dict[str, Any]:
         sanitized = safe_deepcopy(data)
+        sanitized.pop(self.INTERNAL_TRIGGER_SET_PARENT_REFS, None)
         raw_triggers = sanitized.get("triggers")
         if isinstance(raw_triggers, list):
             cleaned_triggers: list[dict[str, Any]] = []
@@ -856,6 +1068,7 @@ class ConfigService:
                 cleaned.pop(self.INTERNAL_SEQUENCE_SOURCE_PATH, None)
                 cleaned.pop(self.INTERNAL_SEQUENCE_IMPORTED, None)
                 cleaned.pop(self.INTERNAL_SEQUENCE_DIRTY, None)
+                cleaned.pop(self.INTERNAL_SEQUENCE_PARENT_REFS, None)
                 cleaned_triggers.append(cleaned)
             sanitized["triggers"] = cleaned_triggers
 
@@ -869,6 +1082,7 @@ class ConfigService:
                 cleaned.pop(self.INTERNAL_KEYMAP_SOURCE_PATH, None)
                 cleaned.pop(self.INTERNAL_KEYMAP_IMPORTED, None)
                 cleaned.pop(self.INTERNAL_KEYMAP_DIRTY, None)
+                cleaned.pop(self.INTERNAL_KEYMAP_PARENT_REFS, None)
                 cleaned_keymaps.append(cleaned)
             sanitized["keymaps"] = cleaned_keymaps
         return sanitized
@@ -965,6 +1179,40 @@ class ConfigService:
 
     def _normalize_path_separators(self, path: str) -> str:
         return str(path or "").replace("\\", "/")
+
+    def _normalize_parent_refs(self, value: Any) -> list[str] | None:
+        if not isinstance(value, list):
+            return None
+        normalized: list[str] = []
+        for item in value:
+            if not isinstance(item, str):
+                continue
+            parent_ref = item.strip()
+            if parent_ref and parent_ref not in normalized:
+                normalized.append(parent_ref)
+        return normalized
+
+    def _merge_parent_ref(
+        self,
+        refs: list[str] | None,
+        parent_path: str,
+        *,
+        config_root: str,
+    ) -> list[str]:
+        merged = list(refs) if refs is not None else []
+        if not parent_path:
+            return merged
+        parent_ref = self.to_config_relative_or_absolute(
+            os.path.abspath(parent_path),
+            config_root,
+        )
+        normalized_parent_ref = self._normalize_path_separators(parent_ref)
+        if not any(
+            self._normalize_path_separators(existing) == normalized_parent_ref
+            for existing in merged
+        ):
+            merged.append(parent_ref)
+        return merged
 
 
     def slugify_file_stem(self, value: Any) -> str:

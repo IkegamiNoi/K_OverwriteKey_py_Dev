@@ -4,45 +4,54 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-28T06:10:00
+last_updated: 2026-07-28T07:05:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
 last_commit_location: claude/phase-beta-bfbdd2 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β（06_child_file_save_dialog）起票完了（phase.md + current.md + INDEX.md）。次は task_01（参照元キーの読み書き基盤）の `/task_new` 起票 → 実装委任**。
+focus: **Phase β task_01（参照元記録 `_parent_refs` の読み書き基盤）完了。次は task_02（trigger_set の source_path 接続＝idea_05 内包 + 既定命名の keymap_set stem 基準化）の `/task_new` 起票**。
 mode: implementing
 
 ## last_action
-ts: 2026-07-28T06:10:00
+ts: 2026-07-28T07:05:00
 who: main
 summary: |
-  【`/phase_start` = Phase β 起票】文書のみ・コード差分ゼロ。ユーザー指示「Phase βへ進んで」で着手確定。
-  - `instructions/phase/06_child_file_save_dialog/phase.md` を新規起票（暫定仕様先行モード・
-    主入力＝暫定仕様 05 v0.2〔ユーザー確定済〕）。スコープ含む 7 項目 / 含まない 7 項目 /
-    読むファイル 10 件 / **タスク task_01〜07**（01 参照元スキーマ → 02 trigger_set source_path 接続＋既定命名 →
-    03 保存計画の実行契約 → 04 dirty 収集＋共有状況判定 → 05 ダイアログ → 06 統合退行 → 07 正本反映）/
-    フェーズ固有レビュー方針（依存方向・後方互換・粒度と依存関係・過剰実装・既定の安全側）。
-  - **task_03 はダイアログ導入前に既存挙動と等価**であることを確認してから task_05 へ進む設計（挙動変更の切り分け）。
-  - `current.md`: 「現在の参照先」先頭へ Phase β を追加 / 次採番を **07** へ / 候補節の idea_05 行を打消し。
-  - `backlog/INDEX.md`: idea_05 を「**着手**（→ phase 06 / 暫定 05 §7 が内包）」へ更新。
-  - **整合チェック（reviewer・整合確認限定）= 完了可**。指摘は軽微 1 件（「含まない」の idea_09 が暫定仕様 05 §11 に
-    無い追加情報）→ 出典注記を追記して解消。
+  【task_01（parent_refs_schema）完了】実装は `codex-implementer` へ委任。application 限定 + presentation は引数配線のみ。
+  - `config_service.py`: 定数 4 種（ファイル側 `_parent_refs` / runtime 側 keymap・sequence・trigger_set トップレベル）+
+    純関数ヘルパ `_normalize_parent_refs` / `_merge_parent_ref` を追加。読込・保存・split 保存の全経路へ親参照を伝搬。
+    `_sanitize_runtime_for_storage` で新内部キーを除去（レガシー export へ漏らさない）。
+  - **`None`（キー無し＝未知）と `[]`（既知・参照元ゼロ）の区別を全経路で維持**（§5 の「未知→別名保存」既定の前提）。
+    reviewer が `or []` 等での握りつぶし無しを確認。
+  - **後方互換**: 親未指定なら出力 JSON 不変。既存の完全一致アサート（`tests/test_config_service.py:125`）を
+    **書き換えずに pass**。
+  - presentation 3 ファイルは `parent_ref` / `config_root` を渡す引数追加のみ（判定・分岐なし）。
+  - **【メイン修正】tests_ui のハング解消**: `_keymap_save_patches` 等の `fake_save` が新キーワード引数を受けられず
+    TypeError → 未patch の `messagebox.showerror` がモーダル表示でハングしていた。モック署名に
+    `parent_ref` / `config_root` を追加（3 行・検証意図は不変）。
+  - domain `ensure_config_compatibility` の keymap ホワイトリスト再構築で内部キーが落ちる件は、application 側で
+    明示復元して回避（reviewer 確認済）。
 result_files:
-  - instructions/phase/06_child_file_save_dialog/phase.md（新規）
-  - instructions/phase/current.md
-  - instructions/backlog/INDEX.md
+  - keyseq/application/config_service.py
+  - keyseq/presentation/controllers/config_io/{keymap_file_io,sequence_file_io,trigger_set_file_io}.py
+  - tests/test_config_service.py（`ParentRefsSchemaTest` 7 件追加）
+  - tests_ui/test_config_io_characterization.py（モック署名 3 行）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_01_parent_refs_schema.md（新規）
 verified:
-  コード差分: なし（`keyseq/` `tests/` `tests_ui/` すべて無変更）
-  review: reviewer（整合確認限定）= 完了可（軽微指摘 1 件は対応済）
-  compile/pytest: not_run（文書のみのため）
+  compile: clean
+  tests: pass 97（ベースライン 90 + 新規 7）
+  tests_ui: pass 85（ハング解消後・再実測）
+  smoke: pass
+  review: reviewer = **完了可**（5 観点 + 重点 6 点すべて OK。指摘は参考 2 件〔到達不能ガード分岐 /
+    `config_service.py` が 1262 行 → `/refactor_check` へ送る〕）
 
 ## next_action
-- **task_01（`parent_refs_schema`）を `/task_new` で起票する**（`instructions/phase/06_child_file_save_dialog/tasks/task_01_parent_refs_schema.md`）。
-  内容: 子JSON への参照元キー（例 `_parent_refs`）を application 層（`keyseq/application/config_service.py`）で
-  読み書き。keymap / trigger_set → keymap_set、sequence → trigger_set。パスは `to_config_relative_or_absolute`。
-  **キー無し＝「未知」として区別できる形**にする（§5 の別名保存既定の入力）。追加のみ・既存キー削除禁止。
-- 起票後、`codex-implementer` へ実装委任（テストコード追加まで含め、**テスト実行は依頼しない**）→
-  `verifier` で `.venv` 実測 → `reviewer` で差分レビュー → `/save_state` + `/task_commit`。
+- **task_02（`trigger_set_source_and_naming`）を `/task_new` で起票する**。内容は暫定仕様 05 §6・§7:
+  ① trigger_set の source_path 分断を接続（**案1＝`dirty_tracker.trigger_set_source_path` へ寄せる**軸。
+  読み手が未定義 App 属性を見ている現状を解消 = idea_05 内包。旧「別名で保存しますか？」個別ダイアログは復活させない）/
+  ② config_root 内の trigger_set 既定パスを固定 `user/trigger_sets/default.json`
+  （`config_service.py:468-471`）から **keymap_set の stem 基準**へ変更（§10 受入 8）。
+  既存の特性テストが旧挙動を固定しているため、**起票前に対象テストを grep で洗い出してタスク定義へ明記**する。
+- 起票後: `codex-implementer` へ委任（テスト実行は依頼しない）→ `verifier` 実測 → `reviewer` → `/save_state` + `/task_commit`。
 
 ## blockers
 - なし。
@@ -57,6 +66,11 @@ verified:
   **presentation が決定・application が実行**（application に tkinter 依存を持ち込まない）/
   ③ パスが変わる子の上位は**保存必須**・失敗時は**旧索引維持**・**行ごとの粒度**（他 sequence を巻き込まない）/
   ④ 既定命名の変更は **trigger_set のみ**（keymap_set stem 基準。現状は固定 `user/trigger_sets/default.json`）。
+- **task_01 で入った土台**（後続はこれを使う): `PARENT_REFS_KEY = "_parent_refs"`（子JSON 側）/
+  `INTERNAL_{KEYMAP,SEQUENCE,TRIGGER_SET}_PARENT_REFS`（runtime 側。trigger_set のみ `data` トップレベル）/
+  `_normalize_parent_refs`（**未知は `None`・既知ゼロは `[]`**）/ `_merge_parent_ref`（重複排除・順序保持）。
+- **`config_service.py` は 1262 行**（task_01 で +269）。分割是非は**フェーズ末の `/refactor_check` で判定**する
+  （task 途中では触らない。reviewer からの申し送り）。
 - Phase β の主な触点: `config_service.save_runtime_data`(200-252) / `_build_split_save_payloads`(456-) /
   `config_io/keymap_set_io.py`(`save_keymap_set_to`:78-102) / `controllers/dirty_state.py`（idea_05 の当事者）/
   `config_io/io_dialogs.py`（`choose_save_path_with_collision`）。
