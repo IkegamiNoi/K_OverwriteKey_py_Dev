@@ -14,15 +14,15 @@
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
 2. `.claude_data/state/decisions.md` を読む（判断履歴。完了フェーズは「アーカイブ索引」→ `decisions_archive/<phase>.md`）
-3. CLAUDE.md → `instructions/phase/current.md`（**現在: アクティブなフェーズなし = 次フェーズ未確定**）→
+3. CLAUDE.md → `instructions/phase/current.md`（**現在: `instructions/phase/06_child_file_save_dialog/phase.md` = Phase β**）→
    `.claude/rules/` の順に必要分を読む
-4. 次フェーズに着手する場合の設計の正は暫定仕様
-   [05_child_file_save_dialog.md](../../instructions/history/05_child_file_save_dialog.md)（Phase β・ユーザー確定済）。
-   番号対応: **α=phase05/暫定04〔完了〕 / β=phase06/暫定05 / γ=phase07/暫定06 / プリセット=phase08/暫定07**。
+4. **このフェーズの設計の正は暫定仕様 [05_child_file_save_dialog.md](../../instructions/history/05_child_file_save_dialog.md)**
+   （v0.2・ユーザー確定済）。フェーズ中は正本 `spec_detail/` を直接改訂しない（task_07 で昇格＋凍結）。
+   番号対応: **α=phase05/暫定04〔完了〕 / β=phase06/暫定05〔進行中〕 / γ=phase07/暫定06 / プリセット=phase08/暫定07**。
 5. session.md.next_action から作業を再開する
 
 ## 現在の作業の 1 行サマリ
-**Phase α（05_keymap_set_new_and_default_dir）完了（task_01〜06・正本昇格 + 暫定仕様 04 凍結 + refactor_check 不要）。次は Phase β（phase 06 / 暫定 05）の `/phase_start`（ユーザー確認後）**。
+**Phase β（06_child_file_save_dialog）起票完了（phase.md + current.md + INDEX.md）。次は task_01（参照元キーの読み書き基盤）の `/task_new` 起票 → 実装委任**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -33,25 +33,31 @@
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
 直近のベースライン（phase 05 完了時）: compile clean / tests **90** / tests_ui **85** / smoke pass。
+Phase β 起票時点はコード差分ゼロのため未再測（verified: compile/pytest = not_run）。
 
 ## 次アクション（session.md.next_action より）
-- **次フェーズをユーザーへ確認する**（`current.md`「作業開始時の指示」）。本命は **Phase β = phase 06 / 暫定 05**
-  （子ファイル保存の確認ダイアログ・参照元記録）。**α のディレクトリ化を前提**とし、idea_05（trigger_set の
-  source_path 不整合）を**内包**する。暫定仕様は起票・確定済のため `/spec_draft` は不要、`/phase_start` から入る。
-- 他の候補: γ（phase 07 / 暫定 06・停止/トグルキーの config.json 既定化。**α β と独立**）/
-  プリセット（phase 08 / 暫定 07）/ idea_09（α の積み残し・優先度低・小さいので β の前後どちらでも可）。
+- **task_01（`parent_refs_schema`）を `/task_new` で起票**（`instructions/phase/06_child_file_save_dialog/tasks/`）。
+  子JSON の参照元キー（例 `_parent_refs`）を `keyseq/application/config_service.py` で読み書き
+  （keymap / trigger_set → keymap_set、sequence → trigger_set。パスは `to_config_relative_or_absolute`）。
+  **キー無し＝「未知」として区別できる形**にする。追加のみ・既存キー削除禁止。
+- 起票後: `codex-implementer` へ委任（テストコード追加まで・**実行は依頼しない**）→ `verifier` で実測 →
+  `reviewer` で差分レビュー → `/save_state` + `/task_commit`。
 
-## 直前フェーズ（Phase α）の要点 — 正本は `spec_detail/data_schema.md` §5.4 配下
-- **新規作成 / Import 成功 / 起動時に stored セットが読めない**の 3 経路で `keymap_set_path` が**空**になり、
-  空パスの「保存」は**別名保存**へ分岐する（初期名 `keymap_set.json` / 初期 dir `config/user/keymap_sets/`）。
-- **既定保存先はディレクトリ `config/user/keymap_sets/`**（固定 `default.json` を保存ターゲットにしない）。
-  起動時にディレクトリ骨格を一括作成し、`config/config.json` は最初に設定が永続化された時点で作る。
-- **`prompt_if_missing` は撤去**（新規出力なし）。**既存 config.json の値は残置**（`pop` しない）。
-- **制約（β の課題）**: 同一 dir に複数 keymap_set を置いても trigger_set / hotkey_presets は**共通ファイルを共有・上書き**する。
-- **実装未追従が 1 件**: 別名保存でレガシー `<アプリ配置>/settings/` 配下を選ぶと `default.json` へ差し替わる
-  （= idea_09）。**正本が正であり実装を追従させる**立て付け（案 A〜C の選択のみユーザー判断）。
-- 保存時の `config.json` 更新は `config_service.save_runtime_data`（`config_service.py:227`）が**直接**書く。
-  `write_startup` は「起動時に読むJSONを設定」メニューとフォント変更のみが使う**別経路**（混同注意）。
+## 現フェーズ（Phase β）の要点 — 設計の正は暫定仕様 05
+- keymap_set の「保存」を、**変更（dirty）のある子ファイルごとに 保存 / 別名保存 / 保存しない を選べる
+  確認ダイアログ**へ置き換える。**親 keymap_set.json は常に保存**（ラジオ対象外・索引として最後）。
+  変更のある子が無ければダイアログを出さない。
+- **参照元記録（案A・軽量）**: 子JSON に直接の上位ファイルパス集合を記録し、共有状況を可視化する。
+- **実装で後退しやすい 4 点**（暫定仕様の敵対レビュー指摘①〜④）:
+  ① 未知の参照元・別の上位に属す子は**別名保存が既定**（安全側）/
+  ② 保存計画は **presentation が決定・application が実行**（application に tkinter 依存を持ち込まない）/
+  ③ パスが変わる子の上位は**保存必須**・失敗時は**旧索引維持**・**行ごとの粒度**（他 sequence を巻き込まない）/
+  ④ 既定命名の変更は **trigger_set のみ**（keymap_set stem 基準。現状は固定 `user/trigger_sets/default.json`）。
+- タスク: 01 参照元スキーマ → 02 trigger_set source_path 接続＋既定命名（idea_05 内包）→ 03 保存計画の実行契約 →
+  04 dirty 収集＋共有状況判定 → 05 ダイアログ → 06 統合退行 → 07 正本反映。
+  **task_03 はダイアログ導入前に既存挙動と等価**であることを確認してから 05 へ進む。
+- 主な触点: `config_service.save_runtime_data`(200-252) / `_build_split_save_payloads`(456-) /
+  `config_io/keymap_set_io.py`(`save_keymap_set_to`:78-102) / `controllers/dirty_state.py` / `config_io/io_dialogs.py`。
 
 ## 注意事項・blockers
 - **blockers: なし**。
@@ -61,12 +67,13 @@
 - **【罠・再発済】worktree と main は別コピー**。`.claude_data/`・`instructions/`・code とも、main 側の絶対パス
   （パスに `.claude\worktrees\<name>\` を含まない）を編集すると commit から漏れる。編集は必ず worktree ルート配下で。
 - **【罠】`git grep` は追跡済みのみ検索**。新規（未追跡）ファイルの確認は**直接 `grep`**。行数計測は `wc -l`。
-- **【傾向】既存の特性テストが旧挙動を固定している**。挙動変更タスクの起票時は、対象メソッドを固定している
-  テストを先に grep で洗い出し、更新対象としてタスク定義に明記する。
+- **【傾向】既存の特性テストが旧挙動を固定している**。β は挙動変更フェーズのため、各タスク起票時に
+  対象メソッドを固定しているテスト（`tests/test_config_service.py` / `tests_ui/test_config_io_characterization*.py` 等）を
+  先に grep で洗い出し、更新対象としてタスク定義に明記する。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   出力の作法（応答・進捗報告・文書分量・委任量）は `.claude/rules/output_style.md`。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
   （直近: 05_keymap_set_new_and_default_dir / 04_config_io_controller_split / 03_startup_font_settings_cleanup）。
 - 未着手/保留 idea: idea_03（hotkey 保存正規化・低）/ idea_04（FontSettingsController・保留）/ idea_07（参照元掃除・β後）/
-  idea_08（個別プリセット・07後）/ idea_09（レガシー保存パス・α の積み残し）。idea_05→β 内包 / idea_06→β 達成見込み。
+  idea_08（個別プリセット・07後）/ idea_09（レガシー保存パス・α の積み残し）。idea_05→β 内包（着手中）/ idea_06→β 達成見込み。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。

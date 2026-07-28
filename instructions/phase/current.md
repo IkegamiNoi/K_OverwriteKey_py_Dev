@@ -6,10 +6,18 @@
 
 ## 現在の参照先
 
-- **アクティブ: なし**（次フェーズ未確定。着手前にユーザーへ方針確認 →「作業開始時の指示」）。
-  保存系リデザインの予定は **β=phase 06（暫定 05）/ γ=phase 07（暫定 06）/ プリセット=phase 08（暫定 07）**。
-  暫定仕様 05〜07 は起票済・ユーザー確定済のため、着手時は `/phase_start` から入れる。
-  **依存: α→β の順**（β は α のディレクトリ化を前提とし、[idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md) を内包する）。γ は独立。
+- **アクティブ: [06_child_file_save_dialog](06_child_file_save_dialog/phase.md)**（保存系リデザイン **Phase β**・
+  2026-07-28 起票）。keymap_set の「保存」を**変更のある子ファイルごとに 保存/別名保存/保存しない を選べる
+  確認ダイアログ**へ置き換え、**子JSON へ参照元（直接の上位ファイル）を記録**して誤爆上書きを防ぐ。
+  **挙動変更＋スキーマ追加（後方互換必須）を伴う**。
+  - 主入力（確定設計）: [暫定仕様 05](../history/05_child_file_save_dialog.md)（v0.2・ユーザー確定済 2026-07-27）。
+    フェーズ中は正本を直接改訂せず、最終タスクで昇格・凍結する。
+  - 番号対応: phase 06 / 暫定 05 / `decisions_archive/06`。起票元: ユーザー要望（2026-07-26〜27・点3/4）。
+  - 前提: Phase α（phase 05）完了済。[idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md) を**内包**し、
+    [idea_06](../backlog/idea_06_individual_json_io_unification.md) の共通化を達成する見込み。後続は
+    [idea_07](../backlog/idea_07_reference_link_cleanup.md)（β 完了後）。
+  - 残りの保存系リデザイン: **γ=phase 07（暫定 06・β と独立）/ プリセット=phase 08（暫定 07）**。
+    暫定仕様は起票済・ユーザー確定済のため、着手時は `/phase_start` から入れる。
 - 直前の完了フェーズ: [05_keymap_set_new_and_default_dir](../../.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md)（2026-07-28 完了・保存系リデザイン **Phase α**）。
   **完了フェーズの要約は本ファイルに置かない**。経緯・判断は `.claude_data/state/decisions.md`「アーカイブ索引」
   → `decisions_archive/<phase>.md` が正。
@@ -19,8 +27,8 @@
 
 ## 次採番
 
-- 次フェーズは **`06_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
-  保存系リデザインの予定: **β=phase 06 / γ=phase 07 / プリセット=phase 08**。
+- 次フェーズは **`07_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+  保存系リデザインの予定: **β=phase 06〔着手中〕/ γ=phase 07 / プリセット=phase 08**。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
   04〜07 は起票済（04=α / 05=β / 06=γ / 07=プリセット）。次採番は **`08_<topic>`**。
 
@@ -37,9 +45,9 @@
 
 **計画04 由来の3フェーズはすべて完了**。`04_config_io_controller_split`（2026-07-26）・
 `05_keymap_set_new_and_default_dir`（Phase α・2026-07-28）も完了。
-**次の本命は保存系リデザインの Phase β**（phase 06 / 暫定 05・ユーザー確定済）。以降の候補:
-- [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)（trigger_set の source_path 不整合。
-  着手条件は充足済だが、**Phase β〔phase 06・暫定 05〕が内包する**ため単独フェーズにはしない）。
+**保存系リデザインの Phase β は着手済**（phase 06 / 暫定 05 → 「現在の参照先」）。以降の候補:
+- ~~[idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)（trigger_set の source_path 不整合）~~ →
+  **Phase β（phase 06）が内包**（単独フェーズにはしない）。
 - [idea_09](../backlog/idea_09_legacy_settings_save_path_fallback.md)（別名保存でレガシー `settings/` 配下を選ぶと
   `default.json` へ無言フォールバックする残存経路。Phase α の deep-reviewer 指摘2 から分離・**優先度低**・
   着手時は仕様変更フロー必須）。
