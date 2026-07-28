@@ -4,67 +4,70 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-29T07:50:00
+last_updated: 2026-07-29T09:20:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
 last_commit_location: claude/child-file-path-save-confirm-4507e3 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β task_05（子ファイル保存確認ダイアログの実装と保存経路への挟み込み）完了。次は task_06（受入条件 §10 の統合退行・特性テスト更新・実機目視）の `/task_new` 起票**。
-mode: implementing
+focus: **Phase β task_06 + task_06b（統合退行とレビュー指摘 A〜F の修正）の自動検証まで完了。残るは実機目視（ユーザー実施）→ task_07（正本反映）**。
+mode: pending_review
 
 ## last_action
-ts: 2026-07-29T07:50:00
+ts: 2026-07-29T09:20:00
 who: main
 summary: |
-  【task_05（save_dialog_ui）起票 → 実装 → 完了】実装は `codex-implementer` へ委任。暫定仕様 05 §3・§5・§8。
-  - **ユーザー確定（依存関係の UI 上の扱い）**: 親 keymap_set は**問わない**（「保存」操作自体が明示のため
-    子の別名保存で索引パスが変わっても無確認保存）/ **trigger_set は問う**（＝孫 sequence に対する子。
-    保存が必要な理由が分かる必要がある）→ **OK 押下時に確認ダイアログ**（保存 / 別名保存 / 選び直す）。
-    一覧のラジオは**静的に無効化しない**。`SavePlanError` は UI から到達しない内部不変条件の番人として残す。
-  - **非 dirty 子は `ACTION_SKIP`。ただし保存先が未作成なら `ACTION_SAVE`**（skip すると keymap_set の
-    索引パスが空になり索引切れになるため。受入条件 2 の実装形）。
-  - **敵対的レビュー（起票直後・task_05 定義が対象）で high 2 件 → 両方採用**:
-    ① `_resolve_sequence_save_path` は trigger_set の保存先が `user/trigger_sets/` 配下かで sequence の
-    既定保存先を切り替えるため、**trigger_set を別名保存すると他の子の保存先が変わる** →
-    `resolve_child_save_targets` / `collect_child_save_rows` に `save_plan` を追加し、保存経路を
-    **while ループ化して保存先が変わるたび再解決 + 一覧再表示**。
-    ② `askyesnocancel` の既定が「はい（上書き）」で §5 の安全側既定が依存経路だけ後退 →
-    **`default=messagebox.NO`**（`SHARE_UNKNOWN` / `SHARE_OTHER_PARENT` のとき）。
-  - **新規 2 モジュール**: `child_save_plan.py`（91 行・tkinter 非依存の純変換）/
-    `child_save_dialog.py`（145 行・モーダル一覧 + 別名保存先の一括選択 + 依存確認）。
-  - **`dirty_state.clear_individual_dirty_flags` に選択的クリアを追加**（SKIP した子の dirty を残す。
-    引数なしの呼び出しは従来と同一挙動）。保存後は `sync_dirty_state()` で残存 dirty を表示へ反映。
-  - **【メイン修正 2 箇所】** 新規テストの期待値誤り（`copy.json` → `Copy.json`。`slugify_file_stem` は
-    大文字小文字を変換しない）/ `keymap_set_io.py` の空行 2 行（reviewer 参考指摘）。
+  【task_06（integration_regression）+ task_06b（review_fixes）完了】いずれも `codex-implementer` へ委任。
+  - **task_06**: 受入条件 1〜11 の対応表を `integration_result.md` へ作成し、不足分のテストを追加
+    （条件 4 / 5 / 8 / 10 ほか）。条件 7 の比較を **JSON → バイト列**へ強化。既存 keymap_set 特性テストの
+    変更は**コメント追加のみ**（ダイアログを意図的に迂回している理由の明示）。production 変更なし。
+  - **統合レビュー 2 本立て**: `deep-reviewer` = **修正して採用**（条件 6・7・8 は重点確認で充足・**条件 9 が未達**）/
+    `codex-reviewer` = **P1 2 件**。指摘 6 件（A〜F）を**ユーザー確定で全採用** → 枝番 task_06b を起票。
+  - **task_06b の修正**: **A** `build_save_plan(confirmed=...)` でアクションの優先順位を 1 箇所に
+    （一覧の選択 > 確定済み > 非 dirty 既定）＝依存確認で選んだ別名保存先が捨てられ旧ファイルを上書きする不具合の解消 /
+    **B** `DirtyStateTracker` に `set_trigger_set_source_path` / `sync_trigger_set_source_path_from_data` を追加し
+    **直接代入を全廃**、tracker と runtime キーを読込後・一括保存後・個別保存後で常に一致（**条件 9 の未達解消**）/
+    **C** dirty 行 0 件のとき依存確認の「選び直す」は**保存中止**（無限ループ解消）/ **D** 条件 9 のテスト 4 件 /
+    **E** ダイアログ本体を実行する内部テスト 4 件（既定ラジオ・OK の返り値・別名ダイアログのキャンセル・×ボタン）/
+    **F** 子を書く直前に**保存先ファイルの既存 `_parent_refs` を読んでマージ**（best-effort・application 側）。
+  - **【メイン修正 2 箇所】** 新規テストのパス誤り（source_path は config_root 相対なので root と結合）/
+    **F の実装が定義を超えていた**ため縮小（保存元 in-memory の旧参照元は足さない。別名保存で他所の所有記録を
+    捏造しないため。§4 の「集合へ追加」= 保存先ファイルの集合、という定義どおりへ）。
 result_files:
-  - keyseq/presentation/controllers/config_io/child_save_dialog.py（新規）
-  - keyseq/presentation/controllers/config_io/child_save_plan.py（新規）
-  - keyseq/presentation/controllers/config_io/keymap_set_io.py（239→414 行・保存オーケストレーション）
-  - keyseq/presentation/controllers/config_io/child_save_rows.py（save_plan / split_base_dir / build_row 公開）
-  - keyseq/presentation/controllers/dirty_state.py（選択的クリア）
-  - keyseq/application/config_service.py（`find_dependency_blocked_sequences` + `resolve_child_save_targets` に save_plan）
-  - keyseq/presentation/app.py（ChildSaveDialog 登録・2 行）
-  - tests/test_child_save_plan.py・tests/test_dependency_query.py・tests_ui/test_child_save_dialog.py（新規）
-  - instructions/phase/06_child_file_save_dialog/tasks/task_05_save_dialog_ui.md（新規）
+  - keyseq/application/config_service.py（`_parent_refs_for_save` 追加・参照元マージ）
+  - keyseq/presentation/controllers/config_io/child_save_plan.py（`confirmed` 優先順位）
+  - keyseq/presentation/controllers/config_io/keymap_set_io.py（`confirmed` 伝播 / rows 空の中止 / source_path 同期）
+  - keyseq/presentation/controllers/config_io/trigger_set_file_io.py（直接代入の置換）
+  - keyseq/presentation/controllers/dirty_state.py（source_path の入口 2 本）
+  - tests/test_child_save_plan.py・tests/test_config_service.py・tests/test_save_plan.py・
+    tests_ui/test_child_save_dialog.py・tests_ui/test_config_io_characterization*.py（テスト追加）
+  - instructions/phase/06_child_file_save_dialog/integration_result.md（新規・受入条件の対応表）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_06_integration_regression.md（新規）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_06b_review_fixes.md（新規）
+  - instructions/phase/06_child_file_save_dialog/phase.md（task_06b を 1 行追記）
 verified:
   compile: clean
-  tests: pass 128（119 + 新規 9）
-  tests_ui: pass 95（86 + 新規 9）
+  tests: pass 131
+  tests_ui: pass 107
   smoke: pass
-  review: codex-adversarial-reviewer（**task_05 定義**）= needs-attention → high 2 件を定義へ反映済 /
-    reviewer（**実装差分**）= **完了可**（5 観点すべて OK・二重実装なし・想定外の先行実装なし）
-    参考 1 件（任意）: `keymap_set_io._collect_child_save_plan` が約 64 行（関数 30 行目安の超過）。
-    分割検討は `/refactor_check`（フェーズ末）へ申し送り
+  review: deep-reviewer（task_01〜06 統合）= 修正して採用 → 指摘を task_06b で解消 /
+    codex-reviewer = P1 2 件 → 同上 / reviewer（task_06b 差分）= **完了可**
+    （軽微 1 件: F が定義を超えて in-memory 参照元も足していた → メインで縮小済）
 
 ## next_action
-- **task_06（`integration_regression`）を `/task_new` で起票する**。内容は暫定仕様 05 §10 の受入条件 1〜11:
-  ① 既存特性テスト（`tests_ui/test_config_io_characterization*.py` / `tests/test_config_service.py`）の
-  期待値を**挙動変更後**の値へ更新 ② 受入条件のうち自動化できるものを特性テストで固定
-  （保存 JSON はバイト列比較）③ **実機目視**（ダイアログの見え方・行数が多いときのはみ出し・
-  依存確認の文面と既定ボタン・別名保存のパス選択）。
-- 起票後: `codex-implementer` へ委任（テスト実行は依頼しない）→ **書き込み停止を確認してから** `verifier` 実測 →
-  **`deep-reviewer` + `codex-reviewer`**（統合確認は 2 本立て・`agent_selection.md` のレビュー表）→
-  `/save_state` + `/task_commit`。実機目視はユーザーが行い結果を報告する。
+- **実機目視をユーザーへ依頼する**（残る唯一の未完了項目）。起動コマンドは
+  `<repo>\.venv\Scripts\python.exe main.py`（worktree ルートで実行）。確認項目は
+  task_06 定義「対象範囲 4」の 9 項目 + deep-reviewer 推奨の 6 項目
+  （①読込直後の個別「トリガー一覧を保存」で保存先を聞かれないか ②その後の一括保存がどちらのパスへ書くか
+  ③別名保存ダイアログのキャンセルで一覧へ戻るか ④再表示で選択がリセットされるのを許容できるか
+  ⑤新規子を「保存しない」にして再読込で消えないか ⑥×ボタンでキャンセル扱いになるか）。
+  結果は `integration_result.md` §3 へ記録する。
+- 目視 OK 後: **task_07（`finalize_records`）を `/task_new` で起票**。正本反映で**必ず明記**する項目は
+  `SHARE_NEW` / 非 dirty 子の SKIP 規則 / SKIP した子の索引規則 / 依存確認ダイアログと既定ボタン /
+  SKIP 子の dirty 保持 / `data_schema.md` §5.4 の「trigger_set は全セット共通」記述の更新 /
+  §5.6 のフォールバック名の経路差（一括 = `default` / 個別 = `trigger_set.json`）/
+  個別「トリガー一覧を保存」が全 sequence を書く点と §8 の関係。
+  併せて暫定仕様 05 の凍結・`decisions_archive/06` 作成・`current.md` 完了記載・
+  `backlog/INDEX.md`（idea_05 クローズ・idea_06 / idea_07 の条件更新）・`/refactor_check`。
 
 ## blockers
 - なし。
@@ -95,6 +98,11 @@ verified:
   `keymap_set_io._collect_child_save_plan`（**再解決ループ**）。**不変条件 2 つを壊さないこと**:
   ① 提示した保存先と実際に書く先を一致させる（trigger_set の保存先が変わったら必ず再解決 + 一覧再表示）
   ② 未知・別の上位に属す保存先を明示操作なしに上書きしない（一覧の既定 + 依存確認の既定ボタン両方）。
+- **task_06b で入った不変条件（壊しやすい）**: ③ `dirty_tracker.trigger_set_source_path` と
+  `data[INTERNAL_TRIGGER_SET_SOURCE_PATH]` は**常に一致**させる（変更の入口は `dirty_state` の
+  `set_trigger_set_source_path` / `sync_trigger_set_source_path_from_data` の 2 本のみ。直接代入を復活させない）
+  ④ 子の `_parent_refs` は**保存先ファイルの集合 + 現在の上位**（保存元 in-memory の旧参照元は足さない）
+  ⑤ アクションの優先順位は `child_save_plan.build_save_plan` の 1 箇所（一覧の選択 > confirmed > 非 dirty 既定）。
 - **申し送り（task_04/05 で考慮 or refactor_check / task_07）**: ① slugify 後に別々の keymap_set 名が同一 stem へ
   丸まる衝突（受入条件 8 の範囲外）② `dirty_tracker.trigger_set_imported` は読み手不在の残置状態
   ③ **task_07 の正本反映で `INTERNAL_TRIGGER_SET_SOURCE_PATH` を runtime 内部キーとして `data_schema.md` に明記**。

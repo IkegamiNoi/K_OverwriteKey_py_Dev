@@ -3,6 +3,14 @@ import tempfile
 import unittest
 
 from keyseq.application.config_service import ConfigService
+from keyseq.application.save_plan import (
+    ACTION_SAVE_AS,
+    CHILD_KEYMAP,
+    CHILD_SEQUENCE,
+    CHILD_TRIGGER_SET,
+    ChildSaveEntry,
+    SavePlan,
+)
 from keyseq.infrastructure.json_repository import JsonRepository
 
 
@@ -266,6 +274,43 @@ class ParentRefsSchemaTest(unittest.TestCase):
             self.assertNotIn(self.service.INTERNAL_KEYMAP_PARENT_REFS, keymap)
             self.assertNotIn(self.service.INTERNAL_SEQUENCE_PARENT_REFS, sequence)
 
+    def test_legacy_children_without_parent_refs_load_and_save(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            self.service.save_runtime_data(
+                keymap_set_path,
+                make_runtime_data(),
+                config_root=root,
+                startup_data={},
+            )
+            child_paths = (
+                os.path.join(root, "user", "keymaps", "km1.json"),
+                os.path.join(root, "user", "trigger_sets", "main.json"),
+                os.path.join(root, "user", "sequences", "copy.json"),
+            )
+            legacy_bytes = {}
+            for child_path in child_paths:
+                payload = JsonRepository().load_json(child_path)
+                payload.pop("_parent_refs")
+                JsonRepository().save_json(child_path, payload)
+                legacy_bytes[child_path] = open(child_path, "rb").read()
+
+            loaded = self.service.load_runtime_data_from_keymap_set_path(
+                keymap_set_path,
+                config_root=root,
+            )
+            self.service.save_runtime_data(
+                keymap_set_path,
+                loaded,
+                config_root=root,
+                startup_data={},
+            )
+
+            for child_path in child_paths:
+                self.assertNotEqual(open(child_path, "rb").read(), legacy_bytes[child_path])
+                self.assertIn("_parent_refs", JsonRepository().load_json(child_path))
+
     def test_save_runtime_data_records_all_parent_refs(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
@@ -287,6 +332,47 @@ class ParentRefsSchemaTest(unittest.TestCase):
             self.assertEqual(keymap["_parent_refs"], ["user/keymap_sets/main.json"])
             self.assertEqual(trigger_set["_parent_refs"], ["user/keymap_sets/main.json"])
             self.assertEqual(sequence["_parent_refs"], ["user/trigger_sets/main.json"])
+
+    def test_save_as_merges_existing_parent_refs_for_all_child_kinds(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            target_paths = {
+                CHILD_KEYMAP: os.path.join(root, "user", "keymaps", "alias.json"),
+                CHILD_TRIGGER_SET: os.path.join(root, "user", "trigger_sets", "alias.json"),
+                CHILD_SEQUENCE: os.path.join(root, "user", "sequences", "alias.json"),
+            }
+            for target_path, parent_ref in zip(target_paths.values(), ("other-keymap", "other-trigger", "other-sequence")):
+                os.makedirs(os.path.dirname(target_path), exist_ok=True)
+                JsonRepository().save_json(target_path, {"_parent_refs": [parent_ref]})
+            plan = SavePlan(
+                entries=(
+                    ChildSaveEntry(CHILD_KEYMAP, "km1", ACTION_SAVE_AS, target_paths[CHILD_KEYMAP]),
+                    ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE_AS, target_paths[CHILD_TRIGGER_SET]),
+                    ChildSaveEntry(CHILD_SEQUENCE, "f1", ACTION_SAVE_AS, target_paths[CHILD_SEQUENCE]),
+                )
+            )
+
+            self.service.save_runtime_data(
+                keymap_set_path,
+                make_runtime_data(),
+                config_root=root,
+                startup_data={},
+                save_plan=plan,
+            )
+
+            self.assertEqual(
+                JsonRepository().load_json(target_paths[CHILD_KEYMAP])["_parent_refs"],
+                ["other-keymap", "user/keymap_sets/main.json"],
+            )
+            self.assertEqual(
+                JsonRepository().load_json(target_paths[CHILD_TRIGGER_SET])["_parent_refs"],
+                ["other-trigger", "user/keymap_sets/main.json"],
+            )
+            self.assertEqual(
+                JsonRepository().load_json(target_paths[CHILD_SEQUENCE])["_parent_refs"],
+                ["other-sequence", "user/trigger_sets/alias.json"],
+            )
 
     def test_export_does_not_leak_parent_ref_runtime_keys(self):
         with tempfile.TemporaryDirectory() as tmp:

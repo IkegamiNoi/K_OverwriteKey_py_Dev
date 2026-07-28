@@ -19,6 +19,20 @@ class DirtyStateTracker:
         self.trigger_set_imported = False
         self.trigger_set_dirty = False
 
+    def set_trigger_set_source_path(self, path: str) -> None:
+        """tracker と runtime の内部キーを同時に更新する。"""
+        source_path = str(path or "").strip()
+        self.trigger_set_source_path = source_path
+        data = self._get_data()
+        if isinstance(data, dict):
+            data[self._config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = source_path
+
+    def sync_trigger_set_source_path_from_data(self) -> None:
+        """runtime の trigger_set 保存先を tracker へ取り込む。"""
+        data = self._get_data()
+        source_path = data.get(self._config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH, "") if isinstance(data, dict) else ""
+        self.trigger_set_source_path = str(source_path or "").strip()
+
     def set_dirty(self, value: bool, *, config_dirty: bool = True) -> None:
         self.is_dirty = bool(value)
         if value and config_dirty:

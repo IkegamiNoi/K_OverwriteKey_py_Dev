@@ -10,6 +10,8 @@ from keyseq.application.save_plan import (
     CHILD_KEYMAP,
     CHILD_SEQUENCE,
     CHILD_TRIGGER_SET,
+    ChildSaveEntry,
+    SavePlan,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
@@ -71,6 +73,24 @@ class ChildSavePlanTest(unittest.TestCase):
         self.assertEqual(plan.entry_for(CHILD_KEYMAP, "km1").action, ACTION_SKIP)
         self.assertEqual(plan.entry_for(CHILD_TRIGGER_SET).action, ACTION_SAVE)
         self.assertEqual(plan.entry_for(CHILD_SEQUENCE, "f1").action, ACTION_SAVE)
+
+    def test_confirmed_entry_is_used_when_no_row_choice_exists(self):
+        with tempfile.TemporaryDirectory() as root:
+            data = make_data()
+            targets = self._targets(root, data)
+            confirmed_path = os.path.join(root, "saved", "trigger.json")
+            plan = build_save_plan(
+                data=data,
+                rows=[],
+                choices={},
+                targets=targets,
+                confirmed=SavePlan(
+                    entries=(ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE_AS, confirmed_path),)
+                ),
+            )
+
+        entry = plan.entry_for(CHILD_TRIGGER_SET)
+        self.assertEqual((entry.action, entry.target_path), (ACTION_SAVE_AS, confirmed_path))
 
     def test_empty_rows_create_all_entries_and_existing_children_skip(self):
         with tempfile.TemporaryDirectory() as root:

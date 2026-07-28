@@ -42,7 +42,7 @@ class TriggerSetFileIo:
                 parent_ref=self._app.keymap_set_path,
             )
             self._app.data["triggers"] = triggers
-            self._app.dirty_tracker.trigger_set_source_path = path
+            self._app.dirty_tracker.set_trigger_set_source_path(path)
             self._app.dirty_tracker.trigger_set_imported = False
             self._app.dirty_tracker.trigger_set_dirty = False
             self._app.trigger_panel.refresh_triggers()
@@ -72,7 +72,7 @@ class TriggerSetFileIo:
                 config_root=self._app.config_root,
                 imported=True,
             )
-            self._app.dirty_tracker.trigger_set_source_path = path
+            self._app.dirty_tracker.set_trigger_set_source_path(path)
             self._app.dirty_tracker.trigger_set_imported = True
             self._app.dirty_tracker.trigger_set_dirty = False
             self._app.state.reset_indices()

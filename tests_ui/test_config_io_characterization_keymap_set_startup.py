@@ -63,7 +63,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         self.app.keymap_set_path = ""
         self.app.startup_path = ""
         self.app._startup_settings = {}
-        self.app.dirty_tracker.trigger_set_source_path = ""
+        self.app.dirty_tracker.set_trigger_set_source_path("")
         self.app.dirty_tracker.trigger_set_imported = False
         self.app.dirty_tracker.trigger_set_dirty = False
         self.app.dirty_tracker.is_dirty = False
@@ -116,6 +116,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
 
     def test_confirm_save_if_dirty_yes_with_path_uses_save_keymap_set(self):
         self.app.keymap_set_path = "X.json"
+        # 保存確認の分岐だけを固定するため、子保存ダイアログを含む下流の保存経路は意図的に迂回する。
         with patch.object(self.app.dirty_tracker, "has_unsaved_changes", return_value=True), patch.object(
             tkinter.messagebox, "askyesnocancel", return_value=True
         ), patch.object(_config_set_io(self.app), "save_keymap_set", return_value=True) as save, patch.object(
@@ -127,6 +128,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
 
     def test_confirm_save_if_dirty_yes_without_path_uses_save_as(self):
         self.app.keymap_set_path = ""
+        # 保存確認の分岐だけを固定するため、子保存ダイアログを含む下流の保存経路は意図的に迂回する。
         with patch.object(self.app.dirty_tracker, "has_unsaved_changes", return_value=True), patch.object(
             tkinter.messagebox, "askyesnocancel", return_value=True
         ), patch.object(_config_set_io(self.app), "save_keymap_set", return_value=True) as save, patch.object(
@@ -137,6 +139,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             save.assert_not_called()
 
     def test_save_keymap_set_empty_path_delegates_to_save_as(self):
+        # 保存先ルーティングだけを固定するため、子保存ダイアログを含む下流の保存経路は意図的に迂回する。
         with patch.object(_config_set_io(self.app), "save_as", return_value=True) as save_as, patch.object(
             _config_set_io(self.app), "save_keymap_set_to"
         ) as save_to:
@@ -146,6 +149,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
 
     def test_save_keymap_set_nonempty_path_saves_to_current_path(self):
         self.app.keymap_set_path = "current.json"
+        # 保存先ルーティングだけを固定するため、子保存ダイアログを含む下流の保存経路は意図的に迂回する。
         with patch.object(_config_set_io(self.app), "save_as") as save_as, patch.object(
             _config_set_io(self.app), "save_keymap_set_to", return_value=True
         ) as save_to:
@@ -175,6 +179,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
     # ===================== A: save_keymap_set_to =====================
     def test_save_keymap_set_to_success_updates_state(self):
         calls = []
+        # 空の fake data では dirty な子が無く、子保存ダイアログは対象外として保存後状態を固定する。
         with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda p: p), patch.object(
             _config_set_io(self.app), "choose_split_base_dir_for_keymap_set", return_value=""
         ), patch.object(
@@ -200,6 +205,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         showinfo.assert_called_once()
 
     def test_save_keymap_set_to_no_success_dialog(self):
+        # 空の fake data では dirty な子が無く、子保存ダイアログは対象外として成功通知だけを確認する。
         with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda p: p), patch.object(
             _config_set_io(self.app), "choose_split_base_dir_for_keymap_set", return_value=""
         ), patch.object(
@@ -219,6 +225,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
 
     def test_save_keymap_set_to_exception_keeps_dirty(self):
         calls = []
+        # 空の fake data では dirty な子が無く、子保存ダイアログは対象外として失敗時の状態を固定する。
         with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda p: p), patch.object(
             _config_set_io(self.app), "choose_split_base_dir_for_keymap_set", return_value=""
         ), patch.object(
@@ -335,6 +342,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         selected_path = "directory/saved.json"
         calls = []
         patches = self._silence_refresh()
+        # 親 keymap_set の別名保存ダイアログだけを固定するため、子保存ダイアログを含む下流は意図的に迂回する。
         with patch.object(self.app.config_service, "new_default_data", return_value={"d": 1}), patch.object(
             self.app.config_service, "normalize_runtime_data", side_effect=lambda d: d
         ), patch.object(self.app.dirty_tracker, "set_dirty"), self._record_flash(calls), patches[0], patches[1], patches[2], patches[3], patch.object(

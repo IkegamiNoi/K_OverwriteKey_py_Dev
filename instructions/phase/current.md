@@ -16,8 +16,10 @@
   - 前提: Phase α（phase 05）完了済。[idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md) を**内包**し、
     [idea_06](../backlog/idea_06_individual_json_io_unification.md) の共通化を達成する見込み。後続は
     [idea_07](../backlog/idea_07_reference_link_cleanup.md)（β 完了後）。
-  - 進捗: **task_01〜05 完了（参照元記録 / trigger_set の source_path 接続＋既定命名 / 保存計画の実行契約 /
-    dirty な子の収集と共有状況判定 / 保存確認ダイアログと保存経路への挟み込み）→ 次は task_06（統合退行・実機目視）**。
+  - 進捗: **task_01〜06b の実装・自動検証まで完了**（参照元記録 / trigger_set の source_path 接続＋既定命名 /
+    保存計画の実行契約 / dirty な子の収集と共有状況判定 / 保存確認ダイアログ / 統合退行 / レビュー指摘 A〜F の修正）。
+    **残るは実機目視（ユーザー実施）→ task_07（正本反映）**。受入条件の充足状況は
+    [integration_result.md](06_child_file_save_dialog/integration_result.md) が正。
   - 残りの保存系リデザイン: **γ=phase 07（暫定 06・β と独立）/ プリセット=phase 08（暫定 07）**。
     暫定仕様は起票済・ユーザー確定済のため、着手時は `/phase_start` から入れる。
 - 直前の完了フェーズ: [05_keymap_set_new_and_default_dir](../../.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md)（2026-07-28 完了・保存系リデザイン **Phase α**）。

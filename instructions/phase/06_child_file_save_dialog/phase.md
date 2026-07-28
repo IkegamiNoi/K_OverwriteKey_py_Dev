@@ -87,6 +87,7 @@ keymap_set の「保存」が子ファイル（keymap / trigger_set / sequence�
 | task_04 | `dirty_children_and_share_state` | dirty な子の収集と共有状況判定（§5 の 4 状態）→ 行モデル + 既定ラジオの決定 |
 | task_05 | `save_dialog_ui` | 子ファイル保存確認ダイアログの実装と keymap_set 保存経路への挟み込み（変更なしなら出さない） |
 | task_06 | `integration_regression` | 受入条件 §10 の 1〜11 を通す統合退行・特性テスト更新・実機目視 |
+| task_06b | `review_fixes` | task_06 の 2 本立てレビュー指摘 A〜F の修正（trigger_set source_path の二重管理解消＝条件9 未達 / 確定エントリの計画反映 / 依存確認の無限ループ / 条件9 とダイアログ本体のテスト補強 / 参照元のマージ） |
 | task_07 | `finalize_records` | **正本反映**（`data_schema.md` / `codebase_map.md` 昇格）+ 暫定仕様 05 凍結 + `decisions_archive/06` +
 `current.md` 完了記載 + `backlog/INDEX.md`（idea_05 クローズ・idea_06 / idea_07 の条件更新）+ `/refactor_check` |
 

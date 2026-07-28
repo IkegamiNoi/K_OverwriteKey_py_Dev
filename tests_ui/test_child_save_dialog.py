@@ -8,9 +8,11 @@ from unittest.mock import patch
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_SEQUENCE, CHILD_TRIGGER_SET
 from keyseq.presentation import app as app_module
+from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
 from keyseq.presentation.controllers.config_io.child_save_rows import (
     SHARE_NEW,
     SHARE_OTHER_PARENT,
+    SHARE_SHARED,
     SHARE_SOLE,
     SHARE_UNKNOWN,
     ChildSaveRow,
@@ -26,6 +28,54 @@ def make_data(*, second_sequence: bool = False):
         "triggers": triggers,
         "active_keymap_id": "km1",
     }
+
+
+class _FakeDialogWidget:
+    def grid(self, **_kwargs):
+        return self
+
+    def pack(self, **_kwargs):
+        return self
+
+
+class _FakeStringVar:
+    def __init__(self, *, value):
+        self.value = value
+
+    def get(self):
+        return self.value
+
+    def set(self, value):
+        self.value = value
+
+
+class _FakeSaveDialog:
+    def __init__(self, on_wait):
+        self._on_wait = on_wait
+        self.buttons = {}
+        self.protocols = {}
+        self.destroyed = False
+
+    def title(self, _value):
+        pass
+
+    def resizable(self, _width, _height):
+        pass
+
+    def transient(self, _master):
+        pass
+
+    def grab_set(self):
+        pass
+
+    def protocol(self, name, command):
+        self.protocols[name] = command
+
+    def destroy(self):
+        self.destroyed = True
+
+    def wait_window(self):
+        self._on_wait(self)
 
 
 class ChildSaveDialogFlowTest(unittest.TestCase):
@@ -53,6 +103,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             path, make_data(second_sequence=second_sequence), config_root=root, startup_data={}
         )
         self.app.keymap_set_path = path
+        self.app.dirty_tracker.sync_trigger_set_source_path_from_data()
         self.app.dirty_tracker.clear_individual_dirty_flags()
         self.app.dirty_tracker.set_dirty(False)
         return path
@@ -70,39 +121,200 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             self.app.data, config_root=self.app.config_root, keymap_set_path=path
         )
 
+    def _replace_parent_refs(self, path, refs):
+        payload = self.app.config_service.repository.load_json(path)
+        payload["_parent_refs"] = refs
+        self.app.config_service.repository.save_json(path, payload)
+
+    def _ask_dialog_internally(self, rows, on_wait, *, save_as_path=""):
+        variables = []
+        dialog = _FakeSaveDialog(lambda current: on_wait(current, variables))
+
+        def make_string_var(*, value):
+            variable = _FakeStringVar(value=value)
+            variables.append(variable)
+            return variable
+
+        def make_button(_master, *, text, command, **_kwargs):
+            dialog.buttons[text] = command
+            return _FakeDialogWidget()
+
+        with patch.object(child_save_dialog_module.tk, "Toplevel", return_value=dialog), patch.object(
+            child_save_dialog_module.tk,
+            "StringVar",
+            side_effect=make_string_var,
+        ), patch.object(child_save_dialog_module.ttk, "Frame", return_value=_FakeDialogWidget()), patch.object(
+            child_save_dialog_module.ttk,
+            "Label",
+            return_value=_FakeDialogWidget(),
+        ), patch.object(
+            child_save_dialog_module.ttk,
+            "Radiobutton",
+            return_value=_FakeDialogWidget(),
+        ), patch.object(
+            child_save_dialog_module.ttk,
+            "Button",
+            side_effect=make_button,
+        ), patch.object(
+            self.app.child_save_dialog,
+            "_ask_save_as_path",
+            return_value=save_as_path,
+        ), patch.object(self.app.hook, "suspend_hook_for_dialog") as suspend, patch.object(
+            self.app.hook,
+            "resume_hook_after_dialog",
+        ) as resume:
+            result = self.app.child_save_dialog.ask_child_save_actions(rows)
+
+        self.assertEqual(suspend.call_count, resume.call_count)
+        return result, variables, dialog
+
+    def test_dialog_internal_rows_use_default_actions(self):
+        rows = [
+            ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE),
+            ChildSaveRow(CHILD_SEQUENCE, "f1", "Copy", "C:/copy.json", SHARE_UNKNOWN, "不明", ACTION_SAVE_AS),
+        ]
+        result, variables, _dialog = self._ask_dialog_internally(
+            rows,
+            lambda dialog, _variables: dialog.buttons["キャンセル"](),
+        )
+
+        self.assertIsNone(result)
+        self.assertEqual([variable.get() for variable in variables], [ACTION_SAVE, ACTION_SAVE_AS])
+
+    def test_dialog_internal_ok_returns_selected_actions(self):
+        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
+
+        def confirm(dialog, variables):
+            variables[0].set(ACTION_SKIP)
+            dialog.buttons["OK"]()
+
+        result, variables, dialog = self._ask_dialog_internally(rows, confirm)
+
+        self.assertEqual(result, {(CHILD_KEYMAP, "km1"): (ACTION_SKIP, "")})
+        self.assertTrue(dialog.destroyed)
+
+    def test_dialog_internal_save_as_cancel_returns_none(self):
+        rows = [
+            ChildSaveRow(CHILD_SEQUENCE, "f1", "Copy", "C:/copy.json", SHARE_UNKNOWN, "不明", ACTION_SAVE_AS)
+        ]
+        result, _variables, dialog = self._ask_dialog_internally(
+            rows,
+            lambda dialog, _variables: dialog.buttons["OK"](),
+        )
+
+        self.assertIsNone(result)
+        self.assertFalse(dialog.destroyed)
+
+    def test_dialog_internal_cancel_and_window_close_return_none(self):
+        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
+        for close in (
+            lambda dialog, _variables: dialog.buttons["キャンセル"](),
+            lambda dialog, _variables: dialog.protocols["WM_DELETE_WINDOW"](),
+        ):
+            with self.subTest(close=close):
+                result, _variables, dialog = self._ask_dialog_internally(rows, close)
+                self.assertIsNone(result)
+                self.assertTrue(dialog.destroyed)
+
     def test_clean_children_do_not_open_dialog_or_change_child_bytes(self):
         with tempfile.TemporaryDirectory() as root:
             path = self._prepare(root)
             targets = self._targets(path)
             before = {key: open(value, "rb").read() for key, value in targets.items()}
+            parent_before = open(path, "rb").read()
+            self.app.data["hook_stop_key"] = "f11"
             with patch.object(self.app.child_save_dialog, "ask_child_save_actions") as ask:
                 self.assertTrue(self._save(path))
 
             ask.assert_not_called()
             self.assertEqual({key: open(value, "rb").read() for key, value in targets.items()}, before)
+            self.assertNotEqual(open(path, "rb").read(), parent_before)
 
     def test_dirty_choices_control_overwrite_save_as_and_skip(self):
         with tempfile.TemporaryDirectory() as root:
-            path = self._prepare(root)
+            path = self._prepare(root, second_sequence=True)
             targets = self._targets(path)
             renamed_sequence = os.path.join(root, "renamed", "copy.json")
             old_sequence = open(targets[(CHILD_SEQUENCE, "f1")], "rb").read()
+            old_skipped_sequence = open(targets[(CHILD_SEQUENCE, "f2")], "rb").read()
             self.app.data["keymaps"][0]["mappings"] = {"a": "c"}
             self.app.data["triggers"][0]["actions"] = [{"type": "text", "value": "new", "label": ""}]
             self.app.dirty_tracker.mark_keymap_dirty(self.app.data["keymaps"][0])
             self.app.dirty_tracker.mark_trigger_set_dirty()
             self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][1])
             choices = {
                 (CHILD_KEYMAP, "km1"): (ACTION_SAVE, ""),
                 (CHILD_TRIGGER_SET, ""): (ACTION_SAVE, ""),
                 (CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, renamed_sequence),
+                (CHILD_SEQUENCE, "f2"): (ACTION_SKIP, ""),
             }
-            with patch.object(self.app.child_save_dialog, "ask_child_save_actions", return_value=choices) as ask:
+            def choose(rows):
+                self.assertEqual(
+                    [(row.kind, row.key) for row in rows],
+                    [
+                        (CHILD_KEYMAP, "km1"),
+                        (CHILD_TRIGGER_SET, ""),
+                        (CHILD_SEQUENCE, "f1"),
+                        (CHILD_SEQUENCE, "f2"),
+                    ],
+                )
+                return choices
+
+            with patch.object(self.app.child_save_dialog, "ask_child_save_actions", side_effect=choose) as ask:
                 self.assertTrue(self._save(path))
 
             ask.assert_called_once()
             self.assertTrue(os.path.exists(renamed_sequence))
             self.assertEqual(open(targets[(CHILD_SEQUENCE, "f1")], "rb").read(), old_sequence)
+            self.assertEqual(open(targets[(CHILD_SEQUENCE, "f2")], "rb").read(), old_skipped_sequence)
+
+    def test_other_parent_child_reaches_dialog_with_save_as_default(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare(root)
+            keymap_path = self._targets(path)[(CHILD_KEYMAP, "km1")]
+            self._replace_parent_refs(keymap_path, ["user/keymap_sets/other.json"])
+            self.app.data["keymaps"][0]["mappings"] = {"a": "c"}
+            self.app.dirty_tracker.mark_keymap_dirty(self.app.data["keymaps"][0])
+
+            def choose(rows):
+                row = rows[0]
+                self.assertEqual(row.share_state, SHARE_OTHER_PARENT)
+                self.assertEqual(row.default_action, ACTION_SAVE_AS)
+                self.assertEqual(row.share_text, "別の構成に属します")
+                return {(CHILD_KEYMAP, "km1"): (ACTION_SKIP, "")}
+
+            with patch.object(self.app.child_save_dialog, "ask_child_save_actions", side_effect=choose) as ask:
+                self.assertTrue(self._save(path))
+
+            ask.assert_called_once()
+
+    def test_shared_child_reaches_dialog_with_warning_and_can_overwrite(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare(root)
+            keymap_path = self._targets(path)[(CHILD_KEYMAP, "km1")]
+            self._replace_parent_refs(
+                keymap_path,
+                ["user/keymap_sets/main.json", "user/keymap_sets/other.json"],
+            )
+            self.app.data["keymaps"][0]["mappings"] = {"a": "c"}
+            self.app.dirty_tracker.mark_keymap_dirty(self.app.data["keymaps"][0])
+
+            def choose(rows):
+                row = rows[0]
+                self.assertEqual(row.share_state, SHARE_SHARED)
+                self.assertEqual(row.default_action, ACTION_SAVE)
+                self.assertEqual(row.share_text, "2 個の上位で共有中・全てに影響します")
+                return {(CHILD_KEYMAP, "km1"): (ACTION_SAVE, "")}
+
+            with patch.object(self.app.child_save_dialog, "ask_child_save_actions", side_effect=choose) as ask:
+                self.assertTrue(self._save(path))
+
+            ask.assert_called_once()
+            self.assertEqual(
+                self.app.config_service.repository.load_json(keymap_path)["mappings"],
+                {"a": "c"},
+            )
 
     def test_cancel_writes_nothing(self):
         with tempfile.TemporaryDirectory() as root:
@@ -129,6 +341,36 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             confirm.assert_called_once()
             self.assertTrue(os.path.exists(renamed_sequence))
 
+    def test_dependency_save_as_keeps_confirmed_trigger_set_target(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare(root)
+            targets = self._targets(path)
+            old_trigger_bytes = open(targets[(CHILD_TRIGGER_SET, "")], "rb").read()
+            renamed_sequence = os.path.join(root, "renamed", "copy.json")
+            renamed_trigger_set = os.path.join(root, "renamed", "trigger_set.json")
+            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            choices = {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, renamed_sequence)}
+
+            def confirm(**_kwargs):
+                self.app.child_save_dialog.trigger_set_save_as_path = renamed_trigger_set
+                return ACTION_SAVE_AS
+
+            with patch.object(
+                self.app.child_save_dialog,
+                "ask_child_save_actions",
+                side_effect=[choices, choices],
+            ) as ask, patch.object(
+                self.app.child_save_dialog,
+                "confirm_trigger_set_dependency",
+                side_effect=confirm,
+            ) as dependency:
+                self.assertTrue(self._save(path))
+
+            self.assertEqual(ask.call_count, 2)
+            dependency.assert_called_once()
+            self.assertEqual(open(targets[(CHILD_TRIGGER_SET, "")], "rb").read(), old_trigger_bytes)
+            self.assertTrue(os.path.exists(renamed_trigger_set))
+
     def test_dependency_reselect_then_cancel_keeps_all_files_unchanged(self):
         with tempfile.TemporaryDirectory() as root:
             path = self._prepare(root)
@@ -146,6 +388,22 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             self.assertEqual(ask.call_count, 2)
             confirm.assert_called_once()
             self.assertEqual({name: open(name, "rb").read() for name in before}, before)
+
+    def test_dependency_reselect_with_no_dirty_rows_cancels_save(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare(root)
+            trigger = self.app.data["triggers"][0]
+            trigger["label"] = "Renamed"
+            trigger.pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+            with patch.object(self.app.child_save_dialog, "ask_child_save_actions") as ask, patch.object(
+                self.app.child_save_dialog,
+                "confirm_trigger_set_dependency",
+                return_value="",
+            ) as confirm:
+                self.assertIsNone(self.app.keymap_set_io._collect_child_save_plan(path, ""))
+
+            ask.assert_not_called()
+            confirm.assert_called_once()
 
     def test_skipped_sequence_does_not_require_dependency_confirmation(self):
         with tempfile.TemporaryDirectory() as root:

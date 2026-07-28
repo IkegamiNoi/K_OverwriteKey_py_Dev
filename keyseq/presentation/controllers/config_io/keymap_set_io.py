@@ -109,6 +109,7 @@ class KeymapSetIo:
             self._app.keymap_set_path = save_path
             self._app.startup_path = self._app.paths.preferred_startup_path()
             self._app._startup_settings = startup_payload
+            self._app.dirty_tracker.sync_trigger_set_source_path_from_data()
             self._clear_saved_child_dirty_flags(*skipped_dirty_children)
             self._app.dirty_tracker.set_dirty(False)
             self._app.dirty_tracker.sync_dirty_state()
@@ -145,7 +146,13 @@ class KeymapSetIo:
             choices = {} if not rows else self._app.child_save_dialog.ask_child_save_actions(rows)
             if choices is None:
                 return None
-            plan = build_save_plan(data=self._app.data, rows=rows, choices=choices, targets=targets)
+            plan = build_save_plan(
+                data=self._app.data,
+                rows=rows,
+                choices=choices,
+                targets=targets,
+                confirmed=pending,
+            )
             trigger_entry = plan.entry_for(CHILD_TRIGGER_SET)
             if trigger_entry and self._trigger_target_changed(
                 trigger_entry,
@@ -171,6 +178,8 @@ class KeymapSetIo:
                 trigger_set_row=trigger_row,
             )
             if not action:
+                if not rows:
+                    return None
                 pending = SavePlan()
                 show_recalculation_notice = False
                 continue
@@ -184,7 +193,13 @@ class KeymapSetIo:
                 pending = SavePlan(entries=(confirmed,))
                 show_recalculation_notice = True
                 continue
-            return self._replace_trigger_set_entry(plan, confirmed)
+            return build_save_plan(
+                data=self._app.data,
+                rows=rows,
+                choices={**choices, (CHILD_TRIGGER_SET, ""): (confirmed.action, confirmed.target_path)},
+                targets=targets,
+                confirmed=SavePlan(entries=(confirmed,)),
+            )
 
     def _trigger_target_changed(
         self,
@@ -228,10 +243,6 @@ class KeymapSetIo:
                 key = normalize_key_name(str(trigger.get("key") or ""))
                 labels[key] = str(trigger.get("label") or "").strip() or key
         return [labels.get(key, key) for key in blocked_keys]
-
-    @staticmethod
-    def _replace_trigger_set_entry(plan: SavePlan, entry: ChildSaveEntry) -> SavePlan:
-        return SavePlan(entries=tuple(entry if item.kind == CHILD_TRIGGER_SET else item for item in plan.entries))
 
     def _skipped_dirty_children(self, save_plan: SavePlan) -> tuple[list[str], list[str], bool]:
         skipped_keymaps = [
@@ -392,7 +403,7 @@ class KeymapSetIo:
         messagebox.showinfo("設定", f"次回起動時はこの keymap_set を読み込みます:\n{path}")
 
     def apply_loaded_data_to_ui(self):
-        self._app.dirty_tracker.trigger_set_source_path = ""
+        self._app.dirty_tracker.sync_trigger_set_source_path_from_data()
         self._app.dirty_tracker.trigger_set_imported = False
         self._app.dirty_tracker.trigger_set_dirty = False
         self._app._sync_control_vars_from_data()

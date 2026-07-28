@@ -26,16 +26,17 @@ def build_save_plan(
     rows: Sequence[Any],
     choices: Mapping[ChildId, Choice],
     targets: Mapping[ChildId, str],
+    confirmed: SavePlan | None = None,
 ) -> SavePlan:
-    """dirty 行の選択と未変更の既定動作から、全子ファイルの保存計画を作る。"""
+    """一覧選択、確定済み操作、未変更既定の優先順で保存計画を作る。"""
     choices_by_child = _choices_by_child(rows, choices)
     entries = [
-        _entry_for(CHILD_KEYMAP, key, choices_by_child, targets)
+        _entry_for(CHILD_KEYMAP, key, choices_by_child, targets, confirmed)
         for key in _keymap_ids(data)
     ]
-    entries.append(_entry_for(CHILD_TRIGGER_SET, "", choices_by_child, targets))
+    entries.append(_entry_for(CHILD_TRIGGER_SET, "", choices_by_child, targets, confirmed))
     entries.extend(
-        _entry_for(CHILD_SEQUENCE, key, choices_by_child, targets)
+        _entry_for(CHILD_SEQUENCE, key, choices_by_child, targets, confirmed)
         for key in _sequence_keys(data)
     )
     return SavePlan(entries=tuple(entries))
@@ -58,12 +59,16 @@ def _entry_for(
     key: str,
     choices: Mapping[ChildId, Choice],
     targets: Mapping[ChildId, str],
+    confirmed: SavePlan | None,
 ) -> ChildSaveEntry:
     child_id = (kind, key)
     choice = choices.get(child_id)
     if choice is not None:
         action, target_path = choice
         return ChildSaveEntry(kind, key, action, target_path if action == ACTION_SAVE_AS else "")
+    confirmed_entry = confirmed.entry_for(kind, key) if confirmed is not None else None
+    if confirmed_entry is not None:
+        return confirmed_entry
     action = ACTION_SKIP if os.path.exists(targets[child_id]) else ACTION_SAVE
     return ChildSaveEntry(kind, key, action)
 

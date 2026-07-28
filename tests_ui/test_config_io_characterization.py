@@ -8,6 +8,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, CHILD_TRIGGER_SET, ChildSaveEntry, SavePlan
 from keyseq.presentation import app as app_module
 
 
@@ -112,7 +113,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         self.app._selected_trigger_idx = 0
         self.app.config_root = os.getcwd()
         self.app.keymap_set_path = ""
-        self.app.dirty_tracker.trigger_set_source_path = ""
+        self.app.dirty_tracker.set_trigger_set_source_path("")
         self.app.dirty_tracker.trigger_set_imported = False
         self.app.dirty_tracker.trigger_set_dirty = False
         self.app.dirty_tracker.is_dirty = False
@@ -211,6 +212,24 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             patch.object(self.app.trigger_panel, "refresh_actions"),
             patch.object(tkinter.messagebox, "showinfo"),
         )
+
+    def _prepare_loaded_keymap_set(self, root):
+        path = os.path.join(root, "user", "keymap_sets", "main.json")
+        data = {
+            "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"}}],
+            "triggers": [{"key": "f1", "label": "Copy", "actions": []}],
+            "active_keymap_id": "km1",
+        }
+        self.app.config_root = root
+        self.app.data, self.app._startup_settings = self.app.config_service.save_runtime_data(
+            path,
+            data,
+            config_root=root,
+            startup_data={},
+        )
+        self.app.keymap_set_path = path
+        self.app.keymap_set_io.apply_loaded_data_to_ui()
+        return path
 
     # C: 共有ダイアログヘルパ
     def test_choose_save_path_with_collision_all_branches(self):
@@ -447,7 +466,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
     # E: trigger_set 個別 JSON IO
     def test_trigger_set_save_uses_dirty_tracker_source_path(self):
-        self.app.dirty_tracker.trigger_set_source_path = "C:/loaded/triggers.json"
+        self.app.dirty_tracker.set_trigger_set_source_path("C:/loaded/triggers.json")
         self.app.dirty_tracker.trigger_set_imported = True
         self.app.dirty_tracker.trigger_set_dirty = True
         save_calls = []
@@ -460,7 +479,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             choose.assert_not_called()
             self.assertEqual([c[0] for c in save_calls], ["C:/loaded/triggers.json"])
 
-        self.app.dirty_tracker.trigger_set_source_path = ""
+        self.app.dirty_tracker.set_trigger_set_source_path("")
         save_calls = []
         p = self._trigger_set_save_patches(save_calls)
         with patch.object(tkinter.messagebox, "askyesno") as ask, patch.object(
@@ -493,7 +512,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as directory:
             source_path = os.path.join(directory, "loaded", "triggers.json")
             os.makedirs(os.path.dirname(source_path))
-            self.app.dirty_tracker.trigger_set_source_path = source_path
+            self.app.dirty_tracker.set_trigger_set_source_path(source_path)
             save_calls = []
             p = self._trigger_set_save_patches(save_calls)
             with patch.object(
@@ -505,6 +524,125 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
             self.assertEqual(ask_save.call_args.kwargs["initialdir"], os.path.dirname(source_path))
             self.assertEqual(ask_save.call_args.kwargs["initialfile"], "triggers.json")
+
+    def test_loaded_keymap_set_syncs_trigger_set_source_path(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare_loaded_keymap_set(root)
+            loaded = self.app.config_service.load_runtime_data_from_keymap_set_path(
+                path,
+                config_root=root,
+            )
+            self.app.data = loaded
+            self.app.keymap_set_io.apply_loaded_data_to_ui()
+
+        self.assertEqual(
+            self.app.dirty_tracker.trigger_set_source_path,
+            self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+        )
+
+    def test_bulk_save_syncs_changed_trigger_set_source_path(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare_loaded_keymap_set(root)
+            saved_path = os.path.join(root, "user", "trigger_sets", "renamed.json")
+            plan = SavePlan(
+                entries=(ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE_AS, saved_path),)
+            )
+            with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda value: value), patch.object(
+                self.app.keymap_set_io,
+                "choose_split_base_dir_for_keymap_set",
+                return_value="",
+            ), patch.object(self.app.keymap_set_io, "_collect_child_save_plan", return_value=plan), patch.object(
+                tkinter.messagebox,
+                "showinfo",
+            ):
+                self.assertTrue(
+                    self.app.keymap_set_io.save_keymap_set_to(
+                        path,
+                        flash_message="保存しました。",
+                        show_success_dialog=False,
+                    )
+                )
+
+        self.assertEqual(
+            self.app.dirty_tracker.trigger_set_source_path,
+            self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+        )
+        self.assertEqual(
+            self.app.dirty_tracker.trigger_set_source_path,
+            "user/trigger_sets/renamed.json",
+        )
+
+    def test_individual_trigger_save_keeps_bulk_save_on_new_path(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare_loaded_keymap_set(root)
+            old_path = self.app.config_service.resolve_child_save_targets(
+                self.app.data,
+                config_root=root,
+                keymap_set_path=path,
+            )[(CHILD_TRIGGER_SET, "")]
+            old_bytes = Path(old_path).read_bytes()
+            saved_path = os.path.join(root, "user", "trigger_sets", "renamed.json")
+            with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                self.app.trigger_panel,
+                "refresh_actions",
+            ), patch.object(tkinter.messagebox, "showinfo"):
+                self.assertTrue(_trigger_set_io(self.app).save_trigger_set_to_path(saved_path))
+            self.assertEqual(
+                self.app.dirty_tracker.trigger_set_source_path,
+                self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+            )
+            self.app.data["triggers"][0]["actions"] = [{"type": "text", "value": "new", "label": ""}]
+            self.app.dirty_tracker.mark_trigger_set_dirty()
+            plan = SavePlan(entries=(ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE),))
+            with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda value: value), patch.object(
+                self.app.keymap_set_io,
+                "choose_split_base_dir_for_keymap_set",
+                return_value="",
+            ), patch.object(self.app.keymap_set_io, "_collect_child_save_plan", return_value=plan), patch.object(
+                tkinter.messagebox,
+                "showinfo",
+            ):
+                self.assertTrue(
+                    self.app.keymap_set_io.save_keymap_set_to(
+                        path,
+                        flash_message="保存しました。",
+                        show_success_dialog=False,
+                    )
+                )
+
+            self.assertEqual(Path(old_path).read_bytes(), old_bytes)
+            self.assertEqual(
+                self.app.dirty_tracker.trigger_set_source_path,
+                self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+            )
+            # source_path は config_root 相対で保持されるため、読み出しは root と結合する
+            sequence_path = self.app.data["triggers"][0][
+                self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH
+            ]
+            if not os.path.isabs(sequence_path):
+                sequence_path = os.path.join(root, sequence_path)
+            self.assertIn("new", Path(sequence_path).read_text(encoding="utf-8"))
+
+    def test_sequence_save_uses_nonempty_trigger_set_parent_ref_after_individual_save(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._prepare_loaded_keymap_set(root)
+            trigger_path = os.path.join(root, "user", "trigger_sets", "renamed.json")
+            sequence_path = os.path.join(root, "user", "sequences", "renamed.json")
+            with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                self.app.trigger_panel,
+                "refresh_actions",
+            ), patch.object(tkinter.messagebox, "showinfo"):
+                self.assertTrue(_trigger_set_io(self.app).save_trigger_set_to_path(trigger_path))
+                self.assertTrue(
+                    _sequence_io(self.app).save_sequence_to_path(
+                        self.app.data["triggers"][0],
+                        sequence_path,
+                    )
+                )
+
+            parent_refs = self.app.config_service.repository.load_json(sequence_path)["_parent_refs"]
+            self.assertTrue(parent_refs)
+            self.assertEqual(parent_refs[-1], "user/trigger_sets/renamed.json")
 
     def test_trigger_set_save_to_path_writes_bytes_updates_dirty_and_reports(self):
         trigger = {"key": "a", "label": "Run", "actions": []}

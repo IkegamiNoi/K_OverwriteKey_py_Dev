@@ -160,6 +160,7 @@ class ConfigService:
             item,
             parent_ref=parent_ref,
             config_root=config_root,
+            target_path=path,
         )
         self.repository.save_json(path, payload)
         saved = safe_deepcopy(item)
@@ -195,6 +196,7 @@ class ConfigService:
             trigger,
             parent_ref=parent_ref,
             config_root=config_root,
+            target_path=path,
         )
         self.repository.save_json(path, payload)
         sequence = self._normalize_sequence_payload(payload)
@@ -1091,6 +1093,9 @@ class ConfigService:
                         keymap,
                         parent_ref=parent_ref,
                         config_root=config_root,
+                        target_path=self._resolve_config_relative_path(relative_path, config_root)
+                        if not skip
+                        else "",
                     ),
                 }
             )
@@ -1102,6 +1107,7 @@ class ConfigService:
         *,
         parent_ref: str = "",
         config_root: str = "",
+        target_path: str = "",
     ) -> dict[str, Any]:
         payload = {
             "label": str(keymap.get("label") or "").strip(),
@@ -1109,13 +1115,12 @@ class ConfigService:
             if isinstance(keymap.get("mappings"), dict)
             else {},
         }
-        parent_refs = self._normalize_parent_refs(keymap.get(self.INTERNAL_KEYMAP_PARENT_REFS))
-        if parent_ref:
-            parent_refs = self._merge_parent_ref(
-                parent_refs,
-                parent_ref,
-                config_root=config_root,
-            )
+        parent_refs = self._parent_refs_for_save(
+            self._normalize_parent_refs(keymap.get(self.INTERNAL_KEYMAP_PARENT_REFS)),
+            target_path=target_path,
+            parent_ref=parent_ref,
+            config_root=config_root,
+        )
         if parent_refs is not None:
             payload[self.PARENT_REFS_KEY] = parent_refs
         return payload
@@ -1194,18 +1199,18 @@ class ConfigService:
                         trigger,
                         parent_ref=trigger_set_path,
                         config_root=config_root,
+                        target_path=resolved_sequence_path if not skip else "",
                     ),
                 }
             )
 
         payload = {"triggers": trigger_entries}
-        parent_refs = self._normalize_parent_refs(runtime.get(self.INTERNAL_TRIGGER_SET_PARENT_REFS))
-        if parent_ref:
-            parent_refs = self._merge_parent_ref(
-                parent_refs,
-                parent_ref,
-                config_root=config_root,
-            )
+        parent_refs = self._parent_refs_for_save(
+            self._normalize_parent_refs(runtime.get(self.INTERNAL_TRIGGER_SET_PARENT_REFS)),
+            target_path=trigger_set_path,
+            parent_ref=parent_ref,
+            config_root=config_root,
+        )
         if parent_refs is not None:
             payload[self.PARENT_REFS_KEY] = parent_refs
         return payload, sequence_payloads
@@ -1241,6 +1246,7 @@ class ConfigService:
         *,
         parent_ref: str = "",
         config_root: str = "",
+        target_path: str = "",
     ) -> dict[str, Any]:
         payload = {
             "label": str(trigger.get("label") or "").strip(),
@@ -1253,13 +1259,12 @@ class ConfigService:
             if isinstance(trigger.get("actions"), list)
             else [],
         }
-        parent_refs = self._normalize_parent_refs(trigger.get(self.INTERNAL_SEQUENCE_PARENT_REFS))
-        if parent_ref:
-            parent_refs = self._merge_parent_ref(
-                parent_refs,
-                parent_ref,
-                config_root=config_root,
-            )
+        parent_refs = self._parent_refs_for_save(
+            self._normalize_parent_refs(trigger.get(self.INTERNAL_SEQUENCE_PARENT_REFS)),
+            target_path=target_path,
+            parent_ref=parent_ref,
+            config_root=config_root,
+        )
         if parent_refs is not None:
             payload[self.PARENT_REFS_KEY] = parent_refs
         return payload
@@ -1534,6 +1539,21 @@ class ConfigService:
             merged.append(parent_ref)
         return merged
 
+    def _parent_refs_for_save(
+        self,
+        refs: list[str] | None,
+        *,
+        target_path: str,
+        parent_ref: str,
+        config_root: str,
+    ) -> list[str] | None:
+        if not parent_ref:
+            return refs
+        # §4「現在の上位パスを集合へ追加」= 追加先は **保存先ファイル**の集合。
+        # 保存元（in-memory）の旧参照元は足さない（別名保存で他所の所有記録を捏造しないため）。
+        existing_refs = self.read_parent_refs(target_path) if target_path else None
+        merged = list(existing_refs) if existing_refs is not None else []
+        return self._merge_parent_ref(merged, parent_ref, config_root=config_root)
 
     def slugify_file_stem(self, value: Any) -> str:
         normalized = str(value or "").strip()

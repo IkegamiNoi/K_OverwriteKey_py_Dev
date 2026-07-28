@@ -17,6 +17,11 @@ from keyseq.application.save_plan import (
 from keyseq.infrastructure.json_repository import JsonRepository
 
 
+def _read_bytes(path):
+    with open(path, "rb") as f:
+        return f.read()
+
+
 def make_runtime_data():
     return {
         "triggers": [
@@ -363,15 +368,15 @@ class SavePlanTest(unittest.TestCase):
             self._save(root)
             keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
             startup_path = os.path.join(root, "config.json")
-            previous_keymap_set = JsonRepository().load_json(keymap_set_path)
-            previous_startup = JsonRepository().load_json(startup_path)
+            previous_keymap_set = _read_bytes(keymap_set_path)
+            previous_startup = _read_bytes(startup_path)
             self.repository.fail_path = os.path.join(root, "user", "sequences", "copy.json")
 
             with self.assertRaises(OSError):
                 self._save(root)
 
-            self.assertEqual(JsonRepository().load_json(keymap_set_path), previous_keymap_set)
-            self.assertEqual(JsonRepository().load_json(startup_path), previous_startup)
+            self.assertEqual(_read_bytes(keymap_set_path), previous_keymap_set)
+            self.assertEqual(_read_bytes(startup_path), previous_startup)
 
     def test_writes_children_before_parent_and_startup(self):
         with tempfile.TemporaryDirectory() as tmp:
