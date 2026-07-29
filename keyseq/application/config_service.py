@@ -1043,12 +1043,16 @@ class ConfigService:
             if stored_path:
                 resolved_path = self._resolve_config_relative_path(stored_path, config_root)
                 relative_path = self.to_config_relative_or_absolute(resolved_path, config_root)
-                normalized_for_collision = self._normalize_path_separators(relative_path)
-                if normalized_for_collision in used_relative_paths:
+                collision_key = self.canonical_path(relative_path, config_root)
+                if collision_key in used_relative_paths:
                     base_name = self._resolve_keymap_file_base_name(keymap)
-                    relative_path = self._allocate_unique_keymap_path(base_name, used_relative_paths)
+                    relative_path = self._allocate_unique_keymap_path(
+                        base_name,
+                        used_relative_paths,
+                        config_root,
+                    )
                 else:
-                    used_relative_paths.add(normalized_for_collision)
+                    used_relative_paths.add(collision_key)
             else:
                 base_name = self._resolve_keymap_file_base_name(keymap)
                 if keymaps_dir:
@@ -1060,13 +1064,17 @@ class ConfigService:
                         config_root,
                     )
                 else:
-                    relative_path = self._allocate_unique_keymap_path(base_name, used_relative_paths)
+                    relative_path = self._allocate_unique_keymap_path(
+                        base_name,
+                        used_relative_paths,
+                        config_root,
+                    )
             entry = save_plan.entry_for(CHILD_KEYMAP, keymap_id)
             action = entry.action if entry is not None else ACTION_SAVE
             if action == ACTION_SAVE_AS and entry is not None:
                 resolved_target_path = self._resolve_config_relative_path(entry.target_path, config_root)
                 relative_path = self.to_config_relative_or_absolute(resolved_target_path, config_root)
-                used_relative_paths.add(self._normalize_path_separators(relative_path))
+                used_relative_paths.add(self.canonical_path(relative_path, config_root))
             source_path = str(keymap.get(self.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
             resolved_source_path = (
                 self._resolve_config_relative_path(source_path, config_root)
@@ -1228,14 +1236,20 @@ class ConfigService:
         if source_path:
             resolved_source_path = self._resolve_config_relative_path(source_path, config_root)
             stored_source_path = self.to_config_relative_or_absolute(resolved_source_path, config_root)
-            normalized_source_path = self._normalize_path_separators(stored_source_path)
-            if normalized_source_path not in used_paths:
-                used_paths.add(normalized_source_path)
+            collision_key = self.canonical_path(stored_source_path, config_root)
+            if collision_key not in used_paths:
+                used_paths.add(collision_key)
                 return stored_source_path
 
         base_name = self._resolve_sequence_file_base_name(trigger)
         if self._is_default_trigger_set_area(trigger_set_path, config_root):
-            return self._allocate_unique_relative_path(self.SEQUENCES_RELATIVE_DIR, base_name, "sequence", used_paths)
+            return self._allocate_unique_relative_path(
+                self.SEQUENCES_RELATIVE_DIR,
+                base_name,
+                "sequence",
+                used_paths,
+                config_root,
+            )
 
         sequence_dir = sequences_dir or os.path.join(os.path.dirname(os.path.abspath(trigger_set_path)), "sequences")
         return self._allocate_unique_absolute_path(sequence_dir, base_name, "sequence", used_paths, config_root)
@@ -1290,11 +1304,11 @@ class ConfigService:
         return "sequence"
 
     def _is_default_trigger_set_area(self, trigger_set_path: str, config_root: str) -> bool:
-        try:
-            trigger_sets_dir = os.path.join(os.path.abspath(config_root), "user", "trigger_sets")
-            return os.path.commonpath([os.path.abspath(trigger_set_path), trigger_sets_dir]) == trigger_sets_dir
-        except Exception:
-            return False
+        return self.is_path_within(
+            trigger_set_path,
+            os.path.join(config_root, "user", "trigger_sets"),
+            config_root,
+        )
 
     def _allocate_unique_relative_path(
         self,
@@ -1302,16 +1316,18 @@ class ConfigService:
         base_name: str,
         fallback: str,
         used_paths: set[str],
+        config_root: str,
     ) -> str:
         stem = self.slugify_file_stem(base_name) or fallback
         index = 1
         while True:
             suffix = "" if index == 1 else f"_{index}"
             candidate = os.path.join(relative_dir, f"{stem}{suffix}.json")
-            normalized_candidate = self._normalize_path_separators(candidate)
-            if normalized_candidate not in used_paths:
-                used_paths.add(normalized_candidate)
-                return normalized_candidate
+            stored_candidate = self._normalize_path_separators(candidate)
+            collision_key = self.canonical_path(stored_candidate, config_root)
+            if collision_key not in used_paths:
+                used_paths.add(collision_key)
+                return stored_candidate
             index += 1
 
     def _allocate_unique_absolute_path(
@@ -1328,9 +1344,9 @@ class ConfigService:
             suffix = "" if index == 1 else f"_{index}"
             candidate = os.path.join(directory, f"{stem}{suffix}.json")
             stored = self.to_config_relative_or_absolute(candidate, config_root)
-            normalized_candidate = self._normalize_path_separators(stored)
-            if normalized_candidate not in used_paths:
-                used_paths.add(normalized_candidate)
+            collision_key = self.canonical_path(stored, config_root)
+            if collision_key not in used_paths:
+                used_paths.add(collision_key)
                 return stored
             index += 1
 
@@ -1351,16 +1367,22 @@ class ConfigService:
                 return slug
         return "keymap"
 
-    def _allocate_unique_keymap_path(self, base_name: str, used_relative_paths: set[str]) -> str:
+    def _allocate_unique_keymap_path(
+        self,
+        base_name: str,
+        used_relative_paths: set[str],
+        config_root: str,
+    ) -> str:
         stem = self.slugify_file_stem(base_name) or "keymap"
         index = 1
         while True:
             suffix = "" if index == 1 else f"_{index}"
             candidate = os.path.join(self.KEYMAPS_RELATIVE_DIR, f"{stem}{suffix}.json")
-            normalized_candidate = self._normalize_path_separators(candidate)
-            if normalized_candidate not in used_relative_paths:
-                used_relative_paths.add(normalized_candidate)
-                return normalized_candidate
+            stored_candidate = self._normalize_path_separators(candidate)
+            collision_key = self.canonical_path(stored_candidate, config_root)
+            if collision_key not in used_relative_paths:
+                used_relative_paths.add(collision_key)
+                return stored_candidate
             index += 1
 
     def _sanitize_runtime_for_storage(self, data: dict[str, Any]) -> dict[str, Any]:
@@ -1485,13 +1507,33 @@ class ConfigService:
     def to_config_relative_or_absolute(self, path: str, config_root: str) -> str:
         absolute_path = os.path.abspath(path)
         absolute_config_root = os.path.abspath(config_root)
-        try:
-            if os.path.commonpath([absolute_path, absolute_config_root]) == absolute_config_root:
-                relative_path = os.path.relpath(absolute_path, absolute_config_root)
-                return self._normalize_path_separators(relative_path)
-        except Exception:
-            pass
+        if self.is_path_within(absolute_path, absolute_config_root, config_root):
+            relative_path = os.path.relpath(absolute_path, absolute_config_root)
+            return self._normalize_path_separators(relative_path)
         return self._normalize_path_separators(absolute_path)
+
+    def canonical_path(self, path: str, config_root: str) -> str:
+        """比較専用の正規形。相対は config_root から解決し、normpath → normcase を適用する。
+
+        戻り値を保存値や表示値には使用しない。
+        """
+        if not path:
+            return ""
+        resolved_path = path
+        if not os.path.isabs(resolved_path) and config_root:
+            resolved_path = os.path.join(config_root, resolved_path)
+        return os.path.normcase(os.path.normpath(os.path.abspath(resolved_path)))
+
+    def is_path_within(self, path: str, ancestor_dir: str, config_root: str = "") -> bool:
+        """path が ancestor_dir 配下（同一パスを含む）かを canonical identity で判定する。"""
+        canonical_path = self.canonical_path(path, config_root)
+        canonical_ancestor = self.canonical_path(ancestor_dir, config_root)
+        if not canonical_path or not canonical_ancestor:
+            return False
+        try:
+            return os.path.commonpath([canonical_path, canonical_ancestor]) == canonical_ancestor
+        except Exception:
+            return False
 
 
     def _resolve_config_relative_path(self, path: str, config_root: str) -> str:
@@ -1531,9 +1573,9 @@ class ConfigService:
             os.path.abspath(parent_path),
             config_root,
         )
-        normalized_parent_ref = self._normalize_path_separators(parent_ref)
+        canonical_parent_ref = self.canonical_path(parent_ref, config_root)
         if not any(
-            self._normalize_path_separators(existing) == normalized_parent_ref
+            self.canonical_path(existing, config_root) == canonical_parent_ref
             for existing in merged
         ):
             merged.append(parent_ref)

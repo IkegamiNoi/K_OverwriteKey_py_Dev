@@ -4,70 +4,58 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-29T09:20:00
+last_updated: 2026-07-29T23:10:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
-last_commit_location: claude/child-file-path-save-confirm-4507e3 ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/file-label-save-issues-3b04cf ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β task_06 + task_06b（統合退行とレビュー指摘 A〜F の修正）の自動検証まで完了。残るは実機目視（ユーザー実施）→ task_07（正本反映）**。
-mode: pending_review
+focus: **Phase β 実機目視 5 件を暫定仕様 05 v0.3 へ反映（task_07〜09 を追加・旧 07 は task_10 へ）。task_07（canonical path identity）完了。次は task_08**。
+mode: implementing
 
 ## last_action
-ts: 2026-07-29T09:20:00
+ts: 2026-07-29T23:10:00
 who: main
 summary: |
-  【task_06（integration_regression）+ task_06b（review_fixes）完了】いずれも `codex-implementer` へ委任。
-  - **task_06**: 受入条件 1〜11 の対応表を `integration_result.md` へ作成し、不足分のテストを追加
-    （条件 4 / 5 / 8 / 10 ほか）。条件 7 の比較を **JSON → バイト列**へ強化。既存 keymap_set 特性テストの
-    変更は**コメント追加のみ**（ダイアログを意図的に迂回している理由の明示）。production 変更なし。
-  - **統合レビュー 2 本立て**: `deep-reviewer` = **修正して採用**（条件 6・7・8 は重点確認で充足・**条件 9 が未達**）/
-    `codex-reviewer` = **P1 2 件**。指摘 6 件（A〜F）を**ユーザー確定で全採用** → 枝番 task_06b を起票。
-  - **task_06b の修正**: **A** `build_save_plan(confirmed=...)` でアクションの優先順位を 1 箇所に
-    （一覧の選択 > 確定済み > 非 dirty 既定）＝依存確認で選んだ別名保存先が捨てられ旧ファイルを上書きする不具合の解消 /
-    **B** `DirtyStateTracker` に `set_trigger_set_source_path` / `sync_trigger_set_source_path_from_data` を追加し
-    **直接代入を全廃**、tracker と runtime キーを読込後・一括保存後・個別保存後で常に一致（**条件 9 の未達解消**）/
-    **C** dirty 行 0 件のとき依存確認の「選び直す」は**保存中止**（無限ループ解消）/ **D** 条件 9 のテスト 4 件 /
-    **E** ダイアログ本体を実行する内部テスト 4 件（既定ラジオ・OK の返り値・別名ダイアログのキャンセル・×ボタン）/
-    **F** 子を書く直前に**保存先ファイルの既存 `_parent_refs` を読んでマージ**（best-effort・application 側）。
-  - **【メイン修正 2 箇所】** 新規テストのパス誤り（source_path は config_root 相対なので root と結合）/
-    **F の実装が定義を超えていた**ため縮小（保存元 in-memory の旧参照元は足さない。別名保存で他所の所有記録を
-    捏造しないため。§4 の「集合へ追加」= 保存先ファイルの集合、という定義どおりへ）。
+  【実機目視フィードバックの設計反映 + task_07 完了】
+  - **実機目視 5 件**を切り分け: ①別名保存後の一覧再表示が冗長 → 廃止（設計変更）/ ②変更なし保存の
+    完了ダイアログ → **仕様書とは整合**（目視チェックリストの文言が原因。修正しない）/ ③デフォルト配下
+    なのに「デフォルト外」確認 + ④新規シーケンスが `user/trigger_sets/sequences/` へ → **同一原因の実バグ**
+    （手元で再現確認済）/ ⑤ダイアログの横はみ出し → β 内で対応（当初の idea 化方針から変更）。
+  - **③④の原因**: `os.path.commonpath([p, root]) == root` の素の文字列一致が、Windows のパス文字列の
+    大文字小文字差で config_root 内を「外」と誤判定 → `_parent_refs` / 起動設定が絶対で記録 → その絶対パスが
+    `source_path` に載り既定領域判定が外れる、というカスケード。**発生経路は VS Code の ▶ 実行**（小文字ドライブ）。
+  - **暫定仕様 05 を v0.3 へ改訂**（A: 一覧再表示の廃止 / A2: 再計算先が既存ファイル〔単独所有以外〕の
+    「保存」行だけ行単位で上書き確認 / B: canonical identity / C: ダイアログのレイアウト要件 + 受入条件 12〜14）。
+    codex-adversarial-reviewer の指摘 4 件（critical 1 / high 1 / medium 2）を**全採用**して反映。
+  - **task_07（canonical_path_identity）完了**: `codex-implementer` へ委任。`ConfigService.canonical_path` /
+    `is_path_within` を新設し、内外判定・legacy 判定・既定領域判定・相対化・§5 所有判定・`_parent_refs` 重複排除・
+    保存先の衝突キーの 7 箇所へ適用（**presentation → application の既存依存方向のまま**）。
+    メインで 1 行修正（`judge_share_state` の `config_service=None` フォールバックに区切り文字正規化を復帰）。
 result_files:
-  - keyseq/application/config_service.py（`_parent_refs_for_save` 追加・参照元マージ）
-  - keyseq/presentation/controllers/config_io/child_save_plan.py（`confirmed` 優先順位）
-  - keyseq/presentation/controllers/config_io/keymap_set_io.py（`confirmed` 伝播 / rows 空の中止 / source_path 同期）
-  - keyseq/presentation/controllers/config_io/trigger_set_file_io.py（直接代入の置換）
-  - keyseq/presentation/controllers/dirty_state.py（source_path の入口 2 本）
-  - tests/test_child_save_plan.py・tests/test_config_service.py・tests/test_save_plan.py・
-    tests_ui/test_child_save_dialog.py・tests_ui/test_config_io_characterization*.py（テスト追加）
-  - instructions/phase/06_child_file_save_dialog/integration_result.md（新規・受入条件の対応表）
-  - instructions/phase/06_child_file_save_dialog/tasks/task_06_integration_regression.md（新規）
-  - instructions/phase/06_child_file_save_dialog/tasks/task_06b_review_fixes.md（新規）
-  - instructions/phase/06_child_file_save_dialog/phase.md（task_06b を 1 行追記）
+  - instructions/history/05_child_file_save_dialog.md（v0.3 改訂）
+  - instructions/phase/06_child_file_save_dialog/phase.md（タスク一覧・スコープ・主入力の版）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_07_canonical_path_identity.md（新規）
+  - keyseq/application/config_service.py（canonical helper 新設 + 判定 7 箇所の置換）
+  - keyseq/presentation/config_paths.py（内外判定の委譲）
+  - keyseq/presentation/controllers/config_io/child_save_rows.py（所有判定の canonical 化）
+  - tests/test_config_service.py・tests/test_config_paths.py・tests/test_child_save_rows.py（テスト追加）
+  - .claude_data/state/decisions.md（実機目視の切り分けと v0.3 レビュー指摘の採否）
 verified:
   compile: clean
-  tests: pass 131
+  tests: pass 136（+5）
   tests_ui: pass 107
   smoke: pass
-  review: deep-reviewer（task_01〜06 統合）= 修正して採用 → 指摘を task_06b で解消 /
-    codex-reviewer = P1 2 件 → 同上 / reviewer（task_06b 差分）= **完了可**
-    （軽微 1 件: F が定義を超えて in-memory 参照元も足していた → メインで縮小済）
+  review: codex-adversarial-reviewer（暫定仕様 v0.3）= needs-attention → 4 件全採用で反映 /
+    reviewer（task_07 差分）= **完了可**（非ブロッキング 2 件。うち 1 件はメインで修正済）
 
 ## next_action
-- **実機目視をユーザーへ依頼する**（残る唯一の未完了項目）。起動コマンドは
-  `<repo>\.venv\Scripts\python.exe main.py`（worktree ルートで実行）。確認項目は
-  task_06 定義「対象範囲 4」の 9 項目 + deep-reviewer 推奨の 6 項目
-  （①読込直後の個別「トリガー一覧を保存」で保存先を聞かれないか ②その後の一括保存がどちらのパスへ書くか
-  ③別名保存ダイアログのキャンセルで一覧へ戻るか ④再表示で選択がリセットされるのを許容できるか
-  ⑤新規子を「保存しない」にして再読込で消えないか ⑥×ボタンでキャンセル扱いになるか）。
-  結果は `integration_result.md` §3 へ記録する。
-- 目視 OK 後: **task_07（`finalize_records`）を `/task_new` で起票**。正本反映で**必ず明記**する項目は
-  `SHARE_NEW` / 非 dirty 子の SKIP 規則 / SKIP した子の索引規則 / 依存確認ダイアログと既定ボタン /
-  SKIP 子の dirty 保持 / `data_schema.md` §5.4 の「trigger_set は全セット共通」記述の更新 /
-  §5.6 のフォールバック名の経路差（一括 = `default` / 個別 = `trigger_set.json`）/
-  個別「トリガー一覧を保存」が全 sequence を書く点と §8 の関係。
-  併せて暫定仕様 05 の凍結・`decisions_archive/06` 作成・`current.md` 完了記載・
-  `backlog/INDEX.md`（idea_05 クローズ・idea_06 / idea_07 の条件更新）・`/refactor_check`。
+- **task_08（`save_dialog_no_recheck`）を `/task_new` で起票**する。設計の正は暫定仕様 05 v0.3 の
+  §3-3【v0.3-A】【v0.3-A2】。対象は `config_io/keymap_set_io.py` の `_collect_child_save_plan`
+  （while ループを畳んで一覧再表示を廃止）+ `config_io/child_save_dialog.py`（再計算先の上書き確認ダイアログを追加）。
+  受入条件 12 / 12b。**判定は task_07 の `canonical_path` / `is_path_within` を使う**こと。
+  `show_recalculation_notice`（再表示用のラベル）は不要になるため整理する。
+- 起票後は `codex-implementer` へ委任（テスト実行は依頼しない）→ `verifier` で `.venv` 実測 → `reviewer`。
+- その後 task_09（`save_dialog_layout`）→ **実機目視（ユーザー）** → task_10（`finalize_records`）。
 
 ## blockers
 - なし。
@@ -75,8 +63,9 @@ verified:
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
   グローバル `py` は依存欠落で tests_ui/smoke が落ちる。
-- **Phase β の設計の正は暫定仕様 [05](../../instructions/history/05_child_file_save_dialog.md)（v0.2・ユーザー確定済）**。
-  フェーズ中は正本 `spec_detail/` を直接改訂せず、task_07 で昇格＋凍結する。
+- **Phase β の設計の正は暫定仕様 [05](../../instructions/history/05_child_file_save_dialog.md)（**v0.3**・ユーザー確定済 2026-07-29）**。
+  フェーズ中は正本 `spec_detail/` を直接改訂せず、**task_10**（旧 task_07）で昇格＋凍結する。
+  v0.3 の追加分は §2 末尾「v0.3 の変更」A / A2 / B / C と §3-3・§3-5・§6 末尾・受入条件 12〜14。
 - **Phase β の勘所**（暫定仕様の指摘①〜④由来。実装時に後退しやすい）:
   ① 未知の参照元・別の上位に属す子は**別名保存が既定**（安全側）/ ② 保存計画は
   **presentation が決定・application が実行**（application に tkinter 依存を持ち込まない）/
@@ -87,7 +76,7 @@ verified:
   `_normalize_parent_refs`（**未知は `None`・既知ゼロは `[]`**）/ `_merge_parent_ref`（重複排除・順序保持）。
 - **task_02 で入った変更**: trigger_set の保存先は `_default_trigger_set_path()`（keymap_set stem 基準）。
   個別保存経路は `dirty_tracker.trigger_set_source_path` を読む（keymap / sequence と対称）。
-- **`config_service.py` は 1262 行 →（task_02 で微増）**。分割是非は**フェーズ末の `/refactor_check` で判定**する
+- **`config_service.py` は 1600 行超（task_07 で微増）**。分割是非は**フェーズ末の `/refactor_check` で判定**する
   （task 途中では触らない。reviewer からの申し送り）。
 - **task_03 で入った土台**: `keyseq/application/save_plan.py`（`SavePlan` / `ChildSaveEntry` / `SavePlanError`）。
   `save_runtime_data(..., save_plan=...)` が事前検証 → 子 → 親 → startup の順で実行する。
@@ -95,19 +84,30 @@ verified:
 - **task_04 で入った土台**: `config_io/child_save_rows.py` の `collect_child_save_rows(...)` が行モデル
   （`ChildSaveRow`: kind / key / display_name / target_path / share_state / share_text / default_action）を返す。
 - **task_05 で入った土台**: `config_io/child_save_dialog.py`（UI）+ `child_save_plan.py`（選択 → `SavePlan` の純変換）+
-  `keymap_set_io._collect_child_save_plan`（**再解決ループ**）。**不変条件 2 つを壊さないこと**:
-  ① 提示した保存先と実際に書く先を一致させる（trigger_set の保存先が変わったら必ず再解決 + 一覧再表示）
-  ② 未知・別の上位に属す保存先を明示操作なしに上書きしない（一覧の既定 + 依存確認の既定ボタン両方）。
+  `keymap_set_io._collect_child_save_plan`（**再解決ループ**）。**不変条件**:
+  ① 提示した保存先と実際に書く先を一致させる → **v0.3-A で緩和（task_08 で一覧再表示を廃止）**。
+  代わりに **v0.3-A2**（再計算先が既存ファイル〔単独所有以外〕の「保存」行だけ行単位で上書き確認）が安全弁
+  ② 未知・別の上位に属す保存先を明示操作なしに上書きしない（一覧の既定 + 依存確認の既定ボタン両方）＝**維持**。
 - **task_06b で入った不変条件（壊しやすい）**: ③ `dirty_tracker.trigger_set_source_path` と
   `data[INTERNAL_TRIGGER_SET_SOURCE_PATH]` は**常に一致**させる（変更の入口は `dirty_state` の
   `set_trigger_set_source_path` / `sync_trigger_set_source_path_from_data` の 2 本のみ。直接代入を復活させない）
   ④ 子の `_parent_refs` は**保存先ファイルの集合 + 現在の上位**（保存元 in-memory の旧参照元は足さない）
   ⑤ アクションの優先順位は `child_save_plan.build_save_plan` の 1 箇所（一覧の選択 > confirmed > 非 dirty 既定）。
-- **申し送り（task_04/05 で考慮 or refactor_check / task_07）**: ① slugify 後に別々の keymap_set 名が同一 stem へ
+- **task_07 で入った土台（壊しやすい）**: `ConfigService.canonical_path(path, config_root)` /
+  `is_path_within(path, ancestor_dir, config_root)`。パスの同一性判定は**必ずこの 2 本を使う**
+  （`commonpath` の素の文字列一致・`startswith` の前方一致を復活させない）。
+  ⑥ **canonical identity は比較専用**。`normcase` 済み文字列を保存値（`_parent_refs` / keymap_set の索引 /
+  起動設定）・戻り値・表示文字列へ混入させない。保存表記は config_root 内=相対 / 外=絶対のまま。
+  `to_config_relative_or_absolute` は canonical で内外判定し、**相対化は元の絶対パスから `relpath`** で作る。
+- **申し送り（refactor_check / task_10）**: ① slugify 後に別々の keymap_set 名が同一 stem へ
   丸まる衝突（受入条件 8 の範囲外）② `dirty_tracker.trigger_set_imported` は読み手不在の残置状態
-  ③ **task_07 の正本反映で `INTERNAL_TRIGGER_SET_SOURCE_PATH` を runtime 内部キーとして `data_schema.md` に明記**。
+  ③ **task_10 の正本反映で `INTERNAL_TRIGGER_SET_SOURCE_PATH` を runtime 内部キーとして `data_schema.md` に明記**。
+  ④ 実機の `config/` には**絶対パスで記録済みの `_parent_refs` / 起動設定**が残るが、比較時に解決して
+  照合するため**移行処理は不要**（次回保存で自然に相対へ戻る）。
 - **【Codex 運用】フォワーダが最終出力を返さず完了通知だけ来ることがある**。その場合は worktree のファイル
   mtime が停滞するまで待ってから verifier を回す（早すぎると実装途中の fail を掴む。2026-07-28 実測）。
+  **差分が 0 件のまま返ることもある**（ジョブ未起動 or 早期リターン）。その場合は `SendMessage` で
+  同じフォワーダを再開し、ジョブ状態の確認と最終出力の回収を依頼する（2026-07-29 実測。再開で回収できた）。
 - Phase β の主な触点: `config_service.save_runtime_data`(200-252) / `_build_split_save_payloads`(456-) /
   `config_io/keymap_set_io.py`(`save_keymap_set_to`:78-102) / `controllers/dirty_state.py`（idea_05 の当事者）/
   `config_io/io_dialogs.py`（`choose_save_path_with_collision`）。

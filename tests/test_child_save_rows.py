@@ -1,6 +1,8 @@
+import ntpath
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import (
@@ -21,6 +23,7 @@ from keyseq.presentation.controllers.config_io.child_save_rows import (
     default_action_for,
     judge_share_state,
     share_text_for,
+    _stored_parent_path,
 )
 
 
@@ -151,6 +154,31 @@ class ChildSaveRowsTest(unittest.TestCase):
             self.assertEqual(rows_by_kind[CHILD_KEYMAP].share_state, SHARE_SOLE)
             self.assertEqual(rows_by_kind[CHILD_TRIGGER_SET].share_state, SHARE_SHARED)
             self.assertEqual(rows_by_kind[CHILD_SEQUENCE].share_state, SHARE_SOLE)
+
+    def test_absolute_parent_ref_and_relative_parent_share_canonical_identity(self):
+        with patch("keyseq.application.config_service.os.path", ntpath):
+            root = r"c:\config"
+            stored_ref = _stored_parent_path(
+                self.service,
+                r"C:\CONFIG\user\keymap_sets\main.json",
+                root,
+            )
+            current_parent = _stored_parent_path(
+                self.service,
+                r"user\keymap_sets\main.json",
+                root,
+            )
+
+            self.assertEqual(
+                judge_share_state(
+                    [stored_ref],
+                    current_parent,
+                    target_exists=True,
+                    config_service=self.service,
+                    config_root=root,
+                ),
+                SHARE_SOLE,
+            )
 
     def test_collect_treats_missing_or_empty_parent_refs_as_unknown(self):
         with tempfile.TemporaryDirectory() as tmp:

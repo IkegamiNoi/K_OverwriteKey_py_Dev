@@ -1,6 +1,8 @@
+import ntpath
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService
 from keyseq.infrastructure.json_repository import JsonRepository
@@ -82,6 +84,18 @@ class ConfigPathsTest(unittest.TestCase):
             self.paths.suggest_keymap_set_dialog_dir(""),
             self.paths.preferred_keymap_sets_dir(),
         )
+
+    def test_containment_checks_are_case_insensitive(self):
+        with patch("keyseq.application.config_service.os.path", ntpath):
+            paths = ConfigPaths(
+                base_dir=r"C:\Work",
+                config_root=r"c:\config",
+                user_root=r"c:\config\user",
+                config_service=ConfigService(JsonRepository()),
+            )
+            self.assertTrue(paths.is_within_config_root(r"C:\CONFIG\user\main.json"))
+            self.assertTrue(paths.is_within_legacy_settings(r"c:\work\SETTINGS\main.json"))
+            self.assertFalse(paths.is_within_config_root(r"C:\Configx\main.json"))
 
 
 if __name__ == "__main__":

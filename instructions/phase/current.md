@@ -10,16 +10,20 @@
   2026-07-28 起票）。keymap_set の「保存」を**変更のある子ファイルごとに 保存/別名保存/保存しない を選べる
   確認ダイアログ**へ置き換え、**子JSON へ参照元（直接の上位ファイル）を記録**して誤爆上書きを防ぐ。
   **挙動変更＋スキーマ追加（後方互換必須）を伴う**。
-  - 主入力（確定設計）: [暫定仕様 05](../history/05_child_file_save_dialog.md)（v0.2・ユーザー確定済 2026-07-27）。
+  - 主入力（確定設計）: [暫定仕様 05](../history/05_child_file_save_dialog.md)（**v0.3**・ユーザー確定済 2026-07-29）。
     フェーズ中は正本を直接改訂せず、最終タスクで昇格・凍結する。
   - 番号対応: phase 06 / 暫定 05 / `decisions_archive/06`。起票元: ユーザー要望（2026-07-26〜27・点3/4）。
   - 前提: Phase α（phase 05）完了済。[idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md) を**内包**し、
     [idea_06](../backlog/idea_06_individual_json_io_unification.md) の共通化を達成する見込み。後続は
     [idea_07](../backlog/idea_07_reference_link_cleanup.md)（β 完了後）。
-  - 進捗: **task_01〜06b の実装・自動検証まで完了**（参照元記録 / trigger_set の source_path 接続＋既定命名 /
-    保存計画の実行契約 / dirty な子の収集と共有状況判定 / 保存確認ダイアログ / 統合退行 / レビュー指摘 A〜F の修正）。
-    **残るは実機目視（ユーザー実施）→ task_07（正本反映）**。受入条件の充足状況は
+  - 進捗: **task_01〜06b + task_07 の実装・自動検証まで完了**（参照元記録 / trigger_set の source_path 接続＋既定命名 /
+    保存計画の実行契約 / dirty な子の収集と共有状況判定 / 保存確認ダイアログ / 統合退行 / レビュー指摘 A〜F の修正 /
+    パス同一性の canonical identity 化）。**次は task_08（一覧再表示の廃止）→ task_09（ダイアログのレイアウト）
+    → 実機目視（ユーザー実施）→ task_10（正本反映）**。受入条件の充足状況は
     [integration_result.md](06_child_file_save_dialog/integration_result.md) が正。
+  - 2026-07-29 の実機目視で 5 件の指摘 → 暫定仕様を **v0.3** へ改訂し **task_07〜09 を追加**
+    （旧 task_07 = 正本反映は task_10 へ繰り下げ）。切り分けと採否は `decisions.md` の
+    「実機目視フィードバック」節が正。
   - 残りの保存系リデザイン: **γ=phase 07（暫定 06・β と独立）/ プリセット=phase 08（暫定 07）**。
     暫定仕様は起票済・ユーザー確定済のため、着手時は `/phase_start` から入れる。
 - 直前の完了フェーズ: [05_keymap_set_new_and_default_dir](../../.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md)（2026-07-28 完了・保存系リデザイン **Phase α**）。

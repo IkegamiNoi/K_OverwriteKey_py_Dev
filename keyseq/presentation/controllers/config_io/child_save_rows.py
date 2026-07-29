@@ -32,23 +32,37 @@ class ChildSaveRow:
     default_action: str
 
 
-def judge_share_state(parent_refs, current_parent, *, target_exists) -> str:
+def judge_share_state(
+    parent_refs,
+    current_parent,
+    *,
+    target_exists,
+    config_service=None,
+    config_root: str = "",
+) -> str:
     if not target_exists:
         return SHARE_NEW
     if not current_parent or not parent_refs:
         return SHARE_UNKNOWN
 
-    normalized_current = _normalize_separators(current_parent)
-    normalized_refs = [
-        _normalize_separators(ref)
-        for ref in parent_refs
-        if isinstance(ref, str) and ref.strip()
-    ]
-    if not normalized_refs:
+    canonicalize = (
+        (lambda value: config_service.canonical_path(value, config_root))
+        if config_service is not None
+        else (lambda value: str(value).strip().replace("\\", "/"))
+    )
+    canonical_current = canonicalize(current_parent)
+    canonical_refs: list[str] = []
+    for ref in parent_refs:
+        if not isinstance(ref, str):
+            continue
+        canonical_ref = canonicalize(ref)
+        if canonical_ref and canonical_ref not in canonical_refs:
+            canonical_refs.append(canonical_ref)
+    if not canonical_refs:
         return SHARE_UNKNOWN
-    if normalized_current not in normalized_refs:
+    if canonical_current not in canonical_refs:
         return SHARE_OTHER_PARENT
-    if len(normalized_refs) == 1:
+    if len(canonical_refs) == 1:
         return SHARE_SOLE
     return SHARE_SHARED
 
@@ -179,6 +193,8 @@ def build_row(
         normalized_refs,
         current_parent,
         target_exists=target_exists,
+        config_service=config_service,
+        config_root=config_root,
     )
     return ChildSaveRow(
         kind=kind,
@@ -194,21 +210,16 @@ def build_row(
 def _stored_parent_refs(config_service, refs, config_root: str) -> list[str] | None:
     if refs is None:
         return None
-    return [
-        stored_path
-        for ref in refs
-        if (stored_path := _stored_parent_path(config_service, ref, config_root))
-    ]
+    stored_refs: list[str] = []
+    for ref in refs:
+        stored_path = _stored_parent_path(config_service, ref, config_root)
+        if stored_path and stored_path not in stored_refs:
+            stored_refs.append(stored_path)
+    return stored_refs
 
 
 def _stored_parent_path(config_service, path, config_root: str) -> str:
     value = str(path or "").strip()
     if not value:
         return ""
-    absolute_path = value if os.path.isabs(value) else os.path.join(config_root, value)
-    stored_path = config_service.to_config_relative_or_absolute(absolute_path, config_root)
-    return _normalize_separators(stored_path)
-
-
-def _normalize_separators(path) -> str:
-    return str(path or "").strip().replace("\\", "/")
+    return config_service.canonical_path(value, config_root)

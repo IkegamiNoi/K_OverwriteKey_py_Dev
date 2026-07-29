@@ -54,10 +54,10 @@ class ConfigPaths:
     def is_within_legacy_settings(self, path: str) -> bool:
         if not path:
             return False
-        try:
-            return os.path.commonpath([os.path.abspath(path), os.path.abspath(self.legacy_settings_dir())]) == os.path.abspath(self.legacy_settings_dir())
-        except Exception:
-            return False
+        return self._config_service.is_path_within(
+            path,
+            self.legacy_settings_dir(),
+        )
 
     def normalize_keymap_set_save_path(self, path: str) -> str:
         if not path:
@@ -95,10 +95,7 @@ class ConfigPaths:
         return self._config_service.to_config_relative_or_absolute(path, self.config_root)
 
     def is_within_config_root(self, path: str) -> bool:
-        try:
-            return os.path.commonpath([os.path.abspath(path), os.path.abspath(self.config_root)]) == os.path.abspath(self.config_root)
-        except Exception:
-            return False
+        return self._config_service.is_path_within(path, self.config_root)
 
     def json_dialog_initial_dir(self, preferred_dir: str, source_path: str = "") -> str:
         if source_path:

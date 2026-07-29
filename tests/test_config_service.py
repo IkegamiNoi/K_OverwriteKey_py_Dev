@@ -1,6 +1,9 @@
+import ntpath
 import os
+import sys
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import (
@@ -203,6 +206,19 @@ class ParentRefsSchemaTest(unittest.TestCase):
             self.assertEqual(
                 self.service._merge_parent_ref(None, outside, config_root=root),
                 [os.path.abspath(outside).replace("\\", "/")],
+            )
+
+    def test_merge_parent_ref_deduplicates_absolute_and_relative_paths_by_identity(self):
+        with patch("keyseq.application.config_service.os.path", ntpath):
+            root = r"c:\config"
+            absolute_parent = r"C:\CONFIG\user\keymap_sets\main.json"
+            self.assertEqual(
+                self.service._merge_parent_ref(
+                    [absolute_parent],
+                    r"c:\config\user\keymap_sets\main.json",
+                    config_root=root,
+                ),
+                [absolute_parent],
             )
 
     def test_save_keymap_file_records_parent_only_when_provided(self):
@@ -475,6 +491,58 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
                 os.path.exists(os.path.join(split_base_dir, "trigger_sets", "gaming.json"))
             )
 
+    @unittest.skipUnless(sys.platform == "win32", "Windows canonical identity integration")
+    def test_case_variant_config_root_keeps_split_paths_relative_and_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            alternate_root = root.swapcase()
+            keymap_set_path = os.path.join(
+                alternate_root,
+                "user",
+                "keymap_sets",
+                "main.json",
+            )
+            keymap_path = os.path.join(alternate_root, "user", "keymaps", "km1.json")
+            os.makedirs(os.path.dirname(keymap_path), exist_ok=True)
+            existing_parent_ref = os.path.join(
+                alternate_root,
+                "user",
+                "keymap_sets",
+                "main.json",
+            )
+            JsonRepository().save_json(
+                keymap_path,
+                {"label": "Main", "mappings": {}, "_parent_refs": [existing_parent_ref]},
+            )
+            data = make_runtime_data()
+            data["keymaps"][0][self.service.INTERNAL_KEYMAP_SOURCE_PATH] = keymap_path
+
+            _saved, startup = self.service.save_runtime_data(
+                keymap_set_path,
+                data,
+                config_root=root,
+                startup_data={},
+            )
+
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "main.json")
+            sequence_path = os.path.join(root, "user", "sequences", "copy.json")
+            self.assertTrue(self.service.is_path_within(keymap_set_path, root, root))
+            self.assertEqual(startup["keymap_set_path"], "user/keymap_sets/main.json")
+            self.assertEqual(
+                JsonRepository().load_json(keymap_set_path)["trigger_set_path"],
+                "user/trigger_sets/main.json",
+            )
+            self.assertEqual(
+                JsonRepository().load_json(trigger_set_path)["_parent_refs"],
+                ["user/keymap_sets/main.json"],
+            )
+            self.assertEqual(
+                JsonRepository().load_json(keymap_path)["_parent_refs"],
+                [existing_parent_ref],
+            )
+            self.assertTrue(self.service._is_default_trigger_set_area(trigger_set_path.swapcase(), root))
+            self.assertTrue(os.path.exists(sequence_path))
+
 
 class PathHelperTest(unittest.TestCase):
     # 注意: R14 でメソッドが公開名に変わったら、このテストの呼び出しも新名に更新する
@@ -498,6 +566,24 @@ class PathHelperTest(unittest.TestCase):
             self.assertEqual(
                 self.service.to_config_relative_or_absolute(outside, root),
                 os.path.abspath(outside).replace("\\", "/"),
+            )
+
+    def test_canonical_path_and_containment_use_windows_identity(self):
+        with patch("keyseq.application.config_service.os.path", ntpath):
+            root = r"C:\Config"
+            self.assertEqual(self.service.canonical_path("", root), "")
+            self.assertEqual(
+                self.service.canonical_path(r"user\Maps\Main.json", root),
+                r"c:\config\user\maps\main.json",
+            )
+            self.assertTrue(
+                self.service.is_path_within(r"c:\CONFIG\user\Maps\Main.json", root, root)
+            )
+            self.assertFalse(
+                self.service.is_path_within(r"C:\Configx\main.json", root, root)
+            )
+            self.assertFalse(
+                self.service.is_path_within(r"D:\Config\main.json", root, root)
             )
 
 
