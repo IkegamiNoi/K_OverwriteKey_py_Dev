@@ -16,7 +16,8 @@ keymap_set の「保存」が子ファイル（keymap / trigger_set / sequence�
 - **挙動変更を伴うフェーズ**（保存時にダイアログが挟まる / 既定が別名保存になる場合がある）。
 
 - 起票元: ユーザー要望（2026-07-26〜27・保存系統の改善討議・点3/4）。Phase α（phase 05 / 暫定 04）の後続。
-- 主入力（暫定仕様）: [05_child_file_save_dialog.md](../../history/05_child_file_save_dialog.md)（v0.2・ユーザー確定済 2026-07-27）
+- 主入力（暫定仕様）: [05_child_file_save_dialog.md](../../history/05_child_file_save_dialog.md)
+  （**v0.3**・ユーザー確定済 2026-07-29。v0.2 = 2026-07-27 に実機目視フィードバックを反映）
 - モード: **暫定仕様先行モード**。番号対応: phase 06 / 暫定 05 / decisions_archive 06。
 - 依存: **Phase α（phase 05）完了が前提**（済）。[idea_05](../../backlog/idea_05_trigger_set_source_path_inconsistency.md) を**内包**し、
   [idea_06](../../backlog/idea_06_individual_json_io_unification.md) の共通化を達成する見込み。
@@ -46,7 +47,10 @@ keymap_set の「保存」が子ファイル（keymap / trigger_set / sequence�
 4. **保存計画**の導入（データ構造・事前検証・依存関係の強制・粒度厳守・失敗時の旧索引維持）— §8
 5. **dirty な子の収集と共有状況判定**（§5 の 4 状態 → 行ごとの既定ラジオ決定）— §3・§5
 6. **子ファイル保存確認ダイアログ**（一覧・種別/対象名/保存先パス/共有状況/ラジオ）と keymap_set 保存経路への挟み込み — §3
-7. 受入条件 §10（1〜11）の回帰・特性テスト、正本昇格と記録整理
+7. **パス同一性の canonical identity 化**（内外判定・既定領域判定・所有判定・重複排除・衝突検出）— §6 v0.3-B
+8. **再解決時の一覧再表示の廃止**と、再計算先が既存ファイルのときの行単位の上書き確認 — §3-3 v0.3-A / A2
+9. **一覧ダイアログのレイアウト**（固定初期サイズ・リサイズ・縦スクロール・省略表示＋ツールチップ）— §3-5 v0.3-C
+10. 受入条件 §10（1〜14）の回帰・特性テスト、正本昇格と記録整理
 
 ### 含まない（後送り）
 
@@ -88,10 +92,16 @@ keymap_set の「保存」が子ファイル（keymap / trigger_set / sequence�
 | task_05 | `save_dialog_ui` | 子ファイル保存確認ダイアログの実装と keymap_set 保存経路への挟み込み（変更なしなら出さない） |
 | task_06 | `integration_regression` | 受入条件 §10 の 1〜11 を通す統合退行・特性テスト更新・実機目視 |
 | task_06b | `review_fixes` | task_06 の 2 本立てレビュー指摘 A〜F の修正（trigger_set source_path の二重管理解消＝条件9 未達 / 確定エントリの計画反映 / 依存確認の無限ループ / 条件9 とダイアログ本体のテスト補強 / 参照元のマージ） |
-| task_07 | `finalize_records` | **正本反映**（`data_schema.md` / `codebase_map.md` 昇格）+ 暫定仕様 05 凍結 + `decisions_archive/06` +
+| task_07 | `canonical_path_identity` | パス同一性を canonical identity（解決 → `normpath` → `normcase`）へ統一し 7 箇所へ適用（v0.3-B）。実機目視③④の解消 |
+| task_08 | `save_dialog_no_recheck` | 一覧再表示の廃止と、再計算先が既存ファイルのときの行単位の上書き確認（v0.3-A / A2）。実機目視①の解消 |
+| task_09 | `save_dialog_layout` | 一覧ダイアログのレイアウト（固定初期サイズ・リサイズ・縦スクロール・省略表示＋ツールチップ）（v0.3-C）。実機目視⑤の解消 |
+| task_10 | `finalize_records` | **正本反映**（`data_schema.md` / `codebase_map.md` 昇格）+ 暫定仕様 05 凍結 + `decisions_archive/06` +
 `current.md` 完了記載 + `backlog/INDEX.md`（idea_05 クローズ・idea_06 / idea_07 の条件更新）+ `/refactor_check` |
 
-- 依存順は上表のとおり（task_01 → 07）。タスク定義は着手時に `/task_new` で順次起票する。
+- 依存順は上表のとおり（task_01 → 10）。タスク定義は着手時に `/task_new` で順次起票する。
+- **task_07〜09 は 2026-07-29 の実機目視フィードバックによる追加**（暫定仕様 05 v0.3）。
+  旧 task_07（`finalize_records`）は **task_10 へ繰り下げ**。判断履歴は `decisions.md` の
+  「実機目視フィードバック」節。task_07 → 08 の順に進める（A2 の判定が canonical identity に依存するため）。
 - task_03 は**ダイアログ導入前に既存挙動と等価**であることを確認してから task_05 へ進む（挙動変更の切り分け）。
 
 ## レビュー方針
