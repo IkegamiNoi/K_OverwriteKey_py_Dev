@@ -358,7 +358,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             with patch.object(
                 self.app.child_save_dialog,
                 "ask_child_save_actions",
-                side_effect=[choices, choices],
+                return_value=choices,
             ) as ask, patch.object(
                 self.app.child_save_dialog,
                 "confirm_trigger_set_dependency",
@@ -366,7 +366,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             ) as dependency:
                 self.assertTrue(self._save(path))
 
-            self.assertEqual(ask.call_count, 2)
+            self.assertEqual(ask.call_count, 1)
             dependency.assert_called_once()
             self.assertEqual(open(targets[(CHILD_TRIGGER_SET, "")], "rb").read(), old_trigger_bytes)
             self.assertTrue(os.path.exists(renamed_trigger_set))
@@ -400,7 +400,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 "confirm_trigger_set_dependency",
                 return_value="",
             ) as confirm:
-                self.assertIsNone(self.app.keymap_set_io._collect_child_save_plan(path, ""))
+                self.assertIsNone(self.app.keymap_set_io._collect_child_save_plan(path, "")[0])
 
             ask.assert_not_called()
             confirm.assert_called_once()
@@ -458,9 +458,107 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             with patch.object(self.app.child_save_dialog, "ask_child_save_actions", side_effect=choose) as ask:
                 self.assertTrue(self._save(path))
 
-            self.assertEqual(ask.call_count, 2)
-            self.assertNotEqual(seen_sequence_targets[0], seen_sequence_targets[1])
+            saved_sequence_path = self.app.data["triggers"][0][
+                self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH
+            ]
+            self.assertEqual(ask.call_count, 1)
+            self.assertNotEqual(seen_sequence_targets[0], saved_sequence_path)
+            # source_path は config_root 内なら相対で入るため root と結合してから存在確認する
+            self.assertTrue(os.path.exists(os.path.join(root, saved_sequence_path)))
             self.assertEqual(open(external_other, "rb").read(), b"existing other")
+
+    def test_recalculated_overwrite_confirmation_handles_yes_no_and_cancel(self):
+        for decision in ("yes", "no", "cancel"):
+            with self.subTest(decision=decision), tempfile.TemporaryDirectory() as root:
+                path = self._prepare(root, second_sequence=True)
+                external_trigger_set = os.path.join(root, "external", "trigger_set.json")
+                recalculated_sequence = os.path.join(root, "external", "sequences", "copy.json")
+                external_other = os.path.join(root, "external", "sequences", "other.json")
+                renamed_sequence = os.path.join(root, "renamed", "copy.json")
+                os.makedirs(os.path.dirname(recalculated_sequence), exist_ok=True)
+                # _parent_refs を後から差し込むため、既存ファイルは妥当な JSON にしておく
+                self.app.config_service.repository.save_json(
+                    recalculated_sequence, {"label": "existing copy", "actions": []}
+                )
+                with open(external_other, "wb") as stream:
+                    stream.write(b"existing other")
+                self._replace_parent_refs(recalculated_sequence, ["user/trigger_sets/other.json"])
+                self.app.data["triggers"][0].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+                self.app.data["triggers"][1].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+                self.app.data["triggers"][0]["actions"] = [{"type": "text", "value": "new", "label": ""}]
+                self.app.dirty_tracker.mark_trigger_set_dirty()
+                self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+                choices = {
+                    (CHILD_TRIGGER_SET, ""): (ACTION_SAVE_AS, external_trigger_set),
+                    (CHILD_SEQUENCE, "f1"): (ACTION_SAVE, ""),
+                }
+                replacements = {
+                    "yes": {},
+                    "no": {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, renamed_sequence)},
+                    "cancel": None,
+                }[decision]
+                before_parent = open(path, "rb").read()
+                before_sequence = open(recalculated_sequence, "rb").read()
+
+                with patch.object(
+                    self.app.child_save_dialog, "ask_child_save_actions", return_value=choices
+                ), patch.object(
+                    self.app.child_save_dialog,
+                    "confirm_recalculated_overwrite",
+                    return_value=replacements,
+                ) as confirm:
+                    self.assertEqual(self._save(path), decision != "cancel")
+
+                confirm.assert_called_once()
+                if decision == "yes":
+                    self.assertNotEqual(open(recalculated_sequence, "rb").read(), before_sequence)
+                elif decision == "no":
+                    self.assertEqual(open(recalculated_sequence, "rb").read(), before_sequence)
+                    self.assertTrue(os.path.exists(renamed_sequence))
+                else:
+                    self.assertEqual(open(path, "rb").read(), before_parent)
+                    self.assertEqual(open(recalculated_sequence, "rb").read(), before_sequence)
+
+    def test_recalculated_overwrite_is_not_confirmed_for_new_target(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare(root, second_sequence=True)
+            external_trigger_set = os.path.join(root, "external", "trigger_set.json")
+            external_other = os.path.join(root, "external", "sequences", "other.json")
+            os.makedirs(os.path.dirname(external_other), exist_ok=True)
+            with open(external_other, "wb") as stream:
+                stream.write(b"existing other")
+            self.app.data["triggers"][0].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+            self.app.data["triggers"][1].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+            self.app.dirty_tracker.mark_trigger_set_dirty()
+            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            choices = {
+                (CHILD_TRIGGER_SET, ""): (ACTION_SAVE_AS, external_trigger_set),
+                (CHILD_SEQUENCE, "f1"): (ACTION_SAVE, ""),
+            }
+
+            with patch.object(
+                self.app.child_save_dialog, "ask_child_save_actions", return_value=choices
+            ), patch.object(self.app.child_save_dialog, "confirm_recalculated_overwrite") as confirm:
+                self.assertTrue(self._save(path))
+
+            confirm.assert_not_called()
+
+    def test_recalculated_overwrite_dialog_uses_safe_default(self):
+        row = ChildSaveRow(
+            CHILD_SEQUENCE,
+            "f1",
+            "Copy",
+            "C:/copy.json",
+            SHARE_OTHER_PARENT,
+            "別の構成に属します",
+            ACTION_SAVE,
+        )
+        with patch.object(self.app.hook, "suspend_hook_for_dialog"), patch.object(
+            self.app.hook, "resume_hook_after_dialog"
+        ), patch.object(tkinter.messagebox, "askyesnocancel", return_value=None) as ask:
+            self.assertIsNone(self.app.child_save_dialog.confirm_recalculated_overwrite([row]))
+
+        self.assertEqual(ask.call_args.kwargs["default"], tkinter.messagebox.NO)
 
     def test_dependency_dialog_uses_safe_default_for_unknown_owners(self):
         for share_state, expected_default in ((SHARE_UNKNOWN, tkinter.messagebox.NO), (SHARE_OTHER_PARENT, tkinter.messagebox.NO), (SHARE_SOLE, tkinter.messagebox.YES), (SHARE_NEW, tkinter.messagebox.YES)):

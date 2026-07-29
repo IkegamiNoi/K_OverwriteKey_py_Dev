@@ -16,7 +16,6 @@ from keyseq.presentation.controllers.config_io.child_save_rows import (
 class ChildSaveDialog:
     def __init__(self, app) -> None:
         self._app = app
-        self.show_recalculation_notice = False
         self.trigger_set_save_as_path = ""
 
     def ask_child_save_actions(
@@ -32,7 +31,6 @@ class ChildSaveDialog:
             dialog.wait_window()
         finally:
             self._app.hook.resume_hook_after_dialog()
-            self.show_recalculation_notice = False
         return result["choices"]
 
     def _create_action_dialog(self, rows, result):
@@ -41,16 +39,10 @@ class ChildSaveDialog:
         dialog.resizable(False, False)
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill="both", expand=True)
-        if self.show_recalculation_notice:
-            ttk.Label(
-                frame,
-                text="トリガー一覧の保存先が変わったため、出力シーケンスの保存先を再計算しました。",
-            ).grid(row=0, column=0, columnspan=5, sticky="w", pady=(0, 8))
-        offset = 1 if self.show_recalculation_notice else 0
-        self._add_headers(frame, offset)
-        choices = self._add_rows(frame, rows, offset + 1)
+        self._add_headers(frame, 0)
+        choices = self._add_rows(frame, rows, 1)
         buttons = ttk.Frame(frame)
-        buttons.grid(row=offset + len(rows) + 1, column=0, columnspan=5, sticky="e", pady=(12, 0))
+        buttons.grid(row=len(rows) + 1, column=0, columnspan=5, sticky="e", pady=(12, 0))
         ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right")
         ttk.Button(
             buttons,
@@ -123,6 +115,41 @@ class ChildSaveDialog:
                 self.trigger_set_save_as_path = self._ask_save_as_path(trigger_set_row)
                 return ACTION_SAVE_AS if self.trigger_set_save_as_path else ""
             return ""
+        finally:
+            self._app.hook.resume_hook_after_dialog()
+
+    def confirm_recalculated_overwrite(
+        self, rows: Sequence[ChildSaveRow]
+    ) -> dict[tuple[str, str], tuple[str, str]] | None:
+        if not rows:
+            return {}
+        message = "再計算後の保存先に既存ファイルがあります:\n\n" + "\n\n".join(
+            (
+                f"種別: {_kind_label(row.kind)}\n"
+                f"対象名: {row.display_name}\n"
+                f"保存先: {row.target_path}\n"
+                f"共有状況: {row.share_text}"
+            )
+            for row in rows
+        ) + "\n\n「はい」= このまま上書き / 「いいえ」= 別名で保存 / 「キャンセル」= 保存を中止"
+        self._app.hook.suspend_hook_for_dialog()
+        try:
+            result = messagebox.askyesnocancel(
+                "再計算後の保存先を確認",
+                message,
+                default=messagebox.NO,
+            )
+            if result is True:
+                return {}
+            if result is None:
+                return None
+            choices: dict[tuple[str, str], tuple[str, str]] = {}
+            for row in rows:
+                target_path = self._ask_save_as_path(row)
+                if not target_path:
+                    return None
+                choices[(row.kind, row.key)] = (ACTION_SAVE_AS, target_path)
+            return choices
         finally:
             self._app.hook.resume_hook_after_dialog()
 

@@ -16,10 +16,10 @@
   - 前提: Phase α（phase 05）完了済。[idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md) を**内包**し、
     [idea_06](../backlog/idea_06_individual_json_io_unification.md) の共通化を達成する見込み。後続は
     [idea_07](../backlog/idea_07_reference_link_cleanup.md)（β 完了後）。
-  - 進捗: **task_01〜06b + task_07 の実装・自動検証まで完了**（参照元記録 / trigger_set の source_path 接続＋既定命名 /
+  - 進捗: **task_01〜06b + task_07・task_08 の実装・自動検証まで完了**（参照元記録 / trigger_set の source_path 接続＋既定命名 /
     保存計画の実行契約 / dirty な子の収集と共有状況判定 / 保存確認ダイアログ / 統合退行 / レビュー指摘 A〜F の修正 /
-    パス同一性の canonical identity 化）。**次は task_08（一覧再表示の廃止）→ task_09（ダイアログのレイアウト）
-    → 実機目視（ユーザー実施）→ task_10（正本反映）**。受入条件の充足状況は
+    パス同一性の canonical identity 化 / 一覧再表示の廃止と再計算先の上書き確認）。
+    **次は task_09（ダイアログのレイアウト）→ 実機目視（ユーザー実施）→ task_10（正本反映）**。受入条件の充足状況は
     [integration_result.md](06_child_file_save_dialog/integration_result.md) が正。
   - 2026-07-29 の実機目視で 5 件の指摘 → 暫定仕様を **v0.3** へ改訂し **task_07〜09 を追加**
     （旧 task_07 = 正本反映は task_10 へ繰り下げ）。切り分けと採否は `decisions.md` の

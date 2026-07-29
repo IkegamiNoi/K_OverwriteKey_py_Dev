@@ -551,7 +551,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app.keymap_set_io,
                 "choose_split_base_dir_for_keymap_set",
                 return_value="",
-            ), patch.object(self.app.keymap_set_io, "_collect_child_save_plan", return_value=plan), patch.object(
+            ), patch.object(self.app.keymap_set_io, "_collect_child_save_plan", return_value=(plan, "")), patch.object(
                 tkinter.messagebox,
                 "showinfo",
             ):
@@ -598,7 +598,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app.keymap_set_io,
                 "choose_split_base_dir_for_keymap_set",
                 return_value="",
-            ), patch.object(self.app.keymap_set_io, "_collect_child_save_plan", return_value=plan), patch.object(
+            ), patch.object(self.app.keymap_set_io, "_collect_child_save_plan", return_value=(plan, "")), patch.object(
                 tkinter.messagebox,
                 "showinfo",
             ):
