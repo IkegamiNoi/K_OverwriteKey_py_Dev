@@ -4,56 +4,60 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-30T00:05:00
+last_updated: 2026-07-30T00:55:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
 last_commit_location: claude/file-label-save-issues-3b04cf ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β 実機目視 5 件を暫定仕様 05 v0.3 へ反映（task_07〜09 を追加・旧 07 は task_10 へ）。task_07・task_08 完了。次は task_09（ダイアログのレイアウト）**。
-mode: implementing
+focus: **Phase β task_07〜09（実機目視フィードバックの実装）まで完了。残るは実機目視（ユーザー実施）→ task_10（正本反映）**。
+mode: pending_review
 
 ## last_action
-ts: 2026-07-30T00:05:00
+ts: 2026-07-30T00:55:00
 who: main
 summary: |
-  【task_08（save_dialog_no_recheck）完了】`codex-implementer` へ委任（presentation 限定）。
-  - `_collect_child_save_plan` から**再計算を理由とする自動再表示を廃止**し、その場で `targets` を
-    再解決して計画を組み直す形へ（v0.3-A）。**依存確認の「選び直す」だけがループへ戻る唯一の経路**。
-    戻り値を `tuple[SavePlan | None, str]` にし、再計算の事後通知を flash と保存完了ダイアログへ追記。
-  - `confirm_recalculated_overwrite` を追加（v0.3-A2）。対象は「一覧で保存を選んだ行 × 保存先が
-    提示と変わった × 新パスに既存ファイルがあり `SHARE_SOLE` 以外」の 3 条件を満たす行のみ。
-    0 件なら出さない。既定ボタンは `messagebox.NO`。はい=上書き / いいえ=行ごとに別名保存 /
-    キャンセル=保存中止。`show_recalculation_notice` は廃止。
-  - **【メイン修正 2 件・いずれもテスト側の不具合】** ①新規テストが既存ファイルへ非 JSON を書いた直後に
-    `_parent_refs` を差し込んで `load_json` が落ちていた ②`INTERNAL_SEQUENCE_SOURCE_PATH` は
-    config_root 内なら相対で入るのに `os.path.exists` へ直接渡していた（既知の罠）。production は無修正。
-  - **申し送り（`/refactor_check` へ）**: `_collect_child_save_plan` が約 116 行で、trigger_entry 変化時と
-    confirmed 変化時の「再解決 → 通知 → A2 確認」がほぼ重複（reviewer 提案）。
-    `_confirm_recalculated_overwrites` の 0 件分岐の `build_save_plan` 呼び直しも冗長（実害なし）。
-
+  【task_09（save_dialog_layout）完了 = 実機目視フィードバック対応の実装が全て完了】
+  `codex-implementer` へ委任（`config_io/child_save_dialog.py` の 1 ファイル限定）。
+  - 固定初期サイズ `960x480` / `minsize(720, 320)` / `resizable(True, True)`。**行数でサイズを変えない**。
+  - 一覧部を `tk.Canvas` + 内側 `ttk.Frame` + 縦 `ttk.Scrollbar` へ。**横スクロールバーは持たない**。
+    OK / キャンセルはスクロール領域の外（常時表示）。
+  - `_ellipsize`（末尾省略・対象名 24 文字）/ `_ellipsize_path`（**中央省略**・保存先パス 56 文字）を追加し、
+    **省略が起きたセルにだけ**ツールチップで全文表示。種別・共有状況・ラジオは省略しない。
+  - **省略は表示だけ**（reviewer 重点確認）。`ChildSaveRow` の値・`_ask_save_as_path` の初期パス・
+    `choices` に省略文字列は混入していない。task_08 の選択/保存計画ロジックは無変更。
+  - `child_save_dialog.py` は 252 行（300 行の目安内・分割不要）。
 result_files:
-  - instructions/phase/06_child_file_save_dialog/tasks/task_08_save_dialog_no_recheck.md（新規）
-  - keyseq/presentation/controllers/config_io/keymap_set_io.py（再表示廃止・再解決・A2 の呼び出し）
-  - keyseq/presentation/controllers/config_io/child_save_dialog.py（`confirm_recalculated_overwrite` 追加・注記削除）
-  - tests_ui/test_child_save_dialog.py（期待値更新 + A2 のテスト 3 系統）
-  - tests_ui/test_config_io_characterization.py（戻り値タプル化への機械的追従 4 行）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_09_save_dialog_layout.md（新規）
+  - keyseq/presentation/controllers/config_io/child_save_dialog.py（レイアウト・省略・ツールチップ）
+  - tests_ui/test_child_save_dialog.py（構造テスト 4 件 + 純関数テスト 2 件）
 verified:
   compile: clean
   tests: pass 136
-  tests_ui: pass 110（+3）
+  tests_ui: pass 116（+6）
   smoke: pass
-  review: reviewer（task_08 差分）= **完了可**（非ブロッキング 2 件 = 関数肥大と重複・冗長な計画再構築。
-    いずれも `/refactor_check` へ申し送り）
+  review: reviewer（task_09 差分）= **完了可**（非ブロッキング 2 件 = `_ellipsize*` は limit が極端に
+    小さいと破綻し得る〔実利用は 24 / 56 固定〕/ 境界値ちょうどの専用テストは無い〔手動検証済〕）
 
 ## next_action
-- **task_09（`save_dialog_layout`）を `/task_new` で起票**する。設計の正は暫定仕様 05 v0.3 の
-  §3-5【v0.3-C】と受入条件 14。対象は `config_io/child_save_dialog.py` の `_create_action_dialog` /
-  `_add_headers` / `_add_rows`。**初期 geometry・最小幅・試験用の行数/文字数をタスク定義で数値化**する
-  （受入条件 14 が「数値はタスク定義で確定」としているため）。構造テスト（`resizable` / 縦スクロール領域 /
-  ツールチップ全文）は `tests_ui/test_child_save_dialog.py` へ、実表示のはみ出しは実機目視へ分ける。
-- 起票後は `codex-implementer` へ委任（テスト実行は依頼しない）→ `verifier` で `.venv` 実測 → `reviewer`。
-- その後 **実機目視（ユーザー実施）** → task_10（`finalize_records`）。目視では実機フィードバック
-  ①③④⑤の解消を確認する（②は仕様どおりで修正なし）。
+- **実機目視をユーザーへ依頼する**（残る唯一の未完了項目）。起動は `<repo>\.venv\Scripts\python.exe main.py`。
+  確認するのは **(a) 2026-07-29 フィードバック①③④⑤の解消**（②は仕様どおりで修正なし）+
+  **(b) task_06 定義「対象範囲 4」の 9 項目の退行が無いこと**。
+  - **①**: トリガー一覧を別名保存 → **一覧が再表示されない**。再計算は保存完了メッセージで事後通知。
+    再計算先が既存ファイル（単独所有以外）のときだけ上書き確認が出る
+  - **③**: `config/user/keymap_sets/` へ保存して**「デフォルト外」確認が出ない**
+  - **④**: 未保存の出力シーケンスが **`config/user/sequences/`** へ保存される
+  - **⑤**: dirty な子 12 行以上・対象名 40 文字・保存先パス 160 文字で、横にはみ出さない /
+    縦スクロールで全行に届く / 端をドラッグしてリサイズできる / 省略部にツールチップで全文が出る
+  - **③④は VS Code の ▶ 実行（小文字ドライブ）で発生していたため、目視も同じ起動方法で行う**こと
+  - 結果は `instructions/phase/06_child_file_save_dialog/integration_result.md` §3 へ記録する
+- 目視 OK 後: **task_10（`finalize_records`）を `/task_new` で起票**。正本反映で**必ず明記**する項目は
+  `SHARE_NEW` / 非 dirty 子の SKIP 規則 / SKIP した子の索引規則 / 依存確認ダイアログと既定ボタン /
+  SKIP 子の dirty 保持 / `data_schema.md` §5.4 の「trigger_set は全セット共通」記述の更新 /
+  §5.6 のフォールバック名の経路差（一括 = `default` / 個別 = `trigger_set.json`）/
+  個別「トリガー一覧を保存」が全 sequence を書く点と §8 の関係 / **v0.3 追加分**（A: 再表示しない /
+  A2: 再計算先の上書き確認 / B: canonical identity / C: ダイアログ要件 / 変更なし保存でも親は書かれる）。
+  併せて暫定仕様 05 の凍結・`decisions_archive/06` 作成・`current.md` 完了記載・
+  `backlog/INDEX.md`（idea_05 クローズ・idea_06 / idea_07 の条件更新）・`/refactor_check`。
 
 ## blockers
 - なし。

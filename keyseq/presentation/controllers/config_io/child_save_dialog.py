@@ -36,13 +36,34 @@ class ChildSaveDialog:
     def _create_action_dialog(self, rows, result):
         dialog = tk.Toplevel(self._app)
         dialog.title("子ファイルの保存")
-        dialog.resizable(False, False)
+        dialog.geometry("960x480")
+        dialog.minsize(720, 320)
+        dialog.resizable(True, True)
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill="both", expand=True)
-        self._add_headers(frame, 0)
-        choices = self._add_rows(frame, rows, 1)
+        list_frame = ttk.Frame(frame)
+        list_frame.pack(fill="both", expand=True)
+        list_frame.columnconfigure(0, weight=1)
+        list_frame.rowconfigure(0, weight=1)
+        canvas = tk.Canvas(list_frame, highlightthickness=0)
+        scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=canvas.yview)
+        content_frame = ttk.Frame(canvas)
+        content_frame.bind(
+            "<Configure>",
+            lambda _event: canvas.configure(scrollregion=canvas.bbox("all")),
+        )
+        canvas.create_window((0, 0), window=content_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        canvas.bind(
+            "<MouseWheel>",
+            lambda event: canvas.yview_scroll(-int(event.delta / 120), "units"),
+        )
+        canvas.grid(row=0, column=0, sticky="nsew")
+        scrollbar.grid(row=0, column=1, sticky="ns")
+        self._add_headers(content_frame, 0)
+        choices = self._add_rows(content_frame, rows, 1)
         buttons = ttk.Frame(frame)
-        buttons.grid(row=len(rows) + 1, column=0, columnspan=5, sticky="e", pady=(12, 0))
+        buttons.pack(anchor="e", pady=(12, 0))
         ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right")
         ttk.Button(
             buttons,
@@ -63,14 +84,59 @@ class ChildSaveDialog:
             choice = tk.StringVar(value=child_row.default_action)
             choices[child_id] = choice
             ttk.Label(frame, text=_kind_label(child_row.kind)).grid(row=index, column=0, sticky="w", padx=(0, 8))
-            ttk.Label(frame, text=child_row.display_name).grid(row=index, column=1, sticky="w", padx=(0, 8))
-            ttk.Label(frame, text=child_row.target_path).grid(row=index, column=2, sticky="w", padx=(0, 8))
+            display_name = _ellipsize(child_row.display_name, 24)
+            name_label = ttk.Label(frame, text=display_name)
+            name_label.grid(row=index, column=1, sticky="w", padx=(0, 8))
+            if display_name != child_row.display_name:
+                self._bind_tooltip(name_label, child_row.display_name)
+            target_path = _ellipsize_path(child_row.target_path, 56)
+            path_label = ttk.Label(frame, text=target_path)
+            path_label.grid(row=index, column=2, sticky="w", padx=(0, 8))
+            if target_path != child_row.target_path:
+                self._bind_tooltip(path_label, child_row.target_path)
             ttk.Label(frame, text=child_row.share_text).grid(row=index, column=3, sticky="w", padx=(0, 8))
             actions = ttk.Frame(frame)
             actions.grid(row=index, column=4, sticky="w")
             for action, label in ((ACTION_SAVE, "保存"), (ACTION_SAVE_AS, "別名保存"), (ACTION_SKIP, "保存しない")):
                 ttk.Radiobutton(actions, text=label, variable=choice, value=action).pack(side="left")
         return choices
+
+    @staticmethod
+    def _bind_tooltip(widget, text: str) -> None:
+        tooltip = None
+
+        def hide_tooltip(_event=None) -> None:
+            nonlocal tooltip
+            if tooltip is None:
+                return
+            try:
+                tooltip.destroy()
+            except Exception:
+                pass
+            tooltip = None
+
+        def show_tooltip(event) -> None:
+            nonlocal tooltip
+            hide_tooltip()
+            try:
+                tooltip = tk.Toplevel(widget)
+                tooltip.overrideredirect(True)
+                tooltip.geometry(f"+{event.x_root + 12}+{event.y_root + 12}")
+                ttk.Label(tooltip, text=text, padding=4).pack()
+            except Exception:
+                if tooltip is not None:
+                    try:
+                        tooltip.destroy()
+                    except Exception:
+                        pass
+                tooltip = None
+
+        try:
+            widget.bind("<Enter>", show_tooltip)
+            widget.bind("<Leave>", hide_tooltip)
+            widget.bind("<Button>", hide_tooltip)
+        except Exception:
+            pass
 
     def _confirm_actions(self, dialog, rows, choice_vars, result) -> None:
         choices = self._resolve_action_targets(rows, choice_vars)
@@ -170,3 +236,17 @@ def _kind_label(kind: str) -> str:
         "trigger_set": "トリガー一覧",
         "sequence": "出力シーケンス",
     }.get(kind, kind)
+
+
+def _ellipsize(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    return text[: limit - 1] + "…"
+
+
+def _ellipsize_path(text: str, limit: int) -> str:
+    if len(text) <= limit:
+        return text
+    prefix_length = limit // 3
+    suffix_length = limit - prefix_length - 1
+    return text[:prefix_length] + "…" + text[-suffix_length:]

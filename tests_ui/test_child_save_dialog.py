@@ -31,11 +31,45 @@ def make_data(*, second_sequence: bool = False):
 
 
 class _FakeDialogWidget:
+    def __init__(self, *_args, **kwargs):
+        self.kwargs = kwargs
+        self.bindings = {}
+        self.configure_calls = []
+        self.create_window_calls = []
+
     def grid(self, **_kwargs):
         return self
 
     def pack(self, **_kwargs):
         return self
+
+    def bind(self, sequence, callback):
+        self.bindings[sequence] = callback
+
+    def configure(self, **kwargs):
+        self.configure_calls.append(kwargs)
+
+    def create_window(self, *args, **kwargs):
+        self.create_window_calls.append((args, kwargs))
+        return 1
+
+    def bbox(self, _tag):
+        return (0, 0, 100, 100)
+
+    def yview(self, *_args):
+        pass
+
+    def yview_scroll(self, *_args):
+        pass
+
+    def set(self, *_args):
+        pass
+
+    def columnconfigure(self, *_args, **_kwargs):
+        pass
+
+    def rowconfigure(self, *_args, **_kwargs):
+        pass
 
 
 class _FakeStringVar:
@@ -55,12 +89,21 @@ class _FakeSaveDialog:
         self.buttons = {}
         self.protocols = {}
         self.destroyed = False
+        self.geometry_calls = []
+        self.minsize_calls = []
+        self.resizable_calls = []
 
     def title(self, _value):
         pass
 
-    def resizable(self, _width, _height):
-        pass
+    def geometry(self, value):
+        self.geometry_calls.append(value)
+
+    def minsize(self, width, height):
+        self.minsize_calls.append((width, height))
+
+    def resizable(self, width, height):
+        self.resizable_calls.append((width, height))
 
     def transient(self, _master):
         pass
@@ -139,6 +182,21 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             dialog.buttons[text] = command
             return _FakeDialogWidget()
 
+        canvas = _FakeDialogWidget()
+        scrollbar = _FakeDialogWidget()
+        dialog.canvas = canvas
+        dialog.scrollbar = scrollbar
+        dialog.canvas_calls = []
+        dialog.scrollbar_calls = []
+
+        def make_canvas(*args, **kwargs):
+            dialog.canvas_calls.append((args, kwargs))
+            return canvas
+
+        def make_scrollbar(*args, **kwargs):
+            dialog.scrollbar_calls.append((args, kwargs))
+            return scrollbar
+
         with patch.object(child_save_dialog_module.tk, "Toplevel", return_value=dialog), patch.object(
             child_save_dialog_module.tk,
             "StringVar",
@@ -155,6 +213,14 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             child_save_dialog_module.ttk,
             "Button",
             side_effect=make_button,
+        ), patch.object(
+            child_save_dialog_module.tk,
+            "Canvas",
+            side_effect=make_canvas,
+        ), patch.object(
+            child_save_dialog_module.ttk,
+            "Scrollbar",
+            side_effect=make_scrollbar,
         ), patch.object(
             self.app.child_save_dialog,
             "_ask_save_as_path",
@@ -204,6 +270,65 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
 
         self.assertIsNone(result)
         self.assertFalse(dialog.destroyed)
+
+    def test_dialog_layout_uses_fixed_resizable_size(self):
+        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
+        _result, _variables, dialog = self._ask_dialog_internally(
+            rows,
+            lambda current, _variables: current.buttons["キャンセル"](),
+        )
+
+        self.assertEqual(dialog.geometry_calls, ["960x480"])
+        self.assertEqual(dialog.minsize_calls, [(720, 320)])
+        self.assertEqual(dialog.resizable_calls, [(True, True)])
+
+    def test_dialog_layout_creates_vertical_scroll_region_without_horizontal_scrollbar(self):
+        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
+        _result, _variables, dialog = self._ask_dialog_internally(
+            rows,
+            lambda current, _variables: current.buttons["キャンセル"](),
+        )
+
+        self.assertEqual(len(dialog.canvas_calls), 1)
+        self.assertEqual(dialog.scrollbar_calls[0][1]["orient"], "vertical")
+        self.assertEqual(len(dialog.canvas.create_window_calls), 1)
+        self.assertEqual(len(dialog.scrollbar_calls), 1)
+
+    def test_dialog_binds_tooltips_only_for_ellipsized_name_and_path(self):
+        short_row = ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)
+        long_name = "長い対象名" * 7
+        long_path = "C:/" + "long-directory/" * 5 + "target.json"
+        long_row = ChildSaveRow(CHILD_SEQUENCE, "f1", long_name, long_path, SHARE_SOLE, "単独", ACTION_SAVE)
+        with patch.object(self.app.child_save_dialog, "_bind_tooltip") as bind_tooltip:
+            self._ask_dialog_internally(
+                [short_row, long_row],
+                lambda current, _variables: current.buttons["キャンセル"](),
+            )
+
+        self.assertEqual([call.args[1] for call in bind_tooltip.call_args_list], [long_name, long_path])
+
+    def test_dialog_layout_geometry_is_constant_for_many_rows(self):
+        rows = [
+            ChildSaveRow(CHILD_SEQUENCE, f"f{index}", f"Copy {index}", f"C:/copy-{index}.json", SHARE_SOLE, "単独", ACTION_SAVE)
+            for index in range(12)
+        ]
+        _result, _variables, dialog = self._ask_dialog_internally(
+            rows,
+            lambda current, _variables: current.buttons["キャンセル"](),
+        )
+
+        self.assertEqual(dialog.geometry_calls, ["960x480"])
+
+    def test_ellipsize_preserves_short_text_and_truncates_long_text(self):
+        self.assertEqual(child_save_dialog_module._ellipsize("short", 8), "short")
+        self.assertEqual(child_save_dialog_module._ellipsize("abcdefgh", 5), "abcd…")
+
+    def test_ellipsize_path_preserves_ends_and_limit(self):
+        self.assertEqual(child_save_dialog_module._ellipsize_path("short", 8), "short")
+        result = child_save_dialog_module._ellipsize_path("abcdefghijkl", 8)
+
+        self.assertEqual(result, "ab…hijkl")
+        self.assertEqual(len(result), 8)
 
     def test_dialog_internal_cancel_and_window_close_return_none(self):
         rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
