@@ -4,58 +4,73 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-30T00:55:00
+last_updated: 2026-07-30T02:40:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
-last_commit_location: claude/file-label-save-issues-3b04cf ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/save-dialog-ui-improvements-c0189a ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β task_07〜09（実機目視フィードバックの実装）まで完了。残るは実機目視（ユーザー実施）→ task_10（正本反映）**。
-mode: pending_review
+focus: **Phase β は暫定仕様 05 を v0.4 へ改訂（確定済）+ task_11 完了。残りは task_12 → 13 → 実機目視 → task_10**。
+mode: implementing
 
 ## last_action
-ts: 2026-07-30T00:55:00
+ts: 2026-07-30T02:40:00
 who: main
 summary: |
-  【task_09（save_dialog_layout）完了 = 実機目視フィードバック対応の実装が全て完了】
-  `codex-implementer` へ委任（`config_io/child_save_dialog.py` の 1 ファイル限定）。
-  - 固定初期サイズ `960x480` / `minsize(720, 320)` / `resizable(True, True)`。**行数でサイズを変えない**。
-  - 一覧部を `tk.Canvas` + 内側 `ttk.Frame` + 縦 `ttk.Scrollbar` へ。**横スクロールバーは持たない**。
-    OK / キャンセルはスクロール領域の外（常時表示）。
-  - `_ellipsize`（末尾省略・対象名 24 文字）/ `_ellipsize_path`（**中央省略**・保存先パス 56 文字）を追加し、
-    **省略が起きたセルにだけ**ツールチップで全文表示。種別・共有状況・ラジオは省略しない。
-  - **省略は表示だけ**（reviewer 重点確認）。`ChildSaveRow` の値・`_ask_save_as_path` の初期パス・
-    `choices` に省略文字列は混入していない。task_08 の選択/保存計画ロジックは無変更。
-  - `child_save_dialog.py` は 252 行（300 行の目安内・分割不要）。
+  【2 回目の実機目視フィードバック → 暫定仕様 05 を v0.4 へ改訂（確定）+ task_11 完了】
+  - **ユーザー判断（討議 2026-07-30）**: ①依存確認ダイアログは**提示条件を絞る**（上位の共有状況が
+    「単独 / 新規作成」なら確認せず自動保存＋完了メッセージで事後通知。それ以外は **4 択**〔保存 / 別名保存 /
+    保存しない / キャンセル・既定=別名保存〕。「保存しない」= 索引は旧パス維持・上位を dirty 化して次回保存で追随）
+    ②v0.3-A2（再計算先の上書き確認）は**維持**（「①②とも廃止」を一度選んだが、A2 は `asksaveasfilename` で
+    代替不能と提示して再決定）③新規子の既定保存先で既存ファイルを避ける案は**不採用**
+    ④`new_config` 等の trigger_set 状態リセット漏れ（実バグ）は **Phase β 内で修正**。
+  - **敵対的レビュー（v0.4 対象・needs-attention）の 5 件を全採用**して反映（詳細は decisions.md）:
+    §5【v0.4-I】新規子が既存ファイルへ当たるときは既定を別名保存 / §8 に **deferred index 例外** /
+    「保存しない」時は**保存前の dirty 状態に関係なく上位を dirty 化** / v0.4-H を `restore_default` にも拡張 /
+    受入条件 14b・16b を検証可能な形へ（+17b 追加）。
+  - **task_11（save_dialog_flex_layout）完了**: `codex-implementer` へ委任（presentation 限定）。
+    ボタン行を `side="bottom"` で先に pack / 5 列を固定・可変（対象名 1 : パス 2）に分離し Canvas 幅へ追随 /
+    省略を **px 幅ベース**へ（`_fit_text` 追加・`_ellipsize` 系は無変更で再利用・同幅再入は早期 return）/
+    ツールチップは常時バインド＋省略中のみ表示 / `minsize` を要求幅から算出（`max(720, required_width)`）。
+    実測 fail 1 件（実描画テストで `canvas.winfo_width()` が 1）→ `update()` + skip ガードへ修正して green。
 result_files:
-  - instructions/phase/06_child_file_save_dialog/tasks/task_09_save_dialog_layout.md（新規）
-  - keyseq/presentation/controllers/config_io/child_save_dialog.py（レイアウト・省略・ツールチップ）
-  - tests_ui/test_child_save_dialog.py（構造テスト 4 件 + 純関数テスト 2 件）
+  - instructions/history/05_child_file_save_dialog.md（**v0.4**・§2 v0.4 節 / §3-3 / §3-5 / §5 / §6 / §7 / §8 / 受入条件）
+  - .claude_data/state/decisions.md（2 回目の実機目視 + v0.4 敵対的レビューの判断履歴）
+  - instructions/phase/06_child_file_save_dialog/phase.md（task_11〜13 追加・依存順を 09→11→12→13→10 へ）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_11_save_dialog_flex_layout.md（新規）
+  - keyseq/presentation/controllers/config_io/child_save_dialog.py（可変列・px 省略・minsize 実測。324 行）
+  - tests_ui/test_child_save_dialog.py（構造 6 件 + `_fit_text` 純関数 3 件 + 実 Tk 境界 1 件）
 verified:
   compile: clean
   tests: pass 136
-  tests_ui: pass 116（+6）
+  tests_ui: pass 124（+8・skip 0。実 Tk 境界テストも pass）
   smoke: pass
-  review: reviewer（task_09 差分）= **完了可**（非ブロッキング 2 件 = `_ellipsize*` は limit が極端に
-    小さいと破綻し得る〔実利用は 24 / 56 固定〕/ 境界値ちょうどの専用テストは無い〔手動検証済〕）
+  review: reviewer（task_11 差分）= **完了可**（非ブロッキング 2 件 = `_add_text_cell` の戻り値が素の dict で
+    型注釈なし〔dataclass 化は過剰・`/refactor_check` の検討候補へ〕/ `_add_rows` の型注釈欠落 → **修正済**）
 
 ## next_action
-- **実機目視をユーザーへ依頼する**（残る唯一の未完了項目）。起動は `<repo>\.venv\Scripts\python.exe main.py`。
-  確認するのは **(a) 2026-07-29 フィードバック①③④⑤の解消**（②は仕様どおりで修正なし）+
-  **(b) task_06 定義「対象範囲 4」の 9 項目の退行が無いこと**。
-  - **①**: トリガー一覧を別名保存 → **一覧が再表示されない**。再計算は保存完了メッセージで事後通知。
-    再計算先が既存ファイル（単独所有以外）のときだけ上書き確認が出る
-  - **③**: `config/user/keymap_sets/` へ保存して**「デフォルト外」確認が出ない**
-  - **④**: 未保存の出力シーケンスが **`config/user/sequences/`** へ保存される
-  - **⑤**: dirty な子 12 行以上・対象名 40 文字・保存先パス 160 文字で、横にはみ出さない /
-    縦スクロールで全行に届く / 端をドラッグしてリサイズできる / 省略部にツールチップで全文が出る
-  - **③④は VS Code の ▶ 実行（小文字ドライブ）で発生していたため、目視も同じ起動方法で行う**こと
-  - 結果は `instructions/phase/06_child_file_save_dialog/integration_result.md` §3 へ記録する
+- **task_12（`dependency_confirm_scope`）を `/task_new` で起票 → `codex-implementer` へ委任**（実装の既定）。
+  範囲は暫定仕様 05 **v0.4-D/E/F/I** と §8 の deferred index 例外・受入条件 15 / 16 / 16b / 17b / 18。
+  実装の当事者は `config_io/child_save_dialog.py`（4 択ダイアログ）/ `keymap_set_io.py`
+  （提示条件の判定・自動保存・上位の dirty 化）/ `child_save_rows.py`（v0.4-I の既定判定）/
+  `config_service.py`（`_validate_save_plan:786` の必須依存を deferred index 例外で通す）。
+  **受入条件 18 の再現テストを先に書く**（出力シーケンスのみ変更 → keymap_set 保存 → 一覧で別名保存 →
+  新パスにファイルができ trigger_set の `sequence_path` が新パスを指すこと。保存先が新規名 / 既存名の両ケース）。
+- task_12 完了後: **task_13（`data_replace_state_reset`）を起票 → 委任**（`new_config` / `restore_default` で
+  `trigger_set_source_path` / `trigger_set_dirty` をリセット。受入条件 17）。
+- その後 **実機目視をユーザーへ依頼**（起動は `<repo>\.venv\Scripts\python.exe main.py`。
+  **③④の確認は VS Code の ▶ 実行〔小文字ドライブ〕で行う**）。確認項目は
+  (a) 2026-07-29 の①③④⑤ + (b) 2026-07-30 の⑥（最小サイズでボタンとラジオが見える / 幅で省略量が変わる）・
+  ⑦（単独所有なら依存確認が出ない / 共有時は 4 択）+ (c) task_06 定義「対象範囲 4」の 9 項目の退行が無いこと。
+  結果は `instructions/phase/06_child_file_save_dialog/integration_result.md` §3 へ記録する。
 - 目視 OK 後: **task_10（`finalize_records`）を `/task_new` で起票**。正本反映で**必ず明記**する項目は
   `SHARE_NEW` / 非 dirty 子の SKIP 規則 / SKIP した子の索引規則 / 依存確認ダイアログと既定ボタン /
   SKIP 子の dirty 保持 / `data_schema.md` §5.4 の「trigger_set は全セット共通」記述の更新 /
   §5.6 のフォールバック名の経路差（一括 = `default` / 個別 = `trigger_set.json`）/
   個別「トリガー一覧を保存」が全 sequence を書く点と §8 の関係 / **v0.3 追加分**（A: 再表示しない /
-  A2: 再計算先の上書き確認 / B: canonical identity / C: ダイアログ要件 / 変更なし保存でも親は書かれる）。
+  A2: 再計算先の上書き確認 / B: canonical identity / C: ダイアログ要件 / 変更なし保存でも親は書かれる）/
+  **v0.4 追加分**（D/E: 依存確認の提示条件と 4 択・deferred index 例外と上位の dirty 化 / F: A2 維持 /
+  G: 既定保存先は既存ファイルを避けない / I: 新規子が既存ファイルへ当たるときは既定を別名保存 /
+  H: `data` 置換時の trigger_set 状態リセット）。
   併せて暫定仕様 05 の凍結・`decisions_archive/06` 作成・`current.md` 完了記載・
   `backlog/INDEX.md`（idea_05 クローズ・idea_06 / idea_07 の条件更新）・`/refactor_check`。
 
@@ -65,13 +80,18 @@ verified:
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
   グローバル `py` は依存欠落で tests_ui/smoke が落ちる。
-- **Phase β の設計の正は暫定仕様 [05](../../instructions/history/05_child_file_save_dialog.md)（**v0.3**・ユーザー確定済 2026-07-29）**。
-  フェーズ中は正本 `spec_detail/` を直接改訂せず、**task_10**（旧 task_07）で昇格＋凍結する。
-  v0.3 の追加分は §2 末尾「v0.3 の変更」A / A2 / B / C と §3-3・§3-5・§6 末尾・受入条件 12〜14。
+- **Phase β の設計の正は暫定仕様 [05](../../instructions/history/05_child_file_save_dialog.md)（**v0.4**・ユーザー確定済 2026-07-30）**。
+  フェーズ中は正本 `spec_detail/` を直接改訂せず、**task_10** で昇格＋凍結する。
+  v0.3 の追加分は §2「v0.3 の変更」A / A2 / B / C と §3-3・§3-5・§6 末尾・受入条件 12〜14。
+  **v0.4 の追加分は §2「v0.4 の変更」D / E / F / G / H / I と §3-3・§3-5 末尾・§5 末尾・§6・§7・§8・
+  受入条件 14b / 15 / 16 / 16b / 17 / 17b / 18**（敵対的レビュー 5 件を全採用して反映済み）。
 - **Phase β の勘所**（暫定仕様の指摘①〜④由来。実装時に後退しやすい）:
-  ① 未知の参照元・別の上位に属す子は**別名保存が既定**（安全側）/ ② 保存計画は
+  ① 未知の参照元・別の上位に属す子は**別名保存が既定**（安全側）。**v0.4-I**: `source_path` を持たない子の
+  保存先に既存ファイルがあれば共有状況にかかわらず既定は別名保存 / ② 保存計画は
   **presentation が決定・application が実行**（application に tkinter 依存を持ち込まない）/
-  ③ パスが変わる子の上位は**保存必須**・失敗時は**旧索引維持**・**行ごとの粒度**（他 sequence を巻き込まない）/
+  ③ パスが変わる子の上位は**保存必須**・失敗時は**旧索引維持**・**行ごとの粒度**（他 sequence を巻き込まない）。
+  **v0.4-E の唯一の例外 = deferred index**（ユーザーが 4 択で「保存しない」を明示選択したときのみ。
+  親索引は旧パス維持・上位を強制 dirty 化・`_validate_save_plan:786` の必須依存をこの場合だけ通す）/
   ④ 既定命名の変更は **trigger_set のみ**（keymap_set stem 基準。現状は固定 `user/trigger_sets/default.json`）。
 - **task_01 で入った土台**（後続はこれを使う): `PARENT_REFS_KEY = "_parent_refs"`（子JSON 側）/
   `INTERNAL_{KEYMAP,SEQUENCE,TRIGGER_SET}_PARENT_REFS`（runtime 側。trigger_set のみ `data` トップレベル）/
@@ -101,7 +121,16 @@ verified:
   ⑥ **canonical identity は比較専用**。`normcase` 済み文字列を保存値（`_parent_refs` / keymap_set の索引 /
   起動設定）・戻り値・表示文字列へ混入させない。保存表記は config_root 内=相対 / 外=絶対のまま。
   `to_config_relative_or_absolute` は canonical で内外判定し、**相対化は元の絶対パスから `relpath`** で作る。
-- **申し送り（refactor_check / task_10）**: ① slugify 後に別々の keymap_set 名が同一 stem へ
+- **task_11 で入った土台**: `child_save_dialog.py` は**表示専用の補助メソッド**
+  （`_add_text_cell` / `_configure_columns` / `_bind_content_width` / `_set_minimum_size`）と
+  純関数 `_fit_text(text, measure, max_px, ellipsize)` を持つ。**省略は px 幅ベース**で
+  Canvas の `<Configure>` 時に再計算し、**同幅なら早期 return**（再入・無限ループ防止）。
+  `_ellipsize` / `_ellipsize_path` は無変更のまま `_fit_text` から再利用（`limit=1` で
+  `_ellipsize_path` が非単調になるため探索は `low=2` から・`limit=1` は個別候補として扱う）。
+  ツールチップは**常時バインド + 省略中のみ表示**。`minsize` は要求幅から算出（px 決め打ち禁止）。
+- **申し送り（refactor_check / task_10）**: ⓪ `child_save_dialog.py` が **324 行**（目安 300 超）+
+  `_add_text_cell` の戻り値が素の dict（型注釈なし。dataclass 化は task_11 では過剰と判断・reviewer 非ブロッキング）
+  ① slugify 後に別々の keymap_set 名が同一 stem へ
   丸まる衝突（受入条件 8 の範囲外）② `dirty_tracker.trigger_set_imported` は読み手不在の残置状態
   ③ **task_10 の正本反映で `INTERNAL_TRIGGER_SET_SOURCE_PATH` を runtime 内部キーとして `data_schema.md` に明記**。
   ④ 実機の `config/` には**絶対パスで記録済みの `_parent_refs` / 起動設定**が残るが、比較時に解決して

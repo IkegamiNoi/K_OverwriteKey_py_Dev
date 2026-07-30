@@ -4,6 +4,7 @@ import os
 import tempfile
 import tkinter
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_SEQUENCE, CHILD_TRIGGER_SET
@@ -31,16 +32,25 @@ def make_data(*, second_sequence: bool = False):
 
 
 class _FakeDialogWidget:
+    pack_history = []
+
     def __init__(self, *_args, **kwargs):
         self.kwargs = kwargs
         self.bindings = {}
         self.configure_calls = []
         self.create_window_calls = []
+        self.itemconfigure_calls = []
+        self.grid_calls = []
+        self.pack_calls = []
+        self.columnconfigure_calls = []
 
-    def grid(self, **_kwargs):
+    def grid(self, **kwargs):
+        self.grid_calls.append(kwargs)
         return self
 
-    def pack(self, **_kwargs):
+    def pack(self, **kwargs):
+        self.pack_calls.append(kwargs)
+        self.pack_history.append(kwargs)
         return self
 
     def bind(self, sequence, callback):
@@ -52,6 +62,9 @@ class _FakeDialogWidget:
     def create_window(self, *args, **kwargs):
         self.create_window_calls.append((args, kwargs))
         return 1
+
+    def itemconfigure(self, *args, **kwargs):
+        self.itemconfigure_calls.append((args, kwargs))
 
     def bbox(self, _tag):
         return (0, 0, 100, 100)
@@ -65,11 +78,26 @@ class _FakeDialogWidget:
     def set(self, *_args):
         pass
 
-    def columnconfigure(self, *_args, **_kwargs):
-        pass
+    def columnconfigure(self, *args, **kwargs):
+        self.columnconfigure_calls.append((args, kwargs))
 
     def rowconfigure(self, *_args, **_kwargs):
         pass
+
+    def update_idletasks(self):
+        pass
+
+    def winfo_width(self):
+        return 200
+
+    def winfo_reqwidth(self):
+        return 20
+
+    def winfo_reqheight(self):
+        return 20
+
+    def grid_bbox(self, *_args):
+        return (0, 0, 800, 60)
 
 
 class _FakeStringVar:
@@ -92,6 +120,7 @@ class _FakeSaveDialog:
         self.geometry_calls = []
         self.minsize_calls = []
         self.resizable_calls = []
+        self.call_log = []
 
     def title(self, _value):
         pass
@@ -101,9 +130,13 @@ class _FakeSaveDialog:
 
     def minsize(self, width, height):
         self.minsize_calls.append((width, height))
+        self.call_log.append("minsize")
 
     def resizable(self, width, height):
         self.resizable_calls.append((width, height))
+
+    def update_idletasks(self):
+        self.call_log.append("update_idletasks")
 
     def transient(self, _master):
         pass
@@ -172,6 +205,9 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
     def _ask_dialog_internally(self, rows, on_wait, *, save_as_path=""):
         variables = []
         dialog = _FakeSaveDialog(lambda current: on_wait(current, variables))
+        _FakeDialogWidget.pack_history = []
+        dialog.frames = []
+        dialog.labels = []
 
         def make_string_var(*, value):
             variable = _FakeStringVar(value=value)
@@ -197,14 +233,26 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             dialog.scrollbar_calls.append((args, kwargs))
             return scrollbar
 
+        def make_frame(*args, **kwargs):
+            widget = _FakeDialogWidget(*args, **kwargs)
+            dialog.frames.append(widget)
+            if args and args[0] is canvas:
+                dialog.content_frame = widget
+            return widget
+
+        def make_label(*args, **kwargs):
+            widget = _FakeDialogWidget(*args, **kwargs)
+            dialog.labels.append(widget)
+            return widget
+
         with patch.object(child_save_dialog_module.tk, "Toplevel", return_value=dialog), patch.object(
             child_save_dialog_module.tk,
             "StringVar",
             side_effect=make_string_var,
-        ), patch.object(child_save_dialog_module.ttk, "Frame", return_value=_FakeDialogWidget()), patch.object(
+        ), patch.object(child_save_dialog_module.ttk, "Frame", side_effect=make_frame), patch.object(
             child_save_dialog_module.ttk,
             "Label",
-            return_value=_FakeDialogWidget(),
+            side_effect=make_label,
         ), patch.object(
             child_save_dialog_module.ttk,
             "Radiobutton",
@@ -279,8 +327,63 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         )
 
         self.assertEqual(dialog.geometry_calls, ["960x480"])
-        self.assertEqual(dialog.minsize_calls, [(720, 320)])
         self.assertEqual(dialog.resizable_calls, [(True, True)])
+        self.assertLess(dialog.call_log.index("update_idletasks"), dialog.call_log.index("minsize"))
+        self.assertEqual(dialog.minsize_calls, [(820, 320)])
+
+    def test_dialog_packs_button_row_before_expandable_list(self):
+        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
+        self._ask_dialog_internally(rows, lambda current, _variables: current.buttons["キャンセル"]())
+
+        button_index = next(
+            index for index, kwargs in enumerate(_FakeDialogWidget.pack_history) if kwargs.get("side") == "bottom"
+        )
+        list_index = next(
+            index
+            for index, kwargs in enumerate(_FakeDialogWidget.pack_history[button_index + 1 :], start=button_index + 1)
+            if kwargs.get("fill") == "both" and kwargs.get("expand") is True
+        )
+        self.assertLess(button_index, list_index)
+        self.assertNotIn("expand", _FakeDialogWidget.pack_history[button_index])
+        self.assertEqual(_FakeDialogWidget.pack_history[button_index]["anchor"], "e")
+
+    def test_dialog_configures_fixed_and_flexible_columns(self):
+        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
+        _result, _variables, dialog = self._ask_dialog_internally(
+            rows,
+            lambda current, _variables: current.buttons["キャンセル"](),
+        )
+
+        configurations = {args[0]: kwargs for args, kwargs in dialog.content_frame.columnconfigure_calls}
+        for column in (0, 3, 4):
+            self.assertEqual(configurations[column]["weight"], 0)
+        self.assertGreaterEqual(configurations[1]["weight"], 1)
+        self.assertGreaterEqual(configurations[2]["weight"], 1)
+        self.assertIn("minsize", configurations[1])
+        self.assertIn("minsize", configurations[2])
+        flexible_labels = [label for label in dialog.labels if label.kwargs.get("width") == 1]
+        self.assertTrue(flexible_labels)
+        self.assertTrue(all(label.kwargs.get("anchor") == "w" for label in flexible_labels))
+        self.assertTrue(
+            all(any(call.get("sticky") == "ew" for call in label.grid_calls) for label in flexible_labels)
+        )
+
+    def test_canvas_configure_tracks_content_width_and_avoids_repeat_ellipsizing(self):
+        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "長い対象名" * 7, "C:/" + "long-directory/" * 5, SHARE_SOLE, "単独", ACTION_SAVE)]
+
+        with patch.object(child_save_dialog_module, "_fit_text", wraps=child_save_dialog_module._fit_text) as fit:
+            _result, _variables, dialog = self._ask_dialog_internally(
+                rows,
+                lambda current, _variables: (
+                    current.canvas.bindings["<Configure>"](SimpleNamespace(width=300)),
+                    current.canvas.bindings["<Configure>"](SimpleNamespace(width=300)),
+                    current.buttons["キャンセル"](),
+                ),
+            )
+
+        self.assertIn("<Configure>", dialog.canvas.bindings)
+        self.assertEqual(dialog.canvas.itemconfigure_calls, [((1,), {"width": 300})])
+        self.assertEqual(fit.call_count, 2)
 
     def test_dialog_layout_creates_vertical_scroll_region_without_horizontal_scrollbar(self):
         rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
@@ -294,7 +397,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         self.assertEqual(len(dialog.canvas.create_window_calls), 1)
         self.assertEqual(len(dialog.scrollbar_calls), 1)
 
-    def test_dialog_binds_tooltips_only_for_ellipsized_name_and_path(self):
+    def test_dialog_binds_tooltips_for_all_cells_but_shows_only_ellipsized_text(self):
         short_row = ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)
         long_name = "長い対象名" * 7
         long_path = "C:/" + "long-directory/" * 5 + "target.json"
@@ -302,10 +405,17 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         with patch.object(self.app.child_save_dialog, "_bind_tooltip") as bind_tooltip:
             self._ask_dialog_internally(
                 [short_row, long_row],
-                lambda current, _variables: current.buttons["キャンセル"](),
+                lambda current, _variables: (
+                    current.canvas.bindings["<Configure>"](SimpleNamespace(width=100)),
+                    current.buttons["キャンセル"](),
+                ),
             )
 
-        self.assertEqual([call.args[1] for call in bind_tooltip.call_args_list], [long_name, long_path])
+        self.assertEqual(
+            [call.args[1] for call in bind_tooltip.call_args_list],
+            [short_row.display_name, short_row.target_path, long_name, long_path],
+        )
+        self.assertEqual([call.args[2]() for call in bind_tooltip.call_args_list], [False, False, True, True])
 
     def test_dialog_layout_geometry_is_constant_for_many_rows(self):
         rows = [
@@ -329,6 +439,82 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
 
         self.assertEqual(result, "ab…hijkl")
         self.assertEqual(len(result), 8)
+
+    def test_fit_text_preserves_text_that_fits(self):
+        measure = lambda text: len(text) * 10
+
+        self.assertEqual(child_save_dialog_module._fit_text("short", measure, 50, child_save_dialog_module._ellipsize), "short")
+
+    def test_fit_text_ellipsizes_end_and_path_within_available_width(self):
+        measure = lambda text: len(text) * 10
+        for ellipsize in (child_save_dialog_module._ellipsize, child_save_dialog_module._ellipsize_path):
+            with self.subTest(ellipsize=ellipsize.__name__):
+                result = child_save_dialog_module._fit_text("abcdefghijkl", measure, 80, ellipsize)
+                self.assertNotEqual(result, "abcdefghijkl")
+                self.assertLessEqual(measure(result), 80)
+
+    def test_fit_text_path_handles_the_one_character_suffix_boundary(self):
+        measure = lambda text: len(text) * 10
+
+        self.assertEqual(
+            child_save_dialog_module._fit_text("abcdefghijkl", measure, 20, child_save_dialog_module._ellipsize_path),
+            "…l",
+        )
+
+    def test_fit_text_returns_ellipsis_when_no_candidate_fits(self):
+        measure = lambda text: len(text) * 10
+
+        self.assertEqual(
+            child_save_dialog_module._fit_text("abcdefghijkl", measure, 1, child_save_dialog_module._ellipsize),
+            "…",
+        )
+
+    def test_minimum_size_keeps_buttons_and_radio_column_visible_in_real_tk(self):
+        try:
+            root = tkinter.Tk()
+        except tkinter.TclError as error:
+            self.skipTest(f"Tk を利用できません: {error}")
+        root.withdraw()
+        rows = [
+            ChildSaveRow(
+                CHILD_SEQUENCE,
+                "f1",
+                "長い対象名" * 8,
+                "C:/" + "long-directory/" * 12 + "target.json",
+                SHARE_SOLE,
+                "単独",
+                ACTION_SAVE,
+            )
+        ]
+        dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog(rows, {})[0]
+        try:
+            dialog.deiconify()
+            dialog.update()
+            minimum_width, minimum_height = dialog.minsize()
+            dialog.geometry(f"{minimum_width}x{minimum_height}")
+            dialog.update()
+            frame = dialog.winfo_children()[0]
+            buttons = next(widget for widget in frame.winfo_children() if widget.pack_info()["side"] == "bottom")
+            list_frame = next(widget for widget in frame.winfo_children() if widget is not buttons)
+            canvas = next(widget for widget in list_frame.winfo_children() if isinstance(widget, tkinter.Canvas))
+            content_frame = canvas.winfo_children()[0]
+            actions = content_frame.grid_slaves(row=1, column=4)[0]
+            name_label = content_frame.grid_slaves(row=1, column=1)[0]
+            path_label = content_frame.grid_slaves(row=1, column=2)[0]
+            narrow_widths = (name_label.winfo_width(), path_label.winfo_width())
+
+            if canvas.winfo_width() <= 1:
+                self.skipTest("ウィンドウマネージャーがないため、Canvas の実レイアウトを検証できません")
+            self.assertLessEqual(buttons.winfo_y() + buttons.winfo_height(), dialog.winfo_height())
+            self.assertLessEqual(actions.winfo_x() + actions.winfo_width(), canvas.winfo_width())
+
+            dialog.geometry(f"{minimum_width + 240}x{minimum_height}")
+            dialog.update()
+            self.assertGreater(name_label.winfo_width(), narrow_widths[0])
+            self.assertGreater(path_label.winfo_width(), narrow_widths[1])
+        finally:
+            dialog.destroy()
+            root.destroy()
 
     def test_dialog_internal_cancel_and_window_close_return_none(self):
         rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]

@@ -2,8 +2,8 @@ from __future__ import annotations
 
 import os
 import tkinter as tk
-from typing import Sequence
-from tkinter import filedialog, messagebox, ttk
+from typing import Callable, Sequence
+from tkinter import filedialog, font, messagebox, ttk
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP
 from keyseq.presentation.controllers.config_io.child_save_rows import (
@@ -37,10 +37,11 @@ class ChildSaveDialog:
         dialog = tk.Toplevel(self._app)
         dialog.title("子ファイルの保存")
         dialog.geometry("960x480")
-        dialog.minsize(720, 320)
         dialog.resizable(True, True)
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill="both", expand=True)
+        buttons = ttk.Frame(frame)
+        buttons.pack(side="bottom", anchor="e", pady=(12, 0))
         list_frame = ttk.Frame(frame)
         list_frame.pack(fill="both", expand=True)
         list_frame.columnconfigure(0, weight=1)
@@ -52,7 +53,7 @@ class ChildSaveDialog:
             "<Configure>",
             lambda _event: canvas.configure(scrollregion=canvas.bbox("all")),
         )
-        canvas.create_window((0, 0), window=content_frame, anchor="nw")
+        window_id = canvas.create_window((0, 0), window=content_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
         canvas.bind(
             "<MouseWheel>",
@@ -61,48 +62,100 @@ class ChildSaveDialog:
         canvas.grid(row=0, column=0, sticky="nsew")
         scrollbar.grid(row=0, column=1, sticky="ns")
         self._add_headers(content_frame, 0)
-        choices = self._add_rows(content_frame, rows, 1)
-        buttons = ttk.Frame(frame)
-        buttons.pack(anchor="e", pady=(12, 0))
+        choices, text_cells = self._add_rows(content_frame, rows, 1)
+        self._configure_columns(content_frame)
+        self._bind_content_width(canvas, content_frame, window_id, text_cells)
         ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right")
         ttk.Button(
             buttons,
             text="OK",
             command=lambda: self._confirm_actions(dialog, rows, choices, result),
         ).pack(side="right", padx=(0, 8))
+        self._set_minimum_size(dialog, frame, list_frame, content_frame, scrollbar, len(rows))
         return dialog, choices
 
     @staticmethod
     def _add_headers(frame, row: int) -> None:
         for column, text in enumerate(("種別", "対象名", "保存先パス", "共有状況", "操作")):
-            ttk.Label(frame, text=text).grid(row=row, column=column, sticky="w", padx=(0, 8))
+            is_flexible = column in (1, 2)
+            label_options = {"width": 1, "anchor": "w"} if is_flexible else {}
+            ttk.Label(frame, text=text, **label_options).grid(
+                row=row,
+                column=column,
+                sticky="ew" if is_flexible else "w",
+                padx=(0, 8),
+            )
 
-    def _add_rows(self, frame, rows, start_row: int) -> dict[tuple[str, str], tk.StringVar]:
+    def _add_rows(
+        self, frame, rows, start_row: int
+    ) -> tuple[dict[tuple[str, str], tk.StringVar], list[dict[str, object]]]:
         choices: dict[tuple[str, str], tk.StringVar] = {}
+        text_cells = []
         for index, child_row in enumerate(rows, start=start_row):
             child_id = (child_row.kind, child_row.key)
             choice = tk.StringVar(value=child_row.default_action)
             choices[child_id] = choice
             ttk.Label(frame, text=_kind_label(child_row.kind)).grid(row=index, column=0, sticky="w", padx=(0, 8))
-            display_name = _ellipsize(child_row.display_name, 24)
-            name_label = ttk.Label(frame, text=display_name)
-            name_label.grid(row=index, column=1, sticky="w", padx=(0, 8))
-            if display_name != child_row.display_name:
-                self._bind_tooltip(name_label, child_row.display_name)
-            target_path = _ellipsize_path(child_row.target_path, 56)
-            path_label = ttk.Label(frame, text=target_path)
-            path_label.grid(row=index, column=2, sticky="w", padx=(0, 8))
-            if target_path != child_row.target_path:
-                self._bind_tooltip(path_label, child_row.target_path)
+            name_cell = self._add_text_cell(frame, index, 1, child_row.display_name, _ellipsize)
+            path_cell = self._add_text_cell(frame, index, 2, child_row.target_path, _ellipsize_path)
+            text_cells.extend((name_cell, path_cell))
             ttk.Label(frame, text=child_row.share_text).grid(row=index, column=3, sticky="w", padx=(0, 8))
             actions = ttk.Frame(frame)
             actions.grid(row=index, column=4, sticky="w")
             for action, label in ((ACTION_SAVE, "保存"), (ACTION_SAVE_AS, "別名保存"), (ACTION_SKIP, "保存しない")):
                 ttk.Radiobutton(actions, text=label, variable=choice, value=action).pack(side="left")
-        return choices
+        return choices, text_cells
+
+    def _add_text_cell(self, frame, row: int, column: int, text: str, ellipsize):
+        cell = {"text": text, "display": "", "ellipsize": ellipsize}
+        label = ttk.Label(frame, text="", width=1, anchor="w")
+        label.grid(row=row, column=column, sticky="ew", padx=(0, 8))
+        cell["label"] = label
+        self._bind_tooltip(label, text, lambda: cell["display"] != cell["text"])
+        return cell
 
     @staticmethod
-    def _bind_tooltip(widget, text: str) -> None:
+    def _configure_columns(frame) -> None:
+        for column in (0, 3, 4):
+            frame.columnconfigure(column, weight=0)
+        for column, weight in ((1, 1), (2, 2)):
+            frame.columnconfigure(column, weight=weight, minsize=1)
+
+    @staticmethod
+    def _bind_content_width(canvas, content_frame, window_id, text_cells) -> None:
+        measure = font.nametofont("TkDefaultFont").measure
+        last_width = None
+
+        def resize_content(event) -> None:
+            nonlocal last_width
+            if event.width == last_width:
+                return
+            last_width = event.width
+            canvas.itemconfigure(window_id, width=event.width)
+            content_frame.update_idletasks()
+            for cell in text_cells:
+                display = _fit_text(
+                    cell["text"], measure, cell["label"].winfo_width(), cell["ellipsize"]
+                )
+                if display != cell["display"]:
+                    cell["label"].configure(text=display)
+                    cell["display"] = display
+
+        canvas.bind("<Configure>", resize_content)
+
+    @staticmethod
+    def _set_minimum_size(dialog, frame, list_frame, content_frame, scrollbar, row_count: int) -> None:
+        dialog.update_idletasks()
+        visible_rows = min(1, row_count)
+        content_width, content_height = content_frame.grid_bbox(0, 0, 4, visible_rows)[2:]
+        frame_overhead_width = max(0, frame.winfo_reqwidth() - list_frame.winfo_reqwidth())
+        frame_overhead_height = max(0, frame.winfo_reqheight() - list_frame.winfo_reqheight())
+        required_width = content_width + scrollbar.winfo_reqwidth() + frame_overhead_width
+        required_height = content_height + frame_overhead_height
+        dialog.minsize(max(720, required_width), max(320, required_height))
+
+    @staticmethod
+    def _bind_tooltip(widget, text: str, should_show: Callable[[], bool]) -> None:
         tooltip = None
 
         def hide_tooltip(_event=None) -> None:
@@ -118,6 +171,8 @@ class ChildSaveDialog:
         def show_tooltip(event) -> None:
             nonlocal tooltip
             hide_tooltip()
+            if not should_show():
+                return
             try:
                 tooltip = tk.Toplevel(widget)
                 tooltip.overrideredirect(True)
@@ -250,3 +305,20 @@ def _ellipsize_path(text: str, limit: int) -> str:
     prefix_length = limit // 3
     suffix_length = limit - prefix_length - 1
     return text[:prefix_length] + "…" + text[-suffix_length:]
+
+
+def _fit_text(text: str, measure: Callable[[str], int], max_px: int, ellipsize: Callable[[str, int], str]) -> str:
+    if measure(text) <= max_px:
+        return text
+    first_candidate = ellipsize(text, 1)
+    fitted = first_candidate if measure(first_candidate) <= max_px else ""
+    low, high = 2, len(text)
+    while low <= high:
+        limit = (low + high) // 2
+        candidate = ellipsize(text, limit)
+        if measure(candidate) <= max_px:
+            fitted = candidate
+            low = limit + 1
+        else:
+            high = limit - 1
+    return fitted or "…"
