@@ -97,8 +97,14 @@ keymap_set の「保存」が子ファイル（keymap / trigger_set / sequence�
 | task_09 | `save_dialog_layout` | 一覧ダイアログのレイアウト（固定初期サイズ・リサイズ・縦スクロール・省略表示＋ツールチップ）（v0.3-C）。実機目視⑤の解消 |
 | task_10 | `finalize_records` | **正本反映**（`data_schema.md` / `codebase_map.md` 昇格）+ 暫定仕様 05 凍結 + `decisions_archive/06` +
 `current.md` 完了記載 + `backlog/INDEX.md`（idea_05 クローズ・idea_06 / idea_07 の条件更新）+ `/refactor_check` |
+| task_11 | `save_dialog_flex_layout` | 一覧ダイアログの可変列化（対象名・保存先パスが幅追随／ラジオ列を切らさない）と、最小サイズでも OK・キャンセルが見えるボタン配置（v0.4-C 追記・受入条件 14b）。実機目視⑥の解消 |
+| task_12 | `dependency_confirm_scope` | 依存確認ダイアログの提示条件の縮小（単独 / 新規作成は確認なし自動保存）と 4 択化＋deferred index 例外（v0.4-D/E/F/I・§8）。実機目視⑦の解消と受入条件 18 の再現テスト |
+| task_13 | `data_replace_state_reset` | `data` を新規化・置換する全入口（`new_config` / `restore_default`）で trigger_set の状態をリセット（v0.4-H・受入条件 17） |
 
-- 依存順は上表のとおり（task_01 → 10）。タスク定義は着手時に `/task_new` で順次起票する。
+- 依存順は上表のとおり（task_01 → 09 → **11 → 12 → 13** → 10。**task_10 が最終**）。
+  タスク定義は着手時に `/task_new` で順次起票する。
+- **task_11〜13 は 2026-07-30 の実機目視フィードバックによる追加**（暫定仕様 05 **v0.4**）。
+  判断履歴は `decisions.md` の「2 回目の実機目視フィードバック」節。
 - **task_07〜09 は 2026-07-29 の実機目視フィードバックによる追加**（暫定仕様 05 v0.3）。
   旧 task_07（`finalize_records`）は **task_10 へ繰り下げ**。判断履歴は `decisions.md` の
   「実機目視フィードバック」節。task_07 → 08 の順に進める（A2 の判定が canonical identity に依存するため）。
