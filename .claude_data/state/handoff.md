@@ -18,10 +18,11 @@
    `.claude/rules/` の順に必要分を読む
 4. **このフェーズの設計の正は暫定仕様 [05_child_file_save_dialog.md](../../instructions/history/05_child_file_save_dialog.md)**
    （**v0.4**・ユーザー確定済 2026-07-30）。フェーズ中は正本 `spec_detail/` を直接改訂しない（**task_10** で昇格＋凍結）。
-   タスク定義は `instructions/phase/06_child_file_save_dialog/tasks/`（**task_01〜09・11 は完了 / task_12 は実装済で修正待ち**）。
+   タスク定義は `instructions/phase/06_child_file_save_dialog/tasks/`
+   （**task_01〜09・11〜13 は完了。残るは task_10 = 正本反映のみ**）。
    受入条件の充足状況は `instructions/phase/06_child_file_save_dialog/integration_result.md` が正。
    番号対応: **α=phase05/暫定04〔完了〕 / β=phase06/暫定05〔進行中〕 / γ=phase07/暫定06 / プリセット=phase08/暫定07**。
-5. session.md.next_action から作業を再開する（**最優先は blockers の判断**）
+5. session.md.next_action から作業を再開する（**実機目視の結果待ち**。目視の確認項目は session.md が正）
 
 ## 現在の作業の 1 行サマリ
 **Phase β は task_13 まで完了（実装は全て完了）。残りは実機目視（ユーザー実施）→ task_10（正本反映）**。
@@ -59,7 +60,9 @@
   新パスに既存ファイルがあり `SHARE_SOLE` 以外の行だけ行単位で上書き確認）＝ **v0.4-F で維持**。
   **一覧へ戻る経路は依存確認の「キャンセル」だけ**
   ④ `dirty_tracker.trigger_set_source_path` と `data[INTERNAL_TRIGGER_SET_SOURCE_PATH]` は**常に一致**
-  （入口は `dirty_state` の 2 メソッドのみ。直接代入を復活させない。**リセット漏れの修正は task_13**）
+  （入口は `dirty_state` の `set_trigger_set_source_path` / `sync_trigger_set_source_path_from_data` /
+  **`reset_trigger_set_state`（task_13 で追加。`data` 置換時のリセット専用）**の 3 本のみ。直接代入を復活させない。
+  リセット後は `data` からキーを pop して `new_default_data()` と同じ「キー無し」の形にする）
   ⑤ 子の `_parent_refs` は**保存先ファイルの集合 + 現在の上位**（保存元 in-memory の旧参照元は足さない）
   ⑥ アクションの優先順位は `child_save_plan.build_save_plan` の 1 箇所（一覧の選択 > confirmed > 非 dirty 既定）
   ⑦ 保存計画の**決定は presentation・実行は application** / **行ごとの粒度**（選んだ子だけ書く）。
@@ -107,7 +110,8 @@
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
   （直近: 05_keymap_set_new_and_default_dir / 04_config_io_controller_split / 03_startup_font_settings_cleanup）。
 - 未着手/保留 idea: idea_03（hotkey 保存正規化・低）/ idea_04（FontSettingsController・保留）/ idea_07（参照元掃除・β後）/
-  idea_08（個別プリセット・07後）/ idea_09（レガシー保存パス・α の積み残し）。idea_05→β 内包（着手中）/ idea_06→β 達成見込み。
+  idea_08（個別プリセット・07後）/ idea_09（レガシー保存パス・α の積み残し）。
+  idea_05→β が内包（**実装完了。task_10 で INDEX_done へ移す**）/ idea_06→β 達成見込み。
 - **β で保留にしたレビュー指摘**（task_10 or 別 idea で扱う）: sequence の共有判定の「現在の上位」が
   計画後の trigger_set 保存先である点 / 事前検証で `os.makedirs` の副作用がある点 /
   `_ask_save_as_path` が `choose_save_path_with_collision` を使っていない点。
