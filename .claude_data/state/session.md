@@ -4,58 +4,52 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-30T02:40:00
+last_updated: 2026-07-30T05:10:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
 last_commit_location: claude/save-dialog-ui-improvements-c0189a ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β は暫定仕様 05 を v0.4 へ改訂（確定済）+ task_11 完了。残りは task_12 → 13 → 実機目視 → task_10**。
+focus: **Phase β は task_12 まで完了（実測 green・reviewer 採用）。残りは task_13 → 実機目視 → task_10**。
 mode: implementing
 
 ## last_action
-ts: 2026-07-30T02:40:00
+ts: 2026-07-30T05:10:00
 who: main
 summary: |
-  【2 回目の実機目視フィードバック → 暫定仕様 05 を v0.4 へ改訂（確定）+ task_11 完了】
-  - **ユーザー判断（討議 2026-07-30）**: ①依存確認ダイアログは**提示条件を絞る**（上位の共有状況が
-    「単独 / 新規作成」なら確認せず自動保存＋完了メッセージで事後通知。それ以外は **4 択**〔保存 / 別名保存 /
-    保存しない / キャンセル・既定=別名保存〕。「保存しない」= 索引は旧パス維持・上位を dirty 化して次回保存で追随）
-    ②v0.3-A2（再計算先の上書き確認）は**維持**（「①②とも廃止」を一度選んだが、A2 は `asksaveasfilename` で
-    代替不能と提示して再決定）③新規子の既定保存先で既存ファイルを避ける案は**不採用**
-    ④`new_config` 等の trigger_set 状態リセット漏れ（実バグ）は **Phase β 内で修正**。
-  - **敵対的レビュー（v0.4 対象・needs-attention）の 5 件を全採用**して反映（詳細は decisions.md）:
-    §5【v0.4-I】新規子が既存ファイルへ当たるときは既定を別名保存 / §8 に **deferred index 例外** /
-    「保存しない」時は**保存前の dirty 状態に関係なく上位を dirty 化** / v0.4-H を `restore_default` にも拡張 /
-    受入条件 14b・16b を検証可能な形へ（+17b 追加）。
-  - **task_11（save_dialog_flex_layout）完了**: `codex-implementer` へ委任（presentation 限定）。
-    ボタン行を `side="bottom"` で先に pack / 5 列を固定・可変（対象名 1 : パス 2）に分離し Canvas 幅へ追随 /
-    省略を **px 幅ベース**へ（`_fit_text` 追加・`_ellipsize` 系は無変更で再利用・同幅再入は早期 return）/
-    ツールチップは常時バインド＋省略中のみ表示 / `minsize` を要求幅から算出（`max(720, required_width)`）。
-    実測 fail 1 件（実描画テストで `canvas.winfo_width()` が 1）→ `update()` + skip ガードへ修正して green。
-result_files:
-  - instructions/history/05_child_file_save_dialog.md（**v0.4**・§2 v0.4 節 / §3-3 / §3-5 / §5 / §6 / §7 / §8 / 受入条件）
-  - .claude_data/state/decisions.md（2 回目の実機目視 + v0.4 敵対的レビューの判断履歴）
-  - instructions/phase/06_child_file_save_dialog/phase.md（task_11〜13 追加・依存順を 09→11→12→13→10 へ）
-  - instructions/phase/06_child_file_save_dialog/tasks/task_11_save_dialog_flex_layout.md（新規）
-  - keyseq/presentation/controllers/config_io/child_save_dialog.py（可変列・px 省略・minsize 実測。324 行）
-  - tests_ui/test_child_save_dialog.py（構造 6 件 + `_fit_text` 純関数 3 件 + 実 Tk 境界 1 件）
+  【task_12（依存確認の提示条件縮小・4 択・deferred index）完了 = 実測 green + reviewer 採用】
+  `codex-implementer` へ委任（8 ファイル）。**実装は初回のまま一度も直さず、修正はテストと仕様条文のみ**。
+  - **入った実装**: `SavePlan.allow_deferred_index`（presentation が 4 択で「保存しない」を選んだときだけ立て、
+    application は `_validate_save_plan` の必須依存を通すためだけに使う）/ 依存確認を **4 択の自前 `Toplevel`** へ /
+    上位が `SHARE_SOLE` / `SHARE_NEW` なら**確認なし自動保存＋事後通知** / 保存成功後に
+    `mark_trigger_set_dirty()`（保存前の dirty 状態に依存しない）/ `SHARE_NEW_COLLIDES` + `has_source_path`。
+  - **ユーザー判断で v0.4-I を限定**（実測 fail の根が「v0.4-I が trigger_set にも当たり v0.4-D が空振り」だったため）:
+    **対象は keymap / sequence のみ**・**置き換えは元判定が単独 / 共有中のときだけ**。
+    根拠は「保存先の名前がユーザーの明示確認を経ているか」（階層では分けない）。
+  - **ハングの真因**（3 回連続。Codex の診断は 3 回とも外れ）: テスト内の `AssertionError` が
+    `save_keymap_set_to` の広い `except Exception` に捕まり **`messagebox.showerror` がモーダル化して
+    永久ブロック**していた。`messagebox` / `filedialog` を全遮断した診断実行で 0.578 秒で完走し確定。
+    → **`showerror` / A2 / 依存確認を「呼ばれたら AssertionError」の fail-fast ガード**に（tests_ui 3 ファイル）。
+  - **受入条件 15 を明確化**（挙動変更なし）: 依存が発生しない経路（未作成の子として普通に書かれる場合）では
+    事後通知を出さない。テストは通知の代わりに**実ファイルと `sequence_path` の中身**を検証する形へ。
+result_files（**未コミット**。task_11 までは 2 コミット済 = `01c656e` v0.4 改訂と起票 / `8d8262c` task_11）:
+  - instructions/history/05_child_file_save_dialog.md（v0.4-I の適用範囲限定 / 受入条件 15・17b の明確化）
+  - .claude_data/state/decisions.md（v0.4-I 限定の判断と根拠）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_12_dependency_confirm_scope.md（新規）
+  - keyseq/application/save_plan.py / config_service.py（`allow_deferred_index` と検証の 1 行緩和）
+  - keyseq/presentation/controllers/config_io/child_save_rows.py / child_save_dialog.py / keymap_set_io.py
+  - tests/test_save_plan.py / tests/test_child_save_rows.py / tests_ui/test_child_save_dialog.py /
+    tests_ui/test_config_io_characterization.py / tests_ui/test_config_io_characterization_keymap_set_startup.py
 verified:
   compile: clean
-  tests: pass 136
-  tests_ui: pass 124（+8・skip 0。実 Tk 境界テストも pass）
+  tests: pass 138（+2）
+  tests_ui: pass 131（+7・skip 0・**完走**。3 回続いたハングは fail-fast ガードで解消）
   smoke: pass
-  review: reviewer（task_11 差分）= **完了可**（非ブロッキング 2 件 = `_add_text_cell` の戻り値が素の dict で
-    型注釈なし〔dataclass 化は過剰・`/refactor_check` の検討候補へ〕/ `_add_rows` の型注釈欠落 → **修正済**）
+  review: reviewer（task_12 差分）= **完了可** → 実測 fail 対応後に**変更部分のみ再レビュー**して再度
+    **完了可**（指摘なし）。アサーションは緩められておらず、`showerror` 期待テストは
+    `assert_called_once_with(title/message)` へ**強化**されている
 
 ## next_action
-- **task_12（`dependency_confirm_scope`）を `/task_new` で起票 → `codex-implementer` へ委任**（実装の既定）。
-  範囲は暫定仕様 05 **v0.4-D/E/F/I** と §8 の deferred index 例外・受入条件 15 / 16 / 16b / 17b / 18。
-  実装の当事者は `config_io/child_save_dialog.py`（4 択ダイアログ）/ `keymap_set_io.py`
-  （提示条件の判定・自動保存・上位の dirty 化）/ `child_save_rows.py`（v0.4-I の既定判定）/
-  `config_service.py`（`_validate_save_plan:786` の必須依存を deferred index 例外で通す）。
-  **受入条件 18 の再現テストを先に書く**（出力シーケンスのみ変更 → keymap_set 保存 → 一覧で別名保存 →
-  新パスにファイルができ trigger_set の `sequence_path` が新パスを指すこと。保存先が新規名 / 既存名の両ケース）。
-- task_12 完了後: **task_13（`data_replace_state_reset`）を起票 → 委任**（`new_config` / `restore_default` で
+- **task_13（`data_replace_state_reset`）を `/task_new` で起票 → `codex-implementer` へ委任**（`new_config` / `restore_default` で
   `trigger_set_source_path` / `trigger_set_dirty` をリセット。受入条件 17）。
 - その後 **実機目視をユーザーへ依頼**（起動は `<repo>\.venv\Scripts\python.exe main.py`。
   **③④の確認は VS Code の ▶ 実行〔小文字ドライブ〕で行う**）。確認項目は
@@ -69,8 +63,9 @@ verified:
   個別「トリガー一覧を保存」が全 sequence を書く点と §8 の関係 / **v0.3 追加分**（A: 再表示しない /
   A2: 再計算先の上書き確認 / B: canonical identity / C: ダイアログ要件 / 変更なし保存でも親は書かれる）/
   **v0.4 追加分**（D/E: 依存確認の提示条件と 4 択・deferred index 例外と上位の dirty 化 / F: A2 維持 /
-  G: 既定保存先は既存ファイルを避けない / I: 新規子が既存ファイルへ当たるときは既定を別名保存 /
-  H: `data` 置換時の trigger_set 状態リセット）。
+  G: 既定保存先は既存ファイルを避けない / I: 新規子が既存ファイルへ当たるときは既定を別名保存
+  〔**keymap / sequence 限定・元判定が単独 / 共有中のときだけ**〕/ H: `data` 置換時の trigger_set 状態リセット /
+  受入条件 15 の「依存が発生しない経路では事後通知を出さない」）。
   併せて暫定仕様 05 の凍結・`decisions_archive/06` 作成・`current.md` 完了記載・
   `backlog/INDEX.md`（idea_05 クローズ・idea_06 / idea_07 の条件更新）・`/refactor_check`。
 
@@ -128,6 +123,23 @@ verified:
   `_ellipsize` / `_ellipsize_path` は無変更のまま `_fit_text` から再利用（`limit=1` で
   `_ellipsize_path` が非単調になるため探索は `low=2` から・`limit=1` は個別候補として扱う）。
   ツールチップは**常時バインド + 省略中のみ表示**。`minsize` は要求幅から算出（px 決め打ち禁止）。
+- **task_12 で入った土台**: `SavePlan.allow_deferred_index`（既定 False。**presentation が 4 択で
+  「保存しない」を選んだときだけ立てる**フラグで、application は `_validate_save_plan` の必須依存チェックを
+  通すためだけに使う）/ `child_save_rows.SHARE_NEW_COLLIDES` + `build_row(has_source_path=...)`
+  （**keymap / sequence 限定・元判定が単独 / 共有中のときだけ置き換え**）/ 依存確認は `messagebox` から
+  **自前の 4 択 `Toplevel`** へ（既定フォーカス=別名保存・Escape と閉じるはキャンセル）/
+  提示条件は上位が `SHARE_SOLE` / `SHARE_NEW` なら確認なし自動保存＋事後通知 /
+  `save_keymap_set_to` が保存成功後に `mark_trigger_set_dirty()` を無条件で呼ぶ（deferred index の追随）。
+- **【罠・重要】保存経路の例外は `messagebox.showerror` になり、テストではモーダルで永久ブロックする**。
+  テスト内の `AssertionError` も `save_keymap_set_to` の広い `except Exception` に捕まるため、
+  **失敗が「ハング」に化けて原因が見えなくなる**（2026-07-30 に 3 回発生）。
+  対策として tests_ui の 3 ファイル（`test_child_save_dialog` / `test_config_io_characterization` /
+  `test_config_io_characterization_keymap_set_startup`）の `setUp` に **fail-fast ガード**を入れてある:
+  `messagebox.showerror` / `confirm_recalculated_overwrite`(A2) / `confirm_trigger_set_dependency` を
+  「呼ばれたら `AssertionError`」に patch。**期待するテストは個別 patch で上書きし、内容をアサーションする**。
+  新しいモーダルを増やすときは**同じガードを足す**こと。
+- **【教訓】ハングしたら `messagebox` / `filedialog` を全遮断して単独実行する**と真因が一発で出る
+  （`python -c` で `mb.showerror` 等を差し替えて `unittest.main(module=..., argv=[...])`。2026-07-30 実測で 0.6 秒）。
 - **申し送り（refactor_check / task_10）**: ⓪ `child_save_dialog.py` が **324 行**（目安 300 超）+
   `_add_text_cell` の戻り値が素の dict（型注釈なし。dataclass 化は task_11 では過剰と判断・reviewer 非ブロッキング）
   ① slugify 後に別々の keymap_set 名が同一 stem へ

@@ -20,6 +20,23 @@ import unittest
 from unittest.mock import patch
 
 from keyseq.presentation import app as app_module
+from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
+
+
+def _unexpected_trigger_set_dependency(*_args, **_kwargs):
+    raise AssertionError(
+        "想定外の依存確認ダイアログ。期待するならテスト側で patch すること"
+    )
+
+
+def _unexpected_recalculated_overwrite(*_args, **_kwargs):
+    raise AssertionError(
+        "想定外の再計算後上書き確認。期待するならテスト側で patch すること"
+    )
+
+
+def _unexpected_showerror(_title, message, *_args, **_kwargs):
+    raise AssertionError(f"想定外のエラーダイアログ: {message}")
 
 
 def _config_set_io(app):
@@ -55,6 +72,27 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         cls.app.destroy()
 
     def setUp(self):
+        self._dependency_confirm_guard = patch.object(
+            child_save_dialog_module.ChildSaveDialog,
+            "confirm_trigger_set_dependency",
+            side_effect=_unexpected_trigger_set_dependency,
+        )
+        self._recalculated_overwrite_guard = patch.object(
+            child_save_dialog_module.ChildSaveDialog,
+            "confirm_recalculated_overwrite",
+            side_effect=_unexpected_recalculated_overwrite,
+        )
+        self._showerror_guard = patch.object(
+            tkinter.messagebox,
+            "showerror",
+            side_effect=_unexpected_showerror,
+        )
+        self._dependency_confirm_guard.start()
+        self._recalculated_overwrite_guard.start()
+        self._showerror_guard.start()
+        self.addCleanup(self._dependency_confirm_guard.stop)
+        self.addCleanup(self._recalculated_overwrite_guard.stop)
+        self.addCleanup(self._showerror_guard.stop)
         self.app.data = {"keymaps": [], "triggers": [], "active_keymap_id": ""}
         self.app._selected_trigger_idx = 0
         self.app.config_root = os.getcwd()
@@ -238,7 +276,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             )
         self.assertFalse(ok)
         self.assertEqual(calls, [("flash", "保存失敗: disk full", {"auto_clear": False})])
-        showerror.assert_called_once()
+        showerror.assert_called_once_with("保存失敗", "disk full")
         set_dirty.assert_not_called()
 
     # ===================== A: choose_split_base_dir_for_keymap_set =====================
@@ -313,7 +351,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ), self._record_flash(calls), patch.object(tkinter.messagebox, "showerror") as showerror:
             _config_set_io(self.app).load_keymap_set_from()
         self.assertEqual(calls, [("flash", "読込失敗: bad", {"auto_clear": False})])
-        showerror.assert_called_once()
+        showerror.assert_called_once_with("読込失敗", "bad")
 
     # ===================== A: new_config / import / export / restore =====================
     def test_new_config_confirm_false_early_return(self):
@@ -422,7 +460,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             tkinter.messagebox, "showerror"
         ) as showerror:
             _config_set_io(self.app).import_config()
-            showerror.assert_called_once()
+            showerror.assert_called_once_with("Import 失敗", "bad")
 
     def test_import_config_exception_preserves_nonempty_keymap_set_path(self):
         self.app.keymap_set_path = "current.json"
@@ -432,9 +470,10 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             self.app.config_service, "load_legacy_runtime_data", side_effect=ValueError("bad")
         ), patch.object(self.app, "_set_flash_message"), patch.object(
             tkinter.messagebox, "showerror"
-        ):
+        ) as showerror:
             _config_set_io(self.app).import_config()
         self.assertEqual(self.app.keymap_set_path, "current.json")
+        showerror.assert_called_once_with("Import 失敗", "bad")
 
     def test_export_config_empty_path_returns(self):
         with patch.object(tkinter.filedialog, "asksaveasfilename", return_value=""), patch.object(
@@ -460,7 +499,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             tkinter.messagebox, "showerror"
         ) as showerror:
             _config_set_io(self.app).export_config()
-            showerror.assert_called_once()
+            showerror.assert_called_once_with("Export 失敗", "no")
 
     def test_restore_default_no_does_nothing(self):
         with patch.object(tkinter.messagebox, "askyesno", return_value=False), patch.object(
@@ -499,7 +538,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ) as showerror:
             # write_startup は B（StartupIo）でクロスモジュール。set_startup は self._app.startup_io.write_startup を呼ぶため所有オブジェクトを patch。
             _config_set_io(self.app).set_startup_keymap_set()
-            showerror.assert_called_once()
+            showerror.assert_called_once_with("設定", "bad")
             write_startup.assert_not_called()  # 読込例外時は後続を実行しない
 
     def test_set_startup_keymap_set_writes_only_keymap_set_path(self):
@@ -541,7 +580,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ], patches[2], patches[3]:
             _config_set_io(self.app).set_startup_keymap_set()
         # write_startup 内の保存失敗は showerror で握りつぶされる
-        showerror.assert_called_once()
+        showerror.assert_called_once_with("startup.json 保存失敗", "disk full")
         # だが後続は続行する
         self.assertEqual(self.app.data, {"loaded": True})
         self.assertEqual(self.app.keymap_set_path, "k.json")
@@ -593,7 +632,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ), patch.object(tkinter.messagebox, "showerror") as showerror:
             # 例外を raise しない（握りつぶす）
             _startup_io(self.app).write_startup({"ui_font_delta_pt": 0})
-            showerror.assert_called_once()
+            showerror.assert_called_once_with("startup.json 保存失敗", "no disk")
 
     # ===================== B: load_startup_and_config =====================
     def test_load_startup_and_config_loads_when_stored_path_exists(self):

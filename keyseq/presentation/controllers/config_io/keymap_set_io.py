@@ -14,6 +14,7 @@ from keyseq.application.save_plan import (
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
 from keyseq.presentation.controllers.config_io.child_save_rows import (
+    SHARE_NEW,
     SHARE_SOLE,
     build_row,
     collect_child_save_rows,
@@ -97,7 +98,10 @@ class KeymapSetIo:
         try:
             save_path = self._app.paths.normalize_keymap_set_save_path(path)
             split_base_dir = self.choose_split_base_dir_for_keymap_set(save_path)
-            save_plan, recalculation_notice = self._collect_child_save_plan(save_path, split_base_dir)
+            save_plan, recalculation_notice, deferred_index = self._collect_child_save_plan(
+                save_path,
+                split_base_dir,
+            )
             if save_plan is None:
                 self._app._set_flash_message("保存を中止しました。")
                 return False
@@ -116,16 +120,19 @@ class KeymapSetIo:
             self._app._startup_settings = startup_payload
             self._app.dirty_tracker.sync_trigger_set_source_path_from_data()
             self._clear_saved_child_dirty_flags(*skipped_dirty_children)
+            if deferred_index:
+                self._app.dirty_tracker.mark_trigger_set_dirty()
             self._app.dirty_tracker.set_dirty(False)
             self._app.dirty_tracker.sync_dirty_state()
-            completion_message = (
-                f"{flash_message}\n{recalculation_notice}" if recalculation_notice else flash_message
-            )
+            notices = [notice for notice in (recalculation_notice,) if notice]
+            if deferred_index:
+                notices.append("トリガー一覧は未保存です。次回保存で索引を更新します。")
+            completion_message = "\n".join((flash_message, *notices))
             self._app._set_flash_message(completion_message)
             if show_success_dialog:
                 message = f"保存しました:\n{save_path}"
-                if recalculation_notice:
-                    message = f"{message}\n\n{recalculation_notice}"
+                if notices:
+                    message = f"{message}\n\n" + "\n".join(notices)
                 messagebox.showinfo("保存", message)
             return True
         except Exception as e:
@@ -135,7 +142,7 @@ class KeymapSetIo:
 
     def _collect_child_save_plan(
         self, save_path: str, split_base_dir: str
-    ) -> tuple[SavePlan | None, str]:
+    ) -> tuple[SavePlan | None, str, bool]:
         pending = SavePlan()
         while True:
             targets = self._app.config_service.resolve_child_save_targets(
@@ -156,7 +163,7 @@ class KeymapSetIo:
             )
             choices = {} if not rows else self._app.child_save_dialog.ask_child_save_actions(rows)
             if choices is None:
-                return None, ""
+                return None, "", False
             plan = build_save_plan(
                 data=self._app.data,
                 rows=rows,
@@ -189,7 +196,7 @@ class KeymapSetIo:
                     confirmed=pending,
                 )
                 if confirmed_plan is None:
-                    return None, ""
+                    return None, "", False
                 plan, choices = confirmed_plan
             blocked = self._app.config_service.find_dependency_blocked_sequences(
                 self._app.data,
@@ -199,15 +206,20 @@ class KeymapSetIo:
                 save_plan=plan,
             )
             if not blocked:
-                return plan, recalculation_notice
+                return plan, recalculation_notice, False
             trigger_row = self._trigger_set_row(rows, targets, save_path)
-            action = self._app.child_save_dialog.confirm_trigger_set_dependency(
-                blocked_labels=self._blocked_labels(blocked),
-                trigger_set_row=trigger_row,
-            )
+            dependency_notice = ""
+            if trigger_row.share_state in (SHARE_SOLE, SHARE_NEW):
+                action = ACTION_SAVE
+                dependency_notice = "トリガー一覧も保存して索引を更新しました。"
+            else:
+                action = self._app.child_save_dialog.confirm_trigger_set_dependency(
+                    blocked_labels=self._blocked_labels(blocked),
+                    trigger_set_row=trigger_row,
+                )
             if not action:
                 if not rows:
-                    return None, ""
+                    return None, "", False
                 pending = SavePlan()
                 continue
             confirmed = ChildSaveEntry(
@@ -228,6 +240,12 @@ class KeymapSetIo:
                 targets=targets,
                 confirmed=confirmed_entries,
             )
+            if action == ACTION_SKIP:
+                return (
+                    SavePlan(entries=plan.entries, allow_deferred_index=True),
+                    recalculation_notice,
+                    True,
+                )
             if self._trigger_target_changed(confirmed, targets, save_path, split_base_dir):
                 plan, targets = self._rebuild_plan_with_targets(
                     rows=rows,
@@ -246,9 +264,12 @@ class KeymapSetIo:
                     confirmed=confirmed_entries,
                 )
                 if confirmed_plan is None:
-                    return None, ""
+                    return None, "", False
                 plan, _ = confirmed_plan
-            return plan, recalculation_notice
+            notices = "\n".join(
+                notice for notice in (recalculation_notice, dependency_notice) if notice
+            )
+            return plan, notices, False
 
     def _rebuild_plan_with_targets(
         self,
@@ -338,6 +359,7 @@ class KeymapSetIo:
                 current_parent=current_parent,
                 config_service=self._app.config_service,
                 config_root=self._app.config_root,
+                has_source_path=self._has_source_path(row.kind, row.key),
             )
             if recalculated_row.share_state != SHARE_SOLE:
                 overwrite_rows.append(recalculated_row)
@@ -392,7 +414,31 @@ class KeymapSetIo:
             ),
             config_service=self._app.config_service,
             config_root=self._app.config_root,
+            has_source_path=self._has_source_path(CHILD_TRIGGER_SET, ""),
         )
+
+    def _has_source_path(self, kind: str, key: str) -> bool:
+        if kind == CHILD_TRIGGER_SET:
+            return bool(
+                str(
+                    self._app.data.get(
+                        self._app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH,
+                        "",
+                    )
+                    or ""
+                ).strip()
+            )
+        field = (
+            self._app.config_service.INTERNAL_KEYMAP_SOURCE_PATH
+            if kind == CHILD_KEYMAP
+            else self._app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH
+        )
+        items = self._app.data.get("keymaps" if kind == CHILD_KEYMAP else "triggers", [])
+        item_key = "id" if kind == CHILD_KEYMAP else "key"
+        for item in items:
+            if isinstance(item, dict) and normalize_key_name(str(item.get(item_key) or "")) == key:
+                return bool(str(item.get(field) or "").strip())
+        return False
 
     def _blocked_labels(self, blocked_keys: list[str]) -> list[str]:
         labels = {}

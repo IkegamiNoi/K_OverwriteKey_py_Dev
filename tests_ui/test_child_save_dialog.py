@@ -12,12 +12,37 @@ from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
 from keyseq.presentation.controllers.config_io.child_save_rows import (
     SHARE_NEW,
+    SHARE_NEW_COLLIDES,
     SHARE_OTHER_PARENT,
     SHARE_SHARED,
     SHARE_SOLE,
     SHARE_UNKNOWN,
     ChildSaveRow,
 )
+
+
+_REAL_CONFIRM_TRIGGER_SET_DEPENDENCY = (
+    child_save_dialog_module.ChildSaveDialog.confirm_trigger_set_dependency
+)
+_REAL_CONFIRM_RECALCULATED_OVERWRITE = (
+    child_save_dialog_module.ChildSaveDialog.confirm_recalculated_overwrite
+)
+
+
+def _unexpected_trigger_set_dependency(*_args, **_kwargs):
+    raise AssertionError(
+        "想定外の依存確認ダイアログ。期待するならテスト側で patch すること"
+    )
+
+
+def _unexpected_recalculated_overwrite(*_args, **_kwargs):
+    raise AssertionError(
+        "想定外の再計算後上書き確認。期待するならテスト側で patch すること"
+    )
+
+
+def _unexpected_showerror(_title, message, *_args, **_kwargs):
+    raise AssertionError(f"想定外のエラーダイアログ: {message}")
 
 
 def make_data(*, second_sequence: bool = False):
@@ -43,6 +68,7 @@ class _FakeDialogWidget:
         self.grid_calls = []
         self.pack_calls = []
         self.columnconfigure_calls = []
+        self.focused = False
 
     def grid(self, **kwargs):
         self.grid_calls.append(kwargs)
@@ -84,6 +110,9 @@ class _FakeDialogWidget:
     def rowconfigure(self, *_args, **_kwargs):
         pass
 
+    def focus_set(self):
+        self.focused = True
+
     def update_idletasks(self):
         pass
 
@@ -116,6 +145,7 @@ class _FakeSaveDialog:
         self._on_wait = on_wait
         self.buttons = {}
         self.protocols = {}
+        self.bindings = {}
         self.destroyed = False
         self.geometry_calls = []
         self.minsize_calls = []
@@ -147,6 +177,9 @@ class _FakeSaveDialog:
     def protocol(self, name, command):
         self.protocols[name] = command
 
+    def bind(self, sequence, callback):
+        self.bindings[sequence] = callback
+
     def destroy(self):
         self.destroyed = True
 
@@ -171,6 +204,29 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.app.destroy()
+
+    def setUp(self):
+        self._dependency_confirm_guard = patch.object(
+            child_save_dialog_module.ChildSaveDialog,
+            "confirm_trigger_set_dependency",
+            side_effect=_unexpected_trigger_set_dependency,
+        )
+        self._recalculated_overwrite_guard = patch.object(
+            child_save_dialog_module.ChildSaveDialog,
+            "confirm_recalculated_overwrite",
+            side_effect=_unexpected_recalculated_overwrite,
+        )
+        self._showerror_guard = patch.object(
+            tkinter.messagebox,
+            "showerror",
+            side_effect=_unexpected_showerror,
+        )
+        self._dependency_confirm_guard.start()
+        self._recalculated_overwrite_guard.start()
+        self._showerror_guard.start()
+        self.addCleanup(self._dependency_confirm_guard.stop)
+        self.addCleanup(self._recalculated_overwrite_guard.stop)
+        self.addCleanup(self._showerror_guard.stop)
 
     def _prepare(self, root, *, second_sequence: bool = False):
         path = os.path.join(root, "user", "keymap_sets", "main.json")
@@ -281,6 +337,36 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
 
         self.assertEqual(suspend.call_count, resume.call_count)
         return result, variables, dialog
+
+    def _ask_dependency_internally(self, row, on_wait, *, save_as_path=""):
+        dialog = _FakeSaveDialog(on_wait)
+        buttons = {}
+
+        def make_button(_master, *, text, command, **_kwargs):
+            widget = _FakeDialogWidget()
+            dialog.buttons[text] = command
+            buttons[text] = widget
+            return widget
+
+        with patch.object(
+            child_save_dialog_module.ChildSaveDialog,
+            "confirm_trigger_set_dependency",
+            _REAL_CONFIRM_TRIGGER_SET_DEPENDENCY,
+        ), patch.object(child_save_dialog_module.tk, "Toplevel", return_value=dialog), patch.object(
+            child_save_dialog_module.ttk, "Frame", side_effect=_FakeDialogWidget
+        ), patch.object(child_save_dialog_module.ttk, "Label", return_value=_FakeDialogWidget()), patch.object(
+            child_save_dialog_module.ttk, "Button", side_effect=make_button
+        ), patch.object(
+            self.app.child_save_dialog, "_ask_save_as_path", return_value=save_as_path
+        ), patch.object(self.app.hook, "suspend_hook_for_dialog") as suspend, patch.object(
+            self.app.hook, "resume_hook_after_dialog"
+        ) as resume:
+            result = self.app.child_save_dialog.confirm_trigger_set_dependency(
+                blocked_labels=["Copy"], trigger_set_row=row
+            )
+
+        self.assertEqual(suspend.call_count, resume.call_count)
+        return result, dialog, buttons
 
     def test_dialog_internal_rows_use_default_actions(self):
         rows = [
@@ -541,6 +627,226 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             self.assertEqual({key: open(value, "rb").read() for key, value in targets.items()}, before)
             self.assertNotEqual(open(path, "rb").read(), parent_before)
 
+    def test_sequence_save_as_updates_trigger_set_index_for_new_and_existing_targets(self):
+        for target_exists, requires_confirmation in ((False, False), (True, False), (False, True), (True, True)):
+            with self.subTest(target_exists=target_exists, requires_confirmation=requires_confirmation), tempfile.TemporaryDirectory() as root:
+                path = self._prepare(root)
+                targets = self._targets(path)
+                previous_sequence_path = targets[(CHILD_SEQUENCE, "f1")]
+                previous_sequence_bytes = open(previous_sequence_path, "rb").read()
+                renamed_sequence = os.path.join(root, "renamed", "copy.json")
+                if target_exists:
+                    self.app.config_service.repository.save_json(
+                        renamed_sequence,
+                        {"label": "existing", "actions": []},
+                    )
+                if requires_confirmation:
+                    self._replace_parent_refs(targets[(CHILD_TRIGGER_SET, "")], [])
+                self.app.data["triggers"][0]["actions"] = [
+                    {"type": "text", "value": "new", "label": ""}
+                ]
+                self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+                choices = {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, renamed_sequence)}
+
+                with patch.object(
+                    self.app.child_save_dialog, "ask_child_save_actions", return_value=choices
+                ), patch.object(
+                    self.app.child_save_dialog,
+                    "confirm_trigger_set_dependency",
+                    return_value=ACTION_SAVE,
+                ) as confirm:
+                    self.assertTrue(self._save(path))
+
+                if requires_confirmation:
+                    confirm.assert_called_once()
+                else:
+                    confirm.assert_not_called()
+                self.assertTrue(os.path.exists(renamed_sequence))
+                if target_exists:
+                    self.assertEqual(
+                        self.app.config_service.repository.load_json(renamed_sequence)["actions"],
+                        [{"type": "text", "value": "new", "label": ""}],
+                    )
+                self.assertEqual(open(previous_sequence_path, "rb").read(), previous_sequence_bytes)
+                trigger_set = self.app.config_service.repository.load_json(
+                    targets[(CHILD_TRIGGER_SET, "")]
+                )
+                self.assertEqual(
+                    trigger_set["triggers"][0]["sequence_path"],
+                    self.app.config_service.to_config_relative_or_absolute(renamed_sequence, root),
+                )
+
+    def test_sole_and_new_trigger_set_dependencies_are_saved_without_confirmation(self):
+        for share_state in (SHARE_SOLE, SHARE_NEW):
+            with self.subTest(share_state=share_state), tempfile.TemporaryDirectory() as root:
+                path = self._prepare(root)
+                trigger_set_path = self._targets(path)[(CHILD_TRIGGER_SET, "")]
+                if share_state == SHARE_NEW:
+                    os.remove(trigger_set_path)
+                    self.app.data.pop(self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH, None)
+                self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+                renamed_sequence = os.path.join(root, "renamed", "copy.json")
+                choices = {
+                    (CHILD_SEQUENCE, "f1"): (
+                        ACTION_SAVE_AS,
+                        renamed_sequence,
+                    )
+                }
+                with patch.object(
+                    self.app.child_save_dialog, "ask_child_save_actions", return_value=choices
+                ), patch.object(
+                    self.app.child_save_dialog, "confirm_trigger_set_dependency"
+                ) as confirm, patch.object(self.app, "_set_flash_message") as flash:
+                    self.assertTrue(self._save(path))
+
+                confirm.assert_not_called()
+                if share_state == SHARE_SOLE:
+                    self.assertIn("トリガー一覧も保存して索引を更新しました。", flash.call_args.args[0])
+                else:
+                    self.assertTrue(os.path.exists(trigger_set_path))
+                    trigger_set = self.app.config_service.repository.load_json(
+                        trigger_set_path
+                    )
+                    self.assertEqual(
+                        trigger_set["triggers"][0]["sequence_path"],
+                        self.app.config_service.to_config_relative_or_absolute(
+                            renamed_sequence, root
+                        ),
+                    )
+
+    def test_new_trigger_set_with_existing_sole_target_is_saved_without_confirmation(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare(root)
+            trigger_set_path = self._targets(path)[(CHILD_TRIGGER_SET, "")]
+            self.assertTrue(os.path.exists(trigger_set_path))
+            self.assertEqual(
+                self.app.config_service.repository.load_json(trigger_set_path)["_parent_refs"],
+                ["user/keymap_sets/main.json"],
+            )
+            self.app.data.pop(self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH, None)
+            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            choices = {
+                (CHILD_SEQUENCE, "f1"): (
+                    ACTION_SAVE_AS,
+                    os.path.join(root, "renamed", "copy.json"),
+                )
+            }
+            with patch.object(
+                self.app.child_save_dialog, "ask_child_save_actions", return_value=choices
+            ), patch.object(
+                self.app.child_save_dialog, "confirm_trigger_set_dependency", return_value=ACTION_SAVE
+            ) as confirm:
+                self.assertTrue(self._save(path))
+
+            confirm.assert_not_called()
+
+    def test_nonsole_trigger_set_dependencies_open_four_choice_confirmation(self):
+        for share_state in (SHARE_UNKNOWN, SHARE_OTHER_PARENT, SHARE_SHARED):
+            with self.subTest(share_state=share_state), tempfile.TemporaryDirectory() as root:
+                path = self._prepare(root)
+                trigger_set_path = self._targets(path)[(CHILD_TRIGGER_SET, "")]
+                if share_state == SHARE_UNKNOWN:
+                    self._replace_parent_refs(trigger_set_path, [])
+                elif share_state == SHARE_OTHER_PARENT:
+                    self._replace_parent_refs(trigger_set_path, ["user/keymap_sets/other.json"])
+                elif share_state == SHARE_SHARED:
+                    self._replace_parent_refs(
+                        trigger_set_path,
+                        ["user/keymap_sets/main.json", "user/keymap_sets/other.json"],
+                    )
+                self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+                choices = {
+                    (CHILD_SEQUENCE, "f1"): (
+                        ACTION_SAVE_AS,
+                        os.path.join(root, "renamed", "copy.json"),
+                    )
+                }
+                with patch.object(
+                    self.app.child_save_dialog, "ask_child_save_actions", return_value=choices
+                ), patch.object(
+                    self.app.child_save_dialog,
+                    "confirm_trigger_set_dependency",
+                    return_value=ACTION_SAVE,
+                ) as confirm:
+                    self.assertTrue(self._save(path))
+
+                confirm.assert_called_once()
+
+    def test_deferred_index_marks_trigger_set_dirty_after_save(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare(root)
+            self._replace_parent_refs(self._targets(path)[(CHILD_TRIGGER_SET, "")], [])
+            self.assertFalse(self.app.dirty_tracker.trigger_set_dirty)
+            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            choices = {
+                (CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, os.path.join(root, "renamed", "copy.json"))
+            }
+            with patch.object(
+                self.app.child_save_dialog, "ask_child_save_actions", return_value=choices
+            ), patch.object(
+                self.app.child_save_dialog,
+                "confirm_trigger_set_dependency",
+                return_value=ACTION_SKIP,
+            ), patch.object(
+                self.app.config_service,
+                "save_runtime_data",
+                wraps=self.app.config_service.save_runtime_data,
+            ) as save:
+                self.assertTrue(self._save(path))
+
+            self.assertTrue(save.call_args.kwargs["save_plan"].allow_deferred_index)
+            self.assertTrue(self.app.dirty_tracker.trigger_set_dirty)
+
+    def test_dependency_dialog_defaults_to_save_as_and_escape_or_close_cancels(self):
+        row = ChildSaveRow(
+            CHILD_TRIGGER_SET, "", "トリガー一覧", "C:/trigger.json", SHARE_UNKNOWN, "所有元不明", ACTION_SAVE_AS
+        )
+        for close in (
+            lambda dialog: dialog.bindings["<Escape>"](None),
+            lambda dialog: dialog.protocols["WM_DELETE_WINDOW"](),
+        ):
+            with self.subTest(close=close):
+                result, dialog, buttons = self._ask_dependency_internally(row, close)
+                self.assertEqual(result, "")
+                self.assertTrue(dialog.destroyed)
+                self.assertTrue(buttons["別名保存"].focused)
+
+    def test_new_child_collision_defaults_to_save_as_without_overwriting(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare(root)
+            sequence_path = self._targets(path)[(CHILD_SEQUENCE, "f1")]
+            before = open(sequence_path, "rb").read()
+            self.app.data["triggers"][0].pop(
+                self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH,
+                None,
+            )
+            renamed_sequence = os.path.join(root, "renamed", "copy.json")
+            self.app.data["triggers"][0]["actions"] = [
+                {"type": "text", "value": "new", "label": ""}
+            ]
+            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+
+            def choose(rows):
+                row = rows[0]
+                self.assertEqual(row.share_state, SHARE_NEW_COLLIDES)
+                self.assertEqual(row.share_text, "同名の既存ファイルあり・安全のため別名")
+                self.assertEqual(row.default_action, ACTION_SAVE_AS)
+                return {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, renamed_sequence)}
+
+            with patch.object(
+                self.app.child_save_dialog, "ask_child_save_actions", side_effect=choose
+            ), patch.object(
+                self.app.child_save_dialog, "confirm_trigger_set_dependency", return_value=ACTION_SAVE
+            ) as confirm:
+                self.assertTrue(self._save(path))
+
+            confirm.assert_not_called()
+            self.assertEqual(open(sequence_path, "rb").read(), before)
+            self.assertEqual(
+                self.app.config_service.repository.load_json(renamed_sequence)["actions"],
+                [{"type": "text", "value": "new", "label": ""}],
+            )
+
     def test_dirty_choices_control_overwrite_save_as_and_skip(self):
         with tempfile.TemporaryDirectory() as root:
             path = self._prepare(root, second_sequence=True)
@@ -604,6 +910,12 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             path = self._prepare(root)
             keymap_path = self._targets(path)[(CHILD_KEYMAP, "km1")]
+            self.app.data["keymaps"][0][
+                self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH
+            ] = self.app.config_service.to_config_relative_or_absolute(
+                keymap_path,
+                self.app.config_root,
+            )
             self._replace_parent_refs(
                 keymap_path,
                 ["user/keymap_sets/main.json", "user/keymap_sets/other.json"],
@@ -649,13 +961,14 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             ) as confirm:
                 self.assertTrue(self._save(path))
 
-            confirm.assert_called_once()
+            confirm.assert_not_called()
             self.assertTrue(os.path.exists(renamed_sequence))
 
     def test_dependency_save_as_keeps_confirmed_trigger_set_target(self):
         with tempfile.TemporaryDirectory() as root:
             path = self._prepare(root)
             targets = self._targets(path)
+            self._replace_parent_refs(targets[(CHILD_TRIGGER_SET, "")], [])
             old_trigger_bytes = open(targets[(CHILD_TRIGGER_SET, "")], "rb").read()
             renamed_sequence = os.path.join(root, "renamed", "copy.json")
             renamed_trigger_set = os.path.join(root, "renamed", "trigger_set.json")
@@ -686,6 +999,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             path = self._prepare(root)
             targets = self._targets(path)
+            self._replace_parent_refs(targets[(CHILD_TRIGGER_SET, "")], [])
             before = {path: open(path, "rb").read(), **{value: open(value, "rb").read() for value in targets.values()}}
             self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
             choices = {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, os.path.join(root, "renamed.json"))}
@@ -706,6 +1020,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             trigger = self.app.data["triggers"][0]
             trigger["label"] = "Renamed"
             trigger.pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+            self._replace_parent_refs(self._targets(path)[(CHILD_TRIGGER_SET, "")], [])
             with patch.object(self.app.child_save_dialog, "ask_child_save_actions") as ask, patch.object(
                 self.app.child_save_dialog,
                 "confirm_trigger_set_dependency",
@@ -864,28 +1179,39 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             "別の構成に属します",
             ACTION_SAVE,
         )
-        with patch.object(self.app.hook, "suspend_hook_for_dialog"), patch.object(
+        with patch.object(
+            child_save_dialog_module.ChildSaveDialog,
+            "confirm_recalculated_overwrite",
+            _REAL_CONFIRM_RECALCULATED_OVERWRITE,
+        ), patch.object(self.app.hook, "suspend_hook_for_dialog"), patch.object(
             self.app.hook, "resume_hook_after_dialog"
         ), patch.object(tkinter.messagebox, "askyesnocancel", return_value=None) as ask:
             self.assertIsNone(self.app.child_save_dialog.confirm_recalculated_overwrite([row]))
 
         self.assertEqual(ask.call_args.kwargs["default"], tkinter.messagebox.NO)
 
-    def test_dependency_dialog_uses_safe_default_for_unknown_owners(self):
-        for share_state, expected_default in ((SHARE_UNKNOWN, tkinter.messagebox.NO), (SHARE_OTHER_PARENT, tkinter.messagebox.NO), (SHARE_SOLE, tkinter.messagebox.YES), (SHARE_NEW, tkinter.messagebox.YES)):
-            with self.subTest(share_state=share_state):
-                row = ChildSaveRow(CHILD_TRIGGER_SET, "", "トリガー一覧", "C:/trigger.json", share_state, "共有状況", ACTION_SAVE)
-                with patch.object(self.app.hook, "suspend_hook_for_dialog"), patch.object(
-                    self.app.hook, "resume_hook_after_dialog"
-                ), patch.object(tkinter.messagebox, "askyesnocancel", return_value=None) as ask:
-                    self.assertEqual(
-                        self.app.child_save_dialog.confirm_trigger_set_dependency(
-                            blocked_labels=["Copy"], trigger_set_row=row
-                        ),
-                        "",
-                    )
-
-                self.assertEqual(ask.call_args.kwargs["default"], expected_default)
+    def test_dependency_dialog_returns_save_save_as_and_skip_actions(self):
+        row = ChildSaveRow(
+            CHILD_TRIGGER_SET, "", "トリガー一覧", "C:/trigger.json", SHARE_UNKNOWN, "所有元不明", ACTION_SAVE_AS
+        )
+        cases = (
+            ("保存", ACTION_SAVE, ""),
+            ("別名保存", ACTION_SAVE_AS, "C:/renamed.json"),
+            ("別名保存", "", ""),
+            ("保存しない", ACTION_SKIP, ""),
+        )
+        for button, expected, save_as_path in cases:
+            with self.subTest(button=button):
+                result, _dialog, buttons = self._ask_dependency_internally(
+                    row,
+                    lambda dialog, _button=button: dialog.buttons[_button](),
+                    save_as_path=save_as_path,
+                )
+                self.assertEqual(result, expected)
+                self.assertEqual(
+                    set(buttons),
+                    {"保存", "別名保存", "保存しない", "キャンセル"},
+                )
 
 
 if __name__ == "__main__":

@@ -784,7 +784,7 @@ class ConfigService:
                     ) from exc
 
         blocked_keys = self._sequence_keys_requiring_trigger_set_save(save_plan, payloads)
-        if blocked_keys:
+        if blocked_keys and not save_plan.allow_deferred_index:
             raise SavePlanError(
                 f"sequence {blocked_keys[0]} の保存先変更には trigger_set の保存が必要です。"
             )

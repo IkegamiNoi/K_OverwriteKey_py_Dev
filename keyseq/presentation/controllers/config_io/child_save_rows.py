@@ -19,6 +19,7 @@ SHARE_SOLE = "sole"
 SHARE_SHARED = "shared"
 SHARE_OTHER_PARENT = "other"
 SHARE_NEW = "new"
+SHARE_NEW_COLLIDES = "new_collides"
 
 
 @dataclass(frozen=True)
@@ -68,6 +69,8 @@ def judge_share_state(
 
 
 def share_text_for(share_state, ref_count) -> str:
+    if share_state == SHARE_NEW_COLLIDES:
+        return "同名の既存ファイルあり・安全のため別名"
     if share_state == SHARE_NEW:
         return "新規作成"
     if share_state == SHARE_SOLE:
@@ -80,7 +83,7 @@ def share_text_for(share_state, ref_count) -> str:
 
 
 def default_action_for(share_state) -> str:
-    if share_state in (SHARE_UNKNOWN, SHARE_OTHER_PARENT):
+    if share_state in (SHARE_UNKNOWN, SHARE_OTHER_PARENT, SHARE_NEW_COLLIDES):
         return ACTION_SAVE_AS
     return ACTION_SAVE
 
@@ -137,6 +140,9 @@ def collect_child_save_rows(
                     current_parent=keymap_parent,
                     config_service=config_service,
                     config_root=config_root,
+                    has_source_path=bool(
+                        str(keymap.get(config_service.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
+                    ),
                 )
             )
     if bool(dirty_tracker.trigger_set_dirty):
@@ -149,6 +155,9 @@ def collect_child_save_rows(
                 current_parent=keymap_parent,
                 config_service=config_service,
                 config_root=config_root,
+                has_source_path=bool(
+                    str(data.get(config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "").strip()
+                ),
             )
         )
     triggers = data.get("triggers", [])
@@ -171,6 +180,9 @@ def collect_child_save_rows(
                     current_parent=trigger_set_parent,
                     config_service=config_service,
                     config_root=config_root,
+                    has_source_path=bool(
+                        str(trigger.get(config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
+                    ),
                 )
             )
     return rows
@@ -185,6 +197,7 @@ def build_row(
     current_parent: str,
     config_service,
     config_root: str,
+    has_source_path: bool,
 ) -> ChildSaveRow:
     target_exists = os.path.exists(target_path)
     refs = config_service.read_parent_refs(target_path) if target_exists else None
@@ -196,6 +209,13 @@ def build_row(
         config_service=config_service,
         config_root=config_root,
     )
+    if (
+        kind in (CHILD_KEYMAP, CHILD_SEQUENCE)
+        and target_exists
+        and not has_source_path
+        and share_state in (SHARE_SOLE, SHARE_SHARED)
+    ):
+        share_state = SHARE_NEW_COLLIDES
     return ChildSaveRow(
         kind=kind,
         key=key,

@@ -6,11 +6,7 @@ from typing import Callable, Sequence
 from tkinter import filedialog, font, messagebox, ttk
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP
-from keyseq.presentation.controllers.config_io.child_save_rows import (
-    SHARE_OTHER_PARENT,
-    SHARE_UNKNOWN,
-    ChildSaveRow,
-)
+from keyseq.presentation.controllers.config_io.child_save_rows import ChildSaveRow
 
 
 class ChildSaveDialog:
@@ -214,30 +210,70 @@ class ChildSaveDialog:
         self, *, blocked_labels: Sequence[str], trigger_set_row: ChildSaveRow
     ) -> str:
         self.trigger_set_save_as_path = ""
-        recommendation = "\n\n所有元の安全確認のため、別名保存を推奨します。" if trigger_set_row.share_state in (
-            SHARE_UNKNOWN,
-            SHARE_OTHER_PARENT,
-        ) else ""
         message = (
             "次の出力シーケンスの保存先が変わります:\n"
             f"{', '.join(blocked_labels)}\n\n"
             f"トリガー一覧の保存先: {trigger_set_row.target_path}\n"
             f"共有状況: {trigger_set_row.share_text}\n\n"
-            "「はい」= このまま保存 / 「いいえ」= 別名で保存 / 「キャンセル」= 選び直す"
-            f"{recommendation}"
+            "保存 = このままトリガー一覧を保存して索引を更新します。\n"
+            "別名保存 = 別の保存先へトリガー一覧を保存して索引を更新します。\n"
+            "保存しない = この保存では索引を更新しない（次回保存で反映）。\n"
+            "キャンセル = 一覧から選び直します。"
         )
-        default = messagebox.NO if trigger_set_row.share_state in (SHARE_UNKNOWN, SHARE_OTHER_PARENT) else messagebox.YES
+        result = {"action": ""}
         self._app.hook.suspend_hook_for_dialog()
         try:
-            result = messagebox.askyesnocancel("トリガー一覧の保存が必要です", message, default=default)
-            if result is True:
-                return ACTION_SAVE
-            if result is False:
-                self.trigger_set_save_as_path = self._ask_save_as_path(trigger_set_row)
-                return ACTION_SAVE_AS if self.trigger_set_save_as_path else ""
-            return ""
+            dialog = self._create_dependency_dialog(
+                message,
+                trigger_set_row,
+                result,
+            )
+            dialog.transient(self._app)
+            dialog.grab_set()
+            dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
+            dialog.bind("<Escape>", lambda _event: dialog.destroy())
+            dialog.wait_window()
+            return result["action"]
         finally:
             self._app.hook.resume_hook_after_dialog()
+
+    def _create_dependency_dialog(self, message, trigger_set_row, result):
+        dialog = tk.Toplevel(self._app)
+        dialog.title("トリガー一覧の保存が必要です")
+        dialog.geometry("640x300")
+        dialog.resizable(False, False)
+        frame = ttk.Frame(dialog, padding=12)
+        frame.pack(fill="both", expand=True)
+        ttk.Label(frame, text=message, justify="left", wraplength=600).pack(
+            fill="both", expand=True
+        )
+        buttons = ttk.Frame(frame)
+        buttons.pack(anchor="e", pady=(12, 0))
+
+        def choose(action: str) -> None:
+            if action == ACTION_SAVE_AS:
+                self.trigger_set_save_as_path = self._ask_save_as_path(trigger_set_row)
+                if not self.trigger_set_save_as_path:
+                    dialog.destroy()
+                    return
+            result["action"] = action
+            dialog.destroy()
+
+        ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right")
+        ttk.Button(buttons, text="保存しない", command=lambda: choose(ACTION_SKIP)).pack(
+            side="right", padx=(0, 8)
+        )
+        save_as_button = ttk.Button(
+            buttons,
+            text="別名保存",
+            command=lambda: choose(ACTION_SAVE_AS),
+        )
+        save_as_button.pack(side="right", padx=(0, 8))
+        ttk.Button(buttons, text="保存", command=lambda: choose(ACTION_SAVE)).pack(
+            side="right", padx=(0, 8)
+        )
+        save_as_button.focus_set()
+        return dialog
 
     def confirm_recalculated_overwrite(
         self, rows: Sequence[ChildSaveRow]

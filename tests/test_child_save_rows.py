@@ -15,6 +15,7 @@ from keyseq.application.save_plan import (
 from keyseq.infrastructure.json_repository import JsonRepository
 from keyseq.presentation.controllers.config_io.child_save_rows import (
     SHARE_NEW,
+    SHARE_NEW_COLLIDES,
     SHARE_OTHER_PARENT,
     SHARE_SHARED,
     SHARE_SOLE,
@@ -112,7 +113,7 @@ class ChildSaveRowsTest(unittest.TestCase):
 
         self.assertIn("2", share_text_for(SHARE_SHARED, 2))
 
-    def test_collect_normalizes_parent_paths_and_uses_trigger_set_for_sequence_parent(self):
+    def test_collect_normalizes_parent_paths_uses_trigger_set_parent_and_scopes_new_collisions(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
@@ -151,9 +152,10 @@ class ChildSaveRowsTest(unittest.TestCase):
             )
             rows_by_kind = {row.kind: row for row in rows}
 
-            self.assertEqual(rows_by_kind[CHILD_KEYMAP].share_state, SHARE_SOLE)
+            # New keymaps and sequences avoid overwriting an existing sole-owned target.
+            self.assertEqual(rows_by_kind[CHILD_KEYMAP].share_state, SHARE_NEW_COLLIDES)
             self.assertEqual(rows_by_kind[CHILD_TRIGGER_SET].share_state, SHARE_SHARED)
-            self.assertEqual(rows_by_kind[CHILD_SEQUENCE].share_state, SHARE_SOLE)
+            self.assertEqual(rows_by_kind[CHILD_SEQUENCE].share_state, SHARE_NEW_COLLIDES)
 
     def test_absolute_parent_ref_and_relative_parent_share_canonical_identity(self):
         with patch("keyseq.application.config_service.os.path", ntpath):

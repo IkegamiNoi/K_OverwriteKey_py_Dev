@@ -10,6 +10,23 @@ from unittest.mock import Mock, patch
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, CHILD_TRIGGER_SET, ChildSaveEntry, SavePlan
 from keyseq.presentation import app as app_module
+from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
+
+
+def _unexpected_trigger_set_dependency(*_args, **_kwargs):
+    raise AssertionError(
+        "想定外の依存確認ダイアログ。期待するならテスト側で patch すること"
+    )
+
+
+def _unexpected_recalculated_overwrite(*_args, **_kwargs):
+    raise AssertionError(
+        "想定外の再計算後上書き確認。期待するならテスト側で patch すること"
+    )
+
+
+def _unexpected_showerror(_title, message, *_args, **_kwargs):
+    raise AssertionError(f"想定外のエラーダイアログ: {message}")
 
 
 def _expected_json_bytes(text: str) -> bytes:
@@ -107,6 +124,27 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         cls.app.destroy()
 
     def setUp(self):
+        self._dependency_confirm_guard = patch.object(
+            child_save_dialog_module.ChildSaveDialog,
+            "confirm_trigger_set_dependency",
+            side_effect=_unexpected_trigger_set_dependency,
+        )
+        self._recalculated_overwrite_guard = patch.object(
+            child_save_dialog_module.ChildSaveDialog,
+            "confirm_recalculated_overwrite",
+            side_effect=_unexpected_recalculated_overwrite,
+        )
+        self._showerror_guard = patch.object(
+            tkinter.messagebox,
+            "showerror",
+            side_effect=_unexpected_showerror,
+        )
+        self._dependency_confirm_guard.start()
+        self._recalculated_overwrite_guard.start()
+        self._showerror_guard.start()
+        self.addCleanup(self._dependency_confirm_guard.stop)
+        self.addCleanup(self._recalculated_overwrite_guard.stop)
+        self.addCleanup(self._showerror_guard.stop)
         self.app.data = {"keymaps": [], "triggers": [], "active_keymap_id": ""}
         # production のリセットと同じ 0 を入れる（setter は int 化するため None は不可）。
         # 「未選択」の再現は trigger_panel.selected_trigger / keymap_panel.selected_keymap_list_index の patch で行う。
@@ -551,7 +589,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app.keymap_set_io,
                 "choose_split_base_dir_for_keymap_set",
                 return_value="",
-            ), patch.object(self.app.keymap_set_io, "_collect_child_save_plan", return_value=(plan, "")), patch.object(
+            ), patch.object(self.app.keymap_set_io, "_collect_child_save_plan", return_value=(plan, "", False)), patch.object(
                 tkinter.messagebox,
                 "showinfo",
             ):
@@ -598,7 +636,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app.keymap_set_io,
                 "choose_split_base_dir_for_keymap_set",
                 return_value="",
-            ), patch.object(self.app.keymap_set_io, "_collect_child_save_plan", return_value=(plan, "")), patch.object(
+            ), patch.object(self.app.keymap_set_io, "_collect_child_save_plan", return_value=(plan, "", False)), patch.object(
                 tkinter.messagebox,
                 "showinfo",
             ):

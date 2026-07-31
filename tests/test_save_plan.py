@@ -317,12 +317,96 @@ class SavePlanTest(unittest.TestCase):
                         (
                             ChildSaveEntry(CHILD_SEQUENCE, "f2", ACTION_SAVE),
                             ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SKIP),
-                        )
+                        ),
+                        allow_deferred_index=False,
                     ),
                 )
 
             self.assertEqual(self.repository.saved_paths, [])
             self.assertFalse(os.path.exists(os.path.join(root, "config.json")))
+
+    def test_deferred_index_writes_changed_sequence_without_updating_trigger_set(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save(root)
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "main.json")
+            previous_trigger_set = _read_bytes(trigger_set_path)
+            data = self.service.load_runtime_data_from_keymap_set_path(
+                os.path.join(root, "user", "keymap_sets", "main.json"),
+                config_root=root,
+            )
+            second_trigger = dict(data["triggers"][0])
+            second_trigger.update(
+                {
+                    "key": "f2",
+                    "label": "paste",
+                    "actions": [{"type": "text", "value": "deferred", "label": ""}],
+                    self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "user/sequences/copy.json",
+                }
+            )
+            data["triggers"].append(second_trigger)
+            plan = SavePlan(
+                (
+                    ChildSaveEntry(CHILD_SEQUENCE, "f2", ACTION_SAVE),
+                    ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SKIP),
+                ),
+                allow_deferred_index=True,
+            )
+            targets = self.service.resolve_child_save_targets(
+                data,
+                config_root=root,
+                keymap_set_path=os.path.join(root, "user", "keymap_sets", "main.json"),
+                save_plan=plan,
+            )
+            saved, _ = self._save(root, data=data, plan=plan)
+
+            self.assertTrue(os.path.exists(targets[(CHILD_SEQUENCE, "f2")]))
+            self.assertEqual(_read_bytes(trigger_set_path), previous_trigger_set)
+            self.assertTrue(os.path.exists(os.path.join(root, "user", "keymap_sets", "main.json")))
+            self.assertTrue(os.path.exists(os.path.join(root, "config.json")))
+            self.assertEqual(
+                saved["triggers"][1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+                self.service.to_config_relative_or_absolute(targets[(CHILD_SEQUENCE, "f2")], root),
+            )
+
+    def test_deferred_index_resave_updates_trigger_set_and_reloads_new_sequence(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            self._save(root)
+            data = self.service.load_runtime_data_from_keymap_set_path(keymap_set_path, config_root=root)
+            second_trigger = dict(data["triggers"][0])
+            second_trigger.update(
+                {
+                    "key": "f2",
+                    "label": "paste",
+                    "actions": [{"type": "text", "value": "deferred", "label": ""}],
+                    self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "user/sequences/copy.json",
+                }
+            )
+            data["triggers"].append(second_trigger)
+            deferred_plan = SavePlan(
+                (
+                    ChildSaveEntry(CHILD_SEQUENCE, "f2", ACTION_SAVE),
+                    ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SKIP),
+                ),
+                allow_deferred_index=True,
+            )
+            saved, _ = self._save(root, data=data, plan=deferred_plan)
+            sequence_path = saved["triggers"][1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH]
+
+            self._save(
+                root,
+                data=saved,
+                plan=SavePlan((ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE),)),
+            )
+            loaded = self.service.load_runtime_data_from_keymap_set_path(keymap_set_path, config_root=root)
+
+            self.assertEqual(
+                loaded["triggers"][1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+                sequence_path,
+            )
+            self.assertEqual(loaded["triggers"][1]["actions"], saved["triggers"][1]["actions"])
 
     def test_skip_keeps_existing_indexes_and_omits_missing_indexes(self):
         with tempfile.TemporaryDirectory() as tmp:

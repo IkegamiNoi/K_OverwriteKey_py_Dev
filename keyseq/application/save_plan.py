@@ -23,6 +23,7 @@ class ChildSaveEntry:
 @dataclass(frozen=True)
 class SavePlan:
     entries: tuple[ChildSaveEntry, ...] = ()
+    allow_deferred_index: bool = False
 
     def entry_for(self, kind: str, key: str = "") -> ChildSaveEntry | None:
         for entry in self.entries:
