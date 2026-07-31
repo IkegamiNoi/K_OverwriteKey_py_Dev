@@ -52,6 +52,7 @@ class KeymapSetIo:
         self._app.data = self._app.config_service.new_default_data()
         self._app.data["triggers"] = []
         self._app.data = self._app.config_service.normalize_runtime_data(self._app.data)
+        self._app.dirty_tracker.reset_trigger_set_state()
         self._app.keymap_set_path = ""
 
         self._app._sync_control_vars_from_data()
@@ -566,6 +567,7 @@ class KeymapSetIo:
     def restore_default(self):
         if messagebox.askyesno("確認", "例の設定に戻します。よろしいですか？"):
             self._app.data = self._app.config_service.new_default_data()
+            self._app.dirty_tracker.reset_trigger_set_state()
             self._app._sync_control_vars_from_data()
             self._app._indices = {}
             self._app._selected_trigger_idx = 0

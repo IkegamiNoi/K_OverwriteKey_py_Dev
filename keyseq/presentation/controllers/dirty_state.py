@@ -27,6 +27,15 @@ class DirtyStateTracker:
         if isinstance(data, dict):
             data[self._config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = source_path
 
+    def reset_trigger_set_state(self) -> None:
+        """trigger_set の保存先と個別状態を新規状態へ戻す。"""
+        self.set_trigger_set_source_path("")
+        data = self._get_data()
+        if isinstance(data, dict):
+            data.pop(self._config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH, None)
+        self.trigger_set_dirty = False
+        self.trigger_set_imported = False
+
     def sync_trigger_set_source_path_from_data(self) -> None:
         """runtime の trigger_set 保存先を tracker へ取り込む。"""
         data = self._get_data()

@@ -4,57 +4,51 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-30T05:10:00
+last_updated: 2026-07-30T06:05:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
 last_commit_location: claude/save-dialog-ui-improvements-c0189a ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β は task_12 まで完了（実測 green・reviewer 採用）。残りは task_13 → 実機目視 → task_10**。
-mode: implementing
+focus: **Phase β は task_13 まで完了（実装は全て完了）。残りは実機目視（ユーザー実施）→ task_10（正本反映）**。
+mode: pending_review
 
 ## last_action
-ts: 2026-07-30T05:10:00
+ts: 2026-07-30T06:05:00
 who: main
 summary: |
-  【task_12（依存確認の提示条件縮小・4 択・deferred index）完了 = 実測 green + reviewer 採用】
-  `codex-implementer` へ委任（8 ファイル）。**実装は初回のまま一度も直さず、修正はテストと仕様条文のみ**。
-  - **入った実装**: `SavePlan.allow_deferred_index`（presentation が 4 択で「保存しない」を選んだときだけ立て、
-    application は `_validate_save_plan` の必須依存を通すためだけに使う）/ 依存確認を **4 択の自前 `Toplevel`** へ /
-    上位が `SHARE_SOLE` / `SHARE_NEW` なら**確認なし自動保存＋事後通知** / 保存成功後に
-    `mark_trigger_set_dirty()`（保存前の dirty 状態に依存しない）/ `SHARE_NEW_COLLIDES` + `has_source_path`。
-  - **ユーザー判断で v0.4-I を限定**（実測 fail の根が「v0.4-I が trigger_set にも当たり v0.4-D が空振り」だったため）:
-    **対象は keymap / sequence のみ**・**置き換えは元判定が単独 / 共有中のときだけ**。
-    根拠は「保存先の名前がユーザーの明示確認を経ているか」（階層では分けない）。
-  - **ハングの真因**（3 回連続。Codex の診断は 3 回とも外れ）: テスト内の `AssertionError` が
-    `save_keymap_set_to` の広い `except Exception` に捕まり **`messagebox.showerror` がモーダル化して
-    永久ブロック**していた。`messagebox` / `filedialog` を全遮断した診断実行で 0.578 秒で完走し確定。
-    → **`showerror` / A2 / 依存確認を「呼ばれたら AssertionError」の fail-fast ガード**に（tests_ui 3 ファイル）。
-  - **受入条件 15 を明確化**（挙動変更なし）: 依存が発生しない経路（未作成の子として普通に書かれる場合）では
-    事後通知を出さない。テストは通知の代わりに**実ファイルと `sequence_path` の中身**を検証する形へ。
-result_files（**未コミット**。task_11 までは 2 コミット済 = `01c656e` v0.4 改訂と起票 / `8d8262c` task_11）:
-  - instructions/history/05_child_file_save_dialog.md（v0.4-I の適用範囲限定 / 受入条件 15・17b の明確化）
-  - .claude_data/state/decisions.md（v0.4-I 限定の判断と根拠）
-  - instructions/phase/06_child_file_save_dialog/tasks/task_12_dependency_confirm_scope.md（新規）
-  - keyseq/application/save_plan.py / config_service.py（`allow_deferred_index` と検証の 1 行緩和）
-  - keyseq/presentation/controllers/config_io/child_save_rows.py / child_save_dialog.py / keymap_set_io.py
-  - tests/test_save_plan.py / tests/test_child_save_rows.py / tests_ui/test_child_save_dialog.py /
-    tests_ui/test_config_io_characterization.py / tests_ui/test_config_io_characterization_keymap_set_startup.py
+  【task_13（`data` 置換時の trigger_set 状態リセット）完了 = **Phase β の実装タスクが全て完了**】
+  `codex-implementer` へ委任（presentation 限定）。
+  - `dirty_state.DirtyStateTracker.reset_trigger_set_state()` を新設し、**リセットの入口を 1 本に集約**。
+    `set_trigger_set_source_path("")` で tracker を空にし、`data` からは
+    `INTERNAL_TRIGGER_SET_SOURCE_PATH` を **pop**（`new_default_data()` と同じ「キー無し」の形に揃える）。
+    `trigger_set_dirty` / `trigger_set_imported` も False。`set_trigger_set_source_path()` 自体は無変更。
+  - `keymap_set_io.new_config` / `restore_default` が `data` 差し替え直後・`set_dirty(True)` の前に呼ぶ。
+    **`apply_loaded_data_to_ui`（読込 / Import / 起動設定変更）は無変更**（既に同期済み）。
+  - 実測で**既存の特性テスト 1 件が回帰**（`test_restore_default_yes` が `data` に空の内部キーを検出）→
+    **テストを緩めず実装側を「新品と同じ形」に揃えて**解消（キー無しと `""` は読み出し時に等価）。
+  - これで **task_01〜09・11〜13 が完了**。**残るは実機目視（ユーザー実施）→ task_10（正本反映）**のみ。
+result_files（**未コミット**。直近 3 コミット = `01c656e` v0.4 改訂と起票 / `8d8262c` task_11 / `97f2e39` task_12）:
+  - instructions/phase/06_child_file_save_dialog/tasks/task_13_data_replace_state_reset.md（新規）
+  - keyseq/presentation/controllers/dirty_state.py（`reset_trigger_set_state`）
+  - keyseq/presentation/controllers/config_io/keymap_set_io.py（`new_config` / `restore_default` から呼ぶ）
+  - tests_ui/test_config_io_characterization_keymap_set_startup.py（5 件追加）
 verified:
   compile: clean
-  tests: pass 138（+2）
-  tests_ui: pass 131（+7・skip 0・**完走**。3 回続いたハングは fail-fast ガードで解消）
+  tests: pass 138
+  tests_ui: pass 136（+5・skip 0・完走）
   smoke: pass
-  review: reviewer（task_12 差分）= **完了可** → 実測 fail 対応後に**変更部分のみ再レビュー**して再度
-    **完了可**（指摘なし）。アサーションは緩められておらず、`showerror` 期待テストは
-    `assert_called_once_with(title/message)` へ**強化**されている
+  review: reviewer（task_13 差分）= **完了可**（指摘なし。リセット入口の集約・呼び出し位置・
+    対象外ファイル無変更・fail-fast ガードの維持を確認。テスト 3・4 は
+    `trigger_set_file_io.save_trigger_set_file()` の旧パス即保存分岐と整合し、**修正前なら失敗する**
+    実効的な回帰テストであることも確認済み）
 
 ## next_action
-- **task_13（`data_replace_state_reset`）を `/task_new` で起票 → `codex-implementer` へ委任**（`new_config` / `restore_default` で
-  `trigger_set_source_path` / `trigger_set_dirty` をリセット。受入条件 17）。
-- その後 **実機目視をユーザーへ依頼**（起動は `<repo>\.venv\Scripts\python.exe main.py`。
+- **実機目視をユーザーへ依頼する**（残る唯一の未完了項目。起動は `<repo>\.venv\Scripts\python.exe main.py`。
   **③④の確認は VS Code の ▶ 実行〔小文字ドライブ〕で行う**）。確認項目は
   (a) 2026-07-29 の①③④⑤ + (b) 2026-07-30 の⑥（最小サイズでボタンとラジオが見える / 幅で省略量が変わる）・
-  ⑦（単独所有なら依存確認が出ない / 共有時は 4 択）+ (c) task_06 定義「対象範囲 4」の 9 項目の退行が無いこと。
+  ⑦（単独所有なら依存確認が出ない / 共有時は 4 択・「保存しない」で索引が旧パスのまま残り次回保存で追随）+
+  (c) **新規作成 / 例の設定に戻す の直後に個別「トリガー一覧を保存」で前の構成が書き換わらない**（task_13）+
+  (d) task_06 定義「対象範囲 4」の 9 項目の退行が無いこと。
   結果は `instructions/phase/06_child_file_save_dialog/integration_result.md` §3 へ記録する。
 - 目視 OK 後: **task_10（`finalize_records`）を `/task_new` で起票**。正本反映で**必ず明記**する項目は
   `SHARE_NEW` / 非 dirty 子の SKIP 規則 / SKIP した子の索引規則 / 依存確認ダイアログと既定ボタン /

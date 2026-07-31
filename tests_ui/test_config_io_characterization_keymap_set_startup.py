@@ -376,6 +376,26 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         set_dirty.assert_called_once_with(True)
         self.assertIn(("flash", "新規作成しました（未保存）。", {}), calls)
 
+    def test_new_config_resets_trigger_set_state_and_runtime_data(self):
+        previous_path = "C:/previous/triggers.json"
+        self.app.dirty_tracker.set_trigger_set_source_path(previous_path)
+        self.app.dirty_tracker.trigger_set_imported = True
+        self.app.dirty_tracker.mark_trigger_set_dirty()
+        patches = self._silence_refresh()
+
+        with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+            self.app, "_set_flash_message"
+        ), patches[0], patches[1], patches[2], patches[3]:
+            _config_set_io(self.app).new_config()
+
+        self.assertEqual(self.app.dirty_tracker.trigger_set_source_path, "")
+        self.assertNotIn(
+            self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH,
+            self.app.data,
+        )
+        self.assertFalse(self.app.dirty_tracker.trigger_set_dirty)
+        self.assertFalse(self.app.dirty_tracker.trigger_set_imported)
+
     def test_new_config_then_save_reaches_save_as_dialog(self):
         selected_path = "directory/saved.json"
         calls = []
@@ -519,6 +539,131 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             _config_set_io(self.app).restore_default()
         self.assertEqual(self.app.data, {"d": 1})
         set_dirty.assert_called_once_with(True)
+
+    def test_restore_default_resets_trigger_set_state_and_runtime_data(self):
+        previous_path = "C:/previous/triggers.json"
+        self.app.dirty_tracker.set_trigger_set_source_path(previous_path)
+        self.app.dirty_tracker.trigger_set_imported = True
+        self.app.dirty_tracker.mark_trigger_set_dirty()
+        patches = self._silence_refresh()
+
+        with patch.object(tkinter.messagebox, "askyesno", return_value=True), patch.object(
+            self.app, "_set_flash_message"
+        ), patches[0], patches[1], patches[2], patches[3]:
+            _config_set_io(self.app).restore_default()
+
+        self.assertEqual(self.app.dirty_tracker.trigger_set_source_path, "")
+        self.assertNotIn(
+            self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH,
+            self.app.data,
+        )
+        self.assertFalse(self.app.dirty_tracker.trigger_set_dirty)
+        self.assertFalse(self.app.dirty_tracker.trigger_set_imported)
+
+    def test_new_config_trigger_set_save_does_not_write_previous_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            previous_path = os.path.join(directory, "previous-trigger-set.json")
+            previous_bytes = b'{"triggers": ["previous"]}'
+            with open(previous_path, "wb") as file:
+                file.write(previous_bytes)
+            self.app.dirty_tracker.set_trigger_set_source_path(previous_path)
+            patches = self._silence_refresh()
+
+            with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+                self.app, "_set_flash_message"
+            ), patch.object(
+                self.app.io_dialogs,
+                "choose_save_path_with_collision",
+                return_value="",
+            ) as choose, patch.object(
+                self.app.config_service,
+                "save_trigger_set_file",
+            ) as save, patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).new_config()
+                self.assertFalse(self.app.trigger_set_io.save_trigger_set_file())
+
+            choose.assert_called_once()
+            self.assertEqual(choose.call_args.kwargs["title"], "トリガー一覧を保存")
+            save.assert_not_called()
+            with open(previous_path, "rb") as file:
+                self.assertEqual(file.read(), previous_bytes)
+
+    def test_restore_default_trigger_set_save_does_not_write_previous_source(self):
+        with tempfile.TemporaryDirectory() as directory:
+            previous_path = os.path.join(directory, "previous-trigger-set.json")
+            previous_bytes = b'{"triggers": ["previous"]}'
+            with open(previous_path, "wb") as file:
+                file.write(previous_bytes)
+            self.app.dirty_tracker.set_trigger_set_source_path(previous_path)
+            patches = self._silence_refresh()
+
+            with patch.object(tkinter.messagebox, "askyesno", return_value=True), patch.object(
+                self.app, "_set_flash_message"
+            ), patch.object(
+                self.app.io_dialogs,
+                "choose_save_path_with_collision",
+                return_value="",
+            ) as choose, patch.object(
+                self.app.config_service,
+                "save_trigger_set_file",
+            ) as save, patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).restore_default()
+                self.assertFalse(self.app.trigger_set_io.save_trigger_set_file())
+
+            choose.assert_called_once()
+            self.assertEqual(choose.call_args.kwargs["title"], "トリガー一覧を保存")
+            save.assert_not_called()
+            with open(previous_path, "rb") as file:
+                self.assertEqual(file.read(), previous_bytes)
+
+    def test_load_and_import_keep_trigger_set_state_synchronized(self):
+        loaded_path = "C:/loaded/triggers.json"
+        loaded_data = self.app.config_service.new_default_data()
+        loaded_data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = loaded_path
+        patches = self._silence_refresh()
+
+        with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+            tkinter.filedialog, "askopenfilename", return_value="C:/loaded/keymap-set.json"
+        ), patch.object(
+            self.app.config_service,
+            "load_runtime_data_from_keymap_set_path",
+            return_value=loaded_data,
+        ), patch.object(self.app, "_set_flash_message"), patch.object(
+            tkinter.messagebox, "showinfo"
+        ), patches[0], patches[1], patches[2], patches[3]:
+            _config_set_io(self.app).load_keymap_set_from()
+
+        self.assertEqual(self.app.dirty_tracker.trigger_set_source_path, loaded_path)
+        self.assertEqual(
+            self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+            loaded_path,
+        )
+        self.assertFalse(self.app.dirty_tracker.trigger_set_dirty)
+        self.assertFalse(self.app.dirty_tracker.trigger_set_imported)
+
+        imported_path = "C:/imported/triggers.json"
+        imported_data = self.app.config_service.new_default_data()
+        imported_data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = imported_path
+        patches = self._silence_refresh()
+
+        with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+            tkinter.filedialog, "askopenfilename", return_value="C:/imported/config.json"
+        ), patch.object(
+            self.app.config_service,
+            "load_legacy_runtime_data",
+            return_value=imported_data,
+        ), patch.object(self.app, "_set_flash_message"), patch.object(
+            tkinter.messagebox, "showinfo"
+        ), patches[0], patches[1], patches[2], patches[3]:
+            _config_set_io(self.app).import_config()
+
+        self.assertEqual(self.app.dirty_tracker.trigger_set_source_path, imported_path)
+        self.assertEqual(
+            self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+            imported_path,
+        )
+        self.assertFalse(self.app.dirty_tracker.trigger_set_dirty)
+        self.assertFalse(self.app.dirty_tracker.trigger_set_imported)
 
     # ===================== A: set_startup_keymap_set =====================
     def test_set_startup_keymap_set_confirm_false_early_return(self):

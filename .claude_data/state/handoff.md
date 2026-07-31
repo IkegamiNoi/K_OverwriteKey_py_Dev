@@ -24,7 +24,7 @@
 5. session.md.next_action から作業を再開する（**最優先は blockers の判断**）
 
 ## 現在の作業の 1 行サマリ
-**Phase β は task_12 まで完了（実測 green・reviewer 採用）。残りは task_13 → 実機目視 → task_10**。
+**Phase β は task_13 まで完了（実装は全て完了）。残りは実機目視（ユーザー実施）→ task_10（正本反映）**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,14 +34,14 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（task_12 完了時・verifier）: compile **clean** / tests **138** / tests_ui **131（完走）** / smoke **pass**。
+直近の実測（task_13 完了時・verifier）: compile **clean** / tests **138** / tests_ui **136（完走）** / smoke **pass**。
 
 ## 次アクション（session.md.next_action より）
-- **task_13（`data_replace_state_reset`）を `/task_new` で起票 → `codex-implementer` へ委任**
-  （`new_config` / `restore_default` で
-  `trigger_set_source_path` / `trigger_set_dirty` をリセット・受入条件 17）→ **実機目視をユーザーへ依頼**
-  （起動は `../../../.venv/Scripts/python.exe main.py`。**③④の確認は VS Code の ▶ 実行〔小文字ドライブ〕で**）
-  → **task_10（`finalize_records` = 正本反映）**。目視の確認項目と task_10 の必須記載は session.md.next_action が正。
+- **実機目視をユーザーへ依頼する**（Phase β で残る唯一の未完了項目。実装タスクは task_01〜09・11〜13 で全て完了）。
+  起動は `../../../.venv/Scripts/python.exe main.py`。**③④の確認は VS Code の ▶ 実行〔小文字ドライブ〕で**。
+  結果は `instructions/phase/06_child_file_save_dialog/integration_result.md` §3 へ記録する。
+- 目視 OK 後 → **task_10（`finalize_records` = 正本反映）**。
+  目視の確認項目と task_10 の必須記載は **session.md.next_action が正**。
 
 ## 現フェーズ（Phase β）の要点 — 設計の正は暫定仕様 05（v0.4）
 - keymap_set の「保存」を、**変更のある子ファイルごとに 保存 / 別名保存 / 保存しない を選べる確認ダイアログ**へ
