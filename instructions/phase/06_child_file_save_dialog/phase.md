@@ -17,7 +17,8 @@ keymap_set の「保存」が子ファイル（keymap / trigger_set / sequence�
 
 - 起票元: ユーザー要望（2026-07-26〜27・保存系統の改善討議・点3/4）。Phase α（phase 05 / 暫定 04）の後続。
 - 主入力（暫定仕様）: [05_child_file_save_dialog.md](../../history/05_child_file_save_dialog.md)
-  （**v0.3**・ユーザー確定済 2026-07-29。v0.2 = 2026-07-27 に実機目視フィードバックを反映）
+  （**v0.5**・ユーザー確定済 2026-08-01。v0.2〜v0.5 は実機目視フィードバックの反映で改訂・
+  改訂内容は暫定仕様 §2 末尾の各「vX.Y の変更」節が正）
 - モード: **暫定仕様先行モード**。番号対応: phase 06 / 暫定 05 / decisions_archive 06。
 - 依存: **Phase α（phase 05）完了が前提**（済）。[idea_05](../../backlog/idea_05_trigger_set_source_path_inconsistency.md) を**内包**し、
   [idea_06](../../backlog/idea_06_individual_json_io_unification.md) の共通化を達成する見込み。
@@ -100,9 +101,15 @@ keymap_set の「保存」が子ファイル（keymap / trigger_set / sequence�
 | task_11 | `save_dialog_flex_layout` | 一覧ダイアログの可変列化（対象名・保存先パスが幅追随／ラジオ列を切らさない）と、最小サイズでも OK・キャンセルが見えるボタン配置（v0.4-C 追記・受入条件 14b）。実機目視⑥の解消 |
 | task_12 | `dependency_confirm_scope` | 依存確認ダイアログの提示条件の縮小（単独 / 新規作成は確認なし自動保存）と 4 択化＋deferred index 例外（v0.4-D/E/F/I・§8）。実機目視⑦の解消と受入条件 18 の再現テスト |
 | task_13 | `data_replace_state_reset` | `data` を新規化・置換する全入口（`new_config` / `restore_default`）で trigger_set の状態をリセット（v0.4-H・受入条件 17） |
+| task_14 | `individual_save_path_and_index` | 個別保存 3 経路の相対パス解決（cwd 直下へ書くバグ）と、子のパスが変わったときの上位 dirty 化（v0.5-J/N・受入条件 19・23）。実機目視①の解消 |
+| task_15 | `trigger_set_individual_save_plan` | 個別「トリガー一覧を保存」を保存計画駆動にし、dirty な sequence があれば子ダイアログを出す（v0.5-K・§8・受入条件 20・21・21b）。実機目視②の解消 |
+| task_16 | `save_dialog_initial_fit_and_wheel` | 一覧ダイアログの初期表示の省略計算と、スクロール領域のマウスホイール対応（v0.5-L/M・受入条件 22）。実機目視③④の解消 |
 
-- 依存順は上表のとおり（task_01 → 09 → **11 → 12 → 13** → 10。**task_10 が最終**）。
+- 依存順は上表のとおり（task_01 → 09 → **11 → 12 → 13 → 14 → 15 → 16** → 10。**task_10 が最終**）。
   タスク定義は着手時に `/task_new` で順次起票する。
+- **task_14〜16 は 2026-08-01 の実機目視フィードバックによる追加**（暫定仕様 05 **v0.5**）。
+  task_15 は task_14 の J（パス解決）を前提とするため **14 → 15** の順で進める。
+  判断履歴は `decisions.md` の「3 回目の実機目視フィードバック」節。
 - **task_11〜13 は 2026-07-30 の実機目視フィードバックによる追加**（暫定仕様 05 **v0.4**）。
   判断履歴は `decisions.md` の「2 回目の実機目視フィードバック」節。
 - **task_07〜09 は 2026-07-29 の実機目視フィードバックによる追加**（暫定仕様 05 v0.3）。

@@ -4,51 +4,51 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-07-30T06:05:00
+last_updated: 2026-08-01T00:00:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
-last_commit_location: claude/save-dialog-ui-improvements-c0189a ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/device-testing-issues-31898e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β は task_13 まで完了（実装は全て完了）。残りは実機目視（ユーザー実施）→ task_10（正本反映）**。
-mode: pending_review
+focus: **3 回目の実機目視で 4 件 → 暫定仕様 05 を v0.5 へ改訂・task_14〜16 を起票済（未着手）。次は task_14 の実装**。
+mode: implementing
 
 ## last_action
-ts: 2026-07-30T06:05:00
+ts: 2026-08-01T00:00:00
 who: main
 summary: |
-  【task_13（`data` 置換時の trigger_set 状態リセット）完了 = **Phase β の実装タスクが全て完了**】
-  `codex-implementer` へ委任（presentation 限定）。
-  - `dirty_state.DirtyStateTracker.reset_trigger_set_state()` を新設し、**リセットの入口を 1 本に集約**。
-    `set_trigger_set_source_path("")` で tracker を空にし、`data` からは
-    `INTERNAL_TRIGGER_SET_SOURCE_PATH` を **pop**（`new_default_data()` と同じ「キー無し」の形に揃える）。
-    `trigger_set_dirty` / `trigger_set_imported` も False。`set_trigger_set_source_path()` 自体は無変更。
-  - `keymap_set_io.new_config` / `restore_default` が `data` 差し替え直後・`set_dirty(True)` の前に呼ぶ。
-    **`apply_loaded_data_to_ui`（読込 / Import / 起動設定変更）は無変更**（既に同期済み）。
-  - 実測で**既存の特性テスト 1 件が回帰**（`test_restore_default_yes` が `data` に空の内部キーを検出）→
-    **テストを緩めず実装側を「新品と同じ形」に揃えて**解消（キー無しと `""` は読み出し時に等価）。
-  - これで **task_01〜09・11〜13 が完了**。**残るは実機目視（ユーザー実施）→ task_10（正本反映）**のみ。
-result_files（**未コミット**。直近 3 コミット = `01c656e` v0.4 改訂と起票 / `8d8262c` task_11 / `97f2e39` task_12）:
-  - instructions/phase/06_child_file_save_dialog/tasks/task_13_data_replace_state_reset.md（新規）
-  - keyseq/presentation/controllers/dirty_state.py（`reset_trigger_set_state`）
-  - keyseq/presentation/controllers/config_io/keymap_set_io.py（`new_config` / `restore_default` から呼ぶ）
-  - tests_ui/test_config_io_characterization_keymap_set_startup.py（5 件追加）
+  【3 回目の実機目視フィードバック（4 件）→ 暫定仕様 05 を **v0.5** へ改訂 + task_14〜16 起票】
+  切り分け結果 = **実バグ 3 件 + 暫定仕様の条項間矛盾 1 件**（コードで再現経路まで確定済み）。
+  - **①root 直下に `user/` ができる（v0.5-J）**: runtime の source_path は config_root 相対なのに、
+    個別保存が解決せず `save_json` へ渡すため **cwd 基準**で書かれる。**3 経路すべて**（keymap / sequence も同断）。
+  - **②個別トリガー一覧保存で子ダイアログが出ない（v0.5-K）**: §3 末尾「単体操作では出さない」と
+    §8「個別経路も保存計画駆動」の矛盾。実装は全 sequence を無確認上書き。→ **ダイアログを出す**へ改訂。
+  - **③初期表示が「…」だけ（v0.5-L）**: `<Configure>` の早期 return + 初回のセル幅未確定。
+  - **④ホイールが効かない（v0.5-M）**: canvas 本体にしかバインドしていない（Tk は親→子へ伝播しない）。
+  - **敵対的レビュー 3 件（high 2 + medium 1）を全採用**: **v0.5-N**（個別別名保存で上位索引が追随せず
+    未保存にもならない → 上位を dirty 化。自動保存はしない）/ 旧形式インライン sequence の消失回避
+    （未実体化の子は計画既定で書く）/ stored と resolved の分離。
+  - 起票: **task_14（J+N）→ task_15（K）→ task_16（L+M）→ task_10**。
+result_files（**未コミット**）:
+  - instructions/history/05_child_file_save_dialog.md（v0.5 改訂）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_14_individual_save_path_and_index.md（新規）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_15_trigger_set_individual_save_plan.md（新規）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_16_save_dialog_initial_fit_and_wheel.md（新規）
+  - instructions/phase/06_child_file_save_dialog/phase.md（タスク一覧 + 主入力の版）
+  - instructions/phase/current.md / .claude_data/state/decisions.md（3 回目の節）
 verified:
-  compile: clean
-  tests: pass 138
-  tests_ui: pass 136（+5・skip 0・完走）
-  smoke: pass
-  review: reviewer（task_13 差分）= **完了可**（指摘なし。リセット入口の集約・呼び出し位置・
-    対象外ファイル無変更・fail-fast ガードの維持を確認。テスト 3・4 は
-    `trigger_set_file_io.save_trigger_set_file()` の旧パス即保存分岐と整合し、**修正前なら失敗する**
-    実効的な回帰テストであることも確認済み）
+  review: codex-adversarial-reviewer（v0.5 追加分・working-tree）= needs-attention。
+    high 2 + medium 1 を**全採用**して反映済み（コードで裏取り済み: `trigger_set_file_io.py:45-50` /
+    `keymap_file_io.py:73` が `sync_dirty_state()` のみ・`config_service.py:698-710` が旧形式で
+    source_path/dirty を付けない・`config_service.py:169`/`:205` が引数 path を source_path へ書き戻す）
+  tests: 未実行（文書のみの変更）
 
 ## next_action
-- **実機目視をユーザーへ依頼する**（残る唯一の未完了項目。起動は `<repo>\.venv\Scripts\python.exe main.py`。
-  **③④の確認は VS Code の ▶ 実行〔小文字ドライブ〕で行う**）。確認項目は
-  (a) 2026-07-29 の①③④⑤ + (b) 2026-07-30 の⑥（最小サイズでボタンとラジオが見える / 幅で省略量が変わる）・
-  ⑦（単独所有なら依存確認が出ない / 共有時は 4 択・「保存しない」で索引が旧パスのまま残り次回保存で追随）+
-  (c) **新規作成 / 例の設定に戻す の直後に個別「トリガー一覧を保存」で前の構成が書き換わらない**（task_13）+
-  (d) task_06 定義「対象範囲 4」の 9 項目の退行が無いこと。
+- **task_14 を `codex-implementer` へ委任**（application の個別保存 3 API + presentation の 3 経路）。
+  テストコードの追加まで委任し、**実測は `verifier`**（Codex は python を実行できない）。
+  その後 `reviewer` → 完了判定 → task_15 → task_16。
+- **実機目視は task_16 完了後にまとめて実施**（ユーザー）。確認項目は
+  (a) 2026-07-29 の①③④⑤ + (b) 2026-07-30 の⑥⑦ + (c) task_13 の新規作成 / 例の設定に戻す +
+  (d) task_06 定義「対象範囲 4」の 9 項目の退行なし + (e) **今回の①〜④が解消していること**。
   結果は `instructions/phase/06_child_file_save_dialog/integration_result.md` §3 へ記録する。
 - 目視 OK 後: **task_10（`finalize_records`）を `/task_new` で起票**。正本反映で**必ず明記**する項目は
   `SHARE_NEW` / 非 dirty 子の SKIP 規則 / SKIP した子の索引規則 / 依存確認ダイアログと既定ボタン /
@@ -59,7 +59,10 @@ verified:
   **v0.4 追加分**（D/E: 依存確認の提示条件と 4 択・deferred index 例外と上位の dirty 化 / F: A2 維持 /
   G: 既定保存先は既存ファイルを避けない / I: 新規子が既存ファイルへ当たるときは既定を別名保存
   〔**keymap / sequence 限定・元判定が単独 / 共有中のときだけ**〕/ H: `data` 置換時の trigger_set 状態リセット /
-  受入条件 15 の「依存が発生しない経路では事後通知を出さない」）。
+  受入条件 15 の「依存が発生しない経路では事後通知を出さない」/
+  **v0.5 追加分**（J: 個別保存は config_root から解決して書く・stored と resolved の分離 /
+  K: 個別トリガー一覧保存の保存計画化と子ダイアログ・未実体化の子は計画既定で書く /
+  L/M: 一覧ダイアログの初期省略計算とホイール / N: 個別保存で子のパスが変わったら上位を dirty 化）。
   併せて暫定仕様 05 の凍結・`decisions_archive/06` 作成・`current.md` 完了記載・
   `backlog/INDEX.md`（idea_05 クローズ・idea_06 / idea_07 の条件更新）・`/refactor_check`。
 
@@ -69,7 +72,10 @@ verified:
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
   グローバル `py` は依存欠落で tests_ui/smoke が落ちる。
-- **Phase β の設計の正は暫定仕様 [05](../../instructions/history/05_child_file_save_dialog.md)（**v0.4**・ユーザー確定済 2026-07-30）**。
+- **【v0.5 で判明した根本原因（再発しやすい）】runtime の `source_path` 3 種は **config_root 相対**で保持される
+  （索引文字列そのまま / 一括保存後は `to_config_relative_or_absolute` の結果）。**書き込みに使う前に必ず解決する**。
+  `repository.save_json` は相対パスを **cwd 基準**で解決し、ディレクトリまで作る（root 直下 `user/` の正体）。
+- **Phase β の設計の正は暫定仕様 [05](../../instructions/history/05_child_file_save_dialog.md)（**v0.5**・ユーザー確定済 2026-08-01）**。
   フェーズ中は正本 `spec_detail/` を直接改訂せず、**task_10** で昇格＋凍結する。
   v0.3 の追加分は §2「v0.3 の変更」A / A2 / B / C と §3-3・§3-5・§6 末尾・受入条件 12〜14。
   **v0.4 の追加分は §2「v0.4 の変更」D / E / F / G / H / I と §3-3・§3-5 末尾・§5 末尾・§6・§7・§8・

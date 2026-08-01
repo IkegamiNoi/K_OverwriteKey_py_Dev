@@ -10,7 +10,7 @@
   2026-07-28 起票）。keymap_set の「保存」を**変更のある子ファイルごとに 保存/別名保存/保存しない を選べる
   確認ダイアログ**へ置き換え、**子JSON へ参照元（直接の上位ファイル）を記録**して誤爆上書きを防ぐ。
   **挙動変更＋スキーマ追加（後方互換必須）を伴う**。
-  - 主入力（確定設計）: [暫定仕様 05](../history/05_child_file_save_dialog.md)（**v0.4**・ユーザー確定済 2026-07-30）。
+  - 主入力（確定設計）: [暫定仕様 05](../history/05_child_file_save_dialog.md)（**v0.5**・ユーザー確定済 2026-08-01）。
     フェーズ中は正本を直接改訂せず、最終タスクで昇格・凍結する。
   - 番号対応: phase 06 / 暫定 05 / `decisions_archive/06`。起票元: ユーザー要望（2026-07-26〜27・点3/4）。
   - 前提: Phase α（phase 05）完了済。[idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md) を**内包**し、
@@ -20,9 +20,10 @@
     trigger_set の source_path 接続＋既定命名 / 保存計画の実行契約 / dirty な子の収集と共有状況判定 /
     保存確認ダイアログ / 統合退行 / レビュー指摘 A〜F の修正 / パス同一性の canonical identity 化 /
     一覧再表示の廃止と再計算先の上書き確認 / ダイアログのレイアウト / 可変列レイアウト /
-    依存確認の提示条件縮小・4 択化・deferred index / **`data` 置換時の trigger_set 状態リセット**）。
-    **残るは実機目視（ユーザー実施）→ task_10（正本反映）**。受入条件の充足状況は
-    [integration_result.md](06_child_file_save_dialog/integration_result.md) が正。
+    依存確認の提示条件縮小・4 択化・deferred index / `data` 置換時の trigger_set 状態リセット）。
+    **task_14〜16 を起票済・未着手**（個別保存のパス解決と上位 dirty 化 / 個別トリガー一覧保存の保存計画化 /
+    一覧ダイアログの初期省略計算とホイール）。**14 → 15 → 16 → task_10（正本反映）**の順。
+    受入条件の充足状況は [integration_result.md](06_child_file_save_dialog/integration_result.md) が正。
   - 2026-07-29 の実機目視で 5 件の指摘 → 暫定仕様を **v0.3** へ改訂し **task_07〜09 を追加**
     （旧 task_07 = 正本反映は task_10 へ繰り下げ）。切り分けと採否は `decisions.md` の
     「実機目視フィードバック」節が正。
@@ -30,6 +31,10 @@
     **task_11〜13 を追加**（依存確認の提示条件縮小と 4 択 / deferred index 例外 / `data` 置換時の状態リセット /
     可変列レイアウト）。敵対的レビュー 5 件は全採用。判断履歴は `decisions.md` の
     「2 回目の実機目視フィードバック」節が正。
+  - 2026-08-01 の実機目視で 4 件の指摘（実バグ 3 + 仕様の条項間矛盾 1）→ 暫定仕様を **v0.5** へ改訂し
+    **task_14〜16 を追加**（個別保存の相対パス解決＋上位 dirty 化 / 個別トリガー一覧保存の保存計画化と
+    子ダイアログ / 初期省略計算とマウスホイール）。敵対的レビュー 3 件は全採用。判断履歴は `decisions.md` の
+    「3 回目の実機目視フィードバック」節が正。
   - 残りの保存系リデザイン: **γ=phase 07（暫定 06・β と独立）/ プリセット=phase 08（暫定 07）**。
     暫定仕様は起票済・ユーザー確定済のため、着手時は `/phase_start` から入れる。
 - 直前の完了フェーズ: [05_keymap_set_new_and_default_dir](../../.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md)（2026-07-28 完了・保存系リデザイン **Phase α**）。
