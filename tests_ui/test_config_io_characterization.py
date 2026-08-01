@@ -8,7 +8,15 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, CHILD_TRIGGER_SET, ChildSaveEntry, SavePlan
+from keyseq.application.save_plan import (
+    ACTION_SAVE,
+    ACTION_SAVE_AS,
+    ACTION_SKIP,
+    CHILD_SEQUENCE,
+    CHILD_TRIGGER_SET,
+    ChildSaveEntry,
+    SavePlan,
+)
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
 
@@ -228,7 +236,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         )
 
     def _trigger_set_save_patches(self, save_calls):
-        def fake_save(path, data, *, config_root, parent_ref=""):
+        def fake_save(path, data, *, config_root, parent_ref="", save_plan=None):
             save_calls.append((path, data.get("triggers")))
             return list(data.get("triggers") or []), {}
         return (
@@ -268,6 +276,13 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         self.app.keymap_set_path = path
         self.app.keymap_set_io.apply_loaded_data_to_ui()
         return path
+
+    def _reload_keymap_set(self, path, root):
+        self.app.data = self.app.config_service.load_runtime_data_from_keymap_set_path(
+            path,
+            config_root=root,
+        )
+        self.app.keymap_set_io.apply_loaded_data_to_ui()
 
     # C: 共有ダイアログヘルパ
     def test_choose_save_path_with_collision_all_branches(self):
@@ -623,6 +638,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
     def test_individual_trigger_save_keeps_bulk_save_on_new_path(self):
         with tempfile.TemporaryDirectory() as root:
             path = self._prepare_loaded_keymap_set(root)
+            self._reload_keymap_set(path, root)
             old_path = self.app.config_service.resolve_child_save_targets(
                 self.app.data,
                 config_root=root,
@@ -712,6 +728,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
     def test_individual_save_as_marks_keymap_set_dirty_and_updates_indexes_on_save(self):
         with tempfile.TemporaryDirectory() as root:
             keymap_set_path = self._prepare_loaded_keymap_set(root)
+            self._reload_keymap_set(keymap_set_path, root)
             trigger_set_path = os.path.join(root, "user", "trigger_sets", "renamed.json")
             with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
                 self.app.trigger_panel,
@@ -854,7 +871,8 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
     def test_sequence_save_uses_nonempty_trigger_set_parent_ref_after_individual_save(self):
         with tempfile.TemporaryDirectory() as root:
-            self._prepare_loaded_keymap_set(root)
+            keymap_set_path = self._prepare_loaded_keymap_set(root)
+            self._reload_keymap_set(keymap_set_path, root)
             trigger_path = os.path.join(root, "user", "trigger_sets", "renamed.json")
             sequence_path = os.path.join(root, "user", "sequences", "renamed.json")
             with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
@@ -1177,6 +1195,221 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             _sequence_io(self.app).load_sequence_file()
         flash.assert_called_once_with("出力シーケンス読込失敗: bad sequence", auto_clear=False)
         showerror.assert_called_once_with("読込失敗", "bad sequence")
+
+    def test_individual_trigger_save_collects_only_dirty_sequence_rows(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare_loaded_keymap_set(root)
+            self._reload_keymap_set(path, root)
+            trigger = self.app.data["triggers"][0]
+            self.app.dirty_tracker.mark_sequence_dirty(trigger)
+            rows_seen = []
+
+            def choose(rows):
+                rows_seen.extend(rows)
+                return {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE, "")}
+
+            with patch.object(
+                tkinter.messagebox,
+                "askyesnocancel",
+                side_effect=AssertionError("想定外の保存先確認ダイアログ"),
+            ), patch.object(
+                tkinter.filedialog,
+                "asksaveasfilename",
+                side_effect=AssertionError("想定外の別名保存ダイアログ"),
+            ), patch.object(
+                self.app.child_save_dialog,
+                "ask_child_save_actions",
+                side_effect=choose,
+            ), patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                self.app.trigger_panel,
+                "refresh_actions",
+            ), patch.object(tkinter.messagebox, "showinfo"):
+                self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
+
+            self.assertEqual([(row.kind, row.key) for row in rows_seen], [(CHILD_SEQUENCE, "f1")])
+            with patch.object(
+                tkinter.messagebox,
+                "askyesnocancel",
+                side_effect=AssertionError("想定外の保存先確認ダイアログ"),
+            ), patch.object(
+                tkinter.filedialog,
+                "asksaveasfilename",
+                side_effect=AssertionError("想定外の別名保存ダイアログ"),
+            ), patch.object(self.app.child_save_dialog, "ask_child_save_actions") as ask, patch.object(
+                self.app.trigger_panel,
+                "refresh_triggers",
+            ), patch.object(self.app.trigger_panel, "refresh_actions"), patch.object(
+                tkinter.messagebox,
+                "showinfo",
+            ):
+                self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
+            ask.assert_not_called()
+
+    def test_individual_trigger_save_cancel_preserves_trigger_set_bytes(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare_loaded_keymap_set(root)
+            self._reload_keymap_set(path, root)
+            trigger_set_path = os.path.join(
+                root,
+                self.app.dirty_tracker.trigger_set_source_path,
+            )
+            original = Path(trigger_set_path).read_bytes()
+            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+
+            with patch.object(
+                tkinter.messagebox,
+                "askyesnocancel",
+                side_effect=AssertionError("想定外の保存先確認ダイアログ"),
+            ), patch.object(
+                tkinter.filedialog,
+                "asksaveasfilename",
+                side_effect=AssertionError("想定外の別名保存ダイアログ"),
+            ), patch.object(
+                self.app.child_save_dialog,
+                "ask_child_save_actions",
+                return_value=None,
+            ), patch.object(self.app, "_set_flash_message") as flash, patch.object(
+                tkinter.messagebox,
+                "showinfo",
+            ) as showinfo:
+                self.assertFalse(_trigger_set_io(self.app).save_trigger_set_file())
+
+            self.assertEqual(Path(trigger_set_path).read_bytes(), original)
+            flash.assert_called_once_with("トリガー一覧の保存を中止しました。")
+            showinfo.assert_not_called()
+
+    def test_individual_trigger_save_applies_sequence_choices_only(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = os.path.join(root, "user", "keymap_sets", "main.json")
+            self.app.config_root = root
+            self.app.data, self.app._startup_settings = self.app.config_service.save_runtime_data(
+                path,
+                {
+                    "keymaps": [],
+                    "triggers": [
+                        {"key": "f1", "label": "Skip", "actions": []},
+                        {"key": "f2", "label": "Rename", "actions": []},
+                        {"key": "f3", "label": "Unchanged", "actions": []},
+                    ],
+                    "active_keymap_id": "",
+                },
+                config_root=root,
+                startup_data={},
+            )
+            self.app.keymap_set_path = path
+            self._reload_keymap_set(path, root)
+            triggers = {trigger["key"]: trigger for trigger in self.app.data["triggers"]}
+            skip_path = os.path.join(root, triggers["f1"][self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH])
+            unchanged_path = os.path.join(root, triggers["f3"][self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH])
+            skip_bytes = Path(skip_path).read_bytes()
+            unchanged_bytes = Path(unchanged_path).read_bytes()
+            unchanged_mtime = os.stat(unchanged_path).st_mtime_ns
+            self.app.dirty_tracker.mark_sequence_dirty(triggers["f1"])
+            self.app.dirty_tracker.mark_sequence_dirty(triggers["f2"])
+            renamed_path = os.path.join(root, "user", "sequences", "renamed.json")
+            choices = {
+                (CHILD_SEQUENCE, "f1"): (ACTION_SKIP, ""),
+                (CHILD_SEQUENCE, "f2"): (ACTION_SAVE_AS, renamed_path),
+            }
+
+            with patch.object(
+                tkinter.messagebox,
+                "askyesnocancel",
+                side_effect=AssertionError("想定外の保存先確認ダイアログ"),
+            ), patch.object(
+                tkinter.filedialog,
+                "asksaveasfilename",
+                side_effect=AssertionError("想定外の別名保存ダイアログ"),
+            ), patch.object(
+                self.app.child_save_dialog,
+                "ask_child_save_actions",
+                return_value=choices,
+            ), patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                self.app.trigger_panel,
+                "refresh_actions",
+            ), patch.object(tkinter.messagebox, "showinfo"):
+                self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
+
+            trigger_set = self.app.config_service.repository.load_json(
+                os.path.join(root, self.app.dirty_tracker.trigger_set_source_path)
+            )
+            indexed_paths = {
+                item["key"]: item["sequence_path"]
+                for item in trigger_set["triggers"]
+            }
+            saved_triggers = {
+                trigger["key"]: trigger for trigger in self.app.data["triggers"]
+            }
+            self.assertEqual(Path(skip_path).read_bytes(), skip_bytes)
+            self.assertEqual(indexed_paths["f1"], "user/sequences/Skip.json")
+            self.assertTrue(
+                saved_triggers["f1"][self.app.config_service.INTERNAL_SEQUENCE_DIRTY]
+            )
+            self.assertTrue(os.path.exists(renamed_path))
+            self.assertEqual(indexed_paths["f2"], "user/sequences/renamed.json")
+            self.assertFalse(
+                saved_triggers["f2"][self.app.config_service.INTERNAL_SEQUENCE_DIRTY]
+            )
+            self.assertEqual(Path(unchanged_path).read_bytes(), unchanged_bytes)
+            self.assertEqual(os.stat(unchanged_path).st_mtime_ns, unchanged_mtime)
+
+    def test_individual_trigger_save_materializes_inline_legacy_sequences(self):
+        with tempfile.TemporaryDirectory() as root:
+            trigger_set_path = os.path.join(root, "legacy.json")
+            self.app.config_root = root
+            self.app.config_service.repository.save_json(
+                trigger_set_path,
+                {
+                    "triggers": [
+                        {
+                            "key": "f1",
+                            "suppress": True,
+                            "label": "Legacy",
+                            "actions": [{"type": "text", "value": "legacy", "label": ""}],
+                        }
+                    ]
+                },
+            )
+            self.app.data = {
+                "keymaps": [],
+                "triggers": self.app.config_service.load_trigger_set_file(
+                    trigger_set_path,
+                    config_root=root,
+                ),
+                "active_keymap_id": "",
+            }
+            self.app.dirty_tracker.set_trigger_set_source_path(trigger_set_path)
+
+            with patch.object(
+                tkinter.messagebox,
+                "askyesnocancel",
+                side_effect=AssertionError("想定外の保存先確認ダイアログ"),
+            ), patch.object(
+                tkinter.filedialog,
+                "asksaveasfilename",
+                side_effect=AssertionError("想定外の別名保存ダイアログ"),
+            ), patch.object(self.app.child_save_dialog, "ask_child_save_actions") as ask, patch.object(
+                self.app.trigger_panel,
+                "refresh_triggers",
+            ), patch.object(self.app.trigger_panel, "refresh_actions"), patch.object(
+                tkinter.messagebox,
+                "showinfo",
+            ):
+                self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
+            ask.assert_not_called()
+
+            saved_trigger_set = self.app.config_service.repository.load_json(trigger_set_path)
+            sequence_path = saved_trigger_set["triggers"][0]["sequence_path"]
+            self.assertTrue(os.path.exists(os.path.join(root, sequence_path)))
+            reloaded = self.app.config_service.load_trigger_set_file(
+                trigger_set_path,
+                config_root=root,
+            )
+            self.assertEqual(reloaded[0]["label"], "Legacy")
+            self.assertEqual(
+                reloaded[0]["actions"],
+                [{"type": "text", "value": "legacy", "label": ""}],
+            )
 
 
 if __name__ == "__main__":

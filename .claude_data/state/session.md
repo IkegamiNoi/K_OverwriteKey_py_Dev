@@ -9,14 +9,27 @@ phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン
 last_commit_location: claude/device-testing-issues-31898e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **task_14 完了（v0.5-J/N）。次は task_15（個別トリガー一覧保存の保存計画化）→ task_16 → task_10**。
+focus: **task_14・15 完了（v0.5-J/N/K）。次は task_16（初期省略計算とホイール）→ 実機目視 → task_10**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-01T02:00:00
+ts: 2026-08-01T03:00:00
 who: main
 summary: |
-  【task_14（個別保存のパス解決 v0.5-J + 上位 dirty 化 v0.5-N）完了】`codex-implementer` へ委任。
+  【task_15（個別「トリガー一覧を保存」の保存計画化 v0.5-K）完了】`codex-implementer` へ委任。
+  - application: `save_trigger_set_file(..., save_plan=None)` を追加。**skip の sequence は書かず**、
+    戻り値の source_path / `_parent_refs` / dirty も**書いた子だけ**更新（skip の dirty は保持）。
+    索引は `_build_trigger_set_payloads` 既存規則（書いた子=新パス / skip=旧 source_path・実在時のみ）。
+    **既定 `None` は従来どおり全件書く**（素の API を保つ。恒久互換レイヤーではない）。
+  - presentation: `trigger_set_file_io._collect_sequence_save_plan` が
+    **trigger_set の SAVE_AS エントリを `confirmed` に入れて** targets / rows を解決し、
+    **sequence 行だけに絞って**一覧ダイアログ → `build_save_plan`。
+    **キャンセルは `save_trigger_set_file` 呼び出し前に早期 return**（trigger_set も書かない）。
+    依存確認・deferred index はこの経路で呼ばない（fail-fast ガードで固定）。
+  - **未実体化の子（旧形式インライン sequence）は `build_save_plan` の既定規則**
+    （保存先に実体が無ければ SAVE）で書かれる ＝ 消失しない（テストで固定）。
+  - 既存 tests_ui 3 件に「保存後の再読込」を挿入（前提不足の補正・**検証内容は不変**。reviewer 確認済み）。
+  【前段: task_14（個別保存のパス解決 v0.5-J + 上位 dirty 化 v0.5-N）完了】`codex-implementer` へ委任。
   - application: 個別保存 3 API で **resolved（書き込み用・絶対）と stored（記録用）を分離**。
     `save_trigger_set_file` の `os.path.abspath(path)` を解決値へ置換（cwd 基準判定の除去）。
     **stored は引数 `path` をそのまま**返す（`to_config_relative_or_absolute` に通すと config_root 外で
@@ -42,8 +55,11 @@ summary: |
     未保存にもならない → 上位を dirty 化。自動保存はしない）/ 旧形式インライン sequence の消失回避
     （未実体化の子は計画既定で書く）/ stored と resolved の分離。
   - 起票: **task_14（J+N）→ task_15（K）→ task_16（L+M）→ task_10**。
-result_files（task_14 分。起票分は `9a0f0c0` 相当のコミット済み）:
-  - keyseq/application/config_service.py（個別保存 3 API の resolved / stored 分離）
+result_files（task_15 分は**未コミット**。task_14 = `fa3f41b` / 起票 = `6e160c7` はコミット済み）:
+  - 【task_15】keyseq/application/config_service.py（`save_trigger_set_file` の save_plan 対応）
+  - 【task_15】keyseq/presentation/controllers/config_io/trigger_set_file_io.py（`_collect_sequence_save_plan`）
+  - 【task_15】tests/test_config_service.py（+2）/ tests_ui/test_config_io_characterization.py（+4）
+  - 【task_14】keyseq/application/config_service.py（個別保存 3 API の resolved / stored 分離）
   - keyseq/presentation/controllers/config_io/{trigger_set,keymap,sequence}_file_io.py（上位 dirty 化 + 通知文）
   - tests/test_config_service.py（+2）/ tests_ui/test_config_io_characterization.py（+3）
   - 【起票分・コミット済】instructions/history/05_child_file_save_dialog.md（v0.5 改訂）
@@ -54,10 +70,13 @@ result_files（task_14 分。起票分は `9a0f0c0` 相当のコミット済み�
   - instructions/phase/current.md / .claude_data/state/decisions.md（3 回目の節）
 verified:
   compile: clean
-  tests: pass 140（+2）
-  tests_ui: pass 139（+3・12 秒で完走・**差し戻し前にあった断続ハングは解消**）
+  tests: pass 142（task_15 で +2）
+  tests_ui: pass 143（task_15 で +4・11 秒で完走）
   smoke: pass
-  review: reviewer（task_14 差分）= **完了可**（stored/resolved の分離が 3 API で一貫・resolved の漏れなし /
+  probe: `resolve_child_save_targets` は `keymap_set_path=""`（新規作成直後）でも例外にならないことを実測確認
+  review: reviewer（task_15 差分）= **完了可**（粒度・skip の dirty 保持・キャンセル位置・
+    依存確認を呼ばない点・既存テスト 3 件の再読込が緩和でない点を確認。指摘なし）
+  review（task_14 差分）: reviewer = **完了可**（stored/resolved の分離が 3 API で一貫・resolved の漏れなし /
     v0.5-N の判定と `set_dirty(True)` の意図一致 / 対象外への波及なし / 追加テストは修正前なら落ちる内容 /
     通知文の統一を確認。軽微指摘 1 = stored が仕様書の式ではなく引数そのままだが、絶対パス回帰を
     厳密に満たす選択として問題なしと判定）
@@ -68,10 +87,10 @@ verified:
   tests: 未実行（文書のみの変更）
 
 ## next_action
-- **task_15 を `codex-implementer` へ委任**（`save_trigger_set_file` に `SavePlan` を通す +
-  `trigger_set_file_io` で計画を組み立てて sequence 行のみのダイアログを出す）。
+- **task_16 を `codex-implementer` へ委任**（`child_save_dialog.py` 限定。初期レイアウト確定後の
+  1 回だけの省略再計算 + Toplevel への `<MouseWheel>` バインド）。
   テストコードの追加まで委任し、**実測は verifier / メイン**（Codex は python を実行できない）。
-  その後 `reviewer` → 完了判定 → task_16 → task_10。
+  その後 `reviewer` → 完了判定 → **実機目視（ユーザー）** → task_10。
 - **【tests_ui の教訓・task_15 でも効く】`_prepare_loaded_keymap_set` は `save_plan=None` で
   `save_runtime_data` を呼ぶため runtime に source_path が入らない**（`_apply_saved_child_paths` は
   `save_plan.entries` があるときだけ走る）。source_path 前提のテストは**保存後に

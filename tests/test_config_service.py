@@ -3,11 +3,14 @@ import os
 import sys
 import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import (
+    ACTION_SAVE,
     ACTION_SAVE_AS,
+    ACTION_SKIP,
     CHILD_KEYMAP,
     CHILD_SEQUENCE,
     CHILD_TRIGGER_SET,
@@ -265,6 +268,114 @@ class IndividualSavePathTest(unittest.TestCase):
             self.assertEqual(
                 sequence[self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
                 sequence_path,
+            )
+
+
+class TriggerSetSavePlanTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def test_skip_plan_preserves_sequence_file_and_none_still_writes_all(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            trigger_set_path = "user/trigger_sets/main.json"
+            old_sequence_path = os.path.join(root, "user", "sequences", "old.json")
+            self.service.repository.save_json(old_sequence_path, {"label": "old", "actions": []})
+            old_bytes = Path(old_sequence_path).read_bytes()
+            data = {
+                "triggers": [
+                    {
+                        "key": "f1",
+                        "label": "Old",
+                        "actions": [{"type": "text", "value": "changed", "label": ""}],
+                        self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "user/sequences/old.json",
+                        self.service.INTERNAL_SEQUENCE_PARENT_REFS: ["legacy.json"],
+                        self.service.INTERNAL_SEQUENCE_DIRTY: True,
+                    },
+                    {
+                        "key": "f2",
+                        "label": "New",
+                        "actions": [],
+                    },
+                ]
+            }
+            plan = SavePlan(
+                entries=(
+                    ChildSaveEntry(CHILD_SEQUENCE, "f1", ACTION_SKIP),
+                    ChildSaveEntry(CHILD_SEQUENCE, "f2", ACTION_SAVE),
+                )
+            )
+
+            triggers, trigger_payload = self.service.save_trigger_set_file(
+                trigger_set_path,
+                data,
+                config_root=root,
+                save_plan=plan,
+            )
+
+            self.assertEqual(Path(old_sequence_path).read_bytes(), old_bytes)
+            self.assertTrue(
+                os.path.exists(os.path.join(root, trigger_set_path))
+            )
+            self.assertEqual(
+                trigger_payload["triggers"][0]["sequence_path"],
+                "user/sequences/old.json",
+            )
+            self.assertEqual(
+                triggers[0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+                "user/sequences/old.json",
+            )
+            self.assertTrue(triggers[0][self.service.INTERNAL_SEQUENCE_DIRTY])
+            self.assertEqual(
+                triggers[0][self.service.INTERNAL_SEQUENCE_PARENT_REFS],
+                ["legacy.json"],
+            )
+            self.assertTrue(
+                os.path.exists(os.path.join(root, "user", "sequences", "New.json"))
+            )
+
+            self.service.save_trigger_set_file(
+                "user/trigger_sets/all.json",
+                data,
+                config_root=root,
+            )
+
+            self.assertNotEqual(Path(old_sequence_path).read_bytes(), old_bytes)
+
+    def test_save_as_plan_writes_target_and_indexes_it(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            sequence_path = os.path.join(root, "user", "sequences", "renamed.json")
+            data = {
+                "triggers": [
+                    {
+                        "key": "f1",
+                        "label": "Copy",
+                        "actions": [{"type": "text", "value": "copied", "label": ""}],
+                    }
+                ]
+            }
+            plan = SavePlan(
+                entries=(
+                    ChildSaveEntry(CHILD_SEQUENCE, "f1", ACTION_SAVE_AS, sequence_path),
+                )
+            )
+
+            triggers, trigger_payload = self.service.save_trigger_set_file(
+                "user/trigger_sets/main.json",
+                data,
+                config_root=root,
+                save_plan=plan,
+            )
+
+            self.assertTrue(os.path.exists(sequence_path))
+            self.assertEqual(
+                trigger_payload["triggers"][0]["sequence_path"],
+                "user/sequences/renamed.json",
+            )
+            self.assertEqual(
+                triggers[0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+                "user/sequences/renamed.json",
             )
 
 

@@ -1,6 +1,16 @@
 import os
 from tkinter import filedialog, messagebox
 
+from keyseq.application.save_plan import (
+    ACTION_SAVE_AS,
+    CHILD_SEQUENCE,
+    CHILD_TRIGGER_SET,
+    ChildSaveEntry,
+    SavePlan,
+)
+from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
+from keyseq.presentation.controllers.config_io.child_save_rows import collect_child_save_rows
+
 
 class TriggerSetFileIo:
     def __init__(self, app) -> None:
@@ -35,6 +45,10 @@ class TriggerSetFileIo:
 
     def save_trigger_set_to_path(self, path: str) -> bool:
         try:
+            save_plan = self._collect_sequence_save_plan(path)
+            if save_plan is None:
+                self._app._set_flash_message("トリガー一覧の保存を中止しました。")
+                return False
             previous_source_path = str(
                 self._app.dirty_tracker.trigger_set_source_path or ""
             ).strip()
@@ -43,6 +57,7 @@ class TriggerSetFileIo:
                 self._app.data,
                 config_root=self._app.config_root,
                 parent_ref=self._app.keymap_set_path,
+                save_plan=save_plan,
             )
             self._app.data["triggers"] = triggers
             self._app.dirty_tracker.set_trigger_set_source_path(path)
@@ -72,6 +87,41 @@ class TriggerSetFileIo:
             self._app._set_flash_message(f"トリガー一覧保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
             return False
+
+    def _collect_sequence_save_plan(self, path: str) -> SavePlan | None:
+        confirmed = SavePlan(
+            entries=(
+                ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE_AS, path),
+            )
+        )
+        targets = self._app.config_service.resolve_child_save_targets(
+            self._app.data,
+            config_root=self._app.config_root,
+            keymap_set_path=self._app.keymap_set_path,
+            save_plan=confirmed,
+        )
+        rows = [
+            row
+            for row in collect_child_save_rows(
+                data=self._app.data,
+                dirty_tracker=self._app.dirty_tracker,
+                config_service=self._app.config_service,
+                config_root=self._app.config_root,
+                keymap_set_path=self._app.keymap_set_path,
+                save_plan=confirmed,
+            )
+            if row.kind == CHILD_SEQUENCE
+        ]
+        choices = {} if not rows else self._app.child_save_dialog.ask_child_save_actions(rows)
+        if choices is None:
+            return None
+        return build_save_plan(
+            data=self._app.data,
+            rows=rows,
+            choices=choices,
+            targets=targets,
+            confirmed=confirmed,
+        )
 
     def load_trigger_set_file(self) -> None:
         if not self._app.keymap_set_io.confirm_save_if_dirty("トリガー一覧読込"):

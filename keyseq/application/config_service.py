@@ -235,6 +235,7 @@ class ConfigService:
         *,
         config_root: str,
         parent_ref: str = "",
+        save_plan: SavePlan | None = None,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         resolved_path = self._resolve_config_relative_path(path, config_root)
         normalized = ensure_config_compatibility(data)
@@ -252,27 +253,27 @@ class ConfigService:
             config_root=os.path.abspath(config_root),
             trigger_set_path=resolved_path,
             parent_ref=parent_ref,
-            save_plan=SavePlan(),
+            save_plan=save_plan or SavePlan(),
         )
         for item in sequence_items:
+            if item["skip"]:
+                continue
             self.repository.save_json(str(item["resolved_path"]), item["payload"])
         self.repository.save_json(resolved_path, trigger_payload)
 
         triggers = safe_deepcopy(normalized.get("triggers", [])) if isinstance(normalized.get("triggers"), list) else []
         by_key = {
-            normalize_key_name(str(item.get("key") or "")): str(item.get("path") or "")
+            normalize_key_name(str(item.get("key") or "")): item
             for item in sequence_items
-            if isinstance(item, dict)
+            if isinstance(item, dict) and not item["skip"]
         }
         for trigger in triggers:
             key = normalize_key_name(str(trigger.get("key") or ""))
-            if key in by_key:
-                trigger[self.INTERNAL_SEQUENCE_SOURCE_PATH] = by_key[key]
-            sequence_item = next(
-                (item for item in sequence_items if normalize_key_name(str(item.get("key") or "")) == key),
-                None,
-            )
-            if isinstance(sequence_item, dict) and self.PARENT_REFS_KEY in sequence_item.get("payload", {}):
+            sequence_item = by_key.get(key)
+            if not isinstance(sequence_item, dict):
+                continue
+            trigger[self.INTERNAL_SEQUENCE_SOURCE_PATH] = str(sequence_item.get("path") or "")
+            if self.PARENT_REFS_KEY in sequence_item.get("payload", {}):
                 trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = safe_deepcopy(
                     sequence_item["payload"][self.PARENT_REFS_KEY]
                 )
