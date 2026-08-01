@@ -9,14 +9,23 @@ phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン
 last_commit_location: claude/device-testing-issues-31898e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **task_14・15 完了（v0.5-J/N/K）。次は task_16（初期省略計算とホイール）→ 実機目視 → task_10**。
-mode: implementing
+focus: **task_14〜16 完了（v0.5 の実装は全て完了）。次は実機目視（ユーザー実施）→ task_10（正本反映）**。
+mode: pending_review
 
 ## last_action
-ts: 2026-08-01T03:00:00
+ts: 2026-08-02T00:00:00
 who: main
 summary: |
-  【task_15（個別「トリガー一覧を保存」の保存計画化 v0.5-K）完了】`codex-implementer` へ委任。
+  【task_16（一覧ダイアログの初期省略計算 v0.5-L + ホイール v0.5-M）完了 = **v0.5 の実装が全て完了**】
+  - **【L】セル単位の `<Configure>` で再 fit する方式**（`cell["last_fit_width"]` で同幅早期 return /
+    `<= 1px` はキャッシュしない）。canvas の `<Configure>` は `itemconfigure(window_id, width=...)` のみに縮小。
+  - **【M】`<MouseWheel>` を canvas から dialog（Toplevel）へ**。子ウィジェットからの伝播で拾う。
+    `bind_all` 不使用（破棄でバインドが残らないことをテストで固定）。
+  - **差し戻し 1 回**: 初手は `after_idle` の **one-shot 再計算**だったが、実機計測で
+    「ラベルが 193px / 376px まで広がっても表示が『…』のまま」＝**中間幅で確定し、
+    同幅の Configure では復旧しない**ことが判明（one-shot はタイミングに賭ける設計で原理的に不足）。
+    → セル単位イベント駆動へ変更させて解消。
+  【前段: task_15（個別「トリガー一覧を保存」の保存計画化 v0.5-K）完了】`codex-implementer` へ委任。
   - application: `save_trigger_set_file(..., save_plan=None)` を追加。**skip の sequence は書かず**、
     戻り値の source_path / `_parent_refs` / dirty も**書いた子だけ**更新（skip の dirty は保持）。
     索引は `_build_trigger_set_payloads` 既存規則（書いた子=新パス / skip=旧 source_path・実在時のみ）。
@@ -55,7 +64,9 @@ summary: |
     未保存にもならない → 上位を dirty 化。自動保存はしない）/ 旧形式インライン sequence の消失回避
     （未実体化の子は計画既定で書く）/ stored と resolved の分離。
   - 起票: **task_14（J+N）→ task_15（K）→ task_16（L+M）→ task_10**。
-result_files（task_15 分は**未コミット**。task_14 = `fa3f41b` / 起票 = `6e160c7` はコミット済み）:
+result_files（task_16 分は**未コミット**。task_15 = `a715e5a` / task_14 = `fa3f41b` / 起票 = `6e160c7`）:
+  - 【task_16】keyseq/presentation/controllers/config_io/child_save_dialog.py
+  - 【task_16】tests_ui/test_child_save_dialog.py（実 Tk の初期表示 / 幅追随 / ホイール 4 件追加）
   - 【task_15】keyseq/application/config_service.py（`save_trigger_set_file` の save_plan 対応）
   - 【task_15】keyseq/presentation/controllers/config_io/trigger_set_file_io.py（`_collect_sequence_save_plan`）
   - 【task_15】tests/test_config_service.py（+2）/ tests_ui/test_config_io_characterization.py（+4）
@@ -70,12 +81,14 @@ result_files（task_15 分は**未コミット**。task_14 = `fa3f41b` / 起票 
   - instructions/phase/current.md / .claude_data/state/decisions.md（3 回目の節）
 verified:
   compile: clean
-  tests: pass 142（task_15 で +2）
-  tests_ui: pass 143（task_15 で +4・11 秒で完走）
+  tests: pass 142
+  tests_ui: pass 147（task_16 で +4・17 秒で完走）
   smoke: pass
   probe: `resolve_child_save_targets` は `keymap_set_path=""`（新規作成直後）でも例外にならないことを実測確認
-  review: reviewer（task_15 差分）= **完了可**（粒度・skip の dirty 保持・キャンセル位置・
-    依存確認を呼ばない点・既存テスト 3 件の再読込が緩和でない点を確認。指摘なし）
+  review: reviewer（task_16 差分）= **完了可**（再入ループの安全性・責務分離・ホイールの
+    スコープとバインド残留なし・テストが修正前なら落ちる内容であることを確認。
+    軽微な所見 1 = `resize_content` の `update_idletasks()` の要否〔実害なし・削除必須ではない〕）
+  review（task_15 差分）: reviewer = **完了可**（指摘なし）
   review（task_14 差分）: reviewer = **完了可**（stored/resolved の分離が 3 API で一貫・resolved の漏れなし /
     v0.5-N の判定と `set_dirty(True)` の意図一致 / 対象外への波及なし / 追加テストは修正前なら落ちる内容 /
     通知文の統一を確認。軽微指摘 1 = stored が仕様書の式ではなく引数そのままだが、絶対パス回帰を
@@ -87,24 +100,28 @@ verified:
   tests: 未実行（文書のみの変更）
 
 ## next_action
-- **task_16 を `codex-implementer` へ委任**（`child_save_dialog.py` 限定。初期レイアウト確定後の
-  1 回だけの省略再計算 + Toplevel への `<MouseWheel>` バインド）。
-  テストコードの追加まで委任し、**実測は verifier / メイン**（Codex は python を実行できない）。
-  その後 `reviewer` → 完了判定 → **実機目視（ユーザー）** → task_10。
+- **実機目視をユーザーへ依頼する**（残る唯一の未完了項目。起動は `<repo>\.venv\Scripts\python.exe main.py`。
+  **VS Code の ▶ 実行〔小文字ドライブ〕でも 1 周する**）。
 - **【tests_ui の教訓・task_15 でも効く】`_prepare_loaded_keymap_set` は `save_plan=None` で
   `save_runtime_data` を呼ぶため runtime に source_path が入らない**（`_apply_saved_child_paths` は
   `save_plan.entries` があるときだけ走る）。source_path 前提のテストは**保存後に
   `load_runtime_data_from_keymap_set_path` で読み直す**こと。さもないと個別保存が
   「保存先を選ぶ」分岐へ落ち、**実リポジトリの `config/` に対してモーダルを開いてハングする**。
-- **実機目視は task_16 完了後にまとめて実施**（ユーザー）。確認項目は
+- **実機目視の確認項目**（すべてユーザー実施）:
   (a) 2026-07-29 の①③④⑤ + (b) 2026-07-30 の⑥⑦ + (c) task_13 の新規作成 / 例の設定に戻す +
-  (d) task_06 定義「対象範囲 4」の 9 項目の退行なし + (e) **今回の①〜④が解消していること**。
+  (d) task_06 定義「対象範囲 4」の 9 項目の退行なし + (e) **2026-08-01 の①〜④の解消**:
+  ①初回起動時にトリガー一覧から保存 → `config/` 配下に書かれ **root 直下に `user/` ができない** /
+  ②シーケンス変更後にトリガー一覧から保存 → **sequence 行だけの確認ダイアログが出る**
+  （キャンセルで何も書かれない / 「保存しない」を選んだ子は書かれない）/
+  ③ダイアログの**初期表示で省略が効いている**（リサイズ不要）/
+  ④行のラベル・ラジオの上でも**ホイールでスクロールできる**。
+  加えて (f) **個別の別名保存後に未保存マークが付き**、構成セットを保存すると索引が追随すること（v0.5-N）。
   結果は `instructions/phase/06_child_file_save_dialog/integration_result.md` §3 へ記録する。
 - 目視 OK 後: **task_10（`finalize_records`）を `/task_new` で起票**。正本反映で**必ず明記**する項目は
   `SHARE_NEW` / 非 dirty 子の SKIP 規則 / SKIP した子の索引規則 / 依存確認ダイアログと既定ボタン /
   SKIP 子の dirty 保持 / `data_schema.md` §5.4 の「trigger_set は全セット共通」記述の更新 /
   §5.6 のフォールバック名の経路差（一括 = `default` / 個別 = `trigger_set.json`）/
-  個別「トリガー一覧を保存」が全 sequence を書く点と §8 の関係 / **v0.3 追加分**（A: 再表示しない /
+  個別「トリガー一覧を保存」が**保存計画駆動になった**点と §8 の関係（v0.5-K で変更済）/ **v0.3 追加分**（A: 再表示しない /
   A2: 再計算先の上書き確認 / B: canonical identity / C: ダイアログ要件 / 変更なし保存でも親は書かれる）/
   **v0.4 追加分**（D/E: 依存確認の提示条件と 4 択・deferred index 例外と上位の dirty 化 / F: A2 維持 /
   G: 既定保存先は既存ファイルを避けない / I: 新規子が既存ファイルへ当たるときは既定を別名保存

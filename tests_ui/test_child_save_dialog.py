@@ -4,6 +4,7 @@ import os
 import tempfile
 import tkinter
 import unittest
+from tkinter import ttk
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -454,22 +455,30 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             all(any(call.get("sticky") == "ew" for call in label.grid_calls) for label in flexible_labels)
         )
 
-    def test_canvas_configure_tracks_content_width_and_avoids_repeat_ellipsizing(self):
+    def test_configures_track_content_and_text_cell_widths_without_repeat_fitting(self):
         rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "長い対象名" * 7, "C:/" + "long-directory/" * 5, SHARE_SOLE, "単独", ACTION_SAVE)]
+
+        def configure_content_and_cells(current, _variables):
+            current.canvas.bindings["<Configure>"](SimpleNamespace(width=300))
+            current.canvas.bindings["<Configure>"](SimpleNamespace(width=300))
+            for _ in range(2):
+                for label in current.labels:
+                    if "<Configure>" in label.bindings:
+                        label.bindings["<Configure>"](SimpleNamespace(width=200))
+            current.buttons["キャンセル"]()
 
         with patch.object(child_save_dialog_module, "_fit_text", wraps=child_save_dialog_module._fit_text) as fit:
             _result, _variables, dialog = self._ask_dialog_internally(
                 rows,
-                lambda current, _variables: (
-                    current.canvas.bindings["<Configure>"](SimpleNamespace(width=300)),
-                    current.canvas.bindings["<Configure>"](SimpleNamespace(width=300)),
-                    current.buttons["キャンセル"](),
-                ),
+                configure_content_and_cells,
             )
 
         self.assertIn("<Configure>", dialog.canvas.bindings)
         self.assertEqual(dialog.canvas.itemconfigure_calls, [((1,), {"width": 300})])
+        text_cell_labels = [label for label in dialog.labels if "<Configure>" in label.bindings]
+        self.assertEqual(len(text_cell_labels), 2)
         self.assertEqual(fit.call_count, 2)
+        self.assertTrue(all(label.configure_calls for label in text_cell_labels))
 
     def test_dialog_layout_creates_vertical_scroll_region_without_horizontal_scrollbar(self):
         rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
@@ -482,19 +491,26 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         self.assertEqual(dialog.scrollbar_calls[0][1]["orient"], "vertical")
         self.assertEqual(len(dialog.canvas.create_window_calls), 1)
         self.assertEqual(len(dialog.scrollbar_calls), 1)
+        self.assertIn("<MouseWheel>", dialog.bindings)
+        self.assertNotIn("<MouseWheel>", dialog.canvas.bindings)
 
     def test_dialog_binds_tooltips_for_all_cells_but_shows_only_ellipsized_text(self):
         short_row = ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)
         long_name = "長い対象名" * 7
         long_path = "C:/" + "long-directory/" * 5 + "target.json"
         long_row = ChildSaveRow(CHILD_SEQUENCE, "f1", long_name, long_path, SHARE_SOLE, "単独", ACTION_SAVE)
+
+        def configure_content_and_cells(current, _variables):
+            current.canvas.bindings["<Configure>"](SimpleNamespace(width=100))
+            for label in current.labels:
+                if "<Configure>" in label.bindings:
+                    label.bindings["<Configure>"](SimpleNamespace(width=200))
+            current.buttons["キャンセル"]()
+
         with patch.object(self.app.child_save_dialog, "_bind_tooltip") as bind_tooltip:
             self._ask_dialog_internally(
                 [short_row, long_row],
-                lambda current, _variables: (
-                    current.canvas.bindings["<Configure>"](SimpleNamespace(width=100)),
-                    current.buttons["キャンセル"](),
-                ),
+                configure_content_and_cells,
             )
 
         self.assertEqual(
@@ -554,6 +570,156 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             child_save_dialog_module._fit_text("abcdefghijkl", measure, 1, child_save_dialog_module._ellipsize),
             "…",
         )
+
+    def test_initial_layout_refits_text_cells_after_cell_configure(self):
+        try:
+            root = tkinter.Tk()
+        except tkinter.TclError as error:
+            self.skipTest(f"Tk を利用できません: {error}")
+        root.withdraw()
+        row = ChildSaveRow(
+            CHILD_SEQUENCE,
+            "f1",
+            "very-long-target-name-" * 20,
+            "C:/" + "very-long-directory/" * 20 + "target.json",
+            SHARE_SOLE,
+            "単独",
+            ACTION_SAVE,
+        )
+        dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog([row], {})[0]
+        try:
+            dialog.deiconify()
+            dialog.update()
+            frame = dialog.winfo_children()[0]
+            list_frame = next(
+                widget
+                for widget in frame.winfo_children()
+                if isinstance(widget, ttk.Frame) and widget.pack_info().get("fill") == "both"
+            )
+            canvas = next(widget for widget in list_frame.winfo_children() if isinstance(widget, tkinter.Canvas))
+            if canvas.winfo_width() <= 1:
+                self.skipTest("ウィンドウマネージャーがないため、Canvas の実レイアウトを検証できません")
+            content_frame = canvas.winfo_children()[0]
+            name_label = content_frame.grid_slaves(row=1, column=1)[0]
+            path_label = content_frame.grid_slaves(row=1, column=2)[0]
+
+            self.assertNotEqual(name_label.cget("text"), "…")
+            self.assertNotEqual(path_label.cget("text"), "…")
+        finally:
+            dialog.destroy()
+            root.destroy()
+
+    def test_text_ellipsis_changes_when_dialog_width_changes(self):
+        try:
+            root = tkinter.Tk()
+        except tkinter.TclError as error:
+            self.skipTest(f"Tk を利用できません: {error}")
+        root.withdraw()
+        row = ChildSaveRow(
+            CHILD_SEQUENCE,
+            "f1",
+            "very-long-target-name-" * 20,
+            "C:/" + "very-long-directory/" * 20 + "target.json",
+            SHARE_SOLE,
+            "単独",
+            ACTION_SAVE,
+        )
+        dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog([row], {})[0]
+        try:
+            dialog.deiconify()
+            dialog.update()
+            frame = dialog.winfo_children()[0]
+            list_frame = next(
+                widget
+                for widget in frame.winfo_children()
+                if isinstance(widget, ttk.Frame) and widget.pack_info().get("fill") == "both"
+            )
+            canvas = next(widget for widget in list_frame.winfo_children() if isinstance(widget, tkinter.Canvas))
+            if canvas.winfo_width() <= 1:
+                self.skipTest("ウィンドウマネージャーがないため、Canvas の実レイアウトを検証できません")
+            content_frame = canvas.winfo_children()[0]
+            name_label = content_frame.grid_slaves(row=1, column=1)[0]
+            path_label = content_frame.grid_slaves(row=1, column=2)[0]
+            minimum_width, minimum_height = dialog.minsize()
+
+            dialog.geometry(f"{minimum_width}x{minimum_height}")
+            dialog.update()
+            narrow_text = (name_label.cget("text"), path_label.cget("text"))
+            dialog.geometry(f"{minimum_width + 240}x{minimum_height}")
+            dialog.update()
+            wide_text = (name_label.cget("text"), path_label.cget("text"))
+
+            self.assertGreater(len(wide_text[0]), len(narrow_text[0]))
+            self.assertGreater(len(wide_text[1]), len(narrow_text[1]))
+        finally:
+            dialog.destroy()
+            root.destroy()
+
+    def test_mouse_wheel_on_row_child_scrolls_canvas(self):
+        try:
+            root = tkinter.Tk()
+        except tkinter.TclError as error:
+            self.skipTest(f"Tk を利用できません: {error}")
+        root.withdraw()
+        rows = [
+            ChildSaveRow(CHILD_SEQUENCE, f"f{index}", f"Copy {index}", f"C:/copy-{index}.json", SHARE_SOLE, "単独", ACTION_SAVE)
+            for index in range(30)
+        ]
+        dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog(rows, {})[0]
+        try:
+            dialog.deiconify()
+            dialog.update()
+            frame = dialog.winfo_children()[0]
+            list_frame = next(
+                widget
+                for widget in frame.winfo_children()
+                if isinstance(widget, ttk.Frame) and widget.pack_info().get("fill") == "both"
+            )
+            canvas = next(widget for widget in list_frame.winfo_children() if isinstance(widget, tkinter.Canvas))
+            if canvas.winfo_height() <= 1:
+                self.skipTest("ウィンドウマネージャーがないため、Canvas の実レイアウトを検証できません")
+            content_frame = canvas.winfo_children()[0]
+            row_label = content_frame.grid_slaves(row=1, column=1)[0]
+            before = canvas.yview()[0]
+
+            row_label.event_generate("<MouseWheel>", delta=-120)
+            dialog.update()
+
+            self.assertGreater(canvas.yview()[0], before)
+        finally:
+            dialog.destroy()
+            root.destroy()
+
+    def test_mouse_wheel_binding_is_scoped_to_dialog(self):
+        try:
+            root = tkinter.Tk()
+        except tkinter.TclError as error:
+            self.skipTest(f"Tk を利用できません: {error}")
+        root.withdraw()
+        row = ChildSaveRow(CHILD_SEQUENCE, "f1", "Copy", "C:/copy.json", SHARE_SOLE, "単独", ACTION_SAVE)
+        dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog([row], {})[0]
+        try:
+            dialog.deiconify()
+            dialog.update()
+            frame = dialog.winfo_children()[0]
+            list_frame = next(
+                widget
+                for widget in frame.winfo_children()
+                if isinstance(widget, ttk.Frame) and widget.pack_info().get("fill") == "both"
+            )
+            canvas = next(widget for widget in list_frame.winfo_children() if isinstance(widget, tkinter.Canvas))
+            content_frame = canvas.winfo_children()[0]
+            row_label = content_frame.grid_slaves(row=1, column=1)[0]
+
+            self.assertIn(str(dialog), row_label.bindtags())
+            self.assertTrue(dialog.bind("<MouseWheel>"))
+            self.assertFalse(root.bind_all("<MouseWheel>"))
+            dialog.destroy()
+            self.assertFalse(root.bind_all("<MouseWheel>"))
+        finally:
+            if dialog.winfo_exists():
+                dialog.destroy()
+            root.destroy()
 
     def test_minimum_size_keeps_buttons_and_radio_column_visible_in_real_tk(self):
         try:

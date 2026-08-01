@@ -51,7 +51,7 @@ class ChildSaveDialog:
         )
         window_id = canvas.create_window((0, 0), window=content_frame, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
-        canvas.bind(
+        dialog.bind(
             "<MouseWheel>",
             lambda event: canvas.yview_scroll(-int(event.delta / 120), "units"),
         )
@@ -103,7 +103,7 @@ class ChildSaveDialog:
         return choices, text_cells
 
     def _add_text_cell(self, frame, row: int, column: int, text: str, ellipsize):
-        cell = {"text": text, "display": "", "ellipsize": ellipsize}
+        cell = {"text": text, "display": "", "ellipsize": ellipsize, "last_fit_width": None}
         label = ttk.Label(frame, text="", width=1, anchor="w")
         label.grid(row=row, column=column, sticky="ew", padx=(0, 8))
         cell["label"] = label
@@ -122,6 +122,18 @@ class ChildSaveDialog:
         measure = font.nametofont("TkDefaultFont").measure
         last_width = None
 
+        def fit_text_cell(cell, width: int) -> None:
+            if width <= 1 or width == cell["last_fit_width"]:
+                return
+            cell["last_fit_width"] = width
+            display = _fit_text(cell["text"], measure, width, cell["ellipsize"])
+            if display != cell["display"]:
+                cell["label"].configure(text=display)
+                cell["display"] = display
+
+        def resize_text_cell(cell, event) -> None:
+            fit_text_cell(cell, event.width)
+
         def resize_content(event) -> None:
             nonlocal last_width
             if event.width == last_width:
@@ -129,15 +141,13 @@ class ChildSaveDialog:
             last_width = event.width
             canvas.itemconfigure(window_id, width=event.width)
             content_frame.update_idletasks()
-            for cell in text_cells:
-                display = _fit_text(
-                    cell["text"], measure, cell["label"].winfo_width(), cell["ellipsize"]
-                )
-                if display != cell["display"]:
-                    cell["label"].configure(text=display)
-                    cell["display"] = display
 
         canvas.bind("<Configure>", resize_content)
+        for cell in text_cells:
+            cell["label"].bind(
+                "<Configure>",
+                lambda event, cell=cell: resize_text_cell(cell, event),
+            )
 
     @staticmethod
     def _set_minimum_size(dialog, frame, list_frame, content_frame, scrollbar, row_count: int) -> None:
