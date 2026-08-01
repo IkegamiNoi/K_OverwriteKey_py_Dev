@@ -164,6 +164,110 @@ class SequenceFileIoTest(unittest.TestCase):
             self.assertTrue(loaded["_sequence_imported"])
 
 
+class IndividualSavePathTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def test_relative_individual_save_paths_use_config_root_and_keep_stored_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            elsewhere = os.path.join(tmp, "elsewhere")
+            keymap_path = "user/keymaps/main.json"
+            sequence_path = "user/sequences/copy.json"
+            trigger_set_path = "user/trigger_sets/main.json"
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            previous_cwd = os.getcwd()
+            os.makedirs(elsewhere)
+            try:
+                os.chdir(elsewhere)
+                keymap = self.service.save_keymap_file(
+                    keymap_path,
+                    {"id": "km1", "label": "Main", "mappings": {"a": "b"}},
+                    parent_ref=keymap_set_path,
+                    config_root=root,
+                )
+                sequence = self.service.save_sequence_file(
+                    sequence_path,
+                    {"key": "f1", "label": "Copy", "actions": []},
+                    parent_ref=os.path.join(root, trigger_set_path),
+                    config_root=root,
+                )
+                triggers, trigger_payload = self.service.save_trigger_set_file(
+                    trigger_set_path,
+                    {"triggers": [{"key": "f2", "label": "Paste", "actions": []}]},
+                    parent_ref=keymap_set_path,
+                    config_root=root,
+                )
+            finally:
+                os.chdir(previous_cwd)
+
+            self.assertTrue(os.path.exists(os.path.join(root, keymap_path)))
+            self.assertTrue(os.path.exists(os.path.join(root, sequence_path)))
+            self.assertTrue(os.path.exists(os.path.join(root, trigger_set_path)))
+            self.assertFalse(os.path.exists(os.path.join(elsewhere, "user")))
+            self.assertEqual(
+                keymap[self.service.INTERNAL_KEYMAP_SOURCE_PATH], keymap_path
+            )
+            self.assertEqual(
+                sequence[self.service.INTERNAL_SEQUENCE_SOURCE_PATH], sequence_path
+            )
+            self.assertEqual(
+                triggers[0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+                "user/sequences/Paste.json",
+            )
+            self.assertEqual(
+                trigger_payload["triggers"][0]["sequence_path"],
+                "user/sequences/Paste.json",
+            )
+            self.assertEqual(
+                JsonRepository().load_json(os.path.join(root, keymap_path))["_parent_refs"],
+                ["user/keymap_sets/main.json"],
+            )
+            self.assertEqual(
+                JsonRepository().load_json(os.path.join(root, sequence_path))["_parent_refs"],
+                ["user/trigger_sets/main.json"],
+            )
+            self.assertEqual(
+                trigger_payload["_parent_refs"], ["user/keymap_sets/main.json"]
+            )
+
+    def test_absolute_individual_save_paths_remain_external(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            external = os.path.join(tmp, "external")
+            keymap_path = os.path.join(external, "main.json")
+            sequence_path = os.path.join(external, "copy.json")
+            trigger_set_path = os.path.join(external, "triggers.json")
+
+            keymap = self.service.save_keymap_file(
+                keymap_path,
+                {"id": "km1", "label": "Main", "mappings": {}},
+                config_root=root,
+            )
+            sequence = self.service.save_sequence_file(
+                sequence_path,
+                {"key": "f1", "label": "Copy", "actions": []},
+                config_root=root,
+            )
+            self.service.save_trigger_set_file(
+                trigger_set_path,
+                {"triggers": []},
+                config_root=root,
+            )
+
+            self.assertTrue(os.path.exists(keymap_path))
+            self.assertTrue(os.path.exists(sequence_path))
+            self.assertTrue(os.path.exists(trigger_set_path))
+            self.assertEqual(
+                keymap[self.service.INTERNAL_KEYMAP_SOURCE_PATH],
+                keymap_path,
+            )
+            self.assertEqual(
+                sequence[self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+                sequence_path,
+            )
+
+
 class ParentRefsSchemaTest(unittest.TestCase):
     def setUp(self):
         self.service = ConfigService(JsonRepository())

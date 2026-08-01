@@ -35,6 +35,9 @@ class TriggerSetFileIo:
 
     def save_trigger_set_to_path(self, path: str) -> bool:
         try:
+            previous_source_path = str(
+                self._app.dirty_tracker.trigger_set_source_path or ""
+            ).strip()
             triggers, _payload = self._app.config_service.save_trigger_set_file(
                 path,
                 self._app.data,
@@ -47,9 +50,23 @@ class TriggerSetFileIo:
             self._app.dirty_tracker.trigger_set_dirty = False
             self._app.trigger_panel.refresh_triggers()
             self._app.trigger_panel.refresh_actions()
+            source_path_changed = (
+                self._app.config_service.canonical_path(
+                    previous_source_path,
+                    self._app.config_root,
+                )
+                != self._app.config_service.canonical_path(path, self._app.config_root)
+            )
+            if source_path_changed:
+                self._app.dirty_tracker.set_dirty(True)
             self._app.dirty_tracker.sync_dirty_state()
-            self._app._set_flash_message("トリガー一覧を保存しました。")
-            messagebox.showinfo("保存", f"トリガー一覧を保存しました:\n{path}")
+            completion_message = "トリガー一覧を保存しました。"
+            info_message = f"トリガー一覧を保存しました:\n{path}"
+            if source_path_changed:
+                completion_message += "\n上位の索引を保存すると追随します。"
+                info_message += "\n上位の索引を保存すると追随します。"
+            self._app._set_flash_message(completion_message)
+            messagebox.showinfo("保存", info_message)
             return True
         except Exception as e:
             self._app._set_flash_message(f"トリガー一覧保存失敗: {e}", auto_clear=False)

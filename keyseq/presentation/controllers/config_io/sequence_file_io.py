@@ -53,6 +53,9 @@ class SequenceFileIo:
 
     def save_sequence_to_path(self, trigger: dict, path: str) -> bool:
         try:
+            previous_source_path = str(
+                trigger.get(self._app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or ""
+            ).strip()
             sequence = self._app.config_service.save_sequence_file(
                 path,
                 trigger,
@@ -60,11 +63,26 @@ class SequenceFileIo:
                 config_root=self._app.config_root,
             )
             trigger.update(sequence)
+            source_path_changed = (
+                self._app.config_service.canonical_path(
+                    previous_source_path,
+                    self._app.config_root,
+                )
+                != self._app.config_service.canonical_path(
+                    str(trigger.get(self._app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or ""),
+                    self._app.config_root,
+                )
+            )
             self._app.dirty_tracker.mark_trigger_set_dirty()
             self._app.trigger_panel.refresh_triggers()
             self._app.trigger_panel.refresh_actions()
-            self._app._set_flash_message("出力シーケンスを保存しました。")
-            messagebox.showinfo("保存", f"出力シーケンスを保存しました:\n{path}")
+            completion_message = "出力シーケンスを保存しました。"
+            info_message = f"出力シーケンスを保存しました:\n{path}"
+            if source_path_changed:
+                completion_message += "\n上位の索引を保存すると追随します。"
+                info_message += "\n上位の索引を保存すると追随します。"
+            self._app._set_flash_message(completion_message)
+            messagebox.showinfo("保存", info_message)
             return True
         except Exception as e:
             self._app._set_flash_message(f"出力シーケンス保存失敗: {e}", auto_clear=False)

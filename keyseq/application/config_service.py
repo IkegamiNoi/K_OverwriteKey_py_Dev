@@ -149,6 +149,8 @@ class ConfigService:
         parent_ref: str = "",
         config_root: str = "",
     ) -> dict[str, Any]:
+        resolved_path = self._resolve_config_relative_path(path, config_root)
+        stored_path = path
         normalized = ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [])
         if not normalized:
             raise ValueError("保存できる keymap がありません。")
@@ -160,13 +162,13 @@ class ConfigService:
             item,
             parent_ref=parent_ref,
             config_root=config_root,
-            target_path=path,
+            target_path=resolved_path,
         )
-        self.repository.save_json(path, payload)
+        self.repository.save_json(resolved_path, payload)
         saved = safe_deepcopy(item)
         if self.PARENT_REFS_KEY in payload:
             saved[self.INTERNAL_KEYMAP_PARENT_REFS] = safe_deepcopy(payload[self.PARENT_REFS_KEY])
-        saved[self.INTERNAL_KEYMAP_SOURCE_PATH] = path
+        saved[self.INTERNAL_KEYMAP_SOURCE_PATH] = stored_path
         saved[self.INTERNAL_KEYMAP_IMPORTED] = False
         saved[self.INTERNAL_KEYMAP_DIRTY] = False
         return saved
@@ -192,17 +194,19 @@ class ConfigService:
         parent_ref: str = "",
         config_root: str = "",
     ) -> dict[str, Any]:
+        resolved_path = self._resolve_config_relative_path(path, config_root)
+        stored_path = path
         payload = self._build_sequence_payload(
             trigger,
             parent_ref=parent_ref,
             config_root=config_root,
-            target_path=path,
+            target_path=resolved_path,
         )
-        self.repository.save_json(path, payload)
+        self.repository.save_json(resolved_path, payload)
         sequence = self._normalize_sequence_payload(payload)
         if self.PARENT_REFS_KEY in payload:
             sequence[self.INTERNAL_SEQUENCE_PARENT_REFS] = safe_deepcopy(payload[self.PARENT_REFS_KEY])
-        sequence[self.INTERNAL_SEQUENCE_SOURCE_PATH] = path
+        sequence[self.INTERNAL_SEQUENCE_SOURCE_PATH] = stored_path
         sequence[self.INTERNAL_SEQUENCE_IMPORTED] = False
         sequence[self.INTERNAL_SEQUENCE_DIRTY] = False
         return sequence
@@ -232,6 +236,7 @@ class ConfigService:
         config_root: str,
         parent_ref: str = "",
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
+        resolved_path = self._resolve_config_relative_path(path, config_root)
         normalized = ensure_config_compatibility(data)
         raw_triggers = data.get("triggers") if isinstance(data.get("triggers"), list) else []
         normalized_triggers = normalized.get("triggers", [])
@@ -245,17 +250,17 @@ class ConfigService:
         trigger_payload, sequence_items = self._build_trigger_set_payloads(
             normalized,
             config_root=os.path.abspath(config_root),
-            trigger_set_path=os.path.abspath(path),
+            trigger_set_path=resolved_path,
             parent_ref=parent_ref,
             save_plan=SavePlan(),
         )
         for item in sequence_items:
             self.repository.save_json(str(item["resolved_path"]), item["payload"])
-        self.repository.save_json(path, trigger_payload)
+        self.repository.save_json(resolved_path, trigger_payload)
 
         triggers = safe_deepcopy(normalized.get("triggers", [])) if isinstance(normalized.get("triggers"), list) else []
         by_key = {
-            normalize_key_name(str(item.get("key") or "")): str(item.get("resolved_path") or "")
+            normalize_key_name(str(item.get("key") or "")): str(item.get("path") or "")
             for item in sequence_items
             if isinstance(item, dict)
         }

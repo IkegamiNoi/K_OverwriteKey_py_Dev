@@ -443,8 +443,18 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 ("refresh", {"preferred_index": 0}),
                 ("keyboard", {}),
                 ("sync", {}),
-                ("flash", "キーマップを保存しました。", {}),
-                ("info", ("保存", f"キーマップを保存しました:\n{path}")),
+                (
+                    "flash",
+                    "キーマップを保存しました。\n上位の索引を保存すると追随します。",
+                    {},
+                ),
+                (
+                    "info",
+                    (
+                        "保存",
+                        f"キーマップを保存しました:\n{path}\n上位の索引を保存すると追随します。",
+                    ),
+                ),
             ],
         )
 
@@ -661,6 +671,187 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 sequence_path = os.path.join(root, sequence_path)
             self.assertIn("new", Path(sequence_path).read_text(encoding="utf-8"))
 
+    def test_individual_trigger_save_from_relative_source_path_uses_config_root(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare_loaded_keymap_set(root)
+            self.app.data = self.app.config_service.load_runtime_data_from_keymap_set_path(
+                path,
+                config_root=root,
+            )
+            self.app.keymap_set_io.apply_loaded_data_to_ui()
+            source_path = self.app.dirty_tracker.trigger_set_source_path
+            cwd = os.path.join(root, "elsewhere")
+            previous_cwd = os.getcwd()
+            os.makedirs(cwd)
+            try:
+                os.chdir(cwd)
+                with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                    self.app.trigger_panel,
+                    "refresh_actions",
+                ), patch.object(tkinter.messagebox, "showinfo") as showinfo, patch.object(
+                    tkinter.messagebox,
+                    "askyesnocancel",
+                    side_effect=AssertionError("想定外の保存先確認ダイアログ"),
+                ), patch.object(
+                    tkinter.filedialog,
+                    "asksaveasfilename",
+                    side_effect=AssertionError("想定外の別名保存ダイアログ"),
+                ):
+                    self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
+            finally:
+                os.chdir(previous_cwd)
+
+            self.assertFalse(os.path.isabs(source_path))
+            self.assertTrue(os.path.exists(os.path.join(root, source_path)))
+            self.assertFalse(os.path.exists(os.path.join(cwd, "user")))
+            expected_info_message = f"トリガー一覧を保存しました:\n{source_path}"
+            showinfo.assert_called_once_with(
+                "保存", expected_info_message
+            )
+
+    def test_individual_save_as_marks_keymap_set_dirty_and_updates_indexes_on_save(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set_path = self._prepare_loaded_keymap_set(root)
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "renamed.json")
+            with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                self.app.trigger_panel,
+                "refresh_actions",
+            ), patch.object(
+                tkinter.filedialog,
+                "asksaveasfilename",
+                return_value=trigger_set_path,
+            ), patch.object(tkinter.messagebox, "showinfo") as showinfo:
+                self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file_as())
+
+            self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+            self.assertIn(
+                "上位の索引を保存すると追随します。",
+                showinfo.call_args.args[1],
+            )
+            with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda value: value), patch.object(
+                self.app.keymap_set_io,
+                "choose_split_base_dir_for_keymap_set",
+                return_value="",
+            ), patch.object(
+                self.app.keymap_set_io,
+                "_collect_child_save_plan",
+                return_value=(SavePlan(), "", False),
+            ):
+                self.assertTrue(
+                    self.app.keymap_set_io.save_keymap_set_to(
+                        keymap_set_path,
+                        flash_message="保存しました。",
+                        show_success_dialog=False,
+                    )
+                )
+            self.assertEqual(
+                self.app.config_service.repository.load_json(keymap_set_path)["trigger_set_path"],
+                "user/trigger_sets/renamed.json",
+            )
+
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set_path = self._prepare_loaded_keymap_set(root)
+            keymap_path = os.path.join(root, "user", "keymaps", "renamed.json")
+            keymap = self.app.data["keymaps"][0]
+            with patch.object(self.app.keymap_panel, "refresh_keymap_list_ui"), patch.object(
+                self.app.layout,
+                "refresh_keyboard_window",
+            ), patch.object(
+                self.app.keymap_panel,
+                "selected_keymap_list_index",
+                return_value=0,
+            ), patch.object(
+                tkinter.filedialog,
+                "asksaveasfilename",
+                return_value=keymap_path,
+            ), patch.object(
+                self.app.io_dialogs,
+                "ask_link_label_to_filename",
+                return_value=False,
+            ), patch.object(tkinter.messagebox, "showinfo") as showinfo:
+                self.assertTrue(_keymap_io(self.app).save_selected_keymap_as())
+
+            self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+            self.assertIn(
+                "上位の索引を保存すると追随します。",
+                showinfo.call_args.args[1],
+            )
+            with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda value: value), patch.object(
+                self.app.keymap_set_io,
+                "choose_split_base_dir_for_keymap_set",
+                return_value="",
+            ), patch.object(
+                self.app.keymap_set_io,
+                "_collect_child_save_plan",
+                return_value=(SavePlan(), "", False),
+            ):
+                self.assertTrue(
+                    self.app.keymap_set_io.save_keymap_set_to(
+                        keymap_set_path,
+                        flash_message="保存しました。",
+                        show_success_dialog=False,
+                    )
+                )
+            self.assertEqual(
+                self.app.config_service.repository.load_json(keymap_set_path)["keymaps"][0]["path"],
+                "user/keymaps/renamed.json",
+            )
+
+    def test_individual_overwrite_only_marks_sequence_parent_dirty(self):
+        with tempfile.TemporaryDirectory() as root:
+            path = self._prepare_loaded_keymap_set(root)
+            self.app.data = self.app.config_service.load_runtime_data_from_keymap_set_path(
+                path,
+                config_root=root,
+            )
+            self.app.keymap_set_io.apply_loaded_data_to_ui()
+            with patch.object(
+                tkinter.messagebox,
+                "askyesnocancel",
+                side_effect=AssertionError("想定外の保存先確認ダイアログ"),
+            ), patch.object(
+                tkinter.filedialog,
+                "asksaveasfilename",
+                side_effect=AssertionError("想定外の別名保存ダイアログ"),
+            ):
+                keymap = self.app.data["keymaps"][0]
+                keymap_path = keymap[self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH]
+                self.app.dirty_tracker.set_dirty(False)
+                with patch.object(self.app.keymap_panel, "refresh_keymap_list_ui"), patch.object(
+                    self.app.layout,
+                    "refresh_keyboard_window",
+                ), patch.object(tkinter.messagebox, "showinfo") as showinfo:
+                    self.assertTrue(_keymap_io(self.app).save_keymap_to_path(0, keymap, keymap_path))
+                self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
+                showinfo.assert_called_once_with(
+                    "保存", f"キーマップを保存しました:\n{keymap_path}"
+                )
+
+                trigger_set_path = self.app.dirty_tracker.trigger_set_source_path
+                self.app.dirty_tracker.set_dirty(False)
+                with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                    self.app.trigger_panel,
+                    "refresh_actions",
+                ), patch.object(tkinter.messagebox, "showinfo") as showinfo:
+                    self.assertTrue(_trigger_set_io(self.app).save_trigger_set_to_path(trigger_set_path))
+                self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
+                showinfo.assert_called_once_with(
+                    "保存", f"トリガー一覧を保存しました:\n{trigger_set_path}"
+                )
+
+                trigger = self.app.data["triggers"][0]
+                sequence_path = trigger[self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH]
+                self.app.dirty_tracker.set_dirty(False)
+                with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                    self.app.trigger_panel,
+                    "refresh_actions",
+                ), patch.object(tkinter.messagebox, "showinfo") as showinfo:
+                    self.assertTrue(_sequence_io(self.app).save_sequence_to_path(trigger, sequence_path))
+                self.assertTrue(self.app.dirty_tracker.trigger_set_dirty)
+                showinfo.assert_called_once_with(
+                    "保存", f"出力シーケンスを保存しました:\n{sequence_path}"
+                )
+
     def test_sequence_save_uses_nonempty_trigger_set_parent_ref_after_individual_save(self):
         with tempfile.TemporaryDirectory() as root:
             self._prepare_loaded_keymap_set(root)
@@ -717,8 +908,18 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 "triggers",
                 "actions",
                 "sync",
-                ("flash", "トリガー一覧を保存しました。", {}),
-                ("info", ("保存", f"トリガー一覧を保存しました:\n{path}")),
+                (
+                    "flash",
+                    "トリガー一覧を保存しました。\n上位の索引を保存すると追随します。",
+                    {},
+                ),
+                (
+                    "info",
+                    (
+                        "保存",
+                        f"トリガー一覧を保存しました:\n{path}\n上位の索引を保存すると追随します。",
+                    ),
+                ),
             ],
         )
 
@@ -899,8 +1100,18 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 "dirty",
                 "triggers",
                 "actions",
-                ("flash", "出力シーケンスを保存しました。", {}),
-                ("info", ("保存", f"出力シーケンスを保存しました:\n{path}")),
+                (
+                    "flash",
+                    "出力シーケンスを保存しました。\n上位の索引を保存すると追随します。",
+                    {},
+                ),
+                (
+                    "info",
+                    (
+                        "保存",
+                        f"出力シーケンスを保存しました:\n{path}\n上位の索引を保存すると追随します。",
+                    ),
+                ),
             ],
         )
 

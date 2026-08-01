@@ -9,14 +9,28 @@ phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン
 last_commit_location: claude/device-testing-issues-31898e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **3 回目の実機目視で 4 件 → 暫定仕様 05 を v0.5 へ改訂・task_14〜16 を起票済（未着手）。次は task_14 の実装**。
+focus: **task_14 完了（v0.5-J/N）。次は task_15（個別トリガー一覧保存の保存計画化）→ task_16 → task_10**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-01T00:00:00
+ts: 2026-08-01T02:00:00
 who: main
 summary: |
-  【3 回目の実機目視フィードバック（4 件）→ 暫定仕様 05 を **v0.5** へ改訂 + task_14〜16 起票】
+  【task_14（個別保存のパス解決 v0.5-J + 上位 dirty 化 v0.5-N）完了】`codex-implementer` へ委任。
+  - application: 個別保存 3 API で **resolved（書き込み用・絶対）と stored（記録用）を分離**。
+    `save_trigger_set_file` の `os.path.abspath(path)` を解決値へ置換（cwd 基準判定の除去）。
+    **stored は引数 `path` をそのまま**返す（`to_config_relative_or_absolute` に通すと config_root 外で
+    区切りが `\`→`/` に変わり既存の特性テストが回帰したため。テストを緩めず実装側を戻した）。
+    trigger_set 配下の子 source_path のみ `item["path"]`（config 相対・一括保存の
+    `_apply_saved_child_paths` と同形）。
+  - presentation: `canonical_path` 比較で **source_path が変わったときだけ**上位を dirty 化
+    （trigger_set / keymap → `set_dirty(True)` / sequence は既存の `mark_trigger_set_dirty()` 維持）。
+    通知文「上位の索引を保存すると追随します。」を 3 経路で統一（flash + showinfo 両方）。
+  - **差し戻し 1 回**: 新規 tests_ui 2 件が `_prepare_loaded_keymap_set`（`save_plan=None` のため
+    `_apply_saved_child_paths` が走らず source_path が入らない）を前提にしており、
+    ①`KeyError` ②**実リポジトリの `config/` へ上書き確認モーダルを開く**（tests_ui 断続ハングの原因）。
+    → 保存後に `load_runtime_data_from_keymap_set_path` で読み直す形へ修正 + モーダル fail-fast ガード追加。
+  【前段: 3 回目の実機目視フィードバック（4 件）→ 暫定仕様 05 を **v0.5** へ改訂 + task_14〜16 起票】
   切り分け結果 = **実バグ 3 件 + 暫定仕様の条項間矛盾 1 件**（コードで再現経路まで確定済み）。
   - **①root 直下に `user/` ができる（v0.5-J）**: runtime の source_path は config_root 相対なのに、
     個別保存が解決せず `save_json` へ渡すため **cwd 基準**で書かれる。**3 経路すべて**（keymap / sequence も同断）。
@@ -28,24 +42,41 @@ summary: |
     未保存にもならない → 上位を dirty 化。自動保存はしない）/ 旧形式インライン sequence の消失回避
     （未実体化の子は計画既定で書く）/ stored と resolved の分離。
   - 起票: **task_14（J+N）→ task_15（K）→ task_16（L+M）→ task_10**。
-result_files（**未コミット**）:
-  - instructions/history/05_child_file_save_dialog.md（v0.5 改訂）
+result_files（task_14 分。起票分は `9a0f0c0` 相当のコミット済み）:
+  - keyseq/application/config_service.py（個別保存 3 API の resolved / stored 分離）
+  - keyseq/presentation/controllers/config_io/{trigger_set,keymap,sequence}_file_io.py（上位 dirty 化 + 通知文）
+  - tests/test_config_service.py（+2）/ tests_ui/test_config_io_characterization.py（+3）
+  - 【起票分・コミット済】instructions/history/05_child_file_save_dialog.md（v0.5 改訂）
   - instructions/phase/06_child_file_save_dialog/tasks/task_14_individual_save_path_and_index.md（新規）
   - instructions/phase/06_child_file_save_dialog/tasks/task_15_trigger_set_individual_save_plan.md（新規）
   - instructions/phase/06_child_file_save_dialog/tasks/task_16_save_dialog_initial_fit_and_wheel.md（新規）
   - instructions/phase/06_child_file_save_dialog/phase.md（タスク一覧 + 主入力の版）
   - instructions/phase/current.md / .claude_data/state/decisions.md（3 回目の節）
 verified:
-  review: codex-adversarial-reviewer（v0.5 追加分・working-tree）= needs-attention。
+  compile: clean
+  tests: pass 140（+2）
+  tests_ui: pass 139（+3・12 秒で完走・**差し戻し前にあった断続ハングは解消**）
+  smoke: pass
+  review: reviewer（task_14 差分）= **完了可**（stored/resolved の分離が 3 API で一貫・resolved の漏れなし /
+    v0.5-N の判定と `set_dirty(True)` の意図一致 / 対象外への波及なし / 追加テストは修正前なら落ちる内容 /
+    通知文の統一を確認。軽微指摘 1 = stored が仕様書の式ではなく引数そのままだが、絶対パス回帰を
+    厳密に満たす選択として問題なしと判定）
+  review（前段・暫定仕様）: codex-adversarial-reviewer（v0.5 追加分・working-tree）= needs-attention。
     high 2 + medium 1 を**全採用**して反映済み（コードで裏取り済み: `trigger_set_file_io.py:45-50` /
     `keymap_file_io.py:73` が `sync_dirty_state()` のみ・`config_service.py:698-710` が旧形式で
     source_path/dirty を付けない・`config_service.py:169`/`:205` が引数 path を source_path へ書き戻す）
   tests: 未実行（文書のみの変更）
 
 ## next_action
-- **task_14 を `codex-implementer` へ委任**（application の個別保存 3 API + presentation の 3 経路）。
-  テストコードの追加まで委任し、**実測は `verifier`**（Codex は python を実行できない）。
-  その後 `reviewer` → 完了判定 → task_15 → task_16。
+- **task_15 を `codex-implementer` へ委任**（`save_trigger_set_file` に `SavePlan` を通す +
+  `trigger_set_file_io` で計画を組み立てて sequence 行のみのダイアログを出す）。
+  テストコードの追加まで委任し、**実測は verifier / メイン**（Codex は python を実行できない）。
+  その後 `reviewer` → 完了判定 → task_16 → task_10。
+- **【tests_ui の教訓・task_15 でも効く】`_prepare_loaded_keymap_set` は `save_plan=None` で
+  `save_runtime_data` を呼ぶため runtime に source_path が入らない**（`_apply_saved_child_paths` は
+  `save_plan.entries` があるときだけ走る）。source_path 前提のテストは**保存後に
+  `load_runtime_data_from_keymap_set_path` で読み直す**こと。さもないと個別保存が
+  「保存先を選ぶ」分岐へ落ち、**実リポジトリの `config/` に対してモーダルを開いてハングする**。
 - **実機目視は task_16 完了後にまとめて実施**（ユーザー）。確認項目は
   (a) 2026-07-29 の①③④⑤ + (b) 2026-07-30 の⑥⑦ + (c) task_13 の新規作成 / 例の設定に戻す +
   (d) task_06 定義「対象範囲 4」の 9 項目の退行なし + (e) **今回の①〜④が解消していること**。

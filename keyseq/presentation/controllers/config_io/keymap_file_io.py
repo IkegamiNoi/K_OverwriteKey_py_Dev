@@ -61,6 +61,9 @@ class KeymapFileIo:
 
     def save_keymap_to_path(self, index: int, keymap: dict, path: str) -> bool:
         try:
+            previous_source_path = str(
+                keymap.get(self._app.config_service.INTERNAL_KEYMAP_SOURCE_PATH) or ""
+            ).strip()
             saved = self._app.config_service.save_keymap_file(
                 path,
                 keymap,
@@ -70,9 +73,26 @@ class KeymapFileIo:
             self._app.keymap_service.get_keymaps(self._app.data)[index] = saved
             self._app.keymap_panel.refresh_keymap_list_ui(preferred_index=index)
             self._app.layout.refresh_keyboard_window()
+            source_path_changed = (
+                self._app.config_service.canonical_path(
+                    previous_source_path,
+                    self._app.config_root,
+                )
+                != self._app.config_service.canonical_path(
+                    str(saved.get(self._app.config_service.INTERNAL_KEYMAP_SOURCE_PATH) or ""),
+                    self._app.config_root,
+                )
+            )
+            if source_path_changed:
+                self._app.dirty_tracker.set_dirty(True)
             self._app.dirty_tracker.sync_dirty_state()
-            self._app._set_flash_message("キーマップを保存しました。")
-            messagebox.showinfo("保存", f"キーマップを保存しました:\n{path}")
+            completion_message = "キーマップを保存しました。"
+            info_message = f"キーマップを保存しました:\n{path}"
+            if source_path_changed:
+                completion_message += "\n上位の索引を保存すると追随します。"
+                info_message += "\n上位の索引を保存すると追随します。"
+            self._app._set_flash_message(completion_message)
+            messagebox.showinfo("保存", info_message)
             return True
         except Exception as e:
             self._app._set_flash_message(f"キーマップ保存失敗: {e}", auto_clear=False)
