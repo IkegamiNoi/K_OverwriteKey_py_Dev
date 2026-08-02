@@ -74,7 +74,7 @@ def share_text_for(share_state, ref_count) -> str:
     if share_state == SHARE_NEW:
         return "新規作成"
     if share_state == SHARE_SOLE:
-        return "単独"
+        return "この構成のみが所有・既存を上書き"
     if share_state == SHARE_SHARED:
         return f"{ref_count} 個の上位で共有中・全てに影響します"
     if share_state == SHARE_OTHER_PARENT:

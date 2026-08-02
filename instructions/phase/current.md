@@ -10,7 +10,7 @@
   2026-07-28 起票）。keymap_set の「保存」を**変更のある子ファイルごとに 保存/別名保存/保存しない を選べる
   確認ダイアログ**へ置き換え、**子JSON へ参照元（直接の上位ファイル）を記録**して誤爆上書きを防ぐ。
   **挙動変更＋スキーマ追加（後方互換必須）を伴う**。
-  - 主入力（確定設計）: [暫定仕様 05](../history/05_child_file_save_dialog.md)（**v0.6**・ユーザー確定済 2026-08-02）。
+  - 主入力（確定設計）: [暫定仕様 05](../history/05_child_file_save_dialog.md)（**v0.7**・ユーザー確定済 2026-08-02）。
     フェーズ中は正本を直接改訂せず、最終タスクで昇格・凍結する。
   - 番号対応: phase 06 / 暫定 05 / `decisions_archive/06`。起票元: ユーザー要望（2026-07-26〜27・点3/4）。
   - 前提: Phase α（phase 05）完了済。[idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md) を**内包**し、
@@ -23,7 +23,7 @@
     依存確認の提示条件縮小・4 択化・deferred index / `data` 置換時の trigger_set 状態リセット）。
     **task_14〜16 も完了**（個別保存のパス解決と上位 dirty 化 / 個別トリガー一覧保存の保存計画化 /
     一覧ダイアログの初期省略計算とホイール）。**task_17 も完了**（「例を復元」を中身のある
-    新規作成として扱う）。**残るは task_10（正本反映）のみ**。
+    新規作成として扱う）。**残るは task_18（共有状況の表示文言）→ task_10（正本反映）**。
     受入条件の充足状況は [integration_result.md](06_child_file_save_dialog/integration_result.md) が正。
   - 2026-07-29 の実機目視で 5 件の指摘 → 暫定仕様を **v0.3** へ改訂し **task_07〜09 を追加**
     （旧 task_07 = 正本反映は task_10 へ繰り下げ）。切り分けと採否は `decisions.md` の
@@ -41,6 +41,12 @@
     （`keymap_set_path` のクリア / 未保存確認 / 例の子を dirty 扱い）。敵対的レビューは 1 回目 2 件を採用・
     2 回目 1 件を除外（既存の許容範囲・Q により一覧へ可視化されるため）。判断履歴は `decisions.md` の
     「4 回目の実機目視フィードバック」節が正。
+  - 2026-08-02（5 回目）の実機目視で 1 件の指摘（同名の trigger_set があっても既定が「保存」）→
+    切り分けの結果**仕様どおり**（v0.4-I は trigger_set 対象外）。ただし共有状況「単独」が上書きになることを
+    伝えていない**表示の欠陥**があり、暫定仕様を **v0.7** へ改訂し **task_18 を追加**（表示文言のみ・挙動不変）。
+    敵対的レビュー 3 件は high/medium2 を採用・medium1 を範囲限定で採用。判断履歴は `decisions.md` の
+    「5 回目の実機目視フィードバック」節が正。
+  - 実機目視の手順は [manual_check_plan.md](06_child_file_save_dialog/manual_check_plan.md)（R1〜R11）に統合済。
   - 残りの保存系リデザイン: **γ=phase 07（暫定 06・β と独立）/ プリセット=phase 08（暫定 07）**。
     暫定仕様は起票済・ユーザー確定済のため、着手時は `/phase_start` から入れる。
 - 直前の完了フェーズ: [05_keymap_set_new_and_default_dir](../../.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md)（2026-07-28 完了・保存系リデザイン **Phase α**）。

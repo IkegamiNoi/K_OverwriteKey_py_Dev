@@ -4,71 +4,64 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-02T00:00:00
+last_updated: 2026-08-02T12:00:00
 phase: `instructions/phase/06_child_file_save_dialog`（保存系リデザイン **Phase β**）
-last_commit_location: claude/keymap-set-overwrite-issue-18de5d ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/device-testing-procedures-16467e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **task_17 完了（v0.6 の実装も完了）。残るは task_10（正本反映）のみ**。
+focus: **task_18 完了（v0.7 の実装も完了）。残るは実機目視（R1〜R11）と task_10（正本反映）**。
 mode: pending_review
 
 ## last_action
-ts: 2026-08-02T00:00:00
+ts: 2026-08-02T12:00:00
 who: main
 summary: |
-  【4 回目の実機目視フィードバック → 暫定仕様 05 を **v0.6** へ改訂 → task_17 起票・実装・完了】
-  - **報告**: 読込済みの keymap_set から「例を復元」→ 保存すると**旧 keymap_set へ上書き**。
-    トリガー一覧・出力シーケンスは同名ファイルがあると上書きされないが、例のシーケンスのファイルが
-    無い状態だとトリガー一覧は上書きされる。
-  - **切り分け（コードで確定）**: 例のデータ（`DEFAULT_CONFIG`・trigger 2 件〔f1/f2〕・keymap 0 件）は
-    **子 dirty フラグを持たない** → **一覧ダイアログが出ない** → 各子は `child_save_plan._entry_for` の
-    **既定規則（実体があれば SKIP / 無ければ SAVE）だけ**で決まる。
-    ＝「同名なら上書きされない」の正体は **v0.4-I ではなくこの既定規則**（当初 v0.4-I と誤認 → 訂正済み）。
-    例の sequence の保存先が実在しないときだけ SAVE ＝ パスが変わる子が発生し、§8 の依存 →
-    **v0.4-D の確認なし自動保存**で旧トリガー一覧が上書きされる。
-  - **v0.6 の 3 条項（ユーザー確定 2026-08-02）**: **O** = `restore_default` が `keymap_set_path` を
-    クリアしない実バグ → **「中身のある新規作成」として扱う**（保存は別名保存へ落ちる。
-    `config/example/` 案は不採用）/ **P** = `restore_default` だけ `confirm_save_if_dirty` 未呼び出し →
-    未保存確認を追加 / **Q** = 例の子（trigger_set / 各 sequence）を **dirty 扱い**にし、
-    一覧ダイアログと v0.4-I の保護を通す（O だけだと既存 `user/sequences/f1.json` が SKIP され
-    新セットが旧セットの子を索引する ＝ 例の中身が保存されない）。受入条件 24 / 24b / 25 / 26 を追加。
-  - **敵対的レビュー 2 回**: 1 回目 high 1 + medium 1 を**全採用**（同名 keymap_set 選択時に
-    stem 由来 trigger_set が上書きされる点の明記 + 24b / 受入条件 25 を 3 分岐まで検証可能に）。
-    2 回目 high 1（陳腐化 `_parent_refs` による孤児 trigger_set 上書き）は**除外**
-    （2026-07-30 に許容と確定した露出範囲・Q により一覧へ可視化される・対策は v0.4-D の空振りを再発させる）。
-  - **task_17 実装**（`codex-implementer` へ委任）: `restore_default` を `new_config` と同形へ。
-    順序 = 未保存確認 → askyesno → data 置換 → `reset_trigger_set_state()` → `keymap_set_path = ""` →
-    子 dirty 化（`mark_sequence_dirty` / `mark_trigger_set_dirty` / `mark_keymap_dirty`）→ UI 更新 → `set_dirty(True)`。
-    **presentation 限定・既存 API のみ使用**（`dirty_state.py` は無変更）。
-    tests_ui に 6 件追加（24 / 24b / 25 の 3 分岐 / 26 / 回帰）+ 既存 `test_restore_default_*` 4 件を更新。
+  【実機目視手順の統合 → 5 回目のフィードバック → 暫定仕様 05 を **v0.7** へ改訂 → task_18 実装・完了】
+  - **目視手順の統合**: task_01〜17 に散在していた目視項目を操作順に統合した
+    `instructions/phase/06_child_file_save_dialog/manual_check_plan.md`（**R1〜R11**・起動 A/B の 2 周）を新規作成。
+    **task_06 のチェックリスト #5 / #6 は v0.3-A・v0.4-D/E で仕様が変わっており旧文言のままだと誤 NG**
+    になる点を R6 に明記して読み替えた。
+  - **5 回目の目視指摘**: 「例を復元」→ **既存名**の keymap_set を選んで保存したとき、同名の trigger_set が
+    実在するのに既定ラジオが「保存」（表示は「単独」）。
+  - **切り分け**: **仕様どおり**（実バグではない）。v0.4-I は trigger_set 対象外で、既存 trigger_set の
+    `_parent_refs` が選択した keymap_set のみ＝「単独」判定。§2【v0.6-O】/ 受入条件 24b に明記済み。
+  - **ただし表示の欠陥**: 共有状況 5 値のうち保存先にファイルが無いのは「新規作成」だけで、「単独」は
+    既存ファイルの上書きを意味するのに語からそれが読めない → **v0.7-R**。**表示文言のみ**
+    「単独」→「**この構成のみが所有・既存を上書き**」（ユーザー確定。案 B〔trigger_set 行への注記追加〕/
+    案 C〔v0.4-I 拡張＝2026-07-30 に却下済〕は不採用）。受入条件 27 を追加。
+  - **敵対的レビュー 3 件**（needs-attention）: high〔実装タスク未接続〕= 採用（task_18 起票）/
+    medium1〔条項・手順が「単独」を画面表示として記述〕= **修正して採用・範囲限定**（仕様書は v0.7 節の
+    「判定名を指す」定義で解決済とし、`manual_check_plan.md` の R6 更新 + R11 追加のみ）/
+    medium2〔受入条件 27 が検出不能〕= 採用（3 点検証へ書き換え）。
+  - **task_18 実装**（`codex-implementer` へ委任）: `share_text_for(SHARE_SOLE)` の戻り値 1 行のみ変更。
+    **presentation 限定・挙動不変**（判定名 `SHARE_SOLE`・`default_action_for`・`keymap_set_io.py` の
+    `(SHARE_SOLE, SHARE_NEW)` 分岐はすべて無変更）。テスト 3 件追加 +
+    既存 fixture は**レイアウト境界の 4 箇所のみ**新文言へ差替（残り 12 箇所は温存）。
 result_files（**未コミット**）:
-  - keyseq/presentation/controllers/config_io/keymap_set_io.py（`restore_default`）
-  - tests_ui/test_config_io_characterization_keymap_set_startup.py（+6・既存 4 件更新）
-  - instructions/history/05_child_file_save_dialog.md（v0.6 改訂）
-  - instructions/phase/06_child_file_save_dialog/tasks/task_17_restore_default_as_new_set.md（新規）
+  - keyseq/presentation/controllers/config_io/child_save_rows.py（`share_text_for` の SHARE_SOLE・1 行）
+  - tests/test_child_save_rows.py（+2）/ tests_ui/test_child_save_dialog.py（+1・fixture 4 箇所更新）
+  - instructions/history/05_child_file_save_dialog.md（v0.7 改訂・§5・受入条件 27・§12）
+  - instructions/phase/06_child_file_save_dialog/manual_check_plan.md（新規・R1〜R11）
+  - instructions/phase/06_child_file_save_dialog/tasks/task_18_share_state_sole_wording.md（新規）
   - instructions/phase/06_child_file_save_dialog/phase.md / instructions/phase/current.md
-  - .claude_data/state/decisions.md（4 回目の節）
+  - .claude_data/state/decisions.md（5 回目の節）
 verified:
   compile: clean
-  tests: pass 142
-  tests_ui: pass 152（+5・約 10 秒で完走・ハングなし）
+  tests: pass 144（+2）
+  tests_ui: pass 153（+1・16.3 秒で完走・ハングなし）
   smoke: pass
-  review: reviewer（task_17 差分）= **完了可・指摘なし**（処理順序が定義表と一致 /
-    `reset_trigger_set_state()` の後に dirty 化＝Q が無効化されない / 既存 API 経由で内部キー直代入なし /
-    対象外への波及なし / 追加 6 件は受入条件に過不足なく対応し旧実装なら落ちる /
-    既存 4 件の更新はアサーションの削除ではなく Q の新挙動の反映）
-  review（暫定仕様 v0.6）: codex-adversarial-reviewer 2 回。1 回目 2 件採用 / 2 回目 1 件除外（上記）
+  regression_check: 追加 3 件は**旧文言へ戻すと全て fail**することを verifier が実測し、確認後に復元済み
+  review: reviewer（task_18 差分）= **完了可・指摘なし**（挙動不変を確認 / 追加 3 件が受入条件 27 の
+    3 点に 1:1 対応 / fixture 差替はレイアウト境界 4 箇所に限定され不要変更なし / 「含まない」項目への波及なし）
+  review（暫定仕様 v0.7）: codex-adversarial-reviewer 1 回（3 件。上記のとおり採用・範囲限定採用）
 
 ## next_action
-- **実機目視をユーザーへ依頼する**（残る唯一の未完了項目。起動は `<repo>\.venv\Scripts\python.exe main.py`。
-  **VS Code の ▶ 実行〔小文字ドライブ〕でも 1 周する**）。確認項目:
-  (a) 2026-07-29 の①③④⑤ + (b) 2026-07-30 の⑥⑦ + (c) task_13 の新規作成 / 例の設定に戻す +
-  (d) task_06 定義「対象範囲 4」の 9 項目の退行なし + (e) 2026-08-01 の①〜④（root 直下に `user/` を作らない /
-  個別トリガー一覧保存で sequence 行だけの確認が出る / ダイアログ初期表示の省略 / ホイール）+
-  (f) 個別の別名保存後に未保存マークが付き構成セット保存で索引が追随（v0.5-N）+
-  (g) **2026-08-02 の v0.6**: 読込 → 例を復元 → 保存で**別名保存ダイアログが出る**（旧 keymap_set が
-  上書きされない）/ 未保存の変更があると**復元前に確認が出る** / 例を復元後の保存で
-  **子一覧（トリガー一覧 + f1 + f2）が出て、既存の同名 sequence があれば既定が別名保存**。
+- **実機目視をユーザーが実施中**（残る未完了項目）。手順は
+  **[manual_check_plan.md](../../instructions/phase/06_child_file_save_dialog/manual_check_plan.md) の R1〜R11 が正**
+  （R1 個別保存のパス解決 / R2 個別トリガー一覧保存の子一覧 / R3 ダイアログの見た目 4 点 /
+  R4 一括保存の基本 / R5 所有元不明・共有中〔JSON 手編集の準備が要る〕/ R6 依存確認・別名保存後 /
+  R7 個別別名保存の索引追随 / R8 新規作成直後の個別保存 / R9 例を復元 / R10 VS Code ▶ 起動の小文字ドライブ /
+  **R11 共有状況の新文言**）。起動は `<repo>\.venv\Scripts\python.exe main.py`（R10 のみ VS Code の ▶）。
   結果は `instructions/phase/06_child_file_save_dialog/integration_result.md` §3 へ記録する。
 - 目視 OK 後: **task_10（`finalize_records`）を `/task_new` で起票**。正本反映で**必ず明記**する項目は
   `SHARE_NEW` / 非 dirty 子の SKIP 規則（**「保存先に実体があれば SKIP・無ければ SAVE」＝ v0.6 で正本明記対象に追加**）/
@@ -79,7 +72,8 @@ verified:
   **v0.4 追加分**（D/E: 依存確認の提示条件と 4 択・deferred index 例外と上位の dirty 化 / F / G /
   I〔**keymap / sequence 限定・元判定が単独 / 共有中のときだけ**〕/ H / 受入条件 15）/
   **v0.5 追加分**（J / K / L/M / N）/ **v0.6 追加分**（O: 例を復元は中身のある新規作成・同名選択時は
-  stem 由来 trigger_set も上書き / P: 未保存確認 / Q: 例の子は dirty 扱い）。
+  stem 由来 trigger_set も上書き / P: 未保存確認 / Q: 例の子は dirty 扱い）/
+  **v0.7 追加分**（R: 共有状況表示は上書きの有無が読み取れる文言にする。判定名 `SHARE_SOLE` は不変）。
   併せて暫定仕様 05 の凍結・`decisions_archive/06` 作成・`current.md` 完了記載・
   `backlog/INDEX.md`（idea_05 クローズ・idea_06 / idea_07 の条件更新）・`/refactor_check`。
 
@@ -89,7 +83,7 @@ verified:
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
   グローバル `py` は依存欠落で tests_ui/smoke が落ちる。
-- **Phase β の設計の正は暫定仕様 [05](../../instructions/history/05_child_file_save_dialog.md)（**v0.6**・
+- **Phase β の設計の正は暫定仕様 [05](../../instructions/history/05_child_file_save_dialog.md)（**v0.7**・
   ユーザー確定済 2026-08-02）**。フェーズ中は正本 `spec_detail/` を直接改訂せず、**task_10** で昇格＋凍結する。
 - **【保存経路の根本原則（再発しやすい）】** runtime の `source_path` 3 種は **config_root 相対**で保持される。
   **書き込みに使う前に必ず解決する**（`repository.save_json` は相対を **cwd 基準**で解決しディレクトリまで作る
@@ -111,6 +105,10 @@ verified:
   ④ 子の `_parent_refs` は**保存先ファイルの集合 + 現在の上位** / ⑥ **canonical identity は比較専用**
   （`normcase` 済み文字列を保存値・戻り値・表示へ混入させない。パス同一性判定は
   `ConfigService.canonical_path` / `is_path_within` の 2 本のみを使う）。
+- **【共有状況の判定名と表示文言は別物】**（v0.7 以降）。仕様書・タスク定義が「共有状況が単独 / 新規作成なら〜」
+  と書くのは**判定名**（`SHARE_SOLE` / `SHARE_NEW`）を指す。画面表示は `share_text_for` が持ち、
+  `SHARE_SOLE` の表示は**「この構成のみが所有・既存を上書き」**（旧「単独」）。
+  分岐は必ず判定名で書き、文言で分岐しない。
 - **`reset_trigger_set_state()` は `trigger_set_dirty = False` にする**。子を dirty 化する処理は**必ずその後**
   （逆順にすると v0.6-Q が無効化される）。
 - **【罠・重要】保存経路の例外は `messagebox.showerror` になり、テストではモーダルで永久ブロックする**。

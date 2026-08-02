@@ -4,7 +4,7 @@ import os
 import tempfile
 import tkinter
 import unittest
-from tkinter import ttk
+from tkinter import font, ttk
 from types import SimpleNamespace
 from unittest.mock import patch
 
@@ -19,6 +19,7 @@ from keyseq.presentation.controllers.config_io.child_save_rows import (
     SHARE_SOLE,
     SHARE_UNKNOWN,
     ChildSaveRow,
+    share_text_for,
 )
 
 
@@ -456,7 +457,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         )
 
     def test_configures_track_content_and_text_cell_widths_without_repeat_fitting(self):
-        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "長い対象名" * 7, "C:/" + "long-directory/" * 5, SHARE_SOLE, "単独", ACTION_SAVE)]
+        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "長い対象名" * 7, "C:/" + "long-directory/" * 5, SHARE_SOLE, "この構成のみが所有・既存を上書き", ACTION_SAVE)]
 
         def configure_content_and_cells(current, _variables):
             current.canvas.bindings["<Configure>"](SimpleNamespace(width=300))
@@ -583,7 +584,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             "very-long-target-name-" * 20,
             "C:/" + "very-long-directory/" * 20 + "target.json",
             SHARE_SOLE,
-            "単独",
+            "この構成のみが所有・既存を上書き",
             ACTION_SAVE,
         )
         dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog([row], {})[0]
@@ -621,7 +622,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             "very-long-target-name-" * 20,
             "C:/" + "very-long-directory/" * 20 + "target.json",
             SHARE_SOLE,
-            "単独",
+            "この構成のみが所有・既存を上書き",
             ACTION_SAVE,
         )
         dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog([row], {})[0]
@@ -721,6 +722,26 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 dialog.destroy()
             root.destroy()
 
+    def test_sole_share_text_is_no_wider_than_shared_text(self):
+        try:
+            root = tkinter.Tk()
+        except tkinter.TclError as error:
+            self.skipTest(f"Tk を利用できません: {error}")
+        root.withdraw()
+        try:
+            sole_text = share_text_for(SHARE_SOLE, 1)
+            shared_text = share_text_for(SHARE_SHARED, 2)
+
+            self.assertEqual(sole_text, "この構成のみが所有・既存を上書き")
+            self.assertEqual(shared_text, "2 個の上位で共有中・全てに影響します")
+            default_font = font.nametofont("TkDefaultFont")
+            self.assertLessEqual(
+                default_font.measure(sole_text),
+                default_font.measure(shared_text),
+            )
+        finally:
+            root.destroy()
+
     def test_minimum_size_keeps_buttons_and_radio_column_visible_in_real_tk(self):
         try:
             root = tkinter.Tk()
@@ -734,7 +755,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 "長い対象名" * 8,
                 "C:/" + "long-directory/" * 12 + "target.json",
                 SHARE_SOLE,
-                "単独",
+                "この構成のみが所有・既存を上書き",
                 ACTION_SAVE,
             )
         ]

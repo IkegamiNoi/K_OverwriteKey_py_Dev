@@ -113,6 +113,46 @@ class ChildSaveRowsTest(unittest.TestCase):
 
         self.assertIn("2", share_text_for(SHARE_SHARED, 2))
 
+    def test_share_text_for_sole_explicitly_describes_overwrite(self):
+        self.assertEqual(
+            share_text_for(SHARE_SOLE, 1),
+            "この構成のみが所有・既存を上書き",
+        )
+
+    def test_collect_sole_owned_existing_child_uses_overwrite_text_and_save(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            data = make_runtime_data()
+            data["triggers"][0]["_sequence_dirty"] = False
+            target = self.service.resolve_child_save_targets(
+                data,
+                config_root=root,
+                keymap_set_path=keymap_set_path,
+            )[(CHILD_KEYMAP, "km1")]
+            data["keymaps"][0][self.service.INTERNAL_KEYMAP_SOURCE_PATH] = target
+            JsonRepository().save_json(
+                target,
+                {
+                    "_parent_refs": [
+                        self.service.to_config_relative_or_absolute(keymap_set_path, root)
+                    ]
+                },
+            )
+
+            rows = collect_child_save_rows(
+                data=data,
+                dirty_tracker=DummyDirtyTracker(),
+                config_service=self.service,
+                config_root=root,
+                keymap_set_path=keymap_set_path,
+            )
+
+            row = rows[0]
+            self.assertEqual(row.share_state, SHARE_SOLE)
+            self.assertEqual(row.share_text, "この構成のみが所有・既存を上書き")
+            self.assertEqual(row.default_action, ACTION_SAVE)
+
     def test_collect_normalizes_parent_paths_uses_trigger_set_parent_and_scopes_new_collisions(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
