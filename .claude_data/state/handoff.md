@@ -17,15 +17,15 @@
 3. CLAUDE.md → `instructions/phase/current.md`（**現在: `instructions/phase/06_child_file_save_dialog/phase.md` = Phase β**）→
    `.claude/rules/` の順に必要分を読む
 4. **このフェーズの設計の正は暫定仕様 [05_child_file_save_dialog.md](../../instructions/history/05_child_file_save_dialog.md)**
-   （**v0.5**・ユーザー確定済 2026-08-01）。フェーズ中は正本 `spec_detail/` を直接改訂しない（**task_10** で昇格＋凍結）。
+   （**v0.6**・ユーザー確定済 2026-08-02）。フェーズ中は正本 `spec_detail/` を直接改訂しない（**task_10** で昇格＋凍結）。
    タスク定義は `instructions/phase/06_child_file_save_dialog/tasks/`
-   （**task_01〜09・11〜16 は完了。残るは task_10 = 正本反映のみ**）。
+   （**task_01〜09・11〜17 は完了。残るは task_10 = 正本反映のみ**）。
    受入条件の充足状況は `instructions/phase/06_child_file_save_dialog/integration_result.md` が正。
    番号対応: **α=phase05/暫定04〔完了〕 / β=phase06/暫定05〔進行中〕 / γ=phase07/暫定06 / プリセット=phase08/暫定07**。
 5. session.md.next_action から作業を再開する（**実機目視の結果待ち**。目視の確認項目は session.md が正）
 
 ## 現在の作業の 1 行サマリ
-**task_14〜16 完了（v0.5 の実装は全て完了）。次は実機目視（ユーザー実施）→ task_10（正本反映）**。
+**task_17 完了（v0.6 の実装も完了）。次は実機目視（ユーザー実施）→ task_10（正本反映）**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,16 +35,17 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（task_16 完了時）: compile **clean** / tests **142** / tests_ui **147（完走・約 17 秒）** / smoke **pass**。
+直近の実測（task_17 完了時）: compile **clean** / tests **142** / tests_ui **152（完走・約 10 秒）** / smoke **pass**。
 
 ## 次アクション（session.md.next_action より）
-- **実機目視をユーザーへ依頼する**（Phase β で残る唯一の未完了項目。実装タスクは task_01〜09・11〜16 で全て完了）。
+- **実機目視をユーザーへ依頼する**（Phase β で残る唯一の未完了項目。実装タスクは task_01〜09・11〜17 で全て完了）。
   起動は `../../../.venv/Scripts/python.exe main.py`。**VS Code の ▶ 実行〔小文字ドライブ〕でも 1 周する**。
-  確認項目（2026-08-01 の指摘①〜④の解消 + 従来分 + v0.5-N）は **session.md.next_action が正**。
+  確認項目（2026-08-01 の①〜④ + v0.5-N + **2026-08-02 の v0.6**〔例を復元 → 保存で別名保存ダイアログ /
+  復元前の未保存確認 / 例の子が一覧に出て既存同名は既定別名保存〕+ 従来分）は **session.md.next_action が正**。
   結果は `instructions/phase/06_child_file_save_dialog/integration_result.md` §3 へ記録する。
 - 目視 OK 後 → **task_10（`finalize_records` = 正本反映）**。必須記載項目は session.md.next_action が正。
 
-## 現フェーズ（Phase β）の要点 — 設計の正は暫定仕様 05（v0.5）
+## 現フェーズ（Phase β）の要点 — 設計の正は暫定仕様 05（v0.6）
 - keymap_set の「保存」を、**変更のある子ファイルごとに 保存 / 別名保存 / 保存しない を選べる確認ダイアログ**へ
   置き換える。**親 keymap_set.json は常に保存**（ラジオ対象外）。変更のある子が無ければダイアログを出さない
   （ただし親・起動設定・未作成の子は書かれ、保存完了ダイアログは出る）。
@@ -70,6 +71,13 @@
   - **【L/M】一覧ダイアログ**: 省略の再計算は**各セルの `<Configure>`**（`cell["last_fit_width"]` で同幅早期
     return・`<= 1px` はキャッシュしない）。canvas の `<Configure>` は `itemconfigure(window_id, width=...)` のみ。
     `<MouseWheel>` は **dialog（Toplevel）へバインド**（子から伝播。`bind_all` 不使用）。
+- **v0.6 で入った規約**（4 回目の実機目視・task_17）: **「例を復元」は「中身のある新規作成」**。
+  `restore_default` は `keymap_set_path` を空にし（**O**）、`confirm_save_if_dirty("例の復元")` を先に出し（**P**）、
+  復元した子（trigger_set / 各 sequence / keymap）を **dirty 扱い**にする（**Q**。`reset_trigger_set_state()`
+  の**後**で行う。逆順だと無効化される）。同名の keymap_set を選んだ場合は stem 由来の trigger_set も
+  上書きされる（意図した挙動）。
+  **調査で判明した機構**（正本未記載 → task_10 で明記）: **一覧に行として出るのは dirty な子だけ**で、
+  非 dirty の子は**ダイアログに出ないまま既定規則（実体があれば SKIP / 無ければ SAVE）で決まる**。
 - **壊しやすい不変条件**（レビューで実際に破れていた箇所。変更時は必ず確認する）:
   ① 未知・別の上位に属す → **別名保存が既定**（一覧の既定 + 依存確認の**既定ボタン**の両方で担保）
   ② 共有判定は **`target_path`（上書きする相手のファイル）の refs** を読む（runtime の refs ではない）
