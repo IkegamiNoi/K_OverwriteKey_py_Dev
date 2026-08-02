@@ -19,6 +19,12 @@ import tkinter
 import unittest
 from unittest.mock import patch
 
+from keyseq.application.save_plan import (
+    ACTION_SAVE,
+    ACTION_SAVE_AS,
+    CHILD_SEQUENCE,
+    CHILD_TRIGGER_SET,
+)
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
 
@@ -123,6 +129,66 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             patch.object(self.app.trigger_panel, "refresh_triggers"),
             patch.object(self.app.trigger_panel, "refresh_actions"),
         )
+
+    def _prepare_loaded_keymap_set(self, root):
+        path = os.path.join(root, "user", "keymap_sets", "loaded.json")
+        old_data = self.app.config_service.new_default_data()
+        old_data["hook_stop_key"] = "f12"
+        old_data["triggers"][0]["actions"] = [{"type": "text", "value": "old-f1"}]
+        old_data["triggers"][1]["actions"] = [{"type": "text", "value": "old-f2"}]
+        self.app.config_root = root
+        self.app.data, self.app._startup_settings = self.app.config_service.save_runtime_data(
+            path,
+            old_data,
+            config_root=root,
+            startup_data={},
+        )
+        targets = self.app.config_service.resolve_child_save_targets(
+            self.app.data,
+            config_root=root,
+            keymap_set_path=path,
+        )
+        self.app.data = self.app.config_service.load_runtime_data_from_keymap_set_path(
+            path,
+            config_root=root,
+        )
+        self.app.keymap_set_path = path
+        _config_set_io(self.app).apply_loaded_data_to_ui()
+        self.app.dirty_tracker.clear_individual_dirty_flags()
+        self.app.dirty_tracker.set_dirty(False)
+        return path, targets
+
+    @staticmethod
+    def _default_child_choices(rows, root):
+        choices = {}
+        for row in rows:
+            if row.default_action == ACTION_SAVE_AS:
+                choices[(row.kind, row.key)] = (
+                    ACTION_SAVE_AS,
+                    os.path.join(root, "copies", f"{row.key}.json"),
+                )
+            else:
+                choices[(row.kind, row.key)] = (ACTION_SAVE, "")
+        return choices
+
+    def _save_restored_as(self, root, path):
+        rows_seen = []
+
+        def choose_actions(rows):
+            rows_seen.extend(rows)
+            return self._default_child_choices(rows, root)
+
+        with patch.object(
+            self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda value: value
+        ), patch.object(
+            _config_set_io(self.app), "choose_split_base_dir_for_keymap_set", return_value=""
+        ), patch.object(
+            tkinter.filedialog, "asksaveasfilename", return_value=path
+        ) as ask, patch.object(
+            self.app.child_save_dialog, "ask_child_save_actions", side_effect=choose_actions
+        ), patch.object(tkinter.messagebox, "showinfo"):
+            self.assertTrue(_config_set_io(self.app).save_keymap_set(show_success_dialog=False))
+        return ask, rows_seen
 
     # ===================== A: confirm_save_if_dirty =====================
     def test_confirm_save_if_dirty_returns_true_without_dialog_when_clean(self):
@@ -522,23 +588,222 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             showerror.assert_called_once_with("Export 失敗", "no")
 
     def test_restore_default_no_does_nothing(self):
-        with patch.object(tkinter.messagebox, "askyesno", return_value=False), patch.object(
+        with patch.object(tkinter.messagebox, "askyesnocancel", return_value=False) as ask_save, patch.object(
+            tkinter.messagebox, "askyesno", return_value=False
+        ), patch.object(
             self.app.config_service, "new_default_data"
         ) as new_default:
             _config_set_io(self.app).restore_default()
             new_default.assert_not_called()
+        ask_save.assert_not_called()
 
     def test_restore_default_yes(self):
         calls = []
         patches = self._silence_refresh()
-        with patch.object(tkinter.messagebox, "askyesno", return_value=True), patch.object(
+        with patch.object(tkinter.messagebox, "askyesnocancel", return_value=False), patch.object(
+            tkinter.messagebox, "askyesno", return_value=True
+        ), patch.object(
             self.app.config_service, "new_default_data", return_value={"d": 1}
-        ), patch.object(self.app.dirty_tracker, "set_dirty") as set_dirty, self._record_flash(calls), patches[
-            0
-        ], patches[1], patches[2], patches[3]:
+        ), patch.object(
+            self.app.dirty_tracker,
+            "set_dirty",
+            wraps=self.app.dirty_tracker.set_dirty,
+        ) as set_dirty, self._record_flash(calls), patches[0], patches[1], patches[2], patches[3]:
             _config_set_io(self.app).restore_default()
         self.assertEqual(self.app.data, {"d": 1})
-        set_dirty.assert_called_once_with(True)
+        self.assertEqual(set_dirty.call_args.args, (True,))
+        self.assertEqual(set_dirty.call_args.kwargs, {})
+        self.assertTrue(self.app.dirty_tracker.config_dirty)
+
+    def test_restore_default_save_as_cancel_preserves_loaded_files(self):
+        with tempfile.TemporaryDirectory() as root:
+            old_path, targets = self._prepare_loaded_keymap_set(root)
+            before = {
+                path: open(path, "rb").read()
+                for path in (old_path, *targets.values())
+            }
+            patches = self._silence_refresh()
+
+            with patch.object(
+                tkinter.messagebox, "askyesnocancel", return_value=False
+            ), patch.object(tkinter.messagebox, "askyesno", return_value=True), patch.object(
+                self.app, "_set_flash_message"
+            ), patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).restore_default()
+
+            with patch.object(tkinter.filedialog, "asksaveasfilename", return_value="") as ask:
+                self.assertFalse(_config_set_io(self.app).save_keymap_set(show_success_dialog=False))
+
+            ask.assert_called_once()
+            self.assertEqual(self.app.keymap_set_path, "")
+            self.assertEqual(
+                {path: open(path, "rb").read() for path in before},
+                before,
+            )
+
+    def test_restore_default_saves_new_keymap_set_without_changing_loaded_files(self):
+        with tempfile.TemporaryDirectory() as root:
+            old_path, targets = self._prepare_loaded_keymap_set(root)
+            before = {
+                path: open(path, "rb").read()
+                for path in (old_path, *targets.values())
+            }
+            new_path = os.path.join(root, "user", "keymap_sets", "restored.json")
+            patches = self._silence_refresh()
+
+            with patch.object(
+                tkinter.messagebox, "askyesnocancel", return_value=False
+            ), patch.object(tkinter.messagebox, "askyesno", return_value=True), patch.object(
+                self.app, "_set_flash_message"
+            ), patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).restore_default()
+
+            ask, rows = self._save_restored_as(root, new_path)
+
+            ask.assert_called_once()
+            self.assertEqual(self.app.keymap_set_path, new_path)
+            self.assertEqual(
+                {path: open(path, "rb").read() for path in before},
+                before,
+            )
+            new_trigger_set = os.path.join(root, "user", "trigger_sets", "restored.json")
+            self.assertTrue(os.path.exists(new_path))
+            self.assertTrue(os.path.exists(new_trigger_set))
+            self.assertEqual(
+                {(row.kind, row.key) for row in rows},
+                {(CHILD_TRIGGER_SET, ""), (CHILD_SEQUENCE, "f1"), (CHILD_SEQUENCE, "f2")},
+            )
+
+    def test_restore_default_overwrites_named_parent_and_trigger_set_but_not_sequences(self):
+        with tempfile.TemporaryDirectory() as root:
+            old_path, targets = self._prepare_loaded_keymap_set(root)
+            parent_before = open(old_path, "rb").read()
+            trigger_set_path = targets[(CHILD_TRIGGER_SET, "")]
+            trigger_set_before = open(trigger_set_path, "rb").read()
+            sequences_before = {
+                key: open(targets[(CHILD_SEQUENCE, key)], "rb").read()
+                for key in ("f1", "f2")
+            }
+            patches = self._silence_refresh()
+
+            with patch.object(
+                tkinter.messagebox, "askyesnocancel", return_value=False
+            ), patch.object(tkinter.messagebox, "askyesno", return_value=True), patch.object(
+                self.app, "_set_flash_message"
+            ), patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).restore_default()
+
+            _ask, rows = self._save_restored_as(root, old_path)
+
+            self.assertNotEqual(open(old_path, "rb").read(), parent_before)
+            self.assertNotEqual(open(trigger_set_path, "rb").read(), trigger_set_before)
+            self.assertEqual(
+                {
+                    key: open(targets[(CHILD_SEQUENCE, key)], "rb").read()
+                    for key in ("f1", "f2")
+                },
+                sequences_before,
+            )
+            actions = {(row.kind, row.key): row.default_action for row in rows}
+            self.assertEqual(actions[(CHILD_TRIGGER_SET, "")], ACTION_SAVE)
+            self.assertEqual(actions[(CHILD_SEQUENCE, "f1")], ACTION_SAVE_AS)
+            self.assertEqual(actions[(CHILD_SEQUENCE, "f2")], ACTION_SAVE_AS)
+
+    def test_restore_default_cancel_paths_preserve_data_and_keymap_set_path(self):
+        original_data = self.app.data
+        original_path = "current.json"
+
+        with self.subTest(case="未保存確認をキャンセル"):
+            self.app.keymap_set_path = original_path
+            self.app.dirty_tracker.set_dirty(True)
+            with patch.object(tkinter.messagebox, "askyesnocancel", return_value=None) as ask_save, patch.object(
+                tkinter.messagebox, "askyesno"
+            ) as ask_restore:
+                _config_set_io(self.app).restore_default()
+            ask_save.assert_called_once()
+            ask_restore.assert_not_called()
+            self.assertIs(self.app.data, original_data)
+            self.assertEqual(self.app.keymap_set_path, original_path)
+
+        with self.subTest(case="保存後の別名保存をキャンセル"):
+            self.app.keymap_set_path = ""
+            self.app.dirty_tracker.set_dirty(True)
+            with patch.object(tkinter.messagebox, "askyesnocancel", return_value=True) as ask_save, patch.object(
+                _config_set_io(self.app), "save_as", return_value=False
+            ) as save_as, patch.object(tkinter.messagebox, "askyesno") as ask_restore:
+                _config_set_io(self.app).restore_default()
+            ask_save.assert_called_once()
+            save_as.assert_called_once_with(show_success_dialog=False)
+            ask_restore.assert_not_called()
+            self.assertIs(self.app.data, original_data)
+            self.assertEqual(self.app.keymap_set_path, "")
+
+        with self.subTest(case="例の復元確認をキャンセル"):
+            events = []
+            self.app.keymap_set_path = original_path
+            self.app.dirty_tracker.set_dirty(True)
+            with patch.object(
+                tkinter.messagebox,
+                "askyesnocancel",
+                side_effect=lambda *_args: events.append("save") or False,
+            ), patch.object(
+                tkinter.messagebox,
+                "askyesno",
+                side_effect=lambda *_args: events.append("restore") or False,
+            ):
+                _config_set_io(self.app).restore_default()
+            self.assertEqual(events, ["save", "restore"])
+            self.assertIs(self.app.data, original_data)
+            self.assertEqual(self.app.keymap_set_path, original_path)
+
+    def test_restore_default_save_dialog_lists_dirty_trigger_set_and_sequences(self):
+        with tempfile.TemporaryDirectory() as root:
+            _old_path, targets = self._prepare_loaded_keymap_set(root)
+            previous_sequences = {
+                key: open(targets[(CHILD_SEQUENCE, key)], "rb").read()
+                for key in ("f1", "f2")
+            }
+            new_path = os.path.join(root, "user", "keymap_sets", "listed.json")
+            patches = self._silence_refresh()
+
+            with patch.object(
+                tkinter.messagebox, "askyesnocancel", return_value=False
+            ), patch.object(tkinter.messagebox, "askyesno", return_value=True), patch.object(
+                self.app, "_set_flash_message"
+            ), patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).restore_default()
+
+            _ask, rows = self._save_restored_as(root, new_path)
+
+            rows_by_child = {(row.kind, row.key): row for row in rows}
+            self.assertEqual(
+                set(rows_by_child),
+                {(CHILD_TRIGGER_SET, ""), (CHILD_SEQUENCE, "f1"), (CHILD_SEQUENCE, "f2")},
+            )
+            self.assertEqual(rows_by_child[(CHILD_SEQUENCE, "f1")].default_action, ACTION_SAVE_AS)
+            self.assertEqual(rows_by_child[(CHILD_SEQUENCE, "f2")].default_action, ACTION_SAVE_AS)
+            self.assertEqual(
+                {
+                    key: open(targets[(CHILD_SEQUENCE, key)], "rb").read()
+                    for key in ("f1", "f2")
+                },
+                previous_sequences,
+            )
+            for key in ("f1", "f2"):
+                copy_path = os.path.join(root, "copies", f"{key}.json")
+                self.assertTrue(os.path.exists(copy_path))
+                self.assertEqual(
+                    self.app.config_service.repository.load_json(copy_path)["actions"],
+                    self.app.data["triggers"][0 if key == "f1" else 1]["actions"],
+                )
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "listed.json")
+            trigger_set = self.app.config_service.repository.load_json(trigger_set_path)
+            for trigger in trigger_set["triggers"]:
+                copy_path = os.path.join(root, "copies", f"{trigger['key']}.json")
+                self.assertEqual(
+                    trigger["sequence_path"],
+                    self.app.config_service.to_config_relative_or_absolute(copy_path, root),
+                )
 
     def test_restore_default_resets_trigger_set_state_and_runtime_data(self):
         previous_path = "C:/previous/triggers.json"
@@ -547,7 +812,9 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         self.app.dirty_tracker.mark_trigger_set_dirty()
         patches = self._silence_refresh()
 
-        with patch.object(tkinter.messagebox, "askyesno", return_value=True), patch.object(
+        with patch.object(tkinter.messagebox, "askyesnocancel", return_value=False), patch.object(
+            tkinter.messagebox, "askyesno", return_value=True
+        ), patch.object(
             self.app, "_set_flash_message"
         ), patches[0], patches[1], patches[2], patches[3]:
             _config_set_io(self.app).restore_default()
@@ -557,7 +824,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH,
             self.app.data,
         )
-        self.assertFalse(self.app.dirty_tracker.trigger_set_dirty)
+        self.assertTrue(self.app.dirty_tracker.trigger_set_dirty)
         self.assertFalse(self.app.dirty_tracker.trigger_set_imported)
 
     def test_new_config_trigger_set_save_does_not_write_previous_source(self):
@@ -595,9 +862,12 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             with open(previous_path, "wb") as file:
                 file.write(previous_bytes)
             self.app.dirty_tracker.set_trigger_set_source_path(previous_path)
+            self.app.dirty_tracker.mark_trigger_set_dirty()
             patches = self._silence_refresh()
 
-            with patch.object(tkinter.messagebox, "askyesno", return_value=True), patch.object(
+            with patch.object(
+                tkinter.messagebox, "askyesnocancel", return_value=False
+            ), patch.object(tkinter.messagebox, "askyesno", return_value=True), patch.object(
                 self.app, "_set_flash_message"
             ), patch.object(
                 self.app.io_dialogs,

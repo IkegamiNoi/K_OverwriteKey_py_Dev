@@ -17,7 +17,7 @@ keymap_set の「保存」が子ファイル（keymap / trigger_set / sequence�
 
 - 起票元: ユーザー要望（2026-07-26〜27・保存系統の改善討議・点3/4）。Phase α（phase 05 / 暫定 04）の後続。
 - 主入力（暫定仕様）: [05_child_file_save_dialog.md](../../history/05_child_file_save_dialog.md)
-  （**v0.5**・ユーザー確定済 2026-08-01。v0.2〜v0.5 は実機目視フィードバックの反映で改訂・
+  （**v0.6**・ユーザー確定済 2026-08-02。v0.2〜v0.6 は実機目視フィードバックの反映で改訂・
   改訂内容は暫定仕様 §2 末尾の各「vX.Y の変更」節が正）
 - モード: **暫定仕様先行モード**。番号対応: phase 06 / 暫定 05 / decisions_archive 06。
 - 依存: **Phase α（phase 05）完了が前提**（済）。[idea_05](../../backlog/idea_05_trigger_set_source_path_inconsistency.md) を**内包**し、
@@ -104,9 +104,12 @@ keymap_set の「保存」が子ファイル（keymap / trigger_set / sequence�
 | task_14 | `individual_save_path_and_index` | 個別保存 3 経路の相対パス解決（cwd 直下へ書くバグ）と、子のパスが変わったときの上位 dirty 化（v0.5-J/N・受入条件 19・23）。実機目視①の解消 |
 | task_15 | `trigger_set_individual_save_plan` | 個別「トリガー一覧を保存」を保存計画駆動にし、dirty な sequence があれば子ダイアログを出す（v0.5-K・§8・受入条件 20・21・21b）。実機目視②の解消 |
 | task_16 | `save_dialog_initial_fit_and_wheel` | 一覧ダイアログの初期表示の省略計算と、スクロール領域のマウスホイール対応（v0.5-L/M・受入条件 22）。実機目視③④の解消 |
+| task_17 | `restore_default_as_new_set` | 「例を復元」を中身のある新規作成として扱う（`keymap_set_path` クリア + 未保存確認 + 例の子を dirty 扱い。v0.6-O/P/Q・受入条件 24・24b・25・26）。4 回目の実機目視の解消 |
 
-- 依存順は上表のとおり（task_01 → 09 → **11 → 12 → 13 → 14 → 15 → 16** → 10。**task_10 が最終**）。
+- 依存順は上表のとおり（task_01 → 09 → **11 → 12 → 13 → 14 → 15 → 16 → 17** → 10。**task_10 が最終**）。
   タスク定義は着手時に `/task_new` で順次起票する。
+- **task_17 は 2026-08-02 の実機目視フィードバックによる追加**（暫定仕様 05 **v0.6**）。
+  判断履歴は `decisions.md` の「4 回目の実機目視フィードバック」節。
 - **task_14〜16 は 2026-08-01 の実機目視フィードバックによる追加**（暫定仕様 05 **v0.5**）。
   task_15 は task_14 の J（パス解決）を前提とするため **14 → 15** の順で進める。
   判断履歴は `decisions.md` の「3 回目の実機目視フィードバック」節。

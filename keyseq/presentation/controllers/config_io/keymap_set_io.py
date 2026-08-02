@@ -565,16 +565,26 @@ class KeymapSetIo:
             messagebox.showerror("Export 失敗", str(e))
 
     def restore_default(self):
-        if messagebox.askyesno("確認", "例の設定に戻します。よろしいですか？"):
-            self._app.data = self._app.config_service.new_default_data()
-            self._app.dirty_tracker.reset_trigger_set_state()
-            self._app._sync_control_vars_from_data()
-            self._app._indices = {}
-            self._app._selected_trigger_idx = 0
-            self._app.trigger_panel.refresh_triggers()
-            self._app.trigger_panel.refresh_actions()
-            self._app.dirty_tracker.set_dirty(True)
-            self._app._set_flash_message("例の設定に戻しました（未保存）。")
+        if not self.confirm_save_if_dirty("例の復元"):
+            return
+        if not messagebox.askyesno("確認", "例の設定に戻します。よろしいですか？"):
+            return
+
+        self._app.data = self._app.config_service.new_default_data()
+        self._app.dirty_tracker.reset_trigger_set_state()
+        self._app.keymap_set_path = ""
+        for trigger in self._app.data.get("triggers", []):
+            self._app.dirty_tracker.mark_sequence_dirty(trigger)
+        self._app.dirty_tracker.mark_trigger_set_dirty()
+        for keymap in self._app.data.get("keymaps", []):
+            self._app.dirty_tracker.mark_keymap_dirty(keymap)
+        self._app._sync_control_vars_from_data()
+        self._app._indices = {}
+        self._app._selected_trigger_idx = 0
+        self._app.trigger_panel.refresh_triggers()
+        self._app.trigger_panel.refresh_actions()
+        self._app.dirty_tracker.set_dirty(True)
+        self._app._set_flash_message("例の設定に戻しました（未保存）。")
 
     def set_startup_keymap_set(self):
         """ユーザーが起動時に読み込む keymap_set.json を選び、起動設定へ保存する"""
