@@ -5,67 +5,64 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-08-03T00:00:00
-phase: なし（**Phase β = phase 06 完了**。次フェーズ未確定 → `instructions/phase/current.md` を参照）
+phase: **計画05**（フェーズではない。規範 = `instructions/modified_proposal/05_refactor_child_file_save_dialog.md`）
 last_commit_location: claude/device-testing-procedures-16467e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **Phase β（phase 06）完了。次フェーズ（γ = phase 07 / 暫定仕様 06）は未着手・未起票**。
-mode: completed
+focus: **計画05（config_service 等の分割リファクタ・挙動不変）を実施中。項目 0 / 1a 完了、次は項目 1b**。
+mode: in_progress
 
 ## last_action
 ts: 2026-08-03T00:00:00
 who: main
 summary: |
-  【task_10（正本反映）→ フェーズ完了レビュー → task_19 / 20 → Phase β 完了】
-  - **task_10（正本反映）**: 正本 `data_schema.md` に **§5.8 を新設**（参照元記録 / runtime 内部キー /
-    保存計画と既定規則 / 共有状況と既定選択 / 確認ダイアログ / 依存と索引 / 個別保存 / データ置換の入口）+
-    §5.4・§5.6・§5.7 を更新。`features.md` §4.6 に「子ファイル保存ダイアログ」を新設（レイアウト要件の昇格）。
-    `codebase_map.md` に責務分担（**presentation が保存計画を決定・application が実行**）を反映。
-    暫定仕様 05 を**凍結**、`decisions_archive/06` を作成し decisions.md は索引 1 行へ。
-    backlog: idea_05 を `INDEX_done.md` へ / idea_06 の条件②充足 / idea_07 着手可。
-  - **`/refactor_check` = 推奨**（M1/M2/M3/M4 該当・M5/M6 なし）→ 提案書
-    `modified_proposal/05_refactor_child_file_save_dialog.md`（**未承認**）。M3 は idea_06 がカバーする既知領域、
-    M4 ほか 3 件は `current.md` の別タスク化候補へ。
-  - **deep-reviewer（フェーズ完了判定）= 修正要 → 高 2 + 中 5 + 低 5 を反映**。特に ①ダイアログの
-    レイアウト要件がどこにも昇格していなかった ②§5.8.8 が「読込も**リセット**」と実装と逆の誤記
-    （正本が正の原則で実装が誤って直される危険）。
-  - **Codex 敵対的レビュー**が正本 §5.7 と実装の乖離を検出 → ユーザー選択で**実装修正**を採用し
-    **task_19（個別保存）→ task_20（個別読込）** で source_path を **config 相対へ統一**。
-    実装中に**同じ事故を 2 度**踏んだ（`to_config_relative_or_absolute` が入力を **cwd 基準**で
-    `abspath` していたため、config 相対を渡すと cwd 基準の絶対へ化ける → リポジトリルートに `user/` 生成）。
-    **入口で `_resolve_config_relative_path` を通す根本修正** + `_merge_parent_ref` の `abspath` 削除 +
-    `config_paths.json_dialog_initial_dir` の解決漏れ修正（メインが直接修正）で解消。
-  - **レイヤ跨ぎ**: application（`config_service`・パス正規化と loader 契約）+ presentation
-    （`config_paths` / `config_io` の 3 コントローラ）。domain 不変・スキーマ不変・**保存 JSON のバイト列不変**。
-result_files（**未コミット**）:
-  - keyseq/application/config_service.py / keyseq/presentation/config_paths.py
-  - keyseq/presentation/controllers/config_io/{keymap_file_io,sequence_file_io,trigger_set_file_io}.py
-  - tests/test_config_paths.py / tests/test_config_service.py / tests_ui/test_config_io_characterization.py
-  - instructions/common/spec_detail/data_schema.md / features.md / instructions/common/codebase_map.md
-  - instructions/history/05_child_file_save_dialog.md（凍結）
-  - instructions/phase/06_child_file_save_dialog/{phase.md,integration_result.md,manual_check_plan.md}
-  - instructions/phase/06_child_file_save_dialog/tasks/{task_10,task_19,task_20}_*.md（新規）
-  - instructions/phase/current.md / instructions/backlog/{INDEX.md,INDEX_done.md}
-  - instructions/modified_proposal/05_refactor_child_file_save_dialog.md（新規・**未承認**）
-  - .claude_data/state/decisions.md / decisions_archive/06_child_file_save_dialog.md（新規）
+  【Phase β をコミット → 計画05 を起票・承認 → 項目 0 / 1a 完了】
+  - **Phase β 完了分をコミット**: `976b3da`（task_10 + 19 + 20 = 正本反映と source_path 統一）/
+    `03b52d0`（フェーズ完了判定の記録）。以降 Phase β は**クローズ済み**（`decisions_archive/06` が正）。
+  - **提案書 05 の実施形態をユーザー確定 = 「計画05」として実施**（フェーズにしない）。
+    根拠: 提案書がそのまま確定設計として機能し、`/refactor_check` の「挙動保存が原則」で制約が閉じるため、
+    フェーズが内包する「設計を確定させる工程」が不要。**フェーズ番号を消費しない**ので
+    γ=phase07 / プリセット=phase08 の対応表は不変。**γ より先に実施**（全 green + 実機目視 OK 直後で
+    挙動不変の基準線が最も明確・γ が触る config_service を先に分割した方が差分が小さい）。
+  - **項目 0（安全網の確認）= OK・追加テスト不要**。バイト列比較 21 箇所 / `test_save_plan.py` 12 件
+    （旧索引維持・書き込み順序・deferred index）/ ダイアログ駆動 46 件。移設対象の private ヘルパは
+    テストから直接呼ばれていない。**発見**: `patch("keyseq.application.config_service.os.path", ntpath)` が
+    4 箇所あり、クラスを `config_service/config_service.py` へ置くと壊れる →
+    **クラス本体を `config_service/__init__.py` へ置く**（計画04 案A と同じ手）。
+  - **抽出方式をユーザー確定**（観点 = 後で把握しやすい方）: 引数への全展開は self 依存 1〜15 個で
+    シグネチャが読めなくなるため不採用。**Mixin も不採用**（定義位置が MRO 依存で把握しにくい）。
+    → **`service` を第 1 引数に取るモジュール関数**（`self.X` → `service.X` の機械的置換）。
+  - **項目 1a 完了・コミット `db279e3`**: `config_service.py` → `config_service/__init__.py`（内容不変で移動・
+    git も rename 認識）+ `save_plan_execution.py`（A・318 行）+ `split_payloads.py`（B・407 行）。
+    親 1678 → **1011 行**。公開 3 メソッドは薄い委譲として残置、private ヘルパのラッパは作らない。
+    reviewer 指摘の未使用 import 6 個はメインが削除済み。
+  - **項目 1 の分割範囲をユーザー確定 = A+B+C+D・2 コミット**。A+B だけでは親 982 行で完了条件
+    「600 行未満」に届かないため（起票時の見積もりが甘かった）。**1b = C + D で親 約 598 行**の見込み。
+result_files:
+  - keyseq/application/config_service/{__init__.py,save_plan_execution.py,split_payloads.py}（`db279e3`）
+  - instructions/modified_proposal/05_refactor_child_file_save_dialog.md（実施形態 / 項目 0 結果 / 項目 1 設計を追記）
+  - .claude_data/state/decisions.md（「計画05」節を新設）
 verified:
   compile: clean
   tests: pass 145
   tests_ui: pass 159
   smoke: pass
-  manual: **実機目視 R1〜R11 全 OK**（ユーザー実施 2026-08-02。手順は `manual_check_plan.md`）
-  review: reviewer（task_19 / task_20 差分）= **完了可**。deep-reviewer（フェーズ完了判定）= 修正要 →
-    指摘を全反映済み。**codex-adversarial-reviewer の最終確認（3 回目）= approve・指摘ゼロ**
-    （前回指摘 2 件の解消と、stored 相対パスの cwd 解決が残存しないことを網羅検索で確認）
+  manual: **実機目視 R1〜R11 全 OK**（ユーザー実施 2026-08-02・Phase β 時点。計画05 は挙動不変のため再目視不要）
+  review: reviewer（項目 1a 差分）= **完了可**。元実装と全文突合し `self.X` → `service.X` の機械的置換のみ・
+    分岐 / 書き込み順序 / エラーメッセージが不変であることを確認。指摘（未使用 import 6 個）は対応済み。
+    **ntpath パッチの 4 テストも pass**（パッケージ化でパッチ対象が外れていないことの担保）。
 
 ## next_action
-- **未コミット**。`/task_commit` で「task_10 + 19 + 20（Phase β 完了）」を 1 コミットにする
-  （state 更新済み・コード 8 ファイル + 文書）。
-- 次フェーズに着手する場合は **`/phase_start` で phase 07（γ）を起票**する
+- **項目 1b**（C: 保存先の解決・命名〔`_resolve_sequence_save_path` / `_default_trigger_set_path` /
+  `_allocate_unique_*` / `slugify_file_stem` 等 180 行〕+ D: split 読込〔`_build_runtime_data_from_split` /
+  `_load_keymap_entry` / `_load_triggers_from_trigger_set` 等 204 行〕を
+  `save_path_resolution.py` / `split_loading.py` へ抽出）。**1a と同じ方式**（`service` 第 1 引数のモジュール関数・
+  互換ラッパを作らない）。完了後に親が **600 行未満**であることを `wc -l` で確認する。
+  → codex-implementer へ委任 → verifier で実測 → reviewer → コミット。
+- そのあと**項目 2**（`_collect_child_save_plan` の分割。`child_save_plan.py`）。
+  項目 2 は γ とほぼ無関係のため、**途中で止めて γ へ移ってもよい**（ユーザー確定済）。
+- 計画05 完了後に **`/phase_start` で phase 07（γ）を起票**する
   （主入力 = `instructions/history/06_hook_keys_global_default.md`・ユーザー確定済）。
-- 提案書 `modified_proposal/05_refactor_child_file_save_dialog.md` は**未承認**。
-  実施するなら「独立ミニフェーズ」か「次フェーズ前」かをユーザーへ確認してから。
-- **フェーズ完了レビューは完了**（Codex 最終確認 = approve・指摘ゼロ）。追加のレビューは不要。
 
 ## blockers
 - なし。
@@ -108,9 +105,17 @@ verified:
   複数タスクを跨ぐ差分 / フェーズ完了判定）。使い分けは `.claude/rules/agent_selection.md` が正。
 - **保存系リデザインの番号対応**: α=phase05/暫定04〔完了〕 / **β=phase06/暫定05〔完了〕** /
   γ=phase07/暫定06〔未着手・暫定仕様は確定済〕 / プリセット=phase08/暫定07〔β とカスケード除外で協調〕。
+  **計画05 はフェーズではないのでこの対応表に影響しない**（`instructions/phase/` にフォルダを作らない。
+  規範 = `modified_proposal/05_*.md`・判断履歴 = `decisions.md` の「計画05」節。計画04 と同じ運用）。
 - config_io は `controllers/config_io/` へ分割済（App が `app.keymap_set_io` 等で直接公開）。
   子ファイル保存の触点: `child_save_rows.py`（共有状況判定）/ `child_save_dialog.py` /
   `child_save_plan.py`（計画組み立て）/ `keymap_set_io.py`（束ね役）/ `config_service.save_runtime_data`（実行）。
+- **【計画05 で変わった構造】`config_service` は単一ファイルではなく*パッケージ***
+  （`keyseq/application/config_service/`）。**ConfigService 本体は `__init__.py`**（`config_service.py` ではない。
+  テストが `patch("keyseq.application.config_service.os.path", ntpath)` でモジュール名前空間を差し替えるため、
+  この配置を崩すと 4 テストが壊れる）。兄弟モジュール = `save_plan_execution.py`（保存計画の実行）/
+  `split_payloads.py`（payload 構築）。抽出関数は **`service` を第 1 引数に取る**（`service.X` で親を参照）。
+  兄弟から `__init__` を import しない（循環回避）。
 - 未着手 idea: idea_07（参照元の掃除・**β 完了で着手可**）/ idea_03（hotkey 保存時正規化・優先度低）/
   idea_08（keymap_set 個別プリセット）/ idea_09（レガシー settings/ フォールバック）。
   保留 idea: idea_04 / idea_06（**残る着手条件は「共通化の実需」1 つのみ**）。
