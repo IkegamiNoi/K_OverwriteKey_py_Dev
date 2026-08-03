@@ -7,6 +7,7 @@ from keyseq.domain.config import (
     DEFAULT_RUN_TO_END_DELAY_MS,
     ensure_config_compatibility,
     normalize_key_name,
+    resolve_hook_keys_individual,
     safe_deepcopy,
 )
 
@@ -16,6 +17,23 @@ def load_split_config(service, *, config_root: str, keymap_set_path: str) -> dic
     if not isinstance(keymap_set, dict):
         raise ValueError("keymap_set.json の読込に失敗しました。")
     return build_runtime_data_from_split(service, keymap_set, config_root=config_root)
+
+
+def load_global_hook_keys(service, *, config_root: str) -> tuple[str, str]:
+    """config/config.json（起動エントリ）の hook キー全体デフォルトを (stop, toggle) で返す。
+
+    読めない / 未設定なら ("", "")。
+    """
+    if not config_root:
+        return "", ""
+
+    startup = service._load_optional_json(service._startup_entry_path(config_root))
+    if not isinstance(startup, dict):
+        return "", ""
+    return (
+        normalize_key_name(str(startup.get("hook_stop_key") or "")),
+        normalize_key_name(str(startup.get("hook_toggle_key") or "")),
+    )
 
 
 def build_runtime_data_from_split(
@@ -35,6 +53,12 @@ def build_runtime_data_from_split(
     ):
         if key in keymap_set:
             runtime[key] = safe_deepcopy(keymap_set.get(key))
+
+    runtime["hook_keys_individual"] = resolve_hook_keys_individual(keymap_set)
+    if not runtime["hook_keys_individual"]:
+        runtime["hook_stop_key"], runtime["hook_toggle_key"] = load_global_hook_keys(
+            service, config_root=config_root
+        )
 
     runtime["external_keyboard_layouts"] = normalize_external_keyboard_layouts(
         service,

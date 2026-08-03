@@ -51,6 +51,7 @@ class KeymapSetIo:
             return
 
         self._app.data = self._app.config_service.new_default_data()
+        self._app.config_service.apply_global_hook_key_defaults(self._app.data, config_root=self._app.config_root)
         self._app.data["triggers"] = []
         self._app.data = self._app.config_service.normalize_runtime_data(self._app.data)
         self._app.dirty_tracker.reset_trigger_set_state()
@@ -593,6 +594,7 @@ class KeymapSetIo:
             return
 
         self._app.data = self._app.config_service.new_default_data()
+        self._app.config_service.apply_global_hook_key_defaults(self._app.data, config_root=self._app.config_root)
         self._app.dirty_tracker.reset_trigger_set_state()
         self._app.keymap_set_path = ""
         for trigger in self._app.data.get("triggers", []):

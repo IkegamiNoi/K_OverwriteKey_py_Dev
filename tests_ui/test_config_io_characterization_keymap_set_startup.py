@@ -610,7 +610,9 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             wraps=self.app.dirty_tracker.set_dirty,
         ) as set_dirty, self._record_flash(calls), patches[0], patches[1], patches[2], patches[3]:
             _config_set_io(self.app).restore_default()
-        self.assertEqual(self.app.data, {"d": 1})
+        # 既定に戻した直後に hook キーの全体デフォルトが注入される（phase 07 task_02）。
+        # config.json に全体デフォルトが無いため空文字で入る。
+        self.assertEqual(self.app.data, {"d": 1, "hook_stop_key": "", "hook_toggle_key": ""})
         self.assertEqual(set_dirty.call_args.args, (True,))
         self.assertEqual(set_dirty.call_args.kwargs, {})
         self.assertTrue(self.app.dirty_tracker.config_dirty)
@@ -1079,7 +1081,8 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             self.app.keymap_set_io, "apply_loaded_data_to_ui"
         ) as apply_ui:
             _startup_io(self.app).load_startup_and_config()
-        self.assertEqual(self.app.data, {"empty": True})
+        # 空データフォールバックでも hook キーの全体デフォルトが注入される（phase 07 task_02）。
+        self.assertEqual(self.app.data, {"empty": True, "hook_stop_key": "", "hook_toggle_key": ""})
         self.assertEqual(self.app.keymap_set_path, "")
         apply_ui.assert_called_once_with()
 
@@ -1099,7 +1102,8 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             ), patch.object(self.app.keymap_set_io, "apply_loaded_data_to_ui"):
                 _startup_io(self.app).load_startup_and_config()
             # 例外は握りつぶされ、空データにフォールバックする
-            self.assertEqual(self.app.data, {"empty": True})
+            # （空データにも hook キーの全体デフォルトが注入される。phase 07 task_02）
+            self.assertEqual(self.app.data, {"empty": True, "hook_stop_key": "", "hook_toggle_key": ""})
             # 読込例外時も keymap_set_path は空のまま（受入 4）
             self.assertEqual(self.app.keymap_set_path, "")
 

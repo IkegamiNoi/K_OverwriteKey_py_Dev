@@ -430,6 +430,20 @@ class ConfigService:
         os.makedirs(os.path.join(config_root, "user", "hotkey_presets"), exist_ok=True)
         os.makedirs(os.path.join(config_root, "user", "sequences"), exist_ok=True)
 
+    def apply_global_hook_key_defaults(
+        self,
+        runtime: dict[str, Any],
+        *,
+        config_root: str,
+    ) -> dict[str, Any]:
+        """個別指定 OFF の runtime へ config.json の hook キー全体デフォルトを注入する。"""
+        if runtime.get("hook_keys_individual"):
+            return runtime
+        runtime["hook_stop_key"], runtime["hook_toggle_key"] = split_loading.load_global_hook_keys(
+            self, config_root=config_root
+        )
+        return runtime
+
     def _startup_entry_path(self, config_root: str) -> str:
         return os.path.join(config_root, "config.json")
 

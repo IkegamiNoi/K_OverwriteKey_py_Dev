@@ -91,7 +91,7 @@
 | # | タスク | 概要 |
 |---|---|---|
 | [task_01](tasks/task_01_hook_keys_individual_schema.md) | スキーマと移行判定 | `domain/config.py` に `hook_keys_individual` の既定と**移行判定の純関数** `resolve_hook_keys_individual`（正規化後どちらか非空 → ON）を追加。後方互換 |
-| task_02 | キー解決点 | keymap_set 読込時に、OFF なら config.json の全体デフォルトを `app.data` へ注入する（`split_loading` + 読込経路）。フック層は変更しない |
+| [task_02](tasks/task_02_hook_key_resolution_point.md) | キー解決点 | keymap_set 読込時に、OFF なら config.json の全体デフォルトを `app.data` へ注入する（`split_loading` + 公開 API `apply_global_hook_key_defaults`）。新規データ生成の 3 箇所からも呼ぶ。フック層は変更しない |
 | task_03 | 保存時の挙動 | OFF 保存で個別値を空文字クリア + `hook_keys_individual=false`（`split_payloads`）。ON はそのまま保存 |
 | task_04 | 全体デフォルト更新 API | config.json への書き込みを**成否付き**で行う経路を用意する（`write_startup` の握り潰し回避）。成功時のみ確定 |
 | task_05 | チェック UI | full / compact の `hook_frame` に「このキーマップセットで個別指定する」チェックを追加し、`ui_vars` / App と同期 |

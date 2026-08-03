@@ -9,7 +9,7 @@ phase: **07_hook_keys_global_default（保存系リデザイン Phase γ）**。
 last_commit_location: claude/device-testing-procedures-16467e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01 完了、次は task_02（キー解決点）**。
+focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01 / task_02 完了、次は task_03（保存時挙動）**。
 計画05（config_service / keymap_set_io の分割リファクタ）は項目 0 / 1 / 2 をすべて完了済み。
 mode: in_progress
 
@@ -76,15 +76,17 @@ verified:
     項目 1a も完了可（`db279e3`）。
 
 ## next_action
-- **次は task_02（キー解決点）を `/task_new` で起票 → codex-implementer へ委任**。
-  内容 = keymap_set 読込時に、個別指定 OFF なら `config/config.json` の全体デフォルトを
-  `app.data` の hook キーへ注入する。**フック層（`input_router` / `app.data` 直読み）は変更しない**。
-  **task_01 の申し送り**: `split_loading.build_runtime_data_from_split` は `new_default_data()`
-  （フラグを含む）から始まるため `ensure_config_compatibility` の移行判定が発火しない。
-  **生の `keymap_set` dict に対して `resolve_hook_keys_individual` を明示的に呼ぶ**こと。
-- task 一覧は phase.md の「タスク」表（01 スキーマ/移行判定〔**完了**〕→ 02 キー解決点 →
+- **次は task_03（保存時挙動）を `/task_new` で起票 → codex-implementer へ委任**。
+  内容 = `split_payloads.py` の keymap_set 保存で、ON なら個別値を保存 / **OFF なら個別値を空文字に
+  クリアし `hook_keys_individual=false` を書き出す**（キー自体は残す = 既存キー削除禁止）。
+  暫定仕様 06 §5 / 受入条件 3・5。**保存 JSON のバイト列比較テストが変化する初めてのタスク**になるため、
+  差分が hook 関連キーのみであることを確認する。
+- task 一覧は phase.md の「タスク」表（01 スキーマ/移行判定〔**完了**〕→ 02 キー解決点〔**完了**〕→
   03 保存時挙動 → 04 全体デフォルト更新 API〔成否付き〕→ 05 チェック UI → 06 所有者切替 capture →
-  07 統合確認 → 08 正本反映）。**task_02 と task_03 は並行可**。
+  07 統合確認 → 08 正本反映）。
+- **task_02 の申し送り**: 解決点は `split_loading.load_global_hook_keys` と
+  `ConfigService.apply_global_hook_key_defaults` の 2 本のみ。**ここ以外へ解決ロジックを書かない**。
+  フック層は無変更を維持する（触ったら設計違反）。
 - **暫定仕様 06 の「現状監査」の行番号は計画05 の分割で無効**。現在の所在は phase.md
   「このフェーズで読むファイル」が正（読込 = `split_loading.py:30-31` / 保存 = `split_payloads.py:331-332`）。
 - 計画05 の候補送り項目は**未着手**（必要になった時点で idea 化・`current.md`「別タスク化候補」に記録済）:

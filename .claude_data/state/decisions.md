@@ -237,6 +237,26 @@
 - 検証: compile clean / tests **155 pass**（145 + 追加 10）/ tests_ui 159 pass / smoke pass。
   reviewer = **完了可・指摘なし**。
 
+### 【task_02】完了（2026-08-03）
+- **キー解決点を 2 本の関数に集約**: `split_loading.load_global_hook_keys(service, config_root)`
+  （config.json の全体デフォルト読み出し・正規化・失敗時 `("", "")` へ縮退）と、
+  公開 API `ConfigService.apply_global_hook_key_defaults(runtime, config_root)`（OFF のみ注入・冪等）。
+  **フック層（`input_router` / `hook_controller` / `keyboard_window` / `app.py`）は無変更**
+  ＝ 暫定仕様 §3 の「常に解決済みの値を見る」を満たす。
+- **移行判定に渡すのは生の `keymap_set` dict**（task_01 の申し送りどおり）。hook キーのコピーループの
+  タプルへ `hook_keys_individual` を**追加しない**（明示代入で一本化・二重経路を作らない）。
+- **注入は読込時だけでは足りない**（受入条件 2「新規作成で再設定不要」）。新しい runtime を生成する
+  presentation 3 箇所（`keymap_set_io.new_config` / `restore_default` /
+  `startup_io.load_startup_and_config` の空データフォールバック）からも API を呼ぶ。
+  **`app.py:76` は対象外**（直後に `load_startup_and_config` が必ず上書きするため）。
+- **tests_ui 3 件の期待値を更新**（`test_config_io_characterization_keymap_set_startup.py`）。
+  スタブ dict（`{"empty": True}` / `{"d": 1}`）へ注入結果の空 hook キー 2 個が加わったため。
+  **実装ではなくテスト側の追従**であり、実 runtime では `new_default_data()` が既に両キーを持つので
+  実挙動の変化ではない（config.json 未設定時の注入値は空文字）。
+- 検証: compile clean / tests **164 pass**（155 + 追加 9）/ tests_ui 159 pass / smoke pass。
+  **保存 JSON のバイト列比較テストは無修正で pass**（本タスクは保存経路を触らない）。
+  reviewer = **完了可・指摘なし**。
+
 ---
 
 ## 運用メモ

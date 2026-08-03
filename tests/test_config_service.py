@@ -123,6 +123,161 @@ class SaveLoadRoundTripTest(unittest.TestCase):
             self.assertEqual(startup["keymap_set_path"], "user/keymap_sets/default.json")
 
 
+class HookKeyResolutionTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def _load_keymap_set(self, root, keymap_set):
+        path = os.path.join(root, "user", "keymap_sets", "main.json")
+        self.service.repository.save_json(path, keymap_set)
+        return self.service.load_runtime_data_from_keymap_set_path(path, config_root=root)
+
+    def _save_global_hook_keys(self, root, stop_key, toggle_key):
+        self.service.repository.save_json(
+            os.path.join(root, "config.json"),
+            {"hook_stop_key": stop_key, "hook_toggle_key": toggle_key},
+        )
+
+    def test_off_legacy_keymap_set_uses_global_hook_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save_global_hook_keys(root, "f11", "f12")
+
+            loaded = self._load_keymap_set(
+                root,
+                {"hook_stop_key": "", "hook_toggle_key": ""},
+            )
+
+            self.assertEqual(loaded["hook_stop_key"], "f11")
+            self.assertEqual(loaded["hook_toggle_key"], "f12")
+
+    def test_on_legacy_keymap_set_keeps_individual_hook_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save_global_hook_keys(root, "f11", "f12")
+
+            loaded = self._load_keymap_set(
+                root,
+                {"hook_stop_key": "f3", "hook_toggle_key": ""},
+            )
+
+            self.assertTrue(loaded["hook_keys_individual"])
+            self.assertEqual(loaded["hook_stop_key"], "f3")
+            self.assertEqual(loaded["hook_toggle_key"], "")
+
+    def test_explicit_off_keymap_set_uses_global_hook_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save_global_hook_keys(root, "f11", "f12")
+
+            loaded = self._load_keymap_set(
+                root,
+                {
+                    "hook_keys_individual": False,
+                    "hook_stop_key": "f3",
+                    "hook_toggle_key": "f4",
+                },
+            )
+
+            self.assertFalse(loaded["hook_keys_individual"])
+            self.assertEqual(loaded["hook_stop_key"], "f11")
+            self.assertEqual(loaded["hook_toggle_key"], "f12")
+
+    def test_missing_or_invalid_global_hook_key_config_uses_empty_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            for name, content in (("missing", None), ("invalid", "{")):
+                with self.subTest(name=name):
+                    config_path = os.path.join(root, "config.json")
+                    if content is not None:
+                        Path(config_path).write_text(content, encoding="utf-8")
+
+                    loaded = self._load_keymap_set(
+                        root,
+                        {"hook_stop_key": "", "hook_toggle_key": ""},
+                    )
+
+                    self.assertEqual(loaded["hook_stop_key"], "")
+                    self.assertEqual(loaded["hook_toggle_key"], "")
+                    if content is not None:
+                        os.remove(config_path)
+
+    def test_global_hook_keys_are_normalized_when_loaded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save_global_hook_keys(root, "F1", " F2 ")
+
+            loaded = self._load_keymap_set(
+                root,
+                {"hook_stop_key": "", "hook_toggle_key": ""},
+            )
+
+            self.assertEqual(loaded["hook_stop_key"], "f1")
+            self.assertEqual(loaded["hook_toggle_key"], "f2")
+
+    def test_off_flag_is_preserved_after_global_hook_key_injection(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save_global_hook_keys(root, "f11", "f12")
+
+            loaded = self._load_keymap_set(
+                root,
+                {"hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
+            )
+
+            self.assertFalse(loaded["hook_keys_individual"])
+            self.assertEqual(loaded["hook_stop_key"], "f11")
+            self.assertEqual(loaded["hook_toggle_key"], "f12")
+
+
+class ApplyGlobalHookKeyDefaultsTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def test_off_runtime_is_updated_and_on_runtime_is_unchanged(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hook_stop_key": "f11", "hook_toggle_key": "f12"},
+            )
+            off_runtime = {"hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""}
+            on_runtime = {"hook_keys_individual": True, "hook_stop_key": "f3", "hook_toggle_key": "f4"}
+
+            self.assertIs(
+                self.service.apply_global_hook_key_defaults(off_runtime, config_root=root),
+                off_runtime,
+            )
+            self.service.apply_global_hook_key_defaults(on_runtime, config_root=root)
+
+            self.assertEqual(off_runtime["hook_stop_key"], "f11")
+            self.assertEqual(off_runtime["hook_toggle_key"], "f12")
+            self.assertEqual(on_runtime, {"hook_keys_individual": True, "hook_stop_key": "f3", "hook_toggle_key": "f4"})
+
+    def test_apply_global_hook_key_defaults_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hook_stop_key": "f11", "hook_toggle_key": "f12"},
+            )
+            runtime = {"hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""}
+
+            self.service.apply_global_hook_key_defaults(runtime, config_root=root)
+            once_applied = dict(runtime)
+            self.service.apply_global_hook_key_defaults(runtime, config_root=root)
+
+            self.assertEqual(runtime, once_applied)
+
+    def test_apply_global_hook_key_defaults_with_empty_root_uses_empty_keys(self):
+        runtime = {"hook_keys_individual": False, "hook_stop_key": "f3", "hook_toggle_key": "f4"}
+
+        self.service.apply_global_hook_key_defaults(runtime, config_root="")
+
+        self.assertEqual(runtime["hook_stop_key"], "")
+        self.assertEqual(runtime["hook_toggle_key"], "")
+
+
 class KeymapFileIoTest(unittest.TestCase):
     def test_save_and_load_keymap_file(self):
         with tempfile.TemporaryDirectory() as tmp:

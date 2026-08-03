@@ -32,6 +32,7 @@ class StartupIo:
                     pass
 
         self._app.data = self._app.config_service.new_empty_data()
+        self._app.config_service.apply_global_hook_key_defaults(self._app.data, config_root=self._app.config_root)
         self._app.keymap_set_io.apply_loaded_data_to_ui()
 
     def write_startup(self, data: dict[str, any]):
