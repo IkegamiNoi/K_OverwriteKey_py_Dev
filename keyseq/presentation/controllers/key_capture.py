@@ -88,10 +88,28 @@ class SingleKeyCaptureController:
             self.stop(cancel=True)
 
         old = str(self._app.data.get(self._data_key, ""))
-        self._app.data[self._data_key] = ""
-        self._var.set("")
-        if old:
-            self._app.dirty_tracker.set_dirty(True)
+        self._apply_key("", mark_dirty=bool(old))
+
+    def _apply_key(self, key: str, *, mark_dirty: bool = True) -> bool:
+        """所有者に応じて hook キーを確定する（確定できたら True）。"""
+        if self._app.data.get("hook_keys_individual"):
+            self._app.data[self._data_key] = key
+            self._var.set(key)
+            if mark_dirty:
+                self._app.dirty_tracker.set_dirty(True)
+            return True
+
+        snapshot = self._app.dirty_tracker.capture_dirty_snapshot()
+        try:
+            stop_key = key if self._data_key == "hook_stop_key" else self._app.data.get("hook_stop_key", "")
+            toggle_key = key if self._data_key == "hook_toggle_key" else self._app.data.get("hook_toggle_key", "")
+            if not self._app.startup_io.write_global_hook_keys(stop_key=stop_key, toggle_key=toggle_key):
+                return False
+            self._app.data[self._data_key] = key
+            self._var.set(key)
+            return True
+        finally:
+            self._app.dirty_tracker.restore_dirty_snapshot(snapshot)
 
     def on_keypress(self, event):
         """単キーのキャプチャ確定処理"""
@@ -128,9 +146,9 @@ class SingleKeyCaptureController:
             return "break"
 
         # 重複OKならそのまま適用（保存→表示更新）
-        self._app.data[self._data_key] = key
-        self._var.set(key)
-        self._app.dirty_tracker.set_dirty(True)
+        if not self._apply_key(key):
+            self.stop(cancel=True)
+            return "break"
 
         # キャプチャ終了（この時点で resume により、元がONなら start_hook が呼ばれる）
         self.stop(cancel=False)

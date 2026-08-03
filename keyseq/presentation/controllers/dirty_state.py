@@ -50,6 +50,14 @@ class DirtyStateTracker:
             self.config_dirty = False
         self._on_change()
 
+    def capture_dirty_snapshot(self) -> tuple[bool, bool]:
+        """dirty 状態を記録する（OFF 操作の前後で復元するため）。"""
+        return (bool(self.is_dirty), bool(self.config_dirty))
+
+    def restore_dirty_snapshot(self, snapshot: tuple[bool, bool]) -> None:
+        self.is_dirty, self.config_dirty = bool(snapshot[0]), bool(snapshot[1])
+        self._on_change()
+
     def mark_keymap_dirty(self, target) -> None:
         if isinstance(target, dict):
             target[self._config_service.INTERNAL_KEYMAP_DIRTY] = True

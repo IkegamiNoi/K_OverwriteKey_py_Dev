@@ -311,15 +311,40 @@
   既に前者を呼ぶため**無変更で追従**する。
 - **チェック操作は dirty にする**。`hook_keys_individual` は keymap_set に保存される値のため。
   暫定仕様 §4 の「dirty 非汚染」は **OFF 時のキー編集**に対する要件でありチェック操作は対象外。
-- **【ユーザー確認事項】compact のチェックは表示専用（`state="disabled"`・`command` 無し）とした**。
+- **compact のチェックは表示専用（`state="disabled"`・`command` 無し）＝ユーザー確定（2026-08-03）**。
   compact のフックキーは既に readonly Entry のみで capture / clear を持たない＝「compact は表示のみ」
-  という既存方針に合わせた判断。**task_07 の実機目視でユーザー確認の対象**にする。
+  という既存方針に合わせた判断。**確定済みのため task_07 で再確認しない**。
 - **reviewer 指摘 1 件を修正して採用**: 確認 3（移行で ON になる keymap_set を読むとチェックが ON）が
   `app.data` への直接代入 + `apply_loaded_data_to_ui` の直呼びで代替されており、**移行判定を
   バイパスしていた**。実ファイル（フラグ無し・stop のみ非空 / 両方空）を
   `load_runtime_data_from_keymap_set_path` で読む特性テストをメインで追加して解消。
 - 検証: compile clean / tests **168 pass**（presentation 限定のため増減なし）/
   tests_ui **169 pass**（165 → Codex 追加 3 → 指摘対応 +1）/ smoke pass。
+
+### 【task_06 起票時】task_06 を 06 / 06b へ分割（2026-08-03）
+- phase.md の task_06 は「所有者切替 capture + dirty 非汚染 + ON⇄OFF 表示切替 + 個別値の内部保持」を
+  1 タスクに束ねていたが**範囲が広すぎる**ため、**06（書き込み先の切替と dirty 非汚染）**と
+  **06b（表示切替と個別値のセッション内保持・OFF 保存後の破棄）**へ分割した。
+  phase.md のタスク表と依存の並びも更新済み。
+
+### 【task_06】完了（2026-08-03）
+- **hook キーへの書き込み点を `SingleKeyCaptureController._apply_key` の 1 本へ集約**した
+  （従来は `clear()` と `on_keypress()` の 2 箇所に散っていた）。
+  ON = `app.data` 更新 + Var 反映 + dirty（従来どおり）/ OFF = `write_global_hook_keys` で
+  config.json を更新し、**成功時のみ** `app.data` と Var を確定（§3 の即反映）。
+- **dirty 非汚染は `DirtyStateTracker.capture_dirty_snapshot` / `restore_dirty_snapshot`**
+  （記録対象は `is_dirty` / `config_dirty` の 2 つ。個別 dirty フラグは capture が触らないため対象外）。
+  **`try` / `finally` で復元**するため例外経路でも汚れない（phase.md レビュー方針 3）。
+  ユーザー案（暫定仕様 §4 の「OFF 前の dirty を記録し操作後に復元」）をそのまま実装したもので、
+  「OFF なら `set_dirty` を呼ばないだけ」に簡略化していない（間接的な dirty 化にも耐えるため）。
+- **既存挙動の維持**: `clear()` の「旧値が空なら dirty にしない」は `mark_dirty=bool(old)` で表現。
+  OFF 経路では `mark_dirty` は使われない（snapshot 復元が優先されるため無害）。
+- **OFF では 2 キーとも書く**（`write_global_hook_keys` が 2 キー同時指定の API のため）。
+  更新しない側は `app.data` の現在値＝現在の全体デフォルトをそのまま再書き込みする。
+- 保存失敗（偽 or 例外）時は **runtime も Var も書き換えない**（受入条件 7）。
+  エラー表示は `write_startup` の `showerror` が既に行うため二重に出さない。
+- 検証: compile clean / tests **168 pass**（presentation 限定のため増減なし）/
+  tests_ui **173 pass**（169 → +4）/ smoke pass。reviewer = **完了可・指摘なし**。
 
 ---
 

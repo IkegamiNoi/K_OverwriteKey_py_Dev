@@ -95,12 +95,15 @@
 | [task_03](tasks/task_03_hook_keys_save_behavior.md) | 保存時の挙動 | OFF 保存で個別値を空文字クリア + `hook_keys_individual=false`（`split_payloads`）。ON はそのまま保存 |
 | [task_04](tasks/task_04_global_hook_keys_update_api.md) | 全体デフォルト更新 API | config.json への書き込みを**成否付き**で行う経路を用意する（`write_startup` の握り潰し回避）。成功時のみ確定 |
 | [task_05](tasks/task_05_hook_keys_individual_checkbox.md) | チェック UI | full / compact の `hook_frame` に「このキーマップセットで個別指定する」チェックを追加し、`ui_vars` / App と同期 |
-| task_06 | 所有者切替 capture | `key_capture` の capture / clear を ON=個別値 / OFF=全体デフォルト へ切替。**OFF は dirty を汚さない**（前 dirty の記録と復元）+ ON⇄OFF の表示切替と個別値の内部保持 |
+| [task_06](tasks/task_06_hook_key_capture_ownership.md) | 所有者切替 capture | `key_capture` の capture / clear を ON=個別値 / OFF=全体デフォルト へ切替。**OFF は dirty を汚さない**（前 dirty の記録と復元・例外経路含む） |
+| task_06b | 表示切替と個別値の保持 | ON⇄OFF での表示切替（OFF=全体デフォルト / 再 ON=保持していた個別値）+ 個別値のセッション内保持と **OFF 保存後の破棄**（task_03 からの申し送り） |
 | task_07 | 統合確認 | 受入条件 1〜8 の確認と特性テスト（解決・移行・所有者切替・空文字化・保存失敗）。`tests` / `tests_ui` / smoke |
 | task_08 | 正本反映（最終） | `spec_detail/data_schema.md`・`key_input.md`・`codebase_map.md` へ昇格 + **暫定仕様 06 を凍結** + `decisions_archive/07_hook_keys_global_default.md` 作成 + `current.md` 更新 + `/refactor_check` |
 
-- 依存: task_01 → task_02 / task_03 → task_04 → task_05 → task_06 → task_07 → task_08。
+- 依存: task_01 → task_02 / task_03 → task_04 → task_05 → task_06 → task_06b → task_07 → task_08。
   task_02 と task_03 は task_01 完了後なら並行可。
+  **task_06 は範囲が広いため 06（書き込み先の切替と dirty 非汚染）と 06b（表示切替と個別値の保持）へ分割**した
+  （2026-08-03・起票時判断）。
 - タスク定義ファイルは着手するものから `tasks/task_NN_<topic>.md` へ順次起票する（`/task_new`）。
 
 ## レビュー方針

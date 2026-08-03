@@ -5,6 +5,7 @@
 - GUI が開ける環境（通常のデスクトップセッション）で実行すること
 """
 import unittest
+from unittest.mock import call, patch
 
 from keyseq.presentation.app import App
 
@@ -55,6 +56,105 @@ class AppUiFlowsTest(unittest.TestCase):
         self.assertIn("未保存", self.app.ui_vars.file_status_var.get())
         self.app.dirty_tracker.set_dirty(False)
         self.assertIn("保存済み", self.app.ui_vars.file_status_var.get())
+
+    def test_dirty_snapshot_restores_clean_and_dirty_states(self):
+        tracker = self.app.dirty_tracker
+        tracker.set_dirty(False)
+        clean_snapshot = tracker.capture_dirty_snapshot()
+        tracker.set_dirty(True)
+        tracker.restore_dirty_snapshot(clean_snapshot)
+        self.assertFalse(tracker.is_dirty)
+        self.assertFalse(tracker.config_dirty)
+
+        tracker.set_dirty(True)
+        dirty_snapshot = tracker.capture_dirty_snapshot()
+        tracker.set_dirty(False)
+        tracker.restore_dirty_snapshot(dirty_snapshot)
+        self.assertTrue(tracker.is_dirty)
+        self.assertTrue(tracker.config_dirty)
+        tracker.set_dirty(False)
+
+    def test_hook_key_capture_and_clear_individual_values_mark_dirty(self):
+        capture = self.app.stop_key_capture
+        self.app.data["hook_keys_individual"] = True
+        self.app.data["hook_stop_key"] = "f3"
+        self.app.ui_vars.stop_key_var.set("f3")
+        self.app.dirty_tracker.set_dirty(False)
+
+        with patch.object(self.app.startup_io, "write_global_hook_keys") as write_global_hook_keys:
+            self.assertTrue(capture._apply_key("f9"))
+            self.assertEqual(self.app.data["hook_stop_key"], "f9")
+            self.assertEqual(self.app.ui_vars.stop_key_var.get(), "f9")
+            self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+            write_global_hook_keys.assert_not_called()
+
+            self.app.dirty_tracker.set_dirty(False)
+            capture.clear()
+            self.assertEqual(self.app.data["hook_stop_key"], "")
+            self.assertEqual(self.app.ui_vars.stop_key_var.get(), "")
+            self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+
+            self.app.dirty_tracker.set_dirty(False)
+            capture.clear()
+            self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
+            write_global_hook_keys.assert_not_called()
+
+    def test_hook_key_capture_and_clear_global_defaults_preserve_dirty_state(self):
+        stop_capture = self.app.stop_key_capture
+        toggle_capture = self.app.toggle_key_capture
+        self.app.data["hook_keys_individual"] = False
+        self.app.data["hook_stop_key"] = "f3"
+        self.app.data["hook_toggle_key"] = "f4"
+        self.app.ui_vars.stop_key_var.set("f3")
+        self.app.ui_vars.toggle_key_var.set("f4")
+        self.app.dirty_tracker.set_dirty(False)
+
+        with patch.object(self.app.startup_io, "write_global_hook_keys", return_value=True) as write_global_hook_keys:
+            self.assertTrue(stop_capture._apply_key("f9"))
+            self.assertEqual(self.app.data["hook_stop_key"], "f9")
+            self.assertEqual(self.app.ui_vars.stop_key_var.get(), "f9")
+            self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
+
+            self.app.dirty_tracker.set_dirty(True)
+            self.assertTrue(toggle_capture._apply_key("f10"))
+            self.assertEqual(self.app.data["hook_toggle_key"], "f10")
+            self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "f10")
+            self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+
+            stop_capture.clear()
+            self.assertEqual(self.app.data["hook_stop_key"], "")
+            self.assertEqual(self.app.ui_vars.stop_key_var.get(), "")
+            self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+            self.assertEqual(
+                write_global_hook_keys.call_args_list,
+                [
+                    call(stop_key="f9", toggle_key="f4"),
+                    call(stop_key="f9", toggle_key="f10"),
+                    call(stop_key="", toggle_key="f10"),
+                ],
+            )
+        self.app.dirty_tracker.set_dirty(False)
+
+    def test_global_hook_key_save_failure_keeps_values_and_restores_dirty_state(self):
+        capture = self.app.stop_key_capture
+        self.app.data["hook_keys_individual"] = False
+        self.app.data["hook_stop_key"] = "f3"
+        self.app.data["hook_toggle_key"] = "f4"
+        self.app.ui_vars.stop_key_var.set("f3")
+        self.app.dirty_tracker.set_dirty(False)
+
+        with patch.object(self.app.startup_io, "write_global_hook_keys", return_value=False):
+            self.assertFalse(capture._apply_key("f9"))
+        self.assertEqual(self.app.data["hook_stop_key"], "f3")
+        self.assertEqual(self.app.ui_vars.stop_key_var.get(), "f3")
+        self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
+
+        with patch.object(self.app.startup_io, "write_global_hook_keys", side_effect=OSError("no disk")):
+            with self.assertRaises(OSError):
+                capture._apply_key("f9")
+        self.assertEqual(self.app.data["hook_stop_key"], "f3")
+        self.assertEqual(self.app.ui_vars.stop_key_var.get(), "f3")
+        self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
 
     def test_compact_and_full_view_switch(self):
         self.app.show_compact_view()
