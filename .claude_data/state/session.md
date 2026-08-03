@@ -55,7 +55,8 @@ verified:
   smoke: pass
   manual: **実機目視 R1〜R11 全 OK**（ユーザー実施 2026-08-02。手順は `manual_check_plan.md`）
   review: reviewer（task_19 / task_20 差分）= **完了可**。deep-reviewer（フェーズ完了判定）= 修正要 →
-    指摘を全反映済み。codex-adversarial-reviewer の最終指摘（個別読込の未追従）は **task_20 で解消**
+    指摘を全反映済み。**codex-adversarial-reviewer の最終確認（3 回目）= approve・指摘ゼロ**
+    （前回指摘 2 件の解消と、stored 相対パスの cwd 解決が残存しないことを網羅検索で確認）
 
 ## next_action
 - **未コミット**。`/task_commit` で「task_10 + 19 + 20（Phase β 完了）」を 1 コミットにする
@@ -64,8 +65,7 @@ verified:
   （主入力 = `instructions/history/06_hook_keys_global_default.md`・ユーザー確定済）。
 - 提案書 `modified_proposal/05_refactor_child_file_save_dialog.md` は**未承認**。
   実施するなら「独立ミニフェーズ」か「次フェーズ前」かをユーザーへ確認してから。
-- **フェーズ完了レビューの再実施は不要**（deep-reviewer の条件 2 点は反映済み・Codex の最終指摘は
-  task_20 で解消済み）。ユーザーが望む場合のみ Codex へ最終確認を 1 回かける。
+- **フェーズ完了レビューは完了**（Codex 最終確認 = approve・指摘ゼロ）。追加のレビューは不要。
 
 ## blockers
 - なし。

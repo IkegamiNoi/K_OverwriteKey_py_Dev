@@ -308,6 +308,15 @@
   追加 3 件は旧実装で落ちることを verifier が実測。
   reviewer = **完了可**（読込動作不変 / `config_root` 空のガードが 3 経路にある / 消費側の再監査で
   cwd 基準の直渡しなし / 期待値変更は検証意図を維持 / 受入条件 29 の 4 点を網羅）。
+
+### 【フェーズ完了判定】最終確認 = **approve**（2026-08-03）
+- `codex-adversarial-reviewer`（3 回目・対象 `976b3da` vs `9f5ea82`）= **approve・指摘ゼロ**。
+  前回指摘の 2 件（個別保存の絶対化 / 個別読込・Save As 初期ディレクトリの cwd 基準解決）が
+  各経路で解消され、**stored 相対パスの cwd 解決は残存しない**ことを網羅検索で確認。
+  正本（§5.4〜§5.8・`features.md` §4.6）と実装・追加テストの意図も一致。
+- Claude 側 `deep-reviewer`（2 回目）= **修正して採用**（条件 2 点は反映済み）。
+- **Phase β 完了**（2026-08-03）。task_01〜20 / 実機目視 R1〜R11 全 OK /
+  compile clean・tests 145・tests_ui 159・smoke pass。
 - **deep-reviewer の未反映指摘の判定**（2026-08-03）: 13〔trigger_set stem の sanitize 記述が実挙動より弱い〕
   → **採用**（§5.6 へ 1 行追記）/ 10〔dirty 0 行時のキャンセル〕・14〔比較ヘルパの記述〕・16〔features と
   data_schema の分担〕・18〔state ファイル〕→ **今回対応不要**（矛盾ではない / 反映済み扱い / 別工程で吸収）。
