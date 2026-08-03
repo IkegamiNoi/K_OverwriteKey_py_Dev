@@ -229,6 +229,41 @@ class HookKeyResolutionTest(unittest.TestCase):
             self.assertEqual(loaded["hook_stop_key"], "f11")
             self.assertEqual(loaded["hook_toggle_key"], "f12")
 
+    def test_off_save_clears_individual_hook_keys_and_reloads_global_defaults(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            self._save_global_hook_keys(root, "f11", "f12")
+            runtime = make_runtime_data()
+            runtime.update(
+                {
+                    "hook_keys_individual": False,
+                    "hook_stop_key": "f11",
+                    "hook_toggle_key": "f12",
+                }
+            )
+
+            self.service.save_runtime_data(
+                keymap_set_path,
+                runtime,
+                config_root=root,
+                startup_data=self.service.load_startup(os.path.join(root, "config.json")),
+            )
+
+            keymap_set = self.service.repository.load_json(keymap_set_path)
+            self.assertFalse(keymap_set["hook_keys_individual"])
+            self.assertEqual(keymap_set["hook_stop_key"], "")
+            self.assertEqual(keymap_set["hook_toggle_key"], "")
+
+            loaded = self.service.load_runtime_data_from_keymap_set_path(
+                keymap_set_path,
+                config_root=root,
+            )
+
+            self.assertFalse(loaded["hook_keys_individual"])
+            self.assertEqual(loaded["hook_stop_key"], "f11")
+            self.assertEqual(loaded["hook_toggle_key"], "f12")
+
 
 class ApplyGlobalHookKeyDefaultsTest(unittest.TestCase):
     def setUp(self):

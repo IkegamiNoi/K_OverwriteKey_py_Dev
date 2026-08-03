@@ -15,6 +15,8 @@
   - 起票元: ユーザー要望（2026-07-26〜27・保存系統の改善討議・点5）
   - 判断履歴: `.claude_data/state/decisions.md`（フェーズ末に
     `decisions_archive/07_hook_keys_global_default.md` へ集約）
+  - **進捗**: task_01（スキーマ/移行判定）・task_02（キー解決点）・task_03（保存時挙動）**完了**。
+    次は **task_04（全体デフォルト更新 API・成否付き）**
 - 保存系リデザインの残り: γ の次は **プリセット = phase 08
   （[暫定仕様 07](../history/07_hotkey_presets_global.md)・確定済）**。
 - 直前の完了フェーズ: [06_child_file_save_dialog](../../.claude_data/state/decisions_archive/06_child_file_save_dialog.md)

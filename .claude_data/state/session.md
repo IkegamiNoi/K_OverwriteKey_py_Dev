@@ -4,76 +4,67 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-03T00:00:00
+last_updated: 2026-08-03T12:00:00
 phase: **07_hook_keys_global_default（保存系リデザイン Phase γ）**。規範 = `instructions/phase/07_hook_keys_global_default/phase.md`
-last_commit_location: claude/item-1b-progress-960016 @ `8904c00` ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/task-03-progression-bba1a9 @ `a78c9b5` ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01 / task_02 完了、次は task_03（保存時挙動）**。
-計画05（config_service / keymap_set_io の分割リファクタ）は項目 0 / 1 / 2 をすべて完了済み。
-mode: in_progress
+focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01 / 02 / 03 完了、次は task_04（全体デフォルト更新 API・成否付き）**。
+mode: implementing
 
 ## last_action
-ts: 2026-08-03T00:00:00
+ts: 2026-08-03T12:00:00
 who: main
 summary: |
-  【計画05 を完走 → phase 07（γ）を起票 → task_01 / task_02 完了】
-  - **計画05 完了**（`config_service` / `keymap_set_io` の分割リファクタ・**挙動不変**）。
-    - 項目 1（`c7a8bf4`）: `config_service` をパッケージ化し 5 ファイルへ分割。親 1678 → **551 行**。
-      抽出関数は **`service` を第 1 引数に取るモジュール関数**（`self.X` → `service.X` の機械的置換）。
-      **parent に残した判断**: パス基盤（`canonical_path` / `is_path_within` /
-      `to_config_relative_or_absolute` / `_merge_parent_ref` 等）は **ntpath パッチの 4 テストが
-      `__init__` の名前空間を見ている**ため移動不可。`_normalize_sequence_payload` /
-      `_generate_keymap_id` は保存側からも使うため読込モジュールに含めない。
-      公開メソッド（`slugify_file_stem` 等）は薄い委譲として残置、private ヘルパのラッパは作らない。
-    - 項目 2（`c22e49b`）: `_collect_child_save_plan`（130 行）を手順の並びへ分解。**新規ファイルを作らず**
-      同一ファイル内の private メソッド抽出のみ。最長メソッド 130 → **39 行**。
-      ループ再入は**モジュール定数 `_RETRY` センチネル**（戻り値がキャンセル / 再試行 / 確定の 3 系統あるため
-      `None` と区別）。同型だった再計算 → 上書き確認の 2 ブロックを 1 本へ統合。
-  - **phase 07（Phase γ）を起票**（`caf41a7`）。主入力 = 暫定仕様 06（v0.2・ユーザー確定済）。
-    task_01〜08 に分割。**暫定仕様 06 の「現状監査」の行番号は計画05 の分割で無効**になったため
-    phase.md「このフェーズで読むファイル」で現在の所在へ差し替えた。reviewer 整合確認 = 完了可。
-  - **task_01 完了**（`d596295`・domain 限定）: `DEFAULT_CONFIG` へ `hook_keys_individual: False` +
-    純関数 `resolve_hook_keys_individual(source)` を新設し `ensure_config_compatibility` の
-    hook キー正規化**直後**で呼ぶ。**明示フラグの有無は `in` で判定**（`.get()` の真偽で見ると
-    `false` とキー無しを区別できず移行規則が壊れる）。**冪等性を要件化**（フラグ True のまま両キーが空で
-    False へ落ちると「ON→OFF で個別値を内部保持」が壊れる）。
-  - **task_02 完了**（`8904c00`）: キー解決点を **`split_loading.load_global_hook_keys` と
-    `ConfigService.apply_global_hook_key_defaults` の 2 本**へ集約。**フック層は無変更**。
-    移行判定に渡すのは**生の `keymap_set` dict**（runtime は `new_default_data()` 由来でフラグを
-    常に持つため発火しない）。受入条件 2 のため**新規 runtime を生成する presentation 3 箇所**
-    （`new_config` / `restore_default` / 空データフォールバック）からも注入 API を呼ぶ。
-    tests_ui 3 件はスタブ dict へ空 hook キーが加わったための**テスト側追従**として期待値を更新。
+  【task_03（保存時の挙動）を起票 → codex-implementer 実装 → verifier 実測 → reviewer 採用で完了】
+  - **task_03 を起票**（`tasks/task_03_hook_keys_save_behavior.md`・phase.md のタスク表をリンク化）。
+    根拠 = 暫定仕様 06 §5 / 受入条件 3・5。**application 限定**（`split_payloads.py` の 1 関数のみ）。
+  - **実装（application 層のみ・層跨ぎなし）**: `build_keymap_set_payload` で
+    `resolve_hook_keys_individual(runtime)` を判定に使い、
+    **ON = 個別値をそのまま保存 / OFF = 両 hook キーを `""` にクリア + `hook_keys_individual: false`**。
+    **キー自体は 3 つとも常に出力**（既存キー削除禁止）。`runtime` は書き換えない（副作用なし）。
+  - **設計の芯**: OFF で書くのは `""` であって `runtime.get(...)` ではない。OFF の runtime は
+    task_02 で全体デフォルトが注入済みのため、そのまま書くと**全体デフォルトが keymap_set へ焼き付き**、
+    次回読込で移行判定が誤発火する。判定を `.get()` の真偽で見ないのも同じ理由（フラグ無しの旧 runtime が
+    個別値を失う）。
+  - **tests_ui 1 件が fail → テスト側追従で解消**: `_prepare_loaded_keymap_set` が
+    `hook_keys_individual` 未設定のまま `hook_stop_key="f12"` を置いており、新契約では保存時に
+    空文字化されて既定復元後のファイルとバイト一致 → `assertNotEqual` が落ちた。
+    フィクスチャの意図どおり `hook_keys_individual = True` を明示して解消（実装側の問題ではない）。
+  - **申し送り（task_06）**: 「OFF 保存後にセッション内保持していた個別値も破棄する」は本タスク範囲外
+    （保持先が UI 側の状態のため task_06 が担当）。
 result_files:
-  - keyseq/application/config_service/{__init__.py,save_plan_execution.py,split_payloads.py,save_path_resolution.py,split_loading.py}
-  - keyseq/presentation/controllers/config_io/{keymap_set_io.py,startup_io.py}
-  - keyseq/domain/config.py（`hook_keys_individual` / `resolve_hook_keys_individual`）
-  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_01_*.md,tasks/task_02_*.md}
-  - instructions/phase/current.md（アクティブ = 07・次採番 08）
-  - instructions/common/codebase_map.md（ConfigService = パッケージ構成 5 ファイル + `_collect_child_save_plan` の手順）
-  - .claude_data/state/decisions.md（「計画05」節 + 「phase 07」節）
+  - keyseq/application/config_service/split_payloads.py（`build_keymap_set_payload` の hook キー分岐）
+  - tests/test_save_plan.py（payload 完全一致テストの期待値更新 + 新規 3 件）
+  - tests/test_config_service.py（OFF 保存 → 再読込の往復特性テスト）
+  - tests_ui/test_config_io_characterization_keymap_set_startup.py（`_prepare_loaded_keymap_set` のフィクスチャ追従）
+  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_03_hook_keys_save_behavior.md}
+  - instructions/phase/current.md（phase 07 の進捗行）
+  - .claude_data/state/decisions.md（「phase 07」節へ task_03 を追記）
 verified:
   compile: clean
-  tests: pass 164（計画05 完了時 145 → task_01 で +10 → task_02 で +9）
+  tests: pass 168（task_02 時点 164 → +4）
   tests_ui: pass 159
   smoke: pass
-  manual: **実機目視 R1〜R11 全 OK**（ユーザー実施 2026-08-02・Phase β 時点）。
-    **phase 07 の実機目視は task_07 でまとめて実施**（task_04 まで全体デフォルトを書く手段が無いため）。
-  review: reviewer（task_01 / task_02）= いずれも **完了可・指摘なし**。
-    計画05 の項目 1b = 完了可・指摘なし / 項目 2 = 修正して採用（行数のみ・是正済み）。
+  manual: **phase 07 の実機目視は task_07 でまとめて実施**（task_04 まで全体デフォルトを書く手段が無いため）。
+    Phase β 時点の実機目視 R1〜R11 は全 OK（ユーザー実施 2026-08-02）。
+  review: reviewer（task_03）= **完了可・指摘なし**（後方互換 / セッション内復活の境界 / runtime 非変異を個別確認）。
 
 ## next_action
-- **次は task_03（保存時挙動）を `/task_new` で起票 → codex-implementer へ委任**。
-  内容 = `split_payloads.py` の keymap_set 保存で、ON なら個別値を保存 / **OFF なら個別値を空文字に
-  クリアし `hook_keys_individual=false` を書き出す**（キー自体は残す = 既存キー削除禁止）。
-  暫定仕様 06 §5 / 受入条件 3・5。**保存 JSON のバイト列比較テストが変化する初めてのタスク**になるため、
-  差分が hook 関連キーのみであることを確認する。
+- **次は task_04（全体デフォルト更新 API）を `/task_new` で起票 → codex-implementer へ委任**。
+  内容 = `config/config.json` へ hook キーの全体デフォルトを書き込む経路を**成否付き**で用意する
+  （現状 `startup_io.write_startup` が例外を握り潰す = `startup_io.py:51-56`）。
+  **保存成功時のみ** UI / ランタイムを確定させ、失敗時は旧値維持または未保存を明示。
+  暫定仕様 06 §5 後半 / 受入条件 **4・7**。読み出し側（`load_global_hook_keys`）は task_02 で完成済みなので触らない。
 - task 一覧は phase.md の「タスク」表（01 スキーマ/移行判定〔**完了**〕→ 02 キー解決点〔**完了**〕→
-  03 保存時挙動 → 04 全体デフォルト更新 API〔成否付き〕→ 05 チェック UI → 06 所有者切替 capture →
+  03 保存時挙動〔**完了**〕→ 04 全体デフォルト更新 API〔成否付き〕→ 05 チェック UI → 06 所有者切替 capture →
   07 統合確認 → 08 正本反映）。
 - **task_02 の申し送り**: 解決点は `split_loading.load_global_hook_keys` と
   `ConfigService.apply_global_hook_key_defaults` の 2 本のみ。**ここ以外へ解決ロジックを書かない**。
   フック層は無変更を維持する（触ったら設計違反）。
+- **task_03 の申し送り**: keymap_set への hook キー書き出しは
+  `split_payloads.build_keymap_set_payload` の 1 箇所のみ。**OFF で書くのは常に `""`**
+  （runtime の解決済み値を書かない）。task_06 で「OFF 保存後の保持値破棄」を実装すること。
 - **暫定仕様 06 の「現状監査」の行番号は計画05 の分割で無効**。現在の所在は phase.md
   「このフェーズで読むファイル」が正（読込 = `split_loading.py:30-31` / 保存 = `split_payloads.py:331-332`）。
 - 計画05 の候補送り項目は**未着手**（必要になった時点で idea 化・`current.md`「別タスク化候補」に記録済）:

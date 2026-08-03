@@ -4,7 +4,13 @@ import os
 from typing import Any
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_SEQUENCE, CHILD_TRIGGER_SET, SavePlan
-from keyseq.domain.config import DEFAULT_KEYBOARD_LAYOUT_ID, DEFAULT_RUN_TO_END_DELAY_MS, normalize_key_name, safe_deepcopy
+from keyseq.domain.config import (
+    DEFAULT_KEYBOARD_LAYOUT_ID,
+    DEFAULT_RUN_TO_END_DELAY_MS,
+    normalize_key_name,
+    resolve_hook_keys_individual,
+    safe_deepcopy,
+)
 from . import save_path_resolution
 
 
@@ -321,6 +327,7 @@ def build_keymap_set_payload(service,
     if not active_keymap_path and keymap_entries:
         active_keymap_path = str(keymap_entries[0].get("path") or "")
 
+    hook_keys_individual = resolve_hook_keys_individual(runtime)
     return {
         "trigger_set_path": service.to_config_relative_or_absolute(trigger_set_path, config_root)
         if trigger_set_path
@@ -328,8 +335,9 @@ def build_keymap_set_payload(service,
         "hotkey_presets_path": service.to_config_relative_or_absolute(hotkey_presets_path, config_root),
         "active_keymap_path": active_keymap_path,
         "keymaps": keymap_entries,
-        "hook_stop_key": normalize_key_name(runtime.get("hook_stop_key", "")),
-        "hook_toggle_key": normalize_key_name(runtime.get("hook_toggle_key", "")),
+        "hook_stop_key": normalize_key_name(runtime.get("hook_stop_key", "")) if hook_keys_individual else "",
+        "hook_toggle_key": normalize_key_name(runtime.get("hook_toggle_key", "")) if hook_keys_individual else "",
+        "hook_keys_individual": hook_keys_individual,
         "keyboard_layout": str(runtime.get("keyboard_layout") or DEFAULT_KEYBOARD_LAYOUT_ID).strip()
         or DEFAULT_KEYBOARD_LAYOUT_ID,
         "keyboard_show_physical_key_labels": bool(runtime.get("keyboard_show_physical_key_labels", False)),

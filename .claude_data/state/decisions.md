@@ -257,6 +257,29 @@
   **保存 JSON のバイト列比較テストは無修正で pass**（本タスクは保存経路を触らない）。
   reviewer = **完了可・指摘なし**。
 
+### 【task_03】完了（2026-08-03）
+- 保存時の分岐は `split_payloads.build_keymap_set_payload` の **1 関数のみ**に閉じた。
+  ON = 個別値をそのまま保存 / OFF = `hook_stop_key` / `hook_toggle_key` を **`""`** で書き出し
+  `hook_keys_individual: false`。**キー自体は 3 つとも常に出力**（既存キー削除禁止）。
+- **OFF 時に書くのは `""` であって `runtime.get(...)` ではない**（最も壊しやすい点）。
+  OFF の runtime は task_02 で全体デフォルトが注入済みのため、そのまま書くと
+  **全体デフォルトが keymap_set へ焼き付き**、次回読込で移行判定が「個別値あり」と誤発火する。
+- **判定は `resolve_hook_keys_individual(runtime)` を通す**（`.get()` の真偽で見ない）。
+  `build_keymap_set_payload` を直接呼ぶ経路（テスト等）はフラグを持たないため、
+  純関数側の移行規則に載せることで**フラグ無しの旧 runtime は従来どおり個別値を保存**（後方互換）。
+- **`runtime` は書き換えない**（payload 生成は副作用なし）。runtime の hook キーは
+  OFF のとき解決済みの全体デフォルトを保持しており、フック層がこれを直読みするため。
+- **tests_ui 1 件が fail → テスト側追従で解消**（想定内の唯一の破壊）:
+  `_prepare_loaded_keymap_set` が `hook_keys_individual` 未設定のまま `hook_stop_key="f12"` を置いており、
+  新契約では保存時に空文字化されて**既定復元後のファイルとバイト一致**してしまい
+  `test_restore_default_overwrites_named_parent_and_trigger_set_but_not_sequences` の
+  `assertNotEqual` が落ちた。フィクスチャの意図（個別指定された停止キー）どおり
+  `hook_keys_individual = True` を明示して解消。**実装側の問題ではない**。
+- **申し送り（task_06）**: 「OFF 保存後にセッション内保持していた個別値も破棄する」処理は本タスク範囲外。
+  保持先が UI 側の状態のため task_06 が担当する。
+- 検証: compile clean / tests **168 pass**（164 + 追加 4）/ tests_ui 159 pass / smoke pass。
+  reviewer = **完了可・指摘なし**。
+
 ---
 
 ## 運用メモ

@@ -133,6 +133,8 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
     def _prepare_loaded_keymap_set(self, root):
         path = os.path.join(root, "user", "keymap_sets", "loaded.json")
         old_data = self.app.config_service.new_default_data()
+        # 個別指定 ON でなければ hook キーは保存時に空文字化される（phase 07 task_03）。
+        old_data["hook_keys_individual"] = True
         old_data["hook_stop_key"] = "f12"
         old_data["triggers"][0]["actions"] = [{"type": "text", "value": "old-f1"}]
         old_data["triggers"][1]["actions"] = [{"type": "text", "value": "old-f2"}]

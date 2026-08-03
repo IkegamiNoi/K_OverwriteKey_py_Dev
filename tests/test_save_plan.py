@@ -2,7 +2,7 @@ import os
 import tempfile
 import unittest
 
-from keyseq.application.config_service import ConfigService
+from keyseq.application.config_service import ConfigService, split_payloads
 from keyseq.application.save_plan import (
     ACTION_SAVE,
     ACTION_SAVE_AS,
@@ -73,6 +73,16 @@ class SavePlanTest(unittest.TestCase):
             save_plan=plan,
         )
 
+    def _build_keymap_set_payload(self, runtime):
+        return split_payloads.build_keymap_set_payload(
+            self.service,
+            runtime,
+            {"km1": "user/keymaps/km1.json"},
+            config_root="",
+            trigger_set_path="user/trigger_sets/main.json",
+            hotkey_presets_path="user/hotkey_presets/default.json",
+        )
+
     def test_none_and_empty_plan_have_equivalent_output(self):
         with tempfile.TemporaryDirectory() as tmp:
             none_root = os.path.join(tmp, "none")
@@ -104,12 +114,14 @@ class SavePlanTest(unittest.TestCase):
                     "keymaps": [{"path": "user/keymaps/km1.json", "switch_key": "1"}],
                     "hook_stop_key": "f12",
                     "hook_toggle_key": "",
+                    "hook_keys_individual": True,
                     "keyboard_layout": "us_tkl",
                     "keyboard_show_physical_key_labels": False,
                     "debug_jis_special_key_events": False,
                     "external_keyboard_layouts": [],
                 },
             )
+
             self.assertEqual(
                 JsonRepository().load_json(
                     os.path.join(none_root, "user", "trigger_sets", "main.json")
@@ -161,6 +173,48 @@ class SavePlanTest(unittest.TestCase):
                     "last_used_directory": "",
                 },
             )
+
+    def test_build_keymap_set_payload_saves_individual_hook_keys(self):
+        payload = self._build_keymap_set_payload(
+            {
+                "hook_keys_individual": True,
+                "hook_stop_key": "f3",
+                "hook_toggle_key": "f4",
+            }
+        )
+
+        self.assertEqual(payload["hook_stop_key"], "f3")
+        self.assertEqual(payload["hook_toggle_key"], "f4")
+        self.assertTrue(payload["hook_keys_individual"])
+
+    def test_build_keymap_set_payload_clears_off_hook_keys_without_mutating_runtime(self):
+        runtime = {
+            "hook_keys_individual": False,
+            "hook_stop_key": "f11",
+            "hook_toggle_key": "f12",
+        }
+
+        payload = self._build_keymap_set_payload(runtime)
+
+        self.assertIn("hook_stop_key", payload)
+        self.assertIn("hook_toggle_key", payload)
+        self.assertEqual(payload["hook_stop_key"], "")
+        self.assertEqual(payload["hook_toggle_key"], "")
+        self.assertFalse(payload["hook_keys_individual"])
+        self.assertEqual(runtime["hook_stop_key"], "f11")
+        self.assertEqual(runtime["hook_toggle_key"], "f12")
+
+    def test_build_keymap_set_payload_applies_legacy_hook_key_migration(self):
+        for runtime, expected_stop_key, expected_toggle_key, expected_individual in (
+            ({"hook_stop_key": "f3", "hook_toggle_key": "f4"}, "f3", "f4", True),
+            ({"hook_stop_key": "", "hook_toggle_key": ""}, "", "", False),
+        ):
+            with self.subTest(runtime=runtime):
+                payload = self._build_keymap_set_payload(runtime)
+
+                self.assertEqual(payload["hook_stop_key"], expected_stop_key)
+                self.assertEqual(payload["hook_toggle_key"], expected_toggle_key)
+                self.assertEqual(payload["hook_keys_individual"], expected_individual)
 
     def test_single_skip_omits_only_the_selected_child(self):
         cases = (
