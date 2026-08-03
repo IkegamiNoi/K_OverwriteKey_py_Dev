@@ -110,6 +110,7 @@ class KeymapSetIo:
                 self._app._set_flash_message("保存を中止しました。")
                 return False
             skipped_dirty_children = self._skipped_dirty_children(save_plan)
+            self._app.discard_retained_hook_keys()
             self._app.data, startup_payload = self._app.config_service.save_runtime_data(
                 save_path,
                 self._app.data,
@@ -126,7 +127,6 @@ class KeymapSetIo:
             self._clear_saved_child_dirty_flags(*skipped_dirty_children)
             if deferred_index:
                 self._app.dirty_tracker.mark_trigger_set_dirty()
-            self._app.discard_retained_hook_keys()
             self._app.dirty_tracker.set_dirty(False)
             self._app.dirty_tracker.sync_dirty_state()
             notices = [notice for notice in (recalculation_notice,) if notice]
@@ -559,6 +559,7 @@ class KeymapSetIo:
             return
         try:
             self._app.data = self._app.config_service.load_legacy_runtime_data(path)
+            self._app.config_service.apply_global_hook_key_defaults(self._app.data, config_root=self._app.config_root)
             self._app.keymap_set_path = ""
             self.apply_loaded_data_to_ui()
             self._app.state.reset_indices()
@@ -636,12 +637,17 @@ class KeymapSetIo:
             return
 
         self._app.keymap_set_path = path
-        self._app.startup_io.write_startup({"keymap_set_path": self._app.paths.to_config_relative_or_absolute(path)})
+        startup_saved = self._app.startup_io.write_startup(
+            {"keymap_set_path": self._app.paths.to_config_relative_or_absolute(path)}
+        )
         self.apply_loaded_data_to_ui()
         self._app.state.reset_indices()
         self._app.trigger_panel.refresh_triggers()
         self._app.trigger_panel.refresh_actions()
         self._app.dirty_tracker.set_dirty(False)
+        if not startup_saved:
+            self._app._set_flash_message("起動時読み込み設定の保存に失敗しました。", auto_clear=False)
+            return
         self._app._set_flash_message("起動時読み込み設定を更新しました。")
         messagebox.showinfo("設定", f"次回起動時はこの keymap_set を読み込みます:\n{path}")
 

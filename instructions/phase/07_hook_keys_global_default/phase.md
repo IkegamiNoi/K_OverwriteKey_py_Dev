@@ -97,7 +97,8 @@
 | [task_05](tasks/task_05_hook_keys_individual_checkbox.md) | チェック UI | full / compact の `hook_frame` に「このキーマップセットで個別指定する」チェックを追加し、`ui_vars` / App と同期 |
 | [task_06](tasks/task_06_hook_key_capture_ownership.md) | 所有者切替 capture | `key_capture` の capture / clear を ON=個別値 / OFF=全体デフォルト へ切替。**OFF は dirty を汚さない**（前 dirty の記録と復元・例外経路含む） |
 | [task_06b](tasks/task_06b_hook_keys_display_switch.md) | 表示切替と個別値の保持 | ON⇄OFF での表示切替（OFF=全体デフォルト / 再 ON=保持していた個別値）+ 個別値のセッション内保持と **OFF 保存後の破棄**（task_03 からの申し送り） |
-| task_07 | 統合確認 | 受入条件 1〜8 の確認と特性テスト（解決・移行・所有者切替・空文字化・保存失敗）。`tests` / `tests_ui` / smoke |
+| [task_07](tasks/task_07_integration_check.md) | 統合確認 | 受入条件 1〜8 の確認と特性テスト（解決・移行・所有者切替・空文字化・保存失敗）。`tests` / `tests_ui` / smoke |
+| [task_07b](tasks/task_07b_review_findings_fix.md) | レビュー指摘の是正 | task_07 の deep-reviewer / Codex 指摘のうちユーザーが採用した 4 件（Import 経路の注入漏れ / 注入 API のフラグ既定 / 退避破棄のタイミング / 起動 keymap_set 設定の成否）を是正 |
 | task_08 | 正本反映（最終） | `spec_detail/data_schema.md`・`key_input.md`・`codebase_map.md` へ昇格 + **暫定仕様 06 を凍結** + `decisions_archive/07_hook_keys_global_default.md` 作成 + `current.md` 更新 + `/refactor_check` |
 
 - 依存: task_01 → task_02 / task_03 → task_04 → task_05 → task_06 → task_06b → task_07 → task_08。

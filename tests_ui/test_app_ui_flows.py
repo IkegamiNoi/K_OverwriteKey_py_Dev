@@ -295,6 +295,71 @@ class AppUiFlowsTest(unittest.TestCase):
                 self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "")
         self.app.dirty_tracker.set_dirty(False)
 
+    def test_failed_keymap_set_save_discards_retained_individual_hook_keys(self):
+        with tempfile.TemporaryDirectory() as config_root:
+            self._write_global_hook_key_defaults(config_root)
+            with patch.object(self.app, "config_root", config_root):
+                self._switch_individual_hook_keys_off()
+                save_path = os.path.join(config_root, "user", "keymap_sets", "failed.json")
+                with patch.object(
+                    self.app.keymap_set_io,
+                    "_collect_child_save_plan",
+                    return_value=(SavePlan(), "", False),
+                ), patch.object(
+                    self.app.paths, "normalize_keymap_set_save_path", return_value=save_path
+                ), patch.object(
+                    self.app.keymap_set_io, "choose_split_base_dir_for_keymap_set", return_value=""
+                ), patch.object(
+                    self.app.config_service, "save_runtime_data", side_effect=OSError("disk full")
+                ), patch(
+                    "keyseq.presentation.controllers.config_io.keymap_set_io.messagebox.showerror"
+                ), patch.object(self.app, "_set_flash_message"):
+                    self.assertFalse(
+                        self.app.keymap_set_io.save_keymap_set_to(
+                            save_path,
+                            flash_message="保存しました。",
+                            show_success_dialog=False,
+                        )
+                    )
+
+                self.app.ui_vars.hook_keys_individual_var.set(True)
+                self.app.toggle_hook_keys_individual()
+                self.assertEqual(self.app.data["hook_stop_key"], "")
+                self.assertEqual(self.app.data["hook_toggle_key"], "")
+        self.app.dirty_tracker.set_dirty(False)
+
+    def test_cancelled_keymap_set_save_retains_individual_hook_keys(self):
+        with tempfile.TemporaryDirectory() as config_root:
+            self._write_global_hook_key_defaults(config_root)
+            with patch.object(self.app, "config_root", config_root):
+                self._switch_individual_hook_keys_off()
+                save_path = os.path.join(config_root, "user", "keymap_sets", "cancelled.json")
+                with patch.object(
+                    self.app.keymap_set_io,
+                    "_collect_child_save_plan",
+                    return_value=(None, "", False),
+                ), patch.object(
+                    self.app.paths, "normalize_keymap_set_save_path", return_value=save_path
+                ), patch.object(
+                    self.app.keymap_set_io, "choose_split_base_dir_for_keymap_set", return_value=""
+                ), patch.object(self.app.config_service, "save_runtime_data") as save_runtime, patch.object(
+                    self.app, "_set_flash_message"
+                ):
+                    self.assertFalse(
+                        self.app.keymap_set_io.save_keymap_set_to(
+                            save_path,
+                            flash_message="保存しました。",
+                            show_success_dialog=False,
+                        )
+                    )
+                save_runtime.assert_not_called()
+
+                self.app.ui_vars.hook_keys_individual_var.set(True)
+                self.app.toggle_hook_keys_individual()
+                self.assertEqual(self.app.data["hook_stop_key"], "f5")
+                self.assertEqual(self.app.data["hook_toggle_key"], "f6")
+        self.app.dirty_tracker.set_dirty(False)
+
     def test_loading_new_or_default_data_discards_retained_individual_hook_keys(self):
         with tempfile.TemporaryDirectory() as config_root:
             self._write_global_hook_key_defaults(config_root)

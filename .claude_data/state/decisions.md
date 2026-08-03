@@ -361,6 +361,41 @@
 - 検証: compile clean / tests **168 pass**（増減なし）/ tests_ui **176 pass**（173 → +3）/ smoke pass。
   reviewer = **完了可・指摘なし**。
 
+### 【task_07】統合確認（2026-08-03・**実機目視のみ未了**）
+- 自動確認は全 pass（compile clean / tests 168 / tests_ui 176 / smoke）。**フック層は無変更**を
+  `git diff caf41a7..HEAD` で実測確認（`application/input_router.py` / `hook_controller.py` /
+  `keyboard_window.py` / `app.py` のフック供給部 `:96-109`）。受入条件 1〜7 は実装・テストで充足。
+- レビューは **`deep-reviewer`（条件付き完了可）+ `codex-adversarial-reviewer`（needs-attention）**の併用。
+  **両者が独立に「単一 JSON Import 経路で全体デフォルトが注入されない」を指摘**（＝実害あり）。
+- **ユーザー判断（2026-08-03）: 指摘 A〜D の 4 件すべてを採用**（task_07b で是正）。
+  D（起動 keymap_set パスの成否確認）は**hook キーと無関係でスコープ外**と提示したうえでの採用。
+- **task_08 へ持ち越す指摘 E**（実装変更はせず**正本で契約として明記**する）:
+  ① 全体デフォルトのキー衝突検証は**カレント keymap_set 内に閉じている**
+  （セット A の全体デフォルトがセット B のトリガーを黙って無効化しうる。`input_router` では
+  stop/toggle がトリガーより優先）/ ② **「明示 `false` + 非空個別値」の keymap_set** は
+  読込→保存で個別値が失われる（本実装は生成しないが手編集・別実装由来では起こりうる）。
+- **除外した指摘**: `resolve_hook_keys_individual` の非 bool 値の扱い（過剰実装）/
+  `write_startup` の失敗ダイアログ文言 `"startup.json 保存失敗"`（実体は config.json。
+  テスト 2 箇所が文言を固定しているため独立タスク扱い）。
+
+### 【task_07b】完了（2026-08-03・レビュー指摘 A〜D の是正）
+- **A**: `import_config` に `apply_global_hook_key_defaults` を 1 行追加。
+  この経路だけ解決点を通らず、OFF なのにキーが空でフックが無反応だった（受入条件 1 の不変条件が破れていた）。
+  **注入点は 3 箇所 → 4 箇所**（new_config / restore_default / 空データフォールバック / **Import**）。
+- **B**: `apply_global_hook_key_defaults` の先頭へ `runtime.setdefault("hook_keys_individual", False)`。
+  保存側が移行ヒューリスティック（`resolve_hook_keys_individual`）で判定するため、
+  フラグ無し dict へ注入 → 保存で**全体デフォルトが焼き付く**構造的な穴があった。
+  tests_ui のスタブ dict 期待値 3 箇所はテスト側追従。
+- **C**: `discard_retained_hook_keys()` を保存成功後 → **`save_runtime_data` の直前**へ移動。
+  保存は keymap_set（`save_plan_execution.py:138`）→ config.json（`:139`）の順で書くため、
+  後段の失敗で退避が残り**再 ON で復活**しうる窓があった。**境界は「保存を実行した時点」**に変更。
+  保存中止（`save_plan is None`）は早期 return が手前にあるため**退避が残る**（維持）。
+- **D**: `set_startup_keymap_set` で `write_startup` の成否を見て、失敗時は成功表明
+  （`showinfo` と成功フラッシュ）をしない。**エラーダイアログは `write_startup` が既に出すため二重にしない**。
+  読み込んだデータの UI 反映自体は従来どおり行う（runtime は既に差し替わっており巻き戻しは範囲外）。
+- 検証: compile clean / tests **169 pass**（168 → +1）/ tests_ui **178 pass**（176 → +2）/ smoke pass。
+  reviewer = **完了可・指摘なし**。
+
 ---
 
 ## 運用メモ

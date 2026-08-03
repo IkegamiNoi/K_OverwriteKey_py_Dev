@@ -437,6 +437,7 @@ class ConfigService:
         config_root: str,
     ) -> dict[str, Any]:
         """個別指定 OFF の runtime へ config.json の hook キー全体デフォルトを注入する。"""
+        runtime.setdefault("hook_keys_individual", False)
         if runtime.get("hook_keys_individual"):
             return runtime
         runtime["hook_stop_key"], runtime["hook_toggle_key"] = split_loading.load_global_hook_keys(

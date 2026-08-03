@@ -17,8 +17,10 @@
     `decisions_archive/07_hook_keys_global_default.md` へ集約）
   - **進捗**: task_01（スキーマ/移行判定）・task_02（キー解決点）・task_03（保存時挙動）・
     task_04（全体デフォルト更新 API）・task_05（チェック UI）・task_06（所有者切替 capture）・
-    task_06b（表示切替と個別値の保持）**完了**（task_06 は起票時に 06 / 06b へ分割）。
-    次は **task_07（統合確認・実機目視を含む）**
+    task_06b（表示切替と個別値の保持）・task_07b（レビュー指摘 A〜D の是正）**完了**
+    （task_06 は 06 / 06b へ分割）。
+    **task_07（統合確認）は実施中 = 自動確認とレビューは完了・実機目視 G1〜G9 のみユーザー待ち**。
+    その後 **task_08（正本反映）**
 - 保存系リデザインの残り: γ の次は **プリセット = phase 08
   （[暫定仕様 07](../history/07_hotkey_presets_global.md)・確定済）**。
 - 直前の完了フェーズ: [06_child_file_save_dialog](../../.claude_data/state/decisions_archive/06_child_file_save_dialog.md)

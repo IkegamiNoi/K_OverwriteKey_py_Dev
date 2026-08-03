@@ -510,22 +510,36 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             load.assert_not_called()
 
     def test_import_config_success(self):
-        calls = []
-        patches = self._silence_refresh()
-        with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
-            tkinter.filedialog, "askopenfilename", return_value="legacy.json"
-        ), patch.object(
-            self.app.config_service, "load_legacy_runtime_data", return_value={"legacy": True}
-        ), patch.object(_config_set_io(self.app), "apply_loaded_data_to_ui"), patch.object(
-            self.app.dirty_tracker, "set_dirty"
-        ) as set_dirty, self._record_flash(calls), patch.object(
-            tkinter.messagebox, "showinfo"
-        ) as showinfo, patches[0], patches[1], patches[2], patches[3]:
-            _config_set_io(self.app).import_config()
-        self.assertEqual(self.app.data, {"legacy": True})
-        self.assertEqual(self.app.keymap_set_path, "")
-        set_dirty.assert_called_once_with(True)
-        showinfo.assert_called_once()
+        with tempfile.TemporaryDirectory() as root:
+            self.app.config_root = root
+            self.app.config_service.save_startup(
+                os.path.join(root, "config.json"),
+                {"hook_stop_key": "f11", "hook_toggle_key": "f12"},
+            )
+            calls = []
+            patches = self._silence_refresh()
+            with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+                tkinter.filedialog, "askopenfilename", return_value="legacy.json"
+            ), patch.object(
+                self.app.config_service, "load_legacy_runtime_data", return_value={"legacy": True}
+            ), patch.object(_config_set_io(self.app), "apply_loaded_data_to_ui"), patch.object(
+                self.app.dirty_tracker, "set_dirty"
+            ) as set_dirty, self._record_flash(calls), patch.object(
+                tkinter.messagebox, "showinfo"
+            ) as showinfo, patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).import_config()
+            self.assertEqual(
+                self.app.data,
+                {
+                    "legacy": True,
+                    "hook_keys_individual": False,
+                    "hook_stop_key": "f11",
+                    "hook_toggle_key": "f12",
+                },
+            )
+            self.assertEqual(self.app.keymap_set_path, "")
+            set_dirty.assert_called_once_with(True)
+            showinfo.assert_called_once()
 
     def test_import_config_success_clears_nonempty_keymap_set_path(self):
         self.app.keymap_set_path = "current.json"
@@ -617,7 +631,10 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             _config_set_io(self.app).restore_default()
         # 既定に戻した直後に hook キーの全体デフォルトが注入される（phase 07 task_02）。
         # config.json に全体デフォルトが無いため空文字で入る。
-        self.assertEqual(self.app.data, {"d": 1, "hook_stop_key": "", "hook_toggle_key": ""})
+        self.assertEqual(
+            self.app.data,
+            {"d": 1, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
+        )
         self.assertEqual(set_dirty.call_args.args, (True,))
         self.assertEqual(set_dirty.call_args.kwargs, {})
         self.assertTrue(self.app.dirty_tracker.config_dirty)
@@ -995,18 +1012,17 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             self.app.config_service, "load_runtime_data_from_keymap_set_path", return_value={"loaded": True}
         ), patch.object(
             self.app.paths, "to_config_relative_or_absolute", return_value="user/keymap_sets/k.json"
-        ), patch.object(self.app.startup_io, "write_startup") as write_startup, patch.object(
+        ), patch.object(self.app.startup_io, "write_startup", return_value=True) as write_startup, patch.object(
             _config_set_io(self.app), "apply_loaded_data_to_ui"
         ), patch.object(self.app.dirty_tracker, "set_dirty"), patch.object(
             self.app, "_set_flash_message"
-        ), patch.object(tkinter.messagebox, "showinfo"), patches[0], patches[1], patches[2], patches[3]:
+        ), patch.object(tkinter.messagebox, "showinfo") as showinfo, patches[0], patches[1], patches[2], patches[3]:
             _config_set_io(self.app).set_startup_keymap_set()
 
         write_startup.assert_called_once_with({"keymap_set_path": "user/keymap_sets/k.json"})
+        showinfo.assert_called_once()
 
-    def test_set_startup_keymap_set_continues_after_write_startup_save_failure(self):
-        # 現挙動: write_startup 内で save 失敗を握りつぶした後も、
-        # データ適用・dirty 解除・成功 showinfo を続行する（暫定仕様 §7-2）。
+    def test_set_startup_keymap_set_suppresses_success_after_write_startup_save_failure(self):
         calls = []
         patches = self._silence_refresh()
         with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
@@ -1027,13 +1043,13 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             _config_set_io(self.app).set_startup_keymap_set()
         # write_startup 内の保存失敗は showerror で握りつぶされる
         showerror.assert_called_once_with("startup.json 保存失敗", "disk full")
-        # だが後続は続行する
+        # UI 反映と dirty 解除は続行するが、成功通知は出さない。
         self.assertEqual(self.app.data, {"loaded": True})
         self.assertEqual(self.app.keymap_set_path, "k.json")
         apply_ui.assert_called_once_with()
         set_dirty.assert_called_once_with(False)
-        self.assertIn(("flash", "起動時読み込み設定を更新しました。", {}), calls)
-        showinfo.assert_called_once()
+        self.assertIn(("flash", "起動時読み込み設定の保存に失敗しました。", {"auto_clear": False}), calls)
+        showinfo.assert_not_called()
 
     # ===================== B: write_startup =====================
     def test_write_startup_merges_defaults_current_and_arg(self):
@@ -1202,7 +1218,10 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ) as apply_ui:
             _startup_io(self.app).load_startup_and_config()
         # 空データフォールバックでも hook キーの全体デフォルトが注入される（phase 07 task_02）。
-        self.assertEqual(self.app.data, {"empty": True, "hook_stop_key": "", "hook_toggle_key": ""})
+        self.assertEqual(
+            self.app.data,
+            {"empty": True, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
+        )
         self.assertEqual(self.app.keymap_set_path, "")
         apply_ui.assert_called_once_with()
 
@@ -1223,7 +1242,10 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 _startup_io(self.app).load_startup_and_config()
             # 例外は握りつぶされ、空データにフォールバックする
             # （空データにも hook キーの全体デフォルトが注入される。phase 07 task_02）
-            self.assertEqual(self.app.data, {"empty": True, "hook_stop_key": "", "hook_toggle_key": ""})
+            self.assertEqual(
+                self.app.data,
+                {"empty": True, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
+            )
             # 読込例外時も keymap_set_path は空のまま（受入 4）
             self.assertEqual(self.app.keymap_set_path, "")
 

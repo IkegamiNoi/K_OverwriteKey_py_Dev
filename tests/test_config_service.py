@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from keyseq.application.config_service import ConfigService, save_path_resolution
+from keyseq.application.config_service import ConfigService, save_path_resolution, split_payloads
 from keyseq.application.save_plan import (
     ACTION_SAVE,
     ACTION_SAVE_AS,
@@ -303,6 +303,32 @@ class ApplyGlobalHookKeyDefaultsTest(unittest.TestCase):
             self.service.apply_global_hook_key_defaults(runtime, config_root=root)
 
             self.assertEqual(runtime, once_applied)
+
+    def test_missing_individual_flag_defaults_off_without_baking_global_keys(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hook_stop_key": "f11", "hook_toggle_key": "f12"},
+            )
+            runtime = {"hook_stop_key": "", "hook_toggle_key": ""}
+
+            self.service.apply_global_hook_key_defaults(runtime, config_root=root)
+            payload = split_payloads.build_keymap_set_payload(
+                self.service,
+                runtime,
+                {},
+                config_root=root,
+                trigger_set_path="",
+                hotkey_presets_path="",
+            )
+
+            self.assertFalse(runtime["hook_keys_individual"])
+            self.assertEqual(runtime["hook_stop_key"], "f11")
+            self.assertEqual(runtime["hook_toggle_key"], "f12")
+            self.assertEqual(payload["hook_stop_key"], "")
+            self.assertEqual(payload["hook_toggle_key"], "")
+            self.assertFalse(payload["hook_keys_individual"])
 
     def test_apply_global_hook_key_defaults_with_empty_root_uses_empty_keys(self):
         runtime = {"hook_keys_individual": False, "hook_stop_key": "f3", "hook_toggle_key": "f4"}

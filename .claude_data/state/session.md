@@ -4,56 +4,66 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-03T20:00:00
+last_updated: 2026-08-03T22:00:00
 phase: **07_hook_keys_global_default（保存系リデザイン Phase γ）**。規範 = `instructions/phase/07_hook_keys_global_default/phase.md`
-last_commit_location: claude/task-03-progression-bba1a9 @ `f0f2a52` ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/task-03-progression-bba1a9 @ `ee537cb` ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01〜06b 完了（実装は全て完了）、次は task_07（統合確認 + 実機目視）**。
-mode: implementing
+focus: **phase 07（Phase γ）は task_07（統合確認）を実施中。自動確認・レビュー・指摘是正（task_07b）まで完了し、残るは実機目視 G1〜G9（ユーザー実施）のみ**。
+mode: pending_review
 
 ## last_action
-ts: 2026-08-03T20:00:00
+ts: 2026-08-03T22:00:00
 who: main
 summary: |
-  【task_06b（表示切替と個別値の保持）を起票 → codex-implementer 実装 → verifier 実測 → reviewer 採用で完了】
-  - **実装（presentation 限定・2 ファイル）**: `App.toggle_hook_keys_individual` を拡張し、
-    **ON→OFF で個別値を `App._retained_hook_keys` へ退避 → OFF→ON で復元（復元時に消費）**。
-    退避は **App が持つ**（`app.data` の内部キーにしない = 保存経路・スキーマへ影響させない）。
-  - **順序が重要**: `hook_keys_individual` を data へ書いた**後**に `apply_global_hook_key_defaults`
-    を呼ぶ（この API はフラグが真なら何もしないため、逆順だと注入されない）。
-  - **退避が無い OFF→ON は両キーを `""` にする**（全体デフォルト値を個別値として引き継がない）。
-    引き継ぐと全体デフォルトが keymap_set へ焼き付く。task_03（保存時の空文字化）・
-    task_02（読込時に個別値を runtime へ持ち込まない）と整合する唯一の値。
-  - **破棄は `keymap_set_io` の 4 箇所**: `save_keymap_set_to` の**保存成功後** /
-    `apply_loaded_data_to_ui` 先頭 / `new_config` / `restore_default`。
-    保存失敗時は破棄に到達しない（「保存成功時のみ破棄」を満たす）。
-  - **`_sync_control_vars_from_data` に破棄を入れてはいけない**（toggle 自身が呼ぶため退避が即消える）。
+  【task_07（統合確認）を起票 → verifier 実測 + deep-reviewer + Codex 敵対的レビュー →
+   ユーザー判断で指摘 A〜D を採用 → task_07b で是正して完了】
+  - **自動確認は全 pass**。**フック層が無変更**であることを `git diff caf41a7..HEAD` で実測確認
+    （`application/input_router.py` / `hook_controller.py` / `keyboard_window.py` /
+    `app.py` のフック供給部）。受入条件 1〜7 は実装・テストで充足。
+  - **deep-reviewer = 条件付き完了可 / codex-adversarial-reviewer = needs-attention**。
+    **両者が独立に「単一 JSON Import 経路で全体デフォルトが注入されない」を指摘**（実害あり）。
+  - **ユーザー判断: 指摘 A〜D を全採用**（D は hook キーと無関係でスコープ外と提示したうえでの採用）。
+  - **task_07b で是正**:
+    - A: `import_config` へ `apply_global_hook_key_defaults` を 1 行追加
+      （**注入点は 3 → 4 箇所**: new_config / restore_default / 空データフォールバック / Import）
+    - B: `apply_global_hook_key_defaults` 先頭に `setdefault("hook_keys_individual", False)`
+      （フラグ無し dict へ注入 → 保存で全体デフォルトが焼き付く構造的な穴を閉じる）
+    - C: `discard_retained_hook_keys()` を保存成功後 → **`save_runtime_data` の直前**へ移動
+      （keymap_set 書込後に config.json 書込が失敗すると退避が残り再 ON で復活する窓があった。
+      **境界は「保存を実行した時点」**。保存中止では退避が残る挙動は維持）
+    - D: `set_startup_keymap_set` で `write_startup` の成否を見て成功表明を抑止（エラーは二重に出さない）
+  - **指摘 E は task_08 へ持ち越し**（実装変更せず正本で契約明記）。
 result_files:
-  - keyseq/presentation/app.py（`_retained_hook_keys` / `toggle_hook_keys_individual` 拡張 / `discard_retained_hook_keys`）
-  - keyseq/presentation/controllers/config_io/keymap_set_io.py（破棄の呼び出し 4 箇所）
-  - tests_ui/test_app_ui_flows.py（ON→OFF 切替 / 復元と ""化 / 保存後の破棄 / 読込・新規・既定復元での破棄）
-  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_06b_hook_keys_display_switch.md}
-  - instructions/phase/current.md（phase 07 の進捗行）
-  - .claude_data/state/decisions.md（「phase 07」節へ task_06b を追記）
+  - keyseq/application/config_service/__init__.py（B）
+  - keyseq/presentation/controllers/config_io/keymap_set_io.py（A・C・D）
+  - tests/test_config_service.py / tests_ui/test_app_ui_flows.py /
+    tests_ui/test_config_io_characterization_keymap_set_startup.py（A〜D のテスト + スタブ dict 追従 3 箇所）
+  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_07_integration_check.md,tasks/task_07b_review_findings_fix.md}
+  - instructions/phase/current.md / .claude_data/state/decisions.md
 verified:
   compile: clean
-  tests: pass 168（presentation 限定のため増減なし）
-  tests_ui: pass 176（173 → +3）
+  tests: pass 169（168 → +1）
+  tests_ui: pass 178（176 → +2）
   smoke: pass
-  manual: **未実施。phase 07 の実機目視は task_07 で実施する**（task_06b 完了で UI 挙動が一通り揃った）。
-    Phase β 時点の実機目視 R1〜R11 は全 OK（ユーザー実施 2026-08-02）。
-  review: reviewer（task_06b）= **完了可・指摘なし**（セッション内復活の境界 / キー解決点の 1 箇所性 /
-    退避の持ち方 / 完了済みタスク範囲への非接触を個別確認）。
+  manual: **未実施 = 唯一の残作業**。task_07 の実機目視 **G1〜G9**（task_07 定義の表）をユーザーが実施し、
+    結果をメインセッションへ報告する。G1（OFF 編集で dirty にならない）と
+    G7（OFF 保存後は再 ON しても空）が中核。
+  review: deep-reviewer（フェーズ完了判定）= 条件付き完了可 / codex-adversarial-reviewer = needs-attention
+    → **指摘 A〜D を task_07b で是正済み**。reviewer（task_07b）= 完了可・指摘なし。
 
 ## next_action
-- **次は task_07（統合確認）を `/task_new` で起票**。内容 = 暫定仕様 06 §7 の**受入条件 1〜8 の通し確認**。
-  - 特性テストの網羅確認（解決・移行・所有者切替・空文字化・保存失敗）と `tests` / `tests_ui` / smoke の実測
-  - **実機目視のシナリオを起票してユーザーへ提示する**（phase 07 で唯一の実機確認。
-    全体デフォルト設定 → 新規作成で再設定不要 → ON で個別指定 → OFF 保存で空文字化 →
-    再 ON で空 → config.json 保存失敗時の挙動 まで）
-  - レビューは **`deep-reviewer` + Codex レビュー系**を併用する（`.claude/rules/agent_selection.md`）
-- task 一覧は phase.md の「タスク」表（01〜06b は**完了** → 07 統合確認 → 08 正本反映）。
+- **ユーザーへ実機目視 G1〜G9 を依頼中**（`tasks/task_07_integration_check.md` の「実機目視シナリオ」）。
+  結果 OK なら task_07 完了 → **task_08（正本反映・最終）**へ進む。
+  異常があればフェーズを完了扱いにせず原因タスクへ戻す。
+- **task_08 の内容**（`.claude/rules/task_execution.md`「フェーズ完了時」+ phase.md）:
+  - 正本 `spec_detail/data_schema.md`（config.json の全体デフォルト 2 キー / keymap_set の
+    `hook_keys_individual` / OFF 時の空文字化契約 / 解決順序 / 移行規則）と `key_input.md`・
+    `codebase_map.md` へ昇格
+  - **指摘 E の契約明記**: ① キー衝突検証はカレント keymap_set 内に閉じている
+    ② 「明示 `false` + 非空個別値」は読込→保存で個別値が失われる
+  - 暫定仕様 06 の凍結 / `decisions_archive/07_hook_keys_global_default.md` 作成 /
+    `current.md` 更新（次採番 08）/ `/refactor_check`
 - **task_04 の申し送り**: 全体デフォルトの書き込みは `StartupIo.write_global_hook_keys` の 1 本のみ。
   **config.json を別経路で read-modify-write しない**（`_startup_settings` と乖離すると次の
   `write_startup` が hook キーを消す）。task_06 は**戻り値 True のときだけ** UI / ランタイムを確定させる。
