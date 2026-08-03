@@ -13,19 +13,19 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `.claude_data/state/decisions.md` を読む（判断履歴。**末尾の「計画05」節が現在の作業**。
+2. `.claude_data/state/decisions.md` を読む（判断履歴。**末尾の「phase 07」節が現在の作業**。
    完了フェーズは「アーカイブ索引」→ `decisions_archive/<phase>.md`）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む
-4. **現在の作業はフェーズではなく「計画05」**（計画04 と同じ運用）。
-   **規範 = [modified_proposal/05_refactor_child_file_save_dialog.md](../../instructions/modified_proposal/05_refactor_child_file_save_dialog.md)**
-   （ユーザー承認済 2026-08-03。**挙動不変のリファクタ**）。`instructions/phase/` にフォルダは作らない。
-   `instructions/phase/current.md` は **Phase β = phase 06 完了**の記載が正で、次フェーズ γ は未起票。
-   番号対応: **α=phase05/暫定04〔完了〕 / β=phase06/暫定05〔完了〕 / γ=phase07/暫定06〔未着手・暫定仕様は確定済〕 /
-   プリセット=phase08/暫定07**（**計画05 はフェーズ番号を消費しないのでこの表に影響しない**）。
-5. session.md.next_action から作業を再開する（**項目 1b から**）
+4. **現在のフェーズ = phase 07（保存系リデザイン Phase γ）**。
+   規範 = [phase/07_hook_keys_global_default/phase.md](../../instructions/phase/07_hook_keys_global_default/phase.md)、
+   主入力（確定設計）= [history/06_hook_keys_global_default.md](../../instructions/history/06_hook_keys_global_default.md)
+   （v0.2・ユーザー確定済）。**暫定仕様先行モード**なのでフェーズ中は正本を直接改訂しない。
+   番号対応: **phase 07 / 暫定 06 / decisions_archive 07**。
+5. 着手するタスク定義（`instructions/phase/07_hook_keys_global_default/tasks/`）を読む →
+   session.md.next_action から再開する（**task_03 から**）
 
 ## 現在の作業の 1 行サマリ
-**計画05（config_service 等の分割リファクタ・挙動不変）を実施中。項目 0 / 1a 完了、次は項目 1b**。
+**phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01 / task_02 完了、次は task_03（保存時挙動）**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,52 +35,57 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（項目 1a 完了時・コミット `db279e3`）: compile **clean** / tests **145** / tests_ui **159** / smoke **pass**。
-**計画05 は挙動不変なので、この件数は全項目を通じて変わらないはず**（テストの追加・削除をしない）。
-変わったら退行を疑う。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
+直近の実測（task_02 完了時・コミット `8904c00`）: compile **clean** / tests **164** / tests_ui **159** / smoke **pass**。
+**phase 07 はタスクごとにテストを追加するため tests の件数は増える**（減ったら退行を疑う）。
+実行後に worktree ルートへ `user/` が生成されていないことも確認する。
 
 ## 次アクション（session.md.next_action より）
-- **項目 1b**: C（保存先の解決・命名 = `_resolve_sequence_save_path` / `_default_trigger_set_path` /
-  `_allocate_unique_*` / `slugify_file_stem` 等・約 180 行）→ `save_path_resolution.py`、
-  D（split 読込 = `_build_runtime_data_from_split` / `_load_keymap_entry` /
-  `_load_triggers_from_trigger_set` 等・約 204 行）→ `split_loading.py` へ抽出。
-  **1a と同じ方式**（`service` を第 1 引数に取るモジュール関数 / 互換ラッパを作らない）。
-  完了条件は親 `__init__.py` が **600 行未満**（`wc -l` で確認・現在 1011 行）。
-  流れ: codex-implementer へ委任 → **verifier で実測** → reviewer → `/task_commit`。
-- そのあと**項目 2**（`_collect_child_save_plan` の分割）。**項目 2 は γ とほぼ無関係のため、
-  途中で止めて γ へ移ってもよい**（ユーザー確定済）。
-- 計画05 完了後に **`/phase_start` で phase 07（γ）を起票**する
-  （主入力 = `instructions/history/06_hook_keys_global_default.md`・ユーザー確定済）。
+- **task_03（保存時挙動）を `/task_new` で起票 → codex-implementer へ委任**。
+  内容 = `config_service/split_payloads.py` の keymap_set 保存で、ON なら個別値を保存 /
+  **OFF なら個別値を空文字にクリアし `hook_keys_individual=false` を書き出す**
+  （キー自体は残す = 既存キー削除禁止）。暫定仕様 06 §5 / 受入条件 3・5。
+  **保存 JSON のバイト列比較テストが変化する初めてのタスク**になるため、
+  差分が hook 関連キーのみであることを確認する。
+- 以降: 04 全体デフォルト更新 API（成否付き）→ 05 チェック UI → 06 所有者切替 capture →
+  07 統合確認（**実機目視はここでまとめて実施**）→ 08 正本反映。
+- 各タスクの流れ: タスク定義起票 → codex-implementer へ委任 → **verifier で実測** → reviewer → コミット。
 
-## 計画05 の要点（規範 = modified_proposal/05）
-- **唯一の合格条件は「挙動不変」**。挙動・エラーメッセージ・**保存 JSON のバイト列**を変えない。
-  変更が必要になったら `/refactor_check` の範囲外 → 止めてユーザーへ報告する。
-- **1 項目 = 1 コミット**（項目 1 のみ 1a / 1b の 2 コミット）。各段階で**フル検証 + reviewer**を通す。
-- **【最重要・構造】`config_service` はパッケージ**（`keyseq/application/config_service/`）で、
-  **ConfigService 本体は `__init__.py`**（`config_service/config_service.py` **ではない**）。
+## phase 07（Phase γ）の要点
+- **目的**: `hook_stop_key` / `hook_toggle_key` の全体デフォルトを `config/config.json` に持たせ、
+  keymap_set 側のチェック（`hook_keys_individual`）で個別指定できるようにする。
+  **挙動変更・スキーマ追加あり / 後方互換必須**（既存キーを削除しない）。
+- **【設計の芯】キー解決点は 1 箇所**。`split_loading.load_global_hook_keys`（config.json の全体デフォルト
+  読み出し・正規化・失敗時 `("", "")` へ縮退）と `ConfigService.apply_global_hook_key_defaults`
+  （OFF のみ注入・その場更新・冪等）の 2 本のみ。
+  **フック層（`input_router` / `hook_controller` / `keyboard_window` / `app.py`）は無変更を維持する**
+  （常に解決済みの値を見る設計。触ったら設計違反）。
+- **移行判定 `resolve_hook_keys_individual(source)`（domain）には生の `keymap_set` dict を渡す**。
+  runtime を渡すと `new_default_data()` 由来でフラグが常に存在し移行が発火しない。
+  明示フラグの有無は **`in` で判定**（`.get()` の真偽だと `false` とキー無しを区別できない）。
+  **冪等性が要件**（フラグ True のまま両キーが空で False へ落とさない。落とすと
+  「ON→OFF で個別値を内部保持」が壊れる）。
+- **注入は読込時だけでは足りない**。新規 runtime を生成する presentation 3 箇所
+  （`keymap_set_io.new_config` / `restore_default` / `startup_io` の空データフォールバック）からも
+  注入 API を呼ぶ（受入条件 2「新規作成で再設定不要」）。`app.py` は直後に上書きされるため対象外。
+- 未実装の確定事項（task_03 以降）: OFF 保存で個別値を空文字クリア + フラグ false /
+  config.json 更新 API は**成否を返し成功時のみ UI を確定** / OFF 時のキー編集は config.json を編集し
+  **keymap_set を dirty にしない**（OFF 前の dirty を記録して復元）/ 再 ON での個別値復活は
+  **保存前の同一セッション内のみ**。
+
+## 直前の完了作業（計画05・フェーズ番号を消費しない）
+- `config_service` / `keymap_set_io` の分割リファクタ（**挙動不変**）。項目 0 / 1 / 2 完了（`c7a8bf4` / `c22e49b`）。
+- **`config_service` はパッケージ**（`keyseq/application/config_service/`）で
+  **ConfigService 本体は `__init__.py`**（`config_service.py` ではない）。
   理由: テスト 4 箇所が `patch("keyseq.application.config_service.os.path", ntpath)` で
-  **モジュール名前空間の `os.path` を差し替えている**ため、この配置を崩すと壊れる
-  （`tests/test_config_service.py:429` / `:789` / `tests/test_config_paths.py:113` /
-  `tests/test_child_save_rows.py:201`）。
-- 兄弟モジュール（1a 完了分）: `save_plan_execution.py`（保存計画の実行・検証・適用・依存判定）/
-  `split_payloads.py`（payload 構築）。抽出関数は **`service` を第 1 引数に取り**、本文は
-  `self.X` → `service.X` の機械的置換のみ。**兄弟から `__init__` を import しない**（循環回避）。
-  公開メソッド（`save_runtime_data` / `resolve_child_save_targets` / `find_dependency_blocked_sequences`）は
-  **薄い委譲として親に残す**。private ヘルパの**互換ラッパは作らない**。
-- 安全網（項目 0 で実測・追加テスト不要）: 保存 JSON のバイト列比較 **21 箇所** /
-  `tests/test_save_plan.py` **12 件**（失敗時の旧索引維持・**子 → 親 → 起動設定の書き込み順序**・
-  deferred index・SKIP の索引規則）/ `tests_ui/test_child_save_dialog.py` **46 件**。
-
-## 直前フェーズ（Phase β = phase 06）の要点
-- **完了済み**（コミット `976b3da` / `03b52d0`）。**設計の正は正本**:
-  `spec_detail/data_schema.md` **§5.8**（子ファイルの保存計画と参照元記録）+ §5.4 / §5.6 / §5.7、
-  `features.md` **§4.6**（子ファイル保存ダイアログの表示要件）、`codebase_map.md`。
-  暫定仕様 05 は**凍結済み**（経緯の参照用）。判断履歴は `decisions_archive/06_child_file_save_dialog.md`。
-- 成果: keymap_set の「保存」を**子ファイルごとに 保存 / 別名保存 / 保存しない を選ぶ確認ダイアログ**へ置換。
-  **責務分担 = 保存計画の決定は presentation・実行は application**。
-- 子ファイル保存の触点: `child_save_rows.py`（共有状況判定）/ `child_save_dialog.py`（一覧 UI + 依存確認）/
-  `child_save_plan.py`（選択 → 計画の純変換）/ `keymap_set_io.py`（一括経路）/
-  `trigger_set_file_io.py`（個別経路）/ `config_service.save_runtime_data`（実行）。
+  **モジュール名前空間の `os.path` を差し替えている**ため、この配置を崩すと壊れる。
+  同じ理由で**パス基盤メソッド**（`canonical_path` / `is_path_within` /
+  `to_config_relative_or_absolute` / `_merge_parent_ref` 等）**を兄弟モジュールへ移さない**。
+- 兄弟モジュール: `save_plan_execution.py`（保存計画の実行）/ `split_payloads.py`（payload 構築）/
+  `save_path_resolution.py`（保存先解決・命名）/ `split_loading.py`（split 読込）。
+  抽出関数は **`service` を第 1 引数に取る**。**兄弟から `__init__` を import しない**（循環回避）。
+  構成の正本は `codebase_map.md` の ConfigService 節。
+- `keymap_set_io._collect_child_save_plan` は手順の並びのみ。**ループ再入は `_RETRY` センチネル**
+  （戻り値がキャンセル / 再試行 / 確定の 3 系統あるため `None` と区別）。
 
 ## 注意事項・blockers
 - **blockers: なし**。
@@ -88,7 +93,7 @@
   保持される（config 外は絶対・区切りは `/` 正規化）。**相対値を `os.path.abspath` / `dirname` / `exists` /
   `join` へ解決なしで渡すと cwd 基準で解決される**。症状 = **リポジトリルートに `user/` が生成される** /
   「別名で保存」が前回の場所に開かない。解決は `ConfigService.resolve_config_path(path, config_root)`。
-  `to_config_relative_or_absolute` は**入口で解決するので相対を渡してよい**（2026-08-03 に修正）。
+  `to_config_relative_or_absolute` は**入口で解決するので相対を渡してよい**。
 - **不変条件（壊しやすい）**: ① `dirty_tracker.trigger_set_source_path` と
   `data[INTERNAL_TRIGGER_SET_SOURCE_PATH]` は**常に一致**（入口は `dirty_state` のメソッドのみ・内部キー直代入禁止）/
   ② 子の `_parent_refs` は**保存先ファイルの集合 + 現在の上位**（in-memory の旧 refs を持ち込まない）/
@@ -106,6 +111,10 @@
   runtime に source_path が入らない**。source_path 前提のテストは保存後に
   `load_runtime_data_from_keymap_set_path` → `apply_loaded_data_to_ui` で読み直すこと。
   怠ると個別保存が「保存先を選ぶ」分岐へ落ち、**実リポジトリの `config/` にモーダルを開いてハングする**。
+- **【tests_ui の罠・phase 07 で遭遇】特性テストは `config_service` の生成系をスタブ dict で差し替える**
+  （`new_empty_data` → `{"empty": True}` 等）。runtime へキーを増やす変更を入れると
+  `assertEqual(self.app.data, {...})` が落ちる。**実装ではなくテスト側の追従で正しい**が、
+  実 runtime と混同しないこと。
 - **【教訓・UI】tkinter の「初期表示だけ崩れる」系は one-shot の再計算（`after_idle` 1 回）では直らない**。
   **対象ウィジェット自身の `<Configure>` で自己修復させる**（同幅早期 return を必ず併設）。
 - **【Codex 運用】フォワーダが最終出力を返さないまま完了通知だけ来る / 差分 0 件で返る**ことがある

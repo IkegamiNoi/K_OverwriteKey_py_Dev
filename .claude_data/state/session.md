@@ -6,7 +6,7 @@
 
 last_updated: 2026-08-03T00:00:00
 phase: **07_hook_keys_global_default（保存系リデザイン Phase γ）**。規範 = `instructions/phase/07_hook_keys_global_default/phase.md`
-last_commit_location: claude/device-testing-procedures-16467e ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/item-1b-progress-960016 @ `8904c00` ※現在地はセッション開始時の git 実測値が正
 
 ## current
 focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01 / task_02 完了、次は task_03（保存時挙動）**。
@@ -17,63 +17,50 @@ mode: in_progress
 ts: 2026-08-03T00:00:00
 who: main
 summary: |
-  【Phase β をコミット → 計画05 を起票・承認 → 項目 0 / 1a 完了】
-  - **Phase β 完了分をコミット**: `976b3da`（task_10 + 19 + 20 = 正本反映と source_path 統一）/
-    `03b52d0`（フェーズ完了判定の記録）。以降 Phase β は**クローズ済み**（`decisions_archive/06` が正）。
-  - **提案書 05 の実施形態をユーザー確定 = 「計画05」として実施**（フェーズにしない）。
-    根拠: 提案書がそのまま確定設計として機能し、`/refactor_check` の「挙動保存が原則」で制約が閉じるため、
-    フェーズが内包する「設計を確定させる工程」が不要。**フェーズ番号を消費しない**ので
-    γ=phase07 / プリセット=phase08 の対応表は不変。**γ より先に実施**（全 green + 実機目視 OK 直後で
-    挙動不変の基準線が最も明確・γ が触る config_service を先に分割した方が差分が小さい）。
-  - **項目 0（安全網の確認）= OK・追加テスト不要**。バイト列比較 21 箇所 / `test_save_plan.py` 12 件
-    （旧索引維持・書き込み順序・deferred index）/ ダイアログ駆動 46 件。移設対象の private ヘルパは
-    テストから直接呼ばれていない。**発見**: `patch("keyseq.application.config_service.os.path", ntpath)` が
-    4 箇所あり、クラスを `config_service/config_service.py` へ置くと壊れる →
-    **クラス本体を `config_service/__init__.py` へ置く**（計画04 案A と同じ手）。
-  - **抽出方式をユーザー確定**（観点 = 後で把握しやすい方）: 引数への全展開は self 依存 1〜15 個で
-    シグネチャが読めなくなるため不採用。**Mixin も不採用**（定義位置が MRO 依存で把握しにくい）。
-    → **`service` を第 1 引数に取るモジュール関数**（`self.X` → `service.X` の機械的置換）。
-  - **項目 1a 完了・コミット `db279e3`**: `config_service.py` → `config_service/__init__.py`（内容不変で移動・
-    git も rename 認識）+ `save_plan_execution.py`（A・318 行）+ `split_payloads.py`（B・407 行）。
-    親 1678 → **1011 行**。公開 3 メソッドは薄い委譲として残置、private ヘルパのラッパは作らない。
-    reviewer 指摘の未使用 import 6 個はメインが削除済み。
-  - **項目 1 の分割範囲をユーザー確定 = A+B+C+D・2 コミット**。A+B だけでは親 982 行で完了条件
-    「600 行未満」に届かないため（起票時の見積もりが甘かった）。
-  - **項目 1b 完了 = 項目 1 完了**: `save_path_resolution.py`（C・213 行）+ `split_loading.py`（D・289 行）を
-    新設し、親 1011 → **551 行**（完了条件 600 行未満を達成）。方式は 1a と同一。
-    **parent に残した判断**: パス基盤（`canonical_path` / `is_path_within` /
-    `to_config_relative_or_absolute` / `_merge_parent_ref` 等）は **ntpath パッチの 4 テストが
-    `__init__` の名前空間を見ている**ため移動不可 / `_normalize_sequence_payload` と
-    `_generate_keymap_id` は読込専用ではない（保存側からも使う）ため D に含めない。
-    **例外 2 件**: `slugify_file_stem` は公開メソッドのため本体を C へ移し親に薄い委譲を残す /
-    `_normalize_external_keyboard_layouts` は読込専用のため D へ含めた（提案書の列挙外）。
-    互換ラッパを作らない方針の帰結として **tests/test_config_service.py の 2 箇所**
-    （`_default_trigger_set_path` / `_is_default_trigger_set_area` の直接呼び出し）を新名へ更新した。
-  - **項目 2 完了 = 計画05 完了**: `keymap_set_io._collect_child_save_plan`（130 行）を手順の並びへ分解
-    （**新規ファイルは作らず**同一ファイル内の private メソッド抽出のみ）。ファイル 640 → 662 行だが
-    最長メソッドは 130 → **39 行**。ループ再入は**モジュール定数 `_RETRY` センチネル**で表現
-    （戻り値がキャンセル / 再試行 / 確定の 3 系統あるため `None` と区別）。
-    同型だった再計算 → 上書き確認の 2 ブロックを `_recalculate_for_trigger_target` へ統合
-    （1 回目は `choices` を採用・2 回目は捨てる = 以降読まないため等価）。
-    reviewer 指摘（2 メソッドが 44 行で完了条件 40 行超過）はメインが是正済み。
+  【計画05 を完走 → phase 07（γ）を起票 → task_01 / task_02 完了】
+  - **計画05 完了**（`config_service` / `keymap_set_io` の分割リファクタ・**挙動不変**）。
+    - 項目 1（`c7a8bf4`）: `config_service` をパッケージ化し 5 ファイルへ分割。親 1678 → **551 行**。
+      抽出関数は **`service` を第 1 引数に取るモジュール関数**（`self.X` → `service.X` の機械的置換）。
+      **parent に残した判断**: パス基盤（`canonical_path` / `is_path_within` /
+      `to_config_relative_or_absolute` / `_merge_parent_ref` 等）は **ntpath パッチの 4 テストが
+      `__init__` の名前空間を見ている**ため移動不可。`_normalize_sequence_payload` /
+      `_generate_keymap_id` は保存側からも使うため読込モジュールに含めない。
+      公開メソッド（`slugify_file_stem` 等）は薄い委譲として残置、private ヘルパのラッパは作らない。
+    - 項目 2（`c22e49b`）: `_collect_child_save_plan`（130 行）を手順の並びへ分解。**新規ファイルを作らず**
+      同一ファイル内の private メソッド抽出のみ。最長メソッド 130 → **39 行**。
+      ループ再入は**モジュール定数 `_RETRY` センチネル**（戻り値がキャンセル / 再試行 / 確定の 3 系統あるため
+      `None` と区別）。同型だった再計算 → 上書き確認の 2 ブロックを 1 本へ統合。
+  - **phase 07（Phase γ）を起票**（`caf41a7`）。主入力 = 暫定仕様 06（v0.2・ユーザー確定済）。
+    task_01〜08 に分割。**暫定仕様 06 の「現状監査」の行番号は計画05 の分割で無効**になったため
+    phase.md「このフェーズで読むファイル」で現在の所在へ差し替えた。reviewer 整合確認 = 完了可。
+  - **task_01 完了**（`d596295`・domain 限定）: `DEFAULT_CONFIG` へ `hook_keys_individual: False` +
+    純関数 `resolve_hook_keys_individual(source)` を新設し `ensure_config_compatibility` の
+    hook キー正規化**直後**で呼ぶ。**明示フラグの有無は `in` で判定**（`.get()` の真偽で見ると
+    `false` とキー無しを区別できず移行規則が壊れる）。**冪等性を要件化**（フラグ True のまま両キーが空で
+    False へ落ちると「ON→OFF で個別値を内部保持」が壊れる）。
+  - **task_02 完了**（`8904c00`）: キー解決点を **`split_loading.load_global_hook_keys` と
+    `ConfigService.apply_global_hook_key_defaults` の 2 本**へ集約。**フック層は無変更**。
+    移行判定に渡すのは**生の `keymap_set` dict**（runtime は `new_default_data()` 由来でフラグを
+    常に持つため発火しない）。受入条件 2 のため**新規 runtime を生成する presentation 3 箇所**
+    （`new_config` / `restore_default` / 空データフォールバック）からも注入 API を呼ぶ。
+    tests_ui 3 件はスタブ dict へ空 hook キーが加わったための**テスト側追従**として期待値を更新。
 result_files:
-  - keyseq/application/config_service/{__init__.py,save_plan_execution.py,split_payloads.py}（`db279e3`）
-  - keyseq/application/config_service/{save_path_resolution.py,split_loading.py}（項目 1b・新規）
-  - keyseq/presentation/controllers/config_io/keymap_set_io.py（項目 2）
-  - instructions/common/codebase_map.md（ConfigService 節をパッケージ構成 5 ファイルの表へ更新 +
-    `_collect_child_save_plan` の手順と `_RETRY` を追記）
-  - instructions/modified_proposal/05_refactor_child_file_save_dialog.md（実施形態 / 項目 0 結果 / 項目 1 完了を追記）
-  - .claude_data/state/decisions.md（「計画05」節）
+  - keyseq/application/config_service/{__init__.py,save_plan_execution.py,split_payloads.py,save_path_resolution.py,split_loading.py}
+  - keyseq/presentation/controllers/config_io/{keymap_set_io.py,startup_io.py}
+  - keyseq/domain/config.py（`hook_keys_individual` / `resolve_hook_keys_individual`）
+  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_01_*.md,tasks/task_02_*.md}
+  - instructions/phase/current.md（アクティブ = 07・次採番 08）
+  - instructions/common/codebase_map.md（ConfigService = パッケージ構成 5 ファイル + `_collect_child_save_plan` の手順）
+  - .claude_data/state/decisions.md（「計画05」節 + 「phase 07」節）
 verified:
   compile: clean
-  tests: pass 145
+  tests: pass 164（計画05 完了時 145 → task_01 で +10 → task_02 で +9）
   tests_ui: pass 159
   smoke: pass
-  manual: **実機目視 R1〜R11 全 OK**（ユーザー実施 2026-08-02・Phase β 時点。計画05 は挙動不変のため再目視不要）
-  review: reviewer（項目 1b）= **完了可・指摘なし**（AST 正規化差分で機械的置換のみを確認）。
-    reviewer（項目 2）= **修正して採用**。制御フロー突合（ダイアログ呼び出し順序 / 再入条件 /
-    早期 return / 通知合成）は全一致。指摘は行数のみでメインが是正済み。
-    項目 1a も完了可（`db279e3`）。
+  manual: **実機目視 R1〜R11 全 OK**（ユーザー実施 2026-08-02・Phase β 時点）。
+    **phase 07 の実機目視は task_07 でまとめて実施**（task_04 まで全体デフォルトを書く手段が無いため）。
+  review: reviewer（task_01 / task_02）= いずれも **完了可・指摘なし**。
+    計画05 の項目 1b = 完了可・指摘なし / 項目 2 = 修正して採用（行数のみ・是正済み）。
 
 ## next_action
 - **次は task_03（保存時挙動）を `/task_new` で起票 → codex-implementer へ委任**。
@@ -92,9 +79,6 @@ verified:
 - 計画05 の候補送り項目は**未着手**（必要になった時点で idea 化・`current.md`「別タスク化候補」に記録済）:
   `child_save_dialog.py` 370 行 / `save_keymap_set_to` 46 行 / `dirty_tracker.trigger_set_imported` の残置 /
   slugify の stem 衝突 / M4 の子カテゴリ列挙。
-  項目 2 は γ とほぼ無関係のため、**途中で止めて γ へ移ってもよい**（ユーザー確定済）。
-- 計画05 完了後に **`/phase_start` で phase 07（γ）を起票**する
-  （主入力 = `instructions/history/06_hook_keys_global_default.md`・ユーザー確定済）。
 
 ## blockers
 - なし。
@@ -135,10 +119,14 @@ verified:
   commit から漏れる）。`git grep` は追跡済みファイルのみ。行数計測は `wc -l`。
 - **レビュアーは 2 本立て**: `reviewer`（sonnet・単一タスクの実装差分）/ `deep-reviewer`（opus・設計文書 /
   複数タスクを跨ぐ差分 / フェーズ完了判定）。使い分けは `.claude/rules/agent_selection.md` が正。
-- **保存系リデザインの番号対応**: α=phase05/暫定04〔完了〕 / **β=phase06/暫定05〔完了〕** /
-  γ=phase07/暫定06〔未着手・暫定仕様は確定済〕 / プリセット=phase08/暫定07〔β とカスケード除外で協調〕。
-  **計画05 はフェーズではないのでこの対応表に影響しない**（`instructions/phase/` にフォルダを作らない。
-  規範 = `modified_proposal/05_*.md`・判断履歴 = `decisions.md` の「計画05」節。計画04 と同じ運用）。
+- **保存系リデザインの番号対応**: α=phase05/暫定04〔完了〕 / β=phase06/暫定05〔完了〕 /
+  **γ=phase07/暫定06〔着手中・decisions_archive は 07〕** / プリセット=phase08/暫定07〔β とカスケード除外で協調〕。
+  **計画05 はフェーズ番号を消費していない**（規範 = `modified_proposal/05_*.md`・
+  判断履歴 = `decisions.md` の「計画05」節。計画04 と同じ運用）。
+- **【phase 07 の設計の芯】キー解決点は 1 箇所**。`split_loading.load_global_hook_keys`（config.json の
+  全体デフォルト読み出し）と `ConfigService.apply_global_hook_key_defaults`（OFF のみ注入・冪等）の
+  2 本のみ。**フック層（`input_router` / `hook_controller` / `keyboard_window` / `app.py`）は無変更を維持**
+  （触ったら設計違反）。移行判定 `resolve_hook_keys_individual` には**生の keymap_set dict** を渡す。
 - config_io は `controllers/config_io/` へ分割済（App が `app.keymap_set_io` 等で直接公開）。
   子ファイル保存の触点: `child_save_rows.py`（共有状況判定）/ `child_save_dialog.py` /
   `child_save_plan.py`（計画組み立て）/ `keymap_set_io.py`（束ね役）/ `config_service.save_runtime_data`（実行）。
