@@ -59,6 +59,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     ],
     "hook_stop_key": "",
     "hook_toggle_key": "",
+    "hook_keys_individual": False,
     "keyboard_layout": DEFAULT_KEYBOARD_LAYOUT_ID,
     "keyboard_show_physical_key_labels": False,
     "debug_jis_special_key_events": False,
@@ -71,6 +72,21 @@ DEFAULT_CONFIG: dict[str, Any] = {
 
 def normalize_key_name(value: str) -> str:
     return (value or "").strip().lower()
+
+
+def resolve_hook_keys_individual(source: Any) -> bool:
+    """hook キーを個別指定するかを決める（暫定仕様 06 §2 の移行規則）。
+
+    明示フラグ hook_keys_individual があればそれに従う。
+    無ければ「正規化後に stop / toggle の少なくとも一方が非空」なら個別指定 ON とみなす。
+    """
+    if not isinstance(source, dict):
+        return False
+    if "hook_keys_individual" in source:
+        return bool(source["hook_keys_individual"])
+    hook_stop_key = normalize_key_name(str(source.get("hook_stop_key", "") or ""))
+    hook_toggle_key = normalize_key_name(str(source.get("hook_toggle_key", "") or ""))
+    return bool(hook_stop_key or hook_toggle_key)
 
 
 def safe_deepcopy(obj: Any) -> Any:
@@ -153,6 +169,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
 
     config["hook_stop_key"] = normalize_key_name(config.get("hook_stop_key", ""))
     config["hook_toggle_key"] = normalize_key_name(config.get("hook_toggle_key", ""))
+    config["hook_keys_individual"] = resolve_hook_keys_individual(config)
     config.pop("hook_keymap_toggle_key", None)
     layout_id = config.get("keyboard_layout", DEFAULT_KEYBOARD_LAYOUT_ID)
     if not isinstance(layout_id, str):

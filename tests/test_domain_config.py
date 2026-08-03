@@ -7,6 +7,7 @@ from keyseq.domain.config import (
     format_preset_list_item,
     format_trigger_list_item,
     normalize_key_name,
+    resolve_hook_keys_individual,
 )
 
 
@@ -16,6 +17,31 @@ class NormalizeKeyNameTest(unittest.TestCase):
 
     def test_none_returns_empty(self):
         self.assertEqual(normalize_key_name(None), "")
+
+
+class ResolveHookKeysIndividualTest(unittest.TestCase):
+    def test_missing_flag_with_stop_key_returns_true(self):
+        self.assertTrue(resolve_hook_keys_individual({"hook_stop_key": "f1", "hook_toggle_key": ""}))
+
+    def test_missing_flag_with_toggle_key_returns_true(self):
+        self.assertTrue(resolve_hook_keys_individual({"hook_stop_key": "", "hook_toggle_key": "f2"}))
+
+    def test_missing_flag_with_empty_keys_returns_false(self):
+        self.assertFalse(resolve_hook_keys_individual({"hook_stop_key": "", "hook_toggle_key": ""}))
+
+    def test_missing_flag_with_whitespace_only_keys_returns_false(self):
+        self.assertFalse(resolve_hook_keys_individual({"hook_stop_key": "  ", "hook_toggle_key": "  "}))
+
+    def test_explicit_false_flag_takes_precedence(self):
+        self.assertFalse(resolve_hook_keys_individual({"hook_keys_individual": False, "hook_stop_key": "f1"}))
+
+    def test_explicit_true_flag_takes_precedence(self):
+        self.assertTrue(resolve_hook_keys_individual({"hook_keys_individual": True, "hook_stop_key": "", "hook_toggle_key": ""}))
+
+    def test_non_dict_input_returns_false(self):
+        for source in (None, [], "x"):
+            with self.subTest(source=source):
+                self.assertFalse(resolve_hook_keys_individual(source))
 
 
 class EnsureConfigCompatibilityTest(unittest.TestCase):
@@ -34,6 +60,20 @@ class EnsureConfigCompatibilityTest(unittest.TestCase):
     def test_non_dict_input_treated_as_empty(self):
         config = ensure_config_compatibility(None)
         self.assertEqual(config["triggers"], [])
+
+    def test_hook_keys_individual_defaults_to_false(self):
+        config = ensure_config_compatibility({})
+        self.assertFalse(config["hook_keys_individual"])
+
+    def test_hook_keys_individual_uses_normalized_keys(self):
+        config = ensure_config_compatibility({"hook_stop_key": "F1"})
+        self.assertEqual(config["hook_stop_key"], "f1")
+        self.assertTrue(config["hook_keys_individual"])
+
+    def test_hook_keys_individual_is_idempotent_when_keys_are_empty(self):
+        config = ensure_config_compatibility({"hook_keys_individual": True})
+        result = ensure_config_compatibility(config)
+        self.assertTrue(result["hook_keys_individual"])
 
     def test_legacy_single_trigger_converted(self):
         legacy = {

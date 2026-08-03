@@ -205,6 +205,40 @@
 
 ---
 
+## 2026-08-03〜 (phase 07 = 保存系リデザイン Phase γ: hook キーの全体デフォルト化)
+
+規範: `instructions/phase/07_hook_keys_global_default/phase.md`。
+主入力（確定設計）= `instructions/history/06_hook_keys_global_default.md`（v0.2・ユーザー確定済 2026-07-27）。
+モード = **暫定仕様先行モード**。番号対応: **phase 07 / 暫定 06 / decisions_archive 07**。
+
+### 【起票】タスク分割と読むファイルの補正（2026-08-03）
+- task_01 スキーマ/移行判定 → 02 キー解決点 → 03 保存時挙動 → 04 全体デフォルト更新 API（成否付き）→
+  05 チェック UI → 06 所有者切替 capture → 07 統合確認 → 08 正本反映、の 8 タスク。
+  **02 と 03 は 01 完了後なら並行可**。
+- **暫定仕様 06 の「現状監査」の行番号は計画05 の分割で無効**になっていたため、phase.md
+  「このフェーズで読むファイル」で現在の所在へ差し替えた（読込 = `config_service/split_loading.py` /
+  保存 = `config_service/split_payloads.py`）。reviewer の整合確認で実ファイルとの一致を検証済み。
+
+### 【task_01】完了（2026-08-03）
+- `domain/config.py` のみ変更。`DEFAULT_CONFIG` へ `hook_keys_individual: False` +
+  純関数 `resolve_hook_keys_individual(source)` を新設し、`ensure_config_compatibility` の
+  hook キー正規化**直後**で呼ぶ（正規化後の値で判定させるため位置が重要）。
+- **明示フラグの有無は `in` で判定**する（`.get()` の真偽で見ると `false` とキー無しを区別できず
+  移行規則が壊れる）。フラグがあれば中身を見ずに `bool()`、無ければ
+  「正規化後どちらか非空 → ON」。
+- **冪等性を要件に含めた**: 「フラグ True のまま両キーが空」で False へ落ちると、
+  暫定仕様 §2 の「ON→OFF で個別値を内部保持」が壊れるため。テストで固定済み。
+- **split 経路ではこの移行は発火しない**（`build_runtime_data_from_split` は
+  `new_default_data()` = フラグを含む土台から始まるため、最後の
+  `ensure_config_compatibility` 時点でフラグが常に存在する）。
+  **生の keymap_set dict に対して `resolve_hook_keys_individual` を呼ぶのは task_02 の責務**。
+- 懸念していた**保存 JSON バイト列比較テストの破壊は発生しなかった**
+  （keymap_set への書き出しは `split_payloads.py` の明示キー列挙のため）。
+- 検証: compile clean / tests **155 pass**（145 + 追加 10）/ tests_ui 159 pass / smoke pass。
+  reviewer = **完了可・指摘なし**。
+
+---
+
 ## 運用メモ
 
 - 1 タスク完了時に reviewer 判定をここへ転記する
