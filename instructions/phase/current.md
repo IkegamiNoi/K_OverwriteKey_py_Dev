@@ -6,26 +6,35 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズは無し**（次フェーズ未確定）。着手時は `/phase_start` から入る。
-  保存系リデザインの残り: **γ = phase 07（[暫定仕様 06](../history/06_hook_keys_global_default.md)・β と独立）→
-  プリセット = phase 08（[暫定仕様 07](../history/07_hotkey_presets_global.md)）**。暫定仕様は起票済・ユーザー確定済。
+- **アクティブなフェーズ**: [07_hook_keys_global_default](07_hook_keys_global_default/phase.md)
+  （**2026-08-03 起票**・保存系リデザイン **Phase γ**）。
+  停止/トグルキーの全体デフォルトを `config/config.json` に持たせ、keymap_set 側のチェックで
+  個別指定できるようにする（**挙動変更・スキーマ追加あり / 後方互換必須**）。
+  - 主入力（確定設計）: [暫定仕様 06](../history/06_hook_keys_global_default.md)（v0.2・ユーザー確定済 2026-07-27）
+  - モード: **暫定仕様先行モード**。番号対応: **phase 07 / 暫定 06 / decisions_archive 07**
+  - 起票元: ユーザー要望（2026-07-26〜27・保存系統の改善討議・点5）
+  - 判断履歴: `.claude_data/state/decisions.md`（フェーズ末に
+    `decisions_archive/07_hook_keys_global_default.md` へ集約）
+- 保存系リデザインの残り: γ の次は **プリセット = phase 08
+  （[暫定仕様 07](../history/07_hotkey_presets_global.md)・確定済）**。
 - 直前の完了フェーズ: [06_child_file_save_dialog](../../.claude_data/state/decisions_archive/06_child_file_save_dialog.md)
   （**2026-08-03 完了**・保存系リデザイン **Phase β**）。
   **完了フェーズの要約は本ファイルに置かない**。経緯・判断は `.claude_data/state/decisions.md`「アーカイブ索引」
   → `decisions_archive/<phase>.md` が正。
-- **未承認の提案書あり**: [05_refactor_child_file_save_dialog](../modified_proposal/05_refactor_child_file_save_dialog.md)
-  （Phase β の `/refactor_check` = **推奨**。項目 0 安全網 / 1 `config_service.py` 分割 / 2
-  `_collect_child_save_plan` 分割）。**ユーザー承認前に実施しない**。実施は独立ミニフェーズか次フェーズ前に判断する。
+- 提案書 [05_refactor_child_file_save_dialog](../modified_proposal/05_refactor_child_file_save_dialog.md) は
+  **「計画05」として実施し完了**（2026-08-03・項目 0 / 1 / 2）。フェーズ番号は消費していない。
+  判断は `decisions.md` の「計画05」節。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
   過去のリファクタ計画・提案書（01〜05）は `instructions/modified_proposal/`（次採番 06）。
   計画04 は完了済（W0〜W7・手動確認まで完了）。
 
 ## 次採番
 
-- 次フェーズは **`07_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
-  保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07 / プリセット=phase 08**。
+- 次フェーズは **`08_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+  保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔着手中〕/ プリセット=phase 08**。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
   04〜07 は起票済（04=α / 05=β / 06=γ / 07=プリセット）。次採番は **`08_<topic>`**。
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。05 まで起票済・次採番は **`06_<topic>`**。
 
 ## 次フェーズ候補（参考）
 
@@ -40,9 +49,10 @@
 
 **計画04 由来の3フェーズはすべて完了**。`04_config_io_controller_split`（2026-07-26）・
 `05_keymap_set_new_and_default_dir`（Phase α・2026-07-28）も完了。
-**保存系リデザインの Phase β も完了**（phase 06 / 暫定 05・2026-08-03）。以降の候補:
-- **保存系リデザインの続き（推奨）**: γ = phase 07（[暫定仕様 06](../history/06_hook_keys_global_default.md)）→
-  プリセット = phase 08（[暫定仕様 07](../history/07_hotkey_presets_global.md)）。いずれも暫定仕様は確定済。
+**保存系リデザインの Phase β も完了**（phase 06 / 暫定 05・2026-08-03）。
+**γ = phase 07 は着手中**（上記「現在の参照先」）。γ の次以降の候補:
+- **保存系リデザインの続き（推奨）**: プリセット = phase 08
+  （[暫定仕様 07](../history/07_hotkey_presets_global.md)・確定済）。
 - [idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除。**β 完了で前提充足・着手可**。
   孤児 trigger_set と陳腐化した `_parent_refs` を回収する保守機能）。
 - [idea_09](../backlog/idea_09_legacy_settings_save_path_fallback.md)（別名保存でレガシー `settings/` 配下を選ぶと
@@ -87,6 +97,8 @@
     `_add_text_cell` の戻り値が素の dict
   - `dirty_tracker.trigger_set_imported` が**読み手不在の残置状態**
   - slugify 後に別々の keymap_set 名が**同一 stem へ丸まる衝突**（受入条件 8 の範囲外）
+  - `keymap_set_io.save_keymap_set_to` が **46 行**（計画05 項目 2 の対象外・無変更。
+    同ファイルの他メソッドは 40 行以内に収まった）
 - `app.py:64` の `keymap_set_path = resolve_keymap_set_path()` 初期化と、それが使う
   `config_paths.resolve_keymap_set_path()` の**引数なし分岐が実質デッド**（起動時に `load_startup_and_config` が
   必ず上書きするため）。**据え置き**（phase 05 の deep-reviewer 指摘3・実害なし）。

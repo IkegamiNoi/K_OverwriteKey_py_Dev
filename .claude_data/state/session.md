@@ -5,13 +5,13 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-08-03T00:00:00
-phase: **計画05**（フェーズではない。規範 = `instructions/modified_proposal/05_refactor_child_file_save_dialog.md`）
+phase: **07_hook_keys_global_default（保存系リデザイン Phase γ）**。規範 = `instructions/phase/07_hook_keys_global_default/phase.md`
 last_commit_location: claude/device-testing-procedures-16467e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **計画05（config_service / keymap_set_io の分割リファクタ・挙動不変）は項目 0 / 1 / 2 をすべて完了。
-次は `/phase_start` で phase 07（γ）を起票する**。
-mode: done
+focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を起票完了。次は task_01 の起票 → 実装**。
+計画05（config_service / keymap_set_io の分割リファクタ）は項目 0 / 1 / 2 をすべて完了済み。
+mode: in_progress
 
 ## last_action
 ts: 2026-08-03T00:00:00
@@ -76,11 +76,14 @@ verified:
     項目 1a も完了可（`db279e3`）。
 
 ## next_action
-- **`/phase_start` で phase 07（γ）を起票する**
-  （主入力 = `instructions/history/06_hook_keys_global_default.md`・**暫定仕様はユーザー確定済**）。
-  計画05 で `config_service` が分割済みのため、γ が触る「hook キーの解決」は
-  `config_service/split_loading.py` の読込経路が対象になる見込み。
-- 計画05 の候補送り項目は**未着手**（必要になった時点で idea 化）:
+- **phase 07 起票済**（`instructions/phase/07_hook_keys_global_default/phase.md`・reviewer 整合確認 = 完了可）。
+  次は **`/task_new` で task_01（スキーマと移行判定）を起票 → codex-implementer へ委任**。
+  task 一覧は phase.md の「タスク」表（task_01 スキーマ/移行判定 → 02 キー解決点 → 03 保存時挙動 →
+  04 全体デフォルト更新 API〔成否付き〕→ 05 チェック UI → 06 所有者切替 capture → 07 統合確認 →
+  08 正本反映）。task_02 と task_03 は task_01 後なら並行可。
+- **暫定仕様 06 の「現状監査」の行番号は計画05 の分割で無効**。現在の所在は phase.md
+  「このフェーズで読むファイル」が正（読込 = `split_loading.py:30-31` / 保存 = `split_payloads.py:331-332`）。
+- 計画05 の候補送り項目は**未着手**（必要になった時点で idea 化・`current.md`「別タスク化候補」に記録済）:
   `child_save_dialog.py` 370 行 / `save_keymap_set_to` 46 行 / `dirty_tracker.trigger_set_imported` の残置 /
   slugify の stem 衝突 / M4 の子カテゴリ列挙。
   項目 2 は γ とほぼ無関係のため、**途中で止めて γ へ移ってもよい**（ユーザー確定済）。
