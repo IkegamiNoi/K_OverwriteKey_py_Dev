@@ -75,6 +75,7 @@ class App(tk.Tk):
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
         self.data = self.config_service.new_default_data()
         self.ui_vars = UiVars(self, ui_font_delta_pt=self._ui_font_delta_pt)
+        self._retained_hook_keys: dict[str, str] | None = None
 
         self.title("Key Replacer Sequencer (Multi Trigger)")
         self.geometry("780x820")
@@ -421,8 +422,26 @@ class App(tk.Tk):
 
     # ---------------- Control key capture logic (相互排他の調整役。App に残す) ----------------
     def toggle_hook_keys_individual(self):
-        self.data["hook_keys_individual"] = bool(self.ui_vars.hook_keys_individual_var.get())
+        individual = bool(self.ui_vars.hook_keys_individual_var.get())
+        if individual:
+            retained = self._retained_hook_keys or {}
+            self.data["hook_stop_key"] = str(retained.get("hook_stop_key", ""))
+            self.data["hook_toggle_key"] = str(retained.get("hook_toggle_key", ""))
+            self._retained_hook_keys = None
+        else:
+            self._retained_hook_keys = {
+                "hook_stop_key": str(self.data.get("hook_stop_key", "")),
+                "hook_toggle_key": str(self.data.get("hook_toggle_key", "")),
+            }
+        self.data["hook_keys_individual"] = individual
+        if not individual:
+            self.config_service.apply_global_hook_key_defaults(self.data, config_root=self.config_root)
+        self._sync_control_vars_from_data()
         self.dirty_tracker.set_dirty(True)
+
+    def discard_retained_hook_keys(self) -> None:
+        """保持していた個別値を捨てる（保存後・別データ読込後は復活させない）。"""
+        self._retained_hook_keys = None
 
     def toggle_stop_key_capture(self):
         if self.stop_key_capture.capturing:

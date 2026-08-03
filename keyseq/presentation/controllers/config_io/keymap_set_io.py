@@ -57,6 +57,7 @@ class KeymapSetIo:
         self._app.dirty_tracker.reset_trigger_set_state()
         self._app.keymap_set_path = ""
 
+        self._app.discard_retained_hook_keys()
         self._app._sync_control_vars_from_data()
 
         self._app.state.reset_indices()
@@ -125,6 +126,7 @@ class KeymapSetIo:
             self._clear_saved_child_dirty_flags(*skipped_dirty_children)
             if deferred_index:
                 self._app.dirty_tracker.mark_trigger_set_dirty()
+            self._app.discard_retained_hook_keys()
             self._app.dirty_tracker.set_dirty(False)
             self._app.dirty_tracker.sync_dirty_state()
             notices = [notice for notice in (recalculation_notice,) if notice]
@@ -602,6 +604,7 @@ class KeymapSetIo:
         self._app.dirty_tracker.mark_trigger_set_dirty()
         for keymap in self._app.data.get("keymaps", []):
             self._app.dirty_tracker.mark_keymap_dirty(keymap)
+        self._app.discard_retained_hook_keys()
         self._app._sync_control_vars_from_data()
         self._app._indices = {}
         self._app._selected_trigger_idx = 0
@@ -643,6 +646,7 @@ class KeymapSetIo:
         messagebox.showinfo("設定", f"次回起動時はこの keymap_set を読み込みます:\n{path}")
 
     def apply_loaded_data_to_ui(self):
+        self._app.discard_retained_hook_keys()
         self._app.dirty_tracker.sync_trigger_set_source_path_from_data()
         self._app.dirty_tracker.trigger_set_imported = False
         self._app.dirty_tracker.trigger_set_dirty = False

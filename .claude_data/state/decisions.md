@@ -346,6 +346,21 @@
 - 検証: compile clean / tests **168 pass**（presentation 限定のため増減なし）/
   tests_ui **173 pass**（169 → +4）/ smoke pass。reviewer = **完了可・指摘なし**。
 
+### 【task_06b】完了（2026-08-03）
+- **退避先は App が持つ `_retained_hook_keys`**（`app.data` の内部キーにしない = 保存経路・スキーマへ
+  影響させない）。`toggle_hook_keys_individual` を拡張し、**ON→OFF で退避 → OFF→ON で復元（復元時に消費）**。
+- **順序が重要**: `hook_keys_individual` を data へ書いた**後**に `apply_global_hook_key_defaults` を呼ぶ
+  （この API はフラグが真なら何もしないため、逆順だと注入されない）。
+- **退避が無い OFF→ON は両キーを `""` にする**（全体デフォルト値を個別値として引き継がない）。
+  引き継ぐと全体デフォルトが keymap_set へ焼き付く。OFF の keymap_set は保存時に空文字化され（task_03）、
+  読込時も個別値を runtime へ持ち込まない（task_02）ため `""` が唯一整合する値。
+- **破棄は 4 箇所**（`keymap_set_io`）: `save_keymap_set_to` の**保存成功後** /
+  `apply_loaded_data_to_ui` の先頭 / `new_config` / `restore_default`。
+  保存失敗時は破棄に到達しない経路になっており「保存成功時のみ破棄」を満たす。
+  **`_sync_control_vars_from_data` の中に破棄を入れてはいけない**（toggle 自身が呼ぶため退避が即消える）。
+- 検証: compile clean / tests **168 pass**（増減なし）/ tests_ui **176 pass**（173 → +3）/ smoke pass。
+  reviewer = **完了可・指摘なし**。
+
 ---
 
 ## 運用メモ

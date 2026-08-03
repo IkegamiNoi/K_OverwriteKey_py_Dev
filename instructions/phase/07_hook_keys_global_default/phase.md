@@ -96,7 +96,7 @@
 | [task_04](tasks/task_04_global_hook_keys_update_api.md) | 全体デフォルト更新 API | config.json への書き込みを**成否付き**で行う経路を用意する（`write_startup` の握り潰し回避）。成功時のみ確定 |
 | [task_05](tasks/task_05_hook_keys_individual_checkbox.md) | チェック UI | full / compact の `hook_frame` に「このキーマップセットで個別指定する」チェックを追加し、`ui_vars` / App と同期 |
 | [task_06](tasks/task_06_hook_key_capture_ownership.md) | 所有者切替 capture | `key_capture` の capture / clear を ON=個別値 / OFF=全体デフォルト へ切替。**OFF は dirty を汚さない**（前 dirty の記録と復元・例外経路含む） |
-| task_06b | 表示切替と個別値の保持 | ON⇄OFF での表示切替（OFF=全体デフォルト / 再 ON=保持していた個別値）+ 個別値のセッション内保持と **OFF 保存後の破棄**（task_03 からの申し送り） |
+| [task_06b](tasks/task_06b_hook_keys_display_switch.md) | 表示切替と個別値の保持 | ON⇄OFF での表示切替（OFF=全体デフォルト / 再 ON=保持していた個別値）+ 個別値のセッション内保持と **OFF 保存後の破棄**（task_03 からの申し送り） |
 | task_07 | 統合確認 | 受入条件 1〜8 の確認と特性テスト（解決・移行・所有者切替・空文字化・保存失敗）。`tests` / `tests_ui` / smoke |
 | task_08 | 正本反映（最終） | `spec_detail/data_schema.md`・`key_input.md`・`codebase_map.md` へ昇格 + **暫定仕様 06 を凍結** + `decisions_archive/07_hook_keys_global_default.md` 作成 + `current.md` 更新 + `/refactor_check` |
 

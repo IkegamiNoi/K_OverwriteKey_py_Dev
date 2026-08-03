@@ -4,61 +4,56 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-03T18:00:00
+last_updated: 2026-08-03T20:00:00
 phase: **07_hook_keys_global_default（保存系リデザイン Phase γ）**。規範 = `instructions/phase/07_hook_keys_global_default/phase.md`
-last_commit_location: claude/task-03-progression-bba1a9 @ `01c5deb` ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/task-03-progression-bba1a9 @ `f0f2a52` ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01〜06 完了、次は task_06b（表示切替と個別値の保持）**。
+focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01〜06b 完了（実装は全て完了）、次は task_07（統合確認 + 実機目視）**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-03T18:00:00
+ts: 2026-08-03T20:00:00
 who: main
 summary: |
-  【task_06 を 06 / 06b へ分割して起票 → codex-implementer 実装 → verifier 実測 → reviewer 採用で 06 完了】
-  - **task_06 を分割**（起票時判断）。phase.md の task_06 が「所有者切替 + dirty 非汚染 + 表示切替 +
-    個別値の保持」を 1 タスクに束ねており範囲が広すぎたため、**06（書き込み先の切替と dirty 非汚染）**と
-    **06b（表示切替と個別値のセッション内保持・OFF 保存後の破棄）**へ分けた。phase.md のタスク表と依存も更新。
-  - **実装（presentation 限定・2 ファイル）**: hook キーへの書き込み点を
-    **`SingleKeyCaptureController._apply_key` の 1 本へ集約**（従来は `clear()` と `on_keypress()` に分散）。
-    ON = `app.data` + Var + dirty（従来どおり）/ OFF = `write_global_hook_keys` で config.json を更新し
-    **成功時のみ** `app.data` と Var を確定。
-  - **dirty 非汚染は `DirtyStateTracker.capture_dirty_snapshot` / `restore_dirty_snapshot`**
-    （記録対象は `is_dirty` / `config_dirty` の 2 つ）。**`try` / `finally` で復元**するため例外経路でも汚れない。
-    暫定仕様 §4 のユーザー案どおりに実装し「OFF なら `set_dirty` を呼ばないだけ」へ簡略化していない。
-  - **既存挙動の維持**: `clear()` の「旧値が空なら dirty にしない」は `mark_dirty=bool(old)` で表現。
-  - **OFF では 2 キーとも書く**（API が 2 キー同時指定のため）。更新しない側は `app.data` の現在値
-    ＝現在の全体デフォルトをそのまま再書き込みする。
-  - 保存失敗（偽 or 例外）時は runtime も Var も書き換えない（受入条件 7）。
+  【task_06b（表示切替と個別値の保持）を起票 → codex-implementer 実装 → verifier 実測 → reviewer 採用で完了】
+  - **実装（presentation 限定・2 ファイル）**: `App.toggle_hook_keys_individual` を拡張し、
+    **ON→OFF で個別値を `App._retained_hook_keys` へ退避 → OFF→ON で復元（復元時に消費）**。
+    退避は **App が持つ**（`app.data` の内部キーにしない = 保存経路・スキーマへ影響させない）。
+  - **順序が重要**: `hook_keys_individual` を data へ書いた**後**に `apply_global_hook_key_defaults`
+    を呼ぶ（この API はフラグが真なら何もしないため、逆順だと注入されない）。
+  - **退避が無い OFF→ON は両キーを `""` にする**（全体デフォルト値を個別値として引き継がない）。
+    引き継ぐと全体デフォルトが keymap_set へ焼き付く。task_03（保存時の空文字化）・
+    task_02（読込時に個別値を runtime へ持ち込まない）と整合する唯一の値。
+  - **破棄は `keymap_set_io` の 4 箇所**: `save_keymap_set_to` の**保存成功後** /
+    `apply_loaded_data_to_ui` 先頭 / `new_config` / `restore_default`。
+    保存失敗時は破棄に到達しない（「保存成功時のみ破棄」を満たす）。
+  - **`_sync_control_vars_from_data` に破棄を入れてはいけない**（toggle 自身が呼ぶため退避が即消える）。
 result_files:
-  - keyseq/presentation/controllers/dirty_state.py（`capture_dirty_snapshot` / `restore_dirty_snapshot`）
-  - keyseq/presentation/controllers/key_capture.py（`_apply_key` へ集約 + `clear` / `on_keypress` の差し替え）
-  - tests_ui/test_app_ui_flows.py（dirty 記録復元 / ON 従来どおり / OFF 全体デフォルト / 保存失敗の 4 件）
-  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_06_hook_key_capture_ownership.md}
+  - keyseq/presentation/app.py（`_retained_hook_keys` / `toggle_hook_keys_individual` 拡張 / `discard_retained_hook_keys`）
+  - keyseq/presentation/controllers/config_io/keymap_set_io.py（破棄の呼び出し 4 箇所）
+  - tests_ui/test_app_ui_flows.py（ON→OFF 切替 / 復元と ""化 / 保存後の破棄 / 読込・新規・既定復元での破棄）
+  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_06b_hook_keys_display_switch.md}
   - instructions/phase/current.md（phase 07 の進捗行）
-  - .claude_data/state/decisions.md（「phase 07」節へ分割判断と task_06 を追記）
+  - .claude_data/state/decisions.md（「phase 07」節へ task_06b を追記）
 verified:
   compile: clean
   tests: pass 168（presentation 限定のため増減なし）
-  tests_ui: pass 173（169 → +4）
+  tests_ui: pass 176（173 → +3）
   smoke: pass
-  manual: **phase 07 の実機目視は task_07 でまとめて実施**（表示切替が task_06b で入るまで
-    通しの操作にならないため）。Phase β 時点の実機目視 R1〜R11 は全 OK（ユーザー実施 2026-08-02）。
-  review: reviewer（task_06）= **完了可・指摘なし**（dirty 非汚染〔例外経路含む〕/ 保存失敗時の扱い /
-    書き込み点の 1 本化 / task_06b の先取り無しを個別確認）。
+  manual: **未実施。phase 07 の実機目視は task_07 で実施する**（task_06b 完了で UI 挙動が一通り揃った）。
+    Phase β 時点の実機目視 R1〜R11 は全 OK（ユーザー実施 2026-08-02）。
+  review: reviewer（task_06b）= **完了可・指摘なし**（セッション内復活の境界 / キー解決点の 1 箇所性 /
+    退避の持ち方 / 完了済みタスク範囲への非接触を個別確認）。
 
 ## next_action
-- **次は task_06b（表示切替と個別値の保持）を `/task_new` で起票 → codex-implementer へ委任**。
-  内容 = `App.toggle_hook_keys_individual`（task_05 で新設）を拡張し、
-  **ON→OFF で個別値をセッション内に退避して表示・runtime を全体デフォルトへ切替 /
-  OFF→ON で退避値を復元**する。加えて **OFF のまま保存したら退避値を破棄**する
-  （保存後は再 ON しても空 = task_03 の申し送り。保存完了点は `keymap_set_io.save_keymap_set`）。
-  暫定仕様 06 §2 / §4 末尾 / 受入条件 **5**。
-- **退避先の設計注意**: 読込時点で OFF の keymap_set は個別値を runtime に持たない（task_02 の設計）。
-  したがって**復活の対象は「このセッションで ON→OFF を操作した場合」だけ**。
-  読込直後に ON にした場合は復活対象が無い（現在表示中の全体デフォルト値のまま）で正しい。
-- task 一覧は phase.md の「タスク」表（01〜06 は**完了** → 06b 表示切替 → 07 統合確認 → 08 正本反映）。
+- **次は task_07（統合確認）を `/task_new` で起票**。内容 = 暫定仕様 06 §7 の**受入条件 1〜8 の通し確認**。
+  - 特性テストの網羅確認（解決・移行・所有者切替・空文字化・保存失敗）と `tests` / `tests_ui` / smoke の実測
+  - **実機目視のシナリオを起票してユーザーへ提示する**（phase 07 で唯一の実機確認。
+    全体デフォルト設定 → 新規作成で再設定不要 → ON で個別指定 → OFF 保存で空文字化 →
+    再 ON で空 → config.json 保存失敗時の挙動 まで）
+  - レビューは **`deep-reviewer` + Codex レビュー系**を併用する（`.claude/rules/agent_selection.md`）
+- task 一覧は phase.md の「タスク」表（01〜06b は**完了** → 07 統合確認 → 08 正本反映）。
 - **task_04 の申し送り**: 全体デフォルトの書き込みは `StartupIo.write_global_hook_keys` の 1 本のみ。
   **config.json を別経路で read-modify-write しない**（`_startup_settings` と乖離すると次の
   `write_startup` が hook キーを消す）。task_06 は**戻り値 True のときだけ** UI / ランタイムを確定させる。
@@ -68,6 +63,9 @@ verified:
 - **task_06 の申し送り**: hook キーへの書き込みは `SingleKeyCaptureController._apply_key` の 1 本のみ。
   **ここ以外に書き込み点を作らない**（散らすと「OFF なのに dirty」不具合の温床）。
   OFF 操作の dirty 非汚染は `capture_dirty_snapshot` / `restore_dirty_snapshot` を `try`/`finally` で使う。
+- **task_06b の申し送り**: 個別値の退避は `App._retained_hook_keys`（`app.data` に持たない）。
+  破棄点は `keymap_set_io` の 4 箇所（保存成功後 / `apply_loaded_data_to_ui` / `new_config` /
+  `restore_default`）。**`_sync_control_vars_from_data` に破棄を入れない**（退避が即消える）。
 - **task_02 の申し送り**: 解決点は `split_loading.load_global_hook_keys` と
   `ConfigService.apply_global_hook_key_defaults` の 2 本のみ。**ここ以外へ解決ロジックを書かない**。
   フック層は無変更を維持する（触ったら設計違反）。

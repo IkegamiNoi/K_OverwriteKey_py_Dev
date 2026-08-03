@@ -1,12 +1,15 @@
 """App を実際に生成して、ダイアログを出さない範囲の UI 挙動を固定する。
 
 - グローバルフックは一切開始しない（start_hook を呼ばない）
-- ファイル保存を伴う操作は行わない（config/ を汚さない）
+- ファイル保存を伴う操作は行わない（全体デフォルトの確認のみ一時ディレクトリで I/O する）
 - GUI が開ける環境（通常のデスクトップセッション）で実行すること
 """
+import os
+import tempfile
 import unittest
 from unittest.mock import call, patch
 
+from keyseq.application.save_plan import SavePlan
 from keyseq.presentation.app import App
 
 
@@ -36,6 +39,20 @@ class AppUiFlowsTest(unittest.TestCase):
             cls.app.dirty_tracker.set_dirty(False)
         finally:
             cls.app.destroy()
+
+    def _write_global_hook_key_defaults(self, config_root: str) -> None:
+        self.app.config_service.save_startup(
+            os.path.join(config_root, "config.json"),
+            {"hook_stop_key": "f9", "hook_toggle_key": "f10"},
+        )
+
+    def _switch_individual_hook_keys_off(self, stop_key: str = "f5", toggle_key: str = "f6") -> None:
+        self.app.data["hook_keys_individual"] = True
+        self.app.data["hook_stop_key"] = stop_key
+        self.app.data["hook_toggle_key"] = toggle_key
+        self.app._sync_control_vars_from_data()
+        self.app.ui_vars.hook_keys_individual_var.set(False)
+        self.app.toggle_hook_keys_individual()
 
     def test_trigger_lists_populated(self):
         self.assertEqual(self.app.full_view.trigger_box.trigger_list.size(), 2)
@@ -189,23 +206,122 @@ class AppUiFlowsTest(unittest.TestCase):
         self.app.keymap_set_io.apply_loaded_data_to_ui()
         self.assertFalse(self.app.ui_vars.hook_keys_individual_var.get())
 
-    def test_toggle_hook_keys_individual_updates_data_and_dirty_without_changing_key_vars(self):
-        self.app.ui_vars.stop_key_var.set("f9")
-        self.app.ui_vars.toggle_key_var.set("f10")
+    def test_turning_individual_hook_keys_off_applies_global_defaults_and_marks_dirty(self):
+        with tempfile.TemporaryDirectory() as config_root:
+            self._write_global_hook_key_defaults(config_root)
+            with patch.object(self.app, "config_root", config_root):
+                self.app.dirty_tracker.set_dirty(False)
+                self._switch_individual_hook_keys_off()
+
+                self.assertFalse(self.app.data["hook_keys_individual"])
+                self.assertEqual(self.app.data["hook_stop_key"], "f9")
+                self.assertEqual(self.app.data["hook_toggle_key"], "f10")
+                self.assertEqual(self.app.ui_vars.stop_key_var.get(), "f9")
+                self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "f10")
+                self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
         self.app.dirty_tracker.set_dirty(False)
 
-        self.app.ui_vars.hook_keys_individual_var.set(True)
-        self.app.toggle_hook_keys_individual()
-        self.assertTrue(self.app.data["hook_keys_individual"])
-        self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
-        self.assertEqual(self.app.ui_vars.stop_key_var.get(), "f9")
-        self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "f10")
+    def test_turning_individual_hook_keys_on_restores_retained_values_or_clears_values(self):
+        with tempfile.TemporaryDirectory() as config_root:
+            self._write_global_hook_key_defaults(config_root)
+            with patch.object(self.app, "config_root", config_root):
+                self._switch_individual_hook_keys_off()
+                self.app.ui_vars.hook_keys_individual_var.set(True)
+                self.app.toggle_hook_keys_individual()
+                self.assertEqual(self.app.data["hook_stop_key"], "f5")
+                self.assertEqual(self.app.data["hook_toggle_key"], "f6")
+                self.assertEqual(self.app.ui_vars.stop_key_var.get(), "f5")
+                self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "f6")
 
-        self.app.ui_vars.hook_keys_individual_var.set(False)
-        self.app.toggle_hook_keys_individual()
-        self.assertFalse(self.app.data["hook_keys_individual"])
-        self.assertEqual(self.app.ui_vars.stop_key_var.get(), "f9")
-        self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "f10")
+                self.app.data["hook_stop_key"] = "f7"
+                self.app.data["hook_toggle_key"] = "f8"
+                self.app._sync_control_vars_from_data()
+                self.app.ui_vars.hook_keys_individual_var.set(False)
+                self.app.toggle_hook_keys_individual()
+                self.app.ui_vars.hook_keys_individual_var.set(True)
+                self.app.toggle_hook_keys_individual()
+                self.assertEqual(self.app.data["hook_stop_key"], "f7")
+                self.assertEqual(self.app.data["hook_toggle_key"], "f8")
+                self.assertEqual(self.app.ui_vars.stop_key_var.get(), "f7")
+                self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "f8")
+
+                self.app.discard_retained_hook_keys()
+                self.app.data["hook_keys_individual"] = False
+                self.app.data["hook_stop_key"] = "f9"
+                self.app.data["hook_toggle_key"] = "f10"
+                self.app._sync_control_vars_from_data()
+                self.app.ui_vars.hook_keys_individual_var.set(True)
+                self.app.toggle_hook_keys_individual()
+                self.assertEqual(self.app.data["hook_stop_key"], "")
+                self.assertEqual(self.app.data["hook_toggle_key"], "")
+                self.assertEqual(self.app.ui_vars.stop_key_var.get(), "")
+                self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "")
+        self.app.dirty_tracker.set_dirty(False)
+
+    def test_saving_keymap_set_discards_retained_individual_hook_keys(self):
+        with tempfile.TemporaryDirectory() as config_root:
+            self._write_global_hook_key_defaults(config_root)
+            with patch.object(self.app, "config_root", config_root):
+                self._switch_individual_hook_keys_off()
+                save_path = os.path.join(config_root, "user", "keymap_sets", "saved.json")
+                with patch.object(
+                    self.app.keymap_set_io,
+                    "_collect_child_save_plan",
+                    return_value=(SavePlan(), "", False),
+                ), patch.object(
+                    self.app.paths, "normalize_keymap_set_save_path", return_value=save_path
+                ), patch.object(
+                    self.app.keymap_set_io, "choose_split_base_dir_for_keymap_set", return_value=""
+                ), patch.object(
+                    self.app.config_service,
+                    "save_runtime_data",
+                    return_value=(self.app.data, self.app._startup_settings),
+                ), patch.object(
+                    self.app.paths, "preferred_startup_path", return_value=os.path.join(config_root, "config.json")
+                ), patch.object(self.app, "_set_flash_message"):
+                    self.assertTrue(
+                        self.app.keymap_set_io.save_keymap_set_to(
+                            save_path,
+                            flash_message="保存しました。",
+                            show_success_dialog=False,
+                        )
+                    )
+
+                self.app.ui_vars.hook_keys_individual_var.set(True)
+                self.app.toggle_hook_keys_individual()
+                self.assertEqual(self.app.data["hook_stop_key"], "")
+                self.assertEqual(self.app.data["hook_toggle_key"], "")
+                self.assertEqual(self.app.ui_vars.stop_key_var.get(), "")
+                self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "")
+        self.app.dirty_tracker.set_dirty(False)
+
+    def test_loading_new_or_default_data_discards_retained_individual_hook_keys(self):
+        with tempfile.TemporaryDirectory() as config_root:
+            self._write_global_hook_key_defaults(config_root)
+            with patch.object(self.app, "config_root", config_root):
+                for action in ("loaded", "new", "default"):
+                    with self.subTest(action=action):
+                        self._switch_individual_hook_keys_off()
+                        if action == "loaded":
+                            self.app.keymap_set_io.apply_loaded_data_to_ui()
+                        elif action == "new":
+                            with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True):
+                                self.app.keymap_set_io.new_config()
+                        else:
+                            with patch.object(
+                                self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True
+                            ), patch(
+                                "keyseq.presentation.controllers.config_io.keymap_set_io.messagebox.askyesno",
+                                return_value=True,
+                            ):
+                                self.app.keymap_set_io.restore_default()
+
+                        self.app.ui_vars.hook_keys_individual_var.set(True)
+                        self.app.toggle_hook_keys_individual()
+                        self.assertEqual(self.app.data["hook_stop_key"], "")
+                        self.assertEqual(self.app.data["hook_toggle_key"], "")
+                        self.assertEqual(self.app.ui_vars.stop_key_var.get(), "")
+                        self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "")
         self.app.dirty_tracker.set_dirty(False)
 
     def test_stop_key_capture_start_and_cancel(self):
