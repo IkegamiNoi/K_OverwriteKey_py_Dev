@@ -72,6 +72,42 @@ class AppUiFlowsTest(unittest.TestCase):
         self.app.hook.resume_hook_after_dialog()
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
+    def test_hook_keys_individual_checks_share_var_and_compact_is_display_only(self):
+        full_check = self.app.full_view.hook_frame.hook_keys_individual_check
+        compact_check = self.app.compact_view.hook_frame.hook_keys_individual_check
+
+        self.assertEqual(str(full_check.cget("variable")), str(compact_check.cget("variable")))
+        self.assertEqual(str(full_check.cget("variable")), str(self.app.ui_vars.hook_keys_individual_var))
+        self.assertEqual(str(compact_check.cget("state")), "disabled")
+
+    def test_hook_keys_individual_syncs_from_loaded_data(self):
+        self.app.data["hook_keys_individual"] = True
+        self.app.keymap_set_io.apply_loaded_data_to_ui()
+        self.assertTrue(self.app.ui_vars.hook_keys_individual_var.get())
+
+        self.app.data["hook_keys_individual"] = False
+        self.app.keymap_set_io.apply_loaded_data_to_ui()
+        self.assertFalse(self.app.ui_vars.hook_keys_individual_var.get())
+
+    def test_toggle_hook_keys_individual_updates_data_and_dirty_without_changing_key_vars(self):
+        self.app.ui_vars.stop_key_var.set("f9")
+        self.app.ui_vars.toggle_key_var.set("f10")
+        self.app.dirty_tracker.set_dirty(False)
+
+        self.app.ui_vars.hook_keys_individual_var.set(True)
+        self.app.toggle_hook_keys_individual()
+        self.assertTrue(self.app.data["hook_keys_individual"])
+        self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+        self.assertEqual(self.app.ui_vars.stop_key_var.get(), "f9")
+        self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "f10")
+
+        self.app.ui_vars.hook_keys_individual_var.set(False)
+        self.app.toggle_hook_keys_individual()
+        self.assertFalse(self.app.data["hook_keys_individual"])
+        self.assertEqual(self.app.ui_vars.stop_key_var.get(), "f9")
+        self.assertEqual(self.app.ui_vars.toggle_key_var.get(), "f10")
+        self.app.dirty_tracker.set_dirty(False)
+
     def test_stop_key_capture_start_and_cancel(self):
         self.app.start_stop_key_capture()
         self.assertTrue(self.app.stop_key_capture.capturing)

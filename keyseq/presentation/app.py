@@ -395,6 +395,7 @@ class App(tk.Tk):
         """data の内容を制御キー表示・レイアウト選択などの共有 Var へ反映する。"""
         self.ui_vars.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
         self.ui_vars.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+        self.ui_vars.hook_keys_individual_var.set(bool(self.data.get("hook_keys_individual", False)))
         self.ui_vars.keyboard_show_physical_key_labels_var.set(
             bool(self.data.get("keyboard_show_physical_key_labels", False))
         )
@@ -419,6 +420,10 @@ class App(tk.Tk):
         return self.hotkey_service.validate(hotkey)
 
     # ---------------- Control key capture logic (相互排他の調整役。App に残す) ----------------
+    def toggle_hook_keys_individual(self):
+        self.data["hook_keys_individual"] = bool(self.ui_vars.hook_keys_individual_var.get())
+        self.dirty_tracker.set_dirty(True)
+
     def toggle_stop_key_capture(self):
         if self.stop_key_capture.capturing:
             self.stop_key_capture.stop(cancel=True)

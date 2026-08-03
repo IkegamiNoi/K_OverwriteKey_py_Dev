@@ -41,6 +41,14 @@ class FullHookFrame(ttk.LabelFrame):
         self.toggle_key_clear_btn = ttk.Button(self.full_hook_line2, text="クリア", command=app.toggle_key_capture.clear)
         self.toggle_key_clear_btn.grid(row=1, column=3, sticky="w", padx=(8, 0))
 
+        self.hook_keys_individual_check = ttk.Checkbutton(
+            self.full_hook_line2,
+            text="このキーマップセットで個別指定する",
+            variable=app.ui_vars.hook_keys_individual_var,
+            command=app.toggle_hook_keys_individual,
+        )
+        self.hook_keys_individual_check.grid(row=2, column=0, columnspan=4, sticky="w", pady=(4, 0))
+
         app.hook.register_hook_buttons(self.hook_toggle_btn, self.trigger_toggle_btn)
         app.stop_key_capture.register_widgets(self.stop_key_entry, self.stop_key_capture_btn, self.stop_key_clear_btn)
         app.toggle_key_capture.register_widgets(self.toggle_key_entry, self.toggle_key_capture_btn, self.toggle_key_clear_btn)

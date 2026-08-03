@@ -716,6 +716,30 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             self.assertEqual(actions[(CHILD_SEQUENCE, "f1")], ACTION_SAVE_AS)
             self.assertEqual(actions[(CHILD_SEQUENCE, "f2")], ACTION_SAVE_AS)
 
+    def test_hook_keys_individual_check_follows_migrated_keymap_set(self):
+        """フラグ無しの既存 keymap_set を実際に読み込み、移行判定の結果がチェックへ届く（phase 07 task_05 確認3）。"""
+        cases = (
+            ("片方が非空なら個別指定 ON", {"hook_stop_key": "f12", "hook_toggle_key": ""}, True),
+            ("両方空なら OFF", {"hook_stop_key": "", "hook_toggle_key": ""}, False),
+        )
+        for label, keymap_set, expected in cases:
+            with self.subTest(case=label), tempfile.TemporaryDirectory() as root:
+                path = os.path.join(root, "user", "keymap_sets", "migrated.json")
+                os.makedirs(os.path.dirname(path), exist_ok=True)
+                with open(path, "w", encoding="utf-8") as f:
+                    json.dump(keymap_set, f)
+
+                self.app.config_root = root
+                self.app.data = self.app.config_service.load_runtime_data_from_keymap_set_path(
+                    path,
+                    config_root=root,
+                )
+                self.app.keymap_set_path = path
+                _config_set_io(self.app).apply_loaded_data_to_ui()
+
+                self.assertEqual(self.app.data["hook_keys_individual"], expected)
+                self.assertEqual(bool(self.app.ui_vars.hook_keys_individual_var.get()), expected)
+
     def test_restore_default_cancel_paths_preserve_data_and_keymap_set_path(self):
         original_data = self.app.data
         original_path = "current.json"

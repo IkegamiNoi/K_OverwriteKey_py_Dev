@@ -35,3 +35,11 @@ class CompactHookFrame(ttk.LabelFrame):
         ttk.Label(self.compact_hook_line2, text="有効/無効トグルキー: ").grid(row=1, column=0, sticky="w")
         self.toggle_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.ui_vars.toggle_key_var, width=8, state="readonly")
         self.toggle_key_entry.grid(row=1, column=1, sticky="w")
+
+        self.hook_keys_individual_check = ttk.Checkbutton(
+            self.compact_hook_line2,
+            text="このキーマップセットで個別指定する",
+            variable=app.ui_vars.hook_keys_individual_var,
+            state="disabled",
+        )
+        self.hook_keys_individual_check.grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 0))

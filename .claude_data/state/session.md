@@ -4,62 +4,69 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-03T14:00:00
+last_updated: 2026-08-03T16:00:00
 phase: **07_hook_keys_global_default（保存系リデザイン Phase γ）**。規範 = `instructions/phase/07_hook_keys_global_default/phase.md`
-last_commit_location: claude/task-03-progression-bba1a9 @ `d36020f` ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/task-03-progression-bba1a9 @ `25b3714` ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01〜04 完了、次は task_05（チェック UI）**。
+focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01〜05 完了、次は task_06（所有者切替 capture）**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-03T14:00:00
+ts: 2026-08-03T16:00:00
 who: main
 summary: |
-  【task_04（全体デフォルト更新 API）を起票 → codex-implementer 実装 → verifier 実測 → reviewer 採用で完了】
-  - **task_04 を起票**（`tasks/task_04_global_hook_keys_update_api.md`）。根拠 = 暫定仕様 06 §5 後半 /
-    受入条件 4・7。**presentation 限定**（`startup_io.py` の 2 メソッドのみ）。
-  - **実装（presentation 層のみ・層跨ぎなし）**: `write_startup` を **`-> bool`** 化
-    （成功 True / 例外捕捉 False。既存の `base` 組み立て・`coerce_font_delta`・`showerror` は不変）+
-    **`write_global_hook_keys(*, stop_key, toggle_key) -> bool`** を新設（2 キーを
-    `normalize_key_name` で正規化して `write_startup` へ委譲・戻り値をそのまま返す）。
-  - **設計の芯**: config.json への書き込みは **`write_startup` の 1 経路に集約**する。
-    `_startup_settings`（in-memory）と config.json が乖離すると、次の `write_startup`
-    （フォント変更・keymap_set パス記録）が**古い `_startup_settings` を土台に上書きして hook キーを消す**。
-    失敗時の旧値維持は `_startup_settings = base` が `try` 内・保存成功後にある既存構造で成立
-    （**この代入位置を動かさない**）。
-  - keymap_set 保存カスケードは `build_startup_payload` が `startup_data` を丸ごとコピーするため
-    **全体デフォルトは自動的に維持される**。分岐を足さずテストで固定した。
-  - **API を呼ぶコードは書いていない**（UI 配線 = task_05 / capture とランタイム反映 = task_06）。
-  - タスク定義の記述ミス 1 件を是正: 読み出し API は `ConfigService.load_global_hook_keys` ではなく
-    `split_loading.load_global_hook_keys(service, config_root=...)`（Codex が実装時に指摘）。
+  【task_05（チェック UI）を起票 → codex-implementer 実装 → verifier 実測 → reviewer 指摘 1 件を修正して完了】
+  - **task_05 を起票**（`tasks/task_05_hook_keys_individual_checkbox.md`）。根拠 = 暫定仕様 06 §4 前半 /
+    受入条件 3。**presentation 限定**（4 ファイル）。
+  - **実装**: `ui_vars.hook_keys_individual_var`（BooleanVar・**full / compact が同一インスタンスを共有**）/
+    `app._sync_control_vars_from_data` へ 1 行（data → Var）/ `App.toggle_hook_keys_individual`
+    （Var → data + dirty）/ full・compact の `hook_frame` へ `ttk.Checkbutton`（row=2・grid 構造は不変）。
+  - **同期の入口は 2 本だけ**。`apply_loaded_data_to_ui` / `new_config` / `restore_default` は
+    既に `_sync_control_vars_from_data` を呼ぶため**無変更で追従**する。
+  - **チェック操作は dirty にする**（`hook_keys_individual` は keymap_set に保存される値のため）。
+    暫定仕様 §4 の「dirty 非汚染」は **OFF 時のキー編集**に対する要件でチェック操作は対象外。
+  - **【ユーザー確認事項】compact のチェックは表示専用**（`state="disabled"`・`command` 無し）にした。
+    compact のフックキーは readonly Entry のみで capture / clear を持たない既存方針に合わせた判断。
+    **task_07 の実機目視でユーザー確認の対象**。
+  - **reviewer 指摘 1 件を修正して採用**: 確認 3 が `app.data` 直接代入 + `apply_loaded_data_to_ui`
+    直呼びで**移行判定をバイパス**していたため、実ファイルを
+    `load_runtime_data_from_keymap_set_path` で読む特性テストをメインで追加（+1 件）。
 result_files:
-  - keyseq/presentation/controllers/config_io/startup_io.py（`write_startup` の bool 化 + `write_global_hook_keys` 新設）
-  - tests_ui/test_startup_font_characterization.py（`write_startup` の成否テスト 2 件）
-  - tests_ui/test_config_io_characterization_keymap_set_startup.py（hook キー API・往復・カスケード保持 4 件）
-  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_04_global_hook_keys_update_api.md}
+  - keyseq/presentation/ui_vars.py（`hook_keys_individual_var`）
+  - keyseq/presentation/app.py（`_sync_control_vars_from_data` +1 行 / `toggle_hook_keys_individual`）
+  - keyseq/presentation/views/{full_view,compact_view}/hook_frame.py（チェックボタン）
+  - tests_ui/test_app_ui_flows.py（Var 共有・同期・dirty・キー表示非変更 3 件）
+  - tests_ui/test_config_io_characterization_keymap_set_startup.py（移行経路でのチェック復元 1 件）
+  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_05_hook_keys_individual_checkbox.md}
   - instructions/phase/current.md（phase 07 の進捗行）
-  - .claude_data/state/decisions.md（「phase 07」節へ task_04 を追記）
+  - .claude_data/state/decisions.md（「phase 07」節へ task_05 を追記）
 verified:
   compile: clean
   tests: pass 168（presentation 限定のため増減なし）
-  tests_ui: pass 165（159 → +6）
+  tests_ui: pass 169（165 → +4）
   smoke: pass
-  manual: **phase 07 の実機目視は task_07 でまとめて実施**（UI からの呼び出し元が task_05 / 06 で入るまで
-    実機では確認できない）。Phase β 時点の実機目視 R1〜R11 は全 OK（ユーザー実施 2026-08-02）。
-  review: reviewer（task_04）= **完了可・指摘なし**（保存失敗時の扱い / 層の分離 / 先取りの有無を個別確認）。
+  manual: **phase 07 の実機目視は task_07 でまとめて実施**（挙動の切替が task_06 で入るまで
+    単体では確認しきれない）。Phase β 時点の実機目視 R1〜R11 は全 OK（ユーザー実施 2026-08-02）。
+  review: reviewer（task_05）= **修正して採用**（確認 3 のテストが移行判定をバイパス → 実読込テストを追加して解消。
+    他 4 観点 + 層の分離 + task_06 の先取り無しは指摘なし）。
 
 ## next_action
-- **次は task_05（チェック UI）を `/task_new` で起票 → codex-implementer へ委任**。
-  内容 = full / compact の `hook_frame.py` へ「このキーマップセットで個別指定する」チェックを追加し、
-  `ui_vars` / App と同期する（`hook_keys_individual` に対応）。暫定仕様 06 §4 前半 / 受入条件 3。
-  **capture の所有者切替・dirty 非汚染・ON⇄OFF の表示切替は task_06**（先取りしない）。
-- task 一覧は phase.md の「タスク」表（01 スキーマ/移行判定〔**完了**〕→ 02 キー解決点〔**完了**〕→
-  03 保存時挙動〔**完了**〕→ 04 全体デフォルト更新 API〔**完了**〕→ 05 チェック UI → 06 所有者切替 capture →
-  07 統合確認 → 08 正本反映）。
+- **次は task_06（所有者切替 capture）を `/task_new` で起票 → codex-implementer へ委任**。
+  内容 = `key_capture.SingleKeyCaptureController` の capture / clear を
+  **ON=keymap_set 個別値（従来どおり dirty）/ OFF=`StartupIo.write_global_hook_keys` で config.json を更新
+  （成功時のみ確定）+ `app.data` も更新 + keymap_set を dirty にしない**（OFF 前の dirty 状態を記録して復元）へ切替。
+  加えて **ON⇄OFF の表示切替と個別値のセッション内保持**（再 ON で復活・**保存後は復活しない**）。
+  暫定仕様 06 §4 / §2 / 受入条件 **4・5・7**。
+- **task_06 の申し送り（task_03 由来）**: 「OFF 保存後にセッション内保持していた個別値も破棄する」処理は
+  task_06 で実装すること（保持先が UI 側の状態のため）。
+- task 一覧は phase.md の「タスク」表（01〜05 は**完了** → 06 所有者切替 capture → 07 統合確認 → 08 正本反映）。
 - **task_04 の申し送り**: 全体デフォルトの書き込みは `StartupIo.write_global_hook_keys` の 1 本のみ。
   **config.json を別経路で read-modify-write しない**（`_startup_settings` と乖離すると次の
   `write_startup` が hook キーを消す）。task_06 は**戻り値 True のときだけ** UI / ランタイムを確定させる。
+- **task_05 の申し送り**: `hook_keys_individual` の同期の入口は 2 本のみ
+  （data → Var = `app._sync_control_vars_from_data` / Var → data = `App.toggle_hook_keys_individual`）。
+  **compact のチェックは表示専用**（`state="disabled"`）＝ task_07 の実機目視でユーザー確認する。
 - **task_02 の申し送り**: 解決点は `split_loading.load_global_hook_keys` と
   `ConfigService.apply_global_hook_key_defaults` の 2 本のみ。**ここ以外へ解決ロジックを書かない**。
   フック層は無変更を維持する（触ったら設計違反）。

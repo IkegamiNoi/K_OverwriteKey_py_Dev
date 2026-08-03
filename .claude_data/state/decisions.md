@@ -301,6 +301,26 @@
 - 検証: compile clean / tests **168 pass**（presentation 限定のため増減なし）/
   tests_ui **165 pass**（159 + 追加 6）/ smoke pass。reviewer = **完了可・指摘なし**。
 
+### 【task_05】完了（2026-08-03）
+- **チェック UI は presentation に閉じた 4 ファイル**: `ui_vars.hook_keys_individual_var`（BooleanVar・
+  full / compact が**同一インスタンスを共有**）/ `app._sync_control_vars_from_data` へ 1 行（data → Var）/
+  `App.toggle_hook_keys_individual`（Var → data + dirty）/ full・compact の `hook_frame` に
+  `ttk.Checkbutton`（`full_hook_line2` / `compact_hook_line2` の row=2・grid 構造は不変）。
+- **同期の入口は 2 本だけ**（data → Var = `_sync_control_vars_from_data` / Var → data =
+  `toggle_hook_keys_individual`）。`apply_loaded_data_to_ui` / `new_config` / `restore_default` は
+  既に前者を呼ぶため**無変更で追従**する。
+- **チェック操作は dirty にする**。`hook_keys_individual` は keymap_set に保存される値のため。
+  暫定仕様 §4 の「dirty 非汚染」は **OFF 時のキー編集**に対する要件でありチェック操作は対象外。
+- **【ユーザー確認事項】compact のチェックは表示専用（`state="disabled"`・`command` 無し）とした**。
+  compact のフックキーは既に readonly Entry のみで capture / clear を持たない＝「compact は表示のみ」
+  という既存方針に合わせた判断。**task_07 の実機目視でユーザー確認の対象**にする。
+- **reviewer 指摘 1 件を修正して採用**: 確認 3（移行で ON になる keymap_set を読むとチェックが ON）が
+  `app.data` への直接代入 + `apply_loaded_data_to_ui` の直呼びで代替されており、**移行判定を
+  バイパスしていた**。実ファイル（フラグ無し・stop のみ非空 / 両方空）を
+  `load_runtime_data_from_keymap_set_path` で読む特性テストをメインで追加して解消。
+- 検証: compile clean / tests **168 pass**（presentation 限定のため増減なし）/
+  tests_ui **169 pass**（165 → Codex 追加 3 → 指摘対応 +1）/ smoke pass。
+
 ---
 
 ## 運用メモ

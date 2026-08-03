@@ -11,6 +11,10 @@ class UiVars:
         self.always_on_top_var = tk.BooleanVar(master=master, value=False)
         self.stop_key_var = tk.StringVar(master=master, value=str(master.data.get("hook_stop_key", "")))
         self.toggle_key_var = tk.StringVar(master=master, value=str(master.data.get("hook_toggle_key", "")))
+        self.hook_keys_individual_var = tk.BooleanVar(
+            master=master,
+            value=bool(master.data.get("hook_keys_individual", False)),
+        )
         self.status_var = tk.StringVar(master=master, value="")
         self.file_status_var = tk.StringVar(master=master, value="")
         self.flash_message_var = tk.StringVar(master=master, value="")
