@@ -1,8 +1,9 @@
 # 暫定仕様 05: 子ファイル保存の確認ダイアログと参照元記録（child_file_save_dialog）
 
-> 状態: **未凍結・v0.6・主入力・ユーザー確定済（実装着手可）**。本書がこのフェーズ（保存系リデザインの
-> Phase β）の確定設計（フェーズ中は正本を直接改訂しない）。フェーズ末タスクで正本
-> `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済み・v0.7（最終）・正本へ昇格済み（2026-08-02・task_10）**。
+> **以後は正本 `instructions/common/spec_detail/data_schema.md` §5.4 / §5.6 / §5.7 / **§5.8** と
+> `codebase_map.md` が正**。本書は Phase β の設計経緯として保存する（条項は改訂しない）。
+> 仕様を変える必要が生じた場合は本書を書き換えず `.claude/rules/spec_change_workflow.md` に従う。
 > 版履歴: v0.1 起票（2026-07-27）→ **v0.2** codex-adversarial-reviewer 指摘 4 件（critical 1 + high 3）を反映
 > （① 未知の参照元は安全側で別名保存を既定に / ② ③ 保存計画に依存関係＋application 側で計画確定・失敗時ロールバック /
 > ④ 既定命名変更は trigger_set のみ・監査の配置誤りを修正・keymaps/sequences は現行命名＋①と衝突ダイアログで安全化）。

@@ -141,6 +141,7 @@ class KeymapFileIoTest(unittest.TestCase):
             loaded = service.load_keymap_file(path, used_keymap_ids=set(), imported=True)
             self.assertEqual(loaded["id"], "my_map")  # ファイル名から id が生成される
             self.assertEqual(loaded["mappings"], {"a": "b"})
+            self.assertEqual(loaded["_keymap_source_path"], path)
             self.assertTrue(loaded["_keymap_imported"])
 
 
@@ -164,6 +165,7 @@ class SequenceFileIoTest(unittest.TestCase):
             self.assertEqual(loaded["label"], "copy")
             self.assertTrue(loaded["run_to_end"])
             self.assertEqual(loaded["actions"], [{"type": "hotkey", "value": "ctrl+c"}])
+            self.assertEqual(loaded["_sequence_source_path"], path)
             self.assertTrue(loaded["_sequence_imported"])
 
 
@@ -263,11 +265,11 @@ class IndividualSavePathTest(unittest.TestCase):
             self.assertTrue(os.path.exists(trigger_set_path))
             self.assertEqual(
                 keymap[self.service.INTERNAL_KEYMAP_SOURCE_PATH],
-                keymap_path,
+                keymap_path.replace("\\", "/"),
             )
             self.assertEqual(
                 sequence[self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
-                sequence_path,
+                sequence_path.replace("\\", "/"),
             )
 
 

@@ -473,6 +473,51 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             ],
         )
 
+    def test_keymap_individual_save_inside_config_stores_relative_path_without_changing_json_bytes(self):
+        expected = _expected_json_bytes(
+            '{\n  "label": "Map",\n  "mappings": {}\n}'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = os.path.join(directory, "config")
+            inside_path = os.path.join(root, "user", "keymaps", "map.json")
+            outside_path = os.path.join(directory, "external", "map.json")
+            for path, expected_relative_source_path in (
+                (inside_path, "user/keymaps/map.json"),
+                (outside_path, ""),
+            ):
+                with self.subTest(path=path):
+                    self.app.config_root = root
+                    self.app.data = {
+                        "keymaps": [{"id": "map", "label": "Map", "mappings": {}}],
+                        "triggers": [],
+                        "active_keymap_id": "map",
+                    }
+                    keymap = self.app.data["keymaps"][0]
+                    with patch.object(self.app.keymap_panel, "refresh_keymap_list_ui"), patch.object(
+                        self.app.layout,
+                        "refresh_keyboard_window",
+                    ), patch.object(tkinter.messagebox, "showinfo"):
+                        self.assertTrue(
+                            _keymap_io(self.app).save_keymap_to_path(0, keymap, path)
+                        )
+
+                    saved_source_path = self.app.data["keymaps"][0][
+                        self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH
+                    ]
+                    if expected_relative_source_path:
+                        self.assertEqual(
+                            saved_source_path,
+                            expected_relative_source_path,
+                        )
+                    else:
+                        self.assertTrue(os.path.isabs(saved_source_path))
+                        self.assertEqual(
+                            os.path.normcase(os.path.normpath(saved_source_path)),
+                            os.path.normcase(os.path.normpath(path)),
+                        )
+                    self.assertTrue(os.path.exists(path))
+                    self.assertEqual(Path(path).read_bytes(), expected)
+
     def test_keymap_save_to_path_exception_reports_failure(self):
         error = ValueError("disk full")
         with patch.object(self.app.config_service, "save_keymap_file", side_effect=error), patch.object(
@@ -526,6 +571,65 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             _keymap_io(self.app).load_keymap_file()
         flash.assert_called_once_with("キーマップ読込失敗: bad keymap", auto_clear=False)
         showerror.assert_called_once_with("読込失敗", "bad keymap")
+
+    def test_keymap_individual_load_stores_config_relative_path_and_resaves_to_loaded_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config_root = os.path.join(directory, "config")
+            inside_path = os.path.join(config_root, "user", "keymaps", "inside.json")
+            outside_path = os.path.join(directory, "external", "outside.json")
+            for path, expected_source_path in (
+                (inside_path, "user/keymaps/inside.json"),
+                (outside_path, self.app.config_service.to_config_relative_or_absolute(outside_path, config_root)),
+            ):
+                with self.subTest(path=path):
+                    Path(path).parent.mkdir(parents=True, exist_ok=True)
+                    original_bytes = b'{"label":"Loaded","mappings":{"a":"b"}}'
+                    Path(path).write_bytes(original_bytes)
+                    self.app.config_root = config_root
+                    self.app.data = {"keymaps": [], "triggers": [], "active_keymap_id": ""}
+                    with patch.object(tkinter.filedialog, "askopenfilename", return_value=path), patch.object(
+                        self.app.keymap_panel, "refresh_keymap_list_ui"
+                    ), patch.object(self.app.layout, "refresh_keyboard_window"), patch.object(
+                        self.app.dirty_tracker, "set_dirty"
+                    ), patch.object(self.app, "_set_flash_message"), patch.object(
+                        tkinter.messagebox, "showinfo"
+                    ):
+                        _keymap_io(self.app).load_keymap_file()
+
+                    keymap = self.app.data["keymaps"][0]
+                    self.assertEqual(keymap[self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH], expected_source_path)
+                    if path == outside_path:
+                        self.assertTrue(
+                            os.path.isabs(
+                                keymap[self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH]
+                            )
+                        )
+                    self.assertEqual(keymap["label"], "Loaded")
+                    self.assertEqual(keymap["mappings"], {"a": "b"})
+                    self.assertEqual(Path(path).read_bytes(), original_bytes)
+
+                    with patch.object(
+                        self.app.keymap_panel, "selected_keymap_list_index", return_value=0
+                    ), patch.object(self.app.keymap_panel, "refresh_keymap_list_ui"), patch.object(
+                        self.app.layout, "refresh_keyboard_window"
+                    ), patch.object(self.app.dirty_tracker, "sync_dirty_state"), patch.object(
+                        self.app, "_set_flash_message"
+                    ), patch.object(tkinter.messagebox, "showinfo"), patch.object(
+                        self.app.config_service.repository, "save_json", wraps=self.app.config_service.repository.save_json
+                    ) as save_json:
+                        self.assertTrue(_keymap_io(self.app).save_selected_keymap())
+                    # 書き込み先は「読込元と同じファイル」であればよい。config 外のパスは
+                    # §5.7 により区切り文字が `/` へ正規化されるため、正規形で比較する。
+                    self.assertEqual(
+                        self.app.config_service.canonical_path(
+                            save_json.call_args.args[0], config_root
+                        ),
+                        self.app.config_service.canonical_path(path, config_root),
+                    )
+                    self.assertEqual(
+                        self.app.config_service.repository.load_json(path),
+                        {"label": "Loaded", "mappings": {"a": "b"}},
+                    )
 
     # E: trigger_set 個別 JSON IO
     def test_trigger_set_save_uses_dirty_tracker_source_path(self):
@@ -917,7 +1021,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             ), patch.object(tkinter.messagebox, "showinfo", side_effect=lambda *args: calls.append(("info", args))):
                 self.assertTrue(_trigger_set_io(self.app).save_trigger_set_to_path(path))
             self.assertEqual(Path(path).read_bytes(), expected)
-        self.assertEqual(self.app.dirty_tracker.trigger_set_source_path, path)
+        self.assertEqual(self.app.dirty_tracker.trigger_set_source_path, "triggers.json")
         self.assertFalse(self.app.dirty_tracker.trigger_set_imported)
         self.assertFalse(self.app.dirty_tracker.trigger_set_dirty)
         self.assertEqual(
@@ -940,6 +1044,64 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_trigger_set_individual_save_inside_config_stores_relative_tracker_path_without_changing_json_bytes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = os.path.join(directory, "config")
+            inside_path = os.path.join(root, "user", "trigger_sets", "triggers.json")
+            outside_path = os.path.join(directory, "external", "triggers.json")
+            outside_sequence_path = self.app.config_service.to_config_relative_or_absolute(
+                os.path.join(directory, "external", "sequences", "Run.json"),
+                root,
+            )
+            for path, expected_relative_source_path, expected_sequence_path in (
+                (inside_path, "user/trigger_sets/triggers.json", "user/sequences/Run.json"),
+                (outside_path, "", outside_sequence_path),
+            ):
+                with self.subTest(path=path):
+                    self.app.config_root = root
+                    self.app.data = {
+                        "keymaps": [],
+                        "triggers": [{"key": "a", "label": "Run", "actions": []}],
+                        "active_keymap_id": "",
+                    }
+                    self.app.dirty_tracker.set_trigger_set_source_path("")
+                    with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                        self.app.trigger_panel,
+                        "refresh_actions",
+                    ), patch.object(tkinter.messagebox, "showinfo"):
+                        self.assertTrue(
+                            _trigger_set_io(self.app).save_trigger_set_to_path(path)
+                        )
+
+                    stored_source_path = self.app.dirty_tracker.trigger_set_source_path
+                    if expected_relative_source_path:
+                        self.assertEqual(
+                            stored_source_path,
+                            expected_relative_source_path,
+                        )
+                    else:
+                        self.assertTrue(os.path.isabs(stored_source_path))
+                        self.assertEqual(
+                            os.path.normcase(os.path.normpath(stored_source_path)),
+                            os.path.normcase(os.path.normpath(path)),
+                        )
+                    self.assertEqual(
+                        self.app.data[
+                            self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH
+                        ],
+                        stored_source_path,
+                    )
+                    self.assertTrue(os.path.exists(path))
+                    self.assertEqual(
+                        Path(path).read_bytes(),
+                        _expected_json_bytes(
+                            "{\n  \"triggers\": [\n    {\n      \"key\": \"a\",\n"
+                            "      \"suppress\": true,\n"
+                            f"      \"sequence_path\": \"{expected_sequence_path}\"\n"
+                            "    }\n  ]\n}"
+                        ),
+                    )
 
     def test_trigger_set_save_to_path_exception_reports_failure(self):
         error = ValueError("disk full")
@@ -977,7 +1139,14 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 _trigger_set_io(self.app).load_trigger_set_file()
             self.assertEqual(ask_open.call_args.kwargs["title"], "トリガー一覧を読込")
             self.assertEqual(self.app.data["triggers"], [])
-            self.assertEqual(self.app.dirty_tracker.trigger_set_source_path, path)
+            # 読込時も §5.7 の表記へ正規化される（config 外なので絶対のまま・区切りは `/`）。
+            self.assertEqual(
+                self.app.dirty_tracker.trigger_set_source_path,
+                self.app.config_service.to_config_relative_or_absolute(
+                    path, self.app.config_root
+                ),
+            )
+            self.assertTrue(os.path.isabs(self.app.dirty_tracker.trigger_set_source_path))
             self.assertTrue(self.app.dirty_tracker.trigger_set_imported)
             self.assertFalse(self.app.dirty_tracker.trigger_set_dirty)
             refresh_triggers.assert_called_once_with()
@@ -1006,6 +1175,94 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             _trigger_set_io(self.app).load_trigger_set_file()
         flash.assert_called_once_with("トリガー一覧読込失敗: bad trigger set", auto_clear=False)
         showerror.assert_called_once_with("読込失敗", "bad trigger set")
+
+    def test_trigger_set_individual_load_stores_config_relative_paths_and_resaves_to_loaded_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config_root = os.path.join(directory, "config")
+            inside_path = os.path.join(config_root, "user", "trigger_sets", "inside.json")
+            outside_path = os.path.join(directory, "external", "outside.json")
+            inside_sequence_path = os.path.join(config_root, "user", "sequences", "inside.json")
+            outside_sequence_path = os.path.join(directory, "external", "sequences", "outside.json")
+            for path, sequence_path, stored_sequence_path, expected_source_path in (
+                (inside_path, inside_sequence_path, "user/sequences/inside.json", "user/trigger_sets/inside.json"),
+                (
+                    outside_path,
+                    outside_sequence_path,
+                    self.app.config_service.to_config_relative_or_absolute(outside_sequence_path, config_root),
+                    self.app.config_service.to_config_relative_or_absolute(outside_path, config_root),
+                ),
+            ):
+                with self.subTest(path=path):
+                    Path(sequence_path).parent.mkdir(parents=True, exist_ok=True)
+                    sequence_bytes = (
+                        b'{"label":"Loaded","run_to_end":false,"run_to_end_delay_ms":3,"actions":[]}'
+                    )
+                    Path(sequence_path).write_bytes(sequence_bytes)
+                    Path(path).parent.mkdir(parents=True, exist_ok=True)
+                    trigger_set_bytes = (
+                        ('{"triggers":[{"key":"a","suppress":true,"sequence_path":"'
+                         + stored_sequence_path + '"}]}').encode("utf-8")
+                    )
+                    Path(path).write_bytes(trigger_set_bytes)
+                    self.app.config_root = config_root
+                    self.app.data = {"keymaps": [], "triggers": [], "active_keymap_id": ""}
+                    self.app.dirty_tracker.set_trigger_set_source_path("")
+                    with patch.object(
+                        self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True
+                    ), patch.object(tkinter.filedialog, "askopenfilename", return_value=path), patch.object(
+                        self.app.trigger_panel, "refresh_triggers"
+                    ), patch.object(self.app.trigger_panel, "refresh_actions"), patch.object(
+                        self.app.dirty_tracker, "set_dirty"
+                    ), patch.object(self.app, "_set_flash_message"), patch.object(
+                        tkinter.messagebox, "showinfo"
+                    ):
+                        _trigger_set_io(self.app).load_trigger_set_file()
+
+                    trigger = self.app.data["triggers"][0]
+                    self.assertEqual(self.app.dirty_tracker.trigger_set_source_path, expected_source_path)
+                    self.assertEqual(
+                        self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+                        expected_source_path,
+                    )
+                    self.assertEqual(trigger[self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH], stored_sequence_path)
+                    if path == outside_path:
+                        self.assertTrue(
+                            os.path.isabs(self.app.dirty_tracker.trigger_set_source_path)
+                        )
+                        self.assertTrue(
+                            os.path.isabs(
+                                trigger[
+                                    self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH
+                                ]
+                            )
+                        )
+                    self.assertEqual(trigger["label"], "Loaded")
+                    self.assertEqual(trigger["run_to_end_delay_ms"], 3)
+                    self.assertEqual(Path(path).read_bytes(), trigger_set_bytes)
+                    self.assertEqual(Path(sequence_path).read_bytes(), sequence_bytes)
+
+                    with patch.object(
+                        _trigger_set_io(self.app), "_collect_sequence_save_plan", return_value=SavePlan()
+                    ), patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                        self.app.trigger_panel, "refresh_actions"
+                    ), patch.object(self.app.dirty_tracker, "sync_dirty_state"), patch.object(
+                        self.app, "_set_flash_message"
+                    ), patch.object(tkinter.messagebox, "showinfo"), patch.object(
+                        self.app.config_service.repository, "save_json", wraps=self.app.config_service.repository.save_json
+                    ) as save_json:
+                        self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
+                    # 書き込み先は「読込元と同じファイル」であればよい。config 外のパスは
+                    # §5.7 により区切り文字が `/` へ正規化されるため、正規形で比較する。
+                    self.assertEqual(
+                        self.app.config_service.canonical_path(
+                            save_json.call_args.args[0], config_root
+                        ),
+                        self.app.config_service.canonical_path(path, config_root),
+                    )
+                    self.assertEqual(
+                        self.app.config_service.repository.load_json(path),
+                        {"triggers": [{"key": "a", "suppress": True, "sequence_path": stored_sequence_path}]},
+                    )
 
     # F: sequence 個別 JSON IO
     def test_sequence_save_selected_no_selection_reports_and_returns_false(self):
@@ -1109,7 +1366,10 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     '  "run_to_end_delay_ms": 300,\n  "actions": []\n}'
                 ),
             )
-        self.assertEqual(trigger[self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH], path)
+        self.assertEqual(
+            trigger[self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH],
+            path.replace("\\", "/"),
+        )
         self.assertFalse(trigger[self.app.config_service.INTERNAL_SEQUENCE_IMPORTED])
         self.assertFalse(trigger[self.app.config_service.INTERNAL_SEQUENCE_DIRTY])
         self.assertEqual(
@@ -1132,6 +1392,50 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 ),
             ],
         )
+
+    def test_sequence_individual_save_inside_config_stores_relative_path_without_changing_json_bytes(self):
+        expected = _expected_json_bytes(
+            '{\n  "label": "Run",\n  "run_to_end": false,\n'
+            '  "run_to_end_delay_ms": 300,\n  "actions": []\n}'
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            root = os.path.join(directory, "config")
+            inside_path = os.path.join(root, "user", "sequences", "run.json")
+            outside_path = os.path.join(directory, "external", "run.json")
+            for path, expected_relative_source_path in (
+                (inside_path, "user/sequences/run.json"),
+                (outside_path, ""),
+            ):
+                with self.subTest(path=path):
+                    self.app.config_root = root
+                    trigger = {"key": "a", "label": "Run", "actions": []}
+                    with patch.object(
+                        self.app.dirty_tracker,
+                        "mark_trigger_set_dirty",
+                    ), patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                        self.app.trigger_panel,
+                        "refresh_actions",
+                    ), patch.object(tkinter.messagebox, "showinfo"):
+                        self.assertTrue(
+                            _sequence_io(self.app).save_sequence_to_path(trigger, path)
+                        )
+
+                    saved_source_path = trigger[
+                        self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH
+                    ]
+                    if expected_relative_source_path:
+                        self.assertEqual(
+                            saved_source_path,
+                            expected_relative_source_path,
+                        )
+                    else:
+                        self.assertTrue(os.path.isabs(saved_source_path))
+                        self.assertEqual(
+                            os.path.normcase(os.path.normpath(saved_source_path)),
+                            os.path.normcase(os.path.normpath(path)),
+                        )
+                    self.assertTrue(os.path.exists(path))
+                    self.assertEqual(Path(path).read_bytes(), expected)
 
     def test_sequence_save_to_path_exception_reports_failure(self):
         error = ValueError("disk full")
@@ -1195,6 +1499,73 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             _sequence_io(self.app).load_sequence_file()
         flash.assert_called_once_with("出力シーケンス読込失敗: bad sequence", auto_clear=False)
         showerror.assert_called_once_with("読込失敗", "bad sequence")
+
+    def test_sequence_individual_load_stores_config_relative_path_and_resaves_to_loaded_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config_root = os.path.join(directory, "config")
+            inside_path = os.path.join(config_root, "user", "sequences", "inside.json")
+            outside_path = os.path.join(directory, "external", "outside.json")
+            for path, expected_source_path in (
+                (inside_path, "user/sequences/inside.json"),
+                (outside_path, self.app.config_service.to_config_relative_or_absolute(outside_path, config_root)),
+            ):
+                with self.subTest(path=path):
+                    Path(path).parent.mkdir(parents=True, exist_ok=True)
+                    original_bytes = (
+                        b'{"label":"Loaded","run_to_end":true,"run_to_end_delay_ms":3,"actions":[]}'
+                    )
+                    Path(path).write_bytes(original_bytes)
+                    self.app.config_root = config_root
+                    trigger = {"key": "a", "label": "Before", "actions": []}
+                    self.app.data = {"keymaps": [], "triggers": [trigger], "active_keymap_id": ""}
+                    with patch.object(self.app.trigger_panel, "selected_trigger", return_value=trigger), patch.object(
+                        tkinter.filedialog, "askopenfilename", return_value=path
+                    ), patch.object(self.app.dirty_tracker, "mark_trigger_set_dirty"), patch.object(
+                        self.app.trigger_panel, "refresh_triggers"
+                    ), patch.object(self.app.trigger_panel, "refresh_actions"), patch.object(
+                        self.app, "_set_flash_message"
+                    ), patch.object(tkinter.messagebox, "showinfo"):
+                        _sequence_io(self.app).load_sequence_file()
+
+                    self.assertEqual(trigger[self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH], expected_source_path)
+                    if path == outside_path:
+                        self.assertTrue(
+                            os.path.isabs(
+                                trigger[self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH]
+                            )
+                        )
+                    self.assertEqual(trigger["label"], "Loaded")
+                    self.assertTrue(trigger["run_to_end"])
+                    self.assertEqual(trigger["run_to_end_delay_ms"], 3)
+                    self.assertEqual(Path(path).read_bytes(), original_bytes)
+
+                    with patch.object(self.app.trigger_panel, "selected_trigger", return_value=trigger), patch.object(
+                        self.app.dirty_tracker, "mark_trigger_set_dirty"
+                    ), patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                        self.app.trigger_panel, "refresh_actions"
+                    ), patch.object(self.app, "_set_flash_message"), patch.object(
+                        tkinter.messagebox, "showinfo"
+                    ), patch.object(
+                        self.app.config_service.repository, "save_json", wraps=self.app.config_service.repository.save_json
+                    ) as save_json:
+                        self.assertTrue(_sequence_io(self.app).save_selected_sequence())
+                    # 書き込み先は「読込元と同じファイル」であればよい。config 外のパスは
+                    # §5.7 により区切り文字が `/` へ正規化されるため、正規形で比較する。
+                    self.assertEqual(
+                        self.app.config_service.canonical_path(
+                            save_json.call_args.args[0], config_root
+                        ),
+                        self.app.config_service.canonical_path(path, config_root),
+                    )
+                    self.assertEqual(
+                        self.app.config_service.repository.load_json(path),
+                        {
+                            "label": "Loaded",
+                            "run_to_end": True,
+                            "run_to_end_delay_ms": 3,
+                            "actions": [],
+                        },
+                    )
 
     def test_individual_trigger_save_collects_only_dirty_sequence_rows(self):
         with tempfile.TemporaryDirectory() as root:

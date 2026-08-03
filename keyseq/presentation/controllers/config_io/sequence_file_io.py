@@ -102,7 +102,11 @@ class SequenceFileIo:
         if not path:
             return
         try:
-            sequence = self._app.config_service.load_sequence_file(path, imported=True)
+            sequence = self._app.config_service.load_sequence_file(
+                path,
+                imported=True,
+                config_root=self._app.config_root,
+            )
             trigger.update(sequence)
             self._app.dirty_tracker.mark_trigger_set_dirty()
             self._app.trigger_panel.refresh_triggers()

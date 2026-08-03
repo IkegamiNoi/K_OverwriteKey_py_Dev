@@ -118,6 +118,7 @@ class ConfigService:
         *,
         used_keymap_ids: set[str] | None = None,
         imported: bool = True,
+        config_root: str = "",
     ) -> dict[str, Any]:
         raw_keymap = self.repository.load_json(path)
         if not isinstance(raw_keymap, dict):
@@ -131,7 +132,11 @@ class ConfigService:
             "id": keymap_id,
             "label": str(raw_keymap.get("label") or "").strip(),
             "mappings": safe_deepcopy(mappings),
-            self.INTERNAL_KEYMAP_SOURCE_PATH: path,
+            self.INTERNAL_KEYMAP_SOURCE_PATH: (
+                self.to_config_relative_or_absolute(path, config_root)
+                if config_root
+                else path
+            ),
             self.INTERNAL_KEYMAP_IMPORTED: bool(imported),
             self.INTERNAL_KEYMAP_DIRTY: False,
         }
@@ -150,7 +155,11 @@ class ConfigService:
         config_root: str = "",
     ) -> dict[str, Any]:
         resolved_path = self._resolve_config_relative_path(path, config_root)
-        stored_path = path
+        stored_path = (
+            self.to_config_relative_or_absolute(resolved_path, config_root)
+            if config_root
+            else path
+        )
         normalized = ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [])
         if not normalized:
             raise ValueError("保存できる keymap がありません。")
@@ -173,7 +182,13 @@ class ConfigService:
         saved[self.INTERNAL_KEYMAP_DIRTY] = False
         return saved
 
-    def load_sequence_file(self, path: str, *, imported: bool = True) -> dict[str, Any]:
+    def load_sequence_file(
+        self,
+        path: str,
+        *,
+        imported: bool = True,
+        config_root: str = "",
+    ) -> dict[str, Any]:
         raw_sequence = self.repository.load_json(path)
         if not isinstance(raw_sequence, dict):
             raise ValueError("sequence JSON の形式が不正です。")
@@ -181,7 +196,11 @@ class ConfigService:
         parent_refs = self._normalize_parent_refs(raw_sequence.get(self.PARENT_REFS_KEY))
         if parent_refs is not None:
             sequence[self.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
-        sequence[self.INTERNAL_SEQUENCE_SOURCE_PATH] = path
+        sequence[self.INTERNAL_SEQUENCE_SOURCE_PATH] = (
+            self.to_config_relative_or_absolute(path, config_root)
+            if config_root
+            else path
+        )
         sequence[self.INTERNAL_SEQUENCE_IMPORTED] = bool(imported)
         sequence[self.INTERNAL_SEQUENCE_DIRTY] = False
         return sequence
@@ -195,7 +214,11 @@ class ConfigService:
         config_root: str = "",
     ) -> dict[str, Any]:
         resolved_path = self._resolve_config_relative_path(path, config_root)
-        stored_path = path
+        stored_path = (
+            self.to_config_relative_or_absolute(resolved_path, config_root)
+            if config_root
+            else path
+        )
         payload = self._build_sequence_payload(
             trigger,
             parent_ref=parent_ref,
@@ -711,7 +734,11 @@ class ConfigService:
                     parent_refs = self._normalize_parent_refs(sequence.get(self.PARENT_REFS_KEY))
                     if parent_refs is not None:
                         trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
-                    trigger[self.INTERNAL_SEQUENCE_SOURCE_PATH] = sequence_path
+                    trigger[self.INTERNAL_SEQUENCE_SOURCE_PATH] = (
+                        self.to_config_relative_or_absolute(sequence_path, config_root)
+                        if config_root
+                        else sequence_path
+                    )
                     trigger[self.INTERNAL_SEQUENCE_IMPORTED] = bool(imported)
                     trigger[self.INTERNAL_SEQUENCE_DIRTY] = False
             triggers.append(trigger)
@@ -1510,8 +1537,12 @@ class ConfigService:
     def _infer_config_root_from_keymap_set_path(self, keymap_set_path: str) -> str:
         return os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(keymap_set_path))))
 
+    def resolve_config_path(self, path: str, config_root: str) -> str:
+        """記録用の表記（config 相対を含む）を書き込み・存在確認に使える形へ解決する。"""
+        return self._resolve_config_relative_path(path, config_root)
+
     def to_config_relative_or_absolute(self, path: str, config_root: str) -> str:
-        absolute_path = os.path.abspath(path)
+        absolute_path = os.path.abspath(self._resolve_config_relative_path(path, config_root))
         absolute_config_root = os.path.abspath(config_root)
         if self.is_path_within(absolute_path, absolute_config_root, config_root):
             relative_path = os.path.relpath(absolute_path, absolute_config_root)
@@ -1575,10 +1606,7 @@ class ConfigService:
         merged = list(refs) if refs is not None else []
         if not parent_path:
             return merged
-        parent_ref = self.to_config_relative_or_absolute(
-            os.path.abspath(parent_path),
-            config_root,
-        )
+        parent_ref = self.to_config_relative_or_absolute(parent_path, config_root)
         canonical_parent_ref = self.canonical_path(parent_ref, config_root)
         if not any(
             self.canonical_path(existing, config_root) == canonical_parent_ref

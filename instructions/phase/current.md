@@ -6,60 +6,24 @@
 
 ## 現在の参照先
 
-- **アクティブ: [06_child_file_save_dialog](06_child_file_save_dialog/phase.md)**（保存系リデザイン **Phase β**・
-  2026-07-28 起票）。keymap_set の「保存」を**変更のある子ファイルごとに 保存/別名保存/保存しない を選べる
-  確認ダイアログ**へ置き換え、**子JSON へ参照元（直接の上位ファイル）を記録**して誤爆上書きを防ぐ。
-  **挙動変更＋スキーマ追加（後方互換必須）を伴う**。
-  - 主入力（確定設計）: [暫定仕様 05](../history/05_child_file_save_dialog.md)（**v0.7**・ユーザー確定済 2026-08-02）。
-    フェーズ中は正本を直接改訂せず、最終タスクで昇格・凍結する。
-  - 番号対応: phase 06 / 暫定 05 / `decisions_archive/06`。起票元: ユーザー要望（2026-07-26〜27・点3/4）。
-  - 前提: Phase α（phase 05）完了済。[idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md) を**内包**し、
-    [idea_06](../backlog/idea_06_individual_json_io_unification.md) の共通化を達成する見込み。後続は
-    [idea_07](../backlog/idea_07_reference_link_cleanup.md)（β 完了後）。
-  - 進捗: **task_01〜06b + task_07〜09 + task_11〜13 の実装・自動検証まで完了**（参照元記録 /
-    trigger_set の source_path 接続＋既定命名 / 保存計画の実行契約 / dirty な子の収集と共有状況判定 /
-    保存確認ダイアログ / 統合退行 / レビュー指摘 A〜F の修正 / パス同一性の canonical identity 化 /
-    一覧再表示の廃止と再計算先の上書き確認 / ダイアログのレイアウト / 可変列レイアウト /
-    依存確認の提示条件縮小・4 択化・deferred index / `data` 置換時の trigger_set 状態リセット）。
-    **task_14〜16 も完了**（個別保存のパス解決と上位 dirty 化 / 個別トリガー一覧保存の保存計画化 /
-    一覧ダイアログの初期省略計算とホイール）。**task_17 も完了**（「例を復元」を中身のある
-    新規作成として扱う）。**残るは task_18（共有状況の表示文言）→ task_10（正本反映）**。
-    受入条件の充足状況は [integration_result.md](06_child_file_save_dialog/integration_result.md) が正。
-  - 2026-07-29 の実機目視で 5 件の指摘 → 暫定仕様を **v0.3** へ改訂し **task_07〜09 を追加**
-    （旧 task_07 = 正本反映は task_10 へ繰り下げ）。切り分けと採否は `decisions.md` の
-    「実機目視フィードバック」節が正。
-  - 2026-07-30 の実機目視で 2 件の指摘（＋討議中に実バグ 1 件）→ 暫定仕様を **v0.4** へ改訂し
-    **task_11〜13 を追加**（依存確認の提示条件縮小と 4 択 / deferred index 例外 / `data` 置換時の状態リセット /
-    可変列レイアウト）。敵対的レビュー 5 件は全採用。判断履歴は `decisions.md` の
-    「2 回目の実機目視フィードバック」節が正。
-  - 2026-08-01 の実機目視で 4 件の指摘（実バグ 3 + 仕様の条項間矛盾 1）→ 暫定仕様を **v0.5** へ改訂し
-    **task_14〜16 を追加**（個別保存の相対パス解決＋上位 dirty 化 / 個別トリガー一覧保存の保存計画化と
-    子ダイアログ / 初期省略計算とマウスホイール）。敵対的レビュー 3 件は全採用。判断履歴は `decisions.md` の
-    「3 回目の実機目視フィードバック」節が正。
-  - 2026-08-02 の実機目視で 1 件の指摘（読込済みの構成セットから「例を復元」→ 保存で旧ファイルを上書き）→
-    切り分けの結果 **実バグ 1 + 設計の穴 2** で暫定仕様を **v0.6** へ改訂し **task_17 を追加**
-    （`keymap_set_path` のクリア / 未保存確認 / 例の子を dirty 扱い）。敵対的レビューは 1 回目 2 件を採用・
-    2 回目 1 件を除外（既存の許容範囲・Q により一覧へ可視化されるため）。判断履歴は `decisions.md` の
-    「4 回目の実機目視フィードバック」節が正。
-  - 2026-08-02（5 回目）の実機目視で 1 件の指摘（同名の trigger_set があっても既定が「保存」）→
-    切り分けの結果**仕様どおり**（v0.4-I は trigger_set 対象外）。ただし共有状況「単独」が上書きになることを
-    伝えていない**表示の欠陥**があり、暫定仕様を **v0.7** へ改訂し **task_18 を追加**（表示文言のみ・挙動不変）。
-    敵対的レビュー 3 件は high/medium2 を採用・medium1 を範囲限定で採用。判断履歴は `decisions.md` の
-    「5 回目の実機目視フィードバック」節が正。
-  - 実機目視の手順は [manual_check_plan.md](06_child_file_save_dialog/manual_check_plan.md)（R1〜R11）に統合済。
-  - 残りの保存系リデザイン: **γ=phase 07（暫定 06・β と独立）/ プリセット=phase 08（暫定 07）**。
-    暫定仕様は起票済・ユーザー確定済のため、着手時は `/phase_start` から入れる。
-- 直前の完了フェーズ: [05_keymap_set_new_and_default_dir](../../.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md)（2026-07-28 完了・保存系リデザイン **Phase α**）。
+- **アクティブなフェーズは無し**（次フェーズ未確定）。着手時は `/phase_start` から入る。
+  保存系リデザインの残り: **γ = phase 07（[暫定仕様 06](../history/06_hook_keys_global_default.md)・β と独立）→
+  プリセット = phase 08（[暫定仕様 07](../history/07_hotkey_presets_global.md)）**。暫定仕様は起票済・ユーザー確定済。
+- 直前の完了フェーズ: [06_child_file_save_dialog](../../.claude_data/state/decisions_archive/06_child_file_save_dialog.md)
+  （**2026-08-03 完了**・保存系リデザイン **Phase β**）。
   **完了フェーズの要約は本ファイルに置かない**。経緯・判断は `.claude_data/state/decisions.md`「アーカイブ索引」
   → `decisions_archive/<phase>.md` が正。
+- **未承認の提案書あり**: [05_refactor_child_file_save_dialog](../modified_proposal/05_refactor_child_file_save_dialog.md)
+  （Phase β の `/refactor_check` = **推奨**。項目 0 安全網 / 1 `config_service.py` 分割 / 2
+  `_collect_child_save_plan` 分割）。**ユーザー承認前に実施しない**。実施は独立ミニフェーズか次フェーズ前に判断する。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
-  過去のリファクタ計画・提案書（01〜04）は `instructions/modified_proposal/`（次採番 05）。
+  過去のリファクタ計画・提案書（01〜05）は `instructions/modified_proposal/`（次採番 06）。
   計画04 は完了済（W0〜W7・手動確認まで完了）。
 
 ## 次採番
 
 - 次フェーズは **`07_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
-  保存系リデザインの予定: **β=phase 06〔着手中〕/ γ=phase 07 / プリセット=phase 08**。
+  保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07 / プリセット=phase 08**。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
   04〜07 は起票済（04=α / 05=β / 06=γ / 07=プリセット）。次採番は **`08_<topic>`**。
 
@@ -76,9 +40,11 @@
 
 **計画04 由来の3フェーズはすべて完了**。`04_config_io_controller_split`（2026-07-26）・
 `05_keymap_set_new_and_default_dir`（Phase α・2026-07-28）も完了。
-**保存系リデザインの Phase β は着手済**（phase 06 / 暫定 05 → 「現在の参照先」）。以降の候補:
-- ~~[idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)（trigger_set の source_path 不整合）~~ →
-  **Phase β（phase 06）が内包**（単独フェーズにはしない）。
+**保存系リデザインの Phase β も完了**（phase 06 / 暫定 05・2026-08-03）。以降の候補:
+- **保存系リデザインの続き（推奨）**: γ = phase 07（[暫定仕様 06](../history/06_hook_keys_global_default.md)）→
+  プリセット = phase 08（[暫定仕様 07](../history/07_hotkey_presets_global.md)）。いずれも暫定仕様は確定済。
+- [idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除。**β 完了で前提充足・着手可**。
+  孤児 trigger_set と陳腐化した `_parent_refs` を回収する保守機能）。
 - [idea_09](../backlog/idea_09_legacy_settings_save_path_fallback.md)（別名保存でレガシー `settings/` 配下を選ぶと
   `default.json` へ無言フォールバックする残存経路。Phase α の deep-reviewer 指摘2 から分離・**優先度低**・
   着手時は仕様変更フロー必須）。
@@ -110,7 +76,17 @@
   [暫定仕様 03](../history/03_config_io_controller_split.md)「着手根拠」）。
 - [idea_06](../backlog/idea_06_individual_json_io_unification.md)（個別 JSON IO 3 種の共通化）は
   **保留**。着手条件は phase 04 完了（**充足・2026-07-26**）+ [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)
-  の解消 + 共通化の実需（残り 2 条件が未充足）。
+  の解消（**充足・2026-08-02 / Phase β**）+ 共通化の実需（**残りはこの 1 条件のみ**）。
+  Phase β の `/refactor_check` で M3（source_path 変化判定 + 追随メッセージが 3 ファイルに同型）に
+  該当したが、**idea_06 がカバーする既知領域**のため提案書には含めていない。
+- **Phase β の `/refactor_check` からの候補送り**（提案書
+  [05_refactor_child_file_save_dialog](../modified_proposal/05_refactor_child_file_save_dialog.md) の上位 3 項目に入らなかった分）:
+  - M4 の子カテゴリ列挙（`CHILD_KEYMAP` / `CHILD_TRIGGER_SET` / `CHILD_SEQUENCE` が 5 ファイルに散在。
+    子の種類は仕様上 3 種で固定のため**優先度低**）
+  - `child_save_dialog.py` が **370 行**（600 行未満で M1 非該当だが実装目安 300 行超）+
+    `_add_text_cell` の戻り値が素の dict
+  - `dirty_tracker.trigger_set_imported` が**読み手不在の残置状態**
+  - slugify 後に別々の keymap_set 名が**同一 stem へ丸まる衝突**（受入条件 8 の範囲外）
 - `app.py:64` の `keymap_set_path = resolve_keymap_set_path()` 初期化と、それが使う
   `config_paths.resolve_keymap_set_path()` の**引数なし分岐が実質デッド**（起動時に `load_startup_and_config` が
   必ず上書きするため）。**据え置き**（phase 05 の deep-reviewer 指摘3・実害なし）。

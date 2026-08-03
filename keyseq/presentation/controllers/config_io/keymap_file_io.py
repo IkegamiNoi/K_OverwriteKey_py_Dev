@@ -109,7 +109,12 @@ class KeymapFileIo:
             return
         try:
             used_ids = {normalize_key_name(item.get("id", "")) for item in self._app.keymap_service.get_keymaps(self._app.data)}
-            keymap = self._app.config_service.load_keymap_file(path, used_keymap_ids=used_ids, imported=True)
+            keymap = self._app.config_service.load_keymap_file(
+                path,
+                used_keymap_ids=used_ids,
+                imported=True,
+                config_root=self._app.config_root,
+            )
             keymaps = self._app.data.setdefault("keymaps", [])
             if not isinstance(keymaps, list):
                 keymaps = []

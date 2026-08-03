@@ -48,6 +48,9 @@ keyseq/presentation/
             keymap_file_io.py  # KeymapFileIo: keymap 個別 JSON
             trigger_set_file_io.py  # TriggerSetFileIo: trigger_set 個別 JSON
             sequence_file_io.py     # SequenceFileIo: sequence 個別 JSON
+            child_save_rows.py      # 子ファイルの共有状況判定と行モデル（判定名 / 表示文言 / 既定アクション）
+            child_save_dialog.py    # ChildSaveDialog: 子一覧 / 依存確認 / 再計算先の上書き確認
+            child_save_plan.py      # 行の選択・確定エントリ・既定規則から保存計画を組み立てる
         dirty_state.py
         hook_controller.py
         key_capture.py
@@ -139,6 +142,15 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
   - KeymapFileIo（keymap_file_io.py = `app.keymap_io`）: keymap 個別 JSON の保存/読込
   - TriggerSetFileIo（trigger_set_file_io.py = `app.trigger_set_io`）: trigger_set 個別 JSON の保存/読込
   - SequenceFileIo（sequence_file_io.py = `app.sequence_io`）: sequence 個別 JSON の保存/読込
+  - **子ファイル保存（Phase β。仕様は `spec_detail/data_schema.md` §5.8）**: 保存計画は
+    **presentation が決定し application が実行する**（application に tkinter 依存を持ち込まない）
+    - child_save_rows.py: 保存先の `_parent_refs` と現在の上位から**共有状況を判定**し、行モデル
+      （判定名 / 表示文言 / 既定アクション）を組み立てる。**分岐は判定名で行い、表示文言では分岐しない**
+    - ChildSaveDialog（child_save_dialog.py = `app.child_save_dialog`）: 子一覧ダイアログ・
+      依存確認（4 択）・再計算先の上書き確認
+    - child_save_plan.py: 一覧の選択 > 確定エントリ > 既定規則（保存先に実体があれば保存しない /
+      無ければ保存）の優先順位で `SavePlan` を組み立てる
+    - KeymapSetIo が上記を束ね、`config_service.save_runtime_data` へ計画を渡す
 - LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理
 - KeymapPanelController（controllers/keymap_panel_controller.py）: キーマップ管理パネル
 - TriggerPanelController（controllers/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示
@@ -166,6 +178,15 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 - config配下は相対、外部は絶対のパス保存ルールを扱う
 - trigger_set と sequence の分離保存・読込を扱う
 - keymap / trigger_set / sequence の個別ファイル保存・読込を扱う
+- **子ファイルの保存計画（`application/save_plan.py` の `SavePlan`）を実行する**
+  （仕様は `spec_detail/data_schema.md` §5.8）:
+  - 保存対象の解決（`resolve_child_save_targets`）・依存関係の検出・計画の事前検証・
+    **書き込み順序による best-effort 保証**（子 → 上位 → keymap_set → 起動設定。
+    上位の索引を新パスへ進める前に子の成功を確認する。トランザクション / ロールバックは持たない）
+  - `_parent_refs` の読み書き（best-effort マージ）とパス同一性判定（`canonical_path` /
+    `is_path_within` の 2 本のみを使う。正規化文字列は比較専用）
+  - **計画を決めるのは presentation 側**（`config_io/child_save_*`）。ConfigService は
+    渡された計画を実行するだけで、ダイアログを持たない
 
 ### HotkeyService（application/hotkey_service.py）/ domain/hotkey.py
 

@@ -99,7 +99,13 @@ class ConfigPaths:
 
     def json_dialog_initial_dir(self, preferred_dir: str, source_path: str = "") -> str:
         if source_path:
-            directory = os.path.dirname(os.path.abspath(source_path))
+            # source_path は config 相対で保持され得る（data_schema.md §5.7）。
+            # cwd 基準で abspath すると別の場所を指すため、必ず config_root から解決する。
+            directory = os.path.dirname(
+                os.path.abspath(
+                    self._config_service.resolve_config_path(source_path, self.config_root)
+                )
+            )
             if os.path.isdir(directory):
                 return directory
         if os.path.isdir(preferred_dir):

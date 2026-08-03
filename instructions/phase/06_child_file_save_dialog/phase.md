@@ -1,5 +1,15 @@
 # phase.md
 
+> **状態: 完了（2026-08-03）**。task_01〜20 完了・実機目視 R1〜R11 全 OK・正本反映（task_10）済み。
+> 設計の正は**正本** `instructions/common/spec_detail/data_schema.md` §5.4 / §5.6 / §5.7 / **§5.8** +
+> `features.md` §4.6 +`codebase_map.md`（暫定仕様 05 は凍結済み）。判断履歴は
+> [decisions_archive/06_child_file_save_dialog.md](../../../.claude_data/state/decisions_archive/06_child_file_save_dialog.md)。
+> `/refactor_check` = **推奨**（提案書 [05_refactor_child_file_save_dialog](../../modified_proposal/05_refactor_child_file_save_dialog.md)・**未承認**）。
+> 設計の正は**正本** `instructions/common/spec_detail/data_schema.md` §5.4 / §5.6 / §5.7 / **§5.8** と
+> `codebase_map.md`（暫定仕様 05 は凍結済み）。判断履歴は
+> [decisions_archive/06_child_file_save_dialog.md](../../../.claude_data/state/decisions_archive/06_child_file_save_dialog.md)。
+> `/refactor_check` = **推奨**（提案書 [05_refactor_child_file_save_dialog](../../modified_proposal/05_refactor_child_file_save_dialog.md)・**未承認**）。
+
 ## フェーズ名
 
 子ファイル保存の確認ダイアログと参照元記録（child_file_save_dialog）＝ 保存系リデザイン **Phase β**
@@ -106,8 +116,11 @@ keymap_set の「保存」が子ファイル（keymap / trigger_set / sequence�
 | task_16 | `save_dialog_initial_fit_and_wheel` | 一覧ダイアログの初期表示の省略計算と、スクロール領域のマウスホイール対応（v0.5-L/M・受入条件 22）。実機目視③④の解消 |
 | task_17 | `restore_default_as_new_set` | 「例を復元」を中身のある新規作成として扱う（`keymap_set_path` クリア + 未保存確認 + 例の子を dirty 扱い。v0.6-O/P/Q・受入条件 24・24b・25・26）。4 回目の実機目視の解消 |
 | task_18 | `share_state_sole_wording` | 一覧ダイアログの共有状況「単独」の**表示文言のみ**を「この構成のみが所有・既存を上書き」へ変更（v0.7-R・受入条件 27）。5 回目の実機目視の解消・**挙動不変** |
+| task_19 | `individual_save_stored_path_relative` | 個別**保存** 3 経路の `source_path` を **config 相対へ統一**（正本 §5.7・受入条件 28）。Codex のフェーズ完了レビュー由来・**保存 JSON は不変** |
+| task_20 | `individual_load_stored_path_relative` | 個別**読込** 3 経路の `source_path` も **config 相対へ統一**（正本 §5.7・受入条件 29）。task_19 と対。**読める場所は不変**（config 外は絶対のまま） |
 
-- 依存順は上表のとおり（task_01 → 09 → **11 → 12 → 13 → 14 → 15 → 16 → 17 → 18** → 10。**task_10 が最終**）。
+- 依存順は上表のとおり（task_01 → 09 → **11 → 12 → 13 → 14 → 15 → 16 → 17 → 18** → 10 → **19 → 20**）。
+  **task_19 / 20 は task_10（正本反映）の後に発生**したため最後に置く（正本 §5.7 の記述に実装を追従させる修正）。
   タスク定義は着手時に `/task_new` で順次起票する。
 - **task_18 は 2026-08-02（5 回目）の実機目視フィードバックによる追加**（暫定仕様 05 **v0.7**）。
   指摘自体は仕様どおりの挙動で、**表示文言の欠陥のみ**を直す。判断履歴は `decisions.md` の

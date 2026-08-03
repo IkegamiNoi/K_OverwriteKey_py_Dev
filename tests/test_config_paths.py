@@ -85,6 +85,30 @@ class ConfigPathsTest(unittest.TestCase):
             self.paths.preferred_keymap_sets_dir(),
         )
 
+    def test_json_dialog_initial_dir_resolves_config_relative_source_path(self):
+        # source_path は config 相対で保持され得る（data_schema.md §5.7）。
+        # cwd 基準で解決すると別の場所を指すため、config_root から解決すること。
+        sequences_dir = os.path.join(self.user_root, "sequences")
+        os.makedirs(sequences_dir, exist_ok=True)
+        preferred = self.paths.preferred_keymap_sets_dir()
+        os.makedirs(preferred, exist_ok=True)
+        self.assertEqual(
+            self.paths.json_dialog_initial_dir(preferred, "user/sequences/f1.json"),
+            sequences_dir,
+        )
+        # 絶対パスを渡した従来の経路は挙動不変。
+        self.assertEqual(
+            self.paths.json_dialog_initial_dir(
+                preferred, os.path.join(sequences_dir, "f1.json")
+            ),
+            sequences_dir,
+        )
+        # 実在しない場所を指す場合は従来どおり preferred_dir へフォールバックする。
+        self.assertEqual(
+            self.paths.json_dialog_initial_dir(preferred, "user/missing/f1.json"),
+            preferred,
+        )
+
     def test_containment_checks_are_case_insensitive(self):
         with patch("keyseq.application.config_service.os.path", ntpath):
             paths = ConfigPaths(
