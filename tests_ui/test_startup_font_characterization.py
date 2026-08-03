@@ -77,6 +77,31 @@ class StartupFontCharacterizationTest(unittest.TestCase):
         self.assertEqual(self.app._startup_settings["keymap_set_path"], "X.json")
         self.assertEqual(self.app._startup_settings["last_used_directory"], "D")
 
+    def test_write_startup_returns_true_and_updates_startup_settings(self):
+        self.app._startup_settings = {"keymap_set_path": "X.json"}
+        with patch.object(self.app.config_service, "save_startup"):
+            self.assertTrue(self.app.startup_io.write_startup({"ui_font_delta_pt": 2}))
+
+        self.assertEqual(
+            self.app._startup_settings,
+            {
+                "ui_font_delta_pt": 2,
+                "last_used_directory": "",
+                "keymap_set_path": "X.json",
+            },
+        )
+
+    def test_write_startup_returns_false_and_preserves_startup_settings_on_save_failure(self):
+        previous = {"keymap_set_path": "X.json", "ui_font_delta_pt": 1}
+        self.app._startup_settings = dict(previous)
+        with patch.object(self.app.config_service, "save_startup", side_effect=OSError("no disk")), patch(
+            "keyseq.presentation.controllers.config_io.startup_io.messagebox.showerror"
+        ) as showerror:
+            self.assertFalse(self.app.startup_io.write_startup({"ui_font_delta_pt": 2}))
+
+        self.assertEqual(self.app._startup_settings, previous)
+        showerror.assert_called_once_with("startup.json 保存失敗", "no disk")
+
     def test_startup_read_error_warning_text(self):
         read_error = ValueError("broken json")
         with patch.object(app_module.ConfigService, "load_startup", side_effect=read_error), patch.object(

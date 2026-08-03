@@ -13,17 +13,20 @@ task_01（`tests_ui/test_config_io_characterization.py`・C+D/E/F）と対にな
 """
 from __future__ import annotations
 
+import json
 import os
 import tempfile
 import tkinter
 import unittest
 from unittest.mock import patch
 
+from keyseq.application.config_service import split_loading
 from keyseq.application.save_plan import (
     ACTION_SAVE,
     ACTION_SAVE_AS,
     CHILD_SEQUENCE,
     CHILD_TRIGGER_SET,
+    SavePlan,
 )
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
@@ -1050,8 +1053,99 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             self.app.config_service, "save_startup", side_effect=OSError("no disk")
         ), patch.object(tkinter.messagebox, "showerror") as showerror:
             # 例外を raise しない（握りつぶす）
-            _startup_io(self.app).write_startup({"ui_font_delta_pt": 0})
+            self.assertFalse(_startup_io(self.app).write_startup({"ui_font_delta_pt": 0}))
             showerror.assert_called_once_with("startup.json 保存失敗", "no disk")
+
+    def test_write_global_hook_keys_persists_normalized_keys_and_round_trips(self):
+        with tempfile.TemporaryDirectory() as root:
+            startup_path = os.path.join(root, "config.json")
+            self.app._startup_settings = {
+                "keymap_set_path": "user/keymap_sets/current.json",
+                "ui_font_delta_pt": 2,
+            }
+            with patch.object(self.app.paths, "preferred_startup_path", return_value=startup_path):
+                self.assertTrue(
+                    _startup_io(self.app).write_global_hook_keys(stop_key="F1", toggle_key="F2")
+                )
+
+            with open(startup_path, encoding="utf-8") as file:
+                startup = json.load(file)
+            self.assertEqual(startup["hook_stop_key"], "f1")
+            self.assertEqual(startup["hook_toggle_key"], "f2")
+            self.assertEqual(startup["keymap_set_path"], "user/keymap_sets/current.json")
+            self.assertEqual(startup["ui_font_delta_pt"], 2)
+            self.assertEqual(
+                split_loading.load_global_hook_keys(self.app.config_service, config_root=root),
+                ("f1", "f2"),
+            )
+
+    def test_write_global_hook_keys_writes_empty_strings_for_clear(self):
+        with tempfile.TemporaryDirectory() as root:
+            startup_path = os.path.join(root, "config.json")
+            self.app._startup_settings = {"hook_stop_key": "f1", "hook_toggle_key": "f2"}
+            with patch.object(self.app.paths, "preferred_startup_path", return_value=startup_path):
+                self.assertTrue(_startup_io(self.app).write_global_hook_keys(stop_key="", toggle_key=""))
+
+            with open(startup_path, encoding="utf-8") as file:
+                startup = json.load(file)
+            self.assertEqual(startup["hook_stop_key"], "")
+            self.assertEqual(startup["hook_toggle_key"], "")
+
+    def test_write_global_hook_keys_failure_preserves_file_and_startup_settings(self):
+        previous = {"keymap_set_path": "user/keymap_sets/current.json", "hook_stop_key": "f3"}
+        self.app._startup_settings = dict(previous)
+        with tempfile.TemporaryDirectory() as root:
+            startup_path = os.path.join(root, "config.json")
+            with open(startup_path, "w", encoding="utf-8") as file:
+                json.dump(previous, file)
+            with patch.object(self.app.paths, "preferred_startup_path", return_value=startup_path), patch.object(
+                self.app.config_service, "save_startup", side_effect=OSError("no disk")
+            ), patch.object(tkinter.messagebox, "showerror") as showerror:
+                self.assertFalse(
+                    _startup_io(self.app).write_global_hook_keys(stop_key="F1", toggle_key="F2")
+                )
+
+            with open(startup_path, encoding="utf-8") as file:
+                self.assertEqual(json.load(file), previous)
+        self.assertEqual(self.app._startup_settings, previous)
+        showerror.assert_called_once_with("startup.json 保存失敗", "no disk")
+
+    def test_keymap_set_save_preserves_global_hook_keys(self):
+        with tempfile.TemporaryDirectory() as root:
+            startup_path = os.path.join(root, "config.json")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "saved.json")
+            self.app.config_root = root
+            self.app._startup_settings = {"ui_font_delta_pt": 2}
+            with patch.object(self.app.paths, "preferred_startup_path", return_value=startup_path):
+                self.assertTrue(
+                    _startup_io(self.app).write_global_hook_keys(stop_key="F1", toggle_key="F2")
+                )
+
+            self.app.data = self.app.config_service.new_default_data()
+            with patch.object(_config_set_io(self.app), "_collect_child_save_plan", return_value=(SavePlan(), "", False)), patch.object(
+                self.app.paths, "normalize_keymap_set_save_path", return_value=keymap_set_path
+            ), patch.object(
+                _config_set_io(self.app), "choose_split_base_dir_for_keymap_set", return_value=""
+            ), patch.object(
+                self.app.paths, "preferred_startup_path", return_value=startup_path
+            ), patch.object(self.app, "_set_flash_message"), patch.object(
+                self.app.dirty_tracker, "sync_trigger_set_source_path_from_data"
+            ), patch.object(
+                _config_set_io(self.app), "_clear_saved_child_dirty_flags"
+            ), patch.object(self.app.dirty_tracker, "set_dirty"), patch.object(
+                self.app.dirty_tracker, "sync_dirty_state"
+            ):
+                self.assertTrue(
+                    _config_set_io(self.app).save_keymap_set_to(
+                        keymap_set_path,
+                        flash_message="保存しました。",
+                        show_success_dialog=False,
+                    )
+                )
+            with open(startup_path, encoding="utf-8") as file:
+                startup = json.load(file)
+            self.assertEqual(startup["hook_stop_key"], "f1")
+            self.assertEqual(startup["hook_toggle_key"], "f2")
 
     # ===================== B: load_startup_and_config =====================
     def test_load_startup_and_config_loads_when_stored_path_exists(self):

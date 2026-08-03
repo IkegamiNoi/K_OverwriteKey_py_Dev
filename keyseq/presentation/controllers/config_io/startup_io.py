@@ -1,6 +1,7 @@
 import os
 from tkinter import messagebox
 
+from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.theme import coerce_font_delta
 
 
@@ -35,7 +36,7 @@ class StartupIo:
         self._app.config_service.apply_global_hook_key_defaults(self._app.data, config_root=self._app.config_root)
         self._app.keymap_set_io.apply_loaded_data_to_ui()
 
-    def write_startup(self, data: dict[str, any]):
+    def write_startup(self, data: dict[str, any]) -> bool:
         base = {
             "ui_font_delta_pt": 0,
             "last_used_directory": "",
@@ -52,5 +53,16 @@ class StartupIo:
             self._app.startup_path = self._app.paths.preferred_startup_path()
             self._app.config_service.save_startup(self._app.startup_path, base)
             self._app._startup_settings = base
+            return True
         except Exception as e:
             messagebox.showerror("startup.json 保存失敗", str(e))
+            return False
+
+    def write_global_hook_keys(self, *, stop_key: str, toggle_key: str) -> bool:
+        """hook キーの全体デフォルトを config/config.json へ保存する（成否を返す）。"""
+        return self.write_startup(
+            {
+                "hook_stop_key": normalize_key_name(str(stop_key or "")),
+                "hook_toggle_key": normalize_key_name(str(toggle_key or "")),
+            }
+        )

@@ -4,61 +4,62 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-03T12:00:00
+last_updated: 2026-08-03T14:00:00
 phase: **07_hook_keys_global_default（保存系リデザイン Phase γ）**。規範 = `instructions/phase/07_hook_keys_global_default/phase.md`
-last_commit_location: claude/task-03-progression-bba1a9 @ `a78c9b5` ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/task-03-progression-bba1a9 @ `d36020f` ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01 / 02 / 03 完了、次は task_04（全体デフォルト更新 API・成否付き）**。
+focus: **phase 07（Phase γ = hook キーの全体デフォルト化）を実施中。task_01〜04 完了、次は task_05（チェック UI）**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-03T12:00:00
+ts: 2026-08-03T14:00:00
 who: main
 summary: |
-  【task_03（保存時の挙動）を起票 → codex-implementer 実装 → verifier 実測 → reviewer 採用で完了】
-  - **task_03 を起票**（`tasks/task_03_hook_keys_save_behavior.md`・phase.md のタスク表をリンク化）。
-    根拠 = 暫定仕様 06 §5 / 受入条件 3・5。**application 限定**（`split_payloads.py` の 1 関数のみ）。
-  - **実装（application 層のみ・層跨ぎなし）**: `build_keymap_set_payload` で
-    `resolve_hook_keys_individual(runtime)` を判定に使い、
-    **ON = 個別値をそのまま保存 / OFF = 両 hook キーを `""` にクリア + `hook_keys_individual: false`**。
-    **キー自体は 3 つとも常に出力**（既存キー削除禁止）。`runtime` は書き換えない（副作用なし）。
-  - **設計の芯**: OFF で書くのは `""` であって `runtime.get(...)` ではない。OFF の runtime は
-    task_02 で全体デフォルトが注入済みのため、そのまま書くと**全体デフォルトが keymap_set へ焼き付き**、
-    次回読込で移行判定が誤発火する。判定を `.get()` の真偽で見ないのも同じ理由（フラグ無しの旧 runtime が
-    個別値を失う）。
-  - **tests_ui 1 件が fail → テスト側追従で解消**: `_prepare_loaded_keymap_set` が
-    `hook_keys_individual` 未設定のまま `hook_stop_key="f12"` を置いており、新契約では保存時に
-    空文字化されて既定復元後のファイルとバイト一致 → `assertNotEqual` が落ちた。
-    フィクスチャの意図どおり `hook_keys_individual = True` を明示して解消（実装側の問題ではない）。
-  - **申し送り（task_06）**: 「OFF 保存後にセッション内保持していた個別値も破棄する」は本タスク範囲外
-    （保持先が UI 側の状態のため task_06 が担当）。
+  【task_04（全体デフォルト更新 API）を起票 → codex-implementer 実装 → verifier 実測 → reviewer 採用で完了】
+  - **task_04 を起票**（`tasks/task_04_global_hook_keys_update_api.md`）。根拠 = 暫定仕様 06 §5 後半 /
+    受入条件 4・7。**presentation 限定**（`startup_io.py` の 2 メソッドのみ）。
+  - **実装（presentation 層のみ・層跨ぎなし）**: `write_startup` を **`-> bool`** 化
+    （成功 True / 例外捕捉 False。既存の `base` 組み立て・`coerce_font_delta`・`showerror` は不変）+
+    **`write_global_hook_keys(*, stop_key, toggle_key) -> bool`** を新設（2 キーを
+    `normalize_key_name` で正規化して `write_startup` へ委譲・戻り値をそのまま返す）。
+  - **設計の芯**: config.json への書き込みは **`write_startup` の 1 経路に集約**する。
+    `_startup_settings`（in-memory）と config.json が乖離すると、次の `write_startup`
+    （フォント変更・keymap_set パス記録）が**古い `_startup_settings` を土台に上書きして hook キーを消す**。
+    失敗時の旧値維持は `_startup_settings = base` が `try` 内・保存成功後にある既存構造で成立
+    （**この代入位置を動かさない**）。
+  - keymap_set 保存カスケードは `build_startup_payload` が `startup_data` を丸ごとコピーするため
+    **全体デフォルトは自動的に維持される**。分岐を足さずテストで固定した。
+  - **API を呼ぶコードは書いていない**（UI 配線 = task_05 / capture とランタイム反映 = task_06）。
+  - タスク定義の記述ミス 1 件を是正: 読み出し API は `ConfigService.load_global_hook_keys` ではなく
+    `split_loading.load_global_hook_keys(service, config_root=...)`（Codex が実装時に指摘）。
 result_files:
-  - keyseq/application/config_service/split_payloads.py（`build_keymap_set_payload` の hook キー分岐）
-  - tests/test_save_plan.py（payload 完全一致テストの期待値更新 + 新規 3 件）
-  - tests/test_config_service.py（OFF 保存 → 再読込の往復特性テスト）
-  - tests_ui/test_config_io_characterization_keymap_set_startup.py（`_prepare_loaded_keymap_set` のフィクスチャ追従）
-  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_03_hook_keys_save_behavior.md}
+  - keyseq/presentation/controllers/config_io/startup_io.py（`write_startup` の bool 化 + `write_global_hook_keys` 新設）
+  - tests_ui/test_startup_font_characterization.py（`write_startup` の成否テスト 2 件）
+  - tests_ui/test_config_io_characterization_keymap_set_startup.py（hook キー API・往復・カスケード保持 4 件）
+  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_04_global_hook_keys_update_api.md}
   - instructions/phase/current.md（phase 07 の進捗行）
-  - .claude_data/state/decisions.md（「phase 07」節へ task_03 を追記）
+  - .claude_data/state/decisions.md（「phase 07」節へ task_04 を追記）
 verified:
   compile: clean
-  tests: pass 168（task_02 時点 164 → +4）
-  tests_ui: pass 159
+  tests: pass 168（presentation 限定のため増減なし）
+  tests_ui: pass 165（159 → +6）
   smoke: pass
-  manual: **phase 07 の実機目視は task_07 でまとめて実施**（task_04 まで全体デフォルトを書く手段が無いため）。
-    Phase β 時点の実機目視 R1〜R11 は全 OK（ユーザー実施 2026-08-02）。
-  review: reviewer（task_03）= **完了可・指摘なし**（後方互換 / セッション内復活の境界 / runtime 非変異を個別確認）。
+  manual: **phase 07 の実機目視は task_07 でまとめて実施**（UI からの呼び出し元が task_05 / 06 で入るまで
+    実機では確認できない）。Phase β 時点の実機目視 R1〜R11 は全 OK（ユーザー実施 2026-08-02）。
+  review: reviewer（task_04）= **完了可・指摘なし**（保存失敗時の扱い / 層の分離 / 先取りの有無を個別確認）。
 
 ## next_action
-- **次は task_04（全体デフォルト更新 API）を `/task_new` で起票 → codex-implementer へ委任**。
-  内容 = `config/config.json` へ hook キーの全体デフォルトを書き込む経路を**成否付き**で用意する
-  （現状 `startup_io.write_startup` が例外を握り潰す = `startup_io.py:51-56`）。
-  **保存成功時のみ** UI / ランタイムを確定させ、失敗時は旧値維持または未保存を明示。
-  暫定仕様 06 §5 後半 / 受入条件 **4・7**。読み出し側（`load_global_hook_keys`）は task_02 で完成済みなので触らない。
+- **次は task_05（チェック UI）を `/task_new` で起票 → codex-implementer へ委任**。
+  内容 = full / compact の `hook_frame.py` へ「このキーマップセットで個別指定する」チェックを追加し、
+  `ui_vars` / App と同期する（`hook_keys_individual` に対応）。暫定仕様 06 §4 前半 / 受入条件 3。
+  **capture の所有者切替・dirty 非汚染・ON⇄OFF の表示切替は task_06**（先取りしない）。
 - task 一覧は phase.md の「タスク」表（01 スキーマ/移行判定〔**完了**〕→ 02 キー解決点〔**完了**〕→
-  03 保存時挙動〔**完了**〕→ 04 全体デフォルト更新 API〔成否付き〕→ 05 チェック UI → 06 所有者切替 capture →
+  03 保存時挙動〔**完了**〕→ 04 全体デフォルト更新 API〔**完了**〕→ 05 チェック UI → 06 所有者切替 capture →
   07 統合確認 → 08 正本反映）。
+- **task_04 の申し送り**: 全体デフォルトの書き込みは `StartupIo.write_global_hook_keys` の 1 本のみ。
+  **config.json を別経路で read-modify-write しない**（`_startup_settings` と乖離すると次の
+  `write_startup` が hook キーを消す）。task_06 は**戻り値 True のときだけ** UI / ランタイムを確定させる。
 - **task_02 の申し送り**: 解決点は `split_loading.load_global_hook_keys` と
   `ConfigService.apply_global_hook_key_defaults` の 2 本のみ。**ここ以外へ解決ロジックを書かない**。
   フック層は無変更を維持する（触ったら設計違反）。

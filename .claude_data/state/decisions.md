@@ -280,6 +280,27 @@
 - 検証: compile clean / tests **168 pass**（164 + 追加 4）/ tests_ui 159 pass / smoke pass。
   reviewer = **完了可・指摘なし**。
 
+### 【task_04】完了（2026-08-03）
+- **全体デフォルトの書き込み API は presentation（`StartupIo`）に置いた**。
+  `write_startup` を `-> bool` 化（成功 True / 例外捕捉 False。既存の `base` 組み立て・
+  `coerce_font_delta`・`showerror` は不変）+ `write_global_hook_keys(*, stop_key, toggle_key) -> bool` を新設。
+  正規化は `normalize_key_name`（presentation → domain の直接 import は既存 14 ファイルの踏襲）。
+- **書き込み経路を `write_startup` の 1 本に集約した理由**（最も壊しやすい点）:
+  `_startup_settings`（in-memory の起動設定）と config.json が乖離すると、次の `write_startup`
+  （フォント変更・keymap_set パス記録）が**古い `_startup_settings` を土台に上書きして hook キーを消す**。
+  そのため ConfigService へ独自の read-modify-write な保存 API を作らなかった。
+- **失敗時の旧値維持**は `self._app._startup_settings = base` が `try` 内・保存成功後にある
+  既存構造で成立する。**この代入位置を動かさない**（受入条件 7）。
+- keymap_set 保存カスケード（`keymap_set_io.py:116` → `build_startup_payload`）は `startup_data` を
+  丸ごとコピーするため**全体デフォルトは自動的に維持される**。hook キー用の分岐を足さず、
+  テストで固定した（確認 5）。
+- **API を呼ぶコードは書いていない**（UI 配線 = task_05 / capture とランタイム反映 = task_06）。
+- タスク定義の記述ミス 1 件を是正: 読み出し API を `ConfigService.load_global_hook_keys` と書いていたが
+  実体は `split_loading.load_global_hook_keys(service, config_root=...)`（+ 公開 API は
+  `apply_global_hook_key_defaults`）。Codex が実装時に指摘し、定義側を修正した。
+- 検証: compile clean / tests **168 pass**（presentation 限定のため増減なし）/
+  tests_ui **165 pass**（159 + 追加 6）/ smoke pass。reviewer = **完了可・指摘なし**。
+
 ---
 
 ## 運用メモ
