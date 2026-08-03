@@ -171,7 +171,26 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
    `app.full_view.keymap_box.keymap_listbox` のように **App → View → Widget のパス**で辿る
    （`app.full_view.sequence_box.run_to_end_delay_entry` 等）。
 
-### ConfigService
+### ConfigService（`application/config_service/` パッケージ）
+
+**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 5 ファイル:
+
+| ファイル | 責務 |
+|---|---|
+| `__init__.py` | **`ConfigService` 本体**。公開面 / パス基盤（`canonical_path` / `is_path_within` / `to_config_relative_or_absolute`）/ 個別ファイル IO / `_parent_refs` 操作 |
+| `save_plan_execution.py` | 保存計画の実行（事前検証 / 保存後パスの適用 / 依存判定） |
+| `split_payloads.py` | 保存 payload の構築（keymap / trigger_set / sequence） |
+| `save_path_resolution.py` | 保存先の解決と既定命名（`slugify_file_stem` の実体・一意パス採番） |
+| `split_loading.py` | split 構成の読込（keymap_set → keymap / trigger_set / sequence の再構成） |
+
+- **`ConfigService` 本体を `config_service.py` へ移してはならない**。テストが
+  `patch("keyseq.application.config_service.os.path", ntpath)` でモジュール名前空間の `os.path` を
+  差し替えており、パス同一性まわり（`canonical_path` / `_merge_parent_ref` 等）は
+  この名前空間に居ることが前提（4 テスト）。同じ理由で**パス基盤メソッドを兄弟モジュールへ移さない**。
+- 兄弟モジュールの関数は **`service` を第 1 引数に取るモジュール関数**（`service.X` で本体を参照）。
+  兄弟から `__init__` を import しない（循環回避）。private ヘルパの互換ラッパは置かない。
+
+責務の内訳:
 
 - 単一JSON互換の読込/書出
 - split構成の読込/保存

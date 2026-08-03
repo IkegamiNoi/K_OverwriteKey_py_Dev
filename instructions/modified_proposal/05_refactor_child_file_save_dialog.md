@@ -110,6 +110,10 @@
   **互換用の横流しモジュール・private メソッドのラッパは作らない**（呼び出し側を書き換える）。
 - **実施単位（ユーザー確定 2026-08-03）**: **2 コミットに分ける**。
   **1a = A + B**（親 約 982 行）→ **1b = C + D**（親 約 598 行）。各段階でフル検証 + reviewer を通す。
+- **→ 完了（2026-08-03）**。実測は 1a で親 1011 行、1b で **親 551 行**
+  （A 318 / B 413 / C `save_path_resolution.py` 213 / D `split_loading.py` 289）。
+  完了条件（全 pass・バイト列比較無修正 pass・親 600 行未満・ntpath 4 テスト無修正 pass）を満たす。
+  経緯と個別判断は `.claude_data/state/decisions.md` の「計画05」節。
 - **完了条件**: 項目 0 のコマンドが全 pass + 保存 JSON のバイト列比較テストが無修正で pass +
   `wc -l` で親ファイル（`__init__.py`）が **600 行未満**（1b 完了時点）+
   **`patch("keyseq.application.config_service.os.path", ntpath)` の 4 テストが無修正で pass**。

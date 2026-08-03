@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from keyseq.application.config_service import ConfigService
+from keyseq.application.config_service import ConfigService, save_path_resolution
 from keyseq.application.save_plan import (
     ACTION_SAVE,
     ACTION_SAVE_AS,
@@ -683,7 +683,8 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
     def test_empty_keymap_set_stem_falls_back_to_default(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
-            path = self.service._default_trigger_set_path(
+            path = save_path_resolution.default_trigger_set_path(
+                self.service,
                 os.path.join(root, "user", "keymap_sets", "..."),
                 config_root=root,
                 split_base_dir="",
@@ -757,7 +758,13 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
                 JsonRepository().load_json(keymap_path)["_parent_refs"],
                 [existing_parent_ref],
             )
-            self.assertTrue(self.service._is_default_trigger_set_area(trigger_set_path.swapcase(), root))
+            self.assertTrue(
+                save_path_resolution.is_default_trigger_set_area(
+                    self.service,
+                    trigger_set_path.swapcase(),
+                    root,
+                )
+            )
             self.assertTrue(os.path.exists(sequence_path))
 
 

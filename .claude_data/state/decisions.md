@@ -160,6 +160,26 @@
   （= 1b 対象の C 系）だけを経由しており、移設側の `import os` はパッチ対象外。
   将来 Windows パス識別のテストを移設側へ広げるならパッチ対象の拡張要否を再検討する。
 
+### 【項目 1b】完了（2026-08-03）
+- `save_path_resolution.py`（C・213 行）+ `split_loading.py`（D・289 行）を新設。親は 1011 → **551 行**
+  （完了条件「600 行未満」を満たす）。方式は 1a と同一（`service` 第 1 引数のモジュール関数・
+  private ヘルパのラッパを作らない）。
+- **parent に残した判断**（移すと壊れる / 責務が跨る）:
+  ① `canonical_path` / `is_path_within` / `to_config_relative_or_absolute` /
+  `_resolve_config_relative_path` / `_normalize_path_separators` / `_merge_parent_ref`
+  = **ntpath パッチの 4 テストが `__init__` の名前空間で `os.path` を見ている**ため移動不可。
+  ② `_normalize_sequence_payload`（`load_sequence_file` / `save_sequence_file` からも使用）と
+  `_generate_keymap_id`（`load_keymap_file` からも使用）= 読込専用ではないため D に含めない。
+- **例外扱い 2 件**: ① `slugify_file_stem` は**公開メソッド**（`config_paths.py` から使用）のため
+  本体を C へ移し親には薄い委譲を残す ② `_normalize_external_keyboard_layouts` は
+  `_build_runtime_data_from_split` 専用のため D へ含めた（提案書の列挙外だが読込責務）。
+- **テスト 2 箇所を修正**（`tests/test_config_service.py`）: `_default_trigger_set_path` /
+  `_is_default_trigger_set_area` を直接呼ぶ箇所を `save_path_resolution.<新名>(self.service, ...)` へ。
+  互換ラッパを作らない方針の帰結であり、挙動・アサーションは不変。
+- 検証: compile clean / tests **145 pass** / tests_ui **159 pass** / smoke pass /
+  ntpath パッチの **4 テストも個別 pass**。reviewer = **完了可**（AST 正規化差分で機械的置換のみを確認・指摘なし）。
+- → **項目 1 完了**。次は項目 2（`keymap_set_io._collect_child_save_plan` の分割）。
+
 ---
 
 ## 運用メモ

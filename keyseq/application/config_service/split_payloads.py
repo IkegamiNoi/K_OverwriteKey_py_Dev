@@ -5,6 +5,7 @@ from typing import Any
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_SEQUENCE, CHILD_TRIGGER_SET, SavePlan
 from keyseq.domain.config import DEFAULT_KEYBOARD_LAYOUT_ID, DEFAULT_RUN_TO_END_DELAY_MS, normalize_key_name, safe_deepcopy
+from . import save_path_resolution
 
 
 def build_split_save_payloads(service,
@@ -19,7 +20,8 @@ def build_split_save_payloads(service,
 ) -> dict[str, Any]:
     keymaps_dir = os.path.join(split_base_dir, "keymaps") if split_base_dir else ""
     sequences_dir = os.path.join(split_base_dir, "sequences") if split_base_dir else ""
-    trigger_set_path = service._resolve_trigger_set_save_path(
+    trigger_set_path = save_path_resolution.resolve_trigger_set_save_path(
+        service,
         runtime,
         config_root=config_root,
         keymap_set_path=keymap_set_path,
@@ -123,8 +125,9 @@ def build_keymap_payloads(service,
             relative_path = service.to_config_relative_or_absolute(resolved_path, config_root)
             collision_key = service.canonical_path(relative_path, config_root)
             if collision_key in used_relative_paths:
-                base_name = service._resolve_keymap_file_base_name(keymap)
-                relative_path = service._allocate_unique_keymap_path(
+                base_name = save_path_resolution.resolve_keymap_file_base_name(service, keymap)
+                relative_path = save_path_resolution.allocate_unique_keymap_path(
+                    service,
                     base_name,
                     used_relative_paths,
                     config_root,
@@ -132,9 +135,10 @@ def build_keymap_payloads(service,
             else:
                 used_relative_paths.add(collision_key)
         else:
-            base_name = service._resolve_keymap_file_base_name(keymap)
+            base_name = save_path_resolution.resolve_keymap_file_base_name(service, keymap)
             if keymaps_dir:
-                relative_path = service._allocate_unique_absolute_path(
+                relative_path = save_path_resolution.allocate_unique_absolute_path(
+                    service,
                     keymaps_dir,
                     base_name,
                     "keymap",
@@ -142,7 +146,8 @@ def build_keymap_payloads(service,
                     config_root,
                 )
             else:
-                relative_path = service._allocate_unique_keymap_path(
+                relative_path = save_path_resolution.allocate_unique_keymap_path(
+                    service,
                     base_name,
                     used_relative_paths,
                     config_root,
@@ -211,7 +216,8 @@ def build_trigger_set_payloads(service,
         if not key:
             continue
 
-        sequence_path = service._resolve_sequence_save_path(
+        sequence_path = save_path_resolution.resolve_sequence_save_path(
+            service,
             trigger,
             config_root=config_root,
             trigger_set_path=trigger_set_path,

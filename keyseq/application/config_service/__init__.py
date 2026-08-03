@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import re
 from typing import Any
 
 from keyseq.domain.config import (
@@ -13,13 +12,9 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
-from . import save_plan_execution, split_payloads
+from . import save_path_resolution, save_plan_execution, split_loading, split_payloads
 
-from keyseq.application.save_plan import (
-    ACTION_SAVE_AS,
-    CHILD_TRIGGER_SET,
-    SavePlan,
-)
+from keyseq.application.save_plan import SavePlan
 
 
 class ConfigService:
@@ -78,7 +73,8 @@ class ConfigService:
         resolved_config_root = os.path.abspath(config_root) if config_root else self._infer_config_root_from_keymap_set_path(resolved_keymap_set_path)
         if not os.path.exists(resolved_keymap_set_path):
             raise FileNotFoundError(resolved_keymap_set_path)
-        return self._load_split_config(
+        return split_loading.load_split_config(
+            self,
             config_root=resolved_config_root,
             keymap_set_path=resolved_keymap_set_path,
         )
@@ -240,7 +236,8 @@ class ConfigService:
         payload = self.repository.load_json(path)
         if not isinstance(payload, dict):
             raise ValueError("trigger_set JSON の形式が不正です。")
-        triggers, _parent_refs = self._load_triggers_from_trigger_set(
+        triggers, _parent_refs = split_loading.load_triggers_from_trigger_set(
+            self,
             payload,
             config_root=config_root,
             imported=imported,
@@ -359,296 +356,6 @@ class ConfigService:
             return None
         return self._normalize_parent_refs(payload.get(self.PARENT_REFS_KEY))
 
-    def _load_split_config(self, *, config_root: str, keymap_set_path: str) -> dict[str, Any]:
-        keymap_set = self._load_optional_json(keymap_set_path)
-        if not isinstance(keymap_set, dict):
-            raise ValueError("keymap_set.json の読込に失敗しました。")
-        return self._build_runtime_data_from_split(keymap_set, config_root=config_root)
-
-    def _build_runtime_data_from_split(
-        self,
-        keymap_set: dict[str, Any],
-        *,
-        config_root: str,
-    ) -> dict[str, Any]:
-        runtime = self.new_default_data()
-
-        for key in (
-            "hook_stop_key",
-            "hook_toggle_key",
-            "keyboard_layout",
-            "keyboard_show_physical_key_labels",
-            "debug_jis_special_key_events",
-        ):
-            if key in keymap_set:
-                runtime[key] = safe_deepcopy(keymap_set.get(key))
-
-        runtime["external_keyboard_layouts"] = self._normalize_external_keyboard_layouts(
-            keymap_set.get("external_keyboard_layouts"),
-            config_root=config_root,
-        )
-        triggers, trigger_set_parent_refs = self._load_trigger_set(
-            keymap_set.get("trigger_set_path"),
-            config_root=config_root,
-        )
-        runtime["triggers"] = triggers
-        trigger_set_path = str(keymap_set.get("trigger_set_path") or "").strip()
-        if trigger_set_path:
-            runtime[self.INTERNAL_TRIGGER_SET_SOURCE_PATH] = trigger_set_path
-        if trigger_set_parent_refs is not None:
-            runtime[self.INTERNAL_TRIGGER_SET_PARENT_REFS] = trigger_set_parent_refs
-        runtime["hotkey_presets"] = self._load_named_list(
-            keymap_set.get("hotkey_presets_path"),
-            root_key="hotkey_presets",
-            config_root=config_root,
-        )
-
-        keymaps: list[dict[str, Any]] = []
-        keymap_switch_keys: dict[str, str] = {}
-        loaded_keymap_ids_by_path: dict[str, str] = {}
-        used_keymap_ids: set[str] = set()
-
-        active_keymap_path = str(keymap_set.get("active_keymap_path") or "").strip()
-        active_keymap_resolved_path = (
-            self._resolve_config_relative_path(active_keymap_path, config_root)
-            if active_keymap_path
-            else ""
-        )
-
-        raw_keymaps = keymap_set.get("keymaps")
-        if isinstance(raw_keymaps, list):
-            for entry in raw_keymaps:
-                loaded_entry = self._load_keymap_entry(
-                    entry,
-                    config_root=config_root,
-                    used_keymap_ids=used_keymap_ids,
-                )
-                if loaded_entry is None:
-                    continue
-
-                keymap = loaded_entry["keymap"]
-                keymaps.append(keymap)
-                loaded_keymap_ids_by_path[loaded_entry["resolved_path"]] = str(keymap.get("id") or "")
-
-                switch_key = normalize_key_name(loaded_entry["switch_key"])
-                if switch_key:
-                    keymap_switch_keys[switch_key] = str(keymap.get("id") or "")
-
-        active_keymap_id = loaded_keymap_ids_by_path.get(active_keymap_resolved_path, "")
-        if not active_keymap_id and active_keymap_resolved_path and os.path.exists(active_keymap_resolved_path):
-            active_keymap = self._load_keymap_entry(
-                {"path": active_keymap_path},
-                config_root=config_root,
-                used_keymap_ids=used_keymap_ids,
-            )
-            if active_keymap is not None:
-                keymaps.append(active_keymap["keymap"])
-                active_keymap_id = str(active_keymap["keymap"].get("id") or "")
-
-        runtime["keymaps"] = keymaps
-        runtime["active_keymap_id"] = active_keymap_id
-        runtime["keymap_switch_keys"] = keymap_switch_keys
-        normalized = ensure_config_compatibility(runtime)
-        normalized_keymaps = normalized.get("keymaps", [])
-        for keymap, normalized_keymap in zip(keymaps, normalized_keymaps):
-            parent_refs = self._normalize_parent_refs(keymap.get(self.INTERNAL_KEYMAP_PARENT_REFS))
-            if parent_refs is not None:
-                normalized_keymap[self.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
-        return normalized
-
-    def _load_keymap_entry(
-        self,
-        entry: Any,
-        *,
-        config_root: str,
-        used_keymap_ids: set[str],
-    ) -> dict[str, Any] | None:
-        if isinstance(entry, dict):
-            stored_path = str(entry.get("path") or "").strip()
-            switch_key = str(entry.get("switch_key") or "").strip()
-        else:
-            stored_path = str(entry or "").strip()
-            switch_key = ""
-
-        if not stored_path:
-            return None
-
-        resolved_path = self._resolve_config_relative_path(stored_path, config_root)
-        raw_keymap = self._load_optional_json(resolved_path)
-        if not isinstance(raw_keymap, dict):
-            return None
-
-        keymap_id = self._generate_keymap_id(stored_path, raw_keymap, used_keymap_ids)
-        used_keymap_ids.add(keymap_id)
-
-        mappings = raw_keymap.get("mappings")
-        if not isinstance(mappings, dict):
-            mappings = {}
-
-        loaded_entry = {
-            "resolved_path": resolved_path,
-            "switch_key": switch_key,
-            "keymap": {
-                "id": keymap_id,
-                "label": str(raw_keymap.get("label") or "").strip(),
-                "mappings": safe_deepcopy(mappings),
-                self.INTERNAL_KEYMAP_SOURCE_PATH: stored_path,
-                self.INTERNAL_KEYMAP_IMPORTED: False,
-                self.INTERNAL_KEYMAP_DIRTY: False,
-            },
-        }
-        parent_refs = self._normalize_parent_refs(raw_keymap.get(self.PARENT_REFS_KEY))
-        if parent_refs is not None:
-            loaded_entry["keymap"][self.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
-        return loaded_entry
-
-    def _load_trigger_set(
-        self,
-        path_value: Any,
-        *,
-        config_root: str,
-    ) -> tuple[list[dict[str, Any]], list[str] | None]:
-        stored_path = str(path_value or "").strip()
-        if not stored_path:
-            return [], None
-
-        resolved_path = self._resolve_config_relative_path(stored_path, config_root)
-        loaded = self._load_optional_json(resolved_path)
-        if not isinstance(loaded, dict):
-            return [], None
-        return self._load_triggers_from_trigger_set(loaded, config_root=config_root, imported=False)
-
-    def _load_triggers_from_trigger_set(
-        self,
-        trigger_set: dict[str, Any],
-        *,
-        config_root: str,
-        imported: bool,
-    ) -> tuple[list[dict[str, Any]], list[str] | None]:
-        trigger_set_parent_refs = self._normalize_parent_refs(trigger_set.get(self.PARENT_REFS_KEY))
-        raw_triggers = trigger_set.get("triggers")
-        if not isinstance(raw_triggers, list):
-            return [], trigger_set_parent_refs
-
-        triggers: list[dict[str, Any]] = []
-        for raw_trigger in raw_triggers:
-            if not isinstance(raw_trigger, dict):
-                continue
-
-            trigger = {
-                "key": normalize_key_name(str(raw_trigger.get("key") or "")),
-                "suppress": bool(raw_trigger.get("suppress", True)),
-                "label": str(raw_trigger.get("label") or "").strip(),
-                "run_to_end": bool(raw_trigger.get("run_to_end", False)),
-                "run_to_end_delay_ms": self._coerce_nonnegative_int(
-                    raw_trigger.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
-                    DEFAULT_RUN_TO_END_DELAY_MS,
-                ),
-                "actions": safe_deepcopy(raw_trigger.get("actions", []))
-                if isinstance(raw_trigger.get("actions"), list)
-                else [],
-            }
-            sequence_path = str(raw_trigger.get("sequence_path") or "").strip()
-            if sequence_path:
-                resolved_sequence_path = self._resolve_config_relative_path(sequence_path, config_root)
-                sequence = self._load_optional_json(resolved_sequence_path)
-                if isinstance(sequence, dict):
-                    normalized_sequence = self._normalize_sequence_payload(sequence)
-                    trigger.update(normalized_sequence)
-                    parent_refs = self._normalize_parent_refs(sequence.get(self.PARENT_REFS_KEY))
-                    if parent_refs is not None:
-                        trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
-                    trigger[self.INTERNAL_SEQUENCE_SOURCE_PATH] = (
-                        self.to_config_relative_or_absolute(sequence_path, config_root)
-                        if config_root
-                        else sequence_path
-                    )
-                    trigger[self.INTERNAL_SEQUENCE_IMPORTED] = bool(imported)
-                    trigger[self.INTERNAL_SEQUENCE_DIRTY] = False
-            triggers.append(trigger)
-
-        normalized = ensure_config_compatibility({"triggers": triggers}).get("triggers", [])
-        for trigger, normalized_trigger in zip(triggers, normalized):
-            parent_refs = self._normalize_parent_refs(trigger.get(self.INTERNAL_SEQUENCE_PARENT_REFS))
-            if parent_refs is not None:
-                normalized_trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
-        return normalized, trigger_set_parent_refs
-
-    def _load_named_list(
-        self,
-        path_value: Any,
-        *,
-        root_key: str,
-        config_root: str,
-    ) -> list[Any]:
-        stored_path = str(path_value or "").strip()
-        if not stored_path:
-            return []
-
-        resolved_path = self._resolve_config_relative_path(stored_path, config_root)
-        loaded = self._load_optional_json(resolved_path)
-        if not isinstance(loaded, dict):
-            return []
-
-        items = loaded.get(root_key)
-        if not isinstance(items, list):
-            return []
-        return safe_deepcopy(items)
-
-    def _resolve_trigger_set_save_path(
-        self,
-        runtime: dict[str, Any],
-        *,
-        config_root: str,
-        keymap_set_path: str,
-        split_base_dir: str,
-        save_plan: SavePlan,
-    ) -> str:
-        entry = save_plan.entry_for(CHILD_TRIGGER_SET)
-        if entry is not None and entry.action == ACTION_SAVE_AS:
-            return os.path.abspath(
-                self._resolve_config_relative_path(entry.target_path, config_root)
-            )
-        source_path = str(runtime.get(self.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "").strip()
-        if source_path:
-            return self._resolve_config_relative_path(source_path, config_root)
-        return self._default_trigger_set_path(
-            keymap_set_path,
-            config_root=config_root,
-            split_base_dir=split_base_dir,
-        )
-
-    def _resolve_sequence_save_path(
-        self,
-        trigger: dict[str, Any],
-        *,
-        config_root: str,
-        trigger_set_path: str,
-        sequences_dir: str,
-        used_paths: set[str],
-    ) -> str:
-        source_path = str(trigger.get(self.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
-        if source_path:
-            resolved_source_path = self._resolve_config_relative_path(source_path, config_root)
-            stored_source_path = self.to_config_relative_or_absolute(resolved_source_path, config_root)
-            collision_key = self.canonical_path(stored_source_path, config_root)
-            if collision_key not in used_paths:
-                used_paths.add(collision_key)
-                return stored_source_path
-
-        base_name = self._resolve_sequence_file_base_name(trigger)
-        if self._is_default_trigger_set_area(trigger_set_path, config_root):
-            return self._allocate_unique_relative_path(
-                self.SEQUENCES_RELATIVE_DIR,
-                base_name,
-                "sequence",
-                used_paths,
-                config_root,
-            )
-
-        sequence_dir = sequences_dir or os.path.join(os.path.dirname(os.path.abspath(trigger_set_path)), "sequences")
-        return self._allocate_unique_absolute_path(sequence_dir, base_name, "sequence", used_paths, config_root)
-
     def _normalize_sequence_payload(self, sequence: dict[str, Any]) -> dict[str, Any]:
         return {
             "label": str(sequence.get("label") or "").strip(),
@@ -661,95 +368,6 @@ class ConfigService:
             if isinstance(sequence.get("actions"), list)
             else [],
         }
-
-    def _resolve_sequence_file_base_name(self, trigger: dict[str, Any]) -> str:
-        for candidate in (trigger.get("label"), trigger.get("key"), "sequence"):
-            slug = self.slugify_file_stem(candidate)
-            if slug:
-                return slug
-        return "sequence"
-
-    def _is_default_trigger_set_area(self, trigger_set_path: str, config_root: str) -> bool:
-        return self.is_path_within(
-            trigger_set_path,
-            os.path.join(config_root, "user", "trigger_sets"),
-            config_root,
-        )
-
-    def _allocate_unique_relative_path(
-        self,
-        relative_dir: str,
-        base_name: str,
-        fallback: str,
-        used_paths: set[str],
-        config_root: str,
-    ) -> str:
-        stem = self.slugify_file_stem(base_name) or fallback
-        index = 1
-        while True:
-            suffix = "" if index == 1 else f"_{index}"
-            candidate = os.path.join(relative_dir, f"{stem}{suffix}.json")
-            stored_candidate = self._normalize_path_separators(candidate)
-            collision_key = self.canonical_path(stored_candidate, config_root)
-            if collision_key not in used_paths:
-                used_paths.add(collision_key)
-                return stored_candidate
-            index += 1
-
-    def _allocate_unique_absolute_path(
-        self,
-        directory: str,
-        base_name: str,
-        fallback: str,
-        used_paths: set[str],
-        config_root: str,
-    ) -> str:
-        stem = self.slugify_file_stem(base_name) or fallback
-        index = 1
-        while True:
-            suffix = "" if index == 1 else f"_{index}"
-            candidate = os.path.join(directory, f"{stem}{suffix}.json")
-            stored = self.to_config_relative_or_absolute(candidate, config_root)
-            collision_key = self.canonical_path(stored, config_root)
-            if collision_key not in used_paths:
-                used_paths.add(collision_key)
-                return stored
-            index += 1
-
-    def _resolve_keymap_file_base_name(self, keymap: dict[str, Any]) -> str:
-        source_path = str(keymap.get(self.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
-        if source_path:
-            normalized_source = self._normalize_path_separators(source_path)
-            source_prefix = self._normalize_path_separators(self.KEYMAPS_RELATIVE_DIR) + "/"
-            if normalized_source.startswith(source_prefix):
-                filename = os.path.splitext(os.path.basename(normalized_source))[0]
-                slug = self.slugify_file_stem(filename)
-                if slug:
-                    return slug
-
-        for candidate in (keymap.get("id"), keymap.get("label"), "keymap"):
-            slug = self.slugify_file_stem(candidate)
-            if slug:
-                return slug
-        return "keymap"
-
-    def _allocate_unique_keymap_path(
-        self,
-        base_name: str,
-        used_relative_paths: set[str],
-        config_root: str,
-    ) -> str:
-        stem = self.slugify_file_stem(base_name) or "keymap"
-        index = 1
-        while True:
-            suffix = "" if index == 1 else f"_{index}"
-            candidate = os.path.join(self.KEYMAPS_RELATIVE_DIR, f"{stem}{suffix}.json")
-            stored_candidate = self._normalize_path_separators(candidate)
-            collision_key = self.canonical_path(stored_candidate, config_root)
-            if collision_key not in used_relative_paths:
-                used_relative_paths.add(collision_key)
-                return stored_candidate
-            index += 1
 
     def _sanitize_runtime_for_storage(self, data: dict[str, Any]) -> dict[str, Any]:
         sanitized = safe_deepcopy(data)
@@ -784,36 +402,6 @@ class ConfigService:
             sanitized["keymaps"] = cleaned_keymaps
         return sanitized
 
-    def _normalize_external_keyboard_layouts(
-        self,
-        registrations: Any,
-        *,
-        config_root: str,
-    ) -> list[dict[str, str]]:
-        if not isinstance(registrations, list):
-            return []
-
-        base_dir = os.path.dirname(config_root)
-        normalized: list[dict[str, str]] = []
-        for item in registrations:
-            if isinstance(item, dict):
-                stored_path = str(item.get("path") or "").strip()
-            else:
-                stored_path = str(item or "").strip()
-            if not stored_path:
-                continue
-
-            resolved_path = self._resolve_config_relative_path(stored_path, config_root)
-            runtime_path = resolved_path
-            try:
-                relative_path = os.path.relpath(runtime_path, base_dir)
-                if not relative_path.startswith(".."):
-                    runtime_path = self._normalize_path_separators(relative_path)
-            except Exception:
-                runtime_path = self._normalize_path_separators(runtime_path)
-            normalized.append({"path": runtime_path})
-        return normalized
-
     def _generate_keymap_id(
         self,
         stored_path: str,
@@ -847,22 +435,6 @@ class ConfigService:
 
     def _default_keymap_set_path(self, config_root: str) -> str:
         return self._resolve_config_relative_path(self.KEYMAP_SET_RELATIVE_PATH, config_root)
-
-    def _default_trigger_set_path(
-        self,
-        keymap_set_path: str,
-        *,
-        config_root: str,
-        split_base_dir: str,
-    ) -> str:
-        stem = self.slugify_file_stem(os.path.splitext(os.path.basename(keymap_set_path))[0])
-        filename = f"{stem or 'default'}.json"
-        if split_base_dir:
-            return os.path.join(split_base_dir, "trigger_sets", filename)
-        return self._resolve_config_relative_path(
-            os.path.join(self.TRIGGER_SETS_RELATIVE_DIR, filename),
-            config_root,
-        )
 
     def _default_legacy_config_path(self, config_root: str) -> str:
         return self._resolve_config_relative_path(self.LEGACY_CONFIG_RELATIVE_PATH, config_root)
@@ -965,39 +537,7 @@ class ConfigService:
         return self._merge_parent_ref(merged, parent_ref, config_root=config_root)
 
     def slugify_file_stem(self, value: Any) -> str:
-        normalized = str(value or "").strip()
-        normalized = re.sub(r'[\\/:*?"<>|]+', "_", normalized)
-        normalized = re.sub(r"_+", "_", normalized)
-        normalized = normalized.strip(" ._")
-        if not normalized:
-            return ""
-        reserved_names = {
-            "con",
-            "prn",
-            "aux",
-            "nul",
-            "com1",
-            "com2",
-            "com3",
-            "com4",
-            "com5",
-            "com6",
-            "com7",
-            "com8",
-            "com9",
-            "lpt1",
-            "lpt2",
-            "lpt3",
-            "lpt4",
-            "lpt5",
-            "lpt6",
-            "lpt7",
-            "lpt8",
-            "lpt9",
-        }
-        if normalized.lower() in reserved_names:
-            normalized = f"{normalized}_"
-        return normalized
+        return save_path_resolution.slugify_file_stem(value)
 
     def _coerce_nonnegative_int(self, value: Any, default: int) -> int:
         return coerce_nonnegative_int(value, default)

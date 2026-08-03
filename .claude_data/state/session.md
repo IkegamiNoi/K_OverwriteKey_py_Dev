@@ -9,7 +9,7 @@ phase: **計画05**（フェーズではない。規範 = `instructions/modified
 last_commit_location: claude/device-testing-procedures-16467e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **計画05（config_service 等の分割リファクタ・挙動不変）を実施中。項目 0 / 1a 完了、次は項目 1b**。
+focus: **計画05（config_service 等の分割リファクタ・挙動不変）を実施中。項目 0 / 1（1a + 1b）完了、次は項目 2**。
 mode: in_progress
 
 ## last_action
@@ -37,29 +37,39 @@ summary: |
     親 1678 → **1011 行**。公開 3 メソッドは薄い委譲として残置、private ヘルパのラッパは作らない。
     reviewer 指摘の未使用 import 6 個はメインが削除済み。
   - **項目 1 の分割範囲をユーザー確定 = A+B+C+D・2 コミット**。A+B だけでは親 982 行で完了条件
-    「600 行未満」に届かないため（起票時の見積もりが甘かった）。**1b = C + D で親 約 598 行**の見込み。
+    「600 行未満」に届かないため（起票時の見積もりが甘かった）。
+  - **項目 1b 完了 = 項目 1 完了**: `save_path_resolution.py`（C・213 行）+ `split_loading.py`（D・289 行）を
+    新設し、親 1011 → **551 行**（完了条件 600 行未満を達成）。方式は 1a と同一。
+    **parent に残した判断**: パス基盤（`canonical_path` / `is_path_within` /
+    `to_config_relative_or_absolute` / `_merge_parent_ref` 等）は **ntpath パッチの 4 テストが
+    `__init__` の名前空間を見ている**ため移動不可 / `_normalize_sequence_payload` と
+    `_generate_keymap_id` は読込専用ではない（保存側からも使う）ため D に含めない。
+    **例外 2 件**: `slugify_file_stem` は公開メソッドのため本体を C へ移し親に薄い委譲を残す /
+    `_normalize_external_keyboard_layouts` は読込専用のため D へ含めた（提案書の列挙外）。
+    互換ラッパを作らない方針の帰結として **tests/test_config_service.py の 2 箇所**
+    （`_default_trigger_set_path` / `_is_default_trigger_set_area` の直接呼び出し）を新名へ更新した。
 result_files:
   - keyseq/application/config_service/{__init__.py,save_plan_execution.py,split_payloads.py}（`db279e3`）
-  - instructions/modified_proposal/05_refactor_child_file_save_dialog.md（実施形態 / 項目 0 結果 / 項目 1 設計を追記）
-  - .claude_data/state/decisions.md（「計画05」節を新設）
+  - keyseq/application/config_service/{save_path_resolution.py,split_loading.py}（項目 1b・新規）
+  - instructions/common/codebase_map.md（ConfigService 節をパッケージ構成 5 ファイルの表へ更新）
+  - instructions/modified_proposal/05_refactor_child_file_save_dialog.md（実施形態 / 項目 0 結果 / 項目 1 完了を追記）
+  - .claude_data/state/decisions.md（「計画05」節）
 verified:
   compile: clean
   tests: pass 145
   tests_ui: pass 159
   smoke: pass
   manual: **実機目視 R1〜R11 全 OK**（ユーザー実施 2026-08-02・Phase β 時点。計画05 は挙動不変のため再目視不要）
-  review: reviewer（項目 1a 差分）= **完了可**。元実装と全文突合し `self.X` → `service.X` の機械的置換のみ・
-    分岐 / 書き込み順序 / エラーメッセージが不変であることを確認。指摘（未使用 import 6 個）は対応済み。
-    **ntpath パッチの 4 テストも pass**（パッケージ化でパッチ対象が外れていないことの担保）。
+  review: reviewer（項目 1b 差分）= **完了可・指摘なし**。移設前と AST 正規化差分で突合し
+    `self.X` → `service.X` の機械的置換のみ（分岐 / ループ条件 / `used_paths` への追加タイミング /
+    slugify の正規表現・予約名 / エラーメッセージが不変）であることを確認。
+    **ntpath パッチの 4 テストも個別 pass**。項目 1a も同様に完了可（`db279e3`）。
 
 ## next_action
-- **項目 1b**（C: 保存先の解決・命名〔`_resolve_sequence_save_path` / `_default_trigger_set_path` /
-  `_allocate_unique_*` / `slugify_file_stem` 等 180 行〕+ D: split 読込〔`_build_runtime_data_from_split` /
-  `_load_keymap_entry` / `_load_triggers_from_trigger_set` 等 204 行〕を
-  `save_path_resolution.py` / `split_loading.py` へ抽出）。**1a と同じ方式**（`service` 第 1 引数のモジュール関数・
-  互換ラッパを作らない）。完了後に親が **600 行未満**であることを `wc -l` で確認する。
-  → codex-implementer へ委任 → verifier で実測 → reviewer → コミット。
-- そのあと**項目 2**（`_collect_child_save_plan` の分割。`child_save_plan.py`）。
+- **項目 2**（`keymap_set_io._collect_child_save_plan`〔130 行〕の分割。`_ask_child_actions` /
+  `_resolve_dependency` を private メソッドとして抽出し、本体は手順の並びだけにする。
+  **新規ファイルは作らない**）。完了条件 = 全 pass + `tests_ui/test_child_save_dialog.py` が**無修正**で pass +
+  抽出後の各メソッドが 40 行以内。リスク = ループ再入 / `continue` 条件の取り違え（task_06b で事故済み）。
   項目 2 は γ とほぼ無関係のため、**途中で止めて γ へ移ってもよい**（ユーザー確定済）。
 - 計画05 完了後に **`/phase_start` で phase 07（γ）を起票**する
   （主入力 = `instructions/history/06_hook_keys_global_default.md`・ユーザー確定済）。
@@ -113,9 +123,11 @@ verified:
 - **【計画05 で変わった構造】`config_service` は単一ファイルではなく*パッケージ***
   （`keyseq/application/config_service/`）。**ConfigService 本体は `__init__.py`**（`config_service.py` ではない。
   テストが `patch("keyseq.application.config_service.os.path", ntpath)` でモジュール名前空間を差し替えるため、
-  この配置を崩すと 4 テストが壊れる）。兄弟モジュール = `save_plan_execution.py`（保存計画の実行）/
-  `split_payloads.py`（payload 構築）。抽出関数は **`service` を第 1 引数に取る**（`service.X` で親を参照）。
-  兄弟から `__init__` を import しない（循環回避）。
+  この配置を崩すと 4 テストが壊れる。同じ理由で**パス基盤メソッドを兄弟へ移さない**）。
+  兄弟モジュール = `save_plan_execution.py`（保存計画の実行）/ `split_payloads.py`（payload 構築）/
+  `save_path_resolution.py`（保存先解決・命名）/ `split_loading.py`（split 読込）。
+  抽出関数は **`service` を第 1 引数に取る**（`service.X` で親を参照）。
+  兄弟から `__init__` を import しない（循環回避）。構成の正本は `codebase_map.md` の ConfigService 節。
 - 未着手 idea: idea_07（参照元の掃除・**β 完了で着手可**）/ idea_03（hotkey 保存時正規化・優先度低）/
   idea_08（keymap_set 個別プリセット）/ idea_09（レガシー settings/ フォールバック）。
   保留 idea: idea_04 / idea_06（**残る着手条件は「共通化の実需」1 つのみ**）。
