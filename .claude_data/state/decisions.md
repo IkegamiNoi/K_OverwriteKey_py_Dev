@@ -98,6 +98,70 @@
 
 ---
 
+## 2026-08-03〜 (計画05: config_service / keymap_set_io の分割・挙動不変)
+
+規範: `instructions/modified_proposal/05_refactor_child_file_save_dialog.md`
+（項目 0 = 安全網 / 1 = `config_service.py` から保存計画の実行を切り出す / 2 = `_collect_child_save_plan` の分割。
+**1 項目 = 1 コミット**）。Phase β（phase 06）完了時の `/refactor_check` = 推奨 の産物。
+
+### 【起票時】実施形態と順序 → **計画として実施・γ より先**（ユーザー確定 2026-08-03）
+- **実施形態**: 選択肢は「①計画として実施（計画04 と同じ運用）②独立ミニフェーズ phase 07
+  ③枝番フェーズ 06b」→ **①を採用**。
+  **根拠**: フェーズ運用（暫定仕様先行モード）が重いのは**設計を確定させる工程**
+  （暫定仕様の起票 → 敵対的レビュー → ユーザー確定）を内包するためだが、提案書 05 には
+  対象・変更方針・完了条件・リスク・依存・安全網がそろっており**そのまま確定設計として機能する**。
+  加えて `/refactor_check` の規定で「挙動保存が原則・挙動変更は範囲外」と制約が閉じており、
+  設計判断の余地がほとんどない。フェーズ末の `/refactor_check` も本計画自体が
+  refactor_check の産物のため実質空振りになる。
+  ②③を採らないことで **γ = phase 07 / プリセット = phase 08 の対応表を触らずに済む**。
+- **順序**: **γ（phase 07）より先に実施**（ユーザー確定）。
+  **根拠**: ①tests 145 / tests_ui 159 が全 green + 実機目視 R1〜R11 OK 直後で、
+  「挙動不変」の基準線が最も明確 ②γ は `config_service.py`
+  （`_build_runtime_data_from_split` の hook キー読み出し・正規化）を触るため、
+  1650 行のまま載せると後の分割差分が膨らむ ③γ が触るのは「hook キーの解決」、
+  本計画が切り出すのは「保存計画の実行」で**責務が別のため切り口が変わりにくい**。
+- 項目 2（`_collect_child_save_plan` の分割）は γ とほぼ無関係のため、
+  **途中で止めて γ へ移ることも可**とする。
+
+### 【項目 0】安全網の確認 = **OK・追加テスト不要**（2026-08-03）
+- バイト列比較 21 箇所 / `test_save_plan.py` 12 件（旧索引維持・書き込み順序・deferred index）+
+  `test_dependency_query.py` 5 件 / ダイアログ駆動 46 件。移設対象の private ヘルパは
+  **テストから直接呼ばれていない**（`save_runtime_data` 経由）。
+- **発見 1 → 採用**: `patch("keyseq.application.config_service.os.path", ntpath)` が **4 箇所**あり、
+  クラスを `config_service/config_service.py` へ置くとパッチ対象が外れて壊れる。
+  → **クラス本体を `config_service/__init__.py` へ置く**（計画04 案A と同じ手）。4 テストは無修正で通る。
+- **発見 2 → 抽出方式を確定**（ユーザー確認 2026-08-03・観点は「後で把握しやすい方」）:
+  対象関数は `self.` を 1〜15 個参照するため**引数への全展開は不採用**（シグネチャが読めなくなる）。
+  **Mixin も不採用**（定義位置が MRO 依存で把握しにくい＝要望と逆行）。
+  → **`service` を第 1 引数に取るモジュール関数**（`self.X` → `service.X` の機械的置換）。
+  `_sequence_save_path_changed`（self 依存 0）のみ純粋関数化。
+
+### 【項目 1】分割範囲 → **A+B+C+D・2 コミット**（ユーザー確定 2026-08-03）
+- 実測: A 保存計画の実行 297 行 / B payload 構築 399 行 / C 保存先の解決・命名 180 行 /
+  D split 読込 204 行。**A+B のみでは親 約 982 行**で完了条件「600 行未満」に届かず
+  （提案書起票時の見積もりが甘かった）。**A+B+C+D で親 約 598 行**。
+- **1a = A + B → 1b = C + D** の 2 コミットに分け、各段階でフル検証 + reviewer を通す
+  （一括だと退行時の切り分けが難しいため）。
+
+### 【項目 1a】完了（2026-08-03）
+- `config_service.py` → **`config_service/__init__.py`**（内容不変で移動）+ `save_plan_execution.py`（A・318 行）
+  + `split_payloads.py`（B・407 行）。親は 1678 → **1011 行**。
+  移設関数は `service` を第 1 引数に取るモジュール関数、`sequence_save_path_changed` のみ純粋関数。
+  公開 3 メソッド（`save_runtime_data` / `resolve_child_save_targets` /
+  `find_dependency_blocked_sequences`）は**薄い委譲として親に残置**（外部契約のため）。
+  private ヘルパのラッパは**作らない**（互換レイヤー禁止）。
+- 検証: compile clean / tests **145 pass** / tests_ui **159 pass**（**1a 前後で同数**＝テスト追加削除なし）/
+  smoke pass / `patch(...config_service.os.path, ntpath)` の **4 テストも pass**（パッケージ化でパッチ対象が
+  外れていないことの担保）。
+- reviewer = **完了可**。元実装との全文突合で `self.X` → `service.X` の機械的置換のみ・分岐 / 書き込み順序 /
+  エラーメッセージが不変であることを確認。指摘 = 未使用 import 6 個の残置（**メインが直接削除**・
+  再検証で 145/159/smoke pass）。
+- **参考として記録**: ntpath パッチの 4 テストは `__init__.py` に残る `canonical_path` / `_merge_parent_ref`
+  （= 1b 対象の C 系）だけを経由しており、移設側の `import os` はパッチ対象外。
+  将来 Windows パス識別のテストを移設側へ広げるならパッチ対象の拡張要否を再検討する。
+
+---
+
 ## 運用メモ
 
 - 1 タスク完了時に reviewer 判定をここへ転記する

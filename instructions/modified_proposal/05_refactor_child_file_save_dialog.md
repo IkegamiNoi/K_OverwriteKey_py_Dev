@@ -29,7 +29,43 @@
 
 ---
 
-## 項目 0: 安全網の確認（**先行必須**）
+## 実施形態（ユーザー確定 2026-08-03）
+
+- **「計画 05」として実施**（フェーズにしない。計画04 と同じ運用・判断は `decisions.md` の「計画05」節）。
+  提案書自体が確定設計として機能し、`/refactor_check` の「挙動保存が原則」で制約が閉じているため。
+  フェーズ番号を消費しないので **γ = phase 07 / プリセット = phase 08 の対応表は不変**。
+- **γ（phase 07）より先に実施**。理由: ①tests 145 / tests_ui 159 全 green + 実機目視 OK 直後で
+  「挙動不変」の基準線が最も明確 ②γ は `config_service.py` を触るため先に分割した方が差分が小さい
+  ③γ が触る「hook キーの解決」と本計画が切り出す「保存計画の実行」は責務が別。
+
+---
+
+## 項目 0: 安全網の確認（**先行必須**）→ **完了（2026-08-03・追加テスト不要）**
+
+**実測結果**:
+
+| 観点 | 実測 |
+|---|---|
+| ①保存 JSON のバイト列比較 | `read_bytes()` 比較が **21 箇所**（`tests/test_config_service.py` 3 / `tests_ui/test_config_io_characterization.py` 18） |
+| ②保存計画の実行 | `tests/test_save_plan.py` **12 件**（失敗時の旧索引維持 / 子 → 親 → 起動設定の書き込み順序 / deferred index / SKIP の索引規則 / 無効計画で 1 ファイルも書かない）+ `tests/test_dependency_query.py` **5 件** |
+| ③子一覧ダイアログの選択駆動 | `tests_ui/test_child_save_dialog.py` **46 件** |
+| 移設対象の入口 | `save_runtime_data` = 16 ファイル / 36 箇所、`resolve_child_save_targets` = 14 ファイル / 18 箇所 |
+| 移設する private ヘルパ | **テストから直接呼ばれていない**（すべて `save_runtime_data` 経由）＝ 移設で壊れない |
+
+**発見（項目 1 の設計に反映済み）**:
+
+1. **`patch("keyseq.application.config_service.os.path", ntpath)` が 4 箇所ある**
+   （`tests/test_config_service.py:429` / `:789` / `tests/test_config_paths.py:113` /
+   `tests/test_child_save_rows.py:201`）。Windows のパス同一性を検証するテストが
+   **モジュール名前空間の `os.path` を差し替えている**ため、クラスを `config_service/config_service.py` へ
+   置くとパッチ対象が外れて 4 件が壊れる。→ **計画04 案A と同じく、クラス本体を
+   `config_service/__init__.py` へ置く**ことで `from ... import ConfigService` もパッチも温存する。
+2. **抽出方式**: 対象関数は `self.` を 1〜15 個参照する（`save_runtime_data` 15 / `_build_trigger_set_payloads` 9 /
+   `_resolve_sequence_save_path` 9 / `_build_keymap_payloads` 8）。引数へ全展開する純粋関数化は
+   シグネチャが読めなくなるため不採用。Mixin は差分最小だが定義位置が MRO 依存で**把握しにくい**ため不採用。
+   → **`service` を第 1 引数に取るモジュール関数**（`self.X` → `service.X` の機械的置換）。
+
+## 項目 0 の原文（実施前の記載）
 
 - **対象**: `tests/`（144）・`tests_ui/`（153）・`tests/smoke_app.py`
 - **やること**: 項目 1・2 の対象領域が特性テストで固定されているかを確認する。
@@ -56,16 +92,27 @@
   単一 JSON 互換 / split 読込 / 保存計画の実行 / パス規約 / 命名（slugify）と、
   **異なる責務のまとまりが 4 つ以上**同居している。
 - **どう変えるか**: 所有者フォルダ方式（`.claude/rules/file_organization_rules.md`）で
-  `keyseq/application/config_service/` を作り、親 `config_service.py` ごと入れる。
+  `keyseq/application/config_service/` を作る。**ConfigService 本体は `__init__.py` へ置く**
+  （計画04 案A の前例。項目 0 の発見 1）。
   ```text
   keyseq/application/config_service/
-      config_service.py      # ConfigService 本体（公開面は不変）
-      save_plan_execution.py # 保存計画の実行（検証 / 適用 / ロールバック）
-      split_payloads.py      # _build_*_payloads 群
+      __init__.py                # ConfigService 本体（公開面・patch 対象ともに不変）
+      save_plan_execution.py     # A: 保存計画の実行（検証 / 適用 / 依存判定）      297 行
+      split_payloads.py          # B: 保存 payload の構築（_build_*_payload(s)）    399 行
+      save_path_resolution.py    # C: 保存先の解決と既定命名（_resolve_* / slugify）180 行
+      split_loading.py           # D: split 構成の読込（_build_runtime_data_from_split 等）204 行
   ```
-  公開契約（`ConfigService` の import パスとメソッド）は**変えない**。互換用の横流しモジュールは作らない。
+  抽出した関数は **`service` を第 1 引数に取るモジュール関数**にする（項目 0 の発見 2）。
+  `self.X` → `service.X` の機械的置換で、呼び出し側は
+  `split_payloads.build_split_save_payloads(self, runtime, config_root=...)` と読める。
+  `_sequence_save_path_changed`（self 依存 0）だけは**引数のみの純粋関数**にする。
+  公開契約（`from keyseq.application.config_service import ConfigService` とメソッド）は**変えない**。
+  **互換用の横流しモジュール・private メソッドのラッパは作らない**（呼び出し側を書き換える）。
+- **実施単位（ユーザー確定 2026-08-03）**: **2 コミットに分ける**。
+  **1a = A + B**（親 約 982 行）→ **1b = C + D**（親 約 598 行）。各段階でフル検証 + reviewer を通す。
 - **完了条件**: 項目 0 のコマンドが全 pass + 保存 JSON のバイト列比較テストが無修正で pass +
-  `wc -l` で親ファイルが 600 行未満。
+  `wc -l` で親ファイル（`__init__.py`）が **600 行未満**（1b 完了時点）+
+  **`patch("keyseq.application.config_service.os.path", ntpath)` の 4 テストが無修正で pass**。
 - **リスクと戻し方**: import 経路の取り違え（`from keyseq.application.config_service import ConfigService`
   が壊れると全域が落ちるため、compileall + smoke で即検知できる）。戻しは 1 コミット revert。
 - **依存**: 項目 0。
