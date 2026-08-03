@@ -180,6 +180,29 @@
   ntpath パッチの **4 テストも個別 pass**。reviewer = **完了可**（AST 正規化差分で機械的置換のみを確認・指摘なし）。
 - → **項目 1 完了**。次は項目 2（`keymap_set_io._collect_child_save_plan` の分割）。
 
+### 【項目 2】完了（2026-08-03）= **計画05 完了**
+- `_collect_child_save_plan`（130 行）を手順の並びへ分解。**新規ファイルは作らず**同一ファイル内の
+  private メソッド抽出のみ（提案書どおり）。抽出 = `_collect_rows_and_targets` /
+  `_recalculate_for_trigger_target` / `_ask_trigger_set_dependency_action` /
+  `_apply_trigger_set_action` / `_resolve_trigger_set_dependency` / `_blocked_sequences` / `_build_plan`。
+- **ループ再入は `_RETRY` センチネル**（モジュール定数）で表現。
+  元の `if not action: (rows が空なら return / そうでなければ pending 初期化して continue)` を
+  「`_resolve_trigger_set_dependency` が `_RETRY` か結果タプルを返す → 呼び出し側が `continue`」へ写した。
+  **戻り値が 3 系統（キャンセル / 再試行 / 確定）**あるため、`None` の多重利用を避けてセンチネルを採用。
+- **重複の統合**: 再計算 → 上書き確認のブロックが 2 箇所に同型で存在したため
+  `_recalculate_for_trigger_target` 1 本にまとめた。元は 1 回目が `choices` を更新・2 回目が捨てる
+  差があったが、**2 回目は以降 `choices` を読まない**ため呼び出し側で捨てる形で等価。
+  `_trigger_target_changed` のガード（1 回目のみ `trigger_entry and`）は**呼び出し側に残す**
+  （「再計算不要」と「キャンセル」を 1 つの戻り値で表さないため）。
+- `build_save_plan(data=self._app.data, ...)` の 5 箇所は `_build_plan` へ機械的に置換。
+- 検証: compile clean / tests **145 pass** / tests_ui **159 pass**（うち `test_child_save_dialog` 46 件は
+  **無修正 pass** = ダイアログ駆動の挙動が不変）/ smoke pass。無限ループ・ハングなし。
+- reviewer = **修正して採用**。制御フロー突合（ダイアログ呼び出し順序・再入条件・早期 return・通知合成）は
+  全一致で挙動不変を確認。指摘は**行数のみ**（`_collect_child_save_plan` / `_resolve_trigger_set_dependency` が
+  44 行で完了条件 40 行超過）→ **メインが是正**（`_blocked_sequences` 抽出 + シグネチャ折り返し）し、
+  39 行 / 38 行へ。再検証で 145 / 159 / smoke pass。
+- **残る 40 行超は `save_keymap_set_to`（46 行・本タスクの対象外・無変更）**。必要なら別途 idea 化。
+
 ---
 
 ## 運用メモ

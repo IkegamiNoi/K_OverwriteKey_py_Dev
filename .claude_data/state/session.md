@@ -9,8 +9,9 @@ phase: **計画05**（フェーズではない。規範 = `instructions/modified
 last_commit_location: claude/device-testing-procedures-16467e ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **計画05（config_service 等の分割リファクタ・挙動不変）を実施中。項目 0 / 1（1a + 1b）完了、次は項目 2**。
-mode: in_progress
+focus: **計画05（config_service / keymap_set_io の分割リファクタ・挙動不変）は項目 0 / 1 / 2 をすべて完了。
+次は `/phase_start` で phase 07（γ）を起票する**。
+mode: done
 
 ## last_action
 ts: 2026-08-03T00:00:00
@@ -48,10 +49,19 @@ summary: |
     `_normalize_external_keyboard_layouts` は読込専用のため D へ含めた（提案書の列挙外）。
     互換ラッパを作らない方針の帰結として **tests/test_config_service.py の 2 箇所**
     （`_default_trigger_set_path` / `_is_default_trigger_set_area` の直接呼び出し）を新名へ更新した。
+  - **項目 2 完了 = 計画05 完了**: `keymap_set_io._collect_child_save_plan`（130 行）を手順の並びへ分解
+    （**新規ファイルは作らず**同一ファイル内の private メソッド抽出のみ）。ファイル 640 → 662 行だが
+    最長メソッドは 130 → **39 行**。ループ再入は**モジュール定数 `_RETRY` センチネル**で表現
+    （戻り値がキャンセル / 再試行 / 確定の 3 系統あるため `None` と区別）。
+    同型だった再計算 → 上書き確認の 2 ブロックを `_recalculate_for_trigger_target` へ統合
+    （1 回目は `choices` を採用・2 回目は捨てる = 以降読まないため等価）。
+    reviewer 指摘（2 メソッドが 44 行で完了条件 40 行超過）はメインが是正済み。
 result_files:
   - keyseq/application/config_service/{__init__.py,save_plan_execution.py,split_payloads.py}（`db279e3`）
   - keyseq/application/config_service/{save_path_resolution.py,split_loading.py}（項目 1b・新規）
-  - instructions/common/codebase_map.md（ConfigService 節をパッケージ構成 5 ファイルの表へ更新）
+  - keyseq/presentation/controllers/config_io/keymap_set_io.py（項目 2）
+  - instructions/common/codebase_map.md（ConfigService 節をパッケージ構成 5 ファイルの表へ更新 +
+    `_collect_child_save_plan` の手順と `_RETRY` を追記）
   - instructions/modified_proposal/05_refactor_child_file_save_dialog.md（実施形態 / 項目 0 結果 / 項目 1 完了を追記）
   - .claude_data/state/decisions.md（「計画05」節）
 verified:
@@ -60,16 +70,19 @@ verified:
   tests_ui: pass 159
   smoke: pass
   manual: **実機目視 R1〜R11 全 OK**（ユーザー実施 2026-08-02・Phase β 時点。計画05 は挙動不変のため再目視不要）
-  review: reviewer（項目 1b 差分）= **完了可・指摘なし**。移設前と AST 正規化差分で突合し
-    `self.X` → `service.X` の機械的置換のみ（分岐 / ループ条件 / `used_paths` への追加タイミング /
-    slugify の正規表現・予約名 / エラーメッセージが不変）であることを確認。
-    **ntpath パッチの 4 テストも個別 pass**。項目 1a も同様に完了可（`db279e3`）。
+  review: reviewer（項目 1b）= **完了可・指摘なし**（AST 正規化差分で機械的置換のみを確認）。
+    reviewer（項目 2）= **修正して採用**。制御フロー突合（ダイアログ呼び出し順序 / 再入条件 /
+    早期 return / 通知合成）は全一致。指摘は行数のみでメインが是正済み。
+    項目 1a も完了可（`db279e3`）。
 
 ## next_action
-- **項目 2**（`keymap_set_io._collect_child_save_plan`〔130 行〕の分割。`_ask_child_actions` /
-  `_resolve_dependency` を private メソッドとして抽出し、本体は手順の並びだけにする。
-  **新規ファイルは作らない**）。完了条件 = 全 pass + `tests_ui/test_child_save_dialog.py` が**無修正**で pass +
-  抽出後の各メソッドが 40 行以内。リスク = ループ再入 / `continue` 条件の取り違え（task_06b で事故済み）。
+- **`/phase_start` で phase 07（γ）を起票する**
+  （主入力 = `instructions/history/06_hook_keys_global_default.md`・**暫定仕様はユーザー確定済**）。
+  計画05 で `config_service` が分割済みのため、γ が触る「hook キーの解決」は
+  `config_service/split_loading.py` の読込経路が対象になる見込み。
+- 計画05 の候補送り項目は**未着手**（必要になった時点で idea 化）:
+  `child_save_dialog.py` 370 行 / `save_keymap_set_to` 46 行 / `dirty_tracker.trigger_set_imported` の残置 /
+  slugify の stem 衝突 / M4 の子カテゴリ列挙。
   項目 2 は γ とほぼ無関係のため、**途中で止めて γ へ移ってもよい**（ユーザー確定済）。
 - 計画05 完了後に **`/phase_start` で phase 07（γ）を起票**する
   （主入力 = `instructions/history/06_hook_keys_global_default.md`・ユーザー確定済）。

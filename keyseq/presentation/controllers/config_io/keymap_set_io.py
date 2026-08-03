@@ -22,6 +22,7 @@ from keyseq.presentation.controllers.config_io.child_save_rows import (
 
 
 DEFAULT_KEYMAP_SET_FILENAME = "keymap_set.json"
+_RETRY = object()  # 依存確認で「選び直す」= 子一覧ダイアログへ戻る
 
 
 class KeymapSetIo:
@@ -141,46 +142,18 @@ class KeymapSetIo:
             messagebox.showerror("保存失敗", str(e))
             return False
 
-    def _collect_child_save_plan(
-        self, save_path: str, split_base_dir: str
-    ) -> tuple[SavePlan | None, str, bool]:
+    def _collect_child_save_plan(self, save_path: str, split_base_dir: str) -> tuple[SavePlan | None, str, bool]:
         pending = SavePlan()
         while True:
-            targets = self._app.config_service.resolve_child_save_targets(
-                self._app.data,
-                config_root=self._app.config_root,
-                keymap_set_path=save_path,
-                split_base_dir=split_base_dir,
-                save_plan=pending,
-            )
-            rows = collect_child_save_rows(
-                data=self._app.data,
-                dirty_tracker=self._app.dirty_tracker,
-                config_service=self._app.config_service,
-                config_root=self._app.config_root,
-                keymap_set_path=save_path,
-                split_base_dir=split_base_dir,
-                save_plan=pending,
-            )
+            targets, rows = self._collect_rows_and_targets(save_path, split_base_dir, pending)
             choices = {} if not rows else self._app.child_save_dialog.ask_child_save_actions(rows)
             if choices is None:
                 return None, "", False
-            plan = build_save_plan(
-                data=self._app.data,
-                rows=rows,
-                choices=choices,
-                targets=targets,
-                confirmed=pending,
-            )
-            trigger_entry = plan.entry_for(CHILD_TRIGGER_SET)
+            plan = self._build_plan(rows=rows, choices=choices, targets=targets, confirmed=pending)
             recalculation_notice = ""
-            if trigger_entry and self._trigger_target_changed(
-                trigger_entry,
-                targets,
-                save_path,
-                split_base_dir,
-            ):
-                plan, targets = self._rebuild_plan_with_targets(
+            trigger_entry = plan.entry_for(CHILD_TRIGGER_SET)
+            if trigger_entry and self._trigger_target_changed(trigger_entry, targets, save_path, split_base_dir):
+                recalculated = self._recalculate_for_trigger_target(
                     rows=rows,
                     choices=choices,
                     confirmed=pending,
@@ -188,89 +161,154 @@ class KeymapSetIo:
                     split_base_dir=split_base_dir,
                     plan=plan,
                 )
-                recalculation_notice = self._recalculation_notice(rows, targets)
-                confirmed_plan = self._confirm_recalculated_overwrites(
-                    rows=rows,
-                    choices=choices,
-                    targets=targets,
-                    save_path=save_path,
-                    confirmed=pending,
-                )
-                if confirmed_plan is None:
+                if recalculated is None:
                     return None, "", False
-                plan, choices = confirmed_plan
-            blocked = self._app.config_service.find_dependency_blocked_sequences(
-                self._app.data,
-                config_root=self._app.config_root,
-                keymap_set_path=save_path,
-                split_base_dir=split_base_dir,
-                save_plan=plan,
-            )
+                plan, targets, choices, recalculation_notice = recalculated
+            blocked = self._blocked_sequences(save_path, split_base_dir, plan)
             if not blocked:
                 return plan, recalculation_notice, False
-            trigger_row = self._trigger_set_row(rows, targets, save_path)
-            dependency_notice = ""
-            if trigger_row.share_state in (SHARE_SOLE, SHARE_NEW):
-                action = ACTION_SAVE
-                dependency_notice = "トリガー一覧も保存して索引を更新しました。"
-            else:
-                action = self._app.child_save_dialog.confirm_trigger_set_dependency(
-                    blocked_labels=self._blocked_labels(blocked),
-                    trigger_set_row=trigger_row,
-                )
-            if not action:
-                if not rows:
-                    return None, "", False
-                pending = SavePlan()
-                continue
-            confirmed = ChildSaveEntry(
-                CHILD_TRIGGER_SET,
-                "",
-                action,
-                self._app.child_save_dialog.trigger_set_save_as_path if action == ACTION_SAVE_AS else "",
-            )
-            confirmed_entries = SavePlan(entries=(confirmed,))
-            choices = {
-                **choices,
-                (CHILD_TRIGGER_SET, ""): (confirmed.action, confirmed.target_path),
-            }
-            plan = build_save_plan(
-                data=self._app.data,
+            resolved = self._resolve_trigger_set_dependency(
                 rows=rows,
                 choices=choices,
                 targets=targets,
+                blocked=blocked,
+                save_path=save_path,
+                split_base_dir=split_base_dir,
+                recalculation_notice=recalculation_notice,
+            )
+            if resolved is _RETRY:
+                pending = SavePlan()
+                continue
+            return resolved
+
+    def _blocked_sequences(self, save_path: str, split_base_dir: str, plan: SavePlan):
+        return self._app.config_service.find_dependency_blocked_sequences(
+            self._app.data,
+            config_root=self._app.config_root,
+            keymap_set_path=save_path,
+            split_base_dir=split_base_dir,
+            save_plan=plan,
+        )
+
+    def _build_plan(self, *, rows, choices, targets, confirmed) -> SavePlan:
+        return build_save_plan(
+            data=self._app.data,
+            rows=rows,
+            choices=choices,
+            targets=targets,
+            confirmed=confirmed,
+        )
+
+    def _collect_rows_and_targets(self, save_path: str, split_base_dir: str, pending: SavePlan):
+        targets = self._app.config_service.resolve_child_save_targets(
+            self._app.data,
+            config_root=self._app.config_root,
+            keymap_set_path=save_path,
+            split_base_dir=split_base_dir,
+            save_plan=pending,
+        )
+        rows = collect_child_save_rows(
+            data=self._app.data,
+            dirty_tracker=self._app.dirty_tracker,
+            config_service=self._app.config_service,
+            config_root=self._app.config_root,
+            keymap_set_path=save_path,
+            split_base_dir=split_base_dir,
+            save_plan=pending,
+        )
+        return targets, rows
+
+    def _recalculate_for_trigger_target(
+        self, *, rows, choices, confirmed, plan, save_path: str, split_base_dir: str
+    ):
+        plan, targets = self._rebuild_plan_with_targets(
+            rows=rows,
+            choices=choices,
+            confirmed=confirmed,
+            save_path=save_path,
+            split_base_dir=split_base_dir,
+            plan=plan,
+        )
+        notice = self._recalculation_notice(rows, targets)
+        confirmed_plan = self._confirm_recalculated_overwrites(
+            rows=rows,
+            choices=choices,
+            targets=targets,
+            save_path=save_path,
+            confirmed=confirmed,
+        )
+        if confirmed_plan is None:
+            return None
+        plan, choices = confirmed_plan
+        return plan, targets, choices, notice
+
+    def _ask_trigger_set_dependency_action(self, *, rows, targets, save_path: str, blocked):
+        trigger_row = self._trigger_set_row(rows, targets, save_path)
+        if trigger_row.share_state in (SHARE_SOLE, SHARE_NEW):
+            return ACTION_SAVE, "トリガー一覧も保存して索引を更新しました。"
+        action = self._app.child_save_dialog.confirm_trigger_set_dependency(
+            blocked_labels=self._blocked_labels(blocked),
+            trigger_set_row=trigger_row,
+        )
+        return action, ""
+
+    def _resolve_trigger_set_dependency(
+        self, *, rows, choices, targets, blocked,
+        save_path: str, split_base_dir: str, recalculation_notice: str,
+    ):
+        action, dependency_notice = self._ask_trigger_set_dependency_action(
+            rows=rows,
+            targets=targets,
+            save_path=save_path,
+            blocked=blocked,
+        )
+        if not action:
+            return (None, "", False) if not rows else _RETRY
+        plan, choices, confirmed_entries = self._apply_trigger_set_action(
+            action=action,
+            rows=rows,
+            choices=choices,
+            targets=targets,
+        )
+        if action == ACTION_SKIP:
+            return SavePlan(entries=plan.entries, allow_deferred_index=True), recalculation_notice, True
+        confirmed = confirmed_entries.entries[0]
+        if self._trigger_target_changed(confirmed, targets, save_path, split_base_dir):
+            recalculated = self._recalculate_for_trigger_target(
+                rows=rows,
+                choices=choices,
                 confirmed=confirmed_entries,
+                save_path=save_path,
+                split_base_dir=split_base_dir,
+                plan=plan,
             )
-            if action == ACTION_SKIP:
-                return (
-                    SavePlan(entries=plan.entries, allow_deferred_index=True),
-                    recalculation_notice,
-                    True,
-                )
-            if self._trigger_target_changed(confirmed, targets, save_path, split_base_dir):
-                plan, targets = self._rebuild_plan_with_targets(
-                    rows=rows,
-                    choices=choices,
-                    confirmed=confirmed_entries,
-                    save_path=save_path,
-                    split_base_dir=split_base_dir,
-                    plan=plan,
-                )
-                recalculation_notice = self._recalculation_notice(rows, targets)
-                confirmed_plan = self._confirm_recalculated_overwrites(
-                    rows=rows,
-                    choices=choices,
-                    targets=targets,
-                    save_path=save_path,
-                    confirmed=confirmed_entries,
-                )
-                if confirmed_plan is None:
-                    return None, "", False
-                plan, _ = confirmed_plan
-            notices = "\n".join(
-                notice for notice in (recalculation_notice, dependency_notice) if notice
-            )
-            return plan, notices, False
+            if recalculated is None:
+                return None, "", False
+            plan, targets, _, recalculation_notice = recalculated
+        notices = "\n".join(
+            notice for notice in (recalculation_notice, dependency_notice) if notice
+        )
+        return plan, notices, False
+
+    def _apply_trigger_set_action(self, *, action, rows, choices, targets):
+        confirmed = ChildSaveEntry(
+            CHILD_TRIGGER_SET,
+            "",
+            action,
+            self._app.child_save_dialog.trigger_set_save_as_path if action == ACTION_SAVE_AS else "",
+        )
+        confirmed_entries = SavePlan(entries=(confirmed,))
+        choices = {
+            **choices,
+            (CHILD_TRIGGER_SET, ""): (confirmed.action, confirmed.target_path),
+        }
+        plan = self._build_plan(
+            rows=rows,
+            choices=choices,
+            targets=targets,
+            confirmed=confirmed_entries,
+        )
+        return plan, choices, confirmed_entries
 
     def _rebuild_plan_with_targets(
         self,
@@ -290,13 +328,7 @@ class KeymapSetIo:
             save_plan=plan,
         )
         return (
-            build_save_plan(
-                data=self._app.data,
-                rows=rows,
-                choices=choices,
-                targets=targets,
-                confirmed=confirmed,
-            ),
+            self._build_plan(rows=rows, choices=choices, targets=targets, confirmed=confirmed),
             targets,
         )
 
@@ -311,25 +343,15 @@ class KeymapSetIo:
     ) -> tuple[SavePlan, dict] | None:
         overwrite_rows = self._recalculated_overwrite_rows(rows, choices, targets, save_path)
         if not overwrite_rows:
-            return build_save_plan(
-                data=self._app.data,
-                rows=rows,
-                choices=choices,
-                targets=targets,
-                confirmed=confirmed,
+            return self._build_plan(
+                rows=rows, choices=choices, targets=targets, confirmed=confirmed
             ), choices
         replacements = self._app.child_save_dialog.confirm_recalculated_overwrite(overwrite_rows)
         if replacements is None:
             return None
         choices = {**choices, **replacements}
         return (
-            build_save_plan(
-                data=self._app.data,
-                rows=rows,
-                choices=choices,
-                targets=targets,
-                confirmed=confirmed,
-            ),
+            self._build_plan(rows=rows, choices=choices, targets=targets, confirmed=confirmed),
             choices,
         )
 

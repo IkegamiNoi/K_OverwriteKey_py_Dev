@@ -164,6 +164,20 @@
 - **リスクと戻し方**: ループの再入・`continue` 条件の取り違えで依存確認が無限ループ / 空振りする
   （task_06b で実際に起きた事故）。`tests_ui` の依存確認テストが検知する。戻しは 1 コミット revert。
 - **依存**: 項目 0。項目 1 とは独立（並行可）。
+- **→ 完了（2026-08-03）**。`_collect_rows_and_targets` / `_recalculate_for_trigger_target` /
+  `_ask_trigger_set_dependency_action` / `_apply_trigger_set_action` / `_resolve_trigger_set_dependency` /
+  `_blocked_sequences` / `_build_plan` を抽出。ループ再入は `_RETRY` センチネルで表現。
+  `_collect_child_save_plan` は **39 行**（完了条件 40 行以内）。`tests_ui/test_child_save_dialog.py` は
+  **無修正で 46 件 pass**。経緯と個別判断は `.claude_data/state/decisions.md` の「計画05」節。
+
+---
+
+## 計画05 の完了（2026-08-03）
+
+項目 0 / 1 / 2 をすべて実施し、**計画05 は完了**。M1（`config_service` 1650 行・`keymap_set_io` 640 行）と
+M2（80 行超の関数）は解消した。M3 / M4 は起票時の判断どおり本書では扱わない（既知 / 候補送り）。
+`/refactor_check` の候補送り項目（`child_save_dialog.py` 370 行 / `dirty_tracker.trigger_set_imported` の残置 /
+slugify の stem 衝突 / `save_keymap_set_to` 46 行）は**未着手のまま**で、必要になった時点で idea 化する。
 
 ---
 

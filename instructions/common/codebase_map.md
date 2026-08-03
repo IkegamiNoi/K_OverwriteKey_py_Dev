@@ -150,7 +150,12 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       依存確認（4 択）・再計算先の上書き確認
     - child_save_plan.py: 一覧の選択 > 確定エントリ > 既定規則（保存先に実体があれば保存しない /
       無ければ保存）の優先順位で `SavePlan` を組み立てる
-    - KeymapSetIo が上記を束ね、`config_service.save_runtime_data` へ計画を渡す
+    - KeymapSetIo が上記を束ね、`config_service.save_runtime_data` へ計画を渡す。
+      束ねる本体は `_collect_child_save_plan`（**保存計画が確定するまでのループ**）で、
+      1 周は「行と保存先の収集 → 子一覧ダイアログ → 保存先が変わったなら再計算と上書き確認 →
+      依存確認（トリガー一覧）」の並び。各ステップは private メソッドへ分割済み（計画05 項目 2）。
+      **依存確認で「選び直す」が選ばれた場合はモジュール定数 `_RETRY` を返して一覧へ戻る**
+      （戻り値がキャンセル / 再試行 / 確定の 3 系統あるため `None` と区別する）
 - LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理
 - KeymapPanelController（controllers/keymap_panel_controller.py）: キーマップ管理パネル
 - TriggerPanelController（controllers/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示
