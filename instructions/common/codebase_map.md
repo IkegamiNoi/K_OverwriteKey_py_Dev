@@ -98,6 +98,11 @@ keyseq/presentation/
 - 生成と配線（各サービス・コントローラの生成。コールバックはラムダで包み、実行時に `self.<コントローラ>.…` を解決）
 - View切替（`show_full_view` / `show_compact_view` と geometry の退避・復元）
 - 調整役メソッド（キャプチャ相互排他: `toggle_stop_key_capture` / `start_stop_key_capture` / `toggle_toggle_key_capture` / `start_toggle_key_capture`、ダーティ既定解決: `mark_keymap_dirty` / `mark_sequence_dirty`、フラッシュメッセージ、`_sync_control_vars_from_data`）
+- hook キーの個別指定（`spec_detail/data_schema.md` §5.9）: `toggle_hook_keys_individual`（Var → data + dirty +
+  ON→OFF で個別値を退避 / OFF→ON で復元・退避が無ければ両キーを `""`。フラグを data へ書いた**後**に
+  `apply_global_hook_key_defaults` を呼ぶ）と `discard_retained_hook_keys`。
+  退避先は **App の `_retained_hook_keys`**（`app.data` に持たないためスキーマ・保存経路に影響しない）。
+  data → Var の同期は `_sync_control_vars_from_data` の 1 本（**ここに退避の破棄を入れない**）
 - dialogs 向け契約（`validate_hotkey` / `_dialog_result` / `_perform_action` / `open_preset_manager`）と、状態依存でパスを詰め替える薄メソッド（`suggest_keymap_set_dialog_path` / `suggest_keymap_set_dialog_dir` / `keymap_set_file_stem`）
   - `validate_hotkey` は**検証ロジックを持たず** `HotkeyService.validate`（application）への**薄い委譲**（実体は下記 HotkeyService / `domain/hotkey.py`）。dialogs 契約維持のため残す
 - 配線用の薄いヘルパ（`_get_send_guard_count` / `_find_trigger_by_key` / `_find_keymap_target` / `_find_keymap_switch_target_id`）
@@ -121,6 +126,8 @@ keyseq/presentation/
 - **`AppState`（application 層）とは別物**。UiVars は Tk に依存する presentation 層の部品であり、
   選択インデックス等のアプリ状態は引き続き `AppState` が持つ。混ぜない。
 - Tk 変数はアプリ生存中に差し替わらないため、Widget・コントローラがコンストラクタで受け取って保持してよい。
+- `hook_keys_individual_var`（BooleanVar）は **full / compact が同一インスタンスを共有**する
+  （compact 側は `state="disabled"` の表示専用）。
 
 ### コントローラ（controllers/）
 
@@ -131,13 +138,28 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
 
 - ConfigPaths（config_paths.py ※presentation 直下）: 設定ファイルの配置規約とパス解決
 - DirtyStateTracker（controllers/dirty_state.py）: 未保存状態の一元管理
-- SingleKeyCaptureController（controllers/key_capture.py）: 停止キー/トグルキーのキャプチャ
+- SingleKeyCaptureController（controllers/key_capture.py）: 停止キー/トグルキーのキャプチャ。
+  **hook キーへの書き込みは `_apply_key` の 1 本のみ**（capture / clear の双方がここを通る）。
+  個別指定 ON = `app.data` 更新 + Var 反映 + dirty / OFF = `startup_io.write_global_hook_keys` で
+  config.json を更新し**成功時のみ** `app.data` と Var を確定する。OFF 経路は
+  `dirty_tracker.capture_dirty_snapshot` / `restore_dirty_snapshot` を `try`/`finally` で使い、
+  例外経路でも keymap_set を dirty にしない（仕様は `spec_detail/data_schema.md` §5.9.4）
 - config_io/（controllers/config_io/）: 構成セット・個別JSONの保存/読込フローを**6クラスへ分割**（計画04で `config_io_controller.py` を廃止）。App が各クラスを直接公開し、`app.<名前>.<method>` で参照する:
   - KeymapSetIo（keymap_set_io.py = `app.keymap_set_io`）: 構成セット（keymap_set）の new/save/save_as/load/import/export/restore + 起動構成セット指定・読込データのUI適用
     - 新規作成は `keymap_set_path` を空にし、`save_keymap_set` は空パスなら `save_as` へ委譲する（別名保存の初期名は `keymap_set.json`）。Import 成功時は**無条件で**空にする
+    - **hook キーの全体デフォルト注入を呼ぶのは 4 経路**（`new_config` / `restore_default` / Import /
+      起動時の空データフォールバック〔StartupIo〕）。**runtime を新規化・置換する入口を増やしたら
+      ここも足す**（漏れるとその経路だけキーが空になる）
+    - **個別値の退避（`app._retained_hook_keys`）の破棄点は 4 箇所**: `save_keymap_set_to` の
+      **保存実行の直前**（`save_runtime_data` 呼び出し前）/ `apply_loaded_data_to_ui` の先頭 /
+      `new_config` / `restore_default`
     - 保存成功時は `config_service.save_runtime_data` が startup payload ごと `config/config.json` を書き直し、`keymap_set_path` が保存先へ更新される（`write_startup` は経由しない。「起動時に読むJSONを設定」メニュー側とは**別経路で同じキーを書く**点に注意）
   - StartupIo（startup_io.py = `app.startup_io`）: 起動設定（`config/config.json`。旧 `settings/startup.json` は読込フォールバックのみ）の read/write
     - 起動時は stored `keymap_set_path` が実在すれば読み込み、無い / 読めない場合は**無言で空データ起動**し `keymap_set_path` を空にする
+    - `write_startup(data) -> bool`（成功 True / 例外捕捉で False・`showerror` は従来どおり）と
+      `write_global_hook_keys(*, stop_key, toggle_key) -> bool`（hook キーの全体デフォルト書き込み）。
+      **全体デフォルトを書くのはこの 1 本のみ**。ConfigService 側に read-modify-write な保存 API を
+      作らない（`_startup_settings` と config.json が乖離すると次の `write_startup` が hook キーを消す）
   - IoDialogs（io_dialogs.py = `app.io_dialogs`）: 共有ダイアログヘルパ（保存パス衝突解決 / ラベル連動ファイル名）
   - KeymapFileIo（keymap_file_io.py = `app.keymap_io`）: keymap 個別 JSON の保存/読込
   - TriggerSetFileIo（trigger_set_file_io.py = `app.trigger_set_io`）: trigger_set 個別 JSON の保存/読込
@@ -202,6 +224,23 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 - config配下は相対、外部は絶対のパス保存ルールを扱う
 - trigger_set と sequence の分離保存・読込を扱う
 - keymap / trigger_set / sequence の個別ファイル保存・読込を扱う
+- **hook キーの解決点を持つ**（仕様は `spec_detail/data_schema.md` §5.9）。分岐点は次の 4 つで、
+  **これ以外へ解決ロジックを置かない**（フック層・UI 層へ分散させない）:
+  - `split_loading.load_global_hook_keys(service, *, config_root)` — config.json の全体デフォルトの
+    **読み出し**（正規化・失敗時は `("", "")` へ縮退）。それ自体は選択をしない
+  - `split_loading.build_runtime_data_from_split` — **通常の keymap_set 読込での選択**。
+    `resolve_hook_keys_individual(keymap_set)` の結果を runtime へ確定させ、
+    OFF のときだけ `load_global_hook_keys` の値を注入する
+  - `ConfigService.apply_global_hook_key_defaults(runtime, *, config_root)` — **新規化・置換された
+    runtime への直接注入**（`new_config` / `restore_default` / Import / 起動時の空データフォールバック /
+    `App.toggle_hook_keys_individual` の ON→OFF）。冪等で、先頭で `hook_keys_individual` の既定
+    （`False`）を補う。**通常読込はこの API を経由しない**
+  - `split_payloads.build_keymap_set_payload` — **保存側**。OFF のとき書くのは**常に `""`**
+    （runtime の解決済み値を書くと全体デフォルトが keymap_set へ焼き付く）
+- 移行判定の純関数は `domain/config.py::resolve_hook_keys_individual`。呼び出しは 3 系統で、
+  **渡すデータが違う**: 読込＝**生の keymap_set dict**（`split_loading`）/ 保存＝**runtime**
+  （`split_payloads`。`.get()` の真偽で見ずに必ずこの純関数を通す＝フラグ無しの旧 runtime を
+  従来どおり個別値保存にするため）/ 互換化＝`ensure_config_compatibility` 内（hook キー正規化の直後）
 - **子ファイルの保存計画（`application/save_plan.py` の `SavePlan`）を実行する**
   （仕様は `spec_detail/data_schema.md` §5.8）:
   - 保存対象の解決（`resolve_child_save_targets`）・依存関係の検出・計画の事前検証・
@@ -237,7 +276,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 ### FullView（views/full_view/）
 - 編集機能 / トリガー管理 / シーケンス管理 / keymap・trigger_set・sequence の個別保存ボタン
 - 構成 Widget:
-  - FullHookFrame（hook_frame.py）: フック開始/停止・通常トリガー切替・停止/トグルキーの表示と**取得・クリア**
+  - FullHookFrame（hook_frame.py）: フック開始/停止・通常トリガー切替・停止/トグルキーの表示と**取得・クリア**・
+    「このキーマップセットで個別指定する」チェック（操作可能なのは full のみ）
   - FullDisplayFrame（display_frame.py）: 常に手前・省略表示へ・キーボードUI・レイアウト選択
   - FileFrame（file_frame.py）: 保存 / 別名で保存 / 読込 / 新規作成
   - KeymapBox（keymap_box.py）: キーマップ一覧と管理ボタン（追加・変更・削除・選択・保存系）
@@ -248,6 +288,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - 簡易表示 / フック制御
 - 構成 Widget:
   - CompactHookFrame（hook_frame.py）: フック開始/停止・通常トリガー切替・停止/トグルキーの**表示のみ**
+    （個別指定チェックも `state="disabled"` の状態表示のみ）
   - CompactDisplayFrame（display_frame.py）: 常に手前・フルに戻す・キーボードUI・レイアウト選択
   - CompactTriggerBox（trigger_box.py）: トリガー一覧のみ
 
@@ -263,6 +304,10 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - keyboard によるグローバルフック
 - suppress=True 使用
 - UI操作中は停止
+- **停止/トグルキーは解決済みの 1 値のみをフック層が直読みする**（`app.data` の
+  `hook_stop_key` / `hook_toggle_key`）。全体デフォルトと個別指定の切替は application 層で解決済みのため、
+  `hook_controller` / `input_router` / `keyboard_window` / App のフック供給部は供給源を意識しない
+  （仕様は `spec_detail/key_input.md` §7.6 / `spec_detail/data_schema.md` §5.9）
 
 ---
 

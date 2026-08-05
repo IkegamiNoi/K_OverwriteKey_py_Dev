@@ -13,20 +13,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `.claude_data/state/decisions.md` を読む（判断履歴。**末尾の「phase 07」節が現在の作業**。
-   完了フェーズは「アーカイブ索引」→ `decisions_archive/<phase>.md`）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い**。次フェーズ候補と次採番が正）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む
-4. **現在のフェーズ = phase 07（保存系リデザイン Phase γ）**。
-   規範 = [phase/07_hook_keys_global_default/phase.md](../../instructions/phase/07_hook_keys_global_default/phase.md)、
-   主入力（確定設計）= [history/06_hook_keys_global_default.md](../../instructions/history/06_hook_keys_global_default.md)
-   （v0.2・ユーザー確定済）。**暫定仕様先行モード**なのでフェーズ中は正本を直接改訂しない。
-   番号対応: **phase 07 / 暫定 06 / decisions_archive 07**。
-5. **task_01〜07b は完了済み**。[tasks/task_07_integration_check.md](../../instructions/phase/07_hook_keys_global_default/tasks/task_07_integration_check.md)
-   の**実機目視 G1〜G9 の結果をユーザーから受け取る**ところから再開する →
-   OK なら **task_08（正本反映・最終）**を起票する。
+4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
+   （**本体に進行中フェーズの節は無い**）
+5. **次フェーズの着手はユーザー確認が先**。本命は**プリセットの config.json グローバル化 = phase 08**
+   （主入力 = [history/07_hotkey_presets_global.md](../../instructions/history/07_hotkey_presets_global.md)・確定済）。
+   起票は `/phase_start`（暫定仕様先行モード。番号対応: phase 08 / 暫定 07 / decisions_archive 08）
 
 ## 現在の作業の 1 行サマリ
-**phase 07（Phase γ）は task_07（統合確認）を実施中。自動確認・レビュー・指摘是正（task_07b）まで完了し、残るは実機目視 G1〜G9（ユーザー実施）のみ**。
+**phase 07（保存系リデザイン Phase γ・hook キーの全体デフォルト化）は task_08 まで完了しフェーズ完了。次フェーズ（プリセット = phase 08）は未起票**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -37,52 +33,36 @@
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
 直近の実測（task_07b 完了時・コミット `0f20eb4`）:
-compile **clean** / tests **169** / tests_ui **178** / smoke **pass** / manual **未実施（G1〜G9 待ち）**。
+compile **clean** / tests **169** / tests_ui **178** / smoke **pass** / manual **G1〜G9 OK（2026-08-05）**。
 **件数が減ったら退行を疑う**。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
 
 ## 次アクション（session.md.next_action より）
-- **ユーザーの実機目視 G1〜G9 の結果待ち**（中核は **G1** = OFF 編集で dirty にならない /
-  **G7** = OFF 保存後は再 ON しても空）。異常があればフェーズを完了扱いにせず原因タスクへ戻す。
-- OK なら **task_08（正本反映・最終）**。内容:
-  - 正本 `spec_detail/data_schema.md`（config.json の全体デフォルト 2 キー / keymap_set の
-    `hook_keys_individual` / OFF 時の空文字化契約 / 解決順序 / 移行規則）+ `key_input.md` +
-    `codebase_map.md` へ昇格
-  - **持ち越し指摘 E の契約明記**: ① 全体デフォルトのキー衝突検証は**カレント keymap_set 内に閉じている**
-    （セット A の全体デフォルトがセット B のトリガーを黙って無効化しうる）/
-    ② **「明示 `false` + 非空個別値」**の keymap_set は読込→保存で個別値が失われる
-  - 暫定仕様 06 の凍結 / `decisions_archive/07_hook_keys_global_default.md` 作成 /
-    `current.md` 更新（次採番 08）/ `/refactor_check`
+- **未コミットなら `/task_commit`**（task_08 = 正本反映。文書のみ・コード差分なし）。
+- **次フェーズはユーザーへ方針確認してから起票**（候補は `instructions/phase/current.md`「次フェーズ候補」。
+  本命 = phase 08 プリセット / 他 = idea_07・idea_09・idea_03）。
+- **未承認の提案書**: [modified_proposal/06_refactor_hook_key_pair_enumeration.md](../../instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md)
+  （Phase γ の `/refactor_check` = 推奨・M4 = stop/toggle の対列挙が 5→10）。実施形態は
+  (a) 追加タスク / (b) ミニフェーズ / **(c) 見送り**（推奨は (c) または (b)。phase 08 で 2 例目が出てから共通化する方針なら見送り）。
 - 各タスクの流れ: タスク定義起票 → codex-implementer へ委任 → **verifier で実測** → reviewer → コミット。
 
-## phase 07（Phase γ）の要点（実装は完了済み）
-- **目的**: `hook_stop_key` / `hook_toggle_key` の全体デフォルトを `config/config.json` に持たせ、
-  keymap_set 側のチェック（`hook_keys_individual`）で個別指定できるようにする。
-  **挙動変更・スキーマ追加あり / 後方互換必須**（既存キーを削除しない）。
-- **【設計の芯】キー解決点は 2 本のみ**: `split_loading.load_global_hook_keys`（config.json 読み出し・
-  正規化・失敗時 `("", "")` へ縮退）と `ConfigService.apply_global_hook_key_defaults`
-  （OFF のみ注入・その場更新・冪等・先頭で `setdefault("hook_keys_individual", False)`）。
-  **フック層（`input_router` / `hook_controller` / `keyboard_window` / `app.py` のフック供給部）は無変更**
-  （常に解決済みの値を見る設計。触ったら設計違反）。
-- **注入点は 4 箇所**: `keymap_set_io.new_config` / `restore_default` / `import_config` /
-  `startup_io` の空データフォールバック。`app.py` は直後に上書きされるため対象外。
-- **移行判定 `resolve_hook_keys_individual(source)`（domain）には生の `keymap_set` dict を渡す**。
-  明示フラグの有無は **`in` で判定**（`.get()` の真偽だと `false` とキー無しを区別できない）。**冪等性が要件**。
-- **保存（`split_payloads.build_keymap_set_payload`）**: ON = 個別値 / **OFF = 両キーを `""`** +
-  `hook_keys_individual: false`（キー自体は 3 つとも常に出力）。
-  **OFF で `runtime.get(...)` を書かない**（全体デフォルトが keymap_set へ焼き付き移行判定が誤発火する）。
-- **書き込み経路は 1 本ずつ**: config.json = `StartupIo.write_startup`（`-> bool`）→
-  `write_global_hook_keys(stop_key, toggle_key)` / hook キーの capture = `SingleKeyCaptureController._apply_key`。
-  **config.json を別経路で read-modify-write しない**（`_startup_settings` と乖離すると次の
-  `write_startup` が hook キーを消す）。
-- **OFF 編集の dirty 非汚染**は `DirtyStateTracker.capture_dirty_snapshot` / `restore_dirty_snapshot` を
-  **`try`/`finally`** で使う（例外経路でも汚さない）。保存失敗時は runtime も Var も確定させない。
-- **個別値の退避は `App._retained_hook_keys`**（`app.data` に持たない）。ON→OFF で退避 / OFF→ON で復元し消費。
-  **退避が無い OFF→ON は両キーを `""`**（全体デフォルトを個別値として引き継がない）。
-  破棄は `keymap_set_io` の 4 箇所（**`save_runtime_data` の直前** / `apply_loaded_data_to_ui` /
-  `new_config` / `restore_default`）。**`_sync_control_vars_from_data` に破棄を入れない**（退避が即消える）。
-- **UI**: `ui_vars.hook_keys_individual_var` を full / compact が**同一インスタンスで共有**。
-  **compact は表示専用**（`state="disabled"`）= ユーザー確定済。data ⇄ Var の入口は
-  `_sync_control_vars_from_data` と `App.toggle_hook_keys_individual` の 2 本のみ。
+## 直前フェーズ（phase 07 = Phase γ）の要点
+**正本が正**: `spec_detail/data_schema.md` **§5.9** + `key_input.md` **§7.6** + `codebase_map.md`。
+暫定仕様 06 は凍結済（経緯の参照用）。判断履歴は `decisions_archive/07_hook_keys_global_default.md`。
+
+- `hook_stop_key` / `hook_toggle_key` の**全体デフォルトを `config/config.json`** に持たせ、
+  keymap_set のフラグ `hook_keys_individual` で個別指定に切り替える（**後方互換必須・既存キー削除禁止**）。
+- **解決の分岐点は 4 つ**（これ以外へ解決ロジックを置かない）:
+  `split_loading.load_global_hook_keys`（読み出し・失敗時 `("","")`）/
+  `split_loading.build_runtime_data_from_split`（**通常読込の選択**。移行判定を通す）/
+  `ConfigService.apply_global_hook_key_defaults`（**新規化・置換経路の直接注入**。通常読込は経由しない。
+  フラグ無しは OFF とみなす）/ `split_payloads.build_keymap_set_payload`（保存側・**OFF は常に `""`**）。
+- **フック層（`input_router` / `hook_controller` / `keyboard_window` / `app.py` の供給部）は無変更**が設計の芯。
+- **移行判定 `resolve_hook_keys_individual` は渡すデータで意味が変わる**（読込=生 keymap_set / 保存=runtime /
+  互換化）。明示フラグの有無は **`in` で判定**し、冪等性が要件。
+- config.json への書き込みは `StartupIo.write_startup`（`-> bool`）→ `write_global_hook_keys` の**1 本のみ**。
+  **別経路で read-modify-write しない**（`_startup_settings` と乖離すると次の書き出しで hook キーが消える）。
+- 個別値の退避は `App._retained_hook_keys`（`app.data` に持たない）。**破棄は保存の実行 + runtime の
+  置換・新規化**（読込 / 新規作成 / 例を復元）。**`_sync_control_vars_from_data` に破棄を入れない**。
 
 ## 注意事項・blockers
 - **blockers: なし**。
@@ -131,8 +111,8 @@ compile **clean** / tests **169** / tests_ui **178** / smoke **pass** / manual *
   Codex レビュー系との併用は `.claude/rules/agent_selection.md` のレビュー表が正。出力の作法は
   `.claude/rules/output_style.md`。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: **06_child_file_save_dialog** / 05_keymap_set_new_and_default_dir / 04_config_io_controller_split）。
+  （直近 3 件: **07_hook_keys_global_default** / 06_child_file_save_dialog / 05_keymap_set_new_and_default_dir）。
   提案書「計画05」（`config_service` / `keymap_set_io` の分割・挙動不変）は完了済みでフェーズ番号を消費していない。
-- 未着手/保留 idea: idea_07（参照元の掃除・**β 完了で着手可**）/ idea_03（hotkey 保存正規化・低）/
+- 未着手/保留 idea: idea_07（参照元の掃除・**着手可**）/ idea_03（hotkey 保存正規化・低）/
   idea_08（個別プリセット）/ idea_09（レガシー保存パス）/ idea_04・idea_06（保留）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。

@@ -1,8 +1,12 @@
 # 暫定仕様 06: 停止/トグルキーの config.json 既定化と個別指定（hook_keys_global_default）
 
-> 状態: **未凍結・v0.2・主入力・ユーザー確定済（実装着手可）**。本書がこのフェーズ（保存系リデザインの
-> Phase γ）の確定設計（フェーズ中は正本を直接改訂しない）。フェーズ末タスクで正本
-> `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結（v0.2・正本へ昇格済み・2026-08-05）**。本書は phase 07（保存系リデザイン Phase γ）の
+> 確定設計であり、**経緯の参照用として保存**する。以後の仕様変更は正本を更新すること
+> （`.claude/rules/spec_change_workflow.md`）。
+> **昇格先**: `instructions/common/spec_detail/data_schema.md` **§5.9**（データモデル / 解決順序 /
+> 移行規則 / 編集・保存契約 / 既知の制約）・`spec_detail/key_input.md` **§7.6**（供給源とフック挙動）・
+> `instructions/common/codebase_map.md`（責務）。
+> 判断履歴は `.claude_data/state/decisions_archive/07_hook_keys_global_default.md`。
 > 版履歴: v0.1 起票（2026-07-27）→ **v0.2** codex-adversarial-reviewer 指摘 6 件を反映
 > （①⑤ 物理削除→空文字クリア＋復活は保存前セッション限定 / ② 移行判定を「正規化後どちらか非空」に /
 > ③ capture/clear を所有者切替可能に＋dirty 保全 / ④ キー解決を keymap_set 読込時に確定 /

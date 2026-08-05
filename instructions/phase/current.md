@@ -6,27 +6,17 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ**: [07_hook_keys_global_default](07_hook_keys_global_default/phase.md)
-  （**2026-08-03 起票**・保存系リデザイン **Phase γ**）。
-  停止/トグルキーの全体デフォルトを `config/config.json` に持たせ、keymap_set 側のチェックで
-  個別指定できるようにする（**挙動変更・スキーマ追加あり / 後方互換必須**）。
-  - 主入力（確定設計）: [暫定仕様 06](../history/06_hook_keys_global_default.md)（v0.2・ユーザー確定済 2026-07-27）
-  - モード: **暫定仕様先行モード**。番号対応: **phase 07 / 暫定 06 / decisions_archive 07**
-  - 起票元: ユーザー要望（2026-07-26〜27・保存系統の改善討議・点5）
-  - 判断履歴: `.claude_data/state/decisions.md`（フェーズ末に
-    `decisions_archive/07_hook_keys_global_default.md` へ集約）
-  - **進捗**: task_01（スキーマ/移行判定）・task_02（キー解決点）・task_03（保存時挙動）・
-    task_04（全体デフォルト更新 API）・task_05（チェック UI）・task_06（所有者切替 capture）・
-    task_06b（表示切替と個別値の保持）・task_07b（レビュー指摘 A〜D の是正）**完了**
-    （task_06 は 06 / 06b へ分割）。
-    **task_07（統合確認）は実施中 = 自動確認とレビューは完了・実機目視 G1〜G9 のみユーザー待ち**。
-    その後 **task_08（正本反映）**
-- 保存系リデザインの残り: γ の次は **プリセット = phase 08
-  （[暫定仕様 07](../history/07_hotkey_presets_global.md)・確定済）**。
-- 直前の完了フェーズ: [06_child_file_save_dialog](../../.claude_data/state/decisions_archive/06_child_file_save_dialog.md)
-  （**2026-08-03 完了**・保存系リデザイン **Phase β**）。
+- **アクティブなフェーズ: なし**（phase 07 完了・**2026-08-05**）。
+  次フェーズは未起票のため、**着手前にユーザーへ方針確認する**。
+- 保存系リデザインの残り: **プリセット = phase 08
+  （[暫定仕様 07](../history/07_hotkey_presets_global.md)・確定済）**。起票は `/phase_start`。
+- 直前の完了フェーズ: [07_hook_keys_global_default](../../.claude_data/state/decisions_archive/07_hook_keys_global_default.md)
+  （**2026-08-05 完了**・保存系リデザイン **Phase γ**）。
   **完了フェーズの要約は本ファイルに置かない**。経緯・判断は `.claude_data/state/decisions.md`「アーカイブ索引」
   → `decisions_archive/<phase>.md` が正。
+- 未承認の提案書: [06_refactor_hook_key_pair_enumeration](../modified_proposal/06_refactor_hook_key_pair_enumeration.md)
+  （Phase γ の `/refactor_check` = **推奨**・M4。実施形態は (a) 追加タスク / (b) ミニフェーズ /
+  (c) 見送り のユーザー判断待ち）。
 - 提案書 [05_refactor_child_file_save_dialog](../modified_proposal/05_refactor_child_file_save_dialog.md) は
   **「計画05」として実施し完了**（2026-08-03・項目 0 / 1 / 2）。フェーズ番号は消費していない。
   判断は `decisions.md` の「計画05」節。
@@ -37,10 +27,10 @@
 ## 次採番
 
 - 次フェーズは **`08_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
-  保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔着手中〕/ プリセット=phase 08**。
+  保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔次〕**。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜07 は起票済（04=α / 05=β / 06=γ / 07=プリセット）。次採番は **`08_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。05 まで起票済・次採番は **`06_<topic>`**。
+  04〜07 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット）。次採番は **`08_<topic>`**。
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。06 まで起票済・次採番は **`07_<topic>`**。
 
 ## 次フェーズ候補（参考）
 
@@ -56,7 +46,7 @@
 **計画04 由来の3フェーズはすべて完了**。`04_config_io_controller_split`（2026-07-26）・
 `05_keymap_set_new_and_default_dir`（Phase α・2026-07-28）も完了。
 **保存系リデザインの Phase β も完了**（phase 06 / 暫定 05・2026-08-03）。
-**γ = phase 07 は着手中**（上記「現在の参照先」）。γ の次以降の候補:
+**γ = phase 07 も完了**（暫定 06・2026-08-05）。γ の次以降の候補:
 - **保存系リデザインの続き（推奨）**: プリセット = phase 08
   （[暫定仕様 07](../history/07_hotkey_presets_global.md)・確定済）。
 - [idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除。**β 完了で前提充足・着手可**。
@@ -105,6 +95,12 @@
   - slugify 後に別々の keymap_set 名が**同一 stem へ丸まる衝突**（受入条件 8 の範囲外）
   - `keymap_set_io.save_keymap_set_to` が **46 行**（計画05 項目 2 の対象外・無変更。
     同ファイルの他メソッドは 40 行以内に収まった）
+- **Phase γ の `/refactor_check` からの候補送り**（提案書
+  [06_refactor_hook_key_pair_enumeration](../modified_proposal/06_refactor_hook_key_pair_enumeration.md) に入れなかった分）:
+  - **runtime を新規化・置換する入口が 4 経路**（`new_config` / `restore_default` / Import /
+    起動時の空データフォールバック）あり、各所で `apply_global_hook_key_defaults` を呼ぶ規約になっている
+    （task_07b の指摘 A = この取りこぼし）。入口の一本化は**設計変更を伴う**ため挙動保存の
+    リファクタ範囲外。同じ構造をプリセット（phase 08）が再現するなら、そこで併せて設計する
 - `app.py:64` の `keymap_set_path = resolve_keymap_set_path()` 初期化と、それが使う
   `config_paths.resolve_keymap_set_path()` の**引数なし分岐が実質デッド**（起動時に `load_startup_and_config` が
   必ず上書きするため）。**据え置き**（phase 05 の deep-reviewer 指摘3・実害なし）。

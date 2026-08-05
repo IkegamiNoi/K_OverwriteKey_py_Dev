@@ -99,8 +99,12 @@
 | [task_06b](tasks/task_06b_hook_keys_display_switch.md) | 表示切替と個別値の保持 | ON⇄OFF での表示切替（OFF=全体デフォルト / 再 ON=保持していた個別値）+ 個別値のセッション内保持と **OFF 保存後の破棄**（task_03 からの申し送り） |
 | [task_07](tasks/task_07_integration_check.md) | 統合確認 | 受入条件 1〜8 の確認と特性テスト（解決・移行・所有者切替・空文字化・保存失敗）。`tests` / `tests_ui` / smoke |
 | [task_07b](tasks/task_07b_review_findings_fix.md) | レビュー指摘の是正 | task_07 の deep-reviewer / Codex 指摘のうちユーザーが採用した 4 件（Import 経路の注入漏れ / 注入 API のフラグ既定 / 退避破棄のタイミング / 起動 keymap_set 設定の成否）を是正 |
-| task_08 | 正本反映（最終） | `spec_detail/data_schema.md`・`key_input.md`・`codebase_map.md` へ昇格 + **暫定仕様 06 を凍結** + `decisions_archive/07_hook_keys_global_default.md` 作成 + `current.md` 更新 + `/refactor_check` |
+| [task_08](tasks/task_08_spec_promotion.md) | 正本反映（最終） | `spec_detail/data_schema.md` §5.9・`key_input.md` §7.6・`codebase_map.md` へ昇格 + **暫定仕様 06 を凍結** + `decisions_archive/07_hook_keys_global_default.md` 作成 + `current.md` 更新 + `/refactor_check` |
 
+- **進捗: 全タスク完了（2026-08-05・フェーズ完了）**。実機目視 G1〜G9 OK / 最終実測 =
+  compile clean・tests 169・tests_ui 178・smoke pass / `/refactor_check` = 推奨（提案書
+  [06_refactor_hook_key_pair_enumeration](../../modified_proposal/06_refactor_hook_key_pair_enumeration.md)・未承認）。
+  判断履歴は `.claude_data/state/decisions_archive/07_hook_keys_global_default.md`。
 - 依存: task_01 → task_02 / task_03 → task_04 → task_05 → task_06 → task_06b → task_07 → task_08。
   task_02 と task_03 は task_01 完了後なら並行可。
   **task_06 は範囲が広いため 06（書き込み先の切替と dirty 非汚染）と 06b（表示切替と個別値の保持）へ分割**した
