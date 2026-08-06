@@ -5,54 +5,47 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-08-06T00:00:00
-phase: **フェーズは無し（phase 07 完了）**。「**計画06**」= `instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md` も完了（**フェーズ番号は未消費**）。次フェーズ = プリセット（phase 08）は未起票
-last_commit_location: claude/refactor-hook-key-pair-enum-b7cddc @ `207e879` ※現在地はセッション開始時の git 実測値が正
+phase: `instructions/phase/08_hotkey_presets_global`（**起票済・task_01 未着手**。計画06 は完了・フェーズ番号は未消費）
+last_commit_location: claude/refactor-hook-key-pair-enum-b7cddc @ `432f071` ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **計画06（hook キー 2 本の「対の列挙」を domain へ集約・挙動不変）は項目 0 / 1 とも完了。次フェーズ（プリセット = phase 08）は未起票**。
-mode: completed
+focus: **phase 08（プリセットの config.json グローバル化）を起票済み。task_01（config.json への `hotkey_presets_path` 追加と既定補完）から着手する**。
+mode: implementing
 
 ## last_action
 ts: 2026-08-06T00:00:00
 who: main
 summary: |
-  【提案書 06 の実施形態を **(b) 独立ミニ計画 =「計画06」** でユーザー確定 → 項目 0 / 1 を実施し計画06 完了】
-  - 運用は**計画05 と同じ**（提案書自体が確定設計 / **フェーズ番号を消費しない** / 1 項目 = 1 コミット /
-    フェーズ末の `/refactor_check` は本計画自体がその産物のため不要）。**phase 08 より先に実施**。
-  - **項目 0**: 安全網の実測（`Explore`）で観点 ①解決 ②移行判定 ④OFF 編集の成否 ⑤dirty 非汚染 は**十分**、
-    **③OFF 保存だけ空白**（`read_bytes()` のバイト列比較は**子ファイル専用**で、hook キーを含む keymap_set 本体は
-    **キー順＝出力バイト列を誰も固定していなかった**）→ `tests/test_save_plan.py` に
-    `test_saved_keymap_set_json_keeps_stable_key_order` を**追加のみ**で新設（ON / OFF 双方で 11 キーのリスト比較）。
-  - **項目 1**: `domain/config.py` に `HOOK_STOP_KEY` / `HOOK_TOGGLE_KEY` / `HOOK_KEY_FIELDS` /
-    `normalize_hook_key_pair()` を新設し、application 2 + presentation 4 + domain 1 の計 8 ファイルを置換
-    （+58 / -32 行・**層を跨ぐが依存は presentation/application → domain の一方向**）。
-  - **挙動不変を優先して案から外した 2 箇所**: `ensure_config_compatibility` と `build_keymap_set_payload` は
-    `normalize_hook_key_pair` へ寄せず**キー名だけ定数化**（新関数は `str(x or "")` を挟むため、
-    非文字列時に現行が送出する例外を握り潰してしまう）。
-  - メインが直接是正した軽微 2 件: 上記のキー名定数化の補完 / `app.py` の追加 import を domain 層の位置へ移動。
+  【計画06（項目 0 / 1）を完了 → **phase 08 を起票**（`/phase_start`・コード変更なし）】
+  - **phase 08 = プリセットの config.json グローバル化**（主入力 = 暫定仕様 07・**v0.3** へ改訂）。
+    `instructions/phase/08_hotkey_presets_global/phase.md` を新設し、task_01〜08 を定義
+    （最終 task_08 = 正本反映）。`current.md` の現在の参照先・次採番（次フェーズ = 09）も更新。
+  - **ユーザー判断: 計画06 の候補送り（runtime を新規化・置換する入口の一本化）を phase 08 が引き取る**。
+    暫定仕様 07 **§4 検討事項 A（未確定）** として起票し、**task_03 で確定 → v0.4 → task_04 で実装**の順とした
+    （プリセットが 2 例目を作るため。放置すると 4 経路 × 2 種類の規約になる）。
+  - 起票の整合チェック（`reviewer`・整合確認限定）= **修正して採用**。指摘 2 件（`app.py` の行番号 405→406 /
+    受入条件 6 の回収先が読めない）を反映済み。
+  - 前段の計画06 は**完了・コミット済**（`207e879` 項目0 / `4fa12a6` 項目1 / `432f071` handoff。
+    経緯は `decisions.md`「計画06」節と提案書 `modified_proposal/06_*` が正）。
 result_files:
-  - keyseq/domain/config.py / keyseq/application/config_service/{__init__.py,split_loading.py,split_payloads.py}
-  - keyseq/presentation/{app.py,ui_vars.py,controllers/key_capture.py,controllers/config_io/startup_io.py}
-  - tests/test_save_plan.py（テスト 1 件追加・項目 0）
-  - instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md / instructions/phase/current.md
-  - .claude_data/state/decisions.md（「計画06」節を新設）
+  - instructions/phase/08_hotkey_presets_global/phase.md（新規）
+  - instructions/history/07_hotkey_presets_global.md（v0.3・§4 検討事項 A を追加）
+  - instructions/phase/current.md（現在の参照先 / 次採番 / 候補送りの引き取り）
+  - .claude_data/state/decisions.md（phase 08 の節を新設）/ .claude_data/state/session.md
 verified:
-  compile: clean
-  tests: **170 pass**（169 + 項目 0 の追加 1）
-  tests_ui: **178 pass**（変化なし）
-  smoke: pass
-  characterization: キー順の特性テストが**無修正 pass** / `tests` `tests_ui` は**1 ファイルも変更なし**
-  review: reviewer = **採用（完了可）** × 2 回（項目 0 / 項目 1）。項目 1 は分岐・評価順序・代入順序・
-    例外挙動・公開 API シグネチャ・保存 payload のキー順が不変であることを突合で確認
+  code_unchanged: 本ターンは**文書のみ**（`keyseq` / `tests` / `tests_ui` に差分なし）
+  compile / tests / tests_ui / smoke: 計画06 完了時の実測が最新（clean / **170** / **178** / pass）
+  review: reviewer（起票の整合確認・1 回）= **修正して採用** → 指摘 2 件を反映済み
 
 ## next_action
-- 次フェーズの着手は**ユーザー確認が先**。本命は **プリセットの config.json グローバル化 = phase 08**
-  （主入力 `instructions/history/07_hotkey_presets_global.md`・確定済）。起票は `/phase_start`
-  （暫定仕様先行モード。番号対応: phase 08 / 暫定 07 / decisions_archive 08）。
-- 他の候補: idea_07（参照元の掃除・着手可）/ idea_09 / idea_03（いずれも `instructions/phase/current.md`）。
-- **計画06 の候補送りは未着手**: 「runtime を新規化・置換する入口が 4 経路」（`new_config` / `restore_default` /
-  Import / 起動時の空データフォールバック）の一本化は**設計変更を伴う**ため保留。
-  **phase 08 が同じ構造を再現するなら、そこで併せて設計する**。
+- **task_01 を `/task_new` で起票 → `codex-implementer` へ委任**する。内容 = config.json の
+  `hotkey_presets_path` をスキーマへ追加し、**未設定時の既定補完**（`user/hotkey_presets/default.json`）付きの
+  読み出し API を新設。**同型の先行実装 `split_loading.load_global_hook_keys` をそのまま参考にする**
+  （読めない / 未設定なら既定へ縮退・正規化はパス解決側）。
+- 以降の流れ（各タスク共通）: 実装委任（**テストコードの追加まで含める / 実行は依頼しない**）→
+  `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
+- **task_03（設計確定）の前に task_04 へ着手しない**。task_03 は暫定仕様 07 §4 検討事項 A を
+  ユーザー確定し **v0.4 へ改訂**するタスクで、レビューは `codex-adversarial-reviewer`（縮退時 `deep-reviewer`）。
 
 ## blockers
 - なし。

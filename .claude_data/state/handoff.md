@@ -13,16 +13,15 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い**。次フェーズ候補と次採番が正）
-3. CLAUDE.md → `.claude/rules/` の順に必要分を読む
-4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
-   （**本体に進行中フェーズの節は無い**）
-5. **次フェーズの着手はユーザー確認が先**。本命は**プリセットの config.json グローバル化 = phase 08**
-   （主入力 = [history/07_hotkey_presets_global.md](../../instructions/history/07_hotkey_presets_global.md)・確定済）。
-   起票は `/phase_start`（暫定仕様先行モード。番号対応: phase 08 / 暫定 07 / decisions_archive 08）
+2. `instructions/phase/current.md` → [phase 08 の phase.md](../../instructions/phase/08_hotkey_presets_global/phase.md) を読む
+3. 主入力の確定設計 = [history/07_hotkey_presets_global.md](../../instructions/history/07_hotkey_presets_global.md)
+   （**v0.3**。**§4 検討事項 A だけが未確定**で task_03 で確定する）
+4. CLAUDE.md → `.claude/rules/` の順に必要分を読む
+5. 過去の判断は `.claude_data/state/decisions.md`（**末尾に進行中の phase 08 の節がある**）+
+   「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 07（Phase γ）と、その `/refactor_check` 産物である「計画06」（hook キー対の列挙を domain へ集約・挙動不変）はいずれも完了。次フェーズ（プリセット = phase 08）は未起票**。
+**phase 08（プリセットの config.json グローバル化）を起票済み・task_01 未着手**。前段の phase 07（Phase γ）と計画06 は完了済み。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -37,11 +36,12 @@ compile **clean** / tests **170** / tests_ui **178** / smoke **pass** / manual *
 **件数が減ったら退行を疑う**。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
 
 ## 次アクション（session.md.next_action より）
-- **次フェーズはユーザーへ方針確認してから起票**（候補は `instructions/phase/current.md`「次フェーズ候補」。
-  本命 = phase 08 プリセット / 他 = idea_07・idea_09・idea_03）。
-- **計画06 の候補送りは未着手**: runtime を新規化・置換する入口が 4 経路（`new_config` / `restore_default` /
-  Import / 起動時の空データフォールバック）ある件の一本化は**設計変更を伴う**ため保留。
-  **phase 08 が同じ構造を再現するならそこで併せて設計する**。
+- **phase 08 task_01 を `/task_new` で起票 → 実装委任**。内容 = config.json の `hotkey_presets_path` を
+  スキーマへ追加し、**未設定時の既定補完**（`user/hotkey_presets/default.json`）付きの読み出し API を新設。
+  **同型の先行実装 `split_loading.load_global_hook_keys` をそのまま参考にする**。
+- **task_03（設計確定）の前に task_04 へ着手しない**。task_03 = 暫定仕様 07 §4 検討事項 A
+  （runtime を新規化・置換する入口の一本化）をユーザー確定し **v0.4 へ改訂**するタスク。
+  レビューは `codex-adversarial-reviewer`（縮退時 `deep-reviewer`）。
 - 各タスクの流れ: タスク定義起票 → codex-implementer へ委任 → **verifier で実測** → reviewer → コミット。
 
 ## 直前フェーズ（phase 07 = Phase γ）の要点
