@@ -15,13 +15,13 @@
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
 2. `instructions/phase/current.md` → [phase 08 の phase.md](../../instructions/phase/08_hotkey_presets_global/phase.md) を読む
 3. 主入力の確定設計 = [history/07_hotkey_presets_global.md](../../instructions/history/07_hotkey_presets_global.md)
-   （**v0.3**。**§4 検討事項 A だけが未確定**で task_03 で確定する）
+   （**v0.5・全条項が確定済**。特に **§3-2「全体デフォルトの注入」と入口台帳**が task_04 の規範）
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む
 5. 過去の判断は `.claude_data/state/decisions.md`（**末尾に進行中の phase 08 の節がある**）+
    「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 08（プリセットの config.json グローバル化）を起票済み・task_01 未着手**。前段の phase 07（Phase γ）と計画06 は完了済み。
+**phase 08 は task_03（入口一本化の設計確定・暫定仕様 v0.5）まで完了。次は task_04 = `apply_global_defaults` の実装と入口台帳 E1〜E5 への配線**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -31,22 +31,47 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（計画06 項目1 完了時・コミット `4fa12a6`）:
-compile **clean** / tests **170** / tests_ui **178** / smoke **pass** / manual **G1〜G9 OK（2026-08-05）**。
+直近の実測（phase 08 task_02 完了時・コミット `654d2ef`。task_03 は文書のみ）:
+compile **clean** / tests **180** / tests_ui **178** / smoke **pass** / manual **未実施（task_07 でまとめて実施）**。
 **件数が減ったら退行を疑う**。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
 
 ## 次アクション（session.md.next_action より）
-- **phase 08 task_01 を `/task_new` で起票 → 実装委任**。内容 = config.json の `hotkey_presets_path` を
-  スキーマへ追加し、**未設定時の既定補完**（`user/hotkey_presets/default.json`）付きの読み出し API を新設。
-  **同型の先行実装 `split_loading.load_global_hook_keys` をそのまま参考にする**。
-- **task_03（設計確定）の前に task_04 へ着手しない**。task_03 = 暫定仕様 07 §4 検討事項 A
-  （runtime を新規化・置換する入口の一本化）をユーザー確定し **v0.4 へ改訂**するタスク。
-  レビューは `codex-adversarial-reviewer`（縮退時 `deep-reviewer`）。
+- **task_04 を `/task_new` で起票 → 実装委任**（規範 = 暫定仕様 07 **§3-2**）:
+  1. **`list | None` を返すグローバルプリセット読み出し**を新設（`load_named_list` は使わない。
+     読めた=`list`〔空を含む〕/ 不存在・破損・根キーが list でない=`None`）
+  2. **`ConfigService.apply_global_defaults(runtime, *, config_root)`** を新設
+     （既存 `apply_global_hook_key_defaults` を呼ぶ + プリセット供給。冪等・例外を投げない）
+  3. **入口台帳 E1〜E5 へ配線**（`app.py:77` / `keymap_set_io.py:53,561,599` / `startup_io.py:35`）
+  4. **通常読込も同じ供給規則へ統一** → **task_02 のテスト「不存在・破損 → `[]`」を
+     「置き換えない = 組込 8 件」へ更新**する
+  5. **`toggle_hook_keys_individual` の ON→OFF は変更しない**（単独注入のまま・受入条件 8）
+- 受入条件 7・8・9 を特性テストで固定する。**L1〜L3（通常読込）と N1（再正規化）は配線対象外**。
 - 各タスクの流れ: タスク定義起票 → codex-implementer へ委任 → **verifier で実測** → reviewer → コミット。
 
+## 現フェーズ（phase 08 = プリセットの config.json グローバル化）の要点
+
+**確定設計は暫定仕様 07（v0.5）が正**。task_01〜03 完了・task_04 から実装。
+
+- **config.json の `hotkey_presets_path`（既定 `user/hotkey_presets/default.json`）を全 keymap_set で共有**。
+  keymap_set 側の同キーは**生成停止・読込時無視**（**能動削除はしない**）。
+  **プリセットの唯一の書き手はプリセットマネージャ**（task_06 で即時保存・成否付き）。
+- **読み出しは「読めたか」を区別する**（v0.5 の要）: 読めた=`list`（**空リストも採用**＝全削除を尊重）/
+  不存在・破損・根キーが list でない=`None`（**置き換えない**）。**注入経路と通常読込で規則を統一**する。
+- **入口台帳（`app.data` 置換の実測 9 箇所）**: E1 `app.py:77` / E2 `keymap_set_io.py:53` /
+  E3 `:599` / E4 `startup_io.py:35` / E5 `keymap_set_io.py:561`（**Import = レガシー単一 JSON。
+  `build_runtime_data_from_split` を通らない**）= **`apply_global_defaults` を呼ぶ** /
+  L1 `keymap_set_io.py:531` ・L2 `:631` ・L3 `startup_io.py:25` = 通常読込が供給 /
+  N1 `keymap_set_io.py:56` = 供給不要。**全体デフォルトを増やすときはこの台帳の全経路を見る**。
+- **例外**: `toggle_hook_keys_individual` の **ON→OFF は `apply_global_hook_key_defaults` を単独で呼ぶ**
+  （束ねるとキー切替だけでプリセットが再読込され、編集中の内容を取りこぼす）。
+- 中間状態（task_05 まで）: 保存側が未変更のため**別ディレクトリへ保存した keymap_set を読み直すと
+  プリセットはグローバル側**。意図的に残している。
+- 後続: [idea_08](../../instructions/backlog/idea_08_per_keymap_set_preset_ownership.md)（keymap_set 個別プリセット）。
+
 ## 直前フェーズ（phase 07 = Phase γ）の要点
+
 **正本が正**: `spec_detail/data_schema.md` **§5.9** + `key_input.md` **§7.6** + `codebase_map.md`。
-暫定仕様 06 は凍結済（経緯の参照用）。判断履歴は `decisions_archive/07_hook_keys_global_default.md`。
+暫定仕様 06 は凍結済。判断履歴は `decisions_archive/07_hook_keys_global_default.md`。**phase 08 と同型**。
 
 - `hook_stop_key` / `hook_toggle_key` の**全体デフォルトを `config/config.json`** に持たせ、
   keymap_set のフラグ `hook_keys_individual` で個別指定に切り替える（**後方互換必須・既存キー削除禁止**）。
@@ -55,6 +80,7 @@ compile **clean** / tests **170** / tests_ui **178** / smoke **pass** / manual *
   `split_loading.build_runtime_data_from_split`（**通常読込の選択**。移行判定を通す）/
   `ConfigService.apply_global_hook_key_defaults`（**新規化・置換経路の直接注入**。通常読込は経由しない。
   フラグ無しは OFF とみなす）/ `split_payloads.build_keymap_set_payload`（保存側・**OFF は常に `""`**）。
+  ※ phase 08 task_04 で、**注入は `apply_global_defaults` 経由**へ変わる（単独注入は ON→OFF のみ残る）。
 - **フック層（`input_router` / `hook_controller` / `keyboard_window` / `app.py` の供給部）は無変更**が設計の芯。
 - **【計画06】キー名の定義元は `domain/config.py`**（`HOOK_STOP_KEY` / `HOOK_TOGGLE_KEY` /
   対のタプル `HOOK_KEY_FIELDS` / 対の正規化 `normalize_hook_key_pair`）。新規箇所はリテラルを書かない
@@ -116,8 +142,8 @@ compile **clean** / tests **170** / tests_ui **178** / smoke **pass** / manual *
   `.claude/rules/output_style.md`。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
   （直近 3 件: **07_hook_keys_global_default** / 06_child_file_save_dialog / 05_keymap_set_new_and_default_dir）。
-  提案書「計画05」（`config_service` / `keymap_set_io` の分割）と「計画06」（hook キー対の列挙の集約）は
-  いずれも完了済みで、**どちらもフェーズ番号を消費していない**。
+  **進行中の phase 08 の判断は `decisions.md` 末尾の節**（アーカイブ化はフェーズ完了時）。
+  提案書「計画05」「計画06」は完了済みで、**どちらもフェーズ番号を消費していない**。
 - 未着手/保留 idea: idea_07（参照元の掃除・**着手可**）/ idea_03（hotkey 保存正規化・低）/
   idea_08（個別プリセット）/ idea_09（レガシー保存パス）/ idea_04・idea_06（保留）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
