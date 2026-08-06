@@ -5,43 +5,48 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-08-06T00:00:00
-phase: `instructions/phase/08_hotkey_presets_global`（**起票済・task_01 未着手**。計画06 は完了・フェーズ番号は未消費）
-last_commit_location: claude/refactor-hook-key-pair-enum-b7cddc @ `432f071` ※現在地はセッション開始時の git 実測値が正
+phase: `instructions/phase/08_hotkey_presets_global`（**task_01 完了 / 次は task_02**）
+last_commit_location: claude/refactor-hook-key-pair-enum-b7cddc @ `675c7a7` ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 08（プリセットの config.json グローバル化）を起票済み。task_01（config.json への `hotkey_presets_path` 追加と既定補完）から着手する**。
+focus: **phase 08（プリセットの config.json グローバル化）は task_01（グローバルプリセットパスの読み出し API）まで完了。次は task_02（読込元の切替）**。
 mode: implementing
 
 ## last_action
 ts: 2026-08-06T00:00:00
 who: main
 summary: |
-  【計画06（項目 0 / 1）を完了 → **phase 08 を起票**（`/phase_start`・コード変更なし）】
-  - **phase 08 = プリセットの config.json グローバル化**（主入力 = 暫定仕様 07・**v0.3** へ改訂）。
-    `instructions/phase/08_hotkey_presets_global/phase.md` を新設し、task_01〜08 を定義
-    （最終 task_08 = 正本反映）。`current.md` の現在の参照先・次採番（次フェーズ = 09）も更新。
-  - **ユーザー判断: 計画06 の候補送り（runtime を新規化・置換する入口の一本化）を phase 08 が引き取る**。
-    暫定仕様 07 **§4 検討事項 A（未確定）** として起票し、**task_03 で確定 → v0.4 → task_04 で実装**の順とした
-    （プリセットが 2 例目を作るため。放置すると 4 経路 × 2 種類の規約になる）。
-  - 起票の整合チェック（`reviewer`・整合確認限定）= **修正して採用**。指摘 2 件（`app.py` の行番号 405→406 /
-    受入条件 6 の回収先が読めない）を反映済み。
-  - 前段の計画06 は**完了・コミット済**（`207e879` 項目0 / `4fa12a6` 項目1 / `432f071` handoff。
-    経緯は `decisions.md`「計画06」節と提案書 `modified_proposal/06_*` が正）。
+  【phase 08 の task_01 を起票（`/task_new`）→ 実装 → 完了】
+  - `split_loading.load_global_hotkey_presets_path(service, *, config_root)` を新設（+22 行）。
+    `load_global_hook_keys` と同じ骨格で、**保存されている表記をそのまま返し・パス解決はしない**
+    （解決は `load_named_list` 側。相対値を `os.path` 系へ直接渡さない不変条件を守るため）。
+    **runtime への配線は task_02**（本タスクは読み手を足すだけで挙動は変わらない）。
+  - **起票時の確定**: 「明示的な空文字」も既定 `HOTKEY_PRESETS_RELATIVE_PATH` へ縮退させる
+    （暫定仕様 §3 が空文字を未定義に残していたため。根拠 = §2「プリセットの置き場は常に 1 つ」）。
+    **hook キーとの非対称は意図的**（`load_global_hook_keys` は `config_root` 空で `("","")` へ縮退するが、
+    本 API は常に既定パスを返す）。**task_08 の正本反映でこの契約を明記する**。
+  - **タスク定義の記述ミスを実装側が是正**: `str(x or "").strip()` 一本では**数値 `42` が `"42"` になり**
+    「非文字列は既定へ縮退」の要件と矛盾する → `isinstance(..., str)` の型ガードを追加（**修正して採用**）。
+  - reviewer の軽微指摘（型ガード後の `str()` が冗長）はメインが 1 行へ整理し再実測。
 result_files:
-  - instructions/phase/08_hotkey_presets_global/phase.md（新規）
-  - instructions/history/07_hotkey_presets_global.md（v0.3・§4 検討事項 A を追加）
-  - instructions/phase/current.md（現在の参照先 / 次採番 / 候補送りの引き取り）
-  - .claude_data/state/decisions.md（phase 08 の節を新設）/ .claude_data/state/session.md
+  - keyseq/application/config_service/split_loading.py / tests/test_config_service.py（テスト 5 件追加）
+  - instructions/phase/08_hotkey_presets_global/tasks/task_01_global_presets_path_reader.md（新規）
+  - .claude_data/state/decisions.md（phase 08 節へ task_01 を追記）/ .claude_data/state/session.md
 verified:
-  code_unchanged: 本ターンは**文書のみ**（`keyseq` / `tests` / `tests_ui` に差分なし）
-  compile / tests / tests_ui / smoke: 計画06 完了時の実測が最新（clean / **170** / **178** / pass）
-  review: reviewer（起票の整合確認・1 回）= **修正して採用** → 指摘 2 件を反映済み
+  compile: clean
+  tests: **175 pass**（170 + 追加 5）
+  tests_ui: **178 pass**（**無修正**。本タスクは presentation を触らない）
+  smoke: pass
+  scope: 差分は `split_loading.py` と `tests/test_config_service.py` の **2 ファイルのみ**
+  review: reviewer = **採用（完了可）**。5 経路すべての既定縮退 / パス解決をしていないこと /
+    既定値の定義元が 1 箇所であること / 「含まない」への未踏み込みを確認
 
 ## next_action
-- **task_01 を `/task_new` で起票 → `codex-implementer` へ委任**する。内容 = config.json の
-  `hotkey_presets_path` をスキーマへ追加し、**未設定時の既定補完**（`user/hotkey_presets/default.json`）付きの
-  読み出し API を新設。**同型の先行実装 `split_loading.load_global_hook_keys` をそのまま参考にする**
-  （読めない / 未設定なら既定へ縮退・正規化はパス解決側）。
+- **task_02 を `/task_new` で起票 → 実装委任**する。内容 = **プリセットの読込元を config.json へ切替**
+  （`build_runtime_data_from_split:82-87` の `keymap_set.get("hotkey_presets_path")` を
+  task_01 の `load_global_hotkey_presets_path(service, config_root=...)` の戻り値へ差し替え）+
+  **keymap_set 側の同キーは読込時に無視**（能動削除はしない）。
+  受入条件 1・2（読込側）・5 が対象。**payload 生成停止とカスケード除外は task_05**（混ぜない）。
 - 以降の流れ（各タスク共通）: 実装委任（**テストコードの追加まで含める / 実行は依頼しない**）→
   `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
 - **task_03（設計確定）の前に task_04 へ着手しない**。task_03 は暫定仕様 07 §4 検討事項 A を

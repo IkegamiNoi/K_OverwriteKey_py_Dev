@@ -40,6 +40,27 @@ def load_global_hook_keys(service, *, config_root: str) -> tuple[str, str]:
     )
 
 
+def load_global_hotkey_presets_path(service, *, config_root: str) -> str:
+    """config/config.json（起動エントリ）のグローバルプリセットパスを返す。
+
+    返すのは保存されている表記のまま。未設定・空・非文字列・読込失敗・config_root 空
+    のときは既定へ縮退する。
+    """
+    default_path = service.HOTKEY_PRESETS_RELATIVE_PATH
+    if not config_root:
+        return default_path
+
+    startup = service._load_optional_json(service._startup_entry_path(config_root))
+    if not isinstance(startup, dict):
+        return default_path
+
+    raw_hotkey_presets_path = startup.get("hotkey_presets_path")
+    if not isinstance(raw_hotkey_presets_path, str):
+        return default_path
+
+    return raw_hotkey_presets_path.strip() or default_path
+
+
 def build_runtime_data_from_split(
     service,
     keymap_set: dict[str, Any],

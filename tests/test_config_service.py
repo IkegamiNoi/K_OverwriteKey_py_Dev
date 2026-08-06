@@ -7,6 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService, save_path_resolution, split_payloads
+from keyseq.application.config_service import split_loading
 from keyseq.application.save_plan import (
     ACTION_SAVE,
     ACTION_SAVE_AS,
@@ -263,6 +264,74 @@ class HookKeyResolutionTest(unittest.TestCase):
             self.assertFalse(loaded["hook_keys_individual"])
             self.assertEqual(loaded["hook_stop_key"], "f11")
             self.assertEqual(loaded["hook_toggle_key"], "f12")
+
+
+class GlobalHotkeyPresetsPathTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def _load_path(self, root):
+        return split_loading.load_global_hotkey_presets_path(
+            self.service,
+            config_root=root,
+        )
+
+    def test_configured_relative_path_is_returned_without_resolution(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            configured_path = "user/hotkey_presets/custom.json"
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": configured_path},
+            )
+
+            self.assertEqual(self._load_path(root), configured_path)
+
+    def test_missing_path_uses_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self.service.repository.save_json(os.path.join(root, "config.json"), {})
+
+            self.assertEqual(self._load_path(root), self.service.HOTKEY_PRESETS_RELATIVE_PATH)
+
+    def test_empty_or_non_string_path_uses_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            config_path = os.path.join(root, "config.json")
+            for value in ("", "   ", None, 42):
+                with self.subTest(value=value):
+                    self.service.repository.save_json(
+                        config_path,
+                        {"hotkey_presets_path": value},
+                    )
+
+                    self.assertEqual(
+                        self._load_path(root),
+                        self.service.HOTKEY_PRESETS_RELATIVE_PATH,
+                    )
+
+    def test_missing_or_non_dict_config_uses_default(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            config_path = os.path.join(root, "config.json")
+            for name, content in (("missing", None), ("non_dict", [])):
+                with self.subTest(name=name):
+                    if content is not None:
+                        self.service.repository.save_json(config_path, content)
+
+                    self.assertEqual(
+                        self._load_path(root),
+                        self.service.HOTKEY_PRESETS_RELATIVE_PATH,
+                    )
+
+                    if content is not None:
+                        os.remove(config_path)
+
+    def test_empty_config_root_uses_default(self):
+        self.assertEqual(
+            split_loading.load_global_hotkey_presets_path(self.service, config_root=""),
+            self.service.HOTKEY_PRESETS_RELATIVE_PATH,
+        )
 
 
 class ApplyGlobalHookKeyDefaultsTest(unittest.TestCase):
