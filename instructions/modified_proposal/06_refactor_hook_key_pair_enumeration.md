@@ -24,13 +24,42 @@
 
 ---
 
-## 項目 0: 安全網の確認（**先行必須**）
+## 実施形態（ユーザー確定 2026-08-06）
+
+- **(b) 次フェーズ前の独立ミニ計画 =「計画06」として実施**。運用は**計画05 と同じ**
+  （提案書自体が確定設計 / **フェーズ番号を消費しない** / 1 項目 = 1 コミット /
+  フェーズ末の `/refactor_check` は本計画自体がその産物のため不要）。
+- **phase 08（プリセット）より先に実施**（「依存」節の 2 択のうち前者）。
+  対応表は不変（γ=phase 07〔完了〕/ プリセット=phase 08〔次〕）。
+
+---
+
+## 項目 0: 安全網の確認（**先行必須**）→ **完了（2026-08-06・テスト 1 件追加）**
 
 現状の特性テストが対象領域を覆っているかを先に実測する。不足があれば**テスト追加を先行**させる。
 
-- 確認する観点: ①解決（OFF で全体デフォルトが注入される / ON は個別値）②移行判定（フラグ有無・
-  正規化後の非空判定・冪等）③OFF 保存の空文字化 + フラグ false（保存 JSON のバイト列比較）
-  ④OFF 編集の config.json 更新と成否（失敗時に確定しない）⑤dirty 非汚染
+**実測結果**（`Explore` 収集）:
+
+| 観点 | 実測 | 判定 |
+|---|---|---|
+| ①解決（OFF は全体デフォルト注入 / ON は個別値）| `tests/test_config_service.py` `HookKeyResolutionTest` 5 件 + `ApplyGlobalHookKeyDefaultsTest`。新規 / 既定復帰 / 空データフォールバックは `tests_ui/test_config_io_characterization_keymap_set_startup.py` 619 / 1211 / 1228 | 十分 |
+| ②移行判定（フラグ有無・正規化後の非空・冪等）| `tests/test_domain_config.py` `ResolveHookKeysIndividualTest` 7 件 + 冪等性 2 件 + `tests/test_save_plan.py:207` | 十分 |
+| ③OFF 保存（空文字化 + フラグ false）| `tests/test_save_plan.py:190` / `tests/test_config_service.py:232`（**いずれも値レベル**）| **部分的**（下記） |
+| ④OFF 編集（config.json 更新と成否）| `tests_ui/test_config_io_characterization_keymap_set_startup.py` 1099 / 1122 / 1134 / 1153 + `tests_ui/test_app_ui_flows.py:155` | 十分 |
+| ⑤dirty 非汚染 | `tests_ui/test_app_ui_flows.py` 94 / 119 / 155 / 209 | 十分 |
+
+**空白と対応**: `read_bytes()` によるバイト列比較は**子ファイル（keymap / trigger_set / sequence）専用**で、
+hook キーを含む **keymap_set 本体は対象外**だった。値の同値は
+`test_none_and_empty_plan_have_equivalent_output` の dict 比較が押さえているが、**キー順（＝出力バイト列）を
+固定するテストが無い**。項目 1 の完了条件「出力バイト列が不変」が検証不能になるため、
+**keymap_set 保存 JSON のキー順を固定する特性テストを 1 件追加**した（OFF / ON の両方）。
+
+**リファクタで壊れやすい直接呼び出し**（＝名前・引数を変えない根拠）:
+`apply_global_hook_key_defaults`（`tests/test_config_service.py` 6 箇所・`config_root=` キーワード）/
+`split_loading.load_global_hook_keys`（1 箇所）/ `write_global_hook_keys`（実呼び出し 4 + `patch.object` 7 箇所。
+うち 1 箇所は `call(stop_key=..., toggle_key=...)` の**シグネチャ完全一致比較**）/
+`toggle_hook_keys_individual`（`tests_ui/test_app_ui_flows.py` 9 箇所）。
+
 - 現時点の基準線: `tests` **169 pass** / `tests_ui` **178 pass** / smoke pass（task_07b 実測）
 - 完了条件: 上記 5 観点を固定するテストの所在を対応表にできること（空欄があれば追加）
 
@@ -82,10 +111,10 @@ for field, value in zip(HOOK_KEY_FIELDS, load_global_hook_keys(service, config_r
 
 ---
 
-## 実施形態（ユーザー判断待ち）
+## 実施形態（起票時の選択肢・**(b) で確定済 → 上部「実施形態」節が正**）
 
 - (a) phase 07 末の追加タスク（`task_09_refactor_hook_key_pair`）として起票
-- (b) 次フェーズ前の独立ミニフェーズ（計画05 と同じ「計画」運用）
+- (b) 次フェーズ前の独立ミニフェーズ（計画05 と同じ「計画」運用）← **採用（2026-08-06）**
 - (c) **見送り**（phase 08 で 2 例目が出てから再判定。`/refactor_check` は毎フェーズ走るため悪化すれば再検出される）
 
-> 推奨は **(c) 見送りまたは (b)**。効果は「将来の追随箇所を減らす」で中程度、緊急性は低い。
+> 起票時の推奨は **(c) 見送りまたは (b)**。効果は「将来の追随箇所を減らす」で中程度、緊急性は低い。

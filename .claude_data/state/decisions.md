@@ -206,6 +206,52 @@
 
 ---
 
+## 2026-08-06〜 (計画06: hook キー 2 本の「対の列挙」を 1 箇所へ寄せる・挙動不変)
+
+規範: `instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md`
+（項目 0 = 安全網 / 1 = 対の列挙の集約。**1 項目 = 1 コミット**）。
+Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当）の産物。
+
+### 【起票時】実施形態 → **(b) 次フェーズ前の独立ミニ計画 = 「計画06」**（ユーザー確定 2026-08-06）
+- 提案書の選択肢 (a) phase 07 末の追加タスク / (b) 独立ミニフェーズ / (c) 見送り のうち **(b)** を採用。
+  運用は**計画05 と同じ**（提案書自体を確定設計として扱う / **フェーズ番号を消費しない** /
+  1 項目 = 1 コミット / フェーズ末の `/refactor_check` は本計画自体が産物のため不要）。
+- **phase 08（プリセット）より先に実施**。提案書「依存」の 2 択（phase 08 前 / phase 08 後に 2 例そろえてから）
+  のうち前者。**対応表は不変**（γ=phase 07〔完了〕/ プリセット=phase 08〔次〕）。
+
+### 【項目 0】安全網の確認 = **観点 1・2・4・5 は十分 / 観点 3 に空白**（2026-08-06・`Explore` 実測）
+- 対応表（主なもの）: ①解決 = `tests/test_config_service.py` の `HookKeyResolutionTest` 5 件 +
+  `ApplyGlobalHookKeyDefaultsTest` / ②移行判定 = `tests/test_domain_config.py`
+  `ResolveHookKeysIndividualTest` 7 件 + 冪等性 2 件 + `tests/test_save_plan.py:207` /
+  ③OFF 保存 = `tests/test_save_plan.py:190` + `tests/test_config_service.py:232`（**値レベルのみ**）/
+  ④OFF 編集の config.json 更新と成否 = `tests_ui/test_config_io_characterization_keymap_set_startup.py`
+  1099〜1161 の 4 件 + `tests_ui/test_app_ui_flows.py:155` / ⑤dirty 非汚染 =
+  `tests_ui/test_app_ui_flows.py` 94 / 119 / 155 / 209。
+- **空白 = 観点 3 の「保存 JSON のバイト列比較」**。`read_bytes()` 比較は**子ファイル（keymap /
+  trigger_set / sequence）専用**で、hook キーを含む keymap_set 本体・config.json は対象外だった。
+  値の同値は `test_none_and_empty_plan_have_equivalent_output` が dict 比較で押さえているが、
+  **キー順（＝出力バイト列）は誰も固定していない**。項目 1 の完了条件「バイト列が不変」が
+  現状では検証不能なため、**テスト追加を先行**させる（提案書 項目 0 の規定どおり）。
+- **リファクタで壊れやすい直接呼び出し**（名前・引数を変えない根拠）: `apply_global_hook_key_defaults`
+  （`tests/test_config_service.py` 6 箇所・`config_root=` キーワード）/ `split_loading.load_global_hook_keys`
+  （同 startup 特性テスト 1 箇所）/ `write_global_hook_keys`（実呼び出し 4 + `patch.object` 7 箇所。
+  うち 1 箇所は `call(stop_key=..., toggle_key=...)` の**シグネチャ完全一致比較**）/
+  `toggle_hook_keys_individual`（`tests_ui/test_app_ui_flows.py` 9 箇所）。
+
+### 【項目 0】完了（2026-08-06）= 観点 3 の空白を埋めるテスト **1 件追加**
+- `tests/test_save_plan.py` に `test_saved_keymap_set_json_keeps_stable_key_order` を追加（**追加のみ**・
+  `keyseq/` 配下は 1 行も変更なし）。保存済み `user/keymap_sets/main.json` を読み直し、
+  トップレベルキー順を `build_keymap_set_payload` の返却順 11 キーと**リスト比較**（順序込み）。
+  **ON / OFF の両ケース**で比較し、OFF でも 2 キーが**消えずに空文字で残る**ことを固定した
+  （後方互換の要）。
+- 検証: compile clean / tests **170 pass**（169 + 1）/ tests_ui **178 pass** / smoke pass。
+- reviewer = **完了可**（指摘なし）。キー順比較が集合・ソート比較でないこと、OFF が
+  `assertIn` + 空文字比較で偽陽性にならないことを確認。
+  参考指摘: 期待キー順はハードコードのため、将来**意図的に**キー順を変える改修では本テストの更新が必要
+  （特性テストとして意図どおり）。
+
+---
+
 ## 運用メモ
 
 - 1 タスク完了時に reviewer 判定をここへ転記する

@@ -4,53 +4,52 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-05T00:00:00
-phase: **なし（phase 07 完了）**。次フェーズは未起票 = 着手前にユーザーへ方針確認（`instructions/phase/current.md`）
-last_commit_location: claude/task-08-proceed-84c4a5 @ `3176954` ※現在地はセッション開始時の git 実測値が正
+last_updated: 2026-08-06T00:00:00
+phase: **フェーズは無し（phase 07 完了）**。現在は「**計画06**」実施中 = `instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md`（計画05 と同じ運用・**フェーズ番号を消費しない**）
+last_commit_location: claude/refactor-hook-key-pair-enum-b7cddc @ `a2b7d81` ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 07（保存系リデザイン Phase γ・hook キーの全体デフォルト化）は task_08 まで完了しフェーズ完了。次フェーズ（プリセット = phase 08）は未起票**。
-mode: completed
+focus: **計画06（hook キー 2 本の「対の列挙」を 1 箇所へ寄せる・挙動不変）を実施中。項目 0（安全網）完了、次は項目 1（本体リファクタ）**。
+mode: implementing
 
 ## last_action
-ts: 2026-08-05T00:00:00
+ts: 2026-08-06T00:00:00
 who: main
 summary: |
-  【実機目視 G1〜G9 OK を受けて task_07 を完了 → task_08（正本反映・最終）を起票して実施 → phase 07 完了】
-  - **正本昇格**（文書のみ・コード無変更）: `spec_detail/data_schema.md` **§5.9**（データモデル /
-    解決順序 / 移行規則 / 編集と保存の契約 / 既知の制約）+ `spec_detail/key_input.md` **§7.6**
-    （供給源とフック挙動）+ `codebase_map.md`（責務）。**既存節は無改変**（追記のみ・節番号を動かさない）。
-  - **暫定仕様 06 を凍結** / `decisions_archive/07_hook_keys_global_default.md` を作成し
-    `decisions.md` は索引 1 行へ / `current.md`・`phase.md` を完了状態へ更新。
-  - **指摘 E は実装を変えず契約として明記**（§5.9.5: キー衝突検証はカレントセット内に閉じる /
-    「明示 false + 非空個別値」は個別値が失われる）。
-  - レビュー = **deep-reviewer（修正要・軽微）+ codex-adversarial-reviewer（needs-attention）**。
-    **ユーザー判断: 指摘 A〜H を採用 / I の 3 件は保留**。最重要は **A**（§5.9.2 の「未設定なら注入」が
-    §5.9.3 の移行規則と矛盾＝後方互換回帰の種）と **B**（codebase_map が通常読込の分岐点を隠していた）。
-  - **`/refactor_check` = 推奨**（M4 のみ該当）→ 提案書 `06_refactor_hook_key_pair_enumeration.md` を
-    起票（**未承認**・実施形態はユーザー判断待ち）。
+  【提案書 06 の実施形態を **(b) 独立ミニ計画 =「計画06」** でユーザー確定 → 項目 0（安全網）を完了】
+  - 運用は**計画05 と同じ**（提案書自体が確定設計 / **フェーズ番号を消費しない** / 1 項目 = 1 コミット /
+    フェーズ末の `/refactor_check` は本計画自体がその産物のため不要）。**phase 08 より先に実施**。
+  - **項目 0 の実測**（`Explore`）: 観点 ①解決 ②移行判定 ④OFF 編集の成否 ⑤dirty 非汚染 は**十分**。
+    **③OFF 保存だけ空白** = `read_bytes()` のバイト列比較は**子ファイル専用**で、hook キーを含む
+    keymap_set 本体は**キー順（＝出力バイト列）を誰も固定していなかった**。
+  - → `tests/test_save_plan.py` に `test_saved_keymap_set_json_keeps_stable_key_order` を**追加のみ**で新設
+    （`keyseq/` は 1 行も変更なし）。キー順を 11 キーの**リスト比較**、**ON / OFF 双方**で検証し、
+    OFF でも 2 キーが**消えずに空文字で残る**ことを固定。
+  - 項目 1 で**名前・引数を変えてはいけない API** を特定: `apply_global_hook_key_defaults`（6 箇所）/
+    `split_loading.load_global_hook_keys` / `write_global_hook_keys`（`call(stop_key=..., toggle_key=...)` の
+    完全一致比較あり）/ `toggle_hook_keys_individual`（9 箇所）。
 result_files:
-  - instructions/common/spec_detail/{data_schema.md,key_input.md} / instructions/common/codebase_map.md
-  - instructions/history/06_hook_keys_global_default.md（凍結）
-  - instructions/phase/07_hook_keys_global_default/{phase.md,tasks/task_08_spec_promotion.md}
-  - instructions/phase/current.md / instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md
-  - .claude_data/state/decisions.md / .claude_data/state/decisions_archive/07_hook_keys_global_default.md
+  - tests/test_save_plan.py（テスト 1 件追加）
+  - instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md（実施形態確定 + 項目 0 の実測表）
+  - instructions/phase/current.md / .claude_data/state/decisions.md（「計画06」節を新設）
 verified:
-  code_unchanged: `git diff -- keyseq tests tests_ui` が**空**（文書のみの変更）
-  compile / tests / tests_ui / smoke: task_07b 実測値が最終（clean / 169 pass / 178 pass / pass）。本タスクでは再実行しない
-  manual: **実機目視 G1〜G9 すべて OK**（ユーザー実施・2026-08-05）
-  review: deep-reviewer = 修正要（軽微・A〜H 反映で完了可）/ codex-adversarial-reviewer = needs-attention
-    → **採用分をすべて反映済み**
+  compile: clean
+  tests: **170 pass**（169 + 追加 1）
+  tests_ui: **178 pass**（変化なし）
+  smoke: pass
+  review: reviewer = **完了可**（指摘なし。キー順比較が順序込みであること・OFF が偽陽性でないことを確認）
 
 ## next_action
-- **`/task_commit` で task_08 の成果をコミットする**（対象は上記 result_files。コード差分なし）。
-- 次フェーズの着手は**ユーザー確認が先**。候補は `instructions/phase/current.md`「次フェーズ候補」:
-  - **本命: プリセットの config.json グローバル化 = phase 08**
-    （主入力 = `instructions/history/07_hotkey_presets_global.md`・確定済）。起票は `/phase_start`。
-  - 他: idea_07（参照元の掃除・着手可）/ idea_09 / idea_03。
-- **未承認の提案書**: `instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md`
-  （Phase γ の `/refactor_check` = 推奨・M4）。実施形態は (a) 追加タスク / (b) ミニフェーズ /
-  **(c) 見送り**（推奨は (c) または (b)。phase 08 で 2 例目が出てから共通化する方針なら見送り）。
+- **項目 1 を `codex-implementer` へ委任する**（規範 = `instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md`
+  の「項目 1」）。`keyseq/domain/config.py` に **キー名定数 + `HOOK_KEY_FIELDS` の対 + `normalize_hook_key_pair`**
+  を置き、`config_service/{__init__.py,split_loading.py,split_payloads.py}` と
+  `presentation/{app.py,controllers/key_capture.py,controllers/config_io/startup_io.py,ui_vars.py}` を差し替える。
+  **やらないこと**: 3 キーの構造体化 / UiVars・hook_frame の共通化 / **保存 payload のキー列挙の動的化**
+  （バイト列固定テストの前提を崩さない）/ 上記 4 API の**名前・引数の変更**。
+- 完了後 `verifier` で実測（compile / tests **170** / tests_ui **178** / smoke。バイト列固定テストは**無修正 pass**）→
+  `reviewer` で差分レビュー → `/save_state` + `/task_commit`（項目 1 = 1 コミット）。
+- 計画06 完了後に次フェーズ = **プリセットの config.json グローバル化 = phase 08**
+  （主入力 `instructions/history/07_hotkey_presets_global.md`・確定済）を `/phase_start` で起票する。
 
 ## blockers
 - なし。

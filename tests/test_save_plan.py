@@ -1,3 +1,4 @@
+import json
 import os
 import tempfile
 import unittest
@@ -82,6 +83,54 @@ class SavePlanTest(unittest.TestCase):
             trigger_set_path="user/trigger_sets/main.json",
             hotkey_presets_path="user/hotkey_presets/default.json",
         )
+
+    def test_saved_keymap_set_json_keeps_stable_key_order(self):
+        """Characteristic test pinning key order for output byte stability.
+
+        OFF must retain both hook keys rather than dropping them.
+        """
+        expected_key_order = [
+            "trigger_set_path",
+            "hotkey_presets_path",
+            "active_keymap_path",
+            "keymaps",
+            "hook_stop_key",
+            "hook_toggle_key",
+            "hook_keys_individual",
+            "keyboard_layout",
+            "keyboard_show_physical_key_labels",
+            "debug_jis_special_key_events",
+            "external_keyboard_layouts",
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            for hook_keys_individual in (True, False):
+                with self.subTest(hook_keys_individual=hook_keys_individual):
+                    root = os.path.join(tmp, str(hook_keys_individual))
+                    data = make_runtime_data()
+                    data.update(
+                        {
+                            "hook_keys_individual": hook_keys_individual,
+                            "hook_stop_key": "f11",
+                            "hook_toggle_key": "f12",
+                        }
+                    )
+                    self._save(root, data)
+
+                    keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+                    with open(keymap_set_path, encoding="utf-8") as f:
+                        loaded = json.loads(f.read())
+
+                    self.assertEqual(list(loaded.keys()), expected_key_order)
+                    self.assertIn("hook_stop_key", loaded)
+                    self.assertIn("hook_toggle_key", loaded)
+                    if hook_keys_individual:
+                        self.assertEqual(loaded["hook_stop_key"], "f11")
+                        self.assertEqual(loaded["hook_toggle_key"], "f12")
+                        self.assertIs(loaded["hook_keys_individual"], True)
+                    else:
+                        self.assertEqual(loaded["hook_stop_key"], "")
+                        self.assertEqual(loaded["hook_toggle_key"], "")
+                        self.assertIs(loaded["hook_keys_individual"], False)
 
     def test_none_and_empty_plan_have_equivalent_output(self):
         with tempfile.TemporaryDirectory() as tmp:
