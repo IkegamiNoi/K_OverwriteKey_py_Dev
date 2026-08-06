@@ -321,6 +321,21 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
 - reviewer = **採用（完了可）**。5 経路すべての既定縮退・解決していないこと・既定値の定義元が
   `HOTKEY_PRESETS_RELATIVE_PATH` 1 箇所であること・「含まない」への未踏み込みを確認。
 
+### 【task_02】完了（2026-08-06）= プリセットの読込元を config.json へ切替（**挙動変更**）
+- `build_runtime_data_from_split` のプリセット読込 **1 行**を
+  `keymap_set.get("hotkey_presets_path")` → `load_global_hotkey_presets_path(service, config_root=...)` へ差し替え。
+  **keymap_set 側キーはこの関数から参照されなくなった = 読込時無視**（`pop` 等の能動削除はしない）。
+- **既存テストの修正は 0 件**（挙動変更だが既存テストは同一 config_root で保存・再読込するため、
+  グローバル既定パスと保存先の既定パスが一致し影響が出なかった）。追加 5 件のみ。
+- **既知の中間状態（task_05 まで残す）**: 保存側は未変更のため「**別ディレクトリへ保存した keymap_set を
+  読み直すとプリセットはグローバル側**」という非対称が残る。**先取りで直さない**とタスク定義に明記し、
+  reviewer にも「本タスクでは正しい状態」として確認させた。
+- 単一 JSON 互換の読込（`ensure_config_compatibility` のインライン `hotkey_presets`）は**対象外**（別形式）。
+- 検証: compile clean / tests **180 pass**（175 + 追加 5）/ tests_ui **178 pass** / smoke pass /
+  差分は `split_loading.py`（±1 行）と `tests/test_config_service.py` の 2 ファイルのみ。
+- reviewer = **採用（完了可）**・指摘なし。観点 2 のテストが**グローバルと keymap_set 側に異なる内容を置いて
+  値で区別**しており偽陽性でないことも確認。
+
 ---
 
 ## 運用メモ

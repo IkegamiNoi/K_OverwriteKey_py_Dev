@@ -5,48 +5,54 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-08-06T00:00:00
-phase: `instructions/phase/08_hotkey_presets_global`（**task_01 完了 / 次は task_02**）
-last_commit_location: claude/refactor-hook-key-pair-enum-b7cddc @ `675c7a7` ※現在地はセッション開始時の git 実測値が正
+phase: `instructions/phase/08_hotkey_presets_global`（**task_02 完了 / 次は task_03 = 設計確定**）
+last_commit_location: claude/refactor-hook-key-pair-enum-b7cddc @ `41879c6` ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 08（プリセットの config.json グローバル化）は task_01（グローバルプリセットパスの読み出し API）まで完了。次は task_02（読込元の切替）**。
+focus: **phase 08（プリセットの config.json グローバル化）は task_02（読込元を config.json へ切替）まで完了。次は task_03 = 入口一本化の設計確定（ユーザー判断が必要）**。
 mode: implementing
 
 ## last_action
 ts: 2026-08-06T00:00:00
 who: main
 summary: |
-  【phase 08 の task_01 を起票（`/task_new`）→ 実装 → 完了】
-  - `split_loading.load_global_hotkey_presets_path(service, *, config_root)` を新設（+22 行）。
-    `load_global_hook_keys` と同じ骨格で、**保存されている表記をそのまま返し・パス解決はしない**
-    （解決は `load_named_list` 側。相対値を `os.path` 系へ直接渡さない不変条件を守るため）。
-    **runtime への配線は task_02**（本タスクは読み手を足すだけで挙動は変わらない）。
-  - **起票時の確定**: 「明示的な空文字」も既定 `HOTKEY_PRESETS_RELATIVE_PATH` へ縮退させる
-    （暫定仕様 §3 が空文字を未定義に残していたため。根拠 = §2「プリセットの置き場は常に 1 つ」）。
-    **hook キーとの非対称は意図的**（`load_global_hook_keys` は `config_root` 空で `("","")` へ縮退するが、
-    本 API は常に既定パスを返す）。**task_08 の正本反映でこの契約を明記する**。
-  - **タスク定義の記述ミスを実装側が是正**: `str(x or "").strip()` 一本では**数値 `42` が `"42"` になり**
-    「非文字列は既定へ縮退」の要件と矛盾する → `isinstance(..., str)` の型ガードを追加（**修正して採用**）。
-  - reviewer の軽微指摘（型ガード後の `str()` が冗長）はメインが 1 行へ整理し再実測。
+  【phase 08 task_02 を起票 → 実装 → 完了（**挙動変更**）】
+  - `build_runtime_data_from_split` のプリセット読込 **1 行**を
+    `keymap_set.get("hotkey_presets_path")` → `load_global_hotkey_presets_path(service, config_root=...)` へ差替。
+    **keymap_set 側キーはこの関数から参照されなくなった = 読込時無視**（`pop` 等の能動削除はしない）。
+  - **既存テストの修正は 0 件**。既存テストは同一 config_root で保存・再読込するため、
+    グローバル既定パスと保存先の既定パスが一致し影響が出なかった（追加 5 件のみ）。
+  - **既知の中間状態を意図的に残している（task_05 まで）**: 保存側が未変更のため
+    「**別ディレクトリへ保存した keymap_set を読み直すとプリセットはグローバル側**」という非対称がある。
+    タスク定義に「先取りで直さない」と明記し、reviewer にも正しい状態として確認させた。
+  - 単一 JSON 互換の読込（インライン `hotkey_presets`）は**対象外**（別形式）。
 result_files:
   - keyseq/application/config_service/split_loading.py / tests/test_config_service.py（テスト 5 件追加）
-  - instructions/phase/08_hotkey_presets_global/tasks/task_01_global_presets_path_reader.md（新規）
-  - .claude_data/state/decisions.md（phase 08 節へ task_01 を追記）/ .claude_data/state/session.md
+  - instructions/phase/08_hotkey_presets_global/tasks/task_02_read_presets_from_global.md（新規）
+  - .claude_data/state/decisions.md（phase 08 節へ task_02 を追記）/ .claude_data/state/session.md
 verified:
   compile: clean
-  tests: **175 pass**（170 + 追加 5）
-  tests_ui: **178 pass**（**無修正**。本タスクは presentation を触らない）
+  tests: **180 pass**（175 + 追加 5）
+  tests_ui: **178 pass**（無修正）
   smoke: pass
-  scope: 差分は `split_loading.py` と `tests/test_config_service.py` の **2 ファイルのみ**
-  review: reviewer = **採用（完了可）**。5 経路すべての既定縮退 / パス解決をしていないこと /
-    既定値の定義元が 1 箇所であること / 「含まない」への未踏み込みを確認
+  scope: 差分は `split_loading.py`（±1 行）と `tests/test_config_service.py` の **2 ファイルのみ**
+  review: reviewer = **採用（完了可）**・指摘なし。読込元がグローバル 1 本になったこと /
+    能動削除が無いこと / 保存側・入口・presentation へ波及していないこと /
+    「keymap_set 側を無視する」テストが**両者に異なる内容を置いて値で区別**していることを確認
 
 ## next_action
-- **task_02 を `/task_new` で起票 → 実装委任**する。内容 = **プリセットの読込元を config.json へ切替**
-  （`build_runtime_data_from_split:82-87` の `keymap_set.get("hotkey_presets_path")` を
-  task_01 の `load_global_hotkey_presets_path(service, config_root=...)` の戻り値へ差し替え）+
-  **keymap_set 側の同キーは読込時に無視**（能動削除はしない）。
-  受入条件 1・2（読込側）・5 が対象。**payload 生成停止とカスケード除外は task_05**（混ぜない）。
+- **task_03 = 設計確定タスク（実装なし・ユーザー判断が必要）**。暫定仕様 07 **§4 検討事項 A**
+  「runtime を新規化・置換する入口の一本化」を確定し、**暫定仕様を v0.4 へ改訂**する。
+  論点は 3 つ: ①生成の入口自体が供給済み runtime を返す形（`new_runtime_data(*, config_root)`）へ寄せるか
+  ②**通常読込 `build_runtime_data_from_split` の条件付き注入**（hook キーはフラグ次第）**との等価性**を
+  どう保つか ③`app.py:77` の生成を寄せるか前提を明文化して据え置くか。
+  **確定内容が「現状維持」でも可**（根拠を暫定仕様へ残す）。レビューは `codex-adversarial-reviewer`
+  （縮退時 `deep-reviewer`）。**確定前に task_04 へ着手しない**。
+- 現状の入口の実測（棚卸しの出発点）: `keymap_set_io.py:53`（新規作成）/ `:562`（Import）/ `:599`（例を復元）/
+  `startup_io.py:35`（空データ起動）はいずれも `new_*_data()` の直後に
+  `apply_global_hook_key_defaults` を呼ぶ 2 段構え。`app.py:77` は**注入が無い**（起動シーケンス依存）。
+  **プリセットは現状どの入口でも供給されない**（`new_default_data` は `DEFAULT_CONFIG` の組込プリセット、
+  `new_empty_data` は空リスト）。
 - 以降の流れ（各タスク共通）: 実装委任（**テストコードの追加まで含める / 実行は依頼しない**）→
   `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
 - **task_03（設計確定）の前に task_04 へ着手しない**。task_03 は暫定仕様 07 §4 検討事項 A を

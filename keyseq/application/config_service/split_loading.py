@@ -102,7 +102,7 @@ def build_runtime_data_from_split(
         runtime[service.INTERNAL_TRIGGER_SET_PARENT_REFS] = trigger_set_parent_refs
     runtime["hotkey_presets"] = load_named_list(
         service,
-        keymap_set.get("hotkey_presets_path"),
+        load_global_hotkey_presets_path(service, config_root=config_root),
         root_key="hotkey_presets",
         config_root=config_root,
     )

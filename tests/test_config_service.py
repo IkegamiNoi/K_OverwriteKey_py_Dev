@@ -334,6 +334,103 @@ class GlobalHotkeyPresetsPathTest(unittest.TestCase):
         )
 
 
+class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def _load_keymap_set(self, root, keymap_set):
+        path = os.path.join(root, "user", "keymap_sets", "main.json")
+        self.service.repository.save_json(path, keymap_set)
+        return self.service.load_runtime_data_from_keymap_set_path(path, config_root=root)
+
+    def _save_presets(self, root, relative_path, presets):
+        self.service.repository.save_json(
+            os.path.join(root, relative_path),
+            {"hotkey_presets": presets},
+        )
+
+    def test_loads_presets_from_configured_global_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            expected_presets = [{"label": "Global", "value": "ctrl+g"}]
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(root, global_path, expected_presets)
+
+            loaded = self._load_keymap_set(root, {})
+
+            self.assertEqual(loaded["hotkey_presets"], expected_presets)
+
+    def test_ignores_keymap_set_path_and_uses_global_presets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            legacy_path = "user/hotkey_presets/legacy.json"
+            global_presets = [{"label": "Global", "value": "ctrl+g"}]
+            legacy_presets = [{"label": "Legacy", "value": "ctrl+l"}]
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(root, global_path, global_presets)
+            self._save_presets(root, legacy_path, legacy_presets)
+
+            loaded = self._load_keymap_set(root, {"hotkey_presets_path": legacy_path})
+
+            self.assertEqual(loaded["hotkey_presets"], global_presets)
+
+    def test_missing_global_path_uses_default_presets_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            expected_presets = [{"label": "Default", "value": "ctrl+d"}]
+            self.service.repository.save_json(os.path.join(root, "config.json"), {})
+            self._save_presets(
+                root,
+                self.service.HOTKEY_PRESETS_RELATIVE_PATH,
+                expected_presets,
+            )
+
+            loaded = self._load_keymap_set(root, {})
+
+            self.assertEqual(loaded["hotkey_presets"], expected_presets)
+
+    def test_missing_or_invalid_global_presets_file_returns_empty_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            config_path = os.path.join(root, "config.json")
+            self.service.repository.save_json(
+                config_path,
+                {"hotkey_presets_path": global_path},
+            )
+
+            for name, content in (("missing", None), ("invalid", "{")):
+                with self.subTest(name=name):
+                    presets_path = os.path.join(root, global_path)
+                    if content is not None:
+                        Path(presets_path).parent.mkdir(parents=True, exist_ok=True)
+                        Path(presets_path).write_text(content, encoding="utf-8")
+
+                    loaded = self._load_keymap_set(root, {})
+
+                    self.assertEqual(loaded["hotkey_presets"], [])
+                    if content is not None:
+                        os.remove(presets_path)
+
+    def test_legacy_keymap_set_presets_path_loads_without_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            legacy_path = "user/hotkey_presets/legacy.json"
+            self.service.repository.save_json(os.path.join(root, "config.json"), {})
+
+            loaded = self._load_keymap_set(root, {"hotkey_presets_path": legacy_path})
+
+            self.assertEqual(loaded["hotkey_presets"], [])
+
+
 class ApplyGlobalHookKeyDefaultsTest(unittest.TestCase):
     def setUp(self):
         self.service = ConfigService(JsonRepository())
