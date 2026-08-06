@@ -250,6 +250,31 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
   参考指摘: 期待キー順はハードコードのため、将来**意図的に**キー順を変える改修では本テストの更新が必要
   （特性テストとして意図どおり）。
 
+### 【項目 1】完了（2026-08-06）= **計画06 完了**
+- `domain/config.py` に `HOOK_STOP_KEY` / `HOOK_TOGGLE_KEY` / `HOOK_KEY_FIELDS` /
+  `normalize_hook_key_pair()` を新設し、提案書どおり 8 ファイル（+58 / -32 行）を置換。
+  **値オブジェクト化はしない**（差分最小の方針）。
+- **設計の詰め（メイン判断）**: 定数は**単独参照用の 2 本 + 対のタプル 1 本**とし、
+  `HOOK_KEY_FIELDS[0]` のような**添字参照は禁止**（可読性が落ちるため）。反復・zip する箇所
+  （`apply_global_hook_key_defaults` / `build_runtime_data_from_split` のキー列 /
+  `toggle_hook_keys_individual` の退避・復元）でのみタプルを使う。
+  `hook_keys_individual` は**定数化しない**（提案書「3 キーの構造体化はしない」に合わせ 2 キーに閉じる）。
+- **修正して採用（Codex 判断を採用）**: `ensure_config_compatibility`（domain）と
+  `build_keymap_set_payload`（split_payloads）の 2 箇所は `normalize_hook_key_pair` へ寄せず、
+  **`normalize_key_name` の直呼びのままキー名だけ定数化**した。新関数は `str(x or "")` を挟むため、
+  **非文字列が入っていた場合に現行が送出する例外を握り潰す**＝挙動が変わるため。
+  キー名の定数化はメインが補完（Codex は 2 行を丸ごと未変更で残していた）。
+- **メインが直接是正した軽微 2 件**: 上記のキー名定数化 / `app.py` の追加 import が application 層の
+  import 群の途中に入っていたのを domain 層の位置へ移動（reviewer の参考指摘）。
+- 検証: compile clean / tests **170 pass** / tests_ui **178 pass** / smoke pass /
+  キー順の特性テストは**無修正 pass** / `tests` `tests_ui` は**1 ファイルも変更なし**（import 移動後に再実測）。
+- reviewer = **採用（完了可）**。分岐・評価順序・代入順序・例外挙動・公開 API のシグネチャ・
+  保存 payload のキー順が不変であることを突合で確認。残置リテラルが意図的な範囲
+  （`DEFAULT_CONFIG` / `split_payloads` の返却 dict キー / `startup_io` の保存 dict キー /
+  対象外 4 ファイル）に収まることも確認済み。
+- **候補送り（M3 由来の「runtime を新規化・置換する入口が 4 経路」）は未着手**のまま
+  `current.md`「別タスク化候補」に残る。**フェーズ番号は消費していない**。
+
 ---
 
 ## 運用メモ

@@ -63,7 +63,17 @@ hook キーを含む **keymap_set 本体は対象外**だった。値の同値�
 - 現時点の基準線: `tests` **169 pass** / `tests_ui` **178 pass** / smoke pass（task_07b 実測）
 - 完了条件: 上記 5 観点を固定するテストの所在を対応表にできること（空欄があれば追加）
 
-## 項目 1: hook キー 2 本の「対の列挙」を 1 箇所へ寄せる（M4）
+## 項目 1: hook キー 2 本の「対の列挙」を 1 箇所へ寄せる（M4）→ **完了（2026-08-06）**
+
+**実測**: `domain/config.py` に `HOOK_STOP_KEY` / `HOOK_TOGGLE_KEY` / `HOOK_KEY_FIELDS` /
+`normalize_hook_key_pair()` を新設し、予定どおり 8 ファイル（+58 / -32 行）を置換。
+compile clean / tests **170 pass** / tests_ui **178 pass** / smoke pass / キー順の特性テストは**無修正 pass**、
+`tests` `tests_ui` は**1 ファイルも変更なし**。reviewer = **完了可**。
+
+**案から変えた点（挙動不変を優先した判断）**: `ensure_config_compatibility`（domain）と
+`build_keymap_set_payload`（split_payloads）の 2 箇所は `normalize_hook_key_pair` へ寄せず
+**`normalize_key_name` の直呼びのままキー名だけ定数化**した。新関数は `str(x or "")` を挟むため、
+**非文字列が入っていた場合に現行が送出する例外を握り潰してしまう**ため。
 
 **対象**: `keyseq/domain/config.py`（キー名の定義元）/
 `keyseq/application/config_service/{__init__.py, split_loading.py, split_payloads.py}` /
@@ -108,6 +118,17 @@ for field, value in zip(HOOK_KEY_FIELDS, load_global_hook_keys(service, config_r
 **依存**: 項目 0 の完了。phase 08（プリセットの config.json グローバル化）と**同じ構造**を扱うため、
 **phase 08 の着手前に実施するか、phase 08 完了後に 2 例そろえてから実施するかはユーザー判断**
 （2 例目が出てから共通化する方針なら**見送り**も妥当な選択肢）。
+
+---
+
+## 計画06 の完了（2026-08-06）
+
+項目 0 / 1 をともに実施し、**計画06 は完了**。M4（stop / toggle を対で列挙する箇所が 5 → 10 へ増加）は解消し、
+キー名リテラルの残置は**意図的な 3 箇所のみ**（`DEFAULT_CONFIG` の既定値表 / `split_payloads` の返却 dict キー /
+`startup_io` の保存 dict キー）+ **本計画の対象外ファイル 4 本**（`hook_controller.py` /
+`keymap_panel_controller.py` / `keyboard_window.py` / `trigger_service.py` = いずれも読み取り 1 箇所ずつ）。
+候補送り（M3 由来の「runtime を新規化・置換する入口が 4 経路」）は**未着手のまま**で、
+`current.md`「別タスク化候補」に残る。**フェーズ番号は消費していない**（γ=phase 07 / プリセット=phase 08）。
 
 ---
 

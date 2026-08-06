@@ -241,6 +241,11 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
   **渡すデータが違う**: 読込＝**生の keymap_set dict**（`split_loading`）/ 保存＝**runtime**
   （`split_payloads`。`.get()` の真偽で見ずに必ずこの純関数を通す＝フラグ無しの旧 runtime を
   従来どおり個別値保存にするため）/ 互換化＝`ensure_config_compatibility` 内（hook キー正規化の直後）
+- **hook キー名の定義元も `domain/config.py`**（`HOOK_STOP_KEY` / `HOOK_TOGGLE_KEY` /
+  対のタプル `HOOK_KEY_FIELDS` / 対の正規化 `normalize_hook_key_pair`）。application / presentation は
+  リテラルを書かずこれを参照する。**例外はキーの並び自体が契約になる 3 箇所**
+  （`DEFAULT_CONFIG` の既定値表 / `split_payloads` の保存 payload の dict キー / `startup_io` の保存 dict キー）で、
+  ここは**明示列挙のまま**にする（保存 JSON のキー順が変わらないことの担保）
 - **子ファイルの保存計画（`application/save_plan.py` の `SavePlan`）を実行する**
   （仕様は `spec_detail/data_schema.md` §5.8）:
   - 保存対象の解決（`resolve_child_save_targets`）・依存関係の検出・計画の事前検証・

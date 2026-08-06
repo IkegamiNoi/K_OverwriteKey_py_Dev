@@ -14,10 +14,10 @@
   （**2026-08-05 完了**・保存系リデザイン **Phase γ**）。
   **完了フェーズの要約は本ファイルに置かない**。経緯・判断は `.claude_data/state/decisions.md`「アーカイブ索引」
   → `decisions_archive/<phase>.md` が正。
-- **実施中の計画: [06_refactor_hook_key_pair_enumeration](../modified_proposal/06_refactor_hook_key_pair_enumeration.md)
-  =「計画06」**（Phase γ の `/refactor_check` = 推奨・M4 の産物。**(b) 次フェーズ前の独立ミニ計画**として
-  実施することをユーザーが確定・2026-08-06）。**フェーズ番号は消費しない**ため対応表は不変
-  （γ=phase 07〔完了〕/ プリセット=phase 08〔次〕）。判断は `decisions.md` の「計画06」節。
+- 提案書 [06_refactor_hook_key_pair_enumeration](../modified_proposal/06_refactor_hook_key_pair_enumeration.md) は
+  **「計画06」として実施し完了**（2026-08-06・項目 0 / 1。**(b) 次フェーズ前の独立ミニ計画**）。
+  **フェーズ番号は消費していない**ため対応表は不変（γ=phase 07〔完了〕/ プリセット=phase 08〔次〕）。
+  判断は `decisions.md` の「計画06」節。
 - 提案書 [05_refactor_child_file_save_dialog](../modified_proposal/05_refactor_child_file_save_dialog.md) は
   **「計画05」として実施し完了**（2026-08-03・項目 0 / 1 / 2）。フェーズ番号は消費していない。
   判断は `decisions.md` の「計画05」節。

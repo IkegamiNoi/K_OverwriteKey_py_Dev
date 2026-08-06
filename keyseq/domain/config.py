@@ -74,6 +74,19 @@ def normalize_key_name(value: str) -> str:
     return (value or "").strip().lower()
 
 
+HOOK_STOP_KEY = "hook_stop_key"
+HOOK_TOGGLE_KEY = "hook_toggle_key"
+HOOK_KEY_FIELDS: tuple[str, str] = (HOOK_STOP_KEY, HOOK_TOGGLE_KEY)
+
+
+def normalize_hook_key_pair(stop_key: Any, toggle_key: Any) -> tuple[str, str]:
+    """hook キーの対を正規化して (stop, toggle) で返す。"""
+    return (
+        normalize_key_name(str(stop_key or "")),
+        normalize_key_name(str(toggle_key or "")),
+    )
+
+
 def resolve_hook_keys_individual(source: Any) -> bool:
     """hook キーを個別指定するかを決める（暫定仕様 06 §2 の移行規則）。
 
@@ -84,8 +97,10 @@ def resolve_hook_keys_individual(source: Any) -> bool:
         return False
     if "hook_keys_individual" in source:
         return bool(source["hook_keys_individual"])
-    hook_stop_key = normalize_key_name(str(source.get("hook_stop_key", "") or ""))
-    hook_toggle_key = normalize_key_name(str(source.get("hook_toggle_key", "") or ""))
+    hook_stop_key, hook_toggle_key = normalize_hook_key_pair(
+        source.get(HOOK_STOP_KEY, ""),
+        source.get(HOOK_TOGGLE_KEY, ""),
+    )
     return bool(hook_stop_key or hook_toggle_key)
 
 
@@ -167,8 +182,8 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             normalized_presets.append(p)
         config["hotkey_presets"] = normalized_presets
 
-    config["hook_stop_key"] = normalize_key_name(config.get("hook_stop_key", ""))
-    config["hook_toggle_key"] = normalize_key_name(config.get("hook_toggle_key", ""))
+    config[HOOK_STOP_KEY] = normalize_key_name(config.get(HOOK_STOP_KEY, ""))
+    config[HOOK_TOGGLE_KEY] = normalize_key_name(config.get(HOOK_TOGGLE_KEY, ""))
     config["hook_keys_individual"] = resolve_hook_keys_individual(config)
     config.pop("hook_keymap_toggle_key", None)
     layout_id = config.get("keyboard_layout", DEFAULT_KEYBOARD_LAYOUT_ID)

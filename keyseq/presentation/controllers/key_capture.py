@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox
 
+from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY
 from keyseq.presentation.tk_keys import normalize_tk_keysym
 
 
@@ -16,7 +17,7 @@ class SingleKeyCaptureController:
         self,
         app,
         *,
-        data_key: str,            # "hook_stop_key" / "hook_toggle_key"
+        data_key: str,            # HOOK_STOP_KEY / HOOK_TOGGLE_KEY
         var: tk.StringVar,
         label: str,               # "停止トリガー" / "トグルキー"
         single_key_example: str,  # "f12" / "f11"
@@ -101,8 +102,8 @@ class SingleKeyCaptureController:
 
         snapshot = self._app.dirty_tracker.capture_dirty_snapshot()
         try:
-            stop_key = key if self._data_key == "hook_stop_key" else self._app.data.get("hook_stop_key", "")
-            toggle_key = key if self._data_key == "hook_toggle_key" else self._app.data.get("hook_toggle_key", "")
+            stop_key = key if self._data_key == HOOK_STOP_KEY else self._app.data.get(HOOK_STOP_KEY, "")
+            toggle_key = key if self._data_key == HOOK_TOGGLE_KEY else self._app.data.get(HOOK_TOGGLE_KEY, "")
             if not self._app.startup_io.write_global_hook_keys(stop_key=stop_key, toggle_key=toggle_key):
                 return False
             self._app.data[self._data_key] = key

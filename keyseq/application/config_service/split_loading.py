@@ -5,7 +5,11 @@ from typing import Any
 
 from keyseq.domain.config import (
     DEFAULT_RUN_TO_END_DELAY_MS,
+    HOOK_KEY_FIELDS,
+    HOOK_STOP_KEY,
+    HOOK_TOGGLE_KEY,
     ensure_config_compatibility,
+    normalize_hook_key_pair,
     normalize_key_name,
     resolve_hook_keys_individual,
     safe_deepcopy,
@@ -30,9 +34,9 @@ def load_global_hook_keys(service, *, config_root: str) -> tuple[str, str]:
     startup = service._load_optional_json(service._startup_entry_path(config_root))
     if not isinstance(startup, dict):
         return "", ""
-    return (
-        normalize_key_name(str(startup.get("hook_stop_key") or "")),
-        normalize_key_name(str(startup.get("hook_toggle_key") or "")),
+    return normalize_hook_key_pair(
+        startup.get(HOOK_STOP_KEY),
+        startup.get(HOOK_TOGGLE_KEY),
     )
 
 
@@ -45,8 +49,7 @@ def build_runtime_data_from_split(
     runtime = service.new_default_data()
 
     for key in (
-        "hook_stop_key",
-        "hook_toggle_key",
+        *HOOK_KEY_FIELDS,
         "keyboard_layout",
         "keyboard_show_physical_key_labels",
         "debug_jis_special_key_events",
@@ -56,7 +59,7 @@ def build_runtime_data_from_split(
 
     runtime["hook_keys_individual"] = resolve_hook_keys_individual(keymap_set)
     if not runtime["hook_keys_individual"]:
-        runtime["hook_stop_key"], runtime["hook_toggle_key"] = load_global_hook_keys(
+        runtime[HOOK_STOP_KEY], runtime[HOOK_TOGGLE_KEY] = load_global_hook_keys(
             service, config_root=config_root
         )
 

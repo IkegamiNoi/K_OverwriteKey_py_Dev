@@ -41,6 +41,7 @@ from keyseq.application.keymap_service import KeymapService
 from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.trigger_service import TriggerService
+from keyseq.domain.config import HOOK_KEY_FIELDS, HOOK_STOP_KEY, HOOK_TOGGLE_KEY
 from keyseq.infrastructure.input_gateway import InputGateway
 from keyseq.infrastructure.json_repository import JsonRepository
 
@@ -99,8 +100,8 @@ class App(tk.Tk):
             key_state_manager=self.key_state_manager,
             get_send_guard_count=self._get_send_guard_count,
             get_hook_pause_count=lambda: self.hook.get_hook_pause_count(),
-            get_stop_key=lambda: self.data.get("hook_stop_key", ""),
-            get_toggle_key=lambda: self.data.get("hook_toggle_key", ""),
+            get_stop_key=lambda: self.data.get(HOOK_STOP_KEY, ""),
+            get_toggle_key=lambda: self.data.get(HOOK_TOGGLE_KEY, ""),
             get_custom_input_enabled=lambda: bool(self.hook.custom_input_enabled),
             find_keymap_switch_target=self._find_keymap_switch_target_id,
             find_trigger=self._find_trigger_by_key,
@@ -117,7 +118,7 @@ class App(tk.Tk):
         )
         self.stop_key_capture = SingleKeyCaptureController(
             self,
-            data_key="hook_stop_key",
+            data_key=HOOK_STOP_KEY,
             var=self.ui_vars.stop_key_var,
             label="停止トリガー",
             single_key_example="f12",
@@ -130,7 +131,7 @@ class App(tk.Tk):
         )
         self.toggle_key_capture = SingleKeyCaptureController(
             self,
-            data_key="hook_toggle_key",
+            data_key=HOOK_TOGGLE_KEY,
             var=self.ui_vars.toggle_key_var,
             label="トグルキー",
             single_key_example="f11",
@@ -394,8 +395,8 @@ class App(tk.Tk):
 
     def _sync_control_vars_from_data(self) -> None:
         """data の内容を制御キー表示・レイアウト選択などの共有 Var へ反映する。"""
-        self.ui_vars.stop_key_var.set(str(self.data.get("hook_stop_key", "")))
-        self.ui_vars.toggle_key_var.set(str(self.data.get("hook_toggle_key", "")))
+        self.ui_vars.stop_key_var.set(str(self.data.get(HOOK_STOP_KEY, "")))
+        self.ui_vars.toggle_key_var.set(str(self.data.get(HOOK_TOGGLE_KEY, "")))
         self.ui_vars.hook_keys_individual_var.set(bool(self.data.get("hook_keys_individual", False)))
         self.ui_vars.keyboard_show_physical_key_labels_var.set(
             bool(self.data.get("keyboard_show_physical_key_labels", False))
@@ -425,13 +426,13 @@ class App(tk.Tk):
         individual = bool(self.ui_vars.hook_keys_individual_var.get())
         if individual:
             retained = self._retained_hook_keys or {}
-            self.data["hook_stop_key"] = str(retained.get("hook_stop_key", ""))
-            self.data["hook_toggle_key"] = str(retained.get("hook_toggle_key", ""))
+            for field in HOOK_KEY_FIELDS:
+                self.data[field] = str(retained.get(field, ""))
             self._retained_hook_keys = None
         else:
             self._retained_hook_keys = {
-                "hook_stop_key": str(self.data.get("hook_stop_key", "")),
-                "hook_toggle_key": str(self.data.get("hook_toggle_key", "")),
+                field: str(self.data.get(field, ""))
+                for field in HOOK_KEY_FIELDS
             }
         self.data["hook_keys_individual"] = individual
         if not individual:

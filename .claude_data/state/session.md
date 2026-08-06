@@ -5,51 +5,54 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-08-06T00:00:00
-phase: **フェーズは無し（phase 07 完了）**。現在は「**計画06**」実施中 = `instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md`（計画05 と同じ運用・**フェーズ番号を消費しない**）
-last_commit_location: claude/refactor-hook-key-pair-enum-b7cddc @ `a2b7d81` ※現在地はセッション開始時の git 実測値が正
+phase: **フェーズは無し（phase 07 完了）**。「**計画06**」= `instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md` も完了（**フェーズ番号は未消費**）。次フェーズ = プリセット（phase 08）は未起票
+last_commit_location: claude/refactor-hook-key-pair-enum-b7cddc @ `207e879` ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **計画06（hook キー 2 本の「対の列挙」を 1 箇所へ寄せる・挙動不変）を実施中。項目 0（安全網）完了、次は項目 1（本体リファクタ）**。
-mode: implementing
+focus: **計画06（hook キー 2 本の「対の列挙」を domain へ集約・挙動不変）は項目 0 / 1 とも完了。次フェーズ（プリセット = phase 08）は未起票**。
+mode: completed
 
 ## last_action
 ts: 2026-08-06T00:00:00
 who: main
 summary: |
-  【提案書 06 の実施形態を **(b) 独立ミニ計画 =「計画06」** でユーザー確定 → 項目 0（安全網）を完了】
+  【提案書 06 の実施形態を **(b) 独立ミニ計画 =「計画06」** でユーザー確定 → 項目 0 / 1 を実施し計画06 完了】
   - 運用は**計画05 と同じ**（提案書自体が確定設計 / **フェーズ番号を消費しない** / 1 項目 = 1 コミット /
     フェーズ末の `/refactor_check` は本計画自体がその産物のため不要）。**phase 08 より先に実施**。
-  - **項目 0 の実測**（`Explore`）: 観点 ①解決 ②移行判定 ④OFF 編集の成否 ⑤dirty 非汚染 は**十分**。
-    **③OFF 保存だけ空白** = `read_bytes()` のバイト列比較は**子ファイル専用**で、hook キーを含む
-    keymap_set 本体は**キー順（＝出力バイト列）を誰も固定していなかった**。
-  - → `tests/test_save_plan.py` に `test_saved_keymap_set_json_keeps_stable_key_order` を**追加のみ**で新設
-    （`keyseq/` は 1 行も変更なし）。キー順を 11 キーの**リスト比較**、**ON / OFF 双方**で検証し、
-    OFF でも 2 キーが**消えずに空文字で残る**ことを固定。
-  - 項目 1 で**名前・引数を変えてはいけない API** を特定: `apply_global_hook_key_defaults`（6 箇所）/
-    `split_loading.load_global_hook_keys` / `write_global_hook_keys`（`call(stop_key=..., toggle_key=...)` の
-    完全一致比較あり）/ `toggle_hook_keys_individual`（9 箇所）。
+  - **項目 0**: 安全網の実測（`Explore`）で観点 ①解決 ②移行判定 ④OFF 編集の成否 ⑤dirty 非汚染 は**十分**、
+    **③OFF 保存だけ空白**（`read_bytes()` のバイト列比較は**子ファイル専用**で、hook キーを含む keymap_set 本体は
+    **キー順＝出力バイト列を誰も固定していなかった**）→ `tests/test_save_plan.py` に
+    `test_saved_keymap_set_json_keeps_stable_key_order` を**追加のみ**で新設（ON / OFF 双方で 11 キーのリスト比較）。
+  - **項目 1**: `domain/config.py` に `HOOK_STOP_KEY` / `HOOK_TOGGLE_KEY` / `HOOK_KEY_FIELDS` /
+    `normalize_hook_key_pair()` を新設し、application 2 + presentation 4 + domain 1 の計 8 ファイルを置換
+    （+58 / -32 行・**層を跨ぐが依存は presentation/application → domain の一方向**）。
+  - **挙動不変を優先して案から外した 2 箇所**: `ensure_config_compatibility` と `build_keymap_set_payload` は
+    `normalize_hook_key_pair` へ寄せず**キー名だけ定数化**（新関数は `str(x or "")` を挟むため、
+    非文字列時に現行が送出する例外を握り潰してしまう）。
+  - メインが直接是正した軽微 2 件: 上記のキー名定数化の補完 / `app.py` の追加 import を domain 層の位置へ移動。
 result_files:
-  - tests/test_save_plan.py（テスト 1 件追加）
-  - instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md（実施形態確定 + 項目 0 の実測表）
-  - instructions/phase/current.md / .claude_data/state/decisions.md（「計画06」節を新設）
+  - keyseq/domain/config.py / keyseq/application/config_service/{__init__.py,split_loading.py,split_payloads.py}
+  - keyseq/presentation/{app.py,ui_vars.py,controllers/key_capture.py,controllers/config_io/startup_io.py}
+  - tests/test_save_plan.py（テスト 1 件追加・項目 0）
+  - instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md / instructions/phase/current.md
+  - .claude_data/state/decisions.md（「計画06」節を新設）
 verified:
   compile: clean
-  tests: **170 pass**（169 + 追加 1）
+  tests: **170 pass**（169 + 項目 0 の追加 1）
   tests_ui: **178 pass**（変化なし）
   smoke: pass
-  review: reviewer = **完了可**（指摘なし。キー順比較が順序込みであること・OFF が偽陽性でないことを確認）
+  characterization: キー順の特性テストが**無修正 pass** / `tests` `tests_ui` は**1 ファイルも変更なし**
+  review: reviewer = **採用（完了可）** × 2 回（項目 0 / 項目 1）。項目 1 は分岐・評価順序・代入順序・
+    例外挙動・公開 API シグネチャ・保存 payload のキー順が不変であることを突合で確認
 
 ## next_action
-- **項目 1 を `codex-implementer` へ委任する**（規範 = `instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md`
-  の「項目 1」）。`keyseq/domain/config.py` に **キー名定数 + `HOOK_KEY_FIELDS` の対 + `normalize_hook_key_pair`**
-  を置き、`config_service/{__init__.py,split_loading.py,split_payloads.py}` と
-  `presentation/{app.py,controllers/key_capture.py,controllers/config_io/startup_io.py,ui_vars.py}` を差し替える。
-  **やらないこと**: 3 キーの構造体化 / UiVars・hook_frame の共通化 / **保存 payload のキー列挙の動的化**
-  （バイト列固定テストの前提を崩さない）/ 上記 4 API の**名前・引数の変更**。
-- 完了後 `verifier` で実測（compile / tests **170** / tests_ui **178** / smoke。バイト列固定テストは**無修正 pass**）→
-  `reviewer` で差分レビュー → `/save_state` + `/task_commit`（項目 1 = 1 コミット）。
-- 計画06 完了後に次フェーズ = **プリセットの config.json グローバル化 = phase 08**
-  （主入力 `instructions/history/07_hotkey_presets_global.md`・確定済）を `/phase_start` で起票する。
+- 次フェーズの着手は**ユーザー確認が先**。本命は **プリセットの config.json グローバル化 = phase 08**
+  （主入力 `instructions/history/07_hotkey_presets_global.md`・確定済）。起票は `/phase_start`
+  （暫定仕様先行モード。番号対応: phase 08 / 暫定 07 / decisions_archive 08）。
+- 他の候補: idea_07（参照元の掃除・着手可）/ idea_09 / idea_03（いずれも `instructions/phase/current.md`）。
+- **計画06 の候補送りは未着手**: 「runtime を新規化・置換する入口が 4 経路」（`new_config` / `restore_default` /
+  Import / 起動時の空データフォールバック）の一本化は**設計変更を伴う**ため保留。
+  **phase 08 が同じ構造を再現するなら、そこで併せて設計する**。
 
 ## blockers
 - なし。
@@ -62,6 +65,14 @@ verified:
   要点だけ再掲 = **解決の分岐点は 4 つ**（`load_global_hook_keys` 読み出し /
   `build_runtime_data_from_split` 通常読込の選択 / `apply_global_hook_key_defaults` 新規化・置換経路
   〔**通常読込は経由しない**〕/ `build_keymap_set_payload` 保存側）。**フック層は無変更**が設計の芯。
+- **【計画06 で変わった構造】hook キー名の定義元は `keyseq/domain/config.py` の `HOOK_STOP_KEY` /
+  `HOOK_TOGGLE_KEY` / `HOOK_KEY_FIELDS`（対のタプル）+ `normalize_hook_key_pair()`**。新たに触る箇所は
+  リテラルを書かずこれを使う（**添字参照 `HOOK_KEY_FIELDS[0]` は禁止**。反復・zip でのみタプルを使う）。
+  意図的にリテラルのまま残した 3 箇所 = `DEFAULT_CONFIG` の既定値表 / `split_payloads` の返却 dict キー /
+  `startup_io` の保存 dict キー。**保存 JSON のキー順は
+  `tests/test_save_plan.py::test_saved_keymap_set_json_keeps_stable_key_order` が固定している**。
+  `ensure_config_compatibility` と `build_keymap_set_payload` が `normalize_key_name` 直呼びのままなのは
+  **非文字列時の例外を握り潰さないため**（`normalize_hook_key_pair` は `str()` を挟む）。
 - **Phase β の成果も正本が正**: `data_schema.md` **§5.8**（子ファイルの保存計画と参照元記録）+
   §5.4 / §5.6 / §5.7、`features.md` §4.6、`codebase_map.md`。暫定仕様 05 は凍結済。
 - **【最重要・2 度踏んだ罠】パス表記の混在事故**: runtime の `source_path` 3 種は **config 配下なら相対**で

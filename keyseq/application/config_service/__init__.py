@@ -6,6 +6,7 @@ from typing import Any
 from keyseq.domain.config import (
     DEFAULT_CONFIG,
     DEFAULT_RUN_TO_END_DELAY_MS,
+    HOOK_KEY_FIELDS,
     coerce_nonnegative_int,
     ensure_config_compatibility,
     normalize_key_name,
@@ -440,9 +441,11 @@ class ConfigService:
         runtime.setdefault("hook_keys_individual", False)
         if runtime.get("hook_keys_individual"):
             return runtime
-        runtime["hook_stop_key"], runtime["hook_toggle_key"] = split_loading.load_global_hook_keys(
-            self, config_root=config_root
-        )
+        for field, value in zip(
+            HOOK_KEY_FIELDS,
+            split_loading.load_global_hook_keys(self, config_root=config_root),
+        ):
+            runtime[field] = value
         return runtime
 
     def _startup_entry_path(self, config_root: str) -> str:

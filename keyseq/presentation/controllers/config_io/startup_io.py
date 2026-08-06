@@ -1,7 +1,7 @@
 import os
 from tkinter import messagebox
 
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_hook_key_pair
 from keyseq.presentation.theme import coerce_font_delta
 
 
@@ -60,9 +60,10 @@ class StartupIo:
 
     def write_global_hook_keys(self, *, stop_key: str, toggle_key: str) -> bool:
         """hook キーの全体デフォルトを config/config.json へ保存する（成否を返す）。"""
+        stop_key, toggle_key = normalize_hook_key_pair(stop_key, toggle_key)
         return self.write_startup(
             {
-                "hook_stop_key": normalize_key_name(str(stop_key or "")),
-                "hook_toggle_key": normalize_key_name(str(toggle_key or "")),
+                "hook_stop_key": stop_key,
+                "hook_toggle_key": toggle_key,
             }
         )
