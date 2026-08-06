@@ -22,7 +22,7 @@
    起票は `/phase_start`（暫定仕様先行モード。番号対応: phase 08 / 暫定 07 / decisions_archive 08）
 
 ## 現在の作業の 1 行サマリ
-**phase 07（保存系リデザイン Phase γ・hook キーの全体デフォルト化）は task_08 まで完了しフェーズ完了。次フェーズ（プリセット = phase 08）は未起票**。
+**phase 07（Phase γ）と、その `/refactor_check` 産物である「計画06」（hook キー対の列挙を domain へ集約・挙動不変）はいずれも完了。次フェーズ（プリセット = phase 08）は未起票**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -32,17 +32,16 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（task_07b 完了時・コミット `0f20eb4`）:
-compile **clean** / tests **169** / tests_ui **178** / smoke **pass** / manual **G1〜G9 OK（2026-08-05）**。
+直近の実測（計画06 項目1 完了時・コミット `4fa12a6`）:
+compile **clean** / tests **170** / tests_ui **178** / smoke **pass** / manual **G1〜G9 OK（2026-08-05）**。
 **件数が減ったら退行を疑う**。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
 
 ## 次アクション（session.md.next_action より）
-- **未コミットなら `/task_commit`**（task_08 = 正本反映。文書のみ・コード差分なし）。
 - **次フェーズはユーザーへ方針確認してから起票**（候補は `instructions/phase/current.md`「次フェーズ候補」。
   本命 = phase 08 プリセット / 他 = idea_07・idea_09・idea_03）。
-- **未承認の提案書**: [modified_proposal/06_refactor_hook_key_pair_enumeration.md](../../instructions/modified_proposal/06_refactor_hook_key_pair_enumeration.md)
-  （Phase γ の `/refactor_check` = 推奨・M4 = stop/toggle の対列挙が 5→10）。実施形態は
-  (a) 追加タスク / (b) ミニフェーズ / **(c) 見送り**（推奨は (c) または (b)。phase 08 で 2 例目が出てから共通化する方針なら見送り）。
+- **計画06 の候補送りは未着手**: runtime を新規化・置換する入口が 4 経路（`new_config` / `restore_default` /
+  Import / 起動時の空データフォールバック）ある件の一本化は**設計変更を伴う**ため保留。
+  **phase 08 が同じ構造を再現するならそこで併せて設計する**。
 - 各タスクの流れ: タスク定義起票 → codex-implementer へ委任 → **verifier で実測** → reviewer → コミット。
 
 ## 直前フェーズ（phase 07 = Phase γ）の要点
@@ -57,6 +56,11 @@ compile **clean** / tests **169** / tests_ui **178** / smoke **pass** / manual *
   `ConfigService.apply_global_hook_key_defaults`（**新規化・置換経路の直接注入**。通常読込は経由しない。
   フラグ無しは OFF とみなす）/ `split_payloads.build_keymap_set_payload`（保存側・**OFF は常に `""`**）。
 - **フック層（`input_router` / `hook_controller` / `keyboard_window` / `app.py` の供給部）は無変更**が設計の芯。
+- **【計画06】キー名の定義元は `domain/config.py`**（`HOOK_STOP_KEY` / `HOOK_TOGGLE_KEY` /
+  対のタプル `HOOK_KEY_FIELDS` / 対の正規化 `normalize_hook_key_pair`）。新規箇所はリテラルを書かない
+  （**添字参照 `HOOK_KEY_FIELDS[0]` は禁止**）。**明示列挙のまま残す 3 箇所** = `DEFAULT_CONFIG` /
+  `split_payloads` の保存 dict キー / `startup_io` の保存 dict キー
+  （保存 JSON のキー順は `tests/test_save_plan.py::test_saved_keymap_set_json_keeps_stable_key_order` が固定）。
 - **移行判定 `resolve_hook_keys_individual` は渡すデータで意味が変わる**（読込=生 keymap_set / 保存=runtime /
   互換化）。明示フラグの有無は **`in` で判定**し、冪等性が要件。
 - config.json への書き込みは `StartupIo.write_startup`（`-> bool`）→ `write_global_hook_keys` の**1 本のみ**。
@@ -112,7 +116,8 @@ compile **clean** / tests **169** / tests_ui **178** / smoke **pass** / manual *
   `.claude/rules/output_style.md`。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
   （直近 3 件: **07_hook_keys_global_default** / 06_child_file_save_dialog / 05_keymap_set_new_and_default_dir）。
-  提案書「計画05」（`config_service` / `keymap_set_io` の分割・挙動不変）は完了済みでフェーズ番号を消費していない。
+  提案書「計画05」（`config_service` / `keymap_set_io` の分割）と「計画06」（hook キー対の列挙の集約）は
+  いずれも完了済みで、**どちらもフェーズ番号を消費していない**。
 - 未着手/保留 idea: idea_07（参照元の掃除・**着手可**）/ idea_03（hotkey 保存正規化・低）/
   idea_08（個別プリセット）/ idea_09（レガシー保存パス）/ idea_04・idea_06（保留）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
