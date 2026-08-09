@@ -81,7 +81,6 @@ class SavePlanTest(unittest.TestCase):
             {"km1": "user/keymaps/km1.json"},
             config_root="",
             trigger_set_path="user/trigger_sets/main.json",
-            hotkey_presets_path="user/hotkey_presets/default.json",
         )
 
     def test_saved_keymap_set_json_keeps_stable_key_order(self):
@@ -91,7 +90,6 @@ class SavePlanTest(unittest.TestCase):
         """
         expected_key_order = [
             "trigger_set_path",
-            "hotkey_presets_path",
             "active_keymap_path",
             "keymaps",
             "hook_stop_key",
@@ -143,7 +141,6 @@ class SavePlanTest(unittest.TestCase):
                 "config.json",
                 os.path.join("user", "keymap_sets", "main.json"),
                 os.path.join("user", "trigger_sets", "main.json"),
-                os.path.join("user", "hotkey_presets", "default.json"),
                 os.path.join("user", "keymaps", "km1.json"),
                 os.path.join("user", "sequences", "copy.json"),
             )
@@ -158,7 +155,6 @@ class SavePlanTest(unittest.TestCase):
                 ),
                 {
                     "trigger_set_path": "user/trigger_sets/main.json",
-                    "hotkey_presets_path": "user/hotkey_presets/default.json",
                     "active_keymap_path": "user/keymaps/km1.json",
                     "keymaps": [{"path": "user/keymaps/km1.json", "switch_key": "1"}],
                     "hook_stop_key": "f12",
@@ -208,11 +204,10 @@ class SavePlanTest(unittest.TestCase):
                     "_parent_refs": ["user/trigger_sets/main.json"],
                 },
             )
-            self.assertEqual(
-                JsonRepository().load_json(
+            self.assertFalse(
+                os.path.exists(
                     os.path.join(none_root, "user", "hotkey_presets", "default.json")
-                ),
-                {"hotkey_presets": [{"label": "Alt+Tab", "value": "alt+tab"}]},
+                )
             )
             self.assertEqual(
                 JsonRepository().load_json(os.path.join(none_root, "config.json")),
@@ -222,6 +217,61 @@ class SavePlanTest(unittest.TestCase):
                     "last_used_directory": "",
                 },
             )
+
+    def test_save_runtime_data_does_not_create_hotkey_presets_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            data = make_runtime_data()
+
+            self._save(root, data=data)
+
+            self.assertFalse(
+                os.path.exists(os.path.join(root, "user", "hotkey_presets", "default.json"))
+            )
+
+    def test_save_runtime_data_does_not_overwrite_existing_hotkey_presets_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            presets_path = os.path.join(root, "user", "hotkey_presets", "default.json")
+            existing_payload = {
+                "hotkey_presets": [{"label": "Existing", "value": "ctrl+e"}]
+            }
+            JsonRepository().save_json(presets_path, existing_payload)
+
+            self._save(root)
+
+            self.assertEqual(JsonRepository().load_json(presets_path), existing_payload)
+
+    def test_saved_keymap_set_omits_hotkey_presets_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+
+            self._save(root)
+
+            keymap_set = JsonRepository().load_json(
+                os.path.join(root, "user", "keymap_sets", "main.json")
+            )
+            self.assertNotIn("hotkey_presets_path", keymap_set)
+
+    def test_resaving_legacy_keymap_set_naturally_omits_hotkey_presets_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            self._save(root)
+            legacy_keymap_set = JsonRepository().load_json(keymap_set_path)
+            legacy_keymap_set["hotkey_presets_path"] = (
+                "user/hotkey_presets/legacy.json"
+            )
+            JsonRepository().save_json(keymap_set_path, legacy_keymap_set)
+
+            loaded = self.service.load_runtime_data_from_keymap_set_path(
+                keymap_set_path,
+                config_root=root,
+            )
+            self._save(root, data=loaded)
+
+            resaved_keymap_set = JsonRepository().load_json(keymap_set_path)
+            self.assertNotIn("hotkey_presets_path", resaved_keymap_set)
 
     def test_build_keymap_set_payload_saves_individual_hook_keys(self):
         payload = self._build_keymap_set_payload(
@@ -286,7 +336,7 @@ class SavePlanTest(unittest.TestCase):
                 self.assertFalse(os.path.exists(os.path.join(root, skipped_path)))
                 for written_path in written_paths:
                     self.assertTrue(os.path.exists(os.path.join(root, written_path)))
-                self.assertTrue(
+                self.assertFalse(
                     os.path.exists(os.path.join(root, "user", "hotkey_presets", "default.json"))
                 )
 
@@ -579,7 +629,6 @@ class SavePlanTest(unittest.TestCase):
                     "user/sequences/copy.json",
                     "user/trigger_sets/main.json",
                     "user/keymaps/km1.json",
-                    "user/hotkey_presets/default.json",
                     "user/keymap_sets/main.json",
                     "config.json",
                 ],

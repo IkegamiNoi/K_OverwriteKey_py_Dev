@@ -36,11 +36,6 @@ def build_split_save_payloads(service,
         split_base_dir=split_base_dir,
         save_plan=save_plan,
     )
-    hotkey_presets_path = (
-        os.path.join(split_base_dir, "hotkey_presets", "default.json")
-        if split_base_dir
-        else service._resolve_config_relative_path(service.HOTKEY_PRESETS_RELATIVE_PATH, config_root)
-    )
     keymap_payloads = build_keymap_payloads(service,
         runtime,
         config_root=config_root,
@@ -76,13 +71,7 @@ def build_split_save_payloads(service,
         keymap_paths_by_id,
         config_root=config_root,
         trigger_set_path=indexed_trigger_set_path,
-        hotkey_presets_path=hotkey_presets_path,
     )
-    hotkey_presets_payload = {
-        "hotkey_presets": safe_deepcopy(runtime.get("hotkey_presets", []))
-        if isinstance(runtime.get("hotkey_presets"), list)
-        else []
-    }
     serialized_keymaps = [
         {
             "path": str(item["path"]),
@@ -99,8 +88,6 @@ def build_split_save_payloads(service,
         "trigger_set_path": trigger_set_path,
         "trigger_set": trigger_payload,
         "trigger_set_skip": trigger_set_skip,
-        "hotkey_presets_path": hotkey_presets_path,
-        "hotkey_presets": hotkey_presets_payload,
         "keymaps": serialized_keymaps,
         "sequences": sequence_payloads,
     }
@@ -296,7 +283,6 @@ def build_keymap_set_payload(service,
     *,
     config_root: str,
     trigger_set_path: str,
-    hotkey_presets_path: str,
 ) -> dict[str, Any]:
     keymap_entries: list[dict[str, Any]] = []
     switch_keys = runtime.get("keymap_switch_keys", {})
@@ -334,7 +320,6 @@ def build_keymap_set_payload(service,
         "trigger_set_path": service.to_config_relative_or_absolute(trigger_set_path, config_root)
         if trigger_set_path
         else "",
-        "hotkey_presets_path": service.to_config_relative_or_absolute(hotkey_presets_path, config_root),
         "active_keymap_path": active_keymap_path,
         "keymaps": keymap_entries,
         "hook_stop_key": normalize_key_name(runtime.get(HOOK_STOP_KEY, "")) if hook_keys_individual else "",

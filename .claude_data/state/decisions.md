@@ -376,6 +376,22 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
 - 実測: compile clean / `tests` **186**（+6）/ `tests_ui` **181**（+3）/ smoke pass。
 - `reviewer` = **採用（完了可・指摘なし）**。
 
+### task_05（保存側からのプリセット切り離し）— 2026-08-09
+
+- 暫定仕様 07 §2 指摘②・④ をそのまま実装。**仕様変更なし**。production 差分は**削除のみ**。
+- 実装判断（仕様の範囲内・レビュー採用済）:
+  - `HOTKEY_PRESETS_RELATIVE_PATH` と `ensure_split_config_dirs` の `user/hotkey_presets` 作成は
+    **残した**（前者は task_01 の既定値、後者は task_06 の保存先）。
+  - 既存 keymap_set の `hotkey_presets_path` は**能動削除せず**、生成停止による自然消滅とした
+    （`data_schema.md` 既存キー削除禁止）。特性テストで固定。
+- **中間状態を許容する判断**: task_05 完了時点で**プリセットの書き手が居ない**（保存では書かない /
+  マネージャは task_06 で対応）。先取りして書き手を足さない方針を維持した。
+- **運用上の学び**: `reviewer` は指示した差分範囲（`tests_ui`）しか見ず、`tests/test_config_service.py` の
+  追随漏れ 2 件を拾えなかった。**verifier の実測が唯一の検出手段だった**
+  → レビュー範囲は「変更ファイル」ではなく「呼び出し元を含む全テスト」で指示するとよい。
+- 実測: compile clean / `tests` **190**（+4）/ `tests_ui` **181**（増減なし）/ smoke pass（追随修正後）。
+- `reviewer` = **採用（完了可・指摘なし）**。
+
 ---
 
 ## 運用メモ

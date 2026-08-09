@@ -131,10 +131,6 @@ def save_runtime_data(service,
             service._resolve_config_relative_path(str(item["path"]), resolved_config_root),
             item["payload"],
         )
-    service.repository.save_json(
-        str(payloads["hotkey_presets_path"]),
-        payloads["hotkey_presets"],
-    )
     service.repository.save_json(resolved_keymap_set_path, payloads["keymap_set"])
     service.repository.save_json(service._startup_entry_path(resolved_config_root), payloads["startup"])
 

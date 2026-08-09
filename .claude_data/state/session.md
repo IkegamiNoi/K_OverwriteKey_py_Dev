@@ -4,57 +4,55 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-09T00:00:00
-phase: `instructions/phase/08_hotkey_presets_global`（**task_04 完了 / 次は task_05**。暫定仕様 07 は **v0.5・確定済**）
+last_updated: 2026-08-09T06:30:00
+phase: `instructions/phase/08_hotkey_presets_global`（**task_05 完了 / 次は task_06**。暫定仕様 07 は **v0.5・確定済**）
 last_commit_location: claude/task-04-progression-dbaaef ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 08 は task_04（`apply_global_defaults` 新設 + 入口台帳 E1〜E5 配線）まで完了。次は task_05 = keymap_set payload からの `hotkey_presets_path` 生成停止 + 保存カスケードからのプリセット除外**。
+focus: **phase 08 は task_05（保存側からのプリセット切り離し）まで完了。次は task_06 = プリセットマネージャの編集をグローバルファイルへ即時保存（成否付き）**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-09T00:00:00
+ts: 2026-08-09T06:30:00
 who: main
 summary: |
-  【phase 08 task_04 = **注入入口の一本化を実装**（暫定仕様 07 §3-2・v0.5 の実装）】
-  - **application**: `split_loading.load_global_hotkey_presets(service, *, config_root) -> list | None` を新設
-    （読めた＝`list`〔空含む〕/ 不存在・破損・非 dict・根キー非 list＝`None`。`load_named_list` は不使用）。
-    `ConfigService.apply_global_defaults(runtime, *, config_root)` を新設し、既存
-    `apply_global_hook_key_defaults` をそのまま呼んだ上でプリセットを供給（`list` なら置換・`None` なら非置換）。
-  - **通常読込も同規則へ統一**: `build_runtime_data_from_split` は `load_global_hotkey_presets` の結果を使い、
-    `None` なら組込 8 件を維持（`apply_global_defaults` は経由しない）。
-  - **presentation（層跨ぎの配線変更）**: 入口台帳 **E1〜E5** を `apply_global_defaults` へ置換
-    （`app.py:77` は**新規に 1 行追加**して順序依存の穴を塞いだ / `keymap_set_io.py:54,562,600` /
-    `startup_io.py:36`）。**L1〜L3・N1 は無配線**、`toggle_hook_keys_individual` の ON→OFF は
-    **単独注入のまま**（受入条件 8）。
-  - **既存テスト 2 件を期待値更新**（緩和ではなく値比較）: `test_missing_or_invalid_global_presets_file_*` /
-    `test_legacy_keymap_set_presets_path_loads_without_error` → 読めないときは**組込 8 件が残る**。
+  【phase 08 task_05 = **保存側からプリセットを切り離す**（暫定仕様 07 §2 指摘②・④ / 受入条件 2・4）】
+  - **application 限定**（`split_payloads.py` / `save_plan_execution.py`。差分は削除のみ）:
+    `build_keymap_set_payload` から `hotkey_presets_path` 引数と返却キーを削除 /
+    `build_split_save_payloads` からプリセットパス算出・payload 生成・返却 2 キーを削除 /
+    保存カスケードのプリセット書込を削除。**残りのキー順・書込順は不変**。
+  - **既存キーの能動削除はしていない**（生成停止による自然消滅。`test_resaving_legacy_keymap_set_*` で固定）。
+  - **【中間状態・意図的】task_06 までプリセットの書き手が居ない**（保存では書かず、マネージャは未対応）。
+  - **verifier 初回で tests fail（190 中 ERROR 1 / FAIL 1）** → `tests/test_config_service.py` の追随漏れ
+    2 件（`build_keymap_set_payload` への廃止引数 / round-trip のプリセットファイル存在前提）を
+    Codex へ差し戻して修正 → 再実測で全 green。**reviewer は tests_ui しか見ておらず拾えなかった**。
 result_files:
-  - instructions/phase/08_hotkey_presets_global/tasks/task_04_apply_global_defaults.md（新規・起票）
-  - keyseq/application/config_service/split_loading.py / keyseq/application/config_service/__init__.py
-  - keyseq/presentation/app.py / controllers/config_io/keymap_set_io.py / controllers/config_io/startup_io.py
-  - tests/test_config_service.py / tests_ui/test_app_ui_flows.py /
-    tests_ui/test_config_io_characterization_keymap_set_startup.py
+  - instructions/phase/08_hotkey_presets_global/tasks/task_05_stop_writing_presets_on_save.md（新規・起票）
+  - keyseq/application/config_service/split_payloads.py / keyseq/application/config_service/save_plan_execution.py
+  - tests/test_save_plan.py / tests/test_config_service.py
 verified:
   compile: clean
-  tests: pass **186**（基準線 180 → +6）
-  tests_ui: pass **181**（基準線 178 → +3）
+  tests: pass **190**（基準線 186 → +4）
+  tests_ui: pass **181**（増減なし）
   smoke: pass
-  review: `reviewer` = **採用（完了可・指摘なし）**。5 観点 + §3-2 適合・台帳網羅・受入条件 7/8/9 を確認
+  review: `reviewer` = **採用（完了可・指摘なし）**。受入条件 2・4 / 能動削除なし / キー順・書込順の保持を確認
+    （※実測の失敗 2 件はレビュー範囲外だったため、修正後にメインで差分を直接確認した）
 
 ## next_action
-- **task_05 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 07 **§2 指摘②・④** / 受入条件 **2・4**）。内容:
-  1. **keymap_set payload から `hotkey_presets_path` の生成を停止**
-     （`split_payloads.py:39-42 / :102 / :299 / :337` が対象。既存キーの**能動削除はしない**）
-  2. **保存カスケードからプリセット書出を除外**（`save_plan_execution.py:135-136`。
-     `save_runtime_data` はプリセットファイルを書かない）
-  3. 影響を受ける既存テストの期待値更新（`tests/test_save_plan.py` に
-     `hotkey_presets_path` / プリセットファイル生成を前提とした箇所あり。**保存 JSON のキー順を固定する
-     `test_saved_keymap_set_json_keeps_stable_key_order` に注意**）
-- 以降の流れ（各タスク共通）: 実装委任（**テストコードの追加まで含める / 実行は依頼しない**）→
+- **task_06 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 07 **§2 指摘③ / §3** / 受入条件 **3**）。内容:
+  1. **`PresetManagerDialog` の編集確定（`dialogs.py:507` 付近）を、config.json が指すグローバル
+     プリセットファイルへの即時保存へ変更**（書き手はプリセットマネージャのみ）
+  2. **成否付き**（phase 07 の `write_global_hook_keys` と同じ契約）。
+     **保存失敗時は編集内容を失わず・確定もしない**
+  3. dirty を汚さない（keymap_set の保存状態と独立）
+  4. 保存先パスは `load_global_hotkey_presets_path`（task_01）を使う。**presentation から
+     `os.path` 系へ生の相対値を渡さない**（`resolve_config_path` の罠）
+  5. tests_ui の modal ガード（`.claude_data/state/session.md` の罠メモ）に従い、新しい
+     `messagebox` を増やすなら fail-fast ガードを足す
+- 以降の流れ（各タスク共通）: 実装委任（**テスト追加まで含める / 実行は依頼しない**）→
   `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
-- 残タスク: task_05（保存側）→ task_06（プリセットマネージャの即時保存）→ task_07（統合 + 実機目視）→
-  task_08（正本反映・凍結・`/refactor_check`）。
+- 残タスク: task_06（マネージャの即時保存）→ task_07（統合 + 実機目視・受入条件 1〜6）→
+  task_08（正本反映・凍結・`decisions_archive/08` 作成・`current.md` 完了更新・`/refactor_check`）。
 
 ## blockers
 - なし。
@@ -62,6 +60,9 @@ verified:
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
   グローバル `py` は依存欠落で tests_ui/smoke が落ちる。
+- **【phase 08 task_05 の中間状態】保存側はもうプリセットを書かない**（`save_runtime_data` /
+  カスケードから除外済・keymap_set payload にも `hotkey_presets_path` を生成しない）。
+  **task_06 が完了するまで「プリセットの書き手が居ない」**。これは設計どおりの中間状態。
 - **【phase 08 task_04 で入った契約】runtime を新規化・置換したら
   `ConfigService.apply_global_defaults(runtime, *, config_root)` を呼ぶ**（入口台帳 E1〜E5）。
   通常読込は経由しない（`build_runtime_data_from_split` が同じ供給規則を持つ）。

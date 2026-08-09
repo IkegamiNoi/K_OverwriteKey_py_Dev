@@ -69,11 +69,13 @@ class SaveLoadRoundTripTest(unittest.TestCase):
                 "config.json",
                 os.path.join("user", "keymap_sets", "default.json"),
                 os.path.join("user", "trigger_sets", "default.json"),
-                os.path.join("user", "hotkey_presets", "default.json"),
                 os.path.join("user", "keymaps", "km1.json"),
                 os.path.join("user", "sequences", "copy.json"),
             ):
                 self.assertTrue(os.path.exists(os.path.join(root, rel)), rel)
+            self.assertFalse(
+                os.path.exists(os.path.join(root, "user", "hotkey_presets", "default.json"))
+            )
 
             loaded = service.load_runtime_data_from_keymap_set_path(
                 os.path.join(root, "user", "keymap_sets", "default.json"),
@@ -87,7 +89,7 @@ class SaveLoadRoundTripTest(unittest.TestCase):
                 [strip_internal(k) for k in loaded["keymaps"]],
                 [strip_internal(k) for k in saved["keymaps"]],
             )
-            self.assertEqual(loaded["hotkey_presets"], saved["hotkey_presets"])
+            self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
             self.assertEqual(loaded["active_keymap_id"], "km1")
             self.assertEqual(loaded["keymap_switch_keys"], {"1": "km1"})
             self.assertEqual(loaded["hook_stop_key"], "f12")
@@ -538,7 +540,6 @@ class ApplyGlobalHookKeyDefaultsTest(unittest.TestCase):
                 {},
                 config_root=root,
                 trigger_set_path="",
-                hotkey_presets_path="",
             )
 
             self.assertFalse(runtime["hook_keys_individual"])
