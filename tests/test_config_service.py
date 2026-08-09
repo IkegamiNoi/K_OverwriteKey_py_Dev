@@ -340,6 +340,50 @@ class GlobalHotkeyPresetsPathTest(unittest.TestCase):
         )
 
 
+class HotkeyPresetIndividualKeymapSetSchemaTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def _load_keymap_set(self, root, keymap_set):
+        path = os.path.join(root, "user", "keymap_sets", "main.json")
+        self.service.repository.save_json(path, keymap_set)
+        return self.service.load_runtime_data_from_keymap_set_path(path, config_root=root)
+
+    def test_legacy_path_without_individual_flag_stays_off(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            loaded = self._load_keymap_set(
+                os.path.join(tmp, "config"),
+                {"hotkey_presets_path": "user/hotkey_presets/legacy.json"},
+            )
+
+            self.assertFalse(loaded["hotkey_presets_individual"])
+
+    def test_true_individual_flag_and_path_round_trip_into_runtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            loaded = self._load_keymap_set(
+                os.path.join(tmp, "config"),
+                {
+                    "hotkey_presets_individual": True,
+                    "hotkey_presets_path": "  user/hotkey_presets/personal.json  ",
+                },
+            )
+
+            self.assertTrue(loaded["hotkey_presets_individual"])
+            self.assertEqual(loaded["hotkey_presets_path"], "user/hotkey_presets/personal.json")
+
+    def test_non_boolean_individual_flag_stays_off(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            for raw_flag in ("true", 1, None):
+                with self.subTest(raw_flag=raw_flag):
+                    loaded = self._load_keymap_set(
+                        root,
+                        {"hotkey_presets_individual": raw_flag},
+                    )
+
+                    self.assertFalse(loaded["hotkey_presets_individual"])
+
+
 class GlobalHotkeyPresetsSavingTest(unittest.TestCase):
     def setUp(self):
         self.service = ConfigService(JsonRepository())

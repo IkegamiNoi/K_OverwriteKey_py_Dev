@@ -149,6 +149,24 @@ class EnsureConfigCompatibilityTest(unittest.TestCase):
         result = ensure_config_compatibility(config)
         self.assertTrue(result["hook_keys_individual"])
 
+    def test_hotkey_preset_individual_fields_are_normalized(self):
+        for raw_flag, raw_path, expected_flag, expected_path in (
+            (True, "  user/hotkey_presets/personal.json  ", True, "user/hotkey_presets/personal.json"),
+            ("true", 1, False, ""),
+            (1, None, False, ""),
+            (None, [], False, ""),
+        ):
+            with self.subTest(raw_flag=raw_flag, raw_path=raw_path):
+                config = ensure_config_compatibility(
+                    {
+                        "hotkey_presets_individual": raw_flag,
+                        "hotkey_presets_path": raw_path,
+                    }
+                )
+
+                self.assertIs(config["hotkey_presets_individual"], expected_flag)
+                self.assertEqual(config["hotkey_presets_path"], expected_path)
+
     def test_legacy_single_trigger_converted(self):
         legacy = {
             "trigger_key": "F1",

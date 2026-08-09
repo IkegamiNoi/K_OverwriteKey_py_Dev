@@ -316,10 +316,15 @@ def build_keymap_set_payload(service,
         active_keymap_path = str(keymap_entries[0].get("path") or "")
 
     hook_keys_individual = resolve_hook_keys_individual(runtime)
+    hotkey_presets_individual = runtime.get("hotkey_presets_individual", False)
     return {
         "trigger_set_path": service.to_config_relative_or_absolute(trigger_set_path, config_root)
         if trigger_set_path
         else "",
+        "hotkey_presets_path": str(runtime.get("hotkey_presets_path") or "").strip(),
+        "hotkey_presets_individual": (
+            hotkey_presets_individual if isinstance(hotkey_presets_individual, bool) else False
+        ),
         "active_keymap_path": active_keymap_path,
         "keymaps": keymap_entries,
         "hook_stop_key": normalize_key_name(runtime.get(HOOK_STOP_KEY, "")) if hook_keys_individual else "",

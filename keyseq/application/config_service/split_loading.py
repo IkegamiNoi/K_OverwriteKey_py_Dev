@@ -89,6 +89,8 @@ def build_runtime_data_from_split(
 
     for key in (
         *HOOK_KEY_FIELDS,
+        "hotkey_presets_individual",
+        "hotkey_presets_path",
         "keyboard_layout",
         "keyboard_show_physical_key_labels",
         "debug_jis_special_key_events",

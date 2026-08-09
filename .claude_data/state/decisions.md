@@ -322,3 +322,20 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
 - 実測: compile clean / `tests` **204**（+1）/ `tests_ui` **186** / smoke pass。
   件数 +1 の内訳 = 既存 1 件の**改名** + 新規 1 件。
 - `reviewer` = **採用（完了可・指摘なし）**。
+
+### 【task_02】完了（2026-08-09）= keymap_set のスキーマ追加
+
+- `DEFAULT_CONFIG` へ 2 キー追加 + `ensure_config_compatibility` で正規化 +
+  `build_runtime_data_from_split` のキーコピー + `build_keymap_set_payload` の返却へ挿入
+  （**`trigger_set_path` の直後**。他のキー順は不動）。
+- **移行規則は値のみで判定**。**`resolve_hook_keys_individual`（フラグ無し + 非空なら ON）を流用しない**
+  = 流用すると phase 08 の**残置 `hotkey_presets_path` が個別指定として復活**する（§3-5）。
+  真偽値でない値（`"true"` / `1` / `None`）は **False**。
+- **OFF でも `hotkey_presets_path` を空文字化しない**（hook キーの「OFF なら常に `""`」とは別扱い・【N】）。
+- **想定外の先行実装 → 修正して採用**: phase 08 の特性テスト 2 件
+  （keymap_set payload に `hotkey_presets_path` を出力しないことを固定していたもの）は
+  **phase 09 が意図的に覆す前提**のため、**削除せず新仕様の期待値へ更新**した
+  （常時出力・OFF でもパス保持）。`reviewer` は「緩和ではなく検証内容の強化」と判定。
+  → **phase 08 の受入条件 2 は phase 09 で上書きされる**。正本 §5.5 / §5.1 の改訂は **task_08** で行う。
+- 実測: compile clean / `tests` **209**（+5）/ `tests_ui` **186**（増減なし）/ smoke pass。
+- `reviewer` = **採用（完了可・指摘なし）**。

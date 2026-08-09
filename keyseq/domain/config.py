@@ -60,6 +60,8 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "hook_stop_key": "",
     "hook_toggle_key": "",
     "hook_keys_individual": False,
+    "hotkey_presets_individual": False,
+    "hotkey_presets_path": "",
     "keyboard_layout": DEFAULT_KEYBOARD_LAYOUT_ID,
     "keyboard_show_physical_key_labels": False,
     "debug_jis_special_key_events": False,
@@ -199,6 +201,14 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     config[HOOK_STOP_KEY] = normalize_key_name(config.get(HOOK_STOP_KEY, ""))
     config[HOOK_TOGGLE_KEY] = normalize_key_name(config.get(HOOK_TOGGLE_KEY, ""))
     config["hook_keys_individual"] = resolve_hook_keys_individual(config)
+    hotkey_presets_individual = config.get("hotkey_presets_individual", False)
+    config["hotkey_presets_individual"] = (
+        hotkey_presets_individual if isinstance(hotkey_presets_individual, bool) else False
+    )
+    hotkey_presets_path = config.get("hotkey_presets_path", "")
+    config["hotkey_presets_path"] = (
+        hotkey_presets_path.strip() if isinstance(hotkey_presets_path, str) else ""
+    )
     config.pop("hook_keymap_toggle_key", None)
     layout_id = config.get("keyboard_layout", DEFAULT_KEYBOARD_LAYOUT_ID)
     if not isinstance(layout_id, str):

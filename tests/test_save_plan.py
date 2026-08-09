@@ -90,6 +90,8 @@ class SavePlanTest(unittest.TestCase):
         """
         expected_key_order = [
             "trigger_set_path",
+            "hotkey_presets_path",
+            "hotkey_presets_individual",
             "active_keymap_path",
             "keymaps",
             "hook_stop_key",
@@ -155,6 +157,8 @@ class SavePlanTest(unittest.TestCase):
                 ),
                 {
                     "trigger_set_path": "user/trigger_sets/main.json",
+                    "hotkey_presets_path": "",
+                    "hotkey_presets_individual": False,
                     "active_keymap_path": "user/keymaps/km1.json",
                     "keymaps": [{"path": "user/keymaps/km1.json", "switch_key": "1"}],
                     "hook_stop_key": "f12",
@@ -242,7 +246,7 @@ class SavePlanTest(unittest.TestCase):
 
             self.assertEqual(JsonRepository().load_json(presets_path), existing_payload)
 
-    def test_saved_keymap_set_omits_hotkey_presets_path(self):
+    def test_saved_keymap_set_includes_hotkey_preset_individual_fields(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
 
@@ -251,9 +255,10 @@ class SavePlanTest(unittest.TestCase):
             keymap_set = JsonRepository().load_json(
                 os.path.join(root, "user", "keymap_sets", "main.json")
             )
-            self.assertNotIn("hotkey_presets_path", keymap_set)
+            self.assertEqual(keymap_set["hotkey_presets_path"], "")
+            self.assertFalse(keymap_set["hotkey_presets_individual"])
 
-    def test_resaving_legacy_keymap_set_naturally_omits_hotkey_presets_path(self):
+    def test_resaving_legacy_keymap_set_keeps_hotkey_presets_path_off(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
@@ -271,7 +276,11 @@ class SavePlanTest(unittest.TestCase):
             self._save(root, data=loaded)
 
             resaved_keymap_set = JsonRepository().load_json(keymap_set_path)
-            self.assertNotIn("hotkey_presets_path", resaved_keymap_set)
+            self.assertEqual(
+                resaved_keymap_set["hotkey_presets_path"],
+                "user/hotkey_presets/legacy.json",
+            )
+            self.assertFalse(resaved_keymap_set["hotkey_presets_individual"])
 
     def test_build_keymap_set_payload_saves_individual_hook_keys(self):
         payload = self._build_keymap_set_payload(
@@ -302,6 +311,25 @@ class SavePlanTest(unittest.TestCase):
         self.assertFalse(payload["hook_keys_individual"])
         self.assertEqual(runtime["hook_stop_key"], "f11")
         self.assertEqual(runtime["hook_toggle_key"], "f12")
+
+    def test_build_keymap_set_payload_keeps_hotkey_presets_path_when_individual_off(self):
+        for individual, path, expected_individual, expected_path in (
+            (True, "  user/hotkey_presets/personal.json  ", True, "user/hotkey_presets/personal.json"),
+            (False, "  user/hotkey_presets/personal.json  ", False, "user/hotkey_presets/personal.json"),
+            ("true", 1, False, "1"),
+        ):
+            with self.subTest(individual=individual, path=path):
+                payload = self._build_keymap_set_payload(
+                    {
+                        "hotkey_presets_individual": individual,
+                        "hotkey_presets_path": path,
+                    }
+                )
+
+                self.assertIn("hotkey_presets_individual", payload)
+                self.assertIn("hotkey_presets_path", payload)
+                self.assertIs(payload["hotkey_presets_individual"], expected_individual)
+                self.assertEqual(payload["hotkey_presets_path"], expected_path)
 
     def test_build_keymap_set_payload_applies_legacy_hook_key_migration(self):
         for runtime, expected_stop_key, expected_toggle_key, expected_individual in (
