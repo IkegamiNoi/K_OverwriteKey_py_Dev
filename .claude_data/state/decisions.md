@@ -392,6 +392,25 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
 - 実測: compile clean / `tests` **190**（+4）/ `tests_ui` **181**（増減なし）/ smoke pass（追随修正後）。
 - `reviewer` = **採用（完了可・指摘なし）**。
 
+### task_06（プリセットマネージャの即時保存）— 2026-08-09
+
+- 暫定仕様 07 §2 指摘③ をそのまま実装。**仕様変更なし**。これで**プリセットの書き手が 1 本に確定**。
+- 設計判断（レビュー採用済）:
+  - **新規モジュール `controllers/config_io/hotkey_presets_io.py` を作った**。理由 = `config_io/` は
+    ファイル種別ごとの IO モジュール構成（`keymap_file_io` / `sequence_file_io` /
+    `trigger_set_file_io` / `startup_io`）で、プリセットファイルは `startup_io`（config.json 専用）にも
+    `keymap_set_io` にも属さない。App へ file IO と `messagebox` を持ち込む方が責務違反になる。
+  - **例外の分担**: application（`save_global_hotkey_presets`）は**送出**、presentation
+    （`HotkeyPresetsIo`）が捕捉して成否へ変換。`apply_global_defaults` の「例外を投げない」契約は
+    **読み出し側のみ**であり、保存側とは別物として扱う。
+  - **`open_preset_manager` から `set_dirty(True)` を削除**（プリセットは keymap_set の一部ではなくなった）。
+- **想定外の先行実装**: なし。
+- **運用上の学び（2 度目）**: `tests_ui/test_app_ui_flows.py` の `AppUiFlowsTest` は
+  **`setUpClass` で App を共有**するため、`has_unsaved_changes()` を絶対値で assert すると
+  他テストの副作用で落ちる。**前後差分 / `set_dirty` の呼出有無**で見ること。
+- 実測: compile clean / `tests` **193**（+3）/ `tests_ui` **185**（+4）/ smoke pass（追随修正後）。
+- `reviewer` = **採用（完了可・指摘なし）**。
+
 ---
 
 ## 運用メモ

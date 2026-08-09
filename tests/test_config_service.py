@@ -337,6 +337,58 @@ class GlobalHotkeyPresetsPathTest(unittest.TestCase):
         )
 
 
+class GlobalHotkeyPresetsSavingTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def test_save_writes_to_configured_or_default_global_presets_path(self):
+        presets = [{"label": "Save", "value": "ctrl+s"}]
+        for configured_path in ("user/hotkey_presets/custom.json", None):
+            with self.subTest(configured_path=configured_path), tempfile.TemporaryDirectory() as tmp:
+                root = os.path.join(tmp, "config")
+                if configured_path is not None:
+                    self.service.repository.save_json(
+                        os.path.join(root, "config.json"),
+                        {"hotkey_presets_path": configured_path},
+                    )
+                expected_path = configured_path or self.service.HOTKEY_PRESETS_RELATIVE_PATH
+
+                self.service.save_global_hotkey_presets(presets, config_root=root)
+
+                self.assertEqual(
+                    self.service.repository.load_json(os.path.join(root, expected_path)),
+                    {"hotkey_presets": presets},
+                )
+
+    def test_save_round_trips_presets_including_empty_list(self):
+        for presets in ([], [{"label": "Paste", "value": "ctrl+v"}]):
+            with self.subTest(presets=presets), tempfile.TemporaryDirectory() as tmp:
+                root = os.path.join(tmp, "config")
+
+                self.service.save_global_hotkey_presets(presets, config_root=root)
+
+                self.assertEqual(
+                    split_loading.load_global_hotkey_presets(
+                        self.service,
+                        config_root=root,
+                    ),
+                    presets,
+                )
+
+    def test_save_propagates_repository_error(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            with patch.object(
+                self.service.repository,
+                "save_json",
+                side_effect=OSError("no disk"),
+            ):
+                with self.assertRaisesRegex(OSError, "no disk"):
+                    self.service.save_global_hotkey_presets(
+                        [],
+                        config_root=os.path.join(tmp, "config"),
+                    )
+
+
 class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
     def setUp(self):
         self.service = ConfigService(JsonRepository())

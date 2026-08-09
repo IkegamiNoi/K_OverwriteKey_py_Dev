@@ -461,6 +461,23 @@ class ConfigService:
             runtime["hotkey_presets"] = hotkey_presets
         return runtime
 
+    def save_global_hotkey_presets(
+        self,
+        presets: list[Any],
+        *,
+        config_root: str,
+    ) -> None:
+        """config.json が指すグローバルプリセットファイルへ書き出す。"""
+        stored_path = split_loading.load_global_hotkey_presets_path(
+            self,
+            config_root=config_root,
+        )
+        resolved_path = self.resolve_config_path(stored_path, config_root)
+        self.repository.save_json(
+            resolved_path,
+            {"hotkey_presets": safe_deepcopy(presets)},
+        )
+
     def _startup_entry_path(self, config_root: str) -> str:
         return os.path.join(config_root, "config.json")
 

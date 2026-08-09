@@ -7,6 +7,7 @@ from keyseq.presentation.dialogs import (
     PresetManagerDialog,
 )
 from keyseq.presentation.controllers.config_io import (
+    HotkeyPresetsIo,
     IoDialogs,
     KeymapFileIo,
     KeymapSetIo,
@@ -145,6 +146,7 @@ class App(tk.Tk):
         )
         self.keymap_set_io = KeymapSetIo(self)
         self.startup_io = StartupIo(self)
+        self.hotkey_presets_io = HotkeyPresetsIo(self)
         self.io_dialogs = IoDialogs(self)
         self.child_save_dialog = ChildSaveDialog(self)
         self.keymap_io = KeymapFileIo(self)
@@ -409,8 +411,13 @@ class App(tk.Tk):
         PresetManagerDialog(self, title="ホットキープリセット編集").wait_window()
         after = self.data.get("hotkey_presets", [])
         if before != after:
-            self.dirty_tracker.set_dirty(True)
             self._set_flash_message("プリセットを更新しました。")
+
+    def save_hotkey_presets(self, presets: list) -> bool:
+        if not self.hotkey_presets_io.write_global_presets(presets):
+            return False
+        self.data["hotkey_presets"] = presets
+        return True
 
     def _perform_action(self, action: dict):
         self.action_executor.execute(action)

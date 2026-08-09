@@ -503,9 +503,9 @@ class PresetManagerDialog(tk.Toplevel):
         self.listbox.selection_set(j)
 
     def on_ok(self):
-        # 保存して閉じる（※保存自体は親の保存ボタンで行う運用）
-        self.parent.data["hotkey_presets"] = self._temp
-        self.destroy()
+        # グローバルプリセットへ保存できたときだけ閉じる。
+        if self.parent.save_hotkey_presets(self._temp):
+            self.destroy()
 
     def destroy(self):
         # ダイアログ終了でフックを必要なら再開

@@ -4,13 +4,20 @@
 - ファイル保存を伴う操作は行わない（全体デフォルトの確認のみ一時ディレクトリで I/O する）
 - GUI が開ける環境（通常のデスクトップセッション）で実行すること
 """
+import copy
 import os
 import tempfile
 import unittest
-from unittest.mock import call, patch
+from types import SimpleNamespace
+from unittest.mock import Mock, call, patch
 
 from keyseq.application.save_plan import SavePlan
 from keyseq.presentation.app import App
+from keyseq.presentation.dialogs import PresetManagerDialog
+
+
+def _unexpected_showerror(_title, message, *_args, **_kwargs):
+    raise AssertionError(f"unexpected messagebox.showerror: {message}")
 
 
 class AppUiFlowsTest(unittest.TestCase):
@@ -39,6 +46,14 @@ class AppUiFlowsTest(unittest.TestCase):
             cls.app.dirty_tracker.set_dirty(False)
         finally:
             cls.app.destroy()
+
+    def setUp(self):
+        self._showerror_guard = patch(
+            "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror",
+            side_effect=_unexpected_showerror,
+        )
+        self._showerror_guard.start()
+        self.addCleanup(self._showerror_guard.stop)
 
     def _write_global_hook_key_defaults(self, config_root: str) -> None:
         self.app.config_service.save_startup(
@@ -235,6 +250,80 @@ class AppUiFlowsTest(unittest.TestCase):
 
                 self.assertEqual(self.app.data["hotkey_presets"], edited_presets)
         self.app.dirty_tracker.set_dirty(False)
+
+    def test_save_hotkey_presets_updates_runtime_on_success(self):
+        presets = [{"label": "Save", "value": "ctrl+s"}]
+        with patch.object(
+            self.app.hotkey_presets_io,
+            "write_global_presets",
+            return_value=True,
+        ) as write_global_presets:
+            self.assertTrue(self.app.save_hotkey_presets(presets))
+
+        write_global_presets.assert_called_once_with(presets)
+        self.assertEqual(self.app.data["hotkey_presets"], presets)
+
+    def test_save_hotkey_presets_preserves_runtime_and_shows_error_on_failure(self):
+        self.app.data["hotkey_presets"] = [{"label": "Existing", "value": "ctrl+e"}]
+        before = copy.deepcopy(self.app.data)
+        presets = [{"label": "New", "value": "ctrl+n"}]
+
+        with patch.object(
+            self.app.config_service,
+            "save_global_hotkey_presets",
+            side_effect=OSError("no disk"),
+        ), patch(
+            "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
+        ) as showerror:
+            self.assertFalse(self.app.save_hotkey_presets(presets))
+
+        self.assertEqual(self.app.data, before)
+        showerror.assert_called_once_with("プリセット保存失敗", "no disk")
+
+    def test_preset_manager_dialog_closes_only_after_successful_save(self):
+        presets = [{"label": "Edited", "value": "ctrl+e"}]
+        failed_dialog = SimpleNamespace(
+            parent=self.app,
+            _temp=presets,
+            destroy=Mock(),
+        )
+        with patch.object(self.app, "save_hotkey_presets", return_value=False) as save_hotkey_presets:
+            PresetManagerDialog.on_ok(failed_dialog)
+
+        save_hotkey_presets.assert_called_once_with(presets)
+        failed_dialog.destroy.assert_not_called()
+        self.assertEqual(failed_dialog._temp, presets)
+
+        successful_dialog = SimpleNamespace(
+            parent=self.app,
+            _temp=presets,
+            destroy=Mock(),
+        )
+        with patch.object(self.app, "save_hotkey_presets", return_value=True) as save_hotkey_presets:
+            PresetManagerDialog.on_ok(successful_dialog)
+
+        save_hotkey_presets.assert_called_once_with(presets)
+        successful_dialog.destroy.assert_called_once_with()
+
+    def test_open_preset_manager_does_not_mark_keymap_set_dirty(self):
+        self.app.data["hotkey_presets"] = [{"label": "Before", "value": "ctrl+b"}]
+        updated_presets = [{"label": "After", "value": "ctrl+a"}]
+        dirty_state_before = self.app.dirty_tracker.has_unsaved_changes()
+
+        with patch.object(self.app.dirty_tracker, "set_dirty") as set_dirty:
+            with patch("keyseq.presentation.app.PresetManagerDialog") as dialog_class, patch.object(
+                self.app,
+                "_set_flash_message",
+            ) as set_flash_message:
+                dialog_class.return_value.wait_window.side_effect = lambda: self.app.data.__setitem__(
+                    "hotkey_presets",
+                    updated_presets,
+                )
+                self.app.open_preset_manager()
+
+        set_dirty.assert_not_called()
+        self.assertEqual(dirty_state_before, self.app.dirty_tracker.has_unsaved_changes())
+        set_flash_message.assert_called_once_with("プリセットを更新しました。")
 
     def test_turning_individual_hook_keys_on_restores_retained_values_or_clears_values(self):
         with tempfile.TemporaryDirectory() as config_root:
