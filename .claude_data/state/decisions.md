@@ -339,3 +339,16 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
   → **phase 08 の受入条件 2 は phase 09 で上書きされる**。正本 §5.5 / §5.1 の改訂は **task_08** で行う。
 - 実測: compile clean / `tests` **209**（+5）/ `tests_ui` **186**（増減なし）/ smoke pass。
 - `reviewer` = **採用（完了可・指摘なし）**。
+
+### 【task_03】完了（2026-08-09）= 解決順序の実装（**読込先が実際に分岐**）
+
+- `load_hotkey_presets_file`（任意パス・`list | None`）を切り出し、`load_global_hotkey_presets` を
+  **薄いラッパ**へ。**公開規約（`list | None`・正規化済み・例外を投げない）は不変**。
+- 個別パスの**有効判定を 1 関数へ集約**（フラグが `is True` / 非空文字列 / **解決後が config 配下** /
+  `config_root` 空なら無効）。判定は**比較専用 API**（`is_path_within`）で、**保存値は書き換えない**。
+- 供給順 = **個別 → `None` ならグローバル → それも `None` なら置き換えない**。
+  **`is None` で判定**（`[]` は falsy のため真偽判定で書くと「読めた空」がフォールバックしてしまう。
+  受入条件 9 の規則を個別側でも維持するための要点）。
+- `apply_global_defaults`・保存側・presentation は無変更。runtime へ内部キーを増やしていない。
+- 実測: compile clean / `tests` **216**（+7）/ `tests_ui` **186** / smoke pass。
+- `reviewer` = **採用（完了可・指摘なし）**。

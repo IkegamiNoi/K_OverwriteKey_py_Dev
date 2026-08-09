@@ -62,10 +62,17 @@ def load_global_hotkey_presets_path(service, *, config_root: str) -> str:
     return raw_hotkey_presets_path.strip() or default_path
 
 
-def load_global_hotkey_presets(service, *, config_root: str) -> list[Any] | None:
-    """config.json が指すグローバルプリセットを、読めた場合だけ返す。"""
+def load_hotkey_presets_file(
+    service,
+    stored_path: Any,
+    *,
+    config_root: str,
+) -> list[Any] | None:
+    """プリセットファイルを読み、読めた場合だけ正規化済みの list を返す。"""
+    if not isinstance(stored_path, str) or not stored_path.strip():
+        return None
+
     try:
-        stored_path = load_global_hotkey_presets_path(service, config_root=config_root)
         resolved_path = service._resolve_config_relative_path(stored_path, config_root)
         loaded = service._load_optional_json(resolved_path)
     except Exception:
@@ -77,6 +84,35 @@ def load_global_hotkey_presets(service, *, config_root: str) -> list[Any] | None
     if not isinstance(items, list):
         return None
     return normalize_hotkey_presets(items)
+
+
+def load_global_hotkey_presets(service, *, config_root: str) -> list[Any] | None:
+    """config.json が指すグローバルプリセットを、読めた場合だけ返す。"""
+    try:
+        stored_path = load_global_hotkey_presets_path(service, config_root=config_root)
+    except Exception:
+        return None
+    return load_hotkey_presets_file(service, stored_path, config_root=config_root)
+
+
+def resolve_individual_hotkey_presets_path(
+    service,
+    runtime: dict[str, Any],
+    *,
+    config_root: str,
+) -> str:
+    """有効な個別プリセットの保存表記パスだけを返す。"""
+    if runtime.get("hotkey_presets_individual") is not True or not config_root:
+        return ""
+
+    stored_path = runtime.get("hotkey_presets_path")
+    if not isinstance(stored_path, str) or not stored_path.strip():
+        return ""
+
+    resolved_path = service._resolve_config_relative_path(stored_path, config_root)
+    if not service.is_path_within(resolved_path, config_root, config_root):
+        return ""
+    return stored_path
 
 
 def build_runtime_data_from_split(
@@ -120,7 +156,22 @@ def build_runtime_data_from_split(
         runtime[service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = trigger_set_path
     if trigger_set_parent_refs is not None:
         runtime[service.INTERNAL_TRIGGER_SET_PARENT_REFS] = trigger_set_parent_refs
-    hotkey_presets = load_global_hotkey_presets(service, config_root=config_root)
+    individual_presets_path = resolve_individual_hotkey_presets_path(
+        service,
+        runtime,
+        config_root=config_root,
+    )
+    hotkey_presets = (
+        load_hotkey_presets_file(
+            service,
+            individual_presets_path,
+            config_root=config_root,
+        )
+        if individual_presets_path
+        else None
+    )
+    if hotkey_presets is None:
+        hotkey_presets = load_global_hotkey_presets(service, config_root=config_root)
     if hotkey_presets is not None:
         runtime["hotkey_presets"] = hotkey_presets
 

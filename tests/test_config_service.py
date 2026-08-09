@@ -484,6 +484,184 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
 
             self.assertEqual(loaded["hotkey_presets"], global_presets)
 
+    def test_individual_presets_override_global_when_enabled(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            individual_path = "user/hotkey_presets/gaming.json"
+            global_presets = [{"label": "Global", "value": "ctrl+g"}]
+            individual_presets = [{"label": "Gaming", "value": "ctrl+i"}]
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(root, global_path, global_presets)
+            self._save_presets(root, individual_path, individual_presets)
+
+            loaded = self._load_keymap_set(
+                root,
+                {
+                    "hotkey_presets_individual": True,
+                    "hotkey_presets_path": individual_path,
+                },
+            )
+
+            self.assertEqual(loaded["hotkey_presets"], individual_presets)
+
+    def test_individual_presets_are_ignored_when_disabled_or_flag_is_missing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            individual_path = "user/hotkey_presets/gaming.json"
+            global_presets = [{"label": "Global", "value": "ctrl+g"}]
+            individual_presets = [{"label": "Gaming", "value": "ctrl+i"}]
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(root, global_path, global_presets)
+            self._save_presets(root, individual_path, individual_presets)
+
+            for flag in (False, None):
+                with self.subTest(flag=flag):
+                    keymap_set = {"hotkey_presets_path": individual_path}
+                    if flag is not None:
+                        keymap_set["hotkey_presets_individual"] = flag
+
+                    loaded = self._load_keymap_set(root, keymap_set)
+
+                    self.assertEqual(loaded["hotkey_presets"], global_presets)
+
+    def test_unreadable_individual_presets_fall_back_to_global(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            individual_path = "user/hotkey_presets/gaming.json"
+            global_presets = [{"label": "Global", "value": "ctrl+g"}]
+            individual_file_path = os.path.join(root, individual_path)
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(root, global_path, global_presets)
+
+            for name, content in (
+                ("missing", None),
+                ("invalid", "{"),
+                ("non_list_root", {"hotkey_presets": {}}),
+            ):
+                with self.subTest(name=name):
+                    if os.path.exists(individual_file_path):
+                        os.remove(individual_file_path)
+                    if isinstance(content, str):
+                        Path(individual_file_path).parent.mkdir(parents=True, exist_ok=True)
+                        Path(individual_file_path).write_text(content, encoding="utf-8")
+                    elif content is not None:
+                        self.service.repository.save_json(individual_file_path, content)
+
+                    loaded = self._load_keymap_set(
+                        root,
+                        {
+                            "hotkey_presets_individual": True,
+                            "hotkey_presets_path": individual_path,
+                        },
+                    )
+
+                    self.assertEqual(loaded["hotkey_presets"], global_presets)
+
+    def test_unreadable_individual_and_global_presets_keep_builtin_defaults(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": "user/hotkey_presets/missing-global.json"},
+            )
+
+            loaded = self._load_keymap_set(
+                root,
+                {
+                    "hotkey_presets_individual": True,
+                    "hotkey_presets_path": "user/hotkey_presets/missing-individual.json",
+                },
+            )
+
+            self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
+
+    def test_readable_empty_individual_presets_prevent_global_fallback(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            individual_path = "user/hotkey_presets/gaming.json"
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(root, global_path, [{"label": "Global", "value": "ctrl+g"}])
+            self._save_presets(root, individual_path, [])
+
+            loaded = self._load_keymap_set(
+                root,
+                {
+                    "hotkey_presets_individual": True,
+                    "hotkey_presets_path": individual_path,
+                },
+            )
+
+            self.assertEqual(loaded["hotkey_presets"], [])
+
+    def test_outside_individual_presets_path_uses_global_without_rewriting_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            outside_path = os.path.join(tmp, "outside.json")
+            global_presets = [{"label": "Global", "value": "ctrl+g"}]
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(root, global_path, global_presets)
+            self.service.repository.save_json(
+                outside_path,
+                {"hotkey_presets": [{"label": "Outside", "value": "ctrl+o"}]},
+            )
+            keymap_set = {
+                "hotkey_presets_individual": True,
+                "hotkey_presets_path": outside_path,
+            }
+
+            loaded = self._load_keymap_set(root, keymap_set)
+
+            self.assertEqual(loaded["hotkey_presets"], global_presets)
+            self.assertEqual(loaded["hotkey_presets_path"], outside_path)
+
+    def test_individual_presets_are_normalized_when_loaded(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            individual_path = "user/hotkey_presets/gaming.json"
+            self._save_presets(
+                root,
+                individual_path,
+                [
+                    "garbage",
+                    {"label": 1, "value": "ctrl+a"},
+                    {"label": " Gaming ", "value": "CTRL+I"},
+                    {"label": "bad", "value": 1},
+                ],
+            )
+
+            loaded = self._load_keymap_set(
+                root,
+                {
+                    "hotkey_presets_individual": True,
+                    "hotkey_presets_path": individual_path,
+                },
+            )
+
+            self.assertEqual(
+                loaded["hotkey_presets"],
+                [{"label": "Gaming", "value": "ctrl+i"}],
+            )
+
     def test_missing_global_path_uses_default_presets_path(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")

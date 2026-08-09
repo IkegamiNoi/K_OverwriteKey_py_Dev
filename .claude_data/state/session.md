@@ -4,53 +4,48 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-09T13:05:00
-phase: `instructions/phase/09_per_keymap_set_presets`（**task_02 完了 / 次は task_03**。暫定仕様 08 は **v0.4・ユーザー確定済**）
+last_updated: 2026-08-09T14:00:00
+phase: `instructions/phase/09_per_keymap_set_presets`（**task_03 完了 / 次は task_04**。暫定仕様 08 は **v0.4・ユーザー確定済**）
 last_commit_location: claude/task-04-progression-dbaaef ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 09 は task_02（keymap_set のスキーマ追加）まで完了。次は task_03 = 解決順序の実装（個別 → 読めなければグローバル / config 外パスの無効化）**。
+focus: **phase 09 は task_03（解決順序）まで完了し、読込先が実際に個別／グローバルへ分岐するようになった。次は task_04 = 個別ファイルの既定パス算出とマネージャの保存先切替**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-09T13:05:00
+ts: 2026-08-09T14:00:00
 who: main
 summary: |
-  【phase 09 task_02 = **keymap_set のスキーマ追加**（暫定仕様 08 §2 / §3-1 / §3-5）】
-  - **domain**: `DEFAULT_CONFIG` へ `hotkey_presets_individual`（False）/ `hotkey_presets_path`（""）を追加し、
-    `ensure_config_compatibility` で正規化（**フラグは真偽値のときだけ採用・それ以外 False** /
-    パスは文字列なら strip）。
-  - **application**: `build_runtime_data_from_split` のキーコピーへ 2 キーを追加（**専用の解決行は足さない**）/
-    `build_keymap_set_payload` の返却へ 2 キーを **`trigger_set_path` の直後**に挿入。
-  - **【最重要】移行規則**: 判定は**値のみ**。**`resolve_hook_keys_individual` を流用しない**
-    （流用すると phase 08 の**残置 `hotkey_presets_path` が個別指定として復活する**）。
-  - **【N】OFF でもパスを空文字化しない**（hook キーとは扱いが違う）。
-  - **想定外の先行実装 = 修正して採用**: phase 08 の特性テスト 2 件
-    （`test_saved_keymap_set_omits_hotkey_presets_path` / `test_resaving_legacy_keymap_set_naturally_omits_*`）は
-    **phase 09 が意図的に覆す前提**のため、削除せず**新仕様の期待値**（常時出力・OFF でもパス保持）へ更新した。
-    → **phase 08 の受入条件 2 は phase 09 で上書きされる**（正本 §5.5 / §5.1 の改訂は **task_08**）。
-  - 本タスク時点では 2 キーが**往復するだけ**で、プリセットの読込先は依然グローバル 1 本。
+  【phase 09 task_03 = **解決順序の実装**（暫定仕様 08 §3-2）】**ここで読込先が実際に分岐する**。
+  - `load_hotkey_presets_file(service, stored_path, *, config_root) -> list | None` を切り出し、
+    **`load_global_hotkey_presets` はその薄いラッパ**へ（**公開規約は不変**・例外を投げない）。
+  - `resolve_individual_hotkey_presets_path` に**有効判定を 1 箇所へ集約**:
+    **フラグが `is True`** / パスが非空の文字列 / **解決後が config 配下** / `config_root` 空なら無効。
+    判定は**比較専用 API**（`is_path_within`）で行い、**保存値は書き換えない**。
+  - 供給順: **個別（有効なら）→ `None` ならグローバル → それも `None` なら置き換えない**。
+    **判定は `is None`**（`[]` は falsy なので真偽判定で書くとバグる。**読めた空は採用**）。
+  - **`apply_global_defaults` は無変更**（E1〜E4 は常にグローバル）。保存側・presentation も無変更。
 result_files:
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_02_keymap_set_schema.md（新規・起票）
-  - keyseq/domain/config.py / config_service/split_loading.py / config_service/split_payloads.py
-  - tests/test_domain_config.py / tests/test_config_service.py / tests/test_save_plan.py
+  - instructions/phase/09_per_keymap_set_presets/tasks/task_03_resolution_order.md（新規・起票）
+  - keyseq/application/config_service/split_loading.py / tests/test_config_service.py
 verified:
   compile: clean
-  tests: pass **209**（基準線 204 → +5）
-  tests_ui: pass **186**（増減なし。runtime へキーが 2 つ増えたが dict 比較は破損せず）
+  tests: pass **216**（基準線 209 → +7）
+  tests_ui: pass **186**（増減なし）
   smoke: pass
-  review: `reviewer` = **採用（完了可・指摘なし）**。移行判定の非流用 / OFF でのパス保持 /
-    キー順の追加のみ / 範囲逸脱なし / 先行実装の更新が**緩和ではなく強化**であることを確認
+  review: `reviewer` = **採用（完了可・指摘なし）**。解決順序 / 空リストの非フォールバック /
+    config 外の非破壊判定 / 公開規約の保持 / 正規化が読み出し側 1 箇所であることを確認
 
 ## next_action
-- **task_03 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 08 **§3-2**）。内容:
-  1. `build_runtime_data_from_split` のプリセット供給を**解決順序**へ置き換える:
-     **フラグ真 → 個別パスから読む**（読めた＝空も採用 / **読めなければグローバルへフォールバック**）
-     / **偽 → グローバル**（現行どおり）/ **どちらも読めなければ置き換えない**
-  2. **config 外を指す個別パスは無効**として扱い、グローバルへ倒す（**キーの値は書き換えない**）
-  3. 読み出し自体は既存の `load_global_hotkey_presets` の規則（`list | None`・正規化済み）を踏襲し、
-     **個別パス用の読み出しを足す**（グローバル用と共通化するかは実装者判断）
-  4. **E1〜E4 は常にグローバル**のまま（`apply_global_defaults` のシグネチャは変えない）
+- **task_04 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 08 **§2【G】【B】【H】 / §3-3**）。内容:
+  1. **個別ファイルの既定パス算出**を `save_path_resolution.py` へ追加
+     （**application 側に置く**。presentation と二重化しない。`user/hotkey_presets/<stem>.json`・
+     **stem 規則とフォールバック名は trigger_set と同じ流儀**〔正本 §5.6〕・**衝突回避しない**）
+  2. **マネージャの保存先切替**: `App.save_hotkey_presets` / `HotkeyPresetsIo` /
+     `ConfigService.save_global_hotkey_presets` の経路で、**個別指定 ON なら個別ファイルへ書く**
+  3. **実体は OK で初めて作る**【H】（ON にしただけでは作らない）
+  4. **パス表記**は §5.7（config 配下は相対）。**config 外は許可しない**【O】
+  5. UI（チェック・保存先表示）は **task_05**。ここでは**保存先の決定と書込先の切替**まで
 - 以降の流れ（各タスク共通）: 実装委任（**テスト追加まで含める / 実行は依頼しない**）→
   `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
 
