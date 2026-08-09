@@ -4,48 +4,62 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-09T14:00:00
-phase: `instructions/phase/09_per_keymap_set_presets`（**task_03 完了 / 次は task_04**。暫定仕様 08 は **v0.4・ユーザー確定済**）
+last_updated: 2026-08-10T09:30:00
+phase: `instructions/phase/09_per_keymap_set_presets`（**task_04 完了 / 次は task_05**。暫定仕様 08 は **v0.4・ユーザー確定済**）
 last_commit_location: claude/task-04-progression-dbaaef ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 09 は task_03（解決順序）まで完了し、読込先が実際に個別／グローバルへ分岐するようになった。次は task_04 = 個別ファイルの既定パス算出とマネージャの保存先切替**。
+focus: **phase 09 は task_04（保存先の算出と書込先の切替）まで完了し、読み書き両方が個別／グローバルへ分岐するようになった。次は task_05 = 切替 UI（マネージャ内のチェック・保存先表示・OK/キャンセルの契約）**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-09T14:00:00
+ts: 2026-08-10T09:30:00
 who: main
 summary: |
-  【phase 09 task_03 = **解決順序の実装**（暫定仕様 08 §3-2）】**ここで読込先が実際に分岐する**。
-  - `load_hotkey_presets_file(service, stored_path, *, config_root) -> list | None` を切り出し、
-    **`load_global_hotkey_presets` はその薄いラッパ**へ（**公開規約は不変**・例外を投げない）。
-  - `resolve_individual_hotkey_presets_path` に**有効判定を 1 箇所へ集約**:
-    **フラグが `is True`** / パスが非空の文字列 / **解決後が config 配下** / `config_root` 空なら無効。
-    判定は**比較専用 API**（`is_path_within`）で行い、**保存値は書き換えない**。
-  - 供給順: **個別（有効なら）→ `None` ならグローバル → それも `None` なら置き換えない**。
-    **判定は `is None`**（`[]` は falsy なので真偽判定で書くとバグる。**読めた空は採用**）。
-  - **`apply_global_defaults` は無変更**（E1〜E4 は常にグローバル）。保存側・presentation も無変更。
+  【phase 09 task_04 = **保存先の算出と書込先の切替**（暫定仕様 08 §2【G】【B】【H】【O】/ §3-3）】
+  - `save_path_resolution.default_individual_hotkey_presets_path` を追加
+    （trigger_set と同じ流儀・`slugify_file_stem`・フォールバック `default`・衝突回避しない）。
+    **グローバル既定は `global/` 配下なので stem が `default` でも衝突しない**（task_01 の狙い）。
+  - `ConfigService.save_hotkey_presets(presets, *, config_root, stored_path)` を新設し
+    `save_global_hotkey_presets` を**薄いラッパ**へ（**読み出し側と対称**）。
+  - 書込先の決定は `split_loading.resolve_hotkey_presets_save_path` に集約し、
+    **task_03 の `resolve_individual_hotkey_presets_path` を再利用**（判定を二重化しない）。
+    分岐 = ON+有効パス → そのパス / ON+パス未設定 → 既定パス（保存表記へ変換）/
+    **ON+config 外 → 空文字（グローバル）** / OFF・フラグ無し・`config_root` 空 → 空文字。
+  - presentation: `write_global_presets` → **`write_presets(presets, *, stored_path)`** へ改名
+    （旧名の残存ゼロ）。`App.save_hotkey_presets` は **成功時のみ**
+    `data["hotkey_presets_path"]` を確定値へ反映（**フラグは変えない**）。
+  - **【H】ON にした時点ではファイルを作らない**（実体は保存時に初めて作られる）。
+  - **【Codex 運用インシデント】** フォワーダがハング復旧中に `taskkill /PID <pid> /T /F` を実行し、
+    **PID 再利用により無関係な `node_repl` 約 22 個を巻き込んで終了**させた。
+    → **以後 taskkill /T は使わない**。詰まったら `codex_operations.md` §4 の **state 手修復**へ倒す。
 result_files:
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_03_resolution_order.md（新規・起票）
-  - keyseq/application/config_service/split_loading.py / tests/test_config_service.py
+  - instructions/phase/09_per_keymap_set_presets/tasks/task_04_individual_save_target.md（新規・起票）
+  - keyseq/application/config_service/{__init__.py,save_path_resolution.py,split_loading.py}
+  - keyseq/presentation/app.py / controllers/config_io/hotkey_presets_io.py
+  - tests/test_config_service.py / tests_ui/test_app_ui_flows.py
 verified:
   compile: clean
-  tests: pass **216**（基準線 209 → +7）
-  tests_ui: pass **186**（増減なし）
+  tests: pass **220**（基準線 216 → +4）
+  tests_ui: pass **189**（基準線 186 → +3）
   smoke: pass
-  review: `reviewer` = **採用（完了可・指摘なし）**。解決順序 / 空リストの非フォールバック /
-    config 外の非破壊判定 / 公開規約の保持 / 正規化が読み出し側 1 箇所であることを確認
+  review: `reviewer` = **採用（完了可）**。全分岐の追跡 / 判定の非二重化 / 【H】/ 失敗時に data 不変 /
+    保存側で正規化なし / 改名の追随を確認。**参考指摘 1 件**（既定ディレクトリを
+    `dirname` 二重適用で導いており定数の階層変更で黙って壊れる。非ブロッキング）
 
 ## next_action
-- **task_04 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 08 **§2【G】【B】【H】 / §3-3**）。内容:
-  1. **個別ファイルの既定パス算出**を `save_path_resolution.py` へ追加
-     （**application 側に置く**。presentation と二重化しない。`user/hotkey_presets/<stem>.json`・
-     **stem 規則とフォールバック名は trigger_set と同じ流儀**〔正本 §5.6〕・**衝突回避しない**）
-  2. **マネージャの保存先切替**: `App.save_hotkey_presets` / `HotkeyPresetsIo` /
-     `ConfigService.save_global_hotkey_presets` の経路で、**個別指定 ON なら個別ファイルへ書く**
-  3. **実体は OK で初めて作る**【H】（ON にしただけでは作らない）
-  4. **パス表記**は §5.7（config 配下は相対）。**config 外は許可しない**【O】
-  5. UI（チェック・保存先表示）は **task_05**。ここでは**保存先の決定と書込先の切替**まで
+- **task_05 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 08 **§2【D】【E】【F】【J】【Q】【R】/ §3-4**）。内容:
+  1. **プリセットマネージャ内に「この構成セット専用にする」チェック**を置く
+  2. **トグルは保存先の切替だけ**（**一覧は差し替えない**。【I】は撤回済み）。保存先パス表示は追従
+  3. **OK で確定・キャンセルで何も変えない**（フラグ・dirty・ファイルのいずれも）
+  4. **OK の挙動**: ON なら個別へ書いて runtime 反映 /
+     **OFF へ戻したら書かずにグローバルを読み直す**（グローバルを上書きしない）
+  5. **切替の確定は keymap_set を dirty にする**（内容編集は dirty にしない）
+  6. **keymap_set 未保存なら ON 不可**（UI で無効化し理由表示。保存/読込/新規作成の後に再評価）
+  7. **保存先表示の出し分け**（個別 / フォールバック中「グローバルを表示中」/
+     両方読めない「読み込めませんでした（既定を表示中）」/ config 外で無効）
+  - **tests_ui から操作できる形か**を実装前に確認（`PresetManagerDialog` は `wait_window` を使うため、
+    既存テストは `on_ok` 直呼び等で回避している）
 - 以降の流れ（各タスク共通）: 実装委任（**テスト追加まで含める / 実行は依頼しない**）→
   `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
 
@@ -104,6 +118,9 @@ verified:
 - **【tests_ui の罠】`_prepare_loaded_keymap_set` は `save_plan=None` で `save_runtime_data` を呼ぶため
   runtime に source_path が入らない**。source_path 前提のテストは保存後に
   `load_runtime_data_from_keymap_set_path` で読み直すこと。
+- **【Codex 運用・重要】詰まったジョブに `taskkill /T` を使わない**（PID 再利用で**無関係な
+  プロセスを巻き込む**。phase 09 task_04 で `node_repl` 約 22 個を巻き込んだ実害あり）。
+  **`codex_operations.md` §4 の state 手修復**（backup してから `cancelled` へ書換・`.log` は保全）に倒す。
 - **【Codex 運用】**フォワーダが最終出力を返さず完了通知だけ来ることがある（`SendMessage` で再開して回収）。
   **Codex 申告のテスト結果は信用せず必ず verifier で再実行**。**Codex は python をまったく実行できない**
   → 委任にテスト実行を含めない。手順書は `instructions/common/rules_detail/codex_operations.md`。

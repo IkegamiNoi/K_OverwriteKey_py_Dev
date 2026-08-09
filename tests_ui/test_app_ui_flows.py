@@ -274,12 +274,12 @@ class AppUiFlowsTest(unittest.TestCase):
         presets = [{"label": "Save", "value": "ctrl+s"}]
         with patch.object(
             self.app.hotkey_presets_io,
-            "write_global_presets",
+            "write_presets",
             return_value=True,
-        ) as write_global_presets:
+        ) as write_presets:
             self.assertTrue(self.app.save_hotkey_presets(presets))
 
-        write_global_presets.assert_called_once_with(presets)
+        write_presets.assert_called_once_with(presets, stored_path="")
         self.assertEqual(self.app.data["hotkey_presets"], presets)
 
     def test_save_hotkey_presets_preserves_runtime_and_shows_error_on_failure(self):
@@ -298,6 +298,110 @@ class AppUiFlowsTest(unittest.TestCase):
 
         self.assertEqual(self.app.data, before)
         showerror.assert_called_once_with("プリセット保存失敗", "no disk")
+
+    def test_save_hotkey_presets_writes_individual_file_without_updating_global(self):
+        before = copy.deepcopy(self.app.data)
+        presets = [{"label": "Individual", "value": "ctrl+i"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                keymap_set_path = os.path.join(
+                    config_root,
+                    "user",
+                    "keymap_sets",
+                    "main.json",
+                )
+                global_path = os.path.join(
+                    config_root,
+                    self.app.config_service.HOTKEY_PRESETS_RELATIVE_PATH,
+                )
+                self.app.config_service.repository.save_json(
+                    global_path,
+                    {"hotkey_presets": [{"label": "Global", "value": "ctrl+g"}]},
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = "user/hotkey_presets/custom.json"
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app,
+                    "keymap_set_path",
+                    keymap_set_path,
+                ):
+                    self.assertTrue(self.app.save_hotkey_presets(presets))
+
+                self.assertEqual(
+                    self.app.config_service.repository.load_json(
+                        os.path.join(config_root, "user", "hotkey_presets", "custom.json")
+                    ),
+                    {"hotkey_presets": presets},
+                )
+                self.assertEqual(
+                    self.app.config_service.repository.load_json(global_path),
+                    {"hotkey_presets": [{"label": "Global", "value": "ctrl+g"}]},
+                )
+        finally:
+            self.app.data = before
+
+    def test_save_hotkey_presets_sets_default_individual_path_only_after_success(self):
+        before = copy.deepcopy(self.app.data)
+        presets = [{"label": "Individual", "value": "ctrl+i"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                keymap_set_path = os.path.join(
+                    config_root,
+                    "user",
+                    "keymap_sets",
+                    "main.json",
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = ""
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app,
+                    "keymap_set_path",
+                    keymap_set_path,
+                ):
+                    self.assertTrue(self.app.save_hotkey_presets(presets))
+
+                self.assertEqual(
+                    self.app.data["hotkey_presets_path"],
+                    "user/hotkey_presets/main.json",
+                )
+                self.assertTrue(self.app.data["hotkey_presets_individual"])
+        finally:
+            self.app.data = before
+
+    def test_save_hotkey_presets_failure_preserves_all_data_for_individual_target(self):
+        before = copy.deepcopy(self.app.data)
+        presets = [{"label": "New", "value": "ctrl+n"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                keymap_set_path = os.path.join(
+                    config_root,
+                    "user",
+                    "keymap_sets",
+                    "main.json",
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = ""
+                expected_before = copy.deepcopy(self.app.data)
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app,
+                    "keymap_set_path",
+                    keymap_set_path,
+                ), patch.object(
+                    self.app.config_service,
+                    "save_hotkey_presets",
+                    side_effect=OSError("no disk"),
+                ), patch(
+                    "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
+                ) as showerror:
+                    self.assertFalse(self.app.save_hotkey_presets(presets))
+
+                self.assertEqual(self.app.data, expected_before)
+                showerror.assert_called_once_with("プリセット保存失敗", "no disk")
+        finally:
+            self.app.data = before
 
     def test_preset_manager_dialog_closes_only_after_successful_save(self):
         presets = [{"label": "Edited", "value": "ctrl+e"}]

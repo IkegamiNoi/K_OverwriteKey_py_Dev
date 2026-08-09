@@ -414,9 +414,16 @@ class App(tk.Tk):
             self._set_flash_message("プリセットを更新しました。")
 
     def save_hotkey_presets(self, presets: list) -> bool:
-        if not self.hotkey_presets_io.write_global_presets(presets):
+        stored_path = self.config_service.resolve_hotkey_presets_save_path(
+            self.data,
+            config_root=self.config_root,
+            keymap_set_path=self.keymap_set_path,
+        )
+        if not self.hotkey_presets_io.write_presets(presets, stored_path=stored_path):
             return False
         self.data["hotkey_presets"] = safe_deepcopy(presets)
+        if stored_path:
+            self.data["hotkey_presets_path"] = stored_path
         return True
 
     def _perform_action(self, action: dict):

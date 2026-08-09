@@ -15,6 +15,7 @@ from keyseq.domain.config import (
     resolve_hook_keys_individual,
     safe_deepcopy,
 )
+from . import save_path_resolution
 
 
 def load_split_config(service, *, config_root: str, keymap_set_path: str) -> dict[str, Any]:
@@ -113,6 +114,38 @@ def resolve_individual_hotkey_presets_path(
     if not service.is_path_within(resolved_path, config_root, config_root):
         return ""
     return stored_path
+
+
+def resolve_hotkey_presets_save_path(
+    service,
+    runtime: dict[str, Any],
+    *,
+    config_root: str,
+    keymap_set_path: str,
+) -> str:
+    """個別プリセットの保存表記パス、またはグローバル用の空文字を返す。"""
+    individual_path = resolve_individual_hotkey_presets_path(
+        service,
+        runtime,
+        config_root=config_root,
+    )
+    if individual_path:
+        return individual_path
+
+    stored_path = runtime.get("hotkey_presets_path")
+    if (
+        runtime.get("hotkey_presets_individual") is not True
+        or not config_root
+        or (isinstance(stored_path, str) and stored_path.strip())
+    ):
+        return ""
+
+    default_path = save_path_resolution.default_individual_hotkey_presets_path(
+        service,
+        keymap_set_path,
+        config_root=config_root,
+    )
+    return service.to_config_relative_or_absolute(default_path, config_root)
 
 
 def build_runtime_data_from_split(

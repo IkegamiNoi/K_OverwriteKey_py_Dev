@@ -177,6 +177,23 @@ def default_trigger_set_path(
     )
 
 
+def default_individual_hotkey_presets_path(
+    service,
+    keymap_set_path: str,
+    *,
+    config_root: str,
+) -> str:
+    stem = slugify_file_stem(os.path.splitext(os.path.basename(keymap_set_path))[0])
+    filename = f"{stem or 'default'}.json"
+    hotkey_presets_dir = os.path.dirname(
+        os.path.dirname(service.HOTKEY_PRESETS_RELATIVE_PATH)
+    )
+    return service._resolve_config_relative_path(
+        os.path.join(hotkey_presets_dir, filename),
+        config_root,
+    )
+
+
 def slugify_file_stem(value: Any) -> str:
     normalized = str(value or "").strip()
     normalized = re.sub(r'[\\/:*?"<>|]+', "_", normalized)

@@ -475,10 +475,37 @@ class ConfigService:
             self,
             config_root=config_root,
         )
+        self.save_hotkey_presets(
+            presets,
+            config_root=config_root,
+            stored_path=stored_path,
+        )
+
+    def save_hotkey_presets(
+        self,
+        presets: list[Any],
+        *,
+        config_root: str,
+        stored_path: str,
+    ) -> None:
         resolved_path = self.resolve_config_path(stored_path, config_root)
         self.repository.save_json(
             resolved_path,
             {"hotkey_presets": safe_deepcopy(presets)},
+        )
+
+    def resolve_hotkey_presets_save_path(
+        self,
+        runtime: dict[str, Any],
+        *,
+        config_root: str,
+        keymap_set_path: str,
+    ) -> str:
+        return split_loading.resolve_hotkey_presets_save_path(
+            self,
+            runtime,
+            config_root=config_root,
+            keymap_set_path=keymap_set_path,
         )
 
     def _startup_entry_path(self, config_root: str) -> str:

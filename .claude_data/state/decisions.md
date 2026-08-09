@@ -352,3 +352,32 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
 - `apply_global_defaults`・保存側・presentation は無変更。runtime へ内部キーを増やしていない。
 - 実測: compile clean / `tests` **216**（+7）/ `tests_ui` **186** / smoke pass。
 - `reviewer` = **採用（完了可・指摘なし）**。
+
+### 【task_04】完了（2026-08-10）= 保存先の算出と書込先の切替
+
+- `default_individual_hotkey_presets_path` を trigger_set と同じ流儀で追加
+  （`slugify_file_stem` / フォールバック `default` / **衝突回避しない** / `split_base_dir` を取らない）。
+  **グローバル既定が `global/` 配下にあるため stem が `default` でも衝突しない**（task_01 の狙いが効いた）。
+- `save_hotkey_presets(..., stored_path)` を新設し `save_global_hotkey_presets` を薄いラッパへ
+  （**読み出し側の 2 段構えと対称**）。**例外は送出のまま**（成否変換は presentation）。
+- 書込先の決定は `resolve_hotkey_presets_save_path` に集約し、**task_03 の判定を再利用**。
+  **ON + config 外は空文字（グローバル）へ倒す**＝個別へ書かない。
+- presentation は `write_presets(presets, *, stored_path)` へ改名（旧名の残存ゼロ）。
+  `App.save_hotkey_presets` は**成功時のみ** `data["hotkey_presets_path"]` を確定値へ反映し、
+  **フラグは変えない**（切替は task_05）。**失敗時は `data` を一切変更しない**。
+- **【H】ON にした時点ではファイルを作らない**（実体は保存時に初めて作られる）。
+- **参考指摘（非ブロッキング・候補送り）**: `default_individual_hotkey_presets_path` は
+  `HOTKEY_PRESETS_RELATIVE_PATH` へ `os.path.dirname` を 2 回かけて `user/hotkey_presets` を導いており、
+  **定数の階層が変わると例外を出さず誤ったディレクトリを返す**。リポジトリ内の既存慣用手法の範囲内で、
+  値ベースのテストが担保しているため今回は据え置き（専用定数を切る代替案あり）。
+- 実測: compile clean / `tests` **220**（+4）/ `tests_ui` **189**（+3）/ smoke pass。
+- `reviewer` = **採用（完了可）**。
+
+### 【運用インシデント】Codex ジョブ復旧時のプロセス誤終了（2026-08-10）
+
+- 実装フォワーダがハングした Codex ジョブの復旧中に **`taskkill /PID <pid> /T /F`** を実行し、
+  **PID 再利用により無関係な `node_repl` プロセス約 22 個**を子プロセスと誤認して終了させた。
+- リポジトリのファイルへの影響なし（差分は task_04 の想定どおり）。他ジョブの state も無事。
+- **再発防止**: **詰まったジョブに `taskkill /T` を使わない**。
+  `instructions/common/rules_detail/codex_operations.md` **§4 の state 手修復**
+  （backup → `cancelled` へ書換・`.log` は保全）に倒す。`session.md` の resume_hints にも明記した。
