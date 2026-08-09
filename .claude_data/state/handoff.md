@@ -15,13 +15,14 @@
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
 2. `instructions/phase/current.md` → [phase 08 の phase.md](../../instructions/phase/08_hotkey_presets_global/phase.md) を読む
 3. 主入力の確定設計 = [history/07_hotkey_presets_global.md](../../instructions/history/07_hotkey_presets_global.md)
-   （**v0.5・全条項が確定済**。特に **§3-2「全体デフォルトの注入」と入口台帳**が task_04 の規範）
+   （**v0.6・全条項が確定済**。**§3-2**〔注入 + 入口台帳 + 読み出しの正規化〕と **§7 の「v0.6 追記」**
+   〔task_08 で正本へ反映する具体項目〕が規範）
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む
 5. 過去の判断は `.claude_data/state/decisions.md`（**末尾に進行中の phase 08 の節がある**）+
    「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 08 は task_03（入口一本化の設計確定・暫定仕様 v0.5）まで完了。次は task_04 = `apply_global_defaults` の実装と入口台帳 E1〜E5 への配線**。
+**phase 08 は task_07b（横断レビュー指摘の是正）まで完了。残るは task_07 の実機目視のみで、その後 task_08（正本反映）**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -31,41 +32,48 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（phase 08 task_02 完了時・コミット `654d2ef`。task_03 は文書のみ）:
-compile **clean** / tests **180** / tests_ui **178** / smoke **pass** / manual **未実施（task_07 でまとめて実施）**。
+直近の実測（phase 08 task_07b 完了時・コミット `7b606f3`）:
+compile **clean** / tests **198** / tests_ui **186** / smoke **pass** / manual **未実施（task_07 で実施待ち）**。
 **件数が減ったら退行を疑う**。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
 
 ## 次アクション（session.md.next_action より）
-- **task_04 を `/task_new` で起票 → 実装委任**（規範 = 暫定仕様 07 **§3-2**）:
-  1. **`list | None` を返すグローバルプリセット読み出し**を新設（`load_named_list` は使わない。
-     読めた=`list`〔空を含む〕/ 不存在・破損・根キーが list でない=`None`）
-  2. **`ConfigService.apply_global_defaults(runtime, *, config_root)`** を新設
-     （既存 `apply_global_hook_key_defaults` を呼ぶ + プリセット供給。冪等・例外を投げない）
-  3. **入口台帳 E1〜E5 へ配線**（`app.py:77` / `keymap_set_io.py:53,561,599` / `startup_io.py:35`）
-  4. **通常読込も同じ供給規則へ統一** → **task_02 のテスト「不存在・破損 → `[]`」を
-     「置き換えない = 組込 8 件」へ更新**する
-  5. **`toggle_hook_keys_individual` の ON→OFF は変更しない**（単独注入のまま・受入条件 8）
-- 受入条件 7・8・9 を特性テストで固定する。**L1〜L3（通常読込）と N1（再正規化）は配線対象外**。
+- **task_07 の実機目視を実施**（ユーザー担当。結果は task_07 定義の「実施記録」へ追記する）。観点 6 件:
+  ①全 keymap_set で共通 ②編集が即時にファイルへ入る（keymap_set 未保存で再起動）
+  ③保存失敗時に編集内容が残る（プリセットファイルを読み取り専用にする。**属性は必ず戻す**）
+  ④keymap_set 保存でプリセットが書かれない（更新日時 / 別名保存先に `hotkey_presets/` が出来ない）
+  ⑤既存 `hotkey_presets_path` 付き keymap_set の後方互換（再保存で当該キーが消える）
+  ⑥**破損 JSON / 非 dict 要素を含むプリセットファイル**でも落ちない（task_07b の確認）
+- その後 **task_08（最終）**: 正本 `spec_detail/data_schema.md` + `codebase_map.md` へ昇格
+  （**反映項目は暫定仕様 07 §7「v0.6 追記」に列挙済み**）/ 暫定仕様 07 を凍結 /
+  `decisions_archive/08_hotkey_presets_global.md` 作成 / `current.md` 完了更新 /
+  `backlog/INDEX.md` の **idea_08** 行を着手可へ更新 / `/refactor_check` 実行。
 - 各タスクの流れ: タスク定義起票 → codex-implementer へ委任 → **verifier で実測** → reviewer → コミット。
 
 ## 現フェーズ（phase 08 = プリセットの config.json グローバル化）の要点
 
-**確定設計は暫定仕様 07（v0.5）が正**。task_01〜03 完了・task_04 から実装。
+**確定設計は暫定仕様 07（v0.6）が正**。**実装は task_01〜07b まで完了**（残り = 実機目視 + 正本反映）。
 
 - **config.json の `hotkey_presets_path`（既定 `user/hotkey_presets/default.json`）を全 keymap_set で共有**。
-  keymap_set 側の同キーは**生成停止・読込時無視**（**能動削除はしない**）。
-  **プリセットの唯一の書き手はプリセットマネージャ**（task_06 で即時保存・成否付き）。
-- **読み出しは「読めたか」を区別する**（v0.5 の要）: 読めた=`list`（**空リストも採用**＝全削除を尊重）/
-  不存在・破損・根キーが list でない=`None`（**置き換えない**）。**注入経路と通常読込で規則を統一**する。
-- **入口台帳（`app.data` 置換の実測 9 箇所）**: E1 `app.py:77` / E2 `keymap_set_io.py:53` /
-  E3 `:599` / E4 `startup_io.py:35` / E5 `keymap_set_io.py:561`（**Import = レガシー単一 JSON。
+  keymap_set 側の同キーは**生成停止・読込時無視**（**能動削除はしない**＝再保存で自然消滅）。
+  **アプリは config.json の当該キーを書かない**（読むだけ・手編集専用）。
+- **プリセットの書き手は 1 本のみ**:
+  `PresetManagerDialog.on_ok` → `App.save_hotkey_presets` → `HotkeyPresetsIo.write_global_presets`
+  → `ConfigService.save_global_hotkey_presets`。**保存カスケード（`save_runtime_data`）は書かない**。
+  **保存失敗時はダイアログを閉じず runtime も更新しない**。プリセット編集は **dirty を汚さない**。
+- **読み出しは `load_global_hotkey_presets`**: 読めた=`list`（**空リストも採用**＝全削除を尊重）/
+  不存在・破損・根キーが list でない=`None`（**置き換えない**）。
+  **`None` 判定は正規化の前**に行い、**戻り値は `normalize_hotkey_presets` を通した正規化済み**
+  （非 dict 要素の除去 / label trim / value 小文字化）。**正規化は読み出し側 1 箇所**に置く。
+- **入口台帳（`app.data` 置換の実測 9 箇所）**: E1 `app.py`（App 初期化）/ E2 `keymap_set_io`（新規作成）/
+  E3 同（例を復元）/ E4 `startup_io`（空データ起動）/ E5 `keymap_set_io`（Import = **レガシー単一 JSON。
   `build_runtime_data_from_split` を通らない**）= **`apply_global_defaults` を呼ぶ** /
-  L1 `keymap_set_io.py:531` ・L2 `:631` ・L3 `startup_io.py:25` = 通常読込が供給 /
-  N1 `keymap_set_io.py:56` = 供給不要。**全体デフォルトを増やすときはこの台帳の全経路を見る**。
+  L1〜L3 = 通常読込が供給 / N1 = 供給不要。**全体デフォルトを増やすときはこの台帳の全経路を見る**。
 - **例外**: `toggle_hook_keys_individual` の **ON→OFF は `apply_global_hook_key_defaults` を単独で呼ぶ**
   （束ねるとキー切替だけでプリセットが再読込され、編集中の内容を取りこぼす）。
-- 中間状態（task_05 まで）: 保存側が未変更のため**別ディレクトリへ保存した keymap_set を読み直すと
-  プリセットはグローバル側**。意図的に残している。
+- **既知の制約（v0.6）**: `None`（破損・不存在）のとき runtime のプリセットは
+  **空データ起動 = 空 / それ以外 = 組込 8 件**と経路で割れる。その状態でマネージャを OK すると
+  **空でグローバルが確定し得る**。実装での回避は**採らないと確定**（受入条件 7 も
+  「グローバルが**読めた場合**は一致」へ限定済み）。
 - 後続: [idea_08](../../instructions/backlog/idea_08_per_keymap_set_preset_ownership.md)（keymap_set 個別プリセット）。
 
 ## 直前フェーズ（phase 07 = Phase γ）の要点
@@ -75,12 +83,11 @@ compile **clean** / tests **180** / tests_ui **178** / smoke **pass** / manual *
 
 - `hook_stop_key` / `hook_toggle_key` の**全体デフォルトを `config/config.json`** に持たせ、
   keymap_set のフラグ `hook_keys_individual` で個別指定に切り替える（**後方互換必須・既存キー削除禁止**）。
-- **解決の分岐点は 4 つ**（これ以外へ解決ロジックを置かない）:
-  `split_loading.load_global_hook_keys`（読み出し・失敗時 `("","")`）/
-  `split_loading.build_runtime_data_from_split`（**通常読込の選択**。移行判定を通す）/
-  `ConfigService.apply_global_hook_key_defaults`（**新規化・置換経路の直接注入**。通常読込は経由しない。
-  フラグ無しは OFF とみなす）/ `split_payloads.build_keymap_set_payload`（保存側・**OFF は常に `""`**）。
-  ※ phase 08 task_04 で、**注入は `apply_global_defaults` 経由**へ変わる（単独注入は ON→OFF のみ残る）。
+- **解決の分岐点**: `split_loading.load_global_hook_keys`（読み出し・失敗時 `("","")`）/
+  `build_runtime_data_from_split`（**通常読込の選択**。移行判定を通す）/
+  `ConfigService.apply_global_hook_key_defaults`（**単独注入。現在は ON→OFF 専用**）/
+  `split_payloads.build_keymap_set_payload`（保存側・**OFF は常に `""`**）。
+  ※ phase 08 以降、**runtime 置換時の注入は `apply_global_defaults` 経由**。
 - **フック層（`input_router` / `hook_controller` / `keyboard_window` / `app.py` の供給部）は無変更**が設計の芯。
 - **【計画06】キー名の定義元は `domain/config.py`**（`HOOK_STOP_KEY` / `HOOK_TOGGLE_KEY` /
   対のタプル `HOOK_KEY_FIELDS` / 対の正規化 `normalize_hook_key_pair`）。新規箇所はリテラルを書かない
@@ -92,7 +99,7 @@ compile **clean** / tests **180** / tests_ui **178** / smoke **pass** / manual *
 - config.json への書き込みは `StartupIo.write_startup`（`-> bool`）→ `write_global_hook_keys` の**1 本のみ**。
   **別経路で read-modify-write しない**（`_startup_settings` と乖離すると次の書き出しで hook キーが消える）。
 - 個別値の退避は `App._retained_hook_keys`（`app.data` に持たない）。**破棄は保存の実行 + runtime の
-  置換・新規化**（読込 / 新規作成 / 例を復元）。**`_sync_control_vars_from_data` に破棄を入れない**。
+  置換・新規化**。**`_sync_control_vars_from_data` に破棄を入れない**。
 
 ## 注意事項・blockers
 - **blockers: なし**。
@@ -115,10 +122,14 @@ compile **clean** / tests **180** / tests_ui **178** / smoke **pass** / manual *
   ④ **共有状況は判定名で分岐する**（`SHARE_SOLE` / `SHARE_NEW`。表示文言 `share_text_for` で分岐しない）。
 - **【罠・重要】保存経路の例外は `messagebox.showerror` になり、テストではモーダルで永久ブロックする**。
   テスト内の `AssertionError` も広い `except Exception` に捕まり、**失敗が「ハング」に化ける**。
-  tests_ui の 3 ファイル（`test_child_save_dialog` / `test_config_io_characterization` /
-  `test_config_io_characterization_keymap_set_startup`）の `setUp` に **fail-fast ガード**がある。
-  期待するテストは個別 patch で上書きする。新しいモーダルを増やすときは同じガードを足す
-  （`askyesnocancel` はガードへ入れない）。**ハングしたら `messagebox` / `filedialog` を全遮断して単独実行**する。
+  tests_ui の 4 ファイル（`test_child_save_dialog` / `test_config_io_characterization` /
+  `test_config_io_characterization_keymap_set_startup` / **`test_app_ui_flows`**）の `setUp` に
+  **fail-fast ガード**がある。期待するテストは個別 patch で上書きする。新しいモーダルを増やすときは
+  同じガードを足す（`askyesnocancel` はガードへ入れない）。
+  **ハングしたら `messagebox` / `filedialog` を全遮断して単独実行**する。
+- **【tests_ui の罠】`AppUiFlowsTest` は `setUpClass` で App を 1 つ共有する**。
+  `dirty_tracker.has_unsaved_changes()` は個別 dirty（trigger_set / sequence / keymap）も OR するため、
+  **絶対値で assert せず前後の変化・`set_dirty` の呼出有無で見る**。
 - **【tests_ui の罠】`_prepare_loaded_keymap_set` は `save_plan=None` で `save_runtime_data` を呼ぶため
   runtime に source_path が入らない**。source_path 前提のテストは保存後に
   `load_runtime_data_from_keymap_set_path` → `apply_loaded_data_to_ui` で読み直すこと。
@@ -129,14 +140,18 @@ compile **clean** / tests **180** / tests_ui **178** / smoke **pass** / manual *
   **対象ウィジェット自身の `<Configure>` で自己修復させる**（同幅早期 return を必ず併設）。
 - **【Codex 運用】フォワーダが最終出力を返さないまま完了通知だけ来る / 差分 0 件で返る**ことがある
   → `SendMessage` で同じフォワーダを再開して回収する。**Codex 申告のテスト結果は信用せず必ず verifier で再実測**。
-  手順書は `instructions/common/rules_detail/codex_operations.md`。
+  **報告が「実装物なし」でも鵜呑みにせず `git status` / `git log` で自分で確かめる**（コミット後だと空に見える）。
+  **worker PID が消えたジョブは `cancel` が効かない** → `codex_operations.md` §4 の state 手修復
+  （`state.json` と `jobs/<id>.json` を **backup してから** `cancelled` へ書換・`.log` は保全）。
 - **【罠・再発済】worktree と main は別コピー**。`.claude_data/`・`instructions/`・code とも、main 側の絶対パス
   （パスに `.claude\worktrees\<name>\` を含まない）を編集すると commit から漏れる。編集は必ず worktree ルート配下で。
 - **【罠】Bash ツールは Git Bash**。PowerShell の here-string（`@'...'@`）はコミットメッセージに `@` が混入する。
   複数行は heredoc（`git commit -F - <<'EOF'`）を使う。
 - **【罠】`git grep` は追跡済みのみ検索**。新規（未追跡）ファイルの確認は**直接 `grep`**。行数計測は `wc -l`。
-- **【傾向】reviewer が「完了可」でも実測で落ちることがある**。**判定はテストの実測が優先**。
+- **【傾向・phase 08 で 3 回発生】reviewer が「完了可」でも実測で落ちる**。**判定はテストの実測が優先**。
   fail が出たら**まず production か test かを切り分ける**。
+  また**レビュー範囲を「変更ファイル」に限定すると呼び出し元の追随漏れを拾えない**ので、
+  レビュー依頼では**呼び出し元を含む全テスト**を対象に指示する。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   Codex レビュー系との併用は `.claude/rules/agent_selection.md` のレビュー表が正。出力の作法は
   `.claude/rules/output_style.md`。
