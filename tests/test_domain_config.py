@@ -6,6 +6,7 @@ from keyseq.domain.config import (
     format_action_list_item,
     format_preset_list_item,
     format_trigger_list_item,
+    normalize_hotkey_presets,
     normalize_key_name,
     resolve_hook_keys_individual,
 )
@@ -17,6 +18,36 @@ class NormalizeKeyNameTest(unittest.TestCase):
 
     def test_none_returns_empty(self):
         self.assertEqual(normalize_key_name(None), "")
+
+
+class NormalizeHotkeyPresetsTest(unittest.TestCase):
+    def test_removes_non_dict_items_and_normalizes_label_and_value(self):
+        presets = [
+            {"label": "  Paste  ", "value": " CTRL+V ", "extra": "kept"},
+            "garbage",
+            {"label": "  Copy", "value": "CTRL+C  "},
+        ]
+
+        self.assertEqual(
+            normalize_hotkey_presets(presets),
+            [
+                {"label": "Paste", "value": "ctrl+v", "extra": "kept"},
+                {"label": "Copy", "value": "ctrl+c"},
+            ],
+        )
+
+    def test_non_list_input_returns_empty_list(self):
+        for presets in (None, {"label": "Paste"}, "ctrl+v"):
+            with self.subTest(presets=presets):
+                self.assertEqual(normalize_hotkey_presets(presets), [])
+
+    def test_is_idempotent(self):
+        presets = [{"label": "  Paste  ", "value": " CTRL+V "}, "garbage"]
+
+        self.assertEqual(
+            normalize_hotkey_presets(normalize_hotkey_presets(presets)),
+            normalize_hotkey_presets(presets),
+        )
 
 
 class ResolveHookKeysIndividualTest(unittest.TestCase):

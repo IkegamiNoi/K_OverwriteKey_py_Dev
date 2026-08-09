@@ -42,7 +42,7 @@ from keyseq.application.keymap_service import KeymapService
 from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.trigger_service import TriggerService
-from keyseq.domain.config import HOOK_KEY_FIELDS, HOOK_STOP_KEY, HOOK_TOGGLE_KEY
+from keyseq.domain.config import HOOK_KEY_FIELDS, HOOK_STOP_KEY, HOOK_TOGGLE_KEY, safe_deepcopy
 from keyseq.infrastructure.input_gateway import InputGateway
 from keyseq.infrastructure.json_repository import JsonRepository
 
@@ -416,7 +416,7 @@ class App(tk.Tk):
     def save_hotkey_presets(self, presets: list) -> bool:
         if not self.hotkey_presets_io.write_global_presets(presets):
             return False
-        self.data["hotkey_presets"] = presets
+        self.data["hotkey_presets"] = safe_deepcopy(presets)
         return True
 
     def _perform_action(self, action: dict):

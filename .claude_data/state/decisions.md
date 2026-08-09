@@ -411,6 +411,28 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
 - 実測: compile clean / `tests` **193**（+3）/ `tests_ui` **185**（+4）/ smoke pass（追随修正後）。
 - `reviewer` = **採用（完了可・指摘なし）**。
 
+### task_07（統合確認）+ task_07b（是正）— 2026-08-09 / 暫定仕様 **v0.6**
+
+- 自動確認は全 pass。`codex-reviewer` = **指摘なし**。**`deep-reviewer` = 修正要**（実測付きの H1 が主）。
+- **ユーザー確定（4 件）**:
+  - **H1 = 是正・読み出し側で正規化**。通常読込は注入後に `ensure_config_compatibility` を通すが、
+    `apply_global_defaults` は生の JSON を代入していたため **E1/E3/E4/E5 が非正規化**（E2 のみ N1 で救済）。
+    非 dict 要素が runtime に残ると `dialogs.py` の `p.get` で **AttributeError**（phase 08 で新たに生じた破綻面）。
+    → **正規化は読み出し側 1 箇所**（`load_global_hotkey_presets`）。注入 API 側へは置かない。
+    通常読込の二重正規化は冪等なので許容。**`None` 判定は正規化の前**（受入条件 9 を壊さないため）。
+  - **受入条件 7 を「グローバルが読めた場合」へ限定**（M4）。`None` 時の経路差は §3-2 が許容しており、
+    旧文言のままでは条項間矛盾（達成不能）だった。
+  - **M3（`None` 時の上書き内容が入口経路で割れる）は現状を制約として明文化**。
+    実装での回避（`new_empty_data` に組込既定を載せる / 保存前に確認ダイアログ）は**却下**。
+  - **task_07b へ M1 / M2 / L3 を同梱**（死にコード `load_named_list` 削除 / E1 の特性テスト / deepcopy）。
+- **却下せず task_08 へ送った項目**: L1（旧「別ディレクトリ保存」の孤児プリセット）/ L2（Export の
+  デッドデータ）/ L4（`hotkey_presets_path` はアプリが書かない = 手編集専用キー）→ **正本へ文書化**。
+- **前提の誤りを 1 件訂正**: task_04 定義に書いた「`load_named_list` は他用途（trigger_set 等）で使用中」は
+  誤り（trigger_set は `load_trigger_set` 担当）。task_02 → task_04 の切替で最後の利用者が消えていた。
+- 実測: compile clean / `tests` **198**（+5）/ `tests_ui` **186**（+1）/ smoke pass。
+- `reviewer`（task_07b）= **採用（完了可・指摘なし）**。`ensure_config_compatibility` の挙動不変も確認。
+- **未了**: task_07 の実機目視（ユーザー担当・観点 6 件。⑥は task_07b の確認を兼ねる破損ファイルケース）。
+
 ---
 
 ## 運用メモ

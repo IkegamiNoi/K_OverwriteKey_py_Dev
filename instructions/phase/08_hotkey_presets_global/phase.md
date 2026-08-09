@@ -83,6 +83,7 @@ payload 生成停止）+ presentation（プリセットマネージャの即時�
 | task_05 | **keymap_set payload から `hotkey_presets_path` を外す** + 保存カスケードからプリセット書出を除外（`save_runtime_data` は書かない）|
 | task_06 | **プリセットマネージャの編集をグローバルファイルへ即時保存**（成否付き・失敗時に編集内容を失わない・dirty を汚さない）|
 | task_07 | **統合確認 + 実機目視**（受入条件 **1〜6**）。特性テストの実測は `verifier`（compile / `tests` / `tests_ui` / smoke）、実機目視の観点はタスク定義で列挙 + 指摘の是正 |
+| task_07b | **横断レビュー指摘の是正**（`deep-reviewer` の H1 / M1 / M2 / L3。**読み出し側で正規化**・死にコード削除・E1 の特性テスト・deepcopy）。規範は暫定仕様 **v0.6** |
 | task_08 | **正本反映（最終）**: `spec_detail/data_schema.md` + `codebase_map.md` へ昇格 / 暫定仕様 07 を凍結 / `decisions_archive/08_hotkey_presets_global.md` 作成 / `current.md` 完了更新 / `backlog/INDEX.md` の **idea_08** 行を着手可へ更新 / `/refactor_check` 実行 |
 
 - タスク定義は着手するものから順に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。

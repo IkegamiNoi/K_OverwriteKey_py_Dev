@@ -9,6 +9,7 @@ from keyseq.domain.config import (
     HOOK_STOP_KEY,
     HOOK_TOGGLE_KEY,
     ensure_config_compatibility,
+    normalize_hotkey_presets,
     normalize_hook_key_pair,
     normalize_key_name,
     resolve_hook_keys_individual,
@@ -75,7 +76,7 @@ def load_global_hotkey_presets(service, *, config_root: str) -> list[Any] | None
     items = loaded.get("hotkey_presets")
     if not isinstance(items, list):
         return None
-    return safe_deepcopy(items)
+    return normalize_hotkey_presets(items)
 
 
 def build_runtime_data_from_split(
@@ -296,28 +297,6 @@ def load_triggers_from_trigger_set(
         if parent_refs is not None:
             normalized_trigger[service.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
     return normalized, trigger_set_parent_refs
-
-
-def load_named_list(
-    service,
-    path_value: Any,
-    *,
-    root_key: str,
-    config_root: str,
-) -> list[Any]:
-    stored_path = str(path_value or "").strip()
-    if not stored_path:
-        return []
-
-    resolved_path = service._resolve_config_relative_path(stored_path, config_root)
-    loaded = service._load_optional_json(resolved_path)
-    if not isinstance(loaded, dict):
-        return []
-
-    items = loaded.get(root_key)
-    if not isinstance(items, list):
-        return []
-    return safe_deepcopy(items)
 
 
 def normalize_external_keyboard_layouts(

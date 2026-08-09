@@ -108,6 +108,22 @@ def safe_deepcopy(obj: Any) -> Any:
     return json.loads(json.dumps(obj, ensure_ascii=False))
 
 
+def normalize_hotkey_presets(presets: Any) -> list[dict[str, Any]]:
+    """プリセット一覧を正規化する（非 dict 要素は除去・label は trim・value は trim + 小文字化）。"""
+    if not isinstance(presets, list):
+        return []
+
+    normalized_presets: list[dict[str, Any]] = []
+    for preset in presets:
+        if not isinstance(preset, dict):
+            continue
+        p = safe_deepcopy(preset)
+        p["label"] = (p.get("label") or "").strip()
+        p["value"] = (p.get("value") or "").strip().lower()
+        normalized_presets.append(p)
+    return normalized_presets
+
+
 def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     if not isinstance(data, dict):
         data = {}
@@ -172,15 +188,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     if not isinstance(raw_presets, list):
         config["hotkey_presets"] = safe_deepcopy(DEFAULT_CONFIG["hotkey_presets"])
     else:
-        normalized_presets: list[dict[str, Any]] = []
-        for preset in raw_presets:
-            if not isinstance(preset, dict):
-                continue
-            p = safe_deepcopy(preset)
-            p["label"] = (p.get("label") or "").strip()
-            p["value"] = (p.get("value") or "").strip().lower()
-            normalized_presets.append(p)
-        config["hotkey_presets"] = normalized_presets
+        config["hotkey_presets"] = normalize_hotkey_presets(raw_presets)
 
     config[HOOK_STOP_KEY] = normalize_key_name(config.get(HOOK_STOP_KEY, ""))
     config[HOOK_TOGGLE_KEY] = normalize_key_name(config.get(HOOK_TOGGLE_KEY, ""))

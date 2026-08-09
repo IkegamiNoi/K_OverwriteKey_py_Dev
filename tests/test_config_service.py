@@ -517,6 +517,40 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
                         expected,
                     )
 
+    def test_global_presets_are_normalized_consistently_for_injection_and_split_loading(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            raw_presets = [{"label": "  A  ", "value": "CTRL+A"}, "garbage"]
+            expected_presets = [{"label": "A", "value": "ctrl+a"}]
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(root, global_path, raw_presets)
+
+            injected_runtime = {"hotkey_presets": [{"label": "Old", "value": "ctrl+o"}]}
+            self.service.apply_global_defaults(injected_runtime, config_root=root)
+            loaded_runtime = self._load_keymap_set(root, {})
+
+            self.assertEqual(injected_runtime["hotkey_presets"], expected_presets)
+            self.assertEqual(loaded_runtime["hotkey_presets"], expected_presets)
+
+    def test_load_global_hotkey_presets_returns_empty_list_after_normalization(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(root, global_path, ["garbage"])
+
+            self.assertEqual(
+                split_loading.load_global_hotkey_presets(self.service, config_root=root),
+                [],
+            )
+
     def test_split_loading_adopts_empty_global_presets_and_keeps_builtins_when_unreadable(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")

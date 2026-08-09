@@ -11,8 +11,10 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
+from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import SavePlan
 from keyseq.presentation.app import App
+from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs import PresetManagerDialog
 
 
@@ -54,6 +56,23 @@ class AppUiFlowsTest(unittest.TestCase):
         )
         self._showerror_guard.start()
         self.addCleanup(self._showerror_guard.stop)
+
+    def test_initialization_applies_global_defaults(self):
+        original_apply_global_defaults = ConfigService.apply_global_defaults
+        with patch.object(StartupIo, "load_startup_and_config"), patch.object(
+            ConfigService,
+            "apply_global_defaults",
+            autospec=True,
+            side_effect=original_apply_global_defaults,
+        ) as apply_global_defaults:
+            initialized_app = App()
+        self.addCleanup(initialized_app.destroy)
+
+        apply_global_defaults.assert_called_once_with(
+            initialized_app.config_service,
+            initialized_app.data,
+            config_root=initialized_app.config_root,
+        )
 
     def _write_global_hook_key_defaults(self, config_root: str) -> None:
         self.app.config_service.save_startup(

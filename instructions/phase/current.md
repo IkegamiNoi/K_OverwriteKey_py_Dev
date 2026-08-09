@@ -8,9 +8,9 @@
 
 - **アクティブなフェーズ: [08_hotkey_presets_global](08_hotkey_presets_global/phase.md)**
   （プリセットの config.json グローバル化 = 保存系リデザイン **プリセット案2**・起票 **2026-08-06**）。
-  - 主入力（確定設計）: [暫定仕様 07](../history/07_hotkey_presets_global.md)（**v0.5**・ユーザー確定済）。
+  - 主入力（確定設計）: [暫定仕様 07](../history/07_hotkey_presets_global.md)（**v0.6**・ユーザー確定済）。
     モード: **暫定仕様先行**。番号対応: **phase 08 / 暫定 07 / decisions_archive 08**。
-  - 進捗: **task_01〜task_06 完了（実装は全て終了）/ 次は task_07**（統合確認 + 実機目視・受入条件 1〜6）。
+  - 進捗: **task_01〜task_06 + task_07b 完了 / task_07 は実機目視のみ未了 → その後 task_08（正本反映）**。
   - 確定の要点: config.json の `hotkey_presets_path`（既定 `user/hotkey_presets/default.json`）を
     全 keymap_set で共有 / keymap_set 側の同キーは**生成停止・読込時無視**（能動削除なし）/
     プリセットの**唯一の書き手はプリセットマネージャ**（即時保存・成否付き）。

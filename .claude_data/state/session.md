@@ -4,59 +4,58 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-09T07:10:00
-phase: `instructions/phase/08_hotkey_presets_global`（**task_06 完了 / 次は task_07 = 統合確認 + 実機目視**。暫定仕様 07 は **v0.5・確定済**）
+last_updated: 2026-08-09T08:20:00
+phase: `instructions/phase/08_hotkey_presets_global`（**task_07b 完了 / task_07 は実機目視のみ未了**。暫定仕様 07 は **v0.6・確定済**）
 last_commit_location: claude/task-04-progression-dbaaef ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 08 は task_06（プリセットマネージャの即時保存）まで完了し、実装タスクは全て終了。次は task_07 = 統合確認 + 実機目視（受入条件 1〜6）**。
-mode: implementing
+focus: **phase 08 は task_07b（横断レビュー指摘の是正）まで完了。残るは task_07 の実機目視のみで、その後 task_08（正本反映）**。
+mode: pending_review
 
 ## last_action
-ts: 2026-08-09T07:10:00
+ts: 2026-08-09T08:20:00
 who: main
 summary: |
-  【phase 08 task_06 = **プリセットマネージャの即時保存**（暫定仕様 07 §2 指摘③ / 受入条件 3）】
-  - **application**: `ConfigService.save_global_hotkey_presets(presets, *, config_root)` を新設。
-    保存先は `load_global_hotkey_presets_path` → **`resolve_config_path` で解決**、
-    形は読み出しと対称の `{"hotkey_presets": ...}`。**例外は握り潰さず送出**（成否判定は presentation の責務）。
-  - **presentation（新規モジュール）**: `controllers/config_io/hotkey_presets_io.py` の
-    `HotkeyPresetsIo.write_global_presets(presets) -> bool`（失敗は `messagebox.showerror` + `False`）。
-    `config_io/__init__.py` へ追加。**`config_io` はファイル種別ごとの IO モジュール構成**に沿わせた。
-  - **確定点**: `App.save_hotkey_presets` は**成功時だけ** `data["hotkey_presets"]` を反映。
-    `PresetManagerDialog.on_ok` は**成功時だけ `destroy()`**（失敗時は閉じず `_temp` 保持 = 受入条件 3）。
-  - **`open_preset_manager` から `set_dirty(True)` を削除**（プリセットは keymap_set の一部ではない）。
-    flash message は維持。
-  - **verifier 初回で tests_ui fail 1 件** → 原因は**テストの作り**（`AppUiFlowsTest` は
-    `setUpClass` で App を共有し、`has_unsaved_changes()` が他テストの残した個別 dirty も拾う）。
-    `set_dirty` 未呼出 + dirty 状態の不変を見る形へ差し戻し修正 → 再実測で全 green。
+  【phase 08 task_07（統合確認）→ 指摘を受けて暫定仕様 **v0.6** 確定 → **task_07b で是正**】
+  - **自動確認は全 pass**。`codex-reviewer` = 指摘なし。**`deep-reviewer` = 修正要**（実測付き）。
+  - **ユーザー確定（4 件）**:
+    ① **H1 = 読み出し側で正規化**（注入経路 E1/E3/E4/E5 が非正規化のままで、非 dict 要素が
+    runtime に残り `AttributeError` の破綻面だった）→ v0.6 §3-2 へ規則追加 + task_07b で実装
+    ② **受入条件 7 を「グローバルが読めた場合」へ限定**（`None` 時の経路差と条項間矛盾していた）
+    ③ **M3（`None` 時の上書き内容が入口経路で割れる）は現状を制約として明文化**（実装は変えない）
+    ④ task_07b へ **M1（死にコード `load_named_list` 削除）/ M2（E1 の特性テスト）/ L3（deepcopy）** を同梱
+  - **task_07b の実装**: `normalize_hotkey_presets` を **domain の純関数へ切り出し**
+    （`ensure_config_compatibility` は呼ぶだけ・既定値縮退は元の場所に残す = 挙動不変）→
+    `load_global_hotkey_presets` が**正規化済みを返す**（**`None` 判定は正規化の前**）。
+    `load_named_list` 削除 / `save_hotkey_presets` を `safe_deepcopy` 代入へ。
+  - **L1 / L2 / L4（旧「別ディレクトリ保存」の孤児プリセット / Export のデッドデータ /
+    `hotkey_presets_path` はアプリが書かない）は task_08 で正本へ文書化**（暫定仕様 §7 へ列挙済）。
 result_files:
-  - instructions/phase/08_hotkey_presets_global/tasks/task_06_preset_manager_immediate_save.md（新規・起票）
-  - keyseq/application/config_service/__init__.py
-  - keyseq/presentation/controllers/config_io/hotkey_presets_io.py（新規）/ config_io/__init__.py
-  - keyseq/presentation/app.py / keyseq/presentation/dialogs.py
-  - tests/test_config_service.py / tests_ui/test_app_ui_flows.py
+  - instructions/history/07_hotkey_presets_global.md（**v0.6**）
+  - instructions/phase/08_hotkey_presets_global/tasks/task_07_integration_and_manual_check.md（新規・実施記録付き）
+  - instructions/phase/08_hotkey_presets_global/tasks/task_07b_normalize_presets_on_read.md（新規）
+  - instructions/phase/08_hotkey_presets_global/phase.md（task_07b を 1 行追記）
+  - keyseq/domain/config.py / keyseq/application/config_service/split_loading.py / keyseq/presentation/app.py
+  - tests/test_domain_config.py / tests/test_config_service.py / tests_ui/test_app_ui_flows.py
 verified:
   compile: clean
-  tests: pass **193**（基準線 190 → +3）
-  tests_ui: pass **185**（基準線 181 → +4）
+  tests: pass **198**（基準線 193 → +5）
+  tests_ui: pass **186**（基準線 185 → +1）
   smoke: pass
-  review: `reviewer` = **採用（完了可・指摘なし）**。受入条件 3 / 書き手の一本化 / 例外の扱い /
-    依存方向（dialog → App → controller → application）/ dirty 非汚染を確認
+  review: task_07 横断 = `codex-reviewer` **指摘なし** + `deep-reviewer` **修正要**（→ v0.6 + task_07b で解決）/
+    task_07b = `reviewer` **採用（完了可・指摘なし）**
 
 ## next_action
-- **task_07 を `/task_new` で起票 → 実施**する（受入条件 **1〜6** の通し確認）。内容:
-  1. `verifier` で通しの再実測（compile / `tests` / `tests_ui` / smoke）
-  2. **実機目視の観点をタスク定義で列挙**（ユーザーが実施 → 結果をメインへ報告）。最低限:
-     ①プリセットが全 keymap_set で共通に見える ②マネージャの編集が即時にファイルへ入る
-     ③保存失敗時に編集内容が残る（書込不可の状況を作る）④keymap_set 保存でプリセットが書かれない
-     ⑤既存 `hotkey_presets_path` 付き keymap_set でも起動・保存が正常
-  3. 指摘が出たら是正タスクを起票（枝番）
+- **task_07 の実機目視を実施**（ユーザー担当。結果を task_07 定義の「実施記録」へ追記する）。観点 6 件:
+  ①全 keymap_set で共通 ②編集が即時にファイルへ入る（keymap_set 未保存で再起動）
+  ③保存失敗時に編集内容が残る（ファイルを読み取り専用にする。**属性は必ず戻す**）
+  ④keymap_set 保存でプリセットが書かれない（更新日時 / 別名保存先に `hotkey_presets/` が出来ない）
+  ⑤既存 `hotkey_presets_path` 付き keymap_set の後方互換（再保存で当該キーが消える）
+  ⑥**【task_07b の確認】破損 JSON / 非 dict 要素を含むプリセットファイル**で起動・編集しても落ちない
 - その後 **task_08（最終）**: 正本 `spec_detail/data_schema.md` + `codebase_map.md` へ昇格
-  （**§3-2 の注入契約 = `apply_global_defaults` を呼ぶ 5 経路 / ON→OFF は単独注入 / 通常読込は
-  経由しない / 空リストでは置き換えない** も含める）/ 暫定仕様 07 を凍結 /
-  `decisions_archive/08_hotkey_presets_global.md` 作成 / `current.md` 完了更新 /
-  `backlog/INDEX.md` の **idea_08** 行を着手可へ更新 / `/refactor_check` 実行。
+  （**反映する具体項目は暫定仕様 07 §7 の「v0.6 追記」に列挙済み**。L1 / L2 / L4 の文書化を含む）/
+  暫定仕様 07 を凍結 / `decisions_archive/08_hotkey_presets_global.md` 作成 /
+  `current.md` 完了更新 / `backlog/INDEX.md` の **idea_08** 行を着手可へ更新 / `/refactor_check` 実行。
 
 ## blockers
 - なし。
