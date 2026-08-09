@@ -4,55 +4,54 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-09T11:30:00
-phase: `instructions/phase/09_per_keymap_set_presets`（**起票完了 / 次は task_01**。暫定仕様 08 は **v0.4・ユーザー確定済**）
+last_updated: 2026-08-09T12:10:00
+phase: `instructions/phase/09_per_keymap_set_presets`（**task_01 完了 / 次は task_02**。暫定仕様 08 は **v0.4・ユーザー確定済**）
 last_commit_location: claude/task-04-progression-dbaaef ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 09（keymap_set ごとの個別プリセット）を起票し、暫定仕様 08 が v0.4 で確定。次は task_01 = グローバル既定パスの移動**。
+focus: **phase 09 は task_01（グローバル既定パスの移動）まで完了。次は task_02 = keymap_set のスキーマ追加（`hotkey_presets_individual` + `hotkey_presets_path` の生成復活・移行規則）**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-09T11:30:00
+ts: 2026-08-09T12:10:00
 who: main
 summary: |
-  【phase 09 起票 = **keymap_set ごとの個別プリセット**（idea_08 昇格）/ 暫定仕様 08 を **v0.4** で確定】
-  - **暫定仕様先行モード**で `/spec_draft` → `deep-reviewer`（修正要・v0.2）→ **ユーザー確定（v0.3）**
-    → **`codex-adversarial-reviewer`（needs-attention・High 4/Medium 2）→ v0.4**。
-  - **ユーザー確定の要点**: グローバル既定を **`user/hotkey_presets/global/default.json`** へ移し
-    （**移行は手動・2 段 = ファイル移動 + config.json の明示値の書き換え**）、個別は
-    `user/hotkey_presets/<stem>.json` / **旧キー `hotkey_presets_path` を個別パスとして再利用**し
-    **新フラグ `hotkey_presets_individual` が真のときだけ読む**（**フラグ無しは常に OFF**。
-    hook キーの「非空なら ON」は採らない）/ **書き手はマネージャ 1 本のまま** /
-    個別が読めなければ**グローバルへフォールバック** / **Import は強制 OFF** /
-    **切替はマネージャ内・トグルは保存先の切替だけ**（一覧は差し替えない・**OFF へ戻して OK しても
-    グローバルは書き換えない**）/ **別名保存では個別ファイルを複製して追随**。
-  - **敵対的レビューで潰した穴**: ①config.json に明示保存があると手動移行が効かず**旧パス再生成の
-    ループ**になる ②トグル即時解決が編集中の `_temp` と両立しない ③config 外パスが
-    マネージャの保存先になり得る ④別名保存の無警告共有。
-  - phase 09 の phase.md を起票し `current.md` / `backlog/INDEX.md`（idea_08 = 着手）を更新。
-    整合チェック（`reviewer`・限定）= **採用（修正不要）**。
+  【phase 09 task_01 = **グローバル既定パスの移動**（暫定仕様 08 §2【G】）】
+  - `ConfigService.HOTKEY_PRESETS_RELATIVE_PATH` を
+    **`user/hotkey_presets/global/default.json`** へ変更し、`ensure_split_config_dirs` へ
+    `user/hotkey_presets/global` の作成を追加（**`user/hotkey_presets` 直下の作成は残す**＝
+    個別ファイルの置き場になるため）。**production の差分は 5 行**。
+  - **互換フォールバック読みは実装していない**（移行は手動と確定済み）。
+    むしろ「旧既定にファイルがあっても読まれない」ことを特性テストで固定した。
+  - 既定パスをハードコードしていた 5 箇所を**定数参照へ**更新（次の変更へ自動追随）。
+    `EnsureSplitConfigDirsTest` へ `user/hotkey_presets/global` を追加。
+  - テスト件数は **+1**（`test_missing_path_uses_default` を**改名**して新既定を値で固定 +
+    「旧既定は読まれない」を新規追加）。
 result_files:
-  - instructions/history/08_per_keymap_set_presets.md（新規・**v0.4**）
-  - instructions/phase/09_per_keymap_set_presets/phase.md（新規）
-  - instructions/phase/current.md / instructions/backlog/INDEX.md
+  - instructions/phase/09_per_keymap_set_presets/tasks/task_01_move_global_presets_path.md（新規・起票）
+  - keyseq/application/config_service/__init__.py
+  - tests/test_config_service.py / tests/test_save_plan.py
 verified:
-  code_unchanged: 本作業は**文書のみ**（`keyseq` / `tests` / `tests_ui` に差分なし）
-  compile / tests / tests_ui / smoke: phase 08 完了時の実測が最新（clean / **203** / **186** / pass）
-  review: `deep-reviewer`（起票時）= 修正要 → v0.2 /
-    `codex-adversarial-reviewer`（確定前）= needs-attention → v0.4 /
-    `reviewer`（phase.md 整合）= **採用**
+  compile: clean
+  tests: pass **204**（基準線 203 → +1）
+  tests_ui: pass **186**（増減なし）
+  smoke: pass
+  review: `reviewer` = **採用（完了可・指摘なし）**。範囲の遵守 / 互換フォールバック不在 /
+    既存ディレクトリ作成の保持 / テスト更新がアサーション緩和でないことを確認
 
 ## next_action
-- **task_01 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 08 **§2【G】**）。内容:
-  1. **グローバル既定パスを `user/hotkey_presets/global/default.json` へ変更**
-     （`ConfigService.HOTKEY_PRESETS_RELATIVE_PATH`）
-  2. **`ensure_split_config_dirs` へ `user/hotkey_presets/global/` を追加**
-  3. 既存テストの期待値更新（既定パスを前提にしている箇所。**アサーションは緩めない**）
-  4. **互換フォールバック読みは実装しない**（移行は手動と確定済み）
+- **task_02 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 08 **§2 / §3-1 / §3-5**）。内容:
+  1. keymap_set へ **`hotkey_presets_individual`（bool・既定 false）** を追加し、
+     **`hotkey_presets_path` の payload 生成を復活**させる（`build_keymap_set_payload` は
+     **固定キー集合**なので追加箇所は一意。**キー順の変更に注意** =
+     `tests/test_save_plan.py::test_saved_keymap_set_json_keeps_stable_key_order`）
+  2. **移行規則: フラグを持たない既存 keymap_set は常に OFF**（**値で判定**。
+     hook キーの `resolve_hook_keys_individual`〔非空なら ON〕を**流用しない**）
+  3. **OFF でもパスは空文字化しない**（【N】）
+  4. **読込側の解決順序はまだ変えない**（task_03）
 - 以降の流れ（各タスク共通）: 実装委任（**テスト追加まで含める / 実行は依頼しない**）→
   `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
-- **task_01 と task_02 は独立**（グローバル側 / keymap_set 側）。**task_03 は両方に依存**。
+- **task_01 と task_02 は独立**。**task_03（解決順序）は両方に依存**。
 
 ## blockers
 - なし。

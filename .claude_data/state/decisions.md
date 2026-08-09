@@ -283,3 +283,42 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
 - 1 タスク完了時に reviewer 判定をここへ転記する
 - 想定外の先行実装を発見した場合の判定もここへ記録する
 - 後続フェーズの設計で参照する
+
+---
+
+## 2026-08-09〜 (phase 09: keymap_set ごとの個別プリセット)
+
+規範: [phase.md](../../instructions/phase/09_per_keymap_set_presets/phase.md) /
+主入力 = 暫定仕様 08（`instructions/history/08_per_keymap_set_presets.md`・**v0.4**）。**暫定仕様先行モード**。
+
+### 【起票時】idea_08 の昇格と設計確定（ユーザー確定 2026-08-09）
+
+- `deep-reviewer`（起票時）= **修正要** → 確認事項を A〜F から **A〜R** へ拡充（v0.2）。
+- ユーザー確定（v0.3）→ **`codex-adversarial-reviewer` = needs-attention（High 4 / Medium 2）** → v0.4。
+- **確定の要点**: グローバル既定を `user/hotkey_presets/global/default.json` へ移す（**移行は手動・2 段**）/
+  個別は `user/hotkey_presets/<stem>.json` / **旧キー `hotkey_presets_path` を個別パスとして再利用**し
+  **新フラグ `hotkey_presets_individual` が真のときだけ読む**（**フラグ無しは常に OFF**）/
+  **書き手はマネージャ 1 本** / 個別が読めなければ**グローバルへフォールバック** /
+  **Import は強制 OFF** / **トグルは保存先の切替だけ**（一覧は差し替えない）/
+  **別名保存では個別ファイルを複製**。
+- **A（旧キー再利用）の判断根拠**: 意味は phase 08 以前へ戻る方向であり、**フラグを値で判定**すれば
+  残置値は必ず無視される。加えて **G でグローバルを `global/` へ移したため、残置値はもう
+  グローバルを指さない**（上書き事故が構造的に起きない）。旧版アプリが読んでも
+  **未知キー無視 + 読込時無視でグローバルへ安全に倒れる**。
+- **敵対的レビューで潰した穴**: ①config.json に**明示保存**があると手動移行が効かず
+  **旧パス再生成のループ**になる（→ 移行手順を 2 段にした）②トグル即時解決が編集中の `_temp` と
+  両立しない（→ **【I】を撤回**）③config 外パスがマネージャの保存先になり得る（→ 無効化を規定）
+  ④別名保存の無警告共有（→ **【L】を反転して複製**）。
+- phase.md の整合チェック（`reviewer`・限定）= **採用（修正不要）**。
+
+### 【task_01】完了（2026-08-09）= グローバル既定パスの移動
+
+- `HOTKEY_PRESETS_RELATIVE_PATH` を `user/hotkey_presets/global/default.json` へ変更し、
+  `ensure_split_config_dirs` へ `global/` を追加（**`user/hotkey_presets` 直下の作成は残す**）。
+  **production の差分は 5 行**。
+- **互換フォールバック読みは実装しない**（仕様どおり）。「**旧既定にファイルがあっても読まれない**」を
+  特性テストで固定した。
+- 既定パスをハードコードしていた 5 箇所を**定数参照へ**更新 → 次の変更へ自動追随する。
+- 実測: compile clean / `tests` **204**（+1）/ `tests_ui` **186** / smoke pass。
+  件数 +1 の内訳 = 既存 1 件の**改名** + 新規 1 件。
+- `reviewer` = **採用（完了可・指摘なし）**。

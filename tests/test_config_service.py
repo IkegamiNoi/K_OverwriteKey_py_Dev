@@ -74,7 +74,7 @@ class SaveLoadRoundTripTest(unittest.TestCase):
             ):
                 self.assertTrue(os.path.exists(os.path.join(root, rel)), rel)
             self.assertFalse(
-                os.path.exists(os.path.join(root, "user", "hotkey_presets", "default.json"))
+                os.path.exists(os.path.join(root, service.HOTKEY_PRESETS_RELATIVE_PATH))
             )
 
             loaded = service.load_runtime_data_from_keymap_set_path(
@@ -290,12 +290,15 @@ class GlobalHotkeyPresetsPathTest(unittest.TestCase):
 
             self.assertEqual(self._load_path(root), configured_path)
 
-    def test_missing_path_uses_default(self):
+    def test_missing_path_uses_new_global_default(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             self.service.repository.save_json(os.path.join(root, "config.json"), {})
 
-            self.assertEqual(self._load_path(root), self.service.HOTKEY_PRESETS_RELATIVE_PATH)
+            self.assertEqual(
+                self._load_path(root),
+                os.path.join("user", "hotkey_presets", "global", "default.json"),
+            )
 
     def test_empty_or_non_string_path_uses_default(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -482,6 +485,18 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
             self.service.repository.save_json(os.path.join(root, "config.json"), {})
 
             loaded = self._load_keymap_set(root, {"hotkey_presets_path": legacy_path})
+
+            self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
+
+    def test_legacy_default_presets_file_is_not_read_without_configured_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            legacy_path = os.path.join("user", "hotkey_presets", "default.json")
+            legacy_presets = [{"label": "Legacy", "value": "ctrl+l"}]
+            self.service.repository.save_json(os.path.join(root, "config.json"), {})
+            self._save_presets(root, legacy_path, legacy_presets)
+
+            loaded = self._load_keymap_set(root, {})
 
             self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
 
@@ -1455,6 +1470,7 @@ class EnsureSplitConfigDirsTest(unittest.TestCase):
                 os.path.join("user", "keymaps"),
                 os.path.join("user", "trigger_sets"),
                 os.path.join("user", "hotkey_presets"),
+                os.path.join("user", "hotkey_presets", "global"),
                 os.path.join("user", "sequences"),
             ):
                 self.assertTrue(os.path.isdir(os.path.join(root, relative_path)))

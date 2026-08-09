@@ -206,7 +206,7 @@ class SavePlanTest(unittest.TestCase):
             )
             self.assertFalse(
                 os.path.exists(
-                    os.path.join(none_root, "user", "hotkey_presets", "default.json")
+                    os.path.join(none_root, self.service.HOTKEY_PRESETS_RELATIVE_PATH)
                 )
             )
             self.assertEqual(
@@ -226,13 +226,13 @@ class SavePlanTest(unittest.TestCase):
             self._save(root, data=data)
 
             self.assertFalse(
-                os.path.exists(os.path.join(root, "user", "hotkey_presets", "default.json"))
+                os.path.exists(os.path.join(root, self.service.HOTKEY_PRESETS_RELATIVE_PATH))
             )
 
     def test_save_runtime_data_does_not_overwrite_existing_hotkey_presets_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
-            presets_path = os.path.join(root, "user", "hotkey_presets", "default.json")
+            presets_path = os.path.join(root, self.service.HOTKEY_PRESETS_RELATIVE_PATH)
             existing_payload = {
                 "hotkey_presets": [{"label": "Existing", "value": "ctrl+e"}]
             }
@@ -337,7 +337,7 @@ class SavePlanTest(unittest.TestCase):
                 for written_path in written_paths:
                     self.assertTrue(os.path.exists(os.path.join(root, written_path)))
                 self.assertFalse(
-                    os.path.exists(os.path.join(root, "user", "hotkey_presets", "default.json"))
+                    os.path.exists(os.path.join(root, self.service.HOTKEY_PRESETS_RELATIVE_PATH))
                 )
 
     def test_skipped_trigger_set_does_not_write_when_sequence_path_is_unchanged(self):
