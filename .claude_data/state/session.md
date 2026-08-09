@@ -4,64 +4,55 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-09T10:40:00
-phase: **なし（phase 08 完了・次フェーズ未確定）**。直前 = `08_hotkey_presets_global`（暫定仕様 07 は **v0.6・凍結済**。正本 = `data_schema.md` §5.10）
+last_updated: 2026-08-09T11:30:00
+phase: `instructions/phase/09_per_keymap_set_presets`（**起票完了 / 次は task_01**。暫定仕様 08 は **v0.4・ユーザー確定済**）
 last_commit_location: claude/task-04-progression-dbaaef ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 08（プリセットの config.json グローバル化）は 2026-08-09 完了。次フェーズは未確定で、着手前にユーザーへ方針確認する**。
-mode: completed
+focus: **phase 09（keymap_set ごとの個別プリセット）を起票し、暫定仕様 08 が v0.4 で確定。次は task_01 = グローバル既定パスの移動**。
+mode: implementing
 
 ## last_action
-ts: 2026-08-09T10:05:00
+ts: 2026-08-09T11:30:00
 who: main
 summary: |
-  【phase 08 task_07 実機目視 OK → **task_08（正本反映）** → 完了レビューの High を **task_08b** で是正】
-  - **実機目視 = OK**（観点 1〜6・ユーザー実施）→ 受入条件 1〜6 の充足を確認。
-  - **task_08（文書のみ）**: 正本 `data_schema.md` へ **§5.10 新設** + **§5.8.8 に入口台帳** +
-    §5.1 に**「削除禁止の例外＝生成停止」** + §5.4 / §5.5 / §5.9.2 を改訂。`codebase_map.md` へ
-    注入 5 経路 / プリセットの解決点 3 つ / `HotkeyPresetsIo`（config_io = 7 クラス）/ dirty 非汚染 /
-    カスケードが書かないこと。暫定仕様 07 を**凍結**し `decisions_archive/08` を作成、
-    `decisions.md` は索引 1 行へ。`current.md` を完了状態（次採番 `09_<topic>` / 暫定仕様 `08_<topic>`）、
-    `backlog/INDEX.md` の **idea_08 を着手可**へ。
-  - **完了レビュー = `codex-adversarial-reviewer` needs-attention + `deep-reviewer` 修正要**。
-    **両者が独立に同じ High** を指摘（実測で再現）: `normalize_hotkey_presets` が非文字列 `label`/`value` で
-    `AttributeError` → **E1 が捕捉せず起動不能**（phase 08 前は空データ起動へ縮退していた）。
-  - **ユーザー確定 = 要素単位で除去** → 正本 §5.10.2 を先に確定 → **task_08b で実装**。
-    `None` / キー無しは従来どおり空文字（除去しない）。
-  - 文書指摘も修正: §5.10.4 の `None` 時内訳へ **E5 ＝インライン値** / §5.10.1 に
-    **「手編集はアプリ終了中に」** / `codebase_map` のツリーへ `hotkey_presets_io.py` /
-    `current.md` の古い対応表 / archive の区切り重複。低 3 件は保留・1 件は除外。
+  【phase 09 起票 = **keymap_set ごとの個別プリセット**（idea_08 昇格）/ 暫定仕様 08 を **v0.4** で確定】
+  - **暫定仕様先行モード**で `/spec_draft` → `deep-reviewer`（修正要・v0.2）→ **ユーザー確定（v0.3）**
+    → **`codex-adversarial-reviewer`（needs-attention・High 4/Medium 2）→ v0.4**。
+  - **ユーザー確定の要点**: グローバル既定を **`user/hotkey_presets/global/default.json`** へ移し
+    （**移行は手動・2 段 = ファイル移動 + config.json の明示値の書き換え**）、個別は
+    `user/hotkey_presets/<stem>.json` / **旧キー `hotkey_presets_path` を個別パスとして再利用**し
+    **新フラグ `hotkey_presets_individual` が真のときだけ読む**（**フラグ無しは常に OFF**。
+    hook キーの「非空なら ON」は採らない）/ **書き手はマネージャ 1 本のまま** /
+    個別が読めなければ**グローバルへフォールバック** / **Import は強制 OFF** /
+    **切替はマネージャ内・トグルは保存先の切替だけ**（一覧は差し替えない・**OFF へ戻して OK しても
+    グローバルは書き換えない**）/ **別名保存では個別ファイルを複製して追随**。
+  - **敵対的レビューで潰した穴**: ①config.json に明示保存があると手動移行が効かず**旧パス再生成の
+    ループ**になる ②トグル即時解決が編集中の `_temp` と両立しない ③config 外パスが
+    マネージャの保存先になり得る ④別名保存の無警告共有。
+  - phase 09 の phase.md を起票し `current.md` / `backlog/INDEX.md`（idea_08 = 着手）を更新。
+    整合チェック（`reviewer`・限定）= **採用（修正不要）**。
 result_files:
-  - instructions/common/spec_detail/data_schema.md / instructions/common/codebase_map.md（**正本**）
-  - instructions/history/07_hotkey_presets_global.md（**凍結**）
-  - .claude_data/state/decisions_archive/08_hotkey_presets_global.md（新規）/ .claude_data/state/decisions.md（索引 1 行）
-  - instructions/phase/current.md / instructions/backlog/INDEX.md / phase.md
-  - instructions/phase/08_hotkey_presets_global/tasks/task_08_promote_to_spec.md・task_08b_*.md（新規）
-  - keyseq/domain/config.py / tests/test_domain_config.py / tests/test_config_service.py（task_08b）
+  - instructions/history/08_per_keymap_set_presets.md（新規・**v0.4**）
+  - instructions/phase/09_per_keymap_set_presets/phase.md（新規）
+  - instructions/phase/current.md / instructions/backlog/INDEX.md
 verified:
-  compile: clean
-  tests: pass **203**（基準線 198 → +5）
-  tests_ui: pass **186**（増減なし）
-  smoke: pass
-  note: **サブエージェントがセッション上限（19:00 JST リセット）で落ちたため実測はメインで代行**（`verifier` 縮退）
-  review: フェーズ完了 = `codex-adversarial-reviewer` **needs-attention** + `deep-reviewer` **修正要**
-    （→ 正本改訂 + task_08b で解決）/ task_08b = `reviewer` **採用（完了可・指摘なし）**
-  refactor_check: **不要**（M1〜M6 該当なし。候補送り 2 件は `current.md`「別タスク化候補」）
+  code_unchanged: 本作業は**文書のみ**（`keyseq` / `tests` / `tests_ui` に差分なし）
+  compile / tests / tests_ui / smoke: phase 08 完了時の実測が最新（clean / **203** / **186** / pass）
+  review: `deep-reviewer`（起票時）= 修正要 → v0.2 /
+    `codex-adversarial-reviewer`（確定前）= needs-attention → v0.4 /
+    `reviewer`（phase.md 整合）= **採用**
 
 ## next_action
-- **次フェーズの方針をユーザーへ確認する**（未確定。勝手に着手しない）。候補は
-  `instructions/phase/current.md`「次フェーズ候補」:
-  - **[idea_08] keymap_set ごとの個別プリセット**（phase 08 完了で**着手可**。停止/トグルキーの
-    個別指定〔正本 §5.9〕と同型で、前提の正本は **§5.10**。保存系リデザインの自然な続き）
-  - [idea_07] 参照元の掃除（孤児 trigger_set と陳腐化した `_parent_refs` の回収・着手可）
-  - [idea_09] レガシー `settings/` 保存パスのフォールバック / [idea_03] アクション hotkey の
-    保存時正規化（いずれも優先度低）
-  - 未承認の提案書 2 本（[05_refactor_child_file_save_dialog] / [06_refactor_hook_key_pair_enumeration]
-    ※06 は実施済み）と、`current.md`「別タスク化候補」に溜めた項目
-- 決まったら `/phase_start` で `instructions/phase/09_<topic>/` を起票する
-  （**次採番は `09_<topic>` / 暫定仕様は `08_<topic>`**）。
-- 着手前に `instructions/phase/current.md` と `.claude/rules/` を読み直すこと。
+- **task_01 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 08 **§2【G】**）。内容:
+  1. **グローバル既定パスを `user/hotkey_presets/global/default.json` へ変更**
+     （`ConfigService.HOTKEY_PRESETS_RELATIVE_PATH`）
+  2. **`ensure_split_config_dirs` へ `user/hotkey_presets/global/` を追加**
+  3. 既存テストの期待値更新（既定パスを前提にしている箇所。**アサーションは緩めない**）
+  4. **互換フォールバック読みは実装しない**（移行は手動と確定済み）
+- 以降の流れ（各タスク共通）: 実装委任（**テスト追加まで含める / 実行は依頼しない**）→
+  `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
+- **task_01 と task_02 は独立**（グローバル側 / keymap_set 側）。**task_03 は両方に依存**。
 
 ## blockers
 - なし。
@@ -110,8 +101,9 @@ verified:
 - **【共有状況の判定名と表示文言は別物】** 仕様書・タスク定義の「共有状況が単独 / 新規作成なら〜」は
   **判定名**（`SHARE_SOLE` / `SHARE_NEW`）を指す。**分岐は判定名で書き、文言で分岐しない**。
 - **【罠・重要】保存経路の例外は `messagebox.showerror` になり、テストではモーダルで永久ブロックする**。
-  tests_ui の 3 ファイル（`test_child_save_dialog` / `test_config_io_characterization` /
-  `test_config_io_characterization_keymap_set_startup`）の `setUp` に **fail-fast ガード**がある。
+  tests_ui の 4 ファイル（`test_child_save_dialog` / `test_config_io_characterization` /
+  `test_config_io_characterization_keymap_set_startup` / `test_app_ui_flows`）の
+  `setUp` に **fail-fast ガード**がある。
   新しいモーダルを増やすときは同じガードを足す。**ハングしたら `messagebox` / `filedialog` を全遮断して
   単独実行**すると真因が一発で出る。
 - **【tests_ui の罠】`_prepare_loaded_keymap_set` は `save_plan=None` で `save_runtime_data` を呼ぶため
@@ -125,8 +117,9 @@ verified:
 - **レビュアーは 2 本立て**: `reviewer`（sonnet・単一タスクの実装差分）/ `deep-reviewer`（opus・設計文書 /
   複数タスクを跨ぐ差分 / フェーズ完了判定）。使い分けは `.claude/rules/agent_selection.md` が正。
 - **保存系リデザインの番号対応**: α=phase05/暫定04〔完了〕 / β=phase06/暫定05〔完了〕 /
-  γ=phase07/暫定06〔**完了**・decisions_archive 07〕 / **プリセット=phase08/暫定07〔次・未起票〕**。
-  **計画05 はフェーズ番号を消費していない**（規範 = `modified_proposal/05_*.md`）。
+  γ=phase07/暫定06〔完了〕 / プリセット=phase08/暫定07〔**完了**・decisions_archive 08〕 /
+  **個別プリセット=phase09/暫定08〔着手中〕**。
+  **計画05・計画06 はフェーズ番号を消費していない**（規範 = `modified_proposal/05_*.md` / `06_*.md`）。
 - **【計画05 で変わった構造】`config_service` は単一ファイルではなく*パッケージ***
   （`keyseq/application/config_service/`）。**ConfigService 本体は `__init__.py`**
   （テストが `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を差し替えるため、
@@ -135,9 +128,9 @@ verified:
   抽出関数は **`service` を第 1 引数に取る**。兄弟から `__init__` を import しない（循環回避）。
 - config_io は `controllers/config_io/` へ分割済（App が `app.keymap_set_io` 等で直接公開）。
 - 未着手 idea: idea_07（参照元の掃除・**着手可**）/ idea_03（hotkey 保存時正規化・優先度低）/
-  idea_08（keymap_set 個別プリセット）/ idea_09（レガシー settings/ フォールバック）。
+  idea_09（レガシー settings/ フォールバック・優先度低）。**idea_08 は phase 09 で着手中**。
   保留 idea: idea_04 / idea_06（**残る着手条件は「共通化の実需」1 つのみ**）。
 - 過去の判断は `.claude_data/state/decisions.md`（アーカイブ索引）+ `decisions_archive/<phase>.md`。
-  完了済の直近 3 件: 05_keymap_set_new_and_default_dir / 06_child_file_save_dialog /
-  **07_hook_keys_global_default**。
+  完了済の直近 3 件: 06_child_file_save_dialog / 07_hook_keys_global_default /
+  **08_hotkey_presets_global**。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
