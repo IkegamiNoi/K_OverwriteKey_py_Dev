@@ -6,24 +6,15 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [08_hotkey_presets_global](08_hotkey_presets_global/phase.md)**
-  （プリセットの config.json グローバル化 = 保存系リデザイン **プリセット案2**・起票 **2026-08-06**）。
-  - 主入力（確定設計）: [暫定仕様 07](../history/07_hotkey_presets_global.md)（**v0.6**・ユーザー確定済）。
-    モード: **暫定仕様先行**。番号対応: **phase 08 / 暫定 07 / decisions_archive 08**。
-  - 進捗: **task_01〜task_06 + task_07b 完了 / task_07 は実機目視のみ未了 → その後 task_08（正本反映）**。
-  - 確定の要点: config.json の `hotkey_presets_path`（既定 `user/hotkey_presets/default.json`）を
-    全 keymap_set で共有 / keymap_set 側の同キーは**生成停止・読込時無視**（能動削除なし）/
-    プリセットの**唯一の書き手はプリセットマネージャ**（即時保存・成否付き）。
-  - 検討事項 A「runtime を新規化・置換する入口の一本化」は **task_03 で確定（v0.5・§3-2）→
-    task_04 で実装済**（`apply_global_defaults` + 入口台帳 E1〜E5）。未確定事項は残っていない。
-  - 起票元: ユーザー要望（2026-07-26〜27・P-a）。後続 = [idea_08](../backlog/idea_08_per_keymap_set_preset_ownership.md)。
-- 直前の完了フェーズ: [07_hook_keys_global_default](../../.claude_data/state/decisions_archive/07_hook_keys_global_default.md)
-  （**2026-08-05 完了**・保存系リデザイン **Phase γ**）。
+- **アクティブなフェーズ: なし（次フェーズ未確定）**。着手前にユーザーへ方針を確認する。
+  候補は下記「次フェーズ候補（参考）」と `instructions/backlog/INDEX.md`。
+- 直前の完了フェーズ: [08_hotkey_presets_global](../../.claude_data/state/decisions_archive/08_hotkey_presets_global.md)
+  （**2026-08-09 完了**・保存系リデザイン **プリセット案2**）。
   **完了フェーズの要約は本ファイルに置かない**。経緯・判断は `.claude_data/state/decisions.md`「アーカイブ索引」
   → `decisions_archive/<phase>.md` が正。
 - 提案書 [06_refactor_hook_key_pair_enumeration](../modified_proposal/06_refactor_hook_key_pair_enumeration.md) は
   **「計画06」として実施し完了**（2026-08-06・項目 0 / 1。**(b) 次フェーズ前の独立ミニ計画**）。
-  **フェーズ番号は消費していない**ため対応表は不変（γ=phase 07〔完了〕/ プリセット=phase 08〔次〕）。
+  **フェーズ番号は消費していない**ため対応表は不変（γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕）。
   判断は `decisions.md` の「計画06」節。
 - 提案書 [05_refactor_child_file_save_dialog](../modified_proposal/05_refactor_child_file_save_dialog.md) は
   **「計画05」として実施し完了**（2026-08-03・項目 0 / 1 / 2）。フェーズ番号は消費していない。
@@ -35,9 +26,10 @@
 ## 次採番
 
 - 次フェーズは **`09_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
-  保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔着手中〕**。
+  保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
+  → **保存系リデザインは一巡完了**。残る派生は idea_08（keymap_set 個別プリセット・着手可）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜07 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔**v0.3・使用中**〕）。次採番は **`08_<topic>`**。
+  04〜07 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔**v0.6・凍結**〕）。次採番は **`08_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。06 まで起票済・次採番は **`07_<topic>`**。
 
 ## 次フェーズ候補（参考）
@@ -54,8 +46,11 @@
 **計画04 由来の3フェーズはすべて完了**。`04_config_io_controller_split`（2026-07-26）・
 `05_keymap_set_new_and_default_dir`（Phase α・2026-07-28）も完了。
 **保存系リデザインの Phase β も完了**（phase 06 / 暫定 05・2026-08-03）。
-**γ = phase 07 も完了**（暫定 06・2026-08-05）。γ の次以降の候補:
-- ~~保存系リデザインの続き: プリセット = phase 08~~ → **着手中**（2026-08-06 起票・上記「現在の参照先」）。
+**γ = phase 07 も完了**（暫定 06・2026-08-05）。**プリセット = phase 08 も完了**（暫定 07・2026-08-09）。
+次フェーズの候補:
+- [idea_08](../backlog/idea_08_per_keymap_set_preset_ownership.md)（keymap_set ごとの個別プリセット。
+  **phase 08 完了で前提充足・着手可**。停止/トグルキーの個別指定〔§5.9〕と同型パターンで、
+  正本は `data_schema.md` §5.10）。
 - [idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除。**β 完了で前提充足・着手可**。
   孤児 trigger_set と陳腐化した `_parent_refs` を回収する保守機能）。
 - [idea_09](../backlog/idea_09_legacy_settings_save_path_fallback.md)（別名保存でレガシー `settings/` 配下を選ぶと
@@ -108,6 +103,12 @@
     起動時の空データフォールバック）あり、各所で `apply_global_hook_key_defaults` を呼ぶ規約~~
     → **phase 08 が引き取り**（2026-08-06 ユーザー判断）。暫定仕様 07 **§4 検討事項 A** として起票し、
     **task_03 で設計・確定する**。ここでの追跡は終了
+- **Phase 08（プリセット案2）の `/refactor_check` からの候補送り**（判定は**不要**。次フェーズ以降の再判定用）:
+  - `config_io/` の **`try/except Exception → messagebox.showerror → return False` が 14 箇所**に増えた
+    （`hotkey_presets_io` の追加で +1）。各箇所はメッセージ・保存対象が独立のため M3 非該当に倒したが、
+    さらに増えるなら共通化の再検討対象（近接領域を [idea_06](../backlog/idea_06_individual_json_io_unification.md) がカバー）
+  - `keyseq/application/config_service/__init__.py` が **599 行**で目安 600 行に接近
+    （本フェーズの増分は +30。M1 は「600 行超 かつ +100 行以上」のため非該当）
 - `app.py:64` の `keymap_set_path = resolve_keymap_set_path()` 初期化と、それが使う
   `config_paths.resolve_keymap_set_path()` の**引数なし分岐が実質デッド**（起動時に `load_startup_and_config` が
   必ず上書きするため）。**据え置き**（phase 05 の deep-reviewer 指摘3・実害なし）。

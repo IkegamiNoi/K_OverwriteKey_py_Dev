@@ -1,8 +1,10 @@
 # 暫定仕様 07: プリセットの config.json グローバル化（hotkey_presets_global）
 
-> 状態: **未凍結・v0.6・主入力・ユーザー確定済（実装着手可）**。本書がこのフェーズ（保存系リデザインの
-> プリセット案2）の確定設計（フェーズ中は正本を直接改訂しない）。フェーズ末タスクで正本
-> `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済（v0.6・参照専用）**。phase 08 完了（2026-08-09）に伴い正本へ昇格済み。
+> **以後の仕様の正は正本**: `spec_detail/data_schema.md` **§5.10**（プリセットの全体ライブラリ）+
+> **§5.8.8**（入口台帳）+ §5.1 の例外 / §5.4 / §5.5 / §5.9.2、および `codebase_map.md`。
+> 本書は**経緯（検討・却下案・レビュー指摘の記録）としてのみ参照**し、条項を書き換えない。
+> 判断履歴は `.claude_data/state/decisions_archive/08_hotkey_presets_global.md`。
 > 版履歴: v0.1 起票（2026-07-27）→ **v0.2** codex-adversarial-reviewer 指摘 4 件を反映
 > （① 移行は固定 `default.json` に標準化・keymap_set からの「引き上げ」はしない / ② keymap_set payload 生成から
 > `hotkey_presets_path` を外す / ③ プリセットマネージャは即時にグローバルへ保存・成否付き / ④ `save_runtime_data` は

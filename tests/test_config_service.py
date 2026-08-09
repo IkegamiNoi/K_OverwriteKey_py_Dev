@@ -551,6 +551,31 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
                 [],
             )
 
+    def test_build_runtime_data_from_split_drops_non_string_preset_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(
+                root,
+                global_path,
+                [
+                    {"label": 1, "value": "ctrl+a"},
+                    {"label": "ok", "value": "CTRL+B"},
+                ],
+            )
+
+            runtime = split_loading.build_runtime_data_from_split(
+                self.service,
+                {},
+                config_root=root,
+            )
+
+            self.assertEqual(runtime["hotkey_presets"], [{"label": "ok", "value": "ctrl+b"}])
+
     def test_split_loading_adopts_empty_global_presets_and_keeps_builtins_when_unreadable(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
@@ -683,6 +708,22 @@ class ApplyGlobalDefaultsTest(unittest.TestCase):
             self.service.apply_global_defaults(runtime, config_root=root)
 
             self.assertEqual(runtime["hotkey_presets"], [{"label": "Edited"}])
+
+    def test_apply_global_defaults_drops_non_string_preset_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save_global_presets(
+                root,
+                [
+                    {"label": 1, "value": "ctrl+a"},
+                    {"label": "ok", "value": "CTRL+B"},
+                ],
+            )
+            runtime = {"hotkey_presets": [{"label": "Old", "value": "ctrl+o"}]}
+
+            self.service.apply_global_defaults(runtime, config_root=root)
+
+            self.assertEqual(runtime["hotkey_presets"], [{"label": "ok", "value": "ctrl+b"}])
 
     def test_injects_global_hook_keys_only_for_individual_off_runtime(self):
         with tempfile.TemporaryDirectory() as tmp:

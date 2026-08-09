@@ -41,6 +41,37 @@ class NormalizeHotkeyPresetsTest(unittest.TestCase):
             with self.subTest(presets=presets):
                 self.assertEqual(normalize_hotkey_presets(presets), [])
 
+    def test_removes_items_with_non_string_label_or_value(self):
+        presets = [
+            {"label": 1, "value": "ctrl+a"},
+            {"label": {"name": "copy"}, "value": "ctrl+c"},
+            {"label": "Paste", "value": ["ctrl", "v"]},
+            {"label": "  Keep  ", "value": " CTRL+K "},
+        ]
+
+        self.assertEqual(
+            normalize_hotkey_presets(presets),
+            [{"label": "Keep", "value": "ctrl+k"}],
+        )
+
+    def test_none_and_missing_label_or_value_become_empty_strings(self):
+        presets = [
+            {"label": None, "value": None},
+            {"label": "Copy"},
+            {"value": "CTRL+V"},
+            {},
+        ]
+
+        self.assertEqual(
+            normalize_hotkey_presets(presets),
+            [
+                {"label": "", "value": ""},
+                {"label": "Copy", "value": ""},
+                {"value": "ctrl+v", "label": ""},
+                {"label": "", "value": ""},
+            ],
+        )
+
     def test_is_idempotent(self):
         presets = [{"label": "  Paste  ", "value": " CTRL+V "}, "garbage"]
 
@@ -91,6 +122,18 @@ class EnsureConfigCompatibilityTest(unittest.TestCase):
     def test_non_dict_input_treated_as_empty(self):
         config = ensure_config_compatibility(None)
         self.assertEqual(config["triggers"], [])
+
+    def test_non_string_hotkey_preset_label_is_removed(self):
+        config = ensure_config_compatibility(
+            {
+                "hotkey_presets": [
+                    {"label": 1, "value": "ctrl+a"},
+                    {"label": "Keep", "value": "CTRL+K"},
+                ]
+            }
+        )
+
+        self.assertEqual(config["hotkey_presets"], [{"label": "Keep", "value": "ctrl+k"}])
 
     def test_hook_keys_individual_defaults_to_false(self):
         config = ensure_config_compatibility({})

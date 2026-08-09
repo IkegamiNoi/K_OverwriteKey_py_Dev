@@ -118,8 +118,14 @@ def normalize_hotkey_presets(presets: Any) -> list[dict[str, Any]]:
         if not isinstance(preset, dict):
             continue
         p = safe_deepcopy(preset)
-        p["label"] = (p.get("label") or "").strip()
-        p["value"] = (p.get("value") or "").strip().lower()
+        label = p.get("label")
+        value = p.get("value")
+        if (label is not None and not isinstance(label, str)) or (
+            value is not None and not isinstance(value, str)
+        ):
+            continue
+        p["label"] = (label or "").strip()
+        p["value"] = (value or "").strip().lower()
         normalized_presets.append(p)
     return normalized_presets
 

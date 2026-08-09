@@ -4,58 +4,62 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-09T08:20:00
-phase: `instructions/phase/08_hotkey_presets_global`（**task_07b 完了 / task_07 は実機目視のみ未了**。暫定仕様 07 は **v0.6・確定済**）
+last_updated: 2026-08-09T10:05:00
+phase: **phase 08 は正本反映まで完了（実機目視 1 点のみ残）/ 次フェーズ未確定**（暫定仕様 07 は **v0.6・凍結済**。正本 = `data_schema.md` §5.10）
 last_commit_location: claude/task-04-progression-dbaaef ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 08 は task_07b（横断レビュー指摘の是正）まで完了。残るは task_07 の実機目視のみで、その後 task_08（正本反映）**。
+focus: **phase 08 は task_08（正本反映）+ task_08b（起動不能バグの是正）まで完了。残るは実機目視 1 点（不正 label を含むプリセットファイルで起動できること）だけで、それが OK ならフェーズ完了**。
 mode: pending_review
 
 ## last_action
-ts: 2026-08-09T08:20:00
+ts: 2026-08-09T10:05:00
 who: main
 summary: |
-  【phase 08 task_07（統合確認）→ 指摘を受けて暫定仕様 **v0.6** 確定 → **task_07b で是正**】
-  - **自動確認は全 pass**。`codex-reviewer` = 指摘なし。**`deep-reviewer` = 修正要**（実測付き）。
-  - **ユーザー確定（4 件）**:
-    ① **H1 = 読み出し側で正規化**（注入経路 E1/E3/E4/E5 が非正規化のままで、非 dict 要素が
-    runtime に残り `AttributeError` の破綻面だった）→ v0.6 §3-2 へ規則追加 + task_07b で実装
-    ② **受入条件 7 を「グローバルが読めた場合」へ限定**（`None` 時の経路差と条項間矛盾していた）
-    ③ **M3（`None` 時の上書き内容が入口経路で割れる）は現状を制約として明文化**（実装は変えない）
-    ④ task_07b へ **M1（死にコード `load_named_list` 削除）/ M2（E1 の特性テスト）/ L3（deepcopy）** を同梱
-  - **task_07b の実装**: `normalize_hotkey_presets` を **domain の純関数へ切り出し**
-    （`ensure_config_compatibility` は呼ぶだけ・既定値縮退は元の場所に残す = 挙動不変）→
-    `load_global_hotkey_presets` が**正規化済みを返す**（**`None` 判定は正規化の前**）。
-    `load_named_list` 削除 / `save_hotkey_presets` を `safe_deepcopy` 代入へ。
-  - **L1 / L2 / L4（旧「別ディレクトリ保存」の孤児プリセット / Export のデッドデータ /
-    `hotkey_presets_path` はアプリが書かない）は task_08 で正本へ文書化**（暫定仕様 §7 へ列挙済）。
+  【phase 08 task_07 実機目視 OK → **task_08（正本反映）** → 完了レビューの High を **task_08b** で是正】
+  - **実機目視 = OK**（観点 1〜6・ユーザー実施）→ 受入条件 1〜6 の充足を確認。
+  - **task_08（文書のみ）**: 正本 `data_schema.md` へ **§5.10 新設** + **§5.8.8 に入口台帳** +
+    §5.1 に**「削除禁止の例外＝生成停止」** + §5.4 / §5.5 / §5.9.2 を改訂。`codebase_map.md` へ
+    注入 5 経路 / プリセットの解決点 3 つ / `HotkeyPresetsIo`（config_io = 7 クラス）/ dirty 非汚染 /
+    カスケードが書かないこと。暫定仕様 07 を**凍結**し `decisions_archive/08` を作成、
+    `decisions.md` は索引 1 行へ。`current.md` を完了状態（次採番 `09_<topic>` / 暫定仕様 `08_<topic>`）、
+    `backlog/INDEX.md` の **idea_08 を着手可**へ。
+  - **完了レビュー = `codex-adversarial-reviewer` needs-attention + `deep-reviewer` 修正要**。
+    **両者が独立に同じ High** を指摘（実測で再現）: `normalize_hotkey_presets` が非文字列 `label`/`value` で
+    `AttributeError` → **E1 が捕捉せず起動不能**（phase 08 前は空データ起動へ縮退していた）。
+  - **ユーザー確定 = 要素単位で除去** → 正本 §5.10.2 を先に確定 → **task_08b で実装**。
+    `None` / キー無しは従来どおり空文字（除去しない）。
+  - 文書指摘も修正: §5.10.4 の `None` 時内訳へ **E5 ＝インライン値** / §5.10.1 に
+    **「手編集はアプリ終了中に」** / `codebase_map` のツリーへ `hotkey_presets_io.py` /
+    `current.md` の古い対応表 / archive の区切り重複。低 3 件は保留・1 件は除外。
 result_files:
-  - instructions/history/07_hotkey_presets_global.md（**v0.6**）
-  - instructions/phase/08_hotkey_presets_global/tasks/task_07_integration_and_manual_check.md（新規・実施記録付き）
-  - instructions/phase/08_hotkey_presets_global/tasks/task_07b_normalize_presets_on_read.md（新規）
-  - instructions/phase/08_hotkey_presets_global/phase.md（task_07b を 1 行追記）
-  - keyseq/domain/config.py / keyseq/application/config_service/split_loading.py / keyseq/presentation/app.py
-  - tests/test_domain_config.py / tests/test_config_service.py / tests_ui/test_app_ui_flows.py
+  - instructions/common/spec_detail/data_schema.md / instructions/common/codebase_map.md（**正本**）
+  - instructions/history/07_hotkey_presets_global.md（**凍結**）
+  - .claude_data/state/decisions_archive/08_hotkey_presets_global.md（新規）/ .claude_data/state/decisions.md（索引 1 行）
+  - instructions/phase/current.md / instructions/backlog/INDEX.md / phase.md
+  - instructions/phase/08_hotkey_presets_global/tasks/task_08_promote_to_spec.md・task_08b_*.md（新規）
+  - keyseq/domain/config.py / tests/test_domain_config.py / tests/test_config_service.py（task_08b）
 verified:
   compile: clean
-  tests: pass **198**（基準線 193 → +5）
-  tests_ui: pass **186**（基準線 185 → +1）
+  tests: pass **203**（基準線 198 → +5）
+  tests_ui: pass **186**（増減なし）
   smoke: pass
-  review: task_07 横断 = `codex-reviewer` **指摘なし** + `deep-reviewer` **修正要**（→ v0.6 + task_07b で解決）/
-    task_07b = `reviewer` **採用（完了可・指摘なし）**
+  note: **サブエージェントがセッション上限（19:00 JST リセット）で落ちたため実測はメインで代行**（`verifier` 縮退）
+  review: フェーズ完了 = `codex-adversarial-reviewer` **needs-attention** + `deep-reviewer` **修正要**
+    （→ 正本改訂 + task_08b で解決）/ task_08b = `reviewer` **採用（完了可・指摘なし）**
+  refactor_check: **不要**（M1〜M6 該当なし。候補送り 2 件は `current.md`「別タスク化候補」）
 
 ## next_action
-- **task_07 の実機目視を実施**（ユーザー担当。結果を task_07 定義の「実施記録」へ追記する）。観点 6 件:
-  ①全 keymap_set で共通 ②編集が即時にファイルへ入る（keymap_set 未保存で再起動）
-  ③保存失敗時に編集内容が残る（ファイルを読み取り専用にする。**属性は必ず戻す**）
-  ④keymap_set 保存でプリセットが書かれない（更新日時 / 別名保存先に `hotkey_presets/` が出来ない）
-  ⑤既存 `hotkey_presets_path` 付き keymap_set の後方互換（再保存で当該キーが消える）
-  ⑥**【task_07b の確認】破損 JSON / 非 dict 要素を含むプリセットファイル**で起動・編集しても落ちない
-- その後 **task_08（最終）**: 正本 `spec_detail/data_schema.md` + `codebase_map.md` へ昇格
-  （**反映する具体項目は暫定仕様 07 §7 の「v0.6 追記」に列挙済み**。L1 / L2 / L4 の文書化を含む）/
-  暫定仕様 07 を凍結 / `decisions_archive/08_hotkey_presets_global.md` 作成 /
-  `current.md` 完了更新 / `backlog/INDEX.md` の **idea_08** 行を着手可へ更新 / `/refactor_check` 実行。
+- **実機目視 1 点だけユーザーに依頼する**（これが OK ならフェーズ完了）:
+  `config/user/hotkey_presets/default.json` を
+  `{"hotkey_presets": [{"label": 1, "value": "ctrl+a"}, {"label": "OK", "value": "CTRL+B"}]}`
+  にしてアプリを起動 → **起動でき**、プリセット一覧に **`OK` だけが出る**（不正要素は落ちる）。
+  確認後にファイルは元へ戻す。
+- 結果を `tasks/task_08_promote_to_spec.md` の実施記録 + `decisions_archive/08` へ追記し、
+  **フェーズ完了を宣言**する（`current.md` は完了状態へ更新済み）。
+- **次フェーズは未確定**。候補は `current.md`「次フェーズ候補」= **idea_08（keymap_set 個別プリセット・
+  phase 08 完了で着手可）** / idea_07（参照元の掃除・着手可）/ idea_09・idea_03（優先度低）。
+  着手前にユーザーへ方針確認する。
 
 ## blockers
 - なし。

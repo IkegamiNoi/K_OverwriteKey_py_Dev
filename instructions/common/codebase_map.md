@@ -41,9 +41,10 @@ keyseq/presentation/
     app.py                     # Tk ルート・生成と配線（組み立て）・View切替・調整役・dialogs向け契約
     ui_vars.py                 # UiVars: View / コントローラ間で共有する Tk 変数ホルダー
     controllers/               # 種類別フォルダ
-        config_io/             # 構成セット・個別JSONの保存/読込を6クラスへ分割（所有者フォルダ・計画04）
+        config_io/             # 構成セット・個別JSONの保存/読込を7クラスへ分割（所有者フォルダ・計画04）
             keymap_set_io.py   # KeymapSetIo: 構成セット（keymap_set）+ 専用ヘルパ
             startup_io.py      # StartupIo: 起動設定（startup.json）read/write
+            hotkey_presets_io.py  # HotkeyPresetsIo: グローバル hotkey プリセットの即時保存（唯一の書き手）
             io_dialogs.py      # IoDialogs: 共有ダイアログヘルパ（保存パス衝突 / ラベル連動）
             keymap_file_io.py  # KeymapFileIo: keymap 個別 JSON
             trigger_set_file_io.py  # TriggerSetFileIo: trigger_set 個別 JSON
@@ -103,6 +104,11 @@ keyseq/presentation/
   `apply_global_hook_key_defaults` を呼ぶ）と `discard_retained_hook_keys`。
   退避先は **App の `_retained_hook_keys`**（`app.data` に持たないためスキーマ・保存経路に影響しない）。
   data → Var の同期は `_sync_control_vars_from_data` の 1 本（**ここに退避の破棄を入れない**）
+- hotkey プリセット（`spec_detail/data_schema.md` §5.10）: `save_hotkey_presets(presets) -> bool` が
+  確定点。`hotkey_presets_io.write_global_presets` を呼び、**成功したときだけ** `app.data` へ反映する
+  （`PresetManagerDialog.on_ok` は戻り値が真のときだけ閉じる）。
+  **`open_preset_manager` / `save_hotkey_presets` は keymap_set を dirty にしない**
+  （プリセットは keymap_set の一部ではない。変更時のフラッシュ通知のみ）
 - dialogs 向け契約（`validate_hotkey` / `_dialog_result` / `_perform_action` / `open_preset_manager`）と、状態依存でパスを詰め替える薄メソッド（`suggest_keymap_set_dialog_path` / `suggest_keymap_set_dialog_dir` / `keymap_set_file_stem`）
   - `validate_hotkey` は**検証ロジックを持たず** `HotkeyService.validate`（application）への**薄い委譲**（実体は下記 HotkeyService / `domain/hotkey.py`）。dialogs 契約維持のため残す
 - 配線用の薄いヘルパ（`_get_send_guard_count` / `_find_trigger_by_key` / `_find_keymap_target` / `_find_keymap_switch_target_id`）
@@ -144,12 +150,15 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
   config.json を更新し**成功時のみ** `app.data` と Var を確定する。OFF 経路は
   `dirty_tracker.capture_dirty_snapshot` / `restore_dirty_snapshot` を `try`/`finally` で使い、
   例外経路でも keymap_set を dirty にしない（仕様は `spec_detail/data_schema.md` §5.9.4）
-- config_io/（controllers/config_io/）: 構成セット・個別JSONの保存/読込フローを**6クラスへ分割**（計画04で `config_io_controller.py` を廃止）。App が各クラスを直接公開し、`app.<名前>.<method>` で参照する:
+- config_io/（controllers/config_io/）: 構成セット・個別JSONの保存/読込フローを**7クラスへ分割**（計画04で `config_io_controller.py` を廃止）。App が各クラスを直接公開し、`app.<名前>.<method>` で参照する:
   - KeymapSetIo（keymap_set_io.py = `app.keymap_set_io`）: 構成セット（keymap_set）の new/save/save_as/load/import/export/restore + 起動構成セット指定・読込データのUI適用
     - 新規作成は `keymap_set_path` を空にし、`save_keymap_set` は空パスなら `save_as` へ委譲する（別名保存の初期名は `keymap_set.json`）。Import 成功時は**無条件で**空にする
-    - **hook キーの全体デフォルト注入を呼ぶのは 4 経路**（`new_config` / `restore_default` / Import /
-      起動時の空データフォールバック〔StartupIo〕）。**runtime を新規化・置換する入口を増やしたら
-      ここも足す**（漏れるとその経路だけキーが空になる）
+    - **全体デフォルトの注入（`config_service.apply_global_defaults`）を呼ぶのは入口台帳の 5 経路**
+      （E1 `App.__init__` / E2 `new_config` / E3 `restore_default` / E5 Import /
+      E4 起動時の空データフォールバック〔StartupIo〕）。**hook キーとプリセットをこの 1 本で供給する**。
+      **runtime を新規化・置換する入口を増やしたらここも足す**（漏れるとその経路だけ供給されない）。
+      台帳と供給規則は `spec_detail/data_schema.md` **§5.8.8**（通常読込 L1〜L3 は経由しない /
+      再正規化 N1 は供給不要 / **単独注入が残るのは ON→OFF だけ**）
     - **個別値の退避（`app._retained_hook_keys`）の破棄点は 4 箇所**: `save_keymap_set_to` の
       **保存実行の直前**（`save_runtime_data` 呼び出し前）/ `apply_loaded_data_to_ui` の先頭 /
       `new_config` / `restore_default`
@@ -160,6 +169,10 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       `write_global_hook_keys(*, stop_key, toggle_key) -> bool`（hook キーの全体デフォルト書き込み）。
       **全体デフォルトを書くのはこの 1 本のみ**。ConfigService 側に read-modify-write な保存 API を
       作らない（`_startup_settings` と config.json が乖離すると次の `write_startup` が hook キーを消す）
+  - HotkeyPresetsIo（hotkey_presets_io.py = `app.hotkey_presets_io`）: グローバル hotkey プリセットの
+    即時保存。`write_global_presets(presets) -> bool`（成功 True / 例外捕捉で `showerror` + False）。
+    **プリセットファイルを書くのはこの 1 本のみ**（保存カスケードは書かない。
+    仕様は `spec_detail/data_schema.md` §5.10.3）
   - IoDialogs（io_dialogs.py = `app.io_dialogs`）: 共有ダイアログヘルパ（保存パス衝突解決 / ラベル連動ファイル名）
   - KeymapFileIo（keymap_file_io.py = `app.keymap_io`）: keymap 個別 JSON の保存/読込
   - TriggerSetFileIo（trigger_set_file_io.py = `app.trigger_set_io`）: trigger_set 個別 JSON の保存/読込
@@ -172,6 +185,8 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       依存確認（4 択）・再計算先の上書き確認
     - child_save_plan.py: 一覧の選択 > 確定エントリ > 既定規則（保存先に実体があれば保存しない /
       無ければ保存）の優先順位で `SavePlan` を組み立てる
+    - **カスケードが書くのは startup / keymap_set / trigger_set / sequence / keymap**。
+      **hotkey プリセットは書かない**（§5.10.3。書き手は `HotkeyPresetsIo` の 1 本）
     - KeymapSetIo が上記を束ね、`config_service.save_runtime_data` へ計画を渡す。
       束ねる本体は `_collect_child_save_plan`（**保存計画が確定するまでのループ**）で、
       1 周は「行と保存先の収集 → 子一覧ダイアログ → 保存先が変わったなら再計算と上書き確認 →
@@ -231,12 +246,27 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
   - `split_loading.build_runtime_data_from_split` — **通常の keymap_set 読込での選択**。
     `resolve_hook_keys_individual(keymap_set)` の結果を runtime へ確定させ、
     OFF のときだけ `load_global_hook_keys` の値を注入する
-  - `ConfigService.apply_global_hook_key_defaults(runtime, *, config_root)` — **新規化・置換された
-    runtime への直接注入**（`new_config` / `restore_default` / Import / 起動時の空データフォールバック /
-    `App.toggle_hook_keys_individual` の ON→OFF）。冪等で、先頭で `hook_keys_individual` の既定
-    （`False`）を補う。**通常読込はこの API を経由しない**
+  - `ConfigService.apply_global_hook_key_defaults(runtime, *, config_root)` — **hook キー単独の注入**。
+    冪等で、先頭で `hook_keys_individual` の既定（`False`）を補う。**通常読込はこの API を経由しない**。
+    **直接の呼び出しは `App.toggle_hook_keys_individual` の ON→OFF だけ**
+    （runtime の新規化・置換時は下記 `apply_global_defaults` が内部で呼ぶ）
   - `split_payloads.build_keymap_set_payload` — **保存側**。OFF のとき書くのは**常に `""`**
     （runtime の解決済み値を書くと全体デフォルトが keymap_set へ焼き付く）
+- **全体デフォルトの注入口を 1 本に束ねる**（仕様は `spec_detail/data_schema.md` §5.8.8 の入口台帳）:
+  - `ConfigService.apply_global_defaults(runtime, *, config_root)` — **runtime を新規化・置換した直後**に
+    呼ぶ唯一の注入 API。`apply_global_hook_key_defaults` を呼んだ上で**グローバルプリセットを供給**する。
+    **冪等・例外を投げない**（読めなければ縮退）。呼ぶのは**入口台帳 E1〜E5**
+  - **通常読込（L1〜L3）はこの API を経由しない**が、プリセットの**供給規則は共通**
+- **hotkey プリセットの解決点を持つ**（仕様は `spec_detail/data_schema.md` §5.10）。分岐点は 3 つ:
+  - `split_loading.load_global_hotkey_presets_path(service, *, config_root)` — config.json の
+    `hotkey_presets_path` の**読み出し**（未設定・空・非文字列・読込失敗は既定へ縮退）。
+    返すのは**保存表記のまま**なので、書き込み・存在確認では `resolve_config_path` を通す
+  - `split_loading.load_global_hotkey_presets(service, *, config_root) -> list | None` —
+    **読めた＝`list`（空を含む）/ 読めない＝`None`**。戻り値は
+    `domain/config.py::normalize_hotkey_presets` を通した**正規化済み**（**「読めたか」の判定は正規化の前**）。
+    **正規化はここ 1 箇所**に置く（注入 API 側・保存側には置かない）
+  - `ConfigService.save_global_hotkey_presets(presets, *, config_root)` — **書き込み**。
+    **例外は握り潰さず送出**し、成否への変換は presentation（`HotkeyPresetsIo`）が行う
 - 移行判定の純関数は `domain/config.py::resolve_hook_keys_individual`。呼び出しは 3 系統で、
   **渡すデータが違う**: 読込＝**生の keymap_set dict**（`split_loading`）/ 保存＝**runtime**
   （`split_payloads`。`.get()` の真偽で見ずに必ずこの純関数を通す＝フラグ無しの旧 runtime を
