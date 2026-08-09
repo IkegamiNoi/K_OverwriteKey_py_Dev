@@ -221,6 +221,21 @@ class AppUiFlowsTest(unittest.TestCase):
                 self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
         self.app.dirty_tracker.set_dirty(False)
 
+    def test_turning_individual_hook_keys_off_keeps_edited_hotkey_presets(self):
+        edited_presets = [{"label": "Edited", "value": "ctrl+e"}]
+        with tempfile.TemporaryDirectory() as config_root:
+            self._write_global_hook_key_defaults(config_root)
+            self.app.config_service.repository.save_json(
+                os.path.join(config_root, self.app.config_service.HOTKEY_PRESETS_RELATIVE_PATH),
+                {"hotkey_presets": [{"label": "Global", "value": "ctrl+g"}]},
+            )
+            with patch.object(self.app, "config_root", config_root):
+                self.app.data["hotkey_presets"] = edited_presets
+                self._switch_individual_hook_keys_off()
+
+                self.assertEqual(self.app.data["hotkey_presets"], edited_presets)
+        self.app.dirty_tracker.set_dirty(False)
+
     def test_turning_individual_hook_keys_on_restores_retained_values_or_clears_values(self):
         with tempfile.TemporaryDirectory() as config_root:
             self._write_global_hook_key_defaults(config_root)

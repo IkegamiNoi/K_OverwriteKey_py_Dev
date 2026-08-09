@@ -18,6 +18,7 @@ from keyseq.application.save_plan import (
     ChildSaveEntry,
     SavePlan,
 )
+from keyseq.domain.config import DEFAULT_CONFIG, safe_deepcopy
 from keyseq.infrastructure.json_repository import JsonRepository
 
 
@@ -397,7 +398,7 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
 
             self.assertEqual(loaded["hotkey_presets"], expected_presets)
 
-    def test_missing_or_invalid_global_presets_file_returns_empty_list(self):
+    def test_unreadable_global_presets_file_keeps_builtin_defaults(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             global_path = "user/hotkey_presets/global.json"
@@ -416,11 +417,11 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
 
                     loaded = self._load_keymap_set(root, {})
 
-                    self.assertEqual(loaded["hotkey_presets"], [])
+                    self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
                     if content is not None:
                         os.remove(presets_path)
 
-    def test_legacy_keymap_set_presets_path_loads_without_error(self):
+    def test_legacy_keymap_set_presets_path_keeps_builtin_defaults_when_global_is_missing(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             legacy_path = "user/hotkey_presets/legacy.json"
@@ -428,7 +429,58 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
 
             loaded = self._load_keymap_set(root, {"hotkey_presets_path": legacy_path})
 
-            self.assertEqual(loaded["hotkey_presets"], [])
+            self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
+
+    def test_load_global_hotkey_presets_distinguishes_readable_and_unreadable_files(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            presets_path = os.path.join(root, global_path)
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+
+            cases = (
+                ("readable_empty", {"hotkey_presets": []}, []),
+                ("missing", None, None),
+                ("invalid", "{", None),
+                ("non_dict", [], None),
+                ("non_list_root", {"hotkey_presets": {}}, None),
+            )
+            for name, content, expected in cases:
+                with self.subTest(name=name):
+                    if os.path.exists(presets_path):
+                        os.remove(presets_path)
+                    if isinstance(content, str):
+                        Path(presets_path).parent.mkdir(parents=True, exist_ok=True)
+                        Path(presets_path).write_text(content, encoding="utf-8")
+                    elif content is not None:
+                        self.service.repository.save_json(presets_path, content)
+
+                    self.assertEqual(
+                        split_loading.load_global_hotkey_presets(self.service, config_root=root),
+                        expected,
+                    )
+
+    def test_split_loading_adopts_empty_global_presets_and_keeps_builtins_when_unreadable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            presets_path = os.path.join(root, global_path)
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(root, global_path, [])
+
+            self.assertEqual(self._load_keymap_set(root, {})["hotkey_presets"], [])
+
+            os.remove(presets_path)
+            self.assertEqual(
+                self._load_keymap_set(root, {})["hotkey_presets"],
+                DEFAULT_CONFIG["hotkey_presets"],
+            )
 
 
 class ApplyGlobalHookKeyDefaultsTest(unittest.TestCase):
@@ -503,6 +555,72 @@ class ApplyGlobalHookKeyDefaultsTest(unittest.TestCase):
 
         self.assertEqual(runtime["hook_stop_key"], "")
         self.assertEqual(runtime["hook_toggle_key"], "")
+
+
+class ApplyGlobalDefaultsTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def _save_global_presets(self, root, presets):
+        global_path = "user/hotkey_presets/global.json"
+        self.service.repository.save_json(
+            os.path.join(root, "config.json"),
+            {"hotkey_presets_path": global_path, "hook_stop_key": "f11", "hook_toggle_key": "f12"},
+        )
+        self.service.repository.save_json(
+            os.path.join(root, global_path),
+            {"hotkey_presets": presets},
+        )
+
+    def test_replaces_hotkey_presets_when_global_file_is_readable_including_empty_list(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            for presets in ([], [{"label": "Global", "value": "ctrl+g"}]):
+                with self.subTest(presets=presets):
+                    self._save_global_presets(root, presets)
+                    runtime = {"hook_keys_individual": True, "hotkey_presets": [{"label": "Old"}]}
+
+                    self.assertIs(self.service.apply_global_defaults(runtime, config_root=root), runtime)
+
+                    self.assertEqual(runtime["hotkey_presets"], presets)
+
+    def test_keeps_runtime_hotkey_presets_when_global_file_is_unreadable(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": "user/hotkey_presets/missing.json"},
+            )
+            runtime = {"hook_keys_individual": True, "hotkey_presets": [{"label": "Edited"}]}
+
+            self.service.apply_global_defaults(runtime, config_root=root)
+
+            self.assertEqual(runtime["hotkey_presets"], [{"label": "Edited"}])
+
+    def test_injects_global_hook_keys_only_for_individual_off_runtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save_global_presets(root, [])
+            off_runtime = {"hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""}
+            on_runtime = {"hook_keys_individual": True, "hook_stop_key": "f3", "hook_toggle_key": "f4"}
+
+            self.service.apply_global_defaults(off_runtime, config_root=root)
+            self.service.apply_global_defaults(on_runtime, config_root=root)
+
+            self.assertEqual((off_runtime["hook_stop_key"], off_runtime["hook_toggle_key"]), ("f11", "f12"))
+            self.assertEqual((on_runtime["hook_stop_key"], on_runtime["hook_toggle_key"]), ("f3", "f4"))
+
+    def test_apply_global_defaults_is_idempotent(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self._save_global_presets(root, [{"label": "Global", "value": "ctrl+g"}])
+            runtime = {"hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""}
+
+            self.service.apply_global_defaults(runtime, config_root=root)
+            once_applied = safe_deepcopy(runtime)
+            self.service.apply_global_defaults(runtime, config_root=root)
+
+            self.assertEqual(runtime, once_applied)
 
 
 class KeymapFileIoTest(unittest.TestCase):

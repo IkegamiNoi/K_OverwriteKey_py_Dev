@@ -448,6 +448,19 @@ class ConfigService:
             runtime[field] = value
         return runtime
 
+    def apply_global_defaults(
+        self,
+        runtime: dict[str, Any],
+        *,
+        config_root: str,
+    ) -> dict[str, Any]:
+        """runtime を新規化・置換した直後に、config.json の全体デフォルトを注入する。"""
+        self.apply_global_hook_key_defaults(runtime, config_root=config_root)
+        hotkey_presets = split_loading.load_global_hotkey_presets(self, config_root=config_root)
+        if hotkey_presets is not None:
+            runtime["hotkey_presets"] = hotkey_presets
+        return runtime
+
     def _startup_entry_path(self, config_root: str) -> str:
         return os.path.join(config_root, "config.json")
 

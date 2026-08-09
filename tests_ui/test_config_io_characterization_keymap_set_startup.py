@@ -133,6 +133,12 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             patch.object(self.app.trigger_panel, "refresh_actions"),
         )
 
+    def _save_global_hotkey_presets(self, root, presets):
+        self.app.config_service.repository.save_json(
+            os.path.join(root, self.app.config_service.HOTKEY_PRESETS_RELATIVE_PATH),
+            {"hotkey_presets": presets},
+        )
+
     def _prepare_loaded_keymap_set(self, root):
         path = os.path.join(root, "user", "keymap_sets", "loaded.json")
         old_data = self.app.config_service.new_default_data()
@@ -466,6 +472,43 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         )
         self.assertFalse(self.app.dirty_tracker.trigger_set_dirty)
         self.assertFalse(self.app.dirty_tracker.trigger_set_imported)
+
+    def test_global_presets_are_applied_after_new_restore_and_import(self):
+        expected_presets = [{"label": "Global", "value": "ctrl+g"}]
+        with tempfile.TemporaryDirectory() as root:
+            self.app.config_root = root
+            self._save_global_hotkey_presets(root, expected_presets)
+
+            patches = self._silence_refresh()
+            with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+                self.app, "_set_flash_message"
+            ), patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).new_config()
+            self.assertEqual(self.app.data["hotkey_presets"], expected_presets)
+
+            self.app.dirty_tracker.set_dirty(False)
+            patches = self._silence_refresh()
+            with patch.object(tkinter.messagebox, "askyesno", return_value=True), patch.object(
+                self.app, "_set_flash_message"
+            ), patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).restore_default()
+            self.assertEqual(self.app.data["hotkey_presets"], expected_presets)
+
+            inline_presets = [{"label": "Inline", "value": "ctrl+i"}]
+            patches = self._silence_refresh()
+            with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+                tkinter.filedialog, "askopenfilename", return_value="legacy.json"
+            ), patch.object(
+                self.app.config_service,
+                "load_legacy_runtime_data",
+                return_value={"hotkey_presets": inline_presets},
+            ), patch.object(_config_set_io(self.app), "apply_loaded_data_to_ui"), patch.object(
+                self.app.dirty_tracker, "set_dirty"
+            ), patch.object(self.app, "_set_flash_message"), patch.object(
+                tkinter.messagebox, "showinfo"
+            ), patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).import_config()
+            self.assertEqual(self.app.data["hotkey_presets"], expected_presets)
 
     def test_new_config_then_save_reaches_save_as_dialog(self):
         selected_path = "directory/saved.json"
@@ -1224,6 +1267,17 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         )
         self.assertEqual(self.app.keymap_set_path, "")
         apply_ui.assert_called_once_with()
+
+    def test_load_startup_and_config_empty_data_gets_global_presets(self):
+        expected_presets = [{"label": "Global", "value": "ctrl+g"}]
+        with tempfile.TemporaryDirectory() as root:
+            self.app.config_root = root
+            self._save_global_hotkey_presets(root, expected_presets)
+            self.app._startup_settings = {}
+            with patch.object(self.app.keymap_set_io, "apply_loaded_data_to_ui"):
+                _startup_io(self.app).load_startup_and_config()
+
+            self.assertEqual(self.app.data["hotkey_presets"], expected_presets)
 
     def test_load_startup_and_config_swallows_load_exception_and_falls_back(self):
         # 現挙動: 実在パスの読込が例外でも except: pass で握りつぶし、空データ起動へ（:261-262）。

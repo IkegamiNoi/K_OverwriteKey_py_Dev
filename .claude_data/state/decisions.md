@@ -363,6 +363,19 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
   「解決点は 4 つ」との整合）はメイン判断で v0.4 の記述を維持し、**正本側の更新は task_08 で行う**。
 - 成果物は**文書のみ**（`keyseq` / `tests` / `tests_ui` は無変更）。
 
+### task_04（`apply_global_defaults` の実装・入口台帳 E1〜E5 配線）— 2026-08-09
+
+- 暫定仕様 07 §3-2（v0.5）をそのまま実装。**設計の再検討・仕様変更は発生していない**。
+- 実装判断（いずれも仕様の範囲内・レビュー採用済）:
+  - `load_global_hotkey_presets` は `load_global_hotkey_presets_path` → `_resolve_config_relative_path`
+    → `_load_optional_json` の順で読み、**非 dict / 根キー非 list を `None`**、**list は空でも採用**。
+    例外は握り潰さず `try` の範囲を読み出しに限定（例外を投げない契約）。
+  - `apply_global_defaults` は **`apply_global_hook_key_defaults` を委譲呼び出し**（ロジック複製なし）。
+  - **E1（`app.py:77`）は新規の 1 行追加**で、順序依存だけで守られていた穴を塞いだ。
+- **想定外の先行実装**: なし（差分はタスク定義が挙げた production 5 + テスト 3 ファイルのみ）。
+- 実測: compile clean / `tests` **186**（+6）/ `tests_ui` **181**（+3）/ smoke pass。
+- `reviewer` = **採用（完了可・指摘なし）**。
+
 ---
 
 ## 運用メモ

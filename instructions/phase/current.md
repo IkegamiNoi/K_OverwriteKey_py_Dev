@@ -8,13 +8,14 @@
 
 - **アクティブなフェーズ: [08_hotkey_presets_global](08_hotkey_presets_global/phase.md)**
   （プリセットの config.json グローバル化 = 保存系リデザイン **プリセット案2**・起票 **2026-08-06**）。
-  - 主入力（確定設計）: [暫定仕様 07](../history/07_hotkey_presets_global.md)（**v0.3**・ユーザー確定済）。
+  - 主入力（確定設計）: [暫定仕様 07](../history/07_hotkey_presets_global.md)（**v0.5**・ユーザー確定済）。
     モード: **暫定仕様先行**。番号対応: **phase 08 / 暫定 07 / decisions_archive 08**。
+  - 進捗: **task_01〜task_04 完了 / 次は task_05**（keymap_set payload の生成停止 + カスケード除外）。
   - 確定の要点: config.json の `hotkey_presets_path`（既定 `user/hotkey_presets/default.json`）を
     全 keymap_set で共有 / keymap_set 側の同キーは**生成停止・読込時無視**（能動削除なし）/
     プリセットの**唯一の書き手はプリセットマネージャ**（即時保存・成否付き）。
-  - **未確定 1 件**: 暫定仕様 07 **§4 検討事項 A**「runtime を新規化・置換する入口の一本化」
-    （計画06 からの持ち越し）。**task_03 でユーザー確定 → v0.4 改訂 → 実装**の順。
+  - 検討事項 A「runtime を新規化・置換する入口の一本化」は **task_03 で確定（v0.5・§3-2）→
+    task_04 で実装済**（`apply_global_defaults` + 入口台帳 E1〜E5）。未確定事項は残っていない。
   - 起票元: ユーザー要望（2026-07-26〜27・P-a）。後続 = [idea_08](../backlog/idea_08_per_keymap_set_preset_ownership.md)。
 - 直前の完了フェーズ: [07_hook_keys_global_default](../../.claude_data/state/decisions_archive/07_hook_keys_global_default.md)
   （**2026-08-05 完了**・保存系リデザイン **Phase γ**）。

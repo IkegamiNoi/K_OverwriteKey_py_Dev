@@ -61,6 +61,23 @@ def load_global_hotkey_presets_path(service, *, config_root: str) -> str:
     return raw_hotkey_presets_path.strip() or default_path
 
 
+def load_global_hotkey_presets(service, *, config_root: str) -> list[Any] | None:
+    """config.json が指すグローバルプリセットを、読めた場合だけ返す。"""
+    try:
+        stored_path = load_global_hotkey_presets_path(service, config_root=config_root)
+        resolved_path = service._resolve_config_relative_path(stored_path, config_root)
+        loaded = service._load_optional_json(resolved_path)
+    except Exception:
+        return None
+
+    if not isinstance(loaded, dict):
+        return None
+    items = loaded.get("hotkey_presets")
+    if not isinstance(items, list):
+        return None
+    return safe_deepcopy(items)
+
+
 def build_runtime_data_from_split(
     service,
     keymap_set: dict[str, Any],
@@ -100,12 +117,9 @@ def build_runtime_data_from_split(
         runtime[service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = trigger_set_path
     if trigger_set_parent_refs is not None:
         runtime[service.INTERNAL_TRIGGER_SET_PARENT_REFS] = trigger_set_parent_refs
-    runtime["hotkey_presets"] = load_named_list(
-        service,
-        load_global_hotkey_presets_path(service, config_root=config_root),
-        root_key="hotkey_presets",
-        config_root=config_root,
-    )
+    hotkey_presets = load_global_hotkey_presets(service, config_root=config_root)
+    if hotkey_presets is not None:
+        runtime["hotkey_presets"] = hotkey_presets
 
     keymaps: list[dict[str, Any]] = []
     keymap_switch_keys: dict[str, str] = {}

@@ -4,57 +4,57 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-06T00:00:00
-phase: `instructions/phase/08_hotkey_presets_global`（**task_03 完了 / 次は task_04 = 実装**。暫定仕様 07 は **v0.5・確定済**）
-last_commit_location: claude/refactor-hook-key-pair-enum-b7cddc @ `654d2ef` ※現在地はセッション開始時の git 実測値が正
+last_updated: 2026-08-09T00:00:00
+phase: `instructions/phase/08_hotkey_presets_global`（**task_04 完了 / 次は task_05**。暫定仕様 07 は **v0.5・確定済**）
+last_commit_location: claude/task-04-progression-dbaaef ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 08 は task_03（入口一本化の設計確定・暫定仕様 v0.5）まで完了。次は task_04 = `apply_global_defaults` の実装と入口台帳 E1〜E5 への配線**。
+focus: **phase 08 は task_04（`apply_global_defaults` 新設 + 入口台帳 E1〜E5 配線）まで完了。次は task_05 = keymap_set payload からの `hotkey_presets_path` 生成停止 + 保存カスケードからのプリセット除外**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-06T00:00:00
+ts: 2026-08-09T00:00:00
 who: main
 summary: |
-  【phase 08 task_03 = **入口一本化の設計確定**（文書のみ・コード無変更）→ 暫定仕様 07 を **v0.5** へ】
-  - **ユーザー確定: 案B = 注入 API を 1 本に束ねる**。`ConfigService.apply_global_defaults(runtime, *, config_root)`
-    が hook キー注入 + グローバルプリセット供給を担う。**`app.py:77` も新方式へ寄せる**。
-    却下は案A（供給済みファクトリ・通常読込が条件付き注入のため入口は 1 つにならない）と案C（現状維持）。
-  - **例外 1 つ**: `toggle_hook_keys_individual` の **ON→OFF は従来どおり単独注入**
-    （束ねるとキー切替だけでプリセットが再読込され編集中の内容を取りこぼす）。
-  - **敵対的レビュー = needs-attention → 指摘 2 件ともユーザー採用**（実コードで裏取り済み）:
-    ① **空リスト縮退が §2 を破る** → 読み出しを **`list | None`** へ。**読めたら空でも採用 /
-    読めなければ置き換えない**。**通常読込も同規則へ統一**（task_02 のテスト 1 件は task_04 で更新）
-    ② **入口台帳が不完全** → `app.data` 置換の**実測 9 箇所**を **E1〜E5 / L1〜L3 / N1** として台帳化し、
-    受入条件 7 を全経路へ拡張・受入条件 9 を追加。
-  - **実測で判明**: Import（`keymap_set_io.py:561`）は**レガシー単一 JSON 経路**で
-    `build_runtime_data_from_split` を通らない → インラインの `hotkey_presets` は
-    **グローバルが読めれば置き換わる**（読めないときだけ残る）。
+  【phase 08 task_04 = **注入入口の一本化を実装**（暫定仕様 07 §3-2・v0.5 の実装）】
+  - **application**: `split_loading.load_global_hotkey_presets(service, *, config_root) -> list | None` を新設
+    （読めた＝`list`〔空含む〕/ 不存在・破損・非 dict・根キー非 list＝`None`。`load_named_list` は不使用）。
+    `ConfigService.apply_global_defaults(runtime, *, config_root)` を新設し、既存
+    `apply_global_hook_key_defaults` をそのまま呼んだ上でプリセットを供給（`list` なら置換・`None` なら非置換）。
+  - **通常読込も同規則へ統一**: `build_runtime_data_from_split` は `load_global_hotkey_presets` の結果を使い、
+    `None` なら組込 8 件を維持（`apply_global_defaults` は経由しない）。
+  - **presentation（層跨ぎの配線変更）**: 入口台帳 **E1〜E5** を `apply_global_defaults` へ置換
+    （`app.py:77` は**新規に 1 行追加**して順序依存の穴を塞いだ / `keymap_set_io.py:54,562,600` /
+    `startup_io.py:36`）。**L1〜L3・N1 は無配線**、`toggle_hook_keys_individual` の ON→OFF は
+    **単独注入のまま**（受入条件 8）。
+  - **既存テスト 2 件を期待値更新**（緩和ではなく値比較）: `test_missing_or_invalid_global_presets_file_*` /
+    `test_legacy_keymap_set_presets_path_loads_without_error` → 読めないときは**組込 8 件が残る**。
 result_files:
-  - instructions/history/07_hotkey_presets_global.md（**v0.5**・§3-2 と入口台帳を新設 / 受入条件 7〜9）
-  - instructions/phase/08_hotkey_presets_global/tasks/task_03_entry_point_design.md（新規）
-  - .claude_data/state/decisions.md（phase 08 節へ task_03 を追記）/ .claude_data/state/session.md
+  - instructions/phase/08_hotkey_presets_global/tasks/task_04_apply_global_defaults.md（新規・起票）
+  - keyseq/application/config_service/split_loading.py / keyseq/application/config_service/__init__.py
+  - keyseq/presentation/app.py / controllers/config_io/keymap_set_io.py / controllers/config_io/startup_io.py
+  - tests/test_config_service.py / tests_ui/test_app_ui_flows.py /
+    tests_ui/test_config_io_characterization_keymap_set_startup.py
 verified:
-  code_unchanged: 本タスクは**文書のみ**（`keyseq` / `tests` / `tests_ui` に差分なし）
-  compile / tests / tests_ui / smoke: task_02 完了時の実測が最新（clean / **180** / **178** / pass）
-  review: codex-adversarial-reviewer = **needs-attention** → 指摘 2 件を**ユーザー採用**し v0.5 へ反映済み
+  compile: clean
+  tests: pass **186**（基準線 180 → +6）
+  tests_ui: pass **181**（基準線 178 → +3）
+  smoke: pass
+  review: `reviewer` = **採用（完了可・指摘なし）**。5 観点 + §3-2 適合・台帳網羅・受入条件 7/8/9 を確認
 
 ## next_action
-- **task_04 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 07 **§3-2**・**v0.5**）。内容:
-  1. **`list | None` を返すグローバルプリセット読み出し**を新設（`load_named_list` は使わない。
-     読めた＝`list`〔空を含む〕/ 不存在・破損・根キーが list でない＝`None`）
-  2. **`ConfigService.apply_global_defaults(runtime, *, config_root)`** を新設
-     （既存 `apply_global_hook_key_defaults` を呼ぶ + プリセット供給。冪等・例外を投げない）
-  3. **入口台帳 E1〜E5 へ配線**（`app.py:77` / `keymap_set_io.py:53,561,599` / `startup_io.py:35`。
-     既存の `apply_global_hook_key_defaults` 呼び出しを置き換える）
-  4. **通常読込（`build_runtime_data_from_split`）も同じ供給規則へ統一**
-     → **task_02 で追加したテスト「不存在・破損 → `[]`」を「置き換えない＝組込 8 件」へ更新する**
-  5. **`toggle_hook_keys_individual` の ON→OFF は変更しない**（単独注入のまま。受入条件 8）
-- 受入条件 7・8・9 を特性テストで固定する。**L1〜L3（通常読込）と N1（再正規化）は配線対象外**。
+- **task_05 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 07 **§2 指摘②・④** / 受入条件 **2・4**）。内容:
+  1. **keymap_set payload から `hotkey_presets_path` の生成を停止**
+     （`split_payloads.py:39-42 / :102 / :299 / :337` が対象。既存キーの**能動削除はしない**）
+  2. **保存カスケードからプリセット書出を除外**（`save_plan_execution.py:135-136`。
+     `save_runtime_data` はプリセットファイルを書かない）
+  3. 影響を受ける既存テストの期待値更新（`tests/test_save_plan.py` に
+     `hotkey_presets_path` / プリセットファイル生成を前提とした箇所あり。**保存 JSON のキー順を固定する
+     `test_saved_keymap_set_json_keeps_stable_key_order` に注意**）
 - 以降の流れ（各タスク共通）: 実装委任（**テストコードの追加まで含める / 実行は依頼しない**）→
   `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
-- **task_03（設計確定）の前に task_04 へ着手しない**。task_03 は暫定仕様 07 §4 検討事項 A を
-  ユーザー確定し **v0.4 へ改訂**するタスクで、レビューは `codex-adversarial-reviewer`（縮退時 `deep-reviewer`）。
+- 残タスク: task_05（保存側）→ task_06（プリセットマネージャの即時保存）→ task_07（統合 + 実機目視）→
+  task_08（正本反映・凍結・`/refactor_check`）。
 
 ## blockers
 - なし。
@@ -62,6 +62,12 @@ verified:
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
   グローバル `py` は依存欠落で tests_ui/smoke が落ちる。
+- **【phase 08 task_04 で入った契約】runtime を新規化・置換したら
+  `ConfigService.apply_global_defaults(runtime, *, config_root)` を呼ぶ**（入口台帳 E1〜E5）。
+  通常読込は経由しない（`build_runtime_data_from_split` が同じ供給規則を持つ）。
+  **プリセットは `list | None`**（読めたら空でも採用 / `None` は置き換えない）。
+  **ON→OFF の hook キー単独注入だけは `apply_global_hook_key_defaults` を直呼び**（受入条件 8）。
+  台帳は暫定仕様 07 §3-2 が正。**正本 `codebase_map.md` への反映は task_08**。
 - **hook キー（Phase γ の成果）は正本が正**: `spec_detail/data_schema.md` **§5.9** +
   `key_input.md` **§7.6** + `codebase_map.md`。暫定仕様 06 は**凍結済**（経緯の参照用）。
   要点だけ再掲 = **解決の分岐点は 4 つ**（`load_global_hook_keys` 読み出し /
