@@ -214,3 +214,12 @@
   **サブエージェントがセッション上限で落ちたためメインで実測**（`verifier` へ委任できず・縮退）。
 - `reviewer` = **採用（完了可・指摘なし）**。
 - **残り**: 不正 `label` を含むファイルでの起動確認（実機目視 1 点）。
+
+### 【フェーズ完了】2026-08-09
+
+- **task_08b の実機確認 = OK**（不正 `label` を含むファイルで起動でき、不正要素だけが落ちる）。
+- **受入条件 1〜9 をすべて充足**して phase 08 完了。
+- 最終実測: compile clean / `tests` **203** / `tests_ui` **186** / smoke pass。
+- `/refactor_check` = **不要**（候補送り 2 件は `instructions/phase/current.md`「別タスク化候補」）。
+- **後続**: [idea_08](../../../instructions/backlog/idea_08_per_keymap_set_preset_ownership.md)
+  （keymap_set 個別プリセット・**着手可**）。前提となる正本は `data_schema.md` §5.10。

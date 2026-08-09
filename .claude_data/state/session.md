@@ -4,13 +4,13 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-09T10:05:00
-phase: **phase 08 は正本反映まで完了（実機目視 1 点のみ残）/ 次フェーズ未確定**（暫定仕様 07 は **v0.6・凍結済**。正本 = `data_schema.md` §5.10）
+last_updated: 2026-08-09T10:40:00
+phase: **なし（phase 08 完了・次フェーズ未確定）**。直前 = `08_hotkey_presets_global`（暫定仕様 07 は **v0.6・凍結済**。正本 = `data_schema.md` §5.10）
 last_commit_location: claude/task-04-progression-dbaaef ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 08 は task_08（正本反映）+ task_08b（起動不能バグの是正）まで完了。残るは実機目視 1 点（不正 label を含むプリセットファイルで起動できること）だけで、それが OK ならフェーズ完了**。
-mode: pending_review
+focus: **phase 08（プリセットの config.json グローバル化）は 2026-08-09 完了。次フェーズは未確定で、着手前にユーザーへ方針確認する**。
+mode: completed
 
 ## last_action
 ts: 2026-08-09T10:05:00
@@ -50,16 +50,18 @@ verified:
   refactor_check: **不要**（M1〜M6 該当なし。候補送り 2 件は `current.md`「別タスク化候補」）
 
 ## next_action
-- **実機目視 1 点だけユーザーに依頼する**（これが OK ならフェーズ完了）:
-  `config/user/hotkey_presets/default.json` を
-  `{"hotkey_presets": [{"label": 1, "value": "ctrl+a"}, {"label": "OK", "value": "CTRL+B"}]}`
-  にしてアプリを起動 → **起動でき**、プリセット一覧に **`OK` だけが出る**（不正要素は落ちる）。
-  確認後にファイルは元へ戻す。
-- 結果を `tasks/task_08_promote_to_spec.md` の実施記録 + `decisions_archive/08` へ追記し、
-  **フェーズ完了を宣言**する（`current.md` は完了状態へ更新済み）。
-- **次フェーズは未確定**。候補は `current.md`「次フェーズ候補」= **idea_08（keymap_set 個別プリセット・
-  phase 08 完了で着手可）** / idea_07（参照元の掃除・着手可）/ idea_09・idea_03（優先度低）。
-  着手前にユーザーへ方針確認する。
+- **次フェーズの方針をユーザーへ確認する**（未確定。勝手に着手しない）。候補は
+  `instructions/phase/current.md`「次フェーズ候補」:
+  - **[idea_08] keymap_set ごとの個別プリセット**（phase 08 完了で**着手可**。停止/トグルキーの
+    個別指定〔正本 §5.9〕と同型で、前提の正本は **§5.10**。保存系リデザインの自然な続き）
+  - [idea_07] 参照元の掃除（孤児 trigger_set と陳腐化した `_parent_refs` の回収・着手可）
+  - [idea_09] レガシー `settings/` 保存パスのフォールバック / [idea_03] アクション hotkey の
+    保存時正規化（いずれも優先度低）
+  - 未承認の提案書 2 本（[05_refactor_child_file_save_dialog] / [06_refactor_hook_key_pair_enumeration]
+    ※06 は実施済み）と、`current.md`「別タスク化候補」に溜めた項目
+- 決まったら `/phase_start` で `instructions/phase/09_<topic>/` を起票する
+  （**次採番は `09_<topic>` / 暫定仕様は `08_<topic>`**）。
+- 着手前に `instructions/phase/current.md` と `.claude/rules/` を読み直すこと。
 
 ## blockers
 - なし。
@@ -67,20 +69,19 @@ verified:
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
   グローバル `py` は依存欠落で tests_ui/smoke が落ちる。
-- **【phase 08 で確定したプリセットの経路】書き手は
-  `PresetManagerDialog.on_ok` → `App.save_hotkey_presets` → `HotkeyPresetsIo.write_global_presets`
-  → `ConfigService.save_global_hotkey_presets` の 1 本のみ**（保存カスケードは書かない）。
-  読み手は `load_global_hotkey_presets`（`list | None`）。**保存失敗時はダイアログを閉じず
-  runtime も更新しない**。プリセット編集は **dirty を汚さない**。
+- **【phase 08 の成果は正本が正】** `spec_detail/data_schema.md` **§5.10**（プリセットの全体ライブラリ）
+  + **§5.8.8**（**全体デフォルトの入口台帳 E1〜E5 / L1〜L3 / N1**）+ §5.1 の例外 + `codebase_map.md`。
+  暫定仕様 07 は**凍結済**。要点だけ再掲 = ①runtime を新規化・置換したら
+  **`apply_global_defaults` を呼ぶ**（通常読込は経由しないが供給規則は共通 /
+  **ON→OFF の hook キー単独注入だけ `apply_global_hook_key_defaults` を直呼び**）
+  ②プリセットの読み出しは **`list | None`**（読めたら空でも採用 / `None` は置き換えない）で
+  **読み出し側で正規化**（**非文字列 `label`/`value` の要素は除去**。ここを緩めると起動不能が再発する）
+  ③**書き手は `PresetManagerDialog.on_ok` → `App.save_hotkey_presets` →
+  `HotkeyPresetsIo` → `ConfigService.save_global_hotkey_presets` の 1 本のみ**
+  （カスケードは書かない / 失敗時は確定せずダイアログを閉じない / dirty を汚さない）。
 - **【tests_ui の罠・追加】`AppUiFlowsTest` は `setUpClass` で App を 1 つ共有する**ため、
   `has_unsaved_changes()` は他テストが残した個別 dirty も拾う。**絶対値で assert せず、
   前後の変化 / `set_dirty` の呼出有無で見る**こと（task_06 で 1 度踏んだ）。
-- **【phase 08 task_04 で入った契約】runtime を新規化・置換したら
-  `ConfigService.apply_global_defaults(runtime, *, config_root)` を呼ぶ**（入口台帳 E1〜E5）。
-  通常読込は経由しない（`build_runtime_data_from_split` が同じ供給規則を持つ）。
-  **プリセットは `list | None`**（読めたら空でも採用 / `None` は置き換えない）。
-  **ON→OFF の hook キー単独注入だけは `apply_global_hook_key_defaults` を直呼び**（受入条件 8）。
-  台帳は暫定仕様 07 §3-2 が正。**正本 `codebase_map.md` への反映は task_08**。
 - **hook キー（Phase γ の成果）は正本が正**: `spec_detail/data_schema.md` **§5.9** +
   `key_input.md` **§7.6** + `codebase_map.md`。暫定仕様 06 は**凍結済**（経緯の参照用）。
   要点だけ再掲 = **解決の分岐点は 4 つ**（`load_global_hook_keys` 読み出し /
