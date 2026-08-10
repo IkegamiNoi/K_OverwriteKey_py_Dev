@@ -4,52 +4,54 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-10T13:05:00
-phase: `instructions/phase/09_per_keymap_set_presets`（**task_05b 完了 / 次は task_06**。暫定仕様 08 は **v0.5・ユーザー確定済**）
+last_updated: 2026-08-10T15:40:00
+phase: `instructions/phase/09_per_keymap_set_presets`（**task_05c 完了 / 次は task_06**。暫定仕様 08 は **v0.6・ユーザー確定済**）
 last_commit_location: claude/task-05-progression-a013e2 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 09 は task_05 → task_05b（無効な個別パスでの保存拒否）まで完了し、切替 UI とグローバル保護が揃った。次は task_06 = Import の強制 OFF + 別名保存時の個別ファイル複製**。
+focus: **phase 09 は task_05 → 05b → 05c（無効な個別パスは既定パスへ寄せて新規作成）まで完了し、切替 UI・グローバル保護・パス正常化が揃った。次は task_06 = Import の強制 OFF + 別名保存時の個別ファイル複製**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-10T13:05:00
+ts: 2026-08-10T15:40:00
 who: main
 summary: |
-  【phase 09 task_05b = **無効な個別パス（config 外）での保存拒否**（暫定仕様 08 **§2【O3】**・
-  受入条件 15）】= task_05 の `reviewer` 指摘から**ユーザー確定で追加した枝番タスク**。
-  - **仕様を先に確定してから実装**（不変原則）。**暫定仕様 08 を v0.4 → v0.5 へ改訂**し
-    **【O3】を新設**（§2 / §3-3 / §3-4 / 受入条件 15 / §4 の却下記録を更新）。
-    v0.4 までは【O2】が**読み出しのみ**を規定しており、書き込みは未定義のまま
-    **グローバルへ倒れて上書きされ得た**（UI は「無効」と表示するのに書込先だけ黙って変わる非対称）。
-  - **ユーザー判断 = (C) 保存を拒否して理由表示**（(A) 現状維持 / (B) 既定の個別パスへ逃がす は却下）。
-  - **【O2】読み出しはグローバルへ倒すまま維持**（非対称は意図どおり。読み出しは壊れないが
-    書き込みはグローバルライブラリを破壊し得るため）。読込側は**完全に無変更**。
-  - application: `resolve_hotkey_presets_save_target(...) -> (stored_path, status)` を新設。
-    `status` = **`individual` / `global` / `invalid`** の 3 値で、
-    **`resolve_hotkey_presets_save_path` はその薄いラッパへ**（戻り値・既存呼び出しは不変）。
-    **`invalid` 判定は既存の `resolve_individual_hotkey_presets_path` を再利用**（新規パス判定を書かない）。
-  - presentation: `HotkeyPresetsIo.reject_invalid_target()`（**モーダルはこのファイルへ集約**。
-    tests_ui の fail-fast ガードがここを見ているため `app.py` に showerror を増やさない）。
-    `App.save_hotkey_presets` は**書き込み前に** status を見て拒否。
-  - **ON → OFF の確定は拒否対象外**【H2】。無効パスを抱えたまま「専用をやめる」操作は成功させる
-    （**主要な復旧手段**のため）。**OFF のままの保存も従来どおりグローバルへ書ける**。
+  【phase 09 task_05c = **無効な個別パスの扱いを「拒否」から「既定パスへ寄せて新規作成」へ反転**
+  （暫定仕様 08 **§2【O3】v0.6 + dirty 規則**・受入条件 4 / 15）】
+  - **ユーザーが v0.5【O3】（拒否）を再考して反転を確定**。理由 = ①**保存先は OK 前に表示される**ので
+    「黙って別の場所へ書く」に当たらない ②**ON + パス未設定の既存挙動と同型**にできる
+    ③拒否は**復旧手段が JSON 手編集しか無く行き止まり**。→ **暫定仕様 08 を v0.6 へ改訂**
+    （§2【O3】差し替え / §3-3 / §3-4 / 受入条件 4・15 / §4 却下記録を更新）。
+  - **無効パスを「使えるパスが記録されていない」と同一視**し、既定パス
+    `user/hotkey_presets/<stem>.json` を算出して**表示中の一覧で新規作成**する【E】。
+    **config 外の元ファイルは読まない・書かない・消さない**。
+  - **task_05b の拒否経路を全削除**（`resolve_hotkey_presets_save_target` の 3 値 /
+    `reject_invalid_target` / 保存側の `invalid` 分岐）。`resolve_hotkey_presets_save_path` へ戻した
+    （**恒久互換レイヤーを残さない**）。判定は既存の
+    `resolve_individual_hotkey_presets_path` の再利用のまま。
+  - **【新規・dirty 規則】`hotkey_presets_path` の値が実際に変化したときだけ dirty を立てる**。
+    従来は**フラグ変更（OFF→ON）への相乗り**で永続化しており、
+    **「最初から ON」の経路では dirty が立たず永続化されない穴**があった。
+    リダイレクトとこの穴を**同じ 1 規則で塞いだ**。**同値の再確定では立てない**ので
+    「内容編集は dirty にしない」（受入条件 4）は維持。
+  - **【O2】読み出しはグローバルへ倒すまま**（非対称は意図どおり）。読込側の判定は**完全に無変更**。
+    `describe_hotkey_presets_source` の `invalid` は**表示文言のためだけに残す**。
 result_files:
-  - instructions/history/08_per_keymap_set_presets.md（**v0.5 へ改訂・【O3】新設**）
-  - instructions/phase/09_per_keymap_set_presets/phase.md（task_05b 行を追加）
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_05b_invalid_target_save_guard.md（新規・起票）
+  - instructions/history/08_per_keymap_set_presets.md（**v0.6 へ改訂・【O3】反転 + dirty 規則**）
+  - instructions/phase/09_per_keymap_set_presets/phase.md（task_05c 行を追加）
+  - instructions/phase/09_per_keymap_set_presets/tasks/task_05c_invalid_target_redirect.md（新規・起票）
+  - instructions/phase/current.md（暫定仕様の版表記）
   - keyseq/application/config_service/{__init__.py,split_loading.py}
-  - keyseq/presentation/app.py / controllers/config_io/hotkey_presets_io.py
+  - keyseq/presentation/app.py / dialogs.py / controllers/config_io/hotkey_presets_io.py
   - tests/test_config_service.py / tests_ui/test_app_ui_flows.py
 verified:
   compile: clean
-  tests: pass **225**（基準線 222 → +3）
-  tests_ui: pass **200**（基準線 196 → +4）
+  tests: pass **222**（225 → **-3**。拒否系テストの削除・差し替えによる想定内の減）
+  tests_ui: pass **199**（200 → **-1**。同上）
   smoke: pass
-  review: `reviewer` = **採用（完了可・指摘なし）**。無効時にグローバルへ書かない /
-    ON→OFF の復旧経路を塞いでいない / OFF のままの保存を誤って拒否しない /
-    拒否時 data・dirty 完全不変 / 判定の再利用 / ラッパの後方互換 / 読み出し側【O2】不変 /
-    モーダルの集約 / 自動修復なし を確認。
+  review: `reviewer` = **採用（完了可）**。既定パスへの寄せ / 元パス無接触 / dirty がパス値変化時のみ /
+    拒否経路の残骸なし / 読み出し側【O2】不変 / OFF の表示契約が不変 を確認。
+    **参考指摘 1 件**（`dialogs.py` の invalid 文言生成で保存先解決を 1 回追加呼び出し。実害なし）
 
 ## next_action
 - **task_06 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 08 **§2【K】【L】**・
@@ -65,7 +67,7 @@ verified:
 
 ## blockers
 - なし（task_05 で挙がった「config 外の無効な個別パスで OK したときの保存先」は
-  **暫定仕様 08 v0.5【O3】として確定 → task_05b で実装済み**）。
+  **v0.5【O3】= 拒否 → v0.6【O3】= 既定パスへ寄せて新規作成 へ反転して決着**。実装は task_05c）。
 
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。

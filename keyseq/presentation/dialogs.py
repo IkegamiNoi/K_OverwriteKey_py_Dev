@@ -19,6 +19,7 @@ def format_preset_manager_source_labels(
     individual_state: str,
     displayed_source: str,
     individual_path: str,
+    default_individual_path: str,
     global_path: str,
     keymap_set_saved: bool,
 ) -> tuple[str, str, str]:
@@ -30,7 +31,17 @@ def format_preset_manager_source_labels(
 
     source_messages = []
     if individual_state == "invalid":
-        source_messages.append("個別の保存先が config 外のため無効です")
+        if individual_for_save:
+            source_messages.append(
+                "記録されていた個別の保存先は config 外のため使わず、"
+                f"{individual_path} へ保存します"
+            )
+        else:
+            source_messages.append(
+                "記録されていた個別の保存先は config 外のため使いません。"
+                "専用を再度有効にすると、"
+                f"{default_individual_path} へ保存します"
+            )
     if displayed_source == "global" and individual_state != "off":
         source_messages.append("グローバルを表示中")
     elif displayed_source == "builtin":
@@ -467,17 +478,27 @@ class PresetManagerDialog(tk.Toplevel):
         self.transient(parent)
 
     def _update_source_labels(self):
+        individual_for_save = bool(self.individual_var.get())
         individual_path = self.parent.config_service.resolve_hotkey_presets_save_path(
             self.parent.data,
             config_root=self.parent.config_root,
             keymap_set_path=self.parent.keymap_set_path,
-            individual=bool(self.individual_var.get()),
+            individual=individual_for_save,
         )
+        default_individual_path = individual_path
+        if self._individual_state == "invalid" and not default_individual_path:
+            default_individual_path = self.parent.config_service.resolve_hotkey_presets_save_path(
+                self.parent.data,
+                config_root=self.parent.config_root,
+                keymap_set_path=self.parent.keymap_set_path,
+                individual=True,
+            )
         save_destination, source, availability = format_preset_manager_source_labels(
-            individual_for_save=bool(self.individual_var.get()),
+            individual_for_save=individual_for_save,
             individual_state=self._individual_state,
             displayed_source=self._displayed_source,
             individual_path=individual_path,
+            default_individual_path=default_individual_path,
             global_path=self._global_hotkey_presets_path,
             keymap_set_saved=self._keymap_set_saved,
         )

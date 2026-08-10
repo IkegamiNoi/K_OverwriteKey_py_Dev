@@ -23,14 +23,3 @@ class HotkeyPresetsIo:
         except Exception as e:
             messagebox.showerror("プリセット保存失敗", str(e))
             return False
-
-    def reject_invalid_target(self) -> bool:
-        """config 外を指す個別プリセットへの保存を拒否する。"""
-        stored_path = str(self._app.data.get("hotkey_presets_path") or "")
-        messagebox.showerror(
-            "プリセット保存失敗",
-            "個別プリセットの保存先が config 配下ではないため保存できません。\n"
-            f"現在の保存先: {stored_path}\n"
-            "config 配下のパスへ修正するか、「この構成セット専用にする」のチェックを外してから保存してください。",
-        )
-        return False

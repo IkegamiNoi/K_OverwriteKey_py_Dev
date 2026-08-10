@@ -393,12 +393,16 @@ class AppUiFlowsTest(unittest.TestCase):
                     self.app.config_service,
                     "save_hotkey_presets",
                     side_effect=OSError("no disk"),
-                ), patch(
+                ), patch.object(
+                    self.app.dirty_tracker,
+                    "set_dirty",
+                ) as set_dirty, patch(
                     "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
                 ) as showerror:
                     self.assertFalse(self.app.save_hotkey_presets(presets))
 
                 self.assertEqual(self.app.data, expected_before)
+                set_dirty.assert_not_called()
                 showerror.assert_called_once_with("プリセット保存失敗", "no disk")
         finally:
             self.app.data = before
@@ -427,7 +431,7 @@ class AppUiFlowsTest(unittest.TestCase):
                 )
                 self.assertTrue(self.app.data["hotkey_presets_individual"])
                 self.assertEqual(self.app.data["hotkey_presets_path"], "user/hotkey_presets/main.json")
-                set_dirty.assert_called_once_with(True)
+                set_dirty.assert_called_with(True)
         finally:
             self.app.data = before
 
@@ -464,7 +468,7 @@ class AppUiFlowsTest(unittest.TestCase):
         finally:
             self.app.data = before
 
-    def test_save_hotkey_presets_rejects_invalid_individual_target_without_writing(self):
+    def test_save_hotkey_presets_redirects_invalid_individual_target_to_default(self):
         before = copy.deepcopy(self.app.data)
         presets = [{"label": "New", "value": "ctrl+n"}]
         try:
@@ -479,72 +483,33 @@ class AppUiFlowsTest(unittest.TestCase):
                     {"hotkey_presets": global_presets},
                 )
                 invalid_path = os.path.join(os.path.dirname(config_root), "outside.json")
+                self.assertFalse(os.path.exists(invalid_path))
                 self.app.data["hotkey_presets_individual"] = True
                 self.app.data["hotkey_presets_path"] = invalid_path
-                expected_data = copy.deepcopy(self.app.data)
 
                 with patch.object(self.app, "config_root", config_root), patch.object(
                     self.app,
                     "keymap_set_path",
                     os.path.join(config_root, "user", "keymap_sets", "main.json"),
-                ), patch.object(self.app.hotkey_presets_io, "write_presets") as write_presets, patch.object(
-                    self.app.config_service,
-                    "save_hotkey_presets",
-                ) as save_hotkey_presets, patch.object(
-                    self.app.config_service,
-                    "save_global_hotkey_presets",
-                ) as save_global_hotkey_presets, patch.object(
+                ), patch.object(
                     self.app.dirty_tracker,
                     "set_dirty",
-                ) as set_dirty, patch(
-                    "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
-                ) as showerror:
-                    self.assertFalse(self.app.save_hotkey_presets(presets))
+                ) as set_dirty:
+                    self.assertTrue(self.app.save_hotkey_presets(presets))
 
-                write_presets.assert_not_called()
-                save_hotkey_presets.assert_not_called()
-                save_global_hotkey_presets.assert_not_called()
                 self.assertEqual(
                     self.app.config_service.repository.load_json(global_path),
                     {"hotkey_presets": global_presets},
                 )
-                self.assertEqual(self.app.data, expected_data)
-                set_dirty.assert_not_called()
-                showerror.assert_called_once()
-                self.assertIn(invalid_path, showerror.call_args.args[1])
-                self.assertIn("チェックを外して", showerror.call_args.args[1])
-        finally:
-            self.app.data = before
-
-    def test_save_hotkey_presets_rejects_invalid_target_when_turning_individual_on(self):
-        before = copy.deepcopy(self.app.data)
-        presets = [{"label": "New", "value": "ctrl+n"}]
-        try:
-            with tempfile.TemporaryDirectory() as config_root:
-                self.app.data["hotkey_presets_individual"] = False
-                self.app.data["hotkey_presets_path"] = os.path.join(
-                    os.path.dirname(config_root),
-                    "outside.json",
+                self.assertEqual(
+                    self.app.config_service.repository.load_json(
+                        os.path.join(config_root, "user", "hotkey_presets", "main.json")
+                    ),
+                    {"hotkey_presets": presets},
                 )
-                expected_data = copy.deepcopy(self.app.data)
-
-                with patch.object(self.app, "config_root", config_root), patch.object(
-                    self.app,
-                    "keymap_set_path",
-                    os.path.join(config_root, "user", "keymap_sets", "main.json"),
-                ), patch.object(self.app.hotkey_presets_io, "write_presets") as write_presets, patch.object(
-                    self.app.dirty_tracker,
-                    "set_dirty",
-                ) as set_dirty, patch(
-                    "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
-                ) as showerror:
-                    self.assertFalse(self.app.save_hotkey_presets(presets, individual=True))
-
-                write_presets.assert_not_called()
-                self.assertEqual(self.app.data, expected_data)
-                self.assertFalse(self.app.data["hotkey_presets_individual"])
-                set_dirty.assert_not_called()
-                showerror.assert_called_once()
+                self.assertEqual(self.app.data["hotkey_presets_path"], "user/hotkey_presets/main.json")
+                self.assertFalse(os.path.exists(invalid_path))
+                set_dirty.assert_called_once_with(True)
         finally:
             self.app.data = before
 
@@ -653,12 +618,14 @@ class AppUiFlowsTest(unittest.TestCase):
                 self.app.hotkey_presets_io,
                 "write_presets",
                 return_value=False,
-            ), patch(
-                "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
-            ):
+            ), patch.object(
+                self.app.dirty_tracker,
+                "set_dirty",
+            ) as set_dirty:
                 self.assertFalse(self.app.save_hotkey_presets(presets, individual=True))
 
             self.assertEqual(self.app.data, expected)
+            set_dirty.assert_not_called()
         finally:
             self.app.data = before
 
@@ -748,6 +715,7 @@ class AppUiFlowsTest(unittest.TestCase):
             individual_state="off",
             displayed_source="global",
             individual_path="",
+            default_individual_path="user/hotkey_presets/main.json",
             global_path="user/hotkey_presets/global/default.json",
             keymap_set_saved=True,
         )
@@ -761,6 +729,7 @@ class AppUiFlowsTest(unittest.TestCase):
             individual_state="active",
             displayed_source="individual",
             individual_path="user/hotkey_presets/main.json",
+            default_individual_path="user/hotkey_presets/main.json",
             global_path="user/hotkey_presets/global/default.json",
             keymap_set_saved=True,
         )
@@ -771,6 +740,7 @@ class AppUiFlowsTest(unittest.TestCase):
             individual_state="missing",
             displayed_source="global",
             individual_path="user/hotkey_presets/main.json",
+            default_individual_path="user/hotkey_presets/main.json",
             global_path="user/hotkey_presets/global/default.json",
             keymap_set_saved=True,
         )
@@ -780,24 +750,43 @@ class AppUiFlowsTest(unittest.TestCase):
             individual_for_save=True,
             individual_state="invalid",
             displayed_source="global",
-            individual_path="",
+            individual_path="user/hotkey_presets/main.json",
+            default_individual_path="user/hotkey_presets/main.json",
             global_path="user/hotkey_presets/global/default.json",
             keymap_set_saved=False,
         )
         self.assertEqual(
             invalid,
             (
-                "保存先: グローバル（user/hotkey_presets/global/default.json）",
-                "個別の保存先が config 外のため無効です / グローバルを表示中",
+                "保存先: user/hotkey_presets/main.json",
+                "記録されていた個別の保存先は config 外のため使わず、"
+                "user/hotkey_presets/main.json へ保存します / グローバルを表示中",
                 "構成セットを保存すると専用にできます",
             ),
         )
+
+        invalid_while_global = format_preset_manager_source_labels(
+            individual_for_save=False,
+            individual_state="invalid",
+            displayed_source="global",
+            individual_path="",
+            default_individual_path="user/hotkey_presets/main.json",
+            global_path="user/hotkey_presets/global/default.json",
+            keymap_set_saved=True,
+        )
+        self.assertEqual(
+            invalid_while_global[0],
+            "保存先: グローバル（user/hotkey_presets/global/default.json）",
+        )
+        self.assertIn("user/hotkey_presets/main.json", invalid_while_global[1])
+        self.assertIn("専用を再度有効にすると", invalid_while_global[1])
 
         builtin = format_preset_manager_source_labels(
             individual_for_save=True,
             individual_state="missing",
             displayed_source="builtin",
             individual_path="user/hotkey_presets/main.json",
+            default_individual_path="user/hotkey_presets/main.json",
             global_path="user/hotkey_presets/global/default.json",
             keymap_set_saved=True,
         )
