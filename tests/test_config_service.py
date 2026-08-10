@@ -504,6 +504,83 @@ class IndividualHotkeyPresetsSavingTest(unittest.TestCase):
                         expected_path,
                     )
 
+    def test_resolve_save_target_reports_individual_global_and_invalid(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            outside_path = os.path.join(tmp, "outside.json")
+            cases = (
+                (
+                    {
+                        "hotkey_presets_individual": True,
+                        "hotkey_presets_path": "user/hotkey_presets/custom.json",
+                    },
+                    ("user/hotkey_presets/custom.json", "individual"),
+                ),
+                ({"hotkey_presets_individual": False}, ("", "global")),
+                (
+                    {
+                        "hotkey_presets_individual": True,
+                        "hotkey_presets_path": outside_path,
+                    },
+                    ("", "invalid"),
+                ),
+                (
+                    {"hotkey_presets_individual": True, "hotkey_presets_path": ""},
+                    ("user/hotkey_presets/main.json", "individual"),
+                ),
+            )
+
+            for runtime, expected in cases:
+                with self.subTest(runtime=runtime):
+                    self.assertEqual(
+                        self.service.resolve_hotkey_presets_save_target(
+                            runtime,
+                            config_root=root,
+                            keymap_set_path=keymap_set_path,
+                        ),
+                        expected,
+                    )
+
+    def test_resolve_save_target_override_detects_invalid_path_without_mutating_runtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            runtime = {
+                "hotkey_presets_individual": False,
+                "hotkey_presets_path": os.path.join(tmp, "outside.json"),
+            }
+            before = safe_deepcopy(runtime)
+
+            self.assertEqual(
+                self.service.resolve_hotkey_presets_save_target(
+                    runtime,
+                    config_root=root,
+                    keymap_set_path=keymap_set_path,
+                    individual=True,
+                ),
+                ("", "invalid"),
+            )
+            self.assertEqual(runtime, before)
+
+    def test_resolve_save_path_remains_backward_compatible_for_invalid_target(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            runtime = {
+                "hotkey_presets_individual": True,
+                "hotkey_presets_path": os.path.join(tmp, "outside.json"),
+            }
+
+            self.assertEqual(
+                self.service.resolve_hotkey_presets_save_path(
+                    runtime,
+                    config_root=root,
+                    keymap_set_path=keymap_set_path,
+                ),
+                "",
+            )
+
     def test_resolve_save_path_preview_override_does_not_mutate_runtime(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")

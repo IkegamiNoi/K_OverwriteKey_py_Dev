@@ -403,6 +403,41 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
 - 実測: compile clean / `tests` **222**（+2）/ `tests_ui` **196**（+7）/ smoke pass。
 - `reviewer` = **採用（完了可）**。
 
+### 【仕様確定 v0.5】無効な個別パスでの保存を拒否する（2026-08-10・ユーザー確定）
+
+- 発端 = **task_05 の `reviewer` 参考指摘**。task_04 由来の未定義挙動で、
+  **個別 ON かつ `hotkey_presets_path` が config 外のとき、UI は「無効」と表示するのに
+  OK の保存先はグローバルへ倒れて上書きされ得た**。
+  `resolve_hotkey_presets_save_path` は「パスが非空なら既定へ差し替えない」ため既定の個別パスにも落ちない。
+- **ユーザー判断 = (C) 保存を拒否して理由表示**。
+  - 却下 **(A) 現状維持**（UI が「無効」と告知している状態で黙って別の場所へ書くのは事故。
+    **グローバルライブラリを破壊し得る**）
+  - 却下 **(B) 既定の個別パスへ逃がす**（記録済みパスから保存先が黙って変わり、同種の驚きを生む）
+- **暫定仕様 08 を v0.4 → v0.5 へ改訂**し **【O3】を新設**
+  （§2 / §3-3 / §3-4 / 受入条件 15 / §4 の却下記録）。**フェーズ中の正は暫定仕様**のため
+  正本 `spec_detail/` の更新は **task_08** で行う。
+- **【O2】読み出しは従来どおりグローバルへ倒す**。**この非対称は意図どおり**
+  （読み出しは壊れないが、書き込みはグローバルを破壊するため）。
+- 対象は**実効的な書込先が個別のときだけ**。**ON → OFF の確定は拒否しない**
+  （無効パスを抱えたまま「専用をやめる」操作は成功させる＝**主要な復旧手段**）。
+  **OFF のままの保存も従来どおりグローバルへ書ける**。
+
+### 【task_05b】完了（2026-08-10）= 無効な個別パスでの保存拒否（枝番タスク）
+
+- `resolve_hotkey_presets_save_target(...) -> (stored_path, status)` を新設。
+  `status` = **`individual` / `global` / `invalid`** の 3 値で、
+  **`resolve_hotkey_presets_save_path` はその薄いラッパ**（戻り値・既存呼び出し・既存テストは不変）。
+  **`invalid` 判定は既存の `resolve_individual_hotkey_presets_path` を再利用**（新規パス判定を書かない）。
+  `config_root` 空も `invalid` 側へ混ぜる（分岐を増やさない。通常経路では起きない）。
+- `HotkeyPresetsIo.reject_invalid_target()` で理由表示（**現在のパス + 復旧手段**を含む）。
+  **モーダルはこのファイルへ集約**（tests_ui の fail-fast ガードがここを見ているため、
+  `app.py` に新しい `showerror` を増やさない）。
+- `App.save_hotkey_presets` は**書き込み前に** status を見て拒否し、**`data`・dirty を一切変更しない**。
+  `dialogs.py` は**無変更**（戻り値 False で閉じない契約が既にある）。
+- 読込側（`build_runtime_data_from_split` / `describe_hotkey_presets_source`）は**完全に無変更**。
+- 実測: compile clean / `tests` **225**（+3）/ `tests_ui` **200**（+4）/ smoke pass。
+- `reviewer` = **採用（完了可・指摘なし）**。
+
 ### 【運用インシデント】Codex ジョブ復旧時のプロセス誤終了（2026-08-10）
 
 - 実装フォワーダがハングした Codex ジョブの復旧中に **`taskkill /PID <pid> /T /F`** を実行し、

@@ -90,6 +90,7 @@ phase 08 で作った「アプリ全体のライブラリ」（正本 §5.10）�
 | task_03 | **解決順序の実装**（個別 → 読めなければグローバル → 置き換えない / **config 外パスの無効化**）。`build_runtime_data_from_split` 側 |
 | task_04 | **保存先の算出**（`save_path_resolution` に個別ファイルの既定パス）+ **マネージャの保存先切替**（`HotkeyPresetsIo` / `App.save_hotkey_presets`）|
 | task_05 | **切替 UI**（マネージャ内のチェック・保存先表示の出し分け・OK / キャンセルの契約・未保存なら ON 不可）|
+| task_05b | **無効な個別パス（config 外）での保存を拒否する**（暫定仕様 **v0.5【O3】**。task_05 の `reviewer` 指摘から追加した枝番タスク。読み出しの【O2】は不変）|
 | task_06 | **Import での強制 OFF** + **別名保存時の個別ファイル複製**（コピー先に実体があれば複製しない）|
 | task_07 | **統合確認 + 実機目視**（受入条件 1〜17）。実測は `verifier`、実機目視の観点はタスク定義で列挙 + 指摘の是正 |
 | task_08 | **正本反映（最終）**: `data_schema.md` **§5.10 改訂** + §5.5 / §5.4 / §5.8.8 / §5.1 + `codebase_map.md` / 暫定仕様 08 を凍結 / `decisions_archive/09_per_keymap_set_presets.md` 作成 / `current.md` 完了更新 / `backlog/INDEX.md` の idea_08 を完了へ（`INDEX_done.md` へ移動）/ `/refactor_check` 実行 |

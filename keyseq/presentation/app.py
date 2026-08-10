@@ -427,12 +427,14 @@ class App(tk.Tk):
             self.dirty_tracker.set_dirty(True)
             return True
 
-        stored_path = self.config_service.resolve_hotkey_presets_save_path(
+        stored_path, target_status = self.config_service.resolve_hotkey_presets_save_target(
             self.data,
             config_root=self.config_root,
             keymap_set_path=self.keymap_set_path,
             individual=target_individual,
         )
+        if target_status == "invalid":
+            return self.hotkey_presets_io.reject_invalid_target()
         if not self.hotkey_presets_io.write_presets(presets, stored_path=stored_path):
             return False
         self.data["hotkey_presets"] = safe_deepcopy(presets)

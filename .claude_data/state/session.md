@@ -4,61 +4,54 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-10T11:20:00
-phase: `instructions/phase/09_per_keymap_set_presets`（**task_05 完了 / 次は task_06**。暫定仕様 08 は **v0.4・ユーザー確定済**）
+last_updated: 2026-08-10T13:05:00
+phase: `instructions/phase/09_per_keymap_set_presets`（**task_05b 完了 / 次は task_06**。暫定仕様 08 は **v0.5・ユーザー確定済**）
 last_commit_location: claude/task-05-progression-a013e2 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 09 は task_05（マネージャ内の切替 UI と OK/キャンセルの契約）まで完了し、ユーザーが個別／グローバルを切り替えられるようになった。次は task_06 = Import の強制 OFF + 別名保存時の個別ファイル複製**。
+focus: **phase 09 は task_05 → task_05b（無効な個別パスでの保存拒否）まで完了し、切替 UI とグローバル保護が揃った。次は task_06 = Import の強制 OFF + 別名保存時の個別ファイル複製**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-10T11:20:00
+ts: 2026-08-10T13:05:00
 who: main
 summary: |
-  【phase 09 task_05 = **マネージャ内の切替 UI と OK / キャンセルの契約**
-  （暫定仕様 08 §2【D】【E】【F】【H2】【J】【N】【Q】【R】【I 撤回】/ §3-4）】
-  - **仕様の解釈を 2 点確定**（暫定仕様が文言レベルまで規定していなかった箇所。タスク定義へ明記）:
-    ① **表示は 2 行**（「保存先」= チェックに追従 / 「出どころ」= ダイアログを開いた時点で固定）。
-    トグルで一覧を差し替えない【I 撤回】以上、1 行に混ぜると両立しないため。
-    ② **判定は application 側の新 API 2 本**（presentation で組み立てない。task_04 と同方針）。
-  - application: `resolve_hotkey_presets_save_path` へ **`individual: bool | None` の override**
-    （**runtime は書き換えない**。局所コピーで判定）+ `describe_hotkey_presets_source`
-    （`individual_state` = off/active/missing/invalid × `displayed_source` = individual/global/builtin。
-    **既存 3 関数を再利用**し解決順序を二重化しない）+ グローバルパスと再読込の委譲メソッド。
-  - presentation: `PresetManagerDialog` に**チェック + 保存先ラベル + 出どころラベル**、
-    keymap_set 未保存なら **disabled + 理由表示**【F】。**文言は Tk 非依存の純関数
-    `format_preset_manager_source_labels`** へ分離（テストから固定できるように）。
-  - `App.save_hotkey_presets(presets, *, individual=None)` の 4 分岐:
-    OFF→OFF / ON→ON は**現行どおり + dirty を触らない** / OFF→**ON** は個別へ書き成功時のみ
-    3 キー反映 + dirty True / **ON→OFF は書き込まず**フラグだけ False にして
-    **`hotkey_presets_path` を保持**【N】・**グローバルを読み直す**【H2】・dirty True。
-    **失敗時は `data` を一切変更しない**（先にフラグを立てて戻す形にしない）。
-  - 【Q】の再評価は**ダイアログを毎回構築し直す性質**で満たす（通知の仕組みは足さない）。
+  【phase 09 task_05b = **無効な個別パス（config 外）での保存拒否**（暫定仕様 08 **§2【O3】**・
+  受入条件 15）】= task_05 の `reviewer` 指摘から**ユーザー確定で追加した枝番タスク**。
+  - **仕様を先に確定してから実装**（不変原則）。**暫定仕様 08 を v0.4 → v0.5 へ改訂**し
+    **【O3】を新設**（§2 / §3-3 / §3-4 / 受入条件 15 / §4 の却下記録を更新）。
+    v0.4 までは【O2】が**読み出しのみ**を規定しており、書き込みは未定義のまま
+    **グローバルへ倒れて上書きされ得た**（UI は「無効」と表示するのに書込先だけ黙って変わる非対称）。
+  - **ユーザー判断 = (C) 保存を拒否して理由表示**（(A) 現状維持 / (B) 既定の個別パスへ逃がす は却下）。
+  - **【O2】読み出しはグローバルへ倒すまま維持**（非対称は意図どおり。読み出しは壊れないが
+    書き込みはグローバルライブラリを破壊し得るため）。読込側は**完全に無変更**。
+  - application: `resolve_hotkey_presets_save_target(...) -> (stored_path, status)` を新設。
+    `status` = **`individual` / `global` / `invalid`** の 3 値で、
+    **`resolve_hotkey_presets_save_path` はその薄いラッパへ**（戻り値・既存呼び出しは不変）。
+    **`invalid` 判定は既存の `resolve_individual_hotkey_presets_path` を再利用**（新規パス判定を書かない）。
+  - presentation: `HotkeyPresetsIo.reject_invalid_target()`（**モーダルはこのファイルへ集約**。
+    tests_ui の fail-fast ガードがここを見ているため `app.py` に showerror を増やさない）。
+    `App.save_hotkey_presets` は**書き込み前に** status を見て拒否。
+  - **ON → OFF の確定は拒否対象外**【H2】。無効パスを抱えたまま「専用をやめる」操作は成功させる
+    （**主要な復旧手段**のため）。**OFF のままの保存も従来どおりグローバルへ書ける**。
 result_files:
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_05_manager_toggle_ui.md（新規・起票）
+  - instructions/history/08_per_keymap_set_presets.md（**v0.5 へ改訂・【O3】新設**）
+  - instructions/phase/09_per_keymap_set_presets/phase.md（task_05b 行を追加）
+  - instructions/phase/09_per_keymap_set_presets/tasks/task_05b_invalid_target_save_guard.md（新規・起票）
   - keyseq/application/config_service/{__init__.py,split_loading.py}
-  - keyseq/presentation/app.py / dialogs.py
+  - keyseq/presentation/app.py / controllers/config_io/hotkey_presets_io.py
   - tests/test_config_service.py / tests_ui/test_app_ui_flows.py
 verified:
   compile: clean
-  tests: pass **222**（基準線 220 → +2）
-  tests_ui: pass **196**（基準線 189 → +7）
+  tests: pass **225**（基準線 222 → +3）
+  tests_ui: pass **200**（基準線 196 → +4）
   smoke: pass
-  review: `reviewer` = **採用（完了可）**。【H2】でグローバルを書かない / トグルで `_temp` 不変 /
-    dirty がフラグ変化時のみ / 失敗時 data 完全不変 / 判定の application 集約 / override が
-    runtime 非破壊 / 後続タスクの先取りなし を確認。**参考指摘 1 件（下記 blockers 参照）**
+  review: `reviewer` = **採用（完了可・指摘なし）**。無効時にグローバルへ書かない /
+    ON→OFF の復旧経路を塞いでいない / OFF のままの保存を誤って拒否しない /
+    拒否時 data・dirty 完全不変 / 判定の再利用 / ラッパの後方互換 / 読み出し側【O2】不変 /
+    モーダルの集約 / 自動修復なし を確認。
 
 ## next_action
-- **【先にユーザー判断が要る】`reviewer` の参考指摘 = 未定義挙動の疑い**（task_04 由来・task_05 の
-  スコープ外のため今回は不変で通した）。**task_06 着手前に方針を確認する**:
-  「`hotkey_presets_individual` が ON かつ `hotkey_presets_path` が **config 外（無効）** のとき、
-  UI は『無効』と表示するのに **OK 押下の保存先はグローバルへ倒れる**」。
-  `resolve_hotkey_presets_save_path` は「パスが非空なら既定パスへ差し替えない」ため、
-  無効パスが非空である限り既定パスへも落ちない。**専用のつもりの操作でグローバル
-  ライブラリが上書きされ得る**（暫定仕様 08 の「グローバルの保護」観点と衝突する疑い）。
-  選択肢 = (A) 現状維持〔読み出しと同じくグローバルへ倒す〕/ (B) 無効時は**既定の個別パス**へ
-  逃がす / (C) 無効時は**保存を拒否**して理由表示。**暫定仕様 08 §2【O2】は読み出しのみ規定**。
 - **task_06 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 08 **§2【K】【L】**・
   受入条件 **12 / 16**）。内容:
   1. **Import での強制 OFF**（`load_legacy_runtime_data` の**直後・`apply_global_defaults` の前**。
@@ -71,8 +64,8 @@ verified:
   `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
 
 ## blockers
-- **task_06 着手前にユーザー判断が必要**（上記 next_action の 1 件目 = config 外の無効な個別パスで
-  OK したときの保存先）。**task_05 の完了判定自体はブロックしない**（スコープ外・既存挙動）。
+- なし（task_05 で挙がった「config 外の無効な個別パスで OK したときの保存先」は
+  **暫定仕様 08 v0.5【O3】として確定 → task_05b で実装済み**）。
 
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。

@@ -116,15 +116,15 @@ def resolve_individual_hotkey_presets_path(
     return stored_path
 
 
-def resolve_hotkey_presets_save_path(
+def resolve_hotkey_presets_save_target(
     service,
     runtime: dict[str, Any],
     *,
     config_root: str,
     keymap_set_path: str,
     individual: bool | None = None,
-) -> str:
-    """個別プリセットの保存表記パス、またはグローバル用の空文字を返す。"""
+) -> tuple[str, str]:
+    """プリセットの保存表記パスと保存先の状態を返す。"""
     use_individual = (
         runtime.get("hotkey_presets_individual") is True
         if individual is None
@@ -140,22 +140,43 @@ def resolve_hotkey_presets_save_path(
         config_root=config_root,
     )
     if individual_path:
-        return individual_path
+        return individual_path, "individual"
 
     stored_path = runtime.get("hotkey_presets_path")
+    if use_individual and isinstance(stored_path, str) and stored_path.strip():
+        return "", "invalid"
+
     if (
         not use_individual
         or not config_root
-        or (isinstance(stored_path, str) and stored_path.strip())
     ):
-        return ""
+        return "", "global"
 
     default_path = save_path_resolution.default_individual_hotkey_presets_path(
         service,
         keymap_set_path,
         config_root=config_root,
     )
-    return service.to_config_relative_or_absolute(default_path, config_root)
+    return service.to_config_relative_or_absolute(default_path, config_root), "individual"
+
+
+def resolve_hotkey_presets_save_path(
+    service,
+    runtime: dict[str, Any],
+    *,
+    config_root: str,
+    keymap_set_path: str,
+    individual: bool | None = None,
+) -> str:
+    """個別プリセットの保存表記パス、またはグローバル用の空文字を返す。"""
+    stored_path, _status = resolve_hotkey_presets_save_target(
+        service,
+        runtime,
+        config_root=config_root,
+        keymap_set_path=keymap_set_path,
+        individual=individual,
+    )
+    return stored_path
 
 
 def describe_hotkey_presets_source(

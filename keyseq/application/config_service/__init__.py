@@ -510,6 +510,22 @@ class ConfigService:
             individual=individual,
         )
 
+    def resolve_hotkey_presets_save_target(
+        self,
+        runtime: dict[str, Any],
+        *,
+        config_root: str,
+        keymap_set_path: str,
+        individual: bool | None = None,
+    ) -> tuple[str, str]:
+        return split_loading.resolve_hotkey_presets_save_target(
+            self,
+            runtime,
+            config_root=config_root,
+            keymap_set_path=keymap_set_path,
+            individual=individual,
+        )
+
     def load_global_hotkey_presets_path(self, *, config_root: str) -> str:
         return split_loading.load_global_hotkey_presets_path(self, config_root=config_root)
 
