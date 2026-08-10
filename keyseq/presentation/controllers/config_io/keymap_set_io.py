@@ -111,6 +111,14 @@ class KeymapSetIo:
                 return False
             skipped_dirty_children = self._skipped_dirty_children(save_plan)
             self._app.discard_retained_hook_keys()
+            if save_path != self._app.keymap_set_path:
+                relocated_path = self._app.config_service.relocate_individual_hotkey_presets(
+                    self._app.data,
+                    config_root=self._app.config_root,
+                    keymap_set_path=save_path,
+                )
+                if relocated_path:
+                    self._app.data["hotkey_presets_path"] = relocated_path
             self._app.data, startup_payload = self._app.config_service.save_runtime_data(
                 save_path,
                 self._app.data,
@@ -559,6 +567,7 @@ class KeymapSetIo:
             return
         try:
             self._app.data = self._app.config_service.load_legacy_runtime_data(path)
+            self._app.config_service.clear_individual_hotkey_presets(self._app.data)
             self._app.config_service.apply_global_defaults(self._app.data, config_root=self._app.config_root)
             self._app.keymap_set_path = ""
             self.apply_loaded_data_to_ui()

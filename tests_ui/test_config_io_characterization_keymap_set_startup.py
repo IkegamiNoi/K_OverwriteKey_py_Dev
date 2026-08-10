@@ -338,6 +338,110 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         self.assertTrue(ok)
         showinfo.assert_not_called()
 
+    def test_save_keymap_set_to_new_name_copies_individual_hotkey_presets(self):
+        with tempfile.TemporaryDirectory() as root:
+            old_keymap_set_path = os.path.join(root, "user", "keymap_sets", "original.json")
+            new_keymap_set_path = os.path.join(root, "user", "keymap_sets", "renamed.json")
+            source_stored_path = "user/hotkey_presets/original.json"
+            source_path = os.path.join(root, source_stored_path)
+            destination_path = os.path.join(root, "user", "hotkey_presets", "renamed.json")
+            presets = [{"label": "Individual", "value": "ctrl+i"}]
+            self.app.config_root = root
+            self.app.keymap_set_path = old_keymap_set_path
+            self.app.data = self.app.config_service.new_default_data()
+            self.app.data["hotkey_presets_individual"] = True
+            self.app.data["hotkey_presets_path"] = source_stored_path
+            self.app.config_service.repository.save_json(source_path, {"hotkey_presets": presets})
+
+            with patch.object(
+                tkinter.filedialog, "askopenfilename"
+            ), patch.object(tkinter.filedialog, "asksaveasfilename"), patch.object(
+                tkinter.messagebox, "showinfo"
+            ), patch.object(
+                _config_set_io(self.app),
+                "_collect_child_save_plan",
+                return_value=(SavePlan(), "", False),
+            ), patch.object(
+                self.app.paths,
+                "normalize_keymap_set_save_path",
+                return_value=new_keymap_set_path,
+            ), patch.object(
+                _config_set_io(self.app),
+                "choose_split_base_dir_for_keymap_set",
+                return_value="",
+            ), patch.object(
+                self.app.paths,
+                "preferred_startup_path",
+                return_value=os.path.join(root, "config.json"),
+            ), patch.object(self.app, "_set_flash_message"), patch.object(
+                self.app.dirty_tracker, "set_dirty"
+            ) as set_dirty:
+                self.assertTrue(
+                    _config_set_io(self.app).save_keymap_set_to(
+                        new_keymap_set_path,
+                        flash_message="保存しました。",
+                        show_success_dialog=False,
+                    )
+                )
+
+            self.assertEqual(
+                self.app.config_service.repository.load_json(destination_path),
+                {"hotkey_presets": presets},
+            )
+            self.assertEqual(
+                self.app.config_service.repository.load_json(new_keymap_set_path)["hotkey_presets_path"],
+                "user/hotkey_presets/renamed.json",
+            )
+            set_dirty.assert_called_once_with(False)
+
+    def test_save_keymap_set_to_same_path_keeps_individual_hotkey_presets_path(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "current.json")
+            source_stored_path = "user/hotkey_presets/custom.json"
+            self.app.config_root = root
+            self.app.keymap_set_path = keymap_set_path
+            self.app.data = self.app.config_service.new_default_data()
+            self.app.data["hotkey_presets_individual"] = True
+            self.app.data["hotkey_presets_path"] = source_stored_path
+
+            with patch.object(
+                tkinter.filedialog, "askopenfilename"
+            ), patch.object(tkinter.filedialog, "asksaveasfilename"), patch.object(
+                tkinter.messagebox, "showinfo"
+            ), patch.object(
+                _config_set_io(self.app),
+                "_collect_child_save_plan",
+                return_value=(SavePlan(), "", False),
+            ), patch.object(
+                self.app.paths,
+                "normalize_keymap_set_save_path",
+                return_value=keymap_set_path,
+            ), patch.object(
+                _config_set_io(self.app),
+                "choose_split_base_dir_for_keymap_set",
+                return_value="",
+            ), patch.object(
+                self.app.paths,
+                "preferred_startup_path",
+                return_value=os.path.join(root, "config.json"),
+            ), patch.object(self.app.config_service, "relocate_individual_hotkey_presets") as relocate, patch.object(
+                self.app, "_set_flash_message"
+            ), patch.object(self.app.dirty_tracker, "set_dirty") as set_dirty:
+                self.assertTrue(
+                    _config_set_io(self.app).save_keymap_set_to(
+                        keymap_set_path,
+                        flash_message="保存しました。",
+                        show_success_dialog=False,
+                    )
+                )
+
+            relocate.assert_not_called()
+            self.assertEqual(
+                self.app.config_service.repository.load_json(keymap_set_path)["hotkey_presets_path"],
+                source_stored_path,
+            )
+            set_dirty.assert_called_once_with(False)
+
     def test_save_keymap_set_to_exception_keeps_dirty(self):
         calls = []
         # 空の fake data では dirty な子が無く、子保存ダイアログは対象外として失敗時の状態を固定する。
@@ -575,6 +679,8 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 self.app.data,
                 {
                     "legacy": True,
+                    "hotkey_presets_individual": False,
+                    "hotkey_presets_path": "",
                     "hook_keys_individual": False,
                     "hook_stop_key": "f11",
                     "hook_toggle_key": "f12",
@@ -598,6 +704,35 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ), patches[0], patches[1], patches[2], patches[3]:
             _config_set_io(self.app).import_config()
         self.assertEqual(self.app.keymap_set_path, "")
+
+    def test_import_config_disables_individual_hotkey_presets_and_uses_global(self):
+        with tempfile.TemporaryDirectory() as root:
+            global_presets = [{"label": "Global", "value": "ctrl+g"}]
+            self.app.config_root = root
+            self._save_global_hotkey_presets(root, global_presets)
+            legacy_data = {
+                "hotkey_presets_individual": True,
+                "hotkey_presets_path": "C:/external/presets.json",
+                "hotkey_presets": [{"label": "Legacy", "value": "ctrl+l"}],
+            }
+            patches = self._silence_refresh()
+            with patch.object(
+                _config_set_io(self.app), "confirm_save_if_dirty", return_value=True
+            ), patch.object(
+                tkinter.filedialog, "askopenfilename", return_value="legacy.json"
+            ), patch.object(tkinter.filedialog, "asksaveasfilename"), patch.object(
+                self.app.config_service, "load_legacy_runtime_data", return_value=legacy_data
+            ), patch.object(
+                _config_set_io(self.app), "apply_loaded_data_to_ui"
+            ), patch.object(self.app.dirty_tracker, "set_dirty") as set_dirty, patch.object(
+                self.app, "_set_flash_message"
+            ), patch.object(tkinter.messagebox, "showinfo"), patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).import_config()
+
+            self.assertIs(self.app.data["hotkey_presets_individual"], False)
+            self.assertEqual(self.app.data["hotkey_presets_path"], "")
+            self.assertEqual(self.app.data["hotkey_presets"], global_presets)
+            set_dirty.assert_called_once_with(True)
 
     def test_import_config_exception(self):
         with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(

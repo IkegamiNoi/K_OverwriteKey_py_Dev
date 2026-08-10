@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import shutil
 from typing import Any
 
 from keyseq.domain.config import (
@@ -463,6 +464,51 @@ class ConfigService:
         if hotkey_presets is not None:
             runtime["hotkey_presets"] = hotkey_presets
         return runtime
+
+    def clear_individual_hotkey_presets(self, runtime: dict[str, Any]) -> dict[str, Any]:
+        """個別プリセット指定を解除し、保存用の2キーを明示する。"""
+        runtime["hotkey_presets_individual"] = False
+        runtime["hotkey_presets_path"] = ""
+        return runtime
+
+    def relocate_individual_hotkey_presets(
+        self,
+        runtime: dict[str, Any],
+        *,
+        config_root: str,
+        keymap_set_path: str,
+    ) -> str:
+        """別名保存先の個別プリセットパスを返し、必要な場合だけ実体を複製する。"""
+        if runtime.get("hotkey_presets_individual") is not True:
+            return ""
+
+        destination_path = save_path_resolution.default_individual_hotkey_presets_path(
+            self,
+            keymap_set_path,
+            config_root=config_root,
+        )
+        stored_destination_path = self.to_config_relative_or_absolute(
+            destination_path,
+            config_root,
+        )
+        stored_source_path = split_loading.resolve_individual_hotkey_presets_path(
+            self,
+            runtime,
+            config_root=config_root,
+        )
+        if not stored_source_path:
+            return stored_destination_path
+
+        source_path = self.resolve_config_path(stored_source_path, config_root)
+        if self.canonical_path(source_path, config_root) == self.canonical_path(
+            destination_path,
+            config_root,
+        ):
+            return stored_destination_path
+        if os.path.exists(source_path) and not os.path.exists(destination_path):
+            os.makedirs(os.path.dirname(destination_path), exist_ok=True)
+            shutil.copyfile(source_path, destination_path)
+        return stored_destination_path
 
     def save_global_hotkey_presets(
         self,

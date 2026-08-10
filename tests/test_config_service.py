@@ -588,6 +588,116 @@ class IndividualHotkeyPresetsSavingTest(unittest.TestCase):
             )
             self.assertEqual(loaded["hotkey_presets"], presets)
 
+    def test_clear_individual_hotkey_presets_sets_keys_without_changing_presets(self):
+        presets = [{"label": "Keep", "value": "ctrl+k"}]
+        for runtime in (
+            {
+                "hotkey_presets_individual": True,
+                "hotkey_presets_path": "user/hotkey_presets/old.json",
+                "hotkey_presets": presets,
+                "other": "keep",
+            },
+            {"hotkey_presets": presets, "other": "keep"},
+        ):
+            with self.subTest(runtime=runtime):
+                result = self.service.clear_individual_hotkey_presets(runtime)
+
+                self.assertIs(result, runtime)
+                self.assertIs(runtime["hotkey_presets_individual"], False)
+                self.assertEqual(runtime["hotkey_presets_path"], "")
+                self.assertIs(runtime["hotkey_presets"], presets)
+                self.assertEqual(runtime["other"], "keep")
+
+    def test_relocate_individual_hotkey_presets_handles_copy_conditions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "renamed.json")
+            source_stored_path = "user/hotkey_presets/original.json"
+            source_path = os.path.join(root, source_stored_path)
+            destination_path = os.path.join(root, "user", "hotkey_presets", "renamed.json")
+            destination_stored_path = "user/hotkey_presets/renamed.json"
+            runtime = {
+                "hotkey_presets_individual": True,
+                "hotkey_presets_path": source_stored_path,
+            }
+
+            self.service.repository.save_json(source_path, {"hotkey_presets": ["source"]})
+            self.assertEqual(
+                self.service.relocate_individual_hotkey_presets(
+                    runtime,
+                    config_root=root,
+                    keymap_set_path=keymap_set_path,
+                ),
+                destination_stored_path,
+            )
+            self.assertEqual(self.service.repository.load_json(source_path), {"hotkey_presets": ["source"]})
+            self.assertEqual(self.service.repository.load_json(destination_path), {"hotkey_presets": ["source"]})
+
+            self.service.repository.save_json(destination_path, {"hotkey_presets": ["destination"]})
+            self.service.repository.save_json(source_path, {"hotkey_presets": ["new source"]})
+            self.assertEqual(
+                self.service.relocate_individual_hotkey_presets(
+                    runtime,
+                    config_root=root,
+                    keymap_set_path=keymap_set_path,
+                ),
+                destination_stored_path,
+            )
+            self.assertEqual(
+                self.service.repository.load_json(destination_path),
+                {"hotkey_presets": ["destination"]},
+            )
+
+            os.remove(destination_path)
+            os.remove(source_path)
+            self.assertEqual(
+                self.service.relocate_individual_hotkey_presets(
+                    runtime,
+                    config_root=root,
+                    keymap_set_path=keymap_set_path,
+                ),
+                destination_stored_path,
+            )
+            self.assertFalse(os.path.exists(destination_path))
+
+            self.service.repository.save_json(source_path, {"hotkey_presets": ["off source"]})
+            self.assertEqual(
+                self.service.relocate_individual_hotkey_presets(
+                    {"hotkey_presets_individual": False, "hotkey_presets_path": source_stored_path},
+                    config_root=root,
+                    keymap_set_path=keymap_set_path,
+                ),
+                "",
+            )
+            self.assertFalse(os.path.exists(destination_path))
+
+            outside_path = os.path.join(tmp, "outside.json")
+            self.service.repository.save_json(outside_path, {"hotkey_presets": ["outside"]})
+            self.assertEqual(
+                self.service.relocate_individual_hotkey_presets(
+                    {"hotkey_presets_individual": True, "hotkey_presets_path": outside_path},
+                    config_root=root,
+                    keymap_set_path=keymap_set_path,
+                ),
+                destination_stored_path,
+            )
+            self.assertFalse(os.path.exists(destination_path))
+
+    def test_relocate_individual_hotkey_presets_returns_new_relative_stem_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            result = self.service.relocate_individual_hotkey_presets(
+                {
+                    "hotkey_presets_individual": True,
+                    "hotkey_presets_path": "user/hotkey_presets/missing.json",
+                },
+                config_root=root,
+                keymap_set_path=os.path.join(root, "user", "keymap_sets", "new-name.json"),
+            )
+
+            self.assertEqual(result, "user/hotkey_presets/new-name.json")
+            self.assertNotIn("\\\\", result)
+
 
 class HotkeyPresetsSourceDescriptionTest(unittest.TestCase):
     def setUp(self):

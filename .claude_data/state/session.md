@@ -4,64 +4,69 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-10T15:40:00
-phase: `instructions/phase/09_per_keymap_set_presets`（**task_05c 完了 / 次は task_06**。暫定仕様 08 は **v0.6・ユーザー確定済**）
+last_updated: 2026-08-10T17:30:00
+phase: `instructions/phase/09_per_keymap_set_presets`（**task_06 完了 / 次は task_07**。暫定仕様 08 は **v0.6・ユーザー確定済**）
 last_commit_location: claude/task-05-progression-a013e2 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 09 は task_05 → 05b → 05c（無効な個別パスは既定パスへ寄せて新規作成）まで完了し、切替 UI・グローバル保護・パス正常化が揃った。次は task_06 = Import の強制 OFF + 別名保存時の個別ファイル複製**。
+focus: **phase 09 は task_06（Import の強制 OFF + 別名保存時の複製）まで完了し、実装タスクが全て揃った。次は task_07 = 統合確認 + 実機目視（受入条件 1〜17）**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-10T15:40:00
+ts: 2026-08-10T17:30:00
 who: main
 summary: |
-  【phase 09 task_05c = **無効な個別パスの扱いを「拒否」から「既定パスへ寄せて新規作成」へ反転**
-  （暫定仕様 08 **§2【O3】v0.6 + dirty 規則**・受入条件 4 / 15）】
-  - **ユーザーが v0.5【O3】（拒否）を再考して反転を確定**。理由 = ①**保存先は OK 前に表示される**ので
-    「黙って別の場所へ書く」に当たらない ②**ON + パス未設定の既存挙動と同型**にできる
-    ③拒否は**復旧手段が JSON 手編集しか無く行き止まり**。→ **暫定仕様 08 を v0.6 へ改訂**
-    （§2【O3】差し替え / §3-3 / §3-4 / 受入条件 4・15 / §4 却下記録を更新）。
-  - **無効パスを「使えるパスが記録されていない」と同一視**し、既定パス
-    `user/hotkey_presets/<stem>.json` を算出して**表示中の一覧で新規作成**する【E】。
-    **config 外の元ファイルは読まない・書かない・消さない**。
-  - **task_05b の拒否経路を全削除**（`resolve_hotkey_presets_save_target` の 3 値 /
-    `reject_invalid_target` / 保存側の `invalid` 分岐）。`resolve_hotkey_presets_save_path` へ戻した
-    （**恒久互換レイヤーを残さない**）。判定は既存の
-    `resolve_individual_hotkey_presets_path` の再利用のまま。
-  - **【新規・dirty 規則】`hotkey_presets_path` の値が実際に変化したときだけ dirty を立てる**。
-    従来は**フラグ変更（OFF→ON）への相乗り**で永続化しており、
-    **「最初から ON」の経路では dirty が立たず永続化されない穴**があった。
-    リダイレクトとこの穴を**同じ 1 規則で塞いだ**。**同値の再確定では立てない**ので
-    「内容編集は dirty にしない」（受入条件 4）は維持。
-  - **【O2】読み出しはグローバルへ倒すまま**（非対称は意図どおり）。読込側の判定は**完全に無変更**。
-    `describe_hotkey_presets_source` の `invalid` は**表示文言のためだけに残す**。
+  【phase 09 task_06 = **Import での強制 OFF + 別名保存時の個別ファイル複製**
+  （暫定仕様 08 §2【K】【L】【M】【B】/ §3-2 / §3-3・受入条件 7 / 12 / 16）】
+  - **強制 OFF**: `ConfigService.clear_individual_hotkey_presets(runtime)` を新設
+    （**キーが無くても** `hotkey_presets_individual=False` / `hotkey_presets_path=""` を設定。
+    **`hotkey_presets` の内容には触らない**）。呼び出しは `import_config` の
+    **`load_legacy_runtime_data` 直後・`apply_global_defaults` 直前の 1 箇所だけ**
+    （**`ensure_config_compatibility` / 通常読込へ波及させない**）。以後は E5 としてグローバルが供給される。
+  - **複製**: `ConfigService.relocate_individual_hotkey_presets(runtime, *, config_root, keymap_set_path)`。
+    新しい保存先 stem から既定パスを再計算し、**コピー元が有効かつ実体あり かつ コピー先に実体なし**の
+    ときだけ `shutil.copyfile`。コピー先に実体あり / コピー元の実体なし / コピー元が config 外 /
+    同一パス → **複製せずパスだけ返す**。**元ファイルは消さず、runtime の内容も書き出さない**
+    （書き手はマネージャ 1 本のまま）。
+  - **起票時の判断**: 複製の起動条件を **`save_path != self._app.keymap_set_path`（＝保存先そのものの変化）**
+    に限定した。`save_as` と通常保存は同じ `save_keymap_set_to` を通るため、
+    「算出した既定パスと記録済みパスの不一致」で判定すると、**個別パスを手で `custom.json` 等に
+    設定した構成セットで通常保存しただけで勝手に付け替えが走る**。
+  - 呼び出しは `save_runtime_data` の直前・`keymap_set_path` 更新より前。返り値が非空なら
+    `data["hotkey_presets_path"]` へ反映してから保存する（**新しい payload に新パスが載る**）。
+  - **【M】同一 stem の無警告共有は既知の制約**として許容（上書き確認を新設しない）。
 result_files:
-  - instructions/history/08_per_keymap_set_presets.md（**v0.6 へ改訂・【O3】反転 + dirty 規則**）
-  - instructions/phase/09_per_keymap_set_presets/phase.md（task_05c 行を追加）
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_05c_invalid_target_redirect.md（新規・起票）
-  - instructions/phase/current.md（暫定仕様の版表記）
-  - keyseq/application/config_service/{__init__.py,split_loading.py}
-  - keyseq/presentation/app.py / dialogs.py / controllers/config_io/hotkey_presets_io.py
-  - tests/test_config_service.py / tests_ui/test_app_ui_flows.py
+  - instructions/phase/09_per_keymap_set_presets/tasks/task_06_import_off_and_save_as_copy.md（新規・起票）
+  - keyseq/application/config_service/__init__.py
+  - keyseq/presentation/controllers/config_io/keymap_set_io.py
+  - tests/test_config_service.py
+  - tests_ui/test_config_io_characterization_keymap_set_startup.py
 verified:
   compile: clean
-  tests: pass **222**（225 → **-3**。拒否系テストの削除・差し替えによる想定内の減）
-  tests_ui: pass **199**（200 → **-1**。同上）
+  tests: pass **225**（基準線 222 → +3）
+  tests_ui: pass **202**（基準線 199 → +3）
   smoke: pass
-  review: `reviewer` = **採用（完了可）**。既定パスへの寄せ / 元パス無接触 / dirty がパス値変化時のみ /
-    拒否経路の残骸なし / 読み出し側【O2】不変 / OFF の表示契約が不変 を確認。
-    **参考指摘 1 件**（`dialogs.py` の invalid 文言生成で保存先解決を 1 回追加呼び出し。実害なし）
+  review: `reviewer` = **採用（完了可）**。強制 OFF が Import 1 箇所 / 複製が別名保存のみ /
+    コピー先を上書きしない / 元ファイルを消さない / 内容を書き出さない（`shutil.copyfile`）/
+    既存関数の再利用 / 読み出し側・保存先算出・マネージャ・dirty 不変 を確認。
+    **参考指摘 1 件**（「コピー元とコピー先が同一パス」分岐に明示テストが無い。
+    既存の exists 判定でも実質スキップされるため実害なし・非ブロッキング）
 
 ## next_action
-- **task_06 を `/task_new` で起票 → 実装委任**する（規範 = 暫定仕様 08 **§2【K】【L】**・
-  受入条件 **12 / 16**）。内容:
-  1. **Import での強制 OFF**（`load_legacy_runtime_data` の**直後・`apply_global_defaults` の前**。
-     `hotkey_presets_individual=False` / `hotkey_presets_path=""`。
-     **`ensure_config_compatibility` には入れない**＝通常読込へ波及させないため）
-  2. **別名保存で個別ファイルを複製**（新しい stem から個別パスを再計算 → `hotkey_presets_path` 更新。
-     **コピー先に実体があれば複製しない / コピー元が無ければ複製しない**。上書き確認は新設しない）
-  3. 複製は**ファイルのコピー**であり **runtime の内容を書き出さない**（書き手 1 本を維持）
+- **task_07 を `/task_new` で起票**する（**統合確認 + 実機目視**。規範 = 暫定仕様 08 **§5 受入条件 1〜17**）。
+  - **実測（テストスイート全体・smoke）は `verifier`**、**二次レビューは `deep-reviewer` +
+    Codex レビュー系の 2 本立て**（`agent_selection.md` の「統合テスト・複数タスクを跨ぐ差分」）。
+  - **実機目視の観点をタスク定義で列挙する**（ユーザーが実施 → 指摘の是正まで task_07）。
+    最低限: ①ON/OFF の切替と保存先表示 ②フォールバック時の「グローバルを表示中」
+    ③未保存 keymap_set で ON 不可 ④無効パスで既定へ寄る（v0.6【O3】）
+    ⑤Import 後に個別 OFF ⑥別名保存で個別ファイルが複製される
+    ⑦**手動移行の 2 段**（ファイル移動 + config.json の明示値）を実際に踏む。
+  - **フェーズ完了判定の 2 本立てレビューは省略しない**（phase 08 で両者が独立に起動不能バグを検出）。
+- その後 **task_08 = 正本反映（最終）**: `data_schema.md` §5.10 改訂 + §5.5 / §5.4 / §5.8.8 / §5.1 +
+  `codebase_map.md` / 暫定仕様 08 を凍結 / `decisions_archive/09_per_keymap_set_presets.md` 作成 /
+  `current.md` 完了更新 / `backlog/INDEX.md` の idea_08 を `INDEX_done.md` へ移動 / `/refactor_check`。
+  - **v0.5 →v0.6 の反転（【O3】）と dirty 規則**、**task_05b が task_05c で置き換わった経緯**を
+    decisions_archive へ集約すること。
 - 以降の流れ（各タスク共通）: 実装委任（**テスト追加まで含める / 実行は依頼しない**）→
   `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
 

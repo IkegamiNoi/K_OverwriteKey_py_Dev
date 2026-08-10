@@ -476,6 +476,28 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
 - `reviewer` = **採用（完了可）**。**参考指摘 1 件**: `dialogs.py` の invalid 文言生成で
   保存先解決を 1 回追加呼び出ししている（軽量・実害なし・非ブロッキング）。
 
+### 【task_06】完了（2026-08-10）= Import の強制 OFF + 別名保存時の複製
+
+- **強制 OFF**: `clear_individual_hotkey_presets(runtime)` を新設（**キーが無くても 2 キーとも設定**。
+  `hotkey_presets` の内容には触らない）。呼び出しは `import_config` の
+  **`load_legacy_runtime_data` 直後・`apply_global_defaults` 直前の 1 箇所だけ**。
+  **`ensure_config_compatibility` へは入れない**（通常読込へ波及させないため。§2【K】）。
+- **複製**: `relocate_individual_hotkey_presets(...)` を新設。**`shutil.copyfile` でファイルを複製**し、
+  **runtime の内容は書き出さない**（書き手はマネージャ 1 本のまま）。分岐 = OFF → 何もしない /
+  コピー元が有効かつ実体あり + コピー先に実体なし → **複製** /
+  コピー先に実体あり・コピー元の実体なし・コピー元が config 外・同一パス → **複製せずパスだけ返す**。
+  **元ファイルは消さない**。
+- **【起票時の判断】複製の起動条件を `save_path != keymap_set_path`（＝保存先そのものの変化）に限定**した。
+  `save_as` と通常保存は同じ `save_keymap_set_to` を通るため、「算出した既定パスと記録済みパスの
+  不一致」で判定すると、**個別パスを手で `custom.json` 等に設定した構成セットで
+  通常保存しただけでも勝手に付け替えが走る**。判定は `keymap_set_path` 更新より**前**に行う。
+- 呼び出しは `save_runtime_data` の直前で、返り値を `data["hotkey_presets_path"]` へ反映してから保存
+  （**新しい keymap_set の payload に新パスが載る**）。**dirty の扱いは変えない**。
+- **【M】同一 stem の無警告共有は既知の制約**として許容（上書き確認を新設しない）。
+- 実測: compile clean / `tests` **225**（+3）/ `tests_ui` **202**（+3）/ smoke pass。
+- `reviewer` = **採用（完了可）**。**参考指摘 1 件**: 「コピー元とコピー先が同一パス」分岐に
+  明示テストが無い（既存の exists 判定でも実質スキップされるため実害なし・非ブロッキング）。
+
 ### 【運用インシデント】Codex ジョブ復旧時のプロセス誤終了（2026-08-10）
 
 - 実装フォワーダがハングした Codex ジョブの復旧中に **`taskkill /PID <pid> /T /F`** を実行し、
