@@ -500,12 +500,32 @@ class ConfigService:
         *,
         config_root: str,
         keymap_set_path: str,
+        individual: bool | None = None,
     ) -> str:
         return split_loading.resolve_hotkey_presets_save_path(
             self,
             runtime,
             config_root=config_root,
             keymap_set_path=keymap_set_path,
+            individual=individual,
+        )
+
+    def load_global_hotkey_presets_path(self, *, config_root: str) -> str:
+        return split_loading.load_global_hotkey_presets_path(self, config_root=config_root)
+
+    def load_global_hotkey_presets(self, *, config_root: str) -> list[Any] | None:
+        return split_loading.load_global_hotkey_presets(self, config_root=config_root)
+
+    def describe_hotkey_presets_source(
+        self,
+        runtime: dict[str, Any],
+        *,
+        config_root: str,
+    ) -> dict[str, str]:
+        return split_loading.describe_hotkey_presets_source(
+            self,
+            runtime,
+            config_root=config_root,
         )
 
     def _startup_entry_path(self, config_root: str) -> str:

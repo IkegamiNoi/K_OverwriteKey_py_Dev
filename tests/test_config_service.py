@@ -504,6 +504,33 @@ class IndividualHotkeyPresetsSavingTest(unittest.TestCase):
                         expected_path,
                     )
 
+    def test_resolve_save_path_preview_override_does_not_mutate_runtime(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            runtime = {"hotkey_presets_individual": False, "hotkey_presets_path": ""}
+            before = safe_deepcopy(runtime)
+
+            self.assertEqual(
+                self.service.resolve_hotkey_presets_save_path(
+                    runtime,
+                    config_root=root,
+                    keymap_set_path=keymap_set_path,
+                    individual=True,
+                ),
+                "user/hotkey_presets/main.json",
+            )
+            self.assertEqual(
+                self.service.resolve_hotkey_presets_save_path(
+                    runtime,
+                    config_root=root,
+                    keymap_set_path=keymap_set_path,
+                    individual=False,
+                ),
+                "",
+            )
+            self.assertEqual(runtime, before)
+
     def test_save_to_specified_path_writes_payload_and_propagates_errors(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
@@ -557,6 +584,77 @@ class IndividualHotkeyPresetsSavingTest(unittest.TestCase):
                 config_root=root,
             )
             self.assertEqual(loaded["hotkey_presets"], presets)
+
+
+class HotkeyPresetsSourceDescriptionTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def test_describes_individual_state_and_displayed_source(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            individual_path = "user/hotkey_presets/personal.json"
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self.service.repository.save_json(
+                os.path.join(root, global_path),
+                {"hotkey_presets": [{"label": "Global", "value": "ctrl+g"}]},
+            )
+
+            self.assertEqual(
+                self.service.describe_hotkey_presets_source({}, config_root=root),
+                {"individual_state": "off", "displayed_source": "global"},
+            )
+
+            self.service.repository.save_json(
+                os.path.join(root, individual_path),
+                {"hotkey_presets": [{"label": "Individual", "value": "ctrl+i"}]},
+            )
+            self.assertEqual(
+                self.service.describe_hotkey_presets_source(
+                    {
+                        "hotkey_presets_individual": True,
+                        "hotkey_presets_path": individual_path,
+                    },
+                    config_root=root,
+                ),
+                {"individual_state": "active", "displayed_source": "individual"},
+            )
+            self.assertEqual(
+                self.service.describe_hotkey_presets_source(
+                    {
+                        "hotkey_presets_individual": True,
+                        "hotkey_presets_path": "user/hotkey_presets/missing.json",
+                    },
+                    config_root=root,
+                ),
+                {"individual_state": "missing", "displayed_source": "global"},
+            )
+            self.assertEqual(
+                self.service.describe_hotkey_presets_source(
+                    {
+                        "hotkey_presets_individual": True,
+                        "hotkey_presets_path": os.path.join(tmp, "outside.json"),
+                    },
+                    config_root=root,
+                ),
+                {"individual_state": "invalid", "displayed_source": "global"},
+            )
+
+            os.remove(os.path.join(root, global_path))
+            self.assertEqual(
+                self.service.describe_hotkey_presets_source(
+                    {
+                        "hotkey_presets_individual": True,
+                        "hotkey_presets_path": "user/hotkey_presets/missing.json",
+                    },
+                    config_root=root,
+                )["displayed_source"],
+                "builtin",
+            )
 
 
 class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):

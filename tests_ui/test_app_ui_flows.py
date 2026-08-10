@@ -15,7 +15,7 @@ from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import SavePlan
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
-from keyseq.presentation.dialogs import PresetManagerDialog
+from keyseq.presentation.dialogs import PresetManagerDialog, format_preset_manager_source_labels
 
 
 def _unexpected_showerror(_title, message, *_args, **_kwargs):
@@ -403,30 +403,260 @@ class AppUiFlowsTest(unittest.TestCase):
         finally:
             self.app.data = before
 
+    def test_save_hotkey_presets_turning_individual_on_writes_and_marks_dirty(self):
+        before = copy.deepcopy(self.app.data)
+        presets = [{"label": "Individual", "value": "ctrl+i"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                keymap_set_path = os.path.join(config_root, "user", "keymap_sets", "main.json")
+                self.app.data["hotkey_presets_individual"] = False
+                self.app.data["hotkey_presets_path"] = ""
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app,
+                    "keymap_set_path",
+                    keymap_set_path,
+                ), patch.object(self.app.dirty_tracker, "set_dirty") as set_dirty:
+                    self.assertTrue(self.app.save_hotkey_presets(presets, individual=True))
+
+                self.assertEqual(
+                    self.app.config_service.repository.load_json(
+                        os.path.join(config_root, "user", "hotkey_presets", "main.json")
+                    ),
+                    {"hotkey_presets": presets},
+                )
+                self.assertTrue(self.app.data["hotkey_presets_individual"])
+                self.assertEqual(self.app.data["hotkey_presets_path"], "user/hotkey_presets/main.json")
+                set_dirty.assert_called_once_with(True)
+        finally:
+            self.app.data = before
+
+    def test_save_hotkey_presets_turning_individual_off_does_not_write_global(self):
+        before = copy.deepcopy(self.app.data)
+        global_presets = [{"label": "Global", "value": "ctrl+g"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, self.app.config_service.HOTKEY_PRESETS_RELATIVE_PATH),
+                    {"hotkey_presets": global_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = "user/hotkey_presets/personal.json"
+                self.app.data["hotkey_presets"] = [{"label": "Individual", "value": "ctrl+i"}]
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app.hotkey_presets_io,
+                    "write_presets",
+                ) as write_presets, patch.object(
+                    self.app.dirty_tracker,
+                    "set_dirty",
+                ) as set_dirty:
+                    self.assertTrue(self.app.save_hotkey_presets([], individual=False))
+
+                write_presets.assert_not_called()
+                self.assertFalse(self.app.data["hotkey_presets_individual"])
+                self.assertEqual(
+                    self.app.data["hotkey_presets_path"],
+                    "user/hotkey_presets/personal.json",
+                )
+                self.assertEqual(self.app.data["hotkey_presets"], global_presets)
+                set_dirty.assert_called_once_with(True)
+        finally:
+            self.app.data = before
+
+    def test_save_hotkey_presets_without_flag_change_does_not_mark_dirty(self):
+        presets = [{"label": "Save", "value": "ctrl+s"}]
+        for current_individual in (False, True):
+            with self.subTest(current_individual=current_individual):
+                before = copy.deepcopy(self.app.data)
+                try:
+                    self.app.data["hotkey_presets_individual"] = current_individual
+                    self.app.data["hotkey_presets_path"] = "user/hotkey_presets/personal.json"
+                    with patch.object(
+                        self.app.hotkey_presets_io,
+                        "write_presets",
+                        return_value=True,
+                    ) as write_presets, patch.object(
+                        self.app.dirty_tracker,
+                        "set_dirty",
+                    ) as set_dirty:
+                        self.assertTrue(
+                            self.app.save_hotkey_presets(
+                                presets,
+                                individual=current_individual,
+                            )
+                        )
+                    write_presets.assert_called_once_with(
+                        presets,
+                        stored_path=(
+                            "user/hotkey_presets/personal.json" if current_individual else ""
+                        ),
+                    )
+                    set_dirty.assert_not_called()
+                finally:
+                    self.app.data = before
+
+    def test_save_hotkey_presets_failed_individual_toggle_keeps_all_data(self):
+        before = copy.deepcopy(self.app.data)
+        presets = [{"label": "New", "value": "ctrl+n"}]
+        try:
+            self.app.data["hotkey_presets_individual"] = False
+            self.app.data["hotkey_presets_path"] = "user/hotkey_presets/retained.json"
+            expected = copy.deepcopy(self.app.data)
+            with patch.object(
+                self.app.hotkey_presets_io,
+                "write_presets",
+                return_value=False,
+            ), patch(
+                "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
+            ):
+                self.assertFalse(self.app.save_hotkey_presets(presets, individual=True))
+
+            self.assertEqual(self.app.data, expected)
+        finally:
+            self.app.data = before
+
     def test_preset_manager_dialog_closes_only_after_successful_save(self):
         presets = [{"label": "Edited", "value": "ctrl+e"}]
         failed_dialog = SimpleNamespace(
             parent=self.app,
             _temp=presets,
+            individual_var=SimpleNamespace(get=Mock(return_value=True)),
             destroy=Mock(),
         )
         with patch.object(self.app, "save_hotkey_presets", return_value=False) as save_hotkey_presets:
             PresetManagerDialog.on_ok(failed_dialog)
 
-        save_hotkey_presets.assert_called_once_with(presets)
+        save_hotkey_presets.assert_called_once_with(presets, individual=True)
         failed_dialog.destroy.assert_not_called()
         self.assertEqual(failed_dialog._temp, presets)
 
         successful_dialog = SimpleNamespace(
             parent=self.app,
             _temp=presets,
+            individual_var=SimpleNamespace(get=Mock(return_value=False)),
             destroy=Mock(),
         )
         with patch.object(self.app, "save_hotkey_presets", return_value=True) as save_hotkey_presets:
             PresetManagerDialog.on_ok(successful_dialog)
 
-        save_hotkey_presets.assert_called_once_with(presets)
+        save_hotkey_presets.assert_called_once_with(presets, individual=False)
         successful_dialog.destroy.assert_called_once_with()
+
+    def test_preset_manager_cancel_keeps_runtime_and_dirty_unchanged(self):
+        before = copy.deepcopy(self.app.data)
+        dialog = object.__new__(PresetManagerDialog)
+        dialog.parent = self.app
+        dialog.individual_var = SimpleNamespace(get=Mock(return_value=True))
+
+        with patch.object(self.app, "save_hotkey_presets") as save_hotkey_presets, patch.object(
+            self.app.dirty_tracker,
+            "set_dirty",
+        ) as set_dirty, patch.object(
+            self.app.hook,
+            "resume_hook_after_dialog",
+        ), patch("keyseq.presentation.dialogs.tk.Toplevel.destroy"):
+            PresetManagerDialog.destroy(dialog)
+
+        save_hotkey_presets.assert_not_called()
+        set_dirty.assert_not_called()
+        self.assertEqual(self.app.data, before)
+
+    def test_preset_manager_toggle_keeps_temp_presets(self):
+        presets = [{"label": "Displayed", "value": "ctrl+d"}]
+        resolve_save_path = Mock(return_value="user/hotkey_presets/main.json")
+        dialog = SimpleNamespace(
+            parent=SimpleNamespace(
+                data={"hotkey_presets_individual": False},
+                config_root="config-root",
+                keymap_set_path="keymap-set.json",
+                config_service=SimpleNamespace(
+                    resolve_hotkey_presets_save_path=resolve_save_path,
+                ),
+            ),
+            _temp=presets,
+            individual_var=SimpleNamespace(get=Mock(return_value=True)),
+            _individual_state="missing",
+            _displayed_source="global",
+            _global_hotkey_presets_path="user/hotkey_presets/global/default.json",
+            _keymap_set_saved=True,
+            save_destination_var=SimpleNamespace(set=Mock()),
+            source_var=SimpleNamespace(set=Mock()),
+            individual_unavailable_var=SimpleNamespace(set=Mock()),
+        )
+
+        PresetManagerDialog._update_source_labels(dialog)
+
+        self.assertIs(dialog._temp, presets)
+        self.assertEqual(dialog._temp, presets)
+        resolve_save_path.assert_called_once_with(
+            dialog.parent.data,
+            config_root="config-root",
+            keymap_set_path="keymap-set.json",
+            individual=True,
+        )
+
+    def test_preset_manager_source_labels_cover_sources_and_unsaved_reason(self):
+        off = format_preset_manager_source_labels(
+            individual_for_save=False,
+            individual_state="off",
+            displayed_source="global",
+            individual_path="",
+            global_path="user/hotkey_presets/global/default.json",
+            keymap_set_saved=True,
+        )
+        self.assertEqual(
+            off,
+            ("保存先: グローバル（user/hotkey_presets/global/default.json）", "", ""),
+        )
+
+        active = format_preset_manager_source_labels(
+            individual_for_save=True,
+            individual_state="active",
+            displayed_source="individual",
+            individual_path="user/hotkey_presets/main.json",
+            global_path="user/hotkey_presets/global/default.json",
+            keymap_set_saved=True,
+        )
+        self.assertEqual(active, ("保存先: user/hotkey_presets/main.json", "", ""))
+
+        missing = format_preset_manager_source_labels(
+            individual_for_save=True,
+            individual_state="missing",
+            displayed_source="global",
+            individual_path="user/hotkey_presets/main.json",
+            global_path="user/hotkey_presets/global/default.json",
+            keymap_set_saved=True,
+        )
+        self.assertEqual(missing[1], "グローバルを表示中")
+
+        invalid = format_preset_manager_source_labels(
+            individual_for_save=True,
+            individual_state="invalid",
+            displayed_source="global",
+            individual_path="",
+            global_path="user/hotkey_presets/global/default.json",
+            keymap_set_saved=False,
+        )
+        self.assertEqual(
+            invalid,
+            (
+                "保存先: グローバル（user/hotkey_presets/global/default.json）",
+                "個別の保存先が config 外のため無効です / グローバルを表示中",
+                "構成セットを保存すると専用にできます",
+            ),
+        )
+
+        builtin = format_preset_manager_source_labels(
+            individual_for_save=True,
+            individual_state="missing",
+            displayed_source="builtin",
+            individual_path="user/hotkey_presets/main.json",
+            global_path="user/hotkey_presets/global/default.json",
+            keymap_set_saved=True,
+        )
+        self.assertEqual(builtin[1], "読み込めませんでした（既定を表示中）")
+        self.assertNotIn("グローバルを表示中", builtin[1])
 
     def test_open_preset_manager_does_not_mark_keymap_set_dirty(self):
         self.app.data["hotkey_presets"] = [{"label": "Before", "value": "ctrl+b"}]

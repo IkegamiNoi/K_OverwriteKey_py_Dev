@@ -122,11 +122,21 @@ def resolve_hotkey_presets_save_path(
     *,
     config_root: str,
     keymap_set_path: str,
+    individual: bool | None = None,
 ) -> str:
     """個別プリセットの保存表記パス、またはグローバル用の空文字を返す。"""
+    use_individual = (
+        runtime.get("hotkey_presets_individual") is True
+        if individual is None
+        else individual
+    )
+    effective_runtime = runtime
+    if individual is not None:
+        effective_runtime = {**runtime, "hotkey_presets_individual": use_individual}
+
     individual_path = resolve_individual_hotkey_presets_path(
         service,
-        runtime,
+        effective_runtime,
         config_root=config_root,
     )
     if individual_path:
@@ -134,7 +144,7 @@ def resolve_hotkey_presets_save_path(
 
     stored_path = runtime.get("hotkey_presets_path")
     if (
-        runtime.get("hotkey_presets_individual") is not True
+        not use_individual
         or not config_root
         or (isinstance(stored_path, str) and stored_path.strip())
     ):
@@ -146,6 +156,51 @@ def resolve_hotkey_presets_save_path(
         config_root=config_root,
     )
     return service.to_config_relative_or_absolute(default_path, config_root)
+
+
+def describe_hotkey_presets_source(
+    service,
+    runtime: dict[str, Any],
+    *,
+    config_root: str,
+) -> dict[str, str]:
+    """個別プリセットの状態と、現在表示中の一覧の出どころを返す。"""
+    individual_enabled = runtime.get("hotkey_presets_individual") is True
+    individual_path = resolve_individual_hotkey_presets_path(
+        service,
+        runtime,
+        config_root=config_root,
+    )
+    individual_presets = None
+
+    if not individual_enabled:
+        individual_state = "off"
+    elif individual_path:
+        individual_presets = load_hotkey_presets_file(
+            service,
+            individual_path,
+            config_root=config_root,
+        )
+        individual_state = "active" if individual_presets is not None else "missing"
+    else:
+        stored_path = runtime.get("hotkey_presets_path")
+        individual_state = (
+            "invalid"
+            if config_root and isinstance(stored_path, str) and stored_path.strip()
+            else "missing"
+        )
+
+    if individual_presets is not None:
+        displayed_source = "individual"
+    elif load_global_hotkey_presets(service, config_root=config_root) is not None:
+        displayed_source = "global"
+    else:
+        displayed_source = "builtin"
+
+    return {
+        "individual_state": individual_state,
+        "displayed_source": displayed_source,
+    }
 
 
 def build_runtime_data_from_split(

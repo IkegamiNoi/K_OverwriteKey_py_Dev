@@ -413,17 +413,34 @@ class App(tk.Tk):
         if before != after:
             self._set_flash_message("プリセットを更新しました。")
 
-    def save_hotkey_presets(self, presets: list) -> bool:
+    def save_hotkey_presets(self, presets: list, *, individual: bool | None = None) -> bool:
+        current_individual = self.data.get("hotkey_presets_individual") is True
+        target_individual = current_individual if individual is None else individual
+
+        if current_individual and not target_individual:
+            global_presets = self.config_service.load_global_hotkey_presets(
+                config_root=self.config_root,
+            )
+            self.data["hotkey_presets_individual"] = False
+            if global_presets is not None:
+                self.data["hotkey_presets"] = global_presets
+            self.dirty_tracker.set_dirty(True)
+            return True
+
         stored_path = self.config_service.resolve_hotkey_presets_save_path(
             self.data,
             config_root=self.config_root,
             keymap_set_path=self.keymap_set_path,
+            individual=target_individual,
         )
         if not self.hotkey_presets_io.write_presets(presets, stored_path=stored_path):
             return False
         self.data["hotkey_presets"] = safe_deepcopy(presets)
         if stored_path:
             self.data["hotkey_presets_path"] = stored_path
+        if individual is not None and target_individual != current_individual:
+            self.data["hotkey_presets_individual"] = target_individual
+            self.dirty_tracker.set_dirty(True)
         return True
 
     def _perform_action(self, action: dict):

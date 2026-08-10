@@ -12,6 +12,34 @@ from keyseq.presentation.tk_keys import normalize_tk_keysym
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
 
+
+def format_preset_manager_source_labels(
+    *,
+    individual_for_save: bool,
+    individual_state: str,
+    displayed_source: str,
+    individual_path: str,
+    global_path: str,
+    keymap_set_saved: bool,
+) -> tuple[str, str, str]:
+    """プリセットマネージャの保存先・出どころ・可否の文言を組み立てる。"""
+    if individual_for_save and individual_path:
+        save_destination = f"保存先: {individual_path}"
+    else:
+        save_destination = f"保存先: グローバル（{global_path}）"
+
+    source_messages = []
+    if individual_state == "invalid":
+        source_messages.append("個別の保存先が config 外のため無効です")
+    if displayed_source == "global" and individual_state != "off":
+        source_messages.append("グローバルを表示中")
+    elif displayed_source == "builtin":
+        source_messages.append("読み込めませんでした（既定を表示中）")
+
+    availability = "" if keymap_set_saved else "構成セットを保存すると専用にできます"
+    return save_destination, " / ".join(source_messages), availability
+
+
 class ActionDialog(tk.Toplevel):
     def __init__(self, parent: App, title: str, initial: dict | None = None):
         super().__init__(parent)
@@ -380,8 +408,53 @@ class PresetManagerDialog(tk.Toplevel):
         ttk.Button(btns, text="上へ", width=14, command=lambda: self.move(-1)).pack(pady=6)
         ttk.Button(btns, text="下へ", width=14, command=lambda: self.move(+1)).pack(pady=6)
 
+        source = parent.config_service.describe_hotkey_presets_source(
+            parent.data,
+            config_root=parent.config_root,
+        )
+        self._individual_state = source["individual_state"]
+        self._displayed_source = source["displayed_source"]
+        self._global_hotkey_presets_path = parent.config_service.load_global_hotkey_presets_path(
+            config_root=parent.config_root,
+        )
+        self._keymap_set_saved = bool(parent.keymap_set_path)
+        self.individual_var = tk.BooleanVar(
+            value=parent.data.get("hotkey_presets_individual") is True,
+        )
+        self.save_destination_var = tk.StringVar()
+        self.source_var = tk.StringVar()
+        self.individual_unavailable_var = tk.StringVar()
+
+        source_frame = ttk.Frame(frm)
+        source_frame.grid(row=7, column=0, columnspan=3, sticky="we", pady=(12, 0))
+        self.individual_check = ttk.Checkbutton(
+            source_frame,
+            text="この構成セット専用にする",
+            variable=self.individual_var,
+            command=self._update_source_labels,
+        )
+        self.individual_check.grid(row=0, column=0, sticky="w")
+        if not self._keymap_set_saved:
+            self.individual_check.configure(state="disabled")
+        ttk.Label(source_frame, textvariable=self.save_destination_var).grid(
+            row=1,
+            column=0,
+            sticky="w",
+            pady=(4, 0),
+        )
+        ttk.Label(source_frame, textvariable=self.source_var).grid(
+            row=2,
+            column=0,
+            sticky="w",
+        )
+        ttk.Label(source_frame, textvariable=self.individual_unavailable_var).grid(
+            row=3,
+            column=0,
+            sticky="w",
+        )
+
         bottom = ttk.Frame(frm)
-        bottom.grid(row=7, column=0, columnspan=3, sticky="e", pady=(12, 0))
+        bottom.grid(row=8, column=0, columnspan=3, sticky="e", pady=(12, 0))
         ttk.Button(bottom, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(bottom, text="キャンセル", command=self.destroy).pack(side="left")
 
@@ -389,8 +462,28 @@ class PresetManagerDialog(tk.Toplevel):
         frm.grid_rowconfigure(1, weight=1)
 
         self._refresh()
+        self._update_source_labels()
         self.grab_set()
         self.transient(parent)
+
+    def _update_source_labels(self):
+        individual_path = self.parent.config_service.resolve_hotkey_presets_save_path(
+            self.parent.data,
+            config_root=self.parent.config_root,
+            keymap_set_path=self.parent.keymap_set_path,
+            individual=bool(self.individual_var.get()),
+        )
+        save_destination, source, availability = format_preset_manager_source_labels(
+            individual_for_save=bool(self.individual_var.get()),
+            individual_state=self._individual_state,
+            displayed_source=self._displayed_source,
+            individual_path=individual_path,
+            global_path=self._global_hotkey_presets_path,
+            keymap_set_saved=self._keymap_set_saved,
+        )
+        self.save_destination_var.set(save_destination)
+        self.source_var.set(source)
+        self.individual_unavailable_var.set(availability)
 
     def _on_double_click(self, _event=None):
         """プリセット一覧をダブルクリックしたら編集を開く"""
@@ -503,8 +596,10 @@ class PresetManagerDialog(tk.Toplevel):
         self.listbox.selection_set(j)
 
     def on_ok(self):
-        # グローバルプリセットへ保存できたときだけ閉じる。
-        if self.parent.save_hotkey_presets(self._temp):
+        if self.parent.save_hotkey_presets(
+            self._temp,
+            individual=bool(self.individual_var.get()),
+        ):
             self.destroy()
 
     def destroy(self):

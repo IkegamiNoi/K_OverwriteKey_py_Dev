@@ -373,6 +373,36 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
 - 実測: compile clean / `tests` **220**（+4）/ `tests_ui` **189**（+3）/ smoke pass。
 - `reviewer` = **採用（完了可）**。
 
+### 【task_05】完了（2026-08-10）= 切替 UI と OK / キャンセルの契約
+
+- **仕様の解釈を 2 点確定**（暫定仕様 08 が文言レベルまで規定していなかった箇所。タスク定義へ明記した）:
+  - **保存先の表示は 2 行に分ける**。「保存先」= **チェックに追従**（§3-4）/
+    「一覧の出どころ」= **ダイアログを開いた時点で固定**。
+    **トグルで一覧を差し替えない**【I 撤回】以上、1 行に混ぜると
+    「トグルへの追従」と「フォールバック中の告知」が両立しないため。
+  - **表示状態の判定は application 側**（presentation で解決順序を組み立てない。task_04 と同方針）。
+- `resolve_hotkey_presets_save_path` へ **`individual: bool | None` の override** を追加
+  （**runtime は書き換えず局所コピーで判定**。`None` は現行どおり）。
+  `describe_hotkey_presets_source` を新設し、**`individual_state`（off / active / missing / invalid）×
+  `displayed_source`（individual / global / builtin）の 2 値を独立に返す**
+  （**優先順位を付けて片方を隠さない**。既存 3 関数を再利用し判定を二重化しない）。
+- `App.save_hotkey_presets(presets, *, individual=None)` の 4 分岐を確定。
+  **ON→OFF は保存 API を呼ばず**フラグだけ False にし、**`hotkey_presets_path` は保持**【N】、
+  **グローバルを読み直す**【H2】。**dirty はフラグの値が実際に変わったときだけ**。
+  **失敗時は `data` を一切変更しない**（先にフラグを立てて戻す形にしない）。
+- 文言は **Tk 非依存の純関数 `format_preset_manager_source_labels`** へ分離
+  （`PresetManagerDialog` は `grab_set` / `wait_window` を持つためテストから構築しにくい）。
+- **【Q】の再評価はダイアログを毎回構築し直す性質で満たす**（通知の仕組みは足さない＝過剰実装の回避）。
+- **保留（ユーザー判断待ち・task_06 着手前に確認）**: `reviewer` の参考指摘 =
+  **個別 ON かつパスが config 外（無効）のとき、UI は「無効」と表示するのに OK の保存先は
+  グローバルへ倒れる**。`resolve_hotkey_presets_save_path` は「パスが非空なら既定へ差し替えない」ため
+  既定の個別パスへも落ちない。**暫定仕様 08 §2【O2】は読み出しのみ規定**しており、
+  書き込み側は未定義。**専用のつもりの操作でグローバルが上書きされ得る**点が
+  「グローバルの保護」観点と衝突する疑い。選択肢 = (A) 現状維持 / (B) 既定の個別パスへ逃がす /
+  (C) 保存を拒否して理由表示。**task_04 由来のため task_05 では不変で通した**。
+- 実測: compile clean / `tests` **222**（+2）/ `tests_ui` **196**（+7）/ smoke pass。
+- `reviewer` = **採用（完了可）**。
+
 ### 【運用インシデント】Codex ジョブ復旧時のプロセス誤終了（2026-08-10）
 
 - 実装フォワーダがハングした Codex ジョブの復旧中に **`taskkill /PID <pid> /T /F`** を実行し、
