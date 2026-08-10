@@ -433,6 +433,17 @@ class App(tk.Tk):
             keymap_set_path=self.keymap_set_path,
             individual=target_individual,
         )
+        if target_individual:
+            rejection_reason = self.config_service.individual_hotkey_presets_save_rejection_reason(
+                stored_path,
+                config_root=self.config_root,
+            )
+            if rejection_reason:
+                self.hotkey_presets_io.show_save_path_rejection(
+                    rejection_reason,
+                    stored_path=stored_path,
+                )
+                return False
         previous_path = self.data.get("hotkey_presets_path")
         if not self.hotkey_presets_io.write_presets(presets, stored_path=stored_path):
             return False

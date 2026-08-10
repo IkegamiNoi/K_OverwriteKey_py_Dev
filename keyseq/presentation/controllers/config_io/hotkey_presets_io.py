@@ -23,3 +23,17 @@ class HotkeyPresetsIo:
         except Exception as e:
             messagebox.showerror("プリセット保存失敗", str(e))
             return False
+
+    def show_save_path_rejection(self, reason: str, *, stored_path: str) -> None:
+        if reason == "reserved_dir":
+            message = (
+                "global/ はグローバル用のため、専用プリセットの保存先にできません。\n"
+                f"現在の保存先: {stored_path}"
+            )
+        else:
+            message = (
+                "保存先がグローバルライブラリと同じファイルです。\n"
+                "config.json の hotkey_presets_path を global/ 配下へ直してください。\n"
+                f"現在の保存先: {stored_path}"
+            )
+        messagebox.showerror("専用プリセットを保存できません", message)

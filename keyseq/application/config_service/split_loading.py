@@ -156,6 +156,34 @@ def resolve_hotkey_presets_save_path(
     return service.to_config_relative_or_absolute(default_path, config_root)
 
 
+def individual_hotkey_presets_save_rejection_reason(
+    service,
+    stored_path: str,
+    *,
+    config_root: str,
+) -> str:
+    """個別プリセットの最終保存先がグローバル領域と衝突する理由を返す。"""
+    if not stored_path or not config_root:
+        return ""
+
+    resolved_path = service.resolve_config_path(stored_path, config_root)
+    global_dir = os.path.dirname(service.HOTKEY_PRESETS_RELATIVE_PATH)
+    if service.is_path_within(resolved_path, global_dir, config_root):
+        return "reserved_dir"
+
+    global_stored_path = load_global_hotkey_presets_path(
+        service,
+        config_root=config_root,
+    )
+    global_resolved_path = service.resolve_config_path(global_stored_path, config_root)
+    if service.canonical_path(resolved_path, config_root) == service.canonical_path(
+        global_resolved_path,
+        config_root,
+    ):
+        return "global_conflict"
+    return ""
+
+
 def describe_hotkey_presets_source(
     service,
     runtime: dict[str, Any],

@@ -93,7 +93,8 @@ phase 08 で作った「アプリ全体のライブラリ」（正本 §5.10）�
 | task_05b | **無効な個別パス（config 外）での保存を拒否する**（暫定仕様 **v0.5【O3】**。task_05 の `reviewer` 指摘から追加した枝番タスク。読み出しの【O2】は不変）※**task_05c で反転**|
 | task_05c | **無効な個別パスでの保存を「拒否」から「既定パスへ寄せて新規作成」へ反転**（暫定仕様 **v0.6【O3】**）+ **`hotkey_presets_path` の値が変化したときだけ dirty** |
 | task_06 | **Import での強制 OFF** + **別名保存時の個別ファイル複製**（コピー先に実体があれば複製しない）|
-| task_07 | **統合確認 + 実機目視**（受入条件 1〜17）。実測は `verifier`、実機目視の観点はタスク定義で列挙 + 指摘の是正 |
+| task_07 | **統合確認 + 実機目視**（受入条件 1〜18）。実測は `verifier`、実機目視の観点はタスク定義で列挙 + 指摘の是正 |
+| task_07b | **保存先ガード（グローバル保護）**（暫定仕様 **v0.7【O4】**。task_07 の 2 本立てレビューが独立に検出）+ **`hotkey_presets_path` の payload 正規化**（受入条件 11 の未達） |
 | task_08 | **正本反映（最終）**: `data_schema.md` **§5.10 改訂** + §5.5 / §5.4 / §5.8.8 / §5.1 + `codebase_map.md` / 暫定仕様 08 を凍結 / `decisions_archive/09_per_keymap_set_presets.md` 作成 / `current.md` 完了更新 / `backlog/INDEX.md` の idea_08 を完了へ（`INDEX_done.md` へ移動）/ `/refactor_check` 実行 |
 
 - タスク定義は着手するものから順に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。

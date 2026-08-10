@@ -321,7 +321,12 @@ def build_keymap_set_payload(service,
         "trigger_set_path": service.to_config_relative_or_absolute(trigger_set_path, config_root)
         if trigger_set_path
         else "",
-        "hotkey_presets_path": str(runtime.get("hotkey_presets_path") or "").strip(),
+        "hotkey_presets_path": service.to_config_relative_or_absolute(
+            str(runtime.get("hotkey_presets_path") or "").strip(),
+            config_root,
+        )
+        if str(runtime.get("hotkey_presets_path") or "").strip()
+        else "",
         "hotkey_presets_individual": (
             hotkey_presets_individual if isinstance(hotkey_presets_individual, bool) else False
         ),

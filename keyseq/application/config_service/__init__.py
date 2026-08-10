@@ -556,6 +556,18 @@ class ConfigService:
             individual=individual,
         )
 
+    def individual_hotkey_presets_save_rejection_reason(
+        self,
+        stored_path: str,
+        *,
+        config_root: str,
+    ) -> str:
+        return split_loading.individual_hotkey_presets_save_rejection_reason(
+            self,
+            stored_path,
+            config_root=config_root,
+        )
+
     def load_global_hotkey_presets_path(self, *, config_root: str) -> str:
         return split_loading.load_global_hotkey_presets_path(self, config_root=config_root)
 

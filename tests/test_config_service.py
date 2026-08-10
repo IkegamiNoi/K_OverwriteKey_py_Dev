@@ -534,6 +534,130 @@ class IndividualHotkeyPresetsSavingTest(unittest.TestCase):
             )
             self.assertEqual(runtime, before)
 
+    def test_individual_save_path_rejection_reason_rejects_reserved_global_directory(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+
+            self.assertEqual(
+                self.service.individual_hotkey_presets_save_rejection_reason(
+                    "user/hotkey_presets/global/individual.json",
+                    config_root=root,
+                ),
+                "reserved_dir",
+            )
+
+    def test_individual_save_path_rejection_reason_detects_global_file_across_notations(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": "user/hotkey_presets/default.json"},
+            )
+            resolved_default_path = self.service.resolve_hotkey_presets_save_path(
+                {"hotkey_presets_individual": True, "hotkey_presets_path": ""},
+                config_root=root,
+                keymap_set_path=os.path.join(root, "user", "keymap_sets", "default.json"),
+            )
+
+            self.assertEqual(resolved_default_path, "user/hotkey_presets/default.json")
+            self.assertEqual(
+                self.service.individual_hotkey_presets_save_rejection_reason(
+                    resolved_default_path,
+                    config_root=root,
+                ),
+                "global_conflict",
+            )
+
+        with patch("keyseq.application.config_service.os.path", ntpath), patch.object(
+            self.service,
+            "_load_optional_json",
+            return_value={"hotkey_presets_path": r"user\hotkey_presets\default.json"},
+        ):
+            root = r"C:\Config"
+            resolved_default_path = self.service.resolve_hotkey_presets_save_path(
+                {"hotkey_presets_individual": True, "hotkey_presets_path": ""},
+                config_root=root,
+                keymap_set_path=r"C:\Config\user\keymap_sets\default.json",
+            )
+
+            self.assertEqual(resolved_default_path, "user/hotkey_presets/default.json")
+            for stored_path in (
+                r"user\hotkey_presets\default.json",
+                r"C:\Config\user\hotkey_presets\default.json",
+            ):
+                with self.subTest(stored_path=stored_path):
+                    self.assertEqual(
+                        self.service.individual_hotkey_presets_save_rejection_reason(
+                            stored_path,
+                            config_root=root,
+                        ),
+                        "global_conflict",
+                    )
+
+    def test_individual_save_path_rejection_reason_allows_separate_default_paths(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            stored_path = self.service.resolve_hotkey_presets_save_path(
+                {"hotkey_presets_individual": True, "hotkey_presets_path": ""},
+                config_root=root,
+                keymap_set_path=keymap_set_path,
+            )
+
+            self.assertEqual(stored_path, "user/hotkey_presets/main.json")
+            self.assertEqual(
+                self.service.individual_hotkey_presets_save_rejection_reason(
+                    stored_path,
+                    config_root=root,
+                ),
+                "",
+            )
+
+    def test_keymap_set_payload_normalizes_hotkey_presets_path_and_keeps_empty_and_order(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            expected_keys = [
+                "trigger_set_path",
+                "hotkey_presets_path",
+                "hotkey_presets_individual",
+                "active_keymap_path",
+                "keymaps",
+                "hook_stop_key",
+                "hook_toggle_key",
+                "hook_keys_individual",
+                "keyboard_layout",
+                "keyboard_show_physical_key_labels",
+                "debug_jis_special_key_events",
+                "external_keyboard_layouts",
+            ]
+            for stored_path in (
+                r"user\hotkey_presets\main.json",
+                os.path.join(root, "user", "hotkey_presets", "main.json"),
+            ):
+                with self.subTest(stored_path=stored_path):
+                    payload = split_payloads.build_keymap_set_payload(
+                        self.service,
+                        {
+                            "hotkey_presets_individual": True,
+                            "hotkey_presets_path": stored_path,
+                        },
+                        {},
+                        config_root=root,
+                        trigger_set_path="",
+                    )
+                    self.assertEqual(payload["hotkey_presets_path"], "user/hotkey_presets/main.json")
+                    self.assertEqual(list(payload), expected_keys)
+
+            off_payload = split_payloads.build_keymap_set_payload(
+                self.service,
+                {"hotkey_presets_individual": False, "hotkey_presets_path": ""},
+                {},
+                config_root=root,
+                trigger_set_path="",
+            )
+            self.assertEqual(off_payload["hotkey_presets_path"], "")
+            self.assertEqual(list(off_payload), expected_keys)
+
     def test_save_to_specified_path_writes_payload_and_propagates_errors(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")

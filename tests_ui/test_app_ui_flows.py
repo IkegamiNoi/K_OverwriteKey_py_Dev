@@ -468,6 +468,152 @@ class AppUiFlowsTest(unittest.TestCase):
         finally:
             self.app.data = before
 
+    def test_save_hotkey_presets_rejects_individual_global_file_collision_without_mutation(self):
+        before = copy.deepcopy(self.app.data)
+        global_presets = [{"label": "Global", "value": "ctrl+g"}]
+        individual_presets = [{"label": "Individual", "value": "ctrl+i"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                global_stored_path = "user/hotkey_presets/default.json"
+                global_path = os.path.join(config_root, global_stored_path)
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, "config.json"),
+                    {"hotkey_presets_path": global_stored_path},
+                )
+                self.app.config_service.repository.save_json(
+                    global_path,
+                    {"hotkey_presets": global_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = ""
+                self.app.data["hotkey_presets"] = [{"label": "Before", "value": "ctrl+b"}]
+                expected_before = copy.deepcopy(self.app.data)
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app,
+                    "keymap_set_path",
+                    os.path.join(config_root, "user", "keymap_sets", "default.json"),
+                ), patch.object(
+                    self.app.hotkey_presets_io,
+                    "write_presets",
+                ) as write_presets, patch.object(
+                    self.app.dirty_tracker,
+                    "set_dirty",
+                ) as set_dirty, patch(
+                    "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
+                ) as showerror:
+                    self.assertFalse(self.app.save_hotkey_presets(individual_presets, individual=True))
+
+                write_presets.assert_not_called()
+                set_dirty.assert_not_called()
+                self.assertEqual(self.app.data, expected_before)
+                self.assertEqual(
+                    self.app.config_service.repository.load_json(global_path),
+                    {"hotkey_presets": global_presets},
+                )
+                showerror.assert_called_once()
+                self.assertIn("同じファイル", showerror.call_args.args[1])
+                self.assertIn(global_stored_path, showerror.call_args.args[1])
+        finally:
+            self.app.data = before
+
+    def test_save_hotkey_presets_rejects_reserved_global_directory_with_distinct_message(self):
+        before = copy.deepcopy(self.app.data)
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                reserved_stored_path = "user/hotkey_presets/global/individual.json"
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = reserved_stored_path
+                expected_before = copy.deepcopy(self.app.data)
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app,
+                    "keymap_set_path",
+                    os.path.join(config_root, "user", "keymap_sets", "main.json"),
+                ), patch.object(
+                    self.app.hotkey_presets_io,
+                    "write_presets",
+                ) as write_presets, patch.object(
+                    self.app.dirty_tracker,
+                    "set_dirty",
+                ) as set_dirty, patch(
+                    "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
+                ) as showerror:
+                    self.assertFalse(self.app.save_hotkey_presets([], individual=True))
+
+                write_presets.assert_not_called()
+                set_dirty.assert_not_called()
+                self.assertEqual(self.app.data, expected_before)
+                showerror.assert_called_once()
+                self.assertIn("global/ はグローバル用", showerror.call_args.args[1])
+                self.assertNotIn("同じファイル", showerror.call_args.args[1])
+                self.assertIn(reserved_stored_path, showerror.call_args.args[1])
+        finally:
+            self.app.data = before
+
+    def test_save_hotkey_presets_allows_turning_individual_off_from_collision(self):
+        before = copy.deepcopy(self.app.data)
+        global_presets = [{"label": "Global", "value": "ctrl+g"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                global_stored_path = "user/hotkey_presets/default.json"
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, "config.json"),
+                    {"hotkey_presets_path": global_stored_path},
+                )
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, global_stored_path),
+                    {"hotkey_presets": global_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = global_stored_path
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app.hotkey_presets_io,
+                    "write_presets",
+                ) as write_presets, patch.object(
+                    self.app.dirty_tracker,
+                    "set_dirty",
+                ) as set_dirty, patch(
+                    "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
+                ) as showerror:
+                    self.assertTrue(self.app.save_hotkey_presets([], individual=False))
+
+                write_presets.assert_not_called()
+                set_dirty.assert_called_once_with(True)
+                showerror.assert_not_called()
+                self.assertFalse(self.app.data["hotkey_presets_individual"])
+                self.assertEqual(self.app.data["hotkey_presets"], global_presets)
+        finally:
+            self.app.data = before
+
+    def test_save_hotkey_presets_allows_global_save_while_individual_is_off(self):
+        before = copy.deepcopy(self.app.data)
+        presets = [{"label": "Global", "value": "ctrl+g"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                self.app.data["hotkey_presets_individual"] = False
+                self.app.data["hotkey_presets_path"] = "user/hotkey_presets/global/individual.json"
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app.hotkey_presets_io,
+                    "write_presets",
+                    return_value=True,
+                ) as write_presets, patch.object(
+                    self.app.dirty_tracker,
+                    "set_dirty",
+                ) as set_dirty, patch(
+                    "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
+                ) as showerror:
+                    self.assertTrue(self.app.save_hotkey_presets(presets, individual=False))
+
+                write_presets.assert_called_once_with(presets, stored_path="")
+                set_dirty.assert_not_called()
+                showerror.assert_not_called()
+                self.assertEqual(self.app.data["hotkey_presets"], presets)
+        finally:
+            self.app.data = before
+
     def test_save_hotkey_presets_redirects_invalid_individual_target_to_default(self):
         before = copy.deepcopy(self.app.data)
         presets = [{"label": "New", "value": "ctrl+n"}]
