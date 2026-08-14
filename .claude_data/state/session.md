@@ -4,69 +4,51 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-15T02:40:00
-phase: `instructions/phase/09_per_keymap_set_presets`（**暫定仕様 08 を v0.8 へ改訂・ユーザー確定済**。**task_07c 完了 / task_07d・07e 未着手**。task_07 の実機目視はやり直し待ち）
+last_updated: 2026-08-15T03:20:00
+phase: `instructions/phase/09_per_keymap_set_presets`（**暫定仕様 08 を v0.8 へ改訂・ユーザー確定済**。**task_07c・07d 完了 / task_07e 未着手**。task_07 の実機目視はやり直し待ち）
 last_commit_location: claude/preset-file-save-reference-903f03 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **task_07 の実機目視で見つかった 3 件（残置パス / トグル時の上書き / config 外パス）を仕様 v0.8 として確定し、是正タスク 07c・07d・07e へ分割。07c は完了（green + reviewer 完了可）で、次は 07d → 07e → 目視やり直し**。
+focus: **task_07 の実機目視で見つかった 3 件（残置パス / トグル時の上書き / config 外パス）を仕様 v0.8 として確定し、是正タスク 07c・07d・07e へ分割。07c と 07d は完了（green + reviewer 完了可）で、残るは 07e → 目視やり直し → task_08**。
 mode: implementing
 
 ## last_action
-ts: 2026-08-15T02:40:00
+ts: 2026-08-15T03:20:00
 who: main
 summary: |
-  【**実機目視の 3 指摘 → 暫定仕様 v0.8 確定 → 是正タスク 3 本へ分割 → task_07c 完了**】
-  - **ユーザーの実機目視（task_07 §3 の項目 2 / 7 / 10）で 3 件**。**いずれも実装バグではなく
-    v0.7 の仕様どおりの挙動**だったが、実運用で破壊的なため**仕様側を改訂**した。
-    - **項目 2**: 個別ファイルが `default.json` になる。**原因を実データで特定** =
-      `config/user/keymap_sets/keymap_set1〜3.json`（phase 08 以前）に `hotkey_presets_individual`
-      **キーが無く** `hotkey_presets_path` が**旧グローバル `user/hotkey_presets/default.json`** のまま
-      残っており、v0.7 は**フラグだけ OFF に倒してパスは runtime へ載せていた**ため
-      **初回 ON + OK の保存先が残置パス**になっていた（【M】の無警告共有が既定で発生・【O4】も素通り）。
-    - **項目 7**: OFF → ON で**グローバルの内容が個別ファイルへ上書き**（【I 撤回】+【E】の帰結）。
-    - **項目 10**: config 外パスは**読み出しでも無効**（【O2】v0.4）だったが、ユーザーの意図は
-      「**読み出すが保存は管理下へ新規作成**」。
-  - **ユーザー確定 = v0.8**: ①**フラグキーが無ければ残置パスも落とす**（false + キーありは保持＝【N】）
-    ②**トグルで一覧を切替先から読み直す**（【I】再採用・**編集済みなら破棄確認**）+
-    **【H2】撤回で OFF の OK もグローバルへ書く** ③**config 外は読み出しのみ許容**（書き込みは【O3】のまま）。
-  - **`codex-adversarial-reviewer` = needs-attention（High 2 / Medium 3）**。**High 1 を採用**し、
-    **「グローバルが読めなければ一覧を組込既定へ差し替える」**へ変更（v0.8 草案の「維持して書かない」は
-    **閉じて開き直すと流出**するため却下記録 (D) へ）。**High 2 = 受入条件 15 の文言限定**（OFF 保存では
-    置き換わらない）/ **M3 除外**（既知の制約）/ **M4 = 同期読み出しの制約を明記** /
-    **M5 = 破棄確認モーダルの fail-fast ガードをタスク定義へ**。
-  - **task_07c 完了**: `build_runtime_data_from_split` で **`hotkey_presets_individual` キーがある場合だけ
-    `hotkey_presets_path` を runtime へ載せる**（1 行削除 + 4 行追加）。テスト 5 本追加。
-    **`reviewer` = 完了可（必須修正なし）**。参考指摘 1 件（新規テストで `_load_keymap_set` ヘルパーを
-    再利用できる・任意）。
+  【**task_07d 完了 = config 外パスの読み出し許容**（暫定仕様 08 **§2【O2】v0.8**・受入条件 15）】
+  - **読み出し用 `resolve_individual_hotkey_presets_read_path(runtime)` を新設**（フラグ真 + 非空なら
+    **config 外もそのまま返す**）。`build_runtime_data_from_split` と `describe_hotkey_presets_source` の
+    内容判定がこれを使う。**書き込み用 `resolve_individual_hotkey_presets_path` は無変更**で、
+    保存先算出・別名保存の複製・【O4】ガードはそちらを使い続ける（**2 本立て**）。
+  - `describe_hotkey_presets_source` の `invalid` を廃し **`external` / `external_missing`** を追加。
+    `dialogs.py` の文言を「config 外のファイルを読み込み中。次の保存で管理下へ移ります」へ差し替え
+    （**「無効」の語を廃止**）。
+  - テストは **tests +5 / −1**（v0.7 の「config 外は読まない」を固定していた
+    `test_outside_individual_presets_path_uses_global_without_rewriting_path` を削除）、
+    **tests_ui は既存 1 本を書き換え**（【O3】リダイレクト維持 + **外部ファイル不変** +
+    パスが管理下へ置き換わる、まで検証）。
+  - **`reviewer` = 完了可**。参考指摘 = 読み出し用解決が `config_root` を取らないため、
+    **将来 `config_root=""` から呼ぶ経路が増えたら cwd 基準解決のリスク**（現状その経路は無い＝実害なし）。
+  - 【前ターン】実機目視の 3 指摘を **v0.8** として確定し、**task_07c 完了**（残置パスの遮断）。
+    経緯と敵対的レビュー 5 件の採否は `decisions.md` の「仕様確定 v0.8」節が正。
 result_files:
-  - instructions/history/08_per_keymap_set_presets.md（**v0.8 へ改訂**）
-  - .claude_data/state/decisions.md（仕様確定 v0.8 + 敵対的レビュー 5 件の採否）
-  - instructions/phase/09_per_keymap_set_presets/phase.md（タスク 3 行追加 + v0.8 との矛盾解消）
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_07_integration_check.md（目視表を v0.8 へ・**項目 7b 追加**）
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_07c_residual_path_blocking.md（新規）
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_07d_external_path_read.md（新規）
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_07e_toggle_reload_and_off_write.md（新規）
-  - keyseq/application/config_service/split_loading.py
+  - keyseq/application/config_service/split_loading.py（読み出し用解決の新設・状態値 external / external_missing）
+  - keyseq/presentation/dialogs.py（`format_preset_manager_source_labels` の文言）
   - tests/test_config_service.py / tests_ui/test_app_ui_flows.py
+  - .claude_data/state/session.md / instructions/phase/current.md
 verified:
   compile: clean
-  tests: pass **233**（基準線 229 → +4）
-  tests_ui: pass **207**（基準線 206 → +1）
+  tests: pass **237**（基準線 233 → +5 / −1）
+  tests_ui: pass **207**（既存 1 本を書き換えたため増減なし）
   smoke: pass
-  review: `reviewer` = **完了可（必須修正なし）**。判定がキーの有無 / false + キーありでパス保持（【N】）/
-    落とす場所が `build_runtime_data_from_split` の 1 箇所（domain・Import 経路へ波及なし）/
-    他キーの引き継ぎ不変 / 後続タスク（07d・07e・08）の先取りなし を確認。**参考指摘 2 件**
-    （`split_payloads` の二重評価 / `show_save_path_rejection` が理由 2 値以外を一律 global_conflict 扱い）
+  review: `reviewer` = **完了可**。書き込み側 3 経路（保存先算出 / 複製 /【O4】ガード）が不変・
+    読み出し用と書き込み用の 2 本立てが混線していない・`displayed_source` の意味不変・
+    後続（07e / 08）の先取りなし を確認
 
 ## next_action
-- **task_07d を `codex-implementer` へ委任**（タスク定義 =
-  `instructions/phase/09_per_keymap_set_presets/tasks/task_07d_external_path_read.md`）。
-  要点 = **読み出し用のパス解決を新設**（config 外も許容）し `build_runtime_data_from_split` から使う /
-  **書き込み用 `resolve_individual_hotkey_presets_path` は現状のまま**（【O3】【O4】・複製が依存）/
-  `describe_hotkey_presets_source` の `invalid` の意味変更 + `format_preset_manager_source_labels` の文言 /
-  **`tests_ui` の既存文言テスト 2 ケースの更新も実装範囲**。
-- 続けて **task_07e**（`tasks/task_07e_toggle_reload_and_off_write.md`）。**07d の後**に着手する。
+- **task_07e を `codex-implementer` へ委任**（タスク定義 =
+  `instructions/phase/09_per_keymap_set_presets/tasks/task_07e_toggle_reload_and_off_write.md`）。
   要点 = トグルで一覧を読み直す（ON = 個別 / OFF = グローバル・**読めなければ組込既定**）+
   **破棄確認モーダル**（`tests_ui` 4 ファイルの fail-fast ガードへ `askyesno` を追加）+
   `App.save_hotkey_presets` の **ON→OFF 特別分岐（`app.py:420-428`）を削除**して OFF もグローバルへ書く。

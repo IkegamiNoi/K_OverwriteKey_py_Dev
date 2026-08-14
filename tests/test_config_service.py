@@ -589,6 +589,29 @@ class IndividualHotkeyPresetsSavingTest(unittest.TestCase):
                         expected_path,
                     )
 
+    def test_readable_outside_individual_path_still_saves_to_default_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            outside_path = os.path.join(tmp, "outside.json")
+            self.service.repository.save_json(
+                outside_path,
+                {"hotkey_presets": [{"label": "Outside", "value": "ctrl+o"}]},
+            )
+
+            self.assertEqual(
+                self.service.resolve_hotkey_presets_save_path(
+                    {
+                        "hotkey_presets_individual": True,
+                        "hotkey_presets_path": outside_path,
+                    },
+                    config_root=root,
+                    keymap_set_path=keymap_set_path,
+                    individual=True,
+                ),
+                "user/hotkey_presets/main.json",
+            )
+
     def test_resolve_save_path_preview_override_redirects_without_mutating_runtime(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
@@ -963,7 +986,7 @@ class HotkeyPresetsSourceDescriptionTest(unittest.TestCase):
                     },
                     config_root=root,
                 ),
-                {"individual_state": "invalid", "displayed_source": "global"},
+                {"individual_state": "external_missing", "displayed_source": "global"},
             )
 
             os.remove(os.path.join(root, global_path))
@@ -976,6 +999,30 @@ class HotkeyPresetsSourceDescriptionTest(unittest.TestCase):
                     config_root=root,
                 )["displayed_source"],
                 "builtin",
+            )
+
+    def test_describes_readable_and_unreadable_outside_individual_paths_separately(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            outside_path = os.path.join(tmp, "outside.json")
+            self.service.repository.save_json(
+                outside_path,
+                {"hotkey_presets": [{"label": "Outside", "value": "ctrl+o"}]},
+            )
+            runtime = {
+                "hotkey_presets_individual": True,
+                "hotkey_presets_path": outside_path,
+            }
+
+            self.assertEqual(
+                self.service.describe_hotkey_presets_source(runtime, config_root=root),
+                {"individual_state": "external", "displayed_source": "individual"},
+            )
+
+            os.remove(outside_path)
+            self.assertEqual(
+                self.service.describe_hotkey_presets_source(runtime, config_root=root),
+                {"individual_state": "external_missing", "displayed_source": "builtin"},
             )
 
 
@@ -1152,7 +1199,7 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
 
             self.assertEqual(loaded["hotkey_presets"], [])
 
-    def test_outside_individual_presets_path_uses_global_without_rewriting_path(self):
+    def test_outside_individual_presets_path_is_loaded(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             global_path = "user/hotkey_presets/global.json"
@@ -1174,7 +1221,54 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
 
             loaded = self._load_keymap_set(root, keymap_set)
 
-            self.assertEqual(loaded["hotkey_presets"], global_presets)
+            self.assertEqual(
+                loaded["hotkey_presets"],
+                [{"label": "Outside", "value": "ctrl+o"}],
+            )
+            self.assertEqual(loaded["hotkey_presets_path"], outside_path)
+
+    def test_unreadable_outside_individual_presets_path_falls_back_to_global_or_builtin(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global.json"
+            outside_path = os.path.join(tmp, "missing-outside.json")
+            global_presets = [{"label": "Global", "value": "ctrl+g"}]
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self._save_presets(root, global_path, global_presets)
+            keymap_set = {
+                "hotkey_presets_individual": True,
+                "hotkey_presets_path": outside_path,
+            }
+
+            self.assertEqual(
+                self._load_keymap_set(root, keymap_set)["hotkey_presets"],
+                global_presets,
+            )
+
+            os.remove(os.path.join(root, global_path))
+            self.assertEqual(
+                self._load_keymap_set(root, keymap_set)["hotkey_presets"],
+                DEFAULT_CONFIG["hotkey_presets"],
+            )
+
+    def test_reading_outside_individual_presets_path_keeps_stored_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            outside_path = os.path.join(tmp, "outside.json")
+            self.service.repository.save_json(
+                outside_path,
+                {"hotkey_presets": [{"label": "Outside", "value": "ctrl+o"}]},
+            )
+            keymap_set = {
+                "hotkey_presets_individual": True,
+                "hotkey_presets_path": outside_path,
+            }
+
+            loaded = self._load_keymap_set(root, keymap_set)
+
             self.assertEqual(loaded["hotkey_presets_path"], outside_path)
 
     def test_individual_presets_are_normalized_when_loaded(self):

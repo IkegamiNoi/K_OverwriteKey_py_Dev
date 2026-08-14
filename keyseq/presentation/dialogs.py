@@ -30,15 +30,20 @@ def format_preset_manager_source_labels(
         save_destination = f"保存先: グローバル（{global_path}）"
 
     source_messages = []
-    if individual_state == "invalid":
+    if individual_state == "external":
+        source_messages.append(
+            "config 外のファイルを読み込み中。次の保存で管理下へ移ります。"
+            f"{default_individual_path} へ保存します"
+        )
+    elif individual_state == "external_missing":
         if individual_for_save:
             source_messages.append(
-                "記録されていた個別の保存先は config 外のため使わず、"
-                f"{individual_path} へ保存します"
+                "記録されていた個別の保存先は config 外にあり、読み込めません。"
+                f"{default_individual_path} へ保存します"
             )
         else:
             source_messages.append(
-                "記録されていた個別の保存先は config 外のため使いません。"
+                "記録されていた個別の保存先は config 外にあり、読み込めません。"
                 "専用を再度有効にすると、"
                 f"{default_individual_path} へ保存します"
             )
@@ -486,7 +491,7 @@ class PresetManagerDialog(tk.Toplevel):
             individual=individual_for_save,
         )
         default_individual_path = individual_path
-        if self._individual_state == "invalid" and not default_individual_path:
+        if self._individual_state in {"external", "external_missing"} and not default_individual_path:
             default_individual_path = self.parent.config_service.resolve_hotkey_presets_save_path(
                 self.parent.data,
                 config_root=self.parent.config_root,
