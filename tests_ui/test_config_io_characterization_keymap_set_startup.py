@@ -48,6 +48,10 @@ def _unexpected_showerror(_title, message, *_args, **_kwargs):
     raise AssertionError(f"想定外のエラーダイアログ: {message}")
 
 
+def _unexpected_askyesno(*_args, **_kwargs):
+    raise AssertionError("想定外の確認ダイアログ。期待するならテスト側で patch すること")
+
+
 def _config_set_io(app):
     # A/A' は KeymapSetIo（task_04 で分割）。task_05 でファサードを削除し App が直接公開する。
     # 同一クラスタ内メソッド（confirm_save_if_dirty / save_keymap_set / apply_loaded_data_to_ui 等）を
@@ -96,12 +100,19 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             "showerror",
             side_effect=_unexpected_showerror,
         )
+        self._askyesno_guard = patch.object(
+            tkinter.messagebox,
+            "askyesno",
+            side_effect=_unexpected_askyesno,
+        )
         self._dependency_confirm_guard.start()
         self._recalculated_overwrite_guard.start()
         self._showerror_guard.start()
+        self._askyesno_guard.start()
         self.addCleanup(self._dependency_confirm_guard.stop)
         self.addCleanup(self._recalculated_overwrite_guard.stop)
         self.addCleanup(self._showerror_guard.stop)
+        self.addCleanup(self._askyesno_guard.stop)
         self.app.data = {"keymaps": [], "triggers": [], "active_keymap_id": ""}
         self.app._selected_trigger_idx = 0
         self.app.config_root = os.getcwd()

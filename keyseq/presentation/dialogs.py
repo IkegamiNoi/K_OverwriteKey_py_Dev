@@ -47,7 +47,12 @@ def format_preset_manager_source_labels(
                 "専用を再度有効にすると、"
                 f"{default_individual_path} へ保存します"
             )
-    if displayed_source == "global" and individual_state != "off":
+    if not individual_for_save and displayed_source == "builtin":
+        source_messages.append(
+            "グローバルを読み込めませんでした。組込既定を表示中"
+            "（OK でグローバルを作成します）"
+        )
+    elif displayed_source == "global" and individual_state != "off":
         source_messages.append("グローバルを表示中")
     elif displayed_source == "builtin":
         source_messages.append("読み込めませんでした（既定を表示中）")
@@ -400,6 +405,7 @@ class PresetManagerDialog(tk.Toplevel):
         self._temp = safe_deepcopy(parent.data.get("hotkey_presets", []))
         if not isinstance(self._temp, list):
             self._temp = []
+        self._loaded_temp = safe_deepcopy(self._temp)
 
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
@@ -447,7 +453,7 @@ class PresetManagerDialog(tk.Toplevel):
             source_frame,
             text="この構成セット専用にする",
             variable=self.individual_var,
-            command=self._update_source_labels,
+            command=self._reload_presets_for_individual_toggle,
         )
         self.individual_check.grid(row=0, column=0, sticky="w")
         if not self._keymap_set_saved:
@@ -510,6 +516,56 @@ class PresetManagerDialog(tk.Toplevel):
         self.save_destination_var.set(save_destination)
         self.source_var.set(source)
         self.individual_unavailable_var.set(availability)
+
+    def _reload_presets_for_individual_toggle(self):
+        individual_for_save = bool(self.individual_var.get())
+        replacement = self._toggle_preset_replacement(individual_for_save)
+        if replacement is None:
+            self._update_toggle_source(individual_for_save)
+            self._update_source_labels()
+            return
+
+        if self._temp != self._loaded_temp and self._temp != replacement:
+            if not messagebox.askyesno(
+                "プリセットの切替",
+                "編集中の内容は破棄されます。切り替えますか？",
+                parent=self,
+            ):
+                self.individual_var.set(not individual_for_save)
+                return
+
+        self._temp = safe_deepcopy(replacement)
+        self._loaded_temp = safe_deepcopy(replacement)
+        self._update_toggle_source(individual_for_save)
+        self._refresh()
+        self._update_source_labels()
+
+    def _toggle_preset_replacement(self, individual_for_save: bool) -> list | None:
+        if individual_for_save:
+            runtime = {**self.parent.data, "hotkey_presets_individual": True}
+            return self.parent.config_service.load_individual_hotkey_presets(
+                runtime,
+                config_root=self.parent.config_root,
+            )
+
+        presets = self.parent.config_service.load_global_hotkey_presets(
+            config_root=self.parent.config_root,
+        )
+        if presets is not None:
+            return presets
+        return self.parent.config_service.new_default_data()["hotkey_presets"]
+
+    def _update_toggle_source(self, individual_for_save: bool) -> None:
+        runtime = {
+            **self.parent.data,
+            "hotkey_presets_individual": individual_for_save,
+        }
+        source = self.parent.config_service.describe_hotkey_presets_source(
+            runtime,
+            config_root=self.parent.config_root,
+        )
+        self._individual_state = source["individual_state"]
+        self._displayed_source = source["displayed_source"]
 
     def _on_double_click(self, _event=None):
         """プリセット一覧をダブルクリックしたら編集を開く"""

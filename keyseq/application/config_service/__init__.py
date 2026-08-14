@@ -574,6 +574,19 @@ class ConfigService:
     def load_global_hotkey_presets(self, *, config_root: str) -> list[Any] | None:
         return split_loading.load_global_hotkey_presets(self, config_root=config_root)
 
+    def load_individual_hotkey_presets(
+        self,
+        runtime: dict[str, Any],
+        *,
+        config_root: str,
+    ) -> list | None:
+        stored_path = split_loading.resolve_individual_hotkey_presets_read_path(runtime)
+        return split_loading.load_hotkey_presets_file(
+            self,
+            stored_path,
+            config_root=config_root,
+        )
+
     def describe_hotkey_presets_source(
         self,
         runtime: dict[str, Any],
