@@ -240,13 +240,15 @@ def build_runtime_data_from_split(
     for key in (
         *HOOK_KEY_FIELDS,
         "hotkey_presets_individual",
-        "hotkey_presets_path",
         "keyboard_layout",
         "keyboard_show_physical_key_labels",
         "debug_jis_special_key_events",
     ):
         if key in keymap_set:
             runtime[key] = safe_deepcopy(keymap_set.get(key))
+
+    if "hotkey_presets_individual" in keymap_set and "hotkey_presets_path" in keymap_set:
+        runtime["hotkey_presets_path"] = safe_deepcopy(keymap_set.get("hotkey_presets_path"))
 
     runtime["hook_keys_individual"] = resolve_hook_keys_individual(keymap_set)
     if not runtime["hook_keys_individual"]:

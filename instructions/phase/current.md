@@ -8,8 +8,11 @@
 
 - **アクティブなフェーズ: [09_per_keymap_set_presets](09_per_keymap_set_presets/phase.md)**
   （keymap_set ごとの個別プリセット・起票 **2026-08-09**）。
-  - 主入力（確定設計）: [暫定仕様 08](../history/08_per_keymap_set_presets.md)（**v0.6**・ユーザー確定済）。
+  - 主入力（確定設計）: [暫定仕様 08](../history/08_per_keymap_set_presets.md)（**v0.8**・ユーザー確定済）。
     モード: **暫定仕様先行**。番号対応: **phase 09 / 暫定 08 / decisions_archive 09**。
+  - 進捗: **task_01〜07b + task_07c 完了**。**task_07 の実機目視で見つかった 3 件**を
+    **v0.8** として確定し、是正を **task_07c（完了）/ task_07d / task_07e** へ分割した。
+    **次 = task_07d → task_07e → 実機目視のやり直し → task_08（正本反映）**。
   - 確定の要点: グローバル既定を **`user/hotkey_presets/global/default.json`** へ移し
     （**移行は手動・2 段**）、個別は `user/hotkey_presets/<stem>.json` /
     keymap_set の**旧キー `hotkey_presets_path` を個別パスとして再利用**し
@@ -39,7 +42,7 @@
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔着手中〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
   04〜08 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
-  08=個別プリセット〔**v0.6・使用中**〕）。次採番は **`09_<topic>`**。
+  08=個別プリセット〔**v0.8・使用中**〕）。次採番は **`09_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。06 まで起票済・次採番は **`07_<topic>`**。
 
 ## 次フェーズ候補（参考）

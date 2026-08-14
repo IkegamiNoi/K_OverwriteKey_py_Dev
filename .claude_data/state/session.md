@@ -4,98 +4,97 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-10T19:00:00
-phase: `instructions/phase/09_per_keymap_set_presets`（**task_07b 完了 / task_07 は実機目視待ち**。暫定仕様 08 は **v0.7・ユーザー確定済**）
-last_commit_location: claude/task-05-progression-a013e2 ※現在地はセッション開始時の git 実測値が正
+last_updated: 2026-08-15T02:40:00
+phase: `instructions/phase/09_per_keymap_set_presets`（**暫定仕様 08 を v0.8 へ改訂・ユーザー確定済**。**task_07c 完了 / task_07d・07e 未着手**。task_07 の実機目視はやり直し待ち）
+last_commit_location: claude/preset-file-save-reference-903f03 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 09 は task_07 の 2 本立てレビューで見つかったグローバル上書き経路を task_07b で塞ぎ、自動確認は全て green。残るは task_07 の実機目視（16 項目・ユーザー実施）→ task_08 正本反映**。
-mode: pending_review
+focus: **task_07 の実機目視で見つかった 3 件（残置パス / トグル時の上書き / config 外パス）を仕様 v0.8 として確定し、是正タスク 07c・07d・07e へ分割。07c は完了（green + reviewer 完了可）で、次は 07d → 07e → 目視やり直し**。
+mode: implementing
 
 ## last_action
-ts: 2026-08-10T19:00:00
+ts: 2026-08-15T02:40:00
 who: main
 summary: |
-  【phase 09 task_07（統合確認）の 2 本立てレビュー → **task_07b = 保存先ガードの是正**
-  （暫定仕様 08 **§2【G】【O4】v0.7**・受入条件 9 / 11 / 18）】
-  - **`deep-reviewer` と `codex-adversarial-reviewer` が独立に同じ穴（B1）を検出**
-    （phase.md が「2 本立てを省略しない」とした狙いどおり）。両者とも**設計の骨格は
-    正しく実現されている**判定で、作り直しは不要。
-  - **B1**: config.json が `user/hotkey_presets/` **直下**を指し、その名前が構成セットの stem と
-    一致すると、**専用プリセットとグローバルが同一ファイルの別名**になり、
-    **専用側の編集が全構成セットのグローバルへ漏れ続ける**（一度きりの損失ではなく継続的なエイリアス）。
-    到達には config.json の手編集が要る（**アプリはこのキーを書かない**＝
-    `build_startup_payload` は既存キーを引き継ぐだけ）が、**一度書かれると round-trip で永久に保持**される。
-  - **ユーザー確定 = ガードを入れる**（判断根拠: 関門は予約ディレクトリ規則で**どうせ作る**ので
-    **追加コストが比較 1 個**。半分だけ実装して残りを開ける動機が無い）。
-  - **暫定仕様を v0.7 へ改訂**: ①**【G】に `global/` の予約規定**（グローバルはここに置く前提を明文化）
-    ②**【O4】保存先ガード新設** = **`global/` 配下** または **グローバルの読み先と同一** なら**拒否**
-    ③**未定義だった 3 挙動を既知の制約として明記**（N3 残置パスの初回 ON / N4 複製失敗時の成否 /
-    N6 OFF 復帰時にグローバルが読めない場合）。**挙動は変えない**。
-    ④§3-1 に payload 正規化（N2）/ 受入条件 18 を追加。
-  - 実装: `individual_hotkey_presets_save_rejection_reason`（application・理由 2 値）+
-    `hotkey_presets_io.show_save_path_rejection`（文言 2 種・**モーダルはこのファイルへ集約**）+
-    `app.py` は **`write_presets` の前**に判定して `False`（`data`・dirty は完全に不変）+
-    `split_payloads` の `hotkey_presets_path` を `to_config_relative_or_absolute` へ。
-  - **ON → OFF の確定と OFF のままの保存は対象外**（復旧経路・通常経路を塞がない）。
-  - **見送り**: symlink/junction の追随（`is_path_within` の realpath 化は canonical identity 比較
-    全体へ波及・スコープ外）/ **N5**（Import は task_06 で強制 OFF・新規作成は data ごと差し替わるため
-    **到達経路が残っていない**）。
-  - **【運用】サブエージェントがセッション上限で 2 本とも失敗**したため、**実測はメインが直接実行**した。
+  【**実機目視の 3 指摘 → 暫定仕様 v0.8 確定 → 是正タスク 3 本へ分割 → task_07c 完了**】
+  - **ユーザーの実機目視（task_07 §3 の項目 2 / 7 / 10）で 3 件**。**いずれも実装バグではなく
+    v0.7 の仕様どおりの挙動**だったが、実運用で破壊的なため**仕様側を改訂**した。
+    - **項目 2**: 個別ファイルが `default.json` になる。**原因を実データで特定** =
+      `config/user/keymap_sets/keymap_set1〜3.json`（phase 08 以前）に `hotkey_presets_individual`
+      **キーが無く** `hotkey_presets_path` が**旧グローバル `user/hotkey_presets/default.json`** のまま
+      残っており、v0.7 は**フラグだけ OFF に倒してパスは runtime へ載せていた**ため
+      **初回 ON + OK の保存先が残置パス**になっていた（【M】の無警告共有が既定で発生・【O4】も素通り）。
+    - **項目 7**: OFF → ON で**グローバルの内容が個別ファイルへ上書き**（【I 撤回】+【E】の帰結）。
+    - **項目 10**: config 外パスは**読み出しでも無効**（【O2】v0.4）だったが、ユーザーの意図は
+      「**読み出すが保存は管理下へ新規作成**」。
+  - **ユーザー確定 = v0.8**: ①**フラグキーが無ければ残置パスも落とす**（false + キーありは保持＝【N】）
+    ②**トグルで一覧を切替先から読み直す**（【I】再採用・**編集済みなら破棄確認**）+
+    **【H2】撤回で OFF の OK もグローバルへ書く** ③**config 外は読み出しのみ許容**（書き込みは【O3】のまま）。
+  - **`codex-adversarial-reviewer` = needs-attention（High 2 / Medium 3）**。**High 1 を採用**し、
+    **「グローバルが読めなければ一覧を組込既定へ差し替える」**へ変更（v0.8 草案の「維持して書かない」は
+    **閉じて開き直すと流出**するため却下記録 (D) へ）。**High 2 = 受入条件 15 の文言限定**（OFF 保存では
+    置き換わらない）/ **M3 除外**（既知の制約）/ **M4 = 同期読み出しの制約を明記** /
+    **M5 = 破棄確認モーダルの fail-fast ガードをタスク定義へ**。
+  - **task_07c 完了**: `build_runtime_data_from_split` で **`hotkey_presets_individual` キーがある場合だけ
+    `hotkey_presets_path` を runtime へ載せる**（1 行削除 + 4 行追加）。テスト 5 本追加。
+    **`reviewer` = 完了可（必須修正なし）**。参考指摘 1 件（新規テストで `_load_keymap_set` ヘルパーを
+    再利用できる・任意）。
 result_files:
-  - instructions/history/08_per_keymap_set_presets.md（**v0.7 へ改訂・【G】予約規定 +【O4】新設 + 既知の制約 3 件**）
-  - instructions/phase/09_per_keymap_set_presets/phase.md（task_07 / task_07b 行）
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_07_integration_check.md（新規・起票）
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_07b_global_collision_guard.md（新規・起票）
-  - keyseq/application/config_service/{__init__.py,split_loading.py,split_payloads.py}
-  - keyseq/presentation/app.py / controllers/config_io/hotkey_presets_io.py
+  - instructions/history/08_per_keymap_set_presets.md（**v0.8 へ改訂**）
+  - .claude_data/state/decisions.md（仕様確定 v0.8 + 敵対的レビュー 5 件の採否）
+  - instructions/phase/09_per_keymap_set_presets/phase.md（タスク 3 行追加 + v0.8 との矛盾解消）
+  - instructions/phase/09_per_keymap_set_presets/tasks/task_07_integration_check.md（目視表を v0.8 へ・**項目 7b 追加**）
+  - instructions/phase/09_per_keymap_set_presets/tasks/task_07c_residual_path_blocking.md（新規）
+  - instructions/phase/09_per_keymap_set_presets/tasks/task_07d_external_path_read.md（新規）
+  - instructions/phase/09_per_keymap_set_presets/tasks/task_07e_toggle_reload_and_off_write.md（新規）
+  - keyseq/application/config_service/split_loading.py
   - tests/test_config_service.py / tests_ui/test_app_ui_flows.py
 verified:
   compile: clean
-  tests: pass **229**（基準線 225 → +4）
-  tests_ui: pass **206**（基準線 202 → +4）
+  tests: pass **233**（基準線 229 → +4）
+  tests_ui: pass **207**（基準線 206 → +1）
   smoke: pass
-  review: `reviewer` = **採用（完了可）**。グローバルが上書きされない / ON→OFF と OFF のままの保存を
-    誤って拒否しない / 拒否時 data・dirty 完全不変 / `canonical_path` を比較専用に留めている /
-    `"global"` を定数の dirname から導出 / `resolve_hotkey_presets_save_path` の契約不変 /
-    読み出し側【O2】・`dialogs.py` 不変 / 空文字とキー順の保持 を確認。**参考指摘 2 件**
+  review: `reviewer` = **完了可（必須修正なし）**。判定がキーの有無 / false + キーありでパス保持（【N】）/
+    落とす場所が `build_runtime_data_from_split` の 1 箇所（domain・Import 経路へ波及なし）/
+    他キーの引き継ぎ不変 / 後続タスク（07d・07e・08）の先取りなし を確認。**参考指摘 2 件**
     （`split_payloads` の二重評価 / `show_save_path_rejection` が理由 2 値以外を一律 global_conflict 扱い）
 
 ## next_action
-- **【ユーザー作業】task_07 の実機目視 16 項目**を実施し、結果をメインセッションへ報告する。
-  観点リストは **`tasks/task_07_integration_check.md` §3 の表**が正（受入条件との対応付き）。
-  **特に重要 = 項目 11**（無効パスで既定へ寄る＝v0.6【O3】）と **項目 15**（**手動移行の 2 段**）。
-  **task_07b のガードが入った状態**で行うこと（`global/` 配下や config.json と同一への保存が拒否される）。
-  - 目視で不具合が出たら **task_07 内で是正**（最小差分 + `reviewer` 再実施）。
-  - 2 本立てレビューは**実施済み**（`deep-reviewer` + `codex-adversarial-reviewer`）。
-    残った指摘の扱いは decisions.md の「task_07 レビュー」節に確定済み。
+- **task_07d を `codex-implementer` へ委任**（タスク定義 =
+  `instructions/phase/09_per_keymap_set_presets/tasks/task_07d_external_path_read.md`）。
+  要点 = **読み出し用のパス解決を新設**（config 外も許容）し `build_runtime_data_from_split` から使う /
+  **書き込み用 `resolve_individual_hotkey_presets_path` は現状のまま**（【O3】【O4】・複製が依存）/
+  `describe_hotkey_presets_source` の `invalid` の意味変更 + `format_preset_manager_source_labels` の文言 /
+  **`tests_ui` の既存文言テスト 2 ケースの更新も実装範囲**。
+- 続けて **task_07e**（`tasks/task_07e_toggle_reload_and_off_write.md`）。**07d の後**に着手する。
+  要点 = トグルで一覧を読み直す（ON = 個別 / OFF = グローバル・**読めなければ組込既定**）+
+  **破棄確認モーダル**（`tests_ui` 4 ファイルの fail-fast ガードへ `askyesno` を追加）+
+  `App.save_hotkey_presets` の **ON→OFF 特別分岐（`app.py:420-428`）を削除**して OFF もグローバルへ書く。
+- 3 タスク完了後 **【ユーザー作業】task_07 の実機目視をやり直す**
+  （`tasks/task_07_integration_check.md` §3 の表。**項目 2 / 5 / 6 / 7 / 7b / 10 / 11 が v0.8 の期待値**。
+  特に重要 = **7b**〔グローバル削除状態で ON→OFF〕/ **11**〔【O3】〕/ **15**〔手動移行の 2 段〕）。
 - その後 **task_08 = 正本反映（最終）**: `data_schema.md` §5.10 改訂 + §5.5 / §5.4 / §5.8.8 / §5.1 +
   `codebase_map.md` / 暫定仕様 08 を凍結 / `decisions_archive/09_per_keymap_set_presets.md` 作成 /
   `current.md` 完了更新 / `backlog/INDEX.md` の idea_08 を `INDEX_done.md` へ移動 / `/refactor_check`。
-  - **task_08 の着手前に直すもの（レビュー指摘 N8）**: **暫定仕様 §7 の反映対象記述**が
-    v0.3 時点の「**プリセット単独の注入が入るため**」「**トグル時の単独注入**」のままで、
-    **v0.4【I 撤回】および実装（単独注入 API なし）と矛盾**する。**直さないと正本に誤記が入る**。
-    `phase.md:21` の「主入力（v0.4）」表記も現行 v0.7 へ更新する。
   - **正本へ追加する項目（N9）**: 入口台帳 §5.8.8 へ **「OFF 復帰時のグローバル再読込」経路**を
-    追加する（E1〜E5 のどれでもない新しい供給点。hook キー単独注入と同型の例外として列挙）。
-  - **v0.5 →v0.6 の反転（【O3】）/ v0.7 の【O4】/ dirty 規則 / task_05b が task_05c で
-    置き換わった経緯**を decisions_archive へ集約すること。
-- その後 **task_08 = 正本反映（最終）**: `data_schema.md` §5.10 改訂 + §5.5 / §5.4 / §5.8.8 / §5.1 +
-  `codebase_map.md` / 暫定仕様 08 を凍結 / `decisions_archive/09_per_keymap_set_presets.md` 作成 /
-  `current.md` 完了更新 / `backlog/INDEX.md` の idea_08 を `INDEX_done.md` へ移動 / `/refactor_check`。
-  - **v0.5 →v0.6 の反転（【O3】）と dirty 規則**、**task_05b が task_05c で置き換わった経緯**を
-    decisions_archive へ集約すること。
-- 以降の流れ（各タスク共通）: 実装委任（**テスト追加まで含める / 実行は依頼しない**）→
-  `verifier` で実測 → `reviewer` → `/save_state` + `/task_commit`。
+    追加する（E1〜E5 のどれでもない新しい供給点）。**プリセット単独の注入 API は増やさない**ことも明記。
+  - **v0.5→v0.6 の反転（【O3】）/ v0.7 の【O4】/ v0.8 の 3 改訂 / dirty 規則 /
+    task_05b が task_05c で置き換わった経緯**を decisions_archive へ集約すること。
+- 各タスク共通の流れ: 実装委任（**テスト追加まで含める / 実行は依頼しない**）→ `verifier` で実測 →
+  `reviewer` → `/save_state` + `/task_commit`。
 
 ## blockers
 - **task_07 の完了に実機目視（ユーザー作業）が必要**。それまでフェーズ完了判定は出せない。
-- 【参考】**サブエージェントがセッション上限で失敗することがある**（19:20 リセット）。
-  その場合 `verifier` の実測はメインが直接実行してよい（**必須レビューは代替不可**）。
+  **07c / 07d / 07e が揃うまで目視はやり直さない**（途中で見ても期待値が変わる）。
 
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
   グローバル `py` は依存欠落で tests_ui/smoke が落ちる。
+- **【暫定仕様 08 は v0.8 が正】**版が多いので**古い版の条項を引かない**。v0.8 で変わったのは 3 点 =
+  ①**フラグキーが無ければ残置 `hotkey_presets_path` も落とす**（判定はキーの**有無**。false + キーありは
+  【N】で保持）②**【I】再採用**（トグルで一覧を読み直す・**【H2】撤回で OFF の OK もグローバルへ書く**・
+  **グローバルが読めなければ組込既定へ差し替える**）③**【O2】config 外は読み出しのみ許容**
+  （**書き込みは【O3】のまま管理下へ寄せる**＝読み書きで非対称なのは意図どおり）。
 - **【phase 08 の成果は正本が正】** `spec_detail/data_schema.md` **§5.10**（プリセットの全体ライブラリ）
   + **§5.8.8**（**全体デフォルトの入口台帳 E1〜E5 / L1〜L3 / N1**）+ §5.1 の例外 + `codebase_map.md`。
   暫定仕様 07 は**凍結済**。要点だけ再掲 = ①runtime を新規化・置換したら

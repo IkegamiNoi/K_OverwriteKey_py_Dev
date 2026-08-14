@@ -370,6 +370,56 @@ class AppUiFlowsTest(unittest.TestCase):
         finally:
             self.app.data = before
 
+    def test_legacy_residual_path_saves_to_keymap_set_stem(self):
+        before = copy.deepcopy(self.app.data)
+        presets = [{"label": "Individual", "value": "ctrl+i"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                keymap_set_path = os.path.join(
+                    config_root,
+                    "user",
+                    "keymap_sets",
+                    "legacy.json",
+                )
+                legacy_path = os.path.join(
+                    config_root,
+                    "user",
+                    "hotkey_presets",
+                    "default.json",
+                )
+                self.app.config_service.repository.save_json(
+                    keymap_set_path,
+                    {"hotkey_presets_path": "user/hotkey_presets/default.json"},
+                )
+                self.app.data = self.app.config_service.load_runtime_data_from_keymap_set_path(
+                    keymap_set_path,
+                    config_root=config_root,
+                )
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app,
+                    "keymap_set_path",
+                    keymap_set_path,
+                ), patch.object(self.app.dirty_tracker, "set_dirty") as set_dirty, patch(
+                    "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.showerror"
+                ) as showerror, patch(
+                    "keyseq.presentation.controllers.config_io.keymap_set_io.filedialog.asksaveasfilename"
+                ) as asksaveasfilename:
+                    self.assertTrue(self.app.save_hotkey_presets(presets, individual=True))
+
+                self.assertEqual(
+                    self.app.config_service.repository.load_json(
+                        os.path.join(config_root, "user", "hotkey_presets", "legacy.json")
+                    ),
+                    {"hotkey_presets": presets},
+                )
+                self.assertFalse(os.path.exists(legacy_path))
+                set_dirty.assert_called_with(True)
+                showerror.assert_not_called()
+                asksaveasfilename.assert_not_called()
+        finally:
+            self.app.data = before
+
     def test_save_hotkey_presets_failure_preserves_all_data_for_individual_target(self):
         before = copy.deepcopy(self.app.data)
         presets = [{"label": "New", "value": "ctrl+n"}]

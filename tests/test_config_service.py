@@ -383,6 +383,91 @@ class HotkeyPresetIndividualKeymapSetSchemaTest(unittest.TestCase):
 
                     self.assertFalse(loaded["hotkey_presets_individual"])
 
+    def test_legacy_residual_path_is_not_loaded_or_reused(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            global_path = "user/hotkey_presets/global/default.json"
+            global_presets = [{"label": "Global", "value": "ctrl+g"}]
+            legacy_path = "user/hotkey_presets/default.json"
+            self.service.repository.save_json(
+                os.path.join(root, "config.json"),
+                {"hotkey_presets_path": global_path},
+            )
+            self.service.repository.save_json(
+                os.path.join(root, global_path),
+                {"hotkey_presets": global_presets},
+            )
+            self.service.repository.save_json(
+                os.path.join(root, legacy_path),
+                {"hotkey_presets": [{"label": "Legacy", "value": "ctrl+l"}]},
+            )
+
+            loaded = self._load_keymap_set(
+                root,
+                {"hotkey_presets_path": legacy_path},
+            )
+
+            self.assertFalse(loaded["hotkey_presets_individual"])
+            self.assertEqual(loaded["hotkey_presets_path"], "")
+            self.assertEqual(loaded["hotkey_presets"], global_presets)
+
+    def test_false_individual_flag_keeps_hotkey_presets_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            loaded = self._load_keymap_set(
+                os.path.join(tmp, "config"),
+                {
+                    "hotkey_presets_individual": False,
+                    "hotkey_presets_path": "user/hotkey_presets/main.json",
+                },
+            )
+
+            self.assertFalse(loaded["hotkey_presets_individual"])
+            self.assertEqual(loaded["hotkey_presets_path"], "user/hotkey_presets/main.json")
+
+    def test_true_individual_flag_loads_presets_from_stored_path(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            individual_path = "user/hotkey_presets/main.json"
+            individual_presets = [{"label": "Individual", "value": "ctrl+i"}]
+            self.service.repository.save_json(
+                os.path.join(root, individual_path),
+                {"hotkey_presets": individual_presets},
+            )
+
+            loaded = self._load_keymap_set(
+                root,
+                {
+                    "hotkey_presets_individual": True,
+                    "hotkey_presets_path": individual_path,
+                },
+            )
+
+            self.assertTrue(loaded["hotkey_presets_individual"])
+            self.assertEqual(loaded["hotkey_presets"], individual_presets)
+
+    def test_legacy_residual_path_uses_keymap_set_stem_for_individual_save(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            self.service.repository.save_json(
+                keymap_set_path,
+                {"hotkey_presets_path": "user/hotkey_presets/default.json"},
+            )
+            runtime = self.service.load_runtime_data_from_keymap_set_path(
+                keymap_set_path,
+                config_root=root,
+            )
+
+            self.assertEqual(
+                self.service.resolve_hotkey_presets_save_path(
+                    runtime,
+                    config_root=root,
+                    keymap_set_path=keymap_set_path,
+                    individual=True,
+                ),
+                "user/hotkey_presets/main.json",
+            )
+
 
 class GlobalHotkeyPresetsSavingTest(unittest.TestCase):
     def setUp(self):
