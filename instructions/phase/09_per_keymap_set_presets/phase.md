@@ -102,6 +102,7 @@ phase 08 で作った「アプリ全体のライブラリ」（正本 §5.10）�
 | task_07c | **残置パスの遮断**（暫定仕様 **v0.8【§3-5】**。task_07 の実機目視 項目 2）= フラグキーを持たない keymap_set は `hotkey_presets_path` も引き継がない |
 | task_07d | **config 外パスの読み出し許容**（暫定仕様 **v0.8【O2】**。実機目視 項目 10）= 読み出し用のパス解決を分離し、書き込みは【O3】のまま |
 | task_07e | **トグル時の一覧の読み直し + 破棄確認 + OFF での書き込み**（暫定仕様 **v0.8【I】【H2 撤回】**。実機目視 項目 7）。**07c / 07d の後に着手する** |
+| task_07f | **個別へ書く直前の上書き確認 + OFF で開いた時点の一覧確定**（暫定仕様 **v0.9【S】【I2】**・受入条件 19 / 20。task_07 のフェーズ完了判定前レビュー `deep-reviewer` 指摘1・2） |
 | task_08 | **正本反映（最終）**: `data_schema.md` **§5.10 改訂** + §5.5 / §5.4 / §5.8.8 / §5.1 + `codebase_map.md` / 暫定仕様 08 を凍結 / `decisions_archive/09_per_keymap_set_presets.md` 作成 / `current.md` 完了更新 / `backlog/INDEX.md` の idea_08 を完了へ（`INDEX_done.md` へ移動）/ `/refactor_check` 実行 |
 
 - タスク定義は着手するものから順に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。
