@@ -195,29 +195,34 @@ def individual_hotkey_presets_save_rejection_reason(
     return ""
 
 
-def individual_hotkey_presets_overwrite_conflict(
+def describe_individual_hotkey_presets_overwrite(
     service,
     stored_path: str,
     loaded_presets: list[Any] | None,
     *,
     config_root: str,
-) -> bool:
-    """個別プリセットの保存時に上書き確認が必要かを返す。"""
-    if loaded_presets is None:
-        return False
+) -> dict[str, bool | list[Any] | None]:
+    """個別プリセットの上書き確認要否と保存先の既存内容を返す。"""
+    existing_presets = None
 
     resolved_path = service.resolve_config_path(stored_path, config_root)
-    if not resolved_path or not os.path.exists(resolved_path):
-        return False
+    exists = bool(resolved_path and os.path.exists(resolved_path))
+    if exists:
+        existing_presets = load_hotkey_presets_file(
+            service,
+            stored_path,
+            config_root=config_root,
+        )
 
-    existing_presets = load_hotkey_presets_file(
-        service,
-        stored_path,
-        config_root=config_root,
+    conflict = (
+        loaded_presets is not None
+        and exists
+        and (
+            existing_presets is None
+            or existing_presets != normalize_hotkey_presets(loaded_presets)
+        )
     )
-    if existing_presets is None:
-        return True
-    return existing_presets != normalize_hotkey_presets(loaded_presets)
+    return {"conflict": conflict, "existing": existing_presets}
 
 
 def describe_hotkey_presets_source(

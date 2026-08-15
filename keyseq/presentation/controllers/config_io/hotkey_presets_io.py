@@ -1,4 +1,5 @@
-from tkinter import messagebox
+import tkinter as tk
+from tkinter import messagebox, ttk
 
 
 class HotkeyPresetsIo:
@@ -38,11 +39,45 @@ class HotkeyPresetsIo:
             )
         messagebox.showerror("専用プリセットを保存できません", message)
 
-    def confirm_overwrite(self, *, stored_path: str) -> bool:
-        return messagebox.askyesno(
-            "専用プリセットの上書き確認",
-            "保存先には既にプリセットファイルがあり、内容が異なります。\n"
-            "上書きしますか？\n"
-            f"保存先: {stored_path}",
-            parent=self._app,
-        )
+    def confirm_overwrite(self, *, stored_path: str, existing: list | None) -> str:
+        """個別プリセットの上書き確認を 3 択で表示する。"""
+        result = {"choice": "cancel"}
+        dialog = tk.Toplevel(self._app)
+        dialog.title("専用プリセットの上書き確認")
+        dialog.resizable(False, False)
+        frame = ttk.Frame(dialog, padding=12)
+        frame.pack(fill="both", expand=True)
+        if existing is None:
+            description = "保存先には既にファイルがありますが、プリセットとして読み込めません。"
+        else:
+            description = "保存先には既にプリセットファイルがあり、表示中の一覧と内容が異なります。"
+        ttk.Label(
+            frame,
+            text=f"{description}\n保存先: {stored_path}",
+            justify="left",
+            wraplength=560,
+        ).pack(fill="both", expand=True)
+        buttons = ttk.Frame(frame)
+        buttons.pack(anchor="e", pady=(12, 0))
+
+        def choose(choice: str) -> None:
+            result["choice"] = choice
+            dialog.destroy()
+
+        ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right")
+        if existing is not None:
+            ttk.Button(
+                buttons,
+                text="既存を読み込む",
+                command=lambda: choose("adopt"),
+            ).pack(side="right", padx=(0, 8))
+        ttk.Button(
+            buttons,
+            text="上書きする",
+            command=lambda: choose("overwrite"),
+        ).pack(side="right", padx=(0, 8))
+        dialog.transient(self._app)
+        dialog.grab_set()
+        dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
+        dialog.wait_window()
+        return result["choice"]

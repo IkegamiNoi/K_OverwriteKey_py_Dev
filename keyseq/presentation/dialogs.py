@@ -682,10 +682,23 @@ class PresetManagerDialog(tk.Toplevel):
         self.listbox.selection_set(j)
 
     def on_ok(self):
+        def on_overwrite_conflict(stored_path: str, existing: list | None) -> str:
+            choice = self.parent.hotkey_presets_io.confirm_overwrite(
+                stored_path=stored_path,
+                existing=existing,
+            )
+            if choice == "adopt" and existing is not None:
+                self._temp = safe_deepcopy(existing)
+                self._loaded_temp = safe_deepcopy(existing)
+                self._refresh()
+                self._update_source_labels()
+            return choice
+
         if self.parent.save_hotkey_presets(
             self._temp,
             individual=bool(self.individual_var.get()),
             loaded_presets=self._loaded_temp,
+            on_overwrite_conflict=on_overwrite_conflict,
         ):
             self.destroy()
 
