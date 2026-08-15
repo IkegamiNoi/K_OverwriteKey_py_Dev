@@ -15,14 +15,15 @@
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
 2. `instructions/phase/current.md` → [phase 09 の phase.md](../../instructions/phase/09_per_keymap_set_presets/phase.md) を読む
 3. 主入力の確定設計 = [history/08_per_keymap_set_presets.md](../../instructions/history/08_per_keymap_set_presets.md)
-   （**v0.7・全条項が確定済**。**§2 が確定事項の集約**。§3-2 解決順序 / §3-3 保存 / §3-4 UI が実装の規範）
+   （**v0.8・全条項が確定済**。**§2 が確定事項の集約**。§3-2 解決順序 / §3-3 保存 / §3-4 UI が実装の規範。
+   **版が多いので古い版の条項を引かないこと**）
 4. 実機目視の観点 = [tasks/task_07_integration_check.md](../../instructions/phase/09_per_keymap_set_presets/tasks/task_07_integration_check.md) **§3 の表**
 5. CLAUDE.md → `.claude/rules/` の順に必要分を読む
 6. 過去の判断は `.claude_data/state/decisions.md`（**末尾に進行中の phase 09 の節がある**）+
    「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 09 は task_07 の 2 本立てレビューで見つかったグローバル上書き経路を task_07b で塞ぎ、自動確認は全て green。残るは task_07 の実機目視（16 項目・ユーザー実施）→ task_08 正本反映**。
+**task_07 の実機目視で見つかった 3 件（残置パス / トグル時の上書き / config 外パス）を仕様 v0.8 として確定し、是正 3 タスク（07c・07d・07e）を全て完了。残るは実機目視のやり直し〔ユーザー作業〕→ task_08 正本反映**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -32,56 +33,65 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（phase 09 task_07b 完了時・コミット `3bf2e05`）:
-compile **clean** / tests **229** / tests_ui **206** / smoke **pass** / manual **未実施（task_07 の目視が残っている）**。
+直近の実測（phase 09 task_07e 完了時・コミット `b243ccc`）:
+compile **clean** / tests **237** / tests_ui **213** / smoke **pass** / manual **やり直し待ち（v0.8 で期待値が変わった）**。
 **件数が減ったら退行を疑う**。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー作業・これが残り全部】task_07 の実機目視 16 項目**。観点は
+- **【ユーザー作業・これが残り全部】task_07 の実機目視をやり直す**。観点は
   `tasks/task_07_integration_check.md` **§3 の表**が正（受入条件との対応付き）。
-  **特に重要 = 項目 11**（無効な個別パスで既定パスへ寄る＝【O3】）と **項目 15**（**手動移行の 2 段**）。
-  **task_07b のガードが入った状態**で行う（`global/` 配下や config.json と同一への保存が拒否される）。
-  目視で不具合が出たら **task_07 内で是正**（最小差分 + `reviewer` 再実施）。
-- 2 本立てレビュー（`deep-reviewer` + `codex-adversarial-reviewer`）は**実施済み**。
-  **指摘の採否は決着済み**（`decisions.md` の「task_07 レビュー」節に一覧）。
+  **v0.8 で期待値が変わったのは項目 2 / 5 / 6 / 7 / 10 / 11、項目 7b は新規追加**。
+  - **7b**（グローバルを削除した状態で ON→OFF → **組込既定で作り直され、個別の内容が流出しない**。
+    **閉じて開き直してから OK しても同じ**）が最重要。次点で **2**（phase 08 以前の
+    `keymap_set1〜3.json` で ON にしても `<stem>.json` になる）/ **11**（【O3】）/ **15**（手動移行の 2 段）。
+  - 目視で不具合が出たら **task_07 内で是正**（最小差分 + `reviewer` 再実施）。
+    **仕様変更を伴うなら枝番タスクへ切り出す**（07b〜07e と同じ流儀）。
 - 次に **task_08 = 正本反映（最終）**: `data_schema.md` §5.10 改訂 + §5.5 / §5.4 / §5.8.8 / §5.1 +
   `codebase_map.md` / 暫定仕様 08 を凍結 / `decisions_archive/09_per_keymap_set_presets.md` 作成 /
   `current.md` 完了更新 / `backlog/INDEX.md` の idea_08 を `INDEX_done.md` へ移動 / `/refactor_check`。
-  - **task_08 の着手前に直す（レビュー指摘 N8）**: **暫定仕様 §7 の反映対象記述**が v0.3 時点の
-    「**プリセット単独の注入が入るため**」「**トグル時の単独注入**」のままで、**v0.4【I 撤回】および
-    実装（単独注入 API なし）と矛盾**する。**直さないと正本に誤記が入る**。`phase.md:21` の
-    「主入力（v0.4）」表記も v0.7 へ更新する。
   - **正本へ追加する（N9）**: 入口台帳 §5.8.8 へ **「OFF 復帰時のグローバル再読込」経路**を追加
-    （E1〜E5 のどれでもない新しい供給点。hook キー単独注入と同型の例外として列挙）。
+    （E1〜E5 のどれでもない新しい供給点）。**プリセット単独の注入 API は増やさない**ことも明記する。
+  - **v0.5→v0.6 の反転（【O3】）/ v0.7 の【O4】/ v0.8 の 3 改訂 / dirty 規則 /
+    task_05b が task_05c で置き換わった経緯**を decisions_archive へ集約する。
 - 各タスクの流れ: タスク定義起票 → codex-implementer へ委任 → **verifier で実測** → reviewer → コミット。
 
 ## 現フェーズ（phase 09 = keymap_set ごとの個別プリセット）の要点
 
-**確定設計は暫定仕様 08（v0.7）が正**。**実装は task_01〜07b まで完了**（残りは実機目視 → task_08）。
+**確定設計は暫定仕様 08（v0.8）が正**。**実装は task_01〜07e まで完了**（残りは実機目視 → task_08）。
 
 - **ファイル配置**: グローバル既定 = **`user/hotkey_presets/global/default.json`**（**移行は手動 2 段**＝
   ①ファイル移動 ②**config.json の明示値も書き換え**）/ 個別 = **`user/hotkey_presets/<stem>.json`**（直下）。
-  **`global/` は予約ディレクトリ**（v0.7【G】）。
+  **`global/` は予約ディレクトリ**【G】。
 - **keymap_set のキー**: **`hotkey_presets_individual`（bool・既定 false）** + **`hotkey_presets_path`**。
-  **【最重要】判定は値のみ**。**`resolve_hook_keys_individual`（フラグ無し + 非空なら ON）を流用しない**
-  （流用すると phase 08 の**残置パスが個別指定として復活**する）。**OFF でもパスは空文字化しない**【N】。
+  - **フラグの判定は値のみ**（`resolve_hook_keys_individual` の「フラグ無し + 非空なら ON」を流用しない）。
+  - **【v0.8】フラグ*キー*が無ければ `hotkey_presets_path` も runtime へ載せない**（判定は**キーの有無**。
+    phase 08 以前の残置パスが**保存先として復活する**のを塞ぐ）。**false + キーありならパスは保持**【N】。
 - **解決順序**: **個別が有効なら個別 → `None` ならグローバル → それも `None` なら置き換えない**。
   **判定は `is None`**（`[]` は falsy。真偽で書くと「読めた空」がフォールバックする）。
-- **有効判定は 1 関数**（`resolve_individual_hotkey_presets_path`）で、**読み出し / 保存先算出 / UI 表示の
-  3 箇所が共有**する（分岐を二重化しない）。**比較専用 API**（`is_path_within` / `canonical_path`）を使い、
-  **canonical 値を保存値・表示値へ混ぜない**。
-- **書込先の分岐**: 有効な個別パス → そのパス / **未設定 “または” config 外（無効）→ 既定パスへ寄せて
-  新規作成**【O3・v0.6 で拒否から反転】/ OFF → グローバル。
+- **【v0.8・重要】パス解決は読み出し用と書き込み用の 2 本立て**:
+  - 読み出し = `resolve_individual_hotkey_presets_read_path(runtime)` … **config 外もそのまま返す**
+    （`build_runtime_data_from_split` / `describe_hotkey_presets_source` / マネージャのトグルが使う）。
+  - 書き込み = `resolve_individual_hotkey_presets_path(service, runtime, config_root=)` … **config 外は空文字**
+    （保存先算出 / 別名保存の複製 /【O4】ガードが使う）。**この 2 つを混線させない**。
+  - 比較専用 API（`is_path_within` / `canonical_path`）の値を**保存値・表示値へ混ぜない**。
+- **書込先の分岐**: 有効な個別パス → そのパス / **未設定 “または” config 外 → 既定パスへ寄せて新規作成**
+  【O3・v0.6 で拒否から反転】/ OFF → グローバル。
   **その後【O4・v0.7】の最終関門**で、保存先が **`global/` 配下** または **グローバルの読み先と同一**なら
-  **拒否**（理由 2 種・文言は `hotkey_presets_io` に集約）。**ON→OFF の確定と OFF のままの保存は対象外**。
+  **拒否**（理由 2 種・文言は `hotkey_presets_io` に集約）。**OFF での保存は対象外**。
+- **【v0.8】マネージャのトグルは一覧も切り替える**【I 再採用】: **ON = 個別ファイル** /
+  **OFF = グローバル、読めなければ組込既定**（`config_service.new_default_data()["hotkey_presets"]`）。
+  ON で読めないときだけ**現在の一覧を引き継ぐ**【E】。**編集済みなら破棄確認**（いいえ でチェックを戻す。
+  比較基準は `_loaded_temp` = 直近に読み込んだ一覧）。**トグルは runtime を変更しない**（反映は OK のみ）。
+- **【v0.8】OFF での OK もグローバルへ書く**【H2 撤回】。読めない場合に書かれるのは**組込既定**なので、
+  **個別の内容がグローバルへ流出する経路は無い**（トグル直後でも再オープン後でも同じ結果）。
 - **dirty**: **フラグ変化時** + **`hotkey_presets_path` の値の変化時**だけ。**内容編集では立てない**。
-- **書き手はプリセットマネージャ 1 本**。**保存カスケードは書かない**。
-  別名保存の追随は **`shutil.copyfile` によるファイル複製のみ**（runtime の内容を書き出さない）で、
-  **保存先そのものが変わったとき（`save_path != keymap_set_path`）だけ**走る。
+- **書き手はプリセットマネージャ 1 本**。**保存カスケードは書かない**。**単独注入 API を作らない**。
+  別名保存の追随は **`shutil.copyfile` によるファイル複製のみ**で、**保存先が変わったときだけ**走る。
 - **E1〜E4 は常にグローバル**（`apply_global_defaults` は無変更）。**E5（Import）は強制 OFF**
   （`load_legacy_runtime_data` 直後・`apply_global_defaults` 直前の 1 箇所）。
-- **既知の制約（v0.7 で明記・挙動は変えない）**: 残置パスの初回 ON で旧ファイルを上書き /
-  複製失敗は本体保存ごと中止 / OFF 復帰時にグローバルが読めないと個別内容が維持され次の保存で書かれる。
+- **既知の制約（挙動は変えない）**: フラグキーを持つ keymap_set の `hotkey_presets_path` 手編集は
+  記録どおり使う / 複製失敗は本体保存ごと中止 / **壊れたグローバルは退避されず組込既定で上書きされる** /
+  config 外パスの読み出しは同期実行なので到達不能パスでは待たされる。
 
 ## 直前フェーズ（phase 08 = プリセットの config.json グローバル化）の要点
 
@@ -99,22 +109,25 @@ compile **clean** / tests **229** / tests_ui **206** / smoke **pass** / manual *
 
 ## 注意事項・blockers
 - **blockers: task_07 の完了に実機目視（ユーザー作業）が必要**。それまでフェーズ完了判定は出せない。
-- **【運用】サブエージェントがセッション上限で失敗することがある**。その場合 `verifier` の実測は
-  **メインが直接実行してよい**（`grep -v ResourceWarning | tail` で出力を絞る）。
-  **必須レビュー（`reviewer` / `deep-reviewer`）は代替不可**。
-- **【Codex 運用・重要】詰まったジョブに `taskkill /T` を使わない**（PID 再利用で**無関係な
-  プロセスを巻き込む**。phase 09 task_04 で `node_repl` 約 22 個を巻き込んだ実害あり）。
-  **`codex_operations.md` §4 の state 手修復**（backup → `cancelled` へ書換・`.log` は保全）に倒す。
+  **v0.8 の実装 3 本は揃っている**ので、目視はいつでもやり直せる。
+- **【Codex 運用・最重要】フォワーダが 2 分で切れても Codex ワーカーは生き続ける**（node ラッパだけが死に、
+  ログパイプが切れて companion status は `running` のまま停滞する）。**ハングと即断しない**。
+  判別は**作業ツリーの更新時刻**（対象ファイルが更新され続けていれば作業中）。
+  **書き換え途中で `verifier` / `reviewer` を回すと偽の結果を掴む**（task_07e で実際に踏み、両方やり直した）。
+  ワーカー終了後は state が自己更新されないため `codex_operations.md` §4 で手修復する。
+- **【Codex 運用】詰まったジョブに `taskkill /T` を使わない**（PID 再利用で**無関係なプロセスを巻き込む**。
+  task_04 で `node_repl` 約 22 個を巻き込んだ実害あり）。**§4 の state 手修復**に倒す。
 - **【Codex 運用】**フォワーダが最終出力を返さず完了通知だけ来る / 差分 0 件で返ることがある
   → `SendMessage` で同じフォワーダを再開して回収する。**Codex 申告のテスト結果は信用せず必ず実測**。
   **報告が「実装物なし」でも鵜呑みにせず `git status` / `git log` で自分で確かめる**。
-  フォワーダは**メインが入れた `instructions/` の差分を「未申告の scope creep」として報告してくる**ことがある。
 - **【config_service の配置制約】`config_service` はパッケージ**（`keyseq/application/config_service/`）で
   **ConfigService 本体は `__init__.py`**。テストが
   `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を差し替えるため、
   この配置を崩すと壊れる。同じ理由で**パス基盤メソッドを兄弟モジュールへ移さない**。
   兄弟 = `save_plan_execution.py` / `split_payloads.py` / `save_path_resolution.py` / `split_loading.py`。
   抽出関数は **`service` を第 1 引数に取る**。**兄弟から `__init__` を import しない**（循環回避）。
+  **presentation から兄弟モジュールを直接 import しない**（公開面は `__init__.py` = `ConfigService` の
+  委譲メソッド。task_07e の `reviewer` 指摘で 1 度是正した）。
 - **【最重要・2 度踏んだ罠】パス表記の混在事故**: runtime の `source_path` 3 種と
   `hotkey_presets_path` は **config 配下なら相対**で保持される（config 外は絶対・区切りは `/` 正規化）。
   **相対値を `os.path.abspath` / `dirname` / `exists` / `join` へ解決なしで渡すと cwd 基準で解決される**。
@@ -140,9 +153,8 @@ compile **clean** / tests **229** / tests_ui **206** / smoke **pass** / manual *
   テスト内の `AssertionError` も広い `except Exception` に捕まり、**失敗が「ハング」に化ける**。
   tests_ui の 4 ファイル（`test_child_save_dialog` / `test_config_io_characterization` /
   `test_config_io_characterization_keymap_set_startup` / `test_app_ui_flows`）の `setUp` に
-  **fail-fast ガード**がある。期待するテストは個別 patch で上書きする。新しいモーダルを増やすときは
-  **ガードが見ているファイル（`hotkey_presets_io` 等）へモーダルを集約する**のが安全。
-  **ハングしたら `messagebox` / `filedialog` を全遮断して単独実行**する。
+  **fail-fast ガード**がある（`showerror` + **`askyesno`**）。新しいモーダルを増やすときは
+  **4 ファイル全部のガードを更新する**。**ハングしたら `messagebox` / `filedialog` を全遮断して単独実行**する。
 - **【tests_ui の罠】`AppUiFlowsTest` は `setUpClass` で App を 1 つ共有する**。
   `dirty_tracker.has_unsaved_changes()` は個別 dirty も OR するため、
   **絶対値で assert せず前後の変化・`set_dirty` の呼出有無で見る**。
@@ -159,7 +171,7 @@ compile **clean** / tests **229** / tests_ui **206** / smoke **pass** / manual *
 - **【罠・再発済】worktree と main は別コピー**。`.claude_data/`・`instructions/`・code とも、main 側の絶対パス
   （パスに `.claude\worktrees\<name>\` を含まない）を編集すると commit から漏れる。
 - **【罠】Bash ツールは Git Bash**。PowerShell の here-string（`@'...'@`）は**コミットメッセージに `@` が混入する**。
-  複数行メッセージは**スクラッチパッドへファイルを書いて `git commit -F <file>`** が確実。
+  複数行メッセージは **heredoc + `git commit -F -`** が確実。
 - **【罠】`git grep` は追跡済みのみ検索**。新規（未追跡）ファイルの確認は**直接 `grep`**。行数計測は `wc -l`。
 - **【傾向】reviewer が「完了可」でも実測・別レビューで問題が出る**。**判定はテストの実測が優先**。
   fail が出たら**まず production か test かを切り分ける**。**フェーズ完了時は Claude 側 × Codex 側の
