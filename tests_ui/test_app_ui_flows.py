@@ -59,7 +59,7 @@ class AppUiFlowsTest(unittest.TestCase):
             side_effect=_unexpected_showerror,
         )
         self._askyesno_guard = patch(
-            "keyseq.presentation.dialogs.messagebox.askyesno",
+            "keyseq.presentation.controllers.config_io.hotkey_presets_io.messagebox.askyesno",
             side_effect=_unexpected_askyesno,
         )
         self._showerror_guard.start()
@@ -883,31 +883,272 @@ class AppUiFlowsTest(unittest.TestCase):
         finally:
             self.app.data = before
 
+    def test_save_hotkey_presets_overwrite_confirmation_rejects_or_writes(self):
+        before = copy.deepcopy(self.app.data)
+        loaded_presets = [{"label": "Loaded", "value": "ctrl+l"}]
+        edited_presets = [{"label": "Edited", "value": "ctrl+e"}]
+        stored_presets = [{"label": "Stored", "value": "ctrl+s"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                stored_path = "user/hotkey_presets/main.json"
+                target_path = os.path.join(config_root, stored_path)
+                self.app.config_service.repository.save_json(
+                    target_path,
+                    {"hotkey_presets": stored_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = ""
+                expected_data = copy.deepcopy(self.app.data)
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app,
+                    "keymap_set_path",
+                    os.path.join(config_root, "user", "keymap_sets", "main.json"),
+                ), patch.object(
+                    self.app.hotkey_presets_io,
+                    "confirm_overwrite",
+                    return_value=False,
+                ) as confirm_overwrite, patch.object(
+                    self.app.hotkey_presets_io,
+                    "write_presets",
+                ) as write_presets, patch.object(
+                    self.app.dirty_tracker,
+                    "set_dirty",
+                ) as set_dirty:
+                    self.assertFalse(
+                        self.app.save_hotkey_presets(
+                            edited_presets,
+                            individual=True,
+                            loaded_presets=loaded_presets,
+                        )
+                    )
+
+                confirm_overwrite.assert_called_once_with(stored_path=stored_path)
+                write_presets.assert_not_called()
+                set_dirty.assert_not_called()
+                self.assertEqual(self.app.data, expected_data)
+                self.assertEqual(
+                    self.app.config_service.repository.load_json(target_path),
+                    {"hotkey_presets": stored_presets},
+                )
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app,
+                    "keymap_set_path",
+                    os.path.join(config_root, "user", "keymap_sets", "main.json"),
+                ), patch.object(
+                    self.app.hotkey_presets_io,
+                    "confirm_overwrite",
+                    return_value=True,
+                ) as confirm_overwrite:
+                    self.assertTrue(
+                        self.app.save_hotkey_presets(
+                            edited_presets,
+                            individual=True,
+                            loaded_presets=loaded_presets,
+                        )
+                    )
+
+                confirm_overwrite.assert_called_once_with(stored_path=stored_path)
+                self.assertEqual(
+                    self.app.config_service.repository.load_json(target_path),
+                    {"hotkey_presets": edited_presets},
+                )
+        finally:
+            self.app.data = before
+
+    def test_save_hotkey_presets_skips_confirmation_for_safe_targets(self):
+        before = copy.deepcopy(self.app.data)
+        loaded_presets = [{"label": "Loaded", "value": "ctrl+l"}]
+        edited_presets = [{"label": "Edited", "value": "ctrl+e"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                keymap_set_path = os.path.join(config_root, "user", "keymap_sets", "main.json")
+                stored_path = "user/hotkey_presets/personal.json"
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, stored_path),
+                    {"hotkey_presets": loaded_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = stored_path
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app, "keymap_set_path", keymap_set_path
+                ), patch.object(
+                    self.app.hotkey_presets_io, "confirm_overwrite"
+                ) as confirm_overwrite:
+                    self.assertTrue(
+                        self.app.save_hotkey_presets(
+                            edited_presets,
+                            individual=True,
+                            loaded_presets=loaded_presets,
+                        )
+                    )
+                confirm_overwrite.assert_not_called()
+
+                self.app.data["hotkey_presets_path"] = ""
+                fresh_path = os.path.join(config_root, "user", "hotkey_presets", "main.json")
+                if os.path.exists(fresh_path):
+                    os.remove(fresh_path)
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app, "keymap_set_path", keymap_set_path
+                ), patch.object(
+                    self.app.hotkey_presets_io, "confirm_overwrite"
+                ) as confirm_overwrite:
+                    self.assertTrue(
+                        self.app.save_hotkey_presets(
+                            edited_presets,
+                            individual=True,
+                            loaded_presets=loaded_presets,
+                        )
+                    )
+                confirm_overwrite.assert_not_called()
+
+                self.app.data["hotkey_presets_individual"] = False
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app.hotkey_presets_io, "confirm_overwrite"
+                ) as confirm_overwrite:
+                    self.assertTrue(
+                        self.app.save_hotkey_presets(
+                            edited_presets,
+                            individual=False,
+                            loaded_presets=loaded_presets,
+                        )
+                    )
+                confirm_overwrite.assert_not_called()
+        finally:
+            self.app.data = before
+
+    def test_save_hotkey_presets_confirms_after_save_as_uses_existing_copy_target(self):
+        before = copy.deepcopy(self.app.data)
+        copied_presets = [{"label": "Copied", "value": "ctrl+c"}]
+        displayed_presets = [{"label": "Original", "value": "ctrl+o"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                source_path = "user/hotkey_presets/original.json"
+                stored_path = "user/hotkey_presets/renamed.json"
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, source_path),
+                    {"hotkey_presets": displayed_presets},
+                )
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, stored_path),
+                    {"hotkey_presets": copied_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = source_path
+                keymap_set_path = os.path.join(
+                    config_root,
+                    "user",
+                    "keymap_sets",
+                    "renamed.json",
+                )
+                self.assertEqual(
+                    self.app.config_service.relocate_individual_hotkey_presets(
+                        self.app.data,
+                        config_root=config_root,
+                        keymap_set_path=keymap_set_path,
+                    ),
+                    stored_path,
+                )
+                self.app.data["hotkey_presets_path"] = stored_path
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app,
+                    "keymap_set_path",
+                    keymap_set_path,
+                ), patch.object(
+                    self.app.hotkey_presets_io,
+                    "confirm_overwrite",
+                    return_value=False,
+                ) as confirm_overwrite:
+                    self.assertFalse(
+                        self.app.save_hotkey_presets(
+                            displayed_presets,
+                            individual=True,
+                            loaded_presets=displayed_presets,
+                        )
+                    )
+
+                confirm_overwrite.assert_called_once_with(stored_path=stored_path)
+        finally:
+            self.app.data = before
+
+    def test_save_hotkey_presets_confirms_when_external_path_redirects_to_existing_target(self):
+        before = copy.deepcopy(self.app.data)
+        loaded_presets = [{"label": "External", "value": "ctrl+x"}]
+        stored_presets = [{"label": "Stored", "value": "ctrl+s"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root, tempfile.TemporaryDirectory() as outside_root:
+                external_path = os.path.join(outside_root, "external.json")
+                self.app.config_service.repository.save_json(
+                    external_path,
+                    {"hotkey_presets": loaded_presets},
+                )
+                stored_path = "user/hotkey_presets/main.json"
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, stored_path),
+                    {"hotkey_presets": stored_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = external_path
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app,
+                    "keymap_set_path",
+                    os.path.join(config_root, "user", "keymap_sets", "main.json"),
+                ), patch.object(
+                    self.app.hotkey_presets_io,
+                    "confirm_overwrite",
+                    return_value=False,
+                ) as confirm_overwrite:
+                    self.assertFalse(
+                        self.app.save_hotkey_presets(
+                            [{"label": "Edited", "value": "ctrl+e"}],
+                            individual=True,
+                            loaded_presets=loaded_presets,
+                        )
+                    )
+
+                confirm_overwrite.assert_called_once_with(stored_path=stored_path)
+        finally:
+            self.app.data = before
+
     def test_preset_manager_dialog_closes_only_after_successful_save(self):
         presets = [{"label": "Edited", "value": "ctrl+e"}]
         failed_dialog = SimpleNamespace(
             parent=self.app,
             _temp=presets,
+            _loaded_temp=[{"label": "Loaded", "value": "ctrl+l"}],
             individual_var=SimpleNamespace(get=Mock(return_value=True)),
             destroy=Mock(),
         )
         with patch.object(self.app, "save_hotkey_presets", return_value=False) as save_hotkey_presets:
             PresetManagerDialog.on_ok(failed_dialog)
 
-        save_hotkey_presets.assert_called_once_with(presets, individual=True)
+        save_hotkey_presets.assert_called_once_with(
+            presets,
+            individual=True,
+            loaded_presets=failed_dialog._loaded_temp,
+        )
         failed_dialog.destroy.assert_not_called()
         self.assertEqual(failed_dialog._temp, presets)
 
         successful_dialog = SimpleNamespace(
             parent=self.app,
             _temp=presets,
+            _loaded_temp=[{"label": "Loaded", "value": "ctrl+l"}],
             individual_var=SimpleNamespace(get=Mock(return_value=False)),
             destroy=Mock(),
         )
         with patch.object(self.app, "save_hotkey_presets", return_value=True) as save_hotkey_presets:
             PresetManagerDialog.on_ok(successful_dialog)
 
-        save_hotkey_presets.assert_called_once_with(presets, individual=False)
+        save_hotkey_presets.assert_called_once_with(
+            presets,
+            individual=False,
+            loaded_presets=successful_dialog._loaded_temp,
+        )
         successful_dialog.destroy.assert_called_once_with()
 
     def test_preset_manager_cancel_keeps_runtime_and_dirty_unchanged(self):
@@ -928,6 +1169,106 @@ class AppUiFlowsTest(unittest.TestCase):
         save_hotkey_presets.assert_not_called()
         set_dirty.assert_not_called()
         self.assertEqual(self.app.data, before)
+
+    def test_preset_manager_open_off_uses_global_or_defaults_before_ok(self):
+        before = copy.deepcopy(self.app.data)
+        individual_presets = [{"label": "Individual", "value": "ctrl+i"}]
+        global_presets = [{"label": "Global", "value": "ctrl+g"}]
+        try:
+            for global_file_presets in (global_presets, None):
+                with self.subTest(global_file_presets=global_file_presets), tempfile.TemporaryDirectory() as config_root:
+                    global_path = os.path.join(
+                        config_root,
+                        self.app.config_service.HOTKEY_PRESETS_RELATIVE_PATH,
+                    )
+                    if global_file_presets is not None:
+                        self.app.config_service.repository.save_json(
+                            global_path,
+                            {"hotkey_presets": global_file_presets},
+                        )
+                    expected_presets = (
+                        global_file_presets
+                        if global_file_presets is not None
+                        else self.app.config_service.new_default_data()["hotkey_presets"]
+                    )
+                    self.app.data["hotkey_presets_individual"] = False
+                    self.app.data["hotkey_presets_path"] = "user/hotkey_presets/personal.json"
+                    self.app.data["hotkey_presets"] = individual_presets
+
+                    with patch.object(self.app, "config_root", config_root), patch.object(
+                        self.app.hook, "suspend_hook_for_dialog"
+                    ), patch.object(self.app.hook, "resume_hook_after_dialog"), patch.object(
+                        self.app.dirty_tracker, "set_dirty"
+                    ) as set_dirty:
+                        dialog = PresetManagerDialog(self.app)
+                        self.assertEqual(dialog._temp, expected_presets)
+                        self.assertEqual(dialog._loaded_temp, expected_presets)
+                        dialog.on_ok()
+
+                    self.assertEqual(self.app.data["hotkey_presets"], expected_presets)
+                    self.assertEqual(
+                        self.app.config_service.repository.load_json(global_path),
+                        {"hotkey_presets": expected_presets},
+                    )
+                    set_dirty.assert_not_called()
+        finally:
+            self.app.data = before
+
+    def test_preset_manager_open_on_keeps_current_list(self):
+        before = copy.deepcopy(self.app.data)
+        individual_presets = [{"label": "Individual", "value": "ctrl+i"}]
+        global_presets = [{"label": "Global", "value": "ctrl+g"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, self.app.config_service.HOTKEY_PRESETS_RELATIVE_PATH),
+                    {"hotkey_presets": global_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = "user/hotkey_presets/missing.json"
+                self.app.data["hotkey_presets"] = individual_presets
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app.hook, "suspend_hook_for_dialog"
+                ), patch.object(self.app.hook, "resume_hook_after_dialog"):
+                    dialog = PresetManagerDialog(self.app)
+                    self.assertEqual(dialog._temp, individual_presets)
+                    self.assertEqual(dialog._loaded_temp, individual_presets)
+                    dialog.destroy()
+        finally:
+            self.app.data = before
+
+    def test_preset_manager_open_off_then_cancel_keeps_runtime_and_files_unchanged(self):
+        before = copy.deepcopy(self.app.data)
+        individual_presets = [{"label": "Individual", "value": "ctrl+i"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                global_path = os.path.join(
+                    config_root,
+                    self.app.config_service.HOTKEY_PRESETS_RELATIVE_PATH,
+                )
+                self.app.data["hotkey_presets_individual"] = False
+                self.app.data["hotkey_presets_path"] = "user/hotkey_presets/personal.json"
+                self.app.data["hotkey_presets"] = individual_presets
+                expected_data = copy.deepcopy(self.app.data)
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app.hook, "suspend_hook_for_dialog"
+                ), patch.object(self.app.hook, "resume_hook_after_dialog"), patch.object(
+                    self.app.dirty_tracker, "set_dirty"
+                ) as set_dirty:
+                    dialog = PresetManagerDialog(self.app)
+                    self.assertEqual(
+                        dialog._temp,
+                        self.app.config_service.new_default_data()["hotkey_presets"],
+                    )
+                    dialog.destroy()
+
+                self.assertEqual(self.app.data, expected_data)
+                self.assertFalse(os.path.exists(global_path))
+                set_dirty.assert_not_called()
+        finally:
+            self.app.data = before
 
     def test_preset_manager_toggle_on_reloads_individual_and_ok_preserves_global(self):
         before = copy.deepcopy(self.app.data)

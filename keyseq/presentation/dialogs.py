@@ -436,6 +436,10 @@ class PresetManagerDialog(tk.Toplevel):
         )
         self._individual_state = source["individual_state"]
         self._displayed_source = source["displayed_source"]
+        if parent.data.get("hotkey_presets_individual") is not True:
+            replacement = self._toggle_preset_replacement(False)
+            self._temp = safe_deepcopy(replacement)
+            self._loaded_temp = safe_deepcopy(replacement)
         self._global_hotkey_presets_path = parent.config_service.load_global_hotkey_presets_path(
             config_root=parent.config_root,
         )
@@ -681,6 +685,7 @@ class PresetManagerDialog(tk.Toplevel):
         if self.parent.save_hotkey_presets(
             self._temp,
             individual=bool(self.individual_var.get()),
+            loaded_presets=self._loaded_temp,
         ):
             self.destroy()
 

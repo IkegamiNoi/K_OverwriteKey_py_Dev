@@ -721,6 +721,84 @@ class IndividualHotkeyPresetsSavingTest(unittest.TestCase):
                 "",
             )
 
+    def test_individual_overwrite_conflict_is_false_without_existing_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertFalse(
+                self.service.individual_hotkey_presets_overwrite_conflict(
+                    "user/hotkey_presets/missing.json",
+                    [{"label": "Loaded", "value": "ctrl+l"}],
+                    config_root=os.path.join(tmp, "config"),
+                )
+            )
+
+    def test_individual_overwrite_conflict_is_false_for_equal_normalized_presets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            stored_path = "user/hotkey_presets/personal.json"
+            self.service.repository.save_json(
+                os.path.join(root, stored_path),
+                {"hotkey_presets": [{"label": " Loaded ", "value": "CTRL+L"}]},
+            )
+
+            self.assertFalse(
+                self.service.individual_hotkey_presets_overwrite_conflict(
+                    stored_path,
+                    [{"label": "Loaded", "value": "ctrl+l"}],
+                    config_root=root,
+                )
+            )
+
+    def test_individual_overwrite_conflict_is_true_for_different_presets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            stored_path = "user/hotkey_presets/personal.json"
+            self.service.repository.save_json(
+                os.path.join(root, stored_path),
+                {"hotkey_presets": [{"label": "Stored", "value": "ctrl+s"}]},
+            )
+
+            self.assertTrue(
+                self.service.individual_hotkey_presets_overwrite_conflict(
+                    stored_path,
+                    [{"label": "Loaded", "value": "ctrl+l"}],
+                    config_root=root,
+                )
+            )
+
+    def test_individual_overwrite_conflict_is_true_for_unreadable_file(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            stored_path = "user/hotkey_presets/personal.json"
+            self.service.repository.save_json(
+                os.path.join(root, stored_path),
+                {"hotkey_presets": "invalid"},
+            )
+
+            self.assertTrue(
+                self.service.individual_hotkey_presets_overwrite_conflict(
+                    stored_path,
+                    [{"label": "Loaded", "value": "ctrl+l"}],
+                    config_root=root,
+                )
+            )
+
+    def test_individual_overwrite_conflict_is_false_without_loaded_presets(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            stored_path = "user/hotkey_presets/personal.json"
+            self.service.repository.save_json(
+                os.path.join(root, stored_path),
+                {"hotkey_presets": [{"label": "Stored", "value": "ctrl+s"}]},
+            )
+
+            self.assertFalse(
+                self.service.individual_hotkey_presets_overwrite_conflict(
+                    stored_path,
+                    None,
+                    config_root=root,
+                )
+            )
+
     def test_keymap_set_payload_normalizes_hotkey_presets_path_and_keeps_empty_and_order(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")

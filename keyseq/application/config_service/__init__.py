@@ -568,6 +568,20 @@ class ConfigService:
             config_root=config_root,
         )
 
+    def individual_hotkey_presets_overwrite_conflict(
+        self,
+        stored_path: str,
+        loaded_presets: list[Any] | None,
+        *,
+        config_root: str,
+    ) -> bool:
+        return split_loading.individual_hotkey_presets_overwrite_conflict(
+            self,
+            stored_path,
+            loaded_presets,
+            config_root=config_root,
+        )
+
     def load_global_hotkey_presets_path(self, *, config_root: str) -> str:
         return split_loading.load_global_hotkey_presets_path(self, config_root=config_root)
 

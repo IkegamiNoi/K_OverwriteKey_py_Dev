@@ -413,7 +413,13 @@ class App(tk.Tk):
         if before != after:
             self._set_flash_message("プリセットを更新しました。")
 
-    def save_hotkey_presets(self, presets: list, *, individual: bool | None = None) -> bool:
+    def save_hotkey_presets(
+        self,
+        presets: list,
+        *,
+        individual: bool | None = None,
+        loaded_presets: list | None = None,
+    ) -> bool:
         current_individual = self.data.get("hotkey_presets_individual") is True
         target_individual = current_individual if individual is None else individual
 
@@ -433,6 +439,12 @@ class App(tk.Tk):
                     rejection_reason,
                     stored_path=stored_path,
                 )
+                return False
+            if self.config_service.individual_hotkey_presets_overwrite_conflict(
+                stored_path,
+                loaded_presets,
+                config_root=self.config_root,
+            ) and not self.hotkey_presets_io.confirm_overwrite(stored_path=stored_path):
                 return False
         previous_path = self.data.get("hotkey_presets_path")
         if not self.hotkey_presets_io.write_presets(presets, stored_path=stored_path):

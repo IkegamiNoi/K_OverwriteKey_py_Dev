@@ -8,11 +8,12 @@
 
 - **アクティブなフェーズ: [09_per_keymap_set_presets](09_per_keymap_set_presets/phase.md)**
   （keymap_set ごとの個別プリセット・起票 **2026-08-09**）。
-  - 主入力（確定設計）: [暫定仕様 08](../history/08_per_keymap_set_presets.md)（**v0.8**・ユーザー確定済）。
+  - 主入力（確定設計）: [暫定仕様 08](../history/08_per_keymap_set_presets.md)（**v0.9**・ユーザー確定済）。
     モード: **暫定仕様先行**。番号対応: **phase 09 / 暫定 08 / decisions_archive 09**。
-  - 進捗: **task_01〜07b + task_07c・07d・07e 完了**。**task_07 の実機目視で見つかった 3 件**を
-    **v0.8** として確定し、是正 3 タスクを全て完了した。
-    **次 = 実機目視のやり直し〔ユーザー作業〕→ task_08（正本反映）**。
+  - 進捗: **task_01〜07b + task_07c〜07f 完了**。実機目視（v0.8 分）は **2026-08-15 に OK**。
+    その後のフェーズ完了判定前レビューで出た 2 件を **v0.9**（【S】上書き確認 /【I2】OFF 開時の一覧確定）
+    として確定し、**task_07f** で実装した。
+    **次 = 追加 4 項目の実機目視〔ユーザー作業〕→ task_08（正本反映）**。
   - 確定の要点: グローバル既定を **`user/hotkey_presets/global/default.json`** へ移し
     （**移行は手動・2 段**）、個別は `user/hotkey_presets/<stem>.json` /
     keymap_set の**旧キー `hotkey_presets_path` を個別パスとして再利用**し

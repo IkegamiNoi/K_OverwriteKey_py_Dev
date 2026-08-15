@@ -37,3 +37,12 @@ class HotkeyPresetsIo:
                 f"現在の保存先: {stored_path}"
             )
         messagebox.showerror("専用プリセットを保存できません", message)
+
+    def confirm_overwrite(self, *, stored_path: str) -> bool:
+        return messagebox.askyesno(
+            "専用プリセットの上書き確認",
+            "保存先には既にプリセットファイルがあり、内容が異なります。\n"
+            "上書きしますか？\n"
+            f"保存先: {stored_path}",
+            parent=self._app,
+        )
