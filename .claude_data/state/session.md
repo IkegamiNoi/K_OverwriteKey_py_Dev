@@ -4,64 +4,76 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-16T00:00:00
-phase: `instructions/phase/09_per_keymap_set_presets`（**task_07 まで完了＝実装 + 統合確認 + 実機目視がすべて済**。残りは **task_08（正本反映・最終）のみ**）
+last_updated: 2026-08-16T02:00:00
+phase: **なし（phase 09 完了・2026-08-16）**。次フェーズ未確定＝**着手前にユーザーへ方針確認**（`instructions/phase/current.md`）
 last_commit_location: claude/physical-device-visual-check-c4ad73 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **実機目視の残り 4 項目（13 / 17 / 18 / 19）がユーザー報告で OK。task_07（統合確認）完了。残るは task_08 = 正本反映（最終タスク）のみ**。
+focus: **phase 09（keymap_set ごとの個別プリセット）完了**。task_08 = 正本反映まで済み、暫定仕様 08 は凍結。次は**次フェーズの方針決め**（候補 = idea_07 / idea_10 / idea_11 / 提案書 07 のリファクタ）。
 mode: ready
 
 ## last_action
-ts: 2026-08-16T00:00:00
+ts: 2026-08-16T02:00:00
 who: main
 summary: |
-  【**実機目視の残り 4 項目 OK → task_07 完了**】
-  - ユーザー報告により **項目 13 / 17 / 18 / 19**（v0.9・v0.10 分）の実機目視が **OK**。
-    v0.8 分（項目 1〜16）は 2026-08-15 に OK 済みのため、**§3 の目視表は全項目クリア**。
-  - task_07 の完了条件（§1 自動確認 = task_07g 時点で実測 pass / §2 2 本立てレビュー実施済
-    〔指摘は v0.9・v0.10 として確定、idea_10 へ分離〕/ §3 実機目視完了）を**すべて充足**。
-  - コード変更なし（文書のみ）。`current.md` の進捗を「task_07 完了・次は task_08 のみ」へ更新。
+  【**task_08 = 正本反映 完了 → phase 09 完了**】
+  - 正本へ昇格: `data_schema.md` **§5.10 全面改訂**（2 系統 / 移行規則 / **書き込み前の判定 3 段**
+    〔①未設定・空・非文字列・config 外なら既定パスへ寄せ → ②`global/` 配下・グローバル同一なら拒否 →
+    ③内容比較で 3 択の上書き確認〕/ dirty 規則 / 別名保存の複製 / **UI 契約** / 既知の制約）+
+    **§5.10.4** + **§5.8.8**（**P1 = 表示用の再読込**を台帳へ併記・注入 API は増やさない）+
+    §5.5 / §5.4 / §5.1 + `codebase_map.md`。**§5.10 の見出しのみ §5.9 と同型化**（節番号は不変）。
+  - 暫定仕様 08 を**凍結**。`decisions_archive/09_*.md` を作成し `decisions.md` は索引 1 行へ。
+    `current.md` をフェーズ完了状態へ / idea_08 を `INDEX_done.md` へ移動。
+  - **`/refactor_check` = 推奨**（M1 / M2 / M6）→ 提案書 **07**（**未承認**）を起票。
+    `config_service/__init__.py`（734 行）は名前空間 patch の制約があるため**候補送り**。
+  - **レビュー 2 本立ての指摘を反映**（詳細と採否は decisions_archive 末尾）。
+    **ユーザー確定 2 件** = ①別名保存の複製が部分成功する経路 → **制約明記 + idea_11（優先度低）**
+    ②adopt 後の出どころラベルが追従しない → **実装変更なし + 1 行明記**。
 result_files:
-  - instructions/phase/current.md（進捗更新）
-  - .claude_data/state/session.md
+  - instructions/common/spec_detail/data_schema.md / codebase_map.md
+  - instructions/history/08_per_keymap_set_presets.md（凍結）
+  - .claude_data/state/decisions_archive/09_per_keymap_set_presets.md（新規）/ decisions.md（索引化）
+  - instructions/phase/current.md / backlog/INDEX.md / INDEX_done.md / idea_11（新規）
+  - instructions/modified_proposal/07_refactor_per_keymap_set_presets.md（新規・**未承認**）
+  - instructions/phase/09_per_keymap_set_presets/tasks/task_08_spec_promotion.md（新規）
 verified:
-  note: 本更新はコード変更を含まないため再実測なし。直近の実測は task_07g 時点
-    （compile clean / tests 238 / tests_ui 223 / smoke pass）が有効。
-  review: task_07 の二次レビュー（`deep-reviewer` + `codex-adversarial-reviewer`）は実施済み。
-    指摘の採否は v0.9 / v0.10 の仕様確定と idea_10 起票で決着済み。
+  compile: clean
+  tests: pass **238**
+  tests_ui: pass **223**（ハングなし）
+  smoke: pass
+  note: **`keyseq/` `tests/` `tests_ui/` は無変更**（文書のみ）。実測は `verifier`。
+  review: `deep-reviewer` = 修正要（差戻しでない）→ **H1 / H2 / M3〜M8 / L 群を反映済**（L14 のみ除外）。
+    `codex-adversarial-reviewer` = needs-attention（High 3）→ **2 件は文書修正で採用・1 件は idea_11 へ**。
 
 ## next_action
-- **task_08 = 正本反映（最終）**: `data_schema.md` §5.10 改訂 + **§5.10.4（v0.9）** + §5.5 / §5.4 / §5.8.8 / §5.1 +
-  `codebase_map.md` / 暫定仕様 08 を凍結 / `decisions_archive/09_per_keymap_set_presets.md` 作成 /
-  `current.md` 完了更新 / `backlog/INDEX.md` の idea_08 を `INDEX_done.md` へ移動 / `/refactor_check`。
-  - **正本へ追加する項目（N9）**: 入口台帳 §5.8.8 へ **「OFF 復帰時のグローバル再読込」経路**を
-    追加する（E1〜E5 のどれでもない新しい供給点）。**プリセット単独の注入 API は増やさない**ことも明記。
-  - **§5.10.4（v0.9）**: 「読めないときは入口経路ごとの内容で確定する（Import ならインライン値）」は
-    **OFF でマネージャを開いた場合には当てはまらない**（【I2】で表示元へ確定する）ことと、
-    **【S】の上書き確認**を追記する。**【I2】は runtime 注入ではなく表示用再読込**である旨も併記。
-  - **v0.5→v0.6 の反転（【O3】）/ v0.7 の【O4】/ v0.8 の 3 改訂 / v0.9 の【S】【I2】/ dirty 規則 /
-    task_05b が task_05c で置き換わった経緯**を decisions_archive へ集約すること。
-- 各タスク共通の流れ: 実装委任（**テスト追加まで含める / 実行は依頼しない**）→ `verifier` で実測 →
-  `reviewer` → `/save_state` + `/task_commit`。
+- **次フェーズの方針をユーザーへ確認する**（`instructions/phase/current.md`「次フェーズ候補」）。候補:
+  - **提案書 07 のリファクタ**（`dialogs.py` 1016 行の分割 / `PresetManagerDialog.__init__` 99 行 /
+    直値の定数化）。**未承認**。承認する場合は **(a) 追加タスク / (b) 独立ミニ計画**のどちらかを選ぶ
+  - **idea_07**（参照元の掃除・着手可）/ **idea_10**（ネストしたモーダルの grab 復元）/
+    **idea_11**（別名保存の複製ロールバック・優先度低）
+- 新フェーズは `/phase_start` で起票する（番号は **`10_<topic>`** / 暫定仕様は **`09_<topic>`** /
+  提案書は **`08_<topic>`**）。
 
 ## blockers
-- なし（実機目視は **2026-08-16 に全項目 OK**）。task_08 の起票・実施へ進める。
+- なし。
 
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
   グローバル `py` は依存欠落で tests_ui/smoke が落ちる。
-- **【暫定仕様 08 は v0.10 が正】**版が多いので**古い版の条項を引かない**。
-  v0.8 の 3 点 = ①**フラグキーが無ければ残置 `hotkey_presets_path` も落とす**（判定はキーの**有無**。
-  false + キーありは【N】で保持）②**【I】再採用**（トグルで一覧を読み直す・**【H2】撤回で OFF の OK も
-  グローバルへ書く**・**グローバルが読めなければ組込既定へ差し替える**）③**【O2】config 外は読み出しのみ許容**
-  （**書き込みは【O3】のまま管理下へ寄せる**＝読み書きで非対称なのは意図どおり）。
-  v0.9 の 2 点 = ④**【S】個別へ書く直前の上書き確認**（**保存先の実体の内容 vs ダイアログが読み込んだ一覧**で
-  判定。**出どころパスの比較にしない**＝別名保存でコピー先を共有すると素通りするため）
-  ⑤**【I2】OFF で開いた時点の一覧確定**（**ON は対象外**＝【E】の引き継ぎを維持）。
-  v0.10 の 1 点 = ⑥**【S】は 3 択**（上書きする / **既存を読み込む** / キャンセル）。**adopt は一覧と
-  `_loaded_temp` を差し替えるだけで保存も close もしない**（再 OK で内容一致 → 無確認保存）。
-  **破損で読めないときは「既存を読み込む」を出さず 2 択**。**発火条件は v0.9 のまま**。
+- **【個別プリセット（phase 09 の成果）は正本が正】** `spec_detail/data_schema.md` **§5.10**
+  （全体ライブラリと個別指定）+ **§5.8.8**（入口台帳。**E5 = 強制 OFF / P1 = 表示用の再読込**）+
+  §5.5 / §5.4 / §5.1 + `codebase_map.md`。**暫定仕様 08 は凍結済**（経緯の参照用。**条項を実装の根拠に引かない**）。
+  要点だけ再掲 = ①**フラグキーが無ければ残置 `hotkey_presets_path` も落とす**（フラグ自体は**値**、
+  残置パスの遮断は**キーの有無**で判定。false + キーありはパス保持）②**トグルで一覧を読み直す**・
+  **OFF の OK もグローバルへ書く**（読めなければ**組込既定**へ差し替わるので個別の内容は流出しない）・
+  **OFF で開いた時点も表示元へ確定**（ON は対象外）③**読み出しは config 外も可 / 書き込みは管理下へ寄せる**
+  （非対称は意図どおり）④書き込み前は**寄せ → 拒否 → 上書き確認**の順。上書き確認は
+  **保存先の実体 vs ダイアログが読み込んだ一覧**の**内容比較**（出どころパスの比較にしない）で、
+  **3 択**（上書きする / 既存を読み込む / キャンセル。**破損時は 2 択**）。
+  **adopt は一覧と比較基準を差し替えるだけで保存も close もしない**。
+- **【idea_11・既知の制約】別名保存で個別プリセットの複製に成功した後、keymap_set の保存が失敗すると
+  巻き戻らない**（孤児の複製 + メモリ上だけ新パス・dirty も立たない）。**正本 §5.10.4 に明記済**。
+  再編集しても**内容が一致するため上書き確認は出ない**点が要注意（優先度低で後送り）。
 - **【ネストしたモーダルの grab は既知の課題】** モーダル中のモーダルを閉じると**親の grab が戻らず**、
   マネージャを開いたままメインを操作できる（**既存の「追加」「編集」も同じ**）。
   **idea_10 として分離済**。新しいダイアログにも**復元処理を書かない**（挙動を揃えるため）。

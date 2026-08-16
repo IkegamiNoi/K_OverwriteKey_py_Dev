@@ -44,7 +44,7 @@ keyseq/presentation/
         config_io/             # 構成セット・個別JSONの保存/読込を7クラスへ分割（所有者フォルダ・計画04）
             keymap_set_io.py   # KeymapSetIo: 構成セット（keymap_set）+ 専用ヘルパ
             startup_io.py      # StartupIo: 起動設定（startup.json）read/write
-            hotkey_presets_io.py  # HotkeyPresetsIo: グローバル hotkey プリセットの即時保存（唯一の書き手）
+            hotkey_presets_io.py  # HotkeyPresetsIo: hotkey プリセットの即時保存（グローバル / 個別。唯一の書き手）+ 拒否表示 / 上書き確認の 3 択モーダル
             io_dialogs.py      # IoDialogs: 共有ダイアログヘルパ（保存パス衝突 / ラベル連動）
             keymap_file_io.py  # KeymapFileIo: keymap 個別 JSON
             trigger_set_file_io.py  # TriggerSetFileIo: trigger_set 個別 JSON
@@ -104,15 +104,27 @@ keyseq/presentation/
   `apply_global_hook_key_defaults` を呼ぶ）と `discard_retained_hook_keys`。
   退避先は **App の `_retained_hook_keys`**（`app.data` に持たないためスキーマ・保存経路に影響しない）。
   data → Var の同期は `_sync_control_vars_from_data` の 1 本（**ここに退避の破棄を入れない**）
-- hotkey プリセット（`spec_detail/data_schema.md` §5.10）: `save_hotkey_presets(presets) -> bool` が
-  確定点。`hotkey_presets_io.write_global_presets` を呼び、**成功したときだけ** `app.data` へ反映する
-  （`PresetManagerDialog.on_ok` は戻り値が真のときだけ閉じる）。
-  **`open_preset_manager` / `save_hotkey_presets` は keymap_set を dirty にしない**
-  （プリセットは keymap_set の一部ではない。変更時のフラッシュ通知のみ）
+- hotkey プリセット（`spec_detail/data_schema.md` §5.10）: `save_hotkey_presets(presets, *,
+  individual=None, loaded_presets=None, on_overwrite_conflict=None) -> bool` が確定点。
+  **書き込み前の判定はここに 1 本化されている**（順序は §5.10.3 のとおり
+  **保存先算出〔`resolve_hotkey_presets_save_path`〕→ 拒否判定〔`individual_hotkey_presets_save_rejection_reason`〕
+  → 上書き確認〔`describe_individual_hotkey_presets_overwrite`〕→ `hotkey_presets_io.write_presets`**）。
+  **判定は application・モーダルは presentation**（`on_overwrite_conflict` は
+  `"overwrite" / "adopt" / "cancel"` を返すコールバックで、**`overwrite` 以外は書かずに `False`**）。
+  **成功したときだけ** `app.data` へ反映する（`PresetManagerDialog.on_ok` は戻り値が真のときだけ閉じる）。
+  **プリセットの内容編集は keymap_set を dirty にしない**が、
+  **`hotkey_presets_path` の値が変わったとき / 個別フラグを切り替えたときは dirty にする**（§5.10.3）
+  - 切替 UI は `PresetManagerDialog`（dialogs.py）。「この構成セット専用にする」チェックと保存先表示を持ち、
+    **トグルでの一覧の読み直し（`_reload_presets_for_individual_toggle`）・破棄確認・
+    OFF で開いた時点の一覧確定・「既存を読み込む」での差し替え**は**すべてダイアログ内の表示**に閉じる。
+    **runtime へ反映するのは OK のときだけ**（§5.8.8 の P1。プリセット単独の注入 API は作らない）。
+    **破棄確認の比較基準（直近に読み込んだ一覧）も差し替え時に更新する**
+    （更新し忘れると「既存を読み込む」の後の OK で確認が再発する）
 - dialogs 向け契約（`validate_hotkey` / `_dialog_result` / `_perform_action` / `open_preset_manager`）と、状態依存でパスを詰め替える薄メソッド（`suggest_keymap_set_dialog_path` / `suggest_keymap_set_dialog_dir` / `keymap_set_file_stem`）
   - `validate_hotkey` は**検証ロジックを持たず** `HotkeyService.validate`（application）への**薄い委譲**（実体は下記 HotkeyService / `domain/hotkey.py`）。dialogs 契約維持のため残す
 - 配線用の薄いヘルパ（`_get_send_guard_count` / `_find_trigger_by_key` / `_find_keymap_target` / `_find_keymap_switch_target_id`）
-- 起動時に設定ディレクトリ骨格（`config/user/{keymap_sets,keymaps,trigger_sets,hotkey_presets,sequences}`）を
+- 起動時に設定ディレクトリ骨格
+  （`config/user/{keymap_sets,keymaps,trigger_sets,hotkey_presets,hotkey_presets/global,sequences}`）を
   `config_service.ensure_split_config_dirs` で一括作成する。**`config/config.json` は起動時に書かない**
   （最初に設定が永続化された時点で作成。keymap_set 保存 / フォント変更 / 起動時読込先の指定）
 - 分離JSONの現在の構成セットパス（keymap_set_path）・startup 設定を保持
@@ -169,10 +181,15 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       `write_global_hook_keys(*, stop_key, toggle_key) -> bool`（hook キーの全体デフォルト書き込み）。
       **全体デフォルトを書くのはこの 1 本のみ**。ConfigService 側に read-modify-write な保存 API を
       作らない（`_startup_settings` と config.json が乖離すると次の `write_startup` が hook キーを消す）
-  - HotkeyPresetsIo（hotkey_presets_io.py = `app.hotkey_presets_io`）: グローバル hotkey プリセットの
-    即時保存。`write_global_presets(presets) -> bool`（成功 True / 例外捕捉で `showerror` + False）。
+  - HotkeyPresetsIo（hotkey_presets_io.py = `app.hotkey_presets_io`）: hotkey プリセットの即時保存。
+    `write_presets(presets, *, stored_path) -> bool`（**空文字ならグローバル / 非空なら個別ファイル**。
+    成功 True / 例外捕捉で `showerror` + False）。
     **プリセットファイルを書くのはこの 1 本のみ**（保存カスケードは書かない。
-    仕様は `spec_detail/data_schema.md` §5.10.3）
+    仕様は `spec_detail/data_schema.md` §5.10.3）。
+    保存先の**拒否理由の表示**（`show_save_path_rejection`。`reserved_dir` / `global_conflict` の 2 文言）と
+    **上書き確認の 3 択モーダル**（`confirm_overwrite` → `"overwrite" / "adopt" / "cancel"`）も持つ。
+    3 択は `messagebox` で表現できないため **`child_save_dialog.py` と同型の自作 Toplevel**。
+    **保存先が読めない（破損）ときは「既存を読み込む」を出さず 2 択**にする
   - IoDialogs（io_dialogs.py = `app.io_dialogs`）: 共有ダイアログヘルパ（保存パス衝突解決 / ラベル連動ファイル名）
   - KeymapFileIo（keymap_file_io.py = `app.keymap_io`）: keymap 個別 JSON の保存/読込
   - TriggerSetFileIo（trigger_set_file_io.py = `app.trigger_set_io`）: trigger_set 個別 JSON の保存/読込
@@ -257,16 +274,46 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
     呼ぶ唯一の注入 API。`apply_global_hook_key_defaults` を呼んだ上で**グローバルプリセットを供給**する。
     **冪等・例外を投げない**（読めなければ縮退）。呼ぶのは**入口台帳 E1〜E5**
   - **通常読込（L1〜L3）はこの API を経由しない**が、プリセットの**供給規則は共通**
-- **hotkey プリセットの解決点を持つ**（仕様は `spec_detail/data_schema.md` §5.10）。分岐点は 3 つ:
+- **hotkey プリセットの解決点を持つ**（仕様は `spec_detail/data_schema.md` §5.10）。
+  **グローバルと個別の分岐・保存先の算出・拒否 / 上書きの判定はすべて application 側**に置き、
+  presentation へ二重化しない。分岐点:
   - `split_loading.load_global_hotkey_presets_path(service, *, config_root)` — config.json の
-    `hotkey_presets_path` の**読み出し**（未設定・空・非文字列・読込失敗は既定へ縮退）。
+    `hotkey_presets_path` の**読み出し**（未設定・空・非文字列・読込失敗は既定へ縮退。
+    既定は **`user/hotkey_presets/global/default.json`**）。
     返すのは**保存表記のまま**なので、書き込み・存在確認では `resolve_config_path` を通す
-  - `split_loading.load_global_hotkey_presets(service, *, config_root) -> list | None` —
+  - `split_loading.load_hotkey_presets_file(service, stored_path, *, config_root) -> list | None` —
+    **1 ファイルの読み出し**（グローバル / 個別で共通）。`load_global_hotkey_presets` はこれの薄い包み。
     **読めた＝`list`（空を含む）/ 読めない＝`None`**。戻り値は
     `domain/config.py::normalize_hotkey_presets` を通した**正規化済み**（**「読めたか」の判定は正規化の前**）。
     **正規化はここ 1 箇所**に置く（注入 API 側・保存側には置かない）
-  - `ConfigService.save_global_hotkey_presets(presets, *, config_root)` — **書き込み**。
+  - `split_loading.build_runtime_data_from_split` — **通常読込での選択**（個別 → 読めなければ
+    グローバル → どちらも読めなければ置き換えない）。**`hotkey_presets_individual` キーを持たない
+    keymap_set は `hotkey_presets_path` も runtime へ載せない**（§5.10.1 の移行規則。
+    フラグ自体は**値**で、残置パスの遮断は**キーの有無**で判定する）
+  - **読み出し用と書き込み用でパス解決が分かれる**（意図的な非対称。§5.10.2 / §5.10.3）:
+    `resolve_individual_hotkey_presets_read_path(runtime)` = **config 外も許容**（読み出し用）/
+    `resolve_individual_hotkey_presets_path(service, runtime, *, config_root)` = **config 配下のみ**（書き込み用）
+  - `split_loading.resolve_hotkey_presets_save_path(..., keymap_set_path, individual=None)` —
+    **保存先の算出**。個別かつ有効パスが無ければ
+    `save_path_resolution.default_individual_hotkey_presets_path`（`user/hotkey_presets/<stem>.json`）へ
+    寄せる。**グローバル宛は空文字**を返す
+  - `split_loading.individual_hotkey_presets_save_rejection_reason(...)` — **保存先ガード**。
+    `"reserved_dir"`（`global/` 配下）/ `"global_conflict"`（グローバルと同一ファイル。
+    判定は `canonical_path`）/ `""`（問題なし）
+  - `split_loading.describe_individual_hotkey_presets_overwrite(...)` — **上書き確認の要否**。
+    **`{"conflict": bool, "existing": list | None}` を同時に返す**（`existing` は「既存を読み込む」
+    が使う。破損時は `None` で、UI 側が 2 択へ縮退する）。比較は正規化済みどうし
+  - `ConfigService.load_individual_hotkey_presets(...)` — **個別ファイルの読み出し入口**
+    （マネージャのトグルでの読み直しが使う唯一の経路。表示用であり runtime へは反映しない）
+  - `split_loading.describe_hotkey_presets_source(...)` — **UI の状態表示**
+    （`individual_state` = `off` / `active` / `missing` / `external` / `external_missing`、
+    `displayed_source` = `individual` / `global` / `builtin`）
+  - `ConfigService.save_hotkey_presets(presets, *, config_root, stored_path)` — **書き込み**
+    （`save_global_hotkey_presets` はグローバル宛の入口）。
     **例外は握り潰さず送出**し、成否への変換は presentation（`HotkeyPresetsIo`）が行う
+  - `ConfigService.clear_individual_hotkey_presets(runtime)` — **Import での強制 OFF**（E5）/
+    `relocate_individual_hotkey_presets(...)` — **別名保存での個別ファイル複製と追随**
+    （コピー先に実体があれば複製しない / コピー元が無ければ複製しない）
 - 移行判定の純関数は `domain/config.py::resolve_hook_keys_individual`。呼び出しは 3 系統で、
   **渡すデータが違う**: 読込＝**生の keymap_set dict**（`split_loading`）/ 保存＝**runtime**
   （`split_payloads`。`.get()` の真偽で見ずに必ずこの純関数を通す＝フラグ無しの旧 runtime を

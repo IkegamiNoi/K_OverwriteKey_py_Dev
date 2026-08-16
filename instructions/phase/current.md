@@ -6,26 +6,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [09_per_keymap_set_presets](09_per_keymap_set_presets/phase.md)**
-  （keymap_set ごとの個別プリセット・起票 **2026-08-09**）。
-  - 主入力（確定設計）: [暫定仕様 08](../history/08_per_keymap_set_presets.md)（**v0.10**・ユーザー確定済）。
-    モード: **暫定仕様先行**。番号対応: **phase 09 / 暫定 08 / decisions_archive 09**。
-  - 進捗: **task_01〜07b + task_07c〜07g 完了**、**task_07（統合確認）も完了**。
-    実機目視は v0.8 分（項目 1〜16）が **2026-08-15 に OK**、v0.9 / v0.10 分（項目 13 / 17 / 18 / 19）が
-    **2026-08-16 に OK**（ユーザー報告）。
-    その間のフェーズ完了判定前レビューで出た 2 件を **v0.9**（【S】上書き確認 /【I2】OFF 開時の一覧確定）、
-    実機目視 項目 17 で見つかった「既存の内容を採る手段が無い」を **v0.10**（【S】を 3 択化）として確定し、
-    **task_07f / 07g** で実装済み。
-    **次 = task_08（正本反映・最終タスク）のみ**。
-  - 確定の要点: グローバル既定を **`user/hotkey_presets/global/default.json`** へ移し
-    （**移行は手動・2 段**）、個別は `user/hotkey_presets/<stem>.json` /
-    keymap_set の**旧キー `hotkey_presets_path` を個別パスとして再利用**し
-    **新フラグ `hotkey_presets_individual` が真のときだけ読む**（**フラグ無しは常に OFF**）/
-    **書き手はマネージャ 1 本のまま** / 個別が読めなければ**グローバルへフォールバック** /
-    **Import は強制 OFF**・**別名保存は個別ファイルを複製**。
-  - 起票元: [idea_08](../backlog/idea_08_per_keymap_set_preset_ownership.md)（phase 08 完了で着手条件を充足）。
-- 直前の完了フェーズ: [08_hotkey_presets_global](../../.claude_data/state/decisions_archive/08_hotkey_presets_global.md)
-  （**2026-08-09 完了**・保存系リデザイン **プリセット案2**）。
+- **アクティブなフェーズ: なし**（**phase 09 が 2026-08-16 に完了**）。
+  次フェーズは未確定のため、**作業開始時にユーザーへ方針を確認する**
+  （候補は下記「次フェーズ候補」）。
+- 直前の完了フェーズ: [09_per_keymap_set_presets](../../.claude_data/state/decisions_archive/09_per_keymap_set_presets.md)
+  （**2026-08-16 完了**・keymap_set ごとの個別プリセット。暫定仕様 08 は**凍結済**）。
   **完了フェーズの要約は本ファイルに置かない**。経緯・判断は `.claude_data/state/decisions.md`「アーカイブ索引」
   → `decisions_archive/<phase>.md` が正。
 - 提案書 [06_refactor_hook_key_pair_enumeration](../modified_proposal/06_refactor_hook_key_pair_enumeration.md) は
@@ -36,18 +21,19 @@
   **「計画05」として実施し完了**（2026-08-03・項目 0 / 1 / 2）。フェーズ番号は消費していない。
   判断は `decisions.md` の「計画05」節。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
-  過去のリファクタ計画・提案書（01〜05）は `instructions/modified_proposal/`（次採番 06）。
+  過去のリファクタ計画・提案書（01〜07）は `instructions/modified_proposal/`（次採番は「次採番」節が正）。
   計画04 は完了済（W0〜W7・手動確認まで完了）。
 
 ## 次採番
 
 - 次フェーズは **`10_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
-  → **保存系リデザインは一巡完了**。その派生 = **phase 09〔着手中〕**（idea_08）。
+  → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
   04〜08 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
-  08=個別プリセット〔**v0.8・使用中**〕）。次採番は **`09_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。06 まで起票済・次採番は **`07_<topic>`**。
+  08=個別プリセット〔**v0.10・凍結**〕）。次採番は **`09_<topic>`**。
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**07 まで起票済**
+  （07 = phase 09 の `/refactor_check` 由来・**未承認**）・次採番は **`08_<topic>`**。
 
 ## 次フェーズ候補（参考）
 
@@ -64,9 +50,14 @@
 `05_keymap_set_new_and_default_dir`（Phase α・2026-07-28）も完了。
 **保存系リデザインの Phase β も完了**（phase 06 / 暫定 05・2026-08-03）。
 **γ = phase 07 も完了**（暫定 06・2026-08-05）。**プリセット = phase 08 も完了**（暫定 07・2026-08-09）。
+**個別プリセット = phase 09 も完了**（暫定 08・2026-08-16）。
 次フェーズの候補:
 - ~~[idea_08](../backlog/idea_08_per_keymap_set_preset_ownership.md)（keymap_set ごとの個別プリセット）~~
-  → **着手中**（2026-08-09 起票・上記「現在の参照先」= phase 09）。
+  → **完了**（phase 09・2026-08-16。判断は
+  [decisions_archive/09](../../.claude_data/state/decisions_archive/09_per_keymap_set_presets.md)）。
+- [idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（**ネストしたモーダルの grab 復元**。
+  モーダル中のモーダルを閉じると親の grab が戻らず、ダイアログを開いたままメインを操作できる。
+  **既存の「追加」「編集」も同じ挙動**＝アプリ全体の課題として phase 09 から分離・**未着手**）。
 - [idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除。**β 完了で前提充足・着手可**。
   孤児 trigger_set と陳腐化した `_parent_refs` を回収する保守機能）。
 - [idea_09](../backlog/idea_09_legacy_settings_save_path_fallback.md)（別名保存でレガシー `settings/` 配下を選ぶと
@@ -125,6 +116,14 @@
     さらに増えるなら共通化の再検討対象（近接領域を [idea_06](../backlog/idea_06_individual_json_io_unification.md) がカバー）
   - `keyseq/application/config_service/__init__.py` が **599 行**で目安 600 行に接近
     （本フェーズの増分は +30。M1 は「600 行超 かつ +100 行以上」のため非該当）
+- **Phase 09（個別プリセット）の `/refactor_check` からの候補送り**（判定は**推奨** →
+  提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md)・
+  **未承認**。上位 3 項目に入らなかった分）:
+  - `keyseq/application/config_service/__init__.py` が **734 行**（+135）で **M1 該当**。
+    ただし**テストが `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を
+    差し替えるため `ConfigService` 本体とパス基盤メソッドを動かせない**制約があり、分割方針の
+    設計判断が別途必要。実ロジックを持つのは `relocate_individual_hotkey_presets`（約 40 行）で、
+    他はほぼ 1 行委譲。**次フェーズ以降に再判定する**
 - `app.py:64` の `keymap_set_path = resolve_keymap_set_path()` 初期化と、それが使う
   `config_paths.resolve_keymap_set_path()` の**引数なし分岐が実質デッド**（起動時に `load_startup_and_config` が
   必ず上書きするため）。**据え置き**（phase 05 の deep-reviewer 指摘3・実害なし）。
