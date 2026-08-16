@@ -483,3 +483,24 @@ phase 09 完了時の `/refactor_check` = 推奨（M1 / M2 / M6 該当）の産�
   smoke pass / 変更は 2 ファイルのみ / `user/` の誤生成なし。
 - `reviewer` = **完了可**。参考指摘 1 件（refs に重複文字列があると `not in` で両方消え得るが、
   `_normalize_parent_refs` が読み込み時に重複除去するため**発生しない**）。
+
+### 【task_03】完了（2026-08-16）= 提示テキストの整形（presentation の純関数）
+- `keyseq/presentation/reference_cleanup_text.py`（新規）: `CLEANUP_EMPTY_MESSAGE` +
+  `format_cleanup_plan(inspections)` / `format_cleanup_result(result)`。**戻り値は行のタプル**
+  （結合・描画はダイアログ側＝task_04）。
+- **配置の判断**: `presentation/dialogs/` ではなく **presentation 直下**へ置いた。
+  `dialogs/__init__.py` が全ダイアログを import する＝**`tkinter` と `pynput` を巻き込む**ため、
+  そこへ置くと `tests/` から純関数だけをテストできなくなる。
+  `file_organization_rules.md` の「所有者の近くに置く」より**テスト可能性を優先**した
+  （`child_save_rows.py` と同じ「純モジュール」の位置づけ）。
+- 規則: **消える参照元は全件列挙**（省略・「ほか N 件」への丸めをしない＝**到達不能な媒体の参照元を
+  消す事故に気づけるようにする**）/ **保護対象は「残す」側にだけ出す**（消える側に混ぜると
+  実行結果と食い違う）/ **`CLEANUP_ALL_STALE` にだけ警告**（0 件になる・**子ファイルは削除しない**・
+  **孤児判定はこの範囲ではできない**）/ **失敗理由の定数 → 文言の変換はこの層の責務** /
+  **判定名で分岐し表示文言で分岐しない**。
+- 実測: compile clean / `tests` **264**（257 → **+7**）/ `tests_ui` **229**（不変）/ smoke pass /
+  **`tkinter` 非依存を実証**（`sys.modules['tkinter']=None` でも import 成功・grep ヒット 0）/
+  既存ファイルの変更 0 件。
+- `reviewer` = **修正して採用**。指摘 1 件（**`sequence` の表示名が「シーケンス」で、既存の
+  `child_save_dialog._kind_label` と正本の用語「出力シーケンス」と不一致**）を
+  **メインが修正**（実装・テストとも）。再実測で 264 pass（件数不変）を確認。
