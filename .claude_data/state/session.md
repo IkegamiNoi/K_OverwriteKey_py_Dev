@@ -4,71 +4,80 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-16T02:00:00
-phase: **なし**（phase 09 完了・**計画07 も完了**＝ともに 2026-08-16）。**次フェーズ未確定＝着手前にユーザーへ方針確認**（`instructions/phase/current.md`）
+last_updated: 2026-08-16T08:00:00
+phase: `instructions/phase/10_reference_link_cleanup`（参照元の掃除。**暫定仕様 09 = v0.5・ユーザー確定済**。**task_01〜04 完了・task_05 は実機目視だけ残り・task_06 = 正本反映が未着手**）
 last_commit_location: claude/physical-device-visual-check-c4ad73 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 09 と 計画07（提案書 07 のリファクタ・挙動不変）がともに完了**。次は**次フェーズの方針決め**（候補 = idea_07 / idea_10 / idea_11）。
-mode: ready
+focus: **phase 10 の実装（task_01〜04）は完了。task_05 の通し実測と 2 本立てレビューも完了し指摘を反映済み。残るは実機目視 14 項目〔ユーザー作業〕→ task_06（正本反映）**。
+mode: blocked
 
 ## last_action
-ts: 2026-08-16T04:00:00
+ts: 2026-08-16T08:00:00
 who: main
 summary: |
-  【**計画07（提案書 07 のリファクタ）完了・挙動不変**】
-  - **項目 0**（`a175828`）= 安全網。`Explore` で調査し、**`__init__` 周辺に 5 つの空白**を検出
-    （`_update_source_labels` 本体が無テスト / `object.__new__` の手埋めで初期化が守られない /
-    `command` 配線 / suspend・resume の呼出 / listbox の実内容）→ **実構築の特性テスト 6 本**を追加。
-  - **項目 1**（`f6f568d`）= `PresetManagerDialog.__init__` **99 → 8 行**（4 メソッドへ抽出）。
-    **テストは 1 行も変えずに通した**。
-  - **項目 2**（`bd3321f`）= `dialogs.py`（1026 行）を **`dialogs/` 7 ファイル**へ逐語移動
-    （最大 386 行・**旧ファイルは削除**）。テスト差分は **patch 文字列 6 箇所のみ**。
-  - **項目 3** = `ensure_split_config_dirs` の直値を `HOTKEY_PRESETS_RELATIVE_PATH` 由来へ（メインで実装）。
-  - 各項目とも `verifier` + `reviewer` を通し**すべて「完了可」**。**フェーズ番号は消費していない**。
-
-  【**その前: task_08 = 正本反映 完了 → phase 09 完了**】
-  - 正本へ昇格: `data_schema.md` **§5.10 全面改訂**（2 系統 / 移行規則 / **書き込み前の判定 3 段**
-    〔①未設定・空・非文字列・config 外なら既定パスへ寄せ → ②`global/` 配下・グローバル同一なら拒否 →
-    ③内容比較で 3 択の上書き確認〕/ dirty 規則 / 別名保存の複製 / **UI 契約** / 既知の制約）+
-    **§5.10.4** + **§5.8.8**（**P1 = 表示用の再読込**を台帳へ併記・注入 API は増やさない）+
-    §5.5 / §5.4 / §5.1 + `codebase_map.md`。**§5.10 の見出しのみ §5.9 と同型化**（節番号は不変）。
-  - 暫定仕様 08 を**凍結**。`decisions_archive/09_*.md` を作成し `decisions.md` は索引 1 行へ。
-    `current.md` をフェーズ完了状態へ / idea_08 を `INDEX_done.md` へ移動。
-  - **`/refactor_check` = 推奨**（M1 / M2 / M6）→ 提案書 **07**（**未承認**）を起票。
-    `config_service/__init__.py`（734 行）は名前空間 patch の制約があるため**候補送り**。
-  - **レビュー 2 本立ての指摘を反映**（詳細と採否は decisions_archive 末尾）。
-    **ユーザー確定 2 件** = ①別名保存の複製が部分成功する経路 → **制約明記 + idea_11（優先度低）**
-    ②adopt 後の出どころラベルが追従しない → **実装変更なし + 1 行明記**。
+  【**phase 10 task_01〜04 完了 + task_05 の自動確認・2 本立てレビュー完了**】
+  - **task_01**（`8cfd841`）= 検査ロジック `config_service/parent_refs_cleanup.py`（新規・兄弟モジュール）。
+    **列挙は runtime の source_path 3 種のみ**（`resolve_child_save_targets` は**使わない**＝
+    未実体化の子へ既定パスが割り当てられ**無関係な既存ファイルを書き換える**ため）/
+    `canonical_path` で重複排除（先着優先）/ **保護対象は実在しなくても `protected_refs` へ** /
+    判定名 4 種（`CLEANUP_TARGET` / `ALL_STALE` / `PROTECTED` / `SKIP`）。
+  - **task_02**（`1dffc94`）= 除去 `prune_parent_refs`。**除去直前に JSON 全体を読み直して判定をやり直す**
+    （検査時のスナップショットを書き戻さない＝全体置換で外部変更を消さない）/ 読めない・非 dict・
+    保存例外は**失敗記録して継続** / **除去 0 件なら書かない（冪等）** / **全件除去は `[]`**（キーは残す）。
+  - **task_03**（`ecbf95b`）= 提示テキストの純関数 `presentation/reference_cleanup_text.py`
+    （**tkinter 非依存**。`dialogs/` に置くと `__init__` が tkinter/pynput を巻き込むため presentation 直下）。
+  - **task_04**（`e206a2c`）= UI 配線。`ReferenceCleanupIo.run_cleanup` /
+    `dialogs/reference_cleanup_dialog.py` / 「設定」メニュー /  `ConfigService` へ委譲 2 本。
+  - **task_05**（`165f8c4`）= 通し実測 + 2 本立てレビューの反映。**実機目視だけ未実施**。
+    `deep-reviewer` の指摘でテスト 4 件追加（**本命 = 受入条件 12「共有中 → 単独所有」が未固定だった**）+
+    **保護対象だけの子を「対象」に数えない**是正（**暫定仕様 v0.5**）+ 目視項目 3 つ追加。
+    `codex-adversarial-reviewer` の High 1 件は**条文の限定で決着**
+    （保存経路は正本 §5.8.6 の best-effort。本フェーズの保証は「**掃除による書き込みが 0 件**」）。
 result_files:
-  - instructions/common/spec_detail/data_schema.md / codebase_map.md
-  - instructions/history/08_per_keymap_set_presets.md（凍結）
-  - .claude_data/state/decisions_archive/09_per_keymap_set_presets.md（新規）/ decisions.md（索引化）
-  - instructions/phase/current.md / backlog/INDEX.md / INDEX_done.md / idea_11（新規）
-  - instructions/modified_proposal/07_refactor_per_keymap_set_presets.md（新規・**未承認**）
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_08_spec_promotion.md（新規）
+  - keyseq/application/config_service/parent_refs_cleanup.py（新規）/ __init__.py（委譲 2 本）
+  - keyseq/presentation/reference_cleanup_text.py（新規）/ controllers/config_io/reference_cleanup_io.py（新規）
+  - keyseq/presentation/dialogs/reference_cleanup_dialog.py（新規）/ dialogs/__init__.py / app.py / views/menu_bar.py
+  - tests/test_parent_refs_cleanup.py / tests/test_reference_cleanup_text.py / tests_ui/test_reference_cleanup_flow.py（新規）
+  - instructions/history/09_reference_link_cleanup.md（**v0.5**）
+  - instructions/phase/10_reference_link_cleanup/phase.md + tasks/task_01〜05
 verified:
   compile: clean
-  tests: pass **238**（計画07 を通して不変）
-  tests_ui: pass **229**（223 → **+6**＝項目 0 の特性テスト。以後 不変・ハングなし）
+  tests: pass **267**
+  tests_ui: pass **238**（ハングなし）
   smoke: pass
-  note: 計画07 の各項目で `verifier` が実測。**循環 import なし**・production の import は無変更で通る・
-    **stale な `__pycache__/dialogs.pyc` を削除しても結果不変**・
-    `ensure_split_config_dirs` の**生成ディレクトリ集合が変更前と同一**であることも直接確認。
-  review: `deep-reviewer` = 修正要（差戻しでない）→ **H1 / H2 / M3〜M8 / L 群を反映済**（L14 のみ除外）。
-    `codex-adversarial-reviewer` = needs-attention（High 3）→ **2 件は文書修正で採用・1 件は idea_11 へ**。
+  note: 実測は `verifier`。**`user/` の誤生成なし**。phase 10 の実装差分は **11 ファイル・+1403 / -1**。
+    新規 production は **262 / 70 / 49 / 58 行**。`config_service/__init__.py` は **767 行**
+    （phase 09 の 737 → +30。**task_06 の `/refactor_check` 対象**）。
+  review: `deep-reviewer` = 修正要 → **H1 / H2 / H3 / H5 / H9 / H12 を反映**・
+    **H4 / H6 / H7 は仕様へ明記（実装は変えない）**・H8 / H10 / H11 / H13 / H14 は task_06 送り。
+    `codex-adversarial-reviewer` = needs-attention（High 1）→ **条文の限定で決着**。
 
 ## next_action
-- **次フェーズの方針をユーザーへ確認する**（`instructions/phase/current.md`「次フェーズ候補」）。候補:
-  - **idea_07**（参照元の掃除・**着手可**。孤児 trigger_set と陳腐化した `_parent_refs` の回収）
-  - **idea_10**（ネストしたモーダルの grab 復元。**既存の「追加」「編集」も同じ挙動**＝露出は広い）
-  - **idea_11**（別名保存の複製ロールバック・**優先度低**）
-  - 保留中の idea_03 / idea_04 / idea_06 / idea_09 は着手条件・優先度を要確認
-- 新フェーズは `/phase_start` で起票する（番号は **`10_<topic>`** / 暫定仕様は **`09_<topic>`** /
-  提案書は **`08_<topic>`**）。
+- **【ユーザー作業・ブロッカー】実機目視 14 項目**
+  （`instructions/phase/10_reference_link_cleanup/tasks/task_05_integration_check.md` **§3 の表**が正）。
+  準備 = **アプリ終了中に `config/user/` 配下の子JSON の `_parent_refs` へ実在しないパスを 1〜2 件足す**。
+  特に **7**〔現在の構成セットのファイルを移動 → **その参照元は消えない**〕/
+  **9〜11**〔未保存の導線: いいえ / 保存キャンセル / 保存完了〕/
+  **13**〔**保護対象だけの子なら一覧が出ない**（v0.5 の是正）〕/
+  **4b**〔フックの suspend / resume を 実行・キャンセル・× ・Esc の 4 経路〕。
+  - 目視で不具合が出たら **task_05 内で是正**（最小差分 + `reviewer` 再実施）。
+    仕様変更を伴うなら**枝番タスクへ切り出す**（phase 09 の 07b〜07g と同じ流儀）。
+- その後 **task_06 = 正本反映（最終）**: `data_schema.md` **§5.8.1 改訂**
+  （「掃除は後続課題」の差し替え / 「追加のみ」への例外 / **検査範囲は現在の構成セットの子＝全網羅ではない** /
+  **全件除去時は `[]`** / **現在の keymap_set・trigger_set への参照は除去しない** /
+  **未保存時は先に保存が要る**）+ 必要なら §5.8.4 の注記 + `features.md`（メニュー項目）+
+  `codebase_map.md` / 暫定仕様 09 を凍結 / `decisions_archive/10_reference_link_cleanup.md` 作成 /
+  `current.md` 完了更新 / `backlog/INDEX.md` の idea_07 を `INDEX_done.md` へ / `/refactor_check`。
+  - **`/refactor_check` の注目点**: `config_service/__init__.py` が **767 行**（+30）。
+    phase 09 から M1 該当で分割保留中。
+  - **task_06 送りのレビュー指摘**: presentation が `config_service` の内部モジュールを直参照（H8）/
+    委譲の戻り値型が `Any`（H10）/ `reference_cleanup_text.py` の配置が利用範囲より広い（H11）/
+    `_nonempty_path` が strip しない値を返す（H13）/ `run_cleanup` に例外の受け皿が無い（H14）。
 
 ## blockers
-- なし。
+- **task_05 の完了に実機目視（ユーザー作業）が必要**。それまでフェーズ完了判定は出せない。
+  自動確認（実測・2 本立てレビュー）は**完了済み**。
 
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
@@ -82,6 +91,17 @@ verified:
   分割の障害になる**（計画07 で 6 箇所を書き換えた）。**新規テストは `patch.object` を優先する**。
 - **【罠】パッケージ化・モジュール移動の実測では `__pycache__` の stale な `.pyc` を疑う**
   （旧モジュールが生存し得る。削除して結果不変を確認する）。
+- **【phase 10 の設計の芯】掃除の対象は runtime の source_path 3 種で列挙する**。
+  **`resolve_child_save_targets` を使ってはならない**（「次に保存するとしたらどこへ書くか」であり、
+  未実体化の子へ既定パスが割り当てられて**無関係な既存ファイルを書き換える**）。
+  **保護対象**（現在の keymap_set / trigger_set への参照）は**実在しなくても除去しない**
+  （消すと次回保存で全子が「所有元不明」→ 既定が別名保存へ倒れる）。
+  **除去直前に JSON 全体を読み直す**（検査時のスナップショットを書き戻すと外部変更を消す）。
+- **【運用・重要】委任の実行中はメイン側で文書を編集しない**。
+  phase 10 task_05 で、Codex が**メインの仕様書編集を「範囲外の差分」と判断して巻き戻した**
+  （v0.5 の記述が消えた）。編集してしまった場合は**委任完了後に必ず差分を確認する**。
+- **【メニュー項目のテスト】インデックスを固定しない**。top-level menubar には **tearoff** があり
+  `0=tearoff / 1=ファイル / 2=設定` とずれる。**カスケードとラベルで探す**こと（task_04 で 1 度踏んだ）。
 - **【個別プリセット（phase 09 の成果）は正本が正】** `spec_detail/data_schema.md` **§5.10**
   （全体ライブラリと個別指定）+ **§5.8.8**（入口台帳。**E5 = 強制 OFF / P1 = 表示用の再読込**）+
   §5.5 / §5.4 / §5.1 + `codebase_map.md`。**暫定仕様 08 は凍結済**（経緯の参照用。**条項を実装の根拠に引かない**）。
