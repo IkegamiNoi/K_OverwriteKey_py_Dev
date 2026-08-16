@@ -287,3 +287,60 @@ Phase γ（phase 07）完了時の `/refactor_check` = 推奨（M4 のみ該当�
 
 ---
 
+
+## 2026-08-16〜 (計画07: phase 09 後のリファクタ・挙動不変)
+
+規範: `instructions/modified_proposal/07_refactor_per_keymap_set_presets.md`
+（項目 0 = 安全網 / 1 = `PresetManagerDialog.__init__` の UI 構築抽出 / 2 = `dialogs.py` の
+パッケージ化 / 3 = 直値の定数化。**1 項目 = 1 コミット**）。
+phase 09 完了時の `/refactor_check` = 推奨（M1 / M2 / M6 該当）の産物。
+
+### 【起票時】実施形態 → **(b) 次フェーズ前の独立ミニ計画 = 「計画07」**（ユーザー確定 2026-08-16）
+- 提案書の選択肢 (a) phase 09 末の追加タスク / (b) 独立ミニ計画 のうち **(b)** を採用。
+  運用は**計画05 / 計画06 と同じ**（提案書自体を確定設計として扱う / **フェーズ番号を消費しない** /
+  1 項目 = 1 コミット / 本計画自体が `/refactor_check` の産物のため完了時の再実行は不要）。
+- **(a) を採らない理由**: phase 09 は正本反映まで終えて**すでに閉じている**
+  （`current.md` 更新・`decisions_archive/09` 作成・idea_08 クローズ済）ため、
+  追加タスクは閉じたフェーズを開け直すことになる。
+- **暫定仕様書は起票しない**（挙動保存のみで仕様確定の反復が不要）。**対応表は不変**
+  （次フェーズは引き続き `10_<topic>`）。
+
+### 【項目 0】安全網の調査 = **契約 1〜5 は十分 / `__init__` 周辺に 5 つの空白**（2026-08-16・`Explore` 実測）
+- **プリセットマネージャ関連のテストは `tests_ui/test_app_ui_flows.py` の 1 ファイルに集中**
+  （`tests/` 側に UI 契約のテストは無い）。OK / キャンセルの不変性・トグルの読み直し・破棄確認・
+  OFF で開いた時点の一覧確定・上書き確認の 3 択と adopt / cancel の不変性は**強く守られている**。
+- **空白（抽出で壊れても検知されない）**: ①**`_update_source_labels()` 本体が完全に無テスト**
+  （テストされているのは純関数 `format_preset_manager_source_labels` だけ。最大の穴）
+  ②`__init__` が初期化する状態（トグル系テストは **`object.__new__` で手埋め**するため）
+  ③**イベント配線**（`command=` / `bind`。既存テストはハンドラを直接呼ぶ）
+  ④`suspend_hook_for_dialog` / `resume_hook_after_dialog` の呼出 assert
+  ⑤`_refresh()` による listbox の実内容。
+  → **項目 0 として実構築ベースの特性テスト 4 種類を先行追加**（提案書の規定どおり）。
+- **【項目 1 への制約】`_refresh` / `_update_source_labels` はリネーム禁止**
+  （`patch.object(PresetManagerDialog, ...)` が **9 箇所以上**でクラス属性を差し替えている）。
+- **【項目 2 への制約】分割で `tests_ui` の patch 6 箇所が壊れる**
+  （`keyseq.presentation.dialogs.tk.Toplevel.destroy` × 3 / `...dialogs.messagebox.askyesno` × 3）。
+  `tk` / `messagebox` は**共有モジュールオブジェクト**なので patch の効果自体は同じで、
+  壊れるのは**属性解決だけ**。
+  - **判断 = テスト側の patch 文字列を実体モジュールへ更新する**（**アサーションは変えない**）。
+    却下案 = `__init__.py` で `tk` / `messagebox` を import して属性を維持する
+    （**公開面でないものを公開面に置く互換維持**になり、`file_organization_rules.md` の
+    「恒久互換レイヤー禁止」の趣旨に反する）。
+- **循環 import**: クラス間依存は `ActionDialog → PresetManagerDialog` と
+  `PresetManagerDialog → PresetDialog` の 2 本（一方向）。
+  **サブモジュール直指定**にすれば部分初期化の `ImportError` を避けられる。
+  `App` の型 import は**各ファイルで `TYPE_CHECKING` ガードの中に置く**（外すと真の循環）。
+
+### 【項目 0】完了（2026-08-16）= 安全網の特性テスト 6 本を追加
+- `tests_ui/test_app_ui_flows.py` に **+203 行・6 メソッド**（**純追加・削除 0**）。**production は無変更**。
+  ①〜③ ラベルの実値 3 ケース（OFF+グローバル可 / ON+個別可 / **ON+config 外＝既定パスへの再解決**）
+  ④ **`individual_check.invoke()` 経由**（`command=` 配線込み）のトグル
+  ⑤ `suspend_hook_for_dialog` / `resume_hook_after_dialog` の**呼出回数**
+  ⑥ `listbox.get(0, "end")` が `format_preset_list_item` の実フォーマットと一致すること。
+- **すべて実構築**（`PresetManagerDialog(self.app)`）で書いた。`object.__new__` の手埋めを使わないことが
+  ②の空白（`__init__` の初期化が検知されない）を埋める要件だったため。
+- 実測: compile clean / `tests` **238**（不変）/ `tests_ui` **229**（223 → **+6**・ハングなし）/ smoke pass。
+- `reviewer` = **完了可（指摘なし）**。5 観点に加え、共有 App の汚染防止（`before`/`finally` 復元・
+  `patch.object` のコンテキスト・`destroy()` の `try/finally`）・**モーダル非到達**・
+  assert が広い `except` の内側にないこと・**`_refresh` / `_update_source_labels` 以外の
+  private メソッド名に依存していないこと**（項目 1 で壊れない形）を確認。

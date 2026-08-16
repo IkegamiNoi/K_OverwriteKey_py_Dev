@@ -1784,6 +1784,209 @@ class AppUiFlowsTest(unittest.TestCase):
             self.app.data = before
             self.app.keymap_set_path = keymap_set_path
 
+    def test_preset_manager_labels_off_show_global_destination(self):
+        before = copy.deepcopy(self.app.data)
+        global_presets = [{"label": "Global", "value": "ctrl+g"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                global_path = self.app.config_service.HOTKEY_PRESETS_RELATIVE_PATH
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, global_path),
+                    {"hotkey_presets": global_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = False
+                self.app.data["hotkey_presets_path"] = "user/hotkey_presets/personal.json"
+                self.app.data["hotkey_presets"] = [{"label": "Current", "value": "ctrl+c"}]
+                keymap_set_path = os.path.join(config_root, "user", "keymap_sets", "main.json")
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app, "keymap_set_path", keymap_set_path
+                ), patch.object(self.app.hook, "suspend_hook_for_dialog"), patch.object(
+                    self.app.hook, "resume_hook_after_dialog"
+                ):
+                    dialog = PresetManagerDialog(self.app)
+                    try:
+                        save_destination = dialog.save_destination_var.get()
+                        source = dialog.source_var.get()
+                        availability = dialog.individual_unavailable_var.get()
+                        displayed_source = dialog._displayed_source
+                    finally:
+                        dialog.destroy()
+        finally:
+            self.app.data = before
+
+        self.assertIn(global_path, save_destination)
+        self.assertEqual(source, "")
+        self.assertEqual(availability, "")
+        self.assertEqual(displayed_source, "global")
+
+    def test_preset_manager_labels_on_show_individual_destination(self):
+        before = copy.deepcopy(self.app.data)
+        individual_path = "user/hotkey_presets/personal.json"
+        individual_presets = [{"label": "Individual", "value": "ctrl+i"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, individual_path),
+                    {"hotkey_presets": individual_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = individual_path
+                self.app.data["hotkey_presets"] = individual_presets
+                keymap_set_path = os.path.join(config_root, "user", "keymap_sets", "main.json")
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app, "keymap_set_path", keymap_set_path
+                ), patch.object(self.app.hook, "suspend_hook_for_dialog"), patch.object(
+                    self.app.hook, "resume_hook_after_dialog"
+                ):
+                    dialog = PresetManagerDialog(self.app)
+                    try:
+                        save_destination = dialog.save_destination_var.get()
+                        source = dialog.source_var.get()
+                        availability = dialog.individual_unavailable_var.get()
+                        displayed_source = dialog._displayed_source
+                    finally:
+                        dialog.destroy()
+        finally:
+            self.app.data = before
+
+        self.assertIn(individual_path, save_destination)
+        self.assertEqual(source, "")
+        self.assertEqual(availability, "")
+        self.assertEqual(displayed_source, "individual")
+
+    def test_preset_manager_labels_external_individual_use_default_destination(self):
+        before = copy.deepcopy(self.app.data)
+        individual_presets = [{"label": "External", "value": "ctrl+e"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root, tempfile.TemporaryDirectory() as outside_root:
+                external_path = os.path.join(outside_root, "external.json")
+                self.app.config_service.repository.save_json(
+                    external_path,
+                    {"hotkey_presets": individual_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = True
+                self.app.data["hotkey_presets_path"] = external_path
+                self.app.data["hotkey_presets"] = individual_presets
+                keymap_set_path = os.path.join(config_root, "user", "keymap_sets", "main.json")
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app, "keymap_set_path", keymap_set_path
+                ), patch.object(self.app.hook, "suspend_hook_for_dialog"), patch.object(
+                    self.app.hook, "resume_hook_after_dialog"
+                ):
+                    dialog = PresetManagerDialog(self.app)
+                    try:
+                        save_destination = dialog.save_destination_var.get()
+                        source = dialog.source_var.get()
+                        availability = dialog.individual_unavailable_var.get()
+                        individual_state = dialog._individual_state
+                    finally:
+                        dialog.destroy()
+        finally:
+            self.app.data = before
+
+        self.assertIn("user/hotkey_presets/main.json", save_destination.replace("\\", "/"))
+        self.assertIn("config 外", source)
+        self.assertEqual(availability, "")
+        self.assertEqual(individual_state, "external")
+
+    def test_preset_manager_individual_check_invokes_reload(self):
+        before = copy.deepcopy(self.app.data)
+        global_presets = [{"label": "Global", "value": "ctrl+g"}]
+        individual_path = "user/hotkey_presets/personal.json"
+        individual_presets = [{"label": "Individual", "value": "ctrl+i"}]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                self.app.config_service.repository.save_json(
+                    os.path.join(
+                        config_root,
+                        self.app.config_service.HOTKEY_PRESETS_RELATIVE_PATH,
+                    ),
+                    {"hotkey_presets": global_presets},
+                )
+                self.app.config_service.repository.save_json(
+                    os.path.join(config_root, individual_path),
+                    {"hotkey_presets": individual_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = False
+                self.app.data["hotkey_presets_path"] = individual_path
+                self.app.data["hotkey_presets"] = global_presets
+                keymap_set_path = os.path.join(config_root, "user", "keymap_sets", "main.json")
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app, "keymap_set_path", keymap_set_path
+                ), patch.object(self.app.hook, "suspend_hook_for_dialog"), patch.object(
+                    self.app.hook, "resume_hook_after_dialog"
+                ):
+                    dialog = PresetManagerDialog(self.app)
+                    try:
+                        dialog.individual_check.invoke()
+                        temporary_presets = copy.deepcopy(dialog._temp)
+                        individual_enabled = dialog.individual_var.get()
+                    finally:
+                        dialog.destroy()
+        finally:
+            self.app.data = before
+
+        self.assertTrue(individual_enabled)
+        self.assertEqual(temporary_presets, individual_presets)
+
+    def test_preset_manager_suspends_and_resumes_hook(self):
+        with tempfile.TemporaryDirectory() as config_root:
+            keymap_set_path = os.path.join(config_root, "user", "keymap_sets", "main.json")
+            with patch.object(self.app, "config_root", config_root), patch.object(
+                self.app, "keymap_set_path", keymap_set_path
+            ), patch.object(self.app.hook, "suspend_hook_for_dialog") as suspend_hook, patch.object(
+                self.app.hook, "resume_hook_after_dialog"
+            ) as resume_hook:
+                dialog = PresetManagerDialog(self.app)
+                try:
+                    suspend_calls_while_open = suspend_hook.call_count
+                finally:
+                    dialog.destroy()
+                resume_calls_after_destroy = resume_hook.call_count
+
+        self.assertEqual(suspend_calls_while_open, 1)
+        self.assertEqual(resume_calls_after_destroy, 1)
+
+    def test_preset_manager_listbox_matches_temporary_presets(self):
+        before = copy.deepcopy(self.app.data)
+        global_presets = [
+            {"label": "First", "value": "ctrl+1"},
+            {"label": "Second", "value": "ctrl+2"},
+        ]
+        try:
+            with tempfile.TemporaryDirectory() as config_root:
+                self.app.config_service.repository.save_json(
+                    os.path.join(
+                        config_root,
+                        self.app.config_service.HOTKEY_PRESETS_RELATIVE_PATH,
+                    ),
+                    {"hotkey_presets": global_presets},
+                )
+                self.app.data["hotkey_presets_individual"] = False
+                self.app.data["hotkey_presets"] = []
+
+                with patch.object(self.app, "config_root", config_root), patch.object(
+                    self.app.hook, "suspend_hook_for_dialog"
+                ), patch.object(self.app.hook, "resume_hook_after_dialog"):
+                    dialog = PresetManagerDialog(self.app)
+                    try:
+                        temporary_presets = copy.deepcopy(dialog._temp)
+                        listbox_items = dialog.listbox.get(0, "end")
+                    finally:
+                        dialog.destroy()
+        finally:
+            self.app.data = before
+
+        self.assertEqual(temporary_presets, global_presets)
+        self.assertEqual(
+            listbox_items,
+            ("01. ctrl+1: First", "02. ctrl+2: Second"),
+        )
+
     def test_preset_manager_source_labels_cover_sources_and_unsaved_reason(self):
         off = format_preset_manager_source_labels(
             individual_for_save=False,

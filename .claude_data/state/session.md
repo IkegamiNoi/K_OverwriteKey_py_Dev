@@ -5,12 +5,12 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-08-16T02:00:00
-phase: **なし（phase 09 完了・2026-08-16）**。次フェーズ未確定＝**着手前にユーザーへ方針確認**（`instructions/phase/current.md`）
+phase: **なし（phase 09 完了・2026-08-16）**。現在は **「計画07」= リファクタ提案書 07 を独立ミニ計画として実施中**（フェーズ番号は消費しない）。次フェーズは計画07 完了後にユーザーと決める
 last_commit_location: claude/physical-device-visual-check-c4ad73 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 09（keymap_set ごとの個別プリセット）完了**。task_08 = 正本反映まで済み、暫定仕様 08 は凍結。次は**次フェーズの方針決め**（候補 = idea_07 / idea_10 / idea_11 / 提案書 07 のリファクタ）。
-mode: ready
+focus: **phase 09 完了 → 「計画07」（提案書 07 のリファクタ・挙動不変）に着手**。**項目 0 = 安全網の確認**（`Explore` で既存テストのカバレッジと `dialogs` への依存・patch 箇所を調査中）。
+mode: working
 
 ## last_action
 ts: 2026-08-16T02:00:00
