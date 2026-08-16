@@ -1,13 +1,19 @@
+import copy
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService
 from keyseq.application.config_service.parent_refs_cleanup import (
     CLEANUP_ALL_STALE,
     CLEANUP_PROTECTED,
     CLEANUP_TARGET,
+    PRUNE_FAILURE_INVALID_DATA,
+    PRUNE_FAILURE_SAVE_FAILED,
+    PRUNE_FAILURE_UNREADABLE,
     inspect_parent_refs,
+    prune_parent_refs,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
 
@@ -245,10 +251,228 @@ class ParentRefsCleanupTest(unittest.TestCase):
             self.assertEqual(inspections[0].state, CLEANUP_ALL_STALE)
             self.assertEqual(self._read_bytes(child_path), before)
 
+    def test_prune_removes_only_stale_refs_and_preserves_runtime(self):
+        with tempfile.TemporaryDirectory() as root:
+            child_path = os.path.join(root, "user", "keymaps", "main.json")
+            alive_path = os.path.join(root, "user", "keymap_sets", "alive.json")
+            alive_ref = "user\\keymap_sets\\alive.json"
+            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            self._save(alive_path, {"keymaps": []})
+            self._save(child_path, {"_parent_refs": ["missing.json", alive_ref]})
+            before_runtime = copy.deepcopy(runtime)
+
+            result = self._prune(root, self._inspect(root, runtime), runtime)
+
+            self.assertEqual(result.updated_files, ((child_path, 1),))
+            self.assertEqual(result.failed_files, ())
+            self.assertEqual(self.service.read_parent_refs(child_path), [alive_ref])
+            self.assertEqual(runtime, before_runtime)
+
+    def test_prune_writes_empty_list_without_removing_parent_refs_key(self):
+        with tempfile.TemporaryDirectory() as root:
+            child_path = os.path.join(root, "user", "keymaps", "main.json")
+            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            self._save(child_path, {"label": "Main", "_parent_refs": ["missing.json"]})
+
+            result = self._prune(root, self._inspect(root, runtime), runtime)
+
+            self.assertEqual(result.updated_files, ((child_path, 1),))
+            payload = self.service._load_optional_json(child_path)
+            self.assertIn(self.service.PARENT_REFS_KEY, payload)
+            self.assertEqual(payload[self.service.PARENT_REFS_KEY], [])
+
+    def test_prune_retains_missing_current_keymap_set_and_trigger_set_refs(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "current.json")
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "current.json")
+            keymap_path = os.path.join(root, "user", "keymaps", "main.json")
+            sequence_path = os.path.join(root, "user", "sequences", "copy.json")
+            self._save(keymap_path, {"_parent_refs": [keymap_set_path, "missing-keymap-set.json"]})
+            self._save(sequence_path, {"_parent_refs": [trigger_set_path, "missing-trigger-set.json"]})
+            runtime = {
+                "keymaps": [self._keymap(keymap_path)],
+                self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: trigger_set_path,
+                "triggers": [self._sequence(sequence_path)],
+            }
+
+            result = self._prune(
+                root,
+                self._inspect(root, runtime, keymap_set_path=keymap_set_path),
+                runtime,
+                keymap_set_path=keymap_set_path,
+            )
+
+            self.assertEqual(result.updated_files, ((keymap_path, 1), (sequence_path, 1)))
+            self.assertEqual(
+                self.service.read_parent_refs(keymap_path),
+                [keymap_set_path],
+            )
+            self.assertEqual(
+                self.service.read_parent_refs(sequence_path),
+                [trigger_set_path],
+            )
+
+    def test_prune_keeps_other_keys_from_the_pre_save_reload(self):
+        with tempfile.TemporaryDirectory() as root:
+            child_path = os.path.join(root, "user", "keymaps", "main.json")
+            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            self._save(
+                child_path,
+                {"label": "Before", "nested": {"version": 1}, "_parent_refs": ["missing.json"]},
+            )
+            inspections = self._inspect(root, runtime)
+            self._save(
+                child_path,
+                {"label": "After", "nested": {"version": 2}, "_parent_refs": ["missing.json"]},
+            )
+
+            self._prune(root, inspections, runtime)
+
+            self.assertEqual(
+                self.service._load_optional_json(child_path),
+                {"label": "After", "nested": {"version": 2}, "_parent_refs": []},
+            )
+
+    def test_prune_does_not_write_when_stale_ref_was_resolved_before_reload(self):
+        with tempfile.TemporaryDirectory() as root:
+            child_path = os.path.join(root, "user", "keymaps", "main.json")
+            parent_path = os.path.join(root, "missing.json")
+            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            self._save(child_path, {"_parent_refs": ["missing.json"]})
+            inspections = self._inspect(root, runtime)
+            self._save(parent_path, {"keymaps": []})
+            before = self._read_bytes(child_path)
+
+            result = self._prune(root, inspections, runtime)
+
+            self.assertEqual(result.updated_files, ())
+            self.assertEqual(result.failed_files, ())
+            self.assertEqual(self._read_bytes(child_path), before)
+
+    def test_prune_skips_when_parent_refs_becomes_unknown_before_reload(self):
+        with tempfile.TemporaryDirectory() as root:
+            child_path = os.path.join(root, "user", "keymaps", "main.json")
+            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            self._save(child_path, {"_parent_refs": ["missing.json"]})
+            inspections = self._inspect(root, runtime)
+            self._save(child_path, {"label": "Legacy", "_parent_refs": None})
+            before = self._read_bytes(child_path)
+
+            result = self._prune(root, inspections, runtime)
+
+            self.assertEqual(result.updated_files, ())
+            self.assertEqual(result.failed_files, ())
+            self.assertEqual(self._read_bytes(child_path), before)
+
+    def test_prune_is_idempotent_for_the_same_inspections(self):
+        with tempfile.TemporaryDirectory() as root:
+            child_path = os.path.join(root, "user", "keymaps", "main.json")
+            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            self._save(child_path, {"_parent_refs": ["missing.json"]})
+            inspections = self._inspect(root, runtime)
+
+            first_result = self._prune(root, inspections, runtime)
+            before_second_prune = self._read_bytes(child_path)
+            second_result = self._prune(root, inspections, runtime)
+
+            self.assertEqual(first_result.updated_files, ((child_path, 1),))
+            self.assertEqual(second_result.updated_files, ())
+            self.assertEqual(second_result.failed_files, ())
+            self.assertEqual(self._read_bytes(child_path), before_second_prune)
+
+    def test_prune_records_reload_failures_and_continues(self):
+        with tempfile.TemporaryDirectory() as root:
+            unreadable_path = os.path.join(root, "user", "keymaps", "unreadable.json")
+            invalid_path = os.path.join(root, "user", "keymaps", "invalid.json")
+            valid_path = os.path.join(root, "user", "keymaps", "valid.json")
+            runtime = {
+                "keymaps": [
+                    self._keymap(unreadable_path),
+                    self._keymap(invalid_path),
+                    self._keymap(valid_path),
+                ],
+                "triggers": [],
+            }
+            for child_path in (unreadable_path, invalid_path, valid_path):
+                self._save(child_path, {"_parent_refs": ["missing.json"]})
+            inspections = self._inspect(root, runtime)
+            with open(unreadable_path, "w", encoding="utf-8") as stream:
+                stream.write("{")
+            self._save(invalid_path, ["not a child JSON"])
+
+            result = self._prune(root, inspections, runtime)
+
+            self.assertEqual(result.updated_files, ((valid_path, 1),))
+            self.assertEqual(
+                result.failed_files,
+                (
+                    (unreadable_path, PRUNE_FAILURE_UNREADABLE),
+                    (invalid_path, PRUNE_FAILURE_INVALID_DATA),
+                ),
+            )
+            self.assertEqual(self.service.read_parent_refs(valid_path), [])
+
+    def test_prune_records_save_failures_and_continues(self):
+        with tempfile.TemporaryDirectory() as root:
+            failing_path = os.path.join(root, "user", "keymaps", "failing.json")
+            valid_path = os.path.join(root, "user", "keymaps", "valid.json")
+            runtime = {
+                "keymaps": [self._keymap(failing_path), self._keymap(valid_path)],
+                "triggers": [],
+            }
+            self._save(failing_path, {"_parent_refs": ["missing.json"]})
+            self._save(valid_path, {"_parent_refs": ["missing.json"]})
+            original_save_json = self.service.repository.save_json
+
+            def save_json(path, data):
+                if path == failing_path:
+                    raise OSError("cannot save")
+                original_save_json(path, data)
+
+            with patch.object(self.service.repository, "save_json", side_effect=save_json):
+                result = self._prune(root, self._inspect(root, runtime), runtime)
+
+            self.assertEqual(result.updated_files, ((valid_path, 1),))
+            self.assertEqual(
+                result.failed_files,
+                ((failing_path, PRUNE_FAILURE_SAVE_FAILED),),
+            )
+            self.assertEqual(self.service.read_parent_refs(valid_path), [])
+
+    def test_prune_does_not_write_protected_only_inspection(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "current.json")
+            child_path = os.path.join(root, "user", "keymaps", "main.json")
+            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            self._save(child_path, {"_parent_refs": [keymap_set_path]})
+            inspections = self._inspect(root, runtime, keymap_set_path=keymap_set_path)
+            before = self._read_bytes(child_path)
+
+            result = self._prune(
+                root,
+                inspections,
+                runtime,
+                keymap_set_path=keymap_set_path,
+            )
+
+            self.assertEqual(inspections[0].state, CLEANUP_PROTECTED)
+            self.assertEqual(result.updated_files, ())
+            self.assertEqual(result.failed_files, ())
+            self.assertEqual(self._read_bytes(child_path), before)
+
     def _inspect(self, root, runtime, *, keymap_set_path=""):
         return inspect_parent_refs(
             self.service,
             runtime,
+            config_root=root,
+            keymap_set_path=keymap_set_path,
+        )
+
+    def _prune(self, root, inspections, runtime, *, keymap_set_path=""):
+        return prune_parent_refs(
+            self.service,
+            inspections,
+            runtime=runtime,
             config_root=root,
             keymap_set_path=keymap_set_path,
         )

@@ -464,3 +464,22 @@ phase 09 完了時の `/refactor_check` = 推奨（M1 / M2 / M6 該当）の産�
   **`canonical_path` の値が保存値・戻り値へ混入していない**こと、
   **`stored_path` と各 refs が記録表記のまま**返ることを確認
   （Codex が自己申告した「過剰な正規化」は実際には入っておらず、テストの弱化も無し）。
+
+### 【task_02】完了（2026-08-16）= 除去 API（`prune_parent_refs`）
+- 同モジュールへ追加: `prune_parent_refs(service, inspections, *, runtime, config_root, keymap_set_path)`
+  + 凍結データクラス `ParentRefsPruneResult`（更新したファイル / 失敗したファイル）
+  + 失敗理由の定数 3 種（`PRUNE_FAILURE_UNREADABLE` / `_INVALID_DATA` / `_SAVE_FAILED`。
+  **表示文言は持たせない**＝文言は task_03）。
+- **判定は task_01 と共用**（`_classify_parent_refs` へ抽出）。**二重実装しない**のが要件
+  （検査と実行で食い違うと UI の表示と結果が乖離するため）。
+  **抽出は機械的で検査側の挙動は不変**（`reviewer` が diff の削除行と現在のコードで突き合わせ確認・
+  task_01 の 9 テストも 1 件も削除 / 弱体化されていない）。
+- 規則: **除去直前に JSON を丸ごと読み直す**（検査時のスナップショットを書き戻さない＝
+  **全体置換で外部変更を消さない**）/ **`None`・非 dict は書かずに失敗記録** /
+  **読み直した内容で判定をやり直す** / 残すのは**実在 + 保護対象**（記録順・記録表記のまま）/
+  **除去 0 件なら書かない（冪等）** / **全件除去時は `[]`（キーは残す）** /
+  **`_parent_refs` 以外を変えない** / **1 件の失敗で全体を止めない** / **runtime 不変**。
+- 実測: compile clean / `tests` **257**（247 → **+10**・追加テスト数と一致）/ `tests_ui` **229**（不変）/
+  smoke pass / 変更は 2 ファイルのみ / `user/` の誤生成なし。
+- `reviewer` = **完了可**。参考指摘 1 件（refs に重複文字列があると `not in` で両方消え得るが、
+  `_normalize_parent_refs` が読み込み時に重複除去するため**発生しない**）。
