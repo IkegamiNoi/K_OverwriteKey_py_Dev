@@ -395,10 +395,19 @@ class PresetManagerDialog(tk.Toplevel):
     """App.data['hotkey_presets'] を編集する"""
     def __init__(self, parent: App, title: str = "プリセット編集"):
         super().__init__(parent)
+        self._init_preset_manager_state(parent, title)
+        self._build_preset_manager_widgets()
+        self._bind_preset_manager_events()
+        self._sync_initial_presets()
+        self._update_source_labels()
+        self.grab_set()
+        self.transient(parent)
+
+    def _init_preset_manager_state(self, parent: App, title: str) -> None:
         self.parent = parent
         self.title(title)
         self.resizable(False, False)
-        
+
         # 編集中の誤爆防止
         self.parent.hook.suspend_hook_for_dialog()
 
@@ -407,39 +416,12 @@ class PresetManagerDialog(tk.Toplevel):
             self._temp = []
         self._loaded_temp = safe_deepcopy(self._temp)
 
-        frm = ttk.Frame(self, padding=12)
-        frm.pack(fill="both", expand=True)
-
-        ttk.Label(frm, text="プリセット一覧").grid(row=0, column=0, sticky="w")
-        self.listbox = tk.Listbox(frm, height=12, width=56, exportselection=False)
-        self.listbox.grid(row=1, column=0, rowspan=6, sticky="nsew", padx=(0, 0))
-
-        # スクロールバー（プリセット一覧）
-        presets_sb = ttk.Scrollbar(frm, orient="vertical", command=self.listbox.yview)
-        presets_sb.grid(row=1, column=1, rowspan=6, sticky="ns", padx=(6, 10))
-        self.listbox.configure(yscrollcommand=presets_sb.set)
-        # ダブルクリックで編集
-        self.listbox.bind("<Double-Button-1>", self._on_double_click)
-
-        btns = ttk.Frame(frm)
-        btns.grid(row=1, column=2, sticky="n")
-        ttk.Button(btns, text="追加", width=14, command=self.add).pack(pady=(0, 6))
-        ttk.Button(btns, text="編集", width=14, command=self.edit).pack(pady=6)
-        ttk.Button(btns, text="削除", width=14, command=self.delete).pack(pady=6)
-        ttk.Separator(btns).pack(fill="x", pady=10)
-        ttk.Button(btns, text="上へ", width=14, command=lambda: self.move(-1)).pack(pady=6)
-        ttk.Button(btns, text="下へ", width=14, command=lambda: self.move(+1)).pack(pady=6)
-
         source = parent.config_service.describe_hotkey_presets_source(
             parent.data,
             config_root=parent.config_root,
         )
         self._individual_state = source["individual_state"]
         self._displayed_source = source["displayed_source"]
-        if parent.data.get("hotkey_presets_individual") is not True:
-            replacement = self._toggle_preset_replacement(False)
-            self._temp = safe_deepcopy(replacement)
-            self._loaded_temp = safe_deepcopy(replacement)
         self._global_hotkey_presets_path = parent.config_service.load_global_hotkey_presets_path(
             config_root=parent.config_root,
         )
@@ -451,13 +433,34 @@ class PresetManagerDialog(tk.Toplevel):
         self.source_var = tk.StringVar()
         self.individual_unavailable_var = tk.StringVar()
 
+    def _build_preset_manager_widgets(self) -> None:
+        frm = ttk.Frame(self, padding=12)
+        frm.pack(fill="both", expand=True)
+
+        ttk.Label(frm, text="プリセット一覧").grid(row=0, column=0, sticky="w")
+        self.listbox = tk.Listbox(frm, height=12, width=56, exportselection=False)
+        self.listbox.grid(row=1, column=0, rowspan=6, sticky="nsew", padx=(0, 0))
+
+        # スクロールバー（プリセット一覧）
+        presets_sb = ttk.Scrollbar(frm, orient="vertical", command=self.listbox.yview)
+        presets_sb.grid(row=1, column=1, rowspan=6, sticky="ns", padx=(6, 10))
+        self.listbox.configure(yscrollcommand=presets_sb.set)
+
+        btns = ttk.Frame(frm)
+        btns.grid(row=1, column=2, sticky="n")
+        ttk.Button(btns, text="追加", width=14, command=self.add).pack(pady=(0, 6))
+        ttk.Button(btns, text="編集", width=14, command=self.edit).pack(pady=6)
+        ttk.Button(btns, text="削除", width=14, command=self.delete).pack(pady=6)
+        ttk.Separator(btns).pack(fill="x", pady=10)
+        ttk.Button(btns, text="上へ", width=14, command=lambda: self.move(-1)).pack(pady=6)
+        ttk.Button(btns, text="下へ", width=14, command=lambda: self.move(+1)).pack(pady=6)
+
         source_frame = ttk.Frame(frm)
         source_frame.grid(row=7, column=0, columnspan=3, sticky="we", pady=(12, 0))
         self.individual_check = ttk.Checkbutton(
             source_frame,
             text="この構成セット専用にする",
             variable=self.individual_var,
-            command=self._reload_presets_for_individual_toggle,
         )
         self.individual_check.grid(row=0, column=0, sticky="w")
         if not self._keymap_set_saved:
@@ -487,10 +490,17 @@ class PresetManagerDialog(tk.Toplevel):
         frm.grid_columnconfigure(0, weight=1)
         frm.grid_rowconfigure(1, weight=1)
 
+    def _bind_preset_manager_events(self) -> None:
+        # ダブルクリックで編集
+        self.listbox.bind("<Double-Button-1>", self._on_double_click)
+        self.individual_check.configure(command=self._reload_presets_for_individual_toggle)
+
+    def _sync_initial_presets(self) -> None:
+        if self.parent.data.get("hotkey_presets_individual") is not True:
+            replacement = self._toggle_preset_replacement(False)
+            self._temp = safe_deepcopy(replacement)
+            self._loaded_temp = safe_deepcopy(replacement)
         self._refresh()
-        self._update_source_labels()
-        self.grab_set()
-        self.transient(parent)
 
     def _update_source_labels(self):
         individual_for_save = bool(self.individual_var.get())

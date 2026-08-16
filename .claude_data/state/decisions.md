@@ -344,3 +344,21 @@ phase 09 完了時の `/refactor_check` = 推奨（M1 / M2 / M6 該当）の産�
   `patch.object` のコンテキスト・`destroy()` の `try/finally`）・**モーダル非到達**・
   assert が広い `except` の内側にないこと・**`_refresh` / `_update_source_labels` 以外の
   private メソッド名に依存していないこと**（項目 1 で壊れない形）を確認。
+
+### 【項目 1】完了（2026-08-16）= `PresetManagerDialog.__init__` の UI 構築抽出
+- 99 行の `__init__` を 4 メソッドへ抽出（**+38 / -28**・`dialogs.py` の 1 ファイルのみ）:
+  `_init_preset_manager_state`（状態・Tk 変数）/ `_build_preset_manager_widgets`（生成・配置）/
+  `_bind_preset_manager_events`（配線）/ `_sync_initial_presets`（OFF 時の一覧確定 + `_refresh`）。
+  **`__init__` は 8 行**。**既存のメソッド名・属性名は 1 つも変えていない**
+  （`_refresh` / `_update_source_labels` のリネーム禁止を遵守）。
+- **テストは 1 行も変更していない**（挙動保存の要件）。実測 = compile clean / `tests` **238**（不変）/
+  `tests_ui` **229**（不変・ハングなし）/ smoke pass。
+- `reviewer` = **完了可**。ウィジェット生成順・`grid`/`pack` 順・文言・`suspend_hook_for_dialog` の
+  位置が完全一致であることを**逐行**で確認。挙動が変わり得る 2 点も**同値と判定**:
+  ①state 計算ブロックの移動 = **純 Python 計算で mainloop と無関係**
+  ②`individual_check` の `command` 配線が**コンストラクタ引数 → 生成直後の `.configure()`** へ変わったが、
+  **間で mainloop が回らないため中間発火の余地が無い**（かつ項目 0 で追加した
+  `individual_check.invoke()` テストがこの配線を直接守っている）。
+- **参考指摘（対応不要と判定）**: `_build_preset_manager_widgets` が約 56 行で
+  `implementation.md` の「関数 30 行目安」を超えるが、**既存コードの逐語移動**であり、
+  項目 1 の範囲でさらに分割するのは過剰実装になるため据え置き。
