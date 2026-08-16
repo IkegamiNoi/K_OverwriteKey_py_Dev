@@ -1334,7 +1334,7 @@ class AppUiFlowsTest(unittest.TestCase):
         ) as set_dirty, patch.object(
             self.app.hook,
             "resume_hook_after_dialog",
-        ), patch("keyseq.presentation.dialogs.tk.Toplevel.destroy"):
+        ), patch("keyseq.presentation.dialogs.preset_manager.tk.Toplevel.destroy"):
             PresetManagerDialog.destroy(dialog)
 
         save_hotkey_presets.assert_not_called()
@@ -1610,7 +1610,7 @@ class AppUiFlowsTest(unittest.TestCase):
 
                     self.assertEqual(first_dialog._temp, defaults)
                     with patch.object(self.app.hook, "resume_hook_after_dialog"), patch(
-                        "keyseq.presentation.dialogs.tk.Toplevel.destroy",
+                        "keyseq.presentation.dialogs.preset_manager.tk.Toplevel.destroy",
                     ):
                         PresetManagerDialog.destroy(first_dialog)
 
@@ -1671,7 +1671,7 @@ class AppUiFlowsTest(unittest.TestCase):
                     no_dialog._temp = copy.deepcopy(edited_presets)
                     no_state["individual"] = True
                     with patch(
-                        "keyseq.presentation.dialogs.messagebox.askyesno",
+                        "keyseq.presentation.dialogs.preset_manager.messagebox.askyesno",
                         return_value=False,
                     ) as askyesno, patch.object(PresetManagerDialog, "_refresh") as refresh, patch.object(
                         PresetManagerDialog,
@@ -1689,7 +1689,7 @@ class AppUiFlowsTest(unittest.TestCase):
                     yes_dialog._temp = copy.deepcopy(edited_presets)
                     yes_state["individual"] = True
                     with patch(
-                        "keyseq.presentation.dialogs.messagebox.askyesno",
+                        "keyseq.presentation.dialogs.preset_manager.messagebox.askyesno",
                         return_value=True,
                     ) as askyesno, patch.object(PresetManagerDialog, "_refresh"), patch.object(
                         PresetManagerDialog,
@@ -1703,7 +1703,7 @@ class AppUiFlowsTest(unittest.TestCase):
                     clean_dialog, clean_state = self._preset_toggle_dialog(global_presets, individual=False)
                     clean_state["individual"] = True
                     with patch(
-                        "keyseq.presentation.dialogs.messagebox.askyesno",
+                        "keyseq.presentation.dialogs.preset_manager.messagebox.askyesno",
                     ) as askyesno, patch.object(PresetManagerDialog, "_refresh"), patch.object(
                         PresetManagerDialog,
                         "_update_source_labels",
@@ -1750,7 +1750,7 @@ class AppUiFlowsTest(unittest.TestCase):
                     ):
                         PresetManagerDialog._reload_presets_for_individual_toggle(dialog)
                     with patch.object(self.app.hook, "resume_hook_after_dialog"), patch(
-                        "keyseq.presentation.dialogs.tk.Toplevel.destroy",
+                        "keyseq.presentation.dialogs.preset_manager.tk.Toplevel.destroy",
                     ):
                         PresetManagerDialog.destroy(dialog)
 

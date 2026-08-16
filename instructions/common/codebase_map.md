@@ -75,7 +75,14 @@ keyseq/presentation/
             display_frame.py   # CompactDisplayFrame
             trigger_box.py     # CompactTriggerBox（一覧のみ）
     config_paths.py            # 以下は presentation 直下（複数種から使われる共有モジュール）
-    dialogs.py
+    dialogs/                   # ダイアログ群（計画07 項目2 で dialogs.py 1026 行から分割・1クラス1ファイル）
+      __init__.py              # 公開面（明示列挙の再輸出のみ。tk / messagebox は持たない）
+      action_dialog.py         # ActionDialog（+ キーキャプチャ）
+      preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
+      preset_dialog.py         # PresetDialog（プリセットの追加・編集）
+      trigger_dialog.py        # TriggerDialog
+      keymap_edit_dialog.py    # KeymapEditDialog
+      layout_delete_dialog.py  # LayoutDeleteDialog
     keyboard_layouts.py
     keyboard_window.py
     listbox_utils.py
@@ -114,7 +121,8 @@ keyseq/presentation/
   **成功したときだけ** `app.data` へ反映する（`PresetManagerDialog.on_ok` は戻り値が真のときだけ閉じる）。
   **プリセットの内容編集は keymap_set を dirty にしない**が、
   **`hotkey_presets_path` の値が変わったとき / 個別フラグを切り替えたときは dirty にする**（§5.10.3）
-  - 切替 UI は `PresetManagerDialog`（dialogs.py）。「この構成セット専用にする」チェックと保存先表示を持ち、
+  - 切替 UI は `PresetManagerDialog`（`dialogs/preset_manager.py`）。
+    「この構成セット専用にする」チェックと保存先表示を持ち、
     **トグルでの一覧の読み直し（`_reload_presets_for_individual_toggle`）・破棄確認・
     OFF で開いた時点の一覧確定・「既存を読み込む」での差し替え**は**すべてダイアログ内の表示**に閉じる。
     **runtime へ反映するのは OK のときだけ**（§5.8.8 の P1。プリセット単独の注入 API は作らない）。

@@ -119,11 +119,14 @@
   presentation/dialogs/
     __init__.py            # 公開面（既存の import パスを維持する再輸出）
     action_dialog.py       # ActionDialog（+ キーキャプチャ）
-    preset_manager.py      # PresetManagerDialog / PresetDialog / format_preset_manager_source_labels
+    preset_manager.py      # PresetManagerDialog / format_preset_manager_source_labels
+    preset_dialog.py       # PresetDialog（※実装時に分離。下記サイズ条件）
     trigger_dialog.py      # TriggerDialog
     keymap_edit_dialog.py  # KeymapEditDialog
     layout_delete_dialog.py# LayoutDeleteDialog
   ```
+  - **`PresetDialog` は `preset_dialog.py` へ分ける**（`preset_manager.py` を 400 行以内に収めるため。
+    `preset_manager → preset_dialog` の一方向依存で循環しない）。
   - **`__init__.py` の再輸出は互換レイヤー禁止の対象外**（公開面の定義。
     `file_organization_rules.md`「本リポジトリへの適用注記」）。
     ただし **`from .x import *` は使わず明示列挙**する。

@@ -362,3 +362,27 @@ phase 09 完了時の `/refactor_check` = 推奨（M1 / M2 / M6 該当）の産�
 - **参考指摘（対応不要と判定）**: `_build_preset_manager_widgets` が約 56 行で
   `implementation.md` の「関数 30 行目安」を超えるが、**既存コードの逐語移動**であり、
   項目 1 の範囲でさらに分割するのは過剰実装になるため据え置き。
+
+### 【項目 2】完了（2026-08-16）= `dialogs.py`（1026 行）を `dialogs/` パッケージへ分割
+- **1 クラス 1 ファイル**の 7 ファイル構成（最大 `preset_manager.py` **386 行**・全ファイル 400 行以内）。
+  **逐語移動**（ロジック・整形・命名・コメントの変更ゼロ）。**旧 `dialogs.py` は削除**
+  （横流し専用モジュールを残さない＝恒久互換レイヤーの禁止）。
+- **`__init__.py` は明示列挙の再輸出のみ**（6 クラス + `format_preset_manager_source_labels`）。
+  **`tk` / `ttk` / `messagebox` を置かない**（patch 先を維持するためだけの互換維持は採らない・項目 0 の判断）。
+- **クラス間参照はサブモジュール直指定**（`action_dialog → dialogs.preset_manager` /
+  `preset_manager → dialogs.preset_dialog`）。パッケージ経由にすると
+  `__init__.py` の列挙順次第で**部分初期化の `ImportError`** になるため。
+  `App` の型 import は**全ファイルで `TYPE_CHECKING` ガード内**（外すと真の循環）。
+- **テスト差分は patch 文字列 6 箇所のみ**（`+6 / -6`。アサーション・テスト名・構造は不変）。
+  production の 4 ファイルは**無変更で通る**。
+- **修正して採用（計画との差異）**: 計画のコード例は `PresetDialog` を `preset_manager.py` へ同居させる
+  書き方だったが、**400 行以内の条件**を満たすため `preset_dialog.py` として独立させた。
+  依存は一方向で循環せず、1 クラス 1 ファイルの原則にも忠実なため**採用**（提案書の構成図も実体へ更新）。
+- 実測: compile clean / `tests` **238**（不変）/ `tests_ui` **229**（不変・ハングなし）/ smoke pass。
+  **production の import 7 名が無変更で成功**・**循環 import なし**
+  （`dialogs.action_dialog` 単独 / `presentation.app` 単独の両方向で確認）。
+  **stale な `__pycache__/dialogs.cpython-314.pyc` が残っていた**ため削除して再実測し、**結果不変**を確認。
+- `reviewer` = **完了可**。旧ファイル（`git show HEAD:...`）との**全文逐語突き合わせ**で
+  欠落・重複・ついで修正が無いことを確認。
+- **付随更新**: `codebase_map.md` のツリーを `dialogs/` の 7 ファイル構成へ更新
+  （`PresetManagerDialog` の所在も `dialogs/preset_manager.py` へ）。
