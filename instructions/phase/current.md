@@ -7,13 +7,12 @@
 ## 現在の参照先
 
 - **アクティブなフェーズ: なし**（**phase 09 が 2026-08-16 に完了**）。
-- **実施中: 「計画07」= 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md)**
-  （phase 09 の `/refactor_check` 由来・**ユーザー承認済 2026-08-16**・**挙動不変**）。
-  **(b) 独立ミニ計画**として実施し、**フェーズ番号は消費しない**（計画05 / 計画06 と同型）。
-  項目 = 0 安全網 / 1 `PresetManagerDialog.__init__` の UI 構築抽出 /
-  2 `dialogs.py` の `dialogs/` パッケージ化 / 3 直値の定数化。**1 項目 = 1 コミット**。
-  判断は `decisions.md` の「計画07」節。
-  - 計画07 の完了後、**次フェーズは未確定**のため**ユーザーへ方針を確認する**（下記「次フェーズ候補」）。
+- 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
+  **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
+  **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
+  成果 = `dialogs.py`（1026 行）を `dialogs/` **7 ファイル**へ分割 /
+  `PresetManagerDialog.__init__` 99 → 8 行 / 直値の定数化 / 特性テスト **6 本追加**（`tests_ui` 229）。
+- **次フェーズは未確定**のため、**作業開始時にユーザーへ方針を確認する**（下記「次フェーズ候補」）。
 - 直前の完了フェーズ: [09_per_keymap_set_presets](../../.claude_data/state/decisions_archive/09_per_keymap_set_presets.md)
   （**2026-08-16 完了**・keymap_set ごとの個別プリセット。暫定仕様 08 は**凍結済**）。
   **完了フェーズの要約は本ファイルに置かない**。経緯・判断は `.claude_data/state/decisions.md`「アーカイブ索引」

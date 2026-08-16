@@ -5,18 +5,29 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-08-16T02:00:00
-phase: **なし（phase 09 完了・2026-08-16）**。現在は **「計画07」= リファクタ提案書 07 を独立ミニ計画として実施中**（フェーズ番号は消費しない）。次フェーズは計画07 完了後にユーザーと決める
+phase: **なし**（phase 09 完了・**計画07 も完了**＝ともに 2026-08-16）。**次フェーズ未確定＝着手前にユーザーへ方針確認**（`instructions/phase/current.md`）
 last_commit_location: claude/physical-device-visual-check-c4ad73 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 09 完了 → 「計画07」（提案書 07 のリファクタ・挙動不変）に着手**。**項目 0 = 安全網の確認**（`Explore` で既存テストのカバレッジと `dialogs` への依存・patch 箇所を調査中）。
-mode: working
+focus: **phase 09 と 計画07（提案書 07 のリファクタ・挙動不変）がともに完了**。次は**次フェーズの方針決め**（候補 = idea_07 / idea_10 / idea_11）。
+mode: ready
 
 ## last_action
-ts: 2026-08-16T02:00:00
+ts: 2026-08-16T04:00:00
 who: main
 summary: |
-  【**task_08 = 正本反映 完了 → phase 09 完了**】
+  【**計画07（提案書 07 のリファクタ）完了・挙動不変**】
+  - **項目 0**（`a175828`）= 安全網。`Explore` で調査し、**`__init__` 周辺に 5 つの空白**を検出
+    （`_update_source_labels` 本体が無テスト / `object.__new__` の手埋めで初期化が守られない /
+    `command` 配線 / suspend・resume の呼出 / listbox の実内容）→ **実構築の特性テスト 6 本**を追加。
+  - **項目 1**（`f6f568d`）= `PresetManagerDialog.__init__` **99 → 8 行**（4 メソッドへ抽出）。
+    **テストは 1 行も変えずに通した**。
+  - **項目 2**（`bd3321f`）= `dialogs.py`（1026 行）を **`dialogs/` 7 ファイル**へ逐語移動
+    （最大 386 行・**旧ファイルは削除**）。テスト差分は **patch 文字列 6 箇所のみ**。
+  - **項目 3** = `ensure_split_config_dirs` の直値を `HOTKEY_PRESETS_RELATIVE_PATH` 由来へ（メインで実装）。
+  - 各項目とも `verifier` + `reviewer` を通し**すべて「完了可」**。**フェーズ番号は消費していない**。
+
+  【**その前: task_08 = 正本反映 完了 → phase 09 完了**】
   - 正本へ昇格: `data_schema.md` **§5.10 全面改訂**（2 系統 / 移行規則 / **書き込み前の判定 3 段**
     〔①未設定・空・非文字列・config 外なら既定パスへ寄せ → ②`global/` 配下・グローバル同一なら拒否 →
     ③内容比較で 3 択の上書き確認〕/ dirty 規則 / 別名保存の複製 / **UI 契約** / 既知の制約）+
@@ -38,19 +49,21 @@ result_files:
   - instructions/phase/09_per_keymap_set_presets/tasks/task_08_spec_promotion.md（新規）
 verified:
   compile: clean
-  tests: pass **238**
-  tests_ui: pass **223**（ハングなし）
+  tests: pass **238**（計画07 を通して不変）
+  tests_ui: pass **229**（223 → **+6**＝項目 0 の特性テスト。以後 不変・ハングなし）
   smoke: pass
-  note: **`keyseq/` `tests/` `tests_ui/` は無変更**（文書のみ）。実測は `verifier`。
+  note: 計画07 の各項目で `verifier` が実測。**循環 import なし**・production の import は無変更で通る・
+    **stale な `__pycache__/dialogs.pyc` を削除しても結果不変**・
+    `ensure_split_config_dirs` の**生成ディレクトリ集合が変更前と同一**であることも直接確認。
   review: `deep-reviewer` = 修正要（差戻しでない）→ **H1 / H2 / M3〜M8 / L 群を反映済**（L14 のみ除外）。
     `codex-adversarial-reviewer` = needs-attention（High 3）→ **2 件は文書修正で採用・1 件は idea_11 へ**。
 
 ## next_action
 - **次フェーズの方針をユーザーへ確認する**（`instructions/phase/current.md`「次フェーズ候補」）。候補:
-  - **提案書 07 のリファクタ**（`dialogs.py` 1016 行の分割 / `PresetManagerDialog.__init__` 99 行 /
-    直値の定数化）。**未承認**。承認する場合は **(a) 追加タスク / (b) 独立ミニ計画**のどちらかを選ぶ
-  - **idea_07**（参照元の掃除・着手可）/ **idea_10**（ネストしたモーダルの grab 復元）/
-    **idea_11**（別名保存の複製ロールバック・優先度低）
+  - **idea_07**（参照元の掃除・**着手可**。孤児 trigger_set と陳腐化した `_parent_refs` の回収）
+  - **idea_10**（ネストしたモーダルの grab 復元。**既存の「追加」「編集」も同じ挙動**＝露出は広い）
+  - **idea_11**（別名保存の複製ロールバック・**優先度低**）
+  - 保留中の idea_03 / idea_04 / idea_06 / idea_09 は着手条件・優先度を要確認
 - 新フェーズは `/phase_start` で起票する（番号は **`10_<topic>`** / 暫定仕様は **`09_<topic>`** /
   提案書は **`08_<topic>`**）。
 
@@ -60,6 +73,15 @@ verified:
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
   グローバル `py` は依存欠落で tests_ui/smoke が落ちる。
+- **【計画07 で変わった構造】`dialogs` は単一ファイルではなく*パッケージ***
+  （`keyseq/presentation/dialogs/`・**1 クラス 1 ファイル**）。**`__init__.py` は明示列挙の再輸出のみ**で
+  **`tk` / `messagebox` を持たない**（patch 先の偽装を置かない方針）。
+  クラス間参照は**サブモジュール直指定**・`App` の型 import は**各ファイルの `TYPE_CHECKING` ガード内**
+  （どちらも崩すと `ImportError` / 循環）。
+- **【テストの書き方】モジュール名前空間を patch する形（`patch("keyseq.presentation.dialogs.messagebox...")`）は
+  分割の障害になる**（計画07 で 6 箇所を書き換えた）。**新規テストは `patch.object` を優先する**。
+- **【罠】パッケージ化・モジュール移動の実測では `__pycache__` の stale な `.pyc` を疑う**
+  （旧モジュールが生存し得る。削除して結果不変を確認する）。
 - **【個別プリセット（phase 09 の成果）は正本が正】** `spec_detail/data_schema.md` **§5.10**
   （全体ライブラリと個別指定）+ **§5.8.8**（入口台帳。**E5 = 強制 OFF / P1 = 表示用の再読込**）+
   §5.5 / §5.4 / §5.1 + `codebase_map.md`。**暫定仕様 08 は凍結済**（経緯の参照用。**条項を実装の根拠に引かない**）。

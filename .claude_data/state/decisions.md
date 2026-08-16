@@ -386,3 +386,30 @@ phase 09 完了時の `/refactor_check` = 推奨（M1 / M2 / M6 該当）の産�
   欠落・重複・ついで修正が無いことを確認。
 - **付随更新**: `codebase_map.md` のツリーを `dialogs/` の 7 ファイル構成へ更新
   （`PresetManagerDialog` の所在も `dialogs/preset_manager.py` へ）。
+
+### 【項目 3】完了（2026-08-16）= `global/` ディレクトリ作成の直値を定数由来へ
+- `ensure_split_config_dirs` の `os.path.join(config_root, "user", "hotkey_presets", "global")` を
+  `os.path.join(config_root, os.path.dirname(self.HOTKEY_PRESETS_RELATIVE_PATH))` へ（**+4 / -1**）。
+  **`split_loading.py:181` と同じパターン**に揃えた（`save_path_resolution.py:189` は
+  `dirname` を 2 回かけて**別階層**〔`hotkey_presets` 直下〕を求める別用途であり、非対称ではない）。
+- **メインセッションが直接実装**（`agent_selection.md`「数行程度の軽微な修正」）。
+- 実測: compile clean / `tests` **238** / `tests_ui` **229** / smoke pass。
+  **一時ディレクトリで `ensure_split_config_dirs` を実行し、生成されるディレクトリ集合が
+  変更前と完全に同一**（`user/{keymap_sets,keymaps,trigger_sets,hotkey_presets,hotkey_presets/global,sequences}`・
+  余分なし）であることを直接確認。
+- `reviewer` = **完了可**。既存の `tests/test_config_service.py::EnsureSplitConfigDirsTest` が
+  **実際に呼び出して `global` を含む全ディレクトリを assert しており、この変更を直接保護している**
+  ことを確認（`tests_ui/test_startup_dir_skeleton.py` は `patch.object` でモック化するため保護しない）。
+
+### 【計画07 の完了】（2026-08-16）
+- **項目 0〜3 をすべて完了**（1 項目 = 1 コミット・**挙動保存**）。
+  最終実測 = compile clean / `tests` **238** / `tests_ui` **229** / smoke pass / **循環 import なし**。
+- **解消したメトリクス**: M2（`__init__` 99 行）/ M6（直値）/ M1 のうち `dialogs.py`（1026 → 最大 386 行）。
+  **`config_service/__init__.py`（734 行）は対象外のまま**（`current.md` の「別タスク化候補」で追跡）。
+- **フェーズ番号は消費していない**（次フェーズは引き続き `10_<topic>`）。
+  **本計画自体が `/refactor_check` の産物**のため完了時の再実行は不要。
+- **得られた知見**: ①**モジュール名前空間を patch するテストは分割の障害になる**
+  （今回は 6 箇所。`patch.object` 形式なら影響を受けないため、**新規テストは `patch.object` を優先**する）
+  ②**分割前に `Explore` で patch 箇所と依存を洗い出す**手順は有効だった（実装が 1 発で通った）
+  ③**stale な `__pycache__` が旧モジュールを生存させ得る**ので、パッケージ化の実測では
+  **`.pyc` を削除して結果不変を確認する**とよい。

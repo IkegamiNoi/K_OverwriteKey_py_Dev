@@ -432,7 +432,10 @@ class ConfigService:
         os.makedirs(os.path.join(config_root, "user", "keymaps"), exist_ok=True)
         os.makedirs(os.path.join(config_root, "user", "trigger_sets"), exist_ok=True)
         os.makedirs(os.path.join(config_root, "user", "hotkey_presets"), exist_ok=True)
-        os.makedirs(os.path.join(config_root, "user", "hotkey_presets", "global"), exist_ok=True)
+        os.makedirs(
+            os.path.join(config_root, os.path.dirname(self.HOTKEY_PRESETS_RELATIVE_PATH)),
+            exist_ok=True,
+        )
         os.makedirs(os.path.join(config_root, "user", "sequences"), exist_ok=True)
 
     def apply_global_hook_key_defaults(

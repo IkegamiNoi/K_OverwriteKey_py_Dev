@@ -23,8 +23,8 @@
 6. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 09（keymap_set ごとの個別プリセット）完了**。task_08 = 正本反映まで済み、暫定仕様 08 は凍結。
-次は**次フェーズの方針決め**（候補 = 提案書 07 のリファクタ / idea_07 / idea_10 / idea_11）。
+**phase 09（keymap_set ごとの個別プリセット）と 計画07（提案書 07 のリファクタ・挙動不変）がともに完了**。
+次は**次フェーズの方針決め**（候補 = idea_07 / idea_10 / idea_11）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,19 +34,18 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（phase 09 完了時・コミット `7409237`）:
-compile **clean** / tests **238** / tests_ui **223** / smoke **pass** /
-manual **実機目視は全項目 OK**（v0.8 分 = 2026-08-15 / v0.9・v0.10 分 = 2026-08-16）。
-**件数が減ったら退行を疑う**。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
+直近の実測（計画07 完了時）:
+compile **clean** / tests **238** / tests_ui **229** / smoke **pass** /
+manual **phase 09 の実機目視は全項目 OK**（v0.8 分 = 2026-08-15 / v0.9・v0.10 分 = 2026-08-16）。
+**件数が減ったら退行を疑う**（tests_ui は計画07 項目 0 で 223 → **229**）。
+実行後に worktree ルートへ `user/` が生成されていないことも確認する。
 
 ## 次アクション（session.md.next_action より）
 - **次フェーズの方針をユーザーへ確認する**（`instructions/phase/current.md`「次フェーズ候補」）:
-  - **提案書 [07_refactor_per_keymap_set_presets](../../instructions/modified_proposal/07_refactor_per_keymap_set_presets.md)**
-    （**未承認**。`/refactor_check` = 推奨。①`PresetManagerDialog.__init__` 99 行の UI 構築抽出
-    ②`dialogs.py` 1016 行の `dialogs/` パッケージ化 ③`__init__.py:435` の直値を定数由来へ）。
-    承認する場合は **(a) 追加タスク / (b) 独立ミニ計画**のどちらかをユーザーに選んでもらう
-  - **idea_07**（参照元の掃除・**着手可**）/ **idea_10**（ネストしたモーダルの grab 復元）/
-    **idea_11**（別名保存の複製ロールバック・**優先度低**）
+  - **idea_07**（参照元の掃除・**着手可**。孤児 trigger_set と陳腐化した `_parent_refs` の回収）
+  - **idea_10**（ネストしたモーダルの grab 復元。**既存の「追加」「編集」も同じ挙動**＝露出は広い）
+  - **idea_11**（別名保存の複製ロールバック・**優先度低**）
+  - 保留中の idea_03 / idea_04 / idea_06 / idea_09 は着手条件・優先度を要確認
 - 各タスクの流れ: タスク定義起票 → codex-implementer へ委任 → **verifier で実測** → reviewer → コミット。
 
 ## 直前フェーズ（phase 09 = keymap_set ごとの個別プリセット）の要点
@@ -79,8 +78,27 @@ manual **実機目視は全項目 OK**（v0.8 分 = 2026-08-15 / v0.9・v0.10 �
 - **既知の制約**: 同一 stem の無警告共有 / フラグキーを持つ keymap_set の手編集パスはそのまま使う /
   壊れたグローバルは退避されず上書きされる / **別名保存の複製が部分成功し得る（idea_11）**。
 
+## 直前の計画（計画07 = phase 09 後のリファクタ・挙動不変）の要点
+
+規範 = `instructions/modified_proposal/07_refactor_per_keymap_set_presets.md`（**完了**）。
+判断は `decisions.md` の「計画07」節。**フェーズ番号は消費していない**。
+
+- **`dialogs` は単一ファイルではなく*パッケージ***（`keyseq/presentation/dialogs/`・**1 クラス 1 ファイル**）。
+  **`__init__.py` は明示列挙の再輸出のみ**で、**`tk` / `messagebox` を持たない**
+  （patch 先を維持するためだけの互換維持は置かない方針）。
+  クラス間参照は**サブモジュール直指定**（`action_dialog → preset_manager` /
+  `preset_manager → preset_dialog`）、`App` の型 import は**各ファイルの `TYPE_CHECKING` ガード内**。
+  **どちらを崩しても `ImportError` / 循環になる**。
+- `PresetManagerDialog.__init__` は **4 メソッドへ抽出済**（`_init_preset_manager_state` /
+  `_build_preset_manager_widgets` / `_bind_preset_manager_events` / `_sync_initial_presets`）。
+  **`_refresh` / `_update_source_labels` はテストが `patch.object` する契約名なのでリネーム禁止**。
+- **【テストの書き方】モジュール名前空間を patch する形は分割の障害になる**
+  （計画07 で 6 箇所書き換えた）。**新規テストは `patch.object` を優先する**。
+- **【罠】モジュール移動の実測では `__pycache__` の stale な `.pyc` を疑う**
+  （旧モジュールが生存し得る。削除して結果不変を確認する）。
+
 ## 注意事項・blockers
-- **blockers: なし**（phase 09 は完了。次フェーズ未確定なので方針確認から）。
+- **blockers: なし**（phase 09・計画07 とも完了。次フェーズ未確定なので方針確認から）。
 - **【既知・触らない】ネストしたモーダルを閉じると親の grab が復元されない**
   （**既存の「追加」「編集」も同じ**）。**idea_10 として分離済**で、
   **新しいダイアログにも復元処理を書かない**（挙動を揃えるため）。
