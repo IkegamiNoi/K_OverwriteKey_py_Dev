@@ -4,66 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-08-15T11:20:00
-phase: `instructions/phase/09_per_keymap_set_presets`（**暫定仕様 08 を v0.10 へ改訂・ユーザー確定済**。**task_07g まで完了＝v0.10 の実装も入った**。次は実機目視の 4 項目〔ユーザー作業〕）
-last_commit_location: claude/jikki-mokushi-ok-9c0a52 ※現在地はセッション開始時の git 実測値が正
+last_updated: 2026-08-16T00:00:00
+phase: `instructions/phase/09_per_keymap_set_presets`（**task_07 まで完了＝実装 + 統合確認 + 実機目視がすべて済**。残りは **task_08（正本反映・最終）のみ**）
+last_commit_location: claude/physical-device-visual-check-c4ad73 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **v0.8 の実機目視は OK。その後のレビュー指摘を v0.9（【S】上書き確認 /【I2】OFF 開時の一覧確定）、実機目視 項目 17 の「既存を採る手段が無い」を v0.10（【S】を 3 択化）として確定し、task_07f・07g とも実装完了。残るは 4 項目の実機目視〔ユーザー作業〕→ task_08 正本反映**。
-mode: blocked
+focus: **実機目視の残り 4 項目（13 / 17 / 18 / 19）がユーザー報告で OK。task_07（統合確認）完了。残るは task_08 = 正本反映（最終タスク）のみ**。
+mode: ready
 
 ## last_action
-ts: 2026-08-15T11:20:00
+ts: 2026-08-16T00:00:00
 who: main
 summary: |
-  【**実機目視 項目 17 の指摘 → 仕様 v0.10 確定 → task_07g 完了**】
-  - **ユーザーが目視中に検出**: 上書き確認が 2 択なので**既存ファイルの内容を採る手段が無い**。
-    記録パスが空だと【I】のトグル読み直しが空振りし、**パスが記録されるのは保存成功後**なので、
-    確認を断り続ける限り実体へ到達できない ＝ **「上書きする」か「専用化を諦める」の 2 択**しか残らない。
-  - **【仕様 v0.10・ユーザー確定】【S】の確認を 3 択へ**（**上書きする / 既存を読み込む / キャンセル**）。
-    **adopt は一覧と `_loaded_temp` を差し替えるだけで保存せず閉じない**（再 OK で内容一致 → 無確認保存）。
-    **破損で読めないときは「既存を読み込む」を出さない**。**発火条件は v0.9 のまま**。受入条件 **21** 追加。
-  - **敵対的レビューの採否**: ①adopt 後の再 OK の無確認前提は競合時に崩れる → **文書のみ採用**
-    （受入条件 21 へ前提明記。v0.9 の原子性除外と同族）②**ネストしたモーダルの grab 復元 → 除外**
-    （**既存の「追加」「編集」も同じ挙動**＝アプリ全体の課題。**idea_10 として起票**）③状態表記 → 除外。
-  - **task_07g 実装完了**（Codex 委任）。判定 API を **`conflict` + `existing` を同時に返す形へ置換**
-    （旧 bool API は残さない）。3 択は **`messagebox` ではない自作 Toplevel**（`hotkey_presets_io`）。
-    `app.py` は衝突時ハンドラを受け取り、**adopt / cancel とも書き込まず `False`**。
-  - **`reviewer` = 完了可**。指摘 1 件（**破損時も「内容が異なります」と出る**）は**メインで文言を出し分けへ修正**。
-  - **【運用】フォワーダが最終出力を返さず完了通知だけ来た**ため `SendMessage` で再開して回収した
-    （既知パターン。ワーカーは exit 0 で完走していた）。
+  【**実機目視の残り 4 項目 OK → task_07 完了**】
+  - ユーザー報告により **項目 13 / 17 / 18 / 19**（v0.9・v0.10 分）の実機目視が **OK**。
+    v0.8 分（項目 1〜16）は 2026-08-15 に OK 済みのため、**§3 の目視表は全項目クリア**。
+  - task_07 の完了条件（§1 自動確認 = task_07g 時点で実測 pass / §2 2 本立てレビュー実施済
+    〔指摘は v0.9・v0.10 として確定、idea_10 へ分離〕/ §3 実機目視完了）を**すべて充足**。
+  - コード変更なし（文書のみ）。`current.md` の進捗を「task_07 完了・次は task_08 のみ」へ更新。
 result_files:
-  - instructions/history/08_per_keymap_set_presets.md（**v0.10**）
-  - instructions/phase/09_per_keymap_set_presets/tasks/task_07g_overwrite_confirm_adopt_existing.md（新規）
-  - instructions/backlog/idea_10_nested_modal_grab_restore.md（新規）+ backlog/INDEX.md
-  - instructions/phase/09_per_keymap_set_presets/phase.md / tasks/task_07_integration_check.md（項目 17 を 3 択版へ）
-  - keyseq/application/config_service/split_loading.py / __init__.py（判定 API の置換）
-  - keyseq/presentation/controllers/config_io/hotkey_presets_io.py（3 択 Toplevel）/ app.py / dialogs.py
-  - tests/test_config_service.py / tests_ui/test_app_ui_flows.py
+  - instructions/phase/current.md（進捗更新）
+  - .claude_data/state/session.md
 verified:
-  compile: clean
-  tests: pass **238**（242 → **-4**。**退行ではない**＝判定 API の単体 5 本が、
-    戻り値が `conflict` + `existing` になったのに伴い **5 条件を 1 本にまとめたテストへ置換**された）
-  tests_ui: pass **223**（220 → +3・**ハングなし**）
-  smoke: pass
-  review: `reviewer` = **完了可**。3 値の契約（adopt / cancel とも書き込まず閉じない・`data`/dirty/ファイル不変）・
-    **`_loaded_temp` も差し替えるので adopt 後の再 OK で確認が出ない**・破損時は 2 択へ縮退・
-    判定=application / UI=presentation・旧 API を残していない・【O3】【O4】【S】の順序と発火条件が不変・
-    **grab_set を足していない**（idea_10 へ分離）・テストが `confirm_overwrite` を patch して**ハングしない**形 を確認
-  note: 旧 `last_action`（v0.9 / task_07f）の詳細は `decisions.md` の該当節が正
+  note: 本更新はコード変更を含まないため再実測なし。直近の実測は task_07g 時点
+    （compile clean / tests 238 / tests_ui 223 / smoke pass）が有効。
+  review: task_07 の二次レビュー（`deep-reviewer` + `codex-adversarial-reviewer`）は実施済み。
+    指摘の採否は v0.9 / v0.10 の仕様確定と idea_10 起票で決着済み。
 
 ## next_action
-- **【ユーザー作業・ブロッカー】追加 4 項目の実機目視**（`tasks/task_07_integration_check.md` §3 の表。
-  **v0.8 分〔項目 1〜16〕は 2026-08-15 に OK 済**なので、やり直すのは
-  **13**〔別名保存の複製・17 の前提操作〕/ **17**〔別名保存で既存名へ上書き → ON + OK で
-  **上書き確認が 3 択で出る**。**キャンセル なら何も変わらない / 既存を読み込む なら一覧が既存の内容へ
-  差し替わり、続けて OK すると無確認で保存されて既存の内容が保たれる**（v0.10）〕/
-  **18**〔通常 ON 編集・初回 ON・OFF の OK で**確認が出ない**〕/
-  **19**〔グローバル削除 + 個別 ON セットの Import → OFF のままマネージャを開くと**組込既定に揃い、
-  OK で組込既定が書かれる**〕の 4 つ）。結果をメインセッションへ報告してもらう。
-  - 目視で不具合が出たら **task_07 内で是正**（最小差分 + `reviewer` 再実施）。仕様変更を伴うなら
-    **枝番タスクへ切り出す**（07b〜07g と同じ流儀）。
-- その後 **task_08 = 正本反映（最終）**: `data_schema.md` §5.10 改訂 + **§5.10.4（v0.9）** + §5.5 / §5.4 / §5.8.8 / §5.1 +
+- **task_08 = 正本反映（最終）**: `data_schema.md` §5.10 改訂 + **§5.10.4（v0.9）** + §5.5 / §5.4 / §5.8.8 / §5.1 +
   `codebase_map.md` / 暫定仕様 08 を凍結 / `decisions_archive/09_per_keymap_set_presets.md` 作成 /
   `current.md` 完了更新 / `backlog/INDEX.md` の idea_08 を `INDEX_done.md` へ移動 / `/refactor_check`。
   - **正本へ追加する項目（N9）**: 入口台帳 §5.8.8 へ **「OFF 復帰時のグローバル再読込」経路**を
@@ -77,9 +46,7 @@ verified:
   `reviewer` → `/save_state` + `/task_commit`。
 
 ## blockers
-- **task_07 の完了に実機目視（ユーザー作業）が必要**。それまでフェーズ完了判定は出せない。
-  **v0.8 分は 2026-08-15 に OK 済**。**v0.9 / v0.10 の実装（task_07f・07g）も入った**ので、
-  残るは**4 項目（13 / 17 / 18 / 19。17 は 3 択版）**のみ。
+- なし（実機目視は **2026-08-16 に全項目 OK**）。task_08 の起票・実施へ進める。
 
 ## resume_hints
 - **python は必ずリポジトリルートの `.venv` を使う**（worktree 相対 `..\..\..\.venv\Scripts\python.exe`）。
