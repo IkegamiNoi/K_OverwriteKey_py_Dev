@@ -504,3 +504,25 @@ phase 09 完了時の `/refactor_check` = 推奨（M1 / M2 / M6 該当）の産�
 - `reviewer` = **修正して採用**。指摘 1 件（**`sequence` の表示名が「シーケンス」で、既存の
   `child_save_dialog._kind_label` と正本の用語「出力シーケンス」と不一致**）を
   **メインが修正**（実装・テストとも）。再実測で 264 pass（件数不変）を確認。
+
+### 【task_04】完了（2026-08-16）= UI 配線（メニュー / 確認ダイアログ / 保存確認導線）
+- 新規 3: `controllers/config_io/reference_cleanup_io.py`（`ReferenceCleanupIo.run_cleanup` = フローのみ）/
+  `dialogs/reference_cleanup_dialog.py`（`tk.Toplevel` 継承・`destroy()` override で resume・
+  **読み取り専用の一覧 + 実行 / キャンセル**・**`result` の既定は `False`**）/
+  `tests_ui/test_reference_cleanup_flow.py`（7 本）。
+  既存 4 ファイルは **+7 / -1**（`config_service/__init__.py` の**委譲 2 本** /
+  `app.py` の配線 / `dialogs/__init__.py` の再輸出 / `menu_bar.py` の「設定」メニュー 1 行）。
+- **フローの分岐**: 未保存（**`keymap_set_path` が空**。dirty ではない）→ 保存確認 →
+  **いいえ / 保存失敗なら検査もせず終了** → 検査 → **0 件なら一覧を出さず通知** →
+  確認ダイアログ → **キャンセルなら何も書かない** → 除去 → 結果通知。
+  **runtime・dirty は不変**。**`ReferenceCleanupIo` はロジックを持たない**
+  （検査・除去は application の委譲 / 文言は `reference_cleanup_text` の純関数）。
+- **実測で 1 件 fail → テスト側の誤りと判明**: メニュー配線のテストが
+  `menubar.entrycget(1, ...)` を「設定」と決め打ちしていたが、**top-level menubar の tearoff**で
+  `0=tearoff / 1=ファイル / 2=設定` とずれていた。production の配線は正しく、
+  **メインがテストを「カスケードとラベルで探す」形へ修正**（`_invoke_menu_command`）。
+  → **今後メニュー項目のテストを書くときはインデックスを固定しない**。
+- 実測: compile clean / `tests` **264**（不変）/ `tests_ui` **236**（229 → **+7**・ハングなし）/ smoke pass /
+  `user/` の誤生成なし。`config_io/__init__.py` の `M` は**改行コードのみで内容差分ゼロ**。
+- `reviewer` = **完了可**。参考指摘（委譲 2 本が 1 行スタイルで前後と不揃い）は**メインが整形**し再実測。
+- **【運用】`reviewer` が 1 度セッション上限で中断**したため再実行して回収した。

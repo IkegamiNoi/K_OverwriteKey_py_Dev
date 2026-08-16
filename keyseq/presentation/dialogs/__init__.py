@@ -4,3 +4,4 @@ from .preset_dialog import PresetDialog
 from .trigger_dialog import TriggerDialog
 from .keymap_edit_dialog import KeymapEditDialog
 from .layout_delete_dialog import LayoutDeleteDialog
+from .reference_cleanup_dialog import ReferenceCleanupDialog

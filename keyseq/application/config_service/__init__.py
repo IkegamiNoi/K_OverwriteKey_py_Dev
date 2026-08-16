@@ -14,7 +14,7 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
-from . import save_path_resolution, save_plan_execution, split_loading, split_payloads
+from . import parent_refs_cleanup, save_path_resolution, save_plan_execution, split_loading, split_payloads
 
 from keyseq.application.save_plan import SavePlan
 
@@ -359,6 +359,36 @@ class ConfigService:
         if not isinstance(payload, dict):
             return None
         return self._normalize_parent_refs(payload.get(self.PARENT_REFS_KEY))
+
+    def inspect_parent_refs(
+        self,
+        runtime: dict[str, Any],
+        *,
+        config_root: str,
+        keymap_set_path: str,
+    ) -> list[Any]:
+        return parent_refs_cleanup.inspect_parent_refs(
+            self,
+            runtime,
+            config_root=config_root,
+            keymap_set_path=keymap_set_path,
+        )
+
+    def prune_parent_refs(
+        self,
+        inspections: list[Any],
+        *,
+        runtime: dict[str, Any],
+        config_root: str,
+        keymap_set_path: str,
+    ) -> Any:
+        return parent_refs_cleanup.prune_parent_refs(
+            self,
+            inspections,
+            runtime=runtime,
+            config_root=config_root,
+            keymap_set_path=keymap_set_path,
+        )
 
     def _normalize_sequence_payload(self, sequence: dict[str, Any]) -> dict[str, Any]:
         return {
