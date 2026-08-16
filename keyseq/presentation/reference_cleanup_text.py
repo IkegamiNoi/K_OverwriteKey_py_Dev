@@ -31,8 +31,12 @@ def format_cleanup_plan(
     if not inspections:
         return (CLEANUP_EMPTY_MESSAGE,)
 
+    target_count = sum(
+        inspection.state in (CLEANUP_TARGET, CLEANUP_ALL_STALE)
+        for inspection in inspections
+    )
     stale_count = sum(len(inspection.stale_refs) for inspection in inspections)
-    lines = [f"対象ファイル: {len(inspections)} 件、消える参照元: {stale_count} 件"]
+    lines = [f"対象ファイル: {target_count} 件、消える参照元: {stale_count} 件"]
     for inspection in inspections:
         kind_label = _KIND_LABELS.get(inspection.kind, inspection.kind)
         lines.append(f"{kind_label}: {inspection.stored_path}")

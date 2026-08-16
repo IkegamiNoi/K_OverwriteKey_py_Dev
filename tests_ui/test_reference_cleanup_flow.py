@@ -8,6 +8,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from keyseq.application.config_service.parent_refs_cleanup import (
+    CLEANUP_PROTECTED,
     CLEANUP_TARGET,
     ParentRefsCleanupInspection,
     ParentRefsPruneResult,
@@ -110,6 +111,38 @@ class ReferenceCleanupFlowTest(unittest.TestCase):
         prune.assert_not_called()
         showinfo.assert_called_once_with("参照元の掃除", CLEANUP_EMPTY_MESSAGE)
 
+    def test_protected_only_inspections_notify_without_dialog_or_prune(self):
+        self.app.keymap_set_path = "saved.json"
+        protected_inspection = ParentRefsCleanupInspection(
+            kind="sequence",
+            stored_path="user/sequences/copy.json",
+            alive_refs=(),
+            stale_refs=(),
+            protected_refs=("user/trigger_sets/current.json",),
+            state=CLEANUP_PROTECTED,
+        )
+        with patch.object(
+            self.app.config_service,
+            "inspect_parent_refs",
+            return_value=[protected_inspection],
+        ) as inspect, patch.object(self.app.config_service, "prune_parent_refs") as prune, patch.object(
+            reference_cleanup_io_module,
+            "ReferenceCleanupDialog",
+        ) as dialog, patch.object(
+            reference_cleanup_io_module.messagebox,
+            "showinfo",
+        ) as showinfo:
+            self.app.reference_cleanup_io.run_cleanup()
+
+        inspect.assert_called_once_with(
+            self.app.data,
+            config_root=self.app.config_root,
+            keymap_set_path="saved.json",
+        )
+        dialog.assert_not_called()
+        prune.assert_not_called()
+        showinfo.assert_called_once_with("参照元の掃除", CLEANUP_EMPTY_MESSAGE)
+
     def test_cancel_does_not_prune_or_change_runtime_dirty_or_file(self):
         self.app.keymap_set_path = "saved.json"
         inspection = self._inspection()
@@ -175,6 +208,40 @@ class ReferenceCleanupFlowTest(unittest.TestCase):
             "参照元の掃除",
             "更新したファイル: 1 件、除去した参照元: 1 件",
         )
+
+    def test_execute_does_not_change_runtime_or_dirty_state(self):
+        self.app.keymap_set_path = "saved.json"
+        inspection = self._inspection()
+        result = ParentRefsPruneResult(
+            updated_files=((inspection.stored_path, 1),),
+            failed_files=(),
+        )
+        runtime_before = copy.deepcopy(self.app.data)
+        dirty_before = self.app.dirty_tracker.has_unsaved_changes()
+        dialog_instance = self._dialog(True)
+        with patch.object(
+            self.app.config_service,
+            "inspect_parent_refs",
+            return_value=[inspection],
+        ), patch.object(
+            self.app.config_service,
+            "prune_parent_refs",
+            return_value=result,
+        ) as prune, patch.object(
+            self.app.dirty_tracker,
+            "set_dirty",
+        ) as set_dirty, patch.object(
+            reference_cleanup_io_module,
+            "ReferenceCleanupDialog",
+            return_value=dialog_instance,
+        ), patch.object(reference_cleanup_io_module.messagebox, "showinfo"):
+            self.app.reference_cleanup_io.run_cleanup()
+
+        dialog_instance.wait_window.assert_called_once()
+        prune.assert_called_once()
+        set_dirty.assert_not_called()
+        self.assertEqual(self.app.data, runtime_before)
+        self.assertEqual(self.app.dirty_tracker.has_unsaved_changes(), dirty_before)
 
     def test_unsaved_no_stops_before_save_or_inspection(self):
         self.app.keymap_set_path = ""
@@ -264,6 +331,7 @@ class ReferenceCleanupFlowTest(unittest.TestCase):
         return False
 
     def test_settings_menu_command_runs_cleanup(self):
+        self.addCleanup(build_menu_bar, self.app)
         with patch.object(self.app.reference_cleanup_io, "run_cleanup") as run_cleanup:
             build_menu_bar(self.app)
             invoked = self._invoke_menu_command("参照元を掃除…")

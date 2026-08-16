@@ -1,5 +1,9 @@
 from tkinter import messagebox
 
+from keyseq.application.config_service.parent_refs_cleanup import (
+    CLEANUP_ALL_STALE,
+    CLEANUP_TARGET,
+)
 from keyseq.presentation.dialogs import ReferenceCleanupDialog
 from keyseq.presentation.reference_cleanup_text import (
     CLEANUP_EMPTY_MESSAGE,
@@ -27,7 +31,10 @@ class ReferenceCleanupIo:
             config_root=self._app.config_root,
             keymap_set_path=self._app.keymap_set_path,
         )
-        if not inspections:
+        if not any(
+            inspection.state in (CLEANUP_TARGET, CLEANUP_ALL_STALE)
+            for inspection in inspections
+        ):
             messagebox.showinfo("参照元の掃除", CLEANUP_EMPTY_MESSAGE)
             return
 

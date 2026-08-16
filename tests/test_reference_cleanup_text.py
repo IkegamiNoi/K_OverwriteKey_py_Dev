@@ -52,7 +52,7 @@ class ReferenceCleanupTextTest(unittest.TestCase):
         lines = format_cleanup_plan(inspections)
         text = "\n".join(lines)
 
-        self.assertEqual(lines[0], "対象ファイル: 3 件、消える参照元: 4 件")
+        self.assertEqual(lines[0], "対象ファイル: 2 件、消える参照元: 4 件")
         for path in (
             "missing-a.json",
             "missing-b.json",
@@ -97,6 +97,20 @@ class ReferenceCleanupTextTest(unittest.TestCase):
 
         self.assertNotIn("消える参照元:", lines)
         self.assertIn("保護のため残す参照元:", lines)
+
+    def test_target_file_count_excludes_protected_only_child(self):
+        inspection = ParentRefsCleanupInspection(
+            kind="sequence",
+            stored_path="user/sequences/copy.json",
+            alive_refs=(),
+            stale_refs=(),
+            protected_refs=("user/trigger_sets/current.json",),
+            state=CLEANUP_PROTECTED,
+        )
+
+        lines = format_cleanup_plan([inspection])
+
+        self.assertEqual(lines[0], "対象ファイル: 0 件、消える参照元: 0 件")
 
     def test_plan_uses_cleanup_state_to_add_all_stale_warning(self):
         all_stale = ParentRefsCleanupInspection(

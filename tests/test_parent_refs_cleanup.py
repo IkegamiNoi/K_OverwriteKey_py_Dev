@@ -16,6 +16,11 @@ from keyseq.application.config_service.parent_refs_cleanup import (
     prune_parent_refs,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
+from keyseq.presentation.controllers.config_io.child_save_rows import (
+    SHARE_SHARED,
+    SHARE_SOLE,
+    judge_share_state,
+)
 
 
 class ParentRefsCleanupTest(unittest.TestCase):
@@ -268,6 +273,46 @@ class ParentRefsCleanupTest(unittest.TestCase):
             self.assertEqual(self.service.read_parent_refs(child_path), [alive_ref])
             self.assertEqual(runtime, before_runtime)
 
+    def test_prune_changes_share_state_from_shared_to_sole(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "current.json")
+            child_path = os.path.join(root, "user", "keymaps", "main.json")
+            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            self._save(keymap_set_path, {"keymaps": []})
+            self._save(
+                child_path,
+                {"_parent_refs": [keymap_set_path, "missing-keymap-set.json"]},
+            )
+
+            before_state = judge_share_state(
+                self.service.read_parent_refs(child_path),
+                keymap_set_path,
+                target_exists=True,
+                config_service=self.service,
+                config_root=root,
+            )
+            inspections = self._inspect(
+                root,
+                runtime,
+                keymap_set_path=keymap_set_path,
+            )
+            self._prune(
+                root,
+                inspections,
+                runtime,
+                keymap_set_path=keymap_set_path,
+            )
+            after_state = judge_share_state(
+                self.service.read_parent_refs(child_path),
+                keymap_set_path,
+                target_exists=True,
+                config_service=self.service,
+                config_root=root,
+            )
+
+            self.assertEqual(before_state, SHARE_SHARED)
+            self.assertEqual(after_state, SHARE_SOLE)
+
     def test_prune_writes_empty_list_without_removing_parent_refs_key(self):
         with tempfile.TemporaryDirectory() as root:
             child_path = os.path.join(root, "user", "keymaps", "main.json")
@@ -459,6 +504,43 @@ class ParentRefsCleanupTest(unittest.TestCase):
             self.assertEqual(result.updated_files, ())
             self.assertEqual(result.failed_files, ())
             self.assertEqual(self._read_bytes(child_path), before)
+
+    def test_config_service_cleanup_delegates_match_module_functions(self):
+        with tempfile.TemporaryDirectory() as root:
+            child_path = os.path.join(root, "user", "keymaps", "main.json")
+            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            payload = {"_parent_refs": ["missing.json"]}
+            self._save(child_path, payload)
+
+            module_inspections = inspect_parent_refs(
+                self.service,
+                runtime,
+                config_root=root,
+                keymap_set_path="",
+            )
+            delegated_inspections = self.service.inspect_parent_refs(
+                runtime,
+                config_root=root,
+                keymap_set_path="",
+            )
+            module_result = prune_parent_refs(
+                self.service,
+                module_inspections,
+                runtime=runtime,
+                config_root=root,
+                keymap_set_path="",
+            )
+            self._save(child_path, payload)
+            delegated_result = self.service.prune_parent_refs(
+                delegated_inspections,
+                runtime=runtime,
+                config_root=root,
+                keymap_set_path="",
+            )
+
+            self.assertEqual(delegated_inspections, module_inspections)
+            self.assertEqual(delegated_result, module_result)
+            self.assertEqual(self.service.read_parent_refs(child_path), [])
 
     def _inspect(self, root, runtime, *, keymap_set_path=""):
         return inspect_parent_refs(
