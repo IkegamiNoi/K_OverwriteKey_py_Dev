@@ -413,3 +413,54 @@ phase 09 完了時の `/refactor_check` = 推奨（M1 / M2 / M6 該当）の産�
   ②**分割前に `Explore` で patch 箇所と依存を洗い出す**手順は有効だった（実装が 1 発で通った）
   ③**stale な `__pycache__` が旧モジュールを生存させ得る**ので、パッケージ化の実測では
   **`.pyc` を削除して結果不変を確認する**とよい。
+
+## 2026-08-16〜 (phase 10: 参照元の掃除)
+
+規範: [phase.md](../../instructions/phase/10_reference_link_cleanup/phase.md) /
+主入力 = 暫定仕様 09（`instructions/history/09_reference_link_cleanup.md`・**v0.4**）。**暫定仕様先行モード**。
+
+### 【起票時】idea_07 の昇格と設計確定（ユーザー確定 2026-08-16）
+- **検査範囲 = 現在の構成セットの子のみ**（ユーザー判断）。根拠 = ①**子は config 外にも置ける**ため
+  ディレクトリ走査でも**全網羅にならない** ②**keymap_set の列挙手段が無い**
+  （`keyseq/` に `os.listdir` / `glob` / `os.walk` が 1 箇所も無い）③目的は
+  「実際に使っているものが余計な処理を抱えないようにする」こと。
+- **孤児削除は行わず警告表示のみ**（v0.1 で「削除も選べる」と確定したが**差し戻して再判断**）。
+  理由 = **この検査範囲では孤児判定が原理的に成立しない**（対象は現在のセットの索引に載っている＝使用中。
+  かつ `_parent_refs` は best-effort で「どこからも参照されない」証明にならない。
+  **sequence の親は trigger_set** なので trigger_set 未保存なら使用中の sequence の参照元が全滅する）。
+  → 孤児検出には**逆方向検査**が要るため **[idea_12](../../instructions/backlog/idea_12_orphan_child_file_sweep.md) へ分離**
+  （ユーザー方針: **全検査と現在のセットのみを段階的に両方作る**）。
+- **確認 UI は 1 枚**（読み取り専用の一覧 + 実行 / キャンセル）。削除を外して**非破壊・冪等**になったため
+  行ごとの取捨選択は設けない。**消える参照元のパスは全件提示**する。
+- `deep-reviewer`（起票時）= **修正要** → v0.2 で反映。**最大の指摘 = 子の列挙を
+  `resolve_child_save_targets` にしていたのは誤り**（「次に保存するとしたらどこへ書くか」であり、
+  **未実体化の子へ既定パスが割り当てられて無関係な既存ファイルを書き換える**）→
+  **runtime の source_path 3 種**へ訂正。ほかに依存方向の逆流是正 / **現在の上位への参照は除去しない** /
+  **消えるパスの全件提示** / 目的と受入条件を検証可能な形へ。
+- `codex-adversarial-reviewer`（確定前）= **needs-attention（High 3）** → v0.4 で**全件反映**:
+  ①**保護対象を検査時点で分離**（実行では残すのに UI が「消える」と出す乖離を解消）
+  ②**未保存セットでは先に保存を確認**（`parent_ref` が空だと `_parent_refs_for_save` が
+  保存先を読み直さず、**個別保存で掃除前の refs が再書き込みされて巻き戻る**。**ユーザー案を採用**）
+  ③**除去直前に JSON 全体を読み直す**（全体置換なので確認中の外部変更を消し得る。
+  版情報の照合までは行わず、残る窓は §5.8.3 / §5.10.3 と同水準の既知の性質として除外）。
+- `reviewer`（phase.md の整合確認）= **修正して採用**。指摘 1 件（`current.md`「次フェーズ候補」の
+  idea_07 行が着手済みに追従しておらず**文書が自己矛盾**）を反映。
+
+### 【task_01】完了（2026-08-16）= 検査ロジック（application 新規モジュール）
+- `config_service/parent_refs_cleanup.py` を**兄弟モジュール**として新設（`service` を第 1 引数に取る /
+  `__init__` を import しない / **`__init__.py` へ委譲を足さない**＝737 行で分割保留中のため）。
+- 公開面 = 判定名 4 定数 + 凍結データクラス `ParentRefsCleanupInspection`
+  （`kind` / `stored_path` / `alive_refs` / `stale_refs` / `protected_refs` / `state`）+
+  `inspect_parent_refs(service, runtime, *, config_root, keymap_set_path)`。
+  **表示都合を持たせない**（行モデルは presentation 側）。
+- 規則: **列挙は source_path 3 種のみ**（`resolve_child_save_targets` 不使用）/
+  **keymap → trigger_set → sequence** の順で固定 / **`canonical_path` で重複排除（先着優先）** /
+  **保護対象は実在しなくても `protected_refs` へ** / 判定名は優先順の表どおり
+  （**stale + protected で alive 無しは `ALL_STALE` ではなく `TARGET`**）/
+  戻り値から `CLEANUP_SKIP` を除外。
+- 実測: compile clean / `tests` **247**（238 → **+9**・追加テスト数と一致）/ `tests_ui` **229**（不変）/
+  smoke pass / **既存ファイルの変更 0 件** / **`user/` の誤生成なし**。
+- `reviewer` = **完了可（指摘なし）**。特に **`os.path.exists` が解決後のパスにのみ適用**され、
+  **`canonical_path` の値が保存値・戻り値へ混入していない**こと、
+  **`stored_path` と各 refs が記録表記のまま**返ることを確認
+  （Codex が自己申告した「過剰な正規化」は実際には入っておらず、テストの弱化も無し）。
