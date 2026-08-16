@@ -6,15 +6,24 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（**phase 09 が 2026-08-16 に完了**）。
+- **アクティブなフェーズ: [10_reference_link_cleanup](10_reference_link_cleanup/phase.md)**
+  （参照元の掃除・起票 **2026-08-16**）。
+  - 主入力（確定設計）: [暫定仕様 09](../history/09_reference_link_cleanup.md)（**v0.4**・ユーザー確定済）。
+    モード: **暫定仕様先行**。番号対応: **phase 10 / 暫定 09 / decisions_archive 10**。
+  - 進捗: **起票済・task_01 未着手**。
+  - 確定の要点: 検査範囲は**現在の構成セットの子のみ**（列挙は **runtime の source_path 3 種**）/
+    **孤児の削除はせず警告表示のみ** / **確認 UI は 1 枚**（消えるパスを全件提示）/
+    **現在の keymap_set・trigger_set への参照は保護**（検査時点で分離）/
+    **未保存なら先に保存の確認** / **除去直前に JSON 全体を読み直す** / **runtime へ反映しない**。
+  - 起票元: [idea_07](../backlog/idea_07_reference_link_cleanup.md)（Phase β 完了で着手条件を充足）。
+    **全走査 + 孤児候補は [idea_12](../backlog/idea_12_orphan_child_file_sweep.md) へ分離**（次フェーズ以降）。
+- 直前の完了フェーズ: [09_per_keymap_set_presets](../../.claude_data/state/decisions_archive/09_per_keymap_set_presets.md)
+  （**2026-08-16 完了**・keymap_set ごとの個別プリセット。暫定仕様 08 は**凍結済**）。
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
   **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
   成果 = `dialogs.py`（1026 行）を `dialogs/` **7 ファイル**へ分割 /
   `PresetManagerDialog.__init__` 99 → 8 行 / 直値の定数化 / 特性テスト **6 本追加**（`tests_ui` 229）。
-- **次フェーズは未確定**のため、**作業開始時にユーザーへ方針を確認する**（下記「次フェーズ候補」）。
-- 直前の完了フェーズ: [09_per_keymap_set_presets](../../.claude_data/state/decisions_archive/09_per_keymap_set_presets.md)
-  （**2026-08-16 完了**・keymap_set ごとの個別プリセット。暫定仕様 08 は**凍結済**）。
   **完了フェーズの要約は本ファイルに置かない**。経緯・判断は `.claude_data/state/decisions.md`「アーカイブ索引」
   → `decisions_archive/<phase>.md` が正。
 - 提案書 [06_refactor_hook_key_pair_enumeration](../modified_proposal/06_refactor_hook_key_pair_enumeration.md) は
@@ -30,12 +39,13 @@
 
 ## 次採番
 
-- 次フェーズは **`10_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 10 が着手中**。次フェーズは **`11_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜08 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
-  08=個別プリセット〔**v0.10・凍結**〕）。次採番は **`09_<topic>`**。
+  04〜09 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
+  08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.4・使用中**〕）。
+  次採番は **`10_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**07 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**未承認**）・次採番は **`08_<topic>`**。
 
@@ -62,8 +72,11 @@
 - [idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（**ネストしたモーダルの grab 復元**。
   モーダル中のモーダルを閉じると親の grab が戻らず、ダイアログを開いたままメインを操作できる。
   **既存の「追加」「編集」も同じ挙動**＝アプリ全体の課題として phase 09 から分離・**未着手**）。
-- [idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除。**β 完了で前提充足・着手可**。
-  孤児 trigger_set と陳腐化した `_parent_refs` を回収する保守機能）。
+- ~~[idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除）~~
+  → **着手中**（2026-08-16 起票・上記「現在の参照先」= phase 10）。
+- [idea_12](../backlog/idea_12_orphan_child_file_sweep.md)（**全走査 + 孤児候補の検出**＝逆方向検査。
+  phase 10 から分離・**前提 = phase 10 の完了**。ユーザー方針「全検査と現在のセットのみを
+  段階的に両方作る」の後半）。
 - [idea_09](../backlog/idea_09_legacy_settings_save_path_fallback.md)（別名保存でレガシー `settings/` 配下を選ぶと
   `default.json` へ無言フォールバックする残存経路。Phase α の deep-reviewer 指摘2 から分離・**優先度低**・
   着手時は仕様変更フロー必須）。
