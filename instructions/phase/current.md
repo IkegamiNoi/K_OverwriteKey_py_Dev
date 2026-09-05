@@ -8,9 +8,9 @@
 
 - **アクティブなフェーズ: [10_reference_link_cleanup](10_reference_link_cleanup/phase.md)**
   （参照元の掃除・起票 **2026-08-16**）。
-  - 主入力（確定設計）: [暫定仕様 09](../history/09_reference_link_cleanup.md)（**v0.4**・ユーザー確定済）。
+  - 主入力（確定設計）: [暫定仕様 09](../history/09_reference_link_cleanup.md)（**v0.5**・ユーザー確定済）。
     モード: **暫定仕様先行**。番号対応: **phase 10 / 暫定 09 / decisions_archive 10**。
-  - 進捗: **起票済・task_01 未着手**。
+  - 進捗: **task_01〜05 完了**（実機目視 14 項目すべて OK・2026-09-05）。**残りは task_06 = 正本反映（最終）のみ**。
   - 確定の要点: 検査範囲は**現在の構成セットの子のみ**（列挙は **runtime の source_path 3 種**）/
     **孤児の削除はせず警告表示のみ** / **確認 UI は 1 枚**（消えるパスを全件提示）/
     **現在の keymap_set・trigger_set への参照は保護**（検査時点で分離）/
