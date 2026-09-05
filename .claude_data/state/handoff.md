@@ -13,18 +13,14 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` → [phase 10 の phase.md](../../instructions/phase/10_reference_link_cleanup/phase.md) を読む
-3. 主入力の確定設計 = [history/09_reference_link_cleanup.md](../../instructions/history/09_reference_link_cleanup.md)
-   （**v0.5・ユーザー確定済**。**§2 が確定事項の集約**。§3-1 検査 / §3-2 除去 / §3-3 UI /
-   **§3-5 既知の制約**が実装の規範。**版が多いので古い版の条項を引かないこと**）
-4. 実機目視の観点 = [tasks/task_05_integration_check.md](../../instructions/phase/10_reference_link_cleanup/tasks/task_05_integration_check.md) **§3 の表**
-5. CLAUDE.md → `.claude/rules/` の順に必要分を読む
-6. 過去の判断は `.claude_data/state/decisions.md`（**末尾に進行中の phase 10 の節がある**）+
-   「アーカイブ索引」→ `decisions_archive/<phase>.md`
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い**。次フェーズ候補が載っている）
+3. **次フェーズが決まったら** `/phase_start` で `instructions/phase/11_<topic>/` を起票する
+   （暫定仕様が要るなら `/spec_draft` で `instructions/history/10_<topic>.md`）
+4. CLAUDE.md → `.claude/rules/` の順に必要分を読む
+5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 10 の実装（task_01〜04）は完了。task_05 の通し実測と 2 本立てレビューも完了し指摘を反映済み。
-残るは実機目視 14 項目〔ユーザー作業〕→ task_06（正本反映）**。
+**phase 10 完了（task_01〜06 + 実機目視 14/14 + 2 本立てレビュー全件反映）。次フェーズ未確定＝ユーザーの選定待ち**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,68 +30,46 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（phase 10 task_05 の是正後・コミット `165f8c4`）:
-compile **clean** / tests **267** / tests_ui **238** / smoke **pass** /
-manual **未実施（14 項目）**。
+直近の実測（phase 10 完了時点）:
+compile **clean** / tests **267** / tests_ui **238** / smoke **pass** / manual **14 / 14 OK**。
 **件数が減ったら退行を疑う**。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー作業・これが残り全部】実機目視 14 項目**。観点は
-  `tasks/task_05_integration_check.md` **§3 の表**が正（受入条件との対応付き）。
-  準備 = **アプリ終了中に `config/user/` 配下の子JSON の `_parent_refs` へ実在しないパスを 1〜2 件足す**。
-  特に重要な 4 つ:
-  - **7**（現在の構成セットのファイルを別フォルダへ移動 → 掃除 → **その参照元は「消える」側に出ず残る**）
-  - **9〜11**（未保存の導線。**いいえ = 何も起きない** / **保存ダイアログをキャンセル = 掃除も走らない** /
-    **保存完了 = そのまま検査へ進む**）
-  - **13**（**保護対象だけの子なら一覧が出ず「掃除する項目はありません。」**＝ v0.5 の是正）
-  - **4b**（フックの suspend / resume を **実行・キャンセル・× ・Esc の 4 経路**で）
-  - 目視で不具合が出たら **task_05 内で是正**（最小差分 + `reviewer` 再実施）。
-    仕様変更を伴うなら**枝番タスクへ切り出す**。
-- その後 **task_06 = 正本反映（最終）**: `data_schema.md` **§5.8.1 改訂**
-  （「掃除は後続課題」の差し替え / 「追加のみ」への例外 / **検査範囲は現在の構成セットの子＝全網羅ではない** /
-  **全件除去時は `[]`** / **現在の keymap_set・trigger_set への参照は除去しない** /
-  **未保存時は先に保存が要る**）+ 必要なら §5.8.4 の注記 + `features.md` + `codebase_map.md` /
-  暫定仕様 09 を凍結 / `decisions_archive/10_reference_link_cleanup.md` 作成 /
-  `current.md` 完了更新 / `backlog/INDEX.md` の idea_07 を `INDEX_done.md` へ / `/refactor_check`。
-  - **`/refactor_check` の注目点**: `config_service/__init__.py` が **767 行**（+30）。phase 09 から M1 該当で保留中。
-  - **task_06 送りのレビュー指摘**: presentation が `config_service` の内部モジュールを直参照 /
-    委譲の戻り値型が `Any` / `reference_cleanup_text.py` の配置が利用範囲より広い /
-    `_nonempty_path` が strip しない値を返す / `run_cleanup` に例外の受け皿が無い。
+- **次フェーズをユーザーが選定する**（`instructions/phase/current.md`「次フェーズ候補」）。
+  最有力は **idea_12**（**全走査 + 孤児候補の逆方向検査**。**前提 = phase 10 完了 → 充足**。
+  ユーザー方針「全検査と現在のセットのみを段階的に両方作る」の後半で、phase 10 のコアを土台に載せる）。
+  ほか idea_10（ネストしたモーダルの grab 復元）/ idea_09・idea_03（優先度低）/ idea_04・idea_06（保留）。
+- **未承認の提案書が 1 件**: `instructions/modified_proposal/07_refactor_per_keymap_set_presets.md`
+  （phase 09 の `/refactor_check` 由来）。着手はユーザー承認が先。
+- **候補送り中の実装指摘 5 件**（phase 10 task_05 の `deep-reviewer`。`/refactor_check` は「不要」判定）:
+  presentation が `config_service` の内部モジュールを直参照 / 委譲の戻り値型が `Any` /
+  `reference_cleanup_text.py` の配置が利用範囲より広い / `_nonempty_path` が strip しない値を返す /
+  `run_cleanup` に例外の受け皿が無い。**次フェーズ以降で再判定する**。
 - 各タスクの流れ: タスク定義起票 → codex-implementer へ委任 → **verifier で実測** → reviewer → コミット。
 
-## 現フェーズ（phase 10 = 参照元の掃除）の要点
+## 直前フェーズ（phase 10 = 参照元の掃除）の要点
 
-**確定設計は暫定仕様 09（v0.5）が正**。**実装は task_01〜04 まで完了**（残りは実機目視 → task_06）。
+**正は正本**（`spec_detail/data_schema.md` **§5.8.1** + `features.md` §4.6 + `codebase_map.md`）。
+**暫定仕様 09 は凍結済**（経緯の参照用。**条項を実装の根拠に引かない**）。
+判断履歴は `decisions_archive/10_reference_link_cleanup.md`。
 
-- **何をする機能か**: 子JSON（keymap / trigger_set / sequence）の **`_parent_refs`** から
-  **実体の無い上位パスを除去する**保守機能（設定メニュー →「参照元を掃除…」）。
-  目的は §5.8.4 の**誤警告**（「N 個の上位で共有中」）と**余分な依存確認**の解消。
-- **検査範囲は「現在の構成セットが参照している子」のみ**。**列挙は runtime の source_path 3 種**
-  （`INTERNAL_{KEYMAP,TRIGGER_SET,SEQUENCE}_SOURCE_PATH`）。
-  **`resolve_child_save_targets` を使ってはならない**（「次に保存するとしたらどこへ書くか」であり、
-  未実体化の子へ既定パスが割り当てられて**無関係な既存ファイルを書き換える**）。
-- **保護対象**（keymap / trigger_set → 現在の `keymap_set_path` / sequence → 現在の trigger_set パス）は
-  **実在しなくても除去しない**（消すと次回保存で全子が「所有元不明」→ 既定が別名保存へ倒れる）。
-  **検査の時点で分離**し、**「消える」一覧・件数・0 件警告に出さない**（表示と実行結果を一致させる）。
-- **除去直前に JSON 全体を読み直して判定をやり直す**（検査時のスナップショットを書き戻すと、
-  確認中の外部変更を全体置換で消す）。**読めない / 非 dict / 保存例外は失敗記録して継続**。
-  **除去 0 件なら書かない（冪等）**。**全件除去時は `[]`**（キーは残す。§5.1）。
-- **孤児は削除しない**（警告表示のみ）。**確認 UI は 1 枚**（読み取り専用の一覧 + 実行 / キャンセル。
-  **消える参照元は全件提示**＝到達不能な媒体の参照元を消す事故に気づけるように）。
-- **未保存（`keymap_set_path` が空）なら先に保存を確認**し、**成功時だけ掃除する**
-  （空だと個別保存が掃除前の refs を再書き込みして**巻き戻る**ため）。
-- **runtime・dirty は変更しない**。**保存フロー・JSON スキーマは変更しない**。
+- **何をした機能か**: 子JSON の **`_parent_refs`** から**実体の無い上位パスを除去する**保守機能
+  （設定メニュー →「参照元を掃除…」）。§5.8.4 の**誤警告**と**余分な依存確認**の解消が目的。
+- 次フェーズ（idea_12 = 逆方向検査）で触るなら、**正本 §5.8.1 の以下 3 点が土台**:
+  ①**列挙は runtime の source_path 3 種**（**`resolve_child_save_targets` を使ってはならない**＝
+  未実体化の子へ既定パスが割り当てられ**無関係な既存ファイルを書き換える**）
+  ②**保護対象**（現在の keymap_set / trigger_set への参照）は**実在しなくても除去しない**が
+  **別枠で「保護のため残す」と提示はする**
+  ③**除去直前に JSON 全体を読み直して再判定**（検査時のスナップショットを書き戻さない）。
 - **層**: 検査・除去 = `config_service/parent_refs_cleanup.py`（application）/ 文言 =
   `presentation/reference_cleanup_text.py`（**tkinter 非依存の純関数**）/ フロー =
   `controllers/config_io/reference_cleanup_io.py` / UI = `dialogs/reference_cleanup_dialog.py`。
-- **既知の制約（§3-5・実装は変えない）**: sequence の掃除は **trigger_set が実体化していること**が前提 /
-  確認中に上位が消えると**提示していない参照元も消え得る** / **再判定で対象外になった子は通知に出ない** /
-  **前提として呼ぶ保存経路は正本 §5.8.6 の best-effort**（本フェーズの保証は「掃除による書き込みが 0 件」）。
-- **スコープ外**: 全走査 / 孤児検出 / 逆方向検査 → **idea_12**（次フェーズ以降）。
+- **教訓（フェーズ末で効いた）**: **暫定仕様を凍結すると、正本へ転記しなかった条項はそのまま失われる**。
+  §7 の昇格表（**ファイル単位**）だけを追うと**条項単位の漏れ**を見落とす。
+  **§2 / §3-x の条項を 1 つずつ正本の行へ対応付ける**こと（今回はレビュー 2 本で 11 件拾った）。
 
 ## 注意事項・blockers
-- **blockers: task_05 の完了に実機目視（ユーザー作業）が必要**。それまでフェーズ完了判定は出せない。
-  自動確認（実測・2 本立てレビュー）は**完了済み**。
+- **blockers: なし**（phase 10 は完了。次フェーズの選定待ち）。
 - **【運用・重要】委任の実行中はメイン側で文書を編集しない**。task_05 で **Codex がメインの仕様書編集を
   「範囲外の差分」と判断して巻き戻した**（v0.5 の記述が消えた）。編集した場合は**完了後に必ず差分を確認する**。
 - **【メニュー項目のテスト】インデックスを固定しない**。top-level menubar には **tearoff** があり
@@ -150,10 +124,10 @@ manual **未実施（14 項目）**。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   Codex レビュー系との併用は `.claude/rules/agent_selection.md` のレビュー表が正。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: **09_per_keymap_set_presets** / 08_hotkey_presets_global / 07_hook_keys_global_default）。
+  （直近 3 件: **10_reference_link_cleanup** / 09_per_keymap_set_presets / 08_hotkey_presets_global）。
   提案書「計画05」「計画06」「計画07」は完了済みで、**いずれもフェーズ番号を消費していない**。
-- 未着手/保留 idea: **idea_12**（全走査 + 孤児候補・**phase 10 完了が前提**）/
+- 未着手/保留 idea: **idea_12**（全走査 + 孤児候補・**前提の phase 10 完了は充足**）/
   idea_10（ネストしたモーダルの grab 復元）/ idea_11（別名保存の複製ロールバック・低）/
   idea_03（hotkey 保存正規化・低）/ idea_09（レガシー保存パス・低）/ idea_04・idea_06（保留）。
-  **idea_07 は phase 10 で着手中**。
+  **idea_07 は phase 10 で完了**（`INDEX_done.md`）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。

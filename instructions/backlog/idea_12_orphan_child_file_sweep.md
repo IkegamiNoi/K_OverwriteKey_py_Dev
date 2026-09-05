@@ -50,7 +50,10 @@ phase 10（暫定仕様 09）で作る「現在の構成セットの参照元掃
 
 ## 関連
 
-- 前提: **phase 10 / [暫定仕様 09](../history/09_reference_link_cleanup.md)**（現在のセットの参照元掃除）。
+- 前提: **phase 10（2026-09-05 完了）**＝現在のセットの参照元掃除。
+  **規範は正本 [`spec_detail/data_schema.md`](../common/spec_detail/data_schema.md) §5.8.1**
+  （検査範囲 / 保護対象 / 判定名 / 除去の手順 / 既知の制約）。
+  [暫定仕様 09](../history/09_reference_link_cleanup.md) は**凍結済**（経緯の参照用。条項を実装の根拠に引かない）。
   分離の判断は同書 **§4-A / §4-D** と `.claude_data/state/decisions.md` の phase 10 節。
 - 起点: [idea_07](idea_07_reference_link_cleanup.md)（参照元の掃除・phase 10 で着手）。
 - 正本: `spec_detail/data_schema.md` **§5.8.1**（参照元記録は best-effort）/ **§5.7**（パス表記）。

@@ -226,7 +226,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       未保存なら保存確認 → **いいえ / 保存失敗なら検査もせず終了** → 検査 → **対象 0 件なら一覧を出さず通知** →
       確認ダイアログ → **キャンセルなら 1 件も書かない** → 除去 → 結果通知。**runtime・dirty は変えない**
     - 検査・除去は `config_service` へ委譲し、文言は `reference_cleanup_text` の純関数が組み立てる
-      （**このクラス自身はロジックを持たない**）
+      （**このクラス自身は検査・除去・文言のロジックを持たない**。0 件の分岐だけはフロー側にもある）
     - ReferenceCleanupDialog（dialogs/reference_cleanup_dialog.py）: 読み取り専用の一覧 + 実行 / キャンセル。
       `tk.Toplevel` 継承 + `destroy()` override で hook resume（`layout_delete_dialog.py` と同型）。
       **`result` の既定は `False`**（× / Esc で実行しない）
