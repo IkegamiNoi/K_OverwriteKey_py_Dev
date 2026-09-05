@@ -6,19 +6,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [10_reference_link_cleanup](10_reference_link_cleanup/phase.md)**
-  （参照元の掃除・起票 **2026-08-16**）。
-  - 主入力（確定設計）: [暫定仕様 09](../history/09_reference_link_cleanup.md)（**v0.5**・ユーザー確定済）。
-    モード: **暫定仕様先行**。番号対応: **phase 10 / 暫定 09 / decisions_archive 10**。
-  - 進捗: **task_01〜05 完了**（実機目視 14 項目すべて OK・2026-09-05）。**残りは task_06 = 正本反映（最終）のみ**。
-  - 確定の要点: 検査範囲は**現在の構成セットの子のみ**（列挙は **runtime の source_path 3 種**）/
-    **孤児の削除はせず警告表示のみ** / **確認 UI は 1 枚**（消えるパスを全件提示）/
-    **現在の keymap_set・trigger_set への参照は保護**（検査時点で分離）/
-    **未保存なら先に保存の確認** / **除去直前に JSON 全体を読み直す** / **runtime へ反映しない**。
-  - 起票元: [idea_07](../backlog/idea_07_reference_link_cleanup.md)（Phase β 完了で着手条件を充足）。
-    **全走査 + 孤児候補は [idea_12](../backlog/idea_12_orphan_child_file_sweep.md) へ分離**（次フェーズ以降）。
-- 直前の完了フェーズ: [09_per_keymap_set_presets](../../.claude_data/state/decisions_archive/09_per_keymap_set_presets.md)
-  （**2026-08-16 完了**・keymap_set ごとの個別プリセット。暫定仕様 08 は**凍結済**）。
+- **アクティブなフェーズ: なし**（phase 10 完了・**次フェーズ未確定**）。
+  次フェーズは下記「次フェーズ候補」からユーザーが選定し、`/phase_start` で `11_<topic>` を起票する。
+- 直前の完了フェーズ: [10_reference_link_cleanup](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)
+  （**2026-09-05 完了**・参照元の掃除。暫定仕様 09 は**凍結済**。正本 `data_schema.md` §5.8.1 +
+  `features.md` §4.6 + `codebase_map.md` へ昇格済）。
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
   **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
@@ -39,12 +31,12 @@
 
 ## 次採番
 
-- **phase 10 が着手中**。次フェーズは **`11_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 10 は完了**。次フェーズは **`11_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
   04〜09 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
-  08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.4・使用中**〕）。
+  08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕）。
   次採番は **`10_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**07 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**未承認**）・次採番は **`08_<topic>`**。
@@ -65,6 +57,7 @@
 **保存系リデザインの Phase β も完了**（phase 06 / 暫定 05・2026-08-03）。
 **γ = phase 07 も完了**（暫定 06・2026-08-05）。**プリセット = phase 08 も完了**（暫定 07・2026-08-09）。
 **個別プリセット = phase 09 も完了**（暫定 08・2026-08-16）。
+**参照元の掃除 = phase 10 も完了**（暫定 09・2026-09-05）。
 次フェーズの候補:
 - ~~[idea_08](../backlog/idea_08_per_keymap_set_preset_ownership.md)（keymap_set ごとの個別プリセット）~~
   → **完了**（phase 09・2026-08-16。判断は
@@ -73,10 +66,11 @@
   モーダル中のモーダルを閉じると親の grab が戻らず、ダイアログを開いたままメインを操作できる。
   **既存の「追加」「編集」も同じ挙動**＝アプリ全体の課題として phase 09 から分離・**未着手**）。
 - ~~[idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除）~~
-  → **着手中**（2026-08-16 起票・上記「現在の参照先」= phase 10）。
+  → **完了**（phase 10・2026-09-05。判断は
+  [decisions_archive/10](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)）。
 - [idea_12](../backlog/idea_12_orphan_child_file_sweep.md)（**全走査 + 孤児候補の検出**＝逆方向検査。
-  phase 10 から分離・**前提 = phase 10 の完了**。ユーザー方針「全検査と現在のセットのみを
-  段階的に両方作る」の後半）。
+  phase 10 から分離・**前提 = phase 10 の完了 → 充足（2026-09-05）**。ユーザー方針「全検査と現在のセットのみを
+  段階的に両方作る」の後半。phase 10 の検査・除去のコアを土台に載せる）。
 - [idea_09](../backlog/idea_09_legacy_settings_save_path_fallback.md)（別名保存でレガシー `settings/` 配下を選ぶと
   `default.json` へ無言フォールバックする残存経路。Phase α の deep-reviewer 指摘2 から分離・**優先度低**・
   着手時は仕様変更フロー必須）。
@@ -115,6 +109,10 @@
   [05_refactor_child_file_save_dialog](../modified_proposal/05_refactor_child_file_save_dialog.md) の上位 3 項目に入らなかった分）:
   - M4 の子カテゴリ列挙（`CHILD_KEYMAP` / `CHILD_TRIGGER_SET` / `CHILD_SEQUENCE` が 5 ファイルに散在。
     子の種類は仕様上 3 種で固定のため**優先度低**）
+    - **phase 10 で追記（2026-09-05）**: 定数の**使用ファイル数は 8 のまま不変**だが、phase 10 の新規 2 ファイル
+      （`config_service/parent_refs_cleanup.py` / `presentation/reference_cleanup_text.py`）が
+      **`save_plan.CHILD_*` を import せず同値の文字列直値**を使っている（M6 候補）。
+      `/refactor_check` は**この既知領域として抑止**し「不要」に倒した。まとめて触るときはここも対象にする
   - `child_save_dialog.py` が **370 行**（600 行未満で M1 非該当だが実装目安 300 行超）+
     `_add_text_cell` の戻り値が素の dict
   - `dirty_tracker.trigger_set_imported` が**読み手不在の残置状態**
@@ -136,7 +134,8 @@
 - **Phase 09（個別プリセット）の `/refactor_check` からの候補送り**（判定は**推奨** →
   提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md)・
   **未承認**。上位 3 項目に入らなかった分）:
-  - `keyseq/application/config_service/__init__.py` が **734 行**（+135）で **M1 該当**。
+  - `keyseq/application/config_service/__init__.py` が **767 行**（phase 10 で +32。phase 09 時点は 734 行）。
+    **phase 09 で M1 該当**（当時 +135）。**phase 10 では M1 非該当**（増分が閾値未満）だが**分割は保留のまま**。
     ただし**テストが `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を
     差し替えるため `ConfigService` 本体とパス基盤メソッドを動かせない**制約があり、分割方針の
     設計判断が別途必要。実ロジックを持つのは `relocate_individual_hotkey_presets`（約 40 行）で、

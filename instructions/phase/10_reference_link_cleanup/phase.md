@@ -19,7 +19,7 @@
 - 起票元: [idea_07](../../backlog/idea_07_reference_link_cleanup.md)（2026-07-27 起票）。
   着手条件だった **Phase β（phase 06）の完了（2026-08-02）**により昇格。
 - 主入力（暫定仕様）: [09_reference_link_cleanup.md](../../history/09_reference_link_cleanup.md)
-  （**v0.4**・ユーザー確定済）
+  （**最終 v0.5**・ユーザー確定済・**phase 10 完了に伴い凍結済**）
 - モード: **暫定仕様先行モード**。番号対応: **phase 10 / 暫定 09 / decisions_archive 10**。
 
 ## 確定（ユーザー 2026-08-16）
@@ -61,7 +61,7 @@
 
 ## このフェーズで読むファイル
 
-1. `instructions/history/09_reference_link_cleanup.md` — **主入力（確定設計・v0.4）**
+1. `instructions/history/09_reference_link_cleanup.md` — **主入力（確定設計・最終 v0.5・凍結済）**
 2. `instructions/common/spec_detail/data_schema.md` — 正本（**§5.8.1** 参照元記録 /
    **§5.8.4** 共有状況の判定 / §5.7 パス表記 / §5.1 後方互換）
 3. `instructions/common/codebase_map.md` — 責務（`config_service` の構成・`config_io` の分割）

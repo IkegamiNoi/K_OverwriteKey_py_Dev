@@ -52,6 +52,7 @@ keyseq/presentation/
             child_save_rows.py      # 子ファイルの共有状況判定と行モデル（判定名 / 表示文言 / 既定アクション）
             child_save_dialog.py    # ChildSaveDialog: 子一覧 / 依存確認 / 再計算先の上書き確認
             child_save_plan.py      # 行の選択・確定エントリ・既定規則から保存計画を組み立てる
+            reference_cleanup_io.py # ReferenceCleanupIo: 参照元の掃除のフロー（保存確認→検査→確認→除去→通知）
         dirty_state.py
         hook_controller.py
         key_capture.py
@@ -83,9 +84,11 @@ keyseq/presentation/
       trigger_dialog.py        # TriggerDialog
       keymap_edit_dialog.py    # KeymapEditDialog
       layout_delete_dialog.py  # LayoutDeleteDialog
+      reference_cleanup_dialog.py  # ReferenceCleanupDialog（参照元の掃除の確認 1 枚・読み取り専用）
     keyboard_layouts.py
     keyboard_window.py
     listbox_utils.py
+    reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
     startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
     theme.py                   # フォント/テーマ適用 + coerce_font_delta（フォント差分 -3..+3 正規化の唯一点）
     tk_keys.py
@@ -218,6 +221,18 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       依存確認（トリガー一覧）」の並び。各ステップは private メソッドへ分割済み（計画05 項目 2）。
       **依存確認で「選び直す」が選ばれた場合はモジュール定数 `_RETRY` を返して一覧へ戻る**
       （戻り値がキャンセル / 再試行 / 確定の 3 系統あるため `None` と区別する）
+  - **参照元の掃除（phase 10。仕様は `spec_detail/data_schema.md` §5.8.1）**:
+    - ReferenceCleanupIo（reference_cleanup_io.py = `app.reference_cleanup_io`）: **フローだけ**を持つ。
+      未保存なら保存確認 → **いいえ / 保存失敗なら検査もせず終了** → 検査 → **対象 0 件なら一覧を出さず通知** →
+      確認ダイアログ → **キャンセルなら 1 件も書かない** → 除去 → 結果通知。**runtime・dirty は変えない**
+    - 検査・除去は `config_service` へ委譲し、文言は `reference_cleanup_text` の純関数が組み立てる
+      （**このクラス自身はロジックを持たない**）
+    - ReferenceCleanupDialog（dialogs/reference_cleanup_dialog.py）: 読み取り専用の一覧 + 実行 / キャンセル。
+      `tk.Toplevel` 継承 + `destroy()` override で hook resume（`layout_delete_dialog.py` と同型）。
+      **`result` の既定は `False`**（× / Esc で実行しない）
+    - reference_cleanup_text.py（presentation 直下）: 提示テキストの整形（**tkinter 非依存の純関数**。
+      `dialogs/` に置くと `__init__` が tkinter / pynput を巻き込むため直下）
+    - **メニュー配線は `views/menu_bar.py` の設定メニュー 1 行**
 - LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理
 - KeymapPanelController（controllers/keymap_panel_controller.py）: キーマップ管理パネル
 - TriggerPanelController（controllers/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示
@@ -240,7 +255,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 
 ### ConfigService（`application/config_service/` パッケージ）
 
-**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 5 ファイル:
+**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 6 ファイル:
 
 | ファイル | 責務 |
 |---|---|
@@ -249,6 +264,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 | `split_payloads.py` | 保存 payload の構築（keymap / trigger_set / sequence） |
 | `save_path_resolution.py` | 保存先の解決と既定命名（`slugify_file_stem` の実体・一意パス採番） |
 | `split_loading.py` | split 構成の読込（keymap_set → keymap / trigger_set / sequence の再構成） |
+| `parent_refs_cleanup.py` | **参照元の掃除**（phase 10）。検査（子の列挙 / 実在判定 / 保護対象の分離 / 判定名 / 重複排除）と `prune_parent_refs`（除去） |
 
 - **`ConfigService` 本体を `config_service.py` へ移してはならない**。テストが
   `patch("keyseq.application.config_service.os.path", ntpath)` でモジュール名前空間の `os.path` を
@@ -340,6 +356,15 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
     `is_path_within` の 2 本のみを使う。正規化文字列は比較専用）
   - **計画を決めるのは presentation 側**（`config_io/child_save_*`）。ConfigService は
     渡された計画を実行するだけで、ダイアログを持たない
+  - **参照元の掃除**（`parent_refs_cleanup.py`。公開面は `ConfigService` の**委譲 2 本**）。
+    設計の芯は 3 つ:
+    - **子の列挙は runtime の source_path 3 種のみ**。**`resolve_child_save_targets` を使わない**
+      （「次に保存するとしたらどこへ書くか」であり、未実体化の子へ既定パスが割り当てられて
+      **無関係な既存ファイルを書き換える**）
+    - **保護対象**（現在の keymap_set / trigger_set への参照）は**実在しなくても除去しない**。
+      検査の時点で分離し、提示・件数・0 件警告から外す
+    - **除去直前に JSON 全体を読み直して再判定する**（検査時のスナップショットを書き戻さない）。
+      除去 0 件なら書かず（冪等）、全件除去は `[]`。1 件の失敗で中止せず記録して継続する
 
 ### HotkeyService（application/hotkey_service.py）/ domain/hotkey.py
 

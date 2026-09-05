@@ -1,8 +1,13 @@
 # 暫定仕様 09: 参照元の掃除（reference_link_cleanup）
 
-> 状態: **未凍結・v0.5・主入力・ユーザー確定済（実装着手可）**。
-> 本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済（v0.5・phase 10 完了 2026-09-05）**。**正本へ昇格済のため、本書は経緯の参照用**。
+> 以後の仕様の正は `instructions/common/spec_detail/data_schema.md` **§5.8.1**
+> （参照元記録 + **参照元の掃除**〔検査範囲と既知の制約 / 保護対象 / `[]` / 孤児は警告のみ /
+> 未保存時は先に保存 / 除去直前の読み直し / 冪等 / runtime へ反映しない〕）
+> + **§5.8.4**（共有状況の判定。`None` と `[]` はいずれも「所有元不明」で判定は不変）
+> + `spec_detail/features.md` §4.6（設定メニューの項目）、
+> および `instructions/common/codebase_map.md`。**本書の条項を実装の根拠に引かない**。
+> 判断履歴は `.claude_data/state/decisions_archive/10_reference_link_cleanup.md`。
 > 起票元: [idea_07](../backlog/idea_07_reference_link_cleanup.md)（2026-07-27 起票・
 > Phase β の「参照元記録は案A＝陳腐化を許容し別途掃除機能で回収する」というユーザー方針から分離）。
 > 着手条件だった **Phase β（phase 06）が 2026-08-02 に完了**したため昇格。
