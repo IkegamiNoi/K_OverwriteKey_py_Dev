@@ -14,7 +14,7 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
-from . import orphan_scan, parent_refs_cleanup, quarantine, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
+from . import orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
 
 from keyseq.application.save_plan import SavePlan
 
@@ -436,6 +436,12 @@ class ConfigService:
             current_keymap_set_path=current_keymap_set_path,
             protected_paths=protected_paths,
         )
+
+    def list_quarantine_units(self, *, config_root: str) -> Any:
+        return quarantine_manage.list_quarantine_units(self, config_root=config_root)
+
+    def restore_quarantine_unit(self, unit_id: str, *, config_root: str) -> Any:
+        return quarantine_manage.restore_quarantine_unit(self, unit_id, config_root=config_root)
 
     def _normalize_sequence_payload(self, sequence: dict[str, Any]) -> dict[str, Any]:
         return {

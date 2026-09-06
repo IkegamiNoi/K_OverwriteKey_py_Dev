@@ -19,6 +19,7 @@ from keyseq.presentation.controllers.config_io import (
 from keyseq.presentation.controllers.config_io.child_save_dialog import ChildSaveDialog
 from keyseq.presentation.controllers.config_io.reference_cleanup_io import ReferenceCleanupIo
 from keyseq.presentation.controllers.config_io.orphan_sweep_io import OrphanSweepIo
+from keyseq.presentation.controllers.config_io.quarantine_manage_io import QuarantineManageIo
 from keyseq.presentation.config_paths import ConfigPaths
 from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
 from keyseq.presentation.controllers.hook_controller import HookController
@@ -157,6 +158,7 @@ class App(tk.Tk):
         self.sequence_io = SequenceFileIo(self)
         self.reference_cleanup_io = ReferenceCleanupIo(self)
         self.orphan_sweep_io = OrphanSweepIo(self)
+        self.quarantine_manage_io = QuarantineManageIo(self)
         self.layout = LayoutController(self)
         self.keymap_panel = KeymapPanelController(self)
         self.trigger_panel = TriggerPanelController(self)

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 import shutil
 from dataclasses import dataclass
 from datetime import datetime
@@ -10,6 +11,7 @@ from . import orphan_scan
 
 QUARANTINE_DIR_NAME = "quarantine"
 MANIFEST_FILE_NAME = "manifest.json"
+UNIT_ID_PATTERN = re.compile(r"^\d{8}_\d{6}(?:_\d+)?$")
 
 ENTRY_PLANNED = "planned"
 ENTRY_MOVED = "moved"
@@ -75,7 +77,7 @@ def _execute_quarantine(
         return "", (), (), ""
     created_at = _now()
     unit_id = _allocate_unit_id(config_root, created_at)
-    unit_dir = os.path.join(_quarantine_root(config_root), unit_id)
+    unit_dir = os.path.join(quarantine_root(config_root), unit_id)
     manifest_path = os.path.join(unit_dir, MANIFEST_FILE_NAME)
     moves = tuple(_plan_move(service, entry, config_root, unit_dir) for entry in entries)
     states = [ENTRY_PLANNED] * len(moves)
@@ -135,13 +137,13 @@ def _now() -> datetime:
     return datetime.now()
 
 
-def _quarantine_root(config_root: str) -> str:
+def quarantine_root(config_root: str) -> str:
     return os.path.join(os.path.abspath(config_root), QUARANTINE_DIR_NAME)
 
 
 def _allocate_unit_id(config_root: str, created_at: datetime) -> str:
     """同じ秒に実行しても既存の実行単位を上書きしないよう連番を付す。"""
-    root = _quarantine_root(config_root)
+    root = quarantine_root(config_root)
     base = created_at.strftime("%Y%m%d_%H%M%S")
     unit_id = base
     index = 2
