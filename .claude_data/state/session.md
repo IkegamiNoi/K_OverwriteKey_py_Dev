@@ -4,60 +4,62 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-06T00:00:00
-phase: **11_orphan_child_file_sweep（孤児ファイルの棚卸し）= task_01 完了 / task_02 未着手**。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
-last_commit_location: claude/refactor-keymap-set-presets-93f0b5 @ 9737e13 ※現在地はセッション開始時の git 実測値が正
+last_updated: 2026-09-06T12:00:00
+phase: **11_orphan_child_file_sweep（孤児ファイルの棚卸し）= task_01 / task_02 完了 / task_03 未着手**。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
+last_commit_location: claude/task-02-progression-2fd81c @ 最新コミット = `task_02: 走査と孤児判定（orphan_scan）を新設` ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 11 task_01（参照パス収集器）完了**（verifier 実測 green / reviewer = 完了可）。次は **task_02（走査と孤児判定）**。
+focus: **phase 11 task_02（走査と孤児判定）完了**（verifier 実測 green / reviewer = 完了可）。次は **task_03（検出フローの入口と表示）= 検出のみが green になる区切り**。
 mode: in_progress
 
 ## last_action
-ts: 2026-09-06T00:00:00
+ts: 2026-09-06T12:00:00
 who: main
 summary: |
-  【**phase 11 task_01 完了**】参照パス収集器（application・読み出し専用）を新設。
-  実装は `codex-implementer` へ委任 → `verifier` 実測 → `reviewer` = **完了可**。
-  - **新規 `config_service/reference_scan.py`**（206 行）: `collect_reference_paths(service,
-    keymap_set_paths, *, config_root)` が `ReferenceScanResult`（`referenced: frozenset[str]`〔canonical・
-    **比較専用**〕/ `unreadable_sources: tuple[(入力表記, 理由)]` / `non_keymap_set_sources`）を返す。
-    理由コードは `SOURCE_MISSING` / `SOURCE_UNREADABLE`。
-  - **2 段辿り**（keymap_set → `trigger_set_path` → `triggers[].sequence_path`）/ 旧形式の `keymaps[]` /
-    `hotkey_presets_individual` に依らず `hotkey_presets_path` を採取 /
-    **`external_keyboard_layouts` は config_root 基準と dirname(config_root) 基準の両方**を登録（superset）/
-    **canonical をキーにした読み取りキャッシュ**で二重読みを防止。
-  - **keymap_set 判定はキーの有無だけ**（4 キーが 1 つも無ければ `non_keymap_set_sources`。
-    `unreadable` とは区別する）。
-  - `ConfigService` への追加は **import 行 + 1 行委譲の 2 箇所のみ**（767 行のファイルに実ロジックを置かない）。
-  - **`build_runtime_data_from_split` / `load_keymap_entry` / `load_trigger_set` /
-    `resolve_child_save_targets` は不使用**（副作用と誤爆上書きの回避）。
+  【**phase 11 task_02 完了**】走査と孤児判定（application・読み出し専用）を新設。
+  タスク定義の起票はメイン → 実装は `codex-implementer` → `verifier` 実測 → `reviewer` = **完了可**。
+  - **新規 `config_service/orphan_scan.py`**（161 行）: `scan_orphans(service, *, config_root,
+    scan_dirs, startup_keymap_set_path, current_keymap_set_path, protected_paths)` が
+    `OrphanScanResult`（`entries: tuple[OrphanEntry(kind, stored_path, state)]` /
+    `unreadable_sources` / `non_keymap_set_sources` / `missing_scan_dirs`）を返す。
+  - **判定名 4 種**（`ORPHAN_CANDIDATE` / `REFERENCED` / `PROTECTED` / `EXCLUDED`）。
+    **判定順は 保護 → 参照 → 形状検証 → 候補**（本タスクで定めた規約）で、
+    **形状検証の読み取りは 3 番目に到達したファイルだけ**に行う（遅延読込）。
+  - **参照側 4 経路**（既定 `user/keymap_sets/` 直下 / 起動エントリ / 現在のセット / `scan_dirs`）を
+    **非再帰・symlink 除外・`.json` のみ**で列挙し、`reference_scan.collect_reference_paths` へ委譲。
+    **`config.json` のグローバルプリセット**は `split_loading.load_global_hotkey_presets_path` 経由で追加。
+  - **候補側 = 既定 4 ディレクトリ直下のみ**（keymaps / trigger_sets / sequences / hotkey_presets）。
+    形状検証の必須キーは `mappings`(dict) / `triggers`(list) / `actions`(list) / `hotkey_presets`(list)。
+    `user/hotkey_presets/global/` と `quarantine/` は**構造的に交差しない**ため除外判定を書いていない。
+  - **副作用ゼロ**（`os.makedirs` / `ensure_split_config_dirs` を呼ばず、無いディレクトリは 0 件で続行）。
+    `canonical_path` の戻り値は `stored_path` / `missing_scan_dirs` へ混入させない。
+  - `ConfigService` への追加は **import 行 + 1 行委譲の 2 箇所のみ**（+19 / -1 行）。
 result_files:
-  - keyseq/application/config_service/reference_scan.py（新規）
+  - keyseq/application/config_service/orphan_scan.py（新規・161 行）
   - keyseq/application/config_service/__init__.py（import + 委譲の 2 箇所）
-  - tests/test_reference_scan.py（新規・12 件）
-  - instructions/phase/11_orphan_child_file_sweep/tasks/task_01_reference_path_collector.md（新規）
+  - tests/test_orphan_scan.py（新規・16 件）
+  - instructions/phase/11_orphan_child_file_sweep/tasks/task_02_orphan_scan.md（新規）
 verified:
   compile: clean
-  tests: pass **279**（267 → **+12**）
+  tests: pass **295**（279 → **+16**）
   tests_ui: pass **238**（維持）
   smoke: pass
-  note: 実測は `verifier`。**`user/` の誤生成なし**。差分は 3 ファイルのみで文書の巻き戻しなし。
-  review: `reviewer` = **完了可**（5 観点 OK）。非 blocking の申し送り 3 件は next_action へ。
+  note: 実測は `verifier`。**`user/` の誤生成なし**。差分は 3 ファイル + タスク定義のみ。
+  review: `reviewer` = **完了可**（5 観点 OK）。非 blocking の申し送り 2 件は next_action へ。
 
 ## next_action
-- **task_02（走査と孤児判定）を起票して着手する**（`/task_new` →
-  `tasks/task_02_*.md` → `codex-implementer` → `verifier` → `reviewer`）。
-  範囲 = 参照側の**ディレクトリ列挙**（既定 / 起動エントリ / 現在のセット / 指定ディレクトリ）+
-  **`config.json` のグローバルプリセットパスの取り込み** + 候補側の収集と**形状検証** +
-  **保護対象の適用** + 判定名 4 種 + 走査の不完全性の記録（暫定仕様 §3-2 / §3-4 / §3-5）。
-- **task_01 の reviewer 申し送り 3 件（いずれも非 blocking）**:
-  ① **`collect_reference_paths` に空文字の `config_root` を渡さない**
-  （`resolve_config_path` は空だと相対値を絶対化せず **cwd 基準**で `exists` 判定される。
-  既存共有ヘルパの挙動で task_01 が持ち込んだものではない。**task_02 の呼び出し側で担保する**）
-  ② 同一ファイルを複数の表記で参照して読めない場合、`unreadable_sources` の記録は**1 回だけ**
-  （キャッシュによる重複抑制。情報欠落ではない）
-  ③ trigger_set の `SOURCE_MISSING` ケースの明示テストは無い（`_load_source` は共有で
-  keymap_set 側の MISSING テストが通っている）。
+- **task_03（検出フローの入口と表示）を起票して着手する**（`/task_new` →
+  `tasks/task_03_*.md` → `codex-implementer` → `verifier` → `reviewer`）。
+  範囲 = 表示文言の純関数 + `config_io` の新規 IO + 設定メニュー「孤児ファイルの棚卸し…」+
+  未保存時の**「保存する / 中止する」2 択**（**`confirm_save_if_dirty` は使わない**＝意味が逆）+
+  **受け入れ条件 17 の警告文生成と一覧先頭への配置** + **保護対象の収集**（presentation 側が集めて渡す）。
+  **ここまでで「検出のみ」が green になる**（暫定仕様 §4-F の段取り）。
+- **task_02 の reviewer 申し送り 2 件（いずれも非 blocking・task_03 で確認）**:
+  ① **`missing_scan_dirs` の表記が不揃い**（`orphan_scan.py:77`）。`scan_dirs` は入力表記のままだが、
+  既定の `user/keymap_sets/` が無い場合だけ**絶対パス**で入る。一覧表示時に見た目が変わり得る。
+  ② `_scan_source_directory` と `_list_json_files` でパス解決 + `isdir` が軽微に重複（実害なし）。
+- **task_01 の申し送り①は task_02 でも未担保**: **`config_root` に空文字を渡さない**
+  （`resolve_config_path` は空だと **cwd 基準**になる）。**呼び出し側 = task_03 の IO で担保する**。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
   **phase 11 では新規コードで同じ形を作らない**にとどめる（暫定仕様 §6）。
 
