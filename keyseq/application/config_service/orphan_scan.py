@@ -39,6 +39,28 @@ class OrphanScanResult:
     missing_scan_dirs: tuple[str, ...]
 
 
+def collect_protected_paths(service, runtime, *, keymap_set_path: str) -> tuple[str, ...]:
+    """編集中の構成が使うパスを、保存表記と入力順を保って集める。"""
+    values = [keymap_set_path]
+    if isinstance(runtime, dict):
+        keymaps = runtime.get("keymaps")
+        if isinstance(keymaps, list):
+            values.extend(
+                keymap.get(service.INTERNAL_KEYMAP_SOURCE_PATH)
+                for keymap in keymaps if isinstance(keymap, dict)
+            )
+        values.append(runtime.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH))
+        triggers = runtime.get("triggers")
+        if isinstance(triggers, list):
+            values.extend(
+                trigger.get(service.INTERNAL_SEQUENCE_SOURCE_PATH)
+                for trigger in triggers if isinstance(trigger, dict)
+            )
+        values.append(runtime.get("hotkey_presets_path"))
+    paths = (str(value or "").strip() for value in values)
+    return tuple(dict.fromkeys(path for path in paths if path))
+
+
 def scan_orphans(
     service,
     *,

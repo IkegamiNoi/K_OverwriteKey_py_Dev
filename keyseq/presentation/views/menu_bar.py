@@ -23,6 +23,7 @@ def build_menu_bar(app):
     settings_menu = tk.Menu(menubar, tearoff=False)
     settings_menu.add_command(label="プリセット編集…", command=app.open_preset_manager, accelerator="Ctrl+Alt+P")
     settings_menu.add_command(label="参照元を掃除…", command=app.reference_cleanup_io.run_cleanup)
+    settings_menu.add_command(label="孤児ファイルの棚卸し…", command=app.orphan_sweep_io.run_sweep)
     settings_menu.add_command(label="キーボードUIを開く", command=app.layout.open_keyboard_window)
     settings_menu.add_separator()
     settings_menu.add_command(label="外部レイアウトを追加…", command=app.layout.add_external_keyboard_layout)

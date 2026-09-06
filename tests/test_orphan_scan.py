@@ -7,7 +7,7 @@ from keyseq.application.config_service import ConfigService
 from keyseq.application.config_service.orphan_scan import (
     KIND_HOTKEY_PRESETS, KIND_KEYMAP, KIND_SEQUENCE, KIND_TRIGGER_SET,
     ORPHAN_CANDIDATE, ORPHAN_EXCLUDED, ORPHAN_PROTECTED, ORPHAN_REFERENCED,
-    scan_orphans,
+    collect_protected_paths, scan_orphans,
 )
 from keyseq.application.config_service.reference_scan import collect_reference_paths
 from keyseq.infrastructure.json_repository import JsonRepository
@@ -254,6 +254,54 @@ class OrphanScanTest(unittest.TestCase):
                 with open(path, "rb") as stream:
                     files[os.path.relpath(path, root)] = stream.read()
         return directories, files
+
+
+class CollectProtectedPathsTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def test_collects_all_five_path_kinds_in_order(self):
+        runtime = {
+            "keymaps": [{self.service.INTERNAL_KEYMAP_SOURCE_PATH: "keymap.json"}, None, "skip"],
+            self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: "triggers.json",
+            "triggers": [None, {self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "sequence.json"}],
+            "hotkey_presets_path": "presets.json",
+        }
+        self.assertEqual(collect_protected_paths(self.service, runtime, keymap_set_path="set.json"),
+                         ("set.json", "keymap.json", "triggers.json", "sequence.json", "presets.json"))
+
+    def test_keeps_stored_spelling_and_deduplicates_in_input_order(self):
+        stored = "user/Keymaps/../Keymaps/Mixed.JSON"
+        runtime = {
+            "keymaps": [{self.service.INTERNAL_KEYMAP_SOURCE_PATH: f" {stored} "},
+                        {self.service.INTERNAL_KEYMAP_SOURCE_PATH: " set.json "},
+                        {self.service.INTERNAL_KEYMAP_SOURCE_PATH: None}],
+            self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: stored,
+            "triggers": [{self.service.INTERNAL_SEQUENCE_SOURCE_PATH: " sequence.json "}],
+            "hotkey_presets_path": "sequence.json",
+        }
+        with patch.object(self.service, "canonical_path") as canonical, patch.object(
+            self.service, "resolve_config_path",
+        ) as resolve:
+            paths = collect_protected_paths(self.service, runtime, keymap_set_path=" set.json ")
+        self.assertEqual(paths, ("set.json", stored, "sequence.json"))
+        canonical.assert_not_called()
+        resolve.assert_not_called()
+
+    def test_missing_or_invalid_runtime_values_are_safe(self):
+        for runtime in (None, [], "invalid", {}, {"keymaps": [None, {}], "triggers": [3, {}]},
+                        {"keymaps": "invalid", "triggers": {}}, {"hotkey_presets_path": 0}):
+            for source, expected in ((" set.json ", ("set.json",)), (" ", ())):
+                with self.subTest(runtime=runtime, source=source):
+                    self.assertEqual(collect_protected_paths(
+                        self.service, runtime, keymap_set_path=source,
+                    ), expected)
+
+    def test_facade_matches_module_function(self):
+        runtime = {"hotkey_presets_path": 123}
+        self.assertEqual(self.service.collect_protected_paths(runtime, keymap_set_path="set.json"),
+                         collect_protected_paths(self.service, runtime, keymap_set_path="set.json"))
+        self.assertEqual(self.service.collect_protected_paths(runtime, keymap_set_path=""), ("123",))
 
 
 if __name__ == "__main__":

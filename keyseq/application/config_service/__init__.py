@@ -411,6 +411,9 @@ class ConfigService:
             protected_paths=protected_paths,
         )
 
+    def collect_protected_paths(self, runtime: Any, *, keymap_set_path: str) -> Any:
+        return orphan_scan.collect_protected_paths(self, runtime, keymap_set_path=keymap_set_path)
+
     def _normalize_sequence_payload(self, sequence: dict[str, Any]) -> dict[str, Any]:
         return {
             "label": str(sequence.get("label") or "").strip(),

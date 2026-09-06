@@ -13,8 +13,8 @@
   起票元 = [idea_12](../backlog/idea_12_orphan_child_file_sweep.md)。
   到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**（削除は `<config_root>/quarantine/` 内のみ）。
   **本アプリ初のディレクトリ走査かつ初のファイル削除機能**。判断は `decisions.md` の phase 11 節。
-  **進捗: task_01（参照パス収集器）/ task_02（走査と孤児判定）完了 → 次は task_03（検出フローの入口と表示）**
-  （task_03 完了で「検出のみ」が green になる区切り。全 8 タスク）。
+  **進捗: task_01（参照パス収集器）/ task_02（走査と孤児判定）/ task_03（検出フローの入口と表示）完了
+  → 次は task_04（走査ディレクトリ設定）**（**task_03 完了時点で「検出のみ」が green**。全 8 タスク）。
 - 直前の完了フェーズ: [10_reference_link_cleanup](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)
   （**2026-09-05 完了**・参照元の掃除。暫定仕様 09 は**凍結済**。正本 `data_schema.md` §5.8.1 +
   `features.md` §4.6 + `codebase_map.md` へ昇格済）。

@@ -4,62 +4,68 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-06T12:00:00
-phase: **11_orphan_child_file_sweep（孤児ファイルの棚卸し）= task_01 / task_02 完了 / task_03 未着手**。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
-last_commit_location: claude/task-02-progression-2fd81c @ 最新コミット = `task_02: 走査と孤児判定（orphan_scan）を新設` ※現在地・SHA はセッション開始時の git 実測値が正
+last_updated: 2026-09-06T13:30:00
+phase: **11_orphan_child_file_sweep（孤児ファイルの棚卸し）= task_01〜task_03 完了 / task_04 未着手**。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
+last_commit_location: claude/task-02-progression-2fd81c @ 最新コミット = `task_03: 孤児ファイルの棚卸しの入口と表示を新設` ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 11 task_02（走査と孤児判定）完了**（verifier 実測 green / reviewer = 完了可）。次は **task_03（検出フローの入口と表示）= 検出のみが green になる区切り**。
+focus: **phase 11 task_03（検出フローの入口と表示）完了 = 「検出のみ」が green**（verifier 実測 green / reviewer = 完了可・指摘なし）。次は **task_04（走査ディレクトリ設定）**。
 mode: in_progress
 
 ## last_action
-ts: 2026-09-06T12:00:00
+ts: 2026-09-06T13:30:00
 who: main
 summary: |
-  【**phase 11 task_02 完了**】走査と孤児判定（application・読み出し専用）を新設。
-  タスク定義の起票はメイン → 実装は `codex-implementer` → `verifier` 実測 → `reviewer` = **完了可**。
-  - **新規 `config_service/orphan_scan.py`**（161 行）: `scan_orphans(service, *, config_root,
-    scan_dirs, startup_keymap_set_path, current_keymap_set_path, protected_paths)` が
-    `OrphanScanResult`（`entries: tuple[OrphanEntry(kind, stored_path, state)]` /
-    `unreadable_sources` / `non_keymap_set_sources` / `missing_scan_dirs`）を返す。
-  - **判定名 4 種**（`ORPHAN_CANDIDATE` / `REFERENCED` / `PROTECTED` / `EXCLUDED`）。
-    **判定順は 保護 → 参照 → 形状検証 → 候補**（本タスクで定めた規約）で、
-    **形状検証の読み取りは 3 番目に到達したファイルだけ**に行う（遅延読込）。
-  - **参照側 4 経路**（既定 `user/keymap_sets/` 直下 / 起動エントリ / 現在のセット / `scan_dirs`）を
-    **非再帰・symlink 除外・`.json` のみ**で列挙し、`reference_scan.collect_reference_paths` へ委譲。
-    **`config.json` のグローバルプリセット**は `split_loading.load_global_hotkey_presets_path` 経由で追加。
-  - **候補側 = 既定 4 ディレクトリ直下のみ**（keymaps / trigger_sets / sequences / hotkey_presets）。
-    形状検証の必須キーは `mappings`(dict) / `triggers`(list) / `actions`(list) / `hotkey_presets`(list)。
-    `user/hotkey_presets/global/` と `quarantine/` は**構造的に交差しない**ため除外判定を書いていない。
-  - **副作用ゼロ**（`os.makedirs` / `ensure_split_config_dirs` を呼ばず、無いディレクトリは 0 件で続行）。
-    `canonical_path` の戻り値は `stored_path` / `missing_scan_dirs` へ混入させない。
-  - `ConfigService` への追加は **import 行 + 1 行委譲の 2 箇所のみ**（+19 / -1 行）。
+  【**phase 11 task_03 完了 = 「検出のみ」が green**】孤児ファイルの棚卸しの入口と表示を新設。
+  タスク定義の起票はメイン → 実装は `codex-implementer` → `verifier` 実測 → `reviewer` = **完了可（指摘なし）**。
+  - **新規 `presentation/orphan_sweep_text.py`**（69 行・純関数・tkinter 非依存）:
+    `format_scan_warnings` / `format_orphan_plan` / `format_orphan_notice`。
+    **警告ブロックは必ず先頭**（読めなかった参照側 → 見つからない走査ディレクトリ →
+    対象外 JSON 件数 → `SCAN_SCOPE_NOTE`〔**常に出す**〕）。候補一覧は `ORPHAN_CANDIDATE` の行だけ、
+    `ORPHAN_EXCLUDED` / 対象外 JSON は**件数のみ**（パスを出さない）。**判定名定数で分岐**。
+  - **新規 `config_io/orphan_sweep_io.py`**（40 行）: `OrphanSweepIo.run_sweep`。
+    **未保存時は `askyesno` の「保存する / 中止する」2 択**で、いいえ・保存失敗とも**棚卸しごと中止**
+    （**`confirm_save_if_dirty` は不使用**＝「いいえ = 続行」で意味が逆）。
+    `scan_dirs=[]` 固定（設定の永続化は task_04）。`config_root` は `app.config_root`（空文字を渡さない）。
+  - **`orphan_scan.collect_protected_paths`** を追加（runtime の内部キーを読むため application 側）。
+    `keymap_set_path` + keymaps の `_keymap_source_path` + trigger_set + triggers の
+    `_sequence_source_path` + `hotkey_presets_path` の 5 種を **stored 表記のまま**・順序保持で重複排除。
+  - 一覧の提示は**暫定的に `messagebox.showinfo`**。確認ダイアログ（`ReferenceCleanupDialog` の
+    ヘッダ / ボタンラベル引数化版）は**実行の選択肢が生まれる task_05 / task_06 で導入**する
+    （純関数は行タプルを返すので `lines=` へそのまま渡せる）。
+  - **`reference_cleanup_text.py` / `reference_cleanup_dialog.py` / `reference_cleanup_io.py` は無変更**
+    （既存文言の見直しは task_08）。`app.py` は +2 行、`menu_bar.py` は +1 行のみ。
 result_files:
-  - keyseq/application/config_service/orphan_scan.py（新規・161 行）
-  - keyseq/application/config_service/__init__.py（import + 委譲の 2 箇所）
-  - tests/test_orphan_scan.py（新規・16 件）
-  - instructions/phase/11_orphan_child_file_sweep/tasks/task_02_orphan_scan.md（新規）
+  - keyseq/presentation/orphan_sweep_text.py（新規・69 行）
+  - keyseq/presentation/controllers/config_io/orphan_sweep_io.py（新規・40 行）
+  - keyseq/application/config_service/orphan_scan.py（`collect_protected_paths` 追加）
+  - keyseq/application/config_service/__init__.py（1 行委譲ファサード 1 箇所）
+  - keyseq/presentation/app.py（import + インスタンス化の 2 箇所）
+  - keyseq/presentation/views/menu_bar.py（設定メニュー 1 行）
+  - tests/test_orphan_sweep_text.py（新規・10 件）/ tests/test_orphan_scan.py（+4 件 = 20 件）
+  - tests_ui/test_orphan_sweep_flow.py（新規・10 件）
+  - instructions/phase/11_orphan_child_file_sweep/tasks/task_03_orphan_sweep_entry.md（新規）
 verified:
   compile: clean
-  tests: pass **295**（279 → **+16**）
-  tests_ui: pass **238**（維持）
+  tests: pass **309**（295 → **+14**）
+  tests_ui: pass **248**（238 → **+10**）
   smoke: pass
-  note: 実測は `verifier`。**`user/` の誤生成なし**。差分は 3 ファイル + タスク定義のみ。
-  review: `reviewer` = **完了可**（5 観点 OK）。非 blocking の申し送り 2 件は next_action へ。
+  note: 実測は `verifier`。**`user/` の誤生成なし**。**既存 `test_reference_cleanup_flow.py` 9 件 /
+    `test_reference_cleanup_text.py` 8 件は無変更で全 pass**（退行なし）。
+  review: `reviewer` = **完了可・指摘なし**（5 観点 OK）。未保存 2 択・警告先頭・依存方向をメインでも裏取り済み。
 
 ## next_action
-- **task_03（検出フローの入口と表示）を起票して着手する**（`/task_new` →
-  `tasks/task_03_*.md` → `codex-implementer` → `verifier` → `reviewer`）。
-  範囲 = 表示文言の純関数 + `config_io` の新規 IO + 設定メニュー「孤児ファイルの棚卸し…」+
-  未保存時の**「保存する / 中止する」2 択**（**`confirm_save_if_dirty` は使わない**＝意味が逆）+
-  **受け入れ条件 17 の警告文生成と一覧先頭への配置** + **保護対象の収集**（presentation 側が集めて渡す）。
-  **ここまでで「検出のみ」が green になる**（暫定仕様 §4-F の段取り）。
-- **task_02 の reviewer 申し送り 2 件（いずれも非 blocking・task_03 で確認）**:
-  ① **`missing_scan_dirs` の表記が不揃い**（`orphan_scan.py:77`）。`scan_dirs` は入力表記のままだが、
-  既定の `user/keymap_sets/` が無い場合だけ**絶対パス**で入る。一覧表示時に見た目が変わり得る。
-  ② `_scan_source_directory` と `_list_json_files` でパス解決 + `isdir` が軽微に重複（実害なし）。
-- **task_01 の申し送り①は task_02 でも未担保**: **`config_root` に空文字を渡さない**
-  （`resolve_config_path` は空だと **cwd 基準**になる）。**呼び出し側 = task_03 の IO で担保する**。
+- **task_04（走査ディレクトリ設定）を起票して着手する**（`/task_new` →
+  `tasks/task_04_*.md` → `codex-implementer` → `verifier` → `reviewer`）。
+  範囲 = `config.json` へキー追加（例 `orphan_sweep_scan_dirs`: `list[str]`）+
+  **書き込みは起動設定の書き出し経路 1 本を通す**（**直接書くと次の保存で無言消滅する**・H6）+
+  **`_startup_settings` も更新** + 棚卸しダイアログ内のリスト UI（追加 / 削除）+ 不在時の報告。
+  値は正本 §5.7 の表記・**重複は canonical で排除**・**読み出し時に非文字列要素を除去**（暫定仕様 §3-10）。
+  併せて **`orphan_sweep_io.run_sweep` の `scan_dirs=[]` 固定を設定値の読み出しへ差し替える**。
+- **task_02 の reviewer 申し送り①は未対応のまま**（非 blocking）:
+  **`missing_scan_dirs` の表記が不揃い**（`orphan_scan.py:77`）。`scan_dirs` は入力表記のままだが、
+  既定の `user/keymap_sets/` が無い場合だけ**絶対パス**で入る。**task_04 で実際に一覧表示するため、
+  そこで見た目を確認する**。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
   **phase 11 では新規コードで同じ形を作らない**にとどめる（暫定仕様 §6）。
 
