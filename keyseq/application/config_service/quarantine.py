@@ -281,7 +281,7 @@ def _apply_moves(
     return tuple(moved), tuple(failed)
 
 
-def _is_real_path_within(path: str, root: str) -> bool:
+def is_real_path_within(path: str, root: str) -> bool:
     """realpath で実体解決したうえで root 配下かを判定する。"""
     try:
         real_path = os.path.normcase(os.path.realpath(path))
@@ -294,7 +294,7 @@ def _is_real_path_within(path: str, root: str) -> bool:
 def _source_is_allowed(source: str, config_root: str) -> bool:
     try:
         return (os.path.isfile(source) and not os.path.islink(source)
-                and _is_real_path_within(source, config_root))
+                and is_real_path_within(source, config_root))
     except (OSError, ValueError):
         return False
 

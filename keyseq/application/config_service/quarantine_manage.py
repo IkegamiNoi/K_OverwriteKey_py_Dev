@@ -14,6 +14,11 @@ RESTORE_FAILED = "restore_failed"
 RESTORE_ABORTED_INVALID_ID = "invalid_unit_id"
 RESTORE_ABORTED_NO_MANIFEST = "no_manifest"
 
+DELETE_REJECTED_INVALID_ID = "invalid_unit_id"
+DELETE_REJECTED_IS_ROOT = "is_quarantine_root"
+DELETE_REJECTED_NO_MANIFEST = "no_manifest"
+DELETE_FAILED = "delete_failed"
+
 _CANDIDATE_DIRS = (
     "user/keymaps", "user/trigger_sets", "user/sequences", "user/hotkey_presets",
 )
@@ -38,6 +43,13 @@ class QuarantineRestoreResult:
     aborted_reason: str
 
 
+@dataclass(frozen=True)
+class QuarantineDeleteResult:
+    unit_id: str
+    deleted: bool
+    aborted_reason: str
+
+
 def _is_redirected(path: str) -> bool:
     """リンクとジャンクションを、走査・移動・後始末で辿らない。"""
     return (os.path.islink(path)
@@ -51,7 +63,7 @@ def _unit_directory(unit_id: str, config_root: str) -> str:
     path = os.path.join(root, unit_id)
     try:
         if (os.path.isdir(path) and not _is_redirected(path)
-                and quarantine._is_real_path_within(path, root)):
+                and quarantine.is_real_path_within(path, root)):
             return path
     except (OSError, ValueError):
         return ""
@@ -86,7 +98,7 @@ def _source_path(service, entry, config_root: str, unit_dir: str) -> str:
             or service.canonical_path(source, config_root) in (
                 service.canonical_path(unit_dir, config_root),
                 service.canonical_path(manifest, config_root),
-            ) or not quarantine._is_real_path_within(source, unit_dir)
+            ) or not quarantine.is_real_path_within(source, unit_dir)
             or _is_redirected(source)):
         raise ValueError("quarantined_path is outside the unit or is redirected")
     return source
@@ -136,7 +148,7 @@ def _target_is_allowed(service, target: str, config_root: str) -> bool:
                 and service.canonical_path(target, config_root)
                 != service.canonical_path(directory, config_root)
                 and not _is_redirected(target)
-                and quarantine._is_real_path_within(target, directory)):
+                and quarantine.is_real_path_within(target, directory)):
             return True
     return False
 
@@ -217,3 +229,67 @@ def restore_quarantine_unit(
     return QuarantineRestoreResult(
         unit_id, tuple(restored), tuple(skipped), _cleanup_unit(unit_dir), "",
     )
+
+
+def _delete_directory(service, unit_id: str, config_root: str) -> tuple[str, str]:
+    """①②、③の順で検証する。manifest の許可で境界を緩和しない。"""
+    if not isinstance(unit_id, str) or quarantine.UNIT_ID_PATTERN.fullmatch(unit_id) is None:
+        return "", DELETE_REJECTED_INVALID_ID
+    root = quarantine.quarantine_root(config_root)
+    path = os.path.join(root, unit_id)
+    try:
+        if not os.path.isdir(path) or os.path.dirname(path) != root:
+            return "", DELETE_REJECTED_INVALID_ID
+        if (service.canonical_path(path, config_root) == service.canonical_path(root, config_root)
+                or service.canonical_path(os.path.realpath(path), config_root)
+                == service.canonical_path(os.path.realpath(root), config_root)
+                or not quarantine.is_real_path_within(path, root)
+                or _is_redirected(root)):
+            return "", DELETE_REJECTED_IS_ROOT
+    except (OSError, ValueError):
+        return "", DELETE_REJECTED_IS_ROOT
+    return path, ""
+
+
+def collect_unit_paths(service, unit_id: str, *, config_root: str) -> tuple[str, ...]:
+    """全ファイルとリンク自体を stored 表記で列挙する。列挙失敗は送出する。"""
+    unit_dir, reason = _delete_directory(service, unit_id, config_root)
+    if reason:
+        return ()
+    paths: list[str] = []
+    pending = [unit_dir]
+    if _is_redirected(unit_dir):
+        return (service.to_config_relative_or_absolute(unit_dir, config_root),)
+    while pending:
+        with os.scandir(pending.pop()) as entries:
+            for entry in entries:
+                if not _is_redirected(entry.path) and entry.is_dir(follow_symlinks=False):
+                    pending.append(entry.path)
+                else:
+                    paths.append(service.to_config_relative_or_absolute(entry.path, config_root))
+    return tuple(sorted(paths))
+
+
+def delete_quarantine_unit(
+    service, unit_id: str, *, config_root: str, allow_invalid_manifest: bool = False,
+) -> QuarantineDeleteResult:
+    """ID から再検証し、通常削除する。リンクの参照先は削除しない。"""
+    unit_dir, reason = _delete_directory(service, unit_id, config_root)
+    if reason:
+        return QuarantineDeleteResult(unit_id, False, reason)
+    if _read_manifest(service, unit_dir) is None and not allow_invalid_manifest:
+        return QuarantineDeleteResult(unit_id, False, DELETE_REJECTED_NO_MANIFEST)
+    try:
+        if os.path.islink(unit_dir):
+            os.unlink(unit_dir)
+        else:
+            # Python 3.14 の rmtree は子の symlink / junction を辿らない。
+            shutil.rmtree(unit_dir)
+    except (OSError, ValueError, shutil.Error):
+        return QuarantineDeleteResult(unit_id, False, DELETE_FAILED)
+    try:
+        os.rmdir(quarantine.quarantine_root(config_root))
+    except OSError:
+        # 他の単位が残る場合も含む。単位の削除成功とは分けて扱う。
+        return QuarantineDeleteResult(unit_id, True, "")
+    return QuarantineDeleteResult(unit_id, True, "")

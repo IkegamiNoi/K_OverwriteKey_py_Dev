@@ -40,6 +40,7 @@ class QuarantineManageDialog(tk.Toplevel):
         actions = ttk.Frame(frm)
         actions.pack(anchor="e", pady=(14, 0))
         ttk.Button(actions, text="復元する…", command=self._restore).pack(side="left", padx=(0, 8))
+        ttk.Button(actions, text="削除する…", command=self._delete).pack(side="left", padx=(0, 8))
         ttk.Button(actions, text="閉じる", command=self.destroy).pack(side="left")
 
     def _restore(self) -> None:
@@ -48,6 +49,14 @@ class QuarantineManageDialog(tk.Toplevel):
             return
         self.selected_unit_id = self._unit_ids[int(selection[0])]
         self.action = "restore"
+        self.destroy()
+
+    def _delete(self) -> None:
+        selection = self.listbox.curselection()
+        if not selection:
+            return
+        self.selected_unit_id = self._unit_ids[int(selection[0])]
+        self.action = "delete"
         self.destroy()
 
     def destroy(self) -> None:

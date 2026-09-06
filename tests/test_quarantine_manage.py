@@ -1,4 +1,5 @@
 import os
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -256,6 +257,265 @@ class QuarantineManageTest(unittest.TestCase):
         self.assertEqual(result.skipped, ((CHILD, manage.RESTORE_FAILED),))
         self.assertEqual(result.restored, (("keymap", second),))
         self.assertTrue(unit_dir.exists())
+
+    def _delete(self, unit_id=UNIT, **kwargs):
+        return manage.delete_quarantine_unit(self.service, unit_id, config_root=str(self.root), **kwargs)
+
+    def _directory_link(self, link, target, *, junction=False):
+        if junction:
+            if os.name != "nt":
+                self.skipTest("ジャンクションは Windows で検証します")
+            try:
+                completed = subprocess.run(
+                    ["cmd", "/c", "mklink", "/J", str(link), str(target)],
+                    capture_output=True, text=True, check=False,
+                )
+            except OSError as error:
+                self.skipTest(f"ジャンクションを作成できません: {error}")
+            if completed.returncode:
+                self.skipTest(f"ジャンクションを作成できません: {completed.stderr}")
+        else:
+            try:
+                os.symlink(target, link, target_is_directory=True)
+            except (OSError, NotImplementedError) as error:
+                self.skipTest(f"シンボリックリンクを作成できません: {error}")
+
+        def cleanup():
+            if os.path.lexists(link):
+                os.rmdir(link) if junction else link.unlink()
+
+        self.addCleanup(cleanup)
+
+    def test_delete_removes_unit_manifest_and_unlisted_files(self):
+        # 確認 1
+        unit_dir, _ = self._unit()
+        self._write(unit_dir / "nested" / "unlisted.txt", "extra")
+        self.assertEqual(self._delete(), manage.QuarantineDeleteResult(UNIT, True, ""))
+        self.assertFalse(unit_dir.exists())
+        self.assertFalse((unit_dir / "manifest.json").exists())
+
+    def test_delete_invalid_ids_preserve_root_and_other_units_even_with_override(self):
+        # 確認 2・6
+        self._unit()
+        self._unit(unit_id=UNIT + "_200")
+        self._write(self.root / "quarantine" / (UNIT + "_3"), "not a directory")
+        invalid = ("", " ", "..", "../../etc", UNIT + "/child", UNIT + "\\child",
+                   "foo", "2026-09-06", "20260906_111111", UNIT + "_3", UNIT + "\n", None)
+        before = self._snapshot()
+        for allow in (False, True):
+            for unit_id in invalid:
+                with self.subTest(allow=allow, unit_id=unit_id):
+                    result = self._delete(unit_id, allow_invalid_manifest=allow)
+                    self.assertEqual(result, manage.QuarantineDeleteResult(
+                        unit_id, False, manage.DELETE_REJECTED_INVALID_ID))
+                    self.assertEqual(self._snapshot(), before)
+
+    def test_delete_root_link_is_rejected_even_with_override(self):
+        # 確認 3・6・11: 有効な ID の実リンクで検証③まで到達する。
+        unit_dir, _ = self._unit()
+        manifest = (unit_dir / "manifest.json").read_bytes()
+        link = unit_dir.parent / (UNIT + "_2")
+        self._directory_link(link, unit_dir.parent)
+        for allow in (False, True):
+            with self.subTest(allow=allow):
+                self.assertEqual(self._delete(link.name, allow_invalid_manifest=allow),
+                                 manage.QuarantineDeleteResult(link.name, False, manage.DELETE_REJECTED_IS_ROOT))
+                self.assertEqual(manage.collect_unit_paths(self.service, link.name, config_root=str(self.root)), ())
+                self.assertTrue(unit_dir.parent.is_dir())
+                self.assertTrue(link.is_dir())
+                self.assertEqual((unit_dir / "manifest.json").read_bytes(), manifest)
+                self.assertEqual((unit_dir / "user/keymaps/0.json").read_text(encoding="utf-8"), "quarantined")
+
+    def test_delete_zero_padded_suffix_matches_the_pattern_and_is_deleted(self):
+        # 確認 2: 検証②の基準は UNIT_ID_PATTERN への一致であり、採番の見た目ではない。
+        # 採番側は _2 / _3 とゼロ埋めしないが、_02 もパターンに一致するので拒否しない。
+        keep_dir, _ = self._unit()
+        unit_dir, _ = self._unit(unit_id=UNIT + "_02")
+        self.assertEqual(self._delete(unit_dir.name),
+                         manage.QuarantineDeleteResult(unit_dir.name, True, ""))
+        self.assertFalse(unit_dir.exists())
+        self.assertTrue((keep_dir / "manifest.json").is_file())
+
+    def test_delete_root_junction_is_rejected_even_with_override(self):
+        # 確認 3・6・11: Windows で symlink 権限が無くても根自身の拒否を検証する。
+        unit_dir, _ = self._unit()
+        link = unit_dir.parent / (UNIT + "_2")
+        self._directory_link(link, unit_dir.parent, junction=True)
+        manifest = (unit_dir / "manifest.json").read_bytes()
+        for allow in (False, True):
+            with self.subTest(allow=allow):
+                self.assertEqual(self._delete(link.name, allow_invalid_manifest=allow),
+                                 manage.QuarantineDeleteResult(link.name, False, manage.DELETE_REJECTED_IS_ROOT))
+                self.assertEqual(manage.collect_unit_paths(self.service, link.name, config_root=str(self.root)), ())
+                self.assertTrue(unit_dir.parent.is_dir())
+                self.assertTrue(link.is_dir())
+                self.assertEqual((unit_dir / "manifest.json").read_bytes(), manifest)
+                self.assertEqual((unit_dir / "user/keymaps/0.json").read_text(encoding="utf-8"), "quarantined")
+
+    def test_delete_external_junction_is_rejected_even_with_override(self):
+        # 確認 4・6・11
+        unit_dir, _ = self._unit()
+        external = self.root.parent / "external"
+        self._write(external / "keep.txt", "external")
+        link = unit_dir.parent / (UNIT + "_2")
+        self._directory_link(link, external, junction=True)
+        manifest = (unit_dir / "manifest.json").read_bytes()
+        for allow in (False, True):
+            with self.subTest(allow=allow):
+                result = self._delete(link.name, allow_invalid_manifest=allow)
+                self.assertEqual(result, manage.QuarantineDeleteResult(link.name, False, manage.DELETE_REJECTED_IS_ROOT))
+                self.assertEqual(manage.collect_unit_paths(self.service, link.name, config_root=str(self.root)), ())
+                self.assertTrue(link.is_dir())
+                self.assertEqual((external / "keep.txt").read_text(encoding="utf-8"), "external")
+                self.assertEqual((unit_dir / "manifest.json").read_bytes(), manifest)
+
+    def test_delete_invalid_manifests_require_explicit_override(self):
+        # 確認 5・6
+        for index, payload in enumerate((None, "broken", "[]", '{"entries": {}}')):
+            with self.subTest(payload=payload):
+                unit_id = f"{UNIT}_{index + 2}"
+                unit_dir = self.root / "quarantine" / unit_id
+                self._write(unit_dir / "keep.txt", "keep")
+                if payload is not None:
+                    self._write(unit_dir / "manifest.json", payload)
+                before = self._snapshot()
+                for kwargs in ({}, {"allow_invalid_manifest": False}):
+                    self.assertEqual(self._delete(unit_id, **kwargs), manage.QuarantineDeleteResult(
+                        unit_id, False, manage.DELETE_REJECTED_NO_MANIFEST))
+                    self.assertEqual(self._snapshot(), before)
+                self.assertEqual(self._delete(unit_id, allow_invalid_manifest=True),
+                                 manage.QuarantineDeleteResult(unit_id, True, ""))
+                self.assertFalse(unit_dir.exists())
+
+    def test_delete_child_junction_does_not_delete_external_files(self):
+        # 確認 7: rmtree の実処理を差し替えず固定する。
+        unit_dir, _ = self._unit()
+        external = self.root.parent / "external"
+        self._write(external / "keep.txt", "external")
+        link = unit_dir / "linked"
+        self._directory_link(link, external, junction=True)
+        self.assertTrue(self._delete().deleted)
+        self.assertFalse(os.path.lexists(link))
+        self.assertFalse(unit_dir.exists())
+        self.assertEqual((external / "keep.txt").read_text(encoding="utf-8"), "external")
+
+    def test_delete_child_symlink_does_not_delete_external_files(self):
+        # 確認 7
+        unit_dir, _ = self._unit()
+        external = self.root.parent / "external"
+        self._write(external / "keep.txt", "external")
+        link = unit_dir / "linked"
+        self._directory_link(link, external)
+        self.assertTrue(self._delete().deleted)
+        self.assertFalse(os.path.lexists(link))
+        self.assertFalse(unit_dir.exists())
+        self.assertEqual((external / "keep.txt").read_text(encoding="utf-8"), "external")
+
+    def test_delete_io_failure_returns_reason_without_leaking_exception(self):
+        # 確認 8
+        unit_dir, _ = self._unit()
+        before = self._snapshot()
+        with patch.object(manage.shutil, "rmtree", side_effect=PermissionError("denied")) as remove:
+            self.assertEqual(self._delete(), manage.QuarantineDeleteResult(UNIT, False, manage.DELETE_FAILED))
+        remove.assert_called_once_with(str(unit_dir))
+        self.assertEqual(self._snapshot(), before)
+
+    def test_delete_cleans_root_only_after_last_unit(self):
+        # 確認 9
+        first, _ = self._unit()
+        second, _ = self._unit(unit_id=UNIT + "_200")
+        before = (second / "manifest.json").read_bytes()
+        self.assertTrue(self._delete().deleted)
+        self.assertFalse(first.exists())
+        self.assertTrue(first.parent.is_dir())
+        self.assertEqual((second / "manifest.json").read_bytes(), before)
+        self.assertTrue(self._delete(second.name).deleted)
+        self.assertFalse(second.exists())
+        self.assertFalse(second.parent.exists())
+
+    def test_collect_paths_recurses_includes_manifest_and_preserves_stored_case(self):
+        # 確認 10
+        unit_dir, _ = self._unit()
+        extra = unit_dir / "Nested" / "MixedCase.json"
+        self._write(extra, "extra")
+        paths = manage.collect_unit_paths(self.service, UNIT, config_root=str(self.root))
+        expected = (f"quarantine/{UNIT}/manifest.json", f"quarantine/{UNIT}/user/keymaps/0.json",
+                    f"quarantine/{UNIT}/Nested/MixedCase.json")
+        self.assertIsInstance(paths, tuple)
+        self.assertCountEqual(paths, expected)
+        self.assertTrue(all(isinstance(path, str) for path in paths))
+        self.assertNotIn(self.service.canonical_path(str(extra), str(self.root)), paths)
+
+    def test_collect_paths_counts_symlink_once_without_following_it(self):
+        # 確認 10
+        unit_dir, _ = self._unit()
+        external = self.root.parent / "external"
+        self._write(external / "keep.txt", "external")
+        link = unit_dir / "Linked"
+        self._directory_link(link, external)
+        paths = manage.collect_unit_paths(self.service, UNIT, config_root=str(self.root))
+        self.assertCountEqual(paths, (f"quarantine/{UNIT}/manifest.json",
+                                     f"quarantine/{UNIT}/user/keymaps/0.json", f"quarantine/{UNIT}/Linked"))
+        self.assertEqual((external / "keep.txt").read_text(encoding="utf-8"), "external")
+
+    def test_collect_paths_counts_junction_once_without_following_it(self):
+        # 確認 10
+        unit_dir, _ = self._unit()
+        external = self.root.parent / "external"
+        self._write(external / "keep.txt", "external")
+        self._directory_link(unit_dir / "Linked", external, junction=True)
+        paths = manage.collect_unit_paths(self.service, UNIT, config_root=str(self.root))
+        self.assertCountEqual(paths, (f"quarantine/{UNIT}/manifest.json",
+                                     f"quarantine/{UNIT}/user/keymaps/0.json", f"quarantine/{UNIT}/Linked"))
+        self.assertEqual((external / "keep.txt").read_text(encoding="utf-8"), "external")
+
+    def test_collect_paths_rejects_invalid_and_missing_ids_without_changes(self):
+        # 確認 11（③は root / 外部リンクのテストで確認）
+        self._unit()
+        self._write(self.root / "quarantine" / (UNIT + "_3"), "not a directory")
+        before = self._snapshot()
+        for unit_id in ("", " ", "..", "../../etc", UNIT + "/child", UNIT + "\\child",
+                        "foo", "2026-09-06", UNIT + "_3", "20260906_111111"):
+            with self.subTest(unit_id=unit_id):
+                self.assertEqual(manage.collect_unit_paths(self.service, unit_id, config_root=str(self.root)), ())
+                self.assertEqual(self._snapshot(), before)
+
+    def test_delete_other_unit_keeps_listing_and_restore_working(self):
+        # 確認 12
+        self._unit()
+        second, _ = self._unit(unit_id=UNIT + "_200")
+        self.assertTrue(self._delete().deleted)
+        self.assertEqual(tuple(unit.unit_id for unit in self._list()), (second.name,))
+        restored = self._restore(second.name)
+        self.assertEqual(restored.restored, (("keymap", CHILD),))
+        self.assertEqual(restored.skipped, ())
+        self.assertTrue(restored.unit_removed)
+        self.assertEqual(self._path(CHILD).read_text(encoding="utf-8"), "quarantined")
+        self.assertEqual(self._list(), ())
+
+    def test_delete_facades_match_module_results_and_forward_manifest_override(self):
+        # 確認 13: wraps で実ファイル操作と実戻り値を保持する。
+        unit_dir, _ = self._unit()
+        root = str(self.root)
+        expected_paths = manage.collect_unit_paths(self.service, UNIT, config_root=root)
+        self.assertEqual(self.service.collect_unit_paths(UNIT, config_root=root), expected_paths)
+        (unit_dir / "manifest.json").unlink()
+        expected = manage.delete_quarantine_unit(self.service, UNIT, config_root=root)
+        with patch.object(manage, "delete_quarantine_unit", wraps=manage.delete_quarantine_unit) as delete:
+            self.assertEqual(self.service.delete_quarantine_unit(UNIT, config_root=root), expected)
+            delete.assert_called_once_with(self.service, UNIT, config_root=root, allow_invalid_manifest=False)
+            self.assertTrue(unit_dir.is_dir())
+            delete.reset_mock()
+            result = self.service.delete_quarantine_unit(UNIT, config_root=root, allow_invalid_manifest=True)
+            delete.assert_called_once_with(self.service, UNIT, config_root=root, allow_invalid_manifest=True)
+        self.assertEqual(result, manage.QuarantineDeleteResult(UNIT, True, ""))
+        self.assertFalse(unit_dir.exists())
+        unit_dir, _ = self._unit()
+        (unit_dir / "manifest.json").unlink()
+        self.assertEqual(manage.delete_quarantine_unit(
+            self.service, UNIT, config_root=root, allow_invalid_manifest=True,
+        ), result)
+        self.assertFalse(unit_dir.exists())
 
     def test_malformed_entries_do_not_interrupt_valid_restore(self):
         unit_dir, manifest = self._unit()

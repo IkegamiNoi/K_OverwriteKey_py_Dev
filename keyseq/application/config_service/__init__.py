@@ -443,6 +443,14 @@ class ConfigService:
     def restore_quarantine_unit(self, unit_id: str, *, config_root: str) -> Any:
         return quarantine_manage.restore_quarantine_unit(self, unit_id, config_root=config_root)
 
+    def collect_unit_paths(self, unit_id: str, *, config_root: str) -> tuple[str, ...]:
+        return quarantine_manage.collect_unit_paths(self, unit_id, config_root=config_root)
+
+    def delete_quarantine_unit(
+        self, unit_id: str, *, config_root: str, allow_invalid_manifest: bool = False,
+    ) -> Any:
+        return quarantine_manage.delete_quarantine_unit(self, unit_id, config_root=config_root, allow_invalid_manifest=allow_invalid_manifest)
+
     def _normalize_sequence_payload(self, sequence: dict[str, Any]) -> dict[str, Any]:
         return {
             "label": str(sequence.get("label") or "").strip(),
