@@ -13,14 +13,15 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い**。次フェーズ候補が載っている）
-3. **次フェーズが決まったら** `/phase_start` で `instructions/phase/11_<topic>/` を起票する
-   （暫定仕様が要るなら `/spec_draft` で `instructions/history/10_<topic>.md`）
+2. `instructions/phase/current.md` を読む（**アクティブ = phase 11**）
+3. `instructions/phase/11_orphan_child_file_sweep/phase.md` と、**主入力の暫定仕様**
+   `instructions/history/10_orphan_child_file_sweep.md`（**v0.4・ユーザー確定済**）を読む。
+   **フェーズ中は正本 `spec_detail/` を直接改訂しない**（昇格は最終タスク task_08）
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む
 5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 10 完了（task_01〜06 + 実機目視 14/14 + 2 本立てレビュー全件反映）。次フェーズ未確定＝ユーザーの選定待ち**。
+**phase 11（孤児ファイルの棚卸し）を起票完了。暫定仕様 10 = v0.4・ユーザー確定済。実装は task_01 から未着手**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -30,22 +31,45 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（phase 10 完了時点）:
+直近の実測（phase 10 完了時点。**phase 11 はまだコードを触っていない**）:
 compile **clean** / tests **267** / tests_ui **238** / smoke **pass** / manual **14 / 14 OK**。
 **件数が減ったら退行を疑う**。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
 
 ## 次アクション（session.md.next_action より）
-- **次フェーズをユーザーが選定する**（`instructions/phase/current.md`「次フェーズ候補」）。
-  最有力は **idea_12**（**全走査 + 孤児候補の逆方向検査**。**前提 = phase 10 完了 → 充足**。
-  ユーザー方針「全検査と現在のセットのみを段階的に両方作る」の後半で、phase 10 のコアを土台に載せる）。
-  ほか idea_10（ネストしたモーダルの grab 復元）/ idea_09・idea_03（優先度低）/ idea_04・idea_06（保留）。
-- **未承認の提案書が 1 件**: `instructions/modified_proposal/07_refactor_per_keymap_set_presets.md`
-  （phase 09 の `/refactor_check` 由来）。着手はユーザー承認が先。
+- **task_01（参照パス収集器）から着手する**。`/task_new` で
+  `instructions/phase/11_orphan_child_file_sweep/tasks/task_01_*.md` を起票 →
+  `codex-implementer` へ委任 → **`verifier` で実測** → `reviewer`。
+  **task_03 までで「検出のみ」を green にする**段取り（暫定仕様 §4-F のユーザー確定）。
+- **未着手の提案書は無い**（`modified_proposal/07` は 2026-08-16 に「計画07」として実施済。
+  次採番は `08_<topic>`）。
 - **候補送り中の実装指摘 5 件**（phase 10 task_05 の `deep-reviewer`。`/refactor_check` は「不要」判定）:
   presentation が `config_service` の内部モジュールを直参照 / 委譲の戻り値型が `Any` /
   `reference_cleanup_text.py` の配置が利用範囲より広い / `_nonempty_path` が strip しない値を返す /
   `run_cleanup` に例外の受け皿が無い。**次フェーズ以降で再判定する**。
 - 各タスクの流れ: タスク定義起票 → codex-implementer へ委任 → **verifier で実測** → reviewer → コミット。
+
+## 現在のフェーズ（phase 11 = 孤児ファイルの棚卸し）の要点
+
+**規範は暫定仕様 10（未凍結・v0.4）**。到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。
+**本アプリ初のディレクトリ走査かつ初のファイル削除機能**（`keyseq/` に `os.listdir` / `os.remove` は現在 0 件）。
+
+- **走査（参照側）4 経路**: `user/keymap_sets/` 直下 + 起動エントリ + **現在開いているセット
+  （`app.keymap_set_path`）** + ユーザー指定ディレクトリ。**3 番目を落とすと、既定外のセットを開いている間に
+  その子が隔離される**（`load_keymap_set_from` は `config.json` を書かないため起動エントリでは代替不可）。
+- **参照集合は 2 段辿り**: sequence のパスは keymap_set に無く **trigger_set の `triggers[].sequence_path`** のみ。
+- **候補側は config 配下の既定 4 種の直下のみ**（keymap / trigger_set / sequence / 個別 hotkey_presets）。
+  **形状検証あり**（`mappings` dict / `triggers` list / `actions` list / `hotkey_presets` list）。
+  `user/hotkey_presets/global/` は除外。
+- **隔離ルート = `<config_root>/quarantine/`**（`user/` の外＝候補側と構造的に交差させない）。
+  **マニフェストは移動より先に原子書込み**（後追いだと中断時に**アプリから復元できない隔離物**が残る）。
+- **削除 API はパスでなく実行単位 ID を受け取り 4 検証**。
+  **`is_path_within` は同一パスも「配下」と判定する**（`__init__.py:686`）ため、
+  それだけに頼ると**隔離ルート自身が再帰削除され得る**。
+- **削除は通常のファイル削除**（ゴミ箱へ送らない・新規依存を足さない）。
+- **壊れた親があると無傷の子が孤児候補になる**。ユーザー確定により**警告のみで隔離・削除とも許す**
+  （degraded 方式は不採用）。**壊れているのは親、消えるのは子**という取り違えに注意（暫定仕様 §3-12-5）。
+- タスクは 1〜8（`phase.md`）。**最終 task_08 = 正本反映**で §5.8.1 の**改訂**が必須
+  （現行の「孤児の削除は行わない / 孤児判定は原理的に成立しない」を書き換える）。
 
 ## 直前フェーズ（phase 10 = 参照元の掃除）の要点
 
@@ -69,7 +93,7 @@ compile **clean** / tests **267** / tests_ui **238** / smoke **pass** / manual *
   **§2 / §3-x の条項を 1 つずつ正本の行へ対応付ける**こと（今回はレビュー 2 本で 11 件拾った）。
 
 ## 注意事項・blockers
-- **blockers: なし**（phase 10 は完了。次フェーズの選定待ち）。
+- **blockers: なし**（phase 11 起票済み。実装は task_01 から）。
 - **【運用・重要】委任の実行中はメイン側で文書を編集しない**。task_05 で **Codex がメインの仕様書編集を
   「範囲外の差分」と判断して巻き戻した**（v0.5 の記述が消えた）。編集した場合は**完了後に必ず差分を確認する**。
 - **【メニュー項目のテスト】インデックスを固定しない**。top-level menubar には **tearoff** があり
@@ -126,8 +150,9 @@ compile **clean** / tests **267** / tests_ui **238** / smoke **pass** / manual *
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
   （直近 3 件: **10_reference_link_cleanup** / 09_per_keymap_set_presets / 08_hotkey_presets_global）。
   提案書「計画05」「計画06」「計画07」は完了済みで、**いずれもフェーズ番号を消費していない**。
-- 未着手/保留 idea: **idea_12**（全走査 + 孤児候補・**前提の phase 10 完了は充足**）/
-  idea_10（ネストしたモーダルの grab 復元）/ idea_11（別名保存の複製ロールバック・低）/
-  idea_03（hotkey 保存正規化・低）/ idea_09（レガシー保存パス・低）/ idea_04・idea_06（保留）。
-  **idea_07 は phase 10 で完了**（`INDEX_done.md`）。
+- 未着手/保留 idea: **idea_13**（external_keyboard_layouts のパス基準の非対称・低。
+  phase 11 の Codex レビューから分離）/ idea_10（ネストしたモーダルの grab 復元）/
+  idea_11（別名保存の複製ロールバック・低）/ idea_03（hotkey 保存正規化・低）/
+  idea_09（レガシー保存パス・低）/ idea_04・idea_06（保留）。
+  **idea_12 は phase 11 で着手**・**idea_07 は phase 10 で完了**（`INDEX_done.md`）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。

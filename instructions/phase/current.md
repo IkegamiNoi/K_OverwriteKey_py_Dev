@@ -6,8 +6,13 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（phase 10 完了・**次フェーズ未確定**）。
-  次フェーズは下記「次フェーズ候補」からユーザーが選定し、`/phase_start` で `11_<topic>` を起票する。
+- **アクティブなフェーズ: [11_orphan_child_file_sweep](11_orphan_child_file_sweep/phase.md)**
+  （**孤児ファイルの棚卸し**・2026-09-06 起票）。
+  主入力 = [暫定仕様 10](../history/10_orphan_child_file_sweep.md)（**v0.4・ユーザー確定済**）。
+  モード: **暫定仕様先行**。番号対応: **phase 11 / 暫定 10 / decisions_archive 11**。
+  起票元 = [idea_12](../backlog/idea_12_orphan_child_file_sweep.md)。
+  到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**（削除は `<config_root>/quarantine/` 内のみ）。
+  **本アプリ初のディレクトリ走査かつ初のファイル削除機能**。判断は `decisions.md` の phase 11 節。
 - 直前の完了フェーズ: [10_reference_link_cleanup](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)
   （**2026-09-05 完了**・参照元の掃除。暫定仕様 09 は**凍結済**。正本 `data_schema.md` §5.8.1 +
   `features.md` §4.6 + `codebase_map.md` へ昇格済）。
@@ -31,15 +36,16 @@
 
 ## 次採番
 
-- **phase 10 は完了**。次フェーズは **`11_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 11 が進行中**。次フェーズは **`12_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜09 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
-  08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕）。
-  次採番は **`10_<topic>`**。
+  04〜10 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
+  08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
+  10=孤児ファイルの棚卸し〔**v0.4・未凍結・phase 11 の主入力**〕）。
+  次採番は **`11_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**07 まで起票済**
-  （07 = phase 09 の `/refactor_check` 由来・**未承認**）・次採番は **`08_<topic>`**。
+  （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07**）・次採番は **`08_<topic>`**。
 
 ## 次フェーズ候補（参考）
 
@@ -68,9 +74,8 @@
 - ~~[idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除）~~
   → **完了**（phase 10・2026-09-05。判断は
   [decisions_archive/10](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)）。
-- [idea_12](../backlog/idea_12_orphan_child_file_sweep.md)（**全走査 + 孤児候補の検出**＝逆方向検査。
-  phase 10 から分離・**前提 = phase 10 の完了 → 充足（2026-09-05）**。ユーザー方針「全検査と現在のセットのみを
-  段階的に両方作る」の後半。phase 10 の検査・除去のコアを土台に載せる）。
+- ~~[idea_12](../backlog/idea_12_orphan_child_file_sweep.md)（全走査 + 孤児候補の検出＝逆方向検査）~~
+  → **着手**（phase 11・2026-09-06 起票）。
 - [idea_09](../backlog/idea_09_legacy_settings_save_path_fallback.md)（別名保存でレガシー `settings/` 配下を選ぶと
   `default.json` へ無言フォールバックする残存経路。Phase α の deep-reviewer 指摘2 から分離・**優先度低**・
   着手時は仕様変更フロー必須）。
@@ -133,7 +138,7 @@
     （本フェーズの増分は +30。M1 は「600 行超 かつ +100 行以上」のため非該当）
 - **Phase 09（個別プリセット）の `/refactor_check` からの候補送り**（判定は**推奨** →
   提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md)・
-  **未承認**。上位 3 項目に入らなかった分）:
+  **計画07 として実施し完了**。上位 3 項目に入らなかった分）:
   - `keyseq/application/config_service/__init__.py` が **767 行**（phase 10 で +32。phase 09 時点は 734 行）。
     **phase 09 で M1 該当**（当時 +135）。**phase 10 では M1 非該当**（増分が閾値未満）だが**分割は保留のまま**。
     ただし**テストが `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を
