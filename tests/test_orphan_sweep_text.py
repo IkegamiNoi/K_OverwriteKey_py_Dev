@@ -6,10 +6,13 @@ from keyseq.application.config_service.orphan_scan import (
     ORPHAN_CANDIDATE, ORPHAN_EXCLUDED, ORPHAN_PROTECTED, ORPHAN_REFERENCED,
     OrphanEntry, OrphanScanResult,
 )
+from keyseq.application.config_service.quarantine import (
+    QUARANTINE_MANIFEST_WRITE_FAILED, QUARANTINE_MOVE_FAILED, QuarantineResult,
+)
 from keyseq.application.config_service.reference_scan import SOURCE_MISSING, SOURCE_UNREADABLE
 from keyseq.presentation.orphan_sweep_text import (
     ORPHAN_SWEEP_EMPTY_MESSAGE, SCAN_SCOPE_NOTE,
-    format_orphan_notice, format_orphan_plan, format_scan_warnings,
+    format_orphan_notice, format_orphan_plan, format_quarantine_result, format_scan_warnings,
 )
 
 
@@ -17,6 +20,13 @@ def _result(**overrides):
     fields = dict(entries=(), unreadable_sources=(), non_keymap_set_sources=(), missing_scan_dirs=())
     fields.update(overrides)
     return OrphanScanResult(**fields)
+
+
+def _quarantine_result(**overrides):
+    fields = dict(unit_id="20260906_101500", moved=(), failed=(),
+                  dropped_paths=(), newly_orphan_count=0, aborted_reason="")
+    fields.update(overrides)
+    return QuarantineResult(**fields)
 
 
 class OrphanSweepTextTest(unittest.TestCase):
@@ -104,6 +114,62 @@ class OrphanSweepTextTest(unittest.TestCase):
                 for path in (stored, source):
                     self.assertNotIn(os.path.normcase(os.path.abspath(path)), text)
         self.assertIn(f"キーマップ: {stored}", format_orphan_plan(result))
+
+
+class QuarantineResultTextTest(unittest.TestCase):
+    def test_moved_entries_are_counted_and_listed_with_kind_labels(self):
+        result = _quarantine_result(moved=(
+            (KIND_KEYMAP, "user/keymaps/foo.json"),
+            ("new_kind", "user/other/bar.json"),
+        ))
+        self.assertEqual(format_quarantine_result(result), (
+            "隔離しました: 2 件（実行単位: 20260906_101500）",
+            "キーマップ: user/keymaps/foo.json",
+            "new_kind: user/other/bar.json",
+        ))
+
+    def test_failed_entries_show_reason_labels_and_keep_unknown_codes(self):
+        result = _quarantine_result(failed=(
+            ("user/keymaps/foo.json", QUARANTINE_MOVE_FAILED),
+            ("quarantine/20260906_101500/manifest.json", QUARANTINE_MANIFEST_WRITE_FAILED),
+            ("user/keymaps/bar.json", "new_reason"),
+        ))
+        lines = format_quarantine_result(result)
+        self.assertEqual(lines[1], "移動できなかったファイル:")
+        self.assertEqual(lines[2], "  user/keymaps/foo.json: 移動できませんでした")
+        self.assertEqual(lines[3],
+                         "  quarantine/20260906_101500/manifest.json: マニフェストを書き込めませんでした")
+        self.assertEqual(lines[4], "  user/keymaps/bar.json: new_reason")
+
+    def test_dropped_and_newly_orphan_show_counts_without_paths(self):
+        result = _quarantine_result(dropped_paths=("user/keymaps/foo.json", "user/keymaps/bar.json"),
+                                    newly_orphan_count=3)
+        lines = format_quarantine_result(result)
+        self.assertEqual(lines[-2], "提示後に対象外になったため隔離しなかった: 2 件")
+        self.assertEqual(lines[-1], "再判定で新たに孤児候補になったため今回は隔離しなかった: 3 件")
+        for path in result.dropped_paths:
+            self.assertNotIn(path, "\n".join(lines))
+
+    def test_zero_counts_are_omitted(self):
+        lines = format_quarantine_result(_quarantine_result())
+        self.assertEqual(lines, ("隔離しました: 0 件（実行単位: 20260906_101500）",))
+        self.assertEqual(format_quarantine_result(_quarantine_result(unit_id="")),
+                         ("隔離しました: 0 件",))
+
+    def test_aborted_result_states_that_nothing_was_moved(self):
+        result = _quarantine_result(unit_id="", aborted_reason=QUARANTINE_MANIFEST_WRITE_FAILED,
+                                    dropped_paths=("user/keymaps/foo.json",))
+        lines = format_quarantine_result(result)
+        self.assertEqual(lines[:2], (
+            "隔離を中止しました: マニフェストを書き込めませんでした",
+            "ファイルは 1 件も移動していません。",
+        ))
+        self.assertNotIn("隔離しました", "\n".join(lines))
+        self.assertEqual(lines[-1], "提示後に対象外になったため隔離しなかった: 1 件")
+
+    def test_unknown_abort_reason_is_preserved(self):
+        lines = format_quarantine_result(_quarantine_result(unit_id="", aborted_reason="new_reason"))
+        self.assertEqual(lines[0], "隔離を中止しました: new_reason")
 
 
 if __name__ == "__main__":

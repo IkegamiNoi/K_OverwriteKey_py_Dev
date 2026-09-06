@@ -9,7 +9,15 @@ if TYPE_CHECKING:
 
 
 class ReferenceCleanupDialog(tk.Toplevel):
-    def __init__(self, parent: App, *, title: str, lines: tuple[str, ...]):
+    def __init__(
+        self,
+        parent: App,
+        *,
+        title: str,
+        lines: tuple[str, ...],
+        header: str = "除去する参照元を確認してください。",
+        run_label: str = "実行",
+    ):
         super().__init__(parent)
         self.parent = parent
         self.title(title)
@@ -23,9 +31,7 @@ class ReferenceCleanupDialog(tk.Toplevel):
         frame.grid_columnconfigure(0, weight=1)
         frame.grid_rowconfigure(1, weight=1)
 
-        ttk.Label(frame, text="除去する参照元を確認してください。").grid(
-            row=0, column=0, sticky="w"
-        )
+        ttk.Label(frame, text=header).grid(row=0, column=0, sticky="w")
         list_frame = ttk.Frame(frame)
         list_frame.grid(row=1, column=0, sticky="nsew", pady=(10, 0))
         list_frame.grid_columnconfigure(0, weight=1)
@@ -41,7 +47,7 @@ class ReferenceCleanupDialog(tk.Toplevel):
 
         buttons = ttk.Frame(frame)
         buttons.grid(row=2, column=0, sticky="e", pady=(14, 0))
-        ttk.Button(buttons, text="実行", command=self._run).pack(side="left", padx=(0, 8))
+        ttk.Button(buttons, text=run_label, command=self._run).pack(side="left", padx=(0, 8))
         ttk.Button(buttons, text="キャンセル", command=self.destroy).pack(side="left")
 
         self.bind("<Escape>", lambda _event: self.destroy())

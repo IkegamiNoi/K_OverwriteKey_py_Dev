@@ -14,7 +14,7 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
-from . import orphan_scan, parent_refs_cleanup, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
+from . import orphan_scan, parent_refs_cleanup, quarantine, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
 
 from keyseq.application.save_plan import SavePlan
 
@@ -416,6 +416,26 @@ class ConfigService:
 
     def normalize_scan_dirs(self, values: Any, *, config_root: str) -> Any:
         return orphan_scan.normalize_scan_dirs(self, values, config_root=config_root)
+
+    def quarantine_orphans(
+        self,
+        presented_paths: list[str],
+        *,
+        config_root: str,
+        scan_dirs: list[str],
+        startup_keymap_set_path: str,
+        current_keymap_set_path: str,
+        protected_paths: list[str],
+    ) -> Any:
+        return quarantine.quarantine_orphans(
+            self,
+            presented_paths,
+            config_root=config_root,
+            scan_dirs=scan_dirs,
+            startup_keymap_set_path=startup_keymap_set_path,
+            current_keymap_set_path=current_keymap_set_path,
+            protected_paths=protected_paths,
+        )
 
     def _normalize_sequence_payload(self, sequence: dict[str, Any]) -> dict[str, Any]:
         return {

@@ -7,6 +7,11 @@ from keyseq.application.config_service.orphan_scan import (
     ORPHAN_EXCLUDED,
     OrphanScanResult,
 )
+from keyseq.application.config_service.quarantine import (
+    QUARANTINE_MANIFEST_WRITE_FAILED,
+    QUARANTINE_MOVE_FAILED,
+    QuarantineResult,
+)
 from keyseq.application.config_service.reference_scan import SOURCE_MISSING, SOURCE_UNREADABLE
 
 
@@ -22,6 +27,11 @@ _KIND_LABELS = {
 _SOURCE_REASON_LABELS = {
     SOURCE_MISSING: "ファイルが見つかりません",
     SOURCE_UNREADABLE: "読み取り / JSON 解析に失敗しました",
+}
+
+_QUARANTINE_REASON_LABELS = {
+    QUARANTINE_MANIFEST_WRITE_FAILED: "マニフェストを書き込めませんでした",
+    QUARANTINE_MOVE_FAILED: "移動できませんでした",
 }
 
 SCAN_SCOPE_NOTE: str = (
@@ -67,3 +77,33 @@ def format_orphan_plan(result: OrphanScanResult) -> tuple[str, ...]:
 def format_orphan_notice(result: OrphanScanResult) -> tuple[str, ...]:
     """候補がない場合も、走査範囲と読めなかった参照側を通知する。"""
     return (ORPHAN_SWEEP_EMPTY_MESSAGE, *format_scan_warnings(result))
+
+
+def format_quarantine_result(result: QuarantineResult) -> tuple[str, ...]:
+    """隔離の実行結果を、中止か実績かを先頭に置いて通知用の行へ組み立てる。"""
+    lines = list(_format_quarantine_headline(result))
+    if result.failed:
+        lines.append("移動できなかったファイル:")
+        lines.extend(
+            f"  {path}: {_QUARANTINE_REASON_LABELS.get(reason, reason)}"
+            for path, reason in result.failed
+        )
+    if result.dropped_paths:
+        lines.append(f"提示後に対象外になったため隔離しなかった: {len(result.dropped_paths)} 件")
+    if result.newly_orphan_count:
+        lines.append(
+            "再判定で新たに孤児候補になったため今回は隔離しなかった: "
+            f"{result.newly_orphan_count} 件"
+        )
+    return tuple(lines)
+
+
+def _format_quarantine_headline(result: QuarantineResult) -> tuple[str, ...]:
+    if result.aborted_reason:
+        reason = _QUARANTINE_REASON_LABELS.get(result.aborted_reason, result.aborted_reason)
+        return (f"隔離を中止しました: {reason}", "ファイルは 1 件も移動していません。")
+    unit_note = f"（実行単位: {result.unit_id}）" if result.unit_id else ""
+    return (
+        f"隔離しました: {len(result.moved)} 件{unit_note}",
+        *(f"{_KIND_LABELS.get(kind, kind)}: {path}" for kind, path in result.moved),
+    )

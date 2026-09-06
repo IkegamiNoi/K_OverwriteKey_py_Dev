@@ -7,17 +7,23 @@ import tempfile
 import tkinter as tk
 import unittest
 from pathlib import Path
+from tkinter import ttk
 from unittest.mock import Mock, patch
 
 from keyseq.application.config_service.orphan_scan import (
-    KIND_KEYMAP, ORPHAN_CANDIDATE, ORPHAN_PROTECTED, OrphanEntry, OrphanScanResult,
+    KIND_KEYMAP, ORPHAN_CANDIDATE, ORPHAN_PROTECTED, ORPHAN_REFERENCED,
+    OrphanEntry, OrphanScanResult,
 )
+from keyseq.application.config_service.quarantine import QuarantineResult
 from keyseq.application.config_service.reference_scan import SOURCE_UNREADABLE
 from keyseq.application.save_plan import SavePlan
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import orphan_sweep_io as sweep_module
 from keyseq.presentation.dialogs import orphan_sweep_dialog
-from keyseq.presentation.orphan_sweep_text import format_orphan_notice, format_orphan_plan
+from keyseq.presentation.dialogs.reference_cleanup_dialog import ReferenceCleanupDialog
+from keyseq.presentation.orphan_sweep_text import (
+    format_orphan_notice, format_orphan_plan, format_quarantine_result,
+)
 from keyseq.presentation.views.menu_bar import build_menu_bar
 
 
@@ -47,6 +53,11 @@ class OrphanSweepFlowTest(unittest.TestCase):
         self.dialog_dirs = None
         self.open_dialog = self._patch(sweep_module, "OrphanSweepDialog",
                                        side_effect=self._open_dialog)
+        self.confirm = Mock(result=False)
+        self.open_confirm = self._patch(sweep_module, "ReferenceCleanupDialog",
+                                        return_value=self.confirm)
+        self.quarantine = self._patch(self.app.config_service, "quarantine_orphans",
+                                      return_value=self._quarantine_result())
 
     def _open_dialog(self, parent, *, scan_dirs, initial_dir):
         self.dialog.scan_dirs = scan_dirs if self.dialog_dirs is None else self.dialog_dirs
@@ -63,6 +74,13 @@ class OrphanSweepFlowTest(unittest.TestCase):
         entries = () if state is None else (OrphanEntry(KIND_KEYMAP, "user/keymaps/child.json", state),)
         sources = (("broken.json", SOURCE_UNREADABLE),) if unreadable else ()
         return OrphanScanResult(entries, sources, (), ())
+
+    @staticmethod
+    def _quarantine_result(**overrides):
+        fields = dict(unit_id="20260906_101500", moved=(), failed=(),
+                      dropped_paths=(), newly_orphan_count=0, aborted_reason="")
+        fields.update(overrides)
+        return QuarantineResult(**fields)
 
     def test_unsaved_no_stops_before_save_collection_and_scan(self):
         self.dirty.return_value = True
@@ -142,15 +160,72 @@ class OrphanSweepFlowTest(unittest.TestCase):
                     with patch.object(tk.Toplevel, "__init__", side_effect=AssertionError("unexpected dialog")):
                         self.app.orphan_sweep_io.run_sweep()
                 self.info.assert_called_once_with("孤児ファイルの棚卸し", "\n".join(format_orphan_notice(result)))
+                self.open_confirm.assert_not_called()
+                self.quarantine.assert_not_called()
         self.ask.assert_not_called()
 
-    def test_candidates_are_presented_with_warning_first(self):
+    def test_candidates_are_presented_with_warning_first_in_confirmation_dialog(self):
         result = self._result(ORPHAN_CANDIDATE, unreadable=True)
         with patch.object(self.app.config_service, "scan_orphans", return_value=result):
             self.app.orphan_sweep_io.run_sweep()
-        self.info.assert_called_once_with("孤児ファイルの棚卸し", "\n".join(format_orphan_plan(result)))
-        self.assertTrue(self.info.call_args.args[1].startswith("警告:"))
+        self.open_confirm.assert_called_once_with(
+            self.app, title="孤児ファイルの棚卸し", lines=format_orphan_plan(result),
+            header="隔離する孤児候補を確認してください。", run_label="隔離する",
+        )
+        self.confirm.wait_window.assert_called_once_with()
+        self.assertTrue(self.open_confirm.call_args.kwargs["lines"][0].startswith("警告:"))
         self.ask.assert_not_called()
+
+    def test_confirmation_cancel_does_not_quarantine_or_notify(self):
+        self.confirm.result = False
+        with patch.object(self.app.config_service, "scan_orphans",
+                          return_value=self._result(ORPHAN_CANDIDATE)):
+            self.app.orphan_sweep_io.run_sweep()
+        self.open_confirm.assert_called_once()
+        self.quarantine.assert_not_called()
+        self.info.assert_not_called()
+
+    def test_quarantine_receives_only_candidate_paths_and_the_scan_arguments(self):
+        self.confirm.result = True
+        entries = (
+            OrphanEntry(KIND_KEYMAP, "user/keymaps/candidate.json", ORPHAN_CANDIDATE),
+            OrphanEntry(KIND_KEYMAP, "user/keymaps/referenced.json", ORPHAN_REFERENCED),
+            OrphanEntry(KIND_KEYMAP, "user/keymaps/protected.json", ORPHAN_PROTECTED),
+        )
+        result = OrphanScanResult(entries, (), (), ())
+        quarantined = self._quarantine_result(moved=((KIND_KEYMAP, "user/keymaps/candidate.json"),))
+        self.quarantine.return_value = quarantined
+        with patch.object(self.app.config_service, "scan_orphans", return_value=result) as scan:
+            self.app.orphan_sweep_io.run_sweep()
+        self.quarantine.assert_called_once_with(
+            ["user/keymaps/candidate.json"], **scan.call_args.kwargs,
+        )
+        self.info.assert_called_once_with(
+            "孤児ファイルの棚卸し", "\n".join(format_quarantine_result(quarantined)),
+        )
+
+    def test_unreadable_sources_do_not_block_quarantine(self):
+        self.confirm.result = True
+        result = self._result(ORPHAN_CANDIDATE, unreadable=True)
+        with patch.object(self.app.config_service, "scan_orphans", return_value=result):
+            self.app.orphan_sweep_io.run_sweep()
+        self.quarantine.assert_called_once()
+        self.assertEqual(self.quarantine.call_args.args[0], ["user/keymaps/child.json"])
+        self.ask.assert_not_called()
+
+    def test_quarantine_flow_does_not_touch_dirty_state_or_runtime(self):
+        self.confirm.result = True
+        self._patch(self.app, "data", {"keymaps": [{"name": "one"}]})
+        runtime = copy.deepcopy(self.app.data)
+        self._patch(self.app.dirty_tracker, "set_dirty",
+                    side_effect=AssertionError("dirty 状態を変えてはならない"))
+        self._patch(self.app.dirty_tracker, "sync_dirty_state",
+                    side_effect=AssertionError("dirty 状態を変えてはならない"))
+        with patch.object(self.app.config_service, "scan_orphans",
+                          return_value=self._result(ORPHAN_CANDIDATE)):
+            self.app.orphan_sweep_io.run_sweep()
+        self.quarantine.assert_called_once()
+        self.assertEqual(self.app.data, runtime)
 
     def test_scan_arguments_use_config_root_startup_current_and_protected_paths(self):
         protected = ("saved.json", "user/keymaps/runtime.json")
@@ -207,7 +282,10 @@ class OrphanSweepFlowTest(unittest.TestCase):
                 self.app.orphan_sweep_io.run_sweep()
                 self.assertEqual(self.app.data, runtime)
             self.assertEqual(self._snapshot(root), before)
-        self.assertIn("キーマップ: user/keymaps/unused.json", self.info.call_args.args[1])
+        self.assertIn("キーマップ: user/keymaps/unused.json",
+                      self.open_confirm.call_args.kwargs["lines"])
+        self.quarantine.assert_not_called()
+        self.info.assert_not_called()
         self.save.assert_not_called()
         self.save_as.assert_not_called()
         self.ask.assert_not_called()
@@ -342,6 +420,46 @@ class OrphanSweepFlowTest(unittest.TestCase):
         for path in result.missing_scan_dirs:
             self.assertIn(f"  {path}", message)
         self.assertNotIn("警告", message)
+
+
+class ReferenceCleanupDialogLabelTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        cls.app = app_module.App()
+        cls.app.update_idletasks()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.app.destroy()
+
+    def _dialog(self, **overrides):
+        dialog = ReferenceCleanupDialog(self.app, title="確認", lines=("one",), **overrides)
+        self.addCleanup(lambda: dialog.destroy() if dialog.winfo_exists() else None)
+        return dialog
+
+    @staticmethod
+    def _texts(widget, kind):
+        texts = []
+        for child in widget.winfo_children():
+            if isinstance(child, kind):
+                texts.append(child.cget("text"))
+            texts.extend(ReferenceCleanupDialogLabelTest._texts(child, kind))
+        return texts
+
+    def test_default_header_and_run_label_are_unchanged(self):
+        dialog = self._dialog()
+        self.assertEqual(self._texts(dialog, ttk.Label), ["除去する参照元を確認してください。"])
+        self.assertEqual(self._texts(dialog, ttk.Button), ["実行", "キャンセル"])
+        dialog.destroy()
+
+    def test_quarantine_labels_replace_only_header_and_run_button(self):
+        dialog = self._dialog(header="隔離する孤児候補を確認してください。", run_label="隔離する")
+        self.assertEqual(self._texts(dialog, ttk.Label), ["隔離する孤児候補を確認してください。"])
+        self.assertEqual(self._texts(dialog, ttk.Button), ["隔離する", "キャンセル"])
+        self.assertFalse(dialog.result)
+        dialog._run()
+        self.assertTrue(dialog.result)
+        self.assertFalse(dialog.winfo_exists())
 
 
 class OrphanSweepDialogTest(unittest.TestCase):

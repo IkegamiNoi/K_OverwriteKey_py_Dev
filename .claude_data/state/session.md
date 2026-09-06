@@ -4,83 +4,82 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-06T15:00:00
-phase: **11_orphan_child_file_sweep（孤児ファイルの棚卸し）= task_01〜task_04 完了 / task_05 未着手**。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
-last_commit_location: claude/task-02-progression-2fd81c @ 最新コミット = `task_04: 走査ディレクトリ設定の永続化と入口ダイアログ` ※現在地・SHA はセッション開始時の git 実測値が正
+last_updated: 2026-09-06T17:00:00
+phase: **11_orphan_child_file_sweep（孤児ファイルの棚卸し）= task_01〜task_05 完了 / task_06 未着手**。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
+last_commit_location: claude/task-02-progression-2fd81c @ 最新コミット = `task_05: 孤児候補の隔離（quarantine）を新設` ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 11 task_04（走査ディレクトリ設定）完了**（verifier 実測 green / reviewer = 完了可）。次は **task_05（隔離）= 本フェーズ初の破壊的 I/O**。
+focus: **phase 11 task_05（隔離）完了 = 本フェーズ初の破壊的 I/O が入った**（verifier 実測 green / reviewer = 完了可）。次は **task_06（隔離の管理 = 復元 + 削除）**。
 mode: in_progress
 
 ## last_action
-ts: 2026-09-06T15:00:00
+ts: 2026-09-06T17:00:00
 who: main
 summary: |
-  【**phase 11 task_04 完了**】走査ディレクトリ設定の永続化と棚卸しの入口ダイアログを新設。
-  実装は `codex-implementer`（**使用量上限で途中終了**したが差分は一通り適用済みだった）→
-  `verifier` 実測 → `reviewer` = **完了可** → **1 件の失敗をメインで修正** → 再実測 green。
-  - **`config.json` のキー追加**: `orphan_sweep_scan_dirs`（`list[str]`。定数は
-    `orphan_sweep_io.SCAN_DIRS_KEY`）。**書き込みは `startup_io.write_startup` の 1 本のみ**
-    （`config_service.save_startup` を直呼びしない。`build_startup_payload:347-357` が
-    `_startup_settings` を丸ごと複製するため、**この経路でのみ keymap_set 保存後も生き残る**）。
-  - **`orphan_scan.normalize_scan_dirs`**（application）: 非 list は空タプル / 非文字列・空を除去 /
-    canonical をキーに**入力順で重複排除** / 返すのは `to_config_relative_or_absolute`
-    （**canonical を返さない**）/ **実在確認をしない**（見つからなくても設定から消さない）。
-  - **新規 `dialogs/orphan_sweep_dialog.py`**（68 行・`OrphanSweepDialog`）: Listbox +「追加…」
-    （`filedialog.askdirectory`・重複追加を防ぐ）「削除」+「棚卸しを実行 / **閉じる**」。
-    **設定の保存はダイアログの責務にしない**（IO 側）。
-  - **`run_sweep` の流れ**: 未保存確認 → 設定読み出し → ダイアログ → **変更があれば保存**
-    （**「閉じる」でも保存する**＝本タスクで定めた規約。ラベルを「キャンセル」にしないのはこのため）→
-    `result` が偽なら中止 → 走査（`scan_dirs=[]` 固定を撤去）。
-    **`write_startup` が偽でも走査は続行**する。
-  - **メインで修正した 1 件**: `test_escape_and_window_close_keep_result_false` が
-    Escape のバインドを `dialog.tk.call(command, *(["??"] * 19))` で叩いており、
-    Tcl の `%` 置換が `TclError: expected integer` になって**コールバックが走っていなかった**。
-    `deiconify` + `update_idletasks` + `focus_force` + `event_generate("<Escape>")` へ差し替え
-    （**実環境で同期ディスパッチと破棄完了を実測して確定**）。ダイアログ実装側は無変更。
-  - **想定外の先行実装 = `codebase_map.md` の 3 行追記**（新規ダイアログ + `normalize_scan_dirs`）。
-    **採用**（`.claude/rules/implementation.md` の「UI 構成が変わったら追随」に合致し内容も正確）。
-    **task_08 の正本反映では、この 3 行が既に入っている前提で残りを書くこと**。
+  【**phase 11 task_05 完了**】孤児候補の隔離（application の破壊的 I/O + 確認 UI）を新設。
+  **Codex が使用量上限で使えず、ユーザー許可を得て `implementer`（Claude）へフォールバック**した
+  （`.claude/rules/agent_selection.md` の手順どおり）→ `verifier` 実測 → `reviewer` = **完了可**。
+  - **新規 `config_service/quarantine.py`**（251 行）: `quarantine_orphans(service, presented_paths, *,
+    config_root, scan_dirs, startup_keymap_set_path, current_keymap_set_path, protected_paths)` が
+    `QuarantineResult`（`unit_id` / `moved` / `failed` / `dropped_paths` / `newly_orphan_count` /
+    `aborted_reason`）を返す。
+  - **不変条件（メインでも実コードを裏取り済み）**: ①**再判定は `_select_targets` 内で
+    `scan_orphans` を呼び直す**（presentation に任せない）②隔離するのは
+    **〔presented〕∩〔再判定でも `ORPHAN_CANDIDATE`〕**だけ・**再判定で新たに孤児になった分は隔離しない**
+    ③**マニフェストは `os.makedirs` 直後・移動より前**に `service.repository.save_json`
+    （既存の `.tmp` + `os.replace`）で全件 `planned` として書き、**失敗なら 1 件も動かさず中止**
+    ④**対象 0 件ならディレクトリを 1 つも作らない**（`unit_id=""` で早期 return）
+    ⑤`shutil.move` で 1 件ずつ・失敗しても継続・元ファイルを削除しない・runtime / dirty を変更しない。
+  - 実行単位 ID = `_now()` の `YYYYMMDD_HHMMSS`、衝突時 `_2` / `_3`。隔離先は**元の相対構造を保つ**。
+  - **`ReferenceCleanupDialog` を `header` / `run_label` で引数化**（**既定値は現行文字列**なので
+    `reference_cleanup_io.py` は無変更・既存 9 件も無変更で pass）。棚卸しは
+    `header="隔離する孤児候補を確認してください。"` / `run_label="隔離する"` の**2 択**で、
+    **警告があっても実行できる**（§4-A）。
+  - `orphan_sweep_text.format_quarantine_result` を追加。`orphan_sweep_io` は結果提示部のみ改修し、
+    走査引数を `_scan_arguments()` で 1 度組み立てて**走査と隔離へ同一の値**を渡す。
+  - **phase.md のタスク割りを更新**: `ReferenceCleanupDialog` の引数化を **task_06 → task_05 へ前倒し**
+    （「隔離する」ボタンが必要なため）。task_06 は引数化済みのものを**使うだけ**。
 result_files:
-  - keyseq/application/config_service/orphan_scan.py（`normalize_scan_dirs` 追加）
-  - keyseq/application/config_service/__init__.py（1 行委譲ファサード 1 箇所）
-  - keyseq/presentation/dialogs/orphan_sweep_dialog.py（新規・68 行）
-  - keyseq/presentation/dialogs/__init__.py（再輸出 1 行）
-  - keyseq/presentation/controllers/config_io/orphan_sweep_io.py（`run_sweep` 改修 + `SCAN_DIRS_KEY`）
-  - tests/test_orphan_scan.py（20 → 27 件）/ tests_ui/test_orphan_sweep_flow.py（10 → 24 件）
-  - instructions/common/codebase_map.md（3 行・先行実装を採用）
-  - instructions/phase/11_orphan_child_file_sweep/tasks/task_04_scan_dir_settings.md（新規）
+  - keyseq/application/config_service/quarantine.py（新規・251 行）
+  - keyseq/application/config_service/__init__.py（import + 委譲の 2 箇所）
+  - keyseq/presentation/dialogs/reference_cleanup_dialog.py（header / run_label の引数化のみ）
+  - keyseq/presentation/orphan_sweep_text.py（`format_quarantine_result` 追加）
+  - keyseq/presentation/controllers/config_io/orphan_sweep_io.py（結果提示部の改修）
+  - tests/test_quarantine.py（新規・14 件）/ tests/test_orphan_sweep_text.py（10 → 16 件）/
+    tests_ui/test_orphan_sweep_flow.py（24 → 30 件・既存 2 件はダイアログ経路へ追従修正）
+  - instructions/phase/11_orphan_child_file_sweep/tasks/task_05_quarantine.md（新規）/ phase.md（タスク割り更新）
 verified:
   compile: clean
-  tests: pass **316**（309 → **+7**）
-  tests_ui: pass **262**（248 → **+14**）
+  tests: pass **336**（316 → **+20**）
+  tests_ui: pass **268**（262 → **+6**）
   smoke: pass
-  note: 実測は `verifier`（修正後に再実測）。**`user/` の誤生成なし**。
+  note: 実測は `verifier`。**実行前後で `user/` も `quarantine/` も未生成・git 差分の増加なし**
+    （破壊的 I/O のためテストが実ファイルを動かしていないことを明示確認）。
     既存 `test_reference_cleanup_flow.py` 9 件 / `test_reference_cleanup_text.py` 8 件 /
-    `test_orphan_sweep_text.py` 10 件は無変更で全 pass。
-  review: `reviewer` = **完了可**（5 観点 OK。`config.json` 直書きなし・「閉じる」でも保存・
-    見つからないディレクトリを消さない・canonical を返さない、をすべて確認）。
+    `test_orphan_scan.py` 27 件は無変更で全 pass。
+  review: `reviewer` = **完了可**（5 観点 OK）。MUST 2 点（マニフェスト先行・積集合への限定）は
+    **メインでも `quarantine.py` を直読みして裏取り済み**。
 
 ## next_action
-- **task_05（隔離）を起票して着手する**（`/task_new` → `tasks/task_05_*.md` →
-  `codex-implementer` → `verifier` → `reviewer`）。**本フェーズ初の破壊的 I/O** なので慎重に。
-  範囲 = 隔離ルート `<config_root>/quarantine/` の**遅延作成**（隔離を 1 度も実行していない環境に
-  作らない・L3）+ **マニフェストを移動より先に原子書込み**（書けなければ 1 件も動かさない・Codex High 2）+
-  相対構造を保った移動 + **〔提示済み〕∩〔再判定でも孤児〕への限定**（H2 / §3-12-3）+
-  部分失敗の継続と結果表示。**受け入れ条件 17 の「実行 / キャンセル」の 2 択はこのタスク**
-  （警告があっても実行できること・確認用 UI を作らないこと）。
-  ここで**結果確認ダイアログ（`ReferenceCleanupDialog` のヘッダ / ボタンラベル引数化）を導入**し、
-  task_03 以降の暫定 `messagebox.showinfo` を差し替える（引数化そのものは task_06 と重複しないよう
-  起票時に境界を決めること）。
-- **task_02 の申し送り①の確認結果（task_04 で実測）**: 既定 `user/keymap_sets/` が無い config_root では
-  `missing_scan_dirs` に**絶対パス**（`os.path.join(config_root, "user", "keymap_sets")`）が入り、
-  `scan_dirs` 由来の入力表記と**表記が不揃い**であることをテストで確認した。**実害は表示の見た目のみ**で、
-  誤隔離には繋がらない。**是正は未実施**（必要なら別タスク or task_08 の文言見直しと合わせて判断）。
-- **reviewer の軽微な参考事項（非 blocking・未対応）**:
-  ① `run_sweep` が約 33 行で「関数 30 行目安」をわずかに超える
-  ② `tests_ui` の削除テストが `sweep_module.messagebox.askyesno` の未呼び出しを見ているが、
-  `orphan_sweep_dialog.py` は `messagebox` を import していないため**アサーションが空振り**
-  （無害だが狙いが不正確）。
+- **task_06（隔離の管理 = 復元 + 削除）を起票して着手する**（`/task_new` → `tasks/task_06_*.md` →
+  実装委任 → `verifier` → `reviewer`）。**不可逆の削除を含むので最も慎重に**。
+  範囲 = 「隔離の管理…」メニュー + 実行単位のリスト選択 UI +
+  復元（**`original_path` が候補側 4 ディレクトリ配下でなければ拒否**・同名はスキップして報告・
+  復元先ディレクトリは作成・**全件戻った実行単位はマニフェストと空ディレクトリを削除**・
+  **マニフェストが読めない単位は復元も削除もさせない**）+
+  削除（**パスでなく実行単位 ID を受け取り 4 検証**〔①隔離ルート直下に実在 ②実行単位の名前形式
+  ③canonical が隔離ルート自身と一致しない ④有効な manifest を持つ〕・再帰削除・
+  **シンボリックリンクは辿らずリンク自体を削除**・不可逆の明記・削除前に全件提示）。
+  **`ReferenceCleanupDialog` は task_05 で引数化済み。再改修しない**（`run_label` =
+  「復元する」/「削除する」）。
+- **【task_06 への申し送り・reviewer 指摘】** `quarantine.py:212-239` の `_apply_moves` は、
+  **移動中のマニフェスト進捗書込みが失敗しても移動を継続**し、ループ終了後に `failed` へ
+  `manifest_write_failed` を 1 件積む。初回の `planned` マニフェストは全件の `quarantined_path` を
+  含むため**復元は可能**だが、**「マニフェスト上は `planned` なのに実体は移動済み」という乖離が
+  生じ得る**。**task_06 の復元はこのケースを想定すること**（`state` を信用して `planned` を
+  スキップする実装にしない）。この分岐の単体テストは未追加（任意で補強可）。
+- **task_02 の申し送り①（`missing_scan_dirs` の表記不揃い）は未是正のまま**（実害は表示のみ）。
+- **reviewer の軽微な指摘（未対応）**: `tests_ui/test_orphan_sweep_flow.py:292-293` に空行が 2 行連続。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
   **phase 11 では新規コードで同じ形を作らない**にとどめる（暫定仕様 §6）。
 
