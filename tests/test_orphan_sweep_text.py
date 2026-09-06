@@ -8,6 +8,7 @@ from keyseq.application.config_service.orphan_scan import (
 )
 from keyseq.application.config_service.quarantine import (
     QUARANTINE_MANIFEST_WRITE_FAILED, QUARANTINE_MOVE_FAILED, QuarantineResult,
+    QUARANTINE_SOURCE_REJECTED, QUARANTINE_UNIT_DIR_FAILED,
 )
 from keyseq.application.config_service.reference_scan import SOURCE_MISSING, SOURCE_UNREADABLE
 from keyseq.presentation.orphan_sweep_text import (
@@ -78,7 +79,7 @@ class OrphanSweepTextTest(unittest.TestCase):
             OrphanEntry(KIND_SEQUENCE, "invalid-two.json", ORPHAN_EXCLUDED),
         ))
         lines = format_orphan_plan(result)
-        self.assertIn("形状検証で対象外: 2 件", lines)
+        self.assertIn("対象外: 2 件", lines)
         self.assertNotIn("invalid-", "\n".join(lines))
 
     def test_empty_notice_includes_all_scan_diagnostics(self):
@@ -137,9 +138,49 @@ class QuarantineResultTextTest(unittest.TestCase):
         lines = format_quarantine_result(result)
         self.assertEqual(lines[1], "移動できなかったファイル:")
         self.assertEqual(lines[2], "  user/keymaps/foo.json: 移動できませんでした")
-        self.assertEqual(lines[3],
+        self.assertEqual(lines[3], "  user/keymaps/bar.json: new_reason")
+        self.assertEqual(lines[4], "警告: マニフェストを書き込めず、隔離の記録が古い可能性があります。")
+        self.assertEqual(lines[5],
                          "  quarantine/20260906_101500/manifest.json: マニフェストを書き込めませんでした")
-        self.assertEqual(lines[4], "  user/keymaps/bar.json: new_reason")
+
+    def test_manifest_failure_after_move_is_separate_from_move_failures(self):
+        result = _quarantine_result(moved=((KIND_KEYMAP, "child.json"),), failed=(
+            ("quarantine/unit/manifest.json", QUARANTINE_MANIFEST_WRITE_FAILED),
+        ))
+        lines = format_quarantine_result(result)
+        self.assertTrue(lines[0].startswith("隔離しました: 1 件"))
+        self.assertNotIn("移動できなかったファイル:", lines)
+        self.assertIn("隔離の記録が古い可能性があります", "\n".join(lines))
+        self.assertIn("quarantine/unit/manifest.json", "\n".join(lines))
+
+    def test_all_failed_headline_does_not_claim_success(self):
+        result = _quarantine_result(failed=(("child.json", QUARANTINE_SOURCE_REJECTED),))
+        lines = format_quarantine_result(result)
+        self.assertTrue(lines[0].startswith("隔離できませんでした: 0 件"))
+        self.assertNotIn("隔離しました", "\n".join(lines))
+        self.assertIn("  child.json: 移動直前の安全確認で対象外になりました", lines)
+
+    def test_unit_directory_failure_has_japanese_abort_label(self):
+        result = _quarantine_result(unit_id="", aborted_reason=QUARANTINE_UNIT_DIR_FAILED)
+        self.assertEqual(format_quarantine_result(result)[:2], (
+            "隔離を中止しました: 隔離の実行単位ディレクトリを作成できませんでした",
+            "ファイルは 1 件も移動していません。",
+        ))
+
+    def test_rescan_warning_precedes_success_and_abort_with_paths_and_reasons(self):
+        sources = (("Missing.JSON", SOURCE_MISSING), ("broken.json", SOURCE_UNREADABLE),
+                   ("other.json", "new_reason"))
+        for abort in ("", QUARANTINE_UNIT_DIR_FAILED):
+            with self.subTest(abort=abort):
+                result = _quarantine_result(aborted_reason=abort, rescan_unreadable_sources=sources)
+                lines = format_quarantine_result(result)
+                self.assertEqual(lines[0], "警告: 隔離の直前にも読めない参照側が 3 件ありました。")
+                self.assertEqual(lines[2:5], (
+                    "  Missing.JSON: ファイルが見つかりません",
+                    "  broken.json: 読み取り / JSON 解析に失敗しました",
+                    "  other.json: new_reason",
+                ))
+                self.assertTrue(lines[5].startswith("隔離"))
 
     def test_dropped_and_newly_orphan_show_counts_without_paths(self):
         result = _quarantine_result(dropped_paths=("user/keymaps/foo.json", "user/keymaps/bar.json"),

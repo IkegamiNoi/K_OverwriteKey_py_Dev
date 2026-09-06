@@ -1,9 +1,11 @@
 import os
+import subprocess
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService
+from keyseq.application.config_service import orphan_scan as orphan_scan_module
 from keyseq.application.config_service.orphan_scan import (
     KIND_HOTKEY_PRESETS, KIND_KEYMAP, KIND_SEQUENCE, KIND_TRIGGER_SET,
     ORPHAN_CANDIDATE, ORPHAN_EXCLUDED, ORPHAN_PROTECTED, ORPHAN_REFERENCED,
@@ -25,6 +27,67 @@ class OrphanScanTest(unittest.TestCase):
     def setUp(self):
         self.service = ConfigService(JsonRepository())
         self.repository = JsonRepository()
+
+    def _make_junction(self, junction, target):
+        try:
+            result = subprocess.run(
+                ["cmd", "/c", "mklink", "/J", junction, target],
+                capture_output=True, check=False,
+            )
+        except OSError as error:
+            self.skipTest(f"ジャンクションを作成できません: {error}")
+        if result.returncode:
+            self.skipTest(f"ジャンクションを作成できません: {result.stderr!r}")
+        self.addCleanup(os.rmdir, junction)
+
+    def test_candidate_junction_outside_config_is_excluded_before_reading(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = os.path.join(directory.name, "config")
+        outside = os.path.join(directory.name, "outside")
+        child = "user/keymaps/outside.json"
+        self._save(root, os.path.join(outside, "outside.json"), {"mappings": {}})
+        os.makedirs(os.path.join(root, "user"))
+        self._make_junction(os.path.join(root, "user", "keymaps"), outside)
+        with patch.object(self.service, "_load_optional_json",
+                          wraps=self.service._load_optional_json) as loader:
+            result = self._scan(root)
+        self.assertEqual(self._states(result), {child: ORPHAN_EXCLUDED})
+        self.assertNotIn(self._resolved(root, child), [call.args[0] for call in loader.call_args_list])
+        self.assertTrue(os.path.isfile(os.path.join(outside, "outside.json")))
+
+    def test_real_boundary_errors_exclude_candidates(self):
+        with tempfile.TemporaryDirectory() as root:
+            child = "user/keymaps/child.json"
+            self._save(root, child, {"mappings": {}})
+            for operation in ("realpath", "commonpath"):
+                for error in (OSError("unreadable"), ValueError("invalid")):
+                    with self.subTest(operation=operation, error=error), patch.object(
+                        orphan_scan_module.os.path, operation, side_effect=error,
+                    ):
+                        result = self._scan(root)
+                        self.assertEqual([entry.state for entry in result.entries], [ORPHAN_EXCLUDED])
+
+    def test_real_boundary_does_not_override_protected_or_referenced(self):
+        with tempfile.TemporaryDirectory() as root:
+            protected, referenced = "user/keymaps/a.json", "user/keymaps/b.json"
+            for child in (protected, referenced):
+                self._save(root, child, {"mappings": {}})
+            self._save(root, "user/keymap_sets/main.json", {"keymaps": [referenced]})
+            with patch.object(orphan_scan_module, "_is_real_path_within",
+                              side_effect=AssertionError("保護・参照ありは実体検証しない")):
+                result = self._scan(root, protected_paths=[protected])
+            self.assertEqual(self._states(result),
+                             {protected: ORPHAN_PROTECTED, referenced: ORPHAN_REFERENCED})
+
+    def test_external_scan_directory_still_references_config_child(self):
+        with tempfile.TemporaryDirectory() as base:
+            root, outside = os.path.join(base, "config"), os.path.join(base, "outside")
+            child = "user/keymaps/child.json"
+            self._save(root, child, {"mappings": {}})
+            self._save(root, os.path.join(outside, "set.json"), {"keymaps": [child]})
+            self.assertEqual(self._states(self._scan(root, scan_dirs=[outside])),
+                             {child: ORPHAN_REFERENCED})
 
     def test_multiple_sets_reference_children_and_second_level_sequences(self):
         with tempfile.TemporaryDirectory() as root:

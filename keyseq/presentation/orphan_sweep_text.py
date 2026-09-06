@@ -10,6 +10,8 @@ from keyseq.application.config_service.orphan_scan import (
 from keyseq.application.config_service.quarantine import (
     QUARANTINE_MANIFEST_WRITE_FAILED,
     QUARANTINE_MOVE_FAILED,
+    QUARANTINE_SOURCE_REJECTED,
+    QUARANTINE_UNIT_DIR_FAILED,
     QuarantineResult,
 )
 from keyseq.application.config_service.reference_scan import SOURCE_MISSING, SOURCE_UNREADABLE
@@ -32,6 +34,8 @@ _SOURCE_REASON_LABELS = {
 _QUARANTINE_REASON_LABELS = {
     QUARANTINE_MANIFEST_WRITE_FAILED: "マニフェストを書き込めませんでした",
     QUARANTINE_MOVE_FAILED: "移動できませんでした",
+    QUARANTINE_SOURCE_REJECTED: "移動直前の安全確認で対象外になりました",
+    QUARANTINE_UNIT_DIR_FAILED: "隔離の実行単位ディレクトリを作成できませんでした",
 }
 
 SCAN_SCOPE_NOTE: str = (
@@ -70,7 +74,7 @@ def format_orphan_plan(result: OrphanScanResult) -> tuple[str, ...]:
     )
     excluded_count = sum(entry.state == ORPHAN_EXCLUDED for entry in result.entries)
     if excluded_count:
-        lines.append(f"形状検証で対象外: {excluded_count} 件")
+        lines.append(f"対象外: {excluded_count} 件")
     return tuple(lines)
 
 
@@ -81,13 +85,8 @@ def format_orphan_notice(result: OrphanScanResult) -> tuple[str, ...]:
 
 def format_quarantine_result(result: QuarantineResult) -> tuple[str, ...]:
     """隔離の実行結果を、中止か実績かを先頭に置いて通知用の行へ組み立てる。"""
-    lines = list(_format_quarantine_headline(result))
-    if result.failed:
-        lines.append("移動できなかったファイル:")
-        lines.extend(
-            f"  {path}: {_QUARANTINE_REASON_LABELS.get(reason, reason)}"
-            for path, reason in result.failed
-        )
+    lines = [*_format_rescan_warnings(result), *_format_quarantine_headline(result)]
+    lines.extend(_format_quarantine_failures(result))
     if result.dropped_paths:
         lines.append(f"提示後に対象外になったため隔離しなかった: {len(result.dropped_paths)} 件")
     if result.newly_orphan_count:
@@ -98,11 +97,41 @@ def format_quarantine_result(result: QuarantineResult) -> tuple[str, ...]:
     return tuple(lines)
 
 
+def _format_rescan_warnings(result: QuarantineResult) -> tuple[str, ...]:
+    if not result.rescan_unreadable_sources:
+        return ()
+    return (
+        f"警告: 隔離の直前にも読めない参照側が {len(result.rescan_unreadable_sources)} 件ありました。",
+        "それらが参照していた子ファイルを孤児と誤判定している可能性があります。",
+        *(f"  {path}: {_SOURCE_REASON_LABELS.get(reason, reason)}"
+          for path, reason in result.rescan_unreadable_sources),
+    )
+
+
+def _format_quarantine_failures(result: QuarantineResult) -> tuple[str, ...]:
+    move_failures = [(path, reason) for path, reason in result.failed
+                     if reason != QUARANTINE_MANIFEST_WRITE_FAILED]
+    manifest_failures = [path for path, reason in result.failed
+                         if reason == QUARANTINE_MANIFEST_WRITE_FAILED]
+    lines: list[str] = []
+    if move_failures:
+        lines.append("移動できなかったファイル:")
+        lines.extend(f"  {path}: {_QUARANTINE_REASON_LABELS.get(reason, reason)}"
+                     for path, reason in move_failures)
+    if manifest_failures:
+        lines.append("警告: マニフェストを書き込めず、隔離の記録が古い可能性があります。")
+        lines.extend(f"  {path}: {_QUARANTINE_REASON_LABELS[QUARANTINE_MANIFEST_WRITE_FAILED]}"
+                     for path in manifest_failures)
+    return tuple(lines)
+
+
 def _format_quarantine_headline(result: QuarantineResult) -> tuple[str, ...]:
     if result.aborted_reason:
         reason = _QUARANTINE_REASON_LABELS.get(result.aborted_reason, result.aborted_reason)
         return (f"隔離を中止しました: {reason}", "ファイルは 1 件も移動していません。")
     unit_note = f"（実行単位: {result.unit_id}）" if result.unit_id else ""
+    if not result.moved and result.failed:
+        return (f"隔離できませんでした: 0 件{unit_note}",)
     return (
         f"隔離しました: {len(result.moved)} 件{unit_note}",
         *(f"{_KIND_LABELS.get(kind, kind)}: {path}" for kind, path in result.moved),

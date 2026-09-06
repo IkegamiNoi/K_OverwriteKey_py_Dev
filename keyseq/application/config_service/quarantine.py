@@ -17,6 +17,8 @@ ENTRY_FAILED = "failed"
 
 QUARANTINE_MANIFEST_WRITE_FAILED = "manifest_write_failed"
 QUARANTINE_MOVE_FAILED = "move_failed"
+QUARANTINE_UNIT_DIR_FAILED = "unit_dir_failed"
+QUARANTINE_SOURCE_REJECTED = "source_rejected"
 
 
 @dataclass(frozen=True)
@@ -27,6 +29,7 @@ class QuarantineResult:
     dropped_paths: tuple[str, ...]
     newly_orphan_count: int
     aborted_reason: str
+    rescan_unreadable_sources: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -49,7 +52,7 @@ def quarantine_orphans(
     protected_paths: list[str],
 ) -> QuarantineResult:
     """提示済みかつ再判定でも孤児の候補だけを、計画を先に残してから隔離する。"""
-    entries, dropped_paths, newly_orphan_count = _select_targets(
+    entries, dropped_paths, newly_orphan_count, unreadable_sources = _select_targets(
         service,
         presented_paths,
         config_root=config_root,
@@ -58,25 +61,32 @@ def quarantine_orphans(
         current_keymap_set_path=current_keymap_set_path,
         protected_paths=protected_paths,
     )
+    unit_id, moved, failed, reason = _execute_quarantine(service, entries, config_root)
+    return QuarantineResult(
+        unit_id, moved, failed, dropped_paths, newly_orphan_count, reason, unreadable_sources,
+    )
+
+
+def _execute_quarantine(
+    service, entries: tuple[orphan_scan.OrphanEntry, ...], config_root: str,
+) -> tuple[str, tuple[tuple[str, str], ...], tuple[tuple[str, str], ...], str]:
+    """対象があるときだけ実行単位と先行記録を作り、移動を実行する。"""
     if not entries:
-        return QuarantineResult("", (), (), dropped_paths, newly_orphan_count, "")
+        return "", (), (), ""
     created_at = _now()
     unit_id = _allocate_unit_id(config_root, created_at)
     unit_dir = os.path.join(_quarantine_root(config_root), unit_id)
     manifest_path = os.path.join(unit_dir, MANIFEST_FILE_NAME)
     moves = tuple(_plan_move(service, entry, config_root, unit_dir) for entry in entries)
     states = [ENTRY_PLANNED] * len(moves)
-    os.makedirs(unit_dir, exist_ok=True)
-    if not _try_write_manifest(service, manifest_path, created_at, moves, states):
-        _discard_empty_unit_dir(unit_dir)
-        return QuarantineResult(
-            "", (), (), dropped_paths, newly_orphan_count, QUARANTINE_MANIFEST_WRITE_FAILED,
-        )
+    reason = _prepare_unit_dir(service, manifest_path, created_at, moves, states)
+    if reason:
+        return "", (), (), reason
     moved, failed = _apply_moves(
         service, moves, states,
         manifest_path=manifest_path, created_at=created_at, config_root=config_root,
     )
-    return QuarantineResult(unit_id, moved, failed, dropped_paths, newly_orphan_count, "")
+    return unit_id, moved, failed, ""
 
 
 def _select_targets(
@@ -85,7 +95,9 @@ def _select_targets(
     *,
     config_root: str,
     **scan_arguments,
-) -> tuple[tuple[orphan_scan.OrphanEntry, ...], tuple[str, ...], int]:
+) -> tuple[
+    tuple[orphan_scan.OrphanEntry, ...], tuple[str, ...], int, tuple[tuple[str, str], ...],
+]:
     """隔離直前に走査をやり直し、提示済みかつ再判定でも候補のものだけへ絞る。"""
     result = orphan_scan.scan_orphans(service, config_root=config_root, **scan_arguments)
     candidates = {
@@ -110,7 +122,7 @@ def _select_targets(
         else:
             entries.append(entry)
     newly_orphan_count = sum(canonical not in presented for canonical in candidates)
-    return tuple(entries), tuple(dropped_paths), newly_orphan_count
+    return tuple(entries), tuple(dropped_paths), newly_orphan_count, result.unreadable_sources
 
 
 def _canonical(service, stored_path: str, config_root: str) -> str:
@@ -200,6 +212,34 @@ def _try_write_manifest(
     return True
 
 
+def _prepare_unit_dir(
+    service, manifest_path: str, created_at: datetime,
+    moves: tuple[_PlannedMove, ...], states: list[str],
+) -> str:
+    """既存単位を上書きせず、移動前の記録を作成する。"""
+    unit_dir = os.path.dirname(manifest_path)
+    try:
+        os.makedirs(unit_dir, exist_ok=False)
+    except OSError:
+        return QUARANTINE_UNIT_DIR_FAILED
+    if _try_write_manifest(service, manifest_path, created_at, moves, states):
+        return ""
+    if _discard_manifest_tmp(manifest_path):
+        _discard_empty_unit_dir(unit_dir)
+    return QUARANTINE_MANIFEST_WRITE_FAILED
+
+
+def _discard_manifest_tmp(manifest_path: str) -> bool:
+    """先行記録の一時ファイルを best-effort で除去し、成否を返す。"""
+    try:
+        os.remove(f"{manifest_path}.tmp")
+    except FileNotFoundError:
+        return True
+    except OSError:
+        return False
+    return True
+
+
 def _discard_empty_unit_dir(unit_dir: str) -> None:
     """1 件も動かさずに中止したときだけ、空になったディレクトリを残さない。"""
     for directory in (unit_dir, os.path.dirname(unit_dir)):
@@ -223,7 +263,7 @@ def _apply_moves(
     failed: list[tuple[str, str]] = []
     manifest_write_failed = False
     for index, move in enumerate(moves):
-        reason = _move_file(move)
+        reason = _move_file(move, config_root)
         states[index] = ENTRY_FAILED if reason else ENTRY_MOVED
         if reason:
             failed.append((move.original_path, reason))
@@ -239,12 +279,32 @@ def _apply_moves(
     return tuple(moved), tuple(failed)
 
 
-def _move_file(move: _PlannedMove) -> str:
+def _is_real_path_within(path: str, root: str) -> bool:
+    """realpath で実体解決したうえで root 配下かを判定する。"""
+    try:
+        real_path = os.path.normcase(os.path.realpath(path))
+        real_root = os.path.normcase(os.path.realpath(root))
+        return os.path.commonpath((real_path, real_root)) == real_root
+    except (OSError, ValueError):
+        return False
+
+
+def _source_is_allowed(source: str, config_root: str) -> bool:
+    try:
+        return (os.path.isfile(source) and not os.path.islink(source)
+                and _is_real_path_within(source, config_root))
+    except (OSError, ValueError):
+        return False
+
+
+def _move_file(move: _PlannedMove, config_root: str) -> str:
     """移動できなければ理由コードを返す（成功時は空文字）。"""
     if not move.destination_path:
         return QUARANTINE_MOVE_FAILED
     try:
         os.makedirs(os.path.dirname(move.destination_path), exist_ok=True)
+        if not _source_is_allowed(move.source_path, config_root):
+            return QUARANTINE_SOURCE_REJECTED
         shutil.move(move.source_path, move.destination_path)
     except (OSError, shutil.Error):
         return QUARANTINE_MOVE_FAILED

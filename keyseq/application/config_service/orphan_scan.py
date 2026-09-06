@@ -195,7 +195,19 @@ def _classify_candidate(
         return ORPHAN_PROTECTED
     if canonical_path in referenced:
         return ORPHAN_REFERENCED
+    if not _is_real_path_within(absolute_path, config_root):
+        return ORPHAN_EXCLUDED
     data = service._load_optional_json(absolute_path)
     if not isinstance(data, dict) or not isinstance(data.get(required_key), required_type):
         return ORPHAN_EXCLUDED
     return ORPHAN_CANDIDATE
+
+
+def _is_real_path_within(path: str, root: str) -> bool:
+    """実体解決後の境界を検証し、解決できない場合も対象外にする。"""
+    try:
+        real_path = os.path.normcase(os.path.realpath(path))
+        real_root = os.path.normcase(os.path.realpath(root))
+        return os.path.commonpath((real_path, real_root)) == real_root
+    except (OSError, ValueError):
+        return False
