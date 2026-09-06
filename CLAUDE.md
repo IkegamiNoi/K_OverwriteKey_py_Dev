@@ -78,7 +78,7 @@
 外出しした詳細（例・テンプレート・手順詳説）は `instructions/common/rules_detail/` に置き、
 必要時のみ読む（要点版が規範の正）。
 
-- `.claude/rules/agent_selection.md` — メイン/サブエージェントの分担（実装エージェントの既定とフォールバック / 起票=メイン + 調査=Explore / 統合確認・メトリクス収集=verifier / レビューのタイミング別使い分け。構成は `instructions/agent_mode/` で Codex 併用 / Claude のみ を切り替え）
+- `.claude/rules/agent_selection.md` — メイン/サブエージェントの分担（実装エージェントの既定とフォールバック / 起票=メイン + 調査=codex-explorer〔Claude 側フォールバック=Explore〕 / 統合確認・メトリクス収集=verifier / レビューのタイミング別使い分け。構成は `instructions/agent_mode/` で Codex 併用 / Claude のみ を切り替え）
 - `.claude/rules/anti_patterns.md`
 - `.claude/rules/file_organization_rules.md` — ファイル配置・肥大化対策（分割時の親フォルダ方式 / 昇格ルール / 恒久互換レイヤー禁止）
 - `.claude/rules/python_rules.md` — 言語別ルール（Python）
