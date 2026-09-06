@@ -15,14 +15,16 @@
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
 2. `instructions/phase/current.md` を読む（**アクティブ = phase 11**）
 3. `instructions/phase/11_orphan_child_file_sweep/phase.md` と、**主入力の暫定仕様**
-   `instructions/history/10_orphan_child_file_sweep.md`（**v0.4・ユーザー確定済**）を読む。
+   `instructions/history/10_orphan_child_file_sweep.md`（**v0.5・ユーザー確定済**）を読む。
    **フェーズ中は正本 `spec_detail/` を直接改訂しない**（昇格は最終タスク task_08）
 4. 着手するタスクの定義 `instructions/phase/11_orphan_child_file_sweep/tasks/task_NN_*.md` を読む
 5. CLAUDE.md → `.claude/rules/` の順に必要分を読む
 6. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 11 task_01（参照パス収集器）完了**（verifier 実測 green / reviewer = 完了可）。次は **task_02（走査と孤児判定）**。
+**phase 11 task_06b（隔離済みの削除）を中断中** — 設計確定（暫定仕様 **v0.5**）+ **実装は適用済み**だが、
+**Codex が使用量上限（回復 = 2026-09-07 02:49 頃）でテストが未追加・未検証・未レビュー**。
+**ユーザー判断 = Codex の回復を待つ**（Claude implementer へフォールバックしない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -32,28 +34,45 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（phase 11 task_01 完了時点）:
-compile **clean** / tests **279** / tests_ui **238** / smoke **pass**（実機目視は task_07 でまとめて実施）。
-**件数が減ったら退行を疑う**。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
+直近の実測（**task_06b の実装のみ適用された中断状態**）:
+compile **clean** / tests **377**（維持・skip 2）/ tests_ui **279 だが 1 件 fail** / smoke **pass**。
+**fail は想定内**: `tests_ui/test_quarantine_manage_flow.py:164` の
+`test_list_buttons_modal_and_no_selection` がボタン **2 個**を期待しているが、
+**削除ボタンが増えて 3 個**になったため（`AssertionError`。公開名変更の追随漏れではない）。
+**再開時にこの既存テストを追随させる**。
+**件数が減ったら退行を疑う**。skip 2 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
+実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
 ## 次アクション（session.md.next_action より）
-- **task_02（走査と孤児判定）を起票して着手する**（`/task_new` → `codex-implementer` →
-  **`verifier` で実測** → `reviewer` → `/save_state` → `/task_commit`）。
-  範囲 = 参照側の**ディレクトリ列挙**（既定 / 起動エントリ / 現在のセット / 指定ディレクトリ）+
-  **`config.json` のグローバルプリセットパスの取り込み** + 候補側の収集と**形状検証** +
-  **保護対象の適用** + 判定名 4 種 + 走査の不完全性の記録（暫定仕様 §3-2 / §3-4 / §3-5）。
-- **task_01 の reviewer 申し送り（非 blocking）**: ①**`collect_reference_paths` に空文字の `config_root` を
-  渡さない**（`resolve_config_path` は空だと相対値を絶対化せず **cwd 基準**になる。task_02 の呼び出し側で担保）
-  ②同一ファイルを複数表記で参照して読めない場合、`unreadable_sources` の記録は**1 回だけ**（重複抑制）
-  ③trigger_set の `SOURCE_MISSING` 単体テストは無い（`_load_source` は共有で keymap_set 側が通過済み）。
+- **【再開手順】Codex の使用量上限が回復したら（2026-09-07 02:49 頃）、`codex-implementer` へ
+  「task_06b の残り = **テストのみ**」を委任する**。対象はタスク定義
+  `tasks/task_06b_quarantine_delete.md` の**「確認」節 項目 1〜24**。
+  委任時に**「実装（対象範囲 1〜6）は適用済みなので変更しない。テストのみ追加する」**と明示する。
+  - **既存テスト 1 件の追随修正が必要**（上記 fail）。
+  - その後 **`verifier` 実測 → `reviewer` → `codex-adversarial-reviewer`** → `/save_state` → `/task_commit`。
+    **不可逆タスクのため敵対的レビューを通す**（ユーザー判断 2026-09-06。**毎タスクではなく重要なタスクに限る**）。
+- **【重要】Codex の実装は未検証・未レビュー**。レビューで必ず確認する:
+  ① **検証③が `is_path_within` だけに頼っていないか**（**同一パスも配下と判定する**ため、
+  隔離ルート自身を渡すと**全実行単位が再帰削除され得る**）
+  ② **`allow_invalid_manifest` の既定が False** で、**UI が無条件に True を渡していないか**
+  ③ **①②③が `allow_invalid_manifest=True` でも緩和されていないか**
+  ④ 削除 API が**パスを受け取っていないか** ⑤ **不可逆の明記・全件提示・
+  マニフェスト不正時の追加文言**があるか。
+- **【v0.5 の確定内容】** §3-8 検証④（有効な `manifest.json`）は
+  **「強い確認」で上書き可能**（**①②③は緩和しない**）。理由 = ④を絶対条件にすると
+  §3-7 により**復元も削除もできない残骸**が残り、**§4-A の判断と矛盾する**ため。
+  経緯は `decisions.md`「【task_06b 起票時】」。
+- **残課題（非 blocking・未対応）**: ①`quarantine.py` の `_move_file` で `os.makedirs` がガードより前
+  ②`dropped_paths` が stored 表記へ未正規化 ③例外内容が理由コードへ落ちて失われる
+  ④`missing_scan_dirs` の表記不揃い（既定 `user/keymap_sets/` が無い場合だけ絶対パス）。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
-  **phase 11 では新規コードで同じ形を作らない**にとどめる（暫定仕様 §6）。
 
 ## 現在のフェーズ（phase 11 = 孤児ファイルの棚卸し）の要点
 
-**規範は暫定仕様 10（未凍結・v0.4）**。到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。
-**本アプリ初のディレクトリ走査かつ初のファイル削除機能**（`keyseq/` に `os.remove` は現在 0 件）。
+**規範は暫定仕様 10（未凍結・v0.5）**。到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。
+**本アプリ初のディレクトリ走査かつ初のファイル削除機能**（削除は **task_06b で実装済み・未検証**）。
 番号対応: **phase 11 / 暫定 10 / decisions_archive 11**。
+タスクは 1〜8 + 枝番 2（`phase.md`）。**task_01〜06 + 05b が完了**。
 
 - **走査（参照側）4 経路**: `user/keymap_sets/` 直下 + 起動エントリ + **現在開いているセット
   （`app.keymap_set_path`）** + ユーザー指定ディレクトリ。**3 番目を落とすと、既定外のセットを開いている間に
@@ -62,29 +81,44 @@ compile **clean** / tests **279** / tests_ui **238** / smoke **pass**（実機�
 - **候補側は config 配下の既定 4 種の直下のみ**（keymap / trigger_set / sequence / 個別 hotkey_presets）。
   **形状検証あり**（`mappings` dict / `triggers` list / `actions` list / `hotkey_presets` list）。
   `user/hotkey_presets/global/` は除外。
-- **隔離ルート = `<config_root>/quarantine/`**（`user/` の外＝候補側と構造的に交差させない）。
-  **マニフェストは移動より先に原子書込み**（後追いだと中断時に**アプリから復元できない隔離物**が残る）。
-- **削除 API はパスでなく実行単位 ID を受け取り 4 検証**。
-  **`is_path_within` は同一パスも「配下」と判定する**（`__init__.py:686`）ため、
-  それだけに頼ると**隔離ルート自身が再帰削除され得る**。
-- **削除は通常のファイル削除**（ゴミ箱へ送らない・新規依存を足さない）。
+- **【実測済み・最重要の罠】`canonical_path` は `realpath` を通さない**（`normcase(normpath(abspath))` のみ）。
+  **Windows のジャンクションは `os.path.islink()` が `False`** を返すため、**islink スキップでは防げない**。
+  **`os.path.realpath()` はジャンクションを解決する**。task_05b で**候補分類と移動直前の両方に
+  realpath 境界検証**を入れた。**`_list_json_files` には入れていない**
+  （参照側 `scan_dirs` は **config 外を指してよい**仕様。ここに境界検証を足すと**ユーザー指定ディレクトリの
+  走査が壊れる**）。
+- **【実測済み】`is_path_within` は同一パスも「配下」と判定する**（`__init__.py:738` の docstring）。
+  **削除の検証③・復元の `original_path` ガードは、これだけに頼ると穴が開く**
+  （隔離ルート自身の再帰削除 / 候補側ディレクトリそのものへの復元）。
+- **隔離ルート = `<config_root>/quarantine/`**（`user/` の外＝候補側と構造的に交差させない・**遅延作成**）。
+  **マニフェストは移動より先に原子書込み**（`repository.save_json` が `.tmp` + `os.replace`）。
+  **書けなければ 1 件も動かさない**。隔離するのは**〔提示済み〕∩〔隔離直前の再判定でも孤児〕**だけ。
+- **【確定した設計判断】復元は `state` を信用せず `quarantined_path` の実体の有無で判定する**。
+  移動中の進捗書込みが失敗すると **`state` が `planned` のまま実体は移動済み**になり得る（実測済み）。
+  **`state == "moved"` だけを復元する実装にしてはならない**。`state` は表示・統計にのみ使う。
 - **壊れた親があると無傷の子が孤児候補になる**。ユーザー確定により**警告のみで隔離・削除とも許す**
   （degraded 方式は不採用）。**壊れているのは親、消えるのは子**という取り違えに注意（暫定仕様 §3-12-5）。
-- **task_01 の成果（完了）**: `config_service/reference_scan.py` の
-  `collect_reference_paths(service, keymap_set_paths, *, config_root)` →
-  `ReferenceScanResult(referenced: frozenset[str]〔canonical・**比較専用**〕/
-  unreadable_sources: tuple[(入力表記, 理由)] / non_keymap_set_sources)`。
-  理由コード = `SOURCE_MISSING` / `SOURCE_UNREADABLE`。**keymap_set 判定はキーの有無だけ**。
-  `external_keyboard_layouts` は **config_root 基準と dirname(config_root) 基準の両方**を登録（superset）。
-- タスクは 1〜8（`phase.md`）。**最終 task_08 = 正本反映**で §5.8.1 の**改訂**が必須
-  （現行の「孤児の削除は行わない / 孤児判定は原理的に成立しない」を書き換える）。
+- **これまでの成果（application）**: `config_service/` に
+  `reference_scan.py`（参照集合・2 段辿り）/ `orphan_scan.py`（走査・判定名 4 種・`normalize_scan_dirs` /
+  `collect_protected_paths`）/ `quarantine.py`（隔離・マニフェスト）/ `quarantine_manage.py`（一覧・復元）。
+  **`ConfigService` へは 1 行委譲のファサードのみ**（同ファイルは **820 行**。実ロジックを置かない）。
+- **presentation**: 設定メニュー「孤児ファイルの棚卸し…」「隔離の管理…」/ `orphan_sweep_text.py` ・
+  `quarantine_manage_text.py`（表示文言の純関数）/ `config_io/orphan_sweep_io.py` ・
+  `quarantine_manage_io.py` / `dialogs/orphan_sweep_dialog.py` ・ `quarantine_manage_dialog.py`。
+  **`ReferenceCleanupDialog` は `header` / `run_label` で引数化済み**（既定値は現行文字列。**再改修しない**）。
+- **最終 task_08 = 正本反映**で §5.8.1 の**改訂**が必須（現行の「孤児の削除は行わない / 孤児判定は
+  原理的に成立しない」を書き換える）。**仕様書側で再検討が要る空白 4 件**（進捗書込み失敗時の扱い /
+  実行単位ディレクトリ作成失敗 / §3-11 と実装〔presentation からの定数 import〕の矛盾 /
+  マニフェストの `state` キーが §3-6 の例に無い）。
 - 直前フェーズ（phase 10 = 参照元の掃除）の要点は**正本が正**
   （`spec_detail/data_schema.md` **§5.8.1** + `features.md` §4.6 + `codebase_map.md`）。
   経緯は `decisions_archive/10_reference_link_cleanup.md`。**暫定仕様 09 は凍結済**
   （**条項を実装の根拠に引かない**）。
 
 ## 注意事項・blockers
-- **blockers: なし**（phase 11 進行中。次は task_02）。
+- **blockers: Codex が使用量上限**（回復 = **2026-09-07 02:49 頃**）。task_06b のテストが書けず完了不可。
+  **未コミットの実装差分がある**（task_06b の対象範囲 1〜6・**未検証・未レビュー**）。
+  **この状態で他の作業を重ねない**。
 - **【運用・重要】委任の実行中はメイン側で文書を編集しない**。phase 10 task_05 で **Codex がメインの
   仕様書編集を「範囲外の差分」と判断して巻き戻した**。編集した場合は**完了後に必ず差分を確認する**。
 - **【メニュー項目のテスト】インデックスを固定しない**。top-level menubar には **tearoff** があり
@@ -105,21 +139,26 @@ compile **clean** / tests **279** / tests_ui **238** / smoke **pass**（実機�
 - **【Codex 運用】詰まったジョブに `taskkill /T` を使わない**（PID 再利用で**無関係なプロセスを巻き込む**）。
   フォワーダが最終出力を返さず完了通知だけ来ることがある → `SendMessage` で再開して回収する。
   **Codex 申告のテスト結果は信用せず必ず実測**。**サブエージェントがセッション上限で落ちたら再実行する**。
+  **Codex が使用量上限に達したら実装は止める**（レビューは Claude 側へ縮退可・**実装のフォールバックは
+  ユーザー許可が必須**。phase 11 task_05 で 1 度実施した）。
 - **【config_service の配置制約】`config_service` はパッケージ**で **ConfigService 本体は `__init__.py`**。
   テストが `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を差し替えるため、
   この配置を崩すと壊れる。同じ理由で**パス基盤メソッドを兄弟モジュールへ移さない**。
   抽出関数は **`service` を第 1 引数に取る**。**兄弟から `__init__` を import しない**（循環回避）。
-  **presentation から兄弟モジュールを直接 import しない**（公開面は `ConfigService` の委譲メソッド）。
-  同ファイルは **767 行で分割保留中**のため、**新規の実ロジックを置かない**（1 行委譲のみ）。
+  **兄弟間の共有は public 名を経由する**（private への直接参照は慣習違反）。
+  **presentation から兄弟モジュールを直接 import しない**（公開面は `ConfigService` の委譲メソッド。
+  ただし**判定名・理由コードの定数 import は既存パターンとして可**）。
+  同ファイルは **820 行**のため、**新規の実ロジックを置かない**（1 行委譲のみ）。
 - **【最重要・2 度踏んだ罠】パス表記の混在事故**: runtime の `source_path` 3 種と
   `hotkey_presets_path` は **config 配下なら相対**で保持される（config 外は絶対・区切りは `/` 正規化）。
   **相対値を `os.path.abspath` / `dirname` / `exists` / `join` へ解決なしで渡すと cwd 基準で解決される**。
   症状 = **リポジトリルートに `user/` が生成される**。解決は `ConfigService.resolve_config_path(path, config_root)`。
+  **`config_root` に空文字を渡さない**（空だと相対値が cwd 基準になる）。
 - **不変条件（壊しやすい）**: ① `dirty_tracker.trigger_set_source_path` と
   `data[INTERNAL_TRIGGER_SET_SOURCE_PATH]` は**常に一致** / ② 子の `_parent_refs` は
   **保存先ファイルの集合 + 現在の上位** / ③ **canonical identity は比較専用**
   （`normcase` 済み文字列を保存値・戻り値・表示へ混入させない）/
-  ④ **共有状況は判定名で分岐する**（`SHARE_SOLE` / `SHARE_NEW`。表示文言で分岐しない）。
+  ④ **共有状況・孤児判定は判定名で分岐する**（表示文言で分岐しない）。
 - **【罠・重要】保存経路の例外は `messagebox.showerror` になり、テストではモーダルで永久ブロックする**。
   テスト内の `AssertionError` も広い `except Exception` に捕まり、**失敗が「ハング」に化ける**。
   tests_ui の各ファイルの `setUp` に **fail-fast ガード**がある。新しいモーダルを増やすときは同じガードを足す。
@@ -127,17 +166,25 @@ compile **clean** / tests **279** / tests_ui **238** / smoke **pass**（実機�
 - **【tests_ui の罠】`setUpClass` で App を共有する**テストクラスでは
   `has_unsaved_changes()` が他テストの dirty も拾う。**絶対値で assert せず前後の変化で見る**。
   テスト後は runtime・ファイル・menubar を**元へ戻す**（`addCleanup`）。
+  **破壊的 I/O の API は UI テストで必ず `patch.object` する**（実ファイルを動かさない）。
 - **【教訓・UI】tkinter の「初期表示だけ崩れる」系は one-shot の再計算では直らない**。
   **対象ウィジェット自身の `<Configure>` で自己修復させる**（同幅早期 return を必ず併設）。
+- **【罠】`event_generate("<Escape>")` は非表示ウィンドウでは配送されない**。
+  `deiconify()` + `update_idletasks()` + `focus_force()` を先に行う。
+  バインドを `tk.call` で直接叩くのは**不可**（`%` 置換が `TclError` になりコールバックが走らない）。
 - **【罠・再発済】worktree と main は別コピー**。`.claude_data/`・`instructions/`・code とも、main 側の絶対パス
   （パスに `.claude\worktrees\<name>\` を含まない）を編集すると commit から漏れる。
-- **【罠】Bash ツールは Git Bash**。複数行のコミットメッセージは **heredoc** が確実。
-  ただし**長い python スクリプトの heredoc は失敗することがある**ため、
-  スクラッチパッドへ `.py` を書いて `.venv` の python で実行する方が確実。
-  **`git grep` は追跡済みのみ検索**（新規ファイルは直接 `grep`）。行数計測は `wc -l`。
-- **【傾向】reviewer が「完了可」でも実測・別レビューで問題が出る**。**判定はテストの実測が優先**。
+- **【罠】Bash ツールは Git Bash**。複数行のコミットメッセージは**スクラッチパッドへ本文を書いて
+  `git commit -F <file>`** が最も確実（PowerShell の here-string `@'...'@` は**使えない**＝
+  先頭に `@` が混入する）。**長い python スクリプトの heredoc も失敗することがある**ため
+  `.py` を書いて `.venv` の python で実行する。**`git grep` は追跡済みのみ検索**（新規ファイルは `grep`）。
+- **【傾向・実証済み】reviewer が「完了可・指摘なし」でも敵対的レビューで High が出る**。
+  **判定はテストの実測が優先**。**実装者とレビュアーが同じモデル側になったら別視点が失われている**と疑う
+  （phase 11 task_05 がこれに該当し、追加の敵対的レビュー 2 本で **High 3 件**を検出した）。
   **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**
-  （phase 08・09・10 とも**両者が独立に別の穴を検出**した。phase 11 の暫定仕様でも同様）。
+  （phase 08・09・10 とも**両者が独立に別の穴を検出**した）。
+- **【裏取り】レビュー・調査の「コードがこうなっている」という主張は、採用前に `ファイルパス:行` を実測確認する**
+  （行番号のずれ・件数の誤りが実際に何度も出ている）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   Codex レビュー系との併用は `.claude/rules/agent_selection.md` のレビュー表が正。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
