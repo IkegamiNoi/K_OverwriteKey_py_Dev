@@ -14,7 +14,7 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
-from . import parent_refs_cleanup, save_path_resolution, save_plan_execution, split_loading, split_payloads
+from . import parent_refs_cleanup, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
 
 from keyseq.application.save_plan import SavePlan
 
@@ -389,6 +389,9 @@ class ConfigService:
             config_root=config_root,
             keymap_set_path=keymap_set_path,
         )
+
+    def collect_reference_paths(self, keymap_set_paths: list[str], *, config_root: str) -> Any:
+        return reference_scan.collect_reference_paths(self, keymap_set_paths, config_root=config_root)
 
     def _normalize_sequence_payload(self, sequence: dict[str, Any]) -> dict[str, Any]:
         return {

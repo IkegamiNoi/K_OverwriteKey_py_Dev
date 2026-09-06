@@ -5,54 +5,61 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-09-06T00:00:00
-phase: **11_orphan_child_file_sweep（孤児ファイルの棚卸し）= 起票完了・task_01 未着手**。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
+phase: **11_orphan_child_file_sweep（孤児ファイルの棚卸し）= task_01 完了 / task_02 未着手**。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
 last_commit_location: claude/jikki-mokushi-ok-9b8a03 ※現在地はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 11 を起票完了**（暫定仕様 10 = v0.4・ユーザー確定済 / phase.md = タスク 1〜8 / 整合チェック = 整合 OK）。**実装タスクは未着手**。
+focus: **phase 11 task_01（参照パス収集器）完了**（verifier 実測 green / reviewer = 完了可）。次は **task_02（走査と孤児判定）**。
 mode: in_progress
 
 ## last_action
 ts: 2026-09-06T00:00:00
 who: main
 summary: |
-  【**phase 11 の起票完了**】ユーザー選定 = idea_12 → 暫定仕様 10 起票 → 2 段レビュー反映 → phase.md 起票。
-  **コード差分はゼロ（文書のみ）**。
-  - **提案書 07 は着手不要だった**（`/refactor_check` 由来だが **2026-08-16 に「計画07」として実施済**。
-    コミット `a175828` / `f6f568d` / `bd3321f` + 項目 3 を実測確認）。state 内に残っていた
-    **古い「未承認」記述 3 箇所を実態へ修正**（session.md / current.md ×2）。
-  - **暫定仕様 10 = v0.4・ユーザー確定済**。到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。
-    走査（参照側）= 既定 + 起動エントリ + **現在開いているセット** + ユーザー指定ディレクトリ。
-    候補側 = config 配下の既定 4 種（**形状検証あり**）。隔離ルート = **`<config_root>/quarantine/`**。
-  - **`deep-reviewer`（起票時）= 修正要（H1〜H6）→ 全件反映**。最大は **H1**
-    （`load_keymap_set_from` は `config.json` を書かないため、起動エントリでは現在のセットを代替できず、
-    **既定外のセットを開いている間にその子が隔離される穴**があった）。
-  - **`codex-adversarial-reviewer`（確定前）= needs-attention（High 3 / Medium 1）**。
-    **High 2 / High 3 / Medium は採用**、**High 1（degraded 方式）は除外**（ユーザー判断。
-    消せない隔離物が残ると結局エクスプローラで直接削除することになり事故りやすいため）。
-    Medium の非対称は **idea_13 として分離・起票**。
-  - `reviewer` の**整合チェック = 整合 OK**（受入条件 17 の担当タスク明示のみ対応済み）。
+  【**phase 11 task_01 完了**】参照パス収集器（application・読み出し専用）を新設。
+  実装は `codex-implementer` へ委任 → `verifier` 実測 → `reviewer` = **完了可**。
+  - **新規 `config_service/reference_scan.py`**（206 行）: `collect_reference_paths(service,
+    keymap_set_paths, *, config_root)` が `ReferenceScanResult`（`referenced: frozenset[str]`〔canonical・
+    **比較専用**〕/ `unreadable_sources: tuple[(入力表記, 理由)]` / `non_keymap_set_sources`）を返す。
+    理由コードは `SOURCE_MISSING` / `SOURCE_UNREADABLE`。
+  - **2 段辿り**（keymap_set → `trigger_set_path` → `triggers[].sequence_path`）/ 旧形式の `keymaps[]` /
+    `hotkey_presets_individual` に依らず `hotkey_presets_path` を採取 /
+    **`external_keyboard_layouts` は config_root 基準と dirname(config_root) 基準の両方**を登録（superset）/
+    **canonical をキーにした読み取りキャッシュ**で二重読みを防止。
+  - **keymap_set 判定はキーの有無だけ**（4 キーが 1 つも無ければ `non_keymap_set_sources`。
+    `unreadable` とは区別する）。
+  - `ConfigService` への追加は **import 行 + 1 行委譲の 2 箇所のみ**（767 行のファイルに実ロジックを置かない）。
+  - **`build_runtime_data_from_split` / `load_keymap_entry` / `load_trigger_set` /
+    `resolve_child_save_targets` は不使用**（副作用と誤爆上書きの回避）。
 result_files:
-  - instructions/history/10_orphan_child_file_sweep.md（新規・**v0.4**）
-  - instructions/phase/11_orphan_child_file_sweep/phase.md（新規・タスク 1〜8）
-  - instructions/backlog/idea_13_external_layout_path_base_asymmetry.md（新規）
-  - instructions/phase/current.md / instructions/backlog/INDEX.md / .claude_data/state/decisions.md（phase 11 節）
+  - keyseq/application/config_service/reference_scan.py（新規）
+  - keyseq/application/config_service/__init__.py（import + 委譲の 2 箇所）
+  - tests/test_reference_scan.py（新規・12 件）
+  - instructions/phase/11_orphan_child_file_sweep/tasks/task_01_reference_path_collector.md（新規）
 verified:
-  code: **差分なし**（文書のみ。テスト・smoke は未実行＝実装未着手のため不要）
-  review: 起票時 `deep-reviewer` = 修正要 → 反映 / 確定前 `codex-adversarial-reviewer` = needs-attention →
-    採否をユーザー確定 / `/phase_start` の整合チェック `reviewer` = **整合 OK**
+  compile: clean
+  tests: pass **279**（267 → **+12**）
+  tests_ui: pass **238**（維持）
+  smoke: pass
+  note: 実測は `verifier`。**`user/` の誤生成なし**。差分は 3 ファイルのみで文書の巻き戻しなし。
+  review: `reviewer` = **完了可**（5 観点 OK）。非 blocking の申し送り 3 件は next_action へ。
 
 ## next_action
-- **task_01（参照パス収集器）から着手する**。`/task_new` で
-  `instructions/phase/11_orphan_child_file_sweep/tasks/task_01_*.md` を起票し、
-  **`codex-implementer` へ委任 → `verifier` で実測 → `reviewer`**（`.claude/rules/agent_selection.md`）。
-  - **task_03 までで「検出のみ」を green にする**段取り（暫定仕様 §4-F のユーザー確定）。
-    隔離 / 復元 / 削除は task_05 / task_06。
-- **phase 10 task_05 の `deep-reviewer` 指摘のうち実装に関わる 5 件は未対応のまま**（`/refactor_check` は
-  「不要」判定）: presentation が `config_service` の内部モジュールを直参照（H8）/ 委譲の戻り値型が `Any`（H10）/
-  `reference_cleanup_text.py` の配置が利用範囲より広い（H11）/ `_nonempty_path` が strip しない値を返す（H13）/
-  `run_cleanup` に例外の受け皿が無い（H14）。**phase 11 では新規コードで同じ形を作らない**にとどめる
-  （暫定仕様 §6）。
+- **task_02（走査と孤児判定）を起票して着手する**（`/task_new` →
+  `tasks/task_02_*.md` → `codex-implementer` → `verifier` → `reviewer`）。
+  範囲 = 参照側の**ディレクトリ列挙**（既定 / 起動エントリ / 現在のセット / 指定ディレクトリ）+
+  **`config.json` のグローバルプリセットパスの取り込み** + 候補側の収集と**形状検証** +
+  **保護対象の適用** + 判定名 4 種 + 走査の不完全性の記録（暫定仕様 §3-2 / §3-4 / §3-5）。
+- **task_01 の reviewer 申し送り 3 件（いずれも非 blocking）**:
+  ① **`collect_reference_paths` に空文字の `config_root` を渡さない**
+  （`resolve_config_path` は空だと相対値を絶対化せず **cwd 基準**で `exists` 判定される。
+  既存共有ヘルパの挙動で task_01 が持ち込んだものではない。**task_02 の呼び出し側で担保する**）
+  ② 同一ファイルを複数の表記で参照して読めない場合、`unreadable_sources` の記録は**1 回だけ**
+  （キャッシュによる重複抑制。情報欠落ではない）
+  ③ trigger_set の `SOURCE_MISSING` ケースの明示テストは無い（`_load_source` は共有で
+  keymap_set 側の MISSING テストが通っている）。
+- **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
+  **phase 11 では新規コードで同じ形を作らない**にとどめる（暫定仕様 §6）。
 
 ## blockers
 - なし。
