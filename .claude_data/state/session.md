@@ -6,7 +6,7 @@
 
 last_updated: 2026-09-06T00:00:00
 phase: **11_orphan_child_file_sweep（孤児ファイルの棚卸し）= task_01 完了 / task_02 未着手**。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
-last_commit_location: claude/jikki-mokushi-ok-9b8a03 ※現在地はセッション開始時の git 実測値が正
+last_commit_location: claude/refactor-keymap-set-presets-93f0b5 @ 9737e13 ※現在地はセッション開始時の git 実測値が正
 
 ## current
 focus: **phase 11 task_01（参照パス収集器）完了**（verifier 実測 green / reviewer = 完了可）。次は **task_02（走査と孤児判定）**。

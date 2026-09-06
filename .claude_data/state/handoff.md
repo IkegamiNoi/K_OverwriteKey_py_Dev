@@ -17,11 +17,12 @@
 3. `instructions/phase/11_orphan_child_file_sweep/phase.md` と、**主入力の暫定仕様**
    `instructions/history/10_orphan_child_file_sweep.md`（**v0.4・ユーザー確定済**）を読む。
    **フェーズ中は正本 `spec_detail/` を直接改訂しない**（昇格は最終タスク task_08）
-4. CLAUDE.md → `.claude/rules/` の順に必要分を読む
-5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
+4. 着手するタスクの定義 `instructions/phase/11_orphan_child_file_sweep/tasks/task_NN_*.md` を読む
+5. CLAUDE.md → `.claude/rules/` の順に必要分を読む
+6. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 11（孤児ファイルの棚卸し）を起票完了。暫定仕様 10 = v0.4・ユーザー確定済。実装は task_01 から未着手**。
+**phase 11 task_01（参照パス収集器）完了**（verifier 実測 green / reviewer = 完了可）。次は **task_02（走査と孤児判定）**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -31,27 +32,28 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（phase 10 完了時点。**phase 11 はまだコードを触っていない**）:
-compile **clean** / tests **267** / tests_ui **238** / smoke **pass** / manual **14 / 14 OK**。
+直近の実測（phase 11 task_01 完了時点）:
+compile **clean** / tests **279** / tests_ui **238** / smoke **pass**（実機目視は task_07 でまとめて実施）。
 **件数が減ったら退行を疑う**。実行後に worktree ルートへ `user/` が生成されていないことも確認する。
 
 ## 次アクション（session.md.next_action より）
-- **task_01（参照パス収集器）から着手する**。`/task_new` で
-  `instructions/phase/11_orphan_child_file_sweep/tasks/task_01_*.md` を起票 →
-  `codex-implementer` へ委任 → **`verifier` で実測** → `reviewer`。
-  **task_03 までで「検出のみ」を green にする**段取り（暫定仕様 §4-F のユーザー確定）。
-- **未着手の提案書は無い**（`modified_proposal/07` は 2026-08-16 に「計画07」として実施済。
-  次採番は `08_<topic>`）。
-- **候補送り中の実装指摘 5 件**（phase 10 task_05 の `deep-reviewer`。`/refactor_check` は「不要」判定）:
-  presentation が `config_service` の内部モジュールを直参照 / 委譲の戻り値型が `Any` /
-  `reference_cleanup_text.py` の配置が利用範囲より広い / `_nonempty_path` が strip しない値を返す /
-  `run_cleanup` に例外の受け皿が無い。**次フェーズ以降で再判定する**。
-- 各タスクの流れ: タスク定義起票 → codex-implementer へ委任 → **verifier で実測** → reviewer → コミット。
+- **task_02（走査と孤児判定）を起票して着手する**（`/task_new` → `codex-implementer` →
+  **`verifier` で実測** → `reviewer` → `/save_state` → `/task_commit`）。
+  範囲 = 参照側の**ディレクトリ列挙**（既定 / 起動エントリ / 現在のセット / 指定ディレクトリ）+
+  **`config.json` のグローバルプリセットパスの取り込み** + 候補側の収集と**形状検証** +
+  **保護対象の適用** + 判定名 4 種 + 走査の不完全性の記録（暫定仕様 §3-2 / §3-4 / §3-5）。
+- **task_01 の reviewer 申し送り（非 blocking）**: ①**`collect_reference_paths` に空文字の `config_root` を
+  渡さない**（`resolve_config_path` は空だと相対値を絶対化せず **cwd 基準**になる。task_02 の呼び出し側で担保）
+  ②同一ファイルを複数表記で参照して読めない場合、`unreadable_sources` の記録は**1 回だけ**（重複抑制）
+  ③trigger_set の `SOURCE_MISSING` 単体テストは無い（`_load_source` は共有で keymap_set 側が通過済み）。
+- **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
+  **phase 11 では新規コードで同じ形を作らない**にとどめる（暫定仕様 §6）。
 
 ## 現在のフェーズ（phase 11 = 孤児ファイルの棚卸し）の要点
 
 **規範は暫定仕様 10（未凍結・v0.4）**。到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。
-**本アプリ初のディレクトリ走査かつ初のファイル削除機能**（`keyseq/` に `os.listdir` / `os.remove` は現在 0 件）。
+**本アプリ初のディレクトリ走査かつ初のファイル削除機能**（`keyseq/` に `os.remove` は現在 0 件）。
+番号対応: **phase 11 / 暫定 10 / decisions_archive 11**。
 
 - **走査（参照側）4 経路**: `user/keymap_sets/` 直下 + 起動エントリ + **現在開いているセット
   （`app.keymap_set_path`）** + ユーザー指定ディレクトリ。**3 番目を落とすと、既定外のセットを開いている間に
@@ -68,44 +70,32 @@ compile **clean** / tests **267** / tests_ui **238** / smoke **pass** / manual *
 - **削除は通常のファイル削除**（ゴミ箱へ送らない・新規依存を足さない）。
 - **壊れた親があると無傷の子が孤児候補になる**。ユーザー確定により**警告のみで隔離・削除とも許す**
   （degraded 方式は不採用）。**壊れているのは親、消えるのは子**という取り違えに注意（暫定仕様 §3-12-5）。
+- **task_01 の成果（完了）**: `config_service/reference_scan.py` の
+  `collect_reference_paths(service, keymap_set_paths, *, config_root)` →
+  `ReferenceScanResult(referenced: frozenset[str]〔canonical・**比較専用**〕/
+  unreadable_sources: tuple[(入力表記, 理由)] / non_keymap_set_sources)`。
+  理由コード = `SOURCE_MISSING` / `SOURCE_UNREADABLE`。**keymap_set 判定はキーの有無だけ**。
+  `external_keyboard_layouts` は **config_root 基準と dirname(config_root) 基準の両方**を登録（superset）。
 - タスクは 1〜8（`phase.md`）。**最終 task_08 = 正本反映**で §5.8.1 の**改訂**が必須
   （現行の「孤児の削除は行わない / 孤児判定は原理的に成立しない」を書き換える）。
-
-## 直前フェーズ（phase 10 = 参照元の掃除）の要点
-
-**正は正本**（`spec_detail/data_schema.md` **§5.8.1** + `features.md` §4.6 + `codebase_map.md`）。
-**暫定仕様 09 は凍結済**（経緯の参照用。**条項を実装の根拠に引かない**）。
-判断履歴は `decisions_archive/10_reference_link_cleanup.md`。
-
-- **何をした機能か**: 子JSON の **`_parent_refs`** から**実体の無い上位パスを除去する**保守機能
-  （設定メニュー →「参照元を掃除…」）。§5.8.4 の**誤警告**と**余分な依存確認**の解消が目的。
-- 次フェーズ（idea_12 = 逆方向検査）で触るなら、**正本 §5.8.1 の以下 3 点が土台**:
-  ①**列挙は runtime の source_path 3 種**（**`resolve_child_save_targets` を使ってはならない**＝
-  未実体化の子へ既定パスが割り当てられ**無関係な既存ファイルを書き換える**）
-  ②**保護対象**（現在の keymap_set / trigger_set への参照）は**実在しなくても除去しない**が
-  **別枠で「保護のため残す」と提示はする**
-  ③**除去直前に JSON 全体を読み直して再判定**（検査時のスナップショットを書き戻さない）。
-- **層**: 検査・除去 = `config_service/parent_refs_cleanup.py`（application）/ 文言 =
-  `presentation/reference_cleanup_text.py`（**tkinter 非依存の純関数**）/ フロー =
-  `controllers/config_io/reference_cleanup_io.py` / UI = `dialogs/reference_cleanup_dialog.py`。
-- **教訓（フェーズ末で効いた）**: **暫定仕様を凍結すると、正本へ転記しなかった条項はそのまま失われる**。
-  §7 の昇格表（**ファイル単位**）だけを追うと**条項単位の漏れ**を見落とす。
-  **§2 / §3-x の条項を 1 つずつ正本の行へ対応付ける**こと（今回はレビュー 2 本で 11 件拾った）。
+- 直前フェーズ（phase 10 = 参照元の掃除）の要点は**正本が正**
+  （`spec_detail/data_schema.md` **§5.8.1** + `features.md` §4.6 + `codebase_map.md`）。
+  経緯は `decisions_archive/10_reference_link_cleanup.md`。**暫定仕様 09 は凍結済**
+  （**条項を実装の根拠に引かない**）。
 
 ## 注意事項・blockers
-- **blockers: なし**（phase 11 起票済み。実装は task_01 から）。
-- **【運用・重要】委任の実行中はメイン側で文書を編集しない**。task_05 で **Codex がメインの仕様書編集を
-  「範囲外の差分」と判断して巻き戻した**（v0.5 の記述が消えた）。編集した場合は**完了後に必ず差分を確認する**。
+- **blockers: なし**（phase 11 進行中。次は task_02）。
+- **【運用・重要】委任の実行中はメイン側で文書を編集しない**。phase 10 task_05 で **Codex がメインの
+  仕様書編集を「範囲外の差分」と判断して巻き戻した**。編集した場合は**完了後に必ず差分を確認する**。
 - **【メニュー項目のテスト】インデックスを固定しない**。top-level menubar には **tearoff** があり
-  `0=tearoff / 1=ファイル / 2=設定` とずれる。**カスケードとラベルで探す**（task_04 で 1 度踏んだ）。
+  `0=tearoff / 1=ファイル / 2=設定` とずれる。**カスケードとラベルで探す**。
 - **【テストの書き方】モジュール名前空間を patch する形は分割の障害になる**（計画07 で 6 箇所書き換えた）。
   **新規テストは `patch.object` を優先する**。
 - **【罠】モジュール移動・パッケージ化の実測では `__pycache__` の stale な `.pyc` を疑う**
   （旧モジュールが生存し得る。削除して結果不変を確認する）。
-- **【計画07 の成果】`dialogs` はパッケージ**（`keyseq/presentation/dialogs/`・**1 クラス 1 ファイル**）。
+- **【dialogs はパッケージ】**（`keyseq/presentation/dialogs/`・**1 クラス 1 ファイル**）。
   **`__init__.py` は明示列挙の再輸出のみ**で **`tk` / `messagebox` を持たない**。
-  クラス間参照は**サブモジュール直指定**・`App` の型 import は**各ファイルの `TYPE_CHECKING` ガード内**
-  （どちらを崩しても `ImportError` / 循環）。
+  クラス間参照は**サブモジュール直指定**・`App` の型 import は**各ファイルの `TYPE_CHECKING` ガード内**。
   `PresetManagerDialog` の **`_refresh` / `_update_source_labels` はテストが `patch.object` する契約名**
   （リネーム禁止）。
 - **【Codex 運用・最重要】フォワーダが 2 分で切れても Codex ワーカーは生き続ける**（companion status は
@@ -120,6 +110,7 @@ compile **clean** / tests **267** / tests_ui **238** / smoke **pass** / manual *
   この配置を崩すと壊れる。同じ理由で**パス基盤メソッドを兄弟モジュールへ移さない**。
   抽出関数は **`service` を第 1 引数に取る**。**兄弟から `__init__` を import しない**（循環回避）。
   **presentation から兄弟モジュールを直接 import しない**（公開面は `ConfigService` の委譲メソッド）。
+  同ファイルは **767 行で分割保留中**のため、**新規の実ロジックを置かない**（1 行委譲のみ）。
 - **【最重要・2 度踏んだ罠】パス表記の混在事故**: runtime の `source_path` 3 種と
   `hotkey_presets_path` は **config 配下なら相対**で保持される（config 外は絶対・区切りは `/` 正規化）。
   **相対値を `os.path.abspath` / `dirname` / `exists` / `join` へ解決なしで渡すと cwd 基準で解決される**。
@@ -141,18 +132,19 @@ compile **clean** / tests **267** / tests_ui **238** / smoke **pass** / manual *
 - **【罠・再発済】worktree と main は別コピー**。`.claude_data/`・`instructions/`・code とも、main 側の絶対パス
   （パスに `.claude\worktrees\<name>\` を含まない）を編集すると commit から漏れる。
 - **【罠】Bash ツールは Git Bash**。複数行のコミットメッセージは **heredoc** が確実。
+  ただし**長い python スクリプトの heredoc は失敗することがある**ため、
+  スクラッチパッドへ `.py` を書いて `.venv` の python で実行する方が確実。
   **`git grep` は追跡済みのみ検索**（新規ファイルは直接 `grep`）。行数計測は `wc -l`。
 - **【傾向】reviewer が「完了可」でも実測・別レビューで問題が出る**。**判定はテストの実測が優先**。
   **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**
-  （phase 08・09・10 とも**両者が独立に別の穴を検出**した）。
+  （phase 08・09・10 とも**両者が独立に別の穴を検出**した。phase 11 の暫定仕様でも同様）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   Codex レビュー系との併用は `.claude/rules/agent_selection.md` のレビュー表が正。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
   （直近 3 件: **10_reference_link_cleanup** / 09_per_keymap_set_presets / 08_hotkey_presets_global）。
   提案書「計画05」「計画06」「計画07」は完了済みで、**いずれもフェーズ番号を消費していない**。
-- 未着手/保留 idea: **idea_13**（external_keyboard_layouts のパス基準の非対称・低。
-  phase 11 の Codex レビューから分離）/ idea_10（ネストしたモーダルの grab 復元）/
-  idea_11（別名保存の複製ロールバック・低）/ idea_03（hotkey 保存正規化・低）/
-  idea_09（レガシー保存パス・低）/ idea_04・idea_06（保留）。
-  **idea_12 は phase 11 で着手**・**idea_07 は phase 10 で完了**（`INDEX_done.md`）。
+- 未着手/保留 idea: **idea_13**（external_keyboard_layouts のパス基準の非対称・低）/
+  idea_10（ネストしたモーダルの grab 復元）/ idea_11（別名保存の複製ロールバック・低）/
+  idea_03（hotkey 保存正規化・低）/ idea_09（レガシー保存パス・低）/ idea_04・idea_06（保留）。
+  **idea_12 は phase 11 で着手中**・**idea_07 は phase 10 で完了**（`INDEX_done.md`）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
