@@ -414,6 +414,9 @@ class ConfigService:
     def collect_protected_paths(self, runtime: Any, *, keymap_set_path: str) -> Any:
         return orphan_scan.collect_protected_paths(self, runtime, keymap_set_path=keymap_set_path)
 
+    def normalize_scan_dirs(self, values: Any, *, config_root: str) -> Any:
+        return orphan_scan.normalize_scan_dirs(self, values, config_root=config_root)
+
     def _normalize_sequence_payload(self, sequence: dict[str, Any]) -> dict[str, Any]:
         return {
             "label": str(sequence.get("label") or "").strip(),

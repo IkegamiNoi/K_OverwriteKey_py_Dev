@@ -61,6 +61,24 @@ def collect_protected_paths(service, runtime, *, keymap_set_path: str) -> tuple[
     return tuple(dict.fromkeys(path for path in paths if path))
 
 
+def normalize_scan_dirs(service, values, *, config_root: str) -> tuple[str, ...]:
+    """走査先を保存表記へ揃え、実在を問わず入力順で重複を除く。"""
+    if not isinstance(values, (list, tuple)):
+        return ()
+    paths: list[str] = []
+    seen: set[str] = set()
+    for value in values:
+        if not isinstance(value, str) or not value.strip():
+            continue
+        resolved = service.resolve_config_path(value.strip(), config_root)
+        canonical = service.canonical_path(resolved, config_root)
+        if canonical in seen:
+            continue
+        seen.add(canonical)
+        paths.append(service.to_config_relative_or_absolute(resolved, config_root))
+    return tuple(paths)
+
+
 def scan_orphans(
     service,
     *,

@@ -84,6 +84,7 @@ keyseq/presentation/
       trigger_dialog.py        # TriggerDialog
       keymap_edit_dialog.py    # KeymapEditDialog
       layout_delete_dialog.py  # LayoutDeleteDialog
+      orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
       reference_cleanup_dialog.py  # ReferenceCleanupDialog（参照元の掃除の確認 1 枚・読み取り専用）
     keyboard_layouts.py
     keyboard_window.py
@@ -278,6 +279,8 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 - 単一JSON互換の読込/書出
 - split構成の読込/保存
 - config配下は相対、外部は絶対のパス保存ルールを扱う
+  - `normalize_scan_dirs` は `orphan_scan.py` へ委譲し、走査先設定の読み出し・保存で
+    非文字列・空文字・同一パスの重複を除く。実在確認はせず、保存表記を返す。
 - trigger_set と sequence の分離保存・読込を扱う
 - keymap / trigger_set / sequence の個別ファイル保存・読込を扱う
 - **hook キーの解決点を持つ**（仕様は `spec_detail/data_schema.md` §5.9）。分岐点は次の 4 つで、

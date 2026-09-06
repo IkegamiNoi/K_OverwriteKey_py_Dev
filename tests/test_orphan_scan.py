@@ -7,7 +7,7 @@ from keyseq.application.config_service import ConfigService
 from keyseq.application.config_service.orphan_scan import (
     KIND_HOTKEY_PRESETS, KIND_KEYMAP, KIND_SEQUENCE, KIND_TRIGGER_SET,
     ORPHAN_CANDIDATE, ORPHAN_EXCLUDED, ORPHAN_PROTECTED, ORPHAN_REFERENCED,
-    collect_protected_paths, scan_orphans,
+    collect_protected_paths, normalize_scan_dirs, scan_orphans,
 )
 from keyseq.application.config_service.reference_scan import collect_reference_paths
 from keyseq.infrastructure.json_repository import JsonRepository
@@ -302,6 +302,51 @@ class CollectProtectedPathsTest(unittest.TestCase):
         self.assertEqual(self.service.collect_protected_paths(runtime, keymap_set_path="set.json"),
                          collect_protected_paths(self.service, runtime, keymap_set_path="set.json"))
         self.assertEqual(self.service.collect_protected_paths(runtime, keymap_set_path=""), ("123",))
+
+
+class NormalizeScanDirsTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+        self.directory = tempfile.TemporaryDirectory()
+        self.addCleanup(self.directory.cleanup)
+        self.root = os.path.join(self.directory.name, "config")
+
+    def _normalize(self, values):
+        return normalize_scan_dirs(self.service, values, config_root=self.root)
+
+    def test_non_string_elements_are_removed(self):
+        self.assertEqual(self._normalize([None, 1, {}, ["nested"], "valid"]), ("valid",))
+
+    def test_non_list_or_tuple_returns_empty_tuple(self):
+        for values in (None, "directory", {"directory": []}):
+            with self.subTest(values=values):
+                self.assertEqual(self._normalize(values), ())
+
+    def test_empty_and_whitespace_elements_are_removed(self):
+        self.assertEqual(self._normalize(("", " \t\n", " Extra ")), ("Extra",))
+
+    def test_aliases_are_deduplicated_in_input_order(self):
+        absolute = os.path.join(self.root, "Extra", "Sets")
+        self.assertEqual(self._normalize([
+            "Extra/Sets", "Second", absolute, "Extra\\Sets", "Third", "Second",
+        ]), ("Extra/Sets", "Second", "Third"))
+
+    def test_storage_spelling_preserves_case_and_relative_or_absolute_location(self):
+        outside = os.path.join(self.directory.name, "Outside")
+        with patch.object(self.service, "canonical_path", side_effect=lambda path, root: path.lower()):
+            self.assertEqual(self._normalize(["Mixed/Inside", outside]),
+                             ("Mixed/Inside", outside.replace("\\", "/")))
+
+    def test_missing_directory_is_kept_without_existence_checks(self):
+        with patch.object(os.path, "exists", side_effect=AssertionError("existence check")), patch.object(
+            os.path, "isdir", side_effect=AssertionError("directory check"),
+        ):
+            self.assertEqual(self._normalize(["NotCreated"]), ("NotCreated",))
+
+    def test_facade_matches_module_function(self):
+        values = [" Extra ", None, "Extra", "Other"]
+        self.assertEqual(self.service.normalize_scan_dirs(values, config_root=self.root),
+                         self._normalize(values))
 
 
 if __name__ == "__main__":

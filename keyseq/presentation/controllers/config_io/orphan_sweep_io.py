@@ -1,7 +1,11 @@
 from tkinter import messagebox
 
 from keyseq.application.config_service.orphan_scan import ORPHAN_CANDIDATE
+from keyseq.presentation.dialogs import OrphanSweepDialog
 from keyseq.presentation.orphan_sweep_text import format_orphan_notice, format_orphan_plan
+
+
+SCAN_DIRS_KEY = "orphan_sweep_scan_dirs"
 
 
 class OrphanSweepIo:
@@ -11,12 +15,26 @@ class OrphanSweepIo:
     def run_sweep(self) -> None:
         if not self._save_before_sweep():
             return
+        scan_dirs = self._app.config_service.normalize_scan_dirs(
+            self._app._startup_settings.get(SCAN_DIRS_KEY), config_root=self._app.config_root,
+        )
+        dialog = OrphanSweepDialog(
+            self._app, scan_dirs=scan_dirs, initial_dir=self._app.config_root,
+        )
+        dialog.wait_window()
+        normalized = self._app.config_service.normalize_scan_dirs(
+            dialog.scan_dirs, config_root=self._app.config_root,
+        )
+        if normalized != scan_dirs:
+            self._app.startup_io.write_startup({SCAN_DIRS_KEY: list(normalized)})
+        if not dialog.result:
+            return
         protected_paths = self._app.config_service.collect_protected_paths(
             self._app.data, keymap_set_path=self._app.keymap_set_path,
         )
         result = self._app.config_service.scan_orphans(
             config_root=self._app.config_root,
-            scan_dirs=[],
+            scan_dirs=list(normalized),
             startup_keymap_set_path=str(
                 self._app._startup_settings.get("keymap_set_path") or ""
             ).strip(),
