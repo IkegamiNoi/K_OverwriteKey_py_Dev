@@ -19,11 +19,27 @@ INTERNAL_MODULE_NAMES = frozenset({
 def collect_forbidden_refs(source: str) -> list[str]:
     """静的な config_service 内部参照を、行番号と違反経路付きで返す。
 
-    動的import（importlib / __import__）や変数経由の間接参照は検出できない。
+    動的import（importlib / __import__）や実行時に組み立てた名前による参照
+    （getattr(pkg, name) / 文字列連結で作ったモジュール名）は検出できない。
+    エイリアスの解決対象は import / from import が束縛した名前だけで、
+    代入で再束縛した変数（x = config_service の x）は解決できない。
     """
     forbidden = []
     prefix = CONFIG_SERVICE_PACKAGE + "."
-    for node in ast.walk(ast.parse(source)):
+    tree = ast.parse(source)
+    aliases: dict[str, str] = {}
+    for node in ast.walk(tree):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                bound_name = alias.asname or alias.name.split(".")[0]
+                aliases[bound_name] = alias.name if alias.asname else bound_name
+        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+            for alias in node.names:
+                if alias.name != "*":
+                    aliases[alias.asname or alias.name] = f"{node.module}.{alias.name}"
+
+    attribute_refs: dict[tuple[int, str], str] = {}
+    for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom):
             module = node.module or ""
             if module == CONFIG_SERVICE_PACKAGE:
@@ -37,11 +53,31 @@ def collect_forbidden_refs(source: str) -> list[str]:
                 if (alias.name.startswith(prefix)
                         and alias.name[len(prefix):].split(".")[0] != "contracts"):
                     forbidden.append(f"{node.lineno}: R3 {alias.name}")
-        elif (isinstance(node, ast.Attribute)
-              and isinstance(node.value, ast.Name)
-              and node.value.id == "config_service"
-              and node.attr in INTERNAL_MODULE_NAMES):
-            forbidden.append(f"{node.lineno}: attribute config_service.{node.attr}")
+        elif isinstance(node, ast.Attribute):
+            # import 由来でない config_service も従来どおり検査する。
+            if (isinstance(node.value, ast.Name)
+                    and node.value.id == "config_service"
+                    and node.attr in INTERNAL_MODULE_NAMES):
+                key = (node.lineno, prefix + node.attr)
+                attribute_refs.setdefault(
+                    key, f"{node.lineno}: attribute config_service.{node.attr}",
+                )
+            parts = []
+            root = node
+            while isinstance(root, ast.Attribute):
+                parts.append(root.attr)
+                root = root.value
+            if isinstance(root, ast.Name) and root.id in aliases:
+                resolved = ".".join([aliases[root.id], *reversed(parts)])
+                if resolved.startswith(prefix):
+                    internal_name = resolved[len(prefix):].split(".")[0]
+                    if internal_name in INTERNAL_MODULE_NAMES:
+                        module = prefix + internal_name
+                        key = (node.lineno, module)
+                        attribute_refs.setdefault(
+                            key, f"{node.lineno}: attribute {module}",
+                        )
+    forbidden.extend(attribute_refs.values())
     return forbidden
 
 
@@ -90,6 +126,9 @@ class ConfigServiceContractsTest(unittest.TestCase):
             "from keyseq.application.config_service.orphan_scan import ORPHAN_CANDIDATE",
             "import keyseq.application.config_service.orphan_scan",
             "from keyseq.application import config_service\nconfig_service.orphan_scan",
+            "import keyseq.application.config_service\nkeyseq.application.config_service.orphan_scan.scan()",
+            "from keyseq import application\napplication.config_service.orphan_scan",
+            "from keyseq.application import config_service as cs\ncs.orphan_scan",
         )
         for source in forbidden_sources:
             with self.subTest(forbidden_source=source):
@@ -100,6 +139,9 @@ class ConfigServiceContractsTest(unittest.TestCase):
             "import keyseq.application.config_service.contracts",
             "from keyseq.application import config_service\nconfig_service.contracts",
             "from keyseq.application.save_plan import ACTION_SAVE",
+            "import keyseq.application.config_service\nkeyseq.application.config_service.contracts.ORPHAN_CANDIDATE",
+            "from keyseq import application\napplication.config_service.contracts",
+            "from keyseq.application import config_service as cs\ncs.contracts",
         )
         for source in allowed_sources:
             with self.subTest(allowed_source=source):
