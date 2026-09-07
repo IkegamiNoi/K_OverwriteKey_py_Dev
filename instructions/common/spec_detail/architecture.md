@@ -12,13 +12,14 @@
 * infrastructure 層は domain / application のインターフェースに従って実装する
 * presentation 層は application 層を通じて操作を実行する
 * **presentation は `application/config_service/` の内部モジュールを直接参照しない**。
-  公開面は `ConfigService` の委譲メソッド（`codebase_map.md`）とする
-  * **例外（当面の許容）**: **判定名・理由コードなどの定数と、結果を運ぶデータクラス**の
-    import は許す（表示文言の純関数がこれらで分岐・整形するため。`reference_cleanup_text.py` /
-    `orphan_sweep_text.py` / `quarantine_manage_text.py` / 対応する `config_io/` の IO クラス）。
-    **関数・ロジックの直参照は不可**
-  * 公開面モジュールへ定数と結果型を集約する是正は
-    [idea_14](../../backlog/idea_14_config_service_public_surface.md) で追跡する
+  公開面は **`ConfigService` の公開 API（委譲メソッドおよび公開クラス定数 `INTERNAL_*` 等。
+  `codebase_map.md`）と `application/config_service/contracts.py`** とする
+  * `contracts.py` は**判定名・理由コード・結果型（データクラス）の唯一の定義場所**。
+    表示文言の純関数（`reference_cleanup_text.py` / `orphan_sweep_text.py` /
+    `quarantine_manage_text.py`）と対応する `config_io/` の IO クラスは、ここから import する
+  * **実装モジュール（`orphan_scan` / `quarantine` 等）の直参照は定数・型・関数のいずれも不可**
+  * `contracts.py` は **`config_service` 内の他モジュールを import しない**
+    （依存は実装モジュール → `contracts` の一方向。stdlib は可）
 * **application は presentation（`app`）を参照しない**。走査対象・保護対象などの入力は
   **引数で明示的に受け取る**
 

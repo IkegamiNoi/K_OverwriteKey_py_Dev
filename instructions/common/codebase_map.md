@@ -261,11 +261,12 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 
 ### ConfigService（`application/config_service/` パッケージ）
 
-**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 12 ファイル:
+**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 13 ファイル:
 
 | ファイル | 責務 |
 |---|---|
 | `__init__.py` | **`ConfigService` 本体**。公開面 / パス基盤（`canonical_path` / `is_path_within` / `to_config_relative_or_absolute`）/ 個別ファイル IO / `_parent_refs` 操作 |
+| `contracts.py` | **公開面**（phase 12 で新設）。**判定名・理由コード・結果型（dataclass）の唯一の定義**（定数 34 / 型 9）。**`config_service` 内の他モジュールを import しない**（依存は実装モジュール → `contracts` の一方向）。**presentation はこのモジュールと `ConfigService` の委譲メソッドだけを見る**（`spec_detail/architecture.md` §3.2）。実装モジュール側は `from . import contracts` + `contracts.NAME` で参照する（`from .contracts import NAME` は名前が再束縛され逆戻り防止テストが書けないため不可）。**内部表現（`QUARANTINE_DIR_NAME` / `UNIT_ID_PATTERN` / `ENTRY_*` / `CANDIDATE_DIRS`）はここへ置かない** |
 | `save_plan_execution.py` | 保存計画の実行（事前検証 / 保存後パスの適用 / 依存判定） |
 | `split_payloads.py` | 保存 payload の構築（keymap / trigger_set / sequence） |
 | `save_path_resolution.py` | 保存先の解決と既定命名（`slugify_file_stem` の実体・一意パス採番） |

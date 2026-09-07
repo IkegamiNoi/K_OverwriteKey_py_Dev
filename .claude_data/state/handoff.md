@@ -13,19 +13,18 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブ = phase 12**）
-3. `instructions/phase/12_config_service_public_surface/phase.md` と、**主入力の暫定仕様**
-   `instructions/history/11_config_service_public_surface.md`（**v0.3・ユーザー確定済**）を読む。
-   **フェーズ中は正本 `spec_detail/` を直接改訂しない**（昇格は最終タスク task_03）
-4. 着手するタスクの定義 `instructions/phase/12_config_service_public_surface/tasks/task_NN_*.md` を読む
-   （**task_01 / task_02 は起票済で完了。残る task_03 は `/task_new` で起票してから着手する**）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズなし = 次フェーズ未確定**）
+3. **次フェーズの方針をユーザーへ確認する**。決まったら `/phase_start` で
+   `instructions/phase/13_<topic>/` を起票する（候補は `instructions/backlog/INDEX.md`）
+4. 既存の仕様を読む必要が出たら正本 `instructions/common/`（`codebase_map.md` / `spec_detail/`）から入る。
+   **凍結済の暫定仕様（`instructions/history/`）の条項を実装の根拠に引かない**
 5. CLAUDE.md → `.claude/rules/` の順に必要分を読む
 6. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 12（config_service の公開面の集約）は task_02 まで完了。残るは task_03（正本反映・フェーズ完了処理）のみ**。
-`contracts.py` への定義移動（task_01）と、公開面を迂回する参照を落とすテスト（task_02）は**コミット済**。
-**次にやること = task_03 を `/task_new` で起票して実行する**。
+**phase 12（config_service の公開面の集約）は全 3 タスク完了しフェーズ完了**（2026-09-08）。
+正本反映（`architecture.md` §3.2 / `codebase_map.md`）・暫定仕様 11 の凍結・`/refactor_check`（**不要**）まで済み。
+**次にやること = 次フェーズの方針をユーザーへ確認し `/phase_start` で `13_<topic>` を起票する**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,76 +34,58 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 12 task_02 完了時点**）:
+直近の実測（**phase 12 完了時点**）:
 compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smoke **pass**。
 **件数が減ったら退行を疑う**。skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 **同じ観点はジャンクション版のテストが実行されている**ので観点の抜けにはならない。
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
 ## 次アクション（session.md.next_action より）
-- **【最優先】task_03（正本反映・フェーズ末の最終タスク）を `/task_new` で起票して実行する**:
-  ①`spec_detail/architecture.md` **§3.2 の例外条項（:16-19）と idea_14 の追跡行（:20-21）を削除**し、
-  公開面を「`ConfigService` の委譲メソッド + `config_service.contracts`」と規定する
-  （**`config_service` 限定表現を保つ**。`application` 一般へ広げると presentation → `save_plan` の
-  5 件が新規違反になる）②`codebase_map.md` のパッケージ表へ **`contracts.py` を追加し件数 12 → 13**
-  ③**暫定仕様 11 の凍結** ④`decisions_archive/12_config_service_public_surface.md` の作成
-  ⑤`current.md` の完了記載（次採番の明記）⑥idea_14 を `INDEX_done.md` へ ⑦**`/refactor_check`**。
-- フェーズ完了判定は **`deep-reviewer` + Codex レビューの 2 本立て**（`agent_selection.md`）。
-  **実機目視は不要**（挙動不変・UI 文言不変。暫定仕様 §5-11）。
+- **【最優先】次フェーズが未確定**。ユーザーへ方針確認し、決まったら `/phase_start` で
+  `instructions/phase/13_<topic>/` を起票する。**候補の筆頭 = idea_15**
+  （公開面の逆戻り防止テストの AST 検査を**完全修飾・エイリアス経路**まで拡張。
+  **テストのみ・仕様変更なし**・1 タスク規模。phase 12 の完了レビューから分離）。
+  他は idea_10（ネストしたモーダルの grab 復元）/ idea_13 / idea_09 / idea_03。
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
+- **phase 12 の完了レビューの保留分**（いずれも実害なし）: L-1（`architecture.md` §3.2 が presentation 側
+  ファイル名を列挙 → 新ファイル追加のたびに陳腐化）/ L-4（`current.md` の次フェーズ候補が phase 11 完了を未反映）/
+  L-8（`__init__.py:17` の submodule import 一覧に `contracts` が無く間接 import に依存）。
 
-## 現在のフェーズ（phase 12 = config_service の公開面の集約）の要点
+## 直前フェーズ（phase 12 = config_service の公開面の集約・**完了**）の要点
 
-**規範は暫定仕様 11（未凍結・v0.3・ユーザー確定済）**。**挙動不変のリファクタ**でスキーマ変更なし・**実機目視なし**。
-番号対応: **phase 12 / 暫定 11 / decisions_archive 12**。全 3 タスク中 **task_01・task_02 が完了**。
+**規範は正本**（`spec_detail/architecture.md` **§3.2** + `codebase_map.md` の `config_service` パッケージ表
+**13 ファイル**）。**暫定仕様 11 は凍結済（v0.3）＝条項を実装の根拠に引かない**。**挙動不変のリファクタ**。
+判断の経緯は `decisions_archive/12_config_service_public_surface.md`。
 
 - **公開面 = `config_service/contracts.py`**（**定数 34 / 型 9**・126 行）。
   **`config_service` 内の他モジュールを import しない葉モジュール**（stdlib のみ）。
-  `path_boundary.py` / `candidate_dirs.py` と同じ形。
-- **参照は `from . import contracts` + `contracts.NAME`**（既存 house style。
-  **`from .contracts import NAME` は不可** = 名前が実装モジュールへ再束縛され `hasattr` の固定テストが書けない）。
+  `path_boundary.py` / `candidate_dirs.py` と同じ形。**presentation はここと `ConfigService` の公開 API だけを見る**。
+- **参照は `from . import contracts` + `contracts.NAME`**（**`from .contracts import NAME` は不可** =
+  名前が実装モジュールへ再束縛され `hasattr` の固定テストが書けない）。
 - **実装側に残した内部仕様**: `QUARANTINE_DIR_NAME` / `MANIFEST_FILE_NAME` / `UNIT_ID_PATTERN` /
-  `ENTRY_PLANNED` / `ENTRY_MOVED` / `ENTRY_FAILED`（`quarantine.py`）/ `CANDIDATE_DIRS` / `RESERVED_DIR`
-  （`candidate_dirs.py`）。**「全部移す」方向の退行はテストが落とす**。
+  `ENTRY_*`（`quarantine.py`）/ `CANDIDATE_DIRS` / `RESERVED_DIR`（`candidate_dirs.py`）。
+  **「全部移す」方向の退行もテストが落とす**。
 - **値の重複（`"invalid_unit_id"` / `"no_manifest"`）は意図的で統合しない**
   （`quarantine_manage_text.py` のラベル分岐が壊れる）。
-- **境界は `tests/test_config_service_contracts.py` が固定している**（3 メソッド）:
-  ①実装 5 モジュールの `assertIs(module.contracts, contracts)` + 移した 43 名の `hasattr` 偽
-  ②presentation の **AST 走査 4 経路**（R1 = パッケージ直下からのモジュール名 import /
-  R2 = サブモジュール指定 / R3 = `ast.Import` / 属性アクセス `config_service.<内部>`）
-  ③**検査関数の自己検証**（禁止 4 例を検出・許可 5 例を誤検出しない）。
-  **`INTERNAL_MODULE_NAMES` がパッケージの実ファイルとずれても落ちる**。
-  **動的 import と変数経由の間接参照（`cs = config_service` 形）は検出できない**（意図的な限界）。
-- **テストは実装モジュールの直接 import を許す**（ただし**移した定数・型は `contracts` から取る**。
-  `patch.object(quarantine_module.os, ...)` のような monkeypatch 用の参照は残してよい）。
-- **`ConfigService` の型注釈は触らない**（§4-D 確定）。**`__init__.py` へ定数を置かない / re-export しない**。
-
-## 直前フェーズ（phase 11 = 孤児ファイルの棚卸し・**完了**）の要点
-
-**規範は正本**（`data_schema.md` **§5.8.9** + §5.8.1 改訂 + §5.4 / §5.10.1、`features.md` §4.6、
-`architecture.md` §3.2、`codebase_map.md`）。**暫定仕様 10 は凍結済（v0.8）＝条項を実装の根拠に引かない**。
-到達範囲 = 検出 + 隔離 + 復元 + 隔離済みの削除。**本アプリ初のディレクトリ走査かつ初のファイル削除機能**。
-判断の経緯は `decisions_archive/11_orphan_child_file_sweep.md`（**蒸し返さない確定事項もここが正**）。
-
+- **境界は `tests/test_config_service_contracts.py` の 3 メソッドが固定**（実装 5 モジュールの `assertIs` +
+  移した 43 名の `hasattr` 偽 / presentation の **AST 走査 4 経路** / **検査関数の自己検証**）。
+  **`INTERNAL_MODULE_NAMES` はパッケージの実ファイル一覧と一致必須**（モジュールを増やしたら更新する）。
+  **検出できない経路**: 動的 import に加え、**完全修飾のドット参照 / エイリアス束縛 /
+  `from keyseq import application` 経由の 3 つ**（実測確認済・**現在の presentation では 0 件**。
+  強化は **idea_15** へ分離）。
 - **【計画09 の成果・重要】正本 `data_schema.md` は INDEX（260 行）**。**§5.8 / §5.10 の実体は
-  `spec_detail/data_schema/` 配下の 13 子ファイル**（`5_08_09_orphan_sweep.md` など）。
-  **節番号・見出しは不変**なので「`data_schema.md` §5.8.9」形式の既存参照はそのまま通じる。
+  `spec_detail/data_schema/` 配下の 13 子ファイル**。**節番号・見出しは不変**なので既存参照はそのまま通じる。
   **仕様更新は子ファイルを編集**し、趣旨が変わったら**親の 1 行要約も追従**させる。
 - **【計画08 の成果】候補側ディレクトリの定義は `config_service/candidate_dirs.py` が唯一**
   （走査の候補範囲と復元先ガードが同じ定義を見る）。**再定義しない・添字で結び付けない**（`zip(strict=True)`）。
-- **【誤りやすい・訂正済】外部レイアウトの参照解決は `config_root` 基準と `dirname(config_root)` 基準の
-  superset**。**「keymap_set 基準」ではない**（誤ると使用中ファイルを孤児判定しかねない）。
-- **【蒸し返さない】** 「マニフェスト不正」= **4 条件**（JSON 解析不能 / トップレベルが object でない /
-  `entries` が配列でない / `manifest.json` 自体がリンク）で**エントリ単位の妥当性は検査しない** /
-  削除の**検証④のみ**強い確認で上書き可（①②③は不変）/ **削除の TOCTOU 2 件は受容済** /
-  **候補側リンクは無音で落とす**（正本 §5.8.9 の制約 8〜12）。
-- **【task_07b の成果】境界判定 `is_real_path_within` の唯一の定義は `config_service/path_boundary.py`**
-  （`quarantine.py` → `orphan_scan` の import があるので**逆向きは循環**）。
+- **【phase 11 由来・誤りやすい】外部レイアウトの参照解決は `config_root` 基準と `dirname(config_root)` 基準の
+  superset**（**「keymap_set 基準」ではない**）。「マニフェスト不正」の **4 条件**・削除の **TOCTOU 2 件受容**は
+  **蒸し返さない**（正本 `data_schema.md` §5.8.9 / `decisions_archive/11`）。
 
 ## 注意事項・blockers
-- **blockers: なし**（phase 12 task_02 まで green。**実機目視の要らないフェーズ**）。
+- **blockers: なし**（phase 12 は完了・green。次フェーズ未確定）。
 - **【教訓・task_07b】Codex は「記録を足す」指示を「skip を増やす」方向へ広げることがある**。
   1 回目の実装で参照側の skip 条件を `islink` から `realpath != abspath` へ広げ、
   **親ディレクトリがジャンクションなら配下の全 keymap_set が参照集合から落ちる**状態を作り、
@@ -137,9 +118,9 @@ compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smo
   この配置を崩すと壊れる。同じ理由で**パス基盤メソッドを兄弟モジュールへ移さない**。
   抽出関数は **`service` を第 1 引数に取る**。**兄弟から `__init__` を import しない**（循環回避）。
   **兄弟間の共有は public 名を経由する**（private への直接参照は慣習違反）。
-  **presentation から兄弟モジュールを直接 import しない**（公開面は `ConfigService` の委譲メソッド。
-  ただし**判定名・理由コードの定数 import は既存パターンとして可**）。
-  同ファイルは **820 行**のため、**新規の実ロジックを置かない**（1 行委譲のみ）。
+  **presentation から兄弟モジュールを直接 import しない**（公開面は **`ConfigService` の公開 API と
+  `contracts.py` のみ**。phase 12 で例外は解消済で、**逆戻りはテストが落とす**）。
+  同ファイルは **828 行**のため、**新規の実ロジックを置かない**（1 行委譲のみ）。**分割は保留中**。
 - **【最重要・2 度踏んだ罠】パス表記の混在事故**: runtime の `source_path` 3 種と
   `hotkey_presets_path` は **config 配下なら相対**で保持される（config 外は絶対・区切りは `/` 正規化）。
   **相対値を `os.path.abspath` / `dirname` / `exists` / `join` へ解決なしで渡すと cwd 基準で解決される**。
@@ -179,12 +160,13 @@ compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smo
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   Codex レビュー系との併用は `.claude/rules/agent_selection.md` のレビュー表が正。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: **10_reference_link_cleanup** / 09_per_keymap_set_presets / 08_hotkey_presets_global）。
+  （直近 3 件: **12_config_service_public_surface** / 11_orphan_child_file_sweep / 10_reference_link_cleanup）。
   提案書「計画05」「計画06」「計画07」は完了済みで、**いずれもフェーズ番号を消費していない**。
-- 未着手/保留 idea: **idea_13**（external_keyboard_layouts のパス基準の非対称・低）/
+- 未着手/保留 idea: **idea_15**（公開面の逆戻り防止テストの AST 検査の拡張・**次フェーズ候補の筆頭**）/
+  **idea_13**（external_keyboard_layouts のパス基準の非対称・低）/
   idea_10（ネストしたモーダルの grab 復元）/ idea_11（別名保存の複製ロールバック・低）/
   idea_03（hotkey 保存正規化・低）/ idea_09（レガシー保存パス・低）/ idea_04・idea_06（保留）。
-  **idea_12 は phase 11 で着手中**（task_08 で `INDEX_done.md` へ移す）・**idea_07 は phase 10 で完了**（`INDEX_done.md`）。
+  **idea_14 は phase 12 で完了**・**idea_12 は phase 11 で完了**・**idea_07 は phase 10 で完了**（`INDEX_done.md`）。
   **敵対的レビューが挙げた削除の TOCTOU 2 件は idea 化しない**（修正予定ではないため。
   backlog は修正予定のものを置く場所というユーザー方針。残存リスクは暫定仕様 §3-12 が正）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。

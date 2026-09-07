@@ -6,23 +6,16 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [12_config_service_public_surface](12_config_service_public_surface/phase.md)**
-  （**config_service の公開面の集約**・2026-09-08 起票）。
-  主入力 = [暫定仕様 11](../history/11_config_service_public_surface.md)（**v0.3・ユーザー確定済**）。
-  モード: **暫定仕様先行**。番号対応: **phase 12 / 暫定 11 / decisions_archive 12**。
-  起票元 = [idea_14](../backlog/idea_14_config_service_public_surface.md)。
-  到達範囲 = **公開面 `contracts.py` の新設と定義の移動（挙動不変のリファクタ）**。
-  **スキーマ変更なし・実機目視なし**。判断は `decisions.md` の phase 12 節。
-  **進捗: 未着手（全 3 タスク）→ 次は task_01（公開面の新設と全参照の付け替え・1 コミットの原子的変更）**。
-- 直前の完了フェーズ: [11_orphan_child_file_sweep](../../.claude_data/state/decisions_archive/11_orphan_child_file_sweep.md)
-  （**2026-09-08 完了**・孤児ファイルの棚卸し。**本アプリ初のディレクトリ走査かつ初のファイル削除機能**。
-  全 8 タスク + 枝番 3〔task_05b / 06b / 07b〕。実機目視 **M1〜M8 + M2b 全件期待どおり**。
-  暫定仕様 10 は**凍結済**〔最終 v0.8〕。正本 `data_schema.md` **§5.8.9 新設** + §5.8.1 改訂 +
-  §5.4 / §5.10.1 + `features.md` §4.6 + `architecture.md` §3.2 + `codebase_map.md` へ昇格済。
-  起票元 idea_12 はクローズ。**後続 = idea_14**）。
-- その前の完了フェーズ: [10_reference_link_cleanup](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)
-  （**2026-09-05 完了**・参照元の掃除。暫定仕様 09 は**凍結済**。正本 `data_schema.md` §5.8.1 +
-  `features.md` §4.6 + `codebase_map.md` へ昇格済）。
+- **アクティブなフェーズ: なし**（phase 12 は 2026-09-08 完了）。**次フェーズは未確定**。
+  着手時はユーザーへ方針確認し、`/phase_start` で `13_<topic>` を起票すること
+  （候補は下記「次フェーズ候補（参考）」）。
+- 直前の完了フェーズ: [12_config_service_public_surface](../../.claude_data/state/decisions_archive/12_config_service_public_surface.md)
+  （**2026-09-08 完了**・config_service の公開面の集約。**挙動不変のリファクタ**・全 3 タスク。
+  暫定仕様 11 は**凍結済**〔最終 v0.3〕。正本 `architecture.md` §3.2〔例外条項と idea_14 追跡行を削除〕
+  + `codebase_map.md`〔12 → 13 ファイル〕へ昇格済。起票元 idea_14 はクローズ。**実機目視なし**）。
+- その前の完了フェーズ: [11_orphan_child_file_sweep](../../.claude_data/state/decisions_archive/11_orphan_child_file_sweep.md)
+  （**2026-09-08 完了**・孤児ファイルの棚卸し。暫定仕様 10 は**凍結済**。正本 `data_schema.md` §5.8.9 新設 +
+  `features.md` §4.6 + `architecture.md` §3.2 + `codebase_map.md` へ昇格済）。
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
   **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
@@ -43,15 +36,15 @@
 
 ## 次採番
 
-- **phase 12 が進行中**（phase 11 は 2026-09-08 完了）。次フェーズは **`13_<topic>`**
+- **phase 12 は 2026-09-08 完了**（進行中のフェーズなし）。次フェーズは **`13_<topic>`**
   （欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜10 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
+  04〜11 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
   08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
   10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
-  11=config_service の公開面〔**v0.3・未凍結・phase 12 の主入力**〕）。
+  11=config_service の公開面〔**v0.3・凍結**〕）。
   次採番は **`12_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**08 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08**）・

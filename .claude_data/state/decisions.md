@@ -21,6 +21,7 @@
 | 09_per_keymap_set_presets | [09_per_keymap_set_presets.md](decisions_archive/09_per_keymap_set_presets.md) | keymap_set ごとの個別プリセット（2026-08-16 完了・**挙動変更＋スキーマ追加**）。グローバル既定を **`user/hotkey_presets/global/`（予約ディレクトリ）**へ移し（**移行は手動 2 段**）、keymap_set の**旧キー `hotkey_presets_path` を個別パスとして再利用** + 新フラグ **`hotkey_presets_individual`**（**フラグキーが無ければ残置パスごと落とす**）。解決は**個別 → グローバル → 置き換えない**、**読み出しは config 外も許容 / 書き込みは管理下の既定パスへ寄せる**（意図的な非対称）。書き込み前の判定を **①既定パスへ寄せ → ②保存先ガード〔`global/` 配下・グローバルと同一なら拒否〕→ ③上書き確認〔内容比較・**3 択**〕**の順に確定。**書き手はマネージャ 1 本**のまま、**トグル / OFF で開いた時点の一覧読み直しはダイアログ内の表示のみ**（**プリセット単独の注入 API は作らない**＝入口台帳 **P1**）。**dirty は `hotkey_presets_path` の値が変化したときだけ**。別名保存は**個別ファイルを複製**。**設計は 2 度反転**（v0.5→v0.6 の【O3】拒否→寄せ / v0.4→v0.8 の【I】撤回→再採用）。**実機目視で 4 件の不具合を検出**（→ task_07c / 07d / 07e / 07g）。正本 `data_schema.md` **§5.10 全面改訂** + §5.10.4 + **§5.8.8** + §5.5 / §5.4 / §5.1 + `codebase_map.md` へ昇格済。**除外**: ネストしたモーダルの grab 復元（アプリ全体の課題 → **idea_10**）/ 確認と書き込みの間の競合（契約として明記）。refactor_check: 判定は本アーカイブ末尾 |
 | 10_reference_link_cleanup | [10_reference_link_cleanup.md](decisions_archive/10_reference_link_cleanup.md) | 参照元の掃除（2026-09-05 完了・**新機能・スキーマ不変**）。子JSON の陳腐化した `_parent_refs` を設定メニューからまとめて除去する保守機能。**検査範囲は現在の構成セットの子のみ**（列挙は **runtime の source_path 3 種**。**`resolve_child_save_targets` は使わない**＝未実体化の子へ既定パスが割り当てられ**無関係な既存ファイルを書き換える**。起票時 `deep-reviewer` の最大指摘）。**全網羅ではない**ことを正本へ既知の制約として明記。**孤児削除は行わず 0 件警告のみ**（この検査範囲では孤児判定が原理的に成立しない → 逆方向検査は **idea_12** へ分離）。**確認 UI は 1 枚**（読み取り専用・消えるパスを全件提示）。**現在の keymap_set / trigger_set への参照は実在しなくても保護**（検査時点で分離）。**未保存の構成セットでは先に保存**（`parent_ref` が空だと個別保存が掃除前の refs を再書き込みして**巻き戻る**）。**除去直前に JSON 全体を読み直して再判定**（外部変更を全体置換で消さない）。**除去 0 件なら書かない（冪等）/ 全件除去は `[]`** / **runtime・dirty へ反映しない**。**設計は v0.5 まで 4 回改訂**（v0.2 = `deep-reviewer` / v0.4 = `codex-adversarial-reviewer` High 3 / v0.5 = task_05 の 2 本立て）。**実機目視 14 / 14 OK**（是正なし）。正本 `data_schema.md` **§5.8.1 改訂** + `features.md` §4.6 + `codebase_map.md` へ昇格済。**契約として明記し実装は変えない**: sequence の巻き戻り前提 / 確認中に上位が消えた場合 / 再判定で対象外になった子の通知 / 前提の保存経路は §5.8.6 の best-effort（`codex-adversarial-reviewer` の High 1 は条文の限定で決着）。refactor_check: 判定は本アーカイブ末尾 |
 | 11_orphan_child_file_sweep | [11_orphan_child_file_sweep.md](decisions_archive/11_orphan_child_file_sweep.md) | 孤児ファイルの棚卸し（2026-09-08 完了・**新機能・スキーマ追加**）。どの keymap_set からも参照されていない子を**上位 → 子の逆方向検査**で検出し、**可逆な隔離**を経て削除できるようにした。**本アプリ初のディレクトリ走査かつ初のファイル削除機能**。**走査は 4 経路**（`keymap_sets/` 直下 / 起動エントリ / **現在開いているセット** / ユーザー指定ディレクトリ）で**参照集合は 2 段辿り**（sequence のパスは trigger_set にしか無い）。候補側は**既定 4 ディレクトリ直下のみ + 形状検証**、`hotkey_presets/global/` は除外、**OFF の個別プリセットパスも参照ありと数える**（意図的 superset）。**隔離ルートは `config/quarantine/`**（`user/` の外・遅延作成）で、**マニフェストを移動より先に原子書込み**し（書けなければ 1 件も動かさない）、隔離対象は**〔提示済み〕∩〔再判定でも孤児〕**に限定。**復元は `state` を信用せず実体の有無で判定**し、**`original_path` は候補側配下でなければ拒否**（`is_path_within` は**同一パスも配下と判定する**ため実体基準の境界検証を併用）。**削除は実行単位 ID + 4 検証**（**④〔有効なマニフェスト〕だけ強い確認で上書き可**・①②③は不変）で**ゴミ箱へ送らない不可逆削除**。**壊れた親があると無傷の子が孤児候補になる**残存リスクは**警告を必須化したうえで受容**（degraded 方式は不採用）。**TOCTOU 2 件・マニフェストのエントリ単位検査なし・一覧に出ない残骸・削除経路のリダイレクト単位**は**実装を変えず契約として明記**。**実機目視 M1〜M8 + M2b は全件期待どおり**（M6 から「マニフェストが読めない」の定義を明確化）。正本 `data_schema.md` **§5.8.9 新設** + §5.8.1 改訂 + §5.4 / §5.10.1 + `features.md` §4.6 + `architecture.md` §3.2 + `codebase_map.md` へ昇格済。**後続**: idea_14（公開面への集約・phase 10 も対象）。refactor_check: 判定は本アーカイブ末尾 |
+| 12_config_service_public_surface | [12_config_service_public_surface.md](decisions_archive/12_config_service_public_surface.md) | config_service の公開面の集約（2026-09-08 完了・**挙動不変のリファクタ**）。presentation が `config_service` の内部モジュールから直接 import していた**判定名・理由コード・結果型（定数 34 / 型 9）**を、新設した **`contracts.py` へ定義ごと移動**（**再輸出を作らない**）。参照は **`from . import contracts` + `contracts.NAME`** に統一（`from .contracts import NAME` は名前が再束縛され `hasattr` 偽の固定テストが書けないため不採用）。**定義元で未使用の定数**（`SOURCE_REDIRECTED` 等）があるため段階分割できず、**1 コミットの原子的変更**とした。**内部表現**（`QUARANTINE_DIR_NAME` / `UNIT_ID_PATTERN` / `ENTRY_*` / `CANDIDATE_DIRS`）は実装側に残し、**同値の理由コード**（`"invalid_unit_id"` / `"no_manifest"`）も**統合しない**（ラベル分岐が壊れる）。**逆戻り防止テスト 3 本**（共有参照の固定 + presentation の **AST 走査 R1〜R3 + 属性アクセスの 4 経路** + **検査関数の自己検証**）を追加し、**`INTERNAL_MODULE_NAMES` がパッケージの実ファイル一覧とずれたら落ちる**アサーションで「新モジュールが属性アクセス経路だけ素通りする穴」を塞いだ。**動的 import は検出できない**限界は明記。正本 `architecture.md` **§3.2 の例外条項と idea_14 追跡行を削除**（**`config_service` 限定表現は保つ**＝`application` 一般へ広げると `save_plan.ACTION_*` の 5 件が新規違反になる）+ `codebase_map.md`（12 → 13 ファイル）へ昇格済。**実機目視は不要**（挙動不変・UI 文言不変）。refactor_check: 判定は本アーカイブ末尾 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -481,49 +482,3 @@ phase 11 は正本反映まで完了して閉じているため、**追加タス
 - 文末の `---` は親に残した（§5.10.4 の子には含めない）。
 - **以後の運用**: 仕様更新は**子ファイルを編集**する。節の趣旨が変わったら**親 INDEX の 1 行要約も追従**。
   新しい節は子を新規作成 + 親へ 1 行追加。子が 300 行を超えたら再分割を検討する。
-
-## 2026-09-08〜 (phase 12: config_service の公開面の集約・暫定仕様 11)
-
-規範: [`instructions/history/11_config_service_public_surface.md`](../../instructions/history/11_config_service_public_surface.md)
-（**v0.3・ユーザー確定済**）。番号対応: **phase 12 / 暫定 11 / decisions_archive 12**。
-起票元 = [idea_14](../../instructions/backlog/idea_14_config_service_public_surface.md)。
-
-### 【起票時の確定】§4-A〜D（ユーザー 2026-09-08）— **採用**
-
-- **§4-A モジュール名 = `contracts.py`**（`results.py` は実態〔8 割が定数〕とずれ、
-  `public_api.py` は関数群を連想させるため不採用）。
-- **§4-B 粒度 = 1 ファイルに集約**（定数 34 + dataclass 9 で 120〜140 行見込み。300 行超で分割）。
-- **§4-C テストは実装モジュールの直接 import を許す**（ただし**移した定数・型は `contracts` から取る**）。
-  `patch.object(quarantine_module.os, ...)` のような monkeypatch 用のモジュール参照を残せるため。
-  **(a)(b) で書き換え量はほぼ同じ**（v0.1 の「(b) だけ 20 箇所増える」は誤りで、レビューで訂正）。
-- **§4-D `ConfigService` の型注釈は触らない**（別の関心事。混ぜると差分の意図が読みにくい）。
-
-### 【起票時レビュー】`deep-reviewer` = 修正して採用（High 2 / Medium 7）— **全件反映**（v0.2）
-
-- **H-1 = 移行を段階分割できない**。`SOURCE_REDIRECTED` / `SOURCE_DIRECTORY_UNREADABLE` は
-  **定義元 `reference_scan.py:10-11` で未使用**（書き手は `orphan_scan.py:168,179` のモジュール属性参照）。
-  「定義だけ先に移す」段階で旧 import が `ImportError` になり、途中段階が green にならない。
-  → **定義移動と全参照の付け替えを 1 タスク・1 コミットの原子的変更**にした（4 段階 → 3 段階）。
-- **H-2 = `from .contracts import NAME` では固定テストが書けない**（名前が実装モジュールへ再束縛され
-  `hasattr` が真のまま）。→ **既存 house style `from . import contracts` + `contracts.NAME` に統一**
-  （`path_boundary` / `candidate_dirs` と同形。固定テストも `assertIs` + `hasattr` 偽）。
-- 員数の訂正（**contracts へ置くのは定数 34 / 型 9**。v0.1 の 33 / 8 は presentation の import 束縛数との
-  取り違え）/「何も import しない」→「`config_service` 内の他モジュールを import しない」（dataclass のため
-  stdlib は要る）/ 正本反映の取りこぼし（`architecture.md` の idea_14 追跡行 / `codebase_map.md` の件数）。
-
-### 【確定前レビュー】`codex-adversarial-reviewer` = needs-attention（Medium 1）— **修正して採用**（v0.3）
-
-**AST 検査に穴があった**。接頭辞 `keyseq.application.config_service.` だけを見ると
-**`from keyseq.application.config_service import orphan_scan` 形**（`tests/test_orphan_scan.py:8-10` に実在）を
-見逃す。加えて **`__init__.py:17` が内部モジュールを属性公開**しているため
-`config_service.orphan_scan.<名前>` の経路も残る。
-→ §3-4 を **R1〜R3 + 属性アクセスの 4 経路**へ拡張し、**動的 import は検出できない限界を明記**、
-**禁止パターンを与えて検査関数が落とすことを確認する自己検証ケース**を必須にした。
-あわせて移行対象へ**属性参照形（`manage.QuarantineUnit(...)`）**を明記し、tests の直参照を 21 → **22 文**へ補正。
-
-### 【起票時】`codebase_map.md` の取りこぼしを先行是正（メイン判断 2026-09-08）
-
-レビューが検出。`:264` が「11 ファイル」のままで、**計画08 で新設した `candidate_dirs.py` の行が無かった**
-（`instructions/common/` 全体に記載 0 件）。**計画08 の取りこぼし**なので phase 12 の作業に混ぜず、
-**起票と同時に是正**した（件数 11 → 12 + 行の追加）。phase 12 では `contracts.py` の追加と 12 → 13 のみ扱う。
-

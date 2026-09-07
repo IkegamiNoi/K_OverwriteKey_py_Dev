@@ -1,8 +1,10 @@
 # 暫定仕様 11: config_service の公開面（判定名・理由コード・結果型）の集約（config_service_public_surface）
 
-> 状態: **未凍結・v0.3・ユーザー確定済（実装着手可）・主入力**。本書がこのフェーズの確定設計
-> （フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済（2026-09-08・phase 12 完了・v0.3）**。**経緯の参照用**であり、
+> **本書の条項を実装の根拠に引かない**。
+> **正本 = `spec_detail/architecture.md` §3.2**（公開面 = `ConfigService` の委譲メソッド +
+> `config_service/contracts.py`）**+ `codebase_map.md`**（`config_service` パッケージ表・13 ファイル）。
+> 昇格時の判断は `.claude_data/state/decisions_archive/12_config_service_public_surface.md`。
 > 起票元: [idea_14](../backlog/idea_14_config_service_public_surface.md)（2026-09-08 起票・
 > phase 11 task_07 の `deep-reviewer` 指摘 B-2 から分離）。
 > 番号対応: **phase 12 / 暫定 11 / decisions_archive 12**。

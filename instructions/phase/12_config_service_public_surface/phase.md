@@ -47,7 +47,7 @@ config_service の公開面の集約（config_service_public_surface）
   `quarantine_manage`）の参照形式の統一。
 - presentation 5 ファイルの import 付け替え。
 - `tests` / `tests_ui` の該当参照（**import 22 文 + `manage.QuarantineUnit(...)` のような属性参照形**）の追随。
-- **逆戻り防止テスト 2 本**（共有モジュール参照の固定 / presentation の参照先の AST 走査。
+- **逆戻り防止テスト 3 本**（共有モジュール参照の固定 / presentation の参照先の AST 走査。
   **R1〜R3 + 属性アクセスの 4 経路**と**自己検証ケース**を含む）。
 - 正本反映（`architecture.md` §3.2 の例外条項と idea_14 追跡行の削除 / `codebase_map.md`）。
 
