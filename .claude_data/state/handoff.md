@@ -15,17 +15,17 @@
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
 2. `instructions/phase/current.md` を読む（**アクティブ = phase 11**）
 3. `instructions/phase/11_orphan_child_file_sweep/phase.md` と、**主入力の暫定仕様**
-   `instructions/history/10_orphan_child_file_sweep.md`（**v0.6・ユーザー確定済**）を読む。
+   `instructions/history/10_orphan_child_file_sweep.md`（**v0.7・ユーザー確定済**）を読む。
    **フェーズ中は正本 `spec_detail/` を直接改訂しない**（昇格は最終タスク task_08）
 4. 着手するタスクの定義 `instructions/phase/11_orphan_child_file_sweep/tasks/task_NN_*.md` を読む
 5. CLAUDE.md → `.claude/rules/` の順に必要分を読む
 6. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 11 task_07（統合確認）は実機目視のみ残り**。実測・受け入れ条件の突合・二次レビュー 2 本・
-**task_07b（指摘 7 件の反映）まで完了しコミット済**。
-**次にやること = ユーザーへ実機目視（`manual_check.md` の M1〜M8 + M2b）を依頼し、
-結果を `integration_result.md` §4 へ転記して task_07 を完了させる**。その後 task_08（正本反映）。
+**phase 11 は task_07（統合確認 + 実機目視）まで完了。残るは task_08（正本反映・フェーズ末）のみ**。
+実機目視 **M1〜M8 + M2b は 2026-09-08 に全件期待どおり**（NG なし）。
+M6 発の仕様明確化で暫定仕様は **v0.7**（実装変更なし）。
+**次にやること = task_08 を起票して実行する**（申し送りは `integration_result.md` §5 の 15 項目）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -42,17 +42,12 @@ compile **clean** / tests **413**（skip 7）/ tests_ui **288**（skip 0）/ smo
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
 ## 次アクション（session.md.next_action より）
-- **【最優先】実機目視をユーザーへ依頼する**。観点は
-  `instructions/phase/11_orphan_child_file_sweep/manual_check.md`（**M1〜M8 + M2b**）。
-  **M2b（隔離ルートをジャンクションにした状態での中止）は task_07b の修正確認**なので必ず含める。
-  **M5・M6 は実際にファイルを不可逆削除する**ため、事前に `config/` のバックアップを案内すること。
-  結果を受領したら **`integration_result.md` §4 へ転記**し、**task_07 を完了**とする
-  （**NG が出たら `task_07c_*` を起票**してから完了とする）。
-- **その後 task_08（正本反映・最終タスク）**。申し送りは
-  `instructions/phase/11_orphan_child_file_sweep/integration_result.md` **§5 の 14 項目**が正
+- **【最優先】task_08（正本反映・フェーズ末の最終タスク）を起票して実行する**。申し送りは
+  `instructions/phase/11_orphan_child_file_sweep/integration_result.md` **§5 の 15 項目**が正
   （§5.8.1 の改訂 / §3-8 v0.5 / §3-12-6・§3-12-7 / 受け入れ条件 16・21 の是正 /
   `codebase_map.md` の全面更新 / `path_boundary.py` と新規理由コード 3 つ /
-  §3-5 に「読めなかった走査ディレクトリ」の条文を足すかの判断 / §3-5-1 の適用範囲 ほか）。
+  §3-5 に「読めなかった走査ディレクトリ」の条文を足すかの判断 / §3-5-1 の適用範囲 /
+  **§3-7 の「マニフェストが読めない」の定義〔v0.7〕と §3-12-8** ほか）。
 - task_08 の完了条件には `.claude/rules/task_execution.md`「フェーズ完了時」の一式を含める
   （正本昇格 + 暫定仕様 10 の凍結 / `decisions_archive/11_orphan_child_file_sweep.md` /
   `current.md` の完了記載 / `backlog/INDEX_done.md` へ idea_12 を移動 / `/refactor_check`）。
@@ -73,11 +68,16 @@ compile **clean** / tests **413**（skip 7）/ tests_ui **288**（skip 0）/ smo
 
 ## 現在のフェーズ（phase 11 = 孤児ファイルの棚卸し）の要点
 
-**規範は暫定仕様 10（未凍結・v0.6）**。到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。
+**規範は暫定仕様 10（未凍結・v0.7）**。到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。
 **本アプリ初のディレクトリ走査かつ初のファイル削除機能**（削除は **task_06b で green**）。
 番号対応: **phase 11 / 暫定 10 / decisions_archive 11**。
-タスクは 1〜8 + 枝番 3（`phase.md`）。**task_01〜06 + 05b + 06b + 07b が完了**。
-**task_07 は実機目視のみ残り**。
+タスクは 1〜8 + 枝番 3（`phase.md`）。**task_01〜07 + 05b + 06b + 07b が完了**。
+**残るは task_08（正本反映）のみ**。
+- **【task_07 の実機目視で確定・v0.7】「マニフェスト不正」= ①JSON として解析できない
+  ②トップレベルが object でない ③`entries` が配列でない、の 3 つだけ**
+  （判定は `quarantine_manage.py:81` の 1 箇所）。**エントリ単位の妥当性は検査しない**ため
+  `{"entries": [{}]}` は「有効」扱い（一覧は「残り 0/N 件」・復元は中止せずスキップ・
+  削除は通常確認）。**ユーザー確定 = 現状維持（実装変更なし）。蒸し返さない**（§3-7 / §3-12-8）。
 - **【task_07b の成果】境界判定 `is_real_path_within` の唯一の定義は
   `config_service/path_boundary.py`**（`quarantine.py` / `orphan_scan.py` に再定義しない。
   `quarantine.py` → `orphan_scan` の import があるので**逆向きは循環**）。
@@ -127,9 +127,7 @@ compile **clean** / tests **413**（skip 7）/ tests_ui **288**（skip 0）/ smo
   （**条項を実装の根拠に引かない**）。
 
 ## 注意事項・blockers
-- **blockers: なし**（コードは green）。ただし **task_07 の完了にはユーザーの実機目視が必要**。
-  **未コミットで残るのは task_07 の文書のみ**（`integration_result.md` / `manual_check.md` /
-  `tasks/task_07_integration_check.md`）。task_07 の完了時にまとめてコミットする。
+- **blockers: なし**（コードは green・実機目視も完了）。
 - **【教訓・task_07b】Codex は「記録を足す」指示を「skip を増やす」方向へ広げることがある**。
   1 回目の実装で参照側の skip 条件を `islink` から `realpath != abspath` へ広げ、
   **親ディレクトリがジャンクションなら配下の全 keymap_set が参照集合から落ちる**状態を作り、
@@ -209,7 +207,7 @@ compile **clean** / tests **413**（skip 7）/ tests_ui **288**（skip 0）/ smo
 - 未着手/保留 idea: **idea_13**（external_keyboard_layouts のパス基準の非対称・低）/
   idea_10（ネストしたモーダルの grab 復元）/ idea_11（別名保存の複製ロールバック・低）/
   idea_03（hotkey 保存正規化・低）/ idea_09（レガシー保存パス・低）/ idea_04・idea_06（保留）。
-  **idea_12 は phase 11 で着手中**・**idea_07 は phase 10 で完了**（`INDEX_done.md`）。
+  **idea_12 は phase 11 で着手中**（task_08 で `INDEX_done.md` へ移す）・**idea_07 は phase 10 で完了**（`INDEX_done.md`）。
   **敵対的レビューが挙げた削除の TOCTOU 2 件は idea 化しない**（修正予定ではないため。
   backlog は修正予定のものを置く場所というユーザー方針。残存リスクは暫定仕様 §3-12 が正）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。

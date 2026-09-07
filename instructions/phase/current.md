@@ -8,18 +8,20 @@
 
 - **アクティブなフェーズ: [11_orphan_child_file_sweep](11_orphan_child_file_sweep/phase.md)**
   （**孤児ファイルの棚卸し**・2026-09-06 起票）。
-  主入力 = [暫定仕様 10](../history/10_orphan_child_file_sweep.md)（**v0.6・ユーザー確定済**）。
+  主入力 = [暫定仕様 10](../history/10_orphan_child_file_sweep.md)（**v0.7・ユーザー確定済**）。
   モード: **暫定仕様先行**。番号対応: **phase 11 / 暫定 10 / decisions_archive 11**。
   起票元 = [idea_12](../backlog/idea_12_orphan_child_file_sweep.md)。
   到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**（削除は `<config_root>/quarantine/` 内のみ）。
   **本アプリ初のディレクトリ走査かつ初のファイル削除機能**。判断は `decisions.md` の phase 11 節。
-  **進捗: task_01〜task_06 + task_05b + task_06b 完了（参照パス収集器 / 走査と孤児判定 /
+  **進捗: task_01〜task_07 + task_05b + task_06b + task_07b 完了（参照パス収集器 / 走査と孤児判定 /
   検出フローの入口と表示 / 走査ディレクトリ設定 / 隔離 / 隔離の堅牢化 /
-  隔離の管理〔一覧 + 復元〕/ 隔離済みの削除）
-  → 次は task_07（統合確認 + 実機目視）**
+  隔離の管理〔一覧 + 復元〕/ 隔離済みの削除 / 統合確認 + 実機目視）
+  → 次は task_08（正本反映・フェーズ末）**
   （**task_03 完了時点で「検出のみ」が green** / **task_05 で破壊的 I/O が入り、task_05b で
   敵対的レビュー 2 本の指摘を反映** / **task_06 で復元が green** /
-  **task_06b でこのフェーズ唯一の不可逆操作が入った**。全 8 タスク + 枝番 2）。
+  **task_06b でこのフェーズ唯一の不可逆操作が入った** /
+  **task_07 の実機目視 M1〜M8 + M2b は 2026-09-08 に全件期待どおり。M6 発の仕様明確化で
+  暫定仕様 v0.7**〔`entries` 要素の妥当性は検査しない・実装変更なし〕。全 8 タスク + 枝番 3）。
 - 直前の完了フェーズ: [10_reference_link_cleanup](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)
   （**2026-09-05 完了**・参照元の掃除。暫定仕様 09 は**凍結済**。正本 `data_schema.md` §5.8.1 +
   `features.md` §4.6 + `codebase_map.md` へ昇格済）。
