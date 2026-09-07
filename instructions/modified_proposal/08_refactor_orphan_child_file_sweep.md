@@ -86,8 +86,14 @@ RESERVED_DIR = "user/hotkey_presets/global"
   （`quarantine_manage.py:14,17` = `"invalid_unit_id"`）。**復元と削除で理由コードの名前空間を
   分ける意図的な設計**で、片方を変えても他方を変える必要はない。→ 対象外。
 
-## 実施タイミング（ユーザー選択）
+## 実施タイミング（ユーザー選択）→ **(b) 独立ミニ計画「計画08」で実施・完了（2026-09-08）**
 
-- (a) 同フェーズ末の追加タスク（`task_09_refactor` として起票）
-- (b) 次フェーズ前の独立ミニ計画（「計画08」）
-- (c) 実施しない（候補送りのみ）
+- 項目 0 = **安全網は十分**（既存 2 テストが定数の値に依存）→ 特性テストの追加なし。
+- 項目 1 = **完了**。`config_service/candidate_dirs.py`（新規・葉モジュール）へ
+  `CANDIDATE_DIRS` / `RESERVED_DIR` を集約し、`orphan_scan.py` は
+  `zip(_CANDIDATE_SHAPES, CANDIDATE_DIRS, strict=True)` で対応づける（**添字参照は使わない**）。
+  実測 = `tests` **414**（+1）/ `tests_ui` **288** / smoke pass、直値は 1 箇所のみ。
+  `reviewer` = **完了可・指摘なし**。
+- 候補送り分（ダイアログ / IO / text の同型スケルトン）は `instructions/phase/current.md` の
+  「別タスク化候補」で追跡する。**本提案書はこれで役目を終える**。
+- 判断の経緯は `.claude_data/state/decisions.md`「計画08」節。

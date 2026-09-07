@@ -7,7 +7,7 @@ from unittest.mock import patch
 from keyseq.application.config_service import ConfigService
 from keyseq.application.config_service import orphan_scan as orphan_scan_module
 from keyseq.application.config_service import quarantine as quarantine_module
-from keyseq.application.config_service import path_boundary, quarantine_manage
+from keyseq.application.config_service import candidate_dirs, path_boundary, quarantine_manage
 from keyseq.application.config_service.orphan_scan import (
     KIND_HOTKEY_PRESETS, KIND_KEYMAP, KIND_SEQUENCE, KIND_TRIGGER_SET,
     ORPHAN_CANDIDATE, ORPHAN_EXCLUDED, ORPHAN_PROTECTED, ORPHAN_REFERENCED,
@@ -385,6 +385,16 @@ class OrphanScanTest(unittest.TestCase):
             result = self._scan(root, scan_dirs=[missing])
             self.assertEqual(result.missing_scan_dirs, (missing,))
             self.assertEqual(result.entries, ())
+
+    def test_candidate_dirs_use_shared_module_without_legacy_alias(self):
+        for module in (orphan_scan_module, quarantine_manage):
+            self.assertIs(module.candidate_dirs, candidate_dirs)
+        self.assertEqual(
+            tuple(spec[1] for spec in orphan_scan_module._CANDIDATE_SPECS),
+            quarantine_manage.candidate_dirs.CANDIDATE_DIRS,
+        )
+        self.assertFalse(hasattr(quarantine_manage, "_CANDIDATE_DIRS"))
+        self.assertFalse(hasattr(quarantine_manage, "_RESERVED_DIR"))
 
     def test_real_boundary_uses_shared_module_without_legacy_alias(self):
         self.assertFalse(hasattr(orphan_scan_module, "_is_real_path_within"))

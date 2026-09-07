@@ -4,7 +4,7 @@ import os
 import shutil
 from dataclasses import dataclass
 
-from . import path_boundary, quarantine
+from . import candidate_dirs, path_boundary, quarantine
 
 
 RESTORE_SKIPPED_EXISTS = "already_exists"
@@ -18,11 +18,6 @@ DELETE_REJECTED_INVALID_ID = "invalid_unit_id"
 DELETE_REJECTED_IS_ROOT = "is_quarantine_root"
 DELETE_REJECTED_NO_MANIFEST = "no_manifest"
 DELETE_FAILED = "delete_failed"
-
-_CANDIDATE_DIRS = (
-    "user/keymaps", "user/trigger_sets", "user/sequences", "user/hotkey_presets",
-)
-_RESERVED_DIR = "user/hotkey_presets/global"
 
 
 @dataclass(frozen=True)
@@ -139,10 +134,10 @@ def list_quarantine_units(service, *, config_root: str) -> tuple[QuarantineUnit,
 
 
 def _target_is_allowed(service, target: str, config_root: str) -> bool:
-    reserved = service.resolve_config_path(_RESERVED_DIR, config_root)
+    reserved = service.resolve_config_path(candidate_dirs.RESERVED_DIR, config_root)
     if not target or service.is_path_within(target, reserved, config_root):
         return False
-    for stored_dir in _CANDIDATE_DIRS:
+    for stored_dir in candidate_dirs.CANDIDATE_DIRS:
         directory = service.resolve_config_path(stored_dir, config_root)
         if (service.is_path_within(target, directory, config_root)
                 and service.canonical_path(target, config_root)

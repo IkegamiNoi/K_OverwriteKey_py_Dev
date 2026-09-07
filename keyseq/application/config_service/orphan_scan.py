@@ -4,7 +4,7 @@ import os
 from dataclasses import dataclass
 
 from . import reference_scan, split_loading
-from . import path_boundary
+from . import candidate_dirs, path_boundary
 
 
 ORPHAN_CANDIDATE = "candidate"
@@ -17,11 +17,18 @@ KIND_TRIGGER_SET = "trigger_set"
 KIND_SEQUENCE = "sequence"
 KIND_HOTKEY_PRESETS = "hotkey_presets"
 
-_CANDIDATE_SPECS = (
-    (KIND_KEYMAP, "user/keymaps", "mappings", dict),
-    (KIND_TRIGGER_SET, "user/trigger_sets", "triggers", list),
-    (KIND_SEQUENCE, "user/sequences", "actions", list),
-    (KIND_HOTKEY_PRESETS, "user/hotkey_presets", "hotkey_presets", list),
+# 形状検証の対応（種別・必須キー・型）。ディレクトリは candidate_dirs が正で、
+# 並びの対応は zip(strict=True) が保証する（添字で結び付けない）。
+_CANDIDATE_SHAPES = (
+    (KIND_KEYMAP, "mappings", dict),
+    (KIND_TRIGGER_SET, "triggers", list),
+    (KIND_SEQUENCE, "actions", list),
+    (KIND_HOTKEY_PRESETS, "hotkey_presets", list),
+)
+_CANDIDATE_SPECS = tuple(
+    (kind, directory, required_key, required_type)
+    for (kind, required_key, required_type), directory
+    in zip(_CANDIDATE_SHAPES, candidate_dirs.CANDIDATE_DIRS, strict=True)
 )
 
 

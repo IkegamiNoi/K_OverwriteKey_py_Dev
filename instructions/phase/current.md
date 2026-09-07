@@ -151,8 +151,8 @@
     設計判断が別途必要。実ロジックを持つのは `relocate_individual_hotkey_presets`（約 40 行）で、
     他はほぼ 1 行委譲。**次フェーズ以降に再判定する**
 - **Phase 11（孤児ファイルの棚卸し）の `/refactor_check` からの候補送り**（判定は**推奨** →
-  提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)・
-  **未承認**。提案書へ入れなかった分）:
+  提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)
+  は**「計画08」として実施し完了**〔2026-09-08・挙動不変〕。提案書へ入れなかった分）:
   - **ダイアログの同型スケルトン**（`Toplevel` + `suspend_hook_for_dialog` / Escape bind /
     `protocol(WM_DELETE_WINDOW)` / `transient` + `grab_set` / `destroy` override）が
     **9 ダイアログ中 8 ファイル**に広がっている（phase 11 で +2）。**M3 該当だが

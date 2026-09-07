@@ -4,71 +4,51 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-08T02:10:00
-phase: **なし（11_orphan_child_file_sweep は 2026-09-08 完了）**。次の採番 = `instructions/phase/12_<topic>` / 暫定仕様 `history/11_<topic>.md` / アーカイブ `decisions_archive/12_<topic>.md`。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
+last_updated: 2026-09-08T03:05:00
+phase: **なし（11_orphan_child_file_sweep は 2026-09-08 完了 / 続く「計画08」も完了）**。次の採番 = `instructions/phase/12_<topic>` / 暫定仕様 `history/11_<topic>.md` / アーカイブ `decisions_archive/12_<topic>.md`。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
 last_commit_location: main @ 最新コミット = **`claude/task-06b-continuation-401967` を main へマージ**（マージ前の main 側 WIP コミット `WIP task_06b: ...` はブランチ側の `task_06b: 隔離済みの削除を新設` に完全に置き換わった）。直前の完了コミットは `task_07b: 二次レビュー指摘の反映（A-1〜A-7）`。※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 11 は task_08（正本反映）まで完了しフェーズを閉じた。次フェーズは未起票**。
+focus: **phase 11 完了後の「計画08」（候補側ディレクトリ定数の単一定義化）まで完了。次は計画09 = `/spec_split` の計画提示**。
 mode: completed
 
 ## last_action
-ts: 2026-09-08T02:10:00
+ts: 2026-09-08T03:05:00
 who: main
 summary: |
-  【**phase 11 task_08 完了 = フェーズ完了**】確定内容を正本へ昇格し、暫定仕様 10 を凍結した。
-  - **正本**: `data_schema.md` に **§5.8.9 を新設**（走査 4 経路 / 2 段辿り / 候補側と形状検証 /
-    保護対象 / 判定名 4 種 / 走査の不完全性 5 カテゴリ / 隔離・復元・削除 / **既知の制約 12 件**）+
-    **§5.8.1 の改訂**（孤児判定は §5.8.9 へ）+ §5.4（`orphan_sweep_scan_dirs` / 隔離ルートを起動時に作らない）
-    + §5.10.1（`global/` 除外・OFF のパスも参照ありと数える superset）。
-    `features.md` §4.6（設定メニュー 2 項目とフロー）/ **`architecture.md` §3.2**（presentation →
-    config_service 内部の直参照禁止 + **定数・結果型の例外**）/ `codebase_map.md`（新規 5 モジュール・
-    IO 2・text 2・ダイアログ・ファサード 9 メソッド）。
-  - **コード変更は 2 行だけ**（`reference_cleanup_text.py` の警告文言を「孤児かどうかは
-    『孤児ファイルの棚卸し』で確認できます。」へ + 追随テスト 1 行）。
-  - **ユーザー確定 3 件**（task_08 の事前判断）: **B-1 = 削除の部分失敗は条項側を実装に合わせる**
-    （粒度は実行単位。途中失敗は中止 + 一部削除の可能性を通知）/ **B-2 = §3-11 に定数・結果型の
-    例外を明記し、公開面への集約は idea_14 で追跡**（**今後の実装コストで評価**した結果、
-    `__init__.py` への再輸出案は最もコストが高いと判断）/ **B-3② = 残存リスクとして記載**。
-  - **レビュー 2 本の指摘を全件反映**（すべて文書側・実装変更なし）。**Codex High = 正本の誤記**
-    （外部レイアウトの基準を「keymap_set 基準」と書いたが正しくは **`dirname(config_root)` 基準**）。
-    deep-reviewer からは走査の不完全性 5 カテゴリ・keymap_set の判定基準・実行単位ディレクトリ作成失敗・
-    `global/` 復元拒否・保護対象の性質など 15 件超を追記。
-  - **フェーズ完了処理**: 暫定仕様 10 を**凍結（v0.8）**+ 受け入れ条件 16 / 21 の是正 /
-    `decisions_archive/11_orphan_child_file_sweep.md` 作成（`decisions.md` は索引 1 行へ）/
-    `current.md` を「アクティブなし・次採番 12」へ / idea_12 を `INDEX_done.md` へ / **idea_14 を起票**。
-  - **`/refactor_check` = 推奨** → 提案書 `08_refactor_orphan_child_file_sweep.md` を起票（**未承認**）。
+  【**計画08 完了**】phase 11 の `/refactor_check`（= 推奨）で起票した提案書 08 の項目 1 を、
+  **独立ミニ計画「計画08」**として実施した（**フェーズ番号は消費していない**・挙動不変）。
+  - **候補側 4 ディレクトリの直値重複を解消**: `config_service/candidate_dirs.py`（**新規・葉モジュール**）へ
+    `CANDIDATE_DIRS` / `RESERVED_DIR` を集約し、`orphan_scan.py` と `quarantine_manage.py` が参照する形へ。
+    **`quarantine_manage` から `orphan_scan` を import しない**（`quarantine.py` → `orphan_scan` があるため循環）。
+  - 実装は `codex-implementer` へ委任。**メインが 1 点是正 = `CANDIDATE_DIRS[0]`〜`[3]` の添字参照を
+    `zip(_CANDIDATE_SHAPES, ..., strict=True)` へ**（タプルの添字参照は計画06 で禁止した形）。
+  - **項目 0（安全網）は既存 2 テストで十分**と判断（定数の値に依存しているため定義がズレれば落ちる）。
+    追加テスト 1 件で単一定義化そのものを固定。
+  - `reviewer` = **完了可・指摘なし**（5 観点すべて OK。添字参照の差し替えも妥当と判定）。
 result_files:
-  - instructions/common/spec_detail/data_schema.md（**§5.8.9 新設**・907 行）/ features.md / architecture.md
-  - instructions/common/codebase_map.md
-  - keyseq/presentation/reference_cleanup_text.py / tests/test_reference_cleanup_text.py
-  - instructions/history/10_orphan_child_file_sweep.md（**凍結・v0.8**）
-  - instructions/phase/11_orphan_child_file_sweep/tasks/task_08_spec_promotion.md（新規）/
-    integration_result.md / manual_check.md
-  - instructions/modified_proposal/08_refactor_orphan_child_file_sweep.md（新規・未承認）
-  - instructions/backlog/idea_14_config_service_public_surface.md（新規）/ INDEX.md / INDEX_done.md
-  - .claude_data/state/decisions.md / decisions_archive/11_orphan_child_file_sweep.md（新規）/
-    instructions/phase/current.md
+  - keyseq/application/config_service/candidate_dirs.py（**新規**）
+  - keyseq/application/config_service/orphan_scan.py / quarantine_manage.py
+  - tests/test_orphan_scan.py（テスト 1 件追加）
+  - instructions/modified_proposal/08_refactor_orphan_child_file_sweep.md（実施済みを追記）
+  - .claude_data/state/decisions.md（「計画08」節）/ instructions/phase/current.md
 verified:
   compile: clean
-  tests: pass **413**（skip 7・退行なし）
+  tests: pass **414**（413 → +1・skip 7）
   tests_ui: pass **288**（skip 0）
   smoke: pass
-  note: worktree ルートへ `user/` `quarantine/` の生成なし。実測後の変更は**文書のみ**（コードは不変）
-  review: **`deep-reviewer` = 修正要（F0〜F17）→ 全件反映済** / **`codex-adversarial-reviewer` =
-    needs-attention（High 1 / Medium 2）→ 全件反映済**。いずれも文書側の指摘で実装変更なし
+  note: `grep "user/keymaps" keyseq/` と `grep "user/hotkey_presets/global" keyseq/` は **candidate_dirs.py の 1 箇所のみ**。worktree ルートへの `user/` `quarantine/` 生成なし
+  review: **`reviewer` = 完了可・指摘なし**
 
 ## next_action
-- **【ユーザー判断待ち 2 件】**
-  1. **リファクタ提案書 08 の実施可否とタイミング**（(a) 追加タスク / (b) 独立ミニ計画「計画08」/
-     (c) 実施しない）。項目 1 = 候補側 4 ディレクトリの直値が `orphan_scan.py:20-25` と
-     `quarantine_manage.py:22-25` に重複（**片方だけ変えると「隔離できるが復元できない」ズレ**）。
-  2. **候補側ディレクトリ直下のリンクを無音で落とす挙動**（正本 §5.8.9 の制約 12 として明記済）。
-     **件数に載せる実装修正を望むなら task を追加**する（`orphan_scan.py:194` が
-     `unreadable_sources` を渡していないだけなので小さい）。
-- **次フェーズの起票は `/phase_start`**（採番 12）。着手候補は `instructions/backlog/INDEX.md`。
-- **`data_schema.md` が 907 行**になったため **`/spec_split` の判定基準（300 行超）に該当**。
-  §5.8 / §5.10 の INDEX 分割を提案できる（**実施はユーザー承認必須**）。
+- **【最優先】計画09 = `/spec_split` の分割計画を提示してユーザー承認を得る**（ユーザー方針で
+  **ミニ計画として実施する**ことは確定済・**計画08 とは分ける**）。対象 =
+  `instructions/common/spec_detail/data_schema.md`（**907 行**）の **§5.8（約 240 行）と §5.10（約 220 行）**。
+  手順は `.claude/commands/spec_split.md`（**節番号・見出しは変更しない** / 本文は **verbatim 外出し**で
+  **分割前コミットの該当行範囲とバイト一致**を確認 / 親には INDEX 行 + 1 行要約 / 親 1 つ分 = 1 コミット /
+  **改行コード（CRLF）に注意** / 実施を `decisions.md` へ 1 行記録）。
+- その後 **次フェーズの起票は `/phase_start`（採番 12）**。着手候補は `instructions/backlog/INDEX.md`
+  （**idea_14** = config_service の公開面へ定数・結果型を集約〔phase 10 分も対象〕/ idea_13 / idea_10 / idea_11）。
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
@@ -77,6 +57,9 @@ verified:
 - **なし**（phase 11 は完了。コード green・実機目視完了・レビュー 2 本の指摘反映済）。
 
 ## resume_hints
+- **【計画08 の成果】候補側ディレクトリの定義は `config_service/candidate_dirs.py` の
+  `CANDIDATE_DIRS` / `RESERVED_DIR` が唯一**（`orphan_scan` の候補範囲と `quarantine_manage` の
+  復元先ガードが同じ定義を見る）。**再定義しない・添字で結び付けない**（`zip(strict=True)` を使う）。
 - **【phase 11 の成果は正本が正】** `spec_detail/data_schema.md` **§5.8.9**（+ §5.8.1 改訂 / §5.4 / §5.10.1）
   + `features.md` §4.6 + `architecture.md` §3.2 + `codebase_map.md`。
   **暫定仕様 10 は凍結済**（v0.8・経緯の参照用。**条項を実装の根拠に引かない**）。要点だけ再掲 =

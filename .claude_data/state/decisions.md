@@ -417,3 +417,47 @@ phase 09 完了時の `/refactor_check` = 推奨（M1 / M2 / M6 該当）の産�
   **`.pyc` を削除して結果不変を確認する**とよい。
 
 ---
+
+## 2026-09-08 (計画08: 候補側ディレクトリ定数の単一定義化・挙動不変)
+
+規範: [`instructions/modified_proposal/08_refactor_orphan_child_file_sweep.md`](../../instructions/modified_proposal/08_refactor_orphan_child_file_sweep.md)
+（phase 11 の `/refactor_check` = 推奨 → 起票）。**フェーズ番号は消費していない**。
+
+### 【起票時】実施形態 → **(b) 次フェーズ前の独立ミニ計画 = 「計画08」**（ユーザー確定 2026-09-08）
+
+phase 11 は正本反映まで完了して閉じているため、**追加タスクで完了宣言を巻き戻すより独立計画が清い**。
+
+### 【項目 0】安全網の確認 = **十分・特性テスト不要**（2026-09-08・メイン実測）
+
+既存の 2 件が**定数の値そのものに依存**しており、定義がズレれば落ちる:
+`tests/test_orphan_scan.py::test_candidates_are_only_direct_json_files_in_four_directories`（走査側）/
+`tests/test_quarantine_manage.py::test_outside_reserved_and_candidate_directory_itself_are_rejected`
+（復元先ガード + `global/` 予約 + ディレクトリ自身の拒否）。
+
+### 【項目 1】完了（2026-09-08）= **計画08 完了**
+
+`config_service/candidate_dirs.py`（**新規・8 行の葉モジュール**）へ `CANDIDATE_DIRS` /
+`RESERVED_DIR` を置き、`orphan_scan.py` と `quarantine_manage.py` がそこを参照する形にした。
+**`quarantine_manage` から `orphan_scan` を import しない**（`quarantine.py` → `orphan_scan` が
+あるため逆向きは循環）。実装は `codex-implementer` へ委任。
+
+- **メインが 1 点是正**: Codex の初版は `_CANDIDATE_SPECS` で **`CANDIDATE_DIRS[0]`〜`[3]` の添字参照**を
+  使っていた。**タプルの添字参照は計画06 で禁止した形**（`HOOK_KEY_FIELDS[0]`。並び替えで対応が
+  無言でずれる）なので、`_CANDIDATE_SHAPES` と `zip(..., strict=True)` の組み合わせへ差し替えた。
+  **`strict=True` で長さ不一致も即座に落ちる**。
+- **追加テスト 1 件**: `test_candidate_dirs_use_shared_module_without_legacy_alias`
+  （両モジュールが同一オブジェクトを見ていること・値の一致・旧名 `_CANDIDATE_DIRS` / `_RESERVED_DIR` の
+  不存在を固定）。
+- 実測: compile clean / `tests` **414**（413 → +1・skip 7）/ `tests_ui` **288** / smoke pass。
+  `grep "user/keymaps" keyseq/` と `grep "user/hotkey_presets/global" keyseq/` は
+  **`candidate_dirs.py` の 1 箇所のみ**。
+- `reviewer` = **完了可・指摘なし**（添字参照 → `zip(strict=True)` の差し替えも妥当と判定）。
+- **対象外のまま**: `RESTORE_ABORTED_INVALID_ID` と `DELETE_REJECTED_INVALID_ID` の同値
+  （理由コードの名前空間を分ける意図的な設計）/ ダイアログ・IO・text の同型スケルトン（**候補送り**）。
+
+### 【次】計画09 = `/spec_split`（`data_schema.md` の分割）（ユーザー方針 2026-09-08）
+
+`data_schema.md` が **907 行**で `/spec_split` の判定基準（300 行超 / 単一節 100 行超）に該当。
+**計画08 とは分ける**（検証方法が別物 = コードはテスト件数不変 / 分割は**子ファイルのバイト一致**。
+承認単位も分かれる）。順序は **計画08 → 計画09**。**分割計画の提示とユーザー承認が先**。
+
