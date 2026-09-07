@@ -22,8 +22,10 @@
 6. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 11 task_06b（隔離済みの削除）が完了・コミット済**（実測全 pass / `reviewer` 採用 /
-敵対的レビュー High 2 件は**コード修正せず受容**）。**次は task_07（統合確認 + 実機目視）の起票**。
+**phase 11 task_07（統合確認）は実機目視のみ残り**。実測・受け入れ条件の突合・二次レビュー 2 本・
+**task_07b（指摘 7 件の反映）まで完了しコミット済**。
+**次にやること = ユーザーへ実機目視（`manual_check.md` の M1〜M8 + M2b）を依頼し、
+結果を `integration_result.md` §4 へ転記して task_07 を完了させる**。その後 task_08（正本反映）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -33,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**task_06b 完了時点**）:
-compile **clean** / tests **399**（skip 5）/ tests_ui **287**（skip 0）/ smoke **pass**。
-**件数が減ったら退行を疑う**。skip 5 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
+直近の実測（**task_07b 完了時点**）:
+compile **clean** / tests **413**（skip 7）/ tests_ui **288**（skip 0）/ smoke **pass**。
+**件数が減ったら退行を疑う**。skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 **同じ観点はジャンクション版のテストが実行されている**ので観点の抜けにはならない。
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
@@ -63,7 +65,14 @@ compile **clean** / tests **399**（skip 5）/ tests_ui **287**（skip 0）/ smo
 **規範は暫定仕様 10（未凍結・v0.6）**。到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。
 **本アプリ初のディレクトリ走査かつ初のファイル削除機能**（削除は **task_06b で green**）。
 番号対応: **phase 11 / 暫定 10 / decisions_archive 11**。
-タスクは 1〜8 + 枝番 2（`phase.md`）。**task_01〜06 + 05b + 06b が完了**。
+タスクは 1〜8 + 枝番 3（`phase.md`）。**task_01〜06 + 05b + 06b + 07b が完了**。
+**task_07 は実機目視のみ残り**。
+- **【task_07b の成果】境界判定 `is_real_path_within` の唯一の定義は
+  `config_service/path_boundary.py`**（`quarantine.py` / `orphan_scan.py` に再定義しない。
+  `quarantine.py` → `orphan_scan` の import があるので**逆向きは循環**）。
+  追加した理由コード = `SOURCE_REDIRECTED` / `SOURCE_DIRECTORY_UNREADABLE`（`reference_scan.py`）/
+  `QUARANTINE_ROOT_REDIRECTED`（`quarantine.py`）。
+  **既定ディレクトリの不在は `missing_scan_dirs` に入れない**（§3-5-1 はユーザー指定ディレクトリの規定）。
 
 - **走査（参照側）4 経路**: `user/keymap_sets/` 直下 + 起動エントリ + **現在開いているセット
   （`app.keymap_set_path`）** + ユーザー指定ディレクトリ。**3 番目を落とすと、既定外のセットを開いている間に
@@ -107,7 +116,14 @@ compile **clean** / tests **399**（skip 5）/ tests_ui **287**（skip 0）/ smo
   （**条項を実装の根拠に引かない**）。
 
 ## 注意事項・blockers
-- **blockers: なし**。
+- **blockers: なし**（コードは green）。ただし **task_07 の完了にはユーザーの実機目視が必要**。
+  **未コミットで残るのは task_07 の文書のみ**（`integration_result.md` / `manual_check.md` /
+  `tasks/task_07_integration_check.md`）。task_07 の完了時にまとめてコミットする。
+- **【教訓・task_07b】Codex は「記録を足す」指示を「skip を増やす」方向へ広げることがある**。
+  1 回目の実装で参照側の skip 条件を `islink` から `realpath != abspath` へ広げ、
+  **親ディレクトリがジャンクションなら配下の全 keymap_set が参照集合から落ちる**状態を作り、
+  **追加テストでその挙動を固定していた**。**差分は必ずメインが読んで裏取りする**
+  （テストが green でも、テストごと誤った挙動を固定していることがある）。
 - **【運用・重要】委任の実行中はメイン側で文書を編集しない**。phase 10 task_05 で **Codex がメインの
   仕様書編集を「範囲外の差分」と判断して巻き戻した**。編集した場合は**完了後に必ず差分を確認する**。
 - **【メニュー項目のテスト】インデックスを固定しない**。top-level menubar には **tearoff** があり

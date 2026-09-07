@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import datetime
 
 from . import orphan_scan
+from . import path_boundary
 
 
 QUARANTINE_DIR_NAME = "quarantine"
@@ -20,6 +21,7 @@ ENTRY_FAILED = "failed"
 QUARANTINE_MANIFEST_WRITE_FAILED = "manifest_write_failed"
 QUARANTINE_MOVE_FAILED = "move_failed"
 QUARANTINE_UNIT_DIR_FAILED = "unit_dir_failed"
+QUARANTINE_ROOT_REDIRECTED = "quarantine_root_redirected"
 QUARANTINE_SOURCE_REJECTED = "source_rejected"
 
 
@@ -221,8 +223,12 @@ def _prepare_unit_dir(
     """既存単位を上書きせず、移動前の記録を作成する。"""
     unit_dir = os.path.dirname(manifest_path)
     try:
+        root = os.path.dirname(unit_dir)
+        if (os.path.islink(root)
+                or os.path.normcase(os.path.realpath(root)) != os.path.normcase(os.path.abspath(root))):
+            return QUARANTINE_ROOT_REDIRECTED
         os.makedirs(unit_dir, exist_ok=False)
-    except OSError:
+    except (OSError, ValueError):
         return QUARANTINE_UNIT_DIR_FAILED
     if _try_write_manifest(service, manifest_path, created_at, moves, states):
         return ""
@@ -272,6 +278,7 @@ def _apply_moves(
         else:
             moved.append((move.kind, move.original_path))
         if not _try_write_manifest(service, manifest_path, created_at, moves, states):
+            _discard_manifest_tmp(manifest_path)
             manifest_write_failed = True
     if manifest_write_failed:
         failed.append((
@@ -281,20 +288,10 @@ def _apply_moves(
     return tuple(moved), tuple(failed)
 
 
-def is_real_path_within(path: str, root: str) -> bool:
-    """realpath で実体解決したうえで root 配下かを判定する。"""
-    try:
-        real_path = os.path.normcase(os.path.realpath(path))
-        real_root = os.path.normcase(os.path.realpath(root))
-        return os.path.commonpath((real_path, real_root)) == real_root
-    except (OSError, ValueError):
-        return False
-
-
 def _source_is_allowed(source: str, config_root: str) -> bool:
     try:
         return (os.path.isfile(source) and not os.path.islink(source)
-                and is_real_path_within(source, config_root))
+                and path_boundary.is_real_path_within(source, config_root))
     except (OSError, ValueError):
         return False
 

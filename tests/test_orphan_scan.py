@@ -6,12 +6,16 @@ from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService
 from keyseq.application.config_service import orphan_scan as orphan_scan_module
+from keyseq.application.config_service import quarantine as quarantine_module
+from keyseq.application.config_service import path_boundary, quarantine_manage
 from keyseq.application.config_service.orphan_scan import (
     KIND_HOTKEY_PRESETS, KIND_KEYMAP, KIND_SEQUENCE, KIND_TRIGGER_SET,
     ORPHAN_CANDIDATE, ORPHAN_EXCLUDED, ORPHAN_PROTECTED, ORPHAN_REFERENCED,
     collect_protected_paths, normalize_scan_dirs, scan_orphans,
 )
-from keyseq.application.config_service.reference_scan import collect_reference_paths
+from keyseq.application.config_service.reference_scan import (
+    collect_reference_paths, SOURCE_REDIRECTED, SOURCE_DIRECTORY_UNREADABLE,
+)
 from keyseq.infrastructure.json_repository import JsonRepository
 
 
@@ -74,7 +78,7 @@ class OrphanScanTest(unittest.TestCase):
             for child in (protected, referenced):
                 self._save(root, child, {"mappings": {}})
             self._save(root, "user/keymap_sets/main.json", {"keymaps": [referenced]})
-            with patch.object(orphan_scan_module, "_is_real_path_within",
+            with patch.object(path_boundary, "is_real_path_within",
                               side_effect=AssertionError("保護・参照ありは実体検証しない")):
                 result = self._scan(root, protected_paths=[protected])
             self.assertEqual(self._states(result),
@@ -243,7 +247,7 @@ class OrphanScanTest(unittest.TestCase):
             before = self._tree_snapshot(root)
             result = self._scan(root)
             self.assertEqual(result.entries, ())
-            self.assertEqual(len(result.missing_scan_dirs), 1)
+            self.assertEqual(result.missing_scan_dirs, ())
             self.assertEqual(self._tree_snapshot(root), before)
             self._save(root, "user/keymaps/unused.json", {"mappings": {}})
             self._save(root, "user/keymap_sets/main.json", {"keymaps": []})
@@ -291,6 +295,108 @@ class OrphanScanTest(unittest.TestCase):
             loaded = [call.args[0] for call in loader.call_args_list]
             for child in (protected, referenced):
                 self.assertNotIn(self._resolved(root, child), loaded)
+
+    def test_redirected_reference_warns_and_its_child_becomes_candidate(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = os.path.join(directory.name, "config")
+        target = os.path.join(directory.name, "parents")
+        child = "user/keymaps/child.json"
+        self._save(root, child, {"mappings": {}})
+        self._save(root, os.path.join(target, "linked.json"), {"keymaps": [child]})
+        source_dir = self._resolved(root, "user/keymap_sets")
+        os.mkdir(source_dir)
+        link = os.path.join(source_dir, "linked.json")
+        try:
+            os.symlink(os.path.join(target, "linked.json"), link)
+        except (OSError, NotImplementedError):
+            self.skipTest("参照側のファイル symlink を作成できません")
+        result = self._scan(root)
+        self.assertEqual(result.unreadable_sources,
+                         (("user/keymap_sets/linked.json", SOURCE_REDIRECTED),))
+        self.assertEqual(self._states(result), {child: ORPHAN_CANDIDATE})
+
+    def test_reference_directory_junction_keeps_child_referenced(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = os.path.join(directory.name, "config")
+        target = os.path.join(directory.name, "parents")
+        child = "user/keymaps/child.json"
+        self._save(root, child, {"mappings": {}})
+        self._save(root, os.path.join(target, "parent.json"), {"keymaps": [child]})
+        self._make_junction(self._resolved(root, "user/keymap_sets"), target)
+        result = self._scan(root)
+        self.assertEqual(result.unreadable_sources, ())
+        self.assertEqual(self._states(result), {child: ORPHAN_REFERENCED})
+
+    def test_candidate_link_is_skipped_without_source_warning(self):
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = os.path.join(directory.name, "config")
+        target = os.path.join(directory.name, "target")
+        self._save(root, os.path.join(target, "child.json"), {"mappings": {}})
+        os.makedirs(self._resolved(root, "user/keymaps"))
+        link = self._resolved(root, "user/keymaps/linked.json")
+        try:
+            os.symlink(os.path.join(target, "child.json"), link)
+        except (OSError, NotImplementedError):
+            self.skipTest("候補側のファイル symlink を作成できません")
+        result = self._scan(root)
+        self.assertEqual(result.entries, ())
+        self.assertEqual(result.unreadable_sources, ())
+
+    def test_unreadable_source_directory_warns_and_other_scans_continue(self):
+        with tempfile.TemporaryDirectory() as root:
+            child = "user/keymaps/child.json"
+            self._save(root, child, {"mappings": {}})
+            self._save(root, "denied/parent.json", {"keymaps": [child]})
+            self._save(root, "readable/parent.json", {"keymaps": [child]})
+            listdir = os.listdir
+
+            def deny_source(path):
+                if path == self._resolved(root, "denied"):
+                    raise PermissionError("参照側の列挙拒否")
+                return listdir(path)
+
+            with patch.object(orphan_scan_module.os, "listdir", side_effect=deny_source):
+                result = self._scan(root, scan_dirs=["denied", "readable"])
+            self.assertEqual(result.unreadable_sources, (("denied", SOURCE_DIRECTORY_UNREADABLE),))
+            self.assertEqual(self._states(result), {child: ORPHAN_REFERENCED})
+
+    def test_unreadable_candidate_directory_is_empty_without_source_warning(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._save(root, "user/keymaps/hidden.json", {"mappings": {}})
+            self._save(root, "user/sequences/visible.json", {"actions": []})
+            listdir = os.listdir
+
+            def deny_candidates(path):
+                if path == self._resolved(root, "user/keymaps"):
+                    raise PermissionError("候補側の列挙拒否")
+                return listdir(path)
+
+            with patch.object(orphan_scan_module.os, "listdir", side_effect=deny_candidates):
+                result = self._scan(root)
+            self.assertEqual(result.unreadable_sources, ())
+            self.assertEqual(self._states(result), {"user/sequences/visible.json": ORPHAN_CANDIDATE})
+
+    def test_missing_default_directory_is_not_reported_but_user_directory_is(self):
+        with tempfile.TemporaryDirectory() as root:
+            missing = " Missing/../Specified "
+            result = self._scan(root, scan_dirs=[missing])
+            self.assertEqual(result.missing_scan_dirs, (missing,))
+            self.assertEqual(result.entries, ())
+
+    def test_real_boundary_uses_shared_module_without_legacy_alias(self):
+        self.assertFalse(hasattr(orphan_scan_module, "_is_real_path_within"))
+        self.assertFalse(hasattr(orphan_scan_module, "is_real_path_within"))
+        self.assertFalse(hasattr(quarantine_module, "is_real_path_within"))
+        for module in (orphan_scan_module, quarantine_module, quarantine_manage):
+            self.assertIs(module.path_boundary, path_boundary)
+        with tempfile.TemporaryDirectory() as root:
+            for path, expected in ((root, True), (os.path.join(root, "child.json"), True),
+                                   (os.path.dirname(root), False)):
+                with self.subTest(path=path):
+                    self.assertEqual(path_boundary.is_real_path_within(path, root), expected)
 
     def _scan(self, root, **overrides):
         options = dict(config_root=root, scan_dirs=[], startup_keymap_set_path="",

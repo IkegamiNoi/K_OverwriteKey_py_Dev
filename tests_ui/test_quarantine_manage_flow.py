@@ -272,6 +272,13 @@ class QuarantineManageDialogTest(unittest.TestCase):
             buttons.extend(QuarantineManageDialogTest._buttons(child))
         return buttons
 
+    def test_header_applies_to_both_restore_and_delete(self):
+        dialog = self._dialog()
+        labels = [child.cget("text") for frame in dialog.winfo_children()
+                  for child in frame.winfo_children() if isinstance(child, ttk.Label)]
+        self.assertEqual(labels, ["実行単位を選択してください。"])
+        self.assertNotIn("復元する実行単位を選択してください。", labels)
+
     def test_list_buttons_modal_and_no_selection(self):
         dialog = self._dialog()
         self.assertEqual(dialog.listbox.get(0, tk.END), ("first", "second"))

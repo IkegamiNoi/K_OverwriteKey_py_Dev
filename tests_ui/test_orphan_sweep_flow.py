@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import copy
 import json
-import os
 import tempfile
 import tkinter as tk
 import unittest
@@ -413,10 +412,10 @@ class OrphanSweepFlowTest(unittest.TestCase):
             write.assert_not_called()
             self.assertEqual(self._snapshot(root), before)
             result = self.app.config_service.scan_orphans(**scan.call_args.kwargs)
-            self.assertEqual(result.missing_scan_dirs,
-                             (os.path.join(directory, "user", "keymap_sets"), "missing"))
+            # A-4: 既定ディレクトリの不在は「見つからなかった指定ディレクトリ」に含めない（§3-5-1）。
+            self.assertEqual(result.missing_scan_dirs, ("missing",))
         message = self.info.call_args.args[1]
-        self.assertIn("見つからなかった走査ディレクトリ: 2 件", message)
+        self.assertIn("見つからなかった走査ディレクトリ: 1 件", message)
         for path in result.missing_scan_dirs:
             self.assertIn(f"  {path}", message)
         self.assertNotIn("警告", message)

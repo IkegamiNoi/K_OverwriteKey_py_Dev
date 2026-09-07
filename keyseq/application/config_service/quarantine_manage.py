@@ -4,7 +4,7 @@ import os
 import shutil
 from dataclasses import dataclass
 
-from . import quarantine
+from . import path_boundary, quarantine
 
 
 RESTORE_SKIPPED_EXISTS = "already_exists"
@@ -63,7 +63,7 @@ def _unit_directory(unit_id: str, config_root: str) -> str:
     path = os.path.join(root, unit_id)
     try:
         if (os.path.isdir(path) and not _is_redirected(path)
-                and quarantine.is_real_path_within(path, root)):
+                and path_boundary.is_real_path_within(path, root)):
             return path
     except (OSError, ValueError):
         return ""
@@ -98,7 +98,7 @@ def _source_path(service, entry, config_root: str, unit_dir: str) -> str:
             or service.canonical_path(source, config_root) in (
                 service.canonical_path(unit_dir, config_root),
                 service.canonical_path(manifest, config_root),
-            ) or not quarantine.is_real_path_within(source, unit_dir)
+            ) or not path_boundary.is_real_path_within(source, unit_dir)
             or _is_redirected(source)):
         raise ValueError("quarantined_path is outside the unit or is redirected")
     return source
@@ -148,7 +148,7 @@ def _target_is_allowed(service, target: str, config_root: str) -> bool:
                 and service.canonical_path(target, config_root)
                 != service.canonical_path(directory, config_root)
                 and not _is_redirected(target)
-                and quarantine.is_real_path_within(target, directory)):
+                and path_boundary.is_real_path_within(target, directory)):
             return True
     return False
 
@@ -243,7 +243,7 @@ def _delete_directory(service, unit_id: str, config_root: str) -> tuple[str, str
         if (service.canonical_path(path, config_root) == service.canonical_path(root, config_root)
                 or service.canonical_path(os.path.realpath(path), config_root)
                 == service.canonical_path(os.path.realpath(root), config_root)
-                or not quarantine.is_real_path_within(path, root)
+                or not path_boundary.is_real_path_within(path, root)
                 or _is_redirected(root)):
             return "", DELETE_REJECTED_IS_ROOT
     except (OSError, ValueError):

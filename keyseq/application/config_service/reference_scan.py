@@ -7,6 +7,8 @@ from typing import Any
 
 SOURCE_MISSING = "missing"
 SOURCE_UNREADABLE = "unreadable"
+SOURCE_REDIRECTED = "redirected"
+SOURCE_DIRECTORY_UNREADABLE = "directory_unreadable"
 
 
 @dataclass(frozen=True)

@@ -27,7 +27,7 @@ class QuarantineManageDialog(tk.Toplevel):
     def _build_widgets(self, lines: tuple[str, ...]) -> None:
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
-        ttk.Label(frm, text="復元する実行単位を選択してください。").pack(anchor="w")
+        ttk.Label(frm, text="実行単位を選択してください。").pack(anchor="w")
         list_frame = ttk.Frame(frm)
         list_frame.pack(fill="both", expand=True, pady=(10, 0))
         self.listbox = tk.Listbox(list_frame, height=8, width=85, exportselection=False)
