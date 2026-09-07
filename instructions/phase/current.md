@@ -6,9 +6,14 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（phase 12 は 2026-09-08 完了）。**次フェーズは未確定**。
-  着手時はユーザーへ方針確認し、`/phase_start` で `13_<topic>` を起票すること
-  （候補は下記「次フェーズ候補（参考）」）。
+- **アクティブなフェーズ: [13_contracts_boundary_ast_coverage](13_contracts_boundary_ast_coverage/phase.md)**
+  （**公開面の逆戻り防止テストの検査範囲の拡張**・2026-09-08 起票）。
+  主入力 = **なし（直接改訂モード）**。設計の出発点は
+  [idea_15](../backlog/idea_15_contracts_boundary_ast_coverage.md)（起票元）。
+  番号対応: **phase 13 / 暫定仕様なし / decisions_archive 13**。
+  到達範囲 = **`tests/test_config_service_contracts.py` の AST 検査を完全修飾・エイリアス経路まで拡張**。
+  **テストのみ・プロダクション不変・仕様変更なし・実機目視なし**。判断は `decisions.md` の phase 13 節。
+  **進捗: 未着手（全 2 タスク）→ 次は task_01（検査関数の拡張と自己検証の追加）**。
 - 直前の完了フェーズ: [12_config_service_public_surface](../../.claude_data/state/decisions_archive/12_config_service_public_surface.md)
   （**2026-09-08 完了**・config_service の公開面の集約。**挙動不変のリファクタ**・全 3 タスク。
   暫定仕様 11 は**凍結済**〔最終 v0.3〕。正本 `architecture.md` §3.2〔例外条項と idea_14 追跡行を削除〕
@@ -36,7 +41,7 @@
 
 ## 次採番
 
-- **phase 12 は 2026-09-08 完了**（進行中のフェーズなし）。次フェーズは **`13_<topic>`**
+- **phase 13 が進行中**（phase 12 は 2026-09-08 完了）。次フェーズは **`14_<topic>`**
   （欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。

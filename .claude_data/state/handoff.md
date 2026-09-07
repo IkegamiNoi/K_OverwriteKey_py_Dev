@@ -13,18 +13,20 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズなし = 次フェーズ未確定**）
-3. **次フェーズの方針をユーザーへ確認する**。決まったら `/phase_start` で
-   `instructions/phase/13_<topic>/` を起票する（候補は `instructions/backlog/INDEX.md`）
-4. 既存の仕様を読む必要が出たら正本 `instructions/common/`（`codebase_map.md` / `spec_detail/`）から入る。
+2. `instructions/phase/current.md` を読む（**アクティブ = phase 13**）
+3. `instructions/phase/13_contracts_boundary_ast_coverage/phase.md` を読む
+   （**直接改訂モード = 暫定仕様なし**。設計の出発点は起票元
+   `instructions/backlog/idea_15_contracts_boundary_ast_coverage.md`）
+4. 着手するタスクの定義 `instructions/phase/13_contracts_boundary_ast_coverage/tasks/task_NN_*.md` を読む
+   （**未起票。task_01 から `/task_new` で起票してから着手する**）。
    **凍結済の暫定仕様（`instructions/history/`）の条項を実装の根拠に引かない**
 5. CLAUDE.md → `.claude/rules/` の順に必要分を読む
 6. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 12（config_service の公開面の集約）は全 3 タスク完了しフェーズ完了**（2026-09-08）。
-正本反映（`architecture.md` §3.2 / `codebase_map.md`）・暫定仕様 11 の凍結・`/refactor_check`（**不要**）まで済み。
-**次にやること = 次フェーズの方針をユーザーへ確認し `/phase_start` で `13_<topic>` を起票する**。
+**phase 13（公開面の逆戻り防止テストの検査範囲の拡張）を起票済・未着手**（全 2 タスク・2026-09-08）。
+phase 12（config_service の公開面の集約）は**完了**。
+**次にやること = task_01（検査関数の拡張と自己検証の追加）を `/task_new` で起票して実行する**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,24 +36,42 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 12 完了時点**）:
+直近の実測（**phase 12 完了時点**・phase 13 は未着手でコード差分なし）:
 compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smoke **pass**。
 **件数が減ったら退行を疑う**。skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 **同じ観点はジャンクション版のテストが実行されている**ので観点の抜けにはならない。
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
 ## 次アクション（session.md.next_action より）
-- **【最優先】次フェーズが未確定**。ユーザーへ方針確認し、決まったら `/phase_start` で
-  `instructions/phase/13_<topic>/` を起票する。**候補の筆頭 = idea_15**
-  （公開面の逆戻り防止テストの AST 検査を**完全修飾・エイリアス経路**まで拡張。
-  **テストのみ・仕様変更なし**・1 タスク規模。phase 12 の完了レビューから分離）。
-  他は idea_10（ネストしたモーダルの grab 復元）/ idea_13 / idea_09 / idea_03。
+- **【最優先】phase 13 task_01（検査関数の拡張と自己検証の追加）を `/task_new` で起票して実行する**:
+  ①`collect_forbidden_refs` に **`ast.Attribute` の連鎖を完全修飾名へ解決**する検査を足す
+  ②**`Import` / `ImportFrom` の `asname` を収集**して `cs.orphan_scan` 形を解決する
+  ③**自己検証ケースへ 3 経路の禁止例 + 対応する `contracts` の許可例**を追加
+  ④**docstring の限界記述を更新**（残る限界＝動的 import / 実行時に組み立てた名前 のみ）。
+  **実装は `codex-implementer` へ委任**（テスト実行は依頼しない）→ 実測は `verifier` → `reviewer`。
+- **誤検出を最優先で疑う**（`contracts` への完全修飾・エイリアス参照や無関係な同名属性を違反にしない）。
+  **既存アサーションを緩めない**。
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
-- **phase 12 の完了レビューの保留分**（いずれも実害なし）: L-1（`architecture.md` §3.2 が presentation 側
-  ファイル名を列挙 → 新ファイル追加のたびに陳腐化）/ L-4（`current.md` の次フェーズ候補が phase 11 完了を未反映）/
-  L-8（`__init__.py:17` の submodule import 一覧に `contracts` が無く間接 import に依存）。
+- **phase 12 の完了レビューの保留分**（実害なし）: L-1 / L-4 / L-8。
+
+## 現在のフェーズ（phase 13 = 公開面の逆戻り防止テストの検査範囲の拡張）の要点
+
+**直接改訂モード（暫定仕様なし）**。**テストのみ・プロダクション不変・仕様変更なし・実機目視なし**。
+番号対応: **phase 13 / 暫定仕様なし / decisions_archive 13**。全 2 タスク・**未着手**。
+
+- **唯一の変更対象は `tests/test_config_service_contracts.py`**。**`keyseq/` に差分を出さない**。
+- **塞ぐのは静的な 3 経路**（phase 12 の完了レビューで `deep-reviewer` と Codex が独立に指摘・実測済）:
+  ①`from keyseq.application import config_service as cs` + `cs.orphan_scan`
+  ②`import keyseq.application.config_service`（**パッケージ名ちょうど**）+
+  `keyseq.application.config_service.orphan_scan.X`
+  ③`from keyseq import application` + `application.config_service.orphan_scan`。
+- **正本 `architecture.md` §3.2 の条項は変更しない**（**検査精度を上げるだけ**）。
+- **期待値**: **テストメソッドは 3 本のまま = `tests` 417 件のまま** /
+  **現在の presentation は違反 0 件なので拡張後も全 pass**（落ちたら**誤検出**を先に疑う）。
+- **検査対象範囲は広げない**（`keyseq/presentation/` 配下の `config_service` 関連のみ。
+  `save_plan` / `keymap_service` などは対象外）。**動的 import は原理的な限界として据え置き**。
 
 ## 直前フェーズ（phase 12 = config_service の公開面の集約・**完了**）の要点
 
@@ -85,7 +105,7 @@ compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smo
   **蒸し返さない**（正本 `data_schema.md` §5.8.9 / `decisions_archive/11`）。
 
 ## 注意事項・blockers
-- **blockers: なし**（phase 12 は完了・green。次フェーズ未確定）。
+- **blockers: なし**（phase 13 は起票済・未着手。実機目視の要らないフェーズ）。
 - **【教訓・task_07b】Codex は「記録を足す」指示を「skip を増やす」方向へ広げることがある**。
   1 回目の実装で参照側の skip 条件を `islink` から `realpath != abspath` へ広げ、
   **親ディレクトリがジャンクションなら配下の全 keymap_set が参照集合から落ちる**状態を作り、
@@ -162,11 +182,10 @@ compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smo
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
   （直近 3 件: **12_config_service_public_surface** / 11_orphan_child_file_sweep / 10_reference_link_cleanup）。
   提案書「計画05」「計画06」「計画07」は完了済みで、**いずれもフェーズ番号を消費していない**。
-- 未着手/保留 idea: **idea_15**（公開面の逆戻り防止テストの AST 検査の拡張・**次フェーズ候補の筆頭**）/
-  **idea_13**（external_keyboard_layouts のパス基準の非対称・低）/
+- 未着手/保留 idea: **idea_13**（external_keyboard_layouts のパス基準の非対称・低）/
   idea_10（ネストしたモーダルの grab 復元）/ idea_11（別名保存の複製ロールバック・低）/
   idea_03（hotkey 保存正規化・低）/ idea_09（レガシー保存パス・低）/ idea_04・idea_06（保留）。
-  **idea_14 は phase 12 で完了**・**idea_12 は phase 11 で完了**・**idea_07 は phase 10 で完了**（`INDEX_done.md`）。
+  **idea_15 は phase 13 で着手中**・**idea_14 は phase 12 で完了**・**idea_12 は phase 11 で完了**・**idea_07 は phase 10 で完了**（`INDEX_done.md`）。
   **敵対的レビューが挙げた削除の TOCTOU 2 件は idea 化しない**（修正予定ではないため。
   backlog は修正予定のものを置く場所というユーザー方針。残存リスクは暫定仕様 §3-12 が正）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。

@@ -482,3 +482,30 @@ phase 11 は正本反映まで完了して閉じているため、**追加タス
 - 文末の `---` は親に残した（§5.10.4 の子には含めない）。
 - **以後の運用**: 仕様更新は**子ファイルを編集**する。節の趣旨が変わったら**親 INDEX の 1 行要約も追従**。
   新しい節は子を新規作成 + 親へ 1 行追加。子が 300 行を超えたら再分割を検討する。
+
+## 2026-09-08〜 (phase 13: 公開面の逆戻り防止テストの検査範囲の拡張・直接改訂モード)
+
+規範: [`instructions/phase/13_contracts_boundary_ast_coverage/phase.md`](../../instructions/phase/13_contracts_boundary_ast_coverage/phase.md)。
+**暫定仕様なし**。番号対応: **phase 13 / 暫定仕様なし / decisions_archive 13**。
+起票元 = [idea_15](../../instructions/backlog/idea_15_contracts_boundary_ast_coverage.md)。
+
+### 【起票時】モードの選択 = **直接改訂モード**（メイン判断・ユーザー承認 2026-09-08）
+
+`.claude/rules/spec_change_workflow.md`「モードの選択」の 3 条件（局所的 / 文言確定済み / タスク 1〜2）を
+**すべて満たす**。変更対象は `tests/test_config_service_contracts.py` **1 ファイル**で、
+**正本の条項は変更しない**（`architecture.md` §3.2 は不変で、**その検査精度を上げるだけ**）。
+仕様変更を伴わないため**暫定仕様書は起こさない**。
+
+### 【起票時】idea_15 の案 A を採用（ユーザー確定 2026-09-08）
+
+- **案 A = 検査の強化**（`ast.Attribute` の完全修飾名解決 + `asname` 追跡）。
+- **案 B = 限界記述の正確化のみ**は不採用（規約とレビューだけに依存させない）。
+- phase 12 の暫定仕様 11 は**凍結済のため後追い改訂しない**。本フェーズの判断は
+  `decisions_archive/13_contracts_boundary_ast_coverage.md` に集約する。
+
+### 【起票時】期待値の確定（メイン判断）
+
+- **テストメソッド数は 3 本のまま**（既存メソッドへケースを足す）＝ **`tests` の件数は 417 のまま**。
+  件数が増減したら設計とのズレを疑う。
+- **現在の `keyseq/presentation/` は違反 0 件**なので、拡張後も**全テストが pass する**のが前提。
+  落ちた場合は**誤検出**（`contracts` への完全修飾・エイリアス参照を違反にしていない か）を先に疑う。
