@@ -4,51 +4,47 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-08T03:05:00
-phase: **なし（11_orphan_child_file_sweep は 2026-09-08 完了 / 続く「計画08」も完了）**。次の採番 = `instructions/phase/12_<topic>` / 暫定仕様 `history/11_<topic>.md` / アーカイブ `decisions_archive/12_<topic>.md`。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
+last_updated: 2026-09-08T03:40:00
+phase: **なし（11_orphan_child_file_sweep は 2026-09-08 完了 / 続く「計画08」「計画09」も完了）**。次の採番 = `instructions/phase/12_<topic>` / 暫定仕様 `history/11_<topic>.md` / アーカイブ `decisions_archive/12_<topic>.md`。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
 last_commit_location: main @ 最新コミット = **`claude/task-06b-continuation-401967` を main へマージ**（マージ前の main 側 WIP コミット `WIP task_06b: ...` はブランチ側の `task_06b: 隔離済みの削除を新設` に完全に置き換わった）。直前の完了コミットは `task_07b: 二次レビュー指摘の反映（A-1〜A-7）`。※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 11 完了後の「計画08」（候補側ディレクトリ定数の単一定義化）まで完了。次は計画09 = `/spec_split` の計画提示**。
+focus: **phase 11 とその後始末（計画08 = 定数の単一定義化 / 計画09 = 正本の INDEX 分割）まで完了。次フェーズは未起票**。
 mode: completed
 
 ## last_action
-ts: 2026-09-08T03:05:00
+ts: 2026-09-08T03:40:00
 who: main
 summary: |
-  【**計画08 完了**】phase 11 の `/refactor_check`（= 推奨）で起票した提案書 08 の項目 1 を、
-  **独立ミニ計画「計画08」**として実施した（**フェーズ番号は消費していない**・挙動不変）。
-  - **候補側 4 ディレクトリの直値重複を解消**: `config_service/candidate_dirs.py`（**新規・葉モジュール**）へ
-    `CANDIDATE_DIRS` / `RESERVED_DIR` を集約し、`orphan_scan.py` と `quarantine_manage.py` が参照する形へ。
-    **`quarantine_manage` から `orphan_scan` を import しない**（`quarantine.py` → `orphan_scan` があるため循環）。
-  - 実装は `codex-implementer` へ委任。**メインが 1 点是正 = `CANDIDATE_DIRS[0]`〜`[3]` の添字参照を
-    `zip(_CANDIDATE_SHAPES, ..., strict=True)` へ**（タプルの添字参照は計画06 で禁止した形）。
-  - **項目 0（安全網）は既存 2 テストで十分**と判断（定数の値に依存しているため定義がズレれば落ちる）。
-    追加テスト 1 件で単一定義化そのものを固定。
-  - `reviewer` = **完了可・指摘なし**（5 観点すべて OK。添字参照の差し替えも妥当と判定）。
+  【**計画09 完了**】`/spec_split` で正本 `spec_detail/data_schema.md`（**907 行**）を INDEX 分割した
+  （**構造変更であって仕様変更ではない**・ユーザー承認済）。
+  - **§5.8（398 行）と §5.10（277 行）のみ INDEX 化**し、**§5.9 と §5.1〜§5.7 は親に残した**（分類 =
+    「特定節に集中」）。**親は 260 行**、子は `spec_detail/data_schema/` へ **13 ファイル**。
+  - **節番号・見出しは不変**（見出し **36 件が分割前後で完全一致**）。既存文書の
+    「`data_schema.md` §N.M」参照は**書き換えずに INDEX 経由で解決**する。
+  - 子は `git show 126f086:<親> | sed -n 'a,bp'` から生成（**working tree からのコピペはしない**＝CRLF の偽陽性回避）。
+    **11 件はバイト一致**。**逸脱は相対リンクの深さ 2 箇所のみ**
+    （`../../backlog/` → `../../../backlog/`。子が 1 階層深くなったため。リンク先は同一）。
+  - **以後、仕様更新は子ファイルを編集する**。趣旨が変わったら**親 INDEX の 1 行要約も追従**させる。
 result_files:
-  - keyseq/application/config_service/candidate_dirs.py（**新規**）
-  - keyseq/application/config_service/orphan_scan.py / quarantine_manage.py
-  - tests/test_orphan_scan.py（テスト 1 件追加）
-  - instructions/modified_proposal/08_refactor_orphan_child_file_sweep.md（実施済みを追記）
-  - .claude_data/state/decisions.md（「計画08」節）/ instructions/phase/current.md
+  - instructions/common/spec_detail/data_schema.md（**907 → 260 行の INDEX 化**）
+  - instructions/common/spec_detail/data_schema/ **13 ファイル**（新規）
+  - .claude_data/state/decisions.md（「計画09」節）
 verified:
-  compile: clean
-  tests: pass **414**（413 → +1・skip 7）
-  tests_ui: pass **288**（skip 0）
-  smoke: pass
-  note: `grep "user/keymaps" keyseq/` と `grep "user/hotkey_presets/global" keyseq/` は **candidate_dirs.py の 1 箇所のみ**。worktree ルートへの `user/` `quarantine/` 生成なし
-  review: **`reviewer` = 完了可・指摘なし**
+  split_byte_identity: **子 13 件中 11 件がバイト一致**（残り 2 件は相対リンクの深さ 1 行のみの差）
+  split_links: OK（INDEX 13 行のリンク先がすべて実在。子内の相対リンクも実在確認済）
+  split_headings: OK（**36 件が完全一致**）
+  tests: not_run（**文書のみの変更**。直近の実測は計画08 時点で compile clean / tests 414 / tests_ui 288 / smoke pass）
+  review: なし（`/spec_split` は機械的な構造変更で、検証は上記のバイト一致・リンク・見出し集合で代替）
 
 ## next_action
-- **【最優先】計画09 = `/spec_split` の分割計画を提示してユーザー承認を得る**（ユーザー方針で
-  **ミニ計画として実施する**ことは確定済・**計画08 とは分ける**）。対象 =
-  `instructions/common/spec_detail/data_schema.md`（**907 行**）の **§5.8（約 240 行）と §5.10（約 220 行）**。
-  手順は `.claude/commands/spec_split.md`（**節番号・見出しは変更しない** / 本文は **verbatim 外出し**で
-  **分割前コミットの該当行範囲とバイト一致**を確認 / 親には INDEX 行 + 1 行要約 / 親 1 つ分 = 1 コミット /
-  **改行コード（CRLF）に注意** / 実施を `decisions.md` へ 1 行記録）。
-- その後 **次フェーズの起票は `/phase_start`（採番 12）**。着手候補は `instructions/backlog/INDEX.md`
-  （**idea_14** = config_service の公開面へ定数・結果型を集約〔phase 10 分も対象〕/ idea_13 / idea_10 / idea_11）。
+- **【最優先】次フェーズの起票（`/phase_start`・採番 12）**。着手候補は `instructions/backlog/INDEX.md`
+  （**idea_14** = config_service の公開面へ定数・結果型を集約〔**phase 10 分も対象**・着手トリガー付き〕/
+  idea_13〔優先度低〕/ idea_10〔ネストしたモーダルの grab〕/ idea_11〔優先度低〕/
+  idea_03・idea_09〔優先度低〕/ idea_04・idea_06〔保留〕）。
+- **【正本の編集方法が変わった】** `data_schema.md` は **INDEX**。仕様更新は
+  `spec_detail/data_schema/5_08_09_orphan_sweep.md` のような**子ファイルを直接編集**し、
+  趣旨が変わったら**親の 1 行要約も直す**。新節は子を作って親へ 1 行足す。
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
@@ -57,6 +53,9 @@ verified:
 - **なし**（phase 11 は完了。コード green・実機目視完了・レビュー 2 本の指摘反映済）。
 
 ## resume_hints
+- **【計画09 の成果】正本 `data_schema.md` は **INDEX**（260 行）。**§5.8 と §5.10 の実体は
+  `spec_detail/data_schema/` 配下の 13 子ファイル**。**節番号・見出しは不変**なので
+  「`data_schema.md` §5.8.9」形式の既存参照はそのまま通じる。**更新は子ファイル側で行う**。
 - **【計画08 の成果】候補側ディレクトリの定義は `config_service/candidate_dirs.py` の
   `CANDIDATE_DIRS` / `RESERVED_DIR` が唯一**（`orphan_scan` の候補範囲と `quarantine_manage` の
   復元先ガードが同じ定義を見る）。**再定義しない・添字で結び付けない**（`zip(strict=True)` を使う）。
