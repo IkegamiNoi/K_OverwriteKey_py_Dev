@@ -42,22 +42,33 @@ compile **clean** / tests **413**（skip 7）/ tests_ui **288**（skip 0）/ smo
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
 ## 次アクション（session.md.next_action より）
-- **【次にやること】task_07（統合確認 + 実機目視）を `/task_new` で起票し、実施する**。
-  統合確認は `verifier`、二次レビューは `deep-reviewer`（フェーズ区切りのため）。
-  **実機目視の観点に必ず含める**: 「隔離実行後の `quarantine/<unit>/` の中身と `manifest.json` の
-  `state`」「`quarantine` を書込み不可にした状態での中止表示」「走査ディレクトリの追加 / 削除と
-  再起動後の保持」「**隔離 → 復元の往復で元に戻ること**」「**隔離 → 削除で実体が消えること**」
-  「**マニフェスト不正な単位の削除時に警告文が出ること**」。
-- **【v0.5 / v0.6 の確定内容】** §3-8 検証④（有効な `manifest.json`）は
+- **【最優先】実機目視をユーザーへ依頼する**。観点は
+  `instructions/phase/11_orphan_child_file_sweep/manual_check.md`（**M1〜M8 + M2b**）。
+  **M2b（隔離ルートをジャンクションにした状態での中止）は task_07b の修正確認**なので必ず含める。
+  **M5・M6 は実際にファイルを不可逆削除する**ため、事前に `config/` のバックアップを案内すること。
+  結果を受領したら **`integration_result.md` §4 へ転記**し、**task_07 を完了**とする
+  （**NG が出たら `task_07c_*` を起票**してから完了とする）。
+- **その後 task_08（正本反映・最終タスク）**。申し送りは
+  `instructions/phase/11_orphan_child_file_sweep/integration_result.md` **§5 の 14 項目**が正
+  （§5.8.1 の改訂 / §3-8 v0.5 / §3-12-6・§3-12-7 / 受け入れ条件 16・21 の是正 /
+  `codebase_map.md` の全面更新 / `path_boundary.py` と新規理由コード 3 つ /
+  §3-5 に「読めなかった走査ディレクトリ」の条文を足すかの判断 / §3-5-1 の適用範囲 ほか）。
+- task_08 の完了条件には `.claude/rules/task_execution.md`「フェーズ完了時」の一式を含める
+  （正本昇格 + 暫定仕様 10 の凍結 / `decisions_archive/11_orphan_child_file_sweep.md` /
+  `current.md` の完了記載 / `backlog/INDEX_done.md` へ idea_12 を移動 / `/refactor_check`）。
+- **【v0.5 / v0.6 の確定内容・蒸し返さない】** §3-8 検証④（有効な `manifest.json`）は
   **`allow_invalid_manifest=True` で上書き可能**（**①②③は緩和しない**）。理由 = ④を絶対条件にすると
   §3-7 により**復元も削除もできない残骸**が残り、**§4-A の判断と矛盾する**ため。
   加えて **削除の TOCTOU 2 件は受容済**（**§3-12-6 / §3-12-7**。①確認後に追加された未提示ファイルも
   消える = 削除の粒度が実行単位ディレクトリなので仕様どおり ②検証後の隔離ルート差し替え =
-  窓は関数内に限られ、塞ぐには「新規依存を足さない」と衝突）。**蒸し返さない**。
+  窓は関数内に限られ、塞ぐには「新規依存を足さない」と衝突）。
   経緯は `decisions.md`「【task_06b 起票時】」「【task_06b 完了時】」。
-- **残課題（非 blocking・未対応）**: ①`quarantine.py` の `_move_file` で `os.makedirs` がガードより前
-  ②`dropped_paths` が stored 表記へ未正規化 ③例外内容が理由コードへ落ちて失われる
-  ④`missing_scan_dirs` の表記不揃い（既定 `user/keymap_sets/` が無い場合だけ絶対パス）。
+- **【task_07 で除外した指摘（C 群 7 件）も蒸し返さない】** `integration_result.md` §3-3 C が正。
+  代表 = **走査・隔離が UI スレッドをブロックする**（phase 11 固有ではなく既存の性質）/
+  `_move_file` の `os.makedirs` がガードより前で全件拒否時に空の実行単位が残る /
+  警告一覧のパスが絶対パス + `\` 区切り。
+- **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
+  ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
 
 ## 現在のフェーズ（phase 11 = 孤児ファイルの棚卸し）の要点
