@@ -4,55 +4,72 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-08T03:40:00
-phase: **なし（11_orphan_child_file_sweep は 2026-09-08 完了 / 続く「計画08」「計画09」も完了）**。次の採番 = `instructions/phase/12_<topic>` / 暫定仕様 `history/11_<topic>.md` / アーカイブ `decisions_archive/12_<topic>.md`。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
+last_updated: 2026-09-08T04:30:00
+phase: **12_config_service_public_surface（config_service の公開面の集約）= 起票済・全 3 タスク未着手**。番号対応: phase 12 / 暫定 11 / decisions_archive 12。次採番は `instructions/phase/13_<topic>`番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
 last_commit_location: main @ 最新コミット = **`claude/task-06b-continuation-401967` を main へマージ**（マージ前の main 側 WIP コミット `WIP task_06b: ...` はブランチ側の `task_06b: 隔離済みの削除を新設` に完全に置き換わった）。直前の完了コミットは `task_07b: 二次レビュー指摘の反映（A-1〜A-7）`。※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 11 とその後始末（計画08 = 定数の単一定義化 / 計画09 = 正本の INDEX 分割）まで完了。次フェーズは未起票**。
-mode: completed
+focus: **phase 12 を起票し終えた段階。次は task_01（公開面 `contracts.py` の新設と全参照の付け替え・1 コミットの原子的変更）**。
+mode: implementing
 
 ## last_action
-ts: 2026-09-08T03:40:00
+ts: 2026-09-08T04:30:00
 who: main
 summary: |
-  【**計画09 完了**】`/spec_split` で正本 `spec_detail/data_schema.md`（**907 行**）を INDEX 分割した
-  （**構造変更であって仕様変更ではない**・ユーザー承認済）。
-  - **§5.8（398 行）と §5.10（277 行）のみ INDEX 化**し、**§5.9 と §5.1〜§5.7 は親に残した**（分類 =
-    「特定節に集中」）。**親は 260 行**、子は `spec_detail/data_schema/` へ **13 ファイル**。
-  - **節番号・見出しは不変**（見出し **36 件が分割前後で完全一致**）。既存文書の
-    「`data_schema.md` §N.M」参照は**書き換えずに INDEX 経由で解決**する。
-  - 子は `git show 126f086:<親> | sed -n 'a,bp'` から生成（**working tree からのコピペはしない**＝CRLF の偽陽性回避）。
-    **11 件はバイト一致**。**逸脱は相対リンクの深さ 2 箇所のみ**
-    （`../../backlog/` → `../../../backlog/`。子が 1 階層深くなったため。リンク先は同一）。
-  - **以後、仕様更新は子ファイルを編集する**。趣旨が変わったら**親 INDEX の 1 行要約も追従**させる。
+  【**phase 12 起票**】idea_14 を昇格し、**暫定仕様 11 → phase 12** を起票した（**実装は未着手**）。
+  - **モードは暫定仕様先行**（複数ファイルに跨る / タスク 3 以上）。暫定仕様 11 を **v0.1 → v0.3** まで進め、
+    **ユーザー確定済（実装着手可）**にした。
+  - **レビュー 2 本を通した**: 起票時 `deep-reviewer` = **修正して採用（High 2 / Medium 7）**、
+    確定前 `codex-adversarial-reviewer` = **needs-attention（Medium 1）**。**全件を裏取りして反映**。
+    - **H-1**: `SOURCE_REDIRECTED` 等は**定義元で未使用**のため「定義だけ先に移す」段階が green にならない
+      → **1 コミットの原子的変更**へ再構成。
+    - **H-2**: `from .contracts import NAME` では `hasattr` が真のままで固定テストが書けない
+      → **`from . import contracts` + `contracts.NAME`**（既存 house style）へ統一。
+    - **Codex**: AST 検査が `from keyseq.application.config_service import orphan_scan` 形と
+      `__init__.py:17` 由来の属性経路を**見逃す** → **4 経路の検査 + 限界の明記 + 自己検証ケース**へ。
+  - **§4-A〜D をユーザー確定**（`contracts.py` / 1 ファイル集約 / テストは実装モジュール直参照可 /
+    型注釈は触らない）。
+  - **`codebase_map.md` の取りこぼしを先行是正**（`candidate_dirs.py` の行が無く件数も 11 のままだった＝
+    **計画08 の取りこぼし**。phase 12 の作業に混ぜず単独で直した）。
+  - `reviewer` による **phase.md の整合確認 = 完了可・指摘なし**。
 result_files:
-  - instructions/common/spec_detail/data_schema.md（**907 → 260 行の INDEX 化**）
-  - instructions/common/spec_detail/data_schema/ **13 ファイル**（新規）
-  - .claude_data/state/decisions.md（「計画09」節）
+  - instructions/history/11_config_service_public_surface.md（**新規・v0.3・ユーザー確定済**）
+  - instructions/phase/12_config_service_public_surface/phase.md（**新規**）
+  - instructions/phase/current.md（参照先の差し替え + 次採番）/ instructions/backlog/INDEX.md（idea_14 = 着手）
+  - instructions/common/codebase_map.md（`candidate_dirs.py` の行追加 + 件数 11 → 12）
+  - .claude_data/state/decisions.md（phase 12 節）
 verified:
-  split_byte_identity: **子 13 件中 11 件がバイト一致**（残り 2 件は相対リンクの深さ 1 行のみの差）
-  split_links: OK（INDEX 13 行のリンク先がすべて実在。子内の相対リンクも実在確認済）
-  split_headings: OK（**36 件が完全一致**）
-  tests: not_run（**文書のみの変更**。直近の実測は計画08 時点で compile clean / tests 414 / tests_ui 288 / smoke pass）
-  review: なし（`/spec_split` は機械的な構造変更で、検証は上記のバイト一致・リンク・見出し集合で代替）
+  compile: not_run（**文書のみ**。コード変更なし。直近の実測は計画08 時点で tests 414 / tests_ui 288 / smoke pass）
+  review: **`deep-reviewer`（起票時）= 修正して採用 → 反映済** / **`codex-adversarial-reviewer`（確定前）= needs-attention → 反映済** / **`reviewer`（phase.md 整合）= 完了可・指摘なし**
 
 ## next_action
-- **【最優先】次フェーズの起票（`/phase_start`・採番 12）**。着手候補は `instructions/backlog/INDEX.md`
-  （**idea_14** = config_service の公開面へ定数・結果型を集約〔**phase 10 分も対象**・着手トリガー付き〕/
-  idea_13〔優先度低〕/ idea_10〔ネストしたモーダルの grab〕/ idea_11〔優先度低〕/
-  idea_03・idea_09〔優先度低〕/ idea_04・idea_06〔保留〕）。
-- **【正本の編集方法が変わった】** `data_schema.md` は **INDEX**。仕様更新は
-  `spec_detail/data_schema/5_08_09_orphan_sweep.md` のような**子ファイルを直接編集**し、
-  趣旨が変わったら**親の 1 行要約も直す**。新節は子を作って親へ 1 行足す。
+- **【最優先】task_01 を `/task_new` で起票し、実装を委任する**（既定 = `codex-implementer`）。
+  内容 = **`contracts.py` 新設 + 定数 34 / 型 9 の定義移動 + 全参照の付け替え**
+  （application 5 モジュール / presentation 5 ファイル / `tests`・`tests_ui` の **22 文 +
+  `manage.QuarantineUnit(...)` のような属性参照形**）。**1 コミットの原子的変更**。
+  - **委任前に着手時の基準件数を `verifier` で実測**して暫定仕様 §5-7 へ記入する
+    （直近は tests 414 / tests_ui 288 だが、着手時点で再測する運用）。
+  - **参照形式は `from . import contracts` + `contracts.NAME`**（`from .contracts import NAME` は不可）。
+- その後 **task_02（逆戻り防止テスト 2 本）→ task_03（正本反映・フェーズ完了処理）**。
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
 
 ## blockers
-- **なし**（phase 11 は完了。コード green・実機目視完了・レビュー 2 本の指摘反映済）。
+- **なし**（phase 12 は起票済・実装未着手。コードは green）。
 
 ## resume_hints
+- **【phase 12 の規範は暫定仕様 11（未凍結・v0.3）】** `instructions/history/11_config_service_public_surface.md`。
+  フェーズ中は正本 `spec_detail/` を直接改訂しない（昇格は task_03）。要点だけ再掲 =
+  ①**公開面 = `config_service/contracts.py`**（新設・`config_service` 内の他モジュールを import しない）
+  ②**定義そのものを移す**（再輸出を作らない）③**参照は `from . import contracts` + `contracts.NAME`**
+  （`from .contracts import NAME` は**不可**。名前が再束縛されて固定テストが書けない）
+  ④**置くのは「presentation へ出す種類」= 判定名・理由コード・結果型（定数 34 / 型 9）**。
+  内部表現（`QUARANTINE_DIR_NAME` / `UNIT_ID_PATTERN` / `ENTRY_*` / `CANDIDATE_DIRS`）は残す
+  ⑤**移行は 1 コミットの原子的変更**（`SOURCE_REDIRECTED` 等は定義元で未使用のため段階分割できない）
+  ⑥**逆戻り防止テストは 4 経路**（R1: パッケージ直下からのモジュール名 import / R2: サブモジュール指定 /
+  R3: `ast.Import` / 属性アクセス `config_service.orphan_scan`）+ **自己検証ケース**。動的 import は対象外
+  ⑦**値の重複（`"invalid_unit_id"` / `"no_manifest"`）を統合しない**（ラベル分岐が壊れる）。
 - **【計画09 の成果】正本 `data_schema.md` は **INDEX**（260 行）。**§5.8 と §5.10 の実体は
   `spec_detail/data_schema/` 配下の 13 子ファイル**。**節番号・見出しは不変**なので
   「`data_schema.md` §5.8.9」形式の既存参照はそのまま通じる。**更新は子ファイル側で行う**。

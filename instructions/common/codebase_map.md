@@ -261,7 +261,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 
 ### ConfigService（`application/config_service/` パッケージ）
 
-**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 11 ファイル:
+**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 12 ファイル:
 
 | ファイル | 責務 |
 |---|---|
@@ -275,6 +275,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 | `orphan_scan.py` | **走査と孤児判定**（phase 11）。候補側の列挙と形状検証 / 保護対象の適用 / 判定名 4 種 / `normalize_scan_dirs` |
 | `quarantine.py` | **隔離**（phase 11）。隔離ルートの遅延作成・**マニフェストの原子書込み（移動より先）**・1 件ずつの移動 |
 | `quarantine_manage.py` | **隔離の管理**（phase 11）。実行単位の一覧 / 復元 / **削除**（実行単位 ID + 4 検証・不可逆） |
+| `candidate_dirs.py` | **候補側ディレクトリの唯一の定義**（`CANDIDATE_DIRS` / `RESERVED_DIR`。計画08 で新設）。**孤児判定の対象範囲**（`orphan_scan`）と**復元先ガードの許可範囲**（`quarantine_manage`）が同じ定義を見る。片方だけ変えると「隔離はできるが復元できない」ズレが出るため。**添字で結び付けない**（`zip(strict=True)` を使う） |
 | `path_boundary.py` | **`is_real_path_within` の唯一の定義**（実体〔realpath〕基準の境界判定。ジャンクションを解決する）。**リダイレクト判定 `_is_redirected` は `quarantine.py` / `quarantine_manage.py` が各自持ち、`ConfigService.is_path_within` は別物**（比較専用の表記判定で**同一パスも配下と判定する**）。`orphan_scan` / `quarantine` / `quarantine_manage` が import する。**再定義しない**（`quarantine.py` → `orphan_scan` の import があるため逆向きは循環になる） |
 
 - **`ConfigService` 本体を `config_service.py` へ移してはならない**。テストが

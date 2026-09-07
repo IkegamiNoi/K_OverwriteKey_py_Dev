@@ -6,12 +6,14 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（**次の採番 = `instructions/phase/12_<topic>`** / 暫定仕様は
-  `instructions/history/11_<topic>.md` / アーカイブは `decisions_archive/12_<topic>.md`）。
-  次フェーズの起票は `/phase_start`。着手候補は `instructions/backlog/INDEX.md`
-  （**未着手の最有力 = [idea_14](../backlog/idea_14_config_service_public_surface.md)**〔着手トリガー付き〕/
-  [idea_13](../backlog/idea_13_external_layout_path_base_asymmetry.md)〔優先度低〕/
-  [idea_10](../backlog/idea_10_nested_modal_grab_restore.md) / [idea_11](../backlog/idea_11_save_as_preset_copy_rollback.md)）。
+- **アクティブなフェーズ: [12_config_service_public_surface](12_config_service_public_surface/phase.md)**
+  （**config_service の公開面の集約**・2026-09-08 起票）。
+  主入力 = [暫定仕様 11](../history/11_config_service_public_surface.md)（**v0.3・ユーザー確定済**）。
+  モード: **暫定仕様先行**。番号対応: **phase 12 / 暫定 11 / decisions_archive 12**。
+  起票元 = [idea_14](../backlog/idea_14_config_service_public_surface.md)。
+  到達範囲 = **公開面 `contracts.py` の新設と定義の移動（挙動不変のリファクタ）**。
+  **スキーマ変更なし・実機目視なし**。判断は `decisions.md` の phase 12 節。
+  **進捗: 未着手（全 3 タスク）→ 次は task_01（公開面の新設と全参照の付け替え・1 コミットの原子的変更）**。
 - 直前の完了フェーズ: [11_orphan_child_file_sweep](../../.claude_data/state/decisions_archive/11_orphan_child_file_sweep.md)
   （**2026-09-08 完了**・孤児ファイルの棚卸し。**本アプリ初のディレクトリ走査かつ初のファイル削除機能**。
   全 8 タスク + 枝番 3〔task_05b / 06b / 07b〕。実機目視 **M1〜M8 + M2b 全件期待どおり**。
@@ -41,16 +43,20 @@
 
 ## 次採番
 
-- **phase 11 が進行中**。次フェーズは **`12_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 12 が進行中**（phase 11 は 2026-09-08 完了）。次フェーズは **`13_<topic>`**
+  （欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
   04〜10 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
   08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
-  10=孤児ファイルの棚卸し〔**v0.4・未凍結・phase 11 の主入力**〕）。
-  次採番は **`11_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**07 まで起票済**
-  （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07**）・次採番は **`08_<topic>`**。
+  10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
+  11=config_service の公開面〔**v0.3・未凍結・phase 12 の主入力**〕）。
+  次採番は **`12_<topic>`**。
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**08 まで起票済**
+  （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08**）・
+  次採番は **`09_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  規範は `.claude/commands/spec_split.md`）。
 
 ## 次フェーズ候補（参考）
 

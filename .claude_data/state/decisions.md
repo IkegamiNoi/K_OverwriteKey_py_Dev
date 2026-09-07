@@ -482,3 +482,48 @@ phase 11 は正本反映まで完了して閉じているため、**追加タス
 - **以後の運用**: 仕様更新は**子ファイルを編集**する。節の趣旨が変わったら**親 INDEX の 1 行要約も追従**。
   新しい節は子を新規作成 + 親へ 1 行追加。子が 300 行を超えたら再分割を検討する。
 
+## 2026-09-08〜 (phase 12: config_service の公開面の集約・暫定仕様 11)
+
+規範: [`instructions/history/11_config_service_public_surface.md`](../../instructions/history/11_config_service_public_surface.md)
+（**v0.3・ユーザー確定済**）。番号対応: **phase 12 / 暫定 11 / decisions_archive 12**。
+起票元 = [idea_14](../../instructions/backlog/idea_14_config_service_public_surface.md)。
+
+### 【起票時の確定】§4-A〜D（ユーザー 2026-09-08）— **採用**
+
+- **§4-A モジュール名 = `contracts.py`**（`results.py` は実態〔8 割が定数〕とずれ、
+  `public_api.py` は関数群を連想させるため不採用）。
+- **§4-B 粒度 = 1 ファイルに集約**（定数 34 + dataclass 9 で 120〜140 行見込み。300 行超で分割）。
+- **§4-C テストは実装モジュールの直接 import を許す**（ただし**移した定数・型は `contracts` から取る**）。
+  `patch.object(quarantine_module.os, ...)` のような monkeypatch 用のモジュール参照を残せるため。
+  **(a)(b) で書き換え量はほぼ同じ**（v0.1 の「(b) だけ 20 箇所増える」は誤りで、レビューで訂正）。
+- **§4-D `ConfigService` の型注釈は触らない**（別の関心事。混ぜると差分の意図が読みにくい）。
+
+### 【起票時レビュー】`deep-reviewer` = 修正して採用（High 2 / Medium 7）— **全件反映**（v0.2）
+
+- **H-1 = 移行を段階分割できない**。`SOURCE_REDIRECTED` / `SOURCE_DIRECTORY_UNREADABLE` は
+  **定義元 `reference_scan.py:10-11` で未使用**（書き手は `orphan_scan.py:168,179` のモジュール属性参照）。
+  「定義だけ先に移す」段階で旧 import が `ImportError` になり、途中段階が green にならない。
+  → **定義移動と全参照の付け替えを 1 タスク・1 コミットの原子的変更**にした（4 段階 → 3 段階）。
+- **H-2 = `from .contracts import NAME` では固定テストが書けない**（名前が実装モジュールへ再束縛され
+  `hasattr` が真のまま）。→ **既存 house style `from . import contracts` + `contracts.NAME` に統一**
+  （`path_boundary` / `candidate_dirs` と同形。固定テストも `assertIs` + `hasattr` 偽）。
+- 員数の訂正（**contracts へ置くのは定数 34 / 型 9**。v0.1 の 33 / 8 は presentation の import 束縛数との
+  取り違え）/「何も import しない」→「`config_service` 内の他モジュールを import しない」（dataclass のため
+  stdlib は要る）/ 正本反映の取りこぼし（`architecture.md` の idea_14 追跡行 / `codebase_map.md` の件数）。
+
+### 【確定前レビュー】`codex-adversarial-reviewer` = needs-attention（Medium 1）— **修正して採用**（v0.3）
+
+**AST 検査に穴があった**。接頭辞 `keyseq.application.config_service.` だけを見ると
+**`from keyseq.application.config_service import orphan_scan` 形**（`tests/test_orphan_scan.py:8-10` に実在）を
+見逃す。加えて **`__init__.py:17` が内部モジュールを属性公開**しているため
+`config_service.orphan_scan.<名前>` の経路も残る。
+→ §3-4 を **R1〜R3 + 属性アクセスの 4 経路**へ拡張し、**動的 import は検出できない限界を明記**、
+**禁止パターンを与えて検査関数が落とすことを確認する自己検証ケース**を必須にした。
+あわせて移行対象へ**属性参照形（`manage.QuarantineUnit(...)`）**を明記し、tests の直参照を 21 → **22 文**へ補正。
+
+### 【起票時】`codebase_map.md` の取りこぼしを先行是正（メイン判断 2026-09-08）
+
+レビューが検出。`:264` が「11 ファイル」のままで、**計画08 で新設した `candidate_dirs.py` の行が無かった**
+（`instructions/common/` 全体に記載 0 件）。**計画08 の取りこぼし**なので phase 12 の作業に混ぜず、
+**起票と同時に是正**した（件数 11 → 12 + 行の追加）。phase 12 では `contracts.py` の追加と 12 → 13 のみ扱う。
+

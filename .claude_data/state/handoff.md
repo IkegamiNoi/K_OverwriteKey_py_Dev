@@ -13,18 +13,21 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無し。次採番 = 12**）
-3. 次フェーズを起票するなら `/phase_start`（採番 12）。着手候補は `instructions/backlog/INDEX.md`
-4. 既存機能に触るなら**正本 `instructions/common/spec_detail/` が正**
-   （phase 11 の成果は `data_schema.md` **§5.8.9**。**暫定仕様 10 は凍結済で条項を根拠に引かない**）
+2. `instructions/phase/current.md` を読む（**アクティブ = phase 12**）
+3. `instructions/phase/12_config_service_public_surface/phase.md` と、**主入力の暫定仕様**
+   `instructions/history/11_config_service_public_surface.md`（**v0.3・ユーザー確定済**）を読む。
+   **フェーズ中は正本 `spec_detail/` を直接改訂しない**（昇格は最終タスク task_03）
+4. 着手するタスクの定義 `instructions/phase/12_config_service_public_surface/tasks/task_NN_*.md` を読む
+   （**未起票。`/task_new` で起票してから着手する**）
 5. CLAUDE.md → `.claude/rules/` の順に必要分を読む
 6. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
 **phase 11（孤児ファイルの棚卸し）は 2026-09-08 に完了**し、続く**「計画08」（候補側ディレクトリ定数の
 単一定義化・挙動不変）も完了**。正本へ昇格済・暫定仕様 10 は凍結済。**アクティブなフェーズは無い**（次採番 = 12）。
-**計画09（`/spec_split` による正本 `data_schema.md` の INDEX 分割）も完了**。
-**次にやること = 次フェーズの起票**（`/phase_start`・採番 12）。
+**phase 12（config_service の公開面の集約）を起票済・実装は未着手**（全 3 タスク）。
+**次にやること = task_01 の起票（`/task_new`）と実装委任**
+= `contracts.py` の新設 + 定数 34 / 型 9 の定義移動 + 全参照の付け替え（**1 コミットの原子的変更**）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -41,11 +44,12 @@ compile **clean** / tests **413**（skip 7）/ tests_ui **288**（skip 0）/ smo
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
 ## 次アクション（session.md.next_action より）
-- **【最優先】次フェーズの起票（`/phase_start`・採番 12）**。着手候補は `instructions/backlog/INDEX.md`
-  （**idea_14** = config_service の公開面へ定数・結果型を集約〔phase 10 分も対象〕/ idea_13 / idea_10 / idea_11）。
-  - 済: **提案書 08 =「計画08」として実施・完了** / **計画09 = `data_schema.md` の INDEX 分割も完了**
-    （2026-09-08）/ **候補側リンクを無音で落とす挙動は「契約として明記のまま」でユーザー確定**
-    （正本 §5.8.9 の制約 12）。
+- **【最優先】phase 12 task_01 を `/task_new` で起票し、`codex-implementer` へ委任する**。
+  **委任前に `verifier` で基準件数を実測**して暫定仕様 §5-7 へ記入する。
+  **参照形式は `from . import contracts` + `contracts.NAME`**（`from .contracts import NAME` は不可）。
+  その後 task_02（逆戻り防止テスト）→ task_03（正本反映・フェーズ完了処理）。
+  - 済（2026-09-08）: **phase 11 完了** / **計画08**（候補側ディレクトリ定数の単一定義化）/
+    **計画09**（`data_schema.md` の INDEX 分割）/ **phase 12 の起票**（暫定仕様 11 = v0.3・確定済）。
 - **次フェーズの起票は `/phase_start`（採番 12）**。着手候補は `instructions/backlog/INDEX.md`
   （**idea_14** = config_service の公開面へ定数・結果型を集約〔phase 10 分も対象・着手トリガー付き〕/
   idea_13 / idea_10 / idea_11 はいずれも優先度低）。
@@ -65,6 +69,26 @@ compile **clean** / tests **413**（skip 7）/ tests_ui **288**（skip 0）/ smo
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
+
+## 現在のフェーズ（phase 12 = config_service の公開面の集約）の要点
+
+**規範は暫定仕様 11（未凍結・v0.3・ユーザー確定済）**。**挙動不変のリファクタ**でスキーマ変更なし・**実機目視なし**。
+番号対応: **phase 12 / 暫定 11 / decisions_archive 12**。全 3 タスク（**すべて未着手**）。
+- **公開面 = `config_service/contracts.py`**（新設・`config_service` 内の他モジュールを import しない。
+  stdlib は可）。**定義そのものを移す**（再輸出を作らない）。
+- **参照は `from . import contracts` + `contracts.NAME`**（既存 house style。
+  **`from .contracts import NAME` は不可** = 名前が実装モジュールへ再束縛され `hasattr` の固定テストが書けない）。
+- **置くのは「presentation へ出す種類」= 判定名・理由コード・結果型（定数 34 / 型 9）**。
+  内部表現（`QUARANTINE_DIR_NAME` / `MANIFEST_FILE_NAME` / `UNIT_ID_PATTERN` / `ENTRY_*` /
+  `CANDIDATE_DIRS`）は実装側に残す。
+- **移行は 1 コミットの原子的変更**（`SOURCE_REDIRECTED` / `SOURCE_DIRECTORY_UNREADABLE` は
+  **定義元 `reference_scan.py` で未使用**なので、定義だけ先に移すと旧 import が `ImportError` になる）。
+  付け替え対象は import 22 文 + **属性参照形 `manage.QuarantineUnit(...)`** + 型注釈の相互参照。
+- **逆戻り防止テストは 4 経路**（R1 = `from keyseq.application.config_service import orphan_scan` 形 /
+  R2 = サブモジュール指定 / R3 = `ast.Import` / 属性アクセス `config_service.orphan_scan`）+
+  **自己検証ケース**。**動的 import は検出できない**と明記済。
+- **値の重複（`"invalid_unit_id"` / `"no_manifest"`）は意図的で統合しない**（ラベル分岐が壊れる）。
+- **phase 10 由来の分（`reference_cleanup_*`）も同時に変換する**（2 形式を併存させない）。
 
 ## 直前フェーズ（phase 11 = 孤児ファイルの棚卸し・**完了**）の要点
 
