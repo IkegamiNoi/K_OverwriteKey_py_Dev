@@ -1,33 +1,19 @@
 from collections import Counter
 
-from keyseq.application.config_service.quarantine_manage import (
-    DELETE_FAILED,
-    DELETE_REJECTED_INVALID_ID,
-    DELETE_REJECTED_IS_ROOT,
-    DELETE_REJECTED_NO_MANIFEST,
-    QuarantineDeleteResult,
-    RESTORE_ABORTED_INVALID_ID,
-    RESTORE_ABORTED_NO_MANIFEST,
-    RESTORE_FAILED,
-    RESTORE_REJECTED_TARGET,
-    RESTORE_SKIPPED_EXISTS,
-    RESTORE_SOURCE_MISSING,
-    QuarantineRestoreResult,
-    QuarantineUnit,
-)
+from keyseq.application.config_service import contracts
 
 
 _REASON_LABELS = {
-    RESTORE_SKIPPED_EXISTS: "復元先に同名ファイルがあります",
-    RESTORE_REJECTED_TARGET: "復元先が対象外です",
-    RESTORE_SOURCE_MISSING: "隔離側にファイルがありません（復元済み等）",
-    RESTORE_FAILED: "復元できませんでした",
-    RESTORE_ABORTED_INVALID_ID: "実行単位 ID が不正、または実在しません",
-    RESTORE_ABORTED_NO_MANIFEST: "マニフェストが読めません",
+    contracts.RESTORE_SKIPPED_EXISTS: "復元先に同名ファイルがあります",
+    contracts.RESTORE_REJECTED_TARGET: "復元先が対象外です",
+    contracts.RESTORE_SOURCE_MISSING: "隔離側にファイルがありません（復元済み等）",
+    contracts.RESTORE_FAILED: "復元できませんでした",
+    contracts.RESTORE_ABORTED_INVALID_ID: "実行単位 ID が不正、または実在しません",
+    contracts.RESTORE_ABORTED_NO_MANIFEST: "マニフェストが読めません",
 }
 
 
-def format_unit_list(units: tuple[QuarantineUnit, ...]) -> tuple[str, ...]:
+def format_unit_list(units: tuple[contracts.QuarantineUnit, ...]) -> tuple[str, ...]:
     """実行単位の表示行を、入力と同じ順で返す。"""
     return tuple(
         f"{unit.unit_id}  作成: {unit.created_at}  残り {unit.remaining_count}/{unit.entry_count} 件"
@@ -36,7 +22,7 @@ def format_unit_list(units: tuple[QuarantineUnit, ...]) -> tuple[str, ...]:
     )
 
 
-def format_restore_plan(unit: QuarantineUnit) -> tuple[str, ...]:
+def format_restore_plan(unit: contracts.QuarantineUnit) -> tuple[str, ...]:
     """確認用に実行単位と実体の残数、同名ファイルの扱いを示す。"""
     return (
         *format_unit_list((unit,)),
@@ -45,7 +31,7 @@ def format_restore_plan(unit: QuarantineUnit) -> tuple[str, ...]:
     )
 
 
-def format_restore_result(result: QuarantineRestoreResult) -> tuple[str, ...]:
+def format_restore_result(result: contracts.QuarantineRestoreResult) -> tuple[str, ...]:
     """実績と理由別件数を示し、保存表記のまま各ファイルを列挙する。"""
     lines: list[str] = []
     if result.aborted_reason:
@@ -64,7 +50,7 @@ def format_restore_result(result: QuarantineRestoreResult) -> tuple[str, ...]:
 
 
 def format_delete_plan(
-    unit: QuarantineUnit, paths: tuple[str, ...], *, manifest_valid: bool,
+    unit: contracts.QuarantineUnit, paths: tuple[str, ...], *, manifest_valid: bool,
 ) -> tuple[str, ...]:
     """不可逆の警告と全件を、保存表記のまま提示する。"""
     lines = ["この操作は取り消せません。", f"削除する実行単位: {unit.unit_id}"]
@@ -75,17 +61,17 @@ def format_delete_plan(
     return tuple(lines)
 
 
-def format_delete_result(result: QuarantineDeleteResult) -> tuple[str, ...]:
+def format_delete_result(result: contracts.QuarantineDeleteResult) -> tuple[str, ...]:
     """拒否と I/O の部分失敗を区別し、未知コードも表示する。"""
     if result.deleted:
         return (f"削除しました: {result.unit_id}",)
     labels = {
-        DELETE_REJECTED_INVALID_ID: "実行単位 ID が不正、または実在しません",
-        DELETE_REJECTED_IS_ROOT: "隔離ルート自身、または隔離ルート外を指しています",
-        DELETE_REJECTED_NO_MANIFEST: "マニフェストが読めません",
-        DELETE_FAILED: "削除できませんでした",
+        contracts.DELETE_REJECTED_INVALID_ID: "実行単位 ID が不正、または実在しません",
+        contracts.DELETE_REJECTED_IS_ROOT: "隔離ルート自身、または隔離ルート外を指しています",
+        contracts.DELETE_REJECTED_NO_MANIFEST: "マニフェストが読めません",
+        contracts.DELETE_FAILED: "削除できませんでした",
     }
     reason = labels.get(result.aborted_reason, result.aborted_reason)
-    notice = ("一部が削除されている可能性があります。" if result.aborted_reason == DELETE_FAILED
+    notice = ("一部が削除されている可能性があります。" if result.aborted_reason == contracts.DELETE_FAILED
               else "削除していません。")
     return (f"削除を中止しました: {reason}", notice)

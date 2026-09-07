@@ -1,49 +1,24 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 from typing import Any
 
-
-CLEANUP_TARGET = "target"
-CLEANUP_ALL_STALE = "all_stale"
-CLEANUP_PROTECTED = "protected"
-CLEANUP_SKIP = "skip"
-
-PRUNE_FAILURE_UNREADABLE = "unreadable"
-PRUNE_FAILURE_INVALID_DATA = "invalid_data"
-PRUNE_FAILURE_SAVE_FAILED = "save_failed"
-
-
-@dataclass(frozen=True)
-class ParentRefsCleanupInspection:
-    kind: str
-    stored_path: str
-    alive_refs: tuple[str, ...]
-    stale_refs: tuple[str, ...]
-    protected_refs: tuple[str, ...]
-    state: str
-
-
-@dataclass(frozen=True)
-class ParentRefsPruneResult:
-    updated_files: tuple[tuple[str, int], ...]
-    failed_files: tuple[tuple[str, str], ...]
+from . import contracts
 
 
 def prune_parent_refs(
     service,
-    inspections: list[ParentRefsCleanupInspection],
+    inspections: list[contracts.ParentRefsCleanupInspection],
     *,
     runtime: Any,
     config_root: str,
     keymap_set_path: str,
-) -> ParentRefsPruneResult:
+) -> contracts.ParentRefsPruneResult:
     """検査済みの子JSONから、読み直し時点で陳腐化した参照元だけを除去する。"""
     updated_files: list[tuple[str, int]] = []
     failed_files: list[tuple[str, str]] = []
     for inspection in inspections:
-        if inspection.state not in (CLEANUP_TARGET, CLEANUP_ALL_STALE):
+        if inspection.state not in (contracts.CLEANUP_TARGET, contracts.CLEANUP_ALL_STALE):
             continue
         removed_count, failure_reason = _prune_inspection(
             service,
@@ -56,7 +31,7 @@ def prune_parent_refs(
             failed_files.append((inspection.stored_path, failure_reason))
         elif removed_count:
             updated_files.append((inspection.stored_path, removed_count))
-    return ParentRefsPruneResult(
+    return contracts.ParentRefsPruneResult(
         updated_files=tuple(updated_files),
         failed_files=tuple(failed_files),
     )
@@ -64,7 +39,7 @@ def prune_parent_refs(
 
 def _prune_inspection(
     service,
-    inspection: ParentRefsCleanupInspection,
+    inspection: contracts.ParentRefsCleanupInspection,
     runtime: Any,
     *,
     config_root: str,
@@ -73,9 +48,9 @@ def _prune_inspection(
     resolved_path = service.resolve_config_path(inspection.stored_path, config_root)
     data = service._load_optional_json(resolved_path)
     if data is None:
-        return 0, PRUNE_FAILURE_UNREADABLE
+        return 0, contracts.PRUNE_FAILURE_UNREADABLE
     if not isinstance(data, dict):
-        return 0, PRUNE_FAILURE_INVALID_DATA
+        return 0, contracts.PRUNE_FAILURE_INVALID_DATA
 
     refs = service._normalize_parent_refs(data.get(service.PARENT_REFS_KEY))
     if refs is None:
@@ -99,7 +74,7 @@ def _prune_inspection(
     try:
         service.repository.save_json(resolved_path, data)
     except Exception:
-        return 0, PRUNE_FAILURE_SAVE_FAILED
+        return 0, contracts.PRUNE_FAILURE_SAVE_FAILED
     return len(stale_refs), ""
 
 
@@ -109,9 +84,9 @@ def inspect_parent_refs(
     *,
     config_root: str,
     keymap_set_path: str,
-) -> list[ParentRefsCleanupInspection]:
+) -> list[contracts.ParentRefsCleanupInspection]:
     """現在の runtime が参照する子の陳腐化した参照元を検査する。"""
-    inspections: list[ParentRefsCleanupInspection] = []
+    inspections: list[contracts.ParentRefsCleanupInspection] = []
     seen_paths: set[str] = set()
     for kind, stored_path in _iter_child_paths(service, runtime):
         canonical_stored_path = service.canonical_path(stored_path, config_root)
@@ -126,7 +101,7 @@ def inspect_parent_refs(
             config_root=config_root,
             keymap_set_path=keymap_set_path,
         )
-        if inspection.state != CLEANUP_SKIP:
+        if inspection.state != contracts.CLEANUP_SKIP:
             inspections.append(inspection)
     return inspections
 
@@ -167,18 +142,18 @@ def _inspect_child(
     *,
     config_root: str,
     keymap_set_path: str,
-) -> ParentRefsCleanupInspection:
+) -> contracts.ParentRefsCleanupInspection:
     refs = service.read_parent_refs(
         service.resolve_config_path(stored_path, config_root)
     )
     if refs is None or refs == []:
-        return ParentRefsCleanupInspection(
+        return contracts.ParentRefsCleanupInspection(
             kind=kind,
             stored_path=stored_path,
             alive_refs=(),
             stale_refs=(),
             protected_refs=(),
-            state=CLEANUP_SKIP,
+            state=contracts.CLEANUP_SKIP,
         )
 
     protected_path = _protected_parent_path(
@@ -195,7 +170,7 @@ def _inspect_child(
     )
 
     state = _cleanup_state(alive_refs, stale_refs, protected_refs)
-    return ParentRefsCleanupInspection(
+    return contracts.ParentRefsCleanupInspection(
         kind=kind,
         stored_path=stored_path,
         alive_refs=tuple(alive_refs),
@@ -248,12 +223,12 @@ def _cleanup_state(
     protected_refs: list[str],
 ) -> str:
     if stale_refs and not alive_refs and not protected_refs:
-        return CLEANUP_ALL_STALE
+        return contracts.CLEANUP_ALL_STALE
     if stale_refs:
-        return CLEANUP_TARGET
+        return contracts.CLEANUP_TARGET
     if protected_refs:
-        return CLEANUP_PROTECTED
-    return CLEANUP_SKIP
+        return contracts.CLEANUP_PROTECTED
+    return contracts.CLEANUP_SKIP
 
 
 def _nonempty_path(value: Any) -> str:

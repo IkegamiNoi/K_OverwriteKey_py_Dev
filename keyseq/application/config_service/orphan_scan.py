@@ -1,50 +1,25 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 
+from . import contracts
 from . import reference_scan, split_loading
 from . import candidate_dirs, path_boundary
 
 
-ORPHAN_CANDIDATE = "candidate"
-ORPHAN_REFERENCED = "referenced"
-ORPHAN_PROTECTED = "protected"
-ORPHAN_EXCLUDED = "excluded"
-
-KIND_KEYMAP = "keymap"
-KIND_TRIGGER_SET = "trigger_set"
-KIND_SEQUENCE = "sequence"
-KIND_HOTKEY_PRESETS = "hotkey_presets"
-
 # 形状検証の対応（種別・必須キー・型）。ディレクトリは candidate_dirs が正で、
 # 並びの対応は zip(strict=True) が保証する（添字で結び付けない）。
 _CANDIDATE_SHAPES = (
-    (KIND_KEYMAP, "mappings", dict),
-    (KIND_TRIGGER_SET, "triggers", list),
-    (KIND_SEQUENCE, "actions", list),
-    (KIND_HOTKEY_PRESETS, "hotkey_presets", list),
+    (contracts.KIND_KEYMAP, "mappings", dict),
+    (contracts.KIND_TRIGGER_SET, "triggers", list),
+    (contracts.KIND_SEQUENCE, "actions", list),
+    (contracts.KIND_HOTKEY_PRESETS, "hotkey_presets", list),
 )
 _CANDIDATE_SPECS = tuple(
     (kind, directory, required_key, required_type)
     for (kind, required_key, required_type), directory
     in zip(_CANDIDATE_SHAPES, candidate_dirs.CANDIDATE_DIRS, strict=True)
 )
-
-
-@dataclass(frozen=True)
-class OrphanEntry:
-    kind: str
-    stored_path: str
-    state: str
-
-
-@dataclass(frozen=True)
-class OrphanScanResult:
-    entries: tuple[OrphanEntry, ...]
-    unreadable_sources: tuple[tuple[str, str], ...]
-    non_keymap_set_sources: tuple[str, ...]
-    missing_scan_dirs: tuple[str, ...]
 
 
 def collect_protected_paths(service, runtime, *, keymap_set_path: str) -> tuple[str, ...]:
@@ -95,7 +70,7 @@ def scan_orphans(
     startup_keymap_set_path: str,
     current_keymap_set_path: str,
     protected_paths: list[str],
-) -> OrphanScanResult:
+) -> contracts.OrphanScanResult:
     """参照元を走査し、既定ディレクトリの子JSONを読み出し専用で分類する。"""
     unreadable_sources: list[tuple[str, str]] = []
     paths, missing_dirs = _collect_source_paths(
@@ -107,7 +82,7 @@ def scan_orphans(
     referenced = set(references.referenced)
     referenced.update(_canonical_paths(service, [global_path], config_root))
     protected = _canonical_paths(service, protected_paths, config_root)
-    return OrphanScanResult(
+    return contracts.OrphanScanResult(
         entries=_collect_entries(service, config_root, referenced, protected),
         unreadable_sources=tuple(unreadable_sources) + references.unreadable_sources,
         non_keymap_set_sources=references.non_keymap_set_sources,
@@ -165,7 +140,7 @@ def _list_json_files(
         if unreadable_sources is not None:
             unreadable_sources.append((
                 service.to_config_relative_or_absolute(resolved_dir, config_root),
-                reference_scan.SOURCE_DIRECTORY_UNREADABLE,
+                contracts.SOURCE_DIRECTORY_UNREADABLE,
             ))
         return []
     for filename in filenames:
@@ -176,7 +151,7 @@ def _list_json_files(
             if unreadable_sources is not None and os.path.islink(absolute_path):
                 unreadable_sources.append((
                     service.to_config_relative_or_absolute(absolute_path, config_root),
-                    reference_scan.SOURCE_REDIRECTED,
+                    contracts.SOURCE_REDIRECTED,
                 ))
             continue
         paths.append(absolute_path)
@@ -195,15 +170,15 @@ def _canonical_paths(service, paths: list[str], config_root: str) -> set[str]:
 
 def _collect_entries(
     service, config_root: str, referenced: set[str], protected: set[str],
-) -> tuple[OrphanEntry, ...]:
-    entries: list[OrphanEntry] = []
+) -> tuple[contracts.OrphanEntry, ...]:
+    entries: list[contracts.OrphanEntry] = []
     for kind, directory, required_key, required_type in _CANDIDATE_SPECS:
         for absolute_path in _list_json_files(service, directory, config_root):
             state = _classify_candidate(
                 service, absolute_path, config_root, referenced, protected,
                 required_key, required_type,
             )
-            entries.append(OrphanEntry(
+            entries.append(contracts.OrphanEntry(
                 kind=kind,
                 stored_path=service.to_config_relative_or_absolute(absolute_path, config_root),
                 state=state,
@@ -222,12 +197,12 @@ def _classify_candidate(
 ) -> str:
     canonical_path = service.canonical_path(absolute_path, config_root)
     if canonical_path in protected:
-        return ORPHAN_PROTECTED
+        return contracts.ORPHAN_PROTECTED
     if canonical_path in referenced:
-        return ORPHAN_REFERENCED
+        return contracts.ORPHAN_REFERENCED
     if not path_boundary.is_real_path_within(absolute_path, config_root):
-        return ORPHAN_EXCLUDED
+        return contracts.ORPHAN_EXCLUDED
     data = service._load_optional_json(absolute_path)
     if not isinstance(data, dict) or not isinstance(data.get(required_key), required_type):
-        return ORPHAN_EXCLUDED
-    return ORPHAN_CANDIDATE
+        return contracts.ORPHAN_EXCLUDED
+    return contracts.ORPHAN_CANDIDATE

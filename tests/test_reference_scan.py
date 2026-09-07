@@ -4,9 +4,11 @@ import unittest
 from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService
-from keyseq.application.config_service.reference_scan import (
+from keyseq.application.config_service.contracts import (
     SOURCE_MISSING,
     SOURCE_UNREADABLE,
+)
+from keyseq.application.config_service.reference_scan import (
     collect_reference_paths,
 )
 from keyseq.infrastructure.json_repository import JsonRepository

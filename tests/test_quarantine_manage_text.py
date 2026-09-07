@@ -1,6 +1,6 @@
 import unittest
 
-from keyseq.application.config_service import quarantine_manage as manage
+from keyseq.application.config_service import contracts
 from keyseq.presentation.quarantine_manage_text import (
     format_delete_plan, format_delete_result,
     format_restore_plan, format_restore_result, format_unit_list,
@@ -9,10 +9,10 @@ from keyseq.presentation.quarantine_manage_text import (
 
 class QuarantineManageTextTest(unittest.TestCase):
     def setUp(self):
-        self.unit = manage.QuarantineUnit("20260906_101500", "2026-09-06T10:15:00", 3, 2, True)
+        self.unit = contracts.QuarantineUnit("20260906_101500", "2026-09-06T10:15:00", 3, 2, True)
 
     def test_unit_lines_keep_order_date_and_counts_and_mark_invalid_manifest(self):
-        invalid = manage.QuarantineUnit("20260906_101500_2", "", 0, 0, False)
+        invalid = contracts.QuarantineUnit("20260906_101500_2", "", 0, 0, False)
         lines = format_unit_list((self.unit, invalid))
         self.assertEqual(len(lines), 2)
         self.assertEqual(lines[0], "20260906_101500  作成: 2026-09-06T10:15:00  残り 2/3 件")
@@ -26,10 +26,10 @@ class QuarantineManageTextTest(unittest.TestCase):
         self.assertIn("上書きせずスキップ", lines[2])
 
     def test_result_groups_skip_reasons_and_keeps_unknown_codes(self):
-        reasons = (manage.RESTORE_SKIPPED_EXISTS, manage.RESTORE_SKIPPED_EXISTS,
-                   manage.RESTORE_REJECTED_TARGET, manage.RESTORE_SOURCE_MISSING,
-                   manage.RESTORE_FAILED, "future_code")
-        result = manage.QuarantineRestoreResult(
+        reasons = (contracts.RESTORE_SKIPPED_EXISTS, contracts.RESTORE_SKIPPED_EXISTS,
+                   contracts.RESTORE_REJECTED_TARGET, contracts.RESTORE_SOURCE_MISSING,
+                   contracts.RESTORE_FAILED, "future_code")
+        result = contracts.QuarantineRestoreResult(
             self.unit.unit_id, (("keymap", "user/keymaps/MixedCase.json"),),
             tuple((f"user/keymaps/{index}.json", reason) for index, reason in enumerate(reasons)),
             False, "",
@@ -45,8 +45,8 @@ class QuarantineManageTextTest(unittest.TestCase):
         self.assertEqual(lines[-1], "実行単位は残っています。")
 
     def test_abort_notice_comes_first_with_zero_restores(self):
-        for reason in (manage.RESTORE_ABORTED_INVALID_ID, manage.RESTORE_ABORTED_NO_MANIFEST, "unknown"):
-            lines = format_restore_result(manage.QuarantineRestoreResult("id", (), (), False, reason))
+        for reason in (contracts.RESTORE_ABORTED_INVALID_ID, contracts.RESTORE_ABORTED_NO_MANIFEST, "unknown"):
+            lines = format_restore_result(contracts.QuarantineRestoreResult("id", (), (), False, reason))
             self.assertTrue(lines[0].startswith("復元を中止しました:"))
             self.assertEqual(lines[1], "1 件も戻していません。")
             if reason == "unknown":
@@ -78,17 +78,17 @@ class QuarantineManageTextTest(unittest.TestCase):
 
     def test_delete_result_labels_success_rejections_failure_and_unknown_code(self):
         # 確認 17
-        success = manage.QuarantineDeleteResult(self.unit.unit_id, True, "")
+        success = contracts.QuarantineDeleteResult(self.unit.unit_id, True, "")
         self.assertEqual(format_delete_result(success), (f"削除しました: {self.unit.unit_id}",))
-        labels = ((manage.DELETE_REJECTED_INVALID_ID, "実行単位 ID が不正、または実在しません"),
-                  (manage.DELETE_REJECTED_IS_ROOT, "隔離ルート自身、または隔離ルート外を指しています"),
-                  (manage.DELETE_REJECTED_NO_MANIFEST, "マニフェストが読めません"),
-                  (manage.DELETE_FAILED, "削除できませんでした"), ("future_code", "future_code"))
+        labels = ((contracts.DELETE_REJECTED_INVALID_ID, "実行単位 ID が不正、または実在しません"),
+                  (contracts.DELETE_REJECTED_IS_ROOT, "隔離ルート自身、または隔離ルート外を指しています"),
+                  (contracts.DELETE_REJECTED_NO_MANIFEST, "マニフェストが読めません"),
+                  (contracts.DELETE_FAILED, "削除できませんでした"), ("future_code", "future_code"))
         for reason, label in labels:
             with self.subTest(reason=reason):
-                lines = format_delete_result(manage.QuarantineDeleteResult(self.unit.unit_id, False, reason))
+                lines = format_delete_result(contracts.QuarantineDeleteResult(self.unit.unit_id, False, reason))
                 self.assertIn(label, lines[0])
-                if reason == manage.DELETE_FAILED:
+                if reason == contracts.DELETE_FAILED:
                     self.assertIn("一部が削除されている可能性があります。", lines)
                 else:
                     self.assertIn("削除していません。", lines)
@@ -97,9 +97,9 @@ class QuarantineManageTextTest(unittest.TestCase):
         # 確認 18
         stored = "quarantine/20260906_101500/Nested/./MixedCase.json"
         outputs = [format_delete_plan(self.unit, (stored,), manifest_valid=valid) for valid in (True, False)]
-        for reason in ("", manage.DELETE_REJECTED_INVALID_ID, manage.DELETE_REJECTED_IS_ROOT,
-                       manage.DELETE_REJECTED_NO_MANIFEST, manage.DELETE_FAILED, "future_code"):
-            outputs.append(format_delete_result(manage.QuarantineDeleteResult(self.unit.unit_id, not reason, reason)))
+        for reason in ("", contracts.DELETE_REJECTED_INVALID_ID, contracts.DELETE_REJECTED_IS_ROOT,
+                       contracts.DELETE_REJECTED_NO_MANIFEST, contracts.DELETE_FAILED, "future_code"):
+            outputs.append(format_delete_result(contracts.QuarantineDeleteResult(self.unit.unit_id, not reason, reason)))
         for output in outputs:
             self.assertIsInstance(output, tuple)
             self.assertTrue(all(isinstance(line, str) for line in output))
@@ -110,7 +110,7 @@ class QuarantineManageTextTest(unittest.TestCase):
 
     def test_functions_return_string_tuples_without_converting_stored_paths(self):
         stored = "user/keymaps/./MixedCase.json"
-        result = manage.QuarantineRestoreResult("id", (("keymap", stored),), (), True, "")
+        result = contracts.QuarantineRestoreResult("id", (("keymap", stored),), (), True, "")
         outputs = (format_unit_list((self.unit,)), format_restore_plan(self.unit), format_restore_result(result))
         for output in outputs:
             self.assertIsInstance(output, tuple)

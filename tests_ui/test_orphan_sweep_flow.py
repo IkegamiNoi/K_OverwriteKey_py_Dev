@@ -9,12 +9,12 @@ from pathlib import Path
 from tkinter import ttk
 from unittest.mock import Mock, patch
 
-from keyseq.application.config_service.orphan_scan import (
+from keyseq.application.config_service.contracts import (
     KIND_KEYMAP, ORPHAN_CANDIDATE, ORPHAN_PROTECTED, ORPHAN_REFERENCED,
     OrphanEntry, OrphanScanResult,
 )
-from keyseq.application.config_service.quarantine import QuarantineResult
-from keyseq.application.config_service.reference_scan import SOURCE_UNREADABLE
+from keyseq.application.config_service.contracts import QuarantineResult
+from keyseq.application.config_service.contracts import SOURCE_UNREADABLE
 from keyseq.application.save_plan import SavePlan
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import orphan_sweep_io as sweep_module

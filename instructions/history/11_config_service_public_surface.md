@@ -214,7 +214,9 @@
    **禁止パターンを検出できることの自己検証ケース**を持つ（§3-4）。
 6. **`tests` / `tests_ui` でも、移した定数・型は `contracts` から import している**（§4-C の但し書き）。
 7. `tests` / `tests_ui` / smoke が**着手時の実測件数（追加分を除く）から減らずに pass** し、
-   `compileall` が clean。**基準件数は着手時に `verifier` が実測して本節へ記入する**。
+   `compileall` が clean。**着手時の基準件数（`verifier` 実測 2026-09-08・task_01 着手時）=
+   `tests` 414（skip 7）/ `tests_ui` 288（skip 0）/ smoke pass / compileall clean**。
+   （task_02 で逆戻り防止テストを 2 本追加するため、フェーズ完了時の期待値は `tests` 416。）
 8. 正本 `architecture.md` §3.2 から**例外条項と idea_14 の追跡行が消え**、
    公開面が「`ConfigService` + `contracts`」と規定されている（**`config_service` 限定表現を保つ**・§3-3）。
 9. `codebase_map.md` の `config_service` パッケージ表に **`contracts.py` の行があり、件数表記が実体と一致**する。

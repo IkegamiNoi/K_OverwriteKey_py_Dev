@@ -4,59 +4,66 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-08T04:30:00
-phase: **12_config_service_public_surface（config_service の公開面の集約）= 起票済・全 3 タスク未着手**。番号対応: phase 12 / 暫定 11 / decisions_archive 12。次採番は `instructions/phase/13_<topic>`番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
+last_updated: 2026-09-08T05:20:00
+phase: **12_config_service_public_surface（config_service の公開面の集約）= task_01 完了 / 残り task_02・task_03**。番号対応: phase 12 / 暫定 11 / decisions_archive 12。次採番は `instructions/phase/13_<topic>`番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
 last_commit_location: main @ 最新コミット = **`claude/task-06b-continuation-401967` を main へマージ**（マージ前の main 側 WIP コミット `WIP task_06b: ...` はブランチ側の `task_06b: 隔離済みの削除を新設` に完全に置き換わった）。直前の完了コミットは `task_07b: 二次レビュー指摘の反映（A-1〜A-7）`。※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 12 を起票し終えた段階。次は task_01（公開面 `contracts.py` の新設と全参照の付け替え・1 コミットの原子的変更）**。
+focus: **phase 12 は task_01（公開面の新設と全参照の付け替え）まで完了。次は task_02（逆戻り防止テスト 2 本）**。
 mode: implementing
 
 ## last_action
-ts: 2026-09-08T04:30:00
+ts: 2026-09-08T05:20:00
 who: main
 summary: |
-  【**phase 12 起票**】idea_14 を昇格し、**暫定仕様 11 → phase 12** を起票した（**実装は未着手**）。
-  - **モードは暫定仕様先行**（複数ファイルに跨る / タスク 3 以上）。暫定仕様 11 を **v0.1 → v0.3** まで進め、
-    **ユーザー確定済（実装着手可）**にした。
-  - **レビュー 2 本を通した**: 起票時 `deep-reviewer` = **修正して採用（High 2 / Medium 7）**、
-    確定前 `codex-adversarial-reviewer` = **needs-attention（Medium 1）**。**全件を裏取りして反映**。
-    - **H-1**: `SOURCE_REDIRECTED` 等は**定義元で未使用**のため「定義だけ先に移す」段階が green にならない
-      → **1 コミットの原子的変更**へ再構成。
-    - **H-2**: `from .contracts import NAME` では `hasattr` が真のままで固定テストが書けない
-      → **`from . import contracts` + `contracts.NAME`**（既存 house style）へ統一。
-    - **Codex**: AST 検査が `from keyseq.application.config_service import orphan_scan` 形と
-      `__init__.py:17` 由来の属性経路を**見逃す** → **4 経路の検査 + 限界の明記 + 自己検証ケース**へ。
-  - **§4-A〜D をユーザー確定**（`contracts.py` / 1 ファイル集約 / テストは実装モジュール直参照可 /
-    型注釈は触らない）。
-  - **`codebase_map.md` の取りこぼしを先行是正**（`candidate_dirs.py` の行が無く件数も 11 のままだった＝
-    **計画08 の取りこぼし**。phase 12 の作業に混ぜず単独で直した）。
-  - `reviewer` による **phase.md の整合確認 = 完了可・指摘なし**。
+  【**phase 12 task_01 完了**】公開面 `config_service/contracts.py` を新設し、
+  **定数 34 / 型 9 の定義を移して全参照を一度に付け替えた**（**挙動不変**・1 コミットの原子的変更）。
+  - 実装は `codex-implementer` へ委任。**変更 22 ファイル**（application 5 / presentation 5 /
+    tests 8 / tests_ui 3 / 新規 1）。
+  - **メインが差分を裏取り**（Codex の自己申告を信用しない）: 前コミット `aaf6d58` と全定数値を比較して
+    **消えた定数・値の変更なし** / dataclass のフィールド・デコレータに**差異なし**（型の総数 10 で不変）/
+    実装側に残ったのは `quarantine` の内部仕様 6 個 + `orphan_scan` の private 2 個で**仕様どおり** /
+    実装 5 本すべて **`from . import contracts`**（禁止形の `from .contracts import NAME` なし）/
+    presentation に**内部モジュールへの import が 0 件**。
+  - **`"invalid_unit_id"` / `"no_manifest"` の意図的な重複は保持**（統合するとラベル分岐が壊れる）。
+  - `contracts.py` は **126 行・import は `__future__` と `dataclasses` のみ**（葉モジュール）。
+  - 着手時の基準件数（tests 414 / tests_ui 288）を暫定仕様 §5-7 へ記入した。
 result_files:
-  - instructions/history/11_config_service_public_surface.md（**新規・v0.3・ユーザー確定済**）
-  - instructions/phase/12_config_service_public_surface/phase.md（**新規**）
-  - instructions/phase/current.md（参照先の差し替え + 次採番）/ instructions/backlog/INDEX.md（idea_14 = 着手）
-  - instructions/common/codebase_map.md（`candidate_dirs.py` の行追加 + 件数 11 → 12）
-  - .claude_data/state/decisions.md（phase 12 節）
+  - keyseq/application/config_service/contracts.py（**新規**・定数 34 / 型 9）
+  - keyseq/application/config_service/{parent_refs_cleanup,reference_scan,orphan_scan,quarantine,quarantine_manage}.py
+  - keyseq/presentation/{orphan_sweep_text,quarantine_manage_text,reference_cleanup_text}.py /
+    controllers/config_io/{orphan_sweep_io,reference_cleanup_io}.py
+  - tests 8 ファイル / tests_ui 3 ファイル（import と属性参照形の付け替え）
+  - instructions/phase/12_config_service_public_surface/tasks/task_01_contracts_module.md（新規）
+  - instructions/history/11_config_service_public_surface.md（§5-7 へ基準件数を記入）
 verified:
-  compile: not_run（**文書のみ**。コード変更なし。直近の実測は計画08 時点で tests 414 / tests_ui 288 / smoke pass）
-  review: **`deep-reviewer`（起票時）= 修正して採用 → 反映済** / **`codex-adversarial-reviewer`（確定前）= needs-attention → 反映済** / **`reviewer`（phase.md 整合）= 完了可・指摘なし**
+  compile: clean
+  tests: pass **414**（skip 7・**基準値と同値＝退行なし**）
+  tests_ui: pass **288**（skip 0）
+  smoke: pass
+  note: worktree ルートへ `user/` `quarantine/` の生成なし。presentation から内部モジュールへの参照は 0 件（grep の 1 件は `ConfigService` の委譲メソッド呼び出し）
+  review: **`reviewer` = 完了可**。非ブロッキング 1 件（`tests/test_orphan_sweep_text.py` の `contracts` import が 3 ブロックに分かれたまま）→ **task_02 の差分で統合する**
 
 ## next_action
-- **【最優先】task_01 を `/task_new` で起票し、実装を委任する**（既定 = `codex-implementer`）。
-  内容 = **`contracts.py` 新設 + 定数 34 / 型 9 の定義移動 + 全参照の付け替え**
-  （application 5 モジュール / presentation 5 ファイル / `tests`・`tests_ui` の **22 文 +
-  `manage.QuarantineUnit(...)` のような属性参照形**）。**1 コミットの原子的変更**。
-  - **委任前に着手時の基準件数を `verifier` で実測**して暫定仕様 §5-7 へ記入する
-    （直近は tests 414 / tests_ui 288 だが、着手時点で再測する運用）。
-  - **参照形式は `from . import contracts` + `contracts.NAME`**（`from .contracts import NAME` は不可）。
-- その後 **task_02（逆戻り防止テスト 2 本）→ task_03（正本反映・フェーズ完了処理）**。
+- **【最優先】task_02（逆戻り防止テスト 2 本）を `/task_new` で起票して実装する**。暫定仕様 §3-4 が正:
+  ①**共有モジュール参照の固定**（5 モジュールで `assertIs(module.contracts, contracts)` +
+  **移した名前の `hasattr` が偽**。見本は `tests/test_orphan_scan.py` の
+  `test_real_boundary_uses_shared_module_without_legacy_alias`）
+  ②**presentation の参照先の AST 走査**（**R1** = `from keyseq.application.config_service import orphan_scan` 形 /
+  **R2** = サブモジュール指定 / **R3** = `ast.Import` / **属性アクセス** `config_service.orphan_scan`。
+  **検査対象は `config_service` 関連のみ**〔`save_plan` 等は対象外〕/ **動的 import は検出できないと明記** /
+  **禁止パターンを与えて検査関数が落ちることを確認する自己検証ケース**を必ず置く）。
+  - **ついでに `tests/test_orphan_sweep_text.py` の `contracts` import 3 ブロックを 1 つへ統合する**
+    （task_01 のレビュー指摘・非ブロッキング）。
+- その後 **task_03（正本反映・フェーズ完了処理）**。`architecture.md` §3.2 の例外条項と idea_14 追跡行の削除 /
+  `codebase_map.md` へ `contracts.py`（件数 12 → 13）/ 暫定仕様 11 の凍結 / `decisions_archive/12_*` /
+  `current.md` の完了記載 / idea_14 を `INDEX_done.md` へ / `/refactor_check`。
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
 
 ## blockers
-- **なし**（phase 12 は起票済・実装未着手。コードは green）。
+- **なし**（phase 12 task_01 まで green。実機目視は不要なフェーズ）。
 
 ## resume_hints
 - **【phase 12 の規範は暫定仕様 11（未凍結・v0.3）】** `instructions/history/11_config_service_public_surface.md`。

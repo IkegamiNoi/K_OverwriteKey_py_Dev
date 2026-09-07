@@ -1,6 +1,6 @@
 import unittest
 
-from keyseq.application.config_service.parent_refs_cleanup import (
+from keyseq.application.config_service.contracts import (
     CLEANUP_ALL_STALE,
     CLEANUP_PROTECTED,
     CLEANUP_TARGET,

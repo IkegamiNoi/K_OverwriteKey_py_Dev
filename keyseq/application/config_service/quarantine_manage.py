@@ -2,47 +2,9 @@ from __future__ import annotations
 
 import os
 import shutil
-from dataclasses import dataclass
 
+from . import contracts
 from . import candidate_dirs, path_boundary, quarantine
-
-
-RESTORE_SKIPPED_EXISTS = "already_exists"
-RESTORE_REJECTED_TARGET = "rejected_target"
-RESTORE_SOURCE_MISSING = "source_missing"
-RESTORE_FAILED = "restore_failed"
-RESTORE_ABORTED_INVALID_ID = "invalid_unit_id"
-RESTORE_ABORTED_NO_MANIFEST = "no_manifest"
-
-DELETE_REJECTED_INVALID_ID = "invalid_unit_id"
-DELETE_REJECTED_IS_ROOT = "is_quarantine_root"
-DELETE_REJECTED_NO_MANIFEST = "no_manifest"
-DELETE_FAILED = "delete_failed"
-
-
-@dataclass(frozen=True)
-class QuarantineUnit:
-    unit_id: str
-    created_at: str
-    entry_count: int
-    remaining_count: int
-    manifest_valid: bool
-
-
-@dataclass(frozen=True)
-class QuarantineRestoreResult:
-    unit_id: str
-    restored: tuple[tuple[str, str], ...]
-    skipped: tuple[tuple[str, str], ...]
-    unit_removed: bool
-    aborted_reason: str
-
-
-@dataclass(frozen=True)
-class QuarantineDeleteResult:
-    unit_id: str
-    deleted: bool
-    aborted_reason: str
 
 
 def _is_redirected(path: str) -> bool:
@@ -111,22 +73,22 @@ def _remaining_count(service, entries: list, config_root: str, unit_dir: str) ->
     return remaining
 
 
-def list_quarantine_units(service, *, config_root: str) -> tuple[QuarantineUnit, ...]:
+def list_quarantine_units(service, *, config_root: str) -> tuple[contracts.QuarantineUnit, ...]:
     """実在する直下の実行単位を、マニフェスト不正も含めて昇順に返す。"""
     root = quarantine.quarantine_root(config_root)
     if not os.path.isdir(root) or _is_redirected(root):
         return ()
-    units: list[QuarantineUnit] = []
+    units: list[contracts.QuarantineUnit] = []
     for unit_id in sorted(os.listdir(root)):
         unit_dir = _unit_directory(unit_id, config_root)
         if not unit_dir:
             continue
         manifest = _read_manifest(service, unit_dir)
         if manifest is None:
-            units.append(QuarantineUnit(unit_id, "", 0, 0, False))
+            units.append(contracts.QuarantineUnit(unit_id, "", 0, 0, False))
             continue
         entries = manifest["entries"]
-        units.append(QuarantineUnit(
+        units.append(contracts.QuarantineUnit(
             unit_id, _entry_text(manifest, "created_at"), len(entries),
             _remaining_count(service, entries, config_root, unit_dir), True,
         ))
@@ -153,18 +115,18 @@ def _restore_entry(service, entry, config_root: str, unit_dir: str) -> str:
     try:
         source = _source_path(service, entry, config_root, unit_dir)
         if not source or not os.path.exists(source):
-            return RESTORE_SOURCE_MISSING
+            return contracts.RESTORE_SOURCE_MISSING
         target = service.resolve_config_path(_entry_text(entry, "original_path"), config_root)
         if not _target_is_allowed(service, target, config_root):
-            return RESTORE_REJECTED_TARGET
+            return contracts.RESTORE_REJECTED_TARGET
         if os.path.lexists(target):
-            return RESTORE_SKIPPED_EXISTS
+            return contracts.RESTORE_SKIPPED_EXISTS
         if not os.path.isfile(source):
-            return RESTORE_FAILED
+            return contracts.RESTORE_FAILED
         os.makedirs(os.path.dirname(target), exist_ok=True)
         shutil.move(source, target)
     except (OSError, ValueError, shutil.Error):
-        return RESTORE_FAILED
+        return contracts.RESTORE_FAILED
     return ""
 
 
@@ -204,14 +166,14 @@ def _cleanup_unit(unit_dir: str) -> bool:
 
 def restore_quarantine_unit(
     service, unit_id: str, *, config_root: str,
-) -> QuarantineRestoreResult:
+) -> contracts.QuarantineRestoreResult:
     """1 件ずつ戻し、部分失敗と後始末の結果を保存表記で返す。"""
     unit_dir = _unit_directory(unit_id, config_root)
     if not unit_dir:
-        return QuarantineRestoreResult(unit_id, (), (), False, RESTORE_ABORTED_INVALID_ID)
+        return contracts.QuarantineRestoreResult(unit_id, (), (), False, contracts.RESTORE_ABORTED_INVALID_ID)
     manifest = _read_manifest(service, unit_dir)
     if manifest is None:
-        return QuarantineRestoreResult(unit_id, (), (), False, RESTORE_ABORTED_NO_MANIFEST)
+        return contracts.QuarantineRestoreResult(unit_id, (), (), False, contracts.RESTORE_ABORTED_NO_MANIFEST)
     restored: list[tuple[str, str]] = []
     skipped: list[tuple[str, str]] = []
     for entry in manifest["entries"]:
@@ -221,7 +183,7 @@ def restore_quarantine_unit(
             skipped.append((original, reason))
         else:
             restored.append((_entry_text(entry, "kind"), original))
-    return QuarantineRestoreResult(
+    return contracts.QuarantineRestoreResult(
         unit_id, tuple(restored), tuple(skipped), _cleanup_unit(unit_dir), "",
     )
 
@@ -229,20 +191,20 @@ def restore_quarantine_unit(
 def _delete_directory(service, unit_id: str, config_root: str) -> tuple[str, str]:
     """①②、③の順で検証する。manifest の許可で境界を緩和しない。"""
     if not isinstance(unit_id, str) or quarantine.UNIT_ID_PATTERN.fullmatch(unit_id) is None:
-        return "", DELETE_REJECTED_INVALID_ID
+        return "", contracts.DELETE_REJECTED_INVALID_ID
     root = quarantine.quarantine_root(config_root)
     path = os.path.join(root, unit_id)
     try:
         if not os.path.isdir(path) or os.path.dirname(path) != root:
-            return "", DELETE_REJECTED_INVALID_ID
+            return "", contracts.DELETE_REJECTED_INVALID_ID
         if (service.canonical_path(path, config_root) == service.canonical_path(root, config_root)
                 or service.canonical_path(os.path.realpath(path), config_root)
                 == service.canonical_path(os.path.realpath(root), config_root)
                 or not path_boundary.is_real_path_within(path, root)
                 or _is_redirected(root)):
-            return "", DELETE_REJECTED_IS_ROOT
+            return "", contracts.DELETE_REJECTED_IS_ROOT
     except (OSError, ValueError):
-        return "", DELETE_REJECTED_IS_ROOT
+        return "", contracts.DELETE_REJECTED_IS_ROOT
     return path, ""
 
 
@@ -267,13 +229,13 @@ def collect_unit_paths(service, unit_id: str, *, config_root: str) -> tuple[str,
 
 def delete_quarantine_unit(
     service, unit_id: str, *, config_root: str, allow_invalid_manifest: bool = False,
-) -> QuarantineDeleteResult:
+) -> contracts.QuarantineDeleteResult:
     """ID から再検証し、通常削除する。リンクの参照先は削除しない。"""
     unit_dir, reason = _delete_directory(service, unit_id, config_root)
     if reason:
-        return QuarantineDeleteResult(unit_id, False, reason)
+        return contracts.QuarantineDeleteResult(unit_id, False, reason)
     if _read_manifest(service, unit_dir) is None and not allow_invalid_manifest:
-        return QuarantineDeleteResult(unit_id, False, DELETE_REJECTED_NO_MANIFEST)
+        return contracts.QuarantineDeleteResult(unit_id, False, contracts.DELETE_REJECTED_NO_MANIFEST)
     try:
         if os.path.islink(unit_dir):
             os.unlink(unit_dir)
@@ -281,10 +243,10 @@ def delete_quarantine_unit(
             # Python 3.14 の rmtree は子の symlink / junction を辿らない。
             shutil.rmtree(unit_dir)
     except (OSError, ValueError, shutil.Error):
-        return QuarantineDeleteResult(unit_id, False, DELETE_FAILED)
+        return contracts.QuarantineDeleteResult(unit_id, False, contracts.DELETE_FAILED)
     try:
         os.rmdir(quarantine.quarantine_root(config_root))
     except OSError:
         # 他の単位が残る場合も含む。単位の削除成功とは分けて扱う。
-        return QuarantineDeleteResult(unit_id, True, "")
-    return QuarantineDeleteResult(unit_id, True, "")
+        return contracts.QuarantineDeleteResult(unit_id, True, "")
+    return contracts.QuarantineDeleteResult(unit_id, True, "")

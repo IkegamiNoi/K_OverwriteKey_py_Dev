@@ -5,7 +5,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from keyseq.application.config_service import ConfigService
+from keyseq.application.config_service import ConfigService, contracts
 from keyseq.application.config_service import quarantine, quarantine_manage as manage
 from keyseq.infrastructure.json_repository import JsonRepository
 
@@ -67,7 +67,7 @@ class QuarantineManageTest(unittest.TestCase):
         self._write(unit_dir.parent / "20260906_101500_3", "not a directory")
         units = self._list()
         self.assertEqual(tuple(unit.unit_id for unit in units), (UNIT, UNIT + "_200"))
-        self.assertEqual(units[0], manage.QuarantineUnit(UNIT, "2026-09-06T10:15:00", 2, 1, True))
+        self.assertEqual(units[0], contracts.QuarantineUnit(UNIT, "2026-09-06T10:15:00", 2, 1, True))
         self.assertEqual(units[1].remaining_count, 1)
 
     def test_invalid_manifests_are_listed_and_restore_does_not_touch_them(self):
@@ -79,9 +79,9 @@ class QuarantineManageTest(unittest.TestCase):
                 self._write(unit_dir / "manifest.json", payload)
         before = self._snapshot()
         for unit in self._list():
-            self.assertEqual(unit, manage.QuarantineUnit(unit.unit_id, "", 0, 0, False))
+            self.assertEqual(unit, contracts.QuarantineUnit(unit.unit_id, "", 0, 0, False))
             self.assertEqual(self._restore(unit.unit_id).aborted_reason,
-                             manage.RESTORE_ABORTED_NO_MANIFEST)
+                             contracts.RESTORE_ABORTED_NO_MANIFEST)
         self.assertEqual(len(self._list()), 4)
         self.assertEqual(self._snapshot(), before)
 
@@ -114,7 +114,7 @@ class QuarantineManageTest(unittest.TestCase):
         self._write(self._path(CHILD), "existing")
         manifest_bytes = (unit_dir / "manifest.json").read_bytes()
         result = self._restore()
-        self.assertEqual(result.skipped, ((CHILD, manage.RESTORE_SKIPPED_EXISTS),))
+        self.assertEqual(result.skipped, ((CHILD, contracts.RESTORE_SKIPPED_EXISTS),))
         self.assertEqual(result.restored, ())
         self.assertFalse(result.unit_removed)
         self.assertEqual(self._path(CHILD).read_text(encoding="utf-8"), "existing")
@@ -128,7 +128,7 @@ class QuarantineManageTest(unittest.TestCase):
         unit_dir, _ = self._unit(paths)
         before = self._snapshot()
         result = self._restore()
-        self.assertEqual(result.skipped, tuple((path, manage.RESTORE_REJECTED_TARGET) for path in paths))
+        self.assertEqual(result.skipped, tuple((path, contracts.RESTORE_REJECTED_TARGET) for path in paths))
         self.assertEqual(result.restored, ())
         self.assertFalse(result.unit_removed)
         self.assertTrue(unit_dir.exists())
@@ -147,7 +147,7 @@ class QuarantineManageTest(unittest.TestCase):
 
         with patch.object(manage.shutil, "move", side_effect=move):
             result = self._restore()
-        self.assertEqual(result.skipped, ((CHILD, manage.RESTORE_FAILED),))
+        self.assertEqual(result.skipped, ((CHILD, contracts.RESTORE_FAILED),))
         self.assertEqual(result.restored, (("keymap", second),))
         self.assertFalse(result.unit_removed)
         self.assertTrue(unit_dir.exists())
@@ -162,10 +162,10 @@ class QuarantineManageTest(unittest.TestCase):
         self.assertEqual(first.restored, (("keymap", CHILD),))
         self.assertEqual((unit_dir / "manifest.json").read_bytes(), manifest_bytes)
         second = self._restore()
-        self.assertEqual(second.skipped, ((CHILD, manage.RESTORE_SOURCE_MISSING),))
+        self.assertEqual(second.skipped, ((CHILD, contracts.RESTORE_SOURCE_MISSING),))
         self.assertEqual(second.restored, ())
         self.assertTrue(second.unit_removed)
-        self.assertEqual(self._restore().aborted_reason, manage.RESTORE_ABORTED_INVALID_ID)
+        self.assertEqual(self._restore().aborted_reason, contracts.RESTORE_ABORTED_INVALID_ID)
 
     def test_invalid_ids_do_not_read_manifest_or_modify_anything(self):
         self._unit()
@@ -174,13 +174,13 @@ class QuarantineManageTest(unittest.TestCase):
                    "20260906_111111", UNIT + "\n", None)
         with patch.object(self.service, "_load_optional_json") as read:
             for unit_id in invalid:
-                self.assertEqual(self._restore(unit_id).aborted_reason, manage.RESTORE_ABORTED_INVALID_ID)
+                self.assertEqual(self._restore(unit_id).aborted_reason, contracts.RESTORE_ABORTED_INVALID_ID)
         read.assert_not_called()
         self.assertEqual(self._snapshot(), before)
 
     def test_facades_forward_nondefault_arguments_and_return_identical_objects(self):
-        units = (manage.QuarantineUnit(UNIT + "_90", "date", 4, 2, True),)
-        result = manage.QuarantineRestoreResult(UNIT + "_90", (), (), False, "")
+        units = (contracts.QuarantineUnit(UNIT + "_90", "date", 4, 2, True),)
+        result = contracts.QuarantineRestoreResult(UNIT + "_90", (), (), False, "")
         root = str(self.root / "another")
         with patch.object(manage, "list_quarantine_units", return_value=units) as listing:
             self.assertIs(self.service.list_quarantine_units(config_root=root), units)
@@ -200,7 +200,7 @@ class QuarantineManageTest(unittest.TestCase):
     def test_missing_source_is_checked_before_rejected_target(self):
         unit_dir, manifest = self._unit(("../../outside.json",))
         self._path(manifest["entries"][0]["quarantined_path"]).unlink()
-        self.assertEqual(self._restore().skipped, (("../../outside.json", manage.RESTORE_SOURCE_MISSING),))
+        self.assertEqual(self._restore().skipped, (("../../outside.json", contracts.RESTORE_SOURCE_MISSING),))
         self.assertFalse(unit_dir.exists())
 
     def test_forged_source_does_not_move_external_file_or_manifest(self):
@@ -212,7 +212,7 @@ class QuarantineManageTest(unittest.TestCase):
         self._save_manifest(unit_dir, manifest)
         before = self._snapshot()
         result = self._restore()
-        self.assertEqual(tuple(reason for _, reason in result.skipped), (manage.RESTORE_FAILED,) * 2)
+        self.assertEqual(tuple(reason for _, reason in result.skipped), (contracts.RESTORE_FAILED,) * 2)
         self.assertEqual(self._snapshot(), before)
         self.assertEqual(external.read_text(encoding="utf-8"), "external")
 
@@ -226,7 +226,7 @@ class QuarantineManageTest(unittest.TestCase):
         with patch.object(manage.os.path, "realpath", side_effect=redirect):
             with patch.object(self.service, "_load_optional_json") as read:
                 self.assertEqual(self._list(), ())
-                self.assertEqual(self._restore().aborted_reason, manage.RESTORE_ABORTED_INVALID_ID)
+                self.assertEqual(self._restore().aborted_reason, contracts.RESTORE_ABORTED_INVALID_ID)
         read.assert_not_called()
 
     def test_real_symlink_unit_is_not_followed(self):
@@ -239,7 +239,7 @@ class QuarantineManageTest(unittest.TestCase):
         self.addCleanup(link.unlink)
         manifest_bytes = (unit_dir / "manifest.json").read_bytes()
         self.assertEqual(tuple(unit.unit_id for unit in self._list()), (UNIT,))
-        self.assertEqual(self._restore(link.name).aborted_reason, manage.RESTORE_ABORTED_INVALID_ID)
+        self.assertEqual(self._restore(link.name).aborted_reason, contracts.RESTORE_ABORTED_INVALID_ID)
         self.assertEqual((unit_dir / "manifest.json").read_bytes(), manifest_bytes)
 
     def test_parent_creation_failure_is_reported_and_other_entries_continue(self):
@@ -254,7 +254,7 @@ class QuarantineManageTest(unittest.TestCase):
 
         with patch.object(manage.os, "makedirs", side_effect=makedirs):
             result = self._restore()
-        self.assertEqual(result.skipped, ((CHILD, manage.RESTORE_FAILED),))
+        self.assertEqual(result.skipped, ((CHILD, contracts.RESTORE_FAILED),))
         self.assertEqual(result.restored, (("keymap", second),))
         self.assertTrue(unit_dir.exists())
 
@@ -290,7 +290,7 @@ class QuarantineManageTest(unittest.TestCase):
         # 確認 1
         unit_dir, _ = self._unit()
         self._write(unit_dir / "nested" / "unlisted.txt", "extra")
-        self.assertEqual(self._delete(), manage.QuarantineDeleteResult(UNIT, True, ""))
+        self.assertEqual(self._delete(), contracts.QuarantineDeleteResult(UNIT, True, ""))
         self.assertFalse(unit_dir.exists())
         self.assertFalse((unit_dir / "manifest.json").exists())
 
@@ -306,8 +306,8 @@ class QuarantineManageTest(unittest.TestCase):
             for unit_id in invalid:
                 with self.subTest(allow=allow, unit_id=unit_id):
                     result = self._delete(unit_id, allow_invalid_manifest=allow)
-                    self.assertEqual(result, manage.QuarantineDeleteResult(
-                        unit_id, False, manage.DELETE_REJECTED_INVALID_ID))
+                    self.assertEqual(result, contracts.QuarantineDeleteResult(
+                        unit_id, False, contracts.DELETE_REJECTED_INVALID_ID))
                     self.assertEqual(self._snapshot(), before)
 
     def test_delete_root_link_is_rejected_even_with_override(self):
@@ -319,7 +319,7 @@ class QuarantineManageTest(unittest.TestCase):
         for allow in (False, True):
             with self.subTest(allow=allow):
                 self.assertEqual(self._delete(link.name, allow_invalid_manifest=allow),
-                                 manage.QuarantineDeleteResult(link.name, False, manage.DELETE_REJECTED_IS_ROOT))
+                                 contracts.QuarantineDeleteResult(link.name, False, contracts.DELETE_REJECTED_IS_ROOT))
                 self.assertEqual(manage.collect_unit_paths(self.service, link.name, config_root=str(self.root)), ())
                 self.assertTrue(unit_dir.parent.is_dir())
                 self.assertTrue(link.is_dir())
@@ -332,7 +332,7 @@ class QuarantineManageTest(unittest.TestCase):
         keep_dir, _ = self._unit()
         unit_dir, _ = self._unit(unit_id=UNIT + "_02")
         self.assertEqual(self._delete(unit_dir.name),
-                         manage.QuarantineDeleteResult(unit_dir.name, True, ""))
+                         contracts.QuarantineDeleteResult(unit_dir.name, True, ""))
         self.assertFalse(unit_dir.exists())
         self.assertTrue((keep_dir / "manifest.json").is_file())
 
@@ -345,7 +345,7 @@ class QuarantineManageTest(unittest.TestCase):
         for allow in (False, True):
             with self.subTest(allow=allow):
                 self.assertEqual(self._delete(link.name, allow_invalid_manifest=allow),
-                                 manage.QuarantineDeleteResult(link.name, False, manage.DELETE_REJECTED_IS_ROOT))
+                                 contracts.QuarantineDeleteResult(link.name, False, contracts.DELETE_REJECTED_IS_ROOT))
                 self.assertEqual(manage.collect_unit_paths(self.service, link.name, config_root=str(self.root)), ())
                 self.assertTrue(unit_dir.parent.is_dir())
                 self.assertTrue(link.is_dir())
@@ -363,7 +363,7 @@ class QuarantineManageTest(unittest.TestCase):
         for allow in (False, True):
             with self.subTest(allow=allow):
                 result = self._delete(link.name, allow_invalid_manifest=allow)
-                self.assertEqual(result, manage.QuarantineDeleteResult(link.name, False, manage.DELETE_REJECTED_IS_ROOT))
+                self.assertEqual(result, contracts.QuarantineDeleteResult(link.name, False, contracts.DELETE_REJECTED_IS_ROOT))
                 self.assertEqual(manage.collect_unit_paths(self.service, link.name, config_root=str(self.root)), ())
                 self.assertTrue(link.is_dir())
                 self.assertEqual((external / "keep.txt").read_text(encoding="utf-8"), "external")
@@ -380,11 +380,11 @@ class QuarantineManageTest(unittest.TestCase):
                     self._write(unit_dir / "manifest.json", payload)
                 before = self._snapshot()
                 for kwargs in ({}, {"allow_invalid_manifest": False}):
-                    self.assertEqual(self._delete(unit_id, **kwargs), manage.QuarantineDeleteResult(
-                        unit_id, False, manage.DELETE_REJECTED_NO_MANIFEST))
+                    self.assertEqual(self._delete(unit_id, **kwargs), contracts.QuarantineDeleteResult(
+                        unit_id, False, contracts.DELETE_REJECTED_NO_MANIFEST))
                     self.assertEqual(self._snapshot(), before)
                 self.assertEqual(self._delete(unit_id, allow_invalid_manifest=True),
-                                 manage.QuarantineDeleteResult(unit_id, True, ""))
+                                 contracts.QuarantineDeleteResult(unit_id, True, ""))
                 self.assertFalse(unit_dir.exists())
 
     def test_delete_child_junction_does_not_delete_external_files(self):
@@ -416,7 +416,7 @@ class QuarantineManageTest(unittest.TestCase):
         unit_dir, _ = self._unit()
         before = self._snapshot()
         with patch.object(manage.shutil, "rmtree", side_effect=PermissionError("denied")) as remove:
-            self.assertEqual(self._delete(), manage.QuarantineDeleteResult(UNIT, False, manage.DELETE_FAILED))
+            self.assertEqual(self._delete(), contracts.QuarantineDeleteResult(UNIT, False, contracts.DELETE_FAILED))
         remove.assert_called_once_with(str(unit_dir))
         self.assertEqual(self._snapshot(), before)
 
@@ -508,7 +508,7 @@ class QuarantineManageTest(unittest.TestCase):
             delete.reset_mock()
             result = self.service.delete_quarantine_unit(UNIT, config_root=root, allow_invalid_manifest=True)
             delete.assert_called_once_with(self.service, UNIT, config_root=root, allow_invalid_manifest=True)
-        self.assertEqual(result, manage.QuarantineDeleteResult(UNIT, True, ""))
+        self.assertEqual(result, contracts.QuarantineDeleteResult(UNIT, True, ""))
         self.assertFalse(unit_dir.exists())
         unit_dir, _ = self._unit()
         (unit_dir / "manifest.json").unlink()
@@ -523,7 +523,7 @@ class QuarantineManageTest(unittest.TestCase):
         self._save_manifest(unit_dir, manifest)
         result = self._restore()
         self.assertEqual(result.restored, (("keymap", CHILD),))
-        self.assertEqual(result.skipped, (("", manage.RESTORE_SOURCE_MISSING),) * 2)
+        self.assertEqual(result.skipped, (("", contracts.RESTORE_SOURCE_MISSING),) * 2)
 
 
 if __name__ == "__main__":

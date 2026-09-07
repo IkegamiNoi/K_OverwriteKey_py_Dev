@@ -6,7 +6,7 @@ from tkinter import ttk
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from keyseq.application.config_service.quarantine_manage import QuarantineDeleteResult, QuarantineRestoreResult, QuarantineUnit
+from keyseq.application.config_service.contracts import QuarantineDeleteResult, QuarantineRestoreResult, QuarantineUnit
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import quarantine_manage_io as manage_io
 from keyseq.presentation.dialogs.quarantine_manage_dialog import QuarantineManageDialog

@@ -6,6 +6,7 @@ import shutil
 from dataclasses import dataclass
 from datetime import datetime
 
+from . import contracts
 from . import orphan_scan
 from . import path_boundary
 
@@ -17,23 +18,6 @@ UNIT_ID_PATTERN = re.compile(r"^\d{8}_\d{6}(?:_\d+)?$")
 ENTRY_PLANNED = "planned"
 ENTRY_MOVED = "moved"
 ENTRY_FAILED = "failed"
-
-QUARANTINE_MANIFEST_WRITE_FAILED = "manifest_write_failed"
-QUARANTINE_MOVE_FAILED = "move_failed"
-QUARANTINE_UNIT_DIR_FAILED = "unit_dir_failed"
-QUARANTINE_ROOT_REDIRECTED = "quarantine_root_redirected"
-QUARANTINE_SOURCE_REJECTED = "source_rejected"
-
-
-@dataclass(frozen=True)
-class QuarantineResult:
-    unit_id: str
-    moved: tuple[tuple[str, str], ...]
-    failed: tuple[tuple[str, str], ...]
-    dropped_paths: tuple[str, ...]
-    newly_orphan_count: int
-    aborted_reason: str
-    rescan_unreadable_sources: tuple[tuple[str, str], ...] = ()
 
 
 @dataclass(frozen=True)
@@ -54,7 +38,7 @@ def quarantine_orphans(
     startup_keymap_set_path: str,
     current_keymap_set_path: str,
     protected_paths: list[str],
-) -> QuarantineResult:
+) -> contracts.QuarantineResult:
     """提示済みかつ再判定でも孤児の候補だけを、計画を先に残してから隔離する。"""
     entries, dropped_paths, newly_orphan_count, unreadable_sources = _select_targets(
         service,
@@ -66,13 +50,13 @@ def quarantine_orphans(
         protected_paths=protected_paths,
     )
     unit_id, moved, failed, reason = _execute_quarantine(service, entries, config_root)
-    return QuarantineResult(
+    return contracts.QuarantineResult(
         unit_id, moved, failed, dropped_paths, newly_orphan_count, reason, unreadable_sources,
     )
 
 
 def _execute_quarantine(
-    service, entries: tuple[orphan_scan.OrphanEntry, ...], config_root: str,
+    service, entries: tuple[contracts.OrphanEntry, ...], config_root: str,
 ) -> tuple[str, tuple[tuple[str, str], ...], tuple[tuple[str, str], ...], str]:
     """対象があるときだけ実行単位と先行記録を作り、移動を実行する。"""
     if not entries:
@@ -100,16 +84,16 @@ def _select_targets(
     config_root: str,
     **scan_arguments,
 ) -> tuple[
-    tuple[orphan_scan.OrphanEntry, ...], tuple[str, ...], int, tuple[tuple[str, str], ...],
+    tuple[contracts.OrphanEntry, ...], tuple[str, ...], int, tuple[tuple[str, str], ...],
 ]:
     """隔離直前に走査をやり直し、提示済みかつ再判定でも候補のものだけへ絞る。"""
     result = orphan_scan.scan_orphans(service, config_root=config_root, **scan_arguments)
     candidates = {
         _canonical(service, entry.stored_path, config_root): entry
         for entry in result.entries
-        if entry.state == orphan_scan.ORPHAN_CANDIDATE
+        if entry.state == contracts.ORPHAN_CANDIDATE
     }
-    entries: list[orphan_scan.OrphanEntry] = []
+    entries: list[contracts.OrphanEntry] = []
     dropped_paths: list[str] = []
     presented: set[str] = set()
     for value in presented_paths or ():
@@ -156,7 +140,7 @@ def _allocate_unit_id(config_root: str, created_at: datetime) -> str:
 
 
 def _plan_move(
-    service, entry: orphan_scan.OrphanEntry, config_root: str, unit_dir: str,
+    service, entry: contracts.OrphanEntry, config_root: str, unit_dir: str,
 ) -> _PlannedMove:
     """元の相対構造を保った移動先を決める。config 外なら移動先を持たせない。"""
     source_path = service.resolve_config_path(entry.stored_path, config_root)
@@ -226,15 +210,15 @@ def _prepare_unit_dir(
         root = os.path.dirname(unit_dir)
         if (os.path.islink(root)
                 or os.path.normcase(os.path.realpath(root)) != os.path.normcase(os.path.abspath(root))):
-            return QUARANTINE_ROOT_REDIRECTED
+            return contracts.QUARANTINE_ROOT_REDIRECTED
         os.makedirs(unit_dir, exist_ok=False)
     except (OSError, ValueError):
-        return QUARANTINE_UNIT_DIR_FAILED
+        return contracts.QUARANTINE_UNIT_DIR_FAILED
     if _try_write_manifest(service, manifest_path, created_at, moves, states):
         return ""
     if _discard_manifest_tmp(manifest_path):
         _discard_empty_unit_dir(unit_dir)
-    return QUARANTINE_MANIFEST_WRITE_FAILED
+    return contracts.QUARANTINE_MANIFEST_WRITE_FAILED
 
 
 def _discard_manifest_tmp(manifest_path: str) -> bool:
@@ -283,7 +267,7 @@ def _apply_moves(
     if manifest_write_failed:
         failed.append((
             service.to_config_relative_or_absolute(manifest_path, config_root),
-            QUARANTINE_MANIFEST_WRITE_FAILED,
+            contracts.QUARANTINE_MANIFEST_WRITE_FAILED,
         ))
     return tuple(moved), tuple(failed)
 
@@ -299,12 +283,12 @@ def _source_is_allowed(source: str, config_root: str) -> bool:
 def _move_file(move: _PlannedMove, config_root: str) -> str:
     """移動できなければ理由コードを返す（成功時は空文字）。"""
     if not move.destination_path:
-        return QUARANTINE_MOVE_FAILED
+        return contracts.QUARANTINE_MOVE_FAILED
     try:
         os.makedirs(os.path.dirname(move.destination_path), exist_ok=True)
         if not _source_is_allowed(move.source_path, config_root):
-            return QUARANTINE_SOURCE_REJECTED
+            return contracts.QUARANTINE_SOURCE_REJECTED
         shutil.move(move.source_path, move.destination_path)
     except (OSError, shutil.Error):
-        return QUARANTINE_MOVE_FAILED
+        return contracts.QUARANTINE_MOVE_FAILED
     return ""

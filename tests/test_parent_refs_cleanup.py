@@ -5,13 +5,15 @@ import unittest
 from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService
-from keyseq.application.config_service.parent_refs_cleanup import (
+from keyseq.application.config_service.contracts import (
     CLEANUP_ALL_STALE,
     CLEANUP_PROTECTED,
     CLEANUP_TARGET,
     PRUNE_FAILURE_INVALID_DATA,
     PRUNE_FAILURE_SAVE_FAILED,
     PRUNE_FAILURE_UNREADABLE,
+)
+from keyseq.application.config_service.parent_refs_cleanup import (
     inspect_parent_refs,
     prune_parent_refs,
 )

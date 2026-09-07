@@ -1,6 +1,6 @@
 from tkinter import messagebox
 
-from keyseq.application.config_service.orphan_scan import ORPHAN_CANDIDATE
+from keyseq.application.config_service import contracts
 from keyseq.presentation.dialogs import OrphanSweepDialog, ReferenceCleanupDialog
 from keyseq.presentation.orphan_sweep_text import (
     format_orphan_notice,
@@ -36,7 +36,7 @@ class OrphanSweepIo:
         arguments = self._scan_arguments(normalized)
         result = self._app.config_service.scan_orphans(**arguments)
         presented_paths = [
-            entry.stored_path for entry in result.entries if entry.state == ORPHAN_CANDIDATE
+            entry.stored_path for entry in result.entries if entry.state == contracts.ORPHAN_CANDIDATE
         ]
         if not presented_paths:
             messagebox.showinfo("孤児ファイルの棚卸し", "\n".join(format_orphan_notice(result)))

@@ -1,21 +1,9 @@
 from __future__ import annotations
 
 import os
-from dataclasses import dataclass
 from typing import Any
 
-
-SOURCE_MISSING = "missing"
-SOURCE_UNREADABLE = "unreadable"
-SOURCE_REDIRECTED = "redirected"
-SOURCE_DIRECTORY_UNREADABLE = "directory_unreadable"
-
-
-@dataclass(frozen=True)
-class ReferenceScanResult:
-    referenced: frozenset[str]
-    unreadable_sources: tuple[tuple[str, str], ...]
-    non_keymap_set_sources: tuple[str, ...]
+from . import contracts
 
 
 def collect_reference_paths(
@@ -23,7 +11,7 @@ def collect_reference_paths(
     keymap_set_paths: list[str],
     *,
     config_root: str,
-) -> ReferenceScanResult:
+) -> contracts.ReferenceScanResult:
     """keymap_set 群が参照する子ファイルの比較用パス集合を読み出し専用で集める。"""
     referenced: set[str] = set()
     unreadable_sources: list[tuple[str, str]] = []
@@ -46,7 +34,7 @@ def collect_reference_paths(
         unreadable_sources,
         referenced,
     )
-    return ReferenceScanResult(
+    return contracts.ReferenceScanResult(
         referenced=frozenset(referenced),
         unreadable_sources=tuple(unreadable_sources),
         non_keymap_set_sources=tuple(non_keymap_set_sources),
@@ -93,12 +81,12 @@ def _load_source(
     if canonical_path in cache:
         return cache[canonical_path]
     if not os.path.exists(resolved_path):
-        unreadable_sources.append((stored_path, SOURCE_MISSING))
+        unreadable_sources.append((stored_path, contracts.SOURCE_MISSING))
         cache[canonical_path] = None
         return None
     data = service._load_optional_json(resolved_path)
     if not isinstance(data, dict):
-        unreadable_sources.append((stored_path, SOURCE_UNREADABLE))
+        unreadable_sources.append((stored_path, contracts.SOURCE_UNREADABLE))
         cache[canonical_path] = None
         return None
     cache[canonical_path] = data

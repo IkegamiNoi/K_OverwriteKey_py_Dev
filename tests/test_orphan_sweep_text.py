@@ -1,17 +1,17 @@
 import os
 import unittest
 
-from keyseq.application.config_service.orphan_scan import (
+from keyseq.application.config_service.contracts import (
     KIND_HOTKEY_PRESETS, KIND_KEYMAP, KIND_SEQUENCE, KIND_TRIGGER_SET,
     ORPHAN_CANDIDATE, ORPHAN_EXCLUDED, ORPHAN_PROTECTED, ORPHAN_REFERENCED,
     OrphanEntry, OrphanScanResult,
 )
-from keyseq.application.config_service.quarantine import (
+from keyseq.application.config_service.contracts import (
     QUARANTINE_MANIFEST_WRITE_FAILED, QUARANTINE_MOVE_FAILED, QuarantineResult,
     QUARANTINE_SOURCE_REJECTED, QUARANTINE_UNIT_DIR_FAILED,
     QUARANTINE_ROOT_REDIRECTED,
 )
-from keyseq.application.config_service.reference_scan import (
+from keyseq.application.config_service.contracts import (
     SOURCE_MISSING, SOURCE_UNREADABLE, SOURCE_REDIRECTED, SOURCE_DIRECTORY_UNREADABLE,
 )
 from keyseq.presentation.orphan_sweep_text import (

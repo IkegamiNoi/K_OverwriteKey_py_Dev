@@ -8,13 +8,27 @@ from keyseq.application.config_service import ConfigService
 from keyseq.application.config_service import orphan_scan as orphan_scan_module
 from keyseq.application.config_service import quarantine as quarantine_module
 from keyseq.application.config_service import candidate_dirs, path_boundary, quarantine_manage
+from keyseq.application.config_service.contracts import (
+    KIND_HOTKEY_PRESETS,
+    KIND_KEYMAP,
+    KIND_SEQUENCE,
+    KIND_TRIGGER_SET,
+    ORPHAN_CANDIDATE,
+    ORPHAN_EXCLUDED,
+    ORPHAN_PROTECTED,
+    ORPHAN_REFERENCED,
+)
 from keyseq.application.config_service.orphan_scan import (
-    KIND_HOTKEY_PRESETS, KIND_KEYMAP, KIND_SEQUENCE, KIND_TRIGGER_SET,
-    ORPHAN_CANDIDATE, ORPHAN_EXCLUDED, ORPHAN_PROTECTED, ORPHAN_REFERENCED,
-    collect_protected_paths, normalize_scan_dirs, scan_orphans,
+    collect_protected_paths,
+    normalize_scan_dirs,
+    scan_orphans,
+)
+from keyseq.application.config_service.contracts import (
+    SOURCE_REDIRECTED,
+    SOURCE_DIRECTORY_UNREADABLE,
 )
 from keyseq.application.config_service.reference_scan import (
-    collect_reference_paths, SOURCE_REDIRECTED, SOURCE_DIRECTORY_UNREADABLE,
+    collect_reference_paths,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
 
