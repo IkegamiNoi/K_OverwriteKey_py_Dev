@@ -9,8 +9,11 @@ from keyseq.application.config_service.orphan_scan import (
 from keyseq.application.config_service.quarantine import (
     QUARANTINE_MANIFEST_WRITE_FAILED, QUARANTINE_MOVE_FAILED, QuarantineResult,
     QUARANTINE_SOURCE_REJECTED, QUARANTINE_UNIT_DIR_FAILED,
+    QUARANTINE_ROOT_REDIRECTED,
 )
-from keyseq.application.config_service.reference_scan import SOURCE_MISSING, SOURCE_UNREADABLE
+from keyseq.application.config_service.reference_scan import (
+    SOURCE_MISSING, SOURCE_UNREADABLE, SOURCE_REDIRECTED, SOURCE_DIRECTORY_UNREADABLE,
+)
 from keyseq.presentation.orphan_sweep_text import (
     ORPHAN_SWEEP_EMPTY_MESSAGE, SCAN_SCOPE_NOTE,
     format_orphan_notice, format_orphan_plan, format_quarantine_result, format_scan_warnings,
@@ -31,6 +34,20 @@ def _quarantine_result(**overrides):
 
 
 class OrphanSweepTextTest(unittest.TestCase):
+    def test_new_source_reasons_use_japanese_labels_and_unknown_stays_raw(self):
+        sources = (("linked.json", SOURCE_REDIRECTED), ("denied", SOURCE_DIRECTORY_UNREADABLE),
+                   ("unknown.json", "new_reason"))
+        expected = (
+            "  linked.json: リンク / ジャンクションのため参照側として読みませんでした",
+            "  denied: ディレクトリを読み取れませんでした",
+            "  unknown.json: new_reason",
+        )
+        scan_lines = format_scan_warnings(_result(unreadable_sources=sources))
+        rescan_lines = format_quarantine_result(_quarantine_result(rescan_unreadable_sources=sources))
+        for line in expected:
+            self.assertIn(line, scan_lines)
+            self.assertIn(line, rescan_lines)
+
     def test_unreadable_warning_is_first_in_warnings_and_plan(self):
         result = _result(unreadable_sources=(
             ("missing.json", SOURCE_MISSING), ("broken.json", SOURCE_UNREADABLE),
@@ -118,6 +135,15 @@ class OrphanSweepTextTest(unittest.TestCase):
 
 
 class QuarantineResultTextTest(unittest.TestCase):
+    def test_redirected_root_abort_uses_japanese_label_and_unknown_stays_raw(self):
+        for reason, label in (
+            (QUARANTINE_ROOT_REDIRECTED, "隔離ルートがリンク / ジャンクションのため中止しました"),
+            ("unknown_abort", "unknown_abort"),
+        ):
+            with self.subTest(reason=reason):
+                lines = format_quarantine_result(_quarantine_result(unit_id="", aborted_reason=reason))
+                self.assertEqual(lines[:2], (f"隔離を中止しました: {label}", "ファイルは 1 件も移動していません。"))
+
     def test_moved_entries_are_counted_and_listed_with_kind_labels(self):
         result = _quarantine_result(moved=(
             (KIND_KEYMAP, "user/keymaps/foo.json"),

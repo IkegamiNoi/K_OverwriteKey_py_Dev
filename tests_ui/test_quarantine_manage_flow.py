@@ -1,14 +1,17 @@
 import copy
+import tempfile
 import tkinter as tk
 import unittest
 from tkinter import ttk
+from pathlib import Path
 from unittest.mock import Mock, patch
 
-from keyseq.application.config_service.quarantine_manage import QuarantineRestoreResult, QuarantineUnit
+from keyseq.application.config_service.quarantine_manage import QuarantineDeleteResult, QuarantineRestoreResult, QuarantineUnit
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import quarantine_manage_io as manage_io
 from keyseq.presentation.dialogs.quarantine_manage_dialog import QuarantineManageDialog
 from keyseq.presentation.quarantine_manage_text import (
+    format_delete_plan, format_delete_result,
     format_restore_plan, format_restore_result, format_unit_list,
 )
 from keyseq.presentation.views.menu_bar import build_menu_bar
@@ -133,6 +136,117 @@ class QuarantineManageFlowTest(unittest.TestCase):
                 return self.app.nametowidget(menubar.entrycget(index, "menu"))
         self.fail("設定メニューが見つかりません")
 
+    def _prepare_delete(self, unit=UNIT, paths=None):
+        self.dialog.action = "delete"
+        self.dialog.selected_unit_id = unit.unit_id
+        self.listing.return_value = (unit,)
+        if paths is None:
+            paths = (f"quarantine/{unit.unit_id}/manifest.json", f"quarantine/{unit.unit_id}/MixedCase.json")
+        collect = self._patch(self.app.config_service, "collect_unit_paths", return_value=paths)
+        result = QuarantineDeleteResult(unit.unit_id, True, "")
+        delete = self._patch(self.app.config_service, "delete_quarantine_unit", return_value=result)
+        return collect, delete, paths, result
+
+    def test_delete_confirmation_cancel_does_not_delete(self):
+        # 確認 19・24
+        collect, delete, paths, _ = self._prepare_delete()
+        self.app.quarantine_manage_io.manage_quarantine()
+        collect.assert_called_once_with(UNIT.unit_id, config_root=self.app.config_root)
+        self.open_confirm.assert_called_once_with(
+            self.app, title="隔離の管理", lines=format_delete_plan(UNIT, paths, manifest_valid=True),
+            header="削除する内容を確認してください。", run_label="削除する",
+        )
+        self.confirm.wait_window.assert_called_once_with()
+        delete.assert_not_called()
+        self.restore.assert_not_called()
+        self.info.assert_not_called()
+
+    def test_confirmed_delete_forwards_false_for_valid_manifest_and_notifies(self):
+        # 確認 19・20・24
+        collect, delete, paths, result = self._prepare_delete()
+        self.confirm.result = True
+        self.app.quarantine_manage_io.manage_quarantine()
+        collect.assert_called_once_with(UNIT.unit_id, config_root=self.app.config_root)
+        self.open_confirm.assert_called_once_with(
+            self.app, title="隔離の管理", lines=format_delete_plan(UNIT, paths, manifest_valid=True),
+            header="削除する内容を確認してください。", run_label="削除する",
+        )
+        delete.assert_called_once_with(UNIT.unit_id, config_root=self.app.config_root, allow_invalid_manifest=False)
+        self.info.assert_called_once_with("隔離の管理", "\n".join(format_delete_result(result)))
+        self.restore.assert_not_called()
+
+    def test_invalid_manifest_delete_warns_and_forwards_true_with_empty_paths(self):
+        # 確認 19・20・24: 空ディレクトリでも強い確認を経て続行する。
+        unit = QuarantineUnit(UNIT.unit_id, "", 0, 0, False)
+        _, delete, paths, result = self._prepare_delete(unit, paths=())
+        self.confirm.result = True
+        self.app.quarantine_manage_io.manage_quarantine()
+        self.open_confirm.assert_called_once_with(
+            self.app, title="隔離の管理", lines=format_delete_plan(unit, paths, manifest_valid=False),
+            header="削除する内容を確認してください。", run_label="削除する",
+        )
+        lines = self.open_confirm.call_args.kwargs["lines"]
+        self.assertIn("マニフェストが読めないため、中身を確認できません。", lines)
+        self.assertIn("ディレクトリごと削除します。", lines)
+        delete.assert_called_once_with(unit.unit_id, config_root=self.app.config_root, allow_invalid_manifest=True)
+        self.info.assert_called_once_with("隔離の管理", "\n".join(format_delete_result(result)))
+        self.restore.assert_not_called()
+
+    def test_unselected_or_unknown_delete_does_not_collect_confirm_or_delete(self):
+        # 確認 21・24
+        collect, delete, _, _ = self._prepare_delete()
+        self.confirm.result = True
+        for selected in ("", "unknown"):
+            with self.subTest(selected=selected):
+                self.dialog.selected_unit_id = selected
+                self.app.quarantine_manage_io.manage_quarantine()
+        collect.assert_not_called()
+        delete.assert_not_called()
+        self.open_confirm.assert_not_called()
+        self.info.assert_not_called()
+
+    def test_restore_route_still_restores_without_collecting_or_deleting(self):
+        # 確認 22・24
+        collect, delete, _, _ = self._prepare_delete()
+        self.dialog.action = "restore"
+        self.confirm.result = True
+        self.app.quarantine_manage_io.manage_quarantine()
+        self.open_confirm.assert_called_once_with(
+            self.app, title="隔離の管理", lines=format_restore_plan(UNIT),
+            header="復元する内容を確認してください。", run_label="復元する",
+        )
+        self.restore.assert_called_once_with(UNIT.unit_id, config_root=self.app.config_root)
+        self.info.assert_called_once_with("隔離の管理", "\n".join(format_restore_result(self.result)))
+        collect.assert_not_called()
+        delete.assert_not_called()
+
+    def test_delete_keeps_data_dirty_state_and_real_files_unchanged(self):
+        # 確認 23・24: 削除 API を patch.object し、実体も残ることを確認する。
+        directory = tempfile.TemporaryDirectory()
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name) / "config"
+        unit_dir = root / "quarantine" / UNIT.unit_id
+        unit_dir.mkdir(parents=True)
+        manifest = unit_dir / "manifest.json"
+        manifest.write_text('{"entries": []}', encoding="utf-8")
+        child = unit_dir / "keep.txt"
+        child.write_text("keep", encoding="utf-8")
+        _, delete, _, _ = self._prepare_delete()
+        self.confirm.result = True
+        data_before = copy.deepcopy(self.app.data)
+        dirty_before = copy.deepcopy(self.app.dirty_tracker.capture_dirty_snapshot())
+        with patch.object(self.app, "config_root", str(root)), patch.object(
+            self.app.dirty_tracker, "set_dirty",
+        ) as set_dirty, patch.object(self.app.keymap_set_io, "apply_loaded_data_to_ui") as reload_data:
+            self.app.quarantine_manage_io.manage_quarantine()
+        delete.assert_called_once_with(UNIT.unit_id, config_root=str(root), allow_invalid_manifest=False)
+        self.assertEqual(self.app.data, data_before)
+        self.assertEqual(self.app.dirty_tracker.capture_dirty_snapshot(), dirty_before)
+        set_dirty.assert_not_called()
+        reload_data.assert_not_called()
+        self.assertEqual(manifest.read_text(encoding="utf-8"), '{"entries": []}')
+        self.assertEqual(child.read_text(encoding="utf-8"), "keep")
+
 
 class QuarantineManageDialogTest(unittest.TestCase):
     @classmethod
@@ -158,16 +272,23 @@ class QuarantineManageDialogTest(unittest.TestCase):
             buttons.extend(QuarantineManageDialogTest._buttons(child))
         return buttons
 
+    def test_header_applies_to_both_restore_and_delete(self):
+        dialog = self._dialog()
+        labels = [child.cget("text") for frame in dialog.winfo_children()
+                  for child in frame.winfo_children() if isinstance(child, ttk.Label)]
+        self.assertEqual(labels, ["実行単位を選択してください。"])
+        self.assertNotIn("復元する実行単位を選択してください。", labels)
+
     def test_list_buttons_modal_and_no_selection(self):
         dialog = self._dialog()
         self.assertEqual(dialog.listbox.get(0, tk.END), ("first", "second"))
-        self.assertEqual([button.cget("text") for button in self._buttons(dialog)], ["復元する…", "閉じる"])
+        self.assertEqual([button.cget("text") for button in self._buttons(dialog)], ["復元する…", "削除する…", "閉じる"])
         self.assertEqual(dialog.grab_current(), dialog)
         self.assertEqual(str(dialog.transient()), str(self.app))
         dialog._restore()
         self.assertEqual((dialog.action, dialog.selected_unit_id), ("", ""))
         self.assertTrue(dialog.winfo_exists())
-        self._buttons(dialog)[1].invoke()
+        self._buttons(dialog)[2].invoke()
         self.assertFalse(dialog.winfo_exists())
         self.assertEqual(dialog.action, "")
 
@@ -198,6 +319,30 @@ class QuarantineManageDialogTest(unittest.TestCase):
                 self.assertFalse(dialog.winfo_exists())
                 self.assertEqual((dialog.action, dialog.selected_unit_id), ("", ""))
                 resume.assert_called_once_with()
+
+    def test_delete_button_returns_selected_id_and_resumes_hook(self):
+        # 確認 19・24
+        with patch.object(self.app.config_service, "delete_quarantine_unit") as delete, patch.object(
+            self.app.hook, "resume_hook_after_dialog",
+        ) as resume:
+            dialog = self._dialog()
+            dialog.listbox.selection_set(1)
+            button = next(button for button in self._buttons(dialog) if button.cget("text") == "削除する…")
+            button.invoke()
+        self.assertEqual((dialog.action, dialog.selected_unit_id), ("delete", "id2"))
+        self.assertFalse(dialog.winfo_exists())
+        resume.assert_called_once_with()
+        delete.assert_not_called()
+
+    def test_delete_button_without_selection_leaves_dialog_open(self):
+        # 確認 21・24
+        with patch.object(self.app.config_service, "delete_quarantine_unit") as delete:
+            dialog = self._dialog()
+            button = next(button for button in self._buttons(dialog) if button.cget("text") == "削除する…")
+            button.invoke()
+        self.assertEqual((dialog.action, dialog.selected_unit_id), ("", ""))
+        self.assertTrue(dialog.winfo_exists())
+        delete.assert_not_called()
 
 
 if __name__ == "__main__":

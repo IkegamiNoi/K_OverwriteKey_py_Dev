@@ -12,9 +12,12 @@ from keyseq.application.config_service.quarantine import (
     QUARANTINE_MOVE_FAILED,
     QUARANTINE_SOURCE_REJECTED,
     QUARANTINE_UNIT_DIR_FAILED,
+    QUARANTINE_ROOT_REDIRECTED,
     QuarantineResult,
 )
-from keyseq.application.config_service.reference_scan import SOURCE_MISSING, SOURCE_UNREADABLE
+from keyseq.application.config_service.reference_scan import (
+    SOURCE_MISSING, SOURCE_UNREADABLE, SOURCE_REDIRECTED, SOURCE_DIRECTORY_UNREADABLE,
+)
 
 
 ORPHAN_SWEEP_EMPTY_MESSAGE: str = "隔離できる孤児ファイルはありません。"
@@ -29,6 +32,8 @@ _KIND_LABELS = {
 _SOURCE_REASON_LABELS = {
     SOURCE_MISSING: "ファイルが見つかりません",
     SOURCE_UNREADABLE: "読み取り / JSON 解析に失敗しました",
+    SOURCE_REDIRECTED: "リンク / ジャンクションのため参照側として読みませんでした",
+    SOURCE_DIRECTORY_UNREADABLE: "ディレクトリを読み取れませんでした",
 }
 
 _QUARANTINE_REASON_LABELS = {
@@ -36,6 +41,7 @@ _QUARANTINE_REASON_LABELS = {
     QUARANTINE_MOVE_FAILED: "移動できませんでした",
     QUARANTINE_SOURCE_REJECTED: "移動直前の安全確認で対象外になりました",
     QUARANTINE_UNIT_DIR_FAILED: "隔離の実行単位ディレクトリを作成できませんでした",
+    QUARANTINE_ROOT_REDIRECTED: "隔離ルートがリンク / ジャンクションのため中止しました",
 }
 
 SCAN_SCOPE_NOTE: str = (

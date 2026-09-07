@@ -2,6 +2,7 @@ import unittest
 
 from keyseq.application.config_service import quarantine_manage as manage
 from keyseq.presentation.quarantine_manage_text import (
+    format_delete_plan, format_delete_result,
     format_restore_plan, format_restore_result, format_unit_list,
 )
 
@@ -50,6 +51,62 @@ class QuarantineManageTextTest(unittest.TestCase):
             self.assertEqual(lines[1], "1 件も戻していません。")
             if reason == "unknown":
                 self.assertIn(reason, lines[0])
+
+    def test_delete_plan_starts_with_irreversible_warning(self):
+        # 確認 14
+        lines = format_delete_plan(self.unit, (), manifest_valid=True)
+        self.assertEqual(lines[0], "この操作は取り消せません。")
+        self.assertIn(f"削除する実行単位: {self.unit.unit_id}", lines)
+
+    def test_delete_plan_lists_every_path_including_manifest(self):
+        # 確認 15
+        paths = tuple(f"quarantine/{self.unit.unit_id}/Nested/MixedCase{index}.json" for index in range(50))
+        paths += (f"quarantine/{self.unit.unit_id}/manifest.json",)
+        lines = format_delete_plan(self.unit, paths, manifest_valid=True)
+        self.assertEqual(lines[2:], tuple(f"  {path}" for path in paths))
+
+    def test_delete_plan_invalid_manifest_adds_separate_warning_lines(self):
+        # 確認 16
+        paths = ("quarantine/unit/keep.txt",)
+        normal = format_delete_plan(self.unit, paths, manifest_valid=True)
+        invalid = format_delete_plan(self.unit, paths, manifest_valid=False)
+        warnings = ("マニフェストが読めないため、中身を確認できません。", "ディレクトリごと削除します。")
+        for warning in warnings:
+            self.assertIn(warning, invalid)
+            self.assertNotIn(warning, normal)
+        self.assertEqual(tuple(line for line in invalid if line not in warnings), normal)
+
+    def test_delete_result_labels_success_rejections_failure_and_unknown_code(self):
+        # 確認 17
+        success = manage.QuarantineDeleteResult(self.unit.unit_id, True, "")
+        self.assertEqual(format_delete_result(success), (f"削除しました: {self.unit.unit_id}",))
+        labels = ((manage.DELETE_REJECTED_INVALID_ID, "実行単位 ID が不正、または実在しません"),
+                  (manage.DELETE_REJECTED_IS_ROOT, "隔離ルート自身、または隔離ルート外を指しています"),
+                  (manage.DELETE_REJECTED_NO_MANIFEST, "マニフェストが読めません"),
+                  (manage.DELETE_FAILED, "削除できませんでした"), ("future_code", "future_code"))
+        for reason, label in labels:
+            with self.subTest(reason=reason):
+                lines = format_delete_result(manage.QuarantineDeleteResult(self.unit.unit_id, False, reason))
+                self.assertIn(label, lines[0])
+                if reason == manage.DELETE_FAILED:
+                    self.assertIn("一部が削除されている可能性があります。", lines)
+                else:
+                    self.assertIn("削除していません。", lines)
+
+    def test_delete_formatters_return_string_tuples_and_keep_stored_spelling(self):
+        # 確認 18
+        stored = "quarantine/20260906_101500/Nested/./MixedCase.json"
+        outputs = [format_delete_plan(self.unit, (stored,), manifest_valid=valid) for valid in (True, False)]
+        for reason in ("", manage.DELETE_REJECTED_INVALID_ID, manage.DELETE_REJECTED_IS_ROOT,
+                       manage.DELETE_REJECTED_NO_MANIFEST, manage.DELETE_FAILED, "future_code"):
+            outputs.append(format_delete_result(manage.QuarantineDeleteResult(self.unit.unit_id, not reason, reason)))
+        for output in outputs:
+            self.assertIsInstance(output, tuple)
+            self.assertTrue(all(isinstance(line, str) for line in output))
+            self.assertNotIn("  quarantine/20260906_101500/Nested/MixedCase.json", output)
+            self.assertNotIn("  quarantine/20260906_101500/nested/mixedcase.json", output)
+        for output in outputs[:2]:
+            self.assertIn(f"  {stored}", output)
 
     def test_functions_return_string_tuples_without_converting_stored_paths(self):
         stored = "user/keymaps/./MixedCase.json"

@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService
 from keyseq.application.config_service import quarantine as quarantine_module
+from keyseq.application.config_service import quarantine_manage
 from keyseq.application.config_service.orphan_scan import (
     KIND_KEYMAP, KIND_SEQUENCE, ORPHAN_CANDIDATE, scan_orphans,
 )
@@ -17,6 +18,7 @@ from keyseq.application.config_service.quarantine import (
     ENTRY_FAILED, ENTRY_MOVED, ENTRY_PLANNED, MANIFEST_FILE_NAME, QUARANTINE_DIR_NAME,
     QUARANTINE_MANIFEST_WRITE_FAILED, QUARANTINE_MOVE_FAILED, quarantine_orphans,
     QUARANTINE_SOURCE_REJECTED, QUARANTINE_UNIT_DIR_FAILED,
+    QUARANTINE_ROOT_REDIRECTED,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
 
@@ -159,6 +161,110 @@ class QuarantineTest(unittest.TestCase):
         self.assertEqual(result.moved, ())
         self.assertTrue(os.path.islink(self._resolved(child)))
         self.assertTrue(os.path.isfile(target))
+
+    def test_redirected_quarantine_root_aborts_without_writing_target(self):
+        child = "user/keymaps/one.json"
+        self._save(child, {"mappings": {}})
+        target = os.path.join(self.directory.name, "redirected")
+        os.mkdir(target)
+        link = self._quarantine_root()
+        try:
+            os.symlink(target, link, target_is_directory=True)
+        except (OSError, NotImplementedError):
+            if os.name != "nt":
+                self.skipTest("隔離ルートのリンクを作成できません")
+            self._create_junction(link, target)
+            self.addCleanup(os.rmdir, link)
+        else:
+            self.addCleanup(os.unlink, link)
+        with patch.object(quarantine_module.shutil, "move") as move:
+            result = self._quarantine([child])
+        move.assert_not_called()
+        self.assertEqual(result.aborted_reason, QUARANTINE_ROOT_REDIRECTED)
+        self.assertEqual((result.unit_id, result.moved, result.failed), ("", (), ()))
+        self.assertTrue(os.path.isfile(self._resolved(child)))
+        self.assertEqual(os.listdir(target), [])
+
+    def test_missing_quarantine_root_is_created_lazily_for_move(self):
+        child = "user/keymaps/one.json"
+        self._save(child, {"mappings": {}})
+        self.assertFalse(os.path.exists(self._quarantine_root()))
+        result = self._quarantine([child])
+        self.assertEqual(result.aborted_reason, "")
+        self.assertEqual(result.moved, ((KIND_KEYMAP, child),))
+        self.assertTrue(os.path.isfile(self._quarantined_file(result.unit_id, child)))
+        self.assertTrue(os.path.isfile(os.path.join(
+            self._quarantine_root(), result.unit_id, MANIFEST_FILE_NAME,
+        )))
+        self.assertFalse(os.path.exists(self._resolved(child)))
+
+    def test_failed_manifest_update_discards_tmp_and_full_restore_removes_unit(self):
+        child = "user/keymaps/one.json"
+        self._save(child, {"mappings": {}})
+        replace = os.replace
+        temporary_files = []
+
+        def fail_update(source, destination):
+            if os.path.isfile(destination):
+                self.assertTrue(os.path.isfile(source))
+                temporary_files.append(source)
+                raise PermissionError("移動後のマニフェスト置換拒否")
+            return replace(source, destination)
+
+        with patch.object(quarantine_module.os, "replace", side_effect=fail_update):
+            result = self._quarantine([child])
+        manifest_path = os.path.join(self._quarantine_root(), result.unit_id, MANIFEST_FILE_NAME)
+        self.assertEqual(temporary_files, [f"{manifest_path}.tmp"])
+        self.assertFalse(os.path.exists(temporary_files[0]))
+        self.assertEqual(result.moved, ((KIND_KEYMAP, child),))
+        self.assertEqual(result.failed, ((
+            f"quarantine/{result.unit_id}/{MANIFEST_FILE_NAME}", QUARANTINE_MANIFEST_WRITE_FAILED,
+        ),))
+        restored = quarantine_manage.restore_quarantine_unit(
+            self.service, result.unit_id, config_root=self.root,
+        )
+        self.assertEqual(restored.restored, ((KIND_KEYMAP, child),))
+        self.assertEqual((restored.skipped, restored.aborted_reason), ((), ""))
+        self.assertTrue(restored.unit_removed)
+        self.assertFalse(os.path.exists(os.path.dirname(manifest_path)))
+        self.assertEqual(self.repository.load_json(self._resolved(child)), {"mappings": {}})
+
+    def test_failed_manifest_update_without_tmp_cleanup_leaves_unit_after_restore(self):
+        """A-6(a) の後始末を無効にして修正前の残骸を再現する。"""
+        child = "user/keymaps/one.json"
+        self._save(child, {"mappings": {}})
+        replace = os.replace
+
+        def fail_update(source, destination):
+            if os.path.isfile(destination):
+                raise PermissionError("移動後のマニフェスト置換拒否")
+            return replace(source, destination)
+
+        with patch.object(quarantine_module.os, "replace", side_effect=fail_update), patch.object(
+            quarantine_module, "_discard_manifest_tmp",
+        ):
+            result = self._quarantine([child])
+        unit_dir = os.path.join(self._quarantine_root(), result.unit_id)
+        temporary_path = os.path.join(unit_dir, f"{MANIFEST_FILE_NAME}.tmp")
+        self.assertEqual(result.moved, ((KIND_KEYMAP, child),))
+        self.assertTrue(os.path.isfile(temporary_path))
+        restored = quarantine_manage.restore_quarantine_unit(
+            self.service, result.unit_id, config_root=self.root,
+        )
+        self.assertEqual(restored.restored, ((KIND_KEYMAP, child),))
+        self.assertFalse(restored.unit_removed)
+        self.assertTrue(os.path.isdir(unit_dir))
+        self.assertTrue(os.path.isfile(temporary_path))
+
+    def test_rescan_candidate_state_matches_orphan_scan_contract(self):
+        child = "user/keymaps/one.json"
+        self._save(child, {"mappings": {}})
+        entry = self._scan().entries[0]
+        self.assertEqual(entry.state, ORPHAN_CANDIDATE)
+        with patch.object(quarantine_module.orphan_scan, "scan_orphans", wraps=scan_orphans) as scan:
+            result = self._quarantine([entry.stored_path])
+        scan.assert_called_once()
+        self.assertEqual(result.moved, ((KIND_KEYMAP, child),))
 
     def test_unit_directory_failure_aborts_without_moving(self):
         child = "user/keymaps/one.json"

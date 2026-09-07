@@ -15,16 +15,17 @@
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
 2. `instructions/phase/current.md` を読む（**アクティブ = phase 11**）
 3. `instructions/phase/11_orphan_child_file_sweep/phase.md` と、**主入力の暫定仕様**
-   `instructions/history/10_orphan_child_file_sweep.md`（**v0.5・ユーザー確定済**）を読む。
+   `instructions/history/10_orphan_child_file_sweep.md`（**v0.6・ユーザー確定済**）を読む。
    **フェーズ中は正本 `spec_detail/` を直接改訂しない**（昇格は最終タスク task_08）
 4. 着手するタスクの定義 `instructions/phase/11_orphan_child_file_sweep/tasks/task_NN_*.md` を読む
 5. CLAUDE.md → `.claude/rules/` の順に必要分を読む
 6. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 11 task_06b（隔離済みの削除）を中断中** — 設計確定（暫定仕様 **v0.5**）+ **実装は適用済み**だが、
-**Codex が使用量上限（回復 = 2026-09-07 02:49 頃）でテストが未追加・未検証・未レビュー**。
-**ユーザー判断 = Codex の回復を待つ**（Claude implementer へフォールバックしない）。
+**phase 11 task_07（統合確認）は実機目視のみ残り**。実測・受け入れ条件の突合・二次レビュー 2 本・
+**task_07b（指摘 7 件の反映）まで完了しコミット済**。
+**次にやること = ユーザーへ実機目視（`manual_check.md` の M1〜M8 + M2b）を依頼し、
+結果を `integration_result.md` §4 へ転記して task_07 を完了させる**。その後 task_08（正本反映）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,45 +35,55 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**task_06b の実装のみ適用された中断状態**）:
-compile **clean** / tests **377**（維持・skip 2）/ tests_ui **279 だが 1 件 fail** / smoke **pass**。
-**fail は想定内**: `tests_ui/test_quarantine_manage_flow.py:164` の
-`test_list_buttons_modal_and_no_selection` がボタン **2 個**を期待しているが、
-**削除ボタンが増えて 3 個**になったため（`AssertionError`。公開名変更の追随漏れではない）。
-**再開時にこの既存テストを追随させる**。
-**件数が減ったら退行を疑う**。skip 2 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
+直近の実測（**task_07b 完了時点**）:
+compile **clean** / tests **413**（skip 7）/ tests_ui **288**（skip 0）/ smoke **pass**。
+**件数が減ったら退行を疑う**。skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
+**同じ観点はジャンクション版のテストが実行されている**ので観点の抜けにはならない。
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
 ## 次アクション（session.md.next_action より）
-- **【再開手順】Codex の使用量上限が回復したら（2026-09-07 02:49 頃）、`codex-implementer` へ
-  「task_06b の残り = **テストのみ**」を委任する**。対象はタスク定義
-  `tasks/task_06b_quarantine_delete.md` の**「確認」節 項目 1〜24**。
-  委任時に**「実装（対象範囲 1〜6）は適用済みなので変更しない。テストのみ追加する」**と明示する。
-  - **既存テスト 1 件の追随修正が必要**（上記 fail）。
-  - その後 **`verifier` 実測 → `reviewer` → `codex-adversarial-reviewer`** → `/save_state` → `/task_commit`。
-    **不可逆タスクのため敵対的レビューを通す**（ユーザー判断 2026-09-06。**毎タスクではなく重要なタスクに限る**）。
-- **【重要】Codex の実装は未検証・未レビュー**。レビューで必ず確認する:
-  ① **検証③が `is_path_within` だけに頼っていないか**（**同一パスも配下と判定する**ため、
-  隔離ルート自身を渡すと**全実行単位が再帰削除され得る**）
-  ② **`allow_invalid_manifest` の既定が False** で、**UI が無条件に True を渡していないか**
-  ③ **①②③が `allow_invalid_manifest=True` でも緩和されていないか**
-  ④ 削除 API が**パスを受け取っていないか** ⑤ **不可逆の明記・全件提示・
-  マニフェスト不正時の追加文言**があるか。
-- **【v0.5 の確定内容】** §3-8 検証④（有効な `manifest.json`）は
-  **「強い確認」で上書き可能**（**①②③は緩和しない**）。理由 = ④を絶対条件にすると
+- **【最優先】実機目視をユーザーへ依頼する**。観点は
+  `instructions/phase/11_orphan_child_file_sweep/manual_check.md`（**M1〜M8 + M2b**）。
+  **M2b（隔離ルートをジャンクションにした状態での中止）は task_07b の修正確認**なので必ず含める。
+  **M5・M6 は実際にファイルを不可逆削除する**ため、事前に `config/` のバックアップを案内すること。
+  結果を受領したら **`integration_result.md` §4 へ転記**し、**task_07 を完了**とする
+  （**NG が出たら `task_07c_*` を起票**してから完了とする）。
+- **その後 task_08（正本反映・最終タスク）**。申し送りは
+  `instructions/phase/11_orphan_child_file_sweep/integration_result.md` **§5 の 14 項目**が正
+  （§5.8.1 の改訂 / §3-8 v0.5 / §3-12-6・§3-12-7 / 受け入れ条件 16・21 の是正 /
+  `codebase_map.md` の全面更新 / `path_boundary.py` と新規理由コード 3 つ /
+  §3-5 に「読めなかった走査ディレクトリ」の条文を足すかの判断 / §3-5-1 の適用範囲 ほか）。
+- task_08 の完了条件には `.claude/rules/task_execution.md`「フェーズ完了時」の一式を含める
+  （正本昇格 + 暫定仕様 10 の凍結 / `decisions_archive/11_orphan_child_file_sweep.md` /
+  `current.md` の完了記載 / `backlog/INDEX_done.md` へ idea_12 を移動 / `/refactor_check`）。
+- **【v0.5 / v0.6 の確定内容・蒸し返さない】** §3-8 検証④（有効な `manifest.json`）は
+  **`allow_invalid_manifest=True` で上書き可能**（**①②③は緩和しない**）。理由 = ④を絶対条件にすると
   §3-7 により**復元も削除もできない残骸**が残り、**§4-A の判断と矛盾する**ため。
-  経緯は `decisions.md`「【task_06b 起票時】」。
-- **残課題（非 blocking・未対応）**: ①`quarantine.py` の `_move_file` で `os.makedirs` がガードより前
-  ②`dropped_paths` が stored 表記へ未正規化 ③例外内容が理由コードへ落ちて失われる
-  ④`missing_scan_dirs` の表記不揃い（既定 `user/keymap_sets/` が無い場合だけ絶対パス）。
+  加えて **削除の TOCTOU 2 件は受容済**（**§3-12-6 / §3-12-7**。①確認後に追加された未提示ファイルも
+  消える = 削除の粒度が実行単位ディレクトリなので仕様どおり ②検証後の隔離ルート差し替え =
+  窓は関数内に限られ、塞ぐには「新規依存を足さない」と衝突）。
+  経緯は `decisions.md`「【task_06b 起票時】」「【task_06b 完了時】」。
+- **【task_07 で除外した指摘（C 群 7 件）も蒸し返さない】** `integration_result.md` §3-3 C が正。
+  代表 = **走査・隔離が UI スレッドをブロックする**（phase 11 固有ではなく既存の性質）/
+  `_move_file` の `os.makedirs` がガードより前で全件拒否時に空の実行単位が残る /
+  警告一覧のパスが絶対パス + `\` 区切り。
+- **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
+  ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
 
 ## 現在のフェーズ（phase 11 = 孤児ファイルの棚卸し）の要点
 
-**規範は暫定仕様 10（未凍結・v0.5）**。到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。
-**本アプリ初のディレクトリ走査かつ初のファイル削除機能**（削除は **task_06b で実装済み・未検証**）。
+**規範は暫定仕様 10（未凍結・v0.6）**。到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。
+**本アプリ初のディレクトリ走査かつ初のファイル削除機能**（削除は **task_06b で green**）。
 番号対応: **phase 11 / 暫定 10 / decisions_archive 11**。
-タスクは 1〜8 + 枝番 2（`phase.md`）。**task_01〜06 + 05b が完了**。
+タスクは 1〜8 + 枝番 3（`phase.md`）。**task_01〜06 + 05b + 06b + 07b が完了**。
+**task_07 は実機目視のみ残り**。
+- **【task_07b の成果】境界判定 `is_real_path_within` の唯一の定義は
+  `config_service/path_boundary.py`**（`quarantine.py` / `orphan_scan.py` に再定義しない。
+  `quarantine.py` → `orphan_scan` の import があるので**逆向きは循環**）。
+  追加した理由コード = `SOURCE_REDIRECTED` / `SOURCE_DIRECTORY_UNREADABLE`（`reference_scan.py`）/
+  `QUARANTINE_ROOT_REDIRECTED`（`quarantine.py`）。
+  **既定ディレクトリの不在は `missing_scan_dirs` に入れない**（§3-5-1 はユーザー指定ディレクトリの規定）。
 
 - **走査（参照側）4 経路**: `user/keymap_sets/` 直下 + 起動エントリ + **現在開いているセット
   （`app.keymap_set_path`）** + ユーザー指定ディレクトリ。**3 番目を落とすと、既定外のセットを開いている間に
@@ -100,7 +111,7 @@ compile **clean** / tests **377**（維持・skip 2）/ tests_ui **279 だが 1 
   （degraded 方式は不採用）。**壊れているのは親、消えるのは子**という取り違えに注意（暫定仕様 §3-12-5）。
 - **これまでの成果（application）**: `config_service/` に
   `reference_scan.py`（参照集合・2 段辿り）/ `orphan_scan.py`（走査・判定名 4 種・`normalize_scan_dirs` /
-  `collect_protected_paths`）/ `quarantine.py`（隔離・マニフェスト）/ `quarantine_manage.py`（一覧・復元）。
+  `collect_protected_paths`）/ `quarantine.py`（隔離・マニフェスト）/ `quarantine_manage.py`（一覧・復元・**削除**）。
   **`ConfigService` へは 1 行委譲のファサードのみ**（同ファイルは **820 行**。実ロジックを置かない）。
 - **presentation**: 設定メニュー「孤児ファイルの棚卸し…」「隔離の管理…」/ `orphan_sweep_text.py` ・
   `quarantine_manage_text.py`（表示文言の純関数）/ `config_io/orphan_sweep_io.py` ・
@@ -116,9 +127,14 @@ compile **clean** / tests **377**（維持・skip 2）/ tests_ui **279 だが 1 
   （**条項を実装の根拠に引かない**）。
 
 ## 注意事項・blockers
-- **blockers: Codex が使用量上限**（回復 = **2026-09-07 02:49 頃**）。task_06b のテストが書けず完了不可。
-  **未コミットの実装差分がある**（task_06b の対象範囲 1〜6・**未検証・未レビュー**）。
-  **この状態で他の作業を重ねない**。
+- **blockers: なし**（コードは green）。ただし **task_07 の完了にはユーザーの実機目視が必要**。
+  **未コミットで残るのは task_07 の文書のみ**（`integration_result.md` / `manual_check.md` /
+  `tasks/task_07_integration_check.md`）。task_07 の完了時にまとめてコミットする。
+- **【教訓・task_07b】Codex は「記録を足す」指示を「skip を増やす」方向へ広げることがある**。
+  1 回目の実装で参照側の skip 条件を `islink` から `realpath != abspath` へ広げ、
+  **親ディレクトリがジャンクションなら配下の全 keymap_set が参照集合から落ちる**状態を作り、
+  **追加テストでその挙動を固定していた**。**差分は必ずメインが読んで裏取りする**
+  （テストが green でも、テストごと誤った挙動を固定していることがある）。
 - **【運用・重要】委任の実行中はメイン側で文書を編集しない**。phase 10 task_05 で **Codex がメインの
   仕様書編集を「範囲外の差分」と判断して巻き戻した**。編集した場合は**完了後に必ず差分を確認する**。
 - **【メニュー項目のテスト】インデックスを固定しない**。top-level menubar には **tearoff** があり
@@ -194,4 +210,6 @@ compile **clean** / tests **377**（維持・skip 2）/ tests_ui **279 だが 1 
   idea_10（ネストしたモーダルの grab 復元）/ idea_11（別名保存の複製ロールバック・低）/
   idea_03（hotkey 保存正規化・低）/ idea_09（レガシー保存パス・低）/ idea_04・idea_06（保留）。
   **idea_12 は phase 11 で着手中**・**idea_07 は phase 10 で完了**（`INDEX_done.md`）。
+  **敵対的レビューが挙げた削除の TOCTOU 2 件は idea 化しない**（修正予定ではないため。
+  backlog は修正予定のものを置く場所というユーザー方針。残存リスクは暫定仕様 §3-12 が正）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。

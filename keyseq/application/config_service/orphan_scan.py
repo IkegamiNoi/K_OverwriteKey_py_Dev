@@ -4,6 +4,7 @@ import os
 from dataclasses import dataclass
 
 from . import reference_scan, split_loading
+from . import path_boundary
 
 
 ORPHAN_CANDIDATE = "candidate"
@@ -89,9 +90,10 @@ def scan_orphans(
     protected_paths: list[str],
 ) -> OrphanScanResult:
     """参照元を走査し、既定ディレクトリの子JSONを読み出し専用で分類する。"""
+    unreadable_sources: list[tuple[str, str]] = []
     paths, missing_dirs = _collect_source_paths(
         service, config_root, scan_dirs,
-        startup_keymap_set_path, current_keymap_set_path,
+        startup_keymap_set_path, current_keymap_set_path, unreadable_sources,
     )
     references = reference_scan.collect_reference_paths(service, paths, config_root=config_root)
     global_path = split_loading.load_global_hotkey_presets_path(service, config_root=config_root)
@@ -100,7 +102,7 @@ def scan_orphans(
     protected = _canonical_paths(service, protected_paths, config_root)
     return OrphanScanResult(
         entries=_collect_entries(service, config_root, referenced, protected),
-        unreadable_sources=references.unreadable_sources,
+        unreadable_sources=tuple(unreadable_sources) + references.unreadable_sources,
         non_keymap_set_sources=references.non_keymap_set_sources,
         missing_scan_dirs=tuple(missing_dirs),
     )
@@ -112,21 +114,25 @@ def _collect_source_paths(
     scan_dirs: list[str],
     startup_keymap_set_path: str,
     current_keymap_set_path: str,
+    unreadable_sources: list[tuple[str, str]],
 ) -> tuple[list[str], list[str]]:
     missing_dirs: list[str] = []
     default_dir = os.path.join(os.path.abspath(config_root), "user", "keymap_sets")
-    paths = _scan_source_directory(service, default_dir, config_root, missing_dirs)
+    paths = _list_json_files(service, default_dir, config_root, unreadable_sources)
     for value in (startup_keymap_set_path, current_keymap_set_path):
         stored_path = str(value or "").strip()
         if stored_path:
             paths.append(stored_path)
     for directory in scan_dirs:
-        paths.extend(_scan_source_directory(service, directory, config_root, missing_dirs))
+        paths.extend(_scan_source_directory(
+            service, directory, config_root, missing_dirs, unreadable_sources,
+        ))
     return paths, missing_dirs
 
 
 def _scan_source_directory(
     service, directory: str, config_root: str, missing_dirs: list[str],
+    unreadable_sources: list[tuple[str, str]],
 ) -> list[str]:
     stored_dir = str(directory or "").strip()
     if not stored_dir:
@@ -135,19 +141,36 @@ def _scan_source_directory(
     if not os.path.isdir(resolved_dir):
         missing_dirs.append(directory)
         return []
-    return _list_json_files(service, stored_dir, config_root)
+    return _list_json_files(service, stored_dir, config_root, unreadable_sources)
 
 
-def _list_json_files(service, directory: str, config_root: str) -> list[str]:
+def _list_json_files(
+    service, directory: str, config_root: str,
+    unreadable_sources: list[tuple[str, str]] | None = None,
+) -> list[str]:
     resolved_dir = service.resolve_config_path(directory, config_root)
     if not os.path.isdir(resolved_dir):
         return []
     paths: list[str] = []
-    for filename in sorted(os.listdir(resolved_dir)):
+    try:
+        filenames = sorted(os.listdir(resolved_dir))
+    except OSError:
+        if unreadable_sources is not None:
+            unreadable_sources.append((
+                service.to_config_relative_or_absolute(resolved_dir, config_root),
+                reference_scan.SOURCE_DIRECTORY_UNREADABLE,
+            ))
+        return []
+    for filename in filenames:
         if not filename.lower().endswith(".json"):
             continue
         absolute_path = os.path.abspath(os.path.join(resolved_dir, filename))
         if os.path.islink(absolute_path) or not os.path.isfile(absolute_path):
+            if unreadable_sources is not None and os.path.islink(absolute_path):
+                unreadable_sources.append((
+                    service.to_config_relative_or_absolute(absolute_path, config_root),
+                    reference_scan.SOURCE_REDIRECTED,
+                ))
             continue
         paths.append(absolute_path)
     return paths
@@ -195,19 +218,9 @@ def _classify_candidate(
         return ORPHAN_PROTECTED
     if canonical_path in referenced:
         return ORPHAN_REFERENCED
-    if not _is_real_path_within(absolute_path, config_root):
+    if not path_boundary.is_real_path_within(absolute_path, config_root):
         return ORPHAN_EXCLUDED
     data = service._load_optional_json(absolute_path)
     if not isinstance(data, dict) or not isinstance(data.get(required_key), required_type):
         return ORPHAN_EXCLUDED
     return ORPHAN_CANDIDATE
-
-
-def _is_real_path_within(path: str, root: str) -> bool:
-    """実体解決後の境界を検証し、解決できない場合も対象外にする。"""
-    try:
-        real_path = os.path.normcase(os.path.realpath(path))
-        real_root = os.path.normcase(os.path.realpath(root))
-        return os.path.commonpath((real_path, real_root)) == real_root
-    except (OSError, ValueError):
-        return False
