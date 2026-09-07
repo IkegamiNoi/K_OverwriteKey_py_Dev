@@ -53,6 +53,8 @@ keyseq/presentation/
             child_save_dialog.py    # ChildSaveDialog: 子一覧 / 依存確認 / 再計算先の上書き確認
             child_save_plan.py      # 行の選択・確定エントリ・既定規則から保存計画を組み立てる
             reference_cleanup_io.py # ReferenceCleanupIo: 参照元の掃除のフロー（保存確認→検査→確認→除去→通知）
+            orphan_sweep_io.py      # OrphanSweepIo: 孤児ファイルの棚卸しのフロー（保存確認→走査→棚卸しダイアログ→確認→隔離→通知）+ 走査先設定の保存（→ StartupIo）
+            quarantine_manage_io.py # QuarantineManageIo: 隔離の管理のフロー（一覧→単位選択→復元 / 削除の確認→実行→通知）
         dirty_state.py
         hook_controller.py
         key_capture.py
@@ -85,11 +87,14 @@ keyseq/presentation/
       keymap_edit_dialog.py    # KeymapEditDialog
       layout_delete_dialog.py  # LayoutDeleteDialog
       orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
-      reference_cleanup_dialog.py  # ReferenceCleanupDialog（参照元の掃除の確認 1 枚・読み取り専用）
+      quarantine_manage_dialog.py  # QuarantineManageDialog（隔離の管理・実行単位のリスト選択 + 復元 / 削除ボタン）
+      reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 隔離 / 復元 / 削除で再利用）
     keyboard_layouts.py
     keyboard_window.py
     listbox_utils.py
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
+    orphan_sweep_text.py       # 孤児ファイルの棚卸しの提示テキスト整形（警告 / 候補一覧 / 隔離結果。純関数）
+    quarantine_manage_text.py  # 隔離の管理の提示テキスト整形（単位一覧 / 復元・削除の計画と結果。純関数）
     startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
     theme.py                   # フォント/テーマ適用 + coerce_font_delta（フォント差分 -3..+3 正規化の唯一点）
     tk_keys.py
@@ -256,7 +261,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 
 ### ConfigService（`application/config_service/` パッケージ）
 
-**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 6 ファイル:
+**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 11 ファイル:
 
 | ファイル | 責務 |
 |---|---|
@@ -266,6 +271,11 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 | `save_path_resolution.py` | 保存先の解決と既定命名（`slugify_file_stem` の実体・一意パス採番） |
 | `split_loading.py` | split 構成の読込（keymap_set → keymap / trigger_set / sequence の再構成） |
 | `parent_refs_cleanup.py` | **参照元の掃除**（phase 10）。検査（子の列挙 / 実在判定 / 保護対象の分離 / 判定名 / 重複排除）と `prune_parent_refs`（除去） |
+| `reference_scan.py` | **参照集合の構築**（phase 11）。keymap_set の列挙と **2 段辿り**（keymap_set → trigger_set → sequence）。読めなかった参照側を理由コード付きで返す |
+| `orphan_scan.py` | **走査と孤児判定**（phase 11）。候補側の列挙と形状検証 / 保護対象の適用 / 判定名 4 種 / `normalize_scan_dirs` |
+| `quarantine.py` | **隔離**（phase 11）。隔離ルートの遅延作成・**マニフェストの原子書込み（移動より先）**・1 件ずつの移動 |
+| `quarantine_manage.py` | **隔離の管理**（phase 11）。実行単位の一覧 / 復元 / **削除**（実行単位 ID + 4 検証・不可逆） |
+| `path_boundary.py` | **`is_real_path_within` の唯一の定義**（実体〔realpath〕基準の境界判定。ジャンクションを解決する）。**リダイレクト判定 `_is_redirected` は `quarantine.py` / `quarantine_manage.py` が各自持ち、`ConfigService.is_path_within` は別物**（比較専用の表記判定で**同一パスも配下と判定する**）。`orphan_scan` / `quarantine` / `quarantine_manage` が import する。**再定義しない**（`quarantine.py` → `orphan_scan` の import があるため逆向きは循環になる） |
 
 - **`ConfigService` 本体を `config_service.py` へ移してはならない**。テストが
   `patch("keyseq.application.config_service.os.path", ntpath)` でモジュール名前空間の `os.path` を
@@ -281,6 +291,11 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 - config配下は相対、外部は絶対のパス保存ルールを扱う
   - `normalize_scan_dirs` は `orphan_scan.py` へ委譲し、走査先設定の読み出し・保存で
     非文字列・空文字・同一パスの重複を除く。実在確認はせず、保存表記を返す。
+- **孤児ファイルの棚卸しのファサードを持つ**（実体は上表の 4 モジュール。仕様は
+  `spec_detail/data_schema.md` §5.8.9）。いずれも**1 行委譲**で、`__init__.py` に実ロジックを置かない:
+  `collect_reference_paths` / `scan_orphans` / `collect_protected_paths` / `normalize_scan_dirs` /
+  `quarantine_orphans` / `list_quarantine_units` / `restore_quarantine_unit` /
+  `collect_unit_paths` / `delete_quarantine_unit`
 - trigger_set と sequence の分離保存・読込を扱う
 - keymap / trigger_set / sequence の個別ファイル保存・読込を扱う
 - **hook キーの解決点を持つ**（仕様は `spec_detail/data_schema.md` §5.9）。分岐点は次の 4 つで、
@@ -412,6 +427,9 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 ### メニュー / ステータス
 - menu_bar.py: `build_menu_bar(app)`（ファイル / 設定メニュー）と `bind_menu_shortcuts(app)`（Ctrl 系アクセラレータ）。
+  設定メニューは「参照元を掃除…」「**孤児ファイルの棚卸し…**」「**隔離の管理…**」を持つ
+  （`features.md` §4.6）。**テストはメニュー項目をインデックスで固定しない**
+  （top-level menubar には tearoff があり位置がずれる。カスケードとラベルで探す）。
   **build と bind は別関数**（フォントサイズ変更時はメニューのみ再構築し、バインドは再実行しない）。
 - status_bar.py: `build_status_area(app, parent)`（「ステータス」欄 + 下部ステータスバー: ファイル状態 / 一時メッセージ）
 

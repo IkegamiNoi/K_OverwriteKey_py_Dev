@@ -6,23 +6,19 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [11_orphan_child_file_sweep](11_orphan_child_file_sweep/phase.md)**
-  （**孤児ファイルの棚卸し**・2026-09-06 起票）。
-  主入力 = [暫定仕様 10](../history/10_orphan_child_file_sweep.md)（**v0.7・ユーザー確定済**）。
-  モード: **暫定仕様先行**。番号対応: **phase 11 / 暫定 10 / decisions_archive 11**。
-  起票元 = [idea_12](../backlog/idea_12_orphan_child_file_sweep.md)。
-  到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**（削除は `<config_root>/quarantine/` 内のみ）。
-  **本アプリ初のディレクトリ走査かつ初のファイル削除機能**。判断は `decisions.md` の phase 11 節。
-  **進捗: task_01〜task_07 + task_05b + task_06b + task_07b 完了（参照パス収集器 / 走査と孤児判定 /
-  検出フローの入口と表示 / 走査ディレクトリ設定 / 隔離 / 隔離の堅牢化 /
-  隔離の管理〔一覧 + 復元〕/ 隔離済みの削除 / 統合確認 + 実機目視）
-  → 次は task_08（正本反映・フェーズ末）**
-  （**task_03 完了時点で「検出のみ」が green** / **task_05 で破壊的 I/O が入り、task_05b で
-  敵対的レビュー 2 本の指摘を反映** / **task_06 で復元が green** /
-  **task_06b でこのフェーズ唯一の不可逆操作が入った** /
-  **task_07 の実機目視 M1〜M8 + M2b は 2026-09-08 に全件期待どおり。M6 発の仕様明確化で
-  暫定仕様 v0.7**〔`entries` 要素の妥当性は検査しない・実装変更なし〕。全 8 タスク + 枝番 3）。
-- 直前の完了フェーズ: [10_reference_link_cleanup](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)
+- **アクティブなフェーズ: なし**（**次の採番 = `instructions/phase/12_<topic>`** / 暫定仕様は
+  `instructions/history/11_<topic>.md` / アーカイブは `decisions_archive/12_<topic>.md`）。
+  次フェーズの起票は `/phase_start`。着手候補は `instructions/backlog/INDEX.md`
+  （**未着手の最有力 = [idea_14](../backlog/idea_14_config_service_public_surface.md)**〔着手トリガー付き〕/
+  [idea_13](../backlog/idea_13_external_layout_path_base_asymmetry.md)〔優先度低〕/
+  [idea_10](../backlog/idea_10_nested_modal_grab_restore.md) / [idea_11](../backlog/idea_11_save_as_preset_copy_rollback.md)）。
+- 直前の完了フェーズ: [11_orphan_child_file_sweep](../../.claude_data/state/decisions_archive/11_orphan_child_file_sweep.md)
+  （**2026-09-08 完了**・孤児ファイルの棚卸し。**本アプリ初のディレクトリ走査かつ初のファイル削除機能**。
+  全 8 タスク + 枝番 3〔task_05b / 06b / 07b〕。実機目視 **M1〜M8 + M2b 全件期待どおり**。
+  暫定仕様 10 は**凍結済**〔最終 v0.8〕。正本 `data_schema.md` **§5.8.9 新設** + §5.8.1 改訂 +
+  §5.4 / §5.10.1 + `features.md` §4.6 + `architecture.md` §3.2 + `codebase_map.md` へ昇格済。
+  起票元 idea_12 はクローズ。**後続 = idea_14**）。
+- その前の完了フェーズ: [10_reference_link_cleanup](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)
   （**2026-09-05 完了**・参照元の掃除。暫定仕様 09 は**凍結済**。正本 `data_schema.md` §5.8.1 +
   `features.md` §4.6 + `codebase_map.md` へ昇格済）。
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
@@ -154,6 +150,23 @@
     差し替えるため `ConfigService` 本体とパス基盤メソッドを動かせない**制約があり、分割方針の
     設計判断が別途必要。実ロジックを持つのは `relocate_individual_hotkey_presets`（約 40 行）で、
     他はほぼ 1 行委譲。**次フェーズ以降に再判定する**
+- **Phase 11（孤児ファイルの棚卸し）の `/refactor_check` からの候補送り**（判定は**推奨** →
+  提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)・
+  **未承認**。提案書へ入れなかった分）:
+  - **ダイアログの同型スケルトン**（`Toplevel` + `suspend_hook_for_dialog` / Escape bind /
+    `protocol(WM_DELETE_WINDOW)` / `transient` + `grab_set` / `destroy` override）が
+    **9 ダイアログ中 8 ファイル**に広がっている（phase 11 で +2）。**M3 該当だが
+    フェーズ外 6 ファイルへ波及する**ため提案書には入れていない。着手するなら
+    [idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（ネストしたモーダルの grab 復元）と
+    **同じ領域なので合流させる**
+  - `controllers/config_io/` の IO クラス骨格（`__init__` + `run_*` → `config_service` 呼び出し →
+    `format_*` → `messagebox`）と `presentation/*_text.py` の整形関数が **3 系統目**に達した。
+    1 個目が phase 10（フェーズ外）で骨格も薄いため候補送り
+  - `keyseq/application/config_service/__init__.py` が **828 行**（phase 11 で +61。M1 は
+    「600 行超 **かつ** +100 行以上」のため非該当）。**分割は保留のまま**（テストが
+    `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を差し替えるため
+    本体とパス基盤メソッドを動かせない制約がある）。次フェーズ以降に再判定する
+
 - `app.py:64` の `keymap_set_path = resolve_keymap_set_path()` 初期化と、それが使う
   `config_paths.resolve_keymap_set_path()` の**引数なし分岐が実質デッド**（起動時に `load_startup_and_config` が
   必ず上書きするため）。**据え置き**（phase 05 の deep-reviewer 指摘3・実害なし）。

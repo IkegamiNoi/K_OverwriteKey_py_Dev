@@ -13,19 +13,18 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブ = phase 11**）
-3. `instructions/phase/11_orphan_child_file_sweep/phase.md` と、**主入力の暫定仕様**
-   `instructions/history/10_orphan_child_file_sweep.md`（**v0.7・ユーザー確定済**）を読む。
-   **フェーズ中は正本 `spec_detail/` を直接改訂しない**（昇格は最終タスク task_08）
-4. 着手するタスクの定義 `instructions/phase/11_orphan_child_file_sweep/tasks/task_NN_*.md` を読む
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無し。次採番 = 12**）
+3. 次フェーズを起票するなら `/phase_start`（採番 12）。着手候補は `instructions/backlog/INDEX.md`
+4. 既存機能に触るなら**正本 `instructions/common/spec_detail/` が正**
+   （phase 11 の成果は `data_schema.md` **§5.8.9**。**暫定仕様 10 は凍結済で条項を根拠に引かない**）
 5. CLAUDE.md → `.claude/rules/` の順に必要分を読む
 6. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 11 は task_07（統合確認 + 実機目視）まで完了。残るは task_08（正本反映・フェーズ末）のみ**。
-実機目視 **M1〜M8 + M2b は 2026-09-08 に全件期待どおり**（NG なし）。
-M6 発の仕様明確化で暫定仕様は **v0.7**（実装変更なし）。
-**次にやること = task_08 を起票して実行する**（申し送りは `integration_result.md` §5 の 15 項目）。
+**phase 11（孤児ファイルの棚卸し）は 2026-09-08 に完了**。正本へ昇格済・暫定仕様 10 は凍結済。
+**アクティブなフェーズは無い**（次採番 = 12）。
+**次にやること = ユーザー判断待ちの 2 件**（①リファクタ提案書 08 の実施可否とタイミング
+②候補側リンクを無音で落とす挙動を実装で直すか）**と、次フェーズの起票**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -42,15 +41,16 @@ compile **clean** / tests **413**（skip 7）/ tests_ui **288**（skip 0）/ smo
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
 ## 次アクション（session.md.next_action より）
-- **【最優先】task_08（正本反映・フェーズ末の最終タスク）を起票して実行する**。申し送りは
-  `instructions/phase/11_orphan_child_file_sweep/integration_result.md` **§5 の 15 項目**が正
-  （§5.8.1 の改訂 / §3-8 v0.5 / §3-12-6・§3-12-7 / 受け入れ条件 16・21 の是正 /
-  `codebase_map.md` の全面更新 / `path_boundary.py` と新規理由コード 3 つ /
-  §3-5 に「読めなかった走査ディレクトリ」の条文を足すかの判断 / §3-5-1 の適用範囲 /
-  **§3-7 の「マニフェストが読めない」の定義〔v0.7〕と §3-12-8** ほか）。
-- task_08 の完了条件には `.claude/rules/task_execution.md`「フェーズ完了時」の一式を含める
-  （正本昇格 + 暫定仕様 10 の凍結 / `decisions_archive/11_orphan_child_file_sweep.md` /
-  `current.md` の完了記載 / `backlog/INDEX_done.md` へ idea_12 を移動 / `/refactor_check`）。
+- **【ユーザー判断待ち】①リファクタ提案書
+  [08_refactor_orphan_child_file_sweep](../../instructions/modified_proposal/08_refactor_orphan_child_file_sweep.md)
+  （**未承認**）の実施可否とタイミング**（(a) 追加タスク / (b) 独立ミニ計画「計画08」/ (c) 実施しない）。
+  項目 1 = 候補側 4 ディレクトリの直値が `orphan_scan.py:20-25` と `quarantine_manage.py:22-25` に重複。
+  **②候補側ディレクトリ直下のリンクを無音で落とす挙動**（正本 §5.8.9 の制約 12）を実装で直すか。
+- **次フェーズの起票は `/phase_start`（採番 12）**。着手候補は `instructions/backlog/INDEX.md`
+  （**idea_14** = config_service の公開面へ定数・結果型を集約〔phase 10 分も対象・着手トリガー付き〕/
+  idea_13 / idea_10 / idea_11 はいずれも優先度低）。
+- **`data_schema.md` が 907 行**になり **`/spec_split` の判定基準（300 行超）に該当**。
+  §5.8 / §5.10 の INDEX 分割を提案できる（**実施はユーザー承認必須**）。
 - **【v0.5 / v0.6 の確定内容・蒸し返さない】** §3-8 検証④（有効な `manifest.json`）は
   **`allow_invalid_manifest=True` で上書き可能**（**①②③は緩和しない**）。理由 = ④を絶対条件にすると
   §3-7 により**復元も削除もできない残骸**が残り、**§4-A の判断と矛盾する**ため。
@@ -66,18 +66,23 @@ compile **clean** / tests **413**（skip 7）/ tests_ui **288**（skip 0）/ smo
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
 
-## 現在のフェーズ（phase 11 = 孤児ファイルの棚卸し）の要点
+## 直前フェーズ（phase 11 = 孤児ファイルの棚卸し・**完了**）の要点
 
-**規範は暫定仕様 10（未凍結・v0.7）**。到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。
-**本アプリ初のディレクトリ走査かつ初のファイル削除機能**（削除は **task_06b で green**）。
-番号対応: **phase 11 / 暫定 10 / decisions_archive 11**。
-タスクは 1〜8 + 枝番 3（`phase.md`）。**task_01〜07 + 05b + 06b + 07b が完了**。
-**残るは task_08（正本反映）のみ**。
-- **【task_07 の実機目視で確定・v0.7】「マニフェスト不正」= ①JSON として解析できない
-  ②トップレベルが object でない ③`entries` が配列でない、の 3 つだけ**
-  （判定は `quarantine_manage.py:81` の 1 箇所）。**エントリ単位の妥当性は検査しない**ため
-  `{"entries": [{}]}` は「有効」扱い（一覧は「残り 0/N 件」・復元は中止せずスキップ・
-  削除は通常確認）。**ユーザー確定 = 現状維持（実装変更なし）。蒸し返さない**（§3-7 / §3-12-8）。
+**規範は正本**（`data_schema.md` **§5.8.9** + §5.8.1 改訂 + §5.4 / §5.10.1、`features.md` §4.6、
+`architecture.md` §3.2、`codebase_map.md`）。**暫定仕様 10 は凍結済（v0.8）＝条項を実装の根拠に引かない**。
+到達範囲 = **検出 + 隔離 + 復元 + 隔離済みの削除**。**本アプリ初のディレクトリ走査かつ初のファイル削除機能**。
+番号対応: **phase 11 / 暫定 10 / decisions_archive 11**。全 8 タスク + 枝番 3 を完了（2026-09-08）。
+- **【確定・蒸し返さない】「マニフェスト不正」= ①JSON として解析できない
+  ②トップレベルが object でない ③`entries` が配列でない ④`manifest.json` 自体がリンク**、の 4 つ
+  （判定は `quarantine_manage.py:73-83`）。**エントリ単位の妥当性は検査しない**ため
+  `{"entries": [{}]}` は「有効」扱い（一覧は「残り 0/N 件」・復元は中止せずスキップ・削除は通常確認）。
+  **ユーザー確定 = 現状維持**（正本 §5.8.9 の制約 8）。
+- **【誤りやすい・訂正済】外部レイアウトの参照解決は `config_root` 基準と `dirname(config_root)` 基準の
+  superset**。**「keymap_set 基準」ではない**（task_08 の Codex レビューで訂正。
+  誤ると使用中ファイルを孤児判定しかねない）。
+- **【確定・蒸し返さない】presentation → `config_service` 内部の直 import は、
+  定数・結果型に限り許容**（`architecture.md` §3.2）。公開面への集約は **idea_14** で追跡。
+  **今後の実装コストで評価した結果、`__init__.py` への再輸出案は最もコストが高い**と判断した。
 - **【task_07b の成果】境界判定 `is_real_path_within` の唯一の定義は
   `config_service/path_boundary.py`**（`quarantine.py` / `orphan_scan.py` に再定義しない。
   `quarantine.py` → `orphan_scan` の import があるので**逆向きは循環**）。

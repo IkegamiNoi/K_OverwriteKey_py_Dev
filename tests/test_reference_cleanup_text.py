@@ -135,7 +135,7 @@ class ReferenceCleanupTextTest(unittest.TestCase):
 
         self.assertIn("参照元が 0 件になります", all_stale_text)
         self.assertIn("子ファイル自体は削除しません", all_stale_text)
-        self.assertIn("孤児かどうかはこの検査範囲では判定できません", all_stale_text)
+        self.assertIn("孤児かどうかは「孤児ファイルの棚卸し」で確認できます", all_stale_text)
         self.assertNotIn("参照元が 0 件になります", target_text)
 
     def test_result_reports_counts_and_translates_all_failure_reasons(self):

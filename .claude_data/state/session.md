@@ -4,57 +4,82 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-08T00:30:00
-phase: **11_orphan_child_file_sweep（孤児ファイルの棚卸し）= task_07 完了。残るは task_08（正本反映・フェーズ末）のみ**。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
+last_updated: 2026-09-08T02:10:00
+phase: **なし（11_orphan_child_file_sweep は 2026-09-08 完了）**。次の採番 = `instructions/phase/12_<topic>` / 暫定仕様 `history/11_<topic>.md` / アーカイブ `decisions_archive/12_<topic>.md`。番号対応: phase 11 / 暫定 10 / decisions_archive 11。次採番は `instructions/phase/12_<topic>`
 last_commit_location: main @ 最新コミット = **`claude/task-06b-continuation-401967` を main へマージ**（マージ前の main 側 WIP コミット `WIP task_06b: ...` はブランチ側の `task_06b: 隔離済みの削除を新設` に完全に置き換わった）。直前の完了コミットは `task_07b: 二次レビュー指摘の反映（A-1〜A-7）`。※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 11 は task_07（統合確認 + 実機目視）まで完了。残るは task_08（正本反映・フェーズ末）のみ**。
-mode: implementing
+focus: **phase 11 は task_08（正本反映）まで完了しフェーズを閉じた。次フェーズは未起票**。
+mode: completed
 
 ## last_action
-ts: 2026-09-08T00:30:00
+ts: 2026-09-08T02:10:00
 who: main
 summary: |
-  【**phase 11 task_07 完了**】ユーザーの実機目視結果を受領し、`integration_result.md` §4 へ転記した。
-  - **M1〜M8 + M2b すべて期待どおり**（2026-09-08 実施）。**NG なし** → `task_07c` の起票は不要。
-  - **M6 で仕様の未定義領域を検出**: `{"created_at": …, "entries": [{}]}`（**well-formed で
-    エントリだけ空**）のマニフェストが「マニフェスト不正」にならず、削除の追加 2 行も出ない。
-    `.venv` で application + text 層を実測し、**判定は `quarantine_manage.py:81` の 1 箇所で
-    「dict かつ `entries` が list か」しか見ない**ことを確認（`{}` のみなら期待どおり出る）。
-    **実装は §3-7 の条文どおり**で、エントリ単位の妥当性が仕様に未定義だった。
-  - **仕様変更フラグ（B. 仕様書の不備 = 未定義挙動）を上げ、ユーザー判断 = A 案（現状維持・
-    実装変更なし）**。B 案（エントリ単位の必須キー検査）は**単位単位の判定なので 1 件壊れると
-    無傷のエントリも復元不可**になり §3-7 の「部分失敗を許容」と逆方向のため却下。
-  - **コード変更なし**（文書のみ）。暫定仕様を **v0.7** へ改訂し、task_08 の申し送りへ 15 を追加。
+  【**phase 11 task_08 完了 = フェーズ完了**】確定内容を正本へ昇格し、暫定仕様 10 を凍結した。
+  - **正本**: `data_schema.md` に **§5.8.9 を新設**（走査 4 経路 / 2 段辿り / 候補側と形状検証 /
+    保護対象 / 判定名 4 種 / 走査の不完全性 5 カテゴリ / 隔離・復元・削除 / **既知の制約 12 件**）+
+    **§5.8.1 の改訂**（孤児判定は §5.8.9 へ）+ §5.4（`orphan_sweep_scan_dirs` / 隔離ルートを起動時に作らない）
+    + §5.10.1（`global/` 除外・OFF のパスも参照ありと数える superset）。
+    `features.md` §4.6（設定メニュー 2 項目とフロー）/ **`architecture.md` §3.2**（presentation →
+    config_service 内部の直参照禁止 + **定数・結果型の例外**）/ `codebase_map.md`（新規 5 モジュール・
+    IO 2・text 2・ダイアログ・ファサード 9 メソッド）。
+  - **コード変更は 2 行だけ**（`reference_cleanup_text.py` の警告文言を「孤児かどうかは
+    『孤児ファイルの棚卸し』で確認できます。」へ + 追随テスト 1 行）。
+  - **ユーザー確定 3 件**（task_08 の事前判断）: **B-1 = 削除の部分失敗は条項側を実装に合わせる**
+    （粒度は実行単位。途中失敗は中止 + 一部削除の可能性を通知）/ **B-2 = §3-11 に定数・結果型の
+    例外を明記し、公開面への集約は idea_14 で追跡**（**今後の実装コストで評価**した結果、
+    `__init__.py` への再輸出案は最もコストが高いと判断）/ **B-3② = 残存リスクとして記載**。
+  - **レビュー 2 本の指摘を全件反映**（すべて文書側・実装変更なし）。**Codex High = 正本の誤記**
+    （外部レイアウトの基準を「keymap_set 基準」と書いたが正しくは **`dirname(config_root)` 基準**）。
+    deep-reviewer からは走査の不完全性 5 カテゴリ・keymap_set の判定基準・実行単位ディレクトリ作成失敗・
+    `global/` 復元拒否・保護対象の性質など 15 件超を追記。
+  - **フェーズ完了処理**: 暫定仕様 10 を**凍結（v0.8）**+ 受け入れ条件 16 / 21 の是正 /
+    `decisions_archive/11_orphan_child_file_sweep.md` 作成（`decisions.md` は索引 1 行へ）/
+    `current.md` を「アクティブなし・次採番 12」へ / idea_12 を `INDEX_done.md` へ / **idea_14 を起票**。
+  - **`/refactor_check` = 推奨** → 提案書 `08_refactor_orphan_child_file_sweep.md` を起票（**未承認**）。
 result_files:
-  - instructions/history/10_orphan_child_file_sweep.md（**v0.7**・§3-7 の定義 / §3-12-8 / 版履歴）
-  - instructions/phase/11_orphan_child_file_sweep/integration_result.md（§4 転記 + §5 に 15 を追加）
-  - instructions/phase/11_orphan_child_file_sweep/manual_check.md（M6 の手順注記 + 実際欄を全件記入）
-  - instructions/phase/current.md / .claude_data/state/decisions.md
+  - instructions/common/spec_detail/data_schema.md（**§5.8.9 新設**・907 行）/ features.md / architecture.md
+  - instructions/common/codebase_map.md
+  - keyseq/presentation/reference_cleanup_text.py / tests/test_reference_cleanup_text.py
+  - instructions/history/10_orphan_child_file_sweep.md（**凍結・v0.8**）
+  - instructions/phase/11_orphan_child_file_sweep/tasks/task_08_spec_promotion.md（新規）/
+    integration_result.md / manual_check.md
+  - instructions/modified_proposal/08_refactor_orphan_child_file_sweep.md（新規・未承認）
+  - instructions/backlog/idea_14_config_service_public_surface.md（新規）/ INDEX.md / INDEX_done.md
+  - .claude_data/state/decisions.md / decisions_archive/11_orphan_child_file_sweep.md（新規）/
+    instructions/phase/current.md
 verified:
-  compile: not_run（**コード変更なし**。直近の実測は task_07b 時点で compile clean / tests 413 / tests_ui 288 / smoke pass）
-  manual: **M1〜M8 + M2b = 全件期待どおり**（ユーザー実施 2026-09-08）
-  review: task_07 の二次レビュー 2 本（`deep-reviewer` / `codex-reviewer`）は実施済（結果は `integration_result.md` §3）。本ターンは規定・実装とも不変の文書化のため追加レビューなし
+  compile: clean
+  tests: pass **413**（skip 7・退行なし）
+  tests_ui: pass **288**（skip 0）
+  smoke: pass
+  note: worktree ルートへ `user/` `quarantine/` の生成なし。実測後の変更は**文書のみ**（コードは不変）
+  review: **`deep-reviewer` = 修正要（F0〜F17）→ 全件反映済** / **`codex-adversarial-reviewer` =
+    needs-attention（High 1 / Medium 2）→ 全件反映済**。いずれも文書側の指摘で実装変更なし
 
 ## next_action
-- **【最優先】task_08（正本反映・フェーズ末の最終タスク）を起票して実行する**。
-  申し送りは `instructions/phase/11_orphan_child_file_sweep/integration_result.md` **§5 の 15 項目**
-  （**15 = §3-7 の「マニフェストが読めない」の定義〔v0.7〕と §3-12-8 の昇格**。本ターンで追加）。
-- task_08 の完了条件には `.claude/rules/task_execution.md`「フェーズ完了時」の一式を含める
-  （正本昇格 + 暫定仕様 10 の凍結 / `decisions_archive/11_orphan_child_file_sweep.md` /
-  `current.md` の完了記載と次採番〔`instructions/phase/12_<topic>`〕/
-  `backlog/INDEX.md` の idea_12 を `INDEX_done.md` へ移動 / `/refactor_check`）。
+- **【ユーザー判断待ち 2 件】**
+  1. **リファクタ提案書 08 の実施可否とタイミング**（(a) 追加タスク / (b) 独立ミニ計画「計画08」/
+     (c) 実施しない）。項目 1 = 候補側 4 ディレクトリの直値が `orphan_scan.py:20-25` と
+     `quarantine_manage.py:22-25` に重複（**片方だけ変えると「隔離できるが復元できない」ズレ**）。
+  2. **候補側ディレクトリ直下のリンクを無音で落とす挙動**（正本 §5.8.9 の制約 12 として明記済）。
+     **件数に載せる実装修正を望むなら task を追加**する（`orphan_scan.py:194` が
+     `unreadable_sources` を渡していないだけなので小さい）。
+- **次フェーズの起票は `/phase_start`**（採番 12）。着手候補は `instructions/backlog/INDEX.md`。
+- **`data_schema.md` が 907 行**になったため **`/spec_split` の判定基準（300 行超）に該当**。
+  §5.8 / §5.10 の INDEX 分割を提案できる（**実施はユーザー承認必須**）。
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
 
 ## blockers
-- **なし**（コードは green・実機目視も完了）。
+- **なし**（phase 11 は完了。コード green・実機目視完了・レビュー 2 本の指摘反映済）。
 
 ## resume_hints
-- **【phase 11 の規範は暫定仕様 10（未凍結・v0.7）】** `instructions/history/10_orphan_child_file_sweep.md`。
-  フェーズ中は正本 `spec_detail/` を直接改訂しない（昇格は task_08）。要点だけ再掲 =
+- **【phase 11 の成果は正本が正】** `spec_detail/data_schema.md` **§5.8.9**（+ §5.8.1 改訂 / §5.4 / §5.10.1）
+  + `features.md` §4.6 + `architecture.md` §3.2 + `codebase_map.md`。
+  **暫定仕様 10 は凍結済**（v0.8・経緯の参照用。**条項を実装の根拠に引かない**）。要点だけ再掲 =
   ①**走査（参照側）に「現在開いているセット」`app.keymap_set_path` を必ず含める**
   （`load_keymap_set_from` は `config.json` を書かないため起動エントリでは代替できない）
   ②**参照集合は 2 段辿り**（sequence のパスは keymap_set に無く **trigger_set の `triggers[].sequence_path`** のみ）
@@ -68,9 +93,11 @@ verified:
   ⑨**境界判定 `is_real_path_within` の唯一の定義は `config_service/path_boundary.py`**
   （task_07b で統合。**`quarantine.py` / `orphan_scan.py` に再定義しない**。
   `quarantine.py` は `orphan_scan` を import しているので**逆向きの import は循環になる**）。
-  ⑩**「マニフェスト不正」= JSON 解析不能 / トップレベルが object でない / `entries` が配列でない、
-  の 3 つだけ**（v0.7 で明記）。**エントリ単位の妥当性は検査しない**ため
-  `{"entries": [{}]}` は「有効」扱い（§3-12-8）。**ユーザー確定済（2026-09-08）なので蒸し返さない**。
+  ⑩**「マニフェスト不正」= ①JSON 解析不能 ②トップレベルが object でない ③`entries` が配列でない
+  ④`manifest.json` 自体がリンク、の 4 つ**（正本 §5.8.9）。**エントリ単位の妥当性は検査しない**ため
+  `{"entries": [{}]}` は「有効」扱い（制約 8）。**ユーザー確定済（2026-09-08）なので蒸し返さない**。
+  ⑪**外部レイアウトの参照解決は `config_root` 基準と `dirname(config_root)` 基準の superset**
+  （**「keymap_set 基準」ではない**。task_08 の Codex レビューで訂正した誤りなので繰り返さない）。
 - **【壊れた親 = 無傷の子が消えるリスク】** 読めない keymap_set があると、その子が参照集合から抜けて
   **無傷でも孤児候補になる**。ユーザー確定により**警告のみで隔離・削除とも許す**（degraded は不採用）。
   残存リスクは暫定仕様 §3-12-5。**壊れているのは親、消えるのは子**という取り違えに注意。
@@ -191,11 +218,12 @@ verified:
   兄弟 = `save_plan_execution.py` / `split_payloads.py` / `save_path_resolution.py` / `split_loading.py`。
   抽出関数は **`service` を第 1 引数に取る**。兄弟から `__init__` を import しない（循環回避）。
 - config_io は `controllers/config_io/` へ分割済（App が `app.keymap_set_io` 等で直接公開）。
-- 未着手 idea: **idea_13（external_keyboard_layouts のパス基準の非対称・優先度低）** / idea_10（ネストした
+- 未着手 idea: **idea_14（config_service の公開面へ定数・結果型を集約。phase 10 分も対象・着手トリガー付き）** /
+  **idea_13（external_keyboard_layouts のパス基準の非対称・優先度低）** / idea_10（ネストした
   モーダルの grab 復元）/ idea_03（hotkey 保存時正規化・優先度低）/ idea_09（レガシー settings/
-  フォールバック・優先度低）。**idea_12 は phase 11 で着手**・**idea_07 は phase 10 で完了**・**idea_08 は phase 09 で完了**。
+  フォールバック・優先度低）。**idea_12 は phase 11 で完了**・**idea_07 は phase 10 で完了**・**idea_08 は phase 09 で完了**。
   保留 idea: idea_04 / idea_06（**残る着手条件は「共通化の実需」1 つのみ**）。
 - 過去の判断は `.claude_data/state/decisions.md`（アーカイブ索引）+ `decisions_archive/<phase>.md`。
-  完了済の直近 3 件: 08_hotkey_presets_global / 09_per_keymap_set_presets /
-  **10_reference_link_cleanup**。
+  完了済の直近 3 件: 09_per_keymap_set_presets / 10_reference_link_cleanup /
+  **11_orphan_child_file_sweep**。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
