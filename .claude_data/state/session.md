@@ -4,63 +4,63 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-08T11:00:00
-phase: **13_contracts_boundary_ast_coverage（公開面の逆戻り防止テストの検査範囲の拡張）= task_01 完了 / 残り task_02（記録とフェーズ完了処理）**。**直接改訂モード**（暫定仕様なし）。番号対応: phase 13 / 暫定仕様なし / decisions_archive 13。次採番は `instructions/phase/14_<topic>`
+last_updated: 2026-09-08T11:40:00
+phase: **13_contracts_boundary_ast_coverage（公開面の逆戻り防止テストの検査範囲の拡張）= task_01 / task_01b 完了 / 残り task_02（記録とフェーズ完了処理）**。**直接改訂モード**（暫定仕様なし）。番号対応: phase 13 / 暫定仕様なし / decisions_archive 13。次採番は `instructions/phase/14_<topic>`
 last_commit_location: main @ 最新コミット = **`claude/task-06b-continuation-401967` を main へマージ**（マージ前の main 側 WIP コミット `WIP task_06b: ...` はブランチ側の `task_06b: 隔離済みの削除を新設` に完全に置き換わった）。直前の完了コミットは `task_07b: 二次レビュー指摘の反映（A-1〜A-7）`。※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 13 は task_01（検査関数の拡張）完了。残るは task_02（記録とフェーズ完了処理）のみ**。
+focus: **phase 13 は task_01 / task_01b 完了。残るは task_02（記録とフェーズ完了処理）のみ**。
 mode: implementing
 
 ## last_action
-ts: 2026-09-08T11:00:00
+ts: 2026-09-08T11:40:00
 who: main
 summary: |
-  【**phase 13 task_01 完了**】公開面の逆戻り防止テストの AST 検査を**完全修飾・エイリアス経路**まで拡張した。
+  【**phase 13 task_01b 完了**】**相対 import 経由**（`from ..application.config_service import orphan_scan`）で
+  内部モジュールへ戻る参照が素通りする穴を塞いだ（**ユーザー判断で本フェーズへ追加した枝番タスク**）。
   **変更は `tests/test_config_service_contracts.py` の 1 ファイルのみ**（**`keyseq/` 差分 0 行**）。
-  - **A-2 エイリアス表**: `Import` / `ImportFrom` を先に走査し**束縛名 → 完全修飾モジュール名**の表を作る
-    （`import a.b.c` が**先頭 `a` だけ**を束縛する挙動も正しく扱う）。
-  - **A-1 完全修飾名解決**: `ast.Attribute` の連鎖を末端の `ast.Name` まで辿ってドット結合し、
-    先頭をエイリアス表で置換 → `keyseq.application.config_service.<内部モジュール>` なら違反。
-  - **既存の「素の名前」検査（`node.value.id == "config_service"`）は残して和集合**にした
-    （presentation には import 由来でない `config_service` という名前の変数が **31 箇所**実在し、
-    置き換えると検出が失われる）。**同一（行番号, 内部モジュール名）は 1 件に畳む**。
-  - 自己検証ケースへ**禁止 3 例 + 許可 3 例**を追加（既存の 4 例 / 5 例は不変）。**メソッドは 3 本のまま**。
-  - **メインが実測**: 完全修飾の禁止参照を presentation へ仕込むと該当テストが **FAIL**（1 件に畳まれて出力）、
-    復旧で pass。代入による再束縛（`x = config_service` の `x`）は**未検出**であることも実測。
-  - **`reviewer` = 修正要（軽微）→ 是正済**: docstring の限界記述に**代入による再束縛は解決できない**旨が
-    抜けていた（**import 束縛のエイリアスだけが解決対象**）。1 文追記して解消。
+  - `collect_forbidden_refs(source, package="")` へ拡張。**R4 = 相対 import の解決**
+    （`level - 1` 個の末尾セグメントを落として基準パッケージを求め `node.module` を連結 → 絶対名で R1 / R2 と
+    同じ判定）+ **R4-fallback**（`package` 空 / `level` が深すぎて解決できない場合は
+    `config_service` セグメント以降の末尾一致で判定＝**素通しにしない**）。
+  - 呼び出し側は走査ファイルの実パスから `package` を算出して渡す（`__init__.py` はその親ディレクトリ）。
+  - 自己検証へ**禁止 3 例 / 許可 3 例**を `(source, package)` の組で追加（**既存の禁止 7 / 許可 8 は不変**）。
+    許可例に **`from .io_dialogs import IoDialogs`**（presentation に 16 件実在する兄弟参照）を入れ、
+    **誤検出しないこと**を固定した。**メソッドは 3 本のまま**。
+  - **メインが実測**: 深さ検証（config_io から **level=4 は検出 / level=3 は非検出**）・兄弟参照は非検出・
+    `from . import X`（package が config_service 自身）は検出・fallback も検出。
+    presentation へ相対 import の禁止参照を仕込むと **FAIL**（`R4 ...orphan_scan`）、復旧で pass。
+  - **`reviewer` = 完了可**（オフバイワンなし / 誤検出なし / 既存検査とアサーションの維持を確認）。
+    参考指摘 2 件のうち②（**`package` 空 + `from . import X` は module 名が無く縮退判定できない**）を
+    実測のうえ **docstring へ追記**。①（関数が約 90 行）は **task_02 の `/refactor_check` へ委ねる**。
+  - **起票時の数え間違いを訂正**: task_01b 定義の「既存 10 例 / 11 例」→ **禁止 7 / 許可 8**（実測値）。
 result_files:
-  - tests/test_config_service_contracts.py（検査関数の拡張 / 自己検証 6 例追加 / docstring）
-  - instructions/phase/13_contracts_boundary_ast_coverage/tasks/task_01_ast_coverage.md（**新規**）
+  - tests/test_config_service_contracts.py（R4 / R4-fallback / 呼び出し側の package 算出 / docstring）
+  - instructions/phase/13_contracts_boundary_ast_coverage/tasks/task_01b_relative_import_route.md（**新規**）
+  - instructions/phase/13_contracts_boundary_ast_coverage/phase.md（タスク一覧へ task_01b を追記）
 verified:
   compile: clean
   tests: pass **417**（skip 7・**メソッド 3 本維持で件数不変**）
   tests_ui: pass **288**（skip 0）
   smoke: pass
-  note: `git diff -- keyseq main.py tests_ui` は**空**。**素通しでないことを実測で確認済**
-  review: **`reviewer` = 修正要（docstring 1 文）→ 是正済**。機能面（3 経路の検出 / 畳み込み / 既存検査の維持 /
-    スコープ / 件数）は全て要件充足を実測で裏付け
+  note: `git diff -- keyseq main.py tests_ui` は**空**。**素通しでないことを実測で確認済**（R4 で FAIL → 復旧で pass）
+  review: **`reviewer` = 完了可**（参考指摘 2 件。②は docstring へ反映済 / ①は refactor_check へ）
 
 ## next_action
 - **【最優先】phase 13 task_02（記録とフェーズ完了処理・最終タスク）を `/task_new` で起票して実行する**。内容:
-  ①`decisions_archive/13_contracts_boundary_ast_coverage.md` の作成（**正本反映が不要という判断**も記録）
-  ②`current.md` の完了記載（次採番 14 の明記）③`backlog/INDEX.md` の idea_15 を `INDEX_done.md` へ
-  ④**`/refactor_check`** の実行と判定の記載。
+  ①`decisions_archive/13_contracts_boundary_ast_coverage.md` の作成（**正本反映が不要という判断**と
+  **task_01b をユーザー判断で追加した経緯**も記録）②`current.md` の完了記載（次採番 14 の明記）
+  ③`backlog/INDEX.md` の idea_15 を `INDEX_done.md` へ ④**`/refactor_check`** の実行と判定の記載
+  （**`collect_forbidden_refs` が約 90 行**という `reviewer` の参考指摘をここで判定する）。
 - フェーズ完了判定は **`deep-reviewer` + Codex レビューの 2 本立て**（`agent_selection.md`）。
   **実機目視は不要**（テストのみの変更）。
-- **【ユーザー判断待ち】相対 import 経由（`from ...application.config_service import orphan_scan`）は
-  R1〜R3 のいずれにも当たらず素通りする**。**phase 12 からの既存の穴で task_01 の範囲外**。
-  presentation の相対 import は**同一パッケージ内の兄弟参照 16 件のみ**で `keyseq.application` へ
-  到達するものは **0 件**（house style は絶対 import）のため実害なし。
-  **本フェーズに含める（task_01b）か後続 idea へ回すか**を確認する。
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
 - **phase 12 の完了レビューの保留分**（実害なし）: L-1 / L-4 / L-8。
 
 ## blockers
-- **なし**（phase 13 task_01 まで green）。
+- **なし**（phase 13 task_01b まで green）。
 
 ## resume_hints
 - **【phase 12 の成果は正本が正】** `spec_detail/architecture.md` **§3.2**（公開面 = `ConfigService` の

@@ -72,6 +72,10 @@
    **`tests` の件数は 417 のまま変わらない**のが期待値。
    **現在の `keyseq/presentation/` は違反 0 件**なので、拡張後も**全テストが pass すること**が前提
    （落ちたら誤検出を疑う）。
+1b. **task_01b 相対 import 経路の追加検査** — `from ...application.config_service import orphan_scan` 形は
+   R1〜R3 のいずれにも当たらず素通りするため、`collect_forbidden_refs` に `package` 引数を足して
+   **相対 import を絶対モジュール名へ解決**して検査する（解決できない場合は末尾パターン一致へ縮退）。
+   **task_01 完了後にユーザー判断で本フェーズへ追加**（2026-09-08）。
 2. **task_02 記録とフェーズ完了処理（最終タスク）** — `decisions_archive/13_contracts_boundary_ast_coverage.md`
    の作成 / `current.md` の完了記載（次採番の明記）/ `backlog/INDEX.md` の idea_15 を `INDEX_done.md` へ移動 /
    `/refactor_check` の実行と判定の記載。

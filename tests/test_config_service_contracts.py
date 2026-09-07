@@ -16,9 +16,13 @@ INTERNAL_MODULE_NAMES = frozenset({
 })
 
 
-def collect_forbidden_refs(source: str) -> list[str]:
+def collect_forbidden_refs(source: str, package: str = "") -> list[str]:
     """静的な config_service 内部参照を、行番号と違反経路付きで返す。
 
+    相対 import も、source の所属パッケージ package から絶対名へ解決して検査する。
+    package を渡さない場合や相対階層が深すぎる場合は、末尾パターン一致に縮退する。
+    縮退時は module 名が要るため from . import X 形（module が空）は判定できない
+    （presentation の走査では package を必ず渡すので、この縮退は起きない）。
     動的import（importlib / __import__）や実行時に組み立てた名前による参照
     （getattr(pkg, name) / 文字列連結で作ったモジュール名）は検出できない。
     エイリアスの解決対象は import / from import が束縛した名前だけで、
@@ -48,6 +52,31 @@ def collect_forbidden_refs(source: str) -> list[str]:
                         forbidden.append(f"{node.lineno}: R1 {module}.{alias.name}")
             elif module.startswith(prefix) and module[len(prefix):].split(".")[0] != "contracts":
                 forbidden.append(f"{node.lineno}: R2 {module}")
+            if node.level > 0:
+                package_parts = package.split(".") if package else []
+                if node.level <= len(package_parts):
+                    # level=1 は自身、level=2 は親。末尾を level-1 個だけ落とす。
+                    base = package_parts[:len(package_parts) - (node.level - 1)]
+                    resolved_module = ".".join(base + ([module] if module else []))
+                    relative_prefix = prefix
+                    relative_package = CONFIG_SERVICE_PACKAGE
+                else:
+                    # 解決不能時だけ config_service セグメント以降で判定する。
+                    module_parts = module.split(".")
+                    if "config_service" not in module_parts:
+                        continue
+                    resolved_module = ".".join(
+                        module_parts[module_parts.index("config_service"):],
+                    )
+                    relative_package = "config_service"
+                    relative_prefix = relative_package + "."
+                if resolved_module == relative_package:
+                    for alias in node.names:
+                        if alias.name not in {"ConfigService", "contracts"}:
+                            forbidden.append(f"{node.lineno}: R4 {resolved_module}.{alias.name}")
+                elif (resolved_module.startswith(relative_prefix)
+                        and resolved_module[len(relative_prefix):].split(".")[0] != "contracts"):
+                    forbidden.append(f"{node.lineno}: R4 {resolved_module}")
         elif isinstance(node, ast.Import):
             for alias in node.names:
                 if (alias.name.startswith(prefix)
@@ -110,13 +139,17 @@ class ConfigServiceContractsTest(unittest.TestCase):
             "config_service のモジュールが増減したら INTERNAL_MODULE_NAMES を更新する"
             "（更新しないと属性アクセス経路だけ検査を素通りする）",
         )
-        presentation = Path(__file__).resolve().parents[1] / "keyseq" / "presentation"
+        repository_root = Path(__file__).resolve().parents[1]
+        presentation = repository_root / "keyseq" / "presentation"
         sources = sorted(presentation.rglob("*.py"))
         self.assertTrue(sources, "presentation の走査対象が見つかりません")
         forbidden = [
             f"{path.relative_to(presentation)}:{ref}"
             for path in sources
-            for ref in collect_forbidden_refs(path.read_text(encoding="utf-8-sig"))
+            for ref in collect_forbidden_refs(
+                path.read_text(encoding="utf-8-sig"),
+                ".".join(path.parent.relative_to(repository_root).parts),
+            )
         ]
         self.assertEqual(forbidden, [], "\n".join(forbidden))
 
@@ -133,6 +166,14 @@ class ConfigServiceContractsTest(unittest.TestCase):
         for source in forbidden_sources:
             with self.subTest(forbidden_source=source):
                 self.assertTrue(collect_forbidden_refs(source))
+        for source, package in (
+            ("from ..application.config_service import orphan_scan", "keyseq.presentation"),
+            ("from ..application.config_service.orphan_scan import ORPHAN_CANDIDATE",
+             "keyseq.presentation"),
+            ("from ..application.config_service import orphan_scan", ""),
+        ):
+            with self.subTest(forbidden_source=source, package=package):
+                self.assertTrue(collect_forbidden_refs(source, package))
         allowed_sources = (
             "from keyseq.application.config_service import ConfigService, contracts",
             "from keyseq.application.config_service.contracts import ORPHAN_CANDIDATE",
@@ -146,3 +187,12 @@ class ConfigServiceContractsTest(unittest.TestCase):
         for source in allowed_sources:
             with self.subTest(allowed_source=source):
                 self.assertEqual(collect_forbidden_refs(source), [])
+        for source, package in (
+            ("from ..application.config_service import ConfigService, contracts",
+             "keyseq.presentation"),
+            ("from ..application.config_service.contracts import ORPHAN_CANDIDATE",
+             "keyseq.presentation"),
+            ("from .io_dialogs import IoDialogs", "keyseq.presentation.controllers.config_io"),
+        ):
+            with self.subTest(allowed_source=source, package=package):
+                self.assertEqual(collect_forbidden_refs(source, package), [])
