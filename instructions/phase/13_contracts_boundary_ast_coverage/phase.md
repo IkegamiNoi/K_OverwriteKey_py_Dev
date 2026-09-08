@@ -76,6 +76,11 @@
    R1〜R3 のいずれにも当たらず素通りするため、`collect_forbidden_refs` に `package` 引数を足して
    **相対 import を絶対モジュール名へ解決**して検査する（解決できない場合は末尾パターン一致へ縮退）。
    **task_01 完了後にユーザー判断で本フェーズへ追加**（2026-09-08）。
+1c. **task_01c 相対 import で束縛したエイリアスの解決** — `from ..application import config_service as cs` +
+   `cs.orphan_scan` 形はエイリアス表が絶対 import しか登録しないため素通りする（**絶対と相対で非対称**）。
+   相対 import も `_resolve_relative_module`（R4 と共有）で解決して登録し、エイリアス表を
+   **名前 → 束縛先の集合**にして**同名の上書きで違反が消える**問題も塞ぐ。
+   **フェーズ完了レビューで `deep-reviewer`（H-1）と Codex が独立に指摘 → ユーザー判断で本フェーズへ追加**（2026-09-08）。
 2. **task_02 記録とフェーズ完了処理（最終タスク）** — `decisions_archive/13_contracts_boundary_ast_coverage.md`
    の作成 / `current.md` の完了記載（次採番の明記）/ `backlog/INDEX.md` の idea_15 を `INDEX_done.md` へ移動 /
    `/refactor_check` の実行と判定の記載。

@@ -16,31 +16,52 @@ INTERNAL_MODULE_NAMES = frozenset({
 })
 
 
+def _resolve_relative_module(package: str, node: ast.ImportFrom) -> str | None:
+    """相対 import の絶対モジュール名を返す。解決不能なら None。"""
+    package_parts = package.split(".") if package else []
+    if not 0 < node.level <= len(package_parts):
+        return None
+    # level=1 は自身、level=2 は親。末尾を level-1 個だけ落とす。
+    base = package_parts[:len(package_parts) - (node.level - 1)]
+    return ".".join(base + ([node.module] if node.module else []))
+
+
 def collect_forbidden_refs(source: str, package: str = "") -> list[str]:
     """静的な config_service 内部参照を、行番号と違反経路付きで返す。
 
     相対 import も、source の所属パッケージ package から絶対名へ解決して検査する。
     package を渡さない場合や相対階層が深すぎる場合は、末尾パターン一致に縮退する。
-    縮退時は module 名が要るため from . import X 形（module が空）は判定できない
+    縮退時はエイリアスを登録せず、末尾一致に module 名が要るため
+    from . import X 形（module が空）は判定できない
     （presentation の走査では package を必ず渡すので、この縮退は起きない）。
     動的import（importlib / __import__）や実行時に組み立てた名前による参照
     （getattr(pkg, name) / 文字列連結で作ったモジュール名）は検出できない。
     エイリアスの解決対象は import / from import が束縛した名前だけで、
     代入で再束縛した変数（x = config_service の x）は解決できない。
+    逆に、スコープを分けないため、同名が別スコープで再束縛されると
+    実行時には許可される記述でも違反になる（過検出側・意図的）。
     """
     forbidden = []
     prefix = CONFIG_SERVICE_PACKAGE + "."
     tree = ast.parse(source)
-    aliases: dict[str, str] = {}
+    aliases: dict[str, set[str]] = {}
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
             for alias in node.names:
                 bound_name = alias.asname or alias.name.split(".")[0]
-                aliases[bound_name] = alias.name if alias.asname else bound_name
-        elif isinstance(node, ast.ImportFrom) and node.level == 0 and node.module:
+                aliases.setdefault(bound_name, set()).add(
+                    alias.name if alias.asname else bound_name,
+                )
+        elif isinstance(node, ast.ImportFrom):
+            module = (_resolve_relative_module(package, node)
+                      if node.level > 0 else node.module)
+            if not module:
+                continue
             for alias in node.names:
                 if alias.name != "*":
-                    aliases[alias.asname or alias.name] = f"{node.module}.{alias.name}"
+                    aliases.setdefault(alias.asname or alias.name, set()).add(
+                        f"{module}.{alias.name}",
+                    )
 
     attribute_refs: dict[tuple[int, str], str] = {}
     for node in ast.walk(tree):
@@ -53,11 +74,8 @@ def collect_forbidden_refs(source: str, package: str = "") -> list[str]:
             elif module.startswith(prefix) and module[len(prefix):].split(".")[0] != "contracts":
                 forbidden.append(f"{node.lineno}: R2 {module}")
             if node.level > 0:
-                package_parts = package.split(".") if package else []
-                if node.level <= len(package_parts):
-                    # level=1 は自身、level=2 は親。末尾を level-1 個だけ落とす。
-                    base = package_parts[:len(package_parts) - (node.level - 1)]
-                    resolved_module = ".".join(base + ([module] if module else []))
+                resolved_module = _resolve_relative_module(package, node)
+                if resolved_module is not None:
                     relative_prefix = prefix
                     relative_package = CONFIG_SERVICE_PACKAGE
                 else:
@@ -97,15 +115,17 @@ def collect_forbidden_refs(source: str, package: str = "") -> list[str]:
                 parts.append(root.attr)
                 root = root.value
             if isinstance(root, ast.Name) and root.id in aliases:
-                resolved = ".".join([aliases[root.id], *reversed(parts)])
-                if resolved.startswith(prefix):
-                    internal_name = resolved[len(prefix):].split(".")[0]
-                    if internal_name in INTERNAL_MODULE_NAMES:
-                        module = prefix + internal_name
-                        key = (node.lineno, module)
-                        attribute_refs.setdefault(
-                            key, f"{node.lineno}: attribute {module}",
-                        )
+                # スコープを分けず、同名の束縛先をすべて保守的に検査する。
+                for target in sorted(aliases[root.id]):
+                    resolved = ".".join([target, *reversed(parts)])
+                    if resolved.startswith(prefix):
+                        internal_name = resolved[len(prefix):].split(".")[0]
+                        if internal_name in INTERNAL_MODULE_NAMES:
+                            module = prefix + internal_name
+                            key = (node.lineno, module)
+                            attribute_refs.setdefault(
+                                key, f"{node.lineno}: attribute {module}",
+                            )
     forbidden.extend(attribute_refs.values())
     return forbidden
 
@@ -171,6 +191,13 @@ class ConfigServiceContractsTest(unittest.TestCase):
             ("from ..application.config_service.orphan_scan import ORPHAN_CANDIDATE",
              "keyseq.presentation"),
             ("from ..application.config_service import orphan_scan", ""),
+            ("from ..application import config_service as cs\ncs.orphan_scan",
+             "keyseq.presentation"),
+            ("from .. import application as app\napp.config_service.orphan_scan",
+             "keyseq.presentation"),
+            ("import keyseq.application.config_service as cs\n"
+             "from keyseq.application.config_service import contracts as cs\n"
+             "cs.orphan_scan", ""),
         ):
             with self.subTest(forbidden_source=source, package=package):
                 self.assertTrue(collect_forbidden_refs(source, package))
@@ -193,6 +220,10 @@ class ConfigServiceContractsTest(unittest.TestCase):
             ("from ..application.config_service.contracts import ORPHAN_CANDIDATE",
              "keyseq.presentation"),
             ("from .io_dialogs import IoDialogs", "keyseq.presentation.controllers.config_io"),
+            ("from ..application.config_service import contracts as c\nc.ORPHAN_CANDIDATE",
+             "keyseq.presentation"),
+            ("from .. import application as app\napp.config_service.contracts",
+             "keyseq.presentation"),
         ):
             with self.subTest(allowed_source=source, package=package):
                 self.assertEqual(collect_forbidden_refs(source, package), [])
