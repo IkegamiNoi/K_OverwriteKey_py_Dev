@@ -71,6 +71,9 @@
 - **素の名前の属性検査（既存）は残す**。`keyseq/presentation/` には
   **`config_service` という名前の変数・引数（`ConfigService` のインスタンス）が実在**し
   （`controllers/config_io/child_save_rows.py:127` の `config_service.INTERNAL_KEYMAP_DIRTY` など 31 箇所）、
+  **【訂正】この「31 箇所」は `INTERNAL_*` の出現数との取り違えで、`config_service` という名前の
+  変数・引数の実測は 29 箇所（`ast.Name` 21 / `ast.arg` 8）。正しい理由づけは
+  `.claude_data/state/decisions_archive/13_contracts_boundary_ast_coverage.md` が正**。
   この名前は import 由来でないためエイリアス表に載らない。
   **エイリアス表だけに置き換えると、`config_service.orphan_scan` 形の検出が失われる**。
   **既存の検査と新規の検査は「和集合」**にすること。

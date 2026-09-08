@@ -22,6 +22,7 @@
 | 10_reference_link_cleanup | [10_reference_link_cleanup.md](decisions_archive/10_reference_link_cleanup.md) | 参照元の掃除（2026-09-05 完了・**新機能・スキーマ不変**）。子JSON の陳腐化した `_parent_refs` を設定メニューからまとめて除去する保守機能。**検査範囲は現在の構成セットの子のみ**（列挙は **runtime の source_path 3 種**。**`resolve_child_save_targets` は使わない**＝未実体化の子へ既定パスが割り当てられ**無関係な既存ファイルを書き換える**。起票時 `deep-reviewer` の最大指摘）。**全網羅ではない**ことを正本へ既知の制約として明記。**孤児削除は行わず 0 件警告のみ**（この検査範囲では孤児判定が原理的に成立しない → 逆方向検査は **idea_12** へ分離）。**確認 UI は 1 枚**（読み取り専用・消えるパスを全件提示）。**現在の keymap_set / trigger_set への参照は実在しなくても保護**（検査時点で分離）。**未保存の構成セットでは先に保存**（`parent_ref` が空だと個別保存が掃除前の refs を再書き込みして**巻き戻る**）。**除去直前に JSON 全体を読み直して再判定**（外部変更を全体置換で消さない）。**除去 0 件なら書かない（冪等）/ 全件除去は `[]`** / **runtime・dirty へ反映しない**。**設計は v0.5 まで 4 回改訂**（v0.2 = `deep-reviewer` / v0.4 = `codex-adversarial-reviewer` High 3 / v0.5 = task_05 の 2 本立て）。**実機目視 14 / 14 OK**（是正なし）。正本 `data_schema.md` **§5.8.1 改訂** + `features.md` §4.6 + `codebase_map.md` へ昇格済。**契約として明記し実装は変えない**: sequence の巻き戻り前提 / 確認中に上位が消えた場合 / 再判定で対象外になった子の通知 / 前提の保存経路は §5.8.6 の best-effort（`codex-adversarial-reviewer` の High 1 は条文の限定で決着）。refactor_check: 判定は本アーカイブ末尾 |
 | 11_orphan_child_file_sweep | [11_orphan_child_file_sweep.md](decisions_archive/11_orphan_child_file_sweep.md) | 孤児ファイルの棚卸し（2026-09-08 完了・**新機能・スキーマ追加**）。どの keymap_set からも参照されていない子を**上位 → 子の逆方向検査**で検出し、**可逆な隔離**を経て削除できるようにした。**本アプリ初のディレクトリ走査かつ初のファイル削除機能**。**走査は 4 経路**（`keymap_sets/` 直下 / 起動エントリ / **現在開いているセット** / ユーザー指定ディレクトリ）で**参照集合は 2 段辿り**（sequence のパスは trigger_set にしか無い）。候補側は**既定 4 ディレクトリ直下のみ + 形状検証**、`hotkey_presets/global/` は除外、**OFF の個別プリセットパスも参照ありと数える**（意図的 superset）。**隔離ルートは `config/quarantine/`**（`user/` の外・遅延作成）で、**マニフェストを移動より先に原子書込み**し（書けなければ 1 件も動かさない）、隔離対象は**〔提示済み〕∩〔再判定でも孤児〕**に限定。**復元は `state` を信用せず実体の有無で判定**し、**`original_path` は候補側配下でなければ拒否**（`is_path_within` は**同一パスも配下と判定する**ため実体基準の境界検証を併用）。**削除は実行単位 ID + 4 検証**（**④〔有効なマニフェスト〕だけ強い確認で上書き可**・①②③は不変）で**ゴミ箱へ送らない不可逆削除**。**壊れた親があると無傷の子が孤児候補になる**残存リスクは**警告を必須化したうえで受容**（degraded 方式は不採用）。**TOCTOU 2 件・マニフェストのエントリ単位検査なし・一覧に出ない残骸・削除経路のリダイレクト単位**は**実装を変えず契約として明記**。**実機目視 M1〜M8 + M2b は全件期待どおり**（M6 から「マニフェストが読めない」の定義を明確化）。正本 `data_schema.md` **§5.8.9 新設** + §5.8.1 改訂 + §5.4 / §5.10.1 + `features.md` §4.6 + `architecture.md` §3.2 + `codebase_map.md` へ昇格済。**後続**: idea_14（公開面への集約・phase 10 も対象）。refactor_check: 判定は本アーカイブ末尾 |
 | 12_config_service_public_surface | [12_config_service_public_surface.md](decisions_archive/12_config_service_public_surface.md) | config_service の公開面の集約（2026-09-08 完了・**挙動不変のリファクタ**）。presentation が `config_service` の内部モジュールから直接 import していた**判定名・理由コード・結果型（定数 34 / 型 9）**を、新設した **`contracts.py` へ定義ごと移動**（**再輸出を作らない**）。参照は **`from . import contracts` + `contracts.NAME`** に統一（`from .contracts import NAME` は名前が再束縛され `hasattr` 偽の固定テストが書けないため不採用）。**定義元で未使用の定数**（`SOURCE_REDIRECTED` 等）があるため段階分割できず、**1 コミットの原子的変更**とした。**内部表現**（`QUARANTINE_DIR_NAME` / `UNIT_ID_PATTERN` / `ENTRY_*` / `CANDIDATE_DIRS`）は実装側に残し、**同値の理由コード**（`"invalid_unit_id"` / `"no_manifest"`）も**統合しない**（ラベル分岐が壊れる）。**逆戻り防止テスト 3 本**（共有参照の固定 + presentation の **AST 走査 R1〜R3 + 属性アクセスの 4 経路** + **検査関数の自己検証**）を追加し、**`INTERNAL_MODULE_NAMES` がパッケージの実ファイル一覧とずれたら落ちる**アサーションで「新モジュールが属性アクセス経路だけ素通りする穴」を塞いだ。**動的 import は検出できない**限界は明記。正本 `architecture.md` **§3.2 の例外条項と idea_14 追跡行を削除**（**`config_service` 限定表現は保つ**＝`application` 一般へ広げると `save_plan.ACTION_*` の 5 件が新規違反になる）+ `codebase_map.md`（12 → 13 ファイル）へ昇格済。**実機目視は不要**（挙動不変・UI 文言不変）。refactor_check: 判定は本アーカイブ末尾 |
+| 13_contracts_boundary_ast_coverage | [13_contracts_boundary_ast_coverage.md](decisions_archive/13_contracts_boundary_ast_coverage.md) | 公開面の逆戻り防止テストの検査範囲の拡張（2026-09-08 完了・**テストのみ・プロダクション不変・仕様変更なし**）。phase 12 の完了レビューで両レビュアーが独立に指摘した**静的な素通り経路**を塞いだ。**A-1 = `ast.Attribute` の連鎖を完全修飾名へ解決** / **A-2 = `asname` 追跡** / **R4 = 相対 import を絶対名へ解決**（解決不能時は `config_service` セグメント以降の**末尾一致へ縮退**＝**素通しにしない**）/ **相対 import で束縛したエイリアスも解決**し、エイリアス表を**名前 → 束縛先の集合**にして**同名の上書きで違反が消える**問題も塞いだ〔task_01c〕。**既存の「素の名前」検査は残して和集合**にした（**相対 import でモジュールを束縛した場合の唯一の検出経路**。presentation の `config_service` という名前の変数・引数 **29 箇所**〔`ast.Name` 21 / `ast.arg` 8〕は**`ConfigService` のインスタンス**でモジュール参照ではない）。**同一（行番号, 内部モジュール名）は 1 件に畳む**。**兄弟参照 `from .io_dialogs import ...`（16 件実在）を誤検出しないこと**を許可例で固定し、**深さは level=4 検出 / level=3 非検出**を実測（オフバイワンなし）。**残る限界 4 つ**（動的 import / 実行時に組み立てた名前 / **代入による再束縛** / 縮退時の未解決）は**docstring に明記**し、解消は必要時に新規 idea 起票とした。**残存リスク**: `ConfigService` に内部モジュールと同名の公開メンバが増えると素の名前検査が誤検出する。**テストメソッドは 3 本のまま = `tests` 417 件不変**。**正本改訂なし**（`architecture.md` §3.2 は phase 12 で確定済で不変。**検査精度を上げただけ**）。**task_01b / task_01c は着手後にユーザー判断で追加した枝番**。refactor_check: 判定は本アーカイブ末尾 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -482,30 +483,3 @@ phase 11 は正本反映まで完了して閉じているため、**追加タス
 - 文末の `---` は親に残した（§5.10.4 の子には含めない）。
 - **以後の運用**: 仕様更新は**子ファイルを編集**する。節の趣旨が変わったら**親 INDEX の 1 行要約も追従**。
   新しい節は子を新規作成 + 親へ 1 行追加。子が 300 行を超えたら再分割を検討する。
-
-## 2026-09-08〜 (phase 13: 公開面の逆戻り防止テストの検査範囲の拡張・直接改訂モード)
-
-規範: [`instructions/phase/13_contracts_boundary_ast_coverage/phase.md`](../../instructions/phase/13_contracts_boundary_ast_coverage/phase.md)。
-**暫定仕様なし**。番号対応: **phase 13 / 暫定仕様なし / decisions_archive 13**。
-起票元 = [idea_15](../../instructions/backlog/idea_15_contracts_boundary_ast_coverage.md)。
-
-### 【起票時】モードの選択 = **直接改訂モード**（メイン判断・ユーザー承認 2026-09-08）
-
-`.claude/rules/spec_change_workflow.md`「モードの選択」の 3 条件（局所的 / 文言確定済み / タスク 1〜2）を
-**すべて満たす**。変更対象は `tests/test_config_service_contracts.py` **1 ファイル**で、
-**正本の条項は変更しない**（`architecture.md` §3.2 は不変で、**その検査精度を上げるだけ**）。
-仕様変更を伴わないため**暫定仕様書は起こさない**。
-
-### 【起票時】idea_15 の案 A を採用（ユーザー確定 2026-09-08）
-
-- **案 A = 検査の強化**（`ast.Attribute` の完全修飾名解決 + `asname` 追跡）。
-- **案 B = 限界記述の正確化のみ**は不採用（規約とレビューだけに依存させない）。
-- phase 12 の暫定仕様 11 は**凍結済のため後追い改訂しない**。本フェーズの判断は
-  `decisions_archive/13_contracts_boundary_ast_coverage.md` に集約する。
-
-### 【起票時】期待値の確定（メイン判断）
-
-- **テストメソッド数は 3 本のまま**（既存メソッドへケースを足す）＝ **`tests` の件数は 417 のまま**。
-  件数が増減したら設計とのズレを疑う。
-- **現在の `keyseq/presentation/` は違反 0 件**なので、拡張後も**全テストが pass する**のが前提。
-  落ちた場合は**誤検出**（`contracts` への完全修飾・エイリアス参照を違反にしていない か）を先に疑う。

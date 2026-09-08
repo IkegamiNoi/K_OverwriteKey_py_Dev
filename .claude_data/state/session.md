@@ -4,65 +4,82 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-08T11:40:00
-phase: **13_contracts_boundary_ast_coverage（公開面の逆戻り防止テストの検査範囲の拡張）= task_01 / task_01b 完了 / 残り task_02（記録とフェーズ完了処理）**。**直接改訂モード**（暫定仕様なし）。番号対応: phase 13 / 暫定仕様なし / decisions_archive 13。次採番は `instructions/phase/14_<topic>`
+last_updated: 2026-09-08T13:30:00
+phase: **13_contracts_boundary_ast_coverage（公開面の逆戻り防止テストの検査範囲の拡張）= **全 4 タスク完了・フェーズ完了**（2026-09-08）。**直接改訂モード**（暫定仕様なし・正本改訂なし）。番号対応: phase 13 / 暫定仕様なし / decisions_archive 13。**次フェーズは未確定**（次採番 `instructions/phase/14_<topic>`）
 last_commit_location: main @ 最新コミット = **`claude/task-06b-continuation-401967` を main へマージ**（マージ前の main 側 WIP コミット `WIP task_06b: ...` はブランチ側の `task_06b: 隔離済みの削除を新設` に完全に置き換わった）。直前の完了コミットは `task_07b: 二次レビュー指摘の反映（A-1〜A-7）`。※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 13 は task_01 / task_01b 完了。残るは task_02（記録とフェーズ完了処理）のみ**。
-mode: implementing
+focus: **phase 13（公開面の逆戻り防止テストの検査範囲の拡張）は全 4 タスク完了しフェーズ完了。次フェーズ未確定**。
+mode: completed
 
 ## last_action
-ts: 2026-09-08T11:40:00
+ts: 2026-09-08T13:30:00
 who: main
 summary: |
-  【**phase 13 task_01b 完了**】**相対 import 経由**（`from ..application.config_service import orphan_scan`）で
-  内部モジュールへ戻る参照が素通りする穴を塞いだ（**ユーザー判断で本フェーズへ追加した枝番タスク**）。
-  **変更は `tests/test_config_service_contracts.py` の 1 ファイルのみ**（**`keyseq/` 差分 0 行**）。
-  - `collect_forbidden_refs(source, package="")` へ拡張。**R4 = 相対 import の解決**
-    （`level - 1` 個の末尾セグメントを落として基準パッケージを求め `node.module` を連結 → 絶対名で R1 / R2 と
-    同じ判定）+ **R4-fallback**（`package` 空 / `level` が深すぎて解決できない場合は
-    `config_service` セグメント以降の末尾一致で判定＝**素通しにしない**）。
-  - 呼び出し側は走査ファイルの実パスから `package` を算出して渡す（`__init__.py` はその親ディレクトリ）。
-  - 自己検証へ**禁止 3 例 / 許可 3 例**を `(source, package)` の組で追加（**既存の禁止 7 / 許可 8 は不変**）。
-    許可例に **`from .io_dialogs import IoDialogs`**（presentation に 16 件実在する兄弟参照）を入れ、
-    **誤検出しないこと**を固定した。**メソッドは 3 本のまま**。
-  - **メインが実測**: 深さ検証（config_io から **level=4 は検出 / level=3 は非検出**）・兄弟参照は非検出・
-    `from . import X`（package が config_service 自身）は検出・fallback も検出。
-    presentation へ相対 import の禁止参照を仕込むと **FAIL**（`R4 ...orphan_scan`）、復旧で pass。
-  - **`reviewer` = 完了可**（オフバイワンなし / 誤検出なし / 既存検査とアサーションの維持を確認）。
-    参考指摘 2 件のうち②（**`package` 空 + `from . import X` は module 名が無く縮退判定できない**）を
-    実測のうえ **docstring へ追記**。①（関数が約 90 行）は **task_02 の `/refactor_check` へ委ねる**。
-  - **起票時の数え間違いを訂正**: task_01b 定義の「既存 10 例 / 11 例」→ **禁止 7 / 許可 8**（実測値）。
+  【**phase 13 完了**（task_01c + task_02）】レビュー指摘の穴を塞ぎ、記録とフェーズ完了処理まで終えた。
+  - **task_01c**（**枝番・ユーザー判断で追加**）: フェーズ完了レビューで `deep-reviewer`（H-1）と
+    `codex-adversarial-reviewer` が**独立に指摘**した穴を実装で解消。
+    ①**相対 import で束縛したエイリアス**（`from ..application import config_service as cs` + `cs.orphan_scan`）が
+    素通りしていた（**絶対 import の同型は検出されるため非対称だった**）→ エイリアス表へ相対も登録。
+    解決は **`_resolve_relative_module` を R4 と共有**（重複実装を作らない）。
+    ②**同名エイリアスの上書きで違反が消える** → 表を **`dict[str, set[str]]`** にし
+    **いずれかの候補が内部モジュールへ解決されたら違反**（スコープ解析なしの保守的判定）。
+    **R1〜R4・素の名前検査は無変更**、自己検証へ**禁止 3 例 / 許可 2 例**追加（計 **13 / 13**）。
+    `reviewer` = **完了可（指摘なし）**。
+  - **task_02**（記録とフェーズ完了処理・**コード差分 0 行**）: `decisions_archive/13` 作成 /
+    `decisions.md` 索引 + phase 13 節の削除 / `current.md` / idea_15 を `INDEX_done.md` へ /
+    **`/refactor_check` = 推奨** → 提案書 **09**（未承認）を起票。
+  - **記録の誤りを訂正**（`deep-reviewer` M-2）: 「`config_service` 変数 31 箇所」は
+    **`INTERNAL_*` の出現数 31 との取り違え**。実測は **29**（`ast.Name` 21 / `ast.arg` 8）で、
+    **素の名前検査を残す本当の理由は「相対 import でモジュールを束縛した場合の唯一の検出経路」**。
+  - **`current.md` の形式をユーザー判断で変更**: 過去フェーズの要約をやめ、
+    **「直近の一連の作業が扱っている領域」+ 完了フェーズはリンクのみ**へ。「フェーズ完了時の指示」にも明記。
+  - 提案書はファイル名を規約（`NN_refactor_<phase名>.md`）へ合わせて**リネーム**。
 result_files:
-  - tests/test_config_service_contracts.py（R4 / R4-fallback / 呼び出し側の package 算出 / docstring）
-  - instructions/phase/13_contracts_boundary_ast_coverage/tasks/task_01b_relative_import_route.md（**新規**）
-  - instructions/phase/13_contracts_boundary_ast_coverage/phase.md（タスク一覧へ task_01b を追記）
+  - tests/test_config_service_contracts.py（task_01c: エイリアス表の相対対応と集合化）
+  - instructions/phase/13_contracts_boundary_ast_coverage/tasks/task_01c_*.md / task_02_*.md（**新規**）
+  - .claude_data/state/decisions_archive/13_contracts_boundary_ast_coverage.md（**新規**）
+  - instructions/modified_proposal/09_refactor_contracts_boundary_ast_coverage.md（**新規・未承認**）
+  - .claude_data/state/decisions.md / instructions/phase/current.md / phase.md /
+    instructions/backlog/INDEX.md / INDEX_done.md
 verified:
   compile: clean
   tests: pass **417**（skip 7・**メソッド 3 本維持で件数不変**）
   tests_ui: pass **288**（skip 0）
   smoke: pass
-  note: `git diff -- keyseq main.py tests_ui` は**空**。**素通しでないことを実測で確認済**（R4 で FAIL → 復旧で pass）
-  review: **`reviewer` = 完了可**（参考指摘 2 件。②は docstring へ反映済 / ①は refactor_check へ）
+  note: `git diff -- keyseq main.py tests_ui` は**空**。塞いだ 3 経路の検出と許可例の非検出をメインが実測
+  review: **`reviewer`（task_01c）= 完了可** / フェーズ完了判定 = `deep-reviewer` **修正して完了可**（H-1/M-2/M-4 是正済）
+    + `codex-adversarial-reviewer` **needs-attention**（①②は task_01c で解消・③は提案書 09 の項目 0 へ反映）
 
 ## next_action
-- **【最優先】phase 13 task_02（記録とフェーズ完了処理・最終タスク）を `/task_new` で起票して実行する**。内容:
-  ①`decisions_archive/13_contracts_boundary_ast_coverage.md` の作成（**正本反映が不要という判断**と
-  **task_01b をユーザー判断で追加した経緯**も記録）②`current.md` の完了記載（次採番 14 の明記）
-  ③`backlog/INDEX.md` の idea_15 を `INDEX_done.md` へ ④**`/refactor_check`** の実行と判定の記載
-  （**`collect_forbidden_refs` が約 90 行**という `reviewer` の参考指摘をここで判定する）。
-- フェーズ完了判定は **`deep-reviewer` + Codex レビューの 2 本立て**（`agent_selection.md`）。
-  **実機目視は不要**（テストのみの変更）。
+- **【最優先・ユーザー判断待ち】提案書 09（未承認）の実施タイミングを決める**:
+  (a) phase 13 の追加タスク / (b) 次フェーズ前の独立ミニ計画「計画10」/ (c) 見送り（別タスク化候補へ）。
+  内容 = **項目 0（必須・先行）期待メッセージを `assertEqual` で固定** →
+  **項目 1 `collect_forbidden_refs`（100 行）を経路ごとの private 関数へ分割** →
+  **項目 2 `"config_service"` 直値 3 箇所を定数から導出**。
+- **次フェーズは未確定**。方針が決まったら `/phase_start` で `instructions/phase/14_<topic>/` を起票する
+  （候補は `instructions/backlog/INDEX.md`。idea_10 / idea_13 / idea_09 / idea_03 / idea_11）。
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
-- **phase 12 の完了レビューの保留分**（実害なし）: L-1 / L-4 / L-8。
+- **phase 12 の完了レビューの保留分**（実害なし）: L-1（`architecture.md` §3.2 の presentation 側
+  ファイル名列挙）/ L-4（`current.md` の次フェーズ候補が phase 11 完了を未反映）/
+  L-8（`__init__.py:17` に `contracts` が無く間接 import に依存）。
 
 ## blockers
-- **なし**（phase 13 task_01b まで green）。
+- **なし**（phase 13 は完了・green）。
 
 ## resume_hints
+- **【phase 13 の成果】公開面の逆戻り防止テスト = `tests/test_config_service_contracts.py` の 3 メソッド**。
+  検査は **R1〜R4 + 属性アクセス 3 形**（素の名前 / 完全修飾 / エイリアス〔絶対・相対とも〕）。
+  **相対 import は `_resolve_relative_module` で絶対名へ解決**し、**解決不能時は `config_service`
+  セグメント以降の末尾一致へ縮退**する（**素通しにしない**）。エイリアス表は **名前 → 束縛先の集合**で、
+  **いずれかが内部モジュールへ解決されたら違反**（スコープ解析はしない）。
+  **素の名前検査（`config_service.<内部>`）は残す**（相対 import でモジュールを束縛した場合の唯一の検出経路）。
+  **`INTERNAL_MODULE_NAMES` はパッケージの実ファイル一覧と一致必須**（モジュールを増やしたら更新する）。
+  **残る限界 4 つ**: 動的 import / 実行時に組み立てた名前 / **代入による再束縛** / 縮退時の未解決。
+  **残存リスク**: `ConfigService` に内部モジュールと同名の公開メンバが増えると**誤検出で落ちる**。
+  判断は `decisions_archive/13_contracts_boundary_ast_coverage.md`。
 - **【phase 12 の成果は正本が正】** `spec_detail/architecture.md` **§3.2**（公開面 = `ConfigService` の
   公開 API + `config_service/contracts.py` / `contracts` は葉）+ `codebase_map.md`（パッケージ表 **13 ファイル**）。
   **暫定仕様 11 は凍結済**（v0.3・経緯の参照用。**条項を実装の根拠に引かない**）。要点だけ再掲 =
@@ -75,7 +92,7 @@ verified:
   presentation の AST 走査 R1〜R3 + 属性アクセス / 検査関数の自己検証）。
   **`INTERNAL_MODULE_NAMES` はパッケージの実ファイル一覧と一致必須**（モジュールを増やしたら更新する。
   更新しないと属性アクセス経路だけ素通りする）
-  ⑥**AST 検査には静的経路の穴が 3 つ残っている**（完全修飾のドット参照 / エイリアス束縛 /
+  ⑥（**phase 13 で解消済**）AST 検査に残っていた静的経路の穴 3 つ（完全修飾のドット参照 / エイリアス束縛 /
   `from keyseq import application` 経由）。**現在の presentation に該当参照は 0 件**で、
   強化は **idea_15** へ分離済（判断は `decisions_archive/12`）。
 - **【計画09 の成果】正本 `data_schema.md` は **INDEX**（260 行）。**§5.8 と §5.10 の実体は
@@ -227,10 +244,10 @@ verified:
 - config_io は `controllers/config_io/` へ分割済（App が `app.keymap_set_io` 等で直接公開）。
 - 未着手 idea: **idea_13（external_keyboard_layouts のパス基準の非対称・優先度低）** / idea_10（ネストした
   モーダルの grab 復元）/ idea_03（hotkey 保存時正規化・優先度低）/ idea_09（レガシー settings/
-  フォールバック・優先度低）。**idea_15 は phase 13 で着手中**・**idea_14 は phase 12 で完了**・**idea_12 は phase 11 で完了**・
+  フォールバック・優先度低）。**idea_15 は phase 13 で完了**・**idea_14 は phase 12 で完了**・**idea_12 は phase 11 で完了**・
   **idea_07 は phase 10 で完了**・**idea_08 は phase 09 で完了**。
   保留 idea: idea_04 / idea_06（**残る着手条件は「共通化の実需」1 つのみ**）。
 - 過去の判断は `.claude_data/state/decisions.md`（アーカイブ索引）+ `decisions_archive/<phase>.md`。
-  完了済の直近 3 件: 10_reference_link_cleanup / 11_orphan_child_file_sweep /
-  **12_config_service_public_surface**。
+  完了済の直近 3 件: 11_orphan_child_file_sweep / 12_config_service_public_surface /
+  **13_contracts_boundary_ast_coverage**。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
