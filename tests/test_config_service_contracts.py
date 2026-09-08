@@ -175,32 +175,45 @@ class ConfigServiceContractsTest(unittest.TestCase):
 
     def test_collect_forbidden_refs_detects_each_route_and_allows_public_imports(self):
         forbidden_sources = (
-            "from keyseq.application.config_service import orphan_scan",
-            "from keyseq.application.config_service.orphan_scan import ORPHAN_CANDIDATE",
-            "import keyseq.application.config_service.orphan_scan",
-            "from keyseq.application import config_service\nconfig_service.orphan_scan",
-            "import keyseq.application.config_service\nkeyseq.application.config_service.orphan_scan.scan()",
-            "from keyseq import application\napplication.config_service.orphan_scan",
-            "from keyseq.application import config_service as cs\ncs.orphan_scan",
+            ("from keyseq.application.config_service import orphan_scan",
+             ["1: R1 keyseq.application.config_service.orphan_scan"]),
+            ("from keyseq.application.config_service.orphan_scan import ORPHAN_CANDIDATE",
+             ["1: R2 keyseq.application.config_service.orphan_scan"]),
+            ("import keyseq.application.config_service.orphan_scan",
+             ["1: R3 keyseq.application.config_service.orphan_scan"]),
+            ("from keyseq.application import config_service\nconfig_service.orphan_scan",
+             ["2: attribute config_service.orphan_scan"]),
+            ("import keyseq.application.config_service\nkeyseq.application.config_service.orphan_scan.scan()",
+             ["2: attribute keyseq.application.config_service.orphan_scan"]),
+            ("from keyseq import application\napplication.config_service.orphan_scan",
+             ["2: attribute keyseq.application.config_service.orphan_scan"]),
+            ("from keyseq.application import config_service as cs\ncs.orphan_scan",
+             ["2: attribute keyseq.application.config_service.orphan_scan"]),
         )
-        for source in forbidden_sources:
+        for source, expected in forbidden_sources:
             with self.subTest(forbidden_source=source):
-                self.assertTrue(collect_forbidden_refs(source))
-        for source, package in (
-            ("from ..application.config_service import orphan_scan", "keyseq.presentation"),
+                self.assertEqual(collect_forbidden_refs(source), expected)
+        for source, package, expected in (
+            ("from ..application.config_service import orphan_scan", "keyseq.presentation",
+             ["1: R4 keyseq.application.config_service.orphan_scan"]),
             ("from ..application.config_service.orphan_scan import ORPHAN_CANDIDATE",
-             "keyseq.presentation"),
-            ("from ..application.config_service import orphan_scan", ""),
+             "keyseq.presentation",
+             ["1: R4 keyseq.application.config_service.orphan_scan"]),
+            ("from ..application.config_service import orphan_scan", "",
+             ["1: R4 config_service.orphan_scan"]),
             ("from ..application import config_service as cs\ncs.orphan_scan",
-             "keyseq.presentation"),
+             "keyseq.presentation",
+             ["2: attribute keyseq.application.config_service.orphan_scan"]),
             ("from .. import application as app\napp.config_service.orphan_scan",
-             "keyseq.presentation"),
+             "keyseq.presentation",
+             ["2: attribute keyseq.application.config_service.orphan_scan"]),
             ("import keyseq.application.config_service as cs\n"
              "from keyseq.application.config_service import contracts as cs\n"
-             "cs.orphan_scan", ""),
+             "cs.orphan_scan", "",
+             ["3: attribute keyseq.application.config_service.orphan_scan"]),
         ):
             with self.subTest(forbidden_source=source, package=package):
-                self.assertTrue(collect_forbidden_refs(source, package))
+                self.assertEqual(collect_forbidden_refs(source, package), expected)
         allowed_sources = (
             "from keyseq.application.config_service import ConfigService, contracts",
             "from keyseq.application.config_service.contracts import ORPHAN_CANDIDATE",
