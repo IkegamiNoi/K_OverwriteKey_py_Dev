@@ -483,3 +483,48 @@ phase 11 は正本反映まで完了して閉じているため、**追加タス
 - 文末の `---` は親に残した（§5.10.4 の子には含めない）。
 - **以後の運用**: 仕様更新は**子ファイルを編集**する。節の趣旨が変わったら**親 INDEX の 1 行要約も追従**。
   新しい節は子を新規作成 + 親へ 1 行追加。子が 300 行を超えたら再分割を検討する。
+
+## 2026-09-08 (計画10: 公開面の境界検査を経路ごとに分割・挙動不変)
+
+規範: [`instructions/modified_proposal/09_refactor_contracts_boundary_ast_coverage.md`](../../instructions/modified_proposal/09_refactor_contracts_boundary_ast_coverage.md)
+（phase 13 の `/refactor_check` = 推奨 → 起票）。**フェーズ番号は消費していない**。
+対象は `tests/test_config_service_contracts.py` の 1 ファイルのみ（**プロダクション不変**）。
+
+### 【起票時】実施形態 → **(b) 次フェーズ前の独立ミニ計画 = 「計画10」**（ユーザー確定 2026-09-08）
+
+phase 13 は記録とフェーズ完了処理まで終えて閉じているため、**追加タスクで完了宣言を巻き戻すより
+独立計画が清い**（計画08 と同じ判断）。
+
+### 【項目 0】期待メッセージの固定 = **先行して単独コミット**（`d9be5d8`）
+
+自己検証は**非空チェックしか行っておらず**、経路ラベル・メッセージ文字列・
+**同一行に複数経路が当たる場合の畳み込みの先勝ち**が入れ替わっても検出できなかった。
+**分割の前に単独で入れる**ことで「分割前後で同一」を主張できるようにした。
+
+- **期待値はメインが `.venv` で実測した実際の出力をそのまま写した**
+  （Codex は python を実行できないため、値を委任プロンプトに含めて渡した）。
+- **守るべき挙動として固定された 2 点**:
+  ①`from keyseq.application import config_service` + `config_service.orphan_scan` は
+  **`attribute config_service.orphan_scan`**（**素の名前検査が先勝ち**。エイリアス経路が先になると
+  完全修飾名に変わる）②`package` 省略時の相対 import は **`R4 config_service.orphan_scan`**（縮退形）。
+- **安全網が実効的であることを実測**: メッセージ書式を意図的に変えると該当テストが FAIL し、
+  復旧で pass に戻る。
+
+### 【項目 1・2】完了（2026-09-08）= **計画10 完了**（`5eb986b`）
+
+- `collect_forbidden_refs`（**100 行**）を `_build_alias_map`（20 行）/ `_check_import_node`（38 行）/
+  `_check_attribute`（30 行）へ分割し、本体は結果を連結する **26 行**へ。
+  **畳み込み（同一 行番号 × 内部モジュール名）の責務は本体側に残した**。
+- R4-fallback の `"config_service"` 直値 3 箇所を **`_INTERNAL_SEGMENT`** へ寄せた。
+  **素の名前検査の `node.value.id == "config_service"` は対象外のまま**（識別子名であって
+  パッケージ末尾セグメントではない）。
+- **挙動保存を 2 段で確認**: ①項目 0 の期待メッセージ 13 件が 1 文字も変わらない
+  ②**分割前（`d9be5d8`）と分割後の出力を 95 ケースで機械照合し不一致 0**
+  （presentation 実ファイル 60 + 合成 35。合成には自己検証 26 例 + `from . import X` / 深さ違い /
+  素の名前 / 代入再束縛 / `import a as x, a as y` / ワイルドカード import を含む）。
+- 実測: compile clean / `tests` **417**（skip 7・**件数不変**）/ `tests_ui` **288** / smoke pass。
+  `git diff -- keyseq main.py tests_ui` は空。
+- `reviewer` = **完了可（ブロッキングなし）**。参考指摘 3 件のうち 2 件を反映
+  （`_check_import_nodes` → **単数形へ改名** / `prefix` の毎ノード再計算を
+  **モジュール定数 `_PACKAGE_PREFIX`** へ）。残る 1 件（分割後の関数が 30 行目安をわずかに超える）は
+  **提案書が想定した分割形**のため据え置き。

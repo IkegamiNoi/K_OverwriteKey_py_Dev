@@ -14,9 +14,11 @@
   phase 12 で判定名・理由コード・結果型を `config_service/contracts.py` へ集約し
   `architecture.md` §3.2 の当面の例外を解消、phase 13 でその**逆戻り防止テストの検査範囲**を
   （完全修飾 / エイリアス / 相対 import まで）広げた。**この領域の残件** =
-  提案書 [09](../modified_proposal/09_refactor_contracts_boundary_ast_coverage.md)（**未承認**・
-  検査関数 100 行の分割）と、検査に残る限界 4 つ（動的 import / 実行時に組み立てた名前 /
-  代入による再束縛 / 縮退時の未解決。**解消するなら新規 idea 起票**）。
+  検査に残る限界 4 つ（動的 import / 実行時に組み立てた名前 / 代入による再束縛 / 縮退時の未解決。
+  **解消するなら新規 idea 起票**）と、素の名前検査の潜在的誤検出
+  （`ConfigService` に内部モジュールと同名の公開メンバが増えると落ちる）。
+  提案書 [09](../modified_proposal/09_refactor_contracts_boundary_ast_coverage.md) は
+  **「計画10」として実施し完了**（2026-09-08・検査関数 100 行 → 26 行・挙動不変）。
 - 直前の完了フェーズ: [13_contracts_boundary_ast_coverage](../../.claude_data/state/decisions_archive/13_contracts_boundary_ast_coverage.md)
 - その前の完了フェーズ: [12_config_service_public_surface](../../.claude_data/state/decisions_archive/12_config_service_public_surface.md)
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
@@ -49,7 +51,7 @@
   次採番は **`12_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
-  **09 = phase 13 由来・未承認**〔`collect_forbidden_refs`〔100 行〕の分割。ファイルは `09_refactor_contracts_boundary_ast_coverage.md`〕）・
+  **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕）・
   次採番は **`10_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 

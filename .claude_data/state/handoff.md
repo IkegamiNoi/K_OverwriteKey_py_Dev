@@ -25,9 +25,9 @@
 6. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 13（公開面の逆戻り防止テストの検査範囲の拡張）は全 4 タスク完了しフェーズ完了**（2026-09-08）。
-phase 12（config_service の公開面の集約）も完了済。**次フェーズは未確定**。
-**次にやること = 提案書 09（未承認）の実施タイミングをユーザーへ確認し、あわせて次フェーズの方針を決める**。
+**phase 13 も、その `/refactor_check` 由来の計画10（提案書 09 の実施）も完了**（2026-09-08）。
+進行中のフェーズはなく、**未決の判断も残っていない**。
+**次にやること = 次フェーズの方針をユーザーへ確認し `/phase_start` で `14_<topic>` を起票する**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -37,26 +37,25 @@ phase 12（config_service の公開面の集約）も完了済。**次フェー�
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 13 完了時点**）:
+直近の実測（**計画10 完了時点**）:
 compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smoke **pass**。
 **件数が減ったら退行を疑う**。skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 **同じ観点はジャンクション版のテストが実行されている**ので観点の抜けにはならない。
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
 ## 次アクション（session.md.next_action より）
-- **【最優先・ユーザー判断待ち】提案書 09（未承認）の実施タイミングを決める**:
-  (a) phase 13 の追加タスク / (b) 次フェーズ前の独立ミニ計画「計画10」/ (c) 見送り（別タスク化候補へ）。
-  内容 = **項目 0（必須・先行）期待メッセージを `assertEqual` で固定** →
-  **項目 1 `collect_forbidden_refs`（100 行）を経路ごとの private 関数へ分割** →
-  **項目 2 `"config_service"` 直値 3 箇所を定数から導出**。
-- **次フェーズは未確定**。方針が決まったら `/phase_start` で `instructions/phase/14_<topic>/` を起票する
-  （候補は `instructions/backlog/INDEX.md`）。
+- **【最優先】次フェーズが未確定**。ユーザーへ方針確認し、決まったら `/phase_start` で
+  `instructions/phase/14_<topic>/` を起票する。候補は `instructions/backlog/INDEX.md`
+  （idea_10 / idea_13 / idea_09 / idea_03 / idea_11 / 保留の idea_04・idea_06）。
+- **境界検査の残件**（着手するなら新規 idea 起票）: 残る限界 4 つ（動的 import /
+  実行時に組み立てた名前 / 代入による再束縛 / 縮退時の未解決）と、**素の名前検査の潜在的誤検出**
+  （`ConfigService` に内部モジュールと同名の公開メンバが増えると落ちる）。
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
 - **phase 12 の完了レビューの保留分**（実害なし）: L-1 / L-4 / L-8。
 
-## 直前フェーズ（phase 13 = 公開面の逆戻り防止テストの検査範囲の拡張・**完了**）の要点
+## 直前の作業（phase 13 = 検査範囲の拡張・**完了** / 計画10 = 検査関数の分割・**完了**）の要点
 
 **直接改訂モード（暫定仕様なし）・テストのみ・プロダクション不変・仕様変更なし・実機目視なし**。
 **正本改訂なし**（`architecture.md` §3.2 は phase 12 で確定済で不変。**検査精度を上げただけ**）。
@@ -77,8 +76,11 @@ compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smo
 - **残存リスク**: `ConfigService` に**内部モジュールと同名の公開メンバ**が増えると、
   §3.2 が許可する正当な記述でも**素の名前検査が誤検出して落ちる**。その時は検査側の再判断が要る。
 - **`/refactor_check` = 推奨** → 提案書
-  `instructions/modified_proposal/09_refactor_contracts_boundary_ast_coverage.md`（**未承認**）。
-  **承認前に実装しない**。
+  `instructions/modified_proposal/09_refactor_contracts_boundary_ast_coverage.md` は
+  **「計画10」として実施し完了**（2026-09-08・**フェーズ番号は消費していない**）。
+  `collect_forbidden_refs` は **100 行 → 26 行**へ分割済（`_build_alias_map` / `_check_import_node` /
+  `_check_attribute`）。**禁止 13 例は期待メッセージを `assertEqual` で固定**してあるため、
+  **検査を触ると出力の差がそのまま落ちる**（分割時の挙動保存もこれで担保した）。
 
 ## 直前フェーズのひとつ前（phase 12 = config_service の公開面の集約・**完了**）の要点
 
@@ -100,7 +102,7 @@ compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smo
   **蒸し返さない**（正本 `data_schema.md` §5.8.9 / `decisions_archive/11`）。
 
 ## 注意事項・blockers
-- **blockers: なし**（phase 13 は完了・green。次フェーズ未確定）。
+- **blockers: なし**（phase 13・計画10 とも完了・green。次フェーズ未確定）。
 - **【教訓・task_07b】Codex は「記録を足す」指示を「skip を増やす」方向へ広げることがある**。
   1 回目の実装で参照側の skip 条件を `islink` から `realpath != abspath` へ広げ、
   **親ディレクトリがジャンクションなら配下の全 keymap_set が参照集合から落ちる**状態を作り、

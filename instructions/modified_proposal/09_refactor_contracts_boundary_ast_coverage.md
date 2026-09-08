@@ -3,7 +3,8 @@
 > `/refactor_check`（`.claude/commands/refactor_check.md`）の判定 = **推奨**。
 > **ユーザー承認前に実装しない**。判定の記録は
 > [decisions_archive/13](../../.claude_data/state/decisions_archive/13_contracts_boundary_ast_coverage.md)。
-> 状態: **未承認**。
+> 状態: **承認済・実施完了**（2026-09-08・独立ミニ計画「**計画10**」として実施。
+> 項目 0 = `d9be5d8` / 項目 1・2 = `5eb986b`。**挙動不変**）。
 > ※ 提案書の採番 09 と「**計画09**」（`/spec_split` による正本の INDEX 分割）は**別物**。本書は提案書 09。
 
 ## 判定の要約
@@ -137,8 +138,16 @@ def collect_forbidden_refs(source: str, package: str = "") -> list[str]:
 - **素の名前検査の潜在的誤検出**（`ConfigService` に内部モジュールと同名の公開メンバが増えると落ちる）も
   リファクタの範囲外。**残存リスクとして `decisions_archive/13` に記録済**。
 
-## 実施タイミング（ユーザー選択）
+## 実施タイミング → **(b) 次フェーズ前の独立ミニ計画「計画10」**（ユーザー確定 2026-09-08）
 
-- **(a) 同フェーズ末の追加タスク**（`task_03_refactor` として起票）— 採るなら phase 13 の完了宣言の前に実施する。
-- **(b) 次フェーズ前の独立ミニ計画**（「計画10」として実施。**フェーズ番号を消費しない**）。
-- **(c) 見送り**（`current.md` の「別タスク化候補」へ 1 行追記して次フェーズ以降に再判定）。
+phase 13 は完了処理まで終えて閉じているため、追加タスクで完了宣言を巻き戻すより独立計画が清い
+（計画08 と同じ判断）。**フェーズ番号は消費していない**。
+
+**実施結果**（詳細は `.claude_data/state/decisions.md` の「計画10」節）:
+
+- 項目 0（`d9be5d8`）: 禁止 13 例の期待メッセージを `assertEqual` で固定。
+  **書式を変えると FAIL することを実測**（安全網が素通しでない）。
+- 項目 1・2（`5eb986b`）: `collect_forbidden_refs` を **100 行 → 26 行**へ分割し、
+  `"config_service"` 直値 3 箇所を `_INTERNAL_SEGMENT` へ。
+  **分割前後の出力を 95 ケースで機械照合し不一致 0**。`tests` 417 / `tests_ui` 288 / smoke pass。
+  `reviewer` = 完了可。

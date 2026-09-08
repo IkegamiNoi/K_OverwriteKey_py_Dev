@@ -4,73 +4,68 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-08T13:30:00
-phase: **13_contracts_boundary_ast_coverage（公開面の逆戻り防止テストの検査範囲の拡張）= **全 4 タスク完了・フェーズ完了**（2026-09-08）。**直接改訂モード**（暫定仕様なし・正本改訂なし）。番号対応: phase 13 / 暫定仕様なし / decisions_archive 13。**次フェーズは未確定**（次採番 `instructions/phase/14_<topic>`）
+last_updated: 2026-09-08T15:10:00
+phase: **進行中のフェーズなし**。phase 13 は 2026-09-08 完了、その `/refactor_check` 由来の
+**計画10（提案書 09 の実施）も完了**（フェーズ番号は消費していない）。**次フェーズは未確定**
+（次採番 `instructions/phase/14_<topic>`）
 last_commit_location: main @ 最新コミット = **`claude/task-06b-continuation-401967` を main へマージ**（マージ前の main 側 WIP コミット `WIP task_06b: ...` はブランチ側の `task_06b: 隔離済みの削除を新設` に完全に置き換わった）。直前の完了コミットは `task_07b: 二次レビュー指摘の反映（A-1〜A-7）`。※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 13（公開面の逆戻り防止テストの検査範囲の拡張）は全 4 タスク完了しフェーズ完了。次フェーズ未確定**。
+focus: **計画10（提案書 09 の実施）まで完了。進行中のフェーズなし・次フェーズ未確定**。
 mode: completed
 
 ## last_action
-ts: 2026-09-08T13:30:00
+ts: 2026-09-08T15:10:00
 who: main
 summary: |
-  【**phase 13 完了**（task_01c + task_02）】レビュー指摘の穴を塞ぎ、記録とフェーズ完了処理まで終えた。
-  - **task_01c**（**枝番・ユーザー判断で追加**）: フェーズ完了レビューで `deep-reviewer`（H-1）と
-    `codex-adversarial-reviewer` が**独立に指摘**した穴を実装で解消。
-    ①**相対 import で束縛したエイリアス**（`from ..application import config_service as cs` + `cs.orphan_scan`）が
-    素通りしていた（**絶対 import の同型は検出されるため非対称だった**）→ エイリアス表へ相対も登録。
-    解決は **`_resolve_relative_module` を R4 と共有**（重複実装を作らない）。
-    ②**同名エイリアスの上書きで違反が消える** → 表を **`dict[str, set[str]]`** にし
-    **いずれかの候補が内部モジュールへ解決されたら違反**（スコープ解析なしの保守的判定）。
-    **R1〜R4・素の名前検査は無変更**、自己検証へ**禁止 3 例 / 許可 2 例**追加（計 **13 / 13**）。
-    `reviewer` = **完了可（指摘なし）**。
-  - **task_02**（記録とフェーズ完了処理・**コード差分 0 行**）: `decisions_archive/13` 作成 /
-    `decisions.md` 索引 + phase 13 節の削除 / `current.md` / idea_15 を `INDEX_done.md` へ /
-    **`/refactor_check` = 推奨** → 提案書 **09**（未承認）を起票。
-  - **記録の誤りを訂正**（`deep-reviewer` M-2）: 「`config_service` 変数 31 箇所」は
-    **`INTERNAL_*` の出現数 31 との取り違え**。実測は **29**（`ast.Name` 21 / `ast.arg` 8）で、
-    **素の名前検査を残す本当の理由は「相対 import でモジュールを束縛した場合の唯一の検出経路」**。
-  - **`current.md` の形式をユーザー判断で変更**: 過去フェーズの要約をやめ、
-    **「直近の一連の作業が扱っている領域」+ 完了フェーズはリンクのみ**へ。「フェーズ完了時の指示」にも明記。
-  - 提案書はファイル名を規約（`NN_refactor_<phase名>.md`）へ合わせて**リネーム**。
+  【**計画10 完了**】phase 13 の `/refactor_check` 由来の提案書 09 を、**独立ミニ計画**として実施した
+  （ユーザー確定。**フェーズ番号は消費しない**＝計画08 と同じ形）。対象は
+  `tests/test_config_service_contracts.py` の 1 ファイルのみで**プロダクション不変**。
+  - **項目 0 を先行して単独コミット**（`d9be5d8`）: 禁止 13 例の期待メッセージを **`assertEqual` で固定**。
+    従来は**非空チェックだけ**で、経路ラベル・メッセージ・**畳み込みの先勝ち**が入れ替わっても
+    検出できなかった。**期待値はメインが `.venv` で実測した実出力**（Codex は python を実行できないため
+    値を委任プロンプトに含めた）。**書式を変えると FAIL することを実測**（素通しでない）。
+  - **項目 1・2**（`5eb986b`）: `collect_forbidden_refs` を **100 行 → 26 行**へ分割
+    （`_build_alias_map` 20 / `_check_import_node` 38 / `_check_attribute` 30）。
+    **畳み込みの責務は本体側に残す**。R4-fallback の `"config_service"` 直値 3 箇所を
+    **`_INTERNAL_SEGMENT`** へ（**素の名前検査の識別子名は対象外のまま**）。
+  - **挙動保存を 2 段で確認**: ①期待メッセージ 13 件が 1 文字も変わらない
+    ②**分割前後の出力を 95 ケースで機械照合し不一致 0**（presentation 実ファイル 60 + 合成 35）。
+  - `reviewer` = **完了可（ブロッキングなし）**。参考指摘 2 件を反映（**関数名を単数形へ** /
+    `prefix` の毎ノード再計算を**モジュール定数 `_PACKAGE_PREFIX`** へ）。
 result_files:
-  - tests/test_config_service_contracts.py（task_01c: エイリアス表の相対対応と集合化）
-  - instructions/phase/13_contracts_boundary_ast_coverage/tasks/task_01c_*.md / task_02_*.md（**新規**）
-  - .claude_data/state/decisions_archive/13_contracts_boundary_ast_coverage.md（**新規**）
-  - instructions/modified_proposal/09_refactor_contracts_boundary_ast_coverage.md（**新規・未承認**）
-  - .claude_data/state/decisions.md / instructions/phase/current.md / phase.md /
-    instructions/backlog/INDEX.md / INDEX_done.md
+  - tests/test_config_service_contracts.py（項目 0 / 項目 1・2）
+  - .claude_data/state/decisions.md（**計画10 節を追加**）
+  - instructions/modified_proposal/09_refactor_contracts_boundary_ast_coverage.md（状態 = 実施完了）
+  - instructions/phase/current.md（提案書 09 を実施済みへ / 「扱っている領域」の残件を更新）
 verified:
   compile: clean
-  tests: pass **417**（skip 7・**メソッド 3 本維持で件数不変**）
+  tests: pass **417**（skip 7・**件数不変**）
   tests_ui: pass **288**（skip 0）
   smoke: pass
-  note: `git diff -- keyseq main.py tests_ui` は**空**。塞いだ 3 経路の検出と許可例の非検出をメインが実測
-  review: **`reviewer`（task_01c）= 完了可** / フェーズ完了判定 = `deep-reviewer` **修正して完了可**（H-1/M-2/M-4 是正済）
-    + `codex-adversarial-reviewer` **needs-attention**（①②は task_01c で解消・③は提案書 09 の項目 0 へ反映）
+  note: `git diff -- keyseq main.py tests_ui` は**空**。**分割前後 95 ケース照合で不一致 0**
+  review: **`reviewer` = 完了可**（挙動保存・項目 2 の範囲・分割の責務を実読で確認）
 
 ## next_action
-- **【最優先・ユーザー判断待ち】提案書 09（未承認）の実施タイミングを決める**:
-  (a) phase 13 の追加タスク / (b) 次フェーズ前の独立ミニ計画「計画10」/ (c) 見送り（別タスク化候補へ）。
-  内容 = **項目 0（必須・先行）期待メッセージを `assertEqual` で固定** →
-  **項目 1 `collect_forbidden_refs`（100 行）を経路ごとの private 関数へ分割** →
-  **項目 2 `"config_service"` 直値 3 箇所を定数から導出**。
-- **次フェーズは未確定**。方針が決まったら `/phase_start` で `instructions/phase/14_<topic>/` を起票する
-  （候補は `instructions/backlog/INDEX.md`。idea_10 / idea_13 / idea_09 / idea_03 / idea_11）。
+- **【最優先】次フェーズが未確定**。ユーザーへ方針確認し、決まったら `/phase_start` で
+  `instructions/phase/14_<topic>/` を起票する。候補は `instructions/backlog/INDEX.md`:
+  idea_10（ネストしたモーダルの grab 復元）/ idea_13 / idea_09 / idea_03 / idea_11 / idea_04・idea_06（保留）。
+- **境界検査の残件**（着手するなら新規 idea 起票）: 検査に残る限界 4 つ（動的 import /
+  実行時に組み立てた名前 / 代入による再束縛 / 縮退時の未解決）と、**素の名前検査の潜在的誤検出**
+  （`ConfigService` に内部モジュールと同名の公開メンバが増えると落ちる）。
 - **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
   ②例外内容が理由コードへ落ちて失われる。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
-- **phase 12 の完了レビューの保留分**（実害なし）: L-1（`architecture.md` §3.2 の presentation 側
-  ファイル名列挙）/ L-4（`current.md` の次フェーズ候補が phase 11 完了を未反映）/
-  L-8（`__init__.py:17` に `contracts` が無く間接 import に依存）。
+- **phase 12 の完了レビューの保留分**（実害なし）: L-1 / L-4 / L-8。
 
 ## blockers
-- **なし**（phase 13 は完了・green）。
+- **なし**（計画10 まで green）。
 
 ## resume_hints
-- **【phase 13 の成果】公開面の逆戻り防止テスト = `tests/test_config_service_contracts.py` の 3 メソッド**。
+- **【phase 13 + 計画10 の成果】公開面の逆戻り防止テスト = `tests/test_config_service_contracts.py` の 3 メソッド**。
+  **検査関数は計画10 で経路ごとに分割済**（`_build_alias_map` / `_check_import_node` /
+  `_check_attribute` + 本体 26 行）。**禁止 13 例は期待メッセージを `assertEqual` で固定**して
+  あるので、**触ると出力の差がそのまま落ちる**（分割時はこれが挙動保存の担保になった）。
   検査は **R1〜R4 + 属性アクセス 3 形**（素の名前 / 完全修飾 / エイリアス〔絶対・相対とも〕）。
   **相対 import は `_resolve_relative_module` で絶対名へ解決**し、**解決不能時は `config_service`
   セグメント以降の末尾一致へ縮退**する（**素通しにしない**）。エイリアス表は **名前 → 束縛先の集合**で、
