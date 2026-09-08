@@ -9,6 +9,8 @@ from keyseq.application.config_service import (
 
 
 CONFIG_SERVICE_PACKAGE = "keyseq.application.config_service"
+_INTERNAL_SEGMENT = CONFIG_SERVICE_PACKAGE.rsplit(".", 1)[-1]
+_PACKAGE_PREFIX = CONFIG_SERVICE_PACKAGE + "."
 INTERNAL_MODULE_NAMES = frozenset({
     "candidate_dirs", "orphan_scan", "parent_refs_cleanup", "path_boundary",
     "quarantine", "quarantine_manage", "reference_scan", "save_path_resolution",
@@ -26,24 +28,7 @@ def _resolve_relative_module(package: str, node: ast.ImportFrom) -> str | None:
     return ".".join(base + ([node.module] if node.module else []))
 
 
-def collect_forbidden_refs(source: str, package: str = "") -> list[str]:
-    """静的な config_service 内部参照を、行番号と違反経路付きで返す。
-
-    相対 import も、source の所属パッケージ package から絶対名へ解決して検査する。
-    package を渡さない場合や相対階層が深すぎる場合は、末尾パターン一致に縮退する。
-    縮退時はエイリアスを登録せず、末尾一致に module 名が要るため
-    from . import X 形（module が空）は判定できない
-    （presentation の走査では package を必ず渡すので、この縮退は起きない）。
-    動的import（importlib / __import__）や実行時に組み立てた名前による参照
-    （getattr(pkg, name) / 文字列連結で作ったモジュール名）は検出できない。
-    エイリアスの解決対象は import / from import が束縛した名前だけで、
-    代入で再束縛した変数（x = config_service の x）は解決できない。
-    逆に、スコープを分けないため、同名が別スコープで再束縛されると
-    実行時には許可される記述でも違反になる（過検出側・意図的）。
-    """
-    forbidden = []
-    prefix = CONFIG_SERVICE_PACKAGE + "."
-    tree = ast.parse(source)
+def _build_alias_map(tree: ast.AST, package: str) -> dict[str, set[str]]:
     aliases: dict[str, set[str]] = {}
     for node in ast.walk(tree):
         if isinstance(node, ast.Import):
@@ -62,70 +47,105 @@ def collect_forbidden_refs(source: str, package: str = "") -> list[str]:
                     aliases.setdefault(alias.asname or alias.name, set()).add(
                         f"{module}.{alias.name}",
                     )
+    return aliases
 
-    attribute_refs: dict[tuple[int, str], str] = {}
-    for node in ast.walk(tree):
-        if isinstance(node, ast.ImportFrom):
-            module = node.module or ""
-            if module == CONFIG_SERVICE_PACKAGE:
+
+def _check_import_node(node: ast.AST, package: str) -> list[str]:
+    forbidden: list[str] = []
+    if isinstance(node, ast.ImportFrom):
+        module = node.module or ""
+        if module == CONFIG_SERVICE_PACKAGE:
+            for alias in node.names:
+                if alias.name not in {"ConfigService", "contracts"}:
+                    forbidden.append(f"{node.lineno}: R1 {module}.{alias.name}")
+        elif module.startswith(_PACKAGE_PREFIX) and module[len(_PACKAGE_PREFIX):].split(".")[0] != "contracts":
+            forbidden.append(f"{node.lineno}: R2 {module}")
+        if node.level > 0:
+            resolved_module = _resolve_relative_module(package, node)
+            if resolved_module is not None:
+                relative_prefix = _PACKAGE_PREFIX
+                relative_package = CONFIG_SERVICE_PACKAGE
+            else:
+                # 解決不能時だけ config_service セグメント以降で判定する。
+                module_parts = module.split(".")
+                if _INTERNAL_SEGMENT not in module_parts:
+                    return forbidden
+                resolved_module = ".".join(
+                    module_parts[module_parts.index(_INTERNAL_SEGMENT):],
+                )
+                relative_package = _INTERNAL_SEGMENT
+                relative_prefix = relative_package + "."
+            if resolved_module == relative_package:
                 for alias in node.names:
                     if alias.name not in {"ConfigService", "contracts"}:
-                        forbidden.append(f"{node.lineno}: R1 {module}.{alias.name}")
-            elif module.startswith(prefix) and module[len(prefix):].split(".")[0] != "contracts":
-                forbidden.append(f"{node.lineno}: R2 {module}")
-            if node.level > 0:
-                resolved_module = _resolve_relative_module(package, node)
-                if resolved_module is not None:
-                    relative_prefix = prefix
-                    relative_package = CONFIG_SERVICE_PACKAGE
-                else:
-                    # 解決不能時だけ config_service セグメント以降で判定する。
-                    module_parts = module.split(".")
-                    if "config_service" not in module_parts:
-                        continue
-                    resolved_module = ".".join(
-                        module_parts[module_parts.index("config_service"):],
-                    )
-                    relative_package = "config_service"
-                    relative_prefix = relative_package + "."
-                if resolved_module == relative_package:
-                    for alias in node.names:
-                        if alias.name not in {"ConfigService", "contracts"}:
-                            forbidden.append(f"{node.lineno}: R4 {resolved_module}.{alias.name}")
-                elif (resolved_module.startswith(relative_prefix)
-                        and resolved_module[len(relative_prefix):].split(".")[0] != "contracts"):
-                    forbidden.append(f"{node.lineno}: R4 {resolved_module}")
-        elif isinstance(node, ast.Import):
-            for alias in node.names:
-                if (alias.name.startswith(prefix)
-                        and alias.name[len(prefix):].split(".")[0] != "contracts"):
-                    forbidden.append(f"{node.lineno}: R3 {alias.name}")
-        elif isinstance(node, ast.Attribute):
-            # import 由来でない config_service も従来どおり検査する。
-            if (isinstance(node.value, ast.Name)
-                    and node.value.id == "config_service"
-                    and node.attr in INTERNAL_MODULE_NAMES):
-                key = (node.lineno, prefix + node.attr)
-                attribute_refs.setdefault(
-                    key, f"{node.lineno}: attribute config_service.{node.attr}",
-                )
-            parts = []
-            root = node
-            while isinstance(root, ast.Attribute):
-                parts.append(root.attr)
-                root = root.value
-            if isinstance(root, ast.Name) and root.id in aliases:
-                # スコープを分けず、同名の束縛先をすべて保守的に検査する。
-                for target in sorted(aliases[root.id]):
-                    resolved = ".".join([target, *reversed(parts)])
-                    if resolved.startswith(prefix):
-                        internal_name = resolved[len(prefix):].split(".")[0]
-                        if internal_name in INTERNAL_MODULE_NAMES:
-                            module = prefix + internal_name
-                            key = (node.lineno, module)
-                            attribute_refs.setdefault(
-                                key, f"{node.lineno}: attribute {module}",
-                            )
+                        forbidden.append(f"{node.lineno}: R4 {resolved_module}.{alias.name}")
+            elif (resolved_module.startswith(relative_prefix)
+                    and resolved_module[len(relative_prefix):].split(".")[0] != "contracts"):
+                forbidden.append(f"{node.lineno}: R4 {resolved_module}")
+    elif isinstance(node, ast.Import):
+        for alias in node.names:
+            if (alias.name.startswith(_PACKAGE_PREFIX)
+                    and alias.name[len(_PACKAGE_PREFIX):].split(".")[0] != "contracts"):
+                forbidden.append(f"{node.lineno}: R3 {alias.name}")
+    return forbidden
+
+
+def _check_attribute(
+    node: ast.Attribute, aliases: dict[str, set[str]],
+) -> list[tuple[tuple[int, str], str]]:
+    attribute_refs: list[tuple[tuple[int, str], str]] = []
+    # import 由来でない config_service も従来どおり検査する。
+    if (isinstance(node.value, ast.Name)
+            and node.value.id == "config_service"
+            and node.attr in INTERNAL_MODULE_NAMES):
+        key = (node.lineno, _PACKAGE_PREFIX + node.attr)
+        attribute_refs.append((
+            key, f"{node.lineno}: attribute config_service.{node.attr}",
+        ))
+    parts = []
+    root = node
+    while isinstance(root, ast.Attribute):
+        parts.append(root.attr)
+        root = root.value
+    if isinstance(root, ast.Name) and root.id in aliases:
+        # スコープを分けず、同名の束縛先をすべて保守的に検査する。
+        for target in sorted(aliases[root.id]):
+            resolved = ".".join([target, *reversed(parts)])
+            if resolved.startswith(_PACKAGE_PREFIX):
+                internal_name = resolved[len(_PACKAGE_PREFIX):].split(".")[0]
+                if internal_name in INTERNAL_MODULE_NAMES:
+                    module = _PACKAGE_PREFIX + internal_name
+                    key = (node.lineno, module)
+                    attribute_refs.append((
+                        key, f"{node.lineno}: attribute {module}",
+                    ))
+    return attribute_refs
+
+
+def collect_forbidden_refs(source: str, package: str = "") -> list[str]:
+    """静的な config_service 内部参照を、行番号と違反経路付きで返す。
+
+    相対 import も、source の所属パッケージ package から絶対名へ解決して検査する。
+    package を渡さない場合や相対階層が深すぎる場合は、末尾パターン一致に縮退する。
+    縮退時はエイリアスを登録せず、末尾一致に module 名が要るため
+    from . import X 形（module が空）は判定できない
+    （presentation の走査では package を必ず渡すので、この縮退は起きない）。
+    動的import（importlib / __import__）や実行時に組み立てた名前による参照
+    （getattr(pkg, name) / 文字列連結で作ったモジュール名）は検出できない。
+    エイリアスの解決対象は import / from import が束縛した名前だけで、
+    代入で再束縛した変数（x = config_service の x）は解決できない。
+    逆に、スコープを分けないため、同名が別スコープで再束縛されると
+    実行時には許可される記述でも違反になる（過検出側・意図的）。
+    """
+    forbidden = []
+    tree = ast.parse(source)
+    aliases = _build_alias_map(tree, package)
+    attribute_refs: dict[tuple[int, str], str] = {}
+    for node in ast.walk(tree):
+        forbidden.extend(_check_import_node(node, package))
+        if isinstance(node, ast.Attribute):
+            for key, message in _check_attribute(node, aliases):
+                attribute_refs.setdefault(key, message)
     forbidden.extend(attribute_refs.values())
     return forbidden
 
