@@ -6,6 +6,12 @@
     "description": "実装を codex-implementer (Codex CLI) へ委任し、統合テスト・フェーズ区切り・暫定仕様確定前に Codex レビューを併用する構成。Codex CLI とプラグインが必要。"
   },
   {
+    "id": 3,
+    "name": "Codex併用（実装・レビューのみ / 調査は Claude）",
+    "dir": "codex_medium",
+    "description": "Codex の使用量を実装とレビューに絞る構成。調査は Claude の Explore が担当し、codex-explorer は配置されない。実装・レビューの委任先はモード 1 と同じ。"
+  },
+  {
     "id": 2,
     "name": "Claudeのみ（非Codex環境）",
     "dir": "claude_only",
