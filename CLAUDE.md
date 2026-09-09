@@ -45,6 +45,10 @@
 新フェーズの起票 = `/phase_start` / タスク定義の起票 = `/task_new`
 （いずれも `.claude/commands/` 同名ファイル）。
 
+生成元 template リポジトリで育った運用ルール・インフラの取り込み（逆同期）は
+`/template_pull`（`.claude/commands/template_pull.md`）。同期状態と template との
+意図的な差分は `.claude/template_pull_state.md` に記録する。
+
 ## ■ 実装ルール（常時有効）
 
 - 作業は小さく分け、1タスクごとに完結させる
