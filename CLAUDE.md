@@ -51,8 +51,8 @@
 - 実装後は必ず確認し、未確認のまま次へ進まない
 - タスク外の機能追加・無関係なリファクタ・大規模構造変更をしない
 - 実装は原則、既定の実装エージェントへ委任する（既定エージェントとフォールバック条件は
-  `.claude/rules/agent_selection.md`。エージェント構成は `.claude_data/modes/agent_mode/` で
-  Codex 併用 / Claude のみ を切り替える）。
+  `.claude/rules/agent_selection.md`。エージェント構成は `.claude_data/modes/agent_mode/` の
+  登録モードで切り替える）。
   ここで定義された委任はユーザー確定済みの運用であり、都度の許可確認は不要。
   一方、**定義外の委任・多重起動は行わない**（量の抑制は `.claude/rules/output_style.md`）
 
@@ -78,7 +78,7 @@
 外出しした詳細（例・テンプレート・手順詳説）は `instructions/common/rules_detail/` に置き、
 必要時のみ読む（要点版が規範の正）。
 
-- `.claude/rules/agent_selection.md` — メイン/サブエージェントの分担（実装エージェントの既定とフォールバック / 起票=メイン + 調査=codex-explorer〔Claude 側フォールバック=Explore〕 / 統合確認・メトリクス収集=verifier / レビューのタイミング別使い分け。構成は `.claude_data/modes/agent_mode/` で Codex 併用 / Claude のみ を切り替え）
+- `.claude/rules/agent_selection.md` — メイン/サブエージェントの分担（実装エージェントの既定とフォールバック / 起票=メイン + 調査=codex-explorer〔Claude 側フォールバック=Explore〕 / 統合確認・メトリクス収集=verifier / レビューのタイミング別使い分け。構成は `.claude_data/modes/agent_mode/` の登録モードで切り替え）
 - `.claude/rules/anti_patterns.md`
 - `.claude/rules/file_organization_rules.md` — ファイル配置・肥大化対策（分割時の親フォルダ方式 / 昇格ルール / 恒久互換レイヤー禁止）
 - `.claude/rules/python_rules.md` — 言語別ルール（Python）

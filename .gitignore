@@ -188,6 +188,12 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
+# ローカル専用の Claude Code 設定・データ
+.claude/settings.local.json
+
+# git worktree の実体
+.claude/worktrees/
+
 # Claude Code: モード切替の適用前バックアップ（switch_*.py が作成）
 .claude_data/modes/agent_mode/backup/
 .claude_data/modes/save_mode/backup/
