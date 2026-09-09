@@ -4,52 +4,63 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-08T15:10:00
-phase: **進行中のフェーズなし**。phase 13 は 2026-09-08 完了、その `/refactor_check` 由来の
-**計画10（提案書 09 の実施）も完了**（フェーズ番号は消費していない）。**次フェーズは未確定**
-（次採番 `instructions/phase/14_<topic>`）
-last_commit_location: main @ 最新コミット = **`claude/task-06b-continuation-401967` を main へマージ**（マージ前の main 側 WIP コミット `WIP task_06b: ...` はブランチ側の `task_06b: 隔離済みの削除を新設` に完全に置き換わった）。直前の完了コミットは `task_07b: 二次レビュー指摘の反映（A-1〜A-7）`。※現在地・SHA はセッション開始時の git 実測値が正
+last_updated: 2026-09-10T00:30:00
+phase: **進行中のフェーズなし**。phase 13 と計画10 は 2026-09-08 完了。**次フェーズは未確定**
+（次採番 `instructions/phase/14_<topic>`）。今セッションは template からの逆同期 + スキル化で、
+**フェーズ番号を消費しない運用インフラ作業**（アプリ本体・テストへのコード差分 0 行）
+last_commit_location: `claude/folder-commit-import-2e88db` @ `1c40182`
+（今セッションの 8 コミット `2466c3d`..`1c40182`。**main へは未マージ**）。
+※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **計画10（提案書 09 の実施）まで完了。進行中のフェーズなし・次フェーズ未確定**。
+focus: **template（`D:/Claude/doc/00_claude_template`）からの逆同期を完了し、手順を `/template_pull` としてスキル化。進行中のフェーズなし・次フェーズ未確定**。
 mode: completed
 
 ## last_action
-ts: 2026-09-08T15:10:00
+ts: 2026-09-10T00:30:00
 who: main
 summary: |
-  【**計画10 完了**】phase 13 の `/refactor_check` 由来の提案書 09 を、**独立ミニ計画**として実施した
-  （ユーザー確定。**フェーズ番号は消費しない**＝計画08 と同じ形）。対象は
-  `tests/test_config_service_contracts.py` の 1 ファイルのみで**プロダクション不変**。
-  - **項目 0 を先行して単独コミット**（`d9be5d8`）: 禁止 13 例の期待メッセージを **`assertEqual` で固定**。
-    従来は**非空チェックだけ**で、経路ラベル・メッセージ・**畳み込みの先勝ち**が入れ替わっても
-    検出できなかった。**期待値はメインが `.venv` で実測した実出力**（Codex は python を実行できないため
-    値を委任プロンプトに含めた）。**書式を変えると FAIL することを実測**（素通しでない）。
-  - **項目 1・2**（`5eb986b`）: `collect_forbidden_refs` を **100 行 → 26 行**へ分割
-    （`_build_alias_map` 20 / `_check_import_node` 38 / `_check_attribute` 30）。
-    **畳み込みの責務は本体側に残す**。R4-fallback の `"config_service"` 直値 3 箇所を
-    **`_INTERNAL_SEGMENT`** へ（**素の名前検査の識別子名は対象外のまま**）。
-  - **挙動保存を 2 段で確認**: ①期待メッセージ 13 件が 1 文字も変わらない
-    ②**分割前後の出力を 95 ケースで機械照合し不一致 0**（presentation 実ファイル 60 + 合成 35）。
-  - `reviewer` = **完了可（ブロッキングなし）**。参考指摘 2 件を反映（**関数名を単数形へ** /
-    `prefix` の毎ノード再計算を**モジュール定数 `_PACKAGE_PREFIX`** へ）。
+  【**template からの逆同期 + スキル化**】生成元 template リポジトリ
+  （`D:/Claude/doc/00_claude_template`・追加ワーキングディレクトリ）の 3 コミット
+  `aa2f827` / `15e2514` / `7791fa7` を取り込み、手順を `/template_pull` として固定した。
+  順方向の `/template_sync` は template 側にあるが**逆同期は責務外**と明記されているため、
+  手順（候補抽出 → 分類 → 確認ゲート → 適合化）だけ借りて手作業で実施した。
+  - **取込 3 件**: ①モード切替機構を `instructions/{agent_mode,save_mode}/` → **`.claude_data/modes/`**
+    へ移動（17 ファイル rename + 旧パス参照 8 箇所 + `ROOT_DIR` を `parents[1]` → `[2]`）
+    ②**`codex_medium` モード追加**（Codex を実装・レビューに絞り調査は `Explore`。
+    `agent_selection.md` は template の汎用版ではなく**こちらの `codex` 変種をベースに 3 箇所差替**）
+    ③`.gitignore` にモード backup 2 行（**部分取込**）。
+  - **`deep-reviewer` の指摘を反映**（2 回実施）: 3 モード化に伴う表記統一 / `codex_medium` の
+    理由文の差替 / `.gitignore` へ `settings.local.json`・`.claude/worktrees/` を追加
+    （**グローバル設定と `.git/info/exclude` 由来で追跡ファイルには無かった**＝別マシンで無効）/
+    モード管理外の 3 文書から `codex-explorer` の直名を除去 /
+    **`save_mode` 登録 5 種へ SessionStart の git 実測ヘッダを書き戻し**（`check` の警告が解消）。
+  - **新設 2 件**: `.claude_data/modes/README.md`（モード管理の限界と参照側の書き方）/
+    `/template_pull` + `.claude/template_pull_state.md`（逆同期の手順とマーカー）。
 result_files:
-  - tests/test_config_service_contracts.py（項目 0 / 項目 1・2）
-  - .claude_data/state/decisions.md（**計画10 節を追加**）
-  - instructions/modified_proposal/09_refactor_contracts_boundary_ast_coverage.md（状態 = 実施完了）
-  - instructions/phase/current.md（提案書 09 を実施済みへ / 「扱っている領域」の残件を更新）
+  - .claude_data/modes/**（`instructions/` から移動 + `codex_medium` 変種 + `README.md`）
+  - .claude/commands/template_pull.md / .claude/template_pull_state.md（新規）
+  - CLAUDE.md / .claude/rules/{agent_selection,output_style,task_execution}.md / .claude/commands/task_commit.md
+  - .gitignore
 verified:
-  compile: clean
-  tests: pass **417**（skip 7・**件数不変**）
-  tests_ui: pass **288**（skip 0）
-  smoke: pass
-  note: `git diff -- keyseq main.py tests_ui` は**空**。**分割前後 95 ケース照合で不一致 0**
-  review: **`reviewer` = 完了可**（挙動保存・項目 2 の範囲・分割の責務を実読で確認）
+  compile: clean（`.claude_data/modes` の compileall）
+  tests: not_run（**アプリ本体・テストへのコード差分 0 行**のため）
+  tests_ui: not_run（同上）
+  smoke: not_run（同上）
+  note: agent_mode の `check` = **[1] Codex併用（既定）一致** / save_mode の `check` =
+    **[4] 自動保存・タスクファイルの読み込み指示 一致**（従来の「どれにも一致しません」警告が解消）/
+    `git check-ignore -v` で追跡 `.gitignore` が根拠になることを確認 / **旧パス参照の残存 0**
+  review: **`deep-reviewer` × 2**（①取込差分 = 修正要 → 反映済 ②`/template_pull` = 修正要 → 反映済）
 
 ## next_action
-- **【最優先】次フェーズが未確定**。ユーザーへ方針確認し、決まったら `/phase_start` で
-  `instructions/phase/14_<topic>/` を起票する。候補は `instructions/backlog/INDEX.md`:
+- **【最優先】次フェーズが未確定**（前セッションから継続）。ユーザーへ方針確認し、決まったら
+  `/phase_start` で `instructions/phase/14_<topic>/` を起票する。候補は `instructions/backlog/INDEX.md`:
   idea_10（ネストしたモーダルの grab 復元）/ idea_13 / idea_09 / idea_03 / idea_11 / idea_04・idea_06（保留）。
+- **今回の未処理 3 件**（`.claude/template_pull_state.md` の履歴メモにも記録済）:
+  ①`.claude_data/state/decisions.md` へ今回の判断履歴を記録（未実施）
+  ②`codex_medium` を実運用へ入れる前に `Explore` を 1 度起動して可用性を確認
+  ③`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述
+  （`codex-implementer` 等の直名。**今回起因ではない既存のズレ**）。
 - **境界検査の残件**（着手するなら新規 idea 起票）: 検査に残る限界 4 つ（動的 import /
   実行時に組み立てた名前 / 代入による再束縛 / 縮退時の未解決）と、**素の名前検査の潜在的誤検出**
   （`ConfigService` に内部モジュールと同名の公開メンバが増えると落ちる）。
@@ -59,9 +70,17 @@ verified:
 - **phase 12 の完了レビューの保留分**（実害なし）: L-1 / L-4 / L-8。
 
 ## blockers
-- **なし**（計画10 まで green）。
+- **なし**（取込・スキル化とも green。アプリ本体は無変更）。
 
 ## resume_hints
+- **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**
+  （`instructions/agent_mode` ・ `instructions/save_mode` から移動。旧パスは存在しない）。
+  **`.claude/` 配下または `CLAUDE.md` を編集する前に `.claude_data/modes/README.md` を読む**
+  （管理対象パス一覧 / **`check` は非稼働モードのズレを検知しない** / 参照側はどのモードでも
+  真になるように書く）。エージェント構成は **3 モード**（`codex` / **`codex_medium`** / `claude_only`）で、
+  現構成は `[1] codex`。template からの取り込みは **`/template_pull`**
+  （マーカー = `.claude/template_pull_state.md`。`last_pulled = 7791fa7`。
+  **template と意図的に差分にした箇所・ファイルの対応関係もここが正**）。
 - **【phase 13 + 計画10 の成果】公開面の逆戻り防止テスト = `tests/test_config_service_contracts.py` の 3 メソッド**。
   **検査関数は計画10 で経路ごとに分割済**（`_build_alias_map` / `_check_import_node` /
   `_check_attribute` + 本体 26 行）。**禁止 13 例は期待メッセージを `assertEqual` で固定**して
