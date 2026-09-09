@@ -35,6 +35,6 @@ description: 完了したタスクの成果をタスク単位で git コミッ�
 
 ## 注意
 
-- 自動保存モード（`instructions/save_mode/` の auto_save 系設定）では、Stop hook がタスク完了を
+- 自動保存モード（`.claude_data/modes/save_mode/` の auto_save 系設定）では、Stop hook がタスク完了を
   検知した際に `/save_state` に続けて本コマンドの実行を促す。手動保存モードでは任意実行
 - タスク完了以外の区切り（重要判断・中断など）では state 更新（`/save_state`）のみでよい

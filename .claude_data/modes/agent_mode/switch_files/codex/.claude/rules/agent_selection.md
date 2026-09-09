@@ -2,7 +2,7 @@
 
 作業種別ごとの「メインセッションで行うか / どのサブエージェントへ委任するか」の基準。
 実装は Codex を既定とし、Claude 系エージェントはフォールバックとする。
-（非 Codex 環境向け構成への切り替えは `instructions/agent_mode/switch_agent_mode.py`）
+（非 Codex 環境向け構成への切り替えは `.claude_data/modes/agent_mode/switch_agent_mode.py`）
 
 > **Codex CLI ランタイム（companion）の操作**（ジョブが詰まった / cancel が効かない /
 > ハングを検知したい / state を手修復したい）は `instructions/common/rules_detail/codex_operations.md`

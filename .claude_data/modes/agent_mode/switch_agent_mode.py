@@ -1,6 +1,6 @@
 """エージェント構成（Codex併用 / Claudeのみ）の切り替えスクリプト。
 
-instructions/save_mode/switch_save_mode.py と同型の対話式スイッチャー。
+.claude_data/modes/save_mode/switch_save_mode.py と同型の対話式スイッチャー。
 save_mode が .claude/settings.json 1 ファイルを差し替えるのに対し、
 本スクリプトは switch_files/<mode>/ 配下にミラーした複数ファイルを
 リポジトリルートへ一括反映する。
@@ -24,7 +24,7 @@ from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parents[1]
+ROOT_DIR = SCRIPT_DIR.parents[2]
 
 MODES_FILE = SCRIPT_DIR / "modes.json"
 SWITCH_FILES_DIR = SCRIPT_DIR / "switch_files"

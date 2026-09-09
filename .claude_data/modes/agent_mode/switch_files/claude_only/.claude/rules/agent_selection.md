@@ -2,7 +2,7 @@
 
 作業種別ごとの「メインセッションで行うか / どのサブエージェントへ委任するか」の基準。
 Codex CLI を使わない環境向けの構成。実装・レビューとも Claude 系エージェントで完結させる。
-（Codex 併用構成への切り替えは `instructions/agent_mode/switch_agent_mode.py`）
+（Codex 併用構成への切り替えは `.claude_data/modes/agent_mode/switch_agent_mode.py`）
 
 ---
 

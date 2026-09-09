@@ -11,7 +11,7 @@ from typing import Any
 
 
 SCRIPT_DIR = Path(__file__).resolve().parent
-ROOT_DIR = SCRIPT_DIR.parents[1]
+ROOT_DIR = SCRIPT_DIR.parents[2]
 
 CLAUDE_SETTINGS = ROOT_DIR / ".claude" / "settings.json"
 
