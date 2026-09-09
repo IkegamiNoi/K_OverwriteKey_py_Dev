@@ -187,3 +187,7 @@ cython_debug/
 #  refer to https://docs.cursor.com/context/ignore-files
 .cursorignore
 .cursorindexingignore
+
+# Claude Code: モード切替の適用前バックアップ（switch_*.py が作成）
+.claude_data/modes/agent_mode/backup/
+.claude_data/modes/save_mode/backup/
