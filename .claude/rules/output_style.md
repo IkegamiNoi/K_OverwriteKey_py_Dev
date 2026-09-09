@@ -39,7 +39,7 @@ Opus 系は放置すると「応答が長い・実況が多い・文書が膨ら
 - 1つで足りるなら1つ。同種エージェントを並列多重起動しない
 - 例外（自己確認ではなく別モデル/別視点の検証であり、既定どおり維持する）:
   Codex 実装物の検証 = `verifier` / 別視点レビュー = `reviewer` ・ `deep-reviewer` ・ Codex レビュー系 /
-  広範囲の探索調査 = `codex-explorer`（Claude 側フォールバック = `Explore`）/ タスク実装 = `codex-implementer`
+  広範囲の探索調査 = 調査エージェント（既定は `agent_selection.md`）/ タスク実装 = `codex-implementer`
 
 ## ■ 検証の重ね過ぎ
 
