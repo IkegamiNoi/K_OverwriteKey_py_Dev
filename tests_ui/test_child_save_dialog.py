@@ -177,6 +177,9 @@ class _FakeSaveDialog:
     def transient(self, _master):
         pass
 
+    def grab_current(self):
+        return None
+
     def grab_set(self):
         pass
 

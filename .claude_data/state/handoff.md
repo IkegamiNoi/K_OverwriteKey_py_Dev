@@ -23,9 +23,9 @@
 5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 14（ネストしたモーダルの grab 復元）を起票完了。暫定仕様 12 は v0.4 で確定済。
-実装タスク（task_01）は未起票・未着手**（2026-09-10）。
-**次にやること = `/task_new` で task_01 を起票し `codex-implementer` へ委任する**。
+**phase 14（ネストしたモーダルの grab 復元）進行中。task_01（`modal.py` 新設 + 系統 B 4 箇所）
+完了・green・reviewer 採用。task_02〜06 は未着手**（2026-09-10）。
+**次にやること = `/task_new` で task_02（`dialogs/` 9 クラスへの適用）を起票し委任する**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -43,14 +43,13 @@ compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smo
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
 ## 次アクション（session.md.next_action より）
-- **【最優先】phase 14 task_01 を `/task_new` で起票する**
-  （`tasks/task_01_modal_helper.md`）。内容 = `keyseq/presentation/modal.py` 新設（復元契約 8 条・
-  暫定仕様 §3）+ 系統 B の 4 箇所（`controllers/config_io/` の `child_save_dialog.py:24-27`・`:241-245` /
-  `hotkey_presets_io.py:79-82` / `io_dialogs.py:54-58`）への適用 + ヘルパ単体テスト。
-  起票後 `codex-implementer` へ委任（**テスト実行は依頼しない**。実測は `verifier`）。
-- **`refactor/02-app-split` のリモートブランチ削除**をユーザーへ確認する。
-  **マージ不要と判定済**（同じ 12 段の分割が 2026-07-05 に main へ直接コミット済で、
-  main はその後 242 コミット進行。`git cherry` が未マージと表示するのはパッチ ID 不一致のため）。
+- **【最優先】phase 14 task_02 を `/task_new` で起票する**
+  （`tasks/task_02_dialogs_grab_modal.md`）。内容 = `keyseq/presentation/dialogs/` の **9 クラス**の
+  `__init__` にある `grab_set` / `transient` を `grab_modal` へ置換。
+  **注意点は phase.md のタスク 2 に記載済**。起票後 `codex-implementer` へ委任
+  （**テスト実行は依頼しない**。実測は `verifier`）。
+- その後: task_03（ネスト経路 3 系統のテスト）→ task_04（契約 3 条のテスト）→
+  task_05（統合確認 + **ユーザーによる実機目視**）→ task_06（正本反映・最終）。
 - フェーズ末（task_06）で **`ActionDialog` の親付け替え**を `/idea` で起票する（暫定仕様 §6-5）。
 - フェーズ末に **`/refactor_check`** を実行し、**ダイアログ同型スケルトンの共通化**
   （phase 11 からの候補送り・本フェーズで意図的に分離）を判定対象にする。
@@ -69,7 +68,13 @@ compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smo
 **presentation 層のみ・スキーマ不変・機能追加ではない**。
 
 - **復元は子側**（ダイアログが自分の `grab_set()` の前に `grab_current()` を記録し、破棄時に戻す）。
-  `wait_window` 側 20 箇所には触らない。ヘルパは `keyseq/presentation/modal.py`（新規）。
+  `wait_window` 側 20 箇所には触らない。
+  **ヘルパ = `keyseq/presentation/modal.py` の `grab_modal(window, parent=None)`（task_01 で実装済）**。
+  状態は**クロージャ**に持ち**ウィジェット属性に持たない**。冒頭の `previous is window` 早期 return が
+  冪等性を担う。**`<Destroy>` を `"+"` なしで bind する**ので、同じウィンドウへ別の `<Destroy>` を
+  足すと**復元が無言で消える**（保留扱いの既知の弱点）。
+- **task_01 完了時点で系統 B の 4 箇所は適用済**。ネスト経路 3（上書き確認）は**この時点で既に直っている**
+  見込みで、**実ダイアログでの確認は task_03**。残るはダイアログ 9 クラス（task_02）。
 - **「誰へ戻すか」（§3-1）と「そもそも戻してよいか」（§3-7）は別条件**。
   §3-1 は**記録した保持者が `None` 以外なら戻す**（「自分自身のときだけ」に絞ると
   **最も実害の大きいネスト経路 3 が復元されない**）。§3-7 は**破棄時点の保持者が自分か
@@ -86,9 +91,11 @@ compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smo
   系統 B を先行タスクにする。
 - **対象外**: stdlib ダイアログの grab（**未検証・実機目視のみ**）/ ダイアログ同型スケルトンの共通化 /
   `ActionDialog` の親付け替え / 順序統一目的の並べ替え / grab 以外の後始末。
-- **テスト上の罠**: `tests_ui/test_child_save_dialog.py` は `tk.Toplevel` を
-  `_FakeSaveDialog`（`:149`）へ patch し `grab_set` / `wait_window` とも no-op なので
-  **grab の回帰基準にならない**。スタブは `winfo_exists` / `grab_current` を持たない。
+- **テスト上の罠**: `tk.Toplevel` を差し替えるスタブは **2 つ**あり、**両方に手当てが要る**
+  （task_01 で 1 つ見落として 4 件落ちた）。`tests_ui/test_child_save_dialog.py:149` の
+  `_FakeSaveDialog` と `tests_ui/test_config_io_characterization.py:66` の `_FakeDialog`。
+  **どちらも `grab_set` / `wait_window` が no-op なので grab の回帰基準にならない**。
+  探すときは `grep -rn "def grab_set" tests_ui/`。
   `tests_ui/test_app_ui_flows.py:72`・`:1327-1338` は `object.__new__(PresetManagerDialog)` +
   `destroy` 直呼びなので、**復元処理は属性未初期化でも落ちないこと**。
   `grab_current()` の観測例は `tests_ui/test_quarantine_manage_flow.py:286`。

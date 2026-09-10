@@ -4,69 +4,72 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-10T12:00:00
-phase: `instructions/phase/14_nested_modal_grab_restore`（**2026-09-10 起票・未着手**）。
-主入力 = 暫定仕様 [12](../../instructions/history/12_nested_modal_grab_restore.md)
-（**v0.4・ユーザー確定済・実装着手可**）。番号対応: phase 14 / 暫定 12 / decisions 14
-last_commit_location: `claude/folder-commit-import-2e88db` @ `1c40182`
-（**main へは未マージ**。今セッションの起票分はまだ未コミット）。
+last_updated: 2026-09-10T13:30:00
+phase: `instructions/phase/14_nested_modal_grab_restore`（**進行中**）。
+主入力 = 暫定仕様 12（v0.4・ユーザー確定済）。番号対応: phase 14 / 暫定 12 / decisions 14。
+**task_01 完了 / task_02〜06 未着手**
+last_commit_location: `claude/merge-priority-discussion-97c3c1` @ `6f6e300`（phase 14 起票）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 14（ネストしたモーダルの grab 復元）を起票完了。暫定仕様 12 は v0.4 で確定済。実装タスク（task_01）は未起票・未着手**。
-mode: pending_review
+focus: **phase 14 task_01（modal.py 新設 + 系統 B 4 箇所）を完了。次は task_02（dialogs/ 9 クラスへの適用）の起票**。
+mode: completed
 
 ## last_action
-ts: 2026-09-10T12:00:00
+ts: 2026-09-10T13:30:00
 who: main
 summary: |
-  【**マージ済ブランチの判定 + phase 14 起票**】
-  - **`refactor/02-app-split` はマージ不要**と判定。同じ 12 段の分割が 2026-07-05 夜に main へ
-    直接コミット済（件名が 1 対 1 対応・成果物も main に存在）。main はその後 242 コミット進んでいる。
-    `git cherry` は 12 件を未マージ（`+`）と表示するが**別ブランチで作り直したためパッチ ID が
-    一致しないだけ**。マージすると 7 月時点の `app.py` を被せて大量の衝突と退行になる。
-    **リモートブランチの削除はユーザー承認待ち**（未実行）。
-  - **暫定仕様 12 を起票 → v0.4 で確定**（暫定仕様先行モード）。
-    起票時 `deep-reviewer` で **ネスト経路の見落とし 1 本**（`preset_manager.py:364` →
-    `hotkey_presets_io.py:42` の上書き確認。**上書きを承諾しないとマネージャが閉じないため
-    最も実害が大きい**）と **v0.1 のヘルパ案が原理的に不成立**（`open_modal(Dialog(...), parent)` は
-    引数評価時点で子が既に grab 済み）を検出し、設計を**子側復元**へ差し替えた。
-    確定前 `codex-adversarial-reviewer` で**復元契約の穴 3 件**を検出し §3-6〜§3-8 を追加。
-  - **phase 14 を起票**（`phase.md` + タスク 6 本の骨子）。`reviewer` の整合確認で
-    **task_06 の `/refactor_check` 記載漏れ**と **`current.md` 未更新**を指摘され、両方反映。
-  - **レビュー結果の事実主張はすべて `ファイルパス:行` で実測裏取り済**
-    （`.claude/rules/agent_selection.md`【裏取り】）。件数の誤り 2 件（stdlib 呼び出し 20 → 18 /
-    行番号 212 → 213）を訂正した。
+  【**task_01 完了**】`keyseq/presentation/modal.py` に `grab_modal(window, parent=None)` を新設し、
+  系統 B の 4 箇所（`controllers/config_io/`）を置換した。実装は `codex-implementer` へ委任。
+  - **ヘルパは 46 行**。記録（`grab_current`・`TclError`/`KeyError` を `None` 扱い）→ `transient` →
+    `grab_set` → `<Destroy>` バインド。復元は **クロージャ**に持った `previous` / `restored` で判定し、
+    **ウィジェット属性に持たない**（task_02 の `object.__new__` 経路対策）。
+  - **§3-1 と §3-7 を別変数で分離**（記録した保持者 / 破棄時点の保持者）。`reviewer` が
+    混同なしと確認。冒頭の `previous is window` 早期 return が §3-5 の冪等性を担う。
+  - **挙動が変わるのは `hotkey_presets_io.confirm_overwrite` の 1 箇所だけ**で、これは
+    **ネスト経路 3 そのもの**（= 本フェーズが直したい欠陥）。**起票時に「系統 B は 4 箇所とも
+    非ネスト」と書いていたのは誤りで、Codex の指摘で訂正した**。
+  - **実測で 4 件失敗 → 修正**: `tk.Toplevel` を差し替えるスタブが **2 つ**あり、起票時は
+    `_FakeSaveDialog` しか挙げていなかった（**メインの監査漏れ**）。
+    `tests_ui/test_config_io_characterization.py:66` の `_FakeDialog` は `grab_current` に加え
+    **`bind` も無く**、`io_dialogs.ask_link_label_to_filename` の特性テスト 4 件が落ちた。
+    両方を足して green。`grep -rn "def grab_set" tests_ui/` でスタブはこの 2 つで全部と確認。
+  - **`reviewer` 判定 = 修正して採用 → 反映済で完了可**。保留の参考意見 1 件
+    （`<Destroy>` を `"+"` なしで bind するため将来別ハンドラを足すと復元が無言で消える）は
+    **コードを変えず phase.md の task_02 注意点として記録**した。
 result_files:
-  - instructions/history/12_nested_modal_grab_restore.md（新規・v0.4）
-  - instructions/phase/14_nested_modal_grab_restore/phase.md（新規）
-  - instructions/phase/current.md（現在の参照先の先頭 + 次採番 + 次フェーズ候補）
-  - instructions/backlog/INDEX.md（idea_10 行を「着手」へ）
+  - keyseq/presentation/modal.py（新規）
+  - keyseq/presentation/controllers/config_io/{child_save_dialog,hotkey_presets_io,io_dialogs}.py
+  - tests_ui/test_modal_grab.py（新規・7 テスト）
+  - tests_ui/{test_child_save_dialog,test_config_io_characterization}.py（スタブ拡張）
+  - instructions/phase/14_nested_modal_grab_restore/tasks/task_01_modal_helper.md（新規・2 度訂正）
+  - instructions/phase/14_nested_modal_grab_restore/phase.md（task_02 の注意点を追記）
 verified:
-  compile: not_run（**文書のみ・コード差分 0 行**）
-  tests: not_run（同上）
-  tests_ui: not_run（同上）
-  smoke: not_run（同上）
-  review: **`deep-reviewer`（暫定仕様 起票時）→ 修正して採用・反映済** /
-    **`codex-adversarial-reviewer`（確定前）→ needs-attention・3 件反映済** /
-    **`reviewer`（phase.md 整合確認）→ 修正要・2 件反映済**
+  compile: clean
+  tests: pass 417（skip 7・**据え置き**）
+  tests_ui: pass 295（既存 288 + 新規 7）
+  smoke: pass
+  note: `grep grab_set` = controllers/ **0 件** / dialogs/ **9 件のまま**（task_02 を先取りしていない）。
+    テスト後に worktree ルートへ `user/` `quarantine/` の生成なし。
+  review: **`reviewer` → 修正して採用**（High 1 件 = スタブ 2 つ目の取り込み・**反映済**）
 
 ## next_action
-- **【最優先】phase 14 task_01 を `/task_new` で起票する** →
-  `instructions/phase/14_nested_modal_grab_restore/tasks/task_01_modal_helper.md`。
-  内容 = `keyseq/presentation/modal.py` 新設（復元契約 8 条・暫定仕様 §3）+ 系統 B の 4 箇所
-  （`controllers/config_io/` の `child_save_dialog.py:24-27`・`:241-245` / `hotkey_presets_io.py:79-82` /
-  `io_dialogs.py:54-58`）への適用 + ヘルパ単体テスト。起票後 `codex-implementer` へ委任
-  （**テスト実行は依頼しない**。実測は `verifier`）。
-- **`refactor/02-app-split` のリモートブランチ削除**をユーザーへ確認する（マージ不要と判定済・未実行）。
-- フェーズ末（task_06）で **`ActionDialog` の親付け替え**を `/idea` で起票する（暫定仕様 §6-5）。
-- フェーズ末に **`/refactor_check`** を実行し、**ダイアログ同型スケルトンの共通化**
-  （phase 11 からの候補送り・本フェーズで意図的に分離）を判定対象にする。
+- **【最優先】phase 14 task_02 を `/task_new` で起票する**
+  （`tasks/task_02_dialogs_grab_modal.md`）。内容 = `keyseq/presentation/dialogs/` の **9 クラス**の
+  `__init__` にある `grab_set` / `transient` を `grab_modal` へ置換。
+  **注意点は phase.md のタスク 2 に記載済**（①`grab_modal` は初期化の最後に呼ぶ。
+  `action_dialog.py:123` は grab 取得後に `_sync_capture_ui()` を呼ぶので順序の見直しが要る
+  ②`<Destroy>` の `"+"` なし bind の制約 ③`object.__new__` 経路で落ちないこと）。
+  起票後 `codex-implementer` へ委任（**テスト実行は依頼しない**。実測は `verifier`）。
+- その後: task_03（ネスト経路 3 系統のテスト）→ task_04（契約 3 条のテスト）→
+  task_05（統合確認 + **ユーザーによる実機目視**）→ task_06（正本反映・最終）。
+- フェーズ末（task_06）で **`ActionDialog` の親付け替え**を `/idea` で起票し、
+  **`/refactor_check`** を実行する（ダイアログ同型スケルトンの共通化を判定対象にする）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（起票は 3 レビューを通し反映済。文書のみでコード差分 0 行）。
+- **なし**（task_01 は全確認 pass・`reviewer` 採用）。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**

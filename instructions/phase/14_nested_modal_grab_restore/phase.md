@@ -81,6 +81,11 @@ presentation 限定）。`instructions/history/` の凍結済み暫定仕様。
    復元契約 8 条を実装し、ヘルパ単体のテストを追加する。
 2. **task_02**: 系統 A の 9 クラスへ適用。`__init__` の `grab_set` / `transient` をヘルパ呼び出しへ
    置き換え、`object.__new__` 経路（`tests_ui/test_app_ui_flows.py:72`）でも例外を出さないこと。
+   - **`grab_modal` は初期化の最後に呼ぶ**（§3-6。`action_dialog.py:123` は grab 取得後に
+     `_sync_capture_ui()` を呼ぶため、順序の見直しが要る）。
+   - **`grab_modal` は `<Destroy>` を `"+"` なしで bind する**ため、同じウィンドウへ別の
+     `<Destroy>` ハンドラを足すと**復元が無言で消える**（task_01 の `reviewer` 指摘・保留扱い）。
+     9 クラスへ適用する際に該当が出たら、その時点でユーザーへ報告する。
 3. **task_03**: ネスト経路 3 系統のテストを `tests_ui/` へ追加
    （プリセット編集 → 追加・編集 / アクション編集 → プリセット編集 / プリセット編集 → 上書き確認）。
    `_FakeSaveDialog` の拡張要否をここで判断する。

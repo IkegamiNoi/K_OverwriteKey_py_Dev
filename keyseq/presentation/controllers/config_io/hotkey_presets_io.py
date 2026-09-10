@@ -1,6 +1,8 @@
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from keyseq.presentation.modal import grab_modal
+
 
 class HotkeyPresetsIo:
     def __init__(self, app) -> None:
@@ -76,8 +78,7 @@ class HotkeyPresetsIo:
             text="上書きする",
             command=lambda: choose("overwrite"),
         ).pack(side="right", padx=(0, 8))
-        dialog.transient(self._app)
-        dialog.grab_set()
+        grab_modal(dialog, self._app)
         dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
         dialog.wait_window()
         return result["choice"]

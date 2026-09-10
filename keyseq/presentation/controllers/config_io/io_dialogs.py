@@ -2,6 +2,8 @@ import os
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 
+from keyseq.presentation.modal import grab_modal
+
 
 class IoDialogs:
     def __init__(self, app) -> None:
@@ -51,8 +53,7 @@ class IoDialogs:
 
         ttk.Button(buttons, text="OK", command=on_ok).pack(side="right")
         ttk.Button(buttons, text="キャンセル", command=on_cancel).pack(side="right", padx=(0, 8))
-        dialog.transient(self._app)
-        dialog.grab_set()
+        grab_modal(dialog, self._app)
         dialog.protocol("WM_DELETE_WINDOW", on_cancel)
         try:
             dialog.wait_window()

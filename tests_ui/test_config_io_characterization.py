@@ -68,6 +68,7 @@ class _FakeDialog:
         self._mode = mode
         self._buttons = buttons
         self._protocols = {}
+        self._bindings = {}
         self.title_value = None
 
     def title(self, value):
@@ -79,8 +80,14 @@ class _FakeDialog:
     def transient(self, _master):
         pass
 
+    def grab_current(self):
+        return None
+
     def grab_set(self):
         pass
+
+    def bind(self, sequence, callback):
+        self._bindings[sequence] = callback
 
     def protocol(self, name, command):
         self._protocols[name] = command

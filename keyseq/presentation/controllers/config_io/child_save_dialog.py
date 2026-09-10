@@ -7,6 +7,7 @@ from tkinter import filedialog, font, messagebox, ttk
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP
 from keyseq.presentation.controllers.config_io.child_save_rows import ChildSaveRow
+from keyseq.presentation.modal import grab_modal
 
 
 class ChildSaveDialog:
@@ -21,8 +22,7 @@ class ChildSaveDialog:
         self._app.hook.suspend_hook_for_dialog()
         try:
             dialog, choices = self._create_action_dialog(rows, result)
-            dialog.transient(self._app)
-            dialog.grab_set()
+            grab_modal(dialog, self._app)
             dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
             dialog.wait_window()
         finally:
@@ -238,8 +238,7 @@ class ChildSaveDialog:
                 trigger_set_row,
                 result,
             )
-            dialog.transient(self._app)
-            dialog.grab_set()
+            grab_modal(dialog, self._app)
             dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
             dialog.bind("<Escape>", lambda _event: dialog.destroy())
             dialog.wait_window()
