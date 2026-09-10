@@ -4,73 +4,69 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-10T00:30:00
-phase: **進行中のフェーズなし**。phase 13 と計画10 は 2026-09-08 完了。**次フェーズは未確定**
-（次採番 `instructions/phase/14_<topic>`）。今セッションは template からの逆同期 + スキル化で、
-**フェーズ番号を消費しない運用インフラ作業**（アプリ本体・テストへのコード差分 0 行）
+last_updated: 2026-09-10T12:00:00
+phase: `instructions/phase/14_nested_modal_grab_restore`（**2026-09-10 起票・未着手**）。
+主入力 = 暫定仕様 [12](../../instructions/history/12_nested_modal_grab_restore.md)
+（**v0.4・ユーザー確定済・実装着手可**）。番号対応: phase 14 / 暫定 12 / decisions 14
 last_commit_location: `claude/folder-commit-import-2e88db` @ `1c40182`
-（今セッションの 8 コミット `2466c3d`..`1c40182`。**main へは未マージ**）。
+（**main へは未マージ**。今セッションの起票分はまだ未コミット）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **template（`D:/Claude/doc/00_claude_template`）からの逆同期を完了し、手順を `/template_pull` としてスキル化。進行中のフェーズなし・次フェーズ未確定**。
-mode: completed
+focus: **phase 14（ネストしたモーダルの grab 復元）を起票完了。暫定仕様 12 は v0.4 で確定済。実装タスク（task_01）は未起票・未着手**。
+mode: pending_review
 
 ## last_action
-ts: 2026-09-10T00:30:00
+ts: 2026-09-10T12:00:00
 who: main
 summary: |
-  【**template からの逆同期 + スキル化**】生成元 template リポジトリ
-  （`D:/Claude/doc/00_claude_template`・追加ワーキングディレクトリ）の 3 コミット
-  `aa2f827` / `15e2514` / `7791fa7` を取り込み、手順を `/template_pull` として固定した。
-  順方向の `/template_sync` は template 側にあるが**逆同期は責務外**と明記されているため、
-  手順（候補抽出 → 分類 → 確認ゲート → 適合化）だけ借りて手作業で実施した。
-  - **取込 3 件**: ①モード切替機構を `instructions/{agent_mode,save_mode}/` → **`.claude_data/modes/`**
-    へ移動（17 ファイル rename + 旧パス参照 8 箇所 + `ROOT_DIR` を `parents[1]` → `[2]`）
-    ②**`codex_medium` モード追加**（Codex を実装・レビューに絞り調査は `Explore`。
-    `agent_selection.md` は template の汎用版ではなく**こちらの `codex` 変種をベースに 3 箇所差替**）
-    ③`.gitignore` にモード backup 2 行（**部分取込**）。
-  - **`deep-reviewer` の指摘を反映**（2 回実施）: 3 モード化に伴う表記統一 / `codex_medium` の
-    理由文の差替 / `.gitignore` へ `settings.local.json`・`.claude/worktrees/` を追加
-    （**グローバル設定と `.git/info/exclude` 由来で追跡ファイルには無かった**＝別マシンで無効）/
-    モード管理外の 3 文書から `codex-explorer` の直名を除去 /
-    **`save_mode` 登録 5 種へ SessionStart の git 実測ヘッダを書き戻し**（`check` の警告が解消）。
-  - **新設 2 件**: `.claude_data/modes/README.md`（モード管理の限界と参照側の書き方）/
-    `/template_pull` + `.claude/template_pull_state.md`（逆同期の手順とマーカー）。
+  【**マージ済ブランチの判定 + phase 14 起票**】
+  - **`refactor/02-app-split` はマージ不要**と判定。同じ 12 段の分割が 2026-07-05 夜に main へ
+    直接コミット済（件名が 1 対 1 対応・成果物も main に存在）。main はその後 242 コミット進んでいる。
+    `git cherry` は 12 件を未マージ（`+`）と表示するが**別ブランチで作り直したためパッチ ID が
+    一致しないだけ**。マージすると 7 月時点の `app.py` を被せて大量の衝突と退行になる。
+    **リモートブランチの削除はユーザー承認待ち**（未実行）。
+  - **暫定仕様 12 を起票 → v0.4 で確定**（暫定仕様先行モード）。
+    起票時 `deep-reviewer` で **ネスト経路の見落とし 1 本**（`preset_manager.py:364` →
+    `hotkey_presets_io.py:42` の上書き確認。**上書きを承諾しないとマネージャが閉じないため
+    最も実害が大きい**）と **v0.1 のヘルパ案が原理的に不成立**（`open_modal(Dialog(...), parent)` は
+    引数評価時点で子が既に grab 済み）を検出し、設計を**子側復元**へ差し替えた。
+    確定前 `codex-adversarial-reviewer` で**復元契約の穴 3 件**を検出し §3-6〜§3-8 を追加。
+  - **phase 14 を起票**（`phase.md` + タスク 6 本の骨子）。`reviewer` の整合確認で
+    **task_06 の `/refactor_check` 記載漏れ**と **`current.md` 未更新**を指摘され、両方反映。
+  - **レビュー結果の事実主張はすべて `ファイルパス:行` で実測裏取り済**
+    （`.claude/rules/agent_selection.md`【裏取り】）。件数の誤り 2 件（stdlib 呼び出し 20 → 18 /
+    行番号 212 → 213）を訂正した。
 result_files:
-  - .claude_data/modes/**（`instructions/` から移動 + `codex_medium` 変種 + `README.md`）
-  - .claude/commands/template_pull.md / .claude/template_pull_state.md（新規）
-  - CLAUDE.md / .claude/rules/{agent_selection,output_style,task_execution}.md / .claude/commands/task_commit.md
-  - .gitignore
+  - instructions/history/12_nested_modal_grab_restore.md（新規・v0.4）
+  - instructions/phase/14_nested_modal_grab_restore/phase.md（新規）
+  - instructions/phase/current.md（現在の参照先の先頭 + 次採番 + 次フェーズ候補）
+  - instructions/backlog/INDEX.md（idea_10 行を「着手」へ）
 verified:
-  compile: clean（`.claude_data/modes` の compileall）
-  tests: not_run（**アプリ本体・テストへのコード差分 0 行**のため）
+  compile: not_run（**文書のみ・コード差分 0 行**）
+  tests: not_run（同上）
   tests_ui: not_run（同上）
   smoke: not_run（同上）
-  note: agent_mode の `check` = **[1] Codex併用（既定）一致** / save_mode の `check` =
-    **[4] 自動保存・タスクファイルの読み込み指示 一致**（従来の「どれにも一致しません」警告が解消）/
-    `git check-ignore -v` で追跡 `.gitignore` が根拠になることを確認 / **旧パス参照の残存 0**
-  review: **`deep-reviewer` × 2**（①取込差分 = 修正要 → 反映済 ②`/template_pull` = 修正要 → 反映済）
+  review: **`deep-reviewer`（暫定仕様 起票時）→ 修正して採用・反映済** /
+    **`codex-adversarial-reviewer`（確定前）→ needs-attention・3 件反映済** /
+    **`reviewer`（phase.md 整合確認）→ 修正要・2 件反映済**
 
 ## next_action
-- **【最優先】次フェーズが未確定**（前セッションから継続）。ユーザーへ方針確認し、決まったら
-  `/phase_start` で `instructions/phase/14_<topic>/` を起票する。候補は `instructions/backlog/INDEX.md`:
-  idea_10（ネストしたモーダルの grab 復元）/ idea_13 / idea_09 / idea_03 / idea_11 / idea_04・idea_06（保留）。
-- **今回の未処理 3 件**（`.claude/template_pull_state.md` の履歴メモにも記録済）:
-  ①`.claude_data/state/decisions.md` へ今回の判断履歴を記録（未実施）
-  ②`codex_medium` を実運用へ入れる前に `Explore` を 1 度起動して可用性を確認
-  ③`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述
-  （`codex-implementer` 等の直名。**今回起因ではない既存のズレ**）。
-- **境界検査の残件**（着手するなら新規 idea 起票）: 検査に残る限界 4 つ（動的 import /
-  実行時に組み立てた名前 / 代入による再束縛 / 縮退時の未解決）と、**素の名前検査の潜在的誤検出**
-  （`ConfigService` に内部モジュールと同名の公開メンバが増えると落ちる）。
-- **残課題（非 blocking・未対応）**: ①`dropped_paths` が stored 表記へ未正規化
-  ②例外内容が理由コードへ落ちて失われる。
-- **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
-- **phase 12 の完了レビューの保留分**（実害なし）: L-1 / L-4 / L-8。
+- **【最優先】phase 14 task_01 を `/task_new` で起票する** →
+  `instructions/phase/14_nested_modal_grab_restore/tasks/task_01_modal_helper.md`。
+  内容 = `keyseq/presentation/modal.py` 新設（復元契約 8 条・暫定仕様 §3）+ 系統 B の 4 箇所
+  （`controllers/config_io/` の `child_save_dialog.py:24-27`・`:241-245` / `hotkey_presets_io.py:79-82` /
+  `io_dialogs.py:54-58`）への適用 + ヘルパ単体テスト。起票後 `codex-implementer` へ委任
+  （**テスト実行は依頼しない**。実測は `verifier`）。
+- **`refactor/02-app-split` のリモートブランチ削除**をユーザーへ確認する（マージ不要と判定済・未実行）。
+- フェーズ末（task_06）で **`ActionDialog` の親付け替え**を `/idea` で起票する（暫定仕様 §6-5）。
+- フェーズ末に **`/refactor_check`** を実行し、**ダイアログ同型スケルトンの共通化**
+  （phase 11 からの候補送り・本フェーズで意図的に分離）を判定対象にする。
+- **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
+  ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（取込・スキル化とも green。アプリ本体は無変更）。
+- **なし**（起票は 3 レビューを通し反映済。文書のみでコード差分 0 行）。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**
@@ -177,9 +173,24 @@ verified:
 - **【idea_11・既知の制約】別名保存で個別プリセットの複製に成功した後、keymap_set の保存が失敗すると
   巻き戻らない**（孤児の複製 + メモリ上だけ新パス・dirty も立たない）。**正本 §5.10.4 に明記済**。
   再編集しても**内容が一致するため上書き確認は出ない**点が要注意（優先度低で後送り）。
-- **【ネストしたモーダルの grab は既知の課題】** モーダル中のモーダルを閉じると**親の grab が戻らず**、
-  マネージャを開いたままメインを操作できる（**既存の「追加」「編集」も同じ**）。
-  **idea_10 として分離済**。新しいダイアログにも**復元処理を書かない**（挙動を揃えるため）。
+- **【phase 14 = ネストしたモーダルの grab 復元・進行中】規範は暫定仕様
+  [12](../../instructions/history/12_nested_modal_grab_restore.md)（v0.4・確定済）**。要点 =
+  ①**復元は子側**（ダイアログが自分の `grab_set()` の前に `grab_current()` を記録し破棄時に戻す）
+  ②**「誰へ戻すか」（§3-1・記録した保持者が `None` 以外なら戻す）と「そもそも戻してよいか」
+  （§3-7・破棄時点の保持者が自分か誰も居ないときだけ）は別条件**。§3-1 を「自分自身のときだけ」に
+  絞ると**最も実害の大きいネスト経路 3 が復元されない**
+  ③**ネスト経路は 3 系統**（プリセット編集 → 追加/編集 / アクション編集 → プリセット編集 /
+  **プリセット編集 → 上書き確認**〔`preset_manager.py:364` → `hotkey_presets_io.py:42`。
+  上書きを承諾しないと `save_hotkey_presets` が `False` を返しマネージャが閉じない〕）
+  ④**破棄フックは `__init__` 途中の例外では発火しない**ため初期化失敗の回収を明示する（§3-6）
+  ⑤**コールバック例外で子を閉じない**（§3-8）。
+  ⑥**stdlib ダイアログ（`messagebox` / `filedialog`）は対象外**（未検証・実機目視のみ）。
+- **【phase 14 のテスト上の罠】** `tests_ui/test_child_save_dialog.py` は `tk.Toplevel` を
+  `_FakeSaveDialog`（`:149`）へ patch し `grab_set` / `wait_window` とも no-op なので
+  **grab の回帰基準にならない**（フローの回帰基準にはなる）。スタブは `winfo_exists` /
+  `grab_current` を持たないため拡張要否の判断が要る。`tests_ui/test_app_ui_flows.py:72`・`:1327-1338` は
+  `object.__new__(PresetManagerDialog)` + `destroy` 直呼びなので、**復元処理は属性未初期化でも落ちないこと**。
+  `grab_current()` の観測例は `tests_ui/test_quarantine_manage_flow.py:286`。
 - **【phase 08 の成果は正本が正】** `spec_detail/data_schema.md` **§5.10**（プリセットの全体ライブラリ）
   + **§5.8.8**（**全体デフォルトの入口台帳 E1〜E5 / L1〜L3 / N1**）+ §5.1 の例外 + `codebase_map.md`。
   暫定仕様 07 は**凍結済**。要点だけ再掲 = ①runtime を新規化・置換したら
@@ -256,9 +267,9 @@ verified:
   兄弟 = `save_plan_execution.py` / `split_payloads.py` / `save_path_resolution.py` / `split_loading.py`。
   抽出関数は **`service` を第 1 引数に取る**。兄弟から `__init__` を import しない（循環回避）。
 - config_io は `controllers/config_io/` へ分割済（App が `app.keymap_set_io` 等で直接公開）。
-- 未着手 idea: **idea_13（external_keyboard_layouts のパス基準の非対称・優先度低）** / idea_10（ネストした
-  モーダルの grab 復元）/ idea_03（hotkey 保存時正規化・優先度低）/ idea_09（レガシー settings/
-  フォールバック・優先度低）。**idea_15 は phase 13 で完了**・**idea_14 は phase 12 で完了**・**idea_12 は phase 11 で完了**・
+- 未着手 idea: **idea_13（external_keyboard_layouts のパス基準の非対称・優先度低）** /
+  idea_03（hotkey 保存時正規化・優先度低）/ idea_09（レガシー settings/ フォールバック・優先度低）/
+  idea_11（別名保存の複製ロールバック・優先度低）。**idea_10 は phase 14 で着手中**。**idea_15 は phase 13 で完了**・**idea_14 は phase 12 で完了**・**idea_12 は phase 11 で完了**・
   **idea_07 は phase 10 で完了**・**idea_08 は phase 09 で完了**。
   保留 idea: idea_04 / idea_06（**残る着手条件は「共通化の実需」1 つのみ**）。
 - 過去の判断は `.claude_data/state/decisions.md`（アーカイブ索引）+ `decisions_archive/<phase>.md`。

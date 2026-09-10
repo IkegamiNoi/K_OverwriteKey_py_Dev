@@ -7,9 +7,19 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（phase 13 は 2026-09-08 完了）。**次フェーズは未確定**。
-  着手時はユーザーへ方針確認し、`/phase_start` で `14_<topic>` を起票すること
-  （候補は下記「次フェーズ候補（参考）」）。
+- **アクティブなフェーズ: [14_nested_modal_grab_restore](14_nested_modal_grab_restore/phase.md)**
+  （2026-09-10 起票・**未着手**）。ネストしたモーダルを閉じたときに親の grab が復元されず、
+  親ダイアログを開いたままメインウィンドウを操作できてしまう欠陥の是正。
+  **presentation 層のみ・スキーマ不変・機能追加ではない**。
+  - 主入力（暫定仕様）: [12_nested_modal_grab_restore](../history/12_nested_modal_grab_restore.md)
+    （**v0.4・ユーザー確定済・実装着手可**）。番号対応: phase 14 / 暫定 12 / decisions 14。
+  - 起票元: [idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（phase 09 task_07g から分離）。
+  - 確定（ユーザー 2026-09-10）: **復元は子側**（ダイアログが自分の grab 取得前に直前の保持者を
+    記録し破棄時に戻す）/ **適用は系統 A・B の全 13 箇所**（呼び出し側 4 箇所を先行）/
+    **stdlib ダイアログは対象外**（未検証と明記・実機目視のみ）/
+    **ダイアログ同型スケルトンの共通化は合流させない**（フェーズ末の `/refactor_check` で再判定）/
+    **`ActionDialog` の親付け替えは本フェーズ外**（フェーズ末に idea 起票）/
+    **正本へ 2 行の作法規定を追加**。
 - **直近の一連の作業が扱っている領域 = `config_service` の公開面とその境界検査**。
   phase 12 で判定名・理由コード・結果型を `config_service/contracts.py` へ集約し
   `architecture.md` §3.2 の当面の例外を解消、phase 13 でその**逆戻り防止テストの検査範囲**を
@@ -39,16 +49,17 @@
 
 ## 次採番
 
-- **phase 13 は 2026-09-08 完了**（進行中のフェーズなし）。次フェーズは **`14_<topic>`**
+- **phase 14 は 2026-09-10 起票（進行中）**。次フェーズは **`15_<topic>`**
   （欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜11 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
+  04〜12 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
   08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
   10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
-  11=config_service の公開面〔**v0.3・凍結**〕）。
-  次採番は **`12_<topic>`**。
+  11=config_service の公開面〔**v0.3・凍結**〕/
+  12=ネストしたモーダルの grab 復元〔**v0.4・未凍結・phase 14 の主入力**〕）。
+  次採番は **`13_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕）・
@@ -76,9 +87,8 @@
 - ~~[idea_08](../backlog/idea_08_per_keymap_set_preset_ownership.md)（keymap_set ごとの個別プリセット）~~
   → **完了**（phase 09・2026-08-16。判断は
   [decisions_archive/09](../../.claude_data/state/decisions_archive/09_per_keymap_set_presets.md)）。
-- [idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（**ネストしたモーダルの grab 復元**。
-  モーダル中のモーダルを閉じると親の grab が戻らず、ダイアログを開いたままメインを操作できる。
-  **既存の「追加」「編集」も同じ挙動**＝アプリ全体の課題として phase 09 から分離・**未着手**）。
+- ~~[idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（ネストしたモーダルの grab 復元）~~
+  → **着手**（phase 14・2026-09-10 起票。暫定仕様 12）。
 - ~~[idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除）~~
   → **完了**（phase 10・2026-09-05。判断は
   [decisions_archive/10](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)）。
