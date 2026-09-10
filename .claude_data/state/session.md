@@ -4,11 +4,12 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-10T13:30:00
+last_updated: 2026-09-11T00:00:00
 phase: `instructions/phase/14_nested_modal_grab_restore`（**進行中**）。
 主入力 = 暫定仕様 12（v0.4・ユーザー確定済）。番号対応: phase 14 / 暫定 12 / decisions 14。
 **task_01 完了 / task_02〜06 未着手**
-last_commit_location: `claude/merge-priority-discussion-97c3c1` @ `6f6e300`（phase 14 起票）。
+last_commit_location: `claude/merge-priority-discussion-97c3c1` @ `231d29a`（task_01 完了）。
+本セッションの 2 コミット `6f6e300`（phase 14 起票）..`231d29a`。**main へは未マージ**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current

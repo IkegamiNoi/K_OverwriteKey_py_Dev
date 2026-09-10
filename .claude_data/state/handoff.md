@@ -26,6 +26,7 @@
 **phase 14（ネストしたモーダルの grab 復元）進行中。task_01（`modal.py` 新設 + 系統 B 4 箇所）
 完了・green・reviewer 採用。task_02〜06 は未着手**（2026-09-10）。
 **次にやること = `/task_new` で task_02（`dialogs/` 9 クラスへの適用）を起票し委任する**。
+直近 2 コミット: `6f6e300`（phase 14 起票）/ `231d29a`（task_01）。**main へは未マージ**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,12 +36,18 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**計画10 完了時点 = 2026-09-08**）:
-compile **clean** / tests **417**（skip 7）/ tests_ui **288**（skip 0）/ smoke **pass**。
-**その後のセッションはアプリ本体・テストへのコード差分 0 行**（運用インフラと文書のみ）なので、この値が現在値。
+直近の実測（**phase 14 task_01 完了時点 = 2026-09-10・コミット `231d29a`**）:
+compile **clean** / tests **417**（skip 7）/ tests_ui **295**（skip 0）/ smoke **pass**。
+**tests_ui は task_01 で `tests_ui/test_modal_grab.py` の 7 件が増えて 288 → 295**。
 **件数が減ったら退行を疑う**。skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 **同じ観点はジャンクション版のテストが実行されている**ので観点の抜けにはならない。
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
+
+grab の適用状況を見る 2 つの grep（task_02 の進捗判定に使う）:
+```bash
+grep -rn "grab_set" keyseq/presentation/controllers/   # task_01 完了時点で 0 件
+grep -rn "grab_set" keyseq/presentation/dialogs/       # task_01 完了時点で 9 件 → task_02 で 0 件になる
+```
 
 ## 次アクション（session.md.next_action より）
 - **【最優先】phase 14 task_02 を `/task_new` で起票する**
