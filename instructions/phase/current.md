@@ -8,12 +8,15 @@
 ## 現在の参照先
 
 - **アクティブなフェーズ: [14_nested_modal_grab_restore](14_nested_modal_grab_restore/phase.md)**
-  （2026-09-10 起票・**未着手**）。ネストしたモーダルを閉じたときに親の grab が復元されず、
+  （2026-09-10 起票・**進行中**。**task_01 / task_02 完了 → 次は task_03**）。ネストしたモーダルを閉じたときに親の grab が復元されず、
   親ダイアログを開いたままメインウィンドウを操作できてしまう欠陥の是正。
   **presentation 層のみ・スキーマ不変・機能追加ではない**。
   - 主入力（暫定仕様）: [12_nested_modal_grab_restore](../history/12_nested_modal_grab_restore.md)
     （**v0.4・ユーザー確定済・実装着手可**）。番号対応: phase 14 / 暫定 12 / decisions 14。
   - 起票元: [idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（phase 09 task_07g から分離）。
+  - 進捗: **task_01**（`presentation/modal.py` 新設 + 系統 B の 4 箇所）**完了** /
+    **task_02**（系統 A の `dialogs/` 9 クラス）**完了**。**適用は全 13 箇所で完了**。
+    次は **task_03**（ネスト経路 3 系統のテスト）。
   - 確定（ユーザー 2026-09-10）: **復元は子側**（ダイアログが自分の grab 取得前に直前の保持者を
     記録し破棄時に戻す）/ **適用は系統 A・B の全 13 箇所**（呼び出し側 4 箇所を先行）/
     **stdlib ダイアログは対象外**（未検証と明記・実機目視のみ）/

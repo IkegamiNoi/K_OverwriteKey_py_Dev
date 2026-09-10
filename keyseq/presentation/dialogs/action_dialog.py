@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from pynput import mouse
 
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
+from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_keysym
 
 if TYPE_CHECKING:
@@ -116,10 +117,8 @@ class ActionDialog(tk.Toplevel):
                 if "clicks" in initial: self.mouse_clicks_var.set(str(initial.get("clicks")))
 
         self.value_entry.focus_set()
-        self.grab_set()
-        self.transient(parent)
-        
         self._sync_capture_ui()
+        grab_modal(self, parent)
 
     def on_ok(self):
         t = (self.type_var.get() or "").strip().lower()

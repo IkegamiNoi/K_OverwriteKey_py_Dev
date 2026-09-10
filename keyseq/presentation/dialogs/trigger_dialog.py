@@ -5,6 +5,7 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_keysym
 
 if TYPE_CHECKING:
@@ -49,8 +50,7 @@ class TriggerDialog(tk.Toplevel):
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
         self.key_entry.focus_set()
-        self.grab_set()
-        self.transient(parent)
+        grab_modal(self, parent)
 
     def _ok(self):
         key = normalize_key_name(self.key_var.get())

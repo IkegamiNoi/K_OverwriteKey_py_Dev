@@ -3,6 +3,8 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox, ttk
 
+from keyseq.presentation.modal import grab_modal
+
 
 class PresetDialog(tk.Toplevel):
     """プリセット（value=hotkey内容, label=表示名）を入力するダイアログ（追加/編集で共通）"""
@@ -35,8 +37,7 @@ class PresetDialog(tk.Toplevel):
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
         self.value_entry.focus_set()
-        self.grab_set()
-        self.transient(parent)
+        grab_modal(self, parent)
 
     def _ok(self):
         value = (self.value_var.get() or "").strip()

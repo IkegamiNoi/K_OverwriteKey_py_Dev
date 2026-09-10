@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import filedialog, ttk
 from typing import TYPE_CHECKING
 
+from keyseq.presentation.modal import grab_modal
+
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
 
@@ -21,8 +23,7 @@ class OrphanSweepDialog(tk.Toplevel):
         self._build_widgets()
         self.bind("<Escape>", lambda _event: self.destroy())
         self.protocol("WM_DELETE_WINDOW", self.destroy)
-        self.transient(parent)
-        self.grab_set()
+        grab_modal(self, parent)
 
     def _build_widgets(self) -> None:
         frm = ttk.Frame(self, padding=12)

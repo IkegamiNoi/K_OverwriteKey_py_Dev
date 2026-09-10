@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING
 
+from keyseq.presentation.modal import grab_modal
+
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
 
@@ -47,8 +49,7 @@ class LayoutDeleteDialog(tk.Toplevel):
             self.listbox.selection_set(0)
             self.listbox.activate(0)
 
-        self.grab_set()
-        self.transient(parent)
+        grab_modal(self, parent)
 
     def _ok(self):
         selection = self.listbox.curselection()

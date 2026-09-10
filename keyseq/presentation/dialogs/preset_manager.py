@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from keyseq.domain.config import format_preset_list_item, safe_deepcopy
 from keyseq.presentation.dialogs.preset_dialog import PresetDialog
+from keyseq.presentation.modal import grab_modal
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -68,8 +69,7 @@ class PresetManagerDialog(tk.Toplevel):
         self._bind_preset_manager_events()
         self._sync_initial_presets()
         self._update_source_labels()
-        self.grab_set()
-        self.transient(parent)
+        grab_modal(self, parent)
 
     def _init_preset_manager_state(self, parent: App, title: str) -> None:
         self.parent = parent

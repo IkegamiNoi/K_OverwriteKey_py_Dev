@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import ttk
 from typing import TYPE_CHECKING
 
+from keyseq.presentation.modal import grab_modal
+
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
 
@@ -52,8 +54,7 @@ class ReferenceCleanupDialog(tk.Toplevel):
 
         self.bind("<Escape>", lambda _event: self.destroy())
         self.protocol("WM_DELETE_WINDOW", self.destroy)
-        self.transient(parent)
-        self.grab_set()
+        grab_modal(self, parent)
 
     def _run(self) -> None:
         self.result = True
