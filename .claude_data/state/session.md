@@ -4,70 +4,73 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-11T12:00:00
+last_updated: 2026-09-11T14:30:00
 phase: `instructions/phase/14_nested_modal_grab_restore`（**進行中**）。
 主入力 = 暫定仕様 12（v0.4・ユーザー確定済）。番号対応: phase 14 / 暫定 12 / decisions 14。
-**task_01 / task_02 完了 / task_03〜06 未着手**
-last_commit_location: `claude/task-02-progression-df3881` @ `26764f3`（task_01 の handoff 更新）。
-**task_02 の差分は未コミット**（`/task_commit` 待ち）。**main へは未マージ**。
+**task_01 / task_02 / task_03 完了 / task_04〜06 未着手**
+last_commit_location: `claude/task-02-progression-df3881` @ `9e8eb51`（task_02）。
+**task_03 の差分は未コミット**（`/task_commit` 待ち）。**main へは未マージ**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 14 task_02（dialogs/ 9 クラスへ `grab_modal` 適用）を完了。次は task_03（ネスト経路 3 系統のテスト）の起票**。
+focus: **phase 14 task_03（ネスト経路 3 系統のテスト）を完了。次は task_04（契約 3 条のテスト）の起票**。
 mode: completed
 
 ## last_action
-ts: 2026-09-11T12:00:00
+ts: 2026-09-11T14:30:00
 who: main
 summary: |
-  【**task_02 完了**】`keyseq/presentation/dialogs/` の **9 クラス全部**で
-  `self.grab_set()` + `self.transient(parent)` を **`grab_modal(self, parent)` の 1 行**へ置換し、
-  **`__init__` の最後の文**に置いた（暫定仕様 §3-6）。実装は `codex-implementer` へ委任。
-  - **差分は 9 ファイル・+23/-19 行のみ**。import 1 行追加 + 2 行 → 1 行の置換だけで、
-    `destroy()` override（8 クラス）・Escape bind・`protocol` には一切触っていない。
-  - **`action_dialog.py` だけ順序変更**: 元は grab 取得後に `_sync_capture_ui()` が残っていたため、
-    **`_sync_capture_ui()` を前へ移して `grab_modal` を末尾にした**（§3-6 を「最後の文にする」で満たす方針。
-    try/except による回収コードは 9 クラスとも不要にした）。`_sync_capture_ui` は表示切替のみで grab 非依存。
-  - **task_01 で保留にした `<Destroy>` の `"+"` なし bind の衝突は該当なし**
-    （`grep '"<Destroy>"' dialogs/` = **0 件**。既存 bind は `<Escape>` のみ）。
-  - **これで暫定仕様 §1 のネスト経路 1・2 が復元されるようになった**（経路 3 は task_01 で対応済）。
-    非ネスト経路は記録される保持者が `None` なので挙動不変。
-  - **実測は全ベースライン据え置きで green**（新規テストは足していない = task_03/04 の担当）。
-  - **`reviewer` 判定 = 完了可・指摘 0 件**。
-  - 起票時のタスク定義で「`grep grab_set` は `modal.py` 1 件」と書いたのは不正確で、
-    **ヘルパ内は 2 行**（`window.grab_set()` と復元側 `previous.grab_set()`）。**タスク定義を訂正済**。
+  【**task_03 完了**】`tests_ui/test_nested_modal_grab.py`（新規・202 行・**4 テスト**）で
+  暫定仕様 §1 のネスト経路 3 系統を**実 `Toplevel`**で固定した。実装は `codex-implementer` へ委任。
+  - **経路 1**（`PresetManagerDialog.add()` → `PresetDialog`）/ **経路 2**
+    （`ActionDialog._open_preset_manager()` → `PresetManagerDialog`）/ **経路 3**
+    （`on_ok()` → `hotkey_presets_io.confirm_overwrite` を**上書き承諾せず閉じる**）+ **× 閉じ 1 本**。
+  - **子は親のメソッド内部で生成されるため、子クラスの `__init__` を patch して
+    `self.after(0, self.destroy)` を仕込む**（暫定仕様 §5 が手法まで指定）。
+  - **`wait_window` / `grab_set` / `grab_current` は一切 no-op にしていない**（実経路を通す）。
+    経路 3 は `describe_individual_hotkey_presets_overwrite` を patch して衝突分岐を作り、
+    確認ダイアログを `app.after(0, ...)` から特定して閉じる。
+  - **× 閉じは `protocol("WM_DELETE_WINDOW")` のハンドラを `child.tk.call(handler)` で実行**
+    （既存の `test_orphan_sweep_flow.py:536` と同型）。**親破棄済みケース**も subTest で同居。
+  - **【重要】変異検査を実施**: `modal.py` の `restore_grab` を無効化すると
+    **新規 4 本が 4/4 fail**する。**「通るだけのテスト」ではないことを実測で確認済**（復元済み）。
+  - **`_FakeSaveDialog` の拡張は不要と判断**（phase.md タスク 3 の判断事項）。
+    3 経路とも実 `Toplevel` を通り、task_01 で拡張済の 2 スタブを**1 つも経由しない**。
+  - **`reviewer` 判定 = 完了可・指摘 0 件**（参考の観察 1 件のみ）。
+  - `tests_ui` 実行時の `invalid command name "..._clear_flash_message"` 警告は
+    **新規ファイルを外しても 2 回出る既存ノイズ**で、本タスクとは無関係（実測で確認）。
 result_files:
-  - keyseq/presentation/dialogs/{action_dialog,keymap_edit_dialog,layout_delete_dialog,orphan_sweep_dialog,preset_dialog,preset_manager,quarantine_manage_dialog,reference_cleanup_dialog,trigger_dialog}.py
-  - instructions/phase/14_nested_modal_grab_restore/tasks/task_02_dialogs_grab_modal.md（新規・1 度訂正）
+  - tests_ui/test_nested_modal_grab.py（新規・4 テスト）
+  - instructions/phase/14_nested_modal_grab_restore/tasks/task_03_nested_modal_tests.md（新規）
 verified:
   compile: clean
   tests: pass 417（skip 7・**据え置き**）
-  tests_ui: pass 295（**据え置き**）
+  tests_ui: **pass 299**（既存 295 + 新規 4）
   smoke: pass
-  note: `grep grab_set` / `grep transient` = **`keyseq/presentation/` 内は `modal.py` のみ**
-    （grab_set 2 行 / transient 1 行）。`dialogs/` **0 件**・`controllers/` **0 件**で系統 A・B 全 13 箇所の適用完了。
+  mutation: **restore_grab 無効化で新規 4/4 fail**（復元後 `git diff keyseq/` 空を再確認）
+  note: `git diff --stat keyseq/ main.py` = **空**（production 無変更）。
     テスト後に worktree ルートへ `user/` `quarantine/` の生成なし。
   review: **`reviewer` → 完了可（指摘 0 件）**
 
 ## next_action
-- **【最優先】phase 14 task_03 を `/task_new` で起票する**
-  （`tasks/task_03_nested_modal_tests.md`）。内容 = **ネスト経路 3 系統のテスト**を `tests_ui/` へ追加
-  （①プリセット編集 → 追加/編集〔`preset_manager.py` → `preset_dialog.py`〕
-  ②アクション編集 → プリセット編集〔`action_dialog.py` → `preset_manager.py`〕
-  ③プリセット編集 → 上書き確認〔`preset_manager.py:364` → `hotkey_presets_io.py:42`〕）。
-  **`_FakeSaveDialog` の拡張要否をここで判断する**（task_01 で `test_child_save_dialog.py:149` と
-  `test_config_io_characterization.py:66` の **2 つ**のスタブへ `grab_current` / `bind` を追加済）。
-  `grab_current()` アサートの先例は `tests_ui/test_quarantine_manage_flow.py:286`。
+- **【最優先】phase 14 task_04 を `/task_new` で起票する**
+  （`tasks/task_04_grab_contract_tests.md`）。内容 = **契約 3 条のテスト**を追加
+  （①**初期化失敗** §3-6 = `grab_set()` 直後と後続初期化の**2 点**で例外を注入し、
+  破棄・復元・再送出を見る ②**非 LIFO 終了** §3-7 = App を共通 master とする**3 段**で
+  **中間だけを破棄**し最内側が grab を保つ ③**コールバック例外** §3-8 = 実コールバック経由で
+  例外を起こし**通知・子の生存・grab 保持者の 3 点**を確認）。
+  **ヘルパ単体レベルの非 LIFO / 冪等は `tests_ui/test_modal_grab.py` に既にある**ので、
+  task_04 は**実ダイアログ経路**で見る（重複を作らない）。
   起票後 `codex-implementer` へ委任（**テスト実行は依頼しない**。実測は `verifier`）。
-- その後: task_04（契約 3 条のテスト = 初期化失敗 / 非 LIFO 終了 / コールバック例外）→
-  task_05（統合確認 + **ユーザーによる実機目視**）→ task_06（正本反映・最終）。
+  **変異検査（該当ロジックを壊すと落ちるか）を確認項目に入れる**と task_03 同様に品質が担保できる。
+- その後: task_05（統合確認 + **ユーザーによる実機目視**）→ task_06（正本反映・最終）。
 - フェーズ末（task_06）で **`ActionDialog` の親付け替え**を `/idea` で起票し、
   **`/refactor_check`** を実行する（ダイアログ同型スケルトンの共通化を判定対象にする）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（task_02 は全確認 pass・`reviewer` 指摘 0 件）。
+- **なし**（task_03 は全確認 pass・変異検査も期待どおり・`reviewer` 指摘 0 件）。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**
@@ -177,7 +180,11 @@ verified:
 - **【phase 14 の適用は完了済】`grab_modal` は系統 A（`dialogs/` 9 クラス）・系統 B
   （`controllers/config_io/` 4 箇所）の**全 13 箇所へ適用済**（task_01 / task_02）。
   `keyseq/presentation/` に `grab_set` / `transient` の直呼びは**残っていない**。
-  **残りはテスト（task_03 / task_04）と統合・正本反映（task_05 / task_06）**。
+  **ネスト経路 3 系統のテストも `tests_ui/test_nested_modal_grab.py` で完了**（task_03）。
+  **残りは契約 3 条のテスト（task_04）と統合・正本反映（task_05 / task_06）**。
+  **テスト手法の型**: 子は親のメソッド内部で生成されるため**子の `__init__` を patch して
+  `after(0, destroy)` を仕込む**。**`wait_window` / `grab_set` / `grab_current` を no-op にしない**。
+  **変異検査（`restore_grab` を無効化して落ちるか）で偽 pass を排除する**。
   **`grab_modal` は各ダイアログの `__init__` の最後の文**という規約なので、
   今後 `__init__` へ処理を足すときは `grab_modal` より**前**に置く（§3-6）。
 - **【phase 14 = ネストしたモーダルの grab 復元・進行中】規範は暫定仕様
