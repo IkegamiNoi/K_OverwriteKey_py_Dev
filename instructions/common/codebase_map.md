@@ -92,6 +92,7 @@ keyseq/presentation/
     keyboard_layouts.py
     keyboard_window.py
     listbox_utils.py
+    modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
     orphan_sweep_text.py       # 孤児ファイルの棚卸しの提示テキスト整形（警告 / 候補一覧 / 隔離結果。純関数）
     quarantine_manage_text.py  # 隔離の管理の提示テキスト整形（単位一覧 / 復元・削除の計画と結果。純関数）
@@ -244,6 +245,17 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
 - TriggerPanelController（controllers/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示
 - HookController（controllers/hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
 - listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）
+- modal.py（presentation 直下）: `grab_modal(window, parent=None)` = モーダル化と**破棄時の grab 復元**
+  （`features.md` §4.6「モーダルダイアログの作法」）。**`dialogs/` と `controllers/config_io/` の
+  すべてのモーダルがここを通す**（`grab_set` / `transient` を直呼びしない）。
+  - **直前の grab 保持者を記録し `<Destroy>` イベントで戻す**（`destroy()` override ではないので
+    × 閉じでも働く）。**記録はクロージャに持ちウィジェット属性を増やさない**
+    （`object.__new__` で作られたインスタンスでも壊れない）
+  - **`<Destroy>` は `add="+"` で結線する**（上書きすると他のハンドラを足したときに復元が無言で消える）
+  - **呼び出しは初期化の最後の文に置く**（grab 取得後に失敗し得るコードを残さない）。
+    **`tests_ui/test_nested_modal_grab.py` の静的検査がこの規約を固定している**ので、
+    後ろに処理を足すとテストが落ちる。**落ちたらテストを緩めず、grab 取得後の失敗を
+    どう回収するかをユーザーへ諮る**（phase 14 の確定運用）
 
 ### View → コントローラのウィジェット登録（計画04 W5）
 

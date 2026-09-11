@@ -7,37 +7,23 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [14_nested_modal_grab_restore](14_nested_modal_grab_restore/phase.md)**
-  （2026-09-10 起票・**進行中**。**task_01〜05 完了 → 残るは task_06〔正本反映・最終〕のみ**）。ネストしたモーダルを閉じたときに親の grab が復元されず、
-  親ダイアログを開いたままメインウィンドウを操作できてしまう欠陥の是正。
-  **presentation 層のみ・スキーマ不変・機能追加ではない**。
-  - 主入力（暫定仕様）: [12_nested_modal_grab_restore](../history/12_nested_modal_grab_restore.md)
-    （**v0.5・ユーザー確定済・実装着手可**）。番号対応: phase 14 / 暫定 12 / decisions 14。
-  - 起票元: [idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（phase 09 task_07g から分離）。
-  - 進捗: **task_01〜05 + task_05b 完了**（ヘルパ新設 + 全 13 箇所への適用 + ネスト経路と契約のテスト +
-    二次レビュー指摘の反映 + 統合確認 + 実機目視）。自動確認は全て green（`tests` 417 / `tests_ui` 306 / smoke）。
-    **実機目視も問題なし**（B4 のみ観点が成立しないため未確認・受容）。**残るは task_06 のみ**。
-  - **仕様改訂（ユーザー 2026-09-11）**: **§3-6 を「初期化失敗の回収」から
-    「grab 取得後に初期化を残さない構造 + 静的検査」へ改訂**し暫定仕様を **v0.5** に。
-    **実行時の挙動は不変**。判断は `decisions.md`「2026-09-11 (phase 14 / 暫定仕様 12)」。
-  - **副産物**: × 閉じで `destroy()` override が走らずフック停止カウンタがずれる既存不具合を
-    実測で確認し [idea_16](../backlog/idea_16_wm_close_skips_destroy_override.md) へ分離（フェーズ外）。
-  - 確定（ユーザー 2026-09-10）: **復元は子側**（ダイアログが自分の grab 取得前に直前の保持者を
-    記録し破棄時に戻す）/ **適用は系統 A・B の全 13 箇所**（呼び出し側 4 箇所を先行）/
-    **stdlib ダイアログは対象外**（未検証と明記・実機目視のみ）/
-    **ダイアログ同型スケルトンの共通化は合流させない**（フェーズ末の `/refactor_check` で再判定）/
-    **`ActionDialog` の親付け替えは本フェーズ外**（フェーズ末に idea 起票）/
-    **正本へ 2 行の作法規定を追加**。
-- **直近の一連の作業が扱っている領域 = `config_service` の公開面とその境界検査**。
-  phase 12 で判定名・理由コード・結果型を `config_service/contracts.py` へ集約し
-  `architecture.md` §3.2 の当面の例外を解消、phase 13 でその**逆戻り防止テストの検査範囲**を
-  （完全修飾 / エイリアス / 相対 import まで）広げた。**この領域の残件** =
-  検査に残る限界 4 つ（動的 import / 実行時に組み立てた名前 / 代入による再束縛 / 縮退時の未解決。
-  **解消するなら新規 idea 起票**）と、素の名前検査の潜在的誤検出
-  （`ConfigService` に内部モジュールと同名の公開メンバが増えると落ちる）。
-  提案書 [09](../modified_proposal/09_refactor_contracts_boundary_ast_coverage.md) は
-  **「計画10」として実施し完了**（2026-09-08・検査関数 100 行 → 26 行・挙動不変）。
-- 直前の完了フェーズ: [13_contracts_boundary_ast_coverage](../../.claude_data/state/decisions_archive/13_contracts_boundary_ast_coverage.md)
+- **アクティブなフェーズ: なし**（phase 14 完了・**次フェーズ未確定**）。
+  次に着手するフェーズが決まったら `/phase_start` で起票し、本節を差し替える。
+- **直近の一連の作業が扱っている領域 = モーダルダイアログの作法（grab の復元）**。
+  phase 14 で、モーダルの中からモーダルを開いて閉じても**親のモーダル性が戻る**ようにした。
+  `presentation/modal.py` の `grab_modal` が唯一の窓口で、**`grab_set` / `transient` の直呼びは 0 件**。
+  規約は「**`grab_modal` は初期化の最後の文に置く**」で、**静的検査テストが固定している**
+  （後ろに処理を足すと落ちる。落ちたら回収機構の要否をユーザーへ諮る）。
+  **この領域の残件** = ①[idea_16](../backlog/idea_16_wm_close_skips_destroy_override.md)
+  （**× 閉じで `destroy()` override が走らずフック停止カウンタがずれる**。grab とは独立した既存不具合）
+  ②**ダイアログ同型スケルトンの共通化**（phase 11 からの候補送り・phase 14 でも意図的に分離）
+  ③**静的検査を発見ベースへ**（`deep-reviewer` の M-6・**保留**。発見ベース単独では
+  「呼び出しが消えた」検出が失われるため併用形の検討が要る）
+  ④[idea_17](../backlog/idea_17_action_dialog_preset_manager_parent.md)（`ActionDialog` の親付け替え・優先度低）
+  ⑤**stdlib ダイアログの grab は自動テストで検証できない**（対象外と確定済み）。
+  **実機目視では 3 経路が問題なし**・**1 経路は親が既に破棄済みで観点が成立せず未確認**。
+- 直前の完了フェーズ: [14_nested_modal_grab_restore](../../.claude_data/state/decisions_archive/14_nested_modal_grab_restore.md)
+- その前の完了フェーズ: [13_contracts_boundary_ast_coverage](../../.claude_data/state/decisions_archive/13_contracts_boundary_ast_coverage.md)
 - その前の完了フェーズ: [12_config_service_public_surface](../../.claude_data/state/decisions_archive/12_config_service_public_surface.md)
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
@@ -57,7 +43,7 @@
 
 ## 次採番
 
-- **phase 14 は 2026-09-10 起票（進行中）**。次フェーズは **`15_<topic>`**
+- **phase 14 は 2026-09-12 完了**。次フェーズは **`15_<topic>`**
   （欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -66,7 +52,7 @@
   08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
   10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
   11=config_service の公開面〔**v0.3・凍結**〕/
-  12=ネストしたモーダルの grab 復元〔**v0.4・未凍結・phase 14 の主入力**〕）。
+  12=ネストしたモーダルの grab 復元〔**v0.5・凍結**〕）。
   次採番は **`13_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -96,7 +82,8 @@
   → **完了**（phase 09・2026-08-16。判断は
   [decisions_archive/09](../../.claude_data/state/decisions_archive/09_per_keymap_set_presets.md)）。
 - ~~[idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（ネストしたモーダルの grab 復元）~~
-  → **着手**（phase 14・2026-09-10 起票。暫定仕様 12）。
+  → **完了**（phase 14・2026-09-12。判断は
+  [decisions_archive/14](../../.claude_data/state/decisions_archive/14_nested_modal_grab_restore.md)）。
 - ~~[idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除）~~
   → **完了**（phase 10・2026-09-05。判断は
   [decisions_archive/10](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)）。
@@ -171,6 +158,22 @@
     差し替えるため `ConfigService` 本体とパス基盤メソッドを動かせない**制約があり、分割方針の
     設計判断が別途必要。実ロジックを持つのは `relocate_individual_hotkey_presets`（約 40 行）で、
     他はほぼ 1 行委譲。**次フェーズ以降に再判定する**
+- **Phase 14（ネストしたモーダルの grab 復元）の `/refactor_check` からの候補送り**（判定は**不要**。
+  M1〜M6 いずれも非該当。差分は 13 ファイル・+78/-27 で、**重複を増やす方向ではなく
+  `grab_set` / `transient` の 12 箇所を `grab_modal` へ集約する方向**だった）:
+  - **ダイアログ同型スケルトンの共通化**は**既知**（本節の phase 11 由来の項目）。**phase 14 で
+    `transient` + `grab_set` の部分だけは `grab_modal` へ共通化済**。**残るのは
+    `suspend_hook_for_dialog`〔8 クラス〕/ `destroy()` override〔8 クラス〕/
+    `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")`〔4 クラスで完全同型〕**。
+    着手するなら [idea_16](../backlog/idea_16_wm_close_skips_destroy_override.md)
+    （× 閉じで `destroy()` override が走らない）と**同じ領域なので合流を検討する**
+    （後始末を `<Destroy>` へ寄せるなら **`grab_modal` の `add="+"` 結線が前提**になる）。
+  - **静的検査の発見ベース化（`deep-reviewer` の M-6）は保留**。
+    `tests_ui/test_nested_modal_grab.py` の `test_grab_modal_is_last_initialization_statement` は
+    **9 クラスと系統 B 3 ファイルをハードコードで列挙**しており、**新規ダイアログを守らない**。
+    ただし**発見ベース単独にすると「`grab_modal` の呼び出しが消えた」検出が失われる**
+    （現在は件数のアサートがそれを守っている）ため、**併用形にするかを含めて再判定が要る**。
+    ユーザー判断で保留（2026-09-11）。**テストコードのため `/refactor_check` の対象範囲外**でもある。
 - **Phase 11（孤児ファイルの棚卸し）の `/refactor_check` からの候補送り**（判定は**推奨** →
   提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)
   は**「計画08」として実施し完了**〔2026-09-08・挙動不変〕。提案書へ入れなかった分）:

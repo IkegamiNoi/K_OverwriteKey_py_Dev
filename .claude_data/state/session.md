@@ -4,62 +4,75 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-12T10:00:00
-phase: `instructions/phase/14_nested_modal_grab_restore`（**進行中**）。
+last_updated: 2026-09-12T15:00:00
+phase: `instructions/phase/14_nested_modal_grab_restore`（**完了**）。**次フェーズは未確定**。
 主入力 = 暫定仕様 12（v0.4・ユーザー確定済）。番号対応: phase 14 / 暫定 12 / decisions 14。
-**task_01〜05 + task_05b 完了。残るは task_06（正本反映・最終）のみ**。
+**task_01〜06 完了。phase 14 は完了**。
 **主入力は v0.5**（2026-09-11 に §3-6 を構造保証へ改訂・ユーザー確定）。
-last_commit_location: `claude/task-02-progression-df3881` @ `f7dd926`（task_04）。
-**task_05b の差分は未コミット**（`/task_commit` 待ち）。**main へは未マージ**。
+last_commit_location: `claude/task-02-progression-df3881` @ `b491ed0`（task_05）。
+**task_06 の差分は未コミット**（`/task_commit` 待ち）。**main へは未マージ**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **task_05 完了（実機目視まで確認済）。残るは task_06（正本反映・凍結・idea 起票・/refactor_check）のみ**。
+focus: **phase 14 完了（正本反映・凍結・idea 起票・/refactor_check まで実施済）。次フェーズは未確定**。
 mode: completed
 
 ## last_action
-ts: 2026-09-12T10:00:00
-who: user
+ts: 2026-09-12T15:00:00
+who: main
 summary: |
-  【**task_05 完了**】実機目視の結果をユーザーから受領。**A1〜A4 / B1〜B3 / C1〜C2 は問題なし**。
-  - **B4（再計算後の上書き確認）はスキップ**。**コードで確認したところ、この経路が呼ばれる時点で
-    子ファイル一覧ダイアログは既に破棄されており、grab を保持した親が存在しない**
-    （`_confirm_actions` が `dialog.destroy()` してから `ask_child_save_actions` が返る）。
-    **復元の観点が成立しない**ため、暫定仕様 §6-3 の「stdlib は対象外・未検証」と整合する形で
-    **未確認のまま記録**とユーザーが判断（2026-09-12）。
-  - **C1 で `transient` → `grab_set` の順序が反転した 6 クラスの表示も問題なし**
-    （`deep-reviewer` の L-5 が挙げた残存リスクは実機で解消）。
-  - 受け入れ条件の充足表は `tasks/task_05_integration_and_manual_check.md` の「実施結果」節に記録。
-    **13・15 以外はすべて充足**（13・15 = 正本反映と idea 起票で task_06 の担当）。
+  【**task_06 完了 = phase 14 完了**】正本反映・凍結・idea 起票・`/refactor_check` を実施。
+  - **正本昇格**: `features.md` §4.6 に **「モーダルダイアログの作法」**を新設 /
+    `data_schema/5_10_03_save_contract.md` へ**上書き確認がネストである相互参照 1 行** /
+    `codebase_map.md` へ **`modal.py`**（ツリー + 責務の 2 箇所）。
+  - **暫定仕様 12 を凍結**（v0.5）。**idea_10 を `INDEX_done.md` へ移動**。
+    **idea_17（`ActionDialog` の親付け替え・優先度低）を起票**（受け入れ条件 15）。
+  - **`decisions_archive/14_nested_modal_grab_restore.md` を作成**し、`decisions.md` 本体は**索引 1 行のみ**に。
+  - **`/refactor_check` = 不要**（M1〜M6 すべて非該当。差分は 13 ファイル・+78/-27 で
+    **重複を増やすのではなく 12 箇所を集約する方向**だった）。
+    **候補送り 2 件**（スケルトン共通化の残り / M-6 の静的検査）を `current.md` へ記録。
+  - **【重要】フェーズ完了レビューで両レビュアーが独立に同じ 1 点を指摘**
+    （`deep-reviewer` D-1 / `codex-adversarial-reviewer` の唯一の medium）:
+    **正本 §4.6 が「親のモーダル性が戻る」と無条件に書いており、§3-7（非 LIFO）と
+    §3-2（非表示の親）で復元しない実装と食い違う**。放置すると**将来の担当者が
+    `modal.py` の防御分岐を「仕様に無い実装」と判断して削り得る**。
+    → **§4.6 を「開いた順で 1 つ外側へ戻る」+「戻らない 4 ケース」+「いずれも例外を出さない」へ改めた**。
+    **設計は変えていない**（確定済みの条項を正本へ正しく転記し直しただけ）。
+  - その他の採用: 呼称を「プリセットマネージャ」へ統一 / `codebase_map.md` の件数表記を
+    **陳腐化しない形へ緩めた** / **静的検査が落ちたらテストを緩めずユーザーへ諮る**運用を記載 /
+    `current.md` の stdlib 残件の表現を archive と統一 / `INDEX_done.md` の括弧修正。
 result_files:
-  - instructions/phase/14_nested_modal_grab_restore/tasks/task_05_integration_and_manual_check.md（実施結果を追記）
+  - instructions/common/spec_detail/features.md（§4.6 に小節新設・レビュー後に文言を是正）
+  - instructions/common/spec_detail/data_schema/5_10_03_save_contract.md（相互参照 1 行）
+  - instructions/common/codebase_map.md（`modal.py` を 2 箇所）
+  - instructions/history/12_nested_modal_grab_restore.md（**凍結**）
+  - .claude_data/state/decisions_archive/14_nested_modal_grab_restore.md（新規）/ decisions.md（索引 1 行へ）
+  - instructions/backlog/{idea_17_action_dialog_preset_manager_parent.md,INDEX.md,INDEX_done.md}
+  - instructions/phase/current.md（完了記載・次採番 phase 15）
+  - instructions/phase/14_nested_modal_grab_restore/tasks/task_06_spec_promotion.md（新規）
 verified:
   compile: clean
   tests: pass 417（skip 7）
-  tests_ui: pass 306（0 fail・0 error）
+  tests_ui: pass 306
   smoke: pass
-  manual: **A1〜A4 / B1〜B3 / C1〜C2 問題なし・B4 は未確認（受容）**
-  review: 二次レビュー 2 本実施済（`codex-reviewer` 指摘なし / `deep-reviewer` の採用分は task_05b で反映）
+  code_diff: **空**（本タスクは文書のみ）
+  refactor_check: **不要**（M1〜M6 非該当・候補送り 2 件を current.md へ記録）
+  review: **`deep-reviewer` 完了可 / `codex-adversarial-reviewer` needs-attention → 指摘 1 点を是正済**
 
 ## next_action
-- **【最優先】task_06（正本反映・最終）を `/task_new` で起票して実施する**。内容 =
-  ①**正本昇格**（`features.md` §4.6 に「モーダルダイアログの作法」の小節を新設〔規定は 2 行程度・
-  **実装詳細＝ヘルパ名は書かない**〕/ `data_schema/5_10_03_save_contract.md` へ
-  「この確認はマネージャの中から開く（ネスト）」の相互参照 1 行 / **`codebase_map.md` へ `modal.py` を追加**）
-  ②**暫定仕様 12 の凍結**（v0.5）③**`ActionDialog` 親付け替えの idea 起票**（受け入れ条件 15・§6-5）
-  ④`.claude_data/state/decisions_archive/14_nested_modal_grab_restore.md` の作成
-  ⑤`instructions/phase/current.md` の完了記載（次採番 = phase 15）
-  ⑥`backlog/INDEX.md` の **idea_10 行を `INDEX_done.md` へ移動**
-  ⑦**`/refactor_check` の実行**と判定結果の完了報告への記載。
-- **`/refactor_check` の判定対象に必ず含める 3 件**: ①**ダイアログ同型スケルトンの共通化**
-  （phase 11 からの候補送り・本フェーズで意図的に分離）②`deep-reviewer` の **M-6**
-  （静的検査を 9 クラスのハードコード列挙から発見ベースへ・**保留中**）
-  ③**[idea_16] との合流可否**（× 閉じの後始末をスケルトン側で 1 度だけ書く案）。
+- **phase 14 は完了。次フェーズは未確定**。着手先をユーザーへ確認する。
+  **この領域の残件**（`current.md`「直近の一連の作業が扱っている領域」が正）:
+  ①**[idea_16]**（× 閉じで `destroy()` override が走らずフック停止カウンタがずれる。**grab とは独立した既存不具合**）
+  ②**ダイアログ同型スケルトンの共通化**（phase 11 から候補送り。**idea_16 と同じ領域なので合流を検討**）
+  ③**静的検査の発見ベース化**（`deep-reviewer` の M-6・保留。**発見ベース単独では
+  「呼び出しが消えた」検出が失われる**ため併用形の検討が要る）
+  ④**[idea_17]**（`ActionDialog` の親付け替え・優先度低）。
+- **未着手 idea（優先度低）**: idea_13 / idea_11 / idea_03 / idea_09。**保留**: idea_04 / idea_06。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（実機目視まで完了。B4 のみ未確認だがユーザー判断で受容済み）。
+- **なし**（phase 14 完了）。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**

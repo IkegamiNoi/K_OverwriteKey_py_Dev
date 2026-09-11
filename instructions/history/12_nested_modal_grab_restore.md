@@ -1,8 +1,11 @@
 # 暫定仕様 12: ネストしたモーダルの grab 復元（nested_modal_grab_restore）
 
-> 状態: **未凍結・v0.5・ユーザー確定済・実装着手可・主入力**。
-> 本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済（2026-09-12・phase 14 完了・v0.5）**。**経緯の参照用**であり、
+> **本書の条項を実装の根拠に引かない**。
+> **正本 = `spec_detail/features.md` §4.6「モーダルダイアログの作法」**
+> **+ `data_schema/5_10_03_save_contract.md`（上書き確認がネストであることの相互参照）**
+> **+ `codebase_map.md`（`presentation/modal.py` の責務）**。
+> 昇格時の判断は `.claude_data/state/decisions_archive/14_nested_modal_grab_restore.md`。
 > 起票元: [idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（phase 09 task_07g の暫定仕様 v0.10
 > に対する `codex-adversarial-reviewer` 指摘 High 2 から分離・2026-08-15）。
 > 番号対応: phase 14 / 暫定 12 / decisions 14。

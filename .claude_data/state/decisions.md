@@ -23,6 +23,7 @@
 | 11_orphan_child_file_sweep | [11_orphan_child_file_sweep.md](decisions_archive/11_orphan_child_file_sweep.md) | 孤児ファイルの棚卸し（2026-09-08 完了・**新機能・スキーマ追加**）。どの keymap_set からも参照されていない子を**上位 → 子の逆方向検査**で検出し、**可逆な隔離**を経て削除できるようにした。**本アプリ初のディレクトリ走査かつ初のファイル削除機能**。**走査は 4 経路**（`keymap_sets/` 直下 / 起動エントリ / **現在開いているセット** / ユーザー指定ディレクトリ）で**参照集合は 2 段辿り**（sequence のパスは trigger_set にしか無い）。候補側は**既定 4 ディレクトリ直下のみ + 形状検証**、`hotkey_presets/global/` は除外、**OFF の個別プリセットパスも参照ありと数える**（意図的 superset）。**隔離ルートは `config/quarantine/`**（`user/` の外・遅延作成）で、**マニフェストを移動より先に原子書込み**し（書けなければ 1 件も動かさない）、隔離対象は**〔提示済み〕∩〔再判定でも孤児〕**に限定。**復元は `state` を信用せず実体の有無で判定**し、**`original_path` は候補側配下でなければ拒否**（`is_path_within` は**同一パスも配下と判定する**ため実体基準の境界検証を併用）。**削除は実行単位 ID + 4 検証**（**④〔有効なマニフェスト〕だけ強い確認で上書き可**・①②③は不変）で**ゴミ箱へ送らない不可逆削除**。**壊れた親があると無傷の子が孤児候補になる**残存リスクは**警告を必須化したうえで受容**（degraded 方式は不採用）。**TOCTOU 2 件・マニフェストのエントリ単位検査なし・一覧に出ない残骸・削除経路のリダイレクト単位**は**実装を変えず契約として明記**。**実機目視 M1〜M8 + M2b は全件期待どおり**（M6 から「マニフェストが読めない」の定義を明確化）。正本 `data_schema.md` **§5.8.9 新設** + §5.8.1 改訂 + §5.4 / §5.10.1 + `features.md` §4.6 + `architecture.md` §3.2 + `codebase_map.md` へ昇格済。**後続**: idea_14（公開面への集約・phase 10 も対象）。refactor_check: 判定は本アーカイブ末尾 |
 | 12_config_service_public_surface | [12_config_service_public_surface.md](decisions_archive/12_config_service_public_surface.md) | config_service の公開面の集約（2026-09-08 完了・**挙動不変のリファクタ**）。presentation が `config_service` の内部モジュールから直接 import していた**判定名・理由コード・結果型（定数 34 / 型 9）**を、新設した **`contracts.py` へ定義ごと移動**（**再輸出を作らない**）。参照は **`from . import contracts` + `contracts.NAME`** に統一（`from .contracts import NAME` は名前が再束縛され `hasattr` 偽の固定テストが書けないため不採用）。**定義元で未使用の定数**（`SOURCE_REDIRECTED` 等）があるため段階分割できず、**1 コミットの原子的変更**とした。**内部表現**（`QUARANTINE_DIR_NAME` / `UNIT_ID_PATTERN` / `ENTRY_*` / `CANDIDATE_DIRS`）は実装側に残し、**同値の理由コード**（`"invalid_unit_id"` / `"no_manifest"`）も**統合しない**（ラベル分岐が壊れる）。**逆戻り防止テスト 3 本**（共有参照の固定 + presentation の **AST 走査 R1〜R3 + 属性アクセスの 4 経路** + **検査関数の自己検証**）を追加し、**`INTERNAL_MODULE_NAMES` がパッケージの実ファイル一覧とずれたら落ちる**アサーションで「新モジュールが属性アクセス経路だけ素通りする穴」を塞いだ。**動的 import は検出できない**限界は明記。正本 `architecture.md` **§3.2 の例外条項と idea_14 追跡行を削除**（**`config_service` 限定表現は保つ**＝`application` 一般へ広げると `save_plan.ACTION_*` の 5 件が新規違反になる）+ `codebase_map.md`（12 → 13 ファイル）へ昇格済。**実機目視は不要**（挙動不変・UI 文言不変）。refactor_check: 判定は本アーカイブ末尾 |
 | 13_contracts_boundary_ast_coverage | [13_contracts_boundary_ast_coverage.md](decisions_archive/13_contracts_boundary_ast_coverage.md) | 公開面の逆戻り防止テストの検査範囲の拡張（2026-09-08 完了・**テストのみ・プロダクション不変・仕様変更なし**）。phase 12 の完了レビューで両レビュアーが独立に指摘した**静的な素通り経路**を塞いだ。**A-1 = `ast.Attribute` の連鎖を完全修飾名へ解決** / **A-2 = `asname` 追跡** / **R4 = 相対 import を絶対名へ解決**（解決不能時は `config_service` セグメント以降の**末尾一致へ縮退**＝**素通しにしない**）/ **相対 import で束縛したエイリアスも解決**し、エイリアス表を**名前 → 束縛先の集合**にして**同名の上書きで違反が消える**問題も塞いだ〔task_01c〕。**既存の「素の名前」検査は残して和集合**にした（**相対 import でモジュールを束縛した場合の唯一の検出経路**。presentation の `config_service` という名前の変数・引数 **29 箇所**〔`ast.Name` 21 / `ast.arg` 8〕は**`ConfigService` のインスタンス**でモジュール参照ではない）。**同一（行番号, 内部モジュール名）は 1 件に畳む**。**兄弟参照 `from .io_dialogs import ...`（16 件実在）を誤検出しないこと**を許可例で固定し、**深さは level=4 検出 / level=3 非検出**を実測（オフバイワンなし）。**残る限界 4 つ**（動的 import / 実行時に組み立てた名前 / **代入による再束縛** / 縮退時の未解決）は**docstring に明記**し、解消は必要時に新規 idea 起票とした。**残存リスク**: `ConfigService` に内部モジュールと同名の公開メンバが増えると素の名前検査が誤検出する。**テストメソッドは 3 本のまま = `tests` 417 件不変**。**正本改訂なし**（`architecture.md` §3.2 は phase 12 で確定済で不変。**検査精度を上げただけ**）。**task_01b / task_01c は着手後にユーザー判断で追加した枝番**。refactor_check: 判定は本アーカイブ末尾 |
+| 14_nested_modal_grab_restore | [14_nested_modal_grab_restore.md](decisions_archive/14_nested_modal_grab_restore.md) | ネストしたモーダルの grab 復元（2026-09-12 完了・**presentation 限定・スキーマ不変・挙動変更**〔モーダル性の是正〕）。モーダルの中からモーダルを開いて閉じると Tk は grab を解放するだけで**直前の保持者へ戻さない**ため、親ダイアログを開いたままメインウィンドウを操作できた欠陥を是正。**復元は子側**（案 X）で行い、新設 `keyseq/presentation/modal.py` の **`grab_modal(window, parent=None)`** へ**系統 A〔`dialogs/` 9 クラス〕+ 系統 B〔`controllers/config_io/` 4 箇所〕の全 13 箇所**を寄せた（`wait_window` 側 20 箇所は無変更・直呼びは 0 件）。**記録はクロージャ**に持ち**`<Destroy>` イベントで戻す**〔`destroy()` override ではないので **× 閉じでも働く**〕。**§3-1〔誰へ戻すか＝記録した保持者が `None` 以外なら戻す〕と §3-7〔そもそも戻してよいか＝破棄時点の保持者〕は別条件**（§3-1 を「自分自身のときだけ」に絞ると**最も実害の大きいネスト経路 3 が復元されない**）。**フェーズ途中でユーザー確定により §3-6 を「初期化失敗の回収〔破棄 → 復元 → 再送出〕」から「grab 取得後に初期化を残さない構造 + 静的検査」へ改訂**（v0.5・**実行時の挙動は不変**・**回収機構は実装しない**）。二次レビューの指摘を受け **`<Destroy>` を `add="+"` へ**（上書きすると復元が無言で消え **idea_16 の対策と衝突する**）+ **3 段 LIFO / 真の × 閉じ / §3-4 の防御分岐**のテストを追加。**変異検査 3 種**で偽 pass を排除。`tests_ui` **288 → 306**。**stdlib ダイアログは対象外**（実機目視で 3 経路は問題なし・**1 経路は親が既に破棄済みで観点が成立せず未確認**）。正本 `features.md` §4.6「モーダルダイアログの作法」+ `data_schema/5_10_03_save_contract.md` + `codebase_map.md` へ昇格済。暫定仕様 12 は凍結済。**分離**: **idea_16**〔× 閉じで `destroy()` override が走らずフック停止カウンタがずれる既存不具合〕/ `ActionDialog` 親付け替え / スケルトン共通化 / M-6〔静的検査の発見ベース化〕。refactor_check: 判定は本アーカイブ末尾 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -529,41 +530,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   **モジュール定数 `_PACKAGE_PREFIX`** へ）。残る 1 件（分割後の関数が 30 行目安をわずかに超える）は
   **提案書が想定した分割形**のため据え置き。
 
----
-
-## 2026-09-11 (phase 14 / 暫定仕様 12: §3-6 の規定を構造保証へ改訂)
-
-規範: `instructions/history/12_nested_modal_grab_restore.md`（**v0.5**）。
-
-### 【§3-6 の扱い】**修正して採用**（ユーザー確定 2026-09-11）
-
-- **検出**: 受け入れ条件 7 は「初期化失敗時に**子が破棄され grab が元の保持者へ戻り**
-  例外が再送出される」と手段まで規定していたが、**task_02 は回収コードを書かず
-  「`grab_modal` を `__init__` の最後の文にする」構造で §3-6 を満たした**。
-  そのため条件 7 を文字どおりテストにすると落ちる（仕様 vs 実装の乖離）。
-- **提示した 3 案**: ①構造保証へ改訂（推奨）②仕様どおり回収を実装 ③系統 B のみ回収。
-- **ユーザー判断 = 案 1（構造保証へ改訂）**。理由 = **実行時の挙動が変わらない**こと、
-  事故の窓が既にほぼ閉じていること、案 2 は**フック停止カウンタのずれ**という
-  新しいリスク（初期化途中の破棄で `resume` が走る）を持ち込むこと。
-- **仕様側の改訂**（v0.5）: §3-6 を「grab 取得後に初期化を残さない + 静的検査で固定」へ、
-  §5 のテスト方針と受け入れ条件 7 も追従。**回収機構は実装しない**。
-- **実装側の追従**（task_04）: 系統 B の 4 箇所
-  （`child_save_dialog.py` ×2 / `io_dialogs.py` / `hotkey_presets_io.py`）で
-  `protocol` / `bind` の登録を `grab_modal` の**前**へ移し、全 13 箇所で不変条件を成立させる。
-  **挙動同値の行移動**。
-- **残る限界を明記**: 初期化に失敗したウィンドウは破棄されず残る（**grab は持たない**ので
-  他の操作は妨げない）。フック再開が走らない点は**× 閉じでも起きる既存の不具合**。
-
-### 【× 閉じで `destroy()` override が走らない】**保留 → idea 分離**
-
-- **実測で確認**: Tcl レベルの破棄（WM の × と同じ経路）では `<Destroy>` イベントのみ発火し、
-  **Python の `destroy()` override は呼ばれない**。`ActionDialog` で
-  `hook.get_hook_pause_count()` が **1 のまま 0 に戻らない**ことを確認した。
-- **影響**: フック自体は画面の「開始（フックON）」で手動再開できる（`start_hook` は
-  カウンタを見ない）が、**ずれは解消せず**、以後ダイアログを開いてもフックが自動停止しない
-  （= 編集中のキー入力が誤爆し得る）。確実に戻すには再起動が要る。
-- **該当は `protocol("WM_DELETE_WINDOW")` 未登録の 5 クラス**
-  （`action_dialog` / `keymap_edit_dialog` / `layout_delete_dialog` / `preset_manager` / `trigger_dialog`）。
-- **phase 14 以前からある独立した不具合**で、**grab 復元は `<Destroy>` 結線のため × でも働く**。
-  本フェーズには合流させず **[idea_16](../../instructions/backlog/idea_16_wm_close_skips_destroy_override.md)**
-  として起票（ユーザー承認 2026-09-11）。
