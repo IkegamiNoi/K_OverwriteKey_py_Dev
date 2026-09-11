@@ -86,7 +86,8 @@ class _FakeDialog:
     def grab_set(self):
         pass
 
-    def bind(self, sequence, callback):
+    def bind(self, sequence, callback, add=None):
+        # grab_modal は既存ハンドラを潰さないよう add="+" で結線する。
         self._bindings[sequence] = callback
 
     def protocol(self, name, command):

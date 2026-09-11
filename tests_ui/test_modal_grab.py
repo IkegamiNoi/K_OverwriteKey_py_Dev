@@ -38,6 +38,45 @@ class ModalGrabTest(unittest.TestCase):
         b.destroy()
         self.assertIs(self.root.grab_current(), a)
 
+    def test_grab_current_key_error_and_restore_tcl_error_are_tolerated(self):
+        with self.subTest(branch="grab_current_key_error"):
+            window = Mock()
+            parent = Mock()
+            window.grab_current.side_effect = KeyError("unknown grab holder")
+
+            grab_modal(window, parent)
+
+            window.grab_current.assert_called_once_with()
+            window.grab_set.assert_called_once_with()
+            window.bind.assert_called_once()
+            self.assertEqual(window.bind.call_args.args[0], "<Destroy>")
+            restore_grab = window.bind.call_args.args[1]
+            restore_grab(Mock(widget=window))
+            # 記録した保持者は None なので、復元時の照会や親のモーダル化は行わない。
+            window.grab_current.assert_called_once_with()
+            parent.grab_set.assert_not_called()
+
+        with self.subTest(branch="restore_grab_set_tcl_error"):
+            window = Mock()
+            previous = Mock()
+            window.grab_current.side_effect = [previous, None]
+            previous.winfo_exists.return_value = True
+            previous.winfo_viewable.return_value = True
+            previous.grab_set.side_effect = tk.TclError("grab holder was destroyed")
+
+            grab_modal(window)
+
+            window.grab_set.assert_called_once_with()
+            window.bind.assert_called_once()
+            self.assertEqual(window.bind.call_args.args[0], "<Destroy>")
+            restore_grab = window.bind.call_args.args[1]
+            # 直接呼び出し、例外の吸収がなければ Tk の通知経由にせずテストを失敗させる。
+            restore_grab(Mock(widget=window))
+            self.assertEqual(window.grab_current.call_count, 2)
+            previous.winfo_exists.assert_called_once_with()
+            previous.winfo_viewable.assert_called_once_with()
+            previous.grab_set.assert_called_once_with()
+
     def test_no_previous_holder_does_not_modalize_parent(self):
         b = self.make_window()
         self.assertIsNone(self.root.grab_current())

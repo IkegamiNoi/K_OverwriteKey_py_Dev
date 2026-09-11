@@ -93,8 +93,11 @@ presentation 限定）。`instructions/history/` の凍結済み暫定仕様。
    **§3-6 は暫定仕様 v0.5（2026-09-11 ユーザー確定）で「grab 取得後に初期化を残さない
    構造 + 静的検査」へ改訂済**（回収機構は実装しない）。あわせて系統 B の 4 箇所で
    `protocol` / `bind` の登録を `grab_modal` の前へ移す（挙動同値の行移動）。
-5. **task_05**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ **ユーザーによる実機目視**
-   （暫定仕様 §7-14 の stdlib ダイアログ 4 経路）。
+5. **task_05**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ **二次レビュー**
+   （`deep-reviewer` + `codex-reviewer`）+ **ユーザーによる実機目視**
+   （暫定仕様 §7-14 の stdlib ダイアログ 4 経路 + ネスト経路 + 退行確認）。
+   - **task_05b**（枝番）: 二次レビューの指摘のうちユーザーが採用した分の反映
+     （docstring / `bind` を `"+"` 付きへ / テスト 3 本 / 仕様の文書整合）。**M-6 は保留**。
 6. **task_06（最終・正本反映）**: 正本へ昇格（`features.md` §4.6 に小節新設 /
    `data_schema/5_10_03_save_contract.md` に相互参照 1 行 / `codebase_map.md` 更新）+
    暫定仕様 12 の凍結 + `ActionDialog` 親付け替えの idea 起票 +

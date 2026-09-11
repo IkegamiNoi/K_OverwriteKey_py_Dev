@@ -4,82 +4,79 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-11T17:00:00
+last_updated: 2026-09-11T20:00:00
 phase: `instructions/phase/14_nested_modal_grab_restore`（**進行中**）。
 主入力 = 暫定仕様 12（v0.4・ユーザー確定済）。番号対応: phase 14 / 暫定 12 / decisions 14。
-**task_01〜04 完了 / task_05・06 未着手**。
+**task_01〜04 / task_05b 完了。task_05 は実機目視の結果待ちで保留中 / task_06 未着手**。
 **主入力は v0.5**（2026-09-11 に §3-6 を構造保証へ改訂・ユーザー確定）。
-last_commit_location: `claude/task-02-progression-df3881` @ `5c21953`（task_03）。
-**task_04 の差分は未コミット**（`/task_commit` 待ち）。**main へは未マージ**。
+last_commit_location: `claude/task-02-progression-df3881` @ `f7dd926`（task_04）。
+**task_05b の差分は未コミット**（`/task_commit` 待ち）。**main へは未マージ**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 14 task_04（契約 3 条のテスト + 系統 B の行移動）を完了。次は task_05（統合確認 + 実機目視）**。
-mode: completed
+focus: **task_05 の統合確認と二次レビューは完了。指摘対応（task_05b）も完了。残るは実機目視の結果待ち**。
+mode: blocked
 
 ## last_action
-ts: 2026-09-11T17:00:00
+ts: 2026-09-11T20:00:00
 who: main
 summary: |
-  【**task_04 完了 + 暫定仕様を v0.5 へ改訂**】契約 3 条のテスト 4 本を追記し、
-  系統 B の 4 箇所で登録行を `grab_modal` の前へ移した。実装は `codex-implementer` へ委任。
-  - **【最重要・仕様改訂】§3-6 の規定を「回収（破棄 → 復元 → 再送出）」から
-    「grab 取得後に初期化を残さない構造 + 静的検査」へ改訂**（暫定仕様 **v0.5**・受け入れ条件 7 も追従）。
-    **task_02 の実装が受け入れ条件 7 を文字どおり満たさない**ことに気づいて報告し、
-    **ユーザーが案 1（構造保証）を選択**（2026-09-11）。**実行時の挙動は変えない**。
-    判断は `decisions.md`「2026-09-11 (phase 14 / 暫定仕様 12)」。**回収機構は実装しない**。
-  - **production = 行移動 4 箇所のみ**（`child_save_dialog.py` ×2 / `io_dialogs.py` /
-    `hotkey_presets_io.py`）。`protocol` / `bind` を `grab_modal` の前へ。**`wait_window` は後ろのまま**。
-  - **テスト 4 本追記**（`tests_ui/test_nested_modal_grab.py` が **8 本**に）:
-    ①§3-6 実行時（`ttk.Entry` を patch して **grab_modal より前**で例外 → 親が grab 保持・
-    **回収が走らないこと**も `assert_not_called` で固定）②**§3-6 静的検査（AST）**
-    ③§3-7 非 LIFO（**3 段**で中間だけ破棄）④§3-8 コールバック例外（実ボタン `invoke()`）。
-  - **静的検査の中身**: 9 クラスの `__init__` 末尾が `grab_modal` / 系統 B は
-    **`grab_modal` の直後が待機だけ**（`try: wait_window / finally: resume_hook` の形も許容）。
-    **`wait_window` より後の結果処理は検査対象外**（将来の変更を縛りすぎない）。
-  - **変異検査済**: `preset_dialog.py` の `grab_modal` の後ろへ 1 文足すと
-    **静的検査だけが fail** し、メッセージに `ファイル:行` が出る（復元済み）。
-  - **§3-8 は `report_callback_exception` の Mock を検証後に `reset_mock()`** する形で、
-    **既存 4 本のガード（`assert_not_called`）を弱めていない**。
-  - **`reviewer` 判定 = 完了可・指摘 0 件**。
-  - **副産物**: × 閉じで `destroy()` override が走らずフック停止カウンタがずれる既存不具合を
-    実測で発見し **[idea_16] を起票**（フェーズ外・grab 復元は `<Destroy>` 結線のため × でも働く）。
+  【**task_05 の統合確認・二次レビュー完了 + task_05b（指摘対応）完了**】
+  - **統合確認は全項目 green**（`tests` 417 / `tests_ui` **306** / smoke / compileall）。
+    受け入れ条件 10 も再確認（`grab_set` / `transient` は `modal.py` のみ）。
+  - **二次レビュー 2 本**: **`codex-reviewer` = 指摘なし** / **`deep-reviewer` = 修正要（軽微）**。
+    受け入れ条件 1〜12 のうち **2 の後半（3 段 LIFO）と 4（真の × 閉じ）が未担保**と判明。
+  - **ユーザー判断 = 推奨セット採用（M-6 は保留）**。対応内訳:
+    **メインが文書側**（H-2 §4 の v0.4 記述 / L-1「5 点」→「8 条」/ L-2 §7 の版表記 /
+    **M-4 = §3-5 へ「連鎖破棄では復元を保証しない」を追記**）、
+    **task_05b で実装側**（H-1 docstring / **M-5 `bind` を `"+"` 付きへ** / M-1・M-2・M-3 のテスト 3 本）。
+  - **【重要】M-5 の副作用を実測で 2 件踏んだ**:
+    ①**テストダブル 3 つの `bind` が 3 引数固定**で `TypeError`（**22 errors**）→ `add=None` を追加
+    ②新規 LIFO テストが**単独 pass・一括実行で fail**。原因は
+    **マネージャが未マップ（`winfo_viewable()` = 0）のまま確認ダイアログを開いていた**ため、
+    **§3-2 の viewable 判定で復元がスキップされ grab が `None`** になっていた。
+    確認ダイアログを開く前に `update_idletasks()` + viewable アサートを追加して解消。
+  - **最終実測**: `tests` 417 / **`tests_ui` 306（0 fail・0 error）**/ smoke / compileall clean。
+    変異検査（`except (tk.TclError, KeyError)` を狭めると新規テストが落ちる）も確認。
+    `git diff keyseq/` は **`modal.py` の 2 点のみ**。
+  - **`reviewer` 判定 = 完了可**（本体・修正分とも。非 LIFO テストが `update_idletasks` を
+    持たないのは `winfo_exists()` False の別分岐を通るため**見逃しではない**と裏取り済み）。
+  - **残るは実機目視のみ**（task_05 の A1〜A4 / B1〜B4 / C1〜C2 をユーザーへ提示済み）。
 result_files:
-  - keyseq/presentation/controllers/config_io/{child_save_dialog,io_dialogs,hotkey_presets_io}.py（行移動のみ）
-  - tests_ui/test_nested_modal_grab.py（4 本追記・計 8 本）
-  - instructions/history/12_nested_modal_grab_restore.md（**v0.5 へ改訂**）
-  - instructions/phase/14_nested_modal_grab_restore/{phase.md,tasks/task_04_grab_contract_tests.md}
-  - instructions/backlog/{idea_16_wm_close_skips_destroy_override.md,INDEX.md}（新規 idea）
-  - .claude_data/state/decisions.md（2026-09-11 の判断 2 件）
+  - keyseq/presentation/modal.py（docstring + `bind(..., "+")` の 2 点）
+  - tests_ui/test_nested_modal_grab.py（+2 本・計 10 本）/ tests_ui/test_modal_grab.py（+1 本・計 8 本）
+  - tests_ui/{test_child_save_dialog,test_config_io_characterization}.py（スタブ 3 つへ `add=None`）
+  - instructions/history/12_nested_modal_grab_restore.md（H-2 / L-1 / L-2 / M-4 の反映）
+  - instructions/phase/14_nested_modal_grab_restore/tasks/{task_05_integration_and_manual_check,task_05b_review_followup}.md
 verified:
   compile: clean
-  tests: pass 417（skip 7・**据え置き**）
-  tests_ui: **pass 303**（299 + 新規 4）
+  tests: pass 417（skip 7）
+  tests_ui: **pass 306**（0 fail・0 error）
   smoke: pass
-  mutation: **grab_modal の後ろへ 1 文追加で静的検査のみ fail**（`ファイル:行` 付き・復元済み）
-  note: production 差分は**行移動 4 箇所だけ**。テスト後に `user/` `quarantine/` の生成なし。
-  review: **`reviewer` → 完了可（指摘 0 件）**
+  mutation: **§3-4 の except を狭めると新規テストが fail**（復元済み・`git diff keyseq/` は 2 点のみ）
+  review: **`codex-reviewer` 指摘なし / `deep-reviewer` 修正要 → 採用分は反映済 / `reviewer` 完了可**
 
 ## next_action
-- **【最優先】phase 14 task_05 を `/task_new` で起票する**
-  （`tasks/task_05_integration_and_manual_check.md`）。内容 = ①**統合確認**
-  （`tests` / `tests_ui` 全体 + `smoke_app`）を `verifier` で実施
-  ②**`deep-reviewer` + `codex-reviewer` の二次レビュー**（複数タスクを跨ぐ差分のため。
-  `agent_selection.md` のレビュー表）③**ユーザーによる実機目視**
-  （暫定仕様 §6-3 の **stdlib ダイアログ 4 経路** = `orphan_sweep_dialog.py:51` /
-  `child_save_dialog.py:213`・`:265`・`:315`。「親ダイアログを開いたままファイル選択または
-  メッセージボックスを閉じた後、親がモーダルのままか」）+ ネスト経路 3 系統の目視。
-  **実機目視の項目表をタスク定義に書き、結果をユーザーから受け取ってから完了判定する**。
-- その後: task_06（正本反映・最終）。**受け入れ条件 13 / 15 もここで満たす**
-  （正本昇格 + `ActionDialog` 親付け替えの idea 起票）。
-- フェーズ末（task_06）で **`/refactor_check`** を実行する
-  （ダイアログ同型スケルトンの共通化を判定対象にする。**[idea_16] も同じ領域**なので
-  スケルトン共通化と合流させるか判定時に検討する）。
+- **【ユーザー待ち】task_05 の実機目視の結果を受け取る**。項目はタスク定義
+  `tasks/task_05_integration_and_manual_check.md` の **A1〜A4（ネスト経路）/
+  B1〜B4（stdlib ダイアログ 4 経路）/ C1〜C2（退行確認）**。
+  **C1 は `transient` → `grab_set` の順序が反転した 6 クラス**（`action_dialog` /
+  `keymap_edit_dialog` / `layout_delete_dialog` / `preset_dialog` / `preset_manager` /
+  `trigger_dialog`）の表示位置・前面表示を見る（`deep-reviewer` の L-5）。
+  **結果を受け取ってから task_05 を完了判定する**。
+- その後 **task_06（正本反映・最終）**を `/task_new` で起票する。内容 =
+  正本昇格（`features.md` §4.6 に小節 / `data_schema/5_10_03_save_contract.md` に相互参照 1 行 /
+  **`codebase_map.md` へ `modal.py` を追加**）+ **暫定仕様 12 の凍結**（v0.5）+
+  **`ActionDialog` 親付け替えの idea 起票**（受け入れ条件 15）+
+  `decisions_archive/14_nested_modal_grab_restore.md` 作成 + `current.md` の完了記載 +
+  `backlog/INDEX.md` の idea_10 行を `INDEX_done.md` へ移動 + **`/refactor_check`**。
+  **`/refactor_check` では①ダイアログ同型スケルトンの共通化②`deep-reviewer` の M-6
+  （静的検査の発見ベース化）③[idea_16] との合流可否を判定対象にする**。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（task_04 は全確認 pass・変異検査も期待どおり・`reviewer` 指摘 0 件）。
+- **実機目視の結果待ち**（task_05 の A / B / C。ユーザーが実施）。自動確認は全て green。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**
@@ -191,7 +188,13 @@ verified:
   `keyseq/presentation/` に `grab_set` / `transient` の直呼びは**残っていない**。
   **ネスト経路 3 系統のテストも `tests_ui/test_nested_modal_grab.py` で完了**（task_03）。
   **契約 3 条のテストも完了**（task_04・`tests_ui/test_nested_modal_grab.py` が **8 本**）。
-  **残りは統合・実機目視（task_05）と正本反映（task_06）**。
+  **統合確認・二次レビュー・指摘対応（task_05b）まで完了**。**残りは実機目視と正本反映（task_06）**。
+  **【M-5 の教訓】`grab_modal` の `bind` は `"+"` 付きになった**ため、
+  **`tk.Toplevel` を差し替えるテストダブルの `bind` は `add=None` を受ける必要がある**
+  （スタブは `test_child_save_dialog.py` に 2 つ・`test_config_io_characterization.py` に 1 つの**計 3 つ**）。
+  **【罠】復元先が未マップ（`winfo_viewable()` = 0）だと §3-2 で復元がスキップされ grab が `None` になる**。
+  tests_ui で実ダイアログを親にするときは **`update_idletasks()` + viewable アサート**を先に置くこと
+  （単独実行では通り一括実行で落ちる形の不安定さになる）。
   **【§3-6 は v0.5 で改訂済】回収機構は実装しない**。規約は **`grab_modal` を初期化の
   最後の文に置く**ことで、**静的検査テスト（`test_grab_modal_is_last_initialization_statement`）が
   これを固定している**。**`grab_modal` の後ろに処理を足すとこのテストが落ちる**ので、

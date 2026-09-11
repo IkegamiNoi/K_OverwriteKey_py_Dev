@@ -85,7 +85,8 @@ class _FakeDialogWidget:
         self.pack_history.append(kwargs)
         return self
 
-    def bind(self, sequence, callback):
+    def bind(self, sequence, callback, add=None):
+        # grab_modal は既存ハンドラを潰さないよう add="+" で結線する。
         self.bindings[sequence] = callback
 
     def configure(self, **kwargs):
@@ -186,7 +187,8 @@ class _FakeSaveDialog:
     def protocol(self, name, command):
         self.protocols[name] = command
 
-    def bind(self, sequence, callback):
+    def bind(self, sequence, callback, add=None):
+        # grab_modal は既存ハンドラを潰さないよう add="+" で結線する。
         self.bindings[sequence] = callback
 
     def destroy(self):

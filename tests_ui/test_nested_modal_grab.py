@@ -374,6 +374,69 @@ class NestedModalGrabTest(unittest.TestCase):
         self.assertIsNone(self.app.grab_current())
         self.write_presets.assert_not_called()
 
+    def test_lifo_confirmation_and_manager_close_restore_each_parent_grab(self):
+        action = ActionDialog(self.app, title="アクション編集")
+        self.addCleanup(self.cleanup_window, action)
+        action.update_idletasks()
+        self.assertIs(action.master, self.app)
+        self.assertTrue(action.winfo_viewable())
+        self.assertIs(self.app.grab_current(), action)
+        self._overwrite_conflict()
+        original_init = PresetManagerDialog.__init__
+        managers = []
+
+        def open_confirmation(manager):
+            try:
+                # 復元先は viewable でなければ取り直されない（§3-2）。実利用では表示済みなので、
+                # マネージャのマップ完了を待ってから確認ダイアログを開く。
+                manager.update_idletasks()
+                self.assertTrue(manager.winfo_viewable())
+                self._close_overwrite(manager)
+                self.assertTrue(manager.winfo_exists())
+                self.assertTrue(action.winfo_exists())
+                self.assertIs(self.app.grab_current(), manager)
+                manager.destroy()
+                self.assertFalse(manager.winfo_exists())
+                self.assertIs(self.app.grab_current(), action)
+            finally:
+                # 内側のアサート失敗でも ActionDialog 側の実待機を解放する。
+                if manager.winfo_exists():
+                    manager.destroy()
+
+        def init_and_schedule_confirmation(manager, *args, **kwargs):
+            original_init(manager, *args, **kwargs)
+            self.addCleanup(self.cleanup_window, manager)
+            managers.append(manager)
+            self.assertIs(manager.master, self.app)
+            self.assertIs(self.app.grab_current(), manager)
+            manager.individual_var.set(True)
+            after_id = self.app.after(0, open_confirmation, manager)
+            self.addCleanup(self.app.after_cancel, after_id)
+
+        with patch.object(PresetManagerDialog, "__init__", init_and_schedule_confirmation):
+            action._open_preset_manager()
+        self.callback_error.assert_not_called()
+        self.assertEqual(len(managers), 1)
+        self.assertFalse(managers[0].winfo_exists())
+        self.assertTrue(action.winfo_exists())
+        self.assertIs(self.app.grab_current(), action)
+        self.write_presets.assert_not_called()
+
+    def test_tcl_destroy_preset_restores_manager_grab(self):
+        manager = self._preset_manager()
+        child = PresetDialog(manager, title="プリセット追加")
+        self.addCleanup(self.cleanup_window, child)
+        child.update_idletasks()
+        self.assertTrue(child.winfo_viewable())
+        self.assertIs(self.app.grab_current(), child)
+
+        child.tk.call("destroy", str(child))
+
+        self.callback_error.assert_not_called()
+        self.assertFalse(child.winfo_exists())
+        self.assertTrue(manager.winfo_exists())
+        self.assertIs(self.app.grab_current(), manager)
+
     def test_callback_exception_keeps_child_grab_until_closed(self):
         manager = self._preset_manager()
         failure = RuntimeError("preset callback failed")

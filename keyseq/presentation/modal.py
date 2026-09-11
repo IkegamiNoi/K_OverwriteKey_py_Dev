@@ -6,9 +6,9 @@ import tkinter as tk
 def grab_modal(window: tk.Toplevel, parent: tk.Misc | None = None) -> None:
     """window をモーダル化し、破棄されたら直前の grab 保持者へ戻す。
 
-    初期化の最後に呼ぶ。呼び出し後に初期化を続けて例外が出ても、
-    破棄フックは自動で発火せず grab を握ったまま残るため、呼び出し側で
-    子を破棄してから例外を再送出する必要がある。
+    初期化の最後に呼び、grab 取得後に初期化処理を残さないこと。
+    本関数の呼び出しより前で例外が出た場合、子はまだ grab を取得しておらず、
+    親が grab を保持したまま残る。
     """
     def current_holder() -> tk.Misc | None:
         try:
@@ -43,4 +43,4 @@ def grab_modal(window: tk.Toplevel, parent: tk.Misc | None = None) -> None:
             # アプリ終了中や確認後の破棄・非表示化では復元できないため終了を妨げない。
             pass
 
-    window.bind("<Destroy>", restore_grab)
+    window.bind("<Destroy>", restore_grab, "+")
