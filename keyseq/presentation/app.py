@@ -527,6 +527,7 @@ class App(tk.Tk):
     def on_close(self):
         if not self.keymap_set_io.confirm_save_if_dirty("終了"):
             return
+        self.hook.begin_shutdown()
         try:
             if self.layout.keyboard_window is not None:
                 try:

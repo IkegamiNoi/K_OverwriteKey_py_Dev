@@ -4,75 +4,79 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-12T15:00:00
-phase: `instructions/phase/14_nested_modal_grab_restore`（**完了**）。**次フェーズは未確定**。
+last_updated: 2026-09-12T18:00:00
+phase: `instructions/phase/15_dialog_teardown_on_close`（**進行中**）。
+主入力 = 暫定仕様 13（**v0.4**・ユーザー確定済）。番号対応: phase 15 / 暫定 13 / decisions 15。
+**phase 14 は完了**（判断は `decisions_archive/14`）。
 主入力 = 暫定仕様 12（v0.4・ユーザー確定済）。番号対応: phase 14 / 暫定 12 / decisions 14。
-**task_01〜06 完了。phase 14 は完了**。
+**phase 15: task_01 完了 / task_02〜05 未着手**。
 **主入力は v0.5**（2026-09-11 に §3-6 を構造保証へ改訂・ユーザー確定）。
-last_commit_location: `claude/task-02-progression-df3881` @ `b491ed0`（task_05）。
-**task_06 の差分は未コミット**（`/task_commit` 待ち）。**main へは未マージ**。
+last_commit_location: `claude/task-02-progression-df3881` @ `ecdb3eb`（phase 14 完了）。
+**phase 15 起票分と task_01 の差分は未コミット**（`/task_commit` 待ち）。**main へは未マージ**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 14 完了（正本反映・凍結・idea 起票・/refactor_check まで実施済）。次フェーズは未確定**。
+focus: **phase 15 task_01（`HookController` の自動解除 + 終了ガード）完了。次は task_02（`dialogs/` 8 クラスへの適用）**。
 mode: completed
 
 ## last_action
-ts: 2026-09-12T15:00:00
+ts: 2026-09-12T18:00:00
 who: main
 summary: |
-  【**task_06 完了 = phase 14 完了**】正本反映・凍結・idea 起票・`/refactor_check` を実施。
-  - **正本昇格**: `features.md` §4.6 に **「モーダルダイアログの作法」**を新設 /
-    `data_schema/5_10_03_save_contract.md` へ**上書き確認がネストである相互参照 1 行** /
-    `codebase_map.md` へ **`modal.py`**（ツリー + 責務の 2 箇所）。
-  - **暫定仕様 12 を凍結**（v0.5）。**idea_10 を `INDEX_done.md` へ移動**。
-    **idea_17（`ActionDialog` の親付け替え・優先度低）を起票**（受け入れ条件 15）。
-  - **`decisions_archive/14_nested_modal_grab_restore.md` を作成**し、`decisions.md` 本体は**索引 1 行のみ**に。
-  - **`/refactor_check` = 不要**（M1〜M6 すべて非該当。差分は 13 ファイル・+78/-27 で
-    **重複を増やすのではなく 12 箇所を集約する方向**だった）。
-    **候補送り 2 件**（スケルトン共通化の残り / M-6 の静的検査）を `current.md` へ記録。
-  - **【重要】フェーズ完了レビューで両レビュアーが独立に同じ 1 点を指摘**
-    （`deep-reviewer` D-1 / `codex-adversarial-reviewer` の唯一の medium）:
-    **正本 §4.6 が「親のモーダル性が戻る」と無条件に書いており、§3-7（非 LIFO）と
-    §3-2（非表示の親）で復元しない実装と食い違う**。放置すると**将来の担当者が
-    `modal.py` の防御分岐を「仕様に無い実装」と判断して削り得る**。
-    → **§4.6 を「開いた順で 1 つ外側へ戻る」+「戻らない 4 ケース」+「いずれも例外を出さない」へ改めた**。
-    **設計は変えていない**（確定済みの条項を正本へ正しく転記し直しただけ）。
-  - その他の採用: 呼称を「プリセットマネージャ」へ統一 / `codebase_map.md` の件数表記を
-    **陳腐化しない形へ緩めた** / **静的検査が落ちたらテストを緩めずユーザーへ諮る**運用を記載 /
-    `current.md` の stdlib 残件の表現を archive と統一 / `INDEX_done.md` の括弧修正。
+  【**phase 15 起票 + task_01 完了**】idea_16（× 閉じで後始末が飛ぶ）へ着手。
+  - **暫定仕様 13 を v0.4 まで進めて確定**。`deep-reviewer` 16 件 + `codex-adversarial-reviewer` 1 件を反映。
+    **重い訂正 3 件**: ①**「アプリ終了時は後始末が走らない」は私の誤り**
+    （`Tk.destroy` は子の Python `destroy()` を**再帰的に呼ぶ**。実測で確認）
+    ②当初案の静的検査は **phase 14 が固定した try/finally 形と正面衝突**するため対象を限定
+    ③**`after(0)` 遅延だけでは受け入れ条件 4 を満たせない**（try/finally 形 5 系統は同期解除のまま）
+    → **終了ガード**を追加。
+  - **設計（ユーザー確定）**: **`suspend_hook_for_dialog(window)` が停止と解除予約を原子化**
+    （**省略時は現行と同じ**）/ **解除は `after(0)` 遅延**（`start_hook` が**同期で messagebox を
+    開き得る**ため・grab 復元と競合させないため）/ **終了ガードで終了確定後は再開しない** /
+    **空になる `destroy()` override は削除** / **スケルトン共通化とは合流しない**。
+  - **task_01 実装**（`codex-implementer` へ委任）: `hook_controller.py` に `window` 引数 +
+    `<Destroy>` の `"+"` 結線 + `event.widget` 判定 + `resume_scheduled` の 1 度だけガード +
+    `after(0)` 予約（**App に対して**）+ `begin_shutdown()` / `start_hook` 先頭の早期 return。
+    `app.py:530` の `on_close` で **`confirm_save_if_dirty` 通過後・`self.destroy()` 前**にガードを立てる。
+  - **`dialogs/` は 1 ファイルも触っていない**（task_02 の担当）。呼び出し側も全て引数なしのまま。
+  - **変異検査済**: `event.widget` 判定を外すと**子ウィジェット破棄のテストが fail**（復元済み）。
+  - **`reviewer` 判定 = 完了可**。参考指摘 1 件 = タスク定義の「5 系統」は try/finally 形の数で、
+    **`key_capture.py:57` / `keyboard_window.py:270` を含めると引数なし呼び出しは計 15 箇所**。
+    **task_03 の静的検査を書くときに数え違えないこと**（対象は `dialogs/` の 8 クラスのみ）。
 result_files:
-  - instructions/common/spec_detail/features.md（§4.6 に小節新設・レビュー後に文言を是正）
-  - instructions/common/spec_detail/data_schema/5_10_03_save_contract.md（相互参照 1 行）
-  - instructions/common/codebase_map.md（`modal.py` を 2 箇所）
-  - instructions/history/12_nested_modal_grab_restore.md（**凍結**）
-  - .claude_data/state/decisions_archive/14_nested_modal_grab_restore.md（新規）/ decisions.md（索引 1 行へ）
-  - instructions/backlog/{idea_17_action_dialog_preset_manager_parent.md,INDEX.md,INDEX_done.md}
-  - instructions/phase/current.md（完了記載・次採番 phase 15）
-  - instructions/phase/14_nested_modal_grab_restore/tasks/task_06_spec_promotion.md（新規）
+  - instructions/history/13_dialog_teardown_on_close.md（新規・v0.4 確定）
+  - instructions/phase/15_dialog_teardown_on_close/{phase.md,tasks/task_01_hook_controller_teardown.md}（新規）
+  - keyseq/presentation/controllers/hook_controller.py / keyseq/presentation/app.py
+  - tests_ui/test_hook_controller_teardown.py（新規・5 テスト）
+  - instructions/phase/current.md / instructions/backlog/INDEX.md（idea_16 を着手へ）
 verified:
   compile: clean
   tests: pass 417（skip 7）
-  tests_ui: pass 306
+  tests_ui: **pass 311**（306 + 新規 5）
   smoke: pass
-  code_diff: **空**（本タスクは文書のみ）
-  refactor_check: **不要**（M1〜M6 非該当・候補送り 2 件を current.md へ記録）
-  review: **`deep-reviewer` 完了可 / `codex-adversarial-reviewer` needs-attention → 指摘 1 点を是正済**
+  mutation: **`event.widget` 判定を外すと子破棄テストが fail**（復元済み）
+  note: `git diff --stat keyseq/presentation/dialogs/` = **空**。呼び出し側は全て引数なしのまま。
+  review: **`reviewer` → 完了可**（phase.md の整合チェックも修正なしで通過）
 
 ## next_action
-- **phase 14 は完了。次フェーズは未確定**。着手先をユーザーへ確認する。
-  **この領域の残件**（`current.md`「直近の一連の作業が扱っている領域」が正）:
-  ①**[idea_16]**（× 閉じで `destroy()` override が走らずフック停止カウンタがずれる。**grab とは独立した既存不具合**）
-  ②**ダイアログ同型スケルトンの共通化**（phase 11 から候補送り。**idea_16 と同じ領域なので合流を検討**）
-  ③**静的検査の発見ベース化**（`deep-reviewer` の M-6・保留。**発見ベース単独では
-  「呼び出しが消えた」検出が失われる**ため併用形の検討が要る）
-  ④**[idea_17]**（`ActionDialog` の親付け替え・優先度低）。
-- **未着手 idea（優先度低）**: idea_13 / idea_11 / idea_03 / idea_09。**保留**: idea_04 / idea_06。
+- **【最優先】phase 15 task_02 を `/task_new` で起票する**
+  （`tasks/task_02_dialogs_apply.md`）。内容 = `dialogs/` の **8 クラス**へ適用
+  （`preset_dialog.py` は suspend を呼ばないので**対象外**）:
+  ①`suspend_hook_for_dialog()` → **`suspend_hook_for_dialog(self)`** へ置換
+  ②`destroy()` override から **`resume_hook_after_dialog()` の行を削除**（**二重実行を防ぐため必須**）
+  ③**空になる 4 クラスの override を削除**（`layout_delete` / `preset_manager` /
+  `quarantine_manage` / `reference_cleanup`）
+  ④**T2（ウィジェットに触る後始末）は残す**（`orphan_sweep` の `scan_dirs` 収集 /
+  `keymap_edit`・`trigger` の `_stop_capture` / `action` の `_stop_recording`）。
+  **`grab_modal` は `__init__` の最後の文のまま**（phase 14 の静的検査が固定）。
+  起票後 `codex-implementer` へ委任（**テスト実行は依頼しない**）。
+- その後: task_03（受け入れ条件のテスト + 既存テストの書き換え）→ task_04（統合確認 +
+  二次レビュー + **実機目視**）→ task_05（正本反映・最終）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（phase 14 完了）。
+- **なし**（task_01 は全確認 pass・変異検査も期待どおり・`reviewer` 完了可）。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**
@@ -179,6 +183,21 @@ verified:
 - **【idea_11・既知の制約】別名保存で個別プリセットの複製に成功した後、keymap_set の保存が失敗すると
   巻き戻らない**（孤児の複製 + メモリ上だけ新パス・dirty も立たない）。**正本 §5.10.4 に明記済**。
   再編集しても**内容が一致するため上書き確認は出ない**点が要注意（優先度低で後送り）。
+- **【phase 15 = ダイアログ後始末の確実な実行・進行中】規範は暫定仕様
+  [13](../../instructions/history/13_dialog_teardown_on_close.md)（v0.4・確定済）**。要点 =
+  ①**× 閉じでは Python の `destroy()` override が呼ばれない**（Tcl レベル破棄）。
+  **一方 `root.destroy()` は子の Python `destroy()` を再帰的に呼ぶ**（実測。**取り違え注意**）
+  ②**後始末は T1（状態・ウィジェットに触らない）と T2（ウィジェットに触る）に分ける**。
+  **T1 だけを破棄イベントへ寄せる**（**子ウィジェットは親の `<Destroy>` より先に破棄される**ため、
+  T2 を寄せると `TclError` になる）
+  ③**登録は `suspend_hook_for_dialog(window)` が原子的に行う**（**省略時は現行と同じ**）
+  ④**解除は `after(0)` 遅延**（`start_hook` が**同期で messagebox を開き得る** /
+  grab 復元と競合させない）。**テストでは `update()` が必要**（`update_idletasks()` では走らない）
+  ⑤**終了ガード**（`begin_shutdown()`）で終了確定後はどの経路からも再開しない。
+  **`window.master.winfo_exists()` による終了判定は機能しない**（`Tk.destroy` は子を先に壊すため常に真）
+  ⑥**静的検査の対象は `dialogs/` の 8 クラスのみ**。`controllers/` の try/finally 形を巻き込むと
+  **phase 14 の既存静的検査と衝突する**。**引数なし呼び出しは計 15 箇所**
+  （try/finally 形 5 + dialogs 8 + `key_capture.py:57` + `keyboard_window.py:270`）。
 - **【phase 14 の適用は完了済】`grab_modal` は系統 A（`dialogs/` 9 クラス）・系統 B
   （`controllers/config_io/` 4 箇所）の**全 13 箇所へ適用済**（task_01 / task_02）。
   `keyseq/presentation/` に `grab_set` / `transient` の直呼びは**残っていない**。

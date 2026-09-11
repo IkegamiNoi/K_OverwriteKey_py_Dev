@@ -15,19 +15,32 @@ class HookController:
         self.hook_suspend_count = 0
         self.hook_was_active_before_dialog = False
         self.error_dialog_open = False
+        self._shutting_down = False
         self._hook_button_pairs = []
 
     def register_hook_buttons(self, hook_btn, trigger_btn) -> None:
         self._hook_button_pairs.append((hook_btn, trigger_btn))
 
     # ---------------- Hook suspend/resume for modal dialogs ----------------
-    def suspend_hook_for_dialog(self):
-        """編集系ダイアログ表示中の誤爆を防ぐため、フックを一時停止（ネスト対応）"""
+    def suspend_hook_for_dialog(self, window=None) -> None:
+        """フックを一時停止し、window 指定時は破棄後に自動解除する（ネスト対応）。"""
         self.hook_suspend_count += 1
         if self.hook_suspend_count == 1:
             self.hook_was_active_before_dialog = bool(self.hook_active)
             if self.hook_was_active_before_dialog:
                 self.stop_hook(reset_custom_input_mode=False)
+
+        if window is not None:
+            resume_scheduled = False
+
+            def schedule_resume(event):
+                nonlocal resume_scheduled
+                if event.widget is not window or resume_scheduled:
+                    return
+                resume_scheduled = True
+                self._app.after(0, self.resume_hook_after_dialog)
+
+            window.bind("<Destroy>", schedule_resume, "+")
 
     def resume_hook_after_dialog(self):
         """一時停止したフックを元に戻す（ネスト対応。最後のダイアログが閉じた時だけ復帰）"""
@@ -71,7 +84,13 @@ class HookController:
                 pass
 
     # ---------------- Hook logic ----------------
+    def begin_shutdown(self) -> None:
+        """終了確定後は、同期・遅延のどちらの解除経路でもフックを再開しない。"""
+        self._shutting_down = True
+
     def start_hook(self):
+        if self._shutting_down:
+            return
         desired_custom_input_state = bool(self.custom_input_enabled)
         if self.hook_active:
             self.stop_hook(reset_custom_input_mode=False)
