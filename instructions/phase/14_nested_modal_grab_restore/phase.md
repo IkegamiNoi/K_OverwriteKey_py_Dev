@@ -16,7 +16,7 @@
 - 起票元: [idea_10](../../backlog/idea_10_nested_modal_grab_restore.md)
   （phase 09 task_07g の敵対的レビュー High 2 から分離・2026-08-15）。
 - 主入力（暫定仕様）: [12_nested_modal_grab_restore.md](../../history/12_nested_modal_grab_restore.md)
-  （v0.4・ユーザー確定済・実装着手可）。
+  （**v0.5**・ユーザー確定済・実装着手可。v0.5 で §3-6 を構造保証へ改訂）。
 - モード: **暫定仕様先行モード**。番号対応: phase 14 / 暫定 12 / decisions 14。
 
 ## 確定（ユーザー 2026-09-10）
@@ -41,8 +41,8 @@
 - 系統 B の 4 箇所（`controllers/config_io/` の `child_save_dialog.py` ×2 /
   `hotkey_presets_io.py` / `io_dialogs.py`）のヘルパ適用。
 - 系統 A の 9 クラス（`dialogs/` 配下）のヘルパ適用。
-- 復元契約 8 条（暫定仕様 §3）の実装 — 特に **初期化失敗の回収 / 非 LIFO 終了で grab を
-  奪わない / コールバック例外では子を閉じない**の 3 条。
+- 復元契約 8 条（暫定仕様 §3）の実装 — 特に **grab 取得後に初期化を残さない（§3-6・v0.5 で改訂）/
+  非 LIFO 終了で grab を奪わない / コールバック例外では子を閉じない**の 3 条。
 - `tests_ui/` のネスト経路 3 系統 + 契約 3 条のテスト。`_FakeSaveDialog` の拡張要否判断。
 - 正本反映（`features.md` §4.6 / `data_schema/5_10_03_save_contract.md` / `codebase_map.md`）。
 
@@ -59,7 +59,7 @@
 
 ## このフェーズで読むファイル
 
-1. `instructions/history/12_nested_modal_grab_restore.md`（主入力・v0.4）
+1. `instructions/history/12_nested_modal_grab_restore.md`（主入力・**v0.5**）
 2. `keyseq/presentation/dialogs/` の 9 ファイル
    （`action_dialog` / `keymap_edit_dialog` / `layout_delete_dialog` / `orphan_sweep_dialog` /
    `preset_dialog` / `preset_manager` / `quarantine_manage_dialog` / `reference_cleanup_dialog` /
@@ -90,6 +90,9 @@ presentation 限定）。`instructions/history/` の凍結済み暫定仕様。
    （プリセット編集 → 追加・編集 / アクション編集 → プリセット編集 / プリセット編集 → 上書き確認）。
    `_FakeSaveDialog` の拡張要否をここで判断する。
 4. **task_04**: 契約 3 条のテスト（初期化失敗 / 非 LIFO 終了 / コールバック例外）を追加。
+   **§3-6 は暫定仕様 v0.5（2026-09-11 ユーザー確定）で「grab 取得後に初期化を残さない
+   構造 + 静的検査」へ改訂済**（回収機構は実装しない）。あわせて系統 B の 4 箇所で
+   `protocol` / `bind` の登録を `grab_modal` の前へ移す（挙動同値の行移動）。
 5. **task_05**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ **ユーザーによる実機目視**
    （暫定仕様 §7-14 の stdlib ダイアログ 4 経路）。
 6. **task_06（最終・正本反映）**: 正本へ昇格（`features.md` §4.6 に小節新設 /
@@ -111,8 +114,9 @@ presentation 限定）。`instructions/history/` の凍結済み暫定仕様。
 - **復元条件の取り違え** — 暫定仕様 §3-1（**記録した保持者**に「自分自身のとき」条件を付けない）と
   §3-7（**破棄時点の保持者**が自分か誰も居ないときだけ戻す）は別の条件である。
   片方を他方で置き換えていないか。§3-1 を誤って絞るとネスト経路 3 が復元されない。
-- **復元の自動発火を過信していないか** — 破棄フックは `__init__` 途中の例外では発火しない
-  （暫定仕様 §3-6）。初期化失敗の回収が明示的に書かれているか。
+- **復元の自動発火を過信していないか** — 破棄フックは `__init__` 途中の例外では発火しない。
+  **v0.5 の §3-6 では回収を実装せず、`grab_modal` を初期化の最後の文に置く構造で担保する**。
+  grab 取得後に処理が残っていないか（静的検査で固定）。
 - **モーダル性を壊していないか** — コールバック例外で子を閉じてしまっていないか（§3-8）。
 - **適用漏れ** — `grep "grab_set"` でヘルパ以外の直呼びが残っていないか（全 13 箇所）。
 - **スコープ逸脱** — 順序統一目的の並べ替え・スケルトン共通化・親付け替えを取り込んでいないか。

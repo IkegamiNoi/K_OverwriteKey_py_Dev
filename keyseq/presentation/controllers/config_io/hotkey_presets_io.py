@@ -78,7 +78,7 @@ class HotkeyPresetsIo:
             text="上書きする",
             command=lambda: choose("overwrite"),
         ).pack(side="right", padx=(0, 8))
-        grab_modal(dialog, self._app)
         dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
+        grab_modal(dialog, self._app)
         dialog.wait_window()
         return result["choice"]

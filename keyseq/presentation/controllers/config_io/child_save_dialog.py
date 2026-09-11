@@ -22,8 +22,8 @@ class ChildSaveDialog:
         self._app.hook.suspend_hook_for_dialog()
         try:
             dialog, choices = self._create_action_dialog(rows, result)
-            grab_modal(dialog, self._app)
             dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
+            grab_modal(dialog, self._app)
             dialog.wait_window()
         finally:
             self._app.hook.resume_hook_after_dialog()
@@ -238,9 +238,9 @@ class ChildSaveDialog:
                 trigger_set_row,
                 result,
             )
-            grab_modal(dialog, self._app)
             dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
             dialog.bind("<Escape>", lambda _event: dialog.destroy())
+            grab_modal(dialog, self._app)
             dialog.wait_window()
             return result["action"]
         finally:
