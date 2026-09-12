@@ -1201,6 +1201,7 @@ class AppUiFlowsTest(unittest.TestCase):
                 confirm_overwrite.assert_called_once_with(
                     stored_path=stored_path,
                     existing=stored_presets,
+                    transient_parent=dialog,
                 )
                 write_presets.assert_not_called()
                 set_dirty.assert_not_called()
@@ -1261,6 +1262,7 @@ class AppUiFlowsTest(unittest.TestCase):
                 confirm_overwrite.assert_called_once_with(
                     stored_path=stored_path,
                     existing=stored_presets,
+                    transient_parent=dialog,
                 )
                 write_presets.assert_called_once_with(stored_presets, stored_path=stored_path)
                 dialog.destroy.assert_called_once_with()
@@ -1313,6 +1315,7 @@ class AppUiFlowsTest(unittest.TestCase):
                 confirm_overwrite.assert_called_once_with(
                     stored_path=stored_path,
                     existing=None,
+                    transient_parent=dialog,
                 )
                 write_presets.assert_not_called()
                 dialog.destroy.assert_not_called()

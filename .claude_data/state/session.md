@@ -4,73 +4,68 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-13T05:30:00
+last_updated: 2026-09-13T06:15:00
 phase: `instructions/phase/16_dialog_transient_parent`（**進行中**）。
 主入力 = 暫定仕様 14（**v0.4**・ユーザー確定済）。番号対応: phase 16 / 暫定 14 / decisions 16。
-**phase 16: task_01 完了 / task_02〜05 未着手**。**phase 15 は完了**（判断は `decisions_archive/15`）。
+**phase 16: task_01 / task_02 完了 / task_03〜05 未着手**。**phase 15 は完了**（判断は `decisions_archive/15`）。
 last_commit_location: `claude/task-03-progression-1c3627` @ `0beb1b4`（phase 15 task_05）。
-**phase 16 の起票は `c056293`**。**task_01 は未コミット**（`/task_commit` 待ち）。
+**phase 16 の起票は `c056293` / task_01 は `2f09adf`**。**task_02 は未コミット**（`/task_commit` 待ち）。
 **phase 15 までは main へマージ済**（ユーザーが実施・2026-09-13）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 16 task_01（`PresetManagerDialog` へ前面維持の引数を追加）完了・green・`reviewer` 完了可。次は task_02（上書き確認の親 + 既存テスト 4 件の追随）**。
+focus: **phase 16 task_02（上書き確認の前面維持 + 既存テスト 4 件の追随）完了・green・`reviewer` 完了可。次は task_03（受け入れ条件のテスト）**。
 mode: completed
 
 ## last_action
-ts: 2026-09-13T05:30:00
+ts: 2026-09-13T06:15:00
 who: main
 summary: |
-  【**phase 16 を起票し task_01 完了**】idea_17 から起票。**暫定仕様 14 は v0.1 → v0.4**（ユーザー確定）。
-  - **【設計が v0.1 から変わった】** 当初は「親ごと付け替え + App 参照の引数分離」（案 A）だったが、
-    **`master` を変えると破棄が連鎖する**ことが実測で判明（`.venv` で確認）。
-    正本 `features.md:96-98` ③「開いた順と違う順で閉じたら内側を優先する」と衝突し、
-    しかも ③ の例示が**この組（プリセット管理 → 上書き確認）そのもの**だった。
-    → **役割 2（前面維持 = `transient`）だけを直す**方式へ縮小（ユーザー確定）。
-    **役割 1（所有関係 = `master`）と役割 3（App 参照 = `self.parent`）は動かさない**。
-    **引数分離も属性名の改名も不要になった**（差分が 30 箇所前後 → 数箇所へ）。
-  - **【用語】「親」は 3 つの役割を指す**（暫定仕様 14 §1 の表が正）。混同が今回の設計事故の元。
-  - **ユーザーが実機で症状を確認**: アクション編集を掴んで動かすとプリセット編集より前に出る。
-    **プリセット編集 → プリセット追加は既に正しい**（親が編集自身）。**上書き確認は未確認**。
-  - **食い違いは 2 件**（生成 16 件 + config_io のローカル `Toplevel` 5 件を全数調査）。
-  - **敵対的レビューの指摘 2 件を反映（v0.3）**: ①追随が要る既存テストは 3 件でなく **4 件**
-    （`test_nested_modal_grab.py:185` を見落とし）②その結果 v0.2 の受け入れ条件
-    「既存テストの書き換えが発生しないこと」は**達成不能**だったため書き換え
-    ③**前面維持の相手を先に破棄すると指定が消える**（実測）→ **受容**（UI から到達しない）。
-  - **task_01 完了**: `preset_manager.py` へキーワード専用 `transient_parent` を追加し
-    `grab_modal` の第 2 引数のみ差し替え + `action_dialog.py:339` の追随。**実質 3 行**。
-    **`reviewer` = 完了可（指摘なし）**。
-  - **変異検査の記録**: 第 2 引数を `parent` へ戻しても **`test_nested_modal_grab` は pass**。
-    **既存テストはこの変更を検出できない**ことを確認済（検出は task_03 の新規テストの責務）。
+  【**phase 16 task_02 完了**】`confirm_overwrite` へ**キーワード必須**の `transient_parent` を追加し、
+  `grab_modal` の第 2 引数だけを差し替え（`tk.Toplevel(self._app)` は無変更）。
+  `preset_manager.py:364` から `transient_parent=self` を渡す。**production は実質 3 行**。
+  既存テスト **4 件**の引数契約を追随（追加 4 行のみ。**アサーションの削除・緩和なし**）。
+  - **既定の非対称は意図どおり** — task_01（`PresetManagerDialog`）は**既定あり**
+    （`app.py:418` という既定を使う呼び出し元が実在）、本タスクは**既定なし**
+    （呼び出し元が 1 箇所だけなので既定は到達しない分岐になる）。`reviewer` が grep で裏取り済。
+  - **`reviewer` = 完了可（指摘なし）**。
+  - **【重要・task_03 への申し送り】変異検査で既存テストの検出力の穴が判明**。
+    `grab_modal(dialog, transient_parent)` を `grab_modal(dialog, self._app)` へ戻しても
+    **84 テストすべて pass**。追随した 4 件は**「引数が渡されたこと」しか見ておらず、
+    「渡された相手が実際に前面維持へ使われたこと」を見ていない**。
+    **task_03 のテストは呼び出し引数ではなく実際の `wm_transient()` を観測すること**。
+    （task_01 の変異検査でも同様に既存テストは未検出だった）
 result_files:
-  - instructions/history/14_dialog_parent_and_app_separation.md（新規・v0.4）
-  - instructions/phase/16_dialog_transient_parent/phase.md（新規）+ tasks/task_01_*.md（新規）
-  - instructions/phase/current.md（phase 16 を先頭へ・次採番 17 / 暫定 15）
-  - instructions/backlog/INDEX.md（idea_17 を着手へ）
-  - keyseq/presentation/dialogs/preset_manager.py / action_dialog.py（task_01）
+  - keyseq/presentation/controllers/config_io/hotkey_presets_io.py（+5/-2）
+  - keyseq/presentation/dialogs/preset_manager.py（+1）
+  - tests_ui/test_app_ui_flows.py（+3）/ tests_ui/test_nested_modal_grab.py（+2/-1）
+  - instructions/phase/16_dialog_transient_parent/tasks/task_02_*.md（新規）
 verified:
   compile: clean
   tests: pass 417（skip 7）
   tests_ui: pass 321（増減なし）
   smoke: pass
-  mutation: 第 2 引数を `parent` へ戻しても既存テストは pass（**未検出であることの確認**・復元済）
-  review: **`reviewer` → 完了可（指摘なし）** / 起票時 `deep-reviewer` + 確定前 `codex-adversarial-reviewer` 済
+  mutation: 第 2 引数を `self._app` へ戻しても**既存テストは pass**（**検出力の穴**・復元済）
+  review: **`reviewer` → 完了可（指摘なし）**
 
 ## next_action
-- **【最優先】phase 16 task_02 を `/task_new` で起票する**（`tasks/task_02_confirm_overwrite_transient_parent.md`）。
-  内容 = ①`controllers/config_io/hotkey_presets_io.py` の `confirm_overwrite` へ
-  **キーワード必須**の `transient_parent` を追加（**既定値を置かない**。呼び出し元が 1 箇所のため）
-  ②`grab_modal(dialog, ...)`（`:82`）だけをそれにする。**`tk.Toplevel(self._app)`（`:47`）は無変更**
-  ③`preset_manager.py:364` から `transient_parent=self` を渡す
-  ④**既存テスト 4 件の引数契約の追随**（`test_app_ui_flows.py:1201`・`:1261`・`:1313` /
-  `test_nested_modal_grab.py:185`）。**grab・生存・復元先・`master` のアサーションは弱めない**。
-- その後: task_03（受け入れ条件のテスト + 変異検査 2 件）→ task_04（統合確認 + 二次レビュー +
-  **実機目視 2 項目**）→ task_05（正本反映。**`spec_detail/` の改訂は無い見込み**）。
+- **【最優先】phase 16 task_03 を `/task_new` で起票する**（`tasks/task_03_acceptance_tests.md`）。
+  暫定仕様 14 §4・§5 が根拠。**観測点に注意**（task_02 の変異検査で判明）:
+  ①**前面維持の相手** = アクション編集から開いたプリセット編集の **`wm_transient()` が
+  `ActionDialog`** / 上書き確認の **`wm_transient()` がプリセット編集**。
+  **`confirm_overwrite` の呼び出し引数を見るだけでは不十分**（それは task_02 で追随済の別観点）
+  ②**所有関係が App のまま**（`master` を明示的に固定する）
+  ③**既定の非変更**（`PresetManagerDialog(app)` は前面維持も App）
+  ④**phase 14 / 15 の非退行**
+  ⑤**変異検査 2 件**（`transient_parent` を渡さない / `grab_modal` の第 2 引数を戻す）で
+  **必ず fail すること**を確認する。
+- その後: task_04（統合確認 + `deep-reviewer` + `codex-reviewer` + **実機目視 2 項目**）→
+  task_05（正本反映。**`spec_detail/` の改訂は無い見込み**）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（task_01 は全確認 pass・`reviewer` 完了可）。
+- **なし**（task_02 は全確認 pass・`reviewer` 完了可）。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**

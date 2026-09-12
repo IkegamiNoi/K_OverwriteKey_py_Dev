@@ -182,7 +182,7 @@ class NestedModalGrabTest(unittest.TestCase):
         ) as confirm:
             self._close_overwrite(dialog)
 
-        confirm.assert_called_once_with(stored_path=stored_path, existing=existing)
+        confirm.assert_called_once_with(stored_path=stored_path, existing=existing, transient_parent=dialog)
         self.write_presets.assert_not_called()
         self.assertTrue(dialog.winfo_exists())
         self.assertIs(self.app.grab_current(), dialog)

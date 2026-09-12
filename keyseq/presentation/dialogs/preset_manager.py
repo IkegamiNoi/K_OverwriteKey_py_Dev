@@ -365,6 +365,7 @@ class PresetManagerDialog(tk.Toplevel):
             choice = self.parent.hotkey_presets_io.confirm_overwrite(
                 stored_path=stored_path,
                 existing=existing,
+                transient_parent=self,
             )
             if choice == "adopt" and existing is not None:
                 self._temp = safe_deepcopy(existing)

@@ -41,7 +41,8 @@ class HotkeyPresetsIo:
             )
         messagebox.showerror("専用プリセットを保存できません", message)
 
-    def confirm_overwrite(self, *, stored_path: str, existing: list | None) -> str:
+    def confirm_overwrite(self, *, stored_path: str, existing: list | None,
+                          transient_parent: tk.Misc) -> str:
         """個別プリセットの上書き確認を 3 択で表示する。"""
         result = {"choice": "cancel"}
         dialog = tk.Toplevel(self._app)
@@ -79,6 +80,6 @@ class HotkeyPresetsIo:
             command=lambda: choose("overwrite"),
         ).pack(side="right", padx=(0, 8))
         dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
-        grab_modal(dialog, self._app)
+        grab_modal(dialog, transient_parent)
         dialog.wait_window()
         return result["choice"]
