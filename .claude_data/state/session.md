@@ -4,85 +4,77 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-13T00:55:00
+last_updated: 2026-09-13T02:10:00
 phase: `instructions/phase/15_dialog_teardown_on_close`（**進行中**）。
 主入力 = 暫定仕様 13（**v0.4**・ユーザー確定済）。番号対応: phase 15 / 暫定 13 / decisions 15。
+**phase 15: task_01 / task_02 / task_03 完了 / task_04・05 未着手**。
 **phase 14 は完了**（判断は `decisions_archive/14`）。
-主入力 = 暫定仕様 12（v0.4・ユーザー確定済）。番号対応: phase 14 / 暫定 12 / decisions 14。
-**phase 15: task_01 / task_02 完了 / task_03〜05 未着手**。
-**主入力は v0.5**（2026-09-11 に §3-6 を構造保証へ改訂・ユーザー確定）。
-last_commit_location: `claude/task-02-progression-4ea43c` @ `aa5adc8`（phase 15 task_01）。
-**task_02 の差分は未コミット**（`/task_commit` 待ち）。**main へは未マージ**。
+last_commit_location: `claude/task-03-progression-1c3627` @ `7df597a`（phase 15 task_03）。
+**task_01〜03 はコミット済**。**main へは未マージ**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 15 task_02（`dialogs/` 8 クラスへの適用）完了・green・`reviewer` 完了可。次は task_03（受け入れ条件のテスト + 静的検査）**。
+focus: **phase 15 task_03（受け入れ条件のテスト + 静的検査）完了・green・`reviewer` 完了可。次は task_04（統合確認 + 二次レビュー + 実機目視）**。
 mode: completed
 
 ## last_action
-ts: 2026-09-13T00:55:00
+ts: 2026-09-13T02:10:00
 who: main
 summary: |
-  【**phase 15 task_02 完了**】`/task_new` で `tasks/task_02_dialogs_apply.md` を起票し
-  `codex-implementer` へ委任。`dialogs/` の **8 クラス**へ `suspend_hook_for_dialog(self)` を適用し、
-  `destroy()` override から `resume_hook_after_dialog()` を全廃。**空になる 4 クラス
-  （`layout_delete` / `preset_manager` / `quarantine_manage` / `reference_cleanup`）は override ごと削除**。
-  T2 が残る 4 クラス（`action` / `keymap_edit` / `trigger` / `orphan_sweep`）は override を維持。
-  - **タスク境界の調整**: 呼び出し形の変更で**アサーションが直接壊れる既存テストの最小修正**を
-    task_02 に含めた（各タスクを green で完結させるため）。phase.md の task_02 / task_03 に追記済。
-    `test_app_ui_flows.py:1325-1341` の観測点移設は **task_03 のまま**。
-  - **私が差し戻した点 2 回**: ①書き換え後の検査が**空振り**だった（suspend を patch したまま
-    `get_hook_pause_count() == 0` を見ており、カウンタが一度も増えない）→ 実カウンタ観測へ変更。
-    ②その結果 2 件 fail（`6 != 1` / `3 != 1`）。原因は**テストクラス内で `self.app` が共有され、
-    先行テストの `after(0)` 解除予約が未実行のまま溜まる**こと → **生成前に `self.app.update()` で
-    ドレインし 0 を確認**する形へ。
-  - **【運用事故】Codex が 2 回連続でハング**。1 回目はジョブ登録すらされず、2 回目は
-    `Starting Codex task thread.` で停止し **worker PID が消滅**。`codex_operations.md` §4 に従い
-    state を手修復（`status` / `phase` を `cancelled` 化。バックアップは scratchpad）。
-    **ユーザー判断で最後の 6 行挿入はメインセッションが直接実施**。
-  - **`reviewer` 判定 = 完了可**（実装差分に対して実施）。二重実行・`grab_modal` 位置・
-    `controllers/` の無変更・T2 残存・スコープ逸脱なしを確認。
-  - **変異検査済**: `quarantine_manage_dialog.py:17` の `(self)` を外すと当該ファイルの 4 テストが fail。
+  【**phase 15 task_03 完了**】`/task_new` で `tasks/task_03_acceptance_tests.md` を起票し
+  `codex-implementer` へ委任。新規 `tests_ui/test_dialog_teardown_flows.py` に **9 テスト**
+  （T1 × 閉じ / T2 経路別ちょうど 1 回〔通常 4 経路 + Escape の 2 本〕/ T3 子ウィジェット破棄 /
+  T4a・T4b 終了ガード〔ダイアログ経路と `child_save_dialog` の try/finally 経路〕/
+  T5 phase 14 非退行 / 静的検査 2 点）。既存 `test_app_ui_flows.py` の 1 テストの観測点を移設。
+  **production（`keyseq/`）は無変更**。
+  - **【差し戻し 1 回・原因はタスク定義側】** Codex が実装せず停止し「T4 の期待値と実装が矛盾」と報告。
+    **裏取りの結果 Codex が正しかった**: 終了ガードは **`start_hook` の内部**にあり
+    （`hook_controller.py:91-92`）、`resume_hook_after_dialog`（`:54-55`）は終了中でも
+    `start_hook()` を**呼ぶ**（呼ばれた側が即 return）。これは暫定仕様 §4-3 に沿った task_01 の設計で、
+    誤っていたのは**私が書いた観測点**（`start_hook` の呼び出し回数 0）。
+    → **`hook_coordinator.start` 未呼び出し + `hook_active` False** へ修正して再委任。
+    先例は `tests_ui/test_hook_controller_teardown.py:116-135`。
+  - **変異検査 3 件をメインが実施**（すべて期待どおり fail・復元済）:
+    ①`event.widget is not window` を外す → T3 のみ fail
+    ②`start_hook` 冒頭の終了ガードを外す → T4a / T4b が fail
+    ③`trigger_dialog.py` の `(self)` を外す → 静的検査 1 が fail。
+  - **`reviewer` 判定 = 完了可**（空振りなし / T4 観測点 / 静的検査の対象限定 / 既存テスト書き換えの
+    最小性 / production 無変更を確認）。
+  - **残課題（task_04 へ）**: `tests_ui` 全体実行で stderr に
+    `invalid command name "...resume_hook_after_dialog" (while executing "after" script)` が **6 回**。
+    **新規テストを外しても同数**出るため **task_01 / task_02 由来**（App 破棄時に `after(0)` 予約が残る）。
+    reviewer も「`tearDownClass` での after 取消しを task_04 で一度検討する価値あり」と付言。
 result_files:
-  - instructions/phase/15_dialog_teardown_on_close/tasks/task_02_dialogs_apply.md（新規）
-  - instructions/phase/15_dialog_teardown_on_close/phase.md（task_02 / task_03 の境界注記）
-  - keyseq/presentation/dialogs/ の 8 ファイル
-  - tests_ui/test_orphan_sweep_flow.py / test_quarantine_manage_flow.py / test_app_ui_flows.py
-  - instructions/phase/current.md（phase 15 を進行中・task_01/02 完了へ）
+  - instructions/phase/15_dialog_teardown_on_close/tasks/task_03_acceptance_tests.md（新規・T4 観測点を修正済）
+  - tests_ui/test_dialog_teardown_flows.py（新規・9 テスト）
+  - tests_ui/test_app_ui_flows.py（`test_preset_manager_cancel_keeps_runtime_and_dirty_unchanged` の観測点移設）
 verified:
   compile: clean
-  tests: pass 417（skip 7）
-  tests_ui: **pass 311**（fail 0。**単独実行でも 3 ファイルとも pass** = 順序依存なし）
+  tests: pass 417（skip 7・増減なし）
+  tests_ui: **pass 320**（311 + 新規 9）
   smoke: pass
-  mutation: `(self)` を外すと `test_quarantine_manage_flow` の 4 テストが fail（復元済み）
+  mutation: **3 件すべて期待どおり fail**（復元後 `git diff keyseq/` 空を確認）
   review: **`reviewer` → 完了可**
 
 ## next_action
-- **【最優先】phase 15 task_03 を `/task_new` で起票する**
-  （`tasks/task_03_acceptance_tests.md`）。内容 = 受け入れ条件のテスト（暫定仕様 13 §5・§7）:
-  ①**× 閉じ（Tcl レベル破棄 `dialog.tk.call("destroy", str(dialog))`）で解除が走る**
-  （`protocol` 未登録の代表 1〜2 クラス。全 8 クラスは静的検査が守る）
-  ②**OK / キャンセル / × / プログラム破棄で解除がちょうど 1 回**
-  ③**子ウィジェット破棄では走らない**
-  ④**アプリ終了時に `start_hook()` が走らない**（**ダイアログ経路と `child_save_dialog` の
-  try/finally 経路の両方**）
-  ⑤**phase 14 の非退行**（ネストを × で閉じても grab が親へ復元）
-  ⑥**静的検査**（**対象は `dialogs/` の 8 クラスに限定**。`controllers/` の try/finally 形を
-  巻き込むと `test_nested_modal_grab.py:300-303` と正面衝突する）
-  ⑦**既存テストの書き換え** = `test_app_ui_flows.py:1325-1341` の観測点を
-  「**保存が走らないこと**」へ移す（override 削除で検証内容が空になっているため）。
-  起票後 `codex-implementer` へ委任（**テスト実行は依頼しない**）。
-- その後: task_04（統合確認 + `deep-reviewer` + `codex-reviewer` + **実機目視**）→
-  task_05（正本反映・最終）。
-- **【運用】Codex が不調**（2 回連続ハング・2026-09-13）。次に委任するときは
-  **早期にログ停滞を監視**し、詰まったら `codex_operations.md` §3/§4 へ。
-  復旧しない場合はユーザーへ諮って `implementer` かメイン直接へ切り替える。
+- **【最優先】phase 15 task_04 を `/task_new` で起票する**（`tasks/task_04_integration.md`）。
+  内容 = ①**統合確認**（`tests` / `tests_ui` 全体 + `smoke_app` を `verifier` で実測）
+  ②**二次レビュー = `deep-reviewer` + `codex-reviewer`**（phase.md「レビュー方針」の固有観点:
+  二重実行 / `event.widget` 判定 / phase 14 との干渉 / 終了ガードの網羅 / `window` 省略時の非変更 /
+  静的検査の対象限定 / スコープ逸脱）
+  ③**ユーザーによる実機目視**（フック ON で × 閉じ → 次のダイアログでフックが止まるか）
+  ④**上記の stderr 6 件**（`after` 予約が App 破棄時に残る件）の要否判定。
+- その後: task_05（正本反映・最終。`key_input.md` §7.2 / `features.md` §4.6 / `codebase_map.md` +
+  暫定仕様 13 の凍結 + `decisions_archive/15` + `current.md` + `backlog/INDEX_done.md` +
+  `/refactor_check`）。
+- **【運用】Codex は今セッションでは安定**（task_03 は 2 回とも完走。前セッションのハング 2 件は再現せず）。
+  **Codex が「仕様と実装が矛盾する」と報告して止まったら、まず自分で `ファイルパス:行` を実測する**
+  （task_03 では Codex の指摘が正しく、タスク定義側の誤りだった）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（task_02 は全確認 pass・変異検査も期待どおり・`reviewer` 完了可）。
-- **注意（ブロッカーではない）**: Codex CLI が 2 回連続でハングした。task_03 の委任時は監視すること。
+- **なし**（task_03 は全確認 pass・変異検査 3 件も期待どおり・`reviewer` 完了可）。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**

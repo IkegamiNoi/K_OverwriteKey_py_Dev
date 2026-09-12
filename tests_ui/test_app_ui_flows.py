@@ -1323,19 +1323,25 @@ class AppUiFlowsTest(unittest.TestCase):
             self.app.data = before
 
     def test_preset_manager_cancel_keeps_runtime_and_dirty_unchanged(self):
+        self.app.update()
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
         before = copy.deepcopy(self.app.data)
-        dialog = object.__new__(PresetManagerDialog)
-        dialog.parent = self.app
-        dialog.individual_var = SimpleNamespace(get=Mock(return_value=True))
+
+        def cleanup_dialog():
+            if dialog.winfo_exists():
+                dialog.destroy()
+            self.app.update()
 
         with patch.object(self.app, "save_hotkey_presets") as save_hotkey_presets, patch.object(
             self.app.dirty_tracker,
             "set_dirty",
-        ) as set_dirty, patch.object(
-            self.app.hook,
-            "resume_hook_after_dialog",
-        ), patch("keyseq.presentation.dialogs.preset_manager.tk.Toplevel.destroy"):
-            PresetManagerDialog.destroy(dialog)
+        ) as set_dirty:
+            dialog = PresetManagerDialog(self.app)
+            self.addCleanup(cleanup_dialog)
+            dialog.update_idletasks()
+            self.assertTrue(dialog.winfo_viewable())
+            dialog.destroy()
+            self.app.update()
 
         save_hotkey_presets.assert_not_called()
         set_dirty.assert_not_called()
