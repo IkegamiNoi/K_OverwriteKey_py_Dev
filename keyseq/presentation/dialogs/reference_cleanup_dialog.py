@@ -26,7 +26,7 @@ class ReferenceCleanupDialog(tk.Toplevel):
         self.resizable(True, True)
         self.result = False
 
-        self.parent.hook.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog(self)
 
         frame = ttk.Frame(self, padding=12)
         frame.pack(fill="both", expand=True)
@@ -59,7 +59,3 @@ class ReferenceCleanupDialog(tk.Toplevel):
     def _run(self) -> None:
         self.result = True
         self.destroy()
-
-    def destroy(self):
-        self.parent.hook.resume_hook_after_dialog()
-        super().destroy()

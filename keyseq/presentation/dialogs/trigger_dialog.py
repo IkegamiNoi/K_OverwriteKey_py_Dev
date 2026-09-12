@@ -23,7 +23,7 @@ class TriggerDialog(tk.Toplevel):
         self._capturing = False
         
         # 編集中の誤爆防止
-        self.parent.hook.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog(self)
 
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
@@ -63,8 +63,6 @@ class TriggerDialog(tk.Toplevel):
         
     def destroy(self):
         self._stop_capture()
-        # ダイアログ終了でフックを必要なら再開
-        self.parent.hook.resume_hook_after_dialog()
         super().destroy()
 
     def _toggle_capture(self):

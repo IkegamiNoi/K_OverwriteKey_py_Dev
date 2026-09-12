@@ -14,7 +14,7 @@ class OrphanSweepDialog(tk.Toplevel):
     def __init__(self, parent: App, *, scan_dirs: tuple[str, ...], initial_dir: str):
         super().__init__(parent)
         self.parent = parent
-        self.parent.hook.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog(self)
         self.result: bool = False
         self.scan_dirs: tuple[str, ...] = scan_dirs
         self._initial_dir = initial_dir
@@ -65,5 +65,4 @@ class OrphanSweepDialog(tk.Toplevel):
 
     def destroy(self) -> None:
         self.scan_dirs = tuple(self.listbox.get(0, tk.END))
-        self.parent.hook.resume_hook_after_dialog()
         super().destroy()

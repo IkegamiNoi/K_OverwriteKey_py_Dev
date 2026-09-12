@@ -77,7 +77,7 @@ class PresetManagerDialog(tk.Toplevel):
         self.resizable(False, False)
 
         # 編集中の誤爆防止
-        self.parent.hook.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog(self)
 
         self._temp = safe_deepcopy(parent.data.get("hotkey_presets", []))
         if not isinstance(self._temp, list):
@@ -379,8 +379,3 @@ class PresetManagerDialog(tk.Toplevel):
             on_overwrite_conflict=on_overwrite_conflict,
         ):
             self.destroy()
-
-    def destroy(self):
-        # ダイアログ終了でフックを必要なら再開
-        self.parent.hook.resume_hook_after_dialog()
-        super().destroy()

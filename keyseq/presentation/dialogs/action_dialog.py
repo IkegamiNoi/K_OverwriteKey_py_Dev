@@ -22,7 +22,7 @@ class ActionDialog(tk.Toplevel):
         self.resizable(False, False)
 
         # ダイアログ中のキー操作がフックで実行されないように一時停止
-        self.parent.hook.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog(self)
 
         # hotkey 記録用
         self._recording = False
@@ -261,8 +261,6 @@ class ActionDialog(tk.Toplevel):
     def destroy(self):
         # 記録中のバインドを剥がす
         self._stop_recording()
-        # ダイアログ終了でフックを必要なら再開
-        self.parent.hook.resume_hook_after_dialog()
         super().destroy()
 
     def _sync_capture_ui(self):

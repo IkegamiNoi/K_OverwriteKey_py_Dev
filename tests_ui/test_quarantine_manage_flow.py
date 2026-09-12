@@ -293,20 +293,20 @@ class QuarantineManageDialogTest(unittest.TestCase):
         self.assertEqual(dialog.action, "")
 
     def test_selection_returns_matching_id_and_resumes_hook(self):
-        with patch.object(self.app.hook, "suspend_hook_for_dialog") as suspend, patch.object(
-            self.app.hook, "resume_hook_after_dialog",
-        ) as resume:
-            dialog = self._dialog()
-            dialog.listbox.selection_set(1)
-            self._buttons(dialog)[0].invoke()
+        self.app.update()  # 先行テストが残した解除予約を流す
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        dialog = self._dialog()
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+        dialog.listbox.selection_set(1)
+        self._buttons(dialog)[0].invoke()
         self.assertEqual((dialog.action, dialog.selected_unit_id), ("restore", "id2"))
         self.assertFalse(dialog.winfo_exists())
-        suspend.assert_called_once_with()
-        resume.assert_called_once_with()
+        self.app.update()
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_escape_and_window_close_keep_action_empty(self):
         for close in ("escape", "window"):
-            with self.subTest(close=close), patch.object(self.app.hook, "resume_hook_after_dialog") as resume:
+            with self.subTest(close=close):
                 dialog = self._dialog()
                 if close == "escape":
                     self.assertTrue(dialog.bind("<Escape>"))
@@ -318,20 +318,20 @@ class QuarantineManageDialogTest(unittest.TestCase):
                     dialog.tk.call(dialog.protocol("WM_DELETE_WINDOW"))
                 self.assertFalse(dialog.winfo_exists())
                 self.assertEqual((dialog.action, dialog.selected_unit_id), ("", ""))
-                resume.assert_called_once_with()
+                self.app.update()
+                self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_delete_button_returns_selected_id_and_resumes_hook(self):
         # 確認 19・24
-        with patch.object(self.app.config_service, "delete_quarantine_unit") as delete, patch.object(
-            self.app.hook, "resume_hook_after_dialog",
-        ) as resume:
+        with patch.object(self.app.config_service, "delete_quarantine_unit") as delete:
             dialog = self._dialog()
             dialog.listbox.selection_set(1)
             button = next(button for button in self._buttons(dialog) if button.cget("text") == "削除する…")
             button.invoke()
         self.assertEqual((dialog.action, dialog.selected_unit_id), ("delete", "id2"))
         self.assertFalse(dialog.winfo_exists())
-        resume.assert_called_once_with()
+        self.app.update()
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
         delete.assert_not_called()
 
     def test_delete_button_without_selection_leaves_dialog_open(self):

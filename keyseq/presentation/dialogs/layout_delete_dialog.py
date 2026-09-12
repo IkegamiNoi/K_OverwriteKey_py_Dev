@@ -19,7 +19,7 @@ class LayoutDeleteDialog(tk.Toplevel):
         self.result = None
         self._items = list(items)
 
-        self.parent.hook.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog(self)
 
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
@@ -59,7 +59,3 @@ class LayoutDeleteDialog(tk.Toplevel):
         index = int(selection[0])
         self.result = self._items[index][0]
         self.destroy()
-
-    def destroy(self):
-        self.parent.hook.resume_hook_after_dialog()
-        super().destroy()

@@ -512,15 +512,16 @@ class OrphanSweepDialogTest(unittest.TestCase):
         self.assertEqual(dialog.scan_dirs, ("two",))
 
     def test_run_empty_list_sets_result_and_resumes_hook(self):
-        with patch.object(self.app.hook, "suspend_hook_for_dialog") as suspend:
-            with patch.object(self.app.hook, "resume_hook_after_dialog") as resume:
-                dialog = self._dialog(())
-                self.assertFalse(dialog.result)
-                dialog._run()
+        self.app.update()  # 先行テストが残した解除予約を流す
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        dialog = self._dialog(())
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+        self.assertFalse(dialog.result)
+        dialog._run()
         self.assertTrue(dialog.result)
         self.assertEqual(dialog.scan_dirs, ())
-        suspend.assert_called_once_with()
-        resume.assert_called_once_with()
+        self.app.update()
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_escape_and_window_close_keep_result_false(self):
         for close in ("escape", "window"):

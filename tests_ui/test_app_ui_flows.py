@@ -1938,18 +1938,17 @@ class AppUiFlowsTest(unittest.TestCase):
             keymap_set_path = os.path.join(config_root, "user", "keymap_sets", "main.json")
             with patch.object(self.app, "config_root", config_root), patch.object(
                 self.app, "keymap_set_path", keymap_set_path
-            ), patch.object(self.app.hook, "suspend_hook_for_dialog") as suspend_hook, patch.object(
-                self.app.hook, "resume_hook_after_dialog"
-            ) as resume_hook:
+            ):
+                self.app.update()  # 先行テストが残した解除予約を流す
+                self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
                 dialog = PresetManagerDialog(self.app)
                 try:
-                    suspend_calls_while_open = suspend_hook.call_count
+                    self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
                 finally:
                     dialog.destroy()
-                resume_calls_after_destroy = resume_hook.call_count
+                self.app.update()
 
-        self.assertEqual(suspend_calls_while_open, 1)
-        self.assertEqual(resume_calls_after_destroy, 1)
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_preset_manager_listbox_matches_temporary_presets(self):
         before = copy.deepcopy(self.app.data)

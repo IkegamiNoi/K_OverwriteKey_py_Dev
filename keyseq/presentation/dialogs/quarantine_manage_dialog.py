@@ -14,7 +14,7 @@ class QuarantineManageDialog(tk.Toplevel):
     def __init__(self, parent: App, *, lines: tuple[str, ...], unit_ids: tuple[str, ...]):
         super().__init__(parent)
         self.parent = parent
-        self.parent.hook.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog(self)
         self.selected_unit_id: str = ""
         self.action: str = ""
         self._unit_ids = unit_ids
@@ -59,7 +59,3 @@ class QuarantineManageDialog(tk.Toplevel):
         self.selected_unit_id = self._unit_ids[int(selection[0])]
         self.action = "delete"
         self.destroy()
-
-    def destroy(self) -> None:
-        self.parent.hook.resume_hook_after_dialog()
-        super().destroy()

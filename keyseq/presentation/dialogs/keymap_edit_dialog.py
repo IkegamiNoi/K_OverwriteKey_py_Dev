@@ -22,7 +22,7 @@ class KeymapEditDialog(tk.Toplevel):
         self.result = None
         self._capturing = False
 
-        self.parent.hook.suspend_hook_for_dialog()
+        self.parent.hook.suspend_hook_for_dialog(self)
 
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
@@ -62,7 +62,6 @@ class KeymapEditDialog(tk.Toplevel):
 
     def destroy(self):
         self._stop_capture()
-        self.parent.hook.resume_hook_after_dialog()
         super().destroy()
 
     def _clear_key(self):
