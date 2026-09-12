@@ -23,10 +23,10 @@
 5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
 
 ## 現在の作業の 1 行サマリ
-**phase 15（ダイアログ後始末の確実な実行）進行中。task_01（`HookController` の自動解除 + 終了ガード）
-完了・green・reviewer 完了可。task_02〜05 は未着手**（2026-09-12）。
-**次にやること = `/task_new` で task_02（`dialogs/` 8 クラスへの適用）を起票し委任する**。
-直近コミット: `ecdb3eb`（phase 14 完了）/ `aa5adc8`（phase 15 task_01）。**main へは未マージ**。
+**phase 15（ダイアログ後始末の確実な実行）進行中。task_02（`dialogs/` 8 クラスへの適用）
+完了・green・reviewer 完了可。task_03〜05 は未着手**（2026-09-13）。
+**次にやること = `/task_new` で task_03（受け入れ条件のテスト + 静的検査）を起票し委任する**。
+直近コミット: `aa5adc8`（task_01）/ `3386c33`（task_02）。**main へは未マージ**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -36,9 +36,10 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 15 task_01 完了時点 = 2026-09-12・コミット `aa5adc8`**）:
+直近の実測（**phase 15 task_02 完了時点 = 2026-09-13・コミット `3386c33`**）:
 compile **clean** / tests **417**（skip 7）/ tests_ui **311**（skip 0）/ smoke **pass**。
-**tests_ui は 288 →（phase 14 で +18）306 →（phase 15 task_01 で +5）311**。
+**tests_ui は 288 →（phase 14 で +18）306 →（phase 15 task_01 で +5）311**
+（**task_02 は件数を増やさない**。既存 5 箇所の観測点を移しただけ）。
 **件数が減ったら退行を疑う**。skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 **同じ観点はジャンクション版のテストが実行されている**ので観点の抜けにはならない。
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
@@ -47,22 +48,29 @@ compile **clean** / tests **417**（skip 7）/ tests_ui **311**（skip 0）/ smo
 ```bash
 grep -rn "grab_set" keyseq/presentation/ --include=*.py     # modal.py の 2 行のみ（phase 14 の成果）
 grep -rn "transient" keyseq/presentation/ --include=*.py    # modal.py の 1 行のみ
-grep -rn "suspend_hook_for_dialog" keyseq/ --include=*.py   # task_01 時点は全て引数なし（計 15 箇所）
+grep -rn "suspend_hook_for_dialog" keyseq/presentation/dialogs/ --include=*.py  # 8 件すべて (self) 付き
+grep -rn "resume_hook_after_dialog" keyseq/presentation/dialogs/ --include=*.py # 0 件
+grep -rn "def destroy" keyseq/presentation/dialogs/ --include=*.py              # 4 件のみ（T2 が残るクラス）
 ```
 
 ## 次アクション（session.md.next_action より）
-- **【最優先】phase 15 task_02 を `/task_new` で起票する**（`tasks/task_02_dialogs_apply.md`）。
-  内容 = `dialogs/` の **8 クラス**へ適用（**`preset_dialog.py` は suspend を呼ばないので対象外**）:
-  ①`suspend_hook_for_dialog()` → **`suspend_hook_for_dialog(self)`** へ置換
-  ②`destroy()` override から **`resume_hook_after_dialog()` の行を削除**（**二重実行を防ぐため必須**）
-  ③**空になる 4 クラスの override を削除**（`layout_delete` / `preset_manager` /
-  `quarantine_manage` / `reference_cleanup`）
-  ④**T2（ウィジェットに触る後始末）は残す**（`orphan_sweep` の `scan_dirs` 収集 /
-  `keymap_edit`・`trigger` の `_stop_capture` / `action` の `_stop_recording`）。
-  **`grab_modal` は `__init__` の最後の文のまま**。起票後 `codex-implementer` へ委任
-  （**テスト実行は依頼しない**。実測は `verifier`）。
-- その後: task_03（受け入れ条件のテスト + 既存テストの書き換え）→ task_04（統合確認 +
-  `deep-reviewer` + `codex-reviewer` + **実機目視**）→ task_05（正本反映・最終）。
+- **【最優先】phase 15 task_03 を `/task_new` で起票する**（`tasks/task_03_acceptance_tests.md`）。
+  内容 = 受け入れ条件のテスト（暫定仕様 13 §5・§7）:
+  ①**× 閉じ（Tcl レベル破棄 `dialog.tk.call("destroy", str(dialog))`）で解除が走る**
+  （`protocol` 未登録の代表 1〜2 クラス。全 8 クラスは静的検査が守る）
+  ②**OK / キャンセル / × / プログラム破棄で解除がちょうど 1 回**
+  ③**子ウィジェット破棄では走らない**
+  ④**アプリ終了時に `start_hook()` が走らない**（**ダイアログ経路と `child_save_dialog` の
+  try/finally 経路の両方**）
+  ⑤**phase 14 の非退行**（ネストを × で閉じても grab が親へ復元）
+  ⑥**静的検査**（**対象は `dialogs/` の 8 クラスに限定**）
+  ⑦**既存テストの書き換え** = `test_app_ui_flows.py:1325-1341` の観測点を
+  「**保存が走らないこと**」へ移す（override 削除で検証内容が空になっているため）。
+  起票後 `codex-implementer` へ委任（**テスト実行は依頼しない**。実測は `verifier`）。
+- その後: task_04（統合確認 + `deep-reviewer` + `codex-reviewer` + **実機目視**）→
+  task_05（正本反映・最終）。
+- **【運用】Codex が不調**（2026-09-13 に 2 回連続ハング）。委任したら**早期にログ停滞を監視**し、
+  詰まったら `codex_operations.md` §3/§4 へ。復旧しなければユーザーへ諮って切り替える。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
@@ -95,8 +103,9 @@ grep -rn "suspend_hook_for_dialog" keyseq/ --include=*.py   # task_01 時点は�
 - **静的検査の対象は `dialogs/` の 8 クラスのみ**（task_03 で追加予定）。
   **`controllers/` の try/finally 形を巻き込むと phase 14 の既存静的検査と衝突する**
   （`tests_ui/test_nested_modal_grab.py:300-303` が `finally: resume_hook_after_dialog` を要求）。
-  **引数なし呼び出しは計 15 箇所**（try/finally 形 5 + dialogs 8 + `key_capture.py:57` +
-  `keyboard_window.py:270`）。**数え違えない**。
+  **task_02 完了後の引数なし呼び出しは 7 箇所**（`config_io/child_save_dialog.py` 3 +
+  `config_io/io_dialogs.py` 1 + `keymap_panel_controller.py` 1 + `key_capture.py:57` +
+  `keyboard_window.py:270`）。**`dialogs/` の 8 箇所は全て `(self)` 付き**。**数え違えない**。
 - **スコープ外**: 非ダイアログ経路の結線方式（**終了ガードは効く**）/ `key_capture` /
   `keyboard_window` の編集モード / スケルトン共通化 / M-6（静的検査の発見ベース化）/ idea_17。
 
@@ -122,7 +131,11 @@ grep -rn "suspend_hook_for_dialog" keyseq/ --include=*.py   # task_01 時点は�
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **blockers: なし**（phase 15 task_01 は全確認 pass・変異検査も期待どおり・`reviewer` 完了可）。
+- **blockers: なし**（phase 15 task_02 は全確認 pass・変異検査も期待どおり・`reviewer` 完了可）。
+- **【Codex 運用・2026-09-13 の実績】同一 worktree で 2 回連続ハングした**。1 回目は**ジョブ登録すら
+  されず**、2 回目は `Starting Codex task thread.` の直後に**worker PID が消滅**。
+  `codex_operations.md` §4 で state を手修復済（バックアップは scratchpad の `codex_state_backup`）。
+  **委任後は作業ツリーの更新時刻とジョブログの伸びを早期に見る**。
 - **【裏取り】レビュー・調査の「コードがこうなっている」という主張は、採用前に `ファイルパス:行` を実測確認する**
   （行番号のずれ・件数の誤りが何度も出ている。**phase 14 の起票でも 2 件の事実誤りを実測で訂正した**）。
 - **【傾向・実証済み】reviewer が「完了可・指摘なし」でも敵対的レビューで High が出る**。
@@ -174,6 +187,12 @@ grep -rn "suspend_hook_for_dialog" keyseq/ --include=*.py   # task_01 時点は�
   テスト内の `AssertionError` も広い `except Exception` に捕まり、**失敗が「ハング」に化ける**。
   tests_ui の各ファイルの `setUp` に **fail-fast ガード**がある。新しいモーダルを増やすときは同じガードを足す。
   **ハングしたら `messagebox` / `filedialog` を全遮断して単独実行**する。
+- **【tests_ui の罠・task_02 で踏んだ】解除は `after(0)` 予約なので、`update()` を回すまで
+  カウンタが減らない。App を共有するクラスでは**先行テストの未実行予約が溜まり**、
+  ダイアログ生成直後のカウンタが 1 ではなく累積値になる。
+  **生成前に `self.app.update()` でドレインして 0 を確認してから** 1 → 0 を見る。
+  また **`suspend_hook_for_dialog` を patch すると `<Destroy>` の結線ごと消える**ため、
+  patch したままカウンタを見る検査は**常に真の空振り**になる。
 - **【tests_ui の罠】`setUpClass` で App を共有する**テストクラスでは
   `has_unsaved_changes()` が他テストの dirty も拾う。**絶対値で assert せず前後の変化で見る**。
   テスト後は runtime・ファイル・menubar を**元へ戻す**（`addCleanup`）。
