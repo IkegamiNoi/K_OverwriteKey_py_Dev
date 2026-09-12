@@ -62,14 +62,15 @@ def format_preset_manager_source_labels(
 
 class PresetManagerDialog(tk.Toplevel):
     """App.data['hotkey_presets'] を編集する"""
-    def __init__(self, parent: App, title: str = "プリセット編集"):
+    def __init__(self, parent: App, title: str = "プリセット編集", *,
+                 transient_parent: tk.Misc | None = None):
         super().__init__(parent)
         self._init_preset_manager_state(parent, title)
         self._build_preset_manager_widgets()
         self._bind_preset_manager_events()
         self._sync_initial_presets()
         self._update_source_labels()
-        grab_modal(self, parent)
+        grab_modal(self, transient_parent if transient_parent is not None else parent)
 
     def _init_preset_manager_state(self, parent: App, title: str) -> None:
         self.parent = parent

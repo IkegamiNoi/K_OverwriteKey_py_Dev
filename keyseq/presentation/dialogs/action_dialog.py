@@ -336,5 +336,5 @@ class ActionDialog(tk.Toplevel):
 
     def _open_preset_manager(self):
         """プリセット編集ダイアログを開き、戻ったらボタンを再生成"""
-        PresetManagerDialog(self.parent, title="ホットキープリセット編集").wait_window()
+        PresetManagerDialog(self.parent, title="ホットキープリセット編集", transient_parent=self).wait_window()
         self._rebuild_preset_buttons()

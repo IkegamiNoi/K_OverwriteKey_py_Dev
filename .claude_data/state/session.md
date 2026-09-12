@@ -4,76 +4,73 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-13T04:20:00
-phase: **アクティブなフェーズなし**（**phase 15 は完了**・2026-09-13。判断は `decisions_archive/15`）。
-**次フェーズは `16_<topic>`・未確定**（着手前にユーザーへ方針確認する）。
-暫定仕様 13 は**凍結済**（次採番は `14_<topic>`）。
-last_commit_location: `claude/task-03-progression-1c3627` @ `dad3334`（phase 15 task_05・**フェーズ完了**）。
-**phase 15 は全タスクをコミット済**。**main へは未マージ**。
+last_updated: 2026-09-13T05:30:00
+phase: `instructions/phase/16_dialog_transient_parent`（**進行中**）。
+主入力 = 暫定仕様 14（**v0.4**・ユーザー確定済）。番号対応: phase 16 / 暫定 14 / decisions 16。
+**phase 16: task_01 完了 / task_02〜05 未着手**。**phase 15 は完了**（判断は `decisions_archive/15`）。
+last_commit_location: `claude/task-03-progression-1c3627` @ `0beb1b4`（phase 15 task_05）。
+**phase 16 の起票は `c056293`**。**task_01 は未コミット**（`/task_commit` 待ち）。
+**phase 15 までは main へマージ済**（ユーザーが実施・2026-09-13）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 15（ダイアログ後始末の確実な実行）完了。次フェーズ未確定でユーザーの方針確認待ち**。
+focus: **phase 16 task_01（`PresetManagerDialog` へ前面維持の引数を追加）完了・green・`reviewer` 完了可。次は task_02（上書き確認の親 + 既存テスト 4 件の追随）**。
 mode: completed
 
 ## last_action
-ts: 2026-09-13T04:20:00
+ts: 2026-09-13T05:30:00
 who: main
 summary: |
-  【**phase 15 完了**（task_05 = 正本反映）】正本 3 ファイルへ昇格 + 暫定仕様 13 の凍結 +
-  `decisions_archive/15` の作成 + `decisions.md` 索引 + `current.md` の完了記載 +
-  idea_16 を `INDEX_done.md` へ移動 + `/refactor_check`。**コードは無変更**（文書のみ）。
-  - **昇格内容**: `key_input.md` §7.2 へ 3 条項（閉じ方によらず解除 /
-    **停止要求が残る間は置換もアクション実行も行わない〔元入力は素通し〕** / 終了確定後は再開しない）/
-    `features.md` §4.6 へ**後始末の 2 分類** / `codebase_map.md` の `HookController`。
-  - **【重要・自分の誤りを 2 レビューが独立に検出】** 最初に書いた条項
-    「**停止要求が残っている間は入力を通さない**」は**実装と逆**だった。
-    `InputRoute` の既定は **`accept=True`**（`input_router.py:38`）で `on_input_event` がこれを返し、
-    `keyboard` の suppress 付きフックでは **True = 元入力を通す**。停止中に行われないのは
-    **置換とアクション実行**だけで、`tests/test_input_router.py:49-52` が素通しを固定している。
-    **実測で裏取りして訂正済**（正本・archive・索引・integration_result の 4 箇所）。
-  - **`deep-reviewer` の指摘 10 件を処理**（総合 = 修正要 → 全対応済）。必須 2 =
-    ①上記の条項 ②`codebase_map.md:238` に**削除済みの `destroy()` override 機構**が残っていた。
-    追加 4 = ③「閉じるボタンでも走らせる必要がある後始末は閉じるボタンも閉じる操作として扱う」を追記
-    ④「必ず走る」を「アプリが動作している間」へ緩和 ⑤`current.md` の領域節を **22 → 13 行**へ圧縮
-    ⑥同型スケルトンの残件「4 クラス」は実測 **3 クラス**（phase 14 由来の誤記。**出所も修正**）。
-    任意 3 = 行番号引用 / `_stop_capture` が T1 でない理由 / 参照見出しの表記。
-  - **`codex-adversarial-reviewer`**: focus text を渡して実行（**task_04 の標準レビューでは
-    渡せなかった分を回収**）。指摘 1 件 = 上記の条項（`deep-reviewer` と一致）。
-  - **`/refactor_check` = 不要**（M1〜M6 すべて非該当。`keyseq/` は 10 ファイル・+31/-33。
-    最大は `hook_controller.py` 238 行。**同型スケルトンは既知として抑止**）。
+  【**phase 16 を起票し task_01 完了**】idea_17 から起票。**暫定仕様 14 は v0.1 → v0.4**（ユーザー確定）。
+  - **【設計が v0.1 から変わった】** 当初は「親ごと付け替え + App 参照の引数分離」（案 A）だったが、
+    **`master` を変えると破棄が連鎖する**ことが実測で判明（`.venv` で確認）。
+    正本 `features.md:96-98` ③「開いた順と違う順で閉じたら内側を優先する」と衝突し、
+    しかも ③ の例示が**この組（プリセット管理 → 上書き確認）そのもの**だった。
+    → **役割 2（前面維持 = `transient`）だけを直す**方式へ縮小（ユーザー確定）。
+    **役割 1（所有関係 = `master`）と役割 3（App 参照 = `self.parent`）は動かさない**。
+    **引数分離も属性名の改名も不要になった**（差分が 30 箇所前後 → 数箇所へ）。
+  - **【用語】「親」は 3 つの役割を指す**（暫定仕様 14 §1 の表が正）。混同が今回の設計事故の元。
+  - **ユーザーが実機で症状を確認**: アクション編集を掴んで動かすとプリセット編集より前に出る。
+    **プリセット編集 → プリセット追加は既に正しい**（親が編集自身）。**上書き確認は未確認**。
+  - **食い違いは 2 件**（生成 16 件 + config_io のローカル `Toplevel` 5 件を全数調査）。
+  - **敵対的レビューの指摘 2 件を反映（v0.3）**: ①追随が要る既存テストは 3 件でなく **4 件**
+    （`test_nested_modal_grab.py:185` を見落とし）②その結果 v0.2 の受け入れ条件
+    「既存テストの書き換えが発生しないこと」は**達成不能**だったため書き換え
+    ③**前面維持の相手を先に破棄すると指定が消える**（実測）→ **受容**（UI から到達しない）。
+  - **task_01 完了**: `preset_manager.py` へキーワード専用 `transient_parent` を追加し
+    `grab_modal` の第 2 引数のみ差し替え + `action_dialog.py:339` の追随。**実質 3 行**。
+    **`reviewer` = 完了可（指摘なし）**。
+  - **変異検査の記録**: 第 2 引数を `parent` へ戻しても **`test_nested_modal_grab` は pass**。
+    **既存テストはこの変更を検出できない**ことを確認済（検出は task_03 の新規テストの責務）。
 result_files:
-  - instructions/common/spec_detail/key_input.md（+4/-0）/ features.md（+9/-0）/ codebase_map.md（+6/-1）
-  - instructions/history/13_dialog_teardown_on_close.md（凍結表記）
-  - .claude_data/state/decisions_archive/15_dialog_teardown_on_close.md（新規）/ decisions.md（索引 1 行）
-  - instructions/phase/current.md（完了記載・領域節の圧縮・誤記修正）
-  - instructions/backlog/INDEX.md → INDEX_done.md（idea_16 の移動）
-  - instructions/phase/15_dialog_teardown_on_close/tasks/task_05_spec_promotion.md（新規）/ integration_result.md
+  - instructions/history/14_dialog_parent_and_app_separation.md（新規・v0.4）
+  - instructions/phase/16_dialog_transient_parent/phase.md（新規）+ tasks/task_01_*.md（新規）
+  - instructions/phase/current.md（phase 16 を先頭へ・次採番 17 / 暫定 15）
+  - instructions/backlog/INDEX.md（idea_17 を着手へ）
+  - keyseq/presentation/dialogs/preset_manager.py / action_dialog.py（task_01）
 verified:
   compile: clean
   tests: pass 417（skip 7）
-  tests_ui: pass 321
+  tests_ui: pass 321（増減なし）
   smoke: pass
-  diff: `keyseq/` と `tests_ui/` に差分なし（文書のみ）。正本 3 ファイルは実質追加のみ
-  review: **`deep-reviewer` → 修正要（全 10 件対応済）/ `codex-adversarial-reviewer` → 指摘 1 件（対応済）**
-  refactor_check: **不要**
+  mutation: 第 2 引数を `parent` へ戻しても既存テストは pass（**未検出であることの確認**・復元済）
+  review: **`reviewer` → 完了可（指摘なし）** / 起票時 `deep-reviewer` + 確定前 `codex-adversarial-reviewer` 済
 
 ## next_action
-- **【最優先】次フェーズの方針をユーザーへ確認する**（`current.md`「次フェーズ候補」/
-  `instructions/backlog/INDEX.md` から選ぶ）。次採番は **phase 16**・暫定仕様は **14**。
-- **この領域（モーダルダイアログの作法）の残件**は `current.md`「現在の参照先」に 4 件。
-  着手候補になり得るのは ①**ダイアログ同型スケルトンの共通化**（phase 11 からの候補送り。
-  **phase 14・15 で前提は揃った**＝`grab_modal` と `suspend_hook_for_dialog(window)` の 2 窓口に集約済）
-  ②**静的検査の発見ベース化**（保留。**phase 15 で検査が 3 本に増え、いずれもファイル名の
-  ハードコード列挙**なので、着手するなら併用形の設計から）。
-- **【運用の学び・重要】** 今フェーズで**自分が書いた文書の事実誤り 2 件をレビューが検出**した
-  （①タスク定義の T4 観測点 ②正本の入力遮断の条項）。**いずれも実装を読まずに書いた**のが原因。
-  **仕様・タスク定義に「実装はこうなっている」と書くときは、先に `ファイルパス:行` を実測する**。
+- **【最優先】phase 16 task_02 を `/task_new` で起票する**（`tasks/task_02_confirm_overwrite_transient_parent.md`）。
+  内容 = ①`controllers/config_io/hotkey_presets_io.py` の `confirm_overwrite` へ
+  **キーワード必須**の `transient_parent` を追加（**既定値を置かない**。呼び出し元が 1 箇所のため）
+  ②`grab_modal(dialog, ...)`（`:82`）だけをそれにする。**`tk.Toplevel(self._app)`（`:47`）は無変更**
+  ③`preset_manager.py:364` から `transient_parent=self` を渡す
+  ④**既存テスト 4 件の引数契約の追随**（`test_app_ui_flows.py:1201`・`:1261`・`:1313` /
+  `test_nested_modal_grab.py:185`）。**grab・生存・復元先・`master` のアサーションは弱めない**。
+- その後: task_03（受け入れ条件のテスト + 変異検査 2 件）→ task_04（統合確認 + 二次レビュー +
+  **実機目視 2 項目**）→ task_05（正本反映。**`spec_detail/` の改訂は無い見込み**）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（phase 15 は完了処理まで終了。次フェーズ未確定のみ）。
+- **なし**（task_01 は全確認 pass・`reviewer` 完了可）。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**
