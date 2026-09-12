@@ -29,6 +29,8 @@ class StartupFontCharacterizationTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        # 破棄前に保留中の after(0) を流し、後続モジュールへ持ち越さない。
+        cls.app.update()
         cls.app.destroy()
 
     def test_coerce_font_delta_value_table(self):

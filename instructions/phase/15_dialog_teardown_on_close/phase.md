@@ -97,7 +97,9 @@
    観測点移設が主）。
 4. **task_04**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ **二次レビュー**
    （`deep-reviewer` + `codex-reviewer`）+ **ユーザーによる実機目視**
-   （フック ON の状態で × 閉じ → 次のダイアログでフックが止まるか）。
+   （フック ON の状態で × 閉じ → 次のダイアログでフックが止まるか）+
+   **`after` 予約の後片付けの要否判定**（`tests_ui` 全体実行で stderr に 6 件出る件。
+   task_01 / task_02 由来・テストは pass）。
 5. **task_05（最終・正本反映）**: 正本へ昇格（`key_input.md` §7.2 に 1 句 /
    `features.md` §4.6 へ後始末の作法 / `codebase_map.md` 更新）+ **暫定仕様 13 の凍結** +
    `.claude_data/state/decisions_archive/15_dialog_teardown_on_close.md` 作成 +

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import tkinter as tk
 from tkinter import messagebox
 
 from keyseq.domain.config import normalize_key_name
@@ -22,7 +23,7 @@ class HookController:
         self._hook_button_pairs.append((hook_btn, trigger_btn))
 
     # ---------------- Hook suspend/resume for modal dialogs ----------------
-    def suspend_hook_for_dialog(self, window=None) -> None:
+    def suspend_hook_for_dialog(self, window: tk.Misc | None = None) -> None:
         """フックを一時停止し、window 指定時は破棄後に自動解除する（ネスト対応）。"""
         self.hook_suspend_count += 1
         if self.hook_suspend_count == 1:

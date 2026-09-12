@@ -4,77 +4,78 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-13T02:10:00
+last_updated: 2026-09-13T03:05:00
 phase: `instructions/phase/15_dialog_teardown_on_close`（**進行中**）。
 主入力 = 暫定仕様 13（**v0.4**・ユーザー確定済）。番号対応: phase 15 / 暫定 13 / decisions 15。
-**phase 15: task_01 / task_02 / task_03 完了 / task_04・05 未着手**。
+**phase 15: task_01〜04 完了 / task_05（最終・正本反映）のみ未着手**。
 **phase 14 は完了**（判断は `decisions_archive/14`）。
-last_commit_location: `claude/task-03-progression-1c3627` @ `7df597a`（phase 15 task_03）。
-**task_01〜03 はコミット済**。**main へは未マージ**。
+last_commit_location: `claude/task-03-progression-1c3627` @ `58416a6`（phase 15 task_04）。
+**task_01〜04 はコミット済**。**main へは未マージ**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 15 task_03（受け入れ条件のテスト + 静的検査）完了・green・`reviewer` 完了可。次は task_04（統合確認 + 二次レビュー + 実機目視）**。
+focus: **phase 15 task_04（統合確認 + 二次レビュー + 実機目視）完了。残るは task_05（正本反映・最終）のみ**。
 mode: completed
 
 ## last_action
-ts: 2026-09-13T02:10:00
+ts: 2026-09-13T03:05:00
 who: main
 summary: |
-  【**phase 15 task_03 完了**】`/task_new` で `tasks/task_03_acceptance_tests.md` を起票し
-  `codex-implementer` へ委任。新規 `tests_ui/test_dialog_teardown_flows.py` に **9 テスト**
-  （T1 × 閉じ / T2 経路別ちょうど 1 回〔通常 4 経路 + Escape の 2 本〕/ T3 子ウィジェット破棄 /
-  T4a・T4b 終了ガード〔ダイアログ経路と `child_save_dialog` の try/finally 経路〕/
-  T5 phase 14 非退行 / 静的検査 2 点）。既存 `test_app_ui_flows.py` の 1 テストの観測点を移設。
-  **production（`keyseq/`）は無変更**。
-  - **【差し戻し 1 回・原因はタスク定義側】** Codex が実装せず停止し「T4 の期待値と実装が矛盾」と報告。
-    **裏取りの結果 Codex が正しかった**: 終了ガードは **`start_hook` の内部**にあり
-    （`hook_controller.py:91-92`）、`resume_hook_after_dialog`（`:54-55`）は終了中でも
-    `start_hook()` を**呼ぶ**（呼ばれた側が即 return）。これは暫定仕様 §4-3 に沿った task_01 の設計で、
-    誤っていたのは**私が書いた観測点**（`start_hook` の呼び出し回数 0）。
-    → **`hook_coordinator.start` 未呼び出し + `hook_active` False** へ修正して再委任。
-    先例は `tests_ui/test_hook_controller_teardown.py:116-135`。
-  - **変異検査 3 件をメインが実施**（すべて期待どおり fail・復元済）:
-    ①`event.widget is not window` を外す → T3 のみ fail
-    ②`start_hook` 冒頭の終了ガードを外す → T4a / T4b が fail
-    ③`trigger_dialog.py` の `(self)` を外す → 静的検査 1 が fail。
-  - **`reviewer` 判定 = 完了可**（空振りなし / T4 観測点 / 静的検査の対象限定 / 既存テスト書き換えの
-    最小性 / production 無変更を確認）。
-  - **残課題（task_04 へ）**: `tests_ui` 全体実行で stderr に
-    `invalid command name "...resume_hook_after_dialog" (while executing "after" script)` が **6 回**。
-    **新規テストを外しても同数**出るため **task_01 / task_02 由来**（App 破棄時に `after(0)` 予約が残る）。
-    reviewer も「`tearDownClass` での after 取消しを task_04 で一度検討する価値あり」と付言。
+  【**phase 15 task_04 完了**】統合確認 + 二次レビュー + 実機目視 + 指摘の処理まで完了。
+  記録は `instructions/phase/15_dialog_teardown_on_close/integration_result.md`（**判定と根拠の正**）。
+  - **統合確認（`verifier`）**: compile clean / `tests` 417 pass・skip 7 / **`tests_ui` 321 pass** /
+    smoke pass / 3 モジュールは単独実行でも pass（**順序依存なし**）。
+  - **二次レビュー**: `deep-reviewer` = **完了可**（修正必須の欠陥なし）/ `codex-reviewer` = **指摘なし**。
+    **【制約】Codex の `review` は focus text を受け付けない**（渡ったのは `--base` のみ）。
+    **観点指定のレビューはフェーズ完了判定前の `codex-adversarial-reviewer` で行う**。
+  - **ユーザー判定で是正 3 件を実施**: ①stderr の後片付け = **テスト側のみ**
+    （App 破棄前に `update()` を入れる規約を 13 箇所へ。**フック解除由来 2 件は 0 に**。
+    残る 4 件は**ステータスバーの 4 秒タイマー**〔既存事象・ドレイン不可〕で記録のみ）
+    ②`window` の型注釈 ③**静的検査 3 を追加**（T2 が残る 4 クラスに `destroy` override が存在する。
+    変異検査で fail を確認）。**production の差分は `hook_controller.py` の型注釈のみ**。
+  - **ユーザー判定（task_05 へ持ち越し）**: 正本 `key_input.md` §7.2 の昇格文言に
+    **「停止要求が残っている間は入力を通さない」旨を 1 句加える**（`input_router.py:70` が
+    カウンタで入力を捨てている事実を実測確認済み。文言が無いと将来この防御が無言で削られ得る）。
+  - **実機目視 = 全 4 項目で問題なし**（「ホットキープリセット編集」で実施）。
+    **他クラスの追試は不要と確定**（静的検査 + 代表クラスの自動テスト + 暫定仕様 §5 が根拠）。
+  - **受容として記録した残存リスク**: `confirm_save_if_dirty("終了")` は終了ガードより前に走るため、
+    子ファイル保存の `finally` 同期解除で `start_hook()` が動き得る（キャンセル可能区間なので
+    この順序が正・暫定仕様 §4-3 どおり・発生条件は極小）。
 result_files:
-  - instructions/phase/15_dialog_teardown_on_close/tasks/task_03_acceptance_tests.md（新規・T4 観測点を修正済）
-  - tests_ui/test_dialog_teardown_flows.py（新規・9 テスト）
-  - tests_ui/test_app_ui_flows.py（`test_preset_manager_cancel_keeps_runtime_and_dirty_unchanged` の観測点移設）
+  - instructions/phase/15_dialog_teardown_on_close/integration_result.md（新規・判定の正）
+  - instructions/phase/15_dialog_teardown_on_close/tasks/task_04_integration.md（新規）
+  - instructions/phase/15_dialog_teardown_on_close/phase.md（task_04 に stderr 判定を追記）
+  - keyseq/presentation/controllers/hook_controller.py（型注釈のみ）
+  - tests_ui/ の 10 ファイル（App 破棄前の `update()` 13 箇所 + 静的検査 3 の追加）
 verified:
   compile: clean
-  tests: pass 417（skip 7・増減なし）
-  tests_ui: **pass 320**（311 + 新規 9）
+  tests: pass 417（skip 7）
+  tests_ui: **pass 321**
   smoke: pass
-  mutation: **3 件すべて期待どおり fail**（復元後 `git diff keyseq/` 空を確認）
-  review: **`reviewer` → 完了可**
+  mutation: `trigger_dialog.py` の `destroy` を改名すると静的検査 3 が fail（復元済み）
+  review: **`deep-reviewer` → 完了可 / `codex-reviewer` → 指摘なし**
+  manual: **実機目視 4 項目すべて問題なし**（ユーザー・2026-09-13）
 
 ## next_action
-- **【最優先】phase 15 task_04 を `/task_new` で起票する**（`tasks/task_04_integration.md`）。
-  内容 = ①**統合確認**（`tests` / `tests_ui` 全体 + `smoke_app` を `verifier` で実測）
-  ②**二次レビュー = `deep-reviewer` + `codex-reviewer`**（phase.md「レビュー方針」の固有観点:
-  二重実行 / `event.widget` 判定 / phase 14 との干渉 / 終了ガードの網羅 / `window` 省略時の非変更 /
-  静的検査の対象限定 / スコープ逸脱）
-  ③**ユーザーによる実機目視**（フック ON で × 閉じ → 次のダイアログでフックが止まるか）
-  ④**上記の stderr 6 件**（`after` 予約が App 破棄時に残る件）の要否判定。
-- その後: task_05（正本反映・最終。`key_input.md` §7.2 / `features.md` §4.6 / `codebase_map.md` +
-  暫定仕様 13 の凍結 + `decisions_archive/15` + `current.md` + `backlog/INDEX_done.md` +
-  `/refactor_check`）。
-- **【運用】Codex は今セッションでは安定**（task_03 は 2 回とも完走。前セッションのハング 2 件は再現せず）。
-  **Codex が「仕様と実装が矛盾する」と報告して止まったら、まず自分で `ファイルパス:行` を実測する**
-  （task_03 では Codex の指摘が正しく、タスク定義側の誤りだった）。
+- **【最優先】phase 15 task_05（最終・正本反映）を `/task_new` で起票する**。内容:
+  ①正本へ昇格 = `spec_detail/key_input.md` §7.2 に「**閉じ方によらず解除される**」+
+  **「停止要求が残っている間は入力を通さない」**の 2 句 / `features.md` §4.6 へ**後始末の作法**
+  （T1 = 状態の後始末は閉じ方によらず走る / T2 = ウィジェットに触る後始末は閉じる操作の側。
+  **メソッド名は書かない**）/ `codebase_map.md` の `HookController` へ
+  「**ウィンドウを渡すと破棄時に自動解除する**」を追記
+  ②**暫定仕様 13 の凍結**（v0.4 → 凍結・`current.md` の暫定仕様一覧も更新）
+  ③`.claude_data/state/decisions_archive/15_dialog_teardown_on_close.md` の作成 +
+  `decisions.md` アーカイブ索引へ 1 行
+  ④`instructions/phase/current.md` の完了記載（**次採番 = phase 16**・「直近の領域」節の更新）
+  ⑤`backlog/INDEX.md` の **idea_16** 行を `INDEX_done.md` へ移動
+  ⑥**`/refactor_check` の実行と判定結果の完了報告への記載**
+  ⑦**フェーズ完了判定前のレビュー = `deep-reviewer` + `codex-adversarial-reviewer`**
+  （**task_04 で focus text を渡せなかった分をここで回収する**）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（task_03 は全確認 pass・変異検査 3 件も期待どおり・`reviewer` 完了可）。
+- **なし**（task_04 は統合確認・二次レビュー・実機目視・指摘処理をすべて完了）。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**

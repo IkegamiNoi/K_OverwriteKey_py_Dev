@@ -24,6 +24,14 @@ DIALOG_FILES = (
     "trigger_dialog.py",
 )
 
+# T2（ウィジェットに触る後始末）が残るため destroy override を保持するファイル。
+T2_DIALOG_FILES = (
+    "action_dialog.py",
+    "keymap_edit_dialog.py",
+    "orphan_sweep_dialog.py",
+    "trigger_dialog.py",
+)
+
 
 def is_call(node, name):
     return isinstance(node, ast.Call) and (
@@ -40,6 +48,8 @@ class DialogTeardownFlowsTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        # 破棄前に保留中の after(0) を流し、後続モジュールへ持ち越さない。
+        cls.app.update()
         cls.app.destroy()
 
     def setUp(self):
@@ -260,3 +270,15 @@ class DialogTeardownStaticTest(unittest.TestCase):
                 tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
                 calls = [node for node in ast.walk(tree) if is_call(node, "resume_hook_after_dialog")]
                 self.assertEqual(calls, [])
+
+
+    def test_static_3_t2_dialogs_keep_destroy_override(self):
+        """static-check-3 / §7-7: T2 が残る4ファイルで destroy override を保持。"""
+        dialogs = Path(__file__).resolve().parents[1] / "keyseq" / "presentation" / "dialogs"
+        for filename in T2_DIALOG_FILES:
+            with self.subTest(filename=filename):
+                path = dialogs / filename
+                tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
+                overrides = [node for node in ast.walk(tree)
+                             if isinstance(node, ast.FunctionDef) and node.name == "destroy"]
+                self.assertEqual(len(overrides), 1)

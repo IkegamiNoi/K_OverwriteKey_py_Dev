@@ -28,6 +28,8 @@ class NestedModalGrabTest(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
+        # 破棄前に保留中の after(0) を流し、後続モジュールへ持ち越さない。
+        cls.app.update()
         cls.app.destroy()
 
     def setUp(self):

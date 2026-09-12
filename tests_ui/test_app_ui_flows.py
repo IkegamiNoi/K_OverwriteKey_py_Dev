@@ -51,6 +51,8 @@ class AppUiFlowsTest(unittest.TestCase):
         try:
             cls.app.dirty_tracker.set_dirty(False)
         finally:
+            # 破棄前に保留中の after(0) を流し、後続モジュールへ持ち越さない。
+            cls.app.update()
             cls.app.destroy()
 
     def setUp(self):
