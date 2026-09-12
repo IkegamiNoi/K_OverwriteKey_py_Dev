@@ -13,20 +13,18 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブ = phase 15**）
-3. `instructions/phase/15_dialog_teardown_on_close/phase.md` と
-   **主入力の暫定仕様 `instructions/history/13_dialog_teardown_on_close.md`（**v0.4**・ユーザー確定済・実装着手可）** を読む。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜12）の条項を実装の根拠に引かない**
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い。次フェーズ未確定**）
+3. **次フェーズの方針をユーザーへ確認する**（`current.md`「次フェーズ候補」/ `instructions/backlog/INDEX.md`）。
+   起票は `/phase_start` → 暫定仕様が要るなら `/spec_draft`（判断は `.claude/rules/spec_change_workflow.md`）
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
    （モード切替で入れ替わるファイルがあり、参照する側の書き方に制約がある）
-5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
+5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
+   **凍結済の暫定仕様（`instructions/history/` の 04〜13）の条項を実装の根拠に引かない**
 
 ## 現在の作業の 1 行サマリ
-**phase 15（ダイアログ後始末の確実な実行）進行中。task_02（`dialogs/` 8 クラスへの適用）
-完了・green・reviewer 完了可。task_03〜05 は未着手**（2026-09-13）。
-**次にやること = `/task_new` で task_03（受け入れ条件のテスト + 静的検査）を起票し委任する**。
-直近コミット: `aa5adc8`（task_01）/ `3386c33`（task_02）。**main へは未マージ**。
+**phase 15（ダイアログ後始末の確実な実行）完了。次フェーズ未確定でユーザーの方針確認待ち**（2026-09-13）。
+次採番は **phase 16** / 暫定仕様は **14**。**main へは未マージ**。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -36,90 +34,76 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 15 task_02 完了時点 = 2026-09-13・コミット `3386c33`**）:
-compile **clean** / tests **417**（skip 7）/ tests_ui **311**（skip 0）/ smoke **pass**。
-**tests_ui は 288 →（phase 14 で +18）306 →（phase 15 task_01 で +5）311**
-（**task_02 は件数を増やさない**。既存 5 箇所の観測点を移しただけ）。
-**件数が減ったら退行を疑う**。skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
+直近の実測（**phase 15 完了時点 = 2026-09-13**）:
+compile **clean** / tests **417**（skip 7）/ tests_ui **321** / smoke **pass**。
+**tests_ui は 288 →（phase 14 で +18）306 →（phase 15 で +15）321**。**件数が減ったら退行を疑う**。
+skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 **同じ観点はジャンクション版のテストが実行されている**ので観点の抜けにはならない。
 実行後に worktree ルートへ **`user/` も `quarantine/` も生成されていない**ことを確認する。
 
-適用状況を見る grep:
-```bash
-grep -rn "grab_set" keyseq/presentation/ --include=*.py     # modal.py の 2 行のみ（phase 14 の成果）
-grep -rn "transient" keyseq/presentation/ --include=*.py    # modal.py の 1 行のみ
-grep -rn "suspend_hook_for_dialog" keyseq/presentation/dialogs/ --include=*.py  # 8 件すべて (self) 付き
-grep -rn "resume_hook_after_dialog" keyseq/presentation/dialogs/ --include=*.py # 0 件
-grep -rn "def destroy" keyseq/presentation/dialogs/ --include=*.py              # 4 件のみ（T2 が残るクラス）
-```
+**既知の stderr ノイズ（退行ではない）**: `tests_ui` の**全体実行時のみ**
+`invalid command name "..._clear_flash_message"` が **4 件**出る。
+ステータスバーの 4 秒タイマーが App 破棄後に発火するもので、**phase 15 以前からの既存事象**。
+テスト結果は `OK`。**フック解除（`resume_hook_after_dialog`）由来のものが出たら退行**を疑う
+（phase 15 で 0 件にした。App 破棄前に `update()` を回す規約を tests_ui の 13 箇所へ入れてある）。
 
 ## 次アクション（session.md.next_action より）
-- **【最優先】phase 15 task_03 を `/task_new` で起票する**（`tasks/task_03_acceptance_tests.md`）。
-  内容 = 受け入れ条件のテスト（暫定仕様 13 §5・§7）:
-  ①**× 閉じ（Tcl レベル破棄 `dialog.tk.call("destroy", str(dialog))`）で解除が走る**
-  （`protocol` 未登録の代表 1〜2 クラス。全 8 クラスは静的検査が守る）
-  ②**OK / キャンセル / × / プログラム破棄で解除がちょうど 1 回**
-  ③**子ウィジェット破棄では走らない**
-  ④**アプリ終了時に `start_hook()` が走らない**（**ダイアログ経路と `child_save_dialog` の
-  try/finally 経路の両方**）
-  ⑤**phase 14 の非退行**（ネストを × で閉じても grab が親へ復元）
-  ⑥**静的検査**（**対象は `dialogs/` の 8 クラスに限定**）
-  ⑦**既存テストの書き換え** = `test_app_ui_flows.py:1325-1341` の観測点を
-  「**保存が走らないこと**」へ移す（override 削除で検証内容が空になっているため）。
-  起票後 `codex-implementer` へ委任（**テスト実行は依頼しない**。実測は `verifier`）。
-- その後: task_04（統合確認 + `deep-reviewer` + `codex-reviewer` + **実機目視**）→
-  task_05（正本反映・最終）。
-- **【運用】Codex が不調**（2026-09-13 に 2 回連続ハング）。委任したら**早期にログ停滞を監視**し、
-  詰まったら `codex_operations.md` §3/§4 へ。復旧しなければユーザーへ諮って切り替える。
+- **【最優先】次フェーズの方針をユーザーへ確認する**。
+- **直近の領域（モーダルダイアログの作法）の残件**は `current.md`「現在の参照先」に 4 件。
+  着手候補になり得るのは ①**ダイアログ同型スケルトンの共通化**（phase 11 からの候補送り。
+  **phase 14・15 で前提は揃った**＝`grab_modal` と `suspend_hook_for_dialog(window)` の 2 窓口に集約済）
+  ②**静的検査の発見ベース化**（保留。**検査が 3 本に増え、いずれもファイル名のハードコード列挙**なので、
+  着手するなら併用形の設計から）。
+- **【運用の学び・重要】phase 15 では自分が書いた文書の事実誤り 2 件をレビューが検出した**
+  （①タスク定義のテスト観測点 ②正本の条項）。**いずれも実装を読まずに書いたのが原因**。
+  **仕様・タスク定義へ「実装はこうなっている」と書くときは、先に `ファイルパス:行` を実測する**。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 - **phase 10 task_05 の `deep-reviewer` 指摘 5 件は候補送りのまま**（H8 / H10 / H11 / H13 / H14）。
   **phase 12 の完了レビューの保留分**（実害なし）: L-1 / L-4 / L-8。
 
-## 現フェーズ（phase 15 = ダイアログ後始末の確実な実行）の要点
+## 直前フェーズ（phase 15 = ダイアログ後始末の確実な実行・完了）から引き継ぐ制約
 
-**暫定仕様先行モード**（番号対応: phase 15 / 暫定 13 / decisions 15）。
-**規範は `instructions/history/13_dialog_teardown_on_close.md`（v0.4・ユーザー確定済・実装着手可）**。
-**presentation 層のみ・スキーマ不変・正本違反の是正**（`key_input.md` §7.2 を満たしていない）。
+判断は `decisions_archive/15_dialog_teardown_on_close.md`。**正本が正**
+（`key_input.md` §7.2 / `features.md` §4.6「モーダルダイアログの作法」/ `codebase_map.md`）。
 
-- **直す欠陥**: ダイアログを **× で閉じると Python の `destroy()` override が呼ばれず**、
-  `resume_hook_after_dialog()` が飛んで**フック停止カウンタがずれる**。
-  以後ダイアログを開いても**フックが止まらず誤爆し得る**。
-- **【取り違え注意】× 閉じ（Tcl レベル破棄）では Python の `destroy()` は呼ばれないが、
-  `root.destroy()` は子の Python `destroy()` を再帰的に呼ぶ**（どちらも実測確認済）。
-  つまり**アプリ終了時は今日でも後始末が走る**（v0.1 で逆に書いて訂正した）。
-- **後始末は T1 / T2 に分ける** — **T1 = 状態の後始末（ウィジェットに触らない）だけを
-  破棄イベントへ寄せる**。**T2 = ウィジェットに触る後始末は `destroy()` override に残す**。
-  理由: **子ウィジェットは親の `<Destroy>` より先に破棄される**ため、
-  T2 を寄せると `TclError` になる（実測確認済）。
-- **登録は `HookController` へ寄せた**（task_01 完了） — `suspend_hook_for_dialog(window)` が
-  停止と解除予約を原子的に行う。**`window` 省略時は現行と完全に同じ**（try/finally 形は無変更）。
-- **解除は `after(0)` 遅延** — `start_hook()` が**同期で `messagebox.showerror` を開き得る**ため
-  破棄処理の途中で入れ子のモーダルを回さない / **grab 復元と競合させない**。
-  **テストでは `update()` が必要**（`update_idletasks()` では `after` は走らない）。
-- **終了ガード `begin_shutdown()`** — 終了確定後は**どの解除経路からもフックを再開しない**。
-  `app.on_close` が `confirm_save_if_dirty` 通過後・`self.destroy()` 前に立てる。
-  **`window.master.winfo_exists()` による終了判定は機能しない**（`Tk.destroy` は子を先に壊すため常に真）。
-- **静的検査の対象は `dialogs/` の 8 クラスのみ**（task_03 で追加予定）。
-  **`controllers/` の try/finally 形を巻き込むと phase 14 の既存静的検査と衝突する**
-  （`tests_ui/test_nested_modal_grab.py:300-303` が `finally: resume_hook_after_dialog` を要求）。
-  **task_02 完了後の引数なし呼び出しは 7 箇所**（`config_io/child_save_dialog.py` 3 +
-  `config_io/io_dialogs.py` 1 + `keymap_panel_controller.py` 1 + `key_capture.py:57` +
-  `keyboard_window.py:270`）。**`dialogs/` の 8 箇所は全て `(self)` 付き**。**数え違えない**。
-- **スコープ外**: 非ダイアログ経路の結線方式（**終了ガードは効く**）/ `key_capture` /
-  `keyboard_window` の編集モード / スケルトン共通化 / M-6（静的検査の発見ベース化）/ idea_17。
-
-### 直前フェーズ（phase 14 = grab 復元・完了）から引き継ぐ制約
-
+- **モーダルの窓口は 2 つだけ**。**`presentation/modal.py` の `grab_modal`**（モーダル化 + 破棄時の
+  grab 復元。`grab_set` / `transient` の直呼びは 0 件）と
+  **`HookController.suspend_hook_for_dialog(window)`**（フック停止 + 破棄時の自動解除。
+  **`window` 省略時は呼び出し側が解除する try/finally 形**で、`controllers/` の 5 系統はこちら）。
 - **`grab_modal` は各ダイアログの `__init__` の最後の文**。**静的検査が固定している**ので
   後ろに処理を足すと落ちる。**落ちたらテストを緩めず、回収機構の要否をユーザーへ諮る**。
-- **`<Destroy>` の bind は `add="+"`**（`modal.py:46`）。外すと復元が無言で消える。
-  **本フェーズの結線もこれに倣う**。
-- **`tk.Toplevel` を差し替えるテストダブルの `bind` は `add=None` を受ける必要がある**（計 3 つ）。
-- **復元先が未マップ（`winfo_viewable()` = 0）だと復元がスキップされる**。tests_ui で
+- **`<Destroy>` の bind は `add="+"`**。外すと復元も自動解除も無言で消える。
+  **`event.widget is window` の判定が必須**（子ウィジェットの破棄でも発火する）。
+- **後始末は T1 / T2 に分ける**。**T1 = 状態の後始末（ウィジェットに触らない）は破棄側**、
+  **T2 = ウィジェットに触る後始末は閉じる操作の側**（破棄時点で**子は既に無い**＝`TclError`）。
+  **閉じるボタンでも走らせたい T2 は、閉じるボタンも閉じる操作として結線する**。
+- **解除は `after(0)` 遅延**（`start_hook()` が**同期で `messagebox.showerror` を開き得る** /
+  grab 復元と競合させない）。**テストでは `update()` が必要**（`update_idletasks()` では走らない）。
+- **終了ガードは `start_hook` の内部**（`begin_shutdown()` で立てる）。**解除処理は終了中でも
+  `start_hook()` を呼ぶ**（呼ばれた側が即 return）。**検査で `start_hook` の呼び出し回数を見てはいけない**。
+  観測点は **`hook_coordinator.start` の未呼び出し + `hook_active` が False**。
+- **停止カウンタは入力の扱いにも効く**が、**止まるのは置換とアクション実行だけで元入力は素通しする**
+  （`InputRoute` の既定が **`accept=True`**）。**「入力を通さない」と書くと逆**になる。
+- **後始末の静的検査の対象は `dialogs/` の 8 クラスのみ**。
+  **`controllers/` を含めると phase 14 の検査と正面衝突する**
+  （`tests_ui/test_nested_modal_grab.py:302-305` が `finally: resume_hook_after_dialog` を要求）。
+- **`dialogs/` の呼び出し形**: `suspend_hook_for_dialog(self)` が 8 件 /
+  `resume_hook_after_dialog` が 0 件 / `def destroy` は 4 件のみ（T2 が残るクラス）。
+  引数なし呼び出しは `controllers/` と `keyboard_window.py` の**7 箇所**。**数え違えない**。
+- **復元先が未マップ（`winfo_viewable()` = 0）だと grab 復元がスキップされる**。tests_ui で
   実ダイアログを親にするときは **`update_idletasks()` + viewable アサート**を先に置く。
+- **`tk.Toplevel` を差し替えるテストダブルの `bind` は `add=None` を受ける必要がある**（計 3 つ）。
 
-## 運用インフラ（フェーズ番号を消費しない直前の作業・完了）
+適用状況を見る grep:
+```bash
+grep -rn "grab_set\|transient" keyseq/presentation/ --include=*.py                # modal.py のみ
+grep -rn "suspend_hook_for_dialog" keyseq/presentation/dialogs/ --include=*.py    # 8 件すべて (self) 付き
+grep -rn "resume_hook_after_dialog" keyseq/presentation/dialogs/ --include=*.py   # 0 件
+grep -rn "def destroy" keyseq/presentation/dialogs/ --include=*.py                # 4 件のみ
+```
+
+## 運用インフラ（フェーズ番号を消費しない作業・完了）
 
 - **モード切替は `.claude_data/modes/`**（`instructions/agent_mode` ・ `instructions/save_mode` から移動。
   旧パスは存在しない）。**エージェント構成は 3 モード**（`codex`〔現構成〕/ `codex_medium` / `claude_only`）。
@@ -131,32 +115,16 @@ grep -rn "def destroy" keyseq/presentation/dialogs/ --include=*.py              
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **blockers: なし**（phase 15 task_02 は全確認 pass・変異検査も期待どおり・`reviewer` 完了可）。
-- **【Codex 運用・2026-09-13 の実績】同一 worktree で 2 回連続ハングした**。1 回目は**ジョブ登録すら
-  されず**、2 回目は `Starting Codex task thread.` の直後に**worker PID が消滅**。
-  `codex_operations.md` §4 で state を手修復済（バックアップは scratchpad の `codex_state_backup`）。
-  **委任後は作業ツリーの更新時刻とジョブログの伸びを早期に見る**。
-- **【裏取り】レビュー・調査の「コードがこうなっている」という主張は、採用前に `ファイルパス:行` を実測確認する**
-  （行番号のずれ・件数の誤りが何度も出ている。**phase 14 の起票でも 2 件の事実誤りを実測で訂正した**）。
-- **【傾向・実証済み】reviewer が「完了可・指摘なし」でも敵対的レビューで High が出る**。
-  **判定はテストの実測が優先**。**実装者とレビュアーが同じモデル側になったら別視点が失われている**と疑う。
+- **blockers: なし**（phase 15 は完了処理まで終了。次フェーズ未確定のみ）。
+- **【裏取り】レビュー・調査・サブエージェントの「コードがこうなっている」という主張は、
+  採用前に `ファイルパス:行` を実測確認する**（**自分が書く文書も同じ**。phase 15 で 2 件の
+  事実誤りをレビューに検出された）。**Codex が「仕様と実装が矛盾する」と報告して止まったら、
+  まず自分で実測する**（phase 15 では Codex が正しく、タスク定義側が誤っていた）。
+- **【傾向・実証済み】reviewer が「完了可・指摘なし」でも敵対的レビューで指摘が出る**。
   **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**
-  （phase 08・09・10 とも**両者が独立に別の穴を検出**した。**phase 14 の起票でも同じことが起きた**）。
-- **【教訓・task_07b】Codex は「記録を足す」指示を「skip を増やす」方向へ広げることがある**。
-  **差分は必ずメインが読んで裏取りする**（テストが green でも、テストごと誤った挙動を固定していることがある）。
-- **【運用・重要】委任の実行中はメイン側で文書を編集しない**。phase 10 task_05 で **Codex がメインの
-  仕様書編集を「範囲外の差分」と判断して巻き戻した**。編集した場合は**完了後に必ず差分を確認する**。
-- **【メニュー項目のテスト】インデックスを固定しない**。top-level menubar には **tearoff** があり
-  `0=tearoff / 1=ファイル / 2=設定` とずれる。**カスケードとラベルで探す**。
-- **【テストの書き方】モジュール名前空間を patch する形は分割の障害になる**（計画07 で 6 箇所書き換えた）。
-  **新規テストは `patch.object` を優先する**。
-- **【罠】モジュール移動・パッケージ化の実測では `__pycache__` の stale な `.pyc` を疑う**
-  （旧モジュールが生存し得る。削除して結果不変を確認する）。
-- **【dialogs はパッケージ】**（`keyseq/presentation/dialogs/`・**1 クラス 1 ファイル**）。
-  **`__init__.py` は明示列挙の再輸出のみ**で **`tk` / `messagebox` を持たない**。
-  クラス間参照は**サブモジュール直指定**・`App` の型 import は**各ファイルの `TYPE_CHECKING` ガード内**。
-  `PresetManagerDialog` の **`_refresh` / `_update_source_labels` はテストが `patch.object` する契約名**
-  （リネーム禁止）。
+  （phase 08・09・10・15 とも**両者が独立に穴を検出**した）。
+  **`codex-reviewer`（標準 review）は focus text を受け付けない**ので観点を渡したいときは
+  **`codex-adversarial-reviewer`** を使う。
 - **【Codex 運用・最重要】フォワーダが 2 分で切れても Codex ワーカーは生き続ける**（companion status は
   `running` のまま停滞する）。**ハングと即断しない**。判別は**作業ツリーの更新時刻**。
   **書き換え途中で `verifier` / `reviewer` を回すと偽の結果を掴む**。
@@ -166,6 +134,10 @@ grep -rn "def destroy" keyseq/presentation/dialogs/ --include=*.py              
   **Codex 申告のテスト結果は信用せず必ず実測**。**サブエージェントがセッション上限で落ちたら再実行する**。
   **Codex が使用量上限に達したら実装は止める**（レビューは Claude 側へ縮退可・**実装のフォールバックは
   ユーザー許可が必須**）。
+- **【教訓】Codex は「記録を足す」指示を「skip を増やす」方向へ広げることがある**。
+  **差分は必ずメインが読んで裏取りする**（テストが green でも、テストごと誤った挙動を固定していることがある）。
+- **【運用・重要】委任の実行中はメイン側で文書を編集しない**。phase 10 task_05 で **Codex がメインの
+  仕様書編集を「範囲外の差分」と判断して巻き戻した**。編集した場合は**完了後に必ず差分を確認する**。
 - **【config_service の配置制約】`config_service` はパッケージ**で **ConfigService 本体は `__init__.py`**。
   テストが `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を差し替えるため、
   この配置を崩すと壊れる。同じ理由で**パス基盤メソッドを兄弟モジュールへ移さない**。
@@ -177,7 +149,7 @@ grep -rn "def destroy" keyseq/presentation/dialogs/ --include=*.py              
   `hotkey_presets_path` は **config 配下なら相対**で保持される（config 外は絶対・区切りは `/` 正規化）。
   **相対値を `os.path.abspath` / `dirname` / `exists` / `join` へ解決なしで渡すと cwd 基準で解決される**。
   症状 = **リポジトリルートに `user/` が生成される**。解決は `ConfigService.resolve_config_path(path, config_root)`。
-  **`config_root` に空文字を渡さない**（空だと相対値が cwd 基準になる）。
+  **`config_root` に空文字を渡さない**。
 - **不変条件（壊しやすい）**: ① `dirty_tracker.trigger_set_source_path` と
   `data[INTERNAL_TRIGGER_SET_SOURCE_PATH]` は**常に一致** / ② 子の `_parent_refs` は
   **保存先ファイルの集合 + 現在の上位** / ③ **canonical identity は比較専用**
@@ -187,40 +159,46 @@ grep -rn "def destroy" keyseq/presentation/dialogs/ --include=*.py              
   テスト内の `AssertionError` も広い `except Exception` に捕まり、**失敗が「ハング」に化ける**。
   tests_ui の各ファイルの `setUp` に **fail-fast ガード**がある。新しいモーダルを増やすときは同じガードを足す。
   **ハングしたら `messagebox` / `filedialog` を全遮断して単独実行**する。
-- **【tests_ui の罠・task_02 で踏んだ】解除は `after(0)` 予約なので、`update()` を回すまで
-  カウンタが減らない。App を共有するクラスでは**先行テストの未実行予約が溜まり**、
-  ダイアログ生成直後のカウンタが 1 ではなく累積値になる。
-  **生成前に `self.app.update()` でドレインして 0 を確認してから** 1 → 0 を見る。
-  また **`suspend_hook_for_dialog` を patch すると `<Destroy>` の結線ごと消える**ため、
-  patch したままカウンタを見る検査は**常に真の空振り**になる。
 - **【tests_ui の罠】`setUpClass` で App を共有する**テストクラスでは
   `has_unsaved_changes()` が他テストの dirty も拾う。**絶対値で assert せず前後の変化で見る**。
+  **フック停止カウンタも同様**に先行テストの `after(0)` 未実行分が溜まるため、
+  **生成前に `self.app.update()` でドレインして 0 を確認してから** 1 → 0 を見る。
+  **`suspend_hook_for_dialog` を patch すると `<Destroy>` の結線ごと消える**ため、
+  patch したままカウンタを見る検査は**常に真の空振り**になる。
   テスト後は runtime・ファイル・menubar を**元へ戻す**（`addCleanup`）。
-  **破壊的 I/O の API は UI テストで必ず `patch.object` する**（実ファイルを動かさない）。
-- **【教訓・UI】tkinter の「初期表示だけ崩れる」系は one-shot の再計算では直らない**。
-  **対象ウィジェット自身の `<Configure>` で自己修復させる**（同幅早期 return を必ず併設）。
+  **破壊的 I/O の API は UI テストで必ず `patch.object` する**。
+- **【テストの書き方】モジュール名前空間を patch する形は分割の障害になる**（計画07 で 6 箇所書き換えた）。
+  **新規テストは `patch.object` を優先する**。
+- **【メニュー項目のテスト】インデックスを固定しない**。top-level menubar には **tearoff** があり
+  `0=tearoff / 1=ファイル / 2=設定` とずれる。**カスケードとラベルで探す**。
 - **【罠】`event_generate("<Escape>")` は非表示ウィンドウでは配送されない**。
   `deiconify()` + `update_idletasks()` + `focus_force()` を先に行う。
   バインドを `tk.call` で直接叩くのは**不可**（`%` 置換が `TclError` になりコールバックが走らない）。
+- **【教訓・UI】tkinter の「初期表示だけ崩れる」系は one-shot の再計算では直らない**。
+  **対象ウィジェット自身の `<Configure>` で自己修復させる**（同幅早期 return を必ず併設）。
+- **【罠】モジュール移動・パッケージ化の実測では `__pycache__` の stale な `.pyc` を疑う**。
+- **【dialogs はパッケージ】**（`keyseq/presentation/dialogs/`・**1 クラス 1 ファイル**）。
+  **`__init__.py` は明示列挙の再輸出のみ**で **`tk` / `messagebox` を持たない**。
+  クラス間参照は**サブモジュール直指定**・`App` の型 import は**各ファイルの `TYPE_CHECKING` ガード内**。
+  `PresetManagerDialog` の **`_refresh` / `_update_source_labels` はテストが `patch.object` する契約名**
+  （リネーム禁止）。
 - **【罠・再発済】worktree と main は別コピー**。`.claude_data/`・`instructions/`・code とも、main 側の絶対パス
   （パスに `.claude\worktrees\<name>\` を含まない）を編集すると commit から漏れる。
-- **【罠】Bash ツールは Git Bash**。**長い heredoc は壊れる**。
-  **長文ファイルはスクラッチパッドへ書いて `cp`**、複数行のコミットメッセージは
-  `git commit -F -` + 短い heredoc に倒す
+- **【罠】Bash ツールは Git Bash**。**長い heredoc は壊れる**（本ファイルの再生成でも実際に失敗した。
+  その場合は Write ツールを使う）。複数行のコミットメッセージは `git commit -F -` + 短い heredoc に倒す
   （PowerShell の here-string `@'...'@` は**使えない**＝先頭に `@` が混入する）。
   **`git grep` は追跡済みのみ検索**（新規ファイルは `grep`）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   Codex レビュー系との併用は `.claude/rules/agent_selection.md` のレビュー表が正。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: **14_nested_modal_grab_restore** / 13_contracts_boundary_ast_coverage /
-  12_config_service_public_surface）。
+  （直近 3 件: **15_dialog_teardown_on_close** / 14_nested_modal_grab_restore /
+  13_contracts_boundary_ast_coverage）。
   提案書「計画05」〜「計画10」は完了済みで、**いずれもフェーズ番号を消費していない**。
 - 未着手/保留 idea: **idea_17**（`ActionDialog` の親付け替え・低・phase 14 から分離）/
   idea_13（external_keyboard_layouts のパス基準の非対称・低）/
   idea_11（別名保存の複製ロールバック・低）/ idea_03（hotkey 保存正規化・低）/
   idea_09（レガシー保存パス・低）/ idea_04・idea_06（保留）。
-  **idea_16 は phase 15 で着手中**。**idea_10 は phase 14 で完了**・**idea_15 は phase 13 で完了**・
-  **idea_14 は phase 12 で完了**（`INDEX_done.md`）。
+  **idea_16 は phase 15 で完了**・**idea_10 は phase 14 で完了**（`INDEX_done.md`）。
   **敵対的レビューが挙げた削除の TOCTOU 2 件は idea 化しない**（修正予定ではないため。
   backlog は修正予定のものを置く場所というユーザー方針）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。

@@ -7,34 +7,23 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [15_dialog_teardown_on_close](15_dialog_teardown_on_close/phase.md)**
-  （2026-09-12 起票・**進行中**。**task_01〜04 完了・task_05〔正本反映〕のみ未着手**）。
-  ダイアログを × で閉じると後始末が走らず
-  **フックの停止カウンタがずれる**欠陥の是正。**presentation 層のみ・スキーマ不変・
-  正本違反の是正であり仕様追加ではない**（`key_input.md` §7.2 を満たしていない）。
-  - 主入力（暫定仕様）: [13_dialog_teardown_on_close](../history/13_dialog_teardown_on_close.md)
-    （**v0.4・ユーザー確定済・実装着手可**）。番号対応: phase 15 / 暫定 13 / decisions 15。
-  - 起票元: [idea_16](../backlog/idea_16_wm_close_skips_destroy_override.md)（phase 14 から分離）。
-  - 確定（ユーザー 2026-09-12）: **後始末を破棄イベントへ寄せる** /
-    **登録は `HookController` へ寄せる**（`suspend_hook_for_dialog(window)` が停止と解除予約を原子化・
-    **省略時は現行と同じ**）/ **解除は `after(0)` で遅延** / **終了ガードを `HookController` に持たせる** /
-    **空になる `destroy()` override は削除** / **スケルトン共通化とは合流しない**。
-- **直近の一連の作業が扱っている領域 = モーダルダイアログの作法（grab の復元）**。
-  phase 14 で、モーダルの中からモーダルを開いて閉じても**親のモーダル性が戻る**ようにした。
-  `presentation/modal.py` の `grab_modal` が唯一の窓口で、**`grab_set` / `transient` の直呼びは 0 件**。
-  規約は「**`grab_modal` は初期化の最後の文に置く**」で、**静的検査テストが固定している**
-  （後ろに処理を足すと落ちる。落ちたら回収機構の要否をユーザーへ諮る）。
-  **この領域の残件** = ①[idea_16](../backlog/idea_16_wm_close_skips_destroy_override.md)
-  （**× 閉じで `destroy()` override が走らずフック停止カウンタがずれる**。grab とは独立した既存不具合）
-  ②**ダイアログ同型スケルトンの共通化**（phase 11 からの候補送り・phase 14 でも意図的に分離）
-  ③**静的検査を発見ベースへ**（`deep-reviewer` の M-6・**保留**。発見ベース単独では
-  「呼び出しが消えた」検出が失われるため併用形の検討が要る）
-  ④[idea_17](../backlog/idea_17_action_dialog_preset_manager_parent.md)（`ActionDialog` の親付け替え・優先度低）
-  ⑤**stdlib ダイアログの grab は自動テストで検証できない**（対象外と確定済み）。
-  **実機目視では 3 経路が問題なし**・**1 経路は親が既に破棄済みで観点が成立せず未確認**。
-- 直前の完了フェーズ: [14_nested_modal_grab_restore](../../.claude_data/state/decisions_archive/14_nested_modal_grab_restore.md)
+- **アクティブなフェーズ: なし**（次フェーズ未確定。着手前にユーザーへ方針確認すること）。
+- **直近の一連の作業が扱っている領域 = モーダルダイアログの作法（モーダル性と後始末）**。
+  窓口は 2 つ。**`presentation/modal.py` の `grab_modal`**（モーダル化と破棄時の grab 復元）と
+  **`HookController.suspend_hook_for_dialog(window)`**（フック停止と破棄時の自動解除。
+  **`window` 省略時は呼び出し側が解除する try/finally 形**）。
+  規約は「**`grab_modal` は初期化の最後の文**」「**状態の後始末は破棄側・ウィジェットに触る
+  後始末は閉じる操作の側**」で、**静的検査テストが固定している**
+  （後始末の検査は **`dialogs/` 8 クラス限定**。理由は `decisions_archive/15`）。
+  **残件** = ①**ダイアログ同型スケルトンの共通化**（phase 11 からの候補送り。残るのは
+  `suspend_hook_for_dialog` 8 クラス / `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")` **3 クラス**）
+  ②**静的検査を発見ベースへ**（phase 14 の M-6・**保留**。単独では「呼び出しが消えた」検出が失われる）
+  ③[idea_17](../backlog/idea_17_action_dialog_preset_manager_parent.md)（`ActionDialog` の親付け替え・優先度低）
+  ④**`key_capture.py` / `keyboard_window.py` の編集モード**（同じフック停止カウンタを触るが
+  ダイアログの閉じ方の問題ではないため phase 15 から除外。必要なら別 idea）。
+- 直前の完了フェーズ: [15_dialog_teardown_on_close](../../.claude_data/state/decisions_archive/15_dialog_teardown_on_close.md)
+- その前の完了フェーズ: [14_nested_modal_grab_restore](../../.claude_data/state/decisions_archive/14_nested_modal_grab_restore.md)
 - その前の完了フェーズ: [13_contracts_boundary_ast_coverage](../../.claude_data/state/decisions_archive/13_contracts_boundary_ast_coverage.md)
-- その前の完了フェーズ: [12_config_service_public_surface](../../.claude_data/state/decisions_archive/12_config_service_public_surface.md)
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
   **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
@@ -53,7 +42,7 @@
 
 ## 次採番
 
-- **phase 15 は 2026-09-12 起票（進行中）**。次フェーズは **`16_<topic>`**
+- **phase 15 は完了（2026-09-13）**。次フェーズは **`16_<topic>`**
   （欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -63,7 +52,7 @@
   10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
   11=config_service の公開面〔**v0.3・凍結**〕/
   12=ネストしたモーダルの grab 復元〔**v0.5・凍結**〕/
-  13=ダイアログ後始末の確実な実行〔**v0.4・未凍結・phase 15 の主入力**〕）。
+  13=ダイアログ後始末の確実な実行〔**v0.4・凍結**〕）。
   次採番は **`14_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -173,12 +162,12 @@
   M1〜M6 いずれも非該当。差分は 13 ファイル・+78/-27 で、**重複を増やす方向ではなく
   `grab_set` / `transient` の 12 箇所を `grab_modal` へ集約する方向**だった）:
   - **ダイアログ同型スケルトンの共通化**は**既知**（本節の phase 11 由来の項目）。**phase 14 で
-    `transient` + `grab_set` の部分だけは `grab_modal` へ共通化済**。**残るのは
-    `suspend_hook_for_dialog`〔8 クラス〕/ `destroy()` override〔8 クラス〕/
-    `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")`〔4 クラスで完全同型〕**。
-    着手するなら [idea_16](../backlog/idea_16_wm_close_skips_destroy_override.md)
-    （× 閉じで `destroy()` override が走らない）と**同じ領域なので合流を検討する**
-    （後始末を `<Destroy>` へ寄せるなら **`grab_modal` の `add="+"` 結線が前提**になる）。
+    `transient` + `grab_set` の部分だけは `grab_modal` へ共通化済**。
+    **phase 15 で `destroy()` override〔8 クラス〕は解消**（4 クラスは override ごと削除・
+    残る 4 クラスはウィジェットに触る後始末のみ）。**残るのは
+    `suspend_hook_for_dialog`〔8 クラス〕/ `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")`
+    〔**3 クラス**で完全同型。`dialogs/` 実測。phase 14 時点の「4 クラス」は誤記〕**。
+    合流先だった [idea_16] は **phase 15 で完了**（`INDEX_done.md`）。
   - **静的検査の発見ベース化（`deep-reviewer` の M-6）は保留**。
     `tests_ui/test_nested_modal_grab.py` の `test_grab_modal_is_last_initialization_statement` は
     **9 クラスと系統 B 3 ファイルをハードコードで列挙**しており、**新規ダイアログを守らない**。

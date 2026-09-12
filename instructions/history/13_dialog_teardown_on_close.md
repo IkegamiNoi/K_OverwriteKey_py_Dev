@@ -1,7 +1,9 @@
 # 暫定仕様 13: ダイアログ後始末の確実な実行（dialog_teardown_on_close）
 
-> 状態: **未凍結・v0.4・ユーザー確定済・実装着手可・主入力**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済（2026-09-13・phase 15 完了・v0.4）**。**経緯の参照用**であり、
+> **本書の条項を実装の根拠に引かない**（正本は `spec_detail/key_input.md` §7.2 /
+> `features.md` §4.6「モーダルダイアログの作法」/ `codebase_map.md`）。
+> 判断は [decisions_archive/15](../../.claude_data/state/decisions_archive/15_dialog_teardown_on_close.md)。
 > 起票元: [idea_16](../backlog/idea_16_wm_close_skips_destroy_override.md)
 > （phase 14 task_04 の起票前調査で実測により発見・2026-09-11 起票）。
 > **正本違反の是正であり、仕様追加ではない**（`key_input.md` §7.2 が既に現状を禁じている）。

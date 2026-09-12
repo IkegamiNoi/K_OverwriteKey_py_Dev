@@ -235,7 +235,8 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     - 検査・除去は `config_service` へ委譲し、文言は `reference_cleanup_text` の純関数が組み立てる
       （**このクラス自身は検査・除去・文言のロジックを持たない**。0 件の分岐だけはフロー側にもある）
     - ReferenceCleanupDialog（dialogs/reference_cleanup_dialog.py）: 読み取り専用の一覧 + 実行 / キャンセル。
-      `tk.Toplevel` 継承 + `destroy()` override で hook resume（`layout_delete_dialog.py` と同型）。
+      `tk.Toplevel` 継承。**フックの停止はウィンドウを渡して行い、解除は破棄時に自動**
+      （`layout_delete_dialog.py` と同型。`destroy()` override は持たない）。
       **`result` の既定は `False`**（× / Esc で実行しない）
     - reference_cleanup_text.py（presentation 直下）: 提示テキストの整形（**tkinter 非依存の純関数**。
       `dialogs/` に置くと `__init__` が tkinter / pynput を巻き込むため直下）
@@ -244,6 +245,10 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
 - KeymapPanelController（controllers/keymap_panel_controller.py）: キーマップ管理パネル
 - TriggerPanelController（controllers/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示
 - HookController（controllers/hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
+  - **`suspend_hook_for_dialog(window)` はウィンドウを渡すと破棄時に自動で解除する**
+    （渡さなければ呼び出し側が解除する＝try/finally 形）。
+    `features.md` §4.6「モーダルダイアログの作法」/ `key_input.md` §7.2。
+  - **アプリ終了が確定したらフックを再開しない**（終了ガード。解除経路によらず効く）。
 - listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）
 - modal.py（presentation 直下）: `grab_modal(window, parent=None)` = モーダル化と**破棄時の grab 復元**
   （`features.md` §4.6「モーダルダイアログの作法」）。**`dialogs/` と `controllers/config_io/` の
