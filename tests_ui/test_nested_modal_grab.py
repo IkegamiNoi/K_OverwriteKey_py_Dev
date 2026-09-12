@@ -172,6 +172,30 @@ class NestedModalGrabTest(unittest.TestCase):
         self.assertEqual(len(confirmations), 1)
         self.assertFalse(confirmations[0].winfo_exists())
 
+    def test_overwrite_confirmation_is_transient_for_manager(self):
+        """T3 (§5-2・§5-3): 前面維持先はマネージャ、所有者は App。"""
+        manager = self._preset_manager()
+        manager.individual_var.set(True)
+        self._overwrite_conflict()
+        original_wait = tk.Toplevel.wait_window
+        confirmations = []
+
+        def observe_and_wait(confirm, *args, **kwargs):
+            self.addCleanup(self.cleanup_window, confirm)
+            confirmations.append(confirm)
+            confirm.update_idletasks()
+            self.assertTrue(confirm.winfo_viewable())
+            self.assertEqual(str(confirm.wm_transient()), str(manager))
+            self.assertIs(confirm.master, self.app)
+            return original_wait(confirm, *args, **kwargs)
+
+        with patch.object(tk.Toplevel, "wait_window", observe_and_wait):
+            self._close_overwrite(manager)
+
+        self.assertEqual(len(confirmations), 1)
+        self.callback_error.assert_not_called()
+        self.write_presets.assert_not_called()
+
     def test_declined_overwrite_restores_live_manager_grab(self):
         dialog = self._preset_manager()
         dialog.individual_var.set(True)

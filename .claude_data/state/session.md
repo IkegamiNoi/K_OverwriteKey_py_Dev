@@ -4,68 +4,69 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-13T06:15:00
+last_updated: 2026-09-13T07:00:00
 phase: `instructions/phase/16_dialog_transient_parent`（**進行中**）。
 主入力 = 暫定仕様 14（**v0.4**・ユーザー確定済）。番号対応: phase 16 / 暫定 14 / decisions 16。
-**phase 16: task_01 / task_02 完了 / task_03〜05 未着手**。**phase 15 は完了**（判断は `decisions_archive/15`）。
+**phase 16: task_01〜03 完了 / task_04・05 未着手**。**phase 15 は完了**（判断は `decisions_archive/15`）。
 last_commit_location: `claude/task-03-progression-1c3627` @ `0beb1b4`（phase 15 task_05）。
-**phase 16 の起票は `c056293` / task_01 は `2f09adf`**。**task_02 は未コミット**（`/task_commit` 待ち）。
+**phase 16 の起票は `c056293` / task_01 は `2f09adf` / task_02 は `d8cd29c`**。
+**task_03 は未コミット**（`/task_commit` 待ち）。
 **phase 15 までは main へマージ済**（ユーザーが実施・2026-09-13）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 16 task_02（上書き確認の前面維持 + 既存テスト 4 件の追随）完了・green・`reviewer` 完了可。次は task_03（受け入れ条件のテスト）**。
+focus: **phase 16 task_03（受け入れ条件のテスト）完了・green・`reviewer` 完了可。次は task_04（統合確認 + 二次レビュー + 実機目視）**。
 mode: completed
 
 ## last_action
-ts: 2026-09-13T06:15:00
+ts: 2026-09-13T07:00:00
 who: main
 summary: |
-  【**phase 16 task_02 完了**】`confirm_overwrite` へ**キーワード必須**の `transient_parent` を追加し、
-  `grab_modal` の第 2 引数だけを差し替え（`tk.Toplevel(self._app)` は無変更）。
-  `preset_manager.py:364` から `transient_parent=self` を渡す。**production は実質 3 行**。
-  既存テスト **4 件**の引数契約を追随（追加 4 行のみ。**アサーションの削除・緩和なし**）。
-  - **既定の非対称は意図どおり** — task_01（`PresetManagerDialog`）は**既定あり**
-    （`app.py:418` という既定を使う呼び出し元が実在）、本タスクは**既定なし**
-    （呼び出し元が 1 箇所だけなので既定は到達しない分岐になる）。`reviewer` が grep で裏取り済。
-  - **`reviewer` = 完了可（指摘なし）**。
-  - **【重要・task_03 への申し送り】変異検査で既存テストの検出力の穴が判明**。
-    `grab_modal(dialog, transient_parent)` を `grab_modal(dialog, self._app)` へ戻しても
-    **84 テストすべて pass**。追随した 4 件は**「引数が渡されたこと」しか見ておらず、
-    「渡された相手が実際に前面維持へ使われたこと」を見ていない**。
-    **task_03 のテストは呼び出し引数ではなく実際の `wm_transient()` を観測すること**。
-    （task_01 の変異検査でも同様に既存テストは未検出だった）
+  【**phase 16 task_03 完了**】受け入れ条件のテスト **3 本**を追加。**production は無変更**。
+  - **T1 / T2 = 新規 `tests_ui/test_dialog_transient_parent.py`**
+    （アクション編集から開いたプリセット編集の前面維持 / 既定の非変更）。
+  - **T3 = 既存 `tests_ui/test_nested_modal_grab.py` へ追加**（上書き確認の前面維持）。
+    **新規ファイルへ移すと `config_service` の patch 足場と窓の走査足場を 40 行規模で複製する**ため、
+    既存ファイルの足場を再利用した（`reviewer` も妥当と判定）。**既存アサーションは無改変・追加のみ**。
+  - **【観測点の是正が本タスクの要点】** task_01 / task_02 の変異検査で、
+    **呼び出し引数を見るだけの検査は空振りする**ことが分かっていた。
+    本タスクは**実際の `wm_transient()` を観測**する。
+    **戻り値は `Tcl_Obj` でウィジェットではないため `assertIs` は不可・`str()` 比較が必須**（実測）。
+    **所有関係（`master is app`）も各テストで固定**し、役割 1 を動かしていない証拠にした。
+  - **変異検査 2 件とも期待どおり fail**（これで検出力の穴が塞がった）:
+    M1 呼び出しから `transient_parent=self` を外す → T1 が fail（`'.' != '.!actiondialog'`）/
+    M2 `grab_modal` の第 2 引数を `self._app` へ戻す → T3 が fail（`'.' != '.!presetmanagerdialog7'`）。
+  - **`reviewer` = 完了可**。**参考指摘 1 件（非ブロッキング・記録のみ）**:
+    T3 は `tk.Toplevel.wait_window` を**クラス単位で patch**しており対象を絞っていない。
+    現状は当該経路で `wait_window` を呼ぶ窓が 1 個しかないため誤検出しないが、
+    **将来同じ文脈で別の `Toplevel.wait_window` が増えると壊れやすい**。
 result_files:
-  - keyseq/presentation/controllers/config_io/hotkey_presets_io.py（+5/-2）
-  - keyseq/presentation/dialogs/preset_manager.py（+1）
-  - tests_ui/test_app_ui_flows.py（+3）/ tests_ui/test_nested_modal_grab.py（+2/-1）
-  - instructions/phase/16_dialog_transient_parent/tasks/task_02_*.md（新規）
+  - tests_ui/test_dialog_transient_parent.py（新規・2 本）
+  - tests_ui/test_nested_modal_grab.py（+24・追加のみ）
+  - instructions/phase/16_dialog_transient_parent/tasks/task_03_acceptance_tests.md（新規）
 verified:
   compile: clean
   tests: pass 417（skip 7）
-  tests_ui: pass 321（増減なし）
+  tests_ui: **pass 324**（321 + 新規 3）
   smoke: pass
-  mutation: 第 2 引数を `self._app` へ戻しても**既存テストは pass**（**検出力の穴**・復元済）
-  review: **`reviewer` → 完了可（指摘なし）**
+  mutation: **M1 / M2 とも期待どおり fail**（復元後 `git diff keyseq/` 空を確認）
+  review: **`reviewer` → 完了可（参考指摘 1 件）**
 
 ## next_action
-- **【最優先】phase 16 task_03 を `/task_new` で起票する**（`tasks/task_03_acceptance_tests.md`）。
-  暫定仕様 14 §4・§5 が根拠。**観測点に注意**（task_02 の変異検査で判明）:
-  ①**前面維持の相手** = アクション編集から開いたプリセット編集の **`wm_transient()` が
-  `ActionDialog`** / 上書き確認の **`wm_transient()` がプリセット編集**。
-  **`confirm_overwrite` の呼び出し引数を見るだけでは不十分**（それは task_02 で追随済の別観点）
-  ②**所有関係が App のまま**（`master` を明示的に固定する）
-  ③**既定の非変更**（`PresetManagerDialog(app)` は前面維持も App）
-  ④**phase 14 / 15 の非退行**
-  ⑤**変異検査 2 件**（`transient_parent` を渡さない / `grab_modal` の第 2 引数を戻す）で
-  **必ず fail すること**を確認する。
-- その後: task_04（統合確認 + `deep-reviewer` + `codex-reviewer` + **実機目視 2 項目**）→
-  task_05（正本反映。**`spec_detail/` の改訂は無い見込み**）。
+- **【最優先】phase 16 task_04 を `/task_new` で起票する**（`tasks/task_04_integration.md`）。
+  内容 = ①**統合確認**（`tests` / `tests_ui` 全体 + `smoke_app` + 主要モジュールの単独実行を `verifier`）
+  ②**二次レビュー = `deep-reviewer` + `codex-reviewer`**（phase.md「レビュー方針」の固有観点:
+  役割の混同 / 既定の扱いの非対称 / phase 14 との干渉 / 既存アサーションの非改変 / スコープ逸脱）
+  ③**ユーザーによる実機目視 2 項目** = **①アクション編集を掴んで動かしてもプリセット編集が
+  前面に残る**（v0.1 で確認された症状が消えていること）**②プリセット編集 → 上書き確認で
+  上書き確認が前面に残る**（**この経路は未確認のまま実装した**ので必ず見る）
+  ④`reviewer` の参考指摘（`wait_window` のクラス patch）の要否判定。
+- その後: task_05（正本反映。**`spec_detail/` の改訂は無い見込み**・`codebase_map.md` のみ）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（task_02 は全確認 pass・`reviewer` 完了可）。
+- **なし**（task_03 は全確認 pass・変異検査 2 件も期待どおり・`reviewer` 完了可）。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**
