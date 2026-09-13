@@ -4,69 +4,79 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-13T07:00:00
+last_updated: 2026-09-13T08:10:00
 phase: `instructions/phase/16_dialog_transient_parent`（**進行中**）。
 主入力 = 暫定仕様 14（**v0.4**・ユーザー確定済）。番号対応: phase 16 / 暫定 14 / decisions 16。
-**phase 16: task_01〜03 完了 / task_04・05 未着手**。**phase 15 は完了**（判断は `decisions_archive/15`）。
+**phase 16: task_01〜03 完了 / task_04 進行中（実機目視のみ未了）/ task_05 未着手**。**phase 15 は完了**（判断は `decisions_archive/15`）。
 last_commit_location: `claude/task-03-progression-1c3627` @ `0beb1b4`（phase 15 task_05）。
-**phase 16 の起票は `c056293` / task_01 は `2f09adf` / task_02 は `d8cd29c`**。
-**task_03 は未コミット**（`/task_commit` 待ち）。
+**phase 16 は `c056293`（起票）/ `2f09adf`（task_01）/ `d8cd29c`（task_02）/ `187907f`（task_03）**。
+**task_04 の中間コミットは `f15261f`**（統合確認・二次レビューまで。**実機目視は未了**）。
+実機目視の結果を `integration_result.md` §5 へ書いたら追加でコミットする。
 **phase 15 までは main へマージ済**（ユーザーが実施・2026-09-13）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 16 task_03（受け入れ条件のテスト）完了・green・`reviewer` 完了可。次は task_04（統合確認 + 二次レビュー + 実機目視）**。
-mode: completed
+focus: **phase 16 task_04（統合確認 + 二次レビュー + 実機目視）進行中。統合確認・二次レビュー・指摘処理は完了し、残りは**ユーザーの実機目視 6 項目**のみ**。
+mode: blocked
 
 ## last_action
-ts: 2026-09-13T07:00:00
+ts: 2026-09-13T08:10:00
 who: main
 summary: |
-  【**phase 16 task_03 完了**】受け入れ条件のテスト **3 本**を追加。**production は無変更**。
-  - **T1 / T2 = 新規 `tests_ui/test_dialog_transient_parent.py`**
-    （アクション編集から開いたプリセット編集の前面維持 / 既定の非変更）。
-  - **T3 = 既存 `tests_ui/test_nested_modal_grab.py` へ追加**（上書き確認の前面維持）。
-    **新規ファイルへ移すと `config_service` の patch 足場と窓の走査足場を 40 行規模で複製する**ため、
-    既存ファイルの足場を再利用した（`reviewer` も妥当と判定）。**既存アサーションは無改変・追加のみ**。
-  - **【観測点の是正が本タスクの要点】** task_01 / task_02 の変異検査で、
-    **呼び出し引数を見るだけの検査は空振りする**ことが分かっていた。
-    本タスクは**実際の `wm_transient()` を観測**する。
-    **戻り値は `Tcl_Obj` でウィジェットではないため `assertIs` は不可・`str()` 比較が必須**（実測）。
-    **所有関係（`master is app`）も各テストで固定**し、役割 1 を動かしていない証拠にした。
-  - **変異検査 2 件とも期待どおり fail**（これで検出力の穴が塞がった）:
-    M1 呼び出しから `transient_parent=self` を外す → T1 が fail（`'.' != '.!actiondialog'`）/
-    M2 `grab_modal` の第 2 引数を `self._app` へ戻す → T3 が fail（`'.' != '.!presetmanagerdialog7'`）。
-  - **`reviewer` = 完了可**。**参考指摘 1 件（非ブロッキング・記録のみ）**:
-    T3 は `tk.Toplevel.wait_window` を**クラス単位で patch**しており対象を絞っていない。
-    現状は当該経路で `wait_window` を呼ぶ窓が 1 個しかないため誤検出しないが、
-    **将来同じ文脈で別の `Toplevel.wait_window` が増えると壊れやすい**。
+  【**phase 16 task_04 進行中（実機目視待ち）**】統合確認・二次レビュー・指摘処理まで完了。
+  記録は `instructions/phase/16_dialog_transient_parent/integration_result.md`（**判定の正**）。
+  - **統合確認**: compile clean / `tests` 417 pass・skip 7 / `tests_ui` **324 pass** / smoke pass /
+    4 モジュールとも単独実行で pass。差分は production 3 + テスト 3 ファイル（**production は実質 6 行**）。
+  - **二次レビュー**: `deep-reviewer` = **採用（完了可・ブロッキングなし）** /
+    `codex-reviewer` = **指摘なし**（focus text は渡らない仕様。観点指定は task_05 の敵対的レビューで回収）。
+  - **【切り分け・重要】`tests_ui` 一括実行が約 3 割で 5 件 fail する事象を検出したが
+    phase 16 由来ではない**。落ちるのは phase 15 の `test_dialog_teardown_flows` で、
+    `test_t2_escape_resumes_quarantine_once` が **Escape の配送を取りこぼす**と
+    カウンタが 1 残り**後続 4 件が連鎖**する。**実行順は当該モジュールが先**（5 番目）で
+    phase 16 の新規モジュールは後（6 番目）。**実測**: 現在・通常負荷で 12 回 pass /
+    現在・CPU 負荷下で 6 回中 1 回 fail / **phase 15 時点（`0beb1b4`）でも負荷下 6 回中 2 回 fail**。
+    → **ユーザー判定で [idea_18] へ分離**（本フェーズは記録のみ）。
+  - **【自分の誤りを検出】暫定仕様 §1-④ の受容根拠「UI からは到達しない」は誤り**。
+    `PresetManagerDialog` は `WM_DELETE_WINDOW` を持たない（grep 0 件）ため
+    **上書き確認を出したまま × で閉じる操作は到達可能**。**受容の結論は変えず根拠を訂正**（task_05）。
+    あわせて**実機目視へ 2 項目追加**（非 LIFO / 最小化 → 復元）。
+  - **指摘 6 件を処理**: 修正して採用 2（受容根拠の訂正 / `transient_parent` の契約を docstring へ 1 行）、
+    保留 2（既定の設計・`wait_window` のクラス patch はユーザー判断で現状維持）、
+    採用 2（`codebase_map.md` の更新先は **`modal.py` の節**・目視項目の追加）。
 result_files:
-  - tests_ui/test_dialog_transient_parent.py（新規・2 本）
-  - tests_ui/test_nested_modal_grab.py（+24・追加のみ）
-  - instructions/phase/16_dialog_transient_parent/tasks/task_03_acceptance_tests.md（新規）
+  - instructions/phase/16_dialog_transient_parent/integration_result.md（新規・判定の正）
+  - instructions/phase/16_dialog_transient_parent/tasks/task_04_integration.md（新規）
+  - instructions/backlog/idea_18_escape_delivery_flaky_test.md（新規）+ INDEX.md へ 1 行
 verified:
   compile: clean
   tests: pass 417（skip 7）
-  tests_ui: **pass 324**（321 + 新規 3）
+  tests_ui: pass 324（**負荷下のみ不安定・idea_18**）
   smoke: pass
-  mutation: **M1 / M2 とも期待どおり fail**（復元後 `git diff keyseq/` 空を確認）
-  review: **`reviewer` → 完了可（参考指摘 1 件）**
+  review: **`deep-reviewer` → 採用 / `codex-reviewer` → 指摘なし**
+  manual: **未実施（6 項目・ユーザー待ち）**
 
 ## next_action
-- **【最優先】phase 16 task_04 を `/task_new` で起票する**（`tasks/task_04_integration.md`）。
-  内容 = ①**統合確認**（`tests` / `tests_ui` 全体 + `smoke_app` + 主要モジュールの単独実行を `verifier`）
-  ②**二次レビュー = `deep-reviewer` + `codex-reviewer`**（phase.md「レビュー方針」の固有観点:
-  役割の混同 / 既定の扱いの非対称 / phase 14 との干渉 / 既存アサーションの非改変 / スコープ逸脱）
-  ③**ユーザーによる実機目視 2 項目** = **①アクション編集を掴んで動かしてもプリセット編集が
-  前面に残る**（v0.1 で確認された症状が消えていること）**②プリセット編集 → 上書き確認で
-  上書き確認が前面に残る**（**この経路は未確認のまま実装した**ので必ず見る）
-  ④`reviewer` の参考指摘（`wait_window` のクラス patch）の要否判定。
-- その後: task_05（正本反映。**`spec_detail/` の改訂は無い見込み**・`codebase_map.md` のみ）。
+- **【最優先・ユーザー作業】実機目視 6 項目**（`integration_result.md` §5）。
+  `../../../.venv/Scripts/python.exe main.py` で起動して確認する:
+  ①アクション編集を掴んで動かしてもプリセット編集が前面に残る（**症状が消えたことの確認**）
+  ②プリセット編集を掴んでも上書き確認が前面に残る（**未確認のまま実装した経路**）
+  ③メニューからのプリセット編集が従来どおり ④プリセット追加を閉じて親のモーダル性が戻る
+  ⑤**上書き確認を出したままプリセット編集を × で閉じ**、確認が残るか / その後 App を前面に
+  上げて確認が隠れないか（**受容根拠の訂正に関わる**）⑥入れ子を開いたまま App を最小化 → 復元。
+- 結果を `integration_result.md` §5 へ記入 → **task_04 を commit** → task_05 へ。
+- **task_05（最終・正本反映）の申し送り 3 件**:
+  ①**暫定仕様 §1-④ の受容根拠を訂正してから凍結する**（「UI から到達しない」→
+  「到達しうるが失うのは前後指定だけで発生条件が狭い」）
+  ②**`transient_parent` の契約を docstring へ 1 行**（生存中の呼び出し元ウィンドウを渡す）
+  ③**`codebase_map.md` の更新先は `modal.py` の節**（`PresetManagerDialog` に引数の記載は無い）。
+  加えて `decisions_archive/16` 作成 / `current.md` 完了記載 / idea_17 を `INDEX_done.md` へ /
+  `/refactor_check` / **`deep-reviewer` + `codex-adversarial-reviewer`**。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **なし**（task_03 は全確認 pass・変異検査 2 件も期待どおり・`reviewer` 完了可）。
+- **実機目視 6 項目が未実施**（ユーザー作業）。**これが揃うまで task_04 は完了扱いにしない**。
+- 自動確認は全て pass。**一括実行の不安定は phase 16 由来ではない**と切り分け済（idea_18）。
 
 ## resume_hints
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**
