@@ -61,7 +61,13 @@ def format_preset_manager_source_labels(
 
 
 class PresetManagerDialog(tk.Toplevel):
-    """App.data['hotkey_presets'] を編集する"""
+    """App.data['hotkey_presets'] を編集する
+
+    `transient_parent` には**生存中の呼び出し元ウィンドウ**を渡す（省略時は `parent`）。
+    破棄済みのウィジェットを渡すと初期化が `TclError` で中断し、**grab 未取得・フック停止のまま**
+    窓が残る（フック停止は `_init_preset_manager_state` で `grab_modal` より先に行われ、
+    解除は破棄まで走らない）。
+    """
     def __init__(self, parent: App, title: str = "プリセット編集", *,
                  transient_parent: tk.Misc | None = None):
         super().__init__(parent)

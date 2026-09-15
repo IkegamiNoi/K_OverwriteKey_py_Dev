@@ -43,7 +43,11 @@ class HotkeyPresetsIo:
 
     def confirm_overwrite(self, *, stored_path: str, existing: list | None,
                           transient_parent: tk.Misc) -> str:
-        """個別プリセットの上書き確認を 3 択で表示する。"""
+        """個別プリセットの上書き確認を 3 択で表示する。
+
+        `transient_parent` には**生存中の呼び出し元ウィンドウ**を渡す（ネストして開くため必須）。
+        破棄済みのウィジェットを渡すと初期化が `TclError` で中断し、grab 未取得のまま窓が残る。
+        """
         result = {"choice": "cancel"}
         dialog = tk.Toplevel(self._app)
         dialog.title("専用プリセットの上書き確認")

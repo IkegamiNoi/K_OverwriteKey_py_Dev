@@ -4,81 +4,76 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-13T08:10:00
-phase: `instructions/phase/16_dialog_transient_parent`（**進行中**）。
-主入力 = 暫定仕様 14（**v0.4**・ユーザー確定済）。番号対応: phase 16 / 暫定 14 / decisions 16。
-**phase 16: task_01〜03 完了 / task_04 進行中（実機目視のみ未了）/ task_05 未着手**。**phase 15 は完了**（判断は `decisions_archive/15`）。
-last_commit_location: `claude/task-03-progression-1c3627` @ `0beb1b4`（phase 15 task_05）。
-**phase 16 は `c056293`（起票）/ `2f09adf`（task_01）/ `d8cd29c`（task_02）/ `187907f`（task_03）**。
-**task_04 の中間コミットは `f15261f`**（統合確認・二次レビューまで。**実機目視は未了**）。
-実機目視の結果を `integration_result.md` §5 へ書いたら追加でコミットする。
-**phase 15 までは main へマージ済**（ユーザーが実施・2026-09-13）。
+last_updated: 2026-09-15T12:00:00
+phase: `instructions/phase/16_dialog_transient_parent`（**完了・未コミット**）。
+主入力 = 暫定仕様 14（**v0.5・凍結済**）。番号対応: phase 16 / 暫定 14 / decisions 16。
+**phase 16: task_01〜05 すべて完了**（判断は `decisions_archive/16_dialog_transient_parent.md`）。
+**次フェーズは `17_<topic>`（未起票）**。
+last_commit_location: `claude/preset-edit-overwrite-confirm-a1afa5` @ `0faea8c`（phase 16 task_04）。
+**task_05 の成果は未コミット**（`/task_commit` 待ち）。**phase 15 までは main へマージ済**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 16 task_04（統合確認 + 二次レビュー + 実機目視）進行中。統合確認・二次レビュー・指摘処理は完了し、残りは**ユーザーの実機目視 6 項目**のみ**。
-mode: blocked
+focus: **phase 16 完了（task_05 まで実施済・未コミット）。次は task_05 のコミットと phase 17 の起票。**
+mode: completed
 
 ## last_action
-ts: 2026-09-13T08:10:00
+ts: 2026-09-15T12:00:00
 who: main
 summary: |
-  【**phase 16 task_04 進行中（実機目視待ち）**】統合確認・二次レビュー・指摘処理まで完了。
-  記録は `instructions/phase/16_dialog_transient_parent/integration_result.md`（**判定の正**）。
-  - **統合確認**: compile clean / `tests` 417 pass・skip 7 / `tests_ui` **324 pass** / smoke pass /
-    4 モジュールとも単独実行で pass。差分は production 3 + テスト 3 ファイル（**production は実質 6 行**）。
-  - **二次レビュー**: `deep-reviewer` = **採用（完了可・ブロッキングなし）** /
-    `codex-reviewer` = **指摘なし**（focus text は渡らない仕様。観点指定は task_05 の敵対的レビューで回収）。
-  - **【切り分け・重要】`tests_ui` 一括実行が約 3 割で 5 件 fail する事象を検出したが
-    phase 16 由来ではない**。落ちるのは phase 15 の `test_dialog_teardown_flows` で、
-    `test_t2_escape_resumes_quarantine_once` が **Escape の配送を取りこぼす**と
-    カウンタが 1 残り**後続 4 件が連鎖**する。**実行順は当該モジュールが先**（5 番目）で
-    phase 16 の新規モジュールは後（6 番目）。**実測**: 現在・通常負荷で 12 回 pass /
-    現在・CPU 負荷下で 6 回中 1 回 fail / **phase 15 時点（`0beb1b4`）でも負荷下 6 回中 2 回 fail**。
-    → **ユーザー判定で [idea_18] へ分離**（本フェーズは記録のみ）。
-  - **【自分の誤りを検出】暫定仕様 §1-④ の受容根拠「UI からは到達しない」は誤り**。
-    `PresetManagerDialog` は `WM_DELETE_WINDOW` を持たない（grep 0 件）ため
-    **上書き確認を出したまま × で閉じる操作は到達可能**。**受容の結論は変えず根拠を訂正**（task_05）。
-    あわせて**実機目視へ 2 項目追加**（非 LIFO / 最小化 → 復元）。
-  - **指摘 6 件を処理**: 修正して採用 2（受容根拠の訂正 / `transient_parent` の契約を docstring へ 1 行）、
-    保留 2（既定の設計・`wait_window` のクラス patch はユーザー判断で現状維持）、
-    採用 2（`codebase_map.md` の更新先は **`modal.py` の節**・目視項目の追加）。
+  【**phase 16 task_05（正本反映）完了**】実機目視の結果確定 → 正本反映 → 完了判定レビュー 2 本 → 指摘処理まで実施。
+  - **実機目視（ユーザー）**: 1〜4 問題なし。**5・6 は操作自体が実行不能**（grab を持つ子がいる間は
+    背面ダイアログの × も最小化も押せない）。これは**非 LIFO が UI から到達しないことの裏付け**で、
+    task_04 の**指摘 1「受容根拠が誤り」は取り下げ**（暫定仕様 §1-④ の文言は維持 + 実測を追記）。
+  - **正本反映**: `codebase_map.md` の `modal.py` 節へ第 2 引数の意味 / `transient_parent` の契約を
+    docstring 2 箇所（**`PresetManagerDialog` 側は「grab 未取得・フック停止のまま」まで書く**）/
+    暫定仕様 14 を **v0.5 で凍結**（参照行 `:311` → `:335` を 3 箇所修正）。
+  - **【仕様変更・ユーザー採用 2026-09-15】`features.md` §4.6 へ前面維持の 2 条項を追加**
+    （`/spec_update` 実施）。起票時は「正本の改訂なし」だったが、`deep-reviewer` 指摘 1
+    （正本に前面維持の規定が **grep 0 件**・受容した制限の記録先が凍結文書だけになる）を採用。
+  - **完了判定レビュー**: `codex-adversarial-reviewer` = **high 1 件**（idea_19 を「phase 16 由来ではない」と
+    断定した根拠不足）→ **撤回し、ユーザーが変更していないネスト経路〔プリセット編集 → プリセット追加〕
+    でも再現することを実機確認 → phase 16 由来ではないと再確定**。
+    `deep-reviewer` = **条件付き（完了可）**。中 3 件のうち 2 件を修正（`codebase_map.md` の既定の説明が
+    `grab_modal` の実装と食い違い / docstring の欠落）、低 3 件も修正、低 1 件は既存慣行どおり据え置き。
+  - **フェーズ完了処理**: `decisions_archive/16` 作成 + `decisions.md` 索引 / `current.md`（アクティブなし・
+    次採番 17）/ idea_17 を `INDEX_done.md` へ移動 / **idea_19 を新規起票**（Win+D 復元不能）/
+    **`/refactor_check` = 不要**（M1〜M6 該当なし）。
 result_files:
-  - instructions/phase/16_dialog_transient_parent/integration_result.md（新規・判定の正）
-  - instructions/phase/16_dialog_transient_parent/tasks/task_04_integration.md（新規）
-  - instructions/backlog/idea_18_escape_delivery_flaky_test.md（新規）+ INDEX.md へ 1 行
+  - instructions/common/spec_detail/features.md（**正本改訂**・§4.6 に 2 条項）
+  - instructions/common/codebase_map.md（`modal.py` 節）
+  - keyseq/presentation/dialogs/preset_manager.py / controllers/config_io/hotkey_presets_io.py（docstring のみ）
+  - instructions/history/14_dialog_parent_and_app_separation.md（v0.5 凍結）
+  - instructions/phase/16_dialog_transient_parent/{phase.md, integration_result.md, tasks/task_05_spec_promotion.md（新規）}
+  - .claude_data/state/decisions_archive/16_dialog_transient_parent.md（新規）/ decisions.md
+  - instructions/phase/current.md / instructions/backlog/{INDEX.md, INDEX_done.md, idea_19_minimize_restore_with_child_grab.md（新規）}
 verified:
   compile: clean
-  tests: pass 417（skip 7）
-  tests_ui: pass 324（**負荷下のみ不安定・idea_18**）
-  smoke: pass
-  review: **`deep-reviewer` → 採用 / `codex-reviewer` → 指摘なし**
-  manual: **未実施（6 項目・ユーザー待ち）**
+  tests_ui: pass 324（docstring 修正後に再実行）
+  tests: pass 417（skip 7・task_04 時点。task_05 は tests に影響しない）
+  review: **`codex-adversarial-reviewer` → high 1 件対応済 / `deep-reviewer` → 条件付き（指摘対応済）**
+  manual: **1〜4 OK / 5・6 は操作不能（到達不能の裏付け）**
+  refactor_check: **不要**（M1〜M6 該当なし・対象 3 ファイル +18/-7）
 
 ## next_action
-- **【最優先・ユーザー作業】実機目視 6 項目**（`integration_result.md` §5）。
-  `../../../.venv/Scripts/python.exe main.py` で起動して確認する:
-  ①アクション編集を掴んで動かしてもプリセット編集が前面に残る（**症状が消えたことの確認**）
-  ②プリセット編集を掴んでも上書き確認が前面に残る（**未確認のまま実装した経路**）
-  ③メニューからのプリセット編集が従来どおり ④プリセット追加を閉じて親のモーダル性が戻る
-  ⑤**上書き確認を出したままプリセット編集を × で閉じ**、確認が残るか / その後 App を前面に
-  上げて確認が隠れないか（**受容根拠の訂正に関わる**）⑥入れ子を開いたまま App を最小化 → 復元。
-- 結果を `integration_result.md` §5 へ記入 → **task_04 を commit** → task_05 へ。
-- **task_05（最終・正本反映）の申し送り 3 件**:
-  ①**暫定仕様 §1-④ の受容根拠を訂正してから凍結する**（「UI から到達しない」→
-  「到達しうるが失うのは前後指定だけで発生条件が狭い」）
-  ②**`transient_parent` の契約を docstring へ 1 行**（生存中の呼び出し元ウィンドウを渡す）
-  ③**`codebase_map.md` の更新先は `modal.py` の節**（`PresetManagerDialog` に引数の記載は無い）。
-  加えて `decisions_archive/16` 作成 / `current.md` 完了記載 / idea_17 を `INDEX_done.md` へ /
-  `/refactor_check` / **`deep-reviewer` + `codex-adversarial-reviewer`**。
+- **task_05 を `/task_commit` でコミットする**（未コミット。`git status` の 13 ファイル）。
+- その後 **phase 17 を `/phase_start` で起票**（候補は `instructions/backlog/INDEX.md`。
+  モーダル領域の残件は `current.md` の「直近の一連の作業が扱っている領域」を参照）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **実機目視 6 項目が未実施**（ユーザー作業）。**これが揃うまで task_04 は完了扱いにしない**。
-- 自動確認は全て pass。**一括実行の不安定は phase 16 由来ではない**と切り分け済（idea_18）。
+- なし（phase 16 は完了。コミットのみ残）。
 
 ## resume_hints
+- **【phase 16 の成果は正本が正】前面維持（`transient`）の規定は `spec_detail/features.md` §4.6**
+  （「ネストした子は呼び出し元より前面に留まる」「呼び出し元を先に閉じたら前面維持の指定は戻らないが
+  生存と grab は変わらない」）+ **`codebase_map.md` の `presentation/modal.py` 節**（第 2 引数の意味。
+  **渡さなければ `transient` を設定しない**。「App より前」になるのは `PresetManagerDialog` の既定
+  `parent` の話）。**暫定仕様 14 は凍結済で条項の根拠に引かない**。
+  **未解決の関連問題 = [idea_19]**（子が grab を持つ状態で Win+D するとアプリを再表示できない。
+  **経路を問わず再現する既存問題**で phase 16 由来ではないことを実機確認済）/
+  **[idea_18]**（`tests_ui` の Escape 依存テストが負荷下で flaky）。
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**
   （`instructions/agent_mode` ・ `instructions/save_mode` から移動。旧パスは存在しない）。
   **`.claude/` 配下または `CLAUDE.md` を編集する前に `.claude_data/modes/README.md` を読む**

@@ -1,10 +1,19 @@
 # 暫定仕様 14: ネストしたダイアログの前面維持（dialog_transient_parent）
 
-> 状態: **未凍結・v0.4・ユーザー確定済・実装着手可・主入力**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済（2026-09-15・phase 16 完了・v0.5）**。**経緯の参照用**であり、
+> **本書の条項を実装の根拠に引かない**。
+> **正本 = `spec_detail/features.md` §4.6「モーダルダイアログの作法」（前面維持の 2 条項を追加）**
+> **+ `codebase_map.md`（`presentation/modal.py` の節。`grab_modal` の第 2 引数の意味）**。
+> 昇格時の判断は `.claude_data/state/decisions_archive/16_dialog_transient_parent.md`。
 > 起票元: [idea_17](../backlog/idea_17_action_dialog_preset_manager_parent.md)
 > （phase 14 の受け入れ条件 15・暫定仕様 12 §6-5 で「フェーズ外・独立 idea」とユーザーが確定した分離項目）。
-> **presentation 限定・スキーマ不変・正本の改訂なし**。
+> **presentation 限定・スキーマ不変**（正本は `features.md` §4.6 のみ改訂）。
+> 番号対応: phase 16 / 暫定 14 / decisions 16。
+>
+> **v0.5（2026-09-15・凍結）**: 完了判定前レビューを受け、**`features.md` §4.6 へ前面維持の
+> 2 条項を追加**（§7・ユーザー採用）。実機目視の結果も反映。**§1-④ の受容根拠 1「UI からは到達しない」は
+> 実機で裏付けられた**ため**維持**（task_04 の指摘 1「根拠が誤り」は**取り下げ**。詳細は
+> `instructions/phase/16_dialog_transient_parent/integration_result.md` §5）。参照行を `:311` → `:335` へ更新。
 >
 > **v0.4（2026-09-13・ユーザー確定）**: §5 の確認事項を**推奨どおり確定**し §2 へ移した。
 > **非 LIFO で閉じたときに前面維持の指定が消える点（§1-④）も受容で確定**。**設計は確定・実装着手可**。
@@ -66,8 +75,9 @@ mid.destroy() 後 → A: 生存 / B: 破棄済み
 **正本 `features.md:96-98` の ③「開いた順と違う順で閉じた（内側がまだ開いている。内側のモーダル性を
 優先する）」が、この連鎖と衝突する**。しかも `features.md:95` が例示する組
 （**プリセットマネージャ → 上書き確認**）そのものが該当する。
-phase 14 の `tests_ui/test_nested_modal_grab.py:311`
-（`test_non_lifo_manager_destroy_does_not_steal_confirmation_grab`）はこの契約を検証している。
+phase 14 の `tests_ui/test_nested_modal_grab.py:335`
+（`test_non_lifo_manager_destroy_does_not_steal_confirmation_grab`。**v0.5 で行番号を更新**）は
+この契約を検証している。
 → **役割 1 は動かさない**（§2）。
 
 **③ 役割 2 の付け替えは grab 復元に影響しない**
@@ -89,7 +99,12 @@ a.destroy() 後                        → b は生存・表示されたまま /
 **受容する**。根拠は 3 つ:
 
 - **UI からは到達しない** — 上書き確認が grab を持つ間、プリセット編集は操作できない。
-  この経路を通せるのは**プログラムから破棄するテストだけ**（`test_nested_modal_grab.py:311`）。
+  この経路を通せるのは**プログラムから破棄するテストだけ**
+  （`test_nested_modal_grab.py:335` = `test_non_lifo_manager_destroy_does_not_steal_confirmation_grab`）。
+  **実機実測（2026-09-15）**: 上書き確認を出した状態では**背面のプリセット編集は × を含めて操作できず**、
+  非 LIFO で閉じる操作自体が実行不能だった（タイトルバーの × も grab に阻まれて届かない）。
+  **`WM_DELETE_WINDOW` が未登録＝× で直接破棄される**（コード上は事実）ことは、
+  **この経路が UI から到達可能であることを意味しない**。
 - **正本 ③ の保証（内側が残る・モーダル性を優先する）は守られる** — 失うのは前後の指定だけで、
   **生存と grab は変わらない**。
 - **塞ぐには新しい仕組みが要る** — 相手の破棄を捕まえて前面維持を App へ張り直す結線が必要になり、
@@ -217,7 +232,7 @@ def confirm_overwrite(self, *, stored_path: str, existing: list | None,
    **既存テストの変更は §3-3 の引数契約の追随 4 件のみ**で、
    **grab・生存・復元先・`master` のアサーションが弱まっていない**。
 6b. **非 LIFO で閉じても残る窓が壊れない** — 上書き確認を残したままプリセット編集を破棄しても、
-   **上書き確認は生存し grab を保つ**（既存 `test_nested_modal_grab.py:311` が担保）。
+   **上書き確認は生存し grab を保つ**（既存 `test_nested_modal_grab.py:335` が担保）。
    **前面維持の指定が消えることは受容済**（§1-④）。
 7. 既存の `tests` / `tests_ui` が全て pass し `smoke_app` が通る
    （`confirm_overwrite` の呼び出し固定 3 件の追随を含む）。
@@ -237,8 +252,11 @@ def confirm_overwrite(self, *, stored_path: str, existing: list | None,
 
 ## §7 正本反映（フェーズ末昇格・予定）
 
-- **`spec_detail/` の改訂なし** — 正本に `transient` 親の規定は無く、役割 1 を動かさないため
-  `features.md` ③ の射程も変わらない。
+- **`features.md` §4.6 へ 2 条項を追加**（**v0.5 で改訂。当初は「改訂なし」の予定だった**）。
+  「ネストして開いた子は呼び出し元より前面に留まる」「呼び出し元を先に閉じたら前面維持の指定は
+  戻らない（生存と grab は変わらない）」。**役割 1 を動かさないため `features.md` ③ の射程は不変**。
+  当初の非改訂根拠「正本に `transient` 親の規定は無い」は、**規定が無いこと自体が追加すべき理由**
+  であって非改訂の根拠にならない（phase 16 完了判定前レビューの指摘 1・ユーザー採用 2026-09-15）。
 - **`codebase_map.md`** — `PresetManagerDialog` の引数が 1 つ増えるため、記述があれば 1 行更新する。
 - 実装ファイル: `dialogs/preset_manager.py` / `dialogs/action_dialog.py` /
   `controllers/config_io/hotkey_presets_io.py`。

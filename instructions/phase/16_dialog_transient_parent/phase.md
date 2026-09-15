@@ -11,7 +11,8 @@
 （ユーザーが実機で確認・2026-09-13）。原因は、ネストしたダイアログが
 **「App より前」としか指定されていない**こと。
 
-**対象レイヤは presentation のみ。スキーマ変更なし。正本の改訂なし。**
+**対象レイヤは presentation のみ。スキーマ変更なし。**
+**正本は `features.md` §4.6 のみ改訂**（起票時は「改訂なし」の見込み。完了判定前レビュー由来・2026-09-15）。
 **変えるのは「前面維持の指定」だけで、「所有関係」と「App 参照」は動かさない**
 （3 つの役割の切り分けは暫定仕様 14 §1）。
 
@@ -67,7 +68,7 @@
 4. `keyseq/presentation/controllers/config_io/hotkey_presets_io.py`（`:44-47` と `:82`）
 5. `keyseq/presentation/modal.py`（`grab_modal` の第 2 引数の意味。**変更しない**）
 6. `tests_ui/test_nested_modal_grab.py`（`:185` の追随対象 / `:262-276` の静的検査 /
-   `:311` の非 LIFO テスト）
+   `:311`〔現 `:335`〕の非 LIFO テスト）
 7. `tests_ui/test_app_ui_flows.py:1201`・`:1261`・`:1313`（追随対象）
 
 **読まない**: `keyseq/application/` / `keyseq/domain/` / `keyseq/infrastructure/`。
@@ -84,7 +85,8 @@
 4. **task_04**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ **二次レビュー**
    （`deep-reviewer` + `codex-reviewer`）+ **ユーザーによる実機目視**
    （①アクション編集を掴んで動かしてもプリセット編集が前面に残る ②上書き確認が前面に残る）。
-5. **task_05（最終・正本反映）**: **正本 `spec_detail/` の改訂は無い見込み**。
+5. **task_05（最終・正本反映）**: 起票時は**正本 `spec_detail/` の改訂は無い見込み**だったが、
+   **完了判定前レビューを受け `features.md` §4.6 へ前面維持の 2 条項を追加**（ユーザー採用 2026-09-15）。
    `codebase_map.md` の更新（引数が 1 つ増える分）+ **暫定仕様 14 の凍結** +
    `.claude_data/state/decisions_archive/16_dialog_transient_parent.md` 作成 +
    `instructions/phase/current.md` の完了記載 + `backlog/INDEX.md` の idea_17 行を

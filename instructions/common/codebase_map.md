@@ -253,6 +253,12 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
 - modal.py（presentation 直下）: `grab_modal(window, parent=None)` = モーダル化と**破棄時の grab 復元**
   （`features.md` §4.6「モーダルダイアログの作法」）。**`dialogs/` と `controllers/config_io/` の
   すべてのモーダルがここを通す**（`grab_set` / `transient` を直呼びしない）。
+  - **第 2 引数 = 前面維持の相手**（`transient`）。**ネストして開く場合は呼び出し元のダイアログを渡す**
+    （App を渡すと「App より前」としか指定されず、**呼び出し元を掴んで動かしたとき前に出る**）。
+    **渡さなければ `transient` を設定しない**（既定 `None`。production の 13 箇所はすべて渡している）。
+    **所有関係（`master`）は App のままで、この引数では変わらない**。
+    渡す側は `PresetManagerDialog(..., transient_parent=...)`（**省略時は `parent` = App**）/
+    `confirm_overwrite(..., transient_parent=...)`（キーワード必須）
   - **直前の grab 保持者を記録し `<Destroy>` イベントで戻す**（`destroy()` override ではないので
     × 閉じでも働く）。**記録はクロージャに持ちウィジェット属性を増やさない**
     （`object.__new__` で作られたインスタンスでも壊れない）
