@@ -7,8 +7,18 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（phase 16 完了・2026-09-15）。次は **`17_<topic>`** を起票する
-  （`/phase_start`）。着手候補は「次フェーズ候補」節と `instructions/backlog/INDEX.md`。
+- **アクティブなフェーズ: [17_minimize_grab_custody](17_minimize_grab_custody/phase.md)**
+  （2026-09-16 起票・**task_01〜05 未着手**）。
+  **ダイアログを開いたままアプリを最小化すると復元できない**欠陥の是正
+  （**最小化の間だけ grab を預かる**）。**presentation 層のみ・スキーマ不変**。
+  - 主入力（暫定仕様）: [15_minimize_grab_custody](../history/15_minimize_grab_custody.md)
+    （**v0.4・ユーザー確定済・実装着手可**）。番号対応: phase 17 / 暫定 15 / decisions 17。
+  - 起票元: [idea_19](../backlog/idea_19_minimize_restore_with_child_grab.md)（phase 16 の実機目視から分離）。
+  - 確定（ユーザー 2026-09-16）: **預かるのは非表示になった保持者だけ** /
+    **復元は WM 任せ**（`deiconify` を呼ばない）/ **保持者が消えていたら生存かつ表示中の最内へ張り直す**
+    （`modal.py` に台帳を足すことを許す）/ **stdlib ダイアログは対象外**（症状は残す）/
+    正本は **`features.md` §4.6 の `:92` 限定 + 条項追加**。
+  - 根拠の再現手段: `17_minimize_grab_custody/diagnostics/`（**production コードではない**）。
 - **直近の一連の作業が扱っている領域 = モーダルダイアログの作法（モーダル性と後始末）**。
   窓口は 2 つ。**`presentation/modal.py` の `grab_modal`**（モーダル化と破棄時の grab 復元）と
   **`HookController.suspend_hook_for_dialog(window)`**（フック停止と破棄時の自動解除。
@@ -49,8 +59,8 @@
 
 ## 次採番
 
-- **phase 16 は 2026-09-15 完了**。次フェーズは **`17_<topic>`**
-  （欠番が出た場合はここに明記し、再利用しない）。
+- **phase 16 は 2026-09-15 完了 / phase 17 は 2026-09-16 起票（進行中）**。
+  次フェーズは **`18_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
@@ -60,8 +70,9 @@
   11=config_service の公開面〔**v0.3・凍結**〕/
   12=ネストしたモーダルの grab 復元〔**v0.5・凍結**〕/
   13=ダイアログ後始末の確実な実行〔**v0.4・凍結**〕/
-  14=ネストしたダイアログの前面維持〔**v0.5・凍結**〕）。
-  次採番は **`15_<topic>`**。
+  14=ネストしたダイアログの前面維持〔**v0.5・凍結**〕/
+  15=最小化中の grab 預かり〔**v0.4・未凍結・phase 17 の主入力**〕）。
+  次採番は **`16_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕）・

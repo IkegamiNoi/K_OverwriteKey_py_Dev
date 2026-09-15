@@ -4,66 +4,56 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-15T12:00:00
-phase: `instructions/phase/16_dialog_transient_parent`（**完了・未コミット**）。
-主入力 = 暫定仕様 14（**v0.5・凍結済**）。番号対応: phase 16 / 暫定 14 / decisions 16。
-**phase 16: task_01〜05 すべて完了**（判断は `decisions_archive/16_dialog_transient_parent.md`）。
-**次フェーズは `17_<topic>`（未起票）**。
-last_commit_location: `claude/preset-edit-overwrite-confirm-a1afa5` @ `0faea8c`（phase 16 task_04）。
-**task_05 の成果は未コミット**（`/task_commit` 待ち）。**phase 15 までは main へマージ済**。
+last_updated: 2026-09-16T01:00:00
+phase: `instructions/phase/17_minimize_grab_custody`（**起票済・task_01 未着手**）。
+主入力 = 暫定仕様 15（**v0.4・ユーザー確定済・実装着手可**）。番号対応: phase 17 / 暫定 15 / decisions 17。
+**phase 16 は完了**（`e54bf0f`・判断は `decisions_archive/16_dialog_transient_parent.md`）。
+last_commit_location: `claude/preset-edit-overwrite-confirm-a1afa5` @ `e54bf0f`（phase 16 task_05）。
+**phase 17 の起票物は未コミット**。**phase 15 までは main へマージ済**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 16 完了（task_05 まで実施済・未コミット）。次は task_05 のコミットと phase 17 の起票。**
-mode: completed
+focus: **phase 17 起票完了（暫定仕様 15 確定済・整合チェック採用）。次は task_01（modal.py の台帳）の定義起票と実装委任。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-15T12:00:00
+ts: 2026-09-16T01:00:00
 who: main
 summary: |
-  【**phase 16 task_05（正本反映）完了**】実機目視の結果確定 → 正本反映 → 完了判定レビュー 2 本 → 指摘処理まで実施。
-  - **実機目視（ユーザー）**: 1〜4 問題なし。**5・6 は操作自体が実行不能**（grab を持つ子がいる間は
-    背面ダイアログの × も最小化も押せない）。これは**非 LIFO が UI から到達しないことの裏付け**で、
-    task_04 の**指摘 1「受容根拠が誤り」は取り下げ**（暫定仕様 §1-④ の文言は維持 + 実測を追記）。
-  - **正本反映**: `codebase_map.md` の `modal.py` 節へ第 2 引数の意味 / `transient_parent` の契約を
-    docstring 2 箇所（**`PresetManagerDialog` 側は「grab 未取得・フック停止のまま」まで書く**）/
-    暫定仕様 14 を **v0.5 で凍結**（参照行 `:311` → `:335` を 3 箇所修正）。
-  - **【仕様変更・ユーザー採用 2026-09-15】`features.md` §4.6 へ前面維持の 2 条項を追加**
-    （`/spec_update` 実施）。起票時は「正本の改訂なし」だったが、`deep-reviewer` 指摘 1
-    （正本に前面維持の規定が **grep 0 件**・受容した制限の記録先が凍結文書だけになる）を採用。
-  - **完了判定レビュー**: `codex-adversarial-reviewer` = **high 1 件**（idea_19 を「phase 16 由来ではない」と
-    断定した根拠不足）→ **撤回し、ユーザーが変更していないネスト経路〔プリセット編集 → プリセット追加〕
-    でも再現することを実機確認 → phase 16 由来ではないと再確定**。
-    `deep-reviewer` = **条件付き（完了可）**。中 3 件のうち 2 件を修正（`codebase_map.md` の既定の説明が
-    `grab_modal` の実装と食い違い / docstring の欠落）、低 3 件も修正、低 1 件は既存慣行どおり据え置き。
-  - **フェーズ完了処理**: `decisions_archive/16` 作成 + `decisions.md` 索引 / `current.md`（アクティブなし・
-    次採番 17）/ idea_17 を `INDEX_done.md` へ移動 / **idea_19 を新規起票**（Win+D 復元不能）/
-    **`/refactor_check` = 不要**（M1〜M6 該当なし）。
+  【**phase 17 起票 + 暫定仕様 15 の確定**】idea_19（最小化するとアプリを復元できない）を
+  調査 → 暫定仕様 → phase 起票まで進めた。**原因は実測で確定済み**。
+  - **原因**: 最小化するとシェルの復元要求が**非表示になった grab 保持者へ向かい**、
+    App には `<Map>` が届かない（診断スクリプトのログで確定）。→ **最小化の間だけ grab を預かる**。
+  - **診断スクリプト 4 本を `17_minimize_grab_custody/diagnostics/` へ同梱**（再実行可能にするため。
+    **production コードではない**）。
+  - **実測で判明した罠 3 つ**: ①**`transient` を持たない窓・呼び出し元を先に破棄された子は
+    最小化で隠れない**（＝預かってはいけない）②**`withdrawn` な窓への `grab_set()` は成功する**
+    （見えない窓が入力を握る）③**最小化中は全窓の `viewable` が 0 になり、phase 14 の
+    `<Destroy>` 復元が発火しない**（保持者が破棄されると復元後に grab 保持者ゼロ）。
+  - **レビュー**: 起票時 `deep-reviewer`（高 3 / 中 4 / 低 5）→ v0.2、確定前
+    `codex-adversarial-reviewer`（高 2 / 中 1）→ v0.4、phase.md の整合チェック `reviewer` = **採用（指摘なし）**。
+  - **ユーザー確定 2 件**: ①保持者が破棄されていたら**生存かつ表示中の最内へ張り直す**
+    （= `modal.py` に台帳を足すことを許す）②正本は **`features.md:92` の限定 + 最小化の条項追加**。
 result_files:
-  - instructions/common/spec_detail/features.md（**正本改訂**・§4.6 に 2 条項）
-  - instructions/common/codebase_map.md（`modal.py` 節）
-  - keyseq/presentation/dialogs/preset_manager.py / controllers/config_io/hotkey_presets_io.py（docstring のみ）
-  - instructions/history/14_dialog_parent_and_app_separation.md（v0.5 凍結）
-  - instructions/phase/16_dialog_transient_parent/{phase.md, integration_result.md, tasks/task_05_spec_promotion.md（新規）}
-  - .claude_data/state/decisions_archive/16_dialog_transient_parent.md（新規）/ decisions.md
-  - instructions/phase/current.md / instructions/backlog/{INDEX.md, INDEX_done.md, idea_19_minimize_restore_with_child_grab.md（新規）}
+  - instructions/history/15_minimize_grab_custody.md（新規・v0.4・**主入力**）
+  - instructions/phase/17_minimize_grab_custody/{phase.md, diagnostics/*}（新規）
+  - instructions/phase/current.md / instructions/backlog/INDEX.md（idea_19 = 着手）
 verified:
-  compile: clean
-  tests_ui: pass 324（docstring 修正後に再実行）
-  tests: pass 417（skip 7・task_04 時点。task_05 は tests に影響しない）
-  review: **`codex-adversarial-reviewer` → high 1 件対応済 / `deep-reviewer` → 条件付き（指摘対応済）**
-  manual: **1〜4 OK / 5・6 は操作不能（到達不能の裏付け）**
-  refactor_check: **不要**（M1〜M6 該当なし・対象 3 ファイル +18/-7）
+  compile: clean（phase 16 task_05 時点。phase 17 はまだコード変更なし）
+  tests_ui: pass 324（同上）
+  review: **deep-reviewer / codex-adversarial-reviewer / reviewer（整合）すべて反映・採用**
 
 ## next_action
-- **task_05 を `/task_commit` でコミットする**（未コミット。`git status` の 13 ファイル）。
-- その後 **phase 17 を `/phase_start` で起票**（候補は `instructions/backlog/INDEX.md`。
-  モーダル領域の残件は `current.md` の「直近の一連の作業が扱っている領域」を参照）。
+- **phase 17 の起票物をコミットする**（`phase 17 起票: ...`）。
+- **task_01 を `/task_new` で起票** → `codex-implementer` へ委任（`agent_selection.md` の既定）。
+  内容 = `keyseq/presentation/modal.py` に**アクティブなモーダルの台帳**を足す
+  （`grab_modal` で追加・`<Destroy>` で除去）。**この時点で挙動は変えない**（台帳は誰も読まない）。
+  テストコードの追加まで含め、**テスト実行は依頼しない**（実測は `verifier`）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- なし（phase 16 は完了。コミットのみ残）。
+- なし。
 
 ## resume_hints
 - **【phase 16 の成果は正本が正】前面維持（`transient`）の規定は `spec_detail/features.md` §4.6**
