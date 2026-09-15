@@ -2,11 +2,15 @@ import tkinter as tk
 import unittest
 from unittest.mock import Mock, patch
 
+from keyseq.presentation import modal
 from keyseq.presentation.modal import grab_modal
 
 
 class ModalGrabTest(unittest.TestCase):
     def setUp(self):
+        registry_patch = patch.object(modal, "_active_modals", [])
+        registry_patch.start()
+        self.addCleanup(registry_patch.stop)
         self.root = tk.Tk()
         self.addCleanup(self.root.destroy)
         self.root.report_callback_exception = Mock()
@@ -146,3 +150,93 @@ class ModalGrabTest(unittest.TestCase):
             b.destroy()
             restore.assert_called_once_with()
         self.assertIs(self.root.grab_current(), a)
+
+    def test_registry_records_opening_order_with_innermost_last(self):
+        a = self.make_window()
+        b = self.make_window()
+        c = self.make_window()
+        grab_modal(a)
+        self.assertEqual(modal._active_modals, [a])
+        grab_modal(b)
+        self.assertEqual(modal._active_modals, [a, b])
+        grab_modal(c)
+        self.assertEqual(modal._active_modals, [a, b, c])
+        self.assertIs(modal._active_modals[-1], c)
+
+    def test_registry_removes_destroyed_windows_in_lifo_order(self):
+        a = self.make_window()
+        b = self.make_window()
+        grab_modal(a)
+        grab_modal(b)
+        self.assertEqual(modal._active_modals, [a, b])
+        b.destroy()
+        self.assertEqual(modal._active_modals, [a])
+        a.destroy()
+        self.assertEqual(modal._active_modals, [])
+
+    def test_registry_non_lifo_destroy_preserves_remaining_order(self):
+        a = self.make_window()
+        b = self.make_window()
+        c = self.make_window()
+        grab_modal(a)
+        grab_modal(b)
+        grab_modal(c)
+        self.assertEqual(modal._active_modals, [a, b, c])
+        b.destroy()
+        self.assertEqual(modal._active_modals, [a, c])
+        self.assertIs(self.root.grab_current(), c)
+
+    def test_registry_repeated_grab_modal_does_not_duplicate_window(self):
+        a = self.make_window()
+        grab_modal(a)
+        grab_modal(a)
+        self.assertEqual(modal._active_modals, [a])
+        a.destroy()
+        self.assertEqual(modal._active_modals, [])
+
+    def test_registry_child_widget_destroy_keeps_modal_registered(self):
+        a = self.make_window()
+        b = self.make_window()
+        child = tk.Label(b, text="child")
+        child.pack()
+        grab_modal(a)
+        grab_modal(b)
+        child.destroy()
+        self.assertEqual(modal._active_modals, [a, b])
+        b.destroy()
+        self.assertEqual(modal._active_modals, [a])
+
+    def test_registry_excludes_windows_without_grab_modal(self):
+        a = self.make_window()
+        b = self.make_window()
+        self.assertEqual(modal._active_modals, [])
+        grab_modal(a)
+        self.assertEqual(modal._active_modals, [a])
+        b.destroy()
+        self.assertEqual(modal._active_modals, [a])
+
+    def test_registry_removes_window_when_previous_holder_cannot_restore(self):
+        for state in ("destroyed", "withdrawn"):
+            with self.subTest(previous_holder=state):
+                a = self.make_window()
+                b = self.make_window()
+                grab_modal(a)
+                grab_modal(b)
+                self.assertEqual(modal._active_modals, [a, b])
+                if state == "destroyed":
+                    a.destroy()
+                    self.assertFalse(a.winfo_exists())
+                    self.assertEqual(modal._active_modals, [b])
+                else:
+                    a.withdraw()
+                    self.assertFalse(a.winfo_viewable())
+                    self.assertEqual(modal._active_modals, [a, b])
+                with patch.object(a, "grab_set", wraps=a.grab_set) as restore:
+                    b.destroy()
+                    restore.assert_not_called()
+                self.assertEqual(
+                    modal._active_modals, [] if state == "destroyed" else [a]
+                )
+                self.assertIsNone(self.root.grab_current())
+                self.cleanup_window(a)
+                self.assertEqual(modal._active_modals, [])

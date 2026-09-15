@@ -2,6 +2,8 @@
 
 import tkinter as tk
 
+_active_modals: list[tk.Toplevel] = []
+
 
 def grab_modal(window: tk.Toplevel, parent: tk.Misc | None = None) -> None:
     """window をモーダル化し、破棄されたら直前の grab 保持者へ戻す。
@@ -24,6 +26,7 @@ def grab_modal(window: tk.Toplevel, parent: tk.Misc | None = None) -> None:
     if parent is not None:
         window.transient(parent)
     window.grab_set()
+    _active_modals.append(window)
     restored = False
 
     def restore_grab(event: tk.Event) -> None:
@@ -31,6 +34,10 @@ def grab_modal(window: tk.Toplevel, parent: tk.Misc | None = None) -> None:
         if event.widget is not window or restored:
             return
         restored = True
+        for index, active_modal in enumerate(_active_modals):
+            if active_modal is window:
+                del _active_modals[index]
+                break
         if previous is None:
             return
         current = current_holder()
