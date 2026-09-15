@@ -3,7 +3,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from keyseq.presentation import modal
-from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.modal import grab_modal, install_minimize_grab_custody
 
 
 class ModalGrabTest(unittest.TestCase):
@@ -11,6 +11,9 @@ class ModalGrabTest(unittest.TestCase):
         registry_patch = patch.object(modal, "_active_modals", [])
         registry_patch.start()
         self.addCleanup(registry_patch.stop)
+        custody_patch = patch.object(modal, "_custody_window", None)
+        custody_patch.start()
+        self.addCleanup(custody_patch.stop)
         self.root = tk.Tk()
         self.addCleanup(self.root.destroy)
         self.root.report_callback_exception = Mock()
@@ -18,6 +21,7 @@ class ModalGrabTest(unittest.TestCase):
         self.root.grab_release()
         # cleanup 中の Destroy コールバック例外も失敗として検出する。
         self.addCleanup(self.root.report_callback_exception.assert_not_called)
+        self.addCleanup(self.root.deiconify)
 
     def make_window(self):
         # 非 LIFO 終了で連鎖破棄されないよう、すべて root の直接の子にする。
@@ -41,6 +45,112 @@ class ModalGrabTest(unittest.TestCase):
         self.assertIs(self.root.grab_current(), b)
         b.destroy()
         self.assertIs(self.root.grab_current(), a)
+
+    def test_iconify_releases_hidden_grab_holder(self):
+        window = self.make_window()
+        grab_modal(window, self.root)
+        install_minimize_grab_custody(self.root)
+        self.root.update()
+
+        self.root.iconify()
+        self.root.update()
+
+        self.assertFalse(window.winfo_viewable())
+        self.assertIsNone(self.root.grab_current())
+        self.assertIs(modal._custody_window, window)
+
+    def test_deiconify_restores_same_grab_holder(self):
+        window = self.make_window()
+        grab_modal(window, self.root)
+        install_minimize_grab_custody(self.root)
+        self.root.update()
+        self.root.iconify()
+        self.root.update()
+        self.assertIsNone(self.root.grab_current())
+        self.assertIs(modal._custody_window, window)
+
+        self.root.deiconify()
+        self.root.update()
+
+        self.assertTrue(window.winfo_viewable())
+        self.assertIs(self.root.grab_current(), window)
+        self.assertIsNone(modal._custody_window)
+
+    def test_repeated_grab_modal_in_custody_restores_same_holder(self):
+        window = self.make_window()
+        grab_modal(window, self.root)
+        install_minimize_grab_custody(self.root)
+        self.root.update()
+        self.root.iconify()
+        self.root.update()
+        self.assertIsNone(self.root.grab_current())
+        self.assertIs(modal._custody_window, window)
+
+        with patch.object(window, "bind", wraps=window.bind) as bind:
+            grab_modal(window, self.root)
+            bind.assert_not_called()
+
+        self.assertIs(modal._custody_window, window)
+        self.assertIsNone(self.root.grab_current())
+        self.assertEqual(modal._active_modals, [window])
+        self.root.deiconify()
+        self.root.update()
+
+        self.assertTrue(window.winfo_viewable())
+        self.assertIs(self.root.grab_current(), window)
+        self.assertIsNone(modal._custody_window)
+
+    def test_unmap_preserves_visible_grab_holder(self):
+        window = self.make_window()
+        grab_modal(window)
+        install_minimize_grab_custody(self.root)
+        self.root.update()
+        self.assertTrue(window.winfo_viewable())
+
+        self.root.event_generate("<Unmap>")
+
+        self.assertIs(self.root.grab_current(), window)
+        self.assertIsNone(modal._custody_window)
+
+    def test_child_unmap_does_not_take_custody(self):
+        window = self.make_window()
+        frame = tk.Frame(self.root)
+        frame.pack()
+        grab_modal(window)
+        install_minimize_grab_custody(self.root)
+        self.root.update()
+        window.withdraw()
+        self.root.update()
+        self.assertFalse(window.winfo_viewable())
+        self.assertIs(self.root.grab_current(), window)
+
+        frame.pack_forget()
+        self.root.update()
+
+        self.assertIs(self.root.grab_current(), window)
+        self.assertIsNone(modal._custody_window)
+
+    def test_new_modal_restores_holder_taken_into_custody(self):
+        previous = self.make_window()
+        grab_modal(previous, self.root)
+        install_minimize_grab_custody(self.root)
+        self.root.update()
+        self.root.iconify()
+        self.root.update()
+        self.assertIsNone(self.root.grab_current())
+        self.assertIs(modal._custody_window, previous)
+
+        window = self.make_window()
+        grab_modal(window)
+        self.assertIsNone(modal._custody_window)
+        self.assertIs(self.root.grab_current(), window)
+        self.root.deiconify()
+        self.root.update()
+        self.assertTrue(previous.winfo_viewable())
+        self.assertIs(self.root.grab_current(), window)
+        window.destroy()
+
+        self.assertIs(self.root.grab_current(), previous)
 
     def test_grab_current_key_error_and_restore_tcl_error_are_tolerated(self):
         with self.subTest(branch="grab_current_key_error"):

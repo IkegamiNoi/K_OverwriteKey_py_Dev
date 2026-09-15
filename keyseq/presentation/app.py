@@ -34,6 +34,7 @@ from keyseq.presentation.views.menu_bar import build_menu_bar, bind_menu_shortcu
 from keyseq.presentation.views.status_bar import build_status_area
 from keyseq.presentation.startup_settings import load_startup_settings
 from keyseq.presentation.theme import apply_global_theme, coerce_font_delta
+from keyseq.presentation.modal import install_minimize_grab_custody
 
 
 from keyseq.application.action_executor import ActionExecutor
@@ -191,6 +192,7 @@ class App(tk.Tk):
         self.hook.sync_hook_toggle_buttons()
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
+        install_minimize_grab_custody(self)
     # ---------------- State compatibility aliases ----------------
     @property
     def _selected_trigger_idx(self) -> int:

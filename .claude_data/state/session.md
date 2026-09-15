@@ -4,55 +4,58 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-16T12:00:00
-phase: `instructions/phase/17_minimize_grab_custody`（**task_01 完了・task_02 未着手**）。
+last_updated: 2026-09-16T14:00:00
+phase: `instructions/phase/17_minimize_grab_custody`（**task_01 / task_02 完了・task_03 未着手**）。
 主入力 = 暫定仕様 15（**v0.4・ユーザー確定済・実装着手可**）。番号対応: phase 17 / 暫定 15 / decisions 17。
 **phase 16 は完了**（`e54bf0f`・判断は `decisions_archive/16_dialog_transient_parent.md`）。
-last_commit_location: `claude/task-01-785abb` @ `351c4af`（phase 17 起票）。
-**phase 17 の起票物はコミット済（`351c4af`）。task_01 の差分は未コミット**。**phase 15 までは main へマージ済**。
+last_commit_location: `claude/task-01-785abb` @ `c2f22bc`（phase 17 task_01）。
+**phase 15 までは main へマージ済**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 17 task_01 完了（`modal.py` に台帳を追加・挙動不変・reviewer 採用）。次は task_02（預かり機構 `install_minimize_grab_custody`）。**
+focus: **phase 17 task_02 完了（預かり機構を実装・reviewer 採用）。次は task_03（受け入れ条件 12 項目 + 変異検査）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-16T12:00:00
+ts: 2026-09-16T14:00:00
 who: main
 summary: |
-  【**phase 17 task_01 完了**】`/task_new` で task_01 を起票 → `codex-implementer` へ委任 →
-  `verifier` 実測 → `reviewer` レビューまで実施。**presentation 限定・挙動不変**。
-  - **実装**: `keyseq/presentation/modal.py` にモジュール状態の台帳
-    `_active_modals: list[tk.Toplevel]` を追加（**+7 行**）。`grab_modal` の `grab_set()` 成功後に
-    append（二重呼び出しの早期 return 経路は通らない）/ `restore_grab` の `restored = True` 直後・
-    `previous is None` の早期 return より**前**に**同一性判定**で除去（`list.remove` は使わない）。
-  - **台帳は誰も読まない**（読む処理は task_02）。`grab_modal` のシグネチャ・phase 14 / 16 の
-    復元規則・`transient`・`add="+"` 結線は無変更。
-  - **テスト**: `tests_ui/test_modal_grab.py` へ `test_registry_*` **7 本**追加
-    （開いた順・末尾が最内 / LIFO 除去 / 非 LIFO 除去で順序保持 / 二重呼び出しで重複なし /
-    子ウィジェットの `<Destroy>` では除去しない / `grab_modal` を通らない窓は載らない /
-    復元しない分岐でも除去）。**テスト独立は `setUp` の `patch.object(modal, "_active_modals", [])`**。
-  - **reviewer 判定 = 採用（完了可）**。指摘は参考 1 件のみ（`grab_modal` の docstring が台帳に
-    触れていない → task_02 で台帳を読む処理を足すときに併せて更新を検討）。
+  【**phase 17 task_02 完了**】`/task_new` 起票 → `codex-implementer` → `verifier` → `reviewer`
+  （**修正要 1 件 → 差し戻し修正 → 再レビュー採用**）。**presentation 限定**。
+  - **実装**: `modal.py` に `_custody_window` と **`install_minimize_grab_custody(app: tk.Misc)`**
+    （`<Unmap>` / `<Map>` を `add="+"` で結線）。`app.py` は **import 1 行 + 呼び出し 1 行**
+    （`protocol("WM_DELETE_WINDOW")` の直後）。
+  - **`<Unmap>` の 5 ガード**: App 限定 / 二重発火防止 / `grab_current()` 解決不能なら預からない /
+    保持者が `None` でない / **既に非表示の保持者だけ**預かる。
+  - **`<Map>`**: 預かりは必ず解除 → 解決不能なら何もしない → **現保持者が居れば上書きしない** →
+    記録窓が生存かつ表示中ならそこへ、でなければ**台帳を末尾から探した最内**へ `grab_set()`。
+    **`deiconify()` / `lift()` / `focus_force()` は呼ばない**。
+  - **reviewer 指摘（実測確認・production 未到達）**: 預かり中の**同じ窓**へ `grab_modal` を
+    再呼び出しすると預かりだけ解除され誰も grab を持たなくなる →
+    **早期 return の条件へ `_custody_window is window` を追加**して解消（再レビュー = **採用**）。
+  - **参考指摘（未対応・非ブロッキング）**: `<Map>` の候補ループで `grab_set()` が `TclError` の場合に
+    次候補を試さない（単一スレッドの Tk では実質到達不能と判断）。
 result_files:
-  - keyseq/presentation/modal.py（台帳の追加・除去）
-  - tests_ui/test_modal_grab.py（`test_registry_*` 7 本追加）
-  - instructions/phase/17_minimize_grab_custody/tasks/task_01_active_modal_registry.md（新規）
+  - keyseq/presentation/modal.py（預かり機構 + `grab_modal` の引継ぎ結線）
+  - keyseq/presentation/app.py（import + `install_minimize_grab_custody(self)`）
+  - tests_ui/test_modal_grab.py（結線テスト 5 + 再呼び出し回帰 1 = 6 本追加）
+  - instructions/phase/17_minimize_grab_custody/tasks/task_02_minimize_grab_custody.md（新規）
 verified:
   compile: clean
   tests: pass 417（skipped 7）
-  tests_ui: pass 331（324 → +7）
-  review: **reviewer = 採用**
+  tests_ui: pass 337（331 → +6）
+  smoke: SMOKE OK
+  review: **reviewer = 採用（修正後の再レビュー）**
 
 ## next_action
-- **task_01 の差分をコミットする**（`/task_commit`）。
-- **task_02 を `/task_new` で起票** → `codex-implementer` へ委任（`agent_selection.md` の既定）。
-  内容 = `modal.py` に `install_minimize_grab_custody(app)`（型は `tk.Misc`・**`App` を import しない**）を
-  追加し `<Unmap>` / `<Map>` を結線 + `app.py` の `__init__` から 1 度だけ呼ぶ +
-  **預かり中の `grab_modal` が `previous` を預かり窓にする**結線。
-  **ガード 4 種**（App 限定 = `event.widget is app` / **非表示の保持者だけ預かる** /
-  別窓が grab 中なら上書きしない / `grab_current()` が解決不能なら触らない）を必ず実装させる。
-  **`deiconify()` / `lift()` / `focus_force()` を呼ばせない**。テスト実行は依頼しない（実測は `verifier`）。
+- **task_02 の差分をコミットする**（`/task_commit`）。
+- **task_03 を `/task_new` で起票** → `codex-implementer` へ委任。
+  内容 = **暫定仕様 15 §6 の受け入れ条件 1〜12 のうち自動化可能なもの**を `tests_ui` の
+  **新規モジュール**で固定 + **変異検査**（預かり処理を無効化したらテストが落ちること）。
+  **`deiconify()` の呼び出し 0 回**・**`grab_current()` が `KeyError` のとき `grab_set()` 0 回**・
+  **`Frame.pack_forget()` 等の App 以外の `<Unmap>` で預からない**を必ず含める。
+  ハーネスは **`iconify()` したまま tearDown しない**（cleanup で `deiconify()`）。
+- 実機目視（5 項目）は **task_04** でユーザーへ依頼する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
@@ -60,6 +63,11 @@ verified:
 - なし。
 
 ## resume_hints
+- **【phase 17 task_02 の成果】最小化中の grab 預かり = `modal.py` の `_custody_window` +
+  `install_minimize_grab_custody(app)`**（`app.py` の `__init__` 末尾で 1 度だけ呼ぶ）。
+  **預かるのは「既に非表示の保持者」だけ**・**復元時に窓を触らない**（`deiconify` 等を呼ばない）・
+  **`grab_current()` 解決不能（stdlib ダイアログ）なら預からない / 再 grab しない**。
+  **預かり中の同じ窓への `grab_modal` 再呼び出しは早期 return**（`_custody_window is window`）。
 - **【phase 17 task_01 の成果】アクティブなモーダルの台帳 = `modal.py` の `_active_modals`**
   （追加 = `grab_modal` の `grab_set()` 後 / 除去 = `restore_grab` の `restored = True` 直後・
   **同一性判定**）。**末尾 = 最内**。**`grab_modal` を通った窓だけ**が載る（stdlib ダイアログは載らない）。

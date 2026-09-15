@@ -3,6 +3,56 @@
 import tkinter as tk
 
 _active_modals: list[tk.Toplevel] = []
+_custody_window: tk.Toplevel | None = None
+
+
+def install_minimize_grab_custody(app: tk.Misc) -> None:
+    """App の最小化中だけ非表示の保持者から grab を預かる。"""
+    def take_custody(event: tk.Event) -> None:
+        global _custody_window
+        if event.widget is not app or _custody_window is not None:
+            return
+        try:
+            holder = app.grab_current()
+        except (tk.TclError, KeyError):
+            return
+        if holder is None:
+            return
+        try:
+            if not holder.winfo_exists() or holder.winfo_viewable():
+                return
+            holder.grab_release()
+        except tk.TclError:
+            return
+        _custody_window = holder
+
+    def return_custody(event: tk.Event) -> None:
+        global _custody_window
+        if event.widget is not app or _custody_window is None:
+            return
+        recorded = _custody_window
+        _custody_window = None
+        try:
+            current = app.grab_current()
+        except (tk.TclError, KeyError):
+            return
+        if current is not None:
+            return
+        # 記録窓を優先し、非表示・破棄済みなら台帳の最内から探す。
+        for candidate in (recorded, *reversed(_active_modals)):
+            try:
+                if not candidate.winfo_exists() or not candidate.winfo_viewable():
+                    continue
+            except tk.TclError:
+                continue
+            try:
+                candidate.grab_set()
+            except tk.TclError:
+                pass
+            return
+
+    app.bind("<Unmap>", take_custody, add="+")
+    app.bind("<Map>", return_custody, add="+")
 
 
 def grab_modal(window: tk.Toplevel, parent: tk.Misc | None = None) -> None:
@@ -12,6 +62,8 @@ def grab_modal(window: tk.Toplevel, parent: tk.Misc | None = None) -> None:
     本関数の呼び出しより前で例外が出た場合、子はまだ grab を取得しておらず、
     親が grab を保持したまま残る。
     """
+    global _custody_window
+
     def current_holder() -> tk.Misc | None:
         try:
             return window.grab_current()
@@ -20,9 +72,12 @@ def grab_modal(window: tk.Toplevel, parent: tk.Misc | None = None) -> None:
             return None
 
     previous = current_holder()
-    if previous is window:
-        # 二重呼び出しでは最初の保持者と破棄ハンドラを維持する。
+    if previous is window or _custody_window is window:
+        # 二重呼び出しでは最初の保持者と破棄ハンドラを維持する（預かり中の窓も同じ扱い）。
         return
+    if previous is None and _custody_window is not None:
+        previous = _custody_window
+        _custody_window = None
     if parent is not None:
         window.transient(parent)
     window.grab_set()
