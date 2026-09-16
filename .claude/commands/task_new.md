@@ -21,7 +21,7 @@ description: タスク定義ファイルを instructions/phase/NN_<topic>/tasks/
 - 再検証タスク（仕様変更起因・`/spec_update` ステップ 6）:
   `task_<親NN>_<連番>_<topic>_recheck.md`（例: `task_01_01_domain_scope_recheck.md`）
 
-## ファイル書式（6 節構成）
+## ファイル書式（7 節構成）
 
 ```markdown
 # task_NN_<topic_snake_case>
@@ -40,6 +40,12 @@ description: タスク定義ファイルを instructions/phase/NN_<topic>/tasks/
 
 （任意。実装者が迷いそうな判断の根拠・既存パターンの流用元・やってはいけない実装を書く。
 分量が多ければ独立節 `## 設計メモ / 制約` にしてもよい）
+
+## 読むファイル
+
+（実装者が読む最小限。`パス:行範囲` + 目的を 5〜10 行程度で列挙する。
+編集対象はパスのみ〔全体を読む〕/ 手本の既存コード・テストは範囲指定 /
+仕様書・codebase_map は該当節のみ。大きいファイルを丸ごと手本にしない）
 
 ## 含まない
 
@@ -63,6 +69,8 @@ smoke の確認点 等。「動くこと」のような曖昧表現は不可）
 - 1 タスク = 最小差分で完結する単位（複数レイヤに跨るなら分割を検討。
   典型順序: domain → application → presentation → 統合退行 → 正本反映）
 - 「対象範囲」に書いていない変更は実装者はやらない前提で書く（曖昧な範囲を残さない）
+- 「読むファイル」は絞る。委任先は読んだ内容を毎ターン送り直すため、読む量を広げると
+  使用量がターン数に比例して増える（実測: phase 18 の実装 1 回で入力 56 万〜103 万トークン）
 - フェーズ最終タスク（正本反映）は `.claude/rules/task_execution.md`「フェーズ完了時」の
   チェックリスト項目（昇格・凍結 / decisions_archive / current.md / idea INDEX_done 移動 /
   /refactor_check）を対象範囲に含める

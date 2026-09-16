@@ -10,10 +10,13 @@
 
 # 最初に読むべきドキュメント
 
+タスク定義に「読むファイル」節があればそれを優先し、以下は必要な節だけ読む。
+
 必須:
 
 1. `instructions/common/app_overview.md` — アプリ全体概要・詳細仕様への索引
-2. `instructions/common/codebase_map.md` — コード構造（実装状態の正）
+2. `instructions/common/codebase_map.md` — コード構造（実装状態の正）。**該当する節だけ読む**
+   （`rg -n` で位置を特定する。全体は読まない）
 3. `.claude/rules/implementation.md` / `.claude/rules/python_rules.md` — 実装ルール
 
 作業内容に応じて（`instructions/common/spec_detail/`）:
@@ -23,7 +26,8 @@
 - UI 変更 → `features.md`（4.6 UI 構成）
 - 設計判断 → `design.md` / `architecture.md`
 
-ワークフロー（タスク進行・レビュー・仕様変更）は `CLAUDE.md` と `.claude/rules/` に従う。
+実装作業で参照する規約は `.claude/rules/implementation.md` / `python_rules.md` / `anti_patterns.md` のみ。
+ワークフロー（タスク進行・レビュー・仕様変更）の規約（`CLAUDE.md` と他の `.claude/rules/`）は呼び出し元の Claude が担う。
 
 ---
 

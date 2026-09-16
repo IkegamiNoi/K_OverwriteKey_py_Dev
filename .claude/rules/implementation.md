@@ -31,7 +31,7 @@
 
 ## 実装前の必須手順
 
-1. `instructions/common/codebase_map.md` を読む
+1. `instructions/common/codebase_map.md` の対象機能の節を読む（タスク定義に「読むファイル」節があればそれを優先）
 2. 対象機能の関連コードを実際に読む
 3. 影響範囲を把握してから実装する
 

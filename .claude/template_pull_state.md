@@ -51,6 +51,10 @@ template を直すか差分のままにするかは別途判断する。
 - `.claude_data/modes/README.md` — こちらで新設（template はこの知識をルート `README.md` に置いている）
 - `.claude_data/modes/save_mode/switch_files/*.json` の SessionStart command
   → git 実測ヘッダ（branch / worktree_root）付き
+- **Codex 使用量の削減（2026-09-17）**: `.claude/agents/codex-implementer.md`（稼働側 + `switch_files/{codex,codex_medium}`）の
+  転送文 = 規約は `implementation` / `python_rules` / `anti_patterns` の 3 つのみ・読む範囲を指定 /
+  `.claude/commands/task_new.md` の「読むファイル」節（7 節構成）/ `.claude/rules/implementation.md` の実装前手順 1
+  （codebase_map は対象節のみ。ファイル単位除外済みだが記録として残す）
 - `.claude/commands/template_pull.md` / 本ファイル — こちらで新設（逆同期用）。
   順方向で template へ取り込むかは template 側の判断
 
