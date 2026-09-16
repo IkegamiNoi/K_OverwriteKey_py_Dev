@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from keyseq.presentation import theme
+from keyseq.presentation import app as app_module
 from keyseq.presentation.app import App
 from keyseq.presentation.pane_width_rules import PANE_WIDTHS_KEY, SASH_WIDTH, PaneWidths
 
@@ -15,7 +16,12 @@ class PaneWidthsPersistenceTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         sizes = dict(theme._BASE_FONT_SIZES)
         cls.addClassCleanup(cls._restore_base_sizes, sizes)
-        cls.app = App()
+        loader = patch.object(app_module.ConfigService, "load_startup", return_value={})
+        loader.start()
+        try:
+            cls.app = App()
+        finally:
+            loader.stop()
         cls.addClassCleanup(cls._destroy_app)
         cls.app.update()
 
@@ -239,6 +245,68 @@ class PaneWidthsPersistenceTest(unittest.TestCase):
             self.assertEqual(startup[PANE_WIDTHS_KEY], widths)
             with open(os.path.join(root, "config.json"), encoding="utf-8") as file:
                 self.assertEqual(json.load(file)[PANE_WIDTHS_KEY], widths)
+
+
+class PaneWidthsStartupRestoreTest(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls) -> None:
+        sizes = dict(theme._BASE_FONT_SIZES)
+        cls.addClassCleanup(cls._restore_base_sizes, sizes)
+        writer = patch.object(app_module.StartupIo, "write_startup", return_value=True)
+        cls.write_startup = writer.start()
+        cls.addClassCleanup(writer.stop)
+        saver = patch.object(app_module.ConfigService, "save_startup")
+        cls.save_startup = saver.start()
+        cls.addClassCleanup(saver.stop)
+        screen = patch.object(App, "winfo_screenwidth", return_value=100000)
+        screen.start()
+        cls.addClassCleanup(screen.stop)
+        cls.expected = cls._measure_saved_widths()
+        startup = {PANE_WIDTHS_KEY: {
+            "keymap": cls.expected.keymap, "sequence": cls.expected.sequence,
+        }}
+        with patch.object(app_module.ConfigService, "load_startup", return_value=startup):
+            cls.app = App()
+        cls.addClassCleanup(cls._destroy_app)
+        cls.app.update()
+
+    @classmethod
+    def _measure_saved_widths(cls) -> PaneWidths:
+        # 測定用 App は復元を検証する App より先に破棄する。
+        with patch.object(app_module.ConfigService, "load_startup", return_value={}):
+            probe = App()
+        try:
+            probe.update()
+            defaults = probe.pane_layout.desired
+            return PaneWidths(defaults.keymap + 40, defaults.sequence + 40)
+        finally:
+            try:
+                probe.update()
+            finally:
+                probe.destroy()
+
+    @classmethod
+    def _restore_base_sizes(cls, sizes: dict[str, int]) -> None:
+        theme._BASE_FONT_SIZES.clear()
+        theme._BASE_FONT_SIZES.update(sizes)
+
+    @classmethod
+    def _destroy_app(cls) -> None:
+        try:
+            cls.app.update()
+        finally:
+            cls.app.destroy()
+
+    def test_startup_restores_saved_widths_without_write(self) -> None:
+        layout = self.app.pane_layout
+        view = self.app.full_view
+        self.assertGreaterEqual(self.expected.keymap, layout.min_widths.keymap)
+        self.assertGreaterEqual(self.expected.sequence, layout.min_widths.sequence)
+        self.assertEqual(layout.desired, self.expected)
+        self.assertEqual(view.keymap_box.winfo_width(), self.expected.keymap)
+        self.assertEqual(view.sequence_box.winfo_width(), self.expected.sequence)
+        self.write_startup.assert_not_called()
+        self.save_startup.assert_not_called()
 
 
 if __name__ == "__main__":

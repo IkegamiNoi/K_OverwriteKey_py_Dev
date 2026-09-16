@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from keyseq.presentation.app import App
+from keyseq.presentation import app as app_module
 from keyseq.presentation import theme
 from keyseq.presentation.pane_width_rules import SASH_WIDTH
 
@@ -14,7 +15,12 @@ class FullViewPanesTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         base_sizes = dict(theme._BASE_FONT_SIZES)
         cls.addClassCleanup(cls._restore_base_sizes, base_sizes)
-        cls.app = App()
+        loader = patch.object(app_module.ConfigService, "load_startup", return_value={})
+        loader.start()
+        try:
+            cls.app = App()
+        finally:
+            loader.stop()
         cls.addClassCleanup(cls._destroy_app)
         cls.app.update()
 

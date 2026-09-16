@@ -179,6 +179,7 @@ class PaneLayoutController:
         return view.keymap_box if sash == 0 else view.sequence_box
 
     def _on_press(self, event: tk.Event) -> str | None:
+        self._drag = None
         if not self._is_ready():
             return None
         sash = self._sash_at(event.x, event.y)
@@ -227,17 +228,19 @@ class PaneLayoutController:
             PANE_WIDTHS_KEY: {"keymap": new.keymap, "sequence": new.sequence},
         })
 
-    def _plan(self) -> LayoutPlan:
+    def _plan(self, widths: PaneWidths | None = None) -> LayoutPlan:
         app = self.app
         return resolve_layout(
-            self.desired, self.min_widths, sash_total=2 * SASH_WIDTH,
+            self.desired if widths is None else widths, self.min_widths, sash_total=2 * SASH_WIDTH,
             window_extra=app.winfo_width() - app.full_view.panes.winfo_width(),
             current_window_width=app.winfo_width(), screen_width=app.winfo_screenwidth(),
         )
 
     def _update_window_min_size(self) -> None:
         # ドラッグ直後に幅を動かさないよう、最小幅だけを当てる。
-        self.app.minsize(self._plan().window_min_width, 1)
+        view = self.app.full_view
+        displayed = PaneWidths(view.keymap_box.winfo_width(), view.sequence_box.winfo_width())
+        self.app.minsize(self._plan(displayed).window_min_width, 1)
 
     def _block_middle_button(self, _event: tk.Event) -> str:
         return "break"

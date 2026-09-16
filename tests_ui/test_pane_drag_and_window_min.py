@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from keyseq.presentation.app import App
+from keyseq.presentation import app as app_module
 from keyseq.presentation import theme
 from keyseq.presentation.pane_width_rules import SASH_WIDTH, PaneWidths
 
@@ -13,7 +14,12 @@ class PaneDragAndWindowMinTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         base_sizes = dict(theme._BASE_FONT_SIZES)
         cls.addClassCleanup(cls._restore_base_sizes, base_sizes)
-        cls.app = App()
+        loader = patch.object(app_module.ConfigService, "load_startup", return_value={})
+        loader.start()
+        try:
+            cls.app = App()
+        finally:
+            loader.stop()
         cls.addClassCleanup(cls._destroy_app)
         cls.app.update()
         cls.released_minsize = cls._probe_released_minsize()
@@ -237,6 +243,25 @@ class PaneDragAndWindowMinTest(unittest.TestCase):
         self.assertLess(self.sequence.winfo_width(), desired.sequence)
         self.assertGreaterEqual(self.sequence.winfo_width(), self.layout.min_widths.sequence)
         self.assertEqual(self.layout.desired, desired)
+
+    def test_12_drag_after_screen_shrink_uses_displayed_window_min(self) -> None:
+        mins = self.layout.min_widths
+        extra = self.app.winfo_width() - self.panes.winfo_width()
+        desired = PaneWidths(mins.keymap + 80, mins.sequence + 1000)
+        screen = desired.keymap + mins.sequence + 60 + mins.trigger + 2 * SASH_WIDTH + extra
+        self.layout.desired = desired
+        with patch.object(self.app, "winfo_screenwidth", return_value=screen):
+            self.layout.apply_layout()
+            self.app.update()
+            keymap, _, sequence = self._widths()
+            self.assertEqual(keymap, desired.keymap)
+            self.assertLess(sequence, desired.sequence)
+            self.assertGreater(sequence, mins.sequence)
+            self._drag(0, -30)
+            self.assertEqual(self.keymap.winfo_width(), keymap - 30)
+            self.assertEqual(self.sequence.winfo_width(), sequence)
+            self.assertEqual(self.layout.desired.sequence, desired.sequence)
+            self.assertEqual(self.app.wm_minsize()[0], self._expected_window_min())
 
 
 if __name__ == "__main__":

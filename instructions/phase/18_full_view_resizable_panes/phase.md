@@ -67,6 +67,7 @@
 3. **task_03**: 幅コントローラの拡張（ドラッグの可動範囲制限・中ボタン無効・`wm minsize` の更新・希望幅と表示幅・収まらない場合の一括適用）+ `app.py` 結線（フォント変更後の再計算・省略表示への切替順）+ `tests_ui`。
 4. **task_04**: 保存と復元（ドラッグを離したときの `write_startup`・変化が無ければ書かない・起動時の検証と復元）+ **keymap_set 保存でも値が残る**ことのテスト。
 5. **task_05**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ 二次レビュー（`deep-reviewer` + `codex-reviewer`）+ **ユーザーによる実機目視**。
+   - **task_05b**: task_05 二次レビューの採用指摘（F1 ドラッグ後の最小幅を表示幅から / F2 tests_ui を実 config から独立 / F4 起動経路の復元テスト / F5 ドラッグ状態の掃除）。
 6. **task_06（最終・正本反映）**: `features.md` §4.6 / `data_schema.md` §5.4 / `codebase_map.md` への昇格 + **暫定仕様 16 の凍結** + `decisions_archive/18_full_view_resizable_panes.md` + `current.md` 完了記載 + idea_20 を `INDEX_done.md` へ + **`/refactor_check`**。
 
 タスク定義は着手する順に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。
