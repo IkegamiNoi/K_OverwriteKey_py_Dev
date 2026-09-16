@@ -1,10 +1,17 @@
 # 暫定仕様 15: 最小化中の grab 預かり（minimize_grab_custody）
 
-> 状態: **未凍結・v0.6・ユーザー確定済・実装着手可・主入力**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済（2026-09-16・phase 17 完了・v0.7）**。**経緯の参照用**であり、
+> **本書の条項を実装の根拠に引かない**。
+> **正本 = `spec_detail/features.md` §4.6「モーダルダイアログの作法」（冒頭条項の「表示されている間は」の限定 +**
+> **最小化の条項 + 保証の範囲外の追記）+ `codebase_map.md`（`presentation/modal.py` の節。預かり機構と台帳）**。
+> 昇格時の判断は `.claude_data/state/decisions_archive/17_minimize_grab_custody.md`。
 > 起票元: [idea_19](../backlog/idea_19_minimize_restore_with_child_grab.md)
 > （phase 16 task_04 の実機目視 §5-6 で観測 → **phase 16 由来ではないことを実機で確認済**）。
-> **presentation 限定・スキーマ不変**。番号対応: phase 17（未起票）/ 暫定 15 / decisions 17。
+> **presentation 限定・スキーマ不変**。番号対応: phase 17 / 暫定 15 / decisions 17。
+>
+> **v0.7（2026-09-16・凍結）**: 正本昇格時、§3-2(6) の張り直し条件「記録窓が破棄されていた場合」は
+> **実装（記録窓が破棄済み**または非表示**なら台帳の最内）に合わせて正本を書いた**（task_04 二次レビュー M-2）。
+> 本文の条項は書き換えていない。
 >
 > **v0.6（2026-09-16・ユーザー確定）**: phase 17 task_04 の `deep-reviewer`（H-1）が
 > **v0.5 で塞いだ穴の「`previous` が破棄済み」版が残っている**ことを実測で示したため §3-2(8) を拡張した。

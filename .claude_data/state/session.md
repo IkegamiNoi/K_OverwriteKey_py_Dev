@@ -4,46 +4,51 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-16T22:00:00
-phase: `instructions/phase/17_minimize_grab_custody`（**task_04 完了**。task_01 / 02 / 02b / 02c / 03 / 04 完了・**残り task_05**）。
-主入力 = 暫定仕様 15（**v0.6・ユーザー確定済**。§3-2(8) は「破棄済みでも差し戻す」へ拡張）。
-番号対応: phase 17 / 暫定 15 / decisions 17。
-**phase 16 は完了**（`e54bf0f`・判断は `decisions_archive/16_dialog_transient_parent.md`）。
-last_commit_location: `claude/m4-m5-modal-check-c06ee4` @ `ceb07be`（task_02c）。
-**phase 15 までは main へマージ済**。
+last_updated: 2026-09-16T23:30:00
+phase: `instructions/phase/17_minimize_grab_custody`（**完了**。task_01〜05 すべて完了）。**アクティブなフェーズなし**。
+次採番: phase **18** / 暫定仕様 **16** / decisions **18** / 提案書 **10**。
+**phase 17 は完了**（判断は `decisions_archive/17_minimize_grab_custody.md`・暫定仕様 15 は v0.7 で凍結）。
+last_commit_location: `claude/m4-m5-modal-check-c06ee4` @ `8350d78`（task_04）。
+**phase 15 までは main へマージ済**（phase 16・17 は未マージ）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 17 task_04 完了（実機目視 M1〜M4 OK / M5 は経路なしで実施不可）。残りは task_05（正本反映・フェーズ完了）。**
+focus: **phase 17 完了（正本反映・完了判定前レビュー対応・refactor_check=不要まで済）。次フェーズは未起票。**
 mode: completed
 
 ## last_action
-ts: 2026-09-16T22:00:00
-who: user
+ts: 2026-09-16T23:30:00
+who: main
 summary: |
-  【**phase 17 task_04 完了（実機目視の記録）**】
-  - **ユーザー実機目視**: M1〜M3（Win+D → 復元・モーダル性・全窓表示）OK / M4（3 段ネスト）OK。
-  - **M5 = 実施不可（欠陥ではない）**: `transient` ダイアログは最小化ボタンがなく、本体の最小化ボタンは
-    grab 中に押せない。代替の**タスクバーアイコンクリックでも最小化されなかった**（ユーザー確認）。
-    最小化できなければ復元不能も起きないため**是正タスクは起票しない**。
-  - `integration_result.md` を「完了」へ更新（§3 の表・§5 未解決事項）。production コード無変更。
+  【**phase 17 task_05 完了（正本反映・フェーズ完了）**】文書のみ・コード / テスト不変。
+  - **正本**: `features.md` §4.6 冒頭条項を「表示されている間は」で限定 + **最小化の条項**
+    （隠れたモーダルだけ外す / 窓を操作しない / 戻す先 = 記録窓 → 表示中の最内 / 奪わない /
+    内側を閉じても失われない / 残存リスク = 隠れない独立ウィンドウ）+ **保証の範囲外**
+    （OS 標準ダイアログ中の最小化 / 最小化中にアプリ側が開いたモーダルの復元〔M-C〕）。
+    `codebase_map.md` の `modal.py` 節へ預かり機構・状態 3 つ・ガード 5 種・固定テスト。
+  - **暫定仕様 15 を v0.7 で凍結** / `decisions_archive/17` 作成・`decisions.md` から phase 17 節を移設 /
+    `current.md` 完了記載 / idea_19 を `INDEX_done.md` へ。
+  - **完了判定前レビュー**: `deep-reviewer` = 修正要（軽微）/ `codex-adversarial-reviewer` = needs-attention。
+    実装と食い違う保証はなし。**ユーザー判断ですべて推奨どおり**（M-A〜M-D・L-1・L-3・L-4 採用 / L-2 保留 / L-5 除外）。
+  - **refactor_check = 不要**（M3 境界: `modal.py` の try/except 各 3 箇所は意図的に意味が違う → 候補送り）。
 result_files:
+  - instructions/common/spec_detail/features.md
+  - instructions/common/codebase_map.md
+  - instructions/history/15_minimize_grab_custody.md
+  - instructions/phase/17_minimize_grab_custody/tasks/task_05_spec_promotion.md
   - instructions/phase/17_minimize_grab_custody/integration_result.md
   - instructions/phase/current.md
+  - instructions/backlog/INDEX.md / INDEX_done.md
+  - .claude_data/state/decisions.md / decisions_archive/17_minimize_grab_custody.md
 verified:
-  manual: M1〜M4 OK / M5 実施不可（経路なし）
-  review: deep-reviewer = 条件付き完了可（H-1 は task_02c で解消）/ codex-reviewer = 利用上限で縮退
+  links: 暫定仕様 15 ヘッダ・INDEX_done の idea_19 行のリンク先実在（ls）
+  code_diff: なし（keyseq/ tests/ tests_ui/ 差分ゼロ）
+  review: deep-reviewer + codex-adversarial-reviewer 実施・指摘反映済
+  refactor_check: 不要
 
 ## next_action
-- **task_05（正本反映・`/task_new` で起票）**:
-  `features.md` §4.6 の **`:92` へ「表示されている間は」の限定** + **最小化の条項追加**
-  （**M-2 = `<Map>` フォールバックの文面は実装に合わせる** / **M-1 = 最小化で隠れない窓は
-  預かり中に操作できる残存リスク** / **L-2 = stdlib ダイアログが最小化中に grab を持つと
-  復元後に非モーダル → 「保証の範囲外」へ 1 行** / 任意: **モーダル中は Win+D 以外の最小化経路がない**〔M5 の観測〕）/
-  `codebase_map.md` の `modal.py` 節（**台帳・預かり・最小化中フラグ**）/ **暫定仕様 15 の凍結** /
-  `decisions_archive/17_minimize_grab_custody.md` / `current.md` の完了記載 /
-  `backlog/INDEX.md` の idea_19 を `INDEX_done.md` へ / **`/refactor_check`** +
-  **フェーズ完了判定前の `codex-adversarial-reviewer`**（利用上限に注意）。
+- **ユーザーに次の方針を確認**: ①phase 16・17 のブランチを main へマージ（PR 作成）するか
+  ②次フェーズの起票（`instructions/backlog/INDEX.md` から候補を選び `/phase_start`）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
@@ -51,35 +56,18 @@ verified:
 - なし
 
 ## resume_hints
-- **【phase 17 の実機目視は完了】**M1〜M4 OK / M5 実施不可（`integration_result.md` §3）。**H-1 は task_02c で解消済**
-  （最小化中に預かり窓と新モーダルの両方が破棄される経路。**差し戻しは復元できなかった理由で
-  区別しない**のが要点で、破棄済みの窓を預かりへ入れて `<Map>` の台帳フォールバックに拾わせる）。
-- **【phase 17 task_02b の成果】預かりへの差し戻し = `modal.py` の `_app_minimized`**
-  （App の `<Unmap>` で True / `<Map>` で False。**`event.widget is app` のガード後・預かりの成否と独立**）+
-  `restore_grab` の 1 分岐（**生存かつ非表示で復元できず、最小化中かつ預かりが空**なら差し戻す）。
-  **フラグ無しで無条件に戻すと、次の最小化で「既に預かり中」ガードに阻まれ元の欠陥が再発する**。
-- **【テストの罠 2 つ・phase 17】①`App.state` は `AppState` に占有されている**ため
-  `App` インスタンスでは **`wm_state()`** を使う（`state()` は `TypeError`）。
-  ②**`withdraw()` した transient 子は App の `deiconify()` に追従して再表示される**ので、
-  「非表示のまま」を前提にしたアサーションは置かない（`winfo_viewable` を patch で固定する）。
-- **【phase 17 task_02 の成果】最小化中の grab 預かり = `modal.py` の `_custody_window` +
-  `install_minimize_grab_custody(app)`**（`app.py` の `__init__` 末尾で 1 度だけ呼ぶ）。
-  **預かるのは「既に非表示の保持者」だけ**・**復元時に窓を触らない**（`deiconify` 等を呼ばない）・
-  **`grab_current()` 解決不能（stdlib ダイアログ）なら預からない / 再 grab しない**。
-  **預かり中の同じ窓への `grab_modal` 再呼び出しは早期 return**（`_custody_window is window`）。
-- **【phase 17 task_01 の成果】アクティブなモーダルの台帳 = `modal.py` の `_active_modals`**
-  （追加 = `grab_modal` の `grab_set()` 後 / 除去 = `restore_grab` の `restored = True` 直後・
-  **同一性判定**）。**末尾 = 最内**。**`grab_modal` を通った窓だけ**が載る（stdlib ダイアログは載らない）。
-  **テストは `setUp` で `patch.object(modal, "_active_modals", [])` して独立させる**
-  （Mock を使う既存テストが残骸を載せるため）。
+- **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 17 の成果は正本が正】最小化中の grab 預かり = `features.md` §4.6 + `codebase_map.md` の `modal.py` 節**。
+  暫定仕様 15 は凍結済で条項の根拠に引かない。
+- **【tests_ui のテストの罠・phase 17】①`App.state` は `AppState` に占有**されているので App では **`wm_state()`** を使う。
+  ②**`withdraw()` した transient 子は App の `deiconify()` に追従して再表示される**。
+  ③`modal.py` の状態 3 つ（`_active_modals` / `_custody_window` / `_app_minimized`）は **`setUp` で patch** して独立させる。
 - **【phase 16 の成果は正本が正】前面維持（`transient`）の規定は `spec_detail/features.md` §4.6**
   （「ネストした子は呼び出し元より前面に留まる」「呼び出し元を先に閉じたら前面維持の指定は戻らないが
   生存と grab は変わらない」）+ **`codebase_map.md` の `presentation/modal.py` 節**（第 2 引数の意味。
   **渡さなければ `transient` を設定しない**。「App より前」になるのは `PresetManagerDialog` の既定
   `parent` の話）。**暫定仕様 14 は凍結済で条項の根拠に引かない**。
-  **未解決の関連問題 = [idea_19]**（子が grab を持つ状態で Win+D するとアプリを再表示できない。
-  **経路を問わず再現する既存問題**で phase 16 由来ではないことを実機確認済）/
-  **[idea_18]**（`tests_ui` の Escape 依存テストが負荷下で flaky）。
+  **未解決の関連問題 = [idea_18]**（`tests_ui` の Escape 依存テストが負荷下で flaky）。idea_19 は phase 17 で完了。
 - **【今セッションの運用インフラ変更・重要】モード切替は `.claude_data/modes/`**
   （`instructions/agent_mode` ・ `instructions/save_mode` から移動。旧パスは存在しない）。
   **`.claude/` 配下または `CLAUDE.md` を編集する前に `.claude_data/modes/README.md` を読む**

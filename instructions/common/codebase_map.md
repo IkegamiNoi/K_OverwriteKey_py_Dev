@@ -92,7 +92,7 @@ keyseq/presentation/
     keyboard_layouts.py
     keyboard_window.py
     listbox_utils.py
-    modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）
+    modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かり
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
     orphan_sweep_text.py       # 孤児ファイルの棚卸しの提示テキスト整形（警告 / 候補一覧 / 隔離結果。純関数）
     quarantine_manage_text.py  # 隔離の管理の提示テキスト整形（単位一覧 / 復元・削除の計画と結果。純関数）
@@ -267,6 +267,18 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     **`tests_ui/test_nested_modal_grab.py` の静的検査がこの規約を固定している**ので、
     後ろに処理を足すとテストが落ちる。**落ちたらテストを緩めず、grab 取得後の失敗を
     どう回収するかをユーザーへ諮る**（phase 14 の確定運用）
+  - **`install_minimize_grab_custody(app)` = 最小化中だけ grab を預かる**（`features.md` §4.6 の
+    最小化の条項。`app.py` の `__init__` 末尾で 1 度だけ呼ぶ）。App の `<Unmap>` で**非表示になった保持者**
+    から grab を外して預かり、`<Map>` で**記録窓 → 台帳の最内**の順に「生存かつ表示中」の窓へ張り直す。
+    ガード = **App 自身のイベントのみ**（`pack_forget` でも `<Unmap>` が飛ぶ）/ **`grab_current()` が
+    解決不能（stdlib ダイアログ）なら触らない** / **既に預かり中なら預かり直さない** /
+    **破棄済み・表示中の保持者は預からない** / **別の窓が grab 中なら上書きしない**。
+    **`deiconify` / `lift` / `focus_force` を呼ばない**（中間窓が消える）
+  - モジュール状態は 3 つ: `_active_modals`（アクティブなモーダルの台帳。**`grab_modal` を通った窓だけ**・
+    末尾 = 最内）/ `_custody_window`（預かり中の窓）/ `_app_minimized`（最小化中フラグ）。
+    `grab_modal` 側は **預かり中に開いたモーダルなら預かり窓を直前の保持者にする** /
+    **最小化中に復元できなかった直前の保持者は（預かりが空なら）預かりへ戻す**。
+    固定テスト = `tests_ui/test_minimize_grab_custody.py`（テストは `setUp` で 3 状態を patch して独立させる）
 
 ### View → コントローラのウィジェット登録（計画04 W5）
 

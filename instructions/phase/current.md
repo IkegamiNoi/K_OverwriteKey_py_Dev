@@ -7,42 +7,29 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [17_minimize_grab_custody](17_minimize_grab_custody/phase.md)**
-  （2026-09-16 起票・**task_01 / 02 / 02b / 02c / 03 / 04 完了 / task_05 未着手**。
-  実機目視 = M1〜M4 OK・M5 はモーダル中に最小化の経路がなく実施不可）。
-  **ダイアログを開いたままアプリを最小化すると復元できない**欠陥の是正
-  （**最小化の間だけ grab を預かる**）。**presentation 層のみ・スキーマ不変**。
-  - 主入力（暫定仕様）: [15_minimize_grab_custody](../history/15_minimize_grab_custody.md)
-    （**v0.5・ユーザー確定済**。task_03 の実測で §3-2(8)〔預かりへの差し戻し〕を追加）。
-    番号対応: phase 17 / 暫定 15 / decisions 17。
-  - 起票元: [idea_19](../backlog/idea_19_minimize_restore_with_child_grab.md)（phase 16 の実機目視から分離）。
-  - 確定（ユーザー 2026-09-16）: **預かるのは非表示になった保持者だけ** /
-    **復元は WM 任せ**（`deiconify` を呼ばない）/ **保持者が消えていたら生存かつ表示中の最内へ張り直す**
-    （`modal.py` に台帳を足すことを許す）/ **stdlib ダイアログは対象外**（症状は残す）/
-    正本は **`features.md` §4.6 の `:92` 限定 + 条項追加**。
-  - 根拠の再現手段: `17_minimize_grab_custody/diagnostics/`（**production コードではない**）。
-- **直近の一連の作業が扱っている領域 = モーダルダイアログの作法（モーダル性と後始末）**。
-  窓口は 2 つ。**`presentation/modal.py` の `grab_modal`**（モーダル化と破棄時の grab 復元）と
+- **アクティブなフェーズ: なし**（phase 17 は 2026-09-16 完了。次は **`18_<topic>`** を `/phase_start` で起票する）。
+- **直近の一連の作業が扱っている領域 = モーダルダイアログの作法（モーダル性・後始末・最小化）**。
+  窓口は 2 つ。**`presentation/modal.py`**（`grab_modal` = モーダル化と破棄時の grab 復元 /
+  `install_minimize_grab_custody` = 最小化中の grab 預かり）と
   **`HookController.suspend_hook_for_dialog(window)`**（フック停止と破棄時の自動解除。
   **`window` 省略時は呼び出し側が解除する try/finally 形**）。
   規約は「**`grab_modal` は初期化の最後の文**」「**状態の後始末は破棄側・ウィジェットに触る
   後始末は閉じる操作の側**」で、**静的検査テストが固定している**
   （後始末の検査は **`dialogs/` 8 クラス限定**。理由は `decisions_archive/15`）。
+  **最小化**は phase 17 で「最小化の間だけ grab を預かる」形で決着し、正本 `features.md` §4.6 へ昇格済。
+  **既知の残存** = stdlib ダイアログが開いている間の最小化（保証の範囲外）/
+  最小化で隠れない独立ウィンドウ（キーボード表示）は最小化中に操作できる /
+  最小化中にアプリ側が新しいモーダルを開いた場合の復元（未検証・現状経路なし）。
   **残件** = ①**ダイアログ同型スケルトンの共通化**（phase 11 からの候補送り。残るのは
   `suspend_hook_for_dialog` 8 クラス / `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")` **3 クラス**）
   ②**静的検査を発見ベースへ**（phase 14 の M-6・**保留**。単独では「呼び出しが消えた」検出が失われる）
   ③**`key_capture.py` / `keyboard_window.py` の編集モード**（同じフック停止カウンタを触るが
   ダイアログの閉じ方の問題ではないため phase 15 から除外。必要なら別 idea）
-  ④[idea_19](../backlog/idea_19_minimize_restore_with_child_grab.md)（**子が grab を持つ状態で
-  Win+D すると再表示できない**。phase 16 の実機目視で観測・**最小化と復元は未着手の領域**）
-  ⑤[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)（`tests_ui` の Escape 依存テストが
+  ④[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)（`tests_ui` の Escape 依存テストが
   負荷下で不安定。**テストのみの問題**）。
-  なお **`grab_modal` の第 2 引数（前面維持の相手）は phase 16 で「ネスト時は呼び出し元を渡す」
-  へ確定**し、**前面維持の 2 条項は正本 `features.md` §4.6 へ昇格済**
-  （実装の窓口は `codebase_map.md` の `modal.py` 節）。idea_17 はこれで解消・完了。
-- 直前の完了フェーズ: [16_dialog_transient_parent](../../.claude_data/state/decisions_archive/16_dialog_transient_parent.md)
+- 直前の完了フェーズ: [17_minimize_grab_custody](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md)
+- その前の完了フェーズ: [16_dialog_transient_parent](../../.claude_data/state/decisions_archive/16_dialog_transient_parent.md)
 - その前の完了フェーズ: [15_dialog_teardown_on_close](../../.claude_data/state/decisions_archive/15_dialog_teardown_on_close.md)
-- その前の完了フェーズ: [14_nested_modal_grab_restore](../../.claude_data/state/decisions_archive/14_nested_modal_grab_restore.md)
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
   **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
@@ -61,19 +48,19 @@
 
 ## 次採番
 
-- **phase 16 は 2026-09-15 完了 / phase 17 は 2026-09-16 起票（進行中）**。
+- **phase 17 は 2026-09-16 完了**（アクティブなフェーズなし）。
   次フェーズは **`18_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜14 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
+  04〜15 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
   08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
   10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
   11=config_service の公開面〔**v0.3・凍結**〕/
   12=ネストしたモーダルの grab 復元〔**v0.5・凍結**〕/
   13=ダイアログ後始末の確実な実行〔**v0.4・凍結**〕/
   14=ネストしたダイアログの前面維持〔**v0.5・凍結**〕/
-  15=最小化中の grab 預かり〔**v0.4・未凍結・phase 17 の主入力**〕）。
+  15=最小化中の grab 預かり〔**v0.7・凍結**〕）。
   次採番は **`16_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -195,6 +182,12 @@
     ただし**発見ベース単独にすると「`grab_modal` の呼び出しが消えた」検出が失われる**
     （現在は件数のアサートがそれを守っている）ため、**併用形にするかを含めて再判定が要る**。
     ユーザー判断で保留（2026-09-11）。**テストコードのため `/refactor_check` の対象範囲外**でもある。
+- **Phase 17（最小化中の grab 預かり）の `/refactor_check` からの候補送り**（判定は**不要**）:
+  `presentation/modal.py`（46 → 120 行）で `grab_current()` の try/except と
+  `winfo_exists()` / `winfo_viewable()` の try/except が**それぞれ 3 箇所**になった（M3 の境界）。
+  **意図的に意味が違う**ため共通化しない（`grab_modal` は解決不能を「保持者なし」と扱い、預かり側は
+  **解決不能と `None` を区別する**〔暫定仕様 15 §3-2(5)〕/ `<Unmap>` は「非表示」、他 2 箇所は
+  「生存かつ表示中」を見る）。**4 箇所目が同じ意味で増えたら**小さな判定ヘルパへの抽出を再判定する。
 - **Phase 11（孤児ファイルの棚卸し）の `/refactor_check` からの候補送り**（判定は**推奨** →
   提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)
   は**「計画08」として実施し完了**〔2026-09-08・挙動不変〕。提案書へ入れなかった分）:
