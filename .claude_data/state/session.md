@@ -4,58 +4,66 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-16T14:00:00
-phase: `instructions/phase/17_minimize_grab_custody`（**task_01 / task_02 完了・task_03 未着手**）。
-主入力 = 暫定仕様 15（**v0.4・ユーザー確定済・実装着手可**）。番号対応: phase 17 / 暫定 15 / decisions 17。
+last_updated: 2026-09-16T17:30:00
+phase: `instructions/phase/17_minimize_grab_custody`（**task_01 / 02 / 02b / 03 完了・task_04 未着手**）。
+主入力 = 暫定仕様 15（**v0.5・ユーザー確定済**。§3-2(8) 預かりへの差し戻しを追加）。
+番号対応: phase 17 / 暫定 15 / decisions 17。
 **phase 16 は完了**（`e54bf0f`・判断は `decisions_archive/16_dialog_transient_parent.md`）。
-last_commit_location: `claude/task-01-785abb` @ `c2f22bc`（phase 17 task_01）。
+last_commit_location: `claude/task-01-785abb` @ `5efc669`（phase 17 task_02）。
 **phase 15 までは main へマージ済**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 17 task_02 完了（預かり機構を実装・reviewer 採用）。次は task_03（受け入れ条件 12 項目 + 変異検査）。**
+focus: **phase 17 task_03 完了（受け入れ A1〜A9 + 変異検査 M1〜M6 すべて有効・reviewer 採用）。次は task_04（統合確認 + 二次レビュー + ユーザー実機目視 5 項目）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-16T14:00:00
+ts: 2026-09-16T17:30:00
 who: main
 summary: |
-  【**phase 17 task_02 完了**】`/task_new` 起票 → `codex-implementer` → `verifier` → `reviewer`
-  （**修正要 1 件 → 差し戻し修正 → 再レビュー採用**）。**presentation 限定**。
-  - **実装**: `modal.py` に `_custody_window` と **`install_minimize_grab_custody(app: tk.Misc)`**
-    （`<Unmap>` / `<Map>` を `add="+"` で結線）。`app.py` は **import 1 行 + 呼び出し 1 行**
-    （`protocol("WM_DELETE_WINDOW")` の直後）。
-  - **`<Unmap>` の 5 ガード**: App 限定 / 二重発火防止 / `grab_current()` 解決不能なら預からない /
-    保持者が `None` でない / **既に非表示の保持者だけ**預かる。
-  - **`<Map>`**: 預かりは必ず解除 → 解決不能なら何もしない → **現保持者が居れば上書きしない** →
-    記録窓が生存かつ表示中ならそこへ、でなければ**台帳を末尾から探した最内**へ `grab_set()`。
-    **`deiconify()` / `lift()` / `focus_force()` は呼ばない**。
-  - **reviewer 指摘（実測確認・production 未到達）**: 預かり中の**同じ窓**へ `grab_modal` を
-    再呼び出しすると預かりだけ解除され誰も grab を持たなくなる →
-    **早期 return の条件へ `_custody_window is window` を追加**して解消（再レビュー = **採用**）。
-  - **参考指摘（未対応・非ブロッキング）**: `<Map>` の候補ループで `grab_set()` が `TclError` の場合に
-    次候補を試さない（単一スレッドの Tk では実質到達不能と判断）。
+  【**phase 17 task_03 + 枝番 task_02b 完了**】受け入れテストの実測で**確定設計の穴**を検出し、
+  ユーザー判断で設計を追補してから実装・再テストした。
+  - **検出（仕様の穴）**: 預かりを §3-2(7) で新モーダルへ引き継いだ後、**その新モーダルが復元より前に
+    破棄されると grab 保持者がゼロになる**（phase 14 の復元が「保持者が非表示」でスキップし、預かりも空）。
+    **§6-10 後半が現行設計では満たせない**ことが実測で確定。
+  - **ユーザー確定 = A案（預かりへの差し戻し）**。暫定仕様 15 を **v0.5** へ改訂（**§3-2(8) 追加**）。
+    B案（条件を落とす）/ C案（`<Map>` で台帳から再導出）は除外（理由は `decisions.md`）。
+  - **task_02b（実装）**: `modal.py` に **`_app_minimized`** を追加（App の `<Unmap>` で True /
+    `<Map>` で False）+ `restore_grab` に **1 分岐**（`previous` が生存かつ非表示で復元できず、
+    **最小化中かつ預かりが空**なら `_custody_window` へ差し戻す）。
+  - **task_03（テスト）**: 新規 `tests_ui/test_minimize_grab_custody.py`（**実 App 経由・A1〜A9**）。
+    **変異検査 M1〜M6 すべて期待どおり fail**（空振りなし）。
+  - **途中で踏んだ罠 2 つ**: ①**`App.state` は `AppState` に占有されている**ため `wm_state()` を使う
+    ②**`withdraw()` した transient 子は App の `deiconify()` に追従して再表示される**
+    （A7 は `winfo_viewable` を patch で 0 固定する形へ作り直した）。
+  - **reviewer 判定**: task_02b / task_03 とも **採用（完了可）**。参考指摘のみ
+    （`_custody_window` への代入の型注釈 / テストのモジュール状態共有）。
 result_files:
-  - keyseq/presentation/modal.py（預かり機構 + `grab_modal` の引継ぎ結線）
-  - keyseq/presentation/app.py（import + `install_minimize_grab_custody(self)`）
-  - tests_ui/test_modal_grab.py（結線テスト 5 + 再呼び出し回帰 1 = 6 本追加）
-  - instructions/phase/17_minimize_grab_custody/tasks/task_02_minimize_grab_custody.md（新規）
+  - keyseq/presentation/modal.py（`_app_minimized` + 差し戻し分岐）
+  - tests_ui/test_modal_grab.py（最小化していないときに差し戻さないテスト 1 本）
+  - tests_ui/test_minimize_grab_custody.py（**新規**・A1〜A9）
+  - instructions/history/15_minimize_grab_custody.md（**v0.5**・§3-2(8) 追加）
+  - instructions/phase/17_minimize_grab_custody/{phase.md, tasks/task_02b_*, tasks/task_03_*}
+  - .claude_data/state/decisions.md（2026-09-16 節を新設）
 verified:
   compile: clean
   tests: pass 417（skipped 7）
-  tests_ui: pass 337（331 → +6）
+  tests_ui: pass 347（337 → +10）
   smoke: SMOKE OK
-  review: **reviewer = 採用（修正後の再レビュー）**
+  mutation: **M1〜M6 すべて期待どおり fail**（復元後バイト一致を確認）
+  review: **reviewer = task_02b 採用 / task_03 採用**
 
 ## next_action
-- **task_02 の差分をコミットする**（`/task_commit`）。
-- **task_03 を `/task_new` で起票** → `codex-implementer` へ委任。
-  内容 = **暫定仕様 15 §6 の受け入れ条件 1〜12 のうち自動化可能なもの**を `tests_ui` の
-  **新規モジュール**で固定 + **変異検査**（預かり処理を無効化したらテストが落ちること）。
-  **`deiconify()` の呼び出し 0 回**・**`grab_current()` が `KeyError` のとき `grab_set()` 0 回**・
-  **`Frame.pack_forget()` 等の App 以外の `<Unmap>` で預からない**を必ず含める。
-  ハーネスは **`iconify()` したまま tearDown しない**（cleanup で `deiconify()`）。
-- 実機目視（5 項目）は **task_04** でユーザーへ依頼する。
+- **task_04 を `/task_new` で起票**（統合確認 + 二次レビュー + 実機目視）。内容:
+  ①`verifier` で `tests` / `tests_ui` / `smoke_app` の統合確認
+  ②**二次レビュー = `deep-reviewer` + `codex-reviewer`**（`agent_selection.md` の統合確認時）
+  ③**ユーザーによる実機目視 5 項目**（①ダイアログを開いたまま Win+D → 復元できる
+  ②復元後もモーダル性が残る ③中間ダイアログも表示されている ④3 段ネストでも同じ
+  ⑤通常の最小化ボタンでも同じ）。**目視結果は `integration_result.md` へ記録**。
+- その後 **task_05（正本反映）**: `features.md` §4.6 の **`:92` へ「表示されている間は」の限定**
+  + **最小化の条項追加** / `codebase_map.md` の `modal.py` 節（**新関数 2 つと台帳**）/
+  **暫定仕様 15 の凍結** / `decisions_archive/17_minimize_grab_custody.md` / `current.md` /
+  `backlog/INDEX.md` の idea_19 を `INDEX_done.md` へ / **`/refactor_check`**。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
@@ -63,6 +71,14 @@ verified:
 - なし。
 
 ## resume_hints
+- **【phase 17 task_02b の成果】預かりへの差し戻し = `modal.py` の `_app_minimized`**
+  （App の `<Unmap>` で True / `<Map>` で False。**`event.widget is app` のガード後・預かりの成否と独立**）+
+  `restore_grab` の 1 分岐（**生存かつ非表示で復元できず、最小化中かつ預かりが空**なら差し戻す）。
+  **フラグ無しで無条件に戻すと、次の最小化で「既に預かり中」ガードに阻まれ元の欠陥が再発する**。
+- **【テストの罠 2 つ・phase 17】①`App.state` は `AppState` に占有されている**ため
+  `App` インスタンスでは **`wm_state()`** を使う（`state()` は `TypeError`）。
+  ②**`withdraw()` した transient 子は App の `deiconify()` に追従して再表示される**ので、
+  「非表示のまま」を前提にしたアサーションは置かない（`winfo_viewable` を patch で固定する）。
 - **【phase 17 task_02 の成果】最小化中の grab 預かり = `modal.py` の `_custody_window` +
   `install_minimize_grab_custody(app)`**（`app.py` の `__init__` 末尾で 1 度だけ呼ぶ）。
   **預かるのは「既に非表示の保持者」だけ**・**復元時に窓を触らない**（`deiconify` 等を呼ばない）・

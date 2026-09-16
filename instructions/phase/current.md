@@ -8,11 +8,12 @@
 ## 現在の参照先
 
 - **アクティブなフェーズ: [17_minimize_grab_custody](17_minimize_grab_custody/phase.md)**
-  （2026-09-16 起票・**task_01 / task_02 完了 / task_03〜05 未着手**）。
+  （2026-09-16 起票・**task_01 / 02 / 02b / 03 完了 / task_04・05 未着手**）。
   **ダイアログを開いたままアプリを最小化すると復元できない**欠陥の是正
   （**最小化の間だけ grab を預かる**）。**presentation 層のみ・スキーマ不変**。
   - 主入力（暫定仕様）: [15_minimize_grab_custody](../history/15_minimize_grab_custody.md)
-    （**v0.4・ユーザー確定済・実装着手可**）。番号対応: phase 17 / 暫定 15 / decisions 17。
+    （**v0.5・ユーザー確定済**。task_03 の実測で §3-2(8)〔預かりへの差し戻し〕を追加）。
+    番号対応: phase 17 / 暫定 15 / decisions 17。
   - 起票元: [idea_19](../backlog/idea_19_minimize_restore_with_child_grab.md)（phase 16 の実機目視から分離）。
   - 確定（ユーザー 2026-09-16）: **預かるのは非表示になった保持者だけ** /
     **復元は WM 任せ**（`deiconify` を呼ばない）/ **保持者が消えていたら生存かつ表示中の最内へ張り直す**
