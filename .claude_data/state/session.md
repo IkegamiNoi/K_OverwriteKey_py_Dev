@@ -4,78 +4,70 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-16T19:00:00
-phase: `instructions/phase/17_minimize_grab_custody`（**task_04 進行中**。task_01 / 02 / 02b / 03 完了）。
+last_updated: 2026-09-16T21:00:00
+phase: `instructions/phase/17_minimize_grab_custody`（**task_04 進行中**。task_01 / 02 / 02b / 02c / 03 完了）。
 主入力 = 暫定仕様 15（**v0.6・ユーザー確定済**。§3-2(8) は「破棄済みでも差し戻す」へ拡張）。
 番号対応: phase 17 / 暫定 15 / decisions 17。
 **phase 16 は完了**（`e54bf0f`・判断は `decisions_archive/16_dialog_transient_parent.md`）。
-last_commit_location: `claude/task-01-785abb` @ `37d8903`（phase 17 task_03）。
+last_commit_location: `claude/task-01-785abb` @ `ad8257f`（phase 17 task_04 進行中の記録）。
 **phase 15 までは main へマージ済**。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 17 task_04 進行中。統合確認と `deep-reviewer` は完了（H-1 を採用）。残りは task_02c の実装〔Codex 復帰待ち〕と実機目視 5 項目。**
-mode: blocked
+focus: **phase 17 task_04 進行中。task_02c で H-1 を解消し reviewer 採用。残りはユーザーの実機目視 5 項目のみ。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-16T19:00:00
+ts: 2026-09-16T21:00:00
 who: main
 summary: |
-  【**phase 17 task_04（統合確認 + 二次レビュー）**】記録は
-  `instructions/phase/17_minimize_grab_custody/integration_result.md`（**判定の正**）。
-  - **統合確認 = 全項目 pass**（`tests` 417 / `tests_ui` **347 を 3 回とも同結果** / smoke OK /
-    `user/` `quarantine/` 生成なし）。**idea_18 の flaky は今回発現せず**。
-  - **`deep-reviewer` = 条件付き完了可**。**H-1（高）**を実測で提示 →
-    **メインセッションでも裏取り再現済み**（`P exists/viewable: 1 1 | grab_current: None`）。
-    最小化中に**預かり窓と新モーダルの両方**が破棄されると差し戻しが発火せず、
-    `<Map>` も `_custody_window is None` で台帳フォールバックへ到達しない。
-  - **ユーザー確定 = 最小修正**（暫定仕様 **v0.6** = §3-2(8) を「**復元できなかった理由で区別せず、
-    `previous` が破棄済みでも差し戻す**」へ拡張）。実装は**枝番 task_02c**（未実施）。
-  - **同時に閉じる指摘**: M-3（`<Unmap>` ガード 3 つが未固定）/ M-4（`_app_minimized` の
-    テスト間リーク）→ task_02c。**M-1 / M-2 / L-2 は文書のみ** → task_05。
-  - **`codex-reviewer` は利用上限で実行不能** → 規定どおり Claude 側へ縮退（報告のみ・許可不要）。
-  - **`codex-implementer` も同じ上限で失敗**。**ユーザー判断 = `implementer` へフォールバックせず
-    Codex の復帰（13:08 予定）を待つ**。
+  【**phase 17 task_02c 完了（H-1 の最小修正）**】Codex の利用上限復帰後に `codex-implementer` で実装。
+  - **実装**: `restore_grab` の差し戻しを **「`previous` を `grab_set()` できなかったすべての場合」**
+    へ組み替え（+6/-5）。**復元できなかった理由〔非表示 / 破棄済み〕で区別しない**。
+    破棄済みの窓が預かりに入っても **`<Map>` の候補ループが台帳の最内へ落とす**ため正しい窓が掴む。
+    **`<Map>` 側・ガード・台帳は無変更**。
+  - **テスト**: A10（H-1 の回帰）/ A11〜A13（`<Unmap>` の 3 ガード = M-3）+
+    両テストモジュールの `setUp` で `_app_minimized` を初期化（M-4）。
+  - **変異検査 M7 / M8 とも期待どおり fail**（M7 → A10 / M8 → A11）。
+  - **メインセッションで H-1 の解消を再現確認**（修正前 `grab_current: None` →
+    修正後 `grab_current: .!toplevel | modal lost: False`）。
+  - **`reviewer` = 採用（完了可）**。参考指摘 2 件のみ（`grab_set()` が `TclError` かつ非最小化時は
+    従来どおり誰も掴まない〔新規劣化ではない〕/ H-1 を直接検証するのは A10 のみ）。
 result_files:
-  - instructions/phase/17_minimize_grab_custody/integration_result.md（**新規・判定の正**）
-  - instructions/history/15_minimize_grab_custody.md（**v0.6**）
-  - instructions/phase/17_minimize_grab_custody/{phase.md, tasks/task_04_*, tasks/task_02c_*}
-  - .claude_data/state/decisions.md（H-1 の判断を追記）
+  - keyseq/presentation/modal.py（`restore_grab` の条件組み替え）
+  - tests_ui/test_minimize_grab_custody.py（A10〜A13 + `setUp`）
+  - tests_ui/test_modal_grab.py（`setUp` の `_app_minimized` 初期化）
+  - instructions/phase/17_minimize_grab_custody/integration_result.md（task_02c の結果を反映）
 verified:
   compile: clean
   tests: pass 417（skipped 7）
-  tests_ui: pass 347（3 回とも同結果）
+  tests_ui: pass 351（347 → +4）
   smoke: SMOKE OK
-  mutation: M1〜M6 すべて期待どおり fail（task_03 時点）
-  review: **deep-reviewer = 条件付き完了可（H-1 採用） / codex-reviewer = 実行不能（縮退）**
+  mutation: **M7 / M8 とも期待どおり fail**（復元後バイト一致）
+  review: **reviewer = 採用**
 
 ## next_action
-- **【最優先】Codex 復帰後（13:08 以降）に `codex-implementer` へ task_02c を委任**
-  （定義 = `instructions/phase/17_minimize_grab_custody/tasks/task_02c_handback_when_holder_destroyed.md`）。
-  内容 = `restore_grab` の差し戻しを「**復元できなかったすべての場合**」へ組み替える（分岐は増やさない）+
-  テスト **A10〜A13** 追加 + **両テストモジュールの `setUp` で `_app_minimized` も patch**。
-  その後 `verifier`（**変異検査 M7 / M8 を含む**）→ `reviewer` → コミット。
-- **ユーザーへ実機目視 M1〜M5 を依頼**（`integration_result.md` §3 の表）。結果を同ファイルへ記録。
-  起動は `../../../.venv/Scripts/python.exe main.py`。
-- 上記 2 つが済んだら **task_04 を完了**（`integration_result.md` の状態を「完了」へ）。
-- その後 **task_05（正本反映）**: `features.md` §4.6 の **`:92` へ「表示されている間は」の限定** +
-  **最小化の条項追加**（**M-2 の文面は実装に合わせる** / **M-1 の残存リスク** / **L-2 を
-  「保証の範囲外」へ 1 行**）/ `codebase_map.md` の `modal.py` 節 / **暫定仕様 15 の凍結** /
-  `decisions_archive/17_minimize_grab_custody.md` / `current.md` /
+- **【最優先】ユーザーへ実機目視 M1〜M5 を依頼**（`integration_result.md` §3 の表）。
+  起動は `../../../.venv/Scripts/python.exe main.py`。結果を同ファイルへ記録し **task_04 を完了**にする。
+- その後 **task_05（正本反映・`/task_new` で起票）**:
+  `features.md` §4.6 の **`:92` へ「表示されている間は」の限定** + **最小化の条項追加**
+  （**M-2 = `<Map>` フォールバックの文面は実装に合わせる** / **M-1 = 最小化で隠れない窓は
+  預かり中に操作できる残存リスク** / **L-2 = stdlib ダイアログが最小化中に grab を持つと
+  復元後に非モーダル → 「保証の範囲外」へ 1 行**）/ `codebase_map.md` の `modal.py` 節
+  （**台帳・預かり・最小化中フラグ**）/ **暫定仕様 15 の凍結** /
+  `decisions_archive/17_minimize_grab_custody.md` / `current.md` の完了記載 /
   `backlog/INDEX.md` の idea_19 を `INDEX_done.md` へ / **`/refactor_check`** +
-  **フェーズ完了判定前の `codex-adversarial-reviewer`**（利用上限の復帰後）。
+  **フェーズ完了判定前の `codex-adversarial-reviewer`**（利用上限に注意）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- **Codex の利用上限**（実装・レビューとも実行不能。復帰予定 **13:08**）。
-  ユーザー判断により **`implementer`（Claude）へフォールバックせず待つ**。
-- **実機目視 M1〜M5 が未実施**（ユーザーのみ実施可能）。
+- **実機目視 M1〜M5 が未実施**（ユーザーのみ実施可能。これだけで task_04 が完了する）。
 
 ## resume_hints
-- **【phase 17 の未了 2 件】**①**task_02c**（H-1 の最小修正・定義は起票済）②**実機目視 M1〜M5**。
-  **H-1 = 最小化中に預かり窓と新モーダルの両方が破棄されると、生存・表示中の外側モーダルが
-  非モーダルのまま復元される**（実測で再現。v0.5 の条文の残穴で実装バグではない）。
+- **【phase 17 の未了 1 件】実機目視 M1〜M5**（task_04）。**H-1 は task_02c で解消済**
+  （最小化中に預かり窓と新モーダルの両方が破棄される経路。**差し戻しは復元できなかった理由で
+  区別しない**のが要点で、破棄済みの窓を預かりへ入れて `<Map>` の台帳フォールバックに拾わせる）。
 - **【phase 17 task_02b の成果】預かりへの差し戻し = `modal.py` の `_app_minimized`**
   （App の `<Unmap>` で True / `<Map>` で False。**`event.widget is app` のガード後・預かりの成否と独立**）+
   `restore_grab` の 1 分岐（**生存かつ非表示で復元できず、最小化中かつ預かりが空**なら差し戻す）。

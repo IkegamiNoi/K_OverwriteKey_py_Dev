@@ -25,6 +25,7 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
     def setUp(self):
         self._patch(modal, "_active_modals", [])
         self._patch(modal, "_custody_window", None)
+        self._patch(modal, "_app_minimized", False)
         self._patch(self.app.hook, "suspend_hook_for_dialog")
         self._patch(self.app.hook, "resume_hook_after_dialog")
         callback_error = self._patch(self.app, "report_callback_exception")
@@ -243,3 +244,78 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         self.assertTrue(dialog.winfo_viewable())
         self.assertIs(self.app.grab_current(), dialog)
         self.assertIsNone(modal._custody_window)
+
+    def test_a10_destroyed_holder_and_new_modal_restore_outer_grab(self):
+        """A10: 預かり窓と新モーダルの破棄後も外側へ grab を戻す。"""
+        action = self._action()
+        holder = self._manager(action)
+        self._minimize(holder)
+        child = self._track_window(tk.Toplevel(self.app))
+        modal.grab_modal(child)
+        self.assertIs(self.app.grab_current(), child)
+        self.assertIsNone(modal._custody_window)
+
+        holder.destroy()
+        self.assertIs(self.app.grab_current(), child)
+        child.destroy()
+        self.app.update()
+        self.assertFalse(holder.winfo_exists())
+        self.assertFalse(child.winfo_exists())
+        self.assertEqual(self.app.wm_state(), "iconic")
+        self.assertIsNone(self.app.grab_current())
+        self.assertIs(modal._custody_window, holder)
+
+        self._restore_app()
+
+        self.assertTrue(action.winfo_exists())
+        self.assertTrue(action.winfo_viewable())
+        self.assertIs(self.app.grab_current(), action)
+        self.assertIsNone(modal._custody_window)
+
+    def test_a11_unmap_unresolved_holder_does_not_take_custody(self):
+        """A11: Unmap で保持者が解決不能なら解放も預かりもしない。"""
+        dialog = self._action()
+        dialog.withdraw()
+        self.app.update()
+        self.assertFalse(dialog.winfo_viewable())
+        self.assertIs(self.app.grab_current(), dialog)
+        with patch.object(self.app, "grab_current", side_effect=KeyError("unknown holder")) as current:
+            with patch.object(dialog, "grab_release", wraps=dialog.grab_release) as release:
+                self.app.event_generate("<Unmap>")
+                current.assert_called_once_with()
+                release.assert_not_called()
+                self.assertIsNone(modal._custody_window)
+                self.app.report_callback_exception.assert_not_called()
+        self.assertIs(self.app.grab_current(), dialog)
+
+    def test_a12_unmap_destroyed_holder_does_not_take_custody(self):
+        """A12: Unmap が破棄済み保持者を得ても解放・預かりをしない。"""
+        dialog = self._action()
+        dialog.destroy()
+        self.app.update()
+        self.assertFalse(dialog.winfo_exists())
+        with patch.object(self.app, "grab_current", return_value=dialog) as current:
+            # 破棄済み窓への Tk 呼び出しを避け、存在判定のガードだけを検査する。
+            with patch.object(dialog, "winfo_viewable", return_value=0):
+                with patch.object(dialog, "grab_release") as release:
+                    self.app.event_generate("<Unmap>")
+                    current.assert_called_once_with()
+                    release.assert_not_called()
+                    self.assertIsNone(modal._custody_window)
+
+    def test_a13_repeated_unmap_does_not_overwrite_custody(self):
+        """A13: 預かり中の再 Unmap は別保持者で記録を上書きしない。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        other = self._track_window(tk.Toplevel(self.app))
+        other.grab_set()
+        other.withdraw()
+        self.app.update()
+        self.assertFalse(other.winfo_viewable())
+        self.assertIs(self.app.grab_current(), other)
+        self.assertIs(modal._custody_window, dialog)
+        with patch.object(other, "grab_release", wraps=other.grab_release) as release:
+            self.app.event_generate("<Unmap>")
+            release.assert_not_called()
+        self.assertIs(modal._custody_window, dialog)
+        self.assertIs(self.app.grab_current(), other)

@@ -107,13 +107,14 @@ def grab_modal(window: tk.Toplevel, parent: tk.Misc | None = None) -> None:
         if current is not None and current is not window:
             return
         try:
-            if previous.winfo_exists():
-                if previous.winfo_viewable():
-                    previous.grab_set()
-                elif _app_minimized and _custody_window is None:
-                    _custody_window = previous
+            if previous.winfo_exists() and previous.winfo_viewable():
+                previous.grab_set()
+                return
         except tk.TclError:
             # アプリ終了中や確認後の破棄・非表示化では復元できないため終了を妨げない。
             pass
+
+        if _app_minimized and _custody_window is None:
+            _custody_window = previous
 
     window.bind("<Destroy>", restore_grab, "+")
