@@ -4,46 +4,47 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-17T00:30:00
-phase: `instructions/phase/18_full_view_resizable_panes`（**起票済・task_01 未着手**）。
+last_updated: 2026-09-17T01:30:00
+phase: `instructions/phase/18_full_view_resizable_panes`（**task_01 完了**・task_02〜06 未着手）。
 主入力 = 暫定仕様 16（**v0.3・ユーザー確定済・実装着手可**）。番号対応: phase 18 / 暫定 16 / decisions 18。
 起票元 = idea_20。**phase 17 は完了**（`decisions_archive/17_minimize_grab_custody.md`）。
-last_commit_location: `claude/m4-m5-modal-check-c06ee4` @ `c541cf0`（phase 17 task_05）。
+last_commit_location: `claude/m4-m5-modal-check-c06ee4` @ `fff8363`（phase 18 起票）。
 **phase 17 までは main へマージ済**（ユーザー 2026-09-16）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 18 起票完了（暫定仕様 16 v0.3 確定・phase.md 整合チェック済）。次は task_01（純関数 + tests/）の起票と実装。**
-mode: pending_review
+focus: **phase 18 task_01 完了（幅の計算規則の純関数 + 単体テスト 24 件）。次は task_02（FullView の PanedWindow 化）。**
+mode: completed
 
 ## last_action
-ts: 2026-09-17T00:30:00
+ts: 2026-09-17T01:30:00
 who: main
 summary: |
-  【**phase 18 起票（フル表示メイン領域の幅配分と境界線ドラッグ）**】
-  - **ユーザー要望 → idea_20 起票 → 暫定仕様 16 起票（v0.1）**。ユーザー確定 2 回（保存する / 境界線ドラッグ /
-    差分はトリガー一覧が吸収 / 一覧も広がる / ウィンドウ最小幅 / 離したとき保存 / 最小幅 = 中身が切れない幅）。
-  - **起票時 `deep-reviewer`（修正して採用・Tk 実測）** → v0.2: 可動範囲制限（押し出し防止）/ ウィンドウ最小幅 =
-    両端の表示幅 + トリガー最小幅 / 希望幅と表示幅の分離 / 既定幅 = 現状と同じ見た目 / 収まらない場合の規則 / 中ボタン無効
-    （**ユーザーがすべて推奨どおり確定**）。
-  - **確定前 `codex-adversarial-reviewer`（needs-attention）** → v0.3: 最小幅を部品の並びで算出 /
-    表示幅が変わったときだけ希望幅更新 / 最終値を計算してから一括適用 / 既定幅は LabelFrame 全体の要求幅
-    （**ユーザーが推奨どおり確定**）。
-  - **phase 18 起票**（phase.md・タスク 6 本の一覧）+ current.md / INDEX.md 更新。`reviewer` 整合チェック = 完了可（行番号 2 件を修正済）。
+  【**phase 18 task_01 完了（pane_width_rules）**】`codex-implementer` で実装。
+  - **新規 `keyseq/presentation/pane_width_rules.py`**（tkinter 非依存・import は dataclasses / typing のみ）:
+    `PANE_WIDTHS_KEY` / `MIN_LIST_CHARS=10` / `DEFAULT_LIST_CHARS=26` / `PaneWidths` / `MinWidths` / `LayoutPlan` +
+    `parse_saved_pane_widths` / `list_row_width` / `stacked_min_width` / `side_by_side_min_width` /
+    `default_pane_widths` / `drag_limits` / `clamp` / `update_desired_after_drag` / `resolve_layout`。
+  - **新規 `tests/test_pane_width_rules.py`**（24 件。resolve_layout の 8 境界・v0.3 の最小幅の穴の回帰を含む）。
+  - `verifier`: compileall clean / 新規 24 pass / `tests` 441 実行 OK（skip 7）/ tkinter import 0 / 既存差分なし。
+  - `reviewer` = **完了可・指摘なし**。UI へは未結線。
 result_files:
-  - instructions/backlog/idea_20_full_view_resizable_panes.md / instructions/backlog/INDEX.md
-  - instructions/history/16_full_view_resizable_panes.md
-  - instructions/phase/18_full_view_resizable_panes/phase.md
+  - keyseq/presentation/pane_width_rules.py
+  - tests/test_pane_width_rules.py
+  - instructions/phase/18_full_view_resizable_panes/tasks/task_01_pane_width_rules.md
   - instructions/phase/current.md
 verified:
-  review: deep-reviewer（起票時）+ codex-adversarial-reviewer（確定前）+ reviewer（phase.md 整合）
-  code_diff: なし
+  compile: clean
+  tests: 441 ran OK（skipped 7。+24）
+  tests_ui: not_run（変更なし）
+  review: reviewer = 採用
 
 ## next_action
-- **`/task_new` で task_01 を起票**（`instructions/phase/18_full_view_resizable_panes/tasks/task_01_*.md`）:
-  暫定仕様 16 の §3-4（最小幅の算出）/ §3-5（希望幅の更新規則）/ §3-6（保存値の検証・既定幅）/ §3-2（可動範囲）/
-  §3-7（収まらない場合の最終値計算）を **tkinter 非依存の純関数**にし、`tests/` で境界値を固定。UI へは未結線。
-  → `codex-implementer` で実装（テスト実行は依頼しない）→ `verifier` で `tests` 実測 → `reviewer`。
+- **`/task_new` で task_02 を起票**: `views/full_view/full_view.py` を `tk.PanedWindow` 化（両端 `stretch="never"`・
+  トリガー一覧 `stretch="always"`・境界線 1 本 12px〔暫定仕様 16 §3-6〕）+ `keymap_box.py` / `trigger_box.py` の
+  一覧と親フレームを `fill="both", expand=True` へ。**既定幅での配置が変更前と一致**・**ウィンドウ幅変更でトリガー一覧だけ変わる**
+  ことを `tests_ui` で固定。ドラッグ制御・保存は入れない（task_03・04）。`app.full_view.action_list` 等の既存参照経路を壊さない。
+  → `codex-implementer` → `verifier`（tests / tests_ui / smoke）→ `reviewer`。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
