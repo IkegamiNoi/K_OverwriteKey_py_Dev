@@ -4,51 +4,46 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-16T23:30:00
-phase: `instructions/phase/17_minimize_grab_custody`（**完了**。task_01〜05 すべて完了）。**アクティブなフェーズなし**。
-次採番: phase **18** / 暫定仕様 **16** / decisions **18** / 提案書 **10**。
-**phase 17 は完了**（判断は `decisions_archive/17_minimize_grab_custody.md`・暫定仕様 15 は v0.7 で凍結）。
-last_commit_location: `claude/m4-m5-modal-check-c06ee4` @ `8350d78`（task_04）。
-**phase 15 までは main へマージ済**（phase 16・17 は未マージ）。
+last_updated: 2026-09-17T00:30:00
+phase: `instructions/phase/18_full_view_resizable_panes`（**起票済・task_01 未着手**）。
+主入力 = 暫定仕様 16（**v0.3・ユーザー確定済・実装着手可**）。番号対応: phase 18 / 暫定 16 / decisions 18。
+起票元 = idea_20。**phase 17 は完了**（`decisions_archive/17_minimize_grab_custody.md`）。
+last_commit_location: `claude/m4-m5-modal-check-c06ee4` @ `c541cf0`（phase 17 task_05）。
+**phase 17 までは main へマージ済**（ユーザー 2026-09-16）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 17 完了（正本反映・完了判定前レビュー対応・refactor_check=不要まで済）。次フェーズは未起票。**
-mode: completed
+focus: **phase 18 起票完了（暫定仕様 16 v0.3 確定・phase.md 整合チェック済）。次は task_01（純関数 + tests/）の起票と実装。**
+mode: pending_review
 
 ## last_action
-ts: 2026-09-16T23:30:00
+ts: 2026-09-17T00:30:00
 who: main
 summary: |
-  【**phase 17 task_05 完了（正本反映・フェーズ完了）**】文書のみ・コード / テスト不変。
-  - **正本**: `features.md` §4.6 冒頭条項を「表示されている間は」で限定 + **最小化の条項**
-    （隠れたモーダルだけ外す / 窓を操作しない / 戻す先 = 記録窓 → 表示中の最内 / 奪わない /
-    内側を閉じても失われない / 残存リスク = 隠れない独立ウィンドウ）+ **保証の範囲外**
-    （OS 標準ダイアログ中の最小化 / 最小化中にアプリ側が開いたモーダルの復元〔M-C〕）。
-    `codebase_map.md` の `modal.py` 節へ預かり機構・状態 3 つ・ガード 5 種・固定テスト。
-  - **暫定仕様 15 を v0.7 で凍結** / `decisions_archive/17` 作成・`decisions.md` から phase 17 節を移設 /
-    `current.md` 完了記載 / idea_19 を `INDEX_done.md` へ。
-  - **完了判定前レビュー**: `deep-reviewer` = 修正要（軽微）/ `codex-adversarial-reviewer` = needs-attention。
-    実装と食い違う保証はなし。**ユーザー判断ですべて推奨どおり**（M-A〜M-D・L-1・L-3・L-4 採用 / L-2 保留 / L-5 除外）。
-  - **refactor_check = 不要**（M3 境界: `modal.py` の try/except 各 3 箇所は意図的に意味が違う → 候補送り）。
+  【**phase 18 起票（フル表示メイン領域の幅配分と境界線ドラッグ）**】
+  - **ユーザー要望 → idea_20 起票 → 暫定仕様 16 起票（v0.1）**。ユーザー確定 2 回（保存する / 境界線ドラッグ /
+    差分はトリガー一覧が吸収 / 一覧も広がる / ウィンドウ最小幅 / 離したとき保存 / 最小幅 = 中身が切れない幅）。
+  - **起票時 `deep-reviewer`（修正して採用・Tk 実測）** → v0.2: 可動範囲制限（押し出し防止）/ ウィンドウ最小幅 =
+    両端の表示幅 + トリガー最小幅 / 希望幅と表示幅の分離 / 既定幅 = 現状と同じ見た目 / 収まらない場合の規則 / 中ボタン無効
+    （**ユーザーがすべて推奨どおり確定**）。
+  - **確定前 `codex-adversarial-reviewer`（needs-attention）** → v0.3: 最小幅を部品の並びで算出 /
+    表示幅が変わったときだけ希望幅更新 / 最終値を計算してから一括適用 / 既定幅は LabelFrame 全体の要求幅
+    （**ユーザーが推奨どおり確定**）。
+  - **phase 18 起票**（phase.md・タスク 6 本の一覧）+ current.md / INDEX.md 更新。`reviewer` 整合チェック = 完了可（行番号 2 件を修正済）。
 result_files:
-  - instructions/common/spec_detail/features.md
-  - instructions/common/codebase_map.md
-  - instructions/history/15_minimize_grab_custody.md
-  - instructions/phase/17_minimize_grab_custody/tasks/task_05_spec_promotion.md
-  - instructions/phase/17_minimize_grab_custody/integration_result.md
+  - instructions/backlog/idea_20_full_view_resizable_panes.md / instructions/backlog/INDEX.md
+  - instructions/history/16_full_view_resizable_panes.md
+  - instructions/phase/18_full_view_resizable_panes/phase.md
   - instructions/phase/current.md
-  - instructions/backlog/INDEX.md / INDEX_done.md
-  - .claude_data/state/decisions.md / decisions_archive/17_minimize_grab_custody.md
 verified:
-  links: 暫定仕様 15 ヘッダ・INDEX_done の idea_19 行のリンク先実在（ls）
-  code_diff: なし（keyseq/ tests/ tests_ui/ 差分ゼロ）
-  review: deep-reviewer + codex-adversarial-reviewer 実施・指摘反映済
-  refactor_check: 不要
+  review: deep-reviewer（起票時）+ codex-adversarial-reviewer（確定前）+ reviewer（phase.md 整合）
+  code_diff: なし
 
 ## next_action
-- **ユーザーに次の方針を確認**: ①phase 16・17 のブランチを main へマージ（PR 作成）するか
-  ②次フェーズの起票（`instructions/backlog/INDEX.md` から候補を選び `/phase_start`）。
+- **`/task_new` で task_01 を起票**（`instructions/phase/18_full_view_resizable_panes/tasks/task_01_*.md`）:
+  暫定仕様 16 の §3-4（最小幅の算出）/ §3-5（希望幅の更新規則）/ §3-6（保存値の検証・既定幅）/ §3-2（可動範囲）/
+  §3-7（収まらない場合の最終値計算）を **tkinter 非依存の純関数**にし、`tests/` で境界値を固定。UI へは未結線。
+  → `codex-implementer` で実装（テスト実行は依頼しない）→ `verifier` で `tests` 実測 → `reviewer`。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
