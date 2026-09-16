@@ -18,7 +18,7 @@
 2. `instructions/phase/current.md` を読む（**アクティブ = phase 18**）
 3. `instructions/phase/18_full_view_resizable_panes/phase.md` と
    **主入力の暫定仕様 `instructions/history/16_full_view_resizable_panes.md`（v0.3・ユーザー確定済）** を読む。
-   完了タスクの記録は同フォルダ `tasks/task_01〜03_*.md`（**task_03 末尾の「完了記録」に既知の残存あり**）。
+   完了タスクの記録は同フォルダ `tasks/task_01〜05b_*.md`（**task_05 = 実機目視チェックリスト 1〜11 と二次レビューの経過記録**）。
    **凍結済の暫定仕様（`instructions/history/` の 04〜15）の条項を実装の根拠に引かない**
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
@@ -26,8 +26,8 @@
    （**phase 18 進行中の判断は `decisions.md` 末尾の phase 18 節**）
 
 ## 現在の作業の 1 行サマリ
-**phase 18 task_03 完了（ドラッグの可動範囲制限・中ボタン無効・希望幅と表示幅・wm minsize・フォント / 省略表示との結線）。次は task_04（保存と復元）。**
-直近コミット: `458ed4a`（task_03）。**phase 17 までは main へマージ済**（phase 18 は未マージ）。
+**phase 18 task_05b 完了（二次レビュー指摘 F1・F2・F4・F5 を修正）。task_05 はユーザーの実機目視（チェックリスト 1〜11）待ち。**
+直近コミット: `7a42032`（task_05b + task_05 経過）/ `4307c69`（task_04）。**phase 17 までは main へマージ済**（phase 18 は未マージ）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -37,9 +37,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 18 task_03 完了時点 = 2026-09-17**）:
-compile **clean** / tests **441 実行 OK**（skip 7）/ tests_ui **368 実行 OK** / smoke **pass**。
-**tests_ui は 351（phase 17）→ 357（task_02）→ 368（task_03）**。**件数が減ったら退行を疑う**。
+直近の実測（**phase 18 task_05b 完了時点 = 2026-09-17**）:
+compile **clean** / tests **441 実行 OK**（skip 7）/ tests_ui **382 実行 OK** / smoke **pass**。
+**tests_ui は 351（phase 17）→ 357（task_02）→ 368（task_03）→ 380（task_04）→ 382（task_05b）**。**件数が減ったら退行を疑う**。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`git status --short config` が空**・worktree ルートへ **`user/` / `quarantine/` が生成されていない**ことを確認する。
 
@@ -50,15 +50,13 @@ Escape 配送の取りこぼしでフック停止カウンタが 1 残り後続�
 `ResourceWarning: unclosed file`（既存テスト 2 ファイル）。
 
 ## 次アクション（session.md.next_action より）
-- **`/task_new` で task_04 を起票**（暫定仕様 16 §3-5・§3-6）: 起動時に `_startup_settings` の `full_view_pane_widths` を
-  `parse_saved_pane_widths` で検証し、正常なら `desired` に（不正は既定幅）→ `apply_layout()`。
-  `PaneLayoutController._on_desired_changed` で **`write_startup({"full_view_pane_widths": {...}})`**
-  （希望幅が変わった時だけ・失敗しても desired はメモリ上で更新済み）。
-  **keymap_set 保存（`save_runtime_data`）でも値が残る**テスト。**テストは実際の config を書かない**。
-  → 実装は Codex が使えれば `codex-implementer`、**使えなければユーザーに `implementer` 代替の許可を取る**
-  （task_02・03 はユーザー許可のうえ `implementer` で実施）→ `verifier` → `reviewer`。
-- 残タスク: task_05（統合確認 + `deep-reviewer` + `codex-reviewer` + 実機目視）/ task_06（正本反映・凍結・完了処理・`/refactor_check`）。
-- **【ユーザー指示】フェーズ完了判定前の `codex-adversarial-reviewer` は Codex 回復後に必ず実施**（Claude 側へ縮退して完了判定しない）。
+- **ユーザーの実機目視結果を受け取る**（`tasks/task_05_integration_check.md` のチェックリスト 1〜11。F3 見出しの切れ・F6 縦の見た目を含む）。
+  不具合があれば枝番タスク（task_05c）を起票。問題なければ task_05 に目視結果を記録して完了 → `/save_state` + `/task_commit`。
+- 次に `/task_new` で **task_06（正本反映）**: `features.md` §4.6 / `data_schema.md` §5.4 / `codebase_map.md` 昇格 + 暫定仕様 16 凍結 +
+  `decisions_archive/18_full_view_resizable_panes.md` + current.md 完了記載 + idea_20 を `INDEX_done.md` へ + `/refactor_check`。
+  **F7（初回ドラッグで動かしていない側の既定幅も保存）の §3-6 文言を正本に残す**。
+- **【ユーザー指示】フェーズ完了判定前に `deep-reviewer` + `codex-adversarial-reviewer` を必ず実施**（Codex は回復済み・縮退しない）。
+- 実装委任は **`codex-implementer`**（Codex 回復・ユーザー 2026-09-17 指示）→ `verifier` → `reviewer`。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
@@ -79,8 +77,10 @@ Escape 配送の取りこぼしでフック停止カウンタが 1 残り後続�
   インスタンスバインドで `"break"` ②**表示前の `sash_place` は反対側をずらす** → 幅は `paneconfigure(width=)`、読むのは `winfo_width()`
   （`panecget("width")` はドラッグで更新されない）③**`pack` は先に詰めた部品へ要求幅を優先**する → スクロールバー・ボタン列を
   `side="right"` で一覧より先に詰める ④**Windows の Tk は `minsize(1,1)` 後も `wm_minsize()` = `(120,1)`** を返す。
-- **既知の残存**: 画面幅超過で表示幅が縮んだ状態でドラッグすると、ウィンドウ最小幅が表示幅合計と一致しない場合がある
-  （task_03 完了記録。task_05 の二次レビュー・実機目視で扱う）。
+- **保存と復元（task_04）**: 初回 `<Configure>` の `apply_initial_widths` が保存値（不正なら既定幅）を `desired` に /
+  `_on_desired_changed` が `write_startup` で保存（失敗しても desired は戻さない）。keymap_set 保存でも値は残る（`split_payloads.py:354-356`）。
+- **task_05b で解消**: ドラッグ後のウィンドウ最小幅は**表示幅**から `resolve_layout` で算出（`_plan(widths)`）/
+  **pane 系 tests_ui 3 本は `App()` 構築中だけ `ConfigService.load_startup` → `{}`**（実 config の保存幅に左右されない。新規テストも踏襲）。
 
 ## 直前フェーズ（phase 17 = 最小化中の grab 預かり・完了）の要点
 
@@ -98,11 +98,12 @@ Escape 配送の取りこぼしでフック停止カウンタが 1 残り後続�
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **blockers: なし**（**Codex は利用上限中**。実装の代替はユーザー許可が必須）。
+- **blockers: なし**（Codex 回復済み。Codex 不可時の実装代替はユーザー許可が必須）。
+- **【罠・今セッション】Bash ツールで `python3` / `python` を呼ばない**（Windows ストア版スタブが stdin 待ちでハングし、同じコマンド内の後続処理も実行されない）。
 - **【裏取り】レビュー・調査・サブエージェントの「コードがこうなっている」という主張は、
   採用前に `ファイルパス:行` を実測確認する**（自分が書く文書も同じ）。
 - **【傾向・実証済み】reviewer が「完了可」でも敵対的レビューで指摘が出る**。
-  **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**（phase 18 はユーザー指示で Codex 回復待ち）。
+  **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**（phase 18 でも統合確認時に両方から指摘が出た）。
   `codex-reviewer`（標準 review）は focus text を受け付けないので、観点を渡すなら `codex-adversarial-reviewer`。
 - **【Codex 運用】フォワーダが切れても Codex ワーカーは生き続ける**（判別は作業ツリーの更新時刻）。
   **書き換え途中で `verifier` / `reviewer` を回さない**。`taskkill /T` を使わない。**Codex 申告のテスト結果は信用せず実測**。
