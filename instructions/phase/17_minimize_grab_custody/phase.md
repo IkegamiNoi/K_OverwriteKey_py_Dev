@@ -76,6 +76,8 @@
 2. **task_02**: 預かり機構 `install_minimize_grab_custody(app)` の実装（`<Unmap>` / `<Map>` の結線・
    ガード 4 種〔App 限定 / 非表示の保持者のみ / 別窓が grab 中なら上書きしない / 解決不能なら触らない〕）
    + `app.py` からの呼び出し + **預かり中の `grab_modal` が `previous` を預かり窓にする**結線。
+2b. **task_02b**（枝番・v0.5 追加）: 暫定仕様 §3-2(8) の**預かりへの差し戻し**
+   （最小化中フラグ + `restore_grab` の 1 分岐）。task_03 の A9 を pass にする。
 3. **task_03**: 受け入れ条件のテスト（暫定仕様 §6 の 1〜12 のうち自動化可能なもの）+ **変異検査**。
 4. **task_04**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ **二次レビュー**
    （`deep-reviewer` + `codex-reviewer`）+ **ユーザーによる実機目視**

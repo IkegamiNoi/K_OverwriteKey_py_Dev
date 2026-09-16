@@ -212,6 +212,23 @@ class ModalGrabTest(unittest.TestCase):
             restore.assert_not_called()
         self.assertIsNone(self.root.grab_current())
 
+    def test_hidden_previous_holder_is_not_taken_into_custody_when_not_minimized(self):
+        with patch.object(modal, "_app_minimized", False):
+            a = self.make_window()
+            b = self.make_window()
+            grab_modal(a)
+            a.withdraw()
+            self.assertTrue(a.winfo_exists())
+            self.assertFalse(a.winfo_viewable())
+            self.assertIs(self.root.grab_current(), a)
+            grab_modal(b)
+            self.assertIsNone(modal._custody_window)
+            with patch.object(a, "grab_set", wraps=a.grab_set) as restore:
+                b.destroy()
+                restore.assert_not_called()
+            self.assertIsNone(self.root.grab_current())
+            self.assertIsNone(modal._custody_window)
+
     def test_destroyed_previous_holder_is_not_restored(self):
         a = self.make_window()
         b = self.make_window()
