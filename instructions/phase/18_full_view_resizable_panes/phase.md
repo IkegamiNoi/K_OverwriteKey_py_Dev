@@ -63,8 +63,8 @@
 ## タスク
 
 1. **task_01**: 純関数（保存値の検証・最小幅の算出・可動範囲・収まらない場合の最終値計算・既定幅の算出）+ `tests/` の単体テスト（境界値を含む）。**UI へは未結線**。
-2. **task_02**: FullView を `tk.PanedWindow` 化（両端 `stretch="never"`・トリガー一覧 `stretch="always"`）+ 一覧と親フレームを横に広げる。**既定幅での配置が変更前と一致**すること・ウィンドウ幅変更でトリガー一覧だけ変わることを `tests_ui` で固定。保存・ドラッグ制御はまだ入れない。
-3. **task_03**: 幅コントローラ（ドラッグの可動範囲制限・中ボタン無効・最小幅 / `wm minsize` の更新・希望幅と表示幅・収まらない場合の一括適用）+ `app.py` 結線（フォント変更後の再計算・省略表示への切替順）+ `tests_ui`。
+2. **task_02**: FullView を `tk.PanedWindow` 化（両端 `stretch="never"`・トリガー一覧 `stretch="always"`）+ 一覧と親フレームを横に広げる + **幅コントローラの骨格（最小幅の実測・既定幅の初回適用）**。**既定幅での配置が変更前と一致**すること・ウィンドウ幅変更でトリガー一覧だけ変わること・最小幅で中身が切れないことを `tests_ui` で固定。保存・ドラッグ制御はまだ入れない。
+3. **task_03**: 幅コントローラの拡張（ドラッグの可動範囲制限・中ボタン無効・`wm minsize` の更新・希望幅と表示幅・収まらない場合の一括適用）+ `app.py` 結線（フォント変更後の再計算・省略表示への切替順）+ `tests_ui`。
 4. **task_04**: 保存と復元（ドラッグを離したときの `write_startup`・変化が無ければ書かない・起動時の検証と復元）+ **keymap_set 保存でも値が残る**ことのテスト。
 5. **task_05**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ 二次レビュー（`deep-reviewer` + `codex-reviewer`）+ **ユーザーによる実機目視**。
 6. **task_06（最終・正本反映）**: `features.md` §4.6 / `data_schema.md` §5.4 / `codebase_map.md` への昇格 + **暫定仕様 16 の凍結** + `decisions_archive/18_full_view_resizable_panes.md` + `current.md` 完了記載 + idea_20 を `INDEX_done.md` へ + **`/refactor_check`**。

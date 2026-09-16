@@ -26,6 +26,7 @@ from keyseq.presentation.controllers.hook_controller import HookController
 from keyseq.presentation.controllers.key_capture import SingleKeyCaptureController
 from keyseq.presentation.controllers.keymap_panel_controller import KeymapPanelController
 from keyseq.presentation.controllers.layout_controller import LayoutController
+from keyseq.presentation.controllers.pane_layout_controller import PaneLayoutController
 from keyseq.presentation.controllers.trigger_panel_controller import TriggerPanelController
 from keyseq.presentation.ui_vars import UiVars
 from keyseq.presentation.views.compact_view.compact_view import CompactView
@@ -161,6 +162,7 @@ class App(tk.Tk):
         self.orphan_sweep_io = OrphanSweepIo(self)
         self.quarantine_manage_io = QuarantineManageIo(self)
         self.layout = LayoutController(self)
+        self.pane_layout = PaneLayoutController(self)
         self.keymap_panel = KeymapPanelController(self)
         self.trigger_panel = TriggerPanelController(self)
         self.hook = HookController(self)
@@ -184,6 +186,7 @@ class App(tk.Tk):
         self._programmatic_action_select = False  # action_list選択をコード側で変更中か
         self._flash_after_id = None
         self._build_ui()
+        self.pane_layout.install()
         self.startup_io.load_startup_and_config()
         self.layout.reload_keyboard_layouts()
         self.trigger_panel.refresh_triggers()

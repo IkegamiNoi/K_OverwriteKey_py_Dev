@@ -15,11 +15,11 @@ class FullTriggerBox(ttk.LabelFrame):
 
         # トリガー一覧（スクロール）
         tl_frame = ttk.Frame(self)
-        tl_frame.pack(side="top", fill="y", expand=False)
+        tl_frame.pack(side="top", fill="both", expand=True)
         self.trigger_list = tk.Listbox(tl_frame, height=12, width=26, exportselection=False)
-        self.trigger_list.pack(side="left", fill="y", expand=False)
         sb = ttk.Scrollbar(tl_frame, orient="vertical", command=self.trigger_list.yview)
-        sb.pack(side="left", fill="y")
+        sb.pack(side="right", fill="y")
+        self.trigger_list.pack(side="left", fill="both", expand=True)
         self.trigger_list.configure(yscrollcommand=sb.set)
         self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_focus_index_change)
         self.trigger_list.bind("<KeyRelease>", app.trigger_panel.on_trigger_list_focus_index_change)

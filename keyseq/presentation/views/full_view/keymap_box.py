@@ -14,14 +14,14 @@ class KeymapBox(ttk.LabelFrame):
         super().__init__(parent, text="キーマップ管理", padding=10)
 
         keymap_list_frame = ttk.Frame(self)
-        keymap_list_frame.pack(side="top", fill="y", expand=False)
+        keymap_list_frame.pack(side="top", fill="both", expand=True)
         self.keymap_listbox = tk.Listbox(keymap_list_frame, height=12, width=26, exportselection=False)
-        self.keymap_listbox.pack(side="left", fill="y", expand=False)
         self.keymap_listbox.bind("<<ListboxSelect>>", app.keymap_panel.on_keymap_list_select)
         self.keymap_listbox.bind("<KeyRelease>", app.keymap_panel.on_keymap_list_focus_index_change)
         self.keymap_listbox.bind("<Double-Button-1>", app.keymap_panel.on_keymap_list_double_click)
         keymap_list_scrollbar = ttk.Scrollbar(keymap_list_frame, orient="vertical", command=self.keymap_listbox.yview)
-        keymap_list_scrollbar.pack(side="left", fill="y")
+        keymap_list_scrollbar.pack(side="right", fill="y")
+        self.keymap_listbox.pack(side="left", fill="both", expand=True)
         self.keymap_listbox.configure(yscrollcommand=keymap_list_scrollbar.set)
 
         keymap_btns = ttk.Frame(self)

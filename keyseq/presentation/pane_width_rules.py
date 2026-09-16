@@ -5,6 +5,7 @@ from typing import Sequence
 PANE_WIDTHS_KEY = "full_view_pane_widths"
 MIN_LIST_CHARS = 10
 DEFAULT_LIST_CHARS = 26
+SASH_WIDTH = 12
 
 
 @dataclass(frozen=True)
