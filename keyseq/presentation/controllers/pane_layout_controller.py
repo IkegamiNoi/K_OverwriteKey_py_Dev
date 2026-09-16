@@ -5,8 +5,9 @@ from tkinter import font as tkfont, ttk
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.pane_width_rules import (
-    MIN_LIST_CHARS, SASH_WIDTH, LayoutPlan, MinWidths, PaneWidths, clamp, default_pane_widths,
-    drag_limits, list_row_width, resolve_layout, side_by_side_min_width,
+    MIN_LIST_CHARS, PANE_WIDTHS_KEY, SASH_WIDTH, LayoutPlan, MinWidths, PaneWidths, clamp,
+    default_pane_widths, drag_limits, list_row_width, parse_saved_pane_widths,
+    resolve_layout, side_by_side_min_width,
     stacked_min_width, update_desired_after_drag,
 )
 
@@ -54,7 +55,7 @@ class PaneLayoutController:
         if event.width > 1 and not self._applied:
             # 測定中の update_idletasks による Configure の再入も防ぐ。
             self._applied = True
-            self.apply_default_widths()
+            self.apply_initial_widths()
 
     def measure_min_widths(self) -> MinWidths:
         view = self.app.full_view
@@ -116,10 +117,12 @@ class PaneLayoutController:
         finally:
             probe.destroy()
 
-    def apply_default_widths(self) -> None:
+    def apply_initial_widths(self) -> None:
         view = self.app.full_view
         self.min_widths = self.measure_min_widths()
-        self.desired = default_pane_widths(
+        startup = getattr(self.app, "_startup_settings", None)
+        saved = parse_saved_pane_widths(startup.get(PANE_WIDTHS_KEY)) if isinstance(startup, dict) else None
+        self.desired = saved if saved is not None else default_pane_widths(
             main_width=view.panes.winfo_width(), keymap_req=view.keymap_box.winfo_reqwidth(),
             trigger_req=view.trigger_box.winfo_reqwidth(), sash_total=2 * SASH_WIDTH,
             mins=self.min_widths,
@@ -220,6 +223,9 @@ class PaneLayoutController:
     def _on_desired_changed(self, new: PaneWidths) -> None:
         self.desired = new
         self._update_window_min_size()
+        self.app.startup_io.write_startup({
+            PANE_WIDTHS_KEY: {"keymap": new.keymap, "sequence": new.sequence},
+        })
 
     def _plan(self) -> LayoutPlan:
         app = self.app
