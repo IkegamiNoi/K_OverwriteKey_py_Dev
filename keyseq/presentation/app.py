@@ -271,6 +271,7 @@ class App(tk.Tk):
         self._ui_font_delta_pt = new_delta
         self.ui_vars.ui_font_delta_var.set(int(new_delta))
         apply_global_theme(self, font_delta_pt=new_delta)
+        self.pane_layout.on_font_changed()
         self.startup_io.write_startup({"ui_font_delta_pt": new_delta})
         return True
 
@@ -342,6 +343,7 @@ class App(tk.Tk):
         except Exception:
             pass
         self.compact_view.pack(fill="both", expand=True)
+        self.pane_layout.release_window_min_size()
         self._apply_compact_geometry()
         self.trigger_panel.sync_trigger_selection_to_views()
         self.trigger_panel.update_status()
@@ -356,6 +358,7 @@ class App(tk.Tk):
             pass
         self.full_view.pack(fill="both", expand=True)
         self._restore_full_geometry()
+        self.pane_layout.on_full_view_shown()
         self.trigger_panel.sync_trigger_selection_to_views()
         self.trigger_panel.refresh_actions()  # full側のシーケンス表示を復帰
         self.trigger_panel.update_status()

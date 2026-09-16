@@ -37,6 +37,7 @@ class FullViewPanesTest(unittest.TestCase):
         self.app.update()
         self.saved_geometry = self.app.geometry()
         self.saved_delta = self.app._ui_font_delta_pt
+        self.saved_minsize = self.app.wm_minsize()
         self.saved_options = [
             {name: self.panes.panecget(box, name) for name in ("width", "minsize", "stretch")}
             for box in self.boxes
@@ -59,6 +60,7 @@ class FullViewPanesTest(unittest.TestCase):
             for index, (x, y) in enumerate(self.saved_sashes):
                 self.panes.sash_place(index, x, y)
             self.app.update()
+            self.app.minsize(*self.saved_minsize)
 
     def _resize(self, width: int, height: int | None = None) -> None:
         self.app.geometry(f"{width}x{height or self.app.winfo_height()}")
@@ -129,6 +131,8 @@ class FullViewPanesTest(unittest.TestCase):
                 extra = self.app.winfo_width() - self.panes.winfo_width()
                 for box, width in zip(self.boxes, widths):
                     self.panes.paneconfigure(box, minsize=width, width=width)
+                # 最小幅の合計まで狭められるよう、フォント変更で設定されたウィンドウ最小幅を解除する。
+                self.app.minsize(1, 1)
                 self._resize(sum(widths) + 2 * SASH_WIDTH + extra, self.app.winfo_reqheight())
                 for box, listing, width in zip(self.boxes, listings, widths):
                     self.assertEqual(box.winfo_width(), width)

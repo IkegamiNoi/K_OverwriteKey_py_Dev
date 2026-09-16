@@ -4,61 +4,58 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-17T02:30:00
-phase: `instructions/phase/18_full_view_resizable_panes`（**task_01・02 完了**・task_03〜06 未着手）。
+last_updated: 2026-09-17T03:30:00
+phase: `instructions/phase/18_full_view_resizable_panes`（**task_01〜03 完了**・task_04〜06 未着手）。
 主入力 = 暫定仕様 16（**v0.3・ユーザー確定済・実装着手可**）。番号対応: phase 18 / 暫定 16 / decisions 18。
 起票元 = idea_20。**phase 17 は完了**（`decisions_archive/17_minimize_grab_custody.md`）。
-last_commit_location: `claude/m4-m5-modal-check-c06ee4` @ `183d53e`（phase 18 task_01）。
+last_commit_location: `claude/m4-m5-modal-check-c06ee4` @ `3382f7c`（phase 18 task_02）。
 **phase 17 までは main へマージ済**（ユーザー 2026-09-16）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 18 task_02 完了（FullView の PanedWindow 化・一覧の横伸縮・最小幅の実測と既定幅の初回適用）。次は task_03（ドラッグ制御・wm minsize・フォント / 省略表示との結線）。**
+focus: **phase 18 task_03 完了（ドラッグの可動範囲制限・中ボタン無効・希望幅と表示幅・wm minsize・フォント / 省略表示との結線）。次は task_04（保存と復元）。**
 mode: completed
 
 ## last_action
-ts: 2026-09-17T02:30:00
+ts: 2026-09-17T03:30:00
 who: main
 summary: |
-  【**phase 18 task_02 完了（paned_full_view）**】
-  - **実装**: 初回 = `codex-implementer`。Codex が確認 5 未解決を申告（`pack` は先に詰めた部品へ要求幅を優先 →
-    一覧が先だとスクロールバー・ボタン列が最小幅で削られる）→ タスク定義を補正（**詰める順序を変える・視覚順は不変** /
-    **`SASH_WIDTH` を `pane_width_rules.py` へ**）→ 追加修正を Codex へ依頼したが**利用上限** →
-    **ユーザー許可のうえ `implementer` で代替**（`_frame_widths` の 1px 過大測定も修正）。
-  - **成果**: `full_view.py`（`self.panes` = `tk.PanedWindow`・stretch never/always/never・境界線 12px）/
-    `keymap_box.py`・`trigger_box.py`・`sequence_box.py`（一覧を横に伸ばし、スクロールバー・ボタン列を `side="right"` で先に pack）/
-    新規 `controllers/pane_layout_controller.py`（`measure_min_widths` / `apply_default_widths`・最初の `<Configure>` で 1 回）/
-    `app.py`（生成と `install()`）/ `pane_width_rules.py`（`SASH_WIDTH` のみ追加）/ 新規 `tests_ui/test_full_view_panes.py`（6 件）。
-  - `verifier`: compileall clean / 新規 6 pass / `tests` 441 OK（skip 7）/ `tests_ui` 357 OK（351+6）/ smoke OK / config 差分なし。
-  - `reviewer` = **完了可・指摘なし**（phase.md の task_02/03 記述更新は範囲付随の文書更新）。
-  - **ユーザー指示**: フェーズ最終チェックは **Codex 回復後**に行う（decisions.md 記録済）。
+  【**phase 18 task_03 完了（pane_drag_and_window_min）**】実装は **`implementer`**（Codex 利用上限・ユーザーが「使わなくてよい」と許可）。
+  - **`pane_layout_controller.py`**（237 行・分割なし）: `desired` / `min_widths` / `apply_layout()`（`_plan()` = `resolve_layout` を 1 回 →
+    `minsize` → 幅が変わる時だけ geometry → `paneconfigure`）/ サッシュのインスタンスバインド（サッシュ上の押下のみ・`drag_limits`+`clamp`・
+    `"break"`）/ 中ボタン常時無効 / 離したとき `update_desired_after_drag` → `_on_desired_changed`（desired 更新 + 最小幅のみ。**保存は task_04 がここに足す**）/
+    `on_font_changed`（省略表示中は印だけ）/ `release_window_min_size` / `on_full_view_shown` / 初回適用前は何もしない。
+  - **`app.py`** 3 行（`_apply_font_delta` の theme 直後 / `_apply_compact_geometry` より前 / `_restore_full_geometry` の後）。
+  - 新規 `tests_ui/test_pane_drag_and_window_min.py`（11 件）。
+  - **メイン判断**: task_02 の test_05 がウィンドウ最小幅に止められて失敗 → **アサーション不変・準備で `minsize(1,1)`・後始末で復元**を許可。
+    Windows の Tk は `minsize(1,1)` 後も `wm_minsize()` = `(120,1)` のため、テスト 8・9 は使い捨て Toplevel の実測値と比較。
+  - `reviewer` = 修正要（ドラッグ後の最小幅を独自式で算出）→ `resolve_layout` へ一本化して解消（メインで差分確認）。
+  - `verifier`: compileall clean / `tests` 441 OK（skip 7）/ `tests_ui` 368 OK（修正後に再実行）/ smoke OK / config 差分なし。
+  - **既知の残存**: 画面幅超過で表示幅が縮んだ状態でのドラッグ後、最小幅が表示幅合計と一致しない場合がある（task_03 定義の完了記録）。
 result_files:
-  - keyseq/presentation/views/full_view/full_view.py / keymap_box.py / trigger_box.py / sequence_box.py
-  - keyseq/presentation/controllers/pane_layout_controller.py
-  - keyseq/presentation/app.py / keyseq/presentation/pane_width_rules.py
-  - tests_ui/test_full_view_panes.py
-  - instructions/phase/18_full_view_resizable_panes/phase.md / tasks/task_02_paned_full_view.md
-  - instructions/phase/current.md / .claude_data/state/decisions.md
+  - keyseq/presentation/controllers/pane_layout_controller.py / keyseq/presentation/app.py
+  - tests_ui/test_pane_drag_and_window_min.py / tests_ui/test_full_view_panes.py
+  - instructions/phase/18_full_view_resizable_panes/tasks/task_03_pane_drag_and_window_min.md
+  - instructions/phase/current.md
 verified:
   compile: clean
   tests: 441 ran OK（skipped 7）
-  tests_ui: 357 ran OK（+6）
+  tests_ui: 368 ran OK（+11）
   smoke: SMOKE OK
-  review: reviewer = 採用
+  review: reviewer = 修正要 → 修正済（resolve_layout へ一本化）
 
 ## next_action
-- **`/task_new` で task_03 を起票**（暫定仕様 16 §3-2 / §3-4 / §3-5 / §3-7）: `PaneLayoutController` を拡張 —
-  サッシュドラッグの可動範囲制限（標準バインドを `"break"`・`drag_limits`/`clamp`）/ 中ボタン無効 /
-  希望幅と表示幅の保持（task_04 の保存に備え、ドラッグを離したとき `update_desired_after_drag` まで）/
-  `resolve_layout` の一括適用と `wm minsize`（高さ 1）/ **フォント変更後の再計算**（`_apply_font_delta` 後・省略表示中は保留）/
-  **省略表示へ入る前に `wm minsize` 解除・フル表示へ戻った後に再適用**。保存・起動時の復元は task_04。
-  → 実装は `codex-implementer`（**Codex 利用上限の解除 = 2026-09-17 0:40**。使えなければユーザーに `implementer` 代替の許可を取る）→ `verifier` → `reviewer`。
+- **`/task_new` で task_04 を起票**（暫定仕様 16 §3-5・§3-6）: 起動時に `_startup_settings` の `full_view_pane_widths` を
+  `parse_saved_pane_widths` で検証し、正常なら `desired` に（不正は既定幅）→ `apply_layout()`。`_on_desired_changed` で
+  **`write_startup({"full_view_pane_widths": {...}})`**（希望幅が変わった時だけ・失敗しても desired はメモリ上で更新済み）。
+  **keymap_set 保存（`save_runtime_data`）でも値が残る**テスト。テストは実際の config を書かない。
+  → 実装は Codex が使えれば `codex-implementer`、使えなければユーザーに `implementer` 代替を確認 → `verifier` → `reviewer`。
 - **フェーズ完了判定前の `codex-adversarial-reviewer` は Codex 回復後に必ず実施**（ユーザー指示・縮退しない）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
 ## blockers
-- なし（Codex は利用上限中・2026-09-17 0:40 解除予定）
+- なし（Codex は利用上限中）
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
