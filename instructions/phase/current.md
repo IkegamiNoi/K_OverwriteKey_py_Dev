@@ -8,7 +8,8 @@
 ## 現在の参照先
 
 - **アクティブなフェーズ: [17_minimize_grab_custody](17_minimize_grab_custody/phase.md)**
-  （2026-09-16 起票・**task_01 / 02 / 02b / 03 完了 / task_04・05 未着手**）。
+  （2026-09-16 起票・**task_01 / 02 / 02b / 02c / 03 / 04 完了 / task_05 未着手**。
+  実機目視 = M1〜M4 OK・M5 はモーダル中に最小化の経路がなく実施不可）。
   **ダイアログを開いたままアプリを最小化すると復元できない**欠陥の是正
   （**最小化の間だけ grab を預かる**）。**presentation 層のみ・スキーマ不変**。
   - 主入力（暫定仕様）: [15_minimize_grab_custody](../history/15_minimize_grab_custody.md)
