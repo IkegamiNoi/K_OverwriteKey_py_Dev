@@ -7,38 +7,19 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [18_full_view_resizable_panes](18_full_view_resizable_panes/phase.md)**
-  （2026-09-16 起票・**task_01〜05d 完了 / task_06（正本反映・最終）未着手**）。**フル表示メイン領域の幅配分と境界線ドラッグ**
-  （ウィンドウ幅の変更はトリガー一覧が受け、境界線ドラッグで両端の枠幅を変え、その幅を `config.json` に保存・復元）。
-  **presentation + 純関数・`config.json` にキー `full_view_pane_widths` を追加（後方互換）**。
-  - 主入力（暫定仕様）: [16_full_view_resizable_panes](../history/16_full_view_resizable_panes.md)
-    （**v0.3・ユーザー確定済**）。番号対応: phase 18 / 暫定 16 / decisions 18。
-  - 起票元: [idea_20](../backlog/idea_20_full_view_resizable_panes.md)（ユーザー要望）。
-  - 確定（ユーザー 2026-09-16）: **差分はトリガー一覧が吸収**（反対側の枠を押し縮めない）/
-    **一覧も横に広がる・最小幅 = 中身が切れない幅** / **ウィンドウ最小幅 = 両端の表示幅 + トリガー最小幅** /
-    **ドラッグを離したとき `write_startup` で保存・希望幅と表示幅を分ける** / **既定幅は現状と同じ見た目**。
-- **直近の一連の作業が扱っている領域 = モーダルダイアログの作法（モーダル性・後始末・最小化）**。
-  窓口は 2 つ。**`presentation/modal.py`**（`grab_modal` = モーダル化と破棄時の grab 復元 /
-  `install_minimize_grab_custody` = 最小化中の grab 預かり）と
-  **`HookController.suspend_hook_for_dialog(window)`**（フック停止と破棄時の自動解除。
-  **`window` 省略時は呼び出し側が解除する try/finally 形**）。
-  規約は「**`grab_modal` は初期化の最後の文**」「**状態の後始末は破棄側・ウィジェットに触る
-  後始末は閉じる操作の側**」で、**静的検査テストが固定している**
-  （後始末の検査は **`dialogs/` 8 クラス限定**。理由は `decisions_archive/15`）。
-  **最小化**は phase 17 で「最小化の間だけ grab を預かる」形で決着し、正本 `features.md` §4.6 へ昇格済。
-  **既知の残存** = stdlib ダイアログが開いている間の最小化（保証の範囲外）/
-  最小化で隠れない独立ウィンドウ（キーボード表示）は最小化中に操作できる /
-  最小化中にアプリ側が新しいモーダルを開いた場合の復元（未検証・現状経路なし）。
-  **残件** = ①**ダイアログ同型スケルトンの共通化**（phase 11 からの候補送り。残るのは
-  `suspend_hook_for_dialog` 8 クラス / `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")` **3 クラス**）
-  ②**静的検査を発見ベースへ**（phase 14 の M-6・**保留**。単独では「呼び出しが消えた」検出が失われる）
-  ③**`key_capture.py` / `keyboard_window.py` の編集モード**（同じフック停止カウンタを触るが
-  ダイアログの閉じ方の問題ではないため phase 15 から除外。必要なら別 idea）
-  ④[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)（`tests_ui` の Escape 依存テストが
-  負荷下で不安定。**テストのみの問題**）。
-- 直前の完了フェーズ: [17_minimize_grab_custody](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md)
+- **アクティブなフェーズ: なし**（phase 18 は 2026-09-17 完了。次フェーズは未起票 = ユーザーに方針確認）。
+- **直近の一連の作業が扱っている領域 = フル表示の幅配分（境界線ドラッグ・幅の保存と復元）**。
+  正本は `features.md` §4.6「フル表示の幅配分」/ `data_schema.md` §5.4（`full_view_pane_widths` / `full_view_window_width`）/
+  `codebase_map.md` の `controllers/pane_layout/`・`pane_width_rules.py`。暫定仕様 16 は v0.5 で凍結。
+  **ウィンドウ幅はリサイズ後 500ms 間引きで保存し、終了時には保存しない**（判定は予約の実行時・自動決定幅は保存しない）。
+  **残件** = ①[idea_21](../backlog/idea_21_full_view_header_width.md)（ヘッダ幅）/ [idea_22](../backlog/idea_22_full_view_min_height.md)（縦方向の最小サイズ）
+  ②完了判定前レビューの保留 3 件と refactor_check の境界観察（本ファイル「別タスク化候補」の Phase 18 項）
+  ③`tests_ui` 実行時の stderr に既存 `_clear_flash_message` の破棄後 `after` 実行が出る（無害・未対応）。
+  その前の領域（モーダルダイアログの作法）の残件は [decisions_archive/17](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md) と
+  「別タスク化候補」の Phase 14 / 17 項、[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)。
+- 直前の完了フェーズ: [18_full_view_resizable_panes](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)
+- その前の完了フェーズ: [17_minimize_grab_custody](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md)
 - その前の完了フェーズ: [16_dialog_transient_parent](../../.claude_data/state/decisions_archive/16_dialog_transient_parent.md)
-- その前の完了フェーズ: [15_dialog_teardown_on_close](../../.claude_data/state/decisions_archive/15_dialog_teardown_on_close.md)
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
   **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
@@ -57,7 +38,7 @@
 
 ## 次採番
 
-- **phase 17 は 2026-09-16 完了 / phase 18 は 2026-09-16 起票（進行中）**。
+- **phase 18 は 2026-09-17 完了**（decisions 18 はアーカイブ済・次は decisions 19）。
   次フェーズは **`19_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -70,7 +51,7 @@
   13=ダイアログ後始末の確実な実行〔**v0.4・凍結**〕/
   14=ネストしたダイアログの前面維持〔**v0.5・凍結**〕/
   15=最小化中の grab 預かり〔**v0.7・凍結**〕/
-  16=フル表示メイン領域の幅配分〔**v0.3・未凍結・phase 18 の主入力**〕）。
+  16=フル表示メイン領域の幅配分〔**v0.5・凍結**〕）。
   次採番は **`17_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -198,6 +179,12 @@
   **意図的に意味が違う**ため共通化しない（`grab_modal` は解決不能を「保持者なし」と扱い、預かり側は
   **解決不能と `None` を区別する**〔暫定仕様 15 §3-2(5)〕/ `<Unmap>` は「非表示」、他 2 箇所は
   「生存かつ表示中」を見る）。**4 箇所目が同じ意味で増えたら**小さな判定ヘルパへの抽出を再判定する。
+- **Phase 18（フル表示の幅配分）の `/refactor_check` からの候補送り**（判定は**不要**）:
+  - `pane_width_rules.DEFAULT_LIST_CHARS = 26` が**未使用**で、`views/full_view/keymap_box.py` / `trigger_box.py` の `width=26` が直値のまま（M6 の境界）
+  - `controllers/pane_layout/pane_layout_controller.py`（256 行）がドラッグ・レイアウト適用・ウィンドウ幅の保存の **3 まとまり**を持つ。
+    さらに増えるならウィンドウ幅の保存を同フォルダの別モジュールへ分ける再判定をする
+  - 完了判定前レビューの保留 3 件（ドラッグで元の希望幅へ戻したとき最小幅が更新されない場合 / `pane_measure.py` の SequenceBox 構造依存 /
+    phase 18 以前の tests_ui が実 config を読む）。判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)
 - **Phase 11（孤児ファイルの棚卸し）の `/refactor_check` からの候補送り**（判定は**推奨** →
   提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)
   は**「計画08」として実施し完了**〔2026-09-08・挙動不変〕。提案書へ入れなかった分）:

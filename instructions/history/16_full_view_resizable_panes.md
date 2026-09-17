@@ -1,9 +1,8 @@
 # 暫定仕様 16: フル表示メイン領域の幅配分と境界線ドラッグ（full_view_resizable_panes）
 
-> 状態: **未凍結・v0.5・ユーザー確定済（2026-09-17）・主入力**。v0.4 までは実装済み（v0.4 = phase 18 task_05c）。
-> v0.5 の変更分は phase 18 task_05d で実装。
-> 本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済・v0.5**（2026-09-17・phase 18 完了）。**条項を実装の根拠に引かない**（経緯の参照用）。
+> 正本 = `spec_detail/features.md` §4.6「フル表示の幅配分」/ `spec_detail/data_schema.md` §5.4 / `codebase_map.md`（`controllers/pane_layout/`・`pane_width_rules.py`）。
+> 判断履歴 = [decisions_archive/18_full_view_resizable_panes.md](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)。
 > 起票元: [idea_20](../backlog/idea_20_full_view_resizable_panes.md)（ユーザー要望 2026-09-16）。
 > **presentation + `config/config.json` のキー追加（後方互換）**。番号対応: phase 18 / 暫定 16 / decisions 18。
 >

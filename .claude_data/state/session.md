@@ -4,35 +4,42 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-17T16:30:00
-phase: `instructions/phase/18_full_view_resizable_panes`（**task_01〜05d 完了**・task_06 未着手）。
-主入力 = 暫定仕様 16（**v0.5・ユーザー確定済 2026-09-17**）。番号対応: phase 18 / 暫定 16 / decisions 18。
-起票元 = idea_20。**phase 17 は完了**（`decisions_archive/17_minimize_grab_custody.md`）。
-last_commit_location: `claude/window-size-persistence-check-a9282e`（task_05d はこの後コミット）。
-**phase 17 までは main へマージ済**（ユーザー 2026-09-16）。
+last_updated: 2026-09-17T19:00:00
+phase: `instructions/phase/18_full_view_resizable_panes`（**完了 2026-09-17**。判断履歴 = `decisions_archive/18_full_view_resizable_panes.md`）。
+**アクティブなフェーズなし**（次は phase 19 / 暫定 17 / decisions 19。未起票）。
+last_commit_location: `claude/window-size-persistence-check-a9282e`（task_06b / task_06 はこの後コミット）。
+**main は task_05d（`9ce8409`）まで進んでいる**（phase 18 の残りコミットは未マージ）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 18 task_05 完了（統合確認 + 二次レビュー + 実機目視 v0.5 まで OK）。次は task_06（正本反映・最終）の起票。**
+focus: **phase 18 完了（正本反映・暫定仕様 16 凍結・refactor_check 不要・完了判定前レビューの採否反映・task_06b でテスト遮断を修正）。次フェーズは未起票。**
 mode: completed
 
 ## last_action
-ts: 2026-09-17T16:30:00
-who: user
+ts: 2026-09-17T19:00:00
+who: main
 summary: |
-  【task_05 完了】ユーザーが v0.5（task_05d）分の実機目視を実施し全項目 OK（最大化して閉じても変えた幅を保持 / 起動時の幅へ戻した幅の保存 / 省略表示の往復で 270 を保存しない）。
-  task_05 に結果と完了記録を追記。task_05d は `9ce8409` でコミット済。
+  【task_06 正本反映】`features.md` §4.6「フル表示の幅配分」新設 / `data_schema.md` §5.4 に 2 キー / `codebase_map.md` 追記 / 暫定 16 を v0.5 で凍結 /
+  `decisions_archive/18` 作成・decisions.md から移設 / idea_20 を INDEX_done へ / current.md を完了記載へ。
+  【refactor_check】不要（M1〜M6 該当なし。境界観察 2 件は current.md 別タスク化候補）。
+  【完了判定前レビュー】deep-reviewer（修正要・軽微）+ codex-adversarial（中 2）→ ユーザー推奨どおり: テスト遮断 = task_06b / 文書 5 件反映 / Codex 2 件受容（正本の受容制約へ）/ 3 件保留。
+  【task_06b 完了】`codex-implementer`。verifier: tests_ui 413 OK / tests 445 OK（skip 7）/ smoke OK / config mtime 不変。reviewer = 完了可。
 result_files:
-  - instructions/phase/18_full_view_resizable_panes/tasks/task_05_integration_check.md / instructions/phase/current.md
+  - instructions/common/spec_detail/features.md / data_schema.md / instructions/common/codebase_map.md / instructions/history/16_full_view_resizable_panes.md
+  - .claude_data/state/decisions_archive/18_full_view_resizable_panes.md / .claude_data/state/decisions.md / instructions/backlog/INDEX.md / INDEX_done.md
+  - instructions/phase/current.md / phase.md / tasks/task_06_spec_promotion.md / tasks/task_06b_tests_ui_config_isolation.md
+  - tests_ui/test_full_view_panes.py / tests_ui/test_pane_drag_and_window_min.py
 verified:
-  manual: 実機目視 OK（ユーザー）
+  compile: clean
+  tests: 445 ran OK（skipped 7）
+  tests_ui: 413 ran OK
+  smoke: SMOKE OK
+  review: reviewer = 完了可（task_06 / task_06b）/ deep-reviewer + codex-adversarial = 採否済
 
 ## next_action
-- `/task_new` で **task_06（正本反映・最終）** を起票: `features.md` §4.6 / `data_schema.md` §5.4（`full_view_pane_widths` と `full_view_window_width`・
-  config.json 作成契機に「ドラッグ離し」「ウィンドウ幅を変えたとき」）/ `key_input.md` §7.2（保存失敗ダイアログ中の停止は既存規定の適用のため追記要否を判断）/
-  `codebase_map.md`（`controllers/pane_layout/` パッケージ）昇格 + 暫定仕様 16 凍結 + `decisions_archive/18_full_view_resizable_panes.md` +
-  current.md 完了記載 + idea_20 を `INDEX_done.md` へ + `/refactor_check`。
-- **フェーズ完了判定前に `deep-reviewer` + `codex-adversarial-reviewer` を必ず実施**（ユーザー指示・縮退しない）。
+- **ユーザーに次の方針を確認**: ①phase 18 の残りコミットを main へマージするか ②次フェーズの候補（idea_21 ヘッダ幅 / idea_22 縦の最小サイズ / その他 backlog）。
+  決まったら `/phase_start` で phase 19 を起票（暫定仕様が要るなら `/spec_draft` で 17 番）。
+- 必要なら `/save_handoff` で handoff.md を phase 18 完了時点へ再生成。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
@@ -41,6 +48,8 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 18 の成果は正本が正】フル表示の幅配分 = `features.md` §4.6「フル表示の幅配分」+ `data_schema.md` §5.4 + `codebase_map.md` の PaneLayoutController 節**。
+  暫定仕様 16 は凍結済で条項の根拠に引かない。**tests_ui で App を作るテストはウィンドウ幅の保存予約（500ms）が走るので、`write_startup` をクラス単位で差し替え、破棄前に `pane_layout.cancel_window_width_save()`**（手本 `tests_ui/test_pane_window_width_persistence.py`）。
 - **【phase 17 の成果は正本が正】最小化中の grab 預かり = `features.md` §4.6 + `codebase_map.md` の `modal.py` 節**。
   暫定仕様 15 は凍結済で条項の根拠に引かない。
 - **【tests_ui のテストの罠・phase 17】①`App.state` は `AppState` に占有**されているので App では **`wm_state()`** を使う。

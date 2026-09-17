@@ -26,7 +26,7 @@
   （ウィンドウ幅・反対側の枠は変わらない = 可動範囲を制限。**中ボタンのドラッグは無効**）。
 - **一覧も枠に合わせて横に広がる**。**最小幅 = 中身が切れない幅**（一覧は 10 文字相当）。
 - **ウィンドウ最小幅 = 両端の表示幅 + トリガー一覧の最小幅**（フル表示中のみ・省略表示の幅 270 を妨げない）。
-- **保存はドラッグを離したとき・`write_startup` 経由**。**希望幅と表示幅を分け、ドラッグで実際に変わった側だけ保存**。
+- **保存はドラッグを離したとき・`write_startup` 経由**（v0.4 以降はウィンドウ幅も保存。v0.5 でウィンドウ幅はリサイズ後 500ms 間引き保存。最終形は暫定仕様 16 v0.5 / 正本 `features.md` §4.6）。**希望幅と表示幅を分け、ドラッグで実際に変わった側だけ保存**。
 - **既定幅は現状と同じ見た目**。**収まらない場合は最終値を計算してから一括適用**（広げる → 画面幅超過なら表示だけ縮める）。
 
 ## スコープ
@@ -49,7 +49,7 @@
 
 ## このフェーズで読むファイル
 
-1. `instructions/history/16_full_view_resizable_panes.md`（主入力・v0.3）
+1. `instructions/history/16_full_view_resizable_panes.md`（主入力・v0.5 で凍結済）
 2. `keyseq/presentation/views/full_view/full_view.py` / `keymap_box.py` / `trigger_box.py` / `sequence_box.py`
 3. `keyseq/presentation/app.py`（`:54-` の `__init__`・`:263-284` フォント変更・`:326-378` 表示切替）
 4. `keyseq/presentation/controllers/config_io/startup_io.py`（`:39-59` `write_startup`）/ `keyseq/presentation/startup_settings.py`
@@ -71,6 +71,7 @@
    - **task_05c**: 暫定仕様 16 v0.4（ウィンドウ幅の保存・復元 / 既定幅の 780 基準 / 終了時の保存順序 / ドラッグ中の移動イベント間引き）。
    - **task_05d**: 暫定仕様 16 v0.5（ウィンドウ幅をリサイズのたびに 500ms 間引いて保存 / 終了時保存の廃止 / 自動決定幅の無効化 / 保存失敗ダイアログ中のフック停止）。
 6. **task_06（最終・正本反映）**: `features.md` §4.6 / `data_schema.md` §5.4 / `codebase_map.md` への昇格 + **暫定仕様 16 の凍結** + `decisions_archive/18_full_view_resizable_panes.md` + `current.md` 完了記載 + idea_20 を `INDEX_done.md` へ + **`/refactor_check`**。
+   - **task_06b**: 完了判定前レビュー（deep-reviewer 指摘 1）の採用分 = `tests_ui` 2 モジュールの書き込み遮断をクラス単位にし、ウィンドウ幅の保存予約を後始末で取り消す（テストのみ）。
 
 タスク定義は着手する順に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。
 

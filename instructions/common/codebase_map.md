@@ -60,6 +60,10 @@ keyseq/presentation/
         key_capture.py
         keymap_panel_controller.py
         layout_controller.py
+        pane_layout/           # フル表示の幅配分（所有者フォルダ・phase 18）
+            __init__.py        # PaneLayoutController の再輸出
+            pane_layout_controller.py  # PaneLayoutController: 境界線ドラッグ・最小幅・収まらない場合の適用・幅の保存と復元
+            pane_measure.py    # measure_min_widths: 各枠の最小幅を実ウィジェットから測る
         trigger_panel_controller.py
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)
@@ -94,6 +98,7 @@ keyseq/presentation/
     listbox_utils.py
     modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かり
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
+    pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値・既定幅と 780 基準。tkinter 非依存）
     orphan_sweep_text.py       # 孤児ファイルの棚卸しの提示テキスト整形（警告 / 候補一覧 / 隔離結果。純関数）
     quarantine_manage_text.py  # 隔離の管理の提示テキスト整形（単位一覧 / 復元・削除の計画と結果。純関数）
     startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
@@ -199,6 +204,8 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       `write_global_hook_keys(*, stop_key, toggle_key) -> bool`（hook キーの全体デフォルト書き込み）。
       **全体デフォルトを書くのはこの 1 本のみ**。ConfigService 側に read-modify-write な保存 API を
       作らない（`_startup_settings` と config.json が乖離すると次の `write_startup` が hook キーを消す）
+    - `write_startup` の保存失敗表示（`showerror`）は `hook.suspend_hook_for_dialog()` → `finally: resume_hook_after_dialog()` で囲む
+      （表示中はフック停止。フォント変更・幅の保存など全呼び出し元に効く。phase 18）
   - HotkeyPresetsIo（hotkey_presets_io.py = `app.hotkey_presets_io`）: hotkey プリセットの即時保存。
     `write_presets(presets, *, stored_path) -> bool`（**空文字ならグローバル / 非空なら個別ファイル**。
     成功 True / 例外捕捉で `showerror` + False）。
@@ -242,6 +249,19 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       `dialogs/` に置くと `__init__` が tkinter / pynput を巻き込むため直下）
     - **メニュー配線は `views/menu_bar.py` の設定メニュー 1 行**
 - LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理
+- PaneLayoutController（controllers/pane_layout/ = `app.pane_layout`）: フル表示の幅配分（仕様は `spec_detail/features.md` §4.6「フル表示の幅配分」・
+  `data_schema.md` §5.4）。計算は `pane_width_rules.py` の純関数、最小幅の実測は `pane_measure.py`。
+  - 初回適用（FullView の `PanedWindow` の最初の `<Configure>`）: 最小幅の実測 → 保存値の検証 or 既定幅（780 基準）→ 一括適用
+  - ドラッグ: サッシュ上の左ボタンだけを個別バインドで処理し `"break"`（可動範囲の制限・中ボタン無効）。移動は `after_idle` で間引き、
+    離したときに接する側の希望幅を更新して `startup_io.write_startup` で `full_view_pane_widths` を保存
+  - `apply_layout`: 収まらない場合の最終値を計算して `wm minsize` / geometry / 両端の幅を 1 回で適用。
+    `on_font_changed`（省略表示中は印だけ）/ `on_full_view_shown` / `release_window_min_size`（省略表示へ入る前）を App が呼ぶ
+  - **自動決定幅** `_auto_window_width`: 初回適用後は常に、`apply_layout` で geometry を変えたときだけ記録。
+    ユーザーが幅を変えたと判定したら無効化（`None`）する
+  - **ウィンドウ幅の保存**: App の `<Configure>`（App 自身・幅の変化のみ）で 500ms 後に `_save_window_width` を予約し直す。
+    **判定は予約の実行時**（`wm_state() != "normal"` / 省略表示中 / 初回適用前は何もせず自動決定幅も触らない →
+    自動決定幅と同じなら書かない → 異なれば無効化 → 保存値と同じなら書かない）。
+    予約は `on_close`（`cancel_window_width_save`）と App の `<Destroy>` で取り消す。**終了時には書かない**
 - KeymapPanelController（controllers/keymap_panel_controller.py）: キーマップ管理パネル
 - TriggerPanelController（controllers/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示
 - HookController（controllers/hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
@@ -445,6 +465,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 ### FullView（views/full_view/）
 - 編集機能 / トリガー管理 / シーケンス管理 / keymap・trigger_set・sequence の個別保存ボタン
+- メイン領域は `tk.PanedWindow`（横・`view.panes`）に KeymapBox | FullTriggerBox | SequenceBox を入れる。
+  両端 `stretch="never"`・トリガー一覧 `stretch="always"`・境界線 12px（phase 18）。幅の制御は PaneLayoutController が持ち、FullView は生成と配置のみ
 - 構成 Widget:
   - FullHookFrame（hook_frame.py）: フック開始/停止・通常トリガー切替・停止/トグルキーの表示と**取得・クリア**・
     「このキーマップセットで個別指定する」チェック（操作可能なのは full のみ）
