@@ -15,7 +15,7 @@
 
 - 起票元: [idea_20](../../backlog/idea_20_full_view_resizable_panes.md)（ユーザー要望 2026-09-16）。
 - 主入力（暫定仕様）: [16_full_view_resizable_panes.md](../../history/16_full_view_resizable_panes.md)
-  （**v0.4・ユーザー確定済**。v0.4 = task_05 目視を受けたウィンドウ幅の保存・ドラッグ間引き）。
+  （**v0.5・ユーザー確定済**。v0.4 = task_05 目視を受けたウィンドウ幅の保存・ドラッグ間引き / v0.5 = task_05c 目視を受けたリサイズ時の間引き保存）。
 - モード: **暫定仕様先行モード**。番号対応: phase 18 / 暫定 16 / decisions 18。
 
 ## 確定（ユーザー 2026-09-16）
@@ -69,6 +69,7 @@
 5. **task_05**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ 二次レビュー（`deep-reviewer` + `codex-reviewer`）+ **ユーザーによる実機目視**。
    - **task_05b**: task_05 二次レビューの採用指摘（F1 ドラッグ後の最小幅を表示幅から / F2 tests_ui を実 config から独立 / F4 起動経路の復元テスト / F5 ドラッグ状態の掃除）。
    - **task_05c**: 暫定仕様 16 v0.4（ウィンドウ幅の保存・復元 / 既定幅の 780 基準 / 終了時の保存順序 / ドラッグ中の移動イベント間引き）。
+   - **task_05d**: 暫定仕様 16 v0.5（ウィンドウ幅をリサイズのたびに 500ms 間引いて保存 / 終了時保存の廃止 / 自動決定幅の無効化 / 保存失敗ダイアログ中のフック停止）。
 6. **task_06（最終・正本反映）**: `features.md` §4.6 / `data_schema.md` §5.4 / `codebase_map.md` への昇格 + **暫定仕様 16 の凍結** + `decisions_archive/18_full_view_resizable_panes.md` + `current.md` 完了記載 + idea_20 を `INDEX_done.md` へ + **`/refactor_check`**。
 
 タスク定義は着手する順に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。

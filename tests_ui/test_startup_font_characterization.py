@@ -30,7 +30,9 @@ class StartupFontCharacterizationTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         # 破棄前に保留中の after(0) を流し、後続モジュールへ持ち越さない。
+        cls.app.pane_layout.cancel_window_width_save()
         cls.app.update()
+        cls.app.pane_layout.cancel_window_width_save()
         cls.app.destroy()
 
     def test_coerce_font_delta_value_table(self):
@@ -103,6 +105,43 @@ class StartupFontCharacterizationTest(unittest.TestCase):
 
         self.assertEqual(self.app._startup_settings, previous)
         showerror.assert_called_once_with("startup.json 保存失敗", "no disk")
+
+    def test_write_startup_failure_pauses_hook_during_dialog(self):
+        def show_error(*_args):
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        with patch.object(self.app.config_service, "save_startup", side_effect=OSError("no disk")), patch(
+            "keyseq.presentation.controllers.config_io.startup_io.messagebox.showerror",
+            side_effect=show_error,
+        ) as showerror:
+            self.assertFalse(self.app.startup_io.write_startup({"ui_font_delta_pt": 2}))
+        showerror.assert_called_once_with("startup.json 保存失敗", "no disk")
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+
+    def test_write_startup_dialog_exception_resumes_hook(self):
+        previous = dict(self.app._startup_settings)
+
+        def show_error(*_args):
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+            raise RuntimeError("dialog failed")
+
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        with patch.object(self.app.config_service, "save_startup", side_effect=OSError("no disk")), patch(
+            "keyseq.presentation.controllers.config_io.startup_io.messagebox.showerror",
+            side_effect=show_error,
+        ), self.assertRaisesRegex(RuntimeError, "dialog failed"):
+            self.app.startup_io.write_startup({"ui_font_delta_pt": 2})
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        self.assertEqual(self.app._startup_settings, previous)
+
+    def test_write_startup_success_does_not_request_hook_pause(self):
+        with patch.object(self.app.config_service, "save_startup"), patch.object(
+            self.app.hook, "suspend_hook_for_dialog",
+        ) as suspend, patch.object(self.app.hook, "resume_hook_after_dialog") as resume:
+            self.assertTrue(self.app.startup_io.write_startup({"ui_font_delta_pt": 2}))
+        suspend.assert_not_called()
+        resume.assert_not_called()
 
     def test_startup_read_error_warning_text(self):
         read_error = ValueError("broken json")

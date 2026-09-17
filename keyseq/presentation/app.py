@@ -541,7 +541,7 @@ class App(tk.Tk):
     def on_close(self):
         if not self.keymap_set_io.confirm_save_if_dirty("終了"):
             return
-        width = self.pane_layout.window_width_to_save()
+        self.pane_layout.cancel_window_width_save()
         self.hook.begin_shutdown()
         try:
             if self.layout.keyboard_window is not None:
@@ -551,7 +551,6 @@ class App(tk.Tk):
                 except Exception:
                     pass
             self.hook.stop_hook()
-            self.pane_layout.save_window_width_on_close(width)
         finally:
             self.destroy()
 

@@ -1,12 +1,58 @@
 """ウィンドウ幅の復元・保存とドラッグ間引きを実際の Tk で確認する。"""
 import unittest
+import tkinter as tk
+from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
 from keyseq.presentation import app as app_module, theme
 from keyseq.presentation.app import App
+from keyseq.presentation.controllers.pane_layout.pane_layout_controller import (
+    PaneLayoutController, WINDOW_WIDTH_SAVE_DELAY_MS,
+)
 from keyseq.presentation.pane_width_rules import (
     DEFAULT_WINDOW_WIDTH, PANE_WIDTHS_KEY, SASH_WIDTH, WINDOW_WIDTH_KEY,
 )
+
+
+class WindowWidthSchedulingTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.app = Mock()
+        self.layout = PaneLayoutController(self.app)
+
+    def test_width_burst_leaves_only_last_reservation(self) -> None:
+        pending = {}
+
+        def reserve(delay, callback):
+            token = f"width-{self.app.after.call_count}"
+            pending[token] = callback
+            return token
+
+        self.app.after.side_effect = reserve
+        self.app.after_cancel.side_effect = pending.pop
+        for width in (800, 900, 1000):
+            self.layout._on_window_configure(SimpleNamespace(widget=self.app, width=width))
+        self.assertEqual(WINDOW_WIDTH_SAVE_DELAY_MS, 500)
+        self.assertEqual(self.app.after.call_args_list, [call(500, self.layout._save_window_width)] * 3)
+        self.assertEqual(self.app.after_cancel.call_args_list, [call("width-1"), call("width-2")])
+        self.assertEqual(list(pending), [self.layout._width_save_id])
+        self.app.wm_state.assert_not_called()
+        pending.pop(self.layout._width_save_id)()
+        self.assertIsNone(self.layout._width_save_id)
+
+    def test_height_or_position_change_does_not_reschedule(self) -> None:
+        self.layout._on_window_configure(SimpleNamespace(widget=self.app, width=800, height=600, x=0))
+        pending = self.layout._width_save_id
+        self.app.after.reset_mock()
+        self.layout._on_window_configure(SimpleNamespace(widget=self.app, width=800, height=700, x=20))
+        self.app.after.assert_not_called()
+        self.app.after_cancel.assert_not_called()
+        self.assertEqual(self.layout._width_save_id, pending)
+
+    def test_child_configure_is_ignored(self) -> None:
+        self.layout._on_window_configure(SimpleNamespace(widget=Mock(), width=900))
+        self.app.after.assert_not_called()
+        self.app.after_cancel.assert_not_called()
+        self.assertIsNone(self.layout._last_window_width)
 
 
 class WindowAppFixture:
@@ -36,10 +82,12 @@ class WindowAppFixture:
                 cls.default_desired = probe.pane_layout.desired
                 cls.default_trigger_width = probe.full_view.trigger_box.winfo_width()
             finally:
+                probe.pane_layout.cancel_window_width_save()
                 probe.destroy()
         with patch.object(app_module.ConfigService, "load_startup", return_value=dict(cls.startup)):
             cls.app = App()
         cls.addClassCleanup(cls.app.destroy)
+        cls.addClassCleanup(cls.app.pane_layout.cancel_window_width_save)
         cls.app.update()
 
     @staticmethod
@@ -72,13 +120,10 @@ class ClampedWidthStartupTest(StartupAssertions, WindowAppFixture, unittest.Test
     screen_width = 1000
     expected_width = 1000
 
-    def test_close_does_not_overwrite_clamped_width(self) -> None:
-        with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True), \
-                patch.object(self.app.hook, "begin_shutdown"), \
-                patch.object(self.app.hook, "stop_hook"), patch.object(self.app, "destroy") as destroy:
-            self.app.on_close()
+    def test_save_does_not_overwrite_clamped_width(self) -> None:
+        self.app.pane_layout.cancel_window_width_save()
+        self.app.pane_layout._save_window_width()
         self.writer.assert_not_called()
-        destroy.assert_called_once_with()
 
 
 class BoolWidthStartupTest(StartupAssertions, WindowAppFixture, unittest.TestCase):
@@ -118,81 +163,124 @@ class WindowWidthPersistenceTest(WindowAppFixture, unittest.TestCase):
         self.app.geometry(geometry)
         self.app.update()
         self.layout._auto_window_width = auto
+        self.layout.cancel_window_width_save()
+
+    def _save_width(self) -> None:
+        # 実時間を待たずに予約を実行し、Tk 側に古い予約を残さない。
+        self.layout.cancel_window_width_save()
+        self.layout._save_window_width()
+        self.assertIsNone(self.layout._width_save_id)
 
     def _resize(self, extra: int = 220) -> int:
         self.app.geometry(f"{self.app.winfo_width() + extra}x{self.app.winfo_height()}")
         self.app.update()
         return self.app.winfo_width()
 
-    def _close(self, confirm: bool = True) -> Mock:
+    def _close(self, confirm: bool = True, stop_error: Exception | None = None) -> Mock:
         trace = Mock()
         trace.attach_mock(self.writer, "write")
         with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=confirm) as ask, \
                 patch.object(self.app.hook, "begin_shutdown") as begin, \
-                patch.object(self.app.hook, "stop_hook") as stop, \
+                patch.object(self.app.hook, "stop_hook", side_effect=stop_error) as stop, \
                 patch.object(self.app, "destroy") as destroy, \
-                patch.object(self.layout, "window_width_to_save", wraps=self.layout.window_width_to_save) as width:
-            for name, mocked in (("confirm", ask), ("width", width), ("begin", begin),
+                patch.object(self.layout, "cancel_window_width_save",
+                             wraps=self.layout.cancel_window_width_save) as cancel:
+            for name, mocked in (("confirm", ask), ("cancel", cancel), ("begin", begin),
                                  ("stop", stop), ("destroy", destroy)):
                 trace.attach_mock(mocked, name)
             self.close_trace = trace
             self.app.on_close()
         return trace
 
-    def test_resized_width_saved_after_stop_before_destroy(self) -> None:
-        width = self._resize()
+    def test_close_cancels_pending_save_without_writing(self) -> None:
+        self._resize()
+        pending = self.layout._width_save_id
+        self.assertIsNotNone(pending)
         trace = self._close()
         self.assertEqual(trace.mock_calls, [
-            call.confirm("終了"), call.width(), call.begin(), call.stop(),
-            call.write({WINDOW_WIDTH_KEY: width}), call.destroy(),
+            call.confirm("終了"), call.cancel(), call.begin(), call.stop(), call.destroy(),
         ])
-
-    def test_unchanged_width_not_saved(self) -> None:
-        trace = self._close()
+        self.assertIsNone(self.layout._width_save_id)
+        self.assertNotIn(pending, self.app.tk.call("after", "info"))
         self.writer.assert_not_called()
-        trace.destroy.assert_called_once_with()
+
+    def test_resized_width_saved(self) -> None:
+        width = self._resize()
+        self._save_width()
+        self.writer.assert_called_once_with({WINDOW_WIDTH_KEY: width})
+
+    def test_automatic_width_not_saved(self) -> None:
+        self._save_width()
+        self.writer.assert_not_called()
 
     def test_already_saved_width_not_saved(self) -> None:
         self.app._startup_settings[WINDOW_WIDTH_KEY] = self._resize()
-        self._close()
+        self._save_width()
         self.writer.assert_not_called()
+        self.assertIsNone(self.layout._auto_window_width)
 
-    def test_zoomed_width_not_saved(self) -> None:
+    def test_non_normal_width_not_saved_or_invalidated(self) -> None:
+        auto = self.layout._auto_window_width
         self._resize()
-        with patch.object(self.app, "wm_state", return_value="zoomed"):
-            self._close()
+        for state in ("zoomed", "iconic"):
+            with self.subTest(state=state), patch.object(self.app, "wm_state", return_value=state):
+                self._save_width()
+                self.assertEqual(self.layout._auto_window_width, auto)
+        self.app.geometry(f"{auto}x{self.app.winfo_height()}")
+        self.app.update()
+        self._save_width()
         self.writer.assert_not_called()
 
     def test_cancel_does_not_shutdown_or_save(self) -> None:
         self._resize()
+        pending = self.layout._width_save_id
+        self.assertIsNotNone(pending)
         self.assertEqual(self._close(False).mock_calls, [call.confirm("終了")])
+        self.assertEqual(self.layout._width_save_id, pending)
+        self.assertIn(pending, self.app.tk.call("after", "info"))
 
-    def test_save_exception_still_destroys(self) -> None:
+    def test_stop_exception_still_destroys(self) -> None:
         self._resize()
-        self.writer.side_effect = RuntimeError("save failed")
-        with self.assertRaisesRegex(RuntimeError, "save failed"):
-            self._close()
+        with self.assertRaisesRegex(RuntimeError, "stop failed"):
+            self._close(stop_error=RuntimeError("stop failed"))
         self.assertEqual(self.close_trace.mock_calls[-1], call.destroy())
-        self.assertLess(self.close_trace.mock_calls.index(call.stop()),
-                        next(i for i, entry in enumerate(self.close_trace.mock_calls) if entry[0] == "write"))
+        self.assertIsNone(self.layout._width_save_id)
+        self.writer.assert_not_called()
 
-    def test_compact_uses_full_geometry_width(self) -> None:
-        width = self._resize()
+    def test_compact_width_not_saved_or_invalidated(self) -> None:
+        auto = self.layout._auto_window_width
+        self._resize()
         self.app._full_geometry = self.app.geometry()
         self.app._compact_mode = True
-        self._close()
-        self.writer.assert_called_once_with({WINDOW_WIDTH_KEY: width})
-
-    def test_unavailable_or_automatic_compact_width_not_saved(self) -> None:
-        self.app._compact_mode = True
-        for geometry in (None, "invalid", f"{self.layout._auto_window_width}x820-10+20"):
-            with self.subTest(geometry=geometry):
-                self.app._full_geometry = geometry
-                self.assertIsNone(self.layout.window_width_to_save())
+        self._save_width()
+        self.writer.assert_not_called()
+        self.assertEqual(self.layout._auto_window_width, auto)
 
     def test_width_before_initial_layout_not_saved(self) -> None:
-        self.layout._auto_window_width = None
-        self.assertIsNone(self.layout.window_width_to_save())
+        auto = self.layout._auto_window_width
+        self._resize()
+        self.layout.desired = None
+        self._save_width()
+        self.writer.assert_not_called()
+        self.assertEqual(self.layout._auto_window_width, auto)
+
+    def test_return_to_original_automatic_width_is_saved(self) -> None:
+        auto = self.layout._auto_window_width
+        width = self._resize()
+        self._save_width()
+        self.assertIsNone(self.layout._auto_window_width)
+        self.app._startup_settings[WINDOW_WIDTH_KEY] = width
+        self.app.geometry(f"{auto}x{self.app.winfo_height()}")
+        self.app.update()
+        self._save_width()
+        self.assertEqual(self.writer.call_args_list, [
+            call({WINDOW_WIDTH_KEY: width}), call({WINDOW_WIDTH_KEY: auto}),
+        ])
+
+    def test_destroyed_app_does_not_save(self) -> None:
+        with patch.object(self.app, "wm_state", side_effect=tk.TclError("destroyed")):
+            self._save_width()
+        self.writer.assert_not_called()
 
     def test_font_growth_is_not_saved(self) -> None:
         self.app.geometry(f"{self.app.wm_minsize()[0]}x{self.app.winfo_height()}")
@@ -202,7 +290,7 @@ class WindowWidthPersistenceTest(WindowAppFixture, unittest.TestCase):
         self.app.update()
         self.assertGreater(self.app.winfo_width(), before)
         self.writer.reset_mock()
-        self._close()
+        self._save_width()
         self.writer.assert_not_called()
 
     def test_font_without_growth_preserves_manual_width(self) -> None:
@@ -211,7 +299,7 @@ class WindowWidthPersistenceTest(WindowAppFixture, unittest.TestCase):
         self.app.update()
         self.assertEqual(self.app.winfo_width(), width)
         self.writer.reset_mock()
-        self._close()
+        self._save_width()
         self.writer.assert_called_once_with({WINDOW_WIDTH_KEY: width})
 
     def _press(self) -> tuple[int, int]:
@@ -227,13 +315,12 @@ class WindowWidthPersistenceTest(WindowAppFixture, unittest.TestCase):
         self.panes.event_generate("<ButtonRelease-1>", x=x - 10, y=y)
         self.app.update()
 
-    def test_drag_includes_manual_window_width_in_one_write(self) -> None:
-        width = self._resize()
+    def test_drag_omits_manual_window_width(self) -> None:
+        self._resize()
         self._drag()
         desired = self.layout.desired
         self.writer.assert_called_once_with({
             PANE_WIDTHS_KEY: {"keymap": desired.keymap, "sequence": desired.sequence},
-            WINDOW_WIDTH_KEY: width,
         })
 
     def test_drag_omits_automatic_window_width(self) -> None:

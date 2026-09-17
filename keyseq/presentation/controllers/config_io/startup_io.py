@@ -55,7 +55,11 @@ class StartupIo:
             self._app._startup_settings = base
             return True
         except Exception as e:
-            messagebox.showerror("startup.json 保存失敗", str(e))
+            self._app.hook.suspend_hook_for_dialog()
+            try:
+                messagebox.showerror("startup.json 保存失敗", str(e))
+            finally:
+                self._app.hook.resume_hook_after_dialog()
             return False
 
     def write_global_hook_keys(self, *, stop_key: str, toggle_key: str) -> bool:

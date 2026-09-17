@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import re
 import tkinter as tk
 from typing import TYPE_CHECKING
 
@@ -16,6 +15,8 @@ from .pane_measure import measure_min_widths
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
+
+WINDOW_WIDTH_SAVE_DELAY_MS = 500
 
 
 class _Drag:
@@ -41,11 +42,15 @@ class PaneLayoutController:
         self._motion_id: str | None = None
         self._motion_x = 0
         self._auto_window_width: int | None = None
+        self._last_window_width: int | None = None
+        self._width_save_id: str | None = None
 
     def install(self) -> None:
         if self._installed:
             return
         panes = self.app.full_view.panes
+        self.app.bind("<Configure>", self._on_window_configure, add="+")
+        self.app.bind("<Destroy>", self._on_window_destroy, add="+")
         panes.bind("<Configure>", self._on_configure, add="+")
         panes.bind("<Button-1>", self._on_press, add="+")
         panes.bind("<B1-Motion>", self._on_motion, add="+")
@@ -196,34 +201,42 @@ class PaneLayoutController:
     def _on_desired_changed(self, new: PaneWidths) -> None:
         self.desired = new
         self._update_window_min_size()
-        payload: dict[str, object] = {
+        self.app.startup_io.write_startup({
             PANE_WIDTHS_KEY: {"keymap": new.keymap, "sequence": new.sequence},
-        }
-        width = self.window_width_to_save()
-        if width is not None:
-            payload[WINDOW_WIDTH_KEY] = width
-        self.app.startup_io.write_startup(payload)
+        })
 
-    def window_width_to_save(self) -> int | None:
-        """自動決定幅と最大化を除いたフル表示幅を返す（暫定仕様16 §3-8）。"""
-        app = self.app
-        if self._auto_window_width is None or app.wm_state() == "zoomed":
-            return None
-        if app._compact_mode:
-            geometry = app._full_geometry
-            match = re.fullmatch(r"([1-9]\d*)x\d+(?:[+-]\d+){2}", geometry or "")
-            if match is None:
-                return None
-            width = int(match.group(1))
-        else:
-            width = app.winfo_width()
-        return None if width == self._auto_window_width else width
-
-    def save_window_width_on_close(self, width: int | None) -> None:
-        """終了時はメモリ上の保存値と異なる幅だけを書く（暫定仕様16 §3-8）。"""
-        if width is None or self.app._startup_settings.get(WINDOW_WIDTH_KEY) == width:
+    def _on_window_configure(self, event: tk.Event) -> None:
+        if event.widget is not self.app or event.width == self._last_window_width:
             return
-        self.app.startup_io.write_startup({WINDOW_WIDTH_KEY: width})
+        self._last_window_width = event.width
+        self.cancel_window_width_save()
+        self._width_save_id = self.app.after(WINDOW_WIDTH_SAVE_DELAY_MS, self._save_window_width)
+
+    def _save_window_width(self) -> None:
+        """予約実行時の状態で幅を保存する（暫定仕様16 §3-8）。"""
+        self._width_save_id = None
+        app = self.app
+        try:
+            if not self._is_ready() or app.wm_state() != "normal" or app._compact_mode:
+                return
+            width = app.winfo_width()
+        except tk.TclError:
+            return  # App 破棄後に実行された予約は何もしない。
+        if width == self._auto_window_width:
+            return
+        self._auto_window_width = None
+        if app._startup_settings.get(WINDOW_WIDTH_KEY) != width:
+            app.startup_io.write_startup({WINDOW_WIDTH_KEY: width})
+
+    def _on_window_destroy(self, event: tk.Event) -> None:
+        # on_close 以外で破棄されても、破棄後に予約を実行させない。
+        if event.widget is self.app:
+            self.cancel_window_width_save()
+
+    def cancel_window_width_save(self) -> None:
+        if self._width_save_id is not None:
+            self.app.after_cancel(self._width_save_id)
+            self._width_save_id = None
 
     def _plan(self, widths: PaneWidths | None = None) -> LayoutPlan:
         app = self.app
