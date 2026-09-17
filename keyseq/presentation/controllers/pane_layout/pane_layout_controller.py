@@ -9,9 +9,10 @@ from keyseq.presentation.pane_width_rules import (
     drag_limits, parse_saved_pane_widths,
     resolve_layout,
     update_desired_after_drag,
+    window_min_width_after_drag,
 )
 
-from .pane_measure import measure_min_widths
+from .pane_measure import measure_header_window_width, measure_min_widths
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -37,6 +38,7 @@ class PaneLayoutController:
         self._applied = False
         self.desired: PaneWidths | None = None
         self.min_widths: MinWidths | None = None
+        self.header_window_width: int = 0
         self._remeasure_pending = False
         self._drag: _Drag | None = None
         self._motion_id: str | None = None
@@ -74,6 +76,7 @@ class PaneLayoutController:
     def apply_initial_widths(self) -> None:
         view = self.app.full_view
         self.min_widths = self.measure_min_widths()
+        self.header_window_width = measure_header_window_width(self.app)
         startup = getattr(self.app, "_startup_settings", None)
         saved = parse_saved_pane_widths(startup.get(PANE_WIDTHS_KEY)) if isinstance(startup, dict) else None
         self.desired = saved if saved is not None else default_pane_widths(
@@ -113,6 +116,7 @@ class PaneLayoutController:
             self._remeasure_pending = True
             return
         self.min_widths = self.measure_min_widths()
+        self.header_window_width = measure_header_window_width(self.app)
         self.apply_layout()
 
     def release_window_min_size(self) -> None:
@@ -123,6 +127,7 @@ class PaneLayoutController:
             return
         if self._remeasure_pending:
             self.min_widths = self.measure_min_widths()
+            self.header_window_width = measure_header_window_width(self.app)
             self._remeasure_pending = False
         self.apply_layout()
 
@@ -244,13 +249,17 @@ class PaneLayoutController:
             self.desired if widths is None else widths, self.min_widths, sash_total=2 * SASH_WIDTH,
             window_extra=app.winfo_width() - app.full_view.panes.winfo_width(),
             current_window_width=app.winfo_width(), screen_width=app.winfo_screenwidth(),
+            header_window_width=self.header_window_width,
         )
 
     def _update_window_min_size(self) -> None:
         # ドラッグ直後に幅を動かさないよう、最小幅だけを当てる。
         view = self.app.full_view
         displayed = PaneWidths(view.keymap_box.winfo_width(), view.sequence_box.winfo_width())
-        self.app.minsize(self._plan(displayed).window_min_width, 1)
+        window_extra = self.app.winfo_width() - view.panes.winfo_width()
+        self.app.minsize(window_min_width_after_drag(
+            displayed, self.min_widths, 2 * SASH_WIDTH, window_extra, self.header_window_width,
+        ), 1)
 
     def _block_middle_button(self, _event: tk.Event) -> str:
         return "break"

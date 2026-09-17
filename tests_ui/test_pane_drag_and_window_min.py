@@ -115,9 +115,10 @@ class PaneDragAndWindowMinTest(unittest.TestCase):
 
     def _expected_window_min(self) -> int:
         extra = self.app.winfo_width() - self.panes.winfo_width()
-        return (
+        return max(
             self.keymap.winfo_width() + self.sequence.winfo_width()
-            + self.layout.min_widths.trigger + 2 * SASH_WIDTH + extra
+            + self.layout.min_widths.trigger + 2 * SASH_WIDTH + extra,
+            self.layout.header_window_width,
         )
 
     def test_01_sash0_right_limit_keeps_sequence_and_window(self) -> None:

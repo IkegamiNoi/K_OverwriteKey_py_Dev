@@ -12,6 +12,12 @@ if TYPE_CHECKING:
     from keyseq.presentation.app import App
 
 
+def measure_header_window_width(app: App) -> int:
+    app.full_view.update_idletasks()
+    header = app.full_view.header_area
+    return header.winfo_reqwidth() + (app.winfo_width() - header.winfo_width())
+
+
 def measure_min_widths(app: App) -> MinWidths:
     view = app.full_view
     view.update_idletasks()

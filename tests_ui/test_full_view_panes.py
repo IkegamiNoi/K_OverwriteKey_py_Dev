@@ -72,7 +72,9 @@ class FullViewPanesTest(unittest.TestCase):
                 self.panes.paneconfigure(box, **options)
             self.app.update()
             for index, (x, y) in enumerate(self.saved_sashes):
-                self.panes.sash_place(index, x, y)
+                # 位置が変わっていないサッシュは置き直さない（トリガー一覧が要求幅より広いと sash_place がずれる）。
+                if tuple(self.panes.sash_coord(index)) != (x, y):
+                    self.panes.sash_place(index, x, y)
             self.app.update()
             self.app.minsize(*self.saved_minsize)
             self.app.pane_layout.cancel_window_width_save()
@@ -93,7 +95,7 @@ class FullViewPanesTest(unittest.TestCase):
         self.assertFalse(self.panes.tk.getboolean(self.panes.cget("showhandle")))
 
     def test_02_default_layout_matches_original(self) -> None:
-        self.assertEqual(self.app.winfo_width(), 780)
+        self.assertEqual(self.app.winfo_width(), max(780, self.app.pane_layout.header_window_width))
         required = sum(box.winfo_reqwidth() for box in self.boxes) + 2 * SASH_WIDTH
         self.assertGreaterEqual(
             self.panes.winfo_width(), required,
@@ -102,7 +104,9 @@ class FullViewPanesTest(unittest.TestCase):
         keymap, trigger, sequence = self.boxes
         self.assertEqual(keymap.winfo_width(), keymap.winfo_reqwidth())
         self.assertEqual(trigger.winfo_x(), keymap.winfo_x() + keymap.winfo_width() + 12)
-        self.assertEqual(trigger.winfo_width(), trigger.winfo_reqwidth())
+        self.assertEqual(
+            trigger.winfo_width(), trigger.winfo_reqwidth() + (self.app.winfo_width() - 780),
+        )
         self.assertEqual(sequence.winfo_x(), trigger.winfo_x() + trigger.winfo_width() + 12)
         self.assertEqual(sequence.winfo_x() + sequence.winfo_width(), self.panes.winfo_width())
 

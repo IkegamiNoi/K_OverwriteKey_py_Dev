@@ -6,6 +6,7 @@ from unittest.mock import Mock, call, patch
 
 from keyseq.presentation import app as app_module, theme
 from keyseq.presentation.app import App
+from keyseq.presentation.controllers.pane_layout import pane_layout_controller as controller_module
 from keyseq.presentation.controllers.pane_layout.pane_layout_controller import (
     PaneLayoutController, WINDOW_WIDTH_SAVE_DELAY_MS,
 )
@@ -81,6 +82,7 @@ class WindowAppFixture:
                 probe.update()
                 cls.default_desired = probe.pane_layout.desired
                 cls.default_trigger_width = probe.full_view.trigger_box.winfo_width()
+                cls.default_window_width = probe.winfo_width()
             finally:
                 probe.pane_layout.cancel_window_width_save()
                 probe.destroy()
@@ -100,7 +102,10 @@ class StartupAssertions:
     expected_width = DEFAULT_WINDOW_WIDTH
 
     def test_restored_width_without_write(self) -> None:
-        self.assertEqual(self.app.winfo_width(), self.expected_width)
+        expected = self.expected_width
+        if expected == DEFAULT_WINDOW_WIDTH:
+            expected = max(DEFAULT_WINDOW_WIDTH, self.app.pane_layout.header_window_width)
+        self.assertEqual(self.app.winfo_width(), expected)
         self.writer.assert_not_called()
 
 
@@ -111,7 +116,10 @@ class SavedWidthStartupTest(StartupAssertions, WindowAppFixture, unittest.TestCa
 
     def test_defaults_use_default_window_basis(self) -> None:
         self.assertEqual(self.app.pane_layout.desired, self.default_desired)
-        self.assertEqual(self.app.full_view.trigger_box.winfo_width() - self.default_trigger_width, 220)
+        self.assertEqual(
+            self.app.full_view.trigger_box.winfo_width() - self.default_trigger_width,
+            1000 - self.default_window_width,
+        )
         self.writer.assert_not_called()
 
 
@@ -147,6 +155,11 @@ class WindowWidthPersistenceTest(WindowAppFixture, unittest.TestCase):
             dict(self.app._startup_settings), self.app._full_geometry,
         )
         self.addCleanup(self._restore)
+        # 保存予約は各テストが直接実行する。実時間の 500ms で先に走ると呼び出し回数が揺れるため遅らせる。
+        delay = patch.object(controller_module, "WINDOW_WIDTH_SAVE_DELAY_MS", 3_600_000)
+        delay.start()
+        self.addCleanup(delay.stop)
+        self.layout.cancel_window_width_save()
         self.writer.reset_mock(side_effect=True)
 
     def _restore(self) -> None:
