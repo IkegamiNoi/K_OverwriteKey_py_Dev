@@ -7,7 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（phase 20 は 2026-09-18 完了。次フェーズは未起票 = ユーザーに方針確認）。
+- **アクティブなフェーズ: [21_extended_key_send](21_extended_key_send/phase.md)**（2026-09-18 起票・直接改訂モード）。
+  hotkey アクション・キーマップの送信で、矢印・Home・End 等の Windows 拡張キーを拡張キーとして送る（範囲選択が効かない不具合の修正。原因は keyboard ライブラリが拡張キーフラグを付けないことと実機で確定）。
+  infrastructure 限定・hotkey の書式 / JSON 不変。正本 = `key_input.md` §7.7（新設・文言はユーザー確定済・phase.md に記載）。関連 = [idea_23](../backlog/idea_23_key_press_release_actions.md)（押す / 離すアクション・対象外）。
+  番号対応: phase 21 / 暫定なし / decisions 21。
 - **直近の一連の作業が扱っている領域 = フル表示のウィンドウサイズ（幅配分・境界線ドラッグ・幅の保存と復元・ヘッダの幅・縦方向の最小サイズ）**。
   正本は `features.md` §4.6「フル表示の幅配分」/ `data_schema.md` §5.4（`full_view_pane_widths` / `full_view_window_width`）/
   `codebase_map.md` の `controllers/pane_layout/`・`pane_width_rules.py`・`button_width_rules.py`・`controllers/button_width.py`・`hook_button_texts.py`。暫定仕様 16・17・18 は凍結。
@@ -40,7 +43,7 @@
 ## 次採番
 
 - **phase 20 は 2026-09-18 完了**（decisions 20 はアーカイブ済・次は decisions 21）。
-  次フェーズは **`21_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 21 = `21_extended_key_send` を 2026-09-18 起票**。次フェーズは **`22_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
