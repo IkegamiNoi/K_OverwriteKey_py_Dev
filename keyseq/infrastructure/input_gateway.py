@@ -5,7 +5,6 @@ from typing import Callable
 
 import keyboard
 import pyautogui
-from keyboard._canonical_names import normalize_name
 
 from keyseq.domain.key_identifiers import resolve_known_scan_code_from_key_name
 
@@ -36,7 +35,7 @@ _KEYEVENTF_KEYUP = 0x0002
 
 def _resolve_extended_key(name: str) -> tuple[int, int] | None:
     try:
-        normalized = normalize_name(name.strip())
+        normalized = keyboard.normalize_name(name.strip())
     except Exception:
         return None
     return _EXTENDED_KEYS.get(normalized)

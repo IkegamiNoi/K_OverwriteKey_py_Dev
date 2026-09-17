@@ -93,7 +93,7 @@ class InputGatewaySendTests(unittest.TestCase):
                 self.assertEqual(self.events.mock_calls, [
                     call.press(name), call.release(name),
                 ])
-        with patch.object(input_gateway, "normalize_name", side_effect=ValueError):
+        with patch.object(input_gateway.keyboard, "normalize_name", side_effect=ValueError):
             self.assertIsNone(input_gateway._resolve_extended_key("right"))
 
     def test_cleanup_after_error(self) -> None:
@@ -129,3 +129,15 @@ class InputGatewaySendTests(unittest.TestCase):
             call.ext(0x27, 0x4D, key_up=True),
             call.release("shift"),
         ])
+
+
+class InputGatewayExtendedFlagTests(unittest.TestCase):
+    def test_extended_key_flags(self) -> None:
+        with patch.object(input_gateway, "ctypes") as mock_ctypes:
+            gateway = input_gateway.InputGateway()
+            gateway.press_key("right")
+            gateway.release_key("right")
+            self.assertEqual(mock_ctypes.windll.user32.keybd_event.call_args_list, [
+                call(0x27, 0x4D, 0x0001, 0),
+                call(0x27, 0x4D, 0x0003, 0),
+            ])

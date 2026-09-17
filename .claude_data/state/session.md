@@ -4,42 +4,39 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-19T00:30:00
+last_updated: 2026-09-19T02:00:00
 phase: `instructions/phase/21_extended_key_send`（**進行中**・直接改訂モード。番号対応 phase 21 / 暫定なし / decisions 21）。
 直前の完了フェーズ = phase 20（判断履歴 = `decisions_archive/20_full_view_min_height.md`）。
-last_commit_location: `claude/idea-22-26db57`（task_01 はこの後コミット）。
+last_commit_location: `claude/idea-22-26db57`（task_02b はこの後コミット）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 21 task_01 完了（正本 §7.7 追加 + InputGateway の拡張キー送信 + 単体テスト 8 本）。次は task_02（統合確認・二次レビュー・実機目視・完了処理）。**
-mode: completed
+focus: **phase 21 task_02 進行中（統合確認 pass・二次レビュー採否済・採用分を task_02b で反映済）。残り = ユーザーの実機目視 → 記録とフェーズ完了処理。**
+mode: pending_review
 
 ## last_action
-ts: 2026-09-19T00:30:00
+ts: 2026-09-19T02:00:00
 who: main
 summary: |
-  【調査・起票】hotkey の `shift+right` 等で範囲選択が効かない → 原因は `keyboard` が拡張キーフラグを付けないこと（実機で確定）。押す / 離すアクション案は [idea_23] へ分離。
-  phase 21 を直接改訂モードで起票（§7.7 の文言をユーザー確定）。reviewer 整合チェック = 修正して採用（codebase_map は新設と明記）。
-  【task_01】メインが正本 `key_input.md` §7.7 と `codebase_map.md`「キーの送信」節を追記 → codex-implementer が `input_gateway.py`（拡張キー表 18 件・`_resolve_extended_key` / `_send_extended_event`・`send_hotkey` の押す / 離す）+ 新規 `tests/test_input_gateway_send.py`（8 本）。
-  verifier: tests 459 OK / smoke OK / 変異検査 2 件とも検出（right の vk → 3 件 / 離す順 → 6 件）。reviewer = 採用（指摘なし）。
-  **注意**: verifier が復元に `git checkout --` を使い未コミット実装を一度巻き戻した（差分の再適用で復旧・メインが内容一致を確認済み）。
+  【task_02】verifier 統合確認: compile clean / tests 459 OK / tests_ui 438 OK / smoke OK。codex-reviewer = 指摘なし。
+  deep-reviewer = 完了可（条件付き）→ ユーザー採否: 指摘 1・8a 採用（task_02b）/ 実機項目 2 つ追加 / 保留 4 件は記録のみ。decisions.md に記録。
+  【task_02b】codex-implementer: 非公開 import → `keyboard.normalize_name` / 拡張キーフラグを検証するテスト 1 本追加（メインが既存テストの patch 対象を 1 行追従）。
+  verifier: 9/9 OK・tests 460 OK・smoke OK・変異検査でフラグを外すと追加テストのみ失敗。reviewer = 採用。
 result_files:
   - keyseq/infrastructure/input_gateway.py / tests/test_input_gateway_send.py
-  - instructions/common/spec_detail/key_input.md / instructions/common/codebase_map.md
-  - instructions/phase/21_extended_key_send/phase.md・tasks/task_01_extended_key_send.md / instructions/phase/current.md
-  - instructions/backlog/idea_23_key_press_release_actions.md / INDEX.md / .claude_data/state/decisions.md
+  - instructions/phase/21_extended_key_send/tasks/task_02_integration_and_close.md・task_02b_guard_extended_flag.md
+  - .claude_data/state/decisions.md / .claude_data/state/session.md
 verified:
   compile: clean
-  tests: 459 ran OK（skipped 7・新規 8 本を含む）
-  tests_ui: not_run（task_02）
+  tests: 460 ran OK（skipped 7）
+  tests_ui: 438 ran OK（task_02b 前。infrastructure のみの変更）
   smoke: SMOKE OK
-  review: reviewer（task_01）= 採用
+  review: reviewer（task_02b）= 採用 / deep-reviewer + codex-reviewer = 採否済
 
 ## next_action
-- **task_02 を起票**（`/task_new`）→ verifier で統合確認（`tests` / `tests_ui` 全体 / `smoke_app`）→ 二次レビュー `deep-reviewer` + `codex-reviewer`（差分 = `9428fea..HEAD` + 未コミット分）→ 採否をユーザーへ →
-  **ユーザーに実機目視を依頼**（メモ帳等で hotkey `shift+right` / `ctrl+shift+end` → `ctrl+c` / キーマップで `right` 等へ割り当てて物理 Shift と併用 / 通常キーの hotkey・text が従来どおり）。
-- その後 task_02 の完了処理（`decisions_archive/21_extended_key_send.md` + decisions.md 索引・current.md 完了記載・`/refactor_check`・完了判定前レビュー）。
-- **運用**: **verifier に変異検査を頼むときは「`git checkout --` を使わない」ことを明示する**（未コミットの実装ごと巻き戻る。今回は差分の再適用で復旧）。
+- **ユーザーの実機目視を待つ**（task_02 定義の 5 項目 + 追加 2 項目。範囲選択とコピー / キーマップ経由 / 通常キーと text・マウス / フックの停止・トグル / 拡張キーを自分のトリガーに割り当てたときの自己起動 / windows・menu・右 Alt・num lock・print screen）。
+- 目視 OK なら `instructions/phase/21_extended_key_send/integration_result.md` を記録 → `decisions_archive/21_extended_key_send.md` + decisions.md 索引 → current.md 完了記載（次採番 phase 22 / decisions 22）→ `/refactor_check`（PHASE_BASE = `9428fea`）→ 完了判定前レビュー（deep-reviewer + codex-adversarial）→ 採否 → コミット。
+- **運用**: verifier に変異検査を頼むときは「`git checkout --` / `git restore` / `git stash` を使わない（ファイルのコピーで退避・復元）」を明示する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
