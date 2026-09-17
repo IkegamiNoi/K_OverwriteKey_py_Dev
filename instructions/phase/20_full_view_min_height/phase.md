@@ -61,6 +61,7 @@
    - **task_03b**: task_03 二次レビュー（deep-reviewer）の採用分 = 自動で広げた高さが最小の低下で縮む問題の修正（指摘 1）+ テスト補強（指摘 2・3・6）。
 4. **task_04（最終・正本反映）**: `features.md` §4.6 / `codebase_map.md` への昇格 + **暫定仕様 18 の凍結** + `decisions_archive/20_full_view_min_height.md` + `current.md` 完了記載 +
    idea_22 を `INDEX_done.md` へ + **`/refactor_check`** + 完了判定前レビュー（`deep-reviewer` + `codex-adversarial-reviewer`）。
+   - **task_04b**: 完了判定前レビュー（Codex medium / deep-reviewer 指摘 3）の採用分 = 最大化の解除で広がった高さが最小の低下で縮む問題の修正 + テスト。
 
 タスク定義は着手する順に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。
 

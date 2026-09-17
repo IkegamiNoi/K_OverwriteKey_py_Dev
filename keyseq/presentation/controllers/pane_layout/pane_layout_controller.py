@@ -117,9 +117,13 @@ class PaneLayoutController:
         panes.paneconfigure(view.keymap_box, minsize=mins.keymap, width=plan.keymap)
         panes.paneconfigure(view.trigger_box, minsize=mins.trigger)
         panes.paneconfigure(view.sequence_box, minsize=mins.sequence, width=plan.sequence)
+        previous_min_height = self.window_min_height
         self.window_min_height = measure_window_min_height(app)
-        if app.wm_state() == "normal" and app.winfo_height() < self.window_min_height:
-            app.geometry(f"{app.winfo_width()}x{self.window_min_height}")
+        if app.wm_state() == "normal" and (
+            app.winfo_height() < self.window_min_height
+            or self.window_min_height < previous_min_height
+        ):
+            app.geometry(f"{app.winfo_width()}x{max(app.winfo_height(), self.window_min_height)}")
         app.minsize(plan.window_min_width, self.window_min_height)
 
     def on_font_changed(self) -> None:

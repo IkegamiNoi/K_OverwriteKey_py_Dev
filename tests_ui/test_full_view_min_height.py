@@ -86,6 +86,9 @@ class FullViewMinHeightTest(unittest.TestCase):
             self.assertLessEqual(set(call.args[0]), allowed)
 
     def _restore(self) -> None:
+        if self.app.wm_state() != "normal":
+            self.app.wm_state("normal")
+            self.app.update()
         saved = self.saved
         try:
             if self.app._compact_mode:
@@ -189,6 +192,27 @@ class FullViewMinHeightTest(unittest.TestCase):
         self._set_font(3)
         self.assertGreaterEqual(tall, self.layout.window_min_height)
         self.assertEqual(self.app.winfo_height(), tall)
+
+    def test_unmaximize_expanded_height_survives_minimum_decrease(self) -> None:
+        self._set_font(0)
+        width = self.app.winfo_width() + 400
+        initial_height = self.layout.window_min_height + 40
+        self.app.geometry(f"{width}x{initial_height}")
+        self.app.update()
+        self.assertEqual(self.app.winfo_height(), initial_height)
+        self.app.wm_state("zoomed")
+        self.app.update()
+        self._set_font(3)
+        enlarged = self.layout.window_min_height
+        self.app.wm_state("normal")
+        self.app.update()
+        self.assertGreater(enlarged, initial_height)
+        self.assertEqual(self.app.winfo_height(), enlarged)
+        self.assertEqual(self.app.winfo_width(), width)
+        self._set_font(0)
+        self.assertLess(self.layout.window_min_height, enlarged)
+        self.assertEqual(self.app.winfo_height(), enlarged)
+        self.assertEqual(self.app.winfo_width(), width)
 
     def test_drag_preserves_minimum_height(self) -> None:
         self.app.geometry(f"{self.app.winfo_width() + 200}x{self.app.winfo_height()}")
