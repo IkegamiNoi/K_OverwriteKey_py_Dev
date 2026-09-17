@@ -370,10 +370,10 @@ class App(tk.Tk):
             pass
         self.full_view.pack(fill="both", expand=True)
         self._restore_full_geometry()
-        self.pane_layout.on_full_view_shown()
         self.trigger_panel.sync_trigger_selection_to_views()
         self.trigger_panel.refresh_actions()  # full側のシーケンス表示を復帰
         self.trigger_panel.update_status()
+        self.pane_layout.on_full_view_shown()
 
     def _apply_compact_geometry(self):
         """省略表示時のサイズ（細め）へ"""

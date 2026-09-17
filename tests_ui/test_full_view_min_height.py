@@ -208,6 +208,54 @@ class FullViewMinHeightTest(unittest.TestCase):
         self.assertGreater(self.layout.window_min_height, self.released_minsize[1])
         self.assertEqual(self.app.wm_minsize()[1], self.layout.window_min_height)
 
+    def test_font_change_ignores_multiline_flash_message_height(self) -> None:
+        self.addCleanup(self.app._set_flash_message, "", auto_clear=False)
+        self.app._set_flash_message("", auto_clear=False)
+        self._set_font(3)
+        expected = self.layout.window_min_height
+        self._set_font(0)
+        before = self.app.winfo_reqheight()
+        self.app._set_flash_message("1行目\n2行目\n3行目", auto_clear=False)
+        self.app.update()
+        self.assertGreater(self.app.winfo_reqheight(), before)
+        self._set_font(3)
+        self.assertEqual(self.layout.window_min_height, expected)
+
+    def test_view_round_trip_ignores_multiline_flash_message_height(self) -> None:
+        self.addCleanup(self.app._set_flash_message, "", auto_clear=False)
+        self.app._set_flash_message("", auto_clear=False)
+        self._set_font(0)
+        expected = self.layout.window_min_height
+        self.app._set_flash_message("1行目\n2行目\n3行目", auto_clear=False)
+        self.app.update()
+        self.app.show_compact_view()
+        self.app.update()
+        self.app.show_full_view()
+        self.app.update()
+        self.assertEqual(self.layout.window_min_height, expected)
+
+    def test_compact_font_change_measures_full_view_status_height(self) -> None:
+        self._set_font(0)
+        self.app.show_compact_view()
+        self._set_font(3)
+        self.app.show_full_view()
+        restored = self.layout.window_min_height
+        self.app.update()
+        self.layout.apply_layout()
+        self.assertEqual(self.layout.window_min_height, restored)
+
+    def test_full_view_return_expands_height_below_new_minimum(self) -> None:
+        self._set_font(0)
+        normal = self.layout.window_min_height
+        self._set_height(normal)
+        self.assertEqual(self.app.winfo_height(), normal)
+        self.app.show_compact_view()
+        self._set_font(3)
+        self.app.show_full_view()
+        self.app.update()
+        self.assertEqual(self.app.winfo_height(), self.layout.window_min_height)
+        self.assertGreater(self.layout.window_min_height, normal)
+
     def test_height_is_not_saved(self) -> None:
         self._set_font(3)
         self._set_font(0)

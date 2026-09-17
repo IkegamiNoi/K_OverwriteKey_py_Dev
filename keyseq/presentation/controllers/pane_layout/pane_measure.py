@@ -13,9 +13,30 @@ if TYPE_CHECKING:
 
 
 def measure_window_min_height(app: App) -> int:
-    """呼び出し側で paneconfigure を適用した後のウィンドウ要求高さを測る。"""
+    """paneconfigure 適用後、一時メッセージは 1 行分として測る（暫定仕様18 §2-7）。"""
     app.update_idletasks()
-    return app.winfo_reqheight()
+    height = app.winfo_reqheight()
+    label = _find_flash_message_label(app)
+    if label is None:
+        return height
+    other_heights = [
+        child.winfo_reqheight() for child in label.master.winfo_children()
+        if isinstance(child, ttk.Label) and child is not label
+    ]
+    if not other_heights:
+        return height
+    return height - max(0, label.winfo_reqheight() - max(other_heights))
+
+
+def _find_flash_message_label(app: App) -> ttk.Label | None:
+    variable = str(app.ui_vars.flash_message_var)
+    pending = list(app.winfo_children())
+    while pending:
+        widget = pending.pop()
+        if isinstance(widget, ttk.Label) and str(widget.cget("textvariable")) == variable:
+            return widget
+        pending.extend(widget.winfo_children())
+    return None
 
 
 def measure_header_window_width(app: App) -> int:
