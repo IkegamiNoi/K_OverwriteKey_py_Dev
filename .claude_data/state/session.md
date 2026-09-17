@@ -4,38 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-17T21:00:00
-phase: `instructions/phase/19_full_view_header_width`（**task_01 完了**・task_02 未着手）。主入力 = 暫定仕様 17（**v0.3・ユーザー確定済**）。
+last_updated: 2026-09-17T21:40:00
+phase: `instructions/phase/19_full_view_header_width`（**task_01〜02 完了**・task_03 未着手）。主入力 = 暫定仕様 17（**v0.3・ユーザー確定済**）。
 番号対応: phase 19 / 暫定 17 / decisions 19。起票元 = idea_21。**phase 18 は完了**（`decisions_archive/18_full_view_resizable_panes.md`）。
-last_commit_location: `claude/window-size-persistence-check-a9282e`（task_01 はこの後コミット）。
+last_commit_location: `claude/window-size-persistence-check-a9282e`（task_02 はこの後コミット）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 19 task_01 完了（純関数: resolve_layout のヘッダ幅・ドラッグ後の最小幅・ボタン固定幅）。次は task_02（ボタン幅の固定とドロップダウン）。**
+focus: **phase 19 task_02 完了（フル表示ヘッダの切替ボタン 4 つの幅固定・文言定数化・ドロップダウン width=12）。次は task_03（ヘッダ幅のウィンドウ最小幅への組込み）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-17T21:00:00
+ts: 2026-09-17T21:40:00
 who: main
 summary: |
-  【task_01 完了】`codex-implementer`。`pane_width_rules.resolve_layout(..., header_window_width=0)`（最小幅 = max・縮小目標 = max(画面幅, ヘッダ幅)・省略時不変）/
-  `window_min_width_after_drag`（縮小規則を通さない）/ 新規 `button_width_rules.fixed_button_width_chars`（整数の切り上げ）+ tests。UI 未結線。
-  verifier: tests 450 OK（skip 7）/ pane 系 tests_ui 59 OK。reviewer = 完了可。
+  【task_02 完了】`codex-implementer`。新規 `hook_button_texts.py`（文言・ドロップダウン幅の定数）/ 新規 `controllers/button_width.py`（TButton フォントで測って width を当てる）/
+  `HookController.register_hook_buttons(..., fixed_width=)`・`apply_fixed_button_widths` / `SingleKeyCaptureController.apply_fixed_button_width` / `App._apply_fixed_button_widths`（`_apply_font_delta` で on_font_changed より前）/
+  省略表示のボタンは固定しない / Combobox width=12（両表示）+ `tests_ui/test_header_button_widths.py`。
+  verifier: tests 450 OK / tests_ui 418 OK（pane 系の期待値は変わらず）/ smoke OK / config 不変。reviewer = 完了可。
 result_files:
-  - keyseq/presentation/pane_width_rules.py / keyseq/presentation/button_width_rules.py
-  - tests/test_pane_width_rules.py / tests/test_button_width_rules.py
-  - instructions/phase/19_full_view_header_width/tasks/task_01_header_width_rules.md / instructions/phase/current.md
+  - keyseq/presentation/hook_button_texts.py / keyseq/presentation/controllers/button_width.py / controllers/key_capture.py / controllers/hook_controller.py / app.py
+  - keyseq/presentation/views/full_view/hook_frame.py / display_frame.py / views/compact_view/hook_frame.py / display_frame.py
+  - tests_ui/test_header_button_widths.py / instructions/phase/19_full_view_header_width/tasks/task_02_header_button_widths.md / instructions/phase/current.md
 verified:
   compile: clean
   tests: 450 ran OK（skipped 7）
-  tests_ui: pane 系 4 モジュール 59 OK（全体は未実行・UI 未結線）
+  tests_ui: 418 ran OK
+  smoke: SMOKE OK
   review: reviewer = 完了可
 
 ## next_action
-- `/task_new` で **task_02（ボタン幅の固定とドロップダウン）** を起票: 文言定数モジュール（presentation 直下・中立）/ View の初期文言を定数参照 /
-  `HookController`（フル表示のボタンの組だけ）・`SingleKeyCaptureController` が登録時とフォント変更時に `fixed_button_width_chars` で `width` を当てる（TButton スタイルのフォント）/
-  `App._apply_font_delta` で `pane_layout.on_font_changed()` より前に呼ぶ / Combobox `width=12`（両表示・定数 1 か所）+ tests_ui（暫定 17 §5-4・§5-6）。
-- 以降 task_03（ヘッダ幅の組込み + 既存テスト期待値）/ task_04（起動時の保存値更新）/ task_05 / task_06。
+- `/task_new` で **task_03（ヘッダ幅の組込み）** を起票: `controllers/pane_layout/` でボタン幅固定後に `update_idletasks()` → `header_area.winfo_reqwidth()` + 外側余白を測定・保持（初回適用 / フォント変更後 / フル表示復帰）/
+  `_plan` で `resolve_layout(..., header_window_width=)` / `_update_window_min_size` を `window_min_width_after_drag` に置換 + tests_ui（暫定 17 §5-1・§5-3 ドラッグ後・§5-5・§5-7・§5-8 前半）+
+  既存テストの期待値見直し（暫定 17 §5-9 の列挙: `test_full_view_panes.py:96,105` / `test_pane_window_width_persistence.py:100` 系 / `test_pane_drag_and_window_min.py:116-121`）。
+- 以降 task_04（起動時の保存値更新）/ task_05（統合 + 目視）/ task_06（正本反映）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 

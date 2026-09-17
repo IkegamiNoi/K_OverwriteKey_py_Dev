@@ -4,6 +4,10 @@ import tkinter as tk
 from tkinter import messagebox
 
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY
+from keyseq.presentation.controllers.button_width import apply_fixed_button_width
+from keyseq.presentation.hook_button_texts import (
+    CAPTURE_ACTIVE_TEXT, CAPTURE_IDLE_TEXT, CAPTURE_TEXTS,
+)
 from keyseq.presentation.tk_keys import normalize_tk_keysym
 
 
@@ -38,6 +42,11 @@ class SingleKeyCaptureController:
         self._entry = entry
         self._capture_btn = capture_btn
         self._clear_btn = clear_btn
+        self.apply_fixed_button_width()
+
+    def apply_fixed_button_width(self) -> None:
+        if self._capture_btn is not None:
+            apply_fixed_button_width(self._capture_btn, CAPTURE_TEXTS)
 
     def toggle(self) -> None:
         if self.capturing:
@@ -49,7 +58,7 @@ class SingleKeyCaptureController:
         """キャプチャ開始（キャプチャ中はフックを一時停止）"""
         self.capturing = True
         if self._capture_btn is not None:
-            self._capture_btn.configure(text="取得中…（Escで停止）")
+            self._capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
         if self._clear_btn is not None:
             self._clear_btn.configure(state="disabled")
 
@@ -73,7 +82,7 @@ class SingleKeyCaptureController:
             pass
 
         if self._capture_btn is not None:
-            self._capture_btn.configure(text="キー入力で取得")
+            self._capture_btn.configure(text=CAPTURE_IDLE_TEXT)
         if self._clear_btn is not None:
             self._clear_btn.configure(state="normal")
 

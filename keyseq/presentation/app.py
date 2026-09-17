@@ -269,6 +269,11 @@ class App(tk.Tk):
         if auto_clear and msg:
             self._flash_after_id = self.after(4000, self._clear_flash_message)
 
+    def _apply_fixed_button_widths(self) -> None:
+        self.hook.apply_fixed_button_widths()
+        self.stop_key_capture.apply_fixed_button_width()
+        self.toggle_key_capture.apply_fixed_button_width()
+
     def _apply_font_delta(self, delta: int) -> bool:
         new_delta = coerce_font_delta(delta)
         if new_delta == int(getattr(self, "_ui_font_delta_pt", 0)):
@@ -277,6 +282,7 @@ class App(tk.Tk):
         self._ui_font_delta_pt = new_delta
         self.ui_vars.ui_font_delta_var.set(int(new_delta))
         apply_global_theme(self, font_delta_pt=new_delta)
+        self._apply_fixed_button_widths()
         self.pane_layout.on_font_changed()
         self.startup_io.write_startup({"ui_font_delta_pt": new_delta})
         return True

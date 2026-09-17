@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import ttk
 from typing import TYPE_CHECKING
 
+from keyseq.presentation.hook_button_texts import HOOK_START_TEXT, TRIGGER_DISABLE_TEXT
+
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -17,8 +19,8 @@ class CompactHookFrame(ttk.LabelFrame):
         self.compact_hook_line1 = ttk.Frame(self)
         self.compact_hook_line1.pack(side="top", fill="x")
         # 開始/停止（Appの同名メソッドを呼ぶ。ウィジェットは別物でOK）
-        self.hook_toggle_btn = ttk.Button(self.compact_hook_line1, text="開始（フックON）", command=app.hook.toggle_hook)
-        self.trigger_toggle_btn = ttk.Button(self.compact_hook_line1, text="通常トリガー無効化", command=app.hook.toggle_triggers_enabled, state="disabled")
+        self.hook_toggle_btn = ttk.Button(self.compact_hook_line1, text=HOOK_START_TEXT, command=app.hook.toggle_hook)
+        self.trigger_toggle_btn = ttk.Button(self.compact_hook_line1, text=TRIGGER_DISABLE_TEXT, command=app.hook.toggle_triggers_enabled, state="disabled")
         self.hook_toggle_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         self.trigger_toggle_btn.grid(row=0, column=1, padx=(8, 0), sticky="w")
         app.hook.register_hook_buttons(self.hook_toggle_btn, self.trigger_toggle_btn)

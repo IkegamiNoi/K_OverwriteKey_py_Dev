@@ -4,6 +4,11 @@ import tkinter as tk
 from tkinter import messagebox
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.presentation.controllers.button_width import apply_fixed_button_width
+from keyseq.presentation.hook_button_texts import (
+    HOOK_START_TEXT, HOOK_STOP_TEXT, HOOK_TOGGLE_TEXTS,
+    TRIGGER_DISABLE_TEXT, TRIGGER_ENABLE_TEXT, TRIGGER_TOGGLE_TEXTS,
+)
 
 
 class HookController:
@@ -18,9 +23,19 @@ class HookController:
         self.error_dialog_open = False
         self._shutting_down = False
         self._hook_button_pairs = []
+        self._fixed_width_button_pairs = []
 
-    def register_hook_buttons(self, hook_btn, trigger_btn) -> None:
+    def register_hook_buttons(self, hook_btn, trigger_btn, *, fixed_width: bool = False) -> None:
         self._hook_button_pairs.append((hook_btn, trigger_btn))
+        if fixed_width:
+            self._fixed_width_button_pairs.append((hook_btn, trigger_btn))
+            apply_fixed_button_width(hook_btn, HOOK_TOGGLE_TEXTS)
+            apply_fixed_button_width(trigger_btn, TRIGGER_TOGGLE_TEXTS)
+
+    def apply_fixed_button_widths(self) -> None:
+        for hook_btn, trigger_btn in self._fixed_width_button_pairs:
+            apply_fixed_button_width(hook_btn, HOOK_TOGGLE_TEXTS)
+            apply_fixed_button_width(trigger_btn, TRIGGER_TOGGLE_TEXTS)
 
     # ---------------- Hook suspend/resume for modal dialogs ----------------
     def suspend_hook_for_dialog(self, window: tk.Misc | None = None) -> None:
@@ -60,7 +75,7 @@ class HookController:
 
     # ---------------- Hook toggle button sync ----------------
     def sync_hook_toggle_buttons(self):
-        text = "停止（フックOFF）" if self.hook_active else "開始（フックON）"
+        text = HOOK_STOP_TEXT if self.hook_active else HOOK_START_TEXT
         for hook_btn, _trigger_btn in self._hook_button_pairs:
             try:
                 hook_btn.configure(text=text, state="normal")
@@ -69,13 +84,13 @@ class HookController:
 
     def sync_trigger_toggle_buttons(self):
         if not self.hook_active:
-            text = "通常トリガー無効化"
+            text = TRIGGER_DISABLE_TEXT
             state = "disabled"
         elif self.custom_input_enabled:
-            text = "通常トリガー無効化"
+            text = TRIGGER_DISABLE_TEXT
             state = "normal"
         else:
-            text = "通常トリガー有効化"
+            text = TRIGGER_ENABLE_TEXT
             state = "normal"
 
         for _hook_btn, trigger_btn in self._hook_button_pairs:

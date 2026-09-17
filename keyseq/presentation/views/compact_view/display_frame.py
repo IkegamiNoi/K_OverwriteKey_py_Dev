@@ -3,6 +3,8 @@ from __future__ import annotations
 from tkinter import ttk
 from typing import TYPE_CHECKING
 
+from keyseq.presentation.hook_button_texts import KEYBOARD_LAYOUT_COMBO_WIDTH
+
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -28,7 +30,7 @@ class CompactDisplayFrame(ttk.LabelFrame):
             self,
             textvariable=app.ui_vars.keyboard_layout_var,
             state="readonly",
-            width=18,
+            width=KEYBOARD_LAYOUT_COMBO_WIDTH,
         )
         self.compact_keyboard_layout_combo.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(10, 0))
         self.compact_keyboard_layout_combo.bind("<<ComboboxSelected>>", app.layout.on_keyboard_layout_selected)
