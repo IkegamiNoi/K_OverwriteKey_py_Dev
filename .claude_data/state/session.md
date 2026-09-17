@@ -4,42 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-17T19:00:00
-phase: `instructions/phase/18_full_view_resizable_panes`（**完了 2026-09-17**。判断履歴 = `decisions_archive/18_full_view_resizable_panes.md`）。
-**アクティブなフェーズなし**（次は phase 19 / 暫定 17 / decisions 19。未起票）。
-last_commit_location: `claude/window-size-persistence-check-a9282e`（task_06b / task_06 はこの後コミット）。
-**main は task_05d（`9ce8409`）まで進んでいる**（phase 18 の残りコミットは未マージ）。
+last_updated: 2026-09-17T20:30:00
+phase: `instructions/phase/19_full_view_header_width`（**起票済・task_01 未着手**）。主入力 = 暫定仕様 17（**v0.3・ユーザー確定済**）。
+番号対応: phase 19 / 暫定 17 / decisions 19。起票元 = idea_21。**phase 18 は完了**（`decisions_archive/18_full_view_resizable_panes.md`）。
+last_commit_location: `claude/window-size-persistence-check-a9282e`（phase 19 起票はこの後コミット）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 18 完了（正本反映・暫定仕様 16 凍結・refactor_check 不要・完了判定前レビューの採否反映・task_06b でテスト遮断を修正）。次フェーズは未起票。**
-mode: completed
+focus: **phase 19 起票（暫定仕様 17 v0.3 確定・phase.md・整合チェック採用）。次は task_01（純関数）の起票と実装。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-17T19:00:00
+ts: 2026-09-17T20:30:00
 who: main
 summary: |
-  【task_06 正本反映】`features.md` §4.6「フル表示の幅配分」新設 / `data_schema.md` §5.4 に 2 キー / `codebase_map.md` 追記 / 暫定 16 を v0.5 で凍結 /
-  `decisions_archive/18` 作成・decisions.md から移設 / idea_20 を INDEX_done へ / current.md を完了記載へ。
-  【refactor_check】不要（M1〜M6 該当なし。境界観察 2 件は current.md 別タスク化候補）。
-  【完了判定前レビュー】deep-reviewer（修正要・軽微）+ codex-adversarial（中 2）→ ユーザー推奨どおり: テスト遮断 = task_06b / 文書 5 件反映 / Codex 2 件受容（正本の受容制約へ）/ 3 件保留。
-  【task_06b 完了】`codex-implementer`。verifier: tests_ui 413 OK / tests 445 OK（skip 7）/ smoke OK / config mtime 不変。reviewer = 完了可。
+  【暫定仕様 17 起票】ヘッダ（フック/表示/ファイル）の要求幅をウィンドウ最小幅へ含める（案 A）/ 切替ボタン 4 つの幅固定 / ドロップダウン 18→12（両表示）。
+  起票時 deep-reviewer（修正して採用・メインの実測誤りを訂正: 標準 +19px）/ 確定前 codex-adversarial（中 1: ドラッグ後の最小幅は縮小規則を通さない → 採用）。
+  §4 ユーザー判断: 起動時の自動拡幅は受容 / 省略表示のボタンは固定しない / 旧保存値が最小幅未満なら起動時に更新（推奨と異なる選択・条件は §3-5）。
+  【phase 19 起票】phase.md（task_01〜06）・current.md・INDEX（idea_21 着手）・decisions.md に phase 19 節。reviewer（整合確認）= 採用。
 result_files:
-  - instructions/common/spec_detail/features.md / data_schema.md / instructions/common/codebase_map.md / instructions/history/16_full_view_resizable_panes.md
-  - .claude_data/state/decisions_archive/18_full_view_resizable_panes.md / .claude_data/state/decisions.md / instructions/backlog/INDEX.md / INDEX_done.md
-  - instructions/phase/current.md / phase.md / tasks/task_06_spec_promotion.md / tasks/task_06b_tests_ui_config_isolation.md
-  - tests_ui/test_full_view_panes.py / tests_ui/test_pane_drag_and_window_min.py
+  - instructions/history/17_full_view_header_width.md / instructions/phase/19_full_view_header_width/phase.md
+  - instructions/phase/current.md / instructions/backlog/INDEX.md / .claude_data/state/decisions.md
 verified:
-  compile: clean
-  tests: 445 ran OK（skipped 7）
-  tests_ui: 413 ran OK
-  smoke: SMOKE OK
-  review: reviewer = 完了可（task_06 / task_06b）/ deep-reviewer + codex-adversarial = 採否済
+  review: deep-reviewer（起票時）/ codex-adversarial（確定前）/ reviewer（phase.md 整合）= 採用
 
 ## next_action
-- **ユーザーに次の方針を確認**: ①phase 18 の残りコミットを main へマージするか ②次フェーズの候補（idea_21 ヘッダ幅 / idea_22 縦の最小サイズ / その他 backlog）。
-  決まったら `/phase_start` で phase 19 を起票（暫定仕様が要るなら `/spec_draft` で 17 番）。
-- 必要なら `/save_handoff` で handoff.md を phase 18 完了時点へ再生成。
+- `/task_new` で **task_01（純関数）** を起票: `pane_width_rules.resolve_layout` にヘッダ幅（キーワード引数・既定値で既存呼び出し不変。最小幅 = max・縮小目標 = max(画面幅, ヘッダ幅)）/
+  ドラッグ後の最小幅の関数（縮小規則を通さない）/ ボタン幅 `ceil(max(measure)/measure("0"))` + `tests/test_pane_width_rules.py` 追記（暫定 17 §5-2・§5-3・§5-4 の純関数分）。
+  実装 = `codex-implementer` → `verifier` → `reviewer`。
+- 以降 phase.md のタスク順（task_02 ボタン幅とドロップダウン / task_03 ヘッダ幅の組込み + 既存テスト期待値 / task_04 起動時の保存値更新 / task_05 統合 + 目視 / task_06 正本反映）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
