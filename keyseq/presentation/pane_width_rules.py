@@ -138,21 +138,39 @@ def resolve_layout(
     window_extra: int,
     current_window_width: int,
     screen_width: int,
+    *,
+    header_window_width: int = 0,
 ) -> LayoutPlan:
-    """画面超過時の縮小を反映した最終レイアウトを返す（暫定仕様16 §3-7）。"""
+    """縮小とヘッダ幅を反映したレイアウトを返す（暫定仕様16 §3-7 / 暫定仕様17 §3-2）。"""
     keymap = max(desired.keymap, mins.keymap)
     sequence = max(desired.sequence, mins.sequence)
     required = keymap + sequence + mins.trigger + sash_total + window_extra
-    if required > screen_width:
-        sequence_reduction = min(required - screen_width, sequence - mins.sequence)
+    target = max(screen_width, header_window_width)
+    if required > target:
+        sequence_reduction = min(required - target, sequence - mins.sequence)
         sequence -= sequence_reduction
         required -= sequence_reduction
-        keymap_reduction = min(required - screen_width, keymap - mins.keymap)
+        keymap_reduction = min(required - target, keymap - mins.keymap)
         keymap -= keymap_reduction
         required = keymap + sequence + mins.trigger + sash_total + window_extra
+    window_min_width = max(required, header_window_width)
     return LayoutPlan(
         keymap=keymap,
         sequence=sequence,
-        window_min_width=required,
-        window_width=max(current_window_width, required),
+        window_min_width=window_min_width,
+        window_width=max(current_window_width, window_min_width),
+    )
+
+
+def window_min_width_after_drag(
+    displayed: PaneWidths,
+    mins: MinWidths,
+    sash_total: int,
+    window_extra: int,
+    header_window_width: int = 0,
+) -> int:
+    """ドラッグ後の表示幅から縮小せずウィンドウ最小幅を求める（暫定仕様17 §3-2）。"""
+    return max(
+        displayed.keymap + displayed.sequence + mins.trigger + sash_total + window_extra,
+        header_window_width,
     )

@@ -4,35 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-17T20:30:00
-phase: `instructions/phase/19_full_view_header_width`（**起票済・task_01 未着手**）。主入力 = 暫定仕様 17（**v0.3・ユーザー確定済**）。
+last_updated: 2026-09-17T21:00:00
+phase: `instructions/phase/19_full_view_header_width`（**task_01 完了**・task_02 未着手）。主入力 = 暫定仕様 17（**v0.3・ユーザー確定済**）。
 番号対応: phase 19 / 暫定 17 / decisions 19。起票元 = idea_21。**phase 18 は完了**（`decisions_archive/18_full_view_resizable_panes.md`）。
-last_commit_location: `claude/window-size-persistence-check-a9282e`（phase 19 起票はこの後コミット）。
+last_commit_location: `claude/window-size-persistence-check-a9282e`（task_01 はこの後コミット）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 19 起票（暫定仕様 17 v0.3 確定・phase.md・整合チェック採用）。次は task_01（純関数）の起票と実装。**
+focus: **phase 19 task_01 完了（純関数: resolve_layout のヘッダ幅・ドラッグ後の最小幅・ボタン固定幅）。次は task_02（ボタン幅の固定とドロップダウン）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-17T20:30:00
+ts: 2026-09-17T21:00:00
 who: main
 summary: |
-  【暫定仕様 17 起票】ヘッダ（フック/表示/ファイル）の要求幅をウィンドウ最小幅へ含める（案 A）/ 切替ボタン 4 つの幅固定 / ドロップダウン 18→12（両表示）。
-  起票時 deep-reviewer（修正して採用・メインの実測誤りを訂正: 標準 +19px）/ 確定前 codex-adversarial（中 1: ドラッグ後の最小幅は縮小規則を通さない → 採用）。
-  §4 ユーザー判断: 起動時の自動拡幅は受容 / 省略表示のボタンは固定しない / 旧保存値が最小幅未満なら起動時に更新（推奨と異なる選択・条件は §3-5）。
-  【phase 19 起票】phase.md（task_01〜06）・current.md・INDEX（idea_21 着手）・decisions.md に phase 19 節。reviewer（整合確認）= 採用。
+  【task_01 完了】`codex-implementer`。`pane_width_rules.resolve_layout(..., header_window_width=0)`（最小幅 = max・縮小目標 = max(画面幅, ヘッダ幅)・省略時不変）/
+  `window_min_width_after_drag`（縮小規則を通さない）/ 新規 `button_width_rules.fixed_button_width_chars`（整数の切り上げ）+ tests。UI 未結線。
+  verifier: tests 450 OK（skip 7）/ pane 系 tests_ui 59 OK。reviewer = 完了可。
 result_files:
-  - instructions/history/17_full_view_header_width.md / instructions/phase/19_full_view_header_width/phase.md
-  - instructions/phase/current.md / instructions/backlog/INDEX.md / .claude_data/state/decisions.md
+  - keyseq/presentation/pane_width_rules.py / keyseq/presentation/button_width_rules.py
+  - tests/test_pane_width_rules.py / tests/test_button_width_rules.py
+  - instructions/phase/19_full_view_header_width/tasks/task_01_header_width_rules.md / instructions/phase/current.md
 verified:
-  review: deep-reviewer（起票時）/ codex-adversarial（確定前）/ reviewer（phase.md 整合）= 採用
+  compile: clean
+  tests: 450 ran OK（skipped 7）
+  tests_ui: pane 系 4 モジュール 59 OK（全体は未実行・UI 未結線）
+  review: reviewer = 完了可
 
 ## next_action
-- `/task_new` で **task_01（純関数）** を起票: `pane_width_rules.resolve_layout` にヘッダ幅（キーワード引数・既定値で既存呼び出し不変。最小幅 = max・縮小目標 = max(画面幅, ヘッダ幅)）/
-  ドラッグ後の最小幅の関数（縮小規則を通さない）/ ボタン幅 `ceil(max(measure)/measure("0"))` + `tests/test_pane_width_rules.py` 追記（暫定 17 §5-2・§5-3・§5-4 の純関数分）。
-  実装 = `codex-implementer` → `verifier` → `reviewer`。
-- 以降 phase.md のタスク順（task_02 ボタン幅とドロップダウン / task_03 ヘッダ幅の組込み + 既存テスト期待値 / task_04 起動時の保存値更新 / task_05 統合 + 目視 / task_06 正本反映）。
+- `/task_new` で **task_02（ボタン幅の固定とドロップダウン）** を起票: 文言定数モジュール（presentation 直下・中立）/ View の初期文言を定数参照 /
+  `HookController`（フル表示のボタンの組だけ）・`SingleKeyCaptureController` が登録時とフォント変更時に `fixed_button_width_chars` で `width` を当てる（TButton スタイルのフォント）/
+  `App._apply_font_delta` で `pane_layout.on_font_changed()` より前に呼ぶ / Combobox `width=12`（両表示・定数 1 か所）+ tests_ui（暫定 17 §5-4・§5-6）。
+- 以降 task_03（ヘッダ幅の組込み + 既存テスト期待値）/ task_04（起動時の保存値更新）/ task_05 / task_06。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 

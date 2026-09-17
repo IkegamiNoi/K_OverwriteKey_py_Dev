@@ -21,6 +21,7 @@ from keyseq.presentation.pane_width_rules import (
     side_by_side_min_width,
     stacked_min_width,
     update_desired_after_drag,
+    window_min_width_after_drag,
 )
 
 
@@ -224,6 +225,49 @@ class PaneWidthRulesTest(unittest.TestCase):
                 self.assertEqual(resolve_layout(desired, mins, 24, 16,
                                                 current, screen), expected)
                 self.assertEqual(desired, original)
+
+    def test_resolve_layout_with_header_width(self):
+        """暫定仕様17 §3-2 のヘッダ幅と縮小目標を固定する。"""
+        mins = MinWidths(100, 80, 120)
+        cases = (
+            ("main_wins", PaneWidths(200, 300), 700, 1000, 500,
+             LayoutPlan(200, 300, 620, 700)),
+            ("header_wins", PaneWidths(200, 300), 700, 1000, 800,
+             LayoutPlan(200, 300, 800, 800)),
+            ("equal", PaneWidths(200, 300), 500, 1000, 620,
+             LayoutPlan(200, 300, 620, 620)),
+            ("header_only_over_screen", PaneWidths(200, 300), 700, 1000, 1100,
+             LayoutPlan(200, 300, 1100, 1100)),
+            ("main_only_over_screen", PaneWidths(200, 300), 500, 600, 500,
+             LayoutPlan(200, 280, 600, 600)),
+            ("both_over_screen", PaneWidths(500, 580), 900, 1000, 1100,
+             LayoutPlan(500, 480, 1100, 1100)),
+            ("zero_header_same_as_omitted", PaneWidths(200, 300), 500, 619, 0,
+             resolve_layout(PaneWidths(200, 300), mins, 24, 16, 500, 619)),
+        )
+        for name, desired, current, screen, header, expected in cases:
+            with self.subTest(case=name):
+                original = PaneWidths(desired.keymap, desired.sequence)
+                self.assertEqual(
+                    resolve_layout(desired, mins, 24, 16, current, screen,
+                                   header_window_width=header), expected,
+                )
+                self.assertEqual(desired, original)
+
+    def test_window_min_width_after_drag(self):
+        """暫定仕様17 §3-2 のドラッグ後は表示幅を縮めず最小幅を求める。"""
+        mins = MinWidths(100, 80, 120)
+        displayed = PaneWidths(300, 400)
+        self.assertEqual(window_min_width_after_drag(displayed, mins, 24, 16), 820)
+        for header, expected in ((700, 820), (900, 900)):
+            with self.subTest(header=header):
+                self.assertEqual(
+                    window_min_width_after_drag(displayed, mins, 24, 16, header),
+                    expected,
+                )
+        self.assertEqual(
+            window_min_width_after_drag(PaneWidths(900, 900), mins, 24, 16), 1920,
+        )
 
 
 if __name__ == "__main__":
