@@ -10,16 +10,20 @@ DEFAULT_LIST_CHARS = 26
 SASH_WIDTH = 12
 
 
+def _is_valid_saved_window_width(raw: object) -> bool:
+    return not isinstance(raw, bool) and isinstance(raw, int) and raw >= 1
+
+
 def parse_saved_window_width(raw: object, screen_width: int) -> int | None:
     """保存したウィンドウ幅を検証し、画面幅までに収める（暫定仕様16 §3-8）。"""
-    if isinstance(raw, bool) or not isinstance(raw, int) or raw < 1:
+    if not _is_valid_saved_window_width(raw):
         return None
     return min(raw, screen_width)
 
 
 def startup_window_width_to_save(raw: object, applied_width: int) -> int | None:
     """切り詰め前の保存幅より起動時に広がった場合だけ更新する（暫定仕様17 §3-5）。"""
-    if isinstance(raw, bool) or not isinstance(raw, int) or raw < 1:
+    if not _is_valid_saved_window_width(raw):
         return None
     return applied_width if raw < applied_width else None
 

@@ -73,10 +73,14 @@ class PaneLayoutController:
     def measure_min_widths(self) -> MinWidths:
         return measure_min_widths(self.app)
 
-    def apply_initial_widths(self) -> None:
-        view = self.app.full_view
+    def _measure(self) -> None:
+        """最小幅とヘッダ幅を同じ契機で測る（暫定仕様16 §3-4 / 暫定仕様17 §3-1）。"""
         self.min_widths = self.measure_min_widths()
         self.header_window_width = measure_header_window_width(self.app)
+
+    def apply_initial_widths(self) -> None:
+        view = self.app.full_view
+        self._measure()
         startup = getattr(self.app, "_startup_settings", None)
         saved = parse_saved_pane_widths(startup.get(PANE_WIDTHS_KEY)) if isinstance(startup, dict) else None
         self.desired = saved if saved is not None else default_pane_widths(
@@ -120,8 +124,7 @@ class PaneLayoutController:
         if self.app._compact_mode:
             self._remeasure_pending = True
             return
-        self.min_widths = self.measure_min_widths()
-        self.header_window_width = measure_header_window_width(self.app)
+        self._measure()
         self.apply_layout()
 
     def release_window_min_size(self) -> None:
@@ -131,8 +134,7 @@ class PaneLayoutController:
         if not self._is_ready():
             return
         if self._remeasure_pending:
-            self.min_widths = self.measure_min_widths()
-            self.header_window_width = measure_header_window_width(self.app)
+            self._measure()
             self._remeasure_pending = False
         self.apply_layout()
 
