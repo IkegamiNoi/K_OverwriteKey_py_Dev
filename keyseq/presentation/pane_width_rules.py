@@ -3,9 +3,23 @@ from typing import Sequence
 
 
 PANE_WIDTHS_KEY = "full_view_pane_widths"
+WINDOW_WIDTH_KEY = "full_view_window_width"
+DEFAULT_WINDOW_WIDTH = 780
 MIN_LIST_CHARS = 10
 DEFAULT_LIST_CHARS = 26
 SASH_WIDTH = 12
+
+
+def parse_saved_window_width(raw: object, screen_width: int) -> int | None:
+    """保存したウィンドウ幅を検証し、画面幅までに収める（暫定仕様16 §3-8）。"""
+    if isinstance(raw, bool) or not isinstance(raw, int) or raw < 1:
+        return None
+    return min(raw, screen_width)
+
+
+def default_basis_main_width(main_width: int, window_width: int) -> int:
+    """メイン領域の幅を既定ウィンドウ幅基準へ換算する（暫定仕様16 §3-8）。"""
+    return main_width - (window_width - DEFAULT_WINDOW_WIDTH)
 
 
 @dataclass(frozen=True)

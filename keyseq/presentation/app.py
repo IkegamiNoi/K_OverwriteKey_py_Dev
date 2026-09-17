@@ -26,8 +26,11 @@ from keyseq.presentation.controllers.hook_controller import HookController
 from keyseq.presentation.controllers.key_capture import SingleKeyCaptureController
 from keyseq.presentation.controllers.keymap_panel_controller import KeymapPanelController
 from keyseq.presentation.controllers.layout_controller import LayoutController
-from keyseq.presentation.controllers.pane_layout_controller import PaneLayoutController
+from keyseq.presentation.controllers.pane_layout import PaneLayoutController
 from keyseq.presentation.controllers.trigger_panel_controller import TriggerPanelController
+from keyseq.presentation.pane_width_rules import (
+    DEFAULT_WINDOW_WIDTH, WINDOW_WIDTH_KEY, parse_saved_window_width,
+)
 from keyseq.presentation.ui_vars import UiVars
 from keyseq.presentation.views.compact_view.compact_view import CompactView
 from keyseq.presentation.views.full_view.full_view import FullView
@@ -87,7 +90,10 @@ class App(tk.Tk):
         self._retained_hook_keys: dict[str, str] | None = None
 
         self.title("Key Replacer Sequencer (Multi Trigger)")
-        self.geometry("780x820")
+        width = parse_saved_window_width(
+            self._startup_settings.get(WINDOW_WIDTH_KEY), self.winfo_screenwidth(),
+        )
+        self.geometry(f"{DEFAULT_WINDOW_WIDTH if width is None else width}x820")
 
         self.trigger_service = TriggerService()
         self.keymap_service = KeymapService()
@@ -535,6 +541,7 @@ class App(tk.Tk):
     def on_close(self):
         if not self.keymap_set_io.confirm_save_if_dirty("終了"):
             return
+        width = self.pane_layout.window_width_to_save()
         self.hook.begin_shutdown()
         try:
             if self.layout.keyboard_window is not None:
@@ -544,6 +551,7 @@ class App(tk.Tk):
                 except Exception:
                     pass
             self.hook.stop_hook()
+            self.pane_layout.save_window_width_on_close(width)
         finally:
             self.destroy()
 

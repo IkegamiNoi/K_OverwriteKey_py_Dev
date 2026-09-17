@@ -4,45 +4,50 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-17T06:30:00
-phase: `instructions/phase/18_full_view_resizable_panes`（**task_01〜04・05b 完了**・task_05 は実機目視待ち・task_06 未着手）。
-主入力 = 暫定仕様 16（**v0.3・ユーザー確定済**）。番号対応: phase 18 / 暫定 16 / decisions 18。
+last_updated: 2026-09-17T13:30:00
+phase: `instructions/phase/18_full_view_resizable_panes`（**task_01〜04・05b・05c 完了**・task_05 は v0.4 分の実機目視待ち・task_06 未着手）。
+主入力 = 暫定仕様 16（**v0.4・ユーザー確定済 2026-09-17**）。番号対応: phase 18 / 暫定 16 / decisions 18。
 起票元 = idea_20。**phase 17 は完了**（`decisions_archive/17_minimize_grab_custody.md`）。
-last_commit_location: `claude/task-04-progress-f70005`（task_04 = `4307c69`。task_05 / 05b はこの後コミット）。
+last_commit_location: `claude/task-04-progress-f70005`（task_05c はこの後コミット）。
 **phase 17 までは main へマージ済**（ユーザー 2026-09-16）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 18 task_05b 完了（二次レビュー指摘 F1・F2・F4・F5 を修正）。task_05 はユーザーの実機目視（チェックリスト 1〜11）待ち。**
+focus: **phase 18 task_05c 完了（暫定仕様 16 v0.4 = ウィンドウ幅の保存・復元 / 既定幅 780 基準 / 終了時の保存順序 / ドラッグ間引き）。task_05 は v0.4 分の実機目視待ち。**
 mode: pending_review
 
 ## last_action
-ts: 2026-09-17T06:30:00
+ts: 2026-09-17T13:30:00
 who: main
 summary: |
-  【task_05 統合確認】`verifier` 全 pass（tests 441 / tests_ui 380 / smoke）。`codex-reviewer` = P2 1 件、`deep-reviewer` = 完了可（条件付き）F1〜F7。
-  **ユーザー判断**: F1・F2・F4・F5 → task_05b で修正 / F3・F6 → 目視項目へ / F7 除外（decisions.md phase 18 節に記録）。
-  【task_05b 完了】`codex-implementer`。F1 = ドラッグ後の最小幅を表示幅から（`_plan(widths)`）/ F5 = `_on_press` で `_drag = None` /
-  F2 = tests_ui 3 モジュールの `App()` 構築中だけ `load_startup` → `{}`（実 config から独立）/ F1・F4 テスト各 1 件。
-  `verifier`: tests 441 OK（skip 7）/ tests_ui 382 OK / smoke OK / config 差分なし。`reviewer` = 採用。
+  【task_05 実機目視】5 = 確認不可（中ボタン無し）/ 9 = 再起動でトリガー一覧が意図した幅にならない / 11 = 説明済 / ドラッグでボタン列が巻き込まれる /
+  目視外 2 件 → idea_21（ヘッダ幅）・idea_22（縦の最小サイズ）起票。
+  【暫定仕様 16 v0.4 ユーザー確定】ウィンドウ幅 `full_view_window_width` 保存（案 A）/ ドラッグ間引き（案 L）/ 既定幅 780 基準（ユーザー案）/
+  終了時はフック停止後に保存 / 自動で決めた幅は保存しない。敵対的レビュー 2 回（高 1・中 2 すべて反映）。decisions.md に記録。
+  【task_05c 完了】`codex-implementer`。コントローラ 299 行 → `controllers/pane_layout/`（本体 243 / `pane_measure.py` 76）へ分割。
+  既存テスト 4 件の失敗は準備処理の拡幅が「ユーザーの幅」と判定されたため → アサーション不変・準備で自動幅を記録（メイン判断）。
+  `reviewer` = 完了可（BOM・import 位置をメイン修正）。`verifier`: tests 445 OK（skip 7）/ tests_ui 405 OK / smoke OK。
+  【運用】Codex 読込範囲の削減（`ef41d62`）の効果: 実装 37.0 万 / 分割 26.1 万（以前 56〜103 万）。
 result_files:
-  - keyseq/presentation/controllers/pane_layout_controller.py
-  - tests_ui/test_full_view_panes.py / tests_ui/test_pane_drag_and_window_min.py / tests_ui/test_pane_widths_persistence.py
-  - instructions/phase/18_full_view_resizable_panes/tasks/task_05_integration_check.md / task_05b_integration_review_fixes.md / phase.md
-  - instructions/phase/current.md / .claude_data/state/decisions.md
+  - keyseq/presentation/pane_width_rules.py / keyseq/presentation/app.py
+  - keyseq/presentation/controllers/pane_layout/（__init__.py / pane_layout_controller.py / pane_measure.py）・旧 controllers/pane_layout_controller.py 削除
+  - tests/test_pane_width_rules.py / tests_ui/test_pane_window_width_persistence.py / tests_ui/test_pane_widths_persistence.py
+  - instructions/history/16_full_view_resizable_panes.md / phase.md / tasks/task_05_*.md / tasks/task_05c_*.md
+  - instructions/backlog/idea_21_*.md / idea_22_*.md / INDEX.md / instructions/phase/current.md / .claude_data/state/decisions.md
 verified:
   compile: clean
-  tests: 441 ran OK（skipped 7）
-  tests_ui: 382 ran OK
+  tests: 445 ran OK（skipped 7）
+  tests_ui: 405 ran OK
   smoke: SMOKE OK
-  review: codex-reviewer P2 + deep-reviewer 条件付き完了可 → task_05b 修正 → reviewer 採用
+  review: reviewer = 完了可（軽微 2 件修正済）
 
 ## next_action
-- **ユーザーの実機目視結果を受け取る**（`tasks/task_05_integration_check.md` のチェックリスト 1〜11。F3 見出しの切れ・F6 縦の見た目を含む）。
-  不具合があれば枝番タスク（task_05c）を起票。問題なければ task_05 に目視結果を記録して完了 → `/save_state` + `/task_commit`。
-- 次に `/task_new` で **task_06（正本反映）**: `features.md` §4.6 / `data_schema.md` §5.4 / `codebase_map.md` 昇格 + 暫定仕様 16 凍結 +
-  `decisions_archive/18_full_view_resizable_panes.md` + current.md 完了記載 + idea_20 を `INDEX_done.md` へ + `/refactor_check`。
-  F7（初回ドラッグで他方の既定幅も保存）の §3-6 文言を正本に残す。
+- **ユーザーに task_05 の v0.4 分の実機目視を依頼し結果を受け取る**: ①幅を変えて終了 → 再起動で同じ 3 枠の幅（ドラッグ無し・縁だけのケースも）
+  ②出力シーケンスの境界線ドラッグでボタン列の巻き込みが減ったか ③（可能なら）狭い画面 / 最大化で終了しても保存幅が変わらない。
+  既存チェックリスト 1〜11 の再確認は任意。問題なければ task_05 に結果を記録して完了 → `/save_state` + `/task_commit`。
+- 次に `/task_new` で **task_06（正本反映）**（読むファイル節を付ける）: `features.md` §4.6 / `data_schema.md` §5.4（`full_view_pane_widths` と
+  `full_view_window_width`・config.json 作成契機にドラッグ離し / 終了時）/ `codebase_map.md`（`controllers/pane_layout/` パッケージ）昇格 +
+  暫定仕様 16 凍結 + `decisions_archive/18_full_view_resizable_panes.md` + current.md 完了記載 + idea_20 を `INDEX_done.md` へ + `/refactor_check`。
 - **フェーズ完了判定前に `deep-reviewer` + `codex-adversarial-reviewer` を必ず実施**（ユーザー指示・縮退しない）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。

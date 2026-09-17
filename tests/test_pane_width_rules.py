@@ -3,6 +3,8 @@ from dataclasses import FrozenInstanceError
 
 from keyseq.presentation.pane_width_rules import (
     DEFAULT_LIST_CHARS,
+    DEFAULT_WINDOW_WIDTH,
+    WINDOW_WIDTH_KEY,
     MIN_LIST_CHARS,
     PANE_WIDTHS_KEY,
     LayoutPlan,
@@ -10,9 +12,11 @@ from keyseq.presentation.pane_width_rules import (
     PaneWidths,
     clamp,
     default_pane_widths,
+    default_basis_main_width,
     drag_limits,
     list_row_width,
     parse_saved_pane_widths,
+    parse_saved_window_width,
     resolve_layout,
     side_by_side_min_width,
     stacked_min_width,
@@ -21,6 +25,25 @@ from keyseq.presentation.pane_width_rules import (
 
 
 class PaneWidthRulesTest(unittest.TestCase):
+    def test_window_width_constants(self):
+        self.assertEqual(WINDOW_WIDTH_KEY, "full_view_window_width")
+        self.assertEqual(DEFAULT_WINDOW_WIDTH, 780)
+
+    def test_parse_invalid_window_width(self):
+        for raw in (True, False, "900", 900.0, 0, -1, None):
+            with self.subTest(raw=raw):
+                self.assertIsNone(parse_saved_window_width(raw, 1920))
+
+    def test_parse_window_width_clamps_to_screen(self):
+        for raw, expected in ((900, 900), (1920, 1920), (2000, 1920)):
+            with self.subTest(raw=raw):
+                self.assertEqual(parse_saved_window_width(raw, 1920), expected)
+
+    def test_default_basis_main_width(self):
+        for window, expected in ((780, 756), (1000, 536), (700, 836)):
+            with self.subTest(window=window):
+                self.assertEqual(default_basis_main_width(756, window), expected)
+
     def test_constants(self):
         """暫定仕様16 §2-5・§3-6 の文字数と保存キーを固定する。"""
         self.assertEqual(PANE_WIDTHS_KEY, "full_view_pane_widths")

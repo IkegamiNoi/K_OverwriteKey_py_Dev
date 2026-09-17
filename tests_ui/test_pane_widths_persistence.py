@@ -48,6 +48,7 @@ class PaneWidthsPersistenceTest(unittest.TestCase):
             "minsize": self.app.wm_minsize(), "desired": self.layout.desired,
             "min_widths": self.layout.min_widths, "pending": self.layout._remeasure_pending,
             "startup": self.app._startup_settings, "startup_path": self.app.startup_path,
+            "auto_width": self.layout._auto_window_width,
             "options": [
                 {name: self.panes.panecget(box, name) for name in ("width", "minsize")}
                 for box in self.boxes
@@ -64,6 +65,8 @@ class PaneWidthsPersistenceTest(unittest.TestCase):
         self._set_desired(PaneWidths(self.layout.min_widths.keymap, self.layout.min_widths.sequence))
         self.app.geometry(f"{self.app.winfo_width() + 200}x{self.app.winfo_height()}")
         self.app.update()
+        # ドラッグの余地を作る準備の拡幅は、ユーザー操作の幅として保存対象にしない（暫定仕様16 §3-8）。
+        self.layout._auto_window_width = self.app.winfo_width()
         self.write_startup.reset_mock()
 
     def _restore(self) -> None:
@@ -77,6 +80,7 @@ class PaneWidthsPersistenceTest(unittest.TestCase):
             self.layout.min_widths = saved["min_widths"]
             self.layout._remeasure_pending = saved["pending"]
             self.layout._drag = None
+            self.layout._auto_window_width = saved["auto_width"]
             self.app.minsize(*saved["minsize"])
             self.app.geometry(saved["geometry"])
             for box, options in zip(self.boxes, saved["options"]):

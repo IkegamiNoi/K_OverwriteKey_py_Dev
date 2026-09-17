@@ -1,15 +1,18 @@
 from __future__ import annotations
 
+import re
 import tkinter as tk
-from tkinter import font as tkfont, ttk
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.pane_width_rules import (
-    MIN_LIST_CHARS, PANE_WIDTHS_KEY, SASH_WIDTH, LayoutPlan, MinWidths, PaneWidths, clamp,
-    default_pane_widths, drag_limits, list_row_width, parse_saved_pane_widths,
-    resolve_layout, side_by_side_min_width,
-    stacked_min_width, update_desired_after_drag,
+    PANE_WIDTHS_KEY, SASH_WIDTH, LayoutPlan, MinWidths, PaneWidths, clamp,
+    WINDOW_WIDTH_KEY, default_basis_main_width, default_pane_widths,
+    drag_limits, parse_saved_pane_widths,
+    resolve_layout,
+    update_desired_after_drag,
 )
+
+from .pane_measure import measure_min_widths
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -35,6 +38,9 @@ class PaneLayoutController:
         self.min_widths: MinWidths | None = None
         self._remeasure_pending = False
         self._drag: _Drag | None = None
+        self._motion_id: str | None = None
+        self._motion_x = 0
+        self._auto_window_width: int | None = None
 
     def install(self) -> None:
         if self._installed:
@@ -58,64 +64,7 @@ class PaneLayoutController:
             self.apply_initial_widths()
 
     def measure_min_widths(self) -> MinWidths:
-        view = self.app.full_view
-        view.update_idletasks()
-        sequence = view.sequence_box
-        buttons = sequence.run_to_end_chk.master
-        chrome, title = self._frame_widths(sequence)
-        gap_parts = sequence.tk.splitlist(buttons.pack_info()["padx"])
-        gap = sum(sequence.winfo_pixels(str(part)) for part in gap_parts)
-        if len(gap_parts) == 1:
-            gap *= 2
-        return MinWidths(
-            keymap=self._stacked_width(view.keymap_box, view.keymap_box.keymap_listbox),
-            trigger=self._stacked_width(view.trigger_box, view.trigger_box.trigger_list),
-            sequence=side_by_side_min_width(
-                self._list_row(sequence.action_list), buttons.winfo_reqwidth(),
-                gap, chrome, title,
-            ),
-        )
-
-    def _stacked_width(self, box: ttk.LabelFrame, listing: tk.Listbox) -> int:
-        chrome, title = self._frame_widths(box)
-        others = [
-            child.winfo_reqwidth() for child in box.winfo_children()
-            if child is not listing.master
-        ]
-        return stacked_min_width(self._list_row(listing), others, chrome, title)
-
-    def _list_row(self, listing: tk.Listbox) -> int:
-        font = tkfont.Font(root=self.app, font=listing.cget("font"))
-        char_width = font.measure("0")
-        chrome = listing.winfo_reqwidth() - char_width * int(listing.cget("width"))
-        scrollbar = next(
-            child for child in listing.master.winfo_children()
-            if isinstance(child, ttk.Scrollbar)
-        )
-        return list_row_width(char_width, MIN_LIST_CHARS, chrome, scrollbar.winfo_reqwidth())
-
-    def _frame_widths(self, box: ttk.LabelFrame) -> tuple[int, int]:
-        # 未配置の同一テーマの枠で、native theme の枠線も含めて測る。
-        probe = ttk.LabelFrame(
-            self.app, padding=box.cget("padding"), style=box.cget("style"),
-        )
-        try:
-            # 空見出しの領域が要求幅を決めないよう、中身を十分広くして枠の分を測る。
-            content = ttk.Frame(probe, width=500, height=1)
-            content.pack()
-            probe.update_idletasks()
-            chrome = probe.winfo_reqwidth() - 500
-            font = tkfont.nametofont("TkDefaultFont", root=self.app)
-            sample = "0" * 100  # 内側余白より見出しが必ず広い状態で測定。
-            content.configure(width=1)
-            probe.configure(text=sample)
-            probe.update_idletasks()
-            # タイトル要求幅に既に含まれる枠の分は二重加算しない。
-            inset = max(0, probe.winfo_reqwidth() - font.measure(sample) - chrome)
-            title = font.measure(str(box.cget("text"))) + chrome + inset
-            return chrome, title
-        finally:
-            probe.destroy()
+        return measure_min_widths(self.app)
 
     def apply_initial_widths(self) -> None:
         view = self.app.full_view
@@ -123,11 +72,14 @@ class PaneLayoutController:
         startup = getattr(self.app, "_startup_settings", None)
         saved = parse_saved_pane_widths(startup.get(PANE_WIDTHS_KEY)) if isinstance(startup, dict) else None
         self.desired = saved if saved is not None else default_pane_widths(
-            main_width=view.panes.winfo_width(), keymap_req=view.keymap_box.winfo_reqwidth(),
+            main_width=default_basis_main_width(view.panes.winfo_width(), self.app.winfo_width()),
+            keymap_req=view.keymap_box.winfo_reqwidth(),
             trigger_req=view.trigger_box.winfo_reqwidth(), sash_total=2 * SASH_WIDTH,
             mins=self.min_widths,
         )
         self.apply_layout()
+        self.app.update_idletasks()
+        self._auto_window_width = self.app.winfo_width()
 
     def apply_layout(self) -> None:
         """最終値を 1 回だけ計算して一括適用する（暫定仕様16 §3-7）。"""
@@ -137,10 +89,13 @@ class PaneLayoutController:
         panes, mins = view.panes, self.min_widths
         app.update_idletasks()
         plan = self._plan()
+        geometry_changed = plan.window_width != app.winfo_width()
         app.minsize(plan.window_min_width, 1)
-        if plan.window_width != app.winfo_width():
+        if geometry_changed:
             app.geometry(f"{plan.window_width}x{app.winfo_height()}")
         app.update_idletasks()
+        if geometry_changed:
+            self._auto_window_width = app.winfo_width()
         panes.paneconfigure(view.keymap_box, minsize=mins.keymap, width=plan.keymap)
         panes.paneconfigure(view.trigger_box, minsize=mins.trigger)
         panes.paneconfigure(view.sequence_box, minsize=mins.sequence, width=plan.sequence)
@@ -179,6 +134,7 @@ class PaneLayoutController:
         return view.keymap_box if sash == 0 else view.sequence_box
 
     def _on_press(self, event: tk.Event) -> str | None:
+        self._cancel_motion()
         self._drag = None
         if not self._is_ready():
             return None
@@ -190,12 +146,26 @@ class PaneLayoutController:
         return "break"
 
     def _on_motion(self, event: tk.Event) -> str | None:
+        if self._drag is None or not self._is_ready():
+            return None
+        self._motion_x = event.x
+        if self._motion_id is None:
+            self._motion_id = self.app.after_idle(self._apply_motion)
+        return "break"
+
+    def _cancel_motion(self) -> None:
+        if self._motion_id is not None:
+            self.app.after_cancel(self._motion_id)
+            self._motion_id = None
+
+    def _apply_motion(self) -> None:
+        self._motion_id = None
         drag = self._drag
         if drag is None or not self._is_ready():
-            return None
+            return
         view, mins = self.app.full_view, self.min_widths
         panes = view.panes
-        sash_x = event.x - drag.offset
+        sash_x = self._motion_x - drag.offset
         if drag.sash == 0:
             own, own_min, other = sash_x, mins.keymap, view.sequence_box
         else:
@@ -207,9 +177,11 @@ class PaneLayoutController:
             sash_total=2 * SASH_WIDTH,
         )
         panes.paneconfigure(self._side_box(drag.sash), width=clamp(own, low, high))
-        return "break"
 
     def _on_release(self, _event: tk.Event) -> str | None:
+        if self._motion_id is not None:
+            self._cancel_motion()
+            self._apply_motion()
         drag, self._drag = self._drag, None
         if drag is None or not self._is_ready():
             return None
@@ -224,9 +196,34 @@ class PaneLayoutController:
     def _on_desired_changed(self, new: PaneWidths) -> None:
         self.desired = new
         self._update_window_min_size()
-        self.app.startup_io.write_startup({
+        payload: dict[str, object] = {
             PANE_WIDTHS_KEY: {"keymap": new.keymap, "sequence": new.sequence},
-        })
+        }
+        width = self.window_width_to_save()
+        if width is not None:
+            payload[WINDOW_WIDTH_KEY] = width
+        self.app.startup_io.write_startup(payload)
+
+    def window_width_to_save(self) -> int | None:
+        """自動決定幅と最大化を除いたフル表示幅を返す（暫定仕様16 §3-8）。"""
+        app = self.app
+        if self._auto_window_width is None or app.wm_state() == "zoomed":
+            return None
+        if app._compact_mode:
+            geometry = app._full_geometry
+            match = re.fullmatch(r"([1-9]\d*)x\d+(?:[+-]\d+){2}", geometry or "")
+            if match is None:
+                return None
+            width = int(match.group(1))
+        else:
+            width = app.winfo_width()
+        return None if width == self._auto_window_width else width
+
+    def save_window_width_on_close(self, width: int | None) -> None:
+        """終了時はメモリ上の保存値と異なる幅だけを書く（暫定仕様16 §3-8）。"""
+        if width is None or self.app._startup_settings.get(WINDOW_WIDTH_KEY) == width:
+            return
+        self.app.startup_io.write_startup({WINDOW_WIDTH_KEY: width})
 
     def _plan(self, widths: PaneWidths | None = None) -> LayoutPlan:
         app = self.app

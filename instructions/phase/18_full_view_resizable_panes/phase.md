@@ -10,12 +10,12 @@
 **アプリ幅の変更で伸縮する枠をトリガー一覧にし**、**境界線のドラッグで両端の枠の幅を変えられる**ようにし、
 **その幅を `config/config.json` に保存して再起動後も復元する**。
 
-**対象レイヤは presentation（+ tkinter 非依存の純関数）。`config.json` にキー `full_view_pane_widths` を追加
+**対象レイヤは presentation（+ tkinter 非依存の純関数）。`config.json` にキー `full_view_pane_widths` / `full_view_window_width`（v0.4）を追加
 （後方互換・既存キーの削除 / 意味変更なし）。domain / application / infrastructure は変更しない。**
 
 - 起票元: [idea_20](../../backlog/idea_20_full_view_resizable_panes.md)（ユーザー要望 2026-09-16）。
 - 主入力（暫定仕様）: [16_full_view_resizable_panes.md](../../history/16_full_view_resizable_panes.md)
-  （**v0.3・ユーザー確定済・実装着手可**）。
+  （**v0.4・ユーザー確定済**。v0.4 = task_05 目視を受けたウィンドウ幅の保存・ドラッグ間引き）。
 - モード: **暫定仕様先行モード**。番号対応: phase 18 / 暫定 16 / decisions 18。
 
 ## 確定（ユーザー 2026-09-16）
@@ -42,7 +42,7 @@
 
 ### 含まない（後送り）
 
-- 省略表示（CompactView）のレイアウト変更 / 縦方向のサイズ変更 / ウィンドウ位置・サイズの保存。
+- 省略表示（CompactView）のレイアウト変更 / 縦方向のサイズ変更 / ウィンドウの位置・高さの保存（幅は v0.4 でスコープ内）。
 - ヘッダ領域の配置変更と、ヘッダが要求幅より狭くなったときの切れ（既存の挙動）。
 - ダイアログ類のサイズ保存 / キーボード操作によるサッシュ移動。
 - domain / application / infrastructure の変更（`write_startup` と keymap_set 保存経路は**無変更**で値が保持される）。
@@ -68,6 +68,7 @@
 4. **task_04**: 保存と復元（ドラッグを離したときの `write_startup`・変化が無ければ書かない・起動時の検証と復元）+ **keymap_set 保存でも値が残る**ことのテスト。
 5. **task_05**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ 二次レビュー（`deep-reviewer` + `codex-reviewer`）+ **ユーザーによる実機目視**。
    - **task_05b**: task_05 二次レビューの採用指摘（F1 ドラッグ後の最小幅を表示幅から / F2 tests_ui を実 config から独立 / F4 起動経路の復元テスト / F5 ドラッグ状態の掃除）。
+   - **task_05c**: 暫定仕様 16 v0.4（ウィンドウ幅の保存・復元 / 既定幅の 780 基準 / 終了時の保存順序 / ドラッグ中の移動イベント間引き）。
 6. **task_06（最終・正本反映）**: `features.md` §4.6 / `data_schema.md` §5.4 / `codebase_map.md` への昇格 + **暫定仕様 16 の凍結** + `decisions_archive/18_full_view_resizable_panes.md` + `current.md` 完了記載 + idea_20 を `INDEX_done.md` へ + **`/refactor_check`**。
 
 タスク定義は着手する順に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。
