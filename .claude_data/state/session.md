@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-17T23:50:00
-phase: `instructions/phase/19_full_view_header_width`（**task_01〜04・05b 完了**・task_05 は実機目視待ち・task_06 未着手）。主入力 = 暫定仕様 17（**v0.3・ユーザー確定済**）。
+last_updated: 2026-09-18T00:05:00
+phase: `instructions/phase/19_full_view_header_width`（**task_01〜05b 完了**・task_06 未着手）。主入力 = 暫定仕様 17（**v0.3・ユーザー確定済**）。
 番号対応: phase 19 / 暫定 17 / decisions 19。起票元 = idea_21。**phase 18 は完了**（`decisions_archive/18_full_view_resizable_panes.md`）。
 last_commit_location: `claude/window-size-persistence-check-a9282e`（task_05b / task_05 経過はこの後コミット）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 19 task_05 の統合確認・二次レビュー完了（全 pass・完了可・採否済み）＋ task_05b 完了。ユーザーの実機目視（チェックリスト 1〜8）待ち。**
-mode: pending_review
+focus: **phase 19 task_05 完了（統合確認・二次レビュー・実機目視 1〜8 すべて OK）。次は task_06（正本反映・最終）。**
+mode: implementing
 
 ## last_action
 ts: 2026-09-17T23:50:00
@@ -32,7 +32,7 @@ verified:
   review: codex-reviewer = 指摘なし / deep-reviewer = 完了可 / reviewer（05b）= 完了可
 
 ## next_action
-- **ユーザーから実機目視 1〜8 の結果を受け取る**（チェックリストは `tasks/task_05_integration_check.md`。事前に config.json をバックアップ）。問題なければ task_05 に記録して完了 → コミット。
+- 実機目視 1〜8 はユーザー OK（2026-09-17）→ task_05 完了済み。
 - 次に `/task_new` で **task_06（正本反映）**: `features.md` §4.6「フル表示の幅配分」へ暫定 17 を昇格（ウィンドウ最小幅にヘッダ / 縮小目標 / ドラッグ後の最小幅 / ボタン幅固定 / ドロップダウン幅 /
   起動時に広がる / 旧保存値の更新）+ **`:62`「既定幅は保存しない」`:65`「画面幅超へ広げない」`:70`「自動で決めた幅は保存しない」の矛盾解消** + `:77`「ヘッダの切れは対象外」削除 +
   「保存値 > 画面幅でも最小幅未満なら書く」注記 / `codebase_map.md`（ヘッダ測定・`button_width_rules.py`・`controllers/button_width.py`・`hook_button_texts.py`）/
