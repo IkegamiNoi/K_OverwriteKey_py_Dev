@@ -29,3 +29,8 @@ task_03b（`86accae`）は別途 `reviewer` が単体レビュー = 採用。
 3. 省略表示では縦にも縮められ、フル表示へ戻すと最小の高さが効く。
 4. 標準フォント起動直後の一覧の見た目が phase 19 時点と同じ。
 5. ＋3 で高くなった後、標準へ戻しても高さが縮まない（task_03b）。
+
+## 完了判定前（task_04・2026-09-18）
+
+- `codex-adversarial-reviewer` medium / `deep-reviewer` 指摘 3（最大化の解除で広がった高さが縮む）→ **task_04b で修正**（`ba31614`）。変異検査で `test_unmaximize_expanded_height_survives_minimum_decrease` が検出。
+- task_04b 後の再実行: compile clean / `tests` 451 OK（skipped 7）/ `tests_ui` 438 OK / smoke SMOKE OK。

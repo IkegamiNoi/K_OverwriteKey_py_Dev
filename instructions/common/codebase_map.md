@@ -63,8 +63,8 @@ keyseq/presentation/
         layout_controller.py
         pane_layout/           # フル表示の幅配分（所有者フォルダ・phase 18）
             __init__.py        # PaneLayoutController の再輸出
-            pane_layout_controller.py  # PaneLayoutController: 境界線ドラッグ・最小幅・収まらない場合の適用・幅の保存と復元
-            pane_measure.py    # measure_min_widths: 各枠の最小幅 / measure_header_window_width: ヘッダの要求幅から求めたウィンドウ幅を実ウィジェットから測る
+            pane_layout_controller.py  # PaneLayoutController: 境界線ドラッグ・最小幅・収まらない場合の適用・幅の保存と復元・最小の高さ（phase 20）
+            pane_measure.py    # measure_min_widths: 各枠の最小幅 / measure_header_window_width: ヘッダの要求幅から求めたウィンドウ幅を実ウィジェットから測る / measure_window_min_height: 最小の高さ（ウィンドウの要求高さ・一時メッセージは 1 行分）
         trigger_panel_controller.py
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)
@@ -122,7 +122,7 @@ keyseq/presentation/
 
 - Tk ルートウィンドウ管理（title / geometry / topmost / フォント適用 / 終了処理）
 - 生成と配線（各サービス・コントローラの生成。コールバックはラムダで包み、実行時に `self.<コントローラ>.…` を解決）
-- View切替（`show_full_view` / `show_compact_view` と geometry の退避・復元）
+- View切替（`show_full_view` / `show_compact_view` と geometry の退避・復元）。`show_full_view` は表示内容の更新（選択同期・シーケンス一覧・ステータス）を済ませてから末尾で `pane_layout.on_full_view_shown()` を呼ぶ（最小の高さを 1 行のステータスで測るため・phase 20）
 - 調整役メソッド（キャプチャ相互排他: `toggle_stop_key_capture` / `start_stop_key_capture` / `toggle_toggle_key_capture` / `start_toggle_key_capture`、ダーティ既定解決: `mark_keymap_dirty` / `mark_sequence_dirty`、フラッシュメッセージ、`_sync_control_vars_from_data`）
 - hook キーの個別指定（`spec_detail/data_schema.md` §5.9）: `toggle_hook_keys_individual`（Var → data + dirty +
   ON→OFF で個別値を退避 / OFF→ON で復元・退避が無ければ両キーを `""`。フラグを data へ書いた**後**に
@@ -264,6 +264,10 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     離したときに接する側の希望幅を更新して `startup_io.write_startup` で `full_view_pane_widths` を保存
   - `apply_layout`: 収まらない場合の最終値を `resolve_layout(..., header_window_width=)` で計算して `wm minsize` / geometry / 両端の幅を 1 回で適用
     （ウィンドウ最小幅 = max(メイン, ヘッダ)・縮小目標 = max(画面幅, ヘッダ)）。ドラッグ後の最小幅は `window_min_width_after_drag`（縮小規則を通さない）。
+    **最小の高さ** `window_min_height`: `apply_layout` の前半は保持している前回の値を `minsize` に使い、幅を変える geometry の高さを max(現在, 前回の最小) にする。
+    末尾（両端の `paneconfigure` の後）で `measure_window_min_height` により測り直し、normal 状態で「現在の高さ < 新しい最小」または「新しい最小 < 前回の最小」なら
+    `geometry(現在の幅x max(現在の高さ, 最小))` で Tk の記憶する高さを確定させてから（広げた高さ・最大化解除で広がった高さが後で縮まない）`minsize(最小幅, 最小の高さ)`。
+    ドラッグ後の `minsize` も同じ高さを使う（phase 20）。
     `on_font_changed`（省略表示中は印だけ）/ `on_full_view_shown` / `release_window_min_size`（省略表示へ入る前）を App が呼ぶ
   - **自動決定幅** `_auto_window_width`: 初回適用後は常に、`apply_layout` で geometry を変えたときだけ記録。
     ユーザーが幅を変えたと判定したら無効化（`None`）する
@@ -477,6 +481,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - 編集機能 / トリガー管理 / シーケンス管理 / keymap・trigger_set・sequence の個別保存ボタン
 - メイン領域は `tk.PanedWindow`（横・`view.panes`）に KeymapBox | FullTriggerBox | SequenceBox を入れる。
   両端 `stretch="never"`・トリガー一覧 `stretch="always"`・境界線 12px（phase 18）。幅の制御は PaneLayoutController が持ち、FullView は生成と配置のみ
+  一覧の行数指定（KeymapBox・FullTriggerBox = 6 / SequenceBox = 9）は**フル表示の最小の高さの基準**（既定の半分。表示行数は伸びた分で決まる・phase 20）
 - 構成 Widget:
   - FullHookFrame（hook_frame.py）: フック開始/停止・通常トリガー切替・停止/トグルキーの表示と**取得・クリア**・
     「このキーマップセットで個別指定する」チェック（操作可能なのは full のみ）

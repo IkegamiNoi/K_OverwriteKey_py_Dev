@@ -1,7 +1,8 @@
 # 暫定仕様 18: フル表示ウィンドウの縦方向の最小サイズ（full_view_min_height）
 
-> 状態: **未凍結・v0.5・主入力・ユーザー確定済（2026-09-17）・実装着手可**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済・v0.5**（2026-09-18・phase 20 完了）。**条項を実装の根拠に引かない**（経緯の参照用）。
+> 正本 = `spec_detail/features.md` §4.6「フル表示の幅配分」の「最小の高さ」項 / `codebase_map.md`。
+> 判断履歴 = [decisions_archive/20_full_view_min_height.md](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)。**§3-4 の「`update_status` を前へ移す」（実装は `on_full_view_shown` を末尾へ）・「最小サイズの設定で Tk が広げる」（task_03b / task_04b で geometry により確定させ縮めない）とは異なり、正本が正**。
 > 起票元: [idea_22](../backlog/idea_22_full_view_min_height.md)（phase 18 task_05 の実機目視・ユーザー 2026-09-17）。
 > **presentation 限定・JSON 変更なし**。番号対応: phase 20 / 暫定 18 / decisions 20。
 >

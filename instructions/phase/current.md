@@ -7,23 +7,20 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [20_full_view_min_height](20_full_view_min_height/phase.md)**（2026-09-17 起票・暫定仕様先行モード。**task_01〜03（+03b）完了 / 次 = task_04**）。
-  フル表示ウィンドウに縦方向の最小サイズを設ける（一覧の `height` を 6 / 6 / 9 にし、要求高さを `wm minsize` の高さに。高さは保存しない・省略表示では解除・JSON 不変）。
-  主入力 = 暫定仕様 [18_full_view_min_height](../history/18_full_view_min_height.md)（v0.5・ユーザー確定済）/ 起票元 = [idea_22](../backlog/idea_22_full_view_min_height.md)。
-  番号対応: phase 20 / 暫定 18 / decisions 20。
-- **直近の一連の作業が扱っている領域 = フル表示の幅配分（境界線ドラッグ・幅の保存と復元・ヘッダの幅）**。
+- **アクティブなフェーズ: なし**（phase 20 は 2026-09-18 完了。次フェーズは未起票 = ユーザーに方針確認）。
+- **直近の一連の作業が扱っている領域 = フル表示のウィンドウサイズ（幅配分・境界線ドラッグ・幅の保存と復元・ヘッダの幅・縦方向の最小サイズ）**。
   正本は `features.md` §4.6「フル表示の幅配分」/ `data_schema.md` §5.4（`full_view_pane_widths` / `full_view_window_width`）/
-  `codebase_map.md` の `controllers/pane_layout/`・`pane_width_rules.py`・`button_width_rules.py`・`controllers/button_width.py`・`hook_button_texts.py`。暫定仕様 16・17 は凍結。
+  `codebase_map.md` の `controllers/pane_layout/`・`pane_width_rules.py`・`button_width_rules.py`・`controllers/button_width.py`・`hook_button_texts.py`。暫定仕様 16・17・18 は凍結。
   **ウィンドウ最小幅 = max(メイン, ヘッダの要求幅〔ウィンドウ幅換算〕)** / ウィンドウ幅はリサイズ後 500ms 間引きで保存・終了時は保存しない /
-  旧保存値が最小幅未満なら起動時に広げた幅で更新 / フル表示ヘッダの切替ボタンは最大文言幅で固定。
-  **残件** = ①[idea_22](../backlog/idea_22_full_view_min_height.md)（縦方向の最小サイズ → **phase 20 で着手**）
-  ②「別タスク化候補」の Phase 18 / Phase 19 項（refactor_check の境界観察・レビューの保留）
-  ③`tests_ui` 実行時の stderr に既存 `_clear_flash_message` の破棄後 `after` 実行が出る（無害・未対応）。
+  旧保存値が最小幅未満なら起動時に広げた幅で更新 / フル表示ヘッダの切替ボタンは最大文言幅で固定 /
+  **最小の高さ = 一覧 6 / 6 / 9 行でのウィンドウ要求高さ（一時メッセージは 1 行分）・自動で広げた高さは縮めない・高さは保存しない**。
+  **残件** = ①「別タスク化候補」の Phase 18 / 19 / 20 項（refactor_check の境界観察・レビューの保留）
+  ②`tests_ui` 実行時の stderr に既存 `_clear_flash_message` の破棄後 `after` 実行が出る（無害・未対応）。
   その前の領域（モーダルダイアログの作法）の残件は [decisions_archive/17](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md) と
   「別タスク化候補」の Phase 14 / 17 項、[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)。
-- 直前の完了フェーズ: [19_full_view_header_width](../../.claude_data/state/decisions_archive/19_full_view_header_width.md)
+- 直前の完了フェーズ: [20_full_view_min_height](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)
+- その前の完了フェーズ: [19_full_view_header_width](../../.claude_data/state/decisions_archive/19_full_view_header_width.md)
 - その前の完了フェーズ: [18_full_view_resizable_panes](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)
-- その前の完了フェーズ: [17_minimize_grab_custody](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md)
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
   **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
@@ -42,8 +39,8 @@
 
 ## 次採番
 
-- **phase 19 は 2026-09-17 完了**（decisions 19 はアーカイブ済・次は decisions 20）。
-  **phase 20 = `20_full_view_min_height` を 2026-09-17 起票**。次フェーズは **`21_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 20 は 2026-09-18 完了**（decisions 20 はアーカイブ済・次は decisions 21）。
+  次フェーズは **`21_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
@@ -57,7 +54,7 @@
   15=最小化中の grab 預かり〔**v0.7・凍結**〕/
   16=フル表示メイン領域の幅配分〔**v0.5・凍結**〕/
   17=フル表示ヘッダの幅〔**v0.3・凍結**〕/
-  18=フル表示の縦方向の最小サイズ〔**v0.5・確定・phase 20 の主入力**〕）。
+  18=フル表示の縦方向の最小サイズ〔**v0.5・凍結**〕）。
   次採番は **`19_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -196,6 +193,9 @@
   - `KEYBOARD_LAYOUT_COMBO_WIDTH` がボタン文言のモジュール `hook_button_texts.py` に同居（使う側は 2 箇所）
   - `tests_ui/test_full_view_header_width.py` / `test_header_button_widths.py` は保存予約の遅延を延ばしていない（現状は予約取消で実害なし・揺れたら task_03 と同じ対処）
   - `controllers/hook_controller.py` の `register_hook_buttons` と `apply_fixed_button_widths` の幅適用 2 行が同型（2 箇所・軽微）
+- **Phase 20（フル表示の縦方向の最小サイズ）の `/refactor_check` と完了判定前レビューからの候補送り**（判定は**不要**）:
+  - Phase 18 の再判定条件（`pane_layout_controller.py` が増えたらウィンドウ幅の保存を分ける）: 256 → 約 280 行。高さの処理は `apply_layout` 内の数行と属性 1 つで独立したまとまりではないため**分割不要と再判定**。次にまとまりが増えたら再判定する
+  - 保留: 一時メッセージのラベルを App 属性で直接参照する案（phase 01 の「生やし」解消と衝突）。判断は [decisions_archive/20](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)
 - **Phase 11（孤児ファイルの棚卸し）の `/refactor_check` からの候補送り**（判定は**推奨** →
   提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)
   は**「計画08」として実施し完了**〔2026-09-08・挙動不変〕。提案書へ入れなかった分）:

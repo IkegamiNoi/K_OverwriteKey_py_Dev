@@ -4,38 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-18T05:00:00
-phase: `instructions/phase/20_full_view_min_height`（**進行中**・暫定仕様先行モード。番号対応 phase 20 / 暫定 18 / decisions 20）。
-直前の完了フェーズ = phase 19（判断履歴 = `decisions_archive/19_full_view_header_width.md`）。
-last_commit_location: `claude/idea-22-26db57`（task_03 はこの後コミット）。
+last_updated: 2026-09-18T07:00:00
+phase: `instructions/phase/20_full_view_min_height`（**完了 2026-09-18**。判断履歴 = `decisions_archive/20_full_view_min_height.md`）。
+**アクティブなフェーズなし**（次は phase 21 / 暫定 19 / decisions 21 / 提案書 11。未起票）。
+last_commit_location: `claude/idea-22-26db57`（task_04 はこの後コミット）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 20 task_03 完了（統合確認 pass・二次レビュー採否反映〔task_03b〕・実機目視 OK）。次は task_04（正本反映・フェーズ完了）。**
+focus: **phase 20 完了（正本反映・暫定仕様 18 凍結・refactor_check 不要・完了判定前レビューの採否反映〔task_04b〕）。次フェーズは未起票。**
 mode: completed
 
 ## last_action
-ts: 2026-09-18T05:00:00
+ts: 2026-09-18T07:00:00
 who: main
 summary: |
-  【task_03】verifier 統合確認: compile clean / tests 451 OK / tests_ui 437 OK / smoke OK。codex-reviewer = 指摘なし。
-  deep-reviewer = 修正要（中 1: 自動拡大した高さが最小の低下で 820 へ縮む・メイン再実測で確認）→ ユーザー採否: 1・2・3・6 採用（task_03b）/ 5 文書追従（task_04）/ 4 保留。decisions.md に記録。
-  【実機目視】ユーザー OK（2026-09-18）→ `integration_result.md` 記録・reviewer（記録の整合）= 修正して採用 → 見出しの差分範囲を訂正。
-  【task_03b】codex-implementer: `apply_layout` 測定直後に normal かつ最小未満なら `geometry(幅x最小)` / テスト assert 2 + 変数名。
-  verifier: 10 OK・tests_ui 437 OK・変異検査で `test_font_growth_expands_only_below_minimum` が検出。reviewer = 採用。
+  【task_04 正本反映】`features.md` §4.6 に「最小の高さ」項 + 省略表示で高さも解除 / `codebase_map.md` / 暫定 18 凍結 / `decisions_archive/20` + 索引 / current.md 完了記載・次採番 / idea_22 を INDEX_done へ。
+  refactor_check = 不要（verifier 収集・M3/M6 候補は非該当と判断）。
+  完了判定前レビュー: codex-adversarial（medium 1）= deep-reviewer 指摘 3（最大化の解除で広がった高さが縮む・メイン実測で再現）→ ユーザー: 修正 → task_04b（`ba31614`・変異検査で検出・reviewer 採用）。
+  deep-reviewer の文書指摘は推奨どおり（1・2・4・5・6・9 採用 / 7・10・11・12 除外 / 8 実測済み）。
 result_files:
-  - keyseq/presentation/controllers/pane_layout/pane_layout_controller.py / tests_ui/test_full_view_min_height.py
-  - instructions/phase/20_full_view_min_height/phase.md・tasks/task_03_integration_check.md・task_03b_keep_enlarged_height.md
-  - .claude_data/state/decisions.md / .claude_data/state/session.md
+  - instructions/common/spec_detail/features.md / instructions/common/codebase_map.md / instructions/history/18_full_view_min_height.md
+  - .claude_data/state/decisions_archive/20_full_view_min_height.md / .claude_data/state/decisions.md
+  - instructions/phase/current.md / instructions/backlog/INDEX.md / INDEX_done.md / phase 20 integration_result.md・tasks/task_04
 verified:
   compile: clean
   tests: 451 ran OK（skipped 7）
-  tests_ui: 437 ran OK（task_03b 後）
-  smoke: SMOKE OK（task_03b 前。apply_layout の 2 行追加のみ）
-  review: reviewer（task_03b）= 採用 / deep-reviewer + codex-reviewer = 採否済
+  tests_ui: 438 ran OK
+  smoke: SMOKE OK（task_04b 後）
+  review: reviewer（task_04b）= 採用 / deep-reviewer + codex-adversarial = 採否済
 
 ## next_action
-- **task_04 を起票**（`/task_new`）: `features.md` §4.6「フル表示の幅配分」へ最小の高さを昇格（指摘 5 = フル表示へ戻るときは表示内容の更新後に高さを測る、も記述）/ `codebase_map.md` / 暫定 18 凍結 / `decisions_archive/20_full_view_min_height.md` + decisions.md 索引 / current.md 完了記載 / idea_22 を INDEX_done / `/refactor_check` / 完了判定前レビュー（deep-reviewer + codex-adversarial）。
+- **ユーザーに次の方針を確認**: ①phase 20 のコミット（`f39ad74`〜task_04）を main へマージ（ユーザーが実施。main は phase 18 task_05d まで取り込み済みで、phase 18 残り・phase 19 のコミットも未マージ）②次フェーズの候補（backlog / 別タスク化候補）。
+  決まったら `/spec_draft`（暫定 19）→ `/phase_start`（phase 21）。
+- 必要なら `/save_handoff` で handoff.md を phase 20 完了時点へ再生成。
+- **運用**: タスク定義で「直さず報告」とした失敗は、メインが修正する前にユーザーへ報告する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
@@ -44,7 +46,7 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **【phase 20】最小の高さ = `paneconfigure` 後の `app.winfo_reqheight()`**（`tk.PanedWindow` の要求高さは paneconfigure まで古い）。一覧の `height` 6/6/9 が基準。
+- **【phase 20 の成果は正本が正】最小の高さ = `features.md` §4.6「最小の高さ」項 + `codebase_map.md`**。暫定仕様 18 は凍結済。最小の高さ = `paneconfigure` 後の要求高さ（`tk.PanedWindow` の要求高さは paneconfigure まで古い）。
   tests_ui で最小の高さを触るテストは `pane_layout.window_min_height` も退避・復元する（手本 `tests_ui/test_full_view_min_height.py`）。
 - **【phase 19 の成果は正本が正】ヘッダ幅 = `features.md` §4.6「フル表示の幅配分」（「ヘッダの要求幅」はウィンドウ幅換算）+ `codebase_map.md`**。暫定仕様 17 は凍結済。
   **tests_ui でヘッダ幅が絡む既定幅の期待値は `max(780, pane_layout.header_window_width)` で書く**（標準フォントでも 799 に広がる）。
