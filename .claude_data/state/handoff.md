@@ -15,17 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズなし**。phase 20 は完了・次フェーズは未起票）
-3. 次フェーズが決まったら、暫定仕様先行なら `/spec_draft`（**暫定 19**）→ `/phase_start`（**phase 21**）。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜18）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+2. `instructions/phase/current.md` を読む（**アクティブ = phase 21 `21_extended_key_send`**・直接改訂モード）
+3. `instructions/phase/21_extended_key_send/phase.md` と `tasks/task_02_integration_and_close.md` を読む（残りは実機目視 → 記録 → 完了処理）
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
-5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
+5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
+   **凍結済の暫定仕様（`instructions/history/` の 04〜18）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 20 完了（正本反映・暫定仕様 18 凍結・refactor_check 不要・完了判定前レビューの採否反映〔task_04b〕）。次フェーズは未起票。**
-直近コミット: `699fa14`（task_04 = phase 20 完了）/ `ba31614`（task_04b）。**main は phase 18 task_05d まで取り込み済み**
-（phase 18 の残り・phase 19・phase 20〔`f39ad74`〜`699fa14`〕はユーザーがマージする）。
+**phase 21 task_02 進行中（統合確認 pass・二次レビュー採否済・採用分を task_02b で反映済）。残り = ユーザーの実機目視 → 記録とフェーズ完了処理。**
+直近コミット: `fc3d1c4`（task_02b）/ `3e43aea`（task_01）/ `9428fea`（phase 21 起票）。**main は phase 18 task_05d まで取り込み済み**
+（phase 18 の残り・phase 19・phase 20・phase 21 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 20 完了時点 = 2026-09-18**）:
-compile **clean** / tests **451 実行 OK**（skip 7）/ tests_ui **438 実行 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests_ui: phase 19 完了 427 → phase 20 完了 438）。
+直近の実測（**phase 21 task_02b 時点 = 2026-09-19**）:
+compile **clean** / tests **460 実行 OK**（skip 7）/ tests_ui **438 実行 OK**（task_02b 前・infrastructure のみの変更）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 20 完了 451 → phase 21 task_02b 460）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` が生成されていない**ことを確認する。
 
@@ -48,24 +48,29 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **ユーザーに次の方針を確認**: ①phase 18 残り・19・20 のコミットを main へマージ（ユーザーが実施）②次フェーズの候補（backlog / 別タスク化候補）。
-  決まったら `/spec_draft`（暫定 19）→ `/phase_start`（phase 21）。
-- **運用**: タスク定義で「直さず報告」とした失敗は、メインが修正する前にユーザーへ報告する。
-  修正・リファクタの検出力は**変異検査**（一時的に壊して落ちるか確認 → 必ず戻して差分一致）で確かめる（phase 19・20 で実施）。
+- **ユーザーの実機目視を待つ**（task_02 定義の 5 項目 + 追加 2 項目）:
+  ①hotkey `shift+right` ×数回 → 範囲選択 → `ctrl+c` ②`ctrl+shift+end` / `ctrl+shift+home` ③キーマップで `right` / `end` に割り当て、**物理 Shift** と併用
+  ④通常キーの hotkey・text・マウスが従来どおり ⑤フックの停止 / トグル・通常トリガーの抑止が従来どおり
+  ⑥**拡張キーを自分のトリガー / キーマップ元 / 停止・トグルキーに割り当てて同じキーを送る**（自己起動・自己停止しないか。今回の変更の新リスク）
+  ⑦`windows` / `menu` / 右 Alt / `num lock` / `print screen` を 1 回ずつ。
+- 目視 OK なら: `instructions/phase/21_extended_key_send/integration_result.md` を記録 → `decisions_archive/21_extended_key_send.md` + `decisions.md` 索引（本体の phase 21 節を移動）→
+  `current.md` 完了記載（次採番 **phase 22 / 暫定 19 / decisions 22**）→ **`/refactor_check`**（PHASE_BASE = `9428fea`）→ 完了判定前レビュー（`deep-reviewer` + `codex-adversarial-reviewer`）→ 採否 → コミット。
+- **運用**: `verifier` に変異検査を頼むときは「**`git checkout --` / `git restore` / `git stash` を使わない**（未コミットの実装ごと巻き戻る。実際に 1 度発生し、差分の再適用で復旧）。ファイルのコピーで退避・復元する」を明示する。
+  タスク定義で「直さず報告」とした失敗は、メインが修正する前にユーザーへ報告する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
-## 直前フェーズ（phase 20 = フル表示ウィンドウの縦方向の最小サイズ・完了）の要点
+## 進行中フェーズ（phase 21 = 拡張キーを拡張キーとして送る）の要点
 
-- **正本が正**: `features.md` §4.6「フル表示の幅配分」の「最小の高さ」項 / `codebase_map.md`（PaneLayoutController 節・FullView 節・App の View 切替）。暫定仕様 18 は凍結。
-- **一覧の `height` = 6 / 6 / 9 が最小の高さの基準**（既定の半分。表示行数は伸びた分で決まる）。**最小の高さ = フル表示中のウィンドウの要求高さ**（一時メッセージは 1 行分）。
-  実測: −3 / 標準 / ＋3 = 654 / 729 / 844（全フォントで出力シーケンスのボタン列が支配）。
-- **測る順序**: 両端の `paneconfigure` の後（`tk.PanedWindow` の要求高さは paneconfigure まで古い）。`show_full_view` は表示内容の更新後に末尾で `on_full_view_shown`。
-- **【Tk の罠・実測】** `minsize` の引き上げで Tk が広げた高さは geometry の記憶に残らず、最小が下がると元の高さ（820 等）へ縮む →
-  `apply_layout` は normal 状態で「最小未満」または「最小が下がる」とき `geometry(現在の幅x高さ)` で確定させる（最大化の解除で広がった高さも同じ）。
-- **pack の罠（実測）**: 足りないときは後から pack した部品から削られ、`expand=True` の部品は要求高さより縮まない。
-- **tests_ui の型**: `tests_ui/test_full_view_min_height.py`（11 本）。`window_min_height` も退避・復元し、`_restore` で最大化を解除する。
-  「切れていない」は `winfo_y()+winfo_height()` と `winfo_height() >= winfo_reqheight()` の実測で判定（`wm_minsize` の値比較だけにしない）。
+- **正本**: `spec_detail/key_input.md` **§7.7「キーの送信」**（新設・文言はユーザー確定済）+ `codebase_map.md`「キーの送信」節。直接改訂モード（暫定仕様なし）。
+- **原因（実機で確定）**: `keyboard` は `keybd_event` に KEYEVENTF_EXTENDEDKEY を付けない（`_winkeyboard.py` の `_send_event`）。`right` は scan 77 = テンキー 6 と同じ →
+  Shift 併用で範囲選択にならない。**押す / 離すアクションを足しても直らない**（同じ送信経路）。
+- **実装**: `infrastructure/input_gateway.py` に拡張キー表 18 件（名前 → vk / scan）+ `_resolve_extended_key`（`keyboard.normalize_name` で別名解決）+ `_send_extended_event`（`ctypes.windll.user32.keybd_event`）。
+  `press_key` / `release_key` は表に載る名前だけ拡張送信。`send_hotkey` は**拡張キーを含まなければ従来どおり `keyboard.send`**、含む場合は記述順に押し逆順に離す（例外時も押したキーを逆順に離す）。
+- **新しい前提（重要）**: raw `keybd_event` は `keyboard` の `is_replaying` を通らないため、**自分が送った拡張キーがアプリのフックに届く**（防護は send guard 1 枚。挙動は不変の想定・実機⑥で確認）。
+- **テスト**: `tests/test_input_gateway_send.py`（9 本。送信をモックし順序 / vk / scan / 押す・離すを検証。1 本は `ctypes` ごと差し替えてフラグ合成を検証）。
+- **保留（記録のみ）**: 途中失敗で先行キーが実際に出る / `,` 区切りの多段 hotkey（現状アプリの検証で到達不能）/ 離す側の例外が残らない / `requirements.txt` の `keyboard` が非固定。
+- **関連 idea**: [idea_23](../../instructions/backlog/idea_23_key_press_release_actions.md)（押す / 離すアクション・未着手・優先度低）。
 
 ## 運用インフラ
 
@@ -79,9 +84,9 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **【罠】Bash ツールで `python3` / `python` を呼ばない**（Windows ストア版スタブが stdin 待ちでハングし、同じコマンド内の後続も実行されない）。
   スクリプトを直接走らせるときは `PYTHONPATH=.` を付ける。
 - **【裏取り】レビュー・調査・サブエージェントの「コードがこうなっている」という主張、および自分の実測は、
-  採用前に `ファイルパス:行` / 状態を確認する**（phase 20 ではレビュー指摘の再現をメインがスクリプトで実測してから採否を聞いた）。
-- **【傾向・実証済み】reviewer が「採用」でも敵対的レビューで指摘が出る**。
-  **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**（phase 18・19 は正本の文言、phase 20 は最大化解除の経路が出た）。
+  採用前に `ファイルパス:行` / 状態を確認する**（phase 20・21 とも、指摘の再現をメインがスクリプトで実測してから採否を聞いた）。
+- **【傾向・実証済み】reviewer が「採用」でも敵対的 / 上位レビューで指摘が出る**。
+  **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**。
   `codex-reviewer`（標準 review）は focus text を受け付けないので、観点を渡すなら `codex-adversarial-reviewer`。
 - **【Codex 運用】フォワーダが切れても Codex ワーカーは生き続ける**（判別は作業ツリーの更新時刻）。
   **書き換え途中で `verifier` / `reviewer` を回さない**。`taskkill /T` を使わない。**Codex 申告のテスト結果は信用せず実測**。
@@ -97,13 +102,13 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   （失敗が「ハング」に化ける）。tests_ui の各ファイルの `setUp` に fail-fast ガードがある。
 - **【tests_ui の罠】`setUpClass` で App を共有する**: dirty・フック停止カウンタ・ウィンドウ最小サイズ / geometry / 最大化状態 / pane 幅 / font delta / 保存予約
   を他テストから持ち越す。**前後の変化で assert し、`addCleanup` で必ず元へ戻す**。新規テストは `patch.object` を優先。
-- **【罠】App に View の部品を属性で生やさない**（phase 01 で解消済。phase 20 でも一時メッセージのラベルは測定側で textvariable から探した）。
+- **【罠】App に View の部品を属性で生やさない**（phase 01 で解消済）。
 - **【罠】worktree と main は別コピー**。main 側の絶対パスを編集すると commit から漏れる。
 - **【罠】Bash ツールは Git Bash**。長い heredoc は壊れやすい（その場合は Write ツール）。**sed の区切りに `#` を使うとパターン中の `##` で壊れる**。
   複数行のコミットメッセージは `git commit -F -` + 短い heredoc。**`git grep` は追跡済みのみ検索**。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   併用は `.claude/rules/agent_selection.md` のレビュー表が正。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: **20_full_view_min_height** / 19_full_view_header_width / 18_full_view_resizable_panes）。
-- 未着手/保留 idea: **idea_18**（Escape 配送依存テストの不安定）/ idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
+  （直近 3 件: 20_full_view_min_height / 19_full_view_header_width / 18_full_view_resizable_panes）。
+- 未着手/保留 idea: **idea_23**（押す / 離すアクション）/ **idea_18**（Escape 配送依存テストの不安定）/ idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
