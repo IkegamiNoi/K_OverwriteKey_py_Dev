@@ -64,6 +64,7 @@
    **既存テストの期待値見直し**（暫定 §5-9 の列挙。条項で説明できるものだけ・完了報告に列挙）。
 4. **task_04**: 起動時の保存値の更新（暫定 §3-5・§2-6）+ `tests_ui`（暫定 §5-8 後半）。
 5. **task_05**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ 二次レビュー（`deep-reviewer` + `codex-reviewer`）+ **ユーザーによる実機目視**。
+   - **task_05b**: task_05 二次レビュー（deep-reviewer 指摘 3）の採用分 = 保存値 > 画面幅でも最小幅未満なら書く境界の単体テスト（テストのみ）。
 6. **task_06（最終・正本反映）**: `features.md` §4.6 / `codebase_map.md` への昇格 + **暫定仕様 17 の凍結** + `decisions_archive/19_full_view_header_width.md` + `current.md` 完了記載 +
    idea_21 を `INDEX_done.md` へ + **`/refactor_check`** + 完了判定前レビュー（`deep-reviewer` + `codex-adversarial-reviewer`）。
 

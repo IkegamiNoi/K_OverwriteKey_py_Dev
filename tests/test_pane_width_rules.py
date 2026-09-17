@@ -48,6 +48,8 @@ class PaneWidthRulesTest(unittest.TestCase):
             (1000, 799, None),
             (2000, 1000, None),
             (1100, 1054, None),
+            # 画面 700 に切り詰めた後、最小幅 799 まで広げた: 切り詰め前の 750 も狭いので書く（暫定仕様17 §3-5 ②）。
+            (750, 799, 799),
             (None, 799, None),
             (True, 799, None),
             ("790", 799, None),

@@ -8,7 +8,7 @@
 ## 現在の参照先
 
 - **アクティブなフェーズ: [19_full_view_header_width](19_full_view_header_width/phase.md)**
-  （2026-09-17 起票・**task_01〜04 完了 / task_05 未着手**）。**フル表示ヘッダの幅をウィンドウ最小幅に含める**
+  （2026-09-17 起票・**task_01〜04・05b 完了 / task_05 は実機目視待ち**）。**フル表示ヘッダの幅をウィンドウ最小幅に含める**
   （ヘッダが切れないよう最小幅 = max(メイン, ヘッダ)・文言が切り替わるボタンの幅固定・キーボード選択のドロップダウンを狭める）。
   **presentation 限定・JSON スキーマ変更なし**。
   - 主入力（暫定仕様）: [17_full_view_header_width](../history/17_full_view_header_width.md)（**v0.3・ユーザー確定済**）。番号対応: phase 19 / 暫定 17 / decisions 19。
