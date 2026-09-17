@@ -12,7 +12,7 @@ from keyseq.presentation.pane_width_rules import (
     window_min_width_after_drag,
 )
 
-from .pane_measure import measure_header_window_width, measure_min_widths
+from .pane_measure import measure_header_window_width, measure_min_widths, measure_window_min_height
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -39,6 +39,7 @@ class PaneLayoutController:
         self.desired: PaneWidths | None = None
         self.min_widths: MinWidths | None = None
         self.header_window_width: int = 0
+        self.window_min_height: int = 1
         self._remeasure_pending = False
         self._drag: _Drag | None = None
         self._motion_id: str | None = None
@@ -107,15 +108,17 @@ class PaneLayoutController:
         app.update_idletasks()
         plan = self._plan()
         geometry_changed = plan.window_width != app.winfo_width()
-        app.minsize(plan.window_min_width, 1)
+        app.minsize(plan.window_min_width, self.window_min_height)
         if geometry_changed:
-            app.geometry(f"{plan.window_width}x{app.winfo_height()}")
+            app.geometry(f"{plan.window_width}x{max(app.winfo_height(), self.window_min_height)}")
         app.update_idletasks()
         if geometry_changed:
             self._auto_window_width = app.winfo_width()
         panes.paneconfigure(view.keymap_box, minsize=mins.keymap, width=plan.keymap)
         panes.paneconfigure(view.trigger_box, minsize=mins.trigger)
         panes.paneconfigure(view.sequence_box, minsize=mins.sequence, width=plan.sequence)
+        self.window_min_height = measure_window_min_height(app)
+        app.minsize(plan.window_min_width, self.window_min_height)
 
     def on_font_changed(self) -> None:
         """最小幅を再計算する。省略表示中は再計算の印だけ立てる（暫定仕様16 §3-4）。"""
@@ -266,7 +269,7 @@ class PaneLayoutController:
         window_extra = self.app.winfo_width() - view.panes.winfo_width()
         self.app.minsize(window_min_width_after_drag(
             displayed, self.min_widths, 2 * SASH_WIDTH, window_extra, self.header_window_width,
-        ), 1)
+        ), self.window_min_height)
 
     def _block_middle_button(self, _event: tk.Event) -> str:
         return "break"

@@ -7,13 +7,16 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（phase 19 は 2026-09-17 完了。次フェーズは未起票 = ユーザーに方針確認）。
+- **アクティブなフェーズ: [20_full_view_min_height](20_full_view_min_height/phase.md)**（2026-09-17 起票・暫定仕様先行モード。**task_01 完了 / 次 = task_02**）。
+  フル表示ウィンドウに縦方向の最小サイズを設ける（一覧の `height` を 6 / 6 / 9 にし、要求高さを `wm minsize` の高さに。高さは保存しない・省略表示では解除・JSON 不変）。
+  主入力 = 暫定仕様 [18_full_view_min_height](../history/18_full_view_min_height.md)（v0.5・ユーザー確定済）/ 起票元 = [idea_22](../backlog/idea_22_full_view_min_height.md)。
+  番号対応: phase 20 / 暫定 18 / decisions 20。
 - **直近の一連の作業が扱っている領域 = フル表示の幅配分（境界線ドラッグ・幅の保存と復元・ヘッダの幅）**。
   正本は `features.md` §4.6「フル表示の幅配分」/ `data_schema.md` §5.4（`full_view_pane_widths` / `full_view_window_width`）/
   `codebase_map.md` の `controllers/pane_layout/`・`pane_width_rules.py`・`button_width_rules.py`・`controllers/button_width.py`・`hook_button_texts.py`。暫定仕様 16・17 は凍結。
   **ウィンドウ最小幅 = max(メイン, ヘッダの要求幅〔ウィンドウ幅換算〕)** / ウィンドウ幅はリサイズ後 500ms 間引きで保存・終了時は保存しない /
   旧保存値が最小幅未満なら起動時に広げた幅で更新 / フル表示ヘッダの切替ボタンは最大文言幅で固定。
-  **残件** = ①[idea_22](../backlog/idea_22_full_view_min_height.md)（縦方向の最小サイズ）
+  **残件** = ①[idea_22](../backlog/idea_22_full_view_min_height.md)（縦方向の最小サイズ → **phase 20 で着手**）
   ②「別タスク化候補」の Phase 18 / Phase 19 項（refactor_check の境界観察・レビューの保留）
   ③`tests_ui` 実行時の stderr に既存 `_clear_flash_message` の破棄後 `after` 実行が出る（無害・未対応）。
   その前の領域（モーダルダイアログの作法）の残件は [decisions_archive/17](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md) と
@@ -40,11 +43,11 @@
 ## 次採番
 
 - **phase 19 は 2026-09-17 完了**（decisions 19 はアーカイブ済・次は decisions 20）。
-  次フェーズは **`20_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 20 = `20_full_view_min_height` を 2026-09-17 起票**。次フェーズは **`21_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜16 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
+  04〜18 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
   08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
   10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
   11=config_service の公開面〔**v0.3・凍結**〕/
@@ -53,8 +56,9 @@
   14=ネストしたダイアログの前面維持〔**v0.5・凍結**〕/
   15=最小化中の grab 預かり〔**v0.7・凍結**〕/
   16=フル表示メイン領域の幅配分〔**v0.5・凍結**〕/
-  17=フル表示ヘッダの幅〔**v0.3・凍結**〕）。
-  次採番は **`18_<topic>`**。
+  17=フル表示ヘッダの幅〔**v0.3・凍結**〕/
+  18=フル表示の縦方向の最小サイズ〔**v0.5・確定・phase 20 の主入力**〕）。
+  次採番は **`19_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/

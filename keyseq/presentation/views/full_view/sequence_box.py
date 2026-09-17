@@ -13,7 +13,8 @@ class SequenceBox(ttk.LabelFrame):
     def __init__(self, parent, app: App):
         super().__init__(parent, text="出力シーケンス（選択中トリガーの内容）", padding=10)
 
-        self.action_list = tk.Listbox(self, height=18, exportselection=False)
+        # 既定18行の半分をフル表示の最小高さの基準にする（表示行数は伸びた分で決まる）。
+        self.action_list = tk.Listbox(self, height=9, exportselection=False)
         self.action_list.bind("<<ListboxSelect>>", app.trigger_panel.on_action_list_select)
         self.action_list.bind("<KeyRelease>", app.trigger_panel.on_action_list_focus_index_change)
         self.action_list.bind("<Double-Button-1>", app.trigger_panel.on_action_double_click)

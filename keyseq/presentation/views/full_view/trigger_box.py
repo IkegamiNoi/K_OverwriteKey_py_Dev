@@ -16,7 +16,8 @@ class FullTriggerBox(ttk.LabelFrame):
         # トリガー一覧（スクロール）
         tl_frame = ttk.Frame(self)
         tl_frame.pack(side="top", fill="both", expand=True)
-        self.trigger_list = tk.Listbox(tl_frame, height=12, width=26, exportselection=False)
+        # 既定12行の半分をフル表示の最小高さの基準にする（表示行数は伸びた分で決まる）。
+        self.trigger_list = tk.Listbox(tl_frame, height=6, width=26, exportselection=False)
         sb = ttk.Scrollbar(tl_frame, orient="vertical", command=self.trigger_list.yview)
         sb.pack(side="right", fill="y")
         self.trigger_list.pack(side="left", fill="both", expand=True)

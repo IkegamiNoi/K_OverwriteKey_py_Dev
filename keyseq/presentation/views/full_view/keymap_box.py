@@ -15,7 +15,8 @@ class KeymapBox(ttk.LabelFrame):
 
         keymap_list_frame = ttk.Frame(self)
         keymap_list_frame.pack(side="top", fill="both", expand=True)
-        self.keymap_listbox = tk.Listbox(keymap_list_frame, height=12, width=26, exportselection=False)
+        # 既定12行の半分をフル表示の最小高さの基準にする（表示行数は伸びた分で決まる）。
+        self.keymap_listbox = tk.Listbox(keymap_list_frame, height=6, width=26, exportselection=False)
         self.keymap_listbox.bind("<<ListboxSelect>>", app.keymap_panel.on_keymap_list_select)
         self.keymap_listbox.bind("<KeyRelease>", app.keymap_panel.on_keymap_list_focus_index_change)
         self.keymap_listbox.bind("<Double-Button-1>", app.keymap_panel.on_keymap_list_double_click)

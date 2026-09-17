@@ -12,6 +12,12 @@ if TYPE_CHECKING:
     from keyseq.presentation.app import App
 
 
+def measure_window_min_height(app: App) -> int:
+    """呼び出し側で paneconfigure を適用した後のウィンドウ要求高さを測る。"""
+    app.update_idletasks()
+    return app.winfo_reqheight()
+
+
 def measure_header_window_width(app: App) -> int:
     app.full_view.update_idletasks()
     header = app.full_view.header_area
