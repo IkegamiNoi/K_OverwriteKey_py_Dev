@@ -149,6 +149,7 @@ class FullViewMinHeightTest(unittest.TestCase):
                     for child in box.winfo_children():
                         if child.winfo_manager() == "pack":
                             self.assertTrue(child.winfo_ismapped(), str(child))
+                            self.assertGreaterEqual(child.winfo_height(), child.winfo_reqheight())
                             self.assertLessEqual(
                                 child.winfo_y() + child.winfo_height(), box.winfo_height(),
                             )
@@ -182,6 +183,7 @@ class FullViewMinHeightTest(unittest.TestCase):
         self.assertGreater(enlarged, normal)
         self.assertEqual(self.app.winfo_height(), enlarged)
         self._set_font(0)
+        self.assertEqual(self.app.winfo_height(), enlarged)
         self._set_height(enlarged + 200)
         tall = self.app.winfo_height()
         self._set_font(3)
@@ -262,13 +264,13 @@ class FullViewMinHeightTest(unittest.TestCase):
         self._drain_timers()
         self.assertTrue(self.writer.called)
         self._assert_saved_keys()
-        first_height_only_call = len(self.writer.call_args_list)
+        height_only_call_start_index = len(self.writer.call_args_list)
         width, height = self.app.winfo_width(), self.app.winfo_height()
         self._set_height(height + 50)
         self._drain_timers()
         self.assertEqual(self.app.winfo_width(), width)
         self.assertNotEqual(self.app.winfo_height(), height)
-        for call in self.writer.call_args_list[first_height_only_call:]:
+        for call in self.writer.call_args_list[height_only_call_start_index:]:
             self.assertNotIn("full_view_window_width", call.args[0])
 
 

@@ -58,6 +58,7 @@
 2. **task_02**: 測定の揺れ対策 — 一時メッセージを 1 行分として測る / `show_full_view` の `update_status` を測定より前へ
    + `tests_ui`（暫定 §5-2・§5-4）。
 3. **task_03**: 統合確認（`tests` / `tests_ui` 全体 + `smoke_app`）+ 二次レビュー（`deep-reviewer` + `codex-reviewer`）+ **ユーザーによる実機目視**（暫定 §5-7・§5-8）。
+   - **task_03b**: task_03 二次レビュー（deep-reviewer）の採用分 = 自動で広げた高さが最小の低下で縮む問題の修正（指摘 1）+ テスト補強（指摘 2・3・6）。
 4. **task_04（最終・正本反映）**: `features.md` §4.6 / `codebase_map.md` への昇格 + **暫定仕様 18 の凍結** + `decisions_archive/20_full_view_min_height.md` + `current.md` 完了記載 +
    idea_22 を `INDEX_done.md` へ + **`/refactor_check`** + 完了判定前レビュー（`deep-reviewer` + `codex-adversarial-reviewer`）。
 

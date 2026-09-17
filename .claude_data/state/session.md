@@ -4,38 +4,39 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-18T03:00:00
+last_updated: 2026-09-18T04:00:00
 phase: `instructions/phase/20_full_view_min_height`（**進行中**・暫定仕様先行モード。番号対応 phase 20 / 暫定 18 / decisions 20）。
 直前の完了フェーズ = phase 19（判断履歴 = `decisions_archive/19_full_view_header_width.md`）。
-last_commit_location: `claude/idea-22-26db57`（task_02 はこの後コミット）。
+last_commit_location: `claude/idea-22-26db57`（task_03b はこの後コミット）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 20 task_02 完了（一時メッセージを 1 行分で測る・フル表示復帰は status 更新後に測る）。次は task_03（統合確認・二次レビュー・実機目視）。**
-mode: completed
+focus: **phase 20 task_03 進行中（統合確認 pass・二次レビュー採否済・採用分を task_03b で修正済）。残り = ユーザーの実機目視 → integration_result.md 記録。**
+mode: pending_review
 
 ## last_action
-ts: 2026-09-18T03:00:00
+ts: 2026-09-18T04:00:00
 who: main
 summary: |
-  【task_02】codex-implementer: `pane_measure.measure_window_min_height` が一時メッセージのラベル（textvariable で探索・App に属性を足さない）の押し上げ分を差し引く /
-  `app.py` `show_full_view` で `pane_layout.on_full_view_shown()` を末尾（update_status の後）へ移動 / `tests_ui/test_full_view_min_height.py` に 4 本追加（計 10）。
-  verifier 全 pass・reviewer = 採用（指摘なし）。presentation 限定・JSON 不変。
+  【task_03】verifier 統合確認: compile clean / tests 451 OK / tests_ui 437 OK / smoke OK。codex-reviewer = 指摘なし。
+  deep-reviewer = 修正要（中 1: 自動拡大した高さが最小の低下で 820 へ縮む・メイン再実測で確認）→ ユーザー採否: 1・2・3・6 採用（task_03b）/ 5 文書追従（task_04）/ 4 保留。decisions.md に記録。
+  【task_03b】codex-implementer: `apply_layout` 測定直後に normal かつ最小未満なら `geometry(幅x最小)` / テスト assert 2 + 変数名。
+  verifier: 10 OK・tests_ui 437 OK・変異検査で `test_font_growth_expands_only_below_minimum` が検出。reviewer = 採用。
 result_files:
-  - keyseq/presentation/controllers/pane_layout/pane_measure.py / keyseq/presentation/app.py / tests_ui/test_full_view_min_height.py
-  - instructions/phase/20_full_view_min_height/tasks/task_02_min_height_measurement_stability.md / instructions/phase/current.md / .claude_data/state/session.md
+  - keyseq/presentation/controllers/pane_layout/pane_layout_controller.py / tests_ui/test_full_view_min_height.py
+  - instructions/phase/20_full_view_min_height/phase.md・tasks/task_03_integration_check.md・task_03b_keep_enlarged_height.md
+  - .claude_data/state/decisions.md / .claude_data/state/session.md
 verified:
   compile: clean
   tests: 451 ran OK（skipped 7）
-  tests_ui: test_full_view_min_height 10 OK + 関連 7 スイート 147 OK（全体は task_03）
-  smoke: not_run（task_03）
-  review: reviewer（task_02）= 採用
+  tests_ui: 437 ran OK（task_03b 後）
+  smoke: SMOKE OK（task_03b 前。apply_layout の 2 行追加のみ）
+  review: reviewer（task_03b）= 採用 / deep-reviewer + codex-reviewer = 採否済
 
 ## next_action
-- **task_03 を起票**（`/task_new`）→ verifier で統合確認（`compileall` / `tests` / `tests_ui` 全体 / `-m tests.smoke_app`）→
-  二次レビュー `deep-reviewer` + `codex-reviewer`（phase 20 の差分 = `5e25218..HEAD`）→ 採否をユーザーへ → **ユーザーに実機目視を依頼**（暫定 18 §5-8: 標準 / ＋3 / −3 で縦に縮める・＋3 で起動時に高く開く）。
-- その後 task_04（正本反映・暫定 18 凍結・decisions_archive/20・current.md・idea_22 を INDEX_done・refactor_check・完了判定前レビュー）。
-- **運用**: タスク定義で「直さず報告」とした失敗は、メインが修正する前にユーザーへ報告する。
+- **ユーザーの実機目視を待つ**（task_03 定義の 4 項目: 標準 / ＋3 / −3 で縦に縮めて切れない / ＋3 起動で 820 より高く開く / 省略表示の往復 / 820 での一覧の見た目が phase 19 と同じ。＋ task_03b: ＋3 → 標準に戻しても高さが縮まない）。
+- 目視 OK なら `instructions/phase/20_full_view_min_height/integration_result.md` を記録 → reviewer（記録の整合）→ task_03 コミット。
+- その後 task_04（正本反映〔指摘 5 の呼び出し順の記述を含む〕・暫定 18 凍結・decisions_archive/20・current.md・idea_22 を INDEX_done・refactor_check・完了判定前レビュー）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
