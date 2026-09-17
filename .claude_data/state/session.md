@@ -4,40 +4,42 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-18T07:00:00
-phase: `instructions/phase/20_full_view_min_height`（**完了 2026-09-18**。判断履歴 = `decisions_archive/20_full_view_min_height.md`）。
-**アクティブなフェーズなし**（次は phase 21 / 暫定 19 / decisions 21 / 提案書 11。未起票）。
-last_commit_location: `claude/idea-22-26db57`（task_04 はこの後コミット）。
+last_updated: 2026-09-19T00:30:00
+phase: `instructions/phase/21_extended_key_send`（**進行中**・直接改訂モード。番号対応 phase 21 / 暫定なし / decisions 21）。
+直前の完了フェーズ = phase 20（判断履歴 = `decisions_archive/20_full_view_min_height.md`）。
+last_commit_location: `claude/idea-22-26db57`（task_01 はこの後コミット）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 20 完了（正本反映・暫定仕様 18 凍結・refactor_check 不要・完了判定前レビューの採否反映〔task_04b〕）。次フェーズは未起票。**
+focus: **phase 21 task_01 完了（正本 §7.7 追加 + InputGateway の拡張キー送信 + 単体テスト 8 本）。次は task_02（統合確認・二次レビュー・実機目視・完了処理）。**
 mode: completed
 
 ## last_action
-ts: 2026-09-18T07:00:00
+ts: 2026-09-19T00:30:00
 who: main
 summary: |
-  【task_04 正本反映】`features.md` §4.6 に「最小の高さ」項 + 省略表示で高さも解除 / `codebase_map.md` / 暫定 18 凍結 / `decisions_archive/20` + 索引 / current.md 完了記載・次採番 / idea_22 を INDEX_done へ。
-  refactor_check = 不要（verifier 収集・M3/M6 候補は非該当と判断）。
-  完了判定前レビュー: codex-adversarial（medium 1）= deep-reviewer 指摘 3（最大化の解除で広がった高さが縮む・メイン実測で再現）→ ユーザー: 修正 → task_04b（`ba31614`・変異検査で検出・reviewer 採用）。
-  deep-reviewer の文書指摘は推奨どおり（1・2・4・5・6・9 採用 / 7・10・11・12 除外 / 8 実測済み）。
+  【調査・起票】hotkey の `shift+right` 等で範囲選択が効かない → 原因は `keyboard` が拡張キーフラグを付けないこと（実機で確定）。押す / 離すアクション案は [idea_23] へ分離。
+  phase 21 を直接改訂モードで起票（§7.7 の文言をユーザー確定）。reviewer 整合チェック = 修正して採用（codebase_map は新設と明記）。
+  【task_01】メインが正本 `key_input.md` §7.7 と `codebase_map.md`「キーの送信」節を追記 → codex-implementer が `input_gateway.py`（拡張キー表 18 件・`_resolve_extended_key` / `_send_extended_event`・`send_hotkey` の押す / 離す）+ 新規 `tests/test_input_gateway_send.py`（8 本）。
+  verifier: tests 459 OK / smoke OK / 変異検査 2 件とも検出（right の vk → 3 件 / 離す順 → 6 件）。reviewer = 採用（指摘なし）。
+  **注意**: verifier が復元に `git checkout --` を使い未コミット実装を一度巻き戻した（差分の再適用で復旧・メインが内容一致を確認済み）。
 result_files:
-  - instructions/common/spec_detail/features.md / instructions/common/codebase_map.md / instructions/history/18_full_view_min_height.md
-  - .claude_data/state/decisions_archive/20_full_view_min_height.md / .claude_data/state/decisions.md
-  - instructions/phase/current.md / instructions/backlog/INDEX.md / INDEX_done.md / phase 20 integration_result.md・tasks/task_04
+  - keyseq/infrastructure/input_gateway.py / tests/test_input_gateway_send.py
+  - instructions/common/spec_detail/key_input.md / instructions/common/codebase_map.md
+  - instructions/phase/21_extended_key_send/phase.md・tasks/task_01_extended_key_send.md / instructions/phase/current.md
+  - instructions/backlog/idea_23_key_press_release_actions.md / INDEX.md / .claude_data/state/decisions.md
 verified:
   compile: clean
-  tests: 451 ran OK（skipped 7）
-  tests_ui: 438 ran OK
-  smoke: SMOKE OK（task_04b 後）
-  review: reviewer（task_04b）= 採用 / deep-reviewer + codex-adversarial = 採否済
+  tests: 459 ran OK（skipped 7・新規 8 本を含む）
+  tests_ui: not_run（task_02）
+  smoke: SMOKE OK
+  review: reviewer（task_01）= 採用
 
 ## next_action
-- **ユーザーに次の方針を確認**: ①phase 20 のコミット（`f39ad74`〜task_04）を main へマージ（ユーザーが実施。main は phase 18 task_05d まで取り込み済みで、phase 18 残り・phase 19 のコミットも未マージ）②次フェーズの候補（backlog / 別タスク化候補）。
-  決まったら `/spec_draft`（暫定 19）→ `/phase_start`（phase 21）。
-- 必要なら `/save_handoff` で handoff.md を phase 20 完了時点へ再生成。
-- **運用**: タスク定義で「直さず報告」とした失敗は、メインが修正する前にユーザーへ報告する。
+- **task_02 を起票**（`/task_new`）→ verifier で統合確認（`tests` / `tests_ui` 全体 / `smoke_app`）→ 二次レビュー `deep-reviewer` + `codex-reviewer`（差分 = `9428fea..HEAD` + 未コミット分）→ 採否をユーザーへ →
+  **ユーザーに実機目視を依頼**（メモ帳等で hotkey `shift+right` / `ctrl+shift+end` → `ctrl+c` / キーマップで `right` 等へ割り当てて物理 Shift と併用 / 通常キーの hotkey・text が従来どおり）。
+- その後 task_02 の完了処理（`decisions_archive/21_extended_key_send.md` + decisions.md 索引・current.md 完了記載・`/refactor_check`・完了判定前レビュー）。
+- **運用**: **verifier に変異検査を頼むときは「`git checkout --` を使わない」ことを明示する**（未コミットの実装ごと巻き戻る。今回は差分の再適用で復旧）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 

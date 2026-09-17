@@ -48,4 +48,17 @@
 * 個別指定のチェックは **FullView で操作**する。CompactView は**状態表示のみ**
   （キー欄も readonly 表示）
 
+### 7.7 キーの送信
+
+* アプリが送るキー（出力シーケンスの hotkey アクション・キーマップの送信先キー）のうち、
+  Windows の**拡張キー**は拡張キーとして送る（テンキーや左側のキーとして扱われないようにする。
+  例: 拡張キーとして送らないと `shift+right` がテンキーの 6 と Shift の組み合わせとして扱われ、範囲選択にならない）
+* 対象のキー名（別名は keyboard ライブラリの名前の正規化に従う）:
+  up / down / left / right / home / end / page up / page down / insert / delete /
+  right ctrl / right alt / windows・left windows・right windows / menu（アプリケーションキー）/ print screen / num lock
+  * 左右を指定しない `windows` は左の Windows キーとして送る。`ctrl` / `alt` / `shift` は左側（非拡張）のまま
+  * 名前で区別できないテンキーの Enter・`/` は対象外（名前は主キーボード側のキーを指す）。`alt gr` は従来どおり
+* 組み合わせは記述順に押し、逆順に離す（従来どおり）。テキスト入力（text）・マウス操作は対象外
+* hotkey の書式・検証（`codebase_map.md` の hotkey 文法）は変えない
+
 ---

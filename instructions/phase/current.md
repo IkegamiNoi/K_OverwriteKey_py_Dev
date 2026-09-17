@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [21_extended_key_send](21_extended_key_send/phase.md)**（2026-09-18 起票・直接改訂モード）。
+- **アクティブなフェーズ: [21_extended_key_send](21_extended_key_send/phase.md)**（2026-09-18 起票・直接改訂モード。**task_01 完了 / 次 = task_02**）。
   hotkey アクション・キーマップの送信で、矢印・Home・End 等の Windows 拡張キーを拡張キーとして送る（範囲選択が効かない不具合の修正。原因は keyboard ライブラリが拡張キーフラグを付けないことと実機で確定）。
   infrastructure 限定・hotkey の書式 / JSON 不変。正本 = `key_input.md` §7.7（新設・文言はユーザー確定済・phase.md に記載）。関連 = [idea_23](../backlog/idea_23_key_press_release_actions.md)（押す / 離すアクション・対象外）。
   番号対応: phase 21 / 暫定なし / decisions 21。

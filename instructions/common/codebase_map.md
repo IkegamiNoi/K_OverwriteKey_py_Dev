@@ -519,6 +519,16 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `hook_controller` / `input_router` / `keyboard_window` / App のフック供給部は供給源を意識しない
   （仕様は `spec_detail/key_input.md` §7.6 / `spec_detail/data_schema.md` §5.9）
 
+### キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）
+
+- 呼び出し元は `ActionExecutor` だけ（hotkey アクション = `send_hotkey(normalized)` / キーマップの送信先 = `press_key` → `release_key`。send guard は呼び出し元が張る）。
+- **Windows の拡張キー**（矢印・Home・End・PageUp/PageDown・Insert・Delete・右 Ctrl / 右 Alt・Windows・menu・PrintScreen・NumLock）は、
+  ファイル内の表（正規化後のキー名 → 仮想キー / スキャンコード）で解決し、`user32.keybd_event` に KEYEVENTF_EXTENDEDKEY を付けて送る
+  （`keyboard` ライブラリは拡張フラグを付けないため、`shift+right` 等がテンキー扱いになり範囲選択にならない。仕様は `spec_detail/key_input.md` §7.7）。
+  名前の正規化は `keyboard._canonical_names.normalize_name`（別名 `pgup` / `del` / `apps` / `win` 等）。
+- `send_hotkey`: 要素に拡張キーが無ければ従来どおり `keyboard.send(hotkey)`。含む場合は要素を記述順に押して逆順に離し、途中の例外でも押したキーを逆順に離してから再送出する。
+- text（`keyboard.write`）・マウス（`pyautogui.click`）は対象外。
+
 ---
 
 ## 注意
