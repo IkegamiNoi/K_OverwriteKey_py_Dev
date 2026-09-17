@@ -14,6 +14,13 @@ class PaneDragAndWindowMinTest(unittest.TestCase):
     def setUpClass(cls) -> None:
         base_sizes = dict(theme._BASE_FONT_SIZES)
         cls.addClassCleanup(cls._restore_base_sizes, base_sizes)
+        for target, name, value in (
+            (app_module.StartupIo, "write_startup", True),
+            (app_module.ConfigService, "save_startup", None),
+        ):
+            patcher = patch.object(target, name, return_value=value)
+            patcher.start()
+            cls.addClassCleanup(patcher.stop)
         loader = patch.object(app_module.ConfigService, "load_startup", return_value={})
         loader.start()
         try:
@@ -43,6 +50,7 @@ class PaneDragAndWindowMinTest(unittest.TestCase):
     @classmethod
     def _destroy_app(cls) -> None:
         try:
+            cls.app.pane_layout.cancel_window_width_save()
             cls.app.update()
         finally:
             cls.app.destroy()
@@ -87,6 +95,7 @@ class PaneDragAndWindowMinTest(unittest.TestCase):
             for box, options in zip(self.boxes, saved["options"]):
                 self.panes.paneconfigure(box, **options)
             self.app.update()
+            self.app.pane_layout.cancel_window_width_save()
 
     def _widen(self, delta: int = 200) -> None:
         self.app.geometry(f"{self.app.winfo_width() + delta}x{self.app.winfo_height()}")
