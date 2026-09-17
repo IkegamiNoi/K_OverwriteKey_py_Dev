@@ -20,6 +20,7 @@ from keyseq.presentation.pane_width_rules import (
     resolve_layout,
     side_by_side_min_width,
     stacked_min_width,
+    startup_window_width_to_save,
     update_desired_after_drag,
     window_min_width_after_drag,
 )
@@ -39,6 +40,24 @@ class PaneWidthRulesTest(unittest.TestCase):
         for raw, expected in ((900, 900), (1920, 1920), (2000, 1920)):
             with self.subTest(raw=raw):
                 self.assertEqual(parse_saved_window_width(raw, 1920), expected)
+
+    def test_startup_window_width_to_save(self) -> None:
+        cases = (
+            (790, 799, 799),
+            (799, 799, None),
+            (1000, 799, None),
+            (2000, 1000, None),
+            (1100, 1054, None),
+            (None, 799, None),
+            (True, 799, None),
+            ("790", 799, None),
+            (790.0, 799, None),
+            (0, 799, None),
+            (-1, 799, None),
+        )
+        for raw, applied_width, expected in cases:
+            with self.subTest(raw=raw, applied_width=applied_width):
+                self.assertEqual(startup_window_width_to_save(raw, applied_width), expected)
 
     def test_default_basis_main_width(self):
         for window, expected in ((780, 756), (1000, 536), (700, 836)):

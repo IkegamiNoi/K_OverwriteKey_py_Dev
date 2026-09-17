@@ -4,41 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-17T22:40:00
-phase: `instructions/phase/19_full_view_header_width`（**task_01〜03 完了**・task_04 未着手）。主入力 = 暫定仕様 17（**v0.3・ユーザー確定済**）。
+last_updated: 2026-09-17T23:10:00
+phase: `instructions/phase/19_full_view_header_width`（**task_01〜04 完了**・task_05 未着手）。主入力 = 暫定仕様 17（**v0.3・ユーザー確定済**）。
 番号対応: phase 19 / 暫定 17 / decisions 19。起票元 = idea_21。**phase 18 は完了**（`decisions_archive/18_full_view_resizable_panes.md`）。
-last_commit_location: `claude/window-size-persistence-check-a9282e`（task_03 はこの後コミット）。
+last_commit_location: `claude/window-size-persistence-check-a9282e`（task_04 はこの後コミット）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 19 task_03 完了（ヘッダ幅の測定・保持と一括適用 / ドラッグ後の最小幅への組込み + 既存テスト期待値の見直し）。次は task_04（起動時の保存値更新）。**
+focus: **phase 19 task_04 完了（旧保存値が最小幅未満なら起動時に広げた幅で保存）。次は task_05（統合確認 + 二次レビュー + 実機目視）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-17T22:40:00
+ts: 2026-09-17T23:10:00
 who: main
 summary: |
-  【task_03 完了】`codex-implementer`。`pane_measure.measure_header_window_width` / `PaneLayoutController.header_window_width`（最小幅の測定 3 箇所で測定）/
-  `_plan` に `header_window_width` / `_update_window_min_size` は `window_min_width_after_drag` / 既存 tests_ui 3 ファイルの期待値を §5-9 の列挙だけ更新 + 新規 `test_full_view_header_width.py`（7）。
-  verifier 1 回目の失敗 2 系統をメインがテスト基盤だけで修正（sash_place の置き直し回避 / 保存予約の実タイマー競合）→ tests_ui 425 OK ×2・tests 450 OK・smoke OK。
-  reviewer = 完了可 + 基盤修正の追加レビュー = 採用（運用指摘: 列挙外の失敗は修正前に報告）。
+  【task_04 完了】`codex-implementer`。`pane_width_rules.startup_window_width_to_save(raw, applied)`（有効な生値 < 適用後なら適用後・切り詰め前で比較）/
+  `apply_initial_widths` 末尾で 1 回だけ `write_startup` + tests（11 ケース）/ tests_ui（`NarrowSavedWidthStartupTest` / `ClampedThenWidenedStartupTest`）。
+  verifier: tests 451 OK（skip 7）/ tests_ui 427 OK / smoke OK / config 不変。reviewer = 完了可。
 result_files:
-  - keyseq/presentation/controllers/pane_layout/pane_layout_controller.py / pane_measure.py
-  - tests_ui/test_full_view_panes.py / test_pane_window_width_persistence.py / test_pane_drag_and_window_min.py / test_full_view_header_width.py
-  - instructions/phase/19_full_view_header_width/tasks/task_03_header_width_in_window_min.md / instructions/phase/current.md
+  - keyseq/presentation/pane_width_rules.py / keyseq/presentation/controllers/pane_layout/pane_layout_controller.py
+  - tests/test_pane_width_rules.py / tests_ui/test_pane_window_width_persistence.py
+  - instructions/phase/19_full_view_header_width/tasks/task_04_startup_saved_width_update.md / instructions/phase/current.md
 verified:
   compile: clean
-  tests: 450 ran OK（skipped 7）
-  tests_ui: 425 ran OK（2 回連続）
+  tests: 451 ran OK（skipped 7）
+  tests_ui: 427 ran OK
   smoke: SMOKE OK
-  review: reviewer = 完了可 / 基盤修正 = 採用
+  review: reviewer = 完了可
 
 ## next_action
-- `/task_new` で **task_04（起動時の保存値更新）** を起票: 暫定 17 §3-5・§2-6。初回適用直後に「有効な保存値あり・切り詰め前の保存値 < 適用後のウィンドウ幅・メモリの保存値と異なる」ときだけ
-  `write_startup({"full_view_window_width": 適用後の幅})` を 1 回 + tests_ui（§5-8 後半: 保存値 790 → 書く / 画面幅超の切り詰めのみ → 書かない / 十分広い → 書かない / キー無し → 書かない）。
-  `parse_saved_window_width` は切り詰め後を返すため、切り詰め前の値の扱いに注意。
-- **運用**: タスク定義で「直さず報告」とした失敗は、メインが修正する前にユーザーへ報告する（reviewer 指摘）。
-- 以降 task_05（統合 + 目視）/ task_06（正本反映）。
+- `/task_new` で **task_05（統合確認 + 二次レビュー + 実機目視）** を起票: verifier（tests / tests_ui 全体 + smoke）+ `deep-reviewer` + `codex-reviewer`（対象 = phase 19 の全差分 `c541cf0` 以降ではなく **phase 19 起票コミット `052ee3b` の親以降**）+
+  ユーザー実機目視チェックリスト（フォント −3/標準/＋3 で最小まで縮めてもヘッダが切れない / 取得中も切れない・ボタン幅が変わらない / ドロップダウンの見え方〔フル・省略〕/
+  起動時の幅〔キー無しで少し広がる・保存されない〕/ 旧保存値が狭い config で起動 → 保存値更新 / ＋3 でヘッダに合わせて広がる / ドラッグ後に縮めても両端が縮まない）。
+- 以降 task_06（正本反映 + 凍結 + archive + refactor_check + 完了判定前レビュー）。
+- **運用**: タスク定義で「直さず報告」とした失敗は、メインが修正する前にユーザーへ報告する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 

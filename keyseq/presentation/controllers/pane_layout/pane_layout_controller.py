@@ -7,7 +7,7 @@ from keyseq.presentation.pane_width_rules import (
     PANE_WIDTHS_KEY, SASH_WIDTH, LayoutPlan, MinWidths, PaneWidths, clamp,
     WINDOW_WIDTH_KEY, default_basis_main_width, default_pane_widths,
     drag_limits, parse_saved_pane_widths,
-    resolve_layout,
+    resolve_layout, startup_window_width_to_save,
     update_desired_after_drag,
     window_min_width_after_drag,
 )
@@ -88,6 +88,11 @@ class PaneLayoutController:
         self.apply_layout()
         self.app.update_idletasks()
         self._auto_window_width = self.app.winfo_width()
+        startup = getattr(self.app, "_startup_settings", None)
+        if isinstance(startup, dict):
+            width = startup_window_width_to_save(startup.get(WINDOW_WIDTH_KEY), self.app.winfo_width())
+            if width is not None:
+                self.app.startup_io.write_startup({WINDOW_WIDTH_KEY: width})
 
     def apply_layout(self) -> None:
         """最終値を 1 回だけ計算して一括適用する（暫定仕様16 §3-7）。"""

@@ -17,6 +17,13 @@ def parse_saved_window_width(raw: object, screen_width: int) -> int | None:
     return min(raw, screen_width)
 
 
+def startup_window_width_to_save(raw: object, applied_width: int) -> int | None:
+    """切り詰め前の保存幅より起動時に広がった場合だけ更新する（暫定仕様17 §3-5）。"""
+    if isinstance(raw, bool) or not isinstance(raw, int) or raw < 1:
+        return None
+    return applied_width if raw < applied_width else None
+
+
 def default_basis_main_width(main_width: int, window_width: int) -> int:
     """メイン領域の幅を既定ウィンドウ幅基準へ換算する（暫定仕様16 §3-8）。"""
     return main_width - (window_width - DEFAULT_WINDOW_WIDTH)

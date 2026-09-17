@@ -134,6 +134,28 @@ class ClampedWidthStartupTest(StartupAssertions, WindowAppFixture, unittest.Test
         self.writer.assert_not_called()
 
 
+class NarrowSavedWidthStartupTest(WindowAppFixture, unittest.TestCase):
+    startup = {WINDOW_WIDTH_KEY: 300}
+
+    def test_widened_width_is_saved_once(self) -> None:
+        width = self.app.winfo_width()
+        self.assertGreater(width, 300)
+        self.writer.assert_called_once_with({WINDOW_WIDTH_KEY: width})
+        self.app.pane_layout.cancel_window_width_save()
+        self.app.pane_layout._save_window_width()
+        self.writer.assert_called_once_with({WINDOW_WIDTH_KEY: width})
+
+
+class ClampedThenWidenedStartupTest(WindowAppFixture, unittest.TestCase):
+    startup = {WINDOW_WIDTH_KEY: 900}
+    screen_width = 700
+
+    def test_clamped_then_widened_width_is_not_saved(self) -> None:
+        self.assertGreater(self.app.winfo_width(), 700)
+        self.assertLess(self.app.winfo_width(), 900)
+        self.writer.assert_not_called()
+
+
 class BoolWidthStartupTest(StartupAssertions, WindowAppFixture, unittest.TestCase):
     startup = {WINDOW_WIDTH_KEY: True}
 
