@@ -4,40 +4,42 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-18T00:05:00
-phase: `instructions/phase/19_full_view_header_width`（**task_01〜05b 完了**・task_06 未着手）。主入力 = 暫定仕様 17（**v0.3・ユーザー確定済**）。
-番号対応: phase 19 / 暫定 17 / decisions 19。起票元 = idea_21。**phase 18 は完了**（`decisions_archive/18_full_view_resizable_panes.md`）。
-last_commit_location: `claude/window-size-persistence-check-a9282e`（task_05b / task_05 経過はこの後コミット）。
+last_updated: 2026-09-18T01:00:00
+phase: `instructions/phase/19_full_view_header_width`（**完了 2026-09-17**。判断履歴 = `decisions_archive/19_full_view_header_width.md`）。
+**アクティブなフェーズなし**（次は phase 20 / 暫定 18 / decisions 20 / 提案書 11。未起票）。
+last_commit_location: `claude/window-size-persistence-check-a9282e`（task_07 / task_06 はこの後コミット）。
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 19 task_05 完了（統合確認・二次レビュー・実機目視 1〜8 すべて OK）。次は task_06（正本反映・最終）。**
-mode: implementing
+focus: **phase 19 完了（正本反映・暫定仕様 17 凍結・refactor_check 推奨 → task_07 で実施・完了判定前レビューの採否反映）。次フェーズは未起票。**
+mode: completed
 
 ## last_action
-ts: 2026-09-17T23:50:00
+ts: 2026-09-18T01:00:00
 who: main
 summary: |
-  【task_05】verifier: tests 451 OK / tests_ui 427 OK / smoke OK / config 不変。codex-reviewer = 指摘なし / deep-reviewer = 完了可。
-  採否（ユーザー・推奨どおり）: 正本 `features.md:62,65,70` の矛盾解消・新規 2 モジュールの codebase_map 記載・境界の注記 = task_06 / 境界テスト = task_05b / 保留 3・除外 3・周知 1。
-  【task_05b 完了】`tests/test_pane_width_rules.py` に `(750, 799) → 799` を追加（メイン直接・31 OK）。reviewer = 完了可。
+  【task_06 正本反映】`features.md` §4.6（用語「ヘッダの要求幅」= ウィンドウ幅換算 / 最小幅 max / 縮小目標 / 起動時の拡幅と保存値更新の例外・境界・失敗時 / 旧文言 3 箇所の矛盾解消 / ボタン幅固定 / ドロップダウン幅）/
+  `data_schema.md` §5.4 / `codebase_map.md` / 暫定 17 凍結 / `decisions_archive/19` / idea_21 を INDEX_done へ / current.md 完了記載。
+  完了判定前レビュー: deep-reviewer（修正要・軽微）+ codex-adversarial（中 1）+ reviewer → ユーザー採否（推奨どおり・文書のみ）。
+  【refactor_check = 推奨（M3）→ 提案書 10 → ユーザー選択 (a) task_07】`_measure()` へ集約 / 保存幅の有効判定を 1 箇所へ（挙動不変）。
+  安全網は変異検査で確認（tests_ui 4 件・tests 2 件が検出）。verifier: tests 451 OK / tests_ui 427 OK / smoke OK。reviewer = 完了可。
 result_files:
-  - tests/test_pane_width_rules.py
-  - instructions/phase/19_full_view_header_width/tasks/task_05_integration_check.md / task_05b_review_followups.md
-  - instructions/phase/current.md / .claude_data/state/decisions.md
+  - keyseq/presentation/controllers/pane_layout/pane_layout_controller.py / keyseq/presentation/pane_width_rules.py
+  - instructions/common/spec_detail/features.md / data_schema.md / instructions/common/codebase_map.md / instructions/history/17_full_view_header_width.md
+  - instructions/modified_proposal/10_refactor_full_view_header_width.md / .claude_data/state/decisions_archive/19_full_view_header_width.md / .claude_data/state/decisions.md
+  - instructions/backlog/INDEX.md / INDEX_done.md / instructions/phase/current.md / phase 19 phase.md・tasks/task_06・task_07
 verified:
+  compile: clean
   tests: 451 ran OK（skipped 7）
   tests_ui: 427 ran OK
   smoke: SMOKE OK
-  review: codex-reviewer = 指摘なし / deep-reviewer = 完了可 / reviewer（05b）= 完了可
+  review: reviewer（task_06 / task_07）= 完了可 / deep-reviewer + codex-adversarial = 採否済
 
 ## next_action
-- 実機目視 1〜8 はユーザー OK（2026-09-17）→ task_05 完了済み。
-- 次に `/task_new` で **task_06（正本反映）**: `features.md` §4.6「フル表示の幅配分」へ暫定 17 を昇格（ウィンドウ最小幅にヘッダ / 縮小目標 / ドラッグ後の最小幅 / ボタン幅固定 / ドロップダウン幅 /
-  起動時に広がる / 旧保存値の更新）+ **`:62`「既定幅は保存しない」`:65`「画面幅超へ広げない」`:70`「自動で決めた幅は保存しない」の矛盾解消** + `:77`「ヘッダの切れは対象外」削除 +
-  「保存値 > 画面幅でも最小幅未満なら書く」注記 / `codebase_map.md`（ヘッダ測定・`button_width_rules.py`・`controllers/button_width.py`・`hook_button_texts.py`）/
-  暫定 17 凍結 / `decisions_archive/19` / current.md 完了 / idea_21 を INDEX_done へ / `/refactor_check`（保留 3 件を候補に）/ 完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）。
-- **運用**: タスク定義で「直さず報告」とした失敗は、メインが修正する前にユーザーへ報告する。
+- **ユーザーに次の方針を確認**: ①phase 19 のコミットを main へマージ（ユーザーが実施）②次フェーズの候補（idea_22 縦方向の最小サイズ / その他 backlog）。
+  決まったら `/spec_draft`（暫定 18）→ `/phase_start`（phase 20）。
+- 必要なら `/save_handoff` で handoff.md を phase 19 完了時点へ再生成。
+- **運用**: タスク定義で「直さず報告」とした失敗は、メインが修正する前にユーザーへ報告する。リファクタの安全網は既存テストがあれば変異検査で検出力を確認する（phase 19 で承認された進め方）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
@@ -46,6 +48,8 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 19 の成果は正本が正】ヘッダ幅 = `features.md` §4.6「フル表示の幅配分」（「ヘッダの要求幅」はウィンドウ幅換算）+ `codebase_map.md`**。暫定仕様 17 は凍結済。
+  **tests_ui でヘッダ幅が絡む既定幅の期待値は `max(780, pane_layout.header_window_width)` で書く**（標準フォントでも 799 に広がる）。
 - **【phase 18 の成果は正本が正】フル表示の幅配分 = `features.md` §4.6「フル表示の幅配分」+ `data_schema.md` §5.4 + `codebase_map.md` の PaneLayoutController 節**。
   暫定仕様 16 は凍結済で条項の根拠に引かない。**tests_ui で App を作るテストはウィンドウ幅の保存予約（500ms）が走るので、`write_startup` をクラス単位で差し替え、破棄前に `pane_layout.cancel_window_width_save()`**（手本 `tests_ui/test_pane_window_width_persistence.py`）。
 - **【phase 17 の成果は正本が正】最小化中の grab 預かり = `features.md` §4.6 + `codebase_map.md` の `modal.py` 節**。

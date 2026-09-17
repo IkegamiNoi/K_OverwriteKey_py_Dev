@@ -1,7 +1,8 @@
 # 暫定仕様 17: フル表示ヘッダの幅をウィンドウ最小幅に含める（full_view_header_width）
 
-> 状態: **未凍結・v0.3・ユーザー確定済（2026-09-17）・主入力**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済・v0.3**（2026-09-17・phase 19 完了）。**条項を実装の根拠に引かない**（経緯の参照用）。
+> 正本 = `spec_detail/features.md` §4.6「フル表示の幅配分」/ `spec_detail/data_schema.md` §5.4 / `codebase_map.md`。
+> 判断履歴 = [decisions_archive/19_full_view_header_width.md](../../.claude_data/state/decisions_archive/19_full_view_header_width.md)。
 > 起票元: [idea_21](../backlog/idea_21_full_view_header_width.md)（phase 18 task_05 の実機目視・ユーザー 2026-09-17）。
 > **presentation 限定・JSON 変更なし**。番号対応: phase 19 / 暫定 17 / decisions 19。
 >

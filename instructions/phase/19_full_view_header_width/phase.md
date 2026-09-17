@@ -67,6 +67,7 @@
    - **task_05b**: task_05 二次レビュー（deep-reviewer 指摘 3）の採用分 = 保存値 > 画面幅でも最小幅未満なら書く境界の単体テスト（テストのみ）。
 6. **task_06（最終・正本反映）**: `features.md` §4.6 / `codebase_map.md` への昇格 + **暫定仕様 17 の凍結** + `decisions_archive/19_full_view_header_width.md` + `current.md` 完了記載 +
    idea_21 を `INDEX_done.md` へ + **`/refactor_check`** + 完了判定前レビュー（`deep-reviewer` + `codex-adversarial-reviewer`）。
+7. **task_07（refactor_check 推奨の実施）**: 提案書 10（測定の 2 行を `_measure()` へ集約 / 保存幅の有効判定を 1 箇所へ）。挙動不変・変異検査で安全網を確認。
 
 タスク定義は着手する順に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。
 

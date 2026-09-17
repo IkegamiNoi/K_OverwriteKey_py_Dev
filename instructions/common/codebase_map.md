@@ -56,6 +56,7 @@ keyseq/presentation/
             orphan_sweep_io.py      # OrphanSweepIo: 孤児ファイルの棚卸しのフロー（保存確認→走査→棚卸しダイアログ→確認→隔離→通知）+ 走査先設定の保存（→ StartupIo）
             quarantine_manage_io.py # QuarantineManageIo: 隔離の管理のフロー（一覧→単位選択→復元 / 削除の確認→実行→通知）
         dirty_state.py
+        button_width.py        # apply_fixed_button_width: TButton のフォントで文言を測り、ボタンの width を最大文言幅で固定（phase 19）
         hook_controller.py
         key_capture.py
         keymap_panel_controller.py
@@ -63,7 +64,7 @@ keyseq/presentation/
         pane_layout/           # フル表示の幅配分（所有者フォルダ・phase 18）
             __init__.py        # PaneLayoutController の再輸出
             pane_layout_controller.py  # PaneLayoutController: 境界線ドラッグ・最小幅・収まらない場合の適用・幅の保存と復元
-            pane_measure.py    # measure_min_widths: 各枠の最小幅を実ウィジェットから測る
+            pane_measure.py    # measure_min_widths: 各枠の最小幅 / measure_header_window_width: ヘッダの要求幅から求めたウィンドウ幅を実ウィジェットから測る
         trigger_panel_controller.py
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)
@@ -98,7 +99,9 @@ keyseq/presentation/
     listbox_utils.py
     modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かり
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
-    pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値・既定幅と 780 基準。tkinter 非依存）
+    pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
+    button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
+    hook_button_texts.py       # フックの枠の切替ボタンの文言とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
     orphan_sweep_text.py       # 孤児ファイルの棚卸しの提示テキスト整形（警告 / 候補一覧 / 隔離結果。純関数）
     quarantine_manage_text.py  # 隔離の管理の提示テキスト整形（単位一覧 / 復元・削除の計画と結果。純関数）
     startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
@@ -184,7 +187,9 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
   個別指定 ON = `app.data` 更新 + Var 反映 + dirty / OFF = `startup_io.write_global_hook_keys` で
   config.json を更新し**成功時のみ** `app.data` と Var を確定する。OFF 経路は
   `dirty_tracker.capture_dirty_snapshot` / `restore_dirty_snapshot` を `try`/`finally` で使い、
-  例外経路でも keymap_set を dirty にしない（仕様は `spec_detail/data_schema.md` §5.9.4）
+  例外経路でも keymap_set を dirty にしない（仕様は `spec_detail/data_schema.md` §5.9.4）。
+  取得ボタンは `register_widgets` 時と `apply_fixed_button_width()` で最大文言幅に固定する（phase 19）。
+  App の `_apply_fixed_button_widths()` が HookController と 2 つのキャプチャの幅を当て直す（`_apply_font_delta` で `apply_global_theme` の後・`pane_layout.on_font_changed()` の前）
 - config_io/（controllers/config_io/）: 構成セット・個別JSONの保存/読込フローを**7クラスへ分割**（計画04で `config_io_controller.py` を廃止）。App が各クラスを直接公開し、`app.<名前>.<method>` で参照する:
   - KeymapSetIo（keymap_set_io.py = `app.keymap_set_io`）: 構成セット（keymap_set）の new/save/save_as/load/import/export/restore + 起動構成セット指定・読込データのUI適用
     - 新規作成は `keymap_set_path` を空にし、`save_keymap_set` は空パスなら `save_as` へ委譲する（別名保存の初期名は `keymap_set.json`）。Import 成功時は**無条件で**空にする
@@ -251,10 +256,14 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
 - LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理
 - PaneLayoutController（controllers/pane_layout/ = `app.pane_layout`）: フル表示の幅配分（仕様は `spec_detail/features.md` §4.6「フル表示の幅配分」・
   `data_schema.md` §5.4）。計算は `pane_width_rules.py` の純関数、最小幅の実測は `pane_measure.py`。
-  - 初回適用（FullView の `PanedWindow` の最初の `<Configure>`）: 最小幅の実測 → 保存値の検証 or 既定幅（780 基準）→ 一括適用
+  - 初回適用（FullView の `PanedWindow` の最初の `<Configure>`）: 最小幅とヘッダ幅の実測 → 保存値の検証 or 既定幅（780 基準）→ 一括適用 →
+    **有効な保存値（切り詰め前）が適用後のウィンドウ幅より狭ければ、適用後の幅を 1 回 `write_startup`**（`startup_window_width_to_save`・phase 19）
+  - **ヘッダ幅** `header_window_width`: `header_area.winfo_reqwidth()` + 外側の余白。最小幅を測る 3 箇所（初回適用 / `on_font_changed` の非省略表示経路 / `on_full_view_shown` の再測定）で一緒に測り保持する。
+    ボタン幅の固定（App が先に行う）→ `update_idletasks` → 測定の順
   - ドラッグ: サッシュ上の左ボタンだけを個別バインドで処理し `"break"`（可動範囲の制限・中ボタン無効）。移動は `after_idle` で間引き、
     離したときに接する側の希望幅を更新して `startup_io.write_startup` で `full_view_pane_widths` を保存
-  - `apply_layout`: 収まらない場合の最終値を計算して `wm minsize` / geometry / 両端の幅を 1 回で適用。
+  - `apply_layout`: 収まらない場合の最終値を `resolve_layout(..., header_window_width=)` で計算して `wm minsize` / geometry / 両端の幅を 1 回で適用
+    （ウィンドウ最小幅 = max(メイン, ヘッダ)・縮小目標 = max(画面幅, ヘッダ)）。ドラッグ後の最小幅は `window_min_width_after_drag`（縮小規則を通さない）。
     `on_font_changed`（省略表示中は印だけ）/ `on_full_view_shown` / `release_window_min_size`（省略表示へ入る前）を App が呼ぶ
   - **自動決定幅** `_auto_window_width`: 初回適用後は常に、`apply_layout` で geometry を変えたときだけ記録。
     ユーザーが幅を変えたと判定したら無効化（`None`）する
@@ -265,6 +274,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
 - KeymapPanelController（controllers/keymap_panel_controller.py）: キーマップ管理パネル
 - TriggerPanelController（controllers/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示
 - HookController（controllers/hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
+  - `register_hook_buttons(hook_btn, trigger_btn, *, fixed_width=False)`: `fixed_width=True`（FullHookFrame のみ）の組は登録時と `apply_fixed_button_widths()` で最大文言幅に固定する
   - **`suspend_hook_for_dialog(window)` はウィンドウを渡すと破棄時に自動で解除する**
     （渡さなければ呼び出し側が解除する＝try/finally 形）。
     `features.md` §4.6「モーダルダイアログの作法」/ `key_input.md` §7.2。
@@ -306,7 +316,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 
 1. **登録方式（複数 View に同種ウィジェットがあるもの）** — Widget が生成時に自分をコントローラへ登録し、
    同期メソッドは登録済みウィジェットを走査する（走査順は登録順 = full → compact）:
-   - `HookController.register_hook_buttons(hook_btn, trigger_btn)` ← FullHookFrame / CompactHookFrame
+   - `HookController.register_hook_buttons(hook_btn, trigger_btn, *, fixed_width=False)` ← FullHookFrame（`fixed_width=True`）/ CompactHookFrame
    - `LayoutController.register_layout_combo(combo)` ← FullDisplayFrame / CompactDisplayFrame
    - `TriggerPanelController.register_trigger_list(listbox)` ← FullTriggerBox / CompactTriggerBox
    - `SingleKeyCaptureController.register_widgets(entry, capture_btn, clear_btn)` ← FullHookFrame（キャプチャUIは Full のみ）

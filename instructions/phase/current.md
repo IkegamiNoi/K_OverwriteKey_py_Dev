@@ -7,26 +7,20 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [19_full_view_header_width](19_full_view_header_width/phase.md)**
-  （2026-09-17 起票・**task_01〜05b 完了 / task_06（正本反映・最終）未着手**）。**フル表示ヘッダの幅をウィンドウ最小幅に含める**
-  （ヘッダが切れないよう最小幅 = max(メイン, ヘッダ)・文言が切り替わるボタンの幅固定・キーボード選択のドロップダウンを狭める）。
-  **presentation 限定・JSON スキーマ変更なし**。
-  - 主入力（暫定仕様）: [17_full_view_header_width](../history/17_full_view_header_width.md)（**v0.3・ユーザー確定済**）。番号対応: phase 19 / 暫定 17 / decisions 19。
-  - 起票元: [idea_21](../backlog/idea_21_full_view_header_width.md)（phase 18 の実機目視）。
-  - 確定（ユーザー 2026-09-17）: **案 A（配置は変えない）** / **フル表示のヘッダの切替ボタン 4 つを固定・省略表示は固定しない** /
-    **ドロップダウン 18 → 12（両表示）** / **起動時に自動で広がるのは受容** / **旧保存値が最小幅未満なら起動時に更新**。
-- **直近の一連の作業が扱っている領域 = フル表示の幅配分（境界線ドラッグ・幅の保存と復元）**。
+- **アクティブなフェーズ: なし**（phase 19 は 2026-09-17 完了。次フェーズは未起票 = ユーザーに方針確認）。
+- **直近の一連の作業が扱っている領域 = フル表示の幅配分（境界線ドラッグ・幅の保存と復元・ヘッダの幅）**。
   正本は `features.md` §4.6「フル表示の幅配分」/ `data_schema.md` §5.4（`full_view_pane_widths` / `full_view_window_width`）/
-  `codebase_map.md` の `controllers/pane_layout/`・`pane_width_rules.py`。暫定仕様 16 は v0.5 で凍結。
-  **ウィンドウ幅はリサイズ後 500ms 間引きで保存し、終了時には保存しない**（判定は予約の実行時・自動決定幅は保存しない）。
-  **残件** = ①[idea_21](../backlog/idea_21_full_view_header_width.md)（ヘッダ幅）/ [idea_22](../backlog/idea_22_full_view_min_height.md)（縦方向の最小サイズ）
-  ②完了判定前レビューの保留 3 件と refactor_check の境界観察（本ファイル「別タスク化候補」の Phase 18 項）
+  `codebase_map.md` の `controllers/pane_layout/`・`pane_width_rules.py`・`button_width_rules.py`・`controllers/button_width.py`・`hook_button_texts.py`。暫定仕様 16・17 は凍結。
+  **ウィンドウ最小幅 = max(メイン, ヘッダの要求幅〔ウィンドウ幅換算〕)** / ウィンドウ幅はリサイズ後 500ms 間引きで保存・終了時は保存しない /
+  旧保存値が最小幅未満なら起動時に広げた幅で更新 / フル表示ヘッダの切替ボタンは最大文言幅で固定。
+  **残件** = ①[idea_22](../backlog/idea_22_full_view_min_height.md)（縦方向の最小サイズ）
+  ②「別タスク化候補」の Phase 18 / Phase 19 項（refactor_check の境界観察・レビューの保留）
   ③`tests_ui` 実行時の stderr に既存 `_clear_flash_message` の破棄後 `after` 実行が出る（無害・未対応）。
   その前の領域（モーダルダイアログの作法）の残件は [decisions_archive/17](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md) と
   「別タスク化候補」の Phase 14 / 17 項、[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)。
-- 直前の完了フェーズ: [18_full_view_resizable_panes](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)
+- 直前の完了フェーズ: [19_full_view_header_width](../../.claude_data/state/decisions_archive/19_full_view_header_width.md)
+- その前の完了フェーズ: [18_full_view_resizable_panes](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)
 - その前の完了フェーズ: [17_minimize_grab_custody](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md)
-- その前の完了フェーズ: [16_dialog_transient_parent](../../.claude_data/state/decisions_archive/16_dialog_transient_parent.md)
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
   **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
@@ -45,7 +39,7 @@
 
 ## 次採番
 
-- **phase 18 は 2026-09-17 完了 / phase 19 は 2026-09-17 起票（進行中）**。
+- **phase 19 は 2026-09-17 完了**（decisions 19 はアーカイブ済・次は decisions 20）。
   次フェーズは **`20_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -59,12 +53,13 @@
   14=ネストしたダイアログの前面維持〔**v0.5・凍結**〕/
   15=最小化中の grab 預かり〔**v0.7・凍結**〕/
   16=フル表示メイン領域の幅配分〔**v0.5・凍結**〕/
-  17=フル表示ヘッダの幅〔**v0.3・未凍結・phase 19 の主入力**〕）。
+  17=フル表示ヘッダの幅〔**v0.3・凍結**〕）。
   次採番は **`18_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
-  **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕）・
-  次採番は **`10_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
+  **10 = phase 19 由来・実施済＝phase 19 task_07**）・
+  次採番は **`11_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
@@ -193,6 +188,10 @@
     さらに増えるならウィンドウ幅の保存を同フォルダの別モジュールへ分ける再判定をする
   - 完了判定前レビューの保留 3 件（ドラッグで元の希望幅へ戻したとき最小幅が更新されない場合 / `pane_measure.py` の SequenceBox 構造依存 /
     phase 18 以前の tests_ui が実 config を読む）。判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)
+- **Phase 19（フル表示ヘッダの幅）の `/refactor_check` からの候補送り**（判定は**推奨** → 提案書 10 を task_07 で実施済。提案書へ入れなかった分）:
+  - `KEYBOARD_LAYOUT_COMBO_WIDTH` がボタン文言のモジュール `hook_button_texts.py` に同居（使う側は 2 箇所）
+  - `tests_ui/test_full_view_header_width.py` / `test_header_button_widths.py` は保存予約の遅延を延ばしていない（現状は予約取消で実害なし・揺れたら task_03 と同じ対処）
+  - `controllers/hook_controller.py` の `register_hook_buttons` と `apply_fixed_button_widths` の幅適用 2 行が同型（2 箇所・軽微）
 - **Phase 11（孤児ファイルの棚卸し）の `/refactor_check` からの候補送り**（判定は**推奨** →
   提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)
   は**「計画08」として実施し完了**〔2026-09-08・挙動不変〕。提案書へ入れなかった分）:
