@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [20_full_view_min_height](20_full_view_min_height/phase.md)**（2026-09-17 起票・暫定仕様先行モード。**task_01・task_02 完了 / 次 = task_03**）。
+- **アクティブなフェーズ: [20_full_view_min_height](20_full_view_min_height/phase.md)**（2026-09-17 起票・暫定仕様先行モード。**task_01〜03（+03b）完了 / 次 = task_04**）。
   フル表示ウィンドウに縦方向の最小サイズを設ける（一覧の `height` を 6 / 6 / 9 にし、要求高さを `wm minsize` の高さに。高さは保存しない・省略表示では解除・JSON 不変）。
   主入力 = 暫定仕様 [18_full_view_min_height](../history/18_full_view_min_height.md)（v0.5・ユーザー確定済）/ 起票元 = [idea_22](../backlog/idea_22_full_view_min_height.md)。
   番号対応: phase 20 / 暫定 18 / decisions 20。
