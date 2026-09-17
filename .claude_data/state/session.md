@@ -4,8 +4,8 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-17T16:00:00
-phase: `instructions/phase/18_full_view_resizable_panes`（**task_01〜04・05b・05c・05d 完了**・task_05 は v0.5 分の実機目視待ち・task_06 未着手）。
+last_updated: 2026-09-17T16:30:00
+phase: `instructions/phase/18_full_view_resizable_panes`（**task_01〜05d 完了**・task_06 未着手）。
 主入力 = 暫定仕様 16（**v0.5・ユーザー確定済 2026-09-17**）。番号対応: phase 18 / 暫定 16 / decisions 18。
 起票元 = idea_20。**phase 17 は完了**（`decisions_archive/17_minimize_grab_custody.md`）。
 last_commit_location: `claude/window-size-persistence-check-a9282e`（task_05d はこの後コミット）。
@@ -13,36 +13,23 @@ last_commit_location: `claude/window-size-persistence-check-a9282e`（task_05d �
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 18 task_05d 完了（暫定仕様 16 v0.5 = ウィンドウ幅をリサイズごとに 500ms 間引き保存 / 終了時保存の廃止 / 自動決定幅の無効化 / 保存失敗ダイアログ中のフック停止）。task_05 は v0.5 分の実機目視待ち。**
-mode: pending_review
+focus: **phase 18 task_05 完了（統合確認 + 二次レビュー + 実機目視 v0.5 まで OK）。次は task_06（正本反映・最終）の起票。**
+mode: completed
 
 ## last_action
-ts: 2026-09-17T16:00:00
-who: main
+ts: 2026-09-17T16:30:00
+who: user
 summary: |
-  【task_05c 実機目視】全項目が規定どおり。ただし「幅変更 → 最大化 → 閉じる」で変えた幅が保存されない（最大化前の幅は OS 保持・Tk から取れない）。
-  【暫定仕様 16 v0.5 ユーザー確定】リサイズごとに 500ms 間引いて保存（ユーザー案）/ 終了時保存・ドラッグ時の同時書き込みを廃止（間引き中の取りこぼしは受容）。
-  敵対的レビュー（高 1 / 中 1・裏取り済・両方反映）: `write_startup` の失敗ダイアログ中にフック停止 / 手で幅を変えたら自動決定幅を無効化。修正後の再レビューは省略（ユーザー判断）。decisions.md に記録。
-  【task_05d 完了】`codex-implementer`。メインで `<Destroy>` による予約取消を追加（tests_ui の破棄後 after 実行の stderr 対策）。
-  `reviewer` = 完了可（追加分も採用）。`verifier`: tests 445 OK（skip 7）/ tests_ui 413 OK / smoke OK / config 差分なし。stderr 残り 4 件は既存 `_clear_flash_message`（無関係）。
+  【task_05 完了】ユーザーが v0.5（task_05d）分の実機目視を実施し全項目 OK（最大化して閉じても変えた幅を保持 / 起動時の幅へ戻した幅の保存 / 省略表示の往復で 270 を保存しない）。
+  task_05 に結果と完了記録を追記。task_05d は `9ce8409` でコミット済。
 result_files:
-  - keyseq/presentation/controllers/pane_layout/pane_layout_controller.py / keyseq/presentation/app.py / keyseq/presentation/controllers/config_io/startup_io.py
-  - tests_ui/test_pane_window_width_persistence.py / tests_ui/test_startup_font_characterization.py
-  - instructions/history/16_full_view_resizable_panes.md / phase.md / tasks/task_05d_window_width_resize_save.md
-  - instructions/phase/current.md / .claude_data/state/decisions.md
+  - instructions/phase/18_full_view_resizable_panes/tasks/task_05_integration_check.md / instructions/phase/current.md
 verified:
-  compile: clean
-  tests: 445 ran OK（skipped 7）
-  tests_ui: 413 ran OK
-  smoke: SMOKE OK
-  review: reviewer = 完了可
+  manual: 実機目視 OK（ユーザー）
 
 ## next_action
-- **ユーザーに task_05 の v0.5 分の実機目視を依頼し結果を受け取る**: ①幅を変えて 0.5 秒以上待つ → 最大化 → 閉じる → 再起動で変えた幅で開く
-  ②幅を広げて保存 → 起動時の幅へ戻す → 再起動で起動時の幅 ③省略表示を往復して閉じても 270 が保存されない（config.json の `full_view_window_width` で確認可）。
-  問題なければ task_05 に結果を記録して完了 → `/save_state` + `/task_commit`。
-- 次に `/task_new` で **task_06（正本反映）**: `features.md` §4.6 / `data_schema.md` §5.4（`full_view_pane_widths` と `full_view_window_width`・
-  config.json 作成契機に「ドラッグ離し」「ウィンドウ幅を変えたとき」）/ `key_input.md` §7.2 周辺（保存失敗ダイアログ中の停止は既存規定の適用なので追記要否を判断）/
+- `/task_new` で **task_06（正本反映・最終）** を起票: `features.md` §4.6 / `data_schema.md` §5.4（`full_view_pane_widths` と `full_view_window_width`・
+  config.json 作成契機に「ドラッグ離し」「ウィンドウ幅を変えたとき」）/ `key_input.md` §7.2（保存失敗ダイアログ中の停止は既存規定の適用のため追記要否を判断）/
   `codebase_map.md`（`controllers/pane_layout/` パッケージ）昇格 + 暫定仕様 16 凍結 + `decisions_archive/18_full_view_resizable_panes.md` +
   current.md 完了記載 + idea_20 を `INDEX_done.md` へ + `/refactor_check`。
 - **フェーズ完了判定前に `deep-reviewer` + `codex-adversarial-reviewer` を必ず実施**（ユーザー指示・縮退しない）。

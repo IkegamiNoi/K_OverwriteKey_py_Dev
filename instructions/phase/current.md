@@ -8,7 +8,7 @@
 ## 現在の参照先
 
 - **アクティブなフェーズ: [18_full_view_resizable_panes](18_full_view_resizable_panes/phase.md)**
-  （2026-09-16 起票・**task_01〜04・05b・05c・05d 完了 / task_05 は v0.5 分の実機目視待ち / task_06 未着手**）。**フル表示メイン領域の幅配分と境界線ドラッグ**
+  （2026-09-16 起票・**task_01〜05d 完了 / task_06（正本反映・最終）未着手**）。**フル表示メイン領域の幅配分と境界線ドラッグ**
   （ウィンドウ幅の変更はトリガー一覧が受け、境界線ドラッグで両端の枠幅を変え、その幅を `config.json` に保存・復元）。
   **presentation + 純関数・`config.json` にキー `full_view_pane_widths` を追加（後方互換）**。
   - 主入力（暫定仕様）: [16_full_view_resizable_panes](../history/16_full_view_resizable_panes.md)
