@@ -4,57 +4,49 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-19T13:00:00
-phase: `instructions/phase/22_mouse_drag_action`（**進行中**・暫定仕様先行モード。番号対応 phase 22 / 暫定 19 / decisions 22）。
-主入力 = `instructions/history/19_mouse_drag_action.md`（**v0.5・ユーザー確定済・未凍結 = 条項の根拠に引いてよい**）。
-直前の完了フェーズ = phase 21（判断履歴 = `decisions_archive/21_extended_key_send.md`）。
-last_commit_location: `claude/device-visual-check-44b31a`
+last_updated: 2026-09-19T16:30:00
+phase: **アクティブなフェーズなし**（`instructions/phase/22_mouse_drag_action` は 2026-09-19 完了）。次フェーズは未確定 = **ユーザーに方針確認が要る**。
+直前の完了フェーズ = phase 22（判断履歴 = `decisions_archive/22_mouse_drag_action.md`）。番号対応: phase 22 / 暫定 19〔凍結〕/ decisions 22。次採番 = phase 23 / 暫定 20 / decisions 23。
+last_commit_location: `claude/physical-mouse-behavior-fa5ab6`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 22 task_03 進行中（統合確認 pass・二次レビュー採否済・採用分を task_03b で反映済）。残り = ユーザーの実機目視 9 項目 → 正本昇格と記録。**
-mode: pending_review
+focus: **phase 22（マウスのドラッグ操作）完了。実機目視 9 項目 OK・正本昇格と記録・完了判定前レビュー採否まで完了。次フェーズ未確定。**
+mode: completed
 
 ## last_action
-ts: 2026-09-19T13:00:00
+ts: 2026-09-19T16:30:00
 who: main
 summary: |
-  【task_03】verifier 統合確認: compile clean / tests 478 OK / tests_ui 445 OK / smoke OK / 副作用なし。
-  /refactor_check のメトリクス収集（PHASE_BASE = `0518c93`）= **M1〜M6 閾値超過なし**（判定は「不要」。記載は完了処理で行う）。
-  codex-reviewer = 指摘なし。deep-reviewer = 差分は完了可（フェーズ完了は task_03 残作業のため時期尚早）。
-  ユーザー採否: 指摘 1（永続化テスト）・2（種別往復テスト）・4（NaN）を採用 → task_03b / 指摘 3（ダイアログ伸縮）→ 実機目視に 9 項目目を追加 /
-  残り（click_mouse 側の FAILSAFE 検出力・速度欄の int() 判定・instate ガード・リスナーの TclError）は記録のみ。
-  【task_03b】codex-implementer: `not (speed > 0)` へ 1 行修正 + 永続化テスト + 往復テスト + NaN ケース。
-  verifier: tests 479 OK / tests_ui 446 OK / smoke OK・変異検査 2 種とも狙ったテストのみ失敗し復元確認。reviewer = 採用。
+  【実機目視】ユーザーが 9 項目すべて確認し想定どおり。項目⑦（ドラッグ中に物理マウスを動かす）は
+  **離す位置が指定どおりにならない**が、判定条件は「中断しない」「終了後に離れている」の 2 点のため想定内。
+  この観察を正本 §5.11.5 の既知の制約へ 1 行追記した。
+  【正本昇格】`spec_detail/data_schema.md` に **§5.11「アクション要素」を新設**（5.11.1〜5.11.5）+ §5.1 / §5.2 / §5.6 からの参照・追記。
+  `codebase_map.md` に「マウス操作」節を新設。**暫定仕様 19 を凍結**。
+  【完了判定前レビュー】`codex-adversarial-reviewer` = approve（指摘なし）/ `deep-reviewer` = **修正要（文書のみ）**。
+  ユーザー採否 = 正本の修正 5 件（§5.1 との矛盾・掴む点への移動の欠落・`clicks` の保存値・click 側 x/y のエラー挙動・codebase_map の表記）+
+  §5.11 の経路限定と **idea_24 起票**（個別 sequence 読込が `actions` 正規化を通らない既存の穴）+
+  `button` 非文字列の 1 行修正を「別タスク化候補」へ + `drag_speed` の int/float 差を正本へ明記。記録のみ 4 件。
+  【記録】`integration_result.md` / `decisions_archive/22_mouse_drag_action.md` / `decisions.md` 索引 / `current.md`（完了記載・次採番 23・候補送り）/
+  `phase.md`（task_03b 追記）/ `task_03`（目視 9 項目）。`/refactor_check` = **不要**（M1〜M6 非該当）。
+  task_03 の `reviewer`（記録と正本の整合）= **採用 / 完了可**（指摘なし）。
 result_files:
-  - keyseq/application/action_executor.py / tests/test_action_executor_drag.py / tests/test_domain_config.py / tests_ui/test_action_dialog_drag.py
-  - instructions/phase/22_mouse_drag_action/tasks/task_03_integration_and_close.md・task_03b_review_followups.md
-  - instructions/phase/current.md
+  - instructions/common/spec_detail/data_schema.md / instructions/common/codebase_map.md / instructions/history/19_mouse_drag_action.md
+  - instructions/phase/22_mouse_drag_action/integration_result.md・phase.md・tasks/task_03_integration_and_close.md
+  - instructions/phase/current.md / instructions/backlog/idea_24_sequence_payload_action_normalization.md・INDEX.md
+  - .claude_data/state/decisions_archive/22_mouse_drag_action.md / .claude_data/state/decisions.md
 verified:
-  compile: clean
+  compile: clean（task_03b 時点。本ターンは文書のみでコード変更なし）
   tests: 479 ran OK（skipped 7）
   tests_ui: 446 ran OK
   smoke: SMOKE OK
-  mutation: `_sync_drag_ui` の結線削除 → 往復テストのみ失敗 / NaN 判定を戻す → NaN 2 ケースのみ失敗（いずれも復元確認）
-  review: reviewer（task_03b）= 採用 / deep-reviewer + codex-reviewer = 採否済
-  refactor_check: メトリクス収集済（M1〜M6 該当なし = 判定「不要」。記載は未実施）
+  review: reviewer（task_03 記録整合）= 採用 / deep-reviewer + codex-adversarial-reviewer = 採否済
+  refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `0518c93`）
 
 ## next_action
-- **ユーザーの実機目視を待つ**（9 項目）: ①範囲選択（短距離 50px / 長距離 500px の両方）②ドラッグ&ドロップ
-  ③速度を変えると速さが変わる（100px 超で比較）④既存の単発クリックが従来どおり ⑤5 秒クランプのドラッグ後に停止キー・トグルが効く
-  ⑥離す点が画面の隅でも完了し押しっぱなしにならない ⑦ドラッグ中に物理マウスを隅へ動かしても中断しない・終了後に離れている
-  ⑧ドラッグ以外の (0,0) クリックは FailSafe のエラーになる ⑨ドラッグ ON/OFF でダイアログが伸縮し速度欄と OK が隠れない。
-- 目視 OK なら **task_03 の残り**を実施:
-  ①`instructions/phase/22_mouse_drag_action/integration_result.md` を記録
-  ②**正本昇格** = `spec_detail/data_schema.md` に **§5.11「アクション要素」を新設**（§5.2 / §5.6 から参照。§5.6 の下にぶら下げない）+
-  マウスも例外時に必ず離すこと・**ドラッグ中は FailSafe を無効化する**こと（理由と失うもの）・**マウスは send guard 対象外**を明文化 +
-  `codebase_map.md` へマウス操作の節を追加
-  ③**暫定仕様 19 を凍結**（ヘッダを「凍結（日付・正本反映済）」へ）
-  ④`decisions_archive/22_mouse_drag_action.md` + `decisions.md` 索引 1 行
-  ⑤`current.md` 完了記載（次採番 phase 23 / 暫定 20 / decisions 23）+ **別タスク化候補へ 1 行**
-  （`ActionDialog` の座標取得リスナーはダイアログ破棄後の `after(0, ...)` で TclError になりうる = task_02 以前からの既存挙動）
-  ⑥`/refactor_check` の判定記載（**不要**）⑦完了判定前レビュー（`deep-reviewer` + `codex-adversarial-reviewer`）→ 採否 → コミット。
-- **運用**: verifier に変異検査を頼むときは「`git checkout --` / `git restore` / `git stash` を使わない（ファイルのコピーで退避・復元）」を明示する。
+- **phase 22 の成果をコミットする**（`/task_commit`。文書のみ 11 ファイル。未コミットなら最初にこれ）。
+- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = phase 23 / 暫定 20 / decisions 23）。
+  候補は `instructions/backlog/INDEX.md`（例: idea_23 = キーの押す/離すアクション・idea_24 = sequence 読込の正規化未追従・いずれも優先度低）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
@@ -64,16 +56,13 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **【phase 22 の主入力 = 暫定仕様 19（未凍結・v0.5）】** マウスのドラッグは `mouse_click` に
-  `drag` / `to_x` / `to_y` / `drag_speed`（px/秒・既定 1000）を足す。要点 =
-  ①**所要時間 = 距離 ÷ 速度を 0.15〜5.0 秒へクランプ**（下限が無いと pyautogui が補間せずワープする〔`duration > 0.1` のときだけ補間〕/
-  上限が無いと **UI スレッド**が固まる〔アクションは `app.after(0, ...)` で UI スレッド実行〕）
-  ②**ドラッグ中は `pyautogui.FAILSAFE` を False にし `finally` で必ず復元**（`mouseUp` は解放前に `failSafeCheck` が走るため、
-  **FailSafe 座標 = 画面の四隅**で解放が遮られる）。**`ctypes` は使わない**（pyautogui は OS 別実装を内部で選ぶ = macOS 対応時に分岐を増やさない）
-  ③`dragTo` は使わない（try/finally が無く例外時に押しっぱなしになる）
-  ④**drag OFF では新キーを出力しない**（生成停止。ON→OFF 保存で 4 キーは消えるが既存キーは残る）
-  ⑤`drag` true のとき `clicks` は 1 固定・回数欄は無効化 ⑥正本には **`mouse_click` のスキーマ自体が無い**ので、
-  フェーズ末に `data_schema.md` §5.11「アクション要素」を新設して昇格する。
+- **【phase 22 の成果は正本が正】マウスのドラッグ = `spec_detail/data_schema.md` §5.11「アクション要素」 + `codebase_map.md`「マウス操作」節**。
+  暫定仕様 19 は凍結済で条項の根拠に引かない。要点 = ①`mouse_click` に `drag` / `to_x` / `to_y` / `drag_speed`（px/秒・既定 1000）を追加し
+  **`drag` false では新 4 キーを出力しない**（生成停止）②**所要時間 = 距離 ÷ 速度を 0.15〜5.0 秒へクランプ**（算出は application 層。
+  下限が無いと pyautogui が補間せずワープ / 上限が無いと UI スレッドが固まる）③**ドラッグ中だけ `pyautogui.FAILSAFE` を False にし `finally` で復元**
+  （`mouseUp` の前に FailSafe 判定が走り、離す点が隅だと解放が遮られる）・`dragTo` と `ctypes` は使わない
+  ④**実行中に物理マウスを動かすと離す位置がずれる**（制御しない・§5.11.5）
+  ⑤**既存の穴**: 個別 sequence JSON の単体読込は `actions` の正規化を通らない（§5.11 に【実装未追従】・idea_24）。
 - **【phase 21 の成果は正本が正】キーの送信 = `spec_detail/key_input.md` §7.7 + `codebase_map.md`「キーの送信」節**。暫定仕様なし（直接改訂モード）。
   要点 = ①**拡張キー 18 名は `ctypes` の `keybd_event` + KEYEVENTF_EXTENDEDKEY で送る**（表 = `keyseq/infrastructure/input_gateway.py` の `_EXTENDED_KEYS`。
   `keyboard` ライブラリの `from_name` は同名に拡張 / 非拡張が混在し `windows` が無いので**使わない**）

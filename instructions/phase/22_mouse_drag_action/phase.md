@@ -81,6 +81,8 @@
    FailSafe と send guard の明文化 / `codebase_map.md`）+ **暫定仕様 19 の凍結** +
    `decisions_archive/22_mouse_drag_action.md` + `current.md` 完了記載 + **`/refactor_check`** +
    完了判定前レビュー（`deep-reviewer` + `codex-adversarial-reviewer`）。
+4. **task_03b**（task_03 の二次レビュー採用分）: `drag_speed` の NaN 判定の修正（`not (speed > 0)`）+
+   ドラッグ 4 キーの永続化テスト / 種別切替の往復テスト / NaN ケースの追加。
 
 タスク定義は着手する順に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。
 

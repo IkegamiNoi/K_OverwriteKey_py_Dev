@@ -527,7 +527,22 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   （`keyboard` ライブラリは拡張フラグを付けないため、`shift+right` 等がテンキー扱いになり範囲選択にならない。仕様は `spec_detail/key_input.md` §7.7）。
   名前の正規化は公開 API の `keyboard.normalize_name`（別名 `pgup` / `del` / `apps` / `win` 等）。
 - `send_hotkey`: 要素に拡張キーが無ければ従来どおり `keyboard.send(hotkey)`。含む場合は要素を記述順に押して逆順に離し、途中の例外でも押したキーを逆順に離してから再送出する。
-- text（`keyboard.write`）・マウス（`pyautogui.click`）は対象外。
+- text（`keyboard.write`）・マウス（`pyautogui`）は対象外（マウスは下記「マウス操作」節）。
+
+### マウス操作（infrastructure/input_gateway.py の InputGateway・phase 22）
+
+- 呼び出し元は `ActionExecutor._execute_mouse_click` だけ（`mouse_click` アクション）。**send guard には入らない**
+  （フックはキーボードのみで自己受信しないため。仕様は `spec_detail/data_schema.md` §5.11.2）。
+- `click_mouse`（`pyautogui.click`）= 従来の単発クリック。**FailSafe は従来どおり有効**（触らない）。
+- `drag_mouse` = `moveTo → mouseDown → moveTo(duration) → mouseUp`。`mouseUp` は `finally` に置き、
+  途中で例外が出てもボタンを離す。**実行中だけ `pyautogui.FAILSAFE` を退避して False にし、`finally` で復元する**
+  （離す点が画面の隅だと解放自体が FailSafe に遮られるため。仕様は `data_schema.md` §5.11.4）。
+  `dragTo` は使わない（try/finally が無い）。`ctypes` も使わない（pyautogui が OS 別実装を内部で選ぶため）。
+- **所要時間の算出は application 層**（`action_executor._execute_mouse_drag` が距離 ÷ `drag_speed` を
+  0.15〜5.0 秒へクランプして秒数を渡す）。infrastructure は受け取った秒数で動かすだけ。
+- ドラッグの入力 UI は `dialogs/action_dialog.py`（「ドラッグ」チェックで離す位置 X/Y・取得ボタン・速度欄を
+  `grid_remove` で出し入れし、X/Y ラベルを「掴む位置」へ、回数欄を `disabled` にして保存値を 1 に固定。
+  座標取得は掴む用 / 離す用で排他）。一覧表示の整形は `domain/config.py` の `format_action_list_item`。
 
 ---
 

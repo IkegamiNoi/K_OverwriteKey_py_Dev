@@ -7,12 +7,18 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [22_mouse_drag_action](22_mouse_drag_action/phase.md)**（2026-09-19 起票・**暫定仕様先行モード**。**task_01 / task_02 / task_03b 完了 / task_03〔最終〕進行中 = 実機目視待ち**）。
-  出力シーケンスの `mouse_click` を拡張し、掴む点と離す点の 2 点 + カーソル速度（px/秒・既定 1000）でドラッグ（範囲選択・ドラッグ&ドロップ）を送る。
-  **JSON は既存キー不変で `drag` / `to_x` / `to_y` / `drag_speed` を追加**・種別ドロップダウンは 3 種のまま・**OS 分岐を増やさない**（`pyautogui` のみ・`ctypes` を使わない）。
-  主入力 = [暫定仕様 19](../history/19_mouse_drag_action.md)（**v0.5・ユーザー確定済**）。起票元 = ユーザー要望（2026-09-19）。関連 = [idea_23](../backlog/idea_23_key_press_release_actions.md)（対象外）。
-  番号対応: phase 22 / 暫定 19 / decisions 22。
-- **直近の一連の作業が扱っている領域 = キーの送信（拡張キー）**。
+- **アクティブなフェーズ: なし**（phase 22 は 2026-09-19 完了）。次フェーズ未確定のため、着手前にユーザーへ方針を確認する。
+- **直近の一連の作業が扱っている領域 = マウス操作（ドラッグ）**。
+  正本は `data_schema.md` §5.11「アクション要素」/ `codebase_map.md`「マウス操作（infrastructure/input_gateway.py の InputGateway・phase 22）」節。
+  実装 = `keyseq/infrastructure/input_gateway.py`（`drag_mouse`）/ `keyseq/application/action_executor.py`（`_execute_mouse_drag`）/
+  `keyseq/presentation/dialogs/action_dialog.py`（ドラッグ UI）/ `keyseq/domain/config.py`（表示整形）、
+  テスト = `tests/test_input_gateway_drag.py` / `tests/test_action_executor_drag.py` / `tests_ui/test_action_dialog_drag.py`。
+  **`mouse_click` に `drag` / `to_x` / `to_y` / `drag_speed` を追加**（既存キー不変・`drag` false では新キーを出力しない）/
+  所要時間 = 距離 ÷ 速度を 0.15〜5.0 秒へクランプ（算出は application 層）/ **ドラッグ中だけ pyautogui の FailSafe を無効化し `finally` で復元**。
+  **残件** = ①ドラッグ中は UI スレッドが塞がる（別スレッド化はスコープ外）②ドラッグ中の四隅による緊急停止が効かない
+  ③実行中に物理マウスを動かすと離す位置がずれる（制御しない・§5.11.5）④ホイール / 押す・離すアクションは [idea_23](../backlog/idea_23_key_press_release_actions.md) 未着手。
+  判断は [decisions_archive/22](../../.claude_data/state/decisions_archive/22_mouse_drag_action.md)。
+- **その前の領域（キーの送信・拡張キー）**。
   正本は `key_input.md` §7.7「キーの送信」/ `codebase_map.md`「キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）」節。
   実装 = `keyseq/infrastructure/input_gateway.py`（`_EXTENDED_KEYS` / `send_hotkey` / `press_key` / `release_key`）、テスト = `tests/test_input_gateway_send.py`（10 本）。
   **拡張キー 18 名を `keybd_event` + KEYEVENTF_EXTENDEDKEY で送る** / 拡張キーを含む hotkey だけ自前送信し記述順に押して逆順に離す（例外時も解放）/
@@ -25,9 +31,9 @@
   判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md) / [19](../../.claude_data/state/decisions_archive/19_full_view_header_width.md) / [20](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)。
   その前の領域（モーダルダイアログの作法）の残件は [decisions_archive/17](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md) と
   「別タスク化候補」の Phase 14 / 17 項、[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)。
-- 直前の完了フェーズ: [21_extended_key_send](../../.claude_data/state/decisions_archive/21_extended_key_send.md)
+- 直前の完了フェーズ: [22_mouse_drag_action](../../.claude_data/state/decisions_archive/22_mouse_drag_action.md)
+- その前の完了フェーズ: [21_extended_key_send](../../.claude_data/state/decisions_archive/21_extended_key_send.md)
 - その前の完了フェーズ: [20_full_view_min_height](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)
-- その前の完了フェーズ: [19_full_view_header_width](../../.claude_data/state/decisions_archive/19_full_view_header_width.md)
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
   **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
@@ -46,8 +52,8 @@
 
 ## 次採番
 
-- **phase 21 は 2026-09-19 完了**（decisions 21 はアーカイブ済・decisions 22 は phase 22 で使用中）。
-  **phase 22 = `22_mouse_drag_action` を 2026-09-19 起票**。次フェーズは **`23_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 22 は 2026-09-19 完了**（decisions 22 はアーカイブ済）。
+  次フェーズは **`23_<topic>`**・decisions も **23** を使う（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
@@ -62,7 +68,7 @@
   16=フル表示メイン領域の幅配分〔**v0.5・凍結**〕/
   17=フル表示ヘッダの幅〔**v0.3・凍結**〕/
   18=フル表示の縦方向の最小サイズ〔**v0.5・凍結**〕/
-  **19=マウスのドラッグ操作〔v0.5・ユーザー確定済・未凍結・phase 22 の主入力〕**）。
+  19=マウスのドラッグ操作〔**v0.5・凍結**〕）。
   次採番は **`20_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -210,6 +216,20 @@
     phase 21 の差分外の既存デッドコードのため保留（完了判定前 `deep-reviewer` 指摘 8・ユーザー判断 2026-09-19）
   - 記録のみ 3 件（注入した拡張キーがフックへ届くレース / `alt gr` を意図的に対象外 / canonical に無い OS 由来の名前は非拡張で送られうる〔**未実測の仮説**〕）は
     [decisions_archive/21](../../.claude_data/state/decisions_archive/21_extended_key_send.md)
+- **Phase 22（マウスのドラッグ操作）の `/refactor_check` と完了判定前レビューからの候補送り**（判定は**不要**。M1〜M6 非該当。対象はソース 4 ファイル）:
+  - `presentation/dialogs/action_dialog.py` が **418 行**（+78）で実装目安 300 行を超過（M1 の 600 行には未達）。
+    `ActionDialog.__init__` も **113 行**（既存の巨大関数。本フェーズの変更は 40 行未満のため M2 非該当）。次に増えたら再判定する
+  - `ActionDialog` の座標取得リスナー（`pynput` のデーモンスレッド）は、**ダイアログ破棄後に `after(0, ...)` が走ると `TclError`** になりうる
+    （**task_02 以前からの既存挙動**・task_02 の `reviewer` 参考指摘・task_03 の二次レビューでも記録のみ）
+  - **`button` が非文字列だと `AttributeError`**（`keyseq/application/action_executor.py:119` の
+    `(action.get("button") or "left").strip()` が `try` の外）。正本 §5.11.2 は「文字列で」と限定済で、
+    `str(...)` を挟む 1 行修正は候補送り（完了判定前 `deep-reviewer` 指摘 6・ユーザー判断 2026-09-19）
+  - テスト 2 件（`tests/test_input_gateway_drag.py::test_initial_move_failure_restores` が `mouseUp` の
+    **非呼び出し**を固定していない / ドラッグ 4 キーの**ファイル層での永続化往復**テストが無い）と、
+    `to_x` 欠落時に一覧表示が `(100, 200)→(, )` になる点（実行はエラーになる）
+  - `features.md` §4.2（シーケンス実行）から `data_schema.md` §5.11 への参照が無い（発見性のみ）
+  - 記録のみ 3 件（`click_mouse` 側が `FAILSAFE` に触らないことの検出力 / 速度欄の `int()` 判定が `"1000.5"` を弾く /
+    座標取得の排他が `instate` ガードを持たない）は [decisions_archive/22](../../.claude_data/state/decisions_archive/22_mouse_drag_action.md)
 - **Phase 11（孤児ファイルの棚卸し）の `/refactor_check` からの候補送り**（判定は**推奨** →
   提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)
   は**「計画08」として実施し完了**〔2026-09-08・挙動不変〕。提案書へ入れなかった分）:

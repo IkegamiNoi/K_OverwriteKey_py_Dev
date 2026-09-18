@@ -1,7 +1,9 @@
 # 暫定仕様 19: マウスのドラッグ操作（mouse_drag_action）
 
-> 状態: **未凍結・v0.5・ユーザー確定済・実装着手可・主入力**（確定 2026-09-19）。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結済・v0.5**（2026-09-19・phase 22 完了・正本反映済）。**条項を実装の根拠に引かない**（経緯の参照用）。
+> 正本 = `spec_detail/data_schema.md` §5.11「アクション要素」 / `codebase_map.md`「マウス操作」節。
+> 判断履歴 = [decisions_archive/22_mouse_drag_action.md](../../.claude_data/state/decisions_archive/22_mouse_drag_action.md)。
+> 番号対応: phase 22 / 暫定 19 / decisions 22。
 > 起票元: ユーザー要望（2026-09-19・ドラッグ&ドロップと範囲選択をしたい。既存の `mouse_click` アクションの拡張として）。
 > v0.1 → v0.2: 起票時 `deep-reviewer` の指摘を全件採用（代替 UI 案のみ保留）。**所要時間のクランプを追加**し、
 > pyautogui の補間条件についての誤った前提を訂正した（ユーザー採否 2026-09-19）。
