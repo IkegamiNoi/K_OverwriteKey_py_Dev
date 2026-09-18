@@ -15,17 +15,18 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブ = phase 21 `21_extended_key_send`**・直接改訂モード）
-3. `instructions/phase/21_extended_key_send/phase.md` と `tasks/task_02_integration_and_close.md` を読む（残りは実機目視 → 記録 → 完了処理）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**。次採番 = **phase 22 / decisions 22**）
+3. **次フェーズは未確定**。着手前にユーザーへ方針確認する（候補は `current.md`「次フェーズ候補」/ `instructions/backlog/INDEX.md`）。
+   起票は `/phase_start` → `/task_new`
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜18）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 21 task_02 進行中（統合確認 pass・二次レビュー採否済・採用分を task_02b で反映済）。残り = ユーザーの実機目視 → 記録とフェーズ完了処理。**
-直近コミット: `fc3d1c4`（task_02b）/ `3e43aea`（task_01）/ `9428fea`（phase 21 起票）。**main は phase 18 task_05d まで取り込み済み**
-（phase 18 の残り・phase 19・phase 20・phase 21 はユーザーがマージする）。
+**phase 21 完了（実機目視 7 項目 OK・完了判定前レビュー採否済・記録とフェーズ完了処理まで実施）。次フェーズ未確定。**
+直近コミット: `18aac9d`（task_02 = フェーズ完了処理）/ `d9f68ae`（task_02c）/ `fc3d1c4`（task_02b）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・phase 19・phase 20・phase 21 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +36,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 21 task_02b 時点 = 2026-09-19**）:
-compile **clean** / tests **460 実行 OK**（skip 7）/ tests_ui **438 実行 OK**（task_02b 前・infrastructure のみの変更）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 20 完了 451 → phase 21 task_02b 460）。
+直近の実測（**phase 21 完了時点 = 2026-09-19**）:
+compile **clean** / tests **461 実行 OK**（skip 7）/ tests_ui **438 実行 OK**（task_02b 時点。以降は tests のみの変更）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 20 完了 451 → phase 21 完了 461）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` が生成されていない**ことを確認する。
 
@@ -48,28 +49,32 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **ユーザーの実機目視を待つ**（task_02 定義の 5 項目 + 追加 2 項目）:
-  ①hotkey `shift+right` ×数回 → 範囲選択 → `ctrl+c` ②`ctrl+shift+end` / `ctrl+shift+home` ③キーマップで `right` / `end` に割り当て、**物理 Shift** と併用
-  ④通常キーの hotkey・text・マウスが従来どおり ⑤フックの停止 / トグル・通常トリガーの抑止が従来どおり
-  ⑥**拡張キーを自分のトリガー / キーマップ元 / 停止・トグルキーに割り当てて同じキーを送る**（自己起動・自己停止しないか。今回の変更の新リスク）
-  ⑦`windows` / `menu` / 右 Alt / `num lock` / `print screen` を 1 回ずつ。
-- 目視 OK なら: `instructions/phase/21_extended_key_send/integration_result.md` を記録 → `decisions_archive/21_extended_key_send.md` + `decisions.md` 索引（本体の phase 21 節を移動）→
-  `current.md` 完了記載（次採番 **phase 22 / 暫定 19 / decisions 22**）→ **`/refactor_check`**（PHASE_BASE = `9428fea`）→ 完了判定前レビュー（`deep-reviewer` + `codex-adversarial-reviewer`）→ 採否 → コミット。
-- **運用**: `verifier` に変異検査を頼むときは「**`git checkout --` / `git restore` / `git stash` を使わない**（未コミットの実装ごと巻き戻る。実際に 1 度発生し、差分の再適用で復旧）。ファイルのコピーで退避・復元する」を明示する。
+- **次フェーズは未確定**。着手前にユーザーへ方針確認する。
+- **main へのマージはユーザーが行う**。
+- **運用**: `verifier` に変異検査を頼むときは「**`git checkout --` / `git restore` / `git stash` を使わない**
+  （未コミットの実装ごと巻き戻る。実際に 1 度発生し、差分の再適用で復旧）。ファイルのコピーで退避・復元する」を明示する。
   タスク定義で「直さず報告」とした失敗は、メインが修正する前にユーザーへ報告する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
-## 進行中フェーズ（phase 21 = 拡張キーを拡張キーとして送る）の要点
+## 直前フェーズ（phase 21 = 拡張キーを拡張キーとして送る）の要点
 
-- **正本**: `spec_detail/key_input.md` **§7.7「キーの送信」**（新設・文言はユーザー確定済）+ `codebase_map.md`「キーの送信」節。直接改訂モード（暫定仕様なし）。
-- **原因（実機で確定）**: `keyboard` は `keybd_event` に KEYEVENTF_EXTENDEDKEY を付けない（`_winkeyboard.py` の `_send_event`）。`right` は scan 77 = テンキー 6 と同じ →
+- **正本**: `spec_detail/key_input.md` **§7.7「キーの送信」**（新設）+ `codebase_map.md`「キーの送信」節。直接改訂モード（暫定仕様なし）。
+- **原因（実機で確定）**: `keyboard` は `keybd_event` に KEYEVENTF_EXTENDEDKEY を付けない。`right` は scan 0x4D = テンキー 6 と同じ →
   Shift 併用で範囲選択にならない。**押す / 離すアクションを足しても直らない**（同じ送信経路）。
-- **実装**: `infrastructure/input_gateway.py` に拡張キー表 18 件（名前 → vk / scan）+ `_resolve_extended_key`（`keyboard.normalize_name` で別名解決）+ `_send_extended_event`（`ctypes.windll.user32.keybd_event`）。
-  `press_key` / `release_key` は表に載る名前だけ拡張送信。`send_hotkey` は**拡張キーを含まなければ従来どおり `keyboard.send`**、含む場合は記述順に押し逆順に離す（例外時も押したキーを逆順に離す）。
-- **新しい前提（重要）**: raw `keybd_event` は `keyboard` の `is_replaying` を通らないため、**自分が送った拡張キーがアプリのフックに届く**（防護は send guard 1 枚。挙動は不変の想定・実機⑥で確認）。
-- **テスト**: `tests/test_input_gateway_send.py`（9 本。送信をモックし順序 / vk / scan / 押す・離すを検証。1 本は `ctypes` ごと差し替えてフラグ合成を検証）。
-- **保留（記録のみ）**: 途中失敗で先行キーが実際に出る / `,` 区切りの多段 hotkey（現状アプリの検証で到達不能）/ 離す側の例外が残らない / `requirements.txt` の `keyboard` が非固定。
+- **実装**: `infrastructure/input_gateway.py` の拡張キー表 `_EXTENDED_KEYS` 18 件（名前 → vk / scan）+
+  `_resolve_extended_key`（**公開 API** `keyboard.normalize_name` で別名解決）+ `_send_extended_event`（`ctypes.windll.user32.keybd_event`）。
+  `press_key` / `release_key` は表に載る名前だけ拡張送信。
+  `send_hotkey` は**拡張キーを含まなければ従来どおり `keyboard.send`**、含む場合は記述順に押し逆順に離す（例外時も押した分を逆順に離してから再送出）。
+  `windows` は左・`ctrl` / `alt` / `shift`・テンキーの Enter と `/`・`alt gr` は**対象外**
+  （`alt gr` は欧州系配列で `right alt` と同一物理キーだが意図的に対象外）。
+- **新しい前提（重要）**: raw `keybd_event` は `keyboard` の `is_replaying` を通らないため、**自分が送った拡張キーがアプリのフックに届く**。
+  防護は send guard 1 枚で挙動は不変（実機確認済）だが、**guard の解除タイミングを変える改修時は自己起動しないか再確認する**。
+- **テスト**: `tests/test_input_gateway_send.py`（**10 本**。送信をモックし順序 / vk / scan / 押す・離すを検証。
+  `ctypes` ごと差し替えてフラグ合成を検証する 1 本、拡張キーが先頭 / 2 個のときの順序を固定する 1 本を含む）。
+- **保留・記録のみ**: 途中失敗で先行キーが実際に出る / `,` 区切りの多段 hotkey（現状アプリの検証で到達不能）/ 離す側の例外の優先順 /
+  `requirements.txt` の `keyboard` が非固定 / canonical に無い OS 由来の名前は非拡張で送られうる（未実測の仮説）/
+  `register_key_hook` のデッドコード（`current.md`「別タスク化候補」）。
 - **関連 idea**: [idea_23](../../instructions/backlog/idea_23_key_press_release_actions.md)（押す / 離すアクション・未着手・優先度低）。
 
 ## 運用インフラ
@@ -84,10 +89,12 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **【罠】Bash ツールで `python3` / `python` を呼ばない**（Windows ストア版スタブが stdin 待ちでハングし、同じコマンド内の後続も実行されない）。
   スクリプトを直接走らせるときは `PYTHONPATH=.` を付ける。
 - **【裏取り】レビュー・調査・サブエージェントの「コードがこうなっている」という主張、および自分の実測は、
-  採用前に `ファイルパス:行` / 状態を確認する**（phase 20・21 とも、指摘の再現をメインがスクリプトで実測してから採否を聞いた）。
+  採用前に `ファイルパス:行` / 状態を確認する**（phase 20・21 とも、指摘の再現をメインが実測してから採否を聞いた）。
 - **【傾向・実証済み】reviewer が「採用」でも敵対的 / 上位レビューで指摘が出る**。
   **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**。
   `codex-reviewer`（標準 review）は focus text を受け付けないので、観点を渡すなら `codex-adversarial-reviewer`。
+- **【傾向・phase 21】テストの「検出力」は変異検査で確かめる**（フラグを外す / 押下順を入れ替えると**追加テストだけ**落ちるか）。
+  レビューで 2 度とも「既存テストは変異で落ちない」と指摘された。
 - **【Codex 運用】フォワーダが切れても Codex ワーカーは生き続ける**（判別は作業ツリーの更新時刻）。
   **書き換え途中で `verifier` / `reviewer` を回さない**。`taskkill /T` を使わない。**Codex 申告のテスト結果は信用せず実測**。
 - **【運用・重要】委任の実行中はメイン側でコードを編集しない**（文書のみ・対象ファイルが重ならない場合は可）。
@@ -104,11 +111,12 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   を他テストから持ち越す。**前後の変化で assert し、`addCleanup` で必ず元へ戻す**。新規テストは `patch.object` を優先。
 - **【罠】App に View の部品を属性で生やさない**（phase 01 で解消済）。
 - **【罠】worktree と main は別コピー**。main 側の絶対パスを編集すると commit から漏れる。
-- **【罠】Bash ツールは Git Bash**。長い heredoc は壊れやすい（その場合は Write ツール）。**sed の区切りに `#` を使うとパターン中の `##` で壊れる**。
-  複数行のコミットメッセージは `git commit -F -` + 短い heredoc。**`git grep` は追跡済みのみ検索**。
+- **【罠】Bash ツールは Git Bash**。長い heredoc は壊れやすい（**壊れたら Write ツールを使う**。phase 21 の handoff 再生成で再発）。
+  **sed の区切りに `#` を使うとパターン中の `##` で壊れる**。複数行のコミットメッセージは `git commit -F -` + 短い heredoc。
+  **`git grep` は追跡済みのみ検索**。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   併用は `.claude/rules/agent_selection.md` のレビュー表が正。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 20_full_view_min_height / 19_full_view_header_width / 18_full_view_resizable_panes）。
+  （直近 3 件: 21_extended_key_send / 20_full_view_min_height / 19_full_view_header_width）。
 - 未着手/保留 idea: **idea_23**（押す / 離すアクション）/ **idea_18**（Escape 配送依存テストの不安定）/ idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
