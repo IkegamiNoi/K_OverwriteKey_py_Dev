@@ -30,6 +30,7 @@
 | 18_full_view_resizable_panes | [18_full_view_resizable_panes.md](decisions_archive/18_full_view_resizable_panes.md) | フル表示メイン領域の幅配分と境界線ドラッグ（2026-09-17 完了・**presentation + 純関数・config.json にキー 2 つ追加〔後方互換〕**）。ウィンドウ幅はトリガー一覧が受け、`PanedWindow` の境界線ドラッグ（個別バインドで押し出し防止・中ボタン無効・移動の間引き）で両端を変える。**希望幅と表示幅を分離** / 最終値の一括適用 / **ウィンドウ幅はリサイズごとに 500ms 間引き保存・終了時は保存しない**（v0.5・ユーザー案）/ 自動決定幅は保存しない・手で変えたら無効化 / `write_startup` 失敗表示中のフック停止。暫定 16 は v0.5 で凍結。refactor_check: 不要 |
 | 19_full_view_header_width | [19_full_view_header_width.md](decisions_archive/19_full_view_header_width.md) | フル表示ヘッダの幅をウィンドウ最小幅に含める（2026-09-17 完了・**presentation 限定・JSON の形は不変**）。ウィンドウ最小幅 = max(メイン, ヘッダ)・配置は変えない（案 A）/ 縮小目標 max(画面幅, ヘッダ) / ドラッグ後の最小幅は縮小規則を通さない / フル表示ヘッダの切替ボタン 4 つを最大文言幅で固定（省略表示は固定しない）/ ドロップダウン 12 / 旧保存値が最小幅未満なら起動時に広げた幅で保存値を更新（ユーザー選択）。暫定 17 は v0.3 で凍結。refactor_check: **推奨**（M3）→ 提案書 10 を task_07 で実施済 |
 | 20_full_view_min_height | [20_full_view_min_height.md](decisions_archive/20_full_view_min_height.md) | フル表示ウィンドウの縦方向の最小サイズ（2026-09-18 完了・**presentation 限定・JSON 不変**）。一覧の height を 6 / 6 / 9 にし最小の高さ = 要求高さ（案 A）/ 一時メッセージは 1 行分で測る / フル表示へ戻るときは表示更新後に測る / 自動で広げた高さは最小が下がっても縮めない / 高さは保存しない・省略表示で解除・画面超過ははみ出し受容。暫定 18 は v0.5 で凍結。refactor_check: 不要 |
+| 21_extended_key_send | [21_extended_key_send.md](decisions_archive/21_extended_key_send.md) | 拡張キーを拡張キーとして送る（2026-09-19 完了・**infrastructure 限定・hotkey の書式 / JSON 不変**・直接改訂モード）。原因 = `keyboard` が KEYEVENTF_EXTENDEDKEY を付けない（実機確定）/ 対象 = 拡張キー全般 18 名・hotkey とキーマップ送信の両方 / 表はアプリ側（`_EXTENDED_KEYS`）・拡張キーを含む hotkey だけ自前送信 / 記述順に押し逆順に離す・例外時も解放 / `windows` は左・`ctrl`/`alt`/`shift`・テンキー Enter・`/`・`alt gr` は従来どおり / 正規化は公開 `keyboard.normalize_name`。正本 = `key_input.md` §7.7（新設）。実機目視 7 項目 OK。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -535,26 +536,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   （`_check_import_nodes` → **単数形へ改名** / `prefix` の毎ノード再計算を
   **モジュール定数 `_PACKAGE_PREFIX`** へ）。残る 1 件（分割後の関数が 30 行目安をわずかに超える）は
   **提案書が想定した分割形**のため据え置き。
-
-
----
-
-## 2026-09-18 (phase 21: 拡張キーを拡張キーとして送る・直接改訂モード)
-
-### 【起票】原因の確定と方針（ユーザー 2026-09-18）
-- 症状: hotkey `shift+right` / `ctrl+shift+end` → `ctrl+c` で範囲選択にならない。ユーザー案 = 押す / 離すアクションの追加。
-- 調査: `keyboard._winkeyboard._send_event` が `keybd_event` に KEYEVENTF_EXTENDEDKEY を付けない（`right` = scan 77 = テンキー 6 と同じ）。
-  検証スクリプト（メモ帳）で A `keyboard.send("shift+right")` = 選択されず / B 拡張キーフラグ付き = 選択 → **原因確定**。押す / 離すアクションでは直らない（同じ送信経路のため）。
-- 判断: 拡張キー対応を phase 21 で実施 / 押す / 離すアクションは **idea_23** へ起票（優先度低）。
-- 対象 = **拡張キー全般**（推奨の移動キー 10 個ではなくユーザー選択）/ 適用 = hotkey とキーマップ送信の両方 / **直接改訂モード**（`key_input.md` §7.7 の文言を確定・phase.md に記載）。
-- 拡張キーの判定はアプリ側の表（ライブラリの `from_name` は同名に拡張 / 非拡張が混在し `windows` が無い = メイン実測）。
-
-### 【task_02】二次レビューの採否（ユーザー 2026-09-19）
-- 統合確認: compile clean / `tests` 459 OK / `tests_ui` 438 OK / smoke OK。`codex-reviewer` = 指摘なし。`deep-reviewer` = 完了可（条件付き）。
-- 採用 → **task_02b**: 指摘 1（拡張キーフラグを検証するテストが無く、フラグを外しても 8 本とも通る）/ 指摘 8a（非公開 `keyboard._canonical_names` → 公開 `keyboard.normalize_name`。0.13.5 で公開＝メイン実測）。
-  変異検査でフラグを外すと追加テストのみ失敗を確認。
-- 採用 → 実機目視に 2 項目追加: ⑥拡張キーをトリガー / キーマップ元 / 停止・トグルキーに割り当てた状態で同じキーを送る（自己起動・自己停止しないか）⑦`windows` / `menu` / 右 Alt / `num lock` / `print screen` を 1 回ずつ送る。
-- **記録のみ（保留）**: ①送信の途中で失敗すると先行キーが実際に OS へ出る（`keyboard.send` は全解決後に送るため差がある。検証を先に通るので確率は低い）
-  ②`,` 区切りの多段 hotkey は現状アプリの検証で弾かれるため到達不能（将来許すなら `split("+")` の分岐を見直す）
-  ③離す側の例外は最初の例外を優先して握られる ④`requirements.txt` の `keyboard` はバージョン非固定。
-- **新しい前提（重要）**: 拡張キーは raw `keybd_event` で送るため `keyboard` の `is_replaying` による素通しが効かず、**自分が送った拡張キーがアプリのフックに届く**（現状は send guard が先に素通しにするので挙動は不変。実機項目⑥で確認）。

@@ -4,38 +4,41 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-19T02:00:00
-phase: `instructions/phase/21_extended_key_send`（**進行中**・直接改訂モード。番号対応 phase 21 / 暫定なし / decisions 21）。
-直前の完了フェーズ = phase 20（判断履歴 = `decisions_archive/20_full_view_min_height.md`）。
-last_commit_location: `claude/idea-22-26db57`（task_02b はこの後コミット）。
+last_updated: 2026-09-19T05:00:00
+phase: **アクティブなし**（phase 21 `21_extended_key_send` は**完了**。判断履歴 = `decisions_archive/21_extended_key_send.md`）。
+次フェーズは **`22_<topic>`** / decisions 22（`instructions/phase/current.md` が正）。**次フェーズ未確定 = 着手前にユーザーへ方針確認**。
+last_commit_location: `claude/device-visual-check-44b31a`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 21 task_02 進行中（統合確認 pass・二次レビュー採否済・採用分を task_02b で反映済）。残り = ユーザーの実機目視 → 記録とフェーズ完了処理。**
-mode: pending_review
+focus: **phase 21 完了（実機目視 7 項目 OK・完了判定前レビュー採否済・記録とフェーズ完了処理まで実施）。次フェーズ未確定。**
+mode: idle
 
 ## last_action
-ts: 2026-09-19T02:00:00
+ts: 2026-09-19T05:00:00
 who: main
 summary: |
-  【task_02】verifier 統合確認: compile clean / tests 459 OK / tests_ui 438 OK / smoke OK。codex-reviewer = 指摘なし。
-  deep-reviewer = 完了可（条件付き）→ ユーザー採否: 指摘 1・8a 採用（task_02b）/ 実機項目 2 つ追加 / 保留 4 件は記録のみ。decisions.md に記録。
-  【task_02b】codex-implementer: 非公開 import → `keyboard.normalize_name` / 拡張キーフラグを検証するテスト 1 本追加（メインが既存テストの patch 対象を 1 行追従）。
-  verifier: 9/9 OK・tests 460 OK・smoke OK・変異検査でフラグを外すと追加テストのみ失敗。reviewer = 採用。
+  【task_02】ユーザー実機目視 7 項目すべて OK。完了判定前レビュー: codex-adversarial-reviewer = 指摘なし / deep-reviewer = 条件付き完了可（条件 = 完了処理）。
+  ユーザー採否: 指摘 4 採用（task_02c）/ 指摘 2・7 の文書修正採用 / 指摘 3・5・6 は記録のみ / 指摘 8 は別タスク化候補 / 指摘 9 除外。
+  【task_02c】codex-implementer: 拡張キーが先頭（`right ctrl+c`）・拡張キー 2 個（`right ctrl+insert`）の押す順 / 離す順テストを 1 本追加（production 変更なし）。
+  verifier: 10/10 OK・tests 461 OK・smoke OK・変異検査（押下順を通常キー先へ入替）で追加テストのみ失敗 → 復元確認。reviewer = 採用。
+  【完了処理】/refactor_check = 不要（M1〜M6 非該当・1 ファイル）。integration_result.md / decisions_archive/21 / decisions.md 索引 / current.md 完了記載 / codebase_map.md と phase.md の修正。
 result_files:
-  - keyseq/infrastructure/input_gateway.py / tests/test_input_gateway_send.py
-  - instructions/phase/21_extended_key_send/tasks/task_02_integration_and_close.md・task_02b_guard_extended_flag.md
-  - .claude_data/state/decisions.md / .claude_data/state/session.md
+  - tests/test_input_gateway_send.py（10 本）/ instructions/phase/21_extended_key_send/tasks/task_02c_order_with_leading_extended.md
+  - instructions/phase/21_extended_key_send/integration_result.md・phase.md / instructions/common/codebase_map.md
+  - instructions/phase/current.md / .claude_data/state/decisions.md / decisions_archive/21_extended_key_send.md / session.md
 verified:
   compile: clean
-  tests: 460 ran OK（skipped 7）
-  tests_ui: 438 ran OK（task_02b 前。infrastructure のみの変更）
+  tests: 461 ran OK（skipped 7）
+  tests_ui: 438 ran OK（task_02b 時点。以降は tests のみの変更）
   smoke: SMOKE OK
-  review: reviewer（task_02b）= 採用 / deep-reviewer + codex-reviewer = 採否済
+  mutation: 押下順を入替 → `test_order_with_leading_extended` のみ FAIL・復元後に差分なし
+  review: reviewer（task_02c）= 採用 / deep-reviewer + codex-adversarial-reviewer = 採否済
+  manual: 実機目視 7 項目 OK（ユーザー）
 
 ## next_action
-- **ユーザーの実機目視を待つ**（task_02 定義の 5 項目 + 追加 2 項目。範囲選択とコピー / キーマップ経由 / 通常キーと text・マウス / フックの停止・トグル / 拡張キーを自分のトリガーに割り当てたときの自己起動 / windows・menu・右 Alt・num lock・print screen）。
-- 目視 OK なら `instructions/phase/21_extended_key_send/integration_result.md` を記録 → `decisions_archive/21_extended_key_send.md` + decisions.md 索引 → current.md 完了記載（次採番 phase 22 / decisions 22）→ `/refactor_check`（PHASE_BASE = `9428fea`）→ 完了判定前レビュー（deep-reviewer + codex-adversarial）→ 採否 → コミット。
+- **次フェーズは未確定**。着手前にユーザーへ方針確認する（候補は `instructions/phase/current.md`「次フェーズ候補」/ `instructions/backlog/INDEX.md`）。
+- **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済。phase 18 の残り・19・20・21 は未マージ）。
 - **運用**: verifier に変異検査を頼むときは「`git checkout --` / `git restore` / `git stash` を使わない（ファイルのコピーで退避・復元）」を明示する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
@@ -45,6 +48,14 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 21 の成果は正本が正】キーの送信 = `spec_detail/key_input.md` §7.7 + `codebase_map.md`「キーの送信」節**。暫定仕様なし（直接改訂モード）。
+  要点 = ①**拡張キー 18 名は `ctypes` の `keybd_event` + KEYEVENTF_EXTENDEDKEY で送る**（表 = `keyseq/infrastructure/input_gateway.py` の `_EXTENDED_KEYS`。
+  `keyboard` ライブラリの `from_name` は同名に拡張 / 非拡張が混在し `windows` が無いので**使わない**）
+  ②**拡張キーを含む hotkey だけ自前送信**（含まなければ従来どおり `keyboard.send`）・記述順に押し逆順に離す・例外時も押した分を逆順に離してから再送出
+  ③`windows` は左・`ctrl` / `alt` / `shift`・テンキーの Enter と `/`・`alt gr` は**対象外**（`alt gr` は欧州系配列で `right alt` と同一物理キーだが**意図的に**対象外）
+  ④正規化は**公開 API** `keyboard.normalize_name`（非公開 `keyboard._canonical_names` を直 import しない）
+  ⑤**【新しい前提】注入した拡張キーは `keyboard` の `is_replaying` が効かず自アプリのフックに届く**。
+  現状は send guard が先に素通しにするので挙動は不変（実機確認済）だが、**guard の解除タイミングを変える改修時は自己起動しないか再確認する**。
 - **【phase 20 の成果は正本が正】最小の高さ = `features.md` §4.6「最小の高さ」項 + `codebase_map.md`**。暫定仕様 18 は凍結済。最小の高さ = `paneconfigure` 後の要求高さ（`tk.PanedWindow` の要求高さは paneconfigure まで古い）。
   tests_ui で最小の高さを触るテストは `pane_layout.window_min_height` も退避・復元する（手本 `tests_ui/test_full_view_min_height.py`）。
 - **【phase 19 の成果は正本が正】ヘッダ幅 = `features.md` §4.6「フル表示の幅配分」（「ヘッダの要求幅」はウィンドウ幅換算）+ `codebase_map.md`**。暫定仕様 17 は凍結済。

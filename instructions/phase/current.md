@@ -7,23 +7,23 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [21_extended_key_send](21_extended_key_send/phase.md)**（2026-09-18 起票・直接改訂モード。**task_01 完了 / 次 = task_02**）。
-  hotkey アクション・キーマップの送信で、矢印・Home・End 等の Windows 拡張キーを拡張キーとして送る（範囲選択が効かない不具合の修正。原因は keyboard ライブラリが拡張キーフラグを付けないことと実機で確定）。
-  infrastructure 限定・hotkey の書式 / JSON 不変。正本 = `key_input.md` §7.7（新設・文言はユーザー確定済・phase.md に記載）。関連 = [idea_23](../backlog/idea_23_key_press_release_actions.md)（押す / 離すアクション・対象外）。
-  番号対応: phase 21 / 暫定なし / decisions 21。
-- **直近の一連の作業が扱っている領域 = フル表示のウィンドウサイズ（幅配分・境界線ドラッグ・幅の保存と復元・ヘッダの幅・縦方向の最小サイズ）**。
-  正本は `features.md` §4.6「フル表示の幅配分」/ `data_schema.md` §5.4（`full_view_pane_widths` / `full_view_window_width`）/
-  `codebase_map.md` の `controllers/pane_layout/`・`pane_width_rules.py`・`button_width_rules.py`・`controllers/button_width.py`・`hook_button_texts.py`。暫定仕様 16・17・18 は凍結。
-  **ウィンドウ最小幅 = max(メイン, ヘッダの要求幅〔ウィンドウ幅換算〕)** / ウィンドウ幅はリサイズ後 500ms 間引きで保存・終了時は保存しない /
-  旧保存値が最小幅未満なら起動時に広げた幅で更新 / フル表示ヘッダの切替ボタンは最大文言幅で固定 /
-  **最小の高さ = 一覧 6 / 6 / 9 行でのウィンドウ要求高さ（一時メッセージは 1 行分）・自動で広げた高さは縮めない・高さは保存しない**。
-  **残件** = ①「別タスク化候補」の Phase 18 / 19 / 20 項（refactor_check の境界観察・レビューの保留）
-  ②`tests_ui` 実行時の stderr に既存 `_clear_flash_message` の破棄後 `after` 実行が出る（無害・未対応）。
+- **アクティブなフェーズ: なし**（phase 21 は 2026-09-19 完了）。**次フェーズ未確定** = 着手前にユーザーへ方針確認する。
+- **直近の一連の作業が扱っている領域 = キーの送信（拡張キー）**。
+  正本は `key_input.md` §7.7「キーの送信」/ `codebase_map.md`「キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）」節。
+  実装 = `keyseq/infrastructure/input_gateway.py`（`_EXTENDED_KEYS` / `send_hotkey` / `press_key` / `release_key`）、テスト = `tests/test_input_gateway_send.py`（10 本）。
+  **拡張キー 18 名を `keybd_event` + KEYEVENTF_EXTENDEDKEY で送る** / 拡張キーを含む hotkey だけ自前送信し記述順に押して逆順に離す（例外時も解放）/
+  `windows` は左・`ctrl` / `alt` / `shift`・テンキーの Enter と `/`・`alt gr` は従来どおり / 名前の正規化は公開 `keyboard.normalize_name`。
+  **残件** = ①注入した拡張キーがアプリのフックに届く（send guard 解除との順序は観測であり保証ではない。guard の解除タイミングを変える改修時は再確認）
+  ②`alt gr` は欧州系配列で `right alt` と同一物理キーだが意図的に対象外 ③押す / 離すアクション = [idea_23](../backlog/idea_23_key_press_release_actions.md) 未着手
+  ④送信の途中で失敗すると先行キーが実際に OS へ出る。判断は [decisions_archive/21](../../.claude_data/state/decisions_archive/21_extended_key_send.md)。
+- **その前の領域（フル表示のウィンドウサイズ）**: 正本は `features.md` §4.6「フル表示の幅配分」/ `data_schema.md` §5.4 / `codebase_map.md` の `controllers/pane_layout/` 周辺。
+  残件 = ①「別タスク化候補」の Phase 18 / 19 / 20 項 ②`tests_ui` 実行時の stderr に既存 `_clear_flash_message` の破棄後 `after` 実行が出る（無害・未対応）。
+  判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md) / [19](../../.claude_data/state/decisions_archive/19_full_view_header_width.md) / [20](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)。
   その前の領域（モーダルダイアログの作法）の残件は [decisions_archive/17](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md) と
   「別タスク化候補」の Phase 14 / 17 項、[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)。
-- 直前の完了フェーズ: [20_full_view_min_height](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)
+- 直前の完了フェーズ: [21_extended_key_send](../../.claude_data/state/decisions_archive/21_extended_key_send.md)
+- その前の完了フェーズ: [20_full_view_min_height](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)
 - その前の完了フェーズ: [19_full_view_header_width](../../.claude_data/state/decisions_archive/19_full_view_header_width.md)
-- その前の完了フェーズ: [18_full_view_resizable_panes](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
   **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
@@ -42,8 +42,8 @@
 
 ## 次採番
 
-- **phase 20 は 2026-09-18 完了**（decisions 20 はアーカイブ済・次は decisions 21）。
-  **phase 21 = `21_extended_key_send` を 2026-09-18 起票**。次フェーズは **`22_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 21 は 2026-09-19 完了**（decisions 21 はアーカイブ済・次は decisions 22）。
+  次フェーズは **`22_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
@@ -199,6 +199,12 @@
 - **Phase 20（フル表示の縦方向の最小サイズ）の `/refactor_check` と完了判定前レビューからの候補送り**（判定は**不要**）:
   - Phase 18 の再判定条件（`pane_layout_controller.py` が増えたらウィンドウ幅の保存を分ける）: 256 → 約 280 行。高さの処理は `apply_layout` 内の数行と属性 1 つで独立したまとまりではないため**分割不要と再判定**。次にまとまりが増えたら再判定する
   - 保留: 一時メッセージのラベルを App 属性で直接参照する案（phase 01 の「生やし」解消と衝突）。判断は [decisions_archive/20](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)
+- **Phase 21（拡張キーを拡張キーとして送る）の `/refactor_check` と完了判定前レビューからの候補送り**（判定は**不要**。M1〜M6 非該当。対象は `keyseq/infrastructure/input_gateway.py` 1 ファイル）:
+  - `press_key` / `release_key` の「拡張キー判定 → 分岐」が同型（**2 箇所**。M3 の 3 箇所目が出たらヘルパ抽出を再判定する）
+  - `InputGateway.register_key_hook`（`input_gateway.py:58-75`）に**呼び出し元が無い**（`hook_coordinator.py` は `register_global_hook` のみ）。
+    phase 21 の差分外の既存デッドコードのため保留（完了判定前 `deep-reviewer` 指摘 8・ユーザー判断 2026-09-19）
+  - 記録のみ 3 件（注入した拡張キーがフックへ届くレース / `alt gr` を意図的に対象外 / canonical に無い OS 由来の名前は非拡張で送られうる〔**未実測の仮説**〕）は
+    [decisions_archive/21](../../.claude_data/state/decisions_archive/21_extended_key_send.md)
 - **Phase 11（孤児ファイルの棚卸し）の `/refactor_check` からの候補送り**（判定は**推奨** →
   提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)
   は**「計画08」として実施し完了**〔2026-09-08・挙動不変〕。提案書へ入れなかった分）:

@@ -71,6 +71,9 @@ hotkey アクションで `shift+right` / `ctrl+shift+end` 等を送っても範
    （メモ帳等で hotkey `shift+right`・`ctrl+shift+end` → `ctrl+c` の範囲選択とコピー / キーマップで別のキーを `right` 等へ割り当てて物理 Shift と併用 / 通常キーの hotkey・text が従来どおり）+
    `decisions_archive/21_extended_key_send.md` + `current.md` 完了記載 + **`/refactor_check`** + 完了判定前レビュー（`deep-reviewer` + `codex-adversarial-reviewer`）。
 
+3. **task_02b**（枝番）: task_02 の二次レビュー採用分（拡張キーフラグを守るテストの追加 / 公開 `keyboard.normalize_name` への切替）。
+4. **task_02c**（枝番）: 完了判定前レビュー採用分（拡張キーが先頭 / 拡張キー 2 個の押す順・離す順テストの追加）。
+
 タスク定義は着手する順に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。
 
 ## レビュー方針
