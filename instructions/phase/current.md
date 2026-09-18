@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [22_mouse_drag_action](22_mouse_drag_action/phase.md)**（2026-09-19 起票・**暫定仕様先行モード**。**task_01 / task_02 完了 / 次 = task_03（最終）**）。
+- **アクティブなフェーズ: [22_mouse_drag_action](22_mouse_drag_action/phase.md)**（2026-09-19 起票・**暫定仕様先行モード**。**task_01 / task_02 / task_03b 完了 / task_03〔最終〕進行中 = 実機目視待ち**）。
   出力シーケンスの `mouse_click` を拡張し、掴む点と離す点の 2 点 + カーソル速度（px/秒・既定 1000）でドラッグ（範囲選択・ドラッグ&ドロップ）を送る。
   **JSON は既存キー不変で `drag` / `to_x` / `to_y` / `drag_speed` を追加**・種別ドロップダウンは 3 種のまま・**OS 分岐を増やさない**（`pyautogui` のみ・`ctypes` を使わない）。
   主入力 = [暫定仕様 19](../history/19_mouse_drag_action.md)（**v0.5・ユーザー確定済**）。起票元 = ユーザー要望（2026-09-19）。関連 = [idea_23](../backlog/idea_23_key_press_release_actions.md)（対象外）。

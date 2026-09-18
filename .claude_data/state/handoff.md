@@ -15,18 +15,18 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**。次採番 = **phase 22 / decisions 22**）
-3. **次フェーズは未確定**。着手前にユーザーへ方針確認する（候補は `current.md`「次フェーズ候補」/ `instructions/backlog/INDEX.md`）。
-   起票は `/phase_start` → `/task_new`
+2. `instructions/phase/current.md` を読む（**アクティブ = phase 22 `22_mouse_drag_action`**・暫定仕様先行モード）
+3. `instructions/history/19_mouse_drag_action.md`（**主入力・v0.5 確定済・未凍結**）と
+   `instructions/phase/22_mouse_drag_action/tasks/task_03_integration_and_close.md` を読む（残りは実機目視 → 正本昇格 → 記録）
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜18）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 21 完了（実機目視 7 項目 OK・完了判定前レビュー採否済・記録とフェーズ完了処理まで実施）。次フェーズ未確定。**
-直近コミット: `18aac9d`（task_02 = フェーズ完了処理）/ `d9f68ae`（task_02c）/ `fc3d1c4`（task_02b）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・phase 19・phase 20・phase 21 はユーザーがマージする）。
+**phase 22 task_03 進行中（統合確認 pass・二次レビュー採否済・採用分を task_03b で反映済）。残り = ユーザーの実機目視 9 項目 → 正本昇格と記録。**
+直近コミット: `88ee969`（task_03b）/ `9f22e3c`（task_02）/ `bae9cd8`（task_01）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜22 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -36,9 +36,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 21 完了時点 = 2026-09-19**）:
-compile **clean** / tests **461 実行 OK**（skip 7）/ tests_ui **438 実行 OK**（task_02b 時点。以降は tests のみの変更）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 20 完了 451 → phase 21 完了 461）。
+直近の実測（**phase 22 task_03b 時点 = 2026-09-19**）:
+compile **clean** / tests **479 実行 OK**（skip 7）/ tests_ui **446 実行 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 21 完了 461 → phase 22 task_03b 479 / tests_ui: 438 → 446）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` が生成されていない**ことを確認する。
 
@@ -49,33 +49,41 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **次フェーズは未確定**。着手前にユーザーへ方針確認する。
-- **main へのマージはユーザーが行う**。
-- **運用**: `verifier` に変異検査を頼むときは「**`git checkout --` / `git restore` / `git stash` を使わない**
-  （未コミットの実装ごと巻き戻る。実際に 1 度発生し、差分の再適用で復旧）。ファイルのコピーで退避・復元する」を明示する。
-  タスク定義で「直さず報告」とした失敗は、メインが修正する前にユーザーへ報告する。
+- **ユーザーの実機目視を待つ（9 項目）**: ①範囲選択（**短距離 50px / 長距離 500px の両方**）②ドラッグ&ドロップ
+  ③速度を変えると速さが変わる（**100px 超で比較**。短いと下限に張り付く）④既存の単発クリックが従来どおり
+  ⑤5 秒クランプのドラッグ後に停止キー・トグルが効く ⑥**離す点が画面の隅**でも完了し押しっぱなしにならない
+  ⑦ドラッグ中に**物理マウスを隅へ動かしても中断しない**・終了後に離れている ⑧ドラッグ**以外**の (0,0) クリックは FailSafe のエラーになる
+  ⑨ドラッグ ON/OFF で**ダイアログが伸縮**し速度欄と OK が隠れない。
+- 目視 OK なら **task_03 の残り**: ①`integration_result.md` を記録
+  ②**正本昇格** = `spec_detail/data_schema.md` に **§5.11「アクション要素」を新設**（§5.2 / §5.6 から参照。**§5.6 の下にぶら下げない**）+
+  マウスも例外時に必ず離すこと・**ドラッグ中は FailSafe を無効化する**こと（理由と失うもの）・**マウスは send guard 対象外**を明文化 +
+  `codebase_map.md` へマウス操作の節を追加 ③**暫定仕様 19 を凍結** ④`decisions_archive/22_mouse_drag_action.md` + `decisions.md` 索引
+  ⑤`current.md` 完了記載（次採番 **phase 23 / 暫定 20 / decisions 23**）+ 別タスク化候補へ 1 行
+  ⑥`/refactor_check` の判定記載（**不要** = メトリクス収集済・M1〜M6 該当なし）⑦完了判定前レビュー
+  （`deep-reviewer` + `codex-adversarial-reviewer`）→ 採否 → コミット。
+- **運用**: `verifier` に変異検査を頼むときは「**`git checkout --` / `git restore` / `git stash` を使わない**（未コミットの実装ごと巻き戻る）。
+  ファイルのコピーで退避・復元する」を明示する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
-## 直前フェーズ（phase 21 = 拡張キーを拡張キーとして送る）の要点
+## 進行中フェーズ（phase 22 = マウスのドラッグ操作）の要点
 
-- **正本**: `spec_detail/key_input.md` **§7.7「キーの送信」**（新設）+ `codebase_map.md`「キーの送信」節。直接改訂モード（暫定仕様なし）。
-- **原因（実機で確定）**: `keyboard` は `keybd_event` に KEYEVENTF_EXTENDEDKEY を付けない。`right` は scan 0x4D = テンキー 6 と同じ →
-  Shift 併用で範囲選択にならない。**押す / 離すアクションを足しても直らない**（同じ送信経路）。
-- **実装**: `infrastructure/input_gateway.py` の拡張キー表 `_EXTENDED_KEYS` 18 件（名前 → vk / scan）+
-  `_resolve_extended_key`（**公開 API** `keyboard.normalize_name` で別名解決）+ `_send_extended_event`（`ctypes.windll.user32.keybd_event`）。
-  `press_key` / `release_key` は表に載る名前だけ拡張送信。
-  `send_hotkey` は**拡張キーを含まなければ従来どおり `keyboard.send`**、含む場合は記述順に押し逆順に離す（例外時も押した分を逆順に離してから再送出）。
-  `windows` は左・`ctrl` / `alt` / `shift`・テンキーの Enter と `/`・`alt gr` は**対象外**
-  （`alt gr` は欧州系配列で `right alt` と同一物理キーだが意図的に対象外）。
-- **新しい前提（重要）**: raw `keybd_event` は `keyboard` の `is_replaying` を通らないため、**自分が送った拡張キーがアプリのフックに届く**。
-  防護は send guard 1 枚で挙動は不変（実機確認済）だが、**guard の解除タイミングを変える改修時は自己起動しないか再確認する**。
-- **テスト**: `tests/test_input_gateway_send.py`（**10 本**。送信をモックし順序 / vk / scan / 押す・離すを検証。
-  `ctypes` ごと差し替えてフラグ合成を検証する 1 本、拡張キーが先頭 / 2 個のときの順序を固定する 1 本を含む）。
-- **保留・記録のみ**: 途中失敗で先行キーが実際に出る / `,` 区切りの多段 hotkey（現状アプリの検証で到達不能）/ 離す側の例外の優先順 /
-  `requirements.txt` の `keyboard` が非固定 / canonical に無い OS 由来の名前は非拡張で送られうる（未実測の仮説）/
-  `register_key_hook` のデッドコード（`current.md`「別タスク化候補」）。
-- **関連 idea**: [idea_23](../../instructions/backlog/idea_23_key_press_release_actions.md)（押す / 離すアクション・未着手・優先度低）。
+- **主入力 = 暫定仕様 [19](../../instructions/history/19_mouse_drag_action.md)（v0.5・ユーザー確定済・未凍結）**。正本はフェーズ末に新設する（現時点で `spec_detail/` に `mouse_click` の記述は 0 件）。
+- **データ**: `mouse_click` に `drag` / `to_x` / `to_y` / `drag_speed`（px/秒・既定 **1000**）を追加。
+  **新種別は作らない**・種別ドロップダウンは 3 種のまま。**drag OFF では新キーを出力しない**（生成停止。ON→OFF 保存で 4 キーは消えるが既存キーは残る）。
+- **実行**（`input_gateway.drag_mouse`）: **`FAILSAFE` を退避 → False → 外側 `finally` で復元**、
+  `moveTo → mouseDown → moveTo(duration) → mouseUp`（**解放は内側 `finally`**）。**`dragTo` と `ctypes` は使わない**
+  （`mouseUp` は解放前に `failSafeCheck` を通すため、FailSafe 有効のままだと**画面の四隅**で解放が遮られる。
+  pyautogui は OS 別実装を内部で選ぶので**分岐を増やさない** = 将来の macOS 対応を見据えた判断）。
+- **所要時間**（application 側で算出）: 距離 ÷ 速度を **0.15〜5.0 秒へクランプ**
+  （`duration > 0.1` のときだけ補間が入る＝下限が無いとワープする / アクションは `app.after(0, ...)` = **UI スレッド**で走るので上限が要る）。
+  **5.0 秒は `moveTo` へ渡す引数の上限**で実時間の厳密な上限ではない。`drag_speed` は不正値・**NaN** も既定 1000 へ倒す（`not (speed > 0)`）。
+- **UI**: マウス設定内のチェックで離す位置・速度欄が出る / **回数欄は無効化し `clicks` は 1 固定** / X・Y ラベルは「掴む位置」へ /
+  **座標取得は掴む用と離す用で排他**。表示切替は `grid()` / `grid_remove()`。
+- **テスト**: `tests/test_input_gateway_drag.py`（7）/ `tests/test_action_executor_drag.py`（7）/ `tests_ui/test_action_dialog_drag.py`（8）/
+  `tests/test_domain_config.py`（表示 + 永続化）。**変異検査で検出力を確認済み**（FAILSAFE 復元・クランプ下限・生成停止・結線・NaN）。
+- **記録のみ / 保留**: `click_mouse` 側の FAILSAFE 検出力 / 速度欄が `int()` 判定（`"1500.5"` は黙って 1000）/
+  `instate` ガード / **座標取得リスナーはダイアログ破棄後の `after(0, ...)` で TclError になりうる**（既存挙動・別タスク化候補へ）。
 
 ## 運用インフラ
 
@@ -88,15 +96,15 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **blockers: なし**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
 - **【罠】Bash ツールで `python3` / `python` を呼ばない**（Windows ストア版スタブが stdin 待ちでハングし、同じコマンド内の後続も実行されない）。
   スクリプトを直接走らせるときは `PYTHONPATH=.` を付ける。
-- **【裏取り】レビュー・調査・サブエージェントの「コードがこうなっている」という主張、および自分の実測は、
-  採用前に `ファイルパス:行` / 状態を確認する**（phase 20・21 とも、指摘の再現をメインが実測してから採否を聞いた）。
+- **【裏取り】レビュー・調査・サブエージェントの「コードがこうなっている」という主張は、採用前に `ファイルパス:行` を実測確認する**
+  （phase 22 では pyautogui の補間条件・FailSafe の四隅・NaN の素通りをメインが実測して採否を決めた）。
 - **【傾向・実証済み】reviewer が「採用」でも敵対的 / 上位レビューで指摘が出る**。
   **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**。
   `codex-reviewer`（標準 review）は focus text を受け付けないので、観点を渡すなら `codex-adversarial-reviewer`。
-- **【傾向・phase 21】テストの「検出力」は変異検査で確かめる**（フラグを外す / 押下順を入れ替えると**追加テストだけ**落ちるか）。
-  レビューで 2 度とも「既存テストは変異で落ちない」と指摘された。
+- **【傾向】テストの「検出力」は変異検査で確かめる**（その仕様を壊すと**追加テストだけ**落ちるか）。phase 21・22 とも有効だった。
 - **【Codex 運用】フォワーダが切れても Codex ワーカーは生き続ける**（判別は作業ツリーの更新時刻）。
   **書き換え途中で `verifier` / `reviewer` を回さない**。`taskkill /T` を使わない。**Codex 申告のテスト結果は信用せず実測**。
+  30 行目安を超えた実装は**同じ Codex へ差し戻して分割**させると早い（phase 22 task_01 で実施）。
 - **【運用・重要】委任の実行中はメイン側でコードを編集しない**（文書のみ・対象ファイルが重ならない場合は可）。
 - **【config.json の書き手は 2 本】** `StartupIo.write_startup`（現在値へマージ・成功時のみ `_startup_settings` 置換・**失敗表示中はフック停止**）と
   keymap_set 保存（`save_runtime_data` が `_startup_settings` をディープコピー）。**直接 `config.json` を read-modify-write しない**。
@@ -111,7 +119,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   を他テストから持ち越す。**前後の変化で assert し、`addCleanup` で必ず元へ戻す**。新規テストは `patch.object` を優先。
 - **【罠】App に View の部品を属性で生やさない**（phase 01 で解消済）。
 - **【罠】worktree と main は別コピー**。main 側の絶対パスを編集すると commit から漏れる。
-- **【罠】Bash ツールは Git Bash**。長い heredoc は壊れやすい（**壊れたら Write ツールを使う**。phase 21 の handoff 再生成で再発）。
+- **【罠】Bash ツールは Git Bash**。長い heredoc は壊れやすい（**壊れたら Write ツールを使う**）。
   **sed の区切りに `#` を使うとパターン中の `##` で壊れる**。複数行のコミットメッセージは `git commit -F -` + 短い heredoc。
   **`git grep` は追跡済みのみ検索**。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
