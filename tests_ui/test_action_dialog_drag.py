@@ -137,6 +137,20 @@ class ActionDialogDragTest(unittest.TestCase):
             for widget in dialog._drag_widgets:
                 self.assertEqual(bool(widget.grid_info()), enabled)
 
+    def test_drag_ui_survives_action_type_round_trip(self) -> None:
+        dialog = self.make_dialog()
+        dialog.mouse_drag_var.set(True)
+        dialog._sync_capture_ui()
+        dialog.type_var.set("text")
+        dialog._sync_capture_ui()
+        dialog.type_var.set("mouse_click")
+        dialog._sync_capture_ui()
+        self.assertEqual(str(dialog.mouse_clicks_entry.cget("state")), "disabled")
+        self.assertEqual(dialog.mouse_x_label.cget("text"), "掴む位置 X")
+        self.assertEqual(dialog.mouse_y_label.cget("text"), "掴む位置 Y")
+        for widget in dialog._drag_widgets:
+            self.assertTrue(widget.grid_info())
+
     def test_coordinate_capture_is_exclusive_and_restores_buttons(self) -> None:
         dialog = self.make_dialog()
         self.enable_drag(dialog)

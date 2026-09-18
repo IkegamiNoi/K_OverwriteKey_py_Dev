@@ -198,6 +198,20 @@ class EnsureConfigCompatibilityTest(unittest.TestCase):
         )
         self.assertTrue(config["triggers"][0]["_sequence_dirty"])
 
+    def test_mouse_drag_keys_preserved(self):
+        config = ensure_config_compatibility(
+            {"triggers": [{"key": "a", "actions": [{
+                "type": "mouse_click", "x": 100, "y": 200,
+                "button": "right", "clicks": 1, "drag": True,
+                "to_x": 400, "to_y": 500, "drag_speed": 750,
+            }]}]}
+        )
+        action = config["triggers"][0]["actions"][0]
+        self.assertIs(action["drag"], True)
+        self.assertEqual(action["to_x"], 400)
+        self.assertEqual(action["to_y"], 500)
+        self.assertEqual(action["drag_speed"], 750)
+
     def test_keymap_normalization(self):
         config = ensure_config_compatibility(
             {

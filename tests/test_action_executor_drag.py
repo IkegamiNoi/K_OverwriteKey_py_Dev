@@ -64,7 +64,7 @@ class ActionExecutorDragTests(unittest.TestCase):
         self.on_runtime_error.assert_not_called()
 
     def test_missing_or_invalid_speed_uses_default(self) -> None:
-        for extra in ({}, *({"drag_speed": value} for value in ("", "abc", 0, -1, None))):
+        for extra in ({}, *({"drag_speed": value} for value in ("", "abc", 0, -1, None, float("nan"), "nan"))):
             with self.subTest(extra=extra):
                 self.gateway.reset_mock()
                 self.executor._execute_mouse_click({

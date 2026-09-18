@@ -147,7 +147,7 @@ class ActionExecutor:
             speed = float(action.get("drag_speed", DEFAULT_DRAG_SPEED_PX_PER_SEC))
         except Exception:
             speed = DEFAULT_DRAG_SPEED_PX_PER_SEC
-        if speed <= 0:
+        if not (speed > 0):
             speed = DEFAULT_DRAG_SPEED_PX_PER_SEC
         duration_sec = math.hypot(to_x - x, to_y - y) / speed
         duration_sec = min(max(duration_sec, MIN_DRAG_DURATION_SEC), MAX_DRAG_DURATION_SEC)
