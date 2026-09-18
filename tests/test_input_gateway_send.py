@@ -41,6 +41,27 @@ class InputGatewaySendTests(unittest.TestCase):
             call.release("ctrl"),
         ])
 
+    def test_order_with_leading_extended(self) -> None:
+        cases = {
+            "right ctrl+c": [
+                call.ext(0xA3, 0x1D, key_up=False),
+                call.press("c"),
+                call.release("c"),
+                call.ext(0xA3, 0x1D, key_up=True),
+            ],
+            "right ctrl+insert": [
+                call.ext(0xA3, 0x1D, key_up=False),
+                call.ext(0x2D, 0x52, key_up=False),
+                call.ext(0x2D, 0x52, key_up=True),
+                call.ext(0xA3, 0x1D, key_up=True),
+            ],
+        }
+        for hotkey, expected in cases.items():
+            with self.subTest(hotkey=hotkey):
+                self.events.reset_mock()
+                self.gateway.send_hotkey(hotkey)
+                self.assertEqual(self.events.mock_calls, expected)
+
     def test_non_extended_hotkey(self) -> None:
         for hotkey in ("ctrl+c", "ctrl + c"):
             with self.subTest(hotkey=hotkey):
