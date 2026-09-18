@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 import threading
 from typing import Callable
 
@@ -10,6 +11,11 @@ from keyseq.application.input_router import (
     ToggleModeAction,
     TriggerAction,
 )
+
+
+DEFAULT_DRAG_SPEED_PX_PER_SEC = 1000
+MIN_DRAG_DURATION_SEC = 0.15
+MAX_DRAG_DURATION_SEC = 5.0
 
 
 class ActionExecutor:
@@ -121,10 +127,33 @@ class ActionExecutor:
         if button not in ("left", "right", "middle"):
             button = "left"
 
+        drag = bool(action.get("drag"))
         try:
-            self.input_gateway.click_mouse(x=x, y=y, button=button, clicks=clicks)
+            if drag:
+                self._execute_mouse_drag(action, x, y, button)
+            else:
+                self.input_gateway.click_mouse(x=x, y=y, button=button, clicks=clicks)
         except Exception as e:
             self._on_runtime_error("送信エラー", f"mouse_click の実行に失敗しました。\n{type(e).__name__}: {e}")
+
+    def _execute_mouse_drag(self, action: dict, x: int, y: int, button: str) -> None:
+        try:
+            to_x = int(action.get("to_x"))
+            to_y = int(action.get("to_y"))
+        except Exception:
+            self._on_runtime_error("送信エラー", "mouse_click の to_x/to_y が不正です（ドラッグの離す位置を整数で指定してください）。")
+            return
+        try:
+            speed = float(action.get("drag_speed", DEFAULT_DRAG_SPEED_PX_PER_SEC))
+        except Exception:
+            speed = DEFAULT_DRAG_SPEED_PX_PER_SEC
+        if speed <= 0:
+            speed = DEFAULT_DRAG_SPEED_PX_PER_SEC
+        duration_sec = math.hypot(to_x - x, to_y - y) / speed
+        duration_sec = min(max(duration_sec, MIN_DRAG_DURATION_SEC), MAX_DRAG_DURATION_SEC)
+        self.input_gateway.drag_mouse(
+            x=x, y=y, to_x=to_x, to_y=to_y, button=button, duration_sec=duration_sec
+        )
 
     def _enter_send_guard(self) -> None:
         with self._send_guard_lock:

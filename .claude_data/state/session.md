@@ -4,42 +4,48 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-19T07:00:00
-phase: `instructions/phase/22_mouse_drag_action`（**起票済・未着手**・暫定仕様先行モード。番号対応 phase 22 / 暫定 19 / decisions 22）。
+last_updated: 2026-09-19T09:00:00
+phase: `instructions/phase/22_mouse_drag_action`（**進行中**・暫定仕様先行モード。番号対応 phase 22 / 暫定 19 / decisions 22）。
 主入力 = `instructions/history/19_mouse_drag_action.md`（**v0.5・ユーザー確定済・未凍結 = 条項の根拠に引いてよい**）。
 直前の完了フェーズ = phase 21（判断履歴 = `decisions_archive/21_extended_key_send.md`）。
 last_commit_location: `claude/device-visual-check-44b31a`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 22 起票完了（暫定仕様 19 = v0.5 ユーザー確定済）。次 = task_01（実行経路）のタスク定義起票と実装。**
+focus: **phase 22 task_01（ドラッグ実行経路）完了。次 = task_02（UI と一覧表示）。**
 mode: ready
 
 ## last_action
-ts: 2026-09-19T07:00:00
+ts: 2026-09-19T09:00:00
 who: main
 summary: |
-  【phase 21】完了（実機目視 7 項目 OK・完了判定前レビュー採否済・記録とコミットまで実施）。
-  【新機能の検討】マウスのドラッグ操作（2 点 + 速度）。codex-explorer で現状調査 → メインが裏取り。
-  ユーザー確定: `mouse_click` にフラグ追加（新種別は作らない・ドロップダウンは 3 種のまま）/ 速度は px/秒・既定 1000 /
-  所要時間は 0.15〜5.0 秒へクランプ / ドラッグ中は FAILSAFE を無効化（**OS 分岐を増やさない = 将来の macOS 対応を見据えた判断**）。
-  【暫定仕様 19】起票 v0.1 → deep-reviewer（起票時・全件採用）→ v0.2 → codex-adversarial-reviewer（確定前・3 件採用）→ v0.3 → v0.4 → **v0.5 確定**。
-  【phase 22】起票（タスク 3 本）+ current.md 更新。reviewer の整合チェック = 完了可（ブロッカーなし）。
+  【task_01】codex-implementer: `input_gateway.drag_mouse`（FAILSAFE を退避 → False → 外側 finally で復元 / 内側 finally で mouseUp）+
+  `action_executor` の drag 分岐（定数 3 つ・`to_x`/`to_y` 検証・速度既定・距離と所要時間・クランプ）+ 新規テスト 2 ファイル。
+  30 行目安を超えた `_execute_mouse_click` は Codex へ差し戻して `_execute_mouse_drag` へ分割（27 行 / 18 行・挙動不変）。
+  verifier: compile clean / drag テスト 14/14 OK / tests 475 OK（baseline 461 + 14）/ tests_ui 438 OK / smoke OK /
+  変異検査 (a) FAILSAFE 復元を削除 → 5 件失敗 (b) クランプ下限を 0 → 境界 2 ケース失敗。いずれも復元確認済み。
+  reviewer: **採用（完了可・指摘なし）**。
 result_files:
-  - instructions/history/19_mouse_drag_action.md（新規・v0.5）
-  - instructions/phase/22_mouse_drag_action/phase.md（新規）/ instructions/phase/current.md
+  - keyseq/infrastructure/input_gateway.py / keyseq/application/action_executor.py
+  - tests/test_input_gateway_drag.py（新規・7 本）/ tests/test_action_executor_drag.py（新規・7 本）
+  - instructions/phase/22_mouse_drag_action/tasks/task_01_drag_execution.md / instructions/phase/current.md
 verified:
-  review: deep-reviewer（起票時）= 採用済 / codex-adversarial-reviewer（確定前）= 採用済 / reviewer（phase.md 整合）= 完了可
-  tests: 461 ran OK（phase 21 完了時点。phase 22 は未着手のため未変更）
+  compile: clean
+  tests: 475 ran OK（skipped 7）
+  tests_ui: 438 ran OK
+  smoke: SMOKE OK
+  mutation: FAILSAFE 復元の削除 / クランプ下限 0 → いずれも該当テストのみ失敗・復元確認
+  review: reviewer（task_01）= 採用
 
 ## next_action
-- **task_01（実行経路）のタスク定義を `/task_new` で起票 → `codex-implementer` へ委任**。
-  範囲 = `input_gateway.drag_mouse`（FAILSAFE の退避・復元 / 例外時も必ず解放）+ `action_executor` の drag 分岐・距離と所要時間・クランプ + `tests/`。
-- **【起票時の注意・reviewer 指摘】** タスク定義に暫定仕様 19 §8 の受け入れ条件
-  **3-b（ON→OFF→再読込で単発クリック化）/ 5（`drag_speed` 不正値 → 既定 1000）/ 8（掴む点 = 離す点で例外にしない）** を
+- **task_02（UI と一覧表示）のタスク定義を `/task_new` で起票 → `codex-implementer` へ委任**。
+  範囲 = `ActionDialog`（ドラッグのチェックボックス / 離す点の欄と取得ボタン / 速度欄 / 回数欄の無効化 / 座標取得の排他 /
+  X・Y ラベルの文言切替〔参照保持〕/ 検証と dict 生成〔**drag OFF では新キーを出力しない**〕/ 既存値の復元）+
+  `domain/config.py` の `format_action_list_item` + `tests` / `tests_ui`。
+- **【起票時の注意】** 暫定仕様 19 §8 の受け入れ条件 **2 / 3-b（ON→OFF→再読込で単発クリック化）/ 9 / 10** を
   テスト項目として明記すること（phase.md のタスク一行要約には含まれていない）。
 - **運用**: verifier に変異検査を頼むときは「`git checkout --` / `git restore` / `git stash` を使わない（ファイルのコピーで退避・復元）」を明示する。
-- **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済。phase 18 の残り・19・20・21・22 は未マージ）。
+- **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 

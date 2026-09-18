@@ -128,3 +128,18 @@ class InputGateway:
 
     def click_mouse(self, x: int, y: int, button: str, clicks: int) -> None:
         pyautogui.click(x=x, y=y, button=button, clicks=clicks)
+
+    def drag_mouse(
+        self, x: int, y: int, to_x: int, to_y: int, button: str, duration_sec: float
+    ) -> None:
+        failsafe = pyautogui.FAILSAFE
+        pyautogui.FAILSAFE = False
+        try:
+            pyautogui.moveTo(x, y)
+            try:
+                pyautogui.mouseDown(button=button)
+                pyautogui.moveTo(to_x, to_y, duration=duration_sec)
+            finally:
+                pyautogui.mouseUp(button=button)
+        finally:
+            pyautogui.FAILSAFE = failsafe
