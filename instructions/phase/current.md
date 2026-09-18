@@ -7,7 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（phase 21 は 2026-09-19 完了）。**次フェーズ未確定** = 着手前にユーザーへ方針確認する。
+- **アクティブなフェーズ: [22_mouse_drag_action](22_mouse_drag_action/phase.md)**（2026-09-19 起票・**暫定仕様先行モード**。**未着手 / 次 = task_01**）。
+  出力シーケンスの `mouse_click` を拡張し、掴む点と離す点の 2 点 + カーソル速度（px/秒・既定 1000）でドラッグ（範囲選択・ドラッグ&ドロップ）を送る。
+  **JSON は既存キー不変で `drag` / `to_x` / `to_y` / `drag_speed` を追加**・種別ドロップダウンは 3 種のまま・**OS 分岐を増やさない**（`pyautogui` のみ・`ctypes` を使わない）。
+  主入力 = [暫定仕様 19](../history/19_mouse_drag_action.md)（**v0.5・ユーザー確定済**）。起票元 = ユーザー要望（2026-09-19）。関連 = [idea_23](../backlog/idea_23_key_press_release_actions.md)（対象外）。
+  番号対応: phase 22 / 暫定 19 / decisions 22。
 - **直近の一連の作業が扱っている領域 = キーの送信（拡張キー）**。
   正本は `key_input.md` §7.7「キーの送信」/ `codebase_map.md`「キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）」節。
   実装 = `keyseq/infrastructure/input_gateway.py`（`_EXTENDED_KEYS` / `send_hotkey` / `press_key` / `release_key`）、テスト = `tests/test_input_gateway_send.py`（10 本）。
@@ -42,8 +46,8 @@
 
 ## 次採番
 
-- **phase 21 は 2026-09-19 完了**（decisions 21 はアーカイブ済・次は decisions 22）。
-  次フェーズは **`22_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 21 は 2026-09-19 完了**（decisions 21 はアーカイブ済・decisions 22 は phase 22 で使用中）。
+  **phase 22 = `22_mouse_drag_action` を 2026-09-19 起票**。次フェーズは **`23_<topic>`**（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
@@ -57,8 +61,9 @@
   15=最小化中の grab 預かり〔**v0.7・凍結**〕/
   16=フル表示メイン領域の幅配分〔**v0.5・凍結**〕/
   17=フル表示ヘッダの幅〔**v0.3・凍結**〕/
-  18=フル表示の縦方向の最小サイズ〔**v0.5・凍結**〕）。
-  次採番は **`19_<topic>`**。
+  18=フル表示の縦方向の最小サイズ〔**v0.5・凍結**〕/
+  **19=マウスのドラッグ操作〔v0.5・ユーザー確定済・未凍結・phase 22 の主入力〕**）。
+  次採番は **`20_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/

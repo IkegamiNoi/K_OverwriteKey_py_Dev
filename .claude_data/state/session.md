@@ -4,42 +4,42 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-19T05:00:00
-phase: **アクティブなし**（phase 21 `21_extended_key_send` は**完了**。判断履歴 = `decisions_archive/21_extended_key_send.md`）。
-次フェーズは **`22_<topic>`** / decisions 22（`instructions/phase/current.md` が正）。**次フェーズ未確定 = 着手前にユーザーへ方針確認**。
+last_updated: 2026-09-19T07:00:00
+phase: `instructions/phase/22_mouse_drag_action`（**起票済・未着手**・暫定仕様先行モード。番号対応 phase 22 / 暫定 19 / decisions 22）。
+主入力 = `instructions/history/19_mouse_drag_action.md`（**v0.5・ユーザー確定済・未凍結 = 条項の根拠に引いてよい**）。
+直前の完了フェーズ = phase 21（判断履歴 = `decisions_archive/21_extended_key_send.md`）。
 last_commit_location: `claude/device-visual-check-44b31a`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 21 完了（実機目視 7 項目 OK・完了判定前レビュー採否済・記録とフェーズ完了処理まで実施）。次フェーズ未確定。**
-mode: idle
+focus: **phase 22 起票完了（暫定仕様 19 = v0.5 ユーザー確定済）。次 = task_01（実行経路）のタスク定義起票と実装。**
+mode: ready
 
 ## last_action
-ts: 2026-09-19T05:00:00
+ts: 2026-09-19T07:00:00
 who: main
 summary: |
-  【task_02】ユーザー実機目視 7 項目すべて OK。完了判定前レビュー: codex-adversarial-reviewer = 指摘なし / deep-reviewer = 条件付き完了可（条件 = 完了処理）。
-  ユーザー採否: 指摘 4 採用（task_02c）/ 指摘 2・7 の文書修正採用 / 指摘 3・5・6 は記録のみ / 指摘 8 は別タスク化候補 / 指摘 9 除外。
-  【task_02c】codex-implementer: 拡張キーが先頭（`right ctrl+c`）・拡張キー 2 個（`right ctrl+insert`）の押す順 / 離す順テストを 1 本追加（production 変更なし）。
-  verifier: 10/10 OK・tests 461 OK・smoke OK・変異検査（押下順を通常キー先へ入替）で追加テストのみ失敗 → 復元確認。reviewer = 採用。
-  【完了処理】/refactor_check = 不要（M1〜M6 非該当・1 ファイル）。integration_result.md / decisions_archive/21 / decisions.md 索引 / current.md 完了記載 / codebase_map.md と phase.md の修正。
+  【phase 21】完了（実機目視 7 項目 OK・完了判定前レビュー採否済・記録とコミットまで実施）。
+  【新機能の検討】マウスのドラッグ操作（2 点 + 速度）。codex-explorer で現状調査 → メインが裏取り。
+  ユーザー確定: `mouse_click` にフラグ追加（新種別は作らない・ドロップダウンは 3 種のまま）/ 速度は px/秒・既定 1000 /
+  所要時間は 0.15〜5.0 秒へクランプ / ドラッグ中は FAILSAFE を無効化（**OS 分岐を増やさない = 将来の macOS 対応を見据えた判断**）。
+  【暫定仕様 19】起票 v0.1 → deep-reviewer（起票時・全件採用）→ v0.2 → codex-adversarial-reviewer（確定前・3 件採用）→ v0.3 → v0.4 → **v0.5 確定**。
+  【phase 22】起票（タスク 3 本）+ current.md 更新。reviewer の整合チェック = 完了可（ブロッカーなし）。
 result_files:
-  - tests/test_input_gateway_send.py（10 本）/ instructions/phase/21_extended_key_send/tasks/task_02c_order_with_leading_extended.md
-  - instructions/phase/21_extended_key_send/integration_result.md・phase.md / instructions/common/codebase_map.md
-  - instructions/phase/current.md / .claude_data/state/decisions.md / decisions_archive/21_extended_key_send.md / session.md
+  - instructions/history/19_mouse_drag_action.md（新規・v0.5）
+  - instructions/phase/22_mouse_drag_action/phase.md（新規）/ instructions/phase/current.md
 verified:
-  compile: clean
-  tests: 461 ran OK（skipped 7）
-  tests_ui: 438 ran OK（task_02b 時点。以降は tests のみの変更）
-  smoke: SMOKE OK
-  mutation: 押下順を入替 → `test_order_with_leading_extended` のみ FAIL・復元後に差分なし
-  review: reviewer（task_02c）= 採用 / deep-reviewer + codex-adversarial-reviewer = 採否済
-  manual: 実機目視 7 項目 OK（ユーザー）
+  review: deep-reviewer（起票時）= 採用済 / codex-adversarial-reviewer（確定前）= 採用済 / reviewer（phase.md 整合）= 完了可
+  tests: 461 ran OK（phase 21 完了時点。phase 22 は未着手のため未変更）
 
 ## next_action
-- **次フェーズは未確定**。着手前にユーザーへ方針確認する（候補は `instructions/phase/current.md`「次フェーズ候補」/ `instructions/backlog/INDEX.md`）。
-- **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済。phase 18 の残り・19・20・21 は未マージ）。
+- **task_01（実行経路）のタスク定義を `/task_new` で起票 → `codex-implementer` へ委任**。
+  範囲 = `input_gateway.drag_mouse`（FAILSAFE の退避・復元 / 例外時も必ず解放）+ `action_executor` の drag 分岐・距離と所要時間・クランプ + `tests/`。
+- **【起票時の注意・reviewer 指摘】** タスク定義に暫定仕様 19 §8 の受け入れ条件
+  **3-b（ON→OFF→再読込で単発クリック化）/ 5（`drag_speed` 不正値 → 既定 1000）/ 8（掴む点 = 離す点で例外にしない）** を
+  テスト項目として明記すること（phase.md のタスク一行要約には含まれていない）。
 - **運用**: verifier に変異検査を頼むときは「`git checkout --` / `git restore` / `git stash` を使わない（ファイルのコピーで退避・復元）」を明示する。
+- **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済。phase 18 の残り・19・20・21・22 は未マージ）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
@@ -48,6 +48,16 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 22 の主入力 = 暫定仕様 19（未凍結・v0.5）】** マウスのドラッグは `mouse_click` に
+  `drag` / `to_x` / `to_y` / `drag_speed`（px/秒・既定 1000）を足す。要点 =
+  ①**所要時間 = 距離 ÷ 速度を 0.15〜5.0 秒へクランプ**（下限が無いと pyautogui が補間せずワープする〔`duration > 0.1` のときだけ補間〕/
+  上限が無いと **UI スレッド**が固まる〔アクションは `app.after(0, ...)` で UI スレッド実行〕）
+  ②**ドラッグ中は `pyautogui.FAILSAFE` を False にし `finally` で必ず復元**（`mouseUp` は解放前に `failSafeCheck` が走るため、
+  **FailSafe 座標 = 画面の四隅**で解放が遮られる）。**`ctypes` は使わない**（pyautogui は OS 別実装を内部で選ぶ = macOS 対応時に分岐を増やさない）
+  ③`dragTo` は使わない（try/finally が無く例外時に押しっぱなしになる）
+  ④**drag OFF では新キーを出力しない**（生成停止。ON→OFF 保存で 4 キーは消えるが既存キーは残る）
+  ⑤`drag` true のとき `clicks` は 1 固定・回数欄は無効化 ⑥正本には **`mouse_click` のスキーマ自体が無い**ので、
+  フェーズ末に `data_schema.md` §5.11「アクション要素」を新設して昇格する。
 - **【phase 21 の成果は正本が正】キーの送信 = `spec_detail/key_input.md` §7.7 + `codebase_map.md`「キーの送信」節**。暫定仕様なし（直接改訂モード）。
   要点 = ①**拡張キー 18 名は `ctypes` の `keybd_event` + KEYEVENTF_EXTENDEDKEY で送る**（表 = `keyseq/infrastructure/input_gateway.py` の `_EXTENDED_KEYS`。
   `keyboard` ライブラリの `from_name` は同名に拡張 / 非拡張が混在し `windows` が無いので**使わない**）
