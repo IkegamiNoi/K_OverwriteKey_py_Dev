@@ -243,6 +243,26 @@ class FormatListItemTest(unittest.TestCase):
             "02. [text] abc: memo",
         )
 
+    def test_action_mouse_drag(self) -> None:
+        action = {"type": "mouse_click", "x": 100, "y": 200, "to_x": 400,
+                  "to_y": 500, "button": "left", "drag": True, "drag_speed": 1000}
+        self.assertEqual(format_action_list_item(0, action),
+                         "01. [mouse_click] (100, 200)→(400, 500) left 1000px/s")
+
+    def test_action_mouse_drag_default_speed(self) -> None:
+        action = {"type": "mouse_click", "x": 100, "y": 200, "to_x": 400,
+                  "to_y": 500, "button": "left", "drag": True}
+        self.assertEqual(format_action_list_item(0, action),
+                         "01. [mouse_click] (100, 200)→(400, 500) left 1000px/s")
+
+    def test_action_mouse_drag_disabled_or_absent(self) -> None:
+        for extra in ({"drag": False}, {}):
+            with self.subTest(extra=extra):
+                action = {"type": "mouse_click", "x": 10, "y": 20,
+                          "button": "left", "clicks": 2, **extra}
+                self.assertEqual(format_action_list_item(0, action),
+                                 "01. [mouse_click] (10, 20) left x2")
+
     def test_preset(self):
         self.assertEqual(
             format_preset_list_item(0, {"label": "Win+D", "value": "windows+d"}),

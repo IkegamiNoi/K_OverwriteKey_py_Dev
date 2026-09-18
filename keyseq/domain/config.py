@@ -5,6 +5,7 @@ from typing import Any
 
 
 DEFAULT_RUN_TO_END_DELAY_MS = 300
+DEFAULT_DRAG_SPEED_PX_PER_SEC = 1000
 DEFAULT_KEYBOARD_LAYOUT_ID = "us_tkl"
 
 
@@ -314,7 +315,13 @@ def format_action_list_item(index: int, action: dict[str, Any]) -> str:
         y = action.get("y", "")
         button = action.get("button", "left")
         clicks = action.get("clicks", 1)
-        value_display = f"({x}, {y}) {button} x{clicks}"
+        if bool(action.get("drag")):
+            to_x = action.get("to_x", "")
+            to_y = action.get("to_y", "")
+            speed = action.get("drag_speed", DEFAULT_DRAG_SPEED_PX_PER_SEC)
+            value_display = f"({x}, {y})→({to_x}, {to_y}) {button} {speed}px/s"
+        else:
+            value_display = f"({x}, {y}) {button} x{clicks}"
     else:
         value_display = action.get("value", "")
 

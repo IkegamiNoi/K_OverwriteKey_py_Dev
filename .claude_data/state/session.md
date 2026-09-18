@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-19T09:00:00
+last_updated: 2026-09-19T11:00:00
 phase: `instructions/phase/22_mouse_drag_action`（**進行中**・暫定仕様先行モード。番号対応 phase 22 / 暫定 19 / decisions 22）。
 主入力 = `instructions/history/19_mouse_drag_action.md`（**v0.5・ユーザー確定済・未凍結 = 条項の根拠に引いてよい**）。
 直前の完了フェーズ = phase 21（判断履歴 = `decisions_archive/21_extended_key_send.md`）。
@@ -12,38 +12,39 @@ last_commit_location: `claude/device-visual-check-44b31a`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 22 task_01（ドラッグ実行経路）完了。次 = task_02（UI と一覧表示）。**
+focus: **phase 22 task_02（ドラッグの UI と一覧表示）完了。次 = task_03（最終・統合確認 → 実機目視 → 正本昇格と記録）。**
 mode: ready
 
 ## last_action
-ts: 2026-09-19T09:00:00
+ts: 2026-09-19T11:00:00
 who: main
 summary: |
-  【task_01】codex-implementer: `input_gateway.drag_mouse`（FAILSAFE を退避 → False → 外側 finally で復元 / 内側 finally で mouseUp）+
-  `action_executor` の drag 分岐（定数 3 つ・`to_x`/`to_y` 検証・速度既定・距離と所要時間・クランプ）+ 新規テスト 2 ファイル。
-  30 行目安を超えた `_execute_mouse_click` は Codex へ差し戻して `_execute_mouse_drag` へ分割（27 行 / 18 行・挙動不変）。
-  verifier: compile clean / drag テスト 14/14 OK / tests 475 OK（baseline 461 + 14）/ tests_ui 438 OK / smoke OK /
-  変異検査 (a) FAILSAFE 復元を削除 → 5 件失敗 (b) クランプ下限を 0 → 境界 2 ケース失敗。いずれも復元確認済み。
-  reviewer: **採用（完了可・指摘なし）**。
+  【task_02】codex-implementer: ActionDialog にドラッグのチェックボックス / 離す位置の欄と取得ボタン / 速度欄 /
+  回数欄の無効化 / X・Y ラベルの文言切替 / 座標取得の排他（`_set_mouse_capture_state`）/ 既存値の復元 /
+  `on_ok` の分岐（**OFF では新キーを出力しない**・ON では `clicks` を 1 固定）。
+  `format_action_list_item` のドラッグ表示。**既定速度 1000 は `domain/config.py` へ移設**し application / presentation が import（直値の重複を作らない）。
+  verifier: compile clean / tests 478 OK（baseline 475 + 3）/ tests_ui 445 OK（baseline 438 + 7）/ smoke OK /
+  変異検査（OFF でも drag 系キーを常に出力）で `test_drag_off_dict` 等が失敗・復元確認済み。
+  reviewer: **採用（完了可・ブロッキングなし）**。
 result_files:
-  - keyseq/infrastructure/input_gateway.py / keyseq/application/action_executor.py
-  - tests/test_input_gateway_drag.py（新規・7 本）/ tests/test_action_executor_drag.py（新規・7 本）
-  - instructions/phase/22_mouse_drag_action/tasks/task_01_drag_execution.md / instructions/phase/current.md
+  - keyseq/domain/config.py / keyseq/application/action_executor.py（import の 1 行のみ）/ keyseq/presentation/dialogs/action_dialog.py
+  - tests/test_domain_config.py（+3）/ tests_ui/test_action_dialog_drag.py（新規・7 本）
+  - instructions/phase/22_mouse_drag_action/tasks/task_02_drag_ui_and_list.md / instructions/phase/current.md
 verified:
   compile: clean
-  tests: 475 ran OK（skipped 7）
-  tests_ui: 438 ran OK
+  tests: 478 ran OK（skipped 7）
+  tests_ui: 445 ran OK
   smoke: SMOKE OK
-  mutation: FAILSAFE 復元の削除 / クランプ下限 0 → いずれも該当テストのみ失敗・復元確認
-  review: reviewer（task_01）= 採用
+  mutation: OFF でも drag 系キーを出力 → 生成停止のテストが失敗・復元確認
+  review: reviewer（task_02）= 採用
 
 ## next_action
-- **task_02（UI と一覧表示）のタスク定義を `/task_new` で起票 → `codex-implementer` へ委任**。
-  範囲 = `ActionDialog`（ドラッグのチェックボックス / 離す点の欄と取得ボタン / 速度欄 / 回数欄の無効化 / 座標取得の排他 /
-  X・Y ラベルの文言切替〔参照保持〕/ 検証と dict 生成〔**drag OFF では新キーを出力しない**〕/ 既存値の復元）+
-  `domain/config.py` の `format_action_list_item` + `tests` / `tests_ui`。
-- **【起票時の注意】** 暫定仕様 19 §8 の受け入れ条件 **2 / 3-b（ON→OFF→再読込で単発クリック化）/ 9 / 10** を
-  テスト項目として明記すること（phase.md のタスク一行要約には含まれていない）。
+- **task_03（最終）のタスク定義を `/task_new` で起票**。内容 = 統合確認（`verifier`）+ 二次レビュー（`deep-reviewer` + `codex-reviewer`）+
+  **ユーザーの実機目視 8 項目**（暫定仕様 19 §8-11）+ 正本昇格（`data_schema.md` **§5.11「アクション要素」新設** /
+  FailSafe と send guard の明文化 / `codebase_map.md`）+ **暫定仕様 19 の凍結** + `decisions_archive/22_mouse_drag_action.md` +
+  `current.md` 完了記載 + `/refactor_check` + 完了判定前レビュー。
+- **【task_03 で「別タスク化候補」へ記録する申し送り】** `ActionDialog` の座標取得リスナーは、
+  ダイアログ破棄後に `after(0, ...)` が走ると `TclError` になりうる（**task_02 以前からの既存挙動**・reviewer の参考指摘）。
 - **運用**: verifier に変異検査を頼むときは「`git checkout --` / `git restore` / `git stash` を使わない（ファイルのコピーで退避・復元）」を明示する。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認

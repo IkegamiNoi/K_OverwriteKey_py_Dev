@@ -11,9 +11,9 @@ from keyseq.application.input_router import (
     ToggleModeAction,
     TriggerAction,
 )
+from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
 
 
-DEFAULT_DRAG_SPEED_PX_PER_SEC = 1000
 MIN_DRAG_DURATION_SEC = 0.15
 MAX_DRAG_DURATION_SEC = 5.0
 

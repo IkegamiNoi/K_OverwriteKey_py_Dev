@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from pynput import mouse
 
+from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_keysym
@@ -83,11 +84,13 @@ class ActionDialog(tk.Toplevel):
         self.mouse_frame.grid(row=5, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.mouse_frame.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(self.mouse_frame, text="X").grid(row=0, column=0, sticky="w")
+        self.mouse_x_label = ttk.Label(self.mouse_frame, text="X")
+        self.mouse_x_label.grid(row=0, column=0, sticky="w")
         self.mouse_x_var = tk.StringVar(value="")
         ttk.Entry(self.mouse_frame, textvariable=self.mouse_x_var, width=10).grid(row=0, column=1, sticky="w", padx=(8, 0))
 
-        ttk.Label(self.mouse_frame, text="Y").grid(row=0, column=2, sticky="w", padx=(16, 0))
+        self.mouse_y_label = ttk.Label(self.mouse_frame, text="Y")
+        self.mouse_y_label.grid(row=0, column=2, sticky="w", padx=(16, 0))
         self.mouse_y_var = tk.StringVar(value="")
         ttk.Entry(self.mouse_frame, textvariable=self.mouse_y_var, width=10).grid(row=0, column=3, sticky="w", padx=(8, 0))
 
@@ -98,12 +101,14 @@ class ActionDialog(tk.Toplevel):
 
         ttk.Label(self.mouse_frame, text="回数").grid(row=1, column=2, sticky="w", padx=(16, 0), pady=(8, 0))
         self.mouse_clicks_var = tk.StringVar(value="1")
-        ttk.Entry(self.mouse_frame, textvariable=self.mouse_clicks_var, width=10).grid(row=1, column=3, sticky="w", padx=(8, 0), pady=(8, 0))
+        self.mouse_clicks_entry = ttk.Entry(self.mouse_frame, textvariable=self.mouse_clicks_var, width=10)
+        self.mouse_clicks_entry.grid(row=1, column=3, sticky="w", padx=(8, 0), pady=(8, 0))
 
-        self.mouse_capture_btn = ttk.Button(self.mouse_frame, text="クリック位置を取得", command=self._capture_mouse_position)
+        self.mouse_capture_btn = ttk.Button(self.mouse_frame, text="クリック位置を取得", command=lambda: self._capture_mouse_position(self.mouse_x_var, self.mouse_y_var, self.mouse_capture_btn, self.mouse_hint))
         self.mouse_capture_btn.grid(row=2, column=0, columnspan=4, sticky="w", pady=(8, 0))
         self.mouse_hint = ttk.Label(self.mouse_frame, text="※押したあと、画面上の任意の場所を1回クリックすると座標が入ります")
         self.mouse_hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(6, 0))
+        self._build_drag_ui()
 
         if initial:
             self.type_var.set((initial.get("type") or "hotkey").strip().lower())
@@ -115,6 +120,11 @@ class ActionDialog(tk.Toplevel):
                 if "y" in initial: self.mouse_y_var.set(str(initial.get("y")))
                 if "button" in initial: self.mouse_btn_var.set(str(initial.get("button")))
                 if "clicks" in initial: self.mouse_clicks_var.set(str(initial.get("clicks")))
+                if bool(initial.get("drag")):
+                    self.mouse_drag_var.set(True)
+                    self.mouse_to_x_var.set(str(initial.get("to_x", "")))
+                    self.mouse_to_y_var.set(str(initial.get("to_y", "")))
+                    self.mouse_drag_speed_var.set(str(initial.get("drag_speed", DEFAULT_DRAG_SPEED_PX_PER_SEC)))
 
         self.value_entry.focus_set()
         self._sync_capture_ui()
@@ -154,24 +164,91 @@ class ActionDialog(tk.Toplevel):
                 clicks = 1
             if btn not in ("left", "right", "middle"):
                 btn = "left"
-            self.parent._dialog_result = {"type": "mouse_click", "x": x, "y": y, "button": btn, "clicks": clicks, "label": label}
+            action = {"type": "mouse_click", "x": x, "y": y, "button": btn, "clicks": clicks, "label": label}
+            if self.mouse_drag_var.get():
+                drag_fields = self._get_drag_fields()
+                if drag_fields is None:
+                    return
+                action.update(drag_fields)
+            self.parent._dialog_result = action
         self.destroy()
 
-    def _capture_mouse_position(self):
+    def _build_drag_ui(self) -> None:
+        self.mouse_drag_var = tk.BooleanVar(value=False)
+        ttk.Checkbutton(self.mouse_frame, text="ドラッグ（範囲選択・ドラッグ&ドロップ）", variable=self.mouse_drag_var, command=self._sync_drag_ui).grid(row=4, column=0, columnspan=4, sticky="w", pady=(8, 0))
+        self.mouse_to_x_var = tk.StringVar(value="")
+        self.mouse_to_y_var = tk.StringVar(value="")
+        self.mouse_drag_speed_var = tk.StringVar(value=str(DEFAULT_DRAG_SPEED_PX_PER_SEC))
+        self._drag_widgets: list[ttk.Widget] = []
+        for text, variable, row, column in (
+            ("離す位置 X", self.mouse_to_x_var, 5, 0),
+            ("離す位置 Y", self.mouse_to_y_var, 5, 2),
+            ("速度（px/秒）", self.mouse_drag_speed_var, 8, 0),
+        ):
+            label = ttk.Label(self.mouse_frame, text=text)
+            label.grid(row=row, column=column, sticky="w", pady=(8, 0))
+            entry = ttk.Entry(self.mouse_frame, textvariable=variable, width=10)
+            entry.grid(row=row, column=column + 1, sticky="w", padx=(8, 0), pady=(8, 0))
+            self._drag_widgets.extend((label, entry))
+        self.mouse_to_capture_btn = ttk.Button(self.mouse_frame, text="離す位置を取得", command=lambda: self._capture_mouse_position(self.mouse_to_x_var, self.mouse_to_y_var, self.mouse_to_capture_btn, self.mouse_to_hint))
+        self.mouse_to_capture_btn.grid(row=6, column=0, columnspan=4, sticky="w", pady=(8, 0))
+        self.mouse_to_hint = ttk.Label(self.mouse_frame, text="※押したあと、画面上の任意の場所を1回クリックすると座標が入ります")
+        self.mouse_to_hint.grid(row=7, column=0, columnspan=4, sticky="w", pady=(6, 0))
+        self._drag_widgets.extend((self.mouse_to_capture_btn, self.mouse_to_hint))
+        self._sync_drag_ui()
+
+    def _sync_drag_ui(self) -> None:
+        dragging = self.mouse_drag_var.get()
+        for widget in self._drag_widgets:
+            if dragging:
+                widget.grid()
+            else:
+                widget.grid_remove()
+        self.mouse_x_label.configure(text="掴む位置 X" if dragging else "X")
+        self.mouse_y_label.configure(text="掴む位置 Y" if dragging else "Y")
+        self.mouse_clicks_entry.configure(state="disabled" if dragging else "normal")
+
+    def _get_drag_fields(self) -> dict[str, int | bool] | None:
+        sx = self.mouse_to_x_var.get().strip()
+        sy = self.mouse_to_y_var.get().strip()
+        if not sx or not sy:
+            messagebox.showerror("入力エラー", "mouse_click の離す位置 X/Y が空です。")
+            return None
+        try:
+            to_x, to_y = int(sx), int(sy)
+        except ValueError:
+            messagebox.showerror("入力エラー", "mouse_click の離す位置 X/Y は整数で入力してください。")
+            return None
+        try:
+            speed = int(self.mouse_drag_speed_var.get().strip())
+        except ValueError:
+            speed = DEFAULT_DRAG_SPEED_PX_PER_SEC
+        if speed <= 0:
+            speed = DEFAULT_DRAG_SPEED_PX_PER_SEC
+        return {"drag": True, "to_x": to_x, "to_y": to_y, "drag_speed": speed, "clicks": 1}
+
+    def _set_mouse_capture_state(self, state: str) -> None:
+        self.mouse_capture_btn.configure(state=state)
+        self.mouse_to_capture_btn.configure(state=state)
+
+    def _capture_mouse_position(self, x_var: tk.StringVar, y_var: tk.StringVar,
+                                button_widget: ttk.Button, hint_widget: ttk.Label) -> None:
         """次の1クリックで画面座標を取得して X/Y に反映"""
         # 誤爆を避ける：ボタン連打防止
-        self.mouse_capture_btn.configure(state="disabled")
-        self.mouse_hint.configure(text="…取得中：画面上の任意の場所を1回クリックしてください（右クリックでも可）")
+        if button_widget.instate(["disabled"]):
+            return
+        self._set_mouse_capture_state("disabled")
+        hint_widget.configure(text="…取得中：画面上の任意の場所を1回クリックしてください（右クリックでも可）")
 
-        def on_click(x, y, button, pressed):
+        def on_click(x: float, y: float, button: mouse.Button, pressed: bool) -> bool:
             if pressed:
                 # 1回目の押下で確定
                 try:
-                    self.after(0, lambda: self.mouse_x_var.set(str(int(x))))
-                    self.after(0, lambda: self.mouse_y_var.set(str(int(y))))
-                    self.after(0, lambda: self.mouse_hint.configure(text=f"取得しました: ({int(x)}, {int(y)})"))
+                    self.after(0, lambda: x_var.set(str(int(x))))
+                    self.after(0, lambda: y_var.set(str(int(y))))
+                    self.after(0, lambda: hint_widget.configure(text=f"取得しました: ({int(x)}, {int(y)})"))
                 finally:
-                    self.after(0, lambda: self.mouse_capture_btn.configure(state="normal"))
+                    self.after(0, lambda: self._set_mouse_capture_state("normal"))
                 return False  # stop listener
             return True
 
@@ -288,6 +365,7 @@ class ActionDialog(tk.Toplevel):
         if hasattr(self, "mouse_frame"):
             if t == "mouse_click":
                 self.mouse_frame.grid()  # 表示
+                self._sync_drag_ui()
                 # mouse_click は value を使わないので無効化（ラベルは使う）
                 self.value_entry.configure(state="disabled")
             else:
