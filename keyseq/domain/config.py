@@ -133,6 +133,19 @@ def normalize_hotkey_presets(presets: Any) -> list[dict[str, Any]]:
     return normalized_presets
 
 
+def normalize_actions(actions: Any) -> list[dict[str, Any]]:
+    if not isinstance(actions, list):
+        actions = []
+    normalized_actions: list[dict[str, Any]] = []
+    for action in actions:
+        if not isinstance(action, dict):
+            continue
+        a = safe_deepcopy(action)
+        a["label"] = (a.get("label") or "").strip()
+        normalized_actions.append(a)
+    return normalized_actions
+
+
 def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     if not isinstance(data, dict):
         data = {}
@@ -172,17 +185,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             DEFAULT_RUN_TO_END_DELAY_MS,
         )
 
-        actions = t.get("actions")
-        if not isinstance(actions, list):
-            actions = []
-        normalized_actions: list[dict[str, Any]] = []
-        for action in actions:
-            if not isinstance(action, dict):
-                continue
-            a = safe_deepcopy(action)
-            a["label"] = (a.get("label") or "").strip()
-            normalized_actions.append(a)
-        t["actions"] = normalized_actions
+        t["actions"] = normalize_actions(t.get("actions"))
         for key in (
             "_sequence_source_path",
             "_sequence_imported",

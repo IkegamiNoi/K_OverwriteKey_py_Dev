@@ -4,49 +4,52 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-19T16:30:00
-phase: **アクティブなフェーズなし**（`instructions/phase/22_mouse_drag_action` は 2026-09-19 完了）。次フェーズは未確定 = **ユーザーに方針確認が要る**。
-直前の完了フェーズ = phase 22（判断履歴 = `decisions_archive/22_mouse_drag_action.md`）。番号対応: phase 22 / 暫定 19〔凍結〕/ decisions 22。次採番 = phase 23 / 暫定 20 / decisions 23。
-last_commit_location: `claude/physical-mouse-behavior-fa5ab6`
+last_updated: 2026-09-19T18:10:00
+phase: `instructions/phase/23_sequence_payload_action_normalization`（**直接改訂モード**・番号対応: phase 23 / decisions 23 / 暫定仕様なし）。
+起票元 = idea_24（個別 sequence JSON 単体読込が `actions` 正規化を通らない既存の穴）。次採番 = phase 24 / 暫定 20 / decisions 24。
+直前の完了フェーズ = phase 22（判断履歴 = `decisions_archive/22_mouse_drag_action.md`）。
+last_commit_location: `claude/idea-24-issue-5f4005`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 22（マウスのドラッグ操作）完了。実機目視 9 項目 OK・正本昇格と記録・完了判定前レビュー採否まで完了。次フェーズ未確定。**
-mode: completed
+focus: **phase 23 task_01（actions 正規化の domain 共有化）完了。reviewer 採用・全テスト pass。次は task_02（正本反映と記録）。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-19T16:30:00
+ts: 2026-09-19T18:10:00
 who: main
 summary: |
-  【実機目視】ユーザーが 9 項目すべて確認し想定どおり。項目⑦（ドラッグ中に物理マウスを動かす）は
-  **離す位置が指定どおりにならない**が、判定条件は「中断しない」「終了後に離れている」の 2 点のため想定内。
-  この観察を正本 §5.11.5 の既知の制約へ 1 行追記した。
-  【正本昇格】`spec_detail/data_schema.md` に **§5.11「アクション要素」を新設**（5.11.1〜5.11.5）+ §5.1 / §5.2 / §5.6 からの参照・追記。
-  `codebase_map.md` に「マウス操作」節を新設。**暫定仕様 19 を凍結**。
-  【完了判定前レビュー】`codex-adversarial-reviewer` = approve（指摘なし）/ `deep-reviewer` = **修正要（文書のみ）**。
-  ユーザー採否 = 正本の修正 5 件（§5.1 との矛盾・掴む点への移動の欠落・`clicks` の保存値・click 側 x/y のエラー挙動・codebase_map の表記）+
-  §5.11 の経路限定と **idea_24 起票**（個別 sequence 読込が `actions` 正規化を通らない既存の穴）+
-  `button` 非文字列の 1 行修正を「別タスク化候補」へ + `drag_speed` の int/float 差を正本へ明記。記録のみ 4 件。
-  【記録】`integration_result.md` / `decisions_archive/22_mouse_drag_action.md` / `decisions.md` 索引 / `current.md`（完了記載・次採番 23・候補送り）/
-  `phase.md`（task_03b 追記）/ `task_03`（目視 9 項目）。`/refactor_check` = **不要**（M1〜M6 非該当）。
-  task_03 の `reviewer`（記録と正本の整合）= **採用 / 完了可**（指摘なし）。
+  【ユーザー判断】idea_24 を **案 A**（正規化を domain 側へ切り出して共有）で実装追従すると確定。
+  正本 `data_schema.md` §5.11 の規定が正で**仕様変更なし**（注記削除のみ）→ **直接改訂モード**で phase 23 を起票。
+  【起票】`phase.md` + `tasks/task_01_shared_action_normalization.md` + `current.md`（現在の参照先・次採番 24）+
+  `backlog/INDEX.md`（idea_24 を着手へ）。phase.md の整合チェック `reviewer` = 指摘なし。
+  【task_01 実装】`codex-implementer` へ委任。**domain/application を跨ぐ変更**:
+  `keyseq/domain/config.py` に公開関数 `normalize_actions` を新設（`ensure_config_compatibility` 内のループを挙動同値で切り出し）、
+  `ConfigService._normalize_sequence_payload` が `safe_deepcopy` のみから同関数の呼び出しへ。テスト 2 ファイルに追加 + 既存 1 件の期待値更新（`label: ""` 付与）。
+  【レビュー】`reviewer` = **採用 / 完了可**（指摘なし）。裏取り実測: 保存は `build_sequence_payload` の payload を
+  `save_json` した**後**に正規化する順序（`config_service/__init__.py:225-226`）なので**ディスクの JSON の形は不変**。
+  `split_loading.py:485` → `:499` の二重正規化は冪等。
 result_files:
-  - instructions/common/spec_detail/data_schema.md / instructions/common/codebase_map.md / instructions/history/19_mouse_drag_action.md
-  - instructions/phase/22_mouse_drag_action/integration_result.md・phase.md・tasks/task_03_integration_and_close.md
-  - instructions/phase/current.md / instructions/backlog/idea_24_sequence_payload_action_normalization.md・INDEX.md
-  - .claude_data/state/decisions_archive/22_mouse_drag_action.md / .claude_data/state/decisions.md
+  - keyseq/domain/config.py / keyseq/application/config_service/__init__.py
+  - tests/test_domain_config.py / tests/test_config_service.py
+  - instructions/phase/23_sequence_payload_action_normalization/phase.md・tasks/task_01_shared_action_normalization.md
+  - instructions/phase/current.md / instructions/backlog/INDEX.md
 verified:
-  compile: clean（task_03b 時点。本ターンは文書のみでコード変更なし）
-  tests: 479 ran OK（skipped 7）
+  compile: clean
+  tests: 486 ran OK（skipped 7）
   tests_ui: 446 ran OK
   smoke: SMOKE OK
-  review: reviewer（task_03 記録整合）= 採用 / deep-reviewer + codex-adversarial-reviewer = 採否済
-  refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `0518c93`）
+  review: reviewer（task_01 実装差分）= 採用 / reviewer（phase.md 整合）= 指摘なし
+  refactor_check: not_run（task_02 で実施）
 
 ## next_action
-- **phase 22 の成果をコミットする**（`/task_commit`。文書のみ 11 ファイル。未コミットなら最初にこれ）。
-- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = phase 23 / 暫定 20 / decisions 23）。
-  候補は `instructions/backlog/INDEX.md`（例: idea_23 = キーの押す/離すアクション・idea_24 = sequence 読込の正規化未追従・いずれも優先度低）。
+- **task_01 の成果をコミットする**（`/task_commit`。未コミットなら最初にこれ）。
+- **task_02 を `/task_new` で起票して実施する**（メイン担当・文書作業）:
+  ①正本 `instructions/common/spec_detail/data_schema.md` §5.11 冒頭の**【実装未追従】注記を削除**
+  ②`.claude_data/state/decisions_archive/23_sequence_payload_action_normalization.md` を作成し `decisions.md` の索引へ 1 行追加
+  ③`instructions/phase/current.md` の完了記載を更新（次採番 24 は記載済）
+  ④`instructions/backlog/INDEX.md` の idea_24 行を完了へ更新し `INDEX_done.md` へ移動
+  ⑤`/refactor_check` を実行し判定結果を完了報告に含める。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
@@ -62,7 +65,7 @@ verified:
   下限が無いと pyautogui が補間せずワープ / 上限が無いと UI スレッドが固まる）③**ドラッグ中だけ `pyautogui.FAILSAFE` を False にし `finally` で復元**
   （`mouseUp` の前に FailSafe 判定が走り、離す点が隅だと解放が遮られる）・`dragTo` と `ctypes` は使わない
   ④**実行中に物理マウスを動かすと離す位置がずれる**（制御しない・§5.11.5）
-  ⑤**既存の穴**: 個別 sequence JSON の単体読込は `actions` の正規化を通らない（§5.11 に【実装未追従】・idea_24）。
+  ⑤**この穴は phase 23 で解消**: 個別 sequence JSON の単体読込にも `actions` 正規化を適用済（domain の公開関数 `normalize_actions` を共有。§5.11 の【実装未追従】注記は task_02 で削除）。
 - **【phase 21 の成果は正本が正】キーの送信 = `spec_detail/key_input.md` §7.7 + `codebase_map.md`「キーの送信」節**。暫定仕様なし（直接改訂モード）。
   要点 = ①**拡張キー 18 名は `ctypes` の `keybd_event` + KEYEVENTF_EXTENDEDKEY で送る**（表 = `keyseq/infrastructure/input_gateway.py` の `_EXTENDED_KEYS`。
   `keyboard` ライブラリの `from_name` は同名に拡張 / 非拡張が混在し `windows` が無いので**使わない**）

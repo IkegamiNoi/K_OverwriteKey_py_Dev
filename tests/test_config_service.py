@@ -1716,6 +1716,30 @@ class KeymapFileIoTest(unittest.TestCase):
 
 
 class SequenceFileIoTest(unittest.TestCase):
+    def test_normalize_sequence_payload_delegates_actions(self):
+        service = ConfigService(JsonRepository())
+        for sequence in ({}, {"actions": None}, {"actions": "x"}, {"actions": ["bad"]}):
+            with self.subTest(sequence=sequence):
+                with patch("keyseq.application.config_service.normalize_actions") as normalize:
+                    normalize.return_value = [{"type": "text", "label": "normalized"}]
+                    normalized = service._normalize_sequence_payload(sequence)
+                    normalize.assert_called_once_with(sequence.get("actions"))
+                    self.assertIs(normalized["actions"], normalize.return_value)
+
+    def test_load_sequence_file_removes_non_dict_actions(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            service = ConfigService(JsonRepository())
+            path = Path(tmp) / "seq.json"
+            path.write_text(
+                '{"actions": [{"type": "hotkey", "value": "ctrl+c"}, "bad", 5]}',
+                encoding="utf-8",
+            )
+            loaded = service.load_sequence_file(str(path))
+            self.assertEqual(
+                loaded["actions"],
+                [{"type": "hotkey", "value": "ctrl+c", "label": ""}],
+            )
+
     def test_save_and_load_sequence_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             service = ConfigService(JsonRepository())
@@ -1734,7 +1758,7 @@ class SequenceFileIoTest(unittest.TestCase):
             loaded = service.load_sequence_file(path, imported=True)
             self.assertEqual(loaded["label"], "copy")
             self.assertTrue(loaded["run_to_end"])
-            self.assertEqual(loaded["actions"], [{"type": "hotkey", "value": "ctrl+c"}])
+            self.assertEqual(loaded["actions"], [{"type": "hotkey", "value": "ctrl+c", "label": ""}])
             self.assertEqual(loaded["_sequence_source_path"], path)
             self.assertTrue(loaded["_sequence_imported"])
 

@@ -7,7 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（phase 22 は 2026-09-19 完了）。次フェーズ未確定のため、着手前にユーザーへ方針を確認する。
+- **アクティブなフェーズ: [phase 23](23_sequence_payload_action_normalization/phase.md)**（個別 sequence JSON 単体読込の actions 正規化・2026-09-19 起票）。
+  **直接改訂モード**（正本 `data_schema.md` §5.11 の規定が既に正。変更は【実装未追従】注記の削除のみ）。
+  番号対応: phase 23 / decisions 23（暫定仕様なし）。
+  起票元 = [idea_24](../backlog/idea_24_sequence_payload_action_normalization.md)（phase 22 完了判定前 deep-reviewer 指摘 3）。案 A（正規化を domain へ切り出して共有）で実装追従する。
+  進捗: **task_01 完了**（`normalize_actions` の切り出しと sequence 単体読込への適用・reviewer 採用・全テスト pass）。次は **task_02**（正本反映と記録）。
 - **直近の一連の作業が扱っている領域 = マウス操作（ドラッグ）**。
   正本は `data_schema.md` §5.11「アクション要素」/ `codebase_map.md`「マウス操作（infrastructure/input_gateway.py の InputGateway・phase 22）」節。
   実装 = `keyseq/infrastructure/input_gateway.py`（`drag_mouse`）/ `keyseq/application/action_executor.py`（`_execute_mouse_drag`）/
@@ -52,8 +56,8 @@
 
 ## 次採番
 
-- **phase 22 は 2026-09-19 完了**（decisions 22 はアーカイブ済）。
-  次フェーズは **`23_<topic>`**・decisions も **23** を使う（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 23 は起票済・進行中**（`23_sequence_payload_action_normalization` / decisions 23）。
+  次フェーズは **`24_<topic>`**・decisions も **24** を使う（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。

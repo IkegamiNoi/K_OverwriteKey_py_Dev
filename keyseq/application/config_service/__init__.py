@@ -10,6 +10,7 @@ from keyseq.domain.config import (
     HOOK_KEY_FIELDS,
     coerce_nonnegative_int,
     ensure_config_compatibility,
+    normalize_actions,
     normalize_key_name,
     safe_deepcopy,
 )
@@ -459,9 +460,7 @@ class ConfigService:
                 sequence.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
                 DEFAULT_RUN_TO_END_DELAY_MS,
             ),
-            "actions": safe_deepcopy(sequence.get("actions", []))
-            if isinstance(sequence.get("actions"), list)
-            else [],
+            "actions": normalize_actions(sequence.get("actions")),
         }
 
     def _sanitize_runtime_for_storage(self, data: dict[str, Any]) -> dict[str, Any]:

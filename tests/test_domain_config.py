@@ -6,6 +6,7 @@ from keyseq.domain.config import (
     format_action_list_item,
     format_preset_list_item,
     format_trigger_list_item,
+    normalize_actions,
     normalize_hotkey_presets,
     normalize_key_name,
     resolve_hook_keys_individual,
@@ -18,6 +19,48 @@ class NormalizeKeyNameTest(unittest.TestCase):
 
     def test_none_returns_empty(self):
         self.assertEqual(normalize_key_name(None), "")
+
+
+class NormalizeActionsTest(unittest.TestCase):
+    def test_empty_and_non_list_inputs_return_empty(self):
+        for actions in ([], None, "x"):
+            with self.subTest(actions=actions):
+                self.assertEqual(normalize_actions(actions), [])
+
+    def test_removes_non_dict_items_and_adds_empty_label(self):
+        actions = [{"type": "text", "value": "a"}, "bad", 1, None, ["x"]]
+        self.assertEqual(
+            normalize_actions(actions),
+            [{"type": "text", "value": "a", "label": ""}],
+        )
+
+    def test_strips_label(self):
+        self.assertEqual(
+            normalize_actions([{"type": "text", "label": "  x  "}]),
+            [{"type": "text", "label": "x"}],
+        )
+
+    def test_does_not_mutate_input_and_deep_copies_items(self):
+        actions = [{"type": "text", "label": "  x  ", "extra": {"values": ["a"]}}]
+        normalized = normalize_actions(actions)
+        self.assertEqual(actions[0]["label"], "  x  ")
+        normalized[0]["label"] = "changed"
+        normalized[0]["extra"]["values"].append("b")
+        self.assertEqual(
+            actions,
+            [{"type": "text", "label": "  x  ", "extra": {"values": ["a"]}}],
+        )
+
+    def test_compatibility_normalization_is_equivalent_and_idempotent(self):
+        actions = [{"type": "text", "label": "  x  "}, "bad", 1, None, ["x"]]
+        normalized = normalize_actions(actions)
+        self.assertEqual(normalize_actions(normalized), normalized)
+        for trigger_actions in (actions, normalized):
+            with self.subTest(actions=trigger_actions):
+                config = ensure_config_compatibility(
+                    {"triggers": [{"key": "f1", "actions": trigger_actions}]}
+                )
+                self.assertEqual(config["triggers"][0]["actions"], normalized)
 
 
 class NormalizeHotkeyPresetsTest(unittest.TestCase):
