@@ -7,14 +7,18 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [phase 24](24_json_type_normalization/phase.md)**（JSON 読込の型不正の扱い統一・2026-09-19 起票）。
-  **暫定仕様先行モード**。主入力 = [暫定仕様 20](../history/20_individual_json_type_normalization.md)（v0.3・ユーザー確定済）。
-  番号対応: phase 24 / 暫定 20 / decisions 24。
-  起票元 = phase 23 完了後のユーザー指示（keymap / trigger_set の個別読込経路の見直し）。
-  **スコープ = 全経路へ一斉適用**（共有ローダーのため経路別に切ると破綻する）。
-  進捗: **task_01 完了**（`coerce_key_name` / `coerce_label` の新設と 10 箇所への適用・reviewer 採用・全テスト pass）。次は **task_02**（正本反映と記録）。
+- **アクティブなフェーズ: なし**（[phase 24](24_json_type_normalization/phase.md) は 2026-09-19 完了）。次フェーズ未確定のため、着手前にユーザーへ方針を確認する。
+- **直近の一連の作業が扱っている領域 = JSON 読込時の型正規化**。
+  正本は `data_schema.md` **§5.1「型不正の共通規則」**（新設）/ §5.6「keymap」（新設）/ §5.2 / §5.11、`codebase_map.md`。
+  実装 = `keyseq/domain/config.py`（`coerce_key_name` / `coerce_label`）/ `keyseq/application/config_service/__init__.py` /
+  `keyseq/application/config_service/split_loading.py`、テスト = `tests/test_domain_config.py` / `tests/test_config_service.py`。
+  **非文字列は空扱い・空で成立しない要素は除去**を全読込経路へ一斉適用（共有ローダーのため経路別に切れない）。
+  `normalize_key_name` のシグネチャは不変（呼び出し 158 箇所）。falsy な非文字列は元から空扱いで挙動不変。
+  **残件** = ①**パス系フィールド**（`path` / `switch_key` / `trigger_set_path` 等）は未対応 = [idea_25](../backlog/idea_25_path_field_type_normalization.md)
+  ②`button` 非文字列の `AttributeError`（`action_executor.py:119`・実行時の別レイヤ・phase 22 からの候補）。
+  判断は [decisions_archive/24](../../.claude_data/state/decisions_archive/24_json_type_normalization.md)。
 - [phase 23](23_sequence_payload_action_normalization/phase.md) は 2026-09-19 完了。
-- **直近の一連の作業が扱っている領域 = アクション要素（`actions[]`）の読込時正規化**。
+- **その前の領域 = アクション要素（`actions[]`）の読込時正規化**（phase 23）。
   正本は `data_schema.md` §5.11「アクション要素」。実装 = `keyseq/domain/config.py`（公開関数 `normalize_actions`）/
   `keyseq/application/config_service/__init__.py`（`_normalize_sequence_payload` が同関数へ委譲）、
   テスト = `tests/test_domain_config.py` / `tests/test_config_service.py`（`SequenceFileIoTest`）。
@@ -22,7 +26,7 @@
   **残件** = ①保存側（`build_sequence_payload`）は正規化を通さない設計のまま（読込で担保）②keymap / trigger_set など
   他の個別 JSON 読込経路の正規化見直しは未着手（スコープ外）③`button` 非文字列の扱い（phase 22 からの別タスク化候補・未着手）。
   判断は [decisions_archive/23](../../.claude_data/state/decisions_archive/23_sequence_payload_action_normalization.md)。
-- **その前の領域 = マウス操作（ドラッグ）**。
+- **さらにその前の領域 = マウス操作（ドラッグ）**（phase 22）。
   正本は `data_schema.md` §5.11「アクション要素」/ `codebase_map.md`「マウス操作（infrastructure/input_gateway.py の InputGateway・phase 22）」節。
   実装 = `keyseq/infrastructure/input_gateway.py`（`drag_mouse`）/ `keyseq/application/action_executor.py`（`_execute_mouse_drag`）/
   `keyseq/presentation/dialogs/action_dialog.py`（ドラッグ UI）/ `keyseq/domain/config.py`（表示整形）、
@@ -66,12 +70,12 @@
 
 ## 次採番
 
-- **phase 24 は起票済・進行中**（`24_json_type_normalization` / 暫定 20 / decisions 24）。
+- **phase 24 は 2026-09-19 完了**（`24_json_type_normalization` / 暫定 20〔凍結〕/ decisions 24 はアーカイブ済）。
   次フェーズは **`25_<topic>`**・decisions も **25** を使う（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜18 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
+  04〜20 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
   08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
   10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
   11=config_service の公開面〔**v0.3・凍結**〕/
@@ -82,7 +86,8 @@
   16=フル表示メイン領域の幅配分〔**v0.5・凍結**〕/
   17=フル表示ヘッダの幅〔**v0.3・凍結**〕/
   18=フル表示の縦方向の最小サイズ〔**v0.5・凍結**〕/
-  19=マウスのドラッグ操作〔**v0.5・凍結**〕）。
+  19=マウスのドラッグ操作〔**v0.5・凍結**〕/
+  20=JSON 読込の型不正の扱い統一〔**v0.3・凍結**〕）。
   次採番は **`21_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /

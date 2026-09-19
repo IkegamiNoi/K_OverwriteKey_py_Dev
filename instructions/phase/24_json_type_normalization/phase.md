@@ -68,9 +68,10 @@ JSON 読込時に**要素の型が不正だった場合の扱い**を全経路�
 
 ## タスク
 
-- task_01: domain へ `coerce_key_name` / `coerce_label` を新設し全経路へ適用する（+ 単体テスト）
+- task_01: domain へ `coerce_key_name` / `coerce_label` を新設し全経路へ適用する（+ 単体テスト）— **完了**（2026-09-19・`a1764d1`）
+- task_03: 取りこぼした 4 箇所（旧形式 `trigger_key` / hook キー 2 種 / `active_keymap_id`）へ `coerce_key_name` を適用する — **完了**（2026-09-19）
 - task_02: 正本反映と記録（暫定仕様 20 の昇格・凍結 / decisions_archive/24 / current.md /
-  `/refactor_check`）
+  `/refactor_check`）— **完了**（2026-09-19）
 
 ## レビュー方針
 

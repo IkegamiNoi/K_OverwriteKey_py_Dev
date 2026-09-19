@@ -547,6 +547,15 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `label` を整形する純関数・冪等）。呼び出しは 2 系統 = `ensure_config_compatibility` 内（split 読込・単一 JSON）と
   `application/config_service::_normalize_sequence_payload`（個別 sequence JSON の単体読込 / 保存後の戻り値）。
   **application 側は整形規則を持たず domain の関数を呼ぶだけ**（規定は `data_schema.md` §5.11）。
+- **JSON 読込時の型正規化は `domain/config.py` の `coerce_key_name` / `coerce_label` に一本化**（phase 24）。
+  どちらも**非 str なら `""`** を返す純関数で、`coerce_key_name` は str のとき `normalize_key_name`
+  （trim + 小文字化）を通す。適用先は**読込経路すべて**（`ensure_config_compatibility` の
+  `triggers[].key` / `triggers[].label` / `keymaps[].id` / `keymaps[].label` / `mappings` の target、
+  `normalize_actions` の `label`、`config_service` の `_generate_keymap_id` / `load_keymap_file` /
+  `_normalize_sequence_payload`、`split_loading` の `load_triggers_from_trigger_set` / `load_keymap_entry`）。
+  **`normalize_key_name(value: str)` のシグネチャは変えない**（呼び出しが 158 箇所あり、Any 受けにすると
+  全経路の意味が変わるため）。規定は `data_schema.md` §5.1「型不正の共通規則」。
+  **パス系フィールド（`path` / `switch_key` 等）は対象外**（idea_25）。
 
 ---
 
