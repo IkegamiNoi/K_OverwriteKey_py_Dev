@@ -237,7 +237,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             if isinstance(item, str):
                 path = item.strip()
             elif isinstance(item, dict):
-                path = str(item.get("path") or "").strip()
+                path = coerce_label(item.get("path"))
             else:
                 continue
             if not path:
@@ -298,7 +298,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     if isinstance(raw_keymap_switch_keys, dict):
         for raw_key, raw_keymap_id in raw_keymap_switch_keys.items():
             switch_key = normalize_key_name(str(raw_key or ""))
-            keymap_id = normalize_key_name(str(raw_keymap_id or ""))
+            keymap_id = coerce_key_name(raw_keymap_id)
             if not switch_key or not keymap_id:
                 continue
             if keymap_id not in keymap_ids:

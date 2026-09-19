@@ -7,7 +7,13 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（[phase 24](24_json_type_normalization/phase.md) は 2026-09-19 完了）。次フェーズ未確定のため、着手前にユーザーへ方針を確認する。
+- **アクティブなフェーズ: [phase 25](25_path_field_type_normalization/phase.md)**（パス系フィールドの型正規化・2026-09-19 起票）。
+  **直接改訂モード**（正本 §5.1「型不正の共通規則」は既にパス系も対象。追記は §5.5 / §5.7 への明記のみ）。
+  番号対応: phase 25 / decisions 25（暫定仕様なし）。
+  起票元 = [idea_25](../backlog/idea_25_path_field_type_normalization.md)（phase 24 task_01 の全走査で分離）。
+  **例外になる箇所は無く**、repr 文字列が runtime に載る問題（`external_keyboard_layouts[].path` と
+  `keymaps[].switch_key` が実害中）の解消が目的。
+- [phase 24](24_json_type_normalization/phase.md) は 2026-09-19 完了。
 - **直近の一連の作業が扱っている領域 = JSON 読込時の型正規化**。
   正本は `data_schema.md` **§5.1「型不正の共通規則」**（新設）/ §5.6「keymap」（新設）/ §5.2 / §5.11、`codebase_map.md`。
   実装 = `keyseq/domain/config.py`（`coerce_key_name` / `coerce_label`）/ `keyseq/application/config_service/__init__.py` /
@@ -70,8 +76,8 @@
 
 ## 次採番
 
-- **phase 24 は 2026-09-19 完了**（`24_json_type_normalization` / 暫定 20〔凍結〕/ decisions 24 はアーカイブ済）。
-  次フェーズは **`25_<topic>`**・decisions も **25** を使う（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 25 は起票済・進行中**（`25_path_field_type_normalization` / decisions 25 / 暫定仕様なし）。
+  次フェーズは **`26_<topic>`**・decisions も **26** を使う（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。

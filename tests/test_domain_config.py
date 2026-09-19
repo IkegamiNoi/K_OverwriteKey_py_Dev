@@ -370,6 +370,34 @@ class EnsureConfigCompatibilityTest(unittest.TestCase):
         self.assertEqual(config["keymap_switch_keys"], {"1": "km1"})
 
 
+class PathFieldCoercionTest(unittest.TestCase):
+    def test_external_layout_paths_drop_non_strings(self):
+        for value in (None, 0, False, [], {}, 123, True, ["a"], {"a": 1}):
+            with self.subTest(value=value):
+                config = ensure_config_compatibility({
+                    "external_keyboard_layouts": [{"path": value}, {"path": "ok.json"}],
+                })
+                self.assertEqual(config["external_keyboard_layouts"], [{"path": "ok.json"}])
+
+    def test_external_layout_legacy_and_dict_paths_preserve_case(self):
+        for path in ("ok.json", "User/Keymaps/A.json", "C:/User/Keymaps/A.json"):
+            for entry in (f"  {path}  ", {"path": f"  {path}  "}):
+                with self.subTest(entry=entry):
+                    config = ensure_config_compatibility({"external_keyboard_layouts": [entry]})
+                    self.assertEqual(config["external_keyboard_layouts"], [{"path": path}])
+
+    def test_non_string_switch_targets_rejected_even_with_matching_ids(self):
+        for value in (None, 0, False, [], {}, 123, True, ["a"], {"a": 1}):
+            with self.subTest(value=value):
+                keymap_id = str(value).lower()
+                config = ensure_config_compatibility({
+                    "keymaps": [{"id": keymap_id, "mappings": {}}],
+                    "keymap_switch_keys": {"F1": value, "F2": f"  {keymap_id}  "},
+                })
+                self.assertEqual(config["keymaps"][0]["id"], keymap_id)
+                self.assertEqual(config["keymap_switch_keys"], {"f2": keymap_id})
+
+
 class FormatListItemTest(unittest.TestCase):
     def test_trigger_with_label(self):
         self.assertEqual(format_trigger_list_item(0, {"key": "F1", "label": "copy"}), "01. f1: copy")

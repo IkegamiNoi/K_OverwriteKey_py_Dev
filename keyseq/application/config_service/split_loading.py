@@ -309,7 +309,7 @@ def build_runtime_data_from_split(
         config_root=config_root,
     )
     runtime["triggers"] = triggers
-    trigger_set_path = str(keymap_set.get("trigger_set_path") or "").strip()
+    trigger_set_path = coerce_label(keymap_set.get("trigger_set_path"))
     if trigger_set_path:
         runtime[service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = trigger_set_path
     if trigger_set_parent_refs is not None:
@@ -334,7 +334,7 @@ def build_runtime_data_from_split(
     loaded_keymap_ids_by_path: dict[str, str] = {}
     used_keymap_ids: set[str] = set()
 
-    active_keymap_path = str(keymap_set.get("active_keymap_path") or "").strip()
+    active_keymap_path = coerce_label(keymap_set.get("active_keymap_path"))
     active_keymap_resolved_path = (
         service._resolve_config_relative_path(active_keymap_path, config_root)
         if active_keymap_path
@@ -393,10 +393,10 @@ def load_keymap_entry(
     used_keymap_ids: set[str],
 ) -> dict[str, Any] | None:
     if isinstance(entry, dict):
-        stored_path = str(entry.get("path") or "").strip()
-        switch_key = str(entry.get("switch_key") or "").strip()
+        stored_path = coerce_label(entry.get("path"))
+        switch_key = coerce_key_name(entry.get("switch_key"))
     else:
-        stored_path = str(entry or "").strip()
+        stored_path = coerce_label(entry)
         switch_key = ""
 
     if not stored_path:
@@ -438,7 +438,7 @@ def load_trigger_set(
     *,
     config_root: str,
 ) -> tuple[list[dict[str, Any]], list[str] | None]:
-    stored_path = str(path_value or "").strip()
+    stored_path = coerce_label(path_value)
     if not stored_path:
         return [], None
 
@@ -519,9 +519,9 @@ def normalize_external_keyboard_layouts(
     normalized: list[dict[str, str]] = []
     for item in registrations:
         if isinstance(item, dict):
-            stored_path = str(item.get("path") or "").strip()
+            stored_path = coerce_label(item.get("path"))
         else:
-            stored_path = str(item or "").strip()
+            stored_path = coerce_label(item)
         if not stored_path:
             continue
 

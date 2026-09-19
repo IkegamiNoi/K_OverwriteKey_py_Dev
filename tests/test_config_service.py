@@ -1693,6 +1693,81 @@ class ApplyGlobalDefaultsTest(unittest.TestCase):
             self.assertEqual(runtime, once_applied)
 
 
+class SplitPathFieldCoercionTest(unittest.TestCase):
+    def test_non_string_switch_key_does_not_leak_repr_for_valid_keymap(self):
+        with tempfile.TemporaryDirectory() as root:
+            repository = JsonRepository()
+            service = ConfigService(repository)
+            repository.save_json(os.path.join(root, "Map.json"), {"id": "km1", "mappings": {}})
+            for value in (None, 0, False, [], {}, 123, True, ["a"], {"a": 1}):
+                with self.subTest(value=value):
+                    runtime = split_loading.build_runtime_data_from_split(
+                        service, {"keymaps": [{"path": "Map.json", "switch_key": value}]},
+                        config_root=root,
+                    )
+                    self.assertEqual([item["id"] for item in runtime["keymaps"]], ["km1"])
+                    self.assertEqual(runtime["keymap_switch_keys"], {})
+
+    def test_non_string_split_paths_behave_as_unspecified(self):
+        with tempfile.TemporaryDirectory() as root:
+            service = ConfigService(JsonRepository())
+            with patch.object(
+                service, "_resolve_config_relative_path", wraps=service._resolve_config_relative_path,
+            ) as resolve:
+                baseline = split_loading.build_runtime_data_from_split(service, {}, config_root=root)
+                baseline_calls = list(resolve.call_args_list)
+                for value in (None, 0, False, [], {}, 123, True, ["a"], {"a": 1}):
+                    with self.subTest(value=value):
+                        resolve.reset_mock()
+                        runtime = split_loading.build_runtime_data_from_split(
+                            service, {
+                                "trigger_set_path": value,
+                                "active_keymap_path": value,
+                                "keymaps": [{"path": value}, value],
+                                "external_keyboard_layouts": [{"path": value}, value],
+                            }, config_root=root,
+                        )
+                        self.assertEqual(runtime, baseline)
+                        self.assertEqual(resolve.call_args_list, baseline_calls)
+
+    def test_valid_relative_and_absolute_paths_preserve_case_and_resolution(self):
+        with tempfile.TemporaryDirectory() as root:
+            repository = JsonRepository()
+            service = ConfigService(repository)
+            relative_path = "User/Keymaps/A.json"
+            absolute_path = os.path.join(root, "User", "Keymaps", "A.json")
+            os.makedirs(os.path.dirname(absolute_path))
+            repository.save_json(absolute_path, {"id": "km1", "mappings": {}})
+            for path in (relative_path, absolute_path):
+                with self.subTest(path=path):
+                    padded = f"  {path}  "
+                    expected = service._resolve_config_relative_path(path, root)
+                    for entry in ({"path": padded, "switch_key": "  F1  "}, padded):
+                        loaded = split_loading.load_keymap_entry(
+                            service, entry, config_root=root, used_keymap_ids=set(),
+                        )
+                        self.assertIsNotNone(loaded)
+                        self.assertEqual(loaded["resolved_path"], expected)
+                        self.assertEqual(loaded["keymap"][service.INTERNAL_KEYMAP_SOURCE_PATH], path)
+                        self.assertEqual(loaded["switch_key"], "f1" if isinstance(entry, dict) else "")
+                    runtime = split_loading.build_runtime_data_from_split(
+                        service, {"active_keymap_path": padded, "trigger_set_path": padded},
+                        config_root=root,
+                    )
+                    self.assertEqual(runtime["active_keymap_id"], "km1")
+                    self.assertEqual(runtime[service.INTERNAL_TRIGGER_SET_SOURCE_PATH], path)
+                    with patch.object(service, "_load_optional_json", return_value=None) as load:
+                        split_loading.load_trigger_set(service, padded, config_root=root)
+                        load.assert_called_once_with(expected)
+                    layouts = split_loading.normalize_external_keyboard_layouts(
+                        service, [{"path": padded}, padded], config_root=root,
+                    )
+                    expected_layout = service._normalize_path_separators(
+                        os.path.relpath(expected, os.path.dirname(root)),
+                    )
+                    self.assertEqual(layouts, [{"path": expected_layout}] * 2)
+
+
 class KeymapFileIoTest(unittest.TestCase):
     def test_split_loading_coerces_referenced_keymap_non_string_label(self):
         with tempfile.TemporaryDirectory() as tmp:
