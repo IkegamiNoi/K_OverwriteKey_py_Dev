@@ -15,7 +15,7 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い**。次採番 = phase 25 / 暫定 21 / decisions 25）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い**。次採番 = phase 26 / 暫定 21 / decisions 26）
 3. **次フェーズの方針をユーザーへ確認してから** `/phase_start` で起票する。
    候補の確認先は `instructions/backlog/INDEX.md`（未着手はいずれも優先度低）
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
@@ -24,9 +24,9 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜20）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 24（JSON 読込の型不正の扱い統一）完了。全 9 箇所の例外を解消・正本昇格と記録・refactor_check〔不要〕まで完了。次フェーズ未確定。**
-直近コミット: `a62e447`（task_02 = 正本昇格と記録）/ `1532bf3`（task_03）/ `a1764d1`（task_01）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜24 はユーザーがマージする）。
+**phase 25（パス系フィールドの型正規化）完了。実装 3 ファイル・正本 §5.5 / §5.7 への追記・記録・refactor_check〔不要〕まで完了。次フェーズ未確定。**
+直近コミット: `56ef53b`（task_02 = 正本反映と記録）/ `ad0a7d0`（task_01b）/ `b8636bb`（task_01）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜25 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -36,9 +36,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 24 task_03 時点 = 2026-09-19**。task_02 はコード変更なし）:
-compile **clean** / tests **505 実行 OK**（skip 7）/ tests_ui **446 実行 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 23 完了 486 → phase 24 完了 505 / tests_ui: 446 で不変）。
+直近の実測（**phase 25 task_01b 時点 = 2026-09-19**。task_02 はコード変更なし）:
+compile **clean** / tests **514 実行 OK**（skip 7）/ tests_ui **446 実行 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 24 完了 505 → phase 25 完了 514 / tests_ui: 446 で不変）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` が生成されていない**ことを確認する。
 
@@ -49,34 +49,34 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = **phase 25 / 暫定 21 / decisions 25**）。
-  候補は `instructions/backlog/INDEX.md`（**idea_25** = パス系フィールドの型正規化〔phase 24 で分離〕/
-  **idea_23** = キーの押す / 離すアクション。いずれも優先度低）。
+- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = **phase 26 / 暫定 21 / decisions 26**）。
+  候補は `instructions/backlog/INDEX.md`（**idea_23** = キーの押す / 離すアクション。優先度低）と、
+  `current.md`「別タスク化候補」の **Phase 25 項**（`startup_io.py` の `keymap_set_path` /
+  **runtime 内部キーの型未追従**〔正本 §5.7 に【実装未追従】として明記済〕）。
 - **main へのマージはユーザーが行う**。
 - **運用**: `verifier` に変異検査を頼むときは「**`git checkout --` / `git restore` / `git stash` を使わない**（未コミットの実装ごと巻き戻る）。
   ファイルのコピーで退避・復元する」を明示する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
-## 直前フェーズ（phase 24 = JSON 読込の型不正の扱い統一）の要点
+## 直前フェーズ（phase 25 = パス系フィールドの型正規化）の要点
 
-**正本が正**: `spec_detail/data_schema.md` **§5.1「型不正の共通規則」（新設）** / **§5.6「keymap」（新設）** /
-§5.2 / §5.11、`codebase_map.md`。暫定仕様 20 は**凍結済**で条項の根拠に引かない。
-判断は `decisions_archive/24_json_type_normalization.md`。
+**正本が正**: `spec_detail/data_schema.md` **§5.5 / §5.7**（phase 24 で新設した §5.1「型不正の共通規則」を参照する形）、
+`codebase_map.md`。暫定仕様なし（直接改訂モード）。判断は `decisions_archive/25_path_field_type_normalization.md`。
 
-- **`domain/config.py` の `coerce_key_name` / `coerce_label`（非 str は `""`）へ一本化**し、**全読込経路へ適用**。
-  **`normalize_key_name(value: str)` のシグネチャは変えない**（呼び出しが多数あり意味が変わるため）。
-- **非文字列は空扱い**。ただし要素が成立しないなら除去（`mappings` の対 / `hotkey_presets` の要素）。
-  **`actions` の要素除去は「非 dict」という形状由来**であり、`label` が非文字列でも**要素は残る**（`label=""`）。
-- **単一 JSON の `keymaps[].id` だけ扱いが違う**: ファイル名が無く stem へ倒せないため
-  **要素ごと除去**され、個別 / split 読込の `_2` 付加による一意化は行われない。
-- **falsy な非文字列（`0` / `false` / `[]` / `{}` / `null`）は元から空扱い**で挙動不変。変わるのは truthy な非文字列のみ。
-- `suppress` は**キーが無ければ true**、値があれば `bool()` 解釈（`null`/`0`/`""`/`[]` は false）。
-- **未対応の残件** = パス系フィールド（`path` / `switch_key` / `trigger_set_path` 等）= **idea_25**。
-  `button` 非文字列（`action_executor.py:119`）は phase 22 からの候補のまま（**実行時**の別レイヤ）。
-- **教訓**: 当初「例外は 6 箇所」と見積もったが**実際は 9 箇所**だった（完了判定前 `deep-reviewer` が 3 件、
-  その後の全走査で旧形式 `trigger_key` を追加発見）。**棚卸しは該当パターンの全走査で裏を取る**。
-- phase 23（`actions[]` の正規化を domain へ一本化）以前の要点は `decisions_archive/<phase>.md` を参照する。
+- **使い分け = パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`（trim + 小文字化）**。
+  **パスに `coerce_key_name` を使うと小文字化で壊れる**（§5.7 の `normcase` は**比較専用**で、記録表記は大小文字を保持）。
+- **参照突合経路（`reference_scan.py`）は生 JSON を直接読む別実装**で `ensure_config_compatibility` を通らない。
+  同種の修正をするときは**この経路も個別に確認する**（task_01 では取りこぼし、完了後レビューで検出した）。
+- **keymap_set の `keymaps[]`（参照エントリ）は旧記法の文字列を受ける**。§5.1 の
+  「`keymaps[]` の非 dict 要素は除去」は**単一 JSON / runtime の内容 keymaps**（§5.2）を指す**別物**。
+  混同すると旧記法の互換を壊す。
+- **例外（`AttributeError`）になる箇所はゼロ**だった（すべて `str()` でラップ済み）。本フェーズは repr 混入の解消。
+- **未対応の残件**（`current.md`「別タスク化候補」の Phase 25 項）= ①`startup_io.py` の `keymap_set_path`
+  （presentation 層）②**runtime 専用の内部キー**（`_keymap_source_path` 等）が §5.1 に未追従。
+  生値のまま素通しし `save_path_resolution.py:127` 経由で**保存先パス候補に repr が混入し得る**
+  （正本 §5.7 に**【実装未追従】**として明記済）。
+- phase 24（内容フィールドの型正規化）以前の要点は `decisions_archive/<phase>.md` を参照する。
 
 ## 運用インフラ
 
@@ -120,7 +120,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   併用は `.claude/rules/agent_selection.md` のレビュー表が正。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 24_json_type_normalization / 23_sequence_payload_action_normalization / 22_mouse_drag_action）。
-- 未着手/保留 idea: **idea_25**（パス系フィールドの型正規化）/ **idea_23**（押す / 離すアクション）/
+  （直近 3 件: 25_path_field_type_normalization / 24_json_type_normalization / 23_sequence_payload_action_normalization）。
+- 未着手/保留 idea: **idea_23**（押す / 離すアクション）/
   **idea_18**（Escape 配送依存テストの不安定）/ idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
