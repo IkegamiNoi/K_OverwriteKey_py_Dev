@@ -53,9 +53,9 @@
 
 ## タスク
 
-- task_01: domain へ actions 正規化関数を切り出し、sequence 単体読込へ適用する（+ 単体テスト）
+- task_01: domain へ actions 正規化関数を切り出し、sequence 単体読込へ適用する（+ 単体テスト）— **完了**（2026-09-19・`bc61ea7`）
 - task_02: 正本反映と記録（§5.11 の【実装未追従】注記削除 / decisions_archive/23 /
-  current.md / backlog INDEX → INDEX_done / `/refactor_check`）
+  current.md / backlog INDEX → INDEX_done / `/refactor_check`）— **完了**（2026-09-19）
 
 ## レビュー方針
 

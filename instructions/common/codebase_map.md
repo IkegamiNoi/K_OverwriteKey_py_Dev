@@ -543,6 +543,10 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - ドラッグの入力 UI は `dialogs/action_dialog.py`（「ドラッグ」チェックで離す位置 X/Y・取得ボタン・速度欄を
   `grid_remove` で出し入れし、X/Y ラベルを「掴む位置」へ、回数欄を `disabled` にして保存値を 1 に固定。
   座標取得は掴む用 / 離す用で排他）。一覧表示の整形は `domain/config.py` の `format_action_list_item`。
+- **`actions[]` の読込時正規化は `domain/config.py::normalize_actions` に一本化**（dict 以外の要素を除去し
+  `label` を整形する純関数・冪等）。呼び出しは 2 系統 = `ensure_config_compatibility` 内（split 読込・単一 JSON）と
+  `application/config_service::_normalize_sequence_payload`（個別 sequence JSON の単体読込 / 保存後の戻り値）。
+  **application 側は整形規則を持たず domain の関数を呼ぶだけ**（規定は `data_schema.md` §5.11）。
 
 ---
 

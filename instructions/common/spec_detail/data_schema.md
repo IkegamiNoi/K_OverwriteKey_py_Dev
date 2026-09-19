@@ -279,12 +279,9 @@ hotkey プリセットは、**アプリ全体で共有する 1 つのライブ�
 
 `actions[]` は §5.2（単一JSON の `triggers[].actions`）・§5.6（sequence の `actions`）・
 §5.6「旧形式互換」（旧 `triggers[].actions`）で共通の配列で、要素は dict とする。
-要素は `ensure_config_compatibility` を通る読込経路で正規化し、**dict 以外の要素は除去する**。
+要素は**読込時に正規化**し、**dict 以外の要素は除去する**。
+正規化は split 読込・個別 sequence JSON の単体読込のいずれの経路にも適用する。
 未定義キーは無視する（§5.1）。
-
-* **【実装未追従】** 個別 sequence JSON を単体で読み込む経路はこの正規化を通らず、dict 以外の要素が
-  そのまま runtime へ載る（phase 22 以前からの既存挙動。[idea_24](../../backlog/idea_24_sequence_payload_action_normalization.md)）。
-  **本節の規定が正**であり、実装側を追従させる。
 
 #### 5.11.1 種別ごとのキー
 

@@ -7,12 +7,16 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [phase 23](23_sequence_payload_action_normalization/phase.md)**（個別 sequence JSON 単体読込の actions 正規化・2026-09-19 起票）。
-  **直接改訂モード**（正本 `data_schema.md` §5.11 の規定が既に正。変更は【実装未追従】注記の削除のみ）。
-  番号対応: phase 23 / decisions 23（暫定仕様なし）。
-  起票元 = [idea_24](../backlog/idea_24_sequence_payload_action_normalization.md)（phase 22 完了判定前 deep-reviewer 指摘 3）。案 A（正規化を domain へ切り出して共有）で実装追従する。
-  進捗: **task_01 完了**（`normalize_actions` の切り出しと sequence 単体読込への適用・reviewer 採用・全テスト pass）。次は **task_02**（正本反映と記録）。
-- **直近の一連の作業が扱っている領域 = マウス操作（ドラッグ）**。
+- **アクティブなフェーズ: なし**（[phase 23](23_sequence_payload_action_normalization/phase.md) は 2026-09-19 完了）。次フェーズ未確定のため、着手前にユーザーへ方針を確認する。
+- **直近の一連の作業が扱っている領域 = アクション要素（`actions[]`）の読込時正規化**。
+  正本は `data_schema.md` §5.11「アクション要素」。実装 = `keyseq/domain/config.py`（公開関数 `normalize_actions`）/
+  `keyseq/application/config_service/__init__.py`（`_normalize_sequence_payload` が同関数へ委譲）、
+  テスト = `tests/test_domain_config.py` / `tests/test_config_service.py`（`SequenceFileIoTest`）。
+  **split 読込と個別 sequence 単体読込の双方で dict 以外の要素を除去し `label` を整形する**（正規化は domain に一本化・冪等）。
+  **残件** = ①保存側（`build_sequence_payload`）は正規化を通さない設計のまま（読込で担保）②keymap / trigger_set など
+  他の個別 JSON 読込経路の正規化見直しは未着手（スコープ外）③`button` 非文字列の扱い（phase 22 からの別タスク化候補・未着手）。
+  判断は [decisions_archive/23](../../.claude_data/state/decisions_archive/23_sequence_payload_action_normalization.md)。
+- **その前の領域 = マウス操作（ドラッグ）**。
   正本は `data_schema.md` §5.11「アクション要素」/ `codebase_map.md`「マウス操作（infrastructure/input_gateway.py の InputGateway・phase 22）」節。
   実装 = `keyseq/infrastructure/input_gateway.py`（`drag_mouse`）/ `keyseq/application/action_executor.py`（`_execute_mouse_drag`）/
   `keyseq/presentation/dialogs/action_dialog.py`（ドラッグ UI）/ `keyseq/domain/config.py`（表示整形）、
