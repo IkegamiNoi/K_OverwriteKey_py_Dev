@@ -8,6 +8,8 @@ from keyseq.domain.config import (
     HOOK_KEY_FIELDS,
     HOOK_STOP_KEY,
     HOOK_TOGGLE_KEY,
+    coerce_key_name,
+    coerce_label,
     ensure_config_compatibility,
     normalize_hotkey_presets,
     normalize_hook_key_pair,
@@ -417,7 +419,7 @@ def load_keymap_entry(
         "switch_key": switch_key,
         "keymap": {
             "id": keymap_id,
-            "label": str(raw_keymap.get("label") or "").strip(),
+            "label": coerce_label(raw_keymap.get("label")),
             "mappings": safe_deepcopy(mappings),
             service.INTERNAL_KEYMAP_SOURCE_PATH: stored_path,
             service.INTERNAL_KEYMAP_IMPORTED: False,
@@ -465,9 +467,9 @@ def load_triggers_from_trigger_set(
             continue
 
         trigger = {
-            "key": normalize_key_name(str(raw_trigger.get("key") or "")),
+            "key": coerce_key_name(raw_trigger.get("key")),
             "suppress": bool(raw_trigger.get("suppress", True)),
-            "label": str(raw_trigger.get("label") or "").strip(),
+            "label": coerce_label(raw_trigger.get("label")),
             "run_to_end": bool(raw_trigger.get("run_to_end", False)),
             "run_to_end_delay_ms": service._coerce_nonnegative_int(
                 raw_trigger.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
@@ -477,7 +479,7 @@ def load_triggers_from_trigger_set(
             if isinstance(raw_trigger.get("actions"), list)
             else [],
         }
-        sequence_path = str(raw_trigger.get("sequence_path") or "").strip()
+        sequence_path = coerce_label(raw_trigger.get("sequence_path"))
         if sequence_path:
             resolved_sequence_path = service._resolve_config_relative_path(sequence_path, config_root)
             sequence = service._load_optional_json(resolved_sequence_path)

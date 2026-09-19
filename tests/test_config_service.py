@@ -1694,6 +1694,45 @@ class ApplyGlobalDefaultsTest(unittest.TestCase):
 
 
 class KeymapFileIoTest(unittest.TestCase):
+    def test_split_loading_coerces_referenced_keymap_non_string_label(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repository = JsonRepository()
+            service = ConfigService(repository)
+            repository.save_json(
+                os.path.join(tmp, "map.json"),
+                {"label": ["a"], "mappings": {"a": "b"}},
+            )
+            keymap_set = {"keymaps": [{"path": "map.json"}]}
+
+            runtime = split_loading.build_runtime_data_from_split(
+                service, keymap_set, config_root=tmp,
+            )
+
+            self.assertEqual(len(runtime["keymaps"]), 1)
+            self.assertEqual(runtime["keymaps"][0]["label"], "")
+
+    def test_non_string_ids_use_filename_stem_and_labels_become_empty(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repository = JsonRepository()
+            service = ConfigService(repository)
+            path = os.path.join(tmp, "My_Map.json")
+            for value in (None, 0, False, [], {}, 123, ["a"], {"a": 1}):
+                with self.subTest(value=value):
+                    repository.save_json(path, {"id": value, "label": value})
+                    loaded = service.load_keymap_file(path)
+                    self.assertEqual(loaded["id"], "my_map")
+                    self.assertEqual(loaded["label"], "")
+
+    def test_non_string_mapping_targets_are_dropped(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repository = JsonRepository()
+            service = ConfigService(repository)
+            path = os.path.join(tmp, "map.json")
+            for value in (None, 0, False, [], {}, 123, ["a"], {"x": 1}):
+                with self.subTest(value=value):
+                    repository.save_json(path, {"mappings": {"a": value, "b": "c"}})
+                    self.assertEqual(service.load_keymap_file(path)["mappings"], {"b": "c"})
+
     def test_save_and_load_keymap_file(self):
         with tempfile.TemporaryDirectory() as tmp:
             service = ConfigService(JsonRepository())
@@ -1716,6 +1755,20 @@ class KeymapFileIoTest(unittest.TestCase):
 
 
 class SequenceFileIoTest(unittest.TestCase):
+    def test_load_sequence_file_coerces_non_string_labels(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repository = JsonRepository()
+            service = ConfigService(repository)
+            path = os.path.join(tmp, "seq.json")
+            for value in (None, 0, False, [], {}, 123, ["a"], {"a": 1}):
+                with self.subTest(value=value):
+                    repository.save_json(path, {
+                        "label": value, "actions": [{"type": "text", "label": value}],
+                    })
+                    loaded = service.load_sequence_file(path)
+                    self.assertEqual(loaded["label"], "")
+                    self.assertEqual(loaded["actions"], [{"type": "text", "label": ""}])
+
     def test_normalize_sequence_payload_delegates_actions(self):
         service = ConfigService(JsonRepository())
         for sequence in ({}, {"actions": None}, {"actions": "x"}, {"actions": ["bad"]}):
@@ -1761,6 +1814,52 @@ class SequenceFileIoTest(unittest.TestCase):
             self.assertEqual(loaded["actions"], [{"type": "hotkey", "value": "ctrl+c", "label": ""}])
             self.assertEqual(loaded["_sequence_source_path"], path)
             self.assertTrue(loaded["_sequence_imported"])
+
+
+class TriggerSetTypeNormalizationTest(unittest.TestCase):
+    def test_load_trigger_set_coerces_non_string_fields(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repository = JsonRepository()
+            service = ConfigService(repository)
+            path = os.path.join(tmp, "triggers.json")
+            repository.save_json(path, {"triggers": [{
+                "key": {"a": 1}, "label": ["a"],
+                "actions": [{"type": "text", "label": 123}],
+            }]})
+            trigger = service.load_trigger_set_file(path, config_root=tmp)[0]
+            self.assertEqual(trigger["key"], "")
+            self.assertEqual(trigger["label"], "")
+            self.assertEqual(trigger["actions"], [{"type": "text", "label": ""}])
+
+    def test_non_string_sequence_paths_do_not_load_references(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repository = JsonRepository()
+            service = ConfigService(repository)
+            path = os.path.join(tmp, "triggers.json")
+            for value in (None, 0, False, [], {}, 123, ["a"], {"a": 1}):
+                with self.subTest(value=value):
+                    repository.save_json(path, {"triggers": [{
+                        "key": " F1 ", "label": " Keep ", "sequence_path": value,
+                    }]})
+                    with patch.object(service, "_load_optional_json") as load_reference:
+                        trigger = service.load_trigger_set_file(path, config_root=tmp)[0]
+                    load_reference.assert_not_called()
+                    self.assertEqual(trigger["key"], "f1")
+                    self.assertEqual(trigger["label"], "Keep")
+                    self.assertNotIn(service.INTERNAL_SEQUENCE_SOURCE_PATH, trigger)
+
+    def test_referenced_sequence_non_string_label_does_not_leak_repr(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            repository = JsonRepository()
+            service = ConfigService(repository)
+            path = os.path.join(tmp, "triggers.json")
+            repository.save_json(os.path.join(tmp, "seq.json"), {"label": {"a": 1}})
+            repository.save_json(path, {"triggers": [{
+                "key": "f1", "label": "original", "sequence_path": "seq.json",
+            }]})
+            trigger = service.load_trigger_set_file(path, config_root=tmp)[0]
+            self.assertEqual(trigger["label"], "")
+            self.assertIn(service.INTERNAL_SEQUENCE_SOURCE_PATH, trigger)
 
 
 class IndividualSavePathTest(unittest.TestCase):

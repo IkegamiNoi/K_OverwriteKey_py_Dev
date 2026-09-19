@@ -7,7 +7,13 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（[phase 23](23_sequence_payload_action_normalization/phase.md) は 2026-09-19 完了）。次フェーズ未確定のため、着手前にユーザーへ方針を確認する。
+- **アクティブなフェーズ: [phase 24](24_json_type_normalization/phase.md)**（JSON 読込の型不正の扱い統一・2026-09-19 起票）。
+  **暫定仕様先行モード**。主入力 = [暫定仕様 20](../history/20_individual_json_type_normalization.md)（v0.3・ユーザー確定済）。
+  番号対応: phase 24 / 暫定 20 / decisions 24。
+  起票元 = phase 23 完了後のユーザー指示（keymap / trigger_set の個別読込経路の見直し）。
+  **スコープ = 全経路へ一斉適用**（共有ローダーのため経路別に切ると破綻する）。
+  進捗: **task_01 完了**（`coerce_key_name` / `coerce_label` の新設と 10 箇所への適用・reviewer 採用・全テスト pass）。次は **task_02**（正本反映と記録）。
+- [phase 23](23_sequence_payload_action_normalization/phase.md) は 2026-09-19 完了。
 - **直近の一連の作業が扱っている領域 = アクション要素（`actions[]`）の読込時正規化**。
   正本は `data_schema.md` §5.11「アクション要素」。実装 = `keyseq/domain/config.py`（公開関数 `normalize_actions`）/
   `keyseq/application/config_service/__init__.py`（`_normalize_sequence_payload` が同関数へ委譲）、
@@ -60,8 +66,8 @@
 
 ## 次採番
 
-- **phase 23 は起票済・進行中**（`23_sequence_payload_action_normalization` / decisions 23）。
-  次フェーズは **`24_<topic>`**・decisions も **24** を使う（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 24 は起票済・進行中**（`24_json_type_normalization` / 暫定 20 / decisions 24）。
+  次フェーズは **`25_<topic>`**・decisions も **25** を使う（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
@@ -77,7 +83,7 @@
   17=フル表示ヘッダの幅〔**v0.3・凍結**〕/
   18=フル表示の縦方向の最小サイズ〔**v0.5・凍結**〕/
   19=マウスのドラッグ操作〔**v0.5・凍結**〕）。
-  次採番は **`20_<topic>`**。
+  次採番は **`21_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/

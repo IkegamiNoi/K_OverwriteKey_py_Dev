@@ -20,6 +20,11 @@ CPU 負荷下で不定期に fail する**。`event_generate("<Escape>")` の配
   `dialog.focus_force()` → `self.app.update()` → `dialog.event_generate("<Escape>")` →
   `self.app.update()` の順で、**Escape が配送されなければダイアログが閉じず**
   `resume.assert_called_once_with()` が「0 回」で落ちる。
+- **同じ機構の別テストでも観測**（2026-09-19・phase 24 task_01 の統合確認）:
+  `tests_ui/test_quarantine_manage_flow.py:326`
+  `test_escape_and_window_close_keep_action_empty (close='escape')` が一括実行で 1 度だけ fail
+  （`get_hook_pause_count()` が `1 != 0`）。**単独実行 20/20 pass・一括の再実行も 446 全 pass** で、
+  当該フェーズの差分（型正規化）とは無関係。本 idea と同じ Escape 配送依存。
 - **連鎖の仕組み**: 同クラスは `setUpClass` で `App` を共有し、各テストの冒頭で
   `get_hook_pause_count() == 0` を確認する（phase 15 task_03 で入れたドレイン）。
   t2 が閉じ損ねるとカウンタが 1 のまま残り、**後続 4 件が setUp で落ちる**。

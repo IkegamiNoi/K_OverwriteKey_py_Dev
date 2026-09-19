@@ -2,6 +2,8 @@ import unittest
 
 from keyseq.domain.config import (
     DEFAULT_CONFIG,
+    coerce_key_name,
+    coerce_label,
     ensure_config_compatibility,
     format_action_list_item,
     format_preset_list_item,
@@ -21,7 +23,28 @@ class NormalizeKeyNameTest(unittest.TestCase):
         self.assertEqual(normalize_key_name(None), "")
 
 
+class CoerceStringFieldsTest(unittest.TestCase):
+    def test_non_strings_and_empty_string_return_empty(self):
+        for value in (None, "", 0, False, [], {}, 123, True, ["a"], {"a": 1}):
+            with self.subTest(value=value):
+                self.assertEqual(coerce_key_name(value), "")
+                self.assertEqual(coerce_label(value), "")
+
+    def test_strings_keep_existing_normalization(self):
+        self.assertEqual(coerce_key_name("  F1  "), "f1")
+        self.assertEqual(coerce_label("  x  "), "x")
+        self.assertEqual(coerce_label("  Copy 日本語  "), "Copy 日本語")
+
+
 class NormalizeActionsTest(unittest.TestCase):
+    def test_non_string_labels_become_empty(self):
+        for label in (None, 0, False, [], {}, 123, ["a"], {"a": 1}):
+            with self.subTest(label=label):
+                self.assertEqual(
+                    normalize_actions([{"type": "text", "label": label}]),
+                    [{"type": "text", "label": ""}],
+                )
+
     def test_empty_and_non_list_inputs_return_empty(self):
         for actions in ([], None, "x"):
             with self.subTest(actions=actions):
@@ -150,6 +173,26 @@ class ResolveHookKeysIndividualTest(unittest.TestCase):
 
 
 class EnsureConfigCompatibilityTest(unittest.TestCase):
+    def test_non_string_trigger_fields_become_empty(self):
+        for value in (None, 0, False, [], {}, 5, ["a"], {"a": 1}):
+            with self.subTest(value=value):
+                config = ensure_config_compatibility(
+                    {"triggers": [{"key": value, "label": value}]}
+                )
+                self.assertEqual(config["triggers"][0]["key"], "")
+                self.assertEqual(config["triggers"][0]["label"], "")
+
+    def test_non_string_keymap_ids_are_dropped_and_labels_become_empty(self):
+        for value in (None, 0, False, [], {}, 7, [1], {"a": 1}):
+            with self.subTest(value=value):
+                config = ensure_config_compatibility(
+                    {"keymaps": [{"id": value, "label": [1]},
+                                 {"id": " KM1 ", "label": value}]}
+                )
+                self.assertEqual(
+                    config["keymaps"], [{"id": "km1", "label": "", "mappings": {}}]
+                )
+
     def test_empty_input_returns_defaults(self):
         config = ensure_config_compatibility({})
         self.assertEqual(config["triggers"], [])

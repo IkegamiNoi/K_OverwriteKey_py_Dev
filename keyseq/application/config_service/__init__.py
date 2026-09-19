@@ -8,6 +8,8 @@ from keyseq.domain.config import (
     DEFAULT_CONFIG,
     DEFAULT_RUN_TO_END_DELAY_MS,
     HOOK_KEY_FIELDS,
+    coerce_key_name,
+    coerce_label,
     coerce_nonnegative_int,
     ensure_config_compatibility,
     normalize_actions,
@@ -127,7 +129,7 @@ class ConfigService:
             mappings = {}
         keymap = {
             "id": keymap_id,
-            "label": str(raw_keymap.get("label") or "").strip(),
+            "label": coerce_label(raw_keymap.get("label")),
             "mappings": safe_deepcopy(mappings),
             self.INTERNAL_KEYMAP_SOURCE_PATH: (
                 self.to_config_relative_or_absolute(path, config_root)
@@ -454,7 +456,7 @@ class ConfigService:
 
     def _normalize_sequence_payload(self, sequence: dict[str, Any]) -> dict[str, Any]:
         return {
-            "label": str(sequence.get("label") or "").strip(),
+            "label": coerce_label(sequence.get("label")),
             "run_to_end": bool(sequence.get("run_to_end", False)),
             "run_to_end_delay_ms": self._coerce_nonnegative_int(
                 sequence.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
@@ -502,7 +504,7 @@ class ConfigService:
         raw_keymap: dict[str, Any],
         used_keymap_ids: set[str],
     ) -> str:
-        preferred = normalize_key_name(raw_keymap.get("id", ""))
+        preferred = coerce_key_name(raw_keymap.get("id"))
         if not preferred:
             preferred = normalize_key_name(os.path.splitext(os.path.basename(stored_path))[0])
         if not preferred:

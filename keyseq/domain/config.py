@@ -77,6 +77,14 @@ def normalize_key_name(value: str) -> str:
     return (value or "").strip().lower()
 
 
+def coerce_key_name(value: Any) -> str:
+    return normalize_key_name(value) if isinstance(value, str) else ""
+
+
+def coerce_label(value: Any) -> str:
+    return value.strip() if isinstance(value, str) else ""
+
+
 HOOK_STOP_KEY = "hook_stop_key"
 HOOK_TOGGLE_KEY = "hook_toggle_key"
 HOOK_KEY_FIELDS: tuple[str, str] = (HOOK_STOP_KEY, HOOK_TOGGLE_KEY)
@@ -141,7 +149,7 @@ def normalize_actions(actions: Any) -> list[dict[str, Any]]:
         if not isinstance(action, dict):
             continue
         a = safe_deepcopy(action)
-        a["label"] = (a.get("label") or "").strip()
+        a["label"] = coerce_label(a.get("label"))
         normalized_actions.append(a)
     return normalized_actions
 
@@ -175,8 +183,8 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
         if not isinstance(trigger, dict):
             continue
         t = safe_deepcopy(trigger)
-        t["key"] = normalize_key_name(t.get("key", ""))
-        t["label"] = (t.get("label") or "").strip()
+        t["key"] = coerce_key_name(t.get("key"))
+        t["label"] = coerce_label(t.get("label"))
         t["suppress"] = bool(t.get("suppress", True))
         t["run_to_end"] = bool(t.get("run_to_end", False))
 
@@ -245,7 +253,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             if not isinstance(item, dict):
                 continue
 
-            keymap_id = normalize_key_name(item.get("id", ""))
+            keymap_id = coerce_key_name(item.get("id"))
             if not keymap_id or keymap_id in seen_keymap_ids:
                 continue
 
@@ -254,7 +262,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             if isinstance(raw_mappings, dict):
                 for raw_source, raw_target in raw_mappings.items():
                     source = normalize_key_name(str(raw_source or ""))
-                    target = normalize_key_name(str(raw_target or ""))
+                    target = coerce_key_name(raw_target)
                     if not source or not target:
                         continue
                     normalized_mappings[source] = target
@@ -262,7 +270,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             normalized_keymaps.append(
                 {
                     "id": keymap_id,
-                    "label": (item.get("label") or "").strip(),
+                    "label": coerce_label(item.get("label")),
                     "mappings": normalized_mappings,
                 }
             )

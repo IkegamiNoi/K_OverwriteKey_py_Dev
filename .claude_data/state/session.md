@@ -4,47 +4,63 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-19T18:45:00
-phase: **アクティブなフェーズなし**（`instructions/phase/23_sequence_payload_action_normalization` は 2026-09-19 完了）。次フェーズは未確定 = **ユーザーに方針確認が要る**。
-直前の完了フェーズ = phase 23（判断履歴 = `decisions_archive/23_sequence_payload_action_normalization.md`）。番号対応: phase 23 / decisions 23 / 暫定仕様なし。次採番 = phase 24 / 暫定 20 / decisions 24。
+last_updated: 2026-09-19T20:05:00
+phase: `instructions/phase/24_json_type_normalization`（**暫定仕様先行モード**・主入力 = `instructions/history/20_individual_json_type_normalization.md`〔v0.3・ユーザー確定済〕）。
+番号対応: phase 24 / 暫定 20 / decisions 24。次採番 = phase 25 / 暫定 21 / decisions 25。直前の完了フェーズ = phase 23（`decisions_archive/23_sequence_payload_action_normalization.md`）。
 last_commit_location: `claude/idea-24-issue-5f4005`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 23（個別 sequence JSON 単体読込の actions 正規化）完了。実装・正本反映・記録・refactor_check〔不要〕まで完了。次フェーズ未確定。**
-mode: completed
+focus: **phase 24 task_01（JSON 読込の型不正の扱い統一）完了。reviewer 採用・全テスト pass。次は task_02（正本反映と記録）。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-19T18:45:00
+ts: 2026-09-19T20:05:00
 who: main
 summary: |
-  【task_02 = 正本反映と記録（文書のみ・コード変更なし）】
-  `spec_detail/data_schema.md` §5.11 の**【実装未追従】注記を削除**し、規定本文の経路表記を実態へ
-  （「読込時に正規化」「split 読込・個別 sequence 単体読込の双方に適用」）。**規定の内容は不変**。
-  `:105` の別件【実装未追従】（レガシー別名保存パス）は残す。
-  `codebase_map.md` へ「`actions[]` の読込時正規化は `domain/config.py::normalize_actions` に一本化・呼び出しは 2 系統」を追記。
-  【記録】`decisions_archive/23_sequence_payload_action_normalization.md` 新規 / `decisions.md` 索引へ 1 行 /
-  `current.md`（完了記載 + 「直近の領域」を本フェーズへ差し替え・phase 22 は「その前の領域」へ）/
-  `backlog/INDEX.md` の idea_24 行を**完了にして `INDEX_done.md` へ移動** / `phase.md` のタスク一覧に完了反映。
-  【判定】`/refactor_check` = **不要**（PHASE_BASE `cd9e6f2`・対象 2 ファイル・M1〜M6 該当なし）。
-  `reviewer`（正本と実装の整合・記録の漏れ）= **採用 / 完了可**。指摘 1 件（phase.md の task_02 行が進行中のまま）を反映済。
+  【見直し】ユーザー指示で keymap / trigger_set の個別読込経路を実測監査。**欠陥と未定義事項を検出**:
+  ①`_generate_keymap_id` の `id` が非文字列で `AttributeError` ②`str()` 強制で **Python の repr 文字列**が runtime に載る
+  （`{"a": {"x":1}}` → `{"a": "{'x': 1}"}`）。正本 §5.6 に keymap 節が無く型規定も無い = **検出基準 B**のためユーザー判断を仰いだ。
+  【ユーザー判断】「**除去に寄せる**」→ 探索的・多条項のため**暫定仕様先行モード**で暫定仕様 20 を起票。
+  【レビュー 2 本】`deep-reviewer`（起票時）= 修正要 / `codex-adversarial-reviewer`（確定前）= needs-attention。
+  **指摘は全件実測で裏取りし CONFIRMED**: ①例外は 1 箇所でなく **6 箇所**（`actions[]` の `label` 経由で
+  sequence / trigger_set の個別読込も落ちる = phase 23 の仕様・実装に残っていた穴）②`suppress` の記述が実装と逆
+  （`bool()` 強制で `null`/`0`/`""`/`[]` は False）③参照先 sequence の `label` が `trigger.update` で参照元へ repr 再流入
+  ④**共有ローダーのため経路別スコープが成立しない**（`_generate_keymap_id` / `load_triggers_from_trigger_set` は
+  個別読込と split 読込が共有）⑤行番号の誤り。v0.3 へ反映。
+  【ユーザー確定 2 回目】スコープ = **案 F（全経路へ一斉適用）** / 個別条項 3 件 = 提案どおり。
+  【起票】phase 24 + task_01。phase.md 整合チェック `reviewer` = 指摘なし。
+  【task_01 実装】`codex-implementer` へ委任。**domain / application を跨ぐ変更**: `domain/config.py` に
+  `coerce_key_name` / `coerce_label` を新設（非 str は `""`）、**10 箇所**へ適用
+  （domain 6 / config_service 3 / split_loading 4 のうち初回 9 + 差し戻し 1）。`normalize_key_name` のシグネチャは不変（呼び出し 158 箇所）。
+  【レビュー】`reviewer` 1 回目 = **修正要**（`split_loading.py:422` の split 読込 keymap `label` が漏れ。実測で repr 残存を確認）→
+  同じ Codex へ差し戻し 1 行 + テスト 1 件 → 2 回目 = **採用**（指摘なし）。
+  【実測】tests **498**（486 → +12）/ tests_ui 446 / smoke OK。tests_ui は 1 回目に 1 件 fail したが
+  **既知の Escape 配送フレーク**（idea_18 と同機構）で、単独 20/20 pass・一括再実行 446 全 pass。idea_18 へ観測を 1 行追記。
 result_files:
-  - instructions/common/spec_detail/data_schema.md / instructions/common/codebase_map.md
-  - .claude_data/state/decisions_archive/23_sequence_payload_action_normalization.md / .claude_data/state/decisions.md
-  - instructions/phase/current.md / instructions/phase/23_sequence_payload_action_normalization/phase.md・tasks/task_02_spec_and_close.md
-  - instructions/backlog/INDEX.md / instructions/backlog/INDEX_done.md
+  - keyseq/domain/config.py / keyseq/application/config_service/__init__.py / keyseq/application/config_service/split_loading.py
+  - tests/test_domain_config.py / tests/test_config_service.py
+  - instructions/history/20_individual_json_type_normalization.md（v0.3）
+  - instructions/phase/24_json_type_normalization/phase.md・tasks/task_01_coerce_type_normalization.md
+  - instructions/phase/current.md / instructions/backlog/idea_18_escape_delivery_flaky_test.md
 verified:
-  compile: clean（本ターンは文書のみでコード変更なし）
-  tests: 486 ran OK（skipped 7・task_01 時点の実測）
-  tests_ui: 446 ran OK（task_01 時点の実測）
-  smoke: SMOKE OK（task_01 時点の実測）
-  review: reviewer（task_02 記録と正本の整合）= 採用 / reviewer（task_01 実装差分）= 採用
-  refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `cd9e6f2`）
+  compile: clean
+  tests: 498 ran OK（skipped 7）
+  tests_ui: 446 ran OK（再実行で確認。1 回目の 1 件 fail は既知フレーク）
+  smoke: SMOKE OK
+  review: reviewer（task_01 差分）= 採用 / reviewer（phase.md 整合）= 指摘なし / deep-reviewer + codex-adversarial（暫定仕様）= 反映済
+  refactor_check: not_run（task_02 で実施）
 
 ## next_action
-- **phase 23 task_02 の成果をコミットする**（`/task_commit`。文書のみ。未コミットなら最初にこれ）。
-- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = phase 24 / 暫定 20 / decisions 24）。
-  候補は `instructions/backlog/INDEX.md`（例: idea_23 = キーの押す / 離すアクション。いずれも優先度低）。
+- **task_01 の成果をコミットする**（`/task_commit`。未コミットなら最初にこれ）。
+- **task_02 を `/task_new` で起票して実施する**（メイン担当・文書作業）:
+  ①**暫定仕様 20 を正本へ昇格**（`data_schema.md` の §5.1 直下に型不正の共通規則 / §5.6 に keymap 節新設 +
+  trigger_set の型規定 / §5.2・§5.11 へ追記 / `5_08_09_orphan_sweep.md` の形状検証と相互参照）**＋暫定仕様 20 を凍結**
+  ②`decisions_archive/24_json_type_normalization.md` 作成 + `decisions.md` 索引
+  ③`current.md` の完了記載 ④`/refactor_check` ⑤`codebase_map.md` の更新要否判断。
+  起票元が idea ではないため backlog INDEX の移動は不要。
+- **スコープ外として残した項目**（ユーザーへ提案済・未確定）: `split_loading.py:396-399` の
+  `switch_key` / `path` などパス系の `str()` 強制（例外にはならず repr 化するのみ）。必要なら idea 起票。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
