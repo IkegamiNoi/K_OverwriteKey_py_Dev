@@ -4,57 +4,62 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-19T21:30:00
-phase: **アクティブなフェーズなし**（`instructions/phase/24_json_type_normalization` は 2026-09-19 完了）。次フェーズは未確定 = **ユーザーに方針確認が要る**。
-直前の完了フェーズ = phase 24（判断履歴 = `decisions_archive/24_json_type_normalization.md`）。番号対応: phase 24 / 暫定 20〔凍結〕/ decisions 24。次採番 = phase 25 / 暫定 21 / decisions 25。
+last_updated: 2026-09-19T23:10:00
+phase: **アクティブなフェーズなし**（`instructions/phase/25_path_field_type_normalization` は 2026-09-19 完了）。次フェーズは未確定 = **ユーザーに方針確認が要る**。
+直前の完了フェーズ = phase 25（判断履歴 = `decisions_archive/25_path_field_type_normalization.md`）。番号対応: phase 25 / decisions 25 / 暫定仕様なし。次採番 = phase 26 / 暫定 21 / decisions 26。
 last_commit_location: `claude/idea-24-issue-5f4005`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 24（JSON 読込の型不正の扱い統一）完了。全 9 箇所の例外を解消・正本昇格と記録・refactor_check〔不要〕まで完了。次フェーズ未確定。**
+focus: **phase 25（パス系フィールドの型正規化）完了。実装 3 ファイル・正本 §5.5 / §5.7 への追記・記録・refactor_check〔不要〕まで完了。次フェーズ未確定。**
 mode: completed
 
 ## last_action
-ts: 2026-09-19T21:30:00
+ts: 2026-09-19T23:10:00
 who: main
 summary: |
-  【task_02 = 正本昇格と記録】暫定仕様 20 を正本へ昇格し**凍結**。`data_schema.md` に
-  **§5.1「型不正の共通規則」を新設**（非文字列は空扱い / 成立しない要素は除去 / 形状不正も除去 /
-  falsy は挙動不変 / trim・小文字化）+ **§5.6 に keymap 節を新設** + trigger_set の型表 + §5.2・§5.11 追記。
-  `codebase_map.md` へ `coerce_key_name` / `coerce_label` の一本化を追記。
-  【完了判定前レビュー】`deep-reviewer` = **修正要**。指摘を全件実測で裏取りし反映:
-  ①**例外箇所は 6 でなく 9**（`hook_stop_key` / `hook_toggle_key` / `active_keymap_id` が未対応。
-  さらにメインの全走査で**旧形式互換の `trigger_key`**〔`domain/config.py:163`〕を追加発見）
-  ②`actions` の `label` が非文字列でも**要素は残る**（除去は非 dict という**形状由来**）
-  ③**単一 JSON の `keymaps[].id` だけ扱いが違う**（ファイル名が無く stem へ倒せないため**要素ごと除去**・`_2` 一意化なし）
-  ④形状の倒し方（`triggers` 非 list → `[]` 等）の昇格漏れ。§5.8.9 の形状検証は**目的が異なる別規定**で相互参照だけでは不足
-  ⑤`suppress` のキー欠如時の既定（true）の明記漏れ ⑥`current.md` の記録漏れ 2 件。
-  【ユーザー判断】追加の 4 箇所は**後送りせず task_03 として今直す**（案 F の趣旨を満たすため）。
-  【task_03】`codex-implementer` へ委任 → `domain/config.py` の **4 行**を `coerce_key_name` へ置換 + テスト 7 件。
-  `reviewer` = **完了可**（取りこぼしの再走査込み・指摘なし）。
-  【記録】`decisions_archive/24` / `decisions.md` 索引 / `current.md`（完了記載・暫定仕様一覧へ 20 を追記）/
-  `phase.md`。`/refactor_check` = **不要**（PHASE_BASE `61a7c79`・M1〜M6 非該当）。
-  【idea 起票】ユーザー指示で **idea_25**（パス系フィールドの型正規化・未着手）を起票。
+  【phase 25 = idea_25 の実装追従】ユーザー指示で着手。**直接改訂モード**（§5.1 は
+  「文字列を期待するフィールド」と書いておりフィールドを限定していない＝パス系も既に規定の対象。
+  idea_25 の案 B〔現状維持 + 未定義と明記〕は §5.1 を後から緩めることになり不採用）。
+  【現状監査】全走査 + 実測。**例外になる箇所はゼロ**で、`str()` 強制による repr 混入が問題。
+  実害中 = `external_keyboard_layouts[].path` と `keymaps[].switch_key`（実際に runtime へ載ることを実測）。
+  【task_01】`coerce_*` を 9 箇所へ適用。**使い分け = パスは `coerce_label`（trim のみ）/
+  キー名・id は `coerce_key_name`（trim + 小文字化）**。パスを小文字化すると壊れるため。
+  `keymap_switch_keys` の値も `coerce_key_name` へ（従来は membership check による偶然の防御）。
+  【task_01b】task_01 の完了後レビューで**参照突合経路**（`reference_scan.py`・生 JSON を直接読む別実装）の
+  取りこぼしを検出 → ユーザー判断で後送りせず本フェーズ内で修正（`_source_path` の 1 行 + import）。
+  【task_02 = 正本反映】`data_schema.md` §5.5 / §5.7 へ型の規定を追記（**§5.1 の本文は不変**）。
+  `codebase_map.md` を更新。`decisions_archive/25` / `decisions.md` 索引 / `current.md` /
+  backlog INDEX → INDEX_done。
+  【完了判定前レビュー】`deep-reviewer` = **修正要**。全件実測で裏取りし反映:
+  ①**§5.1 の「`keymaps[]` の非 dict 要素は除去」と §5.5 の「旧記法の文字列を受ける」が正面衝突**
+  （前者は単一 JSON / runtime の内容 keymaps、後者は keymap_set の参照エントリ。同名の別物）→ スコープを明記
+  ②**§5.7 の新文が実装より広い**。runtime 専用の内部キー（`_keymap_source_path` 等）は生値のまま素通しする
+  （実測で確認）→ 文言を「JSON に記録するパス値」へ限定し、**【実装未追従】として明記**＋候補送り
+  ③archive の件数誤り（パス系 6 → **7**）④`keymaps[]` の除去条件・旧記法の意味・区切り文字正規化との
+  区別の書き漏れ ⑤`current.md` の「直前の完了フェーズ」が 22 のまま（既存ズレ）→ 25/24/23 へ更新。
+  【判定】`/refactor_check` = **不要**（PHASE_BASE `f0e5887`・M1〜M6 非該当）。
 result_files:
-  - keyseq/domain/config.py / tests/test_domain_config.py
+  - keyseq/domain/config.py / keyseq/application/config_service/split_loading.py / reference_scan.py
+  - tests/test_domain_config.py / tests/test_config_service.py / tests/test_reference_scan.py
   - instructions/common/spec_detail/data_schema.md / instructions/common/codebase_map.md
-  - instructions/history/20_individual_json_type_normalization.md（凍結）
-  - instructions/phase/24_json_type_normalization/phase.md・tasks/task_02・task_03
-  - instructions/phase/current.md / instructions/backlog/idea_25_path_field_type_normalization.md・INDEX.md
-  - .claude_data/state/decisions_archive/24_json_type_normalization.md / .claude_data/state/decisions.md
+  - instructions/phase/25_path_field_type_normalization/（phase.md / tasks 3 件）
+  - instructions/phase/current.md / instructions/backlog/INDEX.md・INDEX_done.md
+  - .claude_data/state/decisions_archive/25_path_field_type_normalization.md / decisions.md
 verified:
   compile: clean
-  tests: 505 ran OK（skipped 7・486 → +19）
+  tests: 514 ran OK（skipped 7・505 → +9）
   tests_ui: 446 ran OK
   smoke: SMOKE OK
-  review: deep-reviewer（task_02 正本昇格）= 修正要 → 反映済 / reviewer（task_03）= 完了可 / reviewer（task_01）= 採用
-  refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `61a7c79`）
+  review: deep-reviewer（task_02 正本反映）= 修正要 → 反映済 / reviewer（task_01・task_01b・phase.md 整合）= いずれも採用
+  refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `f0e5887`）
 
 ## next_action
-- **phase 24 の残りをコミットする**（`/task_commit`。task_02 = 正本反映と記録。未コミットならこれが最初）。
-- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = **phase 25 / 暫定 21 / decisions 25**）。
-  候補は `instructions/backlog/INDEX.md`（**idea_25** = パス系フィールドの型正規化〔本フェーズで分離〕/
-  **idea_23** = キーの押す / 離すアクション。いずれも優先度低）。
+- **phase 25 の残りをコミットする**（`/task_commit`。task_02 = 正本反映と記録。未コミットならこれが最初）。
+- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = **phase 26 / 暫定 21 / decisions 26**）。
+  候補は `instructions/backlog/INDEX.md`（**idea_23** = キーの押す / 離すアクション。優先度低）と、
+  `current.md`「別タスク化候補」の **Phase 25 項**（`startup_io.py` の `keymap_set_path` /
+  **runtime 内部キーの型未追従**〔正本 §5.7 に【実装未追従】として明記済〕）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
@@ -64,6 +69,15 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 25 の成果は正本が正】パス系の型正規化 = `spec_detail/data_schema.md` §5.5 / §5.7**（§5.1 の共通規則を参照する形）。
+  要点 = ①**使い分け = パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`（trim + 小文字化）**。
+  **パスに `coerce_key_name` を使うと小文字化で壊れる**（§5.7 の `normcase` は比較専用）
+  ②**参照突合経路（`reference_scan.py`）は生 JSON を直接読む別実装**で `ensure_config_compatibility` を通らない。
+  同種の修正はこの経路も個別に確認する
+  ③**keymap_set の `keymaps[]`（参照エントリ）は旧記法の文字列を受ける**。§5.1 の「`keymaps[]` の非 dict 要素は除去」は
+  **単一 JSON / runtime の内容 keymaps** を指す別物。混同すると互換を壊す
+  ④**未対応の残件** = `startup_io.py` の `keymap_set_path`（presentation 層）/ **runtime 内部キー**
+  （`_keymap_source_path` 等。正本 §5.7 に【実装未追従】として明記済）。
 - **【phase 24 の成果は正本が正】JSON 読込の型正規化 = `spec_detail/data_schema.md` §5.1「型不正の共通規則」（新設）+ §5.6「keymap」（新設）+ §5.2 / §5.11**。暫定仕様 20 は凍結済。
   要点 = ①`domain/config.py` の **`coerce_key_name` / `coerce_label`**（非 str は `""`）へ一本化し**全読込経路へ適用**
   （`normalize_key_name` のシグネチャは不変。呼び出しが多数で意味が変わるため）

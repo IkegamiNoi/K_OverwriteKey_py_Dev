@@ -555,7 +555,16 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `_normalize_sequence_payload`、`split_loading` の `load_triggers_from_trigger_set` / `load_keymap_entry`）。
   **`normalize_key_name(value: str)` のシグネチャは変えない**（呼び出しが 158 箇所あり、Any 受けにすると
   全経路の意味が変わるため）。規定は `data_schema.md` §5.1「型不正の共通規則」。
-  **パス系フィールド（`path` / `switch_key` 等）は対象外**（idea_25）。
+- **パス系・キー名系にも同じ関数を適用する**（phase 25）。**使い分けは
+  「パス = `coerce_label`（trim のみ）/ キー名・id = `coerce_key_name`（trim + 小文字化）」**。
+  パスに `coerce_key_name` を使うと小文字化でパスが壊れる（規定は `data_schema.md` §5.5 / §5.7）。
+  適用先は `split_loading` の `trigger_set_path` / `active_keymap_path` / `keymaps[].path` /
+  `keymaps[].switch_key` / 外部レイアウト登録、`domain/config` の `external_keyboard_layouts` /
+  `keymap_switch_keys`、および**参照突合経路**（`reference_scan.py::_source_path`。
+  孤児棚卸し・参照元の掃除はディスクから生 JSON を直接読む別実装で、
+  `ensure_config_compatibility` を通らないため個別に適用が要る）。
+  **未対応の残件** = `presentation/controllers/config_io/startup_io.py` の `keymap_set_path`
+  （config.json の生値。presentation 層のため phase 25 のスコープ外）。
 
 ---
 

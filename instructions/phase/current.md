@@ -7,14 +7,18 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [phase 25](25_path_field_type_normalization/phase.md)**（パス系フィールドの型正規化・2026-09-19 起票）。
-  **直接改訂モード**（正本 §5.1「型不正の共通規則」は既にパス系も対象。追記は §5.5 / §5.7 への明記のみ）。
-  番号対応: phase 25 / decisions 25（暫定仕様なし）。
-  起票元 = [idea_25](../backlog/idea_25_path_field_type_normalization.md)（phase 24 task_01 の全走査で分離）。
-  **例外になる箇所は無く**、repr 文字列が runtime に載る問題（`external_keyboard_layouts[].path` と
-  `keymaps[].switch_key` が実害中）の解消が目的。
+- **アクティブなフェーズ: なし**（[phase 25](25_path_field_type_normalization/phase.md) は 2026-09-19 完了）。次フェーズ未確定のため、着手前にユーザーへ方針を確認する。
+- **直近の一連の作業が扱っている領域 = JSON 読込時の型正規化（パス系まで到達）**。
+  正本は `data_schema.md` **§5.1「型不正の共通規則」**（phase 24 で新設）+ **§5.5 / §5.7**（phase 25 で型規定を追記）、`codebase_map.md`。
+  実装 = `keyseq/domain/config.py`（`coerce_key_name` / `coerce_label`）/ `keyseq/application/config_service/split_loading.py` /
+  `keyseq/application/config_service/reference_scan.py`、テスト = `tests/test_domain_config.py` / `test_config_service.py` / `test_reference_scan.py`。
+  **使い分け = パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`（trim + 小文字化）**。
+  パスを小文字化すると壊れる（§5.7 の `normcase` は比較専用）。
+  **残件** = ①`startup_io.py` の `keymap_set_path`（config.json の生値・**presentation 層**のため未対応）
+  ②`button` 非文字列の `AttributeError`（`action_executor.py:119`・**実行時**の別レイヤ・phase 22 からの候補）。
+  判断は [decisions_archive/25](../../.claude_data/state/decisions_archive/25_path_field_type_normalization.md)。
 - [phase 24](24_json_type_normalization/phase.md) は 2026-09-19 完了。
-- **直近の一連の作業が扱っている領域 = JSON 読込時の型正規化**。
+- **その前の領域 = JSON 読込時の型正規化（内容フィールド）**（phase 24）。
   正本は `data_schema.md` **§5.1「型不正の共通規則」**（新設）/ §5.6「keymap」（新設）/ §5.2 / §5.11、`codebase_map.md`。
   実装 = `keyseq/domain/config.py`（`coerce_key_name` / `coerce_label`）/ `keyseq/application/config_service/__init__.py` /
   `keyseq/application/config_service/split_loading.py`、テスト = `tests/test_domain_config.py` / `tests/test_config_service.py`。
@@ -24,7 +28,7 @@
   ②`button` 非文字列の `AttributeError`（`action_executor.py:119`・実行時の別レイヤ・phase 22 からの候補）。
   判断は [decisions_archive/24](../../.claude_data/state/decisions_archive/24_json_type_normalization.md)。
 - [phase 23](23_sequence_payload_action_normalization/phase.md) は 2026-09-19 完了。
-- **その前の領域 = アクション要素（`actions[]`）の読込時正規化**（phase 23）。
+- **さらにその前の領域 = アクション要素（`actions[]`）の読込時正規化**（phase 23）。
   正本は `data_schema.md` §5.11「アクション要素」。実装 = `keyseq/domain/config.py`（公開関数 `normalize_actions`）/
   `keyseq/application/config_service/__init__.py`（`_normalize_sequence_payload` が同関数へ委譲）、
   テスト = `tests/test_domain_config.py` / `tests/test_config_service.py`（`SequenceFileIoTest`）。
@@ -55,9 +59,10 @@
   判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md) / [19](../../.claude_data/state/decisions_archive/19_full_view_header_width.md) / [20](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)。
   その前の領域（モーダルダイアログの作法）の残件は [decisions_archive/17](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md) と
   「別タスク化候補」の Phase 14 / 17 項、[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)。
-- 直前の完了フェーズ: [22_mouse_drag_action](../../.claude_data/state/decisions_archive/22_mouse_drag_action.md)
-- その前の完了フェーズ: [21_extended_key_send](../../.claude_data/state/decisions_archive/21_extended_key_send.md)
-- その前の完了フェーズ: [20_full_view_min_height](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)
+- 直前の完了フェーズ: [25_path_field_type_normalization](../../.claude_data/state/decisions_archive/25_path_field_type_normalization.md)
+- その前の完了フェーズ: [24_json_type_normalization](../../.claude_data/state/decisions_archive/24_json_type_normalization.md)
+- その前の完了フェーズ: [23_sequence_payload_action_normalization](../../.claude_data/state/decisions_archive/23_sequence_payload_action_normalization.md)
+  （それ以前は `decisions.md`「アーカイブ索引」を参照）
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
   **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
@@ -76,7 +81,7 @@
 
 ## 次採番
 
-- **phase 25 は起票済・進行中**（`25_path_field_type_normalization` / decisions 25 / 暫定仕様なし）。
+- **phase 25 は 2026-09-19 完了**（`25_path_field_type_normalization` / decisions 25 はアーカイブ済・暫定仕様なし）。
   次フェーズは **`26_<topic>`**・decisions も **26** を使う（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -249,6 +254,14 @@
   - **`button` が非文字列だと `AttributeError`**（`keyseq/application/action_executor.py:119` の
     `(action.get("button") or "left").strip()` が `try` の外）。正本 §5.11.2 は「文字列で」と限定済で、
     `str(...)` を挟む 1 行修正は候補送り（完了判定前 `deep-reviewer` 指摘 6・ユーザー判断 2026-09-19）
+- **Phase 25（パス系の型正規化）からの候補送り**:
+  - **`presentation/controllers/config_io/startup_io.py:18` の `keymap_set_path`**
+    （`str(startup.get("keymap_set_path") or "").strip()`）。config.json の生値を読むが
+    **presentation 層**のため phase 25 のスコープ外とした。実害は「存在しないパスとして無視される」のみ
+  - **runtime 専用の内部キー（`_keymap_source_path` 等）が §5.1 の型規則に未追従**。
+    `ensure_config_compatibility` が生値のまま素通しし、`save_path_resolution.py:127` の `str(...)` を経て
+    **保存先パスの候補に repr が混入し得る**（正本 §5.7 に【実装未追従】として明記済・
+    完了判定前 `deep-reviewer` 指摘 B・ユーザー判断待ちのまま候補送り）
   - テスト 2 件（`tests/test_input_gateway_drag.py::test_initial_move_failure_restores` が `mouseUp` の
     **非呼び出し**を固定していない / ドラッグ 4 キーの**ファイル層での永続化往復**テストが無い）と、
     `to_x` 欠落時に一覧表示が `(100, 200)→(, )` になる点（実行はエラーになる）

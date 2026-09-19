@@ -33,7 +33,7 @@ JSON から読む**パス系・キー名系のフィールド**に残ってい�
 |---|---|---|---|
 | 1 | `domain/config.py:240` `external_keyboard_layouts[].path` | **repr が runtime に載る** | 中 |
 | 2 | `split_loading.py:397` `keymaps[].switch_key` | **repr がスイッチキーとして載る**（path が有効なとき） | 中 |
-| 3 | `split_loading.py:312` / `:337` / `:396` / `:399` / `:441` / `:522` / `:524` のパス系 | repr がパスになるがファイル不在で静かに無視 | 小 |
+| 3 | `split_loading.py:312` / `:337` / `:396` / `:399` / `:441` / `:522` / `:524` のパス系（7 箇所） | repr がパスになるがファイル不在で静かに無視 | 小 |
 | 4 | `domain/config.py:301` `keymap_switch_keys` の値 | repr が id になるが `keymap_ids` の membership check で落ちる（**偶然の防御**） | なし |
 | 5 | `orphan_sweep_scan_dirs` / `_parent_refs` / `hotkey_presets_path` | 非 str を除去 / `isinstance` ガード済み | なし（対象外） |
 
@@ -45,7 +45,7 @@ JSON から読む**パス系・キー名系のフィールド**に残ってい�
 
 - `keyseq/domain/config.py`: `external_keyboard_layouts` の `path`（`:240`）と
   `keymap_switch_keys` の値（`:301`）へ `coerce_*` を適用する。
-- `keyseq/application/config_service/split_loading.py`: 上表 #2 / #3 の計 7 箇所。
+- `keyseq/application/config_service/split_loading.py`: 上表 #2 / #3 の計 8 箇所（パス系 7 + `switch_key` 1）。
 - 対応する単体テスト。
 - 正本 `data_schema.md` §5.5 / §5.7 へ「パス系も §5.1 に従う」を明記
   （`external_keyboard_layouts` の該当節があればそこにも 1 行）。
@@ -74,9 +74,9 @@ JSON から読む**パス系・キー名系のフィールド**に残ってい�
 ## タスク
 
 - task_01: パス系・キー名系へ `coerce_*` を適用する（+ 単体テスト）— **完了**（2026-09-19・`b8636bb`）
-- task_01b: 参照突合経路（`reference_scan.py`）の同種箇所を直す（task_01 のレビューで発見）— 進行中
+- task_01b: 参照突合経路（`reference_scan.py`）の同種箇所を直す（task_01 のレビューで発見）— **完了**（2026-09-19・`ad0a7d0`）
 - task_02: 正本反映と記録（§5.5 / §5.7 への明記 / decisions_archive/25 / current.md /
-  backlog INDEX → INDEX_done / `/refactor_check`）
+  backlog INDEX → INDEX_done / `/refactor_check`）— **完了**（2026-09-19）
 
 ## レビュー方針
 
