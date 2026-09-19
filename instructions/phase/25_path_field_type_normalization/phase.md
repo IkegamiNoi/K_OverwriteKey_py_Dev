@@ -73,7 +73,8 @@ JSON から読む**パス系・キー名系のフィールド**に残ってい�
 
 ## タスク
 
-- task_01: パス系・キー名系へ `coerce_*` を適用する（+ 単体テスト）
+- task_01: パス系・キー名系へ `coerce_*` を適用する（+ 単体テスト）— **完了**（2026-09-19・`b8636bb`）
+- task_01b: 参照突合経路（`reference_scan.py`）の同種箇所を直す（task_01 のレビューで発見）— 進行中
 - task_02: 正本反映と記録（§5.5 / §5.7 への明記 / decisions_archive/25 / current.md /
   backlog INDEX → INDEX_done / `/refactor_check`）
 

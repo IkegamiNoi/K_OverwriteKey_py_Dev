@@ -9,6 +9,9 @@ from keyseq.application.config_service.contracts import (
     SOURCE_UNREADABLE,
 )
 from keyseq.application.config_service.reference_scan import (
+    _entry_path,
+    _path_value,
+    _source_path,
     collect_reference_paths,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
@@ -18,6 +21,22 @@ class ReferenceScanTest(unittest.TestCase):
     def setUp(self):
         self.service = ConfigService(JsonRepository())
         self.repository = JsonRepository()
+
+    def test_verification_1_non_string_paths_return_empty(self):
+        for value in ({"a": 1}, [1], 123):
+            with self.subTest(value=value):
+                self.assertEqual(_source_path(value), "")
+                self.assertEqual(_path_value(value), "")
+
+    def test_verification_2_entry_path_rejects_non_string_path(self):
+        self.assertEqual(_entry_path({"path": {"a": 1}}), "")
+
+    def test_verification_3_falsy_and_normal_paths_are_unchanged(self):
+        for value in (0, False, [], {}, None):
+            with self.subTest(value=value):
+                self.assertEqual(_source_path(value), "")
+                self.assertEqual(_path_value(value), "")
+        self.assertEqual(_source_path("  User/Keymaps/A.json  "), "User/Keymaps/A.json")
 
     def test_collects_all_first_level_keymap_set_paths(self):
         with tempfile.TemporaryDirectory() as root:

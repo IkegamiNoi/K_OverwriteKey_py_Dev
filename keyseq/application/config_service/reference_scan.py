@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from keyseq.domain.config import coerce_label
+
 from . import contracts
 
 
@@ -183,7 +185,7 @@ def _add_reference(service, stored_path: str, config_root: str, referenced: set[
 
 
 def _source_path(value: Any) -> str:
-    return str(value or "").strip()
+    return coerce_label(value)
 
 
 def _entry_path(value: Any) -> str:
