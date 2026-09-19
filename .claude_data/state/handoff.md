@@ -15,18 +15,18 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い**。次採番 = phase 24 / 暫定 20 / decisions 24）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い**。次採番 = phase 25 / 暫定 21 / decisions 25）
 3. **次フェーズの方針をユーザーへ確認してから** `/phase_start` で起票する。
    候補の確認先は `instructions/backlog/INDEX.md`（未着手はいずれも優先度低）
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜19）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜20）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 23（個別 sequence JSON 単体読込の actions 正規化）完了。実装・正本反映・記録・refactor_check〔不要〕まで完了。次フェーズ未確定。**
-直近コミット: `eb8ac13`（task_02 = 正本反映と記録）/ `bc61ea7`（task_01 = 実装）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜23 はユーザーがマージする）。
+**phase 24（JSON 読込の型不正の扱い統一）完了。全 9 箇所の例外を解消・正本昇格と記録・refactor_check〔不要〕まで完了。次フェーズ未確定。**
+直近コミット: `a62e447`（task_02 = 正本昇格と記録）/ `1532bf3`（task_03）/ `a1764d1`（task_01）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜24 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -36,9 +36,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 23 task_01 時点 = 2026-09-19**。task_02 はコード変更なし）:
-compile **clean** / tests **486 実行 OK**（skip 7）/ tests_ui **446 実行 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 22 完了 479 → phase 23 完了 486 / tests_ui: 446 で不変）。
+直近の実測（**phase 24 task_03 時点 = 2026-09-19**。task_02 はコード変更なし）:
+compile **clean** / tests **505 実行 OK**（skip 7）/ tests_ui **446 実行 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 23 完了 486 → phase 24 完了 505 / tests_ui: 446 で不変）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` が生成されていない**ことを確認する。
 
@@ -49,29 +49,34 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = **phase 24 / 暫定 20 / decisions 24**）。
+- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = **phase 25 / 暫定 21 / decisions 25**）。
+  候補は `instructions/backlog/INDEX.md`（**idea_25** = パス系フィールドの型正規化〔phase 24 で分離〕/
+  **idea_23** = キーの押す / 離すアクション。いずれも優先度低）。
 - **main へのマージはユーザーが行う**。
 - **運用**: `verifier` に変異検査を頼むときは「**`git checkout --` / `git restore` / `git stash` を使わない**（未コミットの実装ごと巻き戻る）。
   ファイルのコピーで退避・復元する」を明示する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
-## 直前フェーズ（phase 23 = 個別 sequence JSON 単体読込の actions 正規化）の要点
+## 直前フェーズ（phase 24 = JSON 読込の型不正の扱い統一）の要点
 
-**正本が正**: `spec_detail/data_schema.md` **§5.11「アクション要素」** / `codebase_map.md`。
-暫定仕様なし（**直接改訂モード**）。判断は `decisions_archive/23_sequence_payload_action_normalization.md`。
-起票元 = idea_24（phase 22 完了判定前 `deep-reviewer` 指摘 3・**完了済で INDEX_done へ移動**）。
+**正本が正**: `spec_detail/data_schema.md` **§5.1「型不正の共通規則」（新設）** / **§5.6「keymap」（新設）** /
+§5.2 / §5.11、`codebase_map.md`。暫定仕様 20 は**凍結済**で条項の根拠に引かない。
+判断は `decisions_archive/24_json_type_normalization.md`。
 
-- **正規化は `domain/config.py::normalize_actions` に一本化**（dict 以外の要素を除去 + `label` を整形する純関数・**冪等**）。
-  呼び出しは 2 系統 = `ensure_config_compatibility` 内 / `application/config_service::_normalize_sequence_payload`。
-  **application 側に整形規則を再実装しない**（案 A。案 B = 個別読込も `ensure_config_compatibility` を通す、は影響大で不採用）。
-- **挙動変更**: 単体読込の戻り値の各 action に `label: ""` が付く（既存経路と同じ形）。**テストの期待値もこれに合わせる**。
-- **保存側は正規化を通さない設計のまま**。`save_sequence_file` は payload を `save_json` した**後**に正規化するため、
-  **ディスクの JSON の形は不変**（実測確認済）。
-- **未対応のまま**: keymap / trigger_set など他の個別 JSON 読込経路の正規化（スコープ外）。
-- **phase 22 の別タスク化候補は未着手のまま**: `button` が非文字列だと `action_executor.py:119` で `AttributeError`
-  （`.strip()` が try の外）/ `ActionDialog` の座標取得リスナーがダイアログ破棄後の `after(0, ...)` で `TclError`。
-- phase 22（マウスのドラッグ）以前の要点は `decisions_archive/<phase>.md` を参照する。
+- **`domain/config.py` の `coerce_key_name` / `coerce_label`（非 str は `""`）へ一本化**し、**全読込経路へ適用**。
+  **`normalize_key_name(value: str)` のシグネチャは変えない**（呼び出しが多数あり意味が変わるため）。
+- **非文字列は空扱い**。ただし要素が成立しないなら除去（`mappings` の対 / `hotkey_presets` の要素）。
+  **`actions` の要素除去は「非 dict」という形状由来**であり、`label` が非文字列でも**要素は残る**（`label=""`）。
+- **単一 JSON の `keymaps[].id` だけ扱いが違う**: ファイル名が無く stem へ倒せないため
+  **要素ごと除去**され、個別 / split 読込の `_2` 付加による一意化は行われない。
+- **falsy な非文字列（`0` / `false` / `[]` / `{}` / `null`）は元から空扱い**で挙動不変。変わるのは truthy な非文字列のみ。
+- `suppress` は**キーが無ければ true**、値があれば `bool()` 解釈（`null`/`0`/`""`/`[]` は false）。
+- **未対応の残件** = パス系フィールド（`path` / `switch_key` / `trigger_set_path` 等）= **idea_25**。
+  `button` 非文字列（`action_executor.py:119`）は phase 22 からの候補のまま（**実行時**の別レイヤ）。
+- **教訓**: 当初「例外は 6 箇所」と見積もったが**実際は 9 箇所**だった（完了判定前 `deep-reviewer` が 3 件、
+  その後の全走査で旧形式 `trigger_key` を追加発見）。**棚卸しは該当パターンの全走査で裏を取る**。
+- phase 23（`actions[]` の正規化を domain へ一本化）以前の要点は `decisions_archive/<phase>.md` を参照する。
 
 ## 運用インフラ
 
@@ -115,7 +120,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   併用は `.claude/rules/agent_selection.md` のレビュー表が正。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 23_sequence_payload_action_normalization / 22_mouse_drag_action / 21_extended_key_send）。
-- 未着手/保留 idea: **idea_23**（押す / 離すアクション）/
+  （直近 3 件: 24_json_type_normalization / 23_sequence_payload_action_normalization / 22_mouse_drag_action）。
+- 未着手/保留 idea: **idea_25**（パス系フィールドの型正規化）/ **idea_23**（押す / 離すアクション）/
   **idea_18**（Escape 配送依存テストの不安定）/ idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
