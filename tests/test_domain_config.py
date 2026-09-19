@@ -173,6 +173,56 @@ class ResolveHookKeysIndividualTest(unittest.TestCase):
 
 
 class EnsureConfigCompatibilityTest(unittest.TestCase):
+    def test_non_string_hook_stop_key_becomes_empty(self):
+        config = ensure_config_compatibility({"hook_stop_key": 123})
+        self.assertEqual(config["hook_stop_key"], "")
+
+    def test_non_string_hook_toggle_key_becomes_empty(self):
+        config = ensure_config_compatibility({"hook_toggle_key": ["a"]})
+        self.assertEqual(config["hook_toggle_key"], "")
+
+    def test_non_string_active_keymap_id_becomes_empty(self):
+        config = ensure_config_compatibility({"active_keymap_id": 7})
+        self.assertEqual(config["active_keymap_id"], "")
+
+    def test_non_string_legacy_trigger_key_becomes_empty(self):
+        config = ensure_config_compatibility({"trigger_key": 123, "actions": []})
+        self.assertEqual(len(config["triggers"]), 1)
+        self.assertEqual(config["triggers"][0]["key"], "")
+        self.assertEqual(config["triggers"][0]["actions"], [])
+
+    def test_falsy_non_string_key_fields_keep_empty_behavior(self):
+        for field in ("hook_stop_key", "hook_toggle_key", "active_keymap_id", "trigger_key"):
+            for value in (0, False, [], {}, None):
+                with self.subTest(field=field, value=value):
+                    config = ensure_config_compatibility({field: value, "actions": []})
+                    if field == "trigger_key":
+                        self.assertEqual(len(config["triggers"]), 1)
+                        self.assertEqual(config["triggers"][0]["key"], "")
+                    else:
+                        self.assertEqual(config[field], "")
+
+    def test_string_key_fields_keep_existing_normalization(self):
+        config = ensure_config_compatibility(
+            {
+                "hook_stop_key": " F12 ",
+                "hook_toggle_key": " F11 ",
+                "keymaps": [{"id": "km1"}, {"id": "km2"}],
+                "active_keymap_id": " KM2 ",
+            }
+        )
+        self.assertEqual(config["hook_stop_key"], "f12")
+        self.assertEqual(config["hook_toggle_key"], "f11")
+        self.assertEqual(config["active_keymap_id"], "km2")
+
+    def test_legacy_string_trigger_with_empty_actions_converted(self):
+        config = ensure_config_compatibility({"trigger_key": "F1", "actions": []})
+        self.assertEqual(
+            config["triggers"],
+            [{"key": "f1", "label": "", "suppress": True, "run_to_end": False,
+              "run_to_end_delay_ms": 300, "actions": []}],
+        )
+
     def test_non_string_trigger_fields_become_empty(self):
         for value in (None, 0, False, [], {}, 5, ["a"], {"a": 1}):
             with self.subTest(value=value):

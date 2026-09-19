@@ -160,7 +160,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     config = safe_deepcopy(data)
 
     if "triggers" not in config and "trigger_key" in config:
-        old_key = normalize_key_name(config.get("trigger_key", "f1"))
+        old_key = coerce_key_name(config.get("trigger_key", "f1"))
         old_actions = config.get("actions", [])
         if not isinstance(old_actions, list):
             old_actions = []
@@ -210,8 +210,8 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     else:
         config["hotkey_presets"] = normalize_hotkey_presets(raw_presets)
 
-    config[HOOK_STOP_KEY] = normalize_key_name(config.get(HOOK_STOP_KEY, ""))
-    config[HOOK_TOGGLE_KEY] = normalize_key_name(config.get(HOOK_TOGGLE_KEY, ""))
+    config[HOOK_STOP_KEY] = coerce_key_name(config.get(HOOK_STOP_KEY, ""))
+    config[HOOK_TOGGLE_KEY] = coerce_key_name(config.get(HOOK_TOGGLE_KEY, ""))
     config["hook_keys_individual"] = resolve_hook_keys_individual(config)
     hotkey_presets_individual = config.get("hotkey_presets_individual", False)
     config["hotkey_presets_individual"] = (
@@ -284,7 +284,7 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             seen_keymap_ids.add(keymap_id)
     config["keymaps"] = normalized_keymaps
 
-    active_keymap_id = normalize_key_name(config.get("active_keymap_id", ""))
+    active_keymap_id = coerce_key_name(config.get("active_keymap_id", ""))
     keymap_ids = [str(item.get("id") or "") for item in normalized_keymaps]
     if active_keymap_id and active_keymap_id not in keymap_ids:
         active_keymap_id = ""
