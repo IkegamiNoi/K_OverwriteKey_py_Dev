@@ -75,7 +75,7 @@
 
 ## タスク
 
-- task_01: **domain の純関数**（`keyseq/domain/keymap_set_history.py` 新規）— 型不正の正規化 /
+- [task_01](tasks/task_01_history_domain_rules.md): **domain の純関数**（`keyseq/domain/keymap_set_history.py` 新規）— 型不正の正規化 /
   重複統合 / 上限 20 / 分類の整列。比較キーは**受け取る**（`config_root` に依存しない）。+ 単体テスト
 - task_02: **application の永続化**（`config_service/keymap_set_history.py` 新規 + `ConfigService` の委譲）
   — 読込（`None` 縮退）/ **退避と作り直し**（§4.4）/ 原子的書込 / 保存表記への正規化と比較キー生成。

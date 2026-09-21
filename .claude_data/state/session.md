@@ -4,55 +4,61 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-21T16:10:00
+last_updated: 2026-09-21T17:05:00
 phase: `instructions/phase/27_keymap_set_load_history`（構成セットの読み込み履歴管理）。**暫定仕様先行モード**・主入力 = `instructions/history/21_keymap_set_load_history.md`（v0.4・ユーザー確定済）。番号対応: phase 27 / 暫定 21 / decisions 27。次採番 = phase 28 / 暫定 22 / decisions 28。
 直前の完了フェーズ = phase 26（判断履歴 = `decisions_archive/26_startup_entry_preservation.md`）。
 last_commit_location: `claude/jikki-mokushi-ok-58bca4`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 27 = 構成セットの読み込み履歴管理。暫定仕様 21 が v0.4 でユーザー確定済・phase.md 起票と整合チェック完了。次は task_01（domain の純関数）の定義起票と実装委任。**
+focus: **phase 27 = 構成セットの読み込み履歴管理。task_01〔domain の純関数〕完了・実測 green・reviewer 採用。次は task_02（application の永続化と破損時の退避）の起票と実装委任。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-21T16:10:00
+ts: 2026-09-21T17:05:00
 who: main
 summary: |
-  【phase 27 の起票】ユーザー要望（構成セットの読み込み履歴管理）を**暫定仕様先行モード**で起票。
-  `/spec_draft` → 暫定仕様 21 を v0.1 起票 → `deep-reviewer`（起票時）→ v0.2 →
-  `codex-adversarial-reviewer`（確定前）→ v0.3 → **ユーザー確定 v0.4** → `/phase_start` で phase 27。
-  【確定した設計】別 JSON `config/keymap_set_history.json`（固定パス・config.json にキーを足さない）/
-  `ttk.Treeview`（**リポジトリ初採用**・フォント追従）/ 分類 1 階層・名前順 /
-  **記録契機 = 読込または保存が成功し空でないパスが確定したとき、その実保存先**
-  （`app.py:76` の初期代入・new/import/restore は除外）/ **先頭一致なら書き込まない**（起動時の
-  永続化との衝突を解消・`loaded_at` 廃止）/ **破損ファイルは `*.broken*.json` へ退避してから作り直す**
-  （`config/quarantine/` は棚卸しの所有領域のため使わない）/ **永続化成功後に UI を確定**。
-  【レビューで判明した実測】`confirm_save_if_dirty` は未保存時に `save_as` を実行する（読込操作の
-  途中で履歴が更新され得る）/ `normalize_keymap_set_save_path` が保存先を書き換える /
-  `INTERNAL_MODULE_NAMES`・`DIALOG_FILES` はハードコードで**更新しないと赤 or 検査漏れ** /
-  既存 characterization テストが `config_root` に `os.getcwd()` を入れる（記録を単一の口に閉じる根拠）。
-  【整合チェック = reviewer】**修正して採用** → task_05 へ `5_08_09_orphan_sweep.md` の補記要否判断を追記済み。
+  【task_01 = domain の純関数】`codex-implementer` へ委任（テスト追加まで / 実行は依頼せず）。
+  **新規 2 ファイルのみ**（既存コードの変更ゼロ）: `keyseq/domain/keymap_set_history.py`（160 行・
+  公開面は `__all__` で 10 関数 + `MAX_RECENT` に限定）/ `tests/test_keymap_set_history.py`（245 行・21 件）。
+  **`os` を import せず、比較キーは `key_of: Callable[[str], str]` で受け取る**（`config_root` 非依存）。
+  全関数が `_deepcopy` を経由し入れ子まで独立コピーを返す純関数。
+  **`push_recent` に先頭一致の判定を入れていない**（判定は呼び出し側 = task_02/03 の責務）。
+  分類名の同名判定は**完全一致**（`casefold` は `sorted_categories` の表示順だけに使用）。
+  【実測 = verifier + メイン】compile clean / `tests` **539**（518 → **+21**・skip 7）/ smoke OK /
+  副作用なし（`keymap_set_history.json` / `user/` / `quarantine/` 未生成・config.json の mtime 不変）。
+  【フレーク切り分け】`tests_ui` の一括実行で `test_quarantine_manage_flow.py:301`
+  `test_selection_returns_matching_id_and_resumes_hook` が `hook_pause_count 2 != 0` で 1 件 fail。
+  **単独実行 OK / 当該ファイル 20 件 OK / フルスイート再実行で 449 件すべて OK** のため
+  **既知のフレーク**（App 共有によるフック停止カウンタの持ち越し）と判定。`keymap_set_history` は
+  `tests_ui` から参照されておらず結合なし。
+  【レビュー = reviewer】**コードは採用可**（仕様適合・純粋性・依存方向・先取りなし・関数 30 行以内）。
+  指摘は「実測は verifier に依頼して完了報告へ添付」のみで、参考 1 件（`normalize_history` の
+  除去 → 切り詰めの順序は暫定仕様に明示が無いが自然な解釈）。
 result_files:
-  - instructions/history/21_keymap_set_load_history.md（新規・v0.4）
-  - instructions/phase/27_keymap_set_load_history/phase.md（新規）
-  - instructions/phase/current.md / .claude_data/state/decisions.md
+  - keyseq/domain/keymap_set_history.py（新規）
+  - tests/test_keymap_set_history.py（新規）
+  - instructions/phase/27_keymap_set_load_history/tasks/task_01_history_domain_rules.md（新規）
+  - instructions/phase/27_keymap_set_load_history/phase.md（task_01 へリンク）
 verified:
-  compile: clean（phase 26 task_03 時点。phase 27 はまだコード変更なし）
-  tests: 518 ran OK（skipped 7・phase 26 実測）
-  tests_ui: 449 ran OK（phase 26 実測）
-  smoke: SMOKE OK（phase 26 実測）
-  review: deep-reviewer（暫定仕様 v0.1）= 修正して採用 / codex-adversarial-reviewer（v0.2）= needs-attention〔全件採用〕/ reviewer（phase.md 整合）= 修正して採用〔反映済〕
+  compile: clean
+  tests: 539 ran OK（skipped 7・518 → +21）
+  tests_ui: 449 ran OK（フルスイート再実行で green。初回の 1 fail は既知フレーク）
+  smoke: SMOKE OK
+  review: reviewer（task_01 差分）= 採用（実測 pass を前提に完了可）
   refactor_check: not_run（phase 27 の task_05 で実施）
 
 
 ## next_action
-- **task_01 の定義を `/task_new` で起票する**（`instructions/phase/27_keymap_set_load_history/tasks/task_01_*.md`）。
-  内容 = `keyseq/domain/keymap_set_history.py`（新規）の純関数（型不正の正規化 / 重複統合 /
-  上限 20 / 分類の整列）+ `tests/test_keymap_set_history.py`。**比較キーは引数で受け取り
-  `config_root` に依存しない**（依存方向の要）。
-- 起票後、`codex-implementer` へ実装を委任する（**テストの実行は依頼しない**・実測は `verifier`）。
-- 以降 task_02（application の永続化と退避）→ task_03（記録経路とパス指定の共通読込入口）→
-  task_04（履歴ダイアログ）→ task_05（正本反映と完了）。
+- **task_02 の定義を `/task_new` で起票する**（`tasks/task_02_*.md`）。内容 =
+  `keyseq/application/config_service/keymap_set_history.py`（新規）+ `ConfigService` の薄い委譲。
+  **読込（`_load_optional_json` の `None` 縮退）/ 破損時の退避（`*.broken*.json`・連番 5 で打ち止め・
+  退避失敗なら書かない）/ 原子的書込（`json_repository.save_json`）/ 保存表記への正規化と
+  比較キー（解決 → `normpath` → `normcase`）の生成**。
+  **`tests/test_config_service_contracts.py:14` の `INTERNAL_MODULE_NAMES` へ `keymap_set_history` を
+  追加する**（実ファイル集合との完全一致を assert しているため、追加しないと確実に赤）。
+- 起票後 `codex-implementer` へ委任 →`verifier` で実測 → `reviewer`。
+- 以降 task_03（記録経路 + パス指定の共通読込入口）→ task_04（履歴ダイアログ）→ task_05（正本反映と完了）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
