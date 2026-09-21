@@ -7,7 +7,13 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（[phase 26](26_startup_entry_preservation/phase.md) は 2026-09-21 完了）。次フェーズ未確定のため、着手前にユーザーへ方針を確認する。
+- **アクティブなフェーズ: [phase 27](27_keymap_set_load_history/phase.md)（構成セットの読み込み履歴管理）**。
+  ファイルメニューに「履歴から読み込む…」を追加し、**直近 20 件 + ユーザーが作る分類**を `ttk.Treeview` で扱う。
+  履歴からの削除・直近から分類へのコピーができる。**新規 JSON を 1 つ増やす**（`config/keymap_set_history.json`）が
+  **既存スキーマは不変**で config.json にキーを追加しない。**暫定仕様先行モード**。
+  主入力 = [暫定仕様 21](../history/21_keymap_set_load_history.md)（**v0.4・ユーザー確定済**）。
+  起票元 = ユーザー要望（2026-09-21）・idea なし。番号対応: phase 27 / 暫定 21 / decisions 27。
+- [phase 26](26_startup_entry_preservation/phase.md) は 2026-09-21 完了。
 - **直近の一連の作業が扱っている領域 = 起動エントリ（`config/config.json` の `keymap_set_path`）の書き込み契機**（phase 26）。
   正本は `data_schema.md` **§5.4**（保存では起動エントリを更新しない条項）/ `data_schema/5_08_09_orphan_sweep.md` 走査経路 3 の根拠文、`codebase_map.md`。
   実装 = `keyseq/presentation/controllers/config_io/startup_io.py`（`StartupIo.entry_loaded`）/ `keymap_set_io.py` /
@@ -93,8 +99,8 @@
 
 ## 次採番
 
-- **phase 26 は 2026-09-21 完了**（`26_startup_entry_preservation` / decisions 26 はアーカイブ済・暫定仕様なし）。
-  次フェーズは **`27_<topic>`**・decisions も **27** を使う（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 27 を 2026-09-21 起票**（`27_keymap_set_load_history` / 暫定 21 / decisions 27）。phase 26 は 2026-09-21 完了（decisions 26 はアーカイブ済）。
+  次フェーズは **`28_<topic>`**・decisions も **28** を使う（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
@@ -110,8 +116,9 @@
   17=フル表示ヘッダの幅〔**v0.3・凍結**〕/
   18=フル表示の縦方向の最小サイズ〔**v0.5・凍結**〕/
   19=マウスのドラッグ操作〔**v0.5・凍結**〕/
-  20=JSON 読込の型不正の扱い統一〔**v0.3・凍結**〕）。
-  次採番は **`21_<topic>`**。
+  20=JSON 読込の型不正の扱い統一〔**v0.3・凍結**〕/
+  21=構成セットの読み込み履歴〔**v0.4・ユーザー確定済・未凍結 = phase 27 の主入力**〕）。
+  次採番は **`22_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/

@@ -4,53 +4,55 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-21T14:40:00
-phase: `instructions/phase/26_startup_entry_preservation`（起動エントリの保存時据え置き）**完了**。**直接改訂モード**・暫定仕様なし。番号対応: phase 26 / decisions 26。次採番 = phase 27 / 暫定 21 / decisions 27。
+last_updated: 2026-09-21T16:10:00
+phase: `instructions/phase/27_keymap_set_load_history`（構成セットの読み込み履歴管理）。**暫定仕様先行モード**・主入力 = `instructions/history/21_keymap_set_load_history.md`（v0.4・ユーザー確定済）。番号対応: phase 27 / 暫定 21 / decisions 27。次採番 = phase 28 / 暫定 22 / decisions 28。
 直前の完了フェーズ = phase 26（判断履歴 = `decisions_archive/26_startup_entry_preservation.md`）。
 last_commit_location: `claude/jikki-mokushi-ok-58bca4`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 26（起動エントリを保存で上書きしない）完了。task_01〔正本改訂〕/ task_02〔実装〕/ task_03〔記録と完了〕すべて reviewer 採用・実測 green・実機目視 OK・refactor_check 不要。次フェーズ未確定。**
-mode: completed
+focus: **phase 27 = 構成セットの読み込み履歴管理。暫定仕様 21 が v0.4 でユーザー確定済・phase.md 起票と整合チェック完了。次は task_01（domain の純関数）の定義起票と実装委任。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-21T14:40:00
+ts: 2026-09-21T16:10:00
 who: main
 summary: |
-  【task_03 = 記録と完了（文書のみ）】ユーザーの実機目視 OK を受けてフェーズ最終タスクを実施。
-  タスク定義を起票し、`decisions_archive/26_startup_entry_preservation.md` を新規作成して
-  phase 26 の判断（仕様変更判定 / 案 A 採用・案 B 除外 / 別名保存でも据え置き / 可視化 UI・解除手段の除外 /
-  実装上の判断 4 点 / 現状監査 / 残件）を集約。`decisions.md` は**本文の phase 26 節を削除し索引 1 行へ**。
-  `current.md` = 完了記載（リンクのみ）+ 「直近の領域」を phase 26 へ差し替え + 直前完了フェーズ 26/25/24 +
-  「別タスク化候補」へ Phase 26 項（`.strip()` 非対称・到達不能のため据え置き）+ 次採番行を完了表記へ。
-  **起票元 idea が無いため backlog は無変更**（`git status` で確認）。
-  【refactor_check】メトリクス収集 = `verifier`。PHASE_BASE `e0c19ba`・対象 `keyseq` 5 ファイル・**+16/-1 行**。
-  **M1〜M6 すべて非該当** → 判定 **不要**（`keymap_set_io.py` は 687 行だが増分 +4 で「600 行超 **かつ** +100 行」を満たさない）。
-  【レビュー = reviewer】**完了可（採用）**。事実主張（`split_payloads.py:363` / `startup_io.py:31` /
-  `keymap_set_io.py:135`・`:655`）を実測で裏取り済み。参考指摘 1 件 = phase.md の task_03 行を
-  レビュー確定前に「採用」と先書きした順序（実害なし）。
-  なお reviewer は `current.md` を「全行 LF」と報告したが、**worktree 実測では 341 行すべて CRLF**で混在なし。
+  【phase 27 の起票】ユーザー要望（構成セットの読み込み履歴管理）を**暫定仕様先行モード**で起票。
+  `/spec_draft` → 暫定仕様 21 を v0.1 起票 → `deep-reviewer`（起票時）→ v0.2 →
+  `codex-adversarial-reviewer`（確定前）→ v0.3 → **ユーザー確定 v0.4** → `/phase_start` で phase 27。
+  【確定した設計】別 JSON `config/keymap_set_history.json`（固定パス・config.json にキーを足さない）/
+  `ttk.Treeview`（**リポジトリ初採用**・フォント追従）/ 分類 1 階層・名前順 /
+  **記録契機 = 読込または保存が成功し空でないパスが確定したとき、その実保存先**
+  （`app.py:76` の初期代入・new/import/restore は除外）/ **先頭一致なら書き込まない**（起動時の
+  永続化との衝突を解消・`loaded_at` 廃止）/ **破損ファイルは `*.broken*.json` へ退避してから作り直す**
+  （`config/quarantine/` は棚卸しの所有領域のため使わない）/ **永続化成功後に UI を確定**。
+  【レビューで判明した実測】`confirm_save_if_dirty` は未保存時に `save_as` を実行する（読込操作の
+  途中で履歴が更新され得る）/ `normalize_keymap_set_save_path` が保存先を書き換える /
+  `INTERNAL_MODULE_NAMES`・`DIALOG_FILES` はハードコードで**更新しないと赤 or 検査漏れ** /
+  既存 characterization テストが `config_root` に `os.getcwd()` を入れる（記録を単一の口に閉じる根拠）。
+  【整合チェック = reviewer】**修正して採用** → task_05 へ `5_08_09_orphan_sweep.md` の補記要否判断を追記済み。
 result_files:
-  - .claude_data/state/decisions_archive/26_startup_entry_preservation.md（新規）
-  - .claude_data/state/decisions.md（索引 1 行追加・本文 phase 26 節を削除）
-  - instructions/phase/current.md
-  - instructions/phase/26_startup_entry_preservation/phase.md
-  - instructions/phase/26_startup_entry_preservation/tasks/task_03_record_and_close.md（新規）
+  - instructions/history/21_keymap_set_load_history.md（新規・v0.4）
+  - instructions/phase/27_keymap_set_load_history/phase.md（新規）
+  - instructions/phase/current.md / .claude_data/state/decisions.md
 verified:
-  compile: clean
-  tests: 518 ran OK（skipped 7・task_02 実測。task_03 はコード無変更）
-  tests_ui: 449 ran OK（task_02 実測。task_03 はコード無変更）
-  smoke: SMOKE OK（task_02 実測）
-  review: reviewer（task_03 差分）= 完了可・採用 / task_01・task_02 も採用済
-  refactor_check: 不要（M1〜M6 該当なし・対象 5 ファイル・PHASE_BASE `e0c19ba`）
-  実機目視: OK（2026-09-21・ユーザー確認）
+  compile: clean（phase 26 task_03 時点。phase 27 はまだコード変更なし）
+  tests: 518 ran OK（skipped 7・phase 26 実測）
+  tests_ui: 449 ran OK（phase 26 実測）
+  smoke: SMOKE OK（phase 26 実測）
+  review: deep-reviewer（暫定仕様 v0.1）= 修正して採用 / codex-adversarial-reviewer（v0.2）= needs-attention〔全件採用〕/ reviewer（phase.md 整合）= 修正して採用〔反映済〕
+  refactor_check: not_run（phase 27 の task_05 で実施）
 
 
 ## next_action
-- **phase 26 は完了。次フェーズは未確定** — 着手前に**ユーザーへ方針を確認する**。
-  候補の確認先は `instructions/backlog/INDEX.md`（未着手はいずれも優先度低）。起票は `/phase_start`。
-- 次フェーズ番号 = **27**（decisions も 27 / 暫定仕様を使う場合は 21）。
+- **task_01 の定義を `/task_new` で起票する**（`instructions/phase/27_keymap_set_load_history/tasks/task_01_*.md`）。
+  内容 = `keyseq/domain/keymap_set_history.py`（新規）の純関数（型不正の正規化 / 重複統合 /
+  上限 20 / 分類の整列）+ `tests/test_keymap_set_history.py`。**比較キーは引数で受け取り
+  `config_root` に依存しない**（依存方向の要）。
+- 起票後、`codex-implementer` へ実装を委任する（**テストの実行は依頼しない**・実測は `verifier`）。
+- 以降 task_02（application の永続化と退避）→ task_03（記録経路とパス指定の共通読込入口）→
+  task_04（履歴ダイアログ）→ task_05（正本反映と完了）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
@@ -60,6 +62,15 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 27 の設計は暫定仕様 21 が正】**（`instructions/history/21_keymap_set_load_history.md`・v0.4・**未凍結 = 主入力**）。
+  フェーズ中は正本 `spec_detail/` を直接改訂せず、この文書に従う（正本への昇格は task_05）。
+  要点 = ①記録契機 = **読込または保存が成功し空でないパスが確定したとき、その実保存先**
+  （`app.py:76` の初期代入 / `new_config` / `import_config` / `restore_default` は**除外**）
+  ②**`recent` の先頭が同一パスなら書き込まない**（永続化済みの内容で判定・メモリ先行更新しない）
+  ③**破損ファイルは `*.broken*.json` へ退避してから作り直す**（上書きで消さない・連番 5 で打ち止め）
+  ④**永続化に成功してから UI を確定**する ⑤記録は**単一の口 `record()`** に閉じる
+  （既存 characterization テストが `config_root` に `os.getcwd()` を入れるため、patch 可能にしないと
+  **リポジトリルートへ履歴ファイルが生成される**）。
 - **【phase 26 の設計は正本が正】起動エントリ = `config/config.json` の `keymap_set_path`。
   正本 `spec_detail/data_schema.md` §5.4**。要点 = ①**保存では更新しない**（別名保存でも据え置き）。
   変更経路はメニュー「起動時に読む構成セットを指定…」のみ ②**例外 = 未設定 / 起動時に読めなかった場合のみ**
