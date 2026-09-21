@@ -8,6 +8,7 @@ from keyseq.presentation.theme import coerce_font_delta
 class StartupIo:
     def __init__(self, app) -> None:
         self._app = app
+        self.entry_loaded = False
 
     def load_startup_and_config(self):
         """
@@ -27,6 +28,7 @@ class StartupIo:
                         config_root=self._app.config_root,
                     )
                     self._app.keymap_set_path = resolved_keymap_set_path
+                    self.entry_loaded = True
                     self._app.keymap_set_io.apply_loaded_data_to_ui()
                     return
                 except Exception:

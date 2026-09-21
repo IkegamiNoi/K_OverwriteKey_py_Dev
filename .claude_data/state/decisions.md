@@ -577,3 +577,23 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - `5_08_09_orphan_sweep.md:26` の走査経路 3 の**根拠文 1 行のみ**を追従（**走査範囲 4 経路は不変**）。
 - `features.md:119` は**改訂不要**（メニュー項目名のみで書き込み契機を含まない）と実測確認。
 - `reviewer` = **採用（完了可）**。節番号・見出しの差分ゼロ。
+
+### 【task_02】完了（2026-09-21）= 実装
+
+- `StartupIo.entry_loaded`（起動時に起動エントリを読めたかの**事実**）を presentation に持たせ、
+  `save_runtime_data` → `build_split_save_payloads` → `build_startup_payload` へ
+  `startup_entry_loaded: bool = False` を通した。**更新要否の判定は `build_startup_payload` の 1 箇所**
+  （`split_payloads.py:361-364`）に集約し、presentation は分岐を持たない。
+- `entry_loaded` の更新契機は 3 つ（`startup_io.py:31` 起動読込成功 / `keymap_set_io.py:135` 保存成功 /
+  `keymap_set_io.py:654` メニュー指定成功）。**`write_startup` には入れない**
+  （一律に立てると、起動エントリ不在のままフォント変更等で書き出したときに自己修復が失われる）。
+- **既定引数 False** としたため `resolve_child_save_targets` と既存呼び出しの挙動は不変。
+  既存 4 アサーションは**予想どおり無修正で pass**（`startup_data={}` / `write_startup` 経由のため）。
+- 実測（`.venv`）: compile clean / `tests` **518**（skip 7・514 → **+4**）/ `tests_ui` **449**（446 → **+3**）/
+  smoke OK。追加 7 件は個別実行でも全て pass。
+- `reviewer` = **完了可（採用）**。参考指摘 1 件 = 据え置き条件の `existing_entry`（非空判定）と
+  読込側 `startup_io.py:19` の `.strip()` で「空」の定義が字面上非対称。ただし
+  **`entry_loaded=True` かつ値が空白のみ**という組み合わせは 3 経路のいずれからも生成されず**到達不能**のため
+  **現時点は修正不要**と判断（config.json を手編集した場合のみのレアケース）。
+- **Codex が書いた行が LF で、CRLF のファイルへ混在**していたため CRLF へ揃えた（差分内容は不変）。
+

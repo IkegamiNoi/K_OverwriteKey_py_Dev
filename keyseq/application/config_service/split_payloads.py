@@ -21,6 +21,7 @@ def build_split_save_payloads(service,
     *,
     config_root: str,
     startup_data: Any,
+    startup_entry_loaded: bool = False,
     keymap_set_path: str,
     legacy_path: str,
     split_base_dir: str,
@@ -50,6 +51,7 @@ def build_split_save_payloads(service,
     }
     startup_payload = build_startup_payload(service,
         startup_data,
+        startup_entry_loaded=startup_entry_loaded,
         config_root=config_root,
         keymap_set_path=keymap_set_path,
         legacy_path=legacy_path,
@@ -347,6 +349,7 @@ def build_keymap_set_payload(service,
 def build_startup_payload(service,
     startup_data: Any,
     *,
+    startup_entry_loaded: bool = False,
     config_root: str,
     keymap_set_path: str,
     legacy_path: str,
@@ -356,7 +359,9 @@ def build_startup_payload(service,
         payload.update(safe_deepcopy(startup_data))
 
     payload.pop("config_path", None)
-    payload["keymap_set_path"] = service.to_config_relative_or_absolute(keymap_set_path, config_root)
+    existing_entry = payload.get("keymap_set_path")
+    if not (isinstance(existing_entry, str) and existing_entry and startup_entry_loaded):
+        payload["keymap_set_path"] = service.to_config_relative_or_absolute(keymap_set_path, config_root)
     try:
         payload["ui_font_delta_pt"] = int(payload.get("ui_font_delta_pt", 0) or 0)
     except Exception:

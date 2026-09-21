@@ -93,7 +93,8 @@
 - [task_01](tasks/task_01_spec_revision.md): 正本改訂（`data_schema.md` §5.4 の条項差し替え +
   `5_08_09_orphan_sweep.md` の根拠文）— **完了**（2026-09-21・reviewer 採用）
 - [task_02](tasks/task_02_startup_entry_guard.md): 実装 — 起動エントリの読込成否を保持し、
-  保存経路の更新要否を application で判定する（+ テスト）
+  保存経路の更新要否を application で判定する（+ テスト）— **完了**（2026-09-21・reviewer 採用。
+  **実機目視待ち**）
 - task_03: 記録と完了（`decisions_archive/26` / `current.md` / `/refactor_check`）
 
 ## レビュー方針

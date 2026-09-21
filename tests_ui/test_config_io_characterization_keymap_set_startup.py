@@ -123,6 +123,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         self.app.keymap_set_path = ""
         self.app.startup_path = ""
         self.app._startup_settings = {}
+        self.app.startup_io.entry_loaded = False
         self.app.dirty_tracker.set_trigger_set_source_path("")
         self.app.dirty_tracker.trigger_set_imported = False
         self.app.dirty_tracker.trigger_set_dirty = False
@@ -1377,6 +1378,76 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 startup = json.load(file)
             self.assertEqual(startup["hook_stop_key"], "f1")
             self.assertEqual(startup["hook_toggle_key"], "f2")
+
+    def _save_and_read_startup_entry(self, root, filename):
+        path = os.path.join(root, "user", "keymap_sets", filename)
+        startup_path = os.path.join(root, "config.json")
+        with patch.object(
+            _config_set_io(self.app), "_collect_child_save_plan", return_value=(SavePlan(), "", False)
+        ), patch.object(
+            self.app.paths, "normalize_keymap_set_save_path", return_value=path
+        ), patch.object(
+            _config_set_io(self.app), "choose_split_base_dir_for_keymap_set", return_value=""
+        ), patch.object(
+            self.app.paths, "preferred_startup_path", return_value=startup_path
+        ), patch.object(self.app, "_set_flash_message"):
+            self.assertTrue(_config_set_io(self.app).save_keymap_set_to(
+                path, flash_message="saved", show_success_dialog=False,
+            ))
+        self.assertTrue(self.app.startup_io.entry_loaded)
+        with open(startup_path, encoding="utf-8") as file:
+            return json.load(file)["keymap_set_path"]
+
+    def test_loaded_startup_entry_survives_save_and_save_as(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.app.config_root = root
+            original = os.path.join(root, "user", "keymap_sets", "original.json")
+            self.app.config_service.repository.save_json(original, {})
+            self.app._startup_settings = {"keymap_set_path": "user/keymap_sets/original.json"}
+            with patch.object(self.app.paths, "resolve_keymap_set_path", return_value=original), patch.object(
+                _config_set_io(self.app), "apply_loaded_data_to_ui"
+            ):
+                _startup_io(self.app).load_startup_and_config()
+            self.assertTrue(self.app.startup_io.entry_loaded)
+            self.assertEqual(self._save_and_read_startup_entry(root, "original.json"), "user/keymap_sets/original.json")
+            self.assertEqual(self._save_and_read_startup_entry(root, "copy.json"), "user/keymap_sets/original.json")
+
+    def test_missing_startup_entry_repairs_only_on_first_save(self):
+        for state in ("unset", "missing", "broken"):
+            with self.subTest(state=state), tempfile.TemporaryDirectory() as root:
+                self.app.config_root = root
+                self.app.startup_io.entry_loaded = False
+                original = os.path.join(root, "original.json")
+                self.app._startup_settings = {} if state == "unset" else {"keymap_set_path": original}
+                if state == "broken":
+                    with open(original, "w", encoding="utf-8") as file:
+                        file.write("{invalid json")
+                with patch.object(self.app.paths, "resolve_keymap_set_path", return_value=original), patch.object(
+                    _config_set_io(self.app), "apply_loaded_data_to_ui"
+                ):
+                    _startup_io(self.app).load_startup_and_config()
+                self.assertFalse(self.app.startup_io.entry_loaded)
+                self.assertEqual(self._save_and_read_startup_entry(root, "first.json"), "user/keymap_sets/first.json")
+                self.assertEqual(self._save_and_read_startup_entry(root, "second.json"), "user/keymap_sets/first.json")
+
+    def test_menu_selected_startup_entry_survives_save_as(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.app.config_root = root
+            selected = os.path.join(root, "user", "keymap_sets", "selected.json")
+            self.app.config_service.repository.save_json(selected, {})
+            patches = self._silence_refresh()
+            with patch.object(
+                _config_set_io(self.app), "confirm_save_if_dirty", return_value=True
+            ), patch.object(tkinter.filedialog, "askopenfilename", return_value=selected), patch.object(
+                self.app.paths, "preferred_startup_path", return_value=os.path.join(root, "config.json")
+            ), patch.object(
+                self.app.paths, "to_config_relative_or_absolute", return_value="user/keymap_sets/selected.json"
+            ), patch.object(_config_set_io(self.app), "apply_loaded_data_to_ui"), patch.object(
+                self.app, "_set_flash_message"
+            ), patch.object(tkinter.messagebox, "showinfo"), patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).set_startup_keymap_set()
+            self.assertTrue(self.app.startup_io.entry_loaded)
+            self.assertEqual(self._save_and_read_startup_entry(root, "copy.json"), "user/keymap_sets/selected.json")
 
     # ===================== B: load_startup_and_config =====================
     def test_load_startup_and_config_loads_when_stored_path_exists(self):

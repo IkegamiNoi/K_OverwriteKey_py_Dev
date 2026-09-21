@@ -4,64 +4,57 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-21T12:36:00
+last_updated: 2026-09-21T12:55:00
 phase: `instructions/phase/26_startup_entry_preservation`（起動エントリの保存時据え置き）。**直接改訂モード**・暫定仕様なし。番号対応: phase 26 / decisions 26。次採番 = phase 27 / 暫定 21 / decisions 27。
 直前の完了フェーズ = phase 25（判断履歴 = `decisions_archive/25_path_field_type_normalization.md`）。
 last_commit_location: `claude/idea-24-issue-5f4005`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 26 = 起動エントリ（config.json の keymap_set_path）を保存で上書きしない。task_01〔正本改訂〕完了・reviewer 採用。次は task_02〔実装〕。**
-mode: implementing
+focus: **phase 26 = 起動エントリを保存で上書きしない。task_01〔正本改訂〕/ task_02〔実装〕完了・実測 green・reviewer 採用。次は実機目視（ユーザー）→ task_03。**
+mode: pending_review
 
 ## last_action
-ts: 2026-09-21T12:36:00
+ts: 2026-09-21T12:55:00
 who: main
 summary: |
-  【起票の経緯】ユーザー要望 = 「起動時に読み込む構成セットが直近保存したものになってしまう。
-  メニュー『起動時に読む構成セットを指定…』で指定した内容を保存で上書きしないでほしい」。
-  実測で原因を特定 = `split_payloads.build_startup_payload`（`:359`）が保存のたびに
-  `keymap_set_path` を**無条件で保存先へ書く**。正本 `data_schema.md:121` にもそう規定されていたため
-  **バグではなく仕様変更**と判定（`spec_change_workflow.md`）。
-  【ユーザー確定（2026-09-21）】①保存では起動エントリを更新しない。**空 / 起動時に読めなかった場合のみ**更新（自己修復）
-  ②**「読めない」は起動時の実読込結果で判定**（案 A。壊れた JSON も自己修復対象。保存時の `os.path.exists` 判定〔案 B〕は不採用）
-  ③**別名保存で起動エントリ自身を複製しても据え置き**（元ファイルが残るため次回起動は旧ファイル）
-  ④可視化 UI・解除手段は**追加しない**。
-  【起票】`/phase_start` で phase 26 を起票（直接改訂モード）。`current.md` のルーティングと次採番（27）を更新。
-  phase.md の整合チェック = `reviewer` **完了可**（指摘 = 行番号 2 件のズレ → 実測で裏取りして `:359` / `:101` へ訂正）。
-  `features.md:119` はメニュー項目名のみで**改訂不要**、`5_08_09_orphan_sweep.md` の走査範囲は**不変**（経路 3 の根拠文のみ）と確認。
-  【task_01 = 正本改訂】`data_schema.md` §5.4 の 1 条項を 5 点構成へ差し替え（presentation/application を跨ぐ
-  書き込み契機の変更を**実装より先に**正本へ確定）。`5_08_09_orphan_sweep.md:26` の根拠文 1 行を追従。
-  `reviewer` = **採用（完了可）**・節番号/見出しの差分ゼロを確認。
-  【task_02 の前提として実測済】既存 4 アサーション（`test_config_service.py:66`/`:127`/`:2516` /
-  `tests_ui/...:1306`）は `startup_data={}` か `write_startup` 経由のため**修正不要の見込み**。
+  【task_02 = 実装】`codex-implementer` へ委任（テストコードの追加まで / 実行は依頼せず）。
+  **presentation は事実・application が判定**の分担で実装:
+  `StartupIo.entry_loaded`（起動時に起動エントリを読めたか）を持ち、
+  `save_runtime_data` → `build_split_save_payloads` → `build_startup_payload` へ
+  `startup_entry_loaded: bool = False` を貫通。据え置き判定は `split_payloads.py:361-364` の 1 箇所。
+  `entry_loaded` の更新契機は 3 つ（起動読込成功 / 保存成功 / メニュー指定成功）。
+  **`write_startup` には入れない**（一律に立てると自己修復が失われる）。
+  【実測 = verifier】compile clean / `tests` **518**（skip 7・+4）/ `tests_ui` **449**（+3）/ smoke OK。
+  追加 7 件は個別実行でも pass。既存 4 アサーションは**予想どおり無修正で pass**。
+  【レビュー = reviewer】**完了可（採用）**。参考指摘 1 件 = 据え置き条件の非空判定と読込側の `.strip()` で
+  「空」の定義が字面上非対称だが、`entry_loaded=True` かつ空白のみは**到達不能**のため修正不要と判断。
+  【メインで対処】Codex が書いた行が **LF で CRLF ファイルへ混在**していたため CRLF へ揃えた（差分内容は不変）。
 result_files:
-  - instructions/common/spec_detail/data_schema.md（§5.4 の条項差し替え）
-  - instructions/common/spec_detail/data_schema/5_08_09_orphan_sweep.md（経路 3 の根拠文）
-  - instructions/phase/26_startup_entry_preservation/（phase.md / tasks 2 件）
-  - instructions/phase/current.md（ルーティング + 次採番 27）
+  - keyseq/presentation/controllers/config_io/startup_io.py / keymap_set_io.py
+  - keyseq/application/config_service/__init__.py / save_plan_execution.py / split_payloads.py
+  - tests/test_config_service.py / tests_ui/test_config_io_characterization_keymap_set_startup.py
+  - instructions/common/codebase_map.md
+  - instructions/phase/26_startup_entry_preservation/phase.md / instructions/phase/current.md
+  - .claude_data/state/decisions.md
 verified:
-  compile: not_run（文書のみのタスク）
-  tests: not_run（文書のみのタスク）
-  tests_ui: not_run（文書のみのタスク）
-  smoke: not_run（文書のみのタスク）
-  review: reviewer（phase.md 整合）= 完了可・指摘 2 件反映済 / reviewer（task_01 正本改訂）= 採用
-  refactor_check: not_run（フェーズ完了時 = task_03）
+  compile: clean
+  tests: 518 ran OK（skipped 7・514 → +4）
+  tests_ui: 449 ran OK（446 → +3）
+  smoke: SMOKE OK
+  review: reviewer（task_02 実装差分）= 完了可・採用 / reviewer（task_01・phase.md 整合）= 採用
+  refactor_check: not_run（task_03 で実施）
 
 
 ## next_action
-- **task_02（実装）を `codex-implementer` へ委任する**。タスク定義 =
-  `instructions/phase/26_startup_entry_preservation/tasks/task_02_startup_entry_guard.md`。
-  要旨 = `StartupIo.entry_loaded`（起動時に読めたかの事実）を presentation で保持し、
-  `save_runtime_data` → `build_split_save_payloads` → `build_startup_payload` へ
-  `startup_entry_loaded: bool = False` を通して**更新要否の判定は application 側**で行う。
-  **テストコードの追加まで**を委任範囲にし、**テスト実行は依頼しない**（Codex は python を起動できない）。
-- 実測は `verifier` へ（`.venv` で compileall / `unittest discover -s tests` /
-  `-s tests_ui` / `-m tests.smoke_app`）。その後 `reviewer` で必須レビュー。
-- **実機目視はユーザー**（①別名保存 → 再起動で起動対象が変わらない ②メニュー指定が効く
-  ③`keymap_set_path` を手で消して起動 → 保存 → 再起動で自己修復）。報告を受けてから task_03。
-- task_03 = `decisions_archive/26` / `decisions.md` 索引 / `current.md` の完了記載 /
-  `/refactor_check`（**起票元 idea は無いので backlog INDEX の更新は不要**）。
+- **実機目視をユーザーへ依頼中**（task_02 の完了条件）。3 点:
+  ①構成セットを別名保存 → 再起動して**起動対象が変わらない**こと
+  ②メニュー「起動時に読む構成セットを指定…」が効くこと
+  ③`config/config.json` の `keymap_set_path` を手で消して起動 → 保存 → 再起動で**自己修復**すること
+- 目視 OK の報告を受けたら **task_03（記録と完了）**: `decisions_archive/26_startup_entry_preservation.md` の作成 /
+  `decisions.md` の phase 26 節を索引 1 行へ集約 / `current.md` の完了記載（次採番 27 は記載済）/
+  **`/refactor_check`**（メトリクス収集は `verifier`・判定はメイン）。
+  **起票元 idea は無いので backlog INDEX の更新は不要**。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。

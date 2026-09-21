@@ -315,6 +315,7 @@ class ConfigService:
         *,
         config_root: str,
         startup_data: Any = None,
+        startup_entry_loaded: bool = False,
         keep_legacy_copy: bool = False,
         legacy_path: str = "",
         split_base_dir: str = "",
@@ -322,6 +323,7 @@ class ConfigService:
     ) -> tuple[dict[str, Any], dict[str, Any]]:
         return save_plan_execution.save_runtime_data(
             self, keymap_set_path, data, config_root=config_root, startup_data=startup_data,
+            startup_entry_loaded=startup_entry_loaded,
             keep_legacy_copy=keep_legacy_copy, legacy_path=legacy_path,
             split_base_dir=split_base_dir, save_plan=save_plan,
         )

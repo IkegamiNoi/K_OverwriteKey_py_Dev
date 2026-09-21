@@ -127,6 +127,59 @@ class SaveLoadRoundTripTest(unittest.TestCase):
             self.assertEqual(startup["keymap_set_path"], "user/keymap_sets/default.json")
 
 
+class StartupEntryPreservationTest(unittest.TestCase):
+    def test_loaded_startup_entry_is_preserved(self):
+        with tempfile.TemporaryDirectory() as root:
+            service = ConfigService(JsonRepository())
+            _, startup = service.save_runtime_data(
+                "", make_runtime_data(), config_root=root,
+                startup_data={"keymap_set_path": "user/keymap_sets/original.json"},
+                startup_entry_loaded=True,
+            )
+            self.assertEqual(startup["keymap_set_path"], "user/keymap_sets/original.json")
+            self.assertEqual(service.repository.load_json(os.path.join(root, "config.json")), startup)
+
+    def test_failed_startup_entry_and_default_false_update_to_save_target(self):
+        for kwargs in ({"startup_entry_loaded": False}, {}):
+            with self.subTest(kwargs=kwargs), tempfile.TemporaryDirectory() as root:
+                service = ConfigService(JsonRepository())
+                _, startup = service.save_runtime_data(
+                    "", make_runtime_data(), config_root=root,
+                    startup_data={"keymap_set_path": "user/keymap_sets/broken.json"},
+                    **kwargs,
+                )
+                self.assertEqual(startup["keymap_set_path"], "user/keymap_sets/default.json")
+
+    def test_unset_startup_entry_updates_even_when_loaded(self):
+        for startup_data in ({}, {"keymap_set_path": ""}, {"keymap_set_path": 42}):
+            with self.subTest(startup_data=startup_data), tempfile.TemporaryDirectory() as root:
+                service = ConfigService(JsonRepository())
+                _, startup = service.save_runtime_data(
+                    "", make_runtime_data(), config_root=root,
+                    startup_data=startup_data, startup_entry_loaded=True,
+                )
+                self.assertEqual(startup["keymap_set_path"], "user/keymap_sets/default.json")
+
+    def test_preserved_startup_entry_still_saves_other_keys(self):
+        with tempfile.TemporaryDirectory() as root:
+            service = ConfigService(JsonRepository())
+            _, startup = service.save_runtime_data(
+                "", make_runtime_data(), config_root=root,
+                startup_data={
+                    "keymap_set_path": "user/keymap_sets/original.json",
+                    "ui_font_delta_pt": "2", "last_used_directory": "chosen",
+                    "unknown_key": {"nested": [1]}, "config_path": "legacy.json",
+                },
+                startup_entry_loaded=True,
+            )
+            self.assertEqual(startup, {
+                "keymap_set_path": "user/keymap_sets/original.json",
+                "ui_font_delta_pt": 2, "last_used_directory": "chosen",
+                "unknown_key": {"nested": [1]},
+            })
+            self.assertEqual(service.repository.load_json(os.path.join(root, "config.json")), startup)
+
+
 class HookKeyResolutionTest(unittest.TestCase):
     def setUp(self):
         self.service = ConfigService(JsonRepository())

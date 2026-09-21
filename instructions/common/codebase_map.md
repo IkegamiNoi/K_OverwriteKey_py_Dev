@@ -202,8 +202,9 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     - **個別値の退避（`app._retained_hook_keys`）の破棄点は 4 箇所**: `save_keymap_set_to` の
       **保存実行の直前**（`save_runtime_data` 呼び出し前）/ `apply_loaded_data_to_ui` の先頭 /
       `new_config` / `restore_default`
-    - 保存成功時は `config_service.save_runtime_data` が startup payload ごと `config/config.json` を書き直し、`keymap_set_path` が保存先へ更新される（`write_startup` は経由しない。「起動時に読むJSONを設定」メニュー側とは**別経路で同じキーを書く**点に注意）
+    - 保存成功時は `config_service.save_runtime_data` が startup payload ごと `config/config.json` を書き直す（`write_startup` は経由しない）。`startup_entry_loaded`（キーワード専用・既定 False）を `save_runtime_data` → `build_split_save_payloads` → `build_startup_payload` へ渡し、application の `build_startup_payload` が既存の非空文字列かつ読込成功なら `keymap_set_path` を据え置き、それ以外は保存先へ更新する。他キーは従来どおり保存する
   - StartupIo（startup_io.py = `app.startup_io`）: 起動設定（`config/config.json`。旧 `settings/startup.json` は読込フォールバックのみ）の read/write
+    - `entry_loaded`（初期 False）は起動エントリの読込成功の事実のみを保持し、更新要否は判定しない。起動読込成功 / 構成セット保存成功 / メニューでの起動対象指定成功の 3 契機で True にする（`write_startup` 自体では変更しない）
     - 起動時は stored `keymap_set_path` が実在すれば読み込み、無い / 読めない場合は**無言で空データ起動**し `keymap_set_path` を空にする
     - `write_startup(data) -> bool`（成功 True / 例外捕捉で False・`showerror` は従来どおり）と
       `write_global_hook_keys(*, stop_key, toggle_key) -> bool`（hook キーの全体デフォルト書き込み）。

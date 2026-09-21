@@ -124,6 +124,7 @@ class KeymapSetIo:
                 self._app.data,
                 config_root=self._app.config_root,
                 startup_data=self._app._startup_settings,
+                startup_entry_loaded=self._app.startup_io.entry_loaded,
                 keep_legacy_copy=False,
                 split_base_dir=split_base_dir,
                 save_plan=save_plan,
@@ -131,6 +132,7 @@ class KeymapSetIo:
             self._app.keymap_set_path = save_path
             self._app.startup_path = self._app.paths.preferred_startup_path()
             self._app._startup_settings = startup_payload
+            self._app.startup_io.entry_loaded = True
             self._app.dirty_tracker.sync_trigger_set_source_path_from_data()
             self._clear_saved_child_dirty_flags(*skipped_dirty_children)
             if deferred_index:
@@ -649,6 +651,8 @@ class KeymapSetIo:
         startup_saved = self._app.startup_io.write_startup(
             {"keymap_set_path": self._app.paths.to_config_relative_or_absolute(path)}
         )
+        if startup_saved:
+            self._app.startup_io.entry_loaded = True
         self.apply_loaded_data_to_ui()
         self._app.state.reset_indices()
         self._app.trigger_panel.refresh_triggers()
