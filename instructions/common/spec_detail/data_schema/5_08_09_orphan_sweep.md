@@ -23,7 +23,7 @@
 
 1. `config/user/keymap_sets/` **直下**
 2. `config/config.json` の `keymap_set_path`（起動エントリ）
-3. **現在開いている keymap_set** — 通常読込は `config.json` を書かないため、
+3. **現在開いている keymap_set** — 通常読込も保存も `config.json` の起動エントリを書かない（§5.4）ため、
    **起動エントリでは代替できない**。落とすと**既定外のセットを開いている間にその子が隔離される**
 4. **ユーザー指定ディレクトリ**（§5.4 の `orphan_sweep_scan_dirs`。config 外でもよい・**非再帰**）
 

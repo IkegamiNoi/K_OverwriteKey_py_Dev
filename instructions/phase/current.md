@@ -7,7 +7,13 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: なし**（[phase 25](25_path_field_type_normalization/phase.md) は 2026-09-19 完了）。次フェーズ未確定のため、着手前にユーザーへ方針を確認する。
+- **アクティブなフェーズ: [phase 26](26_startup_entry_preservation/phase.md)（起動エントリの保存時据え置き）**。
+  `config/config.json` の `keymap_set_path`（起動時に読む構成セット）を**保存では上書きしない**ようにし、
+  変更経路をメニュー「起動時に読む構成セットを指定…」へ寄せる。**空 / 起動時に読めなかった場合のみ保存で更新**（自己修復）。
+  **直接改訂モード**（正本 `data_schema.md` §5.4 を先に改訂）。起票元 = ユーザー要望（2026-09-21）・idea なし。
+  番号対応: phase 26 / decisions 26（暫定仕様なし）。
+  進捗: task_01（正本改訂）完了。次 = task_02（実装）。
+- [phase 25](25_path_field_type_normalization/phase.md) は 2026-09-19 完了。
 - **直近の一連の作業が扱っている領域 = JSON 読込時の型正規化（パス系まで到達）**。
   正本は `data_schema.md` **§5.1「型不正の共通規則」**（phase 24 で新設）+ **§5.5 / §5.7**（phase 25 で型規定を追記）、`codebase_map.md`。
   実装 = `keyseq/domain/config.py`（`coerce_key_name` / `coerce_label`）/ `keyseq/application/config_service/split_loading.py` /
@@ -81,8 +87,8 @@
 
 ## 次採番
 
-- **phase 25 は 2026-09-19 完了**（`25_path_field_type_normalization` / decisions 25 はアーカイブ済・暫定仕様なし）。
-  次フェーズは **`26_<topic>`**・decisions も **26** を使う（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 26 を 2026-09-21 起票**（`26_startup_entry_preservation` / decisions 26・暫定仕様なし）。
+  次フェーズは **`27_<topic>`**・decisions も **27** を使う（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。

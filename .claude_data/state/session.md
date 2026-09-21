@@ -4,71 +4,80 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-19T23:10:00
-phase: **アクティブなフェーズなし**（`instructions/phase/25_path_field_type_normalization` は 2026-09-19 完了）。次フェーズは未確定 = **ユーザーに方針確認が要る**。
-直前の完了フェーズ = phase 25（判断履歴 = `decisions_archive/25_path_field_type_normalization.md`）。番号対応: phase 25 / decisions 25 / 暫定仕様なし。次採番 = phase 26 / 暫定 21 / decisions 26。
+last_updated: 2026-09-21T12:36:00
+phase: `instructions/phase/26_startup_entry_preservation`（起動エントリの保存時据え置き）。**直接改訂モード**・暫定仕様なし。番号対応: phase 26 / decisions 26。次採番 = phase 27 / 暫定 21 / decisions 27。
+直前の完了フェーズ = phase 25（判断履歴 = `decisions_archive/25_path_field_type_normalization.md`）。
 last_commit_location: `claude/idea-24-issue-5f4005`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 25（パス系フィールドの型正規化）完了。実装 3 ファイル・正本 §5.5 / §5.7 への追記・記録・refactor_check〔不要〕まで完了。次フェーズ未確定。**
-mode: completed
+focus: **phase 26 = 起動エントリ（config.json の keymap_set_path）を保存で上書きしない。task_01〔正本改訂〕完了・reviewer 採用。次は task_02〔実装〕。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-19T23:10:00
+ts: 2026-09-21T12:36:00
 who: main
 summary: |
-  【phase 25 = idea_25 の実装追従】ユーザー指示で着手。**直接改訂モード**（§5.1 は
-  「文字列を期待するフィールド」と書いておりフィールドを限定していない＝パス系も既に規定の対象。
-  idea_25 の案 B〔現状維持 + 未定義と明記〕は §5.1 を後から緩めることになり不採用）。
-  【現状監査】全走査 + 実測。**例外になる箇所はゼロ**で、`str()` 強制による repr 混入が問題。
-  実害中 = `external_keyboard_layouts[].path` と `keymaps[].switch_key`（実際に runtime へ載ることを実測）。
-  【task_01】`coerce_*` を 9 箇所へ適用。**使い分け = パスは `coerce_label`（trim のみ）/
-  キー名・id は `coerce_key_name`（trim + 小文字化）**。パスを小文字化すると壊れるため。
-  `keymap_switch_keys` の値も `coerce_key_name` へ（従来は membership check による偶然の防御）。
-  【task_01b】task_01 の完了後レビューで**参照突合経路**（`reference_scan.py`・生 JSON を直接読む別実装）の
-  取りこぼしを検出 → ユーザー判断で後送りせず本フェーズ内で修正（`_source_path` の 1 行 + import）。
-  【task_02 = 正本反映】`data_schema.md` §5.5 / §5.7 へ型の規定を追記（**§5.1 の本文は不変**）。
-  `codebase_map.md` を更新。`decisions_archive/25` / `decisions.md` 索引 / `current.md` /
-  backlog INDEX → INDEX_done。
-  【完了判定前レビュー】`deep-reviewer` = **修正要**。全件実測で裏取りし反映:
-  ①**§5.1 の「`keymaps[]` の非 dict 要素は除去」と §5.5 の「旧記法の文字列を受ける」が正面衝突**
-  （前者は単一 JSON / runtime の内容 keymaps、後者は keymap_set の参照エントリ。同名の別物）→ スコープを明記
-  ②**§5.7 の新文が実装より広い**。runtime 専用の内部キー（`_keymap_source_path` 等）は生値のまま素通しする
-  （実測で確認）→ 文言を「JSON に記録するパス値」へ限定し、**【実装未追従】として明記**＋候補送り
-  ③archive の件数誤り（パス系 6 → **7**）④`keymaps[]` の除去条件・旧記法の意味・区切り文字正規化との
-  区別の書き漏れ ⑤`current.md` の「直前の完了フェーズ」が 22 のまま（既存ズレ）→ 25/24/23 へ更新。
-  【判定】`/refactor_check` = **不要**（PHASE_BASE `f0e5887`・M1〜M6 非該当）。
+  【起票の経緯】ユーザー要望 = 「起動時に読み込む構成セットが直近保存したものになってしまう。
+  メニュー『起動時に読む構成セットを指定…』で指定した内容を保存で上書きしないでほしい」。
+  実測で原因を特定 = `split_payloads.build_startup_payload`（`:359`）が保存のたびに
+  `keymap_set_path` を**無条件で保存先へ書く**。正本 `data_schema.md:121` にもそう規定されていたため
+  **バグではなく仕様変更**と判定（`spec_change_workflow.md`）。
+  【ユーザー確定（2026-09-21）】①保存では起動エントリを更新しない。**空 / 起動時に読めなかった場合のみ**更新（自己修復）
+  ②**「読めない」は起動時の実読込結果で判定**（案 A。壊れた JSON も自己修復対象。保存時の `os.path.exists` 判定〔案 B〕は不採用）
+  ③**別名保存で起動エントリ自身を複製しても据え置き**（元ファイルが残るため次回起動は旧ファイル）
+  ④可視化 UI・解除手段は**追加しない**。
+  【起票】`/phase_start` で phase 26 を起票（直接改訂モード）。`current.md` のルーティングと次採番（27）を更新。
+  phase.md の整合チェック = `reviewer` **完了可**（指摘 = 行番号 2 件のズレ → 実測で裏取りして `:359` / `:101` へ訂正）。
+  `features.md:119` はメニュー項目名のみで**改訂不要**、`5_08_09_orphan_sweep.md` の走査範囲は**不変**（経路 3 の根拠文のみ）と確認。
+  【task_01 = 正本改訂】`data_schema.md` §5.4 の 1 条項を 5 点構成へ差し替え（presentation/application を跨ぐ
+  書き込み契機の変更を**実装より先に**正本へ確定）。`5_08_09_orphan_sweep.md:26` の根拠文 1 行を追従。
+  `reviewer` = **採用（完了可）**・節番号/見出しの差分ゼロを確認。
+  【task_02 の前提として実測済】既存 4 アサーション（`test_config_service.py:66`/`:127`/`:2516` /
+  `tests_ui/...:1306`）は `startup_data={}` か `write_startup` 経由のため**修正不要の見込み**。
 result_files:
-  - keyseq/domain/config.py / keyseq/application/config_service/split_loading.py / reference_scan.py
-  - tests/test_domain_config.py / tests/test_config_service.py / tests/test_reference_scan.py
-  - instructions/common/spec_detail/data_schema.md / instructions/common/codebase_map.md
-  - instructions/phase/25_path_field_type_normalization/（phase.md / tasks 3 件）
-  - instructions/phase/current.md / instructions/backlog/INDEX.md・INDEX_done.md
-  - .claude_data/state/decisions_archive/25_path_field_type_normalization.md / decisions.md
+  - instructions/common/spec_detail/data_schema.md（§5.4 の条項差し替え）
+  - instructions/common/spec_detail/data_schema/5_08_09_orphan_sweep.md（経路 3 の根拠文）
+  - instructions/phase/26_startup_entry_preservation/（phase.md / tasks 2 件）
+  - instructions/phase/current.md（ルーティング + 次採番 27）
 verified:
-  compile: clean
-  tests: 514 ran OK（skipped 7・505 → +9）
-  tests_ui: 446 ran OK
-  smoke: SMOKE OK
-  review: deep-reviewer（task_02 正本反映）= 修正要 → 反映済 / reviewer（task_01・task_01b・phase.md 整合）= いずれも採用
-  refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `f0e5887`）
+  compile: not_run（文書のみのタスク）
+  tests: not_run（文書のみのタスク）
+  tests_ui: not_run（文書のみのタスク）
+  smoke: not_run（文書のみのタスク）
+  review: reviewer（phase.md 整合）= 完了可・指摘 2 件反映済 / reviewer（task_01 正本改訂）= 採用
+  refactor_check: not_run（フェーズ完了時 = task_03）
+
 
 ## next_action
-- **phase 25 の残りをコミットする**（`/task_commit`。task_02 = 正本反映と記録。未コミットならこれが最初）。
-- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = **phase 26 / 暫定 21 / decisions 26**）。
-  候補は `instructions/backlog/INDEX.md`（**idea_23** = キーの押す / 離すアクション。優先度低）と、
-  `current.md`「別タスク化候補」の **Phase 25 項**（`startup_io.py` の `keymap_set_path` /
-  **runtime 内部キーの型未追従**〔正本 §5.7 に【実装未追従】として明記済〕）。
+- **task_02（実装）を `codex-implementer` へ委任する**。タスク定義 =
+  `instructions/phase/26_startup_entry_preservation/tasks/task_02_startup_entry_guard.md`。
+  要旨 = `StartupIo.entry_loaded`（起動時に読めたかの事実）を presentation で保持し、
+  `save_runtime_data` → `build_split_save_payloads` → `build_startup_payload` へ
+  `startup_entry_loaded: bool = False` を通して**更新要否の判定は application 側**で行う。
+  **テストコードの追加まで**を委任範囲にし、**テスト実行は依頼しない**（Codex は python を起動できない）。
+- 実測は `verifier` へ（`.venv` で compileall / `unittest discover -s tests` /
+  `-s tests_ui` / `-m tests.smoke_app`）。その後 `reviewer` で必須レビュー。
+- **実機目視はユーザー**（①別名保存 → 再起動で起動対象が変わらない ②メニュー指定が効く
+  ③`keymap_set_path` を手で消して起動 → 保存 → 再起動で自己修復）。報告を受けてから task_03。
+- task_03 = `decisions_archive/26` / `decisions.md` 索引 / `current.md` の完了記載 /
+  `/refactor_check`（**起票元 idea は無いので backlog INDEX の更新は不要**）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
+
 
 ## blockers
 - なし
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 26 の設計は正本が正】起動エントリ = `config/config.json` の `keymap_set_path`。
+  正本 `spec_detail/data_schema.md` §5.4**。要点 = ①**保存では更新しない**（別名保存でも据え置き）。
+  変更経路はメニュー「起動時に読む構成セットを指定…」のみ ②**例外 = 未設定 / 起動時に読めなかった場合のみ**
+  保存先で更新（自己修復）③**判定は起動時の実読込結果**（保存時に実在確認をし直さない＝壊れた JSON も自己修復対象）
+  ④**据え置くのは `keymap_set_path` の値だけ**で、config.json の他キーは従来どおり書き直す。
+  実装の要 = `build_startup_payload`（application が更新要否を判定）+ `StartupIo.entry_loaded`（presentation は事実のみ保持）。
 - **【phase 25 の成果は正本が正】パス系の型正規化 = `spec_detail/data_schema.md` §5.5 / §5.7**（§5.1 の共通規則を参照する形）。
   要点 = ①**使い分け = パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`（trim + 小文字化）**。
   **パスに `coerce_key_name` を使うと小文字化で壊れる**（§5.7 の `normcase` は比較専用）
