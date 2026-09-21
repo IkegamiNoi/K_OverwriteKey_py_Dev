@@ -35,6 +35,7 @@
 | 23_sequence_payload_action_normalization | [23_sequence_payload_action_normalization.md](decisions_archive/23_sequence_payload_action_normalization.md) | 個別 sequence JSON 単体読込の actions 正規化（2026-09-19 完了・**挙動追従のみ・スキーマ不変**・直接改訂モード・起票元 idea_24）。正規化（dict 以外の除去 + `label` 整形）を domain の公開関数 `normalize_actions` へ切り出し、`ensure_config_compatibility` と `ConfigService._normalize_sequence_payload` の双方から呼ぶ（案 A。案 B = 個別読込も `ensure_config_compatibility` を通す、は payload の形が噛み合うか不明で影響大のため不採用）/ 単体読込の戻り値に `label: ""` が付く挙動変更は既存経路と同じ形になるため許容し既存テストの期待値を更新 / **保存は payload を書いた後に正規化する順序のためディスクの JSON は不変**（実測）/ 二重正規化は冪等。正本 = `data_schema.md` §5.11 の【実装未追従】注記を削除。実機目視 不要。refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `cd9e6f2`） |
 | 24_json_type_normalization | [24_json_type_normalization.md](decisions_archive/24_json_type_normalization.md) | JSON 読込の型不正の扱い統一（2026-09-19 完了・**頑健化のみ・スキーマ不変**・暫定仕様先行モード・起票元 = phase 23 後のユーザー指示）。文字列前提の処理へ非文字列が渡り **9 箇所で AttributeError** / `str()` 強制で **repr 文字列が runtime に載る**問題を解消。domain へ `coerce_key_name` / `coerce_label`（非 str は `""`）を新設し**全経路へ一斉適用**（案 F。案 G = 個別読込限定は**共有ローダーのため成立しない**ので不採用）/ `normalize_key_name` のシグネチャは不変（呼び出し 158 箇所）/ trigger の `key` 不正 = 空扱いで残す・`sequence_path` 不正 = 空扱い・`mappings` の target 不正 = 対ごと除去 / `suppress` 等 bool・int は現状維持（`null`/`0`/`""`/`[]` は false）/ falsy な非文字列は元から空扱いで挙動不変。**2 本のレビュー指摘は全件実測で CONFIRMED**（例外は 1 箇所でなく 6 箇所・`suppress` の記述が実装と逆・参照先 sequence からの repr 再流入・経路別スコープの破綻）。reviewer 差し戻し 1 件（split 読込の keymap `label` 漏れ）+ **完了判定前 `deep-reviewer` で棚卸し不足が判明し task_03 を追加**（旧形式 `trigger_key` / hook キー 2 種 / `active_keymap_id`）。同レビューで正本の記述誤り 3 件も訂正（`actions` の要素除去は形状由来・単一 JSON の `keymaps[].id` だけ扱いが違う・形状の倒し方の昇格漏れ）。パス系は idea_25 へ分離。正本 = `data_schema.md` **§5.1 型不正の共通規則（新設）** / §5.2 / §5.6（**keymap 節を新設**）/ §5.11。暫定 20 は v0.3 で凍結。実機目視 不要。refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `61a7c79`） |
 | 25_path_field_type_normalization | [25_path_field_type_normalization.md](decisions_archive/25_path_field_type_normalization.md) | パス系フィールドの型正規化（2026-09-19 完了・**頑健化のみ・スキーマ不変**・直接改訂モード・起票元 idea_25）。**例外になる箇所はゼロ**で、`str()` 強制により **repr 文字列がパス / スイッチキーとして runtime に載る**問題を解消。**使い分け = パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`（trim + 小文字化）**（パスを小文字化すると壊れる。§5.7 の `normcase` は比較専用）/ `keymap_switch_keys` の値も `coerce_key_name` へ（従来は membership check による**偶然の防御**）/ 案 B（現状維持 + 未定義と明記）は **§5.1 を後から緩めることになり不採用**。完了後レビューで**参照突合経路**（`reference_scan.py`・生 JSON を直接読む別実装）の取りこぼしを検出し task_01b で追加対応。正本 = `data_schema.md` §5.5 / §5.7 へ型の規定を追記（**§5.1 の本文は不変**）。残件 = `startup_io.py` の `keymap_set_path`（presentation 層）。実機目視 不要。refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `f0e5887`） |
+| 26_startup_entry_preservation | [26_startup_entry_preservation.md](decisions_archive/26_startup_entry_preservation.md) | 起動エントリ（`config/config.json` の `keymap_set_path`）の保存時据え置き（2026-09-21 完了・**仕様変更・スキーマ不変**・直接改訂モード・起票元 = ユーザー要望）。保存のたびに起動対象が直近の保存先へ書き換わる問題を解消し、**変更経路をメニュー「起動時に読む構成セットを指定…」1 本へ**寄せた。**空 / 起動時に読めなかった場合のみ保存で更新**（自己修復）/ 「読めない」の判定は **案 A = 起動時の実読込結果を真偽値で保持**（案 B の保存時 `os.path.exists` は**壊れた JSON を自己修復できない**ため除外）/ **別名保存でも据え置き**（次回起動は別名保存前のファイル）/ 可視化 UI・解除手段は**除外**。実装 = `StartupIo.entry_loaded`（**presentation は事実のみ**）→ `startup_entry_loaded` を application へ貫通し、**判定は `split_payloads.py:363` の 1 箇所**。更新契機は 3 経路（起動読込成功 / 保存成功 / メニュー指定成功）で **`write_startup` には入れない**（一律に立てると自己修復が失われる）/ **新引数の既定は False** で既存経路は挙動不変。**据え置くのは `keymap_set_path` だけ**。正本 = `data_schema.md` §5.4 の条項差し替え + `5_08_09_orphan_sweep.md` の根拠文 1 行（**走査範囲 4 経路は不変**）。実測 `tests` 518 / `tests_ui` 449 / smoke pass・実機目視 **OK**。残件 = `.strip()` 非対称（**到達不能**・候補送り）/ phase 25 残件①（`startup_io.py` の型正規化）は未着手。refactor_check: 不要（M1〜M6 該当なし・対象 5 ファイル・PHASE_BASE `e0c19ba`） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -540,60 +541,4 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   （`_check_import_nodes` → **単数形へ改名** / `prefix` の毎ノード再計算を
   **モジュール定数 `_PACKAGE_PREFIX`** へ）。残る 1 件（分割後の関数が 30 行目安をわずかに超える）は
   **提案書が想定した分割形**のため据え置き。
-
----
-
-## 2026-09-21〜 (phase 26: 起動エントリを保存で上書きしない)
-
-### 【起票時】仕様変更と判定（ユーザー確定 2026-09-21）
-
-- ユーザー要望 = 「起動時に読む構成セットが**直近保存したもの**になる。メニューで指定した内容を保存で
-  上書きしないでほしい」。原因は `split_payloads.build_startup_payload:359` が保存のたびに
-  `keymap_set_path` を無条件で書くこと。**正本 `data_schema.md:121` にもそう規定されていた**ため、
-  実装バグではなく**仕様変更**と判定（`spec_change_workflow.md`）。
-- **モード = 直接改訂**（改訂対象が §5.4 の 1 条項 + §5.8.9 の根拠文 1 行、タスク 3 本に収まるため）。
-
-### 【論点 1】「読めない」の判定方式 → **採用 = 案 A（起動時の実読込結果）**（2026-09-21）
-
-- **案 A 採用**: 起動時に起動エントリを読めたかを真偽値で保持し、保存時に application へ渡す。
-  **不在・壊れた JSON・読込例外のすべてが「読めない」**に含まれ、自己修復が全ケースで効く。
-- **案 B 除外**: 保存時に `os.path.exists` で確認する案。状態を持たずに済むが、
-  **壊れた JSON は「存在する」と判定され自己修復されない**（毎回空起動のまま固定される）。
-
-### 【論点 2】別名保存で起動エントリ自身を複製した場合 → **採用 = 据え置き**（2026-09-21）
-
-- 別名保存は元ファイルを消さないため起動エントリは有効なまま残り、**次回起動は別名保存前のファイル**を読む。
-  「有効なら触らない」の一貫性を優先し、例外規定（保存先の元が起動エントリと一致するときだけ追従）は**除外**。
-
-### 【論点 3】起動対象の可視化 UI / 解除手段 → **除外**（2026-09-21）
-
-- 可視化: 開けば現在のセットが分かり、起動対象とのズレはユーザーが認識していれば足りる。
-- 解除手段: メニューで指定し直せば足りるため、空へ戻す経路は設けない。
-
-### 【task_01】完了（2026-09-21）= 正本改訂
-
-- `data_schema.md` §5.4 の 1 条項を 5 点構成へ差し替え（①保存では更新しない ②空 / 読めなかった場合のみ更新
-  ③判定は起動時の実読込結果 ④他キーは従来どおり書く ⑤別名保存でも据え置く）。
-- `5_08_09_orphan_sweep.md:26` の走査経路 3 の**根拠文 1 行のみ**を追従（**走査範囲 4 経路は不変**）。
-- `features.md:119` は**改訂不要**（メニュー項目名のみで書き込み契機を含まない）と実測確認。
-- `reviewer` = **採用（完了可）**。節番号・見出しの差分ゼロ。
-
-### 【task_02】完了（2026-09-21）= 実装
-
-- `StartupIo.entry_loaded`（起動時に起動エントリを読めたかの**事実**）を presentation に持たせ、
-  `save_runtime_data` → `build_split_save_payloads` → `build_startup_payload` へ
-  `startup_entry_loaded: bool = False` を通した。**更新要否の判定は `build_startup_payload` の 1 箇所**
-  （`split_payloads.py:361-364`）に集約し、presentation は分岐を持たない。
-- `entry_loaded` の更新契機は 3 つ（`startup_io.py:31` 起動読込成功 / `keymap_set_io.py:135` 保存成功 /
-  `keymap_set_io.py:654` メニュー指定成功）。**`write_startup` には入れない**
-  （一律に立てると、起動エントリ不在のままフォント変更等で書き出したときに自己修復が失われる）。
-- **既定引数 False** としたため `resolve_child_save_targets` と既存呼び出しの挙動は不変。
-  既存 4 アサーションは**予想どおり無修正で pass**（`startup_data={}` / `write_startup` 経由のため）。
-- 実測（`.venv`）: compile clean / `tests` **518**（skip 7・514 → **+4**）/ `tests_ui` **449**（446 → **+3**）/
-  smoke OK。追加 7 件は個別実行でも全て pass。
-- `reviewer` = **完了可（採用）**。参考指摘 1 件 = 据え置き条件の `existing_entry`（非空判定）と
-  読込側 `startup_io.py:19` の `.strip()` で「空」の定義が字面上非対称。ただし
-  **`entry_loaded=True` かつ値が空白のみ**という組み合わせは 3 経路のいずれからも生成されず**到達不能**のため
-  **現時点は修正不要**と判断（config.json を手編集した場合のみのレアケース）。
-- **Codex が書いた行が LF で、CRLF のファイルへ混在**していたため CRLF へ揃えた（差分内容は不変）。
 

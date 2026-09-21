@@ -4,61 +4,56 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-21T12:55:00
-phase: `instructions/phase/26_startup_entry_preservation`（起動エントリの保存時据え置き）。**直接改訂モード**・暫定仕様なし。番号対応: phase 26 / decisions 26。次採番 = phase 27 / 暫定 21 / decisions 27。
-直前の完了フェーズ = phase 25（判断履歴 = `decisions_archive/25_path_field_type_normalization.md`）。
-last_commit_location: `claude/idea-24-issue-5f4005`
+last_updated: 2026-09-21T14:40:00
+phase: `instructions/phase/26_startup_entry_preservation`（起動エントリの保存時据え置き）**完了**。**直接改訂モード**・暫定仕様なし。番号対応: phase 26 / decisions 26。次採番 = phase 27 / 暫定 21 / decisions 27。
+直前の完了フェーズ = phase 26（判断履歴 = `decisions_archive/26_startup_entry_preservation.md`）。
+last_commit_location: `claude/jikki-mokushi-ok-58bca4`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 26 = 起動エントリを保存で上書きしない。task_01〔正本改訂〕/ task_02〔実装〕完了・実測 green・reviewer 採用。次は実機目視（ユーザー）→ task_03。**
-mode: pending_review
+focus: **phase 26（起動エントリを保存で上書きしない）完了。task_01〔正本改訂〕/ task_02〔実装〕/ task_03〔記録と完了〕すべて reviewer 採用・実測 green・実機目視 OK・refactor_check 不要。次フェーズ未確定。**
+mode: completed
 
 ## last_action
-ts: 2026-09-21T12:55:00
+ts: 2026-09-21T14:40:00
 who: main
 summary: |
-  【task_02 = 実装】`codex-implementer` へ委任（テストコードの追加まで / 実行は依頼せず）。
-  **presentation は事実・application が判定**の分担で実装:
-  `StartupIo.entry_loaded`（起動時に起動エントリを読めたか）を持ち、
-  `save_runtime_data` → `build_split_save_payloads` → `build_startup_payload` へ
-  `startup_entry_loaded: bool = False` を貫通。据え置き判定は `split_payloads.py:361-364` の 1 箇所。
-  `entry_loaded` の更新契機は 3 つ（起動読込成功 / 保存成功 / メニュー指定成功）。
-  **`write_startup` には入れない**（一律に立てると自己修復が失われる）。
-  【実測 = verifier】compile clean / `tests` **518**（skip 7・+4）/ `tests_ui` **449**（+3）/ smoke OK。
-  追加 7 件は個別実行でも pass。既存 4 アサーションは**予想どおり無修正で pass**。
-  【レビュー = reviewer】**完了可（採用）**。参考指摘 1 件 = 据え置き条件の非空判定と読込側の `.strip()` で
-  「空」の定義が字面上非対称だが、`entry_loaded=True` かつ空白のみは**到達不能**のため修正不要と判断。
-  【メインで対処】Codex が書いた行が **LF で CRLF ファイルへ混在**していたため CRLF へ揃えた（差分内容は不変）。
+  【task_03 = 記録と完了（文書のみ）】ユーザーの実機目視 OK を受けてフェーズ最終タスクを実施。
+  タスク定義を起票し、`decisions_archive/26_startup_entry_preservation.md` を新規作成して
+  phase 26 の判断（仕様変更判定 / 案 A 採用・案 B 除外 / 別名保存でも据え置き / 可視化 UI・解除手段の除外 /
+  実装上の判断 4 点 / 現状監査 / 残件）を集約。`decisions.md` は**本文の phase 26 節を削除し索引 1 行へ**。
+  `current.md` = 完了記載（リンクのみ）+ 「直近の領域」を phase 26 へ差し替え + 直前完了フェーズ 26/25/24 +
+  「別タスク化候補」へ Phase 26 項（`.strip()` 非対称・到達不能のため据え置き）+ 次採番行を完了表記へ。
+  **起票元 idea が無いため backlog は無変更**（`git status` で確認）。
+  【refactor_check】メトリクス収集 = `verifier`。PHASE_BASE `e0c19ba`・対象 `keyseq` 5 ファイル・**+16/-1 行**。
+  **M1〜M6 すべて非該当** → 判定 **不要**（`keymap_set_io.py` は 687 行だが増分 +4 で「600 行超 **かつ** +100 行」を満たさない）。
+  【レビュー = reviewer】**完了可（採用）**。事実主張（`split_payloads.py:363` / `startup_io.py:31` /
+  `keymap_set_io.py:135`・`:655`）を実測で裏取り済み。参考指摘 1 件 = phase.md の task_03 行を
+  レビュー確定前に「採用」と先書きした順序（実害なし）。
+  なお reviewer は `current.md` を「全行 LF」と報告したが、**worktree 実測では 341 行すべて CRLF**で混在なし。
 result_files:
-  - keyseq/presentation/controllers/config_io/startup_io.py / keymap_set_io.py
-  - keyseq/application/config_service/__init__.py / save_plan_execution.py / split_payloads.py
-  - tests/test_config_service.py / tests_ui/test_config_io_characterization_keymap_set_startup.py
-  - instructions/common/codebase_map.md
-  - instructions/phase/26_startup_entry_preservation/phase.md / instructions/phase/current.md
-  - .claude_data/state/decisions.md
+  - .claude_data/state/decisions_archive/26_startup_entry_preservation.md（新規）
+  - .claude_data/state/decisions.md（索引 1 行追加・本文 phase 26 節を削除）
+  - instructions/phase/current.md
+  - instructions/phase/26_startup_entry_preservation/phase.md
+  - instructions/phase/26_startup_entry_preservation/tasks/task_03_record_and_close.md（新規）
 verified:
   compile: clean
-  tests: 518 ran OK（skipped 7・514 → +4）
-  tests_ui: 449 ran OK（446 → +3）
-  smoke: SMOKE OK
-  review: reviewer（task_02 実装差分）= 完了可・採用 / reviewer（task_01・phase.md 整合）= 採用
-  refactor_check: not_run（task_03 で実施）
+  tests: 518 ran OK（skipped 7・task_02 実測。task_03 はコード無変更）
+  tests_ui: 449 ran OK（task_02 実測。task_03 はコード無変更）
+  smoke: SMOKE OK（task_02 実測）
+  review: reviewer（task_03 差分）= 完了可・採用 / task_01・task_02 も採用済
+  refactor_check: 不要（M1〜M6 該当なし・対象 5 ファイル・PHASE_BASE `e0c19ba`）
+  実機目視: OK（2026-09-21・ユーザー確認）
 
 
 ## next_action
-- **実機目視をユーザーへ依頼中**（task_02 の完了条件）。3 点:
-  ①構成セットを別名保存 → 再起動して**起動対象が変わらない**こと
-  ②メニュー「起動時に読む構成セットを指定…」が効くこと
-  ③`config/config.json` の `keymap_set_path` を手で消して起動 → 保存 → 再起動で**自己修復**すること
-- 目視 OK の報告を受けたら **task_03（記録と完了）**: `decisions_archive/26_startup_entry_preservation.md` の作成 /
-  `decisions.md` の phase 26 節を索引 1 行へ集約 / `current.md` の完了記載（次採番 27 は記載済）/
-  **`/refactor_check`**（メトリクス収集は `verifier`・判定はメイン）。
-  **起票元 idea は無いので backlog INDEX の更新は不要**。
+- **phase 26 は完了。次フェーズは未確定** — 着手前に**ユーザーへ方針を確認する**。
+  候補の確認先は `instructions/backlog/INDEX.md`（未着手はいずれも優先度低）。起票は `/phase_start`。
+- 次フェーズ番号 = **27**（decisions も 27 / 暫定仕様を使う場合は 21）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
-
 
 ## blockers
 - なし

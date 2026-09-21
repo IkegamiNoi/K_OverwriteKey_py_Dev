@@ -7,14 +7,20 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [phase 26](26_startup_entry_preservation/phase.md)（起動エントリの保存時据え置き）**。
-  `config/config.json` の `keymap_set_path`（起動時に読む構成セット）を**保存では上書きしない**ようにし、
-  変更経路をメニュー「起動時に読む構成セットを指定…」へ寄せる。**空 / 起動時に読めなかった場合のみ保存で更新**（自己修復）。
-  **直接改訂モード**（正本 `data_schema.md` §5.4 を先に改訂）。起票元 = ユーザー要望（2026-09-21）・idea なし。
-  番号対応: phase 26 / decisions 26（暫定仕様なし）。
-  進捗: task_01（正本改訂）/ task_02（実装）完了。次 = 実機目視 → task_03（記録と完了）。
+- **アクティブなフェーズ: なし**（[phase 26](26_startup_entry_preservation/phase.md) は 2026-09-21 完了）。次フェーズ未確定のため、着手前にユーザーへ方針を確認する。
+- **直近の一連の作業が扱っている領域 = 起動エントリ（`config/config.json` の `keymap_set_path`）の書き込み契機**（phase 26）。
+  正本は `data_schema.md` **§5.4**（保存では起動エントリを更新しない条項）/ `data_schema/5_08_09_orphan_sweep.md` 走査経路 3 の根拠文、`codebase_map.md`。
+  実装 = `keyseq/presentation/controllers/config_io/startup_io.py`（`StartupIo.entry_loaded`）/ `keymap_set_io.py` /
+  `keyseq/application/config_service/`（`__init__.py` / `save_plan_execution.py` / `split_payloads.py`）、
+  テスト = `tests/test_config_service.py` / `tests_ui/test_config_io_characterization_keymap_set_startup.py`。
+  **保存では起動エントリを上書きしない。空 / 起動時に読めなかった場合のみ更新する**（自己修復）。
+  **presentation は「起動時に読めたか」という事実だけを渡し、更新要否の判定は application 1 箇所**（`split_payloads.py:363`）。
+  **据え置くのは `keymap_set_path` だけ**（他の config.json キーは従来どおり保存で書く）。変更経路はメニュー「起動時に読む構成セットを指定…」1 本。
+  **残件** = ①`existing_entry` の非空判定と読込側 `.strip()` の非対称（**到達不能**のため据え置き・「別タスク化候補」の Phase 26 項）
+  ②`startup_io.py` の `keymap_set_path` の**型正規化**（phase 25 残件①・未着手）。
+  判断は [decisions_archive/26](../../.claude_data/state/decisions_archive/26_startup_entry_preservation.md)。
 - [phase 25](25_path_field_type_normalization/phase.md) は 2026-09-19 完了。
-- **直近の一連の作業が扱っている領域 = JSON 読込時の型正規化（パス系まで到達）**。
+- **その前の領域 = JSON 読込時の型正規化（パス系まで到達）**（phase 25）。
   正本は `data_schema.md` **§5.1「型不正の共通規則」**（phase 24 で新設）+ **§5.5 / §5.7**（phase 25 で型規定を追記）、`codebase_map.md`。
   実装 = `keyseq/domain/config.py`（`coerce_key_name` / `coerce_label`）/ `keyseq/application/config_service/split_loading.py` /
   `keyseq/application/config_service/reference_scan.py`、テスト = `tests/test_domain_config.py` / `test_config_service.py` / `test_reference_scan.py`。
@@ -24,7 +30,7 @@
   ②`button` 非文字列の `AttributeError`（`action_executor.py:119`・**実行時**の別レイヤ・phase 22 からの候補）。
   判断は [decisions_archive/25](../../.claude_data/state/decisions_archive/25_path_field_type_normalization.md)。
 - [phase 24](24_json_type_normalization/phase.md) は 2026-09-19 完了。
-- **その前の領域 = JSON 読込時の型正規化（内容フィールド）**（phase 24）。
+- **さらにその前の領域 = JSON 読込時の型正規化（内容フィールド）**（phase 24）。
   正本は `data_schema.md` **§5.1「型不正の共通規則」**（新設）/ §5.6「keymap」（新設）/ §5.2 / §5.11、`codebase_map.md`。
   実装 = `keyseq/domain/config.py`（`coerce_key_name` / `coerce_label`）/ `keyseq/application/config_service/__init__.py` /
   `keyseq/application/config_service/split_loading.py`、テスト = `tests/test_domain_config.py` / `tests/test_config_service.py`。
@@ -65,9 +71,9 @@
   判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md) / [19](../../.claude_data/state/decisions_archive/19_full_view_header_width.md) / [20](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)。
   その前の領域（モーダルダイアログの作法）の残件は [decisions_archive/17](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md) と
   「別タスク化候補」の Phase 14 / 17 項、[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)。
-- 直前の完了フェーズ: [25_path_field_type_normalization](../../.claude_data/state/decisions_archive/25_path_field_type_normalization.md)
+- 直前の完了フェーズ: [26_startup_entry_preservation](../../.claude_data/state/decisions_archive/26_startup_entry_preservation.md)
+- その前の完了フェーズ: [25_path_field_type_normalization](../../.claude_data/state/decisions_archive/25_path_field_type_normalization.md)
 - その前の完了フェーズ: [24_json_type_normalization](../../.claude_data/state/decisions_archive/24_json_type_normalization.md)
-- その前の完了フェーズ: [23_sequence_payload_action_normalization](../../.claude_data/state/decisions_archive/23_sequence_payload_action_normalization.md)
   （それ以前は `decisions.md`「アーカイブ索引」を参照）
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
@@ -87,7 +93,7 @@
 
 ## 次採番
 
-- **phase 26 を 2026-09-21 起票**（`26_startup_entry_preservation` / decisions 26・暫定仕様なし）。
+- **phase 26 は 2026-09-21 完了**（`26_startup_entry_preservation` / decisions 26 はアーカイブ済・暫定仕様なし）。
   次フェーズは **`27_<topic>`**・decisions も **27** を使う（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -274,6 +280,12 @@
   - `features.md` §4.2（シーケンス実行）から `data_schema.md` §5.11 への参照が無い（発見性のみ）
   - 記録のみ 3 件（`click_mouse` 側が `FAILSAFE` に触らないことの検出力 / 速度欄の `int()` 判定が `"1000.5"` を弾く /
     座標取得の排他が `instate` ガードを持たない）は [decisions_archive/22](../../.claude_data/state/decisions_archive/22_mouse_drag_action.md)
+- **Phase 26（起動エントリの保存時据え置き）の `/refactor_check` と完了レビューからの候補送り**（判定は**不要**。M1〜M6 非該当。対象はソース 5 ファイル・計 +16/-1 行）:
+  - **「空」の定義が字面上非対称**。`split_payloads.py:363` の据え置き条件は `existing_entry` の
+    非空判定（`isinstance(..., str) and existing_entry`）だが、読込側 `startup_io.py:19` は
+    `.strip()` してから判定する。**`entry_loaded=True` かつ値が空白のみ**という組み合わせは
+    3 経路（起動読込成功 / 保存成功 / メニュー指定成功）のいずれからも生成されず**到達不能**のため据え置き
+    （config.json を手編集した場合のみ。task_02 の `reviewer` 参考指摘）。触るなら `.strip()` 側へ揃える 1 行修正
 - **Phase 11（孤児ファイルの棚卸し）の `/refactor_check` からの候補送り**（判定は**推奨** →
   提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)
   は**「計画08」として実施し完了**〔2026-09-08・挙動不変〕。提案書へ入れなかった分）:
