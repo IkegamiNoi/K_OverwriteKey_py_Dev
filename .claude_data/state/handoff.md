@@ -15,7 +15,7 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い**。次採番 = phase 26 / 暫定 21 / decisions 26）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い**。次採番 = phase 27 / 暫定 21 / decisions 27）
 3. **次フェーズの方針をユーザーへ確認してから** `/phase_start` で起票する。
    候補の確認先は `instructions/backlog/INDEX.md`（未着手はいずれも優先度低）
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
@@ -24,9 +24,9 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜20）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 25（パス系フィールドの型正規化）完了。実装 3 ファイル・正本 §5.5 / §5.7 への追記・記録・refactor_check〔不要〕まで完了。次フェーズ未確定。**
-直近コミット: `56ef53b`（task_02 = 正本反映と記録）/ `ad0a7d0`（task_01b）/ `b8636bb`（task_01）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜25 はユーザーがマージする）。
+**phase 26（起動エントリの保存時据え置き）完了。正本改訂・実装 5 ファイル・記録・実機目視 OK・refactor_check〔不要〕まで完了。次フェーズ未確定。**
+直近コミット: `45cec30`（task_03 = 記録と完了）/ `9d476bd`（task_02 = 実装）/ `f720b46`（task_01 = 正本改訂）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜26 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -36,9 +36,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 25 task_01b 時点 = 2026-09-19**。task_02 はコード変更なし）:
-compile **clean** / tests **514 実行 OK**（skip 7）/ tests_ui **446 実行 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 24 完了 505 → phase 25 完了 514 / tests_ui: 446 で不変）。
+直近の実測（**phase 26 task_02 時点 = 2026-09-21**。task_03 はコード変更なし）:
+compile **clean** / tests **518 実行 OK**（skip 7）/ tests_ui **449 実行 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 25 完了 514 → phase 26 完了 518 / tests_ui: 446 → 449）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` が生成されていない**ことを確認する。
 
@@ -49,34 +49,37 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = **phase 26 / 暫定 21 / decisions 26**）。
+- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = **phase 27 / 暫定 21 / decisions 27**）。
   候補は `instructions/backlog/INDEX.md`（**idea_23** = キーの押す / 離すアクション。優先度低）と、
-  `current.md`「別タスク化候補」の **Phase 25 項**（`startup_io.py` の `keymap_set_path` /
-  **runtime 内部キーの型未追従**〔正本 §5.7 に【実装未追従】として明記済〕）。
+  `current.md`「別タスク化候補」の **Phase 26 項**（`.strip()` 非対称・到達不能）/ **Phase 25 項**
+  （`startup_io.py` の `keymap_set_path` の型正規化 / **runtime 内部キーの型未追従**〔正本 §5.7 に【実装未追従】と明記済〕）。
 - **main へのマージはユーザーが行う**。
 - **運用**: `verifier` に変異検査を頼むときは「**`git checkout --` / `git restore` / `git stash` を使わない**（未コミットの実装ごと巻き戻る）。
   ファイルのコピーで退避・復元する」を明示する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
-## 直前フェーズ（phase 25 = パス系フィールドの型正規化）の要点
+## 直前フェーズ（phase 26 = 起動エントリの保存時据え置き）の要点
 
-**正本が正**: `spec_detail/data_schema.md` **§5.5 / §5.7**（phase 24 で新設した §5.1「型不正の共通規則」を参照する形）、
-`codebase_map.md`。暫定仕様なし（直接改訂モード）。判断は `decisions_archive/25_path_field_type_normalization.md`。
+**正本が正**: `spec_detail/data_schema.md` **§5.4**（起動エントリの書き込み契機）+
+`data_schema/5_08_09_orphan_sweep.md` 走査経路 3 の根拠文、`codebase_map.md`。暫定仕様なし（直接改訂モード）。
+判断は `decisions_archive/26_startup_entry_preservation.md`。
 
-- **使い分け = パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`（trim + 小文字化）**。
-  **パスに `coerce_key_name` を使うと小文字化で壊れる**（§5.7 の `normcase` は**比較専用**で、記録表記は大小文字を保持）。
-- **参照突合経路（`reference_scan.py`）は生 JSON を直接読む別実装**で `ensure_config_compatibility` を通らない。
-  同種の修正をするときは**この経路も個別に確認する**（task_01 では取りこぼし、完了後レビューで検出した）。
-- **keymap_set の `keymaps[]`（参照エントリ）は旧記法の文字列を受ける**。§5.1 の
-  「`keymaps[]` の非 dict 要素は除去」は**単一 JSON / runtime の内容 keymaps**（§5.2）を指す**別物**。
-  混同すると旧記法の互換を壊す。
-- **例外（`AttributeError`）になる箇所はゼロ**だった（すべて `str()` でラップ済み）。本フェーズは repr 混入の解消。
-- **未対応の残件**（`current.md`「別タスク化候補」の Phase 25 項）= ①`startup_io.py` の `keymap_set_path`
-  （presentation 層）②**runtime 専用の内部キー**（`_keymap_source_path` 等）が §5.1 に未追従。
-  生値のまま素通しし `save_path_resolution.py:127` 経由で**保存先パス候補に repr が混入し得る**
-  （正本 §5.7 に**【実装未追従】**として明記済）。
-- phase 24（内容フィールドの型正規化）以前の要点は `decisions_archive/<phase>.md` を参照する。
+- **起動エントリ = `config/config.json` の `keymap_set_path`（起動時に読む構成セット）**。
+  **保存では上書きしない**（別名保存でも据え置き）。変更経路はメニュー「起動時に読む構成セットを指定…」のみ。
+- **例外 = 空 / 起動時に読めなかった場合のみ保存で更新**（自己修復）。
+  **判定は起動時の実読込結果**であり、保存時に実在確認をし直さない（**壊れた JSON も自己修復の対象**）。
+- **据え置くのは `keymap_set_path` の値だけ**。config.json の他キー（`ui_font_delta_pt` /
+  `last_used_directory` / `orphan_sweep_scan_dirs` / hook キー / `hotkey_presets_path`）は従来どおり保存で書く。
+- 実装 = **presentation は事実のみ**（`StartupIo.entry_loaded`）→ `startup_entry_loaded` を application へ貫通し、
+  **更新要否の判定は `split_payloads.py:363` の 1 箇所**。更新契機は 3 経路
+  （起動読込成功 / 保存成功 / メニュー指定成功）で、**`write_startup` には入れない**
+  （一律に立てると起動エントリ不在のままフォント変更等で書き出したときに自己修復が失われる）。
+- **残件** = `existing_entry`（非空判定）と読込側 `startup_io.py:19` の `.strip()` で「空」の定義が字面上非対称。
+  **到達不能**のため据え置き（`current.md`「別タスク化候補」の Phase 26 項）。
+- phase 25（パス系の型正規化）以前の要点は `decisions_archive/<phase>.md` を参照する。
+  **使い分け = パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`（trim + 小文字化）**だけは
+  触る頻度が高いので覚えておく（パスを小文字化すると壊れる。§5.7 の `normcase` は比較専用）。
 
 ## 運用インフラ
 
@@ -100,10 +103,12 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **【Codex 運用】フォワーダが切れても Codex ワーカーは生き続ける**（判別は作業ツリーの更新時刻）。
   **書き換え途中で `verifier` / `reviewer` を回さない**。`taskkill /T` を使わない。**Codex 申告のテスト結果は信用せず実測**。
   30 行目安を超えた実装は**同じ Codex へ差し戻して分割**させると早い（phase 22 task_01 で実施）。
+  **Codex が書いた行は LF で入ることがある**（CRLF のファイルへ混在）。受領後に改行コードを揃える。
 - **【運用・重要】委任の実行中はメイン側でコードを編集しない**（文書のみ・対象ファイルが重ならない場合は可）。
 - **【config.json の書き手は 2 本】** `StartupIo.write_startup`（現在値へマージ・成功時のみ `_startup_settings` 置換・**失敗表示中はフック停止**）と
   keymap_set 保存（`save_runtime_data` が `_startup_settings` をディープコピー）。**直接 `config.json` を read-modify-write しない**。
-- **【config_service の配置制約】** ConfigService 本体は `application/config_service/__init__.py`（827 行・新規ロジックを置かない）。
+  **`keymap_set_path` だけは保存で据え置く**（phase 26・上記「直前フェーズの要点」）。
+- **【config_service の配置制約】** ConfigService 本体は `application/config_service/__init__.py`（831 行・新規ロジックを置かない）。
   **presentation から兄弟モジュールを直接 import しない**（公開面は `ConfigService` の公開 API と `contracts.py` のみ・テストが落とす）。
 - **【最重要・2 度踏んだ罠】パス表記の混在**: runtime の `source_path` 3 種と `hotkey_presets_path` は config 配下なら相対。
   解決なしで `os.path` 系へ渡すと cwd 基準になり **リポジトリルートに `user/` が生成される**。
@@ -115,12 +120,13 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **【罠】App に View の部品を属性で生やさない**（phase 01 で解消済）。
 - **【罠】worktree と main は別コピー**。main 側の絶対パスを編集すると commit から漏れる。
 - **【罠】Bash ツールは Git Bash**。長い heredoc は壊れやすい（**壊れたら Write ツールを使う**）。
-  **sed の区切りに `#` を使うとパターン中の `##` で壊れる**。複数行のコミットメッセージは `git commit -F -` + 短い heredoc。
+  **PowerShell の here-string（`@'...'@`）を Bash へ渡さない**（メッセージ先頭 / 末尾に `@` が混入する）。
+  **sed の区切りに `#` を使うとパターン中の `##` で壊れる**。複数行のコミットメッセージは `git commit -F <file>`。
   **`git grep` は追跡済みのみ検索**。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
   併用は `.claude/rules/agent_selection.md` のレビュー表が正。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 25_path_field_type_normalization / 24_json_type_normalization / 23_sequence_payload_action_normalization）。
+  （直近 3 件: 26_startup_entry_preservation / 25_path_field_type_normalization / 24_json_type_normalization）。
 - 未着手/保留 idea: **idea_23**（押す / 離すアクション）/
   **idea_18**（Escape 配送依存テストの不安定）/ idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
