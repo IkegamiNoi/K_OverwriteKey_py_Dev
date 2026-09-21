@@ -22,6 +22,8 @@ from keyseq.presentation.controllers.config_io.child_save_rows import (
 
 
 DEFAULT_KEYMAP_SET_FILENAME = "keymap_set.json"
+KEYMAP_SET_LOAD_OK = "ok"
+KEYMAP_SET_LOAD_FAILED = "failed"
 _RETRY = object()  # 依存確認で「選び直す」= 子一覧ダイアログへ戻る
 
 
@@ -149,6 +151,9 @@ class KeymapSetIo:
                 if notices:
                     message = f"{message}\n\n" + "\n".join(notices)
                 messagebox.showinfo("保存", message)
+            recorded, reason = self._app.keymap_set_history_io.record(self._app.keymap_set_path)
+            if not recorded:
+                self._app._set_flash_message(reason, auto_clear=False)
             return True
         except Exception as e:
             self._app._set_flash_message(f"保存失敗: {e}", auto_clear=False)
@@ -526,7 +531,7 @@ class KeymapSetIo:
         entry = save_plan.entry_for(kind, key)
         return entry is not None and entry.action == ACTION_SKIP
 
-    def load_keymap_set_from(self):
+    def load_keymap_set_from(self) -> None:
         if not self.confirm_save_if_dirty("読込"):
             return
 
@@ -537,6 +542,10 @@ class KeymapSetIo:
         )
         if not path:
             return
+        self.load_keymap_set_path(path)
+
+    def load_keymap_set_path(self, path: str) -> str:
+        """パス指定で構成セットを読み込む。未保存確認は呼び出し側の責務。"""
         try:
             self._app.data = self._app.config_service.load_runtime_data_from_keymap_set_path(
                 path,
@@ -552,9 +561,14 @@ class KeymapSetIo:
             self._app.dirty_tracker.set_dirty(False)
             self._app._set_flash_message("読み込みました。")
             messagebox.showinfo("読込", f"読み込みました:\n{path}")
+            recorded, reason = self._app.keymap_set_history_io.record(path)
+            if not recorded:
+                self._app._set_flash_message(reason, auto_clear=False)
+            return KEYMAP_SET_LOAD_OK
         except Exception as e:
             self._app._set_flash_message(f"読込失敗: {e}", auto_clear=False)
             messagebox.showerror("読込失敗", str(e))
+            return KEYMAP_SET_LOAD_FAILED
 
     def import_config(self):
         if not self.confirm_save_if_dirty("Import"):
@@ -648,6 +662,7 @@ class KeymapSetIo:
             return
 
         self._app.keymap_set_path = path
+        self._app.keymap_set_history_io.record(path)
         startup_saved = self._app.startup_io.write_startup(
             {"keymap_set_path": self._app.paths.to_config_relative_or_absolute(path)}
         )

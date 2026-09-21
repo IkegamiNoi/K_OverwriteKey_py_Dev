@@ -80,7 +80,7 @@
 - [task_02](tasks/task_02_history_persistence.md): **application の永続化**（`config_service/keymap_set_history.py` 新規 + `ConfigService` の委譲）
   — 読込（`None` 縮退）/ **退避と作り直し**（§4.4）/ 原子的書込 / 保存表記への正規化と比較キー生成。
   + `INTERNAL_MODULE_NAMES` の更新 + 単体テスト
-- task_03: **記録経路の接続**（`controllers/config_io/keymap_set_history_io.py` 新規の `record()` +
+- [task_03](tasks/task_03_history_record_wiring.md): **記録経路の接続**（`controllers/config_io/keymap_set_history_io.py` 新規の `record()` +
   §4.1 の呼び出し点 + **パス指定の共通読込入口**を `keymap_set_io.py` へ追加）。
   + 既存 characterization テストの patch + テスト
 - task_04: **履歴ダイアログ**（`dialogs/keymap_set_history_dialog.py` / `keymap_set_history_text.py` 新規 +

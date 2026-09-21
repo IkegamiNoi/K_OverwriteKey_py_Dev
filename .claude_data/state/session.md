@@ -4,68 +4,65 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-22T10:20:00
-phase: `instructions/phase/27_keymap_set_load_history`（構成セットの読み込み履歴管理）。**暫定仕様先行モード**・主入力 = `instructions/history/21_keymap_set_load_history.md`（v0.4・ユーザー確定済）。番号対応: phase 27 / 暫定 21 / decisions 27。次採番 = phase 28 / 暫定 22 / decisions 28。
+last_updated: 2026-09-22T12:40:00
+phase: `instructions/phase/27_keymap_set_load_history`（構成セットの読み込み履歴管理）。**暫定仕様先行モード**・主入力 = `instructions/history/21_keymap_set_load_history.md`（**v0.5**・ユーザー確定済）。番号対応: phase 27 / 暫定 21 / decisions 27。次採番 = phase 28 / 暫定 22 / decisions 28。
 直前の完了フェーズ = phase 26（判断履歴 = `decisions_archive/26_startup_entry_preservation.md`）。
 last_commit_location: `claude/jikki-mokushi-ok-58bca4`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 27 = 構成セットの読み込み履歴管理。task_01〔domain〕/ task_02〔application の永続化〕完了・実測 green・reviewer 採用。次は task_03（記録経路の接続 + パス指定の共通読込入口）の起票と実装委任。**
+focus: **phase 27 = 構成セットの読み込み履歴管理。task_01〔domain〕/ task_02〔永続化〕/ task_03〔記録経路〕完了・実測 green・reviewer 採用。暫定仕様は v0.5（起動時は記録しない）。次は task_04（履歴ダイアログ）の起票と実装委任。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-22T10:20:00
+ts: 2026-09-22T12:40:00
 who: main
 summary: |
-  【task_02 = application の永続化】`codex-implementer` へ委任。**Codex が途中で正当な blocker を報告して停止**
-  （後述）→ タスク定義を修正して再開させ完了。
-  新規 `config_service/keymap_set_history.py`（81 行）= `history_absolute_path` / `_recover_history` /
-  `load_history` / `save_history` / `record`。`contracts.py` へ status 定数 3 つ
-  （`HISTORY_OK` / `HISTORY_RECOVERED` / `HISTORY_READ_ONLY`）。
-  **`__init__.py` は import 1 行 + クラス定数 1 行 + 1 行委譲 × 3 のみ**（ロジックなし・確認 8 クリア）。
-  **不在は `os.path.exists` で先に分岐**して `_load_optional_json`（不在と失敗を区別できない）を回避。
-  読込例外と非 dict の両方が退避経路へ入り、`broken` 〜 `broken5` の 5 枠が尽きるか `os.replace` が
-  失敗したら `HISTORY_READ_ONLY`。`record` は**読み直した永続化済みの内容**で先頭一致を判定し、
-  一致なら `save_json` を呼ばず `(True, "")`。比較キー = 既存 `canonical_path` / 保存表記 = 既存
-  `to_config_relative_or_absolute` / 書込 = 既存 `repository.save_json` を再実装せず利用。
-  【タスク定義の穴（Codex の指摘・実測で確認）】`tests/test_config_service_contracts.py:160` が
-  `len(constant_names) == 34` を固定しており、`contracts.py` の定数は実測ちょうど 34 個。定数 3 つの
-  追加で必ず赤になるため、定義を「既存・2 箇所」へ改めて `34 → 37` の更新を認可した
-  （`type_names` の 9 は据え置き）。**ハードコードのガードは `INTERNAL_MODULE_NAMES` /
-  `DIALOG_FILES` の他に「定数の個数」もある**。
-  【実測 = verifier + メイン】compile clean / `tests` **556**（539 → **+17**・skip 7）/ `tests_ui` 449 /
-  smoke OK / 副作用なし（worktree ルート・`config/` 直下とも履歴ファイル未生成・config.json の mtime 不変）。
-  ※ verifier の要約に「+10」という集計の誤りがあったためメインで再実行して 556 を確認した。
-  【レビュー = reviewer】**完了可**。不在と破損の区別 / 退避でデータが失われないこと / `record` の順序 /
-  既存 API の再実装が無いこと / `__init__.py` にロジックが無いことを `ファイルパス:行` 付きで確認。
+  【task_03 = 記録経路の接続】`codex-implementer` へ委任。**2 度の差し戻しを経て完了**。
+  新規 `controllers/config_io/keymap_set_history_io.py`（記録の**単一の口** `record()`）+
+  `keymap_set_io.py` へ**パス指定の共通読込入口** `load_keymap_set_path`（`load_keymap_set_from` の
+  try ブロックを移設・文言不変・成功で `KEYMAP_SET_LOAD_OK` / 失敗で `..._FAILED`）。
+  記録は **3 経路**（読込の共通入口 `:564` / 起動セット指定 `:665` / 保存成功 `:154`）。
+  【差し戻し 1 = 欠陥】`record()` に例外ガードが無く、呼び出し点が**既存 `try` の内側**のため
+  例外が「成功した保存を保存失敗と表示」「読込成功を読込失敗と表示」に化ける状態だった
+  （起動時経路では**読込成功済みの構成セットを捨てて空データ起動**した）。**reviewer は見逃しており**、
+  メインが実装を直読みして検出。境界で `(False, 理由)` へ変換させた。
+  【差し戻し 2 = 仕様改訂】実測で **`tests_ui` 9 モジュールが実 `config/` へ履歴ファイルを書く**ことが判明
+  （`App()` 生成 → 起動時の自動読込成功 → 記録。`.gitignore` の `config/` 除外で `git status` に出ない）。
+  ユーザー判断で**暫定仕様を v0.5 へ改訂し「起動時の自動読込では記録しない」**へ変更。
+  `startup_io.py` と `tests/smoke_app.py` は差分ゼロへ復元。9 モジュール + smoke の再走査で汚染ゼロを確認。
+  **先頭一致 no-op 規則は維持**（起動時永続化の回避策ではなく、連続で同じセットを開いたときの無駄書き防止として残る）。
+  【実測 = verifier】compile clean / `tests` **556**（skip 7・不変）/ `tests_ui` **471**（449 → **+22**）/
+  smoke OK / 副作用ゼロ（`config/` 直下・worktree ルートとも履歴ファイル未生成・config.json の mtime 不変）。
+  【レビュー = reviewer】最終状態で**完了可**（v0.5 追従・例外ガード維持・単一の口・挙動不変・
+  テストの検出力に欠落なしを `ファイルパス:行` 付きで確認）。
 result_files:
-  - keyseq/application/config_service/keymap_set_history.py（新規）
-  - keyseq/application/config_service/contracts.py / __init__.py
-  - tests/test_config_service.py（`KeymapSetHistoryPersistenceTest` 17 件）/ tests/test_config_service_contracts.py
-  - instructions/phase/27_keymap_set_load_history/tasks/task_02_history_persistence.md（新規）/ phase.md
+  - instructions/history/21_keymap_set_load_history.md（**v0.5** へ改訂）
+  - keyseq/presentation/controllers/config_io/keymap_set_history_io.py（新規）/ keymap_set_io.py / app.py
+  - tests_ui/test_keymap_set_history_record.py（新規・22 件）
+  - tests_ui/test_config_io_characterization.py / test_config_io_characterization_keymap_set_startup.py（patch 追加）
+  - instructions/phase/27_keymap_set_load_history/tasks/task_03_history_record_wiring.md（新規）/ phase.md
 verified:
   compile: clean
-  tests: 556 ran OK（skipped 7・539 → +17）
-  tests_ui: 449 ran OK
+  tests: 556 ran OK（skipped 7・不変）
+  tests_ui: 471 ran OK（449 → +22）
   smoke: SMOKE OK
-  review: reviewer（task_02 差分）= 完了可（採用）
+  review: reviewer（task_03 最終差分）= 完了可（採用）
   refactor_check: not_run（phase 27 の task_05 で実施）
 
 
 ## next_action
-- **task_03 の定義を `/task_new` で起票する**（`tasks/task_03_*.md`）。内容 =
-  ①`controllers/config_io/keymap_set_history_io.py`（新規）に**記録の単一の口 `record(path)`**
-  （`config_service.record_keymap_set_history` を呼ぶだけ。テストから patch できる形）
-  ②暫定仕様 §4.1 の呼び出し点へ接続（`keymap_set_io.py:545` 読込成功 / `:651` 起動セット指定 /
-  `startup_io.py:30` 起動時の自動読込 / `keymap_set_io.py:132` **保存成功**）
-  ③**パス指定の共通読込入口**を `keymap_set_io.py` へ追加（成功 / キャンセル / 失敗を返す。
-  現状 `load_keymap_set_from` は引数を取らず成否も返さない）
-  ④既存 characterization テストの patch（`config_root` に `os.getcwd()` を入れるため、
-  **patch しないとリポジトリルートへ履歴ファイルが生成される**）。
-- **task_04 の起票前に `tests_ui` 側のハードコード列挙を洗い出す**（`DIALOG_FILES` /
-  `T2_DIALOG_FILES` 以外に件数・個数を固定する assert が無いか。task_02 で 3 つ目が見つかったため）。
-- 以降 task_04（履歴ダイアログ）→ task_05（正本反映と完了）。
+- **task_04 の起票前に `tests_ui` のハードコード列挙を洗い出す**（`DIALOG_FILES` / `T2_DIALOG_FILES`
+  以外に件数・個数を固定する assert が無いか。task_02 で「定数の個数」という 3 つ目が見つかったため）。
+- **task_04 の定義を `/task_new` で起票する**（`tasks/task_04_*.md`）。内容 =
+  `dialogs/keymap_set_history_dialog.py`（新規・**リポジトリ初の `ttk.Treeview`**・`ui_font_delta_pt` 追従）/
+  `keymap_set_history_text.py`（新規・整形）/ `keymap_set_history_io.py` へダイアログを開くメソッド追加 /
+  `views/menu_bar.py` へ「履歴から読み込む…」を `:12` の次行へ / `DIALOG_FILES` の更新 /
+  `tests_ui/test_keymap_set_history_flow.py`（手本 = `test_quarantine_manage_flow.py`）。
+  **未保存確認 → `load_keymap_set_path` → 成功したときだけ閉じる**（暫定仕様 §5.3 / §6）。
+  **操作のたびに永続化済みの内容を読み直して再描画**（§6）。読み取り専用モード（§4.4）の扱いも含む。
+- 以降 task_05（正本反映と完了。§5.12 新設 / 暫定仕様 21 の凍結 / `decisions_archive/27` / `/refactor_check`）。
+- **実機目視は task_04 完了後にユーザーへ依頼する**（UI が出るのは task_04）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。

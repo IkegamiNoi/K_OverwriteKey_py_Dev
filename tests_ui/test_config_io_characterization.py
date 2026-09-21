@@ -146,6 +146,11 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         cls.app.destroy()
 
     def setUp(self):
+        self._history_record_patch = patch.object(
+            app_module.ConfigService, "record_keymap_set_history", return_value=(True, "")
+        )
+        self._history_record_patch.start()
+        self.addCleanup(self._history_record_patch.stop)
         self._dependency_confirm_guard = patch.object(
             child_save_dialog_module.ChildSaveDialog,
             "confirm_trigger_set_dependency",

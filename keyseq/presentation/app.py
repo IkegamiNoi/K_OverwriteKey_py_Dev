@@ -19,6 +19,7 @@ from keyseq.presentation.controllers.config_io import (
 from keyseq.presentation.controllers.config_io.child_save_dialog import ChildSaveDialog
 from keyseq.presentation.controllers.config_io.reference_cleanup_io import ReferenceCleanupIo
 from keyseq.presentation.controllers.config_io.orphan_sweep_io import OrphanSweepIo
+from keyseq.presentation.controllers.config_io.keymap_set_history_io import KeymapSetHistoryIo
 from keyseq.presentation.controllers.config_io.quarantine_manage_io import QuarantineManageIo
 from keyseq.presentation.config_paths import ConfigPaths
 from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
@@ -157,6 +158,7 @@ class App(tk.Tk):
             ],
         )
         self.keymap_set_io = KeymapSetIo(self)
+        self.keymap_set_history_io = KeymapSetHistoryIo(self)
         self.startup_io = StartupIo(self)
         self.hotkey_presets_io = HotkeyPresetsIo(self)
         self.io_dialogs = IoDialogs(self)
