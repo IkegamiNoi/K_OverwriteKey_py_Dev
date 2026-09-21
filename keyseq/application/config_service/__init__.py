@@ -17,13 +17,14 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
-from . import orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
+from . import keymap_set_history, orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
 
 from keyseq.application.save_plan import SavePlan
 
 
 class ConfigService:
     KEYMAP_SET_RELATIVE_PATH = os.path.join("user", "keymap_sets", "default.json")
+    KEYMAP_SET_HISTORY_RELATIVE_PATH = "keymap_set_history.json"
     TRIGGER_SETS_RELATIVE_DIR = os.path.join("user", "trigger_sets")
     HOTKEY_PRESETS_RELATIVE_PATH = os.path.join(
         "user", "hotkey_presets", "global", "default.json"
@@ -636,6 +637,15 @@ class ConfigService:
             resolved_path,
             {"hotkey_presets": safe_deepcopy(presets)},
         )
+
+    def load_keymap_set_history(self, *, config_root: str) -> tuple[dict[str, Any], str]:
+        return keymap_set_history.load_history(self, config_root=config_root)
+
+    def save_keymap_set_history(self, history: dict[str, Any], *, config_root: str) -> tuple[bool, str]:
+        return keymap_set_history.save_history(self, history, config_root=config_root)
+
+    def record_keymap_set_history(self, path: str, *, config_root: str) -> tuple[bool, str]:
+        return keymap_set_history.record(self, path, config_root=config_root)
 
     def resolve_hotkey_presets_save_path(
         self,

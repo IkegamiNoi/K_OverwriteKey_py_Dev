@@ -124,3 +124,9 @@ class QuarantineDeleteResult:
     unit_id: str
     deleted: bool
     aborted_reason: str
+
+
+# keymap_set_history
+HISTORY_OK = "ok"
+HISTORY_RECOVERED = "recovered"
+HISTORY_READ_ONLY = "read_only"

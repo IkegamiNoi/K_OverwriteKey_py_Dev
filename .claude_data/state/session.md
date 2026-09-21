@@ -4,61 +4,68 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-21T17:05:00
+last_updated: 2026-09-22T10:20:00
 phase: `instructions/phase/27_keymap_set_load_history`（構成セットの読み込み履歴管理）。**暫定仕様先行モード**・主入力 = `instructions/history/21_keymap_set_load_history.md`（v0.4・ユーザー確定済）。番号対応: phase 27 / 暫定 21 / decisions 27。次採番 = phase 28 / 暫定 22 / decisions 28。
 直前の完了フェーズ = phase 26（判断履歴 = `decisions_archive/26_startup_entry_preservation.md`）。
 last_commit_location: `claude/jikki-mokushi-ok-58bca4`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 27 = 構成セットの読み込み履歴管理。task_01〔domain の純関数〕完了・実測 green・reviewer 採用。次は task_02（application の永続化と破損時の退避）の起票と実装委任。**
+focus: **phase 27 = 構成セットの読み込み履歴管理。task_01〔domain〕/ task_02〔application の永続化〕完了・実測 green・reviewer 採用。次は task_03（記録経路の接続 + パス指定の共通読込入口）の起票と実装委任。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-21T17:05:00
+ts: 2026-09-22T10:20:00
 who: main
 summary: |
-  【task_01 = domain の純関数】`codex-implementer` へ委任（テスト追加まで / 実行は依頼せず）。
-  **新規 2 ファイルのみ**（既存コードの変更ゼロ）: `keyseq/domain/keymap_set_history.py`（160 行・
-  公開面は `__all__` で 10 関数 + `MAX_RECENT` に限定）/ `tests/test_keymap_set_history.py`（245 行・21 件）。
-  **`os` を import せず、比較キーは `key_of: Callable[[str], str]` で受け取る**（`config_root` 非依存）。
-  全関数が `_deepcopy` を経由し入れ子まで独立コピーを返す純関数。
-  **`push_recent` に先頭一致の判定を入れていない**（判定は呼び出し側 = task_02/03 の責務）。
-  分類名の同名判定は**完全一致**（`casefold` は `sorted_categories` の表示順だけに使用）。
-  【実測 = verifier + メイン】compile clean / `tests` **539**（518 → **+21**・skip 7）/ smoke OK /
-  副作用なし（`keymap_set_history.json` / `user/` / `quarantine/` 未生成・config.json の mtime 不変）。
-  【フレーク切り分け】`tests_ui` の一括実行で `test_quarantine_manage_flow.py:301`
-  `test_selection_returns_matching_id_and_resumes_hook` が `hook_pause_count 2 != 0` で 1 件 fail。
-  **単独実行 OK / 当該ファイル 20 件 OK / フルスイート再実行で 449 件すべて OK** のため
-  **既知のフレーク**（App 共有によるフック停止カウンタの持ち越し）と判定。`keymap_set_history` は
-  `tests_ui` から参照されておらず結合なし。
-  【レビュー = reviewer】**コードは採用可**（仕様適合・純粋性・依存方向・先取りなし・関数 30 行以内）。
-  指摘は「実測は verifier に依頼して完了報告へ添付」のみで、参考 1 件（`normalize_history` の
-  除去 → 切り詰めの順序は暫定仕様に明示が無いが自然な解釈）。
+  【task_02 = application の永続化】`codex-implementer` へ委任。**Codex が途中で正当な blocker を報告して停止**
+  （後述）→ タスク定義を修正して再開させ完了。
+  新規 `config_service/keymap_set_history.py`（81 行）= `history_absolute_path` / `_recover_history` /
+  `load_history` / `save_history` / `record`。`contracts.py` へ status 定数 3 つ
+  （`HISTORY_OK` / `HISTORY_RECOVERED` / `HISTORY_READ_ONLY`）。
+  **`__init__.py` は import 1 行 + クラス定数 1 行 + 1 行委譲 × 3 のみ**（ロジックなし・確認 8 クリア）。
+  **不在は `os.path.exists` で先に分岐**して `_load_optional_json`（不在と失敗を区別できない）を回避。
+  読込例外と非 dict の両方が退避経路へ入り、`broken` 〜 `broken5` の 5 枠が尽きるか `os.replace` が
+  失敗したら `HISTORY_READ_ONLY`。`record` は**読み直した永続化済みの内容**で先頭一致を判定し、
+  一致なら `save_json` を呼ばず `(True, "")`。比較キー = 既存 `canonical_path` / 保存表記 = 既存
+  `to_config_relative_or_absolute` / 書込 = 既存 `repository.save_json` を再実装せず利用。
+  【タスク定義の穴（Codex の指摘・実測で確認）】`tests/test_config_service_contracts.py:160` が
+  `len(constant_names) == 34` を固定しており、`contracts.py` の定数は実測ちょうど 34 個。定数 3 つの
+  追加で必ず赤になるため、定義を「既存・2 箇所」へ改めて `34 → 37` の更新を認可した
+  （`type_names` の 9 は据え置き）。**ハードコードのガードは `INTERNAL_MODULE_NAMES` /
+  `DIALOG_FILES` の他に「定数の個数」もある**。
+  【実測 = verifier + メイン】compile clean / `tests` **556**（539 → **+17**・skip 7）/ `tests_ui` 449 /
+  smoke OK / 副作用なし（worktree ルート・`config/` 直下とも履歴ファイル未生成・config.json の mtime 不変）。
+  ※ verifier の要約に「+10」という集計の誤りがあったためメインで再実行して 556 を確認した。
+  【レビュー = reviewer】**完了可**。不在と破損の区別 / 退避でデータが失われないこと / `record` の順序 /
+  既存 API の再実装が無いこと / `__init__.py` にロジックが無いことを `ファイルパス:行` 付きで確認。
 result_files:
-  - keyseq/domain/keymap_set_history.py（新規）
-  - tests/test_keymap_set_history.py（新規）
-  - instructions/phase/27_keymap_set_load_history/tasks/task_01_history_domain_rules.md（新規）
-  - instructions/phase/27_keymap_set_load_history/phase.md（task_01 へリンク）
+  - keyseq/application/config_service/keymap_set_history.py（新規）
+  - keyseq/application/config_service/contracts.py / __init__.py
+  - tests/test_config_service.py（`KeymapSetHistoryPersistenceTest` 17 件）/ tests/test_config_service_contracts.py
+  - instructions/phase/27_keymap_set_load_history/tasks/task_02_history_persistence.md（新規）/ phase.md
 verified:
   compile: clean
-  tests: 539 ran OK（skipped 7・518 → +21）
-  tests_ui: 449 ran OK（フルスイート再実行で green。初回の 1 fail は既知フレーク）
+  tests: 556 ran OK（skipped 7・539 → +17）
+  tests_ui: 449 ran OK
   smoke: SMOKE OK
-  review: reviewer（task_01 差分）= 採用（実測 pass を前提に完了可）
+  review: reviewer（task_02 差分）= 完了可（採用）
   refactor_check: not_run（phase 27 の task_05 で実施）
 
 
 ## next_action
-- **task_02 の定義を `/task_new` で起票する**（`tasks/task_02_*.md`）。内容 =
-  `keyseq/application/config_service/keymap_set_history.py`（新規）+ `ConfigService` の薄い委譲。
-  **読込（`_load_optional_json` の `None` 縮退）/ 破損時の退避（`*.broken*.json`・連番 5 で打ち止め・
-  退避失敗なら書かない）/ 原子的書込（`json_repository.save_json`）/ 保存表記への正規化と
-  比較キー（解決 → `normpath` → `normcase`）の生成**。
-  **`tests/test_config_service_contracts.py:14` の `INTERNAL_MODULE_NAMES` へ `keymap_set_history` を
-  追加する**（実ファイル集合との完全一致を assert しているため、追加しないと確実に赤）。
-- 起票後 `codex-implementer` へ委任 →`verifier` で実測 → `reviewer`。
-- 以降 task_03（記録経路 + パス指定の共通読込入口）→ task_04（履歴ダイアログ）→ task_05（正本反映と完了）。
+- **task_03 の定義を `/task_new` で起票する**（`tasks/task_03_*.md`）。内容 =
+  ①`controllers/config_io/keymap_set_history_io.py`（新規）に**記録の単一の口 `record(path)`**
+  （`config_service.record_keymap_set_history` を呼ぶだけ。テストから patch できる形）
+  ②暫定仕様 §4.1 の呼び出し点へ接続（`keymap_set_io.py:545` 読込成功 / `:651` 起動セット指定 /
+  `startup_io.py:30` 起動時の自動読込 / `keymap_set_io.py:132` **保存成功**）
+  ③**パス指定の共通読込入口**を `keymap_set_io.py` へ追加（成功 / キャンセル / 失敗を返す。
+  現状 `load_keymap_set_from` は引数を取らず成否も返さない）
+  ④既存 characterization テストの patch（`config_root` に `os.getcwd()` を入れるため、
+  **patch しないとリポジトリルートへ履歴ファイルが生成される**）。
+- **task_04 の起票前に `tests_ui` 側のハードコード列挙を洗い出す**（`DIALOG_FILES` /
+  `T2_DIALOG_FILES` 以外に件数・個数を固定する assert が無いか。task_02 で 3 つ目が見つかったため）。
+- 以降 task_04（履歴ダイアログ）→ task_05（正本反映と完了）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。

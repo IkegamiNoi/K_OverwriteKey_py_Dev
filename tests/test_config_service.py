@@ -2654,5 +2654,245 @@ class EnsureSplitConfigDirsTest(unittest.TestCase):
                 self.assertTrue(os.path.isdir(os.path.join(root, relative_path)))
 
 
+class KeymapSetHistoryPersistenceTest(unittest.TestCase):
+    def setUp(self) -> None:
+        from keyseq.application.config_service import contracts
+        from keyseq.domain import keymap_set_history
+
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        self.root = os.path.join(temporary.name, "config")
+        self.file = Path(self.root) / "keymap_set_history.json"
+        self.service = ConfigService(JsonRepository())
+        self.contracts = contracts
+        self.domain = keymap_set_history
+        self.empty = {"recent": [], "categories": []}
+
+    def _write_corrupt(self, content: bytes = b"{") -> None:
+        self.file.parent.mkdir(parents=True, exist_ok=True)
+        self.file.write_bytes(content)
+
+    def _backup(self, suffix: str = "") -> Path:
+        return self.file.with_name(f"keymap_set_history.broken{suffix}.json")
+
+    def test_missing_does_not_create_file_or_directory(self) -> None:
+        self.assertEqual(
+            self.service.load_keymap_set_history(config_root=self.root),
+            (self.empty, self.contracts.HISTORY_OK),
+        )
+        self.assertFalse(self.file.exists())
+        self.assertFalse(self.file.parent.exists())
+
+    def test_save_and_load_normalize_history(self) -> None:
+        raw = {
+            "recent": [{"path": " a.json ", "unknown": True}, {}, None],
+            "categories": [{"name": " Work ", "entries": [{"path": " b.json "}]}],
+            "unknown": True,
+        }
+        expected = self.domain.normalize_history(raw)
+        self.assertEqual(
+            self.service.save_keymap_set_history(raw, config_root=self.root), (True, ""),
+        )
+        self.assertEqual(self.service.repository.load_json(str(self.file)), expected)
+        # 読み込み側も、未正規化の dict を独立に正規化する。
+        self.service.repository.save_json(str(self.file), raw)
+        self.assertEqual(
+            self.service.load_keymap_set_history(config_root=self.root),
+            (expected, self.contracts.HISTORY_OK),
+        )
+
+    def test_corrupt_json_is_preserved_without_recreation(self) -> None:
+        content = b"{\r\n"
+        self._write_corrupt(content)
+        self.assertEqual(
+            self.service.load_keymap_set_history(config_root=self.root),
+            (self.empty, self.contracts.HISTORY_RECOVERED),
+        )
+        self.assertEqual(self._backup().read_bytes(), content)
+        self.assertFalse(self.file.exists())
+
+    def test_backup_uses_first_available_number(self) -> None:
+        self._write_corrupt()
+        self._backup().write_bytes(b"original backup")
+        self.assertEqual(
+            self.service.load_keymap_set_history(config_root=self.root)[1],
+            self.contracts.HISTORY_RECOVERED,
+        )
+        self.assertEqual(self._backup().read_bytes(), b"original backup")
+        self.assertEqual(self._backup("2").read_bytes(), b"{")
+        self.assertFalse(self.file.exists())
+
+    def test_full_backups_prohibit_record_without_moving_or_writing(self) -> None:
+        self._write_corrupt()
+        for suffix in ("", "2", "3", "4", "5"):
+            self._backup(suffix).write_bytes(b"keep")
+        with patch("keyseq.application.config_service.keymap_set_history.os.replace") as move:
+            with patch.object(self.service.repository, "save_json") as save:
+                self.assertEqual(
+                    self.service.load_keymap_set_history(config_root=self.root),
+                    (self.empty, self.contracts.HISTORY_READ_ONLY),
+                )
+                success, reason = self.service.record_keymap_set_history(
+                    "new.json", config_root=self.root,
+                )
+                self.assertFalse(success)
+                self.assertTrue(reason)
+                save.assert_not_called()
+            move.assert_not_called()
+        self.assertEqual(self.file.read_bytes(), b"{")
+        for suffix in ("", "2", "3", "4", "5"):
+            self.assertEqual(self._backup(suffix).read_bytes(), b"keep")
+
+    def test_backup_failure_prohibits_record(self) -> None:
+        self._write_corrupt()
+        with patch(
+            "keyseq.application.config_service.keymap_set_history.os.replace",
+            side_effect=OSError("move denied"),
+        ):
+            self.assertEqual(
+                self.service.load_keymap_set_history(config_root=self.root),
+                (self.empty, self.contracts.HISTORY_READ_ONLY),
+            )
+            with patch.object(self.service.repository, "save_json") as save:
+                success, reason = self.service.record_keymap_set_history(
+                    "new.json", config_root=self.root,
+                )
+                self.assertFalse(success)
+                self.assertTrue(reason)
+                save.assert_not_called()
+        self.assertEqual(self.file.read_bytes(), b"{")
+        self.assertFalse(self._backup().exists())
+
+    def test_non_dict_json_is_recovered(self) -> None:
+        self._write_corrupt(b"[]")
+        self.assertEqual(
+            self.service.load_keymap_set_history(config_root=self.root),
+            (self.empty, self.contracts.HISTORY_RECOVERED),
+        )
+        self.assertEqual(self._backup().read_bytes(), b"[]")
+        self.assertFalse(self.file.exists())
+
+    def test_repository_read_exception_is_recovered(self) -> None:
+        self._write_corrupt(b"{}")
+        with patch.object(self.service.repository, "load_json", side_effect=OSError("denied")):
+            self.assertEqual(
+                self.service.load_keymap_set_history(config_root=self.root),
+                (self.empty, self.contracts.HISTORY_RECOVERED),
+            )
+        self.assertEqual(self._backup().read_bytes(), b"{}")
+
+    def test_record_creates_history_and_same_head_is_noop(self) -> None:
+        self.assertEqual(
+            self.service.record_keymap_set_history("new.json", config_root=self.root),
+            (True, ""),
+        )
+        self.assertEqual(
+            self.service.repository.load_json(str(self.file)),
+            {"recent": [{"path": "new.json"}], "categories": []},
+        )
+        with patch.object(self.service.repository, "save_json") as save:
+            self.assertEqual(
+                self.service.record_keymap_set_history("new.json", config_root=self.root),
+                (True, ""),
+            )
+            save.assert_not_called()
+
+    def test_record_recovers_before_creating_history(self) -> None:
+        self._write_corrupt()
+        self.assertEqual(
+            self.service.record_keymap_set_history("new.json", config_root=self.root),
+            (True, ""),
+        )
+        self.assertEqual(self._backup().read_bytes(), b"{")
+        self.assertEqual(
+            self.service.repository.load_json(str(self.file))["recent"],
+            [{"path": "new.json"}],
+        )
+
+    def test_relative_and_absolute_paths_use_canonical_comparison(self) -> None:
+        self.service.record_keymap_set_history("Set.json", config_root=self.root)
+        absolute = os.path.join(self.root, "Set.json")
+        with patch.object(self.service, "canonical_path", wraps=self.service.canonical_path) as canonical:
+            with patch.object(self.service.repository, "save_json") as save:
+                self.assertEqual(
+                    self.service.record_keymap_set_history(absolute, config_root=self.root),
+                    (True, ""),
+                )
+                save.assert_not_called()
+            canonical.assert_any_call("Set.json", self.root)
+        self.assertEqual(len(self.service.repository.load_json(str(self.file))["recent"]), 1)
+
+    @unittest.skipUnless(os.name == "nt", "Windows normcase semantics")
+    def test_case_variants_deduplicate_and_preserve_stored_case(self) -> None:
+        self.service.record_keymap_set_history("Set.json", config_root=self.root)
+        with patch.object(self.service.repository, "save_json") as save:
+            self.assertEqual(
+                self.service.record_keymap_set_history(
+                    os.path.join(self.root, "SET.JSON"), config_root=self.root,
+                ), (True, ""),
+            )
+            save.assert_not_called()
+        self.assertEqual(
+            self.service.repository.load_json(str(self.file))["recent"],
+            [{"path": "Set.json"}],
+        )
+
+    def test_record_stores_inside_relative_and_outside_absolute(self) -> None:
+        inside = os.path.join(self.root, "user", "Set.json")
+        outside = os.path.join(os.path.dirname(self.root), "Outside.json")
+        for path in (inside, outside):
+            self.assertEqual(
+                self.service.record_keymap_set_history(path, config_root=self.root),
+                (True, ""),
+            )
+        self.assertEqual(
+            self.service.repository.load_json(str(self.file))["recent"],
+            [{"path": outside.replace("\\", "/")}, {"path": "user/Set.json"}],
+        )
+
+    def test_record_moves_all_duplicates_to_head_and_preserves_categories(self) -> None:
+        history = {
+            "recent": [{"path": "other.json"}, {"path": "a.json"}, {"path": "a.json"}],
+            "categories": [{"name": "Work", "entries": [{"path": "a.json"}]}],
+        }
+        self.service.save_keymap_set_history(history, config_root=self.root)
+        self.assertEqual(
+            self.service.record_keymap_set_history("a.json", config_root=self.root),
+            (True, ""),
+        )
+        stored = self.service.repository.load_json(str(self.file))
+        self.assertEqual(stored["recent"], [{"path": "a.json"}, {"path": "other.json"}])
+        self.assertEqual(stored["categories"], history["categories"])
+
+    def test_record_twenty_first_drops_oldest(self) -> None:
+        for index in range(21):
+            self.assertEqual(
+                self.service.record_keymap_set_history(f"{index}.json", config_root=self.root),
+                (True, ""),
+            )
+        self.assertEqual(
+            self.service.repository.load_json(str(self.file))["recent"],
+            [{"path": f"{index}.json"} for index in range(20, 0, -1)],
+        )
+
+    def test_blank_record_does_not_write(self) -> None:
+        with patch.object(self.service.repository, "save_json") as save:
+            success, reason = self.service.record_keymap_set_history(" \t ", config_root=self.root)
+            self.assertFalse(success)
+            self.assertTrue(reason)
+            save.assert_not_called()
+        self.assertFalse(self.file.exists())
+
+    def test_save_and_record_return_write_failure_reason(self) -> None:
+        with patch.object(self.service.repository, "save_json", side_effect=OSError("disk full")):
+            for result in (
+                self.service.save_keymap_set_history(self.empty, config_root=self.root),
+                self.service.record_keymap_set_history("new.json", config_root=self.root),
+            ):
+                self.assertFalse(result[0])
+                self.assertIn("disk full", result[1])
+        self.assertFalse(self.file.exists())
+
+
 if __name__ == "__main__":
     unittest.main()

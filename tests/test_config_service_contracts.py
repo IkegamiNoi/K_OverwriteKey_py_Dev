@@ -12,7 +12,7 @@ CONFIG_SERVICE_PACKAGE = "keyseq.application.config_service"
 _INTERNAL_SEGMENT = CONFIG_SERVICE_PACKAGE.rsplit(".", 1)[-1]
 _PACKAGE_PREFIX = CONFIG_SERVICE_PACKAGE + "."
 INTERNAL_MODULE_NAMES = frozenset({
-    "candidate_dirs", "orphan_scan", "parent_refs_cleanup", "path_boundary",
+    "candidate_dirs", "keymap_set_history", "orphan_scan", "parent_refs_cleanup", "path_boundary",
     "quarantine", "quarantine_manage", "reference_scan", "save_path_resolution",
     "save_plan_execution", "split_loading", "split_payloads",
 })
@@ -157,7 +157,7 @@ class ConfigServiceContractsTest(unittest.TestCase):
             name for name, value in vars(contracts).items()
             if isinstance(value, type) and value.__module__ == contracts.__name__
         }
-        self.assertEqual(len(constant_names), 34)
+        self.assertEqual(len(constant_names), 37)
         self.assertEqual(len(type_names), 9)
         for module in (parent_refs_cleanup, reference_scan, orphan_scan,
                        quarantine, quarantine_manage):
