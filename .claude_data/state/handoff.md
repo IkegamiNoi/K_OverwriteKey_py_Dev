@@ -15,18 +15,21 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズは無い**。次採番 = phase 28 / 暫定 22 / decisions 28）
-3. **次フェーズの方針をユーザーへ確認してから** `/phase_start` で起票する。
-   候補の確認先は `instructions/backlog/INDEX.md`
+2. `instructions/phase/current.md` を読む（**アクティブ = phase 28**。次採番 = phase 29 / 暫定 23 / decisions 29）
+3. `instructions/phase/28_dialog_keyboard_focus/phase.md` と、
+   **主入力の暫定仕様 `instructions/history/22_dialog_keyboard_focus.md`（v0.4・ユーザー確定済・未凍結）**を読む。
+   着手するタスク定義は `instructions/phase/28_dialog_keyboard_focus/tasks/` 配下
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜21）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜21）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）。
+   **22 だけは未凍結で、phase 28 の確定設計として有効**
 
 ## 現在の作業の 1 行サマリ
-**phase 27（構成セットの読み込み履歴管理）完了。task_01〜task_06・正本昇格（`data_schema.md` §5.12 新設）・暫定仕様 21 の凍結・実機目視 OK・refactor_check〔不要〕まで完了。次フェーズ未確定。**
-直近コミット: `f0275b8`（task_06 = 編集失敗時の再描画）/ `c27b63e`（task_05 = 正本昇格と凍結）/ `8c9e693`（idea_26 起票）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜27 はユーザーがマージする）。
+**phase 28 task_04 まで完了（idea_18 解消 = 一括 3/3 green）。次は task_05（統合確認 + 実機目視）。実装は全て完了済みで、残りは検証と正本反映。**
+直近コミット: `35c280e`（task_04 = Escape 配送の flaky 解消）/ `bd0a1bc`（task_03 = 群 C へ Escape 結線）/
+`28ab399`（task_02 = 実 Tk の初期フォーカス検査）/ `08ace46`（task_01 = grab_modal へフォーカス集約）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜28 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -36,62 +39,73 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 27 完了時点 = 2026-09-22**）:
-compile **clean** / tests **556 実行 OK**（skip 7）/ tests_ui **484 実行 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 26 完了 518 → phase 27 完了 556 / tests_ui: 449 → 484）。
+直近の実測（**phase 28 task_04 完了時点 = 2026-09-23**）:
+compile **clean** / tests **556 実行 OK**（skip 7）/ tests_ui **502 実行 OK**（skip 0）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 27 完了 556 → 変化なし / tests_ui: 484 → 502）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
 `keymap_set_history*.json` が生成されていない**ことを確認する。
 
-**【重要】`tests_ui` の一括実行は負荷下で不定期に fail することがある**（idea_18 の Escape 配送 / 保存予約の実タイマー競合）。
-**赤を見たらまず単独実行で再現するか確かめる**。症状は `get_hook_pause_count()` が `1 != 0`。
-**phase 27 完了時にも 3 回中 1 回・毎回別テストで再現**（コード差分ゼロの時点で発生＝フェーズ由来ではない）。
+**【解消済み】`tests_ui` 一括の Escape 依存 flaky（idea_18）は phase 28 task_04 で解消した**
+（一括連続 3 回とも 502 OK・skipped 0。直前は 3 回中 1 回しか緑にならなかった）。
+**新しく Escape でダイアログを閉じるテストを書くときは、`focus_force` + `event_generate` を直書きせず
+`tests_ui/escape_delivery.py` の `send_escape(test_case, app, dialog)` を使う**
+（フォーカス確保を確認してから送り、破棄を上限つきで待ち、失敗時は診断情報を添えて fail する）。
 
 **既知の stderr ノイズ（退行ではない）**: `invalid command name "..._clear_flash_message"`（ステータスバーのタイマー）/
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **次フェーズはユーザーに方針確認してから起票する**（`/phase_start`。次採番 = **phase 28 / 暫定 22 / decisions 28**）。
-- **有力候補 = [idea_26](../../instructions/backlog/idea_26_dialog_keyboard_focus.md)**（ダイアログがキーボードフォーカスを
-  取らず Escape が効かない。`orphan_sweep` / `quarantine_manage` / `reference_cleanup` の横断修正 +
-  テストの検出力強化）。案 A（個別に `focus_set`・1 タスク規模）/ 案 B（`grab_modal` へ集約 +
-  正本 `features.md` §4.6 へ追記・小フェーズ規模）の選択が着手時の判断ポイント。
-  **phase 27 で実測済みの材料（フォーカスが App ルートのままである実測）がある**うちが着手しやすい。
-- その他の候補は `instructions/backlog/INDEX.md` と `current.md`「別タスク化候補」の
-  **Phase 27 項**（履歴ファイル名の語幹が 2 箇所に直値）/ **Phase 26 項** / **Phase 25 項**。
+- **task_05 のタスク定義を `/task_new` で起票する**（統合確認 + 実機目視）。
+  ①`deep-reviewer` + `codex-reviewer` の統合レビュー（task_01〜04 を跨ぐ差分）
+  ②**負荷下の再現確認**（暫定仕様 §8-7。busy loop 4 本の負荷下で対象クラスを 6 回）+ 一括連続 3 回 green
+  ③**実機目視の依頼**（§8-8）: 群 B の 3 ダイアログを**アクティブな App から開き、ダイアログ内を
+  クリックせずに直ちに Escape** で閉じること / 群 C の 5 経路も Escape で閉じること /
+  **フォーカス復帰の再現確認**（内側ダイアログを閉じた後・最小化復帰後に外側で Escape が効くか）
+  ④skip 件数の報告（現状 0 件）
+- 以降: **task_06（正本反映）** = `features.md` へフォーカス + Escape の **2 条項** /
+  `codebase_map.md` の `grab_modal` 署名更新と**「13 箇所」→「15 箇所」訂正** / 暫定仕様 22 の凍結 /
+  `decisions_archive/28` 作成 / `current.md` 更新 / **idea_26・idea_18 を `backlog/INDEX_done.md` へ移動** /
+  `/refactor_check`。
 - **main へのマージはユーザーが行う**。
 - **運用**: `verifier` に変異検査を頼むときは「**`git checkout --` / `git restore` / `git stash` を使わない**（未コミットの実装ごと巻き戻る）。
   ファイルのコピーで退避・復元する」を明示する。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
-## 直前フェーズ（phase 27 = 構成セットの読み込み履歴管理）の要点
+## 現在のフェーズ（phase 28 = ダイアログの初期キーボードフォーカス）の要点
 
-**正本が正**: `spec_detail/data_schema.md` **§5.12**（新設・5.12.1〜5.12.8）+ §5.4 /
-`features.md` §4.6「メニュー・個別保存」/ `codebase_map.md`。
-**暫定仕様 21 は凍結済で条項の根拠に引かない**。判断は `decisions_archive/27_keymap_set_load_history.md`。
+**設計は暫定仕様 22 が正**（`instructions/history/22_dialog_keyboard_focus.md`・v0.4・**未凍結**）。
+フェーズ中は正本 `spec_detail/` を直接改訂しない（昇格は task_06）。
 
-- **新規 JSON = `config/keymap_set_history.json`（固定パス）**。config.json にキーを増やさない。**遅延作成**
-  （起動時のディレクトリ骨格作成に含めない）。`version` キーを持たず、**未知キーは保持しない**。
-- **記録契機 = 読込または保存が成功し、空でないパスが確定したとき、その実保存先**。
-  除外 = 初期代入 / 新規作成 / Import / 例の復元 / **起動時の自動読込**
-  （起動しただけで履歴ファイルを作らないため。v0.5 で改訂。`tests_ui` が実 `config/` を汚した実測が理由）。
-- **`recent` の先頭が同一パスなら書き込まない**（判定は**永続化済みの内容**。メモリ先行更新しない）。上限 20（不在も 1 枠）。
-- **破損時は `*.broken*.json` へ退避してから作り直す**（`broken`〜`broken5` の**最大 5 個**。
-  すべて埋まっていたら退避も書き込みもしない）。**判定は都度**でセッション内に保持しない。
-- **永続化に成功してから UI を確定**し、**読込・編集のたびに永続化済みの内容を読み直して再描画**する
-  （失敗時も再描画してから理由を出す）。履歴の失敗で構成セットの読込・保存を巻き戻さない。
-- 実装 = `domain/keymap_set_history.py`（純関数・比較キーは `key_of` で受け取る）/
-  `application/config_service/keymap_set_history.py`（読み書き・退避・記録）/
-  `presentation/controllers/config_io/keymap_set_history_io.py`（**記録の単一の口 `record()`**・
-  **境界で例外を `(False, 理由)` へ変換**）/ `dialogs/keymap_set_history_dialog.py`（**リポジトリ唯一の `ttk.Treeview`**）/
-  `keymap_set_history_text.py` / `keymap_set_io.load_keymap_set_path`（**パス指定の共通読込入口**）。
-- **受容した既知の制約** = 多重起動時の退避先 TOCTOU / 削除時の index 陳腐化（単一インスタンスでは成立しない。
-  phase 11 の TOCTOU 受容と同じ扱い）。
-- phase 26 以前の要点は `decisions_archive/<phase>.md` を参照する。
+- **フォーカスの責務は `grab_modal` に集約**。署名 = `grab_modal(window, parent=None, *, focus=None)`。
+  **省略時は窓自身**へ、指定時はその widget へ `focus_set`。適用は `grab_set()` の直後
+  （`_apply_initial_focus`）。**早期 return 経路〔二重呼び出し・最小化中の預かり〕では触らない**。
+  例外は **`TclError` のみ**握る。
+- **推測型は実測で反証済み**: 未マップの Toplevel への `focus_set` は Tk 内で保留され、
+  **`focus_lastfor()` / `focus_get()` から検出できない**。だから「既存指定の有無を grab_modal 側で判定する」
+  方式（`focus_lastfor` 既定 / `after_idle`）は**既存の初期フォーカスを奪う**。**明示引数が唯一の形**。
+- **群分け（`grab_modal` の呼び出しは production 15 箇所）**: A=6（`__init__` 内で明示）/
+  A'=1（`child_save_dialog` のビルダ内で明示）/ B=3（欠落していた `orphan_sweep` / `quarantine_manage` /
+  `reference_cleanup`）/ C=5（Escape 未結線だった `layout_delete` / `preset_manager` / `io_dialogs` /
+  `hotkey_presets_io` / `child_save_dialog` の「子ファイルの保存」）。
+- **Escape は「閉じる（×）」と同じ経路へ結ぐ**（新しい閉じ方を作らない）。
+  群 C は `io_dialogs` のみ **`on_cancel`**、他 4 件は `destroy`。
+  **`bind` は `grab_modal` より前**に置く（静的検査「`__init__` の最後は `grab_modal`」を壊さないため）。
+- **Escape 配送の機序（idea_18 の根本原因・task_04 で確定）**: Tk はキーイベントを**フォーカス窓へ再配送**する。
+  `tests_ui` はテストクラスごとに `App`（`tk.Tk`）を作る = **同一プロセスに複数の Tk アプリ**があり、
+  **別アプリが OS フォーカスを持つと Escape は破棄される**。**「配送が遅い」のではなく「配送先が違う」**ため
+  待つだけでは直らない。対処は**フォーカス確保を確認してから送る**（`escape_delivery.send_escape`）。
+- **テストの役割分担**: `test_modal_grab.py`＝決定論的な単体検査（`focus_set` の呼び出しを patch で記録）/
+  `test_dialog_initial_focus.py`＝実 Tk の初期フォーカス検査（**App の前面化は試みるがダイアログの
+  `focus_force` はしない**。取れなければ skip）/ `test_dialog_escape_binding.py`＝結線と後始末の固定。
+- **ユーザー確定事項**: 群 C にフォーカスが入る挙動変化は**受容** / 正本へ **Escape 条項も追加**する /
+  **フォーカスの復帰（閉じた後・最小化復帰後）はスコープ外**（実機目視で再現確認のみ）/
+  同型スケルトンの共通化は**合流させない** / **案 A（ハンドラ直呼び）は併用しない**（実配送の検証を残す）。
+- 直前の完了フェーズ = phase 27（構成セットの読み込み履歴）。要点と判断は
+  `decisions_archive/27_keymap_set_load_history.md` を参照（正本は `data_schema.md` §5.12）。
   **使い分け = パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`（trim + 小文字化）**だけは
-  触る頻度が高いので覚えておく（パスを小文字化すると壊れる。§5.7 の `normcase` は比較専用）。
-  **起動エントリ（`config.json` の `keymap_set_path`）は保存で上書きしない**（phase 26・§5.4）。
+  触る頻度が高いので覚えておく。**起動エントリ（`config.json` の `keymap_set_path`）は保存で上書きしない**（phase 26）。
 
 ## 運用インフラ
 
@@ -105,20 +119,25 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **【罠】Bash ツールで `python3` / `python` を呼ばない**（Windows ストア版スタブが stdin 待ちでハングし、同じコマンド内の後続も実行されない）。
   スクリプトを直接走らせるときは `PYTHONPATH=.` を付ける。
 - **【裏取り】レビュー・調査・サブエージェントの「コードがこうなっている」という主張は、採用前に `ファイルパス:行` を実測確認する**。
-  **phase 27 では reviewer が見逃した欠陥 2 件（例外ガードの欠落 / 公開単一点 `canonical_path` の再実装）をメインの直読みで検出した**。
-  **設計規則の単一点（公開 API）がある箇所は、実装がそれを呼んでいるかを必ず確認する**。
+  **phase 28 では idea_26 の「正本 §4.6 に Escape 規定あり」が実在せず、`codebase_map.md:308` の
+  「13 箇所」も実測 15 箇所だった**（後者は task_06 で訂正する）。
+- **【最重要・phase 28 で実証】Tk の挙動は推測せず probe で実測する**。
+  `.venv` python で小さなスクリプトを書けば数分で確定でき、**設計の前提を 2 度ひっくり返した**
+  （①未マップ時の `focus_set` は外から検出できない ②Escape はフォーカス窓へ再配送される）。
+  **レビューだけでは前提の誤りは見つからない**（`deep-reviewer` は「Tk の前提は妥当」と判定したが実測で反証された）。
 - **【傾向・実証済み】reviewer が「採用」でも敵対的 / 上位レビューで指摘が出る**。
   **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**。
   `codex-reviewer`（標準 review）は focus text を受け付けないので、観点を渡すなら `codex-adversarial-reviewer`。
 - **【傾向・phase 22 / 27 で実証】正本へ昇格した文章は `deep-reviewer` にかけると矛盾が出る**
   （既存節との衝突・手順の書き落とし・実装より強い断定）。**昇格差分も必ずレビュー対象に含める**。
-  **phase 27 では「UI の規範条項がコードにしか無い」昇格漏れを指摘されて追加した**。
-- **【罠・phase 27 で実証】テストに `focus_force()` のような「通してしまう前処理」があると、実使用の不具合を隠す**
-  （履歴ダイアログの Escape が実機で効かなかったのに全テスト緑だった）。
-  **新規ダイアログは「生成直後にフォーカスがダイアログ内にあるか」を `focus_force` 無しで検証する**。
+- **【罠・phase 27 で実証】テストに `focus_force()` のような「通してしまう前処理」があると、実使用の不具合を隠す**。
+  **ダイアログ自身への `focus_force` は初期フォーカス検査で使わない**（App の前面化は可。役割が違う）。
+- **【罠・phase 28 で実証】フック再開は `<Destroy>` から `after(0)` で予約される**
+  （`presentation/controllers/hook_controller.py:57`）。**`destroy()` の直後に
+  `get_hook_pause_count()` を数えると 1 のまま**。数える前に `app.update()` を挟む。
 - **【罠・phase 27 で実証】`tests_ui` は実 `config/` を汚し得る**（`App()` を作るだけで起動時処理が走る。
-  `.gitignore` の `config/` 除外で `git status` に出ない）。**新規の永続化を足したら、テストの patch と
-  実行後のファイル生成有無を必ず実測する**。
+  `.gitignore` の `config/` 除外で `git status` に出ない）。**App を作る新規テストは
+  `tests_ui/test_keymap_set_history_flow.py:17-34` の ExitStack 手法を踏襲する**。
 - **【傾向】テストの「検出力」は変異検査で確かめる**（その仕様を壊すと**追加テストだけ**落ちるか）。
 - **【Codex 運用】フォワーダが切れても Codex ワーカーは生き続ける**（判別は作業ツリーの更新時刻）。
   **書き換え途中で `verifier` / `reviewer` を回さない**。`taskkill /T` を使わない。**Codex 申告のテスト結果は信用せず実測**。
@@ -150,6 +169,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   併用は `.claude/rules/agent_selection.md` のレビュー表が正。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
   （直近 3 件: 27_keymap_set_load_history / 26_startup_entry_preservation / 25_path_field_type_normalization）。
-- 未着手/保留 idea: **idea_26**（ダイアログのフォーカスと Escape・**次フェーズ有力候補**）/ **idea_23**（押す / 離すアクション）/
-  **idea_18**（Escape 配送依存テストの不安定）/ idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
+- 未着手/保留 idea: **idea_23**（押す / 離すアクション）/ idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/
+  idea_31・idea_32（phase 28 の周辺で起票済）/ idea_04・idea_06（保留）。
+  **idea_26・idea_18 は phase 28 で着手中**（task_06 で `INDEX_done.md` へ移す）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
