@@ -11,7 +11,7 @@ last_commit_location: `claude/task-04-progression-5fc03a`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 27 = 構成セットの読み込み履歴管理。task_01〜task_04 完了（UI まで到達・実測 green・reviewer 指摘 2 件修正済）。暫定仕様は v0.5（起動時は記録しない）。次は実機目視の依頼 → task_05（正本反映と完了）の起票。**
+focus: **phase 27 = 構成セットの読み込み履歴管理。task_01〜task_04 完了（実測 green・reviewer 採用・実機目視 OK）。暫定仕様は v0.5（起動時は記録しない）。残りは task_05（正本反映と完了）のみ。**
 mode: implementing
 
 ## last_action
@@ -47,6 +47,10 @@ summary: |
   ②**枠を広げると名前列まで広がる** → 名前列 `#0` を `stretch=False`（240/最小 80）・
   パス列を `stretch=True`（400/最小 120）。枠の拡縮はパス列だけに配分される。
   他の目視項目（メニュー位置・折り畳みと名前順・フォント ±3・各操作の一巡）は問題なし。
+  **2 回目の実機目視 = OK（ユーザー 2026-09-22）→ task_04 完了確定**。
+  横断適用は範囲外として [idea_26](../../instructions/backlog/idea_26_dialog_keyboard_focus.md) へ分離
+  （`orphan_sweep` / `quarantine_manage` / `reference_cleanup` も Escape を bind しつつフォーカス未設定。
+  既存テストは `focus_force()` 後に Escape を送るため検出できない）。
 result_files:
   - instructions/phase/27_keymap_set_load_history/tasks/task_04_history_dialog.md（新規）/ phase.md（リンク化）
   - keyseq/presentation/keymap_set_history_text.py（新規）/ dialogs/keymap_set_history_dialog.py（新規）
@@ -64,8 +68,7 @@ verified:
 
 
 ## next_action
-- **実機目視の再確認をユーザーへ依頼する**（1 回目で指摘 2 件 → 修正済。**Escape で閉じること**と
-  **枠を広げてもパス列だけ伸びること**の 2 点を再確認。他項目は 1 回目で問題なし）。
+- **実機目視は完了（2026-09-22 OK）**。task_01〜task_04 はすべて完了。
 - **task_05（正本反映と完了）を `/task_new` で起票する**（`tasks/task_05_*.md`）。内容 =
   `spec_detail/data_schema.md` **§5.12 新設**（現最終節は §5.11）/ `features.md` §4.6 へ
   「履歴から読み込む…」/ `codebase_map.md` へ新規 4 ファイル + メニュー項目 + 記録の呼び出し点 +
