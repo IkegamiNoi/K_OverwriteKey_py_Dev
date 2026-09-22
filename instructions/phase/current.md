@@ -82,7 +82,7 @@
 
 （継続保留、ソース変更を伴う細かい負債。`/refactor_check` からの追記先もここ。
 **領域別に並べ、由来フェーズは各項の末尾に括弧で示す**。
-idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜30 を昇格〕）
+idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32 を昇格〕）
 
 ### ダイアログ・モーダル
 
@@ -142,9 +142,8 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜30
 
 ### デッドコード・据え置き（実害なし）
 
-- `InputGateway.register_key_hook`（`input_gateway.py:58`）に**呼び出し元が無い**
-  （2026-09-22 実測。`hook_coordinator.py` は `register_global_hook` のみ）。
-  phase 21 の差分外の既存デッドコードのため保留（phase 21 由来・ユーザー判断 2026-09-19）
+- `InputGateway.register_key_hook` の未使用は
+  [idea_31](../backlog/idea_31_input_gateway_dead_register_key_hook.md)
 - `dirty_tracker.trigger_set_imported` が**読み手不在の残置状態**
   （production は書き込み 3 箇所のみで読むのはテストだけ。2026-09-22 実測）（Phase β 由来）
 - `views/full_view/full_view.py:57` の `action_list` alias（`self.action_list = self.sequence_box.action_list`）は
@@ -169,11 +168,8 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜30
 
 ### テスト負債
 
-- **静的検査の発見ベース化は保留**（ユーザー判断 2026-09-11）。
-  `tests_ui/test_nested_modal_grab.py` の `test_grab_modal_is_last_initialization_statement` は
-  **9 クラスと系統 B 3 ファイルをハードコードで列挙**しており**新規ダイアログを守らない**。
-  ただし**発見ベース単独にすると「`grab_modal` の呼び出しが消えた」検出が失われる**ため、
-  併用形にするかを含めて再判定が要る。**テストコードのため `/refactor_check` の対象範囲外**（phase 14 由来）
+- `grab_modal` の静的検査の発見ベース化は
+  [idea_32](../backlog/idea_32_grab_modal_static_check_discovery.md)
 - `tests/test_input_gateway_drag.py::test_initial_move_failure_restores` が `mouseUp` の
   **非呼び出し**を固定していない / ドラッグ 4 キーの**ファイル層での永続化往復**テストが無い（phase 22 由来）
 - `tests_ui/test_full_view_header_width.py` / `test_header_button_widths.py` は保存予約の遅延を
