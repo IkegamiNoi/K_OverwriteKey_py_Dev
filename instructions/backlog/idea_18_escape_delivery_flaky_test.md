@@ -25,6 +25,13 @@ CPU 負荷下で不定期に fail する**。`event_generate("<Escape>")` の配
   `test_escape_and_window_close_keep_action_empty (close='escape')` が一括実行で 1 度だけ fail
   （`get_hook_pause_count()` が `1 != 0`）。**単独実行 20/20 pass・一括の再実行も 446 全 pass** で、
   当該フェーズの差分（型正規化）とは無関係。本 idea と同じ Escape 配送依存。
+- **3 例目を観測**（2026-09-22・phase 27 のフェーズ完了判定）: `tests_ui` 一括実行 **3 回中 1 回 FAILED**
+  （毎回違うテストが落ち、1 回目は `test_quarantine_manage_flow.py:326`、別の回は
+  **今フェーズで追加した `tests_ui/test_keymap_set_history_flow.py` の
+  `test_close_routes_restore_hook_and_parent_grab`**。いずれも `get_hook_pause_count()` が `1 != 0`）。
+  単体実行は安定（20/20・2 回）。コード差分ゼロの文書変更時に出たため**当該フェーズとは無関係**。
+  → **`focus_force()` + `event_generate("<Escape>")` の形を使うテストは、書いた時点でこの family に入る**。
+  横断対処の際は新規テストも対象に含める。
 - **連鎖の仕組み**: 同クラスは `setUpClass` で `App` を共有し、各テストの冒頭で
   `get_hook_pause_count() == 0` を確認する（phase 15 task_03 で入れたドレイン）。
   t2 が閉じ損ねるとカウンタが 1 のまま残り、**後続 4 件が setUp で落ちる**。

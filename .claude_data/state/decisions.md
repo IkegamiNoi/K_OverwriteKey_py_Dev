@@ -36,6 +36,7 @@
 | 24_json_type_normalization | [24_json_type_normalization.md](decisions_archive/24_json_type_normalization.md) | JSON 読込の型不正の扱い統一（2026-09-19 完了・**頑健化のみ・スキーマ不変**・暫定仕様先行モード・起票元 = phase 23 後のユーザー指示）。文字列前提の処理へ非文字列が渡り **9 箇所で AttributeError** / `str()` 強制で **repr 文字列が runtime に載る**問題を解消。domain へ `coerce_key_name` / `coerce_label`（非 str は `""`）を新設し**全経路へ一斉適用**（案 F。案 G = 個別読込限定は**共有ローダーのため成立しない**ので不採用）/ `normalize_key_name` のシグネチャは不変（呼び出し 158 箇所）/ trigger の `key` 不正 = 空扱いで残す・`sequence_path` 不正 = 空扱い・`mappings` の target 不正 = 対ごと除去 / `suppress` 等 bool・int は現状維持（`null`/`0`/`""`/`[]` は false）/ falsy な非文字列は元から空扱いで挙動不変。**2 本のレビュー指摘は全件実測で CONFIRMED**（例外は 1 箇所でなく 6 箇所・`suppress` の記述が実装と逆・参照先 sequence からの repr 再流入・経路別スコープの破綻）。reviewer 差し戻し 1 件（split 読込の keymap `label` 漏れ）+ **完了判定前 `deep-reviewer` で棚卸し不足が判明し task_03 を追加**（旧形式 `trigger_key` / hook キー 2 種 / `active_keymap_id`）。同レビューで正本の記述誤り 3 件も訂正（`actions` の要素除去は形状由来・単一 JSON の `keymaps[].id` だけ扱いが違う・形状の倒し方の昇格漏れ）。パス系は idea_25 へ分離。正本 = `data_schema.md` **§5.1 型不正の共通規則（新設）** / §5.2 / §5.6（**keymap 節を新設**）/ §5.11。暫定 20 は v0.3 で凍結。実機目視 不要。refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `61a7c79`） |
 | 25_path_field_type_normalization | [25_path_field_type_normalization.md](decisions_archive/25_path_field_type_normalization.md) | パス系フィールドの型正規化（2026-09-19 完了・**頑健化のみ・スキーマ不変**・直接改訂モード・起票元 idea_25）。**例外になる箇所はゼロ**で、`str()` 強制により **repr 文字列がパス / スイッチキーとして runtime に載る**問題を解消。**使い分け = パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`（trim + 小文字化）**（パスを小文字化すると壊れる。§5.7 の `normcase` は比較専用）/ `keymap_switch_keys` の値も `coerce_key_name` へ（従来は membership check による**偶然の防御**）/ 案 B（現状維持 + 未定義と明記）は **§5.1 を後から緩めることになり不採用**。完了後レビューで**参照突合経路**（`reference_scan.py`・生 JSON を直接読む別実装）の取りこぼしを検出し task_01b で追加対応。正本 = `data_schema.md` §5.5 / §5.7 へ型の規定を追記（**§5.1 の本文は不変**）。残件 = `startup_io.py` の `keymap_set_path`（presentation 層）。実機目視 不要。refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `f0e5887`） |
 | 26_startup_entry_preservation | [26_startup_entry_preservation.md](decisions_archive/26_startup_entry_preservation.md) | 起動エントリ（`config/config.json` の `keymap_set_path`）の保存時据え置き（2026-09-21 完了・**仕様変更・スキーマ不変**・直接改訂モード・起票元 = ユーザー要望）。保存のたびに起動対象が直近の保存先へ書き換わる問題を解消し、**変更経路をメニュー「起動時に読む構成セットを指定…」1 本へ**寄せた。**空 / 起動時に読めなかった場合のみ保存で更新**（自己修復）/ 「読めない」の判定は **案 A = 起動時の実読込結果を真偽値で保持**（案 B の保存時 `os.path.exists` は**壊れた JSON を自己修復できない**ため除外）/ **別名保存でも据え置き**（次回起動は別名保存前のファイル）/ 可視化 UI・解除手段は**除外**。実装 = `StartupIo.entry_loaded`（**presentation は事実のみ**）→ `startup_entry_loaded` を application へ貫通し、**判定は `split_payloads.py:363` の 1 箇所**。更新契機は 3 経路（起動読込成功 / 保存成功 / メニュー指定成功）で **`write_startup` には入れない**（一律に立てると自己修復が失われる）/ **新引数の既定は False** で既存経路は挙動不変。**据え置くのは `keymap_set_path` だけ**。正本 = `data_schema.md` §5.4 の条項差し替え + `5_08_09_orphan_sweep.md` の根拠文 1 行（**走査範囲 4 経路は不変**）。実測 `tests` 518 / `tests_ui` 449 / smoke pass・実機目視 **OK**。残件 = `.strip()` 非対称（**到達不能**・候補送り）/ phase 25 残件①（`startup_io.py` の型正規化）は未着手。refactor_check: 不要（M1〜M6 該当なし・対象 5 ファイル・PHASE_BASE `e0c19ba`） |
+| 27_keymap_set_load_history | [27_keymap_set_load_history.md](decisions_archive/27_keymap_set_load_history.md) | 構成セットの読み込み履歴管理（2026-09-22 完了・**新規 JSON 追加**）。ファイルメニューへ「履歴から読み込む…」、直近 20 件 + ユーザーが作る分類を **リポジトリ初の `ttk.Treeview`** で扱う。保存先は `config/keymap_set_history.json`（固定・**config.json にキーを追加しない**・遅延作成）。記録契機 = **読込または保存が成功し空でないパスが確定したとき、その実保存先**（初期代入 / 新規作成 / Import / 例の復元 / **起動時の自動読込**は除外）。**先頭一致 no-op** で通常の起動はディスクに触らない。破損ファイルは `*.broken*.json` へ**退避してから**作り直す（連番 5 で打ち止め → 読み取り専用）。**永続化に成功してから UI を確定**し、ダイアログは操作のたびに永続化済みの内容を読み直して再描画する。**v0.5 改訂**の理由 = 起動時に記録すると `tests_ui` が実 `config/` を汚したため。正本 `data_schema.md` **§5.12 新設** + §5.4 / `features.md` §4.6 / `codebase_map.md` へ昇格済。**孤児棚卸しの走査範囲・判定は不変**（§9 の補記は「不要」で決着）。**後続**: [idea_26](../../instructions/backlog/idea_26_dialog_keyboard_focus.md)（ダイアログのフォーカス欠落・横断）。refactor_check: **不要**（M1〜M6 非該当。600 行超のファイルは増分が +10〜15 と小さく、80 行超の関数・申し送りコメント・コピー由来の同型ブロックはいずれも無し。根拠は本アーカイブ「refactor_check」節）|
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -543,104 +544,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   **提案書が想定した分割形**のため据え置き。
 
 
----
-
-## 2026-09-21〜 (phase 27: 構成セットの読み込み履歴管理)
-
-### 【起票時】モードと主要論点の確定（ユーザー確定 2026-09-21）
-
-- ユーザー要望 = 「構成セットの読み込み履歴をアプリ側でも積極的に管理したい。メニューに
-  『履歴から読み込む』を追加し、直近 20 件 + 分類を折り畳み UI で」。新規機能のため
-  **暫定仕様先行モード**（新規 UI・新規スキーマ・複数ファイルに跨り論点が多い）。
-- **保存先 = config.json とは別の新規 JSON**（`config/keymap_set_history.json` 固定パス）。
-  config.json にキーを増やさない（phase 26 で整理した書き込み契機に再び絡めない）。
-  `user/` 配下を避けたのは、参照側の走査ディレクトリに指定され得るため。
-- **UI = `ttk.Treeview`**（**リポジトリ初採用**。既存 9 ダイアログはすべて `Listbox`）。
-  tkinter に Expander は無いため、分類＝親 / 履歴＝子のツリーで折り畳みを実現する。
-- **分類は 1 階層・名前順で自動整列**（ユーザーは推奨の「追加順」ではなく名前順を選択）。
-  ラベル（任意表示名）は持たない。
-- **孤児棚卸しは履歴を参照と見なさない**（走査範囲・孤児判定を変えない）。
-
-### 【起票時レビュー】`deep-reviewer` の指摘を反映（v0.1 → v0.2・2026-09-21）
-
-- **H1**: 記録を **`record()` の単一の口**へ閉じる。既存 characterization テストが `config_root` に
-  `os.getcwd()` を入れるため（`test_config_io_characterization_keymap_set_startup.py:120-122`）、
-  差し替え可能にしないと**テストがリポジトリルートへ履歴ファイルを生成する**。
-- **H3**: 書き込みを**即時に統一**（「閉じるときに 1 回」は記録の即時書き込みと競合し、
-  古いスナップショットで上書きし得る）。
-- **M1**: 同一性判定を正本 §5.7（`data_schema.md:260`）準拠へ訂正（解決 → `normpath` → `normcase`）。
-- **M3**: 孤児棚卸しの**候補側（`CANDIDATE_DIRS` 固定 4・設定不可）と参照側（`orphan_sweep_scan_dirs`・
-  設定可）**を混同していたため書き分け。候補側が固定なので、配置場所によらず履歴が孤児候補にならない。
-- **M4 / M5**: `INTERNAL_MODULE_NAMES`（`test_config_service_contracts.py:14`・実ファイル集合と
-  **完全一致を assert**）と `DIALOG_FILES`（`test_dialog_teardown_flows.py:16`）は**ハードコード**。
-  前者は更新しないと確実に赤、後者は更新しないと新ダイアログが黙って検査網から外れる。
-
-### 【論点】起動時の記録と「起動時は一切永続化しない」方針の衝突（H2）→ **採用 = 先頭一致 no-op**（2026-09-21）
-
-- 正本 §5.4（`data_schema.md:93`）= config.json は起動時に作らず最初に永続化された時点で作成。
-  `tests_ui/test_startup_dir_skeleton.py:35` が `save_json` 未呼び出しで**保存全般**を固定している
-  （docstring に「起動時に永続化が増えたら仕様変更」）。
-- **採用**: 「**`recent` の先頭が既に同一パスなら書き込まない**」を経路別の例外ではなく**共通規則**に置く。
-  通常の起動ではディスクに触らず、履歴には起動で開いたセットも載る。**`loaded_at` は廃止**
-  （持つと毎起動で書き換えになるため）。
-- **除外**: 起動時は記録しない案（起動直後に「今開いているセットが履歴に無い」状態になる）/
-  毎回書く案（方針変更が必要で影響範囲が最大）。
-
-### 【論点】記録の契機 → **採用 = 成功した読込・保存で確定した実保存先**（2026-09-21）
-
-- 当初の確定は「読込成功のみ」だったが、**ユーザー指摘**により見直した:
-  `new_config` はパスを持たず（`keymap_set_io.py:58` で `""`）、**別名保存は `:132` で
-  `keymap_set_path` を新パスにする**ため、「開く動作をしていないのにユーザーは開いていると認識する」
-  非対称が生じる。
-- **採用**: 「読込または保存が成功し、空でないパスが確定したとき、その**実保存先**を記録する」。
-  上書き保存も含めて保存種別で分岐しない（`normalize_keymap_set_save_path`〔`config_paths.py:62-74`〕が
-  保存先を書き換えるため「上書きならパスは同じ」が成立しない）。同一パスは先頭一致 no-op が吸収する。
-- **除外対象を明示**: `app.py:76` の初期代入 / `new_config` / `import_config` / `restore_default`。
-
-### 【確定前レビュー】`codex-adversarial-reviewer` の指摘 5 件を全件採用（v0.2 → v0.3・2026-09-21）
-
-- **破損ファイルの消失**: 「不在」と「読めない」を空履歴へ一括縮退させると、次の記録で
-  **分類ごと上書き消失**する（`json_repository.py:16-22` はバックアップを残さない）。
-  → **退避してから作り直す**（§4.4）。
-- **モーダル内で履歴が変わる**: `confirm_save_if_dirty`（`keymap_set_io.py:45-47`）は未保存時に
-  **`save_as` を実行する**ため、読込操作の途中で保存が起きて履歴が更新される。
-  → ダイアログは自分の表示を正とせず**永続化済みの内容を読み直して再描画**する。
-- **保存失敗後の契約**: **永続化に成功してから UI を確定**する（メモリ先行更新を禁止）。
-- **閉じる順序**: 「読み込む」は**成功したときだけ閉じる**。現状 `load_keymap_set_from` は
-  引数を取らず成否も返さないため、**パス指定の共通読込入口**を追加する。
-- **受け入れ条件の文言**: 起動読込失敗は「その読込自体では記録しない」に限定 /
-  config.json 不変条件は「履歴自体の永続化処理では書かない」に限定 / 先頭一致 no-op は
-  mtime ではなく `save_json` 未呼び出しで確認。
-
-### 【論点】破損ファイルの退避先 → **採用 = `config/` 同階層の連番**（ユーザー 2026-09-21）
-
-- ユーザー案は `config/quarantine/` だったが、**棚卸しの所有領域**のため採らない。
-  隔離ルートの中身は実行単位ディレクトリ + `manifest.json` が前提で（正本 §5.8.9:110-112）、
-  正本 §5.4:92 は「隔離を 1 度も実行していない環境に作らない」と規定している。
-  ファイルを置いても隔離単位としては拾われない（＝壊さない）が、所有権と遅延作成の方針に反する。
-- **採用**: `config/keymap_set_history.broken.json`（既存があれば `broken2` … **連番 5 で打ち止め**）。
-  退避に失敗したらそのセッションは書き込まず**読み取り専用**として扱う。
-
-### 【task_04】UI の入力方式 → **採用 = 分類名はインライン Entry / コピー先だけ別窓**（メイン判断 2026-09-22）
-
-- 暫定仕様 §5.3 のラベル表記が根拠。「＋分類を追加」「分類名を変更」に「…」が無く、
-  「分類へコピー…」だけに付く＝前者は別窓を開かない、という読み。
-- **`simpledialog.askstring` は使わない**（既存 `keymap_panel_controller.py:175` では使用しているが、
-  `grab_modal` を経由しないため**閉じたあと親ダイアログへ grab が戻らない**。モーダルの親が
-  ダイアログである本ケースでは使えない）。コピー先選択は `CategoryChooserDialog`
-  （`keymap_set_history_dialog.py` 内の 2 番目のクラス・`grab_modal` で親へ復帰）。
-- 同一ファイルに 2 クラス置く形は既存の静的検査と両立する（`suspend_hook_for_dialog` は
-  親クラスのみ 1 回 / `dialog_classes` の `grab_modal` 検査は名前を指定したクラスの `__init__` のみ対象）。
-
-### 【task_04 レビュー】指摘 2 件 → **修正して採用**（2026-09-22）
-
-- ①**契約値のリテラル複製**（`reviewer` 指摘）: ダイアログが `status == "read_only"` と比較していた
-  （`contracts.HISTORY_READ_ONLY` の値の複製）。→ controller へ `is_read_only()` を追加し 2 箇所を置換。
-  ダイアログは application を直接 import しない制約を維持するため、判定を controller 側へ寄せた。
-- ②**比較キーの再実装**（**メインの直読みで検出・reviewer は挙げず**）: `copy_to_category` の `key_of` が
-  `normpath` + `normcase` を自前で組んでいた。`ConfigService.canonical_path`（`__init__.py:747`）が
-  同じ規則の公開単一点であり、暫定仕様 §4.2 / §7 は比較キー生成を application の責務と規定。
-  → `canonical_path` へ委譲。`resolve_config_path`（`__init__.py:771-777`）は **`abspath` を通さない**ため
-  自前実装は厳密には非等価だった（config_root が相対のとき差が出る）。
-- 教訓の再確認: **レビュアーの「問題なし」は網羅の証明ではない**。設計規則の単一点（公開 API）が
-  既にある箇所は、実装が**それを呼んでいるか**をメインが `ファイルパス:行` で確認する。

@@ -87,9 +87,11 @@
 - [task_04](tasks/task_04_history_dialog.md): **履歴ダイアログ**（`dialogs/keymap_set_history_dialog.py` / `keymap_set_history_text.py` 新規 +
   `menu_bar.py` へ 1 行）— Treeview・フォント追従・ボタン群・再描画・読み取り専用モード。
   + `DIALOG_FILES` の更新 + `tests_ui` のフローテスト
-- task_05: **正本反映と完了**（`data_schema.md` §5.12 新設 / `features.md` §4.6 / `codebase_map.md` /
+- [task_05](tasks/task_05_spec_promotion_and_close.md): **正本反映と完了**（`data_schema.md` §5.12 新設 / `features.md` §4.6 / `codebase_map.md` /
   `data_schema/5_08_09_orphan_sweep.md` の補記要否判断〔暫定仕様 §9〕/
   **暫定仕様 21 の凍結** / `decisions_archive/27` / `decisions.md` 索引 / `current.md` / `/refactor_check`）
+- [task_06](tasks/task_06_redraw_on_edit_failure.md): **編集失敗時も一覧を再描画する**（フェーズ完了判定
+  レビュー `deep-reviewer` M5 → ユーザー判断で採用。`keymap_set_history_dialog.py` の `_finish_edit` のみ）
 
 ## レビュー方針
 

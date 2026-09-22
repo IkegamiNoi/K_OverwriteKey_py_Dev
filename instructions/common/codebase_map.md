@@ -55,6 +55,7 @@ keyseq/presentation/
             reference_cleanup_io.py # ReferenceCleanupIo: 参照元の掃除のフロー（保存確認→検査→確認→除去→通知）
             orphan_sweep_io.py      # OrphanSweepIo: 孤児ファイルの棚卸しのフロー（保存確認→走査→棚卸しダイアログ→確認→隔離→通知）+ 走査先設定の保存（→ StartupIo）
             quarantine_manage_io.py # QuarantineManageIo: 隔離の管理のフロー（一覧→単位選択→復元 / 削除の確認→実行→通知）
+            keymap_set_history_io.py # KeymapSetHistoryIo: 読み込み履歴の記録の単一の口 record() + 履歴ダイアログの開閉と編集 6 メソッド（phase 27・`data_schema.md` §5.12）
         dirty_state.py
         button_width.py        # apply_fixed_button_width: TButton のフォントで文言を測り、ボタンの width を最大文言幅で固定（phase 19）
         hook_controller.py
@@ -94,6 +95,7 @@ keyseq/presentation/
       orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
       quarantine_manage_dialog.py  # QuarantineManageDialog（隔離の管理・実行単位のリスト選択 + 復元 / 削除ボタン）
       reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 隔離 / 復元 / 削除で再利用）
+      keymap_set_history_dialog.py # KeymapSetHistoryDialog（読み込み履歴・**リポジトリ唯一の ttk.Treeview**〔2 列 / 名前列は stretch=False〕・操作のたびに永続化済みの履歴を読み直して再描画）+ CategoryChooserDialog（コピー先の分類選択・同ファイル内のネストした子）
     keyboard_layouts.py
     keyboard_window.py
     listbox_utils.py
@@ -104,6 +106,7 @@ keyseq/presentation/
     hook_button_texts.py       # フックの枠の切替ボタンの文言とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
     orphan_sweep_text.py       # 孤児ファイルの棚卸しの提示テキスト整形（警告 / 候補一覧 / 隔離結果。純関数）
     quarantine_manage_text.py  # 隔離の管理の提示テキスト整形（単位一覧 / 復元・削除の計画と結果。純関数）
+    keymap_set_history_text.py # 読み込み履歴の表示文言（ノード名・ボタン文言・確認文・失敗理由。純関数と定数のみ）
     startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
     theme.py                   # フォント/テーマ適用 + coerce_font_delta（フォント差分 -3..+3 正規化の唯一点）
     tk_keys.py
@@ -254,6 +257,18 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     - reference_cleanup_text.py（presentation 直下）: 提示テキストの整形（**tkinter 非依存の純関数**。
       `dialogs/` に置くと `__init__` が tkinter / pynput を巻き込むため直下）
     - **メニュー配線は `views/menu_bar.py` の設定メニュー 1 行**
+  - KeymapSetHistoryIo（keymap_set_history_io.py = `app.keymap_set_history_io`）: 構成セットの読み込み履歴
+    （phase 27・仕様は `data_schema.md` §5.12）。**記録の単一の口 `record(path)`** と履歴ダイアログのフロー。
+    - **記録の呼び出し点は 3 経路**: パス指定の共通読込入口 `KeymapSetIo.load_keymap_set_path` /
+      起動時に読む構成セットの指定 / 構成セットの保存成功。**起動時の自動読込では呼ばない**（§5.12.3）。
+      `record()` は**境界で例外を握って `(False, 理由)` へ変換する**（呼び出し点がいずれも既存の `try` の
+      内側にあり、漏らすと「成功した保存を失敗と表示」「読込済みデータを捨てて空起動」になるため）
+    - 編集 6 メソッド（分類の追加 / 名前変更 / 削除 / 分類へコピー / 直近の削除 / 分類内の削除）は
+      **毎回ディスクから読み直し → `domain/keymap_set_history.py` の純関数 → 保存成功時のみ `(True, "")`**。
+      比較キーは `ConfigService.canonical_path`（presentation で `normpath`/`normcase` を組まない）
+    - `KeymapSetIo.load_keymap_set_path(path)`: **パス指定の共通読込入口**（メニュー読込と履歴ダイアログの
+      双方が使う。成否を `KEYMAP_SET_LOAD_OK` / `..._FAILED` で返す）
+    - **メニュー配線は `views/menu_bar.py` のファイルメニュー 1 行**（「読込（構成セット）…」の直後）
 - LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理
 - PaneLayoutController（controllers/pane_layout/ = `app.pane_layout`）: フル表示の幅配分（仕様は `spec_detail/features.md` §4.6「フル表示の幅配分」・
   `data_schema.md` §5.4）。計算は `pane_width_rules.py` の純関数、最小幅の実測は `pane_measure.py`。
@@ -331,7 +346,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 
 ### ConfigService（`application/config_service/` パッケージ）
 
-**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 13 ファイル:
+**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 14 ファイル:
 
 | ファイル | 責務 |
 |---|---|
@@ -347,6 +362,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 | `quarantine.py` | **隔離**（phase 11）。隔離ルートの遅延作成・**マニフェストの原子書込み（移動より先）**・1 件ずつの移動 |
 | `quarantine_manage.py` | **隔離の管理**（phase 11）。実行単位の一覧 / 復元 / **削除**（実行単位 ID + 4 検証・不可逆） |
 | `candidate_dirs.py` | **候補側ディレクトリの唯一の定義**（`CANDIDATE_DIRS` / `RESERVED_DIR`。計画08 で新設）。**孤児判定の対象範囲**（`orphan_scan`）と**復元先ガードの許可範囲**（`quarantine_manage`）が同じ定義を見る。片方だけ変えると「隔離はできるが復元できない」ズレが出るため。**添字で結び付けない**（`zip(strict=True)` を使う） |
+| `keymap_set_history.py` | **構成セットの読み込み履歴**（phase 27・仕様は `data_schema.md` §5.12）。読込（不在と破損の区別 / `*.broken*.json` への退避 = 連番 5 で打ち止め）・原子的書込み・**記録**（保存表記への正規化と `canonical_path` による先頭一致 no-op）。規則そのものは `domain/keymap_set_history.py` の純関数が持つ。`ConfigService` からは `load_keymap_set_history` / `save_keymap_set_history` / `record_keymap_set_history` の 3 つを 1 行委譲 |
 | `path_boundary.py` | **`is_real_path_within` の唯一の定義**（実体〔realpath〕基準の境界判定。ジャンクションを解決する）。**リダイレクト判定 `_is_redirected` は `quarantine.py` / `quarantine_manage.py` が各自持ち、`ConfigService.is_path_within` は別物**（比較専用の表記判定で**同一パスも配下と判定する**）。`orphan_scan` / `quarantine` / `quarantine_manage` が import する。**再定義しない**（`quarantine.py` → `orphan_scan` の import があるため逆向きは循環になる） |
 
 - **`ConfigService` 本体を `config_service.py` へ移してはならない**。テストが
@@ -503,7 +519,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 ### メニュー / ステータス
 - menu_bar.py: `build_menu_bar(app)`（ファイル / 設定メニュー）と `bind_menu_shortcuts(app)`（Ctrl 系アクセラレータ）。
   設定メニューは「参照元を掃除…」「**孤児ファイルの棚卸し…**」「**隔離の管理…**」を持つ
-  （`features.md` §4.6）。**テストはメニュー項目をインデックスで固定しない**
+  （`features.md` §4.6）。ファイルメニューは「読込（構成セット）…」の直後に
+  「**履歴から読み込む…**」を持つ（phase 27・`data_schema.md` §5.12）。**テストはメニュー項目をインデックスで固定しない**
   （top-level menubar には tearoff があり位置がずれる。カスケードとラベルで探す）。
   **build と bind は別関数**（フォントサイズ変更時はメニューのみ再構築し、バインドは再実行しない）。
 - status_bar.py: `build_status_area(app, parent)`（「ステータス」欄 + 下部ステータスバー: ファイル状態 / 一時メッセージ）
@@ -566,6 +583,11 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `ensure_config_compatibility` を通らないため個別に適用が要る）。
   **未対応の残件** = `presentation/controllers/config_io/startup_io.py` の `keymap_set_path`
   （config.json の生値。presentation 層のため phase 25 のスコープ外）。
+- **読み込み履歴の規則は `domain/keymap_set_history.py`**（phase 27・`data_schema.md` §5.12）。
+  型不正の正規化 / 重複統合 / 上限 20 / 分類の追加・名前変更・削除・コピー / 名前順の整列を
+  **I/O に依存しない純関数**として持ち、**比較キーは呼び出し側から `key_of` で受け取る**
+  （`config_root` を知らないため）。`domain/config.py`（353 行）へは足さない。
+  拒否（空名・同名・不存在・重複・範囲外）は **`None` を返す**で表現し、呼び出し側が理由を付ける。
 
 ---
 

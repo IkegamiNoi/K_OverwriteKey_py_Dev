@@ -7,26 +7,34 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ: [phase 27](27_keymap_set_load_history/phase.md)（構成セットの読み込み履歴管理）**。
-  ファイルメニューに「履歴から読み込む…」を追加し、**直近 20 件 + ユーザーが作る分類**を `ttk.Treeview` で扱う。
-  履歴からの削除・直近から分類へのコピーができる。**新規 JSON を 1 つ増やす**（`config/keymap_set_history.json`）が
-  **既存スキーマは不変**で config.json にキーを追加しない。**暫定仕様先行モード**。
-  主入力 = [暫定仕様 21](../history/21_keymap_set_load_history.md)（**v0.5・ユーザー確定済**。
-  v0.5 = 起動時の自動読込では記録しない）。
-  起票元 = ユーザー要望（2026-09-21）・idea なし。番号対応: phase 27 / 暫定 21 / decisions 27。
-  **進捗: task_01〔domain 純関数〕/ task_02〔永続化〕/ task_03〔記録経路 + パス指定の読込入口〕/
-  task_04〔履歴ダイアログ〕完了**（2026-09-22・いずれも実測 green・reviewer 採用）。
-  **残り = 実機目視（ユーザー）→ task_05〔正本反映と完了〕**。
+- **アクティブなフェーズは無い**（次フェーズは未確定）。次採番は本ファイル「次採番」節が正。
+- [phase 27](27_keymap_set_load_history/phase.md) は 2026-09-22 完了。
+- **直近の一連の作業が扱っている領域 = 構成セットの読み込み履歴**（phase 27）。
+  正本は `data_schema.md` **§5.12「構成セットの読み込み履歴」**（新設）+ §5.4（遅延作成の対象外）/
+  `features.md` §4.6「メニュー・個別保存」、`codebase_map.md`。
+  実装 = `keyseq/domain/keymap_set_history.py`（規則の純関数）/
+  `keyseq/application/config_service/keymap_set_history.py`（読み書き・退避・記録）/
+  `keyseq/presentation/controllers/config_io/keymap_set_history_io.py`（記録の単一の口 + ダイアログのフロー）/
+  `keyseq/presentation/dialogs/keymap_set_history_dialog.py` / `keymap_set_history_text.py` /
+  `keymap_set_io.py`（**パス指定の共通読込入口 `load_keymap_set_path`**）/ `views/menu_bar.py`、
+  テスト = `tests/test_keymap_set_history.py`（domain の規則）/ `tests/test_config_service.py`（application =
+  退避・読み取り専用・記録）/ `tests_ui/test_keymap_set_history_record.py`（記録経路）/
+  `tests_ui/test_keymap_set_history_flow.py`（UI）。
+  **記録は読込・保存が成功し空でないパスが確定したときの実保存先**（初期代入 / 新規作成 / Import /
+  例の復元 / **起動時の自動読込**は除外）。**先頭一致 no-op** で通常の起動はディスクに触らない（遅延作成）。
+  **破損ファイルは `*.broken*.json` へ退避してから作り直す**（連番 5 で打ち止め → そのセッションは読み取り専用）。
+  **永続化に成功してから UI を確定**し、ダイアログは操作のたびに**永続化済みの内容を読み直して再描画**する。
+  **残件** = ①[idea_26](../backlog/idea_26_dialog_keyboard_focus.md)（既存ダイアログがキーボードフォーカスを
+  取らず Escape が効かない。**テストが `focus_force()` で隠している**点も含む）②暫定仕様 §10 のスコープ外
+  （分類の入れ子・D&D・検索・`*.broken*.json` の管理 UI 等）。
+  判断は [decisions_archive/27](../../.claude_data/state/decisions_archive/27_keymap_set_load_history.md)。
 - [phase 26](26_startup_entry_preservation/phase.md) は 2026-09-21 完了。
-- **直近の一連の作業が扱っている領域 = 起動エントリ（`config/config.json` の `keymap_set_path`）の書き込み契機**（phase 26）。
-  正本は `data_schema.md` **§5.4**（保存では起動エントリを更新しない条項）/ `data_schema/5_08_09_orphan_sweep.md` 走査経路 3 の根拠文、`codebase_map.md`。
-  実装 = `keyseq/presentation/controllers/config_io/startup_io.py`（`StartupIo.entry_loaded`）/ `keymap_set_io.py` /
-  `keyseq/application/config_service/`（`__init__.py` / `save_plan_execution.py` / `split_payloads.py`）、
-  テスト = `tests/test_config_service.py` / `tests_ui/test_config_io_characterization_keymap_set_startup.py`。
+- **その前の領域 = 起動エントリ（`config/config.json` の `keymap_set_path`）の書き込み契機**（phase 26）。
+  正本は `data_schema.md` **§5.4**（保存では起動エントリを更新しない条項）、`codebase_map.md`。
   **保存では起動エントリを上書きしない。空 / 起動時に読めなかった場合のみ更新する**（自己修復）。
   **presentation は「起動時に読めたか」という事実だけを渡し、更新要否の判定は application 1 箇所**（`split_payloads.py:363`）。
-  **据え置くのは `keymap_set_path` だけ**（他の config.json キーは従来どおり保存で書く）。変更経路はメニュー「起動時に読む構成セットを指定…」1 本。
-  **残件** = ①`existing_entry` の非空判定と読込側 `.strip()` の非対称（**到達不能**のため据え置き・「別タスク化候補」の Phase 26 項）
+  変更経路はメニュー「起動時に読む構成セットを指定…」1 本。
+  **残件** = ①`existing_entry` の非空判定と読込側 `.strip()` の非対称（**到達不能**のため据え置き）
   ②`startup_io.py` の `keymap_set_path` の**型正規化**（phase 25 残件①・未着手）。
   判断は [decisions_archive/26](../../.claude_data/state/decisions_archive/26_startup_entry_preservation.md)。
 - [phase 25](25_path_field_type_normalization/phase.md) は 2026-09-19 完了。
@@ -81,9 +89,9 @@
   判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md) / [19](../../.claude_data/state/decisions_archive/19_full_view_header_width.md) / [20](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)。
   その前の領域（モーダルダイアログの作法）の残件は [decisions_archive/17](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md) と
   「別タスク化候補」の Phase 14 / 17 項、[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)。
-- 直前の完了フェーズ: [26_startup_entry_preservation](../../.claude_data/state/decisions_archive/26_startup_entry_preservation.md)
+- 直前の完了フェーズ: [27_keymap_set_load_history](../../.claude_data/state/decisions_archive/27_keymap_set_load_history.md)
+- その前の完了フェーズ: [26_startup_entry_preservation](../../.claude_data/state/decisions_archive/26_startup_entry_preservation.md)
 - その前の完了フェーズ: [25_path_field_type_normalization](../../.claude_data/state/decisions_archive/25_path_field_type_normalization.md)
-- その前の完了フェーズ: [24_json_type_normalization](../../.claude_data/state/decisions_archive/24_json_type_normalization.md)
   （それ以前は `decisions.md`「アーカイブ索引」を参照）
 - 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
   **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
@@ -103,12 +111,12 @@
 
 ## 次採番
 
-- **phase 27 を 2026-09-21 起票**（`27_keymap_set_load_history` / 暫定 21 / decisions 27）。phase 26 は 2026-09-21 完了（decisions 26 はアーカイブ済）。
+- **phase 27 は 2026-09-22 完了**（`27_keymap_set_load_history` / 暫定 21〔凍結〕/ decisions 27〔アーカイブ済〕）。
   次フェーズは **`28_<topic>`**・decisions も **28** を使う（欠番が出た場合はここに明記し、再利用しない）。
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜20 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
+  04〜21 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
   08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
   10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
   11=config_service の公開面〔**v0.3・凍結**〕/
@@ -121,7 +129,7 @@
   18=フル表示の縦方向の最小サイズ〔**v0.5・凍結**〕/
   19=マウスのドラッグ操作〔**v0.5・凍結**〕/
   20=JSON 読込の型不正の扱い統一〔**v0.3・凍結**〕/
-  21=構成セットの読み込み履歴〔**v0.4・ユーザー確定済・未凍結 = phase 27 の主入力**〕）。
+  21=構成セットの読み込み履歴〔**v0.5・凍結**〕）。
   次採番は **`22_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -171,6 +179,12 @@
 ## 別タスク化候補
 
 （継続保留、ソース変更を伴う細かい負債。`/refactor_check` からの追記先もここ）
+
+- **Phase 27 項**: 履歴ファイル名の語幹が 2 箇所に直値で入っている
+  （`config_service/__init__.py:27` の `KEYMAP_SET_HISTORY_RELATIVE_PATH = "keymap_set_history.json"` と
+  `config_service/keymap_set_history.py:23` の `f"keymap_set_history.broken{suffix}.json"`）。
+  **同値ではないため M6 非該当**だが、相対パス定数を変えると退避先の命名だけ黙ってずれる。
+  語幹を定数化するか、退避先を相対パス定数から導出する（挙動不変の小修正。1 箇所・数行）。
 
 計画04 W7 の次期課題（app.py の「どの責務分類にも属さない残留ロジック」。app.py は 489 行で目安 300 行を超過）
 のうち、設計判断を伴う 2 クラスタは idea へ移した →
