@@ -4,23 +4,35 @@ import time
 import tkinter as tk
 
 
-def send_escape(test_case, app, dialog, *, attempts=20, timeout=2.0):
+def _acquire_focus(app, dialog, focus_timeout, progress):
+    """期限まで再試行し、待機中も Tk のイベントを処理する。"""
+    deadline = time.monotonic() + focus_timeout
+    while time.monotonic() < deadline:
+        progress["attempts"] += 1
+        dialog.focus_force()
+        app.update()
+        focused = app.focus_get()
+        # パスの区切りまで比較し、似た名前の別ダイアログを除外する。
+        if focused is not None and (
+            focused is dialog or str(focused).startswith(f"{dialog}.")
+        ):
+            return
+        retry_at = min(deadline, time.monotonic() + 0.01)
+        while time.monotonic() < retry_at:
+            app.update()
+            remaining = retry_at - time.monotonic()
+            if remaining > 0:
+                time.sleep(min(0.001, remaining))
+    raise TimeoutError("dialog did not acquire focus before deadline")
+
+
+def send_escape(test_case, app, dialog, *, focus_timeout=2.0, timeout=2.0):
     """フォーカス確保・Escape 送信・破棄待ちの失敗を診断付きで通知する。"""
     started = time.monotonic()
-    attempt = 0
+    progress = {"attempts": 0}
     stage = "focus acquisition"
     try:
-        for attempt in range(1, attempts + 1):
-            dialog.focus_force()
-            app.update()
-            focused = app.focus_get()
-            # パスの区切りまで比較し、似た名前の別ダイアログを除外する。
-            if focused is not None and (
-                focused is dialog or str(focused).startswith(f"{dialog}.")
-            ):
-                break
-        else:
-            raise TimeoutError("dialog did not acquire focus")
+        _acquire_focus(app, dialog, focus_timeout, progress)
 
         stage = "Escape delivery"
         dialog.event_generate("<Escape>")
@@ -49,6 +61,6 @@ def send_escape(test_case, app, dialog, *, attempts=20, timeout=2.0):
             diagnostics[name] = f"{type(exc).__name__}: {exc}"
     test_case.fail(
         f"send_escape failed during {stage}: {reason}; "
-        f"attempts={attempt}/{attempts}; elapsed={time.monotonic() - started:.3f}s; "
-        f"timeout={timeout}s; {diagnostics}"
+        f"attempts={progress['attempts']}; elapsed={time.monotonic() - started:.3f}s; "
+        f"focus_timeout={focus_timeout}s; timeout={timeout}s; {diagnostics}"
     )

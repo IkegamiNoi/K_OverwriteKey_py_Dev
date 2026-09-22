@@ -1,0 +1,76 @@
+# idea_33: フック再開の `after(0)` が負荷下で取りこぼされ tests_ui が不定期に赤くなる
+
+## 概要
+
+ダイアログを閉じたときのフック再開は `<Destroy>` を受けて
+[hook_controller.py:54](../../keyseq/presentation/controllers/hook_controller.py) の
+`self._app.after(0, self.resume_hook_after_dialog)` で**予約**される（即実行ではない）。
+テストは `app.update()` を 1 回呼んでから `get_hook_pause_count()` を確かめるが、
+`update()` は**今キューにあるイベントを処理して即戻る**ため、CPU 負荷下ではこのタイマー
+コールバックが同じサイクルで拾われず、**カウントが 1 のまま残る**ことがある。
+
+これらのテストクラスは `setUpClass` で `App` を共有し、各テストの `setUp` で
+「カウントが 0 であること」を確認する（phase 15 task_03 のドレイン検査）ため、
+**1 件の取りこぼしが後続テストへ連鎖**する（実測で 1 fail が 7 件の赤になった）。
+
+- **production の欠陥ではなくテストのみの問題**（実使用では次のイベントループで再開される）。
+- **[idea_18](idea_18_escape_delivery_flaky_test.md) とは別 family**。idea_18 は「Escape が
+  フォーカス窓へ配送されず捨てられる」問題で、phase 28 task_04 で解消済み。
+  本件は **Escape を使わない経路（ボタン invoke / `destroy` / ×）でも起きる**。
+
+## 経緯・実測（2026-09-23・phase 28 task_05）
+
+負荷下（busy loop 4 本）の測定で観測。**phase 28 由来ではないことを A/B で確認済**。
+
+| 測定 | 条件 | 結果 |
+|---|---|---|
+| 一括 | HEAD（task_05c 前）| `test_dialog_teardown_flows` 6 回中 1 fail |
+| 一括 | base `60372bf` | 15 回中 0 fail |
+| 一括 | HEAD（同上） | 15 回中 0 fail |
+| 5 モジュール×6 | HEAD（task_05c 後）| 30 回中 9 fail（`quarantine_manage_flow` が 4/6） |
+| 交互 A/B | HEAD vs `6fbeebb` | `quarantine_manage_flow` **0/10 対 0/10**（4/6 が再現せず） |
+| 交互 A/B | HEAD vs `6fbeebb` | `keymap_set_history_flow` 2/6 対 0/6 |
+
+- **最も強く出た 4/6 が再測定で 0/10** となり、**測定自体がマシン状態のノイズに支配されている**。
+- `keymap_set_history_flow` の 2/6 は、当該テストが**群 A のダイアログを一切 import していない**
+  （`tests_ui/test_keymap_set_history_flow.py:9-15`）ため **task_05c からの因果経路が無い**。
+
+観測されたテスト（いずれも `get_hook_pause_count()` の不一致）:
+
+- `tests_ui/test_dialog_teardown_flows.py` — `test_t2_close_paths_resume_exactly_once` /
+  `test_t1_tcl_close_defers_resume_for_manager_and_action`
+- `tests_ui/test_orphan_sweep_flow.py` — `test_run_empty_list_sets_result_and_resumes_hook`
+- `tests_ui/test_quarantine_manage_flow.py` — `test_escape_and_window_close_keep_action_empty`
+- `tests_ui/test_keymap_set_history_flow.py` — `test_chooser_returns_result_and_restores_history_grab` /
+  `test_close_routes_restore_hook_and_parent_grab`
+
+## 提案（方向性・要設計）
+
+**案 A（推奨）: 待つヘルパを入れる** — `assertEqual(count, 0)` を
+「**上限つきで `app.update()` を回しながらカウントが期待値になるまで待つ**」ヘルパに置き換える。
+最終的に解除がちょうど 1 回であることは変わらず確認できるため、**検証内容は弱まらない**。
+置き場は `tests_ui` の共有ヘルパ（`escape_delivery.py` と同様の位置づけ）。
+**phase 28 §6.1 と同じく、回数ではなく実時間の期限で切る**。
+
+**案 B: `setUp` のドレイン検査を緩める** — カウントを強制的に 0 へ戻す。
+**採らない**（phase 15 task_03 の検出力を失う。idea_18 の案 C と同じ理由で却下済み）。
+
+**案 C: production 側で `after(0)` をやめる** — `<Destroy>` で同期的に再開する。
+**要注意**。`after(0)` は破棄処理中の再入を避けるための設計なので、変えると別の問題が出る恐れがある。
+production を触るため仕様変更フローが必要。
+
+## 状態
+
+未着手（検討段階・**テストのみ・production 不変**・優先度中）。
+2026-09-23 起票。phase 28 task_05 の §8-7 判定から分離（ユーザー判断 2026-09-23 =
+「§8-7 は Escape family に限定して判定し、本 family は idea 化する」）。
+着手時は**まず負荷条件を制御できる測定手順を固める**ところから（今回の測定はノイズが大きく、
+同一条件の交互実行でないと差が見えない）。
+
+## 関連
+
+- [idea_18](idea_18_escape_delivery_flaky_test.md)（Escape 配送 family・phase 28 で解消済）
+- [暫定仕様 22](../history/22_dialog_keyboard_focus.md) §6 / §6.1 / §8-7
+- `keyseq/presentation/controllers/hook_controller.py` の
+  `suspend_hook_for_dialog` / `resume_hook_after_dialog`
+- 正本 `instructions/common/spec_detail/key_input.md` §7.2（閉じ方によらず解除はちょうど 1 回）

@@ -86,6 +86,8 @@
 - **task_05b**: テストの検出力補強（`deep-reviewer` 指摘 M1・M3。暫定仕様 §8-13）。tests_ui 限定
 - **task_05c**: **群 A の 4 経路へ Escape を追加**（暫定仕様 v0.5 §3.6。Esc の別用途は状態分岐で優先）。
   **スコープ拡大**（ユーザー確定 2026-09-23・§2.2）
+- **task_05d**: `send_escape` の確保ループを deadline 方式へ（暫定仕様 v0.6 §6.1。`deep-reviewer` M2）。
+  tests_ui 限定
 - **task_06**: 正本反映（`features.md` 2 条項 + `codebase_map.md` 署名更新・件数訂正）+
   暫定仕様 22 の凍結 + `decisions_archive/28` 作成 + `current.md` 更新 +
   idea_26 / idea_18 を `backlog/INDEX_done.md` へ移動

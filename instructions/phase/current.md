@@ -28,7 +28,11 @@
   → 暫定仕様 22 を **v0.5** へ改訂（§2.2 / §3.6 新設・§4 を 3 条項へ・§8-12/13 追加）。
   **v0.5 はユーザー確定済（2026-09-23）**。**task_05c も完了**（群 A 4 経路へ Escape 結線 +
   到達不能になる `esc` 分岐 3 箇所を削除。`tests_ui` **507**・一括 3 回 green・静的検査 pass）。
-  → **実装はすべて完了**。**次 = 実機目視 1 回 → 保留 2 件の判断 → task_06（正本反映）**。
+  **task_05d も完了**（`send_escape` を deadline 方式へ。v0.6 §6.1）。
+  **§8-7 は Escape family に限定して判定する方針でユーザー確定**し、`after(0)` のフック再開 family は
+  **[idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md) へ分離**
+  （phase 28 由来でないことを A/B 実測で確認済）。負荷下の Escape family は **6/6 green** で達成。
+  → **実装・検証はすべて完了**。**残る未了は実機目視 1 回のみ → その後 task_06（正本反映）**。
 - 直前の完了フェーズ = [phase 27](27_keymap_set_load_history/phase.md)（2026-09-22）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
