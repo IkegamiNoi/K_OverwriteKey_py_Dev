@@ -1005,6 +1005,20 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             self.assertTrue(save.call_args.kwargs["save_plan"].allow_deferred_index)
             self.assertTrue(self.app.dirty_tracker.trigger_set_dirty)
 
+    def test_dependency_dialog_passes_save_as_button_to_grab_modal(self):
+        # grab_modal ごとモック化し偽ウィジェットで回すため、実 OS フォーカスに依存しない
+        # （= skip ガードを付けない）。固定するのはビルダ戻り値が focus 引数まで届くことだけ。
+        row = ChildSaveRow(
+            CHILD_TRIGGER_SET, "", "トリガー一覧", "C:/trigger.json", SHARE_UNKNOWN, "所有元不明", ACTION_SAVE_AS
+        )
+        with patch.object(child_save_dialog_module, "grab_modal") as grab_modal:
+            _result, _dialog, buttons = self._ask_dependency_internally(
+                row, lambda dialog: dialog.buttons["キャンセル"]()
+            )
+
+        grab_modal.assert_called_once()
+        self.assertIs(grab_modal.call_args.kwargs["focus"], buttons["別名保存"])
+
     def test_dependency_dialog_defaults_to_save_as_and_escape_or_close_cancels(self):
         row = ChildSaveRow(
             CHILD_TRIGGER_SET, "", "トリガー一覧", "C:/trigger.json", SHARE_UNKNOWN, "所有元不明", ACTION_SAVE_AS

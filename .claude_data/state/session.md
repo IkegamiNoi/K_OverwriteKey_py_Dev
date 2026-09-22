@@ -4,59 +4,62 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-22T20:30:00
-phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01 完了・task_02 未着手**）。次採番 = phase 29 / 暫定 23 / decisions 29。
+last_updated: 2026-09-22T21:45:00
+phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01・task_02 完了・task_03 未着手**）。次採番 = phase 29 / 暫定 23 / decisions 29。
 直前の完了フェーズ = **phase 27**（構成セットの読み込み履歴管理・2026-09-22 完了。判断履歴 = `decisions_archive/27_keymap_set_load_history.md`。暫定仕様 21 は凍結済）。
 last_commit_location: `claude/idea-26-idea-18-1bf4df`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 28 task_01 完了（`grab_modal` へフォーカス責務を集約・群 A/A' の 7 経路移行・単体テスト 5 件追加）。次は task_02（実 Tk の検出力）。**
+focus: **phase 28 task_02 まで完了（フォーカス責務の集約 + 実 Tk の初期フォーカス検査 8 件・skip 0）。次は task_03（群 C の 5 経路へ Escape 結線）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-22T20:30:00
+ts: 2026-09-22T21:45:00
 who: main
 summary: |
-  【task_01 = `grab_modal` へフォーカス責務を集約】**完了**。実装は `codex-implementer` へ委任。
-  `modal.py` に**キーワード専用引数 `focus=None`** と **`_apply_initial_focus`** を追加し、
-  **`grab_set()` の直後**に適用（省略時は窓自身）。**早期 return 経路〔二重呼び出し・預かり〕では
-  触らない**。例外は **`TclError` のみ**握る（`KeyError` / `AttributeError` は握らない）。
-  群 A の 6 経路 + 群 A'（`child_save_dialog` はビルダ戻り値を `(dialog, save_as_button)` へ）を
-  **引数へ移行**し、ダイアログ側の `focus_set()` 呼び出しを排除。
-  偽 Toplevel 2 クラス（`test_child_save_dialog` / `test_config_io_characterization`）へ
-  `focus_set` を追加。これで**群 B の 3 ダイアログの欠落は実装上は解消**（確認テストは task_02）。
-  【検証 = `verifier`】7 項目すべて pass。`tests_ui` は **484 → 489（+5）**、`tests` 556 OK（skipped 7）、
-  静的検査 `test_grab_modal_is_last_initialization_statement` pass、smoke OK、
-  `grab_modal(` の呼び出しは **15 箇所のまま**。
-  【レビュー = `reviewer`】**採用**（ブロッキング指摘なし）。移行前後の widget を 7 経路すべて突合済。
-  軽微指摘 1 件（`test_custody_grab_does_not_repeat_initial_focus` の `_app_minimized` patch が
-  合否に無関係）→ **その 1 行を削除し `tests_ui.test_modal_grab` 27 件 OK を再確認**。
+  【task_02 = 実 Tk の初期フォーカス検査】**完了**。実装は `codex-implementer` へ委任（tests_ui のみ・
+  production 無変更）。新規 `tests_ui/test_dialog_initial_focus.py` に 7 件
+  （群 B の 3 ダイアログ = 窓自身へ / `ActionDialog` の 3 モード・`KeymapEditDialog` ・
+  `PresetDialog` ・ `TriggerDialog` = 従来どおりの widget へ）+
+  `test_child_save_dialog.py` に群 A' の到達確認 1 件
+  （`grab_modal` を patch して `focus=` に「別名保存」ボタンが渡ることを固定）。
+  App 生成は `test_keymap_set_history_flow.py:17-34` の ExitStack 手法を踏襲し実 `config/` を汚さない。
+  【実測で判明 → 設計を直した点】初回実測で **`tests_ui` 一括だと新規 8 件が全 skip**（単独なら全 ok）。
+  一括では他テストの窓に OS フォーカスを奪われるため。→ skip ガードを
+  **「まず App 自身の前面化（`app.focus_force()`）を試み、それでも取れないときだけ skip」**へ変更。
+  実使用は「アクティブな App からダイアログを開く」形なので**検出力は落ちない**
+  （ダイアログが窓へ移さなければ `focus_get()` は App ルートのままで失敗する）。
+  **ダイアログ側の `focus_force` はしない**（それをすると欠落を隠す = idea_26 の発端）。
+  【レビュー = `reviewer`】**修正して採用** → 指摘 1 件（`test_child_save_dialog` の新規テストは
+  `grab_modal` ごとモック化しており OS フォーカスと無関係なのに skip ガードが付いていた）を**削除**。
+  【最終実測 = `verifier`】`tests_ui` 一括を**連続 2 回**: どちらも **Ran 497 OK・skipped 0**
+  （修正前は skipped 8）。**既知 flaky〔idea_18 family〕も 2 回とも落ちず**。`tests` 556 OK（skipped 7・不変）。
+  **skip ガードによる skip は 0 件**（暫定仕様 §8-8 の報告義務）。
 result_files:
-  - keyseq/presentation/modal.py（`focus` 引数 + `_apply_initial_focus`）
-  - keyseq/presentation/dialogs/action_dialog.py / keymap_edit_dialog.py /
-    keymap_set_history_dialog.py（2 クラス）/ preset_dialog.py / trigger_dialog.py
-  - keyseq/presentation/controllers/config_io/child_save_dialog.py（ビルダ戻り値のタプル化）
-  - tests_ui/test_modal_grab.py（+5 件）/ test_child_save_dialog.py / test_config_io_characterization.py
-  - instructions/phase/28_dialog_keyboard_focus/tasks/task_01_grab_modal_focus.md（新規）
+  - tests_ui/test_dialog_initial_focus.py（新規・7 件）
+  - tests_ui/test_child_save_dialog.py（+1 件）
+  - instructions/phase/28_dialog_keyboard_focus/tasks/task_02_initial_focus_checks.md（新規）
 verified:
   compile: clean
   tests: 556 ran OK（skipped 7・不変）
-  tests_ui: 489 ran OK（484 → +5）
+  tests_ui: 497 ran OK（489 → +8）・**skipped 0**・連続 2 回とも OK
   smoke: SMOKE OK
-  static_check: test_grab_modal_is_last_initialization_statement pass / grab_modal 呼び出し 15 箇所
-  review: reviewer = 採用（軽微指摘 1 件は対応済）
+  production_diff: `git diff --stat keyseq/` 空（production 無変更）
+  review: reviewer = 修正して採用（指摘 1 件は対応済）
 
 ## next_action
-- **task_02 のタスク定義を `/task_new` で起票する**（`tasks/task_02_*.md`）。内容 =
-  **実 Tk の検出力**（暫定仕様 22 §5 の「従」）。①群 B の 3 ダイアログ
-  （`orphan_sweep` / `quarantine_manage` / `reference_cleanup`）で生成直後のフォーカスが
-  ダイアログ内にあること ②群 A・A' の回帰確認（`ActionDialog` を **hotkey / text / mouse_click の
-  3 モード**で開いて `value_entry` に入ること + 残る 6 経路の widget 固定 + A' はビルダ戻り値の到達確認）
-  ③**`focus_displayof()` が `None` の環境では skip するガード**を付け、**skip 件数を報告する**。
-- 以降: task_03（群 C の 5 経路へ Escape 結線。結線先は暫定仕様 §3.5 の表）→
-  task_04（idea_18 = 診断 → Escape ヘルパ → 対象 4 テスト移行）→ task_05（統合確認 + 実機目視）→
-  task_06（正本反映 + 凍結 + 記録）。
+- **task_03 のタスク定義を `/task_new` で起票する**（`tasks/task_03_*.md`）。内容 =
+  **群 C の 5 経路へ Escape を結線**（暫定仕様 22 §3.5 の表が正）。
+  結線先は **× と同じ経路**にする: `child_save_dialog.py:25`（子ファイルの保存）= `dialog.destroy` /
+  `hotkey_presets_io.py:86` = `dialog.destroy` / **`io_dialogs.py:56` = `on_cancel`**（destroy 直呼びにしない）/
+  `layout_delete_dialog.py:52` = `self.destroy`（× ハンドラ無し・キャンセルボタンと同じ）/
+  `preset_manager.py:79` = `self.destroy`（× ハンドラ無し・`:163` のキャンセルと同じ）。
+  **Escape 経由でもフック停止の解除がちょうど 1 回**であることをテストで固定する（`key_input.md` §7.2）。
+- 以降: task_04（idea_18 = 診断 → Escape ヘルパ → 対象 4 テスト移行）→
+  task_05（統合確認 + 実機目視）→ task_06（正本反映 + 凍結 + 記録）。
+- **task_04 への申し送り**: 今回入れた `_require_app_focus`（App の前面化 → 不可なら skip）の形は、
+  Escape 配送の安定化ヘルパでも使える（暫定仕様 §6 の「フォーカスを確保してから送る」）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。

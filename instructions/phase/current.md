@@ -16,8 +16,9 @@
   **確定**: フォーカスの責務を `grab_modal` へ集約（**明示引数**。推測型は実測で反証済）/
   群 C の 5 経路へ **Escape を追加**し正本へ Escape 条項も入れる /
   **フォーカスの復帰はスコープ外**（再現確認のみ）/ 同型スケルトンの共通化は合流させない。
-  **進捗: task_01 完了**（2026-09-22。`grab_modal` へ `focus` 引数を集約・群 A/A' の 7 経路移行。
-  `tests_ui` 484 → 489）。**次 = task_02**（実 Tk の検出力）。
+  **進捗: task_01・task_02 完了**（2026-09-22。`grab_modal` へ `focus` 引数を集約・群 A/A' の 7 経路移行 +
+  実 Tk の初期フォーカス検査 8 件。`tests_ui` 484 → 497・**skip 0**）。
+  **次 = task_03**（群 C の 5 経路へ Escape 結線）。
 - 直前の完了フェーズ = [phase 27](27_keymap_set_load_history/phase.md)（2026-09-22）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
