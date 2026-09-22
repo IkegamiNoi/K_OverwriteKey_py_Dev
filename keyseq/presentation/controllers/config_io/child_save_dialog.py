@@ -23,6 +23,7 @@ class ChildSaveDialog:
         try:
             dialog, choices = self._create_action_dialog(rows, result)
             dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
+            dialog.bind("<Escape>", lambda _event: dialog.destroy())
             grab_modal(dialog, self._app)
             dialog.wait_window()
         finally:

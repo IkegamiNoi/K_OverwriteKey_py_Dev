@@ -361,6 +361,19 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         self.assertEqual(suspend.call_count, resume.call_count)
         return result, variables, dialog
 
+    def test_child_save_escape_uses_window_close_handler(self):
+        def close(dialog, _variables):
+            self.assertIn("<Escape>", dialog.bindings)
+            close_handler = dialog.protocols["WM_DELETE_WINDOW"]
+            self.assertEqual(close_handler, dialog.destroy)
+            with patch.object(dialog, "destroy", wraps=close_handler) as destroy:
+                dialog.bindings["<Escape>"](None)
+            destroy.assert_called_once_with()
+
+        result, _variables, dialog = self._ask_dialog_internally([], close)
+        self.assertIsNone(result)
+        self.assertTrue(dialog.destroyed)
+
     def _ask_dependency_internally(self, row, on_wait, *, save_as_path=""):
         dialog = _FakeSaveDialog(on_wait)
         buttons = {}

@@ -4,62 +4,68 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-22T21:45:00
-phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01・task_02 完了・task_03 未着手**）。次採番 = phase 29 / 暫定 23 / decisions 29。
+last_updated: 2026-09-22T23:10:00
+phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜task_03 完了・task_04 未着手**）。次採番 = phase 29 / 暫定 23 / decisions 29。
 直前の完了フェーズ = **phase 27**（構成セットの読み込み履歴管理・2026-09-22 完了。判断履歴 = `decisions_archive/27_keymap_set_load_history.md`。暫定仕様 21 は凍結済）。
 last_commit_location: `claude/idea-26-idea-18-1bf4df`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 28 task_02 まで完了（フォーカス責務の集約 + 実 Tk の初期フォーカス検査 8 件・skip 0）。次は task_03（群 C の 5 経路へ Escape 結線）。**
+focus: **phase 28 task_03 まで完了（群 C の 5 経路へ Escape 結線）。次は task_04（idea_18 = Escape 配送の診断とヘルパ）。一括実行は既知 flaky で不安定なままで、その解消が task_04。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-22T21:45:00
+ts: 2026-09-22T23:10:00
 who: main
 summary: |
-  【task_02 = 実 Tk の初期フォーカス検査】**完了**。実装は `codex-implementer` へ委任（tests_ui のみ・
-  production 無変更）。新規 `tests_ui/test_dialog_initial_focus.py` に 7 件
-  （群 B の 3 ダイアログ = 窓自身へ / `ActionDialog` の 3 モード・`KeymapEditDialog` ・
-  `PresetDialog` ・ `TriggerDialog` = 従来どおりの widget へ）+
-  `test_child_save_dialog.py` に群 A' の到達確認 1 件
-  （`grab_modal` を patch して `focus=` に「別名保存」ボタンが渡ることを固定）。
-  App 生成は `test_keymap_set_history_flow.py:17-34` の ExitStack 手法を踏襲し実 `config/` を汚さない。
-  【実測で判明 → 設計を直した点】初回実測で **`tests_ui` 一括だと新規 8 件が全 skip**（単独なら全 ok）。
-  一括では他テストの窓に OS フォーカスを奪われるため。→ skip ガードを
-  **「まず App 自身の前面化（`app.focus_force()`）を試み、それでも取れないときだけ skip」**へ変更。
-  実使用は「アクティブな App からダイアログを開く」形なので**検出力は落ちない**
-  （ダイアログが窓へ移さなければ `focus_get()` は App ルートのままで失敗する）。
-  **ダイアログ側の `focus_force` はしない**（それをすると欠落を隠す = idea_26 の発端）。
-  【レビュー = `reviewer`】**修正して採用** → 指摘 1 件（`test_child_save_dialog` の新規テストは
-  `grab_modal` ごとモック化しており OS フォーカスと無関係なのに skip ガードが付いていた）を**削除**。
-  【最終実測 = `verifier`】`tests_ui` 一括を**連続 2 回**: どちらも **Ran 497 OK・skipped 0**
-  （修正前は skipped 8）。**既知 flaky〔idea_18 family〕も 2 回とも落ちず**。`tests` 556 OK（skipped 7・不変）。
-  **skip ガードによる skip は 0 件**（暫定仕様 §8-8 の報告義務）。
+  【task_03 = 群 C の 5 経路へ Escape 結線】**完了**（既知 flaky を除いて確認 pass）。
+  実装は `codex-implementer` へ委任。結線先は**すべて × と同じ経路**（暫定仕様 §3.5 の表）:
+  `child_save_dialog.py:26` / `hotkey_presets_io.py:87` = `dialog.destroy` /
+  **`io_dialogs.py:57` = `on_cancel`**（destroy 直呼びにしない）/
+  `layout_delete_dialog.py:52` / `preset_manager.py:79` = `self.destroy`。
+  **`bind` は `grab_modal` より前**に置き静的検査を維持。× のハンドラが無い 2 件へ
+  `WM_DELETE_WINDOW` は**足していない**。
+  【テスト方針】**新規テストで `event_generate("<Escape>")` を使わない**
+  （idea_18 の family を task_04 の診断前に増やさないため）。結線の存在・結線先の同一性・
+  ハンドラ直呼びでの後始末を固定。新規 `tests_ui/test_dialog_escape_binding.py` 3 件 +
+  既存 2 ファイルへ 1 件ずつ。**`hotkey_presets_io` はフック停止をしない**ためフックのアサートなし。
+  【メインが直した点】新規 2 件が `get_hook_pause_count()` `1 != 0` で FAIL →
+  **フック再開は `<Destroy>` から `after(0)` で予約される**（`hook_controller.py:57`）のに
+  `destroy()` 直後に数えていたのが原因。ヘルパへ `self.app.update()` を 1 行追加して解消（production 無修正）。
+  【レビュー = `reviewer`】**採用**（指摘なし。5 経路を表と突合済）。
+  【flaky の状況（task_04 への入力）】`tests_ui` 一括の緑率が **task_02 時点 2/2 → task_03 後 1/3** へ低下。
+  失敗はすべて `get_hook_pause_count()` が `1 != 0`（`test_quarantine_manage_flow` /
+  `test_dialog_teardown_flows`）= idea_18 の既知シグネチャ。
+  **両モジュールとも単独では 5/5 OK**（メイン実測）。
+  **task_02 で入れた `app.focus_force()` が後続クラスの Escape 配送に影響している可能性は未切り分け**。
 result_files:
-  - tests_ui/test_dialog_initial_focus.py（新規・7 件）
-  - tests_ui/test_child_save_dialog.py（+1 件）
-  - instructions/phase/28_dialog_keyboard_focus/tasks/task_02_initial_focus_checks.md（新規）
+  - keyseq/presentation/controllers/config_io/child_save_dialog.py / hotkey_presets_io.py / io_dialogs.py
+  - keyseq/presentation/dialogs/layout_delete_dialog.py / preset_manager.py
+  - tests_ui/test_dialog_escape_binding.py（新規 3 件）/ test_child_save_dialog.py / test_config_io_characterization.py
+  - instructions/phase/28_dialog_keyboard_focus/tasks/task_03_group_c_escape.md（新規）
 verified:
   compile: clean
   tests: 556 ran OK（skipped 7・不変）
-  tests_ui: 497 ran OK（489 → +8）・**skipped 0**・連続 2 回とも OK
+  tests_ui: 502 ran・skipped 0。**3 回中 1 回のみ全 pass**（他 2 回は既知 flaky で 3 件 / 1 件 fail）
+  tests_ui_isolated: test_dialog_teardown_flows 5/5 OK・test_quarantine_manage_flow 5/5 OK（単独実行）
+  static_check: test_grab_modal_is_last_initialization_statement pass / `"<Escape>"` の総数 11（既存 6 + 新規 5）
   smoke: SMOKE OK
-  production_diff: `git diff --stat keyseq/` 空（production 無変更）
-  review: reviewer = 修正して採用（指摘 1 件は対応済）
+  review: reviewer = 採用（指摘なし）
 
 ## next_action
-- **task_03 のタスク定義を `/task_new` で起票する**（`tasks/task_03_*.md`）。内容 =
-  **群 C の 5 経路へ Escape を結線**（暫定仕様 22 §3.5 の表が正）。
-  結線先は **× と同じ経路**にする: `child_save_dialog.py:25`（子ファイルの保存）= `dialog.destroy` /
-  `hotkey_presets_io.py:86` = `dialog.destroy` / **`io_dialogs.py:56` = `on_cancel`**（destroy 直呼びにしない）/
-  `layout_delete_dialog.py:52` = `self.destroy`（× ハンドラ無し・キャンセルボタンと同じ）/
-  `preset_manager.py:79` = `self.destroy`（× ハンドラ無し・`:163` のキャンセルと同じ）。
-  **Escape 経由でもフック停止の解除がちょうど 1 回**であることをテストで固定する（`key_input.md` §7.2）。
-- 以降: task_04（idea_18 = 診断 → Escape ヘルパ → 対象 4 テスト移行）→
-  task_05（統合確認 + 実機目視）→ task_06（正本反映 + 凍結 + 記録）。
-- **task_04 への申し送り**: 今回入れた `_require_app_focus`（App の前面化 → 不可なら skip）の形は、
-  Escape 配送の安定化ヘルパでも使える（暫定仕様 §6 の「フォーカスを確保してから送る」）。
+- **task_04 のタスク定義を `/task_new` で起票する**（`tasks/task_04_*.md`）。内容 = **idea_18 の解消**。
+  暫定仕様 22 §6 に従い **①診断を先に採る**（負荷下で対象テストを回し、失敗時の
+  `focus_get()` / `focus_displayof()` / `winfo_exists()` を採取して機序を確定）
+  **②ヘルパは「待つ」ではなく「フォーカスを確保してから送る + 上限つき再試行 + 破棄待ち」**
+  ③対象 4 テスト（`test_dialog_teardown_flows.py:144` / `test_orphan_sweep_flow.py:532` /
+  `test_quarantine_manage_flow.py:311` / `test_keymap_set_history_flow.py` の close 経路）を移行
+  ④**案 A（ハンドラ直呼び + 結線の静的検査）の併用可否を診断結果から判断**（§2.1-6）。
+- **task_04 の診断に必ず含める比較**: 一括の緑率が **task_02 時点 2/2 → task_03 後 1/3** へ落ちた件。
+  **task_02 で入れた `tests_ui/test_dialog_initial_focus.py` の `app.focus_force()`**（`_require_app_focus`）が
+  後続クラスの Escape 配送に影響していないかを切り分ける（影響していれば、その形を変えるか
+  実行順から隔離する）。
+- 以降: task_05（統合確認 + 実機目視。暫定仕様 §8-7 の「負荷下の再現確認 + 一括連続 3 回 green」は
+  ここで判定する）→ task_06（正本反映 + 凍結 + 記録）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。

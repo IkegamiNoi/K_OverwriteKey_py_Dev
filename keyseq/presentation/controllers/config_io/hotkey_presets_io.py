@@ -84,6 +84,7 @@ class HotkeyPresetsIo:
             command=lambda: choose("overwrite"),
         ).pack(side="right", padx=(0, 8))
         dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
+        dialog.bind("<Escape>", lambda _event: dialog.destroy())
         grab_modal(dialog, transient_parent)
         dialog.wait_window()
         return result["choice"]

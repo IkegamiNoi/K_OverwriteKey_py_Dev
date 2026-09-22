@@ -49,6 +49,7 @@ class LayoutDeleteDialog(tk.Toplevel):
             self.listbox.selection_set(0)
             self.listbox.activate(0)
 
+        self.bind("<Escape>", lambda _event: self.destroy())
         grab_modal(self, parent)
 
     def _ok(self):

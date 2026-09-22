@@ -76,6 +76,7 @@ class PresetManagerDialog(tk.Toplevel):
         self._bind_preset_manager_events()
         self._sync_initial_presets()
         self._update_source_labels()
+        self.bind("<Escape>", lambda _event: self.destroy())
         grab_modal(self, transient_parent if transient_parent is not None else parent)
 
     def _init_preset_manager_state(self, parent: App, title: str) -> None:

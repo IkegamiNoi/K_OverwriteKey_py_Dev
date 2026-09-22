@@ -5,6 +5,7 @@ import os
 import tempfile
 import tkinter
 import unittest
+from inspect import getclosurevars
 from pathlib import Path
 from unittest.mock import Mock, patch
 
@@ -379,6 +380,21 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         for mode, checked in (("ok", True), ("ok", False), ("cancel", False), ("close", False)):
             with self.subTest(mode=mode, checked=checked):
                 self._ask_link_result(mode, checked)
+
+    def test_link_label_escape_uses_on_cancel_and_keeps_result_false(self):
+        def close(dialog):
+            self.assertIn("<Escape>", dialog._bindings)
+            handler = dialog._bindings["<Escape>"]
+            on_cancel = dialog._protocols["WM_DELETE_WINDOW"]
+            self.assertIs(getclosurevars(handler).nonlocals["on_cancel"], on_cancel)
+            result = getclosurevars(dialog._buttons["OK"]).nonlocals["result"]
+            with patch.object(dialog, "destroy") as destroy:
+                handler(None)
+            destroy.assert_called_once_with()
+            self.assertIs(result["ok"], False)
+
+        with patch.object(_FakeDialog, "wait_window", close):
+            self._ask_link_result("cancel", True)
 
     # D: keymap 個別 JSON IO
     def test_keymap_save_selected_no_selection_reports_and_returns_false(self):

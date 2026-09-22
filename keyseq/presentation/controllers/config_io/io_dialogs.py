@@ -54,6 +54,7 @@ class IoDialogs:
         ttk.Button(buttons, text="OK", command=on_ok).pack(side="right")
         ttk.Button(buttons, text="キャンセル", command=on_cancel).pack(side="right", padx=(0, 8))
         dialog.protocol("WM_DELETE_WINDOW", on_cancel)
+        dialog.bind("<Escape>", lambda _event: on_cancel())
         grab_modal(dialog, self._app)
         try:
             dialog.wait_window()
