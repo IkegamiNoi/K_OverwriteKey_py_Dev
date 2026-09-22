@@ -4,72 +4,89 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T00:40:00
-phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜task_04 完了・task_05 未着手**）。次採番 = phase 29 / 暫定 23 / decisions 29。
+last_updated: 2026-09-23T02:10:00
+phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜04 + task_05b 完了。task_05 は検証実施済・目視待ち。task_05c 未着手**）。次採番 = phase 29 / 暫定 23 / decisions 29。
 直前の完了フェーズ = **phase 27**（構成セットの読み込み履歴管理・2026-09-22 完了。判断履歴 = `decisions_archive/27_keymap_set_load_history.md`。暫定仕様 21 は凍結済）。
 last_commit_location: `claude/idea-26-idea-18-1bf4df`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 28 task_04 まで完了（idea_18 解消 = 一括 3/3 green）。次は task_05（統合確認 + 実機目視）。実装は全て完了済みで、残りは検証と正本反映。**
+focus: **phase 28 = task_05b まで完了。暫定仕様 22 を v0.5 へ改訂（群 A 4 経路へも Escape + Esc の別用途優先）し**ユーザー確定待ち**。確定後に task_05c 実装 → 統合確認の再実行 → 実機目視 1 回 → task_06。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-23T00:40:00
+ts: 2026-09-23T02:10:00
 who: main
 summary: |
-  【task_04 = Escape 配送の flaky 解消（idea_18）】**完了**。テストのみ・production 無変更。
-  【診断（メインが probe で機序を確定・§6 の「先に診断」に相当）】
-  `tests_ui` は**テストクラスごとに `App`（`tk.Tk`）を作る = 同一プロセスに複数の Tk アプリ**。
-  制御下の再現で、**別アプリが OS フォーカスを持つ状態で `focus_force` を省くと
-  `focus_get()` が `None` になり Escape が配送されず窓が残る**ことを確認（= idea_18 の症状）。
-  **確定した機序 = 「配送が遅い」ではなく「配送先が違う」**。既存テストは `focus_force()` を
-  呼んでいたが**効いたかを確認せずに送っていた**ため、奪い返しが間に合わない回に落ちていた。
-  → idea_18 の案 B（待つだけ）では直らない。
-  【実装】新規 `tests_ui/escape_delivery.py` の
-  `send_escape(test_case, app, dialog, *, attempts=20, timeout=2.0)`:
-  ①`focus_force` → `update` を上限まで繰り返し**フォーカスがダイアログ配下に入ったことを確認**
-  ②`event_generate("<Escape>")` ③破棄を上限秒までポーリング。
-  **各段階の失敗は診断情報（focus_get / focus_displayof / 試行回数 / 経過秒）を添えて fail**。
-  **`skipTest` は使わない**。対象 4 テストを移行（既存アサートは一切変更していない）。
-  【§2.1-6 の判断を確定】**案 A（結線済みハンドラの直呼び）は併用しない**。
-  機序が確定し再試行つきヘルパで**実配送のまま安定**させられるため、
-  「Escape が実際に届くか」の検証を捨てる必要がない。結線の存在自体は task_03 で別途固定済み。
-  【実測 = `verifier`】**`tests_ui` 一括が 3 回とも OK**（502 ran・failures 0・skipped 0。
-  直前は 3 回中 1 回のみ緑）。移行 4 テストは**単独 5/5 ずつ OK**。
-  `tests` 556 OK（skipped 7・不変）/ `git diff --stat keyseq/` 空 / smoke OK。
-  【レビュー = `reviewer`】**採用**（既存アサートの残存・`skipTest` 不使用・例外の限定捕捉・
-  ドレイン検査の不変を確認。指摘は修正不要の軽微 2 件のみ）。
+  【task_05 = 統合確認】実施。`verifier` 実測 = compileall clean / `tests` 556 OK(skipped 7) /
+  `tests_ui` **一括 3 回とも 502 OK・skipped 0** / smoke OK / `keyseq` 差分 空。
+  **初期フォーカス検査の skip は 0 件**（メソッド数は 7。タスク定義の「8 件」は起票時の誤記）。
+  **負荷下（busy loop 4 本）で 1 回 fail**（§8-7 未達）。ただし**落ちたのは Escape 経路ではなく**
+  `test_dialog_teardown_flows.py:105 test_t2_close_paths_resume_exactly_once`（ボタン/destroy/×）。
+  機序 = `<Destroy>` → `after(0)` のフック再開が 1 回の `update()` で流れない**別 family**。
+  【切り分け】HEAD 一括 15 回 = 0 fail / base `60372bf` 一括 15 回 = 0 fail / 単独は両者 12 回 0 fail。
+  → **phase 28 由来という証拠は得られず**（HEAD 一括の通算は 21 回中 1 fail の低頻度）。
+  【レビュー】`codex-reviewer` = 指摘なし。`deep-reviewer` = 高 1 / 中 4 / 低 6。
+  **主要指摘は全件メインが `ファイルパス:行` で裏取りし事実と確認**。
+  【H1 = 仕様と実装の矛盾】§4 の「モーダルは Escape でも閉じられる」を正本へ入れると
+  **Escape 未結線の群 A 4 経路**（action / keymap_edit / preset / trigger）が違反になる。
+  さらに **Esc は 3 経路で別用途**（action=記録停止 / trigger・keymap_edit=取得停止）。
+  【ユーザー確定 2026-09-23】**群 A 4 経路にも Escape を追加**し、**Esc の別用途がある間は
+  その用途を優先して閉じない**。**実施は phase 28 内（task_05c）**・**実機目視は実装完了後に 1 回**。
+  【Tk bind の実測（メイン・probe）】①同一 widget では `<Escape>` が `<KeyPress>` より優先し
+  **`<KeyPress>` は発火しない** ②同一パターンの `add="+"` は登録順に両方発火 ③`"break"` で後続停止
+  ④子の `"break"` は親へ伝播しない。→ **素朴な bind 追加は「Escで停止」を殺す**ため、
+  **単一ハンドラ + 状態分岐**が唯一安全。これを暫定仕様 **v0.5 §3.6** として規範化。
+  【暫定仕様 22 = v0.5】§2.2 新設（確定 3 件）/ §3.6 新設（規範 + 実測表 + 対象 4 経路）/
+  §4 を 2 → **3 条項** / §8 に **12・13** 追加・§8-8 に群 A 追加 / §10 更新。
+  **敵対的レビュー（`codex-adversarial-reviewer`）= 仕様条項に致命的矛盾なし**。指摘 1 件
+  （task_05 の完了条件が新スコープ未追従）は**採用して task_05 を修正済**。
+  【task_05b = 検出力補強】**完了**。tests_ui 限定・production 無変更。
+  実装 = `codex-implementer`。M1 = 初期フォーカスの widget 同一性検査 2 件追加
+  （`KeymapSetHistoryDialog.tree` / `CategoryChooserDialog.listbox`）。
+  M3 = 群 C の実 Toplevel 2 件をハンドラ直呼びから **`send_escape` の実配送**へ格上げ。
+  **変異検査（メインが実施）= `focus=` を外すと追加 2 件が赤**になることを実測し、
+  **検出力を証明した上で production を復旧**（`git diff keyseq/` 0 files）。
+  `verifier` = 7 項目すべて pass（`tests_ui` **502 → 504**・単独 5 回ずつも全 pass）。
+  `reviewer` = **完了可・指摘なし**（既存アサートの保持を旧版と突き合わせて確認）。
 result_files:
-  - tests_ui/escape_delivery.py（新規・共通ヘルパ）
-  - tests_ui/test_dialog_teardown_flows.py / test_orphan_sweep_flow.py /
-    test_quarantine_manage_flow.py / test_keymap_set_history_flow.py（4 テストの移行）
-  - instructions/phase/28_dialog_keyboard_focus/tasks/task_04_escape_delivery.md（新規・診断結果を収録）
+  - instructions/history/22_dialog_keyboard_focus.md（**v0.5 改訂・ユーザー確定待ち**）
+  - instructions/phase/28_dialog_keyboard_focus/phase.md（確定節 + タスク一覧に 05b / 05c 追加）
+  - instructions/phase/28_dialog_keyboard_focus/tasks/task_05_integration_and_manual_check.md（新規・A2 追記）
+  - instructions/phase/28_dialog_keyboard_focus/tasks/task_05b_test_detection_reinforcement.md（新規）
+  - instructions/phase/28_dialog_keyboard_focus/tasks/task_05c_group_a_escape.md（新規・**未着手**）
+  - tests_ui/test_dialog_initial_focus.py / tests_ui/test_dialog_escape_binding.py（task_05b の実装）
 verified:
   compile: clean
   tests: 556 ran OK（skipped 7・不変）
-  tests_ui: 502 ran OK・failures 0・skipped 0 を**連続 3 回**（直前は 1/3）
-  tests_ui_isolated: 移行 4 テストとも単独 5/5 OK
+  tests_ui: 504 ran OK（task_05b で 502 → 504）
+  tests_ui_isolated: 追加 2 件・置換 2 件とも単独 5/5 OK
+  mutation_check: `focus=` 除去で追加 2 件が赤 → 復旧確認済（検出力あり）
+  load_test: **§8-7 未達**（負荷下 6 回中 1 fail。ただし別 family・base と差なし）
   production_diff: `git diff --stat keyseq/` 空
   smoke: SMOKE OK
-  review: reviewer = 採用（軽微 2 件は修正不要）
+  review: codex-reviewer = 指摘なし / deep-reviewer = 修正要（H1 決着済・M1/M3 対応済）/
+    reviewer（task_05b）= 完了可 / codex-adversarial-reviewer（v0.5）= 指摘 1 件・対応済
 
 ## next_action
-- **task_05 のタスク定義を `/task_new` で起票する**（`tasks/task_05_*.md`）。内容 = **統合確認 + 実機目視**。
-  ①`deep-reviewer` + `codex-reviewer` による統合レビュー（task_01〜04 を跨ぐ差分）
-  ②**負荷下の再現確認**（暫定仕様 §8-7。idea_18 の実測条件 = busy loop 4 本の負荷下で
-  対象クラスを 6 回）+ 一括連続 3 回 green
-  ③**実機目視の依頼**（§8-8）: 群 B の 3 ダイアログを**アクティブな App から開き、
-  ダイアログ内をクリックせずに直ちに Escape** で閉じること / 群 C の 5 経路も Escape で閉じること /
-  **フォーカス復帰の再現確認**（内側ダイアログを閉じた後・最小化復帰後に外側で Escape が効くか。§2.1-4）
-  ④skip 件数の報告（現状 0 件）。
-- 以降: task_06（正本反映 = `features.md` へフォーカス + Escape の 2 条項 /
-  `codebase_map.md` の署名更新と「13 箇所」→「15 箇所」訂正 / 暫定仕様 22 の凍結 /
-  `decisions_archive/28` 作成 / `current.md` 更新 / idea_26・idea_18 を `backlog/INDEX_done.md` へ移動 /
-  `/refactor_check`）。
-- **task_05 で再検討する申し送り**: task_02 の `tests_ui/test_dialog_initial_focus.py` の
-  `_require_app_focus`（App の前面化）が後続クラスへ影響していないか。
-  **task_04 後は一括 3/3 green なので、現時点では問題なしと判断してよい**。
+- **最優先: 暫定仕様 22 v0.5 のユーザー確定を取る**（§2.2 / §3.6 / §4 の 3 条項 / §8-12・13）。
+  確定前に task_05c の実装を委任しない（`spec_change_workflow.md` の不変原則）。
+- 確定後: **`codex-implementer` へ task_05c を委任**
+  （`instructions/phase/28_dialog_keyboard_focus/tasks/task_05c_group_a_escape.md`）。
+  要点 = 群 A 4 ファイルへ `bind("<Escape>", self._on_escape)` を `grab_modal` の前に追加 +
+  `_on_escape` で状態分岐（`_recording` / `_capturing`）+ **到達不能になる `esc` 分岐を削除** +
+  `tests_ui/test_dialog_escape_binding.py` へ群 A の検査追加。**python 実行は依頼しない**。
+- task_05c 後: `verifier` で確認 1〜7 → `reviewer` でレビュー → **統合確認（task_05 の確認 1〜7）を再実行**。
+- **実機目視の依頼**（task_05 §4 の手順書。A = 群 B の 3 ダイアログ / A2 = 群 A の 4 経路
+  〔通常 Escape で閉じる・記録中/取得中は停止のみで窓が残る〕/ C = フォーカス復帰の再現確認）。
+  **task_05b / 05c 完了後に 1 回**。
+- **ユーザー判断待ちの保留 2 件**（task_05c 後にまとめて提示）:
+  ①**M2** = `tests_ui/escape_delivery.py:13-23` の確保ループに実時間の待ちがない
+  （`focus_force` + `update` ×20 のみ。負荷条件が変わると再発しうる）
+  ②**負荷下 fail の idea 起票** = `<Destroy>` → `after(0)` のフック再開取りこぼし（Escape とは別 family）。
+- 最後: task_06（正本反映 = `features.md` へ **3 条項** / `codebase_map.md` の署名更新と
+  「13 箇所」→「15 箇所」訂正 / 暫定仕様 22 の凍結 / `decisions_archive/28` 作成 /
+  `current.md` 更新 / idea_26・idea_18 を `backlog/INDEX_done.md` へ移動 / `/refactor_check`）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
@@ -79,7 +96,7 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **【phase 28 の設計は暫定仕様 22 が正】**（v0.4・未凍結。フェーズ中は正本を直接改訂しない）
+- **【phase 28 の設計は暫定仕様 22 が正】**（**v0.5・未凍結・ユーザー確定待ち**。フェーズ中は正本を直接改訂しない）
   ①実装方式 = **明示引数** `grab_modal(window, parent=None, *, focus=None)`。**省略時は窓自身**。
   **推測型（`focus_lastfor()` / `after_idle`）は実測で反証済**（未マップ時の `focus_set` は Tk 内で保留され
   外から検出できないため、既存の明示指定を奪う）
@@ -89,7 +106,10 @@ verified:
   ③群分け = **A=6 経路（明示あり）/ A'=1（ビルダ内で明示）/ B=3（欠落・本件）/ C=5（Escape bind なし）**、
   計 **15 箇所**（`codebase_map.md:308` の「13 箇所」は**誤り**。フェーズ末に訂正する）
   ④**群 C の 5 経路へ Escape を追加する**（結線先は暫定仕様 §3.5 の表。`io_dialogs.py` だけ
-  `on_cancel` で、他は `destroy`）⑤**フォーカス復帰はスコープ外**（実機目視のついでに再現確認のみ）。
+  `on_cancel` で、他は `destroy`）⑤**フォーカス復帰はスコープ外**（実機目視のついでに再現確認のみ）
+  ⑥**v0.5 で群 A の 4 経路へも Escape を追加**（§3.6）。**Esc の別用途がある間は優先して閉じない**。
+  実現形は**単一ハンドラ + 状態分岐**（`<Escape>` は同一 widget の `<KeyPress>` より優先して
+  **単独発火**するため、素朴に足すと「Escで停止」が死ぬ。Tk bind の解決順は実測済）。
 - **【phase 27 の成果は正本が正】構成セットの読み込み履歴 = `spec_detail/data_schema.md` **§5.12**（新設・
   5.12.1〜5.12.8）+ §5.4 / `features.md` §4.6 / `codebase_map.md`。**暫定仕様 21 は凍結済で条項の根拠に引かない**。
   要点 = ①記録契機 = **読込または保存が成功し空でないパスが確定したとき、その実保存先**

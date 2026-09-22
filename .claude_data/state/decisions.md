@@ -544,3 +544,71 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   **提案書が想定した分割形**のため据え置き。
 
 
+
+---
+
+## 2026-09-23 (phase 28 task_05: 統合確認のレビュー指摘 11 件の判定)
+
+`deep-reviewer`（task_01〜04 の累積差分）+ `codex-reviewer`（指摘なし）の結果に対する判定。
+**主要な事実主張はメインが `ファイルパス:行` で裏取り済み**（`agent_selection.md`「裏取り」）。
+
+### 【H1】正本の Escape 条項が実装と矛盾 → **修正して採用（ユーザー確定 2026-09-23）**
+
+- 検出: 暫定仕様 §4「モーダルダイアログは Escape でも閉じられる」を正本へ昇格すると、
+  **Escape 未結線の群 A 4 経路**（`action_dialog.py:130` / `keymap_edit_dialog.py:53` /
+  `preset_dialog.py:39` / `trigger_dialog.py:52`）が違反になる。
+  さらに **Esc は 3 経路で別用途**（`action_dialog.py:294` = 記録停止 /
+  `trigger_dialog.py:98` ・ `keymap_edit_dialog.py:100` = 取得停止。画面のヒント文にも明記）。
+- 根因: §1.1 の監査表が**フォーカスの有無だけで分類**し、群 A の Escape 有無を監査していなかった。
+- **ユーザー判断**: **群 A 4 経路にも Escape を追加する**（文言限定や例外明記は採らない）。
+  条件 = **Esc に別用途がある間はその用途を優先して閉じられないようにする**
+  （意図 = 「既に Escape で閉じるダイアログへ、後から Esc の別用途を足す時も共存できる形にしたい」）。
+- **実現形の決定根拠（メインが `.venv` python で Tk の bind 解決を probe・2026-09-23）**:
+  ①同一 widget に `<KeyPress>` と `<Escape>` を両方 bind すると、Escape では
+  **`<Escape>` のみ発火し `<KeyPress>` は発火しない**（より具体的なパターンが勝つ）
+  ②同一パターンを `add="+"` で 2 つ → 登録順に両方発火
+  ③先の handler が `"break"` を返すと後続は発火しない
+  ④子 widget の `"break"` は親 Toplevel へ伝播しない。
+  → **①により素朴な `bind("<Escape>", 閉じる)` は「Escで停止」を殺す**（退行）。
+  **②により登録順に頼る形も不可**（閉じる側が `__init__` で先に登録される）。
+  → **単一 `<Escape>` ハンドラ + 状態分岐が唯一安全**と結論。暫定仕様 **v0.5 §3.6** として規範化。
+- 実施 = **phase 28 内の task_05c**（ユーザー確定）。実機目視は**実装完了後に 1 回**。
+
+### 【M1】群 A 2 経路の初期フォーカス検査が検出力ゼロ → **修正して採用（task_05b で実施・完了）**
+
+`test_keymap_set_history_flow.py:143` / `:149` の `startswith(str(dialog))` は「ダイアログ内」までしか
+見ず、task_01 以降は `focus=` を外しても緑になる（`focus` 省略時は窓自身へ入るため）。
+→ `tests_ui/test_dialog_initial_focus.py` へ `assertIs` の検査 2 件を追加。
+**変異検査（`focus=` を外すと赤）をメインが実測して検出力を証明**した。
+
+### 【M3】群 C の Escape が実配送で未検証 → **修正して採用（task_05b で実施・完了）**
+
+結線済みハンドラの直呼び（`test_dialog_escape_binding.py:63`）のみだった。task_04 で `send_escape` が
+入り前提が解消したため、**実 Toplevel 2 件**（`LayoutDeleteDialog` / `PresetManagerDialog`）を
+実配送へ格上げ。偽 Toplevel の 3 件は直呼びのまま（実配送できないため）。
+
+### 【M2】`send_escape` の確保ループに実時間の待ちがない → **保留（ユーザー判断待ち）**
+
+`tests_ui/escape_delivery.py:13-23` は `focus_force` + `update` を最大 20 回回すのみで、
+実時間の待ちが無いため 20 回が一瞬で消化されうる。task_05c 完了後にまとめて提示する。
+
+### 【M4】`_apply_initial_focus` が grab 取得と `<Destroy>` 登録の間 → **保留**
+
+`keyseq/presentation/modal.py:102`（`grab_set()` の直後）に対し `<Destroy>` 登録は `:133`。
+ここで例外が抜けると「grab 取得済み・復元ハンドラ未登録の窓」が残る。
+production の実害は低い（現実的な失敗は `TclError` で `:69` が握る）が、
+暫定仕様 §3.2 の「`grab_set()` の直後」という文言との兼ね合いがあるため保留。
+
+### 【L1〜L6】→ **参考（採用せず）**
+
+`_require_app_focus` の `app.focus_force()`（task_02 の指示外だが**ダイアログではなく App** へ当てる形で
+欠落は隠さない）/ `startswith` の区切り文字非対称 / 既存テストの skip ガード欠如 /
+`tests_ui` の直接実行が ImportError / `tk.Misc.bind` のクラス単位差し替え。いずれも実害なし。
+
+### 【負荷下 fail 1 回】→ **保留（idea 起票が妥当。ユーザー判断待ち）**
+
+§8-7 の負荷下確認で `tests_ui.test_dialog_teardown_flows` が 6 回中 1 回 fail。
+根の失敗は `test_t2_close_paths_resume_exactly_once`（**Escape を使わない**ボタン/destroy/× の経路）で、
+機序は `<Destroy>` → `after(0)` のフック再開が 1 回の `update()` で流れない **idea_18 とは別 family**。
+**切り分け実測**: HEAD 一括 15 回 = 0 fail / base `60372bf` 一括 15 回 = 0 fail /
+単独は両者 12 回 0 fail。→ **phase 28 由来という証拠は得られず**（HEAD 一括は通算 21 回中 1 fail）。

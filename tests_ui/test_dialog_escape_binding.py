@@ -1,4 +1,4 @@
-"""群 C の Escape 結線と直接呼び出しによる後始末を固定する。"""
+"""群 C の Escape 結線と実配送・直接呼び出しによる後始末を固定する。"""
 
 import copy
 import tkinter as tk
@@ -11,6 +11,7 @@ from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import hotkey_presets_io
 from keyseq.presentation.dialogs.layout_delete_dialog import LayoutDeleteDialog
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
+from tests_ui.escape_delivery import send_escape
 
 
 class DialogEscapeBindingTest(unittest.TestCase):
@@ -69,19 +70,37 @@ class DialogEscapeBindingTest(unittest.TestCase):
 
     def test_layout_delete_escape_destroys_and_resumes_hook(self):
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
-        dialog = LayoutDeleteDialog(self.app, title="削除", items=[("id", "name")])
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
-        self._close_with_escape_handler(dialog)
+        with patch.object(
+            self.app.hook, "resume_hook_after_dialog",
+            wraps=self.app.hook.resume_hook_after_dialog,
+        ) as resume:
+            dialog = LayoutDeleteDialog(self.app, title="削除", items=[("id", "name")])
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+            self.assertTrue(dialog.bind("<Escape>"))
+            send_escape(self, self.app, dialog)
+            self.assertFalse(dialog.winfo_exists())
+            # <Destroy> から after(0) で予約されたフック再開を流してから数える。
+            self.app.update()
+            resume.assert_called_once_with()
         self.assertIsNone(dialog.result)
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_preset_manager_escape_discards_edits_and_resumes_hook(self):
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
         original_data = copy.deepcopy(self.app.data)
-        dialog = PresetManagerDialog(self.app)
-        dialog._temp.append({"label": "unsaved", "keys": []})
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
-        self._close_with_escape_handler(dialog)
+        with patch.object(
+            self.app.hook, "resume_hook_after_dialog",
+            wraps=self.app.hook.resume_hook_after_dialog,
+        ) as resume:
+            dialog = PresetManagerDialog(self.app)
+            dialog._temp.append({"label": "unsaved", "keys": []})
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+            self.assertTrue(dialog.bind("<Escape>"))
+            send_escape(self, self.app, dialog)
+            self.assertFalse(dialog.winfo_exists())
+            # <Destroy> から after(0) で予約されたフック再開を流してから数える。
+            self.app.update()
+            resume.assert_called_once_with()
         self.assertEqual(self.app.data, original_data)
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 

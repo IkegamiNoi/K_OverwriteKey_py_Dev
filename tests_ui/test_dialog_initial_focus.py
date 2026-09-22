@@ -8,6 +8,10 @@ from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation import app as app_module
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from keyseq.presentation.dialogs.keymap_edit_dialog import KeymapEditDialog
+from keyseq.presentation.dialogs.keymap_set_history_dialog import (
+    CategoryChooserDialog,
+    KeymapSetHistoryDialog,
+)
 from keyseq.presentation.dialogs.orphan_sweep_dialog import OrphanSweepDialog
 from keyseq.presentation.dialogs.preset_dialog import PresetDialog
 from keyseq.presentation.dialogs.quarantine_manage_dialog import QuarantineManageDialog
@@ -106,6 +110,23 @@ class DialogInitialFocusTest(unittest.TestCase):
         self.addCleanup(self._close_dialog, dialog)
         self._assert_focus_inside(dialog)
         self.assertIs(self.app.focus_get(), dialog.label_entry)
+
+    def test_keymap_set_history_initial_focus_is_tree(self):
+        self._require_app_focus()
+        dialog = KeymapSetHistoryDialog(self.app, controller=self.app.keymap_set_history_io)
+        self.addCleanup(self._close_dialog, dialog)
+        self._assert_focus_inside(dialog)
+        self.assertIs(self.app.focus_get(), dialog.tree)
+
+    def test_category_chooser_initial_focus_is_listbox(self):
+        self._require_app_focus()
+        dialog = KeymapSetHistoryDialog(self.app, controller=self.app.keymap_set_history_io)
+        self.addCleanup(self._close_dialog, dialog)
+        self.app.update()
+        chooser = CategoryChooserDialog(dialog, names=("a",))
+        self.addCleanup(self._close_dialog, chooser)
+        self._assert_focus_inside(chooser)
+        self.assertIs(self.app.focus_get(), chooser.listbox)
 
     def test_preset_initial_focus_is_value_entry(self):
         self._require_app_focus()
