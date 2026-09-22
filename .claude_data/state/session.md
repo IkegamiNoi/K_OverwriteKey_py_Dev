@@ -4,89 +4,72 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T02:10:00
-phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜04 + task_05b 完了。task_05 は検証実施済・目視待ち。task_05c 未着手**）。次採番 = phase 29 / 暫定 23 / decisions 29。
+last_updated: 2026-09-23T03:05:00
+phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜04 + task_05b + task_05c 完了。残りは task_05 の実機目視と task_06**）。次採番 = phase 29 / 暫定 23 / decisions 29。
 直前の完了フェーズ = **phase 27**（構成セットの読み込み履歴管理・2026-09-22 完了。判断履歴 = `decisions_archive/27_keymap_set_load_history.md`。暫定仕様 21 は凍結済）。
 last_commit_location: `claude/idea-26-idea-18-1bf4df`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 28 = task_05b まで完了。暫定仕様 22 を v0.5 へ改訂（群 A 4 経路へも Escape + Esc の別用途優先）し**ユーザー確定待ち**。確定後に task_05c 実装 → 統合確認の再実行 → 実機目視 1 回 → task_06。**
+focus: **phase 28 = 実装がすべて完了（task_05c まで）。暫定仕様 22 は v0.5 でユーザー確定済。残りは①実機目視 1 回（task_05）②保留 2 件のユーザー判断③task_06（正本反映）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-23T02:10:00
+ts: 2026-09-23T03:05:00
 who: main
 summary: |
-  【task_05 = 統合確認】実施。`verifier` 実測 = compileall clean / `tests` 556 OK(skipped 7) /
-  `tests_ui` **一括 3 回とも 502 OK・skipped 0** / smoke OK / `keyseq` 差分 空。
-  **初期フォーカス検査の skip は 0 件**（メソッド数は 7。タスク定義の「8 件」は起票時の誤記）。
-  **負荷下（busy loop 4 本）で 1 回 fail**（§8-7 未達）。ただし**落ちたのは Escape 経路ではなく**
-  `test_dialog_teardown_flows.py:105 test_t2_close_paths_resume_exactly_once`（ボタン/destroy/×）。
-  機序 = `<Destroy>` → `after(0)` のフック再開が 1 回の `update()` で流れない**別 family**。
-  【切り分け】HEAD 一括 15 回 = 0 fail / base `60372bf` 一括 15 回 = 0 fail / 単独は両者 12 回 0 fail。
-  → **phase 28 由来という証拠は得られず**（HEAD 一括の通算は 21 回中 1 fail の低頻度）。
-  【レビュー】`codex-reviewer` = 指摘なし。`deep-reviewer` = 高 1 / 中 4 / 低 6。
-  **主要指摘は全件メインが `ファイルパス:行` で裏取りし事実と確認**。
-  【H1 = 仕様と実装の矛盾】§4 の「モーダルは Escape でも閉じられる」を正本へ入れると
-  **Escape 未結線の群 A 4 経路**（action / keymap_edit / preset / trigger）が違反になる。
-  さらに **Esc は 3 経路で別用途**（action=記録停止 / trigger・keymap_edit=取得停止）。
-  【ユーザー確定 2026-09-23】**群 A 4 経路にも Escape を追加**し、**Esc の別用途がある間は
-  その用途を優先して閉じない**。**実施は phase 28 内（task_05c）**・**実機目視は実装完了後に 1 回**。
-  【Tk bind の実測（メイン・probe）】①同一 widget では `<Escape>` が `<KeyPress>` より優先し
-  **`<KeyPress>` は発火しない** ②同一パターンの `add="+"` は登録順に両方発火 ③`"break"` で後続停止
-  ④子の `"break"` は親へ伝播しない。→ **素朴な bind 追加は「Escで停止」を殺す**ため、
-  **単一ハンドラ + 状態分岐**が唯一安全。これを暫定仕様 **v0.5 §3.6** として規範化。
-  【暫定仕様 22 = v0.5】§2.2 新設（確定 3 件）/ §3.6 新設（規範 + 実測表 + 対象 4 経路）/
-  §4 を 2 → **3 条項** / §8 に **12・13** 追加・§8-8 に群 A 追加 / §10 更新。
-  **敵対的レビュー（`codex-adversarial-reviewer`）= 仕様条項に致命的矛盾なし**。指摘 1 件
-  （task_05 の完了条件が新スコープ未追従）は**採用して task_05 を修正済**。
-  【task_05b = 検出力補強】**完了**。tests_ui 限定・production 無変更。
-  実装 = `codex-implementer`。M1 = 初期フォーカスの widget 同一性検査 2 件追加
-  （`KeymapSetHistoryDialog.tree` / `CategoryChooserDialog.listbox`）。
-  M3 = 群 C の実 Toplevel 2 件をハンドラ直呼びから **`send_escape` の実配送**へ格上げ。
-  **変異検査（メインが実施）= `focus=` を外すと追加 2 件が赤**になることを実測し、
-  **検出力を証明した上で production を復旧**（`git diff keyseq/` 0 files）。
-  `verifier` = 7 項目すべて pass（`tests_ui` **502 → 504**・単独 5 回ずつも全 pass）。
-  `reviewer` = **完了可・指摘なし**（既存アサートの保持を旧版と突き合わせて確認）。
+  【暫定仕様 22 = v0.5 ユーザー確定（2026-09-23）】群 A 4 経路へも Escape を追加 +
+  **Esc の別用途がある間はその用途を優先して閉じない**（§3.6）。実現形 = **単一ハンドラ + 状態分岐**。
+  【task_05c = 群 A への Escape 追加】**完了**。実装 = `codex-implementer`（presentation 限定）。
+  `action_dialog.py:130` / `trigger_dialog.py:52` / `keymap_edit_dialog.py:53` へ
+  `bind("<Escape>", self._on_escape)` を **`grab_modal` の前**に追加し、`_on_escape` で状態分岐
+  （`_recording` / `_capturing` → 停止して **`return "break"`** / 通常時は `destroy()`）。
+  `preset_dialog.py:39` は別用途が無いため 1 行 lambda のみ。
+  **到達不能になる `esc` 分岐 3 箇所を削除**（旧 `action_dialog.py:294-296` /
+  `trigger_dialog.py:98-100` / `keymap_edit_dialog.py:100-102`）。
+  テスト = `tests_ui/test_dialog_escape_binding.py` へ群 A の検査 3 メソッド（subTest で 4 経路）。
+  「閉じないこと」の検査は `send_escape` を使わず `focus_force` → 確認 → `event_generate` を直書き。
+  【実測 = `verifier`】8 項目すべて pass。`tests` 556 OK(skipped 7) / **`tests_ui` 507 OK**（504 → 507）/
+  **一括連続 3 回とも 507 OK** / **静的検査 `test_grab_modal_is_last_initialization_statement` pass** /
+  群 A の新規 3 件は単独 5 回ずつ 15/15 OK / smoke OK / `domain`・`application` 差分 空。
+  【レビュー = `reviewer`】**完了可・指摘なし**。旧版と突き合わせ、削除した `esc` 分岐以外の
+  記録 / 取得ロジック（修飾キー処理・非修飾キー確定・自動停止・`return "break"`）が
+  **一切変わっていない**ことを確認済み。`destroy()` override 2 クラスで停止処理の二重化なし。
+  【既知の無害なノイズ】`tests_ui` のログに `invalid command name "..._clear_flash_message"`
+  （破棄後に残った after コールバック）が出るが failures/errors には計上されない。
 result_files:
-  - instructions/history/22_dialog_keyboard_focus.md（**v0.5 改訂・ユーザー確定待ち**）
-  - instructions/phase/28_dialog_keyboard_focus/phase.md（確定節 + タスク一覧に 05b / 05c 追加）
-  - instructions/phase/28_dialog_keyboard_focus/tasks/task_05_integration_and_manual_check.md（新規・A2 追記）
-  - instructions/phase/28_dialog_keyboard_focus/tasks/task_05b_test_detection_reinforcement.md（新規）
-  - instructions/phase/28_dialog_keyboard_focus/tasks/task_05c_group_a_escape.md（新規・**未着手**）
-  - tests_ui/test_dialog_initial_focus.py / tests_ui/test_dialog_escape_binding.py（task_05b の実装）
+  - keyseq/presentation/dialogs/action_dialog.py / trigger_dialog.py / keymap_edit_dialog.py /
+    preset_dialog.py（群 A 4 経路の Escape 結線）
+  - tests_ui/test_dialog_escape_binding.py（群 A の検査 +95 行）
+  - instructions/history/22_dialog_keyboard_focus.md（v0.5 = ユーザー確定済へ更新）
 verified:
   compile: clean
   tests: 556 ran OK（skipped 7・不変）
-  tests_ui: 504 ran OK（task_05b で 502 → 504）
-  tests_ui_isolated: 追加 2 件・置換 2 件とも単独 5/5 OK
-  mutation_check: `focus=` 除去で追加 2 件が赤 → 復旧確認済（検出力あり）
-  load_test: **§8-7 未達**（負荷下 6 回中 1 fail。ただし別 family・base と差なし）
-  production_diff: `git diff --stat keyseq/` 空
+  tests_ui: 507 ran OK（504 → 507）・**一括連続 3 回とも OK**
+  static_check: test_grab_modal_is_last_initialization_statement pass
+  tests_ui_isolated: 群 A の新規 3 件が単独 5 回ずつ全 pass
+  layer_diff: `git diff --stat keyseq/domain keyseq/application` 空
   smoke: SMOKE OK
-  review: codex-reviewer = 指摘なし / deep-reviewer = 修正要（H1 決着済・M1/M3 対応済）/
-    reviewer（task_05b）= 完了可 / codex-adversarial-reviewer（v0.5）= 指摘 1 件・対応済
+  review: reviewer = 完了可・指摘なし
+  load_test: **再測定中**（§8-7。task_05c の差分を含む状態で 5 モジュール × 6 回）
 
 ## next_action
-- **最優先: 暫定仕様 22 v0.5 のユーザー確定を取る**（§2.2 / §3.6 / §4 の 3 条項 / §8-12・13）。
-  確定前に task_05c の実装を委任しない（`spec_change_workflow.md` の不変原則）。
-- 確定後: **`codex-implementer` へ task_05c を委任**
-  （`instructions/phase/28_dialog_keyboard_focus/tasks/task_05c_group_a_escape.md`）。
-  要点 = 群 A 4 ファイルへ `bind("<Escape>", self._on_escape)` を `grab_modal` の前に追加 +
-  `_on_escape` で状態分岐（`_recording` / `_capturing`）+ **到達不能になる `esc` 分岐を削除** +
-  `tests_ui/test_dialog_escape_binding.py` へ群 A の検査追加。**python 実行は依頼しない**。
-- task_05c 後: `verifier` で確認 1〜7 → `reviewer` でレビュー → **統合確認（task_05 の確認 1〜7）を再実行**。
-- **実機目視の依頼**（task_05 §4 の手順書。A = 群 B の 3 ダイアログ / A2 = 群 A の 4 経路
-  〔通常 Escape で閉じる・記録中/取得中は停止のみで窓が残る〕/ C = フォーカス復帰の再現確認）。
-  **task_05b / 05c 完了後に 1 回**。
-- **ユーザー判断待ちの保留 2 件**（task_05c 後にまとめて提示）:
+- **実機目視の依頼**（task_05 §4 の手順書。**実装は全て完了済なので今すぐ実施可**）:
+  - **A** = 群 B の 3 ダイアログ（設定メニュー → 孤児ファイルの棚卸し / 隔離の管理 / 参照元を掃除）を
+    **クリックせずに開いた直後 Escape** で閉じること（B2・B3 は前提不足なら開かない旨を報告）
+  - **A2** = 群 A の 4 経路（ActionDialog / TriggerDialog / KeymapEditDialog / PresetDialog）で
+    ①通常時 Escape で閉じる ②記録中 / 取得中の Escape は**停止のみで窓が残る** ③再度 Escape で閉じる
+  - **C** = フォーカス復帰の再現確認（内側ダイアログを閉じた後 / 最小化復帰後に外側で Escape が効くか）。
+    **再現したら `/idea` で起票**（本フェーズでは直さない）
+- **ユーザー判断待ちの保留 2 件**（実機目視と合わせて提示する）:
   ①**M2** = `tests_ui/escape_delivery.py:13-23` の確保ループに実時間の待ちがない
-  （`focus_force` + `update` ×20 のみ。負荷条件が変わると再発しうる）
-  ②**負荷下 fail の idea 起票** = `<Destroy>` → `after(0)` のフック再開取りこぼし（Escape とは別 family）。
-- 最後: task_06（正本反映 = `features.md` へ **3 条項** / `codebase_map.md` の署名更新と
-  「13 箇所」→「15 箇所」訂正 / 暫定仕様 22 の凍結 / `decisions_archive/28` 作成 /
-  `current.md` 更新 / idea_26・idea_18 を `backlog/INDEX_done.md` へ移動 / `/refactor_check`）。
+  （`focus_force` + `update` ×20 のみ。負荷条件が変われば再発しうる）→ 直すか現状維持か
+  ②**負荷下 fail の idea 起票** = `<Destroy>` → `after(0)` のフック再開取りこぼし
+  （`test_t2_close_paths_resume_exactly_once`。Escape とは別 family・base と差なし）
+- 最後: **task_06**（正本反映 = `features.md` へ **3 条項**〔フォーカス / Escape / Esc の別用途優先〕/
+  `codebase_map.md` の署名更新と「13 箇所」→「15 箇所」訂正 / 暫定仕様 22 の凍結 /
+  `decisions_archive/28` 作成 / `current.md` 更新 / idea_26・idea_18 を `backlog/INDEX_done.md` へ移動 /
+  `/refactor_check`）。**task_06 のタスク定義はまだ起票していない**（`/task_new` で起票する）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。

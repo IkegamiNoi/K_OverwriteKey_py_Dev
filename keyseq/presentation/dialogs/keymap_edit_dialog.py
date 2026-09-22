@@ -50,7 +50,14 @@ class KeymapEditDialog(tk.Toplevel):
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
+        self.bind("<Escape>", self._on_escape)
         grab_modal(self, parent, focus=self.label_entry)
+
+    def _on_escape(self, _event):
+        if getattr(self, "_capturing", False):
+            self._stop_capture()
+            return "break"
+        self.destroy()
 
     def _ok(self):
         self.result = {
@@ -97,9 +104,6 @@ class KeymapEditDialog(tk.Toplevel):
         if not self._capturing:
             return
         key = self._normalize_tk_key(event.keysym)
-        if key == "esc":
-            self._stop_capture()
-            return "break"
         if key in ("ctrl", "shift", "alt", "windows"):
             return "break"
         self.key_var.set(key)

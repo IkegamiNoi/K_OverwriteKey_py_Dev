@@ -1,6 +1,6 @@
 # 暫定仕様 22: ダイアログの初期キーボードフォーカス（dialog_keyboard_focus）
 
-> 状態: **未凍結・v0.5・ユーザー確定待ち**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
+> 状態: **未凍結・v0.5・ユーザー確定済（2026-09-23）・実装着手可**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: [idea_26](../backlog/idea_26_dialog_keyboard_focus.md)（主・phase 27 task_04 の実機目視由来）
 > + [idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)（同梱・テストの flaky）。

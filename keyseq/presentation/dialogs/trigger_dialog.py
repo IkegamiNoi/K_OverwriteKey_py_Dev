@@ -49,7 +49,14 @@ class TriggerDialog(tk.Toplevel):
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
+        self.bind("<Escape>", self._on_escape)
         grab_modal(self, parent, focus=self.key_entry)
+
+    def _on_escape(self, _event):
+        if getattr(self, "_capturing", False):
+            self._stop_capture()
+            return "break"
+        self.destroy()
 
     def _ok(self):
         key = normalize_key_name(self.key_var.get())
@@ -94,10 +101,6 @@ class TriggerDialog(tk.Toplevel):
         if not self._capturing:
             return
         k = self._normalize_tk_key(event.keysym)
-        # Escはキャンセル
-        if k == "esc":
-            self._stop_capture()
-            return "break"
         # 修飾キー単体は無視（ctrl/shift/alt/windows）
         if k in ("ctrl", "shift", "alt", "windows"):
             return "break"

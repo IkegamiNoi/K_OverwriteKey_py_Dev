@@ -127,7 +127,14 @@ class ActionDialog(tk.Toplevel):
                     self.mouse_drag_speed_var.set(str(initial.get("drag_speed", DEFAULT_DRAG_SPEED_PX_PER_SEC)))
 
         self._sync_capture_ui()
+        self.bind("<Escape>", self._on_escape)
         grab_modal(self, parent, focus=self.value_entry)
+
+    def _on_escape(self, _event):
+        if self._recording:
+            self._stop_recording()
+            return "break"
+        self.destroy()
 
     def on_ok(self):
         t = (self.type_var.get() or "").strip().lower()
@@ -291,10 +298,6 @@ class ActionDialog(tk.Toplevel):
         if not self._recording:
             return
         key = self._normalize_tk_key(event.keysym)
-        if key == "esc":
-            self._stop_recording()
-            return "break"
-
         if key in ("ctrl", "shift", "alt", "windows"):
             self._mods_down.add(key)
             # 修飾キーだけでは確定しない
