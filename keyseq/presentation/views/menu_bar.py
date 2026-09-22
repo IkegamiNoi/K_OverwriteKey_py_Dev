@@ -10,6 +10,7 @@ def build_menu_bar(app):
     file_menu.add_command(label="保存", command=app.keymap_set_io.save_keymap_set, accelerator="Ctrl+S")
     file_menu.add_command(label="別名で保存…", command=app.keymap_set_io.save_as, accelerator="Ctrl+Shift+S")
     file_menu.add_command(label="読込（構成セット）…", command=app.keymap_set_io.load_keymap_set_from, accelerator="Ctrl+O")
+    file_menu.add_command(label="履歴から読み込む…", command=app.keymap_set_history_io.open_history_dialog)
     file_menu.add_separator()
     file_menu.add_command(label="Import...", command=app.keymap_set_io.import_config)
     file_menu.add_command(label="Export...", command=app.keymap_set_io.export_config)

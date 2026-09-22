@@ -4,65 +4,70 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-22T12:40:00
+last_updated: 2026-09-22T14:30:00
 phase: `instructions/phase/27_keymap_set_load_history`（構成セットの読み込み履歴管理）。**暫定仕様先行モード**・主入力 = `instructions/history/21_keymap_set_load_history.md`（**v0.5**・ユーザー確定済）。番号対応: phase 27 / 暫定 21 / decisions 27。次採番 = phase 28 / 暫定 22 / decisions 28。
 直前の完了フェーズ = phase 26（判断履歴 = `decisions_archive/26_startup_entry_preservation.md`）。
-last_commit_location: `claude/jikki-mokushi-ok-58bca4`
+last_commit_location: `claude/task-04-progression-5fc03a`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 27 = 構成セットの読み込み履歴管理。task_01〔domain〕/ task_02〔永続化〕/ task_03〔記録経路〕完了・実測 green・reviewer 採用。暫定仕様は v0.5（起動時は記録しない）。次は task_04（履歴ダイアログ）の起票と実装委任。**
+focus: **phase 27 = 構成セットの読み込み履歴管理。task_01〜task_04 完了（UI まで到達・実測 green・reviewer 指摘 2 件修正済）。暫定仕様は v0.5（起動時は記録しない）。次は実機目視の依頼 → task_05（正本反映と完了）の起票。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-22T12:40:00
+ts: 2026-09-22T14:30:00
 who: main
 summary: |
-  【task_03 = 記録経路の接続】`codex-implementer` へ委任。**2 度の差し戻しを経て完了**。
-  新規 `controllers/config_io/keymap_set_history_io.py`（記録の**単一の口** `record()`）+
-  `keymap_set_io.py` へ**パス指定の共通読込入口** `load_keymap_set_path`（`load_keymap_set_from` の
-  try ブロックを移設・文言不変・成功で `KEYMAP_SET_LOAD_OK` / 失敗で `..._FAILED`）。
-  記録は **3 経路**（読込の共通入口 `:564` / 起動セット指定 `:665` / 保存成功 `:154`）。
-  【差し戻し 1 = 欠陥】`record()` に例外ガードが無く、呼び出し点が**既存 `try` の内側**のため
-  例外が「成功した保存を保存失敗と表示」「読込成功を読込失敗と表示」に化ける状態だった
-  （起動時経路では**読込成功済みの構成セットを捨てて空データ起動**した）。**reviewer は見逃しており**、
-  メインが実装を直読みして検出。境界で `(False, 理由)` へ変換させた。
-  【差し戻し 2 = 仕様改訂】実測で **`tests_ui` 9 モジュールが実 `config/` へ履歴ファイルを書く**ことが判明
-  （`App()` 生成 → 起動時の自動読込成功 → 記録。`.gitignore` の `config/` 除外で `git status` に出ない）。
-  ユーザー判断で**暫定仕様を v0.5 へ改訂し「起動時の自動読込では記録しない」**へ変更。
-  `startup_io.py` と `tests/smoke_app.py` は差分ゼロへ復元。9 モジュール + smoke の再走査で汚染ゼロを確認。
-  **先頭一致 no-op 規則は維持**（起動時永続化の回避策ではなく、連続で同じセットを開いたときの無駄書き防止として残る）。
-  【実測 = verifier】compile clean / `tests` **556**（skip 7・不変）/ `tests_ui` **471**（449 → **+22**）/
-  smoke OK / 副作用ゼロ（`config/` 直下・worktree ルートとも履歴ファイル未生成・config.json の mtime 不変）。
-  【レビュー = reviewer】最終状態で**完了可**（v0.5 追従・例外ガード維持・単一の口・挙動不変・
-  テストの検出力に欠落なしを `ファイルパス:行` 付きで確認）。
+  【task_04 = 履歴ダイアログ】起票（`/task_new`）→ `codex-implementer` へ委任 → 差し戻し 1 回で完了。
+  新規 3 ファイル: `keymap_set_history_text.py`（文言・純関数のみ）/
+  `dialogs/keymap_set_history_dialog.py`（`ttk.Treeview` + 同一ファイル内の `CategoryChooserDialog`）/
+  `tests_ui/test_keymap_set_history_flow.py`（11 件）。
+  `keymap_set_history_io.py` へ `open_history_dialog` + `load_history` / `entry_exists` /
+  `open_keymap_set` / 編集 6 メソッド（共通 `_edit` = **読み直し → domain → 保存成功のみ反映**）を追記。
+  `menu_bar.py` / `dialogs/__init__.py` は 1 行ずつ。**`record()` は不変**。
+  【UI 設計の判断（暫定仕様 §5.3 のラベル表記に合わせた）】分類名の入力は**インライン Entry**
+  （追加・リネームに「…」が無いため別窓にしない）/ 「分類へコピー…」だけ別窓 = `CategoryChooserDialog`
+  （`grab_modal` で親ダイアログへ grab が戻る）。**`simpledialog` は使わない**
+  （`grab_modal` を経由せず、閉じたあと親ダイアログへ grab が戻らない）。
+  【起票前の洗い出し】ハードコード列挙は **3 つ**（既知の `DIALOG_FILES` / `T2_DIALOG_FILES` に加え
+  **`tests_ui/test_nested_modal_grab.py:262` の `dialog_classes`**）。前 2 者と併せて追随済み。
+  `T2_DIALOG_FILES` は未追加（`destroy` override を持たせない方針）。メニュー系テストはラベル走査で影響なし。
+  【差し戻し = 2 件】①ダイアログが `status == "read_only"` と**契約値をリテラル複製**
+  → controller へ `is_read_only()` を追加し 2 箇所を置換 ②`copy_to_category` の比較キーが
+  `normpath`/`normcase` の**自前実装**（`ConfigService.canonical_path` の再実装。暫定仕様 §4.2 / §7 違反）
+  → `canonical_path` へ委譲。②は reviewer が挙げず**メインの直読みで検出**（`resolve_config_path` は
+  `abspath` を通さないため厳密には非等価）。
+  【レビュー = reviewer】5 観点 OK・テストの検出力に空振りなし。判定は「修正要」で上記①のみ指摘。
+  修正後の差分はメインが直読みで確認（リテラル残存ゼロ・範囲外への波及なし）。
 result_files:
-  - instructions/history/21_keymap_set_load_history.md（**v0.5** へ改訂）
-  - keyseq/presentation/controllers/config_io/keymap_set_history_io.py（新規）/ keymap_set_io.py / app.py
-  - tests_ui/test_keymap_set_history_record.py（新規・22 件）
-  - tests_ui/test_config_io_characterization.py / test_config_io_characterization_keymap_set_startup.py（patch 追加）
-  - instructions/phase/27_keymap_set_load_history/tasks/task_03_history_record_wiring.md（新規）/ phase.md
+  - instructions/phase/27_keymap_set_load_history/tasks/task_04_history_dialog.md（新規）/ phase.md（リンク化）
+  - keyseq/presentation/keymap_set_history_text.py（新規）/ dialogs/keymap_set_history_dialog.py（新規）
+  - keyseq/presentation/controllers/config_io/keymap_set_history_io.py / dialogs/__init__.py / views/menu_bar.py
+  - tests_ui/test_keymap_set_history_flow.py（新規・11 件）
+  - tests_ui/test_dialog_teardown_flows.py / test_nested_modal_grab.py（列挙の追随）
 verified:
   compile: clean
   tests: 556 ran OK（skipped 7・不変）
-  tests_ui: 471 ran OK（449 → +22）
+  tests_ui: 482 ran OK（471 → +11）
   smoke: SMOKE OK
-  review: reviewer（task_03 最終差分）= 完了可（採用）
+  side_effects: 履歴ファイル未生成（worktree ルート・`config/` 直下とも）・config.json の mtime 不変
+  review: reviewer（task_04 差分）= 修正要 → 2 件修正後に再実測 green
   refactor_check: not_run（phase 27 の task_05 で実施）
 
 
 ## next_action
-- **task_04 の起票前に `tests_ui` のハードコード列挙を洗い出す**（`DIALOG_FILES` / `T2_DIALOG_FILES`
-  以外に件数・個数を固定する assert が無いか。task_02 で「定数の個数」という 3 つ目が見つかったため）。
-- **task_04 の定義を `/task_new` で起票する**（`tasks/task_04_*.md`）。内容 =
-  `dialogs/keymap_set_history_dialog.py`（新規・**リポジトリ初の `ttk.Treeview`**・`ui_font_delta_pt` 追従）/
-  `keymap_set_history_text.py`（新規・整形）/ `keymap_set_history_io.py` へダイアログを開くメソッド追加 /
-  `views/menu_bar.py` へ「履歴から読み込む…」を `:12` の次行へ / `DIALOG_FILES` の更新 /
-  `tests_ui/test_keymap_set_history_flow.py`（手本 = `test_quarantine_manage_flow.py`）。
-  **未保存確認 → `load_keymap_set_path` → 成功したときだけ閉じる**（暫定仕様 §5.3 / §6）。
-  **操作のたびに永続化済みの内容を読み直して再描画**（§6）。読み取り専用モード（§4.4）の扱いも含む。
-- 以降 task_05（正本反映と完了。§5.12 新設 / 暫定仕様 21 の凍結 / `decisions_archive/27` / `/refactor_check`）。
-- **実機目視は task_04 完了後にユーザーへ依頼する**（UI が出るのは task_04）。
+- **実機目視をユーザーへ依頼する**（UI が出るのは task_04 から。未実施）。観点 =
+  ファイルメニューの項目位置（「読込（構成セット）…」の直後）/ 直近の展開と分類の折り畳み・名前順 /
+  フォントサイズ ±3 での行の高さ / 読み込む・履歴から削除・分類へコピー・分類編集の一巡 /
+  ダイアログを Escape・✕・読込成功で閉じたあとの操作性。
+- **task_05（正本反映と完了）を `/task_new` で起票する**（`tasks/task_05_*.md`）。内容 =
+  `spec_detail/data_schema.md` **§5.12 新設**（現最終節は §5.11）/ `features.md` §4.6 へ
+  「履歴から読み込む…」/ `codebase_map.md` へ新規 4 ファイル + メニュー項目 + 記録の呼び出し点 +
+  パス指定の読込入口 / `data_schema/5_08_09_orphan_sweep.md` の補記要否判断（暫定仕様 §9）/
+  **暫定仕様 21 の凍結** / `decisions_archive/27_keymap_set_load_history.md` /
+  `decisions.md` のアーカイブ索引 / `current.md` の完了記載と次採番（phase 28 / 暫定 22 / decisions 28）/
+  `/refactor_check`。
+- task_05 の完了判定は `deep-reviewer` + Codex レビュー併用（phase.md「レビュー方針」）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。

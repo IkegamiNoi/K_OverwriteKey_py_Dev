@@ -620,3 +620,27 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   ファイルを置いても隔離単位としては拾われない（＝壊さない）が、所有権と遅延作成の方針に反する。
 - **採用**: `config/keymap_set_history.broken.json`（既存があれば `broken2` … **連番 5 で打ち止め**）。
   退避に失敗したらそのセッションは書き込まず**読み取り専用**として扱う。
+
+### 【task_04】UI の入力方式 → **採用 = 分類名はインライン Entry / コピー先だけ別窓**（メイン判断 2026-09-22）
+
+- 暫定仕様 §5.3 のラベル表記が根拠。「＋分類を追加」「分類名を変更」に「…」が無く、
+  「分類へコピー…」だけに付く＝前者は別窓を開かない、という読み。
+- **`simpledialog.askstring` は使わない**（既存 `keymap_panel_controller.py:175` では使用しているが、
+  `grab_modal` を経由しないため**閉じたあと親ダイアログへ grab が戻らない**。モーダルの親が
+  ダイアログである本ケースでは使えない）。コピー先選択は `CategoryChooserDialog`
+  （`keymap_set_history_dialog.py` 内の 2 番目のクラス・`grab_modal` で親へ復帰）。
+- 同一ファイルに 2 クラス置く形は既存の静的検査と両立する（`suspend_hook_for_dialog` は
+  親クラスのみ 1 回 / `dialog_classes` の `grab_modal` 検査は名前を指定したクラスの `__init__` のみ対象）。
+
+### 【task_04 レビュー】指摘 2 件 → **修正して採用**（2026-09-22）
+
+- ①**契約値のリテラル複製**（`reviewer` 指摘）: ダイアログが `status == "read_only"` と比較していた
+  （`contracts.HISTORY_READ_ONLY` の値の複製）。→ controller へ `is_read_only()` を追加し 2 箇所を置換。
+  ダイアログは application を直接 import しない制約を維持するため、判定を controller 側へ寄せた。
+- ②**比較キーの再実装**（**メインの直読みで検出・reviewer は挙げず**）: `copy_to_category` の `key_of` が
+  `normpath` + `normcase` を自前で組んでいた。`ConfigService.canonical_path`（`__init__.py:747`）が
+  同じ規則の公開単一点であり、暫定仕様 §4.2 / §7 は比較キー生成を application の責務と規定。
+  → `canonical_path` へ委譲。`resolve_config_path`（`__init__.py:771-777`）は **`abspath` を通さない**ため
+  自前実装は厳密には非等価だった（config_root が相対のとき差が出る）。
+- 教訓の再確認: **レビュアーの「問題なし」は網羅の証明ではない**。設計規則の単一点（公開 API）が
+  既にある箇所は、実装が**それを呼んでいるか**をメインが `ファイルパス:行` で確認する。

@@ -11,8 +11,12 @@
   ファイルメニューに「履歴から読み込む…」を追加し、**直近 20 件 + ユーザーが作る分類**を `ttk.Treeview` で扱う。
   履歴からの削除・直近から分類へのコピーができる。**新規 JSON を 1 つ増やす**（`config/keymap_set_history.json`）が
   **既存スキーマは不変**で config.json にキーを追加しない。**暫定仕様先行モード**。
-  主入力 = [暫定仕様 21](../history/21_keymap_set_load_history.md)（**v0.4・ユーザー確定済**）。
+  主入力 = [暫定仕様 21](../history/21_keymap_set_load_history.md)（**v0.5・ユーザー確定済**。
+  v0.5 = 起動時の自動読込では記録しない）。
   起票元 = ユーザー要望（2026-09-21）・idea なし。番号対応: phase 27 / 暫定 21 / decisions 27。
+  **進捗: task_01〔domain 純関数〕/ task_02〔永続化〕/ task_03〔記録経路 + パス指定の読込入口〕/
+  task_04〔履歴ダイアログ〕完了**（2026-09-22・いずれも実測 green・reviewer 採用）。
+  **残り = 実機目視（ユーザー）→ task_05〔正本反映と完了〕**。
 - [phase 26](26_startup_entry_preservation/phase.md) は 2026-09-21 完了。
 - **直近の一連の作業が扱っている領域 = 起動エントリ（`config/config.json` の `keymap_set_path`）の書き込み契機**（phase 26）。
   正本は `data_schema.md` **§5.4**（保存では起動エントリを更新しない条項）/ `data_schema/5_08_09_orphan_sweep.md` 走査経路 3 の根拠文、`codebase_map.md`。

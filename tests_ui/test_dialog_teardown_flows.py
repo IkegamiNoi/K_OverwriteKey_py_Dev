@@ -16,6 +16,7 @@ from keyseq.presentation.dialogs.quarantine_manage_dialog import QuarantineManag
 DIALOG_FILES = (
     "action_dialog.py",
     "keymap_edit_dialog.py",
+    "keymap_set_history_dialog.py",
     "layout_delete_dialog.py",
     "orphan_sweep_dialog.py",
     "preset_manager.py",
@@ -248,7 +249,7 @@ class DialogTeardownFlowsTest(unittest.TestCase):
 
 class DialogTeardownStaticTest(unittest.TestCase):
     def test_static_1_dialog_suspend_passes_self_once(self):
-        """static-check-1 / §7-5: 指定8ファイルで suspend(self) が各1件。"""
+        """static-check-1 / §7-5: 指定9ファイルで suspend(self) が各1件。"""
         dialogs = Path(__file__).resolve().parents[1] / "keyseq" / "presentation" / "dialogs"
         for filename in DIALOG_FILES:
             with self.subTest(filename=filename):
@@ -262,7 +263,7 @@ class DialogTeardownStaticTest(unittest.TestCase):
                 self.assertEqual(calls[0].keywords, [])
 
     def test_static_2_dialogs_do_not_call_resume(self):
-        """static-check-2 / §7-6: 指定8ファイル全体で明示 resume が0件。"""
+        """static-check-2 / §7-6: 指定9ファイル全体で明示 resume が0件。"""
         dialogs = Path(__file__).resolve().parents[1] / "keyseq" / "presentation" / "dialogs"
         for filename in DIALOG_FILES:
             with self.subTest(filename=filename):

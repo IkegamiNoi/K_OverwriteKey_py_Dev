@@ -262,6 +262,7 @@ class NestedModalGrabTest(unittest.TestCase):
         dialog_classes = {
             "action_dialog.py": "ActionDialog",
             "keymap_edit_dialog.py": "KeymapEditDialog",
+            "keymap_set_history_dialog.py": "KeymapSetHistoryDialog",
             "layout_delete_dialog.py": "LayoutDeleteDialog",
             "orphan_sweep_dialog.py": "OrphanSweepDialog",
             "preset_dialog.py": "PresetDialog",

@@ -7,3 +7,4 @@ from .layout_delete_dialog import LayoutDeleteDialog
 from .reference_cleanup_dialog import ReferenceCleanupDialog
 from .orphan_sweep_dialog import OrphanSweepDialog
 from .quarantine_manage_dialog import QuarantineManageDialog
+from .keymap_set_history_dialog import KeymapSetHistoryDialog

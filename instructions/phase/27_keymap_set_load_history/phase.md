@@ -16,7 +16,8 @@
 
 - 起票元: ユーザー要望（2026-09-21）・idea なし。
 - 主入力（暫定仕様）: [21_keymap_set_load_history.md](../../history/21_keymap_set_load_history.md)
-  （**v0.4・ユーザー確定済・実装着手可**）。**フェーズ中はこれが正**（正本は直接改訂しない）。
+  （**v0.5・ユーザー確定済・実装着手可**。v0.5 = 起動時の自動読込では記録しない）。
+  **フェーズ中はこれが正**（正本は直接改訂しない）。
 - モード: **暫定仕様先行モード**。番号対応: phase 27 / 暫定 21 / decisions 27。
 
 ## 確定（ユーザー 2026-09-21）
@@ -83,7 +84,7 @@
 - [task_03](tasks/task_03_history_record_wiring.md): **記録経路の接続**（`controllers/config_io/keymap_set_history_io.py` 新規の `record()` +
   §4.1 の呼び出し点 + **パス指定の共通読込入口**を `keymap_set_io.py` へ追加）。
   + 既存 characterization テストの patch + テスト
-- task_04: **履歴ダイアログ**（`dialogs/keymap_set_history_dialog.py` / `keymap_set_history_text.py` 新規 +
+- [task_04](tasks/task_04_history_dialog.md): **履歴ダイアログ**（`dialogs/keymap_set_history_dialog.py` / `keymap_set_history_text.py` 新規 +
   `menu_bar.py` へ 1 行）— Treeview・フォント追従・ボタン群・再描画・読み取り専用モード。
   + `DIALOG_FILES` の更新 + `tests_ui` のフローテスト
 - task_05: **正本反映と完了**（`data_schema.md` §5.12 新設 / `features.md` §4.6 / `codebase_map.md` /
