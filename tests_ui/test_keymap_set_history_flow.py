@@ -134,6 +134,19 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
             self.assertEqual(str(style.lookup(name, "font")), "TkDefaultFont")
         self.assertGreater(int(style.lookup("Treeview", "rowheight")), 0)
 
+    def test_keyboard_focus_moves_into_dialog_and_only_path_column_stretches(self):
+        """実機目視の指摘 2 件（Escape が親へ届く / 枠の拡縮が名前列にも及ぶ）の再発防止。"""
+        dialog = self._dialog()
+        self.app.update()
+        # focus_force を使わずに、ダイアログ内へフォーカスが入っていること。
+        self.assertTrue(str(dialog.focus_get()).startswith(str(dialog)))
+        self.assertFalse(dialog.tree.column("#0", "stretch"))
+        self.assertTrue(dialog.tree.column("path", "stretch"))
+        chooser = dialogs.CategoryChooserDialog(dialog, names=("a",))
+        self.addCleanup(self._close, chooser)
+        self.app.update()
+        self.assertTrue(str(chooser.focus_get()).startswith(str(chooser)))
+
     def test_load_failure_cancel_and_updated_disk(self):
         confirm = self._patch(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True)
         load = self._patch(self.app.keymap_set_io, "load_keymap_set_path", return_value="failed")

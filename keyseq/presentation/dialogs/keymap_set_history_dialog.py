@@ -27,6 +27,8 @@ class KeymapSetHistoryDialog(tk.Toplevel):
         self._redraw()
         self.bind("<Escape>", lambda _event: self.destroy())
         self.protocol("WM_DELETE_WINDOW", self.destroy)
+        # フォーカスを移さないと Escape が親（App）へ届き、ダイアログが閉じない。
+        self.tree.focus_set()
         grab_modal(self, parent)
 
     def _build_widgets(self) -> None:
@@ -43,7 +45,9 @@ class KeymapSetHistoryDialog(tk.Toplevel):
         self.tree = ttk.Treeview(listing, columns=("path",), show="tree headings", selectmode="browse")
         self.tree.heading("#0", text=text.NAME_HEADING)
         self.tree.heading("path", text=text.PATH_HEADING)
-        self.tree.column("path", width=400)
+        # 枠の拡縮はパス列だけに配分する（名前列の幅は列境界のドラッグで変える）。
+        self.tree.column("#0", width=240, minwidth=80, stretch=False)
+        self.tree.column("path", width=400, minwidth=120, stretch=True)
         self.tree.pack(side="left", fill="both", expand=True)
         scrollbar = ttk.Scrollbar(listing, orient="vertical", command=self.tree.yview)
         scrollbar.pack(side="right", fill="y")
@@ -209,6 +213,7 @@ class CategoryChooserDialog(tk.Toplevel):
         ttk.Button(actions, text=text.CANCEL, command=self.destroy).pack(side="left")
         self.bind("<Escape>", lambda _event: self.destroy())
         self.protocol("WM_DELETE_WINDOW", self.destroy)
+        self.listbox.focus_set()
         grab_modal(self, parent)
 
     def _ok(self) -> None:

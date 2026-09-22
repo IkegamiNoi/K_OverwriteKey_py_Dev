@@ -39,6 +39,14 @@ summary: |
   `abspath` を通さないため厳密には非等価）。
   【レビュー = reviewer】5 観点 OK・テストの検出力に空振りなし。判定は「修正要」で上記①のみ指摘。
   修正後の差分はメインが直読みで確認（リテラル残存ゼロ・範囲外への波及なし）。
+  【実機目視（ユーザー 2026-09-22）→ 指摘 2 件を修正】①**Escape で閉じない**（操作ミスではない）。
+  実測（診断スクリプト）で**ダイアログ生成直後の Tk フォーカスが App ルート `.` のまま**と判明。
+  `grab_modal` の直前へ `self.tree.focus_set()`（チューザは `listbox.focus_set()`）を追加。
+  **既存テストは `focus_force()` を呼んでから `event_generate` していたため不具合を隠していた**
+  → `focus_force` なしでフォーカス位置を検証するテストを追加。
+  ②**枠を広げると名前列まで広がる** → 名前列 `#0` を `stretch=False`（240/最小 80）・
+  パス列を `stretch=True`（400/最小 120）。枠の拡縮はパス列だけに配分される。
+  他の目視項目（メニュー位置・折り畳みと名前順・フォント ±3・各操作の一巡）は問題なし。
 result_files:
   - instructions/phase/27_keymap_set_load_history/tasks/task_04_history_dialog.md（新規）/ phase.md（リンク化）
   - keyseq/presentation/keymap_set_history_text.py（新規）/ dialogs/keymap_set_history_dialog.py（新規）
@@ -48,7 +56,7 @@ result_files:
 verified:
   compile: clean
   tests: 556 ran OK（skipped 7・不変）
-  tests_ui: 482 ran OK（471 → +11）
+  tests_ui: 483 ran OK（471 → +12。目視指摘の再発防止テスト 1 件を含む）
   smoke: SMOKE OK
   side_effects: 履歴ファイル未生成（worktree ルート・`config/` 直下とも）・config.json の mtime 不変
   review: reviewer（task_04 差分）= 修正要 → 2 件修正後に再実測 green
@@ -56,10 +64,8 @@ verified:
 
 
 ## next_action
-- **実機目視をユーザーへ依頼する**（UI が出るのは task_04 から。未実施）。観点 =
-  ファイルメニューの項目位置（「読込（構成セット）…」の直後）/ 直近の展開と分類の折り畳み・名前順 /
-  フォントサイズ ±3 での行の高さ / 読み込む・履歴から削除・分類へコピー・分類編集の一巡 /
-  ダイアログを Escape・✕・読込成功で閉じたあとの操作性。
+- **実機目視の再確認をユーザーへ依頼する**（1 回目で指摘 2 件 → 修正済。**Escape で閉じること**と
+  **枠を広げてもパス列だけ伸びること**の 2 点を再確認。他項目は 1 回目で問題なし）。
 - **task_05（正本反映と完了）を `/task_new` で起票する**（`tasks/task_05_*.md`）。内容 =
   `spec_detail/data_schema.md` **§5.12 新設**（現最終節は §5.11）/ `features.md` §4.6 へ
   「履歴から読み込む…」/ `codebase_map.md` へ新規 4 ファイル + メニュー項目 + 記録の呼び出し点 +
