@@ -5,6 +5,7 @@ import unittest
 from tkinter import ttk
 from pathlib import Path
 from unittest.mock import Mock, patch
+from tests_ui.escape_delivery import send_escape
 
 from keyseq.application.config_service.contracts import QuarantineDeleteResult, QuarantineRestoreResult, QuarantineUnit
 from keyseq.presentation import app as app_module
@@ -316,8 +317,7 @@ class QuarantineManageDialogTest(unittest.TestCase):
                     self.assertTrue(dialog.bind("<Escape>"))
                     dialog.deiconify()
                     dialog.update_idletasks()
-                    dialog.focus_force()
-                    dialog.event_generate("<Escape>")
+                    send_escape(self, self.app, dialog)
                 else:
                     dialog.tk.call(dialog.protocol("WM_DELETE_WINDOW"))
                 self.assertFalse(dialog.winfo_exists())

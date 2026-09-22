@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import messagebox
 import unittest
 from unittest.mock import patch
+from tests_ui.escape_delivery import send_escape
 
 from keyseq.presentation.app import App
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
@@ -154,10 +155,7 @@ class DialogTeardownFlowsTest(unittest.TestCase):
         dialog.update_idletasks()
         self.assertTrue(dialog.winfo_viewable())
         self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
-        dialog.focus_force()
-        self.app.update()
-        dialog.event_generate("<Escape>")
-        self.app.update()
+        send_escape(self, self.app, dialog)
         self.assertFalse(dialog.winfo_exists())
         resume.assert_called_once_with()
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)

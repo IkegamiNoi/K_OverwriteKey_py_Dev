@@ -6,6 +6,7 @@ from contextlib import ExitStack
 from pathlib import Path
 from tkinter import ttk
 from unittest.mock import Mock, patch
+from tests_ui.escape_delivery import send_escape
 
 from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation import app as app_module, keymap_set_history_text as text
@@ -301,9 +302,7 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
             dialog = self._dialog()
             self.assertEqual(self.app.hook.get_hook_pause_count(), before + 1)
             if route == "escape":
-                dialog.focus_force()
-                self.app.update()
-                dialog.event_generate("<Escape>")
+                send_escape(self, self.app, dialog)
             elif route == "wm":
                 dialog.tk.call(dialog.protocol("WM_DELETE_WINDOW"))
             else:
