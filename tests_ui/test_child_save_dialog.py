@@ -159,6 +159,9 @@ class _FakeSaveDialog:
         self.resizable_calls = []
         self.call_log = []
 
+    def focus_set(self):
+        self.call_log.append("focus_set")
+
     def title(self, _value):
         pass
 

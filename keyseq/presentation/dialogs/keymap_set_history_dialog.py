@@ -27,9 +27,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
         self._redraw()
         self.bind("<Escape>", lambda _event: self.destroy())
         self.protocol("WM_DELETE_WINDOW", self.destroy)
-        # フォーカスを移さないと Escape が親（App）へ届き、ダイアログが閉じない。
-        self.tree.focus_set()
-        grab_modal(self, parent)
+        grab_modal(self, parent, focus=self.tree)
 
     def _build_widgets(self) -> None:
         frame = ttk.Frame(self, padding=12)
@@ -211,8 +209,7 @@ class CategoryChooserDialog(tk.Toplevel):
         ttk.Button(actions, text=text.CANCEL, command=self.destroy).pack(side="left")
         self.bind("<Escape>", lambda _event: self.destroy())
         self.protocol("WM_DELETE_WINDOW", self.destroy)
-        self.listbox.focus_set()
-        grab_modal(self, parent)
+        grab_modal(self, parent, focus=self.listbox)
 
     def _ok(self) -> None:
         selected = self.listbox.curselection()

@@ -36,8 +36,7 @@ class PresetDialog(tk.Toplevel):
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
-        self.value_entry.focus_set()
-        grab_modal(self, parent)
+        grab_modal(self, parent, focus=self.value_entry)
 
     def _ok(self):
         value = (self.value_var.get() or "").strip()

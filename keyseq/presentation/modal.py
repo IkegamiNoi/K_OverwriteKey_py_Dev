@@ -62,10 +62,22 @@ def install_minimize_grab_custody(app: tk.Misc) -> None:
     app.bind("<Map>", return_custody, add="+")
 
 
-def grab_modal(window: tk.Toplevel, parent: tk.Misc | None = None) -> None:
+def _apply_initial_focus(window: tk.Toplevel, focus: tk.Misc | None) -> None:
+    target = window if focus is None else focus
+    try:
+        target.focus_set()
+    except tk.TclError:
+        # 破棄中の窓では TclError になるため、終了を妨げない。
+        pass
+
+
+def grab_modal(
+    window: tk.Toplevel, parent: tk.Misc | None = None, *, focus: tk.Misc | None = None
+) -> None:
     """window をモーダル化し、破棄されたら直前の grab 保持者へ戻す。
 
     初期化の最後に呼び、grab 取得後に初期化処理を残さないこと。
+    初期フォーカスもここで設定する（省略時は窓自身）。
     本関数の呼び出しより前で例外が出た場合、子はまだ grab を取得しておらず、
     親が grab を保持したまま残る。
     """
@@ -88,6 +100,7 @@ def grab_modal(window: tk.Toplevel, parent: tk.Misc | None = None) -> None:
     if parent is not None:
         window.transient(parent)
     window.grab_set()
+    _apply_initial_focus(window, focus)
     _active_modals.append(window)
     restored = False
 

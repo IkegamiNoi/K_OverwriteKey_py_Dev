@@ -50,8 +50,7 @@ class KeymapEditDialog(tk.Toplevel):
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
-        self.label_entry.focus_set()
-        grab_modal(self, parent)
+        grab_modal(self, parent, focus=self.label_entry)
 
     def _ok(self):
         self.result = {

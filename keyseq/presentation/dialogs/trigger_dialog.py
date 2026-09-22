@@ -49,8 +49,7 @@ class TriggerDialog(tk.Toplevel):
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
-        self.key_entry.focus_set()
-        grab_modal(self, parent)
+        grab_modal(self, parent, focus=self.key_entry)
 
     def _ok(self):
         key = normalize_key_name(self.key_var.get())

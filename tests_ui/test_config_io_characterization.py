@@ -70,6 +70,10 @@ class _FakeDialog:
         self._protocols = {}
         self._bindings = {}
         self.title_value = None
+        self.focus_set_calls = []
+
+    def focus_set(self):
+        self.focus_set_calls.append("focus_set")
 
     def title(self, value):
         self.title_value = value

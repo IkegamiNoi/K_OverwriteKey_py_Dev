@@ -233,14 +233,14 @@ class ChildSaveDialog:
         result = {"action": ""}
         self._app.hook.suspend_hook_for_dialog()
         try:
-            dialog = self._create_dependency_dialog(
+            dialog, focus_widget = self._create_dependency_dialog(
                 message,
                 trigger_set_row,
                 result,
             )
             dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)
             dialog.bind("<Escape>", lambda _event: dialog.destroy())
-            grab_modal(dialog, self._app)
+            grab_modal(dialog, self._app, focus=focus_widget)
             dialog.wait_window()
             return result["action"]
         finally:
@@ -281,8 +281,7 @@ class ChildSaveDialog:
         ttk.Button(buttons, text="保存", command=lambda: choose(ACTION_SAVE)).pack(
             side="right", padx=(0, 8)
         )
-        save_as_button.focus_set()
-        return dialog
+        return dialog, save_as_button
 
     def confirm_recalculated_overwrite(
         self, rows: Sequence[ChildSaveRow]

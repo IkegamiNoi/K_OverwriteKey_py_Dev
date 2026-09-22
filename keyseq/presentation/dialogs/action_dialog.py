@@ -126,9 +126,8 @@ class ActionDialog(tk.Toplevel):
                     self.mouse_to_y_var.set(str(initial.get("to_y", "")))
                     self.mouse_drag_speed_var.set(str(initial.get("drag_speed", DEFAULT_DRAG_SPEED_PX_PER_SEC)))
 
-        self.value_entry.focus_set()
         self._sync_capture_ui()
-        grab_modal(self, parent)
+        grab_modal(self, parent, focus=self.value_entry)
 
     def on_ok(self):
         t = (self.type_var.get() or "").strip().lower()

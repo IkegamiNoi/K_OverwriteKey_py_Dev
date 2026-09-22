@@ -40,6 +40,54 @@ class ModalGrabTest(unittest.TestCase):
             window.grab_release()
             window.destroy()
 
+    def test_initial_focus_defaults_to_window(self):
+        window = self.make_window()
+        with patch.object(window, "focus_set") as focus_set:
+            grab_modal(window, self.root)
+        focus_set.assert_called_once_with()
+
+    def test_initial_focus_uses_explicit_child(self):
+        window = self.make_window()
+        child = tk.Entry(window)
+        with (
+            patch.object(window, "focus_set") as window_focus,
+            patch.object(child, "focus_set") as child_focus,
+        ):
+            grab_modal(window, self.root, focus=child)
+        child_focus.assert_called_once_with()
+        window_focus.assert_not_called()
+
+    def test_duplicate_grab_does_not_repeat_initial_focus(self):
+        window = self.make_window()
+        with patch.object(window, "focus_set") as focus_set:
+            grab_modal(window, self.root)
+            focus_set.assert_called_once_with()
+            focus_set.reset_mock()
+            grab_modal(window, self.root)
+            focus_set.assert_not_called()
+
+    def test_custody_grab_does_not_repeat_initial_focus(self):
+        window = self.make_window()
+        with (
+            patch.object(modal, "_custody_window", window),
+            patch.object(window, "grab_current", return_value=None),
+            patch.object(window, "focus_set") as focus_set,
+        ):
+            grab_modal(window, self.root)
+        focus_set.assert_not_called()
+
+    def test_initial_focus_does_not_force_or_lift_window(self):
+        window = self.make_window()
+        with (
+            patch.object(window, "focus_set") as focus_set,
+            patch.object(window, "focus_force") as focus_force,
+            patch.object(window, "lift") as lift,
+        ):
+            grab_modal(window, self.root)
+        focus_set.assert_called_once_with()
+        focus_force.assert_not_called()
+        lift.assert_not_called()
+
     def test_restores_previous_holder_independent_of_transient_parent(self):
         a = self.make_window()
         b = self.make_window()
