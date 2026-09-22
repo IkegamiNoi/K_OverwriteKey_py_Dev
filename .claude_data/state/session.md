@@ -4,69 +4,65 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-22T17:10:00
-phase: **アクティブなフェーズは無い**（phase 27 完了・次フェーズ未確定）。次採番 = phase 28 / 暫定 22 / decisions 28。
+last_updated: 2026-09-22T19:40:00
+phase: `instructions/phase/28_dialog_keyboard_focus`（**起票済・実装未着手**）。次採番 = phase 29 / 暫定 23 / decisions 29。
 直前の完了フェーズ = **phase 27**（構成セットの読み込み履歴管理・2026-09-22 完了。判断履歴 = `decisions_archive/27_keymap_set_load_history.md`。暫定仕様 21 は凍結済）。
-last_commit_location: `claude/task-04-progression-5fc03a`
+last_commit_location: `claude/idea-26-idea-18-1bf4df`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 27（構成セットの読み込み履歴管理）完了。task_01〜task_06・正本昇格（§5.12 新設）・暫定仕様 21 の凍結・実機目視 OK・refactor_check〔不要〕まで完了。次フェーズ未確定。**
-mode: completed
+focus: **phase 28（ダイアログの初期キーボードフォーカス）を起票。暫定仕様 22 = v0.4・ユーザー確定済。task_01〜06 を定義済で実装は未着手。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-22T17:10:00
+ts: 2026-09-22T19:40:00
 who: main
 summary: |
-  【task_05 = 正本反映とフェーズ完了 / task_06 = 編集失敗時の再描画】**phase 27 完了**。
-  正本へ昇格: `data_schema.md` **§5.12 新設**（5.12.1〜5.12.8）+ §5.4 へ遅延作成 1 行 /
-  `features.md` §4.6 へ「履歴から読み込む…」と UI 規定の子ビュレット / `codebase_map.md` 4 箇所 /
-  暫定仕様 21 を**凍結** / `decisions_archive/27` 作成 + `decisions.md` を 646 → 546 行へ集約 /
-  `current.md` をアクティブ無しへ（次採番 = phase 28 / 暫定 22 / decisions 28）。
-  【フェーズ完了判定レビュー = `deep-reviewer` + `codex-adversarial-reviewer`】
-  **`deep-reviewer` の H1 は正しい指摘で、メインの昇格漏れだった**: UI・編集の規範条項
-  （同名禁止 / 分類内の重複禁止 / 削除の粒度 / 不在表示 / 閉じる条件 / 再描画 / Treeview のフォント追従）が
-  **コードにしか存在しない**状態 → **§5.12.7「分類とエントリの編集」新設**（データ規則）+
-  `features.md` §4.6 の子ビュレット（UI）へ分けて昇格。M2-1（退避先は `broken`〜`broken5` の最大 5 個）/
-  M3（テスト記載の誤り）/ L2 / L5 も修正。
-  【ユーザー判断 4 件】①読み取り専用のラッチ → **正本を都度判定へ正す**（実装は無変更。
-  保全の不変条件は都度判定でも保たれ、ラッチだと一時障害後に再起動が要る）②編集失敗時の再描画 →
-  **採用 = task_06 で実装**（`_finish_edit` で再描画を先に・その後に理由）③未知キー →
-  **保持しないことを §5.12.2 へ明記** ④多重起動時の 2 件（退避先 TOCTOU / 削除時の index 陳腐化）→
-  **受容**（単一インスタンスでは成立しない。phase 11 の TOCTOU 受容と同じ扱い）。
-  【flaky の 3 例目】コード差分ゼロの時点で `tests_ui` 一括が 3 回中 1 回 FAILED（毎回別テスト・
-  いずれも Escape 経由の `get_hook_pause_count()` が `1 != 0`）。単体実行は安定 → **idea_18 の既知症状**。
-  今回追加した `test_close_routes_restore_hook_and_parent_grab` も同 family に入った旨を idea_18 へ追記。
-  【refactor_check】**不要**（M1〜M6 非該当）。境界の 1 件（履歴ファイル名の語幹が 2 箇所に直値）は
-  `current.md`「別タスク化候補」の Phase 27 項へ。
+  【phase 28 の起票】idea_26（主）+ idea_18（同梱）で **phase 28 を起票**。暫定仕様 22 を
+  v0.1 → **v0.4（ユーザー確定済・実装着手可）**まで進めた。
+  【実測で設計が変わった】`.venv` python の probe 4 本で次を確認:
+  ①**未マップの Toplevel への `focus_set` は Tk 内で保留され、`focus_lastfor()` / `focus_get()` から
+  検出できない** → 「既存指定の有無を `grab_modal` 側で判定する」推測型（v0.1 の `focus_lastfor` 案 /
+  `after_idle` 案）は**群 A の初期フォーカスを奪う**ため反証。**明示引数
+  `grab_modal(window, parent=None, *, focus=None)` が唯一の形**（省略時は窓自身）。
+  ②**Tk はキーイベントをフォーカス窓へ再配送する**ため `event_generate("<Escape>")` は宛先ではなく
+  フォーカスに従う → **idea_18 の案 B〔配送後に待つ〕では直らない**（届かなかったイベントは待っても来ない）。
+  「フォーカス確保 → 送信 → 破棄待ち」の再試行 + **診断を先に採る**へ設計変更。
+  ③`value_entry` の `disabled` 化と `focus_set` の前後関係はフォーカス先を変えない（機械的移行は安全）。
+  【レビュー 3 本】`deep-reviewer`（起票時・H3/M7/L7）→ 反映して v0.2 → v0.3 /
+  `codex-adversarial-reviewer`（確定前・H2/M2）→ 反映して v0.3 /
+  `reviewer`（phase.md 整合確認）→ **採用**（§8-5 の対応先明示のみ反映）。
+  【ユーザー判断 6 件】①案 B（grab_modal へ集約）②idea_18 を同梱 ③同型スケルトン共通化は**非合流**
+  ④群 C（Escape bind なし 5 経路）にフォーカスが入る挙動変化を**受容** ⑤**正本へ Escape 条項も追加し
+  群 C の 5 経路へ Escape を実装**（スコープ拡大）⑥フォーカス復帰は**スコープ外 + 再現確認のみ**。
+  【裏取りで見つけた正本の誤り】`codebase_map.md:308`「production の 13 箇所」は**実測 15 箇所**
+  → フェーズ末の昇格タスクで訂正（ユーザー承認済）。idea_26 の「正本 §4.6 に Escape 規定あり」も
+  **実在しない**（正本はフォーカス・Escape とも空白）。
 result_files:
-  - instructions/common/spec_detail/data_schema.md（§5.12 新設 + §5.4）/ features.md（§4.6）/ codebase_map.md
-  - instructions/history/21_keymap_set_load_history.md（**凍結**）
-  - .claude_data/state/decisions_archive/27_keymap_set_load_history.md（新規）/ decisions.md（集約）
-  - instructions/phase/current.md / 27_keymap_set_load_history/phase.md / tasks/task_05・task_06（新規）
-  - instructions/backlog/idea_18_escape_delivery_flaky_test.md（3 例目の追記）
-  - keyseq/presentation/dialogs/keymap_set_history_dialog.py（task_06・`_finish_edit`）/
-    tests_ui/test_keymap_set_history_flow.py（task_06・+1 件）
+  - instructions/history/22_dialog_keyboard_focus.md（新規・v0.4）
+  - instructions/phase/28_dialog_keyboard_focus/phase.md（新規）
+  - instructions/phase/current.md（参照先・次採番・次フェーズ候補・別タスク化候補）
+  - instructions/backlog/INDEX.md（idea_18 / idea_26 を「着手」へ）
 verified:
-  compile: clean
-  tests: 556 ran OK（skipped 7・フェーズ通して不変）
-  tests_ui: 484 ran OK（449 → +35）
-  smoke: SMOKE OK
-  side_effects: 履歴ファイル未生成（worktree ルート・`config/` 直下とも）・config.json の mtime 不変
-  review: task_06 = reviewer 採用（指摘なし）/ フェーズ完了判定 = deep-reviewer 修正要 → H1 ほか反映済 +
-    codex-adversarial-reviewer 3 件 → ユーザー判断で決着
-  refactor_check: 不要（M1〜M6 非該当）
-
+  compile: not_run（コード変更なし・文書のみ）
+  tests: not_run
+  tests_ui: not_run
+  probe: `.venv` python で tkinter フォーカス挙動を 4 本実測（scratchpad・リポジトリには残さない）
+  review: deep-reviewer〔修正して採用〕/ codex-adversarial-reviewer〔needs-attention → 反映済〕/
+    reviewer〔整合確認 = 採用〕
 
 ## next_action
-- **phase 27 は完了。アクティブなフェーズは無い**。次フェーズの方針をユーザーへ確認してから
-  `/phase_start` で起票する（候補は `instructions/backlog/INDEX.md`）。
-- **次フェーズの有力候補 = [idea_26](../../instructions/backlog/idea_26_dialog_keyboard_focus.md)**
-  （ダイアログがキーボードフォーカスを取らず Escape が効かない。`orphan_sweep` /
-  `quarantine_manage` / `reference_cleanup` の横断修正 + テストの検出力強化）。
-  案 A（個別に `focus_set`・1 タスク規模）/ 案 B（`grab_modal` へ集約 + 正本 `features.md` §4.6 へ追記・
-  小フェーズ規模）の選択が着手時の判断ポイント。**phase 27 で実測済みの材料がある**うちが着手しやすい。
-- `/save_handoff` で handoff.md を再生成する（phase 27 完了・次フェーズ未確定の状態へ）。
+- **task_01 のタスク定義を `/task_new` で起票する**
+  （`instructions/phase/28_dialog_keyboard_focus/tasks/task_01_*.md`）。内容 =
+  `keyseq/presentation/modal.py` の `grab_modal` へ `focus` 引数 + `_apply_initial_focus` を追加 /
+  群 A・A' の 7 経路（`action_dialog.py:129-131` / `keymap_edit_dialog.py:53-54` /
+  `keymap_set_history_dialog.py:31-32`・`:214-215` / `preset_dialog.py:39-40` /
+  `trigger_dialog.py:52-53` / `child_save_dialog.py:284`→`:243`）の `focus_set` を引数へ移行 /
+  偽 Toplevel 2 クラス（`tests_ui/test_child_save_dialog.py:149` /
+  `test_config_io_characterization.py:65`）へ `focus_set` を追加 / 決定論的な単体テスト。
+- 起票後、**`codex-implementer` へ実装を委任**（テストコードの追加・修正まで含め、**テスト実行は依頼しない**）。
+  実測は `verifier`。完了前に `reviewer` の必須レビュー。
+- `/save_handoff` で handoff.md を再生成する（phase 28 着手状態へ）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
@@ -76,6 +72,17 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 28 の設計は暫定仕様 22 が正】**（v0.4・未凍結。フェーズ中は正本を直接改訂しない）
+  ①実装方式 = **明示引数** `grab_modal(window, parent=None, *, focus=None)`。**省略時は窓自身**。
+  **推測型（`focus_lastfor()` / `after_idle`）は実測で反証済**（未マップ時の `focus_set` は Tk 内で保留され
+  外から検出できないため、既存の明示指定を奪う）
+  ②**Tk はキーイベントをフォーカス窓へ再配送する**（`event_generate` は宛先ではなくフォーカスに従う）。
+  **アプリが OS フォーカスを失うと `focus_get()` は `None`・`focus_set()` も効かない**
+  → `focus_get()` 依存のテストは **skip ガード**を付ける（増やしすぎると idea_18 と同じ弱さになる）
+  ③群分け = **A=6 経路（明示あり）/ A'=1（ビルダ内で明示）/ B=3（欠落・本件）/ C=5（Escape bind なし）**、
+  計 **15 箇所**（`codebase_map.md:308` の「13 箇所」は**誤り**。フェーズ末に訂正する）
+  ④**群 C の 5 経路へ Escape を追加する**（結線先は暫定仕様 §3.5 の表。`io_dialogs.py` だけ
+  `on_cancel` で、他は `destroy`）⑤**フォーカス復帰はスコープ外**（実機目視のついでに再現確認のみ）。
 - **【phase 27 の成果は正本が正】構成セットの読み込み履歴 = `spec_detail/data_schema.md` **§5.12**（新設・
   5.12.1〜5.12.8）+ §5.4 / `features.md` §4.6 / `codebase_map.md`。**暫定仕様 21 は凍結済で条項の根拠に引かない**。
   要点 = ①記録契機 = **読込または保存が成功し空でないパスが確定したとき、その実保存先**

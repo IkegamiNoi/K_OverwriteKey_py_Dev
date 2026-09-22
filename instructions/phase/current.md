@@ -7,7 +7,15 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズは無い**（次フェーズは未確定）。次採番は本ファイル「次採番」節が正。
+- **アクティブなフェーズ = [phase 28](28_dialog_keyboard_focus/phase.md)**
+  （ダイアログの初期キーボードフォーカス・2026-09-22 起票）。
+  主入力 = [暫定仕様 22](../history/22_dialog_keyboard_focus.md)（**v0.4・ユーザー確定済**）。
+  起票元 = [idea_26](../backlog/idea_26_dialog_keyboard_focus.md)（主）+
+  [idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)（同梱）。
+  番号対応: phase 28 / 暫定 22 / decisions 28。
+  **確定**: フォーカスの責務を `grab_modal` へ集約（**明示引数**。推測型は実測で反証済）/
+  群 C の 5 経路へ **Escape を追加**し正本へ Escape 条項も入れる /
+  **フォーカスの復帰はスコープ外**（再現確認のみ）/ 同型スケルトンの共通化は合流させない。
 - 直前の完了フェーズ = [phase 27](27_keymap_set_load_history/phase.md)（2026-09-22）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
@@ -34,8 +42,9 @@
 
 ## 次採番
 
-- **phase 27 は 2026-09-22 完了**（`27_keymap_set_load_history` / 暫定 21〔凍結〕/ decisions 27〔アーカイブ済〕）。
-  次フェーズは **`28_<topic>`**・decisions も **28** を使う（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 28 は 2026-09-22 起票・進行中**（`28_dialog_keyboard_focus` / 暫定 22 / decisions 28）。
+  次フェーズは **`29_<topic>`**・decisions も **29** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  （phase 27 は 2026-09-22 完了 = `27_keymap_set_load_history` / 暫定 21〔凍結〕/ decisions 27〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
@@ -52,8 +61,9 @@
   18=フル表示の縦方向の最小サイズ〔**v0.5・凍結**〕/
   19=マウスのドラッグ操作〔**v0.5・凍結**〕/
   20=JSON 読込の型不正の扱い統一〔**v0.3・凍結**〕/
-  21=構成セットの読み込み履歴〔**v0.5・凍結**〕）。
-  次採番は **`22_<topic>`**。
+  21=構成セットの読み込み履歴〔**v0.5・凍結**〕/
+  22=ダイアログの初期キーボードフォーカス〔**v0.4・ユーザー確定済・未凍結**〕）。
+  次採番は **`23_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**10 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
@@ -66,12 +76,8 @@
 （`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする。
 **完了した候補の履歴はここに残さない**〔完了 idea は `backlog/INDEX_done.md` が正〕）
 
-- [idea_26](../backlog/idea_26_dialog_keyboard_focus.md)（ダイアログがキーボードフォーカスを取らず
-  Escape が効かない。phase 27 の実機目視由来・**対象 3 ダイアログを診断スクリプトで実測済**・
-  案 A〔個別修正〕/ 案 B〔`grab_modal` へ集約 + 正本 §4.6 追記〕の選択が要る）
-- [idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)（Escape 依存テストが CPU 負荷下で
-  不定期に fail し、カウンタ残留で同クラスの後続 4 件が連鎖して落ちる。**production の欠陥ではない**が
-  統合確認のたびに切り分けコストがかかる）
+（**idea_26 / idea_18 は phase 28 で着手中**のためここから外した）
+
 - [idea_23](../backlog/idea_23_key_press_release_actions.md)（キーを押す / 離すアクションの追加。
   2026-09-18 ユーザー要望・優先度低）
 
@@ -90,8 +96,11 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")` が **4 クラスで完全同型**
   （`keymap_set_history` / `orphan_sweep` / `quarantine_manage` / `reference_cleanup`。2026-09-22 実測）。
   phase 14 で `transient` + `grab_set` は `grab_modal` へ集約済、phase 15 で `destroy()` override は解消済で、
-  **残るのはこの 2 種**。着手するなら [idea_26](../backlog/idea_26_dialog_keyboard_focus.md) の
-  案 B（`grab_modal` への集約）と同領域なので**合流させる**（phase 11 / 14 由来）
+  **残るのはこの 2 種**。**phase 28（idea_26 の案 B）へは合流させないとユーザーが判断済**
+  （2026-09-22。フォーカス集約とは別の責務でスコープが倍近くなるため）。
+  なお phase 28 の task_03 で**群 C の 5 経路へ Escape を追加する**ため、
+  `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")` の同型箇所は**増える**見込み
+  （着手判断はその後に再評価する）（phase 11 / 14 由来）
 - `presentation/modal.py`（120 行）で `grab_current()` の try/except と
   `winfo_exists()` / `winfo_viewable()` の try/except が**それぞれ 3 箇所**（M3 の境界）。
   **意図的に意味が違う**ため共通化しない（`grab_modal` は解決不能を「保持者なし」と扱い、
