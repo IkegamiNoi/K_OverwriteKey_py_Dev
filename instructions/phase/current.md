@@ -8,106 +8,29 @@
 ## 現在の参照先
 
 - **アクティブなフェーズは無い**（次フェーズは未確定）。次採番は本ファイル「次採番」節が正。
-- [phase 27](27_keymap_set_load_history/phase.md) は 2026-09-22 完了。
+- 直前の完了フェーズ = [phase 27](27_keymap_set_load_history/phase.md)（2026-09-22）。
+  **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
+  `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
 - **直近の一連の作業が扱っている領域 = 構成セットの読み込み履歴**（phase 27）。
   正本は `data_schema.md` **§5.12「構成セットの読み込み履歴」**（新設）+ §5.4（遅延作成の対象外）/
-  `features.md` §4.6「メニュー・個別保存」、`codebase_map.md`。
-  実装 = `keyseq/domain/keymap_set_history.py`（規則の純関数）/
-  `keyseq/application/config_service/keymap_set_history.py`（読み書き・退避・記録）/
-  `keyseq/presentation/controllers/config_io/keymap_set_history_io.py`（記録の単一の口 + ダイアログのフロー）/
-  `keyseq/presentation/dialogs/keymap_set_history_dialog.py` / `keymap_set_history_text.py` /
-  `keymap_set_io.py`（**パス指定の共通読込入口 `load_keymap_set_path`**）/ `views/menu_bar.py`、
-  テスト = `tests/test_keymap_set_history.py`（domain の規則）/ `tests/test_config_service.py`（application =
-  退避・読み取り専用・記録）/ `tests_ui/test_keymap_set_history_record.py`（記録経路）/
-  `tests_ui/test_keymap_set_history_flow.py`（UI）。
+  `features.md` §4.6 / `codebase_map.md`。
+  実装 = `domain/keymap_set_history.py`（規則の純関数）/
+  `application/config_service/keymap_set_history.py`（読み書き・退避・記録）/
+  `presentation/controllers/config_io/keymap_set_history_io.py`（記録の単一の口 + ダイアログのフロー）/
+  `dialogs/keymap_set_history_dialog.py` / `config_io/keymap_set_io.py` の
+  **共通読込入口 `load_keymap_set_path`** / `views/menu_bar.py`。
   **記録は読込・保存が成功し空でないパスが確定したときの実保存先**（初期代入 / 新規作成 / Import /
-  例の復元 / **起動時の自動読込**は除外）。**先頭一致 no-op** で通常の起動はディスクに触らない（遅延作成）。
-  **破損ファイルは `*.broken*.json` へ退避してから作り直す**（連番 5 で打ち止め → そのセッションは読み取り専用）。
-  **永続化に成功してから UI を確定**し、ダイアログは操作のたびに**永続化済みの内容を読み直して再描画**する。
-  **残件** = ①[idea_26](../backlog/idea_26_dialog_keyboard_focus.md)（既存ダイアログがキーボードフォーカスを
-  取らず Escape が効かない。**テストが `focus_force()` で隠している**点も含む）②暫定仕様 §10 のスコープ外
-  （分類の入れ子・D&D・検索・`*.broken*.json` の管理 UI 等）。
+  例の復元 / **起動時の自動読込**は除外）・**先頭一致 no-op** で通常の起動はディスクに触らない・
+  **破損ファイルは `*.broken*.json` へ退避**（連番 5 で打ち止め → そのセッションは読み取り専用）・
+  **永続化に成功してから UI を確定**する。
+  **残件** = ①[idea_26](../backlog/idea_26_dialog_keyboard_focus.md)（ダイアログがキーボードフォーカスを
+  取らず Escape が効かない。**テストが `focus_force()` で隠している**点を含む）②暫定仕様 21 §10 の
+  スコープ外（分類の入れ子・D&D・検索・`*.broken*.json` の管理 UI）。
   判断は [decisions_archive/27](../../.claude_data/state/decisions_archive/27_keymap_set_load_history.md)。
-- [phase 26](26_startup_entry_preservation/phase.md) は 2026-09-21 完了。
-- **その前の領域 = 起動エントリ（`config/config.json` の `keymap_set_path`）の書き込み契機**（phase 26）。
-  正本は `data_schema.md` **§5.4**（保存では起動エントリを更新しない条項）、`codebase_map.md`。
-  **保存では起動エントリを上書きしない。空 / 起動時に読めなかった場合のみ更新する**（自己修復）。
-  **presentation は「起動時に読めたか」という事実だけを渡し、更新要否の判定は application 1 箇所**（`split_payloads.py:363`）。
-  変更経路はメニュー「起動時に読む構成セットを指定…」1 本。
-  **残件** = ①`existing_entry` の非空判定と読込側 `.strip()` の非対称（**到達不能**のため据え置き）
-  ②`startup_io.py` の `keymap_set_path` の**型正規化**（phase 25 残件①・未着手）。
-  判断は [decisions_archive/26](../../.claude_data/state/decisions_archive/26_startup_entry_preservation.md)。
-- [phase 25](25_path_field_type_normalization/phase.md) は 2026-09-19 完了。
-- **その前の領域 = JSON 読込時の型正規化（パス系まで到達）**（phase 25）。
-  正本は `data_schema.md` **§5.1「型不正の共通規則」**（phase 24 で新設）+ **§5.5 / §5.7**（phase 25 で型規定を追記）、`codebase_map.md`。
-  実装 = `keyseq/domain/config.py`（`coerce_key_name` / `coerce_label`）/ `keyseq/application/config_service/split_loading.py` /
-  `keyseq/application/config_service/reference_scan.py`、テスト = `tests/test_domain_config.py` / `test_config_service.py` / `test_reference_scan.py`。
-  **使い分け = パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`（trim + 小文字化）**。
-  パスを小文字化すると壊れる（§5.7 の `normcase` は比較専用）。
-  **残件** = ①`startup_io.py` の `keymap_set_path`（config.json の生値・**presentation 層**のため未対応）
-  ②`button` 非文字列の `AttributeError`（`action_executor.py:119`・**実行時**の別レイヤ・phase 22 からの候補）。
-  判断は [decisions_archive/25](../../.claude_data/state/decisions_archive/25_path_field_type_normalization.md)。
-- [phase 24](24_json_type_normalization/phase.md) は 2026-09-19 完了。
-- **さらにその前の領域 = JSON 読込時の型正規化（内容フィールド）**（phase 24）。
-  正本は `data_schema.md` **§5.1「型不正の共通規則」**（新設）/ §5.6「keymap」（新設）/ §5.2 / §5.11、`codebase_map.md`。
-  実装 = `keyseq/domain/config.py`（`coerce_key_name` / `coerce_label`）/ `keyseq/application/config_service/__init__.py` /
-  `keyseq/application/config_service/split_loading.py`、テスト = `tests/test_domain_config.py` / `tests/test_config_service.py`。
-  **非文字列は空扱い・空で成立しない要素は除去**を全読込経路へ一斉適用（共有ローダーのため経路別に切れない）。
-  `normalize_key_name` のシグネチャは不変（呼び出し 158 箇所）。falsy な非文字列は元から空扱いで挙動不変。
-  **残件** = ①**パス系フィールド**（`path` / `switch_key` / `trigger_set_path` 等）は未対応 = [idea_25](../backlog/idea_25_path_field_type_normalization.md)
-  ②`button` 非文字列の `AttributeError`（`action_executor.py:119`・実行時の別レイヤ・phase 22 からの候補）。
-  判断は [decisions_archive/24](../../.claude_data/state/decisions_archive/24_json_type_normalization.md)。
-- [phase 23](23_sequence_payload_action_normalization/phase.md) は 2026-09-19 完了。
-- **さらにその前の領域 = アクション要素（`actions[]`）の読込時正規化**（phase 23）。
-  正本は `data_schema.md` §5.11「アクション要素」。実装 = `keyseq/domain/config.py`（公開関数 `normalize_actions`）/
-  `keyseq/application/config_service/__init__.py`（`_normalize_sequence_payload` が同関数へ委譲）、
-  テスト = `tests/test_domain_config.py` / `tests/test_config_service.py`（`SequenceFileIoTest`）。
-  **split 読込と個別 sequence 単体読込の双方で dict 以外の要素を除去し `label` を整形する**（正規化は domain に一本化・冪等）。
-  **残件** = ①保存側（`build_sequence_payload`）は正規化を通さない設計のまま（読込で担保）②keymap / trigger_set など
-  他の個別 JSON 読込経路の正規化見直しは未着手（スコープ外）③`button` 非文字列の扱い（phase 22 からの別タスク化候補・未着手）。
-  判断は [decisions_archive/23](../../.claude_data/state/decisions_archive/23_sequence_payload_action_normalization.md)。
-- **さらにその前の領域 = マウス操作（ドラッグ）**（phase 22）。
-  正本は `data_schema.md` §5.11「アクション要素」/ `codebase_map.md`「マウス操作（infrastructure/input_gateway.py の InputGateway・phase 22）」節。
-  実装 = `keyseq/infrastructure/input_gateway.py`（`drag_mouse`）/ `keyseq/application/action_executor.py`（`_execute_mouse_drag`）/
-  `keyseq/presentation/dialogs/action_dialog.py`（ドラッグ UI）/ `keyseq/domain/config.py`（表示整形）、
-  テスト = `tests/test_input_gateway_drag.py` / `tests/test_action_executor_drag.py` / `tests_ui/test_action_dialog_drag.py`。
-  **`mouse_click` に `drag` / `to_x` / `to_y` / `drag_speed` を追加**（既存キー不変・`drag` false では新キーを出力しない）/
-  所要時間 = 距離 ÷ 速度を 0.15〜5.0 秒へクランプ（算出は application 層）/ **ドラッグ中だけ pyautogui の FailSafe を無効化し `finally` で復元**。
-  **残件** = ①ドラッグ中は UI スレッドが塞がる（別スレッド化はスコープ外）②ドラッグ中の四隅による緊急停止が効かない
-  ③実行中に物理マウスを動かすと離す位置がずれる（制御しない・§5.11.5）④ホイール / 押す・離すアクションは [idea_23](../backlog/idea_23_key_press_release_actions.md) 未着手。
-  判断は [decisions_archive/22](../../.claude_data/state/decisions_archive/22_mouse_drag_action.md)。
-- **その前の領域（キーの送信・拡張キー）**。
-  正本は `key_input.md` §7.7「キーの送信」/ `codebase_map.md`「キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）」節。
-  実装 = `keyseq/infrastructure/input_gateway.py`（`_EXTENDED_KEYS` / `send_hotkey` / `press_key` / `release_key`）、テスト = `tests/test_input_gateway_send.py`（10 本）。
-  **拡張キー 18 名を `keybd_event` + KEYEVENTF_EXTENDEDKEY で送る** / 拡張キーを含む hotkey だけ自前送信し記述順に押して逆順に離す（例外時も解放）/
-  `windows` は左・`ctrl` / `alt` / `shift`・テンキーの Enter と `/`・`alt gr` は従来どおり / 名前の正規化は公開 `keyboard.normalize_name`。
-  **残件** = ①注入した拡張キーがアプリのフックに届く（send guard 解除との順序は観測であり保証ではない。guard の解除タイミングを変える改修時は再確認）
-  ②`alt gr` は欧州系配列で `right alt` と同一物理キーだが意図的に対象外 ③押す / 離すアクション = [idea_23](../backlog/idea_23_key_press_release_actions.md) 未着手
-  ④送信の途中で失敗すると先行キーが実際に OS へ出る。判断は [decisions_archive/21](../../.claude_data/state/decisions_archive/21_extended_key_send.md)。
-- **その前の領域（フル表示のウィンドウサイズ）**: 正本は `features.md` §4.6「フル表示の幅配分」/ `data_schema.md` §5.4 / `codebase_map.md` の `controllers/pane_layout/` 周辺。
-  残件 = ①「別タスク化候補」の Phase 18 / 19 / 20 項 ②`tests_ui` 実行時の stderr に既存 `_clear_flash_message` の破棄後 `after` 実行が出る（無害・未対応）。
-  判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md) / [19](../../.claude_data/state/decisions_archive/19_full_view_header_width.md) / [20](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)。
-  その前の領域（モーダルダイアログの作法）の残件は [decisions_archive/17](../../.claude_data/state/decisions_archive/17_minimize_grab_custody.md) と
-  「別タスク化候補」の Phase 14 / 17 項、[idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)。
-- 直前の完了フェーズ: [27_keymap_set_load_history](../../.claude_data/state/decisions_archive/27_keymap_set_load_history.md)
-- その前の完了フェーズ: [26_startup_entry_preservation](../../.claude_data/state/decisions_archive/26_startup_entry_preservation.md)
-- その前の完了フェーズ: [25_path_field_type_normalization](../../.claude_data/state/decisions_archive/25_path_field_type_normalization.md)
-  （それ以前は `decisions.md`「アーカイブ索引」を参照）
-- 提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md) は
-  **「計画07」として実施し完了**（2026-08-16・項目 0〜3・**挙動不変**）。
-  **フェーズ番号は消費していない**ため対応表は不変。判断は `decisions.md` の「計画07」節。
-  成果 = `dialogs.py`（1026 行）を `dialogs/` **7 ファイル**へ分割 /
-  `PresetManagerDialog.__init__` 99 → 8 行 / 直値の定数化 / 特性テスト **6 本追加**（`tests_ui` 229）。
-- 提案書 [06_refactor_hook_key_pair_enumeration](../modified_proposal/06_refactor_hook_key_pair_enumeration.md) は
-  **「計画06」として実施し完了**（2026-08-06・項目 0 / 1。**(b) 次フェーズ前の独立ミニ計画**）。
-  **フェーズ番号は消費していない**ため対応表は不変（γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕）。
-  判断は `decisions.md` の「計画06」節。
-- 提案書 [05_refactor_child_file_save_dialog](../modified_proposal/05_refactor_child_file_save_dialog.md) は
-  **「計画05」として実施し完了**（2026-08-03・項目 0 / 1 / 2）。フェーズ番号は消費していない。
-  判断は `decisions.md` の「計画05」節。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**10 まで起票済**・次採番は「次採番」節が正）。
+  実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
+  **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
-  過去のリファクタ計画・提案書（01〜07）は `instructions/modified_proposal/`（次採番は「次採番」節が正）。
-  計画04 は完了済（W0〜W7・手動確認まで完了）。
 
 ## 次採番
 
@@ -131,7 +54,7 @@
   20=JSON 読込の型不正の扱い統一〔**v0.3・凍結**〕/
   21=構成セットの読み込み履歴〔**v0.5・凍結**〕）。
   次採番は **`22_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**09 まで起票済**
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**10 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
   **10 = phase 19 由来・実施済＝phase 19 task_07**）・
@@ -140,200 +63,134 @@
 
 ## 次フェーズ候補（参考）
 
-（`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする）
+（`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする。
+**完了した候補の履歴はここに残さない**〔完了 idea は `backlog/INDEX_done.md` が正〕）
 
-計画04 の次期課題は「後始末 → hotkey検証 → 起動設定/フォント」の順で進める方針
-（3フェーズに分割。1件1フェーズにはしない）。**1〜3 すべて着手済**:
+- [idea_26](../backlog/idea_26_dialog_keyboard_focus.md)（ダイアログがキーボードフォーカスを取らず
+  Escape が効かない。phase 27 の実機目視由来・**対象 3 ダイアログを診断スクリプトで実測済**・
+  案 A〔個別修正〕/ 案 B〔`grab_modal` へ集約 + 正本 §4.6 追記〕の選択が要る）
+- [idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)（Escape 依存テストが CPU 負荷下で
+  不定期に fail し、カウンタ残留で同クラスの後続 4 件が連鎖して落ちる。**production の欠陥ではない**が
+  統合確認のたびに切り分けコストがかかる）
+- [idea_23](../backlog/idea_23_key_press_release_actions.md)（キーを押す / 離すアクションの追加。
+  2026-09-18 ユーザー要望・優先度低）
 
-1. ~~後始末~~ → **完了**（`01_view_ref_cleanup`・2026-07-17）
-2. ~~[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md)~~ → **完了**（`02_hotkey_validation`・2026-07-18）
-3. ~~[idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)~~ → **完了**（`03_startup_font_settings_cleanup`・2026-07-20）
-
-**計画04 由来の3フェーズはすべて完了**。`04_config_io_controller_split`（2026-07-26）・
-`05_keymap_set_new_and_default_dir`（Phase α・2026-07-28）も完了。
-**保存系リデザインの Phase β も完了**（phase 06 / 暫定 05・2026-08-03）。
-**γ = phase 07 も完了**（暫定 06・2026-08-05）。**プリセット = phase 08 も完了**（暫定 07・2026-08-09）。
-**個別プリセット = phase 09 も完了**（暫定 08・2026-08-16）。
-**参照元の掃除 = phase 10 も完了**（暫定 09・2026-09-05）。
-次フェーズの候補:
-- ~~[idea_08](../backlog/idea_08_per_keymap_set_preset_ownership.md)（keymap_set ごとの個別プリセット）~~
-  → **完了**（phase 09・2026-08-16。判断は
-  [decisions_archive/09](../../.claude_data/state/decisions_archive/09_per_keymap_set_presets.md)）。
-- ~~[idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（ネストしたモーダルの grab 復元）~~
-  → **完了**（phase 14・2026-09-12。判断は
-  [decisions_archive/14](../../.claude_data/state/decisions_archive/14_nested_modal_grab_restore.md)）。
-- ~~[idea_07](../backlog/idea_07_reference_link_cleanup.md)（参照元の掃除）~~
-  → **完了**（phase 10・2026-09-05。判断は
-  [decisions_archive/10](../../.claude_data/state/decisions_archive/10_reference_link_cleanup.md)）。
-- ~~[idea_12](../backlog/idea_12_orphan_child_file_sweep.md)（全走査 + 孤児候補の検出＝逆方向検査）~~
-  → **着手**（phase 11・2026-09-06 起票）。
-- [idea_09](../backlog/idea_09_legacy_settings_save_path_fallback.md)（別名保存でレガシー `settings/` 配下を選ぶと
-  `default.json` へ無言フォールバックする残存経路。Phase α の deep-reviewer 指摘2 から分離・**優先度低**・
-  着手時は仕様変更フロー必須）。
-- [idea_03](../backlog/idea_03_action_hotkey_save_normalization.md)（アクション hotkey の保存時正規化/検証の統一。
-  phase 02 task_04 から分離・優先度低・要設計）。
-- [idea_04](../backlog/idea_04_font_settings_controller.md)（FontSettingsController 新設 = phase 03 の案B。
-  2026-07-23 に idea 化済）**状態は保留**。着手トリガー（idea_04 に 5 件明記）が発生するまで着手しない。
-  着手時は初期化順序設計の暫定仕様が先に必要（判断は decisions_archive/03）。
+**保留中**（着手条件つき・トリガーが発生するまで着手しない）: [idea_04](../backlog/idea_04_font_settings_controller.md) /
+[idea_06](../backlog/idea_06_individual_json_io_unification.md)。条件は `backlog/INDEX.md` の状態列が正。
 
 ## 別タスク化候補
 
-（継続保留、ソース変更を伴う細かい負債。`/refactor_check` からの追記先もここ）
+（継続保留、ソース変更を伴う細かい負債。`/refactor_check` からの追記先もここ。
+**領域別に並べ、由来フェーズは各項の末尾に括弧で示す**。
+idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜30 を昇格〕）
 
-- **Phase 27 項**: 履歴ファイル名の語幹が 2 箇所に直値で入っている
-  （`config_service/__init__.py:27` の `KEYMAP_SET_HISTORY_RELATIVE_PATH = "keymap_set_history.json"` と
+### ダイアログ・モーダル
+
+- **同型スケルトンの共通化**。`suspend_hook_for_dialog` が **9 ファイル**、
+  `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")` が **4 クラスで完全同型**
+  （`keymap_set_history` / `orphan_sweep` / `quarantine_manage` / `reference_cleanup`。2026-09-22 実測）。
+  phase 14 で `transient` + `grab_set` は `grab_modal` へ集約済、phase 15 で `destroy()` override は解消済で、
+  **残るのはこの 2 種**。着手するなら [idea_26](../backlog/idea_26_dialog_keyboard_focus.md) の
+  案 B（`grab_modal` への集約）と同領域なので**合流させる**（phase 11 / 14 由来）
+- `presentation/modal.py`（120 行）で `grab_current()` の try/except と
+  `winfo_exists()` / `winfo_viewable()` の try/except が**それぞれ 3 箇所**（M3 の境界）。
+  **意図的に意味が違う**ため共通化しない（`grab_modal` は解決不能を「保持者なし」と扱い、
+  預かり側は**解決不能と `None` を区別する**〔暫定仕様 15 §3-2(5)〕/ `<Unmap>` は「非表示」、
+  他 2 箇所は「生存かつ表示中」）。**4 箇所目が同じ意味で増えたら**判定ヘルパ抽出を再判定（phase 17 由来）
+- `dialogs/action_dialog.py` が **418 行**で実装目安 300 行を超過（M1 の 600 行には未達）。
+  `ActionDialog.__init__` も **113 行**（既存の巨大関数）。次に増えたら再判定（phase 22 由来）
+- `controllers/config_io/child_save_dialog.py` が **369 行**（M1 非該当だが実装目安超過）+
+  `_add_text_cell` の戻り値が素の dict（Phase β 由来）
+
+### application / config_service
+
+- `keyseq/application/config_service/__init__.py` が **841 行**（2026-09-22 実測。
+  phase 09=734 → 10=767 → 11=828 と増え続けている）。**M1 は「600 行超 かつ +100 行以上」**のため
+  近年のフェーズでは非該当だが**分割は保留のまま**。ただし**テストが
+  `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を差し替えるため
+  `ConfigService` 本体とパス基盤メソッドを動かせない**制約があり、分割方針の設計判断が別途必要。
+  実ロジックを持つのは `relocate_individual_hotkey_presets`（約 40 行）で他はほぼ 1 行委譲
+  （phase 09 / 10 / 11 由来）
+- 個別 JSON IO の共通化は [idea_06](../backlog/idea_06_individual_json_io_unification.md) が保持
+  （**残る着手条件は「共通化の実需」1 つ**）。以下は**その近接領域**としてここで追跡する:
+  - `config_io/` の `try/except Exception → messagebox.showerror → return False` が
+    **6 ファイル・14 箇所**規模（2026-09-22 実測）。各箇所はメッセージ・保存対象が独立のため M3 非該当に
+    倒しているが、さらに増えるなら共通化の再検討対象（phase 08 由来）
+  - `controllers/config_io/` の IO クラス骨格（`__init__` + `run_*` → `config_service` 呼び出し →
+    `format_*` → `messagebox`）と `presentation/*_text.py` の整形関数が **3 系統目**に達した（phase 11 由来）
+
+### 定数・直値の重複（M6 の境界）
+
+- 履歴ファイル名の語幹が 2 箇所に直値（`config_service/__init__.py:27` の
+  `KEYMAP_SET_HISTORY_RELATIVE_PATH = "keymap_set_history.json"` と
   `config_service/keymap_set_history.py:23` の `f"keymap_set_history.broken{suffix}.json"`）。
   **同値ではないため M6 非該当**だが、相対パス定数を変えると退避先の命名だけ黙ってずれる。
-  語幹を定数化するか、退避先を相対パス定数から導出する（挙動不変の小修正。1 箇所・数行）。
+  語幹を定数化するか退避先を相対パス定数から導出する（挙動不変の小修正・数行）（phase 27 由来）
+- `pane_width_rules.DEFAULT_LIST_CHARS = 26` が**未使用**で、`views/full_view/keymap_box.py:19` /
+  `views/full_view/trigger_box.py:20` / `views/compact_view/trigger_box.py:18` が
+  `width=26` の直値のまま（**compact 側も同値**。2026-09-22 実測）（phase 18 由来）
+- 子カテゴリ列挙（`CHILD_KEYMAP` / `CHILD_TRIGGER_SET` / `CHILD_SEQUENCE`）が 8 ファイルに散在し、
+  うち phase 10 の 2 ファイル（`config_service/parent_refs_cleanup.py` /
+  `presentation/reference_cleanup_text.py`）は **`save_plan.CHILD_*` を import せず同値の文字列直値**。
+  子の種類は仕様上 3 種で固定のため**優先度低**。まとめて触るときはここも対象にする（Phase β / phase 10 由来）
+- `KEYBOARD_LAYOUT_COMBO_WIDTH` がボタン文言のモジュール `hook_button_texts.py` に同居
+  （使う側は full_view / compact_view の 2 箇所）（phase 19 由来）
+- `controllers/hook_controller.py` の `register_hook_buttons` と `apply_fixed_button_widths` の
+  幅適用 2 行が同型（軽微）（phase 19 由来）
+- `infrastructure/input_gateway.py` の `press_key` / `release_key` の「拡張キー判定 → 分岐」が同型
+  （**2 箇所**。M3 の 3 箇所目が出たらヘルパ抽出を再判定する）（phase 21 由来）
 
-計画04 W7 の次期課題（app.py の「どの責務分類にも属さない残留ロジック」。app.py は 489 行で目安 300 行を超過）
-のうち、設計判断を伴う 2 クラスタは idea へ移した →
-[idea_01](../backlog/idea_01_hotkey_validation_to_domain.md) / [idea_02](../backlog/idea_02_startup_font_settings_cleanup.md)。
-機械的な後始末 2 件（`views/status_bar.py` の生やし / View の `trigger_list` alias）は
-**`01_view_ref_cleanup` で解消済**（2026-07-17）。
+### デッドコード・据え置き（実害なし）
 
-- `action_list` alias（`full_view.py` の `self.action_list = self.sequence_box.action_list`）は**据え置き中**。
-  `trigger_list` と違い production（`controllers/trigger_panel_controller.py`）が
-  `app.full_view.action_list` を実際に使う**生きた参照経路**であり、計画04 §1.3-2 の
-  「App → View → Widget のパス」を満たすため。所有 Widget 経由（`full_view.sequence_box.action_list`）へ
-  統一したくなった場合のみ単独タスク化する（判断根拠は
-  [decisions_archive/01_view_ref_cleanup.md](../../.claude_data/state/decisions_archive/01_view_ref_cleanup.md)）
-- ~~`controllers/config_io_controller.py` が **598 行**で目安 600 行に接近~~ →
-  **[04_config_io_controller_split](04_config_io_controller_split/phase.md) として着手**（2026-07-23・ユーザー判断）。
-  `/refactor_check` の再判定を待たず独立した設計タスクとした（M1・M3 非該当。根拠は
-  [暫定仕様 03](../history/03_config_io_controller_split.md)「着手根拠」）。
-- [idea_06](../backlog/idea_06_individual_json_io_unification.md)（個別 JSON IO 3 種の共通化）は
-  **保留**。着手条件は phase 04 完了（**充足・2026-07-26**）+ [idea_05](../backlog/idea_05_trigger_set_source_path_inconsistency.md)
-  の解消（**充足・2026-08-02 / Phase β**）+ 共通化の実需（**残りはこの 1 条件のみ**）。
-  Phase β の `/refactor_check` で M3（source_path 変化判定 + 追随メッセージが 3 ファイルに同型）に
-  該当したが、**idea_06 がカバーする既知領域**のため提案書には含めていない。
-- **Phase β の `/refactor_check` からの候補送り**（提案書
-  [05_refactor_child_file_save_dialog](../modified_proposal/05_refactor_child_file_save_dialog.md) の上位 3 項目に入らなかった分）:
-  - M4 の子カテゴリ列挙（`CHILD_KEYMAP` / `CHILD_TRIGGER_SET` / `CHILD_SEQUENCE` が 5 ファイルに散在。
-    子の種類は仕様上 3 種で固定のため**優先度低**）
-    - **phase 10 で追記（2026-09-05）**: 定数の**使用ファイル数は 8 のまま不変**だが、phase 10 の新規 2 ファイル
-      （`config_service/parent_refs_cleanup.py` / `presentation/reference_cleanup_text.py`）が
-      **`save_plan.CHILD_*` を import せず同値の文字列直値**を使っている（M6 候補）。
-      `/refactor_check` は**この既知領域として抑止**し「不要」に倒した。まとめて触るときはここも対象にする
-  - `child_save_dialog.py` が **370 行**（600 行未満で M1 非該当だが実装目安 300 行超）+
-    `_add_text_cell` の戻り値が素の dict
-  - `dirty_tracker.trigger_set_imported` が**読み手不在の残置状態**
-  - slugify 後に別々の keymap_set 名が**同一 stem へ丸まる衝突**（受入条件 8 の範囲外）
-  - `keymap_set_io.save_keymap_set_to` が **46 行**（計画05 項目 2 の対象外・無変更。
-    同ファイルの他メソッドは 40 行以内に収まった）
-- **Phase γ の `/refactor_check` からの候補送り**（提案書
-  [06_refactor_hook_key_pair_enumeration](../modified_proposal/06_refactor_hook_key_pair_enumeration.md) に入れなかった分）:
-  - ~~**runtime を新規化・置換する入口が 4 経路**（`new_config` / `restore_default` / Import /
-    起動時の空データフォールバック）あり、各所で `apply_global_hook_key_defaults` を呼ぶ規約~~
-    → **phase 08 が引き取り**（2026-08-06 ユーザー判断）。暫定仕様 07 **§4 検討事項 A** として起票し、
-    **task_03 で設計・確定する**。ここでの追跡は終了
-- **Phase 08（プリセット案2）の `/refactor_check` からの候補送り**（判定は**不要**。次フェーズ以降の再判定用）:
-  - `config_io/` の **`try/except Exception → messagebox.showerror → return False` が 14 箇所**に増えた
-    （`hotkey_presets_io` の追加で +1）。各箇所はメッセージ・保存対象が独立のため M3 非該当に倒したが、
-    さらに増えるなら共通化の再検討対象（近接領域を [idea_06](../backlog/idea_06_individual_json_io_unification.md) がカバー）
-  - `keyseq/application/config_service/__init__.py` が **599 行**で目安 600 行に接近
-    （本フェーズの増分は +30。M1 は「600 行超 かつ +100 行以上」のため非該当）
-- **Phase 09（個別プリセット）の `/refactor_check` からの候補送り**（判定は**推奨** →
-  提案書 [07_refactor_per_keymap_set_presets](../modified_proposal/07_refactor_per_keymap_set_presets.md)・
-  **計画07 として実施し完了**。上位 3 項目に入らなかった分）:
-  - `keyseq/application/config_service/__init__.py` が **767 行**（phase 10 で +32。phase 09 時点は 734 行）。
-    **phase 09 で M1 該当**（当時 +135）。**phase 10 では M1 非該当**（増分が閾値未満）だが**分割は保留のまま**。
-    ただし**テストが `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を
-    差し替えるため `ConfigService` 本体とパス基盤メソッドを動かせない**制約があり、分割方針の
-    設計判断が別途必要。実ロジックを持つのは `relocate_individual_hotkey_presets`（約 40 行）で、
-    他はほぼ 1 行委譲。**次フェーズ以降に再判定する**
-- **Phase 14（ネストしたモーダルの grab 復元）の `/refactor_check` からの候補送り**（判定は**不要**。
-  M1〜M6 いずれも非該当。差分は 13 ファイル・+78/-27 で、**重複を増やす方向ではなく
-  `grab_set` / `transient` の 12 箇所を `grab_modal` へ集約する方向**だった）:
-  - **ダイアログ同型スケルトンの共通化**は**既知**（本節の phase 11 由来の項目）。**phase 14 で
-    `transient` + `grab_set` の部分だけは `grab_modal` へ共通化済**。
-    **phase 15 で `destroy()` override〔8 クラス〕は解消**（4 クラスは override ごと削除・
-    残る 4 クラスはウィジェットに触る後始末のみ）。**残るのは
-    `suspend_hook_for_dialog`〔8 クラス〕/ `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")`
-    〔**3 クラス**で完全同型。`dialogs/` 実測。phase 14 時点の「4 クラス」は誤記〕**。
-    合流先だった [idea_16] は **phase 15 で完了**（`INDEX_done.md`）。
-  - **静的検査の発見ベース化（`deep-reviewer` の M-6）は保留**。
-    `tests_ui/test_nested_modal_grab.py` の `test_grab_modal_is_last_initialization_statement` は
-    **9 クラスと系統 B 3 ファイルをハードコードで列挙**しており、**新規ダイアログを守らない**。
-    ただし**発見ベース単独にすると「`grab_modal` の呼び出しが消えた」検出が失われる**
-    （現在は件数のアサートがそれを守っている）ため、**併用形にするかを含めて再判定が要る**。
-    ユーザー判断で保留（2026-09-11）。**テストコードのため `/refactor_check` の対象範囲外**でもある。
-- **Phase 17（最小化中の grab 預かり）の `/refactor_check` からの候補送り**（判定は**不要**）:
-  `presentation/modal.py`（46 → 120 行）で `grab_current()` の try/except と
-  `winfo_exists()` / `winfo_viewable()` の try/except が**それぞれ 3 箇所**になった（M3 の境界）。
-  **意図的に意味が違う**ため共通化しない（`grab_modal` は解決不能を「保持者なし」と扱い、預かり側は
-  **解決不能と `None` を区別する**〔暫定仕様 15 §3-2(5)〕/ `<Unmap>` は「非表示」、他 2 箇所は
-  「生存かつ表示中」を見る）。**4 箇所目が同じ意味で増えたら**小さな判定ヘルパへの抽出を再判定する。
-- **Phase 18（フル表示の幅配分）の `/refactor_check` からの候補送り**（判定は**不要**）:
-  - `pane_width_rules.DEFAULT_LIST_CHARS = 26` が**未使用**で、`views/full_view/keymap_box.py` / `trigger_box.py` の `width=26` が直値のまま（M6 の境界）
-  - `controllers/pane_layout/pane_layout_controller.py`（256 行）がドラッグ・レイアウト適用・ウィンドウ幅の保存の **3 まとまり**を持つ。
-    さらに増えるならウィンドウ幅の保存を同フォルダの別モジュールへ分ける再判定をする
-  - 完了判定前レビューの保留 3 件（ドラッグで元の希望幅へ戻したとき最小幅が更新されない場合 / `pane_measure.py` の SequenceBox 構造依存 /
-    phase 18 以前の tests_ui が実 config を読む）。判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)
-- **Phase 19（フル表示ヘッダの幅）の `/refactor_check` からの候補送り**（判定は**推奨** → 提案書 10 を task_07 で実施済。提案書へ入れなかった分）:
-  - `KEYBOARD_LAYOUT_COMBO_WIDTH` がボタン文言のモジュール `hook_button_texts.py` に同居（使う側は 2 箇所）
-  - `tests_ui/test_full_view_header_width.py` / `test_header_button_widths.py` は保存予約の遅延を延ばしていない（現状は予約取消で実害なし・揺れたら task_03 と同じ対処）
-  - `controllers/hook_controller.py` の `register_hook_buttons` と `apply_fixed_button_widths` の幅適用 2 行が同型（2 箇所・軽微）
-- **Phase 20（フル表示の縦方向の最小サイズ）の `/refactor_check` と完了判定前レビューからの候補送り**（判定は**不要**）:
-  - Phase 18 の再判定条件（`pane_layout_controller.py` が増えたらウィンドウ幅の保存を分ける）: 256 → 約 280 行。高さの処理は `apply_layout` 内の数行と属性 1 つで独立したまとまりではないため**分割不要と再判定**。次にまとまりが増えたら再判定する
-  - 保留: 一時メッセージのラベルを App 属性で直接参照する案（phase 01 の「生やし」解消と衝突）。判断は [decisions_archive/20](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)
-- **Phase 21（拡張キーを拡張キーとして送る）の `/refactor_check` と完了判定前レビューからの候補送り**（判定は**不要**。M1〜M6 非該当。対象は `keyseq/infrastructure/input_gateway.py` 1 ファイル）:
-  - `press_key` / `release_key` の「拡張キー判定 → 分岐」が同型（**2 箇所**。M3 の 3 箇所目が出たらヘルパ抽出を再判定する）
-  - `InputGateway.register_key_hook`（`input_gateway.py:58-75`）に**呼び出し元が無い**（`hook_coordinator.py` は `register_global_hook` のみ）。
-    phase 21 の差分外の既存デッドコードのため保留（完了判定前 `deep-reviewer` 指摘 8・ユーザー判断 2026-09-19）
-  - 記録のみ 3 件（注入した拡張キーがフックへ届くレース / `alt gr` を意図的に対象外 / canonical に無い OS 由来の名前は非拡張で送られうる〔**未実測の仮説**〕）は
-    [decisions_archive/21](../../.claude_data/state/decisions_archive/21_extended_key_send.md)
-- **Phase 22（マウスのドラッグ操作）の `/refactor_check` と完了判定前レビューからの候補送り**（判定は**不要**。M1〜M6 非該当。対象はソース 4 ファイル）:
-  - `presentation/dialogs/action_dialog.py` が **418 行**（+78）で実装目安 300 行を超過（M1 の 600 行には未達）。
-    `ActionDialog.__init__` も **113 行**（既存の巨大関数。本フェーズの変更は 40 行未満のため M2 非該当）。次に増えたら再判定する
-  - `ActionDialog` の座標取得リスナー（`pynput` のデーモンスレッド）は、**ダイアログ破棄後に `after(0, ...)` が走ると `TclError`** になりうる
-    （**task_02 以前からの既存挙動**・task_02 の `reviewer` 参考指摘・task_03 の二次レビューでも記録のみ）
-  - **`button` が非文字列だと `AttributeError`**（`keyseq/application/action_executor.py:119` の
-    `(action.get("button") or "left").strip()` が `try` の外）。正本 §5.11.2 は「文字列で」と限定済で、
-    `str(...)` を挟む 1 行修正は候補送り（完了判定前 `deep-reviewer` 指摘 6・ユーザー判断 2026-09-19）
-- **Phase 25（パス系の型正規化）からの候補送り**:
-  - **`presentation/controllers/config_io/startup_io.py:18` の `keymap_set_path`**
-    （`str(startup.get("keymap_set_path") or "").strip()`）。config.json の生値を読むが
-    **presentation 層**のため phase 25 のスコープ外とした。実害は「存在しないパスとして無視される」のみ
-  - **runtime 専用の内部キー（`_keymap_source_path` 等）が §5.1 の型規則に未追従**。
-    `ensure_config_compatibility` が生値のまま素通しし、`save_path_resolution.py:127` の `str(...)` を経て
-    **保存先パスの候補に repr が混入し得る**（正本 §5.7 に【実装未追従】として明記済・
-    完了判定前 `deep-reviewer` 指摘 B・ユーザー判断待ちのまま候補送り）
-  - テスト 2 件（`tests/test_input_gateway_drag.py::test_initial_move_failure_restores` が `mouseUp` の
-    **非呼び出し**を固定していない / ドラッグ 4 キーの**ファイル層での永続化往復**テストが無い）と、
-    `to_x` 欠落時に一覧表示が `(100, 200)→(, )` になる点（実行はエラーになる）
-  - `features.md` §4.2（シーケンス実行）から `data_schema.md` §5.11 への参照が無い（発見性のみ）
-  - 記録のみ 3 件（`click_mouse` 側が `FAILSAFE` に触らないことの検出力 / 速度欄の `int()` 判定が `"1000.5"` を弾く /
-    座標取得の排他が `instate` ガードを持たない）は [decisions_archive/22](../../.claude_data/state/decisions_archive/22_mouse_drag_action.md)
-- **Phase 26（起動エントリの保存時据え置き）の `/refactor_check` と完了レビューからの候補送り**（判定は**不要**。M1〜M6 非該当。対象はソース 5 ファイル・計 +16/-1 行）:
-  - **「空」の定義が字面上非対称**。`split_payloads.py:363` の据え置き条件は `existing_entry` の
-    非空判定（`isinstance(..., str) and existing_entry`）だが、読込側 `startup_io.py:19` は
-    `.strip()` してから判定する。**`entry_loaded=True` かつ値が空白のみ**という組み合わせは
-    3 経路（起動読込成功 / 保存成功 / メニュー指定成功）のいずれからも生成されず**到達不能**のため据え置き
-    （config.json を手編集した場合のみ。task_02 の `reviewer` 参考指摘）。触るなら `.strip()` 側へ揃える 1 行修正
-- **Phase 11（孤児ファイルの棚卸し）の `/refactor_check` からの候補送り**（判定は**推奨** →
-  提案書 [08_refactor_orphan_child_file_sweep](../modified_proposal/08_refactor_orphan_child_file_sweep.md)
-  は**「計画08」として実施し完了**〔2026-09-08・挙動不変〕。提案書へ入れなかった分）:
-  - **ダイアログの同型スケルトン**（`Toplevel` + `suspend_hook_for_dialog` / Escape bind /
-    `protocol(WM_DELETE_WINDOW)` / `transient` + `grab_set` / `destroy` override）が
-    **9 ダイアログ中 8 ファイル**に広がっている（phase 11 で +2）。**M3 該当だが
-    フェーズ外 6 ファイルへ波及する**ため提案書には入れていない。着手するなら
-    [idea_10](../backlog/idea_10_nested_modal_grab_restore.md)（ネストしたモーダルの grab 復元）と
-    **同じ領域なので合流させる**
-  - `controllers/config_io/` の IO クラス骨格（`__init__` + `run_*` → `config_service` 呼び出し →
-    `format_*` → `messagebox`）と `presentation/*_text.py` の整形関数が **3 系統目**に達した。
-    1 個目が phase 10（フェーズ外）で骨格も薄いため候補送り
-  - `keyseq/application/config_service/__init__.py` が **828 行**（phase 11 で +61。M1 は
-    「600 行超 **かつ** +100 行以上」のため非該当）。**分割は保留のまま**（テストが
-    `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を差し替えるため
-    本体とパス基盤メソッドを動かせない制約がある）。次フェーズ以降に再判定する
+- `InputGateway.register_key_hook`（`input_gateway.py:58`）に**呼び出し元が無い**
+  （2026-09-22 実測。`hook_coordinator.py` は `register_global_hook` のみ）。
+  phase 21 の差分外の既存デッドコードのため保留（phase 21 由来・ユーザー判断 2026-09-19）
+- `dirty_tracker.trigger_set_imported` が**読み手不在の残置状態**
+  （production は書き込み 3 箇所のみで読むのはテストだけ。2026-09-22 実測）（Phase β 由来）
+- `views/full_view/full_view.py:57` の `action_list` alias（`self.action_list = self.sequence_box.action_list`）は
+  **据え置き**。`trigger_list` と違い production（`controllers/trigger_panel_controller.py` が
+  `app.full_view.action_list` を 13 箇所で使用）の**生きた参照経路**であり、計画04 §1.3-2 の
+  「App → View → Widget のパス」を満たす。所有 Widget 経由（`full_view.sequence_box.action_list`）へ
+  統一したくなった場合のみ単独タスク化する
+  （判断根拠は [decisions_archive/01](../../.claude_data/state/decisions_archive/01_view_ref_cleanup.md)）（phase 01 由来）
+- `presentation/app.py:77` の `self.keymap_set_path = self.paths.resolve_keymap_set_path()` と、
+  `config_paths.resolve_keymap_set_path()` の**引数なし分岐が実質デッド**
+  （起動時に `startup_io` が必ず上書きするため）。`DEFAULT_KEYMAP_SET_FILENAME` を ConfigPaths 側へ
+  寄せる代替案も挙動同値のため据え置き。まとめて触りたくなった時のみ単独タスク化する
+  （判断根拠は [decisions_archive/05](../../.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md)）（phase 05 由来）
+- `controllers/config_io/startup_io.py:19` の `keymap_set_path`（`str(startup.get(...) or "").strip()`）は
+  config.json の生値を読むが**presentation 層**のため phase 25 のスコープ外。実害は
+  「存在しないパスとして無視される」のみ。あわせて**「空」の定義が字面上非対称**
+  （`split_payloads.py:363` の据え置き条件は `.strip()` しない）だが、
+  **`entry_loaded=True` かつ値が空白のみ**という組み合わせは 3 経路のいずれからも生成されず**到達不能**
+  （config.json を手編集した場合のみ）。触るなら `.strip()` 側へ揃える 1 行修正（phase 25 / 26 由来）
+- `to_x` 欠落時に一覧表示が `(100, 200)→(, )` になる（実行はエラーになる）（phase 22 由来）
+- `features.md` §4.2（シーケンス実行）から `data_schema.md` §5.11 への参照が無い（発見性のみ）（phase 22 由来）
 
-- `app.py:64` の `keymap_set_path = resolve_keymap_set_path()` 初期化と、それが使う
-  `config_paths.resolve_keymap_set_path()` の**引数なし分岐が実質デッド**（起動時に `load_startup_and_config` が
-  必ず上書きするため）。**据え置き**（phase 05 の deep-reviewer 指摘3・実害なし）。
-  同指摘4（`DEFAULT_KEYMAP_SET_FILENAME` を ConfigPaths 側へ寄せれば `save_as` の分岐が不要になる代替案）も
-  挙動同値のため据え置き。まとめて触りたくなった時のみ単独タスク化する
-  （判断根拠は [decisions_archive/05](../../.claude_data/state/decisions_archive/05_keymap_set_new_and_default_dir.md)）
+### テスト負債
+
+- **静的検査の発見ベース化は保留**（ユーザー判断 2026-09-11）。
+  `tests_ui/test_nested_modal_grab.py` の `test_grab_modal_is_last_initialization_statement` は
+  **9 クラスと系統 B 3 ファイルをハードコードで列挙**しており**新規ダイアログを守らない**。
+  ただし**発見ベース単独にすると「`grab_modal` の呼び出しが消えた」検出が失われる**ため、
+  併用形にするかを含めて再判定が要る。**テストコードのため `/refactor_check` の対象範囲外**（phase 14 由来）
+- `tests/test_input_gateway_drag.py::test_initial_move_failure_restores` が `mouseUp` の
+  **非呼び出し**を固定していない / ドラッグ 4 キーの**ファイル層での永続化往復**テストが無い（phase 22 由来）
+- `tests_ui/test_full_view_header_width.py` / `test_header_button_widths.py` は保存予約の遅延を
+  延ばしていない（現状は予約取消で実害なし・揺れたら phase 19 task_03 と同じ対処）（phase 19 由来）
+- Escape 依存テストの不安定（負荷下で 5 件が連鎖して落ちる）は
+  [idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)
+
+### レビュー保留（判断待ち・判断は decisions_archive が正）
+
+- phase 18 完了判定前レビューの保留 3 件（ドラッグで元の希望幅へ戻したとき最小幅が更新されない場合 /
+  `pane_measure.py` の SequenceBox 構造依存 / phase 18 以前の tests_ui が実 config を読む）。
+  判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)
+- 一時メッセージのラベルを App 属性で直接参照する案（phase 01 の「生やし」解消と衝突）。
+  判断は [decisions_archive/20](../../.claude_data/state/decisions_archive/20_full_view_min_height.md)
+- `controllers/pane_layout/pane_layout_controller.py` は **281 行**でドラッグ・レイアウト適用・
+  ウィンドウ幅の保存の 3 まとまりを持つ。phase 20 で「高さの処理は独立したまとまりではない」として
+  **分割不要と再判定済**。次にまとまりが増えたら再判定する（phase 18 / 20 由来）
 
 ## 作業開始時の指示
 
