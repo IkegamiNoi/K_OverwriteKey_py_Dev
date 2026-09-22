@@ -147,10 +147,8 @@ class KeymapSetHistoryDialog(tk.Toplevel):
 
     def _finish_edit(self, result: tuple[bool, str]) -> None:
         success, reason = result
-        if success:
-            self._redraw()
-        else:
-            # 保存に失敗した場合、未確定の変更を一覧へ反映しない。
+        self._redraw()
+        if not success:
             messagebox.showinfo(text.TITLE, reason, parent=self)
 
     def _add_category(self) -> None:

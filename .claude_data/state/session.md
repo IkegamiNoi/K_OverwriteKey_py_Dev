@@ -4,79 +4,69 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-22T14:30:00
-phase: `instructions/phase/27_keymap_set_load_history`（構成セットの読み込み履歴管理）。**暫定仕様先行モード**・主入力 = `instructions/history/21_keymap_set_load_history.md`（**v0.5**・ユーザー確定済）。番号対応: phase 27 / 暫定 21 / decisions 27。次採番 = phase 28 / 暫定 22 / decisions 28。
-直前の完了フェーズ = phase 26（判断履歴 = `decisions_archive/26_startup_entry_preservation.md`）。
+last_updated: 2026-09-22T17:10:00
+phase: **アクティブなフェーズは無い**（phase 27 完了・次フェーズ未確定）。次採番 = phase 28 / 暫定 22 / decisions 28。
+直前の完了フェーズ = **phase 27**（構成セットの読み込み履歴管理・2026-09-22 完了。判断履歴 = `decisions_archive/27_keymap_set_load_history.md`。暫定仕様 21 は凍結済）。
 last_commit_location: `claude/task-04-progression-5fc03a`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 27 = 構成セットの読み込み履歴管理。task_01〜task_04 完了（実測 green・reviewer 採用・実機目視 OK）。暫定仕様は v0.5（起動時は記録しない）。残りは task_05（正本反映と完了）のみ。**
-mode: implementing
+focus: **phase 27（構成セットの読み込み履歴管理）完了。task_01〜task_06・正本昇格（§5.12 新設）・暫定仕様 21 の凍結・実機目視 OK・refactor_check〔不要〕まで完了。次フェーズ未確定。**
+mode: completed
 
 ## last_action
-ts: 2026-09-22T14:30:00
+ts: 2026-09-22T17:10:00
 who: main
 summary: |
-  【task_04 = 履歴ダイアログ】起票（`/task_new`）→ `codex-implementer` へ委任 → 差し戻し 1 回で完了。
-  新規 3 ファイル: `keymap_set_history_text.py`（文言・純関数のみ）/
-  `dialogs/keymap_set_history_dialog.py`（`ttk.Treeview` + 同一ファイル内の `CategoryChooserDialog`）/
-  `tests_ui/test_keymap_set_history_flow.py`（11 件）。
-  `keymap_set_history_io.py` へ `open_history_dialog` + `load_history` / `entry_exists` /
-  `open_keymap_set` / 編集 6 メソッド（共通 `_edit` = **読み直し → domain → 保存成功のみ反映**）を追記。
-  `menu_bar.py` / `dialogs/__init__.py` は 1 行ずつ。**`record()` は不変**。
-  【UI 設計の判断（暫定仕様 §5.3 のラベル表記に合わせた）】分類名の入力は**インライン Entry**
-  （追加・リネームに「…」が無いため別窓にしない）/ 「分類へコピー…」だけ別窓 = `CategoryChooserDialog`
-  （`grab_modal` で親ダイアログへ grab が戻る）。**`simpledialog` は使わない**
-  （`grab_modal` を経由せず、閉じたあと親ダイアログへ grab が戻らない）。
-  【起票前の洗い出し】ハードコード列挙は **3 つ**（既知の `DIALOG_FILES` / `T2_DIALOG_FILES` に加え
-  **`tests_ui/test_nested_modal_grab.py:262` の `dialog_classes`**）。前 2 者と併せて追随済み。
-  `T2_DIALOG_FILES` は未追加（`destroy` override を持たせない方針）。メニュー系テストはラベル走査で影響なし。
-  【差し戻し = 2 件】①ダイアログが `status == "read_only"` と**契約値をリテラル複製**
-  → controller へ `is_read_only()` を追加し 2 箇所を置換 ②`copy_to_category` の比較キーが
-  `normpath`/`normcase` の**自前実装**（`ConfigService.canonical_path` の再実装。暫定仕様 §4.2 / §7 違反）
-  → `canonical_path` へ委譲。②は reviewer が挙げず**メインの直読みで検出**（`resolve_config_path` は
-  `abspath` を通さないため厳密には非等価）。
-  【レビュー = reviewer】5 観点 OK・テストの検出力に空振りなし。判定は「修正要」で上記①のみ指摘。
-  修正後の差分はメインが直読みで確認（リテラル残存ゼロ・範囲外への波及なし）。
-  【実機目視（ユーザー 2026-09-22）→ 指摘 2 件を修正】①**Escape で閉じない**（操作ミスではない）。
-  実測（診断スクリプト）で**ダイアログ生成直後の Tk フォーカスが App ルート `.` のまま**と判明。
-  `grab_modal` の直前へ `self.tree.focus_set()`（チューザは `listbox.focus_set()`）を追加。
-  **既存テストは `focus_force()` を呼んでから `event_generate` していたため不具合を隠していた**
-  → `focus_force` なしでフォーカス位置を検証するテストを追加。
-  ②**枠を広げると名前列まで広がる** → 名前列 `#0` を `stretch=False`（240/最小 80）・
-  パス列を `stretch=True`（400/最小 120）。枠の拡縮はパス列だけに配分される。
-  他の目視項目（メニュー位置・折り畳みと名前順・フォント ±3・各操作の一巡）は問題なし。
-  **2 回目の実機目視 = OK（ユーザー 2026-09-22）→ task_04 完了確定**。
-  横断適用は範囲外として [idea_26](../../instructions/backlog/idea_26_dialog_keyboard_focus.md) へ分離
-  （`orphan_sweep` / `quarantine_manage` / `reference_cleanup` も Escape を bind しつつフォーカス未設定。
-  既存テストは `focus_force()` 後に Escape を送るため検出できない）。
+  【task_05 = 正本反映とフェーズ完了 / task_06 = 編集失敗時の再描画】**phase 27 完了**。
+  正本へ昇格: `data_schema.md` **§5.12 新設**（5.12.1〜5.12.8）+ §5.4 へ遅延作成 1 行 /
+  `features.md` §4.6 へ「履歴から読み込む…」と UI 規定の子ビュレット / `codebase_map.md` 4 箇所 /
+  暫定仕様 21 を**凍結** / `decisions_archive/27` 作成 + `decisions.md` を 646 → 546 行へ集約 /
+  `current.md` をアクティブ無しへ（次採番 = phase 28 / 暫定 22 / decisions 28）。
+  【フェーズ完了判定レビュー = `deep-reviewer` + `codex-adversarial-reviewer`】
+  **`deep-reviewer` の H1 は正しい指摘で、メインの昇格漏れだった**: UI・編集の規範条項
+  （同名禁止 / 分類内の重複禁止 / 削除の粒度 / 不在表示 / 閉じる条件 / 再描画 / Treeview のフォント追従）が
+  **コードにしか存在しない**状態 → **§5.12.7「分類とエントリの編集」新設**（データ規則）+
+  `features.md` §4.6 の子ビュレット（UI）へ分けて昇格。M2-1（退避先は `broken`〜`broken5` の最大 5 個）/
+  M3（テスト記載の誤り）/ L2 / L5 も修正。
+  【ユーザー判断 4 件】①読み取り専用のラッチ → **正本を都度判定へ正す**（実装は無変更。
+  保全の不変条件は都度判定でも保たれ、ラッチだと一時障害後に再起動が要る）②編集失敗時の再描画 →
+  **採用 = task_06 で実装**（`_finish_edit` で再描画を先に・その後に理由）③未知キー →
+  **保持しないことを §5.12.2 へ明記** ④多重起動時の 2 件（退避先 TOCTOU / 削除時の index 陳腐化）→
+  **受容**（単一インスタンスでは成立しない。phase 11 の TOCTOU 受容と同じ扱い）。
+  【flaky の 3 例目】コード差分ゼロの時点で `tests_ui` 一括が 3 回中 1 回 FAILED（毎回別テスト・
+  いずれも Escape 経由の `get_hook_pause_count()` が `1 != 0`）。単体実行は安定 → **idea_18 の既知症状**。
+  今回追加した `test_close_routes_restore_hook_and_parent_grab` も同 family に入った旨を idea_18 へ追記。
+  【refactor_check】**不要**（M1〜M6 非該当）。境界の 1 件（履歴ファイル名の語幹が 2 箇所に直値）は
+  `current.md`「別タスク化候補」の Phase 27 項へ。
 result_files:
-  - instructions/phase/27_keymap_set_load_history/tasks/task_04_history_dialog.md（新規）/ phase.md（リンク化）
-  - keyseq/presentation/keymap_set_history_text.py（新規）/ dialogs/keymap_set_history_dialog.py（新規）
-  - keyseq/presentation/controllers/config_io/keymap_set_history_io.py / dialogs/__init__.py / views/menu_bar.py
-  - tests_ui/test_keymap_set_history_flow.py（新規・11 件）
-  - tests_ui/test_dialog_teardown_flows.py / test_nested_modal_grab.py（列挙の追随）
+  - instructions/common/spec_detail/data_schema.md（§5.12 新設 + §5.4）/ features.md（§4.6）/ codebase_map.md
+  - instructions/history/21_keymap_set_load_history.md（**凍結**）
+  - .claude_data/state/decisions_archive/27_keymap_set_load_history.md（新規）/ decisions.md（集約）
+  - instructions/phase/current.md / 27_keymap_set_load_history/phase.md / tasks/task_05・task_06（新規）
+  - instructions/backlog/idea_18_escape_delivery_flaky_test.md（3 例目の追記）
+  - keyseq/presentation/dialogs/keymap_set_history_dialog.py（task_06・`_finish_edit`）/
+    tests_ui/test_keymap_set_history_flow.py（task_06・+1 件）
 verified:
   compile: clean
-  tests: 556 ran OK（skipped 7・不変）
-  tests_ui: 483 ran OK（471 → +12。目視指摘の再発防止テスト 1 件を含む）
+  tests: 556 ran OK（skipped 7・フェーズ通して不変）
+  tests_ui: 484 ran OK（449 → +35）
   smoke: SMOKE OK
   side_effects: 履歴ファイル未生成（worktree ルート・`config/` 直下とも）・config.json の mtime 不変
-  review: reviewer（task_04 差分）= 修正要 → 2 件修正後に再実測 green
-  refactor_check: not_run（phase 27 の task_05 で実施）
+  review: task_06 = reviewer 採用（指摘なし）/ フェーズ完了判定 = deep-reviewer 修正要 → H1 ほか反映済 +
+    codex-adversarial-reviewer 3 件 → ユーザー判断で決着
+  refactor_check: 不要（M1〜M6 非該当）
 
 
 ## next_action
-- **実機目視は完了（2026-09-22 OK）**。task_01〜task_04 はすべて完了。
-- **task_05（正本反映と完了）を `/task_new` で起票する**（`tasks/task_05_*.md`）。内容 =
-  `spec_detail/data_schema.md` **§5.12 新設**（現最終節は §5.11）/ `features.md` §4.6 へ
-  「履歴から読み込む…」/ `codebase_map.md` へ新規 4 ファイル + メニュー項目 + 記録の呼び出し点 +
-  パス指定の読込入口 / `data_schema/5_08_09_orphan_sweep.md` の補記要否判断（暫定仕様 §9）/
-  **暫定仕様 21 の凍結** / `decisions_archive/27_keymap_set_load_history.md` /
-  `decisions.md` のアーカイブ索引 / `current.md` の完了記載と次採番（phase 28 / 暫定 22 / decisions 28）/
-  `/refactor_check`。
-- task_05 の完了判定は `deep-reviewer` + Codex レビュー併用（phase.md「レビュー方針」）。
+- **phase 27 は完了。アクティブなフェーズは無い**。次フェーズの方針をユーザーへ確認してから
+  `/phase_start` で起票する（候補は `instructions/backlog/INDEX.md`）。
+- **次フェーズの有力候補 = [idea_26](../../instructions/backlog/idea_26_dialog_keyboard_focus.md)**
+  （ダイアログがキーボードフォーカスを取らず Escape が効かない。`orphan_sweep` /
+  `quarantine_manage` / `reference_cleanup` の横断修正 + テストの検出力強化）。
+  案 A（個別に `focus_set`・1 タスク規模）/ 案 B（`grab_modal` へ集約 + 正本 `features.md` §4.6 へ追記・
+  小フェーズ規模）の選択が着手時の判断ポイント。**phase 27 で実測済みの材料がある**うちが着手しやすい。
+- `/save_handoff` で handoff.md を再生成する（phase 27 完了・次フェーズ未確定の状態へ）。
 - **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
@@ -86,15 +76,23 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **【phase 27 の設計は暫定仕様 21 が正】**（`instructions/history/21_keymap_set_load_history.md`・v0.4・**未凍結 = 主入力**）。
-  フェーズ中は正本 `spec_detail/` を直接改訂せず、この文書に従う（正本への昇格は task_05）。
+- **【phase 27 の成果は正本が正】構成セットの読み込み履歴 = `spec_detail/data_schema.md` **§5.12**（新設・
+  5.12.1〜5.12.8）+ §5.4 / `features.md` §4.6 / `codebase_map.md`。**暫定仕様 21 は凍結済で条項の根拠に引かない**。
   要点 = ①記録契機 = **読込または保存が成功し空でないパスが確定したとき、その実保存先**
-  （`app.py:76` の初期代入 / `new_config` / `import_config` / `restore_default` は**除外**）
+  （初期代入 / `new_config` / `import_config` / `restore_default` / **起動時の自動読込**は除外）
   ②**`recent` の先頭が同一パスなら書き込まない**（永続化済みの内容で判定・メモリ先行更新しない）
-  ③**破損ファイルは `*.broken*.json` へ退避してから作り直す**（上書きで消さない・連番 5 で打ち止め）
-  ④**永続化に成功してから UI を確定**する ⑤記録は**単一の口 `record()`** に閉じる
-  （既存 characterization テストが `config_root` に `os.getcwd()` を入れるため、patch 可能にしないと
-  **リポジトリルートへ履歴ファイルが生成される**）。
+  ③**破損ファイルは `*.broken*.json` へ退避してから作り直す**（`broken`〜`broken5` の最大 5 個。
+  すべて埋まっていたら退避も書き込みもしない。**判定は都度**でセッション内に保持しない）
+  ④**永続化に成功してから UI を確定**し、**編集・読込のたびに永続化済みの内容を読み直して再描画**する
+  （失敗時も再描画してから理由を出す = task_06）⑤記録は**単一の口 `record()`** に閉じ、
+  **境界で例外を `(False, 理由)` へ変換する**（呼び出し点が既存 `try` の内側にあるため）
+  ⑥**未知キーは保持しない**（§5.12.2）⑦多重起動時の TOCTOU と削除時の index 陳腐化は**受容**。
+- **【テストの罠・phase 27】**①`tests_ui` で `App()` を作るテストは **`config_service.load/save_keymap_set_history`
+  を patch し `config_root` を一時ディレクトリへ**差し替える（実 `config/` を汚した実績あり。`.gitignore` の
+  `config/` 除外で `git status` に出ない）②**`focus_force()` + `event_generate("<Escape>")` の形は
+  [idea_18](../../instructions/backlog/idea_18_escape_delivery_flaky_test.md) の flaky family に入る**
+  （負荷下で `get_hook_pause_count()` が `1 != 0`。単体実行で切り分ける）
+  ③**`focus_force()` を挟むと実使用のフォーカス不具合を隠す**（実例 = 履歴ダイアログの Escape）。
 - **【phase 26 の設計は正本が正】起動エントリ = `config/config.json` の `keymap_set_path`。
   正本 `spec_detail/data_schema.md` §5.4**。要点 = ①**保存では更新しない**（別名保存でも据え置き）。
   変更経路はメニュー「起動時に読む構成セットを指定…」のみ ②**例外 = 未設定 / 起動時に読めなかった場合のみ**

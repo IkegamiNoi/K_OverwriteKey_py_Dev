@@ -201,11 +201,31 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
                 dialog.category_name.set("new")
                 before = self._snapshot(dialog)
                 disk = copy.deepcopy(self.store)
-                action()
+                with patch.object(dialog, "_redraw", wraps=dialog._redraw) as redraw:
+                    action()
+                    redraw.assert_called_once_with()
                 self.assertEqual(self._snapshot(dialog), before)
                 self.assertEqual(self.store, disk)
                 self.info.assert_called_with(text.TITLE, "保存不可", parent=dialog)
         self.assertEqual(self.save.call_count, 4)
+
+    def test_failed_edit_redraws_updated_disk_before_showing_reason(self):
+        dialog = self._dialog()
+        before = self._snapshot(dialog)
+        self.store = {"recent": [], "categories": []}
+        self.save.side_effect = lambda *a, **kw: (False, "保存不可")
+        dialog.category_name.set("new")
+        expected = [(("recent_root", "", -1, ""), text.RECENT_NODE_LABEL, ("",))]
+        self.assertEqual(self._snapshot(dialog), before)
+        self.assertNotEqual(before, expected)
+        self.info.side_effect = lambda *a, **kw: self.assertEqual(self._snapshot(dialog), expected)
+
+        dialog._add_category()
+
+        self.assertEqual(self._snapshot(dialog), expected)
+        self.assertEqual(self.store, {"recent": [], "categories": []})
+        self.save.assert_called_once()
+        self.info.assert_called_once_with(text.TITLE, "保存不可", parent=dialog)
 
     def test_category_edits_validation_and_fresh_read(self):
         dialog = self._dialog()
