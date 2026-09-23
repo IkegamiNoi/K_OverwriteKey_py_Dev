@@ -4,49 +4,44 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T21:30:00
-phase: `instructions/phase/29_focus_restore_after_minimize`（**task_01・task_01b・task_02 完了。残りは task_03〔正本反映・フェーズ完了〕**）。主入力 = 暫定仕様 23（**v0.5**・ユーザー確定済・未凍結）。次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12。
-直前の完了フェーズ = **phase 28**（ダイアログの初期キーボードフォーカス・判断履歴 = `decisions_archive/28_dialog_keyboard_focus.md`。暫定仕様 22 は v0.7 で凍結）。
+last_updated: 2026-09-23T23:30:00
+phase: なし（**phase 29 = `instructions/phase/29_focus_restore_after_minimize` は 2026-09-23 完了**。アクティブなフェーズ無し）。次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12。
+直前の完了フェーズ = **phase 29**（最小化から復元した後のキーボードフォーカス・判断履歴 = `decisions_archive/29_focus_restore_after_minimize.md`。暫定仕様 23 は v0.5 で凍結）。
 last_commit_location: `claude/task-02-progression-d47775`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 29 は task_02 完了（統合確認 green・二次レビュー完了・実機目視 ①〜⑦ 合格）。次は task_03（正本反映 + 暫定 23 凍結 + decisions_archive/29 + idea_34 クローズ + /refactor_check）。**
-mode: implementing
+focus: **phase 29 完了（正本反映・暫定 23 凍結・archive/29・idea_34 クローズ・refactor_check 不要）。次フェーズは未定（ユーザー判断待ち）。**
+mode: completed
 
 ## last_action
-ts: 2026-09-23T21:30:00
+ts: 2026-09-23T23:30:00
 who: main
 summary: |
-  【task_02 完了（task_01b 後の再開分）】`verifier`（HEAD 652cb72）: tests 556 OK / tests_ui 532 OK ×3 / 変異 5 種すべて狙いどおり赤 / smoke OK。
-  【二次レビュー】`codex-reviewer` 指摘なし / `deep-reviewer` 条件付き（コード修正不要）: M1 = 昇格時の文言整理 → task_03 で修正して採用 /
-  M2 = 3 段ネストの発動確認 → 実機②で確認済 / L1 → ①③④を 2〜3 回ずつで確認済 / L2〜L5 保留。§3.2 の `windll`/`WinDLL` 食い違い 1 行は訂正済。
-  【実機目視（ユーザー）】①〜⑦すべて想定どおり（②は 3 段目まで・⑤は keyseq がアクティブにならない・⑥は記録のみ）。
+  【task_03 完了 = phase 29 完了】`features.md` §4.6（最小化の条項へフォーカス復帰・条件つき強制アクティブ化・最小化中に開いた窓・
+  保証の範囲外へ残存リスク 2 件 / 「閉じた後は規定しない」を分離 / 初期フォーカスの「強制しない」を「開いた時点では」に限定）+
+  `codebase_map.md` の `modal.py` 節 / 暫定 23 を v0.5 で凍結 / `decisions_archive/29` / `current.md` / idea_34 → INDEX_done。
+  【refactor_check】不要（`modal.py` 187 行・+54）。テスト 603 行は別タスク化候補へ。
+  【レビュー】`codex-adversarial-reviewer` 1 件 + `deep-reviewer` F1〜F11 → F1〜F10 修正して採用・F11 保留（ユーザー承認）。
+  【検証】コード差分ゼロ / tests 556 / tests_ui 532 / smoke OK / リンク OK。
 result_files:
-  - instructions/phase/29_focus_restore_after_minimize/tasks/task_02_integration_and_manual_check.md（完了記録）
-  - instructions/history/23_focus_restore_after_minimize.md（§3.2 の 1 行訂正）
-  - instructions/phase/current.md
+  - instructions/common/spec_detail/features.md / instructions/common/codebase_map.md
+  - instructions/history/23_focus_restore_after_minimize.md（凍結）
+  - .claude_data/state/decisions_archive/29_focus_restore_after_minimize.md（新規）/ .claude_data/state/decisions.md
+  - instructions/phase/current.md / instructions/phase/29_focus_restore_after_minimize/{phase.md, tasks/task_03_spec_promotion_and_close.md}
+  - instructions/backlog/INDEX.md / INDEX_done.md
 verified:
   compile: clean
   tests: 556 ran OK（skipped 7）
-  tests_ui: 532 ran OK ×3
-  mutation: 5 種すべて狙いどおり赤
+  tests_ui: 532 ran OK
   smoke: SMOKE OK
-  review: deep-reviewer = 条件付き（コード修正不要）/ codex-reviewer = 指摘なし
-  manual: ①〜⑦ 合格（ユーザー）
+  review: codex-adversarial-reviewer + deep-reviewer → 指摘反映済（ユーザー承認）
+  refactor_check: 不要
 
 ## next_action
-- **task_03 を `/task_new` で起票して実施**（フェーズ最終タスク・文書作業のためメインが直接行ってよい）:
-  ①正本 `instructions/common/spec_detail/features.md` §4.6「モーダルダイアログの作法」へ暫定仕様 23 §8 のとおり昇格
-  （最小化の条項〔:187-208 付近〕を API 単位へ言い換え + フォーカス復帰の条項〔§3.1-1〜3。**条件つき `focus_force` はユーザー視点の条件で書く**〕+
-  §3.1-6 + 「閉じた後は規定しない」の分離〔:208〕+ 初期フォーカス条項〔:174-178〕の言い回し + §7 の残存リスク〔TOCTOU・最小化中に開いた窓の保留要求〕を保証範囲外へ）
-  ②`instructions/common/codebase_map.md` の `modal.py` 節（:303〜。`_restore_modal_focus` / `_is_app_foreground`〔presentation 唯一の ctypes〕/
-  `after_idle` 予約は App の `<Map>` 全般で行う / `:312-313` を「初期フォーカスでは」に限定 / `:349` の理由を正確に）
-  ③**deep-reviewer M1 の文言整理**: 凍結前に 23 の §2-1・§4-1・§1.2 末尾へ「v0.5 で改訂」注記
-  ④暫定仕様 23 を凍結 ⑤`decisions_archive/29_focus_restore_after_minimize.md` 作成（decisions.md の phase 29 節を移し、本体はアーカイブ索引 1 行）
-  ⑥`current.md` を phase 29 完了に更新（次 = phase 30）⑦idea_34 を `backlog/INDEX.md` → `INDEX_done.md` へ ⑧`/refactor_check`（メトリクス収集は `verifier`）。
-  レビュー = `deep-reviewer` + `codex-adversarial-reviewer`（フェーズ完了判定前・昇格文言を既存条項と突き合わせる）。
-- **main へのマージはユーザーが行う**。**実機起動は worktree から**（メインのチェックアウトは未マージ）。
+- **`/save_handoff` で handoff.md を phase 29 完了時点へ再生成**。
+- **main へのマージはユーザーが行う**（ブランチ `claude/task-02-progression-d47775`）。
+- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33 ほか）。着手時は `/phase_start`。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 

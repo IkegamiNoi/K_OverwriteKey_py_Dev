@@ -100,7 +100,7 @@ keyseq/presentation/
     keyboard_layouts.py
     keyboard_window.py
     listbox_utils.py
-    modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かり
+    modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
     pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
@@ -302,15 +302,15 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
   - **アプリ終了が確定したらフックを再開しない**（終了ガード。解除経路によらず効く）。
 - listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）
 - modal.py（presentation 直下）: `grab_modal(window, parent=None, *, focus=None)` = モーダル化・
-  **初期キーボードフォーカス**・**破棄時の grab 復元**
+  **初期キーボードフォーカス**・**破棄時の grab 復元**・**最小化中の grab 預かりと復元時のフォーカス復帰**
   （`features.md` §4.6「モーダルダイアログの作法」）。**`dialogs/` と `controllers/config_io/` の
   すべてのモーダルがここを通す**（`grab_set` / `transient` を直呼びしない）。
   - **`focus` = 初期フォーカス先**（**省略時は窓自身**）。`grab_set()` の直後に `_apply_initial_focus` が
     `focus_set()` する（**`focus_force` / `lift` は呼ばない**・破棄中の `TclError` は握る）。
     **入力先を持つダイアログはここへ渡す**（`__init__` 内で別途 `focus_set` しない）。
     **二重呼び出し・預かり中の窓では要求を出し直さない**（早期 return）。
-    推測型（`focus_lastfor()` / `after_idle`）は**不採用**（未マップ時の `focus_set` が Tk 内で保留され
-    明示指定を奪う。判断は `decisions_archive/28`）
+    **初期フォーカスでは**推測型（`focus_lastfor()` / `after_idle`）は**不採用**（未マップ時の `focus_set` が Tk 内で保留され
+    明示指定を奪う。判断は `decisions_archive/28`。最小化からの復元は表示済みの窓の記録を読むので別物＝下の項）
   - **Escape の結線**（`grab_modal` の外・各ダイアログ側）: **× と同じ閉じ方へ結線する**
     （`io_dialogs.py` のみ `on_cancel`、他は `destroy`）。**Esc の別用途がある
     `ActionDialog` / `TriggerDialog` / `KeymapEditDialog` は `dialogs/escape_close.py` の
@@ -346,12 +346,23 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     ガード = **App 自身のイベントのみ**（`pack_forget` でも `<Unmap>` が飛ぶ）/ **`grab_current()` が
     解決不能（stdlib ダイアログ）なら触らない** / **既に預かり中なら預かり直さない** /
     **破棄済み・表示中の保持者は預からない** / **別の窓が grab 中なら上書きしない**。
-    **`deiconify` / `lift` / `focus_force` を呼ばない**（中間窓が消える）
-  - モジュール状態は 3 つ: `_active_modals`（アクティブなモーダルの台帳。**`grab_modal` を通った窓だけ**・
-    末尾 = 最内）/ `_custody_window`（預かり中の窓）/ `_app_minimized`（最小化中フラグ）。
+    **`deiconify` / `lift` を呼ばない**（`deiconify` は中間窓が消える・`lift` は WM が戻すので不要）。
+    **復元時のフォーカス復帰**: `return_custody` は**どの経路でも最後に `app.after_idle(_restore_modal_focus, app)` を予約**する
+    （**App の `<Map>` 全般で**予約する。grab の返却は `<Map>` 内で即時。**即時に `focus_set` しない**＝実 App の 3 段ネストで
+    外側の窓が非表示のまま残る）。`_restore_modal_focus` は**予約の実行時点の** `grab_current()` が台帳に `is` で含まれ・
+    最小化中に開いた窓でなく・生存かつ表示中なら、`focus_lastfor() or window` へ `focus_set`。さらに **`app.focus_get() is None`
+    かつ `_is_app_foreground(app)`** のときだけ同じ先へ **`focus_force`**（タスクバー復元ではアクティブ化の時点で grab が預かり中のため
+    Tk の振り向けが働かず、Tk がフォーカスを持たない）。`TclError` / `KeyError` は握り、最後に `_opened_while_minimized` を空にする。
+    `_is_app_foreground` = 専用 `ctypes.WinDLL("user32")` の `GetForegroundWindow`（`argtypes=[]`・`restype=HWND`・`@cache` の
+    `_foreground_window_fn`）と `int(app.wm_frame(), 16)` の比較。**presentation で `ctypes` を使うのはここだけ**・共有の
+    `ctypes.windll.user32` は変えない・NULL / 例外は偽（判断は `decisions_archive/29`）
+  - モジュール状態は 4 つ: `_active_modals`（アクティブなモーダルの台帳。**`grab_modal` を通った窓だけ**・
+    末尾 = 最内）/ `_custody_window`（預かり中の窓）/ `_app_minimized`（最小化中フラグ）/
+    `_opened_while_minimized`（最小化中に `grab_modal` した窓。復帰の対象外にする・**その回の復元の処理で空にする**・破棄時にも除く）。
     `grab_modal` 側は **預かり中に開いたモーダルなら預かり窓を直前の保持者にする** /
     **最小化中に復元できなかった直前の保持者は（預かりが空なら）預かりへ戻す**。
-    固定テスト = `tests_ui/test_minimize_grab_custody.py`（テストは `setUp` で 3 状態を patch して独立させる）
+    固定テスト = `tests_ui/test_minimize_grab_custody.py`（テストは `setUp` でモジュール状態を patch して独立させ、
+    `_is_app_foreground` を既定 `False` に差し替える）/ `tests_ui/test_modal_app_foreground.py`（前面判定と FFI の型設定）
 
 ### View → コントローラのウィジェット登録（計画04 W5）
 

@@ -7,34 +7,27 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 29](29_focus_restore_after_minimize/phase.md)**
-  （最小化から復元した後のキーボードフォーカス・2026-09-23 起票）。
-  主入力 = [暫定仕様 23](../history/23_focus_restore_after_minimize.md)（**v0.5・ユーザー確定済**）。
-  起票元 = [idea_34](../backlog/idea_34_focus_restore_after_minimize.md)。番号対応: phase 29 / 暫定 23 / decisions 29。
-  **確定**: 復元時（App の `<Map>`）に grab の返却の直後、**最内の表示中モーダルの最後のフォーカス先へ `focus_set`** /
-  `deiconify` / `lift` は呼ばない・**`focus_force` は Tk がフォーカスを持たず OS の前面が自アプリのメイン窓のときだけ**（v0.5）/
-  **進捗 = task_01・task_01b（条件つき `focus_force`）・task_02（統合確認 + 実機目視 ①〜⑦ 合格）完了 / 次 = task_03（正本反映・フェーズ完了）**。
-  最小化中に開いたモーダルには復帰しない / 閉じた後は規定しない / 最小化を伴わない再アクティブ化は対象外。
-- 直前の完了フェーズ = [phase 28](28_dialog_keyboard_focus/phase.md)（2026-09-23・ダイアログの初期キーボードフォーカス・
-  判断は [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)）/
-  [phase 27](27_keymap_set_load_history/phase.md)（2026-09-22・構成セットの読み込み履歴・
-  判断は [decisions_archive/27](../../.claude_data/state/decisions_archive/27_keymap_set_load_history.md)）。
+- **アクティブなフェーズ = なし**（phase 29 は 2026-09-23 完了。次に着手するフェーズは `/phase_start` で起票する）。
+- 直前の完了フェーズ = [phase 29](29_focus_restore_after_minimize/phase.md)（2026-09-23・最小化から復元した後のキーボードフォーカス・
+  判断は [decisions_archive/29](../../.claude_data/state/decisions_archive/29_focus_restore_after_minimize.md)）/
+  [phase 28](28_dialog_keyboard_focus/phase.md)（2026-09-23・ダイアログの初期キーボードフォーカス・
+  判断は [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近の一連の作業が扱っている領域 = モーダルダイアログのキーボードフォーカスと Escape**（phase 28）。
-  正本は `features.md` §4.6「**モーダルダイアログの作法**」（初期フォーカス / Escape で閉じる /
-  Esc の別用途優先 / フォーカスの戻り先は規定しない）+ `codebase_map.md` の `modal.py` 節。
-  実装 = `presentation/modal.py` の **`grab_modal(window, parent=None, *, focus=None)`**
-  （`grab_set()` の直後に `focus_set`・省略時は窓自身・`focus_force` / `lift` は呼ばない）/
-  モーダル全 15 経路の Escape 結線（群 A の `ActionDialog` / `TriggerDialog` / `KeymapEditDialog` は
-  **`dialogs/escape_close.py` の `bind_escape_close`（単一ハンドラ + 状態分岐）**で記録中・取得中の停止を優先し、**停止に使った Esc の押しっぱなしでは閉じない**）。
-  テスト = `tests_ui/test_dialog_initial_focus.py` / `test_dialog_escape_binding.py` /
-  **`tests_ui/escape_delivery.py` の `send_escape`**（フォーカスを確保してから送る・期限方式。
-  `focus_force()` + `event_generate` の直書きはフォーカス欠落を隠すので使わない）。
+- **直近の一連の作業が扱っている領域 = モーダルダイアログのキーボードフォーカスと Escape**（phase 28・29）。
+  正本は `features.md` §4.6「**モーダルダイアログの作法**」（初期フォーカス / Escape で閉じる / Esc の別用途優先 /
+  閉じた後のフォーカスは規定しない / **最小化から復元した後はモーダル性とフォーカスを戻す**）+ `codebase_map.md` の `modal.py` 節。
+  実装 = `presentation/modal.py`: `grab_modal(window, parent=None, *, focus=None)`（初期フォーカス）/
+  `install_minimize_grab_custody`（最小化中の grab 預かり + 復元時に `after_idle` で `_restore_modal_focus`。
+  **Tk がフォーカスを持たず自アプリのメイン窓が前面のときだけ `focus_force`**・`_is_app_foreground` は presentation 唯一の ctypes）/
+  Escape の結線は `dialogs/escape_close.py` の `bind_escape_close`。
+  テスト = `tests_ui/test_minimize_grab_custody.py`（`setUp` で `_is_app_foreground` を既定 `False`）/ `test_modal_app_foreground.py` /
+  `test_dialog_initial_focus.py` / `test_dialog_escape_binding.py` / `escape_delivery.py` の `send_escape`。
+  **実機目視は作業中の worktree から `main.py` で起動**（API で模擬した復元の probe は実操作の前面化の順序を再現しない）。
   **残件** = [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（`after(0)` のフック再開 flaky）/
-  [idea_34](../backlog/idea_34_focus_restore_after_minimize.md)（最小化復帰後のフォーカス）/
-  M4（`_apply_initial_focus` と `<Destroy>` 登録の順序・保留）。
-  判断は [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)。
+  M4（`_apply_initial_focus` と `<Destroy>` 登録の順序・保留）/ 最小化を伴わない再アクティブ化のフォーカス（対象外）。
+  判断は [decisions_archive/29](../../.claude_data/state/decisions_archive/29_focus_restore_after_minimize.md) /
+  [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)。
 - 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**11 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
@@ -42,10 +35,9 @@
 
 ## 次採番
 
-- **phase 28 は 2026-09-23 完了**（`28_dialog_keyboard_focus` / 暫定 22〔凍結〕/ decisions 28〔アーカイブ済〕）。
-- **phase 29 は 2026-09-23 起票・進行中**（`29_focus_restore_after_minimize` / 暫定 23 / decisions 29）。
+- **phase 29 は 2026-09-23 完了**（`29_focus_restore_after_minimize` / 暫定 23〔凍結〕/ decisions 29〔アーカイブ済〕）。
   次フェーズは **`30_<topic>`**・decisions も **30** を使う（欠番が出た場合はここに明記し、再利用しない）。
-  （phase 27 は 2026-09-22 完了 = `27_keymap_set_load_history` / 暫定 21〔凍結〕/ decisions 27〔アーカイブ済〕）
+  （phase 28 は 2026-09-23 完了 = `28_dialog_keyboard_focus` / 暫定 22〔凍結〕/ decisions 28〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
@@ -64,7 +56,7 @@
   20=JSON 読込の型不正の扱い統一〔**v0.3・凍結**〕/
   21=構成セットの読み込み履歴〔**v0.5・凍結**〕/
   22=ダイアログの初期キーボードフォーカス〔**v0.7・凍結**〕/
-  23=最小化から復元した後のキーボードフォーカス〔**v0.3・ユーザー確定済・未凍結**〕）。
+  23=最小化から復元した後のキーボードフォーカス〔**v0.5・凍結**〕）。
   次採番は **`24_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**11 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -79,7 +71,6 @@
 （`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする。
 **完了した候補の履歴はここに残さない**〔完了 idea は `backlog/INDEX_done.md` が正〕）
 
-（**idea_34 は phase 29 で着手中**のためここから外した）
 - [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（`after(0)` のフック再開が負荷下で拾われず
   後続テストが連鎖して落ちる・**テストのみ**・phase 28 から分離）
 - [idea_23](../backlog/idea_23_key_press_release_actions.md)（キーを押す / 離すアクションの追加。
@@ -105,11 +96,16 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   なお phase 28 で**群 C の 5 経路・群 A の 4 経路へ Escape を追加した**ため、
   `bind("<Escape>")` の同型箇所は**増えた**
   （着手判断は再評価が要る）（phase 11 / 14 / 28 由来）
-- `presentation/modal.py`（133 行）で `grab_current()` の try/except と
+- `presentation/modal.py`（**187 行**・phase 29 で +54）で `grab_current()` の try/except と
   `winfo_exists()` / `winfo_viewable()` の try/except が**それぞれ 3 箇所**（M3 の境界）。
   **意図的に意味が違う**ため共通化しない（`grab_modal` は解決不能を「保持者なし」と扱い、
   預かり側は**解決不能と `None` を区別する**〔暫定仕様 15 §3-2(5)〕/ `<Unmap>` は「非表示」、
-  他 2 箇所は「生存かつ表示中」）。**4 箇所目が同じ意味で増えたら**判定ヘルパ抽出を再判定（phase 17 由来）
+  他 2 箇所は「生存かつ表示中」）。**4 箇所目が同じ意味で増えたら**判定ヘルパ抽出を再判定（phase 17 由来）。
+  phase 29 の `_restore_modal_focus` も `grab_current()` の解決不能を握り「生存かつ表示中」を判定する＝**4 箇所目相当**。
+  ただし台帳・最小化中の記録の判定と 1 つの try に同居しており、**再判定の結果、据え置き**（phase 29 由来）
+- `tests_ui/test_minimize_grab_custody.py` が **603 行**（phase 29 で +282。a1〜a13 / b1〜b6・b8〜b11 / c10〜c13〔c13 は 2 件〕）。
+  テストは `/refactor_check` の判定対象外だが、組み立て（`_action` / `_manager` / `_minimize` / `_with_confirmation`）と
+  a / b / c 系の分割を次に増えたら検討（phase 29 由来）
 - `dialogs/action_dialog.py` が **418 行**で実装目安 300 行を超過（M1 の 600 行には未達）。
   `ActionDialog.__init__` も **113 行**（既存の巨大関数）。次に増えたら再判定（phase 22 由来）
 - `controllers/config_io/child_save_dialog.py` が **369 行**（M1 非該当だが実装目安超過）+

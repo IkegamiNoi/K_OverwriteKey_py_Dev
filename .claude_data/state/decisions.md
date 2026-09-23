@@ -38,6 +38,7 @@
 | 26_startup_entry_preservation | [26_startup_entry_preservation.md](decisions_archive/26_startup_entry_preservation.md) | 起動エントリ（`config/config.json` の `keymap_set_path`）の保存時据え置き（2026-09-21 完了・**仕様変更・スキーマ不変**・直接改訂モード・起票元 = ユーザー要望）。保存のたびに起動対象が直近の保存先へ書き換わる問題を解消し、**変更経路をメニュー「起動時に読む構成セットを指定…」1 本へ**寄せた。**空 / 起動時に読めなかった場合のみ保存で更新**（自己修復）/ 「読めない」の判定は **案 A = 起動時の実読込結果を真偽値で保持**（案 B の保存時 `os.path.exists` は**壊れた JSON を自己修復できない**ため除外）/ **別名保存でも据え置き**（次回起動は別名保存前のファイル）/ 可視化 UI・解除手段は**除外**。実装 = `StartupIo.entry_loaded`（**presentation は事実のみ**）→ `startup_entry_loaded` を application へ貫通し、**判定は `split_payloads.py:363` の 1 箇所**。更新契機は 3 経路（起動読込成功 / 保存成功 / メニュー指定成功）で **`write_startup` には入れない**（一律に立てると自己修復が失われる）/ **新引数の既定は False** で既存経路は挙動不変。**据え置くのは `keymap_set_path` だけ**。正本 = `data_schema.md` §5.4 の条項差し替え + `5_08_09_orphan_sweep.md` の根拠文 1 行（**走査範囲 4 経路は不変**）。実測 `tests` 518 / `tests_ui` 449 / smoke pass・実機目視 **OK**。残件 = `.strip()` 非対称（**到達不能**・候補送り）/ phase 25 残件①（`startup_io.py` の型正規化）は未着手。refactor_check: 不要（M1〜M6 該当なし・対象 5 ファイル・PHASE_BASE `e0c19ba`） |
 | 27_keymap_set_load_history | [27_keymap_set_load_history.md](decisions_archive/27_keymap_set_load_history.md) | 構成セットの読み込み履歴管理（2026-09-22 完了・**新規 JSON 追加**）。ファイルメニューへ「履歴から読み込む…」、直近 20 件 + ユーザーが作る分類を **リポジトリ初の `ttk.Treeview`** で扱う。保存先は `config/keymap_set_history.json`（固定・**config.json にキーを追加しない**・遅延作成）。記録契機 = **読込または保存が成功し空でないパスが確定したとき、その実保存先**（初期代入 / 新規作成 / Import / 例の復元 / **起動時の自動読込**は除外）。**先頭一致 no-op** で通常の起動はディスクに触らない。破損ファイルは `*.broken*.json` へ**退避してから**作り直す（連番 5 で打ち止め → 読み取り専用）。**永続化に成功してから UI を確定**し、ダイアログは操作のたびに永続化済みの内容を読み直して再描画する。**v0.5 改訂**の理由 = 起動時に記録すると `tests_ui` が実 `config/` を汚したため。正本 `data_schema.md` **§5.12 新設** + §5.4 / `features.md` §4.6 / `codebase_map.md` へ昇格済。**孤児棚卸しの走査範囲・判定は不変**（§9 の補記は「不要」で決着）。**後続**: [idea_26](../../instructions/backlog/idea_26_dialog_keyboard_focus.md)（ダイアログのフォーカス欠落・横断）。refactor_check: **不要**（M1〜M6 非該当。600 行超のファイルは増分が +10〜15 と小さく、80 行超の関数・申し送りコメント・コピー由来の同型ブロックはいずれも無し。根拠は本アーカイブ「refactor_check」節）|
 | 28_dialog_keyboard_focus | [28_dialog_keyboard_focus.md](decisions_archive/28_dialog_keyboard_focus.md) | ダイアログの初期キーボードフォーカス（2026-09-23 完了・**presentation 限定・スキーマ不変**・暫定仕様先行モード・起票元 = idea_26 + idea_18）。Escape を bind しているのにフォーカスを移さないダイアログ（群 B 3 件）を是正するため、**フォーカスを `grab_modal(window, parent=None, *, focus=None)` の責務へ集約**（**明示引数**・省略時は窓自身。推測型 `focus_lastfor()` / `after_idle` は未マップ時の `focus_set` 保留で**明示指定を奪うと実測で反証**）/ `focus_force`・`lift` は呼ばない。**群 C 5 経路へ Escape を結線**（× と同じ閉じ方）+ 統合レビュー H1 を受け **群 A 4 経路へも Escape**（**Esc の別用途〔記録中・取得中〕を優先する単一ハンドラ + 状態分岐**。Tk では同一 widget の `<Escape>` が `<KeyPress>` より優先して単独発火すると実測）。**idea_18 の根は配送の遅さではなく配送先の違い**（ダイアログを持つ Tk アプリが入力フォーカスを持たないと Escape は破棄される）→ `send_escape`（フォーカス確保してから送る・期限方式）。§8-7 は Escape family に限定し `after(0)` family は **idea_33** へ分離。実機目視で**最小化復帰後にフォーカスが戻らない**ことが再現 → **idea_34**（正本へ「フォーカスの戻り先は規定しない」を明記）。正本 = `features.md` §4.6 へ 3 条項 + `codebase_map.md` の `modal.py` 節（13→15 箇所訂正）。**task_05e で記録中・取得中の Esc 押しっぱなしで閉じない**よう修正（v0.7・判定順 = 記録/取得中 → 印 → 閉じる）。暫定 22 は v0.7 で凍結。refactor_check: **推奨 → task_07 で実施済**（提案書 11・M3 = Esc の別用途つき閉じ処理の 3 重複を `bind_escape_close` へ） |
+| 29_focus_restore_after_minimize | [29_focus_restore_after_minimize.md](decisions_archive/29_focus_restore_after_minimize.md) | 最小化から復元した後のキーボードフォーカス（2026-09-23 完了・**presentation 限定・スキーマ不変**・暫定仕様先行モード・起票元 = idea_34）。復元時に grab だけ戻りフォーカスがメイン窓に残る問題を、**`<Map>` 後に `after_idle` で予約した処理で、予約実行時の grab 保持者の `focus_lastfor() or window` へ `focus_set`** して解消（**即時 `focus_set` は実 App の 3 段ネストで外側の窓を非表示のまま残す**と実測・v0.4）。**実機目視でタスクバー復元時に Escape が届かない不合格** → 復元のアクティブ化の時点で grab が預かり中のため Tk の振り向けが働かず `focus_get()` が `None` と特定 → **Tk がフォーカスを持たず OS の前面が自アプリのメイン窓のときだけ `focus_force`**（専用 `WinDLL` の `GetForegroundWindow`・`restype=HWND`・presentation 唯一の ctypes・v0.5）。最小化中に開いた窓はその回の復元では戻さない / 閉じた後は規定しない / TOCTOU と最小化中に開いた窓の保留要求は保証範囲外。教訓 = **API 復元の probe は実操作の前面化順を再現しない**。暫定 23 は v0.5 で凍結。refactor_check: **不要** |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -543,37 +544,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   （`_check_import_nodes` → **単数形へ改名** / `prefix` の毎ノード再計算を
   **モジュール定数 `_PACKAGE_PREFIX`** へ）。残る 1 件（分割後の関数が 30 行目安をわずかに超える）は
   **提案書が想定した分割形**のため据え置き。
-
-
-
----
-
-## 2026-09-23〜 (phase 29: 最小化から復元した後のキーボードフォーカス)
-
-### 暫定仕様 23 の確定経緯
-
-- v0.1 起票 → `deep-reviewer`（修正要: 時点の根拠が API 模擬のみ ほか）→ **キュー経由の復元で再測定**し `<FocusIn>` が `<Map>` より先に届くこと・
-  `<FocusIn>` 待ち方式が戻らないことを実測 → v0.2 → `codex-adversarial-reviewer`（最小化中に開いた窓の初期フォーカス保証 /
-  「最後のフォーカス先」の検出力）→ v0.3 → **ユーザー確定**（最小化の条項を API 単位へ言い換え / 閉じた後は規定しない /
-  最小化を伴わない再アクティブ化は対象外）。
-
-### 【task_01】`<Map>` 内の即時 `focus_set` が実 App の 3 段ネストで外側の窓を戻さない → v0.4（ユーザー確定）
-
-- 既存 a2・a3 が検出。メインが実 App（アクション編集 → プリセットマネージャ → 上書き確認）で再現: 即時 `focus_set` だと
-  **アクション編集が非表示のまま**（1.3 秒後も）。**素の Tk の 3 段 transient 連鎖では再現しない**（probe の限界）。
-  `after_idle` / `after(0|50|200)` はいずれも 3 窓とも戻る → **フォーカス復帰だけ `after_idle` で予約**（grab の返却は即時のまま）。
-- `reviewer` の再検討推奨（最小化中に開いた窓の記録が破棄まで残り、2 回目以降の復元でも戻らない）→ **記録の寿命はその回の復元まで**。
-- 教訓: **probe は素の Tk で成立しても実 App で崩れることがある**。既存の統合テスト（a2 / a3）が決め手になった。
-
-### 【task_02】実機目視①不合格（Win+D → タスクバー復元で Escape が届かない）→ v0.5（改訂着手をユーザー承認・確定は敵対的レビュー後）
-
-- 統合確認（`verifier`）は全 green・`deep-reviewer` 条件付き / `codex-reviewer` 指摘なし。だが**実機①で不合格**（メイン窓がアクティブのまま）。
-- イベントログ付き probe（スクラッチ・プロジェクト外）で原因特定: 復元時に OS がメイン窓をアクティブにする時点で **grab が預かり中** →
-  Tk の「grab 中のアクティブ化を grab 保持者へ振り向ける」処理が働かず、**Tk の `focus_get()` が `None`** のまま → `focus_set` は記録に留まり
-  Escape は Tk に届かない（戻し先の解決自体は正しい）。測定 1〜3 は API 復元で Tk がフォーカスを持つ経路だったため見逃した。
-- 採用 = **候補 A**: Tk がフォーカスを持たず、かつ OS の前面が自アプリのメイン窓のときだけ `focus_force`（`ctypes` の `GetForegroundWindow`）。
-  probe で①② OK・⑤は 4 回とも不発。不採用 = B（grab 預かりの見直し・phase 17 へ波及）/ C（受容・目的未達）。
-- ⑤のメモ帳カーソル非表示は **keyseq 無しでも再現**（ユーザー確認）→ Windows の挙動として判定対象外。
-- `codex-adversarial-reviewer`（v0.5 確定前）needs-attention 2 件 = ①非奪取は判定時点の最善努力・TOCTOU 受容 ②FFI の型契約（専用 `WinDLL`・`restype = HWND`）→ 推奨どおり反映。
-- `deep-reviewer` M1 = 既知の限界として §7 に記録（保留）/ M2 = §3.1-6 も task_03 で昇格。**v0.5 をユーザー確定**（2026-09-23）→ task_01b。
-- 教訓: **API による復元の probe は実操作（タスクバー・Win+D）の前面化の順序を再現しない**。前面窓（OS）と Tk のフォーカスを分けて記録する。

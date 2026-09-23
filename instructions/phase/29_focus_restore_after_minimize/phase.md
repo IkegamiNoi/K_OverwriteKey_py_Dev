@@ -12,10 +12,12 @@
 - **対象レイヤ = presentation のみ**（`keyseq/presentation/modal.py`）。**データスキーマ・domain / application の変更は無い**。
 - 起票元: [idea_34](../../backlog/idea_34_focus_restore_after_minimize.md)（phase 28 task_05 の実機目視 C② で再現）。
 - 主入力（暫定仕様）: [23_focus_restore_after_minimize.md](../../history/23_focus_restore_after_minimize.md)
-  （**v0.3・ユーザー確定済・実装着手可**）。
+  （**v0.5・凍結**・正本反映済）。
 - モード: **暫定仕様先行モード**。番号対応: phase 29 / 暫定 23 / decisions 29。
 
 ## 確定（ユーザー 2026-09-23）
+
+> **→ v0.4 / v0.5 で改訂**（`after_idle` での予約・条件つき `focus_force`・正本はユーザー視点で記述）。以下は v0.3 時点の記録。**暫定仕様 23（凍結）と正本が正**。
 
 - **App の `<Map>` で grab を返した直後に、即時で `focus_set`** する（暫定仕様 §3.1-4。キュー経由の復元では
   `<FocusIn>` が `<Map>` より先に届くため `<FocusIn>` 待ちは戻らないと実測で反証・§1.2）。
