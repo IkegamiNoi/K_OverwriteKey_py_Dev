@@ -41,7 +41,6 @@ verified:
   links: OK
 
 ## next_action
-- **`/save_handoff` で handoff.md を phase 30 完了時点へ再生成**。
 - **main へのマージはユーザーが行う**（ブランチ `claude/idea-27-28-consolidate-3ff723`）。
 - 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33 / idea_23、**idea_35 は phase 30 で非文字列 `type` の文字入力経路が増えたため優先度を再評価**）。着手時は `/phase_start`。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。

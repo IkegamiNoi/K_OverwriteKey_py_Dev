@@ -15,17 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 29 は 2026-09-23 完了〕。
-   次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12。次フェーズはユーザー判断・着手時は `/phase_start`）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 30 は 2026-09-23 完了〕。
+   次採番 = phase 31 / 暫定 24 / decisions 31 / 提案書 13。次フェーズはユーザー判断・着手時は `/phase_start`）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜23）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 29 完了（正本反映・暫定 23 凍結・archive/29・idea_34 クローズ・refactor_check 不要）。次フェーズは未定（ユーザー判断待ち）。**
-直近コミット: `f0becc5`（phase 29 task_03 = 完了）/ `9012f52`（task_02）/ `652cb72`（task_01b）/ `8728a81`（phase 28 完了）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜29 はユーザーがマージする）。
+**phase 30 完了（task_01 + task_02・正本 §5.7 / §5.11 反映・archive/30・idea_27 / 28 クローズ・refactor_check = 推奨→提案書 12 見送り）。次フェーズは未定（ユーザー判断待ち）。**
+直近コミット: `8c25cd1`（phase 30 task_02 = 完了）/ `08de61d`（task_01）/ `ff81f14`（phase 30 起票）/ `f0becc5`（phase 29 完了）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜30 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,46 +35,41 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 29 完了時点 = 2026-09-23**）:
-compile **clean** / tests **556 実行 OK**（skip 7）/ tests_ui **532 実行 OK**（skip 0）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 556 で不変 / tests_ui: phase 28 完了 509 → phase 29 完了 532）。
+直近の実測（**phase 30 完了時点 = 2026-09-23**）:
+compile **clean** / tests **565 実行 OK**（skip 7）/ tests_ui **532 実行 OK**（skip 0）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 29 完了 556 → phase 30 完了 565 / tests_ui: 532 で不変）。
 **`tests_ui` と smoke を並行実行しない**（フックの取り合いで 13 件落ちる。逐次で実行する）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
 `keymap_set_history*.json` が生成されていない**ことを確認する。
 
-**【既知の flaky】`tests_ui` 一括でまれに落ちる**: ①`get_hook_pause_count()` が `1 != 0`（例: `test_quarantine_manage_flow`。
-= [idea_33](../../instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md)・Escape 配送ではない）
-②`test_dialog_escape_binding` がまとめて落ちる回が 1 度あった（phase 29 task_01 中・以後の一括で再発せず）。
+**【既知の flaky】`tests_ui` 一括でまれに落ちる**: `get_hook_pause_count()` が `1 != 0`
+（例: `test_quarantine_manage_flow` / **`test_dialog_escape_binding` で 3 件まとめて**〔phase 29 task_01 中と phase 30 task_02 で観測・再実行で全 pass〕。
+= [idea_33](../../instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md)・Escape 配送〔idea_18 系統〕とは未切り分け）。
 **赤くなっても まず再実行・単体実行で切り分ける**（1 回で退行と決めない）。
 
 **既知の stderr ノイズ（退行ではない）**: `invalid command name "..._clear_flash_message"`（ステータスバーのタイマー）/
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33 ほか）。着手時は `/phase_start`。
-- **main へのマージはユーザーが行う**（ブランチ `claude/task-02-progression-d47775`）。
-- **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（`codex-implementer` 等の具体名。**template 側で修正済**・ユーザー 2026-09-23）。
-  （`codex_medium` 使用前の `Explore` 可用性確認は**当面気にしない**とユーザー判断・2026-09-23）
+- **main へのマージはユーザーが行う**（ブランチ `claude/idea-27-28-consolidate-3ff723`）。
+- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33 / idea_23、**idea_35 は phase 30 で非文字列 `type` の文字入力経路が増えたため優先度を再評価**）。着手時は `/phase_start`。
+- **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
-## 直前フェーズ（phase 29 = 最小化から復元した後のキーボードフォーカス）の要点
+## 直前フェーズ（phase 30 = アクション要素と内部キーの型正規化）の要点
 
-**正本が正**: `features.md` §4.6「モーダルダイアログの作法」の最小化の条項 + `codebase_map.md` の `modal.py` 節。
-判断は `decisions_archive/29`。**暫定仕様 23 は v0.5 で凍結**（条項を根拠に引かない）。
+**正本が正**: `data_schema.md` §5.7（内部キーのパス値も §5.1 に従う）/ §5.11.1・§5.11.2 + `codebase_map.md`「JSON 読込時の型正規化」節。
+判断は `decisions_archive/30`。**直接改訂モード**（暫定仕様なし）。
 
-- 実装 = `keyseq/presentation/modal.py`: `return_custody`（App の `<Map>`）は grab の返却を即時に行い、`finally` で
-  **`app.after_idle(_restore_modal_focus, app)`** を予約。`_restore_modal_focus` は予約実行時の `grab_current()` が台帳にあり・
-  最小化中に開いた窓でなく・表示中なら `focus_lastfor() or window` へ `focus_set`。さらに **`focus_get() is None` かつ
-  `_is_app_foreground(app)`**（専用 `WinDLL("user32")` の `GetForegroundWindow`・`restype=HWND` と `wm_frame()` の比較。
-  **presentation 唯一の ctypes**）のときだけ同じ先へ **`focus_force`**。`deiconify` / `lift` は呼ばない。
-- **なぜ `focus_force` が要るか**: タスクバー・Win+D の復元では、OS がメイン窓をアクティブにする時点で grab が預かり中のため
-  Tk の「grab 保持者への振り向け」が働かず、Tk の `focus_get()` が `None` のまま（`focus_set` は記録に留まる）。
-- **即時 `focus_set` は禁止**（実 App の 3 段ネストで外側の窓が非表示のまま残る）。
-- 固定テスト = `tests_ui/test_minimize_grab_custody.py`（`setUp` で `_is_app_foreground` を既定 `False`・c10〜c13）/
-  `tests_ui/test_modal_app_foreground.py`（前面判定と FFI の型設定）。
-- **教訓**: **API で模擬した復元の probe は実操作（タスクバー・Win+D）の前面化の順序を再現しない**（自動テスト・レビューが green でも
-  実機①で不合格だった）。OS の前面窓と Tk のフォーカスを分けてログに取る probe（スクラッチ）で原因を特定した。
-  **実機目視は作業中の worktree から `main.py` で起動**（メインのチェックアウトは未マージ・`-m keyseq` は無い）。
+- 実装 = `keyseq/domain/config.py` のみ: `normalize_actions` で `type` / `button` を、`ensure_config_compatibility` で
+  内部キーのパス 3 種（`_keymap_source_path` / `_sequence_source_path` / `_trigger_set_source_path`）を、**キーがある場合のみ `coerce_label`**。
+  **読み手（実行・一覧表示・ダイアログ・`save_path_resolution` 等 約 25 箇所）は無修正**。書き手 12 箇所は算出済みの文字列で入口外の混入経路なし（棚卸し済）。
+- **`type` が無い / 空 / 上表以外なら `value` を文字列入力**（現行挙動の明文化）。**非文字列の `type` も今はここへ入る**
+  （以前は `AttributeError` で無送信 → 今は `value` を前面アプリへ文字入力）。完了判定前レビュー high を**ユーザー判断で現状維持**。
+  対処（案 B = エラー通知化 / 案 X = 非文字列要素の除去）は [idea_35](../../instructions/backlog/idea_35_unknown_action_type_handling.md)。
+- 「キーがあれば coerce_label」5 箇所の集約（提案書 12）は**見送り**・`current.md`「別タスク化候補」へ。
+- **教訓**: 「落ちていた入力を空扱いにする」修正は、**落ちていた＝何も送らなかった**入力を**別の実行経路へ流す**ことがある。
+  型正規化の影響は「例外が消える」だけでなく**正規化後の値が通る分岐**まで追う（Codex 敵対的レビューが検出）。
 
 ## 運用インフラ
 
@@ -100,7 +95,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   （自動テスト・レビュー・実機目視 A2 の単発押しでは退行 L3 が見えず、ユーザーの押しっぱなしで判明した）。
 - **【罠・phase 28 task_05d で実証】「上限つきで N 回再試行」は実時間の待ちが無いと意味がない**。
   再試行は実時間の期限（deadline）で切り、待機中も `app.update()` を回す。
-- **【傾向・実証済み】reviewer が「採用」でも敵対的 / 上位レビューで指摘が出る**。
+- **【傾向・実証済み】reviewer が「採用」でも敵対的 / 上位レビューで指摘が出る**（phase 30 でも reviewer 2 回「指摘なし」→ Codex が high）。
   **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**。暫定仕様の改訂も `codex-adversarial-reviewer` を通す。
   `codex-reviewer`（標準 review）は focus text を受け付けないので、観点を渡すなら `codex-adversarial-reviewer`。
 - **【傾向・phase 28 で実証】テストの「検出力」は変異検査で確かめる**（その仕様を壊すと**追加テストだけ**落ちるか）。
@@ -128,11 +123,13 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **【罠】worktree と main は別コピー**。main 側の絶対パスを編集すると commit から漏れる。
 - **【罠】Bash ツールは Git Bash**。長い heredoc・`sed` の複数行追記（`a\`）は壊れやすい（**壊れたら Write / Edit ツールを使う**）。
   **sed の区切り文字が置換文字列に含まれると壊れる**（`/` を含むなら `|` を使う）。複数行のコミットメッセージは `git commit -F -`。
+  **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 29_focus_restore_after_minimize / 28_dialog_keyboard_focus / 27_keymap_set_load_history）。
-- 着手中 idea: なし。未着手/保留 idea: **idea_33**（フック再開 flaky）/ **idea_23**（押す / 離すアクション）/
-  idea_31・idea_32 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
+  （直近 3 件: 30_action_and_internal_key_type_coercion / 29_focus_restore_after_minimize / 28_dialog_keyboard_focus）。
+- 着手中 idea: なし。未着手/保留 idea: **idea_35**（空 / 未知 / 非文字列 `type` の文字入力・着手時は暫定仕様先行）/
+  **idea_33**（フック再開 flaky）/ **idea_23**（押す / 離すアクション）/
+  idea_29〜idea_32 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
-  `tests_ui/test_minimize_grab_custody.py`（603 行）の分割。
+  `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
