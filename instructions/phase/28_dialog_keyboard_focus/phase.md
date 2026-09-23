@@ -73,7 +73,7 @@
 
 ## タスク
 
-**進捗（2026-09-23）**: task_01〜05・05b〜05e は**完了**。**task_06（正本反映・フェーズ完了）** が残り。
+**進捗（2026-09-23）**: task_01〜06・05b〜05e は**完了**。**task_07（提案書 11 のリファクタ）** が残り。
 
 - **task_01**: `grab_modal` へフォーカス責務を集約（`focus` 引数 + `_apply_initial_focus`）+
   群 A・A' の 7 経路を引数へ移行 + 偽 Toplevel 2 クラスへ `focus_set` 追加 + 決定論的な単体テスト。
@@ -95,6 +95,9 @@
 - **task_06**: 正本反映（`features.md` 3 条項 + `codebase_map.md` 署名更新・件数訂正）+
   暫定仕様 22 の凍結 + `decisions_archive/28` 作成 + `current.md` 更新 +
   idea_26 / idea_18 を `backlog/INDEX_done.md` へ移動
+- **task_07**: `/refactor_check`（推奨・M3）の [提案書 11](../../modified_proposal/11_refactor_dialog_escape_secondary_use.md) を実施 =
+  Esc の別用途つき閉じ処理（3 ダイアログの複製）を `dialogs/escape_close.py` の `bind_escape_close` へ寄せる。**挙動不変**。
+  **追加**（ユーザー選択 (a)・2026-09-23）
 
 ## レビュー方針
 

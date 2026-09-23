@@ -20,7 +20,8 @@
 
 ## 経緯・実測（2026-09-23・phase 28 task_05）
 
-負荷下（busy loop 4 本）の測定で観測。**phase 28 由来ではないことを A/B で確認済**。
+負荷下（busy loop 4 本）の測定で観測。**task_05c が原因でないことは A/B で確認済**だが、
+**phase 28 全体（特に task_01）が原因でないとは言えない**（下記の補足〔2026-09-23 追記〕）。
 
 | 測定 | 条件 | 結果 |
 |---|---|---|
@@ -34,6 +35,17 @@
 - **最も強く出た 4/6 が再測定で 0/10** となり、**測定自体がマシン状態のノイズに支配されている**。
 - `keymap_set_history_flow` の 2/6 は、当該テストが**群 A のダイアログを一切 import していない**
   （`tests_ui/test_keymap_set_history_flow.py:9-15`）ため **task_05c からの因果経路が無い**。
+
+**補足（2026-09-23・phase 28 完了判定前の `deep-reviewer` 指摘 M3）**:
+
+- base `60372bf`（phase 28 前）と HEAD の比較は**両方 0/15** で差が出ておらず、判別力が無い。
+- 差が出た A/B の相手 `6fbeebb` は **task_01〜04 を含む**ため、無罪にできるのは **task_05c だけ**。
+- task_01 は flake が出たダイアログ（隔離の管理・孤児の棚卸し・構成セットの履歴）の
+  **フォーカス挙動を変えている**ため、**原因候補に残る**。着手時は **`60372bf` 対 `08ace46`（task_01）**の比較を先に行う。
+- **無負荷でも観測**: phase 28 task_06 の標準検証で `tests_ui` 一括 4 回中 1 回、
+  `test_quarantine_manage_flow` の `test_escape_and_window_close_keep_action_empty` が escape / window の
+  両サブケースで `1 != 0`（`send_escape` の診断は出ず＝配送ではなくカウンタの型）。単体では pass。
+  **subTest 間で `setUp` が走らない**ため、escape 側の残留が window 側へ連鎖した可能性がある（未確認）。
 
 観測されたテスト（いずれも `get_hook_pause_count()` の不一致）:
 

@@ -4,53 +4,46 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T08:30:00
-phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜05 + task_05b〜05e 完了。残りは task_06〔正本反映・フェーズ完了〕のみ**）。次採番 = phase 29 / 暫定 23 / decisions 29。
+last_updated: 2026-09-23T09:30:00
+phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜06 + task_05b〜05e 完了。残りは task_07〔提案書 11 のリファクタ・挙動不変〕のみ**）。次採番 = phase 29 / 暫定 23 / decisions 29 / 提案書 12。
 直前の完了フェーズ = **phase 27**（構成セットの読み込み履歴管理・2026-09-22 完了。判断履歴 = `decisions_archive/27_keymap_set_load_history.md`。暫定仕様 21 は凍結済）。
 last_commit_location: `claude/dialog-escape-key-behavior-548de9`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 28 は task_05e まで完了（押しっぱなし Esc の退行を修正・実機目視 A3 OK）。task_06 の文書は大半を作業ツリーに反映済（未コミット）で、正本への押しっぱなし条項の追記・再凍結・refactor_check の記載・完了判定が残り。**
+focus: **phase 28 は task_06（正本反映・暫定 22 を v0.7 で凍結・アーカイブ）まで完了。残りは task_07（提案書 11 = Esc の別用途つき閉じ処理を `bind_escape_close` へ寄せる・挙動不変）のみ。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-23T08:30:00
-who: user
+ts: 2026-09-23T09:30:00
+who: main
 summary: |
-  【task_06 の完了判定前レビュー】`deep-reviewer`（条件付き可）+ `codex-adversarial-reviewer`（needs-attention）。
-  採否はユーザー確定（詳細 = `decisions_archive/28` の「フェーズ完了判定レビューの採否」節）:
-  H1 = 正本 Escape 条項を「× と同じ結果で閉じる」へ（動作不変）/ §3.1 の保証時点を正本へ（開く時点の条項・復帰は対象外）/
-  M3 = idea_33 の断定を弱め task_01 を原因候補に / L1・L6・L8 = 文書修正 / **L3 = 押しっぱなし Esc で閉じる退行 → task_05e** /
-  M2 = task_05e へ合流 / L4・L5・L7・L9 = 参考。
-  【暫定仕様 22 v0.7（ユーザー確定）】§2.3 / §3.6.1（判定順 = 記録・取得中 → 印 → 閉じる。`<KeyRelease-Escape>` で印を消す。
-  Windows Tk はリピート中 KeyRelease を挟まないと PostMessage probe で実測）/ §4 文言改訂 / §8-14。敵対的レビューの指摘
-  （印を先に判定すると再開後の Esc が停止に届かない）を反映済。
-  【task_05e 完了】`codex-implementer` 実装 → `verifier` 全 pass（`tests_ui` 509 OK ×2・変異検査 2 種とも赤）→
-  `reviewer` 完了可 → **実機目視 A3 OK**（3 経路）。
+  【task_06 完了】正本 `features.md` §4.6 へ 3 条項（v0.7 の文言・押しっぱなしでも閉じない を含む）+ フォーカスの戻り先を
+  規定しない旨 / `codebase_map.md` の `modal.py` 節（署名・フォーカス責務・Escape の判定順・13→15 箇所）/ 暫定 22 を v0.7 で凍結 /
+  `decisions_archive/28` 新設 + 索引 / `current.md` / idea_18・26 を INDEX_done へ / idea_33 補記。
+  標準検証（verifier・HEAD `5d83e49`）: tests 556 OK / tests_ui 509 OK / smoke OK。
+  【/refactor_check = 推奨】M3 = `_on_escape` + `_on_escape_release` + `_escape_held` が 3 ダイアログに同型 →
+  提案書 11 起票 → **ユーザー選択 (a) = phase 28 の task_07 として実施**。phase 28 の完了宣言は task_07 の後へ移した。
 result_files:
-  - keyseq/presentation/dialogs/{action,trigger,keymap_edit}_dialog.py（`_escape_held` + `<KeyRelease-Escape>`）
-  - tests_ui/escape_delivery.py（`acquire_focus` 公開）/ tests_ui/test_dialog_escape_binding.py（+2 テスト）
-  - instructions/history/22_dialog_keyboard_focus.md（v0.7・未凍結）
-  - instructions/phase/28_dialog_keyboard_focus/tasks/task_05e_held_escape_no_close.md（新規・完了記録）/ phase.md
+  - instructions/common/spec_detail/features.md / instructions/common/codebase_map.md
+  - instructions/history/22_dialog_keyboard_focus.md（v0.7 凍結）
+  - .claude_data/state/decisions_archive/28_dialog_keyboard_focus.md（新規）/ .claude_data/state/decisions.md
+  - instructions/phase/current.md / instructions/backlog/{INDEX,INDEX_done}.md / idea_33
+  - instructions/modified_proposal/11_refactor_dialog_escape_secondary_use.md（新規・承認済）
+  - instructions/phase/28_dialog_keyboard_focus/tasks/task_06_*.md（完了記録）/ task_07_refactor_escape_close.md（新規）/ phase.md
 verified:
   compile: clean
   tests: 556 ran OK（skipped 7）
-  tests_ui: 509 ran OK ×2
-  mutation: 印の分岐除去 → 押しっぱなし 3 赤 / 判定順逆転 → 再開 3 赤
+  tests_ui: 509 ran OK
   smoke: SMOKE OK
-  review: reviewer = 完了可
-  manual_check: A3 OK（3 経路）
+  refactor_check: 推奨（提案書 11）
 
 ## next_action
-- **task_06 の仕上げ**（`instructions/phase/28_dialog_keyboard_focus/tasks/task_06_spec_promotion_and_close.md`）。
-  **作業ツリーに未コミットで反映済**: `features.md` 4 項目（v0.7 §4 の文言 1・2 反映済）/ `codebase_map.md` の `modal.py` 節 /
-  `decisions_archive/28`（新規）+ `decisions.md` 索引 / `current.md` / `backlog/INDEX.md`・`INDEX_done.md`（idea_18・26 移動）/
-  idea_33 補記 / task_06 定義。**残り**: ①`features.md` の Esc 別用途条項へ「押しっぱなしでも閉じない」を追記（v0.7 §4）
-  ②`codebase_map.md` に `_escape_held` / `<KeyRelease-Escape>` を 1 行 ③暫定仕様 22 を v0.7 で再凍結
-  ④`/refactor_check` を task_05e 込みで再測定（`verifier`・PHASE_BASE `60372bf`）→ 判定を `decisions_archive/28` 末尾へ
-  （task_05e 前の判定 = 不要〔M3 は既知 + `_on_escape` 3 件は非該当〕）⑤`decisions_archive/28` に task_05e を追記
-  ⑥`current.md`・`phase.md` の完了記載 ⑦標準検証（`verifier`）⑧完了判定 → コミット。
+- **task_07 を `codex-implementer` へ委任**（`instructions/phase/28_dialog_keyboard_focus/tasks/task_07_refactor_escape_close.md`。
+  新規 `keyseq/presentation/dialogs/escape_close.py` の `bind_escape_close(window, *, is_busy, stop)` + 3 ダイアログの置き換え。
+  テストは変更しない見込み）→ `verifier`（変異検査含む）→ `reviewer` →
+  メインで `codebase_map.md` を `bind_escape_close` へ更新 → phase 28 完了処理（`current.md` の「アクティブなフェーズ」を「なし」へ /
+  提案書 11 を実施完了へ / `decisions_archive/28` の refactor_check 節へ実施結果）→ コミット。
 - **main へのマージはユーザーが行う**。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。

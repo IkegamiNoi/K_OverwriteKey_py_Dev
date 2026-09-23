@@ -300,12 +300,33 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     `features.md` §4.6「モーダルダイアログの作法」/ `key_input.md` §7.2。
   - **アプリ終了が確定したらフックを再開しない**（終了ガード。解除経路によらず効く）。
 - listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）
-- modal.py（presentation 直下）: `grab_modal(window, parent=None)` = モーダル化と**破棄時の grab 復元**
+- modal.py（presentation 直下）: `grab_modal(window, parent=None, *, focus=None)` = モーダル化・
+  **初期キーボードフォーカス**・**破棄時の grab 復元**
   （`features.md` §4.6「モーダルダイアログの作法」）。**`dialogs/` と `controllers/config_io/` の
   すべてのモーダルがここを通す**（`grab_set` / `transient` を直呼びしない）。
+  - **`focus` = 初期フォーカス先**（**省略時は窓自身**）。`grab_set()` の直後に `_apply_initial_focus` が
+    `focus_set()` する（**`focus_force` / `lift` は呼ばない**・破棄中の `TclError` は握る）。
+    **入力先を持つダイアログはここへ渡す**（`__init__` 内で別途 `focus_set` しない）。
+    **二重呼び出し・預かり中の窓では要求を出し直さない**（早期 return）。
+    推測型（`focus_lastfor()` / `after_idle`）は**不採用**（未マップ時の `focus_set` が Tk 内で保留され
+    明示指定を奪う。判断は `decisions_archive/28`）
+  - **Escape の結線**（`grab_modal` の外・各ダイアログ側）: **× と同じ閉じ方へ結線する**
+    （`io_dialogs.py` のみ `on_cancel`、他は `destroy`）。**Esc の別用途がある
+    `ActionDialog` / `TriggerDialog` / `KeymapEditDialog` は `_on_escape` の単一ハンドラで状態分岐**
+    （記録中・取得中は停止して `"break"`。同一 widget では `<Escape>` が `<KeyPress>` より優先して
+    単独発火するため、ハンドラを重ねると停止処理が死ぬ）。
+    **判定順 = 記録・取得中（停止して `_escape_held` を立てる）→ `_escape_held`（閉じない）→ 閉じる**。
+    `_escape_held` は常時結線の `<KeyRelease-Escape>`（`_on_escape_release`）で消す＝**押しっぱなしのリピートでは閉じない**
+    （Windows の Tk はリピート中に KeyRelease を挟まない。判定順を逆にすると印が残ったまま再開した記録を Esc で止められない）。
+    固定テスト = `tests_ui/test_modal_grab.py`（`focus_set` を 1 回・`focus_force` / `lift` を呼ばない）/
+    `tests_ui/test_dialog_initial_focus.py`（初期フォーカス。**初期フォーカスの欠落を検出するのはここだけ**）/
+    `tests_ui/test_dialog_escape_binding.py`（Escape の結線と実配送）。
+    実配送のヘルパは `tests_ui/escape_delivery.py` の `send_escape`（フォーカスを期限つきで確保してから送り、
+    破棄を待つ）。**ヘルパ自身もダイアログへ `focus_force` するため初期フォーカスの欠落は隠れる**
+    （配送の検査であって初期フォーカスの検査ではない）
   - **第 2 引数 = 前面維持の相手**（`transient`）。**ネストして開く場合は呼び出し元のダイアログを渡す**
     （App を渡すと「App より前」としか指定されず、**呼び出し元を掴んで動かしたとき前に出る**）。
-    **渡さなければ `transient` を設定しない**（既定 `None`。production の 13 箇所はすべて渡している）。
+    **渡さなければ `transient` を設定しない**（既定 `None`。production の 15 箇所はすべて渡している）。
     **所有関係（`master`）は App のままで、この引数では変わらない**。
     渡す側は `PresetManagerDialog(..., transient_parent=...)`（**省略時は `parent` = App**）/
     `confirm_overwrite(..., transient_parent=...)`（キーワード必須）

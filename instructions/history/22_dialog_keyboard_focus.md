@@ -1,8 +1,13 @@
 # 暫定仕様 22: ダイアログの初期キーボードフォーカス（dialog_keyboard_focus）
 
-> 状態: **未凍結・v0.7（ユーザー確定済 2026-09-23）・実装着手可**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> task_06（正本反映）で一度凍結したが、完了判定前レビューで L3（Esc 押しっぱなしで閉じる退行）が見つかり**凍結を解除**した。
-> **task_05e の完了後に task_06 で改めて凍結する**。
+> 状態: **凍結（2026-09-23・v0.7・正本反映済）**。正本が最新。本書は経緯記録として凍結。
+> 昇格先 = `instructions/common/spec_detail/features.md` §4.6「モーダルダイアログの作法」（§4 の 3 条項〔v0.7 の文言〕+
+> フォーカス復帰を規定しない旨）/ `instructions/common/codebase_map.md` の `modal.py` 節（署名・フォーカス責務・
+> Escape の結線と判定順・「13 箇所」→「15 箇所」訂正）。
+> 分離先 = [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（`after(0)` のフック再開 family）/
+> [idea_34](../backlog/idea_34_focus_restore_after_minimize.md)（最小化復帰後のフォーカス。§8-10 の実機目視で再現）。
+> 経緯: task_06 で一度凍結 → 完了判定前レビューで L3（Esc 押しっぱなしで閉じる退行）が見つかり解除 → v0.7 → task_05e → 再凍結。
+> **本書の条項を実装の根拠に引かない**（正本が正）。判断履歴は `decisions_archive/28_dialog_keyboard_focus.md`。
 > 起票元: [idea_26](../backlog/idea_26_dialog_keyboard_focus.md)（主・phase 27 task_04 の実機目視由来）
 > + [idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)（同梱・テストの flaky）。
 > 番号対応: phase 28 / 暫定 22 / decisions 28。

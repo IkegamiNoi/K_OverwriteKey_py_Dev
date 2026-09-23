@@ -7,67 +7,42 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 28](28_dialog_keyboard_focus/phase.md)**
-  （ダイアログの初期キーボードフォーカス・2026-09-22 起票）。
-  主入力 = [暫定仕様 22](../history/22_dialog_keyboard_focus.md)（**v0.4・ユーザー確定済**）。
-  起票元 = [idea_26](../backlog/idea_26_dialog_keyboard_focus.md)（主）+
-  [idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)（同梱）。
-  番号対応: phase 28 / 暫定 22 / decisions 28。
-  **確定**: フォーカスの責務を `grab_modal` へ集約（**明示引数**。推測型は実測で反証済）/
-  群 C の 5 経路へ **Escape を追加**し正本へ Escape 条項も入れる /
-  **フォーカスの復帰はスコープ外**（再現確認のみ）/ 同型スケルトンの共通化は合流させない。
-  **進捗: task_01〜04 + task_05b 完了**（`grab_modal` へ `focus` 引数を集約・群 A/A' の 7 経路移行 /
-  実 Tk の初期フォーカス検査 / 群 C の 5 経路へ Escape 結線 / **idea_18 解消** /
-  検出力補強 M1・M3。`tests_ui` 484 → **504**・一括 green）。
-  **task_05（統合確認）は実測・レビュー実施済で実機目視待ち**。
-  **スコープ拡大（ユーザー確定 2026-09-23）**: 統合レビューで
-  **正本条項「モーダルは Escape でも閉じられる」が群 A 4 経路と矛盾**することが判明し、
-  **群 A（action / keymap_edit / preset / trigger）へも Escape を追加**する方針に。
-  **Esc に別用途がある間（記録中・取得中）はその用途を優先して閉じない**
-  （実現形 = **単一 `<Escape>` ハンドラ + 状態分岐**。Tk の bind 解決順を実測して確定）。
-  → 暫定仕様 22 を **v0.5** へ改訂（§2.2 / §3.6 新設・§4 を 3 条項へ・§8-12/13 追加）。
-  **v0.5 はユーザー確定済（2026-09-23）**。**task_05c も完了**（群 A 4 経路へ Escape 結線 +
-  到達不能になる `esc` 分岐 3 箇所を削除。`tests_ui` **507**・一括 3 回 green・静的検査 pass）。
-  **task_05d も完了**（`send_escape` を deadline 方式へ。v0.6 §6.1）。
-  **§8-7 は Escape family に限定して判定する方針でユーザー確定**し、`after(0)` のフック再開 family は
-  **[idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md) へ分離**
-  （phase 28 由来でないことを A/B 実測で確認済）。負荷下の Escape family は **6/6 green** で達成。
-  → **実装・検証はすべて完了**。**task_05 の実機目視も完了**（2026-09-23・A / A2 / C① 想定どおり・
-  **C② 最小化復帰後のフォーカス未復帰が再現 → [idea_34](../backlog/idea_34_focus_restore_after_minimize.md) 起票**）。
-  **残るのは task_06（正本反映）のみ**。
-- 直前の完了フェーズ = [phase 27](27_keymap_set_load_history/phase.md)（2026-09-22）。
+- **アクティブなフェーズ = [phase 28](28_dialog_keyboard_focus/phase.md)**（**残りは task_07 のみ** =
+  [提案書 11](../modified_proposal/11_refactor_dialog_escape_secondary_use.md) のリファクタ・挙動不変）。
+  正本反映・凍結・アーカイブは task_06 で完了済。**task_07 の完了で phase 28 を完了とし、この項を「なし」へ戻す**。
+- 直前の完了フェーズ =
+  [phase 27](27_keymap_set_load_history/phase.md)（2026-09-22・構成セットの読み込み履歴・
+  判断は [decisions_archive/27](../../.claude_data/state/decisions_archive/27_keymap_set_load_history.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近の一連の作業が扱っている領域 = 構成セットの読み込み履歴**（phase 27）。
-  正本は `data_schema.md` **§5.12「構成セットの読み込み履歴」**（新設）+ §5.4（遅延作成の対象外）/
-  `features.md` §4.6 / `codebase_map.md`。
-  実装 = `domain/keymap_set_history.py`（規則の純関数）/
-  `application/config_service/keymap_set_history.py`（読み書き・退避・記録）/
-  `presentation/controllers/config_io/keymap_set_history_io.py`（記録の単一の口 + ダイアログのフロー）/
-  `dialogs/keymap_set_history_dialog.py` / `config_io/keymap_set_io.py` の
-  **共通読込入口 `load_keymap_set_path`** / `views/menu_bar.py`。
-  **記録は読込・保存が成功し空でないパスが確定したときの実保存先**（初期代入 / 新規作成 / Import /
-  例の復元 / **起動時の自動読込**は除外）・**先頭一致 no-op** で通常の起動はディスクに触らない・
-  **破損ファイルは `*.broken*.json` へ退避**（連番 5 で打ち止め → そのセッションは読み取り専用）・
-  **永続化に成功してから UI を確定**する。
-  **残件** = ①[idea_26](../backlog/idea_26_dialog_keyboard_focus.md)（ダイアログがキーボードフォーカスを
-  取らず Escape が効かない。**テストが `focus_force()` で隠している**点を含む）②暫定仕様 21 §10 の
-  スコープ外（分類の入れ子・D&D・検索・`*.broken*.json` の管理 UI）。
-  判断は [decisions_archive/27](../../.claude_data/state/decisions_archive/27_keymap_set_load_history.md)。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**10 まで起票済**・次採番は「次採番」節が正）。
+- **直近の一連の作業が扱っている領域 = モーダルダイアログのキーボードフォーカスと Escape**（phase 28）。
+  正本は `features.md` §4.6「**モーダルダイアログの作法**」（初期フォーカス / Escape で閉じる /
+  Esc の別用途優先 / フォーカスの戻り先は規定しない）+ `codebase_map.md` の `modal.py` 節。
+  実装 = `presentation/modal.py` の **`grab_modal(window, parent=None, *, focus=None)`**
+  （`grab_set()` の直後に `focus_set`・省略時は窓自身・`focus_force` / `lift` は呼ばない）/
+  モーダル全 15 経路の Escape 結線（群 A の `ActionDialog` / `TriggerDialog` / `KeymapEditDialog` は
+  **単一 `_on_escape` + 状態分岐**で記録中・取得中の停止を優先し、**停止に使った Esc の押しっぱなしでは閉じない**）。
+  テスト = `tests_ui/test_dialog_initial_focus.py` / `test_dialog_escape_binding.py` /
+  **`tests_ui/escape_delivery.py` の `send_escape`**（フォーカスを確保してから送る・期限方式。
+  `focus_force()` + `event_generate` の直書きはフォーカス欠落を隠すので使わない）。
+  **残件** = [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（`after(0)` のフック再開 flaky）/
+  [idea_34](../backlog/idea_34_focus_restore_after_minimize.md)（最小化復帰後のフォーカス）/
+  M4（`_apply_initial_focus` と `<Destroy>` 登録の順序・保留）。
+  判断は [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**11 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
 
 ## 次採番
 
-- **phase 28 は 2026-09-22 起票・進行中**（`28_dialog_keyboard_focus` / 暫定 22 / decisions 28）。
+- **phase 28 は task_07（提案書 11 のリファクタ）を残して完了間近**（`28_dialog_keyboard_focus` / 暫定 22〔凍結〕/ decisions 28〔アーカイブ済〕）。
   次フェーズは **`29_<topic>`**・decisions も **29** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 27 は 2026-09-22 完了 = `27_keymap_set_load_history` / 暫定 21〔凍結〕/ decisions 27〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜21 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
+  04〜22 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
   08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
   10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
   11=config_service の公開面〔**v0.3・凍結**〕/
@@ -81,13 +56,14 @@
   19=マウスのドラッグ操作〔**v0.5・凍結**〕/
   20=JSON 読込の型不正の扱い統一〔**v0.3・凍結**〕/
   21=構成セットの読み込み履歴〔**v0.5・凍結**〕/
-  22=ダイアログの初期キーボードフォーカス〔**v0.4・ユーザー確定済・未凍結**〕）。
+  22=ダイアログの初期キーボードフォーカス〔**v0.7・凍結**〕）。
   次採番は **`23_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**10 まで起票済**
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**11 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
-  **10 = phase 19 由来・実施済＝phase 19 task_07**）・
-  次採番は **`11_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **10 = phase 19 由来・実施済＝phase 19 task_07** /
+  **11 = phase 28 由来・承認済＝phase 28 task_07**〔Esc の別用途つき閉じ処理の 3 重複を 1 関数へ〕）・
+  次採番は **`12_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
@@ -95,8 +71,10 @@
 （`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする。
 **完了した候補の履歴はここに残さない**〔完了 idea は `backlog/INDEX_done.md` が正〕）
 
-（**idea_26 / idea_18 は phase 28 で着手中**のためここから外した）
-
+- [idea_34](../backlog/idea_34_focus_restore_after_minimize.md)（最小化復帰後にフォーカスが最内のモーダルへ戻らない。
+  phase 28 の実機目視で再現・**仕様変更あり**〔`features.md` §4.6〕）
+- [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（`after(0)` のフック再開が負荷下で拾われず
+  後続テストが連鎖して落ちる・**テストのみ**・phase 28 から分離）
 - [idea_23](../backlog/idea_23_key_press_release_actions.md)（キーを押す / 離すアクションの追加。
   2026-09-18 ユーザー要望・優先度低）
 
@@ -117,10 +95,10 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   phase 14 で `transient` + `grab_set` は `grab_modal` へ集約済、phase 15 で `destroy()` override は解消済で、
   **残るのはこの 2 種**。**phase 28（idea_26 の案 B）へは合流させないとユーザーが判断済**
   （2026-09-22。フォーカス集約とは別の責務でスコープが倍近くなるため）。
-  なお phase 28 の task_03 で**群 C の 5 経路へ Escape を追加する**ため、
-  `bind("<Escape>")` + `protocol("WM_DELETE_WINDOW")` の同型箇所は**増える**見込み
-  （着手判断はその後に再評価する）（phase 11 / 14 由来）
-- `presentation/modal.py`（120 行）で `grab_current()` の try/except と
+  なお phase 28 で**群 C の 5 経路・群 A の 4 経路へ Escape を追加した**ため、
+  `bind("<Escape>")` の同型箇所は**増えた**
+  （着手判断は再評価が要る）（phase 11 / 14 / 28 由来）
+- `presentation/modal.py`（133 行）で `grab_current()` の try/except と
   `winfo_exists()` / `winfo_viewable()` の try/except が**それぞれ 3 箇所**（M3 の境界）。
   **意図的に意味が違う**ため共通化しない（`grab_modal` は解決不能を「保持者なし」と扱い、
   預かり側は**解決不能と `None` を区別する**〔暫定仕様 15 §3-2(5)〕/ `<Unmap>` は「非表示」、
@@ -202,11 +180,14 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   **非呼び出し**を固定していない / ドラッグ 4 キーの**ファイル層での永続化往復**テストが無い（phase 22 由来）
 - `tests_ui/test_full_view_header_width.py` / `test_header_button_widths.py` は保存予約の遅延を
   延ばしていない（現状は予約取消で実害なし・揺れたら phase 19 task_03 と同じ対処）（phase 19 由来）
-- Escape 依存テストの不安定（負荷下で 5 件が連鎖して落ちる）は
-  [idea_18](../backlog/idea_18_escape_delivery_flaky_test.md)
+- ダイアログ破棄後のフック再開（`after(0)`）の負荷下 flaky は
+  [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（Escape 配送の flaky = idea_18 は phase 28 で解消）
 
 ### レビュー保留（判断待ち・判断は decisions_archive が正）
 
+- phase 28 統合レビューの M4（`modal.py` の `_apply_initial_focus` が `grab_set()` と `<Destroy>` 登録の間にあり、
+  ここで例外が抜けると復元ハンドラ未登録の窓が残る。現実的な失敗は `TclError` で握っており実害は低い）。
+  判断は [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)
 - phase 18 完了判定前レビューの保留 3 件（ドラッグで元の希望幅へ戻したとき最小幅が更新されない場合 /
   `pane_measure.py` の SequenceBox 構造依存 / phase 18 以前の tests_ui が実 config を読む）。
   判断は [decisions_archive/18](../../.claude_data/state/decisions_archive/18_full_view_resizable_panes.md)

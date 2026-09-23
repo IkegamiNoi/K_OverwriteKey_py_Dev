@@ -37,6 +37,7 @@
 | 25_path_field_type_normalization | [25_path_field_type_normalization.md](decisions_archive/25_path_field_type_normalization.md) | パス系フィールドの型正規化（2026-09-19 完了・**頑健化のみ・スキーマ不変**・直接改訂モード・起票元 idea_25）。**例外になる箇所はゼロ**で、`str()` 強制により **repr 文字列がパス / スイッチキーとして runtime に載る**問題を解消。**使い分け = パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`（trim + 小文字化）**（パスを小文字化すると壊れる。§5.7 の `normcase` は比較専用）/ `keymap_switch_keys` の値も `coerce_key_name` へ（従来は membership check による**偶然の防御**）/ 案 B（現状維持 + 未定義と明記）は **§5.1 を後から緩めることになり不採用**。完了後レビューで**参照突合経路**（`reference_scan.py`・生 JSON を直接読む別実装）の取りこぼしを検出し task_01b で追加対応。正本 = `data_schema.md` §5.5 / §5.7 へ型の規定を追記（**§5.1 の本文は不変**）。残件 = `startup_io.py` の `keymap_set_path`（presentation 層）。実機目視 不要。refactor_check: 不要（M1〜M6 該当なし・PHASE_BASE `f0e5887`） |
 | 26_startup_entry_preservation | [26_startup_entry_preservation.md](decisions_archive/26_startup_entry_preservation.md) | 起動エントリ（`config/config.json` の `keymap_set_path`）の保存時据え置き（2026-09-21 完了・**仕様変更・スキーマ不変**・直接改訂モード・起票元 = ユーザー要望）。保存のたびに起動対象が直近の保存先へ書き換わる問題を解消し、**変更経路をメニュー「起動時に読む構成セットを指定…」1 本へ**寄せた。**空 / 起動時に読めなかった場合のみ保存で更新**（自己修復）/ 「読めない」の判定は **案 A = 起動時の実読込結果を真偽値で保持**（案 B の保存時 `os.path.exists` は**壊れた JSON を自己修復できない**ため除外）/ **別名保存でも据え置き**（次回起動は別名保存前のファイル）/ 可視化 UI・解除手段は**除外**。実装 = `StartupIo.entry_loaded`（**presentation は事実のみ**）→ `startup_entry_loaded` を application へ貫通し、**判定は `split_payloads.py:363` の 1 箇所**。更新契機は 3 経路（起動読込成功 / 保存成功 / メニュー指定成功）で **`write_startup` には入れない**（一律に立てると自己修復が失われる）/ **新引数の既定は False** で既存経路は挙動不変。**据え置くのは `keymap_set_path` だけ**。正本 = `data_schema.md` §5.4 の条項差し替え + `5_08_09_orphan_sweep.md` の根拠文 1 行（**走査範囲 4 経路は不変**）。実測 `tests` 518 / `tests_ui` 449 / smoke pass・実機目視 **OK**。残件 = `.strip()` 非対称（**到達不能**・候補送り）/ phase 25 残件①（`startup_io.py` の型正規化）は未着手。refactor_check: 不要（M1〜M6 該当なし・対象 5 ファイル・PHASE_BASE `e0c19ba`） |
 | 27_keymap_set_load_history | [27_keymap_set_load_history.md](decisions_archive/27_keymap_set_load_history.md) | 構成セットの読み込み履歴管理（2026-09-22 完了・**新規 JSON 追加**）。ファイルメニューへ「履歴から読み込む…」、直近 20 件 + ユーザーが作る分類を **リポジトリ初の `ttk.Treeview`** で扱う。保存先は `config/keymap_set_history.json`（固定・**config.json にキーを追加しない**・遅延作成）。記録契機 = **読込または保存が成功し空でないパスが確定したとき、その実保存先**（初期代入 / 新規作成 / Import / 例の復元 / **起動時の自動読込**は除外）。**先頭一致 no-op** で通常の起動はディスクに触らない。破損ファイルは `*.broken*.json` へ**退避してから**作り直す（連番 5 で打ち止め → 読み取り専用）。**永続化に成功してから UI を確定**し、ダイアログは操作のたびに永続化済みの内容を読み直して再描画する。**v0.5 改訂**の理由 = 起動時に記録すると `tests_ui` が実 `config/` を汚したため。正本 `data_schema.md` **§5.12 新設** + §5.4 / `features.md` §4.6 / `codebase_map.md` へ昇格済。**孤児棚卸しの走査範囲・判定は不変**（§9 の補記は「不要」で決着）。**後続**: [idea_26](../../instructions/backlog/idea_26_dialog_keyboard_focus.md)（ダイアログのフォーカス欠落・横断）。refactor_check: **不要**（M1〜M6 非該当。600 行超のファイルは増分が +10〜15 と小さく、80 行超の関数・申し送りコメント・コピー由来の同型ブロックはいずれも無し。根拠は本アーカイブ「refactor_check」節）|
+| 28_dialog_keyboard_focus | [28_dialog_keyboard_focus.md](decisions_archive/28_dialog_keyboard_focus.md) | ダイアログの初期キーボードフォーカス（2026-09-23 完了・**presentation 限定・スキーマ不変**・暫定仕様先行モード・起票元 = idea_26 + idea_18）。Escape を bind しているのにフォーカスを移さないダイアログ（群 B 3 件）を是正するため、**フォーカスを `grab_modal(window, parent=None, *, focus=None)` の責務へ集約**（**明示引数**・省略時は窓自身。推測型 `focus_lastfor()` / `after_idle` は未マップ時の `focus_set` 保留で**明示指定を奪うと実測で反証**）/ `focus_force`・`lift` は呼ばない。**群 C 5 経路へ Escape を結線**（× と同じ閉じ方）+ 統合レビュー H1 を受け **群 A 4 経路へも Escape**（**Esc の別用途〔記録中・取得中〕を優先する単一ハンドラ + 状態分岐**。Tk では同一 widget の `<Escape>` が `<KeyPress>` より優先して単独発火すると実測）。**idea_18 の根は配送の遅さではなく配送先の違い**（ダイアログを持つ Tk アプリが入力フォーカスを持たないと Escape は破棄される）→ `send_escape`（フォーカス確保してから送る・期限方式）。§8-7 は Escape family に限定し `after(0)` family は **idea_33** へ分離。実機目視で**最小化復帰後にフォーカスが戻らない**ことが再現 → **idea_34**（正本へ「フォーカスの戻り先は規定しない」を明記）。正本 = `features.md` §4.6 へ 3 条項 + `codebase_map.md` の `modal.py` 節（13→15 箇所訂正）。**task_05e で記録中・取得中の Esc 押しっぱなしで閉じない**よう修正（v0.7・判定順 = 記録/取得中 → 印 → 閉じる）。暫定 22 は v0.7 で凍結。refactor_check: **推奨**（提案書 11・M3 = Esc の別用途つき閉じ処理の 3 重複。判定は本アーカイブ末尾） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -544,71 +545,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   **提案書が想定した分割形**のため据え置き。
 
 
-
----
-
-## 2026-09-23 (phase 28 task_05: 統合確認のレビュー指摘 11 件の判定)
-
-`deep-reviewer`（task_01〜04 の累積差分）+ `codex-reviewer`（指摘なし）の結果に対する判定。
-**主要な事実主張はメインが `ファイルパス:行` で裏取り済み**（`agent_selection.md`「裏取り」）。
-
-### 【H1】正本の Escape 条項が実装と矛盾 → **修正して採用（ユーザー確定 2026-09-23）**
-
-- 検出: 暫定仕様 §4「モーダルダイアログは Escape でも閉じられる」を正本へ昇格すると、
-  **Escape 未結線の群 A 4 経路**（`action_dialog.py:130` / `keymap_edit_dialog.py:53` /
-  `preset_dialog.py:39` / `trigger_dialog.py:52`）が違反になる。
-  さらに **Esc は 3 経路で別用途**（`action_dialog.py:294` = 記録停止 /
-  `trigger_dialog.py:98` ・ `keymap_edit_dialog.py:100` = 取得停止。画面のヒント文にも明記）。
-- 根因: §1.1 の監査表が**フォーカスの有無だけで分類**し、群 A の Escape 有無を監査していなかった。
-- **ユーザー判断**: **群 A 4 経路にも Escape を追加する**（文言限定や例外明記は採らない）。
-  条件 = **Esc に別用途がある間はその用途を優先して閉じられないようにする**
-  （意図 = 「既に Escape で閉じるダイアログへ、後から Esc の別用途を足す時も共存できる形にしたい」）。
-- **実現形の決定根拠（メインが `.venv` python で Tk の bind 解決を probe・2026-09-23）**:
-  ①同一 widget に `<KeyPress>` と `<Escape>` を両方 bind すると、Escape では
-  **`<Escape>` のみ発火し `<KeyPress>` は発火しない**（より具体的なパターンが勝つ）
-  ②同一パターンを `add="+"` で 2 つ → 登録順に両方発火
-  ③先の handler が `"break"` を返すと後続は発火しない
-  ④子 widget の `"break"` は親 Toplevel へ伝播しない。
-  → **①により素朴な `bind("<Escape>", 閉じる)` は「Escで停止」を殺す**（退行）。
-  **②により登録順に頼る形も不可**（閉じる側が `__init__` で先に登録される）。
-  → **単一 `<Escape>` ハンドラ + 状態分岐が唯一安全**と結論。暫定仕様 **v0.5 §3.6** として規範化。
-- 実施 = **phase 28 内の task_05c**（ユーザー確定）。実機目視は**実装完了後に 1 回**。
-
-### 【M1】群 A 2 経路の初期フォーカス検査が検出力ゼロ → **修正して採用（task_05b で実施・完了）**
-
-`test_keymap_set_history_flow.py:143` / `:149` の `startswith(str(dialog))` は「ダイアログ内」までしか
-見ず、task_01 以降は `focus=` を外しても緑になる（`focus` 省略時は窓自身へ入るため）。
-→ `tests_ui/test_dialog_initial_focus.py` へ `assertIs` の検査 2 件を追加。
-**変異検査（`focus=` を外すと赤）をメインが実測して検出力を証明**した。
-
-### 【M3】群 C の Escape が実配送で未検証 → **修正して採用（task_05b で実施・完了）**
-
-結線済みハンドラの直呼び（`test_dialog_escape_binding.py:63`）のみだった。task_04 で `send_escape` が
-入り前提が解消したため、**実 Toplevel 2 件**（`LayoutDeleteDialog` / `PresetManagerDialog`）を
-実配送へ格上げ。偽 Toplevel の 3 件は直呼びのまま（実配送できないため）。
-
-### 【M2】`send_escape` の確保ループに実時間の待ちがない → **保留（ユーザー判断待ち）**
-
-`tests_ui/escape_delivery.py:13-23` は `focus_force` + `update` を最大 20 回回すのみで、
-実時間の待ちが無いため 20 回が一瞬で消化されうる。task_05c 完了後にまとめて提示する。
-
-### 【M4】`_apply_initial_focus` が grab 取得と `<Destroy>` 登録の間 → **保留**
-
-`keyseq/presentation/modal.py:102`（`grab_set()` の直後）に対し `<Destroy>` 登録は `:133`。
-ここで例外が抜けると「grab 取得済み・復元ハンドラ未登録の窓」が残る。
-production の実害は低い（現実的な失敗は `TclError` で `:69` が握る）が、
-暫定仕様 §3.2 の「`grab_set()` の直後」という文言との兼ね合いがあるため保留。
-
-### 【L1〜L6】→ **参考（採用せず）**
-
-`_require_app_focus` の `app.focus_force()`（task_02 の指示外だが**ダイアログではなく App** へ当てる形で
-欠落は隠さない）/ `startswith` の区切り文字非対称 / 既存テストの skip ガード欠如 /
-`tests_ui` の直接実行が ImportError / `tk.Misc.bind` のクラス単位差し替え。いずれも実害なし。
-
-### 【負荷下 fail 1 回】→ **保留（idea 起票が妥当。ユーザー判断待ち）**
-
-§8-7 の負荷下確認で `tests_ui.test_dialog_teardown_flows` が 6 回中 1 回 fail。
-根の失敗は `test_t2_close_paths_resume_exactly_once`（**Escape を使わない**ボタン/destroy/× の経路）で、
-機序は `<Destroy>` → `after(0)` のフック再開が 1 回の `update()` で流れない **idea_18 とは別 family**。
-**切り分け実測**: HEAD 一括 15 回 = 0 fail / base `60372bf` 一括 15 回 = 0 fail /
-単独は両者 12 回 0 fail。→ **phase 28 由来という証拠は得られず**（HEAD 一括は通算 21 回中 1 fail）。
