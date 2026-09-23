@@ -4,45 +4,46 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T23:58:34
-phase: なし（**phase 30 = `instructions/phase/30_action_and_internal_key_type_coercion` は 2026-09-23 完了**。アクティブなフェーズ無し）。次採番 = phase 31 / 暫定 24 / decisions 31 / 提案書 13。
-直前の完了フェーズ = **phase 30**（アクション要素と内部キーの型正規化・判断履歴 = `decisions_archive/30_action_and_internal_key_type_coercion.md`。直接改訂モード）。
+last_updated: 2026-09-24T01:06:51
+phase: `instructions/phase/31_unknown_action_type_handling`（暫定仕様先行モード・主入力 = 暫定 24 v0.5 確定済・decisions 31）。次採番 = phase 32 / 暫定 25 / decisions 32 / 提案書 13。
+直前の完了フェーズ = **phase 30**（アクション要素と内部キーの型正規化・判断履歴 = `decisions_archive/30_action_and_internal_key_type_coercion.md`）。
 last_commit_location: `claude/idea-27-28-consolidate-3ff723`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 30 完了（task_01 + task_02・正本 §5.7 / §5.11 反映・archive/30・idea_27 / 28 クローズ・refactor_check = 推奨→提案書 12 見送り）。次フェーズは未定（ユーザー判断待ち）。**
-mode: completed
+focus: **phase 31 task_01 完了（executor が種類不正で送らず `on_action_error` 通知・`False` を返す）。次は task_02（runner が戻り値で run_to_end を止める / 単発の index を進めない + `app.py` 委譲）。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-23T23:58:34
+ts: 2026-09-24T01:06:51
 who: main
 summary: |
-  【task_02 完了 = phase 30 完了】書き手 12 箇所を棚卸し（入口外の混入経路なし → 直接改訂継続）→ `codex-implementer` で
-  `ensure_config_compatibility` のパス系内部キー 3 種へ `coerce_label`（キーがある場合のみ）+ テスト 4 件（domain 限定）→
-  §5.7 注記を「本規則に従う」へ / §5.11 を「無い / 空 / 上表以外」へ / `codebase_map.md` / archive/30 / current.md / idea_27・28 → INDEX_done。
-  【完了判定前レビュー】codex-adversarial = high 1（非文字列 `type` が「無送信」→「文字入力」に変わった）/ deep-reviewer = 文書の修正要。
-  **ユーザー判断 = 案 Y（現状維持）・案 X（非文字列要素の除去）は idea_35 で検討**。文書指摘 M1〜M3・L1・L8・L10 を反映。
-  【refactor_check】推奨（境界・M3 = 「キーがあれば coerce_label」5 箇所）→ **提案書 12 は見送り**（ユーザー判断）・別タスク化候補へ。
+  【phase 31 起票】idea_35 を案 B で暫定仕様 24 → 起票時 deep-reviewer（修正要 11 件）/ 確定前 codex-adversarial（high 2 件）反映 →
+  **v0.5 ユーザー確定**（通知 = 既存 `show_action_error`〔案 b〕/ シーケンスは止める〔案 S〕/ 互換措置なし / 案 X 不採用 /
+  通知表示中の入力は既知の制約）。起票コミット `04213be`。
+  【task_01 実施】`codex-implementer` で `ActionExecutor.execute -> bool`: 種類は `isinstance` で非文字列を空扱い・
+  不正なら送らず `on_action_error(type を文字列化した浅いコピー, err)` → `False` / 既存 3 種は `True`（内部エラーも `True`）/
+  text フォールバック削除 + `tests/test_action_executor_type.py`（6 件・実 `HookController.show_action_error` 経由を含む）。application 限定。
+  【reviewer】完了可・指摘なし。【完了判定】完了。
 result_files:
-  - keyseq/domain/config.py / tests/test_domain_config.py
-  - instructions/common/spec_detail/data_schema.md（§5.7 / §5.11）/ instructions/common/codebase_map.md
-  - .claude_data/state/decisions_archive/30_action_and_internal_key_type_coercion.md（新規）/ .claude_data/state/decisions.md
-  - instructions/phase/current.md / instructions/phase/30_action_and_internal_key_type_coercion/{phase.md, tasks/task_02_internal_key_coercion_and_close.md}
-  - instructions/backlog/INDEX.md / INDEX_done.md / idea_33（観測追記）/ idea_35（案 X 追記）
-  - instructions/modified_proposal/12_refactor_action_and_internal_key_type_coercion.md（見送り）
+  - keyseq/application/action_executor.py / tests/test_action_executor_type.py（新規）
+  - instructions/phase/31_unknown_action_type_handling/{phase.md, tasks/task_01_executor_invalid_type.md}
+  - instructions/phase/current.md
 verified:
   compile: clean
-  tests: 565 ran OK（skipped 7・+4）
-  tests_ui: 532 ran OK（1 回目 3 件 flaky = idea_33 系統 → 再実行で全 pass）
+  tests: 571 ran OK（skipped 7・+6）
+  tests_ui: 532 ran OK
   smoke: SMOKE OK
-  review: reviewer 完了可 / deep-reviewer + codex-adversarial → 指摘反映・Y 判断（ユーザー承認）
-  refactor_check: 推奨（境界）→ 見送り
-  links: OK
+  review: reviewer → 完了可
 
 ## next_action
+- **`/task_new` で task_02 を起票**（phase.md「タスク」の task_02）: `sequence_runner.py` の `perform_action` を `Callable[[dict], bool]` にし、
+  `False` のとき run_to_end は `stop_run_to_end`（index は不正な行のまま）/ 単発は index を進めない。`presentation/app.py:495` の
+  `_perform_action` は executor の戻り値を返す。テストは**本物の `ActionExecutor` × `SequenceRunner`**（暫定 24 §6-3・通知中の再入を含む）+
+  既存経路（hotkey 検証エラー・`x` / `y` 不正）の進み方が不変（§6-4）。→ codex-implementer → verifier → reviewer。
+- その後 task_03（正本 §5.11.1 / §5.11.5 昇格・`codebase_map.md`・暫定 24 凍結・archive/31・idea_35 → INDEX_done・`/refactor_check`・
+  完了判定前レビュー = deep-reviewer + codex-adversarial）。
 - **main へのマージはユーザーが行う**（ブランチ `claude/idea-27-28-consolidate-3ff723`）。
-- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33 / idea_23、**idea_35 は phase 30 で非文字列 `type` の文字入力経路が増えたため優先度を再評価**）。着手時は `/phase_start`。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
 ## blockers

@@ -47,21 +47,38 @@ class ActionExecutor:
         with self._send_guard_lock:
             return int(self._send_guard_count)
 
-    def execute(self, action: dict) -> None:
-        action_type = (action.get("type") or "").strip().lower()
+    def execute(self, action: dict) -> bool:
+        raw = action.get("type")
+        type_text = raw.strip() if isinstance(raw, str) else ""
+        action_type = type_text.lower()
         value = action.get("value") or ""
 
         if action_type == "hotkey":
             self._execute_hotkey(action, str(value))
-            return
+            return True
         if action_type == "text":
             self._write_text(str(value))
-            return
+            return True
         if action_type == "mouse_click":
             self._execute_mouse_click(action)
-            return
+            return True
 
-        self._write_text(str(value))
+        notified_action = action.copy()
+        notified_action["type"] = type_text
+        err = self._invalid_type_message(type_text, action)
+        self._on_action_error(notified_action, err)
+        return False
+
+    @staticmethod
+    def _invalid_type_message(type_text: str, action: dict) -> str:
+        err = (
+            "種類が不正です（hotkey / text / mouse_click のいずれか）。"
+            f"種類: {type_text or '(なし)'}"
+        )
+        label = action.get("label")
+        if isinstance(label, str) and label.strip():
+            err += f" / ラベル: {label.strip()}"
+        return err
 
     def execute_router_action(self, action: object) -> None:
         if isinstance(action, StopHookAction):

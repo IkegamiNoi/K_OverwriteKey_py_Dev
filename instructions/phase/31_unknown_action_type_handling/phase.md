@@ -56,7 +56,7 @@ JSON スキーマ不変**。読込時の正規化・一覧表示・編集ダイ�
 
 ## タスク
 
-- task_01: executor — 種類の判定・`on_action_error` への通知（`type` を文字列化したコピー）・「送った / 送らなかった」の戻り値 + 単体テスト
+- task_01: executor — 種類の判定・`on_action_error` への通知（`type` を文字列化したコピー）・「送った / 送らなかった」の戻り値 + 単体テスト — **完了**（2026-09-24）
 - task_02: runner — 戻り値で run_to_end を止める / 単発の index を進めない・`perform_action` の型・`app.py` の委譲 + 組み合わせテスト
 - task_03: 正本反映と記録（暫定 24 §4 を `data_schema.md` §5.11.1 / §5.11.5 へ昇格・`codebase_map.md` / 暫定 24 を凍結 /
   decisions_archive/31 / current.md / idea_35 → INDEX_done / `/refactor_check`）

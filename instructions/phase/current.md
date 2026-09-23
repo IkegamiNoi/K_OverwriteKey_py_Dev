@@ -12,6 +12,7 @@
   （現状は `value` を前面アプリへ文字入力する）。**暫定仕様先行モード** = 主入力
   [暫定仕様 24](../history/24_unknown_action_type_handling.md)（v0.5・ユーザー確定済）。番号対応: phase 31 / 暫定 24 / decisions 31。
   起票元 = [idea_35](../backlog/idea_35_unknown_action_type_handling.md)。
+  進捗: task_01 完了 / 次 = task_02。
 - 直前の完了フェーズ = [phase 30](30_action_and_internal_key_type_coercion/phase.md)（2026-09-23・アクション要素と内部キーの型正規化・
   判断は [decisions_archive/30](../../.claude_data/state/decisions_archive/30_action_and_internal_key_type_coercion.md)）/
   [phase 29](29_focus_restore_after_minimize/phase.md)（2026-09-23・最小化から復元した後のキーボードフォーカス・
