@@ -4,45 +4,41 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-24T01:06:51
+last_updated: 2026-09-24T01:18:15
 phase: `instructions/phase/31_unknown_action_type_handling`（暫定仕様先行モード・主入力 = 暫定 24 v0.5 確定済・decisions 31）。次採番 = phase 32 / 暫定 25 / decisions 32 / 提案書 13。
 直前の完了フェーズ = **phase 30**（アクション要素と内部キーの型正規化・判断履歴 = `decisions_archive/30_action_and_internal_key_type_coercion.md`）。
 last_commit_location: `claude/idea-27-28-consolidate-3ff723`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 31 task_01 完了（executor が種類不正で送らず `on_action_error` 通知・`False` を返す）。次は task_02（runner が戻り値で run_to_end を止める / 単発の index を進めない + `app.py` 委譲）。**
+focus: **phase 31 task_01・task_02 完了（種類不正は送らず通知・run_to_end は停止・単発は index を進めない）。次は task_03（正本 §5.11.1 / §5.11.5 昇格・暫定 24 凍結・archive/31・idea_35 クローズ・refactor_check・完了判定前レビュー）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-24T01:06:51
+ts: 2026-09-24T01:18:15
 who: main
 summary: |
-  【phase 31 起票】idea_35 を案 B で暫定仕様 24 → 起票時 deep-reviewer（修正要 11 件）/ 確定前 codex-adversarial（high 2 件）反映 →
-  **v0.5 ユーザー確定**（通知 = 既存 `show_action_error`〔案 b〕/ シーケンスは止める〔案 S〕/ 互換措置なし / 案 X 不採用 /
-  通知表示中の入力は既知の制約）。起票コミット `04213be`。
-  【task_01 実施】`codex-implementer` で `ActionExecutor.execute -> bool`: 種類は `isinstance` で非文字列を空扱い・
-  不正なら送らず `on_action_error(type を文字列化した浅いコピー, err)` → `False` / 既存 3 種は `True`（内部エラーも `True`）/
-  text フォールバック削除 + `tests/test_action_executor_type.py`（6 件・実 `HookController.show_action_error` 経由を含む）。application 限定。
-  【reviewer】完了可・指摘なし。【完了判定】完了。
+  【task_02 実施】`codex-implementer` で `SequenceRunner`: `perform_action` の戻り値が **`is False`** のときだけ
+  単発は index を進めない（`try` 内の `return` で `finally` は従来どおり）/ run_to_end は index を更新せず `stop_run_to_end` → `_select_trigger`。
+  `None` を返す既存の呼び出し元は従来どおり進む。`app.py` の `_perform_action` は executor の戻り値を返す（2 行）。
+  `tests/test_sequence_runner.py` に本物の executor × runner のテスト 6 件（通知中の pause / resume 再入・既存経路が止まらないことを含む）。
+  【reviewer】完了可。【完了判定】完了。tests_ui 1 回目の `test_dialog_escape_binding` 2 件 flaky → 再実行で全 pass（idea_33 へ観測追記）。
 result_files:
-  - keyseq/application/action_executor.py / tests/test_action_executor_type.py（新規）
-  - instructions/phase/31_unknown_action_type_handling/{phase.md, tasks/task_01_executor_invalid_type.md}
-  - instructions/phase/current.md
+  - keyseq/application/sequence_runner.py / keyseq/presentation/app.py（`_perform_action` 2 行）/ tests/test_sequence_runner.py
+  - instructions/phase/31_unknown_action_type_handling/{phase.md, tasks/task_02_runner_stop_on_invalid_type.md}
+  - instructions/phase/current.md / instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md
 verified:
   compile: clean
-  tests: 571 ran OK（skipped 7・+6）
-  tests_ui: 532 ran OK
+  tests: 577 ran OK（skipped 7・+6）
+  tests_ui: 532 ran OK（1 回目 2 件 flaky → 再実行で全 pass）
   smoke: SMOKE OK
   review: reviewer → 完了可
 
 ## next_action
-- **`/task_new` で task_02 を起票**（phase.md「タスク」の task_02）: `sequence_runner.py` の `perform_action` を `Callable[[dict], bool]` にし、
-  `False` のとき run_to_end は `stop_run_to_end`（index は不正な行のまま）/ 単発は index を進めない。`presentation/app.py:495` の
-  `_perform_action` は executor の戻り値を返す。テストは**本物の `ActionExecutor` × `SequenceRunner`**（暫定 24 §6-3・通知中の再入を含む）+
-  既存経路（hotkey 検証エラー・`x` / `y` 不正）の進み方が不変（§6-4）。→ codex-implementer → verifier → reviewer。
-- その後 task_03（正本 §5.11.1 / §5.11.5 昇格・`codebase_map.md`・暫定 24 凍結・archive/31・idea_35 → INDEX_done・`/refactor_check`・
-  完了判定前レビュー = deep-reviewer + codex-adversarial）。
+- **task_03 を `/task_new` で起票**: 暫定 24 §4 を正本 `data_schema.md` §5.11.1（phase 30 の「value を文字列入力」条項を置換）/ §5.11.5（既知の制約）へ昇格・
+  `codebase_map.md` の `ActionExecutor` / シーケンス実行の記述へ 1 項・暫定 24 を凍結・`decisions_archive/31`（decisions.md の暫定 24 節を移す）・
+  current.md 完了記載・idea_35 → INDEX_done・`/refactor_check`（PHASE_BASE = `04213be` の親 `6c20dd6`）・
+  完了判定前レビュー（deep-reviewer + codex-adversarial）。**実機目視は任意**（ユーザー判断）。
 - **main へのマージはユーザーが行う**（ブランチ `claude/idea-27-28-consolidate-3ff723`）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

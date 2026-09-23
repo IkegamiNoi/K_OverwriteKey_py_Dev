@@ -60,6 +60,10 @@
   ほか同クラス 1 件（計 3 件・`1 != 0`）。**再実行で 532 件全 pass**。phase 30 の差分は domain の読込時正規化のみで
   ダイアログへの因果経路は無い。**Escape を使うテストのため idea_18 系統（配送）を除外しきれていない**
   （`send_escape` の診断出力の有無は未確認。着手時の切り分け対象）。
+  **2026-09-24・phase 31 task_02 の標準検証で再観測**（同ファイル 2 件）: `test_layout_delete_escape_destroys_and_resumes_hook` は
+  **`resume_hook_after_dialog` が 0 回呼ばれた**という形（カウンタ不一致ではなく**再開要求そのものが来ていない**）/
+  `test_preset_manager_escape_discards_edits_and_resumes_hook` は `1 != 0`。再実行で全 pass。差分は runner / app の委譲 1 行で因果経路なし。
+  **「再開要求が 0 回」は Escape が届かず閉じていない〔idea_18 系統〕可能性を示す**ため、着手時はこのファイルから切り分ける。
 
 ## 提案（方向性・要設計）
 

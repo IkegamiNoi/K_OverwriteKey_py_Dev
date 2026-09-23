@@ -11,7 +11,7 @@ class SequenceRunner:
         *,
         state,
         find_trigger: Callable[[str], dict[str, Any] | None],
-        perform_action: Callable[[dict[str, Any]], None],
+        perform_action: Callable[[dict[str, Any]], bool | None],
         select_trigger: Callable[[str], None],
         refresh_actions: Callable[[], None],
         update_status: Callable[[], None],
@@ -62,7 +62,8 @@ class SequenceRunner:
 
         try:
             i = self.state.indices.get(key, 0) % len(actions)
-            self._perform_action(actions[i])
+            if self._perform_action(actions[i]) is False:
+                return
             with self.state.lock:
                 self.state.indices[key] = (i + 1) % len(actions)
         finally:
@@ -143,7 +144,10 @@ class SequenceRunner:
             self._select_trigger(key)
             return
 
-        self._perform_action(actions[i])
+        if self._perform_action(actions[i]) is False:
+            self.stop_run_to_end()
+            self._select_trigger(key)
+            return
         self.state.indices[key] = i + 1
         self._select_trigger(key)
 

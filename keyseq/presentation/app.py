@@ -492,8 +492,8 @@ class App(tk.Tk):
             self.dirty_tracker.set_dirty(True)
         return True
 
-    def _perform_action(self, action: dict):
-        self.action_executor.execute(action)
+    def _perform_action(self, action: dict) -> bool:
+        return self.action_executor.execute(action)
             
     def validate_hotkey(self, hotkey: str) -> tuple[str, str]:
         """
