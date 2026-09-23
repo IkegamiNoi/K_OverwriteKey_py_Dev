@@ -15,17 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 31 は 2026-09-24 完了〕。
-   次採番 = phase 32 / 暫定 25 / decisions 32 / 提案書 13。次フェーズはユーザー判断・着手時は `/phase_start`）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 32 は 2026-09-24 完了〕。
+   次採番 = phase 33 / 暫定 25 / decisions 33 / 提案書 13。次フェーズはユーザー判断・着手時は `/phase_start`）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜24）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 31 完了（正本 §5.11.1 / §5.11.5 反映・暫定 24 凍結・archive/31・idea_35 クローズ・refactor_check 不要）。次フェーズは未定（ユーザー判断待ち）。**
-直近コミット: `970ab75`（phase 31 task_03 = 完了）/ `31466fc`（task_02）/ `e247608`（task_01）/ `04213be`（phase 31 起票）/ `8c25cd1`（phase 30 完了）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜31 はユーザーがマージする）。
+**phase 32 完了（tests_ui のフック再開を `wait_for_hook_pause_count` で待つ・production 不変・idea_33 クローズ・refactor_check スキップ）。次フェーズは未定（ユーザー判断待ち）。**
+直近コミット: `b124fa1`（phase 32 task_03 = 完了）/ `6754290`（task_02）/ `9eff5ee`（task_01）/ `a1f1323`（phase 32 起票）/ `970ab75`（phase 31 完了）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜32 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,40 +35,37 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 31 完了時点 = 2026-09-24**）:
-compile **clean** / tests **577 実行 OK**（skip 7）/ tests_ui **532 実行 OK**（skip 0）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 30 完了 565 → phase 31 完了 577 / tests_ui: 532 で不変）。
+直近の実測（**phase 32 完了時点 = 2026-09-24**）:
+compile **clean** / tests **577 実行 OK**（skip 7）/ tests_ui **535 実行 OK**（skip 0）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 577 で不変 / tests_ui: phase 31 完了 532 → phase 32 完了 535）。
 **`tests_ui` と smoke を並行実行しない**（フックの取り合いで 13 件落ちる。逐次で実行する）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
 `keymap_set_history*.json` が生成されていない**ことを確認する。
 
-**【既知の flaky】`tests_ui` 一括でまれに落ちる**: `get_hook_pause_count()` が `1 != 0` / `resume_hook_after_dialog` が 0 回
-（例: `test_quarantine_manage_flow` / **`test_dialog_escape_binding` で 2〜3 件まとめて**〔phase 29・30・31 で計 4 回観測・再実行で全 pass〕。
-= [idea_33](../../instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md)・「再開要求が 0 回」の形は Escape 配送〔idea_18 系統〕の可能性）。
-**赤くなっても まず再実行・単体実行で切り分ける**（1 回で退行と決めない）。
+**【flaky は phase 32 で対処済】** `get_hook_pause_count()` が `1 != 0` / `resume_hook_after_dialog` が 0 回の赤（idea_33）は、
+破棄後の確認を `wait_for_hook_pause_count` へ置き換えて解消（負荷下で 9 モジュール × 6 回 + tests_ui 全体 × 1 回とも赤 0 件）。
+**再び出たら**、`update()` を伴わないテスト冒頭のカウント確認（`decisions_archive/32`「残るリスク」）を疑い、その冒頭にヘルパ（0）を入れる。
+それでも**赤くなったら まず再実行・単体実行で切り分ける**（1 回で退行と決めない）。
 
 **既知の stderr ノイズ（退行ではない）**: `invalid command name "..._clear_flash_message"`（ステータスバーのタイマー）/
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **main へのマージはユーザーが行う**（ブランチ `claude/idea-27-28-consolidate-3ff723`）。
-- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33〔tests_ui flaky・`test_dialog_escape_binding` で繰り返し観測〕/ idea_23）。着手時は `/phase_start`。
+- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_23）。着手時は `/phase_start`。
+- **main へのマージはユーザーが行う**（ブランチ `claude/idea-33-2186d2`・phase 18 残り・19〜32）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
-## 直前フェーズ（phase 31 = 種類が不正なアクションの実行）の要点
+## 直前フェーズ（phase 32 = UI テストでのフック再開の待ち合わせ）の要点
 
-**正本が正**: `data_schema.md` §5.11.1 / §5.11.5 + `codebase_map.md`「アクションの実行」小節。
-判断は `decisions_archive/31`。**暫定仕様先行モード**（暫定 24 は v0.5 で凍結・条項を根拠に引かない）。
+**tests_ui 限定・production 不変・正本改訂なし**（直接改訂モード）。判断は `decisions_archive/32`、記録は `codebase_map.md` の HookController 節。
 
-- 実装 = `ActionExecutor.execute -> bool`（`type` は `isinstance` で非文字列を空扱い）: 無い / 空 / 未知 / 非文字列なら**送らず**
-  `on_action_error`（= `HookController.show_action_error`）へ `type` を文字列化した浅いコピーを渡して `False`。旧 text フォールバックは削除。
-- `SequenceRunner` は `perform_action` の戻り値が **`is False`** のときだけ止める（run_to_end 停止・単発は index を進めない・**位置は不正な行に残る**）。
-  `None` を返す実装（テストの `performed.append`）は従来どおり進む。`App._perform_action` は戻り値を返す。
-- **hotkey / text の送信例外は従来どおり `execute` の外へ抜ける**（`True` を返すのは検証エラー・`x` / `y`〔`to_x` / `to_y`〕不正・mouse_click の送信失敗）。
-- **通知の表示中もフックは止まらない**（§5.11.5・全エラーダイアログ共通の既知の制約）。種類が不正なアクション自体は常に送られない。
-- **教訓**: 正本へ昇格するとき、暫定仕様の条項が**落ちていないか**を突き合わせる（run_to_end の位置の規定が落ち、完了判定前レビューで検出）。
-  また、**レビュー前に完了記録を確定しない**（task_03 の完了条件はレビュー反映後）。
+- ヘルパ = `tests_ui/hook_resume_wait.py` の `wait_for_hook_pause_count(test_case, app, expected, *, timeout=2.0)`
+  （**先に必ず `update()` 1 回**・`time.monotonic` の期限まで `update()` を回す・期限切れは期待値 / 現在値 / 経過つきで fail）。
+  `app` は `update` と `hook.get_hook_pause_count` だけを読む（素の `tk.Tk` のテストは `SimpleNamespace` で渡す）。
+- 適用 = 破棄後の解除を確かめる箇所（tests_ui 7 ファイル）。**置き換えない** = 破棄直後の未解除 / 解除が起きないこと / 同期解除 /
+  `setUp` ドレイン / `update()` を伴わない冒頭確認。**否定確認（再開しない等）は待機の後に置く**（先に置くと素通り）。
+- **教訓**: flaky の切り分けは「失敗の形」を先に読む（「再開要求 0 回」は `send_escape` が破棄を確認した後の失敗で、配送ではなく `after(0)` 未処理だった）。
 
 ## 運用インフラ
 
@@ -126,8 +123,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 31_unknown_action_type_handling / 30_action_and_internal_key_type_coercion / 29_focus_restore_after_minimize）。
-- 着手中 idea: なし。未着手/保留 idea: **idea_33**（フック再開 flaky）/ **idea_23**（押す / 離すアクション）/
+  （直近 3 件: 32_hook_resume_wait_in_ui_tests / 31_unknown_action_type_handling / 30_action_and_internal_key_type_coercion）。
+- 着手中 idea: なし。未着手/保留 idea: **idea_23**（押す / 離すアクション）/
   idea_29〜idea_32 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
