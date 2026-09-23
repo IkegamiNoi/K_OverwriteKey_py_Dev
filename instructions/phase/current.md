@@ -7,41 +7,37 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 30](30_action_and_internal_key_type_coercion/phase.md)**（2026-09-23 起票）:
-  アクション要素と内部キーの型正規化。§5.1「型不正の共通規則」に未追従の残り 2 系統
-  （アクション要素の `type` / `button`・runtime 内部キーのパス系 3 種）を**読込時の正規化（domain）**で受ける。
-  **直接改訂モード**（正本改訂は `data_schema.md` §5.11 と §5.7 の注記削除のみ）。番号対応: phase 30 / decisions 30。
-  起票元 = [idea_27](../backlog/idea_27_mouse_click_button_type_coercion.md) /
-  [idea_28](../backlog/idea_28_runtime_internal_key_type_coercion.md)（統合）。
-  進捗: task_01 完了 / 次 = task_02。
-- 直前の完了フェーズ = [phase 29](29_focus_restore_after_minimize/phase.md)（2026-09-23・最小化から復元した後のキーボードフォーカス・
-  判断は [decisions_archive/29](../../.claude_data/state/decisions_archive/29_focus_restore_after_minimize.md)）/
-  [phase 28](28_dialog_keyboard_focus/phase.md)（2026-09-23・ダイアログの初期キーボードフォーカス・
-  判断は [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)）。
+- **アクティブなフェーズ = なし**（phase 30 は 2026-09-23 完了。次に着手するフェーズは `/phase_start` で起票する）。
+- 直前の完了フェーズ = [phase 30](30_action_and_internal_key_type_coercion/phase.md)（2026-09-23・アクション要素と内部キーの型正規化・
+  判断は [decisions_archive/30](../../.claude_data/state/decisions_archive/30_action_and_internal_key_type_coercion.md)）/
+  [phase 29](29_focus_restore_after_minimize/phase.md)（2026-09-23・最小化から復元した後のキーボードフォーカス・
+  判断は [decisions_archive/29](../../.claude_data/state/decisions_archive/29_focus_restore_after_minimize.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近の一連の作業が扱っている領域 = モーダルダイアログのキーボードフォーカスと Escape**（phase 28・29）。
-  正本は `features.md` §4.6「**モーダルダイアログの作法**」（初期フォーカス / Escape で閉じる / Esc の別用途優先 /
-  閉じた後のフォーカスは規定しない / **最小化から復元した後はモーダル性とフォーカスを戻す**）+ `codebase_map.md` の `modal.py` 節。
-  実装 = `presentation/modal.py`: `grab_modal(window, parent=None, *, focus=None)`（初期フォーカス）/
-  `install_minimize_grab_custody`（最小化中の grab 預かり + 復元時に `after_idle` で `_restore_modal_focus`。
-  **Tk がフォーカスを持たず自アプリのメイン窓が前面のときだけ `focus_force`**・`_is_app_foreground` は presentation 唯一の ctypes）/
-  Escape の結線は `dialogs/escape_close.py` の `bind_escape_close`。
-  テスト = `tests_ui/test_minimize_grab_custody.py`（`setUp` で `_is_app_foreground` を既定 `False`）/ `test_modal_app_foreground.py` /
-  `test_dialog_initial_focus.py` / `test_dialog_escape_binding.py` / `escape_delivery.py` の `send_escape`。
-  **実機目視は作業中の worktree から `main.py` で起動**（API で模擬した復元の probe は実操作の前面化の順序を再現しない）。
-  **残件** = [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（`after(0)` のフック再開 flaky）/
-  M4（`_apply_initial_focus` と `<Destroy>` 登録の順序・保留）/ 最小化を伴わない再アクティブ化のフォーカス（対象外）。
-  判断は [decisions_archive/29](../../.claude_data/state/decisions_archive/29_focus_restore_after_minimize.md) /
-  [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**11 まで起票済**・次採番は「次採番」節が正）。
+- **直近の一連の作業が扱っている領域 = JSON 読込時の型不正の扱い**（phase 23・24・25・30）。
+  正本は `data_schema.md` §5.1「**型不正の共通規則**」（非文字列は空扱い・成立しない要素は除去）+
+  §5.5 / §5.7（パス系・内部キー）/ §5.11（アクション要素の全経路正規化〔phase 23〕・`label` / `type` / `button`・
+  無い / 空 / 未知の `type` の実行時挙動）。
+  実装 = `domain/config.py` の `coerce_key_name`（trim + 小文字化・キー名 / id）/ `coerce_label`（trim のみ・ラベル / パス / `type` / `button`）を
+  **読込経路すべて**で適用する: domain の `normalize_actions` / `ensure_config_compatibility` に加え、
+  application の `split_loading.py`（パス・label・id）/ `config_service/__init__.py`（`load_keymap_file` 等）も直接呼ぶ。
+  **読み手は触らない**・**無いキーは補わない**。一覧は `codebase_map.md`「JSON 読込時の型正規化」節。
+  **参照突合経路（`config_service/reference_scan.py`）は生 JSON を直接読む別実装**で、
+  `ensure_config_compatibility` を通らないため個別に揃えてある（phase 25）。
+  テスト = `tests/test_domain_config.py`（`NormalizeActionsTest` / `EnsureConfigCompatibilityTest` / `PathFieldCoercionTest`）。
+  **残件** = [idea_35](../backlog/idea_35_unknown_action_type_handling.md)（空 / 未知 / **非文字列だった** `type` が
+  `value` を文字入力する件・暫定仕様先行）/ `startup_io.py` の `keymap_set_path`（presentation 層・「別タスク化候補」）。
+  判断は [decisions_archive/30](../../.claude_data/state/decisions_archive/30_action_and_internal_key_type_coercion.md) /
+  [decisions_archive/25](../../.claude_data/state/decisions_archive/25_path_field_type_normalization.md) /
+  [decisions_archive/23](../../.claude_data/state/decisions_archive/23_sequence_payload_action_normalization.md)。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**12 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
 
 ## 次採番
 
-- **phase 30 を 2026-09-23 起票**（`30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30）。
+- **phase 30 は 2026-09-23 完了**（`30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）。
   次フェーズは **`31_<topic>`**・decisions も **31** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 29 は 2026-09-23 完了 = `29_focus_restore_after_minimize` / 暫定 23〔凍結〕/ decisions 29〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -64,12 +60,13 @@
   22=ダイアログの初期キーボードフォーカス〔**v0.7・凍結**〕/
   23=最小化から復元した後のキーボードフォーカス〔**v0.5・凍結**〕）。
   次採番は **`24_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**11 まで起票済**
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**12 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
   **10 = phase 19 由来・実施済＝phase 19 task_07** /
-  **11 = phase 28 由来・実施済＝phase 28 task_07**〔Esc の別用途つき閉じ処理の 3 重複を 1 関数へ〕）・
-  次採番は **`12_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **11 = phase 28 由来・実施済＝phase 28 task_07**〔Esc の別用途つき閉じ処理の 3 重複を 1 関数へ〕 /
+  **12 = phase 30 由来・見送り**〔「キーがあれば coerce_label」の 5 重複を 1 関数へ。「別タスク化候補」へ送付〕）・
+  次採番は **`13_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
@@ -135,6 +132,11 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
     `format_*` → `messagebox`）と `presentation/*_text.py` の整形関数が **3 系統目**に達した（phase 11 由来）
 
 ### 定数・直値の重複（M6 の境界）
+
+- `domain/config.py` の「キーがあれば `coerce_label`」2 行が **5 箇所**（`normalize_actions` の `type` / `button`、
+  `ensure_config_compatibility` の内部キー 3 種）。内部キー名の文字列直値も同ファイル内で各 3 回。
+  提案書 [12](../modified_proposal/12_refactor_action_and_internal_key_type_coercion.md) は**見送り**（効果小・同一ファイル内で近接）。
+  **同型がさらに増えたら** `_coerce_label_if_present(dst, src, key)` への集約を再判定（phase 30 由来）
 
 - 履歴ファイル名の語幹が 2 箇所に直値（`config_service/__init__.py:27` の
   `KEYMAP_SET_HISTORY_RELATIVE_PATH = "keymap_set_history.json"` と

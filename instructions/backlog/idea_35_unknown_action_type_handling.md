@@ -22,13 +22,21 @@
 - 編集ダイアログ: `keyseq/presentation/dialogs/action_dialog.py:115` は
   `(initial.get("type") or "hotkey")` = **空 `type` を hotkey とみなす**。未知の文字列はそのまま `type_var` に入る
 - エラー通知: `keyseq/presentation/controllers/hook_controller.py:241` が `type` を読んでメッセージを組み立てる
-- 正本: `data_schema.md` §5.11.1 は 3 種を列挙するのみ。phase 30 で「空 / 未知は `value` を文字列入力」
-  （現行挙動）を明文化する予定
+- 正本: `data_schema.md` §5.11.1 に「`type` が無い / 空 / 上表以外なら `value` を文字列入力」を phase 30 で明文化済
+- **【phase 30 で増えた経路・2026-09-23 追記】非文字列の `type`**（例 `{"type": ["hotkey"], "value": "alt+f4"}`）は、
+  phase 30 以前は `.strip()` の `AttributeError` で**何も送られなかった**（`sequence_runner.py:65` は例外を捕まえない）。
+  phase 30 の読込時正規化で `""` になり、**`value` を文字列として前面アプリへ入力する**ようになった。
+  phase 30 完了判定前の `codex-adversarial-reviewer`（high）/ `deep-reviewer`（M4）の指摘。
+  **ユーザー判断で phase 30 は現状維持（案 Y）とし、対処は本 idea で決める**（2026-09-23）
 
 ## 提案（方向性・要設計）
 
 - **案 B（起票時の方向性）**: 空 / 未知の `type` は**何も送らず実行時エラーとして報告**する
   （§5.11.2 の `x` / `y` 不正時と同型）。
+- **案 X（非文字列だけを先に塞ぐ小案）**: 非文字列の `type` を持つ要素を**読込時に要素ごと除去**する
+  （§5.1「空になると要素が成立しない場合は除去」を当てはめる）。何も送られず一覧表示でも落ちない。
+  壊れたアクションは次の保存でファイルから消える。変更は §5.11.1 の文言 + `normalize_actions` の 1〜2 行 + テストで、
+  **単独なら直接改訂モードで足りる**。案 B と一緒にやるか、X だけ先に切り出すかも着手時に決める。
 - 詰める論点:
   - エラー通知の出し方・文言（`_on_runtime_error` 経由か、`hook_controller` の送信エラーダイアログか）
   - 一覧表示で何を見せるか（`value` のままか、不正を示す表記か）

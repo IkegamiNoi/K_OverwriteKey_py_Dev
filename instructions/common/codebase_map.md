@@ -596,7 +596,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `grid_remove` で出し入れし、X/Y ラベルを「掴む位置」へ、回数欄を `disabled` にして保存値を 1 に固定。
   座標取得は掴む用 / 離す用で排他）。一覧表示の整形は `domain/config.py` の `format_action_list_item`。
 - **`actions[]` の読込時正規化は `domain/config.py::normalize_actions` に一本化**（dict 以外の要素を除去し
-  `label` を整形する純関数・冪等）。呼び出しは 2 系統 = `ensure_config_compatibility` 内（split 読込・単一 JSON）と
+  `label` を整形、`type` / `button` は**キーがある場合のみ** `coerce_label` する純関数・冪等。phase 30）。呼び出しは 2 系統 = `ensure_config_compatibility` 内（split 読込・単一 JSON）と
   `application/config_service::_normalize_sequence_payload`（個別 sequence JSON の単体読込 / 保存後の戻り値）。
   **application 側は整形規則を持たず domain の関数を呼ぶだけ**（規定は `data_schema.md` §5.11）。
 - **JSON 読込時の型正規化は `domain/config.py` の `coerce_key_name` / `coerce_label` に一本化**（phase 24）。
@@ -617,6 +617,10 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `ensure_config_compatibility` を通らないため個別に適用が要る）。
   **未対応の残件** = `presentation/controllers/config_io/startup_io.py` の `keymap_set_path`
   （config.json の生値。presentation 層のため phase 25 のスコープ外）。
+- **runtime 内部キーのパス値 3 種**（`_keymap_source_path` / `_sequence_source_path` / `_trigger_set_source_path`）も
+  `ensure_config_compatibility` で**キーがある場合のみ** `coerce_label` する（phase 30・`data_schema.md` §5.7）。
+  domain は内部キー名を文字列直値で持つ（application の `ConfigService.INTERNAL_*` を import しない）。
+  **読み手（`save_path_resolution` / `split_payloads` / presentation の `config_io/*` 等）は正規化済みの値を前提に無修正**。
 - **読み込み履歴の規則は `domain/keymap_set_history.py`**（phase 27・`data_schema.md` §5.12）。
   型不正の正規化 / 重複統合 / 上限 20 / 分類の追加・名前変更・削除・コピー / 名前順の整列を
   **I/O に依存しない純関数**として持ち、**比較キーは呼び出し側から `key_of` で受け取る**

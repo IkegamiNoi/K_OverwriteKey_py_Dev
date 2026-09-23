@@ -410,6 +410,59 @@ class EnsureConfigCompatibilityTest(unittest.TestCase):
 
 
 class PathFieldCoercionTest(unittest.TestCase):
+    def test_internal_source_paths_non_strings_become_empty(self):
+        for value in (None, 0, False, [], {}, 123, ["a"], {"a": 1}):
+            with self.subTest(value=value):
+                config = ensure_config_compatibility({
+                    "triggers": [{"key": "a", "_sequence_source_path": value}],
+                    "keymaps": [{"id": "km1", "_keymap_source_path": value}],
+                    "_trigger_set_source_path": value,
+                })
+                self.assertEqual(config["triggers"][0]["_sequence_source_path"], "")
+                self.assertEqual(config["keymaps"][0]["_keymap_source_path"], "")
+                self.assertEqual(config["_trigger_set_source_path"], "")
+
+    def test_internal_source_paths_trim_preserving_case_and_separators(self):
+        for path in ("User/KeyMaps/A.json", r"C:\User\KeyMaps\A.json"):
+            with self.subTest(path=path):
+                value = f"  {path} "
+                config = ensure_config_compatibility({
+                    "triggers": [{"key": "a", "_sequence_source_path": value}],
+                    "keymaps": [{"id": "km1", "_keymap_source_path": value}],
+                    "_trigger_set_source_path": value,
+                })
+                self.assertEqual(config["triggers"][0]["_sequence_source_path"], path)
+                self.assertEqual(config["keymaps"][0]["_keymap_source_path"], path)
+                self.assertEqual(config["_trigger_set_source_path"], path)
+
+    def test_absent_internal_source_paths_are_not_added(self):
+        config = ensure_config_compatibility({
+            "triggers": [{"key": "a"}],
+            "keymaps": [{"id": "km1"}],
+        })
+        self.assertNotIn("_sequence_source_path", config["triggers"][0])
+        self.assertNotIn("_keymap_source_path", config["keymaps"][0])
+        self.assertNotIn("_trigger_set_source_path", config)
+
+    def test_non_path_internal_keys_preserve_values(self):
+        for value in (None, 0, False, [], {}, 123, True, ["a"], {"a": 1}, " Keep "):
+            with self.subTest(value=value):
+                config = ensure_config_compatibility({
+                    "triggers": [{"key": "a", "_sequence_imported": value,
+                                  "_sequence_dirty": value}],
+                    "keymaps": [{"id": "km1", "_keymap_imported": value,
+                                 "_keymap_dirty": value}],
+                })
+                for item, keys in (
+                    (config["triggers"][0], ("_sequence_imported", "_sequence_dirty")),
+                    (config["keymaps"][0], ("_keymap_imported", "_keymap_dirty")),
+                ):
+                    for key in keys:
+                        self.assertEqual(item[key], value)
+                        self.assertIs(type(item[key]), type(value))
+                        if isinstance(value, (list, dict)):
+                            self.assertIsNot(item[key], value)
+
     def test_external_layout_paths_drop_non_strings(self):
         for value in (None, 0, False, [], {}, 123, True, ["a"], {"a": 1}):
             with self.subTest(value=value):

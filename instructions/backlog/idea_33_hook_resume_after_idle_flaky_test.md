@@ -55,6 +55,11 @@
 - `tests_ui/test_quarantine_manage_flow.py` — `test_escape_and_window_close_keep_action_empty`
 - `tests_ui/test_keymap_set_history_flow.py` — `test_chooser_returns_result_and_restores_history_grab` /
   `test_close_routes_restore_hook_and_parent_grab`
+- `tests_ui/test_dialog_escape_binding.py`（**2026-09-23・phase 30 task_02 の標準検証で追加観測**）—
+  `test_layout_delete_escape_destroys_and_resumes_hook` / `test_preset_manager_escape_discards_edits_and_resumes_hook`
+  ほか同クラス 1 件（計 3 件・`1 != 0`）。**再実行で 532 件全 pass**。phase 30 の差分は domain の読込時正規化のみで
+  ダイアログへの因果経路は無い。**Escape を使うテストのため idea_18 系統（配送）を除外しきれていない**
+  （`send_escape` の診断出力の有無は未確認。着手時の切り分け対象）。
 
 ## 提案（方向性・要設計）
 

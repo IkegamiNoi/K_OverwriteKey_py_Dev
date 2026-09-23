@@ -39,6 +39,7 @@
 | 27_keymap_set_load_history | [27_keymap_set_load_history.md](decisions_archive/27_keymap_set_load_history.md) | 構成セットの読み込み履歴管理（2026-09-22 完了・**新規 JSON 追加**）。ファイルメニューへ「履歴から読み込む…」、直近 20 件 + ユーザーが作る分類を **リポジトリ初の `ttk.Treeview`** で扱う。保存先は `config/keymap_set_history.json`（固定・**config.json にキーを追加しない**・遅延作成）。記録契機 = **読込または保存が成功し空でないパスが確定したとき、その実保存先**（初期代入 / 新規作成 / Import / 例の復元 / **起動時の自動読込**は除外）。**先頭一致 no-op** で通常の起動はディスクに触らない。破損ファイルは `*.broken*.json` へ**退避してから**作り直す（連番 5 で打ち止め → 読み取り専用）。**永続化に成功してから UI を確定**し、ダイアログは操作のたびに永続化済みの内容を読み直して再描画する。**v0.5 改訂**の理由 = 起動時に記録すると `tests_ui` が実 `config/` を汚したため。正本 `data_schema.md` **§5.12 新設** + §5.4 / `features.md` §4.6 / `codebase_map.md` へ昇格済。**孤児棚卸しの走査範囲・判定は不変**（§9 の補記は「不要」で決着）。**後続**: [idea_26](../../instructions/backlog/idea_26_dialog_keyboard_focus.md)（ダイアログのフォーカス欠落・横断）。refactor_check: **不要**（M1〜M6 非該当。600 行超のファイルは増分が +10〜15 と小さく、80 行超の関数・申し送りコメント・コピー由来の同型ブロックはいずれも無し。根拠は本アーカイブ「refactor_check」節）|
 | 28_dialog_keyboard_focus | [28_dialog_keyboard_focus.md](decisions_archive/28_dialog_keyboard_focus.md) | ダイアログの初期キーボードフォーカス（2026-09-23 完了・**presentation 限定・スキーマ不変**・暫定仕様先行モード・起票元 = idea_26 + idea_18）。Escape を bind しているのにフォーカスを移さないダイアログ（群 B 3 件）を是正するため、**フォーカスを `grab_modal(window, parent=None, *, focus=None)` の責務へ集約**（**明示引数**・省略時は窓自身。推測型 `focus_lastfor()` / `after_idle` は未マップ時の `focus_set` 保留で**明示指定を奪うと実測で反証**）/ `focus_force`・`lift` は呼ばない。**群 C 5 経路へ Escape を結線**（× と同じ閉じ方）+ 統合レビュー H1 を受け **群 A 4 経路へも Escape**（**Esc の別用途〔記録中・取得中〕を優先する単一ハンドラ + 状態分岐**。Tk では同一 widget の `<Escape>` が `<KeyPress>` より優先して単独発火すると実測）。**idea_18 の根は配送の遅さではなく配送先の違い**（ダイアログを持つ Tk アプリが入力フォーカスを持たないと Escape は破棄される）→ `send_escape`（フォーカス確保してから送る・期限方式）。§8-7 は Escape family に限定し `after(0)` family は **idea_33** へ分離。実機目視で**最小化復帰後にフォーカスが戻らない**ことが再現 → **idea_34**（正本へ「フォーカスの戻り先は規定しない」を明記）。正本 = `features.md` §4.6 へ 3 条項 + `codebase_map.md` の `modal.py` 節（13→15 箇所訂正）。**task_05e で記録中・取得中の Esc 押しっぱなしで閉じない**よう修正（v0.7・判定順 = 記録/取得中 → 印 → 閉じる）。暫定 22 は v0.7 で凍結。refactor_check: **推奨 → task_07 で実施済**（提案書 11・M3 = Esc の別用途つき閉じ処理の 3 重複を `bind_escape_close` へ） |
 | 29_focus_restore_after_minimize | [29_focus_restore_after_minimize.md](decisions_archive/29_focus_restore_after_minimize.md) | 最小化から復元した後のキーボードフォーカス（2026-09-23 完了・**presentation 限定・スキーマ不変**・暫定仕様先行モード・起票元 = idea_34）。復元時に grab だけ戻りフォーカスがメイン窓に残る問題を、**`<Map>` 後に `after_idle` で予約した処理で、予約実行時の grab 保持者の `focus_lastfor() or window` へ `focus_set`** して解消（**即時 `focus_set` は実 App の 3 段ネストで外側の窓を非表示のまま残す**と実測・v0.4）。**実機目視でタスクバー復元時に Escape が届かない不合格** → 復元のアクティブ化の時点で grab が預かり中のため Tk の振り向けが働かず `focus_get()` が `None` と特定 → **Tk がフォーカスを持たず OS の前面が自アプリのメイン窓のときだけ `focus_force`**（専用 `WinDLL` の `GetForegroundWindow`・`restype=HWND`・presentation 唯一の ctypes・v0.5）。最小化中に開いた窓はその回の復元では戻さない / 閉じた後は規定しない / TOCTOU と最小化中に開いた窓の保留要求は保証範囲外。教訓 = **API 復元の probe は実操作の前面化順を再現しない**。暫定 23 は v0.5 で凍結。refactor_check: **不要** |
+| 30_action_and_internal_key_type_coercion | [30_action_and_internal_key_type_coercion.md](decisions_archive/30_action_and_internal_key_type_coercion.md) | アクション要素と内部キーの型正規化（2026-09-23 完了・**domain 限定・スキーマ不変**・直接改訂モード・起票元 = idea_27 + idea_28）。§5.1 に未追従の残り 2 系統を**読込時の入口 2 関数**で受けた: ①アクション要素の `type` / `button`（`normalize_actions`。非文字列で `AttributeError`・`type` は一覧表示でも落ちた）②runtime 内部キーのパス値 3 種（`ensure_config_compatibility`。repr が保存先候補へ混入し得た）。**`coerce_label`（trim のみ）・キーが無ければ補わない・読み手は無修正**（書き手 12 箇所を棚卸しして入口外の混入経路なしを確認）。正本 §5.11.2 の「非文字列は未定義」を削除（案 A）し、**空 / 未知の `type` は現行挙動〔`value` を文字列入力〕を明文化**。エラー通知化（案 B）は **idea_35** へ分離。**非文字列の `type` は「無送信」→「文字入力」に変わった**（完了判定前レビュー high・現状維持とし idea_35 で対処）。refactor_check: **推奨（境界・M3）→ 提案書 12 は見送り**（ユーザー判断） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -544,26 +545,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   （`_check_import_nodes` → **単数形へ改名** / `prefix` の毎ノード再計算を
   **モジュール定数 `_PACKAGE_PREFIX`** へ）。残る 1 件（分割後の関数が 30 行目安をわずかに超える）は
   **提案書が想定した分割形**のため据え置き。
-
----
-
-## 2026-09-23 (phase 30: アクション要素と内部キーの型正規化・直接改訂モード)
-
-### 【起票時】idea_27 + idea_28 を統合 = **採用**（ユーザー確定 2026-09-23）
-
-- 両者とも §5.1「型不正の共通規則」への追従漏れで同系統・改訂先も同じ `data_schema.md`。
-- **idea_27 は案 A**（§5.11.2 の「非文字列は未定義」を削除し §5.1 に従う = 非文字列は空扱い → 既定 `left`）。
-  **案 B（実装だけ防御・仕様は未定義のまま）は除外**。
-- **`type` の非文字列も含める**（起票時の grep で 5 箇所の `.strip()` を発見。一覧表示 `domain/config.py:323` も含む）。
-- **適用点は読込時の正規化**（`normalize_actions`）。読み手は無修正。**無いキーは補わない**。
-- idea_28 は**入口（`ensure_config_compatibility`）で `coerce_label`**。読み手は約 25 箇所あるため個別には直さない。
-  **入口外の混入経路**（例: `config_service/__init__.py:299` の `str(...)`）は task_02 で棚卸しし、
-  1 箇所に収まらなければ暫定仕様先行モードへ切り替える。
-
-### 【起票時】空 / 未知の `type` の実行時挙動 = **案 A（現行挙動の明文化）を採用**（ユーザー確定 2026-09-23）
-
-- 正本 §5.11 に未規定だった「空 / 未知の `type` は `value` を文字列入力」（`action_executor.py:64`）を
-  task_01 で明文化する。**コードは変えない**。`type` の非文字列を空扱いにするとこの経路へ入るため。
-- **案 B（何も送らずエラー通知）は保留 → [idea_35](../../instructions/backlog/idea_35_unknown_action_type_handling.md)**。
-  executor / 一覧表示 / ダイアログ（空 `type` を hotkey とみなす `action_dialog.py:115` との食い違い）/
-  通知経路に跨がり挙動も変わるため、直接改訂モードに収まらない。着手時は暫定仕様先行モード。

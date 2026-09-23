@@ -162,6 +162,8 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     if not isinstance(data, dict):
         data = {}
     config = safe_deepcopy(data)
+    if "_trigger_set_source_path" in config:
+        config["_trigger_set_source_path"] = coerce_label(config["_trigger_set_source_path"])
 
     if "triggers" not in config and "trigger_key" in config:
         old_key = coerce_key_name(config.get("trigger_key", "f1"))
@@ -198,8 +200,9 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
         )
 
         t["actions"] = normalize_actions(t.get("actions"))
+        if "_sequence_source_path" in trigger:
+            t["_sequence_source_path"] = coerce_label(trigger["_sequence_source_path"])
         for key in (
-            "_sequence_source_path",
             "_sequence_imported",
             "_sequence_dirty",
         ):
@@ -278,8 +281,9 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
                     "mappings": normalized_mappings,
                 }
             )
+            if "_keymap_source_path" in item:
+                normalized_keymaps[-1]["_keymap_source_path"] = coerce_label(item["_keymap_source_path"])
             for key in (
-                "_keymap_source_path",
                 "_keymap_imported",
                 "_keymap_dirty",
             ):
