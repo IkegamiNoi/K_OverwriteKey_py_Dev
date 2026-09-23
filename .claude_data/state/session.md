@@ -4,47 +4,43 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T09:30:00
-phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜06 + task_05b〜05e 完了。残りは task_07〔提案書 11 のリファクタ・挙動不変〕のみ**）。次採番 = phase 29 / 暫定 23 / decisions 29 / 提案書 12。
-直前の完了フェーズ = **phase 27**（構成セットの読み込み履歴管理・2026-09-22 完了。判断履歴 = `decisions_archive/27_keymap_set_load_history.md`。暫定仕様 21 は凍結済）。
+last_updated: 2026-09-23T10:30:00
+phase: **アクティブなフェーズなし**（phase 28 = `instructions/phase/28_dialog_keyboard_focus` は 2026-09-23 完了）。次採番 = phase 29 / 暫定 23 / decisions 29 / 提案書 12。
+直前の完了フェーズ = **phase 28**（ダイアログの初期キーボードフォーカス・判断履歴 = `decisions_archive/28_dialog_keyboard_focus.md`。暫定仕様 22 は v0.7 で凍結）。
 last_commit_location: `claude/dialog-escape-key-behavior-548de9`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 28 は task_06（正本反映・暫定 22 を v0.7 で凍結・アーカイブ）まで完了。残りは task_07（提案書 11 = Esc の別用途つき閉じ処理を `bind_escape_close` へ寄せる・挙動不変）のみ。**
-mode: implementing
+focus: **phase 28 完了（task_01〜07 + 05b〜05e）。次は backlog の idea から次フェーズを選んで `/phase_start`。**
+mode: completed
 
 ## last_action
-ts: 2026-09-23T09:30:00
+ts: 2026-09-23T10:30:00
 who: main
 summary: |
-  【task_06 完了】正本 `features.md` §4.6 へ 3 条項（v0.7 の文言・押しっぱなしでも閉じない を含む）+ フォーカスの戻り先を
-  規定しない旨 / `codebase_map.md` の `modal.py` 節（署名・フォーカス責務・Escape の判定順・13→15 箇所）/ 暫定 22 を v0.7 で凍結 /
-  `decisions_archive/28` 新設 + 索引 / `current.md` / idea_18・26 を INDEX_done へ / idea_33 補記。
-  標準検証（verifier・HEAD `5d83e49`）: tests 556 OK / tests_ui 509 OK / smoke OK。
-  【/refactor_check = 推奨】M3 = `_on_escape` + `_on_escape_release` + `_escape_held` が 3 ダイアログに同型 →
-  提案書 11 起票 → **ユーザー選択 (a) = phase 28 の task_07 として実施**。phase 28 の完了宣言は task_07 の後へ移した。
+  【task_07 完了 = phase 28 完了】提案書 11（`/refactor_check` 推奨・M3）を実施: 新規 `keyseq/presentation/dialogs/escape_close.py` の
+  `bind_escape_close(window, *, is_busy, stop)`（印はクロージャ）へ 3 ダイアログの Escape 処理を寄せた。**挙動不変**・テスト変更なし。
+  `verifier` 全 pass（tests 556 OK / tests_ui 509 OK / 変異検査 2 種とも赤 → 復元一致 / smoke OK）・`reviewer` 完了可。
+  `codebase_map.md` はメインが更新。フェーズ完了処理 = `current.md` の「アクティブなフェーズ」を「なし」へ / 提案書 11 を実施完了へ /
+  `decisions_archive/28` の refactor_check 節へ実施結果。
 result_files:
-  - instructions/common/spec_detail/features.md / instructions/common/codebase_map.md
-  - instructions/history/22_dialog_keyboard_focus.md（v0.7 凍結）
-  - .claude_data/state/decisions_archive/28_dialog_keyboard_focus.md（新規）/ .claude_data/state/decisions.md
-  - instructions/phase/current.md / instructions/backlog/{INDEX,INDEX_done}.md / idea_33
-  - instructions/modified_proposal/11_refactor_dialog_escape_secondary_use.md（新規・承認済）
-  - instructions/phase/28_dialog_keyboard_focus/tasks/task_06_*.md（完了記録）/ task_07_refactor_escape_close.md（新規）/ phase.md
+  - keyseq/presentation/dialogs/escape_close.py（新規）/ action_dialog.py / trigger_dialog.py / keymap_edit_dialog.py
+  - instructions/common/codebase_map.md / instructions/phase/current.md / instructions/modified_proposal/11_*.md
+  - instructions/phase/28_dialog_keyboard_focus/tasks/task_07_refactor_escape_close.md（完了記録）/ phase.md
+  - .claude_data/state/decisions_archive/28_dialog_keyboard_focus.md / .claude_data/state/decisions.md
 verified:
   compile: clean
   tests: 556 ran OK（skipped 7）
   tests_ui: 509 ran OK
+  mutation: if held 除去 → 押しっぱなし 3 赤 / 判定順逆転 → 再開 3 赤
   smoke: SMOKE OK
-  refactor_check: 推奨（提案書 11）
+  review: reviewer = 完了可
 
 ## next_action
-- **task_07 を `codex-implementer` へ委任**（`instructions/phase/28_dialog_keyboard_focus/tasks/task_07_refactor_escape_close.md`。
-  新規 `keyseq/presentation/dialogs/escape_close.py` の `bind_escape_close(window, *, is_busy, stop)` + 3 ダイアログの置き換え。
-  テストは変更しない見込み）→ `verifier`（変異検査含む）→ `reviewer` →
-  メインで `codebase_map.md` を `bind_escape_close` へ更新 → phase 28 完了処理（`current.md` の「アクティブなフェーズ」を「なし」へ /
-  提案書 11 を実施完了へ / `decisions_archive/28` の refactor_check 節へ実施結果）→ コミット。
-- **main へのマージはユーザーが行う**。
+- **次フェーズの選定**: `instructions/phase/current.md`「次フェーズ候補」= idea_34（最小化復帰後のフォーカス・仕様変更あり）/
+  idea_33（`after(0)` のフック再開 flaky・テストのみ）/ idea_23（キーを押す / 離すアクション）。ユーザーが選んだら `/phase_start`。
+- **`/save_handoff` で handoff.md を再生成**（phase 28 完了時点へ）。
+- **main へのマージはユーザーが行う**（本ブランチ = phase 28 の全コミット）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
@@ -53,20 +49,15 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **【phase 28 の設計は暫定仕様 22 が正】**（**v0.6・ユーザー確定済・未凍結〔task_06 で凍結〕**。フェーズ中は正本を直接改訂しない）
-  ①実装方式 = **明示引数** `grab_modal(window, parent=None, *, focus=None)`。**省略時は窓自身**。
-  **推測型（`focus_lastfor()` / `after_idle`）は実測で反証済**（未マップ時の `focus_set` は Tk 内で保留され
-  外から検出できないため、既存の明示指定を奪う）
-  ②**Tk はキーイベントをフォーカス窓へ再配送する**（`event_generate` は宛先ではなくフォーカスに従う）。
-  **アプリが OS フォーカスを失うと `focus_get()` は `None`・`focus_set()` も効かない**
-  → `focus_get()` 依存のテストは **skip ガード**を付ける（増やしすぎると idea_18 と同じ弱さになる）
-  ③群分け = **A=6 経路（明示あり）/ A'=1（ビルダ内で明示）/ B=3（欠落・本件）/ C=5（Escape bind なし）**、
-  計 **15 箇所**（`codebase_map.md:308` の「13 箇所」は**誤り**。フェーズ末に訂正する）
-  ④**群 C の 5 経路へ Escape を追加する**（結線先は暫定仕様 §3.5 の表。`io_dialogs.py` だけ
-  `on_cancel` で、他は `destroy`）⑤**フォーカス復帰はスコープ外**（実機目視のついでに再現確認のみ）
-  ⑥**v0.5 で群 A の 4 経路へも Escape を追加**（§3.6）。**Esc の別用途がある間は優先して閉じない**。
-  実現形は**単一ハンドラ + 状態分岐**（`<Escape>` は同一 widget の `<KeyPress>` より優先して
-  **単独発火**するため、素朴に足すと「Escで停止」が死ぬ。Tk bind の解決順は実測済）。
+- **【phase 28 の成果は正本が正】モーダルダイアログのフォーカスと Escape = `features.md` §4.6「モーダルダイアログの作法」+
+  `codebase_map.md` の `modal.py` 節**。**暫定仕様 22 は凍結済で条項の根拠に引かない**。要点 =
+  ①初期フォーカスは `grab_modal(window, parent=None, *, focus=None)` の責務（明示引数・省略時は窓自身・`focus_force` / `lift` は呼ばない。
+  推測型 `focus_lastfor()` / `after_idle` は未マップ時の保留で明示指定を奪うと実測で反証）
+  ②モーダル全 15 経路が Escape で閉じる（× と同じ結果）。Esc に別用途がある 3 ダイアログは `dialogs/escape_close.py` の
+  `bind_escape_close`（判定順 = 記録・取得中 → 押しっぱなしの印 → 閉じる。印は `<KeyRelease-Escape>` で消す）
+  ③**テストで Escape を送るときは `tests_ui/escape_delivery.py` の `send_escape` / `acquire_focus`**（`focus_force()` + `event_generate` の
+  直書きはフォーカスの欠落を隠し、負荷下で flaky）。初期フォーカスの欠落を検出するのは `test_dialog_initial_focus.py` だけ
+  ④**`tests_ui` 一括でまれに `get_hook_pause_count()` が `1 != 0`** になるのは idea_33 の family（Escape 配送ではない。単体では pass）。
 - **【phase 27 の成果は正本が正】構成セットの読み込み履歴 = `spec_detail/data_schema.md` **§5.12**（新設・
   5.12.1〜5.12.8）+ §5.4 / `features.md` §4.6 / `codebase_map.md`。**暫定仕様 21 は凍結済で条項の根拠に引かない**。
   要点 = ①記録契機 = **読込または保存が成功し空でないパスが確定したとき、その実保存先**

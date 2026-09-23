@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from pynput import mouse
 
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
+from keyseq.presentation.dialogs.escape_close import bind_escape_close
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_keysym
@@ -27,7 +28,6 @@ class ActionDialog(tk.Toplevel):
 
         # hotkey 記録用
         self._recording = False
-        self._escape_held = False
         self._mods_down = set()   # {"ctrl","shift","alt","windows"}
         self._last_nonmod = None  # 直近の非修飾キー
 
@@ -128,21 +128,8 @@ class ActionDialog(tk.Toplevel):
                     self.mouse_drag_speed_var.set(str(initial.get("drag_speed", DEFAULT_DRAG_SPEED_PX_PER_SEC)))
 
         self._sync_capture_ui()
-        self.bind("<Escape>", self._on_escape)
-        self.bind("<KeyRelease-Escape>", self._on_escape_release)
+        bind_escape_close(self, is_busy=lambda: getattr(self, "_recording", False), stop=self._stop_recording)
         grab_modal(self, parent, focus=self.value_entry)
-
-    def _on_escape(self, _event):
-        if self._recording:
-            self._stop_recording()
-            self._escape_held = True
-            return "break"
-        if self._escape_held:
-            return "break"
-        self.destroy()
-
-    def _on_escape_release(self, _event):
-        self._escape_held = False
 
     def on_ok(self):
         t = (self.type_var.get() or "").strip().lower()

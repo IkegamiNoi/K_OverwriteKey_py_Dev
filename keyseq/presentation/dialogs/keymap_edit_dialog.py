@@ -5,6 +5,7 @@ from tkinter import ttk
 from typing import TYPE_CHECKING
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.presentation.dialogs.escape_close import bind_escape_close
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_keysym
 
@@ -21,7 +22,6 @@ class KeymapEditDialog(tk.Toplevel):
         self.resizable(False, False)
         self.result = None
         self._capturing = False
-        self._escape_held = False
 
         self.parent.hook.suspend_hook_for_dialog(self)
 
@@ -51,21 +51,8 @@ class KeymapEditDialog(tk.Toplevel):
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
-        self.bind("<Escape>", self._on_escape)
-        self.bind("<KeyRelease-Escape>", self._on_escape_release)
+        bind_escape_close(self, is_busy=lambda: getattr(self, "_capturing", False), stop=self._stop_capture)
         grab_modal(self, parent, focus=self.label_entry)
-
-    def _on_escape(self, _event):
-        if getattr(self, "_capturing", False):
-            self._stop_capture()
-            self._escape_held = True
-            return "break"
-        if self._escape_held:
-            return "break"
-        self.destroy()
-
-    def _on_escape_release(self, _event):
-        self._escape_held = False
 
     def _ok(self):
         self.result = {

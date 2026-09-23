@@ -7,10 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 28](28_dialog_keyboard_focus/phase.md)**（**残りは task_07 のみ** =
-  [提案書 11](../modified_proposal/11_refactor_dialog_escape_secondary_use.md) のリファクタ・挙動不変）。
-  正本反映・凍結・アーカイブは task_06 で完了済。**task_07 の完了で phase 28 を完了とし、この項を「なし」へ戻す**。
-- 直前の完了フェーズ =
+- **アクティブなフェーズ = なし**（phase 28 は 2026-09-23 完了）。次は `instructions/backlog/INDEX.md` の
+  idea から選んで `/phase_start` で起票する（次採番は下の「次採番」節）。
+- 直前の完了フェーズ = [phase 28](28_dialog_keyboard_focus/phase.md)（2026-09-23・ダイアログの初期キーボードフォーカス・
+  判断は [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)）/
   [phase 27](27_keymap_set_load_history/phase.md)（2026-09-22・構成セットの読み込み履歴・
   判断は [decisions_archive/27](../../.claude_data/state/decisions_archive/27_keymap_set_load_history.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
@@ -21,7 +21,7 @@
   実装 = `presentation/modal.py` の **`grab_modal(window, parent=None, *, focus=None)`**
   （`grab_set()` の直後に `focus_set`・省略時は窓自身・`focus_force` / `lift` は呼ばない）/
   モーダル全 15 経路の Escape 結線（群 A の `ActionDialog` / `TriggerDialog` / `KeymapEditDialog` は
-  **単一 `_on_escape` + 状態分岐**で記録中・取得中の停止を優先し、**停止に使った Esc の押しっぱなしでは閉じない**）。
+  **`dialogs/escape_close.py` の `bind_escape_close`（単一ハンドラ + 状態分岐）**で記録中・取得中の停止を優先し、**停止に使った Esc の押しっぱなしでは閉じない**）。
   テスト = `tests_ui/test_dialog_initial_focus.py` / `test_dialog_escape_binding.py` /
   **`tests_ui/escape_delivery.py` の `send_escape`**（フォーカスを確保してから送る・期限方式。
   `focus_force()` + `event_generate` の直書きはフォーカス欠落を隠すので使わない）。
@@ -36,7 +36,7 @@
 
 ## 次採番
 
-- **phase 28 は task_07（提案書 11 のリファクタ）を残して完了間近**（`28_dialog_keyboard_focus` / 暫定 22〔凍結〕/ decisions 28〔アーカイブ済〕）。
+- **phase 28 は 2026-09-23 完了**（`28_dialog_keyboard_focus` / 暫定 22〔凍結〕/ decisions 28〔アーカイブ済〕）。
   次フェーズは **`29_<topic>`**・decisions も **29** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 27 は 2026-09-22 完了 = `27_keymap_set_load_history` / 暫定 21〔凍結〕/ decisions 27〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -62,7 +62,7 @@
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
   **10 = phase 19 由来・実施済＝phase 19 task_07** /
-  **11 = phase 28 由来・承認済＝phase 28 task_07**〔Esc の別用途つき閉じ処理の 3 重複を 1 関数へ〕）・
+  **11 = phase 28 由来・実施済＝phase 28 task_07**〔Esc の別用途つき閉じ処理の 3 重複を 1 関数へ〕）・
   次採番は **`12_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 

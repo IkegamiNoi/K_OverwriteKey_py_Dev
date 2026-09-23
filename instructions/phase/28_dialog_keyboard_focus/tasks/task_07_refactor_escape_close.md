@@ -79,3 +79,12 @@ phase 28 の `/refactor_check`（判定 = 推奨・M3）で承認された
 - phase 28 の完了処理: `current.md` の「アクティブなフェーズ」を「なし」へ戻す / 提案書 11 を「実施完了」へ /
   `decisions_archive/28` の refactor_check 節へ実施結果を 1〜2 行。
 - 実機目視は**不要**（挙動不変・自動テストと変異検査で担保。A3 の経路は task_05e で確認済）。
+
+## 完了記録（2026-09-23）
+
+- **状態 = 完了**（挙動不変）。実装 = `codex-implementer`（新規 `dialogs/escape_close.py` 29 行 + 3 ダイアログの置き換え）/
+  `codebase_map.md` はメインが更新（フォルダ構成へ 1 行 + `modal.py` 節の Escape の結線）。テスト変更なし。
+- 実測（`verifier`）: compile clean / `test_dialog_escape_binding` 8 OK / **変異検査**（`if held` 除去 → 押しっぱなしのテスト 3 subTest 赤 /
+  判定順逆転 → 再開のテスト 3 subTest 赤・復元一致）/ `test_nested_modal_grab` 11 OK / `tests` 556 OK（skipped 7）/
+  `tests_ui` 509 OK / smoke OK。
+- レビュー = `reviewer` **完了可**（指摘なし。`ActionDialog` の `self._recording` 直読み → `getattr` は `__init__` 冒頭で初期化済のため挙動差なし）。

@@ -92,6 +92,7 @@ keyseq/presentation/
       trigger_dialog.py        # TriggerDialog
       keymap_edit_dialog.py    # KeymapEditDialog
       layout_delete_dialog.py  # LayoutDeleteDialog
+      escape_close.py          # bind_escape_close（Esc に別用途がある 3 ダイアログの Escape 結線。印はクロージャに持つ・提案書 11 / phase 28 task_07）
       orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
       quarantine_manage_dialog.py  # QuarantineManageDialog（隔離の管理・実行単位のリスト選択 + 復元 / 削除ボタン）
       reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 隔離 / 復元 / 削除で再利用）
@@ -312,11 +313,12 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     明示指定を奪う。判断は `decisions_archive/28`）
   - **Escape の結線**（`grab_modal` の外・各ダイアログ側）: **× と同じ閉じ方へ結線する**
     （`io_dialogs.py` のみ `on_cancel`、他は `destroy`）。**Esc の別用途がある
-    `ActionDialog` / `TriggerDialog` / `KeymapEditDialog` は `_on_escape` の単一ハンドラで状態分岐**
+    `ActionDialog` / `TriggerDialog` / `KeymapEditDialog` は `dialogs/escape_close.py` の
+    `bind_escape_close(window, *, is_busy, stop)` で単一ハンドラ + 状態分岐**
     （記録中・取得中は停止して `"break"`。同一 widget では `<Escape>` が `<KeyPress>` より優先して
     単独発火するため、ハンドラを重ねると停止処理が死ぬ）。
-    **判定順 = 記録・取得中（停止して `_escape_held` を立てる）→ `_escape_held`（閉じない）→ 閉じる**。
-    `_escape_held` は常時結線の `<KeyRelease-Escape>`（`_on_escape_release`）で消す＝**押しっぱなしのリピートでは閉じない**
+    **判定順 = `is_busy()`（停止して印を立てる）→ 印（閉じない）→ 閉じる**。印は**クロージャに持つ**（ウィジェット属性を増やさない）。
+    印は同関数が結線する `<KeyRelease-Escape>` で消す＝**押しっぱなしのリピートでは閉じない**
     （Windows の Tk はリピート中に KeyRelease を挟まない。判定順を逆にすると印が残ったまま再開した記録を Esc で止められない）。
     固定テスト = `tests_ui/test_modal_grab.py`（`focus_set` を 1 回・`focus_force` / `lift` を呼ばない）/
     `tests_ui/test_dialog_initial_focus.py`（初期フォーカス。**初期フォーカスの欠落を検出するのはここだけ**）/

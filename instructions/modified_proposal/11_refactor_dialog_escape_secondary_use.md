@@ -3,7 +3,7 @@
 > `/refactor_check`（`.claude/commands/refactor_check.md`）の判定 = **推奨**。
 > **ユーザー承認前に実装しない**。判定の記録は
 > [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)。
-> 状態: **承認済**（2026-09-23・ユーザー選択 (a) = phase 28 の **task_07** として実施）。
+> 状態: **承認済・実施完了**（2026-09-23・ユーザー選択 (a) = phase 28 の **task_07** として実施。**挙動不変**・変異検査 2 種で安全網を確認）。
 
 ## 判定の要約
 

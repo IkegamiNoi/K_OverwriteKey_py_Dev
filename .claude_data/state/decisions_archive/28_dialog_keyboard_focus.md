@@ -126,13 +126,15 @@ Escape family は負荷下 **6/6 green** で達成。
 ## refactor_check（2026-09-23）
 
 **判定 = 推奨** → [提案書 11](../../../instructions/modified_proposal/11_refactor_dialog_escape_secondary_use.md)
-（**実施タイミングはユーザー判断待ち**）。PHASE_BASE = `60372bf`・対象 = `keyseq/` の 11 ファイル・+74 / -29（task_05e 込みで再測定）。
+（**ユーザー選択 (a) = phase 28 の task_07 として実施・完了**）。PHASE_BASE = `60372bf`・対象 = `keyseq/` の 11 ファイル・+74 / -29（task_05e 込みで再測定）。
 
 - **M3 該当**: `_on_escape` + `_on_escape_release` + `_escape_held` が 3 ダイアログにそっくり同じ形で 3 箇所
   （task_05e 前の測定では `_on_escape` だけで、停止処理の中身がダイアログごとに違うため非該当としていた）。
   規則を変えると 3 箇所とも直す必要がある（task_05e の判定順の修正が実例）→ `grab_modal` 同様のクロージャ関数 1 つへ寄せる案。
 - **既知**: 単純な `bind("<Escape>", ... destroy)` の同型 6 件は `current.md`「同型スケルトンの共通化」がカバー。
 - **M1 / M2 / M4 / M5 / M6 非該当**（最大 428 行・80 行超の関数なし・申し送り 0 件）。
+- **実施結果（task_07）**: 新規 `dialogs/escape_close.py` の `bind_escape_close(window, *, is_busy, stop)`（印はクロージャ）へ 3 ダイアログを置き換え。
+  **挙動不変**（テスト変更なし・`tests_ui` 509 OK・変異検査 2 種とも赤 → 復元一致）/ `reviewer` 完了可。
 
 ## 残件
 
