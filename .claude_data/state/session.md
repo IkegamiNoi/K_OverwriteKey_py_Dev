@@ -42,8 +42,8 @@ verified:
 - **`/save_handoff` で handoff.md を phase 29 完了時点へ再生成**。
 - **main へのマージはユーザーが行う**（ブランチ `claude/task-02-progression-d47775`）。
 - 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33 ほか）。着手時は `/phase_start`。
-- **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
-  ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
+- **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（`codex-implementer` 等の具体名。**template 側で修正済**・ユーザー 2026-09-23）。
+  （`codex_medium` 使用前の `Explore` 可用性確認は**当面気にしない**とユーザー判断・2026-09-23）
 
 ## blockers
 - なし
