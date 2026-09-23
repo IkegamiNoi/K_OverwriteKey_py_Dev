@@ -7,7 +7,12 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 29 は 2026-09-23 完了。次に着手するフェーズは `/phase_start` で起票する）。
+- **アクティブなフェーズ = [phase 30](30_action_and_internal_key_type_coercion/phase.md)**（2026-09-23 起票）:
+  アクション要素と内部キーの型正規化。§5.1「型不正の共通規則」に未追従の残り 2 系統
+  （アクション要素の `type` / `button`・runtime 内部キーのパス系 3 種）を**読込時の正規化（domain）**で受ける。
+  **直接改訂モード**（正本改訂は `data_schema.md` §5.11 と §5.7 の注記削除のみ）。番号対応: phase 30 / decisions 30。
+  起票元 = [idea_27](../backlog/idea_27_mouse_click_button_type_coercion.md) /
+  [idea_28](../backlog/idea_28_runtime_internal_key_type_coercion.md)（統合）。
 - 直前の完了フェーズ = [phase 29](29_focus_restore_after_minimize/phase.md)（2026-09-23・最小化から復元した後のキーボードフォーカス・
   判断は [decisions_archive/29](../../.claude_data/state/decisions_archive/29_focus_restore_after_minimize.md)）/
   [phase 28](28_dialog_keyboard_focus/phase.md)（2026-09-23・ダイアログの初期キーボードフォーカス・
@@ -35,9 +40,9 @@
 
 ## 次採番
 
-- **phase 29 は 2026-09-23 完了**（`29_focus_restore_after_minimize` / 暫定 23〔凍結〕/ decisions 29〔アーカイブ済〕）。
-  次フェーズは **`30_<topic>`**・decisions も **30** を使う（欠番が出た場合はここに明記し、再利用しない）。
-  （phase 28 は 2026-09-23 完了 = `28_dialog_keyboard_focus` / 暫定 22〔凍結〕/ decisions 28〔アーカイブ済〕）
+- **phase 30 を 2026-09-23 起票**（`30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30）。
+  次フェーズは **`31_<topic>`**・decisions も **31** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  （phase 29 は 2026-09-23 完了 = `29_focus_restore_after_minimize` / 暫定 23〔凍結〕/ decisions 29〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
