@@ -37,6 +37,45 @@ class CoerceStringFieldsTest(unittest.TestCase):
 
 
 class NormalizeActionsTest(unittest.TestCase):
+    def test_non_string_types_become_empty(self):
+        for action_type in (None, 0, False, [], {}, 123, ["a"], {"a": 1}):
+            with self.subTest(action_type=action_type):
+                self.assertEqual(
+                    normalize_actions([{"type": action_type}]),
+                    [{"type": "", "label": ""}],
+                )
+
+    def test_non_string_buttons_become_empty(self):
+        for button in (None, 0, False, [], {}, 123, ["a"], {"a": 1}):
+            with self.subTest(button=button):
+                self.assertEqual(
+                    normalize_actions([{"type": "mouse_click", "button": button}]),
+                    [{"type": "mouse_click", "button": "", "label": ""}],
+                )
+
+    def test_strips_type_and_button_preserving_case(self):
+        self.assertEqual(
+            normalize_actions([{"type": "  Mouse_Click ", "button": "  Right "}]),
+            [{"type": "Mouse_Click", "button": "Right", "label": ""}],
+        )
+
+    def test_does_not_add_missing_type_or_button(self):
+        self.assertEqual(
+            normalize_actions([{"type": "text", "value": "a"}, {"value": "a"}]),
+            [
+                {"type": "text", "value": "a", "label": ""},
+                {"value": "a", "label": ""},
+            ],
+        )
+
+    def test_keeps_actions_with_non_string_types(self):
+        for action_type in (None, 0, False, [], {}, 123, ["a"], {"a": 1}):
+            with self.subTest(action_type=action_type):
+                self.assertEqual(
+                    normalize_actions([{"type": action_type, "value": "a"}]),
+                    [{"type": "", "value": "a", "label": ""}],
+                )
+
     def test_non_string_labels_become_empty(self):
         for label in (None, 0, False, [], {}, 123, ["a"], {"a": 1}):
             with self.subTest(label=label):

@@ -13,6 +13,7 @@
   **直接改訂モード**（正本改訂は `data_schema.md` §5.11 と §5.7 の注記削除のみ）。番号対応: phase 30 / decisions 30。
   起票元 = [idea_27](../backlog/idea_27_mouse_click_button_type_coercion.md) /
   [idea_28](../backlog/idea_28_runtime_internal_key_type_coercion.md)（統合）。
+  進捗: task_01 完了 / 次 = task_02。
 - 直前の完了フェーズ = [phase 29](29_focus_restore_after_minimize/phase.md)（2026-09-23・最小化から復元した後のキーボードフォーカス・
   判断は [decisions_archive/29](../../.claude_data/state/decisions_archive/29_focus_restore_after_minimize.md)）/
   [phase 28](28_dialog_keyboard_focus/phase.md)（2026-09-23・ダイアログの初期キーボードフォーカス・

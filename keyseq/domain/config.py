@@ -150,6 +150,10 @@ def normalize_actions(actions: Any) -> list[dict[str, Any]]:
             continue
         a = safe_deepcopy(action)
         a["label"] = coerce_label(a.get("label"))
+        if "type" in a:
+            a["type"] = coerce_label(a["type"])
+        if "button" in a:
+            a["button"] = coerce_label(a["button"])
         normalized_actions.append(a)
     return normalized_actions
 

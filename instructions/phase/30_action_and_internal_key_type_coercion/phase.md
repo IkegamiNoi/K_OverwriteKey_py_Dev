@@ -86,7 +86,7 @@
 
 ## タスク
 
-- task_01: §5.11 の改訂（先行）→ `normalize_actions` で `type` / `button` を正規化（+ 単体テスト）
+- task_01: §5.11 の改訂（先行）→ `normalize_actions` で `type` / `button` を正規化（+ 単体テスト）— **完了**（2026-09-23）
 - task_02: 内部キーの書き手の棚卸し（#6）→ `ensure_config_compatibility` でパス系内部キーを正規化（+ 単体テスト）→
   §5.7 注記削除 → 記録（decisions_archive/30 / current.md / backlog INDEX → INDEX_done / `/refactor_check`）
 

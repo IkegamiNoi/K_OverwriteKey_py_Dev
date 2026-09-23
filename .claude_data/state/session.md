@@ -4,46 +4,46 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T23:30:00
-phase: なし（**phase 29 = `instructions/phase/29_focus_restore_after_minimize` は 2026-09-23 完了**。アクティブなフェーズ無し）。次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12。
-直前の完了フェーズ = **phase 29**（最小化から復元した後のキーボードフォーカス・判断履歴 = `decisions_archive/29_focus_restore_after_minimize.md`。暫定仕様 23 は v0.5 で凍結）。
-last_commit_location: `claude/task-02-progression-d47775`
+last_updated: 2026-09-23T23:23:28
+phase: `instructions/phase/30_action_and_internal_key_type_coercion`（直接改訂モード・decisions 30）。次採番 = phase 31 / 暫定 24 / decisions 31 / 提案書 12。
+直前の完了フェーズ = **phase 29**（判断履歴 = `decisions_archive/29_focus_restore_after_minimize.md`）。
+last_commit_location: `claude/idea-27-28-consolidate-3ff723`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 29 完了（正本反映・暫定 23 凍結・archive/29・idea_34 クローズ・refactor_check 不要）。次フェーズは未定（ユーザー判断待ち）。**
-mode: completed
+focus: **phase 30 task_01 完了（§5.11 改訂 + `normalize_actions` で type / button を正規化）。次は task_02（内部キーの書き手の棚卸し → 入口正規化 → §5.7 注記削除 → フェーズ締め）。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-23T23:30:00
+ts: 2026-09-23T23:23:28
 who: main
 summary: |
-  【task_03 完了 = phase 29 完了】`features.md` §4.6（最小化の条項へフォーカス復帰・条件つき強制アクティブ化・最小化中に開いた窓・
-  保証の範囲外へ残存リスク 2 件 / 「閉じた後は規定しない」を分離 / 初期フォーカスの「強制しない」を「開いた時点では」に限定）+
-  `codebase_map.md` の `modal.py` 節 / 暫定 23 を v0.5 で凍結 / `decisions_archive/29` / `current.md` / idea_34 → INDEX_done。
-  【refactor_check】不要（`modal.py` 187 行・+54）。テスト 603 行は別タスク化候補へ。
-  【レビュー】`codex-adversarial-reviewer` 1 件 + `deep-reviewer` F1〜F11 → F1〜F10 修正して採用・F11 保留（ユーザー承認）。
-  【検証】コード差分ゼロ / tests 556 / tests_ui 532 / smoke OK / リンク OK。
+  【phase 30 起票】idea_27 + idea_28 を統合（直接改訂モード）。ユーザー判断 = idea_27 は案 A + `type` も含め読込時正規化 /
+  idea_28 は `ensure_config_compatibility` 入口で `coerce_label` / 空・未知の `type` は現行挙動（`value` を文字入力）を明文化・
+  エラー通知化（案 B）は **idea_35** へ分離（着手時は暫定仕様先行）。起票コミット `ff81f14`。
+  【task_01 実施】正本 `data_schema.md` §5.11.1 / §5.11.2 を先行改訂（メイン）→ `codex-implementer` で
+  `domain/config.py::normalize_actions` に `type` / `button` の `coerce_label`（**キーがある場合のみ**）+ テスト 5 件。
+  domain 限定・読み手無修正。
+  【reviewer】完了可・指摘なし。【完了判定】完了。
 result_files:
-  - instructions/common/spec_detail/features.md / instructions/common/codebase_map.md
-  - instructions/history/23_focus_restore_after_minimize.md（凍結）
-  - .claude_data/state/decisions_archive/29_focus_restore_after_minimize.md（新規）/ .claude_data/state/decisions.md
-  - instructions/phase/current.md / instructions/phase/29_focus_restore_after_minimize/{phase.md, tasks/task_03_spec_promotion_and_close.md}
-  - instructions/backlog/INDEX.md / INDEX_done.md
+  - instructions/common/spec_detail/data_schema.md（§5.11）
+  - keyseq/domain/config.py / tests/test_domain_config.py
+  - instructions/phase/30_action_and_internal_key_type_coercion/{phase.md, tasks/task_01_action_type_button_coercion.md}
 verified:
   compile: clean
-  tests: 556 ran OK（skipped 7）
+  tests: 561 ran OK（skipped 7・+5）
   tests_ui: 532 ran OK
   smoke: SMOKE OK
-  review: codex-adversarial-reviewer + deep-reviewer → 指摘反映済（ユーザー承認）
-  refactor_check: 不要
+  review: reviewer → 完了可
 
 ## next_action
-- **`/save_handoff` で handoff.md を phase 29 完了時点へ再生成**。
-- **main へのマージはユーザーが行う**（ブランチ `claude/task-02-progression-d47775`）。
-- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33 ほか）。着手時は `/phase_start`。
-- **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（`codex-implementer` 等の具体名。**template 側で修正済**・ユーザー 2026-09-23）。
-  （`codex_medium` 使用前の `Explore` 可用性確認は**当面気にしない**とユーザー判断・2026-09-23）
+- **`/task_new` で task_02 を起票**（`instructions/phase/30_action_and_internal_key_type_coercion/phase.md`「タスク」の task_02）。
+  最初に phase.md「起票時の調査」表 #6 の**内部キーの書き手**（`split_loading.py:314,424,492` / `save_plan_execution.py:299,310,313` /
+  `config_service/__init__.py:135,180,199,232,299` / `presentation/controllers/dirty_state.py:28`）を棚卸しし、
+  入口（`ensure_config_compatibility`）外から非文字列・repr が入る経路の有無を確認する。**1 箇所に収まらなければユーザーへ報告し暫定仕様先行へ切替**。
+- その後 `codex-implementer` で `ensure_config_compatibility` のパス系内部キー 3 種へ `coerce_label` + テスト → verifier → reviewer →
+  §5.7 の ※ 注記削除 → decisions_archive/30 / current.md / idea_27・28 を INDEX_done へ / `/refactor_check`。
+- **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
 ## blockers
 - なし
@@ -90,7 +90,9 @@ verified:
   ③**keymap_set の `keymaps[]`（参照エントリ）は旧記法の文字列を受ける**。§5.1 の「`keymaps[]` の非 dict 要素は除去」は
   **単一 JSON / runtime の内容 keymaps** を指す別物。混同すると互換を壊す
   ④**未対応の残件** = `startup_io.py` の `keymap_set_path`（presentation 層）/ **runtime 内部キー**
-  （`_keymap_source_path` 等。正本 §5.7 に【実装未追従】として明記済）。
+  （`_keymap_source_path` 等。**phase 30 task_02 で対応中**）。
+- **【phase 30 の方針】型正規化は読込時の入口（domain `normalize_actions` / `ensure_config_compatibility`）で受け、
+  読み手は触らない**。`type` / `button` は**キーがある場合のみ** `coerce_label`（`label` は常に付与 = 既存挙動で非対称は意図どおり）。
 - **【phase 24 の成果は正本が正】JSON 読込の型正規化 = `spec_detail/data_schema.md` §5.1「型不正の共通規則」（新設）+ §5.6「keymap」（新設）+ §5.2 / §5.11**。暫定仕様 20 は凍結済。
   要点 = ①`domain/config.py` の **`coerce_key_name` / `coerce_label`**（非 str は `""`）へ一本化し**全読込経路へ適用**
   （`normalize_key_name` のシグネチャは不変。呼び出しが多数で意味が変わるため）
