@@ -4,43 +4,42 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T10:30:00
-phase: **アクティブなフェーズなし**（phase 28 = `instructions/phase/28_dialog_keyboard_focus` は 2026-09-23 完了）。次採番 = phase 29 / 暫定 23 / decisions 29 / 提案書 12。
+last_updated: 2026-09-23T12:00:00
+phase: `instructions/phase/29_focus_restore_after_minimize`（**2026-09-23 起票・task 未着手**）。主入力 = 暫定仕様 23（v0.3・ユーザー確定済）。次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12。
 直前の完了フェーズ = **phase 28**（ダイアログの初期キーボードフォーカス・判断履歴 = `decisions_archive/28_dialog_keyboard_focus.md`。暫定仕様 22 は v0.7 で凍結）。
 last_commit_location: `claude/dialog-escape-key-behavior-548de9`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 28 完了（task_01〜07 + 05b〜05e）。次は backlog の idea から次フェーズを選んで `/phase_start`。**
-mode: completed
+focus: **phase 29（最小化から復元した後のキーボードフォーカス・idea_34）を起票済。次は task_01（`modal.py` へフォーカス復帰を実装 + 単体検査 ①〜⑨）の起票と実装委任。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-23T10:30:00
+ts: 2026-09-23T12:00:00
 who: main
 summary: |
-  【task_07 完了 = phase 28 完了】提案書 11（`/refactor_check` 推奨・M3）を実施: 新規 `keyseq/presentation/dialogs/escape_close.py` の
-  `bind_escape_close(window, *, is_busy, stop)`（印はクロージャ）へ 3 ダイアログの Escape 処理を寄せた。**挙動不変**・テスト変更なし。
-  `verifier` 全 pass（tests 556 OK / tests_ui 509 OK / 変異検査 2 種とも赤 → 復元一致 / smoke OK）・`reviewer` 完了可。
-  `codebase_map.md` はメインが更新。フェーズ完了処理 = `current.md` の「アクティブなフェーズ」を「なし」へ / 提案書 11 を実施完了へ /
-  `decisions_archive/28` の refactor_check 節へ実施結果。
+  【暫定仕様 23 起票 → v0.3 ユーザー確定】probe で実測: 何もしないと復元後のフォーカスはメイン窓（C② 再現）/
+  App の `<Map>` 内で即時 `focus_lastfor().focus_set()` すると最内へ戻る（3 段ネストでも中間窓は消えない）/
+  キュー経由の復元（`WM_SYSCOMMAND` + `SC_RESTORE`）では **App の `<FocusIn>` が `<Map>` より先**に届くため
+  `<FocusIn>` 待ち方式は戻らない（反証）/ アプリが OS フォーカスを持たないとき `focus_set` は何も奪わない。
+  起票時 `deep-reviewer`（修正要）→ v0.2 / 確定前 `codex-adversarial-reviewer`（2 件）→ v0.3（最小化中に開いた窓は復帰しない・
+  初期フォーカス先と別の widget で検査）→ **ユーザー確定**（§4 の 3 点は提案どおり: 最小化の条項を API 単位へ言い換え /
+  閉じた後は規定しない / 最小化を伴わない再アクティブ化は対象外）。
+  【phase 29 起票】phase.md（task_01〜03）/ current.md / backlog の idea_34 を着手へ / `reviewer` 整合チェック = 修正して採用（読むファイルの行番号 1 点・修正済）。
 result_files:
-  - keyseq/presentation/dialogs/escape_close.py（新規）/ action_dialog.py / trigger_dialog.py / keymap_edit_dialog.py
-  - instructions/common/codebase_map.md / instructions/phase/current.md / instructions/modified_proposal/11_*.md
-  - instructions/phase/28_dialog_keyboard_focus/tasks/task_07_refactor_escape_close.md（完了記録）/ phase.md
-  - .claude_data/state/decisions_archive/28_dialog_keyboard_focus.md / .claude_data/state/decisions.md
+  - instructions/history/23_focus_restore_after_minimize.md（新規・v0.3 確定）
+  - instructions/phase/29_focus_restore_after_minimize/phase.md（新規）
+  - instructions/phase/current.md / instructions/backlog/INDEX.md
 verified:
-  compile: clean
-  tests: 556 ran OK（skipped 7）
-  tests_ui: 509 ran OK
-  mutation: if held 除去 → 押しっぱなし 3 赤 / 判定順逆転 → 再開 3 赤
-  smoke: SMOKE OK
-  review: reviewer = 完了可
+  production_diff: なし（文書のみ）
 
 ## next_action
-- **次フェーズの選定**: `instructions/phase/current.md`「次フェーズ候補」= idea_34（最小化復帰後のフォーカス・仕様変更あり）/
-  idea_33（`after(0)` のフック再開 flaky・テストのみ）/ idea_23（キーを押す / 離すアクション）。ユーザーが選んだら `/phase_start`。
-- **`/save_handoff` で handoff.md を再生成**（phase 28 完了時点へ）。
-- **main へのマージはユーザーが行う**（本ブランチ = phase 28 の全コミット）。
+- **task_01 を `/task_new` で起票** → `codex-implementer` へ委任（`modal.py`: `_restore_modal_focus(app)` を切り出し、
+  `return_custody` の全経路の最後で呼ぶ・戻し先 = 復元後の grab 保持者が台帳に同一性で含まれ表示中の窓の `focus_lastfor()`〔無ければ窓自身〕・
+  `focus_set` のみ・`TclError` / `KeyError` を握る・最小化中に `grab_modal` した窓は記録して除外 + `tests_ui/test_minimize_grab_custody.py` へ
+  暫定仕様 §5 ①〜⑨）→ `verifier`（変異検査含む）→ `reviewer`。
+- 以降 task_02（統合確認 + 実機目視 §6-6 ①〜⑦）→ task_03（正本反映・凍結・アーカイブ・refactor_check）。
+- **main へのマージはユーザーが行う**。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 

@@ -7,8 +7,13 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 28 は 2026-09-23 完了）。次は `instructions/backlog/INDEX.md` の
-  idea から選んで `/phase_start` で起票する（次採番は下の「次採番」節）。
+- **アクティブなフェーズ = [phase 29](29_focus_restore_after_minimize/phase.md)**
+  （最小化から復元した後のキーボードフォーカス・2026-09-23 起票）。
+  主入力 = [暫定仕様 23](../history/23_focus_restore_after_minimize.md)（**v0.3・ユーザー確定済**）。
+  起票元 = [idea_34](../backlog/idea_34_focus_restore_after_minimize.md)。番号対応: phase 29 / 暫定 23 / decisions 29。
+  **確定**: 復元時（App の `<Map>`）に grab の返却の直後、**最内の表示中モーダルの最後のフォーカス先へ `focus_set`** /
+  `deiconify` / `lift` / `focus_force` は呼ばない（正本の最小化の条項は API 単位へ言い換え）/
+  最小化中に開いたモーダルには復帰しない / 閉じた後は規定しない / 最小化を伴わない再アクティブ化は対象外。
 - 直前の完了フェーズ = [phase 28](28_dialog_keyboard_focus/phase.md)（2026-09-23・ダイアログの初期キーボードフォーカス・
   判断は [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)）/
   [phase 27](27_keymap_set_load_history/phase.md)（2026-09-22・構成セットの読み込み履歴・
@@ -37,12 +42,13 @@
 ## 次採番
 
 - **phase 28 は 2026-09-23 完了**（`28_dialog_keyboard_focus` / 暫定 22〔凍結〕/ decisions 28〔アーカイブ済〕）。
-  次フェーズは **`29_<topic>`**・decisions も **29** を使う（欠番が出た場合はここに明記し、再利用しない）。
+- **phase 29 は 2026-09-23 起票・進行中**（`29_focus_restore_after_minimize` / 暫定 23 / decisions 29）。
+  次フェーズは **`30_<topic>`**・decisions も **30** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 27 は 2026-09-22 完了 = `27_keymap_set_load_history` / 暫定 21〔凍結〕/ decisions 27〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜22 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
+  04〜23 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
   08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
   10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
   11=config_service の公開面〔**v0.3・凍結**〕/
@@ -56,8 +62,9 @@
   19=マウスのドラッグ操作〔**v0.5・凍結**〕/
   20=JSON 読込の型不正の扱い統一〔**v0.3・凍結**〕/
   21=構成セットの読み込み履歴〔**v0.5・凍結**〕/
-  22=ダイアログの初期キーボードフォーカス〔**v0.7・凍結**〕）。
-  次採番は **`23_<topic>`**。
+  22=ダイアログの初期キーボードフォーカス〔**v0.7・凍結**〕/
+  23=最小化から復元した後のキーボードフォーカス〔**v0.3・ユーザー確定済・未凍結**〕）。
+  次採番は **`24_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**11 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
@@ -71,8 +78,7 @@
 （`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする。
 **完了した候補の履歴はここに残さない**〔完了 idea は `backlog/INDEX_done.md` が正〕）
 
-- [idea_34](../backlog/idea_34_focus_restore_after_minimize.md)（最小化復帰後にフォーカスが最内のモーダルへ戻らない。
-  phase 28 の実機目視で再現・**仕様変更あり**〔`features.md` §4.6〕）
+（**idea_34 は phase 29 で着手中**のためここから外した）
 - [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（`after(0)` のフック再開が負荷下で拾われず
   後続テストが連鎖して落ちる・**テストのみ**・phase 28 から分離）
 - [idea_23](../backlog/idea_23_key_press_release_actions.md)（キーを押す / 離すアクションの追加。
