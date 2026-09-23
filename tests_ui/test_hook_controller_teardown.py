@@ -1,8 +1,10 @@
 import tkinter as tk
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from keyseq.presentation.controllers.hook_controller import HookController
+from tests_ui.hook_resume_wait import wait_for_hook_pause_count
 
 
 class HookControllerTeardownTest(unittest.TestCase):
@@ -21,6 +23,11 @@ class HookControllerTeardownTest(unittest.TestCase):
         self.app.layout = Mock()
         self.app.trigger_panel = Mock()
         self.app.data = {"triggers": []}
+
+    def wait_pause_count(self, expected):
+        wait_for_hook_pause_count(
+            self, SimpleNamespace(update=self.app.update, hook=self.hook), expected,
+        )
 
     def make_window(self):
         window = tk.Toplevel(self.app)
@@ -53,8 +60,7 @@ class HookControllerTeardownTest(unittest.TestCase):
             self.app.hook_coordinator.start.assert_not_called()
             self.app.update_idletasks()
             self.assertEqual(self.hook.get_hook_pause_count(), 1)
-            self.app.update()
-        self.assertEqual(self.hook.get_hook_pause_count(), 0)
+            self.wait_pause_count(0)
         self.app.hook_coordinator.start.assert_called_once()
         self.assertFalse(self.hook.hook_was_active_before_dialog)
 
@@ -88,8 +94,7 @@ class HookControllerTeardownTest(unittest.TestCase):
             after.assert_not_called()
             self.assertEqual(self.hook.get_hook_pause_count(), 1)
             window.destroy()
-            self.app.update()
-        self.assertEqual(self.hook.get_hook_pause_count(), 0)
+            self.wait_pause_count(0)
 
     def test_repeated_destroy_resumes_only_once(self):
         window = self.make_window()
@@ -103,15 +108,14 @@ class HookControllerTeardownTest(unittest.TestCase):
             handler(Mock(widget=window))
             after.assert_called_once_with(0, self.hook.resume_hook_after_dialog)
             self.assertEqual(self.hook.get_hook_pause_count(), 2)
-            self.app.update()
+            self.wait_pause_count(1)
             handler(Mock(widget=window))
             self.app.update()
             self.assertEqual(after.call_count, 1)
         # 別ウィンドウ分まで過剰に decrement していないこと。
         self.assertEqual(self.hook.get_hook_pause_count(), 1)
         other.destroy()
-        self.app.update()
-        self.assertEqual(self.hook.get_hook_pause_count(), 0)
+        self.wait_pause_count(0)
 
     def test_shutdown_guard_blocks_start_but_preserves_resume_bookkeeping(self):
         window = self.make_window()
@@ -120,8 +124,7 @@ class HookControllerTeardownTest(unittest.TestCase):
         window.destroy()
         self.hook.begin_shutdown()
         with patch.object(self.hook, "validate_hook_configuration") as validate:
-            self.app.update()
-            self.assertEqual(self.hook.get_hook_pause_count(), 0)
+            self.wait_pause_count(0)
             self.assertFalse(self.hook.hook_was_active_before_dialog)
             # 同期解除も、元の active 状態からの停止を再現して確認する。
             self.hook.hook_active = True

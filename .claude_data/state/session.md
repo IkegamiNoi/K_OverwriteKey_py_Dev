@@ -11,35 +11,34 @@ last_commit_location: `claude/idea-33-2186d2`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 32 task_01 完了（待つヘルパ `tests_ui/hook_resume_wait.py` + 観測済み 5 ファイルへ適用）。次は task_02（残り 3 ファイル + 負荷下の反復実行）。**
+focus: **phase 32 task_02 完了（残り 2 ファイルへ適用・負荷下で本 family の赤 0 件）。次は task_03（記録・idea_33 クローズ・完了判定前レビュー・/refactor_check）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-24T02:10:00
+ts: 2026-09-24T02:40:00
 who: main
 summary: |
-  【task_01 完了】task 定義起票 → codex-implementer 実装 → verifier 実測 → reviewer。tests_ui 限定・production 不変。
-  新規 `tests_ui/hook_resume_wait.py`（`wait_for_hook_pause_count(test_case, app, expected, *, timeout=2.0)`・先に必ず `update()` 1 回・`time.monotonic` 期限・
-  期限切れは expected/current/elapsed/timeout つき fail）+ `tests_ui/test_hook_resume_wait.py`（決定的 3 件・実 App 不使用）。
-  置換 = teardown_flows / orphan_sweep / quarantine_manage / keymap_set_history / dialog_escape_binding（task 定義の列挙行のみ）。
-  置き換えない確認（破棄直後の未解除 / 解除が起きない / t4b 同期解除 / setUp ドレイン）は無変更。
+  【task_02 完了】task 定義起票 → codex-implementer → verifier（負荷あり）+ reviewer。tests_ui 限定・production 不変。
+  置換 = `test_app_ui_flows.py`（元 :1331-1332 / :1953-1954 / :1960-1962）/ `test_hook_controller_teardown.py`（`wait_pause_count` を追加し SimpleNamespace で
+  `self.hook` を渡す・元 :56-57 / :91-92 / :106〔期待値 1〕/ :113-114 / :123-124）。`test_startup_font_characterization.py` は同期解除のみで**変更なし**。
+  【負荷測定】`while True: pass` × 4 下で 9 モジュール一括 × 6 回（各 172 件 OK）+ tests_ui 全体 × 1 回（535 OK）= **本 family の赤 0 件・他の fail も 0 件**。
   【reviewer】完了可（指摘なし）。
 result_files:
-  - tests_ui/hook_resume_wait.py（新規）/ tests_ui/test_hook_resume_wait.py（新規）
-  - tests_ui/test_dialog_teardown_flows.py / test_orphan_sweep_flow.py / test_quarantine_manage_flow.py / test_keymap_set_history_flow.py / test_dialog_escape_binding.py
-  - instructions/phase/32_hook_resume_wait_in_ui_tests/{phase.md, tasks/task_01_wait_helper_and_observed_files.md}
+  - tests_ui/test_app_ui_flows.py / tests_ui/test_hook_controller_teardown.py
+  - instructions/phase/32_hook_resume_wait_in_ui_tests/{phase.md, tasks/task_02_remaining_files_and_load_run.md}
 verified:
   compile: clean
   tests: 577 ran OK（skipped 7）
-  tests_ui: 535 ran OK（1 回目で全 pass）
-  helper_test: 3 pass
-  production_diff: 0（keyseq/・escape_delivery.py 差分なし）
+  tests_ui: 535 ran OK（負荷なし 1 回・負荷下 1 回とも）
+  load_run: 9 モジュール × 6 回 全 OK
+  smoke: SMOKE OK
+  production_diff: 0
   review: reviewer 完了可
 
 ## next_action
-- `/task_new` で `instructions/phase/32_hook_resume_wait_in_ui_tests/tasks/task_02_*.md` を起票（残り 3 ファイル `test_app_ui_flows.py` / `test_hook_controller_teardown.py` /
-  `test_startup_font_characterization.py` の「破棄後の解除を確かめる確認」を `wait_for_hook_pause_count` へ置換 + 負荷下の tests_ui 反復実行。
-  置き換え対象外は phase.md「含まない」節。特に `test_hook_controller_teardown.py:52-55`〔未解除の確認〕は残す）→ codex-implementer → verifier → reviewer。
+- `/task_new` で `instructions/phase/32_hook_resume_wait_in_ui_tests/tasks/task_03_*.md` を起票（`codebase_map.md` の tests_ui ヘルパ記載〔:318-330 付近〕へ
+  `hook_resume_wait.py` を 1〜2 行 / `decisions_archive/32_hook_resume_wait_in_ui_tests.md` + decisions.md 索引 / current.md 完了記載 / idea_33 → INDEX_done /
+  current.md「別タスク化候補 > テスト負債」の idea_33 行を削除）→ 完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）→ `/refactor_check`。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜32）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

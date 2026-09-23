@@ -16,6 +16,7 @@ from keyseq.application.save_plan import SavePlan
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs import PresetManagerDialog, format_preset_manager_source_labels
+from tests_ui.hook_resume_wait import wait_for_hook_pause_count
 
 
 def _unexpected_showerror(_title, message, *_args, **_kwargs):
@@ -1328,8 +1329,7 @@ class AppUiFlowsTest(unittest.TestCase):
             self.app.data = before
 
     def test_preset_manager_cancel_keeps_runtime_and_dirty_unchanged(self):
-        self.app.update()
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        wait_for_hook_pause_count(self, self.app, 0)
         before = copy.deepcopy(self.app.data)
 
         def cleanup_dialog():
@@ -1950,16 +1950,13 @@ class AppUiFlowsTest(unittest.TestCase):
             with patch.object(self.app, "config_root", config_root), patch.object(
                 self.app, "keymap_set_path", keymap_set_path
             ):
-                self.app.update()  # 先行テストが残した解除予約を流す
-                self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+                wait_for_hook_pause_count(self, self.app, 0)  # 先行テストが残した解除予約を流す
                 dialog = PresetManagerDialog(self.app)
                 try:
                     self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
                 finally:
                     dialog.destroy()
-                self.app.update()
-
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+                wait_for_hook_pause_count(self, self.app, 0)
 
     def test_preset_manager_listbox_matches_temporary_presets(self):
         before = copy.deepcopy(self.app.data)
