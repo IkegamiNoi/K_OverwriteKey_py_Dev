@@ -59,14 +59,14 @@ JSON スキーマ不変**。読込時の正規化・一覧表示・編集ダイ�
 - task_01: executor — 種類の判定・`on_action_error` への通知（`type` を文字列化したコピー）・「送った / 送らなかった」の戻り値 + 単体テスト — **完了**（2026-09-24）
 - task_02: runner — 戻り値で run_to_end を止める / 単発の index を進めない・`perform_action` の型・`app.py` の委譲 + 組み合わせテスト — **完了**（2026-09-24）
 - task_03: 正本反映と記録（暫定 24 §4 を `data_schema.md` §5.11.1 / §5.11.5 へ昇格・`codebase_map.md` / 暫定 24 を凍結 /
-  decisions_archive/31 / current.md / idea_35 → INDEX_done / `/refactor_check`）
+  decisions_archive/31 / current.md / idea_35 → INDEX_done / `/refactor_check`）— **完了**（2026-09-24）
 
 ## レビュー方針
 
 - 共通観点は `.claude/rules/review.md`。
 - **本フェーズ固有**:
   - **不正な種類で `input_gateway` が一切呼ばれないか**（send guard にも入らない）。
-  - **既存経路の進み方が不変か**（hotkey 検証エラー・`x` / `y` 不正・送信例外は従来どおり index が進み run_to_end は続く）。
+  - **既存経路の進み方が不変か**（hotkey 検証エラー・`x` / `y` 不正は従来どおり index が進み run_to_end は続く。送信例外は従来どおり `execute` の外へ抜ける）。
     戻り値の「送った」を取り違えていないか。
   - **通知へ渡す `action` が元データを書き換えていないか**・非文字列 `type` で通知側が落ちないか。
   - runner の停止が `reentry_guard` / `_select_trigger` / 予約の取り消しと矛盾しないか（停止の重複が無害か）。

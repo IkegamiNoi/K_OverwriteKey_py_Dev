@@ -40,6 +40,7 @@
 | 28_dialog_keyboard_focus | [28_dialog_keyboard_focus.md](decisions_archive/28_dialog_keyboard_focus.md) | ダイアログの初期キーボードフォーカス（2026-09-23 完了・**presentation 限定・スキーマ不変**・暫定仕様先行モード・起票元 = idea_26 + idea_18）。Escape を bind しているのにフォーカスを移さないダイアログ（群 B 3 件）を是正するため、**フォーカスを `grab_modal(window, parent=None, *, focus=None)` の責務へ集約**（**明示引数**・省略時は窓自身。推測型 `focus_lastfor()` / `after_idle` は未マップ時の `focus_set` 保留で**明示指定を奪うと実測で反証**）/ `focus_force`・`lift` は呼ばない。**群 C 5 経路へ Escape を結線**（× と同じ閉じ方）+ 統合レビュー H1 を受け **群 A 4 経路へも Escape**（**Esc の別用途〔記録中・取得中〕を優先する単一ハンドラ + 状態分岐**。Tk では同一 widget の `<Escape>` が `<KeyPress>` より優先して単独発火すると実測）。**idea_18 の根は配送の遅さではなく配送先の違い**（ダイアログを持つ Tk アプリが入力フォーカスを持たないと Escape は破棄される）→ `send_escape`（フォーカス確保してから送る・期限方式）。§8-7 は Escape family に限定し `after(0)` family は **idea_33** へ分離。実機目視で**最小化復帰後にフォーカスが戻らない**ことが再現 → **idea_34**（正本へ「フォーカスの戻り先は規定しない」を明記）。正本 = `features.md` §4.6 へ 3 条項 + `codebase_map.md` の `modal.py` 節（13→15 箇所訂正）。**task_05e で記録中・取得中の Esc 押しっぱなしで閉じない**よう修正（v0.7・判定順 = 記録/取得中 → 印 → 閉じる）。暫定 22 は v0.7 で凍結。refactor_check: **推奨 → task_07 で実施済**（提案書 11・M3 = Esc の別用途つき閉じ処理の 3 重複を `bind_escape_close` へ） |
 | 29_focus_restore_after_minimize | [29_focus_restore_after_minimize.md](decisions_archive/29_focus_restore_after_minimize.md) | 最小化から復元した後のキーボードフォーカス（2026-09-23 完了・**presentation 限定・スキーマ不変**・暫定仕様先行モード・起票元 = idea_34）。復元時に grab だけ戻りフォーカスがメイン窓に残る問題を、**`<Map>` 後に `after_idle` で予約した処理で、予約実行時の grab 保持者の `focus_lastfor() or window` へ `focus_set`** して解消（**即時 `focus_set` は実 App の 3 段ネストで外側の窓を非表示のまま残す**と実測・v0.4）。**実機目視でタスクバー復元時に Escape が届かない不合格** → 復元のアクティブ化の時点で grab が預かり中のため Tk の振り向けが働かず `focus_get()` が `None` と特定 → **Tk がフォーカスを持たず OS の前面が自アプリのメイン窓のときだけ `focus_force`**（専用 `WinDLL` の `GetForegroundWindow`・`restype=HWND`・presentation 唯一の ctypes・v0.5）。最小化中に開いた窓はその回の復元では戻さない / 閉じた後は規定しない / TOCTOU と最小化中に開いた窓の保留要求は保証範囲外。教訓 = **API 復元の probe は実操作の前面化順を再現しない**。暫定 23 は v0.5 で凍結。refactor_check: **不要** |
 | 30_action_and_internal_key_type_coercion | [30_action_and_internal_key_type_coercion.md](decisions_archive/30_action_and_internal_key_type_coercion.md) | アクション要素と内部キーの型正規化（2026-09-23 完了・**domain 限定・スキーマ不変**・直接改訂モード・起票元 = idea_27 + idea_28）。§5.1 に未追従の残り 2 系統を**読込時の入口 2 関数**で受けた: ①アクション要素の `type` / `button`（`normalize_actions`。非文字列で `AttributeError`・`type` は一覧表示でも落ちた）②runtime 内部キーのパス値 3 種（`ensure_config_compatibility`。repr が保存先候補へ混入し得た）。**`coerce_label`（trim のみ）・キーが無ければ補わない・読み手は無修正**（書き手 12 箇所を棚卸しして入口外の混入経路なしを確認）。正本 §5.11.2 の「非文字列は未定義」を削除（案 A）し、**空 / 未知の `type` は現行挙動〔`value` を文字列入力〕を明文化**。エラー通知化（案 B）は **idea_35** へ分離。**非文字列の `type` は「無送信」→「文字入力」に変わった**（完了判定前レビュー high・現状維持とし idea_35 で対処）。refactor_check: **推奨（境界・M3）→ 提案書 12 は見送り**（ユーザー判断） |
+| 31_unknown_action_type_handling | [31_unknown_action_type_handling.md](decisions_archive/31_unknown_action_type_handling.md) | 種類が不正なアクションの実行（2026-09-24 完了・**application + presentation 委譲 1 行・スキーマ不変・挙動変更**・暫定仕様先行モード・暫定 24 v0.5 凍結・起票元 = idea_35）。`type` が無い / 空 / 未知 / 非文字列のアクションは `value` を前面アプリへ文字入力していた（初回実装の防御的な既定）→ **何も送らず既存 `show_action_error` で通知し、シーケンスを止める**（run_to_end は停止・単発は index を進めない。`execute -> bool` + runner は **`is False`** のときだけ止める）。**hotkey 検証エラー・`x` / `y` 不正の進み方は不変**。通知へは `type` を文字列化した浅いコピー（非文字列で通知側が落ちるのを防ぐ）。案 X（要素除去）は不採用・互換措置なし（§5.1 意味変更の設計変更による例外）。**通知の表示中もフックは止まらない**を既知の制約（§5.11.5・全エラーダイアログ共通）。refactor_check: **不要**（M3 境界 = 停止の 2 行が 3 箇所・迷えば非該当） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -545,20 +546,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   （`_check_import_nodes` → **単数形へ改名** / `prefix` の毎ノード再計算を
   **モジュール定数 `_PACKAGE_PREFIX`** へ）。残る 1 件（分割後の関数が 30 行目安をわずかに超える）は
   **提案書が想定した分割形**のため据え置き。
-
----
-
-## 2026-09-24 (暫定 24: 種類が不正なアクションの実行・phase 31 予定・起票元 idea_35)
-
-### 【起票時】案 B（何も送らずエラー通知）で暫定仕様先行 = **採用**（ユーザー確定 2026-09-24）
-
-- 起票時 `deep-reviewer` = 修正要（差戻し不要・11 件）→ v0.2 で反映。**フォールバックの由来は初回実装 `4f53178` の
-  「不明タイプはテキスト扱い」= 防御的な既定で旧形式互換ではない**（裏取り済）。
-- **案 X（非文字列 `type` の要素除去）は不採用**: phase 30 の読込時正規化で空になり案 B でエラーになる。要素を残せば直せる。
-- **§5-1 通知 = 案 b（既存 `show_action_error`）**: 原因は最終行「エラー:」の文で伝える・presentation 不変・多重表示抑止あり。
-  案 a（`on_runtime_error`）は不採用。
-- **§5-2 シーケンス = 案 S（止める）**: run_to_end は停止・単発は index を進めない（executor が送った / 送らなかったを返す）。
-  案 C（続ける）は通知後のフォーカスの戻り先への誤送・再入・連続表示のリスクで不採用。**`x` / `y` 不正・hotkey 検証エラーの進み方は変えない**。
-- **§5-3 互換 = 措置なし**（`type` の無いアクションは text → エラー。§5.1 の意味変更の設計変更による例外として正本に明記予定）。
-- 次: `codex-adversarial-reviewer` の確定前レビュー → ユーザー確定 → `/phase_start`（phase 31）。
-- **v0.4（確定前 `codex-adversarial-reviewer` high 2 件）**: ①通知へ渡す `action` は `type` を文字列化したコピー = **採用** ②通知の表示中の入力 = **案 S の効果範囲を正確化し既知の制約として受容**（不正な種類は常に送らない / 表示中にユーザーが操作した正常なアクションは前面の窓〔通知ダイアログ含む〕へ送られ得る・既存の全エラーダイアログ共通）・「通知中の実行禁止」は範囲外（ユーザー確認 2026-09-24）。

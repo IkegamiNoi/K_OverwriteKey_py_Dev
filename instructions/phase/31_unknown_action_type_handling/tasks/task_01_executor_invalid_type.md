@@ -17,7 +17,7 @@
    - 種類の取り出し: `raw = action.get("type")` を **`isinstance(raw, str)` のときだけ** `raw.strip()`、それ以外は `""`（§3.1。
      正規化を経ない dict でも例外にしない）。判定は `.lower()` した値で行う。
    - `hotkey` / `text` / `mouse_click`: **既存の処理をそのまま**呼び、`True` を返す。内部のエラー（hotkey 検証 / `x`・`y` 不正 /
-     送信例外）の扱い・通知は変えない（それらも `True`）。
+     送信例外）の扱い・通知は変えない（検証エラー・`x` / `y` 不正・mouse_click の送信失敗は `True`。hotkey / text の送信例外は従来どおり `execute` の外へ抜ける）。
    - **それ以外（無い / 空 / 空白のみ / 未知 / 非文字列）**: `input_gateway` を呼ばず・send guard に入らず、
      `self._on_action_error(notified_action, err)` を 1 回呼んで **`False`** を返す。
      **末尾の `self._write_text(str(value))` フォールバックは削除する**。

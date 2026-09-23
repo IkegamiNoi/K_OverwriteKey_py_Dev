@@ -7,34 +7,28 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 31](31_unknown_action_type_handling/phase.md)**（2026-09-24 起票）:
-  種類が不正なアクションの実行。`type` が無い / 空 / 未知 / 非文字列のアクションは**何も送らず通知し、シーケンスを止める**
-  （現状は `value` を前面アプリへ文字入力する）。**暫定仕様先行モード** = 主入力
-  [暫定仕様 24](../history/24_unknown_action_type_handling.md)（v0.5・ユーザー確定済）。番号対応: phase 31 / 暫定 24 / decisions 31。
-  起票元 = [idea_35](../backlog/idea_35_unknown_action_type_handling.md)。
-  進捗: task_01・task_02 完了 / 次 = task_03（正本反映と記録）。
-- 直前の完了フェーズ = [phase 30](30_action_and_internal_key_type_coercion/phase.md)（2026-09-23・アクション要素と内部キーの型正規化・
-  判断は [decisions_archive/30](../../.claude_data/state/decisions_archive/30_action_and_internal_key_type_coercion.md)）/
-  [phase 29](29_focus_restore_after_minimize/phase.md)（2026-09-23・最小化から復元した後のキーボードフォーカス・
-  判断は [decisions_archive/29](../../.claude_data/state/decisions_archive/29_focus_restore_after_minimize.md)）。
+- **アクティブなフェーズ = なし**（phase 31 は 2026-09-24 完了。次に着手するフェーズは `/phase_start` で起票する）。
+- 直前の完了フェーズ = [phase 31](31_unknown_action_type_handling/phase.md)（2026-09-24・種類が不正なアクションの実行・
+  判断は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md)）/
+  [phase 30](30_action_and_internal_key_type_coercion/phase.md)（2026-09-23・アクション要素と内部キーの型正規化・
+  判断は [decisions_archive/30](../../.claude_data/state/decisions_archive/30_action_and_internal_key_type_coercion.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近の一連の作業が扱っている領域 = JSON 読込時の型不正の扱い**（phase 23・24・25・30）。
+- **直近の一連の作業が扱っている領域 = JSON の型不正とアクションの実行**（phase 23・24・25・30・31）。
   正本は `data_schema.md` §5.1「**型不正の共通規則**」（非文字列は空扱い・成立しない要素は除去）+
   §5.5 / §5.7（パス系・内部キー）/ §5.11（アクション要素の全経路正規化〔phase 23〕・`label` / `type` / `button`・
-  無い / 空 / 未知の `type` の実行時挙動）。
-  実装 = `domain/config.py` の `coerce_key_name`（trim + 小文字化・キー名 / id）/ `coerce_label`（trim のみ・ラベル / パス / `type` / `button`）を
-  **読込経路すべて**で適用する: domain の `normalize_actions` / `ensure_config_compatibility` に加え、
-  application の `split_loading.py`（パス・label・id）/ `config_service/__init__.py`（`load_keymap_file` 等）も直接呼ぶ。
-  **読み手は触らない**・**無いキーは補わない**。一覧は `codebase_map.md`「JSON 読込時の型正規化」節。
-  **参照突合経路（`config_service/reference_scan.py`）は生 JSON を直接読む別実装**で、
-  `ensure_config_compatibility` を通らないため個別に揃えてある（phase 25）。
-  テスト = `tests/test_domain_config.py`（`NormalizeActionsTest` / `EnsureConfigCompatibilityTest` / `PathFieldCoercionTest`）。
-  **残件** = [idea_35](../backlog/idea_35_unknown_action_type_handling.md)（空 / 未知 / **非文字列だった** `type` が
-  `value` を文字入力する件・暫定仕様先行）/ `startup_io.py` の `keymap_set_path`（presentation 層・「別タスク化候補」）。
-  判断は [decisions_archive/30](../../.claude_data/state/decisions_archive/30_action_and_internal_key_type_coercion.md) /
-  [decisions_archive/25](../../.claude_data/state/decisions_archive/25_path_field_type_normalization.md) /
-  [decisions_archive/23](../../.claude_data/state/decisions_archive/23_sequence_payload_action_normalization.md)。
+  **無い / 空 / 未知の `type` は送らず通知しシーケンスを止める**〔phase 31〕・§5.11.5 既知の制約）。
+  読込 = `domain/config.py` の `coerce_key_name`（trim + 小文字化・キー名 / id）/ `coerce_label`（trim のみ・ラベル / パス / `type` / `button`）を
+  **読込経路すべて**で適用（domain の `normalize_actions` / `ensure_config_compatibility` + application の `split_loading.py` /
+  `config_service/__init__.py`）。**読み手は触らない**・**無いキーは補わない**。**参照突合経路（`reference_scan.py`）は別実装**（phase 25）。
+  実行 = `ActionExecutor.execute -> bool`（種類が不正なら送らず `show_action_error`・`False`）/ `SequenceRunner` は **`is False`** のときだけ止める。
+  一覧は `codebase_map.md`「JSON 読込時の型正規化」節・「アクションの実行」節。
+  テスト = `tests/test_domain_config.py` / `tests/test_action_executor_type.py` / `tests/test_sequence_runner.py`。
+  **残件** = 実行時エラーの通知の表示中もフックが止まらない（§5.11.5・全エラーダイアログ共通）/ `x` / `y` 不正・hotkey 検証エラーでは止めない /
+  `startup_io.py` の `keymap_set_path`（presentation 層・「別タスク化候補」）。
+  判断は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) /
+  [decisions_archive/30](../../.claude_data/state/decisions_archive/30_action_and_internal_key_type_coercion.md) /
+  [decisions_archive/25](../../.claude_data/state/decisions_archive/25_path_field_type_normalization.md)。
 - 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**12 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
@@ -42,7 +36,7 @@
 
 ## 次採番
 
-- **phase 31 を 2026-09-24 起票**（`31_unknown_action_type_handling` / 暫定 24〔v0.5・確定済〕/ decisions 31）。
+- **phase 31 は 2026-09-24 完了**（`31_unknown_action_type_handling` / 暫定 24〔v0.5・凍結〕/ decisions 31〔アーカイブ済〕）。
   次フェーズは **`32_<topic>`**・decisions も **32** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -64,7 +58,7 @@
   21=構成セットの読み込み履歴〔**v0.5・凍結**〕/
   22=ダイアログの初期キーボードフォーカス〔**v0.7・凍結**〕/
   23=最小化から復元した後のキーボードフォーカス〔**v0.5・凍結**〕/
-  24=種類が不正なアクションの実行〔**v0.5・確定済・phase 31 の主入力**〕）。
+  24=種類が不正なアクションの実行〔**v0.5・凍結**〕）。
   次採番は **`25_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**12 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -162,6 +156,9 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   幅適用 2 行が同型（軽微）（phase 19 由来）
 - `infrastructure/input_gateway.py` の `press_key` / `release_key` の「拡張キー判定 → 分岐」が同型
   （**2 箇所**。M3 の 3 箇所目が出たらヘルパ抽出を再判定する）（phase 21 由来）
+- `application/sequence_runner.py` の `_run_to_end_step` で `stop_run_to_end()` → `_select_trigger(key)` → `return` が **3 箇所**
+  （phase 31 で 1 箇所追加）。うち 2 箇所は直前に index を 0 へ戻し、phase 31 の 1 箇所は**意図して戻さない**（不正な行に残す）。
+  共通部は既存メソッド 2 つの呼び出しのみのため `/refactor_check` は**不要**と判定。停止時の後処理が増えたら集約を再判定（phase 31 由来）
 
 ### デッドコード・据え置き（実害なし）
 

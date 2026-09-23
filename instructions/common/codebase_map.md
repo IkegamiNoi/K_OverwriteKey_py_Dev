@@ -150,7 +150,7 @@ keyseq/presentation/
     **runtime へ反映するのは OK のときだけ**（§5.8.8 の P1。プリセット単独の注入 API は作らない）。
     **破棄確認の比較基準（直近に読み込んだ一覧）も差し替え時に更新する**
     （更新し忘れると「既存を読み込む」の後の OK で確認が再発する）
-- dialogs 向け契約（`validate_hotkey` / `_dialog_result` / `_perform_action` / `open_preset_manager`）と、状態依存でパスを詰め替える薄メソッド（`suggest_keymap_set_dialog_path` / `suggest_keymap_set_dialog_dir` / `keymap_set_file_stem`）
+- dialogs 向け契約（`validate_hotkey` / `_dialog_result` / `open_preset_manager`）・`_perform_action`（`SequenceRunner` へ注入。executor の戻り値を返す・phase 31）と、状態依存でパスを詰め替える薄メソッド（`suggest_keymap_set_dialog_path` / `suggest_keymap_set_dialog_dir` / `keymap_set_file_stem`）
   - `validate_hotkey` は**検証ロジックを持たず** `HotkeyService.validate`（application）への**薄い委譲**（実体は下記 HotkeyService / `domain/hotkey.py`）。dialogs 契約維持のため残す
 - 配線用の薄いヘルパ（`_get_send_guard_count` / `_find_trigger_by_key` / `_find_keymap_target` / `_find_keymap_switch_target_id`）
 - 起動時に設定ディレクトリ骨格
@@ -570,6 +570,15 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `hook_stop_key` / `hook_toggle_key`）。全体デフォルトと個別指定の切替は application 層で解決済みのため、
   `hook_controller` / `input_router` / `keyboard_window` / App のフック供給部は供給源を意識しない
   （仕様は `spec_detail/key_input.md` §7.6 / `spec_detail/data_schema.md` §5.9）
+
+### アクションの実行（application/action_executor.py / sequence_runner.py・phase 31）
+
+- `ActionExecutor.execute(action) -> bool`: `type`（非文字列は空扱い）が `hotkey` / `text` / `mouse_click` なら送って `True`
+  （内部の hotkey 検証エラー・`x` / `y`〔`to_x` / `to_y`〕不正・mouse_click の送信失敗も通知して `True`。**hotkey / text の送信例外は従来どおり `execute` の外へ抜ける**）。**それ以外は送らず** `on_action_error` へ
+  `type` を文字列化した浅いコピーと理由を渡して `False`（`App` が `HookController.show_action_error` を注入）。
+- `SequenceRunner` は `perform_action`（= `App._perform_action` → `execute`）の戻り値が **`is False`** のときだけ止める:
+  run_to_end は `stop_run_to_end`、単発は index を進めない。注入される `perform_action` の実装が `None` を返す場合は従来どおり進む。
+- 仕様は `spec_detail/data_schema.md` §5.11.1 / §5.11.5。テスト = `tests/test_action_executor_type.py` / `tests/test_sequence_runner.py`。
 
 ### キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）
 

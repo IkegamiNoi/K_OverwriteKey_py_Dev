@@ -1,8 +1,9 @@
 # 暫定仕様 24: 種類が不正なアクションの実行（unknown_action_type_handling）
 
-> 状態: **未凍結・v0.5・主入力・ユーザー確定済（2026-09-24）・実装着手可**。
-> 本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結（2026-09-24・正本反映済・v0.5）**。正本（`spec_detail/data_schema.md` §5.11.1 / §5.11.5）が最新。
+> 本書は経緯記録として凍結（**条項を実装の根拠に引かない**。凍結後の編集は禁止）。
+> 実施フェーズ = [phase 31](../phase/31_unknown_action_type_handling/phase.md)・判断は
+> [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md)。
 > 起票元: [idea_35](../backlog/idea_35_unknown_action_type_handling.md)（phase 30 で案 B として分離・
 > phase 30 完了判定前の `codex-adversarial-reviewer` high を受けて現状維持とした件の対処。ユーザー判断 2026-09-24 = 案 B で暫定仕様から）。
 >

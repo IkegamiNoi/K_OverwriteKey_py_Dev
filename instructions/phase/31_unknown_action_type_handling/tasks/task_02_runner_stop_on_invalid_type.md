@@ -33,7 +33,7 @@
 
 ### 設計メモ / 制約
 
-- **hotkey 検証エラー・`x` / `y` 不正・送信例外の進み方は変えない**（executor はこれらで `True` を返す。runner は `False` のときだけ止める）。
+- **hotkey 検証エラー・`x` / `y` 不正・送信例外の進み方は変えない**（検証エラー・`x` / `y` 不正で executor は `True` を返す。hotkey / text の送信例外は従来どおり外へ抜ける。runner は `False` のときだけ止める）。
 - `handle_key` の run_to_end 中のトグル（`:33-43`）・`pause_run_to_end` / `resume_run_to_end` は変えない。
 - 例外は使わない（戻り値で判定する）。`_perform_action` 以外の presentation は触らない。
 - `sequence_runner.py` の先頭に BOM がある。**BOM と改行コードを保持**すること。

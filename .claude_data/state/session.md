@@ -4,42 +4,46 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-24T01:18:15
-phase: `instructions/phase/31_unknown_action_type_handling`（暫定仕様先行モード・主入力 = 暫定 24 v0.5 確定済・decisions 31）。次採番 = phase 32 / 暫定 25 / decisions 32 / 提案書 13。
-直前の完了フェーズ = **phase 30**（アクション要素と内部キーの型正規化・判断履歴 = `decisions_archive/30_action_and_internal_key_type_coercion.md`）。
+last_updated: 2026-09-24T01:30:03
+phase: なし（**phase 31 = `instructions/phase/31_unknown_action_type_handling` は 2026-09-24 完了**。アクティブなフェーズ無し）。次採番 = phase 32 / 暫定 25 / decisions 32 / 提案書 13。
+直前の完了フェーズ = **phase 31**（種類が不正なアクションの実行・判断履歴 = `decisions_archive/31_unknown_action_type_handling.md`。暫定 24 は v0.5 で凍結）。
 last_commit_location: `claude/idea-27-28-consolidate-3ff723`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 31 task_01・task_02 完了（種類不正は送らず通知・run_to_end は停止・単発は index を進めない）。次は task_03（正本 §5.11.1 / §5.11.5 昇格・暫定 24 凍結・archive/31・idea_35 クローズ・refactor_check・完了判定前レビュー）。**
-mode: implementing
+focus: **phase 31 完了（正本 §5.11.1 / §5.11.5 反映・暫定 24 凍結・archive/31・idea_35 クローズ・refactor_check 不要）。次フェーズは未定（ユーザー判断待ち）。**
+mode: completed
 
 ## last_action
-ts: 2026-09-24T01:18:15
+ts: 2026-09-24T01:30:03
 who: main
 summary: |
-  【task_02 実施】`codex-implementer` で `SequenceRunner`: `perform_action` の戻り値が **`is False`** のときだけ
-  単発は index を進めない（`try` 内の `return` で `finally` は従来どおり）/ run_to_end は index を更新せず `stop_run_to_end` → `_select_trigger`。
-  `None` を返す既存の呼び出し元は従来どおり進む。`app.py` の `_perform_action` は executor の戻り値を返す（2 行）。
-  `tests/test_sequence_runner.py` に本物の executor × runner のテスト 6 件（通知中の pause / resume 再入・既存経路が止まらないことを含む）。
-  【reviewer】完了可。【完了判定】完了。tests_ui 1 回目の `test_dialog_escape_binding` 2 件 flaky → 再実行で全 pass（idea_33 へ観測追記）。
+  【task_03 完了 = phase 31 完了】正本 `data_schema.md` §5.11.1（無い / 空 / 未知 / 非文字列の `type` は送らず通知・シーケンスは止まり位置は不正な行に残る・
+  §5.1 意味変更の例外注記）/ §5.11.5（通知表示中もフックは止まらない）+ `codebase_map.md`「アクションの実行」小節 / 暫定 24 凍結 /
+  archive/31 / current.md / idea_35 → INDEX_done。
+  【refactor_check】不要（M3 境界 = `_run_to_end_step` の停止 2 行が 3 箇所・迷えば非該当）→ 別タスク化候補へ 1 行。
+  【完了判定前レビュー】codex-adversarial = approve / deep-reviewer = 文書の修正要 → **ユーザー確認のうえ M1〜M3・L1・L2・L5・L6 を反映**
+  （M1 = hotkey / text の送信例外は `execute` の外へ抜ける〔「送信例外も True」は誤り〕/ M2 = run_to_end も位置は不正な行に残る）。L3・L4 は保留・参考。
 result_files:
-  - keyseq/application/sequence_runner.py / keyseq/presentation/app.py（`_perform_action` 2 行）/ tests/test_sequence_runner.py
-  - instructions/phase/31_unknown_action_type_handling/{phase.md, tasks/task_02_runner_stop_on_invalid_type.md}
-  - instructions/phase/current.md / instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md
+  - instructions/common/spec_detail/data_schema.md（§5.11.1 / §5.11.5）/ instructions/common/codebase_map.md
+  - instructions/history/24_unknown_action_type_handling.md（凍結）
+  - .claude_data/state/decisions_archive/31_unknown_action_type_handling.md（新規）/ .claude_data/state/decisions.md
+  - instructions/phase/current.md / instructions/phase/31_unknown_action_type_handling/{phase.md, tasks/task_01〜03}
+  - instructions/backlog/INDEX.md / INDEX_done.md
 verified:
   compile: clean
-  tests: 577 ran OK（skipped 7・+6）
-  tests_ui: 532 ran OK（1 回目 2 件 flaky → 再実行で全 pass）
+  tests: 577 ran OK（skipped 7）
+  tests_ui: 532 ran OK（task_02 時点。1 回目 flaky → 再実行で全 pass）
   smoke: SMOKE OK
-  review: reviewer → 完了可
+  review: task 単位 reviewer 完了可 ×2 / 完了判定前 codex-adversarial approve + deep-reviewer 指摘反映（ユーザー承認）
+  refactor_check: 不要
+  code_diff_since_task_02: 0
+  links: OK
 
 ## next_action
-- **task_03 を `/task_new` で起票**: 暫定 24 §4 を正本 `data_schema.md` §5.11.1（phase 30 の「value を文字列入力」条項を置換）/ §5.11.5（既知の制約）へ昇格・
-  `codebase_map.md` の `ActionExecutor` / シーケンス実行の記述へ 1 項・暫定 24 を凍結・`decisions_archive/31`（decisions.md の暫定 24 節を移す）・
-  current.md 完了記載・idea_35 → INDEX_done・`/refactor_check`（PHASE_BASE = `04213be` の親 `6c20dd6`）・
-  完了判定前レビュー（deep-reviewer + codex-adversarial）。**実機目視は任意**（ユーザー判断）。
+- **`/save_handoff` で handoff.md を phase 31 完了時点へ再生成**。
 - **main へのマージはユーザーが行う**（ブランチ `claude/idea-27-28-consolidate-3ff723`）。
+- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33〔tests_ui flaky・`test_dialog_escape_binding` で繰り返し観測〕/ idea_23）。着手時は `/phase_start`。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
 ## blockers
@@ -91,9 +95,13 @@ verified:
 - **【phase 30 の成果は正本が正】`data_schema.md` §5.7（内部キーのパス値も §5.1 に従う）/ §5.11.1・§5.11.2 + `codebase_map.md`**。
   要点 = ①domain の `normalize_actions`（`type` / `button`）と `ensure_config_compatibility`（内部キーのパス 3 種）で
   **キーがある場合のみ** `coerce_label`・**読み手は触らない**（`label` は常に付与 = 既存挙動で非対称は意図どおり）
-  ②**`type` が無い / 空 / 上表以外なら `value` を文字列入力**（現行挙動の明文化）。**非文字列の `type` も今はここへ入る**
-  （以前は `AttributeError` で無送信）= 完了判定前レビュー high を**ユーザー判断で現状維持**・対処は **idea_35**（案 B / 案 X）
+  ②（**phase 31 で変更**）空 / 未知 / 非文字列の `type` の実行時挙動は下記 phase 31 が正
   ③「キーがあれば coerce_label」5 箇所の集約（提案書 12）は見送り・別タスク化候補。
+- **【phase 31 の成果は正本が正】`data_schema.md` §5.11.1 / §5.11.5 + `codebase_map.md`「アクションの実行」**。暫定 24 は凍結済。
+  要点 = ①`ActionExecutor.execute -> bool`: `type` が無い / 空 / 未知 / 非文字列なら**送らず** `on_action_error`（= `show_action_error`）へ
+  `type` を文字列化した浅いコピーを渡して `False` ②`SequenceRunner` は **`is False`** のときだけ止める（run_to_end 停止・単発は index を進めない・
+  **位置は不正な行に残る**）。`None` を返す `perform_action` の実装は従来どおり進む ③**hotkey / text の送信例外は従来どおり `execute` の外へ抜ける**
+  （`True` を返すのは検証エラー・`x` / `y`〔`to_x` / `to_y`〕不正・mouse_click の送信失敗）④**通知の表示中もフックは止まらない**（§5.11.5・全エラーダイアログ共通）。
 - **【phase 24 の成果は正本が正】JSON 読込の型正規化 = `spec_detail/data_schema.md` §5.1「型不正の共通規則」（新設）+ §5.6「keymap」（新設）+ §5.2 / §5.11**。暫定仕様 20 は凍結済。
   要点 = ①`domain/config.py` の **`coerce_key_name` / `coerce_label`**（非 str は `""`）へ一本化し**全読込経路へ適用**
   （`normalize_key_name` のシグネチャは不変。呼び出しが多数で意味が変わるため）
