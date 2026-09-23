@@ -86,3 +86,14 @@ v0.5（ユーザー確定）の **§3.1-3 条件つき `focus_force`** と **§3
 
 - 上記確認 pass・**`reviewer` 採用**。
 - 実機目視は **task_02 の再開でまとめて実施**（①〜⑦を最初から。②は 3 段目まで開く）。
+
+## 完了記録（2026-09-23）
+
+- **状態 = 完了**。実装 = `codex-implementer`。`modal.py`: `_foreground_window_fn`（`@cache`・専用 `WinDLL("user32")`・`argtypes=[]`・
+  `restype=HWND`）/ `_is_app_foreground` / `_restore_modal_focus` の `focus_set` 直後に条件つき `focus_force`（+25 行・既存行の変更なし）。
+  テスト = c10〜c13（5 件・`setUp` で `_is_app_foreground` を既定 `False`）+ 新規 `test_modal_app_foreground.py`（⑭ 8 件）。
+- 実測（`verifier`）: compile clean / 対象 36 OK / 関連 47 OK / `tests` 556 OK（skipped 7）/ `tests_ui` **532 OK** / smoke OK /
+  **変異検査 5 種すべて狙いどおり赤**（分岐削除 → c10 / 前面条件除去 → c12 / `focus_get` 条件除去 → c11 / `restype` 削除 → 型検査 /
+  早期 return より前へ移動 → c13 ×2）。
+- レビュー = `reviewer` **完了可**（参考: c10 の組み立てが a4 より込み入る・コメントで意図説明済みのため据え置き）。
+- 実機目視は task_02 の再開で実施。

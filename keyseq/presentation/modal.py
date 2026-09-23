@@ -1,11 +1,34 @@
 """モーダルウィンドウの grab 取得と破棄時の復元。"""
 
+import ctypes
+import ctypes.wintypes
+from functools import cache
 import tkinter as tk
+from typing import Callable
 
 _active_modals: list[tk.Toplevel] = []
 _opened_while_minimized: list[tk.Toplevel] = []
 _custody_window: tk.Toplevel | None = None
 _app_minimized: bool = False
+
+
+@cache
+def _foreground_window_fn() -> Callable[[], int | None]:
+    """共有 windll を変更せず、HWND を返す専用関数を生成する。"""
+    function = ctypes.WinDLL("user32").GetForegroundWindow
+    function.argtypes = []
+    function.restype = ctypes.wintypes.HWND
+    return function
+
+
+def _is_app_foreground(app: tk.Misc) -> bool:
+    """OS の前面窓が App のメイン窓である場合だけ真を返す。"""
+    try:
+        foreground = _foreground_window_fn()()
+        return foreground is not None and foreground == int(app.wm_frame(), 16)
+    except (AttributeError, OSError, tk.TclError, ValueError):
+        # 取得不能（非 Windows を含む）ならフォーカスを強制しない。
+        return False
 
 
 def _restore_modal_focus(app: tk.Misc) -> None:
@@ -20,6 +43,8 @@ def _restore_modal_focus(app: tk.Misc) -> None:
             return
         target = window.focus_lastfor() or window
         target.focus_set()
+        if app.focus_get() is None and _is_app_foreground(app):
+            target.focus_force()
     except (tk.TclError, KeyError):
         # 破棄中や tkinter 管理外の名前解決失敗は復元を妨げない。
         pass

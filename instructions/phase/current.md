@@ -9,10 +9,11 @@
 
 - **アクティブなフェーズ = [phase 29](29_focus_restore_after_minimize/phase.md)**
   （最小化から復元した後のキーボードフォーカス・2026-09-23 起票）。
-  主入力 = [暫定仕様 23](../history/23_focus_restore_after_minimize.md)（**v0.3・ユーザー確定済**）。
+  主入力 = [暫定仕様 23](../history/23_focus_restore_after_minimize.md)（**v0.5・ユーザー確定済**）。
   起票元 = [idea_34](../backlog/idea_34_focus_restore_after_minimize.md)。番号対応: phase 29 / 暫定 23 / decisions 29。
   **確定**: 復元時（App の `<Map>`）に grab の返却の直後、**最内の表示中モーダルの最後のフォーカス先へ `focus_set`** /
-  `deiconify` / `lift` / `focus_force` は呼ばない（正本の最小化の条項は API 単位へ言い換え）/
+  `deiconify` / `lift` は呼ばない・**`focus_force` は Tk がフォーカスを持たず OS の前面が自アプリのメイン窓のときだけ**（v0.5）/
+  **進捗 = task_01 完了 / task_01b（条件つき `focus_force`）完了 / task_02 は実機目視①不合格で中断 → 再開待ち / task_03 未着手**。
   最小化中に開いたモーダルには復帰しない / 閉じた後は規定しない / 最小化を伴わない再アクティブ化は対象外。
 - 直前の完了フェーズ = [phase 28](28_dialog_keyboard_focus/phase.md)（2026-09-23・ダイアログの初期キーボードフォーカス・
   判断は [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)）/

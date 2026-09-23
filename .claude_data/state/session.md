@@ -4,46 +4,47 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T15:00:00
-phase: `instructions/phase/29_focus_restore_after_minimize`（**task_01 完了。残りは task_02〔統合確認 + 実機目視〕→ task_03〔正本反映〕**）。主入力 = 暫定仕様 23（**v0.4**・ユーザー確定済）。次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12。
+last_updated: 2026-09-23T19:30:00
+phase: `instructions/phase/29_focus_restore_after_minimize`（**task_01・task_01b 完了。task_02 は中断中〔再開待ち〕→ task_03〔正本反映〕**）。主入力 = 暫定仕様 23（**v0.5**・ユーザー確定済）。次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12。
 直前の完了フェーズ = **phase 28**（ダイアログの初期キーボードフォーカス・判断履歴 = `decisions_archive/28_dialog_keyboard_focus.md`。暫定仕様 22 は v0.7 で凍結）。
-last_commit_location: `claude/dialog-escape-key-behavior-548de9`
+last_commit_location: `claude/task-02-progression-d47775`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 29 は task_01 完了（最小化復元時に `after_idle` で最内モーダルの最後のフォーカス先へ `focus_set`）。次は task_02（統合確認 + 実機目視 §6-6 ①〜⑦）。**
+focus: **phase 29 は task_01b 完了（復元時、Tk がフォーカスを持たず OS の前面が自アプリのメイン窓なら `focus_force`）。次は task_02 の再開（統合確認のやり直し + 実機目視 ①〜⑦ を最初から）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-23T15:00:00
+ts: 2026-09-23T19:30:00
 who: main
 summary: |
-  【task_01 完了】`modal.py`: `_restore_modal_focus` を切り出し、`return_custody` の `finally` で `app.after_idle` へ予約
-  （grab の返却は `<Map>` 内で即時のまま）/ 最小化中に `grab_modal` した窓を `_opened_while_minimized` に記録し、復帰処理の最後で空にする。
-  テスト b1〜b6・b8〜b11（`test_minimize_grab_custody` 23 件）。
-  【v0.4（ユーザー確定）】初回の即時 `focus_set` が実 App の 3 段ネストで外側の窓を非表示のまま残す退行（a2・a3 が検出）→
-  メインが実 App で再現・`after_idle` で解消を確認（素の Tk probe では再現せず）。記録の寿命もその回の復元までに限定。
-  b11 はテストの組み立て（未マップ entry へのフォーカス要求が OS フォーカスの無い環境で保留のまま）で落ちたため、メインが `update()` を 1 行追加。
-  【実測 = verifier】tests 556 OK / tests_ui 519 OK ×3 / 変異検査 5 種すべて狙いどおり赤 / smoke OK。【reviewer】完了可。
+  【task_02 着手 → 中断】統合確認は全 green（tests 556 / tests_ui 519 ×3 / 変異 a・b / smoke）・`deep-reviewer` 条件付き・`codex-reviewer` 指摘なし。
+  だが**実機目視①（Win+D → タスクバー復元 → Escape）が不合格**。スクラッチの probe（`scratchpad/focus_probe.py`・プロジェクト外）で原因特定 =
+  復元時に OS がメイン窓をアクティブにする時点で grab が預かり中 → Tk の振り向けが働かず `focus_get()` が `None` → `focus_set` が効かない。
+  【v0.5（ユーザー確定）】条件つき `focus_force`（§3.1-3）/ FFI 契約（§3.2・専用 `WinDLL`・`restype=HWND`）/ TOCTOU と M1 を §7 で受容 / §3.1-6 も昇格（§8）。
+  `codex-adversarial-reviewer` needs-attention 2 件を反映。⑤のメモ帳カーソル非表示は keyseq 無しでも起きる Windows の挙動（ユーザー確認）。
+  【task_01b 完了】`codex-implementer` 実装 / `verifier` 全 green（tests_ui 532・変異 5 種すべて赤）/ `reviewer` 完了可。
 result_files:
-  - keyseq/presentation/modal.py / tests_ui/test_minimize_grab_custody.py
-  - instructions/history/23_focus_restore_after_minimize.md（v0.4）
-  - instructions/phase/29_focus_restore_after_minimize/tasks/task_01_restore_focus_on_map.md（新規・完了記録）
-  - .claude_data/state/decisions.md（phase 29 節）
+  - keyseq/presentation/modal.py / tests_ui/test_minimize_grab_custody.py / tests_ui/test_modal_app_foreground.py（新規）
+  - instructions/history/23_focus_restore_after_minimize.md（v0.5）
+  - instructions/phase/29_focus_restore_after_minimize/tasks/task_01b_conditional_focus_force.md（新規・完了記録）/ task_02_integration_and_manual_check.md（新規・中断記録）/ phase.md
+  - .claude_data/state/decisions.md（phase 29 節）/ instructions/phase/current.md
 verified:
   compile: clean
   tests: 556 ran OK（skipped 7）
-  tests_ui: 519 ran OK ×3
-  mutation: 5 種すべて狙いどおり赤（即時呼び出しへ戻す → a2・a3・b10 赤）
+  tests_ui: 532 ran OK（1 回）
+  mutation: task_01b の 5 種すべて狙いどおり赤
   smoke: SMOKE OK
-  review: reviewer = 完了可
+  review: reviewer = 完了可（task_01b）
 
 ## next_action
-- **task_02 を `/task_new` で起票**（統合確認 = `verifier`〔標準検証 + 必要なら実 Tk の到達検査の要否判断〕+ `deep-reviewer` + `codex-reviewer` /
-  **実機目視（ユーザー）= 暫定仕様 23 §6-6 ①〜⑦**: ①Win+D → タスクバー復元 → クリックせず Escape で閉じる ②3 段ネスト
-  〔アクション編集 → プリセットマネージャ → 追加・編集〕で 3 窓とも表示・Escape で 1 つずつ閉じる ③Win+D 2 回目 ④Alt+Tab で最小化中の窓を選ぶ
-  ⑤他アプリ入力中に Win+D 2 回 → 他アプリの入力が奪われない ⑥最小化せず Alt+Tab で戻る → 記録のみ ⑦ラベル欄で入力中に最小化 → 復元後の文字がラベル欄へ）。
-- その後 task_03（正本反映・凍結・`decisions_archive/29`・`current.md`・idea_34 を INDEX_done へ・`/refactor_check`）。
+- **task_02 を再開**（`instructions/phase/29_focus_restore_after_minimize/tasks/task_02_integration_and_manual_check.md` の「中断記録」参照）:
+  ①`verifier` で確認 1〜6 をやり直す（`tests_ui` ×3 は 532 前後・変異検査は task_02 の a・b に加え task_01b の 5 種も再確認。
+  **変異はスクラッチのコピー上で行う**）②二次レビュー = `deep-reviewer` + `codex-reviewer`（`--base f620257`〜HEAD。task_01b を含む累積）
+  ③**実機目視（ユーザー）①〜⑦を最初から**。起動は `.venv\Scripts\python.exe main.py`（**`-m keyseq` は存在しない**）。
+  **②は 3 段目（追加・編集）まで開いた状態で最小化する**（前回の probe では 2 段だった）。⑤は keyseq がアクティブにならないことで判定。
+- その後 task_03（正本反映 = §3.1-1〜3〔条件つき `focus_force` 含む〕・§3.1-6・§7 の残存リスク / 凍結 / `decisions_archive/29` / `current.md` /
+  idea_34 を INDEX_done へ / `/refactor_check`）。
 - **main へのマージはユーザーが行う**。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。

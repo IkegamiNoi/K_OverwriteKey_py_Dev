@@ -28,6 +28,7 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
         self._patch(modal, "_opened_while_minimized", [])
         self._patch(modal, "_custody_window", None)
         self._patch(modal, "_app_minimized", False)
+        self._patch(modal, "_is_app_foreground", return_value=False)
         self._patch(self.app.hook, "suspend_hook_for_dialog")
         self._patch(self.app.hook, "resume_hook_after_dialog")
         callback_error = self._patch(self.app, "report_callback_exception")
@@ -321,6 +322,96 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
             release.assert_not_called()
         self.assertIs(modal._custody_window, dialog)
         self.assertIs(self.app.grab_current(), other)
+
+    def test_c10_foreground_without_focus_forces_value_entry(self):
+        """⑩: focus_set の後も None なら具体的な値欄へだけ強制する。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        with ExitStack() as patches:
+            patches.enter_context(patch.object(modal, "_is_app_foreground", return_value=True))
+            focus = patches.enter_context(patch.object(
+                dialog.value_entry, "focus_set", wraps=dialog.value_entry.focus_set,
+            ))
+            force = patches.enter_context(patch.object(tk.Misc, "focus_force", autospec=True))
+            operations = [
+                patches.enter_context(patch.object(window, name, wraps=getattr(window, name)))
+                for window in (self.app, dialog)
+                for name in ("lift", "deiconify")
+            ]
+            # _restore_app 自身の deiconify だけを計測から除外する。
+            update = self.app.update
+
+            def update_after_restore():
+                operations[1].assert_called_once_with()
+                operations[1].reset_mock()
+                update()
+
+            patches.enter_context(patch.object(self.app, "update", side_effect=update_after_restore))
+            with patch.object(self.app, "focus_get", return_value=None):
+                self._restore_app()
+            focus.assert_called_once_with()
+            force.assert_called_once_with(dialog.value_entry)
+            for operation in operations:
+                operation.assert_not_called()
+
+    def test_c11_existing_focus_does_not_force_value_entry(self):
+        """⑪: Tk が既に widget を返すなら focus_set だけを行う。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        with ExitStack() as patches:
+            patches.enter_context(patch.object(modal, "_is_app_foreground", return_value=True))
+            focus = patches.enter_context(patch.object(
+                dialog.value_entry, "focus_set", wraps=dialog.value_entry.focus_set,
+            ))
+            force = patches.enter_context(patch.object(tk.Misc, "focus_force", autospec=True))
+            with patch.object(self.app, "focus_get", return_value=dialog.value_entry):
+                self._restore_app()
+            focus.assert_called_once_with()
+            force.assert_not_called()
+
+    def test_c12_background_without_focus_does_not_force_value_entry(self):
+        """⑫: 他アプリが前面なら None でも強制しない。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        with ExitStack() as patches:
+            focus = patches.enter_context(patch.object(
+                dialog.value_entry, "focus_set", wraps=dialog.value_entry.focus_set,
+            ))
+            force = patches.enter_context(patch.object(tk.Misc, "focus_force", autospec=True))
+            with patch.object(self.app, "focus_get", return_value=None):
+                self._restore_app()
+            focus.assert_called_once_with()
+            force.assert_not_called()
+
+    def test_c13_unregistered_holder_does_not_force_focus(self):
+        """⑬: 台帳外の grab 保持者には前面・None でも触らない。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        other = self._track_window(tk.Toplevel(self.app))
+        other.grab_set()
+        self.assertIs(modal._custody_window, dialog)
+        with patch.object(modal, "_is_app_foreground", return_value=True):
+            with patch.object(tk.Misc, "focus_force", autospec=True) as force:
+                with patch.object(self.app, "focus_get", return_value=None):
+                    self._restore_app()
+                self.assertIs(self.app.grab_current(), other)
+                force.assert_not_called()
+
+    def test_c13_modal_opened_while_minimized_does_not_force_focus(self):
+        """⑬: 最小化中に開いた窓の初期欄にも強制しない。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        child = self._track_window(tk.Toplevel(self.app))
+        entry = ttk.Entry(child)
+        entry.pack()
+        modal.grab_modal(child, focus=entry)
+        self.assertTrue(any(opened is child for opened in modal._opened_while_minimized))
+        with patch.object(modal, "_is_app_foreground", return_value=True):
+            with patch.object(tk.Misc, "focus_force", autospec=True) as force:
+                with patch.object(self.app, "focus_get", return_value=None):
+                    self._restore_app()
+                self.assertIs(self.app.grab_current(), child)
+                force.assert_not_called()
 
     def test_b1_custody_restores_value_entry_focus(self):
         """①: 預かった ActionDialog の具体的な初期欄へ戻す。"""
