@@ -4,72 +4,47 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T04:20:00
-phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜04 + task_05b/05c/05d 完了。残りは task_05 の実機目視と task_06**）。次採番 = phase 29 / 暫定 23 / decisions 29。
+last_updated: 2026-09-23T05:10:00
+phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜05 + task_05b/05c/05d 完了。残りは task_06〔正本反映〕のみ**）。次採番 = phase 29 / 暫定 23 / decisions 29。
 直前の完了フェーズ = **phase 27**（構成セットの読み込み履歴管理・2026-09-22 完了。判断履歴 = `decisions_archive/27_keymap_set_load_history.md`。暫定仕様 21 は凍結済）。
-last_commit_location: `claude/idea-26-idea-18-1bf4df`
+last_commit_location: `claude/dialog-escape-key-behavior-548de9`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 28 の実装・検証はすべて完了（task_05d まで）。§8-7 も達成（Escape family 限定・ユーザー確定）。残りは①実機目視 1 回（task_05 の唯一の未了項目）②task_06（正本反映）のみ。**
+focus: **phase 28 は task_05 まで完了（実機目視も済・C② 再現 → idea_34 起票）。残りは task_06（正本反映・フェーズ完了処理）のみ。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-23T04:20:00
-who: main
+ts: 2026-09-23T05:10:00
+who: user
 summary: |
-  【ユーザー判断 2026-09-23（2 件）】①**§8-7 は Escape 配送 family に限定して判定**し、
-  `after(0)` のフック再開 family は **idea_33 として分離**（phase 28 では直さない）。
-  ②**M2 は今直す**（`send_escape` の確保ループを deadline 方式へ）。
-  → 暫定仕様 22 を **v0.6** へ改訂（§8-7 の適用範囲限定 + **§6.1 新設**）。
-  【idea_33 起票】`<Destroy>` → `after(0)` のフック再開が負荷下で 1 回の `update()` に拾われず
-  `get_hook_pause_count()` が 1 のまま残る問題。`setUp` のドレイン検査で後続が連鎖する
-  （1 fail → 7 件の赤）。**idea_18 とは別 family**（Escape を使わない経路でも起きる）。
-  **phase 28 由来でないことを A/B 実測で確認**（`quarantine_manage_flow` は HEAD 0/10 対 pre 0/10 で、
-  先に出た 4/6 が再現せず＝測定がノイズ支配。`keymap_set_history_flow` の 2/6 は当該テストが
-  群 A を import しておらず因果経路なし）。推奨は案 A（期限つきで待つヘルパ。検出力を落とさない）。
-  【task_05d = `send_escape` の deadline 化】**完了**。tests_ui 限定・production 無変更。
-  機序 = `focus_force()` は OS への**要求**にすぎず `app.update()` は**待たない**ため、
-  旧実装の `attempts=20` は「20 回粘る」ではなく実質「**一瞬だけ試す**」だった。
-  新実装 = `_acquire_focus` を切り出し、`focus_timeout=2.0` の**期限**で回す。
-  **1 周目は待つ前に判定して抜ける**（速い回の所要時間は不変）。失敗時のみ 10ms 刻みで粘り、
-  **待機中も `app.update()` を回す**。`attempts` 引数は削除（互換残置なし・呼び出し 10 箇所は追従不要）。
-  【実測 = `verifier`】7 項目すべて pass。`tests` 556 OK(skipped 7) / `tests_ui` **507 OK（不変）** /
-  所要時間は 1 テストあたり 1 秒未満 / smoke OK / `keyseq` 差分 空。
-  **§8-7（Escape family）達成**: 負荷下で `test_dialog_escape_binding` **6/6 green**、
-  `quarantine_manage_flow` も **6/6 green**（`test_escape_and_window_close_keep_action_empty` 含む）。
-  【レビュー = `reviewer`】**完了可**（指摘 2 件は参考・修正不要）。
+  【実機目視（ユーザー）】**A**（群 B の 3 ダイアログ）/ **A2**（群 A の 4 経路・記録中/取得中の Escape は
+  停止のみ）/ **C①**（内側を閉じた後の外側 Escape。プリセット管理→追加/編集・履歴→分類へコピー…）は
+  **すべて想定どおり**。**C②**（最小化から復帰後の外側 Escape）は**再現**。
+  【C② の原因】`modal.py:33-59` の `return_custody` は復帰時に最内モーダルへ **`grab_set` のみ**で
+  `focus_set` しない（正本 `features.md` §4.6 もモーダル性の復帰しか規定していない）。
+  ユーザーの「復帰時にフォーカスも合わせる仕様」という認識は誤りで、暫定仕様 22 §2.1-4 / §11 どおり
+  スコープ外 → **idea_34 を起票**（本フェーズでは直さない）。
+  【完了判定】**task_05 完了**（確認 1〜7 は task_05d 時の `verifier` 再実行で全 pass・
+  二次レビュー = `deep-reviewer` + `codex-reviewer` 実施済・実機目視受領）。
 result_files:
-  - tests_ui/escape_delivery.py（`_acquire_focus` 新設・deadline 方式・`attempts` 削除）
-  - instructions/history/22_dialog_keyboard_focus.md（**v0.6**。§6.1 新設 + §8-7 の範囲限定）
-  - instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md（新規）+ backlog/INDEX.md
-  - instructions/phase/28_dialog_keyboard_focus/tasks/task_05d_send_escape_deadline.md（新規）
-  - instructions/phase/28_dialog_keyboard_focus/phase.md（タスク一覧に 05d 追加）
+  - instructions/backlog/idea_34_focus_restore_after_minimize.md（新規）+ backlog/INDEX.md
+  - instructions/phase/28_dialog_keyboard_focus/tasks/task_05_integration_and_manual_check.md（完了記録）
+  - instructions/phase/28_dialog_keyboard_focus/phase.md（task_05 完了）
+  - instructions/phase/current.md
 verified:
-  compile: clean
-  tests: 556 ran OK（skipped 7・不変）
-  tests_ui: 507 ran OK（不変）
-  runtime: escape_binding 1.4〜3.0s / teardown_flows 2.7〜3.8s（1 テストあたり 1 秒未満）
-  load_test_escape_family: **§8-7 達成**（escape_binding 6/6・quarantine_manage_flow 6/6）
-  skip_count: test_dialog_initial_focus の **9 件すべて ran・skip 0 件**（§8-8）
-  production_diff: `git diff --stat keyseq/` 空
-  smoke: SMOKE OK
-  review: reviewer = 完了可（参考指摘 2 件のみ）
+  manual_check: A / A2 / C① OK・C② 再現（→ idea_34）
+  production_diff: なし（文書のみ）
 
 ## next_action
-- **残るのは実機目視 1 回のみ**（task_05 §4 の手順書。**実装・検証はすべて完了済**）:
-  - **A** = 群 B の 3 ダイアログ（設定 → 孤児ファイルの棚卸し / 隔離の管理 / 参照元を掃除）を
-    **クリックせずに開いた直後 Escape** で閉じること（B2・B3 は前提不足なら開かない旨を報告）
-  - **A2** = 群 A の 4 経路（Action / Trigger / KeymapEdit / Preset）で
-    ①通常時 Escape で閉じる ②記録中 / 取得中の Escape は**停止のみで窓が残る** ③再度 Escape で閉じる
-  - **C** = フォーカス復帰の再現確認（内側を閉じた後 / 最小化復帰後に外側で Escape が効くか）。
-    **再現したら `/idea` で起票**（本フェーズでは直さない）
-- 目視後: **task_06 を `/task_new` で起票して実施**（正本反映）。内容 =
-  `features.md`「モーダルダイアログの作法」へ **3 条項**（フォーカス / Escape / Esc の別用途優先）/
-  `codebase_map.md` の `modal.py` 節（`:303`〜）の署名更新 + **「13 箇所」→「15 箇所」訂正** /
-  **暫定仕様 22 の凍結** / `decisions_archive/28` 作成 / `current.md` 更新 /
-  **idea_26・idea_18 を `backlog/INDEX_done.md` へ移動** / `/refactor_check` 実行。
-- **main へのマージはユーザーが行う**（main は phase 18 task_05d まで取り込み済）。
+- **task_06 を `/task_new` で起票して実施**（正本反映・フェーズ最終タスク）。内容 =
+  `features.md`「モーダルダイアログの作法」へ **3 条項**（フォーカス / Escape / Esc の別用途優先。
+  文言は暫定仕様 22 §4）/ `codebase_map.md` の `modal.py` 節（`:303`〜）の署名更新
+  `grab_modal(window, parent=None, *, focus=None)` + **「13 箇所」→「15 箇所」訂正** /
+  **暫定仕様 22 の凍結** / `decisions_archive/28_dialog_keyboard_focus.md` 作成 / `current.md` 更新（次採番明記）/
+  **idea_26・idea_18 を `backlog/INDEX_done.md` へ移動** / フェーズ完了判定前の
+  `deep-reviewer` + `codex-adversarial-reviewer` / `/refactor_check` 実行。
+- **main へのマージはユーザーが行う**。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
@@ -78,7 +53,7 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **【phase 28 の設計は暫定仕様 22 が正】**（**v0.5・未凍結・ユーザー確定待ち**。フェーズ中は正本を直接改訂しない）
+- **【phase 28 の設計は暫定仕様 22 が正】**（**v0.6・ユーザー確定済・未凍結〔task_06 で凍結〕**。フェーズ中は正本を直接改訂しない）
   ①実装方式 = **明示引数** `grab_modal(window, parent=None, *, focus=None)`。**省略時は窓自身**。
   **推測型（`focus_lastfor()` / `after_idle`）は実測で反証済**（未マップ時の `focus_set` は Tk 内で保留され
   外から検出できないため、既存の明示指定を奪う）

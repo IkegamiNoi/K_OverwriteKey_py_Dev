@@ -32,7 +32,9 @@
   **§8-7 は Escape family に限定して判定する方針でユーザー確定**し、`after(0)` のフック再開 family は
   **[idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md) へ分離**
   （phase 28 由来でないことを A/B 実測で確認済）。負荷下の Escape family は **6/6 green** で達成。
-  → **実装・検証はすべて完了**。**残る未了は実機目視 1 回のみ → その後 task_06（正本反映）**。
+  → **実装・検証はすべて完了**。**task_05 の実機目視も完了**（2026-09-23・A / A2 / C① 想定どおり・
+  **C② 最小化復帰後のフォーカス未復帰が再現 → [idea_34](../backlog/idea_34_focus_restore_after_minimize.md) 起票**）。
+  **残るのは task_06（正本反映）のみ**。
 - 直前の完了フェーズ = [phase 27](27_keymap_set_load_history/phase.md)（2026-09-22）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。

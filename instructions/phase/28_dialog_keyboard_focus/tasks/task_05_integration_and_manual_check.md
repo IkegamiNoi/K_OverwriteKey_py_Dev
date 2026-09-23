@@ -172,3 +172,19 @@ phase 28 の実装（task_01〜task_04）を**統合確認**し、暫定仕様 2
 - **§8-2 の対応表 / §8-6 の判定 / §8-8 の skip 件数 / §8-10 の再現結果 /
   §8-12・§8-13 の検証結果**を完了報告に載せる。
 - **実機目視は本タスクで実施**（task_06 へ持ち越さない）。§8-10 が再現した場合は idea 起票まで行う。
+
+## 完了記録（2026-09-23）
+
+- **状態 = 完了**。確認 1〜7 は task_05d 完了時の `verifier` 再実行で全 pass（`tests` 556 OK〔skipped 7〕/
+  `tests_ui` 507 OK / 負荷下 Escape family 6/6 / `test_dialog_initial_focus` skip 0 件 / smoke OK /
+  `keyseq` 差分 空）。§8-7 は Escape family に限定（ユーザー確定・`after(0)` family は idea_33 へ分離）。
+- 二次レビュー = `deep-reviewer` + `codex-reviewer`（task_01〜04 の累積差分・判定は decisions.md）。
+  task_05b / 05c / 05d は各 `reviewer` で完了可。
+- **実機目視（ユーザー・2026-09-23）**:
+  - **A**（群 B の 3 ダイアログ）: 想定どおり。
+  - **A2**（群 A の 4 経路）: 想定どおり（①通常時 Escape で閉じる ②記録中 / 取得中は停止のみで窓が残る
+    ③再度 Escape で閉じる。プリセットは①のみ）。§8-12 達成。
+  - **C①**（内側を閉じた後に外側で Escape）: **再現せず**（プリセット管理 → 追加/編集 /
+    履歴 → 分類へコピー… の 2 経路で想定どおり）。
+  - **C②**（最小化から復帰した後に外側で Escape）: **再現**。grab は戻るがフォーカスはメイン窓に残る
+    （`modal.py` の `return_custody` は `grab_set` のみ）。→ **[idea_34](../../../backlog/idea_34_focus_restore_after_minimize.md) を起票**（本フェーズでは直さない・§8-10）。
