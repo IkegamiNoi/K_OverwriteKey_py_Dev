@@ -15,17 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 30 は 2026-09-23 完了〕。
-   次採番 = phase 31 / 暫定 24 / decisions 31 / 提案書 13。次フェーズはユーザー判断・着手時は `/phase_start`）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 31 は 2026-09-24 完了〕。
+   次採番 = phase 32 / 暫定 25 / decisions 32 / 提案書 13。次フェーズはユーザー判断・着手時は `/phase_start`）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜23）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜24）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 30 完了（task_01 + task_02・正本 §5.7 / §5.11 反映・archive/30・idea_27 / 28 クローズ・refactor_check = 推奨→提案書 12 見送り）。次フェーズは未定（ユーザー判断待ち）。**
-直近コミット: `8c25cd1`（phase 30 task_02 = 完了）/ `08de61d`（task_01）/ `ff81f14`（phase 30 起票）/ `f0becc5`（phase 29 完了）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜30 はユーザーがマージする）。
+**phase 31 完了（正本 §5.11.1 / §5.11.5 反映・暫定 24 凍結・archive/31・idea_35 クローズ・refactor_check 不要）。次フェーズは未定（ユーザー判断待ち）。**
+直近コミット: `970ab75`（phase 31 task_03 = 完了）/ `31466fc`（task_02）/ `e247608`（task_01）/ `04213be`（phase 31 起票）/ `8c25cd1`（phase 30 完了）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜31 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,17 +35,17 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 30 完了時点 = 2026-09-23**）:
-compile **clean** / tests **565 実行 OK**（skip 7）/ tests_ui **532 実行 OK**（skip 0）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 29 完了 556 → phase 30 完了 565 / tests_ui: 532 で不変）。
+直近の実測（**phase 31 完了時点 = 2026-09-24**）:
+compile **clean** / tests **577 実行 OK**（skip 7）/ tests_ui **532 実行 OK**（skip 0）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 30 完了 565 → phase 31 完了 577 / tests_ui: 532 で不変）。
 **`tests_ui` と smoke を並行実行しない**（フックの取り合いで 13 件落ちる。逐次で実行する）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
 `keymap_set_history*.json` が生成されていない**ことを確認する。
 
-**【既知の flaky】`tests_ui` 一括でまれに落ちる**: `get_hook_pause_count()` が `1 != 0`
-（例: `test_quarantine_manage_flow` / **`test_dialog_escape_binding` で 3 件まとめて**〔phase 29 task_01 中と phase 30 task_02 で観測・再実行で全 pass〕。
-= [idea_33](../../instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md)・Escape 配送〔idea_18 系統〕とは未切り分け）。
+**【既知の flaky】`tests_ui` 一括でまれに落ちる**: `get_hook_pause_count()` が `1 != 0` / `resume_hook_after_dialog` が 0 回
+（例: `test_quarantine_manage_flow` / **`test_dialog_escape_binding` で 2〜3 件まとめて**〔phase 29・30・31 で計 4 回観測・再実行で全 pass〕。
+= [idea_33](../../instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md)・「再開要求が 0 回」の形は Escape 配送〔idea_18 系統〕の可能性）。
 **赤くなっても まず再実行・単体実行で切り分ける**（1 回で退行と決めない）。
 
 **既知の stderr ノイズ（退行ではない）**: `invalid command name "..._clear_flash_message"`（ステータスバーのタイマー）/
@@ -53,23 +53,22 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 
 ## 次アクション（session.md.next_action より）
 - **main へのマージはユーザーが行う**（ブランチ `claude/idea-27-28-consolidate-3ff723`）。
-- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33 / idea_23、**idea_35 は phase 30 で非文字列 `type` の文字入力経路が増えたため優先度を再評価**）。着手時は `/phase_start`。
+- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33〔tests_ui flaky・`test_dialog_escape_binding` で繰り返し観測〕/ idea_23）。着手時は `/phase_start`。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
-## 直前フェーズ（phase 30 = アクション要素と内部キーの型正規化）の要点
+## 直前フェーズ（phase 31 = 種類が不正なアクションの実行）の要点
 
-**正本が正**: `data_schema.md` §5.7（内部キーのパス値も §5.1 に従う）/ §5.11.1・§5.11.2 + `codebase_map.md`「JSON 読込時の型正規化」節。
-判断は `decisions_archive/30`。**直接改訂モード**（暫定仕様なし）。
+**正本が正**: `data_schema.md` §5.11.1 / §5.11.5 + `codebase_map.md`「アクションの実行」小節。
+判断は `decisions_archive/31`。**暫定仕様先行モード**（暫定 24 は v0.5 で凍結・条項を根拠に引かない）。
 
-- 実装 = `keyseq/domain/config.py` のみ: `normalize_actions` で `type` / `button` を、`ensure_config_compatibility` で
-  内部キーのパス 3 種（`_keymap_source_path` / `_sequence_source_path` / `_trigger_set_source_path`）を、**キーがある場合のみ `coerce_label`**。
-  **読み手（実行・一覧表示・ダイアログ・`save_path_resolution` 等 約 25 箇所）は無修正**。書き手 12 箇所は算出済みの文字列で入口外の混入経路なし（棚卸し済）。
-- **`type` が無い / 空 / 上表以外なら `value` を文字列入力**（現行挙動の明文化）。**非文字列の `type` も今はここへ入る**
-  （以前は `AttributeError` で無送信 → 今は `value` を前面アプリへ文字入力）。完了判定前レビュー high を**ユーザー判断で現状維持**。
-  対処（案 B = エラー通知化 / 案 X = 非文字列要素の除去）は [idea_35](../../instructions/backlog/idea_35_unknown_action_type_handling.md)。
-- 「キーがあれば coerce_label」5 箇所の集約（提案書 12）は**見送り**・`current.md`「別タスク化候補」へ。
-- **教訓**: 「落ちていた入力を空扱いにする」修正は、**落ちていた＝何も送らなかった**入力を**別の実行経路へ流す**ことがある。
-  型正規化の影響は「例外が消える」だけでなく**正規化後の値が通る分岐**まで追う（Codex 敵対的レビューが検出）。
+- 実装 = `ActionExecutor.execute -> bool`（`type` は `isinstance` で非文字列を空扱い）: 無い / 空 / 未知 / 非文字列なら**送らず**
+  `on_action_error`（= `HookController.show_action_error`）へ `type` を文字列化した浅いコピーを渡して `False`。旧 text フォールバックは削除。
+- `SequenceRunner` は `perform_action` の戻り値が **`is False`** のときだけ止める（run_to_end 停止・単発は index を進めない・**位置は不正な行に残る**）。
+  `None` を返す実装（テストの `performed.append`）は従来どおり進む。`App._perform_action` は戻り値を返す。
+- **hotkey / text の送信例外は従来どおり `execute` の外へ抜ける**（`True` を返すのは検証エラー・`x` / `y`〔`to_x` / `to_y`〕不正・mouse_click の送信失敗）。
+- **通知の表示中もフックは止まらない**（§5.11.5・全エラーダイアログ共通の既知の制約）。種類が不正なアクション自体は常に送られない。
+- **教訓**: 正本へ昇格するとき、暫定仕様の条項が**落ちていないか**を突き合わせる（run_to_end の位置の規定が落ち、完了判定前レビューで検出）。
+  また、**レビュー前に完了記録を確定しない**（task_03 の完了条件はレビュー反映後）。
 
 ## 運用インフラ
 
@@ -126,10 +125,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 30_action_and_internal_key_type_coercion / 29_focus_restore_after_minimize / 28_dialog_keyboard_focus）。
-- 着手中 idea: なし。未着手/保留 idea: **idea_35**（空 / 未知 / 非文字列 `type` の文字入力・着手時は暫定仕様先行）/
-  **idea_33**（フック再開 flaky）/ **idea_23**（押す / 離すアクション）/
+  （直近 3 件: 31_unknown_action_type_handling / 30_action_and_internal_key_type_coercion / 29_focus_restore_after_minimize）。
+- 着手中 idea: なし。未着手/保留 idea: **idea_33**（フック再開 flaky）/ **idea_23**（押す / 離すアクション）/
   idea_29〜idea_32 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
-  `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）。
+  `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
+  `_run_to_end_step` の停止 2 行 3 箇所（phase 31・refactor_check 不要）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
