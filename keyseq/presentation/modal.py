@@ -3,8 +3,28 @@
 import tkinter as tk
 
 _active_modals: list[tk.Toplevel] = []
+_opened_while_minimized: list[tk.Toplevel] = []
 _custody_window: tk.Toplevel | None = None
 _app_minimized: bool = False
+
+
+def _restore_modal_focus(app: tk.Misc) -> None:
+    """表示中の台帳内 grab 保持者へ最後のフォーカスを戻す。"""
+    try:
+        window = app.grab_current()
+        if not any(active is window for active in _active_modals):
+            return
+        if any(opened is window for opened in _opened_while_minimized):
+            return
+        if not window.winfo_exists() or not window.winfo_viewable():
+            return
+        target = window.focus_lastfor() or window
+        target.focus_set()
+    except (tk.TclError, KeyError):
+        # 破棄中や tkinter 管理外の名前解決失敗は復元を妨げない。
+        pass
+    finally:
+        _opened_while_minimized.clear()
 
 
 def install_minimize_grab_custody(app: tk.Misc) -> None:
@@ -35,28 +55,31 @@ def install_minimize_grab_custody(app: tk.Misc) -> None:
         if event.widget is not app:
             return
         _app_minimized = False
-        if _custody_window is None:
-            return
-        recorded = _custody_window
-        _custody_window = None
         try:
-            current = app.grab_current()
-        except (tk.TclError, KeyError):
-            return
-        if current is not None:
-            return
-        # 記録窓を優先し、非表示・破棄済みなら台帳の最内から探す。
-        for candidate in (recorded, *reversed(_active_modals)):
+            if _custody_window is None:
+                return
+            recorded = _custody_window
+            _custody_window = None
             try:
-                if not candidate.winfo_exists() or not candidate.winfo_viewable():
+                current = app.grab_current()
+            except (tk.TclError, KeyError):
+                return
+            if current is not None:
+                return
+            # 記録窓を優先し、非表示・破棄済みなら台帳の最内から探す。
+            for candidate in (recorded, *reversed(_active_modals)):
+                try:
+                    if not candidate.winfo_exists() or not candidate.winfo_viewable():
+                        continue
+                except tk.TclError:
                     continue
-            except tk.TclError:
-                continue
-            try:
-                candidate.grab_set()
-            except tk.TclError:
-                pass
-            return
+                try:
+                    candidate.grab_set()
+                except tk.TclError:
+                    pass
+                return
+        finally:
+            app.after_idle(_restore_modal_focus, app)
 
     app.bind("<Unmap>", take_custody, add="+")
     app.bind("<Map>", return_custody, add="+")
@@ -102,6 +125,8 @@ def grab_modal(
     window.grab_set()
     _apply_initial_focus(window, focus)
     _active_modals.append(window)
+    if _app_minimized:
+        _opened_while_minimized.append(window)
     restored = False
 
     def restore_grab(event: tk.Event) -> None:
@@ -110,6 +135,10 @@ def grab_modal(
         if event.widget is not window or restored:
             return
         restored = True
+        for index, opened in enumerate(_opened_while_minimized):
+            if opened is window:
+                del _opened_while_minimized[index]
+                break
         for index, active_modal in enumerate(_active_modals):
             if active_modal is window:
                 del _active_modals[index]

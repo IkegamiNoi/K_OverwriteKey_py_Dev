@@ -2,6 +2,7 @@
 
 from contextlib import ExitStack
 import tkinter as tk
+from tkinter import ttk
 import unittest
 from unittest.mock import patch
 
@@ -24,6 +25,7 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
 
     def setUp(self):
         self._patch(modal, "_active_modals", [])
+        self._patch(modal, "_opened_while_minimized", [])
         self._patch(modal, "_custody_window", None)
         self._patch(modal, "_app_minimized", False)
         self._patch(self.app.hook, "suspend_hook_for_dialog")
@@ -319,3 +321,192 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
             release.assert_not_called()
         self.assertIs(modal._custody_window, dialog)
         self.assertIs(self.app.grab_current(), other)
+
+    def test_b1_custody_restores_value_entry_focus(self):
+        """①: 預かった ActionDialog の具体的な初期欄へ戻す。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        with patch.object(dialog.value_entry, "focus_set", wraps=dialog.value_entry.focus_set) as focus:
+            self._restore_app()
+            focus.assert_called_once_with()
+
+    def test_b2_no_custody_restores_entry_focus(self):
+        """②: transient のない表示中の保持者は預かりなしでも復帰する。"""
+        window = self._track_window(tk.Toplevel(self.app))
+        entry = ttk.Entry(window)
+        entry.pack()
+        self.app.update()
+        modal.grab_modal(window, focus=entry)
+        self.app.update()
+        self.app.iconify()
+        self.app.update()
+        self.assertEqual(self.app.wm_state(), "iconic")
+        self.assertTrue(window.winfo_viewable())
+        self.assertIsNone(modal._custody_window)
+        self.assertIs(self.app.grab_current(), window)
+        with patch.object(entry, "focus_set", wraps=entry.focus_set) as focus:
+            self._restore_app()
+            focus.assert_called_once_with()
+
+    def test_b3_unregistered_grab_holder_does_not_receive_focus(self):
+        """③・⑦: 台帳外の別窓が grab 中ならどちらにも要求しない。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        other = self._track_window(tk.Toplevel(self.app))
+        other.grab_set()
+        self.assertIs(modal._custody_window, dialog)
+        with ExitStack() as patches:
+            focuses = [
+                patches.enter_context(patch.object(widget, "focus_set", wraps=widget.focus_set))
+                for widget in (dialog.value_entry, dialog, other)
+            ]
+            self._restore_app()
+            self.assertIs(self.app.grab_current(), other)
+            for focus in focuses:
+                focus.assert_not_called()
+
+    def test_b4_closed_new_modal_restores_original_entry_focus(self):
+        """④: 最小化中に開閉した子から元の ActionDialog へ戻す。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        child = self._track_window(tk.Toplevel(self.app))
+        modal.grab_modal(child)
+        self.assertTrue(any(opened is child for opened in modal._opened_while_minimized))
+        child.destroy()
+        self.app.update()
+        self.assertFalse(any(opened is child for opened in modal._opened_while_minimized))
+        self.assertIs(modal._custody_window, dialog)
+        with patch.object(dialog.value_entry, "focus_set", wraps=dialog.value_entry.focus_set) as focus:
+            self._restore_app()
+            focus.assert_called_once_with()
+
+    def test_b5_destroyed_holder_and_child_restore_outer_entry_focus(self):
+        """⑤: 預かり窓と新しい子の破棄後は外側の具体的な欄へ戻す。"""
+        action = self._action()
+        holder = self._manager(action)
+        self._minimize(holder)
+        child = self._track_window(tk.Toplevel(self.app))
+        modal.grab_modal(child)
+        holder.destroy()
+        self.assertIs(self.app.grab_current(), child)
+        child.destroy()
+        self.app.update()
+        self.assertIs(modal._custody_window, holder)
+        with patch.object(action.value_entry, "focus_set", wraps=action.value_entry.focus_set) as focus:
+            self._restore_app()
+            self.assertIs(self.app.grab_current(), action)
+            focus.assert_called_once_with()
+
+    def test_b6_unresolved_grab_holder_does_not_receive_focus(self):
+        """⑥: grab 保持者の解決失敗時にはフォーカス要求を出さない。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        with ExitStack() as patches:
+            patches.enter_context(patch.object(self.app, "grab_current", side_effect=KeyError("unknown holder")))
+            focuses = [
+                patches.enter_context(patch.object(widget, "focus_set", wraps=widget.focus_set))
+                for widget in (self.app, dialog, dialog.value_entry)
+            ]
+            self._restore_app()
+            for focus in focuses:
+                focus.assert_not_called()
+
+    def test_b8_modal_opened_while_minimized_keeps_initial_focus_request(self):
+        """⑧: 最小化中に開いた窓の初期要求を復帰処理で上書きしない。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        child = self._track_window(tk.Toplevel(self.app))
+        entry = ttk.Entry(child)
+        entry.pack()
+        modal.grab_modal(child, focus=entry)
+        with ExitStack() as patches:
+            focuses = [
+                patches.enter_context(patch.object(widget, "focus_set", wraps=widget.focus_set))
+                for widget in (entry, child)
+            ]
+            self._restore_app()
+            self.assertIs(self.app.grab_current(), child)
+            for focus in focuses:
+                focus.assert_not_called()
+
+    def test_b11_modal_opened_while_minimized_restores_entry_on_next_restore(self):
+        """⑧の窓を開いたまま再最小化すると、次の復元では entry へ戻す。"""
+        dialog = self._action()
+        self._minimize(dialog)
+        child = self._track_window(tk.Toplevel(self.app))
+        entry = ttk.Entry(child)
+        entry.pack()
+        # 未マップの entry への要求は OS フォーカスの無い環境で保留のまま残るため、先にマップして記録させる。
+        self.app.update()
+        modal.grab_modal(child, focus=entry)
+        self.assertTrue(any(opened is child for opened in modal._opened_while_minimized))
+        with ExitStack() as patches:
+            entry_focus = patches.enter_context(patch.object(
+                entry, "focus_set", wraps=entry.focus_set,
+            ))
+            child_focus = patches.enter_context(patch.object(
+                child, "focus_set", wraps=child.focus_set,
+            ))
+            self._restore_app()
+            self.assertIs(self.app.grab_current(), child)
+            entry_focus.assert_not_called()
+            child_focus.assert_not_called()
+            self.assertEqual(modal._opened_while_minimized, [])
+
+            self.app.iconify()
+            self.app.update()
+            self.assertEqual(self.app.wm_state(), "iconic")
+            self.assertTrue(child.winfo_viewable())
+            self.assertIsNone(modal._custody_window)
+            self.assertIs(self.app.grab_current(), child)
+
+            self._restore_app()
+            self.assertTrue(child.winfo_viewable())
+            self.assertIs(self.app.grab_current(), child)
+            entry_focus.assert_called_once_with()
+            child_focus.assert_not_called()
+
+    def test_b9_restores_last_label_entry_instead_of_initial_entry(self):
+        """⑨: 初期欄から移した最後のフォーカス先を固定して検査する。"""
+        dialog = self._action()
+        dialog.action_label_entry.focus_set()
+        self.app.update()
+        self._minimize(dialog)
+        with ExitStack() as patches:
+            label_focus = patches.enter_context(patch.object(
+                dialog.action_label_entry, "focus_set", wraps=dialog.action_label_entry.focus_set,
+            ))
+            value_focus = patches.enter_context(patch.object(
+                dialog.value_entry, "focus_set", wraps=dialog.value_entry.focus_set,
+            ))
+            self._restore_app()
+            label_focus.assert_called_once_with()
+            value_focus.assert_not_called()
+
+    def test_b10_three_nested_dialogs_restore_only_confirmation_focus(self):
+        """ネスト3段: 最内の上書き確認へだけフォーカスを要求する。
+
+        OS フォーカスが無い環境ではアクティブ化の経路を通らない。最終確認は実機目視。
+        """
+        action = self._action()
+        manager = self._manager(action)
+
+        def check(confirm):
+            self._minimize(confirm)
+            with ExitStack() as patches:
+                confirm_focus = patches.enter_context(patch.object(
+                    confirm, "focus_set", wraps=confirm.focus_set,
+                ))
+                outer_focuses = [
+                    patches.enter_context(patch.object(window, "focus_set", wraps=window.focus_set))
+                    for window in (action, manager)
+                ]
+                self._restore_app()
+                for window in (action, manager, confirm):
+                    self.assertTrue(window.winfo_viewable())
+                self.assertIs(self.app.grab_current(), confirm)
+                confirm_focus.assert_called_once_with()
+                for focus in outer_focuses:
+                    focus.assert_not_called()
+
+        self._with_confirmation(manager, check)

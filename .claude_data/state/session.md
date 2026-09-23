@@ -4,41 +4,46 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T12:00:00
-phase: `instructions/phase/29_focus_restore_after_minimize`（**2026-09-23 起票・task 未着手**）。主入力 = 暫定仕様 23（v0.3・ユーザー確定済）。次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12。
+last_updated: 2026-09-23T15:00:00
+phase: `instructions/phase/29_focus_restore_after_minimize`（**task_01 完了。残りは task_02〔統合確認 + 実機目視〕→ task_03〔正本反映〕**）。主入力 = 暫定仕様 23（**v0.4**・ユーザー確定済）。次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12。
 直前の完了フェーズ = **phase 28**（ダイアログの初期キーボードフォーカス・判断履歴 = `decisions_archive/28_dialog_keyboard_focus.md`。暫定仕様 22 は v0.7 で凍結）。
 last_commit_location: `claude/dialog-escape-key-behavior-548de9`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 29（最小化から復元した後のキーボードフォーカス・idea_34）を起票済。次は task_01（`modal.py` へフォーカス復帰を実装 + 単体検査 ①〜⑨）の起票と実装委任。**
+focus: **phase 29 は task_01 完了（最小化復元時に `after_idle` で最内モーダルの最後のフォーカス先へ `focus_set`）。次は task_02（統合確認 + 実機目視 §6-6 ①〜⑦）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-23T12:00:00
+ts: 2026-09-23T15:00:00
 who: main
 summary: |
-  【暫定仕様 23 起票 → v0.3 ユーザー確定】probe で実測: 何もしないと復元後のフォーカスはメイン窓（C② 再現）/
-  App の `<Map>` 内で即時 `focus_lastfor().focus_set()` すると最内へ戻る（3 段ネストでも中間窓は消えない）/
-  キュー経由の復元（`WM_SYSCOMMAND` + `SC_RESTORE`）では **App の `<FocusIn>` が `<Map>` より先**に届くため
-  `<FocusIn>` 待ち方式は戻らない（反証）/ アプリが OS フォーカスを持たないとき `focus_set` は何も奪わない。
-  起票時 `deep-reviewer`（修正要）→ v0.2 / 確定前 `codex-adversarial-reviewer`（2 件）→ v0.3（最小化中に開いた窓は復帰しない・
-  初期フォーカス先と別の widget で検査）→ **ユーザー確定**（§4 の 3 点は提案どおり: 最小化の条項を API 単位へ言い換え /
-  閉じた後は規定しない / 最小化を伴わない再アクティブ化は対象外）。
-  【phase 29 起票】phase.md（task_01〜03）/ current.md / backlog の idea_34 を着手へ / `reviewer` 整合チェック = 修正して採用（読むファイルの行番号 1 点・修正済）。
+  【task_01 完了】`modal.py`: `_restore_modal_focus` を切り出し、`return_custody` の `finally` で `app.after_idle` へ予約
+  （grab の返却は `<Map>` 内で即時のまま）/ 最小化中に `grab_modal` した窓を `_opened_while_minimized` に記録し、復帰処理の最後で空にする。
+  テスト b1〜b6・b8〜b11（`test_minimize_grab_custody` 23 件）。
+  【v0.4（ユーザー確定）】初回の即時 `focus_set` が実 App の 3 段ネストで外側の窓を非表示のまま残す退行（a2・a3 が検出）→
+  メインが実 App で再現・`after_idle` で解消を確認（素の Tk probe では再現せず）。記録の寿命もその回の復元までに限定。
+  b11 はテストの組み立て（未マップ entry へのフォーカス要求が OS フォーカスの無い環境で保留のまま）で落ちたため、メインが `update()` を 1 行追加。
+  【実測 = verifier】tests 556 OK / tests_ui 519 OK ×3 / 変異検査 5 種すべて狙いどおり赤 / smoke OK。【reviewer】完了可。
 result_files:
-  - instructions/history/23_focus_restore_after_minimize.md（新規・v0.3 確定）
-  - instructions/phase/29_focus_restore_after_minimize/phase.md（新規）
-  - instructions/phase/current.md / instructions/backlog/INDEX.md
+  - keyseq/presentation/modal.py / tests_ui/test_minimize_grab_custody.py
+  - instructions/history/23_focus_restore_after_minimize.md（v0.4）
+  - instructions/phase/29_focus_restore_after_minimize/tasks/task_01_restore_focus_on_map.md（新規・完了記録）
+  - .claude_data/state/decisions.md（phase 29 節）
 verified:
-  production_diff: なし（文書のみ）
+  compile: clean
+  tests: 556 ran OK（skipped 7）
+  tests_ui: 519 ran OK ×3
+  mutation: 5 種すべて狙いどおり赤（即時呼び出しへ戻す → a2・a3・b10 赤）
+  smoke: SMOKE OK
+  review: reviewer = 完了可
 
 ## next_action
-- **task_01 を `/task_new` で起票** → `codex-implementer` へ委任（`modal.py`: `_restore_modal_focus(app)` を切り出し、
-  `return_custody` の全経路の最後で呼ぶ・戻し先 = 復元後の grab 保持者が台帳に同一性で含まれ表示中の窓の `focus_lastfor()`〔無ければ窓自身〕・
-  `focus_set` のみ・`TclError` / `KeyError` を握る・最小化中に `grab_modal` した窓は記録して除外 + `tests_ui/test_minimize_grab_custody.py` へ
-  暫定仕様 §5 ①〜⑨）→ `verifier`（変異検査含む）→ `reviewer`。
-- 以降 task_02（統合確認 + 実機目視 §6-6 ①〜⑦）→ task_03（正本反映・凍結・アーカイブ・refactor_check）。
+- **task_02 を `/task_new` で起票**（統合確認 = `verifier`〔標準検証 + 必要なら実 Tk の到達検査の要否判断〕+ `deep-reviewer` + `codex-reviewer` /
+  **実機目視（ユーザー）= 暫定仕様 23 §6-6 ①〜⑦**: ①Win+D → タスクバー復元 → クリックせず Escape で閉じる ②3 段ネスト
+  〔アクション編集 → プリセットマネージャ → 追加・編集〕で 3 窓とも表示・Escape で 1 つずつ閉じる ③Win+D 2 回目 ④Alt+Tab で最小化中の窓を選ぶ
+  ⑤他アプリ入力中に Win+D 2 回 → 他アプリの入力が奪われない ⑥最小化せず Alt+Tab で戻る → 記録のみ ⑦ラベル欄で入力中に最小化 → 復元後の文字がラベル欄へ）。
+- その後 task_03（正本反映・凍結・`decisions_archive/29`・`current.md`・idea_34 を INDEX_done へ・`/refactor_check`）。
 - **main へのマージはユーザーが行う**。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
