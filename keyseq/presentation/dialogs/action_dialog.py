@@ -27,6 +27,7 @@ class ActionDialog(tk.Toplevel):
 
         # hotkey 記録用
         self._recording = False
+        self._escape_held = False
         self._mods_down = set()   # {"ctrl","shift","alt","windows"}
         self._last_nonmod = None  # 直近の非修飾キー
 
@@ -128,13 +129,20 @@ class ActionDialog(tk.Toplevel):
 
         self._sync_capture_ui()
         self.bind("<Escape>", self._on_escape)
+        self.bind("<KeyRelease-Escape>", self._on_escape_release)
         grab_modal(self, parent, focus=self.value_entry)
 
     def _on_escape(self, _event):
         if self._recording:
             self._stop_recording()
+            self._escape_held = True
+            return "break"
+        if self._escape_held:
             return "break"
         self.destroy()
+
+    def _on_escape_release(self, _event):
+        self._escape_held = False
 
     def on_ok(self):
         t = (self.type_var.get() or "").strip().lower()

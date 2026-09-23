@@ -15,7 +15,7 @@ from keyseq.presentation.dialogs.layout_delete_dialog import LayoutDeleteDialog
 from keyseq.presentation.dialogs.preset_dialog import PresetDialog
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
-from tests_ui.escape_delivery import send_escape
+from tests_ui.escape_delivery import acquire_focus, send_escape
 
 
 class DialogEscapeBindingTest(unittest.TestCase):
@@ -163,8 +163,7 @@ class DialogEscapeBindingTest(unittest.TestCase):
     def _assert_escape_stops_without_closing(self, dialog, state_name, resume):
         self.assertTrue(getattr(dialog, state_name))
         self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
-        dialog.focus_force()
-        self.app.update()
+        acquire_focus(self.app, dialog)
         focused = self.app.focus_get()
         self.assertTrue(
             focused is not None and (
@@ -196,10 +195,68 @@ class DialogEscapeBindingTest(unittest.TestCase):
                     dialog = dialog_class(self.app, title="Escape 停止検査")
                     getattr(dialog, start_name)()
                     self._assert_escape_stops_without_closing(dialog, state_name, resume)
+                    dialog.event_generate("<KeyRelease-Escape>")
+                    self.app.update()
                     send_escape(self, self.app, dialog)
                     self.assertFalse(dialog.winfo_exists())
                     self.app.update()
                     self._assert_group_a_cancelled(dialog)
+                    resume.assert_called_once_with()
+                    self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+
+    def test_group_a_held_escape_stops_then_release_allows_close(self):
+        cases = (
+            (ActionDialog, "_start_recording", "_recording"),
+            (TriggerDialog, "_start_capture", "_capturing"),
+            (KeymapEditDialog, "_start_capture", "_capturing"),
+        )
+        for dialog_class, start_name, state_name in cases:
+            with self.subTest(dialog=dialog_class.__name__):
+                self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+                with patch.object(self.app, "_dialog_result", None, create=True), patch.object(
+                    self.app.hook, "resume_hook_after_dialog",
+                    wraps=self.app.hook.resume_hook_after_dialog,
+                ) as resume:
+                    dialog = dialog_class(self.app, title="Escape 押しっぱなし検査")
+                    getattr(dialog, start_name)()
+                    self._assert_escape_stops_without_closing(dialog, state_name, resume)
+                    acquire_focus(self.app, dialog)
+                    dialog.event_generate("<Escape>")
+                    self.app.update()
+                    self.assertTrue(dialog.winfo_exists())
+                    self.assertFalse(getattr(dialog, state_name))
+                    self._assert_group_a_cancelled(dialog)
+                    resume.assert_not_called()
+                    self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+                    dialog.event_generate("<KeyRelease-Escape>")
+                    self.app.update()
+                    send_escape(self, self.app, dialog)
+                    self.assertFalse(dialog.winfo_exists())
+                    self.app.update()
+                    self._assert_group_a_cancelled(dialog)
+                    resume.assert_called_once_with()
+                    self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+
+    def test_group_a_held_escape_stops_restarted_recording_or_capture(self):
+        cases = (
+            (ActionDialog, "_start_recording", "_recording"),
+            (TriggerDialog, "_start_capture", "_capturing"),
+            (KeymapEditDialog, "_start_capture", "_capturing"),
+        )
+        for dialog_class, start_name, state_name in cases:
+            with self.subTest(dialog=dialog_class.__name__):
+                self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+                with patch.object(self.app, "_dialog_result", None, create=True), patch.object(
+                    self.app.hook, "resume_hook_after_dialog",
+                    wraps=self.app.hook.resume_hook_after_dialog,
+                ) as resume:
+                    dialog = dialog_class(self.app, title="Escape 再開後の停止検査")
+                    getattr(dialog, start_name)()
+                    self._assert_escape_stops_without_closing(dialog, state_name, resume)
+                    getattr(dialog, start_name)()
+                    self._assert_escape_stops_without_closing(dialog, state_name, resume)
+                    dialog.destroy()
+                    self.app.update()
                     resume.assert_called_once_with()
                     self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 

@@ -4,8 +4,10 @@ import time
 import tkinter as tk
 
 
-def _acquire_focus(app, dialog, focus_timeout, progress):
+def acquire_focus(app, dialog, *, focus_timeout=2.0, progress=None):
     """期限まで再試行し、待機中も Tk のイベントを処理する。"""
+    if progress is None:
+        progress = {"attempts": 0}
     deadline = time.monotonic() + focus_timeout
     while time.monotonic() < deadline:
         progress["attempts"] += 1
@@ -32,7 +34,7 @@ def send_escape(test_case, app, dialog, *, focus_timeout=2.0, timeout=2.0):
     progress = {"attempts": 0}
     stage = "focus acquisition"
     try:
-        _acquire_focus(app, dialog, focus_timeout, progress)
+        acquire_focus(app, dialog, focus_timeout=focus_timeout, progress=progress)
 
         stage = "Escape delivery"
         dialog.event_generate("<Escape>")

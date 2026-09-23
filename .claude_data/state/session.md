@@ -4,46 +4,53 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T05:10:00
-phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜05 + task_05b/05c/05d 完了。残りは task_06〔正本反映〕のみ**）。次採番 = phase 29 / 暫定 23 / decisions 29。
+last_updated: 2026-09-23T08:30:00
+phase: `instructions/phase/28_dialog_keyboard_focus`（**task_01〜05 + task_05b〜05e 完了。残りは task_06〔正本反映・フェーズ完了〕のみ**）。次採番 = phase 29 / 暫定 23 / decisions 29。
 直前の完了フェーズ = **phase 27**（構成セットの読み込み履歴管理・2026-09-22 完了。判断履歴 = `decisions_archive/27_keymap_set_load_history.md`。暫定仕様 21 は凍結済）。
 last_commit_location: `claude/dialog-escape-key-behavior-548de9`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 28 は task_05 まで完了（実機目視も済・C② 再現 → idea_34 起票）。残りは task_06（正本反映・フェーズ完了処理）のみ。**
+focus: **phase 28 は task_05e まで完了（押しっぱなし Esc の退行を修正・実機目視 A3 OK）。task_06 の文書は大半を作業ツリーに反映済（未コミット）で、正本への押しっぱなし条項の追記・再凍結・refactor_check の記載・完了判定が残り。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-23T05:10:00
+ts: 2026-09-23T08:30:00
 who: user
 summary: |
-  【実機目視（ユーザー）】**A**（群 B の 3 ダイアログ）/ **A2**（群 A の 4 経路・記録中/取得中の Escape は
-  停止のみ）/ **C①**（内側を閉じた後の外側 Escape。プリセット管理→追加/編集・履歴→分類へコピー…）は
-  **すべて想定どおり**。**C②**（最小化から復帰後の外側 Escape）は**再現**。
-  【C② の原因】`modal.py:33-59` の `return_custody` は復帰時に最内モーダルへ **`grab_set` のみ**で
-  `focus_set` しない（正本 `features.md` §4.6 もモーダル性の復帰しか規定していない）。
-  ユーザーの「復帰時にフォーカスも合わせる仕様」という認識は誤りで、暫定仕様 22 §2.1-4 / §11 どおり
-  スコープ外 → **idea_34 を起票**（本フェーズでは直さない）。
-  【完了判定】**task_05 完了**（確認 1〜7 は task_05d 時の `verifier` 再実行で全 pass・
-  二次レビュー = `deep-reviewer` + `codex-reviewer` 実施済・実機目視受領）。
+  【task_06 の完了判定前レビュー】`deep-reviewer`（条件付き可）+ `codex-adversarial-reviewer`（needs-attention）。
+  採否はユーザー確定（詳細 = `decisions_archive/28` の「フェーズ完了判定レビューの採否」節）:
+  H1 = 正本 Escape 条項を「× と同じ結果で閉じる」へ（動作不変）/ §3.1 の保証時点を正本へ（開く時点の条項・復帰は対象外）/
+  M3 = idea_33 の断定を弱め task_01 を原因候補に / L1・L6・L8 = 文書修正 / **L3 = 押しっぱなし Esc で閉じる退行 → task_05e** /
+  M2 = task_05e へ合流 / L4・L5・L7・L9 = 参考。
+  【暫定仕様 22 v0.7（ユーザー確定）】§2.3 / §3.6.1（判定順 = 記録・取得中 → 印 → 閉じる。`<KeyRelease-Escape>` で印を消す。
+  Windows Tk はリピート中 KeyRelease を挟まないと PostMessage probe で実測）/ §4 文言改訂 / §8-14。敵対的レビューの指摘
+  （印を先に判定すると再開後の Esc が停止に届かない）を反映済。
+  【task_05e 完了】`codex-implementer` 実装 → `verifier` 全 pass（`tests_ui` 509 OK ×2・変異検査 2 種とも赤）→
+  `reviewer` 完了可 → **実機目視 A3 OK**（3 経路）。
 result_files:
-  - instructions/backlog/idea_34_focus_restore_after_minimize.md（新規）+ backlog/INDEX.md
-  - instructions/phase/28_dialog_keyboard_focus/tasks/task_05_integration_and_manual_check.md（完了記録）
-  - instructions/phase/28_dialog_keyboard_focus/phase.md（task_05 完了）
-  - instructions/phase/current.md
+  - keyseq/presentation/dialogs/{action,trigger,keymap_edit}_dialog.py（`_escape_held` + `<KeyRelease-Escape>`）
+  - tests_ui/escape_delivery.py（`acquire_focus` 公開）/ tests_ui/test_dialog_escape_binding.py（+2 テスト）
+  - instructions/history/22_dialog_keyboard_focus.md（v0.7・未凍結）
+  - instructions/phase/28_dialog_keyboard_focus/tasks/task_05e_held_escape_no_close.md（新規・完了記録）/ phase.md
 verified:
-  manual_check: A / A2 / C① OK・C② 再現（→ idea_34）
-  production_diff: なし（文書のみ）
+  compile: clean
+  tests: 556 ran OK（skipped 7）
+  tests_ui: 509 ran OK ×2
+  mutation: 印の分岐除去 → 押しっぱなし 3 赤 / 判定順逆転 → 再開 3 赤
+  smoke: SMOKE OK
+  review: reviewer = 完了可
+  manual_check: A3 OK（3 経路）
 
 ## next_action
-- **task_06 を `/task_new` で起票して実施**（正本反映・フェーズ最終タスク）。内容 =
-  `features.md`「モーダルダイアログの作法」へ **3 条項**（フォーカス / Escape / Esc の別用途優先。
-  文言は暫定仕様 22 §4）/ `codebase_map.md` の `modal.py` 節（`:303`〜）の署名更新
-  `grab_modal(window, parent=None, *, focus=None)` + **「13 箇所」→「15 箇所」訂正** /
-  **暫定仕様 22 の凍結** / `decisions_archive/28_dialog_keyboard_focus.md` 作成 / `current.md` 更新（次採番明記）/
-  **idea_26・idea_18 を `backlog/INDEX_done.md` へ移動** / フェーズ完了判定前の
-  `deep-reviewer` + `codex-adversarial-reviewer` / `/refactor_check` 実行。
+- **task_06 の仕上げ**（`instructions/phase/28_dialog_keyboard_focus/tasks/task_06_spec_promotion_and_close.md`）。
+  **作業ツリーに未コミットで反映済**: `features.md` 4 項目（v0.7 §4 の文言 1・2 反映済）/ `codebase_map.md` の `modal.py` 節 /
+  `decisions_archive/28`（新規）+ `decisions.md` 索引 / `current.md` / `backlog/INDEX.md`・`INDEX_done.md`（idea_18・26 移動）/
+  idea_33 補記 / task_06 定義。**残り**: ①`features.md` の Esc 別用途条項へ「押しっぱなしでも閉じない」を追記（v0.7 §4）
+  ②`codebase_map.md` に `_escape_held` / `<KeyRelease-Escape>` を 1 行 ③暫定仕様 22 を v0.7 で再凍結
+  ④`/refactor_check` を task_05e 込みで再測定（`verifier`・PHASE_BASE `60372bf`）→ 判定を `decisions_archive/28` 末尾へ
+  （task_05e 前の判定 = 不要〔M3 は既知 + `_on_escape` 3 件は非該当〕）⑤`decisions_archive/28` に task_05e を追記
+  ⑥`current.md`・`phase.md` の完了記載 ⑦標準検証（`verifier`）⑧完了判定 → コミット。
 - **main へのマージはユーザーが行う**。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。

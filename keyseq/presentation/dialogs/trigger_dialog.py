@@ -21,6 +21,7 @@ class TriggerDialog(tk.Toplevel):
         self.resizable(False, False)
         self.result = None
         self._capturing = False
+        self._escape_held = False
         
         # 編集中の誤爆防止
         self.parent.hook.suspend_hook_for_dialog(self)
@@ -50,13 +51,20 @@ class TriggerDialog(tk.Toplevel):
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
         self.bind("<Escape>", self._on_escape)
+        self.bind("<KeyRelease-Escape>", self._on_escape_release)
         grab_modal(self, parent, focus=self.key_entry)
 
     def _on_escape(self, _event):
         if getattr(self, "_capturing", False):
             self._stop_capture()
+            self._escape_held = True
+            return "break"
+        if self._escape_held:
             return "break"
         self.destroy()
+
+    def _on_escape_release(self, _event):
+        self._escape_held = False
 
     def _ok(self):
         key = normalize_key_name(self.key_var.get())
