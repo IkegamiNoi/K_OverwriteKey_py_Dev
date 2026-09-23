@@ -82,8 +82,10 @@ production を触るため仕様変更フローが必要。
 
 ## 状態
 
-**着手**（→ [phase 32](../phase/32_hook_resume_wait_in_ui_tests/phase.md)・2026-09-24。案 A・適用範囲は破棄後の解除を確かめる箇所すべて・
-原因の A/B 測定はしない〔ユーザー確定〕。`test_dialog_escape_binding.py` の「再開要求 0 回」は `send_escape` が破棄を確認した後の失敗のため
+**完了**（[phase 32](../phase/32_hook_resume_wait_in_ui_tests/phase.md)・2026-09-24。判断は
+[decisions_archive/32](../../.claude_data/state/decisions_archive/32_hook_resume_wait_in_ui_tests.md)）。
+案 A = `tests_ui/hook_resume_wait.py` の `wait_for_hook_pause_count` を tests_ui 7 ファイルへ適用し、負荷下の反復実行で赤 0 件。
+適用範囲は破棄後の解除を確かめる箇所すべて・原因の A/B 測定はしない〔ユーザー確定〕。`test_dialog_escape_binding.py` の「再開要求 0 回」は `send_escape` が破棄を確認した後の失敗のため
 **idea_18 系統ではなく本 family**〔2026-09-24 確認〕）。
 2026-09-23 起票。phase 28 task_05 の §8-7 判定から分離（ユーザー判断 2026-09-23 =
 「§8-7 は Escape family に限定して判定し、本 family は idea 化する」）。

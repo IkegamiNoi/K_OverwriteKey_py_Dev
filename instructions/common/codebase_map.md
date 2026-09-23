@@ -299,6 +299,9 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
   - **`suspend_hook_for_dialog(window)` はウィンドウを渡すと破棄時に自動で解除する**
     （渡さなければ呼び出し側が解除する＝try/finally 形）。
     `features.md` §4.6「モーダルダイアログの作法」/ `key_input.md` §7.2。
+    破棄時の解除は `<Destroy>` から **`after(0)` で予約**される（即時ではない）。**テストで破棄後の解除を確かめるときは
+    `tests_ui/hook_resume_wait.py` の `wait_for_hook_pause_count`**（`update()` を回して実時間の期限まで待つ。`update()` 1 回では負荷下で取りこぼす）。
+    破棄直後の未解除・解除が起きないこと・同期解除の確認には使わない（phase 32）。
   - **アプリ終了が確定したらフックを再開しない**（終了ガード。解除経路によらず効く）。
 - listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）
 - modal.py（presentation 直下）: `grab_modal(window, parent=None, *, focus=None)` = モーダル化・

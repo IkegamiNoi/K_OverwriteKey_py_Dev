@@ -28,7 +28,7 @@ UI テストでのフック再開の待ち合わせ（hook_resume_wait_in_ui_tes
 - **原因の A/B 測定（`60372bf` 対 `08ace46`）は行わない**（仕組みはコードで特定済み・測定はノイズが大きい）。
 - 事実確認（2026-09-24）: `test_dialog_escape_binding.py` の「`resume_hook_after_dialog` が 0 回」は、
   `send_escape` が破棄を待ち `assertFalse(dialog.winfo_exists())` も通った後の失敗
-  （`tests_ui/test_dialog_escape_binding.py:84-89`）。**Escape 配送（idea_18 系統）ではなく本 family**。
+  （`tests_ui/test_dialog_escape_binding.py:84-89`・a1f1323 時点）。**Escape 配送（idea_18 系統）ではなく本 family**。
 
 ## スコープ
 
@@ -65,7 +65,7 @@ UI テストでのフック再開の待ち合わせ（hook_resume_wait_in_ui_tes
 - task_01: 待つヘルパ + ヘルパ自身の決定的テスト + 観測済み 5 ファイルへの適用 — **完了**（2026-09-24）
 - task_02: 残り 3 ファイル（`test_app_ui_flows.py` / `test_hook_controller_teardown.py` / `test_startup_font_characterization.py`）への適用 +
   負荷下での tests_ui 反復実行（1 回の測定で完了判定の材料にする）— **完了**（2026-09-24）
-- task_03: 記録（`codebase_map.md` へヘルパを 1〜2 行 / decisions_archive/32 / current.md / idea_33 → INDEX_done / `/refactor_check`）
+- task_03: 記録（`codebase_map.md` へヘルパを 1〜2 行 / decisions_archive/32 / current.md / idea_33 → INDEX_done / `/refactor_check`） — **完了**（2026-09-24）
 
 ## レビュー方針
 

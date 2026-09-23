@@ -4,41 +4,42 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-24T02:10:00
-phase: `instructions/phase/32_hook_resume_wait_in_ui_tests`（2026-09-24 起票・直接改訂モード・暫定なし・decisions 32）。次採番 = phase 33 / 暫定 25 / decisions 33 / 提案書 13。
-直前の完了フェーズ = **phase 31**（種類が不正なアクションの実行・判断履歴 = `decisions_archive/31_unknown_action_type_handling.md`。暫定 24 は v0.5 で凍結）。
+last_updated: 2026-09-24T03:10:00
+phase: なし（**phase 32 = `instructions/phase/32_hook_resume_wait_in_ui_tests` は 2026-09-24 完了**。アクティブなフェーズ無し）。次採番 = phase 33 / 暫定 25 / decisions 33 / 提案書 13。
+直前の完了フェーズ = **phase 32**（UI テストでのフック再開の待ち合わせ・判断履歴 = `decisions_archive/32_hook_resume_wait_in_ui_tests.md`。テストのみ・production 不変）。
 last_commit_location: `claude/idea-33-2186d2`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 32 task_02 完了（残り 2 ファイルへ適用・負荷下で本 family の赤 0 件）。次は task_03（記録・idea_33 クローズ・完了判定前レビュー・/refactor_check）。**
-mode: implementing
+focus: **phase 32 完了（tests_ui のフック再開を `wait_for_hook_pause_count` で待つ・production 不変・idea_33 クローズ・refactor_check スキップ）。次フェーズは未定（ユーザー判断待ち）。**
+mode: completed
 
 ## last_action
-ts: 2026-09-24T02:40:00
+ts: 2026-09-24T03:10:00
 who: main
 summary: |
-  【task_02 完了】task 定義起票 → codex-implementer → verifier（負荷あり）+ reviewer。tests_ui 限定・production 不変。
-  置換 = `test_app_ui_flows.py`（元 :1331-1332 / :1953-1954 / :1960-1962）/ `test_hook_controller_teardown.py`（`wait_pause_count` を追加し SimpleNamespace で
-  `self.hook` を渡す・元 :56-57 / :91-92 / :106〔期待値 1〕/ :113-114 / :123-124）。`test_startup_font_characterization.py` は同期解除のみで**変更なし**。
-  【負荷測定】`while True: pass` × 4 下で 9 モジュール一括 × 6 回（各 172 件 OK）+ tests_ui 全体 × 1 回（535 OK）= **本 family の赤 0 件・他の fail も 0 件**。
-  【reviewer】完了可（指摘なし）。
+  【task_03 完了 = phase 32 完了】`codebase_map.md`（HookController 節に 3 行）/ decisions_archive/32 + decisions.md 索引 / current.md（アクティブなし・次採番 33・
+  テスト負債の idea_33 行を削除）/ idea_33 → INDEX_done / phase.md。正本 spec_detail の改訂なし。
+  【refactor_check】スキップ（`keyseq/` の変更 0 件）。
+  【完了判定前レビュー】codex-adversarial = approve / deep-reviewer = 完了可（medium 2・low 6・文書のみ）→ **ユーザー確認のうえ M1・M2・L3〜L6 を反映**
+  （M1 = handoff.md の「数える前に `app.update()` を挟む」を `wait_for_hook_pause_count` へ書き換え）。L7 保留・L8 見送り。
 result_files:
-  - tests_ui/test_app_ui_flows.py / tests_ui/test_hook_controller_teardown.py
-  - instructions/phase/32_hook_resume_wait_in_ui_tests/{phase.md, tasks/task_02_remaining_files_and_load_run.md}
+  - instructions/common/codebase_map.md / instructions/phase/current.md / instructions/phase/32_hook_resume_wait_in_ui_tests/{phase.md, tasks/task_03_records_and_close.md}
+  - .claude_data/state/decisions_archive/32_hook_resume_wait_in_ui_tests.md（新規）/ .claude_data/state/decisions.md / .claude_data/state/handoff.md
+  - instructions/backlog/INDEX.md / INDEX_done.md / idea_33_hook_resume_after_idle_flaky_test.md
 verified:
   compile: clean
   tests: 577 ran OK（skipped 7）
-  tests_ui: 535 ran OK（負荷なし 1 回・負荷下 1 回とも）
+  tests_ui: 535 ran OK（負荷なし・負荷下とも）
   load_run: 9 モジュール × 6 回 全 OK
   smoke: SMOKE OK
-  production_diff: 0
-  review: reviewer 完了可
+  production_diff: 0（phase 全体）
+  review: task 単位 reviewer 完了可 ×2 / 完了判定前 codex-adversarial approve + deep-reviewer 完了可（指摘反映・ユーザー承認）
+  refactor_check: スキップ（keyseq/ 変更なし）
 
 ## next_action
-- `/task_new` で `instructions/phase/32_hook_resume_wait_in_ui_tests/tasks/task_03_*.md` を起票（`codebase_map.md` の tests_ui ヘルパ記載〔:318-330 付近〕へ
-  `hook_resume_wait.py` を 1〜2 行 / `decisions_archive/32_hook_resume_wait_in_ui_tests.md` + decisions.md 索引 / current.md 完了記載 / idea_33 → INDEX_done /
-  current.md「別タスク化候補 > テスト負債」の idea_33 行を削除）→ 完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）→ `/refactor_check`。
+- `/save_handoff` で handoff.md を phase 32 完了時点へ再生成。
+- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_23）。着手時は `/phase_start`。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜32）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
@@ -55,7 +56,8 @@ verified:
   `bind_escape_close`（判定順 = 記録・取得中 → 押しっぱなしの印 → 閉じる。印は `<KeyRelease-Escape>` で消す）
   ③**テストで Escape を送るときは `tests_ui/escape_delivery.py` の `send_escape` / `acquire_focus`**（`focus_force()` + `event_generate` の
   直書きはフォーカスの欠落を隠し、負荷下で flaky）。初期フォーカスの欠落を検出するのは `test_dialog_initial_focus.py` だけ
-  ④**`tests_ui` 一括でまれに `get_hook_pause_count()` が `1 != 0`** になるのは idea_33 の family（Escape 配送ではない。単体では pass）。
+  ④**破棄後のフック解除を確かめるときは `tests_ui/hook_resume_wait.py` の `wait_for_hook_pause_count`**（解除は `after(0)` 予約で、
+  `update()` 1 回では負荷下で取りこぼし `1 != 0` になる＝idea_33・phase 32 で解消）。破棄直後の未解除・解除が起きないこと・同期解除の確認には使わない。
 - **【phase 27 の成果は正本が正】構成セットの読み込み履歴 = `spec_detail/data_schema.md` **§5.12**（新設・
   5.12.1〜5.12.8）+ §5.4 / `features.md` §4.6 / `codebase_map.md`。**暫定仕様 21 は凍結済で条項の根拠に引かない**。
   要点 = ①記録契機 = **読込または保存が成功し空でないパスが確定したとき、その実保存先**

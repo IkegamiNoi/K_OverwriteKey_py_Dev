@@ -7,17 +7,14 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 32](32_hook_resume_wait_in_ui_tests/phase.md)**（2026-09-24 起票・UI テストでのフック再開の待ち合わせ）。
-  ダイアログ破棄後のフック再開（`after(0)` 予約）を tests_ui が `update()` 1 回で確かめて負荷下で赤くなる問題を、
-  **実時間の期限つきで待つヘルパ**へ置き換えて解消する。**tests_ui 限定・production 不変・正本改訂なし**。
-  確定（ユーザー 2026-09-24）= 案 A / 適用範囲は破棄後の解除を確かめる箇所すべて / 原因の A/B 測定はしない。
-  起票元 [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)。直接改訂モード・番号対応 phase 32 / 暫定 なし / decisions 32。
-- 直前の完了フェーズ = [phase 31](31_unknown_action_type_handling/phase.md)（2026-09-24・種類が不正なアクションの実行・
-  判断は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md)）/
-  [phase 30](30_action_and_internal_key_type_coercion/phase.md)（2026-09-23・アクション要素と内部キーの型正規化・
-  判断は [decisions_archive/30](../../.claude_data/state/decisions_archive/30_action_and_internal_key_type_coercion.md)）。
+- **アクティブなフェーズ = なし**（phase 32 は 2026-09-24 完了。次に着手するフェーズは `/phase_start` で起票する）。
+- 直前の完了フェーズ = [phase 32](32_hook_resume_wait_in_ui_tests/phase.md)（2026-09-24・UI テストでのフック再開の待ち合わせ・
+  判断は [decisions_archive/32](../../.claude_data/state/decisions_archive/32_hook_resume_wait_in_ui_tests.md)）/
+  [phase 31](31_unknown_action_type_handling/phase.md)（2026-09-24・種類が不正なアクションの実行・
+  判断は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
+- phase 32 は**テスト基盤の単発**（tests_ui のフック再開を `tests_ui/hook_resume_wait.py` で待つ・production 不変）で、下記の領域とは独立。
 - **直近の一連の作業が扱っている領域 = JSON の型不正とアクションの実行**（phase 23・24・25・30・31）。
   正本は `data_schema.md` §5.1「**型不正の共通規則**」（非文字列は空扱い・成立しない要素は除去）+
   §5.5 / §5.7（パス系・内部キー）/ §5.11（アクション要素の全経路正規化〔phase 23〕・`label` / `type` / `button`・
@@ -41,7 +38,7 @@
 ## 次採番
 
 - **phase 31 は 2026-09-24 完了**（`31_unknown_action_type_handling` / 暫定 24〔v0.5・凍結〕/ decisions 31〔アーカイブ済〕）。
-  **phase 32 は 2026-09-24 起票**（`32_hook_resume_wait_in_ui_tests` / 暫定なし〔直接改訂モード〕/ decisions 32）。
+  **phase 32 は 2026-09-24 完了**（`32_hook_resume_wait_in_ui_tests` / 暫定なし〔直接改訂モード〕/ decisions 32〔アーカイブ済〕）。
   次フェーズは **`33_<topic>`**・decisions も **33** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -197,8 +194,6 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   **非呼び出し**を固定していない / ドラッグ 4 キーの**ファイル層での永続化往復**テストが無い（phase 22 由来）
 - `tests_ui/test_full_view_header_width.py` / `test_header_button_widths.py` は保存予約の遅延を
   延ばしていない（現状は予約取消で実害なし・揺れたら phase 19 task_03 と同じ対処）（phase 19 由来）
-- ダイアログ破棄後のフック再開（`after(0)`）の負荷下 flaky は
-  [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（**phase 32 で着手**。Escape 配送の flaky = idea_18 は phase 28 で解消）
 
 ### レビュー保留（判断待ち・判断は decisions_archive が正）
 
