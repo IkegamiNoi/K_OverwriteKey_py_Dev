@@ -4,45 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-24T01:30:03
-phase: なし（**phase 31 = `instructions/phase/31_unknown_action_type_handling` は 2026-09-24 完了**。アクティブなフェーズ無し）。次採番 = phase 32 / 暫定 25 / decisions 32 / 提案書 13。
+last_updated: 2026-09-24T01:50:00
+phase: `instructions/phase/32_hook_resume_wait_in_ui_tests`（2026-09-24 起票・直接改訂モード・暫定なし・decisions 32）。次採番 = phase 33 / 暫定 25 / decisions 33 / 提案書 13。
 直前の完了フェーズ = **phase 31**（種類が不正なアクションの実行・判断履歴 = `decisions_archive/31_unknown_action_type_handling.md`。暫定 24 は v0.5 で凍結）。
-last_commit_location: `claude/idea-27-28-consolidate-3ff723`
+last_commit_location: `claude/idea-33-2186d2`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 31 完了（正本 §5.11.1 / §5.11.5 反映・暫定 24 凍結・archive/31・idea_35 クローズ・refactor_check 不要）。次フェーズは未定（ユーザー判断待ち）。**
-mode: completed
+focus: **phase 32 起票済（idea_33・tests_ui のフック再開を実時間期限つきで待つヘルパへ置き換え・production 不変）。次は task_01 の起票と実装。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-24T01:30:03
+ts: 2026-09-24T01:50:00
 who: main
 summary: |
-  【task_03 完了 = phase 31 完了】正本 `data_schema.md` §5.11.1（無い / 空 / 未知 / 非文字列の `type` は送らず通知・シーケンスは止まり位置は不正な行に残る・
-  §5.1 意味変更の例外注記）/ §5.11.5（通知表示中もフックは止まらない）+ `codebase_map.md`「アクションの実行」小節 / 暫定 24 凍結 /
-  archive/31 / current.md / idea_35 → INDEX_done。
-  【refactor_check】不要（M3 境界 = `_run_to_end_step` の停止 2 行が 3 箇所・迷えば非該当）→ 別タスク化候補へ 1 行。
-  【完了判定前レビュー】codex-adversarial = approve / deep-reviewer = 文書の修正要 → **ユーザー確認のうえ M1〜M3・L1・L2・L5・L6 を反映**
-  （M1 = hotkey / text の送信例外は `execute` の外へ抜ける〔「送信例外も True」は誤り〕/ M2 = run_to_end も位置は不正な行に残る）。L3・L4 は保留・参考。
+  【phase 32 起票】`/phase_start` で `32_hook_resume_wait_in_ui_tests/phase.md` を作成・current.md（参照先の先頭・次採番 33・候補から idea_33 を外す）・
+  backlog INDEX / idea_33 を「着手」へ。
+  【ユーザー確定 2026-09-24】案 A（実時間期限つきで待つヘルパ）/ 適用範囲 = 破棄後の解除を確かめる箇所すべて（tests_ui 8 ファイル）/ 原因の A/B 測定はしない。
+  【事実確認】`test_dialog_escape_binding.py:84-89` の「再開要求 0 回」は `send_escape` が破棄を確認した後の失敗 = idea_18 系統ではなく本 family。
+  【整合チェック】reviewer = 完了可（参考指摘 = `after(0)` の行は `hook_controller.py:57` → phase.md / idea_33 を修正済）。
 result_files:
-  - instructions/common/spec_detail/data_schema.md（§5.11.1 / §5.11.5）/ instructions/common/codebase_map.md
-  - instructions/history/24_unknown_action_type_handling.md（凍結）
-  - .claude_data/state/decisions_archive/31_unknown_action_type_handling.md（新規）/ .claude_data/state/decisions.md
-  - instructions/phase/current.md / instructions/phase/31_unknown_action_type_handling/{phase.md, tasks/task_01〜03}
-  - instructions/backlog/INDEX.md / INDEX_done.md
+  - instructions/phase/32_hook_resume_wait_in_ui_tests/phase.md（新規）
+  - instructions/phase/current.md / instructions/backlog/INDEX.md / instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md
 verified:
-  compile: clean
-  tests: 577 ran OK（skipped 7）
-  tests_ui: 532 ran OK（task_02 時点。1 回目 flaky → 再実行で全 pass）
-  smoke: SMOKE OK
-  review: task 単位 reviewer 完了可 ×2 / 完了判定前 codex-adversarial approve + deep-reviewer 指摘反映（ユーザー承認）
-  refactor_check: 不要
-  code_diff_since_task_02: 0
-  links: OK
+  code_diff: 0（文書のみ）
+  review: phase.md 整合チェック reviewer 完了可
 
 ## next_action
-- **main へのマージはユーザーが行う**（ブランチ `claude/idea-27-28-consolidate-3ff723`）。
-- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_33〔tests_ui flaky・`test_dialog_escape_binding` で繰り返し観測〕/ idea_23）。着手時は `/phase_start`。
+- `/task_new` で `instructions/phase/32_hook_resume_wait_in_ui_tests/tasks/task_01_*.md` を起票（待つヘルパ + ヘルパ自身の決定的テスト + 観測済み 5 ファイルへの適用。
+  置き換え対象外 = 破棄直後の未解除確認 / `setUp` ドレイン検査 / 解除が起きないことの確認・phase.md「含まない」節）→ `codex-implementer` へ実装委任 → `verifier` で tests_ui 実測 → `reviewer`。
+- **main へのマージはユーザーが行う**（phase 18 残り・19〜32）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
 ## blockers

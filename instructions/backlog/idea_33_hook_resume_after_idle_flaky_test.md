@@ -3,7 +3,7 @@
 ## 概要
 
 ダイアログを閉じたときのフック再開は `<Destroy>` を受けて
-[hook_controller.py:54](../../keyseq/presentation/controllers/hook_controller.py) の
+[hook_controller.py:57](../../keyseq/presentation/controllers/hook_controller.py) の
 `self._app.after(0, self.resume_hook_after_dialog)` で**予約**される（即実行ではない）。
 テストは `app.update()` を 1 回呼んでから `get_hook_pause_count()` を確かめるが、
 `update()` は**今キューにあるイベントを処理して即戻る**ため、CPU 負荷下ではこのタイマー
@@ -82,7 +82,9 @@ production を触るため仕様変更フローが必要。
 
 ## 状態
 
-未着手（検討段階・**テストのみ・production 不変**・優先度中）。
+**着手**（→ [phase 32](../phase/32_hook_resume_wait_in_ui_tests/phase.md)・2026-09-24。案 A・適用範囲は破棄後の解除を確かめる箇所すべて・
+原因の A/B 測定はしない〔ユーザー確定〕。`test_dialog_escape_binding.py` の「再開要求 0 回」は `send_escape` が破棄を確認した後の失敗のため
+**idea_18 系統ではなく本 family**〔2026-09-24 確認〕）。
 2026-09-23 起票。phase 28 task_05 の §8-7 判定から分離（ユーザー判断 2026-09-23 =
 「§8-7 は Escape family に限定して判定し、本 family は idea 化する」）。
 着手時は**まず負荷条件を制御できる測定手順を固める**ところから（今回の測定はノイズが大きく、

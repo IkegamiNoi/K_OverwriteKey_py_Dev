@@ -7,7 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 31 は 2026-09-24 完了。次に着手するフェーズは `/phase_start` で起票する）。
+- **アクティブなフェーズ = [phase 32](32_hook_resume_wait_in_ui_tests/phase.md)**（2026-09-24 起票・UI テストでのフック再開の待ち合わせ）。
+  ダイアログ破棄後のフック再開（`after(0)` 予約）を tests_ui が `update()` 1 回で確かめて負荷下で赤くなる問題を、
+  **実時間の期限つきで待つヘルパ**へ置き換えて解消する。**tests_ui 限定・production 不変・正本改訂なし**。
+  確定（ユーザー 2026-09-24）= 案 A / 適用範囲は破棄後の解除を確かめる箇所すべて / 原因の A/B 測定はしない。
+  起票元 [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)。直接改訂モード・番号対応 phase 32 / 暫定 なし / decisions 32。
 - 直前の完了フェーズ = [phase 31](31_unknown_action_type_handling/phase.md)（2026-09-24・種類が不正なアクションの実行・
   判断は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md)）/
   [phase 30](30_action_and_internal_key_type_coercion/phase.md)（2026-09-23・アクション要素と内部キーの型正規化・
@@ -37,7 +41,8 @@
 ## 次採番
 
 - **phase 31 は 2026-09-24 完了**（`31_unknown_action_type_handling` / 暫定 24〔v0.5・凍結〕/ decisions 31〔アーカイブ済〕）。
-  次フェーズは **`32_<topic>`**・decisions も **32** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 32 は 2026-09-24 起票**（`32_hook_resume_wait_in_ui_tests` / 暫定なし〔直接改訂モード〕/ decisions 32）。
+  次フェーズは **`33_<topic>`**・decisions も **33** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -74,8 +79,6 @@
 （`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする。
 **完了した候補の履歴はここに残さない**〔完了 idea は `backlog/INDEX_done.md` が正〕）
 
-- [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（`after(0)` のフック再開が負荷下で拾われず
-  後続テストが連鎖して落ちる・**テストのみ**・phase 28 から分離）
 - [idea_23](../backlog/idea_23_key_press_release_actions.md)（キーを押す / 離すアクションの追加。
   2026-09-18 ユーザー要望・優先度低）
 
@@ -195,7 +198,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 - `tests_ui/test_full_view_header_width.py` / `test_header_button_widths.py` は保存予約の遅延を
   延ばしていない（現状は予約取消で実害なし・揺れたら phase 19 task_03 と同じ対処）（phase 19 由来）
 - ダイアログ破棄後のフック再開（`after(0)`）の負荷下 flaky は
-  [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（Escape 配送の flaky = idea_18 は phase 28 で解消）
+  [idea_33](../backlog/idea_33_hook_resume_after_idle_flaky_test.md)（**phase 32 で着手**。Escape 配送の flaky = idea_18 は phase 28 で解消）
 
 ### レビュー保留（判断待ち・判断は decisions_archive が正）
 
