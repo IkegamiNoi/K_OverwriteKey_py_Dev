@@ -9,6 +9,7 @@ from pathlib import Path
 from tkinter import ttk
 from unittest.mock import Mock, patch
 from tests_ui.escape_delivery import send_escape
+from tests_ui.hook_resume_wait import wait_for_hook_pause_count
 
 from keyseq.application.config_service.contracts import (
     KIND_KEYMAP, ORPHAN_CANDIDATE, ORPHAN_PROTECTED, ORPHAN_REFERENCED,
@@ -519,16 +520,14 @@ class OrphanSweepDialogTest(unittest.TestCase):
         self.assertEqual(dialog.scan_dirs, ("two",))
 
     def test_run_empty_list_sets_result_and_resumes_hook(self):
-        self.app.update()  # 先行テストが残した解除予約を流す
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        wait_for_hook_pause_count(self, self.app, 0)  # 先行テストが残した解除予約を流す
         dialog = self._dialog(())
         self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
         self.assertFalse(dialog.result)
         dialog._run()
         self.assertTrue(dialog.result)
         self.assertEqual(dialog.scan_dirs, ())
-        self.app.update()
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        wait_for_hook_pause_count(self, self.app, 0)
 
     def test_escape_and_window_close_keep_result_false(self):
         for close in ("escape", "window"):

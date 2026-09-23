@@ -6,6 +6,7 @@ from tkinter import messagebox
 import unittest
 from unittest.mock import patch
 from tests_ui.escape_delivery import send_escape
+from tests_ui.hook_resume_wait import wait_for_hook_pause_count
 
 from keyseq.presentation.app import App
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
@@ -88,8 +89,7 @@ class DialogTeardownFlowsTest(unittest.TestCase):
         self._patch(self.app.hook, "start_hook")
         for dialog_class in (PresetManagerDialog, ActionDialog):
             with self.subTest(dialog=dialog_class.__name__):
-                self.app.update()
-                self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+                wait_for_hook_pause_count(self, self.app, 0)
                 self.app.hook.hook_active = True
                 dialog = dialog_class(self.app, title="解除確認")
                 self.addCleanup(self.cleanup_window, dialog)
@@ -98,8 +98,7 @@ class DialogTeardownFlowsTest(unittest.TestCase):
                 self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
                 dialog.tk.call("destroy", str(dialog))
                 self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
-                self.app.update()
-                self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+                wait_for_hook_pause_count(self, self.app, 0)
 
     def test_t2_close_paths_resume_exactly_once(self):
         """T2 / §7-2: 代表2クラスの OK / キャンセル / destroy / ×。"""
@@ -112,8 +111,7 @@ class DialogTeardownFlowsTest(unittest.TestCase):
         for dialog_class in (PresetManagerDialog, ActionDialog):
             for route in ("OK", "キャンセル", "destroy", "×"):
                 with self.subTest(dialog=dialog_class.__name__, route=route):
-                    self.app.update()
-                    self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+                    wait_for_hook_pause_count(self, self.app, 0)
                     self.app.hook.hook_active = True
                     resume.reset_mock()
                     dialog = dialog_class(self.app, title="解除確認")
@@ -138,10 +136,9 @@ class DialogTeardownFlowsTest(unittest.TestCase):
                         dialog.destroy()
                     else:
                         dialog.tk.call("destroy", str(dialog))
-                    self.app.update()
+                    wait_for_hook_pause_count(self, self.app, 0)
                     self.assertFalse(dialog.winfo_exists())
                     resume.assert_called_once_with()
-                    self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_t2_escape_resumes_quarantine_once(self):
         """T2 / §7-2: Escape 結線済みクラスの代表。"""
@@ -156,9 +153,9 @@ class DialogTeardownFlowsTest(unittest.TestCase):
         self.assertTrue(dialog.winfo_viewable())
         self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
         send_escape(self, self.app, dialog)
+        wait_for_hook_pause_count(self, self.app, 0)
         self.assertFalse(dialog.winfo_exists())
         resume.assert_called_once_with()
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_t3_child_widget_destroy_keeps_dialog_paused(self):
         """T3 / §7-3: 子ウィジェットの Destroy は解除しない。"""
@@ -183,10 +180,9 @@ class DialogTeardownFlowsTest(unittest.TestCase):
         self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
         self.app.hook.begin_shutdown()
         dialog.destroy()
-        self.app.update()
+        wait_for_hook_pause_count(self, self.app, 0)
         self.assertEqual(self.coordinator_start.call_count, 0)
         self.assertFalse(self.app.hook.hook_active)
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_t4b_shutdown_blocks_child_save_finally_hook_restart(self):
         """T4b / §7-4: 実 wait_window 中に終了し、finally の同期解除を見る。"""

@@ -6,6 +6,7 @@ from tkinter import ttk
 from pathlib import Path
 from unittest.mock import Mock, patch
 from tests_ui.escape_delivery import send_escape
+from tests_ui.hook_resume_wait import wait_for_hook_pause_count
 
 from keyseq.application.config_service.contracts import QuarantineDeleteResult, QuarantineRestoreResult, QuarantineUnit
 from keyseq.presentation import app as app_module
@@ -298,16 +299,14 @@ class QuarantineManageDialogTest(unittest.TestCase):
         self.assertEqual(dialog.action, "")
 
     def test_selection_returns_matching_id_and_resumes_hook(self):
-        self.app.update()  # 先行テストが残した解除予約を流す
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        wait_for_hook_pause_count(self, self.app, 0)  # 先行テストが残した解除予約を流す
         dialog = self._dialog()
         self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
         dialog.listbox.selection_set(1)
         self._buttons(dialog)[0].invoke()
         self.assertEqual((dialog.action, dialog.selected_unit_id), ("restore", "id2"))
         self.assertFalse(dialog.winfo_exists())
-        self.app.update()
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        wait_for_hook_pause_count(self, self.app, 0)
 
     def test_escape_and_window_close_keep_action_empty(self):
         for close in ("escape", "window"):
@@ -322,8 +321,7 @@ class QuarantineManageDialogTest(unittest.TestCase):
                     dialog.tk.call(dialog.protocol("WM_DELETE_WINDOW"))
                 self.assertFalse(dialog.winfo_exists())
                 self.assertEqual((dialog.action, dialog.selected_unit_id), ("", ""))
-                self.app.update()
-                self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+                wait_for_hook_pause_count(self, self.app, 0)
 
     def test_delete_button_returns_selected_id_and_resumes_hook(self):
         # 確認 19・24
@@ -334,8 +332,7 @@ class QuarantineManageDialogTest(unittest.TestCase):
             button.invoke()
         self.assertEqual((dialog.action, dialog.selected_unit_id), ("delete", "id2"))
         self.assertFalse(dialog.winfo_exists())
-        self.app.update()
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        wait_for_hook_pause_count(self, self.app, 0)
         delete.assert_not_called()
 
     def test_delete_button_without_selection_leaves_dialog_open(self):

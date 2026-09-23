@@ -62,7 +62,7 @@ UI テストでのフック再開の待ち合わせ（hook_resume_wait_in_ui_tes
 
 ## タスク
 
-- task_01: 待つヘルパ + ヘルパ自身の決定的テスト + 観測済み 5 ファイルへの適用
+- task_01: 待つヘルパ + ヘルパ自身の決定的テスト + 観測済み 5 ファイルへの適用 — **完了**（2026-09-24）
 - task_02: 残り 3 ファイル（`test_app_ui_flows.py` / `test_hook_controller_teardown.py` / `test_startup_font_characterization.py`）への適用 +
   負荷下での tests_ui 反復実行（1 回の測定で完了判定の材料にする）
 - task_03: 記録（`codebase_map.md` へヘルパを 1〜2 行 / decisions_archive/32 / current.md / idea_33 → INDEX_done / `/refactor_check`）

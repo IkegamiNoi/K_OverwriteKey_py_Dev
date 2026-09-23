@@ -4,35 +4,42 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-24T01:50:00
+last_updated: 2026-09-24T02:10:00
 phase: `instructions/phase/32_hook_resume_wait_in_ui_tests`（2026-09-24 起票・直接改訂モード・暫定なし・decisions 32）。次採番 = phase 33 / 暫定 25 / decisions 33 / 提案書 13。
 直前の完了フェーズ = **phase 31**（種類が不正なアクションの実行・判断履歴 = `decisions_archive/31_unknown_action_type_handling.md`。暫定 24 は v0.5 で凍結）。
 last_commit_location: `claude/idea-33-2186d2`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 32 起票済（idea_33・tests_ui のフック再開を実時間期限つきで待つヘルパへ置き換え・production 不変）。次は task_01 の起票と実装。**
+focus: **phase 32 task_01 完了（待つヘルパ `tests_ui/hook_resume_wait.py` + 観測済み 5 ファイルへ適用）。次は task_02（残り 3 ファイル + 負荷下の反復実行）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-24T01:50:00
+ts: 2026-09-24T02:10:00
 who: main
 summary: |
-  【phase 32 起票】`/phase_start` で `32_hook_resume_wait_in_ui_tests/phase.md` を作成・current.md（参照先の先頭・次採番 33・候補から idea_33 を外す）・
-  backlog INDEX / idea_33 を「着手」へ。
-  【ユーザー確定 2026-09-24】案 A（実時間期限つきで待つヘルパ）/ 適用範囲 = 破棄後の解除を確かめる箇所すべて（tests_ui 8 ファイル）/ 原因の A/B 測定はしない。
-  【事実確認】`test_dialog_escape_binding.py:84-89` の「再開要求 0 回」は `send_escape` が破棄を確認した後の失敗 = idea_18 系統ではなく本 family。
-  【整合チェック】reviewer = 完了可（参考指摘 = `after(0)` の行は `hook_controller.py:57` → phase.md / idea_33 を修正済）。
+  【task_01 完了】task 定義起票 → codex-implementer 実装 → verifier 実測 → reviewer。tests_ui 限定・production 不変。
+  新規 `tests_ui/hook_resume_wait.py`（`wait_for_hook_pause_count(test_case, app, expected, *, timeout=2.0)`・先に必ず `update()` 1 回・`time.monotonic` 期限・
+  期限切れは expected/current/elapsed/timeout つき fail）+ `tests_ui/test_hook_resume_wait.py`（決定的 3 件・実 App 不使用）。
+  置換 = teardown_flows / orphan_sweep / quarantine_manage / keymap_set_history / dialog_escape_binding（task 定義の列挙行のみ）。
+  置き換えない確認（破棄直後の未解除 / 解除が起きない / t4b 同期解除 / setUp ドレイン）は無変更。
+  【reviewer】完了可（指摘なし）。
 result_files:
-  - instructions/phase/32_hook_resume_wait_in_ui_tests/phase.md（新規）
-  - instructions/phase/current.md / instructions/backlog/INDEX.md / instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md
+  - tests_ui/hook_resume_wait.py（新規）/ tests_ui/test_hook_resume_wait.py（新規）
+  - tests_ui/test_dialog_teardown_flows.py / test_orphan_sweep_flow.py / test_quarantine_manage_flow.py / test_keymap_set_history_flow.py / test_dialog_escape_binding.py
+  - instructions/phase/32_hook_resume_wait_in_ui_tests/{phase.md, tasks/task_01_wait_helper_and_observed_files.md}
 verified:
-  code_diff: 0（文書のみ）
-  review: phase.md 整合チェック reviewer 完了可
+  compile: clean
+  tests: 577 ran OK（skipped 7）
+  tests_ui: 535 ran OK（1 回目で全 pass）
+  helper_test: 3 pass
+  production_diff: 0（keyseq/・escape_delivery.py 差分なし）
+  review: reviewer 完了可
 
 ## next_action
-- `/task_new` で `instructions/phase/32_hook_resume_wait_in_ui_tests/tasks/task_01_*.md` を起票（待つヘルパ + ヘルパ自身の決定的テスト + 観測済み 5 ファイルへの適用。
-  置き換え対象外 = 破棄直後の未解除確認 / `setUp` ドレイン検査 / 解除が起きないことの確認・phase.md「含まない」節）→ `codex-implementer` へ実装委任 → `verifier` で tests_ui 実測 → `reviewer`。
+- `/task_new` で `instructions/phase/32_hook_resume_wait_in_ui_tests/tasks/task_02_*.md` を起票（残り 3 ファイル `test_app_ui_flows.py` / `test_hook_controller_teardown.py` /
+  `test_startup_font_characterization.py` の「破棄後の解除を確かめる確認」を `wait_for_hook_pause_count` へ置換 + 負荷下の tests_ui 反復実行。
+  置き換え対象外は phase.md「含まない」節。特に `test_hook_controller_teardown.py:52-55`〔未解除の確認〕は残す）→ codex-implementer → verifier → reviewer。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜32）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

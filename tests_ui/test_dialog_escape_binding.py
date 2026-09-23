@@ -16,6 +16,7 @@ from keyseq.presentation.dialogs.preset_dialog import PresetDialog
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
 from tests_ui.escape_delivery import acquire_focus, send_escape
+from tests_ui.hook_resume_wait import wait_for_hook_pause_count
 
 
 class DialogEscapeBindingTest(unittest.TestCase):
@@ -84,10 +85,9 @@ class DialogEscapeBindingTest(unittest.TestCase):
             send_escape(self, self.app, dialog)
             self.assertFalse(dialog.winfo_exists())
             # <Destroy> から after(0) で予約されたフック再開を流してから数える。
-            self.app.update()
+            wait_for_hook_pause_count(self, self.app, 0)
             resume.assert_called_once_with()
         self.assertIsNone(dialog.result)
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_preset_manager_escape_discards_edits_and_resumes_hook(self):
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
@@ -103,10 +103,9 @@ class DialogEscapeBindingTest(unittest.TestCase):
             send_escape(self, self.app, dialog)
             self.assertFalse(dialog.winfo_exists())
             # <Destroy> から after(0) で予約されたフック再開を流してから数える。
-            self.app.update()
+            wait_for_hook_pause_count(self, self.app, 0)
             resume.assert_called_once_with()
         self.assertEqual(self.app.data, original_data)
-        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_hotkey_overwrite_escape_returns_cancel(self):
         errors = []
@@ -155,10 +154,9 @@ class DialogEscapeBindingTest(unittest.TestCase):
                     self.assertTrue(dialog.bind("<Escape>"))
                     send_escape(self, self.app, dialog)
                     self.assertFalse(dialog.winfo_exists())
-                    self.app.update()
+                    wait_for_hook_pause_count(self, self.app, 0)
                     self._assert_group_a_cancelled(dialog)
                     resume.assert_called_once_with()
-                    self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def _assert_escape_stops_without_closing(self, dialog, state_name, resume):
         self.assertTrue(getattr(dialog, state_name))
@@ -199,10 +197,9 @@ class DialogEscapeBindingTest(unittest.TestCase):
                     self.app.update()
                     send_escape(self, self.app, dialog)
                     self.assertFalse(dialog.winfo_exists())
-                    self.app.update()
+                    wait_for_hook_pause_count(self, self.app, 0)
                     self._assert_group_a_cancelled(dialog)
                     resume.assert_called_once_with()
-                    self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_group_a_held_escape_stops_then_release_allows_close(self):
         cases = (
@@ -232,10 +229,9 @@ class DialogEscapeBindingTest(unittest.TestCase):
                     self.app.update()
                     send_escape(self, self.app, dialog)
                     self.assertFalse(dialog.winfo_exists())
-                    self.app.update()
+                    wait_for_hook_pause_count(self, self.app, 0)
                     self._assert_group_a_cancelled(dialog)
                     resume.assert_called_once_with()
-                    self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_group_a_held_escape_stops_restarted_recording_or_capture(self):
         cases = (
@@ -256,9 +252,8 @@ class DialogEscapeBindingTest(unittest.TestCase):
                     getattr(dialog, start_name)()
                     self._assert_escape_stops_without_closing(dialog, state_name, resume)
                     dialog.destroy()
-                    self.app.update()
+                    wait_for_hook_pause_count(self, self.app, 0)
                     resume.assert_called_once_with()
-                    self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_group_a_preset_escape_cancels_and_keeps_parent_hook_paused(self):
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
@@ -279,9 +274,8 @@ class DialogEscapeBindingTest(unittest.TestCase):
             resume.assert_not_called()
             self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
             send_escape(self, self.app, manager)
-            self.app.update()
+            wait_for_hook_pause_count(self, self.app, 0)
             resume.assert_called_once_with()
-            self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
 
 if __name__ == "__main__":

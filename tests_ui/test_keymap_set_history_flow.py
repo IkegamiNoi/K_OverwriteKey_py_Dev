@@ -7,6 +7,7 @@ from pathlib import Path
 from tkinter import ttk
 from unittest.mock import Mock, patch
 from tests_ui.escape_delivery import send_escape
+from tests_ui.hook_resume_wait import wait_for_hook_pause_count
 
 from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation import app as app_module, keymap_set_history_text as text
@@ -296,6 +297,7 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
         self.addCleanup(self.app.grab_release)
         self._patch(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True)
         load = self._patch(self.app.keymap_set_io, "load_keymap_set_path", return_value="ok")
+        wait_for_hook_pause_count(self, self.app, 0)
         before = self.app.hook.get_hook_pause_count()
         for route in ("escape", "wm", "load"):
             self.app.grab_set()
@@ -308,9 +310,8 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
             else:
                 self._select(dialog, "recent_entry")
                 dialog.buttons[text.LOAD].invoke()
-            self.app.update()
+            wait_for_hook_pause_count(self, self.app, before)
             self.assertFalse(dialog.winfo_exists())
-            self.assertEqual(self.app.hook.get_hook_pause_count(), before)
             self.assertIs(self.app.grab_current(), self.app)
         load.assert_called_once()
         self.app.grab_release()
@@ -321,7 +322,7 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
             chooser = dialogs.CategoryChooserDialog(dialog, names=("a", "z"))
             self.addCleanup(self._close, chooser)
             chooser.update_idletasks()
-            self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+            wait_for_hook_pause_count(self, self.app, 1)
             self.assertIs(self.app.grab_current(), chooser)
             if accept:
                 chooser.listbox.selection_set(1)
