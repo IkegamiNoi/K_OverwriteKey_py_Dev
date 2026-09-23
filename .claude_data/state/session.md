@@ -4,48 +4,49 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-23T19:30:00
-phase: `instructions/phase/29_focus_restore_after_minimize`（**task_01・task_01b 完了。task_02 は中断中〔再開待ち〕→ task_03〔正本反映〕**）。主入力 = 暫定仕様 23（**v0.5**・ユーザー確定済）。次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12。
+last_updated: 2026-09-23T21:30:00
+phase: `instructions/phase/29_focus_restore_after_minimize`（**task_01・task_01b・task_02 完了。残りは task_03〔正本反映・フェーズ完了〕**）。主入力 = 暫定仕様 23（**v0.5**・ユーザー確定済・未凍結）。次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12。
 直前の完了フェーズ = **phase 28**（ダイアログの初期キーボードフォーカス・判断履歴 = `decisions_archive/28_dialog_keyboard_focus.md`。暫定仕様 22 は v0.7 で凍結）。
 last_commit_location: `claude/task-02-progression-d47775`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 29 は task_01b 完了（復元時、Tk がフォーカスを持たず OS の前面が自アプリのメイン窓なら `focus_force`）。次は task_02 の再開（統合確認のやり直し + 実機目視 ①〜⑦ を最初から）。**
+focus: **phase 29 は task_02 完了（統合確認 green・二次レビュー完了・実機目視 ①〜⑦ 合格）。次は task_03（正本反映 + 暫定 23 凍結 + decisions_archive/29 + idea_34 クローズ + /refactor_check）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-23T19:30:00
+ts: 2026-09-23T21:30:00
 who: main
 summary: |
-  【task_02 着手 → 中断】統合確認は全 green（tests 556 / tests_ui 519 ×3 / 変異 a・b / smoke）・`deep-reviewer` 条件付き・`codex-reviewer` 指摘なし。
-  だが**実機目視①（Win+D → タスクバー復元 → Escape）が不合格**。スクラッチの probe（`scratchpad/focus_probe.py`・プロジェクト外）で原因特定 =
-  復元時に OS がメイン窓をアクティブにする時点で grab が預かり中 → Tk の振り向けが働かず `focus_get()` が `None` → `focus_set` が効かない。
-  【v0.5（ユーザー確定）】条件つき `focus_force`（§3.1-3）/ FFI 契約（§3.2・専用 `WinDLL`・`restype=HWND`）/ TOCTOU と M1 を §7 で受容 / §3.1-6 も昇格（§8）。
-  `codex-adversarial-reviewer` needs-attention 2 件を反映。⑤のメモ帳カーソル非表示は keyseq 無しでも起きる Windows の挙動（ユーザー確認）。
-  【task_01b 完了】`codex-implementer` 実装 / `verifier` 全 green（tests_ui 532・変異 5 種すべて赤）/ `reviewer` 完了可。
+  【task_02 完了（task_01b 後の再開分）】`verifier`（HEAD 652cb72）: tests 556 OK / tests_ui 532 OK ×3 / 変異 5 種すべて狙いどおり赤 / smoke OK。
+  【二次レビュー】`codex-reviewer` 指摘なし / `deep-reviewer` 条件付き（コード修正不要）: M1 = 昇格時の文言整理 → task_03 で修正して採用 /
+  M2 = 3 段ネストの発動確認 → 実機②で確認済 / L1 → ①③④を 2〜3 回ずつで確認済 / L2〜L5 保留。§3.2 の `windll`/`WinDLL` 食い違い 1 行は訂正済。
+  【実機目視（ユーザー）】①〜⑦すべて想定どおり（②は 3 段目まで・⑤は keyseq がアクティブにならない・⑥は記録のみ）。
 result_files:
-  - keyseq/presentation/modal.py / tests_ui/test_minimize_grab_custody.py / tests_ui/test_modal_app_foreground.py（新規）
-  - instructions/history/23_focus_restore_after_minimize.md（v0.5）
-  - instructions/phase/29_focus_restore_after_minimize/tasks/task_01b_conditional_focus_force.md（新規・完了記録）/ task_02_integration_and_manual_check.md（新規・中断記録）/ phase.md
-  - .claude_data/state/decisions.md（phase 29 節）/ instructions/phase/current.md
+  - instructions/phase/29_focus_restore_after_minimize/tasks/task_02_integration_and_manual_check.md（完了記録）
+  - instructions/history/23_focus_restore_after_minimize.md（§3.2 の 1 行訂正）
+  - instructions/phase/current.md
 verified:
   compile: clean
   tests: 556 ran OK（skipped 7）
-  tests_ui: 532 ran OK（1 回）
-  mutation: task_01b の 5 種すべて狙いどおり赤
+  tests_ui: 532 ran OK ×3
+  mutation: 5 種すべて狙いどおり赤
   smoke: SMOKE OK
-  review: reviewer = 完了可（task_01b）
+  review: deep-reviewer = 条件付き（コード修正不要）/ codex-reviewer = 指摘なし
+  manual: ①〜⑦ 合格（ユーザー）
 
 ## next_action
-- **task_02 を再開**（`instructions/phase/29_focus_restore_after_minimize/tasks/task_02_integration_and_manual_check.md` の「中断記録」参照）:
-  ①`verifier` で確認 1〜6 をやり直す（`tests_ui` ×3 は 532 前後・変異検査は task_02 の a・b に加え task_01b の 5 種も再確認。
-  **変異はスクラッチのコピー上で行う**）②二次レビュー = `deep-reviewer` + `codex-reviewer`（`--base f620257`〜HEAD。task_01b を含む累積）
-  ③**実機目視（ユーザー）①〜⑦を最初から**。起動は `.venv\Scripts\python.exe main.py`（**`-m keyseq` は存在しない**）。
-  **②は 3 段目（追加・編集）まで開いた状態で最小化する**（前回の probe では 2 段だった）。⑤は keyseq がアクティブにならないことで判定。
-- その後 task_03（正本反映 = §3.1-1〜3〔条件つき `focus_force` 含む〕・§3.1-6・§7 の残存リスク / 凍結 / `decisions_archive/29` / `current.md` /
-  idea_34 を INDEX_done へ / `/refactor_check`）。
-- **main へのマージはユーザーが行う**。
+- **task_03 を `/task_new` で起票して実施**（フェーズ最終タスク・文書作業のためメインが直接行ってよい）:
+  ①正本 `instructions/common/spec_detail/features.md` §4.6「モーダルダイアログの作法」へ暫定仕様 23 §8 のとおり昇格
+  （最小化の条項〔:187-208 付近〕を API 単位へ言い換え + フォーカス復帰の条項〔§3.1-1〜3。**条件つき `focus_force` はユーザー視点の条件で書く**〕+
+  §3.1-6 + 「閉じた後は規定しない」の分離〔:208〕+ 初期フォーカス条項〔:174-178〕の言い回し + §7 の残存リスク〔TOCTOU・最小化中に開いた窓の保留要求〕を保証範囲外へ）
+  ②`instructions/common/codebase_map.md` の `modal.py` 節（:303〜。`_restore_modal_focus` / `_is_app_foreground`〔presentation 唯一の ctypes〕/
+  `after_idle` 予約は App の `<Map>` 全般で行う / `:312-313` を「初期フォーカスでは」に限定 / `:349` の理由を正確に）
+  ③**deep-reviewer M1 の文言整理**: 凍結前に 23 の §2-1・§4-1・§1.2 末尾へ「v0.5 で改訂」注記
+  ④暫定仕様 23 を凍結 ⑤`decisions_archive/29_focus_restore_after_minimize.md` 作成（decisions.md の phase 29 節を移し、本体はアーカイブ索引 1 行）
+  ⑥`current.md` を phase 29 完了に更新（次 = phase 30）⑦idea_34 を `backlog/INDEX.md` → `INDEX_done.md` へ ⑧`/refactor_check`（メトリクス収集は `verifier`）。
+  レビュー = `deep-reviewer` + `codex-adversarial-reviewer`（フェーズ完了判定前・昇格文言を既存条項と突き合わせる）。
+- **main へのマージはユーザーが行う**。**実機起動は worktree から**（メインのチェックアウトは未マージ）。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 

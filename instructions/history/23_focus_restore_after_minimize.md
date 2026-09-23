@@ -170,7 +170,7 @@
 - `return_custody` は**どの経路でも最後にフォーカス復帰を `after_idle` で予約する**（v0.4。預かりが空の早期 return もこの予約を通る形へ
   整理する）。`return_custody` は現在 27 行のため、**戻し先の決定は別関数に出して 30 行目安を守る**。
 - `focus_lastfor()` は Tk の仕様上、**同じ Toplevel 内の widget か、その Toplevel 自身**を返す（別の Toplevel は返さない）。
-- （v0.5）§3.1-3 の (b) は `modal.py` 内の非公開関数（例: `_is_app_foreground(app) -> bool`）に閉じる。`ctypes.windll.user32.GetForegroundWindow`
+- （v0.5）§3.1-3 の (b) は `modal.py` 内の非公開関数（例: `_is_app_foreground(app) -> bool`）に閉じる。`GetForegroundWindow`（取得方法は下の FFI の契約）
   を使い、例外（`AttributeError` / `OSError` / `TclError` / `ValueError`）は `False` を返す。**presentation で `ctypes` を使うのはこの 1 箇所**
   （OS の窓状態の問い合わせで、UI 層の責務。infrastructure の `input_gateway` へは寄せない）。テストはこの関数を `patch.object` で差し替える。
   判定と `focus_force` は §3.1-4 の予約した処理の中で `focus_set` の直後に行う（別の予約を増やさない）。
