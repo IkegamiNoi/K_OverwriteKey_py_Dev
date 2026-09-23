@@ -15,19 +15,21 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズなし**。次採番 = phase 29 / 暫定 23 / decisions 29 / 提案書 12）
-3. 次フェーズを始めるなら `current.md`「次フェーズ候補」→ `instructions/backlog/INDEX.md` の該当 idea を読み、
-   ユーザーが選んだら `/phase_start`
+2. `instructions/phase/current.md` を読む（**アクティブ = phase 29**。次採番 = phase 30 / 暫定 24 / decisions 30 / 提案書 12）
+3. `instructions/phase/29_focus_restore_after_minimize/phase.md` と、
+   **主入力の暫定仕様 `instructions/history/23_focus_restore_after_minimize.md`（v0.4・ユーザー確定済・未凍結）**を読む。
+   タスク定義は `instructions/phase/29_focus_restore_after_minimize/tasks/` 配下
 4. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
-5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜22）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+5. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`
+   （phase 29 の判断は `decisions.md` 本体の末尾節）。
+   **凍結済の暫定仕様（`instructions/history/` の 04〜22）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）。
+   **23 だけは未凍結で、phase 29 の確定設計として有効**
 
 ## 現在の作業の 1 行サマリ
-**phase 28 完了（task_01〜07 + 05b〜05e）。次は backlog の idea から次フェーズを選んで `/phase_start`。**
-直近コミット: `8728a81`（task_07 = `bind_escape_close` へ集約・phase 28 完了）/ `ad79e84`（task_06 = 正本反映・暫定 22 を v0.7 で凍結）/
-`5d83e49`（task_05e = 押しっぱなし Esc で閉じない）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜28 はユーザーがマージする）。
+**phase 29 は task_01 完了（最小化復元時に `after_idle` で最内モーダルの最後のフォーカス先へ `focus_set`）。次は task_02（統合確認 + 実機目視 §6-6 ①〜⑦）。**
+直近コミット: `0b3e6c5`（phase 29 task_01）/ `d8a250f`（phase 29 起票）/ `8728a81`（phase 28 完了）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜29 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -37,47 +39,55 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 28 task_07 完了時点 = 2026-09-23**）:
-compile **clean** / tests **556 実行 OK**（skip 7）/ tests_ui **509 実行 OK**（skip 0）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 556 で不変 / tests_ui: phase 27 完了 484 → phase 28 完了 509）。
+直近の実測（**phase 29 task_01 完了時点 = 2026-09-23**）:
+compile **clean** / tests **556 実行 OK**（skip 7）/ tests_ui **519 実行 OK**（skip 0・3 回連続）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 556 で不変 / tests_ui: phase 28 完了 509 → phase 29 task_01 519）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
 `keymap_set_history*.json` が生成されていない**ことを確認する。
 
-**【既知の flaky】`tests_ui` 一括でまれに `get_hook_pause_count()` が `1 != 0`**（例: `test_quarantine_manage_flow` の
-`test_escape_and_window_close_keep_action_empty`。単体では pass）= [idea_33](../../instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md)
-（`<Destroy>` → `after(0)` のフック再開の取りこぼし。**Escape 配送ではない**＝`send_escape` の診断は出ない）。
-**task_01 のフォーカス変更は原因候補に残る**。赤くなっても**まず再実行・交互実行で切り分ける**（1 回で退行と決めない）。
+**【既知の flaky】`tests_ui` 一括でまれに落ちる**: ①`get_hook_pause_count()` が `1 != 0`（例: `test_quarantine_manage_flow`。
+= [idea_33](../../instructions/backlog/idea_33_hook_resume_after_idle_flaky_test.md)・Escape 配送ではない）
+②`test_dialog_escape_binding` がまとめて落ちる回が 1 度あった（phase 29 task_01 中・以後の一括 3 回で再発せず）。
+**赤くなっても まず再実行・単体実行で切り分ける**（1 回で退行と決めない）。
 
 **既知の stderr ノイズ（退行ではない）**: `invalid command name "..._clear_flash_message"`（ステータスバーのタイマー）/
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **次フェーズの選定**: `current.md`「次フェーズ候補」= **idea_34**（最小化復帰後にフォーカスが最内のモーダルへ戻らない・
-  **仕様変更あり**〔`features.md` §4.6〕）/ **idea_33**（フック再開 flaky・テストのみ）/ **idea_23**（キーを押す / 離すアクション）。
-  ユーザーが選んだら `/phase_start`。
+- **task_02 を `/task_new` で起票**: 統合確認（`verifier`〔標準検証 + 実 Tk の到達検査の要否判断〕+ `deep-reviewer` + `codex-reviewer`）+
+  **実機目視（ユーザー）= 暫定仕様 23 §6-6 ①〜⑦**。起動 = `..\..\..\.venv\Scripts\python.exe -m keyseq`
+  ①Win+D → タスクバー復元 → クリックせず Escape で閉じる ②3 段ネスト（アクション編集 → プリセットマネージャ → 追加・編集）で
+  3 窓とも表示・Escape で 1 つずつ閉じる ③Win+D 2 回目 ④Alt+Tab で最小化中の窓を選ぶ ⑤他アプリ入力中に Win+D 2 回 →
+  他アプリの入力が奪われない ⑥最小化せず Alt+Tab で戻る → 記録のみ ⑦ラベル欄で入力中に最小化 → 復元後の文字がラベル欄へ。
+- その後 task_03（正本反映 = `features.md` §4.6 の最小化の条項を API 単位へ言い換え + フォーカス復帰の条項 + 「閉じた後は規定しない」への分割 /
+  `codebase_map.md` の `modal.py` 節〔`:312-313` の「推測型は不採用」を初期フォーカスに限定〕・暫定仕様 23 の凍結・`decisions_archive/29`・
+  `current.md`・idea_34 を INDEX_done へ・`/refactor_check`）。
 - **main へのマージはユーザーが行う**。
 - **前セッションからの未処理 2 件**: ①`codex_medium` を実運用へ入れる前に `Explore` の可用性確認
   ②`.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（既存のズレ）。
 
-## 直前フェーズ（phase 28 = ダイアログの初期キーボードフォーカス）の要点
+## 現在のフェーズ（phase 29 = 最小化から復元した後のキーボードフォーカス）の要点
 
-**正本が正** = `features.md` §4.6「モーダルダイアログの作法」+ `codebase_map.md` の `modal.py` 節。
-判断は `decisions_archive/28_dialog_keyboard_focus.md`（暫定仕様 22 は v0.7 で凍結）。
+**設計は暫定仕様 23 が正**（v0.4・未凍結）。フェーズ中は正本 `spec_detail/` を直接改訂しない（昇格は task_03）。
 
-- **初期フォーカスは `grab_modal(window, parent=None, *, focus=None)` の責務**（明示引数・省略時は窓自身・`grab_set()` の直後に
-  `focus_set`・`focus_force` / `lift` は呼ばない）。**入力先を持つダイアログは `focus=` で渡す**（`__init__` で別途 `focus_set` しない）。
-  推測型（`focus_lastfor()` / `after_idle`）は未マップ時の保留で**明示指定を奪う**と実測で反証。
-- **モーダル全 15 経路が Escape で閉じる**（× と同じ結果。`io_dialogs.py` のみ `on_cancel`）。
-  **Esc に別用途がある 3 ダイアログ**（Action = 記録 / Trigger・KeymapEdit = 取得）は `dialogs/escape_close.py` の
-  **`bind_escape_close(window, *, is_busy, stop)`**: 判定順 = 記録・取得中（停止して印）→ 印（閉じない）→ 閉じる。
-  印は `<KeyRelease-Escape>` で消す＝**押しっぱなしのリピートでは閉じない**（Windows Tk はリピート中に KeyRelease を挟まない）。
-- **新しいダイアログを足すとき**: `grab_modal(..., focus=入力先)` を `__init__` の最後の文に / Escape は × と同じ閉じ方へ結線 /
-  Esc に別用途があるなら `bind_escape_close`。
-- **テストで Escape を送るときは `tests_ui/escape_delivery.py` の `send_escape`**（閉じることの検査）/
-  **`acquire_focus`**（閉じないことの検査）。`focus_force()` + `event_generate` の直書きは使わない。
-  **初期フォーカスの欠落を検出するのは `test_dialog_initial_focus.py` だけ**（ヘルパ自身が `focus_force` するため）。
-- **フォーカスの戻り先（閉じた後・最小化復帰後）は規定しない**。最小化復帰後はメイン窓に残る＝idea_34。
+- 実装 = `keyseq/presentation/modal.py`: `return_custody`（App の `<Map>`）は **grab の返却を即時**に行い、`finally` で
+  **`app.after_idle(_restore_modal_focus, app)`** を予約する。`_restore_modal_focus` は**予約実行時に**
+  「`app.grab_current()` が台帳 `_active_modals` に同一性で含まれ・生存・表示中」の窓の `focus_lastfor() or window` へ `focus_set`。
+  `deiconify` / `lift` / `focus_force` は呼ばない。
+- **`<Map>` 内で即時に `focus_set` してはならない**: 実 App の 3 段ネストで**一番外側の窓が非表示のまま戻らない**（既存 a2・a3 が検出。
+  素の Tk の probe では再現しなかった）。
+- **最小化中に `grab_modal` した窓**は `_opened_while_minimized` に記録し、**その回の復元では戻さない**（初期フォーカス要求を優先）。
+  記録は復帰処理の最後で空にする（次の復元からは通常どおり）。
+- 固定テスト = `tests_ui/test_minimize_grab_custody.py`（a1〜a13 = 既存の grab 預かり / b1〜b6・b8〜b11 = フォーカス復帰）。
+  **期待値はダイアログごとの具体 widget**（`ActionDialog.value_entry` / `action_label_entry`）。
+  **テストで未マップの widget へ `focus_set` すると、OS フォーカスの無い環境では保留のまま残り `focus_lastfor()` が窓自身を返す**
+  （b11 で踏んだ。先に `update()` でマップしてから要求する）。
+- 確定事項: 閉じた後のフォーカスは規定しない / 最小化を伴わない再アクティブ化（Alt+Tab で最小化していない窓へ戻る）は対象外。
+- 直前の完了フェーズ = phase 28（ダイアログの初期キーボードフォーカス。正本 `features.md` §4.6「モーダルダイアログの作法」+
+  `codebase_map.md` の `modal.py` 節・判断は `decisions_archive/28`）。要点 = 初期フォーカスは `grab_modal(..., focus=)` /
+  モーダル全 15 経路が Escape で閉じる / Esc の別用途がある 3 ダイアログは `dialogs/escape_close.py` の `bind_escape_close` /
+  テストで Escape を送るときは `tests_ui/escape_delivery.py` の `send_escape` / `acquire_focus`。
 
 ## 運用インフラ
 
@@ -95,7 +105,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   ①未マップ時の `focus_set` は外から検出できない ②Escape はフォーカス窓へ再配送される
   ③同一 widget では `<Escape>` が `<KeyPress>` より優先して単独発火する（`add="+"` は登録順に両方発火）
   ④Windows Tk はキーリピート中に KeyRelease を挟まない（`PostMessageW` で WM_KEYDOWN の repeat ビットを送って確認）。
-  **レビューだけでは前提の誤りは見つからない**。
+  **レビューだけでは前提の誤りは見つからない**。**ただし素の Tk の probe で成立しても実 App で崩れることがある**（phase 29:
+  即時 `focus_set` は素の 3 段 transient 連鎖では無害だったが、実 App の 3 段ネストで外側の窓を戻さなかった）。**実 App で probe するか、既存の統合テストで確かめる**。
 - **【傾向・phase 28 で実証】正本へ昇格する文言は既存条項と突き合わせる**（「保存せずに閉じる」が既存の
   「閉じても一覧は保存される」と矛盾した）。**条項の主語（すべての〜）は対象集合を `grep` で数えてから昇格する**。
 - **【傾向・phase 28 で実証】新しい状態分岐を足したら「押しっぱなし」「状態が残ったままの再開」を実機で見る**
@@ -132,8 +143,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **sed の区切り文字が置換文字列に含まれると壊れる**（`/` を含むなら `|` を使う）。複数行のコミットメッセージは `git commit -F -`。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 28_dialog_keyboard_focus / 27_keymap_set_load_history / 26_startup_entry_preservation）。
-- 未着手/保留 idea: **idea_34**（最小化復帰後のフォーカス）/ **idea_33**（フック再開 flaky）/ **idea_23**（押す / 離すアクション）/
+  （直近 3 件: 28_dialog_keyboard_focus / 27_keymap_set_load_history / 26_startup_entry_preservation。phase 29 の判断は進行中につき `decisions.md` 本体）。
+- 着手中 idea: **idea_34**（phase 29）。未着手/保留 idea: **idea_33**（フック再開 flaky）/ **idea_23**（押す / 離すアクション）/
   idea_31・idea_32 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）と M4（`_apply_initial_focus` の位置・保留）。
 - 会話履歴の再現を試みない。想定外の差分を見つけたら `.claude/rules/anti_patterns.md` に従う。
