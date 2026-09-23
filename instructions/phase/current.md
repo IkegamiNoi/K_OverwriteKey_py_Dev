@@ -7,7 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 30 は 2026-09-23 完了。次に着手するフェーズは `/phase_start` で起票する）。
+- **アクティブなフェーズ = [phase 31](31_unknown_action_type_handling/phase.md)**（2026-09-24 起票）:
+  種類が不正なアクションの実行。`type` が無い / 空 / 未知 / 非文字列のアクションは**何も送らず通知し、シーケンスを止める**
+  （現状は `value` を前面アプリへ文字入力する）。**暫定仕様先行モード** = 主入力
+  [暫定仕様 24](../history/24_unknown_action_type_handling.md)（v0.5・ユーザー確定済）。番号対応: phase 31 / 暫定 24 / decisions 31。
+  起票元 = [idea_35](../backlog/idea_35_unknown_action_type_handling.md)。
 - 直前の完了フェーズ = [phase 30](30_action_and_internal_key_type_coercion/phase.md)（2026-09-23・アクション要素と内部キーの型正規化・
   判断は [decisions_archive/30](../../.claude_data/state/decisions_archive/30_action_and_internal_key_type_coercion.md)）/
   [phase 29](29_focus_restore_after_minimize/phase.md)（2026-09-23・最小化から復元した後のキーボードフォーカス・
@@ -37,13 +41,13 @@
 
 ## 次採番
 
-- **phase 30 は 2026-09-23 完了**（`30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）。
-  次フェーズは **`31_<topic>`**・decisions も **31** を使う（欠番が出た場合はここに明記し、再利用しない）。
-  （phase 29 は 2026-09-23 完了 = `29_focus_restore_after_minimize` / 暫定 23〔凍結〕/ decisions 29〔アーカイブ済〕）
+- **phase 31 を 2026-09-24 起票**（`31_unknown_action_type_handling` / 暫定 24〔v0.5・確定済〕/ decisions 31）。
+  次フェーズは **`32_<topic>`**・decisions も **32** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
 - 暫定仕様（`instructions/history/NN_<topic>.md`）はフェーズとは**独立採番**。
-  04〜23 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
+  04〜24 は起票済（04=α / 05=β / 06=γ〔凍結〕/ 07=プリセット〔凍結〕/
   08=個別プリセット〔**v0.10・凍結**〕/ 09=参照元の掃除〔**v0.5・凍結**〕/
   10=孤児ファイルの棚卸し〔**v0.8・凍結**〕/
   11=config_service の公開面〔**v0.3・凍結**〕/
@@ -58,8 +62,9 @@
   20=JSON 読込の型不正の扱い統一〔**v0.3・凍結**〕/
   21=構成セットの読み込み履歴〔**v0.5・凍結**〕/
   22=ダイアログの初期キーボードフォーカス〔**v0.7・凍結**〕/
-  23=最小化から復元した後のキーボードフォーカス〔**v0.5・凍結**〕）。
-  次採番は **`24_<topic>`**。
+  23=最小化から復元した後のキーボードフォーカス〔**v0.5・凍結**〕/
+  24=種類が不正なアクションの実行〔**v0.5・確定済・phase 31 の主入力**〕）。
+  次採番は **`25_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**12 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
