@@ -55,6 +55,7 @@
 ## タスク
 
 - **task_01**: `modal.py` にフォーカス復帰を実装（§3.1-1〜6・§3.2）+ 単体検査 ①〜⑨（§5）。presentation + tests_ui
+- **task_01b**: 実機目視①不合格を受けた v0.5 の条件つき `focus_force`（§3.1-3・§3.2）+ 検査 ⑩〜⑭。presentation + tests_ui
 - **task_02**: 統合確認（`verifier`・変異検査を含む）+ 実機目視（暫定仕様 §6-6 の ①〜⑦）
 - **task_03**: 正本反映（`features.md` §4.6 の最小化の条項・初期フォーカスの条項・「規定しない」の一文の改訂 +
   `codebase_map.md` の `modal.py` 節）+ 暫定仕様 23 の凍結 + `decisions_archive/29` 作成 + `current.md` 更新 +
