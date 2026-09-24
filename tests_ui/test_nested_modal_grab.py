@@ -1,15 +1,28 @@
 """実ダイアログのネスト経路で、子の閉鎖後の grab 復元を固定する。"""
 import ast
-from pathlib import Path
 import tkinter as tk
 import unittest
 from unittest.mock import patch
+from tests_ui.dialog_discovery import DIALOGS, PRESENTATION, dialog_classes, find_calls, parse
 
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io import hotkey_presets_io
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from keyseq.presentation.dialogs.preset_dialog import PresetDialog
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
+
+
+def is_call(statement, name):
+    return (
+        isinstance(statement, ast.Expr)
+        and isinstance(statement.value, ast.Call)
+        and (
+            isinstance(statement.value.func, ast.Name)
+            and statement.value.func.id == name
+            or isinstance(statement.value.func, ast.Attribute)
+            and statement.value.func.attr == name
+        )
+    )
 
 
 def _unexpected_showerror(_title, message, *_args, **_kwargs):
@@ -257,72 +270,52 @@ class NestedModalGrabTest(unittest.TestCase):
             self.assertTrue(manager.winfo_exists())
             self.assertIs(self.app.grab_current(), manager)
 
-    def test_grab_modal_is_last_initialization_statement(self):
-        presentation = Path(__file__).resolve().parents[1] / "keyseq" / "presentation"
-        dialogs = presentation / "dialogs"
-        config_io = presentation / "controllers" / "config_io"
-
-        def is_call(statement, name):
-            return (
-                isinstance(statement, ast.Expr)
-                and isinstance(statement.value, ast.Call)
-                and (
-                    isinstance(statement.value.func, ast.Name)
-                    and statement.value.func.id == name
-                    or isinstance(statement.value.func, ast.Attribute)
-                    and statement.value.func.attr == name
-                )
-            )
-
-        trees = {
-            path: ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
-            for path in sorted(presentation.rglob("*.py"))
-        }
-        grab_files = set()
-        for path, tree in trees.items():
-            grabs = [node for node in ast.walk(tree) if is_call(node, "grab_modal")]
+    def test_grab_modal_call_sites_are_dialogs_or_config_io(self):
+        config_io = PRESENTATION / "controllers" / "config_io"
+        for path in sorted(PRESENTATION.rglob("*.py")):
+            grabs = find_calls(parse(path), "grab_modal")
             if grabs:
-                grab_files.add(path)
-                self.assertIn(path.parent, (dialogs, config_io),
+                self.assertIn(path.parent, (DIALOGS, config_io),
                               f"{path}:{grabs[0].lineno}: grab_modal は dialogs または config_io の直下だけ")
 
-        dialog_classes = [
-            (path, node)
-            for path, tree in trees.items() if path.parent == dialogs
-            for node in tree.body
-            if isinstance(node, ast.ClassDef) and any(
-                isinstance(base, ast.Attribute) and base.attr == "Toplevel"
-                or isinstance(base, ast.Name) and base.id == "Toplevel"
-                for base in node.bases
-            )
-        ]
+    def test_grab_modal_is_last_initialization_statement(self):
+        classes = dialog_classes()
         self.assertGreaterEqual(
-            len(dialog_classes), 11,
-            f"{dialogs}:1: Toplevel 継承クラスは11件以上必要: "
-            f"{[node.name for _, node in dialog_classes]}",
+            len(classes), 11,
+            f"{DIALOGS}:1: Toplevel 継承クラスは11件以上必要: "
+            f"{[node.name for _, node in classes]}",
         )
-        for path, dialog_class in dialog_classes:
+        for path, dialog_class in classes:
             initializers = [node for node in dialog_class.body
                             if isinstance(node, ast.FunctionDef) and node.name == "__init__"]
             self.assertEqual(len(initializers), 1, f"{path}:{dialog_class.lineno}: __init__ が必要")
             initializer = initializers[0]
-            grabs = [node for node in ast.walk(initializer) if is_call(node, "grab_modal")]
+            grabs = find_calls(initializer, "grab_modal")
             self.assertEqual(len(grabs), 1, f"{path}:{initializer.lineno}: grab_modal は1回")
             last = initializer.body[-1]
             self.assertTrue(is_call(last, "grab_modal"),
                             f"{path}:{last.lineno}: __init__ の最後は grab_modal")
+        total = sum(len(find_calls(parse(path), "grab_modal"))
+                    for path in sorted(DIALOGS.glob("*.py")))
+        self.assertEqual(total, len(classes),
+                         f"{DIALOGS}:1: grab_modal の総数は発見したクラス数と一致すること")
 
+    def test_config_io_grab_modal_is_followed_by_wait(self):
+        config_io = PRESENTATION / "controllers" / "config_io"
+        trees = {path: parse(path) for path in sorted(config_io.glob("*.py"))}
         expected_counts = {
             "child_save_dialog.py": 2, "io_dialogs.py": 1, "hotkey_presets_io.py": 1,
         }
         self.assertEqual(
-            {path.name for path in grab_files if path.parent == config_io},
+            {path.name for path, tree in trees.items() if find_calls(tree, "grab_modal")},
             set(expected_counts),
             f"{config_io}:1: grab_modal を呼ぶファイルは期待件数の辞書と一致すること",
         )
         for filename, expected_count in expected_counts.items():
             path = config_io / filename
             tree = trees[path]
+            calls = find_calls(tree, "grab_modal")
+            self.assertEqual(len(calls), expected_count, f"{path}:1: grab_modal の全呼び出し数")
             grabs = [node for node in ast.walk(tree) if is_call(node, "grab_modal")]
             self.assertEqual(len(grabs), expected_count, f"{path}:1: grab_modal の適用箇所数")
             blocks = [node for node in ast.walk(tree)

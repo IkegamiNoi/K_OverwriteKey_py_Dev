@@ -11,33 +11,33 @@ last_commit_location: `claude/idea-32-8d1b3f`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 33 task_01 完了（grab_modal の静的検査を `Toplevel` 継承の発見ベースへ・CategoryChooserDialog が検査対象に入った）。次は task_02（記録とクローズ）。**
+focus: **phase 33 task_01b 完了（呼び出し発見の抜け道を補強 + phase 15 側の static_1・2 も発見ベースへ・共有ヘルパ `tests_ui/dialog_discovery.py`）。次は task_02 の仕上げ（記録を追加確定に合わせて更新 → 完了判定前レビュー再実施）。**
 mode: in_progress
 
 ## last_action
-ts: 2026-09-24T04:00:00
+ts: 2026-09-24T05:00:00
 who: main
 summary: |
-  【phase 33 起票】ユーザー確定 = 案 A'（`dialogs/` の `Toplevel` 継承クラスを走査で発見・件数検査据え置き・下限 11）/
-  phase 15 側の静的検査（`DIALOG_FILES`）は対象外・別フェーズも立てない（既知の限界として decisions_archive/33 に理由を残す）。起票コミット `35aea1c`。
-  【task_01 完了】codex-implementer が `tests_ui/test_nested_modal_grab.py` の `test_grab_modal_is_last_initialization_statement` を書き換え
-  （系統 A = Toplevel 継承の発見 / 系統 B = config_io の grab_modal 呼び出しファイル集合と期待辞書のキー一致 / presentation 全体で呼び出し場所が dialogs か config_io 直下だけ）。
-  呼び出し場所の検査はメインが案 A' に足したもの（ユーザーへ明示済み）。reviewer = 完了可・指摘なし。
+  【task_02 途中で完了判定前レビュー】deep-reviewer = 条件付き（M1 = phase 15 側の「構文で判別不能だから据え置き」は言い過ぎ / L1 = 式文以外・関数形式の grab_modal が素通り）/
+  codex-adversarial = needs-attention（別名 import・多段継承・式文以外の呼び出し）。
+  【ユーザー判断】指摘 1 = 小さく塗る（全 ast.Call で数える・総数 = クラス数・3 メソッド分割）/ phase 15 側も本フェーズに含める（task_01b 追加）。別名 import・多段継承は残るリスクとして記録のみ。
+  【task_01b 完了】codex-implementer: `tests_ui/dialog_discovery.py`（新規）/ `test_nested_modal_grab.py`（3 メソッド）/ `test_dialog_teardown_flows.py`
+  （`DIALOG_FILES` 廃止・`NESTED_CHILD_DIALOGS` = PresetDialog / CategoryChooserDialog・static_1 をクラス単位・static_2 を dialogs 全体）。reviewer = 完了可・指摘なし。
 result_files:
-  - tests_ui/test_nested_modal_grab.py / instructions/phase/33_grab_modal_static_check_discovery/phase.md
+  - tests_ui/dialog_discovery.py / tests_ui/test_nested_modal_grab.py / tests_ui/test_dialog_teardown_flows.py
+  - instructions/phase/33_grab_modal_static_check_discovery/{phase.md, tasks/task_01b_call_discovery_and_teardown_static.md}
 verified:
   compile: clean
   tests: 577 ran OK（skipped 7）
-  tests_ui: 535 ran OK
-  discovery: 11 件（旧列挙 10 + CategoryChooserDialog）一致
-  mutation: 3 パターン（最後の文でなくなる / dialogs 側の消失 / config_io 側の消失）すべて FAIL → revert・keyseq 差分なし
+  tests_ui: 537 ran OK（+2 = メソッド分割）
+  mutation: 7 パターンすべて FAIL → revert・keyseq 差分なし
   production_diff: 0
   review: reviewer 完了可
 
 ## next_action
-- task_02 のタスク定義を `/task_new` で起票（`instructions/phase/33_grab_modal_static_check_discovery/tasks/task_02_records_and_close.md`）→ 実施:
-  `codebase_map.md:343` 付近へ「発見ベース（dialogs/ の Toplevel 継承 + config_io の呼び出しファイル集合）」を 1 行 / decisions_archive/33（phase 15 側の既知の限界を含む）+ decisions.md 索引 /
-  current.md（アクティブなし・「テスト負債」の idea_32 行を削除）/ idea_32 → INDEX_done / `/refactor_check`（keyseq/ 変更 0 件ならスキップ）/ 完了判定前レビュー（deep-reviewer + codex-adversarial）。
+- task_02 の仕上げ（working tree に未コミットの記録差分あり: codebase_map / decisions_archive/33 / decisions.md / current.md / backlog / idea_32 / task_02 定義）:
+  追加確定に合わせて書き直す（decisions_archive/33 の「既知の限界」→ 追加確定の経緯 + 残るリスク〔別名 import・多段継承〕・レビュー結果 /
+  decisions.md 索引・INDEX_done・idea_32 状態節・codebase_map の phase 15 側の記載）→ 完了判定前レビュー再実施（deep-reviewer + codex-adversarial）→ ユーザー確認 → コミット。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

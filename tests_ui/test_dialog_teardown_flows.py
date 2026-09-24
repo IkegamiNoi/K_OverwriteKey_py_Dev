@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import messagebox
 import unittest
 from unittest.mock import patch
+from tests_ui.dialog_discovery import DIALOGS, dialog_classes, find_calls, parse
 from tests_ui.escape_delivery import send_escape
 from tests_ui.hook_resume_wait import wait_for_hook_pause_count
 
@@ -15,17 +16,7 @@ from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.dialogs.quarantine_manage_dialog import QuarantineManageDialog
 
 
-DIALOG_FILES = (
-    "action_dialog.py",
-    "keymap_edit_dialog.py",
-    "keymap_set_history_dialog.py",
-    "layout_delete_dialog.py",
-    "orphan_sweep_dialog.py",
-    "preset_manager.py",
-    "quarantine_manage_dialog.py",
-    "reference_cleanup_dialog.py",
-    "trigger_dialog.py",
-)
+NESTED_CHILD_DIALOGS = frozenset({"PresetDialog", "CategoryChooserDialog"})
 
 # T2（ウィジェットに触る後始末）が残るため destroy override を保持するファイル。
 T2_DIALOG_FILES = (
@@ -34,13 +25,6 @@ T2_DIALOG_FILES = (
     "orphan_sweep_dialog.py",
     "trigger_dialog.py",
 )
-
-
-def is_call(node, name):
-    return isinstance(node, ast.Call) and (
-        isinstance(node.func, ast.Name) and node.func.id == name
-        or isinstance(node.func, ast.Attribute) and node.func.attr == name
-    )
 
 
 class DialogTeardownFlowsTest(unittest.TestCase):
@@ -243,28 +227,44 @@ class DialogTeardownFlowsTest(unittest.TestCase):
 
 class DialogTeardownStaticTest(unittest.TestCase):
     def test_static_1_dialog_suspend_passes_self_once(self):
-        """static-check-1 / §7-5: 指定9ファイルで suspend(self) が各1件。"""
-        dialogs = Path(__file__).resolve().parents[1] / "keyseq" / "presentation" / "dialogs"
-        for filename in DIALOG_FILES:
-            with self.subTest(filename=filename):
-                path = dialogs / filename
-                tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
-                calls = [node for node in ast.walk(tree) if is_call(node, "suspend_hook_for_dialog")]
-                self.assertEqual(len(calls), 1)
-                self.assertEqual(len(calls[0].args), 1)
-                self.assertIsInstance(calls[0].args[0], ast.Name)
-                self.assertEqual(calls[0].args[0].id, "self")
-                self.assertEqual(calls[0].keywords, [])
+        """static-check-1 / §7-5: 発見した親は suspend(self) が各1件、子は0件。"""
+        classes = dialog_classes()
+        names = {node.name for _, node in classes}
+        self.assertTrue(NESTED_CHILD_DIALOGS <= names,
+                        f"{DIALOGS}:1: ネストした子がすべて発見されること: {sorted(names)}")
+        top_level = [node for _, node in classes if node.name not in NESTED_CHILD_DIALOGS]
+        self.assertGreaterEqual(
+            len(top_level), 9,
+            f"{DIALOGS}:1: トップレベルのダイアログは9件以上必要: "
+            f"{[node.name for node in top_level]}",
+        )
+        for path, dialog_class in classes:
+            with self.subTest(class_name=dialog_class.name):
+                calls = find_calls(dialog_class, "suspend_hook_for_dialog")
+                if dialog_class.name in NESTED_CHILD_DIALOGS:
+                    self.assertEqual(len(calls), 0,
+                                     f"{path}:{dialog_class.lineno}: 子は suspend を呼ばない")
+                    continue
+                self.assertEqual(len(calls), 1,
+                                 f"{path}:{dialog_class.lineno}: suspend は1回")
+                call = calls[0]
+                self.assertEqual(len(call.args), 1, f"{path}:{call.lineno}: 引数は self のみ")
+                self.assertIsInstance(call.args[0], ast.Name,
+                                      f"{path}:{call.lineno}: 引数は self")
+                self.assertEqual(call.args[0].id, "self", f"{path}:{call.lineno}: 引数は self")
+                self.assertEqual(call.keywords, [], f"{path}:{call.lineno}: キーワード引数は禁止")
+        total = sum(len(find_calls(parse(path), "suspend_hook_for_dialog"))
+                    for path in sorted(DIALOGS.glob("*.py")))
+        self.assertEqual(total, len(top_level),
+                         f"{DIALOGS}:1: suspend の総数はトップレベルのクラス数と一致すること")
 
     def test_static_2_dialogs_do_not_call_resume(self):
-        """static-check-2 / §7-6: 指定9ファイル全体で明示 resume が0件。"""
-        dialogs = Path(__file__).resolve().parents[1] / "keyseq" / "presentation" / "dialogs"
-        for filename in DIALOG_FILES:
-            with self.subTest(filename=filename):
-                path = dialogs / filename
-                tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
-                calls = [node for node in ast.walk(tree) if is_call(node, "resume_hook_after_dialog")]
-                self.assertEqual(calls, [])
+        """static-check-2 / §7-6: dialogs/*.py 全体で明示 resume が0件。"""
+        for path in sorted(DIALOGS.glob("*.py")):
+            with self.subTest(filename=path.name):
+                calls = find_calls(parse(path), "resume_hook_after_dialog")
+                lineno = calls[0].lineno if calls else 1
+                self.assertEqual(calls, [], f"{path}:{lineno}: resume は呼ばない")
 
 
     def test_static_3_t2_dialogs_keep_destroy_override(self):
