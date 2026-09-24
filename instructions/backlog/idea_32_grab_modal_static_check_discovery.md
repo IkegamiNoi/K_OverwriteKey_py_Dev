@@ -45,3 +45,12 @@ phase 14（ネストしたモーダルの grab 復元）の `/refactor_check` �
 - 含む: `tests_ui/test_nested_modal_grab.py` の静的検査（必要なら phase 15 側の静的検査との整理）
 - 含まない: production コード / `features.md` §4.6 の作法そのもの
 - 影響レイヤ: テストのみ。**仕様変更なし**
+
+## 状態
+
+**完了**（[phase 33](../phase/33_grab_modal_static_check_discovery/phase.md)・2026-09-24。判断は
+[decisions_archive/33](../../.claude_data/state/decisions_archive/33_grab_modal_static_check_discovery.md)）。
+案 A'〔ユーザー確定〕= `dialogs/` 直下の `Toplevel` 継承クラスを走査で発見（発見条件を `grab_modal` の有無にしないので消失も検出できる）+
+config_io は呼び出しファイル集合と期待件数の辞書のキー一致。列挙漏れだった `CategoryChooserDialog` が検査対象に入った。
+完了判定前レビューを受け、呼び出しを全 `ast.Call` で数える補強と、phase 15 側の静的検査（static_1・2）の発見ベース化も同フェーズで実施
+（ネストした子は除外リスト `NESTED_CHILD_DIALOGS`〔(ファイル名, クラス名) の組〕で持つ・クラス単位。static_3 は列挙のまま）。別名 import・多段継承は残るリスク。

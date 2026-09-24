@@ -302,6 +302,10 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     破棄時の解除は `<Destroy>` から **`after(0)` で予約**される（即時ではない）。**テストで破棄後の解除を確かめるときは
     `tests_ui/hook_resume_wait.py` の `wait_for_hook_pause_count`**（`update()` を回して実時間の期限まで待つ。`update()` 1 回では負荷下で取りこぼす）。
     破棄直後の未解除・解除が起きないこと・同期解除の確認には使わない（phase 32）。
+    `dialogs/` のトップレベルのダイアログが `suspend_hook_for_dialog(self)` を 1 回呼ぶこと・`dialogs/*.py` のどこも `resume` を呼ばないことは
+    `tests_ui/test_dialog_teardown_flows.py` の静的検査（発見ベース・phase 33）が固定する。**常に親がフックを止めている間にだけ開かれ、
+    自分では止めない子を足したら、同テストの `NESTED_CHILD_DIALOGS`（(ファイル名, クラス名) の組）へ追加する**
+    （両方から開く `PresetManagerDialog` のような子は自分で止めるので含めない）。
   - **アプリ終了が確定したらフックを再開しない**（終了ガード。解除経路によらず効く）。
 - listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）
 - modal.py（presentation 直下）: `grab_modal(window, parent=None, *, focus=None)` = モーダル化・
@@ -342,7 +346,11 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
   - **呼び出しは初期化の最後の文に置く**（grab 取得後に失敗し得るコードを残さない）。
     **`tests_ui/test_nested_modal_grab.py` の静的検査がこの規約を固定している**ので、
     後ろに処理を足すとテストが落ちる。**落ちたらテストを緩めず、grab 取得後の失敗を
-    どう回収するかをユーザーへ諮る**（phase 14 の確定運用）
+    どう回収するかをユーザーへ諮る**（phase 14 の確定運用）。
+    検査対象は**発見ベース**（phase 33・発見は `tests_ui/dialog_discovery.py`）: `dialogs/` 直下の `Toplevel` 継承クラス +
+    `controllers/config_io/` で `grab_modal` を呼ぶファイル（呼び出し場所はこの 2 か所だけ・式文以外の呼び出しも数える）。
+    **新しいダイアログは列挙へ足さなくても検査される**。`dialogs/` に非モーダルの `Toplevel` を置くと落ちる /
+    config_io に呼び出しを足したらテストの期待件数の辞書へ追加する。`Toplevel` の別名 import・多段継承は発見しない
   - **`install_minimize_grab_custody(app)` = 最小化中だけ grab を預かる**（`features.md` §4.6 の
     最小化の条項。`app.py` の `__init__` 末尾で 1 度だけ呼ぶ）。App の `<Unmap>` で**非表示になった保持者**
     から grab を外して預かり、`<Map>` で**記録窓 → 台帳の最内**の順に「生存かつ表示中」の窓へ張り直す。

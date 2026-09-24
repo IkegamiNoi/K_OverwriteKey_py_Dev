@@ -4,40 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-24T04:00:00
-phase: instructions/phase/33_grab_modal_static_check_discovery（2026-09-24 起票・直接改訂モード・起票元 idea_32・tests_ui 限定・production 不変）。次採番 = phase 34 / 暫定 25 / decisions 33 / 提案書 13。
-直前の完了フェーズ = **phase 32**（UI テストでのフック再開の待ち合わせ・判断履歴 = `decisions_archive/32_hook_resume_wait_in_ui_tests.md`。テストのみ・production 不変）。
+last_updated: 2026-09-24T06:30:00
+phase: なし（**phase 33 = `instructions/phase/33_grab_modal_static_check_discovery` は 2026-09-24 完了**。アクティブなフェーズ無し）。次採番 = phase 34 / 暫定 25 / decisions 34 / 提案書 13。
+直前の完了フェーズ = **phase 33**（ダイアログの静的検査の発見ベース化・判断履歴 = `decisions_archive/33_grab_modal_static_check_discovery.md`。テストのみ・production 不変）。
 last_commit_location: `claude/idea-32-8d1b3f`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 33 task_01b 完了（呼び出し発見の抜け道を補強 + phase 15 側の static_1・2 も発見ベースへ・共有ヘルパ `tests_ui/dialog_discovery.py`）。次は task_02 の仕上げ（記録を追加確定に合わせて更新 → 完了判定前レビュー再実施）。**
-mode: in_progress
+focus: **phase 33 完了（grab_modal・フック停止の静的検査を発見ベースへ・共有ヘルパ `tests_ui/dialog_discovery.py`・production 不変・idea_32 クローズ・refactor_check スキップ）。次フェーズは未定（ユーザー判断待ち）。**
+mode: completed
 
 ## last_action
-ts: 2026-09-24T05:00:00
+ts: 2026-09-24T06:30:00
 who: main
 summary: |
-  【task_02 途中で完了判定前レビュー】deep-reviewer = 条件付き（M1 = phase 15 側の「構文で判別不能だから据え置き」は言い過ぎ / L1 = 式文以外・関数形式の grab_modal が素通り）/
-  codex-adversarial = needs-attention（別名 import・多段継承・式文以外の呼び出し）。
-  【ユーザー判断】指摘 1 = 小さく塗る（全 ast.Call で数える・総数 = クラス数・3 メソッド分割）/ phase 15 側も本フェーズに含める（task_01b 追加）。別名 import・多段継承は残るリスクとして記録のみ。
-  【task_01b 完了】codex-implementer: `tests_ui/dialog_discovery.py`（新規）/ `test_nested_modal_grab.py`（3 メソッド）/ `test_dialog_teardown_flows.py`
-  （`DIALOG_FILES` 廃止・`NESTED_CHILD_DIALOGS` = PresetDialog / CategoryChooserDialog・static_1 をクラス単位・static_2 を dialogs 全体）。reviewer = 完了可・指摘なし。
+  【task_01c 完了】`NESTED_CHILD_DIALOGS` を (ファイル名, クラス名) の組へ（完了判定前レビュー 2 回目の codex-adversarial 指摘・ユーザー判断）。reviewer = 完了可。コミット `23e4dd6`。
+  【task_02 完了 = phase 33 完了】codebase_map（modal.py 節・HookController 節）/ decisions_archive/33 + decisions.md 索引 / current.md（アクティブなし・次採番 34・テスト負債の idea_32 行削除）/
+  idea_32 → INDEX_done / phase.md。正本 spec_detail の改訂なし。refactor_check = スキップ（keyseq/ 変更 0 件）。
+  【完了判定前レビュー 2 回目】deep-reviewer = 条件付き（記録の M-1・L-1〜L-3・L-6 → すべて反映）/ codex-adversarial = medium 1 → task_01c で修正。
 result_files:
-  - tests_ui/dialog_discovery.py / tests_ui/test_nested_modal_grab.py / tests_ui/test_dialog_teardown_flows.py
-  - instructions/phase/33_grab_modal_static_check_discovery/{phase.md, tasks/task_01b_call_discovery_and_teardown_static.md}
+  - instructions/common/codebase_map.md / instructions/phase/current.md / instructions/phase/33_grab_modal_static_check_discovery/{phase.md, tasks/task_02_records_and_close.md}
+  - .claude_data/state/decisions_archive/33_grab_modal_static_check_discovery.md（新規）/ .claude_data/state/decisions.md
+  - instructions/backlog/INDEX.md / INDEX_done.md / idea_32_grab_modal_static_check_discovery.md
 verified:
   compile: clean
   tests: 577 ran OK（skipped 7）
   tests_ui: 537 ran OK（+2 = メソッド分割）
-  mutation: 7 パターンすべて FAIL → revert・keyseq 差分なし
-  production_diff: 0
-  review: reviewer 完了可
+  mutation: task_01 = 3 / task_01b = 7 / task_01c = 3 パターン すべて FAIL → revert・keyseq 差分なし
+  production_diff: 0（phase 全体）
+  review: task 単位 reviewer 完了可 ×3 / 完了判定前 2 回（deep-reviewer + codex-adversarial・指摘は task_01b・01c と記録修正で反映）
+  refactor_check: スキップ（keyseq/ 変更なし）
 
 ## next_action
-- task_02 の仕上げ（working tree に未コミットの記録差分あり: codebase_map / decisions_archive/33 / decisions.md / current.md / backlog / idea_32 / task_02 定義）:
-  追加確定に合わせて書き直す（decisions_archive/33 の「既知の限界」→ 追加確定の経緯 + 残るリスク〔別名 import・多段継承〕・レビュー結果 /
-  decisions.md 索引・INDEX_done・idea_32 状態節・codebase_map の phase 15 側の記載）→ 完了判定前レビュー再実施（deep-reviewer + codex-adversarial）→ ユーザー確認 → コミット。
+- `/save_handoff` で handoff.md を phase 33 完了時点へ再生成。
+- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_23）。着手時は `/phase_start`。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
@@ -56,6 +56,9 @@ verified:
   直書きはフォーカスの欠落を隠し、負荷下で flaky）。初期フォーカスの欠落を検出するのは `test_dialog_initial_focus.py` だけ
   ④**破棄後のフック解除を確かめるときは `tests_ui/hook_resume_wait.py` の `wait_for_hook_pause_count`**（解除は `after(0)` 予約で、
   `update()` 1 回では負荷下で取りこぼし `1 != 0` になる＝idea_33・phase 32 で解消）。破棄直後の未解除・解除が起きないこと・同期解除の確認には使わない。
+  ⑤**ダイアログの静的検査は発見ベース**（phase 33）: `dialogs/` 直下の `Toplevel` 継承クラスを `tests_ui/dialog_discovery.py` で発見し、
+  grab_modal（`test_nested_modal_grab.py`）とフック停止（`test_dialog_teardown_flows.py`）を課す。**新ダイアログは列挙不要**。ただし
+  config_io に `grab_modal` を足したら期待件数の辞書へ、常に親の停止中にだけ開く子を足したら `NESTED_CHILD_DIALOGS`（(ファイル名, クラス名)）へ追加する。
 - **【phase 27 の成果は正本が正】構成セットの読み込み履歴 = `spec_detail/data_schema.md` **§5.12**（新設・
   5.12.1〜5.12.8）+ §5.4 / `features.md` §4.6 / `codebase_map.md`。**暫定仕様 21 は凍結済で条項の根拠に引かない**。
   要点 = ①記録契機 = **読込または保存が成功し空でないパスが確定したとき、その実保存先**

@@ -7,17 +7,14 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 33](33_grab_modal_static_check_discovery/phase.md)**（2026-09-24 起票・grab_modal の静的検査の発見ベース化・
-  起票元 [idea_32](../backlog/idea_32_grab_modal_static_check_discovery.md)・直接改訂モード・**tests_ui 限定・production 不変**・
-  番号対応 phase 33 / 暫定 なし / decisions 33）。確定 = 案 A'（`dialogs/` の `Toplevel` 継承クラスを走査で発見し件数の検査は据え置く）/
-  phase 15 側の静的検査は対象外（別フェーズも立てない）。
-- 直前の完了フェーズ = [phase 32](32_hook_resume_wait_in_ui_tests/phase.md)（2026-09-24・UI テストでのフック再開の待ち合わせ・
-  判断は [decisions_archive/32](../../.claude_data/state/decisions_archive/32_hook_resume_wait_in_ui_tests.md)）/
-  [phase 31](31_unknown_action_type_handling/phase.md)（2026-09-24・種類が不正なアクションの実行・
-  判断は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md)）。
+- **アクティブなフェーズ = なし**（phase 33 は 2026-09-24 完了。次に着手するフェーズは `/phase_start` で起票する）。
+- 直前の完了フェーズ = [phase 33](33_grab_modal_static_check_discovery/phase.md)（2026-09-24・ダイアログの静的検査の発見ベース化・
+  判断は [decisions_archive/33](../../.claude_data/state/decisions_archive/33_grab_modal_static_check_discovery.md)）/
+  [phase 32](32_hook_resume_wait_in_ui_tests/phase.md)（2026-09-24・UI テストでのフック再開の待ち合わせ・
+  判断は [decisions_archive/32](../../.claude_data/state/decisions_archive/32_hook_resume_wait_in_ui_tests.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- phase 32 は**テスト基盤の単発**（tests_ui のフック再開を `tests_ui/hook_resume_wait.py` で待つ・production 不変）で、下記の領域とは独立。
+- phase 32・33 は**テスト基盤の単発**（tests_ui のみ・production 不変。32 = フック再開の待ち合わせ / 33 = ダイアログの静的検査〔grab_modal・フック停止〕を発見ベースへ）で、下記の領域とは独立。
 - **直近の一連の作業が扱っている領域 = JSON の型不正とアクションの実行**（phase 23・24・25・30・31）。
   正本は `data_schema.md` §5.1「**型不正の共通規則**」（非文字列は空扱い・成立しない要素は除去）+
   §5.5 / §5.7（パス系・内部キー）/ §5.11（アクション要素の全経路正規化〔phase 23〕・`label` / `type` / `button`・
@@ -42,7 +39,7 @@
 
 - **phase 31 は 2026-09-24 完了**（`31_unknown_action_type_handling` / 暫定 24〔v0.5・凍結〕/ decisions 31〔アーカイブ済〕）。
   **phase 32 は 2026-09-24 完了**（`32_hook_resume_wait_in_ui_tests` / 暫定なし〔直接改訂モード〕/ decisions 32〔アーカイブ済〕）。
-  **phase 33 は 2026-09-24 起票**（`33_grab_modal_static_check_discovery` / 暫定なし〔直接改訂モード〕/ decisions 33）。
+  **phase 33 は 2026-09-24 完了**（`33_grab_modal_static_check_discovery` / 暫定なし〔直接改訂モード〕/ decisions 33〔アーカイブ済〕）。
   次フェーズは **`34_<topic>`**・decisions も **34** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -192,8 +189,6 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 
 ### テスト負債
 
-- `grab_modal` の静的検査の発見ベース化は
-  [idea_32](../backlog/idea_32_grab_modal_static_check_discovery.md)
 - `tests/test_input_gateway_drag.py::test_initial_move_failure_restores` が `mouseUp` の
   **非呼び出し**を固定していない / ドラッグ 4 キーの**ファイル層での永続化往復**テストが無い（phase 22 由来）
 - `tests_ui/test_full_view_header_width.py` / `test_header_button_widths.py` は保存予約の遅延を
