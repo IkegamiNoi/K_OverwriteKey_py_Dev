@@ -16,7 +16,11 @@ from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.dialogs.quarantine_manage_dialog import QuarantineManageDialog
 
 
-NESTED_CHILD_DIALOGS = frozenset({"PresetDialog", "CategoryChooserDialog"})
+# 常に親がフックを止めている間にだけ開かれ、自分では止めない子（App 直下からも開く PresetManagerDialog は含めない）。
+NESTED_CHILD_DIALOGS: frozenset[tuple[str, str]] = frozenset({
+    ("preset_dialog.py", "PresetDialog"),
+    ("keymap_set_history_dialog.py", "CategoryChooserDialog"),
+})
 
 # T2（ウィジェットに触る後始末）が残るため destroy override を保持するファイル。
 T2_DIALOG_FILES = (
@@ -229,10 +233,12 @@ class DialogTeardownStaticTest(unittest.TestCase):
     def test_static_1_dialog_suspend_passes_self_once(self):
         """static-check-1 / §7-5: 発見した親は suspend(self) が各1件、子は0件。"""
         classes = dialog_classes()
-        names = {node.name for _, node in classes}
+        names = {(path.name, node.name) for path, node in classes}
         self.assertTrue(NESTED_CHILD_DIALOGS <= names,
-                        f"{DIALOGS}:1: ネストした子がすべて発見されること: {sorted(names)}")
-        top_level = [node for _, node in classes if node.name not in NESTED_CHILD_DIALOGS]
+                        f"{DIALOGS}:1: ネストした子がすべて発見されること: {sorted(names)}; "
+                        f"未発見: {sorted(NESTED_CHILD_DIALOGS - names)}")
+        top_level = [node for path, node in classes
+                     if (path.name, node.name) not in NESTED_CHILD_DIALOGS]
         self.assertGreaterEqual(
             len(top_level), 9,
             f"{DIALOGS}:1: トップレベルのダイアログは9件以上必要: "
@@ -241,7 +247,7 @@ class DialogTeardownStaticTest(unittest.TestCase):
         for path, dialog_class in classes:
             with self.subTest(class_name=dialog_class.name):
                 calls = find_calls(dialog_class, "suspend_hook_for_dialog")
-                if dialog_class.name in NESTED_CHILD_DIALOGS:
+                if (path.name, dialog_class.name) in NESTED_CHILD_DIALOGS:
                     self.assertEqual(len(calls), 0,
                                      f"{path}:{dialog_class.lineno}: 子は suspend を呼ばない")
                     continue

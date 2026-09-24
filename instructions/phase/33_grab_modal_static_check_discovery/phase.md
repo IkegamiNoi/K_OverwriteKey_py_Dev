@@ -77,6 +77,7 @@ grab_modal の静的検査の発見ベース化（grab_modal_static_check_discov
 
 - task_01: 静的検査の発見ベース化（系統 A・系統 B・呼び出し場所の確認）— **完了**（2026-09-24）
 - task_01b: 呼び出し発見の抜け道の補強 + phase 15 側の static_1・static_2 の発見ベース化（共有ヘルパ）（追加確定）— **完了**（2026-09-24）
+- task_01c: `NESTED_CHILD_DIALOGS` を (ファイル名, クラス名) の組にする（完了判定前レビュー 2 回目の codex-adversarial 指摘・ユーザー判断 2026-09-24）— **完了**（2026-09-24）
 - task_02: 記録（`codebase_map.md:343` 付近へ発見ベースであることを 1 行 / decisions_archive/33〔完了判定前レビューと追加確定の経緯・残るリスクを含む〕/
   current.md〔「テスト負債」の idea_32 行を削除〕/ idea_32 → INDEX_done / `/refactor_check`〔`keyseq/` の変更 0 件ならスキップ〕）— 完了判定前レビューの採否待ち
 
