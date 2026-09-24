@@ -54,8 +54,10 @@ keymap_set の `trigger_set_path` とトップレベル `triggers` は旧形式�
 
 依存順。各タスクの定義は着手時に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。
 
-- task_01: runtime データモデルと読込・移行（暫定 §3 / §4.1・§4.3・§4.5・`DEFAULT_CONFIG` 新形式・`ensure_active_keymap` 統一・
-  共有実体）+ アクティブのトリガー一覧を取る口と、表示・入力判定・フック開始検証の参照の付け替え
+- task_01: アクティブのトリガー一覧を取る口（domain）を作り、runtime の `triggers` 直参照を付け替える（**挙動不変**・暫定 §3.3 の前段）— **完了**（2026-09-24）
+  （reviewer 参考指摘 = `save_plan_execution.py:53-57` の形骸化した `isinstance` → task_01b で同箇所を触るときに簡素化）
+- task_01b: runtime データモデルと読込・移行（暫定 §3 / §4.1・§4.3・§4.5・`DEFAULT_CONFIG` 新形式・`ensure_active_keymap` 統一・
+  共有実体。口の中身をアクティブキーマップの保持へ差し替える。保存は task_02 まで「アクティブ分を従来の 1 trigger_set として書く」暫定）
 - task_02: 保存（暫定 §4.2・§4.4・§5.1〜§5.5: trigger_set の行をキーマップ単位に / sequence の識別子 / 計画全体の衝突回避 /
   source_path なしの子を常に行へ / 依存 3 段 / `_parent_refs` と移行時の後処理 / 既定ファイル名 / 除外撤廃 / 移行先の「保存しない」不可）
 - task_03: 個別保存・個別読込と Export（暫定 §5.6 / §6 の Export）

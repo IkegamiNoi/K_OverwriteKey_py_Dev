@@ -4,35 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-24T12:00:00
+last_updated: 2026-09-24T13:00:00
 phase: `instructions/phase/34_trigger_list_per_keymap`（**phase 34 = トリガー一覧のキーマップ従属化・2026-09-24 起票・進行中**。暫定仕様 25 v0.4 ユーザー確定済）。次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 13。
 直前の完了フェーズ = **phase 33**（ダイアログの静的検査の発見ベース化・判断履歴 = `decisions_archive/33_grab_modal_static_check_discovery.md`）。
 last_commit_location: `claude/trigger-list-multi-keymap-19f4d7`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 34 起票済（暫定仕様 25 v0.4 確定・phase.md にタスク 01〜08・reviewer 整合チェック採用）。次は task_01（runtime データモデルと読込・移行）の起票と実装委任。**
+focus: **phase 34 進行中（task_01 完了 = アクティブのトリガー一覧の口 `domain/keymap_triggers.py`・挙動不変）。次は task_01b（runtime データモデルと読込・移行）の起票と実装委任。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-24T12:00:00
+ts: 2026-09-24T13:00:00
 who: main
 summary: |
-  【設計議論（ユーザー 2026-09-24）】トリガー一覧をキーマップに従属させる方式を確定（タブ方式不採用・共通トリガー層は idea_36 へ起票のみ）。
-  【暫定仕様 25】v0.1 起票 → deep-reviewer 修正して採用（H5/M10/L9）→ v0.2 → §9 回答で v0.3 →
-  codex-adversarial needs-attention（H3/M1）をユーザー判断で全件反映 → v0.4 ユーザー確定（実装着手可）。
-  【phase 34 起票】phase.md（タスク 01〜08）/ current.md（アクティブ = phase 34・次採番 35 / 暫定 26）/ decisions.md 末尾に phase 34 節。
-  reviewer（整合確認限定）= 採用・指摘なし。実装は未着手（keyseq/ 変更なし）。
+  【task_01 完了】`keyseq/domain/keymap_triggers.py`（get/ensure/set_active_triggers）を新設し、runtime `triggers` の直参照（presentation 7 + application 5 ファイル）を口経由へ付け替え。
+  挙動不変。phase.md の task_01 を「口（挙動不変）」と task_01b「保持場所の移動・読込・移行」に分割（保存は task_02 まで暫定でアクティブ分を 1 trigger_set として書く）。
+  codex-implementer 実装 → verifier 実測 → reviewer = 完了可（参考 1 件 = `save_plan_execution.py:53-57` の形骸化 isinstance → task_01b で簡素化）。
 result_files:
-  - instructions/history/25_trigger_list_per_keymap.md（新規）/ instructions/phase/34_trigger_list_per_keymap/phase.md（新規）
-  - instructions/phase/current.md / .claude_data/state/decisions.md
-  - instructions/backlog/idea_36_common_trigger_layer.md（新規）/ instructions/backlog/INDEX.md
+  - keyseq/domain/keymap_triggers.py（新規）/ tests/test_keymap_triggers.py（新規）/ keyseq/application/trigger_service.py
+  - keyseq/application/config_service/{orphan_scan,parent_refs_cleanup,save_plan_execution,split_payloads}.py
+  - keyseq/presentation/{keyboard_window.py, controllers/{dirty_state,hook_controller,trigger_panel_controller}.py, controllers/config_io/{child_save_plan,child_save_rows,keymap_set_io,trigger_set_file_io}.py}
+  - instructions/phase/34_trigger_list_per_keymap/{phase.md, tasks/task_01_active_triggers_accessor.md}
 verified:
-  compile: not_run（文書のみ）
-  review: 暫定 25 = deep-reviewer（起票時）+ codex-adversarial（確定前）/ phase.md = reviewer 整合チェック 採用
+  compile: clean
+  tests: 585 ran OK（skipped 7・+8 新規）
+  tests_ui: 537 ran OK（件数不変）
+  smoke: pass
+  presentation_triggers_literal: 0
+  review: reviewer 完了可
 
 ## next_action
-- `/task_new` で `instructions/phase/34_trigger_list_per_keymap/tasks/task_01_*.md`（runtime データモデルと読込・移行・アクティブのトリガー取得の口・参照の付け替え。暫定 25 §3 / §4.1・§4.3・§4.5）を起票し、`codex-implementer` へ実装委任（テスト実行は含めない）→ `verifier` で実測 → `reviewer`。
+- `/task_new` で `instructions/phase/34_trigger_list_per_keymap/tasks/task_01b_*.md`（暫定 25 §3 / §4.1・§4.3・§4.5・`DEFAULT_CONFIG` 新形式・`ensure_active_keymap` 統一・共有実体。口の中身をアクティブキーマップ保持へ差し替え。保存は task_02 まで暫定）を起票 → `codex-implementer` → `verifier` → `reviewer`。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

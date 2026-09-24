@@ -13,6 +13,7 @@ from keyseq.application.save_plan import (
     SavePlan,
     SavePlanError,
 )
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import ensure_config_compatibility, normalize_key_name, safe_deepcopy
 
 from . import split_payloads
@@ -50,11 +51,11 @@ def save_runtime_data(service,
             keymap[service.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
 
     raw_triggers = (
-        data.get("triggers")
-        if isinstance(data, dict) and isinstance(data.get("triggers"), list)
+        get_active_triggers(data)
+        if isinstance(data, dict) and isinstance(get_active_triggers(data), list)
         else []
     )
-    normalized_triggers = normalized.get("triggers", [])
+    normalized_triggers = get_active_triggers(normalized)
     for raw_trigger, trigger in zip(
         (item for item in raw_triggers if isinstance(item, dict)),
         normalized_triggers,
@@ -246,7 +247,7 @@ def validate_save_plan(service,
     }
     sequence_keys = {
         normalize_key_name(item.get("key", ""))
-        for item in runtime.get("triggers", [])
+        for item in get_active_triggers(runtime)
         if isinstance(item, dict) and normalize_key_name(item.get("key", ""))
     }
     seen: set[tuple[str, str]] = set()
@@ -303,7 +304,7 @@ def apply_saved_child_paths(service,
         for item in payloads["sequences"]
         if not item["skip"]
     }
-    for trigger in runtime.get("triggers", []):
+    for trigger in get_active_triggers(runtime):
         if isinstance(trigger, dict):
             path = paths_by_sequence_key.get(normalize_key_name(str(trigger.get("key") or "")))
             if path:

@@ -8,6 +8,7 @@ from keyseq.application.save_plan import (
     ChildSaveEntry,
     SavePlan,
 )
+from keyseq.domain.keymap_triggers import set_active_triggers
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
 from keyseq.presentation.controllers.config_io.child_save_rows import collect_child_save_rows
 
@@ -59,7 +60,7 @@ class TriggerSetFileIo:
                 parent_ref=self._app.keymap_set_path,
                 save_plan=save_plan,
             )
-            self._app.data["triggers"] = triggers
+            set_active_triggers(self._app.data, triggers)
             self._app.dirty_tracker.set_trigger_set_source_path(
                 (
                     self._app.config_service.to_config_relative_or_absolute(
@@ -143,10 +144,13 @@ class TriggerSetFileIo:
         if not path:
             return
         try:
-            self._app.data["triggers"] = self._app.config_service.load_trigger_set_file(
-                path,
-                config_root=self._app.config_root,
-                imported=True,
+            set_active_triggers(
+                self._app.data,
+                self._app.config_service.load_trigger_set_file(
+                    path,
+                    config_root=self._app.config_root,
+                    imported=True,
+                ),
             )
             self._app.dirty_tracker.set_trigger_set_source_path(
                 (

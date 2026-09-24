@@ -5,6 +5,7 @@ from tkinter import font as tkfont
 from tkinter import ttk
 
 from keyseq.application.keymap_service import KeymapService
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
@@ -92,7 +93,7 @@ class KeyboardWindow(tk.Toplevel):
 
         triggers = []
         if isinstance(data, dict):
-            raw_triggers = data.get("triggers", [])
+            raw_triggers = get_active_triggers(data)
             if isinstance(raw_triggers, list):
                 triggers = raw_triggers
 

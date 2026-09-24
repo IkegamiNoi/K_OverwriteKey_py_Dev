@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox
 
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.hook_button_texts import (
@@ -121,7 +122,7 @@ class HookController:
 
         self._app.key_state_manager.clear()
         started = self._app.hook_coordinator.start(
-            triggers=self._app.data.get("triggers", []),
+            triggers=get_active_triggers(self._app.data),
             on_input_event=self.on_input_event,
             on_error=_on_error,
             has_keymaps=self._app.keymap_service.has_any_mapping(self._app.data),
@@ -171,7 +172,7 @@ class HookController:
                 self._app.after(0, lambda: messagebox.showerror(title, msg))
 
             enabled = self._app.hook_coordinator.can_enable_custom_input(
-                triggers=self._app.data.get("triggers", []),
+                triggers=get_active_triggers(self._app.data),
                 on_error=_on_error,
                 has_keymaps=self._app.keymap_service.has_any_mapping(self._app.data),
             )
@@ -207,7 +208,7 @@ class HookController:
         keymap_source_keys = self._app.keymap_service.collect_source_keys(self._app.data)
         trigger_keys = {
             normalize_key_name(t.get("key", ""))
-            for t in self._app.data.get("triggers", [])
+            for t in get_active_triggers(self._app.data)
             if normalize_key_name(t.get("key", ""))
         }
 

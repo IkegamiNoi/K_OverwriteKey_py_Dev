@@ -13,6 +13,7 @@ from keyseq.application.save_plan import (
     ChildSaveEntry,
     SavePlan,
 )
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_key_name
 
 
@@ -81,7 +82,7 @@ def _keymap_ids(data: dict[str, Any]) -> list[str]:
 
 
 def _sequence_keys(data: dict[str, Any]) -> list[str]:
-    triggers = data.get("triggers", [])
+    triggers = get_active_triggers(data)
     if not isinstance(triggers, list):
         return []
     return _unique_normalized_keys(trigger.get("key") for trigger in triggers if isinstance(trigger, dict))

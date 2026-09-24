@@ -11,6 +11,7 @@ from keyseq.application.save_plan import (
     CHILD_TRIGGER_SET,
     SavePlan,
 )
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_key_name
 
 
@@ -160,7 +161,7 @@ def collect_child_save_rows(
                 ),
             )
         )
-    triggers = data.get("triggers", [])
+    triggers = get_active_triggers(data)
     if isinstance(triggers, list):
         for trigger in triggers:
             if not isinstance(trigger, dict) or not bool(

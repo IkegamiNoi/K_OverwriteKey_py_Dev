@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Iterable
 
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_key_name
 
 
@@ -83,7 +84,7 @@ class DirtyStateTracker:
         if bool(self.trigger_set_dirty):
             return True
         data = self._get_data()
-        for trigger in data.get("triggers", []):
+        for trigger in get_active_triggers(data):
             if isinstance(trigger, dict) and bool(trigger.get(self._config_service.INTERNAL_SEQUENCE_DIRTY, False)):
                 return True
         for keymap in self._keymap_service.get_keymaps(data):
@@ -104,7 +105,7 @@ class DirtyStateTracker:
             self.trigger_set_dirty = False
             self.trigger_set_imported = False
         data = self._get_data()
-        for trigger in data.get("triggers", []):
+        for trigger in get_active_triggers(data):
             key = normalize_key_name(str(trigger.get("key") or "")) if isinstance(trigger, dict) else ""
             if isinstance(trigger, dict) and key not in skipped_sequences:
                 trigger[self._config_service.INTERNAL_SEQUENCE_DIRTY] = False

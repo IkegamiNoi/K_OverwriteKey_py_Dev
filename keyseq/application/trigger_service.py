@@ -3,15 +3,13 @@
 from typing import Any
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.keymap_triggers import get_active_triggers
 
 
 class TriggerService:
     @staticmethod
     def get_triggers(data: dict[str, Any]) -> list[dict[str, Any]]:
-        triggers = data.get("triggers", [])
-        if isinstance(triggers, list):
-            return triggers
-        return []
+        return get_active_triggers(data)
 
     @staticmethod
     def find_trigger_by_key(data: dict[str, Any], key: str) -> dict[str, Any] | None:

@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox
 
+from keyseq.domain.keymap_triggers import ensure_active_triggers, get_active_triggers
 from keyseq.domain.config import (
     DEFAULT_RUN_TO_END_DELAY_MS,
     coerce_nonnegative_int,
@@ -53,7 +54,7 @@ class TriggerPanelController:
     def select_trigger_by_key(self, key: str):
         """押されたトリガーキーに対応する行をトリガー一覧で選択し、右側表示も更新する（UI専用）"""
         key = normalize_key_name(key)
-        triggers = self._app.data.get("triggers", [])
+        triggers = get_active_triggers(self._app.data)
         target_idx = None
         for i, t in enumerate(triggers):
             if normalize_key_name(t.get("key", "")) == key:
@@ -80,7 +81,7 @@ class TriggerPanelController:
         idx = self.selected_trigger_index()
         if idx is None:
             return None
-        triggers = self._app.data.get("triggers", [])
+        triggers = get_active_triggers(self._app.data)
         if idx < 0 or idx >= len(triggers):
             return None
         return triggers[idx]
@@ -92,7 +93,7 @@ class TriggerPanelController:
         return normalize_key_name(t.get("key", ""))
 
     def on_trigger_list_focus_index_change(self, event=None):
-        triggers = self._app.data.get("triggers", [])
+        triggers = get_active_triggers(self._app.data)
         widget = getattr(event, "widget", None)
         if not isinstance(widget, tk.Listbox):
             widget = None
@@ -114,7 +115,7 @@ class TriggerPanelController:
                 trigger_list.delete(0, tk.END)
             except Exception:
                 pass
-        triggers = self._app.data.get("triggers", [])
+        triggers = get_active_triggers(self._app.data)
         for i, t in enumerate(triggers):
             k = normalize_key_name(t.get("key", ""))
             s = format_trigger_list_item(i, t)
@@ -256,7 +257,7 @@ class TriggerPanelController:
             self._app.ui_vars.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} / キーマップ: {keymap_text}\n選択: {sel_key} / 次: {line}")
             return
 
-        triggers = self._app.data.get("triggers", [])
+        triggers = get_active_triggers(self._app.data)
         keys = [normalize_key_name(t.get("key", "")) for t in triggers if t.get("key")]
         keys_text = ", ".join(keys) if keys else "(未設定)"
         # 「次」は run_to_end の場合、終端（len）なら次回は先頭なので 1 を出す
@@ -367,7 +368,7 @@ class TriggerPanelController:
         label = (res.get("label") or "").strip()
         if not key:
             return
-        triggers = self._app.data.setdefault("triggers", [])
+        triggers = ensure_active_triggers(self._app.data)
         # 重複チェック
         if self._app.trigger_service.key_exists(self._app.data, key):
             messagebox.showerror("追加できません", f"すでに存在します: {key}")
@@ -440,7 +441,7 @@ class TriggerPanelController:
         if idx is None:
             messagebox.showinfo("削除", "削除したいトリガーを選択してください。")
             return
-        triggers = self._app.data.get("triggers", [])
+        triggers = get_active_triggers(self._app.data)
         if idx < 0 or idx >= len(triggers):
             return
         key = normalize_key_name(triggers[idx].get("key", ""))

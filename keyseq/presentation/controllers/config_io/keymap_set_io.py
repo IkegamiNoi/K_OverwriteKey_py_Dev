@@ -11,6 +11,7 @@ from keyseq.application.save_plan import (
     ChildSaveEntry,
     SavePlan,
 )
+from keyseq.domain.keymap_triggers import get_active_triggers, set_active_triggers
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
 from keyseq.presentation.controllers.config_io.child_save_rows import (
@@ -54,7 +55,7 @@ class KeymapSetIo:
 
         self._app.data = self._app.config_service.new_default_data()
         self._app.config_service.apply_global_defaults(self._app.data, config_root=self._app.config_root)
-        self._app.data["triggers"] = []
+        set_active_triggers(self._app.data, [])
         self._app.data = self._app.config_service.normalize_runtime_data(self._app.data)
         self._app.dirty_tracker.reset_trigger_set_state()
         self._app.keymap_set_path = ""
@@ -474,7 +475,11 @@ class KeymapSetIo:
             if kind == CHILD_KEYMAP
             else self._app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH
         )
-        items = self._app.data.get("keymaps" if kind == CHILD_KEYMAP else "triggers", [])
+        items = (
+            self._app.data.get("keymaps", [])
+            if kind == CHILD_KEYMAP
+            else get_active_triggers(self._app.data)
+        )
         item_key = "id" if kind == CHILD_KEYMAP else "key"
         for item in items:
             if isinstance(item, dict) and normalize_key_name(str(item.get(item_key) or "")) == key:
@@ -483,7 +488,7 @@ class KeymapSetIo:
 
     def _blocked_labels(self, blocked_keys: list[str]) -> list[str]:
         labels = {}
-        for trigger in self._app.data.get("triggers", []):
+        for trigger in get_active_triggers(self._app.data):
             if isinstance(trigger, dict):
                 key = normalize_key_name(str(trigger.get("key") or ""))
                 labels[key] = str(trigger.get("label") or "").strip() or key
@@ -499,7 +504,7 @@ class KeymapSetIo:
         ]
         skipped_sequences = [
             normalize_key_name(str(item.get("key") or ""))
-            for item in self._app.data.get("triggers", [])
+            for item in get_active_triggers(self._app.data)
             if isinstance(item, dict)
             and bool(item.get(self._app.config_service.INTERNAL_SEQUENCE_DIRTY, False))
             and self._is_skipped(save_plan, CHILD_SEQUENCE, normalize_key_name(str(item.get("key") or "")))
@@ -625,7 +630,7 @@ class KeymapSetIo:
         self._app.config_service.apply_global_defaults(self._app.data, config_root=self._app.config_root)
         self._app.dirty_tracker.reset_trigger_set_state()
         self._app.keymap_set_path = ""
-        for trigger in self._app.data.get("triggers", []):
+        for trigger in get_active_triggers(self._app.data):
             self._app.dirty_tracker.mark_sequence_dirty(trigger)
         self._app.dirty_tracker.mark_trigger_set_dirty()
         for keymap in self._app.data.get("keymaps", []):

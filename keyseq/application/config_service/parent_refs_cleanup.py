@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from keyseq.domain.keymap_triggers import get_active_triggers
 from . import contracts
 
 
@@ -123,7 +124,7 @@ def _iter_child_paths(service, runtime: Any):
     if stored_path:
         yield "trigger_set", stored_path
 
-    triggers = runtime.get("triggers")
+    triggers = get_active_triggers(runtime)
     if isinstance(triggers, list):
         for trigger in triggers:
             if isinstance(trigger, dict):

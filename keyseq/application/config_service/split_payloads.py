@@ -4,6 +4,7 @@ import os
 from typing import Any
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_SEQUENCE, CHILD_TRIGGER_SET, SavePlan
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import (
     DEFAULT_KEYBOARD_LAYOUT_ID,
     DEFAULT_RUN_TO_END_DELAY_MS,
@@ -198,7 +199,7 @@ def build_trigger_set_payloads(service,
     parent_ref: str = "",
     save_plan: SavePlan,
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
-    triggers = runtime.get("triggers", [])
+    triggers = get_active_triggers(runtime)
     if not isinstance(triggers, list):
         triggers = []
 
