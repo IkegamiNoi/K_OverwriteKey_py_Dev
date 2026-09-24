@@ -259,18 +259,8 @@ class NestedModalGrabTest(unittest.TestCase):
 
     def test_grab_modal_is_last_initialization_statement(self):
         presentation = Path(__file__).resolve().parents[1] / "keyseq" / "presentation"
-        dialog_classes = {
-            "action_dialog.py": "ActionDialog",
-            "keymap_edit_dialog.py": "KeymapEditDialog",
-            "keymap_set_history_dialog.py": "KeymapSetHistoryDialog",
-            "layout_delete_dialog.py": "LayoutDeleteDialog",
-            "orphan_sweep_dialog.py": "OrphanSweepDialog",
-            "preset_dialog.py": "PresetDialog",
-            "preset_manager.py": "PresetManagerDialog",
-            "quarantine_manage_dialog.py": "QuarantineManageDialog",
-            "reference_cleanup_dialog.py": "ReferenceCleanupDialog",
-            "trigger_dialog.py": "TriggerDialog",
-        }
+        dialogs = presentation / "dialogs"
+        config_io = presentation / "controllers" / "config_io"
 
         def is_call(statement, name):
             return (
@@ -284,15 +274,37 @@ class NestedModalGrabTest(unittest.TestCase):
                 )
             )
 
-        for filename, class_name in dialog_classes.items():
-            path = presentation / "dialogs" / filename
-            tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
-            classes = [node for node in tree.body
-                       if isinstance(node, ast.ClassDef) and node.name == class_name]
-            self.assertEqual(len(classes), 1, f"{path}:1: {class_name} が必要")
-            initializers = [node for node in classes[0].body
+        trees = {
+            path: ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
+            for path in sorted(presentation.rglob("*.py"))
+        }
+        grab_files = set()
+        for path, tree in trees.items():
+            grabs = [node for node in ast.walk(tree) if is_call(node, "grab_modal")]
+            if grabs:
+                grab_files.add(path)
+                self.assertIn(path.parent, (dialogs, config_io),
+                              f"{path}:{grabs[0].lineno}: grab_modal は dialogs または config_io の直下だけ")
+
+        dialog_classes = [
+            (path, node)
+            for path, tree in trees.items() if path.parent == dialogs
+            for node in tree.body
+            if isinstance(node, ast.ClassDef) and any(
+                isinstance(base, ast.Attribute) and base.attr == "Toplevel"
+                or isinstance(base, ast.Name) and base.id == "Toplevel"
+                for base in node.bases
+            )
+        ]
+        self.assertGreaterEqual(
+            len(dialog_classes), 11,
+            f"{dialogs}:1: Toplevel 継承クラスは11件以上必要: "
+            f"{[node.name for _, node in dialog_classes]}",
+        )
+        for path, dialog_class in dialog_classes:
+            initializers = [node for node in dialog_class.body
                             if isinstance(node, ast.FunctionDef) and node.name == "__init__"]
-            self.assertEqual(len(initializers), 1, f"{path}:{classes[0].lineno}: __init__ が必要")
+            self.assertEqual(len(initializers), 1, f"{path}:{dialog_class.lineno}: __init__ が必要")
             initializer = initializers[0]
             grabs = [node for node in ast.walk(initializer) if is_call(node, "grab_modal")]
             self.assertEqual(len(grabs), 1, f"{path}:{initializer.lineno}: grab_modal は1回")
@@ -300,11 +312,17 @@ class NestedModalGrabTest(unittest.TestCase):
             self.assertTrue(is_call(last, "grab_modal"),
                             f"{path}:{last.lineno}: __init__ の最後は grab_modal")
 
-        for filename, expected_count in (
-            ("child_save_dialog.py", 2), ("io_dialogs.py", 1), ("hotkey_presets_io.py", 1),
-        ):
-            path = presentation / "controllers" / "config_io" / filename
-            tree = ast.parse(path.read_text(encoding="utf-8-sig"), filename=str(path))
+        expected_counts = {
+            "child_save_dialog.py": 2, "io_dialogs.py": 1, "hotkey_presets_io.py": 1,
+        }
+        self.assertEqual(
+            {path.name for path in grab_files if path.parent == config_io},
+            set(expected_counts),
+            f"{config_io}:1: grab_modal を呼ぶファイルは期待件数の辞書と一致すること",
+        )
+        for filename, expected_count in expected_counts.items():
+            path = config_io / filename
+            tree = trees[path]
             grabs = [node for node in ast.walk(tree) if is_call(node, "grab_modal")]
             self.assertEqual(len(grabs), expected_count, f"{path}:1: grab_modal の適用箇所数")
             blocks = [node for node in ast.walk(tree)

@@ -61,7 +61,7 @@ grab_modal の静的検査の発見ベース化（grab_modal_static_check_discov
 
 ## タスク
 
-- task_01: 静的検査の発見ベース化（系統 A・系統 B・呼び出し場所の確認）
+- task_01: 静的検査の発見ベース化（系統 A・系統 B・呼び出し場所の確認）— **完了**（2026-09-24）
 - task_02: 記録（`codebase_map.md:343` 付近へ発見ベースであることを 1 行 / decisions_archive/33〔phase 15 側の既知の限界を含む〕/
   current.md〔「テスト負債」の idea_32 行を削除〕/ idea_32 → INDEX_done / `/refactor_check`〔`keyseq/` の変更 0 件ならスキップ〕）
 

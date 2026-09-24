@@ -4,43 +4,41 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-24T03:10:00
-phase: なし（**phase 32 = `instructions/phase/32_hook_resume_wait_in_ui_tests` は 2026-09-24 完了**。アクティブなフェーズ無し）。次採番 = phase 33 / 暫定 25 / decisions 33 / 提案書 13。
+last_updated: 2026-09-24T04:00:00
+phase: instructions/phase/33_grab_modal_static_check_discovery（2026-09-24 起票・直接改訂モード・起票元 idea_32・tests_ui 限定・production 不変）。次採番 = phase 34 / 暫定 25 / decisions 33 / 提案書 13。
 直前の完了フェーズ = **phase 32**（UI テストでのフック再開の待ち合わせ・判断履歴 = `decisions_archive/32_hook_resume_wait_in_ui_tests.md`。テストのみ・production 不変）。
-last_commit_location: `claude/idea-33-2186d2`
+last_commit_location: `claude/idea-32-8d1b3f`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 32 完了（tests_ui のフック再開を `wait_for_hook_pause_count` で待つ・production 不変・idea_33 クローズ・refactor_check スキップ）。次フェーズは未定（ユーザー判断待ち）。**
-mode: completed
+focus: **phase 33 task_01 完了（grab_modal の静的検査を `Toplevel` 継承の発見ベースへ・CategoryChooserDialog が検査対象に入った）。次は task_02（記録とクローズ）。**
+mode: in_progress
 
 ## last_action
-ts: 2026-09-24T03:10:00
+ts: 2026-09-24T04:00:00
 who: main
 summary: |
-  【task_03 完了 = phase 32 完了】`codebase_map.md`（HookController 節に 3 行）/ decisions_archive/32 + decisions.md 索引 / current.md（アクティブなし・次採番 33・
-  テスト負債の idea_33 行を削除）/ idea_33 → INDEX_done / phase.md。正本 spec_detail の改訂なし。
-  【refactor_check】スキップ（`keyseq/` の変更 0 件）。
-  【完了判定前レビュー】codex-adversarial = approve / deep-reviewer = 完了可（medium 2・low 6・文書のみ）→ **ユーザー確認のうえ M1・M2・L3〜L6 を反映**
-  （M1 = handoff.md の「数える前に `app.update()` を挟む」を `wait_for_hook_pause_count` へ書き換え）。L7 保留・L8 見送り。
+  【phase 33 起票】ユーザー確定 = 案 A'（`dialogs/` の `Toplevel` 継承クラスを走査で発見・件数検査据え置き・下限 11）/
+  phase 15 側の静的検査（`DIALOG_FILES`）は対象外・別フェーズも立てない（既知の限界として decisions_archive/33 に理由を残す）。起票コミット `35aea1c`。
+  【task_01 完了】codex-implementer が `tests_ui/test_nested_modal_grab.py` の `test_grab_modal_is_last_initialization_statement` を書き換え
+  （系統 A = Toplevel 継承の発見 / 系統 B = config_io の grab_modal 呼び出しファイル集合と期待辞書のキー一致 / presentation 全体で呼び出し場所が dialogs か config_io 直下だけ）。
+  呼び出し場所の検査はメインが案 A' に足したもの（ユーザーへ明示済み）。reviewer = 完了可・指摘なし。
 result_files:
-  - instructions/common/codebase_map.md / instructions/phase/current.md / instructions/phase/32_hook_resume_wait_in_ui_tests/{phase.md, tasks/task_03_records_and_close.md}
-  - .claude_data/state/decisions_archive/32_hook_resume_wait_in_ui_tests.md（新規）/ .claude_data/state/decisions.md / .claude_data/state/handoff.md
-  - instructions/backlog/INDEX.md / INDEX_done.md / idea_33_hook_resume_after_idle_flaky_test.md
+  - tests_ui/test_nested_modal_grab.py / instructions/phase/33_grab_modal_static_check_discovery/phase.md
 verified:
   compile: clean
   tests: 577 ran OK（skipped 7）
-  tests_ui: 535 ran OK（負荷なし・負荷下とも）
-  load_run: 9 モジュール × 6 回 全 OK
-  smoke: SMOKE OK
-  production_diff: 0（phase 全体）
-  review: task 単位 reviewer 完了可 ×2 / 完了判定前 codex-adversarial approve + deep-reviewer 完了可（指摘反映・ユーザー承認）
-  refactor_check: スキップ（keyseq/ 変更なし）
+  tests_ui: 535 ran OK
+  discovery: 11 件（旧列挙 10 + CategoryChooserDialog）一致
+  mutation: 3 パターン（最後の文でなくなる / dialogs 側の消失 / config_io 側の消失）すべて FAIL → revert・keyseq 差分なし
+  production_diff: 0
+  review: reviewer 完了可
 
 ## next_action
-- `/save_handoff` で handoff.md を phase 32 完了時点へ再生成。
-- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_23）。着手時は `/phase_start`。
-- **main へのマージはユーザーが行う**（phase 18 残り・19〜32）。
+- task_02 のタスク定義を `/task_new` で起票（`instructions/phase/33_grab_modal_static_check_discovery/tasks/task_02_records_and_close.md`）→ 実施:
+  `codebase_map.md:343` 付近へ「発見ベース（dialogs/ の Toplevel 継承 + config_io の呼び出しファイル集合）」を 1 行 / decisions_archive/33（phase 15 側の既知の限界を含む）+ decisions.md 索引 /
+  current.md（アクティブなし・「テスト負債」の idea_32 行を削除）/ idea_32 → INDEX_done / `/refactor_check`（keyseq/ 変更 0 件ならスキップ）/ 完了判定前レビュー（deep-reviewer + codex-adversarial）。
+- **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
 ## blockers
