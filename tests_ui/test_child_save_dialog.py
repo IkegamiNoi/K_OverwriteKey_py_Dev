@@ -8,6 +8,7 @@ from tkinter import font, ttk
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_SEQUENCE, CHILD_TRIGGER_SET
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
@@ -56,8 +57,8 @@ def make_data(*, second_sequence: bool = False):
     if second_sequence:
         triggers.append({"key": "f2", "label": "Other", "actions": []})
     return {
-        "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"}}],
-        "triggers": triggers,
+        "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"}, "triggers": triggers}],
+        "triggers": [],
         "active_keymap_id": "km1",
     }
 
@@ -863,10 +864,10 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                     )
                 if requires_confirmation:
                     self._replace_parent_refs(targets[(CHILD_TRIGGER_SET, "")], [])
-                self.app.data["triggers"][0]["actions"] = [
+                get_active_triggers(self.app.data)[0]["actions"] = [
                     {"type": "text", "value": "new", "label": ""}
                 ]
-                self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+                self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
                 choices = {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, renamed_sequence)}
 
                 with patch.object(
@@ -905,7 +906,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 if share_state == SHARE_NEW:
                     os.remove(trigger_set_path)
                     self.app.data.pop(self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH, None)
-                self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+                self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
                 renamed_sequence = os.path.join(root, "renamed", "copy.json")
                 choices = {
                     (CHILD_SEQUENCE, "f1"): (
@@ -945,7 +946,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 ["user/keymap_sets/main.json"],
             )
             self.app.data.pop(self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH, None)
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
             choices = {
                 (CHILD_SEQUENCE, "f1"): (
                     ACTION_SAVE_AS,
@@ -975,7 +976,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                         trigger_set_path,
                         ["user/keymap_sets/main.json", "user/keymap_sets/other.json"],
                     )
-                self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+                self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
                 choices = {
                     (CHILD_SEQUENCE, "f1"): (
                         ACTION_SAVE_AS,
@@ -998,7 +999,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             path = self._prepare(root)
             self._replace_parent_refs(self._targets(path)[(CHILD_TRIGGER_SET, "")], [])
             self.assertFalse(self.app.dirty_tracker.trigger_set_dirty)
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
             choices = {
                 (CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, os.path.join(root, "renamed", "copy.json"))
             }
@@ -1051,15 +1052,15 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             path = self._prepare(root)
             sequence_path = self._targets(path)[(CHILD_SEQUENCE, "f1")]
             before = open(sequence_path, "rb").read()
-            self.app.data["triggers"][0].pop(
+            get_active_triggers(self.app.data)[0].pop(
                 self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH,
                 None,
             )
             renamed_sequence = os.path.join(root, "renamed", "copy.json")
-            self.app.data["triggers"][0]["actions"] = [
+            get_active_triggers(self.app.data)[0]["actions"] = [
                 {"type": "text", "value": "new", "label": ""}
             ]
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
 
             def choose(rows):
                 row = rows[0]
@@ -1090,11 +1091,11 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             old_sequence = open(targets[(CHILD_SEQUENCE, "f1")], "rb").read()
             old_skipped_sequence = open(targets[(CHILD_SEQUENCE, "f2")], "rb").read()
             self.app.data["keymaps"][0]["mappings"] = {"a": "c"}
-            self.app.data["triggers"][0]["actions"] = [{"type": "text", "value": "new", "label": ""}]
+            get_active_triggers(self.app.data)[0]["actions"] = [{"type": "text", "value": "new", "label": ""}]
             self.app.dirty_tracker.mark_keymap_dirty(self.app.data["keymaps"][0])
             self.app.dirty_tracker.mark_trigger_set_dirty()
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][1])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[1])
             choices = {
                 (CHILD_KEYMAP, "km1"): (ACTION_SAVE, ""),
                 (CHILD_TRIGGER_SET, ""): (ACTION_SAVE, ""),
@@ -1189,7 +1190,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             path = self._prepare(root)
             renamed_sequence = os.path.join(root, "renamed", "copy.json")
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
             choices = {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, renamed_sequence)}
             with patch.object(self.app.child_save_dialog, "ask_child_save_actions", return_value=choices), patch.object(
                 self.app.child_save_dialog, "confirm_trigger_set_dependency", return_value=ACTION_SAVE
@@ -1207,7 +1208,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             old_trigger_bytes = open(targets[(CHILD_TRIGGER_SET, "")], "rb").read()
             renamed_sequence = os.path.join(root, "renamed", "copy.json")
             renamed_trigger_set = os.path.join(root, "renamed", "trigger_set.json")
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
             choices = {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, renamed_sequence)}
 
             def confirm(**_kwargs):
@@ -1236,7 +1237,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             targets = self._targets(path)
             self._replace_parent_refs(targets[(CHILD_TRIGGER_SET, "")], [])
             before = {path: open(path, "rb").read(), **{value: open(value, "rb").read() for value in targets.values()}}
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
             choices = {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, os.path.join(root, "renamed.json"))}
             with patch.object(
                 self.app.child_save_dialog, "ask_child_save_actions", side_effect=[choices, None]
@@ -1252,7 +1253,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
     def test_dependency_reselect_with_no_dirty_rows_cancels_save(self):
         with tempfile.TemporaryDirectory() as root:
             path = self._prepare(root)
-            trigger = self.app.data["triggers"][0]
+            trigger = get_active_triggers(self.app.data)[0]
             trigger["label"] = "Renamed"
             trigger.pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
             self._replace_parent_refs(self._targets(path)[(CHILD_TRIGGER_SET, "")], [])
@@ -1269,7 +1270,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
     def test_skipped_sequence_does_not_require_dependency_confirmation(self):
         with tempfile.TemporaryDirectory() as root:
             path = self._prepare(root)
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
             choices = {(CHILD_SEQUENCE, "f1"): (ACTION_SKIP, "")}
             with patch.object(self.app.child_save_dialog, "ask_child_save_actions", return_value=choices), patch.object(
                 self.app.child_save_dialog, "confirm_trigger_set_dependency"
@@ -1300,10 +1301,10 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             os.makedirs(os.path.dirname(external_other), exist_ok=True)
             with open(external_other, "wb") as stream:
                 stream.write(b"existing other")
-            self.app.data["triggers"][0].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
-            self.app.data["triggers"][1].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+            get_active_triggers(self.app.data)[0].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+            get_active_triggers(self.app.data)[1].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
             self.app.dirty_tracker.mark_trigger_set_dirty()
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
             seen_sequence_targets = []
 
             def choose(rows):
@@ -1319,7 +1320,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             with patch.object(self.app.child_save_dialog, "ask_child_save_actions", side_effect=choose) as ask:
                 self.assertTrue(self._save(path))
 
-            saved_sequence_path = self.app.data["triggers"][0][
+            saved_sequence_path = get_active_triggers(self.app.data)[0][
                 self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH
             ]
             self.assertEqual(ask.call_count, 1)
@@ -1344,11 +1345,11 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 with open(external_other, "wb") as stream:
                     stream.write(b"existing other")
                 self._replace_parent_refs(recalculated_sequence, ["user/trigger_sets/other.json"])
-                self.app.data["triggers"][0].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
-                self.app.data["triggers"][1].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
-                self.app.data["triggers"][0]["actions"] = [{"type": "text", "value": "new", "label": ""}]
+                get_active_triggers(self.app.data)[0].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+                get_active_triggers(self.app.data)[1].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+                get_active_triggers(self.app.data)[0]["actions"] = [{"type": "text", "value": "new", "label": ""}]
                 self.app.dirty_tracker.mark_trigger_set_dirty()
-                self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+                self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
                 choices = {
                     (CHILD_TRIGGER_SET, ""): (ACTION_SAVE_AS, external_trigger_set),
                     (CHILD_SEQUENCE, "f1"): (ACTION_SAVE, ""),
@@ -1388,10 +1389,10 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             os.makedirs(os.path.dirname(external_other), exist_ok=True)
             with open(external_other, "wb") as stream:
                 stream.write(b"existing other")
-            self.app.data["triggers"][0].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
-            self.app.data["triggers"][1].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+            get_active_triggers(self.app.data)[0].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
+            get_active_triggers(self.app.data)[1].pop(self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH, None)
             self.app.dirty_tracker.mark_trigger_set_dirty()
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
             choices = {
                 (CHILD_TRIGGER_SET, ""): (ACTION_SAVE_AS, external_trigger_set),
                 (CHILD_SEQUENCE, "f1"): (ACTION_SAVE, ""),

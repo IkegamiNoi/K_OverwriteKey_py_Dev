@@ -50,11 +50,7 @@ def save_runtime_data(service,
         if parent_refs is not None:
             keymap[service.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
 
-    raw_triggers = (
-        get_active_triggers(data)
-        if isinstance(data, dict) and isinstance(get_active_triggers(data), list)
-        else []
-    )
+    raw_triggers = get_active_triggers(data) if isinstance(data, dict) else []
     normalized_triggers = get_active_triggers(normalized)
     for raw_trigger, trigger in zip(
         (item for item in raw_triggers if isinstance(item, dict)),

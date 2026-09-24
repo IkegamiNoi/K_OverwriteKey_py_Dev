@@ -4,6 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import (
     ACTION_SAVE,
@@ -36,13 +37,15 @@ class DummyDirtyTracker:
 def make_runtime_data():
     return {
         "keymaps": [
-            {"id": "km1", "label": "Main", "mappings": {}, "_keymap_dirty": True},
-            {"id": "km2", "label": "", "mappings": {}, "_keymap_dirty": False},
+            {"id": "km1", "label": "Main", "mappings": {}, "_keymap_dirty": True,
+             "triggers": [
+                 {"key": "f1", "label": "Copy", "actions": [], "_sequence_dirty": True},
+                 {"key": "f2", "label": "", "actions": [], "_sequence_dirty": False},
+             ]},
+            {"id": "km2", "label": "", "mappings": {}, "_keymap_dirty": False, "triggers": []},
         ],
-        "triggers": [
-            {"key": "f1", "label": "Copy", "actions": [], "_sequence_dirty": True},
-            {"key": "f2", "label": "", "actions": [], "_sequence_dirty": False},
-        ],
+        "active_keymap_id": "km1",
+        "triggers": [],
     }
 
 
@@ -78,7 +81,7 @@ class ChildSaveRowsTest(unittest.TestCase):
             root = os.path.join(tmp, "config")
             data = make_runtime_data()
             data["keymaps"][0]["_keymap_dirty"] = False
-            data["triggers"][0]["_sequence_dirty"] = False
+            get_active_triggers(data)[0]["_sequence_dirty"] = False
 
             rows = collect_child_save_rows(
                 data=data,
@@ -124,7 +127,7 @@ class ChildSaveRowsTest(unittest.TestCase):
             root = os.path.join(tmp, "config")
             keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
             data = make_runtime_data()
-            data["triggers"][0]["_sequence_dirty"] = False
+            get_active_triggers(data)[0]["_sequence_dirty"] = False
             target = self.service.resolve_child_save_targets(
                 data,
                 config_root=root,

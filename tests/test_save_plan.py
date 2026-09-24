@@ -3,6 +3,7 @@ import os
 import tempfile
 import unittest
 
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.application.config_service import ConfigService, split_payloads
 from keyseq.application.save_plan import (
     ACTION_SAVE,
@@ -24,17 +25,18 @@ def _read_bytes(path):
 
 
 def make_runtime_data():
+    triggers = [
+        {
+            "key": "f1",
+            "suppress": True,
+            "label": "copy",
+            "run_to_end": False,
+            "run_to_end_delay_ms": 300,
+            "actions": [{"type": "text", "value": "hello", "label": ""}],
+        }
+    ]
     return {
-        "triggers": [
-            {
-                "key": "f1",
-                "suppress": True,
-                "label": "copy",
-                "run_to_end": False,
-                "run_to_end_delay_ms": 300,
-                "actions": [{"type": "text", "value": "hello", "label": ""}],
-            }
-        ],
+        "triggers": [],
         "hotkey_presets": [{"label": "Alt+Tab", "value": "alt+tab"}],
         "hook_stop_key": "f12",
         "hook_toggle_key": "",
@@ -42,7 +44,7 @@ def make_runtime_data():
         "keyboard_show_physical_key_labels": False,
         "debug_jis_special_key_events": False,
         "external_keyboard_layouts": [],
-        "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"}}],
+        "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"}, "triggers": triggers}],
         "active_keymap_id": "km1",
         "keymap_switch_keys": {"1": "km1"},
     }
@@ -374,7 +376,7 @@ class SavePlanTest(unittest.TestCase):
             sequence_path = os.path.join(root, "user", "sequences", "copy.json")
             JsonRepository().save_json(sequence_path, {"label": "old", "actions": []})
             data = make_runtime_data()
-            data["triggers"][0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH] = (
+            get_active_triggers(data)[0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH] = (
                 "user/sequences/copy.json"
             )
             self._save(
@@ -444,7 +446,7 @@ class SavePlanTest(unittest.TestCase):
                 "custom/main.json",
             )
             self.assertEqual(
-                saved["triggers"][0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+                get_active_triggers(saved)[0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
                 "custom/copy.json",
             )
 
@@ -482,13 +484,13 @@ class SavePlanTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             data = make_runtime_data()
-            data["triggers"][0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH] = (
+            get_active_triggers(data)[0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH] = (
                 "user/sequences/shared.json"
             )
-            second_trigger = dict(data["triggers"][0])
+            second_trigger = dict(get_active_triggers(data)[0])
             second_trigger["key"] = "f2"
             second_trigger["label"] = "paste"
-            data["triggers"].append(second_trigger)
+            get_active_triggers(data).append(second_trigger)
 
             with self.assertRaises(SavePlanError):
                 self._save(
@@ -516,7 +518,7 @@ class SavePlanTest(unittest.TestCase):
                 os.path.join(root, "user", "keymap_sets", "main.json"),
                 config_root=root,
             )
-            second_trigger = dict(data["triggers"][0])
+            second_trigger = dict(get_active_triggers(data)[0])
             second_trigger.update(
                 {
                     "key": "f2",
@@ -525,7 +527,7 @@ class SavePlanTest(unittest.TestCase):
                     self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "user/sequences/copy.json",
                 }
             )
-            data["triggers"].append(second_trigger)
+            get_active_triggers(data).append(second_trigger)
             plan = SavePlan(
                 (
                     ChildSaveEntry(CHILD_SEQUENCE, "f2", ACTION_SAVE),
@@ -546,7 +548,7 @@ class SavePlanTest(unittest.TestCase):
             self.assertTrue(os.path.exists(os.path.join(root, "user", "keymap_sets", "main.json")))
             self.assertTrue(os.path.exists(os.path.join(root, "config.json")))
             self.assertEqual(
-                saved["triggers"][1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+                get_active_triggers(saved)[1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
                 self.service.to_config_relative_or_absolute(targets[(CHILD_SEQUENCE, "f2")], root),
             )
 
@@ -556,7 +558,7 @@ class SavePlanTest(unittest.TestCase):
             keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
             self._save(root)
             data = self.service.load_runtime_data_from_keymap_set_path(keymap_set_path, config_root=root)
-            second_trigger = dict(data["triggers"][0])
+            second_trigger = dict(get_active_triggers(data)[0])
             second_trigger.update(
                 {
                     "key": "f2",
@@ -565,7 +567,7 @@ class SavePlanTest(unittest.TestCase):
                     self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "user/sequences/copy.json",
                 }
             )
-            data["triggers"].append(second_trigger)
+            get_active_triggers(data).append(second_trigger)
             deferred_plan = SavePlan(
                 (
                     ChildSaveEntry(CHILD_SEQUENCE, "f2", ACTION_SAVE),
@@ -574,7 +576,7 @@ class SavePlanTest(unittest.TestCase):
                 allow_deferred_index=True,
             )
             saved, _ = self._save(root, data=data, plan=deferred_plan)
-            sequence_path = saved["triggers"][1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH]
+            sequence_path = get_active_triggers(saved)[1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH]
 
             self._save(
                 root,
@@ -584,10 +586,10 @@ class SavePlanTest(unittest.TestCase):
             loaded = self.service.load_runtime_data_from_keymap_set_path(keymap_set_path, config_root=root)
 
             self.assertEqual(
-                loaded["triggers"][1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+                get_active_triggers(loaded)[1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
                 sequence_path,
             )
-            self.assertEqual(loaded["triggers"][1]["actions"], saved["triggers"][1]["actions"])
+            self.assertEqual(get_active_triggers(loaded)[1]["actions"], get_active_triggers(saved)[1]["actions"])
 
     def test_skip_keeps_existing_indexes_and_omits_missing_indexes(self):
         with tempfile.TemporaryDirectory() as tmp:

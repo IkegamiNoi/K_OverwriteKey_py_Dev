@@ -20,34 +20,7 @@ def coerce_nonnegative_int(value: Any, default: int) -> int:
 
 
 DEFAULT_CONFIG: dict[str, Any] = {
-    "triggers": [
-        {
-            "key": "f1",
-            "suppress": True,
-            "label": "",
-            "run_to_end": False,
-            "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
-            "actions": [
-                {"type": "hotkey", "value": "ctrl+c"},
-                {"type": "hotkey", "value": "alt+tab"},
-                {"type": "hotkey", "value": "ctrl+tab"},
-                {"type": "hotkey", "value": "ctrl+c"},
-                {"type": "hotkey", "value": "f2"},
-                {"type": "text", "value": "sample_text"},
-            ],
-        },
-        {
-            "key": "f2",
-            "suppress": True,
-            "label": "",
-            "run_to_end": False,
-            "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
-            "actions": [
-                {"type": "text", "value": "sequence_1"},
-                {"type": "hotkey", "value": "ctrl+v"},
-            ],
-        },
-    ],
+    "triggers": [],
     "hotkey_presets": [
         {"label": "Alt+Tab", "value": "alt+tab"},
         {"label": "Win+D", "value": "windows+d"},
@@ -67,8 +40,38 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "keyboard_show_physical_key_labels": False,
     "debug_jis_special_key_events": False,
     "external_keyboard_layouts": [],
-    "keymaps": [],
-    "active_keymap_id": "",
+    "keymaps": [{
+        "id": "keymap_1", "label": "", "mappings": {},
+        "triggers": [
+            {
+                "key": "f1",
+                "suppress": True,
+                "label": "",
+                "run_to_end": False,
+                "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
+                "actions": [
+                    {"type": "hotkey", "value": "ctrl+c"},
+                    {"type": "hotkey", "value": "alt+tab"},
+                    {"type": "hotkey", "value": "ctrl+tab"},
+                    {"type": "hotkey", "value": "ctrl+c"},
+                    {"type": "hotkey", "value": "f2"},
+                    {"type": "text", "value": "sample_text"},
+                ],
+            },
+            {
+                "key": "f2",
+                "suppress": True,
+                "label": "",
+                "run_to_end": False,
+                "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
+                "actions": [
+                    {"type": "text", "value": "sequence_1"},
+                    {"type": "hotkey", "value": "ctrl+v"},
+                ],
+            },
+        ],
+    }],
+    "active_keymap_id": "keymap_1",
     "keymap_switch_keys": {},
 }
 
@@ -158,30 +161,7 @@ def normalize_actions(actions: Any) -> list[dict[str, Any]]:
     return normalized_actions
 
 
-def ensure_config_compatibility(data: Any) -> dict[str, Any]:
-    if not isinstance(data, dict):
-        data = {}
-    config = safe_deepcopy(data)
-    if "_trigger_set_source_path" in config:
-        config["_trigger_set_source_path"] = coerce_label(config["_trigger_set_source_path"])
-
-    if "triggers" not in config and "trigger_key" in config:
-        old_key = coerce_key_name(config.get("trigger_key", "f1"))
-        old_actions = config.get("actions", [])
-        if not isinstance(old_actions, list):
-            old_actions = []
-        config["triggers"] = [
-            {
-                "key": old_key,
-                "label": "",
-                "suppress": True,
-                "run_to_end": False,
-                "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
-                "actions": old_actions,
-            }
-        ]
-
-    raw_triggers = config.get("triggers")
+def normalize_triggers(raw_triggers: Any) -> list[dict[str, Any]]:
     if not isinstance(raw_triggers, list):
         raw_triggers = []
     normalized_triggers: list[dict[str, Any]] = []
@@ -209,7 +189,33 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             if key in trigger:
                 t[key] = safe_deepcopy(trigger.get(key))
         normalized_triggers.append(t)
-    config["triggers"] = normalized_triggers
+    return normalized_triggers
+
+
+def ensure_config_compatibility(data: Any) -> dict[str, Any]:
+    if not isinstance(data, dict):
+        data = {}
+    config = safe_deepcopy(data)
+    if "_trigger_set_source_path" in config:
+        config["_trigger_set_source_path"] = coerce_label(config["_trigger_set_source_path"])
+
+    if "triggers" not in config and "trigger_key" in config:
+        old_key = coerce_key_name(config.get("trigger_key", "f1"))
+        old_actions = config.get("actions", [])
+        if not isinstance(old_actions, list):
+            old_actions = []
+        config["triggers"] = [
+            {
+                "key": old_key,
+                "label": "",
+                "suppress": True,
+                "run_to_end": False,
+                "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
+                "actions": old_actions,
+            }
+        ]
+
+    config["triggers"] = normalize_triggers(config.get("triggers"))
 
     raw_presets = config.get("hotkey_presets")
     if not isinstance(raw_presets, list):
@@ -252,7 +258,8 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             normalized_external_layouts.append({"path": path})
     config["external_keyboard_layouts"] = normalized_external_layouts
 
-    raw_keymaps = config.get("keymaps")
+    raw_keymaps = data.get("keymaps")
+    trigger_memo: dict[int, list[dict[str, Any]]] = {}
     normalized_keymaps: list[dict[str, Any]] = []
     seen_keymap_ids: set[str] = set()
     if isinstance(raw_keymaps, list):
@@ -281,6 +288,21 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
                     "mappings": normalized_mappings,
                 }
             )
+            if "triggers" in item:
+                raw = item["triggers"]
+                if isinstance(raw, list):
+                    identity = id(raw)
+                    if identity not in trigger_memo:
+                        trigger_memo[identity] = normalize_triggers(raw)
+                    normalized_keymaps[-1]["triggers"] = trigger_memo[identity]
+                else:
+                    normalized_keymaps[-1]["triggers"] = []
+            for key in (
+                "_trigger_set_source_path", "_trigger_set_parent_refs",
+                "_trigger_set_dirty", "_trigger_set_imported",
+            ):
+                if key in item:
+                    normalized_keymaps[-1][key] = safe_deepcopy(item[key])
             if "_keymap_source_path" in item:
                 normalized_keymaps[-1]["_keymap_source_path"] = coerce_label(item["_keymap_source_path"])
             for key in (

@@ -39,7 +39,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
 
             inspections = self._inspect(
                 root,
-                {"keymaps": [self._keymap(child_path)], "triggers": []},
+                {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []},
             )
 
             self.assertEqual(inspections, [])
@@ -60,7 +60,9 @@ class ParentRefsCleanupTest(unittest.TestCase):
             inspections = self._inspect(
                 root,
                 {
-                    "keymaps": [self._keymap(path) for path in source_paths],
+                    "keymaps": [self._keymap(path, keymap_id=f"km{index}")
+                                for index, path in enumerate(source_paths, 1)],
+                    "active_keymap_id": "km1",
                     "triggers": [],
                 },
             )
@@ -86,7 +88,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
 
             inspections = self._inspect(
                 root,
-                {"keymaps": [self._keymap(child_path)], "triggers": []},
+                {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []},
             )
 
             self.assertEqual(inspections, [])
@@ -110,6 +112,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
                 {
                     "keymaps": [self._keymap(keymap_path)],
                     self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: trigger_set_path,
+                    "active_keymap_id": "km1",
                     "triggers": [],
                 },
                 keymap_set_path=keymap_set_path,
@@ -124,9 +127,10 @@ class ParentRefsCleanupTest(unittest.TestCase):
             sequence_inspections = self._inspect(
                 root,
                 {
-                    "keymaps": [],
+                    "keymaps": [self._keymap("", triggers=[self._sequence(sequence_path)])],
+                    "active_keymap_id": "km1",
                     self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: missing_trigger_set_path,
-                    "triggers": [self._sequence(sequence_path)],
+                    "triggers": [],
                 },
             )
 
@@ -159,9 +163,10 @@ class ParentRefsCleanupTest(unittest.TestCase):
                 {
                     "keymaps": [
                         self._keymap(target_path),
-                        self._keymap(all_stale_path),
-                        self._keymap(protected_path),
+                        self._keymap(all_stale_path, keymap_id="km2"),
+                        self._keymap(protected_path, keymap_id="km3"),
                     ],
+                    "active_keymap_id": "km1",
                     "triggers": [],
                 },
                 keymap_set_path=protected_parent,
@@ -185,14 +190,15 @@ class ParentRefsCleanupTest(unittest.TestCase):
                 root,
                 {
                     "keymaps": [
-                        {self.service.INTERNAL_KEYMAP_SOURCE_PATH: ""},
-                        {self.service.INTERNAL_KEYMAP_SOURCE_PATH: None},
+                        self._keymap("", triggers=[
+                            {self.service.INTERNAL_SEQUENCE_SOURCE_PATH: ""},
+                            {self.service.INTERNAL_SEQUENCE_SOURCE_PATH: []},
+                        ]),
+                        self._keymap(None, keymap_id="km2"),
                     ],
+                    "active_keymap_id": "km1",
                     self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: 1,
-                    "triggers": [
-                        {self.service.INTERNAL_SEQUENCE_SOURCE_PATH: ""},
-                        {self.service.INTERNAL_SEQUENCE_SOURCE_PATH: []},
-                    ],
+                    "triggers": [],
                 },
             )
 
@@ -206,11 +212,12 @@ class ParentRefsCleanupTest(unittest.TestCase):
             inspections = self._inspect(
                 root,
                 {
-                    "keymaps": [],
-                    "triggers": [
+                    "keymaps": [self._keymap("", triggers=[
                         self._sequence(sequence_path),
                         self._sequence(sequence_path.replace("\\", "/")),
-                    ],
+                    ])],
+                    "active_keymap_id": "km1",
+                    "triggers": [],
                 },
             )
 
@@ -229,9 +236,10 @@ class ParentRefsCleanupTest(unittest.TestCase):
             inspections = self._inspect(
                 root,
                 {
-                    "keymaps": [self._keymap(keymap_path)],
+                    "keymaps": [self._keymap(keymap_path, triggers=[self._sequence(sequence_path)])],
+                    "active_keymap_id": "km1",
                     self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: trigger_set_path,
-                    "triggers": [self._sequence(sequence_path)],
+                    "triggers": [],
                 },
             )
 
@@ -252,7 +260,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
 
             inspections = self._inspect(
                 root,
-                {"keymaps": [self._keymap(child_path)], "triggers": []},
+                {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []},
             )
 
             self.assertEqual(inspections[0].state, CLEANUP_ALL_STALE)
@@ -263,23 +271,31 @@ class ParentRefsCleanupTest(unittest.TestCase):
             child_path = os.path.join(root, "user", "keymaps", "main.json")
             alive_path = os.path.join(root, "user", "keymap_sets", "alive.json")
             alive_ref = "user\\keymap_sets\\alive.json"
-            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            runtime = {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []}
             self._save(alive_path, {"keymaps": []})
             self._save(child_path, {"_parent_refs": ["missing.json", alive_ref]})
             before_runtime = copy.deepcopy(runtime)
+            keymaps = runtime["keymaps"]
+            keymap = keymaps[0]
+            triggers = keymap["triggers"]
 
-            result = self._prune(root, self._inspect(root, runtime), runtime)
+            inspections = self._inspect(root, runtime)
+            self.assertEqual(runtime, before_runtime)
+            result = self._prune(root, inspections, runtime)
 
             self.assertEqual(result.updated_files, ((child_path, 1),))
             self.assertEqual(result.failed_files, ())
             self.assertEqual(self.service.read_parent_refs(child_path), [alive_ref])
             self.assertEqual(runtime, before_runtime)
+            self.assertIs(runtime["keymaps"], keymaps)
+            self.assertIs(runtime["keymaps"][0], keymap)
+            self.assertIs(runtime["keymaps"][0]["triggers"], triggers)
 
     def test_prune_changes_share_state_from_shared_to_sole(self):
         with tempfile.TemporaryDirectory() as root:
             keymap_set_path = os.path.join(root, "user", "keymap_sets", "current.json")
             child_path = os.path.join(root, "user", "keymaps", "main.json")
-            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            runtime = {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []}
             self._save(keymap_set_path, {"keymaps": []})
             self._save(
                 child_path,
@@ -318,7 +334,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
     def test_prune_writes_empty_list_without_removing_parent_refs_key(self):
         with tempfile.TemporaryDirectory() as root:
             child_path = os.path.join(root, "user", "keymaps", "main.json")
-            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            runtime = {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []}
             self._save(child_path, {"label": "Main", "_parent_refs": ["missing.json"]})
 
             result = self._prune(root, self._inspect(root, runtime), runtime)
@@ -337,9 +353,10 @@ class ParentRefsCleanupTest(unittest.TestCase):
             self._save(keymap_path, {"_parent_refs": [keymap_set_path, "missing-keymap-set.json"]})
             self._save(sequence_path, {"_parent_refs": [trigger_set_path, "missing-trigger-set.json"]})
             runtime = {
-                "keymaps": [self._keymap(keymap_path)],
+                "keymaps": [self._keymap(keymap_path, triggers=[self._sequence(sequence_path)])],
+                "active_keymap_id": "km1",
                 self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: trigger_set_path,
-                "triggers": [self._sequence(sequence_path)],
+                "triggers": [],
             }
 
             result = self._prune(
@@ -362,7 +379,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
     def test_prune_keeps_other_keys_from_the_pre_save_reload(self):
         with tempfile.TemporaryDirectory() as root:
             child_path = os.path.join(root, "user", "keymaps", "main.json")
-            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            runtime = {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []}
             self._save(
                 child_path,
                 {"label": "Before", "nested": {"version": 1}, "_parent_refs": ["missing.json"]},
@@ -384,7 +401,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             child_path = os.path.join(root, "user", "keymaps", "main.json")
             parent_path = os.path.join(root, "missing.json")
-            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            runtime = {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []}
             self._save(child_path, {"_parent_refs": ["missing.json"]})
             inspections = self._inspect(root, runtime)
             self._save(parent_path, {"keymaps": []})
@@ -399,7 +416,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
     def test_prune_skips_when_parent_refs_becomes_unknown_before_reload(self):
         with tempfile.TemporaryDirectory() as root:
             child_path = os.path.join(root, "user", "keymaps", "main.json")
-            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            runtime = {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []}
             self._save(child_path, {"_parent_refs": ["missing.json"]})
             inspections = self._inspect(root, runtime)
             self._save(child_path, {"label": "Legacy", "_parent_refs": None})
@@ -414,7 +431,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
     def test_prune_is_idempotent_for_the_same_inspections(self):
         with tempfile.TemporaryDirectory() as root:
             child_path = os.path.join(root, "user", "keymaps", "main.json")
-            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            runtime = {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []}
             self._save(child_path, {"_parent_refs": ["missing.json"]})
             inspections = self._inspect(root, runtime)
 
@@ -435,9 +452,10 @@ class ParentRefsCleanupTest(unittest.TestCase):
             runtime = {
                 "keymaps": [
                     self._keymap(unreadable_path),
-                    self._keymap(invalid_path),
-                    self._keymap(valid_path),
+                    self._keymap(invalid_path, keymap_id="km2"),
+                    self._keymap(valid_path, keymap_id="km3"),
                 ],
+                "active_keymap_id": "km1",
                 "triggers": [],
             }
             for child_path in (unreadable_path, invalid_path, valid_path):
@@ -464,7 +482,8 @@ class ParentRefsCleanupTest(unittest.TestCase):
             failing_path = os.path.join(root, "user", "keymaps", "failing.json")
             valid_path = os.path.join(root, "user", "keymaps", "valid.json")
             runtime = {
-                "keymaps": [self._keymap(failing_path), self._keymap(valid_path)],
+                "keymaps": [self._keymap(failing_path), self._keymap(valid_path, keymap_id="km3")],
+                "active_keymap_id": "km1",
                 "triggers": [],
             }
             self._save(failing_path, {"_parent_refs": ["missing.json"]})
@@ -490,7 +509,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             keymap_set_path = os.path.join(root, "user", "keymap_sets", "current.json")
             child_path = os.path.join(root, "user", "keymaps", "main.json")
-            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            runtime = {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []}
             self._save(child_path, {"_parent_refs": [keymap_set_path]})
             inspections = self._inspect(root, runtime, keymap_set_path=keymap_set_path)
             before = self._read_bytes(child_path)
@@ -510,7 +529,7 @@ class ParentRefsCleanupTest(unittest.TestCase):
     def test_config_service_cleanup_delegates_match_module_functions(self):
         with tempfile.TemporaryDirectory() as root:
             child_path = os.path.join(root, "user", "keymaps", "main.json")
-            runtime = {"keymaps": [self._keymap(child_path)], "triggers": []}
+            runtime = {"keymaps": [self._keymap(child_path)], "active_keymap_id": "km1", "triggers": []}
             payload = {"_parent_refs": ["missing.json"]}
             self._save(child_path, payload)
 
@@ -561,8 +580,12 @@ class ParentRefsCleanupTest(unittest.TestCase):
             keymap_set_path=keymap_set_path,
         )
 
-    def _keymap(self, path):
-        return {self.service.INTERNAL_KEYMAP_SOURCE_PATH: path}
+    def _keymap(self, path, *, keymap_id="km1", triggers=None):
+        return {
+            "id": keymap_id, "label": "", "mappings": {},
+            "triggers": [] if triggers is None else triggers,
+            self.service.INTERNAL_KEYMAP_SOURCE_PATH: path,
+        }
 
     def _sequence(self, path):
         return {self.service.INTERNAL_SEQUENCE_SOURCE_PATH: path}

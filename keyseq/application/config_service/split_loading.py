@@ -18,6 +18,7 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from . import save_path_resolution
+from keyseq.domain.keymap_triggers import ensure_at_least_one_keymap
 
 
 def load_split_config(service, *, config_root: str, keymap_set_path: str) -> dict[str, Any]:
@@ -278,6 +279,7 @@ def build_runtime_data_from_split(
     config_root: str,
 ) -> dict[str, Any]:
     runtime = service.new_default_data()
+    runtime.update(keymaps=[], triggers=[], active_keymap_id="")
 
     for key in (
         *HOOK_KEY_FIELDS,
@@ -303,17 +305,6 @@ def build_runtime_data_from_split(
         keymap_set.get("external_keyboard_layouts"),
         config_root=config_root,
     )
-    triggers, trigger_set_parent_refs = load_trigger_set(
-        service,
-        keymap_set.get("trigger_set_path"),
-        config_root=config_root,
-    )
-    runtime["triggers"] = triggers
-    trigger_set_path = coerce_label(keymap_set.get("trigger_set_path"))
-    if trigger_set_path:
-        runtime[service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = trigger_set_path
-    if trigger_set_parent_refs is not None:
-        runtime[service.INTERNAL_TRIGGER_SET_PARENT_REFS] = trigger_set_parent_refs
     individual_presets_path = resolve_individual_hotkey_presets_read_path(runtime)
     hotkey_presets = (
         load_hotkey_presets_file(
@@ -333,6 +324,18 @@ def build_runtime_data_from_split(
     keymap_switch_keys: dict[str, str] = {}
     loaded_keymap_ids_by_path: dict[str, str] = {}
     used_keymap_ids: set[str] = set()
+    trigger_sets: dict[str, tuple[list[dict[str, Any]], list[str] | None, str]] = {}
+
+    def attach_trigger_set(keymap: dict[str, Any], stored_path: str) -> None:
+        identity = service.canonical_path(stored_path, config_root)
+        if identity not in trigger_sets:
+            triggers, refs = load_trigger_set(service, stored_path, config_root=config_root)
+            trigger_sets[identity] = (triggers, refs, stored_path)
+        triggers, refs, source_path = trigger_sets[identity]
+        keymap["triggers"] = triggers
+        keymap[service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = source_path
+        if refs is not None:
+            keymap[service.INTERNAL_TRIGGER_SET_PARENT_REFS] = refs
 
     active_keymap_path = coerce_label(keymap_set.get("active_keymap_path"))
     active_keymap_resolved_path = (
@@ -354,6 +357,8 @@ def build_runtime_data_from_split(
                 continue
 
             keymap = loaded_entry["keymap"]
+            if loaded_entry["trigger_set_path"]:
+                attach_trigger_set(keymap, loaded_entry["trigger_set_path"])
             keymaps.append(keymap)
             loaded_keymap_ids_by_path[loaded_entry["resolved_path"]] = str(keymap.get("id") or "")
 
@@ -370,12 +375,38 @@ def build_runtime_data_from_split(
             used_keymap_ids=used_keymap_ids,
         )
         if active_keymap is not None:
+            if active_keymap["trigger_set_path"]:
+                attach_trigger_set(active_keymap["keymap"], active_keymap["trigger_set_path"])
             keymaps.append(active_keymap["keymap"])
             active_keymap_id = str(active_keymap["keymap"].get("id") or "")
 
     runtime["keymaps"] = keymaps
     runtime["active_keymap_id"] = active_keymap_id
     runtime["keymap_switch_keys"] = keymap_switch_keys
+    ensure_at_least_one_keymap(runtime)
+    keymaps = runtime["keymaps"]
+    if not runtime["active_keymap_id"]:
+        runtime["active_keymap_id"] = keymaps[0]["id"]
+    active = next(item for item in keymaps if item["id"] == runtime["active_keymap_id"])
+    legacy_path = coerce_label(keymap_set.get("trigger_set_path"))
+    source_path = active.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH, "")
+    state = "none"
+    if legacy_path:
+        if not source_path:
+            attach_trigger_set(active, legacy_path)
+            state = "migrated"
+        elif service.canonical_path(source_path, config_root) == service.canonical_path(legacy_path, config_root):
+            state = "same"
+        else:
+            state = "unused"
+    runtime[service.INTERNAL_LEGACY_TRIGGER_SET] = {
+        "state": state, "path": legacy_path, "keymap_id": active["id"],
+    }
+    for keymap in keymaps:
+        keymap.setdefault("triggers", [])
+    for key in (service.INTERNAL_TRIGGER_SET_SOURCE_PATH, service.INTERNAL_TRIGGER_SET_PARENT_REFS):
+        if key in active:
+            runtime[key] = active[key]
     normalized = ensure_config_compatibility(runtime)
     normalized_keymaps = normalized.get("keymaps", [])
     for keymap, normalized_keymap in zip(keymaps, normalized_keymaps):
@@ -416,6 +447,7 @@ def load_keymap_entry(
 
     loaded_entry = {
         "resolved_path": resolved_path,
+        "trigger_set_path": coerce_label(raw_keymap.get("trigger_set_path")),
         "switch_key": switch_key,
         "keymap": {
             "id": keymap_id,

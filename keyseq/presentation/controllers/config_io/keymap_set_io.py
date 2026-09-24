@@ -1,6 +1,7 @@
 import os
 from tkinter import filedialog, messagebox
 
+from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import (
     ACTION_SAVE,
     ACTION_SAVE_AS,
@@ -569,11 +570,21 @@ class KeymapSetIo:
             recorded, reason = self._app.keymap_set_history_io.record(path)
             if not recorded:
                 self._app._set_flash_message(reason, auto_clear=False)
+            self.notify_unused_legacy_trigger_set()
             return KEYMAP_SET_LOAD_OK
         except Exception as e:
             self._app._set_flash_message(f"読込失敗: {e}", auto_clear=False)
             messagebox.showerror("読込失敗", str(e))
             return KEYMAP_SET_LOAD_FAILED
+
+    def notify_unused_legacy_trigger_set(self) -> None:
+        legacy = self._app.data.get(ConfigService.INTERNAL_LEGACY_TRIGGER_SET, {})
+        if legacy.get("state") == "unused":
+            messagebox.showinfo(
+                "読込",
+                f"旧形式のトリガー一覧 {legacy.get('path', '')} は使われていません"
+                "（トリガー一覧の読込から個別に読み込めます）",
+            )
 
     def import_config(self):
         if not self.confirm_save_if_dirty("Import"):
@@ -680,9 +691,11 @@ class KeymapSetIo:
         self._app.dirty_tracker.set_dirty(False)
         if not startup_saved:
             self._app._set_flash_message("起動時読み込み設定の保存に失敗しました。", auto_clear=False)
+            self.notify_unused_legacy_trigger_set()
             return
         self._app._set_flash_message("起動時読み込み設定を更新しました。")
         messagebox.showinfo("設定", f"次回起動時はこの keymap_set を読み込みます:\n{path}")
+        self.notify_unused_legacy_trigger_set()
 
     def apply_loaded_data_to_ui(self):
         self._app.discard_retained_hook_keys()

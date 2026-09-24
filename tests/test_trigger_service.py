@@ -7,7 +7,8 @@ class TriggerServiceTest(unittest.TestCase):
     def setUp(self):
         self.trigger = {"key": "f1", "actions": []}
         self.data = {
-            "triggers": [self.trigger],
+            "keymaps": [{"id": "km1", "triggers": [self.trigger]}],
+            "active_keymap_id": "km1",
             "hook_stop_key": "f12",
             "hook_toggle_key": "f11",
         }

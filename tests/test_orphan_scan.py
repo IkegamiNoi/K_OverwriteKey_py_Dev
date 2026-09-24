@@ -455,9 +455,11 @@ class CollectProtectedPathsTest(unittest.TestCase):
 
     def test_collects_all_five_path_kinds_in_order(self):
         runtime = {
-            "keymaps": [{self.service.INTERNAL_KEYMAP_SOURCE_PATH: "keymap.json"}, None, "skip"],
+            "active_keymap_id": "km1",
+            "keymaps": [{"id": "km1", self.service.INTERNAL_KEYMAP_SOURCE_PATH: "keymap.json",
+                         "triggers": [None, {self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "sequence.json"}]}, None, "skip"],
             self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: "triggers.json",
-            "triggers": [None, {self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "sequence.json"}],
+            "triggers": [],
             "hotkey_presets_path": "presets.json",
         }
         self.assertEqual(collect_protected_paths(self.service, runtime, keymap_set_path="set.json"),
@@ -466,11 +468,13 @@ class CollectProtectedPathsTest(unittest.TestCase):
     def test_keeps_stored_spelling_and_deduplicates_in_input_order(self):
         stored = "user/Keymaps/../Keymaps/Mixed.JSON"
         runtime = {
-            "keymaps": [{self.service.INTERNAL_KEYMAP_SOURCE_PATH: f" {stored} "},
+            "active_keymap_id": "km1",
+            "keymaps": [{"id": "km1", self.service.INTERNAL_KEYMAP_SOURCE_PATH: f" {stored} ",
+                         "triggers": [{self.service.INTERNAL_SEQUENCE_SOURCE_PATH: " sequence.json "}]},
                         {self.service.INTERNAL_KEYMAP_SOURCE_PATH: " set.json "},
                         {self.service.INTERNAL_KEYMAP_SOURCE_PATH: None}],
             self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: stored,
-            "triggers": [{self.service.INTERNAL_SEQUENCE_SOURCE_PATH: " sequence.json "}],
+            "triggers": [],
             "hotkey_presets_path": "sequence.json",
         }
         with patch.object(self.service, "canonical_path") as canonical, patch.object(

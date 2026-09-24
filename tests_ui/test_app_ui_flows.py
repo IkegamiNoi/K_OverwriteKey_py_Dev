@@ -35,11 +35,11 @@ class AppUiFlowsTest(unittest.TestCase):
         # 実環境の構成に依存しないよう、テスト用データへ差し替える
         cls.app.data = cls.app.config_service.normalize_runtime_data(
             {
-                "triggers": [
+                "triggers": [],
+                "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"}, "triggers": [
                     {"key": "f1", "label": "one", "actions": [{"type": "text", "value": "a"}]},
                     {"key": "f2", "label": "two", "actions": []},
-                ],
-                "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"}}],
+                ]}],
                 "active_keymap_id": "km1",
             }
         )

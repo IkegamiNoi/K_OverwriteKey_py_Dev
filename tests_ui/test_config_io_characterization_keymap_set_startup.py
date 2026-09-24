@@ -20,10 +20,12 @@ import tkinter
 import unittest
 from unittest.mock import patch
 
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.application.config_service import split_loading
 from keyseq.application.save_plan import (
     ACTION_SAVE,
     ACTION_SAVE_AS,
+    CHILD_KEYMAP,
     CHILD_SEQUENCE,
     CHILD_TRIGGER_SET,
     SavePlan,
@@ -164,8 +166,8 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         # 個別指定 ON でなければ hook キーは保存時に空文字化される（phase 07 task_03）。
         old_data["hook_keys_individual"] = True
         old_data["hook_stop_key"] = "f12"
-        old_data["triggers"][0]["actions"] = [{"type": "text", "value": "old-f1"}]
-        old_data["triggers"][1]["actions"] = [{"type": "text", "value": "old-f2"}]
+        get_active_triggers(old_data)[0]["actions"] = [{"type": "text", "value": "old-f1"}]
+        get_active_triggers(old_data)[1]["actions"] = [{"type": "text", "value": "old-f2"}]
         self.app.config_root = root
         self.app.data, self.app._startup_settings = self.app.config_service.save_runtime_data(
             path,
@@ -572,7 +574,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ) as set_dirty, self._record_flash(calls), patches[0], patches[1], patches[2], patches[3]:
             _config_set_io(self.app).new_config()
         self.assertEqual(self.app.keymap_set_path, "")
-        self.assertEqual(self.app.data.get("triggers"), [])
+        self.assertEqual(get_active_triggers(self.app.data), [])
         set_dirty.assert_called_once_with(True)
         self.assertIn(("flash", "新規作成しました（未保存）。", {}), calls)
 
@@ -892,7 +894,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             self.assertTrue(os.path.exists(new_trigger_set))
             self.assertEqual(
                 {(row.kind, row.key) for row in rows},
-                {(CHILD_TRIGGER_SET, ""), (CHILD_SEQUENCE, "f1"), (CHILD_SEQUENCE, "f2")},
+                {(CHILD_KEYMAP, "keymap_1"), (CHILD_TRIGGER_SET, ""), (CHILD_SEQUENCE, "f1"), (CHILD_SEQUENCE, "f2")},
             )
 
     def test_restore_default_overwrites_named_parent_and_trigger_set_but_not_sequences(self):
@@ -1023,7 +1025,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             rows_by_child = {(row.kind, row.key): row for row in rows}
             self.assertEqual(
                 set(rows_by_child),
-                {(CHILD_TRIGGER_SET, ""), (CHILD_SEQUENCE, "f1"), (CHILD_SEQUENCE, "f2")},
+                {(CHILD_KEYMAP, "keymap_1"), (CHILD_TRIGGER_SET, ""), (CHILD_SEQUENCE, "f1"), (CHILD_SEQUENCE, "f2")},
             )
             self.assertEqual(rows_by_child[(CHILD_SEQUENCE, "f1")].default_action, ACTION_SAVE_AS)
             self.assertEqual(rows_by_child[(CHILD_SEQUENCE, "f2")].default_action, ACTION_SAVE_AS)
@@ -1039,7 +1041,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 self.assertTrue(os.path.exists(copy_path))
                 self.assertEqual(
                     self.app.config_service.repository.load_json(copy_path)["actions"],
-                    self.app.data["triggers"][0 if key == "f1" else 1]["actions"],
+                    get_active_triggers(self.app.data)[0 if key == "f1" else 1]["actions"],
                 )
             trigger_set_path = os.path.join(root, "user", "trigger_sets", "listed.json")
             trigger_set = self.app.config_service.repository.load_json(trigger_set_path)

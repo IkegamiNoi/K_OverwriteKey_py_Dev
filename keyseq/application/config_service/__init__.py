@@ -17,6 +17,11 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
+from keyseq.domain.keymap_triggers import (
+    ensure_active_triggers,
+    get_active_triggers,
+    migrate_single_json_triggers,
+)
 from . import keymap_set_history, orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
 
 from keyseq.application.save_plan import SavePlan
@@ -43,6 +48,7 @@ class ConfigService:
     INTERNAL_KEYMAP_PARENT_REFS = "_keymap_parent_refs"
     INTERNAL_SEQUENCE_PARENT_REFS = "_sequence_parent_refs"
     INTERNAL_TRIGGER_SET_PARENT_REFS = "_trigger_set_parent_refs"
+    INTERNAL_LEGACY_TRIGGER_SET = "_legacy_trigger_set"
 
     def __init__(self, repository: JsonRepository):
         self.repository = repository
@@ -57,6 +63,7 @@ class ConfigService:
         data["keymaps"] = []
         data["active_keymap_id"] = ""
         data["keymap_switch_keys"] = {}
+        ensure_active_triggers(data)
         return ensure_config_compatibility(data)
 
     def normalize_runtime_data(self, data: Any) -> dict[str, Any]:
@@ -65,7 +72,9 @@ class ConfigService:
 
     def load(self, path: str) -> dict[str, Any]:
         loaded = self.repository.load_json(path)
-        return ensure_config_compatibility(loaded)
+        normalized = ensure_config_compatibility(loaded)
+        migrate_single_json_triggers(normalized)
+        return normalized
 
     def load_legacy_runtime_data(self, path: str) -> dict[str, Any]:
         return self.load(path)
@@ -263,8 +272,8 @@ class ConfigService:
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         resolved_path = self._resolve_config_relative_path(path, config_root)
         normalized = ensure_config_compatibility(data)
-        raw_triggers = data.get("triggers") if isinstance(data.get("triggers"), list) else []
-        normalized_triggers = normalized.get("triggers", [])
+        raw_triggers = get_active_triggers(data)
+        normalized_triggers = get_active_triggers(normalized)
         for raw_trigger, trigger in zip(
             (item for item in raw_triggers if isinstance(item, dict)),
             normalized_triggers,
@@ -285,7 +294,7 @@ class ConfigService:
             self.repository.save_json(str(item["resolved_path"]), item["payload"])
         self.repository.save_json(resolved_path, trigger_payload)
 
-        triggers = safe_deepcopy(normalized.get("triggers", [])) if isinstance(normalized.get("triggers"), list) else []
+        triggers = safe_deepcopy(get_active_triggers(normalized))
         by_key = {
             normalize_key_name(str(item.get("key") or "")): item
             for item in sequence_items
@@ -472,19 +481,8 @@ class ConfigService:
         sanitized = safe_deepcopy(data)
         sanitized.pop(self.INTERNAL_TRIGGER_SET_SOURCE_PATH, None)
         sanitized.pop(self.INTERNAL_TRIGGER_SET_PARENT_REFS, None)
-        raw_triggers = sanitized.get("triggers")
-        if isinstance(raw_triggers, list):
-            cleaned_triggers: list[dict[str, Any]] = []
-            for trigger in raw_triggers:
-                if not isinstance(trigger, dict):
-                    continue
-                cleaned = safe_deepcopy(trigger)
-                cleaned.pop(self.INTERNAL_SEQUENCE_SOURCE_PATH, None)
-                cleaned.pop(self.INTERNAL_SEQUENCE_IMPORTED, None)
-                cleaned.pop(self.INTERNAL_SEQUENCE_DIRTY, None)
-                cleaned.pop(self.INTERNAL_SEQUENCE_PARENT_REFS, None)
-                cleaned_triggers.append(cleaned)
-            sanitized["triggers"] = cleaned_triggers
+        sanitized.pop(self.INTERNAL_LEGACY_TRIGGER_SET, None)
+        sanitized["triggers"] = []
 
         raw_keymaps = sanitized.get("keymaps")
         if isinstance(raw_keymaps, list):
@@ -497,6 +495,20 @@ class ConfigService:
                 cleaned.pop(self.INTERNAL_KEYMAP_IMPORTED, None)
                 cleaned.pop(self.INTERNAL_KEYMAP_DIRTY, None)
                 cleaned.pop(self.INTERNAL_KEYMAP_PARENT_REFS, None)
+                for key in (
+                    self.INTERNAL_TRIGGER_SET_SOURCE_PATH,
+                    self.INTERNAL_TRIGGER_SET_PARENT_REFS,
+                    "_trigger_set_dirty", "_trigger_set_imported",
+                ):
+                    cleaned.pop(key, None)
+                for trigger in cleaned.get("triggers", []):
+                    for key in (
+                        self.INTERNAL_SEQUENCE_SOURCE_PATH,
+                        self.INTERNAL_SEQUENCE_IMPORTED,
+                        self.INTERNAL_SEQUENCE_DIRTY,
+                        self.INTERNAL_SEQUENCE_PARENT_REFS,
+                    ):
+                        trigger.pop(key, None)
                 cleaned_keymaps.append(cleaned)
             sanitized["keymaps"] = cleaned_keymaps
         return sanitized

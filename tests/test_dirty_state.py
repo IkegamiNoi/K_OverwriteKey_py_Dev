@@ -1,5 +1,6 @@
 import unittest
 
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.application.config_service import ConfigService
 from keyseq.application.keymap_service import KeymapService
 from keyseq.infrastructure.json_repository import JsonRepository
@@ -11,8 +12,9 @@ class DirtyStateTrackerTest(unittest.TestCase):
         self.config_service = ConfigService(JsonRepository())
         self.keymap_service = KeymapService()
         self.data = {
-            "triggers": [{"key": "f1", "actions": []}],
-            "keymaps": [{"id": "km1", "label": "Main", "mappings": {}}],
+            "triggers": [],
+            "keymaps": [{"id": "km1", "label": "Main", "mappings": {},
+                         "triggers": [{"key": "f1", "actions": []}]}],
             "active_keymap_id": "km1",
         }
         self.calls = []
@@ -38,7 +40,7 @@ class DirtyStateTrackerTest(unittest.TestCase):
         self.assertFalse(self.tracker.has_unsaved_changes())
 
     def test_mark_sequence_dirty_marks_target_and_individual(self):
-        target = self.data["triggers"][0]
+        target = get_active_triggers(self.data)[0]
         self.tracker.mark_sequence_dirty(target)
         self.assertTrue(target[self.config_service.INTERNAL_SEQUENCE_DIRTY])
         self.assertFalse(self.tracker.config_dirty)
@@ -54,15 +56,15 @@ class DirtyStateTrackerTest(unittest.TestCase):
     def test_clear_individual_dirty_flags_resets_internal_keys(self):
         self.tracker.mark_trigger_set_dirty()
         self.tracker.trigger_set_imported = True
-        self.tracker.mark_sequence_dirty(self.data["triggers"][0])
+        self.tracker.mark_sequence_dirty(get_active_triggers(self.data)[0])
         self.tracker.mark_keymap_dirty(self.data["keymaps"][0])
         self.assertTrue(self.tracker.has_individual_dirty())
 
         self.tracker.clear_individual_dirty_flags()
         self.assertFalse(self.tracker.trigger_set_dirty)
         self.assertFalse(self.tracker.trigger_set_imported)
-        self.assertFalse(self.data["triggers"][0][self.config_service.INTERNAL_SEQUENCE_DIRTY])
-        self.assertFalse(self.data["triggers"][0][self.config_service.INTERNAL_SEQUENCE_IMPORTED])
+        self.assertFalse(get_active_triggers(self.data)[0][self.config_service.INTERNAL_SEQUENCE_DIRTY])
+        self.assertFalse(get_active_triggers(self.data)[0][self.config_service.INTERNAL_SEQUENCE_IMPORTED])
         self.assertFalse(self.data["keymaps"][0][self.config_service.INTERNAL_KEYMAP_DIRTY])
         self.assertFalse(self.data["keymaps"][0][self.config_service.INTERNAL_KEYMAP_IMPORTED])
         self.assertFalse(self.tracker.has_individual_dirty())

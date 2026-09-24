@@ -20,8 +20,9 @@ from keyseq.presentation.controllers.config_io.child_save_rows import ChildSaveR
 
 def make_data():
     return {
-        "keymaps": [{"id": "km1", "label": "Main", "mappings": {}}],
-        "triggers": [{"key": "f1", "label": "Copy", "actions": []}],
+        "keymaps": [{"id": "km1", "label": "Main", "mappings": {},
+                     "triggers": [{"key": "f1", "label": "Copy", "actions": []}]}],
+        "triggers": [],
         "active_keymap_id": "km1",
     }
 

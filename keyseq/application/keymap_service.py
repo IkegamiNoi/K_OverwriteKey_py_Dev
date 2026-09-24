@@ -3,9 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from keyseq.domain.config import normalize_key_name
-
-DEFAULT_KEYMAP_ID = "default"
-DEFAULT_KEYMAP_LABEL = "Default"
+from keyseq.domain.keymap_triggers import ensure_at_least_one_keymap
 
 
 class KeymapService:
@@ -251,6 +249,7 @@ class KeymapService:
     def ensure_active_keymap(data: dict[str, Any]) -> dict[str, Any]:
         current = KeymapService.get_active_keymap(data)
         if isinstance(current, dict):
+            data["active_keymap_id"] = normalize_key_name(current.get("id", ""))
             mappings = current.get("mappings")
             if not isinstance(mappings, dict):
                 current["mappings"] = {}
@@ -259,13 +258,8 @@ class KeymapService:
 
         keymaps = KeymapService.get_keymaps(data)
         if not keymaps:
-            created = {
-                "id": DEFAULT_KEYMAP_ID,
-                "label": DEFAULT_KEYMAP_LABEL,
-                "mappings": {},
-            }
-            data["keymaps"] = [created]
-            data["active_keymap_id"] = DEFAULT_KEYMAP_ID
+            created = ensure_at_least_one_keymap(data)
+            assert created is not None
             return created
 
         fallback = keymaps[0]

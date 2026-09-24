@@ -9,6 +9,7 @@ from inspect import getclosurevars
 from pathlib import Path
 from unittest.mock import Mock, patch
 
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.application.save_plan import (
     ACTION_SAVE,
     ACTION_SAVE_AS,
@@ -268,8 +269,8 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
     def _trigger_set_save_patches(self, save_calls):
         def fake_save(path, data, *, config_root, parent_ref="", save_plan=None):
-            save_calls.append((path, data.get("triggers")))
-            return list(data.get("triggers") or []), {}
+            save_calls.append((path, get_active_triggers(data)))
+            return list(get_active_triggers(data) or []), {}
         return (
             patch.object(self.app.config_service, "save_trigger_set_file", side_effect=fake_save),
             patch.object(self.app.trigger_panel, "refresh_triggers"),
@@ -293,8 +294,9 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
     def _prepare_loaded_keymap_set(self, root):
         path = os.path.join(root, "user", "keymap_sets", "main.json")
         data = {
-            "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"}}],
-            "triggers": [{"key": "f1", "label": "Copy", "actions": []}],
+            "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"},
+                         "triggers": [{"key": "f1", "label": "Copy", "actions": []}]}],
+            "triggers": [],
             "active_keymap_id": "km1",
         }
         self.app.config_root = root
@@ -805,7 +807,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app.dirty_tracker.trigger_set_source_path,
                 self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
             )
-            self.app.data["triggers"][0]["actions"] = [{"type": "text", "value": "new", "label": ""}]
+            get_active_triggers(self.app.data)[0]["actions"] = [{"type": "text", "value": "new", "label": ""}]
             self.app.dirty_tracker.mark_trigger_set_dirty()
             plan = SavePlan(entries=(ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE),))
             with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda value: value), patch.object(
@@ -830,7 +832,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
             )
             # source_path は config_root 相対で保持されるため、読み出しは root と結合する
-            sequence_path = self.app.data["triggers"][0][
+            sequence_path = get_active_triggers(self.app.data)[0][
                 self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH
             ]
             if not os.path.isabs(sequence_path):
@@ -1006,7 +1008,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     "保存", f"トリガー一覧を保存しました:\n{trigger_set_path}"
                 )
 
-                trigger = self.app.data["triggers"][0]
+                trigger = get_active_triggers(self.app.data)[0]
                 sequence_path = trigger[self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH]
                 self.app.dirty_tracker.set_dirty(False)
                 with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
@@ -1032,7 +1034,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.assertTrue(_trigger_set_io(self.app).save_trigger_set_to_path(trigger_path))
                 self.assertTrue(
                     _sequence_io(self.app).save_sequence_to_path(
-                        self.app.data["triggers"][0],
+                        get_active_triggers(self.app.data)[0],
                         sequence_path,
                     )
                 )
@@ -1043,7 +1045,10 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
     def test_trigger_set_save_to_path_writes_bytes_updates_dirty_and_reports(self):
         trigger = {"key": "a", "label": "Run", "actions": []}
-        self.app.data["triggers"] = [trigger]
+        self.app.data = {
+            "keymaps": [{"id": "keymap_1", "label": "", "mappings": {}, "triggers": [trigger]}],
+            "active_keymap_id": "keymap_1", "triggers": [],
+        }
         self.app.dirty_tracker.trigger_set_imported = True
         self.app.dirty_tracker.trigger_set_dirty = True
         calls = []
@@ -1107,9 +1112,10 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 with self.subTest(path=path):
                     self.app.config_root = root
                     self.app.data = {
-                        "keymaps": [],
-                        "triggers": [{"key": "a", "label": "Run", "actions": []}],
-                        "active_keymap_id": "",
+                        "keymaps": [{"id": "keymap_1", "label": "", "mappings": {},
+                                     "triggers": [{"key": "a", "label": "Run", "actions": []}]}],
+                        "triggers": [],
+                        "active_keymap_id": "keymap_1",
                     }
                     self.app.dirty_tracker.set_trigger_set_source_path("")
                     with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
@@ -1184,7 +1190,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             ) as flash, patch.object(tkinter.messagebox, "showinfo") as showinfo:
                 _trigger_set_io(self.app).load_trigger_set_file()
             self.assertEqual(ask_open.call_args.kwargs["title"], "トリガー一覧を読込")
-            self.assertEqual(self.app.data["triggers"], [])
+            self.assertEqual(get_active_triggers(self.app.data), [])
             # 読込時も §5.7 の表記へ正規化される（config 外なので絶対のまま・区切りは `/`）。
             self.assertEqual(
                 self.app.dirty_tracker.trigger_set_source_path,
@@ -1264,7 +1270,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     ):
                         _trigger_set_io(self.app).load_trigger_set_file()
 
-                    trigger = self.app.data["triggers"][0]
+                    trigger = get_active_triggers(self.app.data)[0]
                     self.assertEqual(self.app.dirty_tracker.trigger_set_source_path, expected_source_path)
                     self.assertEqual(
                         self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
@@ -1563,7 +1569,10 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     Path(path).write_bytes(original_bytes)
                     self.app.config_root = config_root
                     trigger = {"key": "a", "label": "Before", "actions": []}
-                    self.app.data = {"keymaps": [], "triggers": [trigger], "active_keymap_id": ""}
+                    self.app.data = {
+                        "keymaps": [{"id": "keymap_1", "label": "", "mappings": {}, "triggers": [trigger]}],
+                        "active_keymap_id": "keymap_1", "triggers": [],
+                    }
                     with patch.object(self.app.trigger_panel, "selected_trigger", return_value=trigger), patch.object(
                         tkinter.filedialog, "askopenfilename", return_value=path
                     ), patch.object(self.app.dirty_tracker, "mark_trigger_set_dirty"), patch.object(
@@ -1617,7 +1626,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             path = self._prepare_loaded_keymap_set(root)
             self._reload_keymap_set(path, root)
-            trigger = self.app.data["triggers"][0]
+            trigger = get_active_triggers(self.app.data)[0]
             self.app.dirty_tracker.mark_sequence_dirty(trigger)
             rows_seen = []
 
@@ -1671,7 +1680,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app.dirty_tracker.trigger_set_source_path,
             )
             original = Path(trigger_set_path).read_bytes()
-            self.app.dirty_tracker.mark_sequence_dirty(self.app.data["triggers"][0])
+            self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
 
             with patch.object(
                 tkinter.messagebox,
@@ -1702,20 +1711,19 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.app.data, self.app._startup_settings = self.app.config_service.save_runtime_data(
                 path,
                 {
-                    "keymaps": [],
-                    "triggers": [
+                    "keymaps": [{"id": "km1", "mappings": {}, "triggers": [
                         {"key": "f1", "label": "Skip", "actions": []},
                         {"key": "f2", "label": "Rename", "actions": []},
                         {"key": "f3", "label": "Unchanged", "actions": []},
-                    ],
-                    "active_keymap_id": "",
+                    ]}],
+                    "active_keymap_id": "km1",
                 },
                 config_root=root,
                 startup_data={},
             )
             self.app.keymap_set_path = path
             self._reload_keymap_set(path, root)
-            triggers = {trigger["key"]: trigger for trigger in self.app.data["triggers"]}
+            triggers = {trigger["key"]: trigger for trigger in get_active_triggers(self.app.data)}
             skip_path = os.path.join(root, triggers["f1"][self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH])
             unchanged_path = os.path.join(root, triggers["f3"][self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH])
             skip_bytes = Path(skip_path).read_bytes()
@@ -1755,7 +1763,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 for item in trigger_set["triggers"]
             }
             saved_triggers = {
-                trigger["key"]: trigger for trigger in self.app.data["triggers"]
+                trigger["key"]: trigger for trigger in get_active_triggers(self.app.data)
             }
             self.assertEqual(Path(skip_path).read_bytes(), skip_bytes)
             self.assertEqual(indexed_paths["f1"], "user/sequences/Skip.json")
@@ -1788,12 +1796,13 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 },
             )
             self.app.data = {
-                "keymaps": [],
-                "triggers": self.app.config_service.load_trigger_set_file(
+                "keymaps": [{"id": "keymap_1", "label": "", "mappings": {},
+                             "triggers": self.app.config_service.load_trigger_set_file(
                     trigger_set_path,
                     config_root=root,
-                ),
-                "active_keymap_id": "",
+                )}],
+                "triggers": [],
+                "active_keymap_id": "keymap_1",
             }
             self.app.dirty_tracker.set_trigger_set_source_path(trigger_set_path)
 

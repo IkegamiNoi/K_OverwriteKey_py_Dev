@@ -68,8 +68,8 @@ class KeymapServiceTest(unittest.TestCase):
     def test_ensure_active_keymap_creates_default(self):
         data = {}
         keymap = KeymapService.ensure_active_keymap(data)
-        self.assertEqual(keymap["id"], "default")
-        self.assertEqual(data["active_keymap_id"], "default")
+        self.assertEqual(keymap["id"], "keymap_1")
+        self.assertEqual(data["active_keymap_id"], "keymap_1")
 
     def test_set_and_clear_mapping(self):
         data = make_data()

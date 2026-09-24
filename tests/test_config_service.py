@@ -6,6 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
+from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.application.config_service import ConfigService, save_path_resolution, split_payloads
 from keyseq.application.config_service import split_loading
 from keyseq.application.save_plan import (
@@ -23,21 +24,25 @@ from keyseq.infrastructure.json_repository import JsonRepository
 
 
 def strip_internal(item):
-    return {k: v for k, v in item.items() if not k.startswith("_")}
+    return {
+        k: [strip_internal(trigger) for trigger in v] if k == "triggers" else v
+        for k, v in item.items() if not k.startswith("_")
+    }
 
 
 def make_runtime_data():
+    triggers = [
+        {
+            "key": "f1",
+            "suppress": True,
+            "label": "copy",
+            "run_to_end": False,
+            "run_to_end_delay_ms": 300,
+            "actions": [{"type": "text", "value": "hello", "label": ""}],
+        }
+    ]
     return {
-        "triggers": [
-            {
-                "key": "f1",
-                "suppress": True,
-                "label": "copy",
-                "run_to_end": False,
-                "run_to_end_delay_ms": 300,
-                "actions": [{"type": "text", "value": "hello", "label": ""}],
-            }
-        ],
+        "triggers": [],
         "hotkey_presets": [{"label": "Alt+Tab", "value": "alt+tab"}],
         "hook_stop_key": "f12",
         "hook_toggle_key": "",
@@ -45,7 +50,7 @@ def make_runtime_data():
         "keyboard_show_physical_key_labels": False,
         "debug_jis_special_key_events": False,
         "external_keyboard_layouts": [],
-        "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"}}],
+        "keymaps": [{"id": "km1", "label": "Main", "mappings": {"a": "b"}, "triggers": triggers}],
         "active_keymap_id": "km1",
         "keymap_switch_keys": {"1": "km1"},
     }
@@ -82,8 +87,8 @@ class SaveLoadRoundTripTest(unittest.TestCase):
                 config_root=root,
             )
             self.assertEqual(
-                [strip_internal(t) for t in loaded["triggers"]],
-                [strip_internal(t) for t in saved["triggers"]],
+                [strip_internal(t) for t in get_active_triggers(loaded)],
+                [strip_internal(t) for t in get_active_triggers(saved)],
             )
             self.assertEqual(
                 [strip_internal(k) for k in loaded["keymaps"]],
@@ -2020,7 +2025,7 @@ class IndividualSavePathTest(unittest.TestCase):
                 )
                 triggers, trigger_payload = self.service.save_trigger_set_file(
                     trigger_set_path,
-                    {"triggers": [{"key": "f2", "label": "Paste", "actions": []}]},
+                    {"keymaps": [{"id": "km1", "triggers": [{"key": "f2", "label": "Paste", "actions": []}]}], "active_keymap_id": "km1"},
                     parent_ref=keymap_set_path,
                     config_root=root,
                 )
@@ -2106,7 +2111,8 @@ class TriggerSetSavePlanTest(unittest.TestCase):
             self.service.repository.save_json(old_sequence_path, {"label": "old", "actions": []})
             old_bytes = Path(old_sequence_path).read_bytes()
             data = {
-                "triggers": [
+                "active_keymap_id": "keymap_1", "triggers": [],
+                "keymaps": [{"id": "keymap_1", "label": "", "mappings": {}, "triggers": [
                     {
                         "key": "f1",
                         "label": "Old",
@@ -2120,7 +2126,7 @@ class TriggerSetSavePlanTest(unittest.TestCase):
                         "label": "New",
                         "actions": [],
                     },
-                ]
+                ]}]
             }
             plan = SavePlan(
                 entries=(
@@ -2170,13 +2176,14 @@ class TriggerSetSavePlanTest(unittest.TestCase):
             root = os.path.join(tmp, "config")
             sequence_path = os.path.join(root, "user", "sequences", "renamed.json")
             data = {
-                "triggers": [
+                "active_keymap_id": "keymap_1", "triggers": [],
+                "keymaps": [{"id": "keymap_1", "label": "", "mappings": {}, "triggers": [
                     {
                         "key": "f1",
                         "label": "Copy",
                         "actions": [{"type": "text", "value": "copied", "label": ""}],
                     }
-                ]
+                ]}]
             }
             plan = SavePlan(
                 entries=(
@@ -2434,18 +2441,18 @@ class ParentRefsSchemaTest(unittest.TestCase):
             data = make_runtime_data()
             data[self.service.INTERNAL_TRIGGER_SET_PARENT_REFS] = ["keymap_set.json"]
             data["keymaps"][0][self.service.INTERNAL_KEYMAP_PARENT_REFS] = ["keymap_set.json"]
-            data["triggers"][0][self.service.INTERNAL_SEQUENCE_PARENT_REFS] = ["trigger_set.json"]
+            get_active_triggers(data)[0][self.service.INTERNAL_SEQUENCE_PARENT_REFS] = ["trigger_set.json"]
 
             sanitized = self.service._sanitize_runtime_for_storage(data)
             self.assertNotIn(self.service.INTERNAL_TRIGGER_SET_PARENT_REFS, sanitized)
             self.assertNotIn(self.service.INTERNAL_KEYMAP_PARENT_REFS, sanitized["keymaps"][0])
-            self.assertNotIn(self.service.INTERNAL_SEQUENCE_PARENT_REFS, sanitized["triggers"][0])
+            self.assertNotIn(self.service.INTERNAL_SEQUENCE_PARENT_REFS, get_active_triggers(sanitized)[0])
 
             self.service.export_runtime_data(path, data)
             exported = JsonRepository().load_json(path)
             self.assertNotIn(self.service.INTERNAL_TRIGGER_SET_PARENT_REFS, exported)
             self.assertNotIn(self.service.INTERNAL_KEYMAP_PARENT_REFS, exported["keymaps"][0])
-            self.assertNotIn(self.service.INTERNAL_SEQUENCE_PARENT_REFS, exported["triggers"][0])
+            self.assertNotIn(self.service.INTERNAL_SEQUENCE_PARENT_REFS, get_active_triggers(exported)[0])
 
 
 class TriggerSetDefaultPathTest(unittest.TestCase):
@@ -2489,7 +2496,7 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
             ]
             gaming_data = make_runtime_data()
             coding_data = make_runtime_data()
-            coding_data["triggers"][0]["key"] = "f2"
+            get_active_triggers(coding_data)[0]["key"] = "f2"
             for path, data in zip(paths, (gaming_data, coding_data)):
                 self.service.save_runtime_data(path, data, config_root=root, startup_data={})
 

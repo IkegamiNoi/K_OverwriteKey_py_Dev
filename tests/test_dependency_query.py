@@ -19,8 +19,9 @@ from keyseq.infrastructure.json_repository import JsonRepository
 
 def make_data():
     return {
-        "keymaps": [{"id": "km1", "label": "Main", "mappings": {}}],
-        "triggers": [{"key": "f1", "label": "Copy", "actions": []}],
+        "keymaps": [{"id": "km1", "label": "Main", "mappings": {},
+                     "triggers": [{"key": "f1", "label": "Copy", "actions": []}]}],
+        "triggers": [],
         "active_keymap_id": "km1",
     }
 
