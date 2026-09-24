@@ -4,39 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-24T06:30:00
-phase: なし（**phase 33 = `instructions/phase/33_grab_modal_static_check_discovery` は 2026-09-24 完了**。アクティブなフェーズ無し）。次採番 = phase 34 / 暫定 25 / decisions 34 / 提案書 13。
-直前の完了フェーズ = **phase 33**（ダイアログの静的検査の発見ベース化・判断履歴 = `decisions_archive/33_grab_modal_static_check_discovery.md`。テストのみ・production 不変）。
-last_commit_location: `claude/idea-32-8d1b3f`
+last_updated: 2026-09-24T12:00:00
+phase: `instructions/phase/34_trigger_list_per_keymap`（**phase 34 = トリガー一覧のキーマップ従属化・2026-09-24 起票・進行中**。暫定仕様 25 v0.4 ユーザー確定済）。次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 13。
+直前の完了フェーズ = **phase 33**（ダイアログの静的検査の発見ベース化・判断履歴 = `decisions_archive/33_grab_modal_static_check_discovery.md`）。
+last_commit_location: `claude/trigger-list-multi-keymap-19f4d7`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 33 完了（grab_modal・フック停止の静的検査を発見ベースへ・共有ヘルパ `tests_ui/dialog_discovery.py`・production 不変・idea_32 クローズ・refactor_check スキップ）。次フェーズは未定（ユーザー判断待ち）。**
-mode: completed
+focus: **phase 34 起票済（暫定仕様 25 v0.4 確定・phase.md にタスク 01〜08・reviewer 整合チェック採用）。次は task_01（runtime データモデルと読込・移行）の起票と実装委任。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-24T06:30:00
+ts: 2026-09-24T12:00:00
 who: main
 summary: |
-  【task_01c 完了】`NESTED_CHILD_DIALOGS` を (ファイル名, クラス名) の組へ（完了判定前レビュー 2 回目の codex-adversarial 指摘・ユーザー判断）。reviewer = 完了可。コミット `23e4dd6`。
-  【task_02 完了 = phase 33 完了】codebase_map（modal.py 節・HookController 節）/ decisions_archive/33 + decisions.md 索引 / current.md（アクティブなし・次採番 34・テスト負債の idea_32 行削除）/
-  idea_32 → INDEX_done / phase.md。正本 spec_detail の改訂なし。refactor_check = スキップ（keyseq/ 変更 0 件）。
-  【完了判定前レビュー 2 回目】deep-reviewer = 条件付き（記録の M-1・L-1〜L-3・L-6 → すべて反映）/ codex-adversarial = medium 1 → task_01c で修正。
+  【設計議論（ユーザー 2026-09-24）】トリガー一覧をキーマップに従属させる方式を確定（タブ方式不採用・共通トリガー層は idea_36 へ起票のみ）。
+  【暫定仕様 25】v0.1 起票 → deep-reviewer 修正して採用（H5/M10/L9）→ v0.2 → §9 回答で v0.3 →
+  codex-adversarial needs-attention（H3/M1）をユーザー判断で全件反映 → v0.4 ユーザー確定（実装着手可）。
+  【phase 34 起票】phase.md（タスク 01〜08）/ current.md（アクティブ = phase 34・次採番 35 / 暫定 26）/ decisions.md 末尾に phase 34 節。
+  reviewer（整合確認限定）= 採用・指摘なし。実装は未着手（keyseq/ 変更なし）。
 result_files:
-  - instructions/common/codebase_map.md / instructions/phase/current.md / instructions/phase/33_grab_modal_static_check_discovery/{phase.md, tasks/task_02_records_and_close.md}
-  - .claude_data/state/decisions_archive/33_grab_modal_static_check_discovery.md（新規）/ .claude_data/state/decisions.md
-  - instructions/backlog/INDEX.md / INDEX_done.md / idea_32_grab_modal_static_check_discovery.md
+  - instructions/history/25_trigger_list_per_keymap.md（新規）/ instructions/phase/34_trigger_list_per_keymap/phase.md（新規）
+  - instructions/phase/current.md / .claude_data/state/decisions.md
+  - instructions/backlog/idea_36_common_trigger_layer.md（新規）/ instructions/backlog/INDEX.md
 verified:
-  compile: clean
-  tests: 577 ran OK（skipped 7）
-  tests_ui: 537 ran OK（+2 = メソッド分割）
-  mutation: task_01 = 3 / task_01b = 7 / task_01c = 3 パターン すべて FAIL → revert・keyseq 差分なし
-  production_diff: 0（phase 全体）
-  review: task 単位 reviewer 完了可 ×3 / 完了判定前 2 回（deep-reviewer + codex-adversarial・指摘は task_01b・01c と記録修正で反映）
-  refactor_check: スキップ（keyseq/ 変更なし）
+  compile: not_run（文書のみ）
+  review: 暫定 25 = deep-reviewer（起票時）+ codex-adversarial（確定前）/ phase.md = reviewer 整合チェック 採用
 
 ## next_action
-- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_23）。着手時は `/phase_start`。
+- `/task_new` で `instructions/phase/34_trigger_list_per_keymap/tasks/task_01_*.md`（runtime データモデルと読込・移行・アクティブのトリガー取得の口・参照の付け替え。暫定 25 §3 / §4.1・§4.3・§4.5）を起票し、`codex-implementer` へ実装委任（テスト実行は含めない）→ `verifier` で実測 → `reviewer`。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
@@ -45,6 +41,9 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 34】主入力 = 暫定仕様 25 v0.4（ユーザー確定済・フェーズ中は正本を改訂しない）**。§1 に現状監査の `ファイル:行`。
+  要注意 = 移行・保存計画・参照辿りが絡む**データ消失 / 二重化 / 別キーマップへの付き直り**（§4・§5）。
+  「旧形式を読込 → 無編集で保存 → 再読込」「アクティブを変えてから保存」「共有 trigger_set」の往復テストを先に書く（§12）。
 - **【phase 28 の成果は正本が正】モーダルダイアログのフォーカスと Escape = `features.md` §4.6「モーダルダイアログの作法」+
   `codebase_map.md` の `modal.py` 節**。**暫定仕様 22 は凍結済で条項の根拠に引かない**。要点 =
   ①初期フォーカスは `grab_modal(window, parent=None, *, focus=None)` の責務（明示引数・省略時は窓自身・`focus_force` / `lift` は呼ばない。
