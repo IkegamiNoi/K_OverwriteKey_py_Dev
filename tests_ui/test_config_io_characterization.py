@@ -9,7 +9,7 @@ from inspect import getclosurevars
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from keyseq.domain.keymap_triggers import get_active_triggers
+from keyseq.domain.keymap_triggers import get_active_triggers, trigger_set_owner
 from keyseq.application.save_plan import (
     ACTION_SAVE,
     ACTION_SAVE_AS,
@@ -498,7 +498,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.assertTrue(_keymap_io(self.app).save_keymap_to_path(0, keymap, path))
             self.assertEqual(
                 Path(path).read_bytes(),
-                _expected_json_bytes('{\n  "label": "Map",\n  "mappings": {}\n}'),
+                _expected_json_bytes('{\n  "trigger_set_path": "",\n  "label": "Map",\n  "mappings": {}\n}'),
             )
         self.assertEqual(
             calls,
@@ -523,7 +523,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
     def test_keymap_individual_save_inside_config_stores_relative_path_without_changing_json_bytes(self):
         expected = _expected_json_bytes(
-            '{\n  "label": "Map",\n  "mappings": {}\n}'
+            '{\n  "trigger_set_path": "",\n  "label": "Map",\n  "mappings": {}\n}'
         )
         with tempfile.TemporaryDirectory() as directory:
             root = os.path.join(directory, "config")
@@ -676,11 +676,15 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     )
                     self.assertEqual(
                         self.app.config_service.repository.load_json(path),
-                        {"label": "Loaded", "mappings": {"a": "b"}},
+                        {"trigger_set_path": "", "label": "Loaded", "mappings": {"a": "b"}},
                     )
 
     # E: trigger_set 個別 JSON IO
     def test_trigger_set_save_uses_dirty_tracker_source_path(self):
+        self.app.data = {
+            "keymaps": [{"id": "keymap_1", "label": "", "mappings": {}, "triggers": []}],
+            "triggers": [], "active_keymap_id": "keymap_1",
+        }
         self.app.dirty_tracker.set_trigger_set_source_path("C:/loaded/triggers.json")
         self.app.dirty_tracker.trigger_set_imported = True
         self.app.dirty_tracker.trigger_set_dirty = True
@@ -724,6 +728,10 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.assertEqual(save_calls, [])
 
     def test_trigger_set_save_as_uses_dirty_tracker_source_path_for_initial_values(self):
+        self.app.data = {
+            "keymaps": [{"id": "keymap_1", "label": "", "mappings": {}, "triggers": []}],
+            "triggers": [], "active_keymap_id": "keymap_1",
+        }
         with tempfile.TemporaryDirectory() as directory:
             source_path = os.path.join(directory, "loaded", "triggers.json")
             os.makedirs(os.path.dirname(source_path))
@@ -752,7 +760,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
         self.assertEqual(
             self.app.dirty_tracker.trigger_set_source_path,
-            self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+            trigger_set_owner(self.app.data)[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
         )
 
     def test_bulk_save_syncs_changed_trigger_set_source_path(self):
@@ -760,7 +768,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             path = self._prepare_loaded_keymap_set(root)
             saved_path = os.path.join(root, "user", "trigger_sets", "renamed.json")
             plan = SavePlan(
-                entries=(ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE_AS, saved_path),)
+                entries=(ChildSaveEntry(CHILD_TRIGGER_SET, "km1", ACTION_SAVE_AS, saved_path),)
             )
             with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda value: value), patch.object(
                 self.app.keymap_set_io,
@@ -780,7 +788,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
         self.assertEqual(
             self.app.dirty_tracker.trigger_set_source_path,
-            self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+            trigger_set_owner(self.app.data)[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
         )
         self.assertEqual(
             self.app.dirty_tracker.trigger_set_source_path,
@@ -795,7 +803,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.app.data,
                 config_root=root,
                 keymap_set_path=path,
-            )[(CHILD_TRIGGER_SET, "")]
+            )[(CHILD_TRIGGER_SET, "km1")]
             old_bytes = Path(old_path).read_bytes()
             saved_path = os.path.join(root, "user", "trigger_sets", "renamed.json")
             with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
@@ -805,11 +813,11 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.assertTrue(_trigger_set_io(self.app).save_trigger_set_to_path(saved_path))
             self.assertEqual(
                 self.app.dirty_tracker.trigger_set_source_path,
-                self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+                trigger_set_owner(self.app.data)[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
             )
             get_active_triggers(self.app.data)[0]["actions"] = [{"type": "text", "value": "new", "label": ""}]
             self.app.dirty_tracker.mark_trigger_set_dirty()
-            plan = SavePlan(entries=(ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE),))
+            plan = SavePlan(entries=(ChildSaveEntry(CHILD_TRIGGER_SET, "km1", ACTION_SAVE),))
             with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda value: value), patch.object(
                 self.app.keymap_set_io,
                 "choose_split_base_dir_for_keymap_set",
@@ -829,7 +837,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.assertEqual(Path(old_path).read_bytes(), old_bytes)
             self.assertEqual(
                 self.app.dirty_tracker.trigger_set_source_path,
-                self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+                trigger_set_owner(self.app.data)[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
             )
             # source_path は config_root 相対で保持されるため、読み出しは root と結合する
             sequence_path = get_active_triggers(self.app.data)[0][
@@ -915,6 +923,11 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 )
             self.assertEqual(
                 self.app.config_service.repository.load_json(keymap_set_path)["trigger_set_path"],
+                "",
+            )
+            parent_path = self.app.data["keymaps"][0][self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH]
+            self.assertEqual(
+                self.app.config_service.repository.load_json(os.path.join(root, parent_path))["trigger_set_path"],
                 "user/trigger_sets/renamed.json",
             )
 
@@ -1139,7 +1152,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                             os.path.normcase(os.path.normpath(path)),
                         )
                     self.assertEqual(
-                        self.app.data[
+                        trigger_set_owner(self.app.data)[
                             self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH
                         ],
                         stored_source_path,
@@ -1273,7 +1286,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     trigger = get_active_triggers(self.app.data)[0]
                     self.assertEqual(self.app.dirty_tracker.trigger_set_source_path, expected_source_path)
                     self.assertEqual(
-                        self.app.data[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
+                        trigger_set_owner(self.app.data)[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
                         expected_source_path,
                     )
                     self.assertEqual(trigger[self.app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH], stored_sequence_path)

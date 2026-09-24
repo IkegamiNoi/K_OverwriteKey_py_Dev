@@ -10,8 +10,9 @@ from keyseq.application.save_plan import (
     CHILD_SEQUENCE,
     CHILD_TRIGGER_SET,
     SavePlan,
+    compose_sequence_key,
 )
-from keyseq.domain.keymap_triggers import get_active_triggers
+from keyseq.domain.keymap_triggers import iter_trigger_sets, INTERNAL_TRIGGER_SET_DIRTY
 from keyseq.domain.config import normalize_key_name
 
 
@@ -32,6 +33,7 @@ class ChildSaveRow:
     share_state: str
     share_text: str
     default_action: str
+    allow_skip: bool = True
 
 
 def judge_share_state(
@@ -114,18 +116,14 @@ def collect_child_save_rows(
         keymap_set_path,
         config_root,
     )
-    trigger_set_parent = _stored_parent_path(
-        config_service,
-        targets[(CHILD_TRIGGER_SET, "")],
-        config_root,
-    )
-
     rows: list[ChildSaveRow] = []
+    legacy = data.get(config_service.INTERNAL_LEGACY_TRIGGER_SET, {})
+    migrated_id = legacy.get("keymap_id") if legacy.get("state") == "migrated" else None
     keymaps = data.get("keymaps", [])
     if isinstance(keymaps, list):
         for keymap in keymaps:
             if not isinstance(keymap, dict) or not bool(
-                keymap.get(config_service.INTERNAL_KEYMAP_DIRTY, False)
+                keymap.get(config_service.INTERNAL_KEYMAP_DIRTY, False) or keymap.get("id") == migrated_id
             ):
                 continue
             key = normalize_key_name(str(keymap.get("id") or ""))
@@ -135,6 +133,7 @@ def collect_child_save_rows(
             rows.append(
                 build_row(
                     kind=CHILD_KEYMAP,
+                    allow_skip=keymap.get("id") != migrated_id,
                     key=key,
                     display_name=str(keymap.get("label") or "").strip() or key,
                     target_path=target_path,
@@ -146,46 +145,35 @@ def collect_child_save_rows(
                     ),
                 )
             )
-    if bool(dirty_tracker.trigger_set_dirty):
-        rows.append(
-            build_row(
-                kind=CHILD_TRIGGER_SET,
-                key="",
-                display_name="トリガー一覧",
-                target_path=targets[(CHILD_TRIGGER_SET, "")],
-                current_parent=keymap_parent,
-                config_service=config_service,
-                config_root=config_root,
-                has_source_path=bool(
-                    str(data.get(config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "").strip()
-                ),
-            )
-        )
-    triggers = get_active_triggers(data)
-    if isinstance(triggers, list):
+    for owner, _, triggers in iter_trigger_sets(data):
+        owner_id = normalize_key_name(str(owner.get("id") or ""))
+        if not owner_id:
+            continue
+        owner_name = str(owner.get("label") or owner_id)
+        trigger_target = targets.get((CHILD_TRIGGER_SET, owner_id))
+        if trigger_target and owner.get(INTERNAL_TRIGGER_SET_DIRTY, False):
+            rows.append(build_row(
+                kind=CHILD_TRIGGER_SET, key=owner_id,
+                display_name=f"{owner_name} / トリガー一覧", target_path=trigger_target,
+                current_parent=_stored_parent_path(config_service, targets[(CHILD_KEYMAP, owner_id)], config_root),
+                config_service=config_service, config_root=config_root,
+                has_source_path=bool(owner.get(config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH)),
+            ))
         for trigger in triggers:
-            if not isinstance(trigger, dict) or not bool(
-                trigger.get(config_service.INTERNAL_SEQUENCE_DIRTY, False)
-            ):
+            if not trigger.get(config_service.INTERNAL_SEQUENCE_DIRTY, False):
                 continue
-            key = normalize_key_name(str(trigger.get("key") or ""))
+            key = compose_sequence_key(owner_id, normalize_key_name(str(trigger.get("key") or "")))
             target_path = targets.get((CHILD_SEQUENCE, key))
-            if not key or not target_path:
+            if not target_path:
                 continue
-            rows.append(
-                build_row(
-                    kind=CHILD_SEQUENCE,
-                    key=key,
-                    display_name=str(trigger.get("label") or "").strip() or key,
-                    target_path=target_path,
-                    current_parent=trigger_set_parent,
-                    config_service=config_service,
-                    config_root=config_root,
-                    has_source_path=bool(
-                        str(trigger.get(config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
-                    ),
-                )
-            )
+            rows.append(build_row(
+                kind=CHILD_SEQUENCE, key=key,
+                display_name=f"{owner_name} / {trigger.get('label') or trigger['key']}",
+                target_path=target_path,
+                current_parent=_stored_parent_path(config_service, trigger_target, config_root),
+                config_service=config_service, config_root=config_root,
+                has_source_path=bool(trigger.get(config_service.INTERNAL_SEQUENCE_SOURCE_PATH)),
+            ))
     return rows
 
 
@@ -199,6 +187,7 @@ def build_row(
     config_service,
     config_root: str,
     has_source_path: bool,
+    allow_skip: bool = True,
 ) -> ChildSaveRow:
     target_exists = os.path.exists(target_path)
     refs = config_service.read_parent_refs(target_path) if target_exists else None
@@ -225,6 +214,7 @@ def build_row(
         share_state=share_state,
         share_text=share_text_for(share_state, len(normalized_refs or [])),
         default_action=default_action_for(share_state),
+        allow_skip=allow_skip,
     )
 
 

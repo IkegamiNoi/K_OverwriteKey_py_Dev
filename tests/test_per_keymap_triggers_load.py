@@ -137,8 +137,11 @@ class PerKeymapLoadingTest(unittest.TestCase):
         self.assertEqual(data["keymaps"][0]["triggers"], [])
         self.assertEqual([t["key"] for t in get_active_triggers(data)], ["f8"])
         self.assertEqual(data["_legacy_trigger_set"], {"state": "migrated", "path": "old.json", "keymap_id": "b"})
-        self.assertEqual(data["_trigger_set_source_path"], "old.json")
-        self.assertEqual(data["_trigger_set_parent_refs"], ["set.json"])
+        self.assertEqual(data["keymaps"][1]["_trigger_set_source_path"], "old.json")
+        self.assertEqual(data["keymaps"][1]["_trigger_set_parent_refs"], ["set.json"])
+        self.assertTrue(data["keymaps"][1]["_keymap_dirty"])
+        self.assertNotIn("_trigger_set_source_path", data)
+        self.assertNotIn("_trigger_set_parent_refs", data)
 
     def test_split_empty_keymaps_and_no_example_contamination(self):
         self.write("old.json", {"triggers": [{"key": "f9"}]})

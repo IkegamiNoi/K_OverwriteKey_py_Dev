@@ -592,3 +592,15 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - reviewer = 完了可。参考 1（`keymap_service.py` の未参照定数 `DEFAULT_KEYMAP_ID` / `_LABEL`）→ **メインで削除**。
   参考 2（単一 JSON Import で §4.5 通知が出ない）→ **対応不要と判断**: §4.5 は keymap_set の旧パスを前提とする split 用の規定で、
   単一 JSON でトップレベルと `keymaps[].triggers` が併存するのは手編集時のみ（Export はトップレベル `[]`）。
+
+### 【task_02】完了（2026-09-25）
+
+- Codex が 2 回利用上限で中断（解除待ちのタイマーで再開）。途中状態は構文エラーで全体 import 不可 → verifier で失敗一覧を作って再開時に渡した。
+  Codex が範囲外の `codebase_map.md` を編集 → task_08 の範囲のため撤回させた。
+- tests_ui の失敗を 3 回差し戻し（いずれも実装側を直す判断・期待値で片付けない）:
+  A `child_save_rows` の `owner["id"]` 直参照 / B 通常読込で `set_dirty(False)` が呼ばれない退行 /
+  C `hook_keys_individual` の補完値が保存後 runtime に残り次回保存で hook キーが空になる退行（§5.9.2 の既知の注意点と同型）/
+  個別別名保存で親 keymap を未保存にしない（参照消失のため §5.6 の最小限を先行）。
+- **メインの指示ミスを撤回**: 「dirty_state の setter でキーマップ 0 個なら自動作成」を指示 → リセット・保存後反映・読込で空の keymap_1 が生える副作用。
+  撤回し、キーマップ 0 個のフィクスチャを §2-7 準拠（1 つ以上）へ直す方針に変更（キーマップ 0 個の runtime は仕様上ありえない）。
+- reviewer = 完了可。参考 2 件（set_dirty 判定の重複 / `default_trigger_set_path` の引数名）→ 後者は task_02b で改名。

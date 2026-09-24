@@ -16,6 +16,7 @@ from keyseq.application.save_plan import (
     CHILD_KEYMAP,
     CHILD_SEQUENCE,
     CHILD_TRIGGER_SET,
+    compose_sequence_key,
     ChildSaveEntry,
     SavePlan,
 )
@@ -73,7 +74,7 @@ class SaveLoadRoundTripTest(unittest.TestCase):
             for rel in (
                 "config.json",
                 os.path.join("user", "keymap_sets", "default.json"),
-                os.path.join("user", "trigger_sets", "default.json"),
+                os.path.join("user", "trigger_sets", "km1.json"),
                 os.path.join("user", "keymaps", "km1.json"),
                 os.path.join("user", "sequences", "copy.json"),
             ):
@@ -1813,7 +1814,7 @@ class SplitPathFieldCoercionTest(unittest.TestCase):
                         config_root=root,
                     )
                     self.assertEqual(runtime["active_keymap_id"], "km1")
-                    self.assertEqual(runtime[service.INTERNAL_TRIGGER_SET_SOURCE_PATH], path)
+                    self.assertEqual(runtime["keymaps"][0][service.INTERNAL_TRIGGER_SET_SOURCE_PATH], path)
                     with patch.object(service, "_load_optional_json", return_value=None) as load:
                         split_loading.load_trigger_set(service, padded, config_root=root)
                         load.assert_called_once_with(expected)
@@ -1878,7 +1879,7 @@ class KeymapFileIoTest(unittest.TestCase):
             self.assertFalse(saved["_keymap_dirty"])
 
             payload = JsonRepository().load_json(path)
-            self.assertEqual(payload, {"label": "Main", "mappings": {"a": "b"}})
+            self.assertEqual(payload, {"trigger_set_path": "", "label": "Main", "mappings": {"a": "b"}})
 
             loaded = service.load_keymap_file(path, used_keymap_ids=set(), imported=True)
             self.assertEqual(loaded["id"], "my_map")  # ファイル名から id が生成される
@@ -2347,7 +2348,7 @@ class ParentRefsSchemaTest(unittest.TestCase):
             )
             child_paths = (
                 os.path.join(root, "user", "keymaps", "km1.json"),
-                os.path.join(root, "user", "trigger_sets", "main.json"),
+                os.path.join(root, "user", "trigger_sets", "km1.json"),
                 os.path.join(root, "user", "sequences", "copy.json"),
             )
             legacy_bytes = {}
@@ -2385,14 +2386,14 @@ class ParentRefsSchemaTest(unittest.TestCase):
 
             keymap = JsonRepository().load_json(os.path.join(root, "user", "keymaps", "km1.json"))
             trigger_set = JsonRepository().load_json(
-                os.path.join(root, "user", "trigger_sets", "main.json")
+                os.path.join(root, "user", "trigger_sets", "km1.json")
             )
             sequence = JsonRepository().load_json(
                 os.path.join(root, "user", "sequences", "copy.json")
             )
             self.assertEqual(keymap["_parent_refs"], ["user/keymap_sets/main.json"])
-            self.assertEqual(trigger_set["_parent_refs"], ["user/keymap_sets/main.json"])
-            self.assertEqual(sequence["_parent_refs"], ["user/trigger_sets/main.json"])
+            self.assertEqual(trigger_set["_parent_refs"], ["user/keymaps/km1.json"])
+            self.assertEqual(sequence["_parent_refs"], ["user/trigger_sets/km1.json"])
 
     def test_save_as_merges_existing_parent_refs_for_all_child_kinds(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2409,8 +2410,8 @@ class ParentRefsSchemaTest(unittest.TestCase):
             plan = SavePlan(
                 entries=(
                     ChildSaveEntry(CHILD_KEYMAP, "km1", ACTION_SAVE_AS, target_paths[CHILD_KEYMAP]),
-                    ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE_AS, target_paths[CHILD_TRIGGER_SET]),
-                    ChildSaveEntry(CHILD_SEQUENCE, "f1", ACTION_SAVE_AS, target_paths[CHILD_SEQUENCE]),
+                    ChildSaveEntry(CHILD_TRIGGER_SET, "km1", ACTION_SAVE_AS, target_paths[CHILD_TRIGGER_SET]),
+                    ChildSaveEntry(CHILD_SEQUENCE, compose_sequence_key("km1", "f1"), ACTION_SAVE_AS, target_paths[CHILD_SEQUENCE]),
                 )
             )
 
@@ -2428,7 +2429,7 @@ class ParentRefsSchemaTest(unittest.TestCase):
             )
             self.assertEqual(
                 JsonRepository().load_json(target_paths[CHILD_TRIGGER_SET])["_parent_refs"],
-                ["other-trigger", "user/keymap_sets/main.json"],
+                ["other-trigger", "user/keymaps/alias.json"],
             )
             self.assertEqual(
                 JsonRepository().load_json(target_paths[CHILD_SEQUENCE])["_parent_refs"],
@@ -2439,18 +2440,18 @@ class ParentRefsSchemaTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path = os.path.join(tmp, "export.json")
             data = make_runtime_data()
-            data[self.service.INTERNAL_TRIGGER_SET_PARENT_REFS] = ["keymap_set.json"]
+            data["keymaps"][0][self.service.INTERNAL_TRIGGER_SET_PARENT_REFS] = ["keymap_set.json"]
             data["keymaps"][0][self.service.INTERNAL_KEYMAP_PARENT_REFS] = ["keymap_set.json"]
             get_active_triggers(data)[0][self.service.INTERNAL_SEQUENCE_PARENT_REFS] = ["trigger_set.json"]
 
             sanitized = self.service._sanitize_runtime_for_storage(data)
-            self.assertNotIn(self.service.INTERNAL_TRIGGER_SET_PARENT_REFS, sanitized)
+            self.assertNotIn(self.service.INTERNAL_TRIGGER_SET_PARENT_REFS, sanitized["keymaps"][0])
             self.assertNotIn(self.service.INTERNAL_KEYMAP_PARENT_REFS, sanitized["keymaps"][0])
             self.assertNotIn(self.service.INTERNAL_SEQUENCE_PARENT_REFS, get_active_triggers(sanitized)[0])
 
             self.service.export_runtime_data(path, data)
             exported = JsonRepository().load_json(path)
-            self.assertNotIn(self.service.INTERNAL_TRIGGER_SET_PARENT_REFS, exported)
+            self.assertNotIn(self.service.INTERNAL_TRIGGER_SET_PARENT_REFS, exported["keymaps"][0])
             self.assertNotIn(self.service.INTERNAL_KEYMAP_PARENT_REFS, exported["keymaps"][0])
             self.assertNotIn(self.service.INTERNAL_SEQUENCE_PARENT_REFS, get_active_triggers(exported)[0])
 
@@ -2459,7 +2460,7 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
     def setUp(self):
         self.service = ConfigService(JsonRepository())
 
-    def test_keymap_set_stem_names_trigger_set_and_keeps_sequences_in_default_area(self):
+    def test_keymap_stem_names_trigger_set_and_keeps_sequences_in_default_area(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             keymap_set_path = os.path.join(root, "user", "keymap_sets", "gaming.json")
@@ -2470,21 +2471,22 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
                 startup_data={},
             )
 
-            trigger_set_path = os.path.join(root, "user", "trigger_sets", "gaming.json")
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "km1.json")
             self.assertTrue(os.path.exists(trigger_set_path))
             self.assertTrue(os.path.exists(os.path.join(root, "user", "sequences", "copy.json")))
             keymap_set = JsonRepository().load_json(keymap_set_path)
             trigger_set = JsonRepository().load_json(trigger_set_path)
-            self.assertEqual(keymap_set["trigger_set_path"], "user/trigger_sets/gaming.json")
+            self.assertEqual(keymap_set["trigger_set_path"], "")
+            self.assertEqual(JsonRepository().load_json(os.path.join(root, "user", "keymaps", "km1.json"))["trigger_set_path"], "user/trigger_sets/km1.json")
             self.assertEqual(trigger_set["triggers"][0]["sequence_path"], "user/sequences/copy.json")
 
-    def test_default_keymap_set_keeps_legacy_trigger_set_path(self):
+    def test_default_keymap_set_uses_keymap_stem(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             self.service.save_runtime_data("", make_runtime_data(), config_root=root, startup_data={})
 
             self.assertTrue(
-                os.path.exists(os.path.join(root, "user", "trigger_sets", "default.json"))
+                os.path.exists(os.path.join(root, "user", "trigger_sets", "km1.json"))
             )
 
     def test_multiple_keymap_sets_do_not_share_default_trigger_set_file(self):
@@ -2497,6 +2499,8 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
             gaming_data = make_runtime_data()
             coding_data = make_runtime_data()
             get_active_triggers(coding_data)[0]["key"] = "f2"
+            gaming_data["keymaps"][0]["_keymap_source_path"] = "user/keymaps/gaming.json"
+            coding_data["keymaps"][0]["_keymap_source_path"] = "user/keymaps/coding.json"
             for path, data in zip(paths, (gaming_data, coding_data)):
                 self.service.save_runtime_data(path, data, config_root=root, startup_data={})
 
@@ -2505,7 +2509,8 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
                 self.assertTrue(os.path.exists(trigger_set_path))
                 keymap_set = JsonRepository().load_json(path)
                 trigger_set = JsonRepository().load_json(trigger_set_path)
-                self.assertEqual(keymap_set["trigger_set_path"], f"user/trigger_sets/{stem}.json")
+                self.assertEqual(keymap_set["trigger_set_path"], "")
+                self.assertEqual(JsonRepository().load_json(os.path.join(root, "user", "keymaps", f"{stem}.json"))["trigger_set_path"], f"user/trigger_sets/{stem}.json")
                 self.assertEqual(trigger_set["triggers"][0]["key"], key)
 
     def test_empty_keymap_set_stem_falls_back_to_default(self):
@@ -2520,7 +2525,7 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
 
             self.assertEqual(path, os.path.join(root, "user", "trigger_sets", "default.json"))
 
-    def test_split_base_dir_uses_keymap_set_stem_for_trigger_set(self):
+    def test_split_base_dir_uses_keymap_stem_for_trigger_set(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             split_base_dir = os.path.join(tmp, "sets")
@@ -2534,7 +2539,7 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
             )
 
             self.assertTrue(
-                os.path.exists(os.path.join(split_base_dir, "trigger_sets", "gaming.json"))
+                os.path.exists(os.path.join(split_base_dir, "trigger_sets", "km1.json"))
             )
 
     @unittest.skipUnless(sys.platform == "win32", "Windows canonical identity integration")
@@ -2570,17 +2575,17 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
                 startup_data={},
             )
 
-            trigger_set_path = os.path.join(root, "user", "trigger_sets", "main.json")
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "km1.json")
             sequence_path = os.path.join(root, "user", "sequences", "copy.json")
             self.assertTrue(self.service.is_path_within(keymap_set_path, root, root))
             self.assertEqual(startup["keymap_set_path"], "user/keymap_sets/main.json")
             self.assertEqual(
                 JsonRepository().load_json(keymap_set_path)["trigger_set_path"],
-                "user/trigger_sets/main.json",
+                "",
             )
             self.assertEqual(
                 JsonRepository().load_json(trigger_set_path)["_parent_refs"],
-                ["user/keymap_sets/main.json"],
+                [self.service.to_config_relative_or_absolute(keymap_path, root)],
             )
             self.assertEqual(
                 JsonRepository().load_json(keymap_path)["_parent_refs"],

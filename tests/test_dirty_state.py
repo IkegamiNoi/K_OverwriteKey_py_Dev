@@ -70,5 +70,41 @@ class DirtyStateTrackerTest(unittest.TestCase):
         self.assertFalse(self.tracker.has_individual_dirty())
 
 
+class PerInstanceDirtyStateTest(unittest.TestCase):
+    def test_active_default_explicit_target_shared_members_and_selective_clear(self):
+        from keyseq.application.save_plan import compose_sequence_key
+        shared = [{"key": "f1", "actions": [], "_sequence_dirty": True}]
+        data = {"active_keymap_id": "b", "keymaps": [
+            {"id": "a", "triggers": shared},
+            {"id": "b", "triggers": [{"key": "f1", "actions": [], "_sequence_dirty": True}]},
+            {"id": "c", "triggers": shared},
+        ]}
+        tracker = DirtyStateTracker(get_data=lambda: data, keymap_service=KeymapService(),
+                                    config_service=ConfigService(JsonRepository()), on_change=lambda: None)
+        tracker.mark_trigger_set_dirty()
+        tracker.trigger_set_imported = True
+        tracker.set_trigger_set_source_path("b.json")
+        tracker.mark_trigger_set_dirty("c")
+        tracker.set_trigger_set_source_path("shared.json", "a")
+        self.assertEqual(data["keymaps"][0]["_trigger_set_source_path"], "shared.json")
+        self.assertEqual(data["keymaps"][2]["_trigger_set_source_path"], "shared.json")
+        self.assertTrue(data["keymaps"][0]["_trigger_set_dirty"])
+        self.assertTrue(data["keymaps"][2]["_trigger_set_dirty"])
+        self.assertEqual(tracker.trigger_set_source_path, "b.json")
+        data["active_keymap_id"] = "c"
+        self.assertEqual(tracker.trigger_set_source_path, "shared.json")
+        self.assertFalse(tracker.trigger_set_imported)
+        tracker.clear_individual_dirty_flags(skipped_trigger_set_ids=["b"],
+                                             skipped_sequence_keys=[compose_sequence_key("b", "f1")])
+        self.assertFalse(tracker.trigger_set_dirty)
+        self.assertFalse(shared[0]["_sequence_dirty"])
+        self.assertTrue(data["keymaps"][1]["_trigger_set_dirty"])
+        self.assertTrue(data["keymaps"][1]["_trigger_set_imported"])
+        self.assertTrue(data["keymaps"][1]["triggers"][0]["_sequence_dirty"])
+        self.assertTrue(tracker.has_individual_dirty())
+        tracker.reset_trigger_set_state("b")
+        self.assertEqual(data["keymaps"][1]["_trigger_set_source_path"], "")
+        self.assertNotIn("_trigger_set_source_path", data)
+
 if __name__ == "__main__":
     unittest.main()

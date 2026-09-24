@@ -10,6 +10,7 @@ from keyseq.application.save_plan import (
     CHILD_KEYMAP,
     CHILD_SEQUENCE,
     CHILD_TRIGGER_SET,
+    compose_sequence_key,
     ChildSaveEntry,
     SavePlan,
 )
@@ -46,21 +47,21 @@ class ChildSavePlanTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as root:
             data = make_data()
             targets = self._targets(root, data)
-            rows = [row(CHILD_KEYMAP, "km1"), row(CHILD_TRIGGER_SET, ""), row(CHILD_SEQUENCE, "f1")]
+            rows = [row(CHILD_KEYMAP, "km1"), row(CHILD_TRIGGER_SET, "km1"), row(CHILD_SEQUENCE, compose_sequence_key("km1", "f1"))]
             plan = build_save_plan(
                 data=data,
                 rows=rows,
                 choices={
                     (CHILD_KEYMAP, "km1"): (ACTION_SAVE, ""),
-                    (CHILD_TRIGGER_SET, ""): (ACTION_SAVE_AS, os.path.join(root, "trigger.json")),
-                    (CHILD_SEQUENCE, "f1"): (ACTION_SKIP, ""),
+                    (CHILD_TRIGGER_SET, "km1"): (ACTION_SAVE_AS, os.path.join(root, "trigger.json")),
+                    (CHILD_SEQUENCE, compose_sequence_key("km1", "f1")): (ACTION_SKIP, ""),
                 },
                 targets=targets,
             )
 
         self.assertEqual(
             [(entry.kind, entry.key, entry.action) for entry in plan.entries],
-            [(CHILD_KEYMAP, "km1", ACTION_SAVE), (CHILD_TRIGGER_SET, "", ACTION_SAVE_AS), (CHILD_SEQUENCE, "f1", ACTION_SKIP)],
+            [(CHILD_KEYMAP, "km1", ACTION_SAVE), (CHILD_TRIGGER_SET, "km1", ACTION_SAVE_AS), (CHILD_SEQUENCE, compose_sequence_key("km1", "f1"), ACTION_SKIP)],
         )
 
     def test_clean_children_skip_existing_targets_and_save_missing_targets(self):
@@ -72,8 +73,8 @@ class ChildSavePlanTest(unittest.TestCase):
             plan = build_save_plan(data=data, rows=[], choices={}, targets=targets)
 
         self.assertEqual(plan.entry_for(CHILD_KEYMAP, "km1").action, ACTION_SKIP)
-        self.assertEqual(plan.entry_for(CHILD_TRIGGER_SET).action, ACTION_SAVE)
-        self.assertEqual(plan.entry_for(CHILD_SEQUENCE, "f1").action, ACTION_SAVE)
+        self.assertEqual(plan.entry_for(CHILD_TRIGGER_SET, "km1").action, ACTION_SAVE)
+        self.assertEqual(plan.entry_for(CHILD_SEQUENCE, compose_sequence_key("km1", "f1")).action, ACTION_SAVE)
 
     def test_confirmed_entry_is_used_when_no_row_choice_exists(self):
         with tempfile.TemporaryDirectory() as root:
@@ -86,11 +87,11 @@ class ChildSavePlanTest(unittest.TestCase):
                 choices={},
                 targets=targets,
                 confirmed=SavePlan(
-                    entries=(ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE_AS, confirmed_path),)
+                    entries=(ChildSaveEntry(CHILD_TRIGGER_SET, "km1", ACTION_SAVE_AS, confirmed_path),)
                 ),
             )
 
-        entry = plan.entry_for(CHILD_TRIGGER_SET)
+        entry = plan.entry_for(CHILD_TRIGGER_SET, "km1")
         self.assertEqual((entry.action, entry.target_path), (ACTION_SAVE_AS, confirmed_path))
 
     def test_empty_rows_create_all_entries_and_existing_children_skip(self):

@@ -12,6 +12,7 @@ from keyseq.application.save_plan import (
     CHILD_KEYMAP,
     CHILD_SEQUENCE,
     CHILD_TRIGGER_SET,
+    compose_sequence_key,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
 from keyseq.presentation.controllers.config_io.child_save_rows import (
@@ -57,8 +58,10 @@ class ChildSaveRowsTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            data = make_runtime_data()
+            data["keymaps"][0]["_trigger_set_dirty"] = True
             rows = collect_child_save_rows(
-                data=make_runtime_data(),
+                data=data,
                 dirty_tracker=DummyDirtyTracker(trigger_set_dirty=True),
                 config_service=self.service,
                 config_root=root,
@@ -69,8 +72,8 @@ class ChildSaveRowsTest(unittest.TestCase):
                 [(row.kind, row.key, row.display_name) for row in rows],
                 [
                     (CHILD_KEYMAP, "km1", "Main"),
-                    (CHILD_TRIGGER_SET, "", "トリガー一覧"),
-                    (CHILD_SEQUENCE, "f1", "Copy"),
+                    (CHILD_TRIGGER_SET, "km1", "Main / トリガー一覧"),
+                    (CHILD_SEQUENCE, compose_sequence_key("km1", "f1"), "Main / Copy"),
                 ],
             )
             self.assertTrue(all(row.share_state == SHARE_NEW for row in rows))
@@ -167,15 +170,16 @@ class ChildSaveRowsTest(unittest.TestCase):
                 keymap_set_path=keymap_set_path,
             )
             keymap_target = targets[(CHILD_KEYMAP, "km1")]
-            trigger_set_target = targets[(CHILD_TRIGGER_SET, "")]
-            sequence_target = targets[(CHILD_SEQUENCE, "f1")]
+            data["keymaps"][0]["_trigger_set_dirty"] = True
+            trigger_set_target = targets[(CHILD_TRIGGER_SET, "km1")]
+            sequence_target = targets[(CHILD_SEQUENCE, compose_sequence_key("km1", "f1"))]
             JsonRepository().save_json(
                 keymap_target,
                 {"_parent_refs": ["user\\keymap_sets\\main.json"]},
             )
             JsonRepository().save_json(
                 trigger_set_target,
-                {"_parent_refs": ["user/keymap_sets/main.json", "other.json"]},
+                {"_parent_refs": ["user/keymaps/km1.json", "other.json"]},
             )
             JsonRepository().save_json(
                 sequence_target,

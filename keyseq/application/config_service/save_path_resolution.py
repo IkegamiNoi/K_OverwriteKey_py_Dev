@@ -9,28 +9,32 @@ from keyseq.application.save_plan import ACTION_SAVE_AS, CHILD_TRIGGER_SET, Save
 
 def resolve_trigger_set_save_path(
     service,
-    runtime: dict[str, Any],
+    keymap: dict[str, Any],
     *,
     config_root: str,
     keymap_set_path: str,
     split_base_dir: str,
     save_plan: SavePlan,
+    used_paths: set[str],
 ) -> str:
-    entry = save_plan.entry_for(CHILD_TRIGGER_SET)
-    if entry is not None and entry.action == ACTION_SAVE_AS:
-        return os.path.abspath(
-            service._resolve_config_relative_path(entry.target_path, config_root)
-        )
-    source_path = str(runtime.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "").strip()
-    if source_path:
-        return service._resolve_config_relative_path(source_path, config_root)
-    return default_trigger_set_path(
-        service,
-        keymap_set_path,
-        config_root=config_root,
-        split_base_dir=split_base_dir,
+    entry = save_plan.entry_for(CHILD_TRIGGER_SET, str(keymap["id"]))
+    explicit = entry.target_path if entry is not None and entry.action == ACTION_SAVE_AS else ""
+    source_path = str(keymap.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "").strip()
+    candidate = explicit or source_path
+    if candidate:
+        resolved = service._resolve_config_relative_path(candidate, config_root)
+        canonical = service.canonical_path(resolved, config_root)
+        if canonical not in used_paths or explicit:
+            used_paths.add(canonical)
+            return resolved
+    default = default_trigger_set_path(
+        service, keymap_set_path, config_root=config_root, split_base_dir=split_base_dir,
     )
-
+    stored = allocate_unique_absolute_path(
+        service, os.path.dirname(default), os.path.splitext(os.path.basename(default))[0],
+        "trigger_set", used_paths, config_root,
+    )
+    return service._resolve_config_relative_path(stored, config_root)
 
 def resolve_sequence_save_path(
     service,

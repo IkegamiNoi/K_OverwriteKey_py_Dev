@@ -18,6 +18,7 @@ from keyseq.domain.config import (
 )
 from keyseq.infrastructure.json_repository import JsonRepository
 from keyseq.domain.keymap_triggers import (
+    trigger_set_members,
     ensure_active_triggers,
     get_active_triggers,
     migrate_single_json_triggers,
@@ -313,9 +314,10 @@ class ConfigService:
             trigger[self.INTERNAL_SEQUENCE_IMPORTED] = False
             trigger[self.INTERNAL_SEQUENCE_DIRTY] = False
         if self.PARENT_REFS_KEY in trigger_payload:
-            data[self.INTERNAL_TRIGGER_SET_PARENT_REFS] = safe_deepcopy(
-                trigger_payload[self.PARENT_REFS_KEY]
-            )
+            for member in trigger_set_members(data):
+                member[self.INTERNAL_TRIGGER_SET_PARENT_REFS] = safe_deepcopy(
+                    trigger_payload[self.PARENT_REFS_KEY]
+                )
         return triggers, trigger_payload
 
     def save_runtime_data(
@@ -364,6 +366,14 @@ class ConfigService:
     ) -> list[str]:
         """trigger_set を保存しない計画で、保存先が変わる sequence を返す。"""
         return save_plan_execution.find_dependency_blocked_sequences(
+            self, data, config_root=config_root, keymap_set_path=keymap_set_path,
+            split_base_dir=split_base_dir, save_plan=save_plan,
+        )
+
+    def find_dependency_blocked_parents(self, data: Any, *, config_root: str,
+        keymap_set_path: str, split_base_dir: str = "", save_plan: SavePlan,
+    ) -> dict[tuple[str, str], list[str]]:
+        return save_plan_execution.find_dependency_blocked_parents(
             self, data, config_root=config_root, keymap_set_path=keymap_set_path,
             split_base_dir=split_base_dir, save_plan=save_plan,
         )
@@ -479,8 +489,6 @@ class ConfigService:
 
     def _sanitize_runtime_for_storage(self, data: dict[str, Any]) -> dict[str, Any]:
         sanitized = safe_deepcopy(data)
-        sanitized.pop(self.INTERNAL_TRIGGER_SET_SOURCE_PATH, None)
-        sanitized.pop(self.INTERNAL_TRIGGER_SET_PARENT_REFS, None)
         sanitized.pop(self.INTERNAL_LEGACY_TRIGGER_SET, None)
         sanitized["triggers"] = []
 

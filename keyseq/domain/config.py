@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 
 import json
 from typing import Any
@@ -196,8 +196,8 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     if not isinstance(data, dict):
         data = {}
     config = safe_deepcopy(data)
-    if "_trigger_set_source_path" in config:
-        config["_trigger_set_source_path"] = coerce_label(config["_trigger_set_source_path"])
+    config.pop("_trigger_set_source_path", None)
+    config.pop("_trigger_set_parent_refs", None)
 
     if "triggers" not in config and "trigger_key" in config:
         old_key = coerce_key_name(config.get("trigger_key", "f1"))
@@ -298,11 +298,13 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
                 else:
                     normalized_keymaps[-1]["triggers"] = []
             for key in (
-                "_trigger_set_source_path", "_trigger_set_parent_refs",
+                "_trigger_set_parent_refs",
                 "_trigger_set_dirty", "_trigger_set_imported",
             ):
                 if key in item:
                     normalized_keymaps[-1][key] = safe_deepcopy(item[key])
+            if "_trigger_set_source_path" in item:
+                normalized_keymaps[-1]["_trigger_set_source_path"] = coerce_label(item["_trigger_set_source_path"])
             if "_keymap_source_path" in item:
                 normalized_keymaps[-1]["_keymap_source_path"] = coerce_label(item["_keymap_source_path"])
             for key in (

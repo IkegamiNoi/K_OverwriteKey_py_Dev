@@ -100,7 +100,8 @@ class ChildSaveDialog:
             actions = ttk.Frame(frame)
             actions.grid(row=index, column=4, sticky="w")
             for action, label in ((ACTION_SAVE, "保存"), (ACTION_SAVE_AS, "別名保存"), (ACTION_SKIP, "保存しない")):
-                ttk.Radiobutton(actions, text=label, variable=choice, value=action).pack(side="left")
+                state = "disabled" if action == ACTION_SKIP and not child_row.allow_skip else "normal"
+                ttk.Radiobutton(actions, text=label, variable=choice, value=action, state=state).pack(side="left")
         return choices, text_cells
 
     def _add_text_cell(self, frame, row: int, column: int, text: str, ellipsize):
@@ -211,6 +212,8 @@ class ChildSaveDialog:
         choices: dict[tuple[str, str], tuple[str, str]] = {}
         for row in rows:
             action = choice_vars[(row.kind, row.key)].get()
+            if action == ACTION_SKIP and not row.allow_skip:
+                raise ValueError("移行先キーマップは保存しないを選択できません。")
             target_path = self._ask_save_as_path(row) if action == ACTION_SAVE_AS else ""
             if action == ACTION_SAVE_AS and not target_path:
                 return None
@@ -221,13 +224,14 @@ class ChildSaveDialog:
         self, *, blocked_labels: Sequence[str], trigger_set_row: ChildSaveRow
     ) -> str:
         self.trigger_set_save_as_path = ""
+        parent_name = _kind_label(trigger_set_row.kind)
         message = (
-            "次の出力シーケンスの保存先が変わります:\n"
+            "次の子ファイルの保存先が変わります:\n"
             f"{', '.join(blocked_labels)}\n\n"
-            f"トリガー一覧の保存先: {trigger_set_row.target_path}\n"
+            f"{parent_name}の保存先: {trigger_set_row.target_path}\n"
             f"共有状況: {trigger_set_row.share_text}\n\n"
-            "保存 = このままトリガー一覧を保存して索引を更新します。\n"
-            "別名保存 = 別の保存先へトリガー一覧を保存して索引を更新します。\n"
+            f"保存 = このまま{parent_name}を保存して索引を更新します。\n"
+            f"別名保存 = 別の保存先へ{parent_name}を保存して索引を更新します。\n"
             "保存しない = この保存では索引を更新しない（次回保存で反映）。\n"
             "キャンセル = 一覧から選び直します。"
         )
@@ -249,7 +253,7 @@ class ChildSaveDialog:
 
     def _create_dependency_dialog(self, message, trigger_set_row, result):
         dialog = tk.Toplevel(self._app)
-        dialog.title("トリガー一覧の保存が必要です")
+        dialog.title(f"{_kind_label(trigger_set_row.kind)}の保存が必要です")
         dialog.geometry("640x300")
         dialog.resizable(False, False)
         frame = ttk.Frame(dialog, padding=12)

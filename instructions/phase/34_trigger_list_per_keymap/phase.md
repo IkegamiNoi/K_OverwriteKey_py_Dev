@@ -61,7 +61,8 @@ keymap_set の `trigger_set_path` とトップレベル `triggers` は旧形式�
   + 単一 JSON の Import / Export（往復を壊さないため task_03 から移動）— **完了**（2026-09-24）
 - task_02: 一括保存のキーマップ単位化（暫定 §4.2・§4.4・§5.1・§5.3 の 1 点目・§5.4 の親変更・§5.5 の trigger_set 既定名:
   trigger_set の実体ごとの行 / sequence の合成識別子 / 計画全体の衝突回避 / keymap の `trigger_set_path` / 依存 3 段 / 移行先の未保存化と「保存しない」不可 /
-  実体ごとの未保存管理。task_01b の暫定を撤去）
+  実体ごとの未保存管理。task_01b の暫定を撤去）— **完了**（2026-09-25）
+  （reviewer 参考: `keymap_set_io.py` の移行判定つき set_dirty(False) の重複 / `default_trigger_set_path` の引数名 `keymap_set_path` が実態〔親 keymap のパス〕と乖離 → 後者は task_02b で同ファイルを触るときに改名）
 - task_02b: 保存の安全網と命名（暫定 §5.2 / §5.3 の 2・3 点目 / §5.4 の移行時の扱いと後処理 / §5.5 の keymap 既定名と除外撤廃）
 - task_03: 個別保存・個別読込（暫定 §5.6。Export は task_01b へ移動）
 - task_04: 参照辿り 3 段・孤児棚卸し・keymap_set の判別（暫定 §3.1 末尾 / §6）

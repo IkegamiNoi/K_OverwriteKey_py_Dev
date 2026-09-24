@@ -110,8 +110,8 @@ class ParentRefsCleanupTest(unittest.TestCase):
             inspections = self._inspect(
                 root,
                 {
-                    "keymaps": [self._keymap(keymap_path)],
-                    self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: trigger_set_path,
+                    "keymaps": [{**self._keymap(keymap_path),
+                                 self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: trigger_set_path}],
                     "active_keymap_id": "km1",
                     "triggers": [],
                 },
@@ -127,9 +127,9 @@ class ParentRefsCleanupTest(unittest.TestCase):
             sequence_inspections = self._inspect(
                 root,
                 {
-                    "keymaps": [self._keymap("", triggers=[self._sequence(sequence_path)])],
+                    "keymaps": [{**self._keymap("", triggers=[self._sequence(sequence_path)]),
+                                 self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: missing_trigger_set_path}],
                     "active_keymap_id": "km1",
-                    self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: missing_trigger_set_path,
                     "triggers": [],
                 },
             )
@@ -190,14 +190,13 @@ class ParentRefsCleanupTest(unittest.TestCase):
                 root,
                 {
                     "keymaps": [
-                        self._keymap("", triggers=[
+                        {**self._keymap("", triggers=[
                             {self.service.INTERNAL_SEQUENCE_SOURCE_PATH: ""},
                             {self.service.INTERNAL_SEQUENCE_SOURCE_PATH: []},
-                        ]),
+                        ]), self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: 1},
                         self._keymap(None, keymap_id="km2"),
                     ],
                     "active_keymap_id": "km1",
-                    self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: 1,
                     "triggers": [],
                 },
             )
@@ -236,9 +235,9 @@ class ParentRefsCleanupTest(unittest.TestCase):
             inspections = self._inspect(
                 root,
                 {
-                    "keymaps": [self._keymap(keymap_path, triggers=[self._sequence(sequence_path)])],
+                    "keymaps": [{**self._keymap(keymap_path, triggers=[self._sequence(sequence_path)]),
+                                 self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: trigger_set_path}],
                     "active_keymap_id": "km1",
-                    self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: trigger_set_path,
                     "triggers": [],
                 },
             )
@@ -353,9 +352,9 @@ class ParentRefsCleanupTest(unittest.TestCase):
             self._save(keymap_path, {"_parent_refs": [keymap_set_path, "missing-keymap-set.json"]})
             self._save(sequence_path, {"_parent_refs": [trigger_set_path, "missing-trigger-set.json"]})
             runtime = {
-                "keymaps": [self._keymap(keymap_path, triggers=[self._sequence(sequence_path)])],
+                "keymaps": [{**self._keymap(keymap_path, triggers=[self._sequence(sequence_path)]),
+                             self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: trigger_set_path}],
                 "active_keymap_id": "km1",
-                self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: trigger_set_path,
                 "triggers": [],
             }
 

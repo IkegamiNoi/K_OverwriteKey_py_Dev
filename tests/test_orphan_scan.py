@@ -457,8 +457,8 @@ class CollectProtectedPathsTest(unittest.TestCase):
         runtime = {
             "active_keymap_id": "km1",
             "keymaps": [{"id": "km1", self.service.INTERNAL_KEYMAP_SOURCE_PATH: "keymap.json",
+                         self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: "triggers.json",
                          "triggers": [None, {self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "sequence.json"}]}, None, "skip"],
-            self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: "triggers.json",
             "triggers": [],
             "hotkey_presets_path": "presets.json",
         }
@@ -470,10 +470,10 @@ class CollectProtectedPathsTest(unittest.TestCase):
         runtime = {
             "active_keymap_id": "km1",
             "keymaps": [{"id": "km1", self.service.INTERNAL_KEYMAP_SOURCE_PATH: f" {stored} ",
+                         self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: stored,
                          "triggers": [{self.service.INTERNAL_SEQUENCE_SOURCE_PATH: " sequence.json "}]},
                         {self.service.INTERNAL_KEYMAP_SOURCE_PATH: " set.json "},
                         {self.service.INTERNAL_KEYMAP_SOURCE_PATH: None}],
-            self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: stored,
             "triggers": [],
             "hotkey_presets_path": "sequence.json",
         }

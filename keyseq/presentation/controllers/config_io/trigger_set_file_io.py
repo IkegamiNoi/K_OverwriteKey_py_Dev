@@ -1,15 +1,21 @@
 import os
+from dataclasses import replace
 from tkinter import filedialog, messagebox
 
 from keyseq.application.save_plan import (
+    ACTION_SAVE,
+    ACTION_SKIP,
     ACTION_SAVE_AS,
     CHILD_SEQUENCE,
     CHILD_TRIGGER_SET,
     ChildSaveEntry,
     SavePlan,
+    split_sequence_key,
 )
-from keyseq.domain.keymap_triggers import set_active_triggers
-from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
+from keyseq.domain.keymap_triggers import (
+    get_active_triggers, set_active_triggers, trigger_set_owner, trigger_set_members,
+)
+from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.controllers.config_io.child_save_rows import collect_child_save_rows
 
 
@@ -60,7 +66,11 @@ class TriggerSetFileIo:
                 parent_ref=self._app.keymap_set_path,
                 save_plan=save_plan,
             )
-            set_active_triggers(self._app.data, triggers)
+            if len(trigger_set_members(self._app.data)) > 1:
+                # 保存結果で共有リストを置き換えて、実体を分断しない。
+                get_active_triggers(self._app.data)[:] = triggers
+            else:
+                set_active_triggers(self._app.data, triggers)
             self._app.dirty_tracker.set_trigger_set_source_path(
                 (
                     self._app.config_service.to_config_relative_or_absolute(
@@ -83,6 +93,8 @@ class TriggerSetFileIo:
                 != self._app.config_service.canonical_path(path, self._app.config_root)
             )
             if source_path_changed:
+                for member in trigger_set_members(self._app.data):
+                    self._app.dirty_tracker.mark_keymap_dirty(member)
                 self._app.dirty_tracker.set_dirty(True)
             self._app.dirty_tracker.sync_dirty_state()
             completion_message = "トリガー一覧を保存しました。"
@@ -99,39 +111,47 @@ class TriggerSetFileIo:
             return False
 
     def _collect_sequence_save_plan(self, path: str) -> SavePlan | None:
+        owner = trigger_set_owner(self._app.data)
+        owner_id = normalize_key_name(str(owner.get("id") or ""))
+        if not owner_id:
+            return SavePlan()
+        scoped_data = {**self._app.data, "keymaps": [owner], "active_keymap_id": owner_id}
         confirmed = SavePlan(
             entries=(
-                ChildSaveEntry(CHILD_TRIGGER_SET, "", ACTION_SAVE_AS, path),
+                ChildSaveEntry(CHILD_TRIGGER_SET, owner_id, ACTION_SAVE_AS, path),
             )
         )
         targets = self._app.config_service.resolve_child_save_targets(
-            self._app.data,
+            scoped_data,
             config_root=self._app.config_root,
             keymap_set_path=self._app.keymap_set_path,
             save_plan=confirmed,
         )
         rows = [
-            row
+            replace(row, key=split_sequence_key(row.key)[1])
             for row in collect_child_save_rows(
-                data=self._app.data,
+                data=scoped_data,
                 dirty_tracker=self._app.dirty_tracker,
                 config_service=self._app.config_service,
                 config_root=self._app.config_root,
                 keymap_set_path=self._app.keymap_set_path,
                 save_plan=confirmed,
             )
-            if row.kind == CHILD_SEQUENCE
+            if row.kind == CHILD_SEQUENCE and split_sequence_key(row.key)[0] == owner_id
         ]
         choices = {} if not rows else self._app.child_save_dialog.ask_child_save_actions(rows)
         if choices is None:
             return None
-        return build_save_plan(
-            data=self._app.data,
-            rows=rows,
-            choices=choices,
-            targets=targets,
-            confirmed=confirmed,
-        )
+        entries = []
+        for (kind, key), target in targets.items():
+            if kind != CHILD_SEQUENCE or split_sequence_key(key)[0] != owner_id:
+                continue
+            trigger_key = split_sequence_key(key)[1]
+            action, destination = choices.get(
+                (kind, trigger_key), (ACTION_SKIP if os.path.exists(target) else ACTION_SAVE, ""),
+            )
+            entries.append(ChildSaveEntry(kind, trigger_key, action, destination))
+        return SavePlan(entries=tuple(entries))
 
     def load_trigger_set_file(self) -> None:
         if not self._app.keymap_set_io.confirm_save_if_dirty("トリガー一覧読込"):

@@ -415,12 +415,12 @@ class PathFieldCoercionTest(unittest.TestCase):
             with self.subTest(value=value):
                 config = ensure_config_compatibility({
                     "triggers": [{"key": "a", "_sequence_source_path": value}],
-                    "keymaps": [{"id": "km1", "_keymap_source_path": value}],
-                    "_trigger_set_source_path": value,
+                    "keymaps": [{"id": "km1", "_keymap_source_path": value,
+                                 "_trigger_set_source_path": value}],
                 })
                 self.assertEqual(config["triggers"][0]["_sequence_source_path"], "")
                 self.assertEqual(config["keymaps"][0]["_keymap_source_path"], "")
-                self.assertEqual(config["_trigger_set_source_path"], "")
+                self.assertEqual(config["keymaps"][0]["_trigger_set_source_path"], "")
 
     def test_internal_source_paths_trim_preserving_case_and_separators(self):
         for path in ("User/KeyMaps/A.json", r"C:\User\KeyMaps\A.json"):
@@ -428,12 +428,12 @@ class PathFieldCoercionTest(unittest.TestCase):
                 value = f"  {path} "
                 config = ensure_config_compatibility({
                     "triggers": [{"key": "a", "_sequence_source_path": value}],
-                    "keymaps": [{"id": "km1", "_keymap_source_path": value}],
-                    "_trigger_set_source_path": value,
+                    "keymaps": [{"id": "km1", "_keymap_source_path": value,
+                                 "_trigger_set_source_path": value}],
                 })
                 self.assertEqual(config["triggers"][0]["_sequence_source_path"], path)
                 self.assertEqual(config["keymaps"][0]["_keymap_source_path"], path)
-                self.assertEqual(config["_trigger_set_source_path"], path)
+                self.assertEqual(config["keymaps"][0]["_trigger_set_source_path"], path)
 
     def test_absent_internal_source_paths_are_not_added(self):
         config = ensure_config_compatibility({
@@ -442,6 +442,7 @@ class PathFieldCoercionTest(unittest.TestCase):
         })
         self.assertNotIn("_sequence_source_path", config["triggers"][0])
         self.assertNotIn("_keymap_source_path", config["keymaps"][0])
+        self.assertNotIn("_trigger_set_source_path", config["keymaps"][0])
         self.assertNotIn("_trigger_set_source_path", config)
 
     def test_non_path_internal_keys_preserve_values(self):

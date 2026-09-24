@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from keyseq.domain.keymap_triggers import get_active_triggers
+from keyseq.domain.keymap_triggers import get_active_triggers, trigger_set_owner
 from . import contracts
 
 
@@ -120,7 +120,7 @@ def _iter_child_paths(service, runtime: Any):
                 if stored_path:
                     yield "keymap", stored_path
 
-    stored_path = _nonempty_path(runtime.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH))
+    stored_path = _nonempty_path(trigger_set_owner(runtime).get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH))
     if stored_path:
         yield "trigger_set", stored_path
 
@@ -185,7 +185,7 @@ def _protected_parent_path(service, kind: str, runtime: Any, keymap_set_path: st
     if kind in ("keymap", "trigger_set"):
         return _nonempty_path(keymap_set_path)
     if kind == "sequence" and isinstance(runtime, dict):
-        return _nonempty_path(runtime.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH))
+        return _nonempty_path(trigger_set_owner(runtime).get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH))
     return ""
 
 

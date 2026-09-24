@@ -7,6 +7,49 @@ from __future__ import annotations
 
 from typing import Any
 
+from keyseq.domain.config import normalize_key_name
+
+
+INTERNAL_TRIGGER_SET_DIRTY = "_trigger_set_dirty"
+INTERNAL_TRIGGER_SET_IMPORTED = "_trigger_set_imported"
+
+
+def iter_trigger_sets(data: dict[str, Any]):
+    """一覧順の代表キーマップ、共有メンバー、一覧実体を返す。"""
+    groups: dict[int, tuple[dict[str, Any], list[dict[str, Any]], list]] = {}
+    keymaps = data.get("keymaps") if isinstance(data, dict) else None
+    if not isinstance(keymaps, list):
+        return
+    for keymap in keymaps:
+        if not isinstance(keymap, dict) or not normalize_key_name(str(keymap.get("id") or "")):
+            continue
+        triggers = keymap.get("triggers")
+        if not isinstance(triggers, list):
+            triggers = []
+        identity = id(triggers)
+        if identity not in groups:
+            groups[identity] = (keymap, [], triggers)
+        groups[identity][1].append(keymap)
+    yield from groups.values()
+
+
+def trigger_set_members(data: dict[str, Any], key: str | None = None) -> list[dict[str, Any]]:
+    """省略時はアクティブ、指定時はそのキーマップと一覧を共有する要素を返す。"""
+    target = data.get("active_keymap_id") if key is None and isinstance(data, dict) else key
+    target = normalize_key_name(str(target or ""))
+    if not target:
+        return []
+    for _, members, _ in iter_trigger_sets(data):
+        if any(normalize_key_name(str(member.get("id") or "")) == target for member in members):
+            return members
+    return []
+
+
+def trigger_set_owner(data: dict[str, Any], key: str | None = None) -> dict[str, Any]:
+    """一覧の内部状態を持つ代表要素。対象が無い場合は空 dict。"""
+    members = trigger_set_members(data, key)
+    return members[0] if members else {}
+
 
 def _active_keymap(data: dict[str, Any]) -> dict[str, Any] | None:
     keymaps = data.get("keymaps")

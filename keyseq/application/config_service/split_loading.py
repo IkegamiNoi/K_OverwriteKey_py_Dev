@@ -404,9 +404,8 @@ def build_runtime_data_from_split(
     }
     for keymap in keymaps:
         keymap.setdefault("triggers", [])
-    for key in (service.INTERNAL_TRIGGER_SET_SOURCE_PATH, service.INTERNAL_TRIGGER_SET_PARENT_REFS):
-        if key in active:
-            runtime[key] = active[key]
+    if state == "migrated":
+        active[service.INTERNAL_KEYMAP_DIRTY] = True
     normalized = ensure_config_compatibility(runtime)
     normalized_keymaps = normalized.get("keymaps", [])
     for keymap, normalized_keymap in zip(keymaps, normalized_keymaps):

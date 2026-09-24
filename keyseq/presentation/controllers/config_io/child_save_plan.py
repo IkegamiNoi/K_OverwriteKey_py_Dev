@@ -12,8 +12,10 @@ from keyseq.application.save_plan import (
     CHILD_TRIGGER_SET,
     ChildSaveEntry,
     SavePlan,
+    SavePlanError,
+    compose_sequence_key,
 )
-from keyseq.domain.keymap_triggers import get_active_triggers
+from keyseq.domain.keymap_triggers import iter_trigger_sets
 from keyseq.domain.config import normalize_key_name
 
 
@@ -35,11 +37,23 @@ def build_save_plan(
         _entry_for(CHILD_KEYMAP, key, choices_by_child, targets, confirmed)
         for key in _keymap_ids(data)
     ]
-    entries.append(_entry_for(CHILD_TRIGGER_SET, "", choices_by_child, targets, confirmed))
+    entries.extend(
+        _entry_for(CHILD_TRIGGER_SET, str(owner["id"]), choices_by_child, targets, confirmed)
+        for owner, _, _ in iter_trigger_sets(data)
+        if (CHILD_TRIGGER_SET, str(owner["id"])) in targets
+    )
     entries.extend(
         _entry_for(CHILD_SEQUENCE, key, choices_by_child, targets, confirmed)
         for key in _sequence_keys(data)
     )
+    legacy = data.get("_legacy_trigger_set", {})
+    if legacy.get("state") == "migrated":
+        for index, entry in enumerate(entries):
+            if entry.kind == CHILD_KEYMAP and entry.key == legacy.get("keymap_id"):
+                if choices_by_child.get((entry.kind, entry.key), (None, ""))[0] == ACTION_SKIP:
+                    raise SavePlanError("移行先キーマップは保存しないを選択できません。")
+                if entry.action == ACTION_SKIP:
+                    entries[index] = ChildSaveEntry(entry.kind, entry.key, ACTION_SAVE)
     return SavePlan(entries=tuple(entries))
 
 
@@ -82,11 +96,11 @@ def _keymap_ids(data: dict[str, Any]) -> list[str]:
 
 
 def _sequence_keys(data: dict[str, Any]) -> list[str]:
-    triggers = get_active_triggers(data)
-    if not isinstance(triggers, list):
-        return []
-    return _unique_normalized_keys(trigger.get("key") for trigger in triggers if isinstance(trigger, dict))
-
+    return [
+        compose_sequence_key(str(owner["id"]), key)
+        for owner, _, triggers in iter_trigger_sets(data)
+        for key in _unique_normalized_keys(item.get("key") for item in triggers if isinstance(item, dict))
+    ]
 
 def _unique_normalized_keys(values) -> list[str]:
     result: list[str] = []

@@ -11,8 +11,10 @@ from keyseq.application.save_plan import (
     CHILD_TRIGGER_SET,
     ChildSaveEntry,
     SavePlan,
+    compose_sequence_key,
+    split_sequence_key,
 )
-from keyseq.domain.keymap_triggers import get_active_triggers, set_active_triggers
+from keyseq.domain.keymap_triggers import get_active_triggers, set_active_triggers, iter_trigger_sets, trigger_set_members
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
 from keyseq.presentation.controllers.config_io.child_save_rows import (
@@ -26,7 +28,6 @@ from keyseq.presentation.controllers.config_io.child_save_rows import (
 DEFAULT_KEYMAP_SET_FILENAME = "keymap_set.json"
 KEYMAP_SET_LOAD_OK = "ok"
 KEYMAP_SET_LOAD_FAILED = "failed"
-_RETRY = object()  # 依存確認で「選び直す」= 子一覧ダイアログへ戻る
 
 
 class KeymapSetIo:
@@ -114,6 +115,7 @@ class KeymapSetIo:
                 self._app._set_flash_message("保存を中止しました。")
                 return False
             skipped_dirty_children = self._skipped_dirty_children(save_plan)
+            deferred_parents = self._blocked_parents(save_path, split_base_dir, save_plan) if deferred_index else {}
             self._app.discard_retained_hook_keys()
             if save_path != self._app.keymap_set_path:
                 relocated_path = self._app.config_service.relocate_individual_hotkey_presets(
@@ -139,13 +141,18 @@ class KeymapSetIo:
             self._app.startup_io.entry_loaded = True
             self._app.dirty_tracker.sync_trigger_set_source_path_from_data()
             self._clear_saved_child_dirty_flags(*skipped_dirty_children)
-            if deferred_index:
-                self._app.dirty_tracker.mark_trigger_set_dirty()
+            for kind, key in deferred_parents:
+                if kind == CHILD_TRIGGER_SET:
+                    self._app.dirty_tracker.mark_trigger_set_dirty(key)
+                else:
+                    target = next(item for item in self._app.data["keymaps"] if item["id"] == key)
+                    self._app.dirty_tracker.mark_keymap_dirty(target)
             self._app.dirty_tracker.set_dirty(False)
             self._app.dirty_tracker.sync_dirty_state()
             notices = [notice for notice in (recalculation_notice,) if notice]
             if deferred_index:
-                notices.append("トリガー一覧は未保存です。次回保存で索引を更新します。")
+                label = "トリガー一覧" if all(kind == CHILD_TRIGGER_SET for kind, _ in deferred_parents) else "参照元の子ファイル"
+                notices.append(f"{label}は未保存です。次回保存で索引を更新します。")
             completion_message = "\n".join((flash_message, *notices))
             self._app._set_flash_message(completion_message)
             if show_success_dialog:
@@ -171,8 +178,11 @@ class KeymapSetIo:
                 return None, "", False
             plan = self._build_plan(rows=rows, choices=choices, targets=targets, confirmed=pending)
             recalculation_notice = ""
-            trigger_entry = plan.entry_for(CHILD_TRIGGER_SET)
-            if trigger_entry and self._trigger_target_changed(trigger_entry, targets, save_path, split_base_dir):
+            if any(
+                entry.kind == CHILD_TRIGGER_SET
+                and self._trigger_target_changed(entry, targets, save_path, split_base_dir)
+                for entry in plan.entries
+            ):
                 recalculated = self._recalculate_for_trigger_target(
                     rows=rows,
                     choices=choices,
@@ -184,30 +194,43 @@ class KeymapSetIo:
                 if recalculated is None:
                     return None, "", False
                 plan, targets, choices, recalculation_notice = recalculated
-            blocked = self._blocked_sequences(save_path, split_base_dir, plan)
-            if not blocked:
-                return plan, recalculation_notice, False
-            resolved = self._resolve_trigger_set_dependency(
-                rows=rows,
-                choices=choices,
-                targets=targets,
-                blocked=blocked,
-                save_path=save_path,
-                split_base_dir=split_base_dir,
-                recalculation_notice=recalculation_notice,
-            )
-            if resolved is _RETRY:
-                pending = SavePlan()
-                continue
-            return resolved
+            deferred = set()
+            while True:
+                blocked = {child: keys for child, keys in self._blocked_parents(save_path, split_base_dir, plan).items() if child not in deferred}
+                if not blocked:
+                    return SavePlan(entries=plan.entries, allow_deferred_index=bool(deferred)), recalculation_notice, bool(deferred)
+                parent_id, keys = next(iter(blocked.items()))
+                parent_row = self._dependency_parent_row(rows, targets, save_path, parent_id)
+                action = ACTION_SAVE if parent_row.share_state in (SHARE_SOLE, SHARE_NEW) else self._app.child_save_dialog.confirm_trigger_set_dependency(
+                    blocked_labels=self._blocked_labels(keys), trigger_set_row=parent_row,
+                )
+                if not action:
+                    if not rows:
+                        return None, "", False
+                    pending = SavePlan()
+                    break
+                if action == ACTION_SKIP:
+                    deferred.add(parent_id)
+                    continue
+                if action == ACTION_SAVE and parent_id[0] == CHILD_TRIGGER_SET:
+                    recalculation_notice = "\n".join(filter(None, (recalculation_notice, "トリガー一覧も保存して索引を更新しました。")))
+                target = self._app.child_save_dialog.trigger_set_save_as_path if action == ACTION_SAVE_AS else ""
+                replacement = ChildSaveEntry(*parent_id, action, target)
+                plan = SavePlan(entries=tuple(replacement if (entry.kind, entry.key) == parent_id else entry for entry in plan.entries))
+                choices = {**choices, parent_id: (action, target)}
+                if parent_id[0] == CHILD_TRIGGER_SET and self._trigger_target_changed(replacement, targets, save_path, split_base_dir):
+                    recalculated = self._recalculate_for_trigger_target(
+                        rows=rows, choices=choices, confirmed=plan, plan=plan,
+                        save_path=save_path, split_base_dir=split_base_dir,
+                    )
+                    if recalculated is None:
+                        return None, "", False
+                    plan, targets, choices, recalculation_notice = recalculated
 
-    def _blocked_sequences(self, save_path: str, split_base_dir: str, plan: SavePlan):
-        return self._app.config_service.find_dependency_blocked_sequences(
-            self._app.data,
-            config_root=self._app.config_root,
-            keymap_set_path=save_path,
-            split_base_dir=split_base_dir,
-            save_plan=plan,
+    def _blocked_parents(self, save_path: str, split_base_dir: str, plan: SavePlan):
+        return self._app.config_service.find_dependency_blocked_parents(
+            self._app.data, config_root=self._app.config_root, keymap_set_path=save_path,
+            split_base_dir=split_base_dir, save_plan=plan,
         )
 
     def _build_plan(self, *, rows, choices, targets, confirmed) -> SavePlan:
@@ -262,74 +285,6 @@ class KeymapSetIo:
         plan, choices = confirmed_plan
         return plan, targets, choices, notice
 
-    def _ask_trigger_set_dependency_action(self, *, rows, targets, save_path: str, blocked):
-        trigger_row = self._trigger_set_row(rows, targets, save_path)
-        if trigger_row.share_state in (SHARE_SOLE, SHARE_NEW):
-            return ACTION_SAVE, "トリガー一覧も保存して索引を更新しました。"
-        action = self._app.child_save_dialog.confirm_trigger_set_dependency(
-            blocked_labels=self._blocked_labels(blocked),
-            trigger_set_row=trigger_row,
-        )
-        return action, ""
-
-    def _resolve_trigger_set_dependency(
-        self, *, rows, choices, targets, blocked,
-        save_path: str, split_base_dir: str, recalculation_notice: str,
-    ):
-        action, dependency_notice = self._ask_trigger_set_dependency_action(
-            rows=rows,
-            targets=targets,
-            save_path=save_path,
-            blocked=blocked,
-        )
-        if not action:
-            return (None, "", False) if not rows else _RETRY
-        plan, choices, confirmed_entries = self._apply_trigger_set_action(
-            action=action,
-            rows=rows,
-            choices=choices,
-            targets=targets,
-        )
-        if action == ACTION_SKIP:
-            return SavePlan(entries=plan.entries, allow_deferred_index=True), recalculation_notice, True
-        confirmed = confirmed_entries.entries[0]
-        if self._trigger_target_changed(confirmed, targets, save_path, split_base_dir):
-            recalculated = self._recalculate_for_trigger_target(
-                rows=rows,
-                choices=choices,
-                confirmed=confirmed_entries,
-                save_path=save_path,
-                split_base_dir=split_base_dir,
-                plan=plan,
-            )
-            if recalculated is None:
-                return None, "", False
-            plan, targets, _, recalculation_notice = recalculated
-        notices = "\n".join(
-            notice for notice in (recalculation_notice, dependency_notice) if notice
-        )
-        return plan, notices, False
-
-    def _apply_trigger_set_action(self, *, action, rows, choices, targets):
-        confirmed = ChildSaveEntry(
-            CHILD_TRIGGER_SET,
-            "",
-            action,
-            self._app.child_save_dialog.trigger_set_save_as_path if action == ACTION_SAVE_AS else "",
-        )
-        confirmed_entries = SavePlan(entries=(confirmed,))
-        choices = {
-            **choices,
-            (CHILD_TRIGGER_SET, ""): (confirmed.action, confirmed.target_path),
-        }
-        plan = self._build_plan(
-            rows=rows,
-            choices=choices,
-            targets=targets,
-            confirmed=confirmed_entries,
-        )
-        return plan, choices, confirmed_entries
-
     def _rebuild_plan_with_targets(
         self,
         *,
@@ -376,14 +331,6 @@ class KeymapSetIo:
         )
 
     def _recalculated_overwrite_rows(self, rows, choices, targets, save_path: str):
-        keymap_parent = self._app.config_service.to_config_relative_or_absolute(
-            save_path,
-            self._app.config_root,
-        )
-        trigger_set_parent = self._app.config_service.to_config_relative_or_absolute(
-            targets[(CHILD_TRIGGER_SET, "")],
-            self._app.config_root,
-        )
         overwrite_rows = []
         for row in rows:
             child_id = (row.kind, row.key)
@@ -393,7 +340,12 @@ class KeymapSetIo:
                 == self._app.config_service.canonical_path(target_path, self._app.config_root)
             ) or not os.path.exists(target_path):
                 continue
-            current_parent = trigger_set_parent if row.kind == CHILD_SEQUENCE else keymap_parent
+            parent_path = save_path
+            if row.kind == CHILD_SEQUENCE:
+                parent_path = targets[(CHILD_TRIGGER_SET, split_sequence_key(row.key)[0])]
+            elif row.kind == CHILD_TRIGGER_SET:
+                parent_path = targets[(CHILD_KEYMAP, row.key)]
+            current_parent = self._app.config_service.to_config_relative_or_absolute(parent_path, self._app.config_root)
             recalculated_row = build_row(
                 kind=row.kind,
                 key=row.key,
@@ -436,66 +388,52 @@ class KeymapSetIo:
             split_base_dir=split_base_dir,
             save_plan=SavePlan(entries=(entry,)),
         )
-        current_target = targets[(CHILD_TRIGGER_SET, "")]
-        planned_target = planned_targets[(CHILD_TRIGGER_SET, "")]
+        current_target = targets[(CHILD_TRIGGER_SET, entry.key)]
+        planned_target = planned_targets[(CHILD_TRIGGER_SET, entry.key)]
         return self._app.config_service.canonical_path(
             planned_target, self._app.config_root
         ) != self._app.config_service.canonical_path(current_target, self._app.config_root)
 
-    def _trigger_set_row(self, rows, targets, save_path: str):
+    def _dependency_parent_row(self, rows, targets, save_path: str, child_id):
         for row in rows:
-            if row.kind == CHILD_TRIGGER_SET:
+            if (row.kind, row.key) == child_id:
                 return row
+        kind, key = child_id
+        owner = next(item for item in self._app.data["keymaps"] if item["id"] == key)
+        parent = targets[(CHILD_KEYMAP, key)] if kind == CHILD_TRIGGER_SET else save_path
+        name = str(owner.get("label") or key)
         return build_row(
-            kind=CHILD_TRIGGER_SET,
-            key="",
-            display_name="トリガー一覧",
-            target_path=targets[(CHILD_TRIGGER_SET, "")],
-            current_parent=self._app.config_service.to_config_relative_or_absolute(
-                save_path,
-                self._app.config_root,
-            ),
-            config_service=self._app.config_service,
-            config_root=self._app.config_root,
-            has_source_path=self._has_source_path(CHILD_TRIGGER_SET, ""),
+            kind=kind, key=key, display_name=f"{name} / トリガー一覧" if kind == CHILD_TRIGGER_SET else name,
+            target_path=targets[child_id],
+            current_parent=self._app.config_service.to_config_relative_or_absolute(parent, self._app.config_root),
+            config_service=self._app.config_service, config_root=self._app.config_root,
+            has_source_path=self._has_source_path(kind, key),
         )
 
     def _has_source_path(self, kind: str, key: str) -> bool:
         if kind == CHILD_TRIGGER_SET:
-            return bool(
-                str(
-                    self._app.data.get(
-                        self._app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH,
-                        "",
-                    )
-                    or ""
-                ).strip()
-            )
-        field = (
-            self._app.config_service.INTERNAL_KEYMAP_SOURCE_PATH
-            if kind == CHILD_KEYMAP
-            else self._app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH
+            members = trigger_set_members(self._app.data, key)
+            return bool(members and members[0].get(self._app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH))
+        if kind == CHILD_KEYMAP:
+            return any(item.get("id") == key and item.get(self._app.config_service.INTERNAL_KEYMAP_SOURCE_PATH) for item in self._app.data.get("keymaps", []))
+        owner_id, trigger_key = split_sequence_key(key)
+        return any(
+            trigger.get("key") == trigger_key and trigger.get(self._app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH)
+            for owner, _, triggers in iter_trigger_sets(self._app.data) if owner["id"] == owner_id
+            for trigger in triggers
         )
-        items = (
-            self._app.data.get("keymaps", [])
-            if kind == CHILD_KEYMAP
-            else get_active_triggers(self._app.data)
-        )
-        item_key = "id" if kind == CHILD_KEYMAP else "key"
-        for item in items:
-            if isinstance(item, dict) and normalize_key_name(str(item.get(item_key) or "")) == key:
-                return bool(str(item.get(field) or "").strip())
-        return False
 
     def _blocked_labels(self, blocked_keys: list[str]) -> list[str]:
         labels = {}
-        for trigger in get_active_triggers(self._app.data):
-            if isinstance(trigger, dict):
-                key = normalize_key_name(str(trigger.get("key") or ""))
-                labels[key] = str(trigger.get("label") or "").strip() or key
+        for owner, _, triggers in iter_trigger_sets(self._app.data):
+            name = str(owner.get("label") or owner["id"])
+            labels[str(owner["id"])] = f"{name} / トリガー一覧"
+            for trigger in triggers:
+                key = compose_sequence_key(str(owner["id"]), str(trigger["key"]))
+                labels[key] = f"{name} / {trigger.get('label') or trigger['key']}"
         return [labels.get(key, key) for key in blocked_keys]
 
-    def _skipped_dirty_children(self, save_plan: SavePlan) -> tuple[list[str], list[str], bool]:
+    def _skipped_dirty_children(self, save_plan: SavePlan) -> tuple[list[str], list[str], list[str]]:
         skipped_keymaps = [
             normalize_key_name(str(item.get("id") or ""))
             for item in self._app.data.get("keymaps", [])
@@ -504,33 +442,23 @@ class KeymapSetIo:
             and self._is_skipped(save_plan, CHILD_KEYMAP, normalize_key_name(str(item.get("id") or "")))
         ]
         skipped_sequences = [
-            normalize_key_name(str(item.get("key") or ""))
-            for item in get_active_triggers(self._app.data)
-            if isinstance(item, dict)
-            and bool(item.get(self._app.config_service.INTERNAL_SEQUENCE_DIRTY, False))
-            and self._is_skipped(save_plan, CHILD_SEQUENCE, normalize_key_name(str(item.get("key") or "")))
+            entry.key for entry in save_plan.entries
+            if entry.kind == CHILD_SEQUENCE and entry.action == ACTION_SKIP
         ]
-        skip_trigger_set = bool(self._app.dirty_tracker.trigger_set_dirty) and self._is_skipped(
-            save_plan,
-            CHILD_TRIGGER_SET,
-            "",
-        )
-        return skipped_keymaps, skipped_sequences, skip_trigger_set
+        skipped_sets = [
+            entry.key for entry in save_plan.entries
+            if entry.kind == CHILD_TRIGGER_SET and entry.action == ACTION_SKIP
+        ]
+        return skipped_keymaps, skipped_sequences, skipped_sets
 
-    def _clear_saved_child_dirty_flags(
-        self,
-        skipped_keymaps: list[str],
-        skipped_sequences: list[str],
-        skip_trigger_set: bool,
-    ) -> None:
-        if skipped_keymaps or skipped_sequences or skip_trigger_set:
-            self._app.dirty_tracker.clear_individual_dirty_flags(
-                skipped_keymap_ids=skipped_keymaps,
-                skipped_sequence_keys=skipped_sequences,
-                skip_trigger_set=skip_trigger_set,
-            )
+    def _clear_saved_child_dirty_flags(self, skipped_keymaps, skipped_sequences, skipped_sets) -> None:
+        if not (skipped_keymaps or skipped_sequences or skipped_sets):
+            self._app.dirty_tracker.clear_individual_dirty_flags()
             return
-        self._app.dirty_tracker.clear_individual_dirty_flags()
+        self._app.dirty_tracker.clear_individual_dirty_flags(
+            skipped_keymap_ids=skipped_keymaps, skipped_sequence_keys=skipped_sequences,
+            skipped_trigger_set_ids=skipped_sets,
+        )
 
     @staticmethod
     def _is_skipped(save_plan: SavePlan, kind: str, key: str) -> bool:
@@ -564,7 +492,9 @@ class KeymapSetIo:
             self._app._selected_trigger_idx = 0
             self._app.trigger_panel.refresh_triggers()
             self._app.trigger_panel.refresh_actions()
-            self._app.dirty_tracker.set_dirty(False)
+            if self._app.data.get(ConfigService.INTERNAL_LEGACY_TRIGGER_SET, {}).get("state") != "migrated":
+                self._app.dirty_tracker.set_dirty(False)
+            self._app.dirty_tracker.sync_dirty_state()
             self._app._set_flash_message("読み込みました。")
             messagebox.showinfo("読込", f"読み込みました:\n{path}")
             recorded, reason = self._app.keymap_set_history_io.record(path)
@@ -688,7 +618,9 @@ class KeymapSetIo:
         self._app.state.reset_indices()
         self._app.trigger_panel.refresh_triggers()
         self._app.trigger_panel.refresh_actions()
-        self._app.dirty_tracker.set_dirty(False)
+        if self._app.data.get(ConfigService.INTERNAL_LEGACY_TRIGGER_SET, {}).get("state") != "migrated":
+            self._app.dirty_tracker.set_dirty(False)
+        self._app.dirty_tracker.sync_dirty_state()
         if not startup_saved:
             self._app._set_flash_message("起動時読み込み設定の保存に失敗しました。", auto_clear=False)
             self.notify_unused_legacy_trigger_set()
@@ -704,7 +636,9 @@ class KeymapSetIo:
         self._app.dirty_tracker.trigger_set_dirty = False
         self._app._sync_control_vars_from_data()
         self._app.dirty_tracker.clear_individual_dirty_flags()
-        self._app.dirty_tracker.set_dirty(False)
+        if self._app.data.get(ConfigService.INTERNAL_LEGACY_TRIGGER_SET, {}).get("state") != "migrated":
+            self._app.dirty_tracker.set_dirty(False)
+        self._app.dirty_tracker.mark_migrated_keymap_dirty()
 
     def choose_split_base_dir_for_keymap_set(self, save_path: str) -> str:
         if self._app.paths.is_within_config_root(save_path):
