@@ -36,7 +36,6 @@ verified:
   refactor_check: スキップ（keyseq/ 変更なし）
 
 ## next_action
-- `/save_handoff` で handoff.md を phase 33 完了時点へ再生成。
 - 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_23）。着手時は `/phase_start`。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。

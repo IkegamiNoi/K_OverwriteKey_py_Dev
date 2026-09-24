@@ -15,17 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 32 は 2026-09-24 完了〕。
-   次採番 = phase 33 / 暫定 25 / decisions 33 / 提案書 13。次フェーズはユーザー判断・着手時は `/phase_start`）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 33 は 2026-09-24 完了〕。
+   次採番 = phase 34 / 暫定 25 / decisions 34 / 提案書 13。次フェーズはユーザー判断・着手時は `/phase_start`）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜24）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 32 完了（tests_ui のフック再開を `wait_for_hook_pause_count` で待つ・production 不変・idea_33 クローズ・refactor_check スキップ）。次フェーズは未定（ユーザー判断待ち）。**
-直近コミット: `b124fa1`（phase 32 task_03 = 完了）/ `6754290`（task_02）/ `9eff5ee`（task_01）/ `a1f1323`（phase 32 起票）/ `970ab75`（phase 31 完了）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜32 はユーザーがマージする）。
+**phase 33 完了（grab_modal・フック停止の静的検査を発見ベースへ・共有ヘルパ `tests_ui/dialog_discovery.py`・production 不変・idea_32 クローズ・refactor_check スキップ）。次フェーズは未定（ユーザー判断待ち）。**
+直近コミット: `68aacc9`（phase 33 task_02 = 完了）/ `23e4dd6`（task_01c）/ `f6ee86d`（task_01b）/ `604e445`（task_01）/ `35aea1c`（phase 33 起票）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜33 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 32 完了時点 = 2026-09-24**）:
-compile **clean** / tests **577 実行 OK**（skip 7）/ tests_ui **535 実行 OK**（skip 0）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 577 で不変 / tests_ui: phase 31 完了 532 → phase 32 完了 535）。
+直近の実測（**phase 33 完了時点 = 2026-09-24**）:
+compile **clean** / tests **577 実行 OK**（skip 7）/ tests_ui **537 実行 OK**（skip 0）/ smoke は phase 32 完了時点で **pass**（phase 33 は tests_ui のみの変更で未実行）。
+**件数が減ったら退行を疑う**（tests: 577 で不変 / tests_ui: phase 32 完了 535 → phase 33 完了 537）。
 **`tests_ui` と smoke を並行実行しない**（フックの取り合いで 13 件落ちる。逐次で実行する）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
@@ -53,19 +53,18 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 
 ## 次アクション（session.md.next_action より）
 - 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_23）。着手時は `/phase_start`。
-- **main へのマージはユーザーが行う**（ブランチ `claude/idea-33-2186d2`・phase 18 残り・19〜32）。
+- **main へのマージはユーザーが行う**（ブランチ `claude/idea-32-8d1b3f`・phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
-## 直前フェーズ（phase 32 = UI テストでのフック再開の待ち合わせ）の要点
+## 直前フェーズ（phase 33 = ダイアログの静的検査の発見ベース化）の要点
 
-**tests_ui 限定・production 不変・正本改訂なし**（直接改訂モード）。判断は `decisions_archive/32`、記録は `codebase_map.md` の HookController 節。
+**tests_ui 限定・production 不変・正本改訂なし**（直接改訂モード）。判断は `decisions_archive/33`、記録は `codebase_map.md` の `modal.py` 節・HookController 節。
 
-- ヘルパ = `tests_ui/hook_resume_wait.py` の `wait_for_hook_pause_count(test_case, app, expected, *, timeout=2.0)`
-  （**先に必ず `update()` 1 回**・`time.monotonic` の期限まで `update()` を回す・期限切れは期待値 / 現在値 / 経過つきで fail）。
-  `app` は `update` と `hook.get_hook_pause_count` だけを読む（素の `tk.Tk` のテストは `SimpleNamespace` で渡す）。
-- 適用 = 破棄後の解除を確かめる箇所（tests_ui 7 ファイル）。**置き換えない** = 破棄直後の未解除 / 解除が起きないこと / 同期解除 /
-  `setUp` ドレイン / `update()` を伴わない冒頭確認。**否定確認（再開しない等）は待機の後に置く**（先に置くと素通り）。
-- **教訓**: flaky の切り分けは「失敗の形」を先に読む（「再開要求 0 回」は `send_escape` が破棄を確認した後の失敗で、配送ではなく `after(0)` 未処理だった）。
+- 共有ヘルパ `tests_ui/dialog_discovery.py`: `dialog_classes()` = `dialogs/` 直下の `Toplevel` 継承クラス / `find_calls()` = 式文に限らない全 `ast.Call`。
+- `test_nested_modal_grab.py`（3 メソッド）: 発見クラスに「`grab_modal` 1 回・`__init__` の最後の文」+ 下限 11 + 総数 = クラス数 / config_io は呼び出しファイル集合 = 期待件数の辞書 / 呼び出し場所は 2 か所だけ。
+- `test_dialog_teardown_flows.py`: `DIALOG_FILES` 廃止。`NESTED_CHILD_DIALOGS`（**(ファイル名, クラス名) の組**・常に親の停止中にだけ開き自分では止めない子）以外に `suspend(self)` 1 回・子は 0 回・`dialogs/*.py` 全体で resume 0 件。`T2_DIALOG_FILES` は列挙のまま。
+- **発見条件を「対象の呼び出しがあること」にしない**（消失が素通りする）。残るリスク = 別名 import・多段継承・`dialogs/` のサブフォルダ非走査（現状 0 件）。
+- **教訓**: 完了判定前レビュー 2 回で抜け道が 2 段階見つかった（式文以外の呼び出し → 同名クラスの除外）。一時改変（変異検査）で各穴が塞がったことを確かめた。
 
 ## 運用インフラ
 
@@ -115,17 +114,18 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   比較は `ConfigService.canonical_path`。**パスは `coerce_label`（trim のみ）/ キー名・id は `coerce_key_name`**。
 - **【罠・重要】保存経路の例外は `messagebox.showerror` になり、テストではモーダルで永久ブロックする**。
 - **【tests_ui の罠】`setUpClass` で App を共有する**。前後の変化で assert し、`addCleanup` で必ず元へ戻す。
-- **【罠】ダイアログを増やしたら 3 つの列挙を更新する**: `DIALOG_FILES` / `T2_DIALOG_FILES`
-  （`tests_ui/test_dialog_teardown_flows.py`）と **`dialog_classes`（`tests_ui/test_nested_modal_grab.py:262`）**。
+- **【ダイアログ追加時・phase 33】静的検査は発見ベースで列挙不要**。ただし ①config_io に `grab_modal` を足したら
+  `test_nested_modal_grab.py` の期待件数の辞書へ ②常に親の停止中にだけ開く子は `NESTED_CHILD_DIALOGS`（(ファイル名, クラス名)）へ
+  ③T2（destroy override を残す）なら `T2_DIALOG_FILES` へ追加する（いずれも `tests_ui/test_dialog_teardown_flows.py` 等）。
 - **【罠】worktree と main は別コピー**。main 側の絶対パスを編集すると commit から漏れる。
 - **【罠】Bash ツールは Git Bash**。長い heredoc・`sed` の複数行追記（`a\`）は壊れやすい（**壊れたら Write / Edit ツールを使う**）。
   **sed の区切り文字が置換文字列に含まれると壊れる**（`/` を含むなら `|` を使う）。複数行のコミットメッセージは `git commit -F -`。
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 32_hook_resume_wait_in_ui_tests / 31_unknown_action_type_handling / 30_action_and_internal_key_type_coercion）。
+  （直近 3 件: 33_grab_modal_static_check_discovery / 32_hook_resume_wait_in_ui_tests / 31_unknown_action_type_handling）。
 - 着手中 idea: なし。未着手/保留 idea: **idea_23**（押す / 離すアクション）/
-  idea_29〜idea_32 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
+  idea_29〜idea_31 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
   `_run_to_end_step` の停止 2 行 3 箇所（phase 31・refactor_check 不要）。
