@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-24T17:30:00
+last_updated: 2026-09-24T17:20:00
 phase: `instructions/phase/34_trigger_list_per_keymap`（**phase 34 = トリガー一覧のキーマップ従属化・2026-09-24 起票・進行中**。暫定仕様 25 v0.4 ユーザー確定済）。次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 13。
 直前の完了フェーズ = **phase 33**（ダイアログの静的検査の発見ベース化・判断履歴 = `decisions_archive/33_grab_modal_static_check_discovery.md`）。
 last_commit_location: `claude/trigger-list-multi-keymap-19f4d7`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 34 進行中（task_01・01b 完了 = トリガー一覧をキーマップごとに保持・読込と移行・単一 JSON Import/Export）。次は task_02（保存）の起票と実装委任。保存は task_02 まで暫定（アクティブ分のみ旧形式で書く）。**
+focus: **phase 34 進行中（task_01・01b 完了）。task_02（一括保存のキーマップ単位化）は起票済・Codex 利用上限の解除（2026-09-25 1:16）待ち。保存は task_02 まで暫定（アクティブ分のみ旧形式で書く）。**
 mode: implementing
 
 ## last_action
@@ -36,7 +36,7 @@ verified:
   review: reviewer 完了可
 
 ## next_action
-- `/task_new` で `instructions/phase/34_trigger_list_per_keymap/tasks/task_02_*.md`（暫定 25 §4.2・§4.4・§5.1〜§5.5: trigger_set 行をキーマップ単位 / sequence 識別子 / 計画全体の衝突回避 / source_path なし子を常に行へ / 依存 3 段 / `_parent_refs` と移行時の後処理 / 既定ファイル名 / 除外撤廃 / 移行先の「保存しない」不可 / keymap ファイルへ `trigger_set_path` 書込み / keymap_set `trigger_set_path` の決定表）を起票 → `codex-implementer` → `verifier` → `reviewer`。規模が大きいので分割を検討する。
+- **task_02 は起票済**（`tasks/task_02_per_keymap_bulk_save.md`）。Codex が利用上限（解除 2026-09-25 1:16）で未着手のため、解除後に `codex-implementer` へ同タスクを委任（テスト補助での runtime 書換え回避は禁止と明示）→ `verifier` → `reviewer`。続けて task_02b（§5.2 / §5.3 の 2・3 点目 / §5.4 移行時 / §5.5 keymap 既定名と除外撤廃）を起票。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
