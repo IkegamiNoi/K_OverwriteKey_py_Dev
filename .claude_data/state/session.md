@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-25T21:00:00
+last_updated: 2026-09-26T00:30:00
 phase: `instructions/phase/34_trigger_list_per_keymap`（**phase 34 = トリガー一覧のキーマップ従属化・2026-09-24 起票・進行中**。暫定仕様 25 v0.4 ユーザー確定済）。次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 13。
 直前の完了フェーズ = **phase 33**（ダイアログの静的検査の発見ベース化・判断履歴 = `decisions_archive/33_grab_modal_static_check_discovery.md`）。
 last_commit_location: `claude/trigger-list-multi-keymap-19f4d7`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 34 進行中（task_01〜05 完了 = 保持・読込移行・保存と読込・参照辿り・入力判定と重複の扱い）。次は task_06（キーマップ管理 UI）。**
+focus: **phase 34 進行中（task_01〜06 完了）。次は task_07（一時停止の改名）→ その後 task_08 の手前で停止しユーザーへ実機目視を依頼。**
 mode: implementing
 
 ## last_action
@@ -37,7 +37,7 @@ verified:
   review: reviewer 完了可
 
 ## next_action
-- `/task_new` で `tasks/task_06_*.md`（暫定 25 §8.1〜§8.3: 一覧の選択 = アクティブ化・選択ボタン削除・アクティブ変更で未保存にしない / 追加フロー〔切替キーの無い既存へ設定させる → ラベル任意・切替キー必須〕・個別読込にも追加規則 / 2 つ以上で切替キーを空にできない / 1 つだけなら削除不可・未保存の子の破棄を明示 / 連続実行中は切替禁止〔一覧・直接切替キー・アクティブ削除〕とステータス表示 / アクティブ切替時の再描画 / シーケンスの実行位置・選択行を実体ごとに）を起票 → codex-implementer → verifier → reviewer。次に task_07（task_08 の手前で停止）。
+- `/task_new` で `tasks/task_07_*.md`（暫定 25 §8.4: 「通常トリガー無効化 ⇔ 有効化」→「キーマップ一時停止 ⇔ キーマップ再開」・ステータス「キーマップ: 動作中 / 一時停止」・「有効/無効トグルキー」「モード切替キー」→「一時停止/再開キー」・内部名は変えない）を起票 → codex-implementer → verifier → reviewer。**完了後は task_08 の手前で停止**し、ユーザーへ実機目視（確認項目を列挙）と task_08 着手の可否を確認する。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

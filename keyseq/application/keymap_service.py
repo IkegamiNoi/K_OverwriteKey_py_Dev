@@ -39,6 +39,23 @@ class KeymapService:
         return KeymapService.find_keymap(data, KeymapService.get_active_keymap_id(data))
 
     @staticmethod
+    def get_active_trigger_set_id(data: dict[str, Any]) -> str:
+        active = KeymapService.get_active_keymap(data)
+        if not active:
+            return ""
+        return KeymapService.get_trigger_set_id(data, active.get("id", ""))
+
+    @staticmethod
+    def get_trigger_set_id(data: dict[str, Any], keymap_id: str) -> str:
+        keymap = KeymapService.find_keymap(data, keymap_id)
+        if not keymap:
+            return normalize_key_name(keymap_id)
+        triggers = keymap.get("triggers")
+        if not isinstance(triggers, list):
+            return normalize_key_name(keymap.get("id", ""))
+        return f"trigger-list:{id(triggers)}"
+
+    @staticmethod
     def get_active_keymap_label(data: dict[str, Any]) -> str:
         keymap = KeymapService.get_active_keymap(data)
         if not keymap:
@@ -78,17 +95,7 @@ class KeymapService:
             data["keymaps"] = keymaps
         had_keymaps = bool(keymaps)
 
-        existing_ids = {
-            normalize_key_name(item.get("id", ""))
-            for item in keymaps
-            if isinstance(item, dict)
-        }
-        index = 1
-        while True:
-            keymap_id = f"keymap_{index}"
-            if keymap_id not in existing_ids:
-                break
-            index += 1
+        keymap_id = KeymapService.next_keymap_id(data)
 
         created = {
             "id": keymap_id,
@@ -101,6 +108,18 @@ class KeymapService:
             data["active_keymap_id"] = keymap_id
 
         return created
+
+    @staticmethod
+    def next_keymap_id(data: dict[str, Any]) -> str:
+        existing_ids = {
+            normalize_key_name(item.get("id", ""))
+            for item in KeymapService.get_keymaps(data)
+            if isinstance(item, dict)
+        }
+        index = 1
+        while f"keymap_{index}" in existing_ids:
+            index += 1
+        return f"keymap_{index}"
 
     @staticmethod
     def delete_keymap(data: dict[str, Any], keymap_id: str) -> tuple[bool, str]:

@@ -33,8 +33,6 @@ class KeymapBox(ttk.LabelFrame):
         self.keymap_edit_btn.pack(fill="x", pady=3)
         self.keymap_delete_btn = ttk.Button(keymap_btns, text="削除", command=app.keymap_panel.delete_keymap)
         self.keymap_delete_btn.pack(fill="x", pady=3)
-        self.keymap_select_btn = ttk.Button(keymap_btns, text="選択", command=app.keymap_panel.select_keymap)
-        self.keymap_select_btn.pack(fill="x", pady=3)
         ttk.Separator(keymap_btns).pack(fill="x", pady=6)
         ttk.Button(keymap_btns, text="保存", command=app.keymap_io.save_selected_keymap).pack(fill="x", pady=3)
         ttk.Button(keymap_btns, text="別名で保存", command=app.keymap_io.save_selected_keymap_as).pack(fill="x", pady=3)

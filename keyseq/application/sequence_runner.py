@@ -17,6 +17,7 @@ class SequenceRunner:
         update_status: Callable[[], None],
         after: Callable[[int, Callable[..., None]], Any],
         after_cancel: Callable[[Any], None],
+        get_trigger_set_id: Callable[[], str] | None = None,
     ):
         self.state = state
         self._find_trigger = find_trigger
@@ -26,6 +27,13 @@ class SequenceRunner:
         self._update_status = update_status
         self._after = after
         self._after_cancel = after_cancel
+        self._get_trigger_set_id = get_trigger_set_id or (lambda: "")
+
+    def _get_index(self, key: str) -> int:
+        return int(self.state.indices_for(self._get_trigger_set_id()).get(key, 0) or 0)
+
+    def _set_index(self, key: str, value: int) -> None:
+        self.state.indices_for(self._get_trigger_set_id())[key] = int(value)
 
     def handle_key(self, key: str) -> None:
         key = normalize_key_name(key)
@@ -61,11 +69,11 @@ class SequenceRunner:
             self.state.reentry_guard.add(key)
 
         try:
-            i = self.state.indices.get(key, 0) % len(actions)
+            i = self._get_index(key) % len(actions)
             if self._perform_action(actions[i]) is False:
                 return
             with self.state.lock:
-                self.state.indices[key] = (i + 1) % len(actions)
+                self._set_index(key, (i + 1) % len(actions))
         finally:
             with self.state.lock:
                 self.state.reentry_guard.discard(key)
@@ -130,7 +138,7 @@ class SequenceRunner:
             DEFAULT_RUN_TO_END_DELAY_MS,
         )
 
-        i = int(self.state.indices.get(key, 0) or 0)
+        i = self._get_index(key)
         if i < 0:
             i = 0
 
@@ -139,7 +147,7 @@ class SequenceRunner:
             return
 
         if i >= len(actions):
-            self.state.indices[key] = 0
+            self._set_index(key, 0)
             self.stop_run_to_end()
             self._select_trigger(key)
             return
@@ -148,11 +156,11 @@ class SequenceRunner:
             self.stop_run_to_end()
             self._select_trigger(key)
             return
-        self.state.indices[key] = i + 1
+        self._set_index(key, i + 1)
         self._select_trigger(key)
 
-        if self.state.indices[key] >= len(actions):
-            self.state.indices[key] = 0
+        if self._get_index(key) >= len(actions):
+            self._set_index(key, 0)
             self.stop_run_to_end()
             self._select_trigger(key)
             return

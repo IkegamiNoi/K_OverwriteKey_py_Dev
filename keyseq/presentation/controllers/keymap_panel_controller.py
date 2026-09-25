@@ -5,6 +5,7 @@ from tkinter import messagebox, simpledialog
 
 from keyseq.application.key_overlap import KeyOverlapAnalysis
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.keymap_triggers import INTERNAL_TRIGGER_SET_DIRTY, iter_trigger_sets, trigger_set_members
 from keyseq.presentation.dialogs import KeymapEditDialog
 from keyseq.presentation.listbox_utils import (
     focused_listbox_index,
@@ -13,7 +14,9 @@ from keyseq.presentation.listbox_utils import (
 
 
 class KeymapPanelController:
-    """キーマップ管理パネル（一覧表示・追加/変更/削除/選択・キーボードUI連携）。"""
+    """キーマップ管理パネル（一覧表示・追加/変更/削除・キーボードUI連携）。"""
+
+    SWITCH_BLOCKED_MESSAGE = "連続実行中のためキーマップを切り替えられません"
 
     def __init__(self, app) -> None:
         self._app = app
@@ -59,15 +62,14 @@ class KeymapPanelController:
 
     def sync_keymap_manage_buttons(self) -> None:
         """keymap 件数に応じて管理ボタン状態を揃える。"""
-        has_selection = self.selected_keymap_list_index() is not None and bool(self._app.keymap_service.get_keymaps(self._app.data))
-        state = "normal" if has_selection else "disabled"
+        keymaps = self._app.keymap_service.get_keymaps(self._app.data)
+        has_selection = self.selected_keymap_list_index() is not None and bool(keymaps)
+        edit_state = "normal" if has_selection else "disabled"
+        delete_state = "normal" if has_selection and len(keymaps) > 1 else "disabled"
         keymap_box = getattr(getattr(self._app, "full_view", None), "keymap_box", None)
         if keymap_box is not None:
-            keymap_box.keymap_edit_btn.configure(state=state)
-        if keymap_box is not None:
-            keymap_box.keymap_delete_btn.configure(state=state)
-        if keymap_box is not None:
-            keymap_box.keymap_select_btn.configure(state=state)
+            keymap_box.keymap_edit_btn.configure(state=edit_state)
+            keymap_box.keymap_delete_btn.configure(state=delete_state)
 
     def refresh_keymap_list_ui(self, preferred_index: int | None = None) -> None:
         """keymap 管理一覧の表示内容と選択を更新する。"""
@@ -77,7 +79,6 @@ class KeymapPanelController:
             return
 
         try:
-            current_index = self.selected_keymap_list_index()
             listbox.delete(0, tk.END)
         except Exception:
             self.sync_keymap_manage_buttons()
@@ -101,8 +102,6 @@ class KeymapPanelController:
 
         target_index = preferred_index
         if target_index is None:
-            target_index = current_index
-        if target_index is None:
             active_index = next(
                 (
                     index
@@ -121,7 +120,13 @@ class KeymapPanelController:
         self.sync_keymap_manage_buttons()
 
     def on_keymap_list_select(self, _event=None) -> None:
-        sync_listbox_selection_to_focus(self._app, self._app.full_view.keymap_box.keymap_listbox, len(self._app.keymap_service.get_keymaps(self._app.data)))
+        keymaps = self._app.keymap_service.get_keymaps(self._app.data)
+        listbox = self._app.full_view.keymap_box.keymap_listbox
+        index = sync_listbox_selection_to_focus(self._app, listbox, len(keymaps))
+        if index is not None:
+            keymap_id = normalize_key_name(keymaps[index].get("id", ""))
+            if keymap_id != self._app.keymap_service.get_active_keymap_id(self._app.data):
+                self.activate_keymap_by_id(keymap_id, preferred_index=index, show_flash=False)
         self.sync_keymap_manage_buttons()
 
     def on_keymap_list_focus_index_change(self, _event=None) -> None:
@@ -172,15 +177,145 @@ class KeymapPanelController:
         return True
 
     def add_keymap(self) -> None:
-        """空の keymap を追加する。"""
+        """必要な切替キーを確認してから、新しいキーマップを追加する。"""
+        if not self._app.keymap_service.get_keymaps(self._app.data):
+            created = self._app.keymap_service.create_keymap(self._app.data)
+            self._app.mark_keymap_dirty(created)
+            self._refresh_after_keymap_change()
+            self._app._set_flash_message(f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}")
+            return
+
+        original_active = self._app.keymap_service.get_active_keymap_id(self._app.data)
+        pending = self._collect_missing_switch_edits(original_active)
+        if pending is None:
+            self._restore_active_keymap(original_active)
+            return
+        candidate_id = self._app.keymap_service.next_keymap_id(self._app.data)
+        result = self._prompt_keymap_edit("キーマップ追加", "")
+        if not result or not self._validate_addition_key(result.get("key", ""), candidate_id, pending):
+            self._restore_active_keymap(original_active)
+            return
+        if not self._apply_pending_switch_edits(pending):
+            self._restore_active_keymap(original_active)
+            return
+
         created = self._app.keymap_service.create_keymap(self._app.data)
-        keymaps = self._app.keymap_service.get_keymaps(self._app.data)
-        preferred_index = max(0, len(keymaps) - 1)
-        self.refresh_keymap_list_ui(preferred_index=preferred_index)
-        self._app.layout.refresh_keyboard_window()
-        self._app.trigger_panel.update_status()
+        created["label"] = str(result.get("label", "") or "").strip()
+        self._app.keymap_service.set_keymap_switch_key(self._app.data, result["key"], candidate_id)
         self._app.mark_keymap_dirty(created)
+        self._restore_active_keymap(original_active)
+        self._refresh_after_keymap_change()
         self._app._set_flash_message(f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}")
+
+    def add_imported_keymap(self, keymap: dict) -> bool:
+        """個別読込を追加フローとして実行し、取消時は runtime を変えない。"""
+        original_active = self._app.keymap_service.get_active_keymap_id(self._app.data)
+        keymaps = self._app.keymap_service.get_keymaps(self._app.data)
+        if not keymaps:
+            self._append_keymap(keymap)
+            self._refresh_after_keymap_change()
+            return True
+
+        pending = self._collect_missing_switch_edits(original_active)
+        if pending is None:
+            self._restore_active_keymap(original_active)
+            return False
+        result = self._prompt_keymap_edit("読込キーマップの追加", str(keymap.get("label") or ""))
+        keymap_id = normalize_key_name(keymap.get("id", ""))
+        if not result or not self._validate_addition_key(result.get("key", ""), keymap_id, pending):
+            self._restore_active_keymap(original_active)
+            return False
+        if not self._apply_pending_switch_edits(pending):
+            self._restore_active_keymap(original_active)
+            return False
+
+        keymap["label"] = str(result.get("label", "") or "").strip()
+        self._append_keymap(keymap)
+        self._app.keymap_service.set_keymap_switch_key(self._app.data, result["key"], keymap_id)
+        self._app.mark_keymap_dirty(keymap)
+        self._restore_active_keymap(original_active)
+        self._refresh_after_keymap_change()
+        return True
+
+    def _collect_missing_switch_edits(self, original_active: str) -> list[tuple[dict, dict, int]] | None:
+        pending = []
+        for index, keymap in enumerate(self._app.keymap_service.get_keymaps(self._app.data)):
+            keymap_id = normalize_key_name(keymap.get("id", ""))
+            if self._app.keymap_service.find_switch_key_for_keymap(self._app.data, keymap_id):
+                continue
+            if keymap_id != self._app.keymap_service.get_active_keymap_id(self._app.data):
+                if not self.activate_keymap_by_id(keymap_id, preferred_index=index, show_flash=False):
+                    return None
+            name = self.format_keymap_display_name(keymap) or keymap_id
+            messagebox.showerror("切替キーが必要です", f"{name} に切替キーを設定してください")
+            result = self._prompt_keymap_edit("キーマップ変更", keymap)
+            if not result or not normalize_key_name(result.get("key", "")):
+                if result is not None:
+                    messagebox.showerror("設定できません", "切替キーは必須です。")
+                return None
+            switch_key = normalize_key_name(result["key"])
+            if not self._validate_addition_key(switch_key, keymap_id, pending):
+                return None
+            pending.append((keymap, result, index))
+        self._restore_active_keymap(original_active)
+        return pending
+
+    def _prompt_keymap_edit(self, title: str, keymap_or_label) -> dict | None:
+        keymap = keymap_or_label if isinstance(keymap_or_label, dict) else None
+        label = str(keymap.get("label") or "") if keymap else str(keymap_or_label or "")
+        dlg = KeymapEditDialog(
+            self._app,
+            title=title,
+            initial_key="" if title != "キーマップ変更" else self._app.keymap_service.find_switch_key_for_keymap(
+                self._app.data, keymap.get("id", "")
+            ),
+            initial_label=label,
+        )
+        dlg.wait_window()
+        result = getattr(dlg, "result", None)
+        return result if isinstance(result, dict) else None
+
+    def _validate_addition_key(self, key: str, target_id: str, pending: list[tuple[dict, dict, int]]) -> bool:
+        normalized = normalize_key_name(key)
+        if not normalized:
+            messagebox.showerror("設定できません", "切替キーは必須です。")
+            return False
+        if any(normalize_key_name(item[1].get("key", "")) == normalized for item in pending):
+            messagebox.showerror("設定できません", f"直接切替キーは既に使用されています:\n{normalized}")
+            return False
+        return self.validate_keymap_switch_assignment(normalized, target_id=target_id)
+
+    def _apply_pending_switch_edits(self, pending: list[tuple[dict, dict, int]]) -> bool:
+        original_active = self._app.keymap_service.get_active_keymap_id(self._app.data)
+        for keymap, result, index in pending:
+            keymap_id = normalize_key_name(keymap.get("id", ""))
+            if keymap_id != self._app.keymap_service.get_active_keymap_id(self._app.data):
+                if not self.activate_keymap_by_id(keymap_id, preferred_index=index, show_flash=False):
+                    return False
+            if not self.apply_keymap_edit(
+                keymap, new_label=result.get("label", ""), new_key=result.get("key", ""),
+                preferred_index=index,
+            ):
+                return False
+        self._restore_active_keymap(original_active)
+        return True
+
+    def _append_keymap(self, keymap: dict) -> None:
+        keymaps = self._app.data.get("keymaps")
+        if not isinstance(keymaps, list):
+            keymaps = []
+            self._app.data["keymaps"] = keymaps
+        if not self._app.data.get("active_keymap_id"):
+            self._app.data["active_keymap_id"] = normalize_key_name(keymap.get("id", ""))
+        keymaps.append(keymap)
+
+    def _restore_active_keymap(self, keymap_id: str) -> None:
+        if keymap_id and self._app.keymap_service.get_active_keymap_id(self._app.data) != keymap_id:
+            self.activate_keymap_by_id(keymap_id, show_flash=False)
+
+    def _refresh_after_keymap_change(self) -> None:
+        self._app.trigger_panel.refresh_triggers()
+        self._app.trigger_panel.refresh_actions()
 
     def rename_keymap_label(self) -> None:
         """選択中 keymap の表示ラベルだけを更新する。"""
@@ -228,38 +363,62 @@ class KeymapPanelController:
         if index is None or not keymaps or not (0 <= index < len(keymaps)):
             messagebox.showinfo("削除", "削除したい keymap を選択してください。")
             return
+        if len(keymaps) == 1:
+            messagebox.showerror("削除できません", "キーマップが1つだけのため削除できません。")
+            return
 
         target = keymaps[index]
+        target_id = normalize_key_name(target.get("id", ""))
+        trigger_set_id = self._app.keymap_service.get_trigger_set_id(self._app.data, target_id)
+        drops_trigger_set = len(trigger_set_members(self._app.data, target_id)) <= 1
+        if target_id == self._app.keymap_service.get_active_keymap_id(self._app.data):
+            if not self._app.state.can_switch_keymap(
+                target_id, self._app.keymap_service.get_active_keymap_id(self._app.data), changes_active=True
+            ):
+                self.show_keymap_switch_blocked()
+                self.refresh_keymap_list_ui()
+                return
         target_name = self.format_keymap_display_name(target) or normalize_key_name(target.get("id", ""))
-        if not messagebox.askyesno("確認", f"keymap を削除しますか？\n\n{target_name}"):
+        prompt = f"keymap を削除しますか？\n\n{target_name}"
+        if self._has_unsaved_children(target):
+            prompt += "\n\n未保存のトリガー一覧・シーケンスも破棄されます。"
+        if not messagebox.askyesno("確認", prompt):
             return
 
         deleted, next_active_id = self._app.keymap_service.delete_keymap(self._app.data, target.get("id", ""))
         if not deleted:
             messagebox.showerror("削除できません", "選択した keymap を削除できませんでした。")
             return
+        if drops_trigger_set:
+            self._app.state.forget_trigger_set(trigger_set_id)
 
-        remaining_count = len(self._app.keymap_service.get_keymaps(self._app.data))
-        preferred_index = None if remaining_count <= 0 else min(index, remaining_count - 1)
-        self.refresh_keymap_list_ui(preferred_index=preferred_index)
-        self._app.layout.refresh_keyboard_window()
-        self._app.trigger_panel.update_status()
+        self._refresh_after_keymap_change()
         self._app.dirty_tracker.set_dirty(True)
         if next_active_id:
             self._app._set_flash_message(f"キーマップを削除しました: {target_name} / 現在: {self.get_active_keymap_text()}")
         else:
             self._app._set_flash_message(f"キーマップを削除しました: {target_name}")
 
-    def select_keymap(self) -> None:
-        """選択中の keymap を active にする。"""
-        index = self.selected_keymap_list_index()
-        keymaps = self._app.keymap_service.get_keymaps(self._app.data)
-        if index is None or not keymaps or not (0 <= index < len(keymaps)):
-            messagebox.showinfo("選択", "アクティブにしたい keymap を選択してください。")
-            return
+    def _has_unsaved_children(self, keymap: dict) -> bool:
+        keymap_id = normalize_key_name(keymap.get("id", ""))
+        members = trigger_set_members(self._app.data, keymap_id)
+        if len(members) > 1:
+            return False
+        if any(bool(member.get(INTERNAL_TRIGGER_SET_DIRTY, False)) for member in members):
+            return True
+        sequence_dirty_key = self._app.config_service.INTERNAL_SEQUENCE_DIRTY
+        trigger_list = next(
+            (items for _, group, items in iter_trigger_sets(self._app.data) if any(member is keymap for member in group)),
+            [],
+        )
+        return any(
+            bool(trigger.get(sequence_dirty_key, False))
+            for trigger in trigger_list
+            if isinstance(trigger, dict)
+        )
 
-        target = keymaps[index]
-        self.activate_keymap_by_id(target.get("id", ""), preferred_index=index, mark_dirty=True, show_flash=True)
+    def show_keymap_switch_blocked(self) -> None:
+        self._app.ui_vars.status_var.set(self.SWITCH_BLOCKED_MESSAGE)
 
     def edit_selected_keymap(self) -> None:
         """選択中の keymap をダイアログで編集する。"""
@@ -304,6 +463,10 @@ class KeymapPanelController:
         current_label = str(keymap.get("label") or "").strip()
         current_switch_key = self._app.keymap_service.find_switch_key_for_keymap(self._app.data, keymap_id)
 
+        if not normalized_key and len(self._app.keymap_service.get_keymaps(self._app.data)) > 1:
+            messagebox.showerror("設定できません", "キーマップが2つ以上ある場合、切替キーは空にできません。")
+            return False
+
         if normalized_key and not self.validate_keymap_switch_assignment(
             normalized_key,
             target_id=keymap_id,
@@ -326,7 +489,7 @@ class KeymapPanelController:
             self._app._set_flash_message(f"キーマップは変更なしです: {self.format_keymap_display_name(keymap) or keymap_id}")
             return False
 
-        self.refresh_keymap_list_ui(preferred_index=preferred_index)
+        self.refresh_keymap_list_ui()
         self._app.trigger_panel.refresh_triggers()
         self._app.mark_keymap_dirty(keymap)
         self._app._set_flash_message(f"キーマップを変更しました: {self.format_keymap_display_name(keymap) or keymap_id}")
@@ -337,11 +500,16 @@ class KeymapPanelController:
         keymap_id: str,
         *,
         preferred_index: int | None = None,
-        mark_dirty: bool = False,
         show_flash: bool = True,
     ) -> bool:
         target_id = normalize_key_name(keymap_id)
         if not target_id:
+            return False
+
+        active_before = self._app.keymap_service.get_active_keymap_id(self._app.data)
+        if not self._app.state.can_switch_keymap(target_id, active_before):
+            self.show_keymap_switch_blocked()
+            self.refresh_keymap_list_ui()
             return False
 
         changed = self._app.keymap_service.set_active_keymap_id(self._app.data, target_id)
@@ -357,10 +525,12 @@ class KeymapPanelController:
             )
 
         self.refresh_keymap_list_ui(preferred_index=preferred_index)
-        self._app.layout.refresh_keyboard_window()
-        self._app.trigger_panel.update_status()
-        if changed and mark_dirty:
-            self._app.dirty_tracker.set_dirty(True)
+        if changed:
+            self._app.trigger_panel.refresh_triggers()
+            self._app.trigger_panel.refresh_actions()
+        else:
+            self._app.layout.refresh_keyboard_window()
+            self._app.trigger_panel.update_status()
         if show_flash:
             if changed:
                 self._app._set_flash_message(f"アクティブなキーマップを切り替えました: {self.get_active_keymap_text()}")

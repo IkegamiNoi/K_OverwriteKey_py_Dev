@@ -115,9 +115,13 @@ class App(tk.Tk):
             on_runtime_error=lambda title, msg: messagebox.showerror(title, msg),
             on_stop_hook=lambda: self.hook.stop_hook(),
             on_toggle_mode=lambda: self.hook.toggle_custom_input_enabled(),
-            on_select_keymap=lambda keymap_id: self.keymap_panel.activate_keymap_by_id(keymap_id, mark_dirty=False, show_flash=True),
+            on_select_keymap=lambda keymap_id: self.keymap_panel.activate_keymap_by_id(keymap_id, show_flash=True),
             on_trigger=lambda key: self.sequence_runner.handle_key(key),
             on_shadowed_action=lambda action, conflicts: self.hook.show_shadowed_assignments(action, conflicts),
+            can_switch_keymap=lambda keymap_id: self.state.can_switch_keymap(
+                normalize_key_name(keymap_id), self.keymap_service.get_active_keymap_id(self.data)
+            ),
+            on_keymap_switch_blocked=lambda: self.keymap_panel.show_keymap_switch_blocked(),
         )
         self.input_router = InputRouter(
             key_state_manager=self.key_state_manager,
@@ -194,6 +198,7 @@ class App(tk.Tk):
             update_status=lambda: self.trigger_panel.update_status(),
             after=self.after,
             after_cancel=self.after_cancel,
+            get_trigger_set_id=lambda: self.keymap_service.get_active_trigger_set_id(self.data),
         )
 
         self._compact_mode = False
@@ -218,19 +223,27 @@ class App(tk.Tk):
     # ---------------- State compatibility aliases ----------------
     @property
     def _selected_trigger_idx(self) -> int:
-        return self.state.get_selected_index()
+        return self.state.get_selected_index(self._active_trigger_set_id())
 
     @_selected_trigger_idx.setter
     def _selected_trigger_idx(self, value: int) -> None:
-        self.state.update_selected_index(value)
+        self.state.update_selected_index(value, self._active_trigger_set_id())
 
     @property
     def _indices(self) -> dict[str, int]:
-        return self.state.indices
+        return self.state.indices_for(self._active_trigger_set_id())
 
     @_indices.setter
     def _indices(self, value: dict[str, int]) -> None:
-        self.state.indices = dict(value) if isinstance(value, dict) else {}
+        trigger_set_id = self._active_trigger_set_id()
+        target = dict(value) if isinstance(value, dict) else {}
+        if trigger_set_id:
+            self.state.keymap_indices[trigger_set_id] = target
+        else:
+            self.state.indices = target
+
+    def _active_trigger_set_id(self) -> str:
+        return self.keymap_service.get_active_trigger_set_id(self.data)
 
 
     def _get_send_guard_count(self) -> int:

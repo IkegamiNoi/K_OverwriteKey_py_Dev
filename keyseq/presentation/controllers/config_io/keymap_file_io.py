@@ -237,7 +237,8 @@ class KeymapFileIo:
             return
         try:
             keymap = self._load_keymap(path)
-            self._append_loaded_keymap(keymap)
+            if not self._app.keymap_panel.add_imported_keymap(keymap):
+                return
             self._refresh_after_load(path)
         except Exception as e:
             self._app._set_flash_message(f"キーマップ読込失敗: {e}", auto_clear=False)
@@ -267,19 +268,7 @@ class KeymapFileIo:
             cache[identity] = (triggers, refs if isinstance(refs, list) else None, source)
         return cache
 
-    def _append_loaded_keymap(self, keymap: dict) -> None:
-        keymaps = self._app.data.setdefault("keymaps", [])
-        if not isinstance(keymaps, list):
-            keymaps = []
-            self._app.data["keymaps"] = keymaps
-        keymaps.append(keymap)
-        if not self._app.data.get("active_keymap_id"):
-            self._app.data["active_keymap_id"] = normalize_key_name(keymap.get("id", ""))
-
     def _refresh_after_load(self, path: str) -> None:
-        index = len(self._app.data.get("keymaps", [])) - 1
-        self._app.keymap_panel.refresh_keymap_list_ui(preferred_index=index)
-        self._app.layout.refresh_keyboard_window()
         self._app.dirty_tracker.set_dirty(True)
         self._app._set_flash_message("キーマップを読み込みました。")
         messagebox.showinfo("読込", f"キーマップを読み込みました:\n{path}")

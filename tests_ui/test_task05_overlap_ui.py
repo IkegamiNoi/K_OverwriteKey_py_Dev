@@ -92,6 +92,7 @@ class Task05OverlapUiTest(unittest.TestCase):
         keymap_list.selection_clear(0, "end")
         keymap_list.selection_set(1)
         keymap_list.activate(1)
+        self.app.keymap_panel.on_keymap_list_select()
         self.assertEqual(self.app.keymap_panel.selected_keymap_list_index(), 1)
         with patch(
             "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog",

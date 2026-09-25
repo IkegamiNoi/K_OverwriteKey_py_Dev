@@ -408,7 +408,16 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             _trigger_set_io(self.app).load_trigger_set_file()
 
     def _load_keymap_path(self, path):
-        with patch.object(tkinter.filedialog, "askopenfilename", return_value=path), patch.object(
+        keymap_dialogs = [
+            Mock(result={"key": "f8", "label": "Main"}),
+            Mock(result={"key": "f7", "label": "Loaded"}),
+        ]
+        with patch.object(tkinter.filedialog, "askopenfilename", return_value=path), patch(
+            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+        ), patch(
+            "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog",
+            side_effect=keymap_dialogs,
+        ), patch.object(
             self.app.keymap_panel, "refresh_keymap_list_ui"
         ), patch.object(self.app.layout, "refresh_keyboard_window"), patch.object(
             tkinter.messagebox, "showinfo"
@@ -697,7 +706,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.assertEqual(ask_open.call_args.kwargs["title"], "キーマップを読込")
             self.assertEqual(self.app.data["keymaps"][-1]["label"], "Loaded")
             self.assertEqual(self.app.data["active_keymap_id"], "load")
-            refresh.assert_called_once_with(preferred_index=0)
+            refresh.assert_called_once_with()
             keyboard.assert_called_once_with()
             set_dirty.assert_called_once_with(True)
             flash.assert_called_once_with("キーマップを読み込みました。")
