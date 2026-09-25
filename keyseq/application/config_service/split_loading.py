@@ -324,7 +324,9 @@ def build_runtime_data_from_split(
     keymap_switch_keys: dict[str, str] = {}
     loaded_keymap_ids_by_path: dict[str, str] = {}
     used_keymap_ids: set[str] = set()
-    trigger_sets: dict[str, tuple[list[dict[str, Any]], list[str] | None, str]] = {}
+    trigger_sets: dict[
+        str, tuple[list[dict[str, Any]], list[str] | None, str, bool | None, bool | None]
+    ] = {}
 
     active_keymap_path = coerce_label(keymap_set.get("active_keymap_path"))
     active_keymap_resolved_path = (
@@ -428,16 +430,22 @@ def attach_trigger_set(
     stored_path: str,
     *,
     config_root: str,
-    trigger_sets: dict[str, tuple[list[dict[str, Any]], list[str] | None, str]],
+    trigger_sets: dict[
+        str, tuple[list[dict[str, Any]], list[str] | None, str, bool | None, bool | None]
+    ],
 ) -> None:
     """同じ解決済みパスの trigger_set を共有し、配下 sequence も読み込む。"""
     identity = service.canonical_path(stored_path, config_root)
     if identity not in trigger_sets:
         triggers, refs = load_trigger_set(service, stored_path, config_root=config_root)
-        trigger_sets[identity] = (triggers, refs, stored_path)
-    triggers, refs, source_path = trigger_sets[identity]
+        trigger_sets[identity] = (triggers, refs, stored_path, None, None)
+    triggers, refs, source_path, dirty, imported = trigger_sets[identity]
     keymap["triggers"] = triggers
     keymap[service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = source_path
+    if dirty is not None:
+        keymap["_trigger_set_dirty"] = dirty
+    if imported is not None:
+        keymap["_trigger_set_imported"] = imported
     if refs is not None:
         keymap[service.INTERNAL_TRIGGER_SET_PARENT_REFS] = refs
 

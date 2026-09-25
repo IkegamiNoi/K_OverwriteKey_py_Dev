@@ -5,6 +5,7 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
+from keyseq.application.app_state import AppState
 from keyseq.application.config_service import ConfigService
 from keyseq.application.keymap_service import KeymapService
 from keyseq.application.save_plan import (
@@ -12,7 +13,13 @@ from keyseq.application.save_plan import (
     CHILD_SEQUENCE, ChildSaveEntry, SavePlan, SavePlanError,
     compose_sequence_key, split_sequence_key,
 )
-from keyseq.domain.keymap_triggers import iter_trigger_sets, trigger_set_members, trigger_set_owner
+from keyseq.domain.keymap_triggers import (
+    INTERNAL_TRIGGER_SET_DIRTY,
+    INTERNAL_TRIGGER_SET_IMPORTED,
+    iter_trigger_sets,
+    trigger_set_members,
+    trigger_set_owner,
+)
 from keyseq.infrastructure.json_repository import JsonRepository
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
 from keyseq.presentation.controllers.config_io.child_save_rows import (
@@ -152,6 +159,118 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         self.assertTrue(saved["keymaps"][0][self.service.INTERNAL_KEYMAP_DIRTY])
         self.assertTrue(tracker.has_unsaved_changes())
 
+    def test_trigger_list_positions_survive_bulk_save_data_replacement(self):
+        data = {"active_keymap_id": "a", "keymaps": [{
+            "id": "a", "triggers": [
+                {"key": "f1", "actions": [
+                    {"type": "text", "value": "one"},
+                    {"type": "text", "value": "two"},
+                ]},
+                {"key": "f2", "actions": []},
+            ],
+        }]}
+        state = AppState()
+        trigger_set_id = KeymapService.get_active_trigger_set_id(data)
+        state.update_selected_index(1, trigger_set_id)
+        state.indices_for(trigger_set_id)["f1"] = 1
+
+        saved = self.save(data)
+        saved_trigger_set_id = KeymapService.get_active_trigger_set_id(saved)
+
+        self.assertEqual(saved_trigger_set_id, trigger_set_id)
+        self.assertEqual(state.get_selected_index(saved_trigger_set_id), 1)
+        self.assertEqual(state.indices_for(saved_trigger_set_id)["f1"], 1)
+
+    def test_trigger_list_positions_survive_individual_save_list_replacement(self):
+        from keyseq.presentation.controllers.config_io.trigger_set_file_io import TriggerSetFileIo
+
+        data = {"active_keymap_id": "a", "keymaps": [{
+            "id": "a", "triggers": [
+                {"key": "f1", "actions": [
+                    {"type": "text", "value": "one"},
+                    {"type": "text", "value": "two"},
+                ]},
+                {"key": "f2", "actions": []},
+            ],
+        }]}
+        state = AppState()
+        trigger_set_id = KeymapService.get_active_trigger_set_id(data)
+        state.update_selected_index(1, trigger_set_id)
+        state.indices_for(trigger_set_id)["f1"] = 1
+        tracker = DirtyStateTracker(get_data=lambda: data, keymap_service=KeymapService(),
+                                    config_service=self.service, on_change=Mock())
+        app = SimpleNamespace(
+            data=data, config_service=self.service, config_root=self.root,
+            keymap_set_path=self.path, dirty_tracker=tracker, trigger_panel=Mock(),
+            _set_flash_message=Mock(),
+        )
+
+        TriggerSetFileIo(app)._save_trigger_set(
+            os.path.join(self.root, "user", "trigger_sets", "individual.json"), SavePlan(),
+        )
+        saved_trigger_set_id = KeymapService.get_active_trigger_set_id(data)
+
+        self.assertEqual(saved_trigger_set_id, trigger_set_id)
+        self.assertEqual(state.get_selected_index(saved_trigger_set_id), 1)
+        self.assertEqual(state.indices_for(saved_trigger_set_id)["f1"], 1)
+
+    def test_keymap_import_inherits_shared_trigger_set_dirty_state(self):
+        from keyseq.presentation.controllers.config_io.keymap_file_io import KeymapFileIo
+
+        shared = [{"key": "f1", "actions": [{"type": "text", "value": "edited"}]}]
+        data = {"active_keymap_id": "a", "keymaps": [{
+            "id": "a", "triggers": shared,
+            self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: "user/trigger_sets/shared.json",
+            self.service.INTERNAL_TRIGGER_SET_PARENT_REFS: ["user/keymaps/a.json"],
+            INTERNAL_TRIGGER_SET_DIRTY: True,
+            INTERNAL_TRIGGER_SET_IMPORTED: False,
+        }]}
+        self.write("user/keymaps/b.json", {
+            "id": "b", "mappings": {}, "trigger_set_path": "user/trigger_sets/shared.json",
+        })
+        app = SimpleNamespace(data=data, config_service=self.service, config_root=self.root, keymap_service=KeymapService())
+        imported = KeymapFileIo(app)._load_keymap(os.path.join(self.root, "user", "keymaps", "b.json"))
+        data["keymaps"].append(imported)
+
+        self.assertTrue(imported[INTERNAL_TRIGGER_SET_DIRTY])
+        self.assertFalse(imported[INTERNAL_TRIGGER_SET_IMPORTED])
+        KeymapService.delete_keymap(data, "a")
+
+        rows = self.rows(data)
+        self.assertIn((CHILD_TRIGGER_SET, "b"), [(row.kind, row.key) for row in rows])
+        saved = self.save(data)
+        self.assertEqual(saved["keymaps"][0]["triggers"][0]["actions"][0]["value"], "edited")
+
+    def test_skipped_unsourced_trigger_set_does_not_index_existing_default_file(self):
+        data = {"active_keymap_id": "a", "keymaps": [{
+            "id": "a", "label": "Main", "triggers": [{
+                "key": "f1", "actions": [],
+            }],
+        }]}
+        trigger_key = compose_sequence_key("a", "f1")
+        targets = self.targets(data)
+        trigger_path = targets[(CHILD_TRIGGER_SET, "a")]
+        sequence_path = targets[(CHILD_SEQUENCE, trigger_key)]
+        self.repo.save_json(
+            self.service._resolve_config_relative_path(trigger_path, self.root),
+            {"triggers": [{"key": "other"}]},
+        )
+        self.repo.save_json(
+            self.service._resolve_config_relative_path(sequence_path, self.root),
+            {"actions": []},
+        )
+        data["keymaps"][0]["triggers"][0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH] = sequence_path
+        plan = SavePlan((
+            ChildSaveEntry(CHILD_TRIGGER_SET, "a", ACTION_SKIP),
+            ChildSaveEntry(CHILD_SEQUENCE, trigger_key, ACTION_SKIP),
+        ))
+
+        saved = self.save(data, plan)
+
+        keymap_path = saved["keymaps"][0][self.service.INTERNAL_KEYMAP_SOURCE_PATH]
+        resolved_keymap_path = self.service._resolve_config_relative_path(keymap_path, self.root)
+        self.assertEqual(self.service.repository.load_json(resolved_keymap_path)["trigger_set_path"], "")
+
     def test_instance_lookup_ignores_missing_ids_and_normalizes_lookup(self):
         shared = []
         missing = {"triggers": shared}
@@ -196,7 +315,10 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         from keyseq.presentation.controllers.config_io.trigger_set_file_io import TriggerSetFileIo
         shared = [{"key": "f1", "actions": []}]
         data = self.save({"active_keymap_id": "b", "keymaps": [
-            {"id": "a", "triggers": shared}, {"id": "b", "triggers": shared},
+            {"id": "a", self.service.INTERNAL_KEYMAP_SOURCE_PATH: "user/keymaps/a.json",
+             "triggers": shared},
+            {"id": "b", self.service.INTERNAL_KEYMAP_SOURCE_PATH: "user/keymaps/b.json",
+             "triggers": shared},
             {"id": "c", "triggers": []},
         ]})
         tracker = DirtyStateTracker(get_data=lambda: data, keymap_service=KeymapService(),
@@ -208,6 +330,9 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         target = os.path.join(self.root, "user", "trigger_sets", "renamed.json")
         with patch("keyseq.presentation.controllers.config_io.trigger_set_file_io.messagebox.showinfo"):
             self.assertTrue(TriggerSetFileIo(app).save_trigger_set_to_path(target))
+        self.assertEqual(self.read("user/trigger_sets/renamed.json")["_parent_refs"], [
+            "user/keymaps/a.json", "user/keymaps/b.json",
+        ])
         app.child_save_dialog.ask_child_save_actions.assert_not_called()
         self.assertIs(data["keymaps"][0]["triggers"], data["keymaps"][1]["triggers"])
         for member in data["keymaps"][:2]:

@@ -13,7 +13,12 @@ from keyseq.application.save_plan import (
     SavePlanError,
 )
 from keyseq.domain.config import normalize_key_name
-from keyseq.domain.keymap_triggers import iter_trigger_sets, trigger_set_members
+from keyseq.domain.keymap_triggers import (
+    INTERNAL_TRIGGER_SET_DIRTY,
+    INTERNAL_TRIGGER_SET_IMPORTED,
+    iter_trigger_sets,
+    trigger_set_members,
+)
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
 from keyseq.presentation.controllers.config_io.child_save_rows import collect_child_save_rows
 
@@ -265,7 +270,13 @@ class KeymapFileIo:
                 continue
             identity = self._app.config_service.canonical_path(source, self._app.config_root)
             refs = owner.get(self._app.config_service.INTERNAL_TRIGGER_SET_PARENT_REFS)
-            cache[identity] = (triggers, refs if isinstance(refs, list) else None, source)
+            cache[identity] = (
+                triggers,
+                refs if isinstance(refs, list) else None,
+                source,
+                bool(owner.get(INTERNAL_TRIGGER_SET_DIRTY, False)),
+                bool(owner.get(INTERNAL_TRIGGER_SET_IMPORTED, False)),
+            )
         return cache
 
     def _refresh_after_load(self, path: str) -> None:

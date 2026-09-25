@@ -100,7 +100,20 @@ def build_split_save_payloads(service,
             "parent_ids": [str(member["id"]) for member in members],
         })
         sequence_payloads.extend(sequences)
-        indexed_path = service.to_config_relative_or_absolute(path, config_root) if not skip or os.path.exists(path) else ""
+        source_path = str(owner.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "")
+        resolved_source_path = (
+            service._resolve_config_relative_path(source_path, config_root)
+            if source_path
+            else ""
+        )
+        if skip:
+            indexed_path = (
+                service.to_config_relative_or_absolute(resolved_source_path, config_root)
+                if resolved_source_path and os.path.exists(resolved_source_path)
+                else ""
+            )
+        else:
+            indexed_path = service.to_config_relative_or_absolute(path, config_root)
         for member in members:
             keymaps_by_id[member["id"]]["payload"]["trigger_set_path"] = indexed_path
     keymap_set_payload = build_keymap_set_payload(
@@ -232,6 +245,7 @@ def build_trigger_set_payloads(service,
     trigger_set_path: str,
     sequences_dir: str = "",
     parent_ref: str = "",
+    additional_parent_refs: list[str] | None = None,
     save_plan: SavePlan,
     trigger_set_id: str | None = None,
     used_paths: set[str] | None = None,
@@ -311,12 +325,21 @@ def build_trigger_set_payloads(service,
         )
 
     payload = {"triggers": trigger_entries}
+    effective_parent_ref = (
+        additional_parent_refs[0]
+        if additional_parent_refs
+        else parent_ref
+    )
     parent_refs = service._parent_refs_for_save(
         service._normalize_parent_refs(owner.get(service.INTERNAL_TRIGGER_SET_PARENT_REFS)),
         target_path=trigger_set_path,
-        parent_ref=parent_ref,
+        parent_ref=effective_parent_ref,
         config_root=config_root,
     )
+    for shared_parent_ref in additional_parent_refs or []:
+        parent_refs = service._merge_parent_ref(
+            parent_refs, shared_parent_ref, config_root=config_root,
+        )
     if parent_refs is not None:
         payload[service.PARENT_REFS_KEY] = parent_refs
     return payload, sequence_payloads

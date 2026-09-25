@@ -436,7 +436,12 @@ class KeymapPanelController:
         target = keymaps[index]
         target_id = normalize_key_name(target.get("id", ""))
         trigger_set_id = self._app.keymap_service.get_trigger_set_id(self._app.data, target_id)
-        drops_trigger_set = len(trigger_set_members(self._app.data, target_id)) <= 1
+        members = trigger_set_members(self._app.data, target_id)
+        drops_trigger_set = len(members) <= 1
+        next_trigger_set_id = next(
+            (normalize_key_name(member.get("id", "")) for member in members if member is not target),
+            "",
+        )
         if target_id == self._app.keymap_service.get_active_keymap_id(self._app.data):
             if not self._app.state.can_switch_keymap(
                 target_id, self._app.keymap_service.get_active_keymap_id(self._app.data), changes_active=True
@@ -457,6 +462,8 @@ class KeymapPanelController:
             return
         if drops_trigger_set:
             self._app.state.forget_trigger_set(trigger_set_id)
+        elif trigger_set_id == target_id and next_trigger_set_id:
+            self._app.state.rekey_trigger_set(trigger_set_id, next_trigger_set_id)
 
         self._refresh_after_keymap_change()
         self._app.dirty_tracker.set_dirty(True)

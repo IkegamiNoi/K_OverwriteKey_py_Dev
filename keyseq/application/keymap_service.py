@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from keyseq.domain.config import normalize_key_name
-from keyseq.domain.keymap_triggers import ensure_at_least_one_keymap
+from keyseq.domain.keymap_triggers import ensure_at_least_one_keymap, trigger_set_owner
 
 
 class KeymapService:
@@ -50,10 +50,8 @@ class KeymapService:
         keymap = KeymapService.find_keymap(data, keymap_id)
         if not keymap:
             return normalize_key_name(keymap_id)
-        triggers = keymap.get("triggers")
-        if not isinstance(triggers, list):
-            return normalize_key_name(keymap.get("id", ""))
-        return f"trigger-list:{id(triggers)}"
+        owner = trigger_set_owner(data, str(keymap.get("id") or keymap_id))
+        return normalize_key_name(str(owner.get("id") or keymap.get("id") or ""))
 
     @staticmethod
     def get_active_keymap_label(data: dict[str, Any]) -> str:

@@ -74,14 +74,11 @@ class TriggerSetFileIo:
 
     def _save_trigger_set(self, path: str, save_plan: SavePlan) -> bool:
         previous_path = str(self._app.dirty_tracker.trigger_set_source_path or "").strip()
-        parent_path = str(
-            trigger_set_owner(self._app.data).get(
-                self._app.config_service.INTERNAL_KEYMAP_SOURCE_PATH
-            ) or ""
-        )
+        parent_refs = self._shared_keymap_source_paths()
+        parent_path = parent_refs[0] if parent_refs else ""
         triggers, _payload = self._app.config_service.save_trigger_set_file(
             path, self._app.data, config_root=self._app.config_root,
-            parent_ref=parent_path, save_plan=save_plan,
+            parent_ref=parent_path, parent_refs=parent_refs, save_plan=save_plan,
         )
         self._apply_saved_trigger_set(triggers, path)
         source_path_changed = self._path_changed(previous_path, path)
@@ -91,6 +88,18 @@ class TriggerSetFileIo:
             self._app.dirty_tracker.set_dirty(True)
         self._app.dirty_tracker.sync_dirty_state()
         return source_path_changed
+
+    def _shared_keymap_source_paths(self) -> list[str]:
+        service = self._app.config_service
+        paths = []
+        for member in trigger_set_members(self._app.data):
+            source_path = str(member.get(service.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
+            if not source_path:
+                continue
+            resolved_path = service.resolve_config_path(source_path, self._app.config_root)
+            if os.path.exists(resolved_path):
+                paths.append(source_path)
+        return paths
 
     def _apply_saved_trigger_set(self, triggers: list[dict], path: str) -> None:
         if len(trigger_set_members(self._app.data)) > 1:

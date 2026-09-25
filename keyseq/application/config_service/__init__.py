@@ -136,7 +136,9 @@ class ConfigService:
         used_keymap_ids: set[str] | None = None,
         imported: bool = True,
         config_root: str = "",
-        trigger_set_cache: dict[str, tuple[list[dict[str, Any]], list[str] | None, str]] | None = None,
+        trigger_set_cache: dict[
+            str, tuple[list[dict[str, Any]], list[str] | None, str, bool | None, bool | None]
+        ] | None = None,
     ) -> dict[str, Any]:
         raw_keymap = self.repository.load_json(path)
         if not isinstance(raw_keymap, dict):
@@ -533,6 +535,7 @@ class ConfigService:
         *,
         config_root: str,
         parent_ref: str = "",
+        parent_refs: list[str] | None = None,
         save_plan: SavePlan | None = None,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
         resolved_path = self._resolve_config_relative_path(path, config_root)
@@ -543,14 +546,15 @@ class ConfigService:
             (item for item in raw_triggers if isinstance(item, dict)),
             normalized_triggers,
         ):
-            parent_refs = self._normalize_parent_refs(raw_trigger.get(self.INTERNAL_SEQUENCE_PARENT_REFS))
-            if parent_refs is not None:
-                trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
+            sequence_parent_refs = self._normalize_parent_refs(raw_trigger.get(self.INTERNAL_SEQUENCE_PARENT_REFS))
+            if sequence_parent_refs is not None:
+                trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = sequence_parent_refs
         trigger_payload, sequence_items = split_payloads.build_trigger_set_payloads(self,
             normalized,
             config_root=os.path.abspath(config_root),
             trigger_set_path=resolved_path,
             parent_ref=parent_ref,
+            additional_parent_refs=parent_refs,
             save_plan=save_plan or SavePlan(),
         )
         for item in sequence_items:

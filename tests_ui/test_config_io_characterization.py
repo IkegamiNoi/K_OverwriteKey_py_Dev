@@ -282,7 +282,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         )
 
     def _trigger_set_save_patches(self, save_calls):
-        def fake_save(path, data, *, config_root, parent_ref="", save_plan=None):
+        def fake_save(path, data, *, config_root, parent_ref="", parent_refs=None, save_plan=None):
             save_calls.append((path, get_active_triggers(data)))
             return list(get_active_triggers(data) or []), {}
         return (

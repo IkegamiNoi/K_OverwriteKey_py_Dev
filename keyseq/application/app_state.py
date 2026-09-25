@@ -45,6 +45,14 @@ class AppState:
         self.keymap_indices.pop(trigger_set_id, None)
         self.selected_trigger_indices.pop(trigger_set_id, None)
 
+    def rekey_trigger_set(self, previous_id: str, current_id: str) -> None:
+        if not previous_id or not current_id or previous_id == current_id:
+            return
+        if previous_id in self.keymap_indices:
+            self.keymap_indices[current_id] = self.keymap_indices.pop(previous_id)
+        if previous_id in self.selected_trigger_indices:
+            self.selected_trigger_indices[current_id] = self.selected_trigger_indices.pop(previous_id)
+
     def can_switch_keymap(
         self, target_keymap_id: str = "", active_keymap_id: str = "", *, changes_active: bool = False
     ) -> bool:

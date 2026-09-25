@@ -217,6 +217,22 @@ class PerKeymapLoadingTest(unittest.TestCase):
             self.assertEqual(item["triggers"], original)
         self.assertEqual(reloaded["active_keymap_id"], "b")
 
+        keymap_set_path = os.path.join(self.root, "user", "keymap_sets", "roundtrip.json")
+        self.service.save_runtime_data(keymap_set_path, reloaded, config_root=self.root)
+        bulk_reloaded = self.service.load_runtime_data_from_keymap_set_path(
+            keymap_set_path, config_root=self.root,
+        )
+        self.assertEqual(
+            [
+                [(trigger["key"], trigger.get("actions", [])) for trigger in item["triggers"]]
+                for item in bulk_reloaded["keymaps"]
+            ],
+            [
+                [(trigger["key"], trigger.get("actions", [])) for trigger in triggers]
+                for triggers in expected
+            ],
+        )
+
     def test_export_duplicates_shared_content_without_mutating_runtime(self):
         shared = [{"key": "f1", "_sequence_dirty": True, "actions": []}]
         data = {"keymaps": [{"id": "a", "triggers": shared}, {"id": "b", "triggers": shared}],

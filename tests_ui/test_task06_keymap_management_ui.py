@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 from keyseq.application.input_router import SelectKeymapAction
 from keyseq.presentation.app import App
+from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs import KeymapEditDialog
 
@@ -403,6 +404,34 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.app.keymap_panel.activate_keymap_by_id("km1")
         self.assertEqual(self.app._indices.get("f1"), 1)
         self.assertEqual(self.app._selected_trigger_idx, 1)
+
+    def test_deleting_shared_representative_preserves_trigger_list_positions(self):
+        shared = self.app.data["keymaps"][0]["triggers"]
+        self.app.data["keymaps"][1]["triggers"] = shared
+        self.app.state.update_selected_index(1, "km1")
+        self.app.state.indices_for("km1")["f1"] = 1
+        keymap_list = self.app.full_view.keymap_box.keymap_listbox
+        keymap_list.selection_clear(0, "end")
+        keymap_list.selection_set(0)
+        keymap_list.activate(0)
+
+        with patch(
+            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.askyesno",
+            return_value=True,
+        ):
+            self.app.keymap_panel.delete_keymap()
+
+        self.assertEqual(self.app.data["active_keymap_id"], "km2")
+        self.assertEqual(self.app._selected_trigger_idx, 1)
+        self.assertEqual(self.app._indices.get("f1"), 1)
+
+    def test_new_config_creates_one_keymap(self):
+        self.app.dirty_tracker.set_dirty(False)
+
+        KeymapSetIo(self.app).new_config()
+
+        self.assertEqual(len(self.app.data["keymaps"]), 1)
+        self.assertEqual(self.app.data["active_keymap_id"], self.app.data["keymaps"][0]["id"])
 
     def test_unsaved_nonactive_sequence_edit_survives_switching(self):
         keymap_list = self.app.full_view.keymap_box.keymap_listbox
