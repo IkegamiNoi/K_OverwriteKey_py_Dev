@@ -141,7 +141,7 @@ class KeymapPanelController:
             messagebox.showerror("設定できません", f"直接切替キーが停止キーと重複しています:\n{key}")
             return False
         if self._app.trigger_service.is_toggle_key_conflict(self._app.data, key):
-            messagebox.showerror("設定できません", f"直接切替キーがモード切替キーと重複しています:\n{key}")
+            messagebox.showerror("設定できません", f"直接切替キーが一時停止/再開キーと重複しています:\n{key}")
             return False
         if normalize_key_name(key) in self._app._key_overlap_report().all_trigger_keys:
             messagebox.showerror("設定できません", f"直接切替キーが通常トリガーと重複しています:\n{key}")
@@ -542,8 +542,10 @@ class KeymapPanelController:
         label = self._app.keymap_service.get_active_keymap_label(self._app.data)
         if not label:
             return "(なし)"
-        if not (self._app.hook.hook_active and self._app.hook.custom_input_enabled):
-            return f"{label} (待機)"
+        if not self._app.hook.hook_active:
+            return f"{label}（フック停止中）"
+        if not self._app.hook.custom_input_enabled:
+            return f"{label}（一時停止）"
         return label
 
     def assign_keymap_from_keyboard_ui(self, source_key: str, target_key: str) -> bool:

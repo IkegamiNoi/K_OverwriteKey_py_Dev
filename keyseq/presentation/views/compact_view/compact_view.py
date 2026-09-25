@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class CompactView(ttk.Frame):
-    """省略画面UI（開始/停止、通常トリガーON/OFF、制御キー表示、ステータス、常に手前、フル復帰、トリガー一覧）"""
+    """省略画面UI（開始/停止、キーマップ一時停止/再開、制御キー表示、ステータス、常に手前、フル復帰、トリガー一覧）"""
     def __init__(self, parent, app: App):
         super().__init__(parent)
         self.app = app

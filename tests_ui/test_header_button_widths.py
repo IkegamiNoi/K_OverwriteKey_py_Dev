@@ -9,7 +9,8 @@ from keyseq.presentation.app import App
 from keyseq.presentation.button_width_rules import fixed_button_width_chars
 from keyseq.presentation.hook_button_texts import (
     CAPTURE_ACTIVE_TEXT, CAPTURE_IDLE_TEXT, CAPTURE_TEXTS,
-    HOOK_TOGGLE_TEXTS, TRIGGER_TOGGLE_TEXTS,
+    HOOK_TOGGLE_TEXTS, TRIGGER_DISABLE_TEXT, TRIGGER_ENABLE_TEXT,
+    TRIGGER_TOGGLE_TEXTS,
 )
 
 
@@ -72,6 +73,23 @@ class HeaderButtonWidthsTest(unittest.TestCase):
                             self.assertGreaterEqual(width, natural.winfo_reqwidth())
                         finally:
                             natural.destroy()
+
+    def test_trigger_toggle_texts_and_key_labels_use_pause_resume_wording(self) -> None:
+        self.assertEqual(
+            TRIGGER_TOGGLE_TEXTS,
+            ("キーマップ一時停止", "キーマップ再開"),
+        )
+        self.assertEqual(TRIGGER_DISABLE_TEXT, "キーマップ一時停止")
+        self.assertEqual(TRIGGER_ENABLE_TEXT, "キーマップ再開")
+
+        full_label = self.app.full_view.hook_frame.full_hook_line2.grid_slaves(
+            row=1, column=0
+        )[0]
+        compact_label = self.app.compact_view.hook_frame.compact_hook_line2.grid_slaves(
+            row=1, column=0
+        )[0]
+        self.assertEqual(full_label.cget("text"), "一時停止/再開キー: ")
+        self.assertEqual(compact_label.cget("text"), "一時停止/再開キー: ")
 
     def test_font_change_reapplies_width_in_full_and_compact_views(self) -> None:
         for compact in (False, True):

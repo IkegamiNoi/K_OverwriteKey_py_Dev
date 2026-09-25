@@ -208,7 +208,7 @@ class HookController:
         stop_key = normalize_key_name(self._app.data.get(HOOK_STOP_KEY, ""))
         messagebox.showerror(
             "開始できません",
-            f"停止キーと有効/無効トグルキーが重複しています:\n{stop_key}",
+            f"停止キーと一時停止/再開キーが重複しています:\n{stop_key}",
         )
         return False
 

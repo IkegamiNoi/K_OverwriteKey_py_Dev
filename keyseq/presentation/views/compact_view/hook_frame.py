@@ -33,8 +33,8 @@ class CompactHookFrame(ttk.LabelFrame):
         self.stop_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.ui_vars.stop_key_var, width=8, state="readonly")
         self.stop_key_entry.grid(row=0, column=1, sticky="w")
 
-        # トグルキー表示のみ（Entryだけ）
-        ttk.Label(self.compact_hook_line2, text="有効/無効トグルキー: ").grid(row=1, column=0, sticky="w")
+        # 一時停止/再開キー表示のみ（Entryだけ）
+        ttk.Label(self.compact_hook_line2, text="一時停止/再開キー: ").grid(row=1, column=0, sticky="w")
         self.toggle_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.ui_vars.toggle_key_var, width=8, state="readonly")
         self.toggle_key_entry.grid(row=1, column=1, sticky="w")
 

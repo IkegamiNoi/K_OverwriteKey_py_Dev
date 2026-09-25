@@ -23,7 +23,7 @@ class SingleKeyCaptureController:
         *,
         data_key: str,            # HOOK_STOP_KEY / HOOK_TOGGLE_KEY
         var: tk.StringVar,
-        label: str,               # "停止トリガー" / "トグルキー"
+        label: str,               # "停止トリガー" / "一時停止/再開キー"
         single_key_example: str,  # "f12" / "f11"
         conflict_checks,          # list[tuple[Callable[[App, str], bool], str]]
     ) -> None:

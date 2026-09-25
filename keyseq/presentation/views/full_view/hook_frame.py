@@ -36,8 +36,8 @@ class FullHookFrame(ttk.LabelFrame):
         self.stop_key_clear_btn = ttk.Button(self.full_hook_line2, text="クリア", command=app.stop_key_capture.clear)
         self.stop_key_clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
 
-        # 通常トリガー有効/無効トグルキー（フル：取得/クリアあり）
-        ttk.Label(self.full_hook_line2, text="有効/無効トグルキー: ").grid(row=1, column=0, sticky="w")
+        # 一時停止/再開キー（フル：取得/クリアあり）
+        ttk.Label(self.full_hook_line2, text="一時停止/再開キー: ").grid(row=1, column=0, sticky="w")
         self.toggle_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.ui_vars.toggle_key_var, width=8, state="readonly")
         self.toggle_key_entry.grid(row=1, column=1, sticky="w", padx=(0, 0))
         self.toggle_key_capture_btn = ttk.Button(self.full_hook_line2, text=CAPTURE_IDLE_TEXT, command=app.toggle_toggle_key_capture)

@@ -152,7 +152,7 @@ class App(tk.Tk):
             single_key_example="f12",
             conflict_checks=[
                 (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, "トリガー一覧"),
-                (lambda app, key: app.trigger_service.is_toggle_key_conflict(app.data, key), "トグルキー"),
+                (lambda app, key: app.trigger_service.is_toggle_key_conflict(app.data, key), "一時停止/再開キー"),
                 (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), "キーマップ直接切替キー"),
                 (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_source_keys, "キーマップ元キー"),
             ],
@@ -161,7 +161,7 @@ class App(tk.Tk):
             self,
             data_key=HOOK_TOGGLE_KEY,
             var=self.ui_vars.toggle_key_var,
-            label="トグルキー",
+            label="一時停止/再開キー",
             single_key_example="f11",
             conflict_checks=[
                 (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, "トリガー一覧"),

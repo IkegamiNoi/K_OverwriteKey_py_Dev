@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-26T00:30:00
+last_updated: 2026-09-26T03:30:00
 phase: `instructions/phase/34_trigger_list_per_keymap`（**phase 34 = トリガー一覧のキーマップ従属化・2026-09-24 起票・進行中**。暫定仕様 25 v0.4 ユーザー確定済）。次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 13。
 直前の完了フェーズ = **phase 33**（ダイアログの静的検査の発見ベース化・判断履歴 = `decisions_archive/33_grab_modal_static_check_discovery.md`）。
 last_commit_location: `claude/trigger-list-multi-keymap-19f4d7`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 34 進行中（task_01〜06 完了）。次は task_07（一時停止の改名）→ その後 task_08 の手前で停止しユーザーへ実機目視を依頼。**
-mode: implementing
+focus: **phase 34 の実装タスク 01〜07 完了（コミット済）。task_08（統合確認・正本反映）の手前で停止し、ユーザーの実機目視と着手可否の確認待ち。**
+mode: pending_review
 
 ## last_action
 ts: 2026-09-25T09:30:00
@@ -37,7 +37,7 @@ verified:
   review: reviewer 完了可
 
 ## next_action
-- `/task_new` で `tasks/task_07_*.md`（暫定 25 §8.4: 「通常トリガー無効化 ⇔ 有効化」→「キーマップ一時停止 ⇔ キーマップ再開」・ステータス「キーマップ: 動作中 / 一時停止」・「有効/無効トグルキー」「モード切替キー」→「一時停止/再開キー」・内部名は変えない）を起票 → codex-implementer → verifier → reviewer。**完了後は task_08 の手前で停止**し、ユーザーへ実機目視（確認項目を列挙）と task_08 着手の可否を確認する。
+- **ユーザーの実機目視待ち**（確認項目は最終報告に列挙）。結果を受けて task_08（`/task_new`・統合レビュー〔deep-reviewer + codex-reviewer〕・暫定 25 の正本昇格と凍結・codebase_map・decisions_archive/34・current.md・`/refactor_check`〔持ち越し: config_service/__init__.py の肥大・parent_refs_cleanup 318 行・id(triggers) キャッシュ・個別キーマップ保存の正規化の非対称〕）。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

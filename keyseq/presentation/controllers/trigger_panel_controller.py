@@ -267,13 +267,12 @@ class TriggerPanelController:
 
     def update_status(self):
         hook_state = "ON" if self._app.hook.hook_active else "OFF"
-        trigger_state = "ON" if self._app.hook.custom_input_enabled else "OFF"
         keymap_text = self._app.keymap_panel.get_active_keymap_text()
         sel_key = self.selected_trigger_key() or "(未選択)"
         if getattr(self._app, "_compact_mode", False):
-            # 省略表示：ON/OFF + 通常トリガー有効状態 + 選択中トリガー + 次に実行（行の内容）
+            # 省略表示：フック状態 + キーマップの動作状態 + 選択中トリガー + 次に実行（行の内容）
             line = self.get_next_action_summary(sel_key)
-            self._app.ui_vars.status_var.set(f"フック: {hook_state} / 通常トリガー: {trigger_state} / キーマップ: {keymap_text}\n選択: {sel_key} / 次: {line}")
+            self._app.ui_vars.status_var.set(f"フック: {hook_state} / キーマップ: {keymap_text}\n選択: {sel_key} / 次: {line}")
             return
 
         triggers = get_active_triggers(self._app.data)
@@ -296,7 +295,7 @@ class TriggerPanelController:
         except Exception:
             next_i = 0
         self._app.ui_vars.status_var.set(
-            f"フック: {hook_state} / 通常トリガー: {trigger_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}"
+            f"フック: {hook_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}"
         )
 
     def get_next_action_summary(self, trigger_key: str) -> str:
@@ -397,7 +396,7 @@ class TriggerPanelController:
             messagebox.showerror("追加できません", f"このキーはフック停止トリガーに設定されています:\n{key}")
             return
         if self._app.trigger_service.is_toggle_key_conflict(self._app.data, key):
-            messagebox.showerror("追加できません", f"このキーは有効/無効トグルキーに設定されています:\n{key}")
+            messagebox.showerror("追加できません", f"このキーは一時停止/再開キーに設定されています:\n{key}")
             return
         if self._app.keymap_service.get_keymap_by_switch_key(self._app.data, key):
             messagebox.showerror("追加できません", f"このキーはキーマップ直接切替キーに設定されています:\n{key}")
@@ -438,7 +437,7 @@ class TriggerPanelController:
             messagebox.showerror("変更できません", f"このキーはフック停止トリガーに設定されています:\n{new}")
             return
         if self._app.trigger_service.is_toggle_key_conflict(self._app.data, new):
-            messagebox.showerror("変更できません", f"このキーは有効/無効トグルキーに設定されています:\n{new}")
+            messagebox.showerror("変更できません", f"このキーは一時停止/再開キーに設定されています:\n{new}")
             return
         if self._app.keymap_service.get_keymap_by_switch_key(self._app.data, new):
             messagebox.showerror("変更できません", f"このキーはキーマップ直接切替キーに設定されています:\n{new}")
