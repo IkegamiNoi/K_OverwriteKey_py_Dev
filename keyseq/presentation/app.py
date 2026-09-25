@@ -94,6 +94,9 @@ class App(tk.Tk):
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
         self.data = self.config_service.new_default_data()
         self.config_service.apply_global_defaults(self.data, config_root=self.config_root)
+        self._key_overlap_analysis = analyze_key_overlaps(
+            self.data, self.data.get(HOOK_STOP_KEY, ""), self.data.get(HOOK_TOGGLE_KEY, "")
+        )
         self.ui_vars = UiVars(self, ui_font_delta_pt=self._ui_font_delta_pt)
         self._retained_hook_keys: dict[str, str] | None = None
 
@@ -129,7 +132,7 @@ class App(tk.Tk):
             get_hook_pause_count=lambda: self.hook.get_hook_pause_count(),
             get_stop_key=lambda: self.data.get(HOOK_STOP_KEY, ""),
             get_toggle_key=lambda: self.data.get(HOOK_TOGGLE_KEY, ""),
-            get_runtime_data=lambda: self.data,
+            get_key_overlap_report=self._key_overlap_report,
             get_custom_input_enabled=lambda: bool(self.hook.custom_input_enabled),
             find_keymap_switch_target=self._find_keymap_switch_target_id,
             find_trigger=self._find_trigger_by_key,
@@ -425,9 +428,13 @@ class App(tk.Tk):
         return self.trigger_service.find_trigger_by_key(self.data, key)
 
     def _key_overlap_report(self) -> KeyOverlapAnalysis:
-        return analyze_key_overlaps(
+        return self._key_overlap_analysis
+
+    def _refresh_key_overlap_report(self) -> KeyOverlapAnalysis:
+        self._key_overlap_analysis = analyze_key_overlaps(
             self.data, self.data.get(HOOK_STOP_KEY, ""), self.data.get(HOOK_TOGGLE_KEY, "")
         )
+        return self._key_overlap_analysis
 
     def _refresh_key_overlap_views(self, *_args) -> None:
         self.trigger_panel.refresh_triggers()

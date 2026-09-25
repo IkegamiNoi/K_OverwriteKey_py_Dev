@@ -18,7 +18,13 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from . import save_path_resolution
+from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import ensure_at_least_one_keymap
+
+
+TriggerSetCache = dict[
+    str, tuple[list[dict[str, Any]], list[str] | None, str, bool | None, bool | None]
+]
 
 
 def load_split_config(service, *, config_root: str, keymap_set_path: str) -> dict[str, Any]:
@@ -323,6 +329,7 @@ def build_runtime_data_from_split(
     keymaps: list[dict[str, Any]] = []
     keymap_switch_keys: dict[str, str] = {}
     loaded_keymap_ids_by_path: dict[str, str] = {}
+    keymap_trigger_path_presence: dict[str, bool] = {}
     used_keymap_ids: set[str] = set()
     trigger_sets: dict[
         str, tuple[list[dict[str, Any]], list[str] | None, str, bool | None, bool | None]
@@ -348,6 +355,8 @@ def build_runtime_data_from_split(
                 continue
 
             keymap = loaded_entry["keymap"]
+            keymap_id = str(keymap.get("id") or "")
+            keymap_trigger_path_presence[keymap_id] = loaded_entry["has_trigger_set_path"]
             if loaded_entry["trigger_set_path"]:
                 attach_trigger_set(
                     service,
@@ -357,7 +366,7 @@ def build_runtime_data_from_split(
                     trigger_sets=trigger_sets,
                 )
             keymaps.append(keymap)
-            loaded_keymap_ids_by_path[loaded_entry["resolved_path"]] = str(keymap.get("id") or "")
+            loaded_keymap_ids_by_path[loaded_entry["resolved_path"]] = keymap_id
 
             switch_key = normalize_key_name(loaded_entry["switch_key"])
             if switch_key:
@@ -372,6 +381,8 @@ def build_runtime_data_from_split(
             used_keymap_ids=used_keymap_ids,
         )
         if active_keymap is not None:
+            keymap_id = str(active_keymap["keymap"].get("id") or "")
+            keymap_trigger_path_presence[keymap_id] = active_keymap["has_trigger_set_path"]
             if active_keymap["trigger_set_path"]:
                 attach_trigger_set(
                     service,
@@ -381,40 +392,39 @@ def build_runtime_data_from_split(
                     trigger_sets=trigger_sets,
                 )
             keymaps.append(active_keymap["keymap"])
-            active_keymap_id = str(active_keymap["keymap"].get("id") or "")
+            active_keymap_id = keymap_id
 
     runtime["keymaps"] = keymaps
     runtime["active_keymap_id"] = active_keymap_id
     runtime["keymap_switch_keys"] = keymap_switch_keys
-    ensure_at_least_one_keymap(runtime)
+    generated_keymap = ensure_at_least_one_keymap(runtime)
     keymaps = runtime["keymaps"]
+    if generated_keymap is not None:
+        keymap_trigger_path_presence[str(generated_keymap["id"])] = False
     if not runtime["active_keymap_id"]:
         runtime["active_keymap_id"] = keymaps[0]["id"]
     active = next(item for item in keymaps if item["id"] == runtime["active_keymap_id"])
     legacy_path = coerce_label(keymap_set.get("trigger_set_path"))
-    source_path = active.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH, "")
-    state = "none"
-    if legacy_path:
-        if not source_path:
-            attach_trigger_set(
-                service,
-                active,
-                legacy_path,
-                config_root=config_root,
-                trigger_sets=trigger_sets,
-            )
-            state = "migrated"
-        elif service.canonical_path(source_path, config_root) == service.canonical_path(legacy_path, config_root):
-            state = "same"
-        else:
-            state = "unused"
+    state, migration_target, auto_created = _migrate_legacy_trigger_set(
+        service,
+        legacy_path,
+        keymaps,
+        active,
+        has_trigger_set_path=keymap_trigger_path_presence.get(str(active["id"]), False),
+        config_root=config_root,
+        trigger_sets=trigger_sets,
+    )
     runtime[service.INTERNAL_LEGACY_TRIGGER_SET] = {
-        "state": state, "path": legacy_path, "keymap_id": active["id"],
+        "state": state,
+        "path": legacy_path,
+        "keymap_id": str(migration_target.get("id") or active["id"]),
     }
+    if auto_created:
+        runtime[service.INTERNAL_LEGACY_TRIGGER_SET]["auto_created"] = True
     for keymap in keymaps:
         keymap.setdefault("triggers", [])
     if state == "migrated":
-        active[service.INTERNAL_KEYMAP_DIRTY] = True
+        migration_target[service.INTERNAL_KEYMAP_DIRTY] = True
     normalized = ensure_config_compatibility(runtime)
     normalized_keymaps = normalized.get("keymaps", [])
     for keymap, normalized_keymap in zip(keymaps, normalized_keymaps):
@@ -422,6 +432,54 @@ def build_runtime_data_from_split(
         if parent_refs is not None:
             normalized_keymap[service.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
     return normalized
+
+
+def _migrate_legacy_trigger_set(
+    service,
+    legacy_path: str,
+    keymaps: list[dict[str, Any]],
+    active: dict[str, Any],
+    *,
+    has_trigger_set_path: bool,
+    config_root: str,
+    trigger_sets: TriggerSetCache,
+) -> tuple[str, dict[str, Any], bool]:
+    if not legacy_path:
+        return "none", active, False
+    legacy_identity = service.canonical_path(legacy_path, config_root)
+    if any(
+        source and service.canonical_path(source, config_root) == legacy_identity
+        for source in (item.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH, "") for item in keymaps)
+    ):
+        return "same", active, False
+    active_source = active.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH, "")
+    if not has_trigger_set_path:
+        target = active
+        created = False
+    elif active_source:
+        target = _create_legacy_trigger_keymap(service, legacy_path, keymaps)
+        created = True
+    else:
+        return "none", active, False
+    attach_trigger_set(
+        service, target, legacy_path, config_root=config_root, trigger_sets=trigger_sets
+    )
+    return "migrated", target, created
+
+
+def _create_legacy_trigger_keymap(
+    service, legacy_path: str, keymaps: list[dict[str, Any]]
+) -> dict[str, Any]:
+    data = {"keymaps": keymaps}
+    stem = os.path.splitext(os.path.basename(legacy_path))[0]
+    keymap = {
+        "id": KeymapService.next_keymap_id(data),
+        "label": f"旧トリガー一覧（{stem}）",
+        "mappings": {},
+        "triggers": [],
+    }
+    keymaps.append(keymap)
+    return keymap
 
 
 def attach_trigger_set(
@@ -481,6 +539,7 @@ def load_keymap_entry(
 
     loaded_entry = {
         "resolved_path": resolved_path,
+        "has_trigger_set_path": "trigger_set_path" in raw_keymap,
         "trigger_set_path": coerce_label(raw_keymap.get("trigger_set_path")),
         "switch_key": switch_key,
         "keymap": {

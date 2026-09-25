@@ -30,7 +30,7 @@ class StartupIo:
                     self._app.keymap_set_path = resolved_keymap_set_path
                     self.entry_loaded = True
                     self._app.keymap_set_io.apply_loaded_data_to_ui()
-                    self._app.after(0, self._app.keymap_set_io.notify_unused_legacy_trigger_set)
+                    self._app.after(0, self._app.keymap_set_io.notify_migrated_legacy_trigger_set)
                     return
                 except Exception:
                     pass

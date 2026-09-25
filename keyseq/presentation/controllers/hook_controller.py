@@ -213,6 +213,11 @@ class HookController:
         return False
 
     def _key_overlap_report(self) -> KeyOverlapAnalysis:
+        report = getattr(self._app, "_key_overlap_report", None)
+        if callable(report):
+            cached = report()
+            if isinstance(cached, KeyOverlapAnalysis):
+                return cached
         data = self._app.data
         return analyze_key_overlaps(data, data.get(HOOK_STOP_KEY, ""), data.get(HOOK_TOGGLE_KEY, ""))
 
@@ -241,7 +246,6 @@ class HookController:
             "stop": "停止キー",
             "toggle": "一時停止/再開キー",
             "switch": "切替キー",
-            "mapping": "置換",
         }.get(conflict.winner, "上位の割り当て")
         if conflict.kind == "keymap_switch":
             name = conflict.keymap_label or conflict.keymap_id

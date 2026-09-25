@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Literal
+from types import MappingProxyType
+from typing import Any, Literal, Mapping
 
 from keyseq.domain.config import normalize_key_name
 
 
-OverlapWinner = Literal["stop", "toggle", "switch", "mapping"]
+OverlapWinner = Literal["stop", "toggle", "switch"]
 AssignmentKind = Literal["trigger", "keymap_switch"]
 
 
@@ -24,6 +25,9 @@ class KeyOverlapAnalysis:
     active_keymap_id: str
     trigger_conflicts: tuple[AssignmentConflict, ...]
     keymap_switch_conflicts: tuple[AssignmentConflict, ...]
+    _trigger_conflicts_by_key: Mapping[str, AssignmentConflict]
+    _switch_conflicts_by_assignment: Mapping[tuple[str, str], AssignmentConflict]
+    _shadowed_by_key: Mapping[str, tuple[AssignmentConflict, ...]]
     all_trigger_keys: frozenset[str]
     active_trigger_keys: frozenset[str]
     all_source_keys: frozenset[str]
@@ -33,22 +37,16 @@ class KeyOverlapAnalysis:
 
     def trigger_conflict(self, key: str) -> AssignmentConflict | None:
         normalized = normalize_key_name(key)
-        return next((item for item in self.trigger_conflicts if item.key == normalized), None)
+        return self._trigger_conflicts_by_key.get(normalized)
 
     def keymap_switch_conflict(self, keymap_id: str, key: str) -> AssignmentConflict | None:
         normalized_id = normalize_key_name(keymap_id)
         normalized_key = normalize_key_name(key)
-        return next(
-            (item for item in self.keymap_switch_conflicts
-             if item.keymap_id == normalized_id and item.key == normalized_key),
-            None,
-        )
+        return self._switch_conflicts_by_assignment.get((normalized_id, normalized_key))
 
     def shadowed_for_key(self, key: str) -> tuple[AssignmentConflict, ...]:
         normalized = normalize_key_name(key)
-        conflicts = [item for item in self.trigger_conflicts if item.key == normalized]
-        conflicts.extend(item for item in self.keymap_switch_conflicts if item.key == normalized)
-        return tuple(conflicts)
+        return self._shadowed_by_key.get(normalized, ())
 
 
 def analyze_key_overlaps(
@@ -63,12 +61,18 @@ def analyze_key_overlaps(
     all_triggers, all_trigger_keys, active_trigger_keys = _collect_triggers(keymaps, active_id)
     all_sources, active_sources = _collect_sources(keymaps, active_id)
     switches, keymap_labels = _collect_switches(runtime, keymaps)
-    trigger_conflicts = _analyze_trigger_conflicts(active_trigger_keys, stop, toggle, switches, active_sources)
+    trigger_conflicts = _analyze_trigger_conflicts(active_trigger_keys, stop, toggle, switches)
     switch_conflicts = _analyze_switch_conflicts(switches, keymap_labels, stop, toggle)
+    trigger_index, switch_index, shadowed_index = _index_conflicts(
+        trigger_conflicts, switch_conflicts
+    )
     return KeyOverlapAnalysis(
         active_keymap_id=active_id,
         trigger_conflicts=trigger_conflicts,
         keymap_switch_conflicts=switch_conflicts,
+        _trigger_conflicts_by_key=MappingProxyType(trigger_index),
+        _switch_conflicts_by_assignment=MappingProxyType(switch_index),
+        _shadowed_by_key=MappingProxyType(shadowed_index),
         all_trigger_keys=frozenset(all_trigger_keys),
         active_trigger_keys=frozenset(active_trigger_keys),
         all_source_keys=frozenset(all_sources),
@@ -79,11 +83,11 @@ def analyze_key_overlaps(
 
 
 def _analyze_trigger_conflicts(
-    trigger_keys: set[str], stop: str, toggle: str, switches: dict[str, str], sources: set[str]
+    trigger_keys: set[str], stop: str, toggle: str, switches: dict[str, str]
 ) -> tuple[AssignmentConflict, ...]:
     conflicts = []
     for key in sorted(trigger_keys):
-        winner = _trigger_winner(key, stop, toggle, switches, sources)
+        winner = _trigger_winner(key, stop, toggle, switches)
         if winner:
             conflicts.append(AssignmentConflict(key, "trigger", winner))
     return tuple(conflicts)
@@ -98,6 +102,22 @@ def _analyze_switch_conflicts(
         if winner:
             conflicts.append(AssignmentConflict(key, "keymap_switch", winner, target_id, labels[target_id]))
     return tuple(conflicts)
+
+
+def _index_conflicts(
+    trigger_conflicts: tuple[AssignmentConflict, ...],
+    switch_conflicts: tuple[AssignmentConflict, ...],
+) -> tuple[
+    dict[str, AssignmentConflict],
+    dict[tuple[str, str], AssignmentConflict],
+    dict[str, tuple[AssignmentConflict, ...]],
+]:
+    trigger_index = {item.key: item for item in trigger_conflicts}
+    switch_index = {(item.keymap_id, item.key): item for item in switch_conflicts}
+    grouped: dict[str, list[AssignmentConflict]] = {}
+    for item in (*trigger_conflicts, *switch_conflicts):
+        grouped.setdefault(item.key, []).append(item)
+    return trigger_index, switch_index, {key: tuple(items) for key, items in grouped.items()}
 
 
 def _valid_keymaps(runtime: dict[str, Any]) -> list[dict[str, Any]]:
@@ -172,15 +192,13 @@ def _collect_switches(runtime: dict[str, Any], keymaps: list[dict[str, Any]]) ->
     return switches, labels
 
 
-def _trigger_winner(key: str, stop: str, toggle: str, switches: dict[str, str], sources: set[str]) -> OverlapWinner | None:
+def _trigger_winner(key: str, stop: str, toggle: str, switches: dict[str, str]) -> OverlapWinner | None:
     if key == stop and stop:
         return "stop"
     if key == toggle and toggle:
         return "toggle"
     if key in switches:
         return "switch"
-    if key in sources:
-        return "mapping"
     return None
 
 

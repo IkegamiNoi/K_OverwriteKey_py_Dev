@@ -351,8 +351,7 @@ def build_keymap_set_payload(service,
     config_root: str,
     trigger_set_path: str,
 ) -> dict[str, Any]:
-    legacy = runtime.get(service.INTERNAL_LEGACY_TRIGGER_SET, {})
-    trigger_set_path = str(legacy.get("path") or "") if legacy.get("state") == "unused" else ""
+    trigger_set_path = ""
     keymap_entries: list[dict[str, Any]] = []
     switch_keys = runtime.get("keymap_switch_keys", {})
     switch_keys_by_id: dict[str, str] = {}

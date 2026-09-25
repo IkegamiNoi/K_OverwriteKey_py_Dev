@@ -1,6 +1,7 @@
 import unittest
 from types import SimpleNamespace
 
+from keyseq.application.key_overlap import analyze_key_overlaps
 from keyseq.application.input_router import (
     InputRouter,
     SelectKeymapAction,
@@ -35,7 +36,7 @@ def make_router(
         get_hook_pause_count=lambda: pause,
         get_stop_key=lambda: stop_key,
         get_toggle_key=lambda: toggle_key,
-        get_runtime_data=lambda: runtime_data,
+        get_key_overlap_report=lambda: analyze_key_overlaps(runtime_data, stop_key, toggle_key),
         get_custom_input_enabled=lambda: custom_enabled,
         find_keymap_switch_target=lambda key: switch_target,
         find_trigger=lambda key: trigger,
@@ -107,15 +108,15 @@ class InputRouterTest(unittest.TestCase):
         self.assertEqual(route.actions, (SendKeyAction(source_key="a", target_key="b"),))
         self.assertFalse(route.accept)
 
-    def test_keymap_replacement_precedes_trigger_and_reports_the_shadow(self):
+    def test_trigger_precedes_keymap_replacement_without_shadow_notice(self):
         trigger = {"key": "a", "suppress": True, "actions": [{"type": "text", "value": "x"}]}
         runtime = {
             "keymaps": [{"id": "km1", "triggers": [trigger], "mappings": {"a": "b"}}],
             "active_keymap_id": "km1",
         }
         route = make_router(trigger=trigger, keymap_target="b", runtime_data=runtime).handle(down("a"))
-        self.assertEqual(route.actions, (SendKeyAction(source_key="a", target_key="b"),))
-        self.assertEqual([(item.kind, item.winner) for item in route.shadowed], [("trigger", "mapping")])
+        self.assertEqual(route.actions, (TriggerAction(key="a"),))
+        self.assertEqual(route.shadowed, ())
 
     def test_direct_switch_precedes_replacement_and_trigger(self):
         trigger = {"key": "a", "suppress": True, "actions": [{"type": "text", "value": "x"}]}

@@ -240,6 +240,9 @@ class KeymapFileIo:
         )
         if not path:
             return
+        if self._is_already_loaded_path(path):
+            messagebox.showerror("読込できません", "このキーマップは既に読み込まれています")
+            return
         try:
             keymap = self._load_keymap(path)
             if not self._app.keymap_panel.add_imported_keymap(keymap):
@@ -248,6 +251,18 @@ class KeymapFileIo:
         except Exception as e:
             self._app._set_flash_message(f"キーマップ読込失敗: {e}", auto_clear=False)
             messagebox.showerror("読込失敗", str(e))
+
+    def _is_already_loaded_path(self, path: str) -> bool:
+        service = self._app.config_service
+        identity = service.canonical_path(path, self._app.config_root)
+        source_key = service.INTERNAL_KEYMAP_SOURCE_PATH
+        for item in self._app.keymap_service.get_keymaps(self._app.data):
+            if not isinstance(item, dict):
+                continue
+            source = str(item.get(source_key) or "")
+            if source and service.canonical_path(source, self._app.config_root) == identity:
+                return True
+        return False
 
     def _load_keymap(self, path: str) -> dict:
         used_ids = {

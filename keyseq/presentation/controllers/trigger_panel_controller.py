@@ -116,7 +116,7 @@ class TriggerPanelController:
             except Exception:
                 pass
         triggers = get_active_triggers(self._app.data)
-        overlap = self._app._key_overlap_report()
+        overlap = self._app._refresh_key_overlap_report()
         for i, t in enumerate(triggers):
             k = normalize_key_name(t.get("key", ""))
             conflict = overlap.trigger_conflict(k)
@@ -140,7 +140,7 @@ class TriggerPanelController:
             self.sync_trigger_selection_to_views()
         self.sync_suppress_checkbox()
         self.sync_run_to_end_ui()
-        self._app.keymap_panel.refresh_keymap_list_ui()
+        self._app.keymap_panel.refresh_keymap_list_ui(overlap=overlap)
         self._app.layout.refresh_keyboard_window()
         self.update_status()
 
@@ -150,7 +150,6 @@ class TriggerPanelController:
             "stop": "停止キーと重複",
             "toggle": "一時停止/再開キーと重複",
             "switch": "切替キーと重複",
-            "mapping": "置換と重複",
         }.get(winner, "上位の割り当てと重複")
 
     @staticmethod

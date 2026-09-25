@@ -163,7 +163,6 @@ class HookCoordinatorTest(unittest.TestCase):
         conflicts = (
             AssignmentConflict("f11", "trigger", "toggle"),
             AssignmentConflict("f3", "trigger", "switch"),
-            AssignmentConflict("a", "trigger", "mapping"),
             AssignmentConflict("f9", "keymap_switch", "stop", "km2", "Other"),
             AssignmentConflict("f8", "keymap_switch", "toggle", "km3", "Third"),
         )
@@ -172,7 +171,6 @@ class HookCoordinatorTest(unittest.TestCase):
         message = set_flash_message.call_args.args[0]
         self.assertIn("f11 は一時停止/再開キーと重複しているため、トリガーは実行されません。", message)
         self.assertIn("f3 は切替キーと重複しているため、トリガーは実行されません。", message)
-        self.assertIn("a は置換と重複しているため、トリガーは実行されません。", message)
         self.assertIn("f9 は停止キーと重複しているため、キーマップ Other へ切り替えられません。", message)
         self.assertIn("f8 は一時停止/再開キーと重複しているため、キーマップ Third へ切り替えられません。", message)
         self.assertEqual(status.value, "キーマップ: Main")

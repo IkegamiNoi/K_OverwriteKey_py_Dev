@@ -16,6 +16,7 @@ from keyseq.domain.keymap_triggers import (
 )
 from keyseq.infrastructure.json_repository import JsonRepository
 from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
+from keyseq.presentation.controllers.config_io.keymap_file_io import KeymapFileIo
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 
 
@@ -154,19 +155,41 @@ class PerKeymapLoadingTest(unittest.TestCase):
                 self.assertEqual(data["_legacy_trigger_set"]["state"], state)
                 self.assertEqual(data["triggers"], [])
 
-    def test_split_own_reference_states_and_failure_never_falls_back(self):
+    def test_split_explicit_empty_reference_does_not_migrate_legacy_list(self):
         self.write("old.json", {"triggers": [{"key": "f8"}]})
         self.write("own.json", {"triggers": [{"key": "f9"}]})
-        for own, state, expected in (("own.json", "unused", ["f9"]),
-                                     ("./old.json", "same", ["f8"]),
-                                     ("missing.json", "unused", []),
-                                     (123, "migrated", ["f8"]),
-                                     ("", "migrated", ["f8"])):
-            with self.subTest(own=own):
-                self.write("b.json", {"id": "b", "trigger_set_path": own})
-                data = self.load_split(["b.json"], "old.json")
-                self.assertEqual(data["_legacy_trigger_set"]["state"], state)
-                self.assertEqual([t["key"] for t in get_active_triggers(data)], expected)
+        self.write("b.json", {"id": "b", "trigger_set_path": ""})
+        data = self.load_split(["b.json"], "old.json")
+        self.assertEqual(len(data["keymaps"]), 1)
+        self.assertEqual(data["_legacy_trigger_set"]["state"], "none")
+        self.assertEqual(get_active_triggers(data), [])
+
+    def test_active_separate_trigger_set_creates_migration_keymap(self):
+        self.write("old.json", {"triggers": [{"key": "f8"}]})
+        self.write("own.json", {"triggers": [{"key": "f9"}]})
+        self.write("b.json", {"id": "b", "trigger_set_path": "own.json"})
+        data = self.load_split(["b.json"], "old.json")
+        self.assertEqual(data["active_keymap_id"], "b")
+        self.assertEqual([item["id"] for item in data["keymaps"]], ["b", "keymap_1"])
+        target = data["keymaps"][1]
+        self.assertEqual(target["label"], "旧トリガー一覧（old）")
+        self.assertEqual(target["mappings"], {})
+        self.assertNotIn("keymap_1", data["keymap_switch_keys"].values())
+        self.assertEqual([item["key"] for item in target["triggers"]], ["f8"])
+        self.assertEqual(data["_legacy_trigger_set"], {
+            "state": "migrated", "path": "old.json", "keymap_id": "keymap_1", "auto_created": True,
+        })
+        self.assertTrue(target["_keymap_dirty"])
+
+    def test_any_keymap_reference_to_legacy_path_is_same(self):
+        self.write("old.json", {"triggers": [{"key": "f8"}]})
+        self.write("own.json", {"triggers": [{"key": "f9"}]})
+        self.write("a.json", {"id": "a", "trigger_set_path": "./old.json"})
+        self.write("b.json", {"id": "b", "trigger_set_path": "own.json"})
+        data = self.load_split(["a.json", "b.json"], "old.json")
+        self.assertEqual(data["_legacy_trigger_set"]["state"], "same")
+        self.assertEqual(len(data["keymaps"]), 2)
+        self.assertEqual([item["key"] for item in get_active_triggers(data)], ["f9"])
 
     def test_split_shares_resolved_path_and_reads_once_including_active_only_entry(self):
         self.write("shared.json", {"triggers": [{"key": "f7"}], "_parent_refs": ["a.json", "b.json"]})
@@ -180,6 +203,33 @@ class PerKeymapLoadingTest(unittest.TestCase):
         self.assertEqual(first["_trigger_set_source_path"], second["_trigger_set_source_path"])
         self.assertEqual(first["_trigger_set_parent_refs"], second["_trigger_set_parent_refs"])
         self.assertEqual(data["_legacy_trigger_set"]["state"], "same")
+
+    def test_individual_keymap_load_rejects_same_canonical_source_path(self):
+        source = os.path.join(self.root, "user", "keymaps", "main.json")
+        data = {"keymaps": [{
+            "id": "main", "label": "Main", "mappings": {}, "triggers": [],
+            self.service.INTERNAL_KEYMAP_SOURCE_PATH: source,
+        }], "active_keymap_id": "main"}
+        app = SimpleNamespace(
+            data=data,
+            config_root=self.root,
+            config_service=self.service,
+            keymap_service=KeymapService,
+            paths=SimpleNamespace(
+                preferred_keymaps_dir=Mock(return_value=self.root),
+                json_dialog_initial_dir=Mock(return_value=self.root),
+            ),
+        )
+        io = KeymapFileIo(app)
+        before = safe_deepcopy(data)
+        alternate_spelling = os.path.join(self.root, "user", "keymaps", ".", "main.json")
+        with patch("keyseq.presentation.controllers.config_io.keymap_file_io.filedialog.askopenfilename",
+                   return_value=alternate_spelling), patch(
+            "keyseq.presentation.controllers.config_io.keymap_file_io.messagebox.showerror"
+        ) as showerror:
+            io.load_keymap_file()
+        showerror.assert_called_once_with("読込できません", "このキーマップは既に読み込まれています")
+        self.assertEqual(data, before)
 
     def test_single_import_legacy_and_oldest_format(self):
         for source in ({"triggers": [{"key": "f8"}]}, {"trigger_key": " F8 ", "actions": []}):
@@ -202,7 +252,7 @@ class PerKeymapLoadingTest(unittest.TestCase):
                         _trigger_set_dirty=True, _trigger_set_imported=True)
             item["triggers"][0].update(_sequence_source_path="seq.json", _sequence_parent_refs=["set.json"],
                                        _sequence_dirty=True, _sequence_imported=True)
-        data["_legacy_trigger_set"] = {"state": "unused", "path": "old.json", "keymap_id": "b"}
+        data["_legacy_trigger_set"] = {"state": "none", "path": "", "keymap_id": ""}
         path = os.path.join(self.root, "export.json")
         self.service.export_runtime_data(path, data)
         exported = self.service.repository.load_json(path)
@@ -251,8 +301,11 @@ class LegacyNotificationTest(unittest.TestCase):
     def test_normal_load_notifies_after_completion_dialog(self):
         app = Mock()
         app.config_service.load_runtime_data_from_keymap_set_path.return_value = {
-            "_legacy_trigger_set": {"state": "unused", "path": "old.json"},
+            "_legacy_trigger_set": {
+                "state": "migrated", "path": "old.json", "keymap_id": "legacy", "auto_created": True,
+            },
         }
+        app.keymap_service.find_keymap.return_value = {"label": "旧トリガー一覧（old）"}
         app.keymap_set_history_io.record.return_value = (True, "")
         io = KeymapSetIo(app)
         with patch("keyseq.presentation.controllers.config_io.keymap_set_io.messagebox.showinfo") as show:
@@ -260,16 +313,25 @@ class LegacyNotificationTest(unittest.TestCase):
         self.assertEqual(show.call_count, 2)
         self.assertEqual(show.call_args_list[0].args, ("読込", "読み込みました:\nset.json"))
         self.assertEqual(show.call_args_list[1].args, (
-            "読込", "旧形式のトリガー一覧 old.json は使われていません（トリガー一覧の読込から個別に読み込めます）",
+            "読込", "旧形式のトリガー一覧 old.json を、キーマップ『旧トリガー一覧（old）』に移しました（切替キーは未設定です）",
         ))
 
-    def test_only_unused_shows_information(self):
-        for state in ("none", "migrated", "same", "unused"):
+    def test_only_auto_created_migration_shows_information(self):
+        for state, auto_created in (("none", False), ("migrated", False), ("same", False), ("migrated", True)):
             with self.subTest(state=state), patch("keyseq.presentation.controllers.config_io.keymap_set_io.messagebox.showinfo") as show:
-                io = KeymapSetIo(SimpleNamespace(data={"_legacy_trigger_set": {"state": state, "path": "old.json"}}))
-                io.notify_unused_legacy_trigger_set()
-                if state == "unused":
-                    show.assert_called_once_with("読込", "旧形式のトリガー一覧 old.json は使われていません（トリガー一覧の読込から個別に読み込めます）")
+                data = {"_legacy_trigger_set": {
+                    "state": state, "path": "old.json", "keymap_id": "legacy", "auto_created": auto_created,
+                }}
+                app = SimpleNamespace(
+                    data=data,
+                    keymap_service=SimpleNamespace(find_keymap=Mock(return_value={"label": "Legacy"})),
+                )
+                io = KeymapSetIo(app)
+                io.notify_migrated_legacy_trigger_set()
+                if auto_created:
+                    show.assert_called_once_with(
+                        "読込", "旧形式のトリガー一覧 old.json を、キーマップ『Legacy』に移しました（切替キーは未設定です）",
+                    )
                 else:
                     show.assert_not_called()
 
@@ -280,8 +342,8 @@ class LegacyNotificationTest(unittest.TestCase):
         io = StartupIo(app)
         with patch("keyseq.presentation.controllers.config_io.startup_io.os.path.exists", return_value=True):
             io.load_startup_and_config()
-        app.after.assert_called_once_with(0, app.keymap_set_io.notify_unused_legacy_trigger_set)
-        app.keymap_set_io.notify_unused_legacy_trigger_set.assert_not_called()
+        app.after.assert_called_once_with(0, app.keymap_set_io.notify_migrated_legacy_trigger_set)
+        app.keymap_set_io.notify_migrated_legacy_trigger_set.assert_not_called()
 
 
 if __name__ == "__main__":

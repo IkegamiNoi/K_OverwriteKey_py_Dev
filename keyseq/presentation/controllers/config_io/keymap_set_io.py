@@ -549,21 +549,25 @@ class KeymapSetIo:
             recorded, reason = self._app.keymap_set_history_io.record(path)
             if not recorded:
                 self._app._set_flash_message(reason, auto_clear=False)
-            self.notify_unused_legacy_trigger_set()
+            self.notify_migrated_legacy_trigger_set()
             return KEYMAP_SET_LOAD_OK
         except Exception as e:
             self._app._set_flash_message(f"読込失敗: {e}", auto_clear=False)
             messagebox.showerror("読込失敗", str(e))
             return KEYMAP_SET_LOAD_FAILED
 
-    def notify_unused_legacy_trigger_set(self) -> None:
+    def notify_migrated_legacy_trigger_set(self) -> None:
         legacy = self._app.data.get(ConfigService.INTERNAL_LEGACY_TRIGGER_SET, {})
-        if legacy.get("state") == "unused":
-            messagebox.showinfo(
-                "読込",
-                f"旧形式のトリガー一覧 {legacy.get('path', '')} は使われていません"
-                "（トリガー一覧の読込から個別に読み込めます）",
-            )
+        if legacy.get("state") != "migrated" or not legacy.get("auto_created"):
+            return
+        keymap_id = normalize_key_name(str(legacy.get("keymap_id") or ""))
+        keymap = self._app.keymap_service.find_keymap(self._app.data, keymap_id)
+        name = str(keymap.get("label") or "").strip() if keymap else keymap_id
+        messagebox.showinfo(
+            "読込",
+            f"旧形式のトリガー一覧 {legacy.get('path', '')} を、キーマップ『{name}』に移しました"
+            "（切替キーは未設定です）",
+        )
 
     def import_config(self):
         if not self.confirm_save_if_dirty("Import"):
@@ -672,11 +676,11 @@ class KeymapSetIo:
         self._app.dirty_tracker.sync_dirty_state()
         if not startup_saved:
             self._app._set_flash_message("起動時読み込み設定の保存に失敗しました。", auto_clear=False)
-            self.notify_unused_legacy_trigger_set()
+            self.notify_migrated_legacy_trigger_set()
             return
         self._app._set_flash_message("起動時読み込み設定を更新しました。")
         messagebox.showinfo("設定", f"次回起動時はこの keymap_set を読み込みます:\n{path}")
-        self.notify_unused_legacy_trigger_set()
+        self.notify_migrated_legacy_trigger_set()
 
     def apply_loaded_data_to_ui(self):
         self._app.discard_retained_hook_keys()
@@ -684,6 +688,8 @@ class KeymapSetIo:
         self._app.dirty_tracker.trigger_set_imported = False
         self._app.dirty_tracker.trigger_set_dirty = False
         self._app._sync_control_vars_from_data()
+        # 重なりの表は停止 / トグルキーの trace にも依存するが、読込の契機では明示的に作り直す（暫定 25 §2-27）。
+        self._app._refresh_key_overlap_report()
         self._app.dirty_tracker.clear_individual_dirty_flags()
         if self._app.data.get(ConfigService.INTERNAL_LEGACY_TRIGGER_SET, {}).get("state") != "migrated":
             self._app.dirty_tracker.set_dirty(False)

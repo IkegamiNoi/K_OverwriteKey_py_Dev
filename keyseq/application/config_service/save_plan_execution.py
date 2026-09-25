@@ -153,8 +153,9 @@ def save_runtime_data(service,
             post_save_warnings.append(cleanup_warning)
 
     apply_saved_child_paths(service, normalized, payloads, resolved_config_root)
-    if normalized.get(service.INTERNAL_LEGACY_TRIGGER_SET, {}).get("state") != "unused":
-        normalized[service.INTERNAL_LEGACY_TRIGGER_SET] = {"state": "none", "path": "", "keymap_id": ""}
+    normalized[service.INTERNAL_LEGACY_TRIGGER_SET] = {
+        "state": "none", "path": "", "keymap_id": "",
+    }
     # 保存時の補完値を明示指定へ変換しない。フラグ省略時のキーからの推論を維持する。
     if isinstance(data, dict) and "hook_keys_individual" not in data:
         normalized.pop("hook_keys_individual", None)

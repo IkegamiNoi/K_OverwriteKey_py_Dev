@@ -31,9 +31,10 @@ class KeyOverlapAnalysisTest(unittest.TestCase):
     def test_trigger_and_switch_conflicts_follow_priority(self):
         report = analyze_key_overlaps(make_runtime(), "s", "t")
         self.assertEqual(
-            {key: report.trigger_conflict(key).winner for key in ("s", "t", "d", "m", "all")},
-            {"s": "stop", "t": "toggle", "d": "switch", "m": "mapping", "all": "switch"},
+            {key: report.trigger_conflict(key).winner for key in ("s", "t", "d", "all")},
+            {"s": "stop", "t": "toggle", "d": "switch", "all": "switch"},
         )
+        self.assertIsNone(report.trigger_conflict("m"))
         self.assertIsNone(report.trigger_conflict("n"))
         self.assertEqual(
             {(item.key, item.keymap_id, item.winner) for item in report.keymap_switch_conflicts},
@@ -61,6 +62,11 @@ class KeyOverlapAnalysisTest(unittest.TestCase):
             [(item.kind, item.winner) for item in report.shadowed_for_key("all")],
             [("trigger", "switch")],
         )
+
+    def test_conflict_indexes_are_read_only(self):
+        report = analyze_key_overlaps(make_runtime(), "s", "t")
+        with self.assertRaises(TypeError):
+            report._shadowed_by_key["x"] = ()
 
 
 if __name__ == "__main__":

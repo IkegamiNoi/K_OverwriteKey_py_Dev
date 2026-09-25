@@ -386,14 +386,14 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
 
     def test_normal_load_clears_dirty_but_migration_does_not(self):
         from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
-        for state in (None, "none", "same", "unused", "migrated"):
+        for state in (None, "none", "same", "migrated"):
             with self.subTest(state=state):
                 loaded = {} if state is None else {"_legacy_trigger_set": {"state": state}}
                 app = Mock()
                 app.config_service.load_runtime_data_from_keymap_set_path.return_value = loaded
                 app.keymap_set_history_io.record.return_value = (True, "")
                 io = KeymapSetIo(app)
-                with patch.object(io, "apply_loaded_data_to_ui"), patch.object(io, "notify_unused_legacy_trigger_set"), patch(
+                with patch.object(io, "apply_loaded_data_to_ui"), patch.object(io, "notify_migrated_legacy_trigger_set"), patch(
                     "keyseq.presentation.controllers.config_io.keymap_set_io.messagebox.showinfo"
                 ):
                     self.assertEqual(io.load_keymap_set_path(self.path), "ok")
@@ -633,16 +633,37 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         self.assertEqual(os.listdir(os.path.join(self.root, "user", "trigger_sets")), ["b.json"])
         self.assertEqual(self.read("user/trigger_sets/b.json")["triggers"], [])
 
-    def test_unused_legacy_reference_is_preserved_on_repeated_save(self):
-        data = self.legacy()
+    def test_separate_active_trigger_reference_moves_legacy_list_to_new_keymap_and_round_trips(self):
+        self.legacy()
         self.write("user/trigger_sets/new.json", {"triggers": []})
-        self.write("user/keymaps/a.json", {"mappings": {}, "trigger_set_path": "user/trigger_sets/new.json"})
+        self.write("user/keymaps/a.json", {
+            "id": "a", "label": "A", "mappings": {}, "trigger_set_path": "user/trigger_sets/new.json",
+        })
         data = self.service.load_runtime_data_from_keymap_set_path(self.path, config_root=self.root)
-        self.assertEqual(data[self.service.INTERNAL_LEGACY_TRIGGER_SET]["state"], "unused")
+        legacy = data[self.service.INTERNAL_LEGACY_TRIGGER_SET]
+        self.assertEqual(legacy["state"], "migrated")
+        self.assertTrue(legacy["auto_created"])
+        self.assertEqual(data["active_keymap_id"], "a")
+        target = KeymapService.find_keymap(data, legacy["keymap_id"])
+        self.assertEqual(target["label"], "旧トリガー一覧（old）")
+        self.assertTrue(target["_keymap_dirty"])
         saved = self.save(data)
-        self.save(saved)
-        self.assertEqual(self.repo.load_json(self.path)["trigger_set_path"], "user/trigger_sets/old.json")
-        self.assertEqual(saved[self.service.INTERNAL_LEGACY_TRIGGER_SET]["state"], "unused")
+        self.assertEqual(self.repo.load_json(self.path)["trigger_set_path"], "")
+        self.assertEqual(saved[self.service.INTERNAL_LEGACY_TRIGGER_SET]["state"], "none")
+        reloaded = self.service.load_runtime_data_from_keymap_set_path(self.path, config_root=self.root)
+        restored = KeymapService.find_keymap(reloaded, legacy["keymap_id"])
+        self.assertEqual([item["key"] for item in restored["triggers"]], ["f1"])
+
+    def test_explicit_empty_trigger_reference_does_not_migrate_and_save_clears_legacy_path(self):
+        self.legacy()
+        self.write("user/keymaps/a.json", {
+            "id": "a", "label": "A", "mappings": {}, "trigger_set_path": "",
+        })
+        data = self.service.load_runtime_data_from_keymap_set_path(self.path, config_root=self.root)
+        self.assertEqual(data[self.service.INTERNAL_LEGACY_TRIGGER_SET]["state"], "none")
+        self.assertEqual(data["keymaps"][0]["triggers"], [])
+        self.save(data)
+        self.assertEqual(self.repo.load_json(self.path)["trigger_set_path"], "")
 
     def test_trigger_set_save_as_requires_parent_or_explicit_deferral(self):
         data = self.save({"active_keymap_id": "a", "keymaps": [{"id": "a", "triggers": [{"key": "f1", "actions": []}]}]})
@@ -681,7 +702,7 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         tracker = DirtyStateTracker(get_data=lambda: data, keymap_service=KeymapService(),
                                     config_service=self.service, on_change=Mock())
         app = SimpleNamespace(data=data, dirty_tracker=tracker, discard_retained_hook_keys=Mock(),
-                              _sync_control_vars_from_data=Mock())
+                              _sync_control_vars_from_data=Mock(), _refresh_key_overlap_report=Mock())
         KeymapSetIo(app).apply_loaded_data_to_ui()
         self.assertTrue(tracker.config_dirty)
         self.assertTrue(data["keymaps"][0][self.service.INTERNAL_KEYMAP_DIRTY])

@@ -1,4 +1,6 @@
 import copy
+import os
+import tempfile
 import unittest
 from unittest.mock import patch
 
@@ -424,6 +426,75 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.assertEqual(self.app.data["active_keymap_id"], "km2")
         self.assertEqual(self.app._selected_trigger_idx, 1)
         self.assertEqual(self.app._indices.get("f1"), 1)
+
+    def test_deleting_migration_target_clears_legacy_record_before_save(self):
+        with tempfile.TemporaryDirectory() as directory:
+            config_root = os.path.join(directory, "config")
+            self.app.config_service.ensure_split_config_dirs(config_root)
+            self.app.config_service.repository.save_json(
+                os.path.join(config_root, "user", "trigger_sets", "old.json"),
+                {"triggers": [{"key": "f8", "actions": []}]},
+            )
+            self.app.config_service.repository.save_json(
+                os.path.join(config_root, "user", "trigger_sets", "own.json"),
+                {"triggers": [{"key": "f9", "actions": []}]},
+            )
+            self.app.config_service.repository.save_json(
+                os.path.join(config_root, "user", "keymaps", "a.json"),
+                {"id": "a", "label": "A", "mappings": {}, "trigger_set_path": "user/trigger_sets/own.json"},
+            )
+            self.app.config_service.repository.save_json(
+                os.path.join(config_root, "user", "keymaps", "b.json"),
+                {"id": "b", "label": "B", "mappings": {}, "trigger_set_path": ""},
+            )
+            keymap_set_path = os.path.join(config_root, "user", "keymap_sets", "main.json")
+            self.app.config_service.repository.save_json(keymap_set_path, {
+                "keymaps": [
+                    {"path": "user/keymaps/a.json", "switch_key": "1"},
+                    {"path": "user/keymaps/b.json", "switch_key": "2"},
+                ],
+                "active_keymap_path": "user/keymaps/a.json",
+                "trigger_set_path": "user/trigger_sets/old.json",
+            })
+            previous_root = self.app.config_root
+            previous_set_path = self.app.keymap_set_path
+            previous_data = self.app.data
+            try:
+                self.app.config_root = config_root
+                self.app.keymap_set_path = keymap_set_path
+                self.app.data = self.app.config_service.load_runtime_data_from_keymap_set_path(
+                    keymap_set_path, config_root=config_root,
+                )
+                migration_id = self.app.data["_legacy_trigger_set"]["keymap_id"]
+                self.assertTrue(self.app.data["_legacy_trigger_set"]["auto_created"])
+                self.app.trigger_panel.refresh_triggers()
+                keymap_list = self.app.full_view.keymap_box.keymap_listbox
+                migration_index = next(
+                    index for index, item in enumerate(self.app.data["keymaps"])
+                    if item["id"] == migration_id
+                )
+                keymap_list.selection_clear(0, "end")
+                keymap_list.selection_set(migration_index)
+                keymap_list.activate(migration_index)
+                with patch(
+                    "keyseq.presentation.controllers.keymap_panel_controller.messagebox.askyesno",
+                    return_value=True,
+                ):
+                    self.app.keymap_panel.delete_keymap()
+                self.assertEqual(self.app.data["_legacy_trigger_set"], {
+                    "state": "none", "path": "", "keymap_id": "",
+                })
+                self.assertIsNone(self.app.keymap_service.find_keymap(self.app.data, migration_id))
+                self.app.config_service.save_runtime_data(
+                    keymap_set_path, self.app.data, config_root=config_root,
+                    migration_source_keymap_set_path=keymap_set_path,
+                )
+                saved_set = self.app.config_service.repository.load_json(keymap_set_path)
+                self.assertEqual(saved_set["trigger_set_path"], "")
+            finally:
+                self.app.config_root = previous_root
+                self.app.keymap_set_path = previous_set_path
+                self.app.data = previous_data
 
     def test_new_config_creates_one_keymap(self):
         self.app.dirty_tracker.set_dirty(False)

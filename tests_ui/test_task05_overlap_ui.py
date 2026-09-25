@@ -61,7 +61,8 @@ class Task05OverlapUiTest(unittest.TestCase):
         self.assertEqual(trigger_list.itemcget(0, "foreground"), "#888888")
         self.assertIn("一時停止/再開キーと重複", trigger_list.get(1))
         self.assertIn("切替キーと重複", trigger_list.get(2))
-        self.assertIn("置換と重複", trigger_list.get(3))
+        self.assertNotIn("重複", trigger_list.get(3))
+        self.assertNotEqual(trigger_list.itemcget(3, "foreground"), "#888888")
         self.assertIn("停止キーと重複", keymap_list.get(1))
         self.assertEqual(keymap_list.itemcget(1, "foreground"), "#888888")
         self.assertIn("一時停止/再開キーと重複", keymap_list.get(2))
@@ -201,13 +202,43 @@ class Task05OverlapUiTest(unittest.TestCase):
         self.assertTrue(stop_checks[3][0](self.app, "b"))
         self.assertTrue(toggle_checks[3][0](self.app, "b"))
 
-    def test_keyboard_display_prefers_replacement_then_reserved_keys(self):
+    def test_keyboard_display_prefers_trigger_then_reserved_keys(self):
         self.app.layout.open_keyboard_window()
         window = self.app.layout.keyboard_window
         self.assertIsNotNone(window)
         window.update_from_config(self.app.data, custom_enabled=True)
-        self.assertEqual(window._kind_map["a"], "keymap")
+        self.assertEqual(window._kind_map["a"], "trigger")
         self.assertEqual(window._kind_map["f12"], "stop")
+
+    def test_overlap_table_is_shared_by_rows_and_reused_on_input(self):
+        from keyseq.application.key_overlap import analyze_key_overlaps
+
+        with patch("keyseq.presentation.app.analyze_key_overlaps", wraps=analyze_key_overlaps) as analyze:
+            with patch.object(
+                self.app.keymap_panel,
+                "refresh_keymap_list_ui",
+                wraps=self.app.keymap_panel.refresh_keymap_list_ui,
+            ) as refresh_keymaps:
+                self.app.trigger_panel.refresh_triggers()
+            first_report = self.app._key_overlap_report()
+            self.assertIs(refresh_keymaps.call_args.kwargs["overlap"], first_report)
+            self.app.input_router.handle(
+                SimpleNamespace(event_type="down", name="f12", scan_code=None)
+            )
+            analyze.assert_called_once()
+
+            self.app.data["keymaps"][0]["mappings"].pop("a")
+            self.app.trigger_panel.refresh_triggers()
+            self.assertIsNot(self.app._key_overlap_report(), first_report)
+            self.assertEqual(analyze.call_count, 2)
+
+    def test_keymap_list_redraw_rebuilds_overlap_table(self):
+        previous_report = self.app._key_overlap_report()
+        self.app.data["keymap_switch_keys"].pop("n")
+        self.app.keymap_panel.refresh_keymap_list_ui()
+        current_report = self.app._key_overlap_report()
+        self.assertIsNot(current_report, previous_report)
+        self.assertIsNone(current_report.trigger_conflict("n"))
 
 
 class _DialogResult:

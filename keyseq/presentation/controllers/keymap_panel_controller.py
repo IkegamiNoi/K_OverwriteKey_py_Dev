@@ -72,7 +72,9 @@ class KeymapPanelController:
             keymap_box.keymap_edit_btn.configure(state=edit_state)
             keymap_box.keymap_delete_btn.configure(state=delete_state)
 
-    def refresh_keymap_list_ui(self, preferred_index: int | None = None) -> None:
+    def refresh_keymap_list_ui(
+        self, preferred_index: int | None = None, *, overlap: KeyOverlapAnalysis | None = None
+    ) -> None:
         """keymap 管理一覧の表示内容と選択を更新する。"""
         keymap_box = getattr(getattr(self._app, "full_view", None), "keymap_box", None)
         listbox = getattr(keymap_box, "keymap_listbox", None)
@@ -86,6 +88,8 @@ class KeymapPanelController:
             return
 
         keymaps = self._app.keymap_service.get_keymaps(self._app.data)
+        if overlap is None:
+            overlap = self._app._refresh_key_overlap_report()
         if not keymaps:
             listbox.insert(tk.END, "キーマップは未登録です")
             listbox.selection_clear(0, tk.END)
@@ -93,7 +97,6 @@ class KeymapPanelController:
             return
 
         active_id = self._app.keymap_service.get_active_keymap_id(self._app.data)
-        overlap = self._app._key_overlap_report()
         for index, keymap in enumerate(keymaps):
             listbox.insert(tk.END, self.format_keymap_list_entry(index, keymap, overlap))
             keymap_id = normalize_key_name(keymap.get("id", ""))
@@ -460,6 +463,11 @@ class KeymapPanelController:
         if not deleted:
             messagebox.showerror("削除できません", "選択した keymap を削除できませんでした。")
             return
+        legacy = self._app.data.get(self._app.config_service.INTERNAL_LEGACY_TRIGGER_SET, {})
+        if legacy.get("state") == "migrated" and legacy.get("keymap_id") == target_id:
+            self._app.data[self._app.config_service.INTERNAL_LEGACY_TRIGGER_SET] = {
+                "state": "none", "path": "", "keymap_id": "",
+            }
         if drops_trigger_set:
             self._app.state.forget_trigger_set(trigger_set_id)
         elif trigger_set_id == target_id and next_trigger_set_id:
