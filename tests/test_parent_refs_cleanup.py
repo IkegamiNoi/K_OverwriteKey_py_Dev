@@ -251,6 +251,113 @@ class ParentRefsCleanupTest(unittest.TestCase):
                 ],
             )
 
+    def test_enumerates_every_keymap_group_and_deduplicates_shared_children(self):
+        with tempfile.TemporaryDirectory() as root:
+            paths = {
+                "keymap1": os.path.join(root, "user", "keymaps", "one.json"),
+                "keymap2": os.path.join(root, "user", "keymaps", "two.json"),
+                "keymap3": os.path.join(root, "user", "keymaps", "three.json"),
+                "trigger_shared": os.path.join(root, "user", "trigger_sets", "shared.json"),
+                "trigger_other": os.path.join(root, "user", "trigger_sets", "other.json"),
+                "sequence_shared": os.path.join(root, "user", "sequences", "shared.json"),
+                "sequence_other": os.path.join(root, "user", "sequences", "other.json"),
+            }
+            for path in paths.values():
+                self._save(path, {"_parent_refs": ["missing-parent.json"]})
+            shared_triggers = [self._sequence(paths["sequence_shared"])]
+            other_triggers = [self._sequence(paths["sequence_other"])]
+            runtime = {
+                "keymaps": [
+                    {**self._keymap(paths["keymap1"], triggers=shared_triggers),
+                     self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: paths["trigger_shared"]},
+                    {**self._keymap(paths["keymap2"], keymap_id="km2", triggers=shared_triggers),
+                     self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: paths["trigger_shared"]},
+                    {**self._keymap(paths["keymap3"], keymap_id="km3", triggers=other_triggers),
+                     self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: paths["trigger_other"]},
+                ],
+                "active_keymap_id": "km1",
+            }
+
+            inspections = self._inspect(root, runtime)
+
+            self.assertEqual(
+                [(item.kind, item.stored_path) for item in inspections],
+                [
+                    ("keymap", paths["keymap1"]),
+                    ("keymap", paths["keymap2"]),
+                    ("keymap", paths["keymap3"]),
+                    ("trigger_set", paths["trigger_shared"]),
+                    ("trigger_set", paths["trigger_other"]),
+                    ("sequence", paths["sequence_shared"]),
+                    ("sequence", paths["sequence_other"]),
+                ],
+            )
+
+    def test_trigger_set_protects_its_keymap_and_retains_current_legacy_set_ref(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "current.json")
+            keymap_path = os.path.join(root, "user", "keymaps", "missing-current.json")
+            other_keymap_path = os.path.join(root, "user", "keymaps", "other.json")
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "current.json")
+            other_trigger_set_path = os.path.join(root, "user", "trigger_sets", "other.json")
+            self._save(keymap_set_path, {"keymaps": []})
+            self._save(other_keymap_path, {"_parent_refs": []})
+            self._save(other_trigger_set_path, {"_parent_refs": []})
+            self._save(trigger_set_path, {
+                "_parent_refs": [keymap_path, keymap_set_path, "stale-parent.json"],
+            })
+            runtime = {
+                "keymaps": [
+                    {**self._keymap(keymap_path),
+                     self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: trigger_set_path},
+                    {**self._keymap(other_keymap_path, keymap_id="km2"),
+                     self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: other_trigger_set_path},
+                ],
+                "active_keymap_id": "km1",
+            }
+
+            inspections = self._inspect(root, runtime, keymap_set_path=keymap_set_path)
+            self.assertEqual(len(inspections), 1)
+            self.assertEqual(inspections[0].kind, "trigger_set")
+            self.assertEqual(inspections[0].alive_refs, (keymap_set_path,))
+            self.assertEqual(inspections[0].protected_refs, (keymap_path,))
+            self.assertEqual(inspections[0].stale_refs, ("stale-parent.json",))
+
+            result = self._prune(
+                root, inspections, runtime, keymap_set_path=keymap_set_path,
+            )
+
+            self.assertEqual(result.updated_files, ((trigger_set_path, 1),))
+            self.assertEqual(
+                self.service.read_parent_refs(trigger_set_path),
+                [keymap_path, keymap_set_path],
+            )
+
+    def test_sequence_protects_its_trigger_set_from_a_nonactive_keymap(self):
+        with tempfile.TemporaryDirectory() as root:
+            sequence_path = os.path.join(root, "user", "sequences", "nonactive.json")
+            missing_trigger_set = "user/trigger_sets/nonactive.json"
+            self._save(sequence_path, {
+                "_parent_refs": [missing_trigger_set, "stale-parent.json"],
+            })
+            runtime = {
+                "keymaps": [
+                    {**self._keymap("", triggers=[]),
+                     self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: "active-trigger-set.json"},
+                    {**self._keymap("", keymap_id="km2", triggers=[
+                        self._sequence(sequence_path),
+                    ]), self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: missing_trigger_set},
+                ],
+                "active_keymap_id": "km1",
+            }
+
+            inspections = self._inspect(root, runtime)
+
+            self.assertEqual(len(inspections), 1)
+            self.assertEqual(inspections[0].kind, "sequence")
+            self.assertEqual(inspections[0].protected_refs, (missing_trigger_set,))
+            self.assertEqual(inspections[0].stale_refs, ("stale-parent.json",))
+
     def test_inspection_does_not_modify_child_json(self):
         with tempfile.TemporaryDirectory() as root:
             child_path = os.path.join(root, "user", "keymaps", "main.json")

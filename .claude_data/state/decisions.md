@@ -622,3 +622,12 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 持ち越し（task_08 で扱う）: ①`config_service/__init__.py` の肥大（個別キーマップ保存計画一式 +290 行・1100 行超）→ `/refactor_check` で分割要否を判定
   ②個別キーマップ保存（`_save_keymap_with_plan`）だけ `ensure_config_compatibility` を経由しない非対称 → 統合レビューで確認。
 - 個別読込への「追加時の切替キー必須」の適用は task_06（追加フローと一緒に作る）。
+
+### 【task_04】完了（2026-09-25）
+
+- 差し戻し 1 回: 遅延読込テストは「keymap は参照収集のため 1 回だけ読む（3 段辿りで不可避）・sequence は形状検証で読まない」形へ書換え /
+  参照元の掃除の列挙を種類順（全 keymap → 全 trigger_set → 全 sequence）へ揃える実装修正。
+- 残った 1 件はテスト期待値の漏れ（参照収集で referenced になる keymap / trigger_set を含め忘れ）→ メインが実行で切り分けて修正
+  （verifier の「protected が消えた」報告は誤読。実際は protected として出ていた）。
+- reviewer = 修正要（修正後の tests 全体の再実測が抜け）→ verifier で tests 643 OK を確認して完了。
+- Codex 判断で `active_keymap_path` も keymap 内容を読む参照に含めた（タスク文言を超えるが安全側・生成データでは keymaps[] と重複）→ 採用。

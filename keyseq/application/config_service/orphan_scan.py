@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 
-from keyseq.domain.keymap_triggers import get_active_triggers, trigger_set_owner
+from keyseq.domain.keymap_triggers import iter_trigger_sets
 from . import contracts
 from . import reference_scan, split_loading
 from . import candidate_dirs, path_boundary
@@ -33,9 +33,11 @@ def collect_protected_paths(service, runtime, *, keymap_set_path: str) -> tuple[
                 keymap.get(service.INTERNAL_KEYMAP_SOURCE_PATH)
                 for keymap in keymaps if isinstance(keymap, dict)
             )
-        values.append(trigger_set_owner(runtime).get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH))
-        triggers = get_active_triggers(runtime)
-        if isinstance(triggers, list):
+        for _, members, triggers in iter_trigger_sets(runtime):
+            values.extend(
+                keymap.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH)
+                for keymap in members
+            )
             values.extend(
                 trigger.get(service.INTERNAL_SEQUENCE_SOURCE_PATH)
                 for trigger in triggers if isinstance(trigger, dict)

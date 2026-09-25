@@ -66,7 +66,14 @@ def _collect_keymap_set_references(
             non_keymap_set_sources.append(stored_path)
             continue
         trigger_set_paths.extend(
-            _collect_keymap_set_paths(service, keymap_set, config_root, referenced)
+            _collect_keymap_set_paths(
+                service,
+                keymap_set,
+                config_root,
+                cache,
+                unreadable_sources,
+                referenced,
+            )
         )
     return trigger_set_paths
 
@@ -96,6 +103,8 @@ def _load_source(
 
 
 def _is_keymap_set(data: dict[str, Any]) -> bool:
+    if "mappings" in data:
+        return False
     keys = (
         "trigger_set_path",
         "keymaps",
@@ -109,11 +118,18 @@ def _collect_keymap_set_paths(
     service,
     keymap_set: dict[str, Any],
     config_root: str,
+    cache: dict[str, dict[str, Any] | None],
+    unreadable_sources: list[tuple[str, str]],
     referenced: set[str],
 ) -> list[str]:
     trigger_set_path = _path_value(keymap_set.get("trigger_set_path"))
     _add_reference(service, trigger_set_path, config_root, referenced)
-    _add_entry_references(service, keymap_set.get("keymaps"), config_root, referenced)
+    trigger_set_paths = [trigger_set_path] if trigger_set_path else []
+    trigger_set_paths.extend(
+        _collect_keymap_trigger_set_paths(
+            service, keymap_set, config_root, cache, unreadable_sources, referenced
+        )
+    )
     _add_reference(
         service, _path_value(keymap_set.get("active_keymap_path")), config_root, referenced
     )
@@ -123,7 +139,39 @@ def _collect_keymap_set_paths(
     _add_external_layout_references(
         service, keymap_set.get("external_keyboard_layouts"), config_root, referenced
     )
-    return [trigger_set_path] if trigger_set_path else []
+    return trigger_set_paths
+
+
+def _collect_keymap_trigger_set_paths(
+    service,
+    keymap_set: dict[str, Any],
+    config_root: str,
+    cache: dict[str, dict[str, Any] | None],
+    unreadable_sources: list[tuple[str, str]],
+    referenced: set[str],
+) -> list[str]:
+    trigger_set_paths: list[str] = []
+    for keymap_path in _keymap_paths(keymap_set):
+        _add_reference(service, keymap_path, config_root, referenced)
+        keymap = _load_source(
+            service, keymap_path, config_root, cache, unreadable_sources
+        )
+        if keymap is None:
+            continue
+        child_trigger_set_path = _path_value(keymap.get("trigger_set_path"))
+        _add_reference(service, child_trigger_set_path, config_root, referenced)
+        if child_trigger_set_path:
+            trigger_set_paths.append(child_trigger_set_path)
+    return trigger_set_paths
+
+
+def _keymap_paths(keymap_set: dict[str, Any]) -> list[str]:
+    entries = keymap_set.get("keymaps")
+    paths = [_entry_path(entry) for entry in entries] if isinstance(entries, list) else []
+    active_path = _path_value(keymap_set.get("active_keymap_path"))
+    if active_path:
+        paths.append(active_path)
+    return [path for path in paths if path]
 
 
 def _collect_sequence_paths(
@@ -151,13 +199,6 @@ def _collect_sequence_paths(
                     config_root,
                     referenced,
                 )
-
-
-def _add_entry_references(service, entries: Any, config_root: str, referenced: set[str]) -> None:
-    if not isinstance(entries, list):
-        return
-    for entry in entries:
-        _add_reference(service, _entry_path(entry), config_root, referenced)
 
 
 def _add_external_layout_references(

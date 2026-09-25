@@ -10,6 +10,7 @@ from keyseq.application.config_service.contracts import (
 )
 from keyseq.application.config_service.reference_scan import (
     _entry_path,
+    _is_keymap_set,
     _path_value,
     _source_path,
     collect_reference_paths,
@@ -99,6 +100,97 @@ class ReferenceScanTest(unittest.TestCase):
             result = self._collect(root, [keymap_set])
 
             self.assertEqual(result.referenced, self._canonicals(root, [trigger_set, sequence]))
+
+    def test_collects_new_keymap_trigger_set_and_sequence_references(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set = "user/keymap_sets/main.json"
+            keymap = "user/keymaps/main.json"
+            trigger_set = "user/trigger_sets/main.json"
+            sequence = "user/sequences/copy.json"
+            self._save_resolved(root, keymap_set, {"keymaps": [{"path": keymap}]})
+            self._save_resolved(root, keymap, {
+                "mappings": {}, "trigger_set_path": trigger_set,
+            })
+            self._save_resolved(root, trigger_set, {
+                "triggers": [{"sequence_path": sequence}],
+            })
+            self._save_resolved(root, sequence, {"actions": []})
+
+            result = self._collect(root, [keymap_set])
+
+            self.assertEqual(
+                result.referenced,
+                self._canonicals(root, [keymap, trigger_set, sequence]),
+            )
+
+    def test_collects_legacy_keymap_set_trigger_set_and_sequence_references(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set = "user/keymap_sets/legacy.json"
+            trigger_set = "user/trigger_sets/legacy.json"
+            sequence = "user/sequences/legacy.json"
+            self._save_resolved(root, keymap_set, {"trigger_set_path": trigger_set})
+            self._save_resolved(root, trigger_set, {
+                "triggers": [{"sequence_path": sequence}],
+            })
+            self._save_resolved(root, sequence, {"actions": []})
+
+            result = self._collect(root, [keymap_set])
+
+            self.assertEqual(result.referenced, self._canonicals(root, [trigger_set, sequence]))
+
+    def test_collects_legacy_and_per_keymap_trigger_sets_together(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set = "user/keymap_sets/mixed.json"
+            keymap = "user/keymaps/main.json"
+            old_trigger_set = "user/trigger_sets/legacy.json"
+            new_trigger_set = "user/trigger_sets/per_keymap.json"
+            old_sequence = "user/sequences/legacy.json"
+            new_sequence = "user/sequences/per_keymap.json"
+            self._save_resolved(root, keymap_set, {
+                "keymaps": [{"path": keymap}],
+                "trigger_set_path": old_trigger_set,
+            })
+            self._save_resolved(root, keymap, {
+                "mappings": {}, "trigger_set_path": new_trigger_set,
+            })
+            self._save_resolved(root, old_trigger_set, {
+                "triggers": [{"sequence_path": old_sequence}],
+            })
+            self._save_resolved(root, new_trigger_set, {
+                "triggers": [{"sequence_path": new_sequence}],
+            })
+            self._save_resolved(root, old_sequence, {"actions": []})
+            self._save_resolved(root, new_sequence, {"actions": []})
+
+            result = self._collect(root, [keymap_set])
+
+            self.assertEqual(
+                result.referenced,
+                self._canonicals(root, [
+                    keymap, old_trigger_set, new_trigger_set, old_sequence, new_sequence,
+                ]),
+            )
+
+    def test_unreadable_keymap_is_reported_without_following_its_trigger_set(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set = "user/keymap_sets/main.json"
+            keymap = "user/keymaps/broken.json"
+            trigger_set = "user/trigger_sets/unavailable.json"
+            self._save_resolved(root, keymap_set, {"keymaps": [{"path": keymap}]})
+            self._save_resolved(root, keymap, {"mappings": {}})
+            self._save_resolved(root, trigger_set, {"triggers": []})
+            with open(self._resolved(root, keymap), "w", encoding="utf-8") as stream:
+                stream.write("{")
+
+            result = self._collect(root, [keymap_set])
+
+            self.assertEqual(result.unreadable_sources, ((keymap, SOURCE_UNREADABLE),))
+            self.assertIn(self._canonical(root, keymap), result.referenced)
+            self.assertNotIn(self._canonical(root, trigger_set), result.referenced)
+
+    def test_keymap_set_detection_excludes_mapping_files_but_keeps_legacy_sets(self):
+        self.assertFalse(_is_keymap_set({"mappings": {}, "trigger_set_path": "triggers.json"}))
+        self.assertTrue(_is_keymap_set({"trigger_set_path": "triggers.json"}))
 
     def test_records_unreadable_trigger_set_without_its_sequences(self):
         with tempfile.TemporaryDirectory() as root:

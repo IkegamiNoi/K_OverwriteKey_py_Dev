@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-25T14:30:00
+last_updated: 2026-09-25T17:30:00
 phase: `instructions/phase/34_trigger_list_per_keymap`（**phase 34 = トリガー一覧のキーマップ従属化・2026-09-24 起票・進行中**。暫定仕様 25 v0.4 ユーザー確定済）。次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 13。
 直前の完了フェーズ = **phase 33**（ダイアログの静的検査の発見ベース化・判断履歴 = `decisions_archive/33_grab_modal_static_check_discovery.md`）。
 last_commit_location: `claude/trigger-list-multi-keymap-19f4d7`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 34 進行中（task_01〜03 完了 = キーマップごとのトリガー一覧の保持・読込移行・一括 / 個別の保存と読込）。次は task_04（参照辿り 3 段・孤児棚卸し・keymap_set の判別）。**
+focus: **phase 34 進行中（task_01〜04 完了 = 保持・読込移行・一括 / 個別の保存と読込・参照辿り 3 段と孤児棚卸し）。次は task_05（入力判定と重複・グレー表示・案内）。**
 mode: implementing
 
 ## last_action
@@ -37,7 +37,7 @@ verified:
   review: reviewer 完了可
 
 ## next_action
-- `/task_new` で `tasks/task_04_*.md`（暫定 25 §3.1 末尾 keymap_set の判別 / §6 参照辿り 3 段〔keymap_set → keymap → trigger_set → sequence〕・旧形式 keymap_set の trigger_set_path も参照として数える・読めない keymap の理由コード・保護対象に全キーマップの trigger_set と sequence）を起票 → codex-implementer → verifier → reviewer。以降 task_05〜07（task_08 の手前で停止）。
+- `/task_new` で `tasks/task_05_*.md`（暫定 25 §7 入力判定の優先順位〔置換 > トリガー〕・編集時の重複拒否・トリガー / キーマップのグレー表示とキーボード表示・フック開始検証の縮小 + §8.5 重複キーの案内）を起票 → codex-implementer → verifier → reviewer。以降 task_06〜07（task_08 の手前で停止）。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

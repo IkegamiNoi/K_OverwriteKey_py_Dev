@@ -127,6 +127,15 @@ class OrphanScanTest(unittest.TestCase):
                 expected[child] = ORPHAN_CANDIDATE
             self.assertEqual(self._states(self._scan(root)), expected)
 
+    def test_keymap_with_trigger_set_path_keeps_keymap_candidate_shape(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap = "user/keymaps/per_keymap.json"
+            self._save(root, keymap, {
+                "mappings": {}, "trigger_set_path": "user/trigger_sets/main.json",
+            })
+
+            self.assertEqual(self._states(self._scan(root)), {keymap: ORPHAN_CANDIDATE})
+
     def test_individual_presets_are_referenced_even_when_disabled(self):
         with tempfile.TemporaryDirectory() as root:
             child = "user/hotkey_presets/individual.json"
@@ -299,16 +308,34 @@ class OrphanScanTest(unittest.TestCase):
 
     def test_protection_precedes_reference_and_shape_reads_are_lazy(self):
         with tempfile.TemporaryDirectory() as root:
-            protected, referenced = "user/keymaps/protected.json", "user/keymaps/referenced.json"
-            for child in (protected, referenced):
-                self._save(root, child, [])
-            self._save(root, "user/keymap_sets/main.json", {"keymaps": [protected, referenced]})
+            keymap = "user/keymaps/main.json"
+            trigger_set = "user/trigger_sets/main.json"
+            protected = "user/sequences/protected.json"
+            referenced = "user/sequences/referenced.json"
+            self._save(root, keymap, {
+                "mappings": {}, "trigger_set_path": trigger_set,
+            })
+            self._save(root, trigger_set, {
+                "triggers": [
+                    {"sequence_path": protected},
+                    {"sequence_path": referenced},
+                ],
+            })
+            for sequence in (protected, referenced):
+                self._save(root, sequence, {"actions": []})
+            self._save(root, "user/keymap_sets/main.json", {
+                "keymaps": [keymap], "active_keymap_path": keymap,
+            })
             with patch.object(self.service, "_load_optional_json", wraps=self.service._load_optional_json) as loader:
                 result = self._scan(root, protected_paths=[self._resolved(root, protected)])
-            self.assertEqual(self._states(result), {protected: ORPHAN_PROTECTED, referenced: ORPHAN_REFERENCED})
+            self.assertEqual(self._states(result), {
+                keymap: ORPHAN_REFERENCED, trigger_set: ORPHAN_REFERENCED,
+                protected: ORPHAN_PROTECTED, referenced: ORPHAN_REFERENCED,
+            })
             loaded = [call.args[0] for call in loader.call_args_list]
-            for child in (protected, referenced):
-                self.assertNotIn(self._resolved(root, child), loaded)
+            for sequence in (protected, referenced):
+                self.assertNotIn(self._resolved(root, sequence), loaded)
+            self.assertEqual(loaded.count(self._resolved(root, keymap)), 1)
 
     def test_redirected_reference_warns_and_its_child_becomes_candidate(self):
         directory = tempfile.TemporaryDirectory()
@@ -464,6 +491,34 @@ class CollectProtectedPathsTest(unittest.TestCase):
         }
         self.assertEqual(collect_protected_paths(self.service, runtime, keymap_set_path="set.json"),
                          ("set.json", "keymap.json", "triggers.json", "sequence.json", "presets.json"))
+
+    def test_protects_every_keymap_trigger_set_and_sequence_once_per_shared_group(self):
+        shared_triggers = [{self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "shared-sequence.json"}]
+        other_triggers = [{self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "other-sequence.json"}]
+        runtime = {
+            "active_keymap_id": "km1",
+            "keymaps": [
+                {"id": "km1", self.service.INTERNAL_KEYMAP_SOURCE_PATH: "keymap-1.json",
+                 self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: "shared-trigger-set.json",
+                 "triggers": shared_triggers},
+                {"id": "km2", self.service.INTERNAL_KEYMAP_SOURCE_PATH: "keymap-2.json",
+                 self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: "shared-trigger-set.json",
+                 "triggers": shared_triggers},
+                {"id": "km3", self.service.INTERNAL_KEYMAP_SOURCE_PATH: "keymap-3.json",
+                 self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: "other-trigger-set.json",
+                 "triggers": other_triggers},
+            ],
+            "hotkey_presets_path": "presets.json",
+        }
+
+        self.assertEqual(
+            collect_protected_paths(self.service, runtime, keymap_set_path="set.json"),
+            (
+                "set.json", "keymap-1.json", "keymap-2.json", "keymap-3.json",
+                "shared-trigger-set.json", "shared-sequence.json",
+                "other-trigger-set.json", "other-sequence.json", "presets.json",
+            ),
+        )
 
     def test_keeps_stored_spelling_and_deduplicates_in_input_order(self):
         stored = "user/Keymaps/../Keymaps/Mixed.JSON"
