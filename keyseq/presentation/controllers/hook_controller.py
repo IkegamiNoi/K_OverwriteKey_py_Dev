@@ -222,15 +222,18 @@ class HookController:
         notices = [self._format_shadowed_assignment(item) for item in conflicts]
         if not notices:
             return
-        status_var = self._app.ui_vars.status_var
-        current = str(status_var.get() or "")
+        flash_var = getattr(self._app.ui_vars, "flash_message_var", None)
+        current = str(flash_var.get() or "") if flash_var is not None else ""
         if current == self._last_shadowed_status:
             current = self._status_before_shadowed_notice or ""
-        if isinstance(action, StopHookAction):
-            current = f"停止しました\n{current}" if current else "停止しました"
         self._status_before_shadowed_notice = current
-        self._last_shadowed_status = "\n".join(part for part in (current, *notices) if part)
-        status_var.set(self._last_shadowed_status)
+        parts = []
+        if isinstance(action, StopHookAction):
+            parts.append(current)
+            parts.append("停止しました")
+        parts.extend(notices)
+        self._last_shadowed_status = "\n".join(dict.fromkeys(part for part in parts if part))
+        self._app._set_flash_message(self._last_shadowed_status)
 
     @staticmethod
     def _format_shadowed_assignment(conflict: AssignmentConflict) -> str:

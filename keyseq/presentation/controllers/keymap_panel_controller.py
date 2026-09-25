@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 
@@ -136,18 +137,33 @@ class KeymapPanelController:
         """一覧ダブルクリックで選択中 keymap の編集導線を開く。"""
         self.edit_selected_keymap()
 
-    def validate_keymap_switch_assignment(self, key: str, *, target_id: str, exclude_switch_key: str = "") -> bool:
+    def validate_keymap_switch_assignment(
+        self,
+        key: str,
+        *,
+        target_id: str,
+        exclude_switch_key: str = "",
+        message_parent: tk.Misc | None = None,
+    ) -> bool:
         if self._app.trigger_service.is_stop_key_conflict(self._app.data, key):
-            messagebox.showerror("設定できません", f"直接切替キーが停止キーと重複しています:\n{key}")
+            messagebox.showerror(
+                "設定できません", f"直接切替キーが停止キーと重複しています:\n{key}", parent=message_parent
+            )
             return False
         if self._app.trigger_service.is_toggle_key_conflict(self._app.data, key):
-            messagebox.showerror("設定できません", f"直接切替キーが一時停止/再開キーと重複しています:\n{key}")
+            messagebox.showerror(
+                "設定できません", f"直接切替キーが一時停止/再開キーと重複しています:\n{key}", parent=message_parent
+            )
             return False
         if normalize_key_name(key) in self._app._key_overlap_report().all_trigger_keys:
-            messagebox.showerror("設定できません", f"直接切替キーが通常トリガーと重複しています:\n{key}")
+            messagebox.showerror(
+                "設定できません", f"直接切替キーが通常トリガーと重複しています:\n{key}", parent=message_parent
+            )
             return False
         if normalize_key_name(key) in self._app._key_overlap_report().all_source_keys:
-            messagebox.showerror("設定できません", f"直接切替キーがキーマップ元キーと重複しています:\n{key}")
+            messagebox.showerror(
+                "設定できません", f"直接切替キーがキーマップ元キーと重複しています:\n{key}", parent=message_parent
+            )
             return False
 
         existing_target_id = self._app.keymap_service.get_keymap_by_switch_key(self._app.data, key)
@@ -155,7 +171,10 @@ class KeymapPanelController:
         excluded_key = normalize_key_name(exclude_switch_key)
         if existing_target_id and key != excluded_key:
             existing_name = self.format_keymap_display_name(self._app.keymap_service.find_keymap(self._app.data, existing_target_id)) or existing_target_id
-            messagebox.showerror("設定できません", f"この切替キーは既に使用されています:\n{key} -> {existing_name}")
+            messagebox.showerror(
+                "設定できません", f"この切替キーは既に使用されています:\n{key} -> {existing_name}",
+                parent=message_parent,
+            )
             return False
 
         existing_switch_key = self._app.keymap_service.find_switch_key_for_keymap(
@@ -165,13 +184,16 @@ class KeymapPanelController:
         )
         if existing_switch_key and existing_switch_key != key:
             target_name = self.format_keymap_display_name(self._app.keymap_service.find_keymap(self._app.data, normalized_target_id)) or normalized_target_id
-            messagebox.showerror("設定できません", f"この keymap には既に直接切替キーがあります:\n{existing_switch_key} -> {target_name}")
+            messagebox.showerror(
+                "設定できません", f"この keymap には既に直接切替キーがあります:\n{existing_switch_key} -> {target_name}",
+                parent=message_parent,
+            )
             return False
 
         try:
             self._app.input_gateway.validate_key_name(key)
         except Exception as e:
-            messagebox.showerror("設定できません", f"不明なキー名です:\n{key}\n\n{e}")
+            messagebox.showerror("設定できません", f"不明なキー名です:\n{key}\n\n{e}", parent=message_parent)
             return False
 
         return True
@@ -191,8 +213,14 @@ class KeymapPanelController:
             self._restore_active_keymap(original_active)
             return
         candidate_id = self._app.keymap_service.next_keymap_id(self._app.data)
-        result = self._prompt_keymap_edit("キーマップ追加", "")
-        if not result or not self._validate_addition_key(result.get("key", ""), candidate_id, pending):
+        result = self._prompt_keymap_edit(
+            "キーマップ追加",
+            "",
+            validate=lambda values, parent: self._validate_addition_key(
+                values.get("key", ""), candidate_id, pending, message_parent=parent
+            ),
+        )
+        if not result:
             self._restore_active_keymap(original_active)
             return
         if not self._apply_pending_switch_edits(pending):
@@ -220,9 +248,15 @@ class KeymapPanelController:
         if pending is None:
             self._restore_active_keymap(original_active)
             return False
-        result = self._prompt_keymap_edit("読込キーマップの追加", str(keymap.get("label") or ""))
         keymap_id = normalize_key_name(keymap.get("id", ""))
-        if not result or not self._validate_addition_key(result.get("key", ""), keymap_id, pending):
+        result = self._prompt_keymap_edit(
+            "読込キーマップの追加",
+            str(keymap.get("label") or ""),
+            validate=lambda values, parent: self._validate_addition_key(
+                values.get("key", ""), keymap_id, pending, message_parent=parent
+            ),
+        )
+        if not result:
             self._restore_active_keymap(original_active)
             return False
         if not self._apply_pending_switch_edits(pending):
@@ -248,42 +282,74 @@ class KeymapPanelController:
                     return None
             name = self.format_keymap_display_name(keymap) or keymap_id
             messagebox.showerror("切替キーが必要です", f"{name} に切替キーを設定してください")
-            result = self._prompt_keymap_edit("キーマップ変更", keymap)
-            if not result or not normalize_key_name(result.get("key", "")):
-                if result is not None:
-                    messagebox.showerror("設定できません", "切替キーは必須です。")
-                return None
-            switch_key = normalize_key_name(result["key"])
-            if not self._validate_addition_key(switch_key, keymap_id, pending):
+            result = self._prompt_keymap_edit(
+                "キーマップ変更",
+                keymap,
+                is_existing_keymap=True,
+                validate=lambda values, parent: self._validate_addition_key(
+                    values.get("key", ""), keymap_id, pending, message_parent=parent
+                ),
+            )
+            if not result:
                 return None
             pending.append((keymap, result, index))
         self._restore_active_keymap(original_active)
         return pending
 
-    def _prompt_keymap_edit(self, title: str, keymap_or_label) -> dict | None:
+    def _prompt_keymap_edit(
+        self,
+        title: str,
+        keymap_or_label,
+        *,
+        is_existing_keymap: bool = False,
+        validate: Callable[[dict[str, str], tk.Misc], bool] | None = None,
+    ) -> dict[str, str] | None:
         keymap = keymap_or_label if isinstance(keymap_or_label, dict) else None
         label = str(keymap.get("label") or "") if keymap else str(keymap_or_label or "")
+        dialog_ref: dict[str, tk.Misc] = {}
+        dialog_validate: Callable[[dict[str, str]], bool] | None = None
+        if validate is not None:
+            def validate_dialog(values: dict[str, str]) -> bool:
+                return validate(values, dialog_ref["dialog"])
+
+            dialog_validate = validate_dialog
+
         dlg = KeymapEditDialog(
             self._app,
             title=title,
-            initial_key="" if title != "キーマップ変更" else self._app.keymap_service.find_switch_key_for_keymap(
-                self._app.data, keymap.get("id", "")
+            initial_key=(
+                self._app.keymap_service.find_switch_key_for_keymap(self._app.data, keymap.get("id", ""))
+                if is_existing_keymap and keymap
+                else ""
             ),
             initial_label=label,
+            validate=dialog_validate,
         )
+        dialog_ref["dialog"] = dlg
         dlg.wait_window()
         result = getattr(dlg, "result", None)
         return result if isinstance(result, dict) else None
 
-    def _validate_addition_key(self, key: str, target_id: str, pending: list[tuple[dict, dict, int]]) -> bool:
+    def _validate_addition_key(
+        self,
+        key: str,
+        target_id: str,
+        pending: list[tuple[dict, dict, int]],
+        *,
+        message_parent: tk.Misc | None = None,
+    ) -> bool:
         normalized = normalize_key_name(key)
         if not normalized:
-            messagebox.showerror("設定できません", "切替キーは必須です。")
+            messagebox.showerror("設定できません", "切替キーは必須です。", parent=message_parent)
             return False
         if any(normalize_key_name(item[1].get("key", "")) == normalized for item in pending):
-            messagebox.showerror("設定できません", f"直接切替キーは既に使用されています:\n{normalized}")
+            messagebox.showerror(
+                "設定できません", f"直接切替キーは既に使用されています:\n{normalized}", parent=message_parent
+            )
             return False
-        return self.validate_keymap_switch_assignment(normalized, target_id=target_id)
+        return self.validate_keymap_switch_assignment(
+            normalized, target_id=target_id, message_parent=message_parent
+        )
 
     def _apply_pending_switch_edits(self, pending: list[tuple[dict, dict, int]]) -> bool:
         original_active = self._app.keymap_service.get_active_keymap_id(self._app.data)
@@ -418,7 +484,7 @@ class KeymapPanelController:
         )
 
     def show_keymap_switch_blocked(self) -> None:
-        self._app.ui_vars.status_var.set(self.SWITCH_BLOCKED_MESSAGE)
+        self._app._set_flash_message(self.SWITCH_BLOCKED_MESSAGE)
 
     def edit_selected_keymap(self) -> None:
         """選択中の keymap をダイアログで編集する。"""

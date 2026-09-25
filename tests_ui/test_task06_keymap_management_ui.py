@@ -5,6 +5,7 @@ from unittest.mock import patch
 from keyseq.application.input_router import SelectKeymapAction
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
+from keyseq.presentation.dialogs import KeymapEditDialog
 
 
 def make_runtime(*, one_keymap=False, switch_keys=None):
@@ -107,6 +108,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.assertFalse(hasattr(self.app.keymap_panel, "select_keymap"))
 
     def test_running_or_paused_run_to_end_blocks_switch_and_active_delete(self):
+        status_before = self.app.ui_vars.status_var.get()
         self.app.state.run_to_end_key = "f1"
         self.app.state.run_to_end_paused = False
         self.app.action_executor.execute_router_action(SelectKeymapAction("km2"))
@@ -119,11 +121,13 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.app.keymap_panel.on_keymap_list_select()
         self.assertEqual(self.app.data["active_keymap_id"], "km1")
         self.assertEqual(keymap_list.curselection(), (0,))
-        self.assertEqual(self.app.ui_vars.status_var.get(), self.app.keymap_panel.SWITCH_BLOCKED_MESSAGE)
+        self.assertEqual(self.app.ui_vars.flash_message_var.get(), self.app.keymap_panel.SWITCH_BLOCKED_MESSAGE)
+        self.assertEqual(self.app.ui_vars.status_var.get(), status_before)
 
         self.app.action_executor.execute_router_action(SelectKeymapAction("km2"))
         self.assertEqual(self.app.data["active_keymap_id"], "km1")
-        self.assertEqual(self.app.ui_vars.status_var.get(), self.app.keymap_panel.SWITCH_BLOCKED_MESSAGE)
+        self.assertEqual(self.app.ui_vars.flash_message_var.get(), self.app.keymap_panel.SWITCH_BLOCKED_MESSAGE)
+        self.assertEqual(self.app.ui_vars.status_var.get(), status_before)
         with patch("keyseq.presentation.controllers.keymap_panel_controller.messagebox.askyesno") as ask:
             self.app.keymap_panel.delete_keymap()
             ask.assert_not_called()
@@ -166,11 +170,114 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
             "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
         ) as showerror, patch(
             "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog",
-            return_value=_DialogResult({"key": "", "label": "optional"}),
+            return_value=_DialogResult(None),
         ):
             self.app.keymap_panel.add_keymap()
-        showerror.assert_called_once()
+        showerror.assert_not_called()
         self.assertEqual(len(self.app.data["keymaps"]), before_count)
+
+    def test_addition_dialog_retries_empty_key_and_cancel_aborts(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(switch_keys={"f8": "km1", "f9": "km2"})
+        )
+        dialogs = []
+
+        def enter_empty_then_valid(dialog):
+            dialogs.append(dialog)
+            dialog.key_var.set("")
+            dialog._ok()
+            self.assertIsNone(dialog.result)
+            self.assertTrue(dialog.winfo_exists())
+            dialog.key_var.set("f7")
+            dialog._ok()
+
+        with patch.object(KeymapEditDialog, "wait_window", new=enter_empty_then_valid), patch(
+            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+        ) as showerror, patch(
+            "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog", wraps=KeymapEditDialog
+        ) as edit_dialog:
+            self.app.keymap_panel.add_keymap()
+        self.assertEqual(len(dialogs), 1)
+        edit_dialog.assert_called_once()
+        self.assertEqual(len(self.app.data["keymaps"]), 3)
+        added = self.app.data["keymaps"][-1]
+        self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, added["id"]), "f7")
+        showerror.assert_called_once()
+        self.assertIs(showerror.call_args.kwargs["parent"], dialogs[0])
+
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(switch_keys={"f8": "km1", "f9": "km2"})
+        )
+        before = copy.deepcopy(self.app.data)
+
+        def cancel_after_empty(dialog):
+            dialog.key_var.set("")
+            dialog._ok()
+            self.assertIsNone(dialog.result)
+            self.assertTrue(dialog.winfo_exists())
+            dialog.destroy()
+
+        with patch.object(KeymapEditDialog, "wait_window", new=cancel_after_empty), patch(
+            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+        ) as showerror:
+            self.app.keymap_panel.add_keymap()
+        showerror.assert_called_once()
+        self.assertEqual(self.app.data, before)
+
+    def test_missing_existing_switch_dialog_retries_empty_and_duplicate_keys(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(make_runtime(switch_keys={}))
+        dialogs = []
+        key_attempts = [("", "f8"), ("f8", "f6"), ("", "f7")]
+
+        def enter_retry_values(dialog):
+            dialogs.append(dialog)
+            for index, key in enumerate(key_attempts[len(dialogs) - 1]):
+                dialog.key_var.set(key)
+                dialog._ok()
+                if index == 0:
+                    self.assertIsNone(dialog.result)
+                    self.assertTrue(dialog.winfo_exists())
+
+        with patch.object(KeymapEditDialog, "wait_window", new=enter_retry_values), patch(
+            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+        ) as showerror:
+            self.app.keymap_panel.add_keymap()
+
+        self.assertEqual(len(dialogs), 3)
+        self.assertEqual(showerror.call_count, 5)
+        self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, "km1"), "f8")
+        self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, "km2"), "f6")
+        added = self.app.data["keymaps"][-1]
+        self.assertEqual(
+            self.app.keymap_service.find_switch_key_for_keymap(self.app.data, added["id"]), "f7"
+        )
+        # 入力エラー（ダイアログ表示中）はダイアログを親にする。設定ダイアログを開く前の
+        # 「<名前> に切替キーを設定してください」はダイアログがまだ無いので対象外。
+        validation_calls = [call for call in showerror.call_args_list if call.args[0] == "設定できません"]
+        self.assertEqual(len(validation_calls), 3)
+        for call in validation_calls:
+            self.assertIn(call.kwargs.get("parent"), dialogs)
+
+    def test_keymap_edit_dialog_validation_controls_close_and_preserves_default(self):
+        invalid = KeymapEditDialog(self.app, "追加", validate=lambda _values: False)
+        invalid._ok()
+        self.assertIsNone(invalid.result)
+        self.assertTrue(invalid.winfo_exists())
+        invalid.destroy()
+
+        accepted_values = []
+        valid = KeymapEditDialog(self.app, "追加", validate=lambda values: accepted_values.append(values) or True)
+        valid.key_var.set("f7")
+        valid.label_var.set(" Extra ")
+        valid._ok()
+        self.assertEqual(valid.result, {"key": "f7", "label": "Extra"})
+        self.assertEqual(accepted_values, [valid.result])
+        self.assertFalse(valid.winfo_exists())
+
+        unchanged = KeymapEditDialog(self.app, "変更", initial_key="f8", initial_label="Main")
+        unchanged._ok()
+        self.assertEqual(unchanged.result, {"key": "f8", "label": "Main"})
+        self.assertFalse(unchanged.winfo_exists())
 
     def test_add_cancel_after_existing_key_prompt_does_not_add_keymap(self):
         self.app.data = self.app.config_service.normalize_runtime_data(

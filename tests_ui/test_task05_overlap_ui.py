@@ -1,6 +1,8 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import patch
 
+from keyseq.application.input_router import StopHookAction
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 
@@ -103,6 +105,51 @@ class Task05OverlapUiTest(unittest.TestCase):
         ):
             self.app.keymap_panel.edit_selected_keymap()
         self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, "km2"), "f10")
+
+    def test_shadowed_notice_uses_flash_and_keeps_stop_message_without_paused_notice(self):
+        status_before = self.app.ui_vars.status_var.get()
+        flash_var = self.app.ui_vars.flash_message_var
+        previous_flash = flash_var.get()
+        previous_before = self.app.hook._status_before_shadowed_notice
+        previous_last = self.app.hook._last_shadowed_status
+        previous_custom_enabled = self.app.hook.custom_input_enabled
+        previous_pressed = self.app.key_state_manager.pressed_keys
+        self.app.hook._status_before_shadowed_notice = None
+        self.app.hook._last_shadowed_status = None
+        flash_var.set("停止しました")
+
+        def set_flash(message, *, auto_clear=True):
+            flash_var.set(message)
+
+        try:
+            conflicts = self.app.hook._key_overlap_report().shadowed_for_key("f12")
+            self.assertTrue(conflicts)
+            with patch.object(self.app, "_set_flash_message", side_effect=set_flash) as set_flash_message:
+                self.app.hook.show_shadowed_assignments(StopHookAction(), conflicts)
+                first_message = flash_var.get()
+                self.assertIn("停止しました", first_message)
+                self.assertIn("f12 は停止キーと重複", first_message)
+                self.assertEqual(self.app.ui_vars.status_var.get(), status_before)
+                self.assertEqual(set_flash_message.call_args.args[0], first_message)
+
+                self.app.hook.show_shadowed_assignments(StopHookAction(), conflicts)
+                self.assertEqual(flash_var.get(), first_message)
+
+                self.app.hook.custom_input_enabled = False
+                route = self.app.input_router.handle(
+                    SimpleNamespace(event_type="down", name="f12", scan_code=None)
+                )
+                self.assertFalse(route.shadowed)
+                self.assertEqual(flash_var.get(), first_message)
+                self.assertEqual(set_flash_message.call_count, 2)
+        finally:
+            flash_var.set(previous_flash)
+            self.app.hook._status_before_shadowed_notice = previous_before
+            self.app.hook._last_shadowed_status = previous_last
+            self.app.hook.custom_input_enabled = previous_custom_enabled
+            self.app.key_state_manager.clear()
+            for key in previous_pressed:
+                self.app.key_state_manager.key_down(key)
 
     def test_edit_refusals_use_active_or_all_keymap_sets_as_specified(self):
         with patch(

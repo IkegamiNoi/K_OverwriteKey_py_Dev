@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
@@ -15,9 +15,17 @@ if TYPE_CHECKING:
 
 class KeymapEditDialog(tk.Toplevel):
     """keymap の切替キー + ラベルを編集するダイアログ。"""
-    def __init__(self, parent: App, title: str, initial_key: str = "", initial_label: str = ""):
+    def __init__(
+        self,
+        parent: App,
+        title: str,
+        initial_key: str = "",
+        initial_label: str = "",
+        validate: Callable[[dict], bool] | None = None,
+    ):
         super().__init__(parent)
         self.parent = parent
+        self._validate = validate
         self.title(title)
         self.resizable(False, False)
         self.result = None
@@ -55,10 +63,14 @@ class KeymapEditDialog(tk.Toplevel):
         grab_modal(self, parent, focus=self.label_entry)
 
     def _ok(self):
-        self.result = {
+        result = {
             "key": normalize_key_name(self.key_var.get()),
             "label": (self.label_var.get() or "").strip(),
         }
+        if self._validate is not None and not self._validate(result):
+            self.key_entry.focus_set()
+            return
+        self.result = result
         self.destroy()
 
     def destroy(self):
