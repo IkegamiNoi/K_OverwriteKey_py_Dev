@@ -90,7 +90,7 @@ keyseq/presentation/
       preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）
       trigger_dialog.py        # TriggerDialog
-      keymap_edit_dialog.py    # KeymapEditDialog
+      keymap_edit_dialog.py    # KeymapEditDialog（phase 34: 任意の検証コールバック `validate` を受け、False なら閉じない＝追加フローで使う）
       layout_delete_dialog.py  # LayoutDeleteDialog
       escape_close.py          # bind_escape_close（Esc に別用途がある 3 ダイアログの Escape 結線。印はクロージャに持つ・提案書 11 / phase 28 task_07）
       orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
@@ -185,7 +185,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
 `app.toggle_key_capture` / `app.paths`）経由で直接参照する**ようにした（App から委譲ボイラープレートを削除）:
 
 - ConfigPaths（config_paths.py ※presentation 直下）: 設定ファイルの配置規約とパス解決
-- DirtyStateTracker（controllers/dirty_state.py）: 未保存状態の一元管理
+- DirtyStateTracker（controllers/dirty_state.py）: 未保存状態の一元管理（phase 34: trigger_set の状態はキーマップ要素の内部キーが正・実体を省略したらアクティブの実体。移行先キーマップの未保存化 `mark_migrated_keymap_dirty`）
 - SingleKeyCaptureController（controllers/key_capture.py）: 停止キー/トグルキーのキャプチャ。
   **hook キーへの書き込みは `_apply_key` の 1 本のみ**（capture / clear の双方がここを通る）。
   個別指定 ON = `app.data` 更新 + Var 反映 + dirty / OFF = `startup_io.write_global_hook_keys` で
@@ -402,7 +402,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 | `save_path_resolution.py` | 保存先の解決と既定命名（`slugify_file_stem` の実体・一意パス採番） |
 | `split_loading.py` | split 構成の読込（keymap_set → keymap / trigger_set / sequence の再構成） |
 | `parent_refs_cleanup.py` | **参照元の掃除**（phase 10）。検査（子の列挙 / 実在判定 / 保護対象の分離 / 判定名 / 重複排除）と `prune_parent_refs`（除去） |
-| `reference_scan.py` | **参照集合の構築**（phase 11）。keymap_set の列挙と **2 段辿り**（keymap_set → trigger_set → sequence）。読めなかった参照側を理由コード付きで返す |
+| `reference_scan.py` | **参照集合の構築**（phase 11）。keymap_set の列挙と **3 段辿り**（keymap_set → keymap → trigger_set → sequence・phase 34。旧形式の keymap_set `trigger_set_path` も参照に数える・`mappings` を持つ JSON は keymap_set と判定しない）。読めなかった参照側を理由コード付きで返す |
 | `orphan_scan.py` | **走査と孤児判定**（phase 11）。候補側の列挙と形状検証 / 保護対象の適用 / 判定名 4 種 / `normalize_scan_dirs` |
 | `quarantine.py` | **隔離**（phase 11）。隔離ルートの遅延作成・**マニフェストの原子書込み（移動より先）**・1 件ずつの移動 |
 | `quarantine_manage.py` | **隔離の管理**（phase 11）。実行単位の一覧 / 復元 / **削除**（実行単位 ID + 4 検証・不可逆） |
@@ -646,6 +646,40 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   **I/O に依存しない純関数**として持ち、**比較キーは呼び出し側から `key_of` で受け取る**
   （`config_root` を知らないため）。`domain/config.py`（353 行）へは足さない。
   拒否（空名・同名・不存在・重複・範囲外）は **`None` を返す**で表現し、呼び出し側が理由を付ける。
+
+---
+
+## キーマップとトリガー一覧（phase 34）
+
+仕様は `spec_detail/data_schema.md` §5.13（データ・読込移行・保存）/ `key_input.md` §7.3（優先順位・重複）/ `features.md` §4.1・§4.3・§4.5（UI）。
+
+- **口 `domain/keymap_triggers.py`**: アクティブキーマップのトリガー一覧の取得・確保・代入（`get_active_triggers` / `ensure_active_triggers` /
+  `set_active_triggers`）と、共有実体の列挙（`iter_trigger_sets` = 同一 list を共有するキーマップ群を一覧順の代表でまとめる / `trigger_set_members` /
+  `trigger_set_owner`）、キーマップ 1 つ以上の保証（`ensure_at_least_one_keymap`）、単一 JSON の移行（`migrate_single_json_triggers`）。
+  **presentation は runtime の `"triggers"` を直接書かない**（`tests/test_keymap_triggers.py` の静的テストで固定）。
+- **runtime の形**: 各 `keymaps[]` 要素が `triggers` と trigger_set の内部キー（`_trigger_set_source_path` / `_parent_refs` / `_dirty` / `_imported`）を持つ。
+  トップレベル `triggers` は `[]`。移行状態はトップレベル `_legacy_trigger_set`（状態・旧値・移行先 keymap id・`auto_created`）。
+  `DEFAULT_CONFIG` は新形式（`keymaps[0].triggers` に例）。`KeymapService.ensure_active_keymap` は `keymap_1` / label 空へ統一。
+- **読込** `config_service/split_loading.py`: keymap ファイルの `trigger_set_path` を `attach_trigger_set`（同じ解決先は同一 list を共有）で読む。
+  旧形式の移行（項目の無いキーマップのみ・同ファイル参照なら same・移行できなければ「旧トリガー一覧（<stem>）」を自動作成）もここ。
+  キーマップの個別読込（`config_service.load_keymap_file` / `keymap_file_io`）も同じ `attach_trigger_set` を使う。
+- **保存** `config_service/split_payloads.py` / `save_plan_execution.py` / `save_plan.py`: trigger_set の実体ごとの payload と行（識別子 = 代表キーマップ id）、
+  sequence の合成キー（`save_plan.compose_sequence_key` / `split_sequence_key`・区切り `\x1f`）、計画全体の衝突回避、依存 3 段
+  （`find_dependency_blocked_parents`）、§5.13.4 の決定表、移行した trigger_set の `_parent_refs` の後処理。
+  キーマップの個別保存計画は `config_service/__init__.py` の `_save_keymap_with_plan` 以下（**1100 行超の肥大は `/refactor_check` の候補**）。
+  個別キーマップ保存は runtime の list 同一性を保つため意図的に `ensure_config_compatibility` を通さない（入口で正規化済み）。
+- **重なり判定 `application/key_overlap.py`**: `analyze_key_overlaps` が停止 / トグル / 切替 / 置換 / トリガーの重なりを判定し、
+  読み取り専用の索引（`MappingProxyType`）を持つ `KeyOverlapAnalysis` を返す。**App が表を保持し差し替える**（`_key_overlap_report` /
+  `_refresh_key_overlap_report`）。作り直しの契機はトリガー一覧・キーマップ一覧の再描画・停止 / トグルキーの変更（trace）・読込
+  （`KeymapSetIo.apply_loaded_data_to_ui`）。グレー表示・§7.3 の案内・編集時拒否・開始検証が同じ表を使い、`InputRouter` は表を引くだけ。
+- **入力判定** `application/input_router.py`: 停止 > トグル > 直接切替 > トリガー > 置換。案内用の `InputRoute.shadowed` を付け、
+  `ActionExecutor.on_shadowed_action` → `HookController` がステータスバーの一時メッセージ（`App._set_flash_message`）に出す（停止時は併記）。
+- **切替と実行位置** `application/app_state.py`: 実行位置・選択行はトリガー一覧の実体（代表キーマップ id）ごと（`indices_for` / `keymap_indices` /
+  `selected_trigger_indices`・代表削除で `rekey_trigger_set`）。連続実行中の切替可否は `AppState.can_switch_keymap` の 1 箇所で、
+  一覧の選択・直接切替キー（`ActionExecutor`）・アクティブの削除が共有する。
+- **キーマップ管理** `controllers/keymap_panel_controller.py`: 一覧の選択 = アクティブ化（未保存にしない）・追加フロー（切替キー未設定の既存への設定 →
+  追加ダイアログ。`KeymapEditDialog(validate=...)` で入力エラー時に閉じない）・編集（2 つ以上で切替キー空不可）・削除（1 つなら不可・移行先なら移行記録を消す）・
+  グレー表示。個別読込の二重読込拒否は `keymap_file_io`。
 
 ---
 

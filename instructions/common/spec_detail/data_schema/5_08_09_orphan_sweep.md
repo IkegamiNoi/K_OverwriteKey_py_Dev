@@ -19,7 +19,9 @@
 
 走査した JSON が keymap_set かどうかは、**`trigger_set_path` / `keymaps` /
 `active_keymap_path` / `hotkey_presets_path` のいずれかのキーを持つか**で判定する
-（**キーの有無**で見る。値が空かどうかは問わない）。**走査はリンク / ジャンクションを辿らない**。
+（**キーの有無**で見る。値が空かどうかは問わない）。ただし **`mappings` キーを持つ JSON は keymap ファイルとして
+keymap_set と判定しない**（phase 34 で keymap ファイルも `trigger_set_path` を持つため。旧形式で `trigger_set_path` しか持たない
+keymap_set は従来どおり拾う）。**走査はリンク / ジャンクションを辿らない**。
 
 1. `config/user/keymap_sets/` **直下**
 2. `config/config.json` の `keymap_set_path`（起動エントリ）
@@ -27,9 +29,12 @@
    **起動エントリでは代替できない**。落とすと**既定外のセットを開いている間にその子が隔離される**
 4. **ユーザー指定ディレクトリ**（§5.4 の `orphan_sweep_scan_dirs`。config 外でもよい・**非再帰**）
 
-**参照集合の構築（2 段辿り）** — keymap_set から keymap / trigger_set / 個別 hotkey_presets の
-パスを読み、**trigger_set の `triggers[].sequence_path` から sequence** を読む
-（**sequence のパスは keymap_set に無い**ため 1 段では集まらない）。
+**参照集合の構築（3 段辿り・phase 34）** — keymap_set から keymap / 個別 hotkey_presets のパスを読み、
+**keymap ファイルの内容を読んでその `trigger_set_path` から trigger_set**、**trigger_set の `triggers[].sequence_path` から sequence** を読む
+（keymap_set → keymap → trigger_set → sequence）。`keymaps[]` に加え **`active_keymap_path` の参照先も内容を読む**。
+**旧形式の keymap_set の `trigger_set_path` も参照として数え続ける**（未移行の構成セットのトリガー一覧を孤児にしない）。
+読めなかった keymap は既存の「読めなかった参照側（理由コード付き）」として扱い、その keymap が指すはずの trigger_set は参照集合に入らない。
+keymap ファイルは参照収集のために 1 回だけ読む（形状検証のために再読込しない）。
 `external_keyboard_layouts[].path` は、**`config_root` 基準と、その親
 （`dirname(config_root)`）基準の両方で解決した superset** を入れる。
 読み込みが `config_root` 基準で解決するのに runtime は親基準の相対表記で保持する**既存の非対称**
@@ -45,7 +50,7 @@
 **`user/hotkey_presets/global/` は候補側から除外する**（予約ディレクトリ。§5.10.1）。
 
 **保護対象** — **編集中の構成が使っているパスは、参照集合の判定によらず候補にしない**:
-現在の keymap_set 自身（**アプリが保持する現在のパス**）/ 各 keymap / trigger_set / 各 sequence /
+現在の keymap_set 自身（**アプリが保持する現在のパス**）/ 各 keymap / **全キーマップの** trigger_set / その各 sequence（共有実体は重複を除く）/
 個別プリセット（**この 4 種は runtime が持つ保存表記**）。
 **実在しなくても保護する**（存在確認をしない）。**config 配下でなくても保護する**。
 

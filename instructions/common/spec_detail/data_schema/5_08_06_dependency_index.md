@@ -1,7 +1,8 @@
 #### 5.8.6 依存関係と索引の更新
 
 * **子の保存先パスが変わるとき、その子を索引する上位の保存は必須**とする
-  （keymap / trigger_set → keymap_set、sequence → trigger_set）。
+  （keymap → keymap_set、**trigger_set → keymap**〔共有一覧は全メンバー〕、sequence → trigger_set の 3 段。phase 34）。
+  keymap を別名保存に選び直したら、ファイル未作成の trigger_set の既定名を新しい保存先の stem で再計算する。
   「パスが変わる」には**別名保存だけでなく、source_path を持たない子が新たに実体化する場合**も含む
   （旧形式のインライン sequence・「例を復元」直後の子など）
 * **例外（deferred index）**: 依存確認の 4 択で「保存しない」を**明示選択**したときのみ、上位の保存を見送る。

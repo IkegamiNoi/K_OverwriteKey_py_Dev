@@ -124,7 +124,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 
 ### application / config_service
 
-- `keyseq/application/config_service/__init__.py` が **841 行**（2026-09-22 実測。
+- `keyseq/application/config_service/__init__.py` が **1133 行**（phase 34 で +292・2026-09-27 実測。phase 34 の `/refactor_check` では M1 該当だが本項が既知のため提案書 13 に含めず。**切り出しの自然な単位 = 個別キーマップ保存計画一式〔`_save_keymap_with_plan` 以下 約 200 行〕を `save_plan_execution.py` と並ぶ module 関数群へ**。以前の値は 841 行〔2026-09-22 実測。
   phase 09=734 → 10=767 → 11=828 と増え続けている）。**M1 は「600 行超 かつ +100 行以上」**のため
   近年のフェーズでは非該当だが**分割は保留のまま**。ただし**テストが
   `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を差し替えるため
@@ -138,6 +138,13 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
     倒しているが、さらに増えるなら共通化の再検討対象（phase 08 由来）
   - `controllers/config_io/` の IO クラス骨格（`__init__` + `run_*` → `config_service` 呼び出し →
     `format_*` → `messagebox`）と `presentation/*_text.py` の整形関数が **3 系統目**に達した（phase 11 由来）
+
+- **80 行超の関数 5 つ**（phase 34 の `/refactor_check` M2・提案書 13 には入れず候補送り）: `split_loading.py::build_runtime_data_from_split`（154 行）/
+  `save_plan_execution.py::save_runtime_data`（125）/ `split_payloads.py::build_split_save_payloads`（120）/ `child_save_rows.py::collect_child_save_rows`（98）/
+  `domain/config.py::ensure_config_compatibility`（149）。いずれも phase 34 でトリガー一覧のキーマップ単位化のため大きく書き換えた。分割は関数ごとに設計が要る（phase 34 由来）
+- **phase 34 統合レビューの保留**: L-1 移行先キーマップと一覧を共有する別キーマップを個別保存すると移行先も一緒に書かれる（「移行先は必ず保存」の副作用・害なし）/
+  L-7 「保存しない」共有メンバーの予想パスが一括保存の親参照に入る（安全側・掃除で除去）/
+  task_07d reviewer 参考: 移行の境界値（`trigger_set_path` が存在しないファイル・非文字列）の明示テストが無い（phase 34 由来）
 
 ### 定数・直値の重複（M6 の境界）
 
