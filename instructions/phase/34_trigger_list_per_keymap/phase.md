@@ -65,7 +65,8 @@ keymap_set の `trigger_set_path` とトップレベル `triggers` は旧形式�
   （reviewer 参考: `keymap_set_io.py` の移行判定つき set_dirty(False) の重複 / `default_trigger_set_path` の引数名 `keymap_set_path` が実態〔親 keymap のパス〕と乖離 → 後者は task_02b で同ファイルを触るときに改名）
 - task_02b: 保存の安全網と命名（暫定 §5.2 / §5.3 の 2・3 点目 / §5.4 の移行時の扱いと後処理 / §5.5 の keymap 既定名と除外撤廃）— **完了**（2026-09-25）
   （付随: keymap ファイルへ `id` を書く〔§5.6 に沿う・既定名が id 由来でなくなったため〕。reviewer 参考: `resolve_trigger_set_save_path` の引数名も同様の乖離・範囲外）
-- task_03: 個別保存・個別読込（暫定 §5.6。Export は task_01b へ移動）
+- task_03: 個別保存・個別読込（暫定 §5.6。Export は task_01b へ移動）— **完了**（2026-09-25）
+  （reviewer: `_path_changed` 重複定義 → メインで削除。参考 = `config_service/__init__.py` の肥大〔個別キーマップ保存計画一式 +290 行〕→ task_08 の `/refactor_check` で判定 / 個別キーマップ保存経路だけ `ensure_config_compatibility` を通らない非対称 → task_08 の統合レビューで確認）
 - task_04: 参照辿り 3 段・孤児棚卸し・keymap_set の判別（暫定 §3.1 末尾 / §6）
 - task_05: 入力判定と重複（暫定 §7: 優先順位の入れ替え / 編集時の拒否 / トリガー・キーマップのグレー表示 / キーボード表示 /
   開始検証の縮小）+ 重複キーの案内（§8.5）

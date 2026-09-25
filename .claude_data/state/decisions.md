@@ -615,3 +615,10 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - restore_default の 2 テストは旧帰結（同名 keymap_set 保存で trigger_set は上書き）の検証 → §5.5 の新規則（既定は別名保存）へ書換え。
 - 中継役（Claude sonnet）の週間上限（解除 9/27 19:00）で一度中断 → ユーザー指示で再送し成功。
 - reviewer = 完了可（参考: `resolve_trigger_set_save_path` の引数名の乖離・範囲外）。
+
+### 【task_03】完了（2026-09-25）
+
+- 1 回で全テスト通過（tests 633 / tests_ui 549 +11）。reviewer = 修正要（軽微）: `trigger_set_file_io.py` の `_path_changed` 重複定義 → **メインで削除**（関連 UI テスト 49 件 OK）。
+- 持ち越し（task_08 で扱う）: ①`config_service/__init__.py` の肥大（個別キーマップ保存計画一式 +290 行・1100 行超）→ `/refactor_check` で分割要否を判定
+  ②個別キーマップ保存（`_save_keymap_with_plan`）だけ `ensure_config_compatibility` を経由しない非対称 → 統合レビューで確認。
+- 個別読込への「追加時の切替キー必須」の適用は task_06（追加フローと一緒に作る）。

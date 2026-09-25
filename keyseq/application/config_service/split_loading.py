@@ -326,17 +326,6 @@ def build_runtime_data_from_split(
     used_keymap_ids: set[str] = set()
     trigger_sets: dict[str, tuple[list[dict[str, Any]], list[str] | None, str]] = {}
 
-    def attach_trigger_set(keymap: dict[str, Any], stored_path: str) -> None:
-        identity = service.canonical_path(stored_path, config_root)
-        if identity not in trigger_sets:
-            triggers, refs = load_trigger_set(service, stored_path, config_root=config_root)
-            trigger_sets[identity] = (triggers, refs, stored_path)
-        triggers, refs, source_path = trigger_sets[identity]
-        keymap["triggers"] = triggers
-        keymap[service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = source_path
-        if refs is not None:
-            keymap[service.INTERNAL_TRIGGER_SET_PARENT_REFS] = refs
-
     active_keymap_path = coerce_label(keymap_set.get("active_keymap_path"))
     active_keymap_resolved_path = (
         service._resolve_config_relative_path(active_keymap_path, config_root)
@@ -358,7 +347,13 @@ def build_runtime_data_from_split(
 
             keymap = loaded_entry["keymap"]
             if loaded_entry["trigger_set_path"]:
-                attach_trigger_set(keymap, loaded_entry["trigger_set_path"])
+                attach_trigger_set(
+                    service,
+                    keymap,
+                    loaded_entry["trigger_set_path"],
+                    config_root=config_root,
+                    trigger_sets=trigger_sets,
+                )
             keymaps.append(keymap)
             loaded_keymap_ids_by_path[loaded_entry["resolved_path"]] = str(keymap.get("id") or "")
 
@@ -376,7 +371,13 @@ def build_runtime_data_from_split(
         )
         if active_keymap is not None:
             if active_keymap["trigger_set_path"]:
-                attach_trigger_set(active_keymap["keymap"], active_keymap["trigger_set_path"])
+                attach_trigger_set(
+                    service,
+                    active_keymap["keymap"],
+                    active_keymap["trigger_set_path"],
+                    config_root=config_root,
+                    trigger_sets=trigger_sets,
+                )
             keymaps.append(active_keymap["keymap"])
             active_keymap_id = str(active_keymap["keymap"].get("id") or "")
 
@@ -393,7 +394,13 @@ def build_runtime_data_from_split(
     state = "none"
     if legacy_path:
         if not source_path:
-            attach_trigger_set(active, legacy_path)
+            attach_trigger_set(
+                service,
+                active,
+                legacy_path,
+                config_root=config_root,
+                trigger_sets=trigger_sets,
+            )
             state = "migrated"
         elif service.canonical_path(source_path, config_root) == service.canonical_path(legacy_path, config_root):
             state = "same"
@@ -413,6 +420,26 @@ def build_runtime_data_from_split(
         if parent_refs is not None:
             normalized_keymap[service.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
     return normalized
+
+
+def attach_trigger_set(
+    service,
+    keymap: dict[str, Any],
+    stored_path: str,
+    *,
+    config_root: str,
+    trigger_sets: dict[str, tuple[list[dict[str, Any]], list[str] | None, str]],
+) -> None:
+    """同じ解決済みパスの trigger_set を共有し、配下 sequence も読み込む。"""
+    identity = service.canonical_path(stored_path, config_root)
+    if identity not in trigger_sets:
+        triggers, refs = load_trigger_set(service, stored_path, config_root=config_root)
+        trigger_sets[identity] = (triggers, refs, stored_path)
+    triggers, refs, source_path = trigger_sets[identity]
+    keymap["triggers"] = triggers
+    keymap[service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = source_path
+    if refs is not None:
+        keymap[service.INTERNAL_TRIGGER_SET_PARENT_REFS] = refs
 
 
 def load_keymap_entry(

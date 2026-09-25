@@ -267,10 +267,11 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
     # patch が外れる。代わりにその外部境界（config_service / refresh / messagebox）を無害化して
     # 実 save_X_to_path を走らせ、save_calls に保存呼び出しを記録して「どのパスへ保存したか」を固定する。
     def _keymap_save_patches(self, save_calls):
-        def fake_save(path, keymap, *, parent_ref="", config_root=""):
+        def fake_save(
+            path, keymap, *, parent_ref="", config_root="", runtime_data=None, save_plan=None
+        ):
             save_calls.append((path, keymap))
-            # 実 save_keymap_to_path は get_keymaps()[index] = saved でリスト要素を差し替える。
-            # コピーを返すと後続ブロックが差し替え後の別オブジェクトを掴むため、同一オブジェクトを返す。
+            # triggers の実体を保つ保存経路なので、同じ runtime 要素を返す。
             return keymap
         return (
             patch.object(self.app.config_service, "save_keymap_file", side_effect=fake_save),
@@ -329,6 +330,95 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             config_root=root,
         )
         self.app.keymap_set_io.apply_loaded_data_to_ui()
+
+    def _prepare_shared_keymap_set(self, root):
+        keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+        self.app.config_root = root
+        self._write_shared_trigger_files(root)
+        self._write_shared_keymap_files(root, keymap_set_path)
+        self.app.keymap_set_path = keymap_set_path
+        self._reload_keymap_set(keymap_set_path, root)
+        return keymap_set_path
+
+    def _write_shared_trigger_files(self, root):
+        repository = self.app.config_service.repository
+        repository.save_json(os.path.join(root, "user/sequences/shared.json"), {
+            "actions": [{"type": "text", "value": "shared", "label": ""}],
+            "_parent_refs": ["user/trigger_sets/shared.json"],
+        })
+        repository.save_json(os.path.join(root, "user/trigger_sets/shared.json"), {
+            "triggers": [{"key": "f1", "label": "Shared", "sequence_path": "user/sequences/shared.json"}],
+            "_parent_refs": ["user/keymaps/first.json", "user/keymaps/second.json"],
+        })
+
+    def _write_shared_keymap_files(self, root, keymap_set_path):
+        repository = self.app.config_service.repository
+        for map_path, keymap_id, label in (
+            ("user/keymaps/first.json", "km1", "First"),
+            ("user/keymaps/second.json", "km2", "Second"),
+        ):
+            repository.save_json(os.path.join(root, map_path), {
+                "id": keymap_id,
+                "label": label,
+                "mappings": {},
+                "trigger_set_path": "user/trigger_sets/shared.json",
+                "_parent_refs": ["user/keymap_sets/main.json"],
+            })
+        repository.save_json(keymap_set_path, {
+            "keymaps": [
+                {"path": "user/keymaps/first.json"},
+                {"path": "user/keymaps/second.json"},
+            ],
+            "active_keymap_path": "user/keymaps/first.json",
+            "trigger_set_path": "",
+        })
+
+    def _prepare_keymap_without_trigger_set(self, root):
+        keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+        keymap_path = "user/keymaps/map.json"
+        self.app.config_root = root
+        repository = self.app.config_service.repository
+        repository.save_json(os.path.join(root, keymap_path), {
+            "id": "map",
+            "label": "Map",
+            "mappings": {},
+            "trigger_set_path": "",
+        })
+        repository.save_json(keymap_set_path, {
+            "keymaps": [{"path": keymap_path}],
+            "active_keymap_path": keymap_path,
+            "trigger_set_path": "",
+        })
+        self.app.keymap_set_path = keymap_set_path
+        self._reload_keymap_set(keymap_set_path, root)
+        return keymap_set_path
+
+    def _save_trigger_set_to_path(self, path):
+        with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+            self.app.trigger_panel, "refresh_actions"
+        ), patch.object(tkinter.messagebox, "showinfo"):
+            return _trigger_set_io(self.app).save_trigger_set_to_path(path)
+
+    def _load_trigger_set_path(self, path):
+        with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True), patch.object(
+            tkinter.filedialog, "askopenfilename", return_value=path
+        ), patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+            self.app.trigger_panel, "refresh_actions"
+        ), patch.object(tkinter.messagebox, "showinfo"):
+            _trigger_set_io(self.app).load_trigger_set_file()
+
+    def _load_keymap_path(self, path):
+        with patch.object(tkinter.filedialog, "askopenfilename", return_value=path), patch.object(
+            self.app.keymap_panel, "refresh_keymap_list_ui"
+        ), patch.object(self.app.layout, "refresh_keyboard_window"), patch.object(
+            tkinter.messagebox, "showinfo"
+        ):
+            _keymap_io(self.app).load_keymap_file()
+
+    def _bulk_save_current_runtime(self, keymap_set_path, root):
+        return self.app.config_service.save_runtime_data(
+            keymap_set_path, self.app.data, config_root=root, startup_data={},
+        )[0]
 
     # C: 共有ダイアログヘルパ
     def test_choose_save_path_with_collision_all_branches(self):
@@ -1245,7 +1335,9 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.assertFalse(self.app.dirty_tracker.trigger_set_dirty)
             refresh_triggers.assert_called_once_with()
             refresh_actions.assert_called_once_with()
-            set_dirty.assert_called_once_with(True)
+            self.assertEqual(set_dirty.call_count, 2)
+            set_dirty.assert_any_call(True, config_dirty=False)
+            set_dirty.assert_any_call(True)
             flash.assert_called_once_with("トリガー一覧を読み込みました。")
             showinfo.assert_called_once_with("読込", f"トリガー一覧を読み込みました:\n{path}")
 
@@ -1886,6 +1978,225 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 reloaded[0]["actions"],
                 [{"type": "text", "value": "legacy", "label": ""}],
             )
+
+    def test_individual_trigger_save_parent_refs_use_keymap_file(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set_path = self._prepare_shared_keymap_set(root)
+            parent, shared_parent = self.app.data["keymaps"]
+            parent_path = parent[self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH]
+            target = os.path.join(root, "user", "trigger_sets", "renamed.json")
+            self.assertTrue(self._save_trigger_set_to_path(target))
+
+            parent_refs = self.app.config_service.repository.load_json(target)["_parent_refs"]
+            self.assertIn(parent_path, parent_refs)
+            stored_keymap_set_path = self.app.config_service.to_config_relative_or_absolute(
+                keymap_set_path, root
+            )
+            self.assertNotIn(stored_keymap_set_path, parent_refs)
+            self.assertTrue(parent[self.app.config_service.INTERNAL_KEYMAP_DIRTY])
+            self.assertTrue(shared_parent[self.app.config_service.INTERNAL_KEYMAP_DIRTY])
+
+    def test_individual_trigger_new_save_marks_keymap_and_bulk_updates_index(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set_path = self._prepare_keymap_without_trigger_set(root)
+            target = os.path.join(root, "user", "trigger_sets", "created.json")
+            self.assertTrue(self._save_trigger_set_to_path(target))
+            self.assertTrue(
+                self.app.data["keymaps"][0][self.app.config_service.INTERNAL_KEYMAP_DIRTY]
+            )
+            saved_data = self._bulk_save_current_runtime(keymap_set_path, root)
+            keymap_path = saved_data["keymaps"][0][self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH]
+            self.assertEqual(
+                self.app.config_service.repository.load_json(os.path.join(root, keymap_path))[
+                    "trigger_set_path"
+                ],
+                "user/trigger_sets/created.json",
+            )
+
+    def test_individual_trigger_alias_save_marks_keymap_and_bulk_updates_index(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set_path = self._prepare_loaded_keymap_set(root)
+            target = os.path.join(root, "user", "trigger_sets", "alias.json")
+            self.assertTrue(self._save_trigger_set_to_path(target))
+            self.assertTrue(
+                self.app.data["keymaps"][0][self.app.config_service.INTERNAL_KEYMAP_DIRTY]
+            )
+            saved_data = self._bulk_save_current_runtime(keymap_set_path, root)
+            keymap_path = saved_data["keymaps"][0][self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH]
+            self.assertEqual(
+                self.app.config_service.repository.load_json(os.path.join(root, keymap_path))[
+                    "trigger_set_path"
+                ],
+                "user/trigger_sets/alias.json",
+            )
+
+    def test_individual_trigger_load_marks_keymap_and_bulk_updates_index(self):
+        with tempfile.TemporaryDirectory() as root:
+            keymap_set_path = self._prepare_loaded_keymap_set(root)
+            target = os.path.join(root, "user", "trigger_sets", "loaded.json")
+            self.app.config_service.repository.save_json(target, {"triggers": []})
+            self._load_trigger_set_path(target)
+            self.assertTrue(
+                self.app.data["keymaps"][0][self.app.config_service.INTERNAL_KEYMAP_DIRTY]
+            )
+            saved_data = self._bulk_save_current_runtime(keymap_set_path, root)
+            keymap_path = saved_data["keymaps"][0][self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH]
+            self.assertEqual(
+                self.app.config_service.repository.load_json(os.path.join(root, keymap_path))[
+                    "trigger_set_path"
+                ],
+                "user/trigger_sets/loaded.json",
+            )
+
+    def test_individual_trigger_fallback_stem_uses_parent_keymap(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._prepare_loaded_keymap_set(root)
+            self.app.dirty_tracker.reset_trigger_set_state()
+            with patch.object(
+                self.app.io_dialogs,
+                "choose_save_path_with_collision",
+                return_value=os.path.join(root, "user", "trigger_sets", "chosen.json"),
+            ) as choose, patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                self.app.trigger_panel, "refresh_actions"
+            ), patch.object(tkinter.messagebox, "showinfo"):
+                self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
+            self.assertEqual(os.path.basename(choose.call_args.kwargs["suggested_path"]), "Main.json")
+
+    def test_individual_trigger_fallback_stem_without_parent_file(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.app.config_root = root
+            self.app.data = {
+                "keymaps": [{"id": "map", "label": "", "mappings": {}, "triggers": []}],
+                "active_keymap_id": "map",
+            }
+            self.app.keymap_set_path = ""
+            self.app.dirty_tracker.set_trigger_set_source_path("")
+            with patch.object(
+                self.app.io_dialogs,
+                "choose_save_path_with_collision",
+                return_value=os.path.join(root, "user", "trigger_sets", "chosen.json"),
+            ) as choose, patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                self.app.trigger_panel, "refresh_actions"
+            ), patch.object(tkinter.messagebox, "showinfo"):
+                self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
+            self.assertEqual(os.path.basename(choose.call_args.kwargs["suggested_path"]), "trigger_set.json")
+
+    def test_keymap_save_plan_lists_dirty_children_and_cancel_writes_nothing(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._prepare_shared_keymap_set(root)
+            keymap = self.app.data["keymaps"][0]
+            keymap_path = keymap[self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH]
+            triggers = get_active_triggers(self.app.data)
+            self.app.dirty_tracker.mark_trigger_set_dirty()
+            self.app.dirty_tracker.mark_sequence_dirty(triggers[0])
+            original_trigger_set = Path(os.path.join(root, "user", "trigger_sets", "shared.json")).read_bytes()
+            rows_seen = []
+
+            with patch.object(
+                self.app.child_save_dialog,
+                "ask_child_save_actions",
+                side_effect=lambda rows: rows_seen.extend(rows) or None,
+            ), patch.object(
+                self.app.config_service.repository,
+                "save_json",
+                wraps=self.app.config_service.repository.save_json,
+            ) as save_json, patch.object(self.app, "_set_flash_message"):
+                self.assertFalse(_keymap_io(self.app).save_keymap_to_path(0, keymap, keymap_path))
+            self.assertEqual({row.kind for row in rows_seen}, {CHILD_TRIGGER_SET, CHILD_SEQUENCE})
+            save_json.assert_not_called()
+            self.assertEqual(
+                Path(os.path.join(root, "user", "trigger_sets", "shared.json")).read_bytes(),
+                original_trigger_set,
+            )
+            self.assertIs(get_active_triggers(self.app.data), triggers)
+            self.assertIs(self.app.data["keymaps"][1]["triggers"], triggers)
+
+    def test_keymap_save_plan_preserves_trigger_list_and_sharing(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._prepare_shared_keymap_set(root)
+            keymap = self.app.data["keymaps"][0]
+            keymap_path = keymap[self.app.config_service.INTERNAL_KEYMAP_SOURCE_PATH]
+            triggers = get_active_triggers(self.app.data)
+            self.app.dirty_tracker.mark_trigger_set_dirty()
+            self.app.dirty_tracker.mark_sequence_dirty(triggers[0])
+            with patch.object(
+                self.app.child_save_dialog,
+                "ask_child_save_actions",
+                side_effect=lambda rows: {
+                    (row.kind, row.key): (ACTION_SAVE, "") for row in rows
+                },
+            ), patch.object(self.app.keymap_panel, "refresh_keymap_list_ui"), patch.object(
+                self.app.layout, "refresh_keyboard_window"
+            ), patch.object(tkinter.messagebox, "showinfo"):
+                self.assertTrue(_keymap_io(self.app).save_keymap_to_path(0, keymap, keymap_path))
+            self.assertIs(self.app.data["keymaps"][0], keymap)
+            self.assertIs(get_active_triggers(self.app.data), triggers)
+            self.assertIs(self.app.data["keymaps"][1]["triggers"], triggers)
+
+    def test_keymap_individual_load_attaches_trigger_set_and_sequence(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._prepare_loaded_keymap_set(root)
+            loaded_sequence = "user/sequences/loaded.json"
+            loaded_set = "user/trigger_sets/loaded.json"
+            loaded_keymap = os.path.join(root, "user", "keymaps", "loaded.json")
+            repository = self.app.config_service.repository
+            repository.save_json(os.path.join(root, loaded_sequence), {
+                "actions": [{"type": "text", "value": "from child", "label": ""}],
+            })
+            repository.save_json(os.path.join(root, loaded_set), {
+                "triggers": [{"key": "f2", "label": "Loaded", "sequence_path": loaded_sequence}],
+            })
+            repository.save_json(loaded_keymap, {
+                "id": "loaded",
+                "label": "Loaded map",
+                "mappings": {},
+                "trigger_set_path": loaded_set,
+            })
+            self._load_keymap_path(loaded_keymap)
+            attached = self.app.data["keymaps"][1]
+            self.assertEqual(attached["triggers"][0]["key"], "f2")
+            self.assertEqual(
+                attached["triggers"][0]["actions"],
+                [{"type": "text", "value": "from child", "label": ""}],
+            )
+            self.assertEqual(self.app.data["active_keymap_id"], "km1")
+
+    def test_keymap_individual_load_reuses_existing_same_path_instance(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._prepare_loaded_keymap_set(root)
+            original_triggers = get_active_triggers(self.app.data)
+            existing_keymap = os.path.join(root, "user", "keymaps", "existing.json")
+            repository = self.app.config_service.repository
+            base_trigger_path = self.app.data["keymaps"][0][
+                self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH
+            ]
+            repository.save_json(existing_keymap, {
+                "id": "existing",
+                "label": "Existing reference",
+                "mappings": {},
+                "trigger_set_path": base_trigger_path,
+            })
+            self._load_keymap_path(existing_keymap)
+            self.assertIs(self.app.data["keymaps"][0]["triggers"], original_triggers)
+            self.assertIs(self.app.data["keymaps"][1]["triggers"], original_triggers)
+            self.assertEqual(self.app.data["active_keymap_id"], "km1")
+
+    def test_individual_trigger_load_detaches_active_and_reuses_existing_path_group(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._prepare_shared_keymap_set(root)
+            first, second = self.app.data["keymaps"]
+            original = first["triggers"]
+            new_path = os.path.join(root, "user", "trigger_sets", "new.json")
+            self.app.config_service.repository.save_json(new_path, {"triggers": []})
+            self._load_trigger_set_path(new_path)
+            self.assertIsNot(first["triggers"], original)
+            self.assertIs(second["triggers"], original)
+            self.assertTrue(first[self.app.config_service.INTERNAL_KEYMAP_DIRTY])
+            self.assertFalse(second.get(self.app.config_service.INTERNAL_KEYMAP_DIRTY, False))
+
+            existing_path = second[self.app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH]
+            self._load_trigger_set_path(os.path.join(root, existing_path))
+            self.assertIs(first["triggers"], second["triggers"])
 
 
 if __name__ == "__main__":

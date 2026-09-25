@@ -18,6 +18,8 @@ from keyseq.domain.config import (
 )
 from keyseq.infrastructure.json_repository import JsonRepository
 from keyseq.domain.keymap_triggers import (
+    INTERNAL_TRIGGER_SET_DIRTY,
+    INTERNAL_TRIGGER_SET_IMPORTED,
     trigger_set_members,
     ensure_active_triggers,
     get_active_triggers,
@@ -25,7 +27,12 @@ from keyseq.domain.keymap_triggers import (
 )
 from . import keymap_set_history, orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
 
-from keyseq.application.save_plan import SavePlan
+from keyseq.application.save_plan import (
+    CHILD_TRIGGER_SET,
+    SavePlan,
+    SavePlanError,
+    split_sequence_key,
+)
 
 
 class ConfigService:
@@ -129,10 +136,35 @@ class ConfigService:
         used_keymap_ids: set[str] | None = None,
         imported: bool = True,
         config_root: str = "",
+        trigger_set_cache: dict[str, tuple[list[dict[str, Any]], list[str] | None, str]] | None = None,
     ) -> dict[str, Any]:
         raw_keymap = self.repository.load_json(path)
         if not isinstance(raw_keymap, dict):
             raise ValueError("keymap JSON の形式が不正です。")
+        normalized = self._normalize_loaded_keymap(
+            path, raw_keymap, used_keymap_ids=used_keymap_ids,
+            imported=imported, config_root=config_root,
+        )
+        trigger_set_path = coerce_label(raw_keymap.get("trigger_set_path"))
+        if trigger_set_path:
+            split_loading.attach_trigger_set(
+                self,
+                normalized,
+                trigger_set_path,
+                config_root=config_root,
+                trigger_sets=trigger_set_cache if trigger_set_cache is not None else {},
+            )
+        return normalized
+
+    def _normalize_loaded_keymap(
+        self,
+        path: str,
+        raw_keymap: dict[str, Any],
+        *,
+        used_keymap_ids: set[str] | None,
+        imported: bool,
+        config_root: str,
+    ) -> dict[str, Any]:
         used_ids = used_keymap_ids if used_keymap_ids is not None else set()
         keymap_id = self._generate_keymap_id(path, raw_keymap, used_ids)
         mappings = raw_keymap.get("mappings")
@@ -163,20 +195,30 @@ class ConfigService:
         *,
         parent_ref: str = "",
         config_root: str = "",
+        runtime_data: dict[str, Any] | None = None,
+        save_plan: SavePlan | None = None,
+    ) -> dict[str, Any]:
+        if runtime_data is not None and save_plan is not None:
+            return self._save_keymap_with_plan(
+                path,
+                keymap,
+                runtime_data=runtime_data,
+                parent_ref=parent_ref,
+                config_root=config_root,
+                save_plan=save_plan,
+            )
+        return self._save_keymap_payload(path, keymap, parent_ref=parent_ref, config_root=config_root)
+
+    def _save_keymap_payload(
+        self,
+        path: str,
+        keymap: dict[str, Any],
+        *,
+        parent_ref: str,
+        config_root: str,
     ) -> dict[str, Any]:
         resolved_path = self._resolve_config_relative_path(path, config_root)
-        stored_path = (
-            self.to_config_relative_or_absolute(resolved_path, config_root)
-            if config_root
-            else path
-        )
-        normalized = ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [])
-        if not normalized:
-            raise ValueError("保存できる keymap がありません。")
-        item = normalized[0]
-        parent_refs = self._normalize_parent_refs(keymap.get(self.INTERNAL_KEYMAP_PARENT_REFS))
-        if parent_refs is not None:
-            item[self.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
+        item = self._keymap_item_for_save(keymap)
         payload = split_payloads.build_keymap_file_payload(self,
             item,
             parent_ref=parent_ref,
@@ -184,13 +226,235 @@ class ConfigService:
             target_path=resolved_path,
         )
         self.repository.save_json(resolved_path, payload)
+        return self._saved_keymap_result(item, path, resolved_path, config_root, payload)
+
+    def _keymap_item_for_save(self, keymap: dict[str, Any]) -> dict[str, Any]:
+        normalized = ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [])
+        if not normalized:
+            raise ValueError("保存できる keymap がありません。")
+        item = normalized[0]
+        parent_refs = self._normalize_parent_refs(keymap.get(self.INTERNAL_KEYMAP_PARENT_REFS))
+        if parent_refs is not None:
+            item[self.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
+        return item
+
+    def _saved_keymap_result(
+        self,
+        item: dict[str, Any],
+        path: str,
+        resolved_path: str,
+        config_root: str,
+        payload: dict[str, Any],
+    ) -> dict[str, Any]:
         saved = safe_deepcopy(item)
         if self.PARENT_REFS_KEY in payload:
             saved[self.INTERNAL_KEYMAP_PARENT_REFS] = safe_deepcopy(payload[self.PARENT_REFS_KEY])
-        saved[self.INTERNAL_KEYMAP_SOURCE_PATH] = stored_path
+        saved[self.INTERNAL_KEYMAP_SOURCE_PATH] = (
+            self.to_config_relative_or_absolute(resolved_path, config_root)
+            if config_root
+            else path
+        )
         saved[self.INTERNAL_KEYMAP_IMPORTED] = False
         saved[self.INTERNAL_KEYMAP_DIRTY] = False
         return saved
+
+    def _save_keymap_with_plan(
+        self,
+        path: str,
+        keymap: dict[str, Any],
+        *,
+        runtime_data: dict[str, Any],
+        parent_ref: str,
+        config_root: str,
+        save_plan: SavePlan,
+    ) -> dict[str, Any]:
+        resolved_path = self._resolve_config_relative_path(path, config_root)
+        root = os.path.abspath(config_root)
+        payloads = self._build_keymap_save_payloads(
+            runtime_data, parent_ref=parent_ref, config_root=root, save_plan=save_plan,
+        )
+        self._validate_requested_keymap_target(
+            keymap, resolved_path, payloads, config_root=root,
+        )
+        self._validate_keymap_save_plan(
+            runtime_data, payloads, config_root=root, parent_ref=parent_ref, save_plan=save_plan,
+        )
+        self._write_keymap_save_payloads(payloads)
+        self._apply_keymap_save_payloads(runtime_data, payloads, config_root=root)
+        saved = safe_deepcopy(keymap)
+        self._apply_saved_keymap_state(saved, path, resolved_path, config_root, payloads)
+        return saved
+
+    def _validate_requested_keymap_target(
+        self,
+        keymap: dict[str, Any],
+        resolved_path: str,
+        payloads: dict[str, Any],
+        *,
+        config_root: str,
+    ) -> None:
+        item = next(
+            (entry for entry in payloads["keymaps"] if entry.get("id") == keymap.get("id")),
+            None,
+        )
+        if item is None or item["skip"] or self.canonical_path(
+            item["resolved_path"], config_root
+        ) != self.canonical_path(resolved_path, config_root):
+            raise SavePlanError("キーマップの保存計画と保存先が一致しません。")
+
+    def _build_keymap_save_payloads(
+        self,
+        runtime_data: dict[str, Any],
+        *,
+        parent_ref: str,
+        config_root: str,
+        save_plan: SavePlan,
+    ) -> dict[str, Any]:
+        return split_payloads.build_split_save_payloads(
+            self, runtime_data, config_root=config_root, startup_data=None,
+            keymap_set_path=parent_ref, keymap_set_name_path=parent_ref,
+            legacy_path="", split_base_dir="", save_plan=save_plan,
+        )
+
+    def _validate_keymap_save_plan(
+        self,
+        runtime_data: dict[str, Any],
+        payloads: dict[str, Any],
+        *,
+        config_root: str,
+        parent_ref: str,
+        save_plan: SavePlan,
+    ) -> None:
+        blocked = save_plan_execution.find_dependency_blocked_parents(
+            self, runtime_data, config_root=config_root,
+            keymap_set_path=parent_ref or self._default_keymap_set_path(config_root),
+            save_plan=save_plan,
+        )
+        if any(kind == CHILD_TRIGGER_SET for kind, _ in blocked):
+            raise SavePlanError("sequence の保存先変更には trigger_set の保存が必要です。")
+        save_plan_execution.validate_save_plan(
+            self, save_plan, runtime_data, payloads, config_root=config_root,
+        )
+
+    def _write_keymap_save_payloads(self, payloads: dict[str, Any]) -> None:
+        for item in payloads["sequences"]:
+            if not item["skip"]:
+                self.repository.save_json(item["resolved_path"], item["payload"])
+        for item in payloads["trigger_sets"]:
+            if not item["skip"]:
+                self.repository.save_json(item["resolved_path"], item["payload"])
+        for item in payloads["keymaps"]:
+            if not item["skip"]:
+                self.repository.save_json(item["resolved_path"], item["payload"])
+
+    def _apply_keymap_save_payloads(
+        self, runtime_data: dict[str, Any], payloads: dict[str, Any], *, config_root: str,
+    ) -> None:
+        save_plan_execution.apply_saved_child_paths(self, runtime_data, payloads, config_root)
+        self._clear_saved_keymap_child_state(runtime_data, payloads)
+
+    def _clear_saved_keymap_child_state(
+        self, runtime_data: dict[str, Any], payloads: dict[str, Any],
+    ) -> None:
+        saved_keymaps = self._clear_saved_keymap_states(runtime_data, payloads["keymaps"])
+        self._clear_saved_trigger_set_states(runtime_data, payloads["trigger_sets"])
+        self._clear_saved_sequence_states(runtime_data, payloads["sequences"])
+        self._mark_deferred_keymap_states(
+            runtime_data, payloads["trigger_sets"], saved_keymaps
+        )
+
+    def _clear_saved_keymap_states(
+        self, runtime_data: dict[str, Any], items: list[dict[str, Any]],
+    ) -> set[str]:
+        saved_ids: set[str] = set()
+        for item in items:
+            keymap_id = str(item.get("id") or "")
+            keymap = next(
+                (entry for entry in runtime_data.get("keymaps", [])
+                 if isinstance(entry, dict) and entry.get("id") == keymap_id),
+                None,
+            )
+            if item["skip"] or keymap is None:
+                continue
+            saved_ids.add(keymap_id)
+            keymap[self.INTERNAL_KEYMAP_IMPORTED] = False
+            keymap[self.INTERNAL_KEYMAP_DIRTY] = False
+            refs = item["payload"].get(self.PARENT_REFS_KEY)
+            if refs is not None:
+                keymap[self.INTERNAL_KEYMAP_PARENT_REFS] = safe_deepcopy(refs)
+        return saved_ids
+
+    def _clear_saved_trigger_set_states(
+        self, runtime_data: dict[str, Any], items: list[dict[str, Any]],
+    ) -> None:
+        for item in items:
+            if item["skip"]:
+                continue
+            for member in trigger_set_members(runtime_data, str(item["key"])):
+                member[INTERNAL_TRIGGER_SET_DIRTY] = False
+                member[INTERNAL_TRIGGER_SET_IMPORTED] = False
+                refs = item["payload"].get(self.PARENT_REFS_KEY)
+                if refs is not None:
+                    member[self.INTERNAL_TRIGGER_SET_PARENT_REFS] = safe_deepcopy(refs)
+
+    def _clear_saved_sequence_states(
+        self, runtime_data: dict[str, Any], items: list[dict[str, Any]],
+    ) -> None:
+        for item in items:
+            if item["skip"]:
+                continue
+            trigger_set_id, trigger_key = split_sequence_key(str(item["key"]))
+            for member in trigger_set_members(runtime_data, trigger_set_id):
+                for trigger in member.get("triggers", []):
+                    if normalize_key_name(str(trigger.get("key") or "")) != trigger_key:
+                        continue
+                    trigger[self.INTERNAL_SEQUENCE_IMPORTED] = False
+                    trigger[self.INTERNAL_SEQUENCE_DIRTY] = False
+                    refs = item["payload"].get(self.PARENT_REFS_KEY)
+                    if refs is not None:
+                        trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = safe_deepcopy(refs)
+
+    def _mark_deferred_keymap_states(
+        self,
+        runtime_data: dict[str, Any],
+        trigger_sets: list[dict[str, Any]],
+        saved_keymaps: set[str],
+    ) -> None:
+        for item in trigger_sets:
+            if item["skip"] or not save_plan_execution.sequence_save_path_changed(item):
+                continue
+            for keymap_id in item["parent_ids"]:
+                if keymap_id in saved_keymaps:
+                    continue
+                keymap = next(
+                    (entry for entry in runtime_data.get("keymaps", [])
+                     if isinstance(entry, dict) and entry.get("id") == keymap_id),
+                    None,
+                )
+                if keymap is not None:
+                    keymap[self.INTERNAL_KEYMAP_DIRTY] = True
+
+    def _apply_saved_keymap_state(
+        self,
+        saved: dict[str, Any],
+        path: str,
+        resolved_path: str,
+        config_root: str,
+        payloads: dict[str, Any],
+    ) -> None:
+        saved[self.INTERNAL_KEYMAP_SOURCE_PATH] = self.to_config_relative_or_absolute(
+            resolved_path, config_root
+        ) if config_root else path
+        saved[self.INTERNAL_KEYMAP_IMPORTED] = False
+        saved[self.INTERNAL_KEYMAP_DIRTY] = False
+        item = next(
+            (entry for entry in payloads["keymaps"] if entry.get("id") == saved.get("id")),
+            None,
+        )
+        if item is not None and self.PARENT_REFS_KEY in item["payload"]:
+            saved[self.INTERNAL_KEYMAP_PARENT_REFS] = safe_deepcopy(
+                item["payload"][self.PARENT_REFS_KEY]
+            )
 
     def load_sequence_file(
         self,
