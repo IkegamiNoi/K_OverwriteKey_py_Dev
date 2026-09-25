@@ -145,8 +145,8 @@ class SavePlanTest(unittest.TestCase):
             relative_paths = (
                 "config.json",
                 os.path.join("user", "keymap_sets", "main.json"),
-                os.path.join("user", "trigger_sets", "km1.json"),
-                os.path.join("user", "keymaps", "km1.json"),
+                os.path.join("user", "trigger_sets", "Main.json"),
+                os.path.join("user", "keymaps", "Main.json"),
                 os.path.join("user", "sequences", "copy.json"),
             )
             for relative_path in relative_paths:
@@ -162,8 +162,8 @@ class SavePlanTest(unittest.TestCase):
                     "trigger_set_path": "",
                     "hotkey_presets_path": "",
                     "hotkey_presets_individual": False,
-                    "active_keymap_path": "user/keymaps/km1.json",
-                    "keymaps": [{"path": "user/keymaps/km1.json", "switch_key": "1"}],
+                    "active_keymap_path": "user/keymaps/Main.json",
+                    "keymaps": [{"path": "user/keymaps/Main.json", "switch_key": "1"}],
                     "hook_stop_key": "f12",
                     "hook_toggle_key": "",
                     "hook_keys_individual": True,
@@ -176,7 +176,7 @@ class SavePlanTest(unittest.TestCase):
 
             self.assertEqual(
                 JsonRepository().load_json(
-                    os.path.join(none_root, "user", "trigger_sets", "km1.json")
+                    os.path.join(none_root, "user", "trigger_sets", "Main.json")
                 ),
                 {
                     "triggers": [
@@ -186,15 +186,16 @@ class SavePlanTest(unittest.TestCase):
                             "sequence_path": "user/sequences/copy.json",
                         }
                     ],
-                    "_parent_refs": ["user/keymaps/km1.json"],
+                    "_parent_refs": ["user/keymaps/Main.json"],
                 },
             )
             self.assertEqual(
                 JsonRepository().load_json(
-                    os.path.join(none_root, "user", "keymaps", "km1.json")
+                    os.path.join(none_root, "user", "keymaps", "Main.json")
                 ),
                 {
-                    "trigger_set_path": "user/trigger_sets/km1.json",
+                    "id": "km1",
+                    "trigger_set_path": "user/trigger_sets/Main.json",
                     "label": "Main",
                     "mappings": {"a": "b"},
                     "_parent_refs": ["user/keymap_sets/main.json"],
@@ -209,7 +210,7 @@ class SavePlanTest(unittest.TestCase):
                     "run_to_end": False,
                     "run_to_end_delay_ms": 300,
                     "actions": [{"type": "text", "value": "hello", "label": ""}],
-                    "_parent_refs": ["user/trigger_sets/km1.json"],
+                    "_parent_refs": ["user/trigger_sets/Main.json"],
                 },
             )
             self.assertFalse(
@@ -351,13 +352,13 @@ class SavePlanTest(unittest.TestCase):
         cases = (
             (
                 ChildSaveEntry(CHILD_KEYMAP, "km1", ACTION_SKIP),
-                "user/keymaps/km1.json",
-                ("user/sequences/copy.json", "user/trigger_sets/km1.json"),
+                "user/keymaps/Main.json",
+                ("user/sequences/copy.json", "user/trigger_sets/Main.json"),
             ),
             (
                 ChildSaveEntry(CHILD_SEQUENCE, compose_sequence_key("km1", "f1"), ACTION_SKIP),
                 "user/sequences/copy.json",
-                ("user/keymaps/km1.json", "user/trigger_sets/km1.json"),
+                ("user/keymaps/Main.json", "user/trigger_sets/Main.json"),
             ),
         )
         with tempfile.TemporaryDirectory() as tmp:
@@ -393,10 +394,10 @@ class SavePlanTest(unittest.TestCase):
             )
 
             self.assertFalse(
-                os.path.exists(os.path.join(root, "user", "trigger_sets", "km1.json"))
+                os.path.exists(os.path.join(root, "user", "trigger_sets", "Main.json"))
             )
             self.assertTrue(os.path.exists(sequence_path))
-            self.assertTrue(os.path.exists(os.path.join(root, "user", "keymaps", "km1.json")))
+            self.assertTrue(os.path.exists(os.path.join(root, "user", "keymaps", "Main.json")))
 
     def test_trigger_set_does_not_write_skipped_sequence(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -408,7 +409,7 @@ class SavePlanTest(unittest.TestCase):
 
             self.assertFalse(os.path.exists(os.path.join(root, "user", "sequences", "copy.json")))
             trigger_set = JsonRepository().load_json(
-                os.path.join(root, "user", "trigger_sets", "km1.json")
+                os.path.join(root, "user", "trigger_sets", "Main.json")
             )
             self.assertEqual(trigger_set["triggers"][0]["sequence_path"], "")
 
@@ -520,7 +521,7 @@ class SavePlanTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
             self._save(root)
-            trigger_set_path = os.path.join(root, "user", "trigger_sets", "km1.json")
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "Main.json")
             previous_trigger_set = _read_bytes(trigger_set_path)
             data = self.service.load_runtime_data_from_keymap_set_path(
                 os.path.join(root, "user", "keymap_sets", "main.json"),
@@ -609,7 +610,7 @@ class SavePlanTest(unittest.TestCase):
             )
             self.assertEqual(
                 loaded["keymaps"][0][self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH],
-                "user/trigger_sets/km1.json",
+                "user/trigger_sets/Main.json",
             )
             plan = SavePlan(
                 (
@@ -622,11 +623,11 @@ class SavePlanTest(unittest.TestCase):
             keymap_set = JsonRepository().load_json(
                 os.path.join(root, "user", "keymap_sets", "main.json")
             )
-            self.assertEqual(keymap_set["keymaps"][0]["path"], "user/keymaps/km1.json")
+            self.assertEqual(keymap_set["keymaps"][0]["path"], "user/keymaps/Main.json")
             self.assertEqual(keymap_set["trigger_set_path"], "")
-            self.assertEqual(JsonRepository().load_json(os.path.join(root, "user", "keymaps", "km1.json"))["trigger_set_path"], "user/trigger_sets/km1.json")
+            self.assertEqual(JsonRepository().load_json(os.path.join(root, "user", "keymaps", "Main.json"))["trigger_set_path"], "user/trigger_sets/Main.json")
             trigger_set = JsonRepository().load_json(
-                os.path.join(root, "user", "trigger_sets", "km1.json")
+                os.path.join(root, "user", "trigger_sets", "Main.json")
             )
             self.assertEqual(trigger_set["triggers"][0]["sequence_path"], "user/sequences/copy.json")
 
@@ -666,8 +667,8 @@ class SavePlanTest(unittest.TestCase):
                 relative_paths,
                 [
                     "user/sequences/copy.json",
-                    "user/trigger_sets/km1.json",
-                    "user/keymaps/km1.json",
+                    "user/trigger_sets/Main.json",
+                    "user/keymaps/Main.json",
                     "user/keymap_sets/main.json",
                     "config.json",
                 ],

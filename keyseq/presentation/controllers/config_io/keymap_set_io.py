@@ -106,6 +106,8 @@ class KeymapSetIo:
     def save_keymap_set_to(self, path: str, *, flash_message: str, show_success_dialog: bool) -> bool:
         try:
             save_path = self._app.paths.normalize_keymap_set_save_path(path)
+            migration_source_path = self._app.keymap_set_path
+            post_save_warnings: list[str] = []
             split_base_dir = self.choose_split_base_dir_for_keymap_set(save_path)
             save_plan, recalculation_notice, deferred_index = self._collect_child_save_plan(
                 save_path,
@@ -133,6 +135,8 @@ class KeymapSetIo:
                 startup_entry_loaded=self._app.startup_io.entry_loaded,
                 keep_legacy_copy=False,
                 split_base_dir=split_base_dir,
+                migration_source_keymap_set_path=migration_source_path,
+                post_save_warnings=post_save_warnings,
                 save_plan=save_plan,
             )
             self._app.keymap_set_path = save_path
@@ -150,6 +154,7 @@ class KeymapSetIo:
             self._app.dirty_tracker.set_dirty(False)
             self._app.dirty_tracker.sync_dirty_state()
             notices = [notice for notice in (recalculation_notice,) if notice]
+            notices.extend(post_save_warnings)
             if deferred_index:
                 label = "トリガー一覧" if all(kind == CHILD_TRIGGER_SET for kind, _ in deferred_parents) else "参照元の子ファイル"
                 notices.append(f"{label}は未保存です。次回保存で索引を更新します。")
@@ -180,7 +185,9 @@ class KeymapSetIo:
             recalculation_notice = ""
             if any(
                 entry.kind == CHILD_TRIGGER_SET
-                and self._trigger_target_changed(entry, targets, save_path, split_base_dir)
+                and self._trigger_target_changed(
+                    entry, targets, save_path, split_base_dir, plan
+                )
                 for entry in plan.entries
             ):
                 recalculated = self._recalculate_for_trigger_target(
@@ -218,7 +225,9 @@ class KeymapSetIo:
                 replacement = ChildSaveEntry(*parent_id, action, target)
                 plan = SavePlan(entries=tuple(replacement if (entry.kind, entry.key) == parent_id else entry for entry in plan.entries))
                 choices = {**choices, parent_id: (action, target)}
-                if parent_id[0] == CHILD_TRIGGER_SET and self._trigger_target_changed(replacement, targets, save_path, split_base_dir):
+                if parent_id[0] == CHILD_TRIGGER_SET and self._trigger_target_changed(
+                    replacement, targets, save_path, split_base_dir, plan
+                ):
                     recalculated = self._recalculate_for_trigger_target(
                         rows=rows, choices=choices, confirmed=plan, plan=plan,
                         save_path=save_path, split_base_dir=split_base_dir,
@@ -258,6 +267,7 @@ class KeymapSetIo:
             keymap_set_path=save_path,
             split_base_dir=split_base_dir,
             save_plan=pending,
+            migration_source_path=self._app.keymap_set_path,
         )
         return targets, rows
 
@@ -316,7 +326,15 @@ class KeymapSetIo:
         save_path: str,
         confirmed: SavePlan,
     ) -> tuple[SavePlan, dict] | None:
-        overwrite_rows = self._recalculated_overwrite_rows(rows, choices, targets, save_path)
+        recalculated_rows = self._recalculated_existing_rows(
+            rows, choices, targets, save_path, confirmed
+        )
+        for row in self._defaulted_save_as_rows(recalculated_rows, choices, confirmed):
+            target_path = self._app.child_save_dialog._ask_save_as_path(row)
+            if not target_path:
+                return None
+            choices = {**choices, (row.kind, row.key): (ACTION_SAVE_AS, target_path)}
+        overwrite_rows = self._recalculated_overwrite_rows(recalculated_rows, choices, confirmed)
         if not overwrite_rows:
             return self._build_plan(
                 rows=rows, choices=choices, targets=targets, confirmed=confirmed
@@ -330,12 +348,43 @@ class KeymapSetIo:
             choices,
         )
 
-    def _recalculated_overwrite_rows(self, rows, choices, targets, save_path: str):
-        overwrite_rows = []
+    def _defaulted_save_as_rows(self, rows, choices, confirmed):
+        return [
+            row for row in rows
+            if self._recalculated_choice(row, choices, confirmed)[0] == ACTION_SAVE_AS
+            and not self._recalculated_choice(row, choices, confirmed)[2]
+        ]
+
+    def _recalculated_overwrite_rows(self, rows, choices, confirmed):
+        return [
+            row for row in rows
+            if self._recalculated_choice(row, choices, confirmed)[0] == ACTION_SAVE
+            and row.share_state != SHARE_SOLE
+        ]
+
+    def _recalculated_choice(self, row, choices, confirmed) -> tuple[str, str, bool]:
+        selected = self._selected_recalculated_choice(row, choices, confirmed)
+        if selected is not None:
+            return selected[0], selected[1], True
+        return row.default_action, "", False
+
+    def _selected_recalculated_choice(self, row, choices, confirmed):
+        child_id = (row.kind, row.key)
+        choice = choices.get(child_id)
+        if choice is not None:
+            return choice
+        entry = confirmed.entry_for(*child_id)
+        if entry is not None:
+            return entry.action, entry.target_path
+        return None
+
+    def _recalculated_existing_rows(self, rows, choices, targets, save_path: str, confirmed):
+        recalculated_rows = []
         for row in rows:
             child_id = (row.kind, row.key)
             target_path = targets[child_id]
-            if choices[child_id][0] != ACTION_SAVE or (
+            selected = self._selected_recalculated_choice(row, choices, confirmed)
+            if (selected is not None and selected[0] == ACTION_SKIP) or (
                 self._app.config_service.canonical_path(row.target_path, self._app.config_root)
                 == self._app.config_service.canonical_path(target_path, self._app.config_root)
             ) or not os.path.exists(target_path):
@@ -356,9 +405,8 @@ class KeymapSetIo:
                 config_root=self._app.config_root,
                 has_source_path=self._has_source_path(row.kind, row.key),
             )
-            if recalculated_row.share_state != SHARE_SOLE:
-                overwrite_rows.append(recalculated_row)
-        return overwrite_rows
+            recalculated_rows.append(recalculated_row)
+        return recalculated_rows
 
     def _recalculation_notice(self, rows, targets) -> str:
         changed_sequences = sum(
@@ -380,13 +428,14 @@ class KeymapSetIo:
         targets: dict[tuple[str, str], str],
         save_path: str,
         split_base_dir: str,
+        save_plan: SavePlan,
     ) -> bool:
         planned_targets = self._app.config_service.resolve_child_save_targets(
             self._app.data,
             config_root=self._app.config_root,
             keymap_set_path=save_path,
             split_base_dir=split_base_dir,
-            save_plan=SavePlan(entries=(entry,)),
+            save_plan=save_plan,
         )
         current_target = targets[(CHILD_TRIGGER_SET, entry.key)]
         planned_target = planned_targets[(CHILD_TRIGGER_SET, entry.key)]

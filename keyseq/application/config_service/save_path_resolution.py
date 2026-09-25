@@ -127,7 +127,9 @@ def allocate_unique_absolute_path(
         index += 1
 
 
-def resolve_keymap_file_base_name(service, keymap: dict[str, Any]) -> str:
+def resolve_keymap_file_base_name(
+    service, keymap: dict[str, Any], keymap_set_path: str = ""
+) -> str:
     source_path = str(keymap.get(service.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
     if source_path:
         normalized_source = service._normalize_path_separators(source_path)
@@ -138,7 +140,19 @@ def resolve_keymap_file_base_name(service, keymap: dict[str, Any]) -> str:
             if slug:
                 return slug
 
-    for candidate in (keymap.get("id"), keymap.get("label"), "keymap"):
+    label = str(keymap.get("label") or "").strip()
+    if label:
+        slug = slugify_file_stem(label)
+        if slug:
+            return slug
+    else:
+        keymap_set_stem = slugify_file_stem(
+            os.path.splitext(os.path.basename(keymap_set_path))[0]
+        )
+        if keymap_set_stem:
+            return keymap_set_stem
+
+    for candidate in (keymap.get("id"), "keymap"):
         slug = slugify_file_stem(candidate)
         if slug:
             return slug
@@ -166,12 +180,12 @@ def allocate_unique_keymap_path(
 
 def default_trigger_set_path(
     service,
-    keymap_set_path: str,
+    parent_keymap_path: str,
     *,
     config_root: str,
     split_base_dir: str,
 ) -> str:
-    stem = slugify_file_stem(os.path.splitext(os.path.basename(keymap_set_path))[0])
+    stem = slugify_file_stem(os.path.splitext(os.path.basename(parent_keymap_path))[0])
     filename = f"{stem or 'default'}.json"
     if split_base_dir:
         return os.path.join(split_base_dir, "trigger_sets", filename)

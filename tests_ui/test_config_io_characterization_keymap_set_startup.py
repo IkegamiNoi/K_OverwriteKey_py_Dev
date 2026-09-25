@@ -42,6 +42,12 @@ def _unexpected_trigger_set_dependency(*_args, **_kwargs):
     )
 
 
+def _unexpected_child_save_actions(*_args, **_kwargs):
+    raise AssertionError(
+        "想定外の子保存ダイアログ。期待するならテスト側で patch すること"
+    )
+
+
 def _unexpected_recalculated_overwrite(*_args, **_kwargs):
     raise AssertionError(
         "想定外の再計算後上書き確認。期待するならテスト側で patch すること"
@@ -101,6 +107,11 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             "confirm_trigger_set_dependency",
             side_effect=_unexpected_trigger_set_dependency,
         )
+        self._child_save_actions_guard = patch.object(
+            child_save_dialog_module.ChildSaveDialog,
+            "ask_child_save_actions",
+            side_effect=_unexpected_child_save_actions,
+        )
         self._recalculated_overwrite_guard = patch.object(
             child_save_dialog_module.ChildSaveDialog,
             "confirm_recalculated_overwrite",
@@ -117,10 +128,12 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             side_effect=_unexpected_askyesno,
         )
         self._dependency_confirm_guard.start()
+        self._child_save_actions_guard.start()
         self._recalculated_overwrite_guard.start()
         self._showerror_guard.start()
         self._askyesno_guard.start()
         self.addCleanup(self._dependency_confirm_guard.stop)
+        self.addCleanup(self._child_save_actions_guard.stop)
         self.addCleanup(self._recalculated_overwrite_guard.stop)
         self.addCleanup(self._showerror_guard.stop)
         self.addCleanup(self._askyesno_guard.stop)
@@ -197,7 +210,11 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         choices = {}
         for row in rows:
             if row.default_action == ACTION_SAVE_AS:
-                filename_key = split_sequence_key(row.key)[1] if row.kind == CHILD_SEQUENCE else row.key
+                filename_key = (
+                    split_sequence_key(row.key)[1]
+                    if row.kind == CHILD_SEQUENCE
+                    else f"{row.kind}_{row.key}"
+                )
                 choices[(row.kind, row.key)] = (
                     ACTION_SAVE_AS,
                     os.path.join(root, "copies", f"{filename_key}.json"),
@@ -206,12 +223,14 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 choices[(row.kind, row.key)] = (ACTION_SAVE, "")
         return choices
 
-    def _save_restored_as(self, root, path):
+    def _save_restored_as(self, root, path, *, choice_overrides=None):
         rows_seen = []
 
         def choose_actions(rows):
             rows_seen.extend(rows)
-            return self._default_child_choices(rows, root)
+            choices = self._default_child_choices(rows, root)
+            choices.update(choice_overrides or {})
+            return choices
 
         with patch.object(
             self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda value: value
@@ -867,7 +886,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 before,
             )
 
-    def test_restore_default_reuses_trigger_set_named_after_same_keymap_stem(self):
+    def test_restore_default_uses_new_keymap_set_stem_without_reusing_old_children(self):
         with tempfile.TemporaryDirectory() as root:
             old_path, targets = self._prepare_loaded_keymap_set(root)
             before = {
@@ -888,26 +907,28 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
 
             ask.assert_called_once()
             self.assertEqual(self.app.keymap_set_path, new_path)
-            trigger_path = targets[(CHILD_TRIGGER_SET, "keymap_1")]
-            for child_path, previous_bytes in before.items():
-                if child_path != trigger_path:
-                    self.assertEqual(open(child_path, "rb").read(), previous_bytes)
-            self.assertEqual(self.app.config_service.repository.load_json(trigger_path), {
-                "triggers": [
-                    {"key": key, "suppress": True, "sequence_path": f"copies/{key}.json"}
-                    for key in ("f1", "f2")
-                ],
-                "_parent_refs": ["user/keymaps/keymap_1.json", "copies/keymap_1.json"],
-            })
-            new_trigger_set = os.path.join(root, "user", "trigger_sets", "keymap_1.json")
+            self.assertEqual({path: open(path, "rb").read() for path in before}, before)
+            new_targets = self.app.config_service.resolve_child_save_targets(
+                self.app.data,
+                config_root=root,
+                keymap_set_path=new_path,
+            )
+            new_keymap = new_targets[(CHILD_KEYMAP, "keymap_1")]
+            new_trigger_set = new_targets[(CHILD_TRIGGER_SET, "keymap_1")]
             self.assertTrue(os.path.exists(new_path))
+            self.assertEqual(os.path.basename(new_keymap), "restored.json")
+            self.assertEqual(os.path.basename(new_trigger_set), "restored.json")
             self.assertTrue(os.path.exists(new_trigger_set))
+            self.assertEqual(
+                [item["sequence_path"] for item in self.app.config_service.repository.load_json(new_trigger_set)["triggers"]],
+                ["copies/f1.json", "copies/f2.json"],
+            )
             self.assertEqual(
                 {(row.kind, row.key) for row in rows},
                 {(CHILD_KEYMAP, "keymap_1"), (CHILD_TRIGGER_SET, "keymap_1"), (CHILD_SEQUENCE, compose_sequence_key("keymap_1", "f1")), (CHILD_SEQUENCE, compose_sequence_key("keymap_1", "f2"))},
             )
 
-    def test_restore_default_overwrites_named_parent_and_trigger_set_but_not_sequences(self):
+    def test_restore_default_does_not_overwrite_colliding_trigger_set_or_sequences(self):
         with tempfile.TemporaryDirectory() as root:
             old_path, targets = self._prepare_loaded_keymap_set(root)
             parent_before = open(old_path, "rb").read()
@@ -926,10 +947,20 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             ), patches[0], patches[1], patches[2], patches[3]:
                 _config_set_io(self.app).restore_default()
 
-            _ask, rows = self._save_restored_as(root, old_path)
+            alias_trigger_set_path = os.path.join(root, "renamed", "trigger_set.json")
+            choices = {
+                (CHILD_KEYMAP, "keymap_1"): (ACTION_SAVE, ""),
+                (CHILD_TRIGGER_SET, "keymap_1"): (ACTION_SAVE_AS, alias_trigger_set_path),
+            }
+            _ask, rows = self._save_restored_as(root, old_path, choice_overrides=choices)
 
             self.assertNotEqual(open(old_path, "rb").read(), parent_before)
-            self.assertNotEqual(open(trigger_set_path, "rb").read(), trigger_set_before)
+            self.assertEqual(open(trigger_set_path, "rb").read(), trigger_set_before)
+            self.assertTrue(os.path.exists(alias_trigger_set_path))
+            self.assertEqual(
+                self.app.config_service.repository.load_json(targets[(CHILD_KEYMAP, "keymap_1")])["trigger_set_path"],
+                self.app.config_service.to_config_relative_or_absolute(alias_trigger_set_path, root),
+            )
             self.assertEqual(
                 {
                     key: open(targets[(CHILD_SEQUENCE, compose_sequence_key("keymap_1", key))], "rb").read()
@@ -938,7 +969,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 sequences_before,
             )
             actions = {(row.kind, row.key): row.default_action for row in rows}
-            self.assertEqual(actions[(CHILD_TRIGGER_SET, "keymap_1")], ACTION_SAVE)
+            self.assertEqual(actions[(CHILD_TRIGGER_SET, "keymap_1")], ACTION_SAVE_AS)
             self.assertEqual(actions[(CHILD_SEQUENCE, compose_sequence_key("keymap_1", "f1"))], ACTION_SAVE_AS)
             self.assertEqual(actions[(CHILD_SEQUENCE, compose_sequence_key("keymap_1", "f2"))], ACTION_SAVE_AS)
 
@@ -1053,7 +1084,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                     self.app.config_service.repository.load_json(copy_path)["actions"],
                     get_active_triggers(self.app.data)[0 if key == "f1" else 1]["actions"],
                 )
-            trigger_set_path = os.path.join(root, "user", "trigger_sets", "keymap_1.json")
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "listed.json")
             trigger_set = self.app.config_service.repository.load_json(trigger_set_path)
             for trigger in trigger_set["triggers"]:
                 copy_path = os.path.join(root, "copies", f"{trigger['key']}.json")

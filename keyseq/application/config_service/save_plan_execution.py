@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import warnings
 from typing import Any
 
 from keyseq.application.save_plan import (
@@ -44,6 +45,8 @@ def save_runtime_data(service,
     keep_legacy_copy: bool = False,
     legacy_path: str = "",
     split_base_dir: str = "",
+    migration_source_keymap_set_path: str = "",
+    post_save_warnings: list[str] | None = None,
     save_plan: SavePlan | None = None,
 ) -> tuple[dict[str, Any], dict[str, Any]]:
     normalized = normalize_save_runtime(data)
@@ -87,6 +90,7 @@ def save_runtime_data(service,
         startup_data=startup_data,
         startup_entry_loaded=startup_entry_loaded,
         keymap_set_path=resolved_keymap_set_path,
+        keymap_set_name_path=keymap_set_path,
         legacy_path=legacy_path if keep_legacy_copy else "",
         split_base_dir=resolved_split_base_dir,
         save_plan=resolved_save_plan,
@@ -134,6 +138,20 @@ def save_runtime_data(service,
         target_legacy_path = legacy_path or service._default_legacy_config_path(resolved_config_root)
         service.repository.save_json(target_legacy_path, sanitized_legacy)
 
+    cleanup_warning = _cleanup_migrated_trigger_set_parent_ref(
+        service,
+        payloads,
+        normalized.get(service.INTERNAL_LEGACY_TRIGGER_SET, {}),
+        resolved_keymap_set_path,
+        migration_source_keymap_set_path,
+        config_root=resolved_config_root,
+    )
+    if cleanup_warning:
+        if post_save_warnings is None:
+            warnings.warn(cleanup_warning, RuntimeWarning, stacklevel=2)
+        else:
+            post_save_warnings.append(cleanup_warning)
+
     apply_saved_child_paths(service, normalized, payloads, resolved_config_root)
     if normalized.get(service.INTERNAL_LEGACY_TRIGGER_SET, {}).get("state") != "unused":
         normalized[service.INTERNAL_LEGACY_TRIGGER_SET] = {"state": "none", "path": "", "keymap_id": ""}
@@ -141,6 +159,53 @@ def save_runtime_data(service,
     if isinstance(data, dict) and "hook_keys_individual" not in data:
         normalized.pop("hook_keys_individual", None)
     return normalized, payloads["startup"]
+
+
+def _cleanup_migrated_trigger_set_parent_ref(
+    service, payloads, legacy, saved_path: str, source_path: str, *, config_root: str
+) -> str:
+    if not isinstance(legacy, dict) or legacy.get("state") != "migrated" or not source_path:
+        return ""
+    if service.canonical_path(saved_path, config_root) != service.canonical_path(
+        source_path, config_root
+    ):
+        return ""
+    trigger_set = next(
+        (item for item in payloads["trigger_sets"] if item["key"] == legacy.get("keymap_id")),
+        None,
+    )
+    if trigger_set is None or trigger_set["skip"] or trigger_set["action"] != ACTION_SAVE:
+        return ""
+    return _remove_migration_parent_ref(
+        service,
+        trigger_set["resolved_path"],
+        source_path,
+        trigger_set["payload"],
+        config_root=config_root,
+    )
+
+
+def _remove_migration_parent_ref(
+    service, trigger_set_path: str, source_path: str, payload: dict[str, Any], *, config_root: str
+) -> str:
+    try:
+        data = service._load_optional_json(trigger_set_path)
+        if not isinstance(data, dict):
+            raise OSError("保存した trigger_set を読み直せません")
+        refs = service._normalize_parent_refs(data.get(service.PARENT_REFS_KEY))
+        if refs is None:
+            return ""
+        origin = service.canonical_path(source_path, config_root)
+        retained = [ref for ref in refs if service.canonical_path(ref, config_root) != origin]
+        if len(retained) == len(refs):
+            return ""
+        data[service.PARENT_REFS_KEY] = retained
+        service.repository.save_json(trigger_set_path, data)
+        payload[service.PARENT_REFS_KEY] = retained
+    except Exception as exc:
+        return f"移行元 keymap_set の参照整理に失敗しました: {trigger_set_path}: {exc}"
+    return ""
+
 
 def resolve_child_save_targets(service,
     data: Any,
@@ -164,6 +229,7 @@ def resolve_child_save_targets(service,
         config_root=resolved_config_root,
         startup_data=None,
         keymap_set_path=resolved_keymap_set_path,
+        keymap_set_name_path=keymap_set_path,
         legacy_path="",
         split_base_dir=resolved_split_base_dir,
         save_plan=save_plan or SavePlan(),
@@ -204,6 +270,7 @@ def find_dependency_blocked_sequences(service,
         config_root=resolved_config_root,
         startup_data=None,
         keymap_set_path=resolved_keymap_set_path,
+        keymap_set_name_path=keymap_set_path,
         legacy_path="",
         split_base_dir=os.path.abspath(split_base_dir) if split_base_dir else "",
         save_plan=save_plan,
@@ -216,7 +283,8 @@ def find_dependency_blocked_parents(service, data: Any, *, config_root: str,
     """子の保存先変更によって保存が必要になる、SKIP 指定の直接の親。"""
     payloads = split_payloads.build_split_save_payloads(
         service, normalize_save_runtime(data), config_root=os.path.abspath(config_root),
-        startup_data=None, keymap_set_path=os.path.abspath(keymap_set_path), legacy_path="",
+        startup_data=None, keymap_set_path=os.path.abspath(keymap_set_path),
+        keymap_set_name_path=keymap_set_path, legacy_path="",
         split_base_dir=split_base_dir, save_plan=save_plan,
     )
     blocked: dict[tuple[str, str], list[str]] = {}

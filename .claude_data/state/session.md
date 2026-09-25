@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-25T09:30:00
+last_updated: 2026-09-25T15:00:00
 phase: `instructions/phase/34_trigger_list_per_keymap`（**phase 34 = トリガー一覧のキーマップ従属化・2026-09-24 起票・進行中**。暫定仕様 25 v0.4 ユーザー確定済）。次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 13。
 直前の完了フェーズ = **phase 33**（ダイアログの静的検査の発見ベース化・判断履歴 = `decisions_archive/33_grab_modal_static_check_discovery.md`）。
 last_commit_location: `claude/trigger-list-multi-keymap-19f4d7`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 34 進行中（task_01・01b・02 完了 = トリガー一覧をキーマップごとに保持・読込移行・一括保存のキーマップ単位化）。次は task_02b（保存の安全網と命名）。**
+focus: **phase 34 進行中（task_01・01b・02・02b 完了 = キーマップごとのトリガー一覧の保持・読込移行・一括保存と安全網）。次は task_03（個別保存・個別読込）。**
 mode: implementing
 
 ## last_action
@@ -37,7 +37,7 @@ verified:
   review: reviewer 完了可
 
 ## next_action
-- `/task_new` で `tasks/task_02b_*.md`（暫定 25 §5.2 source_path なし子を常に行へ / §5.3 の 2・3 点目 / §5.4 移行した trigger_set の所有判定と keymap_set 上書き保存成功後の後処理 / §5.5 keymap 既定名〔label 空 → 構成セット stem・label あり → label〕と「同名既存 → 別名保存」の trigger_set 除外撤廃 / `default_trigger_set_path` 引数名の改名）を起票 → `codex-implementer` → `verifier` → `reviewer`。以降 task_03〜07 を順に（task_08 の手前で停止・ユーザー確認）。
+- `/task_new` で `tasks/task_03_*.md`（暫定 25 §5.6 個別保存・個別読込: 個別トリガー一覧の保存 / 別名保存 / 読込はアクティブの実体・参照が変わったら親 keymap を未保存・フォールバック名 / 個別キーマップ保存は保存計画で dirty な trigger_set・sequence を一覧に / 個別キーマップ読込は参照先も読み・追加規則〔切替キー必須〕に従う）を起票 → codex-implementer → verifier → reviewer。以降 task_04〜07（task_08 の手前で停止）。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

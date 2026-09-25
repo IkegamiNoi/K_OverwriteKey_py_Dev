@@ -15,7 +15,11 @@ from keyseq.application.save_plan import (
 from keyseq.domain.keymap_triggers import iter_trigger_sets, trigger_set_members, trigger_set_owner
 from keyseq.infrastructure.json_repository import JsonRepository
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
-from keyseq.presentation.controllers.config_io.child_save_rows import collect_child_save_rows
+from keyseq.presentation.controllers.config_io.child_save_rows import (
+    SHARE_OTHER_PARENT,
+    SHARE_SOLE,
+    collect_child_save_rows,
+)
 from keyseq.presentation.controllers.config_io.child_save_dialog import ChildSaveDialog
 from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
 
@@ -53,8 +57,100 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         return collect_child_save_rows(data=data, dirty_tracker=None, config_service=self.service,
                                        config_root=self.root, keymap_set_path=self.path)
 
-    def save(self, data, plan=None):
-        return self.service.save_runtime_data(self.path, data, config_root=self.root, save_plan=plan)[0]
+    def save(self, data, plan=None, *, path=None, post_save_warnings=None):
+        return self.service.save_runtime_data(
+            path or self.path,
+            data,
+            config_root=self.root,
+            save_plan=plan,
+            migration_source_keymap_set_path=self.path,
+            post_save_warnings=post_save_warnings,
+        )[0]
+
+    def test_keymap_default_name_uses_label_or_keymap_set_stem(self):
+        data = {"active_keymap_id": "first", "keymaps": [
+            {"id": "first", "label": "", "triggers": []},
+            {"id": "second", "label": "", "triggers": []},
+            {"id": "named", "label": "Named", "triggers": []},
+        ]}
+        targets = self.service.resolve_child_save_targets(
+            data, config_root=self.root, keymap_set_path=self.path,
+        )
+
+        self.assertEqual(os.path.basename(targets[(CHILD_KEYMAP, "first")]), "main.json")
+        self.assertEqual(os.path.basename(targets[(CHILD_KEYMAP, "second")]), "main_2.json")
+        self.assertEqual(os.path.basename(targets[(CHILD_KEYMAP, "named")]), "Named.json")
+
+        without_keymap_set = {"active_keymap_id": "id-only", "keymaps": [
+            {"id": "id-only", "label": "", "triggers": []},
+        ]}
+        targets = self.service.resolve_child_save_targets(
+            without_keymap_set, config_root=self.root, keymap_set_path="",
+        )
+        self.assertEqual(os.path.basename(targets[(CHILD_KEYMAP, "id-only")]), "id-only.json")
+
+    def test_keymap_save_as_recalculates_unsourced_trigger_set_default_name(self):
+        from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
+
+        data = {"active_keymap_id": "owner", "keymaps": [{
+            "id": "owner", "label": "Original", "triggers": [{"key": "f1", "actions": []}],
+        }]}
+        map_entry = ChildSaveEntry(CHILD_KEYMAP, "owner", ACTION_SAVE_AS, "user/keymaps/alias.json")
+        trigger_entry = ChildSaveEntry(CHILD_TRIGGER_SET, "owner", ACTION_SAVE)
+        plan = SavePlan((map_entry, trigger_entry))
+        targets_before = self.service.resolve_child_save_targets(
+            data, config_root=self.root, keymap_set_path=self.path,
+        )
+        io = KeymapSetIo(SimpleNamespace(config_service=self.service, data=data, config_root=self.root))
+
+        self.assertTrue(io._trigger_target_changed(
+            trigger_entry, targets_before, self.path, "", plan,
+        ))
+
+        targets = self.service.resolve_child_save_targets(
+            data, config_root=self.root, keymap_set_path=self.path, save_plan=plan,
+        )
+
+        self.assertEqual(os.path.basename(targets[(CHILD_TRIGGER_SET, "owner")]), "alias.json")
+
+    def test_keymap_skip_keeps_old_trigger_set_path_and_dirty_mark(self):
+        self.write("user/sequences/keep.json", {"actions": []})
+        self.write("user/trigger_sets/keep.json", {
+            "triggers": [{"key": "f1", "sequence_path": "user/sequences/keep.json"}],
+            "_parent_refs": ["user/keymaps/a.json"],
+        })
+        self.write("user/keymaps/a.json", {
+            "label": "A", "mappings": {}, "trigger_set_path": "user/trigger_sets/keep.json",
+            "_parent_refs": ["user/keymap_sets/main.json"],
+        })
+        self.repo.save_json(self.path, {
+            "keymaps": [{"path": "user/keymaps/a.json"}],
+            "active_keymap_path": "user/keymaps/a.json", "trigger_set_path": "",
+        })
+        data = self.service.load_runtime_data_from_keymap_set_path(self.path, config_root=self.root)
+        source_tracker = DirtyStateTracker(
+            get_data=lambda: data, keymap_service=KeymapService(),
+            config_service=self.service, on_change=Mock(),
+        )
+        source_tracker.mark_keymap_dirty(data["keymaps"][0])
+        plan = SavePlan((
+            ChildSaveEntry(CHILD_KEYMAP, "a", ACTION_SKIP),
+            ChildSaveEntry(CHILD_TRIGGER_SET, "a", ACTION_SAVE),
+            ChildSaveEntry(CHILD_SEQUENCE, compose_sequence_key("a", "f1"), ACTION_SAVE),
+        ))
+
+        saved = self.save(data, plan)
+        tracker = DirtyStateTracker(
+            get_data=lambda: saved, keymap_service=KeymapService(),
+            config_service=self.service, on_change=Mock(),
+        )
+        tracker.clear_individual_dirty_flags(skipped_keymap_ids=["a"])
+
+        self.assertEqual(
+            self.read("user/keymaps/a.json")["trigger_set_path"], "user/trigger_sets/keep.json",
+        )
+        self.assertTrue(saved["keymaps"][0][self.service.INTERNAL_KEYMAP_DIRTY])
+        self.assertTrue(tracker.has_unsaved_changes())
 
     def test_instance_lookup_ignores_missing_ids_and_normalizes_lookup(self):
         shared = []
@@ -131,7 +227,8 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
 
     def test_rows_use_normalized_owner_id(self):
         data = {"active_keymap_id": " A ", "keymaps": [{
-            "id": " A ", "_trigger_set_dirty": True,
+            "id": " A ", self.service.INTERNAL_KEYMAP_SOURCE_PATH: "user/keymaps/a.json",
+            "_trigger_set_dirty": True,
             "triggers": [{"key": " F1 ", "actions": [], "_sequence_dirty": True}],
         }]}
         self.assertEqual([(row.kind, row.key) for row in self.rows(data)], [
@@ -197,6 +294,134 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         self.assertNotIn(self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH, saved)
         self.assertNotIn(self.service.INTERNAL_TRIGGER_SET_PARENT_REFS, saved)
 
+    def test_migrated_trigger_set_uses_origin_as_parent_then_prunes_after_overwrite(self):
+        data = self.legacy()
+        trigger_path = data["keymaps"][0][self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH]
+        trigger_payload = self.read(trigger_path)
+        trigger_payload[self.service.PARENT_REFS_KEY] = ["user/keymap_sets/main.json"]
+        self.write(trigger_path, trigger_payload)
+
+        rows = self.rows(data)
+        trigger_row = next(row for row in rows if row.kind == CHILD_TRIGGER_SET)
+        self.assertEqual(trigger_row.share_state, SHARE_SOLE)
+        self.assertNotEqual(trigger_row.share_state, SHARE_OTHER_PARENT)
+        plan = build_save_plan(
+            data=data, rows=rows,
+            choices={(row.kind, row.key): (ACTION_SAVE, "") for row in rows},
+            targets=self.targets(data),
+        )
+        saved_refs = []
+        real_save = self.repo.save_json
+
+        def capture_trigger_refs(path, payload):
+            if os.path.normcase(os.path.abspath(path)) == os.path.normcase(os.path.abspath(
+                os.path.join(self.root, trigger_path)
+            )):
+                saved_refs.append(list(payload.get(self.service.PARENT_REFS_KEY, [])))
+            real_save(path, payload)
+
+        with patch.object(self.repo, "save_json", side_effect=capture_trigger_refs):
+            saved = self.save(data, plan)
+
+        self.assertEqual(len(saved_refs), 2)
+        self.assertEqual(set(saved_refs[0]), {"user/keymap_sets/main.json", "user/keymaps/a.json"})
+        self.assertEqual(saved_refs[1], ["user/keymaps/a.json"])
+        self.assertEqual(self.read(trigger_path)[self.service.PARENT_REFS_KEY], ["user/keymaps/a.json"])
+        self.assertEqual(
+            saved["keymaps"][0][self.service.INTERNAL_TRIGGER_SET_PARENT_REFS],
+            ["user/keymaps/a.json"],
+        )
+
+    def test_migrated_trigger_set_alias_and_keymap_set_write_failure_keep_origin_ref(self):
+        data = self.legacy()
+        trigger_path = data["keymaps"][0][self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH]
+        trigger_payload = self.read(trigger_path)
+        trigger_payload[self.service.PARENT_REFS_KEY] = ["user/keymap_sets/main.json"]
+        self.write(trigger_path, trigger_payload)
+        alias_path = os.path.join(self.root, "user", "keymap_sets", "alias.json")
+
+        targets = self.service.resolve_child_save_targets(
+            data, config_root=self.root, keymap_set_path=alias_path,
+        )
+        rows = collect_child_save_rows(
+            data=data, dirty_tracker=None, config_service=self.service,
+            config_root=self.root, keymap_set_path=alias_path,
+            migration_source_path=self.path,
+        )
+        plan = build_save_plan(
+            data=data, rows=rows,
+            choices={(row.kind, row.key): (ACTION_SAVE, "") for row in rows},
+            targets=targets,
+        )
+        self.save(data, plan, path=alias_path)
+        self.assertEqual(
+            set(self.read(trigger_path)[self.service.PARENT_REFS_KEY]),
+            {"user/keymap_sets/main.json", "user/keymaps/a.json"},
+        )
+
+        data = self.legacy()
+        trigger_path = data["keymaps"][0][self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH]
+        trigger_payload = self.read(trigger_path)
+        trigger_payload[self.service.PARENT_REFS_KEY] = ["user/keymap_sets/main.json"]
+        self.write(trigger_path, trigger_payload)
+        rows = self.rows(data)
+        plan = build_save_plan(
+            data=data, rows=rows,
+            choices={(row.kind, row.key): (ACTION_SAVE, "") for row in rows},
+            targets=self.targets(data),
+        )
+        real_save = self.repo.save_json
+
+        def fail_keymap_set(path, payload):
+            if os.path.normcase(os.path.abspath(path)) == os.path.normcase(os.path.abspath(self.path)):
+                raise OSError("keymap_set write failed")
+            real_save(path, payload)
+
+        with patch.object(self.repo, "save_json", side_effect=fail_keymap_set), self.assertRaises(OSError):
+            self.save(data, plan)
+
+        self.assertEqual(
+            set(self.read(trigger_path)[self.service.PARENT_REFS_KEY]),
+            {"user/keymap_sets/main.json", "user/keymaps/a.json"},
+        )
+
+    def test_migrated_trigger_set_cleanup_failure_is_a_save_warning(self):
+        data = self.legacy()
+        trigger_path = data["keymaps"][0][self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH]
+        trigger_payload = self.read(trigger_path)
+        trigger_payload[self.service.PARENT_REFS_KEY] = ["user/keymap_sets/main.json"]
+        self.write(trigger_path, trigger_payload)
+        rows = self.rows(data)
+        plan = build_save_plan(
+            data=data, rows=rows,
+            choices={(row.kind, row.key): (ACTION_SAVE, "") for row in rows},
+            targets=self.targets(data),
+        )
+        real_save = self.repo.save_json
+        trigger_writes = 0
+
+        def fail_cleanup_write(path, payload):
+            nonlocal trigger_writes
+            if os.path.normcase(os.path.abspath(path)) == os.path.normcase(os.path.abspath(
+                os.path.join(self.root, trigger_path)
+            )):
+                trigger_writes += 1
+                if trigger_writes == 2:
+                    raise OSError("cleanup write failed")
+            real_save(path, payload)
+
+        warnings = []
+        with patch.object(self.repo, "save_json", side_effect=fail_cleanup_write):
+            saved = self.save(data, plan, post_save_warnings=warnings)
+
+        self.assertEqual(saved[self.service.INTERNAL_LEGACY_TRIGGER_SET]["state"], "none")
+        self.assertEqual(len(warnings), 1)
+        self.assertIn("参照整理に失敗しました", warnings[0])
+        self.assertEqual(
+            set(self.read(trigger_path)[self.service.PARENT_REFS_KEY]),
+            {"user/keymap_sets/main.json", "user/keymaps/a.json"},
+        )
+
     def test_migration_stays_on_original_keymap_after_active_switch(self):
         data = self.legacy()
         data["active_keymap_id"] = data["keymaps"][1]["id"]
@@ -211,7 +436,8 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         rows = self.rows(data)
         row = next(row for row in rows if row.kind == CHILD_KEYMAP)
         self.assertFalse(row.allow_skip)
-        choices = {(row.kind, row.key): (ACTION_SKIP, "")}
+        choices = {(item.kind, item.key): (ACTION_SAVE, "") for item in rows}
+        choices[(row.kind, row.key)] = (ACTION_SKIP, "")
         with self.assertRaises(SavePlanError):
             build_save_plan(data=data, rows=rows, choices=choices, targets=self.targets(data))
         dialog = ChildSaveDialog(SimpleNamespace())
@@ -236,17 +462,24 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
             {"id": "a", "label": "A", "triggers": shared, "_trigger_set_dirty": True},
             {"id": "b", "label": "B", "triggers": shared, "_trigger_set_dirty": True},
         ]}
-        self.assertEqual([(row.kind, row.key) for row in self.rows(data)], [(CHILD_TRIGGER_SET, "a")])
+        rows = self.rows(data)
+        self.assertEqual([(row.kind, row.key) for row in rows], [
+            (CHILD_KEYMAP, "a"),
+            (CHILD_KEYMAP, "b"),
+            (CHILD_TRIGGER_SET, "a"),
+            (CHILD_SEQUENCE, compose_sequence_key("a", "f1")),
+        ])
+        self.assertEqual(sum(row.kind == CHILD_TRIGGER_SET for row in rows), 1)
         plan = build_save_plan(data=data, rows=[], choices={}, targets=self.targets(data))
         self.assertEqual([entry.key for entry in plan.entries if entry.kind == CHILD_TRIGGER_SET], ["a"])
         saved = self.save(data, plan)
-        self.assertEqual(self.read("user/keymaps/a.json")["trigger_set_path"], "user/trigger_sets/a.json")
-        self.assertEqual(self.read("user/keymaps/b.json")["trigger_set_path"], "user/trigger_sets/a.json")
-        self.assertEqual(os.listdir(os.path.join(self.root, "user", "trigger_sets")), ["a.json"])
+        self.assertEqual(self.read("user/keymaps/A.json")["trigger_set_path"], "user/trigger_sets/A.json")
+        self.assertEqual(self.read("user/keymaps/B.json")["trigger_set_path"], "user/trigger_sets/A.json")
+        self.assertEqual(os.listdir(os.path.join(self.root, "user", "trigger_sets")), ["A.json"])
         self.assertIs(saved["keymaps"][0]["triggers"], saved["keymaps"][1]["triggers"])
         for owner in saved["keymaps"]:
-            self.assertEqual(owner[self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH], "user/trigger_sets/a.json")
-            self.assertEqual(owner[self.service.INTERNAL_TRIGGER_SET_PARENT_REFS], ["user/keymaps/a.json", "user/keymaps/b.json"])
+            self.assertEqual(owner[self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH], "user/trigger_sets/A.json")
+            self.assertEqual(owner[self.service.INTERNAL_TRIGGER_SET_PARENT_REFS], ["user/keymaps/A.json", "user/keymaps/B.json"])
         loaded = self.service.load_runtime_data_from_keymap_set_path(self.path, config_root=self.root)
         self.assertEqual(len(list(iter_trigger_sets(loaded))), 1)
 
@@ -271,7 +504,7 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         ]}
         self.assertNotIn((CHILD_TRIGGER_SET, "a"), self.targets(data))
         self.save(data)
-        self.assertEqual(self.read("user/keymaps/a.json")["trigger_set_path"], "")
+        self.assertEqual(self.read("user/keymaps/main.json")["trigger_set_path"], "")
         self.assertEqual(os.listdir(os.path.join(self.root, "user", "trigger_sets")), ["b.json"])
         self.assertEqual(self.read("user/trigger_sets/b.json")["triggers"], [])
 
@@ -292,12 +525,12 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
                          ChildSaveEntry(CHILD_TRIGGER_SET, "a", ACTION_SAVE_AS, "user/trigger_sets/alias.json")))
         blocked = self.service.find_dependency_blocked_parents(data, config_root=self.root, keymap_set_path=self.path, save_plan=plan)
         self.assertEqual(blocked, {(CHILD_KEYMAP, "a"): ["a"]})
-        before = self.read("user/keymaps/a.json")
+        before = self.read("user/keymaps/main.json")
         with self.assertRaises(SavePlanError):
             self.save(data, plan)
         self.assertFalse(os.path.exists(os.path.join(self.root, "user", "trigger_sets", "alias.json")))
         self.save(data, SavePlan(plan.entries, allow_deferred_index=True))
-        self.assertEqual(self.read("user/keymaps/a.json"), before)
+        self.assertEqual(self.read("user/keymaps/main.json"), before)
         self.assertEqual(self.read("user/trigger_sets/alias.json")["triggers"][0]["key"], "f1")
 
     def test_default_stem_and_parent_follow_keymap_path(self):

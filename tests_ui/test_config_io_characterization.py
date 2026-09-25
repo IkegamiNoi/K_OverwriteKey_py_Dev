@@ -29,6 +29,12 @@ def _unexpected_trigger_set_dependency(*_args, **_kwargs):
     )
 
 
+def _unexpected_child_save_actions(*_args, **_kwargs):
+    raise AssertionError(
+        "想定外の子保存ダイアログ。期待するならテスト側で patch すること"
+    )
+
+
 def _unexpected_recalculated_overwrite(*_args, **_kwargs):
     raise AssertionError(
         "想定外の再計算後上書き確認。期待するならテスト側で patch すること"
@@ -162,6 +168,11 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             "confirm_trigger_set_dependency",
             side_effect=_unexpected_trigger_set_dependency,
         )
+        self._child_save_actions_guard = patch.object(
+            child_save_dialog_module.ChildSaveDialog,
+            "ask_child_save_actions",
+            side_effect=_unexpected_child_save_actions,
+        )
         self._recalculated_overwrite_guard = patch.object(
             child_save_dialog_module.ChildSaveDialog,
             "confirm_recalculated_overwrite",
@@ -178,10 +189,12 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             side_effect=_unexpected_askyesno,
         )
         self._dependency_confirm_guard.start()
+        self._child_save_actions_guard.start()
         self._recalculated_overwrite_guard.start()
         self._showerror_guard.start()
         self._askyesno_guard.start()
         self.addCleanup(self._dependency_confirm_guard.stop)
+        self.addCleanup(self._child_save_actions_guard.stop)
         self.addCleanup(self._recalculated_overwrite_guard.stop)
         self.addCleanup(self._showerror_guard.stop)
         self.addCleanup(self._askyesno_guard.stop)
@@ -498,7 +511,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.assertTrue(_keymap_io(self.app).save_keymap_to_path(0, keymap, path))
             self.assertEqual(
                 Path(path).read_bytes(),
-                _expected_json_bytes('{\n  "trigger_set_path": "",\n  "label": "Map",\n  "mappings": {}\n}'),
+                _expected_json_bytes('{\n  "id": "map",\n  "trigger_set_path": "",\n  "label": "Map",\n  "mappings": {}\n}'),
             )
         self.assertEqual(
             calls,
@@ -523,7 +536,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
     def test_keymap_individual_save_inside_config_stores_relative_path_without_changing_json_bytes(self):
         expected = _expected_json_bytes(
-            '{\n  "trigger_set_path": "",\n  "label": "Map",\n  "mappings": {}\n}'
+            '{\n  "id": "map",\n  "trigger_set_path": "",\n  "label": "Map",\n  "mappings": {}\n}'
         )
         with tempfile.TemporaryDirectory() as directory:
             root = os.path.join(directory, "config")
@@ -676,7 +689,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     )
                     self.assertEqual(
                         self.app.config_service.repository.load_json(path),
-                        {"trigger_set_path": "", "label": "Loaded", "mappings": {"a": "b"}},
+                        {"id": Path(path).stem, "trigger_set_path": "", "label": "Loaded", "mappings": {"a": "b"}},
                     )
 
     # E: trigger_set 個別 JSON IO
@@ -1074,7 +1087,11 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 "      \"sequence_path\": \"sequences/Run.json\"\n"
                 "    }\n  ]\n}"
             )
-            with patch.object(self.app.trigger_panel, "refresh_triggers", side_effect=lambda: calls.append("triggers")), patch.object(
+            with patch.object(
+                self.app.child_save_dialog,
+                "ask_child_save_actions",
+                return_value={(CHILD_SEQUENCE, "a"): (ACTION_SAVE, "")},
+            ) as ask, patch.object(self.app.trigger_panel, "refresh_triggers", side_effect=lambda: calls.append("triggers")), patch.object(
                 self.app.trigger_panel,
                 "refresh_actions",
                 side_effect=lambda: calls.append("actions"),
@@ -1084,6 +1101,10 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 side_effect=lambda message, **kw: calls.append(("flash", message, kw)),
             ), patch.object(tkinter.messagebox, "showinfo", side_effect=lambda *args: calls.append(("info", args))):
                 self.assertTrue(_trigger_set_io(self.app).save_trigger_set_to_path(path))
+            self.assertEqual(
+                [(row.kind, row.key) for row in ask.call_args.args[0]],
+                [(CHILD_SEQUENCE, "a")],
+            )
             self.assertEqual(Path(path).read_bytes(), expected)
         self.assertEqual(self.app.dirty_tracker.trigger_set_source_path, "triggers.json")
         self.assertFalse(self.app.dirty_tracker.trigger_set_imported)
@@ -1131,13 +1152,21 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                         "active_keymap_id": "keymap_1",
                     }
                     self.app.dirty_tracker.set_trigger_set_source_path("")
-                    with patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
+                    with patch.object(
+                        self.app.child_save_dialog,
+                        "ask_child_save_actions",
+                        return_value={(CHILD_SEQUENCE, "a"): (ACTION_SAVE, "")},
+                    ) as ask, patch.object(self.app.trigger_panel, "refresh_triggers"), patch.object(
                         self.app.trigger_panel,
                         "refresh_actions",
                     ), patch.object(tkinter.messagebox, "showinfo"):
                         self.assertTrue(
                             _trigger_set_io(self.app).save_trigger_set_to_path(path)
                         )
+                    self.assertEqual(
+                        [(row.kind, row.key) for row in ask.call_args.args[0]],
+                        [(CHILD_SEQUENCE, "a")],
+                    )
 
                     stored_source_path = self.app.dirty_tracker.trigger_set_source_path
                     if expected_relative_source_path:
@@ -1827,7 +1856,11 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 tkinter.filedialog,
                 "asksaveasfilename",
                 side_effect=AssertionError("想定外の別名保存ダイアログ"),
-            ), patch.object(self.app.child_save_dialog, "ask_child_save_actions") as ask, patch.object(
+            ), patch.object(
+                self.app.child_save_dialog,
+                "ask_child_save_actions",
+                return_value={(CHILD_SEQUENCE, "f1"): (ACTION_SAVE, "")},
+            ) as ask, patch.object(
                 self.app.trigger_panel,
                 "refresh_triggers",
             ), patch.object(self.app.trigger_panel, "refresh_actions"), patch.object(
@@ -1835,7 +1868,11 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 "showinfo",
             ):
                 self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
-            ask.assert_not_called()
+            ask.assert_called_once()
+            self.assertEqual(
+                [(row.kind, row.key) for row in ask.call_args.args[0]],
+                [(CHILD_SEQUENCE, "f1")],
+            )
 
             saved_trigger_set = self.app.config_service.repository.load_json(trigger_set_path)
             sequence_path = saved_trigger_set["triggers"][0]["sequence_path"]

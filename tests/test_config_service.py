@@ -74,8 +74,8 @@ class SaveLoadRoundTripTest(unittest.TestCase):
             for rel in (
                 "config.json",
                 os.path.join("user", "keymap_sets", "default.json"),
-                os.path.join("user", "trigger_sets", "km1.json"),
-                os.path.join("user", "keymaps", "km1.json"),
+                os.path.join("user", "trigger_sets", "Main.json"),
+                os.path.join("user", "keymaps", "Main.json"),
                 os.path.join("user", "sequences", "copy.json"),
             ):
                 self.assertTrue(os.path.exists(os.path.join(root, rel)), rel)
@@ -97,6 +97,7 @@ class SaveLoadRoundTripTest(unittest.TestCase):
             )
             self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
             self.assertEqual(loaded["active_keymap_id"], "km1")
+            self.assertEqual(loaded["keymaps"][0]["id"], "km1")
             self.assertEqual(loaded["keymap_switch_keys"], {"1": "km1"})
             self.assertEqual(loaded["hook_stop_key"], "f12")
             self.assertEqual(loaded["keyboard_layout"], "us_tkl")
@@ -1879,10 +1880,10 @@ class KeymapFileIoTest(unittest.TestCase):
             self.assertFalse(saved["_keymap_dirty"])
 
             payload = JsonRepository().load_json(path)
-            self.assertEqual(payload, {"trigger_set_path": "", "label": "Main", "mappings": {"a": "b"}})
+            self.assertEqual(payload, {"id": "km1", "trigger_set_path": "", "label": "Main", "mappings": {"a": "b"}})
 
             loaded = service.load_keymap_file(path, used_keymap_ids=set(), imported=True)
-            self.assertEqual(loaded["id"], "my_map")  # ファイル名から id が生成される
+            self.assertEqual(loaded["id"], "km1")
             self.assertEqual(loaded["mappings"], {"a": "b"})
             self.assertEqual(loaded["_keymap_source_path"], path)
             self.assertTrue(loaded["_keymap_imported"])
@@ -2347,8 +2348,8 @@ class ParentRefsSchemaTest(unittest.TestCase):
                 startup_data={},
             )
             child_paths = (
-                os.path.join(root, "user", "keymaps", "km1.json"),
-                os.path.join(root, "user", "trigger_sets", "km1.json"),
+                os.path.join(root, "user", "keymaps", "Main.json"),
+                os.path.join(root, "user", "trigger_sets", "Main.json"),
                 os.path.join(root, "user", "sequences", "copy.json"),
             )
             legacy_bytes = {}
@@ -2384,16 +2385,16 @@ class ParentRefsSchemaTest(unittest.TestCase):
                 startup_data={},
             )
 
-            keymap = JsonRepository().load_json(os.path.join(root, "user", "keymaps", "km1.json"))
+            keymap = JsonRepository().load_json(os.path.join(root, "user", "keymaps", "Main.json"))
             trigger_set = JsonRepository().load_json(
-                os.path.join(root, "user", "trigger_sets", "km1.json")
+                os.path.join(root, "user", "trigger_sets", "Main.json")
             )
             sequence = JsonRepository().load_json(
                 os.path.join(root, "user", "sequences", "copy.json")
             )
             self.assertEqual(keymap["_parent_refs"], ["user/keymap_sets/main.json"])
-            self.assertEqual(trigger_set["_parent_refs"], ["user/keymaps/km1.json"])
-            self.assertEqual(sequence["_parent_refs"], ["user/trigger_sets/km1.json"])
+            self.assertEqual(trigger_set["_parent_refs"], ["user/keymaps/Main.json"])
+            self.assertEqual(sequence["_parent_refs"], ["user/trigger_sets/Main.json"])
 
     def test_save_as_merges_existing_parent_refs_for_all_child_kinds(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -2471,13 +2472,13 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
                 startup_data={},
             )
 
-            trigger_set_path = os.path.join(root, "user", "trigger_sets", "km1.json")
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "Main.json")
             self.assertTrue(os.path.exists(trigger_set_path))
             self.assertTrue(os.path.exists(os.path.join(root, "user", "sequences", "copy.json")))
             keymap_set = JsonRepository().load_json(keymap_set_path)
             trigger_set = JsonRepository().load_json(trigger_set_path)
             self.assertEqual(keymap_set["trigger_set_path"], "")
-            self.assertEqual(JsonRepository().load_json(os.path.join(root, "user", "keymaps", "km1.json"))["trigger_set_path"], "user/trigger_sets/km1.json")
+            self.assertEqual(JsonRepository().load_json(os.path.join(root, "user", "keymaps", "Main.json"))["trigger_set_path"], "user/trigger_sets/Main.json")
             self.assertEqual(trigger_set["triggers"][0]["sequence_path"], "user/sequences/copy.json")
 
     def test_default_keymap_set_uses_keymap_stem(self):
@@ -2486,7 +2487,7 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
             self.service.save_runtime_data("", make_runtime_data(), config_root=root, startup_data={})
 
             self.assertTrue(
-                os.path.exists(os.path.join(root, "user", "trigger_sets", "km1.json"))
+                os.path.exists(os.path.join(root, "user", "trigger_sets", "Main.json"))
             )
 
     def test_multiple_keymap_sets_do_not_share_default_trigger_set_file(self):
@@ -2518,7 +2519,7 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
             root = os.path.join(tmp, "config")
             path = save_path_resolution.default_trigger_set_path(
                 self.service,
-                os.path.join(root, "user", "keymap_sets", "..."),
+                parent_keymap_path=os.path.join(root, "user", "keymaps", "..."),
                 config_root=root,
                 split_base_dir="",
             )
@@ -2539,7 +2540,7 @@ class TriggerSetDefaultPathTest(unittest.TestCase):
             )
 
             self.assertTrue(
-                os.path.exists(os.path.join(split_base_dir, "trigger_sets", "km1.json"))
+                os.path.exists(os.path.join(split_base_dir, "trigger_sets", "Main.json"))
             )
 
     @unittest.skipUnless(sys.platform == "win32", "Windows canonical identity integration")

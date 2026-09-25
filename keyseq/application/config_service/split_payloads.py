@@ -24,6 +24,7 @@ def build_split_save_payloads(service,
     startup_data: Any,
     startup_entry_loaded: bool = False,
     keymap_set_path: str,
+    keymap_set_name_path: str = "",
     legacy_path: str,
     split_base_dir: str,
     save_plan: SavePlan,
@@ -35,6 +36,7 @@ def build_split_save_payloads(service,
         config_root=config_root,
         keymaps_dir=keymaps_dir,
         parent_ref=keymap_set_path,
+        keymap_set_name_path=keymap_set_name_path,
         save_plan=save_plan,
     )
     keymap_paths_by_id = {
@@ -129,6 +131,7 @@ def build_keymap_payloads(service,
     config_root: str,
     keymaps_dir: str = "",
     parent_ref: str = "",
+    keymap_set_name_path: str = "",
     save_plan: SavePlan,
 ) -> list[dict[str, Any]]:
     keymaps = runtime.get("keymaps", [])
@@ -151,7 +154,9 @@ def build_keymap_payloads(service,
             relative_path = service.to_config_relative_or_absolute(resolved_path, config_root)
             collision_key = service.canonical_path(relative_path, config_root)
             if collision_key in used_relative_paths:
-                base_name = save_path_resolution.resolve_keymap_file_base_name(service, keymap)
+                base_name = save_path_resolution.resolve_keymap_file_base_name(
+                    service, keymap, keymap_set_name_path
+                )
                 relative_path = save_path_resolution.allocate_unique_keymap_path(
                     service,
                     base_name,
@@ -161,7 +166,9 @@ def build_keymap_payloads(service,
             else:
                 used_relative_paths.add(collision_key)
         else:
-            base_name = save_path_resolution.resolve_keymap_file_base_name(service, keymap)
+            base_name = save_path_resolution.resolve_keymap_file_base_name(
+                service, keymap, keymap_set_name_path
+            )
             if keymaps_dir:
                 relative_path = save_path_resolution.allocate_unique_absolute_path(
                     service,
@@ -416,6 +423,7 @@ def build_keymap_file_payload(service,
     target_path: str = "",
 ) -> dict[str, Any]:
     payload = {
+        "id": normalize_key_name(keymap.get("id", "")),
         "trigger_set_path": str(keymap.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or ""),
         "label": str(keymap.get("label") or "").strip(),
         "mappings": safe_deepcopy(keymap.get("mappings", {}))

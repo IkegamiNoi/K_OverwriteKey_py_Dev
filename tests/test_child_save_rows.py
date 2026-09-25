@@ -4,7 +4,7 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from keyseq.domain.keymap_triggers import get_active_triggers
+from keyseq.domain.keymap_triggers import get_active_triggers, INTERNAL_TRIGGER_SET_IMPORTED
 from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import (
     ACTION_SAVE,
@@ -28,6 +28,7 @@ from keyseq.presentation.controllers.config_io.child_save_rows import (
     share_text_for,
     _stored_parent_path,
 )
+from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
 
 
 class DummyDirtyTracker:
@@ -60,6 +61,8 @@ class ChildSaveRowsTest(unittest.TestCase):
             keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
             data = make_runtime_data()
             data["keymaps"][0]["_trigger_set_dirty"] = True
+            data["keymaps"][1][self.service.INTERNAL_KEYMAP_SOURCE_PATH] = "user/keymaps/km2.json"
+            data["keymaps"][0]["triggers"][1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH] = "user/sequences/f2.json"
             rows = collect_child_save_rows(
                 data=data,
                 dirty_tracker=DummyDirtyTracker(trigger_set_dirty=True),
@@ -82,9 +85,18 @@ class ChildSaveRowsTest(unittest.TestCase):
     def test_returns_no_rows_when_no_child_is_dirty(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
-            data = make_runtime_data()
-            data["keymaps"][0]["_keymap_dirty"] = False
-            get_active_triggers(data)[0]["_sequence_dirty"] = False
+            data = {
+                "keymaps": [
+                    {"id": "km1", "label": "Main", self.service.INTERNAL_KEYMAP_SOURCE_PATH: "user/keymaps/km1.json",
+                     self.service.INTERNAL_TRIGGER_SET_SOURCE_PATH: "user/trigger_sets/km1.json",
+                     "triggers": [
+                         {"key": "f1", "label": "Copy", "actions": [], self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "user/sequences/copy.json"},
+                         {"key": "f2", "actions": [], self.service.INTERNAL_SEQUENCE_SOURCE_PATH: "user/sequences/f2.json"},
+                     ]},
+                    {"id": "km2", self.service.INTERNAL_KEYMAP_SOURCE_PATH: "user/keymaps/km2.json", "triggers": []},
+                ],
+                "active_keymap_id": "km1",
+            }
 
             rows = collect_child_save_rows(
                 data=data,
@@ -179,7 +191,7 @@ class ChildSaveRowsTest(unittest.TestCase):
             )
             JsonRepository().save_json(
                 trigger_set_target,
-                {"_parent_refs": ["user/keymaps/km1.json", "other.json"]},
+                {"_parent_refs": ["user/keymaps/Main.json", "other.json"]},
             )
             JsonRepository().save_json(
                 sequence_target,
@@ -197,12 +209,80 @@ class ChildSaveRowsTest(unittest.TestCase):
                 config_root=root,
                 keymap_set_path=keymap_set_path,
             )
-            rows_by_kind = {row.kind: row for row in rows}
+            rows_by_child = {(row.kind, row.key): row for row in rows}
 
             # New keymaps and sequences avoid overwriting an existing sole-owned target.
-            self.assertEqual(rows_by_kind[CHILD_KEYMAP].share_state, SHARE_NEW_COLLIDES)
-            self.assertEqual(rows_by_kind[CHILD_TRIGGER_SET].share_state, SHARE_SHARED)
-            self.assertEqual(rows_by_kind[CHILD_SEQUENCE].share_state, SHARE_NEW_COLLIDES)
+            self.assertEqual(rows_by_child[(CHILD_KEYMAP, "km1")].share_state, SHARE_NEW_COLLIDES)
+            self.assertEqual(rows_by_child[(CHILD_TRIGGER_SET, "km1")].share_state, SHARE_NEW_COLLIDES)
+            self.assertEqual(
+                rows_by_child[(CHILD_SEQUENCE, compose_sequence_key("km1", "f1"))].share_state,
+                SHARE_NEW_COLLIDES,
+            )
+
+    def test_unsourced_children_always_have_rows_when_default_files_exist(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            data = {"active_keymap_id": "auto", "keymaps": [
+                {"id": "auto", "mappings": {}, "triggers": []},
+                {"id": "imported", "label": "Imported", "mappings": {},
+                 self.service.INTERNAL_KEYMAP_IMPORTED: True,
+                 INTERNAL_TRIGGER_SET_IMPORTED: True, "triggers": [
+                     {"key": "f1", "actions": [], self.service.INTERNAL_SEQUENCE_IMPORTED: True},
+                 ]},
+            ]}
+            targets = self.service.resolve_child_save_targets(
+                data, config_root=root, keymap_set_path=keymap_set_path,
+            )
+            parents = {
+                (CHILD_KEYMAP, "auto"): "user/keymap_sets/main.json",
+                (CHILD_KEYMAP, "imported"): "user/keymap_sets/main.json",
+                (CHILD_TRIGGER_SET, "imported"): "user/keymaps/Imported.json",
+                (CHILD_SEQUENCE, compose_sequence_key("imported", "f1")):
+                    "user/trigger_sets/Imported.json",
+            }
+            for child_id, parent_ref in parents.items():
+                JsonRepository().save_json(targets[child_id], {self.service.PARENT_REFS_KEY: [parent_ref]})
+
+            rows = collect_child_save_rows(
+                data=data, dirty_tracker=DummyDirtyTracker(), config_service=self.service,
+                config_root=root, keymap_set_path=keymap_set_path,
+            )
+
+            self.assertEqual({(row.kind, row.key) for row in rows}, set(parents))
+            self.assertTrue(all(row.share_state == SHARE_NEW_COLLIDES for row in rows))
+            self.assertTrue(all(row.default_action == ACTION_SAVE_AS for row in rows))
+            plan = build_save_plan(
+                data=data,
+                rows=rows,
+                choices={(row.kind, row.key): (row.default_action, "") for row in rows},
+                targets=targets,
+            )
+            self.assertTrue(all(entry.action == ACTION_SAVE_AS for entry in plan.entries))
+
+    def test_unsourced_trigger_set_existing_owned_target_defaults_to_save_as(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            keymap_set_path = os.path.join(root, "user", "keymap_sets", "main.json")
+            data = {"keymaps": [{
+                "id": "owner", "label": "Owner", "triggers": [{"key": "f1", "actions": []}],
+            }]}
+            targets = self.service.resolve_child_save_targets(
+                data, config_root=root, keymap_set_path=keymap_set_path,
+            )
+            trigger_target = targets[(CHILD_TRIGGER_SET, "owner")]
+            JsonRepository().save_json(
+                trigger_target,
+                {self.service.PARENT_REFS_KEY: ["user/keymaps/Owner.json"]},
+            )
+
+            row = next(row for row in collect_child_save_rows(
+                data=data, dirty_tracker=DummyDirtyTracker(), config_service=self.service,
+                config_root=root, keymap_set_path=keymap_set_path,
+            ) if row.kind == CHILD_TRIGGER_SET)
+
+            self.assertEqual(row.share_state, SHARE_NEW_COLLIDES)
+            self.assertEqual(row.default_action, ACTION_SAVE_AS)
 
     def test_absolute_parent_ref_and_relative_parent_share_canonical_identity(self):
         with patch("keyseq.application.config_service.os.path", ntpath):
