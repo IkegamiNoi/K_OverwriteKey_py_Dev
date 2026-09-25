@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable
 
+from keyseq.application.key_overlap import AssignmentConflict, analyze_key_overlaps
 from keyseq.domain.config import normalize_key_name
 
 
@@ -36,6 +37,7 @@ class SendKeyAction:
 class InputRoute:
     actions: tuple[object, ...] = ()
     accept: bool = True
+    shadowed: tuple[AssignmentConflict, ...] = ()
 
 
 class InputRouter:
@@ -47,6 +49,7 @@ class InputRouter:
         get_hook_pause_count: Callable[[], int],
         get_stop_key: Callable[[], str],
         get_toggle_key: Callable[[], str],
+        get_runtime_data: Callable[[], dict[str, Any]],
         get_custom_input_enabled: Callable[[], bool],
         find_keymap_switch_target: Callable[[str], str],
         find_trigger: Callable[[str], dict[str, Any] | None],
@@ -58,6 +61,7 @@ class InputRouter:
         self._get_hook_pause_count = get_hook_pause_count
         self._get_stop_key = get_stop_key
         self._get_toggle_key = get_toggle_key
+        self._get_runtime_data = get_runtime_data
         self._get_custom_input_enabled = get_custom_input_enabled
         self._find_keymap_switch_target = find_keymap_switch_target
         self._find_trigger = find_trigger
@@ -81,36 +85,41 @@ class InputRouter:
             return InputRoute()
 
         stop_key = normalize_key_name(self._get_stop_key())
-        if stop_key and key == stop_key:
-            return InputRoute(actions=(StopHookAction(),), accept=False)
-
         toggle_key = normalize_key_name(self._get_toggle_key())
-        if toggle_key and key == toggle_key:
-            return InputRoute(actions=(ToggleModeAction(),), accept=False)
+        custom_enabled = bool(self._get_custom_input_enabled())
+        shadowed = ()
+        if custom_enabled:
+            analysis = analyze_key_overlaps(self._get_runtime_data(), stop_key, toggle_key)
+            shadowed = analysis.shadowed_for_key(key)
+        if stop_key and key == stop_key:
+            return InputRoute(actions=(StopHookAction(),), accept=False, shadowed=shadowed)
 
-        if not self._get_custom_input_enabled():
+        if toggle_key and key == toggle_key:
+            return InputRoute(actions=(ToggleModeAction(),), accept=False, shadowed=shadowed)
+
+        if not custom_enabled:
             return InputRoute()
 
         direct_keymap_id = normalize_key_name(self._find_keymap_switch_target(key))
         if direct_keymap_id:
-            return InputRoute(actions=(SelectKeymapAction(keymap_id=direct_keymap_id),), accept=False)
-
-        trigger = self._find_trigger(key)
-        if self._has_actions(trigger):
-            suppress = bool(trigger.get("suppress", True))
-            return InputRoute(actions=(TriggerAction(key=key),), accept=not suppress)
+            return InputRoute(
+                actions=(SelectKeymapAction(keymap_id=direct_keymap_id),),
+                accept=False,
+                shadowed=shadowed,
+            )
 
         keymap_target = normalize_key_name(self._find_keymap_target(key))
         if keymap_target:
             return InputRoute(
-                actions=(
-                    SendKeyAction(
-                        source_key=key,
-                        target_key=keymap_target,
-                    ),
-                ),
+                actions=(SendKeyAction(source_key=key, target_key=keymap_target),),
                 accept=False,
+                shadowed=shadowed,
             )
+
+        trigger = self._find_trigger(key)
+        if self._has_actions(trigger):
+            suppress = bool(trigger.get("suppress", True))
+            return InputRoute(actions=(TriggerAction(key=key),), accept=not suppress, shadowed=shadowed)
 
         return InputRoute()
 

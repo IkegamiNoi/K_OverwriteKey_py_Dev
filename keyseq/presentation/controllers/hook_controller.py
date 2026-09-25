@@ -3,8 +3,9 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox
 
-from keyseq.domain.keymap_triggers import get_active_triggers
-from keyseq.domain.config import normalize_key_name
+from keyseq.application.input_router import StopHookAction
+from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis, analyze_key_overlaps
+from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY, normalize_key_name
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.hook_button_texts import (
     HOOK_START_TEXT, HOOK_STOP_TEXT, HOOK_TOGGLE_TEXTS,
@@ -25,6 +26,8 @@ class HookController:
         self._shutting_down = False
         self._hook_button_pairs = []
         self._fixed_width_button_pairs = []
+        self._status_before_shadowed_notice: str | None = None
+        self._last_shadowed_status: str | None = None
 
     def register_hook_buttons(self, hook_btn, trigger_btn, *, fixed_width: bool = False) -> None:
         self._hook_button_pairs.append((hook_btn, trigger_btn))
@@ -70,6 +73,8 @@ class HookController:
             self.hook_was_active_before_dialog = False
             if was_on:
                 self.start_hook()
+            elif not self._shutting_down:
+                self._app.trigger_panel.refresh_triggers()
 
     def get_hook_pause_count(self) -> int:
         return int(self.hook_suspend_count)
@@ -117,15 +122,18 @@ class HookController:
             self.sync_trigger_toggle_buttons()
             return
 
+        overlap = self._key_overlap_report()
+
         def _on_error(title: str, msg: str) -> None:
             self._app.after(0, lambda: messagebox.showerror(title, msg))
 
         self._app.key_state_manager.clear()
         started = self._app.hook_coordinator.start(
-            triggers=get_active_triggers(self._app.data),
+            triggers=overlap.all_triggers,
             on_input_event=self.on_input_event,
             on_error=_on_error,
-            has_keymaps=self._app.keymap_service.has_any_mapping(self._app.data),
+            has_keymaps=bool(overlap.all_source_keys),
+            has_trigger_keys=bool(overlap.all_trigger_keys),
         )
 
         if not started:
@@ -171,10 +179,12 @@ class HookController:
             def _on_error(title: str, msg: str) -> None:
                 self._app.after(0, lambda: messagebox.showerror(title, msg))
 
+            overlap = self._key_overlap_report()
             enabled = self._app.hook_coordinator.can_enable_custom_input(
-                triggers=get_active_triggers(self._app.data),
+                triggers=overlap.all_triggers,
                 on_error=_on_error,
-                has_keymaps=self._app.keymap_service.has_any_mapping(self._app.data),
+                has_keymaps=bool(overlap.all_source_keys),
+                has_trigger_keys=bool(overlap.all_trigger_keys),
             )
             if not enabled:
                 self.sync_trigger_toggle_buttons()
@@ -192,37 +202,51 @@ class HookController:
         self.toggle_custom_input_enabled()
 
     def validate_hook_configuration(self) -> bool:
-        control_keys = {
-            "停止キー": normalize_key_name(self._app.data.get("hook_stop_key", "")),
-            "有効/無効トグルキー": normalize_key_name(self._app.data.get("hook_toggle_key", "")),
-        }
-        seen_control_keys: dict[str, str] = {}
-        for label, key in control_keys.items():
-            if not key:
-                continue
-            if key in seen_control_keys:
-                messagebox.showerror("開始できません", f"{seen_control_keys[key]}と{label}が重複しています:\n{key}")
-                return False
-            seen_control_keys[key] = label
+        overlap = self._key_overlap_report()
+        if not overlap.stop_toggle_conflict:
+            return True
+        stop_key = normalize_key_name(self._app.data.get(HOOK_STOP_KEY, ""))
+        messagebox.showerror(
+            "開始できません",
+            f"停止キーと有効/無効トグルキーが重複しています:\n{stop_key}",
+        )
+        return False
 
-        keymap_source_keys = self._app.keymap_service.collect_source_keys(self._app.data)
-        trigger_keys = {
-            normalize_key_name(t.get("key", ""))
-            for t in get_active_triggers(self._app.data)
-            if normalize_key_name(t.get("key", ""))
-        }
+    def _key_overlap_report(self) -> KeyOverlapAnalysis:
+        data = self._app.data
+        return analyze_key_overlaps(data, data.get(HOOK_STOP_KEY, ""), data.get(HOOK_TOGGLE_KEY, ""))
 
-        for label, key in control_keys.items():
-            if not key:
-                continue
-            if key in trigger_keys:
-                messagebox.showerror("開始できません", f"{label}が通常トリガーと重複しています:\n{key}")
-                return False
-            if key in keymap_source_keys:
-                messagebox.showerror("開始できません", f"{label}がキーマップ元キーと重複しています:\n{key}")
-                return False
+    def show_shadowed_assignments(
+        self, action: object, conflicts: tuple[AssignmentConflict, ...]
+    ) -> None:
+        notices = [self._format_shadowed_assignment(item) for item in conflicts]
+        if not notices:
+            return
+        status_var = self._app.ui_vars.status_var
+        current = str(status_var.get() or "")
+        if current == self._last_shadowed_status:
+            current = self._status_before_shadowed_notice or ""
+        if isinstance(action, StopHookAction):
+            current = f"停止しました\n{current}" if current else "停止しました"
+        self._status_before_shadowed_notice = current
+        self._last_shadowed_status = "\n".join(part for part in (current, *notices) if part)
+        status_var.set(self._last_shadowed_status)
 
-        return True
+    @staticmethod
+    def _format_shadowed_assignment(conflict: AssignmentConflict) -> str:
+        reason = {
+            "stop": "停止キー",
+            "toggle": "一時停止/再開キー",
+            "switch": "切替キー",
+            "mapping": "置換",
+        }.get(conflict.winner, "上位の割り当て")
+        if conflict.kind == "keymap_switch":
+            name = conflict.keymap_label or conflict.keymap_id
+            return (
+                f"{conflict.key} は{reason}と重複しているため、キーマップ {name} へ切り替えられません。"
+                "切替キーを変更してください"
+            )
+        return f"{conflict.key} は{reason}と重複しているため、トリガーは実行されません。トリガーのキーを変更してください"
 
     def on_input_event(self, event: object):
         resolved_key = self._app.layout.resolve_key_name_from_scan_code(getattr(event, "scan_code", None))
@@ -230,7 +254,12 @@ class HookController:
             self._app.layout.debug_special_key_event(event, resolved_key)
         route = self._app.input_router.handle(event)
         for action in route.actions:
-            self._app.after(0, lambda aa=action: self._app.action_executor.execute_router_action(aa))
+            self._app.after(
+                0,
+                lambda aa=action, ss=route.shadowed: self._app.action_executor.execute_router_action(
+                    aa, shadowed=ss
+                ),
+            )
         return route.accept
 
     def show_action_error(self, trigger_key: str, action: dict, err: Exception):

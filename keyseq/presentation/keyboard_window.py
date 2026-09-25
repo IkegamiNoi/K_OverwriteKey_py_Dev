@@ -97,15 +97,6 @@ class KeyboardWindow(tk.Toplevel):
             if isinstance(raw_triggers, list):
                 triggers = raw_triggers
 
-        for index, trigger in enumerate(triggers):
-            if not isinstance(trigger, dict):
-                continue
-            key = normalize_key_name(trigger.get("key", ""))
-            if not key:
-                continue
-            display_map[key] = str(index + 1)
-            kind_map[key] = "trigger"
-
         if custom_enabled and isinstance(data, dict):
             active_keymap = KeymapService.get_active_keymap(data)
             if isinstance(active_keymap, dict):
@@ -118,6 +109,15 @@ class KeyboardWindow(tk.Toplevel):
                             continue
                         display_map[source] = target
                         kind_map[source] = "keymap"
+
+        for index, trigger in enumerate(triggers):
+            if not isinstance(trigger, dict):
+                continue
+            key = normalize_key_name(trigger.get("key", ""))
+            if not key or key in display_map:
+                continue
+            display_map[key] = str(index + 1)
+            kind_map[key] = "trigger"
 
         # 予約キーは最後に上書きして優先順位を守る。
         if isinstance(data, dict):

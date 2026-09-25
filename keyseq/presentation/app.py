@@ -48,11 +48,18 @@ from keyseq.application.app_state import AppState
 from keyseq.application.hotkey_service import HotkeyService
 from keyseq.application.hook_coordinator import HookCoordinator
 from keyseq.application.input_router import InputRouter
+from keyseq.application.key_overlap import KeyOverlapAnalysis, analyze_key_overlaps
 from keyseq.application.keymap_service import KeymapService
 from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.trigger_service import TriggerService
-from keyseq.domain.config import HOOK_KEY_FIELDS, HOOK_STOP_KEY, HOOK_TOGGLE_KEY, safe_deepcopy
+from keyseq.domain.config import (
+    HOOK_KEY_FIELDS,
+    HOOK_STOP_KEY,
+    HOOK_TOGGLE_KEY,
+    normalize_key_name,
+    safe_deepcopy,
+)
 from keyseq.infrastructure.input_gateway import InputGateway
 from keyseq.infrastructure.json_repository import JsonRepository
 
@@ -110,6 +117,7 @@ class App(tk.Tk):
             on_toggle_mode=lambda: self.hook.toggle_custom_input_enabled(),
             on_select_keymap=lambda keymap_id: self.keymap_panel.activate_keymap_by_id(keymap_id, mark_dirty=False, show_flash=True),
             on_trigger=lambda key: self.sequence_runner.handle_key(key),
+            on_shadowed_action=lambda action, conflicts: self.hook.show_shadowed_assignments(action, conflicts),
         )
         self.input_router = InputRouter(
             key_state_manager=self.key_state_manager,
@@ -117,6 +125,7 @@ class App(tk.Tk):
             get_hook_pause_count=lambda: self.hook.get_hook_pause_count(),
             get_stop_key=lambda: self.data.get(HOOK_STOP_KEY, ""),
             get_toggle_key=lambda: self.data.get(HOOK_TOGGLE_KEY, ""),
+            get_runtime_data=lambda: self.data,
             get_custom_input_enabled=lambda: bool(self.hook.custom_input_enabled),
             find_keymap_switch_target=self._find_keymap_switch_target_id,
             find_trigger=self._find_trigger_by_key,
@@ -138,10 +147,10 @@ class App(tk.Tk):
             label="停止トリガー",
             single_key_example="f12",
             conflict_checks=[
-                (lambda app, key: app.trigger_service.key_exists(app.data, key), "トリガー一覧"),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, "トリガー一覧"),
                 (lambda app, key: app.trigger_service.is_toggle_key_conflict(app.data, key), "トグルキー"),
                 (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), "キーマップ直接切替キー"),
-                (lambda app, key: app.keymap_service.source_key_exists(app.data, key), "キーマップ元キー"),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_source_keys, "キーマップ元キー"),
             ],
         )
         self.toggle_key_capture = SingleKeyCaptureController(
@@ -151,10 +160,10 @@ class App(tk.Tk):
             label="トグルキー",
             single_key_example="f11",
             conflict_checks=[
-                (lambda app, key: app.trigger_service.key_exists(app.data, key), "トリガー一覧"),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, "トリガー一覧"),
                 (lambda app, key: app.trigger_service.is_stop_key_conflict(app.data, key), "停止キー"),
                 (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), "キーマップ直接切替キー"),
-                (lambda app, key: app.keymap_service.source_key_exists(app.data, key), "キーマップ元キー"),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_source_keys, "キーマップ元キー"),
             ],
         )
         self.keymap_set_io = KeymapSetIo(self)
@@ -201,6 +210,8 @@ class App(tk.Tk):
         self.trigger_panel.refresh_actions()
         self.trigger_panel.update_status()
         self.hook.sync_hook_toggle_buttons()
+        self.ui_vars.stop_key_var.trace_add("write", self._refresh_key_overlap_views)
+        self.ui_vars.toggle_key_var.trace_add("write", self._refresh_key_overlap_views)
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         install_minimize_grab_custody(self)
@@ -399,6 +410,14 @@ class App(tk.Tk):
 
     def _find_trigger_by_key(self, key: str):
         return self.trigger_service.find_trigger_by_key(self.data, key)
+
+    def _key_overlap_report(self) -> KeyOverlapAnalysis:
+        return analyze_key_overlaps(
+            self.data, self.data.get(HOOK_STOP_KEY, ""), self.data.get(HOOK_TOGGLE_KEY, "")
+        )
+
+    def _refresh_key_overlap_views(self, *_args) -> None:
+        self.trigger_panel.refresh_triggers()
 
     def _find_keymap_target(self, key: str) -> str:
         return self.keymap_service.find_mapping_target(self.data, key)

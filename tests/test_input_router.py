@@ -22,13 +22,20 @@ def make_router(
     switch_target="",
     trigger=None,
     keymap_target="",
+    runtime_data=None,
 ):
+    if runtime_data is None:
+        runtime_data = {
+            "keymaps": [{"id": "km1", "triggers": [], "mappings": {}}],
+            "active_keymap_id": "km1",
+        }
     return InputRouter(
         key_state_manager=KeyStateManager(),
         get_send_guard_count=lambda: send_guard,
         get_hook_pause_count=lambda: pause,
         get_stop_key=lambda: stop_key,
         get_toggle_key=lambda: toggle_key,
+        get_runtime_data=lambda: runtime_data,
         get_custom_input_enabled=lambda: custom_enabled,
         find_keymap_switch_target=lambda key: switch_target,
         find_trigger=lambda key: trigger,
@@ -67,6 +74,10 @@ class InputRouterTest(unittest.TestCase):
         self.assertEqual(route.actions, (ToggleModeAction(),))
         self.assertFalse(route.accept)
 
+    def test_stop_precedes_toggle_when_runtime_keys_overlap(self):
+        route = make_router(stop_key="f12", toggle_key="f12").handle(down("f12"))
+        self.assertEqual(route.actions, (StopHookAction(),))
+
     def test_custom_input_disabled_passes_through(self):
         trigger = {"key": "f1", "suppress": True, "actions": [{"type": "text", "value": "x"}]}
         route = make_router(custom_enabled=False, trigger=trigger).handle(down("f1"))
@@ -95,6 +106,47 @@ class InputRouterTest(unittest.TestCase):
         route = make_router(trigger=trigger, keymap_target="b").handle(down("a"))
         self.assertEqual(route.actions, (SendKeyAction(source_key="a", target_key="b"),))
         self.assertFalse(route.accept)
+
+    def test_keymap_replacement_precedes_trigger_and_reports_the_shadow(self):
+        trigger = {"key": "a", "suppress": True, "actions": [{"type": "text", "value": "x"}]}
+        runtime = {
+            "keymaps": [{"id": "km1", "triggers": [trigger], "mappings": {"a": "b"}}],
+            "active_keymap_id": "km1",
+        }
+        route = make_router(trigger=trigger, keymap_target="b", runtime_data=runtime).handle(down("a"))
+        self.assertEqual(route.actions, (SendKeyAction(source_key="a", target_key="b"),))
+        self.assertEqual([(item.kind, item.winner) for item in route.shadowed], [("trigger", "mapping")])
+
+    def test_direct_switch_precedes_replacement_and_trigger(self):
+        trigger = {"key": "a", "suppress": True, "actions": [{"type": "text", "value": "x"}]}
+        runtime = {
+            "keymaps": [
+                {"id": "km1", "triggers": [trigger], "mappings": {"a": "b"}},
+                {"id": "km2", "triggers": [], "mappings": {}},
+            ],
+            "active_keymap_id": "km1",
+            "keymap_switch_keys": {"a": "km2"},
+        }
+        route = make_router(
+            switch_target="km2", trigger=trigger, keymap_target="b", runtime_data=runtime
+        ).handle(down("a"))
+        self.assertEqual(route.actions, (SelectKeymapAction(keymap_id="km2"),))
+        self.assertEqual([(item.kind, item.winner) for item in route.shadowed], [("trigger", "switch")])
+
+    def test_disabled_custom_input_does_not_attach_shadow_notice(self):
+        trigger = {"key": "a", "suppress": True, "actions": [{"type": "text", "value": "x"}]}
+        runtime = {
+            "keymaps": [{"id": "km1", "triggers": [trigger], "mappings": {"a": "b"}}],
+            "active_keymap_id": "km1",
+        }
+        route = make_router(
+            custom_enabled=False,
+            trigger=trigger,
+            keymap_target="b",
+            runtime_data=runtime,
+        ).handle(down("a"))
+        self.assertEqual(route.actions, ())
+        self.assertEqual(route.shadowed, ())
 
     def test_no_match_passes_through(self):
         route = make_router().handle(down("a"))

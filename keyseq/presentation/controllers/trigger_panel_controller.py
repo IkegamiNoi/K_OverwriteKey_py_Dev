@@ -116,12 +116,17 @@ class TriggerPanelController:
             except Exception:
                 pass
         triggers = get_active_triggers(self._app.data)
+        overlap = self._app._key_overlap_report()
         for i, t in enumerate(triggers):
             k = normalize_key_name(t.get("key", ""))
+            conflict = overlap.trigger_conflict(k)
             s = format_trigger_list_item(i, t)
+            if conflict is not None:
+                s = f"{s}（{self._trigger_conflict_reason(conflict.winner)}）"
             for trigger_list in self._trigger_lists:
                 try:
                     trigger_list.insert(tk.END, s)
+                    self._set_trigger_row_color(trigger_list, i, conflict is not None)
                 except Exception:
                     pass
             if k not in self._app._indices:
@@ -138,6 +143,20 @@ class TriggerPanelController:
         self._app.keymap_panel.refresh_keymap_list_ui()
         self._app.layout.refresh_keyboard_window()
         self.update_status()
+
+    @staticmethod
+    def _trigger_conflict_reason(winner: str) -> str:
+        return {
+            "stop": "停止キーと重複",
+            "toggle": "一時停止/再開キーと重複",
+            "switch": "切替キーと重複",
+            "mapping": "置換と重複",
+        }.get(winner, "上位の割り当てと重複")
+
+    @staticmethod
+    def _set_trigger_row_color(listbox, index: int, is_shadowed: bool) -> None:
+        color = "#888888" if is_shadowed else listbox.cget("foreground")
+        listbox.itemconfigure(index, foreground=color)
 
     def refresh_actions(self):
         # 省略画面では右側（action_list）が無いので、フル側のみ更新
@@ -383,6 +402,9 @@ class TriggerPanelController:
         if self._app.keymap_service.get_keymap_by_switch_key(self._app.data, key):
             messagebox.showerror("追加できません", f"このキーはキーマップ直接切替キーに設定されています:\n{key}")
             return
+        if key in self._app._key_overlap_report().active_source_keys:
+            messagebox.showerror("追加できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{key}")
+            return
         triggers.append({"key": key, "label": label, "suppress": True, "run_to_end": False, "actions": []})
         new_index = len(triggers) - 1
         self._app._indices.setdefault(key, 0)
@@ -420,6 +442,9 @@ class TriggerPanelController:
             return
         if self._app.keymap_service.get_keymap_by_switch_key(self._app.data, new):
             messagebox.showerror("変更できません", f"このキーはキーマップ直接切替キーに設定されています:\n{new}")
+            return
+        if new in self._app._key_overlap_report().active_source_keys:
+            messagebox.showerror("変更できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{new}")
             return
         # indices の移し替え
         self._app._indices.setdefault(old, 0)

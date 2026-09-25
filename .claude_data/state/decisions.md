@@ -631,3 +631,11 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   （verifier の「protected が消えた」報告は誤読。実際は protected として出ていた）。
 - reviewer = 修正要（修正後の tests 全体の再実測が抜け）→ verifier で tests 643 OK を確認して完了。
 - Codex 判断で `active_keymap_path` も keymap 内容を読む参照に含めた（タスク文言を超えるが安全側・生成データでは keymaps[] と重複）→ 採用。
+
+### 【task_05】完了（2026-09-25）
+
+- 重なり判定を `application/key_overlap.py`（`analyze_key_overlaps`）に一元化し、入力判定・グレー表示・§8.5 案内・開始検証・編集時拒否が共有。
+- 差し戻し 1 回。**メインの誤診を訂正**: test_key_overlap の 2 件を「優先順位の実装バグ」と判断して差し戻したが、実際はテストの停止キーが "s" で "all" と重なっておらず
+  **テスト期待値の誤り**（Codex が実装を変えずに指摘したのが正しかった）→ メインで期待値を修正（"all" の勝者 = switch）。停止が切替・トリガーに勝つ例は "s" で引き続き検証。
+  UI テスト 2 件はテストの準備（keyboard_window の取得先・リストボックスの選択クリア）の修正。
+- reviewer = 完了可。参考（`keymap_service.source_key_exists` が未使用化）→ メインで削除（tests 656 OK）。

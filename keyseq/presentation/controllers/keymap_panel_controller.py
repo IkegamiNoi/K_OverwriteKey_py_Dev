@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox, simpledialog
 
+from keyseq.application.key_overlap import KeyOverlapAnalysis
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.dialogs import KeymapEditDialog
 from keyseq.presentation.listbox_utils import (
@@ -24,12 +25,29 @@ class KeymapPanelController:
         label = str(keymap.get("label") or "").strip()
         return label or keymap_id
 
-    def format_keymap_list_entry(self, index: int, keymap: dict) -> str:
+    def format_keymap_list_entry(
+        self, index: int, keymap: dict, overlap: KeyOverlapAnalysis | None = None
+    ) -> str:
         keymap_id = normalize_key_name(keymap.get("id", ""))
         marker = "> " if keymap_id and keymap_id == self._app.keymap_service.get_active_keymap_id(self._app.data) else "  "
         switch_key = self._app.keymap_service.find_switch_key_for_keymap(self._app.data, keymap_id) or "-"
         display_name = self.format_keymap_display_name(keymap) or f"keymap-{index + 1}"
-        return f"{marker}{index + 1:02d}. {switch_key}: {display_name}"
+        entry = f"{marker}{index + 1:02d}. {switch_key}: {display_name}"
+        if overlap is None:
+            overlap = self._app._key_overlap_report()
+        conflict = overlap.keymap_switch_conflict(keymap_id, switch_key)
+        if conflict is not None:
+            entry += f"（{self._switch_conflict_reason(conflict.winner)}）"
+        return entry
+
+    @staticmethod
+    def _switch_conflict_reason(winner: str) -> str:
+        return "停止キーと重複" if winner == "stop" else "一時停止/再開キーと重複"
+
+    @staticmethod
+    def _set_keymap_row_color(listbox, index: int, is_shadowed: bool) -> None:
+        color = "#888888" if is_shadowed else listbox.cget("foreground")
+        listbox.itemconfigure(index, foreground=color)
 
     def selected_keymap_list_index(self) -> int | None:
         """keymap 管理Listboxの選択行を返す。"""
@@ -73,8 +91,13 @@ class KeymapPanelController:
             return
 
         active_id = self._app.keymap_service.get_active_keymap_id(self._app.data)
+        overlap = self._app._key_overlap_report()
         for index, keymap in enumerate(keymaps):
-            listbox.insert(tk.END, self.format_keymap_list_entry(index, keymap))
+            listbox.insert(tk.END, self.format_keymap_list_entry(index, keymap, overlap))
+            keymap_id = normalize_key_name(keymap.get("id", ""))
+            switch_key = self._app.keymap_service.find_switch_key_for_keymap(self._app.data, keymap_id)
+            conflict = overlap.keymap_switch_conflict(keymap_id, switch_key)
+            self._set_keymap_row_color(listbox, index, conflict is not None)
 
         target_index = preferred_index
         if target_index is None:
@@ -115,10 +138,10 @@ class KeymapPanelController:
         if self._app.trigger_service.is_toggle_key_conflict(self._app.data, key):
             messagebox.showerror("設定できません", f"直接切替キーがモード切替キーと重複しています:\n{key}")
             return False
-        if self._app.trigger_service.key_exists(self._app.data, key):
+        if normalize_key_name(key) in self._app._key_overlap_report().all_trigger_keys:
             messagebox.showerror("設定できません", f"直接切替キーが通常トリガーと重複しています:\n{key}")
             return False
-        if self._app.keymap_service.source_key_exists(self._app.data, key):
+        if normalize_key_name(key) in self._app._key_overlap_report().all_source_keys:
             messagebox.showerror("設定できません", f"直接切替キーがキーマップ元キーと重複しています:\n{key}")
             return False
 
@@ -304,8 +327,7 @@ class KeymapPanelController:
             return False
 
         self.refresh_keymap_list_ui(preferred_index=preferred_index)
-        self._app.layout.refresh_keyboard_window()
-        self._app.trigger_panel.update_status()
+        self._app.trigger_panel.refresh_triggers()
         self._app.mark_keymap_dirty(keymap)
         self._app._set_flash_message(f"キーマップを変更しました: {self.format_keymap_display_name(keymap) or keymap_id}")
         return True
@@ -371,6 +393,9 @@ class KeymapPanelController:
         if self._app.keymap_service.get_keymap_by_switch_key(self._app.data, source):
             messagebox.showerror("設定できません", f"このキーはキーマップ直接切替キーに設定されています:\n{source}")
             return False
+        if source in self._app._key_overlap_report().active_trigger_keys:
+            messagebox.showerror("設定できません", f"このキーはアクティブキーマップのトリガーキーに設定されています:\n{source}")
+            return False
 
         try:
             self._app.input_gateway.validate_key_name(target)
@@ -379,9 +404,7 @@ class KeymapPanelController:
             return False
 
         keymap_id, changed = self._app.keymap_service.set_mapping(self._app.data, source, target)
-        self.refresh_keymap_list_ui()
-        self._app.layout.refresh_keyboard_window()
-        self._app.trigger_panel.update_status()
+        self._app.trigger_panel.refresh_triggers()
         if changed:
             self._app.mark_keymap_dirty(self._app.keymap_service.find_keymap(self._app.data, keymap_id))
             self._app._set_flash_message(f"キーマップを更新しました: {source} -> {target} ({keymap_id})")
@@ -394,9 +417,7 @@ class KeymapPanelController:
         if not source:
             return False
         keymap_id, changed = self._app.keymap_service.clear_mapping(self._app.data, source)
-        self.refresh_keymap_list_ui()
-        self._app.layout.refresh_keyboard_window()
-        self._app.trigger_panel.update_status()
+        self._app.trigger_panel.refresh_triggers()
         if changed:
             self._app.mark_keymap_dirty(self._app.keymap_service.find_keymap(self._app.data, keymap_id))
             self._app._set_flash_message(f"キーマップをクリアしました: {source} ({keymap_id})")

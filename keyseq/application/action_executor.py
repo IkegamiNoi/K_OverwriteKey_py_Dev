@@ -4,6 +4,7 @@ import math
 import threading
 from typing import Callable
 
+from keyseq.application.key_overlap import AssignmentConflict
 from keyseq.application.input_router import (
     SendKeyAction,
     SelectKeymapAction,
@@ -30,6 +31,7 @@ class ActionExecutor:
         on_toggle_mode: Callable[[], None],
         on_select_keymap: Callable[[str], None],
         on_trigger: Callable[[str], None],
+        on_shadowed_action: Callable[[object, tuple[AssignmentConflict, ...]], None] | None = None,
     ) -> None:
         self.input_gateway = input_gateway
         self._validate_hotkey = validate_hotkey
@@ -39,6 +41,7 @@ class ActionExecutor:
         self._on_toggle_mode = on_toggle_mode
         self._on_select_keymap = on_select_keymap
         self._on_trigger = on_trigger
+        self._on_shadowed_action = on_shadowed_action
         self._send_guard_count = 0
         self._send_guard_lock = threading.RLock()
 
@@ -80,21 +83,24 @@ class ActionExecutor:
             err += f" / ラベル: {label.strip()}"
         return err
 
-    def execute_router_action(self, action: object) -> None:
+    def execute_router_action(
+        self, action: object, *, shadowed: tuple[AssignmentConflict, ...] = ()
+    ) -> None:
+        handled = True
         if isinstance(action, StopHookAction):
             self._on_stop_hook()
-            return
-        if isinstance(action, ToggleModeAction):
+        elif isinstance(action, ToggleModeAction):
             self._on_toggle_mode()
-            return
-        if isinstance(action, SelectKeymapAction):
+        elif isinstance(action, SelectKeymapAction):
             self._on_select_keymap(action.keymap_id)
-            return
-        if isinstance(action, TriggerAction):
+        elif isinstance(action, TriggerAction):
             self._on_trigger(action.key)
-            return
-        if isinstance(action, SendKeyAction):
+        elif isinstance(action, SendKeyAction):
             self._send_mapped_key(action.target_key)
+        else:
+            handled = False
+        if handled and shadowed and self._on_shadowed_action is not None:
+            self._on_shadowed_action(action, shadowed)
 
     def _execute_hotkey(self, action: dict, hotkey: str) -> None:
         error_message, normalized = self._validate_hotkey(hotkey)

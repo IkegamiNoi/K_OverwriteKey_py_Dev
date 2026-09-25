@@ -17,8 +17,11 @@ class HookCoordinator:
         on_error: Callable[[str, str], None],
         *,
         has_keymaps: bool = False,
+        has_trigger_keys: bool | None = None,
     ) -> bool:
-        if not self._can_process_input(triggers, on_error, has_keymaps=has_keymaps):
+        if not self._can_process_input(
+            triggers, on_error, has_keymaps=has_keymaps, has_trigger_keys=has_trigger_keys
+        ):
             return False
 
         self.stop()
@@ -36,8 +39,11 @@ class HookCoordinator:
         on_error: Callable[[str, str], None],
         *,
         has_keymaps: bool = False,
+        has_trigger_keys: bool | None = None,
     ) -> bool:
-        return self._can_process_input(triggers, on_error, has_keymaps=has_keymaps)
+        return self._can_process_input(
+            triggers, on_error, has_keymaps=has_keymaps, has_trigger_keys=has_trigger_keys
+        )
 
     def stop(self) -> None:
         self.uninstall_input_event_hook()
@@ -75,8 +81,11 @@ class HookCoordinator:
         on_error: Callable[[str, str], None],
         *,
         has_keymaps: bool,
+        has_trigger_keys: bool | None,
     ) -> bool:
-        if not triggers and not has_keymaps:
+        if has_trigger_keys is None:
+            has_trigger_keys = any(normalize_key_name(item.get("key", "")) for item in triggers)
+        if not has_trigger_keys and not has_keymaps:
             on_error("開始できません", "トリガーが1件も登録されていません。")
             return False
         if self._has_usable_triggers(triggers) or has_keymaps:

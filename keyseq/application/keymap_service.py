@@ -239,13 +239,6 @@ class KeymapService:
         return keys
 
     @staticmethod
-    def source_key_exists(data: dict[str, Any], key: str) -> bool:
-        normalized = normalize_key_name(key)
-        if not normalized:
-            return False
-        return normalized in KeymapService.collect_source_keys(data)
-
-    @staticmethod
     def ensure_active_keymap(data: dict[str, Any]) -> dict[str, Any]:
         current = KeymapService.get_active_keymap(data)
         if isinstance(current, dict):
