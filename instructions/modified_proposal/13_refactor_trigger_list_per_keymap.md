@@ -23,11 +23,11 @@ M2 の 5 関数は本提案に含めず `current.md`「別タスク化候補」�
 
 ## 項目 1: 内部キーの直値を定数参照へ（M6）
 
-- 対象: `keyseq/application/config_service/split_loading.py:504,506` / `keyseq/application/config_service/__init__.py:781` / `keyseq/domain/config.py:301-302`
+- 対象: `keyseq/application/config_service/split_loading.py:504,506` / `keyseq/application/config_service/__init__.py:781` / `keyseq/domain/config.py:199-200, 301-302, 306-307`（`"_trigger_set_source_path"` / `"_trigger_set_parent_refs"` も含む）
 - 問題: `"_trigger_set_dirty"` / `"_trigger_set_imported"` / `"_trigger_set_parent_refs"` を直値で書いている（同値の定数が `domain/keymap_triggers.py:13-14` と `ConfigService` にある）。
   改名時に取り残される。`ConfigService` には SOURCE_PATH / PARENT_REFS だけ属性があり DIRTY / IMPORTED が無い非対称も原因。
 - 変更: `domain/config.py` は `keymap_triggers` の定数を import して使う（domain 内の参照・依存方向は不変）。
-  `ConfigService` に `INTERNAL_TRIGGER_SET_DIRTY` / `INTERNAL_TRIGGER_SET_IMPORTED` のクラス属性を足し、`split_loading.py` / `__init__.py` はそれを使う。
+  domain 側に SOURCE_PATH / PARENT_REFS の定数が無いので `keymap_triggers.py` に足す。`config_service/__init__.py` は既に import 済みの `INTERNAL_TRIGGER_SET_DIRTY` 等を使う（クラス属性は増やさない方が差分が小さい）。`split_loading.py` も同じ定数を import する。
 - リスク / 戻し方: 値は同一なので挙動不変。戻すのは直値へ戻すだけ。依存: なし。
 
 ## 項目 2: キーマップの追加フローを `keymap_panel_controller.py` から切り出す（M1）

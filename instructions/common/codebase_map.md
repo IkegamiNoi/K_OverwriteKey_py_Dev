@@ -512,7 +512,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
     - **子の列挙は runtime の source_path 3 種のみ**。**`resolve_child_save_targets` を使わない**
       （「次に保存するとしたらどこへ書くか」であり、未実体化の子へ既定パスが割り当てられて
       **無関係な既存ファイルを書き換える**）
-    - **保護対象**（現在の keymap_set / trigger_set への参照）は**実在しなくても除去しない**。
+    - **保護対象**（現在の keymap_set / keymap / trigger_set への参照）は**実在しなくても除去しない**。
       検査の時点で分離し、提示・件数・0 件警告から外す
     - **除去直前に JSON 全体を読み直して再判定する**（検査時のスナップショットを書き戻さない）。
       除去 0 件なら書かず（冪等）、全件除去は `[]`。1 件の失敗で中止せず記録して継続する
@@ -545,18 +545,18 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   両端 `stretch="never"`・トリガー一覧 `stretch="always"`・境界線 12px（phase 18）。幅の制御は PaneLayoutController が持ち、FullView は生成と配置のみ
   一覧の行数指定（KeymapBox・FullTriggerBox = 6 / SequenceBox = 9）は**フル表示の最小の高さの基準**（既定の半分。表示行数は伸びた分で決まる・phase 20）
 - 構成 Widget:
-  - FullHookFrame（hook_frame.py）: フック開始/停止・通常トリガー切替・停止/トグルキーの表示と**取得・クリア**・
+  - FullHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの表示と**取得・クリア**・
     「このキーマップセットで個別指定する」チェック（操作可能なのは full のみ）
   - FullDisplayFrame（display_frame.py）: 常に手前・省略表示へ・キーボードUI・レイアウト選択
   - FileFrame（file_frame.py）: 保存 / 別名で保存 / 読込 / 新規作成
-  - KeymapBox（keymap_box.py）: キーマップ一覧と管理ボタン（追加・変更・削除・選択・保存系）
+  - KeymapBox（keymap_box.py）: キーマップ一覧と管理ボタン（追加・変更・削除・保存系。phase 34 で「選択」ボタンを削除し一覧の選択 = アクティブ化）
   - FullTriggerBox（trigger_box.py）: トリガー一覧・編集ボタン・suppress チェック
   - SequenceBox（sequence_box.py）: 出力シーケンス一覧・アクション操作・連続実行と間隔(ms)
 
 ### CompactView（views/compact_view/）
 - 簡易表示 / フック制御
 - 構成 Widget:
-  - CompactHookFrame（hook_frame.py）: フック開始/停止・通常トリガー切替・停止/トグルキーの**表示のみ**
+  - CompactHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの**表示のみ**
     （個別指定チェックも `state="disabled"` の状態表示のみ）
   - CompactDisplayFrame（display_frame.py）: 常に手前・フルに戻す・キーボードUI・レイアウト選択
   - CompactTriggerBox（trigger_box.py）: トリガー一覧のみ
