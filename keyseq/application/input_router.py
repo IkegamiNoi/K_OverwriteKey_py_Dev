@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import threading
 from dataclasses import dataclass
 from typing import Any, Callable
 
@@ -54,6 +55,7 @@ class InputRouter:
         find_keymap_switch_target: Callable[[str], str],
         find_trigger: Callable[[str], dict[str, Any] | None],
         find_keymap_target: Callable[[str], str],
+        keymap_switch_in_progress: threading.Event | None = None,
         resolve_scan_code: Callable[[object], str] | None = None,
     ) -> None:
         self._key_state_manager = key_state_manager
@@ -66,12 +68,14 @@ class InputRouter:
         self._find_keymap_switch_target = find_keymap_switch_target
         self._find_trigger = find_trigger
         self._find_keymap_target = find_keymap_target
+        self._keymap_switch_in_progress = keymap_switch_in_progress
         self._resolve_scan_code = resolve_scan_code
 
     def handle(self, event: object) -> InputRoute:
-        if self._get_send_guard_count() > 0:
+        switching = self._is_keymap_switch_in_progress()
+        if not switching and self._get_send_guard_count() > 0:
             return InputRoute()
-        if self._get_hook_pause_count() > 0:
+        if not switching and self._get_hook_pause_count() > 0:
             return InputRoute()
 
         self._key_state_manager.handle_event(event)
@@ -97,11 +101,16 @@ class InputRouter:
         if toggle_key and key == toggle_key:
             return InputRoute(actions=(ToggleModeAction(),), accept=False, shadowed=shadowed)
 
+        if self._is_keymap_switch_in_progress():
+            return InputRoute()
+
         if not custom_enabled:
             return InputRoute()
 
         direct_keymap_id = normalize_key_name(self._find_keymap_switch_target(key))
         if direct_keymap_id:
+            if self._keymap_switch_in_progress is not None:
+                self._keymap_switch_in_progress.set()
             return InputRoute(
                 actions=(SelectKeymapAction(keymap_id=direct_keymap_id),),
                 accept=False,
@@ -122,6 +131,12 @@ class InputRouter:
             )
 
         return InputRoute()
+
+    def _is_keymap_switch_in_progress(self) -> bool:
+        return bool(
+            self._keymap_switch_in_progress is not None
+            and self._keymap_switch_in_progress.is_set()
+        )
 
     def _extract_key_name(self, event: object) -> str:
         if callable(self._resolve_scan_code):

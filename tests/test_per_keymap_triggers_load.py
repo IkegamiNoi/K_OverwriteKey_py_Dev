@@ -155,14 +155,18 @@ class PerKeymapLoadingTest(unittest.TestCase):
                 self.assertEqual(data["_legacy_trigger_set"]["state"], state)
                 self.assertEqual(data["triggers"], [])
 
-    def test_split_explicit_empty_reference_does_not_migrate_legacy_list(self):
+    def test_split_explicit_empty_reference_moves_legacy_list_to_new_keymap(self):
         self.write("old.json", {"triggers": [{"key": "f8"}]})
         self.write("own.json", {"triggers": [{"key": "f9"}]})
         self.write("b.json", {"id": "b", "trigger_set_path": ""})
         data = self.load_split(["b.json"], "old.json")
-        self.assertEqual(len(data["keymaps"]), 1)
-        self.assertEqual(data["_legacy_trigger_set"]["state"], "none")
-        self.assertEqual(get_active_triggers(data), [])
+        self.assertEqual([item["id"] for item in data["keymaps"]], ["b", "keymap_1"])
+        self.assertEqual(data["active_keymap_id"], "b")
+        self.assertEqual(data["_legacy_trigger_set"], {
+            "state": "migrated", "path": "old.json", "keymap_id": "keymap_1", "auto_created": True,
+        })
+        self.assertEqual([item["key"] for item in get_active_triggers(data)], [])
+        self.assertEqual([item["key"] for item in data["keymaps"][1]["triggers"]], ["f8"])
 
     def test_active_separate_trigger_set_creates_migration_keymap(self):
         self.write("old.json", {"triggers": [{"key": "f8"}]})

@@ -1,5 +1,6 @@
 ﻿import os
 import copy
+import threading
 import tkinter as tk
 from typing import Callable
 from tkinter import messagebox, ttk
@@ -111,6 +112,7 @@ class App(tk.Tk):
         self.input_gateway = InputGateway()
         self.hotkey_service = HotkeyService(validate_key_name=self.input_gateway.validate_key_name)
         self.key_state_manager = KeyStateManager(resolve_scan_code=lambda sc: self.layout.resolve_key_name_from_scan_code(sc))
+        self._keymap_switch_in_progress = threading.Event()
         self.action_executor = ActionExecutor(
             input_gateway=self.input_gateway,
             validate_hotkey=self.hotkey_service.validate,
@@ -125,6 +127,7 @@ class App(tk.Tk):
                 normalize_key_name(keymap_id), self.keymap_service.get_active_keymap_id(self.data)
             ),
             on_keymap_switch_blocked=lambda: self.keymap_panel.show_keymap_switch_blocked(),
+            keymap_switch_in_progress=self._keymap_switch_in_progress,
         )
         self.input_router = InputRouter(
             key_state_manager=self.key_state_manager,
@@ -137,6 +140,7 @@ class App(tk.Tk):
             find_keymap_switch_target=self._find_keymap_switch_target_id,
             find_trigger=self._find_trigger_by_key,
             find_keymap_target=self._find_keymap_target,
+            keymap_switch_in_progress=self._keymap_switch_in_progress,
             resolve_scan_code=lambda sc: self.layout.resolve_key_name_from_scan_code(sc),
         )
         self.state = AppState()

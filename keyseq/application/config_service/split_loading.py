@@ -452,15 +452,12 @@ def _migrate_legacy_trigger_set(
         for source in (item.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH, "") for item in keymaps)
     ):
         return "same", active, False
-    active_source = active.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH, "")
     if not has_trigger_set_path:
         target = active
         created = False
-    elif active_source:
+    else:
         target = _create_legacy_trigger_keymap(service, legacy_path, keymaps)
         created = True
-    else:
-        return "none", active, False
     attach_trigger_set(
         service, target, legacy_path, config_root=config_root, trigger_sets=trigger_sets
     )

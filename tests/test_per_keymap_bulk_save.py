@@ -74,6 +74,133 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
             post_save_warnings=post_save_warnings,
         )[0]
 
+    def shared_runtime(self):
+        self.write("user/keymaps/a.json", {
+            "id": "a", "label": "A", "mappings": {},
+            "trigger_set_path": "user/trigger_sets/own.json",
+        })
+        self.write("user/keymaps/b.json", {
+            "id": "b", "label": "B", "mappings": {},
+            "trigger_set_path": "user/trigger_sets/shared.json",
+        })
+        self.write("user/sequences/own_f2.json", {"actions": [], "_parent_refs": ["user/trigger_sets/own.json"]})
+        self.write("user/sequences/shared_f1.json", {"actions": [], "_parent_refs": ["user/trigger_sets/shared.json"]})
+        self.write("user/trigger_sets/own.json", {
+            "triggers": [{"key": "f2", "sequence_path": "user/sequences/own_f2.json"}],
+            "_parent_refs": ["user/keymaps/a.json"],
+        })
+        self.write("user/trigger_sets/shared.json", {
+            "triggers": [{"key": "f1", "sequence_path": "user/sequences/shared_f1.json"}],
+            "_parent_refs": ["user/keymaps/b.json"],
+        })
+        self.repo.save_json(self.path, {
+            "keymaps": [{"path": "user/keymaps/a.json"}, {"path": "user/keymaps/b.json"}],
+            "active_keymap_path": "user/keymaps/a.json",
+            "keymap_switch_keys": {"f9": "b"},
+        })
+        return self.service.load_runtime_data_from_keymap_set_path(self.path, config_root=self.root)
+
+    def save_all_rows(self, data):
+        rows = self.rows(data)
+        choices = {(row.kind, row.key): (ACTION_SAVE, "") for row in rows}
+        return self.save(
+            data,
+            build_save_plan(data=data, rows=rows, choices=choices, targets=self.targets(data)),
+        )
+
+    def test_trigger_set_load_joins_existing_shared_instance_and_saves_parent_ref(self):
+        from keyseq.application.app_state import AppState
+        from keyseq.presentation.controllers.config_io.trigger_set_file_io import TriggerSetFileIo
+
+        data = self.shared_runtime()
+        tracker = DirtyStateTracker(
+            get_data=lambda: data,
+            keymap_service=KeymapService(),
+            config_service=self.service,
+            on_change=Mock(),
+        )
+        app = SimpleNamespace(
+            data=data,
+            config_service=self.service,
+            config_root=self.root,
+            keymap_service=KeymapService(),
+            dirty_tracker=tracker,
+            state=AppState(),
+            trigger_panel=SimpleNamespace(refresh_triggers=Mock(), refresh_actions=Mock()),
+            _set_flash_message=Mock(),
+        )
+
+        with patch(
+            "keyseq.presentation.controllers.config_io.trigger_set_file_io.messagebox.showinfo"
+        ):
+            TriggerSetFileIo(app)._apply_loaded_trigger_set(
+                os.path.join(self.root, "user", "trigger_sets", "shared.json")
+            )
+
+        self.assertIs(data["keymaps"][0]["triggers"], data["keymaps"][1]["triggers"])
+        self.assertTrue(data["keymaps"][0][INTERNAL_TRIGGER_SET_DIRTY])
+        self.assertTrue(data["keymaps"][1][INTERNAL_TRIGGER_SET_DIRTY])
+        self.save_all_rows(data)
+        self.assertEqual(
+            set(self.read("user/trigger_sets/shared.json")[self.service.PARENT_REFS_KEY]),
+            {"user/keymaps/a.json", "user/keymaps/b.json"},
+        )
+
+    def test_keymap_load_joining_existing_shared_instance_saves_new_parent_ref(self):
+        from keyseq.presentation.controllers.config_io.keymap_file_io import KeymapFileIo
+
+        data = self.shared_runtime()
+        tracker = DirtyStateTracker(
+            get_data=lambda: data,
+            keymap_service=KeymapService(),
+            config_service=self.service,
+            on_change=Mock(),
+        )
+
+        def append_imported_keymap(keymap):
+            data["keymaps"].append(keymap)
+            KeymapService.set_keymap_switch_key(data, "f10", str(keymap.get("id") or ""))
+            tracker.mark_keymap_dirty(keymap)
+            return True
+
+        app = SimpleNamespace(
+            data=data,
+            config_service=self.service,
+            config_root=self.root,
+            keymap_service=KeymapService(),
+            dirty_tracker=tracker,
+            keymap_panel=SimpleNamespace(add_imported_keymap=Mock(side_effect=append_imported_keymap)),
+            paths=SimpleNamespace(
+                preferred_keymaps_dir=Mock(return_value=self.root),
+                json_dialog_initial_dir=Mock(return_value=self.root),
+            ),
+            _set_flash_message=Mock(),
+        )
+        imported_path = os.path.join(self.root, "user", "keymaps", "c.json")
+        self.write("user/keymaps/c.json", {
+            "id": "c", "label": "C", "mappings": {},
+            "trigger_set_path": "user/trigger_sets/shared.json",
+        })
+
+        with patch(
+            "keyseq.presentation.controllers.config_io.keymap_file_io.filedialog.askopenfilename",
+            return_value=imported_path,
+        ), patch(
+            "keyseq.presentation.controllers.config_io.keymap_file_io.messagebox.showinfo"
+        ):
+            KeymapFileIo(app).load_keymap_file()
+
+        imported = KeymapService.find_keymap(data, "c")
+        shared = KeymapService.find_keymap(data, "b")
+        self.assertIs(imported["triggers"], shared["triggers"])
+        self.assertTrue(imported[INTERNAL_TRIGGER_SET_DIRTY])
+        self.assertTrue(shared[INTERNAL_TRIGGER_SET_DIRTY])
+        self.save_all_rows(data)
+        self.assertEqual(
+            set(self.read("user/trigger_sets/shared.json")[self.service.PARENT_REFS_KEY]),
+            {"user/keymaps/b.json", "user/keymaps/c.json"},
+        )
+
     def test_keymap_default_name_uses_label_or_keymap_set_stem(self):
         data = {"active_keymap_id": "first", "keymaps": [
             {"id": "first", "label": "", "triggers": []},
@@ -560,9 +687,15 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         data = self.legacy()
         rows = self.rows(data)
         row = next(row for row in rows if row.kind == CHILD_KEYMAP)
+        trigger_set_row = next(row for row in rows if row.kind == CHILD_TRIGGER_SET)
         self.assertFalse(row.allow_skip)
+        self.assertFalse(trigger_set_row.allow_skip)
         choices = {(item.kind, item.key): (ACTION_SAVE, "") for item in rows}
         choices[(row.kind, row.key)] = (ACTION_SKIP, "")
+        with self.assertRaises(SavePlanError):
+            build_save_plan(data=data, rows=rows, choices=choices, targets=self.targets(data))
+        choices[(row.kind, row.key)] = (ACTION_SAVE, "")
+        choices[(trigger_set_row.kind, trigger_set_row.key)] = (ACTION_SKIP, "")
         with self.assertRaises(SavePlanError):
             build_save_plan(data=data, rows=rows, choices=choices, targets=self.targets(data))
         dialog = ChildSaveDialog(SimpleNamespace())
@@ -575,10 +708,28 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
             [(call.kwargs["value"], call.kwargs["state"]) for call in radio.call_args_list],
             [(ACTION_SAVE, "normal"), (ACTION_SAVE_AS, "normal"), (ACTION_SKIP, "disabled")],
         )
+        with patch(f"{module}.tk.StringVar"), patch(f"{module}.ttk.Frame"), patch(
+            f"{module}.ttk.Label"
+        ), patch(f"{module}.ttk.Radiobutton") as radio, patch.object(dialog, "_add_text_cell"):
+            dialog._add_rows(Mock(), [trigger_set_row], 1)
+        self.assertEqual(
+            [(call.kwargs["value"], call.kwargs["state"]) for call in radio.call_args_list],
+            [(ACTION_SAVE, "normal"), (ACTION_SAVE_AS, "normal"), (ACTION_SKIP, "disabled")],
+        )
         with self.assertRaises(ValueError):
             dialog._resolve_action_targets([row], {(row.kind, row.key): SimpleNamespace(get=lambda: ACTION_SKIP)})
+        with self.assertRaises(ValueError):
+            dialog._resolve_action_targets(
+                [trigger_set_row],
+                {(trigger_set_row.kind, trigger_set_row.key): SimpleNamespace(get=lambda: ACTION_SKIP)},
+            )
         with self.assertRaises(SavePlanError):
             self.save(data, SavePlan((ChildSaveEntry(CHILD_KEYMAP, row.key, ACTION_SKIP),), allow_deferred_index=True))
+        with self.assertRaises(SavePlanError):
+            self.save(
+                data,
+                SavePlan((ChildSaveEntry(CHILD_TRIGGER_SET, trigger_set_row.key, ACTION_SKIP),), allow_deferred_index=True),
+            )
         self.assertEqual(self.repo.load_json(self.path)["trigger_set_path"], "user/trigger_sets/old.json")
 
     def test_shared_instance_has_one_row_and_one_file_and_all_parents(self):
@@ -654,15 +805,31 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         restored = KeymapService.find_keymap(reloaded, legacy["keymap_id"])
         self.assertEqual([item["key"] for item in restored["triggers"]], ["f1"])
 
-    def test_explicit_empty_trigger_reference_does_not_migrate_and_save_clears_legacy_path(self):
+    def test_explicit_empty_trigger_reference_migrates_and_clears_legacy_path_after_save(self):
+        from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
+
         self.legacy()
         self.write("user/keymaps/a.json", {
             "id": "a", "label": "A", "mappings": {}, "trigger_set_path": "",
         })
         data = self.service.load_runtime_data_from_keymap_set_path(self.path, config_root=self.root)
-        self.assertEqual(data[self.service.INTERNAL_LEGACY_TRIGGER_SET]["state"], "none")
+        legacy = data[self.service.INTERNAL_LEGACY_TRIGGER_SET]
+        self.assertEqual(legacy["state"], "migrated")
+        self.assertTrue(legacy["auto_created"])
+        self.assertEqual(data["active_keymap_id"], "a")
+        migrated = KeymapService.find_keymap(data, legacy["keymap_id"])
+        self.assertEqual(migrated["label"], "旧トリガー一覧（old）")
+        self.assertEqual([item["key"] for item in migrated["triggers"]], ["f1"])
         self.assertEqual(data["keymaps"][0]["triggers"], [])
-        self.save(data)
+        app = SimpleNamespace(data=data, keymap_service=KeymapService())
+        with patch("keyseq.presentation.controllers.config_io.keymap_set_io.messagebox.showinfo") as show:
+            KeymapSetIo(app).notify_migrated_legacy_trigger_set()
+        show.assert_called_once_with(
+            "読込",
+            "旧形式のトリガー一覧 user/trigger_sets/old.json を、キーマップ『旧トリガー一覧（old）』に移しました（切替キーは未設定です）",
+        )
+        saved = self.save(data)
+        self.assertEqual(saved[self.service.INTERNAL_LEGACY_TRIGGER_SET]["state"], "none")
         self.assertEqual(self.repo.load_json(self.path)["trigger_set_path"], "")
 
     def test_trigger_set_save_as_requires_parent_or_explicit_deferral(self):

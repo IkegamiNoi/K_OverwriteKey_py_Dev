@@ -82,6 +82,41 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.app.trigger_panel.refresh_actions()
         self.app.dirty_tracker.set_dirty(False)
 
+    def test_loading_and_restoring_reset_all_keymap_trigger_positions(self):
+        original_path = self.app.keymap_set_path
+        self.addCleanup(setattr, self.app, "keymap_set_path", original_path)
+        self.app.data = self.app.config_service.normalize_runtime_data(make_runtime())
+        other_id = self.app.keymap_service.get_trigger_set_id(self.app.data, "km2")
+        self.app.state.indices_for(other_id)["f1"] = 1
+        loaded = self.app.config_service.normalize_runtime_data(make_runtime())
+        io = KeymapSetIo(self.app)
+
+        with patch.object(
+            self.app.config_service,
+            "load_runtime_data_from_keymap_set_path",
+            return_value=loaded,
+        ), patch.object(io, "apply_loaded_data_to_ui"), patch.object(
+            self.app.dirty_tracker, "set_dirty"
+        ), patch.object(self.app.dirty_tracker, "sync_dirty_state"), patch.object(
+            self.app.keymap_set_history_io, "record", return_value=(True, "")
+        ), patch.object(io, "notify_migrated_legacy_trigger_set"), patch.object(
+            self.app, "_set_flash_message"
+        ), patch(
+            "keyseq.presentation.controllers.config_io.keymap_set_io.messagebox.showinfo"
+        ):
+            self.assertEqual(io.load_keymap_set_path("loaded.json"), "ok")
+
+        self.assertEqual(self.app.state.indices_for(other_id).get("f1", 0), 0)
+
+        self.app.data = self.app.config_service.normalize_runtime_data(make_runtime())
+        self.app.state.indices_for(other_id)["f1"] = 1
+        with patch(
+            "keyseq.presentation.controllers.config_io.keymap_set_io.messagebox.askyesno",
+            return_value=True,
+        ), patch.object(self.app, "_set_flash_message"):
+            io.restore_default()
+        self.assertEqual(self.app.state.indices_for(other_id).get("f1", 0), 0)
+
     def test_list_and_direct_switch_redraw_views_without_marking_config_dirty(self):
         keymap_list = self.app.full_view.keymap_box.keymap_listbox
         keymap_list.selection_clear(0, "end")

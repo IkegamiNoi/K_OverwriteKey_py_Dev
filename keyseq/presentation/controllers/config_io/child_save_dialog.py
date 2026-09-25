@@ -213,7 +213,7 @@ class ChildSaveDialog:
         for row in rows:
             action = choice_vars[(row.kind, row.key)].get()
             if action == ACTION_SKIP and not row.allow_skip:
-                raise ValueError("移行先キーマップは保存しないを選択できません。")
+                raise ValueError("移行対象は保存しないを選択できません。")
             target_path = self._ask_save_as_path(row) if action == ACTION_SAVE_AS else ""
             if action == ACTION_SAVE_AS and not target_path:
                 return None

@@ -34,6 +34,7 @@ class ActionExecutor:
         on_shadowed_action: Callable[[object, tuple[AssignmentConflict, ...]], None] | None = None,
         can_switch_keymap: Callable[[str], bool] | None = None,
         on_keymap_switch_blocked: Callable[[], None] | None = None,
+        keymap_switch_in_progress: threading.Event | None = None,
     ) -> None:
         self.input_gateway = input_gateway
         self._validate_hotkey = validate_hotkey
@@ -46,6 +47,7 @@ class ActionExecutor:
         self._on_shadowed_action = on_shadowed_action
         self._can_switch_keymap = can_switch_keymap or (lambda _keymap_id: True)
         self._on_keymap_switch_blocked = on_keymap_switch_blocked or (lambda: None)
+        self._keymap_switch_in_progress = keymap_switch_in_progress
         self._send_guard_count = 0
         self._send_guard_lock = threading.RLock()
 
@@ -96,10 +98,14 @@ class ActionExecutor:
         elif isinstance(action, ToggleModeAction):
             self._on_toggle_mode()
         elif isinstance(action, SelectKeymapAction):
-            if self._can_switch_keymap(action.keymap_id):
-                self._on_select_keymap(action.keymap_id)
-            else:
-                self._on_keymap_switch_blocked()
+            try:
+                if self._can_switch_keymap(action.keymap_id):
+                    self._on_select_keymap(action.keymap_id)
+                else:
+                    self._on_keymap_switch_blocked()
+            finally:
+                if self._keymap_switch_in_progress is not None:
+                    self._keymap_switch_in_progress.clear()
         elif isinstance(action, TriggerAction):
             self._on_trigger(action.key)
         elif isinstance(action, SendKeyAction):

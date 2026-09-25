@@ -48,10 +48,11 @@ def build_save_plan(
     )
     legacy = data.get("_legacy_trigger_set", {})
     if legacy.get("state") == "migrated":
+        migrated_id = str(legacy.get("keymap_id") or "")
         for index, entry in enumerate(entries):
-            if entry.kind == CHILD_KEYMAP and entry.key == legacy.get("keymap_id"):
+            if entry.kind in {CHILD_KEYMAP, CHILD_TRIGGER_SET} and entry.key == migrated_id:
                 if choices_by_child.get((entry.kind, entry.key), (None, ""))[0] == ACTION_SKIP:
-                    raise SavePlanError("移行先キーマップは保存しないを選択できません。")
+                    raise SavePlanError("移行対象は保存しないを選択できません。")
                 if entry.action == ACTION_SKIP:
                     entries[index] = ChildSaveEntry(entry.kind, entry.key, ACTION_SAVE)
     return SavePlan(entries=tuple(entries))

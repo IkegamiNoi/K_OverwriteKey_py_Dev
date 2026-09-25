@@ -363,9 +363,9 @@ def validate_save_plan(service,
         if entry.kind == CHILD_TRIGGER_SET and entry.key not in trigger_set_ids:
             raise SavePlanError(f"存在しない trigger_set です: {entry.key}")
         legacy = runtime.get(service.INTERNAL_LEGACY_TRIGGER_SET, {})
-        if (entry.kind == CHILD_KEYMAP and entry.action == ACTION_SKIP
+        if (entry.kind in {CHILD_KEYMAP, CHILD_TRIGGER_SET} and entry.action == ACTION_SKIP
                 and legacy.get("state") == "migrated" and entry.key == legacy.get("keymap_id")):
-            raise SavePlanError("移行先キーマップは保存しないを選択できません。")
+            raise SavePlanError("移行対象は保存しないを選択できません。")
         if entry.action == ACTION_SAVE_AS:
             if not entry.target_path.strip():
                 raise SavePlanError(f"別名保存先が空です: {entry.kind}:{entry.key}")

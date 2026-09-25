@@ -109,10 +109,17 @@ class HookController:
     def begin_shutdown(self) -> None:
         """終了確定後は、同期・遅延のどちらの解除経路でもフックを再開しない。"""
         self._shutting_down = True
+        self._clear_keymap_switch_in_progress()
+
+    def _clear_keymap_switch_in_progress(self) -> None:
+        marker = getattr(self._app, "_keymap_switch_in_progress", None)
+        if marker is not None:
+            marker.clear()
 
     def start_hook(self):
         if self._shutting_down:
             return
+        self._clear_keymap_switch_in_progress()
         desired_custom_input_state = bool(self.custom_input_enabled)
         if self.hook_active:
             self.stop_hook(reset_custom_input_mode=False)
@@ -149,6 +156,7 @@ class HookController:
         self._app.trigger_panel.update_status()
 
     def stop_hook(self, *, reset_custom_input_mode: bool = True):
+        self._clear_keymap_switch_in_progress()
         self._app.sequence_runner.stop_run_to_end()
         self._app.hook_coordinator.stop()
         self._app.key_state_manager.clear()
@@ -173,6 +181,7 @@ class HookController:
 
         if self.custom_input_enabled:
             # 無効化した瞬間に連続実行中を止める
+            self._clear_keymap_switch_in_progress()
             self._app.sequence_runner.stop_run_to_end()
             self.custom_input_enabled = False
         else:

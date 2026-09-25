@@ -537,8 +537,7 @@ class KeymapSetIo:
             self._app.keymap_set_path = path
             self.apply_loaded_data_to_ui()
 
-            self._app._indices = {}
-            self._app._selected_trigger_idx = 0
+            self._app.state.reset_indices()
             self._app.trigger_panel.refresh_triggers()
             self._app.trigger_panel.refresh_actions()
             if self._app.data.get(ConfigService.INTERNAL_LEGACY_TRIGGER_SET, {}).get("state") != "migrated":
@@ -631,8 +630,7 @@ class KeymapSetIo:
             self._app.dirty_tracker.mark_keymap_dirty(keymap)
         self._app.discard_retained_hook_keys()
         self._app._sync_control_vars_from_data()
-        self._app._indices = {}
-        self._app._selected_trigger_idx = 0
+        self._app.state.reset_indices()
         self._app.trigger_panel.refresh_triggers()
         self._app.trigger_panel.refresh_actions()
         self._app.dirty_tracker.set_dirty(True)

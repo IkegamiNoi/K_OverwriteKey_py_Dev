@@ -198,6 +198,10 @@ class TriggerSetFileIo:
         active = self._app.keymap_service.find_keymap(self._app.data, active_id)
         if active is None:
             raise ValueError("読込先のキーマップがありません。")
+        joins_existing_set = existing is not None and not any(
+            member is active
+            for member in trigger_set_members(self._app.data, str(existing[1].get("id") or ""))
+        )
         previous_path = str(active.get(self._app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "")
         set_active_triggers(self._app.data, triggers)
         stored_path = self._stored_path(path)
@@ -207,6 +211,8 @@ class TriggerSetFileIo:
         )
         self._apply_loaded_trigger_refs(active_id, refs)
         self._sync_loaded_trigger_set_state(active_id, existing=existing[1] if existing else None)
+        if joins_existing_set:
+            self._app.dirty_tracker.mark_trigger_set_dirty(active_id)
         if self._path_changed(previous_path, stored_path):
             self._app.dirty_tracker.mark_keymap_dirty(active)
         self._refresh_after_load(path)

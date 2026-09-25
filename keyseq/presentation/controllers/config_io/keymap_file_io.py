@@ -245,8 +245,11 @@ class KeymapFileIo:
             return
         try:
             keymap = self._load_keymap(path)
+            joins_existing_set = self._joins_existing_trigger_set(keymap)
             if not self._app.keymap_panel.add_imported_keymap(keymap):
                 return
+            if joins_existing_set:
+                self._app.dirty_tracker.mark_trigger_set_dirty(str(keymap.get("id") or ""))
             self._refresh_after_load(path)
         except Exception as e:
             self._app._set_flash_message(f"キーマップ読込失敗: {e}", auto_clear=False)
@@ -293,6 +296,20 @@ class KeymapFileIo:
                 bool(owner.get(INTERNAL_TRIGGER_SET_IMPORTED, False)),
             )
         return cache
+
+    def _joins_existing_trigger_set(self, keymap: dict) -> bool:
+        source_key = self._app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH
+        source_path = str(keymap.get(source_key) or "").strip()
+        if not source_path:
+            return False
+        identity = self._app.config_service.canonical_path(source_path, self._app.config_root)
+        for owner, _, _ in iter_trigger_sets(self._app.data):
+            existing_source = str(owner.get(source_key) or "").strip()
+            if existing_source and self._app.config_service.canonical_path(
+                existing_source, self._app.config_root
+            ) == identity:
+                return True
+        return False
 
     def _refresh_after_load(self, path: str) -> None:
         self._app.dirty_tracker.set_dirty(True)

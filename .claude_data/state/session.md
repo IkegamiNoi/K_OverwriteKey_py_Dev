@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T03:00:00
+last_updated: 2026-09-27T12:00:00
 phase: `instructions/phase/34_trigger_list_per_keymap`（**phase 34 = トリガー一覧のキーマップ従属化・2026-09-24 起票・進行中**。暫定仕様 25 v0.4 ユーザー確定済）。次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 13。
 直前の完了フェーズ = **phase 33**（ダイアログの静的検査の発見ベース化・判断履歴 = `decisions_archive/33_grab_modal_static_check_discovery.md`）。
 last_commit_location: `claude/trigger-list-multi-keymap-19f4d7`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 34 task_08 進行中（task_07c・07d 完了＝統合レビュー指摘と v0.6 の実装済み）。次は正本反映 → /refactor_check → 完了判定前レビュー → ユーザーの完了承認。**
+focus: **phase 34 task_08 終盤（task_07e 完了・暫定 25 v0.7・正本反映済・/refactor_check = 提案書 13）。ユーザーの実機確認（07c〜07e 分）とフェーズ完了承認・提案書 13 の実施時期の回答待ち。承認後に暫定 25 凍結・decisions_archive/34・current.md 完了記載。**
 mode: pending_review
 
 ## last_action

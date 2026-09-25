@@ -165,6 +165,7 @@ def collect_child_save_rows(
             rows.append(build_row(
                 kind=CHILD_TRIGGER_SET, key=owner_id,
                 display_name=f"{owner_name} / トリガー一覧", target_path=trigger_target,
+                allow_skip=not is_migrated,
                 current_parent=_stored_parent_path(config_service, targets[(CHILD_KEYMAP, owner_id)], config_root),
                 config_service=config_service, config_root=config_root,
                 has_source_path=bool(source_path),
