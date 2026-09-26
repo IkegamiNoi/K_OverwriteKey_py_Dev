@@ -7,13 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 35](35_legacy_trigger_set_missing_file/phase.md)**（2026-09-26 起票・旧形式トリガー一覧の移行の境界値）。
-  keymap_set の `trigger_set_path` が存在しないファイルを指すときは**移行しない**（ユーザー確定 2026-09-26）へ正本 §5.13.3 を改訂し、
-  非文字列を含む境界値をテストで固定する。**直接改訂モード**（暫定なし）/ decisions 35。起票元 = phase 34 task_07d reviewer の参考指摘。
-- 直前の完了フェーズ = [phase 34](34_trigger_list_per_keymap/phase.md)（2026-09-27・トリガー一覧のキーマップ従属化・
-  判断は [decisions_archive/34](../../.claude_data/state/decisions_archive/34_trigger_list_per_keymap.md)）/
-  [phase 33](33_grab_modal_static_check_discovery/phase.md)（2026-09-24・ダイアログの静的検査の発見ベース化・
-  判断は [decisions_archive/33](../../.claude_data/state/decisions_archive/33_grab_modal_static_check_discovery.md)）。
+- **アクティブなフェーズ = なし**（phase 35 は 2026-09-26 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- 直前の完了フェーズ = [phase 35](35_legacy_trigger_set_missing_file/phase.md)（2026-09-26・旧形式トリガー一覧の移行の境界値・
+  判断は [decisions_archive/35](../../.claude_data/state/decisions_archive/35_legacy_trigger_set_missing_file.md)）/
+  [phase 34](34_trigger_list_per_keymap/phase.md)（2026-09-27・トリガー一覧のキーマップ従属化・
+  判断は [decisions_archive/34](../../.claude_data/state/decisions_archive/34_trigger_list_per_keymap.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
 - **直近の一連の作業が扱っている領域 = トリガー一覧のキーマップ従属化**（phase 34）。
@@ -22,7 +20,8 @@
   （優先順位 **停止 > トグル > 直接切替 > トリガー > 置換**・重なりの表・切替中の受け付け停止）/ `features.md` §4.1・§4.3・§4.5。
   実装の地図 = `codebase_map.md`「キーマップとトリガー一覧（phase 34）」節
   （口 = `domain/keymap_triggers.py`・重なり = `application/key_overlap.py`・UI = `controllers/keymap_panel/`）。
-  **残件** = `config_service/__init__.py` 1133 行 / 80 行超の関数 5 つ / 統合レビュー保留 L-1・L-7 / 移行の境界値テスト（いずれも「別タスク化候補」）/
+  phase 35 で旧形式の読込元が**存在しないファイル**なら移行しない（§5.13.3-8）と定め、移行の境界値をテストで固定した。
+  **残件** = `config_service/__init__.py` 1133 行 / 80 行超の関数 5 つ / 統合レビュー保留 L-1・L-7（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
 - 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**13 まで起票済**・次採番は「次採番」節が正）。
@@ -36,7 +35,7 @@
   **phase 32 は 2026-09-24 完了**（`32_hook_resume_wait_in_ui_tests` / 暫定なし〔直接改訂モード〕/ decisions 32〔アーカイブ済〕）。
   **phase 33 は 2026-09-24 完了**（`33_grab_modal_static_check_discovery` / 暫定なし〔直接改訂モード〕/ decisions 33〔アーカイブ済〕）。
   **phase 34 は 2026-09-27 完了**（`34_trigger_list_per_keymap` / 暫定 25〔v0.7・凍結〕/ decisions 34〔アーカイブ済〕）。
-  **phase 35 は 2026-09-26 起票**（`35_legacy_trigger_set_missing_file` / 暫定なし〔直接改訂モード〕/ decisions 35）。
+  **phase 35 は 2026-09-26 完了**（`35_legacy_trigger_set_missing_file` / 暫定なし〔直接改訂モード〕/ decisions 35〔アーカイブ済〕）。
   次フェーズは **`36_<topic>`**・decisions も **36** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -135,8 +134,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   `save_plan_execution.py::save_runtime_data`（125）/ `split_payloads.py::build_split_save_payloads`（120）/ `child_save_rows.py::collect_child_save_rows`（98）/
   `domain/config.py::ensure_config_compatibility`（149）。いずれも phase 34 でトリガー一覧のキーマップ単位化のため大きく書き換えた。分割は関数ごとに設計が要る（phase 34 由来）
 - **phase 34 統合レビューの保留**: L-1 移行先キーマップと一覧を共有する別キーマップを個別保存すると移行先も一緒に書かれる（「移行先は必ず保存」の副作用・害なし）/
-  L-7 「保存しない」共有メンバーの予想パスが一括保存の親参照に入る（安全側・掃除で除去）/
-  task_07d reviewer 参考: 移行の境界値（`trigger_set_path` が存在しないファイル・非文字列）の明示テストが無い（phase 34 由来）
+  L-7 「保存しない」共有メンバーの予想パスが一括保存の親参照に入る（安全側・掃除で除去）（phase 34 由来）
 
 ### 定数・直値の重複（M6 の境界）
 

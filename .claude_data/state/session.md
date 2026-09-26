@@ -5,28 +5,25 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-09-26T21:00:00
-phase: instructions/phase/35_legacy_trigger_set_missing_file（直接改訂モード・暫定なし / decisions 35）。次採番 = phase 36 / 暫定 26 / decisions 36 / 提案書 14。
-直前の完了フェーズ = **phase 34**（トリガー一覧のキーマップ従属化・2026-09-27 完了・判断履歴 = `decisions_archive/34_trigger_list_per_keymap.md`）。
+phase: なし（**アクティブなフェーズ = なし**。次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 36 / 暫定 26 / decisions 36 / 提案書 14。
+直前の完了フェーズ = **phase 35**（旧形式トリガー一覧の移行の境界値・2026-09-26 完了・判断履歴 = `decisions_archive/35_legacy_trigger_set_missing_file.md`）。
 last_commit_location: `claude/config-service-refactor-priorities-b7a21d`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 35（旧形式トリガー一覧の移行の境界値）task_01・task_02 完了。残り task_03（記録・/refactor_check）。**
-mode: implementing
+focus: **phase 35 完了（旧形式トリガー一覧の移行の境界値・不在ファイルは移行しない §5.13.3-8）。次フェーズは未定（ユーザー判断待ち）。**
+mode: completed
 
 ## last_action
-ts: 2026-09-26T21:00:00
+ts: 2026-09-26T21:30:00
 who: main
 summary: |
-  【起票】phase 35。起票前調査で仕様不備（keymap_set の `trigger_set_path` が不在ファイルを指す場合が §5.13.3 未定義）を検出。
-  【ユーザー判断 2026-09-26】無いなら移行しない（あるが読めないは移行のまま）/ 正本文言承認。
-  【task_01】`data_schema.md` §5.13.3-8 追加・§5.13.4 表 1 行目更新（メイン）。
-  【task_02】`split_loading.py::_migrate_legacy_trigger_set` に不在判定 3 行（same 判定の後）+ 境界値テスト 5 件（codex-implementer）。application 層内で閉じる。
-  【判定】verifier 全 pass・reviewer 完了可（指摘なし）。
+  【task_01+02 コミット】`ba386a4`（正本 §5.13.3-8・不在判定 3 行・境界値テスト 5 件）。
+  【task_03 = phase 35 完了記録】decisions_archive/35 作成・decisions.md から phase 35 節を移動 + 索引 1 行 / current.md（アクティブ = なし・直近の領域・別タスク化候補の境界値行を削除・次採番）/ phase.md task_03 完了。
+  【refactor_check】不要（keyseq/ は +3 行のみ・M1〜M6 非該当・verifier 実測）。
 result_files:
-  - instructions/phase/35_legacy_trigger_set_missing_file/{phase.md, tasks/task_02_missing_file_and_boundary_tests.md}
-  - instructions/common/spec_detail/data_schema.md / instructions/phase/current.md / .claude_data/state/decisions.md
-  - keyseq/application/config_service/split_loading.py / tests/test_per_keymap_triggers_load.py
+  - .claude_data/state/{decisions.md, decisions_archive/35_legacy_trigger_set_missing_file.md, session.md}
+  - instructions/phase/{current.md, 35_legacy_trigger_set_missing_file/phase.md}
 verified:
   compile: clean
   tests: 674 ran OK（skipped 7）
@@ -35,9 +32,7 @@ verified:
   review: reviewer 完了可（task_01+02）
 
 ## next_action
-- **task_03（記録）をメインで実施**: `decisions_archive/35_legacy_trigger_set_missing_file.md` 作成（decisions.md 末尾の phase 35 節を移動 + 索引 1 行）/
-  current.md（アクティブ = なし・完了記載・「別タスク化候補」の「移行の境界値」記述を削除）/ phase.md の task_03 完了 /
-  `/refactor_check`（`keyseq/` の変更は 3 行のみ・メトリクス収集は verifier）。
+- **次フェーズはユーザー判断**（推奨候補 = `config_service/__init__.py` 1133 行の分割 + 80 行超の関数 5 つ〔current.md「別タスク化候補」〕。着手時は `/phase_start`）。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜35）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

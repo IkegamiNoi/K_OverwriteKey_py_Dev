@@ -58,7 +58,7 @@ keymap_set の `trigger_set_path`（旧形式の読込元・§5.13.3）の**境�
 
 - task_01: 正本改訂（`data_schema.md` §5.13.3 に不在時の扱いを追記。文言はユーザー確認のうえメインが反映）— **完了**（2026-09-26）
 - task_02: 実装 + テスト（不在判定の追加・境界値テスト。codex-implementer → verifier → reviewer）— **完了**（2026-09-26・tests 674〔skip 7〕/ tests_ui 576 / smoke pass・reviewer 完了可）
-- task_03: 記録（decisions_archive/35 / current.md の完了記載と「別タスク化候補」の該当行の更新 / `/refactor_check`）
+- task_03: 記録（decisions_archive/35 / current.md の完了記載と「別タスク化候補」の該当行の更新 / `/refactor_check`）— **完了**（2026-09-26）
 
 ## レビュー方針
 
