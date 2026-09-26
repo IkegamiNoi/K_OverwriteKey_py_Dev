@@ -22,12 +22,10 @@ from keyseq.domain.keymap_triggers import (
     INTERNAL_TRIGGER_SET_IMPORTED,
     INTERNAL_TRIGGER_SET_PARENT_REFS,
     INTERNAL_TRIGGER_SET_SOURCE_PATH,
-    trigger_set_members,
     ensure_active_triggers,
-    get_active_triggers,
     migrate_single_json_triggers,
 )
-from . import keymap_save_plan, keymap_set_history, orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
+from . import child_file_io, keymap_save_plan, keymap_set_history, orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
 
 from keyseq.application.save_plan import SavePlan
 
@@ -264,21 +262,7 @@ class ConfigService:
         imported: bool = True,
         config_root: str = "",
     ) -> dict[str, Any]:
-        raw_sequence = self.repository.load_json(path)
-        if not isinstance(raw_sequence, dict):
-            raise ValueError("sequence JSON の形式が不正です。")
-        sequence = self._normalize_sequence_payload(raw_sequence)
-        parent_refs = self._normalize_parent_refs(raw_sequence.get(self.PARENT_REFS_KEY))
-        if parent_refs is not None:
-            sequence[self.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
-        sequence[self.INTERNAL_SEQUENCE_SOURCE_PATH] = (
-            self.to_config_relative_or_absolute(path, config_root)
-            if config_root
-            else path
-        )
-        sequence[self.INTERNAL_SEQUENCE_IMPORTED] = bool(imported)
-        sequence[self.INTERNAL_SEQUENCE_DIRTY] = False
-        return sequence
+        return child_file_io.load_sequence_file(self, path, imported=imported, config_root=config_root)
 
     def save_sequence_file(
         self,
@@ -288,26 +272,7 @@ class ConfigService:
         parent_ref: str = "",
         config_root: str = "",
     ) -> dict[str, Any]:
-        resolved_path = self._resolve_config_relative_path(path, config_root)
-        stored_path = (
-            self.to_config_relative_or_absolute(resolved_path, config_root)
-            if config_root
-            else path
-        )
-        payload = split_payloads.build_sequence_payload(self,
-            trigger,
-            parent_ref=parent_ref,
-            config_root=config_root,
-            target_path=resolved_path,
-        )
-        self.repository.save_json(resolved_path, payload)
-        sequence = self._normalize_sequence_payload(payload)
-        if self.PARENT_REFS_KEY in payload:
-            sequence[self.INTERNAL_SEQUENCE_PARENT_REFS] = safe_deepcopy(payload[self.PARENT_REFS_KEY])
-        sequence[self.INTERNAL_SEQUENCE_SOURCE_PATH] = stored_path
-        sequence[self.INTERNAL_SEQUENCE_IMPORTED] = False
-        sequence[self.INTERNAL_SEQUENCE_DIRTY] = False
-        return sequence
+        return child_file_io.save_sequence_file(self, path, trigger, parent_ref=parent_ref, config_root=config_root)
 
     def load_trigger_set_file(
         self,
@@ -316,16 +281,7 @@ class ConfigService:
         config_root: str,
         imported: bool = True,
     ) -> list[dict[str, Any]]:
-        payload = self.repository.load_json(path)
-        if not isinstance(payload, dict):
-            raise ValueError("trigger_set JSON の形式が不正です。")
-        triggers, _parent_refs = split_loading.load_triggers_from_trigger_set(
-            self,
-            payload,
-            config_root=config_root,
-            imported=imported,
-        )
-        return triggers
+        return child_file_io.load_trigger_set_file(self, path, config_root=config_root, imported=imported)
 
     def save_trigger_set_file(
         self,
@@ -337,55 +293,7 @@ class ConfigService:
         parent_refs: list[str] | None = None,
         save_plan: SavePlan | None = None,
     ) -> tuple[list[dict[str, Any]], dict[str, Any]]:
-        resolved_path = self._resolve_config_relative_path(path, config_root)
-        normalized = ensure_config_compatibility(data)
-        raw_triggers = get_active_triggers(data)
-        normalized_triggers = get_active_triggers(normalized)
-        for raw_trigger, trigger in zip(
-            (item for item in raw_triggers if isinstance(item, dict)),
-            normalized_triggers,
-        ):
-            sequence_parent_refs = self._normalize_parent_refs(raw_trigger.get(self.INTERNAL_SEQUENCE_PARENT_REFS))
-            if sequence_parent_refs is not None:
-                trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = sequence_parent_refs
-        trigger_payload, sequence_items = split_payloads.build_trigger_set_payloads(self,
-            normalized,
-            config_root=os.path.abspath(config_root),
-            trigger_set_path=resolved_path,
-            parent_ref=parent_ref,
-            additional_parent_refs=parent_refs,
-            save_plan=save_plan or SavePlan(),
-        )
-        for item in sequence_items:
-            if item["skip"]:
-                continue
-            self.repository.save_json(str(item["resolved_path"]), item["payload"])
-        self.repository.save_json(resolved_path, trigger_payload)
-
-        triggers = safe_deepcopy(get_active_triggers(normalized))
-        by_key = {
-            normalize_key_name(str(item.get("key") or "")): item
-            for item in sequence_items
-            if isinstance(item, dict) and not item["skip"]
-        }
-        for trigger in triggers:
-            key = normalize_key_name(str(trigger.get("key") or ""))
-            sequence_item = by_key.get(key)
-            if not isinstance(sequence_item, dict):
-                continue
-            trigger[self.INTERNAL_SEQUENCE_SOURCE_PATH] = str(sequence_item.get("path") or "")
-            if self.PARENT_REFS_KEY in sequence_item.get("payload", {}):
-                trigger[self.INTERNAL_SEQUENCE_PARENT_REFS] = safe_deepcopy(
-                    sequence_item["payload"][self.PARENT_REFS_KEY]
-                )
-            trigger[self.INTERNAL_SEQUENCE_IMPORTED] = False
-            trigger[self.INTERNAL_SEQUENCE_DIRTY] = False
-        if self.PARENT_REFS_KEY in trigger_payload:
-            for member in trigger_set_members(data):
-                member[self.INTERNAL_TRIGGER_SET_PARENT_REFS] = safe_deepcopy(
-                    trigger_payload[self.PARENT_REFS_KEY]
-                )
-        return triggers, trigger_payload
+        return child_file_io.save_trigger_set_file(self, path, data, config_root=config_root, parent_ref=parent_ref, parent_refs=parent_refs, save_plan=save_plan)
 
     def save_runtime_data(
         self,

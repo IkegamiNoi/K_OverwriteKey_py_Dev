@@ -12,7 +12,7 @@ CONFIG_SERVICE_PACKAGE = "keyseq.application.config_service"
 _INTERNAL_SEGMENT = CONFIG_SERVICE_PACKAGE.rsplit(".", 1)[-1]
 _PACKAGE_PREFIX = CONFIG_SERVICE_PACKAGE + "."
 INTERNAL_MODULE_NAMES = frozenset({
-    "candidate_dirs", "keymap_save_plan", "keymap_set_history", "orphan_scan", "parent_refs_cleanup", "path_boundary",
+    "candidate_dirs", "child_file_io", "keymap_save_plan", "keymap_set_history", "orphan_scan", "parent_refs_cleanup", "path_boundary",
     "quarantine", "quarantine_manage", "reference_scan", "save_path_resolution",
     "save_plan_execution", "split_loading", "split_payloads",
 })
