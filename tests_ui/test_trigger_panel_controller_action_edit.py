@@ -54,7 +54,11 @@ class TriggerPanelActionEditTest(unittest.TestCase):
             data={"active_keymap_id": "main", "keymaps": [{
                 "id": "main", "triggers": [self.trigger],
             }]},
-            state=SimpleNamespace(counters={"running": 3}),
+            state=SimpleNamespace(
+                counters={"running": 3},
+                loop_iterations_for=lambda _trigger_set_id, _key: {},
+            ),
+            _active_trigger_set_id=lambda: "main",
             _selected_trigger_idx=0,
             _indices={"a": 1},
             _dialog_result=None,

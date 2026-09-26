@@ -79,7 +79,9 @@ file_line の実行 / presentation の編集ダイアログ・追加位置・一
   新規 `domain/sequence_editing.py`・`dialogs/action_control_fields.py`。`codex-delegating-implementer`・**子を Luna high で試行**〔3 本・実測〕・Codex 処理約 12 分・
   入力 親 240 万 / 子計 315 万〔大半キャッシュ〕・出力 親 0.9 万 / 子計 4.5 万。親が子の期待値誤り 1 件を修正済・**残る期待値誤り 1 件**
   〔実行位置のキーを大文字 "A" で持つ前提〕をメインで修正。`action_dialog.py` は 449 行〔次に触るなら分割を検討〕）
-- task_07: 一覧の表示（暫定 §11.3・§11.4: 周回・カウンター値の表示と更新 / ネストの色分け / 省略表示の「次に実行」の要約）
+- task_07: 一覧の表示（暫定 §11.3・§11.4: 周回・カウンター値の表示と更新 / ネストの色分け / 省略表示の「次に実行」の要約）— **実装完了・実機目視待ち**（2026-09-27。
+  新規 `controllers/action_list_rendering.py`。`codex-implementer`〔Luna high・既定化後〕。task_06 のテストの偽 App に `_active_trigger_set_id` / `loop_iterations_for` を追随
+  〔メイン〕。`trigger_panel_controller.py` は 711 行〔task_08 の `/refactor_check` で判定〕）
 - task_08: 統合確認と正本反映（暫定 26 の `spec_detail/` への昇格・凍結 / `codebase_map.md`〔新モジュール・色値〕/
   decisions_archive/37 / current.md の完了記載 / `/refactor_check`）
 

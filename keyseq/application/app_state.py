@@ -72,6 +72,15 @@ class AppState:
             return self.loop_frames
         return self.keymap_loop_frames.setdefault(trigger_set_id, {})
 
+    def loop_iterations_for(self, trigger_set_id: str, key: str) -> dict[int, int]:
+        """指定トリガーの周回フレームを開始位置から周回数への対応表で返す。"""
+        with self.lock:
+            if trigger_set_id:
+                frames = self.keymap_loop_frames.get(trigger_set_id, {}).get(key, ())
+            else:
+                frames = self.loop_frames.get(key, ())
+            return {frame.start: frame.iteration for frame in tuple(frames)}
+
     def history_for(self, trigger_set_id: str | None = None) -> dict[str, list[HistoryEntry]]:
         if not trigger_set_id:
             return self.history

@@ -7,7 +7,6 @@ from keyseq.domain.keymap_triggers import ensure_active_triggers, get_active_tri
 from keyseq.domain.config import (
     DEFAULT_RUN_TO_END_DELAY_MS,
     coerce_nonnegative_int,
-    format_action_list_item,
     format_trigger_list_item,
     normalize_key_name,
 )
@@ -28,6 +27,10 @@ from keyseq.domain.sequence_editing import (
     pair_index,
 )
 from keyseq.presentation.dialogs import ActionDialog, TriggerDialog
+from keyseq.presentation.controllers.action_list_rendering import (
+    build_action_rows,
+    format_next_action_summary,
+)
 from keyseq.presentation.listbox_utils import (
     focused_listbox_index,
     sync_listbox_selection_to_focus,
@@ -189,10 +192,20 @@ class TriggerPanelController:
             self.update_status()
             return
         actions = trig.get("actions", [])
-        for i, a in enumerate(actions):
-            self._app.full_view.action_list.insert(tk.END, format_action_list_item(i, a))
-
         key = normalize_key_name(trig.get("key", ""))
+        trigger_set_id = self._app._active_trigger_set_id()
+        loop_iterations = self._app.state.loop_iterations_for(trigger_set_id, key)
+        counters = self._app.state.counters
+        rows = build_action_rows(
+            actions,
+            loop_iterations=loop_iterations,
+            counters=counters,
+        )
+        for i, (item_text, background) in enumerate(rows):
+            self._app.full_view.action_list.insert(tk.END, item_text)
+            if background is not None:
+                self._app.full_view.action_list.itemconfigure(i, background=background)
+
         if key not in self._app._indices:
             self._app._indices[key] = 0
         # index補正
@@ -332,16 +345,15 @@ class TriggerPanelController:
         if not isinstance(a, dict):
             return "(なし)"
 
-        t = (a.get("type") or "").strip().lower()
-        if t == "mouse_click":
-            x = a.get("x", "")
-            y = a.get("y", "")
-            btn = a.get("button", "left")
-            clicks = a.get("clicks", 1)
-            return f"{idx+1:02d}. [mouse_click] ({x}, {y}) {btn} x{clicks}"
-        else:
-            v = a.get("value", "")
-            return f"{idx+1:02d}. [{t}] {v}"
+        loop_iterations = self._app.state.loop_iterations_for(
+            self._app._active_trigger_set_id(), key
+        )
+        return format_next_action_summary(
+            idx,
+            a,
+            loop_iterations=loop_iterations,
+            counters=self._app.state.counters,
+        )
 
     # ---------------- run_to_end / suppress ----------------
     def update_run_to_end_delay(self, _event=None):

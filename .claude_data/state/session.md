@@ -4,40 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T02:30:00
+last_updated: 2026-09-27T03:10:00
 phase: instructions/phase/37_sequence_control_actions（出力シーケンスの制御アクション・第 1 弾・暫定 26 v0.3 確定済・decisions 37）。
 次採番 = phase 38 / 暫定 27 / decisions 38 / 提案書 15。直前の完了フェーズ = **phase 36**（判断履歴 = `decisions_archive/36_config_service_split.md`）。
 last_commit_location: `claude/output-sequence-system-type-e641ab`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 37 進行中: task_01〜06（domain の土台 / 実行モデル / 待機 / 戻す・先頭へ / file_line / 編集 UI）完了。次は task_07（一覧の表示と色分け・実機目視）。**
-mode: implementing
+focus: **phase 37 進行中: task_01〜07 実装完了。task_07（一覧の表示と色分け）はユーザーの実機目視待ち（phase 37 の UI をまとめて確認）。その後 task_08（統合確認と正本反映）。**
+mode: pending_review
 
 ## last_action
-ts: 2026-09-27T02:30:00
+ts: 2026-09-27T03:10:00
 who: main
 summary: |
-  【task_06 編集 UI】ユーザー指示で `codex-delegating-implementer` の**子を Luna high**にして実施（子 3 本 = 純関数 / ダイアログ / コントローラ・すべて gpt-6-luna high を実測）。
-  Codex 処理約 12 分・入力 親 2,397,559 / 子計 3,151,659（大半キャッシュ）・出力 親 9,166 / 子計 44,900。親が子の期待値誤り 1 件を自力修正。
-  verifier で 1 件失敗 = **テストの前提誤り**（実行位置のキーを大文字 "A" で持つ・実アプリは小文字に正規化）→ メインで修正 → 対象 20 件 OK。reviewer 完了可。
+  【既定変更】ユーザー判断で Codex 実装エージェントの推論レベルを Luna high に（`920f8d8`・codex / codex_medium 変種に追随・agent_selection.md に理由を記載）。
+  【task_07 一覧の表示】`codex-implementer`（Luna high）→ verifier で tests_ui 1 件エラー = task_06 のテストの偽 App に `_active_trigger_set_id` / `loop_iterations_for` が無い
+  （refresh_actions の変更への追随）→ メインで偽 App を拡張 → 対象 17 件 OK。reviewer 完了可（参考: get_next_action_summary もアクティブな trigger_set_id 前提・既存踏襲）。
 result_files:
-  - keyseq/domain/sequence_editing.py（新規）/ keyseq/presentation/dialogs/{action_dialog.py（449 行）, action_control_fields.py（新規）} / keyseq/presentation/controllers/trigger_panel_controller.py
-  - tests/test_sequence_editing.py（新規）/ tests_ui/{test_action_dialog_control.py, test_trigger_panel_controller_action_edit.py}（新規）
-  - instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_06_edit_ui.md} / .claude_data/state/session.md
+  - keyseq/application/app_state.py / keyseq/presentation/controllers/{action_list_rendering.py（新規）, trigger_panel_controller.py（711 行）}
+  - tests/test_app_state_loop_iterations.py（新規）/ tests_ui/{test_action_list_rendering.py（新規）, test_trigger_panel_controller_action_edit.py}
+  - .claude/agents/{codex-implementer, codex-delegating-implementer}.md / .claude/rules/agent_selection.md（+ 変種）
+  - instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_07_list_display.md} / .claude_data/state/session.md
 verified:
   compile: clean
-  tests: 791 ran OK（skipped 7）
-  tests_ui: 596 ran（修正前 1 fail → 該当テストを修正し対象ファイル 20 件 OK）
+  tests: 794 ran OK（skipped 7）
+  tests_ui: 604 ran（修正前 1 error → 該当テストを修正し対象 17 件 OK）
   smoke: pass
-  review: reviewer 完了可（task_06）
+  review: reviewer 完了可（task_07）
 
 ## next_action
-- **実装モデルの判断材料をユーザーへ提示済み**（子 = Luna xhigh〔task_03・04〕と Luna high〔task_06〕の比較 / `codex-implementer` の Luna high〔task_05〕）。既定を変えるかはユーザー判断。
-- `/task_new` で `instructions/phase/37_sequence_control_actions/tasks/task_07_*.md`（暫定 26 §11.3・§11.4: 一覧に周回・カウンター値を表示〔`format_action_list_item` に runtime 値を渡す〕/
-  ネストの色分け〔`loop_depth_style` → 色値・背景・選択色優先・対応崩れは色なし〕/ 省略表示の「次に実行」の要約）を起票 → 実装 → verifier → reviewer →
-  **ユーザーの実機目視**（phase 37 の UI 変更をまとめて確認）。
-- 実装後の Codex レビュー（統合時・task_08 前）で Luna xhigh（プラグイン）と Sol medium（`codex exec` 直接）を再比較する。
+- **ユーザーの実機目視**（`..\..\..\.venv\Scripts\python.exe main.py`）: ループ（回数・無限・ネスト・周回表示・色分け）/ カウンター（+1・0 に・値表示）/ 待機 /
+  戻す・先頭へ（専用トリガーから）/ file_line（UTF-8・Shift_JIS・範囲外 3 種）/「末尾に追加」/ ループの対での追加・削除・移動の制限。指摘は枝番タスク（task_07b 等）で対応。
+- 目視 OK 後に task_08: 統合レビュー（deep-reviewer + codex-reviewer。**Codex レビューは Luna xhigh〔プラグイン〕と Sol medium〔`codex exec` 直接〕を再比較**）→
+  暫定 26 の `spec_detail/` 昇格・凍結 / codebase_map（新モジュール 7 つ・色値）/ decisions_archive/37 / current.md 完了記載 / `/refactor_check`（`trigger_panel_controller.py` 711 行・`action_dialog.py` 449 行・runner 299 行）。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜37）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
