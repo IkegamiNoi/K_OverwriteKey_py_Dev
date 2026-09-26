@@ -91,39 +91,19 @@ def default_action_for(share_state) -> str:
     return ACTION_SAVE
 
 
-def collect_child_save_rows(
-    *,
-    data,
-    dirty_tracker,
-    config_service,
-    config_root,
-    keymap_set_path,
-    split_base_dir: str = "",
-    save_plan: SavePlan | None = None,
-    migration_source_path: str = "",
-) -> list[ChildSaveRow]:
-    if not isinstance(data, dict):
-        return []
-
-    targets = config_service.resolve_child_save_targets(
-        data,
-        config_root=config_root,
-        keymap_set_path=keymap_set_path,
-        split_base_dir=split_base_dir,
-        save_plan=save_plan,
-    )
-    keymap_parent = _stored_parent_path(
-        config_service,
-        keymap_set_path,
-        config_root,
-    )
-    rows: list[ChildSaveRow] = []
+def _migrated_keymap_id(data, config_service) -> str:
     legacy = data.get(config_service.INTERNAL_LEGACY_TRIGGER_SET, {})
-    migrated_id = (
+    return (
         normalize_key_name(str(legacy.get("keymap_id") or ""))
         if legacy.get("state") == "migrated"
         else ""
     )
+
+
+def _append_keymap_save_rows(
+    rows: list[ChildSaveRow], data, targets, migrated_id: str,
+    keymap_parent, config_service, config_root,
+) -> None:
     keymaps = data.get("keymaps", [])
     if isinstance(keymaps, list):
         for keymap in keymaps:
@@ -149,6 +129,12 @@ def collect_child_save_rows(
                     has_source_path=bool(source_path),
                 )
             )
+
+
+def _append_trigger_set_save_rows(
+    rows: list[ChildSaveRow], data, targets, migrated_id: str,
+    migration_source_path, keymap_set_path, config_service, config_root,
+) -> None:
     for owner, _, triggers in iter_trigger_sets(data):
         owner_id = normalize_key_name(str(owner.get("id") or ""))
         if not owner_id:
@@ -157,38 +143,90 @@ def collect_child_save_rows(
         trigger_target = targets.get((CHILD_TRIGGER_SET, owner_id))
         source_path = str(owner.get(config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "").strip()
         is_migrated = owner_id == migrated_id
-        if trigger_target and (source_path or triggers) and (
-            owner.get(INTERNAL_TRIGGER_SET_DIRTY, False)
-            or (not source_path and bool(triggers))
-            or is_migrated
-        ):
-            rows.append(build_row(
-                kind=CHILD_TRIGGER_SET, key=owner_id,
-                display_name=f"{owner_name} / トリガー一覧", target_path=trigger_target,
-                allow_skip=not is_migrated,
-                current_parent=_stored_parent_path(config_service, targets[(CHILD_KEYMAP, owner_id)], config_root),
-                config_service=config_service, config_root=config_root,
-                has_source_path=bool(source_path),
-                migration_parent_path=(
-                    migration_source_path or keymap_set_path
-                ) if is_migrated else "",
-            ))
-        for trigger in triggers:
-            source_path = str(trigger.get(config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
-            if not trigger.get(config_service.INTERNAL_SEQUENCE_DIRTY, False) and source_path:
-                continue
-            key = compose_sequence_key(owner_id, normalize_key_name(str(trigger.get("key") or "")))
-            target_path = targets.get((CHILD_SEQUENCE, key))
-            if not target_path:
-                continue
-            rows.append(build_row(
-                kind=CHILD_SEQUENCE, key=key,
-                display_name=f"{owner_name} / {trigger.get('label') or trigger['key']}",
-                target_path=target_path,
-                current_parent=_stored_parent_path(config_service, trigger_target, config_root),
-                config_service=config_service, config_root=config_root,
-                has_source_path=bool(source_path),
-            ))
+        _append_trigger_set_row(
+            rows, owner, triggers, owner_id, owner_name, trigger_target, source_path, is_migrated,
+            targets, migration_source_path, keymap_set_path, config_service, config_root,
+        )
+        _append_sequence_rows(
+            rows, triggers, owner_id, owner_name, trigger_target,
+            targets, config_service, config_root,
+        )
+
+
+def _append_trigger_set_row(
+    rows: list[ChildSaveRow], owner, triggers, owner_id: str, owner_name: str,
+    trigger_target, source_path: str, is_migrated: bool, targets,
+    migration_source_path, keymap_set_path, config_service, config_root,
+) -> None:
+    if trigger_target and (source_path or triggers) and (
+        owner.get(INTERNAL_TRIGGER_SET_DIRTY, False)
+        or (not source_path and bool(triggers))
+        or is_migrated
+    ):
+        rows.append(build_row(
+            kind=CHILD_TRIGGER_SET, key=owner_id,
+            display_name=f"{owner_name} / トリガー一覧", target_path=trigger_target,
+            allow_skip=not is_migrated,
+            current_parent=_stored_parent_path(config_service, targets[(CHILD_KEYMAP, owner_id)], config_root),
+            config_service=config_service, config_root=config_root,
+            has_source_path=bool(source_path),
+            migration_parent_path=(
+                migration_source_path or keymap_set_path
+            ) if is_migrated else "",
+        ))
+
+
+def _append_sequence_rows(
+    rows: list[ChildSaveRow], triggers, owner_id: str, owner_name: str,
+    trigger_target, targets, config_service, config_root,
+) -> None:
+    for trigger in triggers:
+        source_path = str(trigger.get(config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
+        if not trigger.get(config_service.INTERNAL_SEQUENCE_DIRTY, False) and source_path:
+            continue
+        key = compose_sequence_key(owner_id, normalize_key_name(str(trigger.get("key") or "")))
+        target_path = targets.get((CHILD_SEQUENCE, key))
+        if not target_path:
+            continue
+        rows.append(build_row(
+            kind=CHILD_SEQUENCE, key=key,
+            display_name=f"{owner_name} / {trigger.get('label') or trigger['key']}",
+            target_path=target_path,
+            current_parent=_stored_parent_path(config_service, trigger_target, config_root),
+            config_service=config_service, config_root=config_root,
+            has_source_path=bool(source_path),
+        ))
+
+
+def collect_child_save_rows(
+    *,
+    data,
+    dirty_tracker,
+    config_service,
+    config_root,
+    keymap_set_path,
+    split_base_dir: str = "",
+    save_plan: SavePlan | None = None,
+    migration_source_path: str = "",
+) -> list[ChildSaveRow]:
+    if not isinstance(data, dict):
+        return []
+
+    targets = config_service.resolve_child_save_targets(
+        data,
+        config_root=config_root, keymap_set_path=keymap_set_path,
+        split_base_dir=split_base_dir, save_plan=save_plan,
+    )
+    keymap_parent = _stored_parent_path(config_service, keymap_set_path, config_root)
+    rows: list[ChildSaveRow] = []
+    migrated_id = _migrated_keymap_id(data, config_service)
+    _append_keymap_save_rows(
+        rows, data, targets, migrated_id, keymap_parent, config_service, config_root
+    )
+    _append_trigger_set_save_rows(
+        rows, data, targets, migrated_id, migration_source_path,
+        keymap_set_path, config_service, config_root,
+    )
     return rows
 
 
