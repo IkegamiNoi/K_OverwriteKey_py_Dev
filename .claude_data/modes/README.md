@@ -23,6 +23,7 @@
 | `.claude/rules/agent_selection.md` | codex / codex_medium / claude_only | **あり（3 変種すべて相異）** |
 | `.claude/agents/implementer.md` | codex / codex_medium / claude_only | **あり**（claude_only のみ相異） |
 | `.claude/agents/codex-implementer.md` | codex / codex_medium | なし（claude_only 適用時は削除） |
+| `.claude/agents/codex-delegating-implementer.md` | codex / codex_medium | なし（同上） |
 | `.claude/agents/codex-reviewer.md` | codex / codex_medium | なし（同上） |
 | `.claude/agents/codex-adversarial-reviewer.md` | codex / codex_medium | なし（同上） |
 | `.claude/agents/codex-explorer.md` | codex のみ | なし（他 2 モード適用時は削除） |

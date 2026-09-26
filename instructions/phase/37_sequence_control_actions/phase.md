@@ -80,6 +80,9 @@ file_line の実行 / presentation の編集ダイアログ・追加位置・一
 - サブエージェントが使えていない・使用量の減りが多すぎる場合は、実装での使用を見送る（判断はユーザー）。
 - 実装後の Codex レビューで Luna xhigh と Sol medium を再比較する（レビューモデルの方針決定用）。
 - 他のタスクは従来どおり（`config.toml` の既定 = Luna xhigh）。
+- **結論（ユーザー判断 2026-09-27）**: Codex 実装エージェントを 2 種にした。`codex-implementer` = Luna xhigh（修正箇所が具体的で量が多くない）/
+  `codex-delegating-implementer` = Sol medium + Luna xhigh サブエージェント許可（判断が要る・量が多い）。基準は `agent_selection.md`。
+  task_03 以降はこの基準で選ぶ。
 
 ## レビュー方針
 

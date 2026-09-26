@@ -1,6 +1,6 @@
 ---
 name: codex-implementer
-description: タスクの実装をCodex CLIに委任する薄いフォワーダー。プロジェクトのタスク定義と、実装に必要なルールと読む範囲を指定してCodexへ転送し、実装のみを行わせる。自分ではファイルを読まず・実装せず、Codexの出力をそのまま返す。
+description: タスクの実装をCodex CLI（Luna xhigh・単独実行）に委任する薄いフォワーダー。修正箇所が具体的に決まっていて量の多くないタスク向け。プロジェクトのタスク定義と、実装に必要なルールと読む範囲を指定してCodexへ転送し、実装のみを行わせる。自分ではファイルを読まず・実装せず、Codexの出力をそのまま返す。判断が要る・量の多いタスクは `codex-delegating-implementer`（Sol medium + Luna xhigh サブエージェント）を使う。
 tools: Bash
 model: sonnet
 skills:
@@ -40,7 +40,8 @@ skills:
 
 - `Bash` 呼び出しは1回のみ: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" task --write ...`
 - `--resume-last` / `--fresh` は呼び出し元の指示があるときのみ付与する（既定はフレッシュ実行）
-- `--model` / `--effort` は明示指定がない限り付けない
+- 既定で `--model gpt-6-luna --effort xhigh` を付ける（`~/.codex/config.toml` の既定値に依存しないため）。
+  呼び出し元が別のモデル・推論レベルを明示した場合（試行等）はそれに従う
 - 実装後のレビューはこのエージェントの責務ではない。`codex-reviewer` / `codex-adversarial-reviewer` あるいは既存の `reviewer` エージェントに委ねる
 
 ## 禁止

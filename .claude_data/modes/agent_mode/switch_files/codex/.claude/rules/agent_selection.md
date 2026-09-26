@@ -14,9 +14,17 @@
 
 ## ■ 実装（コードを書く作業）
 
-### 既定: `codex-implementer`
+### 既定: Codex 実装エージェント 2 種（タスクの性質で選ぶ）
 
-- タスク定義に基づく実装は、原則 `codex-implementer` エージェントへ委任する
+| エージェント | Codex のモデル | 使うタスク |
+|---|---|---|
+| `codex-implementer` | Luna xhigh（単独） | **修正箇所が具体的に決まっていて、かつ量が多くない**タスク |
+| `codex-delegating-implementer` | Sol medium が主・Luna xhigh のサブエージェント使用を許可 | **Codex 側である程度の判断が要る**タスク、または**量が多くサブエージェントで分担できそう**なタスク |
+
+- タスク定義に基づく実装は、原則どちらかへ委任する。**どちらを使ったかを完了報告に書く**
+  （`codex-delegating-implementer` の場合はサブエージェントの使用有無も。自己申告なので、必要なら
+  `~/.codex/sessions/<日付>/rollout-*.jsonl` の `model` / `thread_source` で実測する）
+- 迷ったら `codex-implementer`（ユーザー判断 2026-09-27 の基準。試行の経緯は phase 37 の phase.md）
 - 呼び出し時は以下をプロンプトに含める
   - 対象タスク定義ファイルのパス
   - 実装対象範囲と対象外の明記
@@ -27,7 +35,7 @@
 
 ### フォールバック: `implementer`（Claude）
 
-`codex-implementer` が使用できない場合（Codex CLI 未導入・認証エラー・実行失敗・
+Codex 実装エージェントが使用できない場合（Codex CLI 未導入・認証エラー・実行失敗・
 プラグイン無効等）は、**無断で切り替えず、必ずユーザーに確認して許可を得てから**
 `implementer` エージェントを使用する。
 
@@ -118,5 +126,5 @@ Claude 側のレビュアーは 2 種類ある。**対象の広さで選ぶ**（
 
 - Codex が使えないことを理由に、ユーザー確認なしで Claude 系エージェント
   またはメインセッション自身による実装へ切り替えること
-- `codex-implementer` の結果を無レビューで完了扱いにすること
+- Codex 実装エージェント（`codex-implementer` / `codex-delegating-implementer`）の結果を無レビューで完了扱いにすること
 - 統合テスト・フェーズ完了時・暫定仕様確定前の Codex レビューを、報告なしに省略すること
