@@ -46,6 +46,7 @@ from keyseq.presentation.modal import install_minimize_grab_custody
 
 
 from keyseq.application.action_executor import ActionExecutor
+from keyseq.application.file_line_reader import resolve_file_line_path
 from keyseq.application.config_service import ConfigService
 from keyseq.application.app_state import AppState
 from keyseq.application.hotkey_service import HotkeyService
@@ -124,6 +125,8 @@ class App(tk.Tk):
             on_toggle_mode=lambda: self.hook.toggle_custom_input_enabled(),
             on_select_keymap=lambda keymap_id: self.keymap_panel.activate_keymap_by_id(keymap_id, show_flash=True),
             on_trigger=lambda key: self.sequence_runner.handle_key(key),
+            resolve_file_line_path=lambda p: resolve_file_line_path(p, self.config_root),
+            get_counter=lambda name: self.state.counters.get(name, 0),
             on_shadowed_action=lambda action, conflicts: self.hook.show_shadowed_assignments(action, conflicts),
             can_switch_keymap=lambda keymap_id: self.state.can_switch_keymap(
                 normalize_key_name(keymap_id), self.keymap_service.get_active_keymap_id(self.data)

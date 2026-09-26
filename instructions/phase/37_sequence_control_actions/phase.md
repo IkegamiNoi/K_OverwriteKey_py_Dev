@@ -70,7 +70,10 @@ file_line の実行 / presentation の編集ダイアログ・追加位置・一
   新規 `application/sequence_history.py`。`codex-delegating-implementer`・Luna xhigh の子 3 本〔履歴 / ステップ / runner テスト〕・約 12 分・
   入力 親 280 万 / 子計 206 万〔大半キャッシュ〕・出力 親 1.6 万 / 子計 3.4 万。**子が書いたテストの期待値誤り 2 件**〔setUp の前提の見落とし /
   StepResume の差分欄〕をメインで修正。reviewer 参考 = `rekey_trigger_set` で移動先側の既存の保留は従来どおり破棄）
-- task_05: file_line の実行（暫定 §9: 1 MB 上限・UTF-8〔BOM〕/ cp932・改行 3 種のみで分割・範囲外 3 択・text と同じ送信経路）
+- task_05: file_line の実行（暫定 §9: 1 MB 上限・UTF-8〔BOM〕/ cp932・改行 3 種のみで分割・範囲外 3 択・text と同じ送信経路）— **完了**（2026-09-27。
+  新規 `application/file_line_reader.py`。**Luna high の試行**: `codex-implementer` + `--effort high`・約 6 分・入力 63 万〔キャッシュ 59 万〕/ 出力 1.4 万。
+  指示外に自己レビュー用の子を 1 本起動〔Luna high・入力 21 万 / 出力 0.3 万〕。**テストの期待値誤り 1 件**〔cp932 の「〜」は U+FF5E に復号される〕をメインで修正。
+  reviewer 参考 = executor の file_line 分岐が `except Exception` で広く捕捉〔§10 の方針と整合〕/ エラー文言の体裁が種別不正と異なる〔仕様の要求外〕）
 - task_06: 編集 UI（暫定 §11.1・§11.2: system / file_line の編集 / カウンター名の候補 / ループの行の編集規則 /
   「末尾に追加」チェック欄と挿入位置 / ループの対での追加・削除・深さ上限 / 移動規則 / 対応が崩れた行の扱い）
 - task_07: 一覧の表示（暫定 §11.3・§11.4: 周回・カウンター値の表示と更新 / ネストの色分け / 省略表示の「次に実行」の要約）
