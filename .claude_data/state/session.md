@@ -4,36 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-26T21:00:00
-phase: なし（**アクティブなフェーズ = なし**。次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 36 / 暫定 26 / decisions 36 / 提案書 14。
+last_updated: 2026-09-26T23:00:00
+phase: instructions/phase/36_config_service_split（挙動不変のリファクタ・直接改訂モード・暫定なし / decisions 36）。次採番 = phase 37 / 暫定 26 / decisions 37 / 提案書 14。
 直前の完了フェーズ = **phase 35**（旧形式トリガー一覧の移行の境界値・2026-09-26 完了・判断履歴 = `decisions_archive/35_legacy_trigger_set_missing_file.md`）。
 last_commit_location: `claude/config-service-refactor-priorities-b7a21d`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 35 完了（旧形式トリガー一覧の移行の境界値・不在ファイルは移行しない §5.13.3-8）。次フェーズは未定（ユーザー判断待ち）。**
-mode: completed
+focus: **phase 36（config_service の分割と巨大関数の分割）task_01 完了（`__init__.py` 1135 → 932 行）。次 = task_02（`child_file_io.py` 切り出し）。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-26T21:30:00
+ts: 2026-09-26T23:00:00
 who: main
 summary: |
-  【task_01+02 コミット】`ba386a4`（正本 §5.13.3-8・不在判定 3 行・境界値テスト 5 件）。
-  【task_03 = phase 35 完了記録】decisions_archive/35 作成・decisions.md から phase 35 節を移動 + 索引 1 行 / current.md（アクティブ = なし・直近の領域・別タスク化候補の境界値行を削除・次採番）/ phase.md task_03 完了。
-  【refactor_check】不要（keyseq/ は +3 行のみ・M1〜M6 非該当・verifier 実測）。
+  【起票】phase 36（`2d42570`）。ユーザー判断 = `__init__.py` から 2 ブロック切り出し / パス基盤は `config_service.os.path` patch のため不動 / 80 行超の関数 5 つは同ファイル内分割。
+  【task_01】個別キーマップの保存計画一式 12 メソッドを `config_service/keymap_save_plan.py`（229 行・service 第 1 引数の module 関数）へ。委譲メソッドは残さない（外部参照 0）。contracts の `INTERNAL_MODULE_NAMES` に 1 語追加。
+  【判定】verifier 全 pass・reviewer 完了可（参考の空行 1 行はメインで修正）。
 result_files:
-  - .claude_data/state/{decisions.md, decisions_archive/35_legacy_trigger_set_missing_file.md, session.md}
-  - instructions/phase/{current.md, 35_legacy_trigger_set_missing_file/phase.md}
+  - keyseq/application/config_service/{__init__.py, keymap_save_plan.py} / tests/test_config_service_contracts.py
+  - instructions/phase/36_config_service_split/{phase.md, tasks/task_01_*, tasks/task_02_*（起票のみ）}
 verified:
   compile: clean
   tests: 674 ran OK（skipped 7）
   tests_ui: 576 ran OK
   smoke: pass
-  review: reviewer 完了可（task_01+02）
+  review: reviewer 完了可（task_01）
 
 ## next_action
-- **次フェーズはユーザー判断**（推奨候補 = `config_service/__init__.py` 1133 行の分割 + 80 行超の関数 5 つ〔current.md「別タスク化候補」〕。着手時は `/phase_start`）。
-- **main へのマージはユーザーが行う**（phase 18 残り・19〜35）。
+- **task_02 を codex-implementer へ委任**: `instructions/phase/36_config_service_split/tasks/task_02_child_file_io_module.md`（起票済）→ verifier → reviewer。
+  以降 task_03〜07（関数分割・タスク定義は着手時に起票）→ task_08（記録・`/refactor_check`）。
+- **main へのマージはユーザーが行う**（phase 18 残り・19〜36）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
 ## blockers
