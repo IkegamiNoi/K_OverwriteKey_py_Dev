@@ -4,41 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T12:00:00
-phase: `instructions/phase/34_trigger_list_per_keymap`（**phase 34 = トリガー一覧のキーマップ従属化・2026-09-24 起票・進行中**。暫定仕様 25 v0.4 ユーザー確定済）。次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 13。
-直前の完了フェーズ = **phase 33**（ダイアログの静的検査の発見ベース化・判断履歴 = `decisions_archive/33_grab_modal_static_check_discovery.md`）。
+last_updated: 2026-09-27T18:00:00
+phase: なし（**アクティブなフェーズ = なし**。次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 14。
+直前の完了フェーズ = **phase 34**（トリガー一覧のキーマップ従属化・2026-09-27 完了・判断履歴 = `decisions_archive/34_trigger_list_per_keymap.md`）。
 last_commit_location: `claude/trigger-list-multi-keymap-19f4d7`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 34 task_08 終盤（task_07e 完了・暫定 25 v0.7・正本反映済・/refactor_check = 提案書 13）。ユーザーの実機確認（07c〜07e 分）とフェーズ完了承認・提案書 13 の実施時期の回答待ち。承認後に暫定 25 凍結・decisions_archive/34・current.md 完了記載。**
-mode: pending_review
+focus: **phase 34 完了（トリガー一覧のキーマップ従属化・暫定 25 v0.7 凍結・提案書 13 は task_09 で実施済）。次フェーズは未定（ユーザー判断待ち）。**
+mode: completed
 
 ## last_action
-ts: 2026-09-25T09:30:00
+ts: 2026-09-27T18:00:00
 who: main
 summary: |
-  【task_02 完了】一括保存をキーマップ単位へ: trigger_set 実体ごとの行（識別子 = 最初のキーマップ id）/ sequence 合成キー（"\x1f"・save_plan.py に集約）/
-  keymap ファイルの trigger_set_path / 親 = keymap / 既定名 = 親 keymap の stem / 計画全体の衝突回避 / §4.4 決定表 / §4.2 移行先の未保存化と「保存しない」不可 /
-  依存 3 段 / 実体ごとの dirty（キーマップ要素の内部キーが正）/ トップレベル内部キーの撤去。
-  Codex 利用上限で 2 回中断 → 再開。tests_ui の失敗を 3 回差し戻し。メインの指示ミス（setter でキーマップ自動作成）を撤回しフィクスチャを §2-7 準拠へ。
-  reviewer = 完了可（参考 2 件・引数名は task_02b で改名）。
+  【task_09 完了】提案書 13（内部キーの定数化 + キーマップ追加フローを `controllers/keymap_panel/` へ・挙動不変）。verifier 全 pass・reviewer 完了可。
+  【phase 34 完了記録】暫定 25 凍結 / decisions_archive/34 作成・decisions.md から phase 34 節を移動 + 索引 1 行 / current.md（アクティブ = なし・直近の領域・次採番）/
+  phase.md・task_08 完了 / 提案書 13 実施済 / codebase_map の keymap_panel 配置。ユーザー承認: 実機目視 OK・提案書 13 は (a)（2026-09-27）。
 result_files:
-  - keyseq/application/{save_plan.py, config_service/{__init__,orphan_scan,parent_refs_cleanup,save_path_resolution,save_plan_execution,split_loading,split_payloads}.py}
-  - keyseq/domain/{config.py, keymap_triggers.py}
-  - keyseq/presentation/controllers/{dirty_state.py, config_io/{child_save_dialog,child_save_plan,child_save_rows,keymap_set_io,trigger_set_file_io}.py}
-  - tests/test_per_keymap_bulk_save.py（新規）+ tests/ 10 ファイル・tests_ui/ 3 ファイルの期待値更新
+  - keyseq/presentation/controllers/keymap_panel/{__init__,keymap_panel_controller,keymap_add_flow}.py（旧 controllers/keymap_panel_controller.py 削除）
+  - keyseq/domain/{keymap_triggers,config}.py / keyseq/application/config_service/{__init__,split_loading}.py / keyseq/presentation/app.py / tests_ui 3 ファイル（patch 先のみ）
+  - instructions/{history/25_*, phase/current.md, phase/34_*/phase.md, phase/34_*/tasks/task_08_*・task_09_*, modified_proposal/13_*, common/codebase_map.md}
+  - .claude_data/state/{decisions.md, decisions_archive/34_trigger_list_per_keymap.md}
 verified:
   compile: clean
-  tests: 625 ran OK（skipped 7）
-  tests_ui: 538 ran OK
+  tests: 669 ran OK（skipped 7）
+  tests_ui: 576 ran OK
   smoke: pass
-  presentation_triggers_literal: 0
-  review: reviewer 完了可
+  review: reviewer 完了可（task_09）
 
 ## next_action
-- **ユーザーの実機目視待ち**（確認項目は最終報告に列挙）。結果を受けて task_08（`/task_new`・統合レビュー〔deep-reviewer + codex-reviewer〕・暫定 25 の正本昇格と凍結・codebase_map・decisions_archive/34・current.md・`/refactor_check`〔持ち越し: config_service/__init__.py の肥大・parent_refs_cleanup 318 行・id(triggers) キャッシュ・個別キーマップ保存の正規化の非対称〕）。
-- **main へのマージはユーザーが行う**（phase 18 残り・19〜33）。
+- **次フェーズはユーザー判断**（候補は current.md「次フェーズ候補」・「別タスク化候補」。着手時は `/phase_start`）。
+- **main へのマージはユーザーが行う**（phase 18 残り・19〜34）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
 ## blockers
@@ -46,9 +43,13 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **【phase 34】主入力 = 暫定仕様 25 v0.4（ユーザー確定済・フェーズ中は正本を改訂しない）**。§1 に現状監査の `ファイル:行`。
-  要注意 = 移行・保存計画・参照辿りが絡む**データ消失 / 二重化 / 別キーマップへの付き直り**（§4・§5）。
-  「旧形式を読込 → 無編集で保存 → 再読込」「アクティブを変えてから保存」「共有 trigger_set」の往復テストを先に書く（§12）。
+- **【phase 34 の成果は正本が正】トリガー一覧のキーマップ従属化 = `data_schema.md` §5.13 + `key_input.md` §7.3 + `features.md` §4.1・§4.3・§4.5 +
+  `codebase_map.md`「キーマップとトリガー一覧（phase 34）」節**。暫定 25 は凍結済で条項の根拠に引かない。要点 =
+  ①トリガー一覧へのアクセスは `domain/keymap_triggers.py` の口だけ（presentation に `"triggers"` 直値を書くと静的検査で落ちる）
+  ②同じ trigger_set を参照するキーマップは一覧の実体を共有（代表 = 一覧順の先頭・実行位置 / 選択行は代表 id で保持）
+  ③重なりの判定は `application/key_overlap.py` の読み取り専用の表（App がキャッシュ・データが変わる契機で作り直す）
+  ④**キーマップ追加の UI テストは `keymap_panel.keymap_add_flow` の `messagebox` / `KeymapEditDialog` を patch する**（task_09 で分離）
+  ⑤要注意 = 移行・保存計画・参照辿りでの**データ消失 / 二重化 / 別キーマップへの付き直り**。
 - **【phase 28 の成果は正本が正】モーダルダイアログのフォーカスと Escape = `features.md` §4.6「モーダルダイアログの作法」+
   `codebase_map.md` の `modal.py` 節**。**暫定仕様 22 は凍結済で条項の根拠に引かない**。要点 =
   ①初期フォーカスは `grab_modal(window, parent=None, *, focus=None)` の責務（明示引数・省略時は窓自身・`focus_force` / `lift` は呼ばない。

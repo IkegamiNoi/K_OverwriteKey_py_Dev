@@ -15,17 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 33 は 2026-09-24 完了〕。
-   次採番 = phase 34 / 暫定 25 / decisions 34 / 提案書 13。次フェーズはユーザー判断・着手時は `/phase_start`）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 34 は 2026-09-27 完了〕。
+   次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 14。次フェーズはユーザー判断・着手時は `/phase_start`）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜24）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜25）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 33 完了（grab_modal・フック停止の静的検査を発見ベースへ・共有ヘルパ `tests_ui/dialog_discovery.py`・production 不変・idea_32 クローズ・refactor_check スキップ）。次フェーズは未定（ユーザー判断待ち）。**
-直近コミット: `68aacc9`（phase 33 task_02 = 完了）/ `23e4dd6`（task_01c）/ `f6ee86d`（task_01b）/ `604e445`（task_01）/ `35aea1c`（phase 33 起票）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜33 はユーザーがマージする）。
+**phase 34 完了（トリガー一覧のキーマップ従属化・JSON スキーマ変更あり・暫定 25 v0.7 凍結・refactor_check = 提案書 13 → task_09 で実施済）。次フェーズは未定（ユーザー判断待ち）。**
+直近コミット: phase 34 完了記録（本コミット）/ `9fc07a5`（task_09）/ `999cecd`（task_09 起票）/ `a1db856`（task_07e）。
+**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜34 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 33 完了時点 = 2026-09-24**）:
-compile **clean** / tests **577 実行 OK**（skip 7）/ tests_ui **537 実行 OK**（skip 0）/ smoke は phase 32 完了時点で **pass**（phase 33 は tests_ui のみの変更で未実行）。
-**件数が減ったら退行を疑う**（tests: 577 で不変 / tests_ui: phase 32 完了 535 → phase 33 完了 537）。
+直近の実測（**phase 34 完了時点 = 2026-09-27**）:
+compile **clean** / tests **669 実行 OK**（skip 7）/ tests_ui **576 実行 OK**（skip 0）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 33 完了 577 → phase 34 完了 669 / tests_ui: 537 → 576）。
 **`tests_ui` と smoke を並行実行しない**（フックの取り合いで 13 件落ちる。逐次で実行する）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
@@ -52,19 +52,20 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_23）。着手時は `/phase_start`。
-- **main へのマージはユーザーが行う**（ブランチ `claude/idea-32-8d1b3f`・phase 18 残り・19〜33）。
+- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_23 /「別タスク化候補」の phase 34 残件）。着手時は `/phase_start`。
+- **main へのマージはユーザーが行う**（ブランチ `claude/trigger-list-multi-keymap-19f4d7`・phase 18 残り・19〜34）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
-## 直前フェーズ（phase 33 = ダイアログの静的検査の発見ベース化）の要点
+## 直前フェーズ（phase 34 = トリガー一覧のキーマップ従属化）の要点
 
-**tests_ui 限定・production 不変・正本改訂なし**（直接改訂モード）。判断は `decisions_archive/33`、記録は `codebase_map.md` の `modal.py` 節・HookController 節。
+**全レイヤ・JSON スキーマ変更あり**（暫定仕様先行モード・暫定 25 v0.7 凍結）。判断は `decisions_archive/34`、正本は `data_schema.md` §5.13 ほか / `key_input.md` §7.3 / `features.md` §4.1・§4.3・§4.5、
+地図は `codebase_map.md`「キーマップとトリガー一覧（phase 34）」節。
 
-- 共有ヘルパ `tests_ui/dialog_discovery.py`: `dialog_classes()` = `dialogs/` 直下の `Toplevel` 継承クラス / `find_calls()` = 式文に限らない全 `ast.Call`。
-- `test_nested_modal_grab.py`（3 メソッド）: 発見クラスに「`grab_modal` 1 回・`__init__` の最後の文」+ 下限 11 + 総数 = クラス数 / config_io は呼び出しファイル集合 = 期待件数の辞書 / 呼び出し場所は 2 か所だけ。
-- `test_dialog_teardown_flows.py`: `DIALOG_FILES` 廃止。`NESTED_CHILD_DIALOGS`（**(ファイル名, クラス名) の組**・常に親の停止中にだけ開き自分では止めない子）以外に `suspend(self)` 1 回・子は 0 回・`dialogs/*.py` 全体で resume 0 件。`T2_DIALOG_FILES` は列挙のまま。
-- **発見条件を「対象の呼び出しがあること」にしない**（消失が素通りする）。残るリスク = 別名 import・多段継承・`dialogs/` のサブフォルダ非走査（現状 0 件）。
-- **教訓**: 完了判定前レビュー 2 回で抜け道が 2 段階見つかった（式文以外の呼び出し → 同名クラスの除外）。一時改変（変異検査）で各穴が塞がったことを確かめた。
+- トリガー一覧（と従属するシーケンス）はキーマップに従属。keymap ファイルに `trigger_set_path`・keymap_set の `trigger_set_path` は常に `""`・単一 JSON は `keymaps[].triggers`。
+- アクセスは `domain/keymap_triggers.py` の口だけ（presentation の `"triggers"` 直値は静的検査で禁止）。同じ trigger_set は実体を共有（代表 = 一覧順の先頭）。
+- 入力の優先順位 = 停止 > トグル > 直接切替 > トリガー > 置換。重なりは `application/key_overlap.py` の読み取り専用の表。切替中は停止 / トグル以外を素通し。
+- UI = `controllers/keymap_panel/`（追加フローは `keymap_add_flow.py`。テストはこちらの `messagebox` / `KeymapEditDialog` を patch）。
+- 残件 = `config_service/__init__.py` 1133 行 / 80 行超の関数 5 つ / 統合レビュー保留 L-1・L-7 / 移行の境界値テスト（current.md「別タスク化候補」）。
 
 ## 運用インフラ
 

@@ -80,7 +80,7 @@ keymap_set の `trigger_set_path` とトップレベル `triggers` は旧形式�
 - task_07e: 完了判定前レビューの修正と v0.7（読込後の実行位置初期化 / 共有に加わった一覧の親参照 / `""` でも新キーマップへ移行 / 移行した trigger_set の保存しない不可 / 切替中の受け付け停止）— **完了**（2026-09-27）
 - task_09: 提案書 13 のリファクタ（内部キーの直値を定数へ / キーマップの追加フローを `controllers/keymap_panel/` へ切り出し・挙動不変。ユーザー承認 2026-09-27 (a)）— **完了**（2026-09-27）
 - task_08: 統合確認と正本反映（暫定 25 の `spec_detail/` への昇格・凍結 / `codebase_map.md` / decisions_archive/34 /
-  current.md の完了記載 / `/refactor_check`）
+  current.md の完了記載 / `/refactor_check`）— **完了**（2026-09-27。暫定 25 は v0.7 で凍結）
 
 ## レビュー方針
 
