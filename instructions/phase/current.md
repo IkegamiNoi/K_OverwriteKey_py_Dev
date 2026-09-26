@@ -7,7 +7,9 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 35 は 2026-09-26 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- **アクティブなフェーズ = [phase 36](36_config_service_split/phase.md)**（2026-09-26 起票・config_service の分割と巨大関数の分割）。
+  `config_service/__init__.py`（1135 行）から 2 ブロックを新モジュールへ切り出し、80 行超の関数 5 つを同ファイル内で分割する。
+  **挙動不変・正本改訂なし・直接改訂モード**（暫定なし）/ decisions 36。起票元 = 「別タスク化候補 > application / config_service」の 2 項。
 - 直前の完了フェーズ = [phase 35](35_legacy_trigger_set_missing_file/phase.md)（2026-09-26・旧形式トリガー一覧の移行の境界値・
   判断は [decisions_archive/35](../../.claude_data/state/decisions_archive/35_legacy_trigger_set_missing_file.md)）/
   [phase 34](34_trigger_list_per_keymap/phase.md)（2026-09-27・トリガー一覧のキーマップ従属化・
@@ -36,7 +38,8 @@
   **phase 33 は 2026-09-24 完了**（`33_grab_modal_static_check_discovery` / 暫定なし〔直接改訂モード〕/ decisions 33〔アーカイブ済〕）。
   **phase 34 は 2026-09-27 完了**（`34_trigger_list_per_keymap` / 暫定 25〔v0.7・凍結〕/ decisions 34〔アーカイブ済〕）。
   **phase 35 は 2026-09-26 完了**（`35_legacy_trigger_set_missing_file` / 暫定なし〔直接改訂モード〕/ decisions 35〔アーカイブ済〕）。
-  次フェーズは **`36_<topic>`**・decisions も **36** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 36 は 2026-09-26 起票**（`36_config_service_split` / 暫定なし〔直接改訂モード〕/ decisions 36）。
+  次フェーズは **`37_<topic>`**・decisions も **37** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
