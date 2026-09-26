@@ -28,6 +28,9 @@ presentation（`config_io/child_save_rows.py`）。公開面（`ConfigService` �
 - **パス基盤のメソッド（`canonical_path` / `is_path_within` / 親参照ヘルパ等・`__init__.py:1017-1121` 付近）は動かさない**。
   テスト 5 箇所が `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を差し替えるため
   （`tests/test_config_service.py:739, 2259, 2630` / `tests/test_config_paths.py:113` / `tests/test_child_save_rows.py:288`）。
+  **→ この理由は誤りだった**（完了判定前レビュー〔deep-reviewer〕で判明・メインが実測で確認）。この patch は `os` モジュールの `path` 属性を
+  プロセス全体で差し替えるため、名前空間の位置には依存しない。本当の制約は「`__init__.py` が `os` を import していること」と
+  「`from os.path import ...` で事前束縛しないこと」だけ。動かさなかった判断自体は安全側のため維持（ユーザー 2026-09-27: 記述を直して閉じる）。
 - 公開面の検査テスト（`tests/test_config_service_contracts.py:14` の `INTERNAL_MODULE_NAMES`）へ新モジュール名 2 つを足す（テスト側の必要な追随）。
 - 80 行超の関数 5 つは**同じファイル内**で補助関数へ分ける（1 関数 1 タスク・新ファイルなし）。
 - 採らなかった案: 保存計画一式のみ（約 950 行に留まる）/ 3 ブロック（シーケンスの正規化・掃除・ID・ディレクトリ〔753-864 行〕はまとまりが弱く、雑多な名前のモジュールになりやすい）。
@@ -67,7 +70,7 @@ presentation（`config_io/child_save_rows.py`）。公開面（`ConfigService` �
 - task_05: `split_payloads.py::build_split_save_payloads` の分割 — **完了**（2026-09-26・本体 120 → 41 行・補助 6 関数〔呼び出し 2 か所の引数の折り返しを詰めたのは本体の行数目安のため・引数は不変〕・tests 674 / tests_ui 576 / smoke pass・reviewer 完了可）
 - task_06: `config_io/child_save_rows.py::collect_child_save_rows` の分割 — **完了**（2026-09-26・本体 99 → 30 行・補助 5 関数・tests 674 / tests_ui 576 / smoke pass・reviewer 完了可）
 - task_07: `domain/config.py::ensure_config_compatibility` の分割 — **完了**（2026-09-26・本体 158 → 40 行・補助 8 関数・BOM 維持・tests 674 / tests_ui 576 / smoke pass・reviewer 完了可）
-- task_08: 記録（`codebase_map.md` の追随 / decisions_archive/36 / current.md〔完了記載・「別タスク化候補」の 2 項を更新〕/ `/refactor_check`）
+- task_08: 記録（`codebase_map.md` の追随 / decisions_archive/36 / current.md〔完了記載・「別タスク化候補」の 2 項を更新〕/ `/refactor_check`） — **完了**（2026-09-27・完了判定前レビュー = deep-reviewer 完了可 / codex-adversarial approve・refactor_check = 推奨 → 提案書 14）
 
 各タスク = codex-implementer（テスト実行なし）→ verifier（compile / tests / tests_ui / smoke）→ reviewer。
 

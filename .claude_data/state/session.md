@@ -4,42 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T04:30:00
-phase: instructions/phase/36_config_service_split（挙動不変のリファクタ・直接改訂モード・暫定なし / decisions 36）。次採番 = phase 37 / 暫定 26 / decisions 37 / 提案書 14。
-直前の完了フェーズ = **phase 35**（旧形式トリガー一覧の移行の境界値・2026-09-26 完了・判断履歴 = `decisions_archive/35_legacy_trigger_set_missing_file.md`）。
+last_updated: 2026-09-27T06:00:00
+phase: なし（**アクティブなフェーズ = なし**。次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 37 / 暫定 26 / decisions 37 / 提案書 15。
+直前の完了フェーズ = **phase 36**（config_service の分割と巨大関数の分割・2026-09-27 完了・判断履歴 = `decisions_archive/36_config_service_split.md`）。
 last_commit_location: `claude/config-service-refactor-priorities-b7a21d`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 36（config_service の分割と巨大関数の分割）task_01〜07 完了。次 = task_08（記録・フェーズ完了レビュー・`/refactor_check`）。**
-mode: implementing
+focus: **phase 36 完了（`config_service/__init__.py` 1135 → 840 行・80 行超の 5 関数を解消・挙動不変）。提案書 14（`split_loading.py` 787 行）の実施時期がユーザー判断待ち。**
+mode: completed
 
 ## last_action
-ts: 2026-09-27T04:30:00
+ts: 2026-09-27T06:00:00
 who: main
 summary: |
-  【起票】phase 36（`2d42570`）。ユーザー判断 = `__init__.py` から 2 ブロック切り出し / パス基盤は `config_service.os.path` patch のため不動 / 80 行超の関数 5 つは同ファイル内分割。
-  【task_01】個別キーマップの保存計画一式 12 メソッドを `config_service/keymap_save_plan.py`（229 行・service 第 1 引数の module 関数）へ。委譲メソッドは残さない（外部参照 0）。contracts の `INTERNAL_MODULE_NAMES` に 1 語追加。
-  【判定】verifier 全 pass・reviewer 完了可（参考の空行 1 行はメインで修正）。
-  【task_02】sequence / trigger_set ファイル IO 4 メソッドを `config_service/child_file_io.py`（144 行）へ。ConfigService は同シグネチャの 1 行委譲（presentation 呼び出し・patch.object のため）。verifier 全 pass・reviewer 完了可。
-  【task_03】`build_runtime_data_from_split` 154 → 23 行（補助 8 関数）。reviewer 完了可 + 参考指摘（状態の文字列キー dict）を「修正して採用」→ `_KeymapLoadState` dataclass 化。修正後 verifier 全 pass。
-  【task_04】`save_runtime_data` 125 → 42 行（補助 5 関数・warnings.warn は本体に残す・書き込み順維持）。verifier 全 pass・reviewer 完了可。
-  【task_05】`build_split_save_payloads` 120 → 41 行（補助 6 関数・予約パス集合は種類引数の 1 関数）。verifier 全 pass・reviewer 完了可。
-  【task_06】`collect_child_save_rows` 99 → 30 行（補助 5 関数・行の並び順維持）。verifier 全 pass・reviewer 完了可。
-  【task_07】`ensure_config_compatibility` 158 → 40 行（補助 8 関数・元データからのキーマップ読取と関数内 import を維持・BOM 維持）。verifier 全 pass・reviewer 完了可。
+  【phase 36 task_01〜07】各タスク codex-implementer → verifier 全 pass → reviewer 完了可でコミット済（`7564cbd`〜`b93887c`）。
+  【完了判定前レビュー】deep-reviewer 完了可 / codex-adversarial approve。**前提の誤り**「パス基盤は `config_service.os.path` patch のため動かせない」を
+  メインが実測で確認（patch は `os.path` をプロセス全体で差し替える）→ ユーザー判断「記述を直して閉じる」で codebase_map・phase.md を訂正。
+  【refactor_check】推奨（M1: `split_loading.py` 666 → 787）→ ユーザー判断で提案書 14 を起票（ホットキープリセット 9 関数 → `hotkey_presets_files.py`）。
+  【task_08 記録】decisions_archive/36・索引 1 行・current.md（アクティブ = なし・別タスク化候補の更新・テスト負債追記・次採番）・codebase_map（16 ファイル・新 2 モジュール）。
 result_files:
-  - keyseq/application/config_service/{__init__.py, keymap_save_plan.py} / tests/test_config_service_contracts.py
-  - keyseq/application/config_service/{child_file_io.py, split_loading.py, save_plan_execution.py, split_payloads.py} / keyseq/presentation/controllers/config_io/child_save_rows.py / keyseq/domain/config.py
-  - instructions/phase/36_config_service_split/{phase.md, tasks/task_01_*, tasks/task_02_*, tasks/task_03_*, tasks/task_04_*, tasks/task_05_*, tasks/task_06_*, tasks/task_07_*}
+  - instructions/common/codebase_map.md / instructions/modified_proposal/14_refactor_config_service_split.md
+  - instructions/phase/{current.md, 36_config_service_split/phase.md}
+  - .claude_data/state/{decisions.md, decisions_archive/36_config_service_split.md, session.md}
 verified:
   compile: clean
   tests: 674 ran OK（skipped 7）
   tests_ui: 576 ran OK
   smoke: pass
-  review: reviewer 完了可（task_01〜07）
+  review: reviewer 完了可（task_01〜07）/ deep-reviewer 完了可 / codex-adversarial approve
 
 ## next_action
-- **task_08（記録）**: codebase_map の追随（未コミットで反映済）/ フェーズ完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer・PHASE_BASE = `1b37653`）/ `/refactor_check` / decisions_archive/36 / current.md 完了記載。
+- **提案書 14 の実施時期をユーザーに確認**: (a) phase 36 末の追加タスク `task_09_refactor` / (b) 次フェーズ前の独立ミニフェーズ。承認後に codex-implementer へ委任（`instructions/modified_proposal/14_refactor_config_service_split.md`）。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜36）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

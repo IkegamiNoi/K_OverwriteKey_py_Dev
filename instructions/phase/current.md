@@ -7,13 +7,12 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 36](36_config_service_split/phase.md)**（2026-09-26 起票・config_service の分割と巨大関数の分割）。
-  `config_service/__init__.py`（1135 行）から 2 ブロックを新モジュールへ切り出し、80 行超の関数 5 つを同ファイル内で分割する。
-  **挙動不変・正本改訂なし・直接改訂モード**（暫定なし）/ decisions 36。起票元 = 「別タスク化候補 > application / config_service」の 2 項。
-- 直前の完了フェーズ = [phase 35](35_legacy_trigger_set_missing_file/phase.md)（2026-09-26・旧形式トリガー一覧の移行の境界値・
-  判断は [decisions_archive/35](../../.claude_data/state/decisions_archive/35_legacy_trigger_set_missing_file.md)）/
-  [phase 34](34_trigger_list_per_keymap/phase.md)（2026-09-27・トリガー一覧のキーマップ従属化・
-  判断は [decisions_archive/34](../../.claude_data/state/decisions_archive/34_trigger_list_per_keymap.md)）。
+- **アクティブなフェーズ = なし**（phase 36 は 2026-09-27 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+  **提案書 [14](../modified_proposal/14_refactor_config_service_split.md) は起票済・実施時期はユーザー選択待ち**（phase 36 末の追加タスク / 次フェーズ前の独立ミニフェーズ）。
+- 直前の完了フェーズ = [phase 36](36_config_service_split/phase.md)（2026-09-27・config_service の分割と巨大関数の分割・
+  判断は [decisions_archive/36](../../.claude_data/state/decisions_archive/36_config_service_split.md)）/
+  [phase 35](35_legacy_trigger_set_missing_file/phase.md)（2026-09-26・旧形式トリガー一覧の移行の境界値・
+  判断は [decisions_archive/35](../../.claude_data/state/decisions_archive/35_legacy_trigger_set_missing_file.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
 - **直近の一連の作業が扱っている領域 = トリガー一覧のキーマップ従属化**（phase 34）。
@@ -23,10 +22,11 @@
   実装の地図 = `codebase_map.md`「キーマップとトリガー一覧（phase 34）」節
   （口 = `domain/keymap_triggers.py`・重なり = `application/key_overlap.py`・UI = `controllers/keymap_panel/`）。
   phase 35 で旧形式の読込元が**存在しないファイル**なら移行しない（§5.13.3-8）と定め、移行の境界値をテストで固定した。
-  **残件** = `config_service/__init__.py` 1133 行 / 80 行超の関数 5 つ / 統合レビュー保留 L-1・L-7（いずれも「別タスク化候補」）/
+  phase 36 で保存・読込まわりを挙動不変で分割した（`config_service/__init__.py` 1135 → 840 行・80 行超の 5 関数を解消。地図は `codebase_map.md` の ConfigService 節）。
+  **残件** = 提案書 14（`split_loading.py` 787 行）/ 統合レビュー保留 L-1・L-7（「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**13 まで起票済**・次採番は「次採番」節が正）。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**14 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -38,7 +38,7 @@
   **phase 33 は 2026-09-24 完了**（`33_grab_modal_static_check_discovery` / 暫定なし〔直接改訂モード〕/ decisions 33〔アーカイブ済〕）。
   **phase 34 は 2026-09-27 完了**（`34_trigger_list_per_keymap` / 暫定 25〔v0.7・凍結〕/ decisions 34〔アーカイブ済〕）。
   **phase 35 は 2026-09-26 完了**（`35_legacy_trigger_set_missing_file` / 暫定なし〔直接改訂モード〕/ decisions 35〔アーカイブ済〕）。
-  **phase 36 は 2026-09-26 起票**（`36_config_service_split` / 暫定なし〔直接改訂モード〕/ decisions 36）。
+  **phase 36 は 2026-09-27 完了**（`36_config_service_split` / 暫定なし〔直接改訂モード〕/ decisions 36〔アーカイブ済〕）。
   次フェーズは **`37_<topic>`**・decisions も **37** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -63,14 +63,15 @@
   24=種類が不正なアクションの実行〔**v0.5・凍結**〕/
   25=トリガー一覧のキーマップ従属化〔**v0.7・凍結**〕）。
   次採番は **`26_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**13 まで起票済**
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**14 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
   **10 = phase 19 由来・実施済＝phase 19 task_07** /
   **11 = phase 28 由来・実施済＝phase 28 task_07**〔Esc の別用途つき閉じ処理の 3 重複を 1 関数へ〕 /
   **12 = phase 30 由来・見送り**〔「キーがあれば coerce_label」の 5 重複を 1 関数へ。「別タスク化候補」へ送付〕 /
-  **13 = phase 34 由来・実施済＝phase 34 task_09**〔内部キーの定数化・キーマップ追加フローを `controllers/keymap_panel/` へ〕）・
-  次採番は **`14_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **13 = phase 34 由来・実施済＝phase 34 task_09**〔内部キーの定数化・キーマップ追加フローを `controllers/keymap_panel/` へ〕 /
+  **14 = phase 36 由来・起票済（実施時期はユーザー選択待ち）**〔`split_loading.py` のホットキープリセット 9 関数を `hotkey_presets_files.py` へ〕）・
+  次採番は **`15_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
@@ -118,13 +119,10 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 
 ### application / config_service
 
-- `keyseq/application/config_service/__init__.py` が **1133 行**（phase 34 で +292・2026-09-27 実測。phase 34 の `/refactor_check` では M1 該当だが本項が既知のため提案書 13 に含めず。**切り出しの自然な単位 = 個別キーマップ保存計画一式〔`_save_keymap_with_plan` 以下 約 200 行〕を `save_plan_execution.py` と並ぶ module 関数群へ**。以前の値は 841 行〔2026-09-22 実測。
-  phase 09=734 → 10=767 → 11=828 と増え続けている）。**M1 は「600 行超 かつ +100 行以上」**のため
-  近年のフェーズでは非該当だが**分割は保留のまま**。ただし**テストが
-  `patch("keyseq.application.config_service.os.path", ntpath)` で名前空間を差し替えるため
-  `ConfigService` 本体とパス基盤メソッドを動かせない**制約があり、分割方針の設計判断が別途必要。
-  実ロジックを持つのは `relocate_individual_hotkey_presets`（約 40 行）で他はほぼ 1 行委譲
-  （phase 09 / 10 / 11 由来）
+- `keyseq/application/config_service/__init__.py` は **840 行**（phase 36 で 1135 → 840。2026-09-27 実測）。残る実ロジックは起動時ロード・個別キーマップの読込と計画なし保存・
+  シーケンスの正規化・パス基盤・`relocate_individual_hotkey_presets`。**パス基盤は動かしてよい**（`config_service.os.path` の patch は `os.path` をプロセス全体で
+  差し替えるため名前空間の位置に依存しない。制約は「`__init__.py` が `os` を import」「`from os.path import` で事前束縛しない」だけ・phase 36 で判明）。
+  次に増えたら、パス基盤（`__init__.py` の 1017-1121 行付近だった約 105 行）の切り出しを検討（phase 09〜11 / 36 由来）
 - 個別 JSON IO の共通化は [idea_06](../backlog/idea_06_individual_json_io_unification.md) が保持
   （**残る着手条件は「共通化の実需」1 つ**）。以下は**その近接領域**としてここで追跡する:
   - `config_io/` の `try/except Exception → messagebox.showerror → return False` が
@@ -133,9 +131,10 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   - `controllers/config_io/` の IO クラス骨格（`__init__` + `run_*` → `config_service` 呼び出し →
     `format_*` → `messagebox`）と `presentation/*_text.py` の整形関数が **3 系統目**に達した（phase 11 由来）
 
-- **80 行超の関数 5 つ**（phase 34 の `/refactor_check` M2・提案書 13 には入れず候補送り）: `split_loading.py::build_runtime_data_from_split`（154 行）/
-  `save_plan_execution.py::save_runtime_data`（125）/ `split_payloads.py::build_split_save_payloads`（120）/ `child_save_rows.py::collect_child_save_rows`（98）/
-  `domain/config.py::ensure_config_compatibility`（149）。いずれも phase 34 でトリガー一覧のキーマップ単位化のため大きく書き換えた。分割は関数ごとに設計が要る（phase 34 由来）
+- `split_payloads.py` の既存の 80 行超の関数 2 つ: `build_keymap_payloads`（100 行）/ `build_trigger_set_payloads`（106 行）。phase 36 では未変更（phase 36 由来）
+- 引数の多い位置指定の補助関数（phase 36 の分割で生じた）: `split_payloads.py::_append_split_trigger_set_payloads` / `_build_split_trigger_set_entry`（13〜15 個）/
+  `child_save_rows.py::_append_trigger_set_row`（13 個・同型の str を位置で並べる）/ `domain/config.py` の内部キー 4 要素タプル。
+  次に触るときに keyword-only 化または文脈用の dataclass を検討（phase 36 由来）
 - **phase 34 統合レビューの保留**: L-1 移行先キーマップと一覧を共有する別キーマップを個別保存すると移行先も一緒に書かれる（「移行先は必ず保存」の副作用・害なし）/
   L-7 「保存しない」共有メンバーの予想パスが一括保存の親参照に入る（安全側・掃除で除去）（phase 34 由来）
 
@@ -196,6 +195,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 
 ### テスト負債
 
+- phase 36 の完了判定前レビューで判明したテストの無い経路: `save_runtime_data` の `keep_legacy_copy=True`（本番の呼び出し元 `keymap_set_io.py:136` は常に False・実質未使用の引数）/  `post_save_warnings=None` のときの `warnings.warn`（`assertWarns` の検査なし）/ `build_runtime_data_from_split` のアクティブキーマップ補完（一覧に無い `active_keymap_path` を読む分岐・専用テスト未確認）（phase 36 由来）
 - `tests/test_input_gateway_drag.py::test_initial_move_failure_restores` が `mouseUp` の
   **非呼び出し**を固定していない / ドラッグ 4 キーの**ファイル層での永続化往復**テストが無い（phase 22 由来）
 - `tests_ui/test_full_view_header_width.py` / `test_header_button_widths.py` は保存予約の遅延を

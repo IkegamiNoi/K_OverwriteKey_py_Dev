@@ -45,6 +45,7 @@
 | 33_grab_modal_static_check_discovery | [33_grab_modal_static_check_discovery.md](decisions_archive/33_grab_modal_static_check_discovery.md) | ダイアログの静的検査の発見ベース化（2026-09-24 完了・**tests_ui 限定・production 不変・正本改訂なし**・直接改訂モード・起票元 = idea_32）。`test_nested_modal_grab.py` の列挙（dialogs 10 クラス + config_io 3 ファイル）に `CategoryChooserDialog` が漏れていた → **`dialogs/` 直下の `Toplevel` 継承クラスを走査で発見**して「`grab_modal` はちょうど 1 回・`__init__` の最後の文」を課す（下限 11）/ config_io は呼び出しファイル集合と期待件数の辞書のキー一致 / 呼び出し場所は 2 か所だけ / 呼び出しは全 `ast.Call` で数え総数 = クラス数。**発見条件を `grab_modal` の有無にしない**（消失を素通りさせないため）。完了判定前レビューを受け **phase 15 側の static_1・2 も発見ベースへ**（`DIALOG_FILES` 廃止・ネストした子の除外リスト `NESTED_CHILD_DIALOGS`〔(ファイル名, クラス名) の組〕・クラス単位。static_3 は列挙のまま）。共有ヘルパ `tests_ui/dialog_discovery.py`。別名 import・多段継承は残るリスク。refactor_check: **スキップ**（`keyseq/` の変更 0 件） |
 | 34_trigger_list_per_keymap | [34_trigger_list_per_keymap.md](decisions_archive/34_trigger_list_per_keymap.md) | トリガー一覧のキーマップ従属化（2026-09-27 完了・**全レイヤ・JSON スキーマ変更あり**・暫定仕様先行モード・暫定 25 v0.7 凍結・起票元 = ユーザー要望）。トリガー一覧（と従属するシーケンス）を**キーマップに従属**させ「キーマップ＝モード」で一括切替（タブ方式は不採用・共通トリガー層は idea_36）。keymap ファイルに `trigger_set_path`・同じ trigger_set を参照するキーマップは**一覧の実体を共有**（代表 = 一覧順の先頭）。アクセスは `domain/keymap_triggers.py` の口に限定（presentation に `"triggers"` 直値なし・静的検査）。**旧形式の移行** = アクティブキーマップに `trigger_set_path` キーが無いときだけ・同じファイルを参照するキーマップがあれば共有・無ければ「旧トリガー一覧（<stem>）」を自動作成して通知。**入力の優先順位 = 停止 > トグル > 直接切替 > トリガー > 置換**（一時置換優先案を撤回）・重なりは `application/key_overlap.py` の読み取り専用の表でグレー表示・案内・編集拒否・開始検証が共有。**切替中はフックで停止 / トグル以外を素通し**（判定と実行のずれ防止）。選択 = アクティブ化・追加は切替キー必須（入力エラーでダイアログを閉じない）・連続実行中の切替禁止・一時的な案内はステータスバー中央。保存計画は trigger_set 1 行 / 実体・親参照 = keymap・移行先と移行した一覧は保存しない不可・同じキーマップの二重読込禁止。レビューで v0.2 / v0.4 / v0.6 / v0.7 と改訂。refactor_check: **推奨 → task_09 で実施済**（提案書 13・内部キー定数化 + 追加フローを `controllers/keymap_panel/` へ）。残件 = `config_service/__init__.py` 1133 行・80 行超の関数 5 つ・統合レビュー保留 L-1 / L-7（別タスク化候補） |
 | 35_legacy_trigger_set_missing_file | [35_legacy_trigger_set_missing_file.md](decisions_archive/35_legacy_trigger_set_missing_file.md) | 旧形式トリガー一覧の移行の境界値（2026-09-26 完了・**application 3 行 + tests・スキーマ不変**・直接改訂モード・起票元 = phase 34 task_07d reviewer 参考指摘）。keymap_set の `trigger_set_path` が**存在しないファイル**を指すときは**移行しない**（旧参照なし扱い・正本 §5.13.3-8 追記）/ **あるが読めない**ときは移行のまま（§5.12 の区別に揃える）/ 非文字列は §5.1 どおり空扱いをテストで固定。refactor_check: **不要**（keyseq/ は split_loading.py +3 行のみ・M1〜M6 非該当） |
+| 36_config_service_split | [36_config_service_split.md](decisions_archive/36_config_service_split.md) | config_service の分割と巨大関数の分割（2026-09-27 完了・**挙動不変・スキーマ不変・正本改訂なし**・直接改訂モード・起票元 = 別タスク化候補 2 項）。`config_service/__init__.py` 1135 → 840 行（保存計画一式 → `keymap_save_plan.py` / ファイル IO → `child_file_io.py`）・80 行超の 5 関数を同ファイル内の補助関数へ（各 23〜42 行）。完了判定前レビューで**「パス基盤は `config_service.os.path` の patch のため動かせない」は誤り**と判明（patch は `os.path` をプロセス全体で差し替える・実測）→ 記述を訂正して閉じた。refactor_check: **推奨 → 提案書 14**（`split_loading.py` 787 行・ホットキープリセット 9 関数の切り出し・実施時期はユーザー選択待ち） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -550,10 +551,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   （`_check_import_nodes` → **単数形へ改名** / `prefix` の毎ノード再計算を
   **モジュール定数 `_PACKAGE_PREFIX`** へ）。残る 1 件（分割後の関数が 30 行目安をわずかに超える）は
   **提案書が想定した分割形**のため据え置き。
-
-## 2026-09-26〜 (phase 36: config_service の分割と巨大関数の分割・直接改訂モード・挙動不変)
-
-- **ユーザー判断（2026-09-26）= `__init__.py` から 2 ブロック切り出す**（個別キーマップの保存計画一式 → `keymap_save_plan.py` /
-  シーケンス・トリガー一覧ファイルの読み書き → `child_file_io.py`）。不採用: 保存計画一式のみ（約 950 行止まり）/ 3 ブロック（753-864 行はまとまりが弱い）。
-- パス基盤メソッドは `config_service.os.path` の patch（テスト 5 箇所・実測）のため動かさない。`INTERNAL_MODULE_NAMES` への追加は許容。
-- 80 行超の関数 5 つは同ファイル内で補助関数へ分割（1 関数 1 タスク）。

@@ -394,11 +394,13 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 
 ### ConfigService（`application/config_service/` パッケージ）
 
-**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 14 ファイル:
+**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 16 ファイル:
 
 | ファイル | 責務 |
 |---|---|
-| `__init__.py` | **`ConfigService` 本体**。公開面 / パス基盤（`canonical_path` / `is_path_within` / `to_config_relative_or_absolute`）/ 個別ファイル IO / `_parent_refs` 操作 |
+| `__init__.py` | **`ConfigService` 本体**。公開面 / パス基盤（`canonical_path` / `is_path_within` / `to_config_relative_or_absolute`）/ 起動時ロード / 個別キーマップの読込と計画なし保存 / シーケンスの正規化 / ホットキープリセットの委譲 / `_parent_refs` 操作 |
+| `keymap_save_plan.py` | **個別キーマップの保存計画一式**（phase 36 で `__init__.py` から切り出し）。入口 `save_keymap_with_plan(service, ...)`（`ConfigService.save_keymap_file` から呼ぶ）。保存先の検証・payload の書込み・保存後の未保存フラグの解除と保留分の印 |
+| `child_file_io.py` | **シーケンス / トリガー一覧ファイル単体の読み書き**（phase 36 で `__init__.py` から切り出し）。`ConfigService` の `load_sequence_file` / `save_sequence_file` / `load_trigger_set_file` / `save_trigger_set_file` は同シグネチャの 1 行委譲（presentation が呼び、テストが `patch.object` で差し替えるため） |
 | `contracts.py` | **公開面**（phase 12 で新設）。**判定名・理由コード・結果型（dataclass）の唯一の定義**（定数 34 / 型 9）。**`config_service` 内の他モジュールを import しない**（依存は実装モジュール → `contracts` の一方向）。**presentation はこのモジュールと `ConfigService` の委譲メソッドだけを見る**（`spec_detail/architecture.md` §3.2）。実装モジュール側は `from . import contracts` + `contracts.NAME` で参照する（`from .contracts import NAME` は名前が再束縛され逆戻り防止テストが書けないため不可）。**内部表現（`QUARANTINE_DIR_NAME` / `UNIT_ID_PATTERN` / `ENTRY_*` / `CANDIDATE_DIRS`）はここへ置かない** |
 | `save_plan_execution.py` | 保存計画の実行（事前検証 / 保存後パスの適用 / 依存判定） |
 | `split_payloads.py` | 保存 payload の構築（keymap / trigger_set / sequence） |
@@ -413,10 +415,11 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 | `keymap_set_history.py` | **構成セットの読み込み履歴**（phase 27・仕様は `data_schema.md` §5.12）。読込（不在と破損の区別 / `*.broken*.json` への退避 = 連番 5 で打ち止め）・原子的書込み・**記録**（保存表記への正規化と `canonical_path` による先頭一致 no-op）。規則そのものは `domain/keymap_set_history.py` の純関数が持つ。`ConfigService` からは `load_keymap_set_history` / `save_keymap_set_history` / `record_keymap_set_history` の 3 つを 1 行委譲 |
 | `path_boundary.py` | **`is_real_path_within` の唯一の定義**（実体〔realpath〕基準の境界判定。ジャンクションを解決する）。**リダイレクト判定 `_is_redirected` は `quarantine.py` / `quarantine_manage.py` が各自持ち、`ConfigService.is_path_within` は別物**（比較専用の表記判定で**同一パスも配下と判定する**）。`orphan_scan` / `quarantine` / `quarantine_manage` が import する。**再定義しない**（`quarantine.py` → `orphan_scan` の import があるため逆向きは循環になる） |
 
-- **`ConfigService` 本体を `config_service.py` へ移してはならない**。テストが
-  `patch("keyseq.application.config_service.os.path", ntpath)` でモジュール名前空間の `os.path` を
-  差し替えており、パス同一性まわり（`canonical_path` / `_merge_parent_ref` 等）は
-  この名前空間に居ることが前提（4 テスト）。同じ理由で**パス基盤メソッドを兄弟モジュールへ移さない**。
+- テスト 5 箇所（`tests/test_config_service.py` 3 / `tests/test_config_paths.py` 1 / `tests/test_child_save_rows.py` 1）が
+  `patch("keyseq.application.config_service.os.path", ntpath)` を使う。この patch は `config_service` の名前空間ではなく
+  **`os` モジュールの `path` 属性をプロセス全体で**差し替える（phase 36 の完了判定前レビューで判明・実測済み）。
+  守るべき制約は **①`__init__.py` が `os` を import していること ②どのモジュールでも `from os.path import ...` で事前束縛しないこと**の 2 つだけで、
+  パス基盤メソッドを兄弟モジュールへ移すこと自体は妨げない（phase 36 では安全側に倒して動かしていない）。
 - 兄弟モジュールの関数は **`service` を第 1 引数に取るモジュール関数**（`service.X` で本体を参照）。
   兄弟から `__init__` を import しない（循環回避）。private ヘルパの互換ラッパは置かない。
 
@@ -669,7 +672,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - **保存** `config_service/split_payloads.py` / `save_plan_execution.py` / `save_plan.py`: trigger_set の実体ごとの payload と行（識別子 = 代表キーマップ id）、
   sequence の合成キー（`save_plan.compose_sequence_key` / `split_sequence_key`・区切り `\x1f`）、計画全体の衝突回避、依存 3 段
   （`find_dependency_blocked_parents`）、§5.13.4 の決定表、移行した trigger_set の `_parent_refs` の後処理。
-  キーマップの個別保存計画は `config_service/__init__.py` の `_save_keymap_with_plan` 以下（**1100 行超の肥大は `/refactor_check` の候補**）。
+  キーマップの個別保存計画は `config_service/keymap_save_plan.py`（phase 36 で `__init__.py` から切り出し）。
   個別キーマップ保存は runtime の list 同一性を保つため意図的に `ensure_config_compatibility` を通さない（入口で正規化済み）。
 - **重なり判定 `application/key_overlap.py`**: `analyze_key_overlaps` が停止 / トグル / 切替 / 置換 / トリガーの重なりを判定し、
   読み取り専用の索引（`MappingProxyType`）を持つ `KeyOverlapAnalysis` を返す。**App が表を保持し差し替える**（`_key_overlap_report` /
