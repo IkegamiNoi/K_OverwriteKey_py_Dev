@@ -71,6 +71,7 @@ presentation（`config_io/child_save_rows.py`）。公開面（`ConfigService` �
 - task_06: `config_io/child_save_rows.py::collect_child_save_rows` の分割 — **完了**（2026-09-26・本体 99 → 30 行・補助 5 関数・tests 674 / tests_ui 576 / smoke pass・reviewer 完了可）
 - task_07: `domain/config.py::ensure_config_compatibility` の分割 — **完了**（2026-09-26・本体 158 → 40 行・補助 8 関数・BOM 維持・tests 674 / tests_ui 576 / smoke pass・reviewer 完了可）
 - task_08: 記録（`codebase_map.md` の追随 / decisions_archive/36 / current.md〔完了記載・「別タスク化候補」の 2 項を更新〕/ `/refactor_check`） — **完了**（2026-09-27・完了判定前レビュー = deep-reviewer 完了可 / codex-adversarial approve・refactor_check = 推奨 → 提案書 14）
+- task_09: 提案書 14 の実施（`split_loading.py` のホットキープリセット 9 関数を `hotkey_presets_files.py` へ・ユーザー承認 2026-09-27・phase 36 末の追加タスク） — **完了**（2026-09-27・`split_loading.py` 787 → 559 行・`hotkey_presets_files.py` 234 行・tests 674 / tests_ui 576 / smoke pass・reviewer: 移動は無変更と確認）
 
 各タスク = codex-implementer（テスト実行なし）→ verifier（compile / tests / tests_ui / smoke）→ reviewer。
 

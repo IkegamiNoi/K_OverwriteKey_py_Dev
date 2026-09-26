@@ -52,4 +52,5 @@
 **推奨 → 提案書 [14](../../../instructions/modified_proposal/14_refactor_config_service_split.md)**（ユーザー 2026-09-27: 提案書を起票）。
 - M1: `split_loading.py` 666 → 787（+121・補助関数への分割による増分）→ 項目 1 = ホットキープリセット関連 9 関数（71-297 行）を `hotkey_presets_files.py` へ。
 - M2〜M6: 該当なし（verifier 実測・PHASE_BASE = `1b37653`）。`split_payloads.py` の既存 80 行超の 2 関数（`build_keymap_payloads` 100 / `build_trigger_set_payloads` 106）は phase 36 で未変更のため候補送り。
-- 実施タイミング（phase 36 末の追加タスク / 次フェーズ前の独立ミニフェーズ）はユーザー選択待ち。
+- **実施済**: ユーザー判断（2026-09-27）= phase 36 末の追加タスク → task_09 で実施。9 関数を無変更で `hotkey_presets_files.py`（234 行）へ移し、`split_loading.py` 787 → 559 行。
+  呼び出し元の差し替え = `__init__.py` 11 / `orphan_scan.py` 1 / テスト 5（期待値不変）。verifier 全 pass（tests 674・skip 7 / tests_ui 576 / smoke）・reviewer: 移動は無変更と確認・参考指摘（`codebase_map.md` がタスクの対象外で変更）は定義どおりメインの反映分のため問題なし。

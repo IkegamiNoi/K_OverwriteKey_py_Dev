@@ -8,7 +8,7 @@
 ## 現在の参照先
 
 - **アクティブなフェーズ = なし**（phase 36 は 2026-09-27 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
-  **提案書 [14](../modified_proposal/14_refactor_config_service_split.md) は起票済・実施時期はユーザー選択待ち**（phase 36 末の追加タスク / 次フェーズ前の独立ミニフェーズ）。
+  提案書 [14](../modified_proposal/14_refactor_config_service_split.md) は phase 36 task_09 で実施済（2026-09-27）。
 - 直前の完了フェーズ = [phase 36](36_config_service_split/phase.md)（2026-09-27・config_service の分割と巨大関数の分割・
   判断は [decisions_archive/36](../../.claude_data/state/decisions_archive/36_config_service_split.md)）/
   [phase 35](35_legacy_trigger_set_missing_file/phase.md)（2026-09-26・旧形式トリガー一覧の移行の境界値・
@@ -22,8 +22,8 @@
   実装の地図 = `codebase_map.md`「キーマップとトリガー一覧（phase 34）」節
   （口 = `domain/keymap_triggers.py`・重なり = `application/key_overlap.py`・UI = `controllers/keymap_panel/`）。
   phase 35 で旧形式の読込元が**存在しないファイル**なら移行しない（§5.13.3-8）と定め、移行の境界値をテストで固定した。
-  phase 36 で保存・読込まわりを挙動不変で分割した（`config_service/__init__.py` 1135 → 840 行・80 行超の 5 関数を解消。地図は `codebase_map.md` の ConfigService 節）。
-  **残件** = 提案書 14（`split_loading.py` 787 行）/ 統合レビュー保留 L-1・L-7（「別タスク化候補」）/
+  phase 36 で保存・読込まわりを挙動不変で分割した（`config_service/__init__.py` 1135 → 840 行・80 行超の 5 関数を解消・`split_loading.py` 787 → 559 行。地図は `codebase_map.md` の ConfigService 節）。
+  **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
 - 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**14 まで起票済**・次採番は「次採番」節が正）。
@@ -70,7 +70,7 @@
   **11 = phase 28 由来・実施済＝phase 28 task_07**〔Esc の別用途つき閉じ処理の 3 重複を 1 関数へ〕 /
   **12 = phase 30 由来・見送り**〔「キーがあれば coerce_label」の 5 重複を 1 関数へ。「別タスク化候補」へ送付〕 /
   **13 = phase 34 由来・実施済＝phase 34 task_09**〔内部キーの定数化・キーマップ追加フローを `controllers/keymap_panel/` へ〕 /
-  **14 = phase 36 由来・起票済（実施時期はユーザー選択待ち）**〔`split_loading.py` のホットキープリセット 9 関数を `hotkey_presets_files.py` へ〕）・
+  **14 = phase 36 由来・実施済＝phase 36 task_09**〔`split_loading.py` のホットキープリセット 9 関数を `hotkey_presets_files.py` へ〕）・
   次採番は **`15_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 

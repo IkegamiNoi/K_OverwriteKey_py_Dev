@@ -25,7 +25,7 @@ from keyseq.domain.keymap_triggers import (
     ensure_active_triggers,
     migrate_single_json_triggers,
 )
-from . import child_file_io, keymap_save_plan, keymap_set_history, orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
+from . import child_file_io, hotkey_presets_files, keymap_save_plan, keymap_set_history, orphan_scan, parent_refs_cleanup, quarantine, quarantine_manage, reference_scan, save_path_resolution, save_plan_execution, split_loading, split_payloads
 
 from keyseq.application.save_plan import SavePlan
 
@@ -557,7 +557,7 @@ class ConfigService:
     ) -> dict[str, Any]:
         """runtime を新規化・置換した直後に、config.json の全体デフォルトを注入する。"""
         self.apply_global_hook_key_defaults(runtime, config_root=config_root)
-        hotkey_presets = split_loading.load_global_hotkey_presets(self, config_root=config_root)
+        hotkey_presets = hotkey_presets_files.load_global_hotkey_presets(self, config_root=config_root)
         if hotkey_presets is not None:
             runtime["hotkey_presets"] = hotkey_presets
         return runtime
@@ -588,7 +588,7 @@ class ConfigService:
             destination_path,
             config_root,
         )
-        stored_source_path = split_loading.resolve_individual_hotkey_presets_path(
+        stored_source_path = hotkey_presets_files.resolve_individual_hotkey_presets_path(
             self,
             runtime,
             config_root=config_root,
@@ -614,7 +614,7 @@ class ConfigService:
         config_root: str,
     ) -> None:
         """config.json が指すグローバルプリセットファイルへ書き出す。"""
-        stored_path = split_loading.load_global_hotkey_presets_path(
+        stored_path = hotkey_presets_files.load_global_hotkey_presets_path(
             self,
             config_root=config_root,
         )
@@ -654,7 +654,7 @@ class ConfigService:
         keymap_set_path: str,
         individual: bool | None = None,
     ) -> str:
-        return split_loading.resolve_hotkey_presets_save_path(
+        return hotkey_presets_files.resolve_hotkey_presets_save_path(
             self,
             runtime,
             config_root=config_root,
@@ -668,7 +668,7 @@ class ConfigService:
         *,
         config_root: str,
     ) -> str:
-        return split_loading.individual_hotkey_presets_save_rejection_reason(
+        return hotkey_presets_files.individual_hotkey_presets_save_rejection_reason(
             self,
             stored_path,
             config_root=config_root,
@@ -681,7 +681,7 @@ class ConfigService:
         *,
         config_root: str,
     ) -> dict[str, bool | list[Any] | None]:
-        return split_loading.describe_individual_hotkey_presets_overwrite(
+        return hotkey_presets_files.describe_individual_hotkey_presets_overwrite(
             self,
             stored_path,
             loaded_presets,
@@ -689,10 +689,10 @@ class ConfigService:
         )
 
     def load_global_hotkey_presets_path(self, *, config_root: str) -> str:
-        return split_loading.load_global_hotkey_presets_path(self, config_root=config_root)
+        return hotkey_presets_files.load_global_hotkey_presets_path(self, config_root=config_root)
 
     def load_global_hotkey_presets(self, *, config_root: str) -> list[Any] | None:
-        return split_loading.load_global_hotkey_presets(self, config_root=config_root)
+        return hotkey_presets_files.load_global_hotkey_presets(self, config_root=config_root)
 
     def load_individual_hotkey_presets(
         self,
@@ -700,8 +700,8 @@ class ConfigService:
         *,
         config_root: str,
     ) -> list | None:
-        stored_path = split_loading.resolve_individual_hotkey_presets_read_path(runtime)
-        return split_loading.load_hotkey_presets_file(
+        stored_path = hotkey_presets_files.resolve_individual_hotkey_presets_read_path(runtime)
+        return hotkey_presets_files.load_hotkey_presets_file(
             self,
             stored_path,
             config_root=config_root,
@@ -713,7 +713,7 @@ class ConfigService:
         *,
         config_root: str,
     ) -> dict[str, str]:
-        return split_loading.describe_hotkey_presets_source(
+        return hotkey_presets_files.describe_hotkey_presets_source(
             self,
             runtime,
             config_root=config_root,

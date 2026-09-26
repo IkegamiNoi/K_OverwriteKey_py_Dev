@@ -394,7 +394,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 
 ### ConfigService（`application/config_service/` パッケージ）
 
-**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 16 ファイル:
+**単一ファイルではなくパッケージ**（計画05 項目 1 で分割・挙動不変）。責務ごとに 17 ファイル:
 
 | ファイル | 責務 |
 |---|---|
@@ -406,6 +406,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 | `split_payloads.py` | 保存 payload の構築（keymap / trigger_set / sequence） |
 | `save_path_resolution.py` | 保存先の解決と既定命名（`slugify_file_stem` の実体・一意パス採番） |
 | `split_loading.py` | split 構成の読込（keymap_set → keymap / trigger_set / sequence の再構成） |
+| `hotkey_presets_files.py` | **ホットキープリセットのファイル解決と読込**（提案書 14 で `split_loading.py` から切り出し・phase 36 task_09）。全体 / 個別のプリセットファイルの場所の解決・読込・個別プリセットの保存先・上書き確認・出所の表示。`ConfigService` のホットキープリセット系メソッドと `split_loading` / `orphan_scan` から呼ぶ。`split_loading` / `__init__` を import しない |
 | `parent_refs_cleanup.py` | **参照元の掃除**（phase 10）。検査（子の列挙 / 実在判定 / 保護対象の分離 / 判定名 / 重複排除）と `prune_parent_refs`（除去） |
 | `reference_scan.py` | **参照集合の構築**（phase 11）。keymap_set の列挙と **3 段辿り**（keymap_set → keymap → trigger_set → sequence・phase 34。旧形式の keymap_set `trigger_set_path` も参照に数える・`mappings` を持つ JSON は keymap_set と判定しない）。読めなかった参照側を理由コード付きで返す |
 | `orphan_scan.py` | **走査と孤児判定**（phase 11）。候補側の列挙と形状検証 / 保護対象の適用 / 判定名 4 種 / `normalize_scan_dirs` |

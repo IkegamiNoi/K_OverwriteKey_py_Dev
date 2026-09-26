@@ -4,7 +4,7 @@ import os
 
 from keyseq.domain.keymap_triggers import iter_trigger_sets
 from . import contracts
-from . import reference_scan, split_loading
+from . import hotkey_presets_files, reference_scan
 from . import candidate_dirs, path_boundary
 
 
@@ -81,7 +81,7 @@ def scan_orphans(
         startup_keymap_set_path, current_keymap_set_path, unreadable_sources,
     )
     references = reference_scan.collect_reference_paths(service, paths, config_root=config_root)
-    global_path = split_loading.load_global_hotkey_presets_path(service, config_root=config_root)
+    global_path = hotkey_presets_files.load_global_hotkey_presets_path(service, config_root=config_root)
     referenced = set(references.referenced)
     referenced.update(_canonical_paths(service, [global_path], config_root))
     protected = _canonical_paths(service, protected_paths, config_root)

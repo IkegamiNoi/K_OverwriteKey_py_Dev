@@ -7,7 +7,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from keyseq.domain.keymap_triggers import get_active_triggers
-from keyseq.application.config_service import ConfigService, save_path_resolution, split_payloads
+from keyseq.application.config_service import ConfigService, hotkey_presets_files, save_path_resolution, split_payloads
 from keyseq.application.config_service import split_loading
 from keyseq.application.save_plan import (
     ACTION_SAVE,
@@ -334,7 +334,7 @@ class GlobalHotkeyPresetsPathTest(unittest.TestCase):
         self.service = ConfigService(JsonRepository())
 
     def _load_path(self, root):
-        return split_loading.load_global_hotkey_presets_path(
+        return hotkey_presets_files.load_global_hotkey_presets_path(
             self.service,
             config_root=root,
         )
@@ -395,7 +395,7 @@ class GlobalHotkeyPresetsPathTest(unittest.TestCase):
 
     def test_empty_config_root_uses_default(self):
         self.assertEqual(
-            split_loading.load_global_hotkey_presets_path(self.service, config_root=""),
+            hotkey_presets_files.load_global_hotkey_presets_path(self.service, config_root=""),
             self.service.HOTKEY_PRESETS_RELATIVE_PATH,
         )
 
@@ -560,7 +560,7 @@ class GlobalHotkeyPresetsSavingTest(unittest.TestCase):
                 self.service.save_global_hotkey_presets(presets, config_root=root)
 
                 self.assertEqual(
-                    split_loading.load_global_hotkey_presets(
+                    hotkey_presets_files.load_global_hotkey_presets(
                         self.service,
                         config_root=root,
                     ),
@@ -1515,7 +1515,7 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
                         self.service.repository.save_json(presets_path, content)
 
                     self.assertEqual(
-                        split_loading.load_global_hotkey_presets(self.service, config_root=root),
+                        hotkey_presets_files.load_global_hotkey_presets(self.service, config_root=root),
                         expected,
                     )
 
@@ -1549,7 +1549,7 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
             self._save_presets(root, global_path, ["garbage"])
 
             self.assertEqual(
-                split_loading.load_global_hotkey_presets(self.service, config_root=root),
+                hotkey_presets_files.load_global_hotkey_presets(self.service, config_root=root),
                 [],
             )
 

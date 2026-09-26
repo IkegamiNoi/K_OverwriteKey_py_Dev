@@ -1,7 +1,8 @@
 # 14_refactor_config_service_split.md
 
 phase 36（config_service の分割と巨大関数の分割）の `/refactor_check`（2026-09-27）で「推奨」となった項目。**挙動不変**（エラーメッセージ・保存ファイルのバイト列も変えない）。
-PHASE_BASE = `1b37653`。判定の詳細は `decisions_archive/36_config_service_split.md`。**ユーザー承認前に実施しない。**
+PHASE_BASE = `1b37653`。判定の詳細は `decisions_archive/36_config_service_split.md`。
+**実施済**（ユーザー承認 2026-09-27・phase 36 task_09 として実施。`split_loading.py` 787 → 559 行 / `hotkey_presets_files.py` 234 行）。
 
 ## 判定の根拠
 

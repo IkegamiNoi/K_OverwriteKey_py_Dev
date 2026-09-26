@@ -4,18 +4,18 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T06:00:00
+last_updated: 2026-09-27T07:00:00
 phase: なし（**アクティブなフェーズ = なし**。次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 37 / 暫定 26 / decisions 37 / 提案書 15。
 直前の完了フェーズ = **phase 36**（config_service の分割と巨大関数の分割・2026-09-27 完了・判断履歴 = `decisions_archive/36_config_service_split.md`）。
 last_commit_location: `claude/config-service-refactor-priorities-b7a21d`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 36 完了（`config_service/__init__.py` 1135 → 840 行・80 行超の 5 関数を解消・挙動不変）。提案書 14（`split_loading.py` 787 行）の実施時期がユーザー判断待ち。**
+focus: **phase 36 完了（`config_service/__init__.py` 1135 → 840 行・80 行超の 5 関数を解消・提案書 14 も task_09 で実施済＝`split_loading.py` 787 → 559 行・挙動不変）。次フェーズは未定（ユーザー判断待ち）。**
 mode: completed
 
 ## last_action
-ts: 2026-09-27T06:00:00
+ts: 2026-09-27T07:00:00
 who: main
 summary: |
   【phase 36 task_01〜07】各タスク codex-implementer → verifier 全 pass → reviewer 完了可でコミット済（`7564cbd`〜`b93887c`）。
@@ -23,8 +23,10 @@ summary: |
   メインが実測で確認（patch は `os.path` をプロセス全体で差し替える）→ ユーザー判断「記述を直して閉じる」で codebase_map・phase.md を訂正。
   【refactor_check】推奨（M1: `split_loading.py` 666 → 787）→ ユーザー判断で提案書 14 を起票（ホットキープリセット 9 関数 → `hotkey_presets_files.py`）。
   【task_08 記録】decisions_archive/36・索引 1 行・current.md（アクティブ = なし・別タスク化候補の更新・テスト負債追記・次採番）・codebase_map（16 ファイル・新 2 モジュール）。
+  【task_09 = 提案書 14】ユーザー承認（phase 36 末の追加タスク）→ ホットキープリセット 9 関数を `config_service/hotkey_presets_files.py`（234 行）へ無変更で移動・`split_loading.py` 787 → 559 行。verifier 全 pass・reviewer: 移動は無変更と確認。
 result_files:
-  - instructions/common/codebase_map.md / instructions/modified_proposal/14_refactor_config_service_split.md
+  - keyseq/application/config_service/{hotkey_presets_files.py（新規）, split_loading.py, __init__.py, orphan_scan.py} / tests/{test_config_service.py, test_config_service_contracts.py}
+  - instructions/common/codebase_map.md / instructions/modified_proposal/14_refactor_config_service_split.md / instructions/phase/36_config_service_split/tasks/task_09_*
   - instructions/phase/{current.md, 36_config_service_split/phase.md}
   - .claude_data/state/{decisions.md, decisions_archive/36_config_service_split.md, session.md}
 verified:
@@ -32,10 +34,10 @@ verified:
   tests: 674 ran OK（skipped 7）
   tests_ui: 576 ran OK
   smoke: pass
-  review: reviewer 完了可（task_01〜07）/ deep-reviewer 完了可 / codex-adversarial approve
+  review: reviewer 完了可（task_01〜07・task_09）/ deep-reviewer 完了可 / codex-adversarial approve
 
 ## next_action
-- **提案書 14 の実施時期をユーザーに確認**: (a) phase 36 末の追加タスク `task_09_refactor` / (b) 次フェーズ前の独立ミニフェーズ。承認後に codex-implementer へ委任（`instructions/modified_proposal/14_refactor_config_service_split.md`）。
+- **次フェーズはユーザー判断**（候補は current.md「次フェーズ候補」・「別タスク化候補」。着手時は `/phase_start`）。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜36）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
