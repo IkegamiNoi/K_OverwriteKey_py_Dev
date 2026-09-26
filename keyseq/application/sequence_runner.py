@@ -3,6 +3,7 @@
 from typing import Any, Callable
 
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
+from keyseq.application.sequence_steps import LoopFrame, advance, after_normal_action, reset_frames
 
 
 class SequenceRunner:
@@ -18,6 +19,7 @@ class SequenceRunner:
         after: Callable[[int, Callable[..., None]], Any],
         after_cancel: Callable[[Any], None],
         get_trigger_set_id: Callable[[], str] | None = None,
+        notify_error: Callable[[dict, str], None] | None = None,
     ):
         self.state = state
         self._find_trigger = find_trigger
@@ -28,12 +30,33 @@ class SequenceRunner:
         self._after = after
         self._after_cancel = after_cancel
         self._get_trigger_set_id = get_trigger_set_id or (lambda: "")
+        self._notify_error = notify_error
 
     def _get_index(self, key: str) -> int:
         return int(self.state.indices_for(self._get_trigger_set_id()).get(key, 0) or 0)
 
     def _set_index(self, key: str, value: int) -> None:
         self.state.indices_for(self._get_trigger_set_id())[key] = int(value)
+
+    def _get_frames(self, key: str) -> list[LoopFrame]:
+        return self.state.loop_frames_for(self._get_trigger_set_id()).get(key, [])
+
+    def _save_progress(self, key: str, position: int, frames: list[LoopFrame]) -> None:
+        with self.state.lock:
+            self._set_index(key, position)
+            self.state.loop_frames_for(self._get_trigger_set_id())[key] = list(frames)
+
+    def reset_loop_frames(self, key: str) -> None:
+        key = normalize_key_name(key)
+        trigger = self._find_trigger(key)
+        actions = trigger.get("actions", []) if trigger else []
+        with self.state.lock:
+            frames = reset_frames(actions, self._get_index(key))
+            self.state.loop_frames_for(self._get_trigger_set_id())[key] = frames
+
+    def _report_error(self, action: dict[str, Any], message: str) -> None:
+        if self._notify_error is not None:
+            self._notify_error(action, message)
 
     def handle_key(self, key: str) -> None:
         key = normalize_key_name(key)
@@ -69,11 +92,20 @@ class SequenceRunner:
             self.state.reentry_guard.add(key)
 
         try:
-            i = self._get_index(key) % len(actions)
-            if self._perform_action(actions[i]) is False:
+            outcome = advance(actions, self._get_index(key), self._get_frames(key),
+                              self.state.counters, wrap_once=True)
+            self._save_progress(key, outcome.position, outcome.frames)
+            if outcome.error:
+                index, message = outcome.error
+                self._report_error(actions[index], message)
                 return
-            with self.state.lock:
-                self._set_index(key, (i + 1) % len(actions))
+            if outcome.normal_index is None:
+                return
+            index = outcome.normal_index
+            if self._perform_action(actions[index]) is False:
+                return
+            position, frames = after_normal_action(actions, index, outcome.frames)
+            self._save_progress(key, position, frames)
         finally:
             with self.state.lock:
                 self.state.reentry_guard.discard(key)
@@ -138,31 +170,30 @@ class SequenceRunner:
             DEFAULT_RUN_TO_END_DELAY_MS,
         )
 
-        i = self._get_index(key)
-        if i < 0:
-            i = 0
-
         if schedule_only:
             self.state.run_to_end_after_id = self._after(delay, self._run_to_end_step)
             return
+        self._perform_run_to_end_step(key, actions, delay)
 
-        if i >= len(actions):
-            self._set_index(key, 0)
+    def _perform_run_to_end_step(self, key: str, actions: list[dict[str, Any]], delay: int) -> None:
+        outcome = advance(actions, self._get_index(key), self._get_frames(key),
+                          self.state.counters, wrap_once=False)
+        self._save_progress(key, outcome.position, outcome.frames)
+        if outcome.error:
+            index, message = outcome.error
+            self._report_error(actions[index], message)
             self.stop_run_to_end()
-            self._select_trigger(key)
-            return
-
-        if self._perform_action(actions[i]) is False:
+        elif outcome.normal_index is None:
             self.stop_run_to_end()
-            self._select_trigger(key)
-            return
-        self._set_index(key, i + 1)
+        else:
+            index = outcome.normal_index
+            if self._perform_action(actions[index]) is False:
+                self.stop_run_to_end()
+            else:
+                position, frames = after_normal_action(actions, index, outcome.frames)
+                self._save_progress(key, position, frames)
+                if position == 0:
+                    self.stop_run_to_end()
+                else:
+                    self.state.run_to_end_after_id = self._after(delay, self._run_to_end_step)
         self._select_trigger(key)
-
-        if self._get_index(key) >= len(actions):
-            self._set_index(key, 0)
-            self.stop_run_to_end()
-            self._select_trigger(key)
-            return
-
-        self.state.run_to_end_after_id = self._after(delay, self._run_to_end_step)

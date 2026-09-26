@@ -4,42 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-26T19:40:00
+last_updated: 2026-09-27T00:30:00
 phase: instructions/phase/37_sequence_control_actions（出力シーケンスの制御アクション・第 1 弾・暫定 26 v0.3 確定済・decisions 37）。
 次採番 = phase 38 / 暫定 27 / decisions 38 / 提案書 15。直前の完了フェーズ = **phase 36**（判断履歴 = `decisions_archive/36_config_service_split.md`）。
 last_commit_location: `claude/output-sequence-system-type-e641ab`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 37 進行中: task_01（domain の土台 = `domain/sequence_control.py`）完了。次は task_02（実行モデルの中核・Sol medium + Luna xhigh サブエージェントの試行対象）。**
+focus: **phase 37 進行中: task_01（domain の土台）・task_02（実行モデルの中核 = `application/sequence_steps.py`）完了。次は task_03（待機）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-26T19:40:00
+ts: 2026-09-27T00:30:00
 who: main
 summary: |
-  【設計】ユーザー対話で system 種別（ループ/カウンター/待機/戻す/先頭へ）+ file_line を合意 → 暫定 26 起票（v0.1）→ deep-reviewer 修正して採用（v0.2）→
-  Codex 敵対的レビューを Luna xhigh（プラグイン）と Sol medium（`codex exec` 直接）で 2 回 → 実質同じ指摘 → ユーザー判断で v0.3 確定
-  （カウンターは差分で戻す / 待機中も他トリガー可・同トリガーは保留中として拒否 + 世代番号 / file_line 1 MB 上限 / 追加ダイアログに「末尾に追加」）。
-  【起票】phase 37 phase.md（task_01〜08）・idea_37（カウンター条件分岐）・current.md。reviewer 整合確認 = 採用。コミット `c4cdb2e`。
-  【Codex 試行の準備】Sol medium から `collaboration.spawn_agent(model="gpt-6-luna", reasoning_effort="xhigh")` で Luna xhigh の子が動くことをセッション記録で実測確認（config.toml 変更不要）。
-  【task_01】codex-implementer（Luna xhigh 既定）→ verifier 全 pass → reviewer 完了可（参考: 非文字列 op の表示は未テスト・必須でない）。
+  【task_02】`/task_new` で定義 → codex-implementer を `--model gpt-6-sol --effort medium` + Luna xhigh サブエージェント許可で実行 →
+  verifier 全 pass → reviewer 完了可（参考: `refresh_actions` の run_to_end 用 clamp が到達不能化 / 単発で先頭へ回り開始位置で止まると周回スタックは空で返る・いずれも害なし）。
+  【実装モデルの試行結果（実測）】`~/.codex/sessions/2026/09/26/rollout-2026-09-26T23-56-31-*.jsonl` = gpt-6-sol / medium の 1 スレッドのみ・**サブエージェント起動なし**・
+  約 6 分・入力 525,183（キャッシュ 483,584）/ 出力 11,619 トークン。ユーザーが使用量の減りを確認して実装での採否を判断する。
 result_files:
-  - keyseq/domain/{sequence_control.py（新規）, config.py} / tests/{test_sequence_control.py（新規）, test_domain_config.py}
-  - instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_01_domain_foundation.md}
-  - .claude_data/state/session.md
+  - keyseq/application/{sequence_steps.py（新規）, app_state.py, sequence_runner.py} / keyseq/presentation/{app.py, controllers/trigger_panel_controller.py}
+  - tests/{test_sequence_steps.py（新規）, test_sequence_runner.py}
+  - instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_02_execution_core.md} / .claude_data/state/session.md
 verified:
   compile: clean
-  tests: 699 ran OK（skipped 7）
-  tests_ui: not_run（UI 変更なし）
-  review: reviewer 完了可（task_01）
+  tests: 715 ran OK（skipped 7）
+  tests_ui: 576 ran OK
+  smoke: pass
+  review: reviewer 完了可（task_02）
 
 ## next_action
-- **task_02 に着手する前に、ユーザーへ「task_02 で Sol medium + Luna xhigh サブエージェントを試行する」と知らせる**（使用量の確認のため・phase.md「実装モデルの試行」）。
-- `/task_new` で `instructions/phase/37_sequence_control_actions/tasks/task_02_*.md` を起票（暫定 26 §4・§5・§6・§10）→
-  `codex-implementer` に `--model gpt-6-sol --effort medium` + 「重い部分は `spawn_agent` で `model: "gpt-6-luna"`, `reasoning_effort: "xhigh"` の子に任せてよい」と明示して依頼 →
-  verifier → reviewer → 実装後に `~/.codex/sessions/<日付>/rollout-*.jsonl` で子が gpt-6-luna / xhigh で動いたかを確認して報告。
-- 実装後の Codex レビューで Luna xhigh（プラグイン）と Sol medium（`codex exec` 直接・プロンプトはプラグインの `lib/git.mjs` / `prompts.mjs` で組み立て）を再比較する。
+- **ユーザーの判断待ち**: task_02 の試行結果（サブエージェント未起動・使用量）を見て、Sol medium を実装で使い続けるかを決める。以降のタスクは決定に従う（未決なら既定 = Luna xhigh）。
+- `/task_new` で `instructions/phase/37_sequence_control_actions/tasks/task_03_*.md`（暫定 26 §7 待機: 連続実行の待機 / 単発の非同期待機・保留中ステップ・世代番号・取り消し契機）を起票 →
+  codex-implementer → verifier → reviewer。`sequence_steps.advance` の `wait` は現在「素通り」の暫定（task_03 で置き換える）。
+- 実装後の Codex レビュー（統合時）で Luna xhigh（プラグイン）と Sol medium（`codex exec` 直接）を再比較する。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜37）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

@@ -208,6 +208,7 @@ class App(tk.Tk):
             after=self.after,
             after_cancel=self.after_cancel,
             get_trigger_set_id=lambda: self.keymap_service.get_active_trigger_set_id(self.data),
+            notify_error=lambda action, msg: self.hook.show_action_error("", action, msg),
         )
 
         self._compact_mode = False

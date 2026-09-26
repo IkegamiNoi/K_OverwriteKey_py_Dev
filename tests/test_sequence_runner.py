@@ -4,6 +4,7 @@ from unittest.mock import Mock, call
 from keyseq.application.action_executor import ActionExecutor
 from keyseq.application.app_state import AppState
 from keyseq.application.sequence_runner import SequenceRunner
+from keyseq.application.sequence_steps import LoopFrame
 
 
 class FakeScheduler:
@@ -75,6 +76,79 @@ class SingleStepTest(unittest.TestCase):
         runner, _state, _scheduler, performed = make_runner([])
         runner.handle_key("f9")
         self.assertEqual(performed, [])
+
+
+class SystemActionRunnerTest(unittest.TestCase):
+    def test_single_steps_through_loop(self):
+        actions = [{"type": "system", "op": "loop_start", "count": 2}, A1,
+                   {"type": "system", "op": "loop_end"}, A2]
+        runner, state, _scheduler, performed = make_runner(
+            [{"key": "f1", "actions": actions}])
+        for _ in range(3):
+            runner.handle_key("f1")
+        self.assertEqual(performed, [A1, A1, A2])
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(state.loop_frames["f1"], [])
+
+    def test_continuous_steps_through_system_rows(self):
+        actions = [{"type": "system", "op": "counter_inc", "counter": "n"}, A1,
+                   {"type": "system", "op": "counter_reset", "counter": "n"}, A2]
+        runner, state, scheduler, performed = make_runner(
+            [{"key": "f1", "run_to_end": True, "actions": actions}])
+        runner.handle_key("f1")
+        self.assertEqual(performed, [A1])
+        self.assertEqual(state.counters["n"], 1)
+        scheduler.run_pending()
+        self.assertEqual(performed, [A1, A2])
+        self.assertEqual(state.counters["n"], 0)
+        self.assertIsNone(state.run_to_end_key)
+        self.assertEqual(state.indices["f1"], 0)
+
+    def test_single_system_only_wraps_once(self):
+        action = {"type": "system", "op": "counter_inc", "counter": "n"}
+        runner, state, _scheduler, performed = make_runner(
+            [{"key": "f1", "actions": [action]}])
+        runner.handle_key("f1")
+        self.assertEqual(state.counters, {"n": 1})
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(performed, [])
+
+    def test_failed_normal_action_stays_on_row_after_system(self):
+        action = {"type": "system", "op": "counter_inc", "counter": "n"}
+        runner, state, _scheduler, _performed = make_runner(
+            [{"key": "f1", "actions": [action, A1]}])
+        runner._perform_action = lambda _action: False
+        runner.handle_key("f1")
+        self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(state.counters, {"n": 1})
+
+    def test_error_notifies_and_keeps_position(self):
+        for continuous in (False, True):
+            action = {"type": "system", "op": "unknown"}
+            runner, state, scheduler, performed = make_runner(
+                [{"key": "f1", "run_to_end": continuous, "actions": [action]}])
+            runner._notify_error = Mock()
+            runner.handle_key("f1")
+            runner._notify_error.assert_called_once()
+            self.assertIs(runner._notify_error.call_args.args[0], action)
+            self.assertEqual(state.indices["f1"], 0)
+            self.assertEqual(performed, [])
+            self.assertEqual(scheduler.queue, [])
+            if continuous:
+                self.assertIsNone(state.run_to_end_key)
+
+    def test_reset_loop_frames_uses_current_position(self):
+        actions = [{"type": "system", "op": "loop_start", "count": 3}, A1,
+                   {"type": "system", "op": "loop_end"}]
+        runner, state, _scheduler, _performed = make_runner(
+            [{"key": "f1", "actions": actions}])
+        state.indices["f1"] = 1
+        state.loop_frames["f1"] = [LoopFrame(0, 3)]
+        runner.reset_loop_frames("f1")
+        self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 1)])
+        actions.pop()
+        runner.reset_loop_frames("f1")
+        self.assertEqual(state.loop_frames["f1"], [])
 
 
 class RunToEndTest(unittest.TestCase):

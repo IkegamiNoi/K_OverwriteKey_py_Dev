@@ -4,6 +4,8 @@ import threading
 from dataclasses import dataclass, field
 from typing import Any
 
+from keyseq.application.sequence_steps import LoopFrame
+
 
 @dataclass
 class AppState:
@@ -11,6 +13,9 @@ class AppState:
     selected_trigger_indices: dict[str, int] = field(default_factory=dict)
     indices: dict[str, int] = field(default_factory=dict)
     keymap_indices: dict[str, dict[str, int]] = field(default_factory=dict)
+    loop_frames: dict[str, list[LoopFrame]] = field(default_factory=dict)
+    keymap_loop_frames: dict[str, dict[str, list[LoopFrame]]] = field(default_factory=dict)
+    counters: dict[str, int] = field(default_factory=dict)
 
     run_to_end_key: str | None = None
     run_to_end_paused: bool = False
@@ -22,6 +27,8 @@ class AppState:
     def reset_indices(self) -> None:
         self.indices = {}
         self.keymap_indices = {}
+        self.loop_frames = {}
+        self.keymap_loop_frames = {}
         self.selected_trigger_indices = {}
         self.selected_trigger_idx = 0
 
@@ -41,8 +48,14 @@ class AppState:
             return self.indices
         return self.keymap_indices.setdefault(trigger_set_id, {})
 
+    def loop_frames_for(self, trigger_set_id: str | None = None) -> dict[str, list[LoopFrame]]:
+        if not trigger_set_id:
+            return self.loop_frames
+        return self.keymap_loop_frames.setdefault(trigger_set_id, {})
+
     def forget_trigger_set(self, trigger_set_id: str) -> None:
         self.keymap_indices.pop(trigger_set_id, None)
+        self.keymap_loop_frames.pop(trigger_set_id, None)
         self.selected_trigger_indices.pop(trigger_set_id, None)
 
     def rekey_trigger_set(self, previous_id: str, current_id: str) -> None:
@@ -50,6 +63,8 @@ class AppState:
             return
         if previous_id in self.keymap_indices:
             self.keymap_indices[current_id] = self.keymap_indices.pop(previous_id)
+        if previous_id in self.keymap_loop_frames:
+            self.keymap_loop_frames[current_id] = self.keymap_loop_frames.pop(previous_id)
         if previous_id in self.selected_trigger_indices:
             self.selected_trigger_indices[current_id] = self.selected_trigger_indices.pop(previous_id)
 

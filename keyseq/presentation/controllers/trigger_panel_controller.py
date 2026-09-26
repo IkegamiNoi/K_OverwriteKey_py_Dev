@@ -449,6 +449,11 @@ class TriggerPanelController:
         self._app._indices.setdefault(new, self._app._indices.get(old, 0))
         if old in self._app._indices:
             del self._app._indices[old]
+        if old != new:
+            frames = self._app.state.loop_frames_for(self._app._active_trigger_set_id())
+            if old in frames:
+                frames.setdefault(new, frames[old])
+                del frames[old]
         t["key"] = new
         t["label"] = new_label
         self.refresh_triggers()
@@ -471,6 +476,7 @@ class TriggerPanelController:
         if messagebox.askyesno("確認", f"トリガー {key} を削除しますか？"):
             del triggers[idx]
             self._app._indices.pop(key, None)
+            self._app.state.loop_frames_for(self._app._active_trigger_set_id()).pop(key, None)
             self.refresh_triggers()
             self.refresh_actions()
             self._app.dirty_tracker.mark_trigger_set_dirty()
@@ -495,6 +501,7 @@ class TriggerPanelController:
         ActionDialog(self._app, title="追加").wait_window()
         if getattr(self._app, "_dialog_result", None):
             trig.setdefault("actions", []).append(self._app._dialog_result)
+            self._app.sequence_runner.reset_loop_frames(normalize_key_name(trig.get("key", "")))
             self.refresh_actions()
             self._app.mark_sequence_dirty(trig)
             self._app._dialog_result = None
@@ -512,6 +519,7 @@ class TriggerPanelController:
         ActionDialog(self._app, title="編集", initial=current).wait_window()
         if getattr(self._app, "_dialog_result", None):
             trig["actions"][idx] = self._app._dialog_result
+            self._app.sequence_runner.reset_loop_frames(normalize_key_name(trig.get("key", "")))
             self.refresh_actions()
             self._app.mark_sequence_dirty(trig)
             # action_list は FullView 側にある（選択表示を復帰）
@@ -535,6 +543,7 @@ class TriggerPanelController:
             return
         if messagebox.askyesno("確認", "選択した行を削除しますか？"):
             del trig["actions"][idx]
+            self._app.sequence_runner.reset_loop_frames(normalize_key_name(trig.get("key", "")))
             self.refresh_actions()
             self._app.mark_sequence_dirty(trig)
 
@@ -555,6 +564,7 @@ class TriggerPanelController:
         key = self.selected_trigger_key()
         if key:
             self._app._indices[key] = j
+            self._app.sequence_runner.reset_loop_frames(key)
         self.refresh_actions()
         self._app.mark_sequence_dirty(trig)
 
@@ -576,6 +586,7 @@ class TriggerPanelController:
             return
         if 0 <= idx < len(actions):
             self._app._indices[key] = idx
+            self._app.sequence_runner.reset_loop_frames(key)
             self.update_status()
 
     def on_action_list_focus_index_change(self, _event=None):
