@@ -1,7 +1,9 @@
 ﻿from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Mapping
+
+from . import sequence_control
 
 
 DEFAULT_RUN_TO_END_DELAY_MS = 300
@@ -157,6 +159,9 @@ def normalize_actions(actions: Any) -> list[dict[str, Any]]:
             a["type"] = coerce_label(a["type"])
         if "button" in a:
             a["button"] = coerce_label(a["button"])
+        for key in ("op", "counter", "path", "encoding", "out_of_range"):
+            if key in a:
+                a[key] = coerce_label(a[key])
         normalized_actions.append(a)
     return normalized_actions
 
@@ -401,9 +406,23 @@ def format_trigger_list_item(index: int, trigger: dict[str, Any]) -> str:
     return f"{index + 1:02d}. {key}"
 
 
-def format_action_list_item(index: int, action: dict[str, Any]) -> str:
+def format_action_list_item(
+    index: int,
+    action: dict[str, Any],
+    *,
+    loop_iteration: int | None = None,
+    counters: Mapping[str, Any] | None = None,
+) -> str:
     action_type = (action.get("type") or "").strip().lower()
-    if action_type == "mouse_click":
+    is_control_action = action_type in (
+        sequence_control.ACTION_TYPE_SYSTEM,
+        sequence_control.ACTION_TYPE_FILE_LINE,
+    )
+    if is_control_action:
+        value_display = sequence_control.format_control_value(
+            action, loop_iteration=loop_iteration, counters=counters
+        )
+    elif action_type == "mouse_click":
         x = action.get("x", "")
         y = action.get("y", "")
         button = action.get("button", "left")
@@ -419,6 +438,10 @@ def format_action_list_item(index: int, action: dict[str, Any]) -> str:
         value_display = action.get("value", "")
 
     label = (action.get("label") or "").strip()
+    if is_control_action:
+        if label:
+            return f"{index + 1:02d}. {value_display}: {label}"
+        return f"{index + 1:02d}. {value_display}"
     if label:
         return f"{index + 1:02d}. [{action_type}] {value_display}: {label}"
     return f"{index + 1:02d}. [{action_type}] {value_display}"

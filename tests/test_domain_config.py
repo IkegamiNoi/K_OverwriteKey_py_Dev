@@ -541,5 +541,61 @@ class FormatListItemTest(unittest.TestCase):
         )
 
 
+class SequenceControlConfigTest(unittest.TestCase):
+    def test_normalize_actions_coerces_new_string_fields(self) -> None:
+        fields = ("op", "counter", "path", "encoding", "out_of_range")
+        invalid_values = (None, 123, [], {})
+        for field in fields:
+            for value in invalid_values:
+                with self.subTest(field=field, value=value):
+                    normalized = normalize_actions([{"type": "system", field: value}])[0]
+                    self.assertEqual(normalized[field], "")
+
+    def test_normalize_actions_trims_new_fields_and_preserves_case(self) -> None:
+        action = {
+            "op": "  Loop_Start ",
+            "counter": "  N ",
+            "path": "  data/list.txt  ",
+            "encoding": "  Shift_JIS ",
+            "out_of_range": "  Wrap ",
+        }
+        normalized = normalize_actions([action])[0]
+        self.assertEqual(
+            {field: normalized[field] for field in action},
+            {
+                "op": "Loop_Start",
+                "counter": "N",
+                "path": "data/list.txt",
+                "encoding": "Shift_JIS",
+                "out_of_range": "Wrap",
+            },
+        )
+
+    def test_normalize_actions_does_not_add_new_fields_or_change_runtime_values(self) -> None:
+        action = {"type": "system", "count": "3", "ms": "500", "infinite": True}
+        normalized = normalize_actions([action])[0]
+        self.assertEqual(normalized, {**action, "label": ""})
+
+    def test_control_action_list_items_include_runtime_values_and_labels(self) -> None:
+        loop = {"type": "system", "op": "loop_start", "count": 3, "infinite": True, "label": "repeat"}
+        file_line = {"type": "file_line", "path": r"data\list.txt", "counter": "n", "label": "load"}
+        self.assertEqual(
+            format_action_list_item(2, loop, loop_iteration=2),
+            "03. [loop] 2/∞: repeat",
+        )
+        self.assertEqual(
+            format_action_list_item(0, file_line, counters={"n": 5}),
+            "01. [file_line] list.txt #n (=5): load",
+        )
+
+    def test_existing_action_list_item_outputs_are_unchanged(self) -> None:
+        self.assertEqual(format_action_list_item(0, {"type": "hotkey", "value": "ctrl+c"}), "01. [hotkey] ctrl+c")
+        self.assertEqual(format_action_list_item(1, {"type": "text", "value": "abc", "label": "memo"}), "02. [text] abc: memo")
+        self.assertEqual(
+            format_action_list_item(0, {"type": "mouse_click", "x": 10, "y": 20, "button": "left", "clicks": 2}),
+            "01. [mouse_click] (10, 20) left x2",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

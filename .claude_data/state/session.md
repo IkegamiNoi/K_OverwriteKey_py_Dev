@@ -4,41 +4,43 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T07:00:00
-phase: なし（**アクティブなフェーズ = なし**。次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 37 / 暫定 26 / decisions 37 / 提案書 15。
-直前の完了フェーズ = **phase 36**（config_service の分割と巨大関数の分割・2026-09-27 完了・判断履歴 = `decisions_archive/36_config_service_split.md`）。
-last_commit_location: `claude/config-service-refactor-priorities-b7a21d`
+last_updated: 2026-09-26T19:40:00
+phase: instructions/phase/37_sequence_control_actions（出力シーケンスの制御アクション・第 1 弾・暫定 26 v0.3 確定済・decisions 37）。
+次採番 = phase 38 / 暫定 27 / decisions 38 / 提案書 15。直前の完了フェーズ = **phase 36**（判断履歴 = `decisions_archive/36_config_service_split.md`）。
+last_commit_location: `claude/output-sequence-system-type-e641ab`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 36 完了（`config_service/__init__.py` 1135 → 840 行・80 行超の 5 関数を解消・提案書 14 も task_09 で実施済＝`split_loading.py` 787 → 559 行・挙動不変）。次フェーズは未定（ユーザー判断待ち）。**
-mode: completed
+focus: **phase 37 進行中: task_01（domain の土台 = `domain/sequence_control.py`）完了。次は task_02（実行モデルの中核・Sol medium + Luna xhigh サブエージェントの試行対象）。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-27T07:00:00
+ts: 2026-09-26T19:40:00
 who: main
 summary: |
-  【phase 36 task_01〜07】各タスク codex-implementer → verifier 全 pass → reviewer 完了可でコミット済（`7564cbd`〜`b93887c`）。
-  【完了判定前レビュー】deep-reviewer 完了可 / codex-adversarial approve。**前提の誤り**「パス基盤は `config_service.os.path` patch のため動かせない」を
-  メインが実測で確認（patch は `os.path` をプロセス全体で差し替える）→ ユーザー判断「記述を直して閉じる」で codebase_map・phase.md を訂正。
-  【refactor_check】推奨（M1: `split_loading.py` 666 → 787）→ ユーザー判断で提案書 14 を起票（ホットキープリセット 9 関数 → `hotkey_presets_files.py`）。
-  【task_08 記録】decisions_archive/36・索引 1 行・current.md（アクティブ = なし・別タスク化候補の更新・テスト負債追記・次採番）・codebase_map（16 ファイル・新 2 モジュール）。
-  【task_09 = 提案書 14】ユーザー承認（phase 36 末の追加タスク）→ ホットキープリセット 9 関数を `config_service/hotkey_presets_files.py`（234 行）へ無変更で移動・`split_loading.py` 787 → 559 行。verifier 全 pass・reviewer: 移動は無変更と確認。
+  【設計】ユーザー対話で system 種別（ループ/カウンター/待機/戻す/先頭へ）+ file_line を合意 → 暫定 26 起票（v0.1）→ deep-reviewer 修正して採用（v0.2）→
+  Codex 敵対的レビューを Luna xhigh（プラグイン）と Sol medium（`codex exec` 直接）で 2 回 → 実質同じ指摘 → ユーザー判断で v0.3 確定
+  （カウンターは差分で戻す / 待機中も他トリガー可・同トリガーは保留中として拒否 + 世代番号 / file_line 1 MB 上限 / 追加ダイアログに「末尾に追加」）。
+  【起票】phase 37 phase.md（task_01〜08）・idea_37（カウンター条件分岐）・current.md。reviewer 整合確認 = 採用。コミット `c4cdb2e`。
+  【Codex 試行の準備】Sol medium から `collaboration.spawn_agent(model="gpt-6-luna", reasoning_effort="xhigh")` で Luna xhigh の子が動くことをセッション記録で実測確認（config.toml 変更不要）。
+  【task_01】codex-implementer（Luna xhigh 既定）→ verifier 全 pass → reviewer 完了可（参考: 非文字列 op の表示は未テスト・必須でない）。
 result_files:
-  - keyseq/application/config_service/{hotkey_presets_files.py（新規）, split_loading.py, __init__.py, orphan_scan.py} / tests/{test_config_service.py, test_config_service_contracts.py}
-  - instructions/common/codebase_map.md / instructions/modified_proposal/14_refactor_config_service_split.md / instructions/phase/36_config_service_split/tasks/task_09_*
-  - instructions/phase/{current.md, 36_config_service_split/phase.md}
-  - .claude_data/state/{decisions.md, decisions_archive/36_config_service_split.md, session.md}
+  - keyseq/domain/{sequence_control.py（新規）, config.py} / tests/{test_sequence_control.py（新規）, test_domain_config.py}
+  - instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_01_domain_foundation.md}
+  - .claude_data/state/session.md
 verified:
   compile: clean
-  tests: 674 ran OK（skipped 7）
-  tests_ui: 576 ran OK
-  smoke: pass
-  review: reviewer 完了可（task_01〜07・task_09）/ deep-reviewer 完了可 / codex-adversarial approve
+  tests: 699 ran OK（skipped 7）
+  tests_ui: not_run（UI 変更なし）
+  review: reviewer 完了可（task_01）
 
 ## next_action
-- **次フェーズはユーザー判断**（候補は current.md「次フェーズ候補」・「別タスク化候補」。着手時は `/phase_start`）。
-- **main へのマージはユーザーが行う**（phase 18 残り・19〜36）。
+- **task_02 に着手する前に、ユーザーへ「task_02 で Sol medium + Luna xhigh サブエージェントを試行する」と知らせる**（使用量の確認のため・phase.md「実装モデルの試行」）。
+- `/task_new` で `instructions/phase/37_sequence_control_actions/tasks/task_02_*.md` を起票（暫定 26 §4・§5・§6・§10）→
+  `codex-implementer` に `--model gpt-6-sol --effort medium` + 「重い部分は `spawn_agent` で `model: "gpt-6-luna"`, `reasoning_effort: "xhigh"` の子に任せてよい」と明示して依頼 →
+  verifier → reviewer → 実装後に `~/.codex/sessions/<日付>/rollout-*.jsonl` で子が gpt-6-luna / xhigh で動いたかを確認して報告。
+- 実装後の Codex レビューで Luna xhigh（プラグイン）と Sol medium（`codex exec` 直接・プロンプトはプラグインの `lib/git.mjs` / `prompts.mjs` で組み立て）を再比較する。
+- **main へのマージはユーザーが行う**（phase 18 残り・19〜37）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
 ## blockers
@@ -46,6 +48,9 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 37】主入力 = 暫定 26 v0.3（`instructions/history/26_sequence_control_actions.md`）**。ループの対応・深さ・表示名・深さ→色の対応は
+  `keyseq/domain/sequence_control.py`（純関数・`config.py` から一方向に呼ぶ）。runner の肥大を避け、ステップ・周回・履歴は別モジュールへ置く方針。
+  **Codex のプラグインのレビュー系コマンドは推論レベルを渡せない**（`--model` のみ）。`task` は `--model` / `--effort` 可。
 - **【phase 34 の成果は正本が正】トリガー一覧のキーマップ従属化 = `data_schema.md` §5.13 + `key_input.md` §7.3 + `features.md` §4.1・§4.3・§4.5 +
   `codebase_map.md`「キーマップとトリガー一覧（phase 34）」節**。暫定 25 は凍結済で条項の根拠に引かない。要点 =
   ①トリガー一覧へのアクセスは `domain/keymap_triggers.py` の口だけ（presentation に `"triggers"` 直値を書くと静的検査で落ちる）
