@@ -62,7 +62,7 @@ presentation（`config_io/child_save_rows.py`）。公開面（`ConfigService` �
 
 - task_01: 個別キーマップの保存計画一式を `keymap_save_plan.py` へ切り出す — **完了**（2026-09-26・1135 → 932 行・tests 674〔skip 7〕/ tests_ui 576 / smoke pass・reviewer 完了可）
 - task_02: シーケンス / トリガー一覧ファイルの読み書きを `child_file_io.py` へ切り出す — **完了**（2026-09-26・932 → 840 行・tests 674〔skip 7〕/ tests_ui 576 / smoke pass・reviewer 完了可）
-- task_03: `split_loading.py::build_runtime_data_from_split` の分割
+- task_03: `split_loading.py::build_runtime_data_from_split` の分割 — **完了**（2026-09-26・本体 154 → 23 行・補助 8 関数 + `_KeymapLoadState`〔レビュー後に状態 dict を型付き dataclass へ〕・tests 674 / tests_ui 576 / smoke pass・reviewer 完了可）
 - task_04: `save_plan_execution.py::save_runtime_data` の分割
 - task_05: `split_payloads.py::build_split_save_payloads` の分割
 - task_06: `config_io/child_save_rows.py::collect_child_save_rows` の分割

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+from dataclasses import dataclass, field
 from typing import Any
 
 from keyseq.domain.config import (
@@ -29,6 +30,18 @@ from keyseq.domain.keymap_triggers import (
 TriggerSetCache = dict[
     str, tuple[list[dict[str, Any]], list[str] | None, str, bool | None, bool | None]
 ]
+
+
+@dataclass
+class _KeymapLoadState:
+    keymaps: list[dict[str, Any]] = field(default_factory=list)
+    keymap_switch_keys: dict[str, str] = field(default_factory=dict)
+    loaded_keymap_ids_by_path: dict[str, str] = field(default_factory=dict)
+    keymap_trigger_path_presence: dict[str, bool] = field(default_factory=dict)
+    used_keymap_ids: set[str] = field(default_factory=set)
+    trigger_sets: TriggerSetCache = field(default_factory=dict)
+    active_keymap_path: str = ""
+    active_keymap_resolved_path: str = ""
 
 
 def load_split_config(service, *, config_root: str, keymap_set_path: str) -> dict[str, Any]:
@@ -288,6 +301,31 @@ def build_runtime_data_from_split(
     *,
     config_root: str,
 ) -> dict[str, Any]:
+    runtime = _build_runtime_data_from_keymap_set(
+        service, keymap_set, config_root=config_root
+    )
+    keymaps, keymap_trigger_path_presence, trigger_sets = _load_runtime_keymaps(
+        service, keymap_set, runtime, config_root=config_root
+    )
+
+    _record_legacy_trigger_migration(
+        service,
+        keymap_set,
+        runtime,
+        keymaps,
+        keymap_trigger_path_presence,
+        trigger_sets,
+        config_root=config_root,
+    )
+    return _normalize_runtime_data_and_restore_parent_refs(service, runtime, keymaps)
+
+
+def _build_runtime_data_from_keymap_set(
+    service: Any,
+    keymap_set: dict[str, Any],
+    *,
+    config_root: str,
+) -> dict[str, Any]:
     runtime = service.new_default_data()
     runtime.update(keymaps=[], triggers=[], active_keymap_id="")
 
@@ -310,6 +348,19 @@ def build_runtime_data_from_split(
             service, config_root=config_root
         )
 
+    _load_runtime_keyboard_layouts_and_hotkey_presets(
+        service, keymap_set, runtime, config_root=config_root
+    )
+    return runtime
+
+
+def _load_runtime_keyboard_layouts_and_hotkey_presets(
+    service: Any,
+    keymap_set: dict[str, Any],
+    runtime: dict[str, Any],
+    *,
+    config_root: str,
+) -> None:
     runtime["external_keyboard_layouts"] = normalize_external_keyboard_layouts(
         service,
         keymap_set.get("external_keyboard_layouts"),
@@ -330,14 +381,14 @@ def build_runtime_data_from_split(
     if hotkey_presets is not None:
         runtime["hotkey_presets"] = hotkey_presets
 
-    keymaps: list[dict[str, Any]] = []
-    keymap_switch_keys: dict[str, str] = {}
-    loaded_keymap_ids_by_path: dict[str, str] = {}
-    keymap_trigger_path_presence: dict[str, bool] = {}
-    used_keymap_ids: set[str] = set()
-    trigger_sets: dict[
-        str, tuple[list[dict[str, Any]], list[str] | None, str, bool | None, bool | None]
-    ] = {}
+
+def _load_configured_keymaps(
+    service: Any,
+    keymap_set: dict[str, Any],
+    *,
+    config_root: str,
+) -> _KeymapLoadState:
+    keymap_state = _KeymapLoadState()
 
     active_keymap_path = coerce_label(keymap_set.get("active_keymap_path"))
     active_keymap_resolved_path = (
@@ -345,6 +396,8 @@ def build_runtime_data_from_split(
         if active_keymap_path
         else ""
     )
+    keymap_state.active_keymap_path = active_keymap_path
+    keymap_state.active_keymap_resolved_path = active_keymap_resolved_path
 
     raw_keymaps = keymap_set.get("keymaps")
     if isinstance(raw_keymaps, list):
@@ -353,60 +406,121 @@ def build_runtime_data_from_split(
                 service,
                 entry,
                 config_root=config_root,
-                used_keymap_ids=used_keymap_ids,
+                used_keymap_ids=keymap_state.used_keymap_ids,
             )
-            if loaded_entry is None:
-                continue
+            if loaded_entry is not None:
+                _append_configured_keymap(service, loaded_entry, keymap_state, config_root=config_root)
 
-            keymap = loaded_entry["keymap"]
-            keymap_id = str(keymap.get("id") or "")
-            keymap_trigger_path_presence[keymap_id] = loaded_entry["has_trigger_set_path"]
-            if loaded_entry["trigger_set_path"]:
-                attach_trigger_set(
-                    service,
-                    keymap,
-                    loaded_entry["trigger_set_path"],
-                    config_root=config_root,
-                    trigger_sets=trigger_sets,
-                )
-            keymaps.append(keymap)
-            loaded_keymap_ids_by_path[loaded_entry["resolved_path"]] = keymap_id
+    return keymap_state
 
-            switch_key = normalize_key_name(loaded_entry["switch_key"])
-            if switch_key:
-                keymap_switch_keys[switch_key] = str(keymap.get("id") or "")
 
-    active_keymap_id = loaded_keymap_ids_by_path.get(active_keymap_resolved_path, "")
-    if not active_keymap_id and active_keymap_resolved_path and os.path.exists(active_keymap_resolved_path):
+def _append_configured_keymap(
+    service: Any,
+    loaded_entry: dict[str, Any],
+    keymap_state: _KeymapLoadState,
+    *,
+    config_root: str,
+) -> None:
+    keymap = loaded_entry["keymap"]
+    keymap_id = str(keymap.get("id") or "")
+    keymap_state.keymap_trigger_path_presence[keymap_id] = loaded_entry[
+        "has_trigger_set_path"
+    ]
+    if loaded_entry["trigger_set_path"]:
+        attach_trigger_set(
+            service,
+            keymap,
+            loaded_entry["trigger_set_path"],
+            config_root=config_root,
+            trigger_sets=keymap_state.trigger_sets,
+        )
+    keymap_state.keymaps.append(keymap)
+    keymap_state.loaded_keymap_ids_by_path[loaded_entry["resolved_path"]] = keymap_id
+
+    switch_key = normalize_key_name(loaded_entry["switch_key"])
+    if switch_key:
+        keymap_state.keymap_switch_keys[switch_key] = str(keymap.get("id") or "")
+
+
+def _load_missing_active_keymap(
+    service: Any,
+    keymap_state: _KeymapLoadState,
+    *,
+    config_root: str,
+) -> str:
+    active_keymap_id = keymap_state.loaded_keymap_ids_by_path.get(
+        keymap_state.active_keymap_resolved_path, ""
+    )
+    if (
+        not active_keymap_id
+        and keymap_state.active_keymap_resolved_path
+        and os.path.exists(keymap_state.active_keymap_resolved_path)
+    ):
         active_keymap = load_keymap_entry(
             service,
-            {"path": active_keymap_path},
+            {"path": keymap_state.active_keymap_path},
             config_root=config_root,
-            used_keymap_ids=used_keymap_ids,
+            used_keymap_ids=keymap_state.used_keymap_ids,
         )
         if active_keymap is not None:
             keymap_id = str(active_keymap["keymap"].get("id") or "")
-            keymap_trigger_path_presence[keymap_id] = active_keymap["has_trigger_set_path"]
+            keymap_state.keymap_trigger_path_presence[keymap_id] = active_keymap[
+                "has_trigger_set_path"
+            ]
             if active_keymap["trigger_set_path"]:
                 attach_trigger_set(
                     service,
                     active_keymap["keymap"],
                     active_keymap["trigger_set_path"],
                     config_root=config_root,
-                    trigger_sets=trigger_sets,
+                    trigger_sets=keymap_state.trigger_sets,
                 )
-            keymaps.append(active_keymap["keymap"])
+            keymap_state.keymaps.append(active_keymap["keymap"])
             active_keymap_id = keymap_id
+    return active_keymap_id
 
-    runtime["keymaps"] = keymaps
+
+def _load_runtime_keymaps(
+    service: Any,
+    keymap_set: dict[str, Any],
+    runtime: dict[str, Any],
+    *,
+    config_root: str,
+) -> tuple[list[dict[str, Any]], dict[str, bool], TriggerSetCache]:
+    keymap_state: _KeymapLoadState = _load_configured_keymaps(
+        service, keymap_set, config_root=config_root
+    )
+    active_keymap_id = _load_missing_active_keymap(
+        service, keymap_state, config_root=config_root
+    )
+
+    runtime["keymaps"] = keymap_state.keymaps
     runtime["active_keymap_id"] = active_keymap_id
-    runtime["keymap_switch_keys"] = keymap_switch_keys
+    runtime["keymap_switch_keys"] = keymap_state.keymap_switch_keys
     generated_keymap = ensure_at_least_one_keymap(runtime)
     keymaps = runtime["keymaps"]
     if generated_keymap is not None:
-        keymap_trigger_path_presence[str(generated_keymap["id"])] = False
+        keymap_state.keymap_trigger_path_presence[str(generated_keymap["id"])] = False
     if not runtime["active_keymap_id"]:
         runtime["active_keymap_id"] = keymaps[0]["id"]
+
+    return (
+        keymaps,
+        keymap_state.keymap_trigger_path_presence,
+        keymap_state.trigger_sets,
+    )
+
+
+def _record_legacy_trigger_migration(
+    service: Any,
+    keymap_set: dict[str, Any],
+    runtime: dict[str, Any],
+    keymaps: list[dict[str, Any]],
+    keymap_trigger_path_presence: dict[str, bool],
+    trigger_sets: TriggerSetCache,
+    *,
+    config_root: str,
+) -> None:
     active = next(item for item in keymaps if item["id"] == runtime["active_keymap_id"])
     legacy_path = coerce_label(keymap_set.get("trigger_set_path"))
     state, migration_target, auto_created = _migrate_legacy_trigger_set(
@@ -429,6 +543,13 @@ def build_runtime_data_from_split(
         keymap.setdefault("triggers", [])
     if state == "migrated":
         migration_target[service.INTERNAL_KEYMAP_DIRTY] = True
+
+
+def _normalize_runtime_data_and_restore_parent_refs(
+    service: Any,
+    runtime: dict[str, Any],
+    keymaps: list[dict[str, Any]],
+) -> dict[str, Any]:
     normalized = ensure_config_compatibility(runtime)
     normalized_keymaps = normalized.get("keymaps", [])
     for keymap, normalized_keymap in zip(keymaps, normalized_keymaps):
