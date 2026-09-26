@@ -192,20 +192,7 @@ def normalize_triggers(raw_triggers: Any) -> list[dict[str, Any]]:
     return normalized_triggers
 
 
-def ensure_config_compatibility(data: Any) -> dict[str, Any]:
-    from keyseq.domain.keymap_triggers import (
-        INTERNAL_TRIGGER_SET_DIRTY,
-        INTERNAL_TRIGGER_SET_IMPORTED,
-        INTERNAL_TRIGGER_SET_PARENT_REFS,
-        INTERNAL_TRIGGER_SET_SOURCE_PATH,
-    )
-
-    if not isinstance(data, dict):
-        data = {}
-    config = safe_deepcopy(data)
-    config.pop(INTERNAL_TRIGGER_SET_SOURCE_PATH, None)
-    config.pop(INTERNAL_TRIGGER_SET_PARENT_REFS, None)
-
+def _migrate_legacy_triggers(config: dict[str, Any]) -> None:
     if "triggers" not in config and "trigger_key" in config:
         old_key = coerce_key_name(config.get("trigger_key", "f1"))
         old_actions = config.get("actions", [])
@@ -222,8 +209,8 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             }
         ]
 
-    config["triggers"] = normalize_triggers(config.get("triggers"))
 
+def _normalize_general_settings(config: dict[str, Any]) -> None:
     raw_presets = config.get("hotkey_presets")
     if not isinstance(raw_presets, list):
         config["hotkey_presets"] = safe_deepcopy(DEFAULT_CONFIG["hotkey_presets"])
@@ -250,7 +237,8 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
     config["keyboard_show_physical_key_labels"] = bool(config.get("keyboard_show_physical_key_labels", False))
     config["debug_jis_special_key_events"] = bool(config.get("debug_jis_special_key_events", False))
 
-    raw_external_layouts = config.get("external_keyboard_layouts")
+
+def _normalize_external_keyboard_layouts(raw_external_layouts: Any) -> list[dict[str, str]]:
     normalized_external_layouts: list[dict[str, str]] = []
     if isinstance(raw_external_layouts, list):
         for item in raw_external_layouts:
@@ -263,9 +251,53 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
             if not path:
                 continue
             normalized_external_layouts.append({"path": path})
-    config["external_keyboard_layouts"] = normalized_external_layouts
+    return normalized_external_layouts
 
-    raw_keymaps = data.get("keymaps")
+
+def _normalize_keymap_mappings(raw_mappings: Any) -> dict[str, str]:
+    normalized_mappings: dict[str, str] = {}
+    if isinstance(raw_mappings, dict):
+        for raw_source, raw_target in raw_mappings.items():
+            source = normalize_key_name(str(raw_source or ""))
+            target = coerce_key_name(raw_target)
+            if not source or not target:
+                continue
+            normalized_mappings[source] = target
+    return normalized_mappings
+
+
+def _normalize_keymap_compat_fields(
+    normalized_keymap: dict[str, Any],
+    item: dict[str, Any],
+    trigger_memo: dict[int, list[dict[str, Any]]],
+    internal_trigger_keys: tuple[str, str, str, str],
+) -> None:
+    parent_refs_key, dirty_key, imported_key, source_path_key = internal_trigger_keys
+    if "triggers" in item:
+        raw = item["triggers"]
+        if isinstance(raw, list):
+            identity = id(raw)
+            if identity not in trigger_memo:
+                trigger_memo[identity] = normalize_triggers(raw)
+            normalized_keymap["triggers"] = trigger_memo[identity]
+        else:
+            normalized_keymap["triggers"] = []
+    for key in (parent_refs_key, dirty_key, imported_key):
+        if key in item:
+            normalized_keymap[key] = safe_deepcopy(item[key])
+    if source_path_key in item:
+        normalized_keymap[source_path_key] = coerce_label(item[source_path_key])
+    if "_keymap_source_path" in item:
+        normalized_keymap["_keymap_source_path"] = coerce_label(item["_keymap_source_path"])
+    for key in ("_keymap_imported", "_keymap_dirty"):
+        if key in item:
+            normalized_keymap[key] = safe_deepcopy(item.get(key))
+
+
+def _normalize_keymaps(
+    raw_keymaps: Any,
+    internal_trigger_keys: tuple[str, str, str, str],
+) -> list[dict[str, Any]]:
     trigger_memo: dict[int, list[dict[str, Any]]] = {}
     normalized_keymaps: list[dict[str, Any]] = []
     seen_keymap_ids: set[str] = set()
@@ -273,21 +305,10 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
         for item in raw_keymaps:
             if not isinstance(item, dict):
                 continue
-
             keymap_id = coerce_key_name(item.get("id"))
             if not keymap_id or keymap_id in seen_keymap_ids:
                 continue
-
-            raw_mappings = item.get("mappings")
-            normalized_mappings: dict[str, str] = {}
-            if isinstance(raw_mappings, dict):
-                for raw_source, raw_target in raw_mappings.items():
-                    source = normalize_key_name(str(raw_source or ""))
-                    target = coerce_key_name(raw_target)
-                    if not source or not target:
-                        continue
-                    normalized_mappings[source] = target
-
+            normalized_mappings = _normalize_keymap_mappings(item.get("mappings"))
             normalized_keymaps.append(
                 {
                     "id": keymap_id,
@@ -295,45 +316,26 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
                     "mappings": normalized_mappings,
                 }
             )
-            if "triggers" in item:
-                raw = item["triggers"]
-                if isinstance(raw, list):
-                    identity = id(raw)
-                    if identity not in trigger_memo:
-                        trigger_memo[identity] = normalize_triggers(raw)
-                    normalized_keymaps[-1]["triggers"] = trigger_memo[identity]
-                else:
-                    normalized_keymaps[-1]["triggers"] = []
-            for key in (
-                INTERNAL_TRIGGER_SET_PARENT_REFS,
-                INTERNAL_TRIGGER_SET_DIRTY, INTERNAL_TRIGGER_SET_IMPORTED,
-            ):
-                if key in item:
-                    normalized_keymaps[-1][key] = safe_deepcopy(item[key])
-            if INTERNAL_TRIGGER_SET_SOURCE_PATH in item:
-                normalized_keymaps[-1][INTERNAL_TRIGGER_SET_SOURCE_PATH] = coerce_label(
-                    item[INTERNAL_TRIGGER_SET_SOURCE_PATH]
-                )
-            if "_keymap_source_path" in item:
-                normalized_keymaps[-1]["_keymap_source_path"] = coerce_label(item["_keymap_source_path"])
-            for key in (
-                "_keymap_imported",
-                "_keymap_dirty",
-            ):
-                if key in item:
-                    normalized_keymaps[-1][key] = safe_deepcopy(item.get(key))
+            _normalize_keymap_compat_fields(
+                normalized_keymaps[-1], item, trigger_memo, internal_trigger_keys
+            )
             seen_keymap_ids.add(keymap_id)
-    config["keymaps"] = normalized_keymaps
+    return normalized_keymaps
 
+
+def _select_active_keymap_id(config: dict[str, Any], keymap_ids: list[str]) -> str:
     active_keymap_id = coerce_key_name(config.get("active_keymap_id", ""))
-    keymap_ids = [str(item.get("id") or "") for item in normalized_keymaps]
     if active_keymap_id and active_keymap_id not in keymap_ids:
         active_keymap_id = ""
     if not active_keymap_id and keymap_ids:
         active_keymap_id = keymap_ids[0]
-    config["active_keymap_id"] = active_keymap_id
+    return active_keymap_id
 
-    raw_keymap_switch_keys = config.get("keymap_switch_keys")
+
+def _normalize_keymap_switch_keys(
+    raw_keymap_switch_keys: Any,
+    keymap_ids: list[str],
+) -> dict[str, str]:
     normalized_keymap_switch_keys: dict[str, str] = {}
     seen_switch_target_ids: set[str] = set()
     if isinstance(raw_keymap_switch_keys, dict):
@@ -348,7 +350,46 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
                 continue
             normalized_keymap_switch_keys[switch_key] = keymap_id
             seen_switch_target_ids.add(keymap_id)
-    config["keymap_switch_keys"] = normalized_keymap_switch_keys
+    return normalized_keymap_switch_keys
+
+
+def ensure_config_compatibility(data: Any) -> dict[str, Any]:
+    from keyseq.domain.keymap_triggers import (
+        INTERNAL_TRIGGER_SET_DIRTY,
+        INTERNAL_TRIGGER_SET_IMPORTED,
+        INTERNAL_TRIGGER_SET_PARENT_REFS,
+        INTERNAL_TRIGGER_SET_SOURCE_PATH,
+    )
+
+    if not isinstance(data, dict):
+        data = {}
+    config = safe_deepcopy(data)
+    config.pop(INTERNAL_TRIGGER_SET_SOURCE_PATH, None)
+    config.pop(INTERNAL_TRIGGER_SET_PARENT_REFS, None)
+
+    _migrate_legacy_triggers(config)
+    config["triggers"] = normalize_triggers(config.get("triggers"))
+    _normalize_general_settings(config)
+
+    config["external_keyboard_layouts"] = _normalize_external_keyboard_layouts(
+        config.get("external_keyboard_layouts")
+    )
+
+    normalized_keymaps = _normalize_keymaps(
+        data.get("keymaps"),
+        (
+            INTERNAL_TRIGGER_SET_PARENT_REFS,
+            INTERNAL_TRIGGER_SET_DIRTY,
+            INTERNAL_TRIGGER_SET_IMPORTED,
+            INTERNAL_TRIGGER_SET_SOURCE_PATH,
+        ),
+    )
+    config["keymaps"] = normalized_keymaps
+    keymap_ids = [str(item.get("id") or "") for item in normalized_keymaps]
+    config["active_keymap_id"] = _select_active_keymap_id(config, keymap_ids)
+    config["keymap_switch_keys"] = _normalize_keymap_switch_keys(
+        config.get("keymap_switch_keys"), keymap_ids
+    )
     return config
 
 
