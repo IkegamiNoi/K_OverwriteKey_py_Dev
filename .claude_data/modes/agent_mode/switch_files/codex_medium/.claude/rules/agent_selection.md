@@ -19,13 +19,14 @@
 
 | エージェント | Codex のモデル | 使うタスク |
 |---|---|---|
-| `codex-implementer` | Luna xhigh（単独） | **修正箇所が具体的に決まっていて、かつ量が多くない**タスク |
-| `codex-delegating-implementer` | Sol medium が主・Luna xhigh のサブエージェント使用を許可 | **Codex 側である程度の判断が要る**タスク、または**量が多くサブエージェントで分担できそう**なタスク |
+| `codex-implementer` | Luna high（単独） | **修正箇所が具体的に決まっていて、かつ量が多くない**タスク |
+| `codex-delegating-implementer` | Sol medium が主・Luna high のサブエージェント使用を許可 | **Codex 側である程度の判断が要る**タスク、または**量が多くサブエージェントで分担できそう**なタスク |
 
 - タスク定義に基づく実装は、原則どちらかへ委任する。**どちらを使ったかを完了報告に書く**
   （`codex-delegating-implementer` の場合はサブエージェントの使用有無も。自己申告なので、必要なら
   `~/.codex/sessions/<日付>/rollout-*.jsonl` の `model` / `thread_source` で実測する）
 - 迷ったら `codex-implementer`（ユーザー判断 2026-09-27 の基準。試行の経緯は phase 37 の phase.md）
+- 推論レベルは Luna **high** が既定（phase 37 の試行で xhigh と品質差なし・所要時間が短いため。ユーザー判断 2026-09-27）
 - 呼び出し時は以下をプロンプトに含める
   - 対象タスク定義ファイルのパス
   - 実装対象範囲と対象外の明記
