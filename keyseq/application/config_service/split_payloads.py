@@ -31,12 +31,9 @@ def build_split_save_payloads(service,
 ) -> dict[str, Any]:
     keymaps_dir = os.path.join(split_base_dir, "keymaps") if split_base_dir else ""
     sequences_dir = os.path.join(split_base_dir, "sequences") if split_base_dir else ""
-    keymap_payloads = build_keymap_payloads(service,
-        runtime,
-        config_root=config_root,
-        keymaps_dir=keymaps_dir,
-        parent_ref=keymap_set_path,
-        keymap_set_name_path=keymap_set_name_path,
+    keymap_payloads = build_keymap_payloads(
+        service, runtime, config_root=config_root, keymaps_dir=keymaps_dir,
+        parent_ref=keymap_set_path, keymap_set_name_path=keymap_set_name_path,
         save_plan=save_plan,
     )
     keymap_paths_by_id = {
@@ -44,83 +41,159 @@ def build_split_save_payloads(service,
         for item in keymap_payloads
         if str(item.get("id") or "").strip() and str(item.get("path") or "").strip()
     }
-    startup_payload = build_startup_payload(service,
-        startup_data,
-        startup_entry_loaded=startup_entry_loaded,
-        config_root=config_root,
-        keymap_set_path=keymap_set_path,
+    startup_payload = build_startup_payload(
+        service, startup_data, startup_entry_loaded=startup_entry_loaded,
+        config_root=config_root, keymap_set_path=keymap_set_path,
         legacy_path=legacy_path,
     )
     trigger_sets = []
     sequence_payloads = []
-    used_trigger_paths = {
-        service.canonical_path(entry.target_path, config_root)
-        for entry in save_plan.entries
-        if entry.kind == CHILD_TRIGGER_SET and entry.action == ACTION_SAVE_AS and entry.target_path
-    }
-    used_sequence_paths = {
-        service.canonical_path(entry.target_path, config_root)
-        for entry in save_plan.entries
-        if entry.kind == CHILD_SEQUENCE and entry.action == ACTION_SAVE_AS and entry.target_path
-    }
+    used_trigger_paths = _used_save_as_paths(service, save_plan, config_root, CHILD_TRIGGER_SET)
+    used_sequence_paths = _used_save_as_paths(service, save_plan, config_root, CHILD_SEQUENCE)
     keymaps_by_id = {item["id"]: item for item in keymap_payloads}
     for owner, members, triggers in iter_trigger_sets(runtime):
-        key = str(owner["id"])
-        if not triggers and not owner.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH):
-            for member in members:
-                keymaps_by_id[member["id"]]["payload"]["trigger_set_path"] = ""
-            continue
-        parent = keymaps_by_id[key]["resolved_path"]
-        path = save_path_resolution.resolve_trigger_set_save_path(
-            service, owner, config_root=config_root, keymap_set_path=parent,
-            split_base_dir=split_base_dir, save_plan=save_plan,
-            used_paths=used_trigger_paths,
+        _append_split_trigger_set_payloads(
+            service, runtime, owner, members, triggers, keymaps_by_id,
+            trigger_sets, sequence_payloads, config_root=config_root,
+            split_base_dir=split_base_dir, sequences_dir=sequences_dir,
+            save_plan=save_plan, used_trigger_paths=used_trigger_paths,
+            used_sequence_paths=used_sequence_paths,
         )
-        entry = save_plan.entry_for(CHILD_TRIGGER_SET, key)
-        action = entry.action if entry else ACTION_SAVE
-        skip = action == ACTION_SKIP
-        payload, sequences = build_trigger_set_payloads(
-            service, runtime, config_root=config_root, trigger_set_path=path,
-            sequences_dir=sequences_dir, parent_ref=parent, save_plan=save_plan,
-            trigger_set_id=key, used_paths=used_sequence_paths,
+    keymap_set_payload = build_keymap_set_payload(
+        service, runtime, keymap_paths_by_id, config_root=config_root, trigger_set_path="",
+    )
+    serialized_keymaps = _serialize_split_keymap_payloads(keymap_payloads)
+    return {
+        "startup": startup_payload,
+        "keymap_set": keymap_set_payload,
+        "trigger_sets": trigger_sets,
+        "keymaps": serialized_keymaps,
+        "sequences": sequence_payloads,
+    }
+
+
+def _used_save_as_paths(
+    service: Any,
+    save_plan: SavePlan,
+    config_root: str,
+    child_kind: str,
+) -> set[str]:
+    return {
+        service.canonical_path(entry.target_path, config_root)
+        for entry in save_plan.entries
+        if entry.kind == child_kind and entry.action == ACTION_SAVE_AS and entry.target_path
+    }
+
+
+def _merge_split_trigger_set_parent_refs(
+    service: Any,
+    payload: dict[str, Any],
+    members: list[dict[str, Any]],
+    keymaps_by_id: dict[Any, dict[str, Any]],
+    config_root: str,
+) -> None:
+    for member in members[1:]:
+        refs = service._merge_parent_ref(
+            payload.get(service.PARENT_REFS_KEY),
+            keymaps_by_id[member["id"]]["resolved_path"],
+            config_root=config_root,
         )
-        for member in members[1:]:
-            refs = service._merge_parent_ref(
-                payload.get(service.PARENT_REFS_KEY),
-                keymaps_by_id[member["id"]]["resolved_path"],
-                config_root=config_root,
-            )
-            if refs is not None:
-                payload[service.PARENT_REFS_KEY] = refs
-        source = str(owner.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "")
-        trigger_sets.append({
-            "key": key, "path": service.to_config_relative_or_absolute(path, config_root),
-            "resolved_path": path, "source_path": service._resolve_config_relative_path(source, config_root) if source else "",
-            "action": action, "skip": skip, "payload": payload,
-            "parent_ids": [str(member["id"]) for member in members],
-        })
-        sequence_payloads.extend(sequences)
-        source_path = str(owner.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "")
-        resolved_source_path = (
-            service._resolve_config_relative_path(source_path, config_root)
-            if source_path
+        if refs is not None:
+            payload[service.PARENT_REFS_KEY] = refs
+
+
+def _resolve_split_trigger_set_indexed_path(
+    service: Any,
+    owner: dict[str, Any],
+    path: str,
+    skip: bool,
+    config_root: str,
+) -> str:
+    source_path = str(owner.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "")
+    resolved_source_path = (
+        service._resolve_config_relative_path(source_path, config_root)
+        if source_path
+        else ""
+    )
+    if skip:
+        return (
+            service.to_config_relative_or_absolute(resolved_source_path, config_root)
+            if resolved_source_path and os.path.exists(resolved_source_path)
             else ""
         )
-        if skip:
-            indexed_path = (
-                service.to_config_relative_or_absolute(resolved_source_path, config_root)
-                if resolved_source_path and os.path.exists(resolved_source_path)
-                else ""
-            )
-        else:
-            indexed_path = service.to_config_relative_or_absolute(path, config_root)
-        for member in members:
-            keymaps_by_id[member["id"]]["payload"]["trigger_set_path"] = indexed_path
-    keymap_set_payload = build_keymap_set_payload(
-        service, runtime, keymap_paths_by_id, config_root=config_root,
-        trigger_set_path="",
+    return service.to_config_relative_or_absolute(path, config_root)
+
+
+def _append_split_trigger_set_payloads(
+    service: Any, runtime: dict[str, Any], owner: dict[str, Any],
+    members: list[dict[str, Any]], triggers: list[Any],
+    keymaps_by_id: dict[Any, dict[str, Any]],
+    trigger_sets: list[dict[str, Any]], sequence_payloads: list[dict[str, Any]], *,
+    config_root: str, split_base_dir: str, sequences_dir: str,
+    save_plan: SavePlan, used_trigger_paths: set[str],
+    used_sequence_paths: set[str],
+) -> None:
+    result = _build_split_trigger_set_entry(
+        service, runtime, owner, members, triggers, keymaps_by_id,
+        config_root=config_root, split_base_dir=split_base_dir,
+        sequences_dir=sequences_dir, save_plan=save_plan,
+        used_trigger_paths=used_trigger_paths,
+        used_sequence_paths=used_sequence_paths,
     )
-    serialized_keymaps = [
+    if result is None:
+        return
+    trigger_set, sequences, path, skip = result
+    trigger_sets.append(trigger_set)
+    sequence_payloads.extend(sequences)
+    indexed_path = _resolve_split_trigger_set_indexed_path(
+        service, owner, path, skip, config_root
+    )
+    for member in members:
+        keymaps_by_id[member["id"]]["payload"]["trigger_set_path"] = indexed_path
+
+
+def _build_split_trigger_set_entry(
+    service: Any, runtime: dict[str, Any], owner: dict[str, Any],
+    members: list[dict[str, Any]], triggers: list[Any],
+    keymaps_by_id: dict[Any, dict[str, Any]], *,
+    config_root: str, split_base_dir: str, sequences_dir: str,
+    save_plan: SavePlan, used_trigger_paths: set[str],
+    used_sequence_paths: set[str],
+) -> tuple[dict[str, Any], list[dict[str, Any]], str, bool] | None:
+    key = str(owner["id"])
+    if not triggers and not owner.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH):
+        for member in members:
+            keymaps_by_id[member["id"]]["payload"]["trigger_set_path"] = ""
+        return None
+    parent = keymaps_by_id[key]["resolved_path"]
+    path = save_path_resolution.resolve_trigger_set_save_path(
+        service, owner, config_root=config_root, keymap_set_path=parent,
+        split_base_dir=split_base_dir, save_plan=save_plan,
+        used_paths=used_trigger_paths,
+    )
+    entry = save_plan.entry_for(CHILD_TRIGGER_SET, key)
+    action = entry.action if entry else ACTION_SAVE
+    skip = action == ACTION_SKIP
+    payload, sequences = build_trigger_set_payloads(
+        service, runtime, config_root=config_root, trigger_set_path=path,
+        sequences_dir=sequences_dir, parent_ref=parent, save_plan=save_plan,
+        trigger_set_id=key, used_paths=used_sequence_paths,
+    )
+    _merge_split_trigger_set_parent_refs(service, payload, members, keymaps_by_id, config_root)
+    source = str(owner.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or "")
+    trigger_set = {
+        "key": key, "path": service.to_config_relative_or_absolute(path, config_root),
+        "resolved_path": path, "source_path": service._resolve_config_relative_path(source, config_root) if source else "",
+        "action": action, "skip": skip, "payload": payload,
+        "parent_ids": [str(member["id"]) for member in members],
+    }
+    return trigger_set, sequences, path, skip
+
+
+def _serialize_split_keymap_payloads(
+    keymap_payloads: list[dict[str, Any]],
+) -> list[dict[str, Any]]:
+    return [
         {
             "path": str(item["path"]),
             "resolved_path": str(item["resolved_path"]),
@@ -130,13 +203,6 @@ def build_split_save_payloads(service,
         }
         for item in keymap_payloads
     ]
-    return {
-        "startup": startup_payload,
-        "keymap_set": keymap_set_payload,
-        "trigger_sets": trigger_sets,
-        "keymaps": serialized_keymaps,
-        "sequences": sequence_payloads,
-    }
 
 def build_keymap_payloads(service,
     runtime: dict[str, Any],
