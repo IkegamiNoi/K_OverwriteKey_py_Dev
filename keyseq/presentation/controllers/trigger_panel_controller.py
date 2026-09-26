@@ -11,6 +11,22 @@ from keyseq.domain.config import (
     format_trigger_list_item,
     normalize_key_name,
 )
+from keyseq.domain.sequence_control import (
+    ACTION_TYPE_SYSTEM,
+    OP_LOOP_END,
+    OP_LOOP_START,
+    action_type,
+    system_op,
+)
+from keyseq.domain.sequence_editing import (
+    adjust_position_after_insert,
+    can_insert_loop,
+    can_move,
+    delete_indices,
+    insert_actions,
+    loop_pair_items,
+    pair_index,
+)
 from keyseq.presentation.dialogs import ActionDialog, TriggerDialog
 from keyseq.presentation.listbox_utils import (
     focused_listbox_index,
@@ -502,13 +518,40 @@ class TriggerPanelController:
         if not trig:
             messagebox.showinfo("追加", "まずトリガーを選択してください。")
             return
-        ActionDialog(self._app, title="追加").wait_window()
-        if getattr(self._app, "_dialog_result", None):
-            trig.setdefault("actions", []).append(self._app._dialog_result)
-            self._app.sequence_runner.reset_loop_frames(normalize_key_name(trig.get("key", "")))
-            self.refresh_actions()
-            self._app.mark_sequence_dirty(trig)
+        actions = trig.setdefault("actions", [])
+        selected_index = self.selected_action_index()
+        key = normalize_key_name(trig.get("key", ""))
+        position = int(self._app._indices.get(key, 0) or 0)
+        dialog = ActionDialog(
+            self._app,
+            title="追加",
+            mode="add",
+            counter_names=self._counter_names(),
+            config_root=getattr(self._app, "config_root", ""),
+        )
+        dialog.wait_window()
+        result = getattr(self._app, "_dialog_result", None)
+        if not result:
+            return
+        append_to_end = bool(getattr(dialog, "append_to_end", True))
+        after_index = None if append_to_end or selected_index is None else selected_index
+        is_loop = (
+            action_type(result) == ACTION_TYPE_SYSTEM
+            and system_op(result) == OP_LOOP_START
+        )
+        if is_loop and not can_insert_loop(actions, after_index):
+            messagebox.showinfo("追加", "ループの入れ子が 9 段を超えるため追加できません。")
             self._app._dialog_result = None
+            return
+        items = loop_pair_items(result) if is_loop else [result]
+        insert_at = insert_actions(actions, items, after_index=after_index)
+        self._app._indices[key] = adjust_position_after_insert(
+            position, insert_at, len(items)
+        )
+        self._app.sequence_runner.reset_loop_frames(key)
+        self.refresh_actions()
+        self._app.mark_sequence_dirty(trig)
+        self._app._dialog_result = None
 
     def edit_action(self):
         trig = self.selected_trigger()
@@ -519,10 +562,35 @@ class TriggerPanelController:
         if idx is None:
             messagebox.showinfo("編集", "編集したい行を選択してください。")
             return
-        current = trig.get("actions", [])[idx]
-        ActionDialog(self._app, title="編集", initial=current).wait_window()
+        actions = trig.get("actions", [])
+        current = actions[idx]
+        is_loop_row = (
+            action_type(current) == ACTION_TYPE_SYSTEM
+            and system_op(current) in (OP_LOOP_START, OP_LOOP_END)
+        )
+        target_idx = idx
+        mode = "edit"
+        if is_loop_row:
+            paired_idx = pair_index(actions, idx)
+            if paired_idx is None:
+                messagebox.showinfo(
+                    "編集",
+                    "ループの対応が崩れているため編集できません。削除して追加し直してください",
+                )
+                return
+            target_idx = paired_idx if system_op(current) == OP_LOOP_END else idx
+            mode = "edit_loop"
+        initial = actions[target_idx]
+        ActionDialog(
+            self._app,
+            title="編集",
+            initial=initial,
+            mode=mode,
+            counter_names=self._counter_names(),
+            config_root=getattr(self._app, "config_root", ""),
+        ).wait_window()
         if getattr(self._app, "_dialog_result", None):
-            trig["actions"][idx] = self._app._dialog_result
+            actions[target_idx] = self._app._dialog_result
             self._app.sequence_runner.reset_loop_frames(normalize_key_name(trig.get("key", "")))
             self.refresh_actions()
             self._app.mark_sequence_dirty(trig)
@@ -545,8 +613,16 @@ class TriggerPanelController:
         if idx is None:
             messagebox.showinfo("削除", "削除したい行を選択してください。")
             return
-        if messagebox.askyesno("確認", "選択した行を削除しますか？"):
-            del trig["actions"][idx]
+        actions = trig.get("actions", [])
+        indices = delete_indices(actions, idx)
+        paired_loop = len(indices) > 1
+        prompt = (
+            "ループの始まりと終わりを削除します（中の行は残ります）。よろしいですか？"
+            if paired_loop else "選択した行を削除しますか？"
+        )
+        if messagebox.askyesno("確認", prompt):
+            for action_index in sorted(indices, reverse=True):
+                del actions[action_index]
             self._app.sequence_runner.reset_loop_frames(normalize_key_name(trig.get("key", "")))
             self.refresh_actions()
             self._app.mark_sequence_dirty(trig)
@@ -564,6 +640,8 @@ class TriggerPanelController:
         j = idx + delta
         if j < 0 or j >= len(actions):
             return
+        if not can_move(actions, idx, delta):
+            return
         actions[idx], actions[j] = actions[j], actions[idx]
         key = self.selected_trigger_key()
         if key:
@@ -571,6 +649,23 @@ class TriggerPanelController:
             self._app.sequence_runner.reset_loop_frames(key)
         self.refresh_actions()
         self._app.mark_sequence_dirty(trig)
+
+    def _counter_names(self) -> list[str]:
+        names = set()
+        counters = getattr(getattr(self._app, "state", None), "counters", {})
+        if isinstance(counters, dict):
+            names.update(name for name in counters if isinstance(name, str) and name)
+        for trigger in get_active_triggers(self._app.data):
+            actions = trigger.get("actions", [])
+            if not isinstance(actions, list):
+                continue
+            for action in actions:
+                if not isinstance(action, dict):
+                    continue
+                name = action.get("counter")
+                if isinstance(name, str) and name:
+                    names.add(name)
+        return sorted(names)
 
     def on_action_list_select(self, _event=None):
         """ユーザーが action_list の行を選んだら、その行を『次に実行』として indices に反映"""

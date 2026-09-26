@@ -4,40 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T02:00:00
+last_updated: 2026-09-27T02:30:00
 phase: instructions/phase/37_sequence_control_actions（出力シーケンスの制御アクション・第 1 弾・暫定 26 v0.3 確定済・decisions 37）。
 次採番 = phase 38 / 暫定 27 / decisions 38 / 提案書 15。直前の完了フェーズ = **phase 36**（判断履歴 = `decisions_archive/36_config_service_split.md`）。
 last_commit_location: `claude/output-sequence-system-type-e641ab`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 37 進行中: task_01〜05（domain の土台 / 実行モデル / 待機 / 戻す・先頭へ / file_line）完了。次は task_06（編集 UI）。**
+focus: **phase 37 進行中: task_01〜06（domain の土台 / 実行モデル / 待機 / 戻す・先頭へ / file_line / 編集 UI）完了。次は task_07（一覧の表示と色分け・実機目視）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-27T02:00:00
+ts: 2026-09-27T02:30:00
 who: main
 summary: |
-  【task_05 file_line】ユーザー指示で **Luna high の試行**: `codex-implementer` + `--model gpt-6-luna --effort high`（約 6 分・入力 633,175〔キャッシュ 586,752〕/ 出力 14,338）。
-  Codex が指示外に自己レビュー用の子を 1 本起動（Luna high・入力 213,054 / 出力 2,619）。verifier で 1 件失敗 = **テストの期待値誤り**
-  （cp932 の 0x8160「〜」は U+FF5E に復号される。テストは U+301C を期待）→ メインで修正 → tests 778 OK。reviewer 完了可。
+  【task_06 編集 UI】ユーザー指示で `codex-delegating-implementer` の**子を Luna high**にして実施（子 3 本 = 純関数 / ダイアログ / コントローラ・すべて gpt-6-luna high を実測）。
+  Codex 処理約 12 分・入力 親 2,397,559 / 子計 3,151,659（大半キャッシュ）・出力 親 9,166 / 子計 44,900。親が子の期待値誤り 1 件を自力修正。
+  verifier で 1 件失敗 = **テストの前提誤り**（実行位置のキーを大文字 "A" で持つ・実アプリは小文字に正規化）→ メインで修正 → 対象 20 件 OK。reviewer 完了可。
 result_files:
-  - keyseq/application/{file_line_reader.py（新規）, action_executor.py} / keyseq/presentation/app.py
-  - tests/{test_file_line_reader.py（新規）, test_action_executor_file_line.py（新規）}
-  - instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_05_file_line.md} / .claude_data/state/session.md
+  - keyseq/domain/sequence_editing.py（新規）/ keyseq/presentation/dialogs/{action_dialog.py（449 行）, action_control_fields.py（新規）} / keyseq/presentation/controllers/trigger_panel_controller.py
+  - tests/test_sequence_editing.py（新規）/ tests_ui/{test_action_dialog_control.py, test_trigger_panel_controller_action_edit.py}（新規）
+  - instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_06_edit_ui.md} / .claude_data/state/session.md
 verified:
   compile: clean
-  tests: 778 ran OK（skipped 7）
-  tests_ui: 576 ran OK（テスト期待値の修正前に実行・修正はテストのみ）
+  tests: 791 ran OK（skipped 7）
+  tests_ui: 596 ran（修正前 1 fail → 該当テストを修正し対象ファイル 20 件 OK）
   smoke: pass
-  review: reviewer 完了可（task_05）
+  review: reviewer 完了可（task_06）
 
 ## next_action
-- Luna high 試行の評価をユーザーへ提示済み。`codex-implementer` の既定を high に変えるかはユーザー判断（変えるなら codex / codex_medium 変種にも追随）。
-- `/task_new` で `instructions/phase/37_sequence_control_actions/tasks/task_06_*.md`（暫定 26 §11.1・§11.2: system / file_line の編集・カウンター名の候補・
-  ループの行の編集規則・「末尾に追加」チェック欄と挿入位置・ループの対での追加 / 削除・深さ上限・移動規則・対応崩れの扱い）を起票 → 実装エージェントを基準で選ぶ
-  （UI の変更点が多く判断要素もあるので `codex-delegating-implementer` 想定）→ verifier（tests_ui 含む）→ reviewer。
-- 実装後の Codex レビュー（統合時）で Luna xhigh（プラグイン）と Sol medium（`codex exec` 直接）を再比較する。
+- **実装モデルの判断材料をユーザーへ提示済み**（子 = Luna xhigh〔task_03・04〕と Luna high〔task_06〕の比較 / `codex-implementer` の Luna high〔task_05〕）。既定を変えるかはユーザー判断。
+- `/task_new` で `instructions/phase/37_sequence_control_actions/tasks/task_07_*.md`（暫定 26 §11.3・§11.4: 一覧に周回・カウンター値を表示〔`format_action_list_item` に runtime 値を渡す〕/
+  ネストの色分け〔`loop_depth_style` → 色値・背景・選択色優先・対応崩れは色なし〕/ 省略表示の「次に実行」の要約）を起票 → 実装 → verifier → reviewer →
+  **ユーザーの実機目視**（phase 37 の UI 変更をまとめて確認）。
+- 実装後の Codex レビュー（統合時・task_08 前）で Luna xhigh（プラグイン）と Sol medium（`codex exec` 直接）を再比較する。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜37）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

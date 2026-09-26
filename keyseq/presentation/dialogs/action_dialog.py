@@ -8,6 +8,7 @@ from pynput import mouse
 
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
+from keyseq.presentation.dialogs.action_control_fields import ActionControlFields
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_keysym
@@ -17,9 +18,12 @@ if TYPE_CHECKING:
 
 
 class ActionDialog(tk.Toplevel):
-    def __init__(self, parent: App, title: str, initial: dict | None = None):
+    def __init__(self, parent: App, title: str, initial: dict | None = None, *, mode: str | None = None,
+                 counter_names: list[str] | None = None, config_root: str = ""):
         super().__init__(parent)
         self.parent = parent
+        self.mode = mode
+        self.append_to_end = True
         self.title(title)
         self.resizable(False, False)
 
@@ -39,7 +43,7 @@ class ActionDialog(tk.Toplevel):
 
         ttk.Label(frm, text="種類").grid(row=0, column=0, sticky="w")
         self.type_var = tk.StringVar(value="hotkey")
-        self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=["hotkey", "text", "mouse_click"], state="readonly", width=12)
+        self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=["hotkey", "text", "mouse_click"] + ([] if mode is None else ["system", "file_line"]), state="readonly", width=12)
         self.type_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
         self.type_combo.bind("<<ComboboxSelected>>", lambda _e: self._sync_capture_ui())
 
@@ -63,7 +67,7 @@ class ActionDialog(tk.Toplevel):
         
         # OSショートカット用プリセット（JSONから生成 / hotkeyのときのみ有効）
         self.presets_frame = ttk.LabelFrame(frm, text="OSショートカット（プリセット）", padding=8)
-        self.presets_frame.grid(row=4, column=0, columnspan=4, sticky="we", pady=(10, 0))
+        self.presets_frame.grid(row=5, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.presets_frame.grid_columnconfigure(0, weight=1)
         self.presets_frame.grid_columnconfigure(1, weight=1)
         self.presets_frame.grid_columnconfigure(2, weight=1)
@@ -73,16 +77,16 @@ class ActionDialog(tk.Toplevel):
         self._rebuild_preset_buttons()
 
         self.preset_edit_btn = ttk.Button(frm, text="プリセット編集…", command=self._open_preset_manager)
-        self.preset_edit_btn.grid(row=6, column=0, sticky="w", padx=(8, 0), pady=(14, 0))
+        self.preset_edit_btn.grid(row=8, column=0, sticky="w", padx=(8, 0), pady=(14, 0))
 
         btns = ttk.Frame(frm)
-        btns.grid(row=6, column=2, columnspan=2, sticky="e", pady=(14, 0))
+        btns.grid(row=8, column=2, columnspan=2, sticky="e", pady=(14, 0))
         ttk.Button(btns, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left", padx=(0, 8))
 
         # mouse_click 用UI（座標/ボタン/回数）
         self.mouse_frame = ttk.LabelFrame(frm, text="マウスクリック設定", padding=8)
-        self.mouse_frame.grid(row=5, column=0, columnspan=4, sticky="we", pady=(10, 0))
+        self.mouse_frame.grid(row=6, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.mouse_frame.grid_columnconfigure(1, weight=1)
 
         self.mouse_x_label = ttk.Label(self.mouse_frame, text="X")
@@ -111,10 +115,26 @@ class ActionDialog(tk.Toplevel):
         self.mouse_hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(6, 0))
         self._build_drag_ui()
 
+        self.control_fields = ActionControlFields(frm, counter_names=counter_names or [], config_root=config_root, config_service=parent.config_service, mode=mode)
+        self.control_fields.system_frame.grid(row=4, column=0, columnspan=4, sticky="we", pady=(10, 0))
+        self.control_fields.file_frame.grid(row=4, column=0, columnspan=4, sticky="we", pady=(10, 0))
+        self.control_fields.system_frame.grid_remove()
+        self.control_fields.file_frame.grid_remove()
+        if mode == "add":
+            self.append_to_end_var = tk.BooleanVar(value=True)
+            ttk.Checkbutton(frm, text="末尾に追加", variable=self.append_to_end_var).grid(row=7, column=0, columnspan=2, sticky="w", padx=(8, 0), pady=(10, 0))
+
+        if mode == "edit_loop":
+            self.type_var.set("system")
+            self.type_combo.configure(state="disabled")
+            self.control_fields.system_op_var.set("ループ")
+            self.control_fields.system_op_combo.configure(state="disabled")
+
         if initial:
-            self.type_var.set((initial.get("type") or "hotkey").strip().lower())
+            self.type_var.set("system" if mode == "edit_loop" else (initial.get("type") or "hotkey").strip().lower())
             self.value_var.set(initial.get("value") or "")
             self.action_label_var.set(initial.get("label") or "")
+            self.control_fields.load(initial)
             # mouse_click の初期値
             if (initial.get("type") or "").strip().lower() == "mouse_click":
                 if "x" in initial: self.mouse_x_var.set(str(initial.get("x")))
@@ -135,6 +155,13 @@ class ActionDialog(tk.Toplevel):
         t = (self.type_var.get() or "").strip().lower()
         v = self.value_var.get()
         label = (self.action_label_var.get() or "").strip()
+        if t in ("system", "file_line"):
+            result = self.control_fields.build_result(t, label)
+            if result is None: return
+            self.parent._dialog_result = result
+            if self.mode == "add": self.append_to_end = bool(self.append_to_end_var.get())
+            self.destroy()
+            return
         if t not in ("hotkey", "text", "mouse_click"):
             messagebox.showerror("入力エラー", "種類が不正です。")
             return
@@ -172,6 +199,7 @@ class ActionDialog(tk.Toplevel):
                     return
                 action.update(drag_fields)
             self.parent._dialog_result = action
+        if self.mode == "add": self.append_to_end = bool(self.append_to_end_var.get())
         self.destroy()
 
     def _build_drag_ui(self) -> None:
@@ -339,6 +367,12 @@ class ActionDialog(tk.Toplevel):
 
     def _sync_capture_ui(self):
         t = (self.type_var.get() or "").strip().lower()
+        if hasattr(self, "control_fields"):
+            self.control_fields.system_frame.grid() if t == "system" else self.control_fields.system_frame.grid_remove()
+            self.control_fields.file_frame.grid() if t == "file_line" else self.control_fields.file_frame.grid_remove()
+            self.value_entry.configure(state="disabled" if t in ("system", "file_line", "mouse_click") else "normal")
+            if t in ("system", "file_line"): self.mouse_frame.grid_remove()
+            else: self.control_fields.sync_system()
         is_hotkey = (t == "hotkey")
         if not is_hotkey:
             # text のときは記録UIを無効化し、記録も止める
@@ -367,7 +401,7 @@ class ActionDialog(tk.Toplevel):
                 self.value_entry.configure(state="disabled")
             else:
                 self.mouse_frame.grid_remove()  # 非表示
-                self.value_entry.configure(state="normal")
+                self.value_entry.configure(state="disabled" if t in ("system", "file_line") else "normal")
 
     def _apply_preset(self, hotkey: str):
         """プリセットボタンで hotkey を値欄にセット"""
