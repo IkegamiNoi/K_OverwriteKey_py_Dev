@@ -37,10 +37,12 @@ class FakeScheduler:
             callback()
 
 
-def make_runner(triggers, *, get_trigger_set_id=None):
+def make_runner(triggers, *, get_trigger_set_id=None, selected=None, messages=None):
     state = AppState()
     scheduler = FakeScheduler()
     performed = []
+    selected = selected if selected is not None else []
+    messages = messages if messages is not None else []
 
     def find_trigger(key):
         for trigger in triggers:
@@ -52,12 +54,13 @@ def make_runner(triggers, *, get_trigger_set_id=None):
         state=state,
         find_trigger=find_trigger,
         perform_action=performed.append,
-        select_trigger=lambda key: None,
+        select_trigger=selected.append,
         refresh_actions=lambda: None,
         update_status=lambda: None,
         after=scheduler.after,
         after_cancel=scheduler.after_cancel,
         get_trigger_set_id=get_trigger_set_id,
+        notify_message=messages.append,
     )
     return runner, state, scheduler, performed
 
@@ -119,6 +122,8 @@ class SystemActionRunnerTest(unittest.TestCase):
         self.assertEqual(state.counters, {"n": 1})
         self.assertEqual(state.indices["f1"], 0)
         self.assertEqual(performed, [])
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [("n", 1)])
+        self.assertEqual(state.last_trigger, ("", "f1"))
 
     def test_failed_normal_action_stays_on_row_after_system(self):
         action = {"type": "system", "op": "counter_inc", "counter": "n"}
@@ -128,6 +133,9 @@ class SystemActionRunnerTest(unittest.TestCase):
         runner.handle_key("f1")
         self.assertEqual(state.indices["f1"], 1)
         self.assertEqual(state.counters, {"n": 1})
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [("n", 1)])
+        self.assertEqual(state.last_trigger, ("", "f1"))
 
     def test_error_notifies_and_keeps_position(self):
         for continuous in (False, True):
@@ -156,6 +164,286 @@ class SystemActionRunnerTest(unittest.TestCase):
         actions.pop()
         runner.reset_loop_frames("f1")
         self.assertEqual(state.loop_frames["f1"], [])
+
+
+class BackRewindRunnerTest(unittest.TestCase):
+    @staticmethod
+    def control_trigger(key, op):
+        return {"key": key, "run_to_end": False,
+                "actions": [{"type": "system", "op": op}]}
+
+    def test_back_restores_each_step_position_frames_and_counter(self):
+        trigger = {
+            "key": "f1", "run_to_end": False,
+            "actions": [
+                {"type": "system", "op": "loop_start", "count": 2},
+                {"type": "system", "op": "counter_inc", "counter": "n"},
+                A1,
+                {"type": "system", "op": "loop_end"},
+            ],
+        }
+        back = self.control_trigger("f2", "back")
+        selected = []
+        messages = []
+        runner, state, _scheduler, _performed = make_runner(
+            [trigger, back], selected=selected, messages=messages
+        )
+
+        runner.handle_key("f1")
+        self.assertEqual(state.indices["f1"], 3)
+        self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 1)])
+        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
+
+        runner.handle_key("f1")
+        self.assertEqual(state.indices["f1"], 3)
+        self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 2)])
+        self.assertEqual(state.counters["n"], 2)
+        self.assertEqual(len(state.history_for("")["f1"]), 2)
+
+        selected.clear()
+        runner.handle_key("f2")
+        self.assertEqual(state.indices["f1"], 3)
+        self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 1)])
+        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
+        self.assertEqual(state.last_trigger, ("", "f1"))
+        self.assertEqual(selected, ["f2", "f1"])
+
+        selected.clear()
+        runner.handle_key("f2")
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(state.loop_frames["f1"], [])
+        self.assertEqual(state.counters["n"], 0)
+        self.assertEqual(state.history_for("")["f1"], [])
+        self.assertEqual(state.last_trigger, ("", "f1"))
+        self.assertEqual(selected, ["f2", "f1"])
+
+        # 履歴が空なら位置 0 のままで、何も選択・通知しない。
+        selected.clear()
+        runner.handle_key("f2")
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(state.counters["n"], 0)
+        self.assertEqual(state.history_for("")["f1"], [])
+        self.assertEqual(selected, ["f2"])
+        self.assertEqual(messages, [])
+
+    def test_rewind_clears_position_frames_and_history_without_changing_counters(self):
+        trigger = {
+            "key": "f1", "run_to_end": False,
+            "actions": [
+                {"type": "system", "op": "loop_start", "count": 2},
+                {"type": "system", "op": "counter_inc", "counter": "n"},
+                A1,
+                {"type": "system", "op": "loop_end"},
+            ],
+        }
+        selected = []
+        runner, state, _scheduler, _performed = make_runner(
+            [trigger, self.control_trigger("f2", "rewind")], selected=selected
+        )
+        runner.handle_key("f1")
+        self.assertTrue(state.history_for("")["f1"])
+        state.counters["n"] = 23
+        selected.clear()
+
+        runner.handle_key("f2")
+
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(state.loop_frames["f1"], [])
+        self.assertEqual(state.history_for("")["f1"], [])
+        self.assertEqual(state.counters["n"], 23)
+        self.assertEqual(state.last_trigger, ("", "f1"))
+        self.assertEqual(selected, ["f2", "f1"])
+
+    def test_back_only_trigger_does_not_replace_last_trigger_and_error_step_does(self):
+        failed = {
+            "key": "f1", "run_to_end": False,
+            "actions": [
+                {"type": "system", "op": "counter_inc", "counter": "n"},
+                {"type": "system", "op": "not_a_control"},
+            ],
+        }
+        runner, state, _scheduler, _performed = make_runner(
+            [failed, self.control_trigger("f2", "back")]
+        )
+
+        runner.handle_key("f1")
+        self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
+        self.assertEqual(state.last_trigger, ("", "f1"))
+
+        runner.handle_key("f2")
+
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(state.counters["n"], 0)
+        self.assertEqual(state.history_for("")["f1"], [])
+        self.assertEqual(state.last_trigger, ("", "f1"))
+
+    def test_missing_self_and_inactive_targets_only_show_message(self):
+        cases = (
+            ("unset", None),
+            ("self", ("", "f2")),
+            ("missing from active triggers", ("", "gone")),
+        )
+        for label, last_trigger in cases:
+            with self.subTest(target=label):
+                messages = []
+                selected = []
+                runner, state, _scheduler, performed = make_runner(
+                    [self.control_trigger("f2", "back")],
+                    selected=selected, messages=messages,
+                )
+                state.last_trigger = last_trigger
+
+                runner.handle_key("f2")
+
+                self.assertEqual(messages, ["戻す対象のトリガーがありません"])
+                self.assertEqual(selected, ["f2"])
+                self.assertEqual(performed, [])
+                self.assertEqual(state.indices_for(""), {"f2": 0})
+                self.assertEqual(state.history_for(""), {})
+                self.assertEqual(state.counters, {})
+                self.assertEqual(state.last_trigger, last_trigger)
+
+    def test_pending_target_only_shows_waiting_message(self):
+        target = {
+            "key": "f1", "run_to_end": False,
+            "actions": [A1, {"type": "system", "op": "wait", "ms": 13}, A2],
+        }
+        selected = []
+        messages = []
+        runner, state, scheduler, performed = make_runner(
+            [target, self.control_trigger("f2", "back")],
+            selected=selected, messages=messages,
+        )
+        runner.handle_key("f1")  # 完了したステップで f1 が直前のトリガーになる
+        runner.handle_key("f1")  # 待機中のステップを作る
+        self.assertIn(("", "f1"), state.pending_steps)
+        selected.clear()
+
+        runner.handle_key("f2")
+
+        self.assertEqual(messages, ["対象のトリガーが待機中のため操作できません"])
+        self.assertEqual(selected, ["f2"])
+        self.assertEqual(performed, [A1])
+        self.assertEqual(len(scheduler.queue), 1)
+        self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
+        self.assertEqual(state.last_trigger, ("", "f1"))
+
+    def test_cancelled_single_wait_pushes_partial_step_for_back(self):
+        target = {
+            "key": "f1", "run_to_end": False,
+            "actions": [
+                {"type": "system", "op": "counter_inc", "counter": "n"},
+                {"type": "system", "op": "wait", "ms": 17}, A1,
+            ],
+        }
+        runner, state, scheduler, performed = make_runner(
+            [target, self.control_trigger("f2", "back")]
+        )
+
+        runner.handle_key("f1")
+        self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(state.history_for(""), {})
+        self.assertEqual(state.last_trigger, None)
+
+        runner.cancel_pending_wait("f1")
+        self.assertEqual(state.indices["f1"], 1)  # 待機の行で止まる
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [("n", 1)])
+        self.assertEqual(state.last_trigger, ("", "f1"))
+        self.assertEqual(scheduler.queue, [])
+
+        runner.handle_key("f2")
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(state.counters["n"], 0)
+        self.assertEqual(state.history_for("")["f1"], [])
+        self.assertEqual(performed, [])
+
+    def test_continuous_run_records_each_completed_step(self):
+        trigger = {
+            "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+            "actions": [
+                {"type": "system", "op": "counter_inc", "counter": "n"}, A1,
+                {"type": "system", "op": "counter_inc", "counter": "n"}, A2,
+            ],
+        }
+        runner, state, scheduler, performed = make_runner([trigger])
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [A1])
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
+        self.assertEqual(state.last_trigger, ("", "f1"))
+        scheduler.run_pending()
+
+        self.assertEqual(performed, [A1, A2])
+        self.assertEqual(state.counters["n"], 2)
+        self.assertEqual(state.history_for("")["f1"][-1].counter_deltas, [("n", 1)])
+        self.assertEqual(len(state.history_for("")["f1"]), 2)
+        self.assertIsNone(state.run_to_end_key)
+
+    def test_reset_and_runtime_lifecycle_keep_history_with_trigger_state(self):
+        trigger = {"key": "f1", "run_to_end": False, "actions": [A1, A2]}
+        runner, state, _scheduler, _performed = make_runner([trigger])
+        runner.handle_key("f1")
+        self.assertTrue(state.history_for("")["f1"])
+        self.assertEqual(state.last_trigger, ("", "f1"))
+
+        runner.reset_loop_frames("f1")  # 位置変更・編集時の共通入口
+        self.assertNotIn("f1", state.history_for(""))
+        self.assertIsNone(state.last_trigger)
+
+        runner.handle_key("f1")
+        self.assertTrue(state.history_for("")["f1"])
+        state.forget_trigger("", "f1")  # トリガー削除
+        self.assertNotIn("f1", state.history_for(""))
+        self.assertIsNone(state.last_trigger)
+
+        runner.handle_key("f1")
+        self.assertTrue(state.history_for("")["f1"])
+        state.rekey_trigger("", "f1", "f9")  # キー変更
+        self.assertNotIn("f1", state.history_for(""))
+        self.assertTrue(state.history_for("")["f9"])
+        self.assertEqual(state.last_trigger, ("", "f9"))
+
+        state.reset_indices()
+        self.assertEqual(state.history, {})
+        self.assertEqual(state.keymap_history, {})
+        self.assertIsNone(state.last_trigger)
+
+    def test_rekey_trigger_set_moves_history_and_last_trigger(self):
+        current = {"id": "first"}
+        trigger = {"key": "f1", "run_to_end": False, "actions": [A1, A2]}
+        runner, state, _scheduler, _performed = make_runner(
+            [trigger], get_trigger_set_id=lambda: current["id"]
+        )
+        runner.handle_key("f1")
+        self.assertTrue(state.history_for("first")["f1"])
+        self.assertEqual(state.last_trigger, ("first", "f1"))
+
+        current["id"] = "second"
+        state.rekey_trigger_set("first", "second")
+
+        self.assertNotIn("first", state.keymap_history)
+        self.assertTrue(state.history_for("second")["f1"])
+        self.assertEqual(state.last_trigger, ("second", "f1"))
+
+    def test_trigger_set_change_forgets_its_history_and_last_trigger(self):
+        current = {"id": "first"}
+        trigger = {"key": "f1", "run_to_end": False, "actions": [A1, A2]}
+        runner, state, _scheduler, _performed = make_runner(
+            [trigger], get_trigger_set_id=lambda: current["id"]
+        )
+        runner.handle_key("f1")
+        self.assertTrue(state.history_for("first")["f1"])
+        state.forget_trigger_set("first")
+
+        self.assertNotIn("first", state.keymap_history)
+        self.assertIsNone(state.last_trigger)
 
 
 class RunToEndTest(unittest.TestCase):

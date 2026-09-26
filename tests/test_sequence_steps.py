@@ -81,6 +81,45 @@ class SequenceStepsTest(unittest.TestCase):
         self.assertIsNotNone(advance([control("counter_inc", counter=" ")], 0, [], counters,
                                       wrap_once=False).error)
 
+    def test_counter_deltas_record_increments_and_resets(self):
+        counters = {"A": 4}
+        actions = [control("counter_inc", counter="A"),
+                   control("counter_reset", counter="A"), NORMAL]
+
+        outcome = advance(actions, 0, [], counters, wrap_once=False)
+
+        self.assertEqual(outcome.normal_index, 2)
+        self.assertEqual(outcome.counter_deltas, (("A", 1), ("A", -5)))
+        self.assertEqual(counters, {"A": 0})
+
+    def test_counter_deltas_accumulate_across_wait(self):
+        actions = [control("counter_inc", counter="n"), control("wait", ms=1),
+                   control("counter_reset", counter="n"), NORMAL]
+        counters = {}
+
+        waiting = advance(actions, 0, [], counters, wrap_once=False)
+        self.assertEqual(waiting.counter_deltas, (("n", 1),))
+        self.assertEqual(waiting.resume.counter_deltas, (("n", 1),))
+
+        continued = advance(
+            actions, waiting.resume_position, waiting.frames, counters,
+            wrap_once=False, resume=waiting.resume,
+        )
+        self.assertEqual(continued.normal_index, 3)
+        self.assertEqual(continued.counter_deltas, (("n", 1), ("n", -1)))
+        self.assertEqual(counters, {"n": 0})
+
+    def test_back_and_rewind_invoke_callback_and_continue(self):
+        actions = [control("back"), control("rewind"), NORMAL]
+        controls = []
+
+        outcome = advance(
+            actions, 0, [], {}, wrap_once=False, on_control=controls.append,
+        )
+
+        self.assertEqual(controls, ["back", "rewind"])
+        self.assertEqual(outcome.normal_index, 2)
+
     def test_invalid_system_rows_stop_at_row(self):
         cases = [([control("loop_start", count=1)], 0),
                  ([control("loop_end")], 0),
@@ -122,7 +161,9 @@ class SequenceStepsTest(unittest.TestCase):
         self.assertEqual(outcome.position, 1)  # 中断位置は待機の行
         self.assertEqual(outcome.resume_position, 2)
         self.assertEqual(outcome.frames, [])
-        self.assertEqual(outcome.resume, StepResume(initial_position=0, wrapped=False, processed=2))
+        self.assertEqual(outcome.resume, StepResume(
+            initial_position=0, wrapped=False, processed=2, counter_deltas=(("n", 1),),
+        ))
         self.assertEqual(counters, {"n": 1})
 
         continued = advance(

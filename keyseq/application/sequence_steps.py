@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
@@ -22,6 +22,7 @@ class StepResume:
     initial_position: int
     wrapped: bool
     processed: int
+    counter_deltas: tuple[tuple[str, int], ...] = ()
 
 
 @dataclass
@@ -34,6 +35,7 @@ class StepOutcome:
     wait_ms: int | None = None
     resume_position: int | None = None
     resume: StepResume | None = None
+    counter_deltas: tuple[tuple[str, int], ...] = ()
 
 
 def reset_frames(actions: Sequence[Any], position: int) -> list[LoopFrame]:
@@ -79,17 +81,26 @@ def _loop_end(actions: Sequence[Any], position: int, frames: list[LoopFrame], st
     return position + 1, None
 
 
-def _counter(action: Mapping[str, Any], op: str, counters: dict[str, int]) -> str | None:
+def _counter(action: Mapping[str, Any], op: str, counters: dict[str, int],
+             counter_deltas: list[tuple[str, int]]) -> str | None:
     value = action.get("counter", "")
     name = value.strip() if isinstance(value, str) else ""
     if not name:
         return "カウンター名が空です"
-    counters[name] = counters.get(name, 0) + 1 if op == OP_COUNTER_INC else 0
+    current = counters.get(name, 0)
+    if op == OP_COUNTER_INC:
+        counters[name] = current + 1
+        counter_deltas.append((name, 1))
+    else:
+        counters[name] = 0
+        if current:
+            counter_deltas.append((name, -current))
     return None
 
 
 def _system_step(actions: Sequence[Any], position: int, frames: list[LoopFrame],
-                 counters: dict[str, int], structure: Any) -> tuple[int, str | None]:
+                 counters: dict[str, int], structure: Any,
+                 counter_deltas: list[tuple[str, int]]) -> tuple[int, str | None]:
     action = actions[position]
     op = system_op(action)
     if op == OP_LOOP_START:
@@ -97,8 +108,7 @@ def _system_step(actions: Sequence[Any], position: int, frames: list[LoopFrame],
     if op == OP_LOOP_END:
         return _loop_end(actions, position, frames, structure)
     if op in (OP_COUNTER_INC, OP_COUNTER_RESET):
-        return position + 1, _counter(action, op, counters)
-    # back / rewind are handled by the next execution-core task.
+        return position + 1, _counter(action, op, counters, counter_deltas)
     if op in (OP_BACK, OP_REWIND):
         return position + 1, None
     return position, f"system の操作が不正です。操作: {op}"
@@ -106,7 +116,8 @@ def _system_step(actions: Sequence[Any], position: int, frames: list[LoopFrame],
 
 def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             counters: dict[str, int], *, wrap_once: bool,
-            resume: StepResume | None = None) -> StepOutcome:
+            resume: StepResume | None = None,
+            on_control: Callable[[str], None] | None = None) -> StepOutcome:
     structure = analyze_loops(actions)
     if resume is None:
         position = position if 0 <= position < len(actions) else 0
@@ -118,21 +129,30 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             current = [LoopFrame(start, 1) for start in expected]
     processed = resume.processed if resume else 0
     wrapped = resume.wrapped if resume else False
+    counter_deltas = list(resume.counter_deltas) if resume else []
     while True:
         if position == len(actions):
             position, current = 0, []
             if not wrap_once or wrapped:
-                return StepOutcome(None, position, current, reached_end=True)
+                return StepOutcome(None, position, current, reached_end=True,
+                                   counter_deltas=tuple(counter_deltas))
             wrapped = True
         if wrapped and position == initial_position:
-            return StepOutcome(None, position, current, reached_end=True)
+            return StepOutcome(None, position, current, reached_end=True,
+                               counter_deltas=tuple(counter_deltas))
         if not actions:
-            return StepOutcome(None, 0, [], reached_end=True)
+            return StepOutcome(None, 0, [], reached_end=True,
+                               counter_deltas=tuple(counter_deltas))
         action = actions[position]
         if not isinstance(action, Mapping) or action_type(action) != ACTION_TYPE_SYSTEM:
-            return StepOutcome(position, position, current)
+            return StepOutcome(position, position, current,
+                               counter_deltas=tuple(counter_deltas))
         if processed >= 10000:
-            return StepOutcome(None, position, current, (position, "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）"))
+            return StepOutcome(
+                None, position, current,
+                (position, "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）"),
+                counter_deltas=tuple(counter_deltas),
+            )
         processed += 1
         if system_op(action) == OP_WAIT:
             try:
@@ -140,13 +160,27 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             except (TypeError, ValueError, OverflowError):
                 wait_ms = 0
             if wait_ms < 1:
-                return StepOutcome(None, position, current, (position, "待機時間が不正です（1 以上の整数・ミリ秒）"))
+                return StepOutcome(
+                    None, position, current,
+                    (position, "待機時間が不正です（1 以上の整数・ミリ秒）"),
+                    counter_deltas=tuple(counter_deltas),
+                )
             return StepOutcome(None, position, current, wait_ms=wait_ms,
                                resume_position=position + 1,
-                               resume=StepResume(initial_position, wrapped, processed))
-        next_position, error = _system_step(actions, position, current, counters, structure)
+                               resume=StepResume(
+                                   initial_position, wrapped, processed,
+                                   tuple(counter_deltas),
+                               ),
+                               counter_deltas=tuple(counter_deltas))
+        op = system_op(action)
+        if op in (OP_BACK, OP_REWIND) and on_control is not None:
+            on_control(op)
+        next_position, error = _system_step(
+            actions, position, current, counters, structure, counter_deltas,
+        )
         if error:
-            return StepOutcome(None, position, current, (position, error))
+            return StepOutcome(None, position, current, (position, error),
+                               counter_deltas=tuple(counter_deltas))
         position = next_position
 
 

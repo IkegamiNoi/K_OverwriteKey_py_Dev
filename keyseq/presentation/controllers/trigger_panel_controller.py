@@ -450,10 +450,12 @@ class TriggerPanelController:
         if old in self._app._indices:
             del self._app._indices[old]
         if old != new:
+            self._app.sequence_runner.cancel_pending_wait(old)
             frames = self._app.state.loop_frames_for(self._app._active_trigger_set_id())
             if old in frames:
                 frames.setdefault(new, frames[old])
                 del frames[old]
+            self._app.state.rekey_trigger(self._app._active_trigger_set_id(), old, new)
         t["key"] = new
         t["label"] = new_label
         self.refresh_triggers()
@@ -478,6 +480,7 @@ class TriggerPanelController:
             self._app._indices.pop(key, None)
             self._app.state.loop_frames_for(self._app._active_trigger_set_id()).pop(key, None)
             self._app.sequence_runner.cancel_pending_wait(key)
+            self._app.state.forget_trigger(self._app._active_trigger_set_id(), key)
             self.refresh_triggers()
             self.refresh_actions()
             self._app.dirty_tracker.mark_trigger_set_dirty()
