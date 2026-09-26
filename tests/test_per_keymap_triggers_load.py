@@ -195,6 +195,68 @@ class PerKeymapLoadingTest(unittest.TestCase):
         self.assertEqual(len(data["keymaps"]), 2)
         self.assertEqual([item["key"] for item in get_active_triggers(data)], ["f9"])
 
+    def test_missing_legacy_file_without_active_reference_does_not_migrate(self):
+        self.write("a.json", {"id": "a", "mappings": {}})
+        self.write("b.json", {"id": "b", "mappings": {}})
+        data = self.load_split(["a.json", "b.json"], "old.json")
+
+        self.assertEqual(data["_legacy_trigger_set"]["state"], "none")
+        self.assertEqual(len(data["keymaps"]), 2)
+        self.assertEqual(get_active_triggers(data), [])
+        active = next(item for item in data["keymaps"] if item["id"] == "b")
+        self.assertFalse(active.get("_keymap_dirty", False))
+        self.assertNotIn("_trigger_set_source_path", active)
+
+    def test_missing_legacy_file_with_active_reference_does_not_create_keymap(self):
+        self.write("own.json", {"triggers": [{"key": "f9"}]})
+        for reference, expected in (("", []), ("own.json", ["f9"])):
+            with self.subTest(reference=reference):
+                self.write("b.json", {"id": "b", "mappings": {}, "trigger_set_path": reference})
+                data = self.load_split(["b.json"], "old.json")
+
+                self.assertEqual(data["_legacy_trigger_set"]["state"], "none")
+                self.assertNotIn("auto_created", data["_legacy_trigger_set"])
+                self.assertEqual(len(data["keymaps"]), 1)
+                self.assertEqual([item["key"] for item in get_active_triggers(data)], expected)
+
+    def test_missing_legacy_file_already_referenced_by_other_keymap_is_same(self):
+        self.write("a.json", {"id": "a", "mappings": {}, "trigger_set_path": "old.json"})
+        self.write("b.json", {"id": "b", "mappings": {}})
+        data = self.load_split(["a.json", "b.json"], "old.json")
+
+        self.assertEqual(data["_legacy_trigger_set"]["state"], "same")
+        self.assertEqual(len(data["keymaps"]), 2)
+
+    def test_unreadable_existing_legacy_file_still_migrates(self):
+        self.write("b.json", {"id": "b", "mappings": {}})
+        for source_kind in ("broken_json", "top_level_list"):
+            with self.subTest(source_kind=source_kind):
+                legacy_full_path = os.path.join(self.root, "old.json")
+                if source_kind == "broken_json":
+                    with open(legacy_full_path, "w", encoding="utf-8") as file:
+                        file.write("{")
+                else:
+                    self.write("old.json", [])
+                data = self.load_split(["b.json"], "old.json")
+
+                self.assertEqual(data["_legacy_trigger_set"]["state"], "migrated")
+                active = data["keymaps"][0]
+                self.assertEqual(active["triggers"], [])
+                self.assertEqual(active["_trigger_set_source_path"], "old.json")
+                self.assertTrue(active["_keymap_dirty"])
+
+    def test_non_string_legacy_reference_is_ignored_even_when_file_exists(self):
+        self.write("b.json", {"id": "b", "mappings": {}})
+        self.write("old.json", {"triggers": [{"key": "f8"}]})
+        for legacy in (1, ["old.json"], {"path": "old.json"}, None, True):
+            with self.subTest(legacy=legacy):
+                data = self.load_split(["b.json"], legacy)
+
+                self.assertEqual(data["_legacy_trigger_set"]["state"], "none")
+                self.assertEqual(data["_legacy_trigger_set"]["path"], "")
+                self.assertEqual(len(data["keymaps"]), 1)
+                self.assertEqual(data["keymaps"][0]["triggers"], [])
+
     def test_split_shares_resolved_path_and_reads_once_including_active_only_entry(self):
         self.write("shared.json", {"triggers": [{"key": "f7"}], "_parent_refs": ["a.json", "b.json"]})
         self.write("a.json", {"id": "a", "trigger_set_path": "shared.json"})

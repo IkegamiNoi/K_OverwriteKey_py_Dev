@@ -7,7 +7,9 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 34 は 2026-09-27 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- **アクティブなフェーズ = [phase 35](35_legacy_trigger_set_missing_file/phase.md)**（2026-09-26 起票・旧形式トリガー一覧の移行の境界値）。
+  keymap_set の `trigger_set_path` が存在しないファイルを指すときは**移行しない**（ユーザー確定 2026-09-26）へ正本 §5.13.3 を改訂し、
+  非文字列を含む境界値をテストで固定する。**直接改訂モード**（暫定なし）/ decisions 35。起票元 = phase 34 task_07d reviewer の参考指摘。
 - 直前の完了フェーズ = [phase 34](34_trigger_list_per_keymap/phase.md)（2026-09-27・トリガー一覧のキーマップ従属化・
   判断は [decisions_archive/34](../../.claude_data/state/decisions_archive/34_trigger_list_per_keymap.md)）/
   [phase 33](33_grab_modal_static_check_discovery/phase.md)（2026-09-24・ダイアログの静的検査の発見ベース化・
@@ -34,7 +36,8 @@
   **phase 32 は 2026-09-24 完了**（`32_hook_resume_wait_in_ui_tests` / 暫定なし〔直接改訂モード〕/ decisions 32〔アーカイブ済〕）。
   **phase 33 は 2026-09-24 完了**（`33_grab_modal_static_check_discovery` / 暫定なし〔直接改訂モード〕/ decisions 33〔アーカイブ済〕）。
   **phase 34 は 2026-09-27 完了**（`34_trigger_list_per_keymap` / 暫定 25〔v0.7・凍結〕/ decisions 34〔アーカイブ済〕）。
-  次フェーズは **`35_<topic>`**・decisions も **35** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 35 は 2026-09-26 起票**（`35_legacy_trigger_set_missing_file` / 暫定なし〔直接改訂モード〕/ decisions 35）。
+  次フェーズは **`36_<topic>`**・decisions も **36** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。

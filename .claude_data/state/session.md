@@ -4,38 +4,41 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T18:00:00
-phase: なし（**アクティブなフェーズ = なし**。次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 14。
+last_updated: 2026-09-26T21:00:00
+phase: instructions/phase/35_legacy_trigger_set_missing_file（直接改訂モード・暫定なし / decisions 35）。次採番 = phase 36 / 暫定 26 / decisions 36 / 提案書 14。
 直前の完了フェーズ = **phase 34**（トリガー一覧のキーマップ従属化・2026-09-27 完了・判断履歴 = `decisions_archive/34_trigger_list_per_keymap.md`）。
-last_commit_location: `claude/trigger-list-multi-keymap-19f4d7`
+last_commit_location: `claude/config-service-refactor-priorities-b7a21d`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 34 完了（トリガー一覧のキーマップ従属化・暫定 25 v0.7 凍結・提案書 13 は task_09 で実施済）。次フェーズは未定（ユーザー判断待ち）。**
-mode: completed
+focus: **phase 35（旧形式トリガー一覧の移行の境界値）task_01・task_02 完了。残り task_03（記録・/refactor_check）。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-27T18:00:00
+ts: 2026-09-26T21:00:00
 who: main
 summary: |
-  【task_09 完了】提案書 13（内部キーの定数化 + キーマップ追加フローを `controllers/keymap_panel/` へ・挙動不変）。verifier 全 pass・reviewer 完了可。
-  【phase 34 完了記録】暫定 25 凍結 / decisions_archive/34 作成・decisions.md から phase 34 節を移動 + 索引 1 行 / current.md（アクティブ = なし・直近の領域・次採番）/
-  phase.md・task_08 完了 / 提案書 13 実施済 / codebase_map の keymap_panel 配置。ユーザー承認: 実機目視 OK・提案書 13 は (a)（2026-09-27）。
+  【起票】phase 35。起票前調査で仕様不備（keymap_set の `trigger_set_path` が不在ファイルを指す場合が §5.13.3 未定義）を検出。
+  【ユーザー判断 2026-09-26】無いなら移行しない（あるが読めないは移行のまま）/ 正本文言承認。
+  【task_01】`data_schema.md` §5.13.3-8 追加・§5.13.4 表 1 行目更新（メイン）。
+  【task_02】`split_loading.py::_migrate_legacy_trigger_set` に不在判定 3 行（same 判定の後）+ 境界値テスト 5 件（codex-implementer）。application 層内で閉じる。
+  【判定】verifier 全 pass・reviewer 完了可（指摘なし）。
 result_files:
-  - keyseq/presentation/controllers/keymap_panel/{__init__,keymap_panel_controller,keymap_add_flow}.py（旧 controllers/keymap_panel_controller.py 削除）
-  - keyseq/domain/{keymap_triggers,config}.py / keyseq/application/config_service/{__init__,split_loading}.py / keyseq/presentation/app.py / tests_ui 3 ファイル（patch 先のみ）
-  - instructions/{history/25_*, phase/current.md, phase/34_*/phase.md, phase/34_*/tasks/task_08_*・task_09_*, modified_proposal/13_*, common/codebase_map.md}
-  - .claude_data/state/{decisions.md, decisions_archive/34_trigger_list_per_keymap.md}
+  - instructions/phase/35_legacy_trigger_set_missing_file/{phase.md, tasks/task_02_missing_file_and_boundary_tests.md}
+  - instructions/common/spec_detail/data_schema.md / instructions/phase/current.md / .claude_data/state/decisions.md
+  - keyseq/application/config_service/split_loading.py / tests/test_per_keymap_triggers_load.py
 verified:
   compile: clean
-  tests: 669 ran OK（skipped 7）
+  tests: 674 ran OK（skipped 7）
   tests_ui: 576 ran OK
   smoke: pass
-  review: reviewer 完了可（task_09）
+  review: reviewer 完了可（task_01+02）
 
 ## next_action
-- **次フェーズはユーザー判断**（候補は current.md「次フェーズ候補」・「別タスク化候補」。着手時は `/phase_start`）。
-- **main へのマージはユーザーが行う**（phase 18 残り・19〜34）。
+- **task_03（記録）をメインで実施**: `decisions_archive/35_legacy_trigger_set_missing_file.md` 作成（decisions.md 末尾の phase 35 節を移動 + 索引 1 行）/
+  current.md（アクティブ = なし・完了記載・「別タスク化候補」の「移行の境界値」記述を削除）/ phase.md の task_03 完了 /
+  `/refactor_check`（`keyseq/` の変更は 3 行のみ・メトリクス収集は verifier）。
+- **main へのマージはユーザーが行う**（phase 18 残り・19〜35）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
 ## blockers

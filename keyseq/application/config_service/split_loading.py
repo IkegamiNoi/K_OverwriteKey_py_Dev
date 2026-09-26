@@ -456,6 +456,9 @@ def _migrate_legacy_trigger_set(
         for source in (item.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH, "") for item in keymaps)
     ):
         return "same", active, False
+    legacy_full_path = service._resolve_config_relative_path(legacy_path, config_root)
+    if not os.path.exists(legacy_full_path):
+        return "none", active, False
     if not has_trigger_set_path:
         target = active
         created = False
