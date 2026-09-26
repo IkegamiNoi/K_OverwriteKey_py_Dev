@@ -35,20 +35,10 @@ def normalize_save_runtime(data: Any) -> dict[str, Any]:
                 compose_sequence_key(owner_id, key)
     return ensure_config_compatibility(data)
 
-def save_runtime_data(service,
-    keymap_set_path: str,
-    data: Any,
-    *,
-    config_root: str,
-    startup_data: Any = None,
-    startup_entry_loaded: bool = False,
-    keep_legacy_copy: bool = False,
-    legacy_path: str = "",
-    split_base_dir: str = "",
-    migration_source_keymap_set_path: str = "",
-    post_save_warnings: list[str] | None = None,
-    save_plan: SavePlan | None = None,
-) -> tuple[dict[str, Any], dict[str, Any]]:
+
+def _restore_input_parent_refs(
+    service: Any, data: Any
+) -> tuple[dict[str, Any], list[Any]]:
     normalized = normalize_save_runtime(data)
     raw_keymaps = (
         data.get("keymaps")
@@ -78,7 +68,15 @@ def save_runtime_data(service,
             parent_refs = service._normalize_parent_refs(raw_trigger.get(service.INTERNAL_SEQUENCE_PARENT_REFS))
             if parent_refs is not None:
                 trigger[service.INTERNAL_SEQUENCE_PARENT_REFS] = parent_refs
-    sanitized_legacy = service._sanitize_runtime_for_storage(normalized)
+    return normalized, normalized_keymaps
+
+
+def _build_and_validate_runtime_payloads(
+    service: Any, normalized: dict[str, Any], keymap_set_path: str, *,
+    config_root: str, startup_data: Any, startup_entry_loaded: bool,
+    keep_legacy_copy: bool, legacy_path: str, split_base_dir: str,
+    save_plan: SavePlan | None,
+) -> tuple[str, str, dict[str, Any]]:
     resolved_config_root = os.path.abspath(config_root)
     resolved_keymap_set_path = os.path.abspath(keymap_set_path) if keymap_set_path else service._default_keymap_set_path(resolved_config_root)
     resolved_split_base_dir = os.path.abspath(split_base_dir) if split_base_dir else ""
@@ -102,7 +100,14 @@ def save_runtime_data(service,
         payloads,
         config_root=resolved_config_root,
     )
+    return resolved_config_root, resolved_keymap_set_path, payloads
 
+
+def _restore_payload_keymap_parent_refs(
+    service: Any,
+    normalized_keymaps: list[Any],
+    payloads: dict[str, Any],
+) -> None:
     keymap_parent_refs_by_id = {
         str(item.get("id") or ""): item["payload"][service.PARENT_REFS_KEY]
         for item in payloads["keymaps"]
@@ -113,6 +118,12 @@ def save_runtime_data(service,
         if parent_refs is not None:
             keymap[service.INTERNAL_KEYMAP_PARENT_REFS] = safe_deepcopy(parent_refs)
 
+
+def _write_runtime_payloads(
+    service: Any, payloads: dict[str, Any], resolved_config_root: str,
+    resolved_keymap_set_path: str, *,
+    keep_legacy_copy: bool, legacy_path: str, sanitized_legacy: Any,
+) -> None:
     service.ensure_split_config_dirs(resolved_config_root)
     for item in payloads["sequences"]:
         if item["skip"]:
@@ -138,6 +149,63 @@ def save_runtime_data(service,
         target_legacy_path = legacy_path or service._default_legacy_config_path(resolved_config_root)
         service.repository.save_json(target_legacy_path, sanitized_legacy)
 
+
+def _apply_runtime_save_state(
+    service: Any,
+    data: Any,
+    normalized: dict[str, Any],
+    payloads: dict[str, Any],
+    config_root: str,
+) -> None:
+    apply_saved_child_paths(service, normalized, payloads, config_root)
+    normalized[service.INTERNAL_LEGACY_TRIGGER_SET] = {
+        "state": "none", "path": "", "keymap_id": "",
+    }
+    # 保存時の補完値を明示指定へ変換しない。フラグ省略時のキーからの推論を維持する。
+    if isinstance(data, dict) and "hook_keys_individual" not in data:
+        normalized.pop("hook_keys_individual", None)
+
+
+def save_runtime_data(service,
+    keymap_set_path: str,
+    data: Any,
+    *,
+    config_root: str,
+    startup_data: Any = None,
+    startup_entry_loaded: bool = False,
+    keep_legacy_copy: bool = False,
+    legacy_path: str = "",
+    split_base_dir: str = "",
+    migration_source_keymap_set_path: str = "",
+    post_save_warnings: list[str] | None = None,
+    save_plan: SavePlan | None = None,
+) -> tuple[dict[str, Any], dict[str, Any]]:
+    normalized, normalized_keymaps = _restore_input_parent_refs(service, data)
+    sanitized_legacy = service._sanitize_runtime_for_storage(normalized)
+    resolved_config_root, resolved_keymap_set_path, payloads = _build_and_validate_runtime_payloads(
+        service,
+        normalized,
+        keymap_set_path,
+        config_root=config_root,
+        startup_data=startup_data,
+        startup_entry_loaded=startup_entry_loaded,
+        keep_legacy_copy=keep_legacy_copy,
+        legacy_path=legacy_path,
+        split_base_dir=split_base_dir,
+        save_plan=save_plan,
+    )
+
+    _restore_payload_keymap_parent_refs(service, normalized_keymaps, payloads)
+    _write_runtime_payloads(
+        service,
+        payloads,
+        resolved_config_root,
+        resolved_keymap_set_path,
+        keep_legacy_copy=keep_legacy_copy,
+        legacy_path=legacy_path,
+        sanitized_legacy=sanitized_legacy,
+    )
+
     cleanup_warning = _cleanup_migrated_trigger_set_parent_ref(
         service,
         payloads,
@@ -152,13 +220,7 @@ def save_runtime_data(service,
         else:
             post_save_warnings.append(cleanup_warning)
 
-    apply_saved_child_paths(service, normalized, payloads, resolved_config_root)
-    normalized[service.INTERNAL_LEGACY_TRIGGER_SET] = {
-        "state": "none", "path": "", "keymap_id": "",
-    }
-    # 保存時の補完値を明示指定へ変換しない。フラグ省略時のキーからの推論を維持する。
-    if isinstance(data, dict) and "hook_keys_individual" not in data:
-        normalized.pop("hook_keys_individual", None)
+    _apply_runtime_save_state(service, data, normalized, payloads, resolved_config_root)
     return normalized, payloads["startup"]
 
 
