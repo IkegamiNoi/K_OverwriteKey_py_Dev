@@ -477,6 +477,7 @@ class TriggerPanelController:
             del triggers[idx]
             self._app._indices.pop(key, None)
             self._app.state.loop_frames_for(self._app._active_trigger_set_id()).pop(key, None)
+            self._app.sequence_runner.cancel_pending_wait(key)
             self.refresh_triggers()
             self.refresh_actions()
             self._app.dirty_tracker.mark_trigger_set_dirty()

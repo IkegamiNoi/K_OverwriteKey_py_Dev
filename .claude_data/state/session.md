@@ -4,39 +4,42 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T00:30:00
+last_updated: 2026-09-27T01:05:00
 phase: instructions/phase/37_sequence_control_actions（出力シーケンスの制御アクション・第 1 弾・暫定 26 v0.3 確定済・decisions 37）。
 次採番 = phase 38 / 暫定 27 / decisions 38 / 提案書 15。直前の完了フェーズ = **phase 36**（判断履歴 = `decisions_archive/36_config_service_split.md`）。
 last_commit_location: `claude/output-sequence-system-type-e641ab`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 37 進行中: task_01（domain の土台）・task_02（実行モデルの中核 = `application/sequence_steps.py`）完了。次は task_03（待機）。**
+focus: **phase 37 進行中: task_01〜03（domain の土台 / 実行モデルの中核 / 待機）完了。次は task_04（戻す・先頭へ）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-27T00:30:00
+ts: 2026-09-27T01:05:00
 who: main
 summary: |
-  【task_02】`/task_new` で定義 → codex-implementer を `--model gpt-6-sol --effort medium` + Luna xhigh サブエージェント許可で実行 →
-  verifier 全 pass → reviewer 完了可（参考: `refresh_actions` の run_to_end 用 clamp が到達不能化 / 単発で先頭へ回り開始位置で止まると周回スタックは空で返る・いずれも害なし）。
-  【実装モデルの試行結果（実測）】`~/.codex/sessions/2026/09/26/rollout-2026-09-26T23-56-31-*.jsonl` = gpt-6-sol / medium の 1 スレッドのみ・**サブエージェント起動なし**・
-  約 6 分・入力 525,183（キャッシュ 483,584）/ 出力 11,619 トークン。ユーザーが使用量の減りを確認して実装での採否を判断する。
+  【エージェント構成】ユーザー判断で Codex 実装エージェントを 2 種化（`637d9eb`）: `codex-implementer` = Luna xhigh 明示（修正箇所が具体的で量が多くない）/
+  新規 `codex-delegating-implementer` = Sol medium + Luna xhigh サブエージェント許可（判断が要る・量が多い）。基準は `agent_selection.md`・codex / codex_medium 変種と modes/README に追随。
+  【task_03 待機】`codex-delegating-implementer` → Luna xhigh の子がテスト 2 ファイルを担当（セッション記録で実測）→ verifier 全 pass → reviewer 完了可
+  （参考: runtime 状態を消す契機で保留の after 予約自体は残る・発火時に何もしない）。
+  【相談】Luna high の試行はユーザー未決（提案 = 修正箇所が具体的なタスク 1 つを Luna high で実装して比較）。
 result_files:
-  - keyseq/application/{sequence_steps.py（新規）, app_state.py, sequence_runner.py} / keyseq/presentation/{app.py, controllers/trigger_panel_controller.py}
-  - tests/{test_sequence_steps.py（新規）, test_sequence_runner.py}
-  - instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_02_execution_core.md} / .claude_data/state/session.md
+  - keyseq/application/{sequence_steps.py, app_state.py, sequence_runner.py}
+  - keyseq/presentation/controllers/{hook_controller.py, keymap_panel/keymap_panel_controller.py, trigger_panel_controller.py}
+  - tests/{test_sequence_steps.py, test_sequence_runner.py}
+  - instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_03_wait.md} / .claude_data/state/session.md
 verified:
   compile: clean
-  tests: 715 ran OK（skipped 7）
+  tests: 729 ran OK（skipped 7）
   tests_ui: 576 ran OK
   smoke: pass
-  review: reviewer 完了可（task_02）
+  review: reviewer 完了可（task_03）
 
 ## next_action
-- **ユーザーの判断待ち**: task_02 の試行結果（サブエージェント未起動・使用量）を見て、Sol medium を実装で使い続けるかを決める。以降のタスクは決定に従う（未決なら既定 = Luna xhigh）。
-- `/task_new` で `instructions/phase/37_sequence_control_actions/tasks/task_03_*.md`（暫定 26 §7 待機: 連続実行の待機 / 単発の非同期待機・保留中ステップ・世代番号・取り消し契機）を起票 →
-  codex-implementer → verifier → reviewer。`sequence_steps.advance` の `wait` は現在「素通り」の暫定（task_03 で置き換える）。
+- `/task_new` で `instructions/phase/37_sequence_control_actions/tasks/task_04_*.md`（暫定 26 §8: 戻す履歴〔ステップ開始時の控え・カウンター操作を差分で打ち消す〕/
+  直前のトリガー / back・rewind〔`sequence_steps` の素通りを置き換え〕/ 対象が無い・単発の待機中のときの一時メッセージ / 選択の順序 / 待機の取り消し時に履歴 1 段）を起票 →
+  基準に従い実装エージェントを選ぶ（判断要素が多いので `codex-delegating-implementer` 想定）→ verifier → reviewer。
+- Luna high の試行をするかはユーザー判断（する場合は task_05 file_line を `codex-implementer` + `--model gpt-6-luna --effort high` で）。
 - 実装後の Codex レビュー（統合時）で Luna xhigh（プラグイン）と Sol medium（`codex exec` 直接）を再比較する。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜37）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。

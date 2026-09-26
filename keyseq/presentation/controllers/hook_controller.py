@@ -158,6 +158,7 @@ class HookController:
     def stop_hook(self, *, reset_custom_input_mode: bool = True):
         self._clear_keymap_switch_in_progress()
         self._app.sequence_runner.stop_run_to_end()
+        self._app.sequence_runner.cancel_pending_waits()
         self._app.hook_coordinator.stop()
         self._app.key_state_manager.clear()
         self.hook_active = False

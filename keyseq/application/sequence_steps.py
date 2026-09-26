@@ -17,6 +17,13 @@ class LoopFrame:
     iteration: int
 
 
+@dataclass(frozen=True)
+class StepResume:
+    initial_position: int
+    wrapped: bool
+    processed: int
+
+
 @dataclass
 class StepOutcome:
     normal_index: int | None
@@ -24,6 +31,9 @@ class StepOutcome:
     frames: list[LoopFrame]
     error: tuple[int, str] | None = None
     reached_end: bool = False
+    wait_ms: int | None = None
+    resume_position: int | None = None
+    resume: StepResume | None = None
 
 
 def reset_frames(actions: Sequence[Any], position: int) -> list[LoopFrame]:
@@ -88,23 +98,26 @@ def _system_step(actions: Sequence[Any], position: int, frames: list[LoopFrame],
         return _loop_end(actions, position, frames, structure)
     if op in (OP_COUNTER_INC, OP_COUNTER_RESET):
         return position + 1, _counter(action, op, counters)
-    # wait / back / rewind are handled by later execution-core tasks.
-    if op in (OP_WAIT, OP_BACK, OP_REWIND):
+    # back / rewind are handled by the next execution-core task.
+    if op in (OP_BACK, OP_REWIND):
         return position + 1, None
     return position, f"system の操作が不正です。操作: {op}"
 
 
 def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
-            counters: dict[str, int], *, wrap_once: bool) -> StepOutcome:
+            counters: dict[str, int], *, wrap_once: bool,
+            resume: StepResume | None = None) -> StepOutcome:
     structure = analyze_loops(actions)
-    position = position if 0 <= position < len(actions) else 0
-    initial_position = position
+    if resume is None:
+        position = position if 0 <= position < len(actions) else 0
+    initial_position = resume.initial_position if resume else position
     current = list(frames)
-    expected = enclosing_loop_starts(structure, position)
-    if not structure.unmatched and tuple(frame.start for frame in current) != expected:
-        current = [LoopFrame(start, 1) for start in expected]
-    processed = 0
-    wrapped = False
+    if resume is None:
+        expected = enclosing_loop_starts(structure, position)
+        if not structure.unmatched and tuple(frame.start for frame in current) != expected:
+            current = [LoopFrame(start, 1) for start in expected]
+    processed = resume.processed if resume else 0
+    wrapped = resume.wrapped if resume else False
     while True:
         if position == len(actions):
             position, current = 0, []
@@ -121,6 +134,16 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
         if processed >= 10000:
             return StepOutcome(None, position, current, (position, "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）"))
         processed += 1
+        if system_op(action) == OP_WAIT:
+            try:
+                wait_ms = int(action.get("ms"))
+            except (TypeError, ValueError, OverflowError):
+                wait_ms = 0
+            if wait_ms < 1:
+                return StepOutcome(None, position, current, (position, "待機時間が不正です（1 以上の整数・ミリ秒）"))
+            return StepOutcome(None, position, current, wait_ms=wait_ms,
+                               resume_position=position + 1,
+                               resume=StepResume(initial_position, wrapped, processed))
         next_position, error = _system_step(actions, position, current, counters, structure)
         if error:
             return StepOutcome(None, position, current, (position, error))

@@ -2,8 +2,9 @@
 
 from typing import Any, Callable
 
+from keyseq.application.app_state import PendingStep
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
-from keyseq.application.sequence_steps import LoopFrame, advance, after_normal_action, reset_frames
+from keyseq.application.sequence_steps import LoopFrame, StepOutcome, StepResume, advance, after_normal_action, reset_frames
 
 
 class SequenceRunner:
@@ -31,6 +32,7 @@ class SequenceRunner:
         self._after_cancel = after_cancel
         self._get_trigger_set_id = get_trigger_set_id or (lambda: "")
         self._notify_error = notify_error
+        self._run_to_end_resume: StepResume | None = None
 
     def _get_index(self, key: str) -> int:
         return int(self.state.indices_for(self._get_trigger_set_id()).get(key, 0) or 0)
@@ -48,11 +50,61 @@ class SequenceRunner:
 
     def reset_loop_frames(self, key: str) -> None:
         key = normalize_key_name(key)
+        self.cancel_pending_wait(key)
         trigger = self._find_trigger(key)
         actions = trigger.get("actions", []) if trigger else []
         with self.state.lock:
             frames = reset_frames(actions, self._get_index(key))
             self.state.loop_frames_for(self._get_trigger_set_id())[key] = frames
+
+    def cancel_pending_wait(self, key: str) -> None:
+        identity = (self._get_trigger_set_id(), normalize_key_name(key))
+        with self.state.lock:
+            pending = self.state.pending_steps.pop(identity, None)
+        if pending is not None and pending.after_id is not None:
+            try:
+                self._after_cancel(pending.after_id)
+            except Exception:
+                pass
+
+    def cancel_pending_waits(self) -> None:
+        with self.state.lock:
+            pending_steps = tuple(self.state.pending_steps.values())
+            self.state.pending_steps.clear()
+        for pending in pending_steps:
+            if pending.after_id is not None:
+                try:
+                    self._after_cancel(pending.after_id)
+                except Exception:
+                    pass
+
+    def _queue_single_wait(self, key: str, outcome: StepOutcome) -> None:
+        trigger_set_id = self._get_trigger_set_id()
+        identity = (trigger_set_id, key)
+        with self.state.lock:
+            self.state.pending_step_generation += 1
+            generation = self.state.pending_step_generation
+            pending = PendingStep(generation, None, outcome.resume_position, outcome.resume)
+            self.state.pending_steps[identity] = pending
+        pending.after_id = self._after(
+            outcome.wait_ms,
+            lambda: self._resume_single_wait(trigger_set_id, key, generation),
+        )
+
+    def _resume_single_wait(self, trigger_set_id: str, key: str, generation: int) -> None:
+        identity = (trigger_set_id, key)
+        with self.state.lock:
+            pending = self.state.pending_steps.get(identity)
+            if pending is None or pending.generation != generation:
+                return
+            self.state.pending_steps.pop(identity)
+        if self._get_trigger_set_id() != trigger_set_id:
+            return
+        trigger = self._find_trigger(key)
+        if trigger is None:
+            return
+        self._run_single_action(key, trigger.get("actions", []),
+                                position=pending.position, resume=pending.resume)
 
     def _report_error(self, action: dict[str, Any], message: str) -> None:
         if self._notify_error is not None:
@@ -72,6 +124,9 @@ class SequenceRunner:
             self._update_status()
             return
 
+        if (self._get_trigger_set_id(), key) in self.state.pending_steps:
+            return
+
         trig = self._find_trigger(key)
         if not trig:
             return
@@ -85,16 +140,21 @@ class SequenceRunner:
 
         self._run_single_action(key, actions)
 
-    def _run_single_action(self, key: str, actions: list[dict[str, Any]]) -> None:
+    def _run_single_action(self, key: str, actions: list[dict[str, Any]], *,
+                           position: int | None = None, resume: StepResume | None = None) -> None:
         with self.state.lock:
             if key in self.state.reentry_guard:
                 return
             self.state.reentry_guard.add(key)
 
         try:
-            outcome = advance(actions, self._get_index(key), self._get_frames(key),
-                              self.state.counters, wrap_once=True)
+            outcome = advance(actions, self._get_index(key) if position is None else position,
+                              self._get_frames(key), self.state.counters,
+                              wrap_once=True, resume=resume)
             self._save_progress(key, outcome.position, outcome.frames)
+            if outcome.wait_ms is not None:
+                self._queue_single_wait(key, outcome)
+                return
             if outcome.error:
                 index, message = outcome.error
                 self._report_error(actions[index], message)
@@ -121,6 +181,8 @@ class SequenceRunner:
         if not actions:
             return
 
+        self.cancel_pending_waits()
+        self._run_to_end_resume = None
         self.state.run_to_end_key = key
         self.state.run_to_end_paused = False
         self._select_trigger(key)
@@ -148,6 +210,7 @@ class SequenceRunner:
         self.state.run_to_end_after_id = None
         self.state.run_to_end_key = None
         self.state.run_to_end_paused = False
+        self._run_to_end_resume = None
         self._update_status()
 
     def _run_to_end_step(self, schedule_only: bool = False) -> None:
@@ -177,15 +240,21 @@ class SequenceRunner:
 
     def _perform_run_to_end_step(self, key: str, actions: list[dict[str, Any]], delay: int) -> None:
         outcome = advance(actions, self._get_index(key), self._get_frames(key),
-                          self.state.counters, wrap_once=False)
-        self._save_progress(key, outcome.position, outcome.frames)
-        if outcome.error:
+                          self.state.counters, wrap_once=False,
+                          resume=self._run_to_end_resume)
+        self._save_progress(key, outcome.resume_position if outcome.wait_ms is not None
+                            else outcome.position, outcome.frames)
+        if outcome.wait_ms is not None:
+            self._run_to_end_resume = outcome.resume
+            self.state.run_to_end_after_id = self._after(outcome.wait_ms, self._run_to_end_step)
+        elif outcome.error:
             index, message = outcome.error
             self._report_error(actions[index], message)
             self.stop_run_to_end()
         elif outcome.normal_index is None:
             self.stop_run_to_end()
         else:
+            self._run_to_end_resume = None
             index = outcome.normal_index
             if self._perform_action(actions[index]) is False:
                 self.stop_run_to_end()

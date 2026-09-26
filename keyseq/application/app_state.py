@@ -4,7 +4,15 @@ import threading
 from dataclasses import dataclass, field
 from typing import Any
 
-from keyseq.application.sequence_steps import LoopFrame
+from keyseq.application.sequence_steps import LoopFrame, StepResume
+
+
+@dataclass
+class PendingStep:
+    generation: int
+    after_id: Any
+    position: int
+    resume: StepResume
 
 
 @dataclass
@@ -16,6 +24,8 @@ class AppState:
     loop_frames: dict[str, list[LoopFrame]] = field(default_factory=dict)
     keymap_loop_frames: dict[str, dict[str, list[LoopFrame]]] = field(default_factory=dict)
     counters: dict[str, int] = field(default_factory=dict)
+    pending_steps: dict[tuple[str, str], PendingStep] = field(default_factory=dict)
+    pending_step_generation: int = 0
 
     run_to_end_key: str | None = None
     run_to_end_paused: bool = False
@@ -25,6 +35,7 @@ class AppState:
     reentry_guard: set[str] = field(default_factory=set, init=False)
 
     def reset_indices(self) -> None:
+        self.pending_steps.clear()
         self.indices = {}
         self.keymap_indices = {}
         self.loop_frames = {}
@@ -54,6 +65,9 @@ class AppState:
         return self.keymap_loop_frames.setdefault(trigger_set_id, {})
 
     def forget_trigger_set(self, trigger_set_id: str) -> None:
+        for identity in tuple(self.pending_steps):
+            if identity[0] == trigger_set_id:
+                del self.pending_steps[identity]
         self.keymap_indices.pop(trigger_set_id, None)
         self.keymap_loop_frames.pop(trigger_set_id, None)
         self.selected_trigger_indices.pop(trigger_set_id, None)
@@ -61,6 +75,9 @@ class AppState:
     def rekey_trigger_set(self, previous_id: str, current_id: str) -> None:
         if not previous_id or not current_id or previous_id == current_id:
             return
+        for identity in tuple(self.pending_steps):
+            if identity[0] in (previous_id, current_id):
+                del self.pending_steps[identity]
         if previous_id in self.keymap_indices:
             self.keymap_indices[current_id] = self.keymap_indices.pop(previous_id)
         if previous_id in self.keymap_loop_frames:

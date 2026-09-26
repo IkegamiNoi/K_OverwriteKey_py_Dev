@@ -4,7 +4,7 @@ from unittest.mock import Mock, call
 from keyseq.application.action_executor import ActionExecutor
 from keyseq.application.app_state import AppState
 from keyseq.application.sequence_runner import SequenceRunner
-from keyseq.application.sequence_steps import LoopFrame
+from keyseq.application.sequence_steps import LoopFrame, StepResume
 
 
 class FakeScheduler:
@@ -12,11 +12,13 @@ class FakeScheduler:
 
     def __init__(self):
         self.queue = []
+        self.delays = []
         self._next_id = 1
 
-    def after(self, _delay_ms, callback):
+    def after(self, delay_ms, callback):
         handle = self._next_id
         self._next_id += 1
+        self.delays.append(delay_ms)
         self.queue.append((handle, callback))
         return handle
 
@@ -26,12 +28,16 @@ class FakeScheduler:
     def run_pending(self, limit=100):
         count = 0
         while self.queue and count < limit:
-            _, callback = self.queue.pop(0)
-            callback()
+            self.run_one()
             count += 1
 
+    def run_one(self):
+        if self.queue:
+            _, callback = self.queue.pop(0)
+            callback()
 
-def make_runner(triggers):
+
+def make_runner(triggers, *, get_trigger_set_id=None):
     state = AppState()
     scheduler = FakeScheduler()
     performed = []
@@ -51,6 +57,7 @@ def make_runner(triggers):
         update_status=lambda: None,
         after=scheduler.after,
         after_cancel=scheduler.after_cancel,
+        get_trigger_set_id=get_trigger_set_id,
     )
     return runner, state, scheduler, performed
 
@@ -308,6 +315,178 @@ class ActionExecutorRunnerTest(unittest.TestCase):
                 self.assertEqual(state.indices["f1"], 0)
                 self.assertIsNone(state.run_to_end_key)
                 self.assertEqual(scheduler.queue, [])
+
+
+class WaitSequenceRunnerTest(unittest.TestCase):
+    def test_single_wait_resumes_with_next_action(self):
+        trigger = {"key": "f1", "run_to_end": False,
+                   "actions": [{"type": "system", "op": "wait", "ms": "17"}, A1]}
+        runner, state, scheduler, performed = make_runner([trigger])
+
+        runner.handle_key("f1")
+
+        self.assertEqual(performed, [])
+        self.assertEqual(state.indices["f1"], 0)  # 単発の保留中は待機行を保持
+        self.assertEqual(scheduler.delays, [17])
+        pending = state.pending_steps[("", "f1")]
+        self.assertEqual(pending.position, 1)  # 続きは待機の次から
+        self.assertIsInstance(pending.resume, StepResume)
+        self.assertEqual(len(scheduler.queue), 1)
+
+        scheduler.run_pending()
+
+        self.assertEqual(performed, [A1])
+        self.assertNotIn(("", "f1"), state.pending_steps)
+        self.assertEqual(state.reentry_guard, set())
+
+    def test_continuation_can_wait_again_and_old_generation_is_ignored(self):
+        trigger = {
+            "key": "f1", "run_to_end": False,
+            "actions": [
+                {"type": "system", "op": "wait", "ms": 2},
+                {"type": "system", "op": "wait", "ms": 3},
+                A1,
+            ],
+        }
+        runner, state, scheduler, performed = make_runner([trigger])
+
+        runner.handle_key("f1")
+        first_callback = scheduler.queue[0][1]
+        first_generation = state.pending_steps[("", "f1")].generation
+        scheduler.run_one()
+
+        second_pending = state.pending_steps[("", "f1")]
+        self.assertGreater(second_pending.generation, first_generation)
+        self.assertEqual(second_pending.position, 2)
+        self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(scheduler.delays, [2, 3])
+
+        first_callback()  # 古い世代の callback は新しい保留を消さない
+        self.assertEqual(performed, [])
+        self.assertIn(("", "f1"), state.pending_steps)
+        scheduler.run_pending()
+        self.assertEqual(performed, [A1])
+
+    def test_pending_single_wait_blocks_same_key_but_allows_another_key(self):
+        triggers = [
+            {"key": "f1", "run_to_end": False,
+             "actions": [{"type": "system", "op": "wait", "ms": 9}, A1]},
+            {"key": "f2", "run_to_end": False, "actions": [A2]},
+        ]
+        runner, _state, scheduler, performed = make_runner(triggers)
+
+        runner.handle_key("f1")
+        runner.handle_key("f1")
+        self.assertEqual(len(scheduler.queue), 1)
+        self.assertEqual(performed, [])
+
+        runner.handle_key("f2")
+        self.assertEqual(performed, [A2])
+        scheduler.run_pending()
+        self.assertEqual(performed, [A2, A1])
+
+    def test_cancelled_wait_callbacks_are_stale_and_keep_wait_position(self):
+        cancel_operations = (
+            ("cancel one", lambda runner, state: runner.cancel_pending_wait("f1")),
+            ("cancel all", lambda runner, state: runner.cancel_pending_waits()),
+            ("reset frames", lambda runner, state: runner.reset_loop_frames("f1")),
+            ("reset indices", lambda _runner, state: state.reset_indices()),
+        )
+        for name, cancel in cancel_operations:
+            with self.subTest(operation=name):
+                trigger = {"key": "f1", "run_to_end": False,
+                           "actions": [{"type": "system", "op": "wait", "ms": 11}, A1]}
+                runner, state, scheduler, performed = make_runner([trigger])
+                runner.handle_key("f1")
+                stale_callback = scheduler.queue[0][1]
+
+                cancel(runner, state)
+                if name == "reset indices":
+                    scheduler.run_pending()  # 残った予約が発火しても何もしない
+                else:
+                    stale_callback()  # 取消後も出列済みの callback が呼ばれた場合を再現
+
+                self.assertEqual(performed, [])
+                self.assertEqual(state.indices.get("f1", 0), 0)
+                self.assertNotIn(("", "f1"), state.pending_steps)
+                self.assertEqual(scheduler.queue, [])
+
+    def test_callback_is_ignored_when_trigger_set_changes(self):
+        current = {"id": "first"}
+        trigger = {"key": "f1", "run_to_end": False,
+                   "actions": [{"type": "system", "op": "wait", "ms": 13}, A1]}
+        runner, state, scheduler, performed = make_runner(
+            [trigger], get_trigger_set_id=lambda: current["id"]
+        )
+        runner.handle_key("f1")
+        stale_callback = scheduler.queue[0][1]
+
+        current["id"] = "second"
+        stale_callback()
+
+        self.assertEqual(performed, [])
+        self.assertEqual(state.indices_for("first").get("f1"), 0)
+
+    def test_continuous_wait_uses_wait_duration_without_an_extra_interval(self):
+        trigger = {
+            "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 3,
+            "actions": [A1, {"type": "system", "op": "wait", "ms": 40}, A2],
+        }
+        runner, state, scheduler, performed = make_runner([trigger])
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [A1])
+        scheduler.run_one()  # 通常間隔の後に待機行を処理
+
+        self.assertEqual(scheduler.delays, [3, 40])
+        self.assertEqual(state.indices["f1"], 2)  # 連続実行は待機の次を保存
+        scheduler.run_pending()
+
+        self.assertEqual(performed, [A1, A2])
+        self.assertEqual(scheduler.delays, [3, 40])  # 待機後に通常間隔を足さない
+        self.assertIsNone(state.run_to_end_key)
+
+    def test_pausing_wait_discards_it_and_resume_starts_after_wait(self):
+        trigger = {
+            "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 7,
+            "actions": [A1, {"type": "system", "op": "wait", "ms": 50}, A2],
+        }
+        runner, state, scheduler, performed = make_runner([trigger])
+
+        runner.handle_key("f1")
+        scheduler.run_one()  # interval callback reaches the wait
+        self.assertEqual(state.indices["f1"], 2)
+        self.assertEqual(scheduler.delays, [7, 50])
+
+        runner.handle_key("f1")
+        self.assertTrue(state.run_to_end_paused)
+        self.assertEqual(scheduler.queue, [])
+        runner.handle_key("f1")
+        self.assertFalse(state.run_to_end_paused)
+        self.assertEqual(scheduler.delays, [7, 50, 7])
+        scheduler.run_pending()
+
+        self.assertEqual(performed, [A1, A2])
+        self.assertIsNone(state.run_to_end_key)
+
+    def test_other_continuous_run_cancels_single_wait(self):
+        triggers = [
+            {"key": "f1", "run_to_end": False,
+             "actions": [{"type": "system", "op": "wait", "ms": 19}, A1]},
+            {"key": "f2", "run_to_end": True, "run_to_end_delay_ms": 0,
+             "actions": [A2]},
+        ]
+        runner, state, scheduler, performed = make_runner(triggers)
+
+        runner.handle_key("f1")
+        stale_callback = scheduler.queue[0][1]
+        runner.handle_key("f2")
+        stale_callback()
+
+        self.assertEqual(performed, [A2])
+        self.assertNotIn(("", "f1"), state.pending_steps)
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertIsNone(state.run_to_end_key)
 
 
 if __name__ == "__main__":

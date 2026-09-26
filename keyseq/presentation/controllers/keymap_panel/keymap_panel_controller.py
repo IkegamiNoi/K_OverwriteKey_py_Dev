@@ -435,6 +435,7 @@ class KeymapPanelController:
 
         self.refresh_keymap_list_ui(preferred_index=preferred_index)
         if changed:
+            self._app.sequence_runner.cancel_pending_waits()
             self._app.trigger_panel.refresh_triggers()
             self._app.trigger_panel.refresh_actions()
         else:

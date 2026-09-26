@@ -1,7 +1,9 @@
 import unittest
 
 from keyseq.application.app_state import AppState
-from keyseq.application.sequence_steps import LoopFrame, advance, after_normal_action
+from keyseq.application.sequence_steps import (
+    LoopFrame, StepResume, advance, after_normal_action,
+)
 
 
 def control(op, **values):
@@ -110,6 +112,84 @@ class SequenceStepsTest(unittest.TestCase):
                          [LoopFrame(8, 3)], {}, wrap_once=False)
         self.assertEqual(broken.frames, [LoopFrame(8, 3)])
 
+    def test_wait_returns_wait_row_and_resume_state(self):
+        actions = [control("counter_inc", counter="n"), control("wait", ms="25"), NORMAL]
+        counters = {}
+
+        outcome = advance(actions, 0, [], counters, wrap_once=False)
+
+        self.assertEqual(outcome.wait_ms, 25)
+        self.assertEqual(outcome.position, 1)  # 中断位置は待機の行
+        self.assertEqual(outcome.resume_position, 2)
+        self.assertEqual(outcome.frames, [])
+        self.assertEqual(outcome.resume, StepResume(initial_position=0, wrapped=False, processed=2))
+        self.assertEqual(counters, {"n": 1})
+
+        continued = advance(
+            actions, outcome.resume_position, outcome.frames, counters,
+            wrap_once=False, resume=outcome.resume,
+        )
+        self.assertEqual(continued.normal_index, 2)
+
+    def test_invalid_wait_duration_is_an_error_at_wait_row(self):
+        for value in ("invalid", "1.5", 0, -1, None):
+            with self.subTest(ms=value):
+                outcome = advance([control("wait", ms=value)], 0, [], {}, wrap_once=False)
+                self.assertEqual(outcome.error, (0, "待機時間が不正です（1 以上の整数・ミリ秒）"))
+                self.assertEqual(outcome.position, 0)
+                self.assertIsNone(outcome.wait_ms)
+                self.assertIsNone(outcome.resume_position)
+
+    def test_wait_at_end_resumes_through_normal_end_handling(self):
+        actions = [control("wait", ms=5)]
+        outcome = advance(actions, 0, [], {}, wrap_once=True)
+        self.assertEqual(outcome.wait_ms, 5)
+        self.assertEqual((outcome.position, outcome.resume_position), (0, 1))
+
+        ended = advance(
+            actions, outcome.resume_position, outcome.frames, {},
+            wrap_once=True, resume=outcome.resume,
+        )
+        self.assertTrue(ended.reached_end)
+        self.assertIsNone(ended.normal_index)
+        self.assertEqual((ended.position, ended.frames), (0, []))
+
+    def test_resume_stops_at_original_start_position_after_wrap(self):
+        actions = [control("wait", ms=1), control("counter_inc", counter="n")]
+        counters = {}
+        waiting = advance(actions, 0, [], counters, wrap_once=True)
+
+        ended = advance(
+            actions, waiting.resume_position, waiting.frames, counters,
+            wrap_once=True, resume=waiting.resume,
+        )
+
+        self.assertEqual(counters, {"n": 1})
+        self.assertTrue(ended.reached_end)
+        self.assertEqual((ended.position, ended.frames), (0, []))
+
+    def test_processing_limit_is_carried_across_waits(self):
+        actions = [control("loop_start", infinite=True), control("wait", ms=1),
+                   control("loop_end")]
+        outcome = advance(actions, 0, [], {}, wrap_once=False)
+        self.assertEqual(outcome.wait_ms, 1)
+        self.assertEqual(outcome.resume.processed, 2)
+
+        for _ in range(4999):
+            outcome = advance(
+                actions, outcome.resume_position, outcome.frames, {},
+                wrap_once=False, resume=outcome.resume,
+            )
+            self.assertEqual(outcome.wait_ms, 1)
+
+        self.assertEqual(outcome.resume.processed, 10000)
+        limited = advance(
+            actions, outcome.resume_position, outcome.frames, {},
+            wrap_once=False, resume=outcome.resume,
+        )
+        self.assertEqual(limited.error[0], 2)
+        self.assertIn("10000", limited.error[1])
+
 
 class AppStateLoopFramesTest(unittest.TestCase):
     def test_lifetime_and_counters(self):
@@ -124,3 +204,18 @@ class AppStateLoopFramesTest(unittest.TestCase):
         state.reset_indices()
         self.assertEqual((state.loop_frames, state.keymap_loop_frames), ({}, {}))
         self.assertEqual(state.counters, {"shared": 7})
+
+    def test_pending_steps_follow_runtime_state_lifetime(self):
+        state = AppState()
+        state.pending_steps[("old", "f1")] = object()
+        state.pending_steps[("other", "f2")] = object()
+        state.forget_trigger_set("old")
+        self.assertEqual(set(state.pending_steps), {("other", "f2")})
+
+        state.pending_steps[("old", "f3")] = object()
+        state.pending_steps[("new", "f4")] = object()
+        state.rekey_trigger_set("old", "new")
+        self.assertEqual(set(state.pending_steps), {("other", "f2")})
+
+        state.reset_indices()
+        self.assertEqual(state.pending_steps, {})
