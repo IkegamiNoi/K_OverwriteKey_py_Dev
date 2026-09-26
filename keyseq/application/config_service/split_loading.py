@@ -19,7 +19,11 @@ from keyseq.domain.config import (
 )
 from . import save_path_resolution
 from keyseq.application.keymap_service import KeymapService
-from keyseq.domain.keymap_triggers import ensure_at_least_one_keymap
+from keyseq.domain.keymap_triggers import (
+    INTERNAL_TRIGGER_SET_DIRTY,
+    INTERNAL_TRIGGER_SET_IMPORTED,
+    ensure_at_least_one_keymap,
+)
 
 
 TriggerSetCache = dict[
@@ -498,9 +502,9 @@ def attach_trigger_set(
     keymap["triggers"] = triggers
     keymap[service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = source_path
     if dirty is not None:
-        keymap["_trigger_set_dirty"] = dirty
+        keymap[INTERNAL_TRIGGER_SET_DIRTY] = dirty
     if imported is not None:
-        keymap["_trigger_set_imported"] = imported
+        keymap[INTERNAL_TRIGGER_SET_IMPORTED] = imported
     if refs is not None:
         keymap[service.INTERNAL_TRIGGER_SET_PARENT_REFS] = refs
 

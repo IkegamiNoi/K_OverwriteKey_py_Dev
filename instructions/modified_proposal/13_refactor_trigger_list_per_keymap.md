@@ -43,3 +43,5 @@ M2 の 5 関数は本提案に含めず `current.md`「別タスク化候補」�
 ## 実施形態
 
 ユーザーが選ぶ: (a) phase 34 の追加タスク（task_09_refactor）/ (b) 次フェーズ前の独立ミニ計画（「計画11」）。
+
+**実施済**（2026-09-27・(a) phase 34 task_09。項目 0〜2。項目 1 の `domain/config.py` は `keymap_triggers.py` との循環 import を避けるため関数内 import）。

@@ -26,7 +26,9 @@ from keyseq.presentation.config_paths import ConfigPaths
 from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
 from keyseq.presentation.controllers.hook_controller import HookController
 from keyseq.presentation.controllers.key_capture import SingleKeyCaptureController
-from keyseq.presentation.controllers.keymap_panel_controller import KeymapPanelController
+from keyseq.presentation.controllers.keymap_panel.keymap_panel_controller import (
+    KeymapPanelController,
+)
 from keyseq.presentation.controllers.layout_controller import LayoutController
 from keyseq.presentation.controllers.pane_layout import PaneLayoutController
 from keyseq.presentation.controllers.trigger_panel_controller import TriggerPanelController

@@ -193,11 +193,18 @@ def normalize_triggers(raw_triggers: Any) -> list[dict[str, Any]]:
 
 
 def ensure_config_compatibility(data: Any) -> dict[str, Any]:
+    from keyseq.domain.keymap_triggers import (
+        INTERNAL_TRIGGER_SET_DIRTY,
+        INTERNAL_TRIGGER_SET_IMPORTED,
+        INTERNAL_TRIGGER_SET_PARENT_REFS,
+        INTERNAL_TRIGGER_SET_SOURCE_PATH,
+    )
+
     if not isinstance(data, dict):
         data = {}
     config = safe_deepcopy(data)
-    config.pop("_trigger_set_source_path", None)
-    config.pop("_trigger_set_parent_refs", None)
+    config.pop(INTERNAL_TRIGGER_SET_SOURCE_PATH, None)
+    config.pop(INTERNAL_TRIGGER_SET_PARENT_REFS, None)
 
     if "triggers" not in config and "trigger_key" in config:
         old_key = coerce_key_name(config.get("trigger_key", "f1"))
@@ -298,13 +305,15 @@ def ensure_config_compatibility(data: Any) -> dict[str, Any]:
                 else:
                     normalized_keymaps[-1]["triggers"] = []
             for key in (
-                "_trigger_set_parent_refs",
-                "_trigger_set_dirty", "_trigger_set_imported",
+                INTERNAL_TRIGGER_SET_PARENT_REFS,
+                INTERNAL_TRIGGER_SET_DIRTY, INTERNAL_TRIGGER_SET_IMPORTED,
             ):
                 if key in item:
                     normalized_keymaps[-1][key] = safe_deepcopy(item[key])
-            if "_trigger_set_source_path" in item:
-                normalized_keymaps[-1]["_trigger_set_source_path"] = coerce_label(item["_trigger_set_source_path"])
+            if INTERNAL_TRIGGER_SET_SOURCE_PATH in item:
+                normalized_keymaps[-1][INTERNAL_TRIGGER_SET_SOURCE_PATH] = coerce_label(
+                    item[INTERNAL_TRIGGER_SET_SOURCE_PATH]
+                )
             if "_keymap_source_path" in item:
                 normalized_keymaps[-1]["_keymap_source_path"] = coerce_label(item["_keymap_source_path"])
             for key in (

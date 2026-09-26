@@ -98,10 +98,10 @@ class Task05OverlapUiTest(unittest.TestCase):
         self.app.keymap_panel.on_keymap_list_select()
         self.assertEqual(self.app.keymap_panel.selected_keymap_list_index(), 1)
         with patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog",
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.KeymapEditDialog",
             return_value=_DialogResult({"key": "f10", "label": "Other edited"}),
         ), patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror",
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror",
             side_effect=AssertionError("unexpected keymap edit error"),
         ):
             self.app.keymap_panel.edit_selected_keymap()
@@ -165,13 +165,13 @@ class Task05OverlapUiTest(unittest.TestCase):
             self.assertEqual(len(self.app.data["keymaps"][0]["triggers"]), before)
 
         errors = patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror"
         )
         with errors as showerror:
             self.assertFalse(self.app.keymap_panel.validate_keymap_switch_assignment("f1", target_id="km4"))
             showerror.assert_called_once()
         with patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror"
         ) as showerror:
             self.assertFalse(self.app.keymap_panel.assign_keymap_from_keyboard_ui("f2", "b"))
             showerror.assert_called_once()
@@ -189,7 +189,7 @@ class Task05OverlapUiTest(unittest.TestCase):
 
     def test_cross_keymap_trigger_and_replacement_source_is_allowed_and_control_capture_checks_all_maps(self):
         with patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror",
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror",
             side_effect=AssertionError("unexpected cross-keymap conflict"),
         ):
             self.assertTrue(self.app.keymap_panel.assign_keymap_from_keyboard_ui("f1", "b"))

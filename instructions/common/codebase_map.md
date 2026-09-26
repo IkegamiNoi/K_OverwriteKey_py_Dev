@@ -60,7 +60,10 @@ keyseq/presentation/
         button_width.py        # apply_fixed_button_width: TButton のフォントで文言を測り、ボタンの width を最大文言幅で固定（phase 19）
         hook_controller.py
         key_capture.py
-        keymap_panel_controller.py
+        keymap_panel/          # キーマップ管理（所有者フォルダ・phase 34 task_09）
+            __init__.py        # KeymapPanelController の再輸出
+            keymap_panel_controller.py  # KeymapPanelController: 一覧・選択 = アクティブ化・編集・削除・グレー表示
+            keymap_add_flow.py # KeymapAddFlow: キーマップの追加フロー（切替キー未設定の既存への設定 → 追加ダイアログ・読込分の追加）
         layout_controller.py
         pane_layout/           # フル表示の幅配分（所有者フォルダ・phase 18）
             __init__.py        # PaneLayoutController の再輸出
@@ -292,7 +295,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     **判定は予約の実行時**（`wm_state() != "normal"` / 省略表示中 / 初回適用前は何もせず自動決定幅も触らない →
     自動決定幅と同じなら書かない → 異なれば無効化 → 保存値と同じなら書かない）。
     予約は `on_close`（`cancel_window_width_save`）と App の `<Destroy>` で取り消す。**終了時には書かない**
-- KeymapPanelController（controllers/keymap_panel_controller.py）: キーマップ管理パネル
+- KeymapPanelController（controllers/keymap_panel/keymap_panel_controller.py）: キーマップ管理パネル。追加フローは `KeymapAddFlow`（同フォルダ `keymap_add_flow.py`）へ委譲
 - TriggerPanelController（controllers/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示
 - HookController（controllers/hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
   - `register_hook_buttons(hook_btn, trigger_btn, *, fixed_width=False)`: `fixed_width=True`（FullHookFrame のみ）の組は登録時と `apply_fixed_button_widths()` で最大文言幅に固定する
@@ -677,7 +680,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - **切替と実行位置** `application/app_state.py`: 実行位置・選択行はトリガー一覧の実体（代表キーマップ id）ごと（`indices_for` / `keymap_indices` /
   `selected_trigger_indices`・代表削除で `rekey_trigger_set`）。連続実行中の切替可否は `AppState.can_switch_keymap` の 1 箇所で、
   一覧の選択・直接切替キー（`ActionExecutor`）・アクティブの削除が共有する。
-- **キーマップ管理** `controllers/keymap_panel_controller.py`: 一覧の選択 = アクティブ化（未保存にしない）・追加フロー（切替キー未設定の既存への設定 →
+- **キーマップ管理** `controllers/keymap_panel/`（`keymap_panel_controller.py` + 追加フロー `keymap_add_flow.py`）: 一覧の選択 = アクティブ化（未保存にしない）・追加フロー（切替キー未設定の既存への設定 →
   追加ダイアログ。`KeymapEditDialog(validate=...)` で入力エラー時に閉じない）・編集（2 つ以上で切替キー空不可）・削除（1 つなら不可・移行先なら移行記録を消す）・
   グレー表示。個別読込の二重読込拒否は `keymap_file_io`。
 

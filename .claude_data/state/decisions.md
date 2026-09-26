@@ -728,3 +728,9 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 ### 【実機目視 OK・提案書 13 の実施形態】（ユーザー 2026-09-27）
 
 - task_07c〜07e の変更分の実機目視 = OK。提案書 13 = **(a) phase 34 の追加タスク task_09** として実施してからフェーズ完了。
+
+### 【task_09 完了】提案書 13 のリファクタ（2026-09-27）
+
+- 項目 1: 内部キーの直値を `domain/keymap_triggers.py` の定数へ（SOURCE_PATH / PARENT_REFS を追加）。`domain/config.py` は循環 import 回避で関数内 import = **採用**。
+- 項目 2: `controllers/keymap_panel/`（`keymap_panel_controller.py` 508 行 + `keymap_add_flow.py` 201 行 + `__init__.py`）。旧パス削除・テストは patch 先文字列のみ追随。
+- verifier: compileall clean / tests 669（skip 7）/ tests_ui 576 / smoke OK。reviewer = 完了可（必須修正なし。参考: `app.py` の import を `__init__` 経由に揃える余地 = 見送り・挙動無関係）。

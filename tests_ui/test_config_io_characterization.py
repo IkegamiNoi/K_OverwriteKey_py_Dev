@@ -413,9 +413,9 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             Mock(result={"key": "f7", "label": "Loaded"}),
         ]
         with patch.object(tkinter.filedialog, "askopenfilename", return_value=path), patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
         ), patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog",
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
             side_effect=keymap_dialogs,
         ), patch.object(
             self.app.keymap_panel, "refresh_keymap_list_ui"

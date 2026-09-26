@@ -12,6 +12,8 @@ from keyseq.domain.config import normalize_key_name
 
 INTERNAL_TRIGGER_SET_DIRTY = "_trigger_set_dirty"
 INTERNAL_TRIGGER_SET_IMPORTED = "_trigger_set_imported"
+INTERNAL_TRIGGER_SET_SOURCE_PATH = "_trigger_set_source_path"
+INTERNAL_TRIGGER_SET_PARENT_REFS = "_trigger_set_parent_refs"
 
 
 def iter_trigger_sets(data: dict[str, Any]):

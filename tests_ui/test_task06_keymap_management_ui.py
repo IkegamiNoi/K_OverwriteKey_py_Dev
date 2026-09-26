@@ -166,7 +166,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.assertEqual(self.app.data["active_keymap_id"], "km1")
         self.assertEqual(self.app.ui_vars.flash_message_var.get(), self.app.keymap_panel.SWITCH_BLOCKED_MESSAGE)
         self.assertEqual(self.app.ui_vars.status_var.get(), status_before)
-        with patch("keyseq.presentation.controllers.keymap_panel_controller.messagebox.askyesno") as ask:
+        with patch("keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.askyesno") as ask:
             self.app.keymap_panel.delete_keymap()
             ask.assert_not_called()
         self.assertEqual(len(self.app.data["keymaps"]), 2)
@@ -189,9 +189,9 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
             _DialogResult({"key": "f7", "label": ""}),
         ]
         with patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
         ) as showerror, patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog",
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
             side_effect=dialog_results,
         ) as edit_dialog:
             self.app.keymap_panel.add_keymap()
@@ -205,9 +205,9 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
 
         before_count = len(self.app.data["keymaps"])
         with patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
         ) as showerror, patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog",
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
             return_value=_DialogResult(None),
         ):
             self.app.keymap_panel.add_keymap()
@@ -230,9 +230,9 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
             dialog._ok()
 
         with patch.object(KeymapEditDialog, "wait_window", new=enter_empty_then_valid), patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
         ) as showerror, patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog", wraps=KeymapEditDialog
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog", wraps=KeymapEditDialog
         ) as edit_dialog:
             self.app.keymap_panel.add_keymap()
         self.assertEqual(len(dialogs), 1)
@@ -256,7 +256,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
             dialog.destroy()
 
         with patch.object(KeymapEditDialog, "wait_window", new=cancel_after_empty), patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
         ) as showerror:
             self.app.keymap_panel.add_keymap()
         showerror.assert_called_once()
@@ -277,7 +277,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
                     self.assertTrue(dialog.winfo_exists())
 
         with patch.object(KeymapEditDialog, "wait_window", new=enter_retry_values), patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
         ) as showerror:
             self.app.keymap_panel.add_keymap()
 
@@ -323,9 +323,9 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         )
         before = copy.deepcopy(self.app.data)
         with patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
         ), patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog",
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
             return_value=_DialogResult(None),
         ):
             self.app.keymap_panel.add_keymap()
@@ -344,9 +344,9 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
             "keyseq.presentation.controllers.config_io.keymap_file_io.filedialog.askopenfilename",
             return_value="loaded.json",
         ), patch.object(self.app.keymap_io, "_load_keymap", return_value=copy.deepcopy(loaded)), patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
         ), patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog",
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
             side_effect=dialog_results,
         ), patch(
             "keyseq.presentation.controllers.config_io.keymap_file_io.messagebox.showinfo"
@@ -365,9 +365,9 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
             "keyseq.presentation.controllers.config_io.keymap_file_io.filedialog.askopenfilename",
             return_value="loaded.json",
         ), patch.object(self.app.keymap_io, "_load_keymap", return_value=copy.deepcopy(loaded)), patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
         ), patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.KeymapEditDialog",
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
             return_value=_DialogResult(None),
         ):
             self.app.keymap_io.load_keymap_file()
@@ -375,7 +375,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
 
     def test_edit_cannot_clear_switch_key_with_two_maps_but_can_with_one(self):
         with patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror"
         ) as showerror:
             changed = self.app.keymap_panel.apply_keymap_edit(
                 self.app.data["keymaps"][0], new_label="Main", new_key=""
@@ -400,7 +400,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.app.trigger_panel.refresh_triggers()
         self.assertEqual(str(self.app.full_view.keymap_box.keymap_delete_btn.cget("state")), "disabled")
         with patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror"
         ) as showerror:
             self.app.keymap_panel.delete_keymap()
         showerror.assert_called_once()
@@ -417,7 +417,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         keymap_list.activate(1)
         self.app.keymap_panel.on_keymap_list_select()
         with patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.askyesno",
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.askyesno",
             return_value=False,
         ) as confirm:
             self.app.keymap_panel.delete_keymap()
@@ -453,7 +453,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         keymap_list.activate(0)
 
         with patch(
-            "keyseq.presentation.controllers.keymap_panel_controller.messagebox.askyesno",
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.askyesno",
             return_value=True,
         ):
             self.app.keymap_panel.delete_keymap()
@@ -512,7 +512,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
                 keymap_list.selection_set(migration_index)
                 keymap_list.activate(migration_index)
                 with patch(
-                    "keyseq.presentation.controllers.keymap_panel_controller.messagebox.askyesno",
+                    "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.askyesno",
                     return_value=True,
                 ):
                     self.app.keymap_panel.delete_keymap()

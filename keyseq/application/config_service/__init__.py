@@ -20,6 +20,8 @@ from keyseq.infrastructure.json_repository import JsonRepository
 from keyseq.domain.keymap_triggers import (
     INTERNAL_TRIGGER_SET_DIRTY,
     INTERNAL_TRIGGER_SET_IMPORTED,
+    INTERNAL_TRIGGER_SET_PARENT_REFS,
+    INTERNAL_TRIGGER_SET_SOURCE_PATH,
     trigger_set_members,
     ensure_active_triggers,
     get_active_triggers,
@@ -51,11 +53,11 @@ class ConfigService:
     INTERNAL_SEQUENCE_SOURCE_PATH = "_sequence_source_path"
     INTERNAL_SEQUENCE_IMPORTED = "_sequence_imported"
     INTERNAL_SEQUENCE_DIRTY = "_sequence_dirty"
-    INTERNAL_TRIGGER_SET_SOURCE_PATH = "_trigger_set_source_path"
+    INTERNAL_TRIGGER_SET_SOURCE_PATH = INTERNAL_TRIGGER_SET_SOURCE_PATH
     PARENT_REFS_KEY = "_parent_refs"
     INTERNAL_KEYMAP_PARENT_REFS = "_keymap_parent_refs"
     INTERNAL_SEQUENCE_PARENT_REFS = "_sequence_parent_refs"
-    INTERNAL_TRIGGER_SET_PARENT_REFS = "_trigger_set_parent_refs"
+    INTERNAL_TRIGGER_SET_PARENT_REFS = INTERNAL_TRIGGER_SET_PARENT_REFS
     INTERNAL_LEGACY_TRIGGER_SET = "_legacy_trigger_set"
 
     def __init__(self, repository: JsonRepository):
@@ -778,7 +780,7 @@ class ConfigService:
                 for key in (
                     self.INTERNAL_TRIGGER_SET_SOURCE_PATH,
                     self.INTERNAL_TRIGGER_SET_PARENT_REFS,
-                    "_trigger_set_dirty", "_trigger_set_imported",
+                    INTERNAL_TRIGGER_SET_DIRTY, INTERNAL_TRIGGER_SET_IMPORTED,
                 ):
                     cleaned.pop(key, None)
                 for trigger in cleaned.get("triggers", []):
