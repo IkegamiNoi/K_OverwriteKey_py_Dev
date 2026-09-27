@@ -611,7 +611,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 | モジュール | 責務 |
 |---|---|
-| `domain/sequence_control.py` | 定数（種別・op・深さ上限 9 等）/ `analyze_loops`（括弧の対応・深さ・対応崩れ・深さ超過）/ `enclosing_loop_starts`（位置を囲むループ・終わりの行は内側）/ `loop_depth_style`（深さ → 色相・濃さ）/ `format_control_value`（表示名・runtime 値は引数） |
+| `domain/sequence_control.py` | 定数（種別・op〔`OP_STOP` は phase 39〕・深さ上限 9 等）/ `analyze_loops`（括弧の対応・深さ・対応崩れ・深さ超過）/ `enclosing_loop_starts`（位置を囲むループ・終わりの行は内側）/ `loop_depth_style`（深さ → 色相・濃さ）/ `format_control_value`（表示名・runtime 値は引数） |
 | `domain/sequence_editing.py` | 編集規則の純関数: 挿入と位置補正 / ループの対の生成・深さ上限 / 対の添字・削除する添字 / 移動の可否 / 戻す・先頭への単独登録の判定 |
 | `domain/config.py` | `normalize_actions` が新キー（`op` / `counter` / `path` / `encoding` / `out_of_range`）を種別を問わず trim。`format_action_list_item` は system / file_line を `format_control_value` へ委譲 |
 | `application/sequence_steps.py` | ステップの進め方（UI・タイマー非依存）: `advance`（保留の反映 → 周回の整合 → system の処理 → 通常アクションの手前で止まる・待機で `wait_ms` と `StepResume`）/ `after_normal_action` / `settle_after_normal`（先行処理・カウンターは保留へ）/ エラー通知用の整形 |
@@ -631,6 +631,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `_finish_run_to_end_normal_action` で通常アクションと共有。連続実行の次ステップ予約は `_schedule_run_to_end_step` に集約。保留の `StepResume` は `sequence_steps.resume_for_pending` で作る。`App` が `FileLineLoader` を作って executor へ渡し、`AppState.reset_listeners` に `clear_cache` と
   `SequenceRunner.on_runtime_reset`（連続実行を停止）を登録（`reset_indices` = 構成セットの読込等で呼ばれる）。`AppState` は `PendingStep.file_line`（単発の読込中の札）も持つ。
   テスト: `tests/test_file_line_loader.py` / `tests/test_sequence_runner_file_line.py`。
+- phase 39（停止）: `advance` / `settle_after_normal` の `stop_ends_run` 引数（False = 読み飛ばし）と `StepOutcome.stopped` / `SettleOutcome.stopped`。runner は連続実行ごとの印 `_run_to_end_sent`（開始で False・通常アクション / file_line の成功で True）を `stop_ends_run` に渡し、`_finish_run_to_end_normal_action` は `(deltas, position, stopped)` を返して停止の行で保留を反映して終える。テスト: `tests/test_sequence_runner_stop.py`。
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 

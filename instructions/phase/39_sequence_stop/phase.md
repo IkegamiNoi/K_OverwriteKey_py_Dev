@@ -46,7 +46,7 @@
 
 - task_01: domain と実行の中核（暫定 §3・§4: `OP_STOP`・表示 `[stop]` / `advance`・`settle_after_normal` に連続実行かどうかと読み飛ばしの要否を渡し、停止で終えることを返す） — **完了**（2026-09-28。`stop_ends_run` 引数・`stopped` フィールド）
 - task_02: runner の組み込み（暫定 §4.1: 連続実行の終了・位置・間隔なし・保留の反映と戻す履歴 / 読み飛ばしの印〔開始で消す・一時停止で保つ・file_line の完了も数える〕/ 単発の読み飛ばし） — **完了**（2026-09-28。`_run_to_end_sent`・`_finish_run_to_end_normal_action` が停止を返す）
-- task_03: 編集ダイアログ（暫定 §5: system の操作に「停止」）・実機目視 — コード完了（2026-09-28）**※実機目視待ち**
+- task_03: 編集ダイアログ（暫定 §5: system の操作に「停止」）・実機目視 — **完了**（2026-09-28。実機目視 1〜5 問題なし〔ユーザー〕）
 - task_04: 統合確認（テストスイート全体・smoke。統合レビュー = deep-reviewer + codex-reviewer） — **完了**（2026-09-28。deep-reviewer 修正して採用 → task_04b / Codex 指摘なし）
 - task_04b: 統合レビューのテスト補完（M1・M2）と mixin のコメント（L2） — **完了**（2026-09-28。test_11・test_12・変異検査で M1 の検出を確認）
 - task_05: 正本反映（暫定 28 §8: `data_schema.md` §5.11.5・§5.11.6 / `features.md` §4.2.1・§4.2.2・4.2.8 新設・§4.6 / `codebase_map.md` /
