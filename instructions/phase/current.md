@@ -7,7 +7,9 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 38 は 2026-09-27 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- **アクティブなフェーズ = [phase 39](39_sequence_stop/phase.md)**（出力シーケンスの制御アクション第 2 弾 前半 = 停止・2026-09-27 起票）。
+  system に `op: stop` を加え、連続実行をそこで区切る（単発は読み飛ばす）。**JSON スキーマ変更あり**（op の追加のみ）。呼び出しは phase 40（暫定 28 §9 に申し送り）。
+  主入力 = 暫定 [28](../history/28_sequence_stop_and_call.md)（v0.4・ユーザー確定済）/ 起票元 = 暫定 26 §13 / 番号対応: phase 39 / 暫定 28 / decisions 39。
   提案書 [16](../modified_proposal/16_refactor_file_line_async_read.md)（phase 38 の `/refactor_check` = 推奨）は phase 38 task_08 で実施済（2026-09-27・`sequence_runner/` パッケージ化）。
 - 直前の完了フェーズ = [phase 38](38_file_line_async_read/phase.md)（2026-09-27・file_line の非同期読込・
   判断は [decisions_archive/38](../../.claude_data/state/decisions_archive/38_file_line_async_read.md)）/
@@ -47,7 +49,8 @@
   **phase 36 は 2026-09-27 完了**（`36_config_service_split` / 暫定なし〔直接改訂モード〕/ decisions 36〔アーカイブ済〕）。
   **phase 37 は 2026-09-27 完了**（`37_sequence_control_actions` / 暫定 26〔v0.6・凍結〕/ decisions 37〔アーカイブ済〕）。
   **phase 38 は 2026-09-27 完了**（`38_file_line_async_read` / 暫定 27〔v0.8・凍結〕/ decisions 38〔アーカイブ済〕）。
-  次フェーズは **`39_<topic>`**・decisions も **39** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 39 は 2026-09-27 起票・進行中**（`39_sequence_stop` / 暫定 28 / decisions 39）。
+  次フェーズは **`40_<topic>`**・decisions も **40** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -71,8 +74,9 @@
   24=種類が不正なアクションの実行〔**v0.5・凍結**〕/
   25=トリガー一覧のキーマップ従属化〔**v0.7・凍結**〕/
   26=出力シーケンスの制御アクション〔**v0.6・凍結**〕/
-  27=file_line の非同期読込〔**v0.8・凍結**〕）。
-  次採番は **`28_<topic>`**。
+  27=file_line の非同期読込〔**v0.8・凍結**〕/
+  28=制御アクション第 2 弾 前半（停止）〔**v0.4・未凍結・phase 39 の主入力**〕）。
+  次採番は **`29_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**16 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
