@@ -14,7 +14,7 @@ UI・停止操作・待機の取り消しが止まらないようにする。読
 連続実行の一時停止と停止 / executor の準備と送信の分離）。presentation は配線（ワーカーの起動・キャッシュの全破棄の契機）のみ。
 
 - 起票元: [idea_38](../../backlog/idea_38_file_line_async_read.md)（2026-09-27・phase 37 の Codex 敵対的レビュー High から分離・ユーザー判断「次フェーズで最初に対応」）。
-- 主入力（暫定仕様）: [27_file_line_async_read.md](../../history/27_file_line_async_read.md)（v0.6・ユーザー確定済 2026-09-27）。
+- 主入力（暫定仕様）: [27_file_line_async_read.md](../../history/27_file_line_async_read.md)（v0.8・ユーザー確定済 2026-09-27。v0.7・v0.8 はレビューを受けた改訂）。
 - モード: **暫定仕様先行モード**。番号対応: phase 38 / 暫定 27 / decisions 38。
 
 ## 確定（ユーザー 2026-09-27）
@@ -59,6 +59,7 @@ UI・停止操作・待機の取り消しが止まらないようにする。読
 - task_05: 配線と実機目視（暫定 §6.2 の全破棄の契機〔`clear_cache` の呼び出し〕/ 実機: 応答しないパスで UI が止まらない・終了時に例外なし〔§8-11〕） — **完了**（2026-09-27。`AppState.reset_listeners` に `clear_cache` を登録。実機目視 1〜7 問題なし〔ユーザー 2026-09-27〕）
 - task_06: 統合確認（テストスイート全体・smoke。統合レビュー = deep-reviewer + codex-reviewer） — **完了**（2026-09-27。deep-reviewer 修正して採用 / Codex P2 1 件 → task_06b で解消）
 - task_06b: 統合レビューの修正（暫定 27 v0.7: 連続実行の読込中の位置変更は待機と同じく続行〔H1〕/ 完了時の確認〔M2〕/ 待ち合わせの上限判定順〔M1〕/ stat の ValueError〔L1〕/ テスト補完〔M3〕） — **完了**（2026-09-27）
+- task_07a: 完了判定前レビューの修正（暫定 27 v0.8: 構成セットの読込等で連続実行を常に停止 / 完了結果の受け取り後の再照合）
 - task_07: 正本反映（暫定 27 §10: `data_schema.md` §5.11.5・§5.11.7 / `features.md` §4.2〔4.2.7 新設・4.2.6 の拒否条件〕/ `codebase_map.md` /
   暫定 27 の凍結 / `decisions_archive/38_file_line_async_read.md` / current.md 完了記載 / idea_38 を INDEX_done へ / `/refactor_check`）
 
