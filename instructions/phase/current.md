@@ -7,23 +7,20 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 38](38_file_line_async_read/phase.md)**（file_line の非同期読込・2026-09-27 起票）。
-  file_line のファイル読込をワーカースレッドへ移し（完了は UI 側の 50 ms 確認タイマー）、上限 5 秒・同じ (パス, 文字コード) の待ち合わせ・
-  読込結果のキャッシュ（実行ごとにサイズと更新日時を確認）を加える。**JSON スキーマ変更なし**。
-  主入力 = 暫定 [27](../history/27_file_line_async_read.md)（v0.6・ユーザー確定済）/ 起票元 = [idea_38](../backlog/idea_38_file_line_async_read.md) /
-  番号対応: phase 38 / 暫定 27 / decisions 38。
-  提案書 [15](../modified_proposal/15_refactor_sequence_control_actions.md)（phase 37 の `/refactor_check` = 推奨）は phase 37 task_09 で実施済（2026-09-27）。
-- 直前の完了フェーズ = [phase 37](37_sequence_control_actions/phase.md)（2026-09-27・出力シーケンスの制御アクション第 1 弾・
+- **アクティブなフェーズ = なし**（phase 38 は 2026-09-27 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+  提案書 [16](../modified_proposal/16_refactor_file_line_async_read.md)（phase 38 の `/refactor_check` = 推奨）は phase 38 末の task_08 で実施（ユーザー承認 2026-09-27）。
+- 直前の完了フェーズ = [phase 38](38_file_line_async_read/phase.md)（2026-09-27・file_line の非同期読込・
+  判断は [decisions_archive/38](../../.claude_data/state/decisions_archive/38_file_line_async_read.md)）/
+  [phase 37](37_sequence_control_actions/phase.md)（2026-09-27・出力シーケンスの制御アクション第 1 弾・
   判断は [decisions_archive/37](../../.claude_data/state/decisions_archive/37_sequence_control_actions.md)）/
   [phase 36](36_config_service_split/phase.md)（2026-09-27・config_service の分割と巨大関数の分割・
-  判断は [decisions_archive/36](../../.claude_data/state/decisions_archive/36_config_service_split.md)）/
-  [phase 35](35_legacy_trigger_set_missing_file/phase.md)（2026-09-26・旧形式トリガー一覧の移行の境界値・
-  判断は [decisions_archive/35](../../.claude_data/state/decisions_archive/35_legacy_trigger_set_missing_file.md)）。
+  判断は [decisions_archive/36](../../.claude_data/state/decisions_archive/36_config_service_split.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**）。
-  正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.6・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
-  **残件** = file_line の遅い I/O（idea_38・次フェーズ）/ 第 2 弾（停止・他トリガー呼び出し・暫定 26 §13）/ カウンター条件分岐（idea_37）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
+- **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37・38）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**・phase 37）。
+  phase 38 で file_line の読込をワーカー + UI 側 50 ms 確認タイマーへ移し、上限 5 秒・同じ読込キーの待ち合わせ・読込結果のキャッシュを加えた。構成セットの読込等で連続実行を常に停止する（既存挙動の変更）。
+  正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.7・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
+  **残件** = 第 2 弾（停止・他トリガー呼び出し・暫定 26 §13）/ カウンター条件分岐（idea_37）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
 - その前の領域 = **トリガー一覧のキーマップ従属化**（phase 34）。
   トリガー一覧（と従属するシーケンス）はキーマップに従属し、キーマップ＝モードとして一括で切り替わる（**JSON スキーマ変更あり**）。
   正本 = `data_schema.md` §5.13（runtime の形・共有・移行・保存計画）+ §5.2/5.4/5.5/5.6/5.8.x / `key_input.md` §7.3
@@ -35,7 +32,7 @@
   **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**15 まで起票済**・次採番は「次採番」節が正）。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**16 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -49,7 +46,7 @@
   **phase 35 は 2026-09-26 完了**（`35_legacy_trigger_set_missing_file` / 暫定なし〔直接改訂モード〕/ decisions 35〔アーカイブ済〕）。
   **phase 36 は 2026-09-27 完了**（`36_config_service_split` / 暫定なし〔直接改訂モード〕/ decisions 36〔アーカイブ済〕）。
   **phase 37 は 2026-09-27 完了**（`37_sequence_control_actions` / 暫定 26〔v0.6・凍結〕/ decisions 37〔アーカイブ済〕）。
-  **phase 38 は 2026-09-27 起票・進行中**（`38_file_line_async_read` / 暫定 27 / decisions 38）。
+  **phase 38 は 2026-09-27 完了**（`38_file_line_async_read` / 暫定 27〔v0.8・凍結〕/ decisions 38〔アーカイブ済〕）。
   次フェーズは **`39_<topic>`**・decisions も **39** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -74,9 +71,9 @@
   24=種類が不正なアクションの実行〔**v0.5・凍結**〕/
   25=トリガー一覧のキーマップ従属化〔**v0.7・凍結**〕/
   26=出力シーケンスの制御アクション〔**v0.6・凍結**〕/
-  27=file_line の非同期読込〔**v0.6・未凍結・phase 38 の主入力**〕）。
+  27=file_line の非同期読込〔**v0.8・凍結**〕）。
   次採番は **`28_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**14 まで起票済**
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**16 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
   **10 = phase 19 由来・実施済＝phase 19 task_07** /
@@ -84,8 +81,9 @@
   **12 = phase 30 由来・見送り**〔「キーがあれば coerce_label」の 5 重複を 1 関数へ。「別タスク化候補」へ送付〕 /
   **13 = phase 34 由来・実施済＝phase 34 task_09**〔内部キーの定数化・キーマップ追加フローを `controllers/keymap_panel/` へ〕 /
   **14 = phase 36 由来・実施済＝phase 36 task_09**〔`split_loading.py` のホットキープリセット 9 関数を `hotkey_presets_files.py` へ〕 /
-  **15 = phase 37 由来・実施済＝phase 37 task_09**〔アクション編集を `controllers/trigger_panel/` へ・`ActionControlFields.__init__` の分割と定数参照〕）・
-  次採番は **`16_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **15 = phase 37 由来・実施済＝phase 37 task_09**〔アクション編集を `controllers/trigger_panel/` へ・`ActionControlFields.__init__` の分割と定数参照〕 /
+  **16 = phase 38 由来・phase 38 task_08 で実施**〔`sequence_runner.py` の次ステップ予約の集約・file_line 分岐の切り出し・分割〕）・
+  次採番は **`17_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
@@ -212,6 +210,8 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   L6 ループの対を削除しても「次に実行」を補正しない / L8 対応崩れが別の場所にあると張り直さず正しい終わりもエラー / L9 既に深さ超過があるとどこにも追加できない /
   L11 file_line は `_write_text` の例外も捕捉（text は外へ抜ける）/ L13 削除確認ダイアログの表示中はフックが止まらず待機の続きが発火しうる / L14 待機の続きの id 不一致時に記録しない（上流で取り消すので実害なし）
 - `application/sequence_runner.py` 359 行で先行処理の呼び出しが単発・連続に重複（完了判定前レビュー L-8）。次に触るなら `sequence_steps` / `sequence_history` へ寄せる
+- phase 38 由来（詳細は decisions_archive/38）: 通常アクション（hotkey 等）のエラー通知ダイアログ中の停止・別の連続実行の開始の後に続く処理を再照合していない（file_line だけ task_07a で対処）/
+  統合 L2 `execute()` に file_line を渡したときの防御文言に内部名 `begin_file_line / poll_file_line` が出る（本番で到達しない・保留）
 
 ### テスト負債
 

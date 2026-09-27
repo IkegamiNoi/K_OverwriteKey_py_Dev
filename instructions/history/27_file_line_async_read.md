@@ -1,7 +1,7 @@
 # 暫定仕様 27: file_line の非同期読込（file_line_async_read）
 
-> 状態: **未凍結・v0.8・主入力（ユーザー確定済 2026-09-27・完了判定前レビューを受けて改訂）**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結（2026-09-27・正本反映済）**。正本が最新。本書は経緯記録として凍結（v0.8 で凍結）。
+> 正本 = `data_schema.md` §5.11.5・§5.11.7・§5.11.8 / `features.md` §4.2.2・§4.2.3・§4.2.6・§4.2.7 / `architecture.md` §3.4 / `codebase_map.md`。判断は `decisions_archive/38_file_line_async_read.md`。
 > 起票元: [idea_38](../backlog/idea_38_file_line_async_read.md)（2026-09-27・phase 37 の Codex 敵対的レビュー High から分離・
 > ユーザー判断「早めに対応・次フェーズで最初に対応」）。
 > 番号対応: phase 38 / 暫定 27 / decisions 38。

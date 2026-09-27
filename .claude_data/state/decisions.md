@@ -47,6 +47,7 @@
 | 35_legacy_trigger_set_missing_file | [35_legacy_trigger_set_missing_file.md](decisions_archive/35_legacy_trigger_set_missing_file.md) | 旧形式トリガー一覧の移行の境界値（2026-09-26 完了・**application 3 行 + tests・スキーマ不変**・直接改訂モード・起票元 = phase 34 task_07d reviewer 参考指摘）。keymap_set の `trigger_set_path` が**存在しないファイル**を指すときは**移行しない**（旧参照なし扱い・正本 §5.13.3-8 追記）/ **あるが読めない**ときは移行のまま（§5.12 の区別に揃える）/ 非文字列は §5.1 どおり空扱いをテストで固定。refactor_check: **不要**（keyseq/ は split_loading.py +3 行のみ・M1〜M6 非該当） |
 | 36_config_service_split | [36_config_service_split.md](decisions_archive/36_config_service_split.md) | config_service の分割と巨大関数の分割（2026-09-27 完了・**挙動不変・スキーマ不変・正本改訂なし**・直接改訂モード・起票元 = 別タスク化候補 2 項）。`config_service/__init__.py` 1135 → 840 行（保存計画一式 → `keymap_save_plan.py` / ファイル IO → `child_file_io.py`）・80 行超の 5 関数を同ファイル内の補助関数へ（各 23〜42 行）。完了判定前レビューで**「パス基盤は `config_service.os.path` の patch のため動かせない」は誤り**と判明（patch は `os.path` をプロセス全体で差し替える・実測）→ 記述を訂正して閉じた。refactor_check: **推奨 → 提案書 14 → task_09 で実施済**（ホットキープリセット 9 関数を `hotkey_presets_files.py` へ・`split_loading.py` 787 → 559 行） |
 | 37_sequence_control_actions | [37_sequence_control_actions.md](decisions_archive/37_sequence_control_actions.md) | 出力シーケンスの制御アクション・第 1 弾（2026-09-27 完了・**JSON スキーマ変更あり**）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）+ file_line。先行処理とカウンターの保留（表示は現在値）/ 戻すは差分で打ち消す / 戻す・先頭へは単独登録。file_line の遅い I/O は idea_38。Codex 実装エージェント 2 種化・既定 Luna high。refactor_check: **推奨 → 提案書 15 → task_09 で実施済** |
+| 38_file_line_async_read | [38_file_line_async_read.md](decisions_archive/38_file_line_async_read.md) | file_line の非同期読込（2026-09-27 完了・JSON スキーマ変更なし）。ワーカー + UI 側 50 ms 確認タイマー・上限 5 秒・同じ読込キーは待ち合わせ・読込結果のキャッシュ（stat 確認・世代つき全破棄）。**構成セットの読込等で連続実行を常に停止**（既存挙動の変更）。refactor_check: **推奨 → 提案書 16 → task_08 で実施** |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -552,22 +553,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   （`_check_import_nodes` → **単数形へ改名** / `prefix` の毎ノード再計算を
   **モジュール定数 `_PACKAGE_PREFIX`** へ）。残る 1 件（分割後の関数が 30 行目安をわずかに超える）は
   **提案書が想定した分割形**のため据え置き。
-
-## 2026-09-27〜 (phase 38: file_line の非同期読込・暫定 27)
-
-### 【起票】暫定 27 = v0.6 でユーザー確定（2026-09-27）
-- モード = **暫定仕様先行**（data_schema §5.11 と features §4.2 に跨る・設計の反復あり）。
-- Q1〜Q4 = すべて推奨で**採用**: 上限 5 秒固定 / 放置の即エラーは上限超過分のみ / 連続実行の一時停止は捨てて読み直す（1 段）/ 完了は UI 側 50 ms 確認タイマー。
-- ユーザー要望で**キャッシュを追加**（案 A: 実行ごとに `os.stat` のサイズと更新日時をワーカーで確認。案 B〔契機でのみ破棄〕は古い内容を送る事故のため不採用）。
-- Codex 敵対的 2 回目の指摘で、**相乗り（前の読込の結果を使う）を待ち合わせへ修正して採用**（書き換え直後の押下に古い内容を送らない）/
-  キャッシュ世代で全破棄後の書き戻し防止を**採用** / 読取権限だけ失った場合のキャッシュ送信は**既知の制約として受容**。
-
-### 【task_06 統合レビュー】deep-reviewer 修正して採用 / Codex 標準 P2 1 件（2026-09-27）
-- H1（= Codex P2）連続実行の読込中の位置変更・編集で固まる → **実装修正して採用・仕様は「待機と同じく続行」**（ユーザー判断・暫定 27 v0.7 §3.4）。
-- M1（待ち合わせ中の要求が上限後に起動して印）/ M2（連続実行の完了時にトリガー・一覧を確認せず送信）/ L1（stat の ValueError の文言）/ M3（テスト不足）→ **採用**（task_06b）。
-- L2（execute の防御文言に内部名）→ **保留** / L3・L4 → **除外** / L5（runner 565 行・種別判定の重複・reset_listeners の eq/repr）→ `/refactor_check` へ。
-
-### 【task_07 完了判定前レビュー】deep-reviewer 修正して完了可 / Codex 敵対的 needs-attention（2026-09-27）
-- Codex #1（= deep L6）構成セットの読込中の連続実行で古い読込結果を送る → **ユーザー判断: 構成セットの読込等で連続実行を常に停止**（待機中・通常も。既存挙動の変更・暫定 27 v0.8 §3.4）→ task_07a。
-- Codex #2 エラー通知のダイアログ中の停止・再開始の後に古い確認が状態を変える → **採用**（結果受け取り後の再照合）→ task_07a。
-- deep M1（キャッシュ世代の正本書き漏れ）/ L1（完了時停止で履歴を積まない＝一覧が変わっているため積めない。v0.8 に明記・完了報告でユーザーへ提示）/ L2（「待機と同じ」の参照先）/ L3（細則）/ L4（phase.md の版・nonfunctional の判断）/ L5（codebase_map の表）→ **採用**（正本反映の後半で文書修正）。
