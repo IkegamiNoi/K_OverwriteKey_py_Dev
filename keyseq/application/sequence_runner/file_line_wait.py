@@ -12,7 +12,7 @@ FILE_LINE_POLL_INTERVAL_MS = 50
 
 class FileLineWaitMixin:
     # Uses runner attributes: state, _begin_file_line, _poll_file_line,
-    # _run_to_end_resume, _run_to_end_snapshot, _run_to_end_wait_position,
+    # _run_to_end_resume, _run_to_end_sent, _run_to_end_snapshot, _run_to_end_wait_position,
     # _run_to_end_generation, _run_to_end_file_line,
     # _run_to_end_file_line_trigger_set_id, _run_to_end_file_line_token,
     # _get_trigger_set_id, _find_trigger, _get_index, _after, _save_progress,

@@ -237,6 +237,39 @@ class SequenceRunnerStopTests(unittest.TestCase):
         self.assertEqual(state.indices["f1"], 0)
         self.assertIsNone(state.run_to_end_key)
 
+    def test_11_consecutive_stops_are_skipped_on_second_run(self):
+        a = {"type": "text", "value": "A"}
+        b = {"type": "text", "value": "B"}
+        runner, state, _scheduler, performed = self.make_runner(
+            [a, self.stop(), self.stop(), b],
+        )
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [a])
+        self.assertEqual(state.indices["f1"], 2)
+        self.assertIsNone(state.run_to_end_key)
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [a, b])
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertIsNone(state.run_to_end_key)
+
+    def test_12_pause_and_resume_during_wait_skips_following_stop(self):
+        wait = {"type": "system", "op": "wait", "ms": 20}
+        a = {"type": "text", "value": "A"}
+        runner, state, scheduler, performed = self.make_runner(
+            [wait, self.stop(), a],
+        )
+
+        runner.handle_key("f1")
+        runner.pause_run_to_end()
+        runner.resume_run_to_end()
+        scheduler.run_pending()
+
+        self.assertEqual(performed, [a])
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertIsNone(state.run_to_end_key)
+
 
 if __name__ == "__main__":
     unittest.main()
