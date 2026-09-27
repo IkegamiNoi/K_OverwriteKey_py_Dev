@@ -3,10 +3,8 @@ from types import SimpleNamespace
 import unittest
 from unittest.mock import Mock, patch
 
-from tkinter import messagebox
-
-from keyseq.presentation.controllers import trigger_panel_controller as controller_module
-from keyseq.presentation.controllers.trigger_panel_controller import TriggerPanelController
+from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
+from keyseq.presentation.controllers.trigger_panel import action_edit as action_edit_module
 
 
 class _Dialog:
@@ -68,7 +66,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
         )
         self.controller = TriggerPanelController(self.app)
         self.controller.refresh_actions = Mock()
-        self.showinfo = patch.object(messagebox, "showinfo").start()
+        self.showinfo = patch.object(action_edit_module.messagebox, "showinfo").start()
         self.addCleanup(patch.stopall)
 
     def set_selection(self, index):
@@ -78,7 +76,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
 
     def install_dialog(self, *, result=None, append_to_end=True):
         dialog = _Dialog(self.app, result=result, append_to_end=append_to_end)
-        patcher = patch.object(controller_module, "ActionDialog", return_value=dialog)
+        patcher = patch.object(action_edit_module, "ActionDialog", return_value=dialog)
         factory = patcher.start()
         self.addCleanup(patcher.stop)
         return factory, dialog
@@ -274,7 +272,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
     def test_malformed_loop_cannot_be_edited(self):
         self.trigger["actions"] = [{"type": "system", "op": "loop_end", "label": ""}]
         self.set_selection(0)
-        factory = patch.object(controller_module, "ActionDialog").start()
+        factory = patch.object(action_edit_module, "ActionDialog").start()
         self.addCleanup(patch.stopall)
 
         self.controller.edit_action()
@@ -291,7 +289,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
             {"type": "system", "op": "loop_end", "label": ""},
         ]
         self.set_selection(0)
-        with patch.object(messagebox, "askyesno", return_value=True) as ask:
+        with patch.object(action_edit_module.messagebox, "askyesno", return_value=True) as ask:
             self.controller.delete_action()
 
         self.assertEqual(self.trigger["actions"], [{"type": "text", "text": "keep"}])

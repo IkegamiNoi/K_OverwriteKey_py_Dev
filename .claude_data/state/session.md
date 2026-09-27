@@ -11,32 +11,30 @@ last_commit_location: `claude/output-sequence-system-type-e641ab`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 37 完了（system 種別 + file_line・暫定 26 v0.6 凍結・正本反映済）。`/refactor_check` = 推奨 → 提案書 15 の実施可否とタイミングがユーザー判断待ち。次フェーズは idea_38（file_line の非同期読込）から。**
+focus: **phase 37 完了（system 種別 + file_line・暫定 26 v0.6 凍結・正本反映済・提案書 15 を task_09 で実施済）。次フェーズは idea_38（file_line の非同期読込）から（ユーザー判断）。**
 mode: completed
 
 ## last_action
-ts: 2026-09-27T19:30:00
+ts: 2026-09-27T20:30:00
 who: main
 summary: |
-  【完了判定前レビュー】deep-reviewer = 修正して完了（M-1〜M-6・L-1〜L-8）/ codex-adversarial（config 既定 Sol medium・約 2.5 分）= file_line の遅い I/O（High）・連続実行の世代番号。
-  ユーザー判断: M-2 = 連続実行の停止時に保留を反映 / M-5 = 実装どおり明記 / file_line の遅い I/O = idea_38 で次フェーズに最初に対応 → 暫定 26 v0.6。
-  【task_07e】`codex-implementer`（Luna high）→ 07d の既存テスト 1 件を v0.6 に合わせて修正 → tests 829 / tests_ui 615 / smoke OK・reviewer 完了可（`ee5a79b`）。
-  【正本反映】`data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.6・§4.5・§4.6（一覧の表示形式・出力シーケンスの編集）/ `codebase_map.md`（新節）/ 暫定 26 凍結 /
-  decisions_archive/37・索引 / current.md（アクティブ = なし・直近の領域・別タスク化候補・次採番）/ idea_38 起票。
-  【refactor_check】推奨 → 提案書 15（項目 1: アクション編集を `controllers/trigger_panel/action_edit.py` へ〔M1〕/ 項目 2: `ActionControlFields.__init__` 分割と定数参照〔M2・M6〕）。
+  【task_09 = 提案書 15】ユーザー承認 (a) → `codex-implementer`（Luna high）: `controllers/trigger_panel/`（本体 562 行 + `action_edit.py` の `ActionEditFlow`）/
+  `ActionControlFields.__init__` 17 行・`sequence_control` の定数参照 / 深さ上限 9 のメッセージを定数から組み立て。
+  verifier で tests_ui 14 件失敗 → 移動先が自分のメソッドを直接呼びテストの差し替え口（コントローラの `selected_action_index`）を迂回 / `__new__` で組み立てるテストで委譲先が無い
+  → メインで「コントローラ経由の呼び出し」「委譲先は初回参照で作る property」に修正 → tests 829 / tests_ui 615 / smoke OK（件数不変）。reviewer 完了可。
 result_files:
-  - instructions/common/spec_detail/{data_schema.md, features.md} / instructions/common/codebase_map.md / instructions/history/26_sequence_control_actions.md（凍結）
-  - instructions/modified_proposal/15_refactor_sequence_control_actions.md / instructions/phase/{current.md, 37_sequence_control_actions/phase.md}
-  - .claude_data/state/{decisions.md, decisions_archive/37_sequence_control_actions.md, session.md}
+  - keyseq/presentation/controllers/trigger_panel/{__init__.py, trigger_panel_controller.py（移動）, action_edit.py} / keyseq/presentation/{app.py, dialogs/action_control_fields.py} / keyseq/application/sequence_steps.py
+  - tests_ui/{test_trigger_panel_controller_action_edit, test_sequence_control_review_fixes, test_action_list_rendering, test_task05_overlap_ui, test_task06_keymap_management_ui}.py
+  - instructions/{common/codebase_map.md, modified_proposal/15_*.md, phase/current.md, phase/37_sequence_control_actions/*} / .claude_data/state/*
 verified:
   compile: clean
   tests: 829 ran OK（skipped 7）
   tests_ui: 615 ran OK
   smoke: pass
-  review: deep-reviewer / codex-adversarial（完了判定前）→ task_07e で対応・reviewer 完了可
+  review: reviewer 完了可（task_09）
 
 ## next_action
-- **ユーザー判断待ち**: 提案書 15 を実施するか・タイミング（(a) phase 37 末の追加タスク task_09 / (b) 次フェーズ前の独立ミニフェーズ）。
+- **ユーザーの実機目視（任意）**: 追加ダイアログの system / file_line の入力欄の並びが変わっていないこと（task_09 の完了条件）。
 - 次フェーズ = idea_38（file_line の非同期読込）。着手時は `/spec_draft` → `/phase_start`（暫定 27・phase 38・decisions 38）。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜37）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。

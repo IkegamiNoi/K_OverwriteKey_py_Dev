@@ -63,4 +63,4 @@
 
 ## refactor_check
 
-- **推奨** → [提案書 15](../../instructions/modified_proposal/15_refactor_sequence_control_actions.md)（M1 `trigger_panel_controller.py` 732 行 +168 / M2 `ActionControlFields.__init__` 84 行 / M6 op 名・文字コード等の直値と深さ上限 9 の直値）。実施可否とタイミングはユーザー判断待ち。
+- **推奨** → [提案書 15](../../instructions/modified_proposal/15_refactor_sequence_control_actions.md)（M1 `trigger_panel_controller.py` 732 行 +168 / M2 `ActionControlFields.__init__` 84 行 / M6 op 名・文字コード等の直値と深さ上限 9 の直値）。**ユーザー承認 (a) → task_09 で実施済**: `controllers/trigger_panel/`（本体 562 行・`action_edit.py` の `ActionEditFlow`・委譲は初回参照で作る property）/ `ActionControlFields.__init__` 17 行・定数参照。挙動不変（tests 829 / tests_ui 615 / smoke・件数不変）。移動先が自分のメソッドを直接呼んでテストの差し替え口を迂回した件をメインで修正（コントローラ経由に戻す）。

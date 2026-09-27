@@ -546,7 +546,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         keymap_list.activate(1)
         self.app.keymap_panel.on_keymap_list_select()
         with patch(
-            "keyseq.presentation.controllers.trigger_panel_controller.ActionDialog",
+            "keyseq.presentation.controllers.trigger_panel.action_edit.ActionDialog",
             side_effect=lambda *_args, **_kwargs: _ActionDialogResult(self.app),
         ):
             self.app.trigger_panel.add_action()

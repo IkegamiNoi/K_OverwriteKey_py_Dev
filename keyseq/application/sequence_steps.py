@@ -6,7 +6,7 @@ from typing import Any
 
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM, OP_BACK, OP_COUNTER_INC, OP_COUNTER_RESET,
-    OP_LOOP_END, OP_LOOP_START, OP_REWIND, OP_WAIT, action_type,
+    MAX_LOOP_DEPTH, OP_LOOP_END, OP_LOOP_START, OP_REWIND, OP_WAIT, action_type,
     analyze_loops, enclosing_loop_starts, system_op,
 )
 
@@ -105,7 +105,7 @@ def _loop_start(action: Mapping[str, Any], position: int, frames: list[LoopFrame
     if position in structure.unmatched:
         return position, "ループの始まりに対応する終わりがありません"
     if position in structure.too_deep:
-        return position, "ループの入れ子が 9 段を超えています"
+        return position, f"ループの入れ子が {MAX_LOOP_DEPTH} 段を超えています"
     if _loop_count(action) == 0:
         return position, "ループの回数が不正です（1 以上の整数）"
     frames.append(LoopFrame(position, 1))

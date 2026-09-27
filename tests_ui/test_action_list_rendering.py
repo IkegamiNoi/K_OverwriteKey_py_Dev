@@ -9,7 +9,7 @@ from keyseq.presentation.controllers.action_list_rendering import (
     build_action_rows,
     format_next_action_summary,
 )
-from keyseq.presentation.controllers.trigger_panel_controller import TriggerPanelController
+from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
 
 
 class ActionListRenderingTest(unittest.TestCase):

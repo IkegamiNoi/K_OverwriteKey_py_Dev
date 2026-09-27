@@ -94,7 +94,8 @@ file_line の実行 / presentation の編集ダイアログ・追加位置・一
 - task_07e: 完了判定前レビューのコード指摘（M-1 追加時の位置 / §2-27 連続実行の停止時に保留を反映 / 連続実行の世代番号 / L-1 大文字 op の通知 / L-4 改名の順序 / L-6 テスト）— **完了**（2026-09-27。`codex-implementer`〔Luna high〕。07d の既存テスト 1 件を v0.6 に合わせてメインで修正。runner 359 行）
 - task_08: 統合確認と正本反映（暫定 26 の `spec_detail/` への昇格・凍結 / `codebase_map.md`〔新モジュール・色値〕/
   decisions_archive/37 / current.md の完了記載 / `/refactor_check`）— **完了**（2026-09-27。完了判定前レビュー → task_07e。暫定 26 は v0.6 で凍結。file_line の遅い I/O は idea_38。
-  `/refactor_check` = 推奨 → 提案書 15〔判断待ち〕。最終実測 tests 829〔skip 7〕/ tests_ui 615 / smoke OK）
+  `/refactor_check` = 推奨 → 提案書 15。最終実測 tests 829〔skip 7〕/ tests_ui 615 / smoke OK）
+- task_09: 提案書 15 のリファクタ（アクション編集を `controllers/trigger_panel/action_edit.py` へ・`ActionControlFields.__init__` の分割と定数参照・挙動不変。ユーザー承認 2026-09-27 (a)）— **完了**（2026-09-27。`codex-implementer`〔Luna high〕。移動先が自分のメソッドを直接呼んでテストの差し替え口を迂回した件・`__new__` で組み立てるテスト用に委譲先を初回参照で作る件をメインで修正。件数不変）
 
 ### 実装モデルの試行（ユーザー判断 2026-09-26）
 

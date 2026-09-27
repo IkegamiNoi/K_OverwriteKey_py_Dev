@@ -69,7 +69,10 @@ keyseq/presentation/
             __init__.py        # PaneLayoutController の再輸出
             pane_layout_controller.py  # PaneLayoutController: 境界線ドラッグ・最小幅・収まらない場合の適用・幅の保存と復元・最小の高さ（phase 20）
             pane_measure.py    # measure_min_widths: 各枠の最小幅 / measure_header_window_width: ヘッダの要求幅から求めたウィンドウ幅を実ウィジェットから測る / measure_window_min_height: 最小の高さ（ウィンドウの要求高さ・一時メッセージは 1 行分）
-        trigger_panel_controller.py
+        trigger_panel/          # トリガー/シーケンス管理（所有者フォルダ・phase 37 task_09）
+            __init__.py        # TriggerPanelController の再輸出
+            trigger_panel_controller.py  # TriggerPanelController: トリガー一覧・描画・状態表示・アクション編集の委譲
+            action_edit.py     # ActionEditFlow: 出力シーケンスの選択・追加・編集・削除・移動
         action_list_rendering.py   # build_action_rows / format_next_action_summary: 出力シーケンス一覧の 1 行の文字列と背景色（tkinter 非依存・phase 37）
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)
@@ -298,7 +301,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     自動決定幅と同じなら書かない → 異なれば無効化 → 保存値と同じなら書かない）。
     予約は `on_close`（`cancel_window_width_save`）と App の `<Destroy>` で取り消す。**終了時には書かない**
 - KeymapPanelController（controllers/keymap_panel/keymap_panel_controller.py）: キーマップ管理パネル。追加フローは `KeymapAddFlow`（同フォルダ `keymap_add_flow.py`）へ委譲
-- TriggerPanelController（controllers/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示
+- TriggerPanelController（controllers/trigger_panel/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示。アクション編集は `ActionEditFlow`（同フォルダ `action_edit.py`）へ委譲
 - HookController（controllers/hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
   - `register_hook_buttons(hook_btn, trigger_btn, *, fixed_width=False)`: `fixed_width=True`（FullHookFrame のみ）の組は登録時と `apply_fixed_button_widths()` で最大文言幅に固定する
   - **`suspend_hook_for_dialog(window)` はウィンドウを渡すと破棄時に自動で解除する**
@@ -616,6 +619,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 | `application/app_state.py` | runtime 状態: 周回スタック・戻す履歴・保留中のカウンター操作（いずれも trigger_set_id → key）・カウンター・直前のトリガー・保留中ステップ。`reset_indices` / `forget_trigger_set` / `rekey_trigger_set` / `forget_trigger` / `rekey_trigger` で一緒に消す・付け替える |
 | `application/file_line_reader.py` | file_line の読込（パス解決 §5.7・1 MB 上限・utf-8-sig / cp932・改行 3 種のみで分割・範囲外 3 種）。executor が `resolve_file_line_path` / `get_counter` の注入で呼ぶ |
 | `presentation/controllers/action_list_rendering.py` | 一覧の 1 行（周回・カウンターの現在値）と背景色、省略表示の要約。色値（薄 / 中 / 濃）: 青 `#DCEBFF` / `#C2DBFF` / `#A8CBFF`・緑 `#DDF3DD` / `#C4E8C4` / `#ABDDAB`・橙 `#FFEBD2` / `#FFDDB3` / `#FFCF94` |
+| `presentation/controllers/trigger_panel/trigger_panel_controller.py` / `presentation/controllers/trigger_panel/action_edit.py` | トリガーパネルの一覧・描画・状態表示 / `ActionEditFlow` による出力シーケンスの選択・追加・編集・削除・移動 |
 
 - 取り消しの配線（presentation）: `HookController.stop_hook` と `toggle_custom_input_enabled`（無効化）→ `cancel_pending_waits` / `KeymapPanelController.activate_keymap_by_id`（切り替わったとき）→ `cancel_pending_waits` /
   `TriggerPanelController` の位置変更（位置が実際に変わったときだけ）・追加 / 編集 / 削除 / 移動 → `reset_loop_frames`、トリガー削除・改名 → `cancel_pending_wait` と `AppState.forget_trigger` / `rekey_trigger`。

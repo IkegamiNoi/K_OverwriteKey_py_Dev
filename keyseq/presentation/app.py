@@ -31,7 +31,7 @@ from keyseq.presentation.controllers.keymap_panel.keymap_panel_controller import
 )
 from keyseq.presentation.controllers.layout_controller import LayoutController
 from keyseq.presentation.controllers.pane_layout import PaneLayoutController
-from keyseq.presentation.controllers.trigger_panel_controller import TriggerPanelController
+from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
 from keyseq.presentation.pane_width_rules import (
     DEFAULT_WINDOW_WIDTH, WINDOW_WIDTH_KEY, parse_saved_window_width,
 )

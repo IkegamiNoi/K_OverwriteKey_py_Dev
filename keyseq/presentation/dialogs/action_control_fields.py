@@ -4,21 +4,39 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 from typing import Any
 
+from keyseq.domain.sequence_control import (
+    ACTION_TYPE_FILE_LINE,
+    ACTION_TYPE_SYSTEM,
+    DEFAULT_ENCODING,
+    DEFAULT_OUT_OF_RANGE,
+    ENCODING_SHIFT_JIS,
+    ENCODING_UTF_8,
+    OP_BACK,
+    OP_COUNTER_INC,
+    OP_COUNTER_RESET,
+    OP_LOOP_START,
+    OP_REWIND,
+    OP_WAIT,
+    OUT_OF_RANGE_EMPTY,
+    OUT_OF_RANGE_ERROR,
+    OUT_OF_RANGE_WRAP,
+)
+
 
 SYSTEM_OPERATIONS = {
-    "ループ": "loop_start",
-    "カウンター +1": "counter_inc",
-    "カウンターを 0 に": "counter_reset",
-    "待機": "wait",
-    "戻す": "back",
-    "先頭へ": "rewind",
+    "ループ": OP_LOOP_START,
+    "カウンター +1": OP_COUNTER_INC,
+    "カウンターを 0 に": OP_COUNTER_RESET,
+    "待機": OP_WAIT,
+    "戻す": OP_BACK,
+    "先頭へ": OP_REWIND,
 }
 SYSTEM_LABELS = {operation: label for label, operation in SYSTEM_OPERATIONS.items()}
-ENCODINGS = {"UTF-8": "utf-8", "Shift_JIS": "shift_jis"}
+ENCODINGS = {"UTF-8": ENCODING_UTF_8, "Shift_JIS": ENCODING_SHIFT_JIS}
 OUT_OF_RANGE_VALUES = {
-    "エラーで停止": "error",
-    "空を送る": "empty",
-    "折り返し": "wrap",
+    "エラーで停止": OUT_OF_RANGE_ERROR,
+    "空を送る": OUT_OF_RANGE_EMPTY,
+    "折り返し": OUT_OF_RANGE_WRAP,
 }
 
 
@@ -39,7 +57,11 @@ class ActionControlFields:
         self.file_frame = ttk.LabelFrame(parent, text="file_line 設定", padding=8)
         self.system_frame.grid_columnconfigure(1, weight=1)
         self.file_frame.grid_columnconfigure(1, weight=1)
+        self._build_system_fields(operation_labels)
+        self._build_file_fields()
+        self.sync_system()
 
+    def _build_system_fields(self, operation_labels: list[str]) -> None:
         self.system_op_var = tk.StringVar(value="カウンター +1")
         self.system_op_combo = ttk.Combobox(
             self.system_frame, textvariable=self.system_op_var,
@@ -78,6 +100,7 @@ class ActionControlFields:
         self.wait_entry = ttk.Entry(self.system_frame, textvariable=self.wait_ms_var, width=12)
         self.wait_entry.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
 
+    def _build_file_fields(self) -> None:
         self.file_path_var = tk.StringVar(value="")
         ttk.Label(self.file_frame, text="ファイル").grid(row=0, column=0, sticky="w")
         self.file_path_entry = ttk.Entry(self.file_frame, textvariable=self.file_path_var, width=34)
@@ -108,7 +131,6 @@ class ActionControlFields:
             values=list(OUT_OF_RANGE_VALUES), state="readonly", width=18,
         )
         self.out_of_range_combo.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
-        self.sync_system()
 
     def browse_file(self) -> None:
         selected = filedialog.askopenfilename(parent=self.parent.winfo_toplevel())
@@ -116,18 +138,18 @@ class ActionControlFields:
             self.file_path_var.set(selected)
 
     def sync_system(self) -> None:
-        op = SYSTEM_OPERATIONS.get(self.system_op_var.get(), "counter_inc")
-        self._show(self.loop_count_label, op == "loop_start")
-        self._show(self.loop_count_entry, op == "loop_start")
-        self._show(self.loop_infinite_check, op == "loop_start")
+        op = SYSTEM_OPERATIONS.get(self.system_op_var.get(), OP_COUNTER_INC)
+        self._show(self.loop_count_label, op == OP_LOOP_START)
+        self._show(self.loop_count_entry, op == OP_LOOP_START)
+        self._show(self.loop_infinite_check, op == OP_LOOP_START)
         self.loop_count_entry.configure(
-            state="disabled" if op == "loop_start" and self.loop_infinite_var.get() else "normal"
+            state="disabled" if op == OP_LOOP_START and self.loop_infinite_var.get() else "normal"
         )
-        counter_op = op in ("counter_inc", "counter_reset")
+        counter_op = op in (OP_COUNTER_INC, OP_COUNTER_RESET)
         self._show(self.system_counter_label, counter_op)
         self._show(self.system_counter_combo, counter_op)
-        self._show(self.wait_label, op == "wait")
-        self._show(self.wait_entry, op == "wait")
+        self._show(self.wait_label, op == OP_WAIT)
+        self._show(self.wait_entry, op == OP_WAIT)
 
     def _remember_loop_count(self, *_args) -> None:
         try:
@@ -146,7 +168,7 @@ class ActionControlFields:
 
     def load(self, action: dict[str, Any]) -> None:
         action_type = str(action.get("type", "")).strip().lower()
-        if action_type == "system":
+        if action_type == ACTION_TYPE_SYSTEM:
             op = str(action.get("op", "")).strip().lower()
             self.system_op_var.set(SYSTEM_LABELS.get(op, "カウンター +1"))
             self.loop_count_var.set(str(action.get("count", 1)))
@@ -154,41 +176,41 @@ class ActionControlFields:
             self.system_counter_var.set(str(action.get("counter", "")))
             self.wait_ms_var.set(str(action.get("ms", 1)))
             self.sync_system()
-        elif action_type == "file_line":
+        elif action_type == ACTION_TYPE_FILE_LINE:
             self.file_path_var.set(str(action.get("path", "")))
             self.file_counter_var.set(str(action.get("counter", "")))
-            encoding = str(action.get("encoding", "utf-8")).strip().lower()
+            encoding = str(action.get("encoding", DEFAULT_ENCODING)).strip().lower()
             self.encoding_var.set(next((label for label, value in ENCODINGS.items() if value == encoding), "UTF-8"))
-            out_of_range = str(action.get("out_of_range", "error")).strip().lower()
+            out_of_range = str(action.get("out_of_range", DEFAULT_OUT_OF_RANGE)).strip().lower()
             self.out_of_range_var.set(next(
                 (label for label, value in OUT_OF_RANGE_VALUES.items() if value == out_of_range),
                 "エラーで停止",
             ))
 
     def build_result(self, action_type: str, label: str) -> dict[str, Any] | None:
-        if action_type == "system":
+        if action_type == ACTION_TYPE_SYSTEM:
             return self._build_system_result(label)
-        if action_type == "file_line":
+        if action_type == ACTION_TYPE_FILE_LINE:
             return self._build_file_result(label)
         return None
 
     def _build_system_result(self, label: str) -> dict[str, Any] | None:
-        op = "loop_start" if self.mode == "edit_loop" else SYSTEM_OPERATIONS.get(self.system_op_var.get())
-        if self.mode == "edit" and op == "loop_start":
+        op = OP_LOOP_START if self.mode == "edit_loop" else SYSTEM_OPERATIONS.get(self.system_op_var.get())
+        if self.mode == "edit" and op == OP_LOOP_START:
             op = None
         if op is None:
             messagebox.showerror("入力エラー", "操作が不正です。")
             return None
-        result: dict[str, Any] = {"type": "system", "op": op}
-        if op == "loop_start":
+        result: dict[str, Any] = {"type": ACTION_TYPE_SYSTEM, "op": op}
+        if op == OP_LOOP_START:
             return self._build_loop_result(label, result)
-        if op in ("counter_inc", "counter_reset"):
+        if op in (OP_COUNTER_INC, OP_COUNTER_RESET):
             counter = self.system_counter_var.get().strip()
             if not counter:
                 messagebox.showerror("入力エラー", "カウンター名が空です。")
                 return None
             result.update({"counter": counter, "label": label})
-        elif op == "wait":
+        elif op == OP_WAIT:
             try:
                 milliseconds = int(self.wait_ms_var.get().strip())
             except (TypeError, ValueError):
@@ -227,8 +249,8 @@ class ActionControlFields:
             return None
         stored_path = self.config_service.to_config_relative_or_absolute(path, self.config_root)
         return {
-            "type": "file_line", "path": stored_path, "counter": counter,
-            "encoding": ENCODINGS.get(self.encoding_var.get(), "utf-8"),
-            "out_of_range": OUT_OF_RANGE_VALUES.get(self.out_of_range_var.get(), "error"),
+            "type": ACTION_TYPE_FILE_LINE, "path": stored_path, "counter": counter,
+            "encoding": ENCODINGS.get(self.encoding_var.get(), DEFAULT_ENCODING),
+            "out_of_range": OUT_OF_RANGE_VALUES.get(self.out_of_range_var.get(), DEFAULT_OUT_OF_RANGE),
             "label": label,
         }

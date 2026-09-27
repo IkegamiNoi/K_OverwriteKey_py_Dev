@@ -82,10 +82,10 @@ class Task05OverlapUiTest(unittest.TestCase):
         trigger_list.selection_set(0)
         trigger_list.activate(0)
         with patch(
-            "keyseq.presentation.controllers.trigger_panel_controller.TriggerDialog",
+            "keyseq.presentation.controllers.trigger_panel.trigger_panel_controller.TriggerDialog",
             return_value=_DialogResult({"key": "f3", "label": "changed"}),
         ), patch(
-            "keyseq.presentation.controllers.trigger_panel_controller.messagebox.showerror",
+            "keyseq.presentation.controllers.trigger_panel.trigger_panel_controller.messagebox.showerror",
             side_effect=AssertionError("unexpected trigger edit error"),
         ):
             self.app.trigger_panel.rename_trigger()
@@ -154,10 +154,10 @@ class Task05OverlapUiTest(unittest.TestCase):
 
     def test_edit_refusals_use_active_or_all_keymap_sets_as_specified(self):
         with patch(
-            "keyseq.presentation.controllers.trigger_panel_controller.TriggerDialog",
+            "keyseq.presentation.controllers.trigger_panel.trigger_panel_controller.TriggerDialog",
             return_value=_DialogResult({"key": "m", "label": ""}),
         ), patch(
-            "keyseq.presentation.controllers.trigger_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.trigger_panel.trigger_panel_controller.messagebox.showerror"
         ) as showerror:
             before = len(self.app.data["keymaps"][0]["triggers"])
             self.app.trigger_panel.add_trigger()
@@ -177,10 +177,10 @@ class Task05OverlapUiTest(unittest.TestCase):
             showerror.assert_called_once()
 
         with patch(
-            "keyseq.presentation.controllers.trigger_panel_controller.TriggerDialog",
+            "keyseq.presentation.controllers.trigger_panel.trigger_panel_controller.TriggerDialog",
             return_value=_DialogResult({"key": "m", "label": ""}),
         ), patch(
-            "keyseq.presentation.controllers.trigger_panel_controller.messagebox.showerror"
+            "keyseq.presentation.controllers.trigger_panel.trigger_panel_controller.messagebox.showerror"
         ) as showerror:
             self.app._selected_trigger_idx = 4
             self.app.trigger_panel.rename_trigger()

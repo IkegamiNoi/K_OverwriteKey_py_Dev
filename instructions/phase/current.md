@@ -8,7 +8,7 @@
 ## 現在の参照先
 
 - **アクティブなフェーズ = なし**（phase 37 は 2026-09-27 完了。次フェーズは [idea_38](../backlog/idea_38_file_line_async_read.md)〔file_line の非同期読込〕から着手の予定〔ユーザー判断〕・着手時は `/phase_start`）。
-  提案書 [15](../modified_proposal/15_refactor_sequence_control_actions.md)（phase 37 の `/refactor_check` = 推奨）は**実施可否・タイミングがユーザー判断待ち**。
+  提案書 [15](../modified_proposal/15_refactor_sequence_control_actions.md)（phase 37 の `/refactor_check` = 推奨）は phase 37 task_09 で実施済（2026-09-27）。
 - 直前の完了フェーズ = [phase 37](37_sequence_control_actions/phase.md)（2026-09-27・出力シーケンスの制御アクション第 1 弾・
   判断は [decisions_archive/37](../../.claude_data/state/decisions_archive/37_sequence_control_actions.md)）/
   [phase 36](36_config_service_split/phase.md)（2026-09-27・config_service の分割と巨大関数の分割・
@@ -19,7 +19,7 @@
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
 - **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**）。
   正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.6・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
-  **残件** = file_line の遅い I/O（idea_38・次フェーズ）/ 第 2 弾（停止・他トリガー呼び出し・暫定 26 §13）/ カウンター条件分岐（idea_37）/ 提案書 15 / 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
+  **残件** = file_line の遅い I/O（idea_38・次フェーズ）/ 第 2 弾（停止・他トリガー呼び出し・暫定 26 §13）/ カウンター条件分岐（idea_37）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
 - その前の領域 = **トリガー一覧のキーマップ従属化**（phase 34）。
   トリガー一覧（と従属するシーケンス）はキーマップに従属し、キーマップ＝モードとして一括で切り替わる（**JSON スキーマ変更あり**）。
   正本 = `data_schema.md` §5.13（runtime の形・共有・移行・保存計画）+ §5.2/5.4/5.5/5.6/5.8.x / `key_input.md` §7.3
@@ -78,7 +78,7 @@
   **12 = phase 30 由来・見送り**〔「キーがあれば coerce_label」の 5 重複を 1 関数へ。「別タスク化候補」へ送付〕 /
   **13 = phase 34 由来・実施済＝phase 34 task_09**〔内部キーの定数化・キーマップ追加フローを `controllers/keymap_panel/` へ〕 /
   **14 = phase 36 由来・実施済＝phase 36 task_09**〔`split_loading.py` のホットキープリセット 9 関数を `hotkey_presets_files.py` へ〕 /
-  **15 = phase 37 由来・判断待ち**〔アクション編集を `controllers/trigger_panel/` へ・`ActionControlFields.__init__` の分割と定数参照〕）・
+  **15 = phase 37 由来・実施済＝phase 37 task_09**〔アクション編集を `controllers/trigger_panel/` へ・`ActionControlFields.__init__` の分割と定数参照〕）・
   次採番は **`16_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 

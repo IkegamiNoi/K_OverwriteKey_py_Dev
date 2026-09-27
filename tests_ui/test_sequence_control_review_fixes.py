@@ -6,10 +6,11 @@ from unittest.mock import Mock, patch
 
 from tkinter import messagebox
 
-from keyseq.presentation.controllers import trigger_panel_controller as trigger_module
+from keyseq.presentation.controllers.trigger_panel import action_edit as action_edit_module
+from keyseq.presentation.controllers.trigger_panel import trigger_panel_controller as trigger_module
 from keyseq.presentation.controllers.hook_controller import HookController
 from keyseq.presentation.controllers.keymap_panel.keymap_panel_controller import KeymapPanelController
-from keyseq.presentation.controllers.trigger_panel_controller import TriggerPanelController
+from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
 
 
 class SequenceControlReviewFixesTest(unittest.TestCase):
@@ -176,7 +177,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
             wait_window=Mock(side_effect=lambda: app._indices.__setitem__("f1", 2)),
         )
 
-        with patch.object(trigger_module, "ActionDialog", return_value=dialog):
+        with patch.object(action_edit_module, "ActionDialog", return_value=dialog):
             controller.add_action()
 
         self.assertEqual(app._indices["f1"], 3)
