@@ -2,7 +2,7 @@ import unittest
 
 from keyseq.application.app_state import AppState
 from keyseq.application.sequence_steps import (
-    LoopFrame, StepResume, advance, after_normal_action,
+    LoopFrame, StepResume, advance, after_normal_action, settle_after_normal,
 )
 
 
@@ -14,6 +14,88 @@ NORMAL = {"type": "text", "value": "x"}
 
 
 class SequenceStepsTest(unittest.TestCase):
+    def test_settle_loops_return_to_body_and_then_exit(self):
+        actions = [control("loop_start", count=2), NORMAL,
+                   control("loop_end"), NORMAL]
+        first = settle_after_normal(actions, 2, [LoopFrame(0, 1)], {}, allow_wrap=True)
+        self.assertEqual((first.position, first.frames), (1, [LoopFrame(0, 2)]))
+        second = settle_after_normal(actions, 2, first.frames, {}, allow_wrap=True)
+        self.assertEqual((second.position, second.frames), (3, []))
+        self.assertEqual(second.counter_deltas, ())
+
+    def test_settle_counters_record_increment_and_reset(self):
+        actions = [NORMAL, control("counter_inc", counter=" n "),
+                   control("counter_reset", counter="n"), NORMAL]
+        counters = {"n": 4}
+        settled = settle_after_normal(actions, 1, [], counters, allow_wrap=True)
+        self.assertEqual((settled.position, settled.frames), (3, []))
+        self.assertEqual(counters, {"n": 0})
+        self.assertEqual(settled.counter_deltas, (("n", 1), ("n", -5)))
+
+    def test_settle_stops_before_wait_back_rewind_and_unknown(self):
+        for op in ("wait", "back", "rewind", "unknown"):
+            with self.subTest(op=op):
+                actions = [NORMAL, control(op), control("counter_inc", counter="n")]
+                counters = {}
+                settled = settle_after_normal(actions, 1, [], counters, allow_wrap=True)
+                self.assertEqual((settled.position, settled.frames), (1, []))
+                self.assertEqual(settled.counter_deltas, ())
+                self.assertEqual(counters, {})
+
+    def test_settle_error_rows_keep_their_state(self):
+        cases = [
+            ([NORMAL, control("loop_end")], 1, []),
+            ([NORMAL, control("loop_start", count=0), control("loop_end")], 1, []),
+            ([NORMAL, control("loop_start", count=1)], 1, []),
+            ([NORMAL, control("counter_inc", counter=" ")], 1, []),
+        ]
+        deep = [control("loop_start", count=1) for _ in range(10)]
+        deep += [control("loop_end") for _ in range(10)]
+        cases.append((deep, 9, [LoopFrame(i, 1) for i in range(9)]))
+        for actions, position, frames in cases:
+            with self.subTest(position=position, actions=actions):
+                counters = {"n": 3}
+                settled = settle_after_normal(actions, position, frames, counters,
+                                              allow_wrap=False)
+                self.assertEqual((settled.position, settled.frames), (position, frames))
+                self.assertEqual(settled.counter_deltas, ())
+                self.assertEqual(counters, {"n": 3})
+
+    def test_settle_wraps_once_only_when_allowed(self):
+        actions = [control("counter_inc", counter="n"), NORMAL,
+                   control("counter_reset", counter="n")]
+        counters = {"n": 2}
+        wrapped = settle_after_normal(actions, 2, [], counters, allow_wrap=True)
+        self.assertEqual((wrapped.position, wrapped.frames, wrapped.wrapped), (1, [], True))
+        self.assertEqual(wrapped.counter_deltas, (("n", -2), ("n", 1)))
+        self.assertEqual(counters, {"n": 1})
+        counters = {"n": 2}
+        stopped = settle_after_normal(actions, 2, [], counters, allow_wrap=False)
+        self.assertEqual((stopped.position, stopped.frames, stopped.wrapped), (0, [], False))
+        self.assertEqual(stopped.counter_deltas, (("n", -2),))
+        self.assertEqual(counters, {"n": 0})
+
+    def test_settle_wrap_limit_and_start_position_rule(self):
+        actions = [control("counter_inc", counter="n"), NORMAL,
+                   control("counter_inc", counter="n")]
+        counters = {}
+        settled = settle_after_normal(actions, 2, [], counters, allow_wrap=True)
+        self.assertEqual(settled.position, 1)  # 開始位置を越えて先頭を先行処理する
+        self.assertEqual(counters["n"], 2)
+        self.assertEqual(settled.counter_deltas, (("n", 1), ("n", 1)))
+        endless = [control("loop_start", infinite=True), control("loop_end")]
+        limited = settle_after_normal(endless, 0, [], {}, allow_wrap=True)
+        self.assertEqual((limited.position, limited.frames), (1, [LoopFrame(0, 10000)]))
+        self.assertEqual(limited.counter_deltas, ())
+        capped = settle_after_normal(
+            [NORMAL, control("counter_inc", counter="n"),
+             control("counter_inc", counter="n")],
+            1, [], counters, allow_wrap=True, processed=9999,
+        )
+        self.assertEqual(capped.position, 2)
+        self.assertEqual(capped.counter_deltas, (("n", 1),))
+        self.assertEqual(counters["n"], 3)
+
     def test_finite_loop_counts(self):
         for count in (1, 3):
             actions = [control("loop_start", count=count), NORMAL, control("loop_end")]

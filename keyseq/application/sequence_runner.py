@@ -7,7 +7,7 @@ from keyseq.application.sequence_history import StepSnapshot, apply_control, com
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
 from keyseq.application.sequence_steps import (
     LoopFrame, StepOutcome, StepResume, advance, after_normal_action,
-    format_system_error_notification, reset_frames,
+    format_system_error_notification, reset_frames, settle_after_normal,
 )
 
 
@@ -194,6 +194,14 @@ class SequenceRunner:
             if self._perform_action(actions[index]) is False:
                 return
             position, frames = after_normal_action(actions, index, outcome.frames)
+            if not (position == 0 and outcome.wrapped):
+                settled = settle_after_normal(
+                    actions, position, frames, self.state.counters,
+                    allow_wrap=position != 0 and not outcome.wrapped,
+                    processed=outcome.processed,
+                )
+                position, frames = settled.position, settled.frames
+                outcome.counter_deltas += settled.counter_deltas
             self._save_progress(key, position, frames)
         finally:
             if not waiting and outcome is not None:
@@ -307,6 +315,13 @@ class SequenceRunner:
                     stop = True
                 else:
                     position, frames = after_normal_action(actions, index, outcome.frames)
+                    if position != 0:
+                        settled = settle_after_normal(
+                            actions, position, frames, self.state.counters,
+                            allow_wrap=False, processed=outcome.processed,
+                        )
+                        position, frames = settled.position, settled.frames
+                        outcome.counter_deltas += settled.counter_deltas
                     self._save_progress(key, position, frames)
                     stop = position == 0
             commit_step(self.state, snapshot, outcome.counter_deltas)

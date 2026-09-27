@@ -86,6 +86,8 @@ file_line の実行 / presentation の編集ダイアログ・追加位置・一
   M2 連続実行の待機中の停止は 1 段積んで待機の行 / M3 system のエラー通知に操作名・値・ラベル / M4 配線の UI テスト / L5 文言 / L12 往復テスト）— **完了**（2026-09-27。
   `codex-implementer`〔Luna high〕。新しい UI テストの偽 App の属性不足 2 件をメインで修正。Low の L3・L4・L6・L8〜L11・L13・L14 は別タスク化候補へ）
 - task_07c: 通常アクションの直後に続く system の先行処理（暫定 v0.4 §2-20・§4.1。実機目視の指摘「次に実行が system の行を指し、その前の行が実行される」への対応）
+  — **実装完了・実機目視待ち**（2026-09-27。`codex-delegating-implementer`〔子は起動されず〕。既存テストの期待値 3 か所〔ループで戻った本体先頭の counter_inc も
+  先行処理される〕をメインで仕様 v0.4 に合わせて修正。reviewer 参考 = 単発・連続で先行処理の呼び出しが 2 か所に重複〔runner 335 行〕）
 - task_08: 統合確認と正本反映（暫定 26 の `spec_detail/` への昇格・凍結 / `codebase_map.md`〔新モジュール・色値〕/
   decisions_archive/37 / current.md の完了記載 / `/refactor_check`）
 

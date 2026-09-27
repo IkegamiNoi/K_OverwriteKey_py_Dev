@@ -97,8 +97,107 @@ class SystemActionRunnerTest(unittest.TestCase):
         for _ in range(3):
             runner.handle_key("f1")
         self.assertEqual(performed, [A1, A1, A2])
+        self.assertEqual(state.indices["f1"], 1)  # v0.4 §4.1: 単発は先頭の loop_start も先行処理
+        self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 1)])
+
+    def test_single_loop_prepares_each_iteration_and_exits_on_third_press(self):
+        actions = [{"type": "system", "op": "loop_start", "count": 3}, A1,
+                   {"type": "system", "op": "loop_end"}, A2]
+        runner, state, _scheduler, performed = make_runner([{"key": "f1", "actions": actions}])
+        for iteration in (2, 3):
+            runner.handle_key("f1")
+            self.assertEqual(state.indices["f1"], 1)
+            self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, iteration)])
+        runner.handle_key("f1")
+        self.assertEqual(performed, [A1, A1, A1])
+        self.assertEqual((state.indices["f1"], state.loop_frames["f1"]), (3, []))
+
+    def test_single_counter_at_head_is_prepared_after_each_action(self):
+        actions = [{"type": "system", "op": "counter_inc", "counter": "n"}, A1]
+        runner, state, _scheduler, performed = make_runner([{"key": "f1", "actions": actions}])
+        seen = []
+        def perform(action):
+            seen.append(state.counters["n"])
+            performed.append(action)
+        runner._perform_action = perform
+        for expected in (1, 2, 3):
+            runner.handle_key("f1")
+            self.assertEqual(seen[-1], expected)
+            self.assertEqual(state.counters["n"], expected + 1)
+            self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(performed, [A1, A1, A1])
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas,
+                         [("n", 1), ("n", 1)])
+
+    def test_settle_stops_at_control_and_error_rows_without_early_notification(self):
+        for op in ("wait", "back", "rewind", "unknown"):
+            with self.subTest(op=op):
+                action = {"type": "system", "op": op, "ms": 4}
+                runner, state, scheduler, performed = make_runner(
+                    [{"key": "f1", "actions": [A1, action, A2]}]
+                )
+                runner._notify_error = Mock()
+                runner.handle_key("f1")
+                self.assertEqual(performed, [A1])
+                self.assertEqual(state.indices["f1"], 1)
+                self.assertEqual(state.counters, {})
+                self.assertEqual(scheduler.queue, [])
+                runner._notify_error.assert_not_called()
+                if op == "unknown":
+                    runner.handle_key("f1")
+                    runner._notify_error.assert_called_once()
+                    self.assertEqual(state.indices["f1"], 1)
+
+    def test_error_after_valid_eager_counter_keeps_prior_delta_only(self):
+        actions = [A1, {"type": "system", "op": "counter_inc", "counter": "n"},
+                   {"type": "system", "op": "counter_reset", "counter": " "}]
+        runner, state, _scheduler, performed = make_runner([{"key": "f1", "actions": actions}])
+        runner._notify_error = Mock()
+        runner.handle_key("f1")
+        self.assertEqual(performed, [A1])
+        self.assertEqual((state.indices["f1"], state.counters["n"]), (2, 1))
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [("n", 1)])
+        runner._notify_error.assert_not_called()
+        runner.handle_key("f1")
+        runner._notify_error.assert_called_once()
+        self.assertEqual((state.indices["f1"], state.counters["n"]), (2, 1))
+
+    def test_continuous_settle_reaches_end_and_stops_without_restarting_head(self):
+        actions = [A1, {"type": "system", "op": "counter_inc", "counter": "n"}]
+        runner, state, scheduler, performed = make_runner(
+            [{"key": "f1", "run_to_end": True, "actions": actions}]
+        )
+        runner.handle_key("f1")
+        self.assertEqual(performed, [A1])
+        self.assertEqual(state.counters["n"], 1)
         self.assertEqual(state.indices["f1"], 0)
-        self.assertEqual(state.loop_frames["f1"], [])
+        self.assertIsNone(state.run_to_end_key)
+        self.assertEqual(scheduler.queue, [])
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [("n", 1)])
+
+    def test_back_undoes_counter_changes_after_normal_action(self):
+        trigger = {"key": "f1", "actions": [
+            {"type": "system", "op": "counter_inc", "counter": "n"}, A1,
+        ]}
+        back = {"key": "f2", "actions": [{"type": "system", "op": "back"}]}
+        runner, state, _scheduler, performed = make_runner([trigger, back])
+        runner.handle_key("f1")
+        self.assertEqual((state.indices["f1"], state.counters["n"]), (1, 2))
+        runner.handle_key("f2")
+        self.assertEqual((state.indices["f1"], state.counters["n"]), (0, 0))
+        self.assertEqual(state.history_for("")["f1"], [])
+        self.assertEqual(performed, [A1])
+
+    def test_single_wait_continuation_settles_after_normal_action(self):
+        actions = [{"type": "system", "op": "wait", "ms": 1}, A1,
+                   {"type": "system", "op": "counter_inc", "counter": "n"}, A2]
+        runner, state, scheduler, performed = make_runner([{"key": "f1", "actions": actions}])
+        runner.handle_key("f1")
+        self.assertEqual(performed, [])
+        scheduler.run_pending()
+        self.assertEqual(performed, [A1])
+        self.assertEqual((state.indices["f1"], state.counters["n"]), (3, 1))
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [("n", 1)])
 
     def test_continuous_steps_through_system_rows(self):
         actions = [{"type": "system", "op": "counter_inc", "counter": "n"}, A1,
@@ -107,7 +206,7 @@ class SystemActionRunnerTest(unittest.TestCase):
             [{"key": "f1", "run_to_end": True, "actions": actions}])
         runner.handle_key("f1")
         self.assertEqual(performed, [A1])
-        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(state.counters["n"], 0)  # v0.4 §4.1: A1 直後の reset を先行処理
         scheduler.run_pending()
         self.assertEqual(performed, [A1, A2])
         self.assertEqual(state.counters["n"], 0)
@@ -191,22 +290,23 @@ class BackRewindRunnerTest(unittest.TestCase):
         )
 
         runner.handle_key("f1")
-        self.assertEqual(state.indices["f1"], 3)
-        self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 1)])
-        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(state.indices["f1"], 2)  # v0.4 §4.1: loop_end を先行処理
+        self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 2)])
+        # v0.4 §4.1: 周回 2 の本体先頭の counter_inc も先行処理する（次の A1 を n=2 で実行する準備）
+        self.assertEqual(state.counters["n"], 2)
         self.assertEqual(len(state.history_for("")["f1"]), 1)
 
         runner.handle_key("f1")
-        self.assertEqual(state.indices["f1"], 3)
-        self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 2)])
-        self.assertEqual(state.counters["n"], 2)
+        self.assertEqual(state.indices["f1"], 2)  # v0.4 §4.1: 末尾から先頭の system も先行処理
+        self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 1)])
+        self.assertEqual(state.counters["n"], 3)
         self.assertEqual(len(state.history_for("")["f1"]), 2)
 
         selected.clear()
         runner.handle_key("f2")
-        self.assertEqual(state.indices["f1"], 3)
-        self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 1)])
-        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(state.indices["f1"], 2)  # v0.4 §4.1: 先行処理込みの 1 段を戻す
+        self.assertEqual(state.loop_frames["f1"], [LoopFrame(0, 2)])
+        self.assertEqual(state.counters["n"], 2)
         self.assertEqual(len(state.history_for("")["f1"]), 1)
         self.assertEqual(state.last_trigger, ("", "f1"))
         self.assertEqual(selected, ["f2", "f1"])
@@ -378,12 +478,15 @@ class BackRewindRunnerTest(unittest.TestCase):
         runner.handle_key("f1")
         self.assertEqual(performed, [A1])
         self.assertEqual(len(state.history_for("")["f1"]), 1)
+        self.assertEqual(state.counters["n"], 2)  # v0.4 §4.1: A1 直後の +1 も同じステップ
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas,
+                         [("n", 1), ("n", 1)])
         self.assertEqual(state.last_trigger, ("", "f1"))
         scheduler.run_pending()
 
         self.assertEqual(performed, [A1, A2])
         self.assertEqual(state.counters["n"], 2)
-        self.assertEqual(state.history_for("")["f1"][-1].counter_deltas, [("n", 1)])
+        self.assertEqual(state.history_for("")["f1"][-1].counter_deltas, [])  # v0.4 §4.1
         self.assertEqual(len(state.history_for("")["f1"]), 2)
         self.assertIsNone(state.run_to_end_key)
 

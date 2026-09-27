@@ -58,6 +58,16 @@ class StepOutcome:
     resume_position: int | None = None
     resume: StepResume | None = None
     counter_deltas: tuple[tuple[str, int], ...] = ()
+    wrapped: bool = False
+    processed: int = 0
+
+
+@dataclass
+class SettleOutcome:
+    position: int
+    frames: list[LoopFrame]
+    counter_deltas: tuple[tuple[str, int], ...]
+    wrapped: bool = False
 
 
 def reset_frames(actions: Sequence[Any], position: int) -> list[LoopFrame]:
@@ -168,7 +178,8 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
         action = actions[position]
         if not isinstance(action, Mapping) or action_type(action) != ACTION_TYPE_SYSTEM:
             return StepOutcome(position, position, current,
-                               counter_deltas=tuple(counter_deltas))
+                               counter_deltas=tuple(counter_deltas),
+                               wrapped=wrapped, processed=processed)
         if processed >= 10000:
             return StepOutcome(
                 None, position, current,
@@ -211,3 +222,35 @@ def after_normal_action(actions: Sequence[Any], index: int,
     if index + 1 >= len(actions):
         return 0, []
     return index + 1, list(frames)
+
+
+def settle_after_normal(actions: Sequence[Any], position: int,
+                        frames: list[LoopFrame], counters: dict[str, int], *,
+                        allow_wrap: bool, processed: int = 0) -> SettleOutcome:
+    """Prepare the next step without executing controls or reporting errors."""
+    current = list(frames)
+    deltas: list[tuple[str, int]] = []
+    structure = analyze_loops(actions)
+    wrapped = False
+    while True:
+        if position == len(actions):
+            position, current = 0, []
+            if not allow_wrap or wrapped:
+                break
+            wrapped = True
+        if not actions or processed >= 10000:
+            break
+        action = actions[position]
+        if not isinstance(action, Mapping) or action_type(action) != ACTION_TYPE_SYSTEM:
+            break
+        op = system_op(action)
+        if op not in (OP_LOOP_START, OP_LOOP_END, OP_COUNTER_INC, OP_COUNTER_RESET):
+            break
+        next_position, error = _system_step(
+            actions, position, current, counters, structure, deltas,
+        )
+        if error:
+            break
+        position = next_position
+        processed += 1
+    return SettleOutcome(position, current, tuple(deltas), wrapped)

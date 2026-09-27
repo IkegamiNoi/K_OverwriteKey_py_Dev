@@ -4,40 +4,41 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T03:10:00
-phase: instructions/phase/37_sequence_control_actions（出力シーケンスの制御アクション・第 1 弾・暫定 26 v0.3 確定済・decisions 37）。
+last_updated: 2026-09-27T11:00:00
+phase: instructions/phase/37_sequence_control_actions（出力シーケンスの制御アクション・第 1 弾・暫定 26 **v0.4** 確定済・decisions 37）。
 次採番 = phase 38 / 暫定 27 / decisions 38 / 提案書 15。直前の完了フェーズ = **phase 36**（判断履歴 = `decisions_archive/36_config_service_split.md`）。
 last_commit_location: `claude/output-sequence-system-type-e641ab`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 37 進行中: task_01〜07 実装完了。task_07（一覧の表示と色分け）はユーザーの実機目視待ち（phase 37 の UI をまとめて確認）。その後 task_08（統合確認と正本反映）。**
+focus: **phase 37 進行中: task_01〜07・07b 完了、task_07c（system の先行処理）実装完了。ユーザーの実機目視待ち（H1 と先行処理）→ 目視 OK 後に task_08（正本反映）。**
 mode: pending_review
 
 ## last_action
-ts: 2026-09-27T03:10:00
+ts: 2026-09-27T11:00:00
 who: main
 summary: |
-  【既定変更】ユーザー判断で Codex 実装エージェントの推論レベルを Luna high に（`920f8d8`・codex / codex_medium 変種に追随・agent_selection.md に理由を記載）。
-  【task_07 一覧の表示】`codex-implementer`（Luna high）→ verifier で tests_ui 1 件エラー = task_06 のテストの偽 App に `_active_trigger_set_id` / `loop_iterations_for` が無い
-  （refresh_actions の変更への追随）→ メインで偽 App を拡張 → 対象 17 件 OK。reviewer 完了可（参考: get_next_action_summary もアクティブな trigger_set_id 前提・既存踏襲）。
+  【統合レビュー】deep-reviewer = 修正して完了（H1: 一覧の KeyRelease で位置不変でも周回・履歴・待機がリセット / M1〜M4 / L1〜L14）。
+  Codex 標準レビュー比較: Luna xhigh（プラグイン）約 9.5 分・1 件（M2）/ **Sol medium（`codex review -c` 直接）約 4.5 分・2 件（M2 + M3 = Luna の見落とし）**。
+  【ユーザー判断】M1・M2・L1 は推奨どおり / 実機目視で「次に実行が system の行を指すズレ」→ **通常アクション直後に続く system を先行処理**（暫定 26 v0.4 §2-20〜24）/
+  `~/.codex/config.toml` の既定をユーザーが Sol medium に変更（確認済）/ codex-explorer を Luna high 明示（`4094f8d`）。
+  【task_07b】`codex-implementer`（Luna high）→ UI テストの偽 App 不足 2 件をメイン修正 → reviewer 完了可（`8b4c7fa`）。
+  【task_07c】`codex-delegating-implementer`（子は起動されず）→ 既存テストの期待値 3 か所をメインで v0.4 に合わせて修正 → tests 812 OK。reviewer は期待値の食い違いを指摘（仕様どおりは実装側と判断）。
 result_files:
-  - keyseq/application/app_state.py / keyseq/presentation/controllers/{action_list_rendering.py（新規）, trigger_panel_controller.py（711 行）}
-  - tests/test_app_state_loop_iterations.py（新規）/ tests_ui/{test_action_list_rendering.py（新規）, test_trigger_panel_controller_action_edit.py}
-  - .claude/agents/{codex-implementer, codex-delegating-implementer}.md / .claude/rules/agent_selection.md（+ 変種）
-  - instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_07_list_display.md} / .claude_data/state/session.md
+  - keyseq/application/{sequence_steps.py, sequence_runner.py（335 行）} / tests/{test_sequence_steps.py, test_sequence_runner.py}
+  - instructions/history/26_sequence_control_actions.md（v0.4）/ instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_07c_eager_system.md} / .claude_data/state/session.md
 verified:
   compile: clean
-  tests: 794 ran OK（skipped 7）
-  tests_ui: 604 ran（修正前 1 error → 該当テストを修正し対象 17 件 OK）
+  tests: 812 ran OK（skipped 7）
+  tests_ui: 610 ran OK（期待値修正の前に実行・修正はテストのみ）
   smoke: pass
-  review: reviewer 完了可（task_07）
+  review: reviewer（task_07c）= 期待値の食い違い 1 件を指摘 → メインが仕様 v0.4 に合わせてテストを修正
 
 ## next_action
-- **ユーザーの実機目視**（`..\..\..\.venv\Scripts\python.exe main.py`）: ループ（回数・無限・ネスト・周回表示・色分け）/ カウンター（+1・0 に・値表示）/ 待機 /
-  戻す・先頭へ（専用トリガーから）/ file_line（UTF-8・Shift_JIS・範囲外 3 種）/「末尾に追加」/ ループの対での追加・削除・移動の制限。指摘は枝番タスク（task_07b 等）で対応。
-- 目視 OK 後に task_08: 統合レビュー（deep-reviewer + codex-reviewer。**Codex レビューは Luna xhigh〔プラグイン〕と Sol medium〔`codex exec` 直接〕を再比較**）→
-  暫定 26 の `spec_detail/` 昇格・凍結 / codebase_map（新モジュール 7 つ・色値）/ decisions_archive/37 / current.md 完了記載 / `/refactor_check`（`trigger_panel_controller.py` 711 行・`action_dialog.py` 449 行・runner 299 行）。
+- **ユーザーの実機目視**: task_07b の H1（一覧にフォーカスを置いたまま押しても周回が進む）と task_07c（「次に実行」の選択が実行される行を指す）。
+- 目視 OK 後に task_08: フェーズ完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer。**Codex は config 既定 = Sol medium**）→ 暫定 26 の `spec_detail/` 昇格・凍結 /
+  codebase_map（新モジュール 9 つ・色値）/ decisions_archive/37 / current.md 完了記載と別タスク化候補（deep-reviewer の L3・L4・L6・L8〜L11・L13・L14）/ `/refactor_check`
+  （`trigger_panel_controller.py` 711 行・`action_dialog.py` 449 行・runner 335 行）。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜37）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
