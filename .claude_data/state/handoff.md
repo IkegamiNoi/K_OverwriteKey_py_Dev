@@ -15,17 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 34 は 2026-09-27 完了〕。
-   次採番 = phase 35 / 暫定 26 / decisions 35 / 提案書 14。次フェーズはユーザー判断・着手時は `/phase_start`）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 38 は 2026-09-27 完了〕。
+   次採番 = phase 39 / 暫定 28 / decisions 39 / 提案書 17。次フェーズはユーザー判断・着手時は `/phase_start`）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜25）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜27）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 34 完了（トリガー一覧のキーマップ従属化・JSON スキーマ変更あり・暫定 25 v0.7 凍結・refactor_check = 提案書 13 → task_09 で実施済）。次フェーズは未定（ユーザー判断待ち）。**
-直近コミット: phase 34 完了記録（本コミット）/ `9fc07a5`（task_09）/ `999cecd`（task_09 起票）/ `a1db856`（task_07e）。
-**main は phase 18 task_05d まで取り込み済み**（phase 18 の残り・19〜34 はユーザーがマージする）。
+**phase 38 完了（file_line の非同期読込・暫定 27 v0.8 凍結・正本反映済・提案書 16 を task_08 で実施済）。次フェーズは未定（ユーザー判断待ち）。**
+直近コミット: `c9f7992`（task_08）/ `44a9726`（phase 38 完了記録）/ `a696e21`（task_07a）。ブランチ `claude/idea-38-9877ba`。
+**main は phase 37 まで取り込み済み**（本ブランチは main から fast-forward して phase 38 を実施。phase 38 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 34 完了時点 = 2026-09-27**）:
-compile **clean** / tests **669 実行 OK**（skip 7）/ tests_ui **576 実行 OK**（skip 0）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 33 完了 577 → phase 34 完了 669 / tests_ui: 537 → 576）。
+直近の実測（**phase 38 完了時点 = 2026-09-27**）:
+compile **clean** / tests **882 実行 OK**（skip 7）/ tests_ui **615 実行 OK**（skip 0）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 37 完了 829 → phase 38 完了 882 / tests_ui: 615 → 615）。
 **`tests_ui` と smoke を並行実行しない**（フックの取り合いで 13 件落ちる。逐次で実行する）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
@@ -52,20 +52,20 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズはユーザー判断（候補 = `current.md`「次フェーズ候補」の idea_23 /「別タスク化候補」の phase 34 残件）。着手時は `/phase_start`。
-- **main へのマージはユーザーが行う**（ブランチ `claude/trigger-list-multi-keymap-19f4d7`・phase 18 残り・19〜34）。
+- 次フェーズはユーザー判断（候補: 制御アクション第 2 弾〔停止・他トリガー呼び出し・暫定 26 §13〕/ idea_37 カウンター条件分岐 / current.md「別タスク化候補」）。着手時は `/phase_start`。
+- **main へのマージはユーザーが行う**（ブランチ `claude/idea-38-9877ba`・phase 38）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
-## 直前フェーズ（phase 34 = トリガー一覧のキーマップ従属化）の要点
+## 直前フェーズ（phase 38 = file_line の非同期読込）の要点
 
-**全レイヤ・JSON スキーマ変更あり**（暫定仕様先行モード・暫定 25 v0.7 凍結）。判断は `decisions_archive/34`、正本は `data_schema.md` §5.13 ほか / `key_input.md` §7.3 / `features.md` §4.1・§4.3・§4.5、
-地図は `codebase_map.md`「キーマップとトリガー一覧（phase 34）」節。
+**application 中心・JSON スキーマ変更なし**（暫定仕様先行モード・暫定 27 v0.8 凍結）。判断は `decisions_archive/38`、正本は `features.md` §4.2.7（新設）・§4.2.3 /
+`data_schema.md` §5.11.5・§5.11.7・§5.11.8 / `architecture.md` §3.4、地図は `codebase_map.md`「出力シーケンスの制御アクション」節。
 
-- トリガー一覧（と従属するシーケンス）はキーマップに従属。keymap ファイルに `trigger_set_path`・keymap_set の `trigger_set_path` は常に `""`・単一 JSON は `keymaps[].triggers`。
-- アクセスは `domain/keymap_triggers.py` の口だけ（presentation の `"triggers"` 直値は静的検査で禁止）。同じ trigger_set は実体を共有（代表 = 一覧順の先頭）。
-- 入力の優先順位 = 停止 > トグル > 直接切替 > トリガー > 置換。重なりは `application/key_overlap.py` の読み取り専用の表。切替中は停止 / トグル以外を素通し。
-- UI = `controllers/keymap_panel/`（追加フローは `keymap_add_flow.py`。テストはこちらの `messagebox` / `KeymapEditDialog` を patch）。
-- 残件 = `config_service/__init__.py` 1133 行 / 80 行超の関数 5 つ / 統合レビュー保留 L-1・L-7 / 移行の境界値テスト（current.md「別タスク化候補」）。
+- 読込はワーカー（デーモンスレッド・Tk を呼ばない）、完了は UI 側の 50 ms 確認タイマー。上限 5 秒。同じ読込キー（正規化パス, encoding）は同時 1 本・待ち合わせ。
+  読込結果は stat（サイズ・更新日時）確認つきでキャッシュ（世代つき全破棄）。口 = `application/file_line_loader.py`（共有状態は 1 ロック下）。
+- runner は `application/sequence_runner/` パッケージ（読込中の処理は `file_line_wait.py` の mixin）。executor は `begin_file_line` / `poll_file_line`（`execute()` は file_line を拒否）。
+- **構成セットの読込等で連続実行を常に停止**（待機中・通常も・既存挙動の変更）。`AppState.reset_listeners` に `clear_cache` と `on_runtime_reset` を登録。
+- 残件 = 通常アクションのエラー通知ダイアログ中の停止・再開始の再照合 / execute の防御文言（current.md「別タスク化候補」）。
 
 ## 運用インフラ
 
@@ -94,6 +94,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **【傾向・実証済み】reviewer が「採用」でも敵対的 / 上位レビューで指摘が出る**（phase 30 でも reviewer 2 回「指摘なし」→ Codex が high）。
   **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**。暫定仕様の改訂も `codex-adversarial-reviewer` を通す。
   `codex-reviewer`（標準 review）は focus text を受け付けないので、観点を渡すなら `codex-adversarial-reviewer`。
+- **【罠・phase 38 で 4 回実証】「戻す履歴が 1 段」をテストするときは状態が変わるシーケンスにする**（file_line 1 行だけでは位置もカウンターも変わらず
+  `commit_step` が積まない＝仕様どおり）。**subTest でループ前に `self.runner.method` を束縛しない**（`setUp()` で作り直した runner に届かない）。
 - **【傾向・phase 28 で実証】テストの「検出力」は変異検査で確かめる**（その仕様を壊すと**追加テストだけ**落ちるか）。
   `verifier` に頼むときは「**`git checkout --` / `git restore` / `git stash` を使わない**（未コミットの実装ごと巻き戻る）」を明示する。
 - **【罠・phase 27 で実証】テストに `focus_force()` のような「通してしまう前処理」があると、実使用の不具合を隠す**。
@@ -124,8 +126,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 33_grab_modal_static_check_discovery / 32_hook_resume_wait_in_ui_tests / 31_unknown_action_type_handling）。
-- 着手中 idea: なし。未着手/保留 idea: **idea_23**（押す / 離すアクション）/
+  （直近 3 件: 38_file_line_async_read / 37_sequence_control_actions / 36_config_service_split）。
+- 着手中 idea: なし。未着手/保留 idea: **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/ **idea_23**（押す / 離すアクション）/
   idea_29〜idea_31 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
