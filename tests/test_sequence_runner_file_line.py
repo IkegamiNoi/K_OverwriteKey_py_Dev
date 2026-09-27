@@ -407,5 +407,92 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
         self.assertIsNone(self.state.run_to_end_key)
         self.assertEqual(len(self.state.history["f1"]), 1)
 
+    def test_runtime_reset_stops_run_to_end_while_file_line_is_loading(self):
+        self.run_to_end_trigger("f1", [self.file_line()])
+        self.state.reset_listeners.append(self.runner.on_runtime_reset)
+        self.runner.handle_key("f1")
+
+        self.state.reset_indices()
+
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertIsNone(self.state.run_to_end_after_id)
+        self.assertFalse(self.scheduler.queue)
+        self.assertEqual(self.polled, [])
+        self.assertEqual(self.state.history, {})
+
+    def test_runtime_reset_stops_system_wait_and_ignores_its_scheduled_resume(self):
+        self.run_to_end_trigger("f1", [
+            {"type": "system", "op": "wait", "ms": 5},
+            {"type": "text", "value": "after"},
+        ])
+        self.state.reset_listeners.append(self.runner.on_runtime_reset)
+        self.runner.handle_key("f1")
+        _handle, stale = self.scheduler.queue[0]
+
+        self.state.reset_indices()
+        stale()
+
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.performed, [])
+        self.assertFalse(self.scheduler.queue)
+        self.assertEqual(self.state.history, {})
+
+    def test_runtime_reset_stops_regular_run_to_end_delay(self):
+        self.run_to_end_trigger("f1", [
+            {"type": "text", "value": "first"},
+            {"type": "text", "value": "second"},
+        ])
+        self.state.reset_listeners.append(self.runner.on_runtime_reset)
+        self.runner.handle_key("f1")
+        _handle, stale = self.scheduler.queue[0]
+
+        self.state.reset_indices()
+        stale()
+
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.performed, [{"type": "text", "value": "first"}])
+        self.assertFalse(self.scheduler.queue)
+        self.assertEqual(self.state.history, {})
+
+    def test_run_to_end_file_line_poll_rechecks_after_stop(self):
+        self.run_to_end_trigger("f1", [
+            {"type": "system", "op": "counter_inc", "counter": "n"},
+            self.file_line(),
+        ])
+
+        def stop_then_fail(_handle):
+            self.runner.stop_run_to_end()
+            return False
+
+        self.runner._poll_file_line = stop_then_fail
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(len(self.state.history["f1"]), 1)
+
+    def test_run_to_end_file_line_stale_poll_preserves_new_run_state(self):
+        self.run_to_end_trigger("f1", [self.file_line()])
+        self.run_to_end_trigger("f2", [
+            {"type": "system", "op": "wait", "ms": 5},
+            {"type": "text", "value": "after"},
+        ])
+
+        def stop_and_start_other_run(_handle):
+            self.runner.stop_run_to_end()
+            self.runner.handle_key("f2")
+            return False
+
+        self.runner._poll_file_line = stop_and_start_other_run
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(self.state.run_to_end_key, "f2")
+        self.assertIsNotNone(self.runner._run_to_end_resume)
+        self.assertIsNotNone(self.runner._run_to_end_snapshot)
+        self.assertEqual(self.runner._run_to_end_wait_position, 0)
+        self.assertEqual(len(self.scheduler.queue), 1)
+        self.assertEqual(self.performed, [])
+
 if __name__ == "__main__":
     unittest.main()

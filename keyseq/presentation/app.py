@@ -220,6 +220,7 @@ class App(tk.Tk):
             begin_file_line=self.action_executor.begin_file_line,
             poll_file_line=self.action_executor.poll_file_line,
         )
+        self.state.reset_listeners.append(self.sequence_runner.on_runtime_reset)
 
         self._compact_mode = False
         self._full_geometry = None  # 省略表示へ入る前の geometry を記憶

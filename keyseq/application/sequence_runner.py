@@ -378,6 +378,15 @@ class SequenceRunner:
         self._run_to_end_wait_position = None
         self._update_status()
 
+    def on_runtime_reset(self) -> None:
+        if self.state.run_to_end_key is None:
+            return
+        self._discard_run_to_end_file_line()
+        self._run_to_end_resume = None
+        self._run_to_end_snapshot = None
+        self._run_to_end_wait_position = None
+        self.stop_run_to_end()
+
     def _run_to_end_step(self, schedule_only: bool = False, *,
                          generation: int | None = None, key: str | None = None) -> None:
         current_key = self.state.run_to_end_key
@@ -548,6 +557,13 @@ class SequenceRunner:
                 FILE_LINE_POLL_INTERVAL_MS,
                 lambda: self._poll_run_to_end_file_line(generation, key, token),
             )
+            return
+
+        if (generation != self._run_to_end_generation
+                or key != self.state.run_to_end_key
+                or token != self._run_to_end_file_line_token
+                or self.state.run_to_end_paused
+                or self._run_to_end_file_line is not handle):
             return
 
         self._discard_run_to_end_file_line()
