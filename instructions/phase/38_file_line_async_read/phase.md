@@ -57,8 +57,8 @@ UI・停止操作・待機の取り消しが止まらないようにする。読
   戻す履歴 1 段・取り消し / `app.py` の組み立て〔loader の生成と受け渡しのみ〕。同期経路は連続実行が使うため task_04 まで暫定で残す） — **完了**（2026-09-27。`begin_file_line` / `poll_file_line`・`PendingStep.file_line`・確認タイマー。reviewer 参考指摘を受け、確認時にトリガーが無い / 一覧が違えば保留を外す〔既存の待機と同じ〕）
 - task_04: 連続実行の読込（暫定 §3.4: 読込中は予約しない・一時停止で捨てて読み直す〔1 ステップ・1 段〕・停止・エラー時に 1 段 / 同期経路の削除と同期前提テストの書き換え） — **完了**（2026-09-27。読込トークン・一時停止で札だけ捨てて 1 ステップを持ち越す・`_finish_run_to_end_normal_action` で後処理を共有・`_execute_file_line` を削除）
 - task_05: 配線と実機目視（暫定 §6.2 の全破棄の契機〔`clear_cache` の呼び出し〕/ 実機: 応答しないパスで UI が止まらない・終了時に例外なし〔§8-11〕） — コード完了（2026-09-27。`AppState.reset_listeners` に `clear_cache` を登録）**※実機目視待ち**
-- task_06: 統合確認（テストスイート全体・smoke。統合レビュー = deep-reviewer + codex-reviewer） — レビュー実施済（deep-reviewer 修正して採用 / Codex P2 1 件）
-- task_06b: 統合レビューの修正（暫定 27 v0.7: 連続実行の読込中の位置変更は待機と同じく続行〔H1〕/ 完了時の確認〔M2〕/ 待ち合わせの上限判定順〔M1〕/ stat の ValueError〔L1〕/ テスト補完〔M3〕）
+- task_06: 統合確認（テストスイート全体・smoke。統合レビュー = deep-reviewer + codex-reviewer） — **完了**（2026-09-27。deep-reviewer 修正して採用 / Codex P2 1 件 → task_06b で解消）
+- task_06b: 統合レビューの修正（暫定 27 v0.7: 連続実行の読込中の位置変更は待機と同じく続行〔H1〕/ 完了時の確認〔M2〕/ 待ち合わせの上限判定順〔M1〕/ stat の ValueError〔L1〕/ テスト補完〔M3〕） — **完了**（2026-09-27）
 - task_07: 正本反映（暫定 27 §10: `data_schema.md` §5.11.5・§5.11.7 / `features.md` §4.2〔4.2.7 新設・4.2.6 の拒否条件〕/ `codebase_map.md` /
   暫定 27 の凍結 / `decisions_archive/38_file_line_async_read.md` / current.md 完了記載 / idea_38 を INDEX_done へ / `/refactor_check`）
 

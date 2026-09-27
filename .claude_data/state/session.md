@@ -5,13 +5,13 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-09-27T22:40:00
-phase: `instructions/phase/38_file_line_async_read`（**進行中・task_05 コード完了〔実機目視待ち〕・task_06 着手**）。次採番 = phase 39 / 暫定 28 / decisions 39 / 提案書 16。
+phase: `instructions/phase/38_file_line_async_read`（**進行中・task_06 / 06b 完了・task_05 の実機目視待ち**）。次採番 = phase 39 / 暫定 28 / decisions 39 / 提案書 16。
 直前の完了フェーズ = **phase 37**（出力シーケンスの制御アクション第 1 弾・判断履歴 = `decisions_archive/37_sequence_control_actions.md`）。
 last_commit_location: `claude/idea-38-9877ba`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 38 進行中（file_line の非同期読込・暫定 27 v0.6）。task_01〜04 完了・task_05 はユーザーの実機目視待ち、並行して task_06（統合確認）。**
+focus: **phase 38 進行中（file_line の非同期読込・暫定 27 v0.6）。task_01〜04・06・06b 完了。task_05 の実機目視（ユーザー）待ち → その後 task_07（正本反映・フェーズ完了）。**
 mode: implementing
 
 ## last_action

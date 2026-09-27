@@ -200,6 +200,33 @@ class FileLineLoaderTests(unittest.TestCase):
         self.assertEqual(self.loader.poll(third).status, "pending")
         self.assertEqual(len(self.workers), 2)
 
+    def test_waiting_request_timeout_does_not_start_job_after_registration_clears(self) -> None:
+        first = self.loader.request("lines.txt", "utf-8")
+        waiting = self.loader.request("lines.txt", "utf-8")
+        self.now = 4.9
+        self._run()
+        self.assertEqual(self.loader.poll(first).status, "done")
+        self.now = 5.0
+        result = self.loader.poll(waiting)
+        self.assertEqual(result.status, "error")
+        self.assertEqual(len(self.workers), 1)
+        next_request = self.loader.request("lines.txt", "utf-8")
+        self.assertEqual(len(self.workers), 2)
+        self._run(1)
+        self.assertEqual(self.loader.poll(next_request).status, "done")
+
+    def test_stat_value_error_falls_back_to_load_error(self) -> None:
+        load_error = RuntimeError("load after invalid stat")
+        loader = self._loader(
+            stat=lambda _path: (_ for _ in ()).throw(ValueError("invalid path")),
+            load=lambda *_args, **_kwargs: (_ for _ in ()).throw(load_error),
+        )
+        request = loader.request("invalid.txt", "utf-8")
+        self.workers[-1]()
+        result = loader.poll(request)
+        self.assertEqual(result.status, "error")
+        self.assertIs(result.error, load_error)
+
     def test_confirmation_10_terminal_poll_is_stable_and_does_not_restart(self) -> None:
         request = self.loader.request("lines.txt", "utf-8")
         self._run()

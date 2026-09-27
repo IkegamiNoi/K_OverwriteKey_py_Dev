@@ -31,6 +31,7 @@ class FakeScheduler:
 class SequenceRunnerFileLineTests(unittest.TestCase):
     def setUp(self):
         self.state = AppState()
+        self.trigger_set_id = ""
         self.scheduler = FakeScheduler()
         self.triggers = []
         self.performed = []
@@ -50,6 +51,7 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
             update_status=lambda: None,
             after=self.scheduler.after,
             after_cancel=self.scheduler.after_cancel,
+            get_trigger_set_id=lambda: self.trigger_set_id,
             notify_message=self.messages.append,
             notify_error=lambda action, message: self.errors.append((action, message)),
             begin_file_line=self._begin,
@@ -190,6 +192,70 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
         self.assertNotIn(("", "f1"), self.state.pending_steps)
         self.assertFalse(self.scheduler.queue)
 
+    def test_reset_indices_makes_single_file_line_confirmation_stale(self):
+        self.trigger("f1", [self.file_line()])
+        self.runner.handle_key("f1")
+        _handle, stale = self.scheduler.queue[0]
+        self.state.reset_indices()
+        stale()
+        self.assertEqual(self.polled, [])
+        self.assertFalse(self.state.pending_steps)
+
+    def test_other_run_to_end_cancels_single_file_line_once(self):
+        self.trigger("f1", [{"type": "system", "op": "counter_inc", "counter": "n"},
+                             self.file_line()])
+        self.run_to_end_trigger("f2", [{"type": "text", "value": "other"}])
+        self.runner.handle_key("f1")
+        _handle, stale = self.scheduler.queue[0]
+        self.runner.handle_key("f2")
+        self.assertNotIn(("", "f1"), self.state.pending_steps)
+        self.assertEqual(len(self.state.history.get("f1", [])), 1)
+        stale()
+        self.assertEqual(self.polled, [])
+        self.assertEqual(len(self.state.history["f1"]), 1)
+
+    def test_run_to_end_reset_during_file_line_reschedules_from_new_position(self):
+        self.run_to_end_trigger("f1", [self.file_line(), {"type": "text", "value": "new position"}])
+        self.runner.handle_key("f1")
+        _old_handle, stale = self.scheduler.queue[0]
+        self.state.indices["f1"] = 1
+        self.runner.reset_loop_frames("f1")
+        self.assertEqual(self.scheduler.delays, [FILE_LINE_POLL_INTERVAL_MS, 7])
+        self.assertEqual(len(self.scheduler.queue), 1)
+        stale()
+        self.assertEqual(self.polled, [])
+        self.assertEqual(len(self.scheduler.queue), 1)
+        self.scheduler.run_one()
+        self.assertEqual(self.performed, [{"type": "text", "value": "new position"}])
+
+    def test_run_to_end_reset_while_paused_does_not_reschedule(self):
+        self.run_to_end_trigger("f1", [self.file_line(), {"type": "text", "value": "after"}])
+        self.runner.handle_key("f1")
+        self.runner.pause_run_to_end()
+        self.runner.reset_loop_frames("f1")
+        self.assertFalse(self.scheduler.queue)
+        self.assertTrue(self.state.run_to_end_paused)
+
+    def test_run_to_end_poll_aborts_without_history_if_trigger_removed(self):
+        self.run_to_end_trigger("f1", [self.file_line()])
+        self.runner.handle_key("f1")
+        self.triggers.clear()
+        self.scheduler.run_one()
+        self.assertEqual(self.polled, [])
+        self.assertEqual(self.performed, [])
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.state.history.get("f1", []), [])
+
+    def test_run_to_end_poll_aborts_without_history_if_trigger_set_changes(self):
+        self.run_to_end_trigger("f1", [self.file_line()])
+        self.runner.handle_key("f1")
+        self.trigger_set_id = "changed"
+        self.scheduler.run_one()
+        self.assertEqual(self.polled, [])
+        self.assertEqual(self.performed, [])
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.state.history.get("f1", []), [])
+
     def test_run_to_end_file_line_waits_then_schedules_next_step_or_stops_at_end(self):
         self.run_to_end_trigger(
             "f1", [self.file_line(), {"type": "text", "value": "after"}],
@@ -272,6 +338,43 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
         stale()
         self.assertEqual(self.polled, [])
         self.assertEqual(len(self.state.history["f1"]), 1)
+
+    def test_run_to_end_pause_then_stop_commits_one_step_at_file_line_row(self):
+        self.run_to_end_trigger("f1", [
+            {"type": "system", "op": "counter_inc", "counter": "n"},
+            self.file_line(),
+        ])
+        self.runner.handle_key("f1")
+        self.runner.pause_run_to_end()
+        self.runner.stop_run_to_end()
+        self.assertEqual(self.state.indices["f1"], 1)
+        self.assertEqual(len(self.state.history["f1"]), 1)
+        self.assertEqual(self.state.history["f1"][0].counter_deltas, [("n", 1)])
+
+    def test_run_to_end_pause_resume_then_poll_error_commits_one_step(self):
+        self.run_to_end_trigger("f1", [
+            {"type": "system", "op": "counter_inc", "counter": "n"},
+            self.file_line(),
+        ])
+        self.poll_results[:] = [False]
+        self.runner.handle_key("f1")
+        self.runner.pause_run_to_end()
+        self.runner.resume_run_to_end()
+        self.scheduler.run_one()
+        self.assertEqual(len(self.begun), 2)
+        self.scheduler.run_one()
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.state.indices["f1"], 1)
+        self.assertEqual(len(self.state.history["f1"]), 1)
+        self.assertEqual(self.state.history["f1"][0].counter_deltas, [("n", 1)])
+
+    def test_run_to_end_file_line_reset_cancels_old_timer_before_single_reschedule(self):
+        self.run_to_end_trigger("f1", [self.file_line(), {"type": "text", "value": "next"}])
+        self.runner.handle_key("f1")
+        old_handle = self.state.run_to_end_after_id
+        self.runner.reset_loop_frames("f1")
+        self.assertEqual(self.scheduler.cancelled, [old_handle])
+        self.assertEqual(len(self.scheduler.queue), 1)
 
     def test_run_to_end_begin_none_stops_with_one_history_step(self):
         self.begin_none = True

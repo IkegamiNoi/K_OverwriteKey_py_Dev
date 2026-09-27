@@ -53,6 +53,7 @@ class SequenceRunner:
         self._run_to_end_wait_position: int | None = None
         self._run_to_end_generation = 0
         self._run_to_end_file_line: object | None = None
+        self._run_to_end_file_line_trigger_set_id: str | None = None
         self._run_to_end_file_line_token = 0
 
     def _get_index(self, key: str) -> int:
@@ -74,7 +75,18 @@ class SequenceRunner:
     def reset_loop_frames(self, key: str) -> None:
         key = normalize_key_name(key)
         self.cancel_pending_wait(key)
+        reschedule_run_to_end = (
+            self.state.run_to_end_key == key
+            and self._run_to_end_file_line is not None
+            and not self.state.run_to_end_paused
+        )
         if self.state.run_to_end_key == key:
+            if reschedule_run_to_end and self.state.run_to_end_after_id is not None:
+                try:
+                    self._after_cancel(self.state.run_to_end_after_id)
+                except Exception:
+                    pass
+                self.state.run_to_end_after_id = None
             self._discard_run_to_end_file_line()
             self._run_to_end_resume = None
             self._run_to_end_snapshot = None
@@ -85,6 +97,8 @@ class SequenceRunner:
         with self.state.lock:
             frames = reset_frames(actions, self._get_index(key))
             self.state.loop_frames_for(self._get_trigger_set_id())[key] = frames
+        if reschedule_run_to_end:
+            self._run_to_end_step(schedule_only=True)
 
     def cancel_pending_wait(self, key: str) -> None:
         identity = (self._get_trigger_set_id(), normalize_key_name(key))
@@ -304,6 +318,7 @@ class SequenceRunner:
     # --- run_to_end ---
     def _discard_run_to_end_file_line(self) -> None:
         self._run_to_end_file_line = None
+        self._run_to_end_file_line_trigger_set_id = None
         self._run_to_end_file_line_token += 1
 
     def _start_run_to_end(self, key: str) -> None:
@@ -453,6 +468,7 @@ class SequenceRunner:
                             self._run_to_end_wait_position = index
                             self._save_progress(key, index, outcome.frames)
                             self._run_to_end_file_line = handle
+                            self._run_to_end_file_line_trigger_set_id = self._get_trigger_set_id()
                             self._run_to_end_file_line_token += 1
                             token = self._run_to_end_file_line_token
                             generation = self._run_to_end_generation
@@ -517,6 +533,15 @@ class SequenceRunner:
                 or handle is None):
             return
         self.state.run_to_end_after_id = None
+        trigger = self._find_trigger(key)
+        if (trigger is None
+                or self._get_trigger_set_id() != self._run_to_end_file_line_trigger_set_id):
+            self._discard_run_to_end_file_line()
+            self._run_to_end_resume = None
+            self._run_to_end_snapshot = None
+            self._run_to_end_wait_position = None
+            self.stop_run_to_end()
+            return
         result = self._poll_file_line(handle)
         if result is None:
             self.state.run_to_end_after_id = self._after(

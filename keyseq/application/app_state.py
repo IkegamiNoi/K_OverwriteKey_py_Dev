@@ -34,7 +34,7 @@ class AppState:
     counters: dict[str, int] = field(default_factory=dict)
     pending_steps: dict[tuple[str, str], PendingStep] = field(default_factory=dict)
     pending_step_generation: int = 0
-    reset_listeners: list[Callable[[], None]] = field(default_factory=list)
+    reset_listeners: list[Callable[[], None]] = field(default_factory=list, compare=False, repr=False)
 
     run_to_end_key: str | None = None
     run_to_end_paused: bool = False

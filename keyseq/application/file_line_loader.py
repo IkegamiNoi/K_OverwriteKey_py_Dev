@@ -122,6 +122,17 @@ class FileLineLoader:
                     )
                     request._terminal = result
                     return result
+                if (registration is None
+                        and self._clock() - request.started_at >= self._timeout_seconds):
+                    result = FileLinePoll(
+                        "error",
+                        error=FileLineError(
+                            f"ファイルの読込が {self._timeout_seconds:g} 秒以内に終わりませんでした"
+                            f"（ファイル: {request.path}）"
+                        ),
+                    )
+                    request._terminal = result
+                    return result
                 if registration is None:
                     start_job = self._register_job_locked(request)
                     job = start_job
@@ -177,7 +188,7 @@ class FileLineLoader:
         try:
             try:
                 stat_value = self._stat(job.path)
-            except OSError:
+            except (OSError, ValueError):
                 with self._lock:
                     self._cache.pop(job.key, None)
 
