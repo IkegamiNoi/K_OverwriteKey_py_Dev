@@ -16,6 +16,7 @@ from keyseq.domain.sequence_control import (
     OP_COUNTER_RESET,
     OP_LOOP_START,
     OP_REWIND,
+    OP_STOP,
     OP_WAIT,
     OUT_OF_RANGE_EMPTY,
     OUT_OF_RANGE_ERROR,
@@ -28,6 +29,7 @@ SYSTEM_OPERATIONS = {
     "カウンター +1": OP_COUNTER_INC,
     "カウンターを 0 に": OP_COUNTER_RESET,
     "待機": OP_WAIT,
+    "停止": OP_STOP,
     "戻す": OP_BACK,
     "先頭へ": OP_REWIND,
 }

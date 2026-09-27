@@ -97,6 +97,31 @@ class ActionDialogControlTest(unittest.TestCase):
             dialog.on_ok()
             self.assertEqual(self.app._dialog_result, {"type": "system", "op": op, **fields})
 
+    def test_system_stop_hides_fields_and_loads_for_edit(self) -> None:
+        dialog = self.make_dialog()
+        dialog.type_var.set("system")
+        dialog.control_fields.system_op_var.set("停止")
+        dialog.control_fields.sync_system()
+        for widget in (
+            dialog.control_fields.loop_count_label,
+            dialog.control_fields.loop_count_entry,
+            dialog.control_fields.loop_infinite_check,
+            dialog.control_fields.system_counter_label,
+            dialog.control_fields.system_counter_combo,
+            dialog.control_fields.wait_label,
+            dialog.control_fields.wait_entry,
+        ):
+            self.assertEqual(widget.winfo_manager(), "")
+
+        dialog.action_label_var.set("stop here")
+        dialog.on_ok()
+        self.assertEqual(self.app._dialog_result, {
+            "type": "system", "op": "stop", "label": "stop here",
+        })
+
+        edit_dialog = self.make_dialog(mode="edit", initial={"type": "system", "op": "stop"})
+        self.assertEqual(edit_dialog.control_fields.system_op_var.get(), "停止")
+
     def test_file_line_mappings_and_config_relative_path(self) -> None:
         dialog = self.make_dialog()
         dialog.type_var.set("file_line")
