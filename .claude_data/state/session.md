@@ -4,39 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T19:30:00
-phase: なし（**アクティブなフェーズ = なし**。phase 37 は 2026-09-27 完了）。次採番 = phase 38 / 暫定 27 / decisions 38 / 提案書 16。
+last_updated: 2026-09-27T22:00:00
+phase: `instructions/phase/38_file_line_async_read`（**進行中・起票済・task_01 未着手**）。次採番 = phase 39 / 暫定 28 / decisions 39 / 提案書 16。
 直前の完了フェーズ = **phase 37**（出力シーケンスの制御アクション第 1 弾・判断履歴 = `decisions_archive/37_sequence_control_actions.md`）。
-last_commit_location: `claude/output-sequence-system-type-e641ab`
+last_commit_location: `claude/idea-38-9877ba`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 37 完了（system 種別 + file_line・暫定 26 v0.6 凍結・正本反映済・提案書 15 を task_09 で実施済）。次フェーズは idea_38（file_line の非同期読込）から（ユーザー判断）。**
-mode: completed
+focus: **phase 38 起票済（file_line の非同期読込・暫定 27 v0.6 ユーザー確定済・JSON スキーマ変更なし）。次は task_01（読込と行の選択の分離）の起票と実装。**
+mode: implementing
 
 ## last_action
-ts: 2026-09-27T20:30:00
+ts: 2026-09-27T22:00:00
 who: main
 summary: |
-  【task_09 = 提案書 15】ユーザー承認 (a) → `codex-implementer`（Luna high）: `controllers/trigger_panel/`（本体 562 行 + `action_edit.py` の `ActionEditFlow`）/
-  `ActionControlFields.__init__` 17 行・`sequence_control` の定数参照 / 深さ上限 9 のメッセージを定数から組み立て。
-  verifier で tests_ui 14 件失敗 → 移動先が自分のメソッドを直接呼びテストの差し替え口（コントローラの `selected_action_index`）を迂回 / `__new__` で組み立てるテストで委譲先が無い
-  → メインで「コントローラ経由の呼び出し」「委譲先は初回参照で作る property」に修正 → tests 829 / tests_ui 615 / smoke OK（件数不変）。reviewer 完了可。
+  【準備】ブランチ `claude/idea-38-9877ba` を main（phase 37 完了まで）へ fast-forward。
+  【暫定 27 起票】v0.1 → deep-reviewer 修正して採用（H1/M6/L6）→ v0.2 → ユーザー判断 Q1〜Q4（上限 5 秒固定 / 放置の即エラーは上限超過分のみ /
+  一時停止は捨てて読み直す / UI 側 50 ms 確認タイマー）→ v0.3 → Codex 敵対的 1 回目（積み上がり・放置登録の競合・上限境界）→ v0.4 →
+  ユーザー要望でキャッシュ追加（案 A: 実行ごとに stat 確認）→ v0.5 → Codex 敵対的 2 回目（相乗りで古い内容・全破棄後の書き戻し・権限）→
+  v0.6（相乗り → 待ち合わせ・キャッシュ世代・権限は既知の制約）→ **ユーザー確定**。
+  【phase 38 起票】phase.md（task_01〜07）・current.md・backlog INDEX。reviewer 整合確認 = 採用（指摘なし）。
 result_files:
-  - keyseq/presentation/controllers/trigger_panel/{__init__.py, trigger_panel_controller.py（移動）, action_edit.py} / keyseq/presentation/{app.py, dialogs/action_control_fields.py} / keyseq/application/sequence_steps.py
-  - tests_ui/{test_trigger_panel_controller_action_edit, test_sequence_control_review_fixes, test_action_list_rendering, test_task05_overlap_ui, test_task06_keymap_management_ui}.py
-  - instructions/{common/codebase_map.md, modified_proposal/15_*.md, phase/current.md, phase/37_sequence_control_actions/*} / .claude_data/state/*
+  - instructions/history/27_file_line_async_read.md（新規）/ instructions/phase/38_file_line_async_read/phase.md（新規）
+  - instructions/phase/current.md / instructions/backlog/INDEX.md / .claude_data/state/session.md
 verified:
-  compile: clean
-  tests: 829 ran OK（skipped 7）
-  tests_ui: 615 ran OK
-  smoke: pass
-  review: reviewer 完了可（task_09）
+  compile: not_run（文書のみ）
+  review: deep-reviewer（起票時）/ codex-adversarial ×2 反映済 / reviewer 整合確認 採用
 
 ## next_action
-- **ユーザーの実機目視（任意）**: 追加ダイアログの system / file_line の入力欄の並びが変わっていないこと（task_09 の完了条件）。
-- 次フェーズ = idea_38（file_line の非同期読込）。着手時は `/spec_draft` → `/phase_start`（暫定 27・phase 38・decisions 38）。
-- **main へのマージはユーザーが行う**（phase 18 残り・19〜37）。
+- `/task_new` で `instructions/phase/38_file_line_async_read/tasks/task_01_*.md`（暫定 27 §3.1: `keyseq/application/file_line_reader.py` を検証・読込〔行の一覧〕・行の選択に分ける・文言と検査の順は不変）を起票し、
+  `codex-implementer` へ委任（テストの追加・修正まで・実行は verifier）→ verifier → reviewer。
+- **main へのマージはユーザーが行う**（phase 18 残り・19〜37 と本フェーズ）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
 ## blockers
@@ -44,8 +42,9 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **【phase 37】主入力 = 暫定 26 v0.3（`instructions/history/26_sequence_control_actions.md`）**。ループの対応・深さ・表示名・深さ→色の対応は
-  `keyseq/domain/sequence_control.py`（純関数・`config.py` から一方向に呼ぶ）。runner の肥大を避け、ステップ・周回・履歴は別モジュールへ置く方針。
+- **【phase 38】主入力 = 暫定 27 v0.6（`instructions/history/27_file_line_async_read.md`）**。載せ替え先 = 単発待機の `PendingStep`・`cancel_pending_steps`・
+  連続実行の `_run_to_end_resume`（`sequence_runner.py`）。**一時停止は `_run_to_end_generation` を進めない**ため読込ごとのトークンで守る。
+  スレッド共有状態は登録簿の 1 ロック下のみ。単体テストはワーカー起動を差し替えて決定的に（実スレッド待ちは flaky）。
   **Codex のプラグインのレビュー系コマンドは推論レベルを渡せない**（`--model` のみ）。`task` は `--model` / `--effort` 可。
 - **【phase 34 の成果は正本が正】トリガー一覧のキーマップ従属化 = `data_schema.md` §5.13 + `key_input.md` §7.3 + `features.md` §4.1・§4.3・§4.5 +
   `codebase_map.md`「キーマップとトリガー一覧（phase 34）」節**。暫定 25 は凍結済で条項の根拠に引かない。要点 =

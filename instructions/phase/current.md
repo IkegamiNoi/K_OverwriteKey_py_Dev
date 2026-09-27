@@ -7,7 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 37 は 2026-09-27 完了。次フェーズは [idea_38](../backlog/idea_38_file_line_async_read.md)〔file_line の非同期読込〕から着手の予定〔ユーザー判断〕・着手時は `/phase_start`）。
+- **アクティブなフェーズ = [phase 38](38_file_line_async_read/phase.md)**（file_line の非同期読込・2026-09-27 起票）。
+  file_line のファイル読込をワーカースレッドへ移し（完了は UI 側の 50 ms 確認タイマー）、上限 5 秒・同じ (パス, 文字コード) の待ち合わせ・
+  読込結果のキャッシュ（実行ごとにサイズと更新日時を確認）を加える。**JSON スキーマ変更なし**。
+  主入力 = 暫定 [27](../history/27_file_line_async_read.md)（v0.6・ユーザー確定済）/ 起票元 = [idea_38](../backlog/idea_38_file_line_async_read.md) /
+  番号対応: phase 38 / 暫定 27 / decisions 38。
   提案書 [15](../modified_proposal/15_refactor_sequence_control_actions.md)（phase 37 の `/refactor_check` = 推奨）は phase 37 task_09 で実施済（2026-09-27）。
 - 直前の完了フェーズ = [phase 37](37_sequence_control_actions/phase.md)（2026-09-27・出力シーケンスの制御アクション第 1 弾・
   判断は [decisions_archive/37](../../.claude_data/state/decisions_archive/37_sequence_control_actions.md)）/
@@ -45,7 +49,8 @@
   **phase 35 は 2026-09-26 完了**（`35_legacy_trigger_set_missing_file` / 暫定なし〔直接改訂モード〕/ decisions 35〔アーカイブ済〕）。
   **phase 36 は 2026-09-27 完了**（`36_config_service_split` / 暫定なし〔直接改訂モード〕/ decisions 36〔アーカイブ済〕）。
   **phase 37 は 2026-09-27 完了**（`37_sequence_control_actions` / 暫定 26〔v0.6・凍結〕/ decisions 37〔アーカイブ済〕）。
-  次フェーズは **`38_<topic>`**・decisions も **38** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 38 は 2026-09-27 起票・進行中**（`38_file_line_async_read` / 暫定 27 / decisions 38）。
+  次フェーズは **`39_<topic>`**・decisions も **39** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -68,8 +73,9 @@
   23=最小化から復元した後のキーボードフォーカス〔**v0.5・凍結**〕/
   24=種類が不正なアクションの実行〔**v0.5・凍結**〕/
   25=トリガー一覧のキーマップ従属化〔**v0.7・凍結**〕/
-  26=出力シーケンスの制御アクション〔**v0.6・凍結**〕）。
-  次採番は **`27_<topic>`**。
+  26=出力シーケンスの制御アクション〔**v0.6・凍結**〕/
+  27=file_line の非同期読込〔**v0.6・未凍結・phase 38 の主入力**〕）。
+  次採番は **`28_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**14 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
