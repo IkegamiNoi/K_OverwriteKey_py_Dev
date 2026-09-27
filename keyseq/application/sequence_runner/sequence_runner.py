@@ -52,6 +52,7 @@ class SequenceRunner(FileLineWaitMixin):
         self._run_to_end_resume: StepResume | None = None
         self._run_to_end_snapshot: StepSnapshot | None = None
         self._run_to_end_wait_position: int | None = None
+        self._run_to_end_sent = False
         self._run_to_end_generation = 0
         self._run_to_end_file_line: object | None = None
         self._run_to_end_file_line_trigger_set_id: str | None = None
@@ -274,6 +275,7 @@ class SequenceRunner(FileLineWaitMixin):
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
         self._run_to_end_wait_position = None
+        self._run_to_end_sent = False
         self._run_to_end_generation += 1
         self.state.run_to_end_key = key
         self.state.run_to_end_paused = False
@@ -373,7 +375,8 @@ class SequenceRunner(FileLineWaitMixin):
                           resume=self._run_to_end_resume,
                           deferred_counters=self.state.deferred_counters_for(
                               self._get_trigger_set_id()).get(key, ()),
-                          on_control=on_control)
+                          on_control=on_control,
+                          stop_ends_run=self._run_to_end_sent)
         self._save_progress(key, outcome.resume_position if outcome.wait_ms is not None
                             else outcome.position, outcome.frames)
         if outcome.wait_ms is not None:
@@ -409,10 +412,11 @@ class SequenceRunner(FileLineWaitMixin):
                 elif self._perform_action(action) is False:
                     stop = True
                 else:
-                    outcome.counter_deltas, position = self._finish_run_to_end_normal_action(
+                    self._run_to_end_sent = True
+                    outcome.counter_deltas, position, stopped = self._finish_run_to_end_normal_action(
                         key, actions, index, outcome,
                     )
-                    stop = position == 0
+                    stop = position == 0 or stopped
             commit_step(self.state, snapshot, outcome.counter_deltas)
             if stop:
                 self.stop_run_to_end()
@@ -426,20 +430,23 @@ class SequenceRunner(FileLineWaitMixin):
     def _finish_run_to_end_normal_action(
         self, key: str, actions: list[dict[str, Any]], index: int,
         outcome: StepOutcome | StepResume,
-    ) -> tuple[tuple[tuple[str, int], ...], int]:
+    ) -> tuple[tuple[tuple[str, int], ...], int, bool]:
         position, frames = after_normal_action(actions, index, self._get_frames(key))
         deferred = ()
         deltas = tuple(outcome.counter_deltas)
+        stopped = False
         if position != 0:
             settled = settle_after_normal(
                 actions, position, frames, self.state.counters,
                 allow_wrap=False, processed=outcome.processed,
+                stop_ends_run=True,
             )
             position, frames = settled.position, settled.frames
             deltas += settled.counter_deltas
             deferred = settled.deferred_counters
-        if position == 0 and deferred:
+            stopped = settled.stopped
+        if (position == 0 or stopped) and deferred:
             deltas += apply_deferred_counters(deferred, self.state.counters)
             deferred = ()
         self._save_progress(key, position, frames, deferred)
-        return deltas, position
+        return deltas, position, stopped

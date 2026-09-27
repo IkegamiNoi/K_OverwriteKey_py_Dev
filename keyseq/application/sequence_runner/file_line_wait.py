@@ -154,13 +154,14 @@ class FileLineWaitMixin:
         )
         stop = not result
         if result:
+            self._run_to_end_sent = True
             trigger = self._find_trigger(key)
             actions = trigger.get("actions", []) if trigger is not None else []
             index = self._get_index(key)
-            deltas, position = self._finish_run_to_end_normal_action(
+            deltas, position, stopped = self._finish_run_to_end_normal_action(
                 key, actions, index, resume,
             )
-            stop = position == 0
+            stop = position == 0 or stopped
         else:
             deltas = resume.counter_deltas
         commit_step(self.state, snapshot, deltas)
