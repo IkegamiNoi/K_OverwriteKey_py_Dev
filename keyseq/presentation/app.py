@@ -46,6 +46,7 @@ from keyseq.presentation.modal import install_minimize_grab_custody
 
 
 from keyseq.application.action_executor import ActionExecutor
+from keyseq.application.file_line_loader import FileLineLoader
 from keyseq.application.file_line_reader import resolve_file_line_path
 from keyseq.application.config_service import ConfigService
 from keyseq.application.app_state import AppState
@@ -116,6 +117,7 @@ class App(tk.Tk):
         self.hotkey_service = HotkeyService(validate_key_name=self.input_gateway.validate_key_name)
         self.key_state_manager = KeyStateManager(resolve_scan_code=lambda sc: self.layout.resolve_key_name_from_scan_code(sc))
         self._keymap_switch_in_progress = threading.Event()
+        self.file_line_loader = FileLineLoader()
         self.action_executor = ActionExecutor(
             input_gateway=self.input_gateway,
             validate_hotkey=self.hotkey_service.validate,
@@ -127,6 +129,7 @@ class App(tk.Tk):
             on_trigger=lambda key: self.sequence_runner.handle_key(key),
             resolve_file_line_path=lambda p: resolve_file_line_path(p, self.config_root),
             get_counter=lambda name: self.state.counters.get(name, 0),
+            file_line_loader=self.file_line_loader,
             on_shadowed_action=lambda action, conflicts: self.hook.show_shadowed_assignments(action, conflicts),
             can_switch_keymap=lambda keymap_id: self.state.can_switch_keymap(
                 normalize_key_name(keymap_id), self.keymap_service.get_active_keymap_id(self.data)
@@ -213,6 +216,8 @@ class App(tk.Tk):
             get_trigger_set_id=lambda: self.keymap_service.get_active_trigger_set_id(self.data),
             notify_error=lambda action, msg: self.hook.show_action_error("", action, msg),
             notify_message=lambda msg: self._set_flash_message(msg),
+            begin_file_line=self.action_executor.begin_file_line,
+            poll_file_line=self.action_executor.poll_file_line,
         )
 
         self._compact_mode = False

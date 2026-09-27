@@ -7,11 +7,14 @@ from keyseq.application.sequence_history import (
     StepSnapshot, apply_control, cancel_pending_steps, commit_step, snapshot_for,
 )
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
+from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE
 from keyseq.application.sequence_steps import (
     LoopFrame, StepOutcome, StepResume, advance, after_normal_action,
     apply_deferred_counters, format_system_error_notification, reset_frames,
     settle_after_normal,
 )
+
+FILE_LINE_POLL_INTERVAL_MS = 50
 
 
 class SequenceRunner:
@@ -29,6 +32,8 @@ class SequenceRunner:
         get_trigger_set_id: Callable[[], str] | None = None,
         notify_error: Callable[[dict, str], None] | None = None,
         notify_message: Callable[[str], None] | None = None,
+        begin_file_line: Callable[[dict[str, Any]], object | None] | None = None,
+        poll_file_line: Callable[[object], bool | None] | None = None,
     ):
         self.state = state
         self._find_trigger = find_trigger
@@ -41,6 +46,8 @@ class SequenceRunner:
         self._get_trigger_set_id = get_trigger_set_id or (lambda: "")
         self._notify_error = notify_error
         self._notify_message = notify_message
+        self._begin_file_line = begin_file_line
+        self._poll_file_line = poll_file_line
         self._run_to_end_resume: StepResume | None = None
         self._run_to_end_snapshot: StepSnapshot | None = None
         self._run_to_end_wait_position: int | None = None
@@ -112,6 +119,83 @@ class SequenceRunner:
                                 position=pending.position, resume=pending.resume,
                                 snapshot=pending.snapshot)
 
+    def _queue_single_file_line(
+        self, key: str, outcome: StepOutcome, snapshot: StepSnapshot,
+        handle: object, initial_position: int,
+    ) -> None:
+        trigger_set_id = self._get_trigger_set_id()
+        identity = (trigger_set_id, key)
+        resume = StepResume(
+            initial_position, outcome.wrapped, outcome.processed, outcome.counter_deltas,
+        )
+        with self.state.lock:
+            self.state.pending_step_generation += 1
+            generation = self.state.pending_step_generation
+            pending = PendingStep(
+                generation, None, outcome.normal_index, resume, snapshot, file_line=handle,
+            )
+            self.state.pending_steps[identity] = pending
+        pending.after_id = self._after(
+            FILE_LINE_POLL_INTERVAL_MS,
+            lambda: self._poll_single_file_line(trigger_set_id, key, generation),
+        )
+
+    def _poll_single_file_line(
+        self, trigger_set_id: str, key: str, generation: int,
+    ) -> None:
+        identity = (trigger_set_id, key)
+        with self.state.lock:
+            pending = self.state.pending_steps.get(identity)
+            if pending is None or pending.generation != generation or pending.file_line is None:
+                return
+        trigger = self._find_trigger(key) if self._get_trigger_set_id() == trigger_set_id else None
+        if trigger is None:
+            with self.state.lock:
+                if self.state.pending_steps.get(identity) is pending:
+                    self.state.pending_steps.pop(identity)
+            return
+        result = self._poll_file_line(pending.file_line)
+        if result is None:
+            pending.after_id = self._after(
+                FILE_LINE_POLL_INTERVAL_MS,
+                lambda: self._poll_single_file_line(trigger_set_id, key, generation),
+            )
+            return
+        with self.state.lock:
+            current = self.state.pending_steps.get(identity)
+            if current is not pending or current.generation != generation:
+                return
+            self.state.pending_steps.pop(identity)
+        if result:
+            actions = trigger.get("actions", [])
+            deltas = self._finish_single_normal_action(
+                key, actions, pending.position, pending.resume,
+            )
+            commit_step(self.state, pending.snapshot, deltas)
+        else:
+            commit_step(self.state, pending.snapshot, pending.resume.counter_deltas)
+        self._select_trigger(key)
+
+    def _finish_single_normal_action(
+        self, key: str, actions: list[dict[str, Any]], index: int,
+        outcome: StepOutcome | StepResume,
+    ) -> tuple[tuple[str, int], ...]:
+        position, frames = after_normal_action(actions, index, self._get_frames(key))
+        deferred = ()
+        if not (position == 0 and outcome.wrapped):
+            settled = settle_after_normal(
+                actions, position, frames, self.state.counters,
+                allow_wrap=position != 0 and not outcome.wrapped,
+                processed=outcome.processed,
+            )
+            position, frames = settled.position, settled.frames
+            deltas = outcome.counter_deltas + settled.counter_deltas
+            deferred = settled.deferred_counters
+        else:
+            deltas = outcome.counter_deltas
+        self._save_progress(key, position, frames, deferred)
+        return deltas
+
     def _control(self, key: str, op: str) -> str | None:
         target, message = apply_control(self.state, (self._get_trigger_set_id(), key),
                                         op, self._find_trigger)
@@ -165,6 +249,7 @@ class SequenceRunner:
             nonlocal target
             target = self._control(key, op) or target
         try:
+            starting_position = self._get_index(key) if position is None else position
             outcome = advance(actions, self._get_index(key) if position is None else position,
                               self._get_frames(key), self.state.counters,
                               wrap_once=True, resume=resume,
@@ -183,20 +268,25 @@ class SequenceRunner:
             if outcome.normal_index is None:
                 return
             index = outcome.normal_index
-            if self._perform_action(actions[index]) is False:
-                return
-            position, frames = after_normal_action(actions, index, outcome.frames)
-            deferred = ()
-            if not (position == 0 and outcome.wrapped):
-                settled = settle_after_normal(
-                    actions, position, frames, self.state.counters,
-                    allow_wrap=position != 0 and not outcome.wrapped,
-                    processed=outcome.processed,
+            action = actions[index]
+            raw_type = action.get("type")
+            action_type = raw_type.strip().lower() if isinstance(raw_type, str) else ""
+            if (action_type == ACTION_TYPE_FILE_LINE and self._begin_file_line is not None
+                    and self._poll_file_line is not None):
+                handle = self._begin_file_line(action)
+                if handle is None:
+                    return
+                self._queue_single_file_line(
+                    key, outcome, snapshot, handle,
+                    resume.initial_position if resume is not None else starting_position,
                 )
-                position, frames = settled.position, settled.frames
-                outcome.counter_deltas += settled.counter_deltas
-                deferred = settled.deferred_counters
-            self._save_progress(key, position, frames, deferred)
+                waiting = True
+                return
+            if self._perform_action(action) is False:
+                return
+            outcome.counter_deltas = self._finish_single_normal_action(
+                key, actions, index, outcome,
+            )
         finally:
             if not waiting and outcome is not None:
                 commit_step(self.state, snapshot, outcome.counter_deltas)

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import math
 import threading
+from dataclasses import dataclass
 from typing import Callable
 
 from keyseq.application.key_overlap import AssignmentConflict
@@ -15,13 +16,38 @@ from keyseq.application.input_router import (
 from keyseq.application.file_line_reader import (
     FileLineError,
     normalize_file_line_options,
+    pick_file_line,
     read_file_line,
+    validate_file_line_request,
 )
+from keyseq.application.file_line_loader import FileLineLoadRequest, FileLineLoader
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
 
 
 MIN_DRAG_DURATION_SEC = 0.15
 MAX_DRAG_DURATION_SEC = 5.0
+
+
+@dataclass(frozen=True)
+class FileLineHandle:
+    request: FileLineLoadRequest
+    line_number: int
+    out_of_range: str
+    resolved_path: str
+    action: dict
+
+
+def _file_line_error_message(action: dict, exc: BaseException) -> str:
+    values = ", ".join(
+        f"{key}={action.get(key)!r}"
+        for key in ("path", "counter", "encoding", "out_of_range")
+        if key in action
+    ) or "(値なし)"
+    message = f"file_line 実行エラー（種類: file_line / 値: {values}）: {exc}"
+    label = action.get("label")
+    if isinstance(label, str) and label.strip():
+        message += f" / ラベル: {label.strip()}"
+    return message
 
 
 class ActionExecutor:
@@ -38,6 +64,7 @@ class ActionExecutor:
         on_trigger: Callable[[str], None],
         resolve_file_line_path: Callable[[str], str] | None = None,
         get_counter: Callable[[str], int] | None = None,
+        file_line_loader: FileLineLoader | None = None,
         on_shadowed_action: Callable[[object, tuple[AssignmentConflict, ...]], None] | None = None,
         can_switch_keymap: Callable[[str], bool] | None = None,
         on_keymap_switch_blocked: Callable[[], None] | None = None,
@@ -53,6 +80,7 @@ class ActionExecutor:
         self._on_trigger = on_trigger
         self._resolve_file_line_path = resolve_file_line_path
         self._get_counter = get_counter
+        self._file_line_loader = file_line_loader
         self._on_shadowed_action = on_shadowed_action
         self._can_switch_keymap = can_switch_keymap or (lambda _keymap_id: True)
         self._on_keymap_switch_blocked = on_keymap_switch_blocked or (lambda: None)
@@ -90,6 +118,7 @@ class ActionExecutor:
         return False
 
     def _execute_file_line(self, action: dict) -> bool:
+        # 暫定: 連続実行の非同期化（phase 38 task_04）で削除する
         try:
             path, counter_name, encoding, out_of_range = normalize_file_line_options(action)
             if not counter_name:
@@ -110,16 +139,51 @@ class ActionExecutor:
                 self._write_text(line)
             return True
         except Exception as exc:
-            values = ", ".join(
-                f"{key}={action.get(key)!r}"
-                for key in ("path", "counter", "encoding", "out_of_range")
-                if key in action
-            ) or "(値なし)"
-            message = f"file_line 実行エラー（種類: file_line / 値: {values}）: {exc}"
-            label = action.get("label")
-            if isinstance(label, str) and label.strip():
-                message += f" / ラベル: {label.strip()}"
-            self._on_action_error(action, message)
+            self._on_action_error(action, _file_line_error_message(action, exc))
+            return False
+
+    def begin_file_line(self, action: dict) -> FileLineHandle | None:
+        try:
+            path, counter_name, encoding, out_of_range = normalize_file_line_options(action)
+            if not counter_name:
+                raise FileLineError("カウンター名が空です")
+            if self._get_counter is None:
+                raise FileLineError("カウンター取得コールバックが未設定です")
+            if self._resolve_file_line_path is None:
+                raise FileLineError("ファイルパス解決コールバックが未設定です")
+            if self._file_line_loader is None:
+                raise FileLineError("ファイル読込の仕組みが未設定です")
+            line_number = self._get_counter(counter_name)
+            resolved_path = self._resolve_file_line_path(path)
+            validate_file_line_request(
+                resolved_path, line_number, encoding=encoding, out_of_range=out_of_range,
+            )
+            request = self._file_line_loader.request(resolved_path, encoding)
+            return FileLineHandle(request, line_number, out_of_range, resolved_path, action)
+        except Exception as exc:
+            self._on_action_error(action, _file_line_error_message(action, exc))
+            return None
+
+    def poll_file_line(self, handle: FileLineHandle) -> bool | None:
+        try:
+            if self._file_line_loader is None:
+                raise FileLineError("ファイル読込の仕組みが未設定です")
+            result = self._file_line_loader.poll(handle.request)
+            if result.status == "pending":
+                return None
+            if result.status == "error":
+                raise result.error or FileLineError("ファイル読込に失敗しました")
+            if result.status != "done":
+                raise FileLineError("ファイル読込の結果が不正です")
+            line = pick_file_line(
+                result.lines or [], handle.line_number,
+                out_of_range=handle.out_of_range, path=handle.resolved_path,
+            )
+            if line:
+                self._write_text(line)
+            return True
+        except Exception as exc:
+            self._on_action_error(handle.action, _file_line_error_message(handle.action, exc))
             return False
 
     @staticmethod
