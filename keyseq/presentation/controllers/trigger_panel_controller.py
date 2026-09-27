@@ -696,8 +696,12 @@ class TriggerPanelController:
         if idx is None:
             return
         if 0 <= idx < len(actions):
+            if idx == self._app._indices.get(key, 0):
+                self.update_status()
+                return
             self._app._indices[key] = idx
             self._app.sequence_runner.reset_loop_frames(key)
+            self.refresh_actions()
             self.update_status()
 
     def on_action_list_focus_index_change(self, _event=None):

@@ -145,7 +145,8 @@ class SystemActionRunnerTest(unittest.TestCase):
             runner._notify_error = Mock()
             runner.handle_key("f1")
             runner._notify_error.assert_called_once()
-            self.assertIs(runner._notify_error.call_args.args[0], action)
+            self.assertIsNot(runner._notify_error.call_args.args[0], action)
+            self.assertEqual(runner._notify_error.call_args.args[0]["value"], "unknown")
             self.assertEqual(state.indices["f1"], 0)
             self.assertEqual(performed, [])
             self.assertEqual(scheduler.queue, [])
@@ -775,6 +776,84 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         self.assertNotIn(("", "f1"), state.pending_steps)
         self.assertEqual(state.indices["f1"], 0)
         self.assertIsNone(state.run_to_end_key)
+
+    def test_reset_loop_frames_during_paused_run_discards_old_wait_snapshot(self):
+        trigger = {
+            "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+            "actions": [
+                {"type": "system", "op": "counter_inc", "counter": "n"},
+                {"type": "system", "op": "wait", "ms": 25}, A1,
+            ],
+        }
+        runner, state, scheduler, performed = make_runner([trigger])
+        runner.handle_key("f1")
+        runner.pause_run_to_end()
+        state.indices["f1"] = 2
+
+        runner.reset_loop_frames("f1")
+        runner.resume_run_to_end()
+        scheduler.run_pending()
+
+        self.assertEqual(performed, [A1])
+        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [])
+
+    def test_stopping_during_continuous_wait_records_partial_step_for_back(self):
+        trigger = {
+            "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+            "actions": [
+                {"type": "system", "op": "counter_inc", "counter": "n"},
+                {"type": "system", "op": "wait", "ms": 25}, A1,
+            ],
+        }
+        back = {"key": "f2", "actions": [{"type": "system", "op": "back"}]}
+        runner, state, scheduler, performed = make_runner([trigger, back])
+        runner.handle_key("f1")
+
+        runner.stop_run_to_end()
+
+        self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [("n", 1)])
+        self.assertEqual(state.last_trigger, ("", "f1"))
+        self.assertEqual(scheduler.queue, [])
+        runner.handle_key("f2")
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(state.counters["n"], 0)
+        self.assertEqual(state.history_for("")["f1"], [])
+        self.assertEqual(performed, [])
+
+    def test_pausing_and_resuming_continuous_wait_keeps_resume_semantics(self):
+        trigger = {
+            "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+            "actions": [A1, {"type": "system", "op": "wait", "ms": 25}, A2],
+        }
+        runner, state, scheduler, performed = make_runner([trigger])
+        runner.handle_key("f1")
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
+        scheduler.run_one()  # 到達した待機を一時停止する
+        runner.pause_run_to_end()
+        runner.resume_run_to_end()
+        scheduler.run_pending()
+
+        self.assertEqual(performed, [A1, A2])
+        self.assertEqual(len(state.history_for("")["f1"]), 2)
+        self.assertIsNone(state.run_to_end_key)
+
+    def test_system_runtime_error_notification_describes_action_and_label(self):
+        action = {"type": "system", "op": "loop_start", "count": "abc", "label": "outer"}
+        trigger = {"key": "f1", "actions": [action]}
+        runner, _state, _scheduler, _performed = make_runner([trigger])
+        runner._notify_error = Mock()
+
+        runner.handle_key("f1")
+
+        notified_action, message = runner._notify_error.call_args.args
+        self.assertEqual(notified_action["value"], "loop_start 回数=abc")
+        self.assertIn("loop_start 回数=abc", message)
+        self.assertIn("ラベル: outer", message)
+        self.assertNotIn("value", action)
 
 
 if __name__ == "__main__":

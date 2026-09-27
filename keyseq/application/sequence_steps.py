@@ -25,6 +25,28 @@ class StepResume:
     counter_deltas: tuple[tuple[str, int], ...] = ()
 
 
+def format_system_error_notification(
+    action: dict[str, Any], message: str,
+) -> tuple[dict[str, Any], str]:
+    """Copy a system action and add its readable operation value for notification."""
+    notified = action.copy()
+    op = str(action.get("op") or "(なし)")
+    if op == "loop_start":
+        value = "無限" if action.get("infinite") else f"回数={action.get('count', '(なし)')}"
+    elif op == "wait":
+        value = f"{action.get('ms', '(なし)')}ms"
+    elif op in ("counter_inc", "counter_reset"):
+        value = f"カウンター={action.get('counter', '(なし)')}"
+    else:
+        value = ""
+    detail = f"{op} {value}".rstrip()
+    notified["value"] = detail
+    label = action.get("label")
+    if isinstance(label, str) and label.strip():
+        detail += f" / ラベル: {label.strip()}"
+    return notified, f"system 実行エラー（{detail}）: {message}"
+
+
 @dataclass
 class StepOutcome:
     normal_index: int | None

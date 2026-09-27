@@ -1950,6 +1950,35 @@ class SequenceFileIoTest(unittest.TestCase):
             self.assertEqual(loaded["_sequence_source_path"], path)
             self.assertTrue(loaded["_sequence_imported"])
 
+    def test_system_and_file_line_actions_round_trip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            service = ConfigService(JsonRepository())
+            path = os.path.join(tmp, "sequence.json")
+            actions = [
+                {"type": "system", "op": "loop_start", "count": 3, "infinite": False, "label": "finite"},
+                {"type": "system", "op": "loop_start", "count": 9, "infinite": True, "label": "forever"},
+                {"type": "system", "op": "loop_end", "label": "end"},
+                {"type": "system", "op": "counter_inc", "counter": "n", "label": "increment"},
+                {"type": "system", "op": "counter_reset", "counter": "n", "label": "reset"},
+                {"type": "system", "op": "wait", "ms": 500, "label": "pause"},
+                {"type": "system", "op": "back", "label": "undo"},
+                {"type": "system", "op": "rewind", "label": "start"},
+                {
+                    "type": "file_line", "path": "lines.txt", "counter": "line_no",
+                    "encoding": "utf-8", "out_of_range": "empty", "label": "line",
+                },
+            ]
+            saved = service.save_sequence_file(path, {"key": "f1", "actions": actions})
+            loaded = service.load_sequence_file(path)
+
+            self.assertEqual(saved["actions"], loaded["actions"])
+            self.assertEqual(len(loaded["actions"]), len(actions))
+            self.assertEqual(loaded["actions"][-1]["path"], "lines.txt")
+            self.assertEqual(loaded["actions"][-1]["counter"], "line_no")
+            self.assertEqual(loaded["actions"][-1]["encoding"], "utf-8")
+            self.assertEqual(loaded["actions"][-1]["out_of_range"], "empty")
+            self.assertTrue(loaded["actions"][1]["infinite"])
+
 
 class TriggerSetTypeNormalizationTest(unittest.TestCase):
     def test_load_trigger_set_coerces_non_string_fields(self):

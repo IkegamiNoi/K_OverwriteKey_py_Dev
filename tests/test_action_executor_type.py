@@ -52,19 +52,19 @@ class ActionExecutorTypeTests(unittest.TestCase):
         cases = [
             (
                 {"type": "hotky", "label": " 保存 "},
-                "種類が不正です（hotkey / text / mouse_click のいずれか）。種類: hotky / ラベル: 保存",
+                "種類が不正です（hotkey / text / mouse_click / system / file_line のいずれか）。種類: hotky / ラベル: 保存",
             ),
-            ({}, "種類が不正です（hotkey / text / mouse_click のいずれか）。種類: (なし)"),
+            ({}, "種類が不正です（hotkey / text / mouse_click / system / file_line のいずれか）。種類: (なし)"),
             *(
                 (
                     {"type": "hotky", "label": label},
-                    "種類が不正です（hotkey / text / mouse_click のいずれか）。種類: hotky",
+                    "種類が不正です（hotkey / text / mouse_click / system / file_line のいずれか）。種類: hotky",
                 )
                 for label in (1, ["保存"], None, "", "   ")
             ),
             (
                 {"type": " HoTkY ", "label": " 保存 "},
-                "種類が不正です（hotkey / text / mouse_click のいずれか）。種類: HoTkY / ラベル: 保存",
+                "種類が不正です（hotkey / text / mouse_click / system / file_line のいずれか）。種類: HoTkY / ラベル: 保存",
             ),
         ]
         for action, expected in cases:

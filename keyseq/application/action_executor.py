@@ -125,7 +125,7 @@ class ActionExecutor:
     @staticmethod
     def _invalid_type_message(type_text: str, action: dict) -> str:
         err = (
-            "種類が不正です（hotkey / text / mouse_click のいずれか）。"
+            "種類が不正です（hotkey / text / mouse_click / system / file_line のいずれか）。"
             f"種類: {type_text or '(なし)'}"
         )
         label = action.get("label")

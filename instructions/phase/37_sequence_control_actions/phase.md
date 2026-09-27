@@ -82,6 +82,10 @@ file_line の実行 / presentation の編集ダイアログ・追加位置・一
 - task_07: 一覧の表示（暫定 §11.3・§11.4: 周回・カウンター値の表示と更新 / ネストの色分け / 省略表示の「次に実行」の要約）— **実装完了・実機目視待ち**（2026-09-27。
   新規 `controllers/action_list_rendering.py`。`codex-implementer`〔Luna high・既定化後〕。task_06 のテストの偽 App に `_active_trigger_set_id` / `loop_iterations_for` を追随
   〔メイン〕。`trigger_panel_controller.py` は 711 行〔task_08 の `/refactor_check` で判定〕）
+- task_07b: 統合レビュー指摘の修正（暫定 v0.4 §2-21〜24: H1 一覧のフォーカス同期で位置が変わらないときはリセットしない / L2・L7 / M1 無効化で待機を取り消す /
+  M2 連続実行の待機中の停止は 1 段積んで待機の行 / M3 system のエラー通知に操作名・値・ラベル / M4 配線の UI テスト / L5 文言 / L12 往復テスト）— **完了**（2026-09-27。
+  `codex-implementer`〔Luna high〕。新しい UI テストの偽 App の属性不足 2 件をメインで修正。Low の L3・L4・L6・L8〜L11・L13・L14 は別タスク化候補へ）
+- task_07c: 通常アクションの直後に続く system の先行処理（暫定 v0.4 §2-20・§4.1。実機目視の指摘「次に実行が system の行を指し、その前の行が実行される」への対応）
 - task_08: 統合確認と正本反映（暫定 26 の `spec_detail/` への昇格・凍結 / `codebase_map.md`〔新モジュール・色値〕/
   decisions_archive/37 / current.md の完了記載 / `/refactor_check`）
 

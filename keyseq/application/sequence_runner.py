@@ -5,7 +5,10 @@ from typing import Any, Callable
 from keyseq.application.app_state import PendingStep
 from keyseq.application.sequence_history import StepSnapshot, apply_control, commit_step, snapshot_for
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
-from keyseq.application.sequence_steps import LoopFrame, StepOutcome, StepResume, advance, after_normal_action, reset_frames
+from keyseq.application.sequence_steps import (
+    LoopFrame, StepOutcome, StepResume, advance, after_normal_action,
+    format_system_error_notification, reset_frames,
+)
 
 
 class SequenceRunner:
@@ -37,6 +40,7 @@ class SequenceRunner:
         self._notify_message = notify_message
         self._run_to_end_resume: StepResume | None = None
         self._run_to_end_snapshot: StepSnapshot | None = None
+        self._run_to_end_wait_position: int | None = None
 
     def _get_index(self, key: str) -> int:
         return int(self.state.indices_for(self._get_trigger_set_id()).get(key, 0) or 0)
@@ -55,6 +59,10 @@ class SequenceRunner:
     def reset_loop_frames(self, key: str) -> None:
         key = normalize_key_name(key)
         self.cancel_pending_wait(key)
+        if self.state.run_to_end_key == key:
+            self._run_to_end_resume = None
+            self._run_to_end_snapshot = None
+            self._run_to_end_wait_position = None
         self.state.forget_trigger(self._get_trigger_set_id(), key)
         trigger = self._find_trigger(key)
         actions = trigger.get("actions", []) if trigger else []
@@ -124,6 +132,8 @@ class SequenceRunner:
 
     def _report_error(self, action: dict[str, Any], message: str) -> None:
         if self._notify_error is not None:
+            if action.get("type") == "system":
+                action, message = format_system_error_notification(action, message)
             self._notify_error(action, message)
 
     def handle_key(self, key: str) -> None:
@@ -207,6 +217,7 @@ class SequenceRunner:
         self.cancel_pending_waits()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
+        self._run_to_end_wait_position = None
         self.state.run_to_end_key = key
         self.state.run_to_end_paused = False
         self._select_trigger(key)
@@ -232,10 +243,18 @@ class SequenceRunner:
             except Exception:
                 pass
         self.state.run_to_end_after_id = None
+        if self._run_to_end_wait_position is not None:
+            key = self.state.run_to_end_key
+            snapshot = self._run_to_end_snapshot
+            resume = self._run_to_end_resume
+            if key is not None and snapshot is not None:
+                self._set_index(key, self._run_to_end_wait_position)
+                commit_step(self.state, snapshot, resume.counter_deltas if resume else ())
         self.state.run_to_end_key = None
         self.state.run_to_end_paused = False
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
+        self._run_to_end_wait_position = None
         self._update_status()
 
     def _run_to_end_step(self, schedule_only: bool = False) -> None:
@@ -273,9 +292,11 @@ class SequenceRunner:
         if outcome.wait_ms is not None:
             self._run_to_end_resume = outcome.resume
             self._run_to_end_snapshot = snapshot
+            self._run_to_end_wait_position = outcome.resume_position - 1
             self.state.run_to_end_after_id = self._after(outcome.wait_ms, self._run_to_end_step)
         else:
             self._run_to_end_resume = None
+            self._run_to_end_wait_position = None
             stop = outcome.error is not None or outcome.normal_index is None
             if outcome.error:
                 index, message = outcome.error
