@@ -37,7 +37,8 @@ skills:
   `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" task ...`
 - **`--write` を付けない**（付けないことで `sandbox: "read-only"` になる。ここが本エージェントの要）
 - `--resume-last` / `--fresh` は呼び出し元の指示があるときのみ付与する（既定はフレッシュ実行）
-- `--model` / `--effort` は明示指定がない限り付けない
+- 既定で `--model gpt-6-luna --effort high` を付ける（読み取りの調査は Luna high で足りるため・`~/.codex/config.toml` の既定〔Sol medium〕に依存しない。
+  ユーザー判断 2026-09-27）。呼び出し元が別のモデル・推論レベルを明示した場合はそれに従う
 
 ## 出力
 
