@@ -25,6 +25,7 @@ from keyseq.domain.sequence_editing import (
     insert_actions,
     loop_pair_items,
     pair_index,
+    standalone_violation,
 )
 from keyseq.presentation.dialogs import ActionDialog, TriggerDialog
 from keyseq.presentation.controllers.action_list_rendering import (
@@ -545,6 +546,13 @@ class TriggerPanelController:
         result = getattr(self._app, "_dialog_result", None)
         if not result:
             return
+        if standalone_violation(actions, result):
+            messagebox.showinfo(
+                "追加",
+                "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。",
+            )
+            self._app._dialog_result = None
+            return
         append_to_end = bool(getattr(dialog, "append_to_end", True))
         after_index = None if append_to_end or selected_index is None else selected_index
         is_loop = (
@@ -601,8 +609,16 @@ class TriggerPanelController:
             counter_names=self._counter_names(),
             config_root=getattr(self._app, "config_root", ""),
         ).wait_window()
-        if getattr(self._app, "_dialog_result", None):
-            actions[target_idx] = self._app._dialog_result
+        result = getattr(self._app, "_dialog_result", None)
+        if result:
+            if standalone_violation(actions, result, replace_index=target_idx):
+                messagebox.showinfo(
+                    "編集",
+                    "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。",
+                )
+                self._app._dialog_result = None
+                return
+            actions[target_idx] = result
             self._app.sequence_runner.reset_loop_frames(normalize_key_name(trig.get("key", "")))
             self.refresh_actions()
             self._app.mark_sequence_dirty(trig)

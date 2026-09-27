@@ -9,6 +9,7 @@ from keyseq.domain.sequence_editing import (
     insert_actions,
     loop_pair_items,
     pair_index,
+    standalone_violation,
 )
 
 
@@ -43,6 +44,35 @@ class InsertActionsTest(unittest.TestCase):
         self.assertEqual(adjust_position_after_insert(3, 2, 2), 5)
         self.assertEqual(adjust_position_after_insert(3, 3, 2), 5)
         self.assertEqual(adjust_position_after_insert(3, 4, 2), 3)
+
+
+class StandaloneViolationTest(unittest.TestCase):
+    def test_standalone_control_can_be_added_to_empty_sequence(self) -> None:
+        self.assertFalse(standalone_violation([], system("back")))
+        self.assertFalse(standalone_violation([], system("rewind")))
+
+    def test_standalone_control_cannot_be_added_to_nonempty_sequence(self) -> None:
+        self.assertTrue(standalone_violation([{"type": "text"}], system("back")))
+
+    def test_other_row_cannot_be_added_to_sequence_with_standalone_control(self) -> None:
+        self.assertTrue(standalone_violation([system("rewind")], {"type": "text"}))
+
+    def test_replacement_with_standalone_control_requires_single_row(self) -> None:
+        self.assertFalse(
+            standalone_violation([{"type": "text"}], system("back"), replace_index=0)
+        )
+        self.assertTrue(
+            standalone_violation(
+                [{"type": "text"}, {"type": "hotkey"}],
+                system("rewind"),
+                replace_index=0,
+            )
+        )
+
+    def test_replacing_standalone_control_with_regular_row_is_allowed(self) -> None:
+        self.assertFalse(
+            standalone_violation([system("back")], {"type": "text"}, replace_index=0)
+        )
 
 
 class LoopEditingTest(unittest.TestCase):

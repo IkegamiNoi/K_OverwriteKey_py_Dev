@@ -144,6 +144,55 @@ class TriggerPanelActionEditTest(unittest.TestCase):
         self.assertEqual(self.trigger["actions"][-1], {"type": "text", "text": "new"})
         self.assertEqual(self.app._indices["a"], 1)
 
+    def test_add_standalone_control_to_nonempty_sequence_is_rejected(self):
+        self.set_selection(None)
+        self.install_dialog(result={"type": "system", "op": "back"})
+        before = list(self.trigger["actions"])
+
+        self.controller.add_action()
+
+        self.assertEqual(self.trigger["actions"], before)
+        self.showinfo.assert_called_once_with(
+            "追加", "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。"
+        )
+        self.app.mark_sequence_dirty.assert_not_called()
+
+    def test_add_regular_row_to_sequence_with_standalone_control_is_rejected(self):
+        self.set_selection(None)
+        self.trigger["actions"] = [{"type": "system", "op": "rewind"}]
+        self.install_dialog(result={"type": "text", "text": "extra"})
+
+        self.controller.add_action()
+
+        self.assertEqual(self.trigger["actions"], [{"type": "system", "op": "rewind"}])
+        self.showinfo.assert_called_once_with(
+            "追加", "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。"
+        )
+        self.app.mark_sequence_dirty.assert_not_called()
+
+    def test_edit_to_standalone_control_requires_one_row_sequence(self):
+        self.set_selection(0)
+        self.install_dialog(result={"type": "system", "op": "back"})
+        before = list(self.trigger["actions"])
+
+        self.controller.edit_action()
+
+        self.assertEqual(self.trigger["actions"], before)
+        self.showinfo.assert_called_once_with(
+            "編集", "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。"
+        )
+        self.app.mark_sequence_dirty.assert_not_called()
+
+    def test_edit_single_row_to_standalone_control_is_allowed(self):
+        self.trigger["actions"] = [{"type": "text", "text": "only"}]
+        self.set_selection(0)
+        self.install_dialog(result={"type": "system", "op": "rewind"})
+
+        self.controller.edit_action()
+
+        self.assertEqual(self.trigger["actions"], [{"type": "system", "op": "rewind"}])
+        self.showinfo.assert_not_called()
+
     def test_add_loop_inserts_a_pair_and_depth_overflow_is_rejected(self):
         self.set_selection(0)
         self.install_dialog(result={

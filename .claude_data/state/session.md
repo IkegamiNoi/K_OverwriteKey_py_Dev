@@ -5,34 +5,33 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-09-27T11:00:00
-phase: instructions/phase/37_sequence_control_actions（出力シーケンスの制御アクション・第 1 弾・暫定 26 **v0.4** 確定済・decisions 37）。
+phase: instructions/phase/37_sequence_control_actions（出力シーケンスの制御アクション・第 1 弾・暫定 26 **v0.5** 確定済・decisions 37）。
 次採番 = phase 38 / 暫定 27 / decisions 38 / 提案書 15。直前の完了フェーズ = **phase 36**（判断履歴 = `decisions_archive/36_config_service_split.md`）。
 last_commit_location: `claude/output-sequence-system-type-e641ab`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 37 進行中: task_01〜07・07b 完了、task_07c（system の先行処理）実装完了。ユーザーの実機目視待ち（H1 と先行処理）→ 目視 OK 後に task_08（正本反映）。**
+focus: **phase 37 進行中: task_01〜07・07b 完了、07c（system の先行処理）・07d（カウンターの保留・戻す / 先頭への単独登録）実装完了。ユーザーの実機目視待ち → task_08（正本反映）。**
 mode: pending_review
 
 ## last_action
-ts: 2026-09-27T11:00:00
+ts: 2026-09-27T12:30:00
 who: main
 summary: |
-  【統合レビュー】deep-reviewer = 修正して完了（H1: 一覧の KeyRelease で位置不変でも周回・履歴・待機がリセット / M1〜M4 / L1〜L14）。
-  Codex 標準レビュー比較: Luna xhigh（プラグイン）約 9.5 分・1 件（M2）/ **Sol medium（`codex review -c` 直接）約 4.5 分・2 件（M2 + M3 = Luna の見落とし）**。
-  【ユーザー判断】M1・M2・L1 は推奨どおり / 実機目視で「次に実行が system の行を指すズレ」→ **通常アクション直後に続く system を先行処理**（暫定 26 v0.4 §2-20〜24）/
-  `~/.codex/config.toml` の既定をユーザーが Sol medium に変更（確認済）/ codex-explorer を Luna high 明示（`4094f8d`）。
-  【task_07b】`codex-implementer`（Luna high）→ UI テストの偽 App 不足 2 件をメイン修正 → reviewer 完了可（`8b4c7fa`）。
-  【task_07c】`codex-delegating-implementer`（子は起動されず）→ 既存テストの期待値 3 か所をメインで v0.4 に合わせて修正 → tests 812 OK。reviewer は期待値の食い違いを指摘（仕様どおりは実装側と判断）。
+  【ユーザー判断（実機目視）】カウンターは現在値を表示（先行処理では位置だけ進め、値は次の押下で反映）/ ループの周回表示は v0.4 のまま /
+  戻す・先頭へは編集で単独登録に限定・混在は実行時エラー → 暫定 26 v0.5（§2-25・26・§8.5）。
+  【task_07d】`codex-delegating-implementer`（単独登録を Luna high の子が担当）→ verifier で 12 errors →
+  Codex が `push_history` の位置引数の順を変えた / 新欄に既定値なし / 子の UI テストの前提不足 → メインで修正 → tests 822・tests_ui 614・smoke OK。reviewer 完了可。
 result_files:
-  - keyseq/application/{sequence_steps.py, sequence_runner.py（335 行）} / tests/{test_sequence_steps.py, test_sequence_runner.py}
-  - instructions/history/26_sequence_control_actions.md（v0.4）/ instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_07c_eager_system.md} / .claude_data/state/session.md
+  - keyseq/application/{sequence_steps,sequence_runner（347 行）,sequence_history,app_state}.py / keyseq/domain/sequence_editing.py / keyseq/presentation/controllers/trigger_panel_controller.py
+  - tests/{test_sequence_steps,test_sequence_runner,test_sequence_editing}.py / tests_ui/test_trigger_panel_controller_action_edit.py
+  - instructions/history/26_sequence_control_actions.md（v0.5）/ instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_07d_*.md} / .claude_data/state/session.md
 verified:
   compile: clean
-  tests: 812 ran OK（skipped 7）
-  tests_ui: 610 ran OK（期待値修正の前に実行・修正はテストのみ）
+  tests: 822 ran OK（skipped 7）
+  tests_ui: 614 ran OK
   smoke: pass
-  review: reviewer（task_07c）= 期待値の食い違い 1 件を指摘 → メインが仕様 v0.4 に合わせてテストを修正
+  review: reviewer 完了可（task_07d）
 
 ## next_action
 - **ユーザーの実機目視**: task_07b の H1（一覧にフォーカスを置いたまま押しても周回が進む）と task_07c（「次に実行」の選択が実行される行を指す）。

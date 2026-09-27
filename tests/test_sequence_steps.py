@@ -23,14 +23,20 @@ class SequenceStepsTest(unittest.TestCase):
         self.assertEqual((second.position, second.frames), (3, []))
         self.assertEqual(second.counter_deltas, ())
 
-    def test_settle_counters_record_increment_and_reset(self):
+    def test_settle_counters_defer_increment_and_reset(self):
         actions = [NORMAL, control("counter_inc", counter=" n "),
                    control("counter_reset", counter="n"), NORMAL]
         counters = {"n": 4}
         settled = settle_after_normal(actions, 1, [], counters, allow_wrap=True)
         self.assertEqual((settled.position, settled.frames), (3, []))
+        self.assertEqual(counters, {"n": 4})
+        self.assertEqual(settled.counter_deltas, ())
+        self.assertEqual(settled.deferred_counters,
+                         (("counter_inc", "n"), ("counter_reset", "n")))
+        advanced = advance(actions, settled.position, settled.frames, counters,
+                           wrap_once=False, deferred_counters=settled.deferred_counters)
+        self.assertEqual(advanced.counter_deltas, (("n", 1), ("n", -5)))
         self.assertEqual(counters, {"n": 0})
-        self.assertEqual(settled.counter_deltas, (("n", 1), ("n", -5)))
 
     def test_settle_stops_before_wait_back_rewind_and_unknown(self):
         for op in ("wait", "back", "rewind", "unknown"):
@@ -67,13 +73,16 @@ class SequenceStepsTest(unittest.TestCase):
         counters = {"n": 2}
         wrapped = settle_after_normal(actions, 2, [], counters, allow_wrap=True)
         self.assertEqual((wrapped.position, wrapped.frames, wrapped.wrapped), (1, [], True))
-        self.assertEqual(wrapped.counter_deltas, (("n", -2), ("n", 1)))
-        self.assertEqual(counters, {"n": 1})
+        self.assertEqual(wrapped.counter_deltas, ())
+        self.assertEqual(wrapped.deferred_counters,
+                         (("counter_reset", "n"), ("counter_inc", "n")))
+        self.assertEqual(counters, {"n": 2})
         counters = {"n": 2}
         stopped = settle_after_normal(actions, 2, [], counters, allow_wrap=False)
         self.assertEqual((stopped.position, stopped.frames, stopped.wrapped), (0, [], False))
-        self.assertEqual(stopped.counter_deltas, (("n", -2),))
-        self.assertEqual(counters, {"n": 0})
+        self.assertEqual(stopped.counter_deltas, ())
+        self.assertEqual(stopped.deferred_counters, (("counter_reset", "n"),))
+        self.assertEqual(counters, {"n": 2})
 
     def test_settle_wrap_limit_and_start_position_rule(self):
         actions = [control("counter_inc", counter="n"), NORMAL,
@@ -81,8 +90,10 @@ class SequenceStepsTest(unittest.TestCase):
         counters = {}
         settled = settle_after_normal(actions, 2, [], counters, allow_wrap=True)
         self.assertEqual(settled.position, 1)  # 開始位置を越えて先頭を先行処理する
-        self.assertEqual(counters["n"], 2)
-        self.assertEqual(settled.counter_deltas, (("n", 1), ("n", 1)))
+        self.assertEqual(counters, {})
+        self.assertEqual(settled.counter_deltas, ())
+        self.assertEqual(settled.deferred_counters,
+                         (("counter_inc", "n"), ("counter_inc", "n")))
         endless = [control("loop_start", infinite=True), control("loop_end")]
         limited = settle_after_normal(endless, 0, [], {}, allow_wrap=True)
         self.assertEqual((limited.position, limited.frames), (1, [LoopFrame(0, 10000)]))
@@ -93,8 +104,9 @@ class SequenceStepsTest(unittest.TestCase):
             1, [], counters, allow_wrap=True, processed=9999,
         )
         self.assertEqual(capped.position, 2)
-        self.assertEqual(capped.counter_deltas, (("n", 1),))
-        self.assertEqual(counters["n"], 3)
+        self.assertEqual(capped.counter_deltas, ())
+        self.assertEqual(capped.deferred_counters, (("counter_inc", "n"),))
+        self.assertEqual(counters, {})
 
     def test_finite_loop_counts(self):
         for count in (1, 3):
@@ -132,13 +144,14 @@ class SequenceStepsTest(unittest.TestCase):
 
     def test_single_wrap_stops_before_start_position(self):
         counters = {}
-        actions = [control("counter_inc", counter="n"), control("back")]
+        actions = [control("counter_inc", counter="n"),
+                   control("counter_inc", counter="n")]
         outcome = advance(actions, 1, [], counters, wrap_once=True)
         self.assertEqual((outcome.position, outcome.normal_index), (1, None))
-        self.assertEqual(counters, {"n": 1})
+        self.assertEqual(counters, {"n": 2})
         empty = advance([control("back")], 0, [], {}, wrap_once=True)
         self.assertEqual((empty.position, empty.normal_index), (0, None))
-        wrapped = advance([NORMAL, control("back")], 1, [], {}, wrap_once=True)
+        wrapped = advance([NORMAL, control("counter_inc", counter="n")], 1, [], {}, wrap_once=True)
         self.assertEqual(wrapped.normal_index, 0)
 
     def test_continuous_end_and_plain_actions(self):
@@ -191,16 +204,32 @@ class SequenceStepsTest(unittest.TestCase):
         self.assertEqual(continued.counter_deltas, (("n", 1), ("n", -1)))
         self.assertEqual(counters, {"n": 0})
 
-    def test_back_and_rewind_invoke_callback_and_continue(self):
-        actions = [control("back"), control("rewind"), NORMAL]
-        controls = []
+    def test_back_and_rewind_require_standalone_sequence(self):
+        for op in ("back", "rewind"):
+            with self.subTest(op=op):
+                controls = []
+                mixed = advance([NORMAL, control(op)], 1, [], {},
+                                wrap_once=False, on_control=controls.append)
+                self.assertEqual(mixed.error,
+                                 (1, "戻す・先頭へは単独で登録してください"))
+                self.assertEqual(mixed.position, 1)
+                self.assertEqual(controls, [])
+                alone = advance([control(op)], 0, [], {},
+                                wrap_once=False, on_control=controls.append)
+                self.assertEqual(controls, [op])
+                self.assertTrue(alone.reached_end)
 
-        outcome = advance(
-            actions, 0, [], {}, wrap_once=False, on_control=controls.append,
-        )
-
-        self.assertEqual(controls, ["back", "rewind"])
-        self.assertEqual(outcome.normal_index, 2)
+    def test_deferred_counters_are_not_reapplied_on_wait_resume(self):
+        actions = [control("wait", ms=1), NORMAL]
+        counters = {"n": 1}
+        waiting = advance(actions, 0, [], counters, wrap_once=False,
+                          deferred_counters=(("counter_inc", "n"),))
+        self.assertEqual(counters["n"], 2)
+        continued = advance(actions, waiting.resume_position, waiting.frames,
+                            counters, wrap_once=False, resume=waiting.resume,
+                            deferred_counters=(("counter_inc", "n"),))
+        self.assertEqual(counters["n"], 2)
+        self.assertEqual(continued.counter_deltas, (("n", 1),))
 
     def test_invalid_system_rows_stop_at_row(self):
         cases = [([control("loop_start", count=1)], 0),
@@ -342,3 +371,21 @@ class AppStateLoopFramesTest(unittest.TestCase):
 
         state.reset_indices()
         self.assertEqual(state.pending_steps, {})
+
+    def test_deferred_counters_follow_trigger_and_set_lifetime(self):
+        state = AppState()
+        deferred = [("counter_inc", "n")]
+        state.deferred_counters_for("first")["f1"] = list(deferred)
+        state.rekey_trigger("first", "f1", "f9")
+        self.assertEqual(state.deferred_counters_for("first"), {"f9": deferred})
+        state.rekey_trigger_set("first", "second")
+        self.assertNotIn("first", state.keymap_deferred_counters)
+        self.assertEqual(state.deferred_counters_for("second"), {"f9": deferred})
+        state.forget_trigger("second", "f9")
+        self.assertEqual(state.deferred_counters_for("second"), {})
+        state.deferred_counters_for("second")["f1"] = list(deferred)
+        state.forget_trigger_set("second")
+        self.assertNotIn("second", state.keymap_deferred_counters)
+        state.deferred_counters["f1"] = list(deferred)
+        state.reset_indices()
+        self.assertEqual((state.deferred_counters, state.keymap_deferred_counters), ({}, {}))

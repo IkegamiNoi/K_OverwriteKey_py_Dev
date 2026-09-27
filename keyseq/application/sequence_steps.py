@@ -68,6 +68,7 @@ class SettleOutcome:
     frames: list[LoopFrame]
     counter_deltas: tuple[tuple[str, int], ...]
     wrapped: bool = False
+    deferred_counters: tuple[tuple[str, str], ...] = ()
 
 
 def reset_frames(actions: Sequence[Any], position: int) -> list[LoopFrame]:
@@ -149,6 +150,7 @@ def _system_step(actions: Sequence[Any], position: int, frames: list[LoopFrame],
 def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             counters: dict[str, int], *, wrap_once: bool,
             resume: StepResume | None = None,
+            deferred_counters: Sequence[tuple[str, str]] = (),
             on_control: Callable[[str], None] | None = None) -> StepOutcome:
     structure = analyze_loops(actions)
     if resume is None:
@@ -162,6 +164,9 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
     processed = resume.processed if resume else 0
     wrapped = resume.wrapped if resume else False
     counter_deltas = list(resume.counter_deltas) if resume else []
+    if resume is None:
+        for op, name in deferred_counters:
+            _counter({"counter": name}, op, counters, counter_deltas)
     while True:
         if position == len(actions):
             position, current = 0, []
@@ -206,6 +211,10 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
                                ),
                                counter_deltas=tuple(counter_deltas))
         op = system_op(action)
+        if op in (OP_BACK, OP_REWIND) and len(actions) > 1:
+            return StepOutcome(None, position, current,
+                               (position, "戻す・先頭へは単独で登録してください"),
+                               counter_deltas=tuple(counter_deltas))
         if op in (OP_BACK, OP_REWIND) and on_control is not None:
             on_control(op)
         next_position, error = _system_step(
@@ -230,6 +239,7 @@ def settle_after_normal(actions: Sequence[Any], position: int,
     """Prepare the next step without executing controls or reporting errors."""
     current = list(frames)
     deltas: list[tuple[str, int]] = []
+    deferred: list[tuple[str, str]] = []
     structure = analyze_loops(actions)
     wrapped = False
     while True:
@@ -246,6 +256,15 @@ def settle_after_normal(actions: Sequence[Any], position: int,
         op = system_op(action)
         if op not in (OP_LOOP_START, OP_LOOP_END, OP_COUNTER_INC, OP_COUNTER_RESET):
             break
+        if op in (OP_COUNTER_INC, OP_COUNTER_RESET):
+            value = action.get("counter", "")
+            name = value.strip() if isinstance(value, str) else ""
+            if not name:
+                break
+            deferred.append((op, name))
+            position += 1
+            processed += 1
+            continue
         next_position, error = _system_step(
             actions, position, current, counters, structure, deltas,
         )
@@ -253,4 +272,5 @@ def settle_after_normal(actions: Sequence[Any], position: int,
             break
         position = next_position
         processed += 1
-    return SettleOutcome(position, current, tuple(deltas), wrapped)
+    return SettleOutcome(position, current, tuple(deltas), wrapped,
+                         tuple(deferred))

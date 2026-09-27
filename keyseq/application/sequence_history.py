@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, MutableMapping, Sequence
 
 
@@ -19,10 +19,12 @@ class HistoryEntry:
     position: int
     frames: list[Any]
     counter_deltas: list[CounterDelta]
+    deferred_counters: list[tuple[str, str]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "frames", list(self.frames))
         object.__setattr__(self, "counter_deltas", list(self.counter_deltas))
+        object.__setattr__(self, "deferred_counters", list(self.deferred_counters))
 
 
 @dataclass(frozen=True)
@@ -33,9 +35,11 @@ class StepSnapshot:
     key: str
     position: int
     frames: list[Any]
+    deferred_counters: list[tuple[str, str]] = field(default_factory=list)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "frames", list(self.frames))
+        object.__setattr__(self, "deferred_counters", list(self.deferred_counters))
 
 
 def snapshot_for(state: Any, trigger_set_id: str, key: str) -> StepSnapshot:
@@ -43,7 +47,8 @@ def snapshot_for(state: Any, trigger_set_id: str, key: str) -> StepSnapshot:
     with state.lock:
         position = state.indices_for(trigger_set_id).get(key, 0)
         frames = state.loop_frames_for(trigger_set_id).get(key, [])
-        return StepSnapshot(trigger_set_id, key, position, list(frames))
+        deferred = state.deferred_counters_for(trigger_set_id).get(key, [])
+        return StepSnapshot(trigger_set_id, key, position, list(frames), list(deferred))
 
 
 def push_history(
@@ -52,11 +57,14 @@ def push_history(
     position: int,
     frames: Sequence[Any],
     counter_deltas: Iterable[CounterDelta],
+    deferred_counters: Sequence[tuple[str, str]] = (),
 ) -> bool:
     """Append a changed step's start state, keeping only the newest 100 entries."""
     deltas = list(counter_deltas)
     current_frames = list(frames)
-    if snapshot.position == position and snapshot.frames == current_frames and not deltas:
+    current_deferred = list(deferred_counters)
+    if (snapshot.position == position and snapshot.frames == current_frames
+            and snapshot.deferred_counters == current_deferred and not deltas):
         return False
 
     history.append(
@@ -64,6 +72,7 @@ def push_history(
             position=snapshot.position,
             frames=list(snapshot.frames),
             counter_deltas=deltas,
+            deferred_counters=list(snapshot.deferred_counters),
         )
     )
     overflow = len(history) - MAX_HISTORY_ENTRIES
@@ -98,10 +107,12 @@ def commit_step(
     with state.lock:
         position = state.indices_for(trigger_set_id).get(key, snapshot.position)
         frames = state.loop_frames_for(trigger_set_id).get(key, [])
+        deferred = state.deferred_counters_for(trigger_set_id).get(key, [])
         histories = state.history_for(trigger_set_id)
         history = histories.get(key)
         pending_history = history if history is not None else []
-        if not push_history(pending_history, snapshot, position, frames, deltas):
+        if not push_history(pending_history, snapshot, position, frames, deltas,
+                            deferred_counters=deferred):
             return False
         if history is None:
             histories[key] = pending_history
@@ -146,12 +157,14 @@ def apply_control(
                 return None, None
             state.indices_for(target_id)[target_key] = entry.position
             state.loop_frames_for(target_id)[target_key] = list(entry.frames)
+            state.deferred_counters_for(target_id)[target_key] = list(entry.deferred_counters)
             undo_counter_deltas(state.counters, entry.counter_deltas)
             return target_key, None
 
         if op == "rewind":
             state.indices_for(target_id)[target_key] = 0
             state.loop_frames_for(target_id)[target_key] = []
+            state.deferred_counters_for(target_id).pop(target_key, None)
             if history is not None:
                 clear_history(history)
             return target_key, None

@@ -51,10 +51,12 @@ class SequenceRunner:
     def _get_frames(self, key: str) -> list[LoopFrame]:
         return self.state.loop_frames_for(self._get_trigger_set_id()).get(key, [])
 
-    def _save_progress(self, key: str, position: int, frames: list[LoopFrame]) -> None:
+    def _save_progress(self, key: str, position: int, frames: list[LoopFrame],
+                       deferred: list[tuple[str, str]] | tuple[tuple[str, str], ...] = ()) -> None:
         with self.state.lock:
             self._set_index(key, position)
             self.state.loop_frames_for(self._get_trigger_set_id())[key] = list(frames)
+            self.state.deferred_counters_for(self._get_trigger_set_id())[key] = list(deferred)
 
     def reset_loop_frames(self, key: str) -> None:
         key = normalize_key_name(key)
@@ -178,7 +180,10 @@ class SequenceRunner:
         try:
             outcome = advance(actions, self._get_index(key) if position is None else position,
                               self._get_frames(key), self.state.counters,
-                              wrap_once=True, resume=resume, on_control=on_control)
+                              wrap_once=True, resume=resume,
+                              deferred_counters=self.state.deferred_counters_for(
+                                  self._get_trigger_set_id()).get(key, ()),
+                              on_control=on_control)
             self._save_progress(key, outcome.position, outcome.frames)
             if outcome.wait_ms is not None:
                 self._queue_single_wait(key, outcome, snapshot)
@@ -194,6 +199,7 @@ class SequenceRunner:
             if self._perform_action(actions[index]) is False:
                 return
             position, frames = after_normal_action(actions, index, outcome.frames)
+            deferred = ()
             if not (position == 0 and outcome.wrapped):
                 settled = settle_after_normal(
                     actions, position, frames, self.state.counters,
@@ -202,7 +208,8 @@ class SequenceRunner:
                 )
                 position, frames = settled.position, settled.frames
                 outcome.counter_deltas += settled.counter_deltas
-            self._save_progress(key, position, frames)
+                deferred = settled.deferred_counters
+            self._save_progress(key, position, frames, deferred)
         finally:
             if not waiting and outcome is not None:
                 commit_step(self.state, snapshot, outcome.counter_deltas)
@@ -294,7 +301,10 @@ class SequenceRunner:
             target = self._control(key, op) or target
         outcome = advance(actions, self._get_index(key), self._get_frames(key),
                           self.state.counters, wrap_once=False,
-                          resume=self._run_to_end_resume, on_control=on_control)
+                          resume=self._run_to_end_resume,
+                          deferred_counters=self.state.deferred_counters_for(
+                              self._get_trigger_set_id()).get(key, ()),
+                          on_control=on_control)
         self._save_progress(key, outcome.resume_position if outcome.wait_ms is not None
                             else outcome.position, outcome.frames)
         if outcome.wait_ms is not None:
@@ -315,6 +325,7 @@ class SequenceRunner:
                     stop = True
                 else:
                     position, frames = after_normal_action(actions, index, outcome.frames)
+                    deferred = ()
                     if position != 0:
                         settled = settle_after_normal(
                             actions, position, frames, self.state.counters,
@@ -322,7 +333,8 @@ class SequenceRunner:
                         )
                         position, frames = settled.position, settled.frames
                         outcome.counter_deltas += settled.counter_deltas
-                    self._save_progress(key, position, frames)
+                        deferred = settled.deferred_counters
+                    self._save_progress(key, position, frames, deferred)
                     stop = position == 0
             commit_step(self.state, snapshot, outcome.counter_deltas)
             if stop:

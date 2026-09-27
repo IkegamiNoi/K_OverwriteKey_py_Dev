@@ -8,12 +8,37 @@ from typing import Any
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM,
     MAX_LOOP_DEPTH,
+    OP_BACK,
     OP_LOOP_END,
     OP_LOOP_START,
+    OP_REWIND,
     analyze_loops,
     action_type,
     system_op,
 )
+
+
+def standalone_violation(
+    actions: Sequence[Any],
+    item: Any,
+    *,
+    replace_index: int | None = None,
+) -> bool:
+    """Return whether adding or replacing an item breaks standalone controls."""
+    is_standalone = (
+        isinstance(item, Mapping)
+        and action_type(item) == ACTION_TYPE_SYSTEM
+        and system_op(item) in (OP_BACK, OP_REWIND)
+    )
+    result_length = len(actions) + (replace_index is None)
+    has_standalone = is_standalone or any(
+        index != replace_index
+        and isinstance(action, Mapping)
+        and action_type(action) == ACTION_TYPE_SYSTEM
+        and system_op(action) in (OP_BACK, OP_REWIND)
+        for index, action in enumerate(actions)
+    )
+    return has_standalone and result_length != 1
 
 
 def insert_actions(

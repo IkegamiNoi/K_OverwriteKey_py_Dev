@@ -25,6 +25,8 @@ class AppState:
     keymap_indices: dict[str, dict[str, int]] = field(default_factory=dict)
     loop_frames: dict[str, list[LoopFrame]] = field(default_factory=dict)
     keymap_loop_frames: dict[str, dict[str, list[LoopFrame]]] = field(default_factory=dict)
+    deferred_counters: dict[str, list[tuple[str, str]]] = field(default_factory=dict)
+    keymap_deferred_counters: dict[str, dict[str, list[tuple[str, str]]]] = field(default_factory=dict)
     history: dict[str, list[HistoryEntry]] = field(default_factory=dict)
     keymap_history: dict[str, dict[str, list[HistoryEntry]]] = field(default_factory=dict)
     last_trigger: tuple[str, str] | None = None
@@ -45,6 +47,8 @@ class AppState:
         self.keymap_indices = {}
         self.loop_frames = {}
         self.keymap_loop_frames = {}
+        self.deferred_counters = {}
+        self.keymap_deferred_counters = {}
         self.history = {}
         self.keymap_history = {}
         self.last_trigger = None
@@ -72,6 +76,11 @@ class AppState:
             return self.loop_frames
         return self.keymap_loop_frames.setdefault(trigger_set_id, {})
 
+    def deferred_counters_for(self, trigger_set_id: str | None = None) -> dict[str, list[tuple[str, str]]]:
+        if not trigger_set_id:
+            return self.deferred_counters
+        return self.keymap_deferred_counters.setdefault(trigger_set_id, {})
+
     def loop_iterations_for(self, trigger_set_id: str, key: str) -> dict[int, int]:
         """指定トリガーの周回フレームを開始位置から周回数への対応表で返す。"""
         with self.lock:
@@ -88,6 +97,7 @@ class AppState:
 
     def forget_trigger(self, trigger_set_id: str, key: str) -> None:
         self.history_for(trigger_set_id).pop(key, None)
+        self.deferred_counters_for(trigger_set_id).pop(key, None)
         if self.last_trigger == (trigger_set_id, key):
             self.last_trigger = None
 
@@ -96,6 +106,10 @@ class AppState:
         if previous_key in history:
             history.setdefault(current_key, history[previous_key])
             del history[previous_key]
+        deferred = self.deferred_counters_for(trigger_set_id)
+        if previous_key in deferred:
+            deferred.setdefault(current_key, deferred[previous_key])
+            del deferred[previous_key]
         if self.last_trigger == (trigger_set_id, previous_key):
             self.last_trigger = (trigger_set_id, current_key)
 
@@ -105,6 +119,7 @@ class AppState:
                 del self.pending_steps[identity]
         self.keymap_indices.pop(trigger_set_id, None)
         self.keymap_loop_frames.pop(trigger_set_id, None)
+        self.keymap_deferred_counters.pop(trigger_set_id, None)
         self.keymap_history.pop(trigger_set_id, None)
         if self.last_trigger is not None and self.last_trigger[0] == trigger_set_id:
             self.last_trigger = None
@@ -122,6 +137,8 @@ class AppState:
             self.keymap_indices[current_id] = self.keymap_indices.pop(previous_id)
         if previous_id in self.keymap_loop_frames:
             self.keymap_loop_frames[current_id] = self.keymap_loop_frames.pop(previous_id)
+        if previous_id in self.keymap_deferred_counters:
+            self.keymap_deferred_counters[current_id] = self.keymap_deferred_counters.pop(previous_id)
         if previous_id in self.keymap_history:
             self.keymap_history[current_id] = self.keymap_history.pop(previous_id)
         if self.last_trigger is not None and self.last_trigger[0] == previous_id:
