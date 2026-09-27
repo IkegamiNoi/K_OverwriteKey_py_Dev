@@ -93,7 +93,8 @@ file_line の実行 / presentation の編集ダイアログ・追加位置・一
   既存呼び出しを壊した件・`StepSnapshot` / `HistoryEntry` の新欄に既定値が無かった件・子の UI テストの前提不足 2 件をメインで修正。runner 347 行）
 - task_07e: 完了判定前レビューのコード指摘（M-1 追加時の位置 / §2-27 連続実行の停止時に保留を反映 / 連続実行の世代番号 / L-1 大文字 op の通知 / L-4 改名の順序 / L-6 テスト）— **完了**（2026-09-27。`codex-implementer`〔Luna high〕。07d の既存テスト 1 件を v0.6 に合わせてメインで修正。runner 359 行）
 - task_08: 統合確認と正本反映（暫定 26 の `spec_detail/` への昇格・凍結 / `codebase_map.md`〔新モジュール・色値〕/
-  decisions_archive/37 / current.md の完了記載 / `/refactor_check`）
+  decisions_archive/37 / current.md の完了記載 / `/refactor_check`）— **完了**（2026-09-27。完了判定前レビュー → task_07e。暫定 26 は v0.6 で凍結。file_line の遅い I/O は idea_38。
+  `/refactor_check` = 推奨 → 提案書 15〔判断待ち〕。最終実測 tests 829〔skip 7〕/ tests_ui 615 / smoke OK）
 
 ### 実装モデルの試行（ユーザー判断 2026-09-26）
 

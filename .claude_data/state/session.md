@@ -4,40 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T11:00:00
-phase: instructions/phase/37_sequence_control_actions（出力シーケンスの制御アクション・第 1 弾・暫定 26 **v0.5** 確定済・decisions 37）。
-次採番 = phase 38 / 暫定 27 / decisions 38 / 提案書 15。直前の完了フェーズ = **phase 36**（判断履歴 = `decisions_archive/36_config_service_split.md`）。
+last_updated: 2026-09-27T19:30:00
+phase: なし（**アクティブなフェーズ = なし**。phase 37 は 2026-09-27 完了）。次採番 = phase 38 / 暫定 27 / decisions 38 / 提案書 16。
+直前の完了フェーズ = **phase 37**（出力シーケンスの制御アクション第 1 弾・判断履歴 = `decisions_archive/37_sequence_control_actions.md`）。
 last_commit_location: `claude/output-sequence-system-type-e641ab`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 37 進行中: task_01〜07・07b 完了、07c（system の先行処理）・07d（カウンターの保留・戻す / 先頭への単独登録）実装完了。ユーザーの実機目視待ち → task_08（正本反映）。**
-mode: pending_review
+focus: **phase 37 完了（system 種別 + file_line・暫定 26 v0.6 凍結・正本反映済）。`/refactor_check` = 推奨 → 提案書 15 の実施可否とタイミングがユーザー判断待ち。次フェーズは idea_38（file_line の非同期読込）から。**
+mode: completed
 
 ## last_action
-ts: 2026-09-27T12:30:00
+ts: 2026-09-27T19:30:00
 who: main
 summary: |
-  【ユーザー判断（実機目視）】カウンターは現在値を表示（先行処理では位置だけ進め、値は次の押下で反映）/ ループの周回表示は v0.4 のまま /
-  戻す・先頭へは編集で単独登録に限定・混在は実行時エラー → 暫定 26 v0.5（§2-25・26・§8.5）。
-  【task_07d】`codex-delegating-implementer`（単独登録を Luna high の子が担当）→ verifier で 12 errors →
-  Codex が `push_history` の位置引数の順を変えた / 新欄に既定値なし / 子の UI テストの前提不足 → メインで修正 → tests 822・tests_ui 614・smoke OK。reviewer 完了可。
+  【完了判定前レビュー】deep-reviewer = 修正して完了（M-1〜M-6・L-1〜L-8）/ codex-adversarial（config 既定 Sol medium・約 2.5 分）= file_line の遅い I/O（High）・連続実行の世代番号。
+  ユーザー判断: M-2 = 連続実行の停止時に保留を反映 / M-5 = 実装どおり明記 / file_line の遅い I/O = idea_38 で次フェーズに最初に対応 → 暫定 26 v0.6。
+  【task_07e】`codex-implementer`（Luna high）→ 07d の既存テスト 1 件を v0.6 に合わせて修正 → tests 829 / tests_ui 615 / smoke OK・reviewer 完了可（`ee5a79b`）。
+  【正本反映】`data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.6・§4.5・§4.6（一覧の表示形式・出力シーケンスの編集）/ `codebase_map.md`（新節）/ 暫定 26 凍結 /
+  decisions_archive/37・索引 / current.md（アクティブ = なし・直近の領域・別タスク化候補・次採番）/ idea_38 起票。
+  【refactor_check】推奨 → 提案書 15（項目 1: アクション編集を `controllers/trigger_panel/action_edit.py` へ〔M1〕/ 項目 2: `ActionControlFields.__init__` 分割と定数参照〔M2・M6〕）。
 result_files:
-  - keyseq/application/{sequence_steps,sequence_runner（347 行）,sequence_history,app_state}.py / keyseq/domain/sequence_editing.py / keyseq/presentation/controllers/trigger_panel_controller.py
-  - tests/{test_sequence_steps,test_sequence_runner,test_sequence_editing}.py / tests_ui/test_trigger_panel_controller_action_edit.py
-  - instructions/history/26_sequence_control_actions.md（v0.5）/ instructions/phase/37_sequence_control_actions/{phase.md, tasks/task_07d_*.md} / .claude_data/state/session.md
+  - instructions/common/spec_detail/{data_schema.md, features.md} / instructions/common/codebase_map.md / instructions/history/26_sequence_control_actions.md（凍結）
+  - instructions/modified_proposal/15_refactor_sequence_control_actions.md / instructions/phase/{current.md, 37_sequence_control_actions/phase.md}
+  - .claude_data/state/{decisions.md, decisions_archive/37_sequence_control_actions.md, session.md}
 verified:
   compile: clean
-  tests: 822 ran OK（skipped 7）
-  tests_ui: 614 ran OK
+  tests: 829 ran OK（skipped 7）
+  tests_ui: 615 ran OK
   smoke: pass
-  review: reviewer 完了可（task_07d）
+  review: deep-reviewer / codex-adversarial（完了判定前）→ task_07e で対応・reviewer 完了可
 
 ## next_action
-- **ユーザーの実機目視**: task_07b の H1（一覧にフォーカスを置いたまま押しても周回が進む）と task_07c（「次に実行」の選択が実行される行を指す）。
-- 目視 OK 後に task_08: フェーズ完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer。**Codex は config 既定 = Sol medium**）→ 暫定 26 の `spec_detail/` 昇格・凍結 /
-  codebase_map（新モジュール 9 つ・色値）/ decisions_archive/37 / current.md 完了記載と別タスク化候補（deep-reviewer の L3・L4・L6・L8〜L11・L13・L14）/ `/refactor_check`
-  （`trigger_panel_controller.py` 711 行・`action_dialog.py` 449 行・runner 335 行）。
+- **ユーザー判断待ち**: 提案書 15 を実施するか・タイミング（(a) phase 37 末の追加タスク task_09 / (b) 次フェーズ前の独立ミニフェーズ）。
+- 次フェーズ = idea_38（file_line の非同期読込）。着手時は `/spec_draft` → `/phase_start`（暫定 27・phase 38・decisions 38）。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜37）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

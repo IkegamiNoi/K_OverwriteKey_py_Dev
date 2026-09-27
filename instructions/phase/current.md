@@ -7,19 +7,20 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 37](37_sequence_control_actions/phase.md)**（出力シーケンスの制御アクション・第 1 弾・2026-09-26 起票）。
-  出力シーケンスに system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line 種別を追加する（**JSON スキーマ変更あり**・全レイヤ）。
-  主入力 = 暫定仕様 [26](../history/26_sequence_control_actions.md)（v0.3・ユーザー確定済）。起票元 = ユーザー要望（2026-09-26）。
-  番号対応: phase 37 / 暫定 26 / decisions 37。第 2 弾（停止・他トリガー呼び出し）は次フェーズ。
-  task_02 で Codex の実装モデル（Sol medium + Luna xhigh サブエージェント）を試行する（ユーザー判断・詳細は phase.md）。
-  提案書 [14](../modified_proposal/14_refactor_config_service_split.md) は phase 36 task_09 で実施済（2026-09-27）。
-- 直前の完了フェーズ = [phase 36](36_config_service_split/phase.md)（2026-09-27・config_service の分割と巨大関数の分割・
+- **アクティブなフェーズ = なし**（phase 37 は 2026-09-27 完了。次フェーズは [idea_38](../backlog/idea_38_file_line_async_read.md)〔file_line の非同期読込〕から着手の予定〔ユーザー判断〕・着手時は `/phase_start`）。
+  提案書 [15](../modified_proposal/15_refactor_sequence_control_actions.md)（phase 37 の `/refactor_check` = 推奨）は**実施可否・タイミングがユーザー判断待ち**。
+- 直前の完了フェーズ = [phase 37](37_sequence_control_actions/phase.md)（2026-09-27・出力シーケンスの制御アクション第 1 弾・
+  判断は [decisions_archive/37](../../.claude_data/state/decisions_archive/37_sequence_control_actions.md)）/
+  [phase 36](36_config_service_split/phase.md)（2026-09-27・config_service の分割と巨大関数の分割・
   判断は [decisions_archive/36](../../.claude_data/state/decisions_archive/36_config_service_split.md)）/
   [phase 35](35_legacy_trigger_set_missing_file/phase.md)（2026-09-26・旧形式トリガー一覧の移行の境界値・
   判断は [decisions_archive/35](../../.claude_data/state/decisions_archive/35_legacy_trigger_set_missing_file.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近の一連の作業が扱っている領域 = トリガー一覧のキーマップ従属化**（phase 34）。
+- **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**）。
+  正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.6・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
+  **残件** = file_line の遅い I/O（idea_38・次フェーズ）/ 第 2 弾（停止・他トリガー呼び出し・暫定 26 §13）/ カウンター条件分岐（idea_37）/ 提案書 15 / 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
+- その前の領域 = **トリガー一覧のキーマップ従属化**（phase 34）。
   トリガー一覧（と従属するシーケンス）はキーマップに従属し、キーマップ＝モードとして一括で切り替わる（**JSON スキーマ変更あり**）。
   正本 = `data_schema.md` §5.13（runtime の形・共有・移行・保存計画）+ §5.2/5.4/5.5/5.6/5.8.x / `key_input.md` §7.3
   （優先順位 **停止 > トグル > 直接切替 > トリガー > 置換**・重なりの表・切替中の受け付け停止）/ `features.md` §4.1・§4.3・§4.5。
@@ -30,7 +31,7 @@
   **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**14 まで起票済**・次採番は「次採番」節が正）。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**15 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -43,7 +44,7 @@
   **phase 34 は 2026-09-27 完了**（`34_trigger_list_per_keymap` / 暫定 25〔v0.7・凍結〕/ decisions 34〔アーカイブ済〕）。
   **phase 35 は 2026-09-26 完了**（`35_legacy_trigger_set_missing_file` / 暫定なし〔直接改訂モード〕/ decisions 35〔アーカイブ済〕）。
   **phase 36 は 2026-09-27 完了**（`36_config_service_split` / 暫定なし〔直接改訂モード〕/ decisions 36〔アーカイブ済〕）。
-  **phase 37 は 2026-09-26 起票・進行中**（`37_sequence_control_actions` / 暫定 26〔v0.3〕/ decisions 37）。
+  **phase 37 は 2026-09-27 完了**（`37_sequence_control_actions` / 暫定 26〔v0.6・凍結〕/ decisions 37〔アーカイブ済〕）。
   次フェーズは **`38_<topic>`**・decisions も **38** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -67,7 +68,7 @@
   23=最小化から復元した後のキーボードフォーカス〔**v0.5・凍結**〕/
   24=種類が不正なアクションの実行〔**v0.5・凍結**〕/
   25=トリガー一覧のキーマップ従属化〔**v0.7・凍結**〕/
-  26=出力シーケンスの制御アクション〔**v0.3・未凍結**・phase 37〕）。
+  26=出力シーケンスの制御アクション〔**v0.6・凍結**〕）。
   次採番は **`27_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**14 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -76,8 +77,9 @@
   **11 = phase 28 由来・実施済＝phase 28 task_07**〔Esc の別用途つき閉じ処理の 3 重複を 1 関数へ〕 /
   **12 = phase 30 由来・見送り**〔「キーがあれば coerce_label」の 5 重複を 1 関数へ。「別タスク化候補」へ送付〕 /
   **13 = phase 34 由来・実施済＝phase 34 task_09**〔内部キーの定数化・キーマップ追加フローを `controllers/keymap_panel/` へ〕 /
-  **14 = phase 36 由来・実施済＝phase 36 task_09**〔`split_loading.py` のホットキープリセット 9 関数を `hotkey_presets_files.py` へ〕）・
-  次採番は **`15_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **14 = phase 36 由来・実施済＝phase 36 task_09**〔`split_loading.py` のホットキープリセット 9 関数を `hotkey_presets_files.py` へ〕 /
+  **15 = phase 37 由来・判断待ち**〔アクション編集を `controllers/trigger_panel/` へ・`ActionControlFields.__init__` の分割と定数参照〕）・
+  次採番は **`16_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
@@ -197,7 +199,13 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   **`entry_loaded=True` かつ値が空白のみ**という組み合わせは 3 経路のいずれからも生成されず**到達不能**
   （config.json を手編集した場合のみ）。触るなら `.strip()` 側へ揃える 1 行修正（phase 25 / 26 由来）
 - `to_x` 欠落時に一覧表示が `(100, 200)→(, )` になる（実行はエラーになる）（phase 22 由来）
-- `features.md` §4.2（シーケンス実行）から `data_schema.md` §5.11 への参照が無い（発見性のみ）（phase 22 由来）
+
+### 出力シーケンスの制御アクション（phase 37 由来）
+
+- 統合レビュー Low（詳細は decisions_archive/37）: L3 `rekey_trigger_set` で移動先側の既存の保留を破棄 / L4 範囲外の位置の丸め方が旧実装（`% len`）と違う /
+  L6 ループの対を削除しても「次に実行」を補正しない / L8 対応崩れが別の場所にあると張り直さず正しい終わりもエラー / L9 既に深さ超過があるとどこにも追加できない /
+  L11 file_line は `_write_text` の例外も捕捉（text は外へ抜ける）/ L13 削除確認ダイアログの表示中はフックが止まらず待機の続きが発火しうる / L14 待機の続きの id 不一致時に記録しない（上流で取り消すので実害なし）
+- `application/sequence_runner.py` 359 行で先行処理の呼び出しが単発・連続に重複（完了判定前レビュー L-8）。次に触るなら `sequence_steps` / `sequence_history` へ寄せる
 
 ### テスト負債
 

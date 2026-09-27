@@ -70,6 +70,7 @@ keyseq/presentation/
             pane_layout_controller.py  # PaneLayoutController: 境界線ドラッグ・最小幅・収まらない場合の適用・幅の保存と復元・最小の高さ（phase 20）
             pane_measure.py    # measure_min_widths: 各枠の最小幅 / measure_header_window_width: ヘッダの要求幅から求めたウィンドウ幅を実ウィジェットから測る / measure_window_min_height: 最小の高さ（ウィンドウの要求高さ・一時メッセージは 1 行分）
         trigger_panel_controller.py
+        action_list_rendering.py   # build_action_rows / format_next_action_summary: 出力シーケンス一覧の 1 行の文字列と背景色（tkinter 非依存・phase 37）
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)
         status_bar.py          # build_status_area(app, parent)
@@ -89,7 +90,8 @@ keyseq/presentation/
     config_paths.py            # 以下は presentation 直下（複数種から使われる共有モジュール）
     dialogs/                   # ダイアログ群（計画07 項目2 で dialogs.py 1026 行から分割・1クラス1ファイル）
       __init__.py              # 公開面（明示列挙の再輸出のみ。tk / messagebox は持たない）
-      action_dialog.py         # ActionDialog（+ キーキャプチャ）
+      action_dialog.py         # ActionDialog（+ キーキャプチャ）。mode = add / edit / edit_loop（phase 37）
+      action_control_fields.py # system / file_line の入力欄の組み立て・値の読み取り・検証（ActionDialog 専用の補助・再輸出しない・phase 37）
       preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）
       trigger_dialog.py        # TriggerDialog
@@ -594,9 +596,32 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - `ActionExecutor.execute(action) -> bool`: `type`（非文字列は空扱い）が `hotkey` / `text` / `mouse_click` なら送って `True`
   （内部の hotkey 検証エラー・`x` / `y`〔`to_x` / `to_y`〕不正・mouse_click の送信失敗も通知して `True`。**hotkey / text の送信例外は従来どおり `execute` の外へ抜ける**）。**それ以外は送らず** `on_action_error` へ
   `type` を文字列化した浅いコピーと理由を渡して `False`（`App` が `HookController.show_action_error` を注入）。
+- phase 37: `file_line` は `file_line_reader` で読んで text と同じ経路で送る（エラーは通知して `False`）。`system` は executor へ渡らない（runner の `sequence_steps` が処理）。
 - `SequenceRunner` は `perform_action`（= `App._perform_action` → `execute`）の戻り値が **`is False`** のときだけ止める:
   run_to_end は `stop_run_to_end`、単発は index を進めない。注入される `perform_action` の実装が `None` を返す場合は従来どおり進む。
 - 仕様は `spec_detail/data_schema.md` §5.11.1 / §5.11.5。テスト = `tests/test_action_executor_type.py` / `tests/test_sequence_runner.py`。
+
+### 出力シーケンスの制御アクション（system / file_line・phase 37）
+
+仕様は `spec_detail/features.md` §4.2（実行）・§4.6（一覧の表示・出力シーケンスの編集）/ `data_schema.md` §5.11.6〜5.11.8（JSON・エラー）。判断は `decisions_archive/37_sequence_control_actions.md`。
+
+| モジュール | 責務 |
+|---|---|
+| `domain/sequence_control.py` | 定数（種別・op・深さ上限 9 等）/ `analyze_loops`（括弧の対応・深さ・対応崩れ・深さ超過）/ `enclosing_loop_starts`（位置を囲むループ・終わりの行は内側）/ `loop_depth_style`（深さ → 色相・濃さ）/ `format_control_value`（表示名・runtime 値は引数） |
+| `domain/sequence_editing.py` | 編集規則の純関数: 挿入と位置補正 / ループの対の生成・深さ上限 / 対の添字・削除する添字 / 移動の可否 / 戻す・先頭への単独登録の判定 |
+| `domain/config.py` | `normalize_actions` が新キー（`op` / `counter` / `path` / `encoding` / `out_of_range`）を種別を問わず trim。`format_action_list_item` は system / file_line を `format_control_value` へ委譲 |
+| `application/sequence_steps.py` | ステップの進め方（UI・タイマー非依存）: `advance`（保留の反映 → 周回の整合 → system の処理 → 通常アクションの手前で止まる・待機で `wait_ms` と `StepResume`）/ `after_normal_action` / `settle_after_normal`（先行処理・カウンターは保留へ）/ エラー通知用の整形 |
+| `application/sequence_history.py` | 戻す履歴（`StepSnapshot` / `HistoryEntry`・上限 100）/ 差分の打ち消し / `commit_step`（直前のトリガーの更新）/ `apply_control`（back / rewind の対象判定と復元）/ 保留中ステップの取り消し |
+| `application/sequence_runner.py` | 実行制御（単発・連続・単発の非同期待機〔保留中ステップ・世代番号〕・連続実行の世代番号・取り消しの公開メソッド `cancel_pending_wait(s)` / `reset_loop_frames`） |
+| `application/app_state.py` | runtime 状態: 周回スタック・戻す履歴・保留中のカウンター操作（いずれも trigger_set_id → key）・カウンター・直前のトリガー・保留中ステップ。`reset_indices` / `forget_trigger_set` / `rekey_trigger_set` / `forget_trigger` / `rekey_trigger` で一緒に消す・付け替える |
+| `application/file_line_reader.py` | file_line の読込（パス解決 §5.7・1 MB 上限・utf-8-sig / cp932・改行 3 種のみで分割・範囲外 3 種）。executor が `resolve_file_line_path` / `get_counter` の注入で呼ぶ |
+| `presentation/controllers/action_list_rendering.py` | 一覧の 1 行（周回・カウンターの現在値）と背景色、省略表示の要約。色値（薄 / 中 / 濃）: 青 `#DCEBFF` / `#C2DBFF` / `#A8CBFF`・緑 `#DDF3DD` / `#C4E8C4` / `#ABDDAB`・橙 `#FFEBD2` / `#FFDDB3` / `#FFCF94` |
+
+- 取り消しの配線（presentation）: `HookController.stop_hook` と `toggle_custom_input_enabled`（無効化）→ `cancel_pending_waits` / `KeymapPanelController.activate_keymap_by_id`（切り替わったとき）→ `cancel_pending_waits` /
+  `TriggerPanelController` の位置変更（位置が実際に変わったときだけ）・追加 / 編集 / 削除 / 移動 → `reset_loop_frames`、トリガー削除・改名 → `cancel_pending_wait` と `AppState.forget_trigger` / `rekey_trigger`。
+- 一覧の `<KeyRelease>` は `on_action_list_select` へ流れる（フォーカス同期）。**同じ行なら何もしない**（phase 37 統合レビュー H1 の再発防止）。
+- テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
+  `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 
 ### キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）
 
