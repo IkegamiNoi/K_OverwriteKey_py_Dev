@@ -389,3 +389,23 @@ class AppStateLoopFramesTest(unittest.TestCase):
         state.deferred_counters["f1"] = list(deferred)
         state.reset_indices()
         self.assertEqual((state.deferred_counters, state.keymap_deferred_counters), ({}, {}))
+
+
+class AppStateResetListenersTest(unittest.TestCase):
+    def test_reset_indices_calls_registered_listeners_in_order(self):
+        state = AppState()
+        calls = []
+        state.reset_listeners.extend(
+            [lambda: calls.append("first"), lambda: calls.append("second")]
+        )
+
+        state.reset_indices()
+
+        self.assertEqual(calls, ["first", "second"])
+
+    def test_reset_indices_works_without_registered_listeners(self):
+        state = AppState(indices={"trigger": 3})
+
+        state.reset_indices()
+
+        self.assertEqual(state.indices, {})

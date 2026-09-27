@@ -2,7 +2,7 @@
 
 import threading
 from dataclasses import dataclass, field
-from typing import Any
+from typing import Any, Callable
 
 from keyseq.application.sequence_steps import LoopFrame, StepResume
 from keyseq.application.sequence_history import HistoryEntry, StepSnapshot, commit_step
@@ -34,6 +34,7 @@ class AppState:
     counters: dict[str, int] = field(default_factory=dict)
     pending_steps: dict[tuple[str, str], PendingStep] = field(default_factory=dict)
     pending_step_generation: int = 0
+    reset_listeners: list[Callable[[], None]] = field(default_factory=list)
 
     run_to_end_key: str | None = None
     run_to_end_paused: bool = False
@@ -55,6 +56,8 @@ class AppState:
         self.last_trigger = None
         self.selected_trigger_indices = {}
         self.selected_trigger_idx = 0
+        for listener in self.reset_listeners:
+            listener()
 
     def update_selected_index(self, value: int, trigger_set_id: str | None = None) -> None:
         value = int(value)

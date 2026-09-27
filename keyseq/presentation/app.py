@@ -152,6 +152,7 @@ class App(tk.Tk):
             resolve_scan_code=lambda sc: self.layout.resolve_key_name_from_scan_code(sc),
         )
         self.state = AppState()
+        self.state.reset_listeners.append(self.file_line_loader.clear_cache)
         # --- controllers (計画02で順次追加) ---
         self.dirty_tracker = DirtyStateTracker(
             get_data=lambda: self.data,
