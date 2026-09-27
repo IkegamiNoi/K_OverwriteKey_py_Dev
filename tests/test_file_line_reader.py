@@ -8,9 +8,12 @@ from pathlib import Path
 from keyseq.application.file_line_reader import (
     FileLineError,
     MAX_FILE_LINE_BYTES,
+    load_file_lines,
     normalize_file_line_options,
+    pick_file_line,
     read_file_line,
     resolve_file_line_path,
+    validate_file_line_request,
 )
 
 
@@ -121,6 +124,63 @@ class FileLineReaderTests(unittest.TestCase):
             ),
             ("", "", "utf-8", "error"),
         )
+
+    def test_validate_rejects_invalid_values_in_existing_order(self) -> None:
+        path = str(self.path)
+        with self.assertRaises(FileLineError) as caught:
+            validate_file_line_request(path, 1, encoding="invalid", out_of_range="invalid")
+        self.assertEqual(str(caught.exception), f"文字コードが不正です: invalid（ファイル: {path}）")
+        with self.assertRaises(FileLineError) as caught:
+            validate_file_line_request(path, 1, encoding="utf-8", out_of_range="invalid")
+        self.assertEqual(str(caught.exception), f"範囲外の扱いが不正です: invalid（ファイル: {path}）")
+        for line_number in (True, "1", 1.0):
+            with self.subTest(line_number=line_number):
+                with self.assertRaises(FileLineError) as caught:
+                    validate_file_line_request(
+                        path, line_number, encoding="utf-8", out_of_range="error"
+                    )
+                self.assertEqual(
+                    str(caught.exception),
+                    f"行番号が整数ではありません: {line_number!r}（ファイル: {path}）",
+                )
+
+    def test_validate_does_not_access_file_and_preserves_exact_messages(self) -> None:
+        path = str(self.root / "missing.txt")
+        validate_file_line_request(path, 1, encoding="utf-8", out_of_range="error")
+        with self.assertRaises(FileLineError) as caught:
+            validate_file_line_request(path, 1, encoding="bad", out_of_range="bad")
+        self.assertEqual(str(caught.exception), f"文字コードが不正です: bad（ファイル: {path}）")
+
+    def test_load_file_lines_splits_all_newlines_and_ignores_trailing_break(self) -> None:
+        self._write(b"one\r\ntwo\rthree\n")
+        self.assertEqual(load_file_lines(str(self.path), encoding="utf-8"), ["one", "two", "three"])
+
+    def test_load_file_lines_decodes_bom_and_cp932(self) -> None:
+        self._write(b"\xef\xbb\xbfhello")
+        self.assertEqual(load_file_lines(str(self.path), encoding="utf-8"), ["hello"])
+        self._write(b"\x87\x40\x81\x60")
+        self.assertEqual(load_file_lines(str(self.path), encoding="shift_jis"), ["\u2460\uff5e"])
+
+    def test_load_file_lines_preserves_size_and_missing_file_errors(self) -> None:
+        self._write(b"a" * (MAX_FILE_LINE_BYTES + 1))
+        with self.assertRaisesRegex(FileLineError, "上限 1 MB"):
+            load_file_lines(str(self.path), encoding="utf-8")
+        missing_path = str(self.root / "missing.txt")
+        with self.assertRaisesRegex(FileLineError, "読み込めません"):
+            load_file_lines(missing_path, encoding="utf-8")
+
+    def test_pick_file_line_handles_range_and_all_out_of_range_modes(self) -> None:
+        lines = ["first", "last"]
+        self.assertEqual(pick_file_line(lines, 2, out_of_range="error", path="test.txt"), "last")
+        self.assertIsNone(pick_file_line(lines, 0, out_of_range="empty", path="test.txt"))
+        self.assertEqual(pick_file_line(lines, 0, out_of_range="wrap", path="test.txt"), "last")
+        self.assertEqual(pick_file_line(lines, 3, out_of_range="wrap", path="test.txt"), "first")
+        with self.assertRaisesRegex(FileLineError, "行番号が範囲外です"):
+            pick_file_line(lines, 3, out_of_range="error", path="test.txt")
+
+    def test_pick_file_line_rejects_wrap_on_empty_lines(self) -> None:
+        with self.assertRaisesRegex(FileLineError, "行数: 0"):
+            pick_file_line([], 0, out_of_range="wrap", path="test.txt")
 
 
 if __name__ == "__main__":

@@ -4,36 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T22:00:00
-phase: `instructions/phase/38_file_line_async_read`（**進行中・起票済・task_01 未着手**）。次採番 = phase 39 / 暫定 28 / decisions 39 / 提案書 16。
+last_updated: 2026-09-27T22:40:00
+phase: `instructions/phase/38_file_line_async_read`（**進行中・task_01 完了・task_02 着手**）。次採番 = phase 39 / 暫定 28 / decisions 39 / 提案書 16。
 直前の完了フェーズ = **phase 37**（出力シーケンスの制御アクション第 1 弾・判断履歴 = `decisions_archive/37_sequence_control_actions.md`）。
 last_commit_location: `claude/idea-38-9877ba`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 38 起票済（file_line の非同期読込・暫定 27 v0.6 ユーザー確定済・JSON スキーマ変更なし）。次は task_01（読込と行の選択の分離）の起票と実装。**
+focus: **phase 38 進行中（file_line の非同期読込・暫定 27 v0.6）。task_01 完了、次は task_02（読込の登録簿とキャッシュ）。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-27T22:00:00
+ts: 2026-09-27T22:40:00
 who: main
 summary: |
-  【準備】ブランチ `claude/idea-38-9877ba` を main（phase 37 完了まで）へ fast-forward。
-  【暫定 27 起票】v0.1 → deep-reviewer 修正して採用（H1/M6/L6）→ v0.2 → ユーザー判断 Q1〜Q4（上限 5 秒固定 / 放置の即エラーは上限超過分のみ /
-  一時停止は捨てて読み直す / UI 側 50 ms 確認タイマー）→ v0.3 → Codex 敵対的 1 回目（積み上がり・放置登録の競合・上限境界）→ v0.4 →
-  ユーザー要望でキャッシュ追加（案 A: 実行ごとに stat 確認）→ v0.5 → Codex 敵対的 2 回目（相乗りで古い内容・全破棄後の書き戻し・権限）→
-  v0.6（相乗り → 待ち合わせ・キャッシュ世代・権限は既知の制約）→ **ユーザー確定**。
-  【phase 38 起票】phase.md（task_01〜07）・current.md・backlog INDEX。reviewer 整合確認 = 採用（指摘なし）。
+  【task_01】`file_line_reader.py` を検証 / 読込（行の一覧）/ 行の選択の 3 関数へ分割（`read_file_line` は合成で残す・文言と順序は不変）。
+  codex-implementer → verifier 全 pass → reviewer 完了可（指摘なし）。
+  【ユーザー指示 2026-09-27】フェーズ内のタスクは確認を取らずに連続で進めてよい。
 result_files:
-  - instructions/history/27_file_line_async_read.md（新規）/ instructions/phase/38_file_line_async_read/phase.md（新規）
-  - instructions/phase/current.md / instructions/backlog/INDEX.md / .claude_data/state/session.md
+  - keyseq/application/file_line_reader.py / tests/test_file_line_reader.py
+  - instructions/phase/38_file_line_async_read/{phase.md, tasks/task_01_split_read_and_pick.md} / .claude_data/state/session.md
 verified:
-  compile: not_run（文書のみ）
-  review: deep-reviewer（起票時）/ codex-adversarial ×2 反映済 / reviewer 整合確認 採用
+  compile: clean
+  tests: 836 ran OK（skipped 7）
+  review: reviewer 完了可（task_01）
 
 ## next_action
-- `/task_new` で `instructions/phase/38_file_line_async_read/tasks/task_01_*.md`（暫定 27 §3.1: `keyseq/application/file_line_reader.py` を検証・読込〔行の一覧〕・行の選択に分ける・文言と検査の順は不変）を起票し、
-  `codex-implementer` へ委任（テストの追加・修正まで・実行は verifier）→ verifier → reviewer。
+- `/task_new` で task_02（暫定 27 §6: 読込の登録簿・待ち合わせ・上限超過の印・キャッシュ〔stat 確認・世代つき全破棄〕・1 ロック・ワーカー起動の差し替え）を起票 →
+  `codex-implementer` → verifier → reviewer → コミット（ユーザー確認なしで続けてよい）。
 - **main へのマージはユーザーが行う**（phase 18 残り・19〜37 と本フェーズ）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 

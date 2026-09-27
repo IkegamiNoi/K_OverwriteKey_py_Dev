@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import os
 import re
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 
 from keyseq.domain.sequence_control import (
     DEFAULT_ENCODING,
@@ -44,13 +44,13 @@ def _option_string(action: Mapping, key: str) -> str:
     return value.strip() if isinstance(value, str) else ""
 
 
-def read_file_line(
+def validate_file_line_request(
     path: str,
     line_number: int,
     *,
     encoding: str,
     out_of_range: str,
-) -> str | None:
+) -> None:
     if encoding not in (ENCODING_UTF_8, ENCODING_SHIFT_JIS):
         raise FileLineError(f"文字コードが不正です: {encoding or '(空)'}（ファイル: {path}）")
     if out_of_range not in (OUT_OF_RANGE_ERROR, OUT_OF_RANGE_EMPTY, OUT_OF_RANGE_WRAP):
@@ -58,6 +58,8 @@ def read_file_line(
     if not isinstance(line_number, int) or isinstance(line_number, bool):
         raise FileLineError(f"行番号が整数ではありません: {line_number!r}（ファイル: {path}）")
 
+
+def load_file_lines(path: str, *, encoding: str) -> list[str]:
     content_bytes = _read_bytes(path)
     try:
         codec = "utf-8-sig" if encoding == ENCODING_UTF_8 else "cp932"
@@ -66,8 +68,16 @@ def read_file_line(
         raise FileLineError(
             f"ファイルを文字コード {encoding} で復号できません（ファイル: {path}）"
         ) from exc
+    return _split_lines(content)
 
-    lines = _split_lines(content)
+
+def pick_file_line(
+    lines: Sequence[str],
+    line_number: int,
+    *,
+    out_of_range: str,
+    path: str,
+) -> str | None:
     line_count = len(lines)
     if 1 <= line_number <= line_count:
         return lines[line_number - 1]
@@ -82,6 +92,23 @@ def read_file_line(
     raise FileLineError(
         f"行番号が範囲外です（行番号: {line_number}, 行数: {line_count}, ファイル: {path}）"
     )
+
+
+def read_file_line(
+    path: str,
+    line_number: int,
+    *,
+    encoding: str,
+    out_of_range: str,
+) -> str | None:
+    validate_file_line_request(
+        path,
+        line_number,
+        encoding=encoding,
+        out_of_range=out_of_range,
+    )
+    lines = load_file_lines(path, encoding=encoding)
+    return pick_file_line(lines, line_number, out_of_range=out_of_range, path=path)
 
 
 def _read_bytes(path: str) -> bytes:
