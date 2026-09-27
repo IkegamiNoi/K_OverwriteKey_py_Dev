@@ -616,7 +616,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 | `domain/config.py` | `normalize_actions` が新キー（`op` / `counter` / `path` / `encoding` / `out_of_range`）を種別を問わず trim。`format_action_list_item` は system / file_line を `format_control_value` へ委譲 |
 | `application/sequence_steps.py` | ステップの進め方（UI・タイマー非依存）: `advance`（保留の反映 → 周回の整合 → system の処理 → 通常アクションの手前で止まる・待機で `wait_ms` と `StepResume`）/ `after_normal_action` / `settle_after_normal`（先行処理・カウンターは保留へ）/ エラー通知用の整形 |
 | `application/sequence_history.py` | 戻す履歴（`StepSnapshot` / `HistoryEntry`・上限 100）/ 差分の打ち消し / `commit_step`（直前のトリガーの更新）/ `apply_control`（back / rewind の対象判定と復元）/ 保留中ステップの取り消し |
-| `application/sequence_runner.py` | 実行制御（単発・連続・単発の非同期待機〔保留中ステップ・世代番号〕・連続実行の世代番号・取り消しの公開メソッド `cancel_pending_wait(s)` / `reset_loop_frames`） |
+| `application/sequence_runner/`（phase 38 でパッケージ化）: `sequence_runner.py`（本体）+ `file_line_wait.py`（`FileLineWaitMixin` = file_line の読込中の保留・確認タイマー・`FILE_LINE_POLL_INTERVAL_MS`）。`__init__` が `SequenceRunner` / `FILE_LINE_POLL_INTERVAL_MS` を再輸出 | 実行制御（単発・連続・単発の非同期待機〔保留中ステップ・世代番号〕・連続実行の世代番号・取り消しの公開メソッド `cancel_pending_wait(s)` / `reset_loop_frames`） |
 | `application/app_state.py` | runtime 状態: 周回スタック・戻す履歴・保留中のカウンター操作（いずれも trigger_set_id → key）・カウンター・直前のトリガー・保留中ステップ。`reset_indices` / `forget_trigger_set` / `rekey_trigger_set` / `forget_trigger` / `rekey_trigger` で一緒に消す・付け替える |
 | `application/file_line_reader.py` | file_line の読込の部品（パス解決 §5.7・`validate_file_line_request`〔I/O なし〕/ `load_file_lines`〔1 MB 上限・utf-8-sig / cp932・改行 3 種のみで分割〕/ `pick_file_line`〔範囲外 3 種〕。`read_file_line` は 3 つの合成で本番からは呼ばない） |
 | `application/file_line_loader.py`（phase 38） | `FileLineLoader`: 読込キー（正規化パス, encoding）ごとの登録簿（同時 1 本・待ち合わせ・上限超過の印）と行の一覧のキャッシュ（stat 確認・世代つき全破棄 `clear_cache`）。共有状態はすべて 1 つの `threading.Lock` 下、`stat` / `load` はロック外。ワーカー起動・時計・stat・load は差し替え可能（テスト用） |
@@ -628,7 +628,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - 一覧の `<KeyRelease>` は `on_action_list_select` へ流れる（フォーカス同期）。**同じ行なら何もしない**（phase 37 統合レビュー H1 の再発防止）。
 - phase 38（file_line の非同期読込）: `SequenceRunner` は `begin_file_line` / `poll_file_line` の注入で file_line を読込中の保留にする（単発 = `PendingStep.file_line`〔札〕+ 世代 /
   連続 = `_run_to_end_file_line` + 読込トークン・一時停止で札だけ捨てる）。確認タイマー `FILE_LINE_POLL_INTERVAL_MS = 50`。成功時の後処理は `_finish_single_normal_action` /
-  `_finish_run_to_end_normal_action` で通常アクションと共有。`App` が `FileLineLoader` を作って executor へ渡し、`AppState.reset_listeners` に `clear_cache` と
+  `_finish_run_to_end_normal_action` で通常アクションと共有。連続実行の次ステップ予約は `_schedule_run_to_end_step` に集約。保留の `StepResume` は `sequence_steps.resume_for_pending` で作る。`App` が `FileLineLoader` を作って executor へ渡し、`AppState.reset_listeners` に `clear_cache` と
   `SequenceRunner.on_runtime_reset`（連続実行を停止）を登録（`reset_indices` = 構成セットの読込等で呼ばれる）。`AppState` は `PendingStep.file_line`（単発の読込中の札）も持つ。
   テスト: `tests/test_file_line_loader.py` / `tests/test_sequence_runner_file_line.py`。
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /

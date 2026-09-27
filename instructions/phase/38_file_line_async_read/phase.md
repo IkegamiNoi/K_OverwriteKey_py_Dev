@@ -63,6 +63,8 @@ UI・停止操作・待機の取り消しが止まらないようにする。読
 - task_07: 正本反映（暫定 27 §10: `data_schema.md` §5.11.5・§5.11.7 / `features.md` §4.2〔4.2.7 新設・4.2.6 の拒否条件〕/ `codebase_map.md` /
   暫定 27 の凍結 / `decisions_archive/38_file_line_async_read.md` / current.md 完了記載 / idea_38 を INDEX_done へ / `/refactor_check`）
 
+- task_08: 提案書 [16](../../modified_proposal/16_refactor_file_line_async_read.md) のリファクタ（挙動不変）— **完了**（2026-09-27。次ステップ予約を `_schedule_run_to_end_step` へ集約〔4 箇所〕/ `_perform_run_to_end_step` 94 → 63 行・`resume_for_pending` / `sequence_runner/` パッケージ化〔本体 445 行 + `file_line_wait.py` 172 行〕）
+
 ## レビュー方針
 
 - 各タスク: reviewer（5 観点）。**スレッド共有状態はすべて登録簿のロック下**か、UI スレッドのみで触るかを必ず確認する。

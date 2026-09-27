@@ -75,6 +75,12 @@ class StepOutcome:
     processed: int = 0
 
 
+def resume_for_pending(outcome: StepOutcome, initial_position: int) -> StepResume:
+    return StepResume(
+        initial_position, outcome.wrapped, outcome.processed, outcome.counter_deltas,
+    )
+
+
 @dataclass
 class SettleOutcome:
     position: int

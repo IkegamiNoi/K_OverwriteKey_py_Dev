@@ -4,35 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-27T22:40:00
-phase: `instructions/phase/38_file_line_async_read`（**進行中・task_06 / 06b 完了・task_05 の実機目視待ち**）。次採番 = phase 39 / 暫定 28 / decisions 39 / 提案書 16。
-直前の完了フェーズ = **phase 37**（出力シーケンスの制御アクション第 1 弾・判断履歴 = `decisions_archive/37_sequence_control_actions.md`）。
+last_updated: 2026-09-27T23:59:00
+phase: なし（**アクティブなフェーズ = なし**。phase 38 は 2026-09-27 完了）。次採番 = phase 39 / 暫定 28 / decisions 39 / 提案書 17。
+直前の完了フェーズ = **phase 38**（file_line の非同期読込・判断履歴 = `decisions_archive/38_file_line_async_read.md`）。
 last_commit_location: `claude/idea-38-9877ba`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 38 進行中（file_line の非同期読込・暫定 27 v0.6）。task_01〜04・06・06b 完了。task_05 の実機目視（ユーザー）待ち → その後 task_07（正本反映・フェーズ完了）。**
-mode: implementing
+focus: **phase 38 完了（file_line の非同期読込・暫定 27 v0.8 凍結・正本反映済・提案書 16 を task_08 で実施済）。次フェーズは未定（ユーザー判断待ち）。**
+mode: completed
 
 ## last_action
-ts: 2026-09-27T22:40:00
+ts: 2026-09-27T23:59:00
 who: main
 summary: |
-  【task_01】`file_line_reader.py` を検証 / 読込（行の一覧）/ 行の選択の 3 関数へ分割（`read_file_line` は合成で残す・文言と順序は不変）。
-  codex-implementer → verifier 全 pass → reviewer 完了可（指摘なし）。
-  【ユーザー指示 2026-09-27】フェーズ内のタスクは確認を取らずに連続で進めてよい。
+  【task_07】正本反映（data_schema §5.11.5・§5.11.7・§5.11.8 / features §4.2.7 新設ほか / architecture §3.4 / codebase_map）。完了判定前レビュー（deep-reviewer 修正して完了可 /
+  Codex 敵対的 High 2）→ ユーザー判断「構成セットの読込等で連続実行を常に停止」（既存挙動の変更）→ task_07a で実装。暫定 27 v0.8 凍結・decisions_archive/38・idea_38 クローズ。
+  【refactor_check】推奨（M1〜M4）→ 提案書 16 → ユーザー承認 → task_08（`sequence_runner/` パッケージ化・挙動不変・テスト無変更）。reviewer 完了可。
 result_files:
-  - keyseq/application/file_line_reader.py / tests/test_file_line_reader.py
-  - instructions/phase/38_file_line_async_read/{phase.md, tasks/task_01_split_read_and_pick.md} / .claude_data/state/session.md
+  - keyseq/application/sequence_runner/{__init__.py, sequence_runner.py, file_line_wait.py}（旧 sequence_runner.py から移動）/ keyseq/application/sequence_steps.py
+  - instructions/{common/codebase_map.md, modified_proposal/16_*.md, phase/current.md, phase/38_file_line_async_read/*} / .claude_data/state/*
 verified:
   compile: clean
-  tests: 836 ran OK（skipped 7）
-  review: reviewer 完了可（task_01）
+  tests: 882 ran OK（skipped 7）
+  tests_ui: 615 ran OK
+  smoke: pass
+  review: reviewer 完了可（task_08）
 
 ## next_action
-- `/task_new` で task_02（暫定 27 §6: 読込の登録簿・待ち合わせ・上限超過の印・キャッシュ〔stat 確認・世代つき全破棄〕・1 ロック・ワーカー起動の差し替え）を起票 →
-  `codex-implementer` → verifier → reviewer → コミット（ユーザー確認なしで続けてよい）。
-- **main へのマージはユーザーが行う**（phase 18 残り・19〜37 と本フェーズ）。
+- 次フェーズはユーザー判断（候補: 制御アクション第 2 弾〔停止・他トリガー呼び出し・暫定 26 §13〕/ idea_37 カウンター条件分岐 / current.md「別タスク化候補」）。着手時は `/phase_start`。
+- **main へのマージはユーザーが行う**（phase 18 残り・19〜38）。
 - **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
 
 ## blockers
@@ -40,9 +41,9 @@ verified:
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **【phase 38】主入力 = 暫定 27 v0.6（`instructions/history/27_file_line_async_read.md`）**。載せ替え先 = 単発待機の `PendingStep`・`cancel_pending_steps`・
-  連続実行の `_run_to_end_resume`（`sequence_runner.py`）。**一時停止は `_run_to_end_generation` を進めない**ため読込ごとのトークンで守る。
-  スレッド共有状態は登録簿の 1 ロック下のみ。単体テストはワーカー起動を差し替えて決定的に（実スレッド待ちは flaky）。
+- **【phase 38 の成果は正本が正】file_line の非同期読込 = `features.md` §4.2.7 + `data_schema.md` §5.11.5・§5.11.7 + `codebase_map.md`「出力シーケンスの制御アクション」節**。
+  暫定 27 は凍結済で条項の根拠に引かない。runner は `application/sequence_runner/` パッケージ（file_line の読込中は `file_line_wait.py` の mixin）。
+  **テストで「戻す履歴が 1 段」を確かめるときは状態が変わるシーケンスにする**（file_line 1 行だけでは commit_step が積まない＝仕様どおり。phase 38 で 4 回テスト側を誤った）。
   **Codex のプラグインのレビュー系コマンドは推論レベルを渡せない**（`--model` のみ）。`task` は `--model` / `--effort` 可。
 - **【phase 34 の成果は正本が正】トリガー一覧のキーマップ従属化 = `data_schema.md` §5.13 + `key_input.md` §7.3 + `features.md` §4.1・§4.3・§4.5 +
   `codebase_map.md`「キーマップとトリガー一覧（phase 34）」節**。暫定 25 は凍結済で条項の根拠に引かない。要点 =

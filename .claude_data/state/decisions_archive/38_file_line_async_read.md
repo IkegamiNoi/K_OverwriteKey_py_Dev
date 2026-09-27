@@ -40,7 +40,7 @@
 ## 残課題
 
 - 通常アクション（hotkey 等）のエラー通知中の停止・再開始の後に続く処理の再照合（既存経路・phase 38 の範囲外）。
-- `/refactor_check`: **推奨**（M1 `sequence_runner.py` 359 → 605 行 / M2 `_perform_run_to_end_step` 94 行 / M3 次ステップ予約 3 箇所 / M4 `StepResume(` 1 → 3）→ 提案書 [16](../../../instructions/modified_proposal/16_refactor_file_line_async_read.md) → ユーザー承認（phase 38 末の task_08）。
+- `/refactor_check`: **推奨**（M1 `sequence_runner.py` 359 → 605 行 / M2 `_perform_run_to_end_step` 94 行 / M3 次ステップ予約 3 箇所 / M4 `StepResume(` 1 → 3）→ 提案書 [16](../../../instructions/modified_proposal/16_refactor_file_line_async_read.md) → ユーザー承認 → **task_08 で実施済**（予約 4 箇所を集約・`_perform_run_to_end_step` 63 行・`sequence_runner/` パッケージ化で本体 445 行。テスト無変更で 882 / 615 / smoke 不変）。
 
 ## フェーズ中の判断ログ（decisions.md から移動）
 

@@ -8,7 +8,7 @@
 ## 現在の参照先
 
 - **アクティブなフェーズ = なし**（phase 38 は 2026-09-27 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
-  提案書 [16](../modified_proposal/16_refactor_file_line_async_read.md)（phase 38 の `/refactor_check` = 推奨）は phase 38 末の task_08 で実施（ユーザー承認 2026-09-27）。
+  提案書 [16](../modified_proposal/16_refactor_file_line_async_read.md)（phase 38 の `/refactor_check` = 推奨）は phase 38 task_08 で実施済（2026-09-27・`sequence_runner/` パッケージ化）。
 - 直前の完了フェーズ = [phase 38](38_file_line_async_read/phase.md)（2026-09-27・file_line の非同期読込・
   判断は [decisions_archive/38](../../.claude_data/state/decisions_archive/38_file_line_async_read.md)）/
   [phase 37](37_sequence_control_actions/phase.md)（2026-09-27・出力シーケンスの制御アクション第 1 弾・
@@ -82,7 +82,7 @@
   **13 = phase 34 由来・実施済＝phase 34 task_09**〔内部キーの定数化・キーマップ追加フローを `controllers/keymap_panel/` へ〕 /
   **14 = phase 36 由来・実施済＝phase 36 task_09**〔`split_loading.py` のホットキープリセット 9 関数を `hotkey_presets_files.py` へ〕 /
   **15 = phase 37 由来・実施済＝phase 37 task_09**〔アクション編集を `controllers/trigger_panel/` へ・`ActionControlFields.__init__` の分割と定数参照〕 /
-  **16 = phase 38 由来・phase 38 task_08 で実施**〔`sequence_runner.py` の次ステップ予約の集約・file_line 分岐の切り出し・分割〕）・
+  **16 = phase 38 由来・実施済＝phase 38 task_08**〔`sequence_runner.py` の次ステップ予約の集約・file_line 分岐の切り出し・分割〕）・
   次採番は **`17_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 

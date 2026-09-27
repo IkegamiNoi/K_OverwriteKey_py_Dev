@@ -11,13 +11,14 @@ from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE
 from keyseq.application.sequence_steps import (
     LoopFrame, StepOutcome, StepResume, advance, after_normal_action,
     apply_deferred_counters, format_system_error_notification, reset_frames,
-    settle_after_normal,
+    resume_for_pending, settle_after_normal,
+)
+from keyseq.application.sequence_runner.file_line_wait import (
+    FILE_LINE_POLL_INTERVAL_MS, FileLineWaitMixin,
 )
 
-FILE_LINE_POLL_INTERVAL_MS = 50
 
-
-class SequenceRunner:
+class SequenceRunner(FileLineWaitMixin):
     def __init__(
         self,
         *,
@@ -135,63 +136,6 @@ class SequenceRunner:
         self._run_single_action(key, trigger.get("actions", []),
                                 position=pending.position, resume=pending.resume,
                                 snapshot=pending.snapshot)
-
-    def _queue_single_file_line(
-        self, key: str, outcome: StepOutcome, snapshot: StepSnapshot,
-        handle: object, initial_position: int,
-    ) -> None:
-        trigger_set_id = self._get_trigger_set_id()
-        identity = (trigger_set_id, key)
-        resume = StepResume(
-            initial_position, outcome.wrapped, outcome.processed, outcome.counter_deltas,
-        )
-        with self.state.lock:
-            self.state.pending_step_generation += 1
-            generation = self.state.pending_step_generation
-            pending = PendingStep(
-                generation, None, outcome.normal_index, resume, snapshot, file_line=handle,
-            )
-            self.state.pending_steps[identity] = pending
-        pending.after_id = self._after(
-            FILE_LINE_POLL_INTERVAL_MS,
-            lambda: self._poll_single_file_line(trigger_set_id, key, generation),
-        )
-
-    def _poll_single_file_line(
-        self, trigger_set_id: str, key: str, generation: int,
-    ) -> None:
-        identity = (trigger_set_id, key)
-        with self.state.lock:
-            pending = self.state.pending_steps.get(identity)
-            if pending is None or pending.generation != generation or pending.file_line is None:
-                return
-        trigger = self._find_trigger(key) if self._get_trigger_set_id() == trigger_set_id else None
-        if trigger is None:
-            with self.state.lock:
-                if self.state.pending_steps.get(identity) is pending:
-                    self.state.pending_steps.pop(identity)
-            return
-        result = self._poll_file_line(pending.file_line)
-        if result is None:
-            pending.after_id = self._after(
-                FILE_LINE_POLL_INTERVAL_MS,
-                lambda: self._poll_single_file_line(trigger_set_id, key, generation),
-            )
-            return
-        with self.state.lock:
-            current = self.state.pending_steps.get(identity)
-            if current is not pending or current.generation != generation:
-                return
-            self.state.pending_steps.pop(identity)
-        if result:
-            actions = trigger.get("actions", [])
-            deltas = self._finish_single_normal_action(
-                key, actions, pending.position, pending.resume,
-            )
-            commit_step(self.state, pending.snapshot, deltas)
-        else:
-            commit_step(self.state, pending.snapshot, pending.resume.counter_deltas)
-        self._select_trigger(key)
 
     def _finish_single_normal_action(
         self, key: str, actions: list[dict[str, Any]], index: int,
@@ -316,11 +260,6 @@ class SequenceRunner:
                 self._select_trigger(target)
 
     # --- run_to_end ---
-    def _discard_run_to_end_file_line(self) -> None:
-        self._run_to_end_file_line = None
-        self._run_to_end_file_line_trigger_set_id = None
-        self._run_to_end_file_line_token += 1
-
     def _start_run_to_end(self, key: str) -> None:
         key = normalize_key_name(key)
         trig = self._find_trigger(key)
@@ -410,13 +349,16 @@ class SequenceRunner:
             DEFAULT_RUN_TO_END_DELAY_MS,
         )
         if schedule_only:
-            generation = self._run_to_end_generation
-            self.state.run_to_end_after_id = self._after(
-                delay,
-                lambda: self._run_to_end_step(generation=generation, key=key),
-            )
+            self._schedule_run_to_end_step(key, delay)
             return
         self._perform_run_to_end_step(key, actions, delay)
+
+    def _schedule_run_to_end_step(self, key: str, delay: int) -> None:
+        generation = self._run_to_end_generation
+        self.state.run_to_end_after_id = self._after(
+            delay,
+            lambda: self._run_to_end_step(generation=generation, key=key),
+        )
 
     def _perform_run_to_end_step(self, key: str, actions: list[dict[str, Any]], delay: int) -> None:
         snapshot = self._run_to_end_snapshot or snapshot_for(self.state, self._get_trigger_set_id(), key)
@@ -438,11 +380,7 @@ class SequenceRunner:
             self._run_to_end_resume = outcome.resume
             self._run_to_end_snapshot = snapshot
             self._run_to_end_wait_position = outcome.resume_position - 1
-            generation = self._run_to_end_generation
-            self.state.run_to_end_after_id = self._after(
-                outcome.wait_ms,
-                lambda: self._run_to_end_step(generation=generation, key=key),
-            )
+            self._schedule_run_to_end_step(key, outcome.wait_ms)
         else:
             self._run_to_end_resume = None
             self._run_to_end_wait_position = None
@@ -456,41 +394,18 @@ class SequenceRunner:
                 raw_type = action.get("type")
                 action_type = raw_type.strip().lower() if isinstance(raw_type, str) else ""
                 if action_type == ACTION_TYPE_FILE_LINE:
-                    if self._begin_file_line is None or self._poll_file_line is None:
-                        self._report_error(action, "file_line の読込の仕組みが未設定です")
-                        stop = True
-                    else:
-                        handle = self._begin_file_line(action)
-                        if handle is None:
-                            stop = True
-                        else:
-                            initial_position = (
-                                previous_resume.initial_position
-                                if previous_resume is not None else advance_position
-                            )
-                            resume = StepResume(
-                                initial_position, outcome.wrapped, outcome.processed,
-                                outcome.counter_deltas,
-                            )
-                            self._run_to_end_resume = resume
-                            self._run_to_end_snapshot = snapshot
-                            self._run_to_end_wait_position = index
-                            self._save_progress(key, index, outcome.frames)
-                            self._run_to_end_file_line = handle
-                            self._run_to_end_file_line_trigger_set_id = self._get_trigger_set_id()
-                            self._run_to_end_file_line_token += 1
-                            token = self._run_to_end_file_line_token
-                            generation = self._run_to_end_generation
-                            self.state.run_to_end_after_id = self._after(
-                                FILE_LINE_POLL_INTERVAL_MS,
-                                lambda: self._poll_run_to_end_file_line(
-                                    generation, key, token,
-                                ),
-                            )
-                            self._select_trigger(key)
-                            if target is not None:
-                                self._select_trigger(target)
-                            return
+                    initial_position = (
+                        previous_resume.initial_position
+                        if previous_resume is not None else advance_position
+                    )
+                    if self._begin_run_to_end_file_line(
+                        key, action, index, outcome, snapshot, initial_position,
+                    ):
+                        self._select_trigger(key)
+                        if target is not None:
+                            self._select_trigger(target)
+                        return
+                    stop = True
                 elif self._perform_action(action) is False:
                     stop = True
                 else:
@@ -502,11 +417,7 @@ class SequenceRunner:
             if stop:
                 self.stop_run_to_end()
             else:
-                generation = self._run_to_end_generation
-                self.state.run_to_end_after_id = self._after(
-                    delay,
-                    lambda: self._run_to_end_step(generation=generation, key=key),
-                )
+                self._schedule_run_to_end_step(key, delay)
             self._run_to_end_snapshot = None
         self._select_trigger(key)
         if target is not None:
@@ -532,74 +443,3 @@ class SequenceRunner:
             deferred = ()
         self._save_progress(key, position, frames, deferred)
         return deltas, position
-
-    def _poll_run_to_end_file_line(self, generation: int, key: str, token: int) -> None:
-        handle = self._run_to_end_file_line
-        if (generation != self._run_to_end_generation
-                or key != self.state.run_to_end_key
-                or token != self._run_to_end_file_line_token
-                or self.state.run_to_end_paused
-                or handle is None):
-            return
-        self.state.run_to_end_after_id = None
-        trigger = self._find_trigger(key)
-        if (trigger is None
-                or self._get_trigger_set_id() != self._run_to_end_file_line_trigger_set_id):
-            self._discard_run_to_end_file_line()
-            self._run_to_end_resume = None
-            self._run_to_end_snapshot = None
-            self._run_to_end_wait_position = None
-            self.stop_run_to_end()
-            return
-        result = self._poll_file_line(handle)
-        if result is None:
-            self.state.run_to_end_after_id = self._after(
-                FILE_LINE_POLL_INTERVAL_MS,
-                lambda: self._poll_run_to_end_file_line(generation, key, token),
-            )
-            return
-
-        if (generation != self._run_to_end_generation
-                or key != self.state.run_to_end_key
-                or token != self._run_to_end_file_line_token
-                or self.state.run_to_end_paused
-                or self._run_to_end_file_line is not handle):
-            return
-
-        self._discard_run_to_end_file_line()
-        resume = self._run_to_end_resume
-        snapshot = self._run_to_end_snapshot
-        self._run_to_end_resume = None
-        self._run_to_end_wait_position = None
-        if resume is None or snapshot is None:
-            self._run_to_end_snapshot = None
-            self.stop_run_to_end()
-            return
-        delay = coerce_nonnegative_int(
-            (self._find_trigger(key) or {}).get(
-                "run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS,
-            ),
-            DEFAULT_RUN_TO_END_DELAY_MS,
-        )
-        stop = not result
-        if result:
-            trigger = self._find_trigger(key)
-            actions = trigger.get("actions", []) if trigger is not None else []
-            index = self._get_index(key)
-            deltas, position = self._finish_run_to_end_normal_action(
-                key, actions, index, resume,
-            )
-            stop = position == 0
-        else:
-            deltas = resume.counter_deltas
-        commit_step(self.state, snapshot, deltas)
-        self._run_to_end_snapshot = None
-        self._select_trigger(key)
-        if stop:
-            self.stop_run_to_end()
-        else:
-            next_generation = self._run_to_end_generation
-            self.state.run_to_end_after_id = self._after(
-                delay,
-                lambda: self._run_to_end_step(generation=next_generation, key=key),
-            )
