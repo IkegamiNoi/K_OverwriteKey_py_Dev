@@ -49,9 +49,9 @@
 - task_03: 編集ダイアログ（暫定 §5: system の操作に「停止」）・実機目視 — **完了**（2026-09-28。実機目視 1〜5 問題なし〔ユーザー〕）
 - task_04: 統合確認（テストスイート全体・smoke。統合レビュー = deep-reviewer + codex-reviewer） — **完了**（2026-09-28。deep-reviewer 修正して採用 → task_04b / Codex 指摘なし）
 - task_04b: 統合レビューのテスト補完（M1・M2）と mixin のコメント（L2） — **完了**（2026-09-28。test_11・test_12・変異検査で M1 の検出を確認）
-- task_05a: 停止で終えた後の先行処理（暫定 28 v0.6 §4.1-1・完了判定前レビュー L4 のユーザー判断）
+- task_05a: 停止で終えた後の先行処理（暫定 28 v0.6 §4.1-1・完了判定前レビュー L4 のユーザー判断）— **完了**（2026-09-28。`_settle_after_stopped_sequence`・位置 0 では先行処理しない）
 - task_05: 正本反映（暫定 28 §8: `data_schema.md` §5.11.5・§5.11.6 / `features.md` §4.2.1・§4.2.2・4.2.8 新設・§4.6 / `codebase_map.md` /
-  暫定 28 の凍結〔§9 は phase 40 の起票元として参照される〕/ `decisions_archive/39_sequence_stop.md` / current.md 完了記載 / `/refactor_check`）
+  暫定 28 の凍結〔§9 は phase 40 の起票元として参照される〕/ `decisions_archive/39_sequence_stop.md` / current.md 完了記載 / `/refactor_check`）— **完了**（2026-09-28。refactor_check = 不要）
 
 ## レビュー方針
 

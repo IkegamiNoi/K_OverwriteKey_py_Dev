@@ -393,7 +393,7 @@ hotkey プリセットは、**アプリ全体で共有する 1 つのライブ�
 | `hotkey` | `value` / `label` | `value` = 送るホットキー文字列（`ctrl+c` 等）。送信の規定は `key_input.md` §7.7 |
 | `text` | `value` / `label` | `value` = 入力する文字列 |
 | `mouse_click` | `x` / `y` / `button` / `clicks` / `label`（+ ドラッグ時 `drag` / `to_x` / `to_y` / `drag_speed`） | 画面座標へのクリック、またはドラッグ |
-| `system` | `op` と op ごとのキー / `label` | 入力を送らない制御（ループ / カウンター / 待機 / 戻す / 先頭へ）。§5.11.6（phase 37） |
+| `system` | `op` と op ごとのキー / `label` | 入力を送らない制御（ループ / カウンター / 待機 / 戻す / 先頭へ / 停止）。§5.11.6（phase 37・停止は phase 39） |
 | `file_line` | `path` / `counter` / `encoding` / `out_of_range` / `label` | ファイルのカウンター値の行を文字列として入力する。§5.11.7（phase 37） |
 
 `label` は一覧表示用の任意の文字列。**非文字列なら空扱いで、要素自体は残る**

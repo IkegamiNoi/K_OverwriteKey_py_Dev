@@ -417,6 +417,11 @@ class SequenceRunner(FileLineWaitMixin):
                         key, actions, index, outcome,
                     )
                     stop = position == 0 or stopped
+            elif outcome.stopped:
+                outcome.counter_deltas, _position = self._settle_after_stopped_sequence(
+                    key, actions, outcome.position, outcome.frames,
+                    outcome.processed, outcome.counter_deltas,
+                )
             commit_step(self.state, snapshot, outcome.counter_deltas)
             if stop:
                 self.stop_run_to_end()
@@ -448,5 +453,31 @@ class SequenceRunner(FileLineWaitMixin):
         if (position == 0 or stopped) and deferred:
             deltas += apply_deferred_counters(deferred, self.state.counters)
             deferred = ()
-        self._save_progress(key, position, frames, deferred)
+        if stopped:
+            deltas, position = self._settle_after_stopped_sequence(
+                key, actions, position, frames, outcome.processed, deltas,
+            )
+        else:
+            self._save_progress(key, position, frames, deferred)
         return deltas, position, stopped
+
+    def _settle_after_stopped_sequence(
+        self, key: str, actions: list[dict[str, Any]], position: int,
+        frames: list[LoopFrame], processed: int,
+        deltas: tuple[tuple[str, int], ...],
+    ) -> tuple[tuple[tuple[str, int], ...], int]:
+        if position == 0:
+            self._save_progress(key, 0, [], ())
+            return deltas, 0
+        settled = settle_after_normal(
+            actions, position, frames, self.state.counters,
+            allow_wrap=False, processed=processed, stop_ends_run=False,
+        )
+        position, frames = settled.position, settled.frames
+        deltas += settled.counter_deltas
+        deferred = settled.deferred_counters
+        if position == 0 and deferred:
+            deltas += apply_deferred_counters(deferred, self.state.counters)
+            deferred = ()
+        self._save_progress(key, position, frames, deferred)
+        return deltas, position

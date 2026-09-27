@@ -7,11 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 39](39_sequence_stop/phase.md)**（出力シーケンスの制御アクション第 2 弾 前半 = 停止・2026-09-27 起票）。
-  system に `op: stop` を加え、連続実行をそこで区切る（単発は読み飛ばす）。**JSON スキーマ変更あり**（op の追加のみ）。呼び出しは phase 40（暫定 28 §9 に申し送り）。
-  主入力 = 暫定 [28](../history/28_sequence_stop_and_call.md)（v0.4・ユーザー確定済）/ 起票元 = 暫定 26 §13 / 番号対応: phase 39 / 暫定 28 / decisions 39。
-  提案書 [16](../modified_proposal/16_refactor_file_line_async_read.md)（phase 38 の `/refactor_check` = 推奨）は phase 38 task_08 で実施済（2026-09-27・`sequence_runner/` パッケージ化）。
-- 直前の完了フェーズ = [phase 38](38_file_line_async_read/phase.md)（2026-09-27・file_line の非同期読込・
+- **アクティブなフェーズ = なし**（phase 39 は 2026-09-28 完了。次フェーズ = **呼び出し（phase 40）** の予定〔暫定 28 §9 に確定事項と未決論点を申し送り〕・着手時は `/spec_draft` → `/phase_start`）。
+- 直前の完了フェーズ = [phase 39](39_sequence_stop/phase.md)（2026-09-28・制御アクション第 2 弾 前半 = 停止・
+  判断は [decisions_archive/39](../../.claude_data/state/decisions_archive/39_sequence_stop.md)）/
+  [phase 38](38_file_line_async_read/phase.md)（2026-09-27・file_line の非同期読込・
   判断は [decisions_archive/38](../../.claude_data/state/decisions_archive/38_file_line_async_read.md)）/
   [phase 37](37_sequence_control_actions/phase.md)（2026-09-27・出力シーケンスの制御アクション第 1 弾・
   判断は [decisions_archive/37](../../.claude_data/state/decisions_archive/37_sequence_control_actions.md)）/
@@ -19,10 +18,11 @@
   判断は [decisions_archive/36](../../.claude_data/state/decisions_archive/36_config_service_split.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37・38）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**・phase 37）。
+- **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37・38・39）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**・phase 37）。
   phase 38 で file_line の読込をワーカー + UI 側 50 ms 確認タイマーへ移し、上限 5 秒・同じ読込キーの待ち合わせ・読込結果のキャッシュを加えた。構成セットの読込等で連続実行を常に停止する（既存挙動の変更）。
-  正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.7・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
-  **残件** = 第 2 弾（停止・他トリガー呼び出し・暫定 26 §13）/ カウンター条件分岐（idea_37）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
+  正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.8・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
+  phase 39 で system に停止（`op: stop`・連続実行の区切り）を加えた（`features.md` §4.2.8）。
+  **残件** = 呼び出し（phase 40・暫定 28 §9）/ カウンター条件分岐（idea_37）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
 - その前の領域 = **トリガー一覧のキーマップ従属化**（phase 34）。
   トリガー一覧（と従属するシーケンス）はキーマップに従属し、キーマップ＝モードとして一括で切り替わる（**JSON スキーマ変更あり**）。
   正本 = `data_schema.md` §5.13（runtime の形・共有・移行・保存計画）+ §5.2/5.4/5.5/5.6/5.8.x / `key_input.md` §7.3
@@ -49,7 +49,7 @@
   **phase 36 は 2026-09-27 完了**（`36_config_service_split` / 暫定なし〔直接改訂モード〕/ decisions 36〔アーカイブ済〕）。
   **phase 37 は 2026-09-27 完了**（`37_sequence_control_actions` / 暫定 26〔v0.6・凍結〕/ decisions 37〔アーカイブ済〕）。
   **phase 38 は 2026-09-27 完了**（`38_file_line_async_read` / 暫定 27〔v0.8・凍結〕/ decisions 38〔アーカイブ済〕）。
-  **phase 39 は 2026-09-27 起票・進行中**（`39_sequence_stop` / 暫定 28 / decisions 39）。
+  **phase 39 は 2026-09-28 完了**（`39_sequence_stop` / 暫定 28〔v0.6・凍結〕/ decisions 39〔アーカイブ済〕）。
   次フェーズは **`40_<topic>`**・decisions も **40** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -75,7 +75,7 @@
   25=トリガー一覧のキーマップ従属化〔**v0.7・凍結**〕/
   26=出力シーケンスの制御アクション〔**v0.6・凍結**〕/
   27=file_line の非同期読込〔**v0.8・凍結**〕/
-  28=制御アクション第 2 弾 前半（停止）〔**v0.4・未凍結・phase 39 の主入力**〕）。
+  28=制御アクション第 2 弾 前半（停止）〔**v0.6・凍結**・§9 は phase 40 の起票元〕）。
   次採番は **`29_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**16 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /

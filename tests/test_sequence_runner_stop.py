@@ -97,7 +97,7 @@ class SequenceRunnerStopTests(unittest.TestCase):
         self.assertEqual(history[0].counter_deltas, [("n", 1)])
 
         runner.handle_key("f2")
-        self.assertEqual(state.counters["n"], 0)
+        self.assertEqual(state.counters.get("n", 0), 0)
         self.assertEqual(state.history_for("")["f1"], [])
 
     def test_03_stop_at_end_wraps_position_to_zero(self):
@@ -175,14 +175,12 @@ class SequenceRunnerStopTests(unittest.TestCase):
 
         runner.handle_key("f1")
         self.assertEqual(performed, [a])
-        self.assertEqual(state.indices["f1"], 3)
+        # 停止後に loop_end を先行処理するため、次はループ内の A に戻る。
+        self.assertEqual(state.indices["f1"], 1)
         self.assertIsNone(state.run_to_end_key)
         runner.handle_key("f1")
         self.assertEqual(performed, [a, a])
-        self.assertEqual(state.indices["f1"], 3)
-        runner.handle_key("f1")
-        self.assertEqual(performed, [a, a, a])
-        self.assertEqual(state.indices["f1"], 3)
+        self.assertEqual(state.indices["f1"], 1)
         runner.handle_key("f1")
         self.assertEqual(performed, [a, a, a])
         self.assertEqual(state.indices["f1"], 0)
@@ -237,7 +235,7 @@ class SequenceRunnerStopTests(unittest.TestCase):
         self.assertEqual(state.indices["f1"], 0)
         self.assertIsNone(state.run_to_end_key)
 
-    def test_11_consecutive_stops_are_skipped_on_second_run(self):
+    def test_11_settle_after_stop_passes_following_stop(self):
         a = {"type": "text", "value": "A"}
         b = {"type": "text", "value": "B"}
         runner, state, _scheduler, performed = self.make_runner(
@@ -246,12 +244,94 @@ class SequenceRunnerStopTests(unittest.TestCase):
 
         runner.handle_key("f1")
         self.assertEqual(performed, [a])
-        self.assertEqual(state.indices["f1"], 2)
+        # 停止後の先行処理で次の停止も通過し、位置は B まで進む。
+        self.assertEqual(state.indices["f1"], 3)
         self.assertIsNone(state.run_to_end_key)
 
         runner.handle_key("f1")
         self.assertEqual(performed, [a, b])
         self.assertEqual(state.indices["f1"], 0)
+        self.assertIsNone(state.run_to_end_key)
+
+    def test_16_second_run_started_on_stop_row_skips_it(self):
+        # 同じ runner の 2 回目の連続実行で読み飛ばしの印が消えること（M1）。停止の行を選んでから開始する。
+        a = {"type": "text", "value": "A"}
+        b = {"type": "text", "value": "B"}
+        runner, state, _scheduler, performed = self.make_runner([a, self.stop(), b])
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [a])
+        state.indices["f1"] = 1  # 一覧で停止の行を選んだ状態
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [a, b])
+        self.assertIsNone(state.run_to_end_key)
+
+    def test_17_stop_on_last_row_does_not_settle_from_start(self):
+        # 停止が最後の行なら位置 0 のまま（先頭から先行処理しない・末尾で終えたときと同じ）。
+        a = {"type": "text", "value": "A"}
+        counter = {"type": "system", "op": "counter_inc", "counter": "n"}
+        runner, state, _scheduler, performed = self.make_runner([counter, a, self.stop()])
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [a])
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(state.counters.get("n", 0), 1)
+        self.assertEqual(state.deferred_counters.get("f1", []), [])
+
+    def test_13_stop_settles_following_counter_for_next_run(self):
+        a = {"type": "text", "value": "A"}
+        b = {"type": "text", "value": "B"}
+        runner, state, _scheduler, performed = self.make_runner(
+            [a, self.stop(), self.counter_inc(), b],
+        )
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [a])
+        self.assertEqual(state.indices["f1"], 3)
+        self.assertEqual(state.counters.get("n", 0), 0)
+        self.assertEqual(state.deferred_counters_for("")["f1"], [("counter_inc", "n")])
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [a, b])
+        self.assertEqual(state.counters["n"], 1)
+
+    def test_14_post_stop_counter_at_end_is_applied_and_reversible(self):
+        a = {"type": "text", "value": "A"}
+        runner, state, _scheduler, performed = self.make_runner(
+            [a, self.counter_inc(), self.stop(), self.counter_inc()],
+        )
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [a])
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(state.counters["n"], 2)
+        history = state.history_for("")["f1"]
+        self.assertEqual(len(history), 1)
+        self.assertEqual(history[0].counter_deltas, [("n", 1), ("n", 1)])
+
+        runner.handle_key("f2")
+        self.assertEqual(state.counters.get("n", 0), 0)
+        self.assertEqual(state.history_for("")["f1"], [])
+
+    def test_15_wait_continuation_settles_after_stop(self):
+        a = {"type": "text", "value": "A"}
+        wait = {"type": "system", "op": "wait", "ms": 20}
+        b = {"type": "text", "value": "B"}
+        runner, state, scheduler, performed = self.make_runner(
+            [a, wait, self.stop(), self.counter_inc(), b], delay=5,
+        )
+
+        runner.handle_key("f1")
+        scheduler.run_one()
+        runner.pause_run_to_end()
+        runner.resume_run_to_end()
+        scheduler.run_pending()
+
+        self.assertEqual(performed, [a])
+        self.assertEqual(state.indices["f1"], 4)
+        self.assertEqual(state.counters.get("n", 0), 0)
+        self.assertEqual(state.deferred_counters_for("")["f1"], [("counter_inc", "n")])
         self.assertIsNone(state.run_to_end_key)
 
     def test_12_pause_and_resume_during_wait_skips_following_stop(self):
