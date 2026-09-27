@@ -17,7 +17,6 @@ from keyseq.application.file_line_reader import (
     FileLineError,
     normalize_file_line_options,
     pick_file_line,
-    read_file_line,
     validate_file_line_request,
 )
 from keyseq.application.file_line_loader import FileLineLoadRequest, FileLineLoader
@@ -106,7 +105,16 @@ class ActionExecutor:
             self._write_text(str(value))
             return True
         if action_type == "file_line":
-            return self._execute_file_line(action)
+            self._on_action_error(
+                action,
+                _file_line_error_message(
+                    action,
+                    FileLineError(
+                        "file_line は読込の経路（begin_file_line / poll_file_line）で実行します"
+                    ),
+                ),
+            )
+            return False
         if action_type == "mouse_click":
             self._execute_mouse_click(action)
             return True
@@ -116,31 +124,6 @@ class ActionExecutor:
         err = self._invalid_type_message(type_text, action)
         self._on_action_error(notified_action, err)
         return False
-
-    def _execute_file_line(self, action: dict) -> bool:
-        # 暫定: 連続実行の非同期化（phase 38 task_04）で削除する
-        try:
-            path, counter_name, encoding, out_of_range = normalize_file_line_options(action)
-            if not counter_name:
-                raise FileLineError("カウンター名が空です")
-            if self._get_counter is None:
-                raise FileLineError("カウンター取得コールバックが未設定です")
-            if self._resolve_file_line_path is None:
-                raise FileLineError("ファイルパス解決コールバックが未設定です")
-            line_number = self._get_counter(counter_name)
-            resolved_path = self._resolve_file_line_path(path)
-            line = read_file_line(
-                resolved_path,
-                line_number,
-                encoding=encoding,
-                out_of_range=out_of_range,
-            )
-            if line:
-                self._write_text(line)
-            return True
-        except Exception as exc:
-            self._on_action_error(action, _file_line_error_message(action, exc))
-            return False
 
     def begin_file_line(self, action: dict) -> FileLineHandle | None:
         try:

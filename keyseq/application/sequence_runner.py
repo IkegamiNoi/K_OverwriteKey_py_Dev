@@ -52,6 +52,8 @@ class SequenceRunner:
         self._run_to_end_snapshot: StepSnapshot | None = None
         self._run_to_end_wait_position: int | None = None
         self._run_to_end_generation = 0
+        self._run_to_end_file_line: object | None = None
+        self._run_to_end_file_line_token = 0
 
     def _get_index(self, key: str) -> int:
         return int(self.state.indices_for(self._get_trigger_set_id()).get(key, 0) or 0)
@@ -73,6 +75,7 @@ class SequenceRunner:
         key = normalize_key_name(key)
         self.cancel_pending_wait(key)
         if self.state.run_to_end_key == key:
+            self._discard_run_to_end_file_line()
             self._run_to_end_resume = None
             self._run_to_end_snapshot = None
             self._run_to_end_wait_position = None
@@ -271,8 +274,10 @@ class SequenceRunner:
             action = actions[index]
             raw_type = action.get("type")
             action_type = raw_type.strip().lower() if isinstance(raw_type, str) else ""
-            if (action_type == ACTION_TYPE_FILE_LINE and self._begin_file_line is not None
-                    and self._poll_file_line is not None):
+            if action_type == ACTION_TYPE_FILE_LINE:
+                if self._begin_file_line is None or self._poll_file_line is None:
+                    self._report_error(action, "file_line の読込の仕組みが未設定です")
+                    return
                 handle = self._begin_file_line(action)
                 if handle is None:
                     return
@@ -297,6 +302,10 @@ class SequenceRunner:
                 self._select_trigger(target)
 
     # --- run_to_end ---
+    def _discard_run_to_end_file_line(self) -> None:
+        self._run_to_end_file_line = None
+        self._run_to_end_file_line_token += 1
+
     def _start_run_to_end(self, key: str) -> None:
         key = normalize_key_name(key)
         trig = self._find_trigger(key)
@@ -307,6 +316,7 @@ class SequenceRunner:
             return
 
         self.cancel_pending_waits()
+        self._discard_run_to_end_file_line()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
         self._run_to_end_wait_position = None
@@ -324,6 +334,7 @@ class SequenceRunner:
             except Exception:
                 pass
             self.state.run_to_end_after_id = None
+        self._discard_run_to_end_file_line()
 
     def resume_run_to_end(self) -> None:
         self.state.run_to_end_paused = False
@@ -337,6 +348,7 @@ class SequenceRunner:
             except Exception:
                 pass
         self.state.run_to_end_after_id = None
+        self._discard_run_to_end_file_line()
         if self._run_to_end_wait_position is not None:
             key = self.state.run_to_end_key
             snapshot = self._run_to_end_snapshot
@@ -384,6 +396,8 @@ class SequenceRunner:
 
     def _perform_run_to_end_step(self, key: str, actions: list[dict[str, Any]], delay: int) -> None:
         snapshot = self._run_to_end_snapshot or snapshot_for(self.state, self._get_trigger_set_id(), key)
+        previous_resume = self._run_to_end_resume
+        advance_position = self._get_index(key)
         target = None
         def on_control(op: str) -> None:
             nonlocal target
@@ -414,25 +428,50 @@ class SequenceRunner:
                 self._report_error(actions[index], message)
             elif outcome.normal_index is not None:
                 index = outcome.normal_index
-                if self._perform_action(actions[index]) is False:
+                action = actions[index]
+                raw_type = action.get("type")
+                action_type = raw_type.strip().lower() if isinstance(raw_type, str) else ""
+                if action_type == ACTION_TYPE_FILE_LINE:
+                    if self._begin_file_line is None or self._poll_file_line is None:
+                        self._report_error(action, "file_line の読込の仕組みが未設定です")
+                        stop = True
+                    else:
+                        handle = self._begin_file_line(action)
+                        if handle is None:
+                            stop = True
+                        else:
+                            initial_position = (
+                                previous_resume.initial_position
+                                if previous_resume is not None else advance_position
+                            )
+                            resume = StepResume(
+                                initial_position, outcome.wrapped, outcome.processed,
+                                outcome.counter_deltas,
+                            )
+                            self._run_to_end_resume = resume
+                            self._run_to_end_snapshot = snapshot
+                            self._run_to_end_wait_position = index
+                            self._save_progress(key, index, outcome.frames)
+                            self._run_to_end_file_line = handle
+                            self._run_to_end_file_line_token += 1
+                            token = self._run_to_end_file_line_token
+                            generation = self._run_to_end_generation
+                            self.state.run_to_end_after_id = self._after(
+                                FILE_LINE_POLL_INTERVAL_MS,
+                                lambda: self._poll_run_to_end_file_line(
+                                    generation, key, token,
+                                ),
+                            )
+                            self._select_trigger(key)
+                            if target is not None:
+                                self._select_trigger(target)
+                            return
+                elif self._perform_action(action) is False:
                     stop = True
                 else:
-                    position, frames = after_normal_action(actions, index, outcome.frames)
-                    deferred = ()
-                    if position != 0:
-                        settled = settle_after_normal(
-                            actions, position, frames, self.state.counters,
-                            allow_wrap=False, processed=outcome.processed,
-                        )
-                        position, frames = settled.position, settled.frames
-                        outcome.counter_deltas += settled.counter_deltas
-                        deferred = settled.deferred_counters
-                    if position == 0 and deferred:
-                        outcome.counter_deltas += apply_deferred_counters(
-                            deferred, self.state.counters,
-                        )
-                        deferred = ()
-                    self._save_progress(key, position, frames, deferred)
+                    outcome.counter_deltas, position = self._finish_run_to_end_normal_action(
+                        key, actions, index, outcome,
+                    )
                     stop = position == 0
             commit_step(self.state, snapshot, outcome.counter_deltas)
             if stop:
@@ -447,3 +486,79 @@ class SequenceRunner:
         self._select_trigger(key)
         if target is not None:
             self._select_trigger(target)
+
+    def _finish_run_to_end_normal_action(
+        self, key: str, actions: list[dict[str, Any]], index: int,
+        outcome: StepOutcome | StepResume,
+    ) -> tuple[tuple[tuple[str, int], ...], int]:
+        position, frames = after_normal_action(actions, index, self._get_frames(key))
+        deferred = ()
+        deltas = tuple(outcome.counter_deltas)
+        if position != 0:
+            settled = settle_after_normal(
+                actions, position, frames, self.state.counters,
+                allow_wrap=False, processed=outcome.processed,
+            )
+            position, frames = settled.position, settled.frames
+            deltas += settled.counter_deltas
+            deferred = settled.deferred_counters
+        if position == 0 and deferred:
+            deltas += apply_deferred_counters(deferred, self.state.counters)
+            deferred = ()
+        self._save_progress(key, position, frames, deferred)
+        return deltas, position
+
+    def _poll_run_to_end_file_line(self, generation: int, key: str, token: int) -> None:
+        handle = self._run_to_end_file_line
+        if (generation != self._run_to_end_generation
+                or key != self.state.run_to_end_key
+                or token != self._run_to_end_file_line_token
+                or self.state.run_to_end_paused
+                or handle is None):
+            return
+        self.state.run_to_end_after_id = None
+        result = self._poll_file_line(handle)
+        if result is None:
+            self.state.run_to_end_after_id = self._after(
+                FILE_LINE_POLL_INTERVAL_MS,
+                lambda: self._poll_run_to_end_file_line(generation, key, token),
+            )
+            return
+
+        self._discard_run_to_end_file_line()
+        resume = self._run_to_end_resume
+        snapshot = self._run_to_end_snapshot
+        self._run_to_end_resume = None
+        self._run_to_end_wait_position = None
+        if resume is None or snapshot is None:
+            self._run_to_end_snapshot = None
+            self.stop_run_to_end()
+            return
+        delay = coerce_nonnegative_int(
+            (self._find_trigger(key) or {}).get(
+                "run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS,
+            ),
+            DEFAULT_RUN_TO_END_DELAY_MS,
+        )
+        stop = not result
+        if result:
+            trigger = self._find_trigger(key)
+            actions = trigger.get("actions", []) if trigger is not None else []
+            index = self._get_index(key)
+            deltas, position = self._finish_run_to_end_normal_action(
+                key, actions, index, resume,
+            )
+            stop = position == 0
+        else:
+            deltas = resume.counter_deltas
+        commit_step(self.state, snapshot, deltas)
+        self._run_to_end_snapshot = None
+        self._select_trigger(key)
+        if stop:
+            self.stop_run_to_end()
+        else:
+            next_generation = self._run_to_end_generation
+            self.state.run_to_end_after_id = self._after(
+                delay,
+                lambda: self._run_to_end_step(generation=next_generation, key=key),
+            )

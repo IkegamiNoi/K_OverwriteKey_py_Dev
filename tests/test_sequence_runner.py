@@ -138,9 +138,14 @@ class SystemActionRunnerTest(unittest.TestCase):
         runner, state, _scheduler, _performed = make_runner(triggers)
         seen = []
         runner._perform_action = lambda action: seen.append((action, state.counters.get("n", 0)))
+        runner._begin_file_line = lambda action: seen.append(
+            (action, state.counters.get("n", 0))
+        ) or object()
+        runner._poll_file_line = lambda _handle: True
         runner.handle_key("f1")
         runner.handle_key("f2")
         self.assertEqual(seen, [(A1, 1), (file_line, 1)])
+        _scheduler.run_pending()
         runner.handle_key("f1")
         runner.handle_key("f2")
         self.assertEqual(seen[-2:], [(A1, 2), (file_line, 2)])
