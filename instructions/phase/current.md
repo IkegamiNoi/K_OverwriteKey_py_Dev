@@ -13,9 +13,7 @@
   [phase 38](38_file_line_async_read/phase.md)（2026-09-27・file_line の非同期読込・
   判断は [decisions_archive/38](../../.claude_data/state/decisions_archive/38_file_line_async_read.md)）/
   [phase 37](37_sequence_control_actions/phase.md)（2026-09-27・出力シーケンスの制御アクション第 1 弾・
-  判断は [decisions_archive/37](../../.claude_data/state/decisions_archive/37_sequence_control_actions.md)）/
-  [phase 36](36_config_service_split/phase.md)（2026-09-27・config_service の分割と巨大関数の分割・
-  判断は [decisions_archive/36](../../.claude_data/state/decisions_archive/36_config_service_split.md)）。
+  判断は [decisions_archive/37](../../.claude_data/state/decisions_archive/37_sequence_control_actions.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
 - **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37・38・39）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**・phase 37）。
