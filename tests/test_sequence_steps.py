@@ -38,6 +38,97 @@ class SequenceStepsTest(unittest.TestCase):
         self.assertEqual(advanced.counter_deltas, (("n", 1), ("n", -5)))
         self.assertEqual(counters, {"n": 0})
 
+    def test_advance_skips_stop_when_stop_does_not_end_run(self):
+        skipped = advance([control("stop"), NORMAL], 0, [], {}, wrap_once=False)
+        self.assertEqual((skipped.normal_index, skipped.position), (1, 1))
+        self.assertFalse(skipped.stopped)
+
+        wrapped = advance(
+            [NORMAL, control("stop")], 1, [], {}, wrap_once=True,
+        )
+        self.assertEqual((wrapped.normal_index, wrapped.position), (0, 0))
+        self.assertTrue(wrapped.wrapped)
+        self.assertFalse(wrapped.stopped)
+
+    def test_advance_stop_ends_run_and_preserves_loop_frames(self):
+        stopped = advance(
+            [control("stop"), NORMAL], 0, [], {},
+            wrap_once=False, stop_ends_run=True,
+        )
+        self.assertTrue(stopped.stopped)
+        self.assertEqual((stopped.normal_index, stopped.position), (None, 1))
+
+        at_end = advance(
+            [NORMAL, control("stop")], 1, [], {},
+            wrap_once=False, stop_ends_run=True,
+        )
+        self.assertTrue(at_end.stopped)
+        self.assertEqual((at_end.position, at_end.frames), (0, []))
+
+        frames = [LoopFrame(0, 3)]
+        in_loop = advance(
+            [control("loop_start", infinite=True), NORMAL,
+             control("stop"), control("loop_end")],
+            2, frames, {}, wrap_once=False, stop_ends_run=True,
+        )
+        self.assertTrue(in_loop.stopped)
+        self.assertEqual((in_loop.position, in_loop.frames), (3, frames))
+
+    def test_advance_stop_after_wait_resume_keeps_counter_deltas(self):
+        actions = [NORMAL, control("wait", ms=5), control("stop"), NORMAL]
+        counters = {"n": 0}
+        waiting = advance(
+            actions, 1, [], counters, wrap_once=False,
+            deferred_counters=(("counter_inc", "n"),),
+        )
+        stopped = advance(
+            actions, waiting.resume_position, [], counters,
+            wrap_once=False, resume=waiting.resume, stop_ends_run=True,
+        )
+        self.assertTrue(stopped.stopped)
+        self.assertEqual(stopped.position, 3)
+        self.assertEqual(stopped.counter_deltas, (("n", 1),))
+
+    def test_settle_stop_ends_run_and_preserves_deferred_counters(self):
+        actions = [NORMAL, control("counter_inc", counter="n"),
+                   control("stop"), NORMAL]
+        settled = settle_after_normal(
+            actions, 1, [], {}, allow_wrap=True, stop_ends_run=True,
+        )
+        self.assertTrue(settled.stopped)
+        self.assertEqual(settled.position, 3)
+        self.assertEqual(settled.deferred_counters, (("counter_inc", "n"),))
+
+        at_end = settle_after_normal(
+            [NORMAL, control("stop")], 1, [], {},
+            allow_wrap=True, stop_ends_run=True,
+        )
+        self.assertTrue(at_end.stopped)
+        self.assertEqual((at_end.position, at_end.frames), (0, []))
+
+    def test_settle_skips_stop_but_still_stops_before_wait(self):
+        actions = [NORMAL, control("stop"), NORMAL]
+        settled = settle_after_normal(
+            actions, 1, [], {}, allow_wrap=True, stop_ends_run=False,
+        )
+        self.assertEqual(settled.position, 2)
+        self.assertFalse(settled.stopped)
+
+        before_wait = settle_after_normal(
+            [NORMAL, control("stop"), control("wait", ms=5), NORMAL],
+            1, [], {}, allow_wrap=True, stop_ends_run=False,
+        )
+        self.assertEqual(before_wait.position, 2)
+        self.assertFalse(before_wait.stopped)
+
+    def test_settle_limit_is_checked_before_stop(self):
+        settled = settle_after_normal(
+            [NORMAL, control("stop"), NORMAL], 1, [], {},
+            allow_wrap=True, processed=10000, stop_ends_run=True,
+        )
+        self.assertFalse(settled.stopped)
+        self.assertEqual(settled.position, 1)
+
     def test_settle_stops_before_wait_back_rewind_and_unknown(self):
         for op in ("wait", "back", "rewind", "unknown"):
             with self.subTest(op=op):

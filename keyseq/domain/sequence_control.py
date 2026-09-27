@@ -16,6 +16,7 @@ OP_COUNTER_RESET: str = "counter_reset"
 OP_WAIT: str = "wait"
 OP_BACK: str = "back"
 OP_REWIND: str = "rewind"
+OP_STOP: str = "stop"
 
 MAX_LOOP_DEPTH: int = 9
 
@@ -161,6 +162,8 @@ def _format_system_value(
         return "[back]"
     if op == OP_REWIND:
         return "[rewind]"
+    if op == OP_STOP:
+        return "[stop]"
     return f"[system] {action.get('op', '')}"
 
 

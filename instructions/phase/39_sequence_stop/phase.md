@@ -44,7 +44,7 @@
 
 依存順。各タスクの定義は着手時に `tasks/task_NN_<topic>.md` へ起票する（`/task_new`）。
 
-- task_01: domain と実行の中核（暫定 §3・§4: `OP_STOP`・表示 `[stop]` / `advance`・`settle_after_normal` に連続実行かどうかと読み飛ばしの要否を渡し、停止で終えることを返す）
+- task_01: domain と実行の中核（暫定 §3・§4: `OP_STOP`・表示 `[stop]` / `advance`・`settle_after_normal` に連続実行かどうかと読み飛ばしの要否を渡し、停止で終えることを返す） — **完了**（2026-09-28。`stop_ends_run` 引数・`stopped` フィールド）
 - task_02: runner の組み込み（暫定 §4.1: 連続実行の終了・位置・間隔なし・保留の反映と戻す履歴 / 読み飛ばしの印〔開始で消す・一時停止で保つ・file_line の完了も数える〕/ 単発の読み飛ばし）
 - task_03: 編集ダイアログ（暫定 §5: system の操作に「停止」）・実機目視
 - task_04: 統合確認（テストスイート全体・smoke。統合レビュー = deep-reviewer + codex-reviewer）

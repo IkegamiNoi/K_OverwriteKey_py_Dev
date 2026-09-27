@@ -180,6 +180,10 @@ class FormatControlValueTest(unittest.TestCase):
         self.assertEqual(format_control_value(system("back")), "[back]")
         self.assertEqual(format_control_value(system("rewind")), "[rewind]")
 
+    def test_stop_displays_with_or_without_label(self) -> None:
+        self.assertEqual(format_control_value(system("stop")), "[stop]")
+        self.assertEqual(format_control_value(system("stop", label="end")), "[stop]")
+
     def test_counters_default_to_zero_when_missing_or_unregistered(self) -> None:
         action = system("counter_inc", counter="n")
         self.assertEqual(format_control_value(action), "[count+1] n (=0)")

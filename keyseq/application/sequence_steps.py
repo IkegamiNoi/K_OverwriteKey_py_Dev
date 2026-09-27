@@ -6,7 +6,7 @@ from typing import Any
 
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM, OP_BACK, OP_COUNTER_INC, OP_COUNTER_RESET,
-    MAX_LOOP_DEPTH, OP_LOOP_END, OP_LOOP_START, OP_REWIND, OP_WAIT, action_type,
+    MAX_LOOP_DEPTH, OP_LOOP_END, OP_LOOP_START, OP_REWIND, OP_STOP, OP_WAIT, action_type,
     analyze_loops, enclosing_loop_starts, system_op,
 )
 
@@ -73,6 +73,7 @@ class StepOutcome:
     counter_deltas: tuple[tuple[str, int], ...] = ()
     wrapped: bool = False
     processed: int = 0
+    stopped: bool = False
 
 
 def resume_for_pending(outcome: StepOutcome, initial_position: int) -> StepResume:
@@ -88,6 +89,7 @@ class SettleOutcome:
     counter_deltas: tuple[tuple[str, int], ...]
     wrapped: bool = False
     deferred_counters: tuple[tuple[str, str], ...] = ()
+    stopped: bool = False
 
 
 def reset_frames(actions: Sequence[Any], position: int) -> list[LoopFrame]:
@@ -163,6 +165,8 @@ def _system_step(actions: Sequence[Any], position: int, frames: list[LoopFrame],
         return position + 1, _counter(action, op, counters, counter_deltas)
     if op in (OP_BACK, OP_REWIND):
         return position + 1, None
+    if op == OP_STOP:
+        return position + 1, None
     return position, f"system の操作が不正です。操作: {op}"
 
 
@@ -170,7 +174,8 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             counters: dict[str, int], *, wrap_once: bool,
             resume: StepResume | None = None,
             deferred_counters: Sequence[tuple[str, str]] = (),
-            on_control: Callable[[str], None] | None = None) -> StepOutcome:
+            on_control: Callable[[str], None] | None = None,
+            stop_ends_run: bool = False) -> StepOutcome:
     structure = analyze_loops(actions)
     if resume is None:
         position = position if 0 <= position < len(actions) else 0
@@ -211,6 +216,15 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
                 counter_deltas=tuple(counter_deltas),
             )
         processed += 1
+        if system_op(action) == OP_STOP and stop_ends_run:
+            position += 1
+            if position == len(actions):
+                position, current = 0, []
+            return StepOutcome(
+                None, position, current, stopped=True,
+                counter_deltas=tuple(counter_deltas), wrapped=wrapped,
+                processed=processed,
+            )
         if system_op(action) == OP_WAIT:
             try:
                 wait_ms = int(action.get("ms"))
@@ -254,7 +268,8 @@ def after_normal_action(actions: Sequence[Any], index: int,
 
 def settle_after_normal(actions: Sequence[Any], position: int,
                         frames: list[LoopFrame], counters: dict[str, int], *,
-                        allow_wrap: bool, processed: int = 0) -> SettleOutcome:
+                        allow_wrap: bool, processed: int = 0,
+                        stop_ends_run: bool = False) -> SettleOutcome:
     """Prepare the next step without executing controls or reporting errors."""
     current = list(frames)
     deltas: list[tuple[str, int]] = []
@@ -273,6 +288,18 @@ def settle_after_normal(actions: Sequence[Any], position: int,
         if not isinstance(action, Mapping) or action_type(action) != ACTION_TYPE_SYSTEM:
             break
         op = system_op(action)
+        if op == OP_STOP:
+            if stop_ends_run:
+                position += 1
+                if position == len(actions):
+                    position, current = 0, []
+                return SettleOutcome(
+                    position, current, tuple(deltas), wrapped,
+                    tuple(deferred), stopped=True,
+                )
+            position += 1
+            processed += 1
+            continue
         if op not in (OP_LOOP_START, OP_LOOP_END, OP_COUNTER_INC, OP_COUNTER_RESET):
             break
         if op in (OP_COUNTER_INC, OP_COUNTER_RESET):
