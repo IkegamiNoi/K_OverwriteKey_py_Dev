@@ -31,11 +31,12 @@ def format_system_error_notification(
     """Copy a system action and add its readable operation value for notification."""
     notified = action.copy()
     op = str(action.get("op") or "(なし)")
-    if op == "loop_start":
+    normalized_op = system_op(action)
+    if normalized_op == "loop_start":
         value = "無限" if action.get("infinite") else f"回数={action.get('count', '(なし)')}"
-    elif op == "wait":
+    elif normalized_op == "wait":
         value = f"{action.get('ms', '(なし)')}ms"
-    elif op in ("counter_inc", "counter_reset"):
+    elif normalized_op in ("counter_inc", "counter_reset"):
         value = f"カウンター={action.get('counter', '(なし)')}"
     else:
         value = ""
@@ -45,6 +46,18 @@ def format_system_error_notification(
     if isinstance(label, str) and label.strip():
         detail += f" / ラベル: {label.strip()}"
     return notified, f"system 実行エラー（{detail}）: {message}"
+
+
+def apply_deferred_counters(
+    deferred: Sequence[tuple[str, str]], counters: dict[str, int],
+) -> tuple[tuple[str, int], ...]:
+    """Apply queued counter operations and return their reversible deltas."""
+    deltas: list[tuple[str, int]] = []
+    for op, name in deferred:
+        error = _counter({"counter": name}, op, counters, deltas)
+        if error:
+            continue
+    return tuple(deltas)
 
 
 @dataclass

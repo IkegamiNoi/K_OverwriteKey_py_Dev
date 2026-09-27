@@ -126,17 +126,20 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
 
     def test_rename_trigger_rekeys_runtime_history(self):
         trigger = {"key": "a", "label": "old", "actions": []}
+        events = []
         service = SimpleNamespace(
             key_exists=Mock(return_value=False), is_stop_key_conflict=Mock(return_value=False),
             is_toggle_key_conflict=Mock(return_value=False),
         )
         state = SimpleNamespace(
             loop_frames_for=Mock(return_value={"a": ["frame"]}),
-            rekey_trigger=Mock(),
+            rekey_trigger=Mock(side_effect=lambda *_args: events.append("rekey")),
         )
         app = SimpleNamespace(
             data={"keymaps": [{"id": "main", "triggers": [trigger]}], "active_keymap_id": "main"},
-            _indices={"a": 1}, state=state, sequence_runner=SimpleNamespace(cancel_pending_wait=Mock()),
+            _indices={"a": 1}, state=state,
+            sequence_runner=SimpleNamespace(cancel_pending_wait=Mock(
+                side_effect=lambda _key: events.append(tuple(app._indices)))),
             _active_trigger_set_id=Mock(return_value="main"), trigger_service=service,
             keymap_service=SimpleNamespace(get_keymap_by_switch_key=Mock(return_value=None)),
             _key_overlap_report=Mock(return_value=SimpleNamespace(active_source_keys=set())),
@@ -152,6 +155,33 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
             controller.rename_trigger()
         state.rekey_trigger.assert_called_once_with("main", "a", "b")
         self.assertEqual(app._indices, {"b": 1})
+        self.assertEqual(events, [("a",), "rekey"])
+
+    def test_add_action_uses_position_after_dialog_wait(self):
+        trigger = {"key": "f1", "actions": [{"value": "one"}, {"value": "two"}]}
+        runner = SimpleNamespace(reset_loop_frames=Mock())
+        app = SimpleNamespace(
+            data={"keymaps": [{"id": "main", "triggers": [trigger]}], "active_keymap_id": "main"},
+            _indices={"f1": 0}, _dialog_result={"type": "text", "value": "three"},
+            state=SimpleNamespace(counters={}), sequence_runner=runner, config_root="",
+            mark_sequence_dirty=Mock(),
+        )
+        controller = TriggerPanelController.__new__(TriggerPanelController)
+        controller._app = app
+        controller.selected_trigger = Mock(return_value=trigger)
+        controller.selected_action_index = Mock(return_value=0)
+        controller.refresh_actions = Mock()
+        dialog = SimpleNamespace(
+            append_to_end=True,
+            wait_window=Mock(side_effect=lambda: app._indices.__setitem__("f1", 2)),
+        )
+
+        with patch.object(trigger_module, "ActionDialog", return_value=dialog):
+            controller.add_action()
+
+        self.assertEqual(app._indices["f1"], 3)
+        self.assertEqual(len(trigger["actions"]), 3)
+        runner.reset_loop_frames.assert_called_once_with("f1")
 
 
 if __name__ == "__main__":

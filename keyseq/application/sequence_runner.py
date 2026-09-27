@@ -3,11 +3,14 @@
 from typing import Any, Callable
 
 from keyseq.application.app_state import PendingStep
-from keyseq.application.sequence_history import StepSnapshot, apply_control, commit_step, snapshot_for
+from keyseq.application.sequence_history import (
+    StepSnapshot, apply_control, cancel_pending_steps, commit_step, snapshot_for,
+)
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
 from keyseq.application.sequence_steps import (
     LoopFrame, StepOutcome, StepResume, advance, after_normal_action,
-    format_system_error_notification, reset_frames, settle_after_normal,
+    apply_deferred_counters, format_system_error_notification, reset_frames,
+    settle_after_normal,
 )
 
 
@@ -41,6 +44,7 @@ class SequenceRunner:
         self._run_to_end_resume: StepResume | None = None
         self._run_to_end_snapshot: StepSnapshot | None = None
         self._run_to_end_wait_position: int | None = None
+        self._run_to_end_generation = 0
 
     def _get_index(self, key: str) -> int:
         return int(self.state.indices_for(self._get_trigger_set_id()).get(key, 0) or 0)
@@ -74,27 +78,10 @@ class SequenceRunner:
 
     def cancel_pending_wait(self, key: str) -> None:
         identity = (self._get_trigger_set_id(), normalize_key_name(key))
-        with self.state.lock:
-            pending = self.state.pending_steps.pop(identity, None)
-        if pending is not None:
-            commit_step(self.state, pending.snapshot, pending.resume.counter_deltas)
-        if pending is not None and pending.after_id is not None:
-            try:
-                self._after_cancel(pending.after_id)
-            except Exception:
-                pass
+        cancel_pending_steps(self.state, self._after_cancel, identity)
 
     def cancel_pending_waits(self) -> None:
-        with self.state.lock:
-            pending_steps = tuple(self.state.pending_steps.values())
-            self.state.pending_steps.clear()
-        for pending in pending_steps:
-            commit_step(self.state, pending.snapshot, pending.resume.counter_deltas)
-            if pending.after_id is not None:
-                try:
-                    self._after_cancel(pending.after_id)
-                except Exception:
-                    pass
+        cancel_pending_steps(self.state, self._after_cancel)
 
     def _queue_single_wait(self, key: str, outcome: StepOutcome, snapshot: StepSnapshot) -> None:
         trigger_set_id = self._get_trigger_set_id()
@@ -233,10 +220,11 @@ class SequenceRunner:
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
         self._run_to_end_wait_position = None
+        self._run_to_end_generation += 1
         self.state.run_to_end_key = key
         self.state.run_to_end_paused = False
         self._select_trigger(key)
-        self._run_to_end_step()
+        self._run_to_end_step(generation=self._run_to_end_generation, key=key)
 
     def pause_run_to_end(self) -> None:
         self.state.run_to_end_paused = True
@@ -252,6 +240,7 @@ class SequenceRunner:
         self._run_to_end_step(schedule_only=True)
 
     def stop_run_to_end(self) -> None:
+        self._run_to_end_generation += 1
         if self.state.run_to_end_after_id is not None:
             try:
                 self._after_cancel(self.state.run_to_end_after_id)
@@ -272,8 +261,14 @@ class SequenceRunner:
         self._run_to_end_wait_position = None
         self._update_status()
 
-    def _run_to_end_step(self, schedule_only: bool = False) -> None:
-        key = self.state.run_to_end_key
+    def _run_to_end_step(self, schedule_only: bool = False, *,
+                         generation: int | None = None, key: str | None = None) -> None:
+        current_key = self.state.run_to_end_key
+        if generation is not None and generation != self._run_to_end_generation:
+            return
+        if key is not None and key != current_key:
+            return
+        key = current_key
         if not key or self.state.run_to_end_paused:
             return
         trig = self._find_trigger(key)
@@ -289,7 +284,11 @@ class SequenceRunner:
             DEFAULT_RUN_TO_END_DELAY_MS,
         )
         if schedule_only:
-            self.state.run_to_end_after_id = self._after(delay, self._run_to_end_step)
+            generation = self._run_to_end_generation
+            self.state.run_to_end_after_id = self._after(
+                delay,
+                lambda: self._run_to_end_step(generation=generation, key=key),
+            )
             return
         self._perform_run_to_end_step(key, actions, delay)
 
@@ -311,7 +310,11 @@ class SequenceRunner:
             self._run_to_end_resume = outcome.resume
             self._run_to_end_snapshot = snapshot
             self._run_to_end_wait_position = outcome.resume_position - 1
-            self.state.run_to_end_after_id = self._after(outcome.wait_ms, self._run_to_end_step)
+            generation = self._run_to_end_generation
+            self.state.run_to_end_after_id = self._after(
+                outcome.wait_ms,
+                lambda: self._run_to_end_step(generation=generation, key=key),
+            )
         else:
             self._run_to_end_resume = None
             self._run_to_end_wait_position = None
@@ -334,13 +337,22 @@ class SequenceRunner:
                         position, frames = settled.position, settled.frames
                         outcome.counter_deltas += settled.counter_deltas
                         deferred = settled.deferred_counters
+                    if position == 0 and deferred:
+                        outcome.counter_deltas += apply_deferred_counters(
+                            deferred, self.state.counters,
+                        )
+                        deferred = ()
                     self._save_progress(key, position, frames, deferred)
                     stop = position == 0
             commit_step(self.state, snapshot, outcome.counter_deltas)
             if stop:
                 self.stop_run_to_end()
             else:
-                self.state.run_to_end_after_id = self._after(delay, self._run_to_end_step)
+                generation = self._run_to_end_generation
+                self.state.run_to_end_after_id = self._after(
+                    delay,
+                    lambda: self._run_to_end_step(generation=generation, key=key),
+                )
             self._run_to_end_snapshot = None
         self._select_trigger(key)
         if target is not None:

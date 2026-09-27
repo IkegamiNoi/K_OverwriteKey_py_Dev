@@ -188,12 +188,13 @@ class SystemActionRunnerTest(unittest.TestCase):
         )
         runner.handle_key("f1")
         self.assertEqual(performed, [A1])
-        self.assertEqual(state.counters, {})
+        # v0.6 §2-27: 連続実行が末尾で停止するときは保留をその場で反映し、最後のステップの差分に入れる
+        self.assertEqual(state.counters, {"n": 1})
         self.assertEqual(state.indices["f1"], 0)
         self.assertIsNone(state.run_to_end_key)
         self.assertEqual(scheduler.queue, [])
-        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [])
-        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [("n", 1)])
+        self.assertEqual(state.deferred_counters["f1"], [])
 
     def test_back_undoes_counter_changes_after_normal_action(self):
         trigger = {"key": "f1", "actions": [
@@ -632,6 +633,40 @@ class RunToEndTest(unittest.TestCase):
         self.assertEqual(performed, [A1, A2])
         self.assertIsNone(state.run_to_end_key)
 
+    def test_terminal_deferred_counter_is_applied_and_undone_with_last_step(self):
+        trigger = {
+            "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+            "actions": [A1, {"type": "system", "op": "counter_inc", "counter": "n"}],
+        }
+        back = {"key": "f2", "actions": [{"type": "system", "op": "back"}]}
+        runner, state, _scheduler, _performed = make_runner([trigger, back])
+
+        runner.handle_key("f1")
+
+        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(state.deferred_counters["f1"], [])
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [("n", 1)])
+        runner.handle_key("f2")
+        self.assertEqual(state.counters["n"], 0)
+        self.assertEqual(state.deferred_counters["f1"], [])
+
+    def test_old_continuous_callback_cannot_advance_a_new_run(self):
+        trigger = {"key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+                   "actions": [A1, A2, {"type": "text", "value": "three"}]}
+        runner, state, scheduler, performed = make_runner([trigger])
+
+        runner.handle_key("f1")
+        old_callback = scheduler.queue[0][1]
+        runner.stop_run_to_end()
+        runner.handle_key("f1")
+        self.assertEqual(performed, [A1, A2])
+        self.assertEqual(state.run_to_end_key, "f1")
+
+        old_callback()
+
+        self.assertEqual(performed, [A1, A2])
+        self.assertEqual(state.run_to_end_key, "f1")
+
 
 class ActionExecutorRunnerTest(unittest.TestCase):
     def make_executor_runner(self, actions, *, run_to_end=True):
@@ -1012,6 +1047,81 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         self.assertIn("loop_start 回数=abc", message)
         self.assertIn("ラベル: outer", message)
         self.assertNotIn("value", action)
+
+    def test_continuous_wait_stop_does_not_flush_future_counter(self):
+        trigger = {
+            "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+            "actions": [A1, {"type": "system", "op": "wait", "ms": 25},
+                        {"type": "system", "op": "counter_inc", "counter": "n"}],
+        }
+        runner, state, scheduler, _performed = make_runner([trigger])
+        runner.handle_key("f1")
+        scheduler.run_one()
+
+        runner.stop_run_to_end()
+
+        self.assertEqual(state.counters.get("n", 0), 0)
+
+    def test_continuous_error_stop_does_not_flush_later_counter(self):
+        trigger = {
+            "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+            "actions": [A1, {"type": "system", "op": "wait", "ms": "bad"},
+                        {"type": "system", "op": "counter_inc", "counter": "n"}],
+        }
+        runner, state, scheduler, _performed = make_runner([trigger])
+        runner.handle_key("f1")
+        scheduler.run_one()
+
+        self.assertIsNone(state.run_to_end_key)
+        self.assertEqual(state.counters.get("n", 0), 0)
+
+    def test_continuous_pause_does_not_flush_future_counter(self):
+        trigger = {
+            "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+            "actions": [A1, {"type": "system", "op": "wait", "ms": 25},
+                        {"type": "system", "op": "counter_inc", "counter": "n"}],
+        }
+        runner, state, scheduler, _performed = make_runner([trigger])
+        runner.handle_key("f1")
+        scheduler.run_one()
+
+        runner.pause_run_to_end()
+
+        self.assertEqual(state.counters.get("n", 0), 0)
+
+    def test_cancelled_wait_with_deferred_counter_can_be_undone(self):
+        trigger = {
+            "key": "f1", "run_to_end": False,
+            "actions": [
+                A1,
+                {"type": "system", "op": "counter_inc", "counter": "n"},
+                {"type": "system", "op": "wait", "ms": 5}, A2,
+            ],
+        }
+        back = {"key": "f2", "actions": [{"type": "system", "op": "back"}]}
+        runner, state, _scheduler, _performed = make_runner([trigger, back])
+        runner.handle_key("f1")
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        runner.handle_key("f1")
+        runner.cancel_pending_wait("f1")
+
+        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(state.deferred_counters["f1"], [])
+        runner.handle_key("f2")
+        self.assertEqual(state.indices["f1"], 2)
+        self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
+        self.assertEqual(state.counters["n"], 0)
+
+    def test_uppercase_wait_error_notification_includes_value(self):
+        trigger = {"key": "f1", "actions": [{"type": "system", "op": "WAIT", "ms": 0}]}
+        runner, _state, _scheduler, _performed = make_runner([trigger])
+        runner._notify_error = Mock()
+
+        runner.handle_key("f1")
+
+        notified_action, message = runner._notify_error.call_args.args
+        self.assertEqual(notified_action["value"], "WAIT 0ms")
+        self.assertIn("WAIT 0ms", message)
 
 
 if __name__ == "__main__":

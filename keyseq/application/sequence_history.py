@@ -120,6 +120,28 @@ def commit_step(
         return True
 
 
+def cancel_pending_steps(
+    state: Any,
+    after_cancel: Callable[[Any], None],
+    identity: tuple[str, str] | None = None,
+) -> None:
+    """Commit and cancel one or all pending waits under the runtime state."""
+    with state.lock:
+        if identity is None:
+            pending_steps = tuple(state.pending_steps.values())
+            state.pending_steps.clear()
+        else:
+            pending = state.pending_steps.pop(identity, None)
+            pending_steps = (pending,) if pending is not None else ()
+    for pending in pending_steps:
+        commit_step(state, pending.snapshot, pending.resume.counter_deltas)
+        if pending.after_id is not None:
+            try:
+                after_cancel(pending.after_id)
+            except Exception:
+                pass
+
+
 def apply_control(
     state: Any,
     source: tuple[str, str],

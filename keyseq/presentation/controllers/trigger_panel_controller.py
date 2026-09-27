@@ -473,13 +473,14 @@ class TriggerPanelController:
         if new in self._app._key_overlap_report().active_source_keys:
             messagebox.showerror("変更できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{new}")
             return
+        if old != new:
+            self._app.sequence_runner.cancel_pending_wait(old)
         # indices の移し替え
         self._app._indices.setdefault(old, 0)
         self._app._indices.setdefault(new, self._app._indices.get(old, 0))
         if old in self._app._indices:
             del self._app._indices[old]
         if old != new:
-            self._app.sequence_runner.cancel_pending_wait(old)
             frames = self._app.state.loop_frames_for(self._app._active_trigger_set_id())
             if old in frames:
                 frames.setdefault(new, frames[old])
@@ -534,7 +535,6 @@ class TriggerPanelController:
         actions = trig.setdefault("actions", [])
         selected_index = self.selected_action_index()
         key = normalize_key_name(trig.get("key", ""))
-        position = int(self._app._indices.get(key, 0) or 0)
         dialog = ActionDialog(
             self._app,
             title="追加",
@@ -543,6 +543,7 @@ class TriggerPanelController:
             config_root=getattr(self._app, "config_root", ""),
         )
         dialog.wait_window()
+        position = int(self._app._indices.get(key, 0) or 0)
         result = getattr(self._app, "_dialog_result", None)
         if not result:
             return
