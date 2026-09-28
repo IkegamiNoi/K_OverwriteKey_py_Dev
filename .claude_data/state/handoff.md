@@ -23,8 +23,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜28。**28 の §9 と、未凍結の 29 は例外**）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 40 進行中（呼び出し op: call・暫定 29）。task_09b（統合レビューの修正）が WIP コミット済みで未レビュー・暫定 29 v0.5 の反映漏れあり。**
-直近コミット: `941dc7f`（task_09b WIP）/ `3d593eb`（統合レビューの判断）/ `2c46424`（task_08・実機目視待ち）。ブランチ `claude/idea-38-9877ba`。
+**phase 40 進行中（暫定 29 v0.7）。task_09e（ダイアログ廃止・ステータスバーの通知・戻す / 先頭への 2 回押し・待機中に止めたら次の送る行へ）まで完了。ユーザーの実機目視待ち。**
+直近コミット: `2c8f1cc`（task_09e）/ `6df8eda`（暫定 29 v0.7）/ `a4de795`（task_09d）/ `d0bf813`（task_09c）。ブランチ `claude/trigger-input-during-call-d13202`。
 **main は phase 37 まで取り込み済み**（phase 38〜40 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 40 task_08 時点 = 2026-09-28**）:
-compile **clean** / tests **962 実行 OK**（skip 7・task_09b 後も OK〔件数増〕）/ tests_ui **630 実行 OK**（task_09b 後は未実測）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 39 完了 906 → 962 / tests_ui: 616 → 630）。
+直近の実測（**phase 40 task_09e 時点 = 2026-09-29**）:
+compile **clean** / tests **995 実行 OK**（skip 7）/ tests_ui **634 実行 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 39 完了 906 → 995 / tests_ui: 616 → 634。tests_ui は task_09e でダイアログのテストを削除して 635 → 634）。
 **`tests_ui` と smoke を並行実行しない**（フックの取り合いで 13 件落ちる。逐次で実行する）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
@@ -52,10 +52,12 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **task_09b の仕上げ**: tests_ui・smoke を verifier で実測 → M2 のテスト（連続実行のエラー通知中の一時停止）が修正前の条件で落ちることを確認（`git stash` を使わず条件を一時的に戻す）→ reviewer → コミット。
-- **暫定 29 の v0.5 改訂が未反映**（編集スクリプトが失敗）: decisions.md「task_09 統合レビュー」と task_09b 定義の 3 点（上限 10,000 を呼び出しの 1 ステップ全体で通して数える / 連鎖は呼び出し元を含めない / エラー後の照合から一時停止を除く）を §4.2・§4.5 とヘッダへ反映。
-- task_08 の実機目視 1〜8（ユーザー・task_08 定義の手順）→ task_10（正本反映・暫定 29 凍結・decisions_archive/40・current.md・`/refactor_check`〔call_wait / call_run_to_end の重複・runner 543 行〕）。
-- **main へのマージはユーザーが行う**（ブランチ `claude/idea-38-9877ba`・phase 38〜40）。
+- **ユーザーの実機目視（task_09e）**: ①待機中に一時停止 / フック停止 → 位置が次の送る行・再開でそこから（単発の待機中に他の連続実行・フック停止でも同じ）
+  ②一時停止中に他の連続実行を開始 → ダイアログなしで捨てて通知 ③キーマップの切替 / 削除でも捨てて通知（削除は既存の確認だけ・完了の通知が破棄の通知で置き換わる点も確認）
+  ④戻す / 先頭へで対象が一時停止中 → 1 回目は通知だけ・続けてもう一度で実行・間に他の押下で 1 回目に戻る。
+- 目視 OK → task_10（正本反映〔暫定 29 §11 + v0.6/v0.7 の §4.7・待機中の停止の規定改訂〕・暫定 29 凍結・decisions_archive/40・current.md・`/refactor_check`〔call_wait / call_run_to_end の重複・runner 548 行〕）。
+- 申し送り（任意）: `call_run_to_end.py` `_run_to_end_call_matches` のトークン照合は一時停止 1 回分のずれのみ吸収。
+- **main へのマージはユーザーが行う**（ブランチ `claude/trigger-input-during-call-d13202`・phase 38〜40）。
 
 ## 直前フェーズ（phase 39 = 停止）の要点
 
@@ -92,6 +94,9 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **フェーズ完了時は Claude 側 × Codex 側の 2 本立てを省略しない**。暫定仕様の改訂も `codex-adversarial-reviewer` を通す。
   `codex-reviewer`（標準 review）は focus text を受け付けないので、観点を渡すなら `codex-adversarial-reviewer`。
 - **【罠・phase 40 で実証】Codex は仕様書の例示の値（`f5` 等）を文字どおり埋め込むことがある**。タスク定義に「例示」と明記し、`grep` で埋め込みを確かめる。
+- **【罠・phase 40 で実証】Codex はテストの期待値を仕様と逆に書くことがある**（単発で呼び出しが終わると呼び出し元の次の行まで送る前提 = 誤り。呼び出しは押下を消費する・`tests/test_sequence_runner_call.py` の test_01）。
+  連続実行の待機中の停止では停止の行の規則（`stop_ends_run`）を、file_line・呼び出しの途中には待機の規則を当てない。**実測で差し戻す**。
+- **【運用・phase 40】ダイアログは操作中のアプリからフォーカスを奪うため、実行中の知らせはステータスバー（`notify_message`）にする**（暫定 29 v0.7）。
 - **【罠・phase 40】呼び出しの最初のステップは `after(0)` の予約**。テストでは `run_one` が要る。未使用のカウンターは辞書にキーが無い（`counters.get(name, 0)`）。
 - **【罠・phase 38 で 4 回実証】「戻す履歴が 1 段」をテストするときは状態が変わるシーケンスにする**（file_line 1 行だけでは位置もカウンターも変わらず
   `commit_step` が積まない＝仕様どおり）。**subTest でループ前に `self.runner.method` を束縛しない**（`setUp()` で作り直した runner に届かない）。
