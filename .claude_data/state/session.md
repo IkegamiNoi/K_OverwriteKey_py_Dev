@@ -5,13 +5,13 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-09-29T12:00:00
-phase: `instructions/phase/40_sequence_call`（**進行中・task_01〜09d 完了・実機目視待ち**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
+phase: `instructions/phase/40_sequence_call`（**進行中・task_01〜09e 完了・実機目視待ち**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
 直前の完了フェーズ = **phase 39**（停止・判断履歴 = `decisions_archive/39_sequence_stop.md`）。
 last_commit_location: `claude/trigger-input-during-call-d13202`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 40 進行中（呼び出し op: call・暫定 29 v0.6）。task_09d まで完了。ユーザーの実機目視（task_08 の再目視 + v0.6 §4.7）待ち。**
+focus: **phase 40 進行中（暫定 29 v0.7）。task_09e（ダイアログ廃止・ステータスバーの通知・戻す / 先頭への 2 回押し・待機中に止めたら次の送る行へ）まで完了。ユーザーの実機目視待ち。**
 mode: verifying
 
 ## last_action

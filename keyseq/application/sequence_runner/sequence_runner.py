@@ -5,7 +5,7 @@ from typing import Any, Callable
 from keyseq.application.app_state import PendingStep
 from keyseq.application.call_context import CallContext, top_interval
 from keyseq.application.sequence_history import (
-    StepSnapshot, apply_control, cancel_pending_steps, commit_step, snapshot_for,
+    StepSnapshot, apply_control, commit_step, snapshot_for,
 )
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
 from keyseq.domain.sequence_control import (
@@ -22,9 +22,11 @@ from keyseq.application.sequence_runner.file_line_wait import (
 from keyseq.application.sequence_runner.call_wait import CallWaitMixin
 from keyseq.application.sequence_runner.call_run_to_end import CallRunToEndMixin
 from keyseq.application.sequence_runner.input_acceptance import InputAcceptanceMixin
+from keyseq.application.sequence_runner.wait_stop import WaitStopMixin
 
 
-class SequenceRunner(InputAcceptanceMixin, FileLineWaitMixin, CallWaitMixin, CallRunToEndMixin):
+class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, FileLineWaitMixin,
+                     CallWaitMixin, CallRunToEndMixin):
     def __init__(
         self,
         *,
@@ -41,7 +43,6 @@ class SequenceRunner(InputAcceptanceMixin, FileLineWaitMixin, CallWaitMixin, Cal
         notify_message: Callable[[str], None] | None = None,
         begin_file_line: Callable[[dict[str, Any]], object | None] | None = None,
         poll_file_line: Callable[[object], bool | None] | None = None,
-        confirm_discard: Callable[[tuple[str, ...]], bool] | None = None,
     ):
         self.state = state
         self._find_trigger = find_trigger
@@ -56,8 +57,8 @@ class SequenceRunner(InputAcceptanceMixin, FileLineWaitMixin, CallWaitMixin, Cal
         self._notify_message = notify_message
         self._begin_file_line = begin_file_line
         self._poll_file_line = poll_file_line
-        self._confirm_discard = confirm_discard
-        self.confirmation_active = False
+        self._pending_control_discard: tuple | None = None
+        self._control_source: str | None = None
         self._run_to_end_resume: StepResume | None = None
         self._run_to_end_snapshot: StepSnapshot | None = None
         self._run_to_end_wait_position: int | None = None
@@ -88,7 +89,7 @@ class SequenceRunner(InputAcceptanceMixin, FileLineWaitMixin, CallWaitMixin, Cal
 
     def reset_loop_frames(self, key: str) -> None:
         key = normalize_key_name(key)
-        self.cancel_pending_wait(key)
+        self._cancel_pending_steps((self._get_trigger_set_id(), key), settle_wait=False)
         reschedule_run_to_end = (
             self.state.run_to_end_key == key
             and (self._run_to_end_file_line is not None
@@ -118,10 +119,10 @@ class SequenceRunner(InputAcceptanceMixin, FileLineWaitMixin, CallWaitMixin, Cal
 
     def cancel_pending_wait(self, key: str) -> None:
         identity = (self._get_trigger_set_id(), normalize_key_name(key))
-        cancel_pending_steps(self.state, self._after_cancel, identity)
+        self._cancel_pending_steps(identity)
 
     def cancel_pending_waits(self) -> None:
-        cancel_pending_steps(self.state, self._after_cancel)
+        self._cancel_pending_steps()
 
     def _queue_single_wait(self, key: str, outcome: StepOutcome, snapshot: StepSnapshot) -> None:
         trigger_set_id = self._get_trigger_set_id()
@@ -186,6 +187,7 @@ class SequenceRunner(InputAcceptanceMixin, FileLineWaitMixin, CallWaitMixin, Cal
         return deltas
 
     def _control(self, key: str, op: str) -> str | None:
+        self._control_source = key
         target, message = apply_control(self.state, (self._get_trigger_set_id(), key),
                                         op, self._find_trigger,
                                         self._prepare_control_target)
@@ -201,6 +203,9 @@ class SequenceRunner(InputAcceptanceMixin, FileLineWaitMixin, CallWaitMixin, Cal
 
     def handle_key(self, key: str) -> None:
         key = normalize_key_name(key)
+        if (self._pending_control_discard is not None
+                and key != self._pending_control_discard[0]):
+            self._pending_control_discard = None
         self._accept_key(key)
 
     def _run_single_action(self, key: str, actions: list[dict[str, Any]], *,
@@ -306,6 +311,9 @@ class SequenceRunner(InputAcceptanceMixin, FileLineWaitMixin, CallWaitMixin, Cal
             except Exception:
                 pass
             self.state.run_to_end_after_id = None
+        if self._finish_run_to_end_wait():
+            self.stop_run_to_end()
+            return
         self._discard_run_to_end_file_line()
         if self._run_to_end_call is not None:
             self._run_to_end_call_file_line = None
@@ -323,6 +331,7 @@ class SequenceRunner(InputAcceptanceMixin, FileLineWaitMixin, CallWaitMixin, Cal
             except Exception:
                 pass
         self.state.run_to_end_after_id = None
+        self._finish_run_to_end_wait()
         self._discard_run_to_end_file_line()
         self._discard_run_to_end_call()
         if self._run_to_end_wait_position is not None:

@@ -286,9 +286,10 @@ class KeymapPanelController:
             prompt += "\n\n未保存のトリガー一覧・シーケンスも破棄されます。"
         if not messagebox.askyesno("確認", prompt):
             return
+        discarded = ()
         if target_id == self._app.keymap_service.get_active_keymap_id(self._app.data):
-            if not self._app.sequence_runner.confirm_and_discard():
-                return
+            discarded = self._app.sequence_runner.discard_paused()
+            self._app.sequence_runner.cancel_pending_waits()
 
         deleted, next_active_id = self._app.keymap_service.delete_keymap(self._app.data, target.get("id", ""))
         if not deleted:
@@ -306,6 +307,8 @@ class KeymapPanelController:
 
         self._refresh_after_keymap_change()
         self._app.dirty_tracker.set_dirty(True)
+        if discarded:
+            return
         if next_active_id:
             self._app._set_flash_message(f"キーマップを削除しました: {target_name} / 現在: {self.get_active_keymap_text()}")
         else:
@@ -417,17 +420,17 @@ class KeymapPanelController:
         target_id = normalize_key_name(keymap_id)
         if not target_id:
             return False
-        if self._app.sequence_runner.confirmation_active:
-            return False
-
         active_before = self._app.keymap_service.get_active_keymap_id(self._app.data)
         if not self._app.state.can_switch_keymap(target_id, active_before):
             self.show_keymap_switch_blocked()
             self.refresh_keymap_list_ui()
             return False
-        if target_id != active_before and not self._app.sequence_runner.confirm_and_discard():
-            self.refresh_keymap_list_ui()
-            return False
+        discarded = self._app.sequence_runner.discard_paused() if target_id != active_before else ()
+        if target_id != active_before and any(
+            normalize_key_name(item.get("id", "")) == target_id
+            for item in self._app.keymap_service.get_keymaps(self._app.data)
+        ):
+            self._app.sequence_runner.cancel_pending_waits()
 
         changed = self._app.keymap_service.set_active_keymap_id(self._app.data, target_id)
         active_id = self._app.keymap_service.get_active_keymap_id(self._app.data)
@@ -443,13 +446,12 @@ class KeymapPanelController:
 
         self.refresh_keymap_list_ui(preferred_index=preferred_index)
         if changed:
-            self._app.sequence_runner.cancel_pending_waits()
             self._app.trigger_panel.refresh_triggers()
             self._app.trigger_panel.refresh_actions()
         else:
             self._app.layout.refresh_keyboard_window()
             self._app.trigger_panel.update_status()
-        if show_flash:
+        if show_flash and not discarded:
             if changed:
                 self._app._set_flash_message(f"アクティブなキーマップを切り替えました: {self.get_active_keymap_text()}")
             else:

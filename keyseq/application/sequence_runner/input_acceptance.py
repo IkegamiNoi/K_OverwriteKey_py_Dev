@@ -1,4 +1,4 @@
-"""Trigger acceptance, paused calls, and confirmed discard."""
+"""Trigger acceptance, paused calls, and discard notices."""
 
 from __future__ import annotations
 
@@ -40,22 +40,12 @@ class InputAcceptanceMixin:
                 self._active_key(), pending, target, self.state.last_trigger,
                 self._get_trigger_set_id())
 
-    def confirm_and_discard(self, keys: tuple[str, ...] | None = None) -> bool:
-        """Confirm and stop the selected paused executions; all when omitted."""
-        if self.confirmation_active:
-            return False
+    def discard_paused(self, keys: tuple[str, ...] | None = None) -> tuple[str, ...]:
+        """Stop selected paused executions and report the discarded keys."""
         paused = self.paused_keys()
         selected = paused if keys is None else tuple(key for key in paused if key in keys)
         if not selected:
-            return True
-        before = self._acceptance_snapshot(keys[0] if keys else None)
-        self.confirmation_active = True
-        try:
-            accepted = self._confirm_discard(selected) if self._confirm_discard else True
-        finally:
-            self.confirmation_active = False
-        if not accepted or before != self._acceptance_snapshot(keys[0] if keys else None):
-            return False
+            return ()
         for key in selected:
             if key == self.state.run_to_end_key and self.state.run_to_end_paused:
                 self.stop_run_to_end()
@@ -63,7 +53,9 @@ class InputAcceptanceMixin:
             pending = self.state.pending_steps.get(identity)
             if pending is not None and pending.call is not None and pending.call_paused:
                 self.cancel_pending_wait(key)
-        return True
+        if self._notify_message is not None:
+            self._notify_message(f"一時停止中の実行を破棄しました（{', '.join(selected)}）")
+        return selected
 
     def _pause_single_call(self, key: str) -> None:
         with self.state.lock:
@@ -95,15 +87,23 @@ class InputAcceptanceMixin:
         if key == self.state.run_to_end_key and not self.state.run_to_end_paused:
             return False
         pending = self.state.pending_steps.get(identity)
-        if pending is not None and pending.call is not None and pending.call_paused:
-            return self.confirm_and_discard((key,))
-        if key == self.state.run_to_end_key and self.state.run_to_end_paused:
-            return self.confirm_and_discard((key,))
+        paused_call = pending is not None and pending.call is not None and pending.call_paused
+        paused_run = key == self.state.run_to_end_key and self.state.run_to_end_paused
+        if paused_call or paused_run:
+            current = (self._control_source, identity, self._acceptance_snapshot(key))
+            if self._pending_control_discard == current:
+                self._pending_control_discard = None
+                self.discard_paused((key,))
+                return True
+            self._pending_control_discard = current
+            if self._notify_message is not None:
+                self._notify_message(
+                    f"一時停止中の {key} を破棄します。もう一度押すと実行します"
+                )
+            return False
         return True
 
     def _accept_key(self, key: str) -> None:
-        if self.confirmation_active:
-            return
         active = self._active_key()
         if active is not None:
             if key == active:
@@ -128,7 +128,7 @@ class InputAcceptanceMixin:
         if not trigger or not trigger.get("actions", []):
             return
         if bool(trigger.get("run_to_end", False)):
-            if self.confirm_and_discard():
-                self._start_run_to_end(key)
+            self.discard_paused()
+            self._start_run_to_end(key)
             return
         self._run_single_action(key, trigger.get("actions", []))

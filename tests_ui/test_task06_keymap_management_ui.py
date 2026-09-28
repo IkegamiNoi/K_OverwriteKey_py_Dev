@@ -145,8 +145,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.assertFalse(hasattr(box, "keymap_select_btn"))
         self.assertFalse(hasattr(self.app.keymap_panel, "select_keymap"))
 
-    def test_running_blocks_switch_but_paused_run_can_be_discarded_to_switch_or_delete(self):
-        status_before = self.app.ui_vars.status_var.get()
+    def test_running_blocks_switch_but_paused_run_is_discarded_to_switch_or_delete(self):
         self.app.state.run_to_end_key = "f1"
         self.app.state.run_to_end_paused = False
         self.app.action_executor.execute_router_action(SelectKeymapAction("km2"))
@@ -156,19 +155,13 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         keymap_list.selection_clear(0, "end")
         keymap_list.selection_set(1)
         keymap_list.activate(1)
-        with patch(
-            "keyseq.presentation.app.messagebox.askokcancel", return_value=False
-        ) as confirm:
+        with patch("keyseq.presentation.app.messagebox.askokcancel") as confirm:
             self.app.keymap_panel.on_keymap_list_select()
-        self.assertEqual(self.app.data["active_keymap_id"], "km1")
-        self.assertEqual(keymap_list.curselection(), (0,))
-        self.assertEqual(self.app.ui_vars.status_var.get(), status_before)
-        confirm.assert_called_once()
-
-        with patch("keyseq.presentation.app.messagebox.askokcancel", return_value=True) as confirm:
-            self.app.action_executor.execute_router_action(SelectKeymapAction("km2"))
+        confirm.assert_not_called()
         self.assertEqual(self.app.data["active_keymap_id"], "km2")
-        confirm.assert_called_once()
+        self.assertIsNone(self.app.state.run_to_end_key)
+        self.assertIn("一時停止中の実行を破棄しました（f1）",
+                      self.app.ui_vars.flash_message_var.get())
 
         self.app.state.run_to_end_key = "f1"
         self.app.state.run_to_end_paused = True
@@ -178,42 +171,23 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         with patch(
             "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.askyesno",
             return_value=True,
-        ) as ask_delete, patch(
-            "keyseq.presentation.app.messagebox.askokcancel", return_value=True
-        ) as confirm:
+        ) as ask_delete, patch("keyseq.presentation.app.messagebox.askokcancel") as confirm:
             self.app.keymap_panel.delete_keymap()
         ask_delete.assert_called_once()
-        confirm.assert_called_once()
+        confirm.assert_not_called()
         self.assertEqual(len(self.app.data["keymaps"]), 1)
 
-    def test_discard_dialog_lists_keys_defaults_to_ok_and_keeps_hook_running(self):
+    def test_discard_notifies_without_dialog(self):
         self.app.state.run_to_end_key = "f1"
         self.app.state.run_to_end_paused = True
-        self.app.ui_vars.always_on_top_var.set(False)
-        topmost_during_dialog = []
+        with patch("keyseq.presentation.app.messagebox.askokcancel") as ask:
+            self.assertEqual(self.app.sequence_runner.discard_paused(), ("f1",))
+        ask.assert_not_called()
+        self.assertIn("一時停止中の実行を破棄しました（f1）",
+                      self.app.ui_vars.flash_message_var.get())
+        self.assertFalse(self.app.state.run_to_end_paused)
 
-        def ask_side_effect(*_args, **_kwargs):
-            topmost_during_dialog.append(bool(self.app.attributes("-topmost")))
-            return False
-
-        with patch(
-            "keyseq.presentation.app.messagebox.askokcancel", side_effect=ask_side_effect
-        ) as ask, patch.object(self.app.hook, "suspend_hook_for_dialog") as suspend:
-            self.assertFalse(self.app.sequence_runner.confirm_and_discard())
-
-        self.assertEqual(topmost_during_dialog, [True])
-        self.assertFalse(bool(self.app.attributes("-topmost")))
-
-        args, kwargs = ask.call_args
-        self.assertIn("一時停止中の実行を破棄します。", args[1])
-        self.assertIn("f1", args[1])
-        self.assertIn("よろしいですか？", args[1])
-        self.assertEqual(kwargs["default"], "ok")
-        self.assertIs(kwargs["parent"], self.app)
-        suspend.assert_not_called()
-        self.assertTrue(self.app.state.run_to_end_paused)
-
-    def test_switching_to_active_keymap_does_not_confirm_paused_runs(self):
+    def test_switching_to_active_keymap_keeps_paused_runs(self):
         self.app.state.run_to_end_key = "f1"
         self.app.state.run_to_end_paused = True
         with patch("keyseq.presentation.app.messagebox.askokcancel") as ask:
@@ -221,25 +195,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         ask.assert_not_called()
         self.assertTrue(self.app.state.run_to_end_paused)
 
-    def test_switch_key_is_ignored_while_discard_confirmation_is_active(self):
-        self.app.state.run_to_end_key = "f1"
-        self.app.state.run_to_end_paused = True
-
-        def press_switch_key_during_dialog(*_args, **_kwargs):
-            self.app.action_executor.execute_router_action(SelectKeymapAction("km2"))
-            return True
-
-        with patch(
-            "keyseq.presentation.app.messagebox.askokcancel",
-            side_effect=press_switch_key_during_dialog,
-        ) as ask:
-            self.app.keymap_panel.activate_keymap_by_id("km2")
-
-        ask.assert_called_once()
-        self.assertEqual(self.app.data["active_keymap_id"], "km2")
-        self.assertIsNone(self.app.state.run_to_end_key)
-
-    def test_active_delete_cancels_if_either_confirmation_is_declined(self):
+    def test_active_delete_uses_only_delete_confirmation(self):
         self.app.state.run_to_end_key = "f1"
         self.app.state.run_to_end_paused = True
         keymap_list = self.app.full_view.keymap_box.keymap_listbox
@@ -250,9 +206,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         with patch(
             "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.askyesno",
             return_value=False,
-        ) as ask_delete, patch(
-            "keyseq.presentation.app.messagebox.askokcancel", return_value=True
-        ) as confirm:
+        ) as ask_delete, patch("keyseq.presentation.app.messagebox.askokcancel") as confirm:
             self.app.keymap_panel.delete_keymap()
         ask_delete.assert_called_once()
         confirm.assert_not_called()
@@ -262,13 +216,11 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         with patch(
             "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.askyesno",
             return_value=True,
-        ), patch(
-            "keyseq.presentation.app.messagebox.askokcancel", return_value=False
-        ) as confirm:
+        ), patch("keyseq.presentation.app.messagebox.askokcancel") as confirm:
             self.app.keymap_panel.delete_keymap()
-        confirm.assert_called_once()
-        self.assertEqual(len(self.app.data["keymaps"]), 2)
-        self.assertTrue(self.app.state.run_to_end_paused)
+        confirm.assert_not_called()
+        self.assertEqual(len(self.app.data["keymaps"]), 1)
+        self.assertFalse(self.app.state.run_to_end_paused)
 
     def test_add_prompts_for_missing_switch_keys_and_requires_new_switch_key(self):
         self.app.data = self.app.config_service.normalize_runtime_data(
