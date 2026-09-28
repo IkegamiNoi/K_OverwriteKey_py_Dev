@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-28T03:00:00
-phase: なし（**アクティブなフェーズ = なし**。phase 39 は 2026-09-28 完了）。次採番 = phase 40 / 暫定 29 / decisions 40 / 提案書 17。
-直前の完了フェーズ = **phase 39**（制御アクション第 2 弾 前半 = 停止・判断履歴 = `decisions_archive/39_sequence_stop.md`）。
+last_updated: 2026-09-28T05:00:00
+phase: `instructions/phase/40_sequence_call`（**進行中・起票済・task_01 着手**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
+直前の完了フェーズ = **phase 39**（停止・判断履歴 = `decisions_archive/39_sequence_stop.md`）。
 last_commit_location: `claude/idea-38-9877ba`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 39 完了（停止 op: stop・暫定 28 v0.6 凍結・正本反映済・refactor_check = 不要）。次フェーズ = 呼び出し（phase 40・暫定 28 §9 が起点）の予定。**
-mode: completed
+focus: **phase 40 進行中（呼び出し op: call・暫定 29 v0.3 確定・task_01〜10）。次は task_01（domain）。**
+mode: implementing
 
 ## last_action
 ts: 2026-09-28T03:00:00
