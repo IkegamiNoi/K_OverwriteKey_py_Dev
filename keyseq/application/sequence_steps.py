@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any
 
 from keyseq.domain.sequence_control import (
-    ACTION_TYPE_SYSTEM, OP_BACK, OP_COUNTER_INC, OP_COUNTER_RESET,
+    ACTION_TYPE_SYSTEM, OP_BACK, OP_CALL, OP_COUNTER_INC, OP_COUNTER_RESET,
     MAX_LOOP_DEPTH, OP_LOOP_END, OP_LOOP_START, OP_REWIND, OP_STOP, OP_WAIT, action_type,
     analyze_loops, enclosing_loop_starts, system_op,
 )
@@ -175,7 +175,8 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             resume: StepResume | None = None,
             deferred_counters: Sequence[tuple[str, str]] = (),
             on_control: Callable[[str], None] | None = None,
-            stop_ends_run: bool = False) -> StepOutcome:
+            stop_ends_run: bool = False,
+            in_call: bool = False) -> StepOutcome:
     structure = analyze_loops(actions)
     if resume is None:
         position = position if 0 <= position < len(actions) else 0
@@ -209,11 +210,23 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             return StepOutcome(position, position, current,
                                counter_deltas=tuple(counter_deltas),
                                wrapped=wrapped, processed=processed)
+        if system_op(action) == OP_CALL:
+            return StepOutcome(position, position, current,
+                               counter_deltas=tuple(counter_deltas),
+                               wrapped=wrapped, processed=processed)
         if processed >= 10000:
             return StepOutcome(
                 None, position, current,
                 (position, "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）"),
                 counter_deltas=tuple(counter_deltas),
+            )
+        if (in_call and system_op(action) == OP_LOOP_START
+                and bool(action.get("infinite"))):
+            return StepOutcome(
+                None, position, current,
+                (position, "呼び出し先に無限ループがあります"),
+                counter_deltas=tuple(counter_deltas), wrapped=wrapped,
+                processed=processed,
             )
         processed += 1
         if system_op(action) == OP_STOP and stop_ends_run:
@@ -269,7 +282,8 @@ def after_normal_action(actions: Sequence[Any], index: int,
 def settle_after_normal(actions: Sequence[Any], position: int,
                         frames: list[LoopFrame], counters: dict[str, int], *,
                         allow_wrap: bool, processed: int = 0,
-                        stop_ends_run: bool = False) -> SettleOutcome:
+                        stop_ends_run: bool = False,
+                        in_call: bool = False) -> SettleOutcome:
     """Prepare the next step without executing controls or reporting errors."""
     current = list(frames)
     deltas: list[tuple[str, int]] = []
@@ -282,12 +296,18 @@ def settle_after_normal(actions: Sequence[Any], position: int,
             if not allow_wrap or wrapped:
                 break
             wrapped = True
-        if not actions or processed >= 10000:
+        if not actions:
             break
         action = actions[position]
         if not isinstance(action, Mapping) or action_type(action) != ACTION_TYPE_SYSTEM:
             break
         op = system_op(action)
+        if op == OP_CALL:
+            break
+        if processed >= 10000:
+            break
+        if in_call and op == OP_LOOP_START and bool(action.get("infinite")):
+            break
         if op == OP_STOP:
             if stop_ends_run:
                 position += 1

@@ -14,6 +14,86 @@ NORMAL = {"type": "text", "value": "x"}
 
 
 class SequenceStepsTest(unittest.TestCase):
+    def test_advance_stops_at_call_without_counting_it_as_processed(self):
+        actions = [control("counter_inc", counter="n"), control("call"), NORMAL]
+        counters = {}
+
+        outcome = advance(actions, 0, [], counters, wrap_once=False)
+
+        self.assertEqual((outcome.normal_index, outcome.position), (1, 1))
+        self.assertEqual(outcome.processed, 1)
+        self.assertEqual(counters, {"n": 1})
+
+        at_limit = advance(
+            actions, 1, [], {}, wrap_once=False,
+            resume=StepResume(0, False, 10000),
+        )
+        self.assertEqual((at_limit.normal_index, at_limit.position), (1, 1))
+        self.assertEqual(at_limit.processed, 10000)
+
+    def test_advance_call_obeys_single_wrap_start_rules(self):
+        actions = [NORMAL, control("call")]
+        at_end = advance(actions, 1, [], {}, wrap_once=True)
+        self.assertEqual((at_end.normal_index, at_end.position), (1, 1))
+        self.assertFalse(at_end.wrapped)
+
+        only_call = advance([control("call")], 0, [], {}, wrap_once=True)
+        self.assertEqual((only_call.normal_index, only_call.position), (0, 0))
+        self.assertFalse(only_call.wrapped)
+
+    def test_settle_processes_loop_before_stopping_at_call(self):
+        actions = [NORMAL, control("loop_start", count=2),
+                   control("call"), control("loop_end")]
+
+        settled = settle_after_normal(actions, 1, [], {}, allow_wrap=True)
+
+        self.assertEqual((settled.position, settled.frames), (2, [LoopFrame(1, 1)]))
+        self.assertEqual(settled.counter_deltas, ())
+
+    def test_advance_rejects_infinite_loop_only_in_call_context(self):
+        actions = [control("loop_start", infinite=True), NORMAL,
+                   control("loop_end")]
+
+        called = advance(actions, 0, [], {}, wrap_once=False, in_call=True)
+        self.assertEqual(called.error, (0, "呼び出し先に無限ループがあります"))
+        self.assertEqual((called.position, called.processed), (0, 0))
+
+        ordinary = advance(actions, 0, [], {}, wrap_once=False)
+        self.assertEqual(ordinary.normal_index, 1)
+        self.assertEqual(ordinary.frames, [LoopFrame(0, 1)])
+
+    def test_settle_in_call_stops_before_infinite_loop_start(self):
+        actions = [NORMAL, control("loop_start", infinite=True), NORMAL,
+                   control("loop_end")]
+
+        in_call = settle_after_normal(actions, 1, [], {}, allow_wrap=True,
+                                      in_call=True)
+        self.assertEqual((in_call.position, in_call.frames), (1, []))
+
+        ordinary = settle_after_normal(actions, 1, [], {}, allow_wrap=True)
+        self.assertEqual((ordinary.position, ordinary.frames),
+                         (2, [LoopFrame(1, 1)]))
+
+    def test_default_in_call_false_preserves_call_free_behavior(self):
+        actions = [control("counter_inc", counter="n"), NORMAL]
+        default_counters = {}
+        explicit_counters = {}
+        default_advance = advance(actions, 0, [], default_counters, wrap_once=False)
+        explicit_advance = advance(
+            actions, 0, [], explicit_counters, wrap_once=False, in_call=False,
+        )
+        self.assertEqual(default_advance, explicit_advance)
+        self.assertEqual(default_counters, explicit_counters)
+
+        settle_actions = [NORMAL, control("counter_inc", counter="n"), NORMAL]
+        default_settle = settle_after_normal(
+            settle_actions, 1, [], {}, allow_wrap=True,
+        )
+        explicit_settle = settle_after_normal(
+            settle_actions, 1, [], {}, allow_wrap=True, in_call=False,
+        )
+        self.assertEqual(default_settle, explicit_settle)
+
     def test_settle_loops_return_to_body_and_then_exit(self):
         actions = [control("loop_start", count=2), NORMAL,
                    control("loop_end"), NORMAL]
