@@ -4,33 +4,33 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-28T05:00:00
-phase: `instructions/phase/40_sequence_call`（**進行中・task_01〜08 コード完了・task_08 の実機目視待ち・task_09 統合レビュー中**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
+last_updated: 2026-09-28T12:00:00
+phase: `instructions/phase/40_sequence_call`（**進行中・task_01〜08 完了〔task_08 は実機目視待ち〕・task_09 レビュー済・task_09b WIP**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
 直前の完了フェーズ = **phase 39**（停止・判断履歴 = `decisions_archive/39_sequence_stop.md`）。
 last_commit_location: `claude/idea-38-9877ba`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 40 進行中（呼び出し op: call・暫定 29 v0.4）。task_01〜08 のコード完了・実機目視待ち、task_09 の統合レビュー中。**
+focus: **phase 40 進行中（呼び出し op: call・暫定 29）。task_09b（統合レビューの修正）が WIP コミット済みで未レビュー・暫定 29 v0.5 の反映漏れあり。**
 mode: implementing
 
 ## last_action
-ts: 2026-09-28T03:00:00
+ts: 2026-09-28T12:00:00
 who: main
 summary: |
-  【phase 39】task_01〜05a を codex-implementer → verifier → reviewer でコミット。統合（deep 修正して採用 / Codex 指摘なし）→ task_04b。
-  完了判定前（deep 修正して完了可 / Codex 敵対的 1 件）→ ユーザー判断: 止まらない送信エラーも「送った」/ 停止の後も先行処理 → task_05a。
-  メイン修正: テストの誤り（未使用カウンターの KeyError・M1 の検出力喪失 → test_16 + 変異検査）/ 位置 0 で先頭から先行処理していた → ガード + test_17 / BOM 復元。
-  正本反映（data_schema §5.11.1・§5.11.5・§5.11.6 / features §4.2・4.2.8・§4.6 / codebase_map）・暫定 28 凍結・decisions_archive/39。
+  【phase 40】暫定 29 v0.3 確定（ユーザー判断すべて推奨案）→ task_01〜08 を codex-implementer → verifier → reviewer でコミット
+  （domain/call_graph.py・application/call_context.py・sequence_runner/call_wait.py・call_run_to_end.py・編集ダイアログ・一覧・改名）。
+  reviewer で Codex の例示キー f5 の埋め込みを検出・修正 / 間隔の見出しを延ばすと既定幅を超える → 注記は編集ダイアログへ（暫定 29 v0.4）。
+  【task_09 統合】deep 修正して採用（M1〜M4）/ Codex P2 → ユーザー判断: 上限 10,000 を呼び出しの 1 ステップ全体で通して数える → task_09b を Codex 実装・`941dc7f` で WIP コミット（tests のみ実測 OK）。
 result_files:
-  - keyseq/{domain/sequence_control.py, application/sequence_steps.py, application/sequence_runner/*, presentation/dialogs/action_control_fields.py} / tests/{test_sequence_runner_stop.py, test_sequence_steps.py, test_sequence_control.py} / tests_ui/test_action_dialog_control.py
-  - instructions/{common/spec_detail/*, common/codebase_map.md, history/28_*.md, phase/39_sequence_stop/*, phase/current.md} / .claude_data/state/*
+  - keyseq/{domain/call_graph.py, application/call_context.py, application/sequence_runner/{call_wait,call_run_to_end,sequence_runner}.py, application/sequence_steps.py, presentation/dialogs/action_control_fields.py ほか}
+  - tests/{test_call_graph,test_call_context,test_sequence_runner_call}.py ほか / instructions/phase/40_sequence_call/* / .claude_data/state/*
 verified:
   compile: clean
-  tests: 906 ran OK（skipped 7）
-  tests_ui: 616 ran OK
-  smoke: pass
-  review: reviewer 完了可（task_05a）/ 完了判定前 deep + Codex 敵対的 反映済
+  tests: OK（skipped 7・task_09b 後）
+  tests_ui: 630 ran OK（task_08 時点・task_09b 後は未実測）
+  smoke: pass（task_08 時点）
+  review: task_01〜08 reviewer 完了可 / task_09b 未レビュー
 
 ## next_action
 - **task_09b（統合レビューの修正）は Codex 実装済み・未コミット・未レビュー**。①tests_ui・smoke を verifier で実測 ②M2 のテストが修正前（一時停止を照合に含める）で落ちることを確認 ③reviewer → コミット。
