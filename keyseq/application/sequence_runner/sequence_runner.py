@@ -21,9 +21,10 @@ from keyseq.application.sequence_runner.file_line_wait import (
 )
 from keyseq.application.sequence_runner.call_wait import CallWaitMixin
 from keyseq.application.sequence_runner.call_run_to_end import CallRunToEndMixin
+from keyseq.application.sequence_runner.input_acceptance import InputAcceptanceMixin
 
 
-class SequenceRunner(FileLineWaitMixin, CallWaitMixin, CallRunToEndMixin):
+class SequenceRunner(InputAcceptanceMixin, FileLineWaitMixin, CallWaitMixin, CallRunToEndMixin):
     def __init__(
         self,
         *,
@@ -40,6 +41,7 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin, CallRunToEndMixin):
         notify_message: Callable[[str], None] | None = None,
         begin_file_line: Callable[[dict[str, Any]], object | None] | None = None,
         poll_file_line: Callable[[object], bool | None] | None = None,
+        confirm_discard: Callable[[tuple[str, ...]], bool] | None = None,
     ):
         self.state = state
         self._find_trigger = find_trigger
@@ -54,6 +56,8 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin, CallRunToEndMixin):
         self._notify_message = notify_message
         self._begin_file_line = begin_file_line
         self._poll_file_line = poll_file_line
+        self._confirm_discard = confirm_discard
+        self.confirmation_active = False
         self._run_to_end_resume: StepResume | None = None
         self._run_to_end_snapshot: StepSnapshot | None = None
         self._run_to_end_wait_position: int | None = None
@@ -144,6 +148,19 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin, CallRunToEndMixin):
         trigger = self._find_trigger(key)
         if trigger is None:
             return
+        if self._active_key() is not None:
+            actions = trigger.get("actions", [])
+            settled = settle_after_normal(
+                actions, pending.position, self._get_frames(key), self.state.counters,
+                allow_wrap=pending.position != 0 and not pending.resume.wrapped,
+                processed=pending.resume.processed,
+            )
+            self._save_progress(key, settled.position, settled.frames,
+                                settled.deferred_counters)
+            commit_step(self.state, pending.snapshot,
+                        pending.resume.counter_deltas + settled.counter_deltas)
+            self._select_trigger(key)
+            return
         self._run_single_action(key, trigger.get("actions", []),
                                 position=pending.position, resume=pending.resume,
                                 snapshot=pending.snapshot)
@@ -170,7 +187,8 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin, CallRunToEndMixin):
 
     def _control(self, key: str, op: str) -> str | None:
         target, message = apply_control(self.state, (self._get_trigger_set_id(), key),
-                                        op, self._find_trigger)
+                                        op, self._find_trigger,
+                                        self._prepare_control_target)
         if message and self._notify_message is not None:
             self._notify_message(message)
         return target
@@ -183,28 +201,7 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin, CallRunToEndMixin):
 
     def handle_key(self, key: str) -> None:
         key = normalize_key_name(key)
-        # 連続実行中は同一トリガーのみトグル
-        if self.state.run_to_end_key is not None:
-            if key != self.state.run_to_end_key:
-                return
-            if not self.state.run_to_end_paused:
-                self.pause_run_to_end()
-            else:
-                self.resume_run_to_end()
-            self._update_status()
-            return
-        if (self._get_trigger_set_id(), key) in self.state.pending_steps:
-            return
-        trig = self._find_trigger(key)
-        if not trig:
-            return
-        actions = trig.get("actions", [])
-        if not actions:
-            return
-        if bool(trig.get("run_to_end", False)):
-            self._start_run_to_end(key)
-            return
-        self._run_single_action(key, actions)
+        self._accept_key(key)
 
     def _run_single_action(self, key: str, actions: list[dict[str, Any]], *,
                            position: int | None = None, resume: StepResume | None = None,

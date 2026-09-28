@@ -53,6 +53,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.selected = []
         self.begin_results = []
         self.poll_results = []
+        self.confirmations = []
         self.begin_result = object()
         self.perform_result = True
         self.perform_callback = None
@@ -70,6 +71,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
             notify_message=self.messages.append,
             begin_file_line=self._begin,
             poll_file_line=self._poll,
+            confirm_discard=lambda keys: (self.confirmations.append(keys), True)[1],
         )
 
     def _find_trigger(self, key):
@@ -120,17 +122,23 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.index("f1"), 1)
         self.assertEqual(self.index("f5"), 0)
 
-    def test_02_pending_call_ignores_same_key_allows_other_key_and_rejects_back_target(self):
+    def test_02_pending_call_ignores_other_triggers_and_rejects_back_target(self):
         self.trigger("f1", [call("f5")])
         self.trigger("f5", [text("A"), system("wait", ms=10)])
         self.trigger("f2", [text("other")])
         self.trigger("f6", [system("back")])
         self.trigger("f7", [system("rewind")])
         self.runner.handle_key("f1")
-        self.runner.handle_key("f1")
         self.runner.handle_key("f2")
+        self.trigger("f8", [text("continuous")], run_to_end=True)
+        self.runner.handle_key("f8")
         self.assertEqual(len(self.scheduler.queue), 1)
-        self.assertEqual([item["value"] for item in self.performed], ["other"])
+        self.assertEqual(self.performed, [])
+        self.assertEqual(self.index("f2"), 0)
+        self.assertIsNone(self.state.run_to_end_key)
+
+        self.run_all()
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
 
         self.run_all()
         self.trigger("f3", [call("f6")])
@@ -144,6 +152,58 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.run_all()
         self.assertEqual(sum("戻す・先頭へのトリガーは呼び出せません" in message
                              for _, message in self.errors), 2)
+
+    def test_single_call_can_pause_for_other_trigger_then_resume_after_target_interval(self):
+        self.trigger("f1", [call("f5"), text("caller")])
+        self.trigger("f5", [system("counter_inc", counter="n"), text("A"), text("B")], delay=17)
+        self.trigger("f2", [text("other")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+        self.assertEqual(self.scheduler.delays[-1], 17)
+
+        self.runner.handle_key("f1")
+        self.assertEqual(self.scheduler.queue, [])
+        self.assertEqual(self.index("f1"), 0)
+        self.assertIn(("set", "f1"), self.state.pending_steps)
+
+        self.runner.handle_key("f2")
+        self.assertEqual([item["value"] for item in self.performed], ["A", "other"])
+
+        self.runner.handle_key("f1")
+        self.assertEqual(self.scheduler.delays[-1], 17)
+        self.run_all()
+        self.assertEqual(
+            [item["value"] for item in self.performed],
+            ["A", "other", "B"],
+        )
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertEqual(self.index("f1"), 1)
+
+    def test_paused_call_cannot_resume_while_another_single_file_line_is_loading(self):
+        self.trigger("f1", [call("f5"), text("caller")])
+        self.trigger("f5", [text("A"), text("B")], delay=17)
+        self.trigger("f2", [{"type": "file_line", "path": "rows.txt"}])
+        self.poll_results[:] = [True]
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f1")
+        self.runner.handle_key("f2")
+        self.assertEqual(self.runner.paused_keys(), ("f1",))
+        self.runner.handle_key("f1")  # file_line 読込中は一時停止中の呼び出しも再開しない
+        self.assertEqual(self.runner.paused_keys(), ("f1",))
+        self.assertEqual(self.performed, [text("A")])
+
+        self.scheduler.run_one()
+        self.runner.handle_key("f1")
+        self.assertEqual(self.scheduler.delays[-1], 17)
+        self.run_all()
+        self.assertEqual(
+            [item["value"] for item in self.performed], ["A", "B"]
+        )
+
 
     def test_03_wait_nested_call_stop_skip_and_file_line(self):
         self.trigger("f1", [call("f5"), text("X")])
@@ -540,7 +600,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.performed, [])
         self.assertIsNone(self.state.run_to_end_key)
 
-    def test_25_other_run_to_end_cancels_single_call_with_one_history_step(self):
+    def test_25_other_run_to_end_is_ignored_during_single_call(self):
         self.trigger("f1", [call("f5"), text("caller")])
         self.trigger("f5", [system("counter_inc", counter="n"),
                              system("wait", ms=30), text("target")])
@@ -553,7 +613,126 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         self.assertEqual(self.state.counters.get("n", 0), 1)
         self.assertEqual(len(self.history("f1")), 1)
-        self.assertEqual([item["value"] for item in self.performed], ["other"])
+        self.assertEqual([item["value"] for item in self.performed], ["target"])
+        self.assertIsNone(self.state.run_to_end_key)
+
+    def test_paused_single_call_is_discarded_after_confirmation_to_start_continuous_run(self):
+        self.trigger("f1", [call("f5"), text("caller")])
+        self.trigger("f5", [system("counter_inc", counter="n"), text("A"), text("B")], delay=17)
+        self.trigger("f2", [text("other")], run_to_end=True)
+        self.trigger("f3", [text("during confirmation")])
+
+        def confirm(keys):
+            self.confirmations.append(keys)
+            self.assertTrue(self.runner.confirmation_active)
+            self.runner.handle_key("f3")
+            return True
+
+        self.runner._confirm_discard = confirm
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f1")
+        self.assertEqual(self.runner.paused_keys(), ("f1",))
+        self.runner.handle_key("f2")
+
+        self.assertEqual(self.confirmations, [("f1",)])
+        self.assertFalse(self.runner.confirmation_active)
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(len(self.history("f1")), 1)
+        self.assertEqual(self.performed[-1]["value"], "other")
+        self.assertEqual(self.index("f3"), 0)
+
+    def test_cancelled_confirmation_keeps_paused_call_and_does_not_start_run(self):
+        self.trigger("f1", [call("f5"), text("caller")])
+        self.trigger("f5", [system("counter_inc", counter="n"), text("A"), text("B")])
+        self.trigger("f2", [text("other")], run_to_end=True)
+        self.runner._confirm_discard = lambda _keys: False
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f1")
+        self.runner.handle_key("f2")
+
+        self.assertEqual(self.runner.paused_keys(), ("f1",))
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.state.counters.get("n"), 1)
+        self.assertEqual(len(self.history("f1")), 0)
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+
+    def test_confirmation_state_change_cancels_continuous_start(self):
+        self.trigger("f1", [system("counter_inc", counter="n"), text("A"), text("B")],
+                     run_to_end=True)
+        self.trigger("f2", [text("other")], run_to_end=True)
+        self.runner._confirm_discard = lambda _keys: (
+            setattr(self.state, "last_trigger", ("set", "changed-during-confirmation")),
+            True,
+        )[1]
+
+        self.runner.handle_key("f1")
+        self.runner.handle_key("f1")
+        self.runner.handle_key("f2")
+
+        self.assertEqual(self.state.run_to_end_key, "f1")
+        self.assertEqual(self.runner.paused_keys(), ("f1",))
+        self.assertEqual(self.state.counters.get("n"), 1)
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+
+    def test_back_and_rewind_confirm_only_the_paused_call_target(self):
+        for op in ("back", "rewind"):
+            with self.subTest(op=op):
+                self.setUp()
+                self.trigger("f1", [call("f5"), text("caller")])
+                self.trigger("f5", [system("counter_inc", counter="n"),
+                                     system("wait", ms=30), text("A")])
+                self.trigger("f2", [call("f6"), text("caller two")])
+                self.trigger("f6", [system("counter_inc", counter="m"),
+                                     system("wait", ms=30), text("B")])
+                self.trigger("f3", [system(op)])
+
+                self.runner.handle_key("f1")
+                self.scheduler.run_one()
+                self.runner.handle_key("f1")
+                self.runner.handle_key("f2")
+                self.scheduler.run_one()
+                self.runner.handle_key("f2")
+                self.state.last_trigger = ("set", "f1")
+
+                self.runner.handle_key("f3")
+
+                self.assertEqual(self.confirmations, [("f1",)])
+                self.assertEqual(self.runner.paused_keys(), ("f2",))
+                self.assertNotIn(("set", "f1"), self.state.pending_steps)
+                self.assertIn(("set", "f2"), self.state.pending_steps)
+                self.assertEqual(self.state.counters.get("m"), 1)
+                if op == "back":
+                    self.assertEqual(self.state.counters.get("n"), 0)
+                else:
+                    self.assertEqual(self.state.counters.get("n"), 1)
+
+    def test_cancelled_back_confirmation_keeps_paused_targets(self):
+        self.trigger("f1", [call("f5"), text("caller")])
+        self.trigger("f5", [system("counter_inc", counter="n"),
+                             system("wait", ms=30), text("A")])
+        self.trigger("f2", [call("f6"), text("caller two")])
+        self.trigger("f6", [system("counter_inc", counter="m"),
+                             system("wait", ms=30), text("B")])
+        self.trigger("f3", [system("back")])
+        self.runner._confirm_discard = lambda _keys: False
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f1")
+        self.runner.handle_key("f2")
+        self.scheduler.run_one()
+        self.runner.handle_key("f2")
+        self.state.last_trigger = ("set", "f1")
+        self.runner.handle_key("f3")
+
+        self.assertEqual(self.runner.paused_keys(), ("f1", "f2"))
+        self.assertIn(("set", "f1"), self.state.pending_steps)
+        self.assertIn(("set", "f2"), self.state.pending_steps)
+        self.assertEqual(self.state.counters.get("n"), 1)
+        self.assertEqual(self.state.counters.get("m"), 1)
 
     def test_26_reset_indices_drops_call_without_history(self):
         self.trigger("f1", [call("f5")])

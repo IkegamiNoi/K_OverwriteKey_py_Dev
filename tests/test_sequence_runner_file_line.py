@@ -87,9 +87,11 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
     def file_line():
         return {"type": " FILE_LINE ", "path": "unused", "counter": "row"}
 
-    def test_pending_file_line_blocks_same_key_but_allows_other_trigger(self):
+    def test_pending_file_line_blocks_other_single_and_continuous_triggers(self):
         self.trigger("f1", [self.file_line(), {"type": "text", "value": "after"}])
         self.trigger("f2", [{"type": "text", "value": "other"}])
+        self.run_to_end_trigger("f3", [{"type": "text", "value": "continuous"}])
+        self.poll_results[:] = [True]
         self.runner.handle_key("f1")
         self.assertEqual(self.state.indices["f1"], 0)
         self.assertIn(("", "f1"), self.state.pending_steps)
@@ -97,7 +99,14 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
         self.runner.handle_key("f1")
         self.assertEqual(len(self.begun), 1)
         self.runner.handle_key("f2")
-        self.assertEqual(self.performed, [{"type": "text", "value": "other"}])
+        self.runner.handle_key("f3")
+        self.assertEqual(self.performed, [])
+        self.assertEqual(self.state.indices.get("f2", 0), 0)
+        self.assertIsNone(self.state.run_to_end_key)
+
+        self.scheduler.run_one()
+        self.assertEqual(self.performed, [])
+        self.assertNotIn(("", "f1"), self.state.pending_steps)
 
     def test_pending_poll_repeats_then_success_settles_following_counter(self):
         self.trigger("f1", [self.file_line(),
@@ -148,13 +157,15 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
                 self.assertEqual(self.polled, [])
                 self.assertNotIn(("", "f1"), self.state.pending_steps)
 
-    def test_control_rejects_pending_file_line_target(self):
+    def test_other_trigger_is_ignored_while_file_line_is_loading(self):
+        # 暫定 29 v0.6 §4.7: 読込中は処理中のため、戻すのトリガーの押下そのものを無視する
         self.trigger("f1", [self.file_line()])
         self.trigger("f2", [{"type": "system", "op": "back"}])
         self.runner.handle_key("f1")
         self.state.last_trigger = ("", "f1")
         self.runner.handle_key("f2")
-        self.assertEqual(self.messages, ["対象のトリガーが待機中のため操作できません"])
+        self.assertEqual(self.messages, [])
+        self.assertIn(("", "f1"), self.state.pending_steps)
 
     def test_begin_none_does_not_wait_and_records_file_line_position(self):
         self.begin_none = True
@@ -201,18 +212,21 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
         self.assertEqual(self.polled, [])
         self.assertFalse(self.state.pending_steps)
 
-    def test_other_run_to_end_cancels_single_file_line_once(self):
+    def test_other_run_to_end_is_ignored_during_single_file_line(self):
         self.trigger("f1", [{"type": "system", "op": "counter_inc", "counter": "n"},
                              self.file_line()])
         self.run_to_end_trigger("f2", [{"type": "text", "value": "other"}])
+        self.poll_results[:] = [True]
         self.runner.handle_key("f1")
-        _handle, stale = self.scheduler.queue[0]
         self.runner.handle_key("f2")
+        self.assertIn(("", "f1"), self.state.pending_steps)
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.performed, [])
+
+        self.scheduler.run_one()
+        self.runner.handle_key("f2")
+        self.assertEqual(self.performed, [{"type": "text", "value": "other"}])
         self.assertNotIn(("", "f1"), self.state.pending_steps)
-        self.assertEqual(len(self.state.history.get("f1", [])), 1)
-        stale()
-        self.assertEqual(self.polled, [])
-        self.assertEqual(len(self.state.history["f1"]), 1)
 
     def test_run_to_end_reset_during_file_line_reschedules_from_new_position(self):
         self.run_to_end_trigger("f1", [self.file_line(), {"type": "text", "value": "new position"}])

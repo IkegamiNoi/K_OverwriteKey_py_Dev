@@ -147,6 +147,7 @@ def apply_control(
     source: tuple[str, str],
     op: str,
     find_trigger: Callable[[str], object | None],
+    prepare_target: Callable[[tuple[str, str]], bool] | None = None,
 ) -> tuple[str | None, str | None]:
     """Apply a back/rewind control to the most recently recorded trigger.
 
@@ -165,6 +166,8 @@ def apply_control(
 
     target_id, target_key = target
     identity = (target_id, target_key)
+    if prepare_target is not None and not prepare_target(identity):
+        return None, None
     with state.lock:
         if identity in state.pending_steps:
             return None, PENDING_TARGET_MESSAGE

@@ -975,6 +975,106 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         self.assertEqual(state.indices["f1"], 0)
         self.assertIsNone(state.run_to_end_key)
 
+    def test_paused_continuous_run_accepts_another_single_trigger(self):
+        triggers = [
+            {"key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+             "actions": [A1, A1]},
+            {"key": "f2", "run_to_end": False, "actions": [A2]},
+        ]
+        runner, state, scheduler, performed = make_runner(triggers)
+
+        runner.handle_key("f1")
+        runner.handle_key("f1")  # 一時停止中は単発 f2 を受け付ける
+        self.assertTrue(state.run_to_end_paused)
+        runner.handle_key("f2")
+        self.assertEqual(performed, [A1, A2])
+        self.assertEqual(state.run_to_end_key, "f1")
+
+        runner.handle_key("f1")
+        scheduler.run_pending()
+        self.assertEqual(performed, [A1, A2, A1])
+        self.assertIsNone(state.run_to_end_key)
+
+    def test_paused_continuous_confirmation_accepts_or_cancels_other_run(self):
+        for accepted in (True, False):
+            with self.subTest(accepted=accepted):
+                first = {"key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+                         "actions": [A1, A1]}
+                second = {"key": "f2", "run_to_end": True, "run_to_end_delay_ms": 0,
+                          "actions": [A2, A2]}
+                runner, state, scheduler, performed = make_runner([first, second])
+                confirmations = []
+                runner._confirm_discard = lambda keys: (
+                    confirmations.append(keys), accepted
+                )[1]
+
+                runner.handle_key("f1")
+                runner.handle_key("f1")
+                runner.handle_key("f2")
+
+                self.assertEqual(confirmations, [("f1",)])
+                if accepted:
+                    self.assertEqual(state.run_to_end_key, "f2")
+                    self.assertEqual(performed, [A1, A2])
+                    scheduler.run_pending()
+                    self.assertEqual(performed, [A1, A2, A2])
+                    self.assertIsNone(state.run_to_end_key)
+                else:
+                    self.assertEqual(state.run_to_end_key, "f1")
+                    self.assertTrue(state.run_to_end_paused)
+                    self.assertEqual(performed, [A1])
+
+    def test_back_confirms_and_discards_paused_continuous_target(self):
+        trigger = {
+            "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
+            "actions": [
+                {"type": "system", "op": "counter_inc", "counter": "n"},
+                {"type": "system", "op": "wait", "ms": 25}, A1,
+            ],
+        }
+        back = {"key": "f2", "actions": [{"type": "system", "op": "back"}]}
+        runner, state, _scheduler, _performed = make_runner([trigger, back])
+        confirmations = []
+        runner._confirm_discard = lambda keys: (confirmations.append(keys), True)[1]
+
+        runner.handle_key("f1")
+        runner.handle_key("f1")
+        state.last_trigger = ("", "f1")
+        runner.handle_key("f2")
+
+        self.assertEqual(confirmations, [("f1",)])
+        self.assertIsNone(state.run_to_end_key)
+        self.assertEqual(state.indices.get("f1", 0), 0)
+        self.assertEqual(state.counters.get("n"), 0)
+        self.assertEqual(state.history_for("").get("f1", []), [])
+
+    def test_single_wait_expiring_during_continuous_work_skips_next_action(self):
+        triggers = [
+            {"key": "f1", "run_to_end": False,
+             "actions": [{"type": "system", "op": "wait", "ms": 19}, A1]},
+            {"key": "f2", "run_to_end": True, "run_to_end_delay_ms": 10,
+             "actions": [A2, A2]},
+        ]
+        runner, state, scheduler, performed = make_runner(triggers)
+
+        runner.handle_key("f2")
+        self.assertEqual(performed, [A2])
+        self.assertEqual(state.run_to_end_key, "f2")
+        runner.handle_key("f2")  # 処理中の連続実行を一時停止
+        runner.handle_key("f1")  # 待機中は別のトリガーが受け付けられる
+        runner.handle_key("f2")  # 単発待機中に連続実行を再開
+        self.assertEqual(state.run_to_end_key, "f2")
+
+        scheduler.run_one()  # 単発待機が連続実行中に明ける
+        self.assertEqual(performed, [A2])
+        self.assertEqual(state.indices["f1"], 1)
+        self.assertNotIn(("", "f1"), state.pending_steps)
+
+        scheduler.run_pending()
+        self.assertIsNone(state.run_to_end_key)
+        runner.handle_key("f1")
+        self.assertEqual(performed, [A2, A2, A1])
+
     def test_reset_loop_frames_during_paused_run_discards_old_wait_snapshot(self):
         trigger = {
             "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,

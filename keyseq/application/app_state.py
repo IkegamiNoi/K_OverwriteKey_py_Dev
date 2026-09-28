@@ -18,6 +18,7 @@ class PendingStep:
     file_line: object | None = None
     call: object | None = None
     call_file_line: object | None = None
+    call_paused: bool = False
 
 
 @dataclass
@@ -155,6 +156,7 @@ class AppState:
     def can_switch_keymap(
         self, target_keymap_id: str = "", active_keymap_id: str = "", *, changes_active: bool = False
     ) -> bool:
-        """連続実行中（一時停止中を含む）かどうかを共有する。"""
+        """連続実行が実行中かどうかを共有する。"""
         same_target = target_keymap_id and target_keymap_id == active_keymap_id
-        return self.run_to_end_key is None or (bool(same_target) and not changes_active)
+        return (self.run_to_end_key is None or self.run_to_end_paused
+                or (bool(same_target) and not changes_active))

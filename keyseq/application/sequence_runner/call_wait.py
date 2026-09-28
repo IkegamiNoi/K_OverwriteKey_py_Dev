@@ -45,7 +45,8 @@ class CallWaitMixin:
         identity = (trigger_set_id, key)
         with self.state.lock:
             pending = self.state.pending_steps.get(identity)
-            if pending is None or pending.generation != generation or pending.call is None:
+            if (pending is None or pending.generation != generation
+                    or pending.call is None or pending.call_paused):
                 return None
             return pending
 
@@ -139,6 +140,22 @@ class CallWaitMixin:
             )
             return
         succeeded = self._perform_action(action)
+        if (pending.call_paused
+                and self.state.pending_steps.get((trigger_set_id, key)) is pending
+                and pending.generation != generation):
+            if succeeded is False:
+                self._fail_single_call(trigger_set_id, key, pending.generation, pending)
+                return
+            ctx = pending.call
+            if isinstance(ctx, CallContext):
+                following = finish_call_action(ctx, self.state.counters)
+                self._add_call_deltas(pending, following.counter_deltas)
+                if following.kind == "error":
+                    message = following.message or "呼び出しを実行できません"
+                    self._report_error(self._call_action(key, pending),
+                                       message + self._call_chain_suffix(following))
+                    self._fail_single_call(trigger_set_id, key, pending.generation, pending)
+            return
         if not self._call_parent_is_current(trigger_set_id, key, generation, pending):
             self._discard_if_parent_invalid(trigger_set_id, key, generation, pending)
             return
@@ -243,6 +260,11 @@ class CallWaitMixin:
         self._report_error(self._call_action(key, pending), message + suffix)
         if self._call_parent_is_current(trigger_set_id, key, generation, pending):
             self._fail_single_call(trigger_set_id, key, generation, pending)
+        elif (pending.call_paused
+              and self.state.pending_steps.get((trigger_set_id, key)) is pending
+              and self._get_trigger_set_id() == trigger_set_id
+              and self._find_trigger(key) is not None):
+            self._fail_single_call(trigger_set_id, key, pending.generation, pending)
         else:
             self._discard_if_parent_invalid(trigger_set_id, key, generation, pending)
 
