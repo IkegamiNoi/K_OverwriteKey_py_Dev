@@ -6,6 +6,8 @@ from keyseq.domain.sequence_control import (
     DEFAULT_ENCODING,
     DEFAULT_OUT_OF_RANGE,
     MAX_LOOP_DEPTH,
+    MAX_CALL_DEPTH,
+    OP_CALL,
     action_type,
     analyze_loops,
     enclosing_loop_starts,
@@ -179,6 +181,32 @@ class FormatControlValueTest(unittest.TestCase):
         self.assertEqual(format_control_value(system("wait", ms=500)), "[wait] 500ms")
         self.assertEqual(format_control_value(system("back")), "[back]")
         self.assertEqual(format_control_value(system("rewind")), "[rewind]")
+
+    def test_call_display_with_resolved_labels(self) -> None:
+        action = system("call", target="F5")
+        self.assertEqual(OP_CALL, "call")
+        self.assertEqual(MAX_CALL_DEPTH, 9)
+        self.assertEqual(
+            format_control_value(action, resolve_call=lambda target: ("f5", "Copy")),
+            "[call] f5（Copy）",
+        )
+        self.assertEqual(
+            format_control_value(action, resolve_call=lambda target: ("f5", "")),
+            "[call] f5",
+        )
+        self.assertEqual(
+            format_control_value(action, resolve_call=lambda target: ("f5", None)),
+            "[call] f5（参照先なし）",
+        )
+
+    def test_call_display_without_resolver_and_empty_target(self) -> None:
+        self.assertEqual(format_control_value(system("call", target=" F5 ")), "[call] F5")
+        self.assertEqual(format_control_value(system("call", target=" ")), "[call] （呼び出し先なし）")
+        self.assertEqual(format_control_value(system("call", target=5)), "[call] （呼び出し先なし）")
+
+    def test_non_call_display_is_unchanged_with_resolver(self) -> None:
+        resolver = lambda target: ("f5", "Copy")
+        self.assertEqual(format_control_value(system("wait", ms=5), resolve_call=resolver), "[wait] 5ms")
 
     def test_stop_displays_with_or_without_label(self) -> None:
         self.assertEqual(format_control_value(system("stop")), "[stop]")

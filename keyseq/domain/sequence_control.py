@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
 from types import MappingProxyType
-from typing import Any
+from typing import Any, Callable
 
 
 ACTION_TYPE_SYSTEM: str = "system"
@@ -17,8 +17,10 @@ OP_WAIT: str = "wait"
 OP_BACK: str = "back"
 OP_REWIND: str = "rewind"
 OP_STOP: str = "stop"
+OP_CALL: str = "call"
 
 MAX_LOOP_DEPTH: int = 9
+MAX_CALL_DEPTH: int = 9
 
 ENCODING_UTF_8: str = "utf-8"
 ENCODING_SHIFT_JIS: str = "shift_jis"
@@ -130,10 +132,11 @@ def format_control_value(
     *,
     loop_iteration: int | None = None,
     counters: Mapping[str, Any] | None = None,
+    resolve_call: Callable[[Any], tuple[str, str | None]] | None = None,
 ) -> str:
     kind = action_type(action)
     if kind == ACTION_TYPE_SYSTEM:
-        return _format_system_value(action, loop_iteration, counters)
+        return _format_system_value(action, loop_iteration, counters, resolve_call)
     if kind == ACTION_TYPE_FILE_LINE:
         return _format_file_line_value(action, counters)
     return ""
@@ -143,6 +146,7 @@ def _format_system_value(
     action: Mapping[str, Any],
     loop_iteration: int | None,
     counters: Mapping[str, Any] | None,
+    resolve_call: Callable[[Any], tuple[str, str | None]] | None,
 ) -> str:
     op = system_op(action)
     if op == OP_LOOP_START:
@@ -164,6 +168,18 @@ def _format_system_value(
         return "[rewind]"
     if op == OP_STOP:
         return "[stop]"
+    if op == OP_CALL:
+        target = action.get("target")
+        if resolve_call is None:
+            if not isinstance(target, str) or not target.strip():
+                return "[call] （呼び出し先なし）"
+            return f"[call] {target.strip()}"
+        key, label = resolve_call(target)
+        if label is None:
+            return f"[call] {key}（参照先なし）"
+        if label:
+            return f"[call] {key}（{label}）"
+        return f"[call] {key}"
     return f"[system] {action.get('op', '')}"
 
 

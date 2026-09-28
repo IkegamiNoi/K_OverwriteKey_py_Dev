@@ -1,0 +1,131 @@
+import unittest
+
+from keyseq.domain.call_graph import (
+    call_target,
+    call_targets,
+    collect_call_snapshot,
+    edit_call_violation,
+)
+from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS
+
+
+def call(target):
+    return {"type": "system", "op": "call", "target": target}
+
+
+def trigger(*actions, delay=DEFAULT_RUN_TO_END_DELAY_MS):
+    return {"actions": list(actions), "run_to_end_delay_ms": delay}
+
+
+def finder(triggers):
+    return lambda key: triggers.get(key)
+
+
+class CallTargetTest(unittest.TestCase):
+    def test_normalizes_target_and_rejects_empty_or_non_call_values(self):
+        self.assertEqual(call_target(call("  F5  ")), "f5")
+        self.assertEqual(call_target(call("  ")), "")
+        self.assertEqual(call_target(call(5)), "")
+        self.assertEqual(call_target({"type": "system", "op": "wait", "target": "f5"}), "")
+        self.assertEqual(call_target({"type": "text", "op": "call", "target": "f5"}), "")
+
+    def test_call_targets_keeps_occurrence_order_and_duplicates(self):
+        self.assertEqual(call_targets([call("F5"), call("f6"), call(" f5 "), call("")]), ["f5", "f6", "f5"])
+
+
+class CollectCallSnapshotTest(unittest.TestCase):
+    def test_snapshot_is_deep_copy_and_coerces_intervals(self):
+        original = {"nested": {"items": [1]}}
+        triggers = {
+            "f1": trigger({"type": "text", **original}, call("f2"), delay="17"),
+            "f2": trigger(call("missing"), delay="invalid"),
+            "f3": {"actions": []},
+        }
+        snapshot = collect_call_snapshot("F1", finder(triggers))
+        self.assertEqual(snapshot["f1"].interval_ms, 17)
+        self.assertEqual(snapshot["f2"].interval_ms, DEFAULT_RUN_TO_END_DELAY_MS)
+        self.assertEqual(collect_call_snapshot("f3", finder(triggers))["f3"].interval_ms, DEFAULT_RUN_TO_END_DELAY_MS)
+        self.assertIsNone(snapshot["missing"])
+        triggers["f1"]["actions"][0]["nested"]["items"].append(2)
+        self.assertEqual(snapshot["f1"].actions[0]["nested"]["items"], [1])
+
+    def test_missing_root_is_recorded_as_none(self):
+        self.assertEqual(collect_call_snapshot("F5", finder({})), {"f5": None})
+
+    def test_stops_at_depth_nine_and_terminates_cycles(self):
+        chain = {f"f{i}": trigger(call(f"f{i + 1}")) for i in range(1, 11)}
+        snapshot = collect_call_snapshot("f1", finder(chain))
+        self.assertEqual(set(snapshot), {f"f{i}" for i in range(1, 10)})
+        cycle = {"f1": trigger(call("f2")), "f2": trigger(call("f1"))}
+        self.assertEqual(set(collect_call_snapshot("f1", finder(cycle))), {"f1", "f2"})
+
+
+class EditCallViolationTest(unittest.TestCase):
+    def test_empty_missing_and_self_checks_follow_required_order(self):
+        find = finder({"f1": trigger()})
+        self.assertEqual(edit_call_violation("f1", " ", find), "呼び出し先を選んでください")
+        self.assertEqual(
+            edit_call_violation("f1", "f1", finder({})),
+            "呼び出し先のトリガーがありません（f1）",
+        )
+        self.assertEqual(edit_call_violation("F1", "f1", find), "自分自身は呼び出せません")
+
+    def test_cycle_reason_includes_path_and_precedes_depth(self):
+        triggers = {
+            "f1": trigger(),
+            "f5": trigger(call("f6"), call("f7")),
+            "f6": trigger(call("f1")),
+            "f7": trigger(call("f8")),
+            "f8": trigger(call("f9")),
+            "f9": trigger(call("f10")),
+            "f10": trigger(call("f11")),
+            "f11": trigger(call("f12")),
+            "f12": trigger(call("f13")),
+            "f13": trigger(call("f14")),
+            "f14": trigger(call("f15")),
+            "f15": trigger(),
+        }
+        self.assertEqual(
+            edit_call_violation("f1", "f5", finder(triggers)),
+            "呼び出しが循環します（f5 > f6 > f1）",
+        )
+
+    def test_depth_counts_only_downstream_and_enforces_nine(self):
+        # A long ancestry into the owner does not add to the proposed call depth.
+        triggers = {"owner": trigger(), "target": trigger()}
+        for index in range(1, 12):
+            parent = f"p{index}"
+            parent_target = f"p{index + 1}" if index < 11 else "owner"
+            triggers[parent] = trigger(call(parent_target))
+        self.assertIsNone(edit_call_violation("owner", "target", finder(triggers)))
+
+        allowed = {f"f{i}": trigger(call(f"f{i + 1}")) for i in range(1, 9)}
+        allowed["f9"] = trigger()
+        self.assertIsNone(edit_call_violation("owner", "f1", finder(allowed)))
+        too_deep = dict(allowed)
+        too_deep["f9"] = trigger(call("f10"))
+        too_deep["f10"] = trigger()
+        self.assertEqual(
+            edit_call_violation("owner", "f1", finder(too_deep)),
+            "呼び出しの深さが 9 を超えます",
+        )
+
+    def test_direct_back_or_rewind_only_trigger_is_rejected(self):
+        for op in ("back", "rewind"):
+            with self.subTest(op=op):
+                triggers = {"target": trigger({"type": "system", "op": op})}
+                self.assertEqual(
+                    edit_call_violation("owner", "target", finder(triggers)),
+                    "戻す・先頭へのトリガーは呼び出せません",
+                )
+
+    def test_downstream_existing_cycle_terminates(self):
+        triggers = {
+            "target": trigger(call("loop")),
+            "loop": trigger(call("target")),
+        }
+        self.assertIsNone(edit_call_violation("owner", "target", finder(triggers)))
+
+
+if __name__ == "__main__":
+    unittest.main()

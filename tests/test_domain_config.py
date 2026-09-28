@@ -102,6 +102,12 @@ class NormalizeActionsTest(unittest.TestCase):
             [{"type": "text", "label": "x"}],
         )
 
+    def test_strips_call_target(self):
+        self.assertEqual(
+            normalize_actions([{"type": "system", "op": "call", "target": "  F5  "}]),
+            [{"type": "system", "op": "call", "target": "F5", "label": ""}],
+        )
+
     def test_does_not_mutate_input_and_deep_copies_items(self):
         actions = [{"type": "text", "label": "  x  ", "extra": {"values": ["a"]}}]
         normalized = normalize_actions(actions)
@@ -571,6 +577,12 @@ class SequenceControlConfigTest(unittest.TestCase):
             },
         )
 
+    def test_normalize_actions_trims_target_preserving_case(self) -> None:
+        self.assertEqual(
+            normalize_actions([{"type": "system", "op": "call", "target": "  F5  "}])[0]["target"],
+            "F5",
+        )
+
     def test_normalize_actions_does_not_add_new_fields_or_change_runtime_values(self) -> None:
         action = {"type": "system", "count": "3", "ms": "500", "infinite": True}
         normalized = normalize_actions([action])[0]
@@ -586,6 +598,13 @@ class SequenceControlConfigTest(unittest.TestCase):
         self.assertEqual(
             format_action_list_item(0, file_line, counters={"n": 5}),
             "01. [file_line] list.txt #n (=5): load",
+        )
+
+    def test_call_action_list_item_resolves_target_before_action_label(self) -> None:
+        action = {"type": "system", "op": "call", "target": "f5", "label": "jump"}
+        self.assertEqual(
+            format_action_list_item(0, action, resolve_call=lambda target: ("f5", "Copy")),
+            "01. [call] f5（Copy）: jump",
         )
 
     def test_existing_action_list_item_outputs_are_unchanged(self) -> None:

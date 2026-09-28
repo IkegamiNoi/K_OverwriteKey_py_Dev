@@ -1,7 +1,7 @@
 ﻿from __future__ import annotations
 
 import json
-from typing import Any, Mapping
+from typing import Any, Callable, Mapping
 
 from . import sequence_control
 
@@ -159,7 +159,7 @@ def normalize_actions(actions: Any) -> list[dict[str, Any]]:
             a["type"] = coerce_label(a["type"])
         if "button" in a:
             a["button"] = coerce_label(a["button"])
-        for key in ("op", "counter", "path", "encoding", "out_of_range"):
+        for key in ("op", "counter", "path", "encoding", "out_of_range", "target"):
             if key in a:
                 a[key] = coerce_label(a[key])
         normalized_actions.append(a)
@@ -412,6 +412,7 @@ def format_action_list_item(
     *,
     loop_iteration: int | None = None,
     counters: Mapping[str, Any] | None = None,
+    resolve_call: Callable[[Any], tuple[str, str | None]] | None = None,
 ) -> str:
     action_type = (action.get("type") or "").strip().lower()
     is_control_action = action_type in (
@@ -420,7 +421,7 @@ def format_action_list_item(
     )
     if is_control_action:
         value_display = sequence_control.format_control_value(
-            action, loop_iteration=loop_iteration, counters=counters
+            action, loop_iteration=loop_iteration, counters=counters, resolve_call=resolve_call
         )
     elif action_type == "mouse_click":
         x = action.get("x", "")
