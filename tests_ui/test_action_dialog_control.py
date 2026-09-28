@@ -214,6 +214,20 @@ class ActionDialogControlTest(unittest.TestCase):
         self.assertTrue(missing.winfo_exists())
         self.assertEqual(self.showerror.call_args.args[1], "呼び出し先のトリガーがありません（z9）")
 
+    def test_call_missing_target_uses_call_check_message(self) -> None:
+        checked = []
+        missing = self.make_dialog(
+            mode="edit", initial={"type": "system", "op": "call", "target": "z9"},
+            call_candidates=[("f6", "")],
+            call_check=lambda target: checked.append(target) or "自分自身は呼び出せません",
+        )
+        missing.type_var.set("system")
+        missing.on_ok()
+
+        self.assertEqual(checked, ["z9"])
+        self.assertEqual(self.showerror.call_args.args[1], "自分自身は呼び出せません")
+        self.assertTrue(missing.winfo_exists())
+
     def test_call_note_about_interval_is_shown_only_for_call(self) -> None:
         dialog = self.make_dialog(call_candidates=[("f6", "")])
         dialog.type_var.set("system")

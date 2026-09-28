@@ -33,9 +33,10 @@ verified:
   review: reviewer 完了可（task_05a）/ 完了判定前 deep + Codex 敵対的 反映済
 
 ## next_action
-- 次フェーズ = 呼び出し（phase 40）。`/spec_draft` で暫定 29 を起票（起点 = 暫定 28 §9 の確定事項 3 点と未決論点。状態遷移の表で書き切る）→ 敵対的レビュー → ユーザー確定 → `/phase_start`。
-- **main へのマージはユーザーが行う**（ブランチ `claude/idea-38-9877ba`・phase 38・39）。
-- **`/template_pull` で取り込む**: `.claude/rules/output_style.md:41-42` の `claude_only` モードで食い違う記述（ユーザー 2026-09-23）。
+- **task_09b（統合レビューの修正）は Codex 実装済み・未コミット・未レビュー**。①tests_ui・smoke を verifier で実測 ②M2 のテストが修正前（一時停止を照合に含める）で落ちることを確認 ③reviewer → コミット。
+- **暫定 29 の v0.5 改訂が未反映**（編集スクリプトが失敗）。decisions.md「task_09 統合レビュー」と task_09b 定義の内容（上限 10,000 を呼び出しの 1 ステップ全体で通して数える / 連鎖は呼び出し元を含めない / エラー後の照合から一時停止を除く）を暫定 29 §4.2・§4.5 とヘッダへ手で反映する。
+- task_08 の実機目視 1〜8（ユーザー）→ task_10（正本反映・凍結・decisions_archive/40・current.md・/refactor_check〔L5 の重複・runner 543 行〕）。
+- **main へのマージはユーザーが行う**（ブランチ `claude/idea-38-9877ba`・phase 38〜40）。
 
 ## blockers
 - なし

@@ -139,13 +139,13 @@ class CallContextTest(unittest.TestCase):
         self.assertEqual(result.message, "呼び出しの深さが 9 を超えます")
         self.assertEqual(result.chain[-1], "f10")
 
-    def test_root_and_stack_cycles_report_chain(self):
+    def test_root_and_stack_cycles_report_key_and_chain(self):
         root_cycle = self.run_call("root", "f5", {
             "f5": trigger([control("call", target="root")]),
             "root": trigger([]),
         })
         cycle = call_step(root_cycle, {})
-        self.assertEqual(cycle.message, "呼び出しが循環します（f5 > root）")
+        self.assertEqual(cycle.message, "呼び出しが循環します（root）")
         self.assertEqual(cycle.chain, ("f5", "root"))
 
         stack_cycle = self.run_call("root", "f5", {
@@ -153,8 +153,52 @@ class CallContextTest(unittest.TestCase):
             "f6": trigger([control("call", target="f5")]),
         })
         cycle = call_step(stack_cycle, {})
-        self.assertEqual(cycle.message, "呼び出しが循環します（f5 > f6 > f5）")
+        self.assertEqual(cycle.message, "呼び出しが循環します（f5）")
         self.assertEqual(cycle.chain, ("f5", "f6", "f5"))
+
+    def test_failed_first_push_does_not_mark_call_started(self):
+        missing = self.run_call("root", "absent", {})
+
+        first = call_step(missing, {})
+        second = call_step(missing, {})
+
+        self.assertEqual((first.kind, second.kind), ("error", "error"))
+        self.assertFalse(missing.started)
+
+    def test_nested_call_loop_controls_share_one_processing_limit(self):
+        ctx = self.run_call("root", "f5", {
+            "f5": trigger([
+                control("loop_start", count=20000), control("call", target="f6"),
+                control("loop_end"),
+            ]),
+            "f6": trigger([]),
+        })
+
+        result = call_step(ctx, {})
+
+        self.assertEqual(result.kind, "error")
+        self.assertEqual(
+            result.message,
+            "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）",
+        )
+
+    def test_finish_call_action_counts_settled_controls_across_returned_frames(self):
+        stop_tail = [control("stop") for _ in range(4000)]
+        ctx = self.run_call("root", "f4", {
+            "f4": trigger([control("call", target="f5"), *stop_tail]),
+            "f5": trigger([control("call", target="f6"), *stop_tail]),
+            "f6": trigger([control("call", target="f7"), *stop_tail]),
+            "f7": trigger([{"type": "text", "value": "A"}]),
+        })
+        self.assertEqual(call_step(ctx, {}).action["value"], "A")
+
+        result = finish_call_action(ctx, {})
+
+        self.assertEqual(result.kind, "error")
+        self.assertEqual(
+            result.message,
+            "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）",
+        )
 
     def test_missing_target_is_reported(self):
         missing = self.run_call("root", "f5", {"f5": trigger([control("call", target="absent")])})
@@ -164,6 +208,18 @@ class CallContextTest(unittest.TestCase):
         for op in ("back", "rewind"):
             rejected = self.run_call("root", "f5", {"f5": trigger([control(op)])})
             self.assertEqual(call_step(rejected, {}).message, "戻す・先頭へのトリガーは呼び出せません")
+
+    def test_back_and_rewind_with_another_action_report_single_action_error(self):
+        for op in ("back", "rewind"):
+            with self.subTest(op=op):
+                rejected = self.run_call("root", "f5", {
+                    "f5": trigger([control(op), {"type": "text", "value": "A"}]),
+                })
+
+                error = call_step(rejected, {})
+
+                self.assertEqual(error.kind, "error")
+                self.assertEqual(error.message, "戻す・先頭へは単独で登録してください")
 
     def test_empty_nested_target_is_reported(self):
         empty = self.run_call("root", "f5", {"f5": trigger([control("call")])})

@@ -2,6 +2,7 @@ import unittest
 
 from keyseq.application.app_state import AppState
 from keyseq.application.sequence_runner import SequenceRunner
+from keyseq.application.sequence_steps import LoopFrame
 
 
 def system(op, **values):
@@ -471,6 +472,180 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.scheduler.run_one()
         self.assertEqual([item["value"] for item in self.performed], ["A", "B"])
         self.assertIsNone(self.state.run_to_end_key)
+
+    def test_20_call_error_pause_still_stops_without_resuming_as_success(self):
+        self.trigger("f1", [call("absent"), text("X")], run_to_end=True)
+        self.runner._notify_error = lambda action, message: (
+            self.errors.append((action, message)), self.runner.pause_run_to_end(),
+        )
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(len(self.history()), 0)
+        self.assertEqual(self.performed, [])
+        self.runner.resume_run_to_end()
+        self.run_all()
+        self.assertEqual(self.performed, [])
+
+    def test_21_send_failure_pause_stops_without_retry(self):
+        self.trigger("f1", [call("f5"), text("X")], run_to_end=True)
+        self.trigger("f5", [system("counter_inc", counter="n"), text("A")])
+        self.perform_result = False
+        self.perform_callback = self.runner.pause_run_to_end
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.assertEqual(len(self.history()), 1)
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+
+    def test_22_call_error_notification_includes_target_value(self):
+        self.trigger("f1", [call(" z9 ")], run_to_end=True)
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(self.errors[-1][0]["value"], "call 呼び出し先=z9")
+
+    def test_23_single_call_preserves_target_position_and_history(self):
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [system("loop_start", count=2), text("A"),
+                             system("loop_end"), text("B")])
+        self.runner.handle_key("f5")
+        target_index = self.index("f5")
+        target_history = list(self.history("f5"))
+        target_frames = list(self.state.loop_frames_for("set").get("f5", []))
+
+        self.runner.handle_key("f1")
+        self.run_all()
+
+        self.assertEqual(self.index("f5"), target_index)
+        self.assertEqual(self.history("f5"), target_history)
+        self.assertEqual(self.state.loop_frames_for("set").get("f5", []), target_frames)
+        self.assertEqual([item["value"] for item in self.performed], ["A", "A", "A", "B"])
+
+    def test_24_empty_call_counts_as_sent_for_caller_stop(self):
+        self.trigger("f1", [call("f5"), system("stop"), text("Y")], run_to_end=True)
+        self.trigger("f5", [])
+
+        self.runner.handle_key("f1")
+        self.run_all()
+
+        self.assertEqual(self.performed, [])
+        self.assertIsNone(self.state.run_to_end_key)
+
+    def test_25_other_run_to_end_cancels_single_call_with_one_history_step(self):
+        self.trigger("f1", [call("f5"), text("caller")])
+        self.trigger("f5", [system("counter_inc", counter="n"),
+                             system("wait", ms=30), text("target")])
+        self.trigger("f2", [text("other")], run_to_end=True)
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f2")
+        self.run_all()
+
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.assertEqual(len(self.history("f1")), 1)
+        self.assertEqual([item["value"] for item in self.performed], ["other"])
+
+    def test_26_reset_indices_drops_call_without_history(self):
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [system("counter_inc", counter="n"),
+                             system("wait", ms=30), text("A")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.state.reset_indices()
+
+        self.run_all()
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.assertEqual(len(self.history("f1")), 0)
+        self.assertEqual(self.performed, [])
+
+    def test_27_removed_run_to_end_caller_stops_without_history(self):
+        caller = self.trigger("f1", [call("f5")], run_to_end=True)
+        self.trigger("f5", [system("counter_inc", counter="n"),
+                             system("wait", ms=30), text("A")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.trigger_sets["set"].remove(caller)
+        self.run_all()
+
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.assertEqual(len(self.history("f1")), 0)
+        self.assertEqual(self.performed, [])
+
+    def test_28_single_error_notification_stop_commits_one_history_step(self):
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [system("counter_inc", counter="n"), call("absent")])
+        self.runner._notify_error = lambda action, message: (
+            self.errors.append((action, message)), self.runner.cancel_pending_wait("f1"),
+        )
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.assertEqual(len(self.history("f1")), 1)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+
+    def test_29_run_to_end_error_notification_stop_commits_one_history_step(self):
+        self.trigger("f1", [call("f5")], run_to_end=True)
+        self.trigger("f5", [system("counter_inc", counter="n"), call("absent")])
+        self.runner._notify_error = lambda action, message: (
+            self.errors.append((action, message)), self.runner.stop_run_to_end(),
+        )
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.assertEqual(len(self.history("f1")), 1)
+        self.assertIsNone(self.state.run_to_end_key)
+
+    def test_30_file_line_failure_pause_still_stops_without_retry(self):
+        self.trigger("f1", [call("f5")], run_to_end=True)
+        self.trigger("f5", [{"type": "file_line", "path": "rows.txt"}])
+
+        def pause_then_fail(_handle):
+            self.runner.pause_run_to_end()
+            return False
+
+        self.runner._poll_file_line = pause_then_fail
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.scheduler.run_one()
+
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(len(self.begin_results), 1)
+        self.assertEqual(self.performed, [])
+        self.assertEqual(len(self.history("f1")), 0)
+
+    def test_31_run_to_end_nested_control_loop_hits_limit_and_stops(self):
+        self.trigger("f1", [call("f5")], run_to_end=True)
+        self.trigger("f5", [system("loop_start", count=20000), call("f6"),
+                             system("loop_end")])
+        self.trigger("f6", [])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertTrue(any(
+            "制御アクションの処理が 10000 回を超えました" in message
+            for _action, message in self.errors
+        ))
+        self.assertEqual(len(self.history("f1")), 0)
+        self.assertEqual(self.performed, [])
 
 
 if __name__ == "__main__":

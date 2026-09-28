@@ -2,7 +2,8 @@ import unittest
 
 from keyseq.application.app_state import AppState
 from keyseq.application.sequence_steps import (
-    LoopFrame, StepResume, advance, after_normal_action, settle_after_normal,
+    LoopFrame, StepResume, advance, after_normal_action,
+    format_system_error_notification, settle_after_normal,
 )
 
 
@@ -14,6 +15,19 @@ NORMAL = {"type": "text", "value": "x"}
 
 
 class SequenceStepsTest(unittest.TestCase):
+    def test_call_error_notification_shows_trimmed_target_or_none(self):
+        notified, _message = format_system_error_notification(
+            control("call", target=" z9 "), "error",
+        )
+        missing, _message = format_system_error_notification(control("call"), "error")
+        non_string, _message = format_system_error_notification(
+            control("call", target=9), "error",
+        )
+
+        self.assertEqual(notified["value"], "call 呼び出し先=z9")
+        self.assertEqual(missing["value"], "call 呼び出し先=(なし)")
+        self.assertEqual(non_string["value"], "call 呼び出し先=(なし)")
+
     def test_advance_stops_at_call_without_counting_it_as_processed(self):
         actions = [control("counter_inc", counter="n"), control("call"), NORMAL]
         counters = {}

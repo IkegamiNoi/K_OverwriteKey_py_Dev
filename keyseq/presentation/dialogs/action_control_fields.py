@@ -282,9 +282,9 @@ class ActionControlFields:
         candidate = self._call_candidate_by_label.get(display)
         if candidate is None:
             if self._missing_call_target and display == self._missing_call_display():
-                messagebox.showerror(
-                    "入力エラー", f"呼び出し先のトリガーがありません（{self._missing_call_target}）"
-                )
+                error = self.call_check(self._missing_call_target) if self.call_check else None
+                messagebox.showerror("入力エラー", error or
+                                     f"呼び出し先のトリガーがありません（{self._missing_call_target}）")
             else:
                 messagebox.showerror("入力エラー", "呼び出し先を選んでください")
             return None

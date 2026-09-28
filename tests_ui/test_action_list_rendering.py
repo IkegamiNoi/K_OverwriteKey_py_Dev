@@ -264,7 +264,7 @@ class ActionListRenderingTest(unittest.TestCase):
 
         self.assertEqual(entry.state, "disabled")
 
-    def test_delay_heading_mentions_call_usage(self):
+    def test_call_note_keeps_delay_heading(self):
         try:
             root = tk.Tk()
         except tk.TclError as error:

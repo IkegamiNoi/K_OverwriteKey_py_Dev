@@ -38,6 +38,10 @@ def format_system_error_notification(
         value = f"{action.get('ms', '(なし)')}ms"
     elif normalized_op in ("counter_inc", "counter_reset"):
         value = f"カウンター={action.get('counter', '(なし)')}"
+    elif normalized_op == "call":
+        target = action.get("target")
+        target = target.strip() if isinstance(target, str) else ""
+        value = f"呼び出し先={target or '(なし)'}"
     else:
         value = ""
     detail = f"{op} {value}".rstrip()
@@ -90,6 +94,7 @@ class SettleOutcome:
     wrapped: bool = False
     deferred_counters: tuple[tuple[str, str], ...] = ()
     stopped: bool = False
+    processed: int = 0
 
 
 def reset_frames(actions: Sequence[Any], position: int) -> list[LoopFrame]:
@@ -197,14 +202,14 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             position, current = 0, []
             if not wrap_once or wrapped:
                 return StepOutcome(None, position, current, reached_end=True,
-                                   counter_deltas=tuple(counter_deltas))
+                                   counter_deltas=tuple(counter_deltas), processed=processed)
             wrapped = True
         if wrapped and position == initial_position:
             return StepOutcome(None, position, current, reached_end=True,
-                               counter_deltas=tuple(counter_deltas))
+                               counter_deltas=tuple(counter_deltas), processed=processed)
         if not actions:
             return StepOutcome(None, 0, [], reached_end=True,
-                               counter_deltas=tuple(counter_deltas))
+                               counter_deltas=tuple(counter_deltas), processed=processed)
         action = actions[position]
         if not isinstance(action, Mapping) or action_type(action) != ACTION_TYPE_SYSTEM:
             return StepOutcome(position, position, current,
@@ -218,7 +223,7 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             return StepOutcome(
                 None, position, current,
                 (position, "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）"),
-                counter_deltas=tuple(counter_deltas),
+                counter_deltas=tuple(counter_deltas), processed=processed,
             )
         if (in_call and system_op(action) == OP_LOOP_START
                 and bool(action.get("infinite"))):
@@ -247,7 +252,7 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
                 return StepOutcome(
                     None, position, current,
                     (position, "待機時間が不正です（1 以上の整数・ミリ秒）"),
-                    counter_deltas=tuple(counter_deltas),
+                    counter_deltas=tuple(counter_deltas), processed=processed,
                 )
             return StepOutcome(None, position, current, wait_ms=wait_ms,
                                resume_position=position + 1,
@@ -255,12 +260,12 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
                                    initial_position, wrapped, processed,
                                    tuple(counter_deltas),
                                ),
-                               counter_deltas=tuple(counter_deltas))
+                               counter_deltas=tuple(counter_deltas), processed=processed)
         op = system_op(action)
         if op in (OP_BACK, OP_REWIND) and len(actions) > 1:
             return StepOutcome(None, position, current,
                                (position, "戻す・先頭へは単独で登録してください"),
-                               counter_deltas=tuple(counter_deltas))
+                               counter_deltas=tuple(counter_deltas), processed=processed)
         if op in (OP_BACK, OP_REWIND) and on_control is not None:
             on_control(op)
         next_position, error = _system_step(
@@ -268,7 +273,7 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
         )
         if error:
             return StepOutcome(None, position, current, (position, error),
-                               counter_deltas=tuple(counter_deltas))
+                               counter_deltas=tuple(counter_deltas), processed=processed)
         position = next_position
 
 
@@ -315,7 +320,7 @@ def settle_after_normal(actions: Sequence[Any], position: int,
                     position, current = 0, []
                 return SettleOutcome(
                     position, current, tuple(deltas), wrapped,
-                    tuple(deferred), stopped=True,
+                    tuple(deferred), stopped=True, processed=processed,
                 )
             position += 1
             processed += 1
@@ -339,4 +344,4 @@ def settle_after_normal(actions: Sequence[Any], position: int,
         position = next_position
         processed += 1
     return SettleOutcome(position, current, tuple(deltas), wrapped,
-                         tuple(deferred))
+                         tuple(deferred), processed=processed)
