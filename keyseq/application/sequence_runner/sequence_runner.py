@@ -3,6 +3,7 @@
 from typing import Any, Callable
 
 from keyseq.application.app_state import PendingStep
+from keyseq.application.call_context import CallContext, top_interval
 from keyseq.application.sequence_history import (
     StepSnapshot, apply_control, cancel_pending_steps, commit_step, snapshot_for,
 )
@@ -19,9 +20,10 @@ from keyseq.application.sequence_runner.file_line_wait import (
     FILE_LINE_POLL_INTERVAL_MS, FileLineWaitMixin,
 )
 from keyseq.application.sequence_runner.call_wait import CallWaitMixin
+from keyseq.application.sequence_runner.call_run_to_end import CallRunToEndMixin
 
 
-class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
+class SequenceRunner(FileLineWaitMixin, CallWaitMixin, CallRunToEndMixin):
     def __init__(
         self,
         *,
@@ -60,6 +62,9 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
         self._run_to_end_file_line: object | None = None
         self._run_to_end_file_line_trigger_set_id: str | None = None
         self._run_to_end_file_line_token = 0
+        self._run_to_end_call: CallContext | None = None
+        self._run_to_end_call_token = 0
+        self._run_to_end_call_file_line: object | None = None
 
     def _get_index(self, key: str) -> int:
         return int(self.state.indices_for(self._get_trigger_set_id()).get(key, 0) or 0)
@@ -82,7 +87,8 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
         self.cancel_pending_wait(key)
         reschedule_run_to_end = (
             self.state.run_to_end_key == key
-            and self._run_to_end_file_line is not None
+            and (self._run_to_end_file_line is not None
+                 or self._run_to_end_call is not None)
             and not self.state.run_to_end_paused
         )
         if self.state.run_to_end_key == key:
@@ -93,6 +99,7 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
                     pass
                 self.state.run_to_end_after_id = None
             self._discard_run_to_end_file_line()
+            self._discard_run_to_end_call()
             self._run_to_end_resume = None
             self._run_to_end_snapshot = None
             self._run_to_end_wait_position = None
@@ -283,6 +290,7 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
 
         self.cancel_pending_waits()
         self._discard_run_to_end_file_line()
+        self._discard_run_to_end_call()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
         self._run_to_end_wait_position = None
@@ -302,6 +310,9 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
                 pass
             self.state.run_to_end_after_id = None
         self._discard_run_to_end_file_line()
+        if self._run_to_end_call is not None:
+            self._run_to_end_call_file_line = None
+            self._run_to_end_call_token += 1
 
     def resume_run_to_end(self) -> None:
         self.state.run_to_end_paused = False
@@ -316,6 +327,7 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
                 pass
         self.state.run_to_end_after_id = None
         self._discard_run_to_end_file_line()
+        self._discard_run_to_end_call()
         if self._run_to_end_wait_position is not None:
             key = self.state.run_to_end_key
             snapshot = self._run_to_end_snapshot
@@ -334,6 +346,7 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
         if self.state.run_to_end_key is None:
             return
         self._discard_run_to_end_file_line()
+        self._discard_run_to_end_call()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
         self._run_to_end_wait_position = None
@@ -351,10 +364,16 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
             return
         trig = self._find_trigger(key)
         if not trig:
+            if self._run_to_end_call is not None:
+                self._abandon_invalid_run_to_end_call()
+                return
             self.stop_run_to_end()
             return
         actions = trig.get("actions", [])
         if not actions:
+            if self._run_to_end_call is not None:
+                self._abandon_invalid_run_to_end_call()
+                return
             self.stop_run_to_end()
             return
         delay = coerce_nonnegative_int(
@@ -362,6 +381,22 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
             DEFAULT_RUN_TO_END_DELAY_MS,
         )
         if schedule_only:
+            if self._run_to_end_call is not None:
+                if (not isinstance(self._run_to_end_call, CallContext)
+                        or not self._run_to_end_call_parent_is_current(
+                            self._run_to_end_call,
+                        )):
+                    self._abandon_invalid_run_to_end_call()
+                    return
+                generation = self._run_to_end_generation
+                token = self._run_to_end_call_token
+                call = self._run_to_end_call
+                delay = top_interval(call) if isinstance(call, CallContext) else 0
+                self.state.run_to_end_after_id = self._after(
+                    delay,
+                    lambda: self._advance_run_to_end_call(generation, key, token),
+                )
+                return
             self._schedule_run_to_end_step(key, delay)
             return
         self._perform_run_to_end_step(key, actions, delay)
@@ -420,6 +455,19 @@ class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
                             self._select_trigger(target)
                         return
                     stop = True
+                elif (action_type == ACTION_TYPE_SYSTEM
+                      and system_op(action) == OP_CALL):
+                    initial_position = (
+                        previous_resume.initial_position
+                        if previous_resume is not None else advance_position
+                    )
+                    self._begin_run_to_end_call(
+                        key, actions, index, outcome, snapshot, initial_position,
+                    )
+                    self._select_trigger(key)
+                    if target is not None:
+                        self._select_trigger(target)
+                    return
                 elif self._perform_action(action) is False:
                     stop = True
                 else:

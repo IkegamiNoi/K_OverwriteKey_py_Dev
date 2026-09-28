@@ -52,6 +52,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.selected = []
         self.begin_results = []
         self.poll_results = []
+        self.begin_result = object()
         self.perform_result = True
         self.perform_callback = None
         self.runner = SequenceRunner(
@@ -82,13 +83,13 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
     def _begin(self, action):
         self.begin_results.append(action)
-        return object()
+        return self.begin_result
 
     def _poll(self, handle):
         return self.poll_results.pop(0)
 
-    def trigger(self, key, actions, *, delay=7, trigger_set_id=None):
-        trigger = {"key": key, "actions": actions, "run_to_end": False,
+    def trigger(self, key, actions, *, delay=7, trigger_set_id=None, run_to_end=False):
+        trigger = {"key": key, "actions": actions, "run_to_end": run_to_end,
                    "run_to_end_delay_ms": delay}
         self.trigger_sets.setdefault(trigger_set_id or self.trigger_set_id, []).append(trigger)
         return trigger
@@ -284,6 +285,192 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual([item["value"] for item in self.performed], ["plain"])
         self.assertEqual(self.index("f1"), 0)
         self.assertNotIn(("set", "f1"), self.state.pending_steps)
+
+    def test_10_run_to_end_call_runs_target_then_resumes_caller_with_one_history_step(self):
+        self.trigger("f1", [call("f5"), text("X")], delay=7, run_to_end=True)
+        self.trigger("f5", [system("counter_inc", counter="n"), text("A"), text("B")],
+                     delay=9)
+
+        self.runner.handle_key("f1")
+        self.assertEqual(self.scheduler.delays, [0])
+        self.scheduler.run_one()
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+        self.assertEqual(self.scheduler.delays[-1], 9)
+        self.scheduler.run_one()
+        self.assertEqual([item["value"] for item in self.performed], ["A", "B"])
+        self.assertEqual(self.scheduler.delays[-1], 7)
+        self.scheduler.run_one()
+
+        self.assertEqual([item["value"] for item in self.performed], ["A", "B", "X"])
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.index("f5"), 0)
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.assertEqual(len(self.history()), 2)
+        self.trigger("f2", [system("back")])
+        self.runner.handle_key("f2")
+        self.runner.handle_key("f2")
+        self.assertEqual(self.state.counters.get("n", 0), 0)
+
+    def test_11_run_to_end_call_pause_resume_keeps_progress_and_skips_wait_remainder(self):
+        self.trigger("f1", [call("f5"), text("X")], run_to_end=True)
+        self.trigger("f5", [text("A"), text("B")], delay=9)
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.pause_run_to_end()
+        self.assertEqual(self.scheduler.queue, [])
+        self.runner.resume_run_to_end()
+        self.assertEqual(self.scheduler.delays[-1], 9)
+        self.scheduler.run_one()
+        self.assertEqual([item["value"] for item in self.performed], ["A", "B"])
+        self.scheduler.run_one()
+        self.assertIsNone(self.state.run_to_end_key)
+
+        self.performed.clear()
+        self.trigger_sets["set"] = []
+        self.trigger("f1", [call("f5"), text("X")], run_to_end=True)
+        self.trigger("f5", [text("A"), system("wait", ms=30), text("B")], delay=9)
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.scheduler.run_one()  # 文脈内の待機を予約
+        self.assertEqual(self.scheduler.delays[-1], 30)
+        self.runner.pause_run_to_end()
+        self.runner.resume_run_to_end()
+        self.assertEqual(self.scheduler.delays[-1], 9)
+        self.scheduler.run_one()
+        self.assertEqual([item["value"] for item in self.performed], ["A", "B"])
+
+    def test_12_manual_stop_commits_call_counter_delta_once_and_stale_callback_is_ignored(self):
+        self.trigger("f1", [call("f5"), text("X")], run_to_end=True)
+        self.trigger("f5", [system("counter_inc", counter="n"),
+                             system("wait", ms=30), text("B")])
+        self.runner.handle_key("f1")
+        stale = self.scheduler.queue[0][1]
+        self.scheduler.run_one()
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.runner.stop_run_to_end()
+        stale()
+
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.assertEqual(len(self.history()), 1)
+
+    def test_13_missing_target_and_infinite_call_error_stop_without_empty_history(self):
+        cases = (("missing", [call("absent")]),
+                 ("infinite", [system("loop_start", infinite=True), text("A"),
+                               system("loop_end")]))
+        for label, target_actions in cases:
+            with self.subTest(label=label):
+                self.trigger_sets["set"] = []
+                self.errors.clear()
+                self.trigger("f1", [call("absent" if label == "missing" else "f5")],
+                             run_to_end=True)
+                if label == "infinite":
+                    self.trigger("f5", target_actions)
+                self.runner.handle_key("f1")
+                self.scheduler.run_one()
+                self.assertIsNone(self.state.run_to_end_key)
+                self.assertEqual(self.index("f1"), 0)
+                self.assertEqual(len(self.history()), 0)
+                self.assertTrue(any("呼び出し:" in message for _, message in self.errors))
+
+    def test_14_reset_loop_frames_discards_call_and_continues_from_new_position(self):
+        self.trigger("f1", [call("f5"), text("X")], run_to_end=True)
+        self.trigger("f5", [text("A"), text("B")], delay=9)
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.state.indices_for("set")["f1"] = 1
+        self.runner.reset_loop_frames("f1")
+
+        self.assertEqual(self.scheduler.delays[-1], 7)
+        self.scheduler.run_one()
+        self.assertEqual([item["value"] for item in self.performed], ["A", "X"])
+        self.assertIsNone(self.state.run_to_end_key)
+
+    def test_15_runtime_reset_discards_active_call_without_history(self):
+        self.trigger("f1", [call("f5"), text("X")], run_to_end=True)
+        self.trigger("f5", [system("counter_inc", counter="n"),
+                             system("wait", ms=30), text("B")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.on_runtime_reset()
+
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.assertEqual(len(self.history()), 0)
+
+    def test_16_stop_during_perform_recheck_does_not_commit_twice(self):
+        self.trigger("f1", [call("f5"), text("X")], run_to_end=True)
+        self.trigger("f5", [system("counter_inc", counter="n"), text("A")])
+        self.perform_callback = self.runner.stop_run_to_end
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+        self.assertEqual(len(self.history()), 1)
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+
+    def test_17_call_success_sets_stop_skip_marker_for_caller(self):
+        self.trigger("f1", [call("f5"), system("stop"), text("Y")], run_to_end=True)
+        self.trigger("f5", [text("A")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+        self.assertIsNone(self.state.run_to_end_key)
+
+    def test_18_call_file_line_pause_resume_reads_line_again(self):
+        self.trigger("f1", [call("f5"), text("X")], run_to_end=True)
+        self.trigger("f5", [{"type": "file_line", "path": "rows.txt"}], delay=9)
+        self.poll_results[:] = [None, True]
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(len(self.begin_results), 1)
+        self.assertEqual(self.scheduler.delays[-1], 50)
+        self.runner.pause_run_to_end()
+        self.runner.resume_run_to_end()
+        self.scheduler.run_one()
+        self.assertEqual(len(self.begin_results), 2)
+        self.scheduler.run_one()
+        self.assertEqual(len(self.begin_results), 2)
+        self.scheduler.run_one()
+        self.assertEqual(len(self.begin_results), 2)
+        self.scheduler.run_one()
+        self.assertIsNone(self.state.run_to_end_key)
+
+        self.trigger_sets["set"] = []
+        self.state.history_for("set").clear()  # 前半の連続実行で積まれた履歴を消す
+        self.begin_results.clear()
+        self.errors.clear()
+        self.begin_result = None
+        self.trigger("f1", [call("f5")], run_to_end=True)
+        self.trigger("f5", [{"type": "file_line", "path": "rows.txt"}])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(len(self.history()), 0)
+
+        self.trigger_sets["set"] = []
+        self.state.history_for("set").clear()
+        self.begin_result = object()
+        self.poll_results[:] = [False]
+        self.trigger("f1", [call("f5")], run_to_end=True)
+        self.trigger("f5", [{"type": "file_line", "path": "rows.txt"}])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.scheduler.run_one()
+        self.assertIsNone(self.state.run_to_end_key)
+        self.assertEqual(len(self.history()), 0)
+
+    def test_19_call_free_run_to_end_keeps_existing_interval_sequence(self):
+        self.trigger("f1", [text("A"), text("B")], delay=7, run_to_end=True)
+        self.runner.handle_key("f1")
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+        self.assertEqual(self.scheduler.delays, [7])
+        self.scheduler.run_one()
+        self.assertEqual([item["value"] for item in self.performed], ["A", "B"])
+        self.assertIsNone(self.state.run_to_end_key)
 
 
 if __name__ == "__main__":
