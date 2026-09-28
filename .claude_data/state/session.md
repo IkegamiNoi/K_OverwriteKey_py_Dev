@@ -4,39 +4,41 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-28T12:00:00
-phase: `instructions/phase/40_sequence_call`（**進行中・task_01〜08 完了〔task_08 は実機目視待ち〕・task_09 レビュー済・task_09b WIP**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
+last_updated: 2026-09-29T12:00:00
+phase: `instructions/phase/40_sequence_call`（**進行中・task_01〜09d 完了・実機目視待ち**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
 直前の完了フェーズ = **phase 39**（停止・判断履歴 = `decisions_archive/39_sequence_stop.md`）。
-last_commit_location: `claude/idea-38-9877ba`
+last_commit_location: `claude/trigger-input-during-call-d13202`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 40 進行中（呼び出し op: call・暫定 29）。task_09b（統合レビューの修正）が WIP コミット済みで未レビュー・暫定 29 v0.5 の反映漏れあり。**
-mode: implementing
+focus: **phase 40 進行中（呼び出し op: call・暫定 29 v0.6）。task_09d まで完了。ユーザーの実機目視（task_08 の再目視 + v0.6 §4.7）待ち。**
+mode: verifying
 
 ## last_action
-ts: 2026-09-28T12:00:00
+ts: 2026-09-29T12:00:00
 who: main
 summary: |
-  【phase 40】暫定 29 v0.3 確定（ユーザー判断すべて推奨案）→ task_01〜08 を codex-implementer → verifier → reviewer でコミット
-  （domain/call_graph.py・application/call_context.py・sequence_runner/call_wait.py・call_run_to_end.py・編集ダイアログ・一覧・改名）。
-  reviewer で Codex の例示キー f5 の埋め込みを検出・修正 / 間隔の見出しを延ばすと既定幅を超える → 注記は編集ダイアログへ（暫定 29 v0.4）。
-  【task_09 統合】deep 修正して採用（M1〜M4）/ Codex P2 → ユーザー判断: 上限 10,000 を呼び出しの 1 ステップ全体で通して数える → task_09b を Codex 実装・`941dc7f` で WIP コミット（tests のみ実測 OK）。
+  task_08 実機目視: 項目 5（単発の呼び出し中に他のトリガーが動く）以外は問題なし → ユーザー判断で入力の扱いを見直し（暫定 29 v0.6 §4.7・decisions「task_08 実機目視」）:
+  処理中（連続実行の実行中・単発の file_line 読込中・単発の呼び出し中）は他を無視 / 止まっている間（待機・一時停止）は受け付ける / 単発の呼び出しに一時停止 /
+  一時停止中のものを捨てる操作（他の連続実行の開始・キーマップの切替・対象への戻す / 先頭へ）は警告（OK 既定・Esc）/ 削除は既存の確認 → 警告の 2 回 /
+  OK 後に状態が変わっていれば中止 / 単発の待機が処理中に明けたら何も送らず先行処理して押下を終える。敵対的レビュー（Codex）High 2 / Medium 1 を反映。
+  v0.5 の本文反映漏れも解消。task_09b（reviewer 完了可）/ task_09c（application・Codex delegating）/ task_09d（presentation・Codex）をコミット。
+  09c でテスト期待値の誤り 3 件（呼び出し後に呼び出し元の次を送る前提）をメインが修正。09d で「最前面」の漏れをメインが修正。
 result_files:
-  - keyseq/{domain/call_graph.py, application/call_context.py, application/sequence_runner/{call_wait,call_run_to_end,sequence_runner}.py, application/sequence_steps.py, presentation/dialogs/action_control_fields.py ほか}
-  - tests/{test_call_graph,test_call_context,test_sequence_runner_call}.py ほか / instructions/phase/40_sequence_call/* / .claude_data/state/*
+  - keyseq/application/sequence_runner/input_acceptance.py（新規）・call_wait.py・sequence_runner.py・app_state.py・sequence_history.py
+  - keyseq/presentation/app.py・controllers/keymap_panel/keymap_panel_controller.py / tests・tests_ui 関連
 verified:
   compile: clean
-  tests: OK（skipped 7・task_09b 後）
-  tests_ui: 630 ran OK（task_08 時点・task_09b 後は未実測）
-  smoke: pass（task_08 時点）
-  review: task_01〜08 reviewer 完了可 / task_09b 未レビュー
+  tests: 992 OK（skipped 7）
+  tests_ui: 635 OK
+  smoke: pass
+  review: task_09b / 09c / 09d reviewer 完了可
 
 ## next_action
-- **task_09b（統合レビューの修正）は Codex 実装済み・未コミット・未レビュー**。①tests_ui・smoke を verifier で実測 ②M2 のテストが修正前（一時停止を照合に含める）で落ちることを確認 ③reviewer → コミット。
-- **暫定 29 の v0.5 改訂が未反映**（編集スクリプトが失敗）。decisions.md「task_09 統合レビュー」と task_09b 定義の内容（上限 10,000 を呼び出しの 1 ステップ全体で通して数える / 連鎖は呼び出し元を含めない / エラー後の照合から一時停止を除く）を暫定 29 §4.2・§4.5 とヘッダへ手で反映する。
-- task_08 の実機目視 1〜8（ユーザー）→ task_10（正本反映・凍結・decisions_archive/40・current.md・/refactor_check〔L5 の重複・runner 543 行〕）。
-- **main へのマージはユーザーが行う**（ブランチ `claude/idea-38-9877ba`・phase 38〜40）。
+- **ユーザーの実機目視**: task_08 の項目 5 の代わりに §8-4b（処理中は他を無視・待機中は動く・単発の呼び出しの一時停止 / 再開・一時停止中に他が動く・警告のダイアログ 3 経路・削除の 2 回確認・待機明け）。
+- 目視 OK → task_10（正本反映・暫定 29 凍結・decisions_archive/40・current.md・/refactor_check〔L5 の重複・runner 539 行〕）。
+- 申し送り（任意）: `call_run_to_end.py` `_run_to_end_call_matches` のトークン照合は一時停止 1 回分のずれのみ吸収。
+- **main へのマージはユーザーが行う**。
 
 ## blockers
 - なし

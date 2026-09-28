@@ -219,6 +219,7 @@ class App(tk.Tk):
             notify_message=lambda msg: self._set_flash_message(msg),
             begin_file_line=self.action_executor.begin_file_line,
             poll_file_line=self.action_executor.poll_file_line,
+            confirm_discard=self._confirm_paused_discard,
         )
         self.state.reset_listeners.append(self.sequence_runner.on_runtime_reset)
 
@@ -269,6 +270,24 @@ class App(tk.Tk):
 
     def _get_send_guard_count(self) -> int:
         return int(self.action_executor.send_guard_count)
+
+    def _confirm_paused_discard(self, keys: tuple[str, ...]) -> bool:
+        key_list = "\n".join(keys)
+        # 別アプリの操作中でも見えるよう、表示中だけ親を最前面にする（フォーカスが取れない場合は受容・暫定 29 §4.7）
+        try:
+            self.attributes("-topmost", True)
+            self.lift()
+        except Exception:
+            pass
+        try:
+            return bool(messagebox.askokcancel(
+                "確認",
+                f"一時停止中の実行を破棄します。\n\n{key_list}\n\nよろしいですか？",
+                parent=self,
+                default="ok",
+            ))
+        finally:
+            self._apply_always_on_top()
 
     # ---------------- UI ----------------
     def _build_ui(self):

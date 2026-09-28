@@ -53,7 +53,8 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
     def test_keymap_switch_cancels_waits_only_when_keymap_changes(self):
         for changed in (True, False):
             target_id = "new" if changed else "old"
-            runner = SimpleNamespace(cancel_pending_waits=Mock())
+            runner = SimpleNamespace(cancel_pending_waits=Mock(), confirmation_active=False,
+                                     confirm_and_discard=Mock(return_value=True))
             service = SimpleNamespace(
                 get_active_keymap_id=Mock(side_effect=["old", target_id]),
                 set_active_keymap_id=Mock(return_value=changed), get_keymaps=Mock(return_value=[{"id": target_id}]),
