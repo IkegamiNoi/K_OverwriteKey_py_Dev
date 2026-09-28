@@ -7,7 +7,9 @@ from keyseq.application.sequence_history import (
     StepSnapshot, apply_control, cancel_pending_steps, commit_step, snapshot_for,
 )
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
-from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE
+from keyseq.domain.sequence_control import (
+    ACTION_TYPE_FILE_LINE, ACTION_TYPE_SYSTEM, OP_CALL, system_op,
+)
 from keyseq.application.sequence_steps import (
     LoopFrame, StepOutcome, StepResume, advance, after_normal_action,
     apply_deferred_counters, format_system_error_notification, reset_frames,
@@ -16,9 +18,10 @@ from keyseq.application.sequence_steps import (
 from keyseq.application.sequence_runner.file_line_wait import (
     FILE_LINE_POLL_INTERVAL_MS, FileLineWaitMixin,
 )
+from keyseq.application.sequence_runner.call_wait import CallWaitMixin
 
 
-class SequenceRunner(FileLineWaitMixin):
+class SequenceRunner(FileLineWaitMixin, CallWaitMixin):
     def __init__(
         self,
         *,
@@ -244,6 +247,14 @@ class SequenceRunner(FileLineWaitMixin):
                     key, outcome, snapshot, handle,
                     resume.initial_position if resume is not None else starting_position,
                 )
+                waiting = True
+                return
+            if (action_type == ACTION_TYPE_SYSTEM
+                    and system_op(action) == OP_CALL):
+                initial_position = (
+                    resume.initial_position if resume is not None else starting_position
+                )
+                self._start_single_call(key, actions, outcome, snapshot, initial_position)
                 waiting = True
                 return
             if self._perform_action(action) is False:

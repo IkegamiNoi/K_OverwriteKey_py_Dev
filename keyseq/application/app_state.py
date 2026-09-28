@@ -16,6 +16,8 @@ class PendingStep:
     resume: StepResume
     snapshot: StepSnapshot
     file_line: object | None = None
+    call: object | None = None
+    call_file_line: object | None = None
 
 
 @dataclass
