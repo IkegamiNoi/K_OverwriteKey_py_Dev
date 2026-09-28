@@ -81,6 +81,19 @@ class TriggerPanelActionEditTest(unittest.TestCase):
         self.addCleanup(patcher.stop)
         return factory, dialog
 
+    def add_call_targets(self):
+        self.app.data["keymaps"][0]["triggers"].extend([
+            {"key": "b", "label": "Back target", "actions": [
+                {"type": "system", "op": "back"},
+            ]},
+            {"key": "c", "label": "", "actions": []},
+        ])
+
+    def assert_call_dialog_options(self, factory):
+        kwargs = factory.call_args.kwargs
+        self.assertEqual(kwargs["call_candidates"], [("b", "Back target"), ("c", "")])
+        self.assertEqual(kwargs["call_check"]("b"), "戻す・先頭へのトリガーは呼び出せません")
+
     def test_add_inserts_after_selected_and_preserves_next_action(self):
         self.set_selection(0)
         next_action = self.trigger["actions"][1]
@@ -132,6 +145,24 @@ class TriggerPanelActionEditTest(unittest.TestCase):
 
         self.assertEqual(self.trigger["actions"][-1], {"type": "text", "text": "new"})
         self.assertEqual(self.app._indices["a"], 1)
+
+    def test_add_dialog_receives_call_candidates_without_owner_and_check(self):
+        self.add_call_targets()
+        self.set_selection(None)
+        factory, _dialog = self.install_dialog()
+
+        self.controller.add_action()
+
+        self.assert_call_dialog_options(factory)
+
+    def test_edit_dialog_receives_call_candidates_without_owner_and_check(self):
+        self.add_call_targets()
+        self.set_selection(0)
+        factory, _dialog = self.install_dialog()
+
+        self.controller.edit_action()
+
+        self.assert_call_dialog_options(factory)
 
     def test_add_with_append_off_and_no_selection_still_uses_end(self):
         self.set_selection(None)

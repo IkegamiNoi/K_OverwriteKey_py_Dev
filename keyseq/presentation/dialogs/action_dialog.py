@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import messagebox, ttk
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from pynput import mouse
 
@@ -19,7 +19,9 @@ if TYPE_CHECKING:
 
 class ActionDialog(tk.Toplevel):
     def __init__(self, parent: App, title: str, initial: dict | None = None, *, mode: str | None = None,
-                 counter_names: list[str] | None = None, config_root: str = ""):
+                 counter_names: list[str] | None = None, config_root: str = "",
+                 call_candidates: list[tuple[str, str]] | None = None,
+                 call_check: Callable[[str], str | None] | None = None):
         super().__init__(parent)
         self.parent = parent
         self.mode = mode
@@ -115,7 +117,11 @@ class ActionDialog(tk.Toplevel):
         self.mouse_hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(6, 0))
         self._build_drag_ui()
 
-        self.control_fields = ActionControlFields(frm, counter_names=counter_names or [], config_root=config_root, config_service=parent.config_service, mode=mode)
+        self.control_fields = ActionControlFields(
+            frm, counter_names=counter_names or [], config_root=config_root,
+            config_service=parent.config_service, mode=mode,
+            call_candidates=call_candidates, call_check=call_check,
+        )
         self.control_fields.system_frame.grid(row=4, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.control_fields.file_frame.grid(row=4, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.control_fields.system_frame.grid_remove()

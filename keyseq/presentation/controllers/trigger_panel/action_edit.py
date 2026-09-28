@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import messagebox
+from typing import Callable
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.call_graph import edit_call_violation
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM,
@@ -51,12 +53,15 @@ class ActionEditFlow:
         actions = trig.setdefault("actions", [])
         selected_index = self._trigger_panel.selected_action_index()
         key = normalize_key_name(trig.get("key", ""))
+        call_candidates, call_check = self._call_dialog_options(key)
         dialog = ActionDialog(
             self._app,
             title="追加",
             mode="add",
             counter_names=self._trigger_panel._counter_names(),
             config_root=getattr(self._app, "config_root", ""),
+            call_candidates=call_candidates,
+            call_check=call_check,
         )
         dialog.wait_window()
         position = int(self._app._indices.get(key, 0) or 0)
@@ -121,6 +126,8 @@ class ActionEditFlow:
             target_idx = paired_idx if system_op(current) == OP_LOOP_END else idx
             mode = "edit_loop"
         initial = actions[target_idx]
+        key = normalize_key_name(trig.get("key", ""))
+        call_candidates, call_check = self._call_dialog_options(key)
         ActionDialog(
             self._app,
             title="編集",
@@ -128,6 +135,8 @@ class ActionEditFlow:
             mode=mode,
             counter_names=self._trigger_panel._counter_names(),
             config_root=getattr(self._app, "config_root", ""),
+            call_candidates=call_candidates,
+            call_check=call_check,
         ).wait_window()
         result = getattr(self._app, "_dialog_result", None)
         if result:
@@ -214,3 +223,25 @@ class ActionEditFlow:
                 if isinstance(name, str) and name:
                     names.add(name)
         return sorted(names)
+
+    def _call_dialog_options(
+        self, owner_key: str,
+    ) -> tuple[list[tuple[str, str]], Callable[[str], str | None]]:
+        triggers = get_active_triggers(self._app.data)
+        candidates = []
+        for trigger in triggers:
+            key = normalize_key_name(trigger.get("key", ""))
+            if not key or key == owner_key:
+                continue
+            label = trigger.get("label", "")
+            candidates.append((key, label if isinstance(label, str) else ""))
+
+        def find_trigger(target: str) -> dict | None:
+            normalized = normalize_key_name(target)
+            return next(
+                (trigger for trigger in triggers
+                 if normalize_key_name(trigger.get("key", "")) == normalized),
+                None,
+            )
+
+        return candidates, lambda target: edit_call_violation(owner_key, target, find_trigger)

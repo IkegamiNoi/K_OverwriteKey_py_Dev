@@ -2,8 +2,9 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from typing import Any
+from typing import Any, Callable
 
+from keyseq.domain.config import normalize_key_name
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_FILE_LINE,
     ACTION_TYPE_SYSTEM,
@@ -12,6 +13,7 @@ from keyseq.domain.sequence_control import (
     ENCODING_SHIFT_JIS,
     ENCODING_UTF_8,
     OP_BACK,
+    OP_CALL,
     OP_COUNTER_INC,
     OP_COUNTER_RESET,
     OP_LOOP_START,
@@ -30,6 +32,7 @@ SYSTEM_OPERATIONS = {
     "カウンターを 0 に": OP_COUNTER_RESET,
     "待機": OP_WAIT,
     "停止": OP_STOP,
+    "呼び出し": OP_CALL,
     "戻す": OP_BACK,
     "先頭へ": OP_REWIND,
 }
@@ -46,12 +49,18 @@ class ActionControlFields:
     """Build and validate controls for system and file_line actions."""
 
     def __init__(self, parent: tk.Misc, *, counter_names: list[str], config_root: str,
-                 config_service: Any, mode: str | None) -> None:
+                 config_service: Any, mode: str | None,
+                 call_candidates: list[tuple[str, str]] | None = None,
+                 call_check: Callable[[str], str | None] | None = None) -> None:
         self.parent = parent
         self.counter_names = list(counter_names)
         self.config_root = config_root
         self.config_service = config_service
         self.mode = mode
+        self.call_candidates = list(call_candidates or [])
+        self.call_check = call_check
+        self._call_candidate_by_label: dict[str, tuple[str, str]] = {}
+        self._missing_call_target: str | None = None
         operation_labels = list(SYSTEM_OPERATIONS)
         if mode == "edit":
             operation_labels.remove("ループ")
@@ -101,6 +110,20 @@ class ActionControlFields:
         self.wait_label.grid(row=3, column=0, sticky="w", pady=(6, 0))
         self.wait_entry = ttk.Entry(self.system_frame, textvariable=self.wait_ms_var, width=12)
         self.wait_entry.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
+
+        self.call_target_var = tk.StringVar(value="")
+        self.call_target_label = ttk.Label(self.system_frame, text="呼び出し先")
+        self.call_target_label.grid(row=4, column=0, sticky="w", pady=(6, 0))
+        call_values = []
+        for key, target_label in self.call_candidates:
+            display = f"{key}: {target_label}" if target_label else key
+            call_values.append(display)
+            self._call_candidate_by_label[display] = (key, target_label)
+        self.call_target_combo = ttk.Combobox(
+            self.system_frame, textvariable=self.call_target_var,
+            values=call_values, state="readonly", width=32,
+        )
+        self.call_target_combo.grid(row=4, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
 
     def _build_file_fields(self) -> None:
         self.file_path_var = tk.StringVar(value="")
@@ -152,6 +175,8 @@ class ActionControlFields:
         self._show(self.system_counter_combo, counter_op)
         self._show(self.wait_label, op == OP_WAIT)
         self._show(self.wait_entry, op == OP_WAIT)
+        self._show(self.call_target_label, op == OP_CALL)
+        self._show(self.call_target_combo, op == OP_CALL)
 
     def _remember_loop_count(self, *_args) -> None:
         try:
@@ -178,6 +203,9 @@ class ActionControlFields:
             self.system_counter_var.set(str(action.get("counter", "")))
             self.wait_ms_var.set(str(action.get("ms", 1)))
             self.sync_system()
+            if op == OP_CALL:
+                target = normalize_key_name(str(action.get("target", "")))
+                self._select_call_target(target)
         elif action_type == ACTION_TYPE_FILE_LINE:
             self.file_path_var.set(str(action.get("path", "")))
             self.file_counter_var.set(str(action.get("counter", "")))
@@ -206,6 +234,8 @@ class ActionControlFields:
         result: dict[str, Any] = {"type": ACTION_TYPE_SYSTEM, "op": op}
         if op == OP_LOOP_START:
             return self._build_loop_result(label, result)
+        if op == OP_CALL:
+            return self._build_call_result(label, result)
         if op in (OP_COUNTER_INC, OP_COUNTER_RESET):
             counter = self.system_counter_var.get().strip()
             if not counter:
@@ -223,6 +253,43 @@ class ActionControlFields:
             result.update({"ms": milliseconds, "label": label})
         else:
             result["label"] = label
+        return result
+
+    def _select_call_target(self, target: str) -> None:
+        self._missing_call_target = None
+        for display, (key, _label) in self._call_candidate_by_label.items():
+            if key == target:
+                self.call_target_var.set(display)
+                return
+        if not target:
+            self.call_target_var.set("")
+            return
+        self._missing_call_target = target
+        placeholder = self._missing_call_display()
+        self.call_target_combo.configure(values=[placeholder, *self._call_candidate_by_label])
+        self.call_target_var.set(placeholder)
+
+    def _missing_call_display(self) -> str:
+        return f"{self._missing_call_target}（参照先なし）"
+
+    def _build_call_result(self, label: str, result: dict[str, Any]) -> dict[str, Any] | None:
+        display = self.call_target_var.get()
+        candidate = self._call_candidate_by_label.get(display)
+        if candidate is None:
+            if self._missing_call_target and display == self._missing_call_display():
+                messagebox.showerror(
+                    "入力エラー", f"呼び出し先のトリガーがありません（{self._missing_call_target}）"
+                )
+            else:
+                messagebox.showerror("入力エラー", "呼び出し先を選んでください")
+            return None
+        target = candidate[0]
+        if self.call_check is not None:
+            error = self.call_check(target)
+            if error:
+                messagebox.showerror("入力エラー", error)
+                return None
+        result.update({"target": target, "label": label})
         return result
 
     def _build_loop_result(self, label: str, result: dict[str, Any]) -> dict[str, Any] | None:
