@@ -10,6 +10,40 @@ from keyseq.presentation.controllers.action_list_rendering import (
     format_next_action_summary,
 )
 from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
+from keyseq.presentation.views.full_view.sequence_box import SequenceBox
+
+
+class _Value:
+    def __init__(self, value):
+        self.value = value
+
+    def get(self):
+        return self.value
+
+    def set(self, value):
+        self.value = value
+
+
+class _Entry:
+    def __init__(self):
+        self.state = None
+
+    def configure(self, *, state):
+        self.state = state
+
+
+class _Listbox:
+    def __init__(self):
+        self.items = []
+
+    def delete(self, _first, _last):
+        self.items.clear()
+
+    def insert(self, _index, item):
+        self.items.append(item)
+
+    def itemconfigure(self, _index, **_kwargs):
+        pass
 
 
 class ActionListRenderingTest(unittest.TestCase):
@@ -127,6 +161,146 @@ class ActionListRenderingTest(unittest.TestCase):
             ),
             "02. [text] hello",
         )
+
+    def test_call_rows_and_summary_resolve_active_trigger_labels(self):
+        app = SimpleNamespace(data={
+            "active_keymap_id": "active",
+            "keymaps": [
+                {"id": "active", "triggers": [
+                    {"key": "a", "label": ""},
+                    {"key": "z9", "label": " Target Label "},
+                    {"key": "f8", "label": "   "},
+                ]},
+                {"id": "inactive", "triggers": [
+                    {"key": "f7", "label": "Inactive"},
+                ]},
+            ],
+        })
+        app._selected_trigger_idx = 0
+        app._indices = {"a": 0}
+        app.state = SimpleNamespace(
+            loop_iterations_for=Mock(return_value={}), counters={}
+        )
+        app._active_trigger_set_id = Mock(return_value="active")
+        action_list = _Listbox()
+        app.full_view = SimpleNamespace(action_list=action_list)
+        controller = TriggerPanelController(app)
+        controller.select_next_action_row = Mock()
+        controller.sync_suppress_checkbox = Mock()
+        controller.sync_run_to_end_ui = Mock()
+        controller.update_status = Mock()
+        actions = [
+            {"type": "system", "op": "call", "target": "Z9", "label": "Launch"},
+            {"type": "system", "op": "call", "target": "f8"},
+            {"type": "system", "op": "call", "target": "f7"},
+            {"type": "text", "value": "unchanged"},
+        ]
+
+        app.data["keymaps"][0]["triggers"][0].update({
+            "key": "a", "actions": actions, "run_to_end": False,
+        })
+        controller.refresh_actions()
+
+        self.assertEqual(action_list.items[0], "01. [call] z9（Target Label）: Launch")
+        self.assertEqual(action_list.items[1], "02. [call] f8")
+        self.assertEqual(action_list.items[2], "03. [call] f7（参照先なし）")
+        self.assertEqual(action_list.items[3], "04. [text] unchanged")
+        app._find_trigger_by_key = Mock(return_value={"actions": [actions[0]]})
+        app._indices = {"z9": 0}
+        app.state = SimpleNamespace(
+            loop_iterations_for=Mock(return_value={}), counters={}
+        )
+        app._active_trigger_set_id = Mock(return_value="active")
+        self.assertEqual(
+            controller.get_next_action_summary("z9"),
+            "01. [call] z9（Target Label）: Launch",  # 制御アクションの要約は一覧と同じく行ラベルを含む
+        )
+
+    def test_delay_entry_stays_enabled_when_run_to_end_is_off_and_saves_value(self):
+        trigger = {"key": "a", "run_to_end": True, "run_to_end_delay_ms": 300}
+        entry = _Entry()
+        app = SimpleNamespace(
+            data={"active_keymap_id": "main", "keymaps": [
+                {"id": "main", "triggers": [trigger]},
+            ]},
+            _selected_trigger_idx=0,
+            ui_vars=SimpleNamespace(
+                run_to_end_var=_Value(False), run_to_end_delay_var=_Value("450")
+            ),
+            full_view=SimpleNamespace(sequence_box=SimpleNamespace(
+                run_to_end_delay_entry=entry
+            )),
+            mark_sequence_dirty=Mock(),
+        )
+        controller = TriggerPanelController(app)
+        controller.refresh_actions = Mock()
+        controller.update_status = Mock()
+
+        controller.update_run_to_end()
+        self.assertFalse(trigger["run_to_end"])
+        self.assertEqual(entry.state, "normal")
+        app.mark_sequence_dirty.reset_mock()
+        app.ui_vars.run_to_end_delay_var.set("450")  # 連続実行の切替で欄はトリガーの値へ同期されるので、入力し直す
+        controller.update_run_to_end_delay()
+        self.assertEqual(trigger["run_to_end_delay_ms"], 450)
+        app.mark_sequence_dirty.assert_called_once_with(trigger)
+
+    def test_delay_entry_stays_disabled_without_selected_trigger(self):
+        entry = _Entry()
+        app = SimpleNamespace(
+            data={"active_keymap_id": "main", "keymaps": [
+                {"id": "main", "triggers": []},
+            ]},
+            _selected_trigger_idx=None,
+            ui_vars=SimpleNamespace(
+                run_to_end_var=_Value(False), run_to_end_delay_var=_Value("300")
+            ),
+            full_view=SimpleNamespace(sequence_box=SimpleNamespace(
+                run_to_end_delay_entry=entry
+            )),
+        )
+
+        TriggerPanelController(app).sync_run_to_end_ui()
+
+        self.assertEqual(entry.state, "disabled")
+
+    def test_delay_heading_mentions_call_usage(self):
+        try:
+            root = tk.Tk()
+        except tk.TclError as error:
+            self.skipTest(f"Tk display is unavailable: {error}")
+        self.addCleanup(root.destroy)
+        root.withdraw()
+        app = SimpleNamespace(
+            trigger_panel=SimpleNamespace(
+                on_action_list_select=Mock(),
+                on_action_list_focus_index_change=Mock(),
+                on_action_double_click=Mock(),
+                add_action=Mock(), edit_action=Mock(), delete_action=Mock(),
+                move_action=Mock(), update_run_to_end=Mock(),
+                update_run_to_end_delay=Mock(),
+            ),
+            sequence_io=SimpleNamespace(
+                save_selected_sequence=Mock(),
+                save_selected_sequence_as=Mock(),
+                load_sequence_file=Mock(),
+            ),
+            ui_vars=SimpleNamespace(
+                run_to_end_var=tk.BooleanVar(root),
+                run_to_end_delay_var=tk.StringVar(root),
+            ),
+        )
+        box = SequenceBox(root, app)
+
+        def labels(widget):
+            result = []
+            for child in widget.winfo_children():
+                if child.winfo_class() == "TLabel":
+                    result.append(child.cget("text"))
+                result.extend(labels(child))
+            return result
+
+        self.assertIn("間隔(ms)", labels(box))
 
     def test_refresh_actions_applies_background_to_real_listbox(self):
         try:

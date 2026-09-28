@@ -124,6 +124,10 @@ class ActionControlFields:
             values=call_values, state="readonly", width=32,
         )
         self.call_target_combo.grid(row=4, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
+        self.call_note_label = ttk.Label(
+            self.system_frame, text="呼び出し先の「間隔(ms)」の間隔で実行します（連続実行 OFF でも使います）",
+        )
+        self.call_note_label.grid(row=5, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
     def _build_file_fields(self) -> None:
         self.file_path_var = tk.StringVar(value="")
@@ -177,6 +181,7 @@ class ActionControlFields:
         self._show(self.wait_entry, op == OP_WAIT)
         self._show(self.call_target_label, op == OP_CALL)
         self._show(self.call_target_combo, op == OP_CALL)
+        self._show(self.call_note_label, op == OP_CALL)
 
     def _remember_loop_count(self, *_args) -> None:
         try:

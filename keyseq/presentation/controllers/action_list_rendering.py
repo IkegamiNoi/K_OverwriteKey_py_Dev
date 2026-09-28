@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Mapping, Sequence
-from typing import Any
+from typing import Any, Callable
 
 from keyseq.domain.config import format_action_list_item
 from keyseq.domain.sequence_control import analyze_loops, loop_depth_style
@@ -27,6 +27,7 @@ def build_action_rows(
     *,
     loop_iterations: Mapping[int, int],
     counters: Mapping[str, int],
+    resolve_call: Callable[[Any], tuple[str, str | None]] | None = None,
 ) -> list[tuple[str, str | None]]:
     """表示文字列と行ごとのループ背景色を返す。"""
     structure = analyze_loops(actions)
@@ -39,6 +40,7 @@ def build_action_rows(
             action,
             loop_iteration=loop_iterations.get(index),
             counters=counters,
+            resolve_call=resolve_call,
         )
         rows.append((item_text, background))
     return rows
@@ -50,6 +52,7 @@ def format_next_action_summary(
     *,
     loop_iterations: Mapping[int, int],
     counters: Mapping[str, int],
+    resolve_call: Callable[[Any], tuple[str, str | None]] | None = None,
 ) -> str:
     """省略表示の要約を作る。制御アクションは一覧と同じ値表示にする。"""
     action_kind = (action.get("type") or "").strip().lower()
@@ -59,6 +62,7 @@ def format_next_action_summary(
             action,
             loop_iteration=loop_iterations.get(index),
             counters=counters,
+            resolve_call=resolve_call,
         )
 
     if action_kind == "mouse_click":

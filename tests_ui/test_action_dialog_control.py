@@ -214,6 +214,18 @@ class ActionDialogControlTest(unittest.TestCase):
         self.assertTrue(missing.winfo_exists())
         self.assertEqual(self.showerror.call_args.args[1], "呼び出し先のトリガーがありません（z9）")
 
+    def test_call_note_about_interval_is_shown_only_for_call(self) -> None:
+        dialog = self.make_dialog(call_candidates=[("f6", "")])
+        dialog.type_var.set("system")
+        fields = dialog.control_fields
+        fields.system_op_var.set("呼び出し")
+        fields.sync_system()
+        self.assertTrue(fields.call_note_label.winfo_manager())
+        self.assertIn("間隔(ms)", fields.call_note_label.cget("text"))
+        fields.system_op_var.set("待機")
+        fields.sync_system()
+        self.assertFalse(fields.call_note_label.winfo_manager())
+
     def test_system_operation_order_remains_unchanged_around_call(self) -> None:
         values = list(self.make_dialog().control_fields.system_op_combo.cget("values"))
         self.assertLess(values.index("停止"), values.index("呼び出し"))

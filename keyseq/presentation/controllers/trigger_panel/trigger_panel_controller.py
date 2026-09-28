@@ -191,6 +191,7 @@ class TriggerPanelController:
             actions,
             loop_iterations=loop_iterations,
             counters=counters,
+            resolve_call=self._resolve_call_target,
         )
         for i, (item_text, background) in enumerate(rows):
             self._app.full_view.action_list.insert(tk.END, item_text)
@@ -280,7 +281,7 @@ class TriggerPanelController:
             sequence_box = getattr(getattr(self._app, "full_view", None), "sequence_box", None)
             run_to_end_delay_entry = getattr(sequence_box, "run_to_end_delay_entry", None)
             if run_to_end_delay_entry is not None:
-                run_to_end_delay_entry.configure(state=("normal" if self._app.ui_vars.run_to_end_var.get() else "disabled"))
+                run_to_end_delay_entry.configure(state="normal")
         except Exception:
             pass
 
@@ -344,7 +345,15 @@ class TriggerPanelController:
             a,
             loop_iterations=loop_iterations,
             counters=self._app.state.counters,
+            resolve_call=self._resolve_call_target,
         )
+
+    def _resolve_call_target(self, target: str) -> tuple[str, str | None]:
+        key = normalize_key_name(target)
+        for trigger in get_active_triggers(self._app.data):
+            if normalize_key_name(trigger.get("key", "")) == key:
+                return key, (trigger.get("label") or "").strip()
+        return key, None
 
     # ---------------- run_to_end / suppress ----------------
     def update_run_to_end_delay(self, _event=None):
