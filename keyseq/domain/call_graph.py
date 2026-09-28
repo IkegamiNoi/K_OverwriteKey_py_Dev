@@ -36,6 +36,25 @@ def call_targets(actions: Sequence[Any]) -> list[str]:
     return [target for action in actions if (target := call_target(action))]
 
 
+def rename_call_targets(
+    actions: Sequence[dict], old_key: str, new_key: str
+) -> list[dict] | None:
+    old = normalize_key_name(old_key)
+    new = normalize_key_name(new_key)
+    if not old or old == new:
+        return None
+
+    renamed: list[dict] = []
+    changed = False
+    for action in actions:
+        copied = dict(action)
+        if call_target(action) == old:
+            copied["target"] = new
+            changed = True
+        renamed.append(copied)
+    return renamed if changed else None
+
+
 def _entry(trigger: Mapping[str, Any] | None) -> CallEntry | None:
     if trigger is None:
         return None

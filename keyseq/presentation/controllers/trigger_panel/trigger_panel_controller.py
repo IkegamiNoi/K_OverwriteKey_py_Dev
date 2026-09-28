@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox
 
+from keyseq.domain.call_graph import rename_call_targets
 from keyseq.domain.keymap_triggers import ensure_active_triggers, get_active_triggers
 from keyseq.domain.config import (
     DEFAULT_RUN_TO_END_DELAY_MS,
@@ -487,6 +488,15 @@ class TriggerPanelController:
             self._app.state.rekey_trigger(self._app._active_trigger_set_id(), old, new)
         t["key"] = new
         t["label"] = new_label
+        if old != new:
+            for trigger in get_active_triggers(self._app.data):
+                actions = trigger.get("actions", [])
+                if not isinstance(actions, list):
+                    continue
+                renamed_actions = rename_call_targets(actions, old, new)
+                if renamed_actions is not None:
+                    trigger["actions"] = renamed_actions
+                    self._app.mark_sequence_dirty(trigger)
         self.refresh_triggers()
         if old != new:
             self._app.dirty_tracker.mark_trigger_set_dirty()

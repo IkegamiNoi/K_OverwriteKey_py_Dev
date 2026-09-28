@@ -158,6 +158,46 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         self.assertEqual(app._indices, {"b": 1})
         self.assertEqual(events, [("a",), "rekey"])
 
+    def test_rename_trigger_updates_call_targets_without_changing_other_history(self):
+        trigger = {"key": "z7", "label": "renamed", "actions": []}
+        caller = {
+            "key": "caller",
+            "label": "caller",
+            "actions": [{"type": "system", "op": "call", "target": " Z7 "}],
+        }
+        untouched = {"key": "untouched", "label": "", "actions": [{"type": "text", "value": "x"}]}
+        frames = {"z7": ["renamed-frame"], "caller": ["caller-frame"], "untouched": ["untouched-frame"]}
+        indices = {"z7": 2, "caller": 3, "untouched": 4}
+        service = SimpleNamespace(
+            key_exists=Mock(return_value=False), is_stop_key_conflict=Mock(return_value=False),
+            is_toggle_key_conflict=Mock(return_value=False),
+        )
+        app = SimpleNamespace(
+            data={"keymaps": [{"id": "main", "triggers": [trigger, caller, untouched]}], "active_keymap_id": "main"},
+            _indices=indices,
+            state=SimpleNamespace(loop_frames_for=Mock(return_value=frames), rekey_trigger=Mock()),
+            sequence_runner=SimpleNamespace(cancel_pending_wait=Mock()),
+            _active_trigger_set_id=Mock(return_value="main"), trigger_service=service,
+            keymap_service=SimpleNamespace(get_keymap_by_switch_key=Mock(return_value=None)),
+            _key_overlap_report=Mock(return_value=SimpleNamespace(active_source_keys=set())),
+            dirty_tracker=SimpleNamespace(mark_trigger_set_dirty=Mock()), mark_sequence_dirty=Mock(),
+            hook=SimpleNamespace(hook_active=False),
+        )
+        controller = TriggerPanelController.__new__(TriggerPanelController)
+        controller._app = app
+        controller.selected_trigger = Mock(return_value=trigger)
+        controller.refresh_triggers = Mock()
+        dialog = SimpleNamespace(result={"key": "z8", "label": "renamed"}, wait_window=Mock())
+
+        with patch.object(trigger_module, "TriggerDialog", return_value=dialog):
+            controller.rename_trigger()
+
+        self.assertEqual(caller["actions"], [{"type": "system", "op": "call", "target": "z8"}])
+        self.assertEqual(app.mark_sequence_dirty.call_args_list, [unittest.mock.call(caller)])
+        self.assertEqual(app._indices, {"z8": 2, "caller": 3, "untouched": 4})
+        self.assertEqual(frames, {"z8": ["renamed-frame"], "caller": ["caller-frame"], "untouched": ["untouched-frame"]})
+        self.assertEqual(app.state.rekey_trigger.call_args.args, ("main", "z7", "z8"))
+
     def test_add_action_uses_position_after_dialog_wait(self):
         trigger = {"key": "f1", "actions": [{"value": "one"}, {"value": "two"}]}
         runner = SimpleNamespace(reset_loop_frames=Mock())

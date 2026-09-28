@@ -5,6 +5,7 @@ from keyseq.domain.call_graph import (
     call_targets,
     collect_call_snapshot,
     edit_call_violation,
+    rename_call_targets,
 )
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS
 
@@ -31,6 +32,35 @@ class CallTargetTest(unittest.TestCase):
 
     def test_call_targets_keeps_occurrence_order_and_duplicates(self):
         self.assertEqual(call_targets([call("F5"), call("f6"), call(" f5 "), call("")]), ["f5", "f6", "f5"])
+
+
+class RenameCallTargetsTest(unittest.TestCase):
+    def test_renames_matching_calls_and_copies_rows_without_mutating_source(self):
+        original = [
+            call(" F5 "),
+            {"type": "text", "value": "keep", "label": "text"},
+            {"type": "system", "op": "call", "target": "f6", "label": "other"},
+            {"type": "system", "op": "call", "target": "f5", "label": "second"},
+        ]
+
+        renamed = rename_call_targets(original, "f5", "Z8")
+
+        self.assertEqual(
+            renamed,
+            [
+                call("z8"),
+                original[1],
+                original[2],
+                {"type": "system", "op": "call", "target": "z8", "label": "second"},
+            ],
+        )
+        self.assertEqual(original[0]["target"], " F5 ")
+        self.assertIsNot(renamed, original)
+        self.assertTrue(all(copy is not source for copy, source in zip(renamed, original)))
+
+    def test_returns_none_when_no_rewrite_is_needed(self):
+        self.assertIsNone(rename_call_targets([call("f6")], "f5", "f7"))
+        self.assertIsNone(rename_call_targets([call("f5")], "F5", " f5 "))
 
 
 class CollectCallSnapshotTest(unittest.TestCase):
