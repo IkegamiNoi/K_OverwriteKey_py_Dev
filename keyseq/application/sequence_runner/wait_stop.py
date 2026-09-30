@@ -20,6 +20,9 @@ class WaitStopMixin:
             self.state.counters,
             allow_wrap=pending.position != 0 and not pending.resume.wrapped,
             processed=pending.resume.processed,
+            wrapped=pending.resume.wrapped,
+            deferred_counters=pending.resume.deferred_counters,
+            wait_mode="skip",
         )
         self._save_progress(key, settled.position, settled.frames,
                             settled.deferred_counters)
@@ -65,6 +68,8 @@ class WaitStopMixin:
             allow_wrap=False,
             processed=resume.processed,
             stop_ends_run=self._run_to_end_sent,
+            deferred_counters=resume.deferred_counters,
+            wait_mode="skip",
         )
         deltas = resume.counter_deltas + settled.counter_deltas
         position = settled.position
@@ -74,7 +79,7 @@ class WaitStopMixin:
             deferred = ()
         if settled.stopped:
             deltas, position = self._settle_after_stopped_sequence(
-                key, actions, position, settled.frames, resume.processed, deltas,
+                key, actions, position, settled.frames, settled.processed, deltas,
             )
         else:
             self._save_progress(key, position, settled.frames, deferred)

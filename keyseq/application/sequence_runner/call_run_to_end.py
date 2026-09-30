@@ -295,9 +295,12 @@ class CallRunToEndMixin:
         self._run_to_end_sent = True
         self._run_to_end_resume = None
         self._run_to_end_wait_position = None
-        deltas, position, stopped = self._finish_run_to_end_normal_action(
-            key, actions, index, resume,
+        deltas, position, stopped, waiting = self._finish_run_to_end_normal_action(
+            key, actions, index, resume, snapshot,
         )
+        if waiting:
+            self._select_trigger(key)
+            return
         commit_step(self.state, snapshot, deltas)
         self._run_to_end_snapshot = None
         self._select_trigger(key)

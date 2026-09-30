@@ -67,9 +67,10 @@ class FileLineWaitMixin:
         if result:
             actions = trigger.get("actions", [])
             deltas = self._finish_single_normal_action(
-                key, actions, pending.position, pending.resume,
+                key, actions, pending.position, pending.resume, pending.snapshot,
             )
-            commit_step(self.state, pending.snapshot, deltas)
+            if deltas is not None:
+                commit_step(self.state, pending.snapshot, deltas)
         else:
             commit_step(self.state, pending.snapshot, pending.resume.counter_deltas)
         self._select_trigger(key)
@@ -158,9 +159,12 @@ class FileLineWaitMixin:
             trigger = self._find_trigger(key)
             actions = trigger.get("actions", []) if trigger is not None else []
             index = self._get_index(key)
-            deltas, position, stopped = self._finish_run_to_end_normal_action(
-                key, actions, index, resume,
+            deltas, position, stopped, waiting = self._finish_run_to_end_normal_action(
+                key, actions, index, resume, snapshot,
             )
+            if waiting:
+                self._select_trigger(key)
+                return
             stop = position == 0 or stopped
         else:
             deltas = resume.counter_deltas

@@ -173,11 +173,12 @@ class SequenceStepsTest(unittest.TestCase):
         counters = {"n": 0}
         waiting = advance(
             actions, 1, [], counters, wrap_once=False,
-            deferred_counters=(("counter_inc", "n"),),
+            deferred_counters=(("counter_inc", "n"),), in_call=True,
         )
         stopped = advance(
             actions, waiting.resume_position, [], counters,
             wrap_once=False, resume=waiting.resume, stop_ends_run=True,
+            in_call=True,
         )
         self.assertTrue(stopped.stopped)
         self.assertEqual(stopped.position, 3)
@@ -232,6 +233,27 @@ class SequenceStepsTest(unittest.TestCase):
                 self.assertEqual((settled.position, settled.frames), (1, []))
                 self.assertEqual(settled.counter_deltas, ())
                 self.assertEqual(counters, {})
+
+    def test_settle_wait_mode_returns_wait_row_after_send(self):
+        actions = [NORMAL, control("wait", ms=5), control("wait", ms=7), NORMAL]
+
+        settled = settle_after_normal(
+            actions, 1, [], {}, allow_wrap=True, wait_mode="wait",
+        )
+
+        self.assertEqual((settled.position, settled.wait_ms), (1, 5))
+        self.assertEqual(settled.processed, 1)
+
+    def test_settle_skip_mode_skips_consecutive_waits(self):
+        actions = [NORMAL, control("wait", ms=5), control("wait", ms=7), NORMAL]
+
+        settled = settle_after_normal(
+            actions, 1, [], {}, allow_wrap=True, wait_mode="skip",
+        )
+
+        self.assertEqual(settled.position, 3)
+        self.assertEqual(settled.processed, 2)
+        self.assertIsNone(settled.wait_ms)
 
     def test_settle_error_rows_keep_their_state(self):
         cases = [
@@ -377,13 +399,13 @@ class SequenceStepsTest(unittest.TestCase):
                    control("counter_reset", counter="n"), NORMAL]
         counters = {}
 
-        waiting = advance(actions, 0, [], counters, wrap_once=False)
+        waiting = advance(actions, 0, [], counters, wrap_once=False, in_call=True)
         self.assertEqual(waiting.counter_deltas, (("n", 1),))
         self.assertEqual(waiting.resume.counter_deltas, (("n", 1),))
 
         continued = advance(
             actions, waiting.resume_position, waiting.frames, counters,
-            wrap_once=False, resume=waiting.resume,
+            wrap_once=False, resume=waiting.resume, in_call=True,
         )
         self.assertEqual(continued.normal_index, 3)
         self.assertEqual(continued.counter_deltas, (("n", 1), ("n", -1)))
@@ -408,11 +430,11 @@ class SequenceStepsTest(unittest.TestCase):
         actions = [control("wait", ms=1), NORMAL]
         counters = {"n": 1}
         waiting = advance(actions, 0, [], counters, wrap_once=False,
-                          deferred_counters=(("counter_inc", "n"),))
+                          deferred_counters=(("counter_inc", "n"),), in_call=True)
         self.assertEqual(counters["n"], 2)
         continued = advance(actions, waiting.resume_position, waiting.frames,
                             counters, wrap_once=False, resume=waiting.resume,
-                            deferred_counters=(("counter_inc", "n"),))
+                            deferred_counters=(("counter_inc", "n"),), in_call=True)
         self.assertEqual(counters["n"], 2)
         self.assertEqual(continued.counter_deltas, (("n", 1),))
 
@@ -447,11 +469,11 @@ class SequenceStepsTest(unittest.TestCase):
                          [LoopFrame(8, 3)], {}, wrap_once=False)
         self.assertEqual(broken.frames, [LoopFrame(8, 3)])
 
-    def test_wait_returns_wait_row_and_resume_state(self):
+    def test_wait_returns_wait_row_and_resume_state_in_call_context(self):
         actions = [control("counter_inc", counter="n"), control("wait", ms="25"), NORMAL]
         counters = {}
 
-        outcome = advance(actions, 0, [], counters, wrap_once=False)
+        outcome = advance(actions, 0, [], counters, wrap_once=False, in_call=True)
 
         self.assertEqual(outcome.wait_ms, 25)
         self.assertEqual(outcome.position, 1)  # 中断位置は待機の行
@@ -464,9 +486,22 @@ class SequenceStepsTest(unittest.TestCase):
 
         continued = advance(
             actions, outcome.resume_position, outcome.frames, counters,
-            wrap_once=False, resume=outcome.resume,
+            wrap_once=False, resume=outcome.resume, in_call=True,
         )
         self.assertEqual(continued.normal_index, 2)
+
+    def test_advance_skips_wait_before_first_send(self):
+        actions = [control("counter_inc", counter="n"),
+                   control("wait", ms="25"), NORMAL]
+        counters = {}
+
+        outcome = advance(actions, 0, [], counters, wrap_once=False)
+
+        self.assertIsNone(outcome.wait_ms)
+        self.assertIsNone(outcome.resume_position)
+        self.assertEqual(outcome.normal_index, 2)
+        self.assertEqual(outcome.counter_deltas, (("n", 1),))
+        self.assertEqual(counters, {"n": 1})
 
     def test_invalid_wait_duration_is_an_error_at_wait_row(self):
         for value in ("invalid", "1.5", 0, -1, None):
@@ -479,13 +514,13 @@ class SequenceStepsTest(unittest.TestCase):
 
     def test_wait_at_end_resumes_through_normal_end_handling(self):
         actions = [control("wait", ms=5)]
-        outcome = advance(actions, 0, [], {}, wrap_once=True)
+        outcome = advance(actions, 0, [], {}, wrap_once=True, in_call=True)
         self.assertEqual(outcome.wait_ms, 5)
         self.assertEqual((outcome.position, outcome.resume_position), (0, 1))
 
         ended = advance(
             actions, outcome.resume_position, outcome.frames, {},
-            wrap_once=True, resume=outcome.resume,
+            wrap_once=True, resume=outcome.resume, in_call=True,
         )
         self.assertTrue(ended.reached_end)
         self.assertIsNone(ended.normal_index)
@@ -494,11 +529,11 @@ class SequenceStepsTest(unittest.TestCase):
     def test_resume_stops_at_original_start_position_after_wrap(self):
         actions = [control("wait", ms=1), control("counter_inc", counter="n")]
         counters = {}
-        waiting = advance(actions, 0, [], counters, wrap_once=True)
+        waiting = advance(actions, 0, [], counters, wrap_once=True, in_call=True)
 
         ended = advance(
             actions, waiting.resume_position, waiting.frames, counters,
-            wrap_once=True, resume=waiting.resume,
+            wrap_once=True, resume=waiting.resume, in_call=True,
         )
 
         self.assertEqual(counters, {"n": 1})
@@ -508,27 +543,26 @@ class SequenceStepsTest(unittest.TestCase):
     def test_processing_limit_is_carried_across_waits(self):
         actions = [control("loop_start", infinite=True), control("wait", ms=1),
                    control("loop_end")]
-        outcome = advance(actions, 0, [], {}, wrap_once=False)
+        outcome = settle_after_normal(actions, 0, [], {}, allow_wrap=False,
+                                      wait_mode="wait")
         self.assertEqual(outcome.wait_ms, 1)
-        self.assertEqual(outcome.resume.processed, 2)
+        self.assertEqual(outcome.processed, 2)
 
         for _ in range(4999):
-            outcome = advance(
-                actions, outcome.resume_position, outcome.frames, {},
-                wrap_once=False, resume=outcome.resume,
+            outcome = settle_after_normal(
+                actions, outcome.position + 1, outcome.frames, {}, allow_wrap=False,
+                processed=outcome.processed, wait_mode="wait",
             )
             self.assertEqual(outcome.wait_ms, 1)
 
-        self.assertEqual(outcome.resume.processed, 10000)
-        limited = advance(
-            actions, outcome.resume_position, outcome.frames, {},
-            wrap_once=False, resume=outcome.resume,
+        self.assertEqual(outcome.processed, 10000)
+        limited = settle_after_normal(
+            actions, outcome.position + 1, outcome.frames, {}, allow_wrap=False,
+            processed=outcome.processed, wait_mode="wait",
         )
-        self.assertEqual(limited.error[0], 2)
-        self.assertIn("10000", limited.error[1])
+        self.assertIsNone(limited.wait_ms)  # 10,000 に達したら黙って止まる
+        self.assertEqual(limited.position, 2)
 
-
-class AppStateLoopFramesTest(unittest.TestCase):
     def test_lifetime_and_counters(self):
         state = AppState()
         state.counters["shared"] = 7

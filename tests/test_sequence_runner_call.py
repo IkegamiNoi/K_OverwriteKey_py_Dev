@@ -292,6 +292,27 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.state.counters.get("n", 0), 1)
         self.assertEqual(len(self.history("f3")), 1)
 
+    def test_successful_call_then_parent_wait_resumes_without_sending(self):
+        self.trigger("f1", [call("f5"), system("wait", ms=13), text("X")])
+        self.trigger("f5", [text("A")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()  # 呼び出しの成功後、呼び出し元の待機へ進む
+
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+        self.assertEqual(self.index("f1"), 1)
+        self.assertEqual(self.scheduler.delays[-1], 13)
+        self.assertIn(("set", "f1"), self.state.pending_steps)
+
+        self.scheduler.run_one()
+
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+        self.assertEqual(self.index("f1"), 2)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+
+        self.runner.handle_key("f1")
+        self.assertEqual([item["value"] for item in self.performed], ["A", "X"])
+
     def test_06_rechecks_pending_after_perform_returns_true_or_false(self):
         for result in (False, True):
             with self.subTest(result=result):

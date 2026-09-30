@@ -4,41 +4,41 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-09-29T15:00:00
-phase: `instructions/phase/40_sequence_call`（**進行中・task_01〜09e 完了・実機目視待ち**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
+last_updated: 2026-10-01T12:00:00
+phase: `instructions/phase/40_sequence_call`（**進行中・task_01〜09f 完了・task_09f の実機目視待ち**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
 直前の完了フェーズ = **phase 39**（停止・判断履歴 = `decisions_archive/39_sequence_stop.md`）。
-last_commit_location: `claude/trigger-input-during-call-d13202`
+last_commit_location: `claude/wait-line-focus-control-831cea`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 40 進行中（暫定 29 v0.7）。task_09e（ダイアログ廃止・ステータスバーの通知・戻す / 先頭への 2 回押し・待機中に止めたら次の送る行へ）まで完了。ユーザーの実機目視待ち。**
+focus: **phase 40 進行中（暫定 29 v0.8）。task_09f（待機は送った後の待ち・送る前の待機は読み飛ばす・連続実行は待機の前に間隔なし）まで完了。ユーザーの実機目視待ち。**
 mode: verifying
 
 ## last_action
-ts: 2026-09-29T15:00:00
+ts: 2026-10-01T12:00:00
 who: main
 summary: |
-  task_08 実機目視（項目 5 以外 OK）→ 暫定 29 v0.6（処理中は他を無視・止まっている間は受け付ける・単発の呼び出しに一時停止・捨てる前の警告ダイアログ）→ task_09b/09c/09d をコミット。
-  task_09d 実機目視 → ダイアログは操作中のアプリからフォーカスを奪うため不可 → 暫定 29 v0.7（ユーザー判断・decisions「task_09d 実機目視」）:
-  ダイアログ廃止・ステータスバーの通知 / 一時停止の保持は残す（呼び出しの途中から再開のため）/ 戻す・先頭へで対象が一時停止中なら 1 回目は通知だけ・続けて 2 回目で捨てて実行 /
-  他の連続実行の開始・キーマップの切替は捨てて通知（削除は既存の確認だけ）/ **待機中に止めたら（一時停止・停止操作・取り消し・捨てる）待機を終えた扱いで次の送る行へ**（単発・連続とも。正本の「待機の行に残る」を改める）。
-  task_09e を Codex（delegating）で実装。実測で 2 件差し戻し（連続実行の待機中の停止で停止の行を通過 / file_line 読込中の pause→stop で位置 0）→ 修正・`2c8f1cc` でコミット。
+  task_09e 実機目視: 項目 2〜4 OK。項目 1（待機）で 3 点（連続実行の待機中にフォーカスが次の行へ / 単発がタイマー的挙動 / 待機の行で止めても進まない）→ 暫定 29 v0.8（ユーザー判断・decisions「task_09e 実機目視」）:
+  待機は直前に送った行の後の待ち（送った後の先行処理で同じステップ内で待つ・明けても送らない・待機中の「次に実行」は待機の行）/ 送る前に達した待機はすべて読み飛ばす /
+  連続実行は待機の前に間隔なし / 止めた後・停止の行の後は続く待機も読み飛ばす（Codex 敵対的レビュー High1・Medium1 を反映・ユーザー確定）。`28d1148` で仕様・task_09f 起票をコミット。
+  task_09f を Codex（delegating・サブエージェント使用）で実装（application のみ・settle の `wait_mode` stop/wait/skip・`StepResume.deferred_counters`）。
+  verifier で 5 件 fail → いずれもテスト期待値の誤り（実装は仕様どおり）→ メインで修正。reviewer 完了可（指摘 1 = 連続実行の到達不能な待機分岐 → メインで削除）。
 result_files:
-  - keyseq/application/sequence_runner/{input_acceptance,wait_stop（新規）,sequence_runner,call_wait}.py・app_state.py・sequence_history.py
-  - keyseq/presentation/app.py・controllers/keymap_panel/keymap_panel_controller.py / tests・tests_ui 関連 / instructions/history/29_sequence_call.md（v0.7）
+  - keyseq/application/sequence_steps.py・sequence_runner/{sequence_runner,wait_stop,file_line_wait,call_wait,call_run_to_end}.py
+  - tests/test_sequence_{steps,runner,runner_stop,runner_call,runner_file_line}.py / instructions/phase/40_sequence_call/{phase.md,tasks/task_09f_wait_after_send.md}
 verified:
   compile: clean
-  tests: 995 OK（skipped 7）
+  tests: 1003 OK（skipped 7）
   tests_ui: 634 OK
   smoke: pass
-  review: task_09b / 09c / 09d / 09e reviewer 完了可
+  review: task_09f reviewer 完了可
 
 ## next_action
-- **ユーザーの実機目視（task_09e）**: ①待機中に一時停止 / フック停止 → 位置が次の送る行・再開でそこから / 単発の待機中に他の連続実行・フック停止でも同じ
-  ②一時停止中に他の連続実行を開始 → ダイアログなしで捨てて通知 ③キーマップの切替 / 削除でも捨てて通知（削除は既存の確認だけ・完了の通知は破棄の通知で置き換わる点も確認）
-  ④戻す / 先頭へで対象が一時停止中 → 1 回目は通知だけ・続けてもう一度で実行・間に他の押下で 1 回目に戻る。
-- 目視 OK → task_10（正本反映〔v0.7 の §4.7・待機中の停止の規定改訂を含む〕・暫定 29 凍結・decisions_archive/40・current.md・/refactor_check〔L5 の重複・runner 548 行〕）。
-- 申し送り（任意）: `call_run_to_end.py` `_run_to_end_call_matches` のトークン照合は一時停止 1 回分のずれのみ吸収。
+- **ユーザーの実機目視（task_09f）**: ①単発 `[A, 待機, B]`: 押すと A → 待機中は待機の行にフォーカス → 明けたら B の行へ移り何も送らない / 次の押下で B
+  ②位置が待機の行・先頭が待機なら待たずに次を送る ③連続実行: 待機の前に間隔なし・待機中は待機の行 ④待機中にフック停止・一時停止 → 次の送る行へ（続く待機も飛ばす）
+  ⑤連続実行 `[A, 停止, 待機, B]` は A の後に待たずに終えて位置 B。
+- 目視 OK → task_10（正本反映〔v0.7 §4.7・v0.8 §4.8＝features.md §4.2.1・§4.2.2・§4.2.5 の改訂を含む〕・暫定 29 凍結・decisions_archive/40・current.md・/refactor_check〔L5 の重複・runner 行数〕）。
+- 申し送り（任意）: `StepOutcome.wait_ms` / `resume_position` / `resume` は in_call 専用になった（コメント追加は任意）/ `call_run_to_end.py` `_run_to_end_call_matches` のトークン照合は一時停止 1 回分のずれのみ吸収。
 - **main へのマージはユーザーが行う**。
 
 ## blockers

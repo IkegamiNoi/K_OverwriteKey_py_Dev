@@ -4,7 +4,7 @@ from unittest.mock import Mock, call
 from keyseq.application.action_executor import ActionExecutor
 from keyseq.application.app_state import AppState
 from keyseq.application.sequence_runner import SequenceRunner
-from keyseq.application.sequence_steps import LoopFrame, StepResume
+from keyseq.application.sequence_steps import LoopFrame
 
 
 class FakeScheduler:
@@ -151,7 +151,7 @@ class SystemActionRunnerTest(unittest.TestCase):
         self.assertEqual(seen[-2:], [(A1, 2), (file_line, 2)])
 
     def test_settle_stops_at_control_and_error_rows_without_early_notification(self):
-        for op in ("wait", "back", "rewind", "unknown"):
+        for op in ("back", "rewind", "unknown"):  # 送った後の待機は同じ押下で待つ（v0.8・別テスト）
             with self.subTest(op=op):
                 action = {"type": "system", "op": op, "ms": 4}
                 runner, state, scheduler, performed = make_runner(
@@ -216,18 +216,23 @@ class SystemActionRunnerTest(unittest.TestCase):
         self.assertEqual(state.history_for("")["f1"], [])
         self.assertEqual(performed, [A1])
 
-    def test_single_wait_continuation_settles_after_normal_action(self):
-        actions = [{"type": "system", "op": "wait", "ms": 1}, A1,
-                   {"type": "system", "op": "counter_inc", "counter": "n"}, A2]
+    def test_single_wait_after_send_resumes_at_next_send_without_sending(self):
+        wait = {"type": "system", "op": "wait", "ms": 1}
+        actions = [A1, wait, {"type": "system", "op": "counter_inc", "counter": "n"}, A2]
         runner, state, scheduler, performed = make_runner([{"key": "f1", "actions": actions}])
         runner.handle_key("f1")
-        self.assertEqual(performed, [])
+        self.assertEqual(performed, [A1])
+        self.assertEqual(state.indices["f1"], 1)
+        runner.handle_key("f1")  # 待機中の同じキーは無視
+        self.assertEqual(performed, [A1])
         scheduler.run_pending()
         self.assertEqual(performed, [A1])
         self.assertEqual(state.indices["f1"], 3)
         self.assertEqual(state.counters, {})
         self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
         self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [])
+        runner.handle_key("f1")
+        self.assertEqual(performed[1], A2)
 
     def test_deferred_counter_applies_once_before_wait_and_survives_resume(self):
         actions = [A1, {"type": "system", "op": "counter_inc", "counter": "n"},
@@ -237,9 +242,11 @@ class SystemActionRunnerTest(unittest.TestCase):
         self.assertEqual(state.counters, {})
         self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
         runner.handle_key("f1")
+        self.assertEqual(performed, [A1])  # 待機中は同じキーを無視
+        scheduler.run_pending()
+        runner.handle_key("f1")
         self.assertEqual(state.counters["n"], 1)
         self.assertEqual(state.deferred_counters["f1"], [])
-        scheduler.run_pending()
         self.assertEqual(performed, [A1, A2])
         self.assertEqual(state.counters["n"], 1)
         self.assertEqual(state.history_for("")["f1"][-1].counter_deltas, [("n", 1)])
@@ -471,7 +478,7 @@ class BackRewindRunnerTest(unittest.TestCase):
     def test_pending_target_only_shows_waiting_message(self):
         target = {
             "key": "f1", "run_to_end": False,
-            "actions": [A1, {"type": "system", "op": "wait", "ms": 13}, A2],
+            "actions": [A1, A2, {"type": "system", "op": "wait", "ms": 13}, A1],
         }
         selected = []
         messages = []
@@ -488,9 +495,9 @@ class BackRewindRunnerTest(unittest.TestCase):
 
         self.assertEqual(messages, ["対象のトリガーが待機中のため操作できません"])
         self.assertEqual(selected, ["f2"])
-        self.assertEqual(performed, [A1])
+        self.assertEqual(performed, [A1, A2])
         self.assertEqual(len(scheduler.queue), 1)
-        self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(state.indices["f1"], 2)
         self.assertEqual(len(state.history_for("")["f1"]), 1)
         self.assertEqual(state.last_trigger, ("", "f1"))
 
@@ -499,7 +506,7 @@ class BackRewindRunnerTest(unittest.TestCase):
             "key": "f1", "run_to_end": False,
             "actions": [
                 {"type": "system", "op": "counter_inc", "counter": "n"},
-                {"type": "system", "op": "wait", "ms": 17}, A1,
+                A1, {"type": "system", "op": "wait", "ms": 17}, A2,
             ],
         }
         runner, state, scheduler, performed = make_runner(
@@ -507,13 +514,13 @@ class BackRewindRunnerTest(unittest.TestCase):
         )
 
         runner.handle_key("f1")
-        self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(state.indices["f1"], 2)
         self.assertEqual(state.counters["n"], 1)
         self.assertEqual(state.history_for(""), {})
         self.assertEqual(state.last_trigger, None)
 
         runner.cancel_pending_wait("f1")
-        self.assertEqual(state.indices["f1"], 2)  # 待機を終え、次の送る行へ進む
+        self.assertEqual(state.indices["f1"], 3)  # 待機を終え、次の送る行へ進む
         self.assertEqual(len(state.history_for("")["f1"]), 1)
         self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [("n", 1)])
         self.assertEqual(state.last_trigger, ("", "f1"))
@@ -523,7 +530,7 @@ class BackRewindRunnerTest(unittest.TestCase):
         self.assertEqual(state.indices["f1"], 0)
         self.assertEqual(state.counters["n"], 0)
         self.assertEqual(state.history_for("")["f1"], [])
-        self.assertEqual(performed, [])
+        self.assertEqual(performed, [A1])
 
     def test_continuous_run_records_each_completed_step(self):
         trigger = {
@@ -805,59 +812,117 @@ class ActionExecutorRunnerTest(unittest.TestCase):
 
 
 class WaitSequenceRunnerTest(unittest.TestCase):
-    def test_single_wait_resumes_with_next_action(self):
+    def test_single_wait_at_start_is_skipped(self):
         trigger = {"key": "f1", "run_to_end": False,
                    "actions": [{"type": "system", "op": "wait", "ms": "17"}, A1]}
         runner, state, scheduler, performed = make_runner([trigger])
 
         runner.handle_key("f1")
 
-        self.assertEqual(performed, [])
-        self.assertEqual(state.indices["f1"], 0)  # 単発の保留中は待機行を保持
+        self.assertEqual(performed, [A1])  # 先頭の待機より先に A を送る
+        self.assertIn(("", "f1"), state.pending_steps)  # 回り込み後の待機
+        self.assertEqual(state.indices["f1"], 0)
         self.assertEqual(scheduler.delays, [17])
-        pending = state.pending_steps[("", "f1")]
-        self.assertEqual(pending.position, 1)  # 続きは待機の次から
-        self.assertIsInstance(pending.resume, StepResume)
-        self.assertEqual(len(scheduler.queue), 1)
-
         scheduler.run_pending()
-
         self.assertEqual(performed, [A1])
         self.assertNotIn(("", "f1"), state.pending_steps)
+        self.assertEqual(state.indices["f1"], 1)
         self.assertEqual(state.reentry_guard, set())
+
+    def test_counter_then_wait_at_start_is_skipped(self):
+        trigger = {"key": "f1", "run_to_end": False, "actions": [
+            {"type": "system", "op": "counter_inc", "counter": "n"},
+            {"type": "system", "op": "wait", "ms": 17}, A1,
+        ]}
+        runner, state, scheduler, performed = make_runner([trigger])
+
+        runner.handle_key("f1")
+
+        self.assertEqual(performed, [A1])  # counter と待機を通過してすぐ送る
+        self.assertEqual(state.counters.get("n"), 1)
+        self.assertEqual(scheduler.delays, [17])  # 送信後の回り込みで待機
+
+    def test_continuous_wait_at_start_is_skipped(self):
+        trigger = {"key": "f1", "run_to_end": True, "run_to_end_delay_ms": 12,
+                   "actions": [{"type": "system", "op": "wait", "ms": 17}, A1]}
+        runner, state, scheduler, performed = make_runner([trigger])
+
+        runner.handle_key("f1")
+
+        self.assertEqual(performed, [A1])
+        self.assertEqual(scheduler.delays, [])
+        self.assertIsNone(state.run_to_end_key)
+
+    def test_invalid_wait_before_first_send_reports_error_without_waiting(self):
+        trigger = {"key": "f1", "run_to_end": False, "actions": [
+            {"type": "system", "op": "wait", "ms": "invalid"}, A1,
+        ]}
+        runner, state, scheduler, performed = make_runner([trigger])
+        runner._notify_error = Mock()
+
+        runner.handle_key("f1")
+
+        self.assertEqual(performed, [])
+        self.assertEqual(scheduler.delays, [])
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(runner._notify_error.call_count, 1)
 
     def test_continuation_can_wait_again_and_old_generation_is_ignored(self):
         trigger = {
             "key": "f1", "run_to_end": False,
             "actions": [
+                A1,
                 {"type": "system", "op": "wait", "ms": 2},
                 {"type": "system", "op": "wait", "ms": 3},
-                A1,
+                A2,
             ],
         }
         runner, state, scheduler, performed = make_runner([trigger])
 
         runner.handle_key("f1")
+        self.assertEqual(performed, [A1])
+        self.assertEqual(state.indices["f1"], 1)
         first_callback = scheduler.queue[0][1]
         first_generation = state.pending_steps[("", "f1")].generation
         scheduler.run_one()
 
         second_pending = state.pending_steps[("", "f1")]
         self.assertGreater(second_pending.generation, first_generation)
-        self.assertEqual(second_pending.position, 2)
-        self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(second_pending.position, 3)
+        self.assertEqual(state.indices["f1"], 2)
         self.assertEqual(scheduler.delays, [2, 3])
 
         first_callback()  # 古い世代の callback は新しい保留を消さない
-        self.assertEqual(performed, [])
+        self.assertEqual(performed, [A1])
         self.assertIn(("", "f1"), state.pending_steps)
         scheduler.run_pending()
         self.assertEqual(performed, [A1])
+        self.assertEqual(state.indices["f1"], 3)
+        runner.handle_key("f1")
+        self.assertEqual(performed[1], A2)
+
+    def test_stopping_at_first_of_consecutive_waits_skips_the_rest(self):
+        trigger = {"key": "f1", "run_to_end": False, "actions": [
+            A1,
+            {"type": "system", "op": "wait", "ms": 11},
+            {"type": "system", "op": "wait", "ms": 13},
+            A2,
+        ]}
+        runner, state, scheduler, performed = make_runner([trigger])
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [A1])
+        runner.cancel_pending_wait("f1")
+
+        self.assertEqual(performed, [A1])
+        self.assertEqual(state.indices["f1"], 3)
+        self.assertEqual(scheduler.queue, [])
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
 
     def test_pending_single_wait_blocks_same_key_but_allows_another_key(self):
         triggers = [
             {"key": "f1", "run_to_end": False,
-             "actions": [{"type": "system", "op": "wait", "ms": 9}, A1]},
+             "actions": [A1, {"type": "system", "op": "wait", "ms": 9}, A2]},
             {"key": "f2", "run_to_end": False, "actions": [A2]},
         ]
         runner, _state, scheduler, performed = make_runner(triggers)
@@ -865,12 +930,12 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         runner.handle_key("f1")
         runner.handle_key("f1")
         self.assertEqual(len(scheduler.queue), 1)
-        self.assertEqual(performed, [])
+        self.assertEqual(performed, [A1])
 
         runner.handle_key("f2")
-        self.assertEqual(performed, [A2])
+        self.assertEqual(performed, [A1, A2])
         scheduler.run_pending()
-        self.assertEqual(performed, [A2, A1])
+        self.assertEqual(performed, [A1, A2])
 
     def test_cancelled_wait_callbacks_are_stale_and_advance_past_wait(self):
         cancel_operations = (
@@ -882,7 +947,7 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         for name, cancel in cancel_operations:
             with self.subTest(operation=name):
                 trigger = {"key": "f1", "run_to_end": False,
-                           "actions": [{"type": "system", "op": "wait", "ms": 11}, A1]}
+                           "actions": [A1, {"type": "system", "op": "wait", "ms": 11}, A2]}
                 runner, state, scheduler, performed = make_runner([trigger])
                 runner.handle_key("f1")
                 stale_callback = scheduler.queue[0][1]
@@ -893,16 +958,17 @@ class WaitSequenceRunnerTest(unittest.TestCase):
                 else:
                     stale_callback()  # 取消後も出列済みの callback が呼ばれた場合を再現
 
-                self.assertEqual(performed, [])
-                self.assertEqual(state.indices.get("f1", 0),
-                                 0 if name in ("reset indices", "reset frames") else 1)
+                self.assertEqual(performed, [A1])
+                # 位置変更・編集の経路（reset frames）は新しい位置が優先で待機の行に残る
+                expected = {"reset indices": 0, "reset frames": 1}.get(name, 2)
+                self.assertEqual(state.indices.get("f1", 0), expected)
                 self.assertNotIn(("", "f1"), state.pending_steps)
                 self.assertEqual(scheduler.queue, [])
 
     def test_callback_is_ignored_when_trigger_set_changes(self):
         current = {"id": "first"}
         trigger = {"key": "f1", "run_to_end": False,
-                   "actions": [{"type": "system", "op": "wait", "ms": 13}, A1]}
+                   "actions": [A1, {"type": "system", "op": "wait", "ms": 13}, A2]}
         runner, state, scheduler, performed = make_runner(
             [trigger], get_trigger_set_id=lambda: current["id"]
         )
@@ -912,8 +978,8 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         current["id"] = "second"
         stale_callback()
 
-        self.assertEqual(performed, [])
-        self.assertEqual(state.indices_for("first").get("f1"), 0)
+        self.assertEqual(performed, [A1])
+        self.assertEqual(state.indices_for("first").get("f1"), 1)
 
     def test_continuous_wait_uses_wait_duration_without_an_extra_interval(self):
         trigger = {
@@ -924,14 +990,12 @@ class WaitSequenceRunnerTest(unittest.TestCase):
 
         runner.handle_key("f1")
         self.assertEqual(performed, [A1])
-        scheduler.run_one()  # 通常間隔の後に待機行を処理
-
-        self.assertEqual(scheduler.delays, [3, 40])
-        self.assertEqual(state.indices["f1"], 2)  # 連続実行は待機の次を保存
+        self.assertEqual(scheduler.delays, [40])  # 待機の前に通常間隔を置かない
+        self.assertEqual(state.indices["f1"], 1)  # 待機中は待機の行
         scheduler.run_pending()
 
         self.assertEqual(performed, [A1, A2])
-        self.assertEqual(scheduler.delays, [3, 40])  # 待機後に通常間隔を足さない
+        self.assertEqual(scheduler.delays, [40, 0])  # 明けた後は間隔なしで次のステップ
         self.assertIsNone(state.run_to_end_key)
 
     def test_pausing_wait_discards_it_and_resume_starts_after_wait(self):
@@ -942,16 +1006,16 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         runner, state, scheduler, performed = make_runner([trigger])
 
         runner.handle_key("f1")
-        scheduler.run_one()  # interval callback reaches the wait
+        scheduler.run_one()  # 待機が明け、次のステップを予約する
         self.assertEqual(state.indices["f1"], 2)
-        self.assertEqual(scheduler.delays, [7, 50])
+        self.assertEqual(scheduler.delays, [50, 0])
 
         runner.handle_key("f1")
         self.assertTrue(state.run_to_end_paused)
         self.assertEqual(scheduler.queue, [])
         runner.handle_key("f1")
         self.assertFalse(state.run_to_end_paused)
-        self.assertEqual(scheduler.delays, [7, 50, 7])
+        self.assertEqual(scheduler.delays, [50, 0, 7])
         scheduler.run_pending()
 
         self.assertEqual(performed, [A1, A2])
@@ -960,7 +1024,7 @@ class WaitSequenceRunnerTest(unittest.TestCase):
     def test_other_continuous_run_cancels_single_wait(self):
         triggers = [
             {"key": "f1", "run_to_end": False,
-             "actions": [{"type": "system", "op": "wait", "ms": 19}, A1]},
+             "actions": [A1, {"type": "system", "op": "wait", "ms": 19}, A2]},
             {"key": "f2", "run_to_end": True, "run_to_end_delay_ms": 0,
              "actions": [A2]},
         ]
@@ -971,9 +1035,9 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         runner.handle_key("f2")
         stale_callback()
 
-        self.assertEqual(performed, [A2])
+        self.assertEqual(performed, [A1, A2])
         self.assertNotIn(("", "f1"), state.pending_steps)
-        self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(state.indices["f1"], 2)
         self.assertIsNone(state.run_to_end_key)
 
     def test_paused_continuous_run_accepts_another_single_trigger(self):
@@ -1016,8 +1080,8 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         trigger = {
             "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
             "actions": [
-                {"type": "system", "op": "counter_inc", "counter": "n"},
-                {"type": "system", "op": "wait", "ms": 25}, A1,
+                A1, {"type": "system", "op": "counter_inc", "counter": "n"},
+                {"type": "system", "op": "wait", "ms": 25}, A2,
             ],
         }
         back = {"key": "f2", "actions": [{"type": "system", "op": "back"}]}
@@ -1035,13 +1099,13 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         self.assertIn("一時停止中の実行を破棄しました（f1）", messages)
         self.assertIsNone(state.run_to_end_key)
         self.assertEqual(state.indices.get("f1", 0), 0)
-        self.assertEqual(state.counters.get("n"), 0)
+        self.assertEqual(state.counters.get("n", 0), 0)  # 待機をまたいで控えた操作は反映されずに捨てられる
         self.assertEqual(state.history_for("").get("f1", []), [])
 
     def test_single_wait_expiring_during_continuous_work_skips_next_action(self):
         triggers = [
             {"key": "f1", "run_to_end": False,
-             "actions": [{"type": "system", "op": "wait", "ms": 19}, A1]},
+             "actions": [A1, {"type": "system", "op": "wait", "ms": 19}, A2]},
             {"key": "f2", "run_to_end": True, "run_to_end_delay_ms": 10,
              "actions": [A2, A2]},
         ]
@@ -1056,21 +1120,21 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         self.assertEqual(state.run_to_end_key, "f2")
 
         scheduler.run_one()  # 単発待機が連続実行中に明ける
-        self.assertEqual(performed, [A2])
-        self.assertEqual(state.indices["f1"], 1)
+        self.assertEqual(performed, [A2, A1])
+        self.assertEqual(state.indices["f1"], 2)
         self.assertNotIn(("", "f1"), state.pending_steps)
 
         scheduler.run_pending()
         self.assertIsNone(state.run_to_end_key)
         runner.handle_key("f1")
-        self.assertEqual(performed, [A2, A2, A1])
+        self.assertEqual(performed[-2:], [A2, A2])
 
     def test_reset_loop_frames_during_paused_run_discards_old_wait_snapshot(self):
         trigger = {
             "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
             "actions": [
-                {"type": "system", "op": "counter_inc", "counter": "n"},
-                {"type": "system", "op": "wait", "ms": 25}, A1,
+                A1, {"type": "system", "op": "counter_inc", "counter": "n"},
+                {"type": "system", "op": "wait", "ms": 25}, A2,
             ],
         }
         runner, state, scheduler, performed = make_runner([trigger])
@@ -1082,16 +1146,16 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         runner.resume_run_to_end()
         scheduler.run_pending()
 
-        self.assertEqual(performed, [A1])
-        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(performed, [A1, A2])
+        self.assertEqual(state.counters.get("n", 0), 0)
         self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [])
 
     def test_stopping_during_continuous_wait_records_partial_step_for_back(self):
         trigger = {
             "key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,
             "actions": [
-                {"type": "system", "op": "counter_inc", "counter": "n"},
-                {"type": "system", "op": "wait", "ms": 25}, A1,
+                A1, {"type": "system", "op": "counter_inc", "counter": "n"},
+                {"type": "system", "op": "wait", "ms": 25}, A2,
             ],
         }
         back = {"key": "f2", "actions": [{"type": "system", "op": "back"}]}
@@ -1100,17 +1164,17 @@ class WaitSequenceRunnerTest(unittest.TestCase):
 
         runner.stop_run_to_end()
 
-        self.assertEqual(state.indices["f1"], 2)
-        self.assertEqual(state.counters["n"], 1)
+        self.assertEqual(state.indices["f1"], 3)
+        self.assertEqual(state.counters.get("n", 0), 0)
         self.assertEqual(len(state.history_for("")["f1"]), 1)
-        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [("n", 1)])
+        self.assertEqual(state.history_for("")["f1"][0].counter_deltas, [])
         self.assertEqual(state.last_trigger, ("", "f1"))
         self.assertEqual(scheduler.queue, [])
         runner.handle_key("f2")
         self.assertEqual(state.indices["f1"], 0)
-        self.assertEqual(state.counters["n"], 0)
+        self.assertEqual(state.counters.get("n", 0), 0)
         self.assertEqual(state.history_for("")["f1"], [])
-        self.assertEqual(performed, [])
+        self.assertEqual(performed, [A1])
 
     def test_pausing_and_resuming_continuous_wait_keeps_resume_semantics(self):
         trigger = {
@@ -1119,14 +1183,13 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         }
         runner, state, scheduler, performed = make_runner([trigger])
         runner.handle_key("f1")
-        self.assertEqual(len(state.history_for("")["f1"]), 1)
-        scheduler.run_one()  # 到達した待機を一時停止する
+        self.assertEqual(len(state.history_for("").get("f1", [])), 0)
         runner.pause_run_to_end()
         runner.resume_run_to_end()
         scheduler.run_pending()
 
         self.assertEqual(performed, [A1, A2])
-        self.assertEqual(len(state.history_for("")["f1"]), 3)
+        self.assertEqual(len(state.history_for("")["f1"]), 2)
         self.assertIsNone(state.run_to_end_key)
 
     def test_pausing_wait_settles_next_send_line_before_resume(self):
@@ -1137,11 +1200,10 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         }
         runner, state, scheduler, performed = make_runner([trigger])
         runner.handle_key("f1")
-        scheduler.run_one()
         runner.pause_run_to_end()
         self.assertEqual(state.indices["f1"], 3)
         self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
-        self.assertEqual(len(state.history_for("")["f1"]), 2)
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
         self.assertEqual(performed, [A1])
         runner.resume_run_to_end()
         self.assertEqual(scheduler.delays[-1], 12)
@@ -1156,10 +1218,9 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         }
         runner, state, scheduler, _performed = make_runner([trigger])
         runner.handle_key("f1")
-        scheduler.run_one()
         runner.stop_run_to_end()
         self.assertEqual(state.indices["f1"], 3)
-        self.assertEqual(len(state.history_for("")["f1"]), 2)
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
         self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
 
     def test_discarding_paused_wait_keeps_settled_position(self):
@@ -1170,16 +1231,18 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         }
         runner, state, scheduler, _performed = make_runner([trigger])
         runner.handle_key("f1")
-        scheduler.run_one()
         runner.pause_run_to_end()
         self.assertEqual(runner.discard_paused(), ("f1",))
         self.assertEqual(state.indices["f1"], 3)
-        self.assertEqual(len(state.history_for("")["f1"]), 2)
+        self.assertEqual(len(state.history_for("")["f1"]), 1)
         self.assertIsNone(state.run_to_end_key)
 
     def test_single_wait_cancel_and_other_continuous_start_settle_next_send_line(self):
-        first = {"key": "f1", "actions": [A1, {"type": "system", "op": "wait", "ms": 25},
-                                          {"type": "system", "op": "counter_inc", "counter": "n"}, A2]}
+        first = {"key": "f1", "actions": [
+            A1, {"type": "system", "op": "wait", "ms": 25},
+            {"type": "system", "op": "wait", "ms": 30},
+            {"type": "system", "op": "counter_inc", "counter": "n"}, A2,
+        ]}
         second = {"key": "f2", "run_to_end": True, "actions": [A1]}
         for start_other in (False, True):
             with self.subTest(start_other=start_other):
@@ -1190,8 +1253,8 @@ class WaitSequenceRunnerTest(unittest.TestCase):
                     runner.handle_key("f2")
                 else:
                     runner.cancel_pending_waits()
-                self.assertEqual(state.indices["f1"], 3)
-                self.assertEqual(len(state.history_for("")["f1"]), 2)
+                self.assertEqual(state.indices["f1"], 4)
+                self.assertEqual(len(state.history_for("")["f1"]), 1)
                 self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
 
     def test_system_runtime_error_notification_describes_action_and_label(self):
@@ -1216,7 +1279,6 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         }
         runner, state, scheduler, _performed = make_runner([trigger])
         runner.handle_key("f1")
-        scheduler.run_one()
 
         runner.stop_run_to_end()
 
@@ -1243,7 +1305,6 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         }
         runner, state, scheduler, _performed = make_runner([trigger])
         runner.handle_key("f1")
-        scheduler.run_one()
 
         runner.pause_run_to_end()
 
@@ -1262,15 +1323,14 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         runner, state, _scheduler, _performed = make_runner([trigger, back])
         runner.handle_key("f1")
         self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
-        runner.handle_key("f1")
         runner.cancel_pending_wait("f1")
 
-        self.assertEqual(state.counters["n"], 1)
-        self.assertEqual(state.deferred_counters["f1"], [])
-        runner.handle_key("f2")
-        self.assertEqual(state.indices["f1"], 2)
+        self.assertEqual(state.counters.get("n", 0), 0)
         self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
-        self.assertEqual(state.counters["n"], 0)
+        runner.handle_key("f2")
+        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(state.deferred_counters["f1"], [])
+        self.assertEqual(state.counters.get("n", 0), 0)
 
     def test_uppercase_wait_error_notification_includes_value(self):
         trigger = {"key": "f1", "actions": [{"type": "system", "op": "WAIT", "ms": 0}]}

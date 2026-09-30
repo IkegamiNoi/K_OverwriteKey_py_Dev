@@ -131,7 +131,7 @@ class SequenceRunnerStopTests(unittest.TestCase):
         self.assertIsNone(state2.run_to_end_key)
         self.assertEqual(scheduler2.queue, [])
 
-    def test_05_pause_and_resume_preserve_sent_marker_through_wait(self):
+    def test_05_wait_after_send_stops_at_following_stop(self):
         a = {"type": "text", "value": "A"}
         wait = {"type": "system", "op": "wait", "ms": 20}
         b = {"type": "text", "value": "B"}
@@ -140,15 +140,12 @@ class SequenceRunnerStopTests(unittest.TestCase):
         runner.handle_key("f1")
         self.assertTrue(runner._run_to_end_sent)
         scheduler.run_one()
-        self.assertEqual(state.indices["f1"], 2)
-        runner.pause_run_to_end()
-        self.assertTrue(runner._run_to_end_sent)
-        runner.resume_run_to_end()
-        self.assertTrue(runner._run_to_end_sent)
+        self.assertEqual(state.indices["f1"], 3)
         scheduler.run_pending()
 
         self.assertEqual(performed, [a])
         self.assertEqual(state.indices["f1"], 3)
+        self.assertEqual(scheduler.delays, [20])
         self.assertIsNone(state.run_to_end_key)
 
     def test_06_wait_continuation_stops_at_following_stop_without_interval(self):
@@ -162,7 +159,7 @@ class SequenceRunnerStopTests(unittest.TestCase):
 
         self.assertEqual(performed, [a])
         self.assertEqual(state.indices["f1"], 3)
-        self.assertEqual(scheduler.delays, [5, 20])
+        self.assertEqual(scheduler.delays, [20])
         self.assertIsNone(state.run_to_end_key)
 
     def test_07_stop_inside_loop_ends_each_run_and_preserves_loop_progress(self):
@@ -323,9 +320,6 @@ class SequenceRunnerStopTests(unittest.TestCase):
         )
 
         runner.handle_key("f1")
-        scheduler.run_one()
-        runner.pause_run_to_end()
-        runner.resume_run_to_end()
         scheduler.run_pending()
 
         self.assertEqual(performed, [a])
@@ -334,20 +328,19 @@ class SequenceRunnerStopTests(unittest.TestCase):
         self.assertEqual(state.deferred_counters_for("")["f1"], [("counter_inc", "n")])
         self.assertIsNone(state.run_to_end_key)
 
-    def test_12_pause_and_resume_during_wait_skips_following_stop(self):
+    def test_12_stop_row_skips_following_wait_without_waiting(self):
         wait = {"type": "system", "op": "wait", "ms": 20}
         a = {"type": "text", "value": "A"}
+        b = {"type": "text", "value": "B"}
         runner, state, scheduler, performed = self.make_runner(
-            [wait, self.stop(), a],
+            [a, self.stop(), wait, b],
         )
 
         runner.handle_key("f1")
-        runner.pause_run_to_end()
-        runner.resume_run_to_end()
-        scheduler.run_pending()
 
         self.assertEqual(performed, [a])
-        self.assertEqual(state.indices["f1"], 0)
+        self.assertEqual(state.indices["f1"], 3)
+        self.assertEqual(scheduler.delays, [])
         self.assertIsNone(state.run_to_end_key)
 
 

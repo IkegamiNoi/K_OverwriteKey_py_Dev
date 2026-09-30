@@ -297,6 +297,8 @@ class CallWaitMixin:
             return
         deltas = self._finish_single_normal_action(
             key, trigger.get("actions", []), pending.position, pending.resume,
+            pending.snapshot,
         )
-        commit_step(self.state, pending.snapshot, deltas)
+        if deltas is not None:
+            commit_step(self.state, pending.snapshot, deltas)
         self._select_trigger(key)

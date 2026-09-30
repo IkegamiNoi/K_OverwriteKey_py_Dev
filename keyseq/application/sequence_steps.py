@@ -23,6 +23,7 @@ class StepResume:
     wrapped: bool
     processed: int
     counter_deltas: tuple[tuple[str, int], ...] = ()
+    deferred_counters: tuple[tuple[str, str], ...] = ()
 
 
 def format_system_error_notification(
@@ -95,6 +96,7 @@ class SettleOutcome:
     deferred_counters: tuple[tuple[str, str], ...] = ()
     stopped: bool = False
     processed: int = 0
+    wait_ms: int | None = None
 
 
 def reset_frames(actions: Sequence[Any], position: int) -> list[LoopFrame]:
@@ -254,13 +256,16 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
                     (position, "待機時間が不正です（1 以上の整数・ミリ秒）"),
                     counter_deltas=tuple(counter_deltas), processed=processed,
                 )
-            return StepOutcome(None, position, current, wait_ms=wait_ms,
-                               resume_position=position + 1,
-                               resume=StepResume(
-                                   initial_position, wrapped, processed,
-                                   tuple(counter_deltas),
-                               ),
-                               counter_deltas=tuple(counter_deltas), processed=processed)
+            if in_call:
+                return StepOutcome(None, position, current, wait_ms=wait_ms,
+                                   resume_position=position + 1,
+                                   resume=StepResume(
+                                       initial_position, wrapped, processed,
+                                       tuple(counter_deltas),
+                                   ),
+                                   counter_deltas=tuple(counter_deltas), processed=processed)
+            position += 1
+            continue
         op = system_op(action)
         if op in (OP_BACK, OP_REWIND) and len(actions) > 1:
             return StepOutcome(None, position, current,
@@ -288,13 +293,14 @@ def settle_after_normal(actions: Sequence[Any], position: int,
                         frames: list[LoopFrame], counters: dict[str, int], *,
                         allow_wrap: bool, processed: int = 0,
                         stop_ends_run: bool = False,
-                        in_call: bool = False) -> SettleOutcome:
+                        in_call: bool = False, wait_mode: str = "stop",
+                        wrapped: bool = False,
+                        deferred_counters: Sequence[tuple[str, str]] = ()) -> SettleOutcome:
     """Prepare the next step without executing controls or reporting errors."""
     current = list(frames)
     deltas: list[tuple[str, int]] = []
-    deferred: list[tuple[str, str]] = []
+    deferred: list[tuple[str, str]] = list(deferred_counters)
     structure = analyze_loops(actions)
-    wrapped = False
     while True:
         if position == len(actions):
             position, current = 0, []
@@ -324,6 +330,21 @@ def settle_after_normal(actions: Sequence[Any], position: int,
                 )
             position += 1
             processed += 1
+            continue
+        if op == OP_WAIT and not in_call and wait_mode != "stop":
+            try:
+                wait_ms = int(action.get("ms"))
+            except (TypeError, ValueError, OverflowError):
+                wait_ms = 0
+            if wait_ms < 1:
+                break
+            processed += 1
+            if wait_mode == "wait":
+                return SettleOutcome(
+                    position, current, tuple(deltas), wrapped,
+                    tuple(deferred), processed=processed, wait_ms=wait_ms,
+                )
+            position += 1
             continue
         if op not in (OP_LOOP_START, OP_LOOP_END, OP_COUNTER_INC, OP_COUNTER_RESET):
             break

@@ -176,18 +176,20 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
         self.assertEqual(self.state.indices["f1"], 1)
         self.assertEqual(len(self.state.history["f1"]), 1)
 
-    def test_wait_then_file_line_completes_as_one_history_step(self):
+    def test_file_line_then_wait_completes_as_one_history_step(self):
         self.trigger("f1", [
             {"type": "system", "op": "counter_inc", "counter": "n"},
-            {"type": "system", "op": "wait", "ms": 5},
             self.file_line(),
+            {"type": "system", "op": "wait", "ms": 5},
             {"type": "text", "value": "after"},
         ])
         self.poll_results[:] = [True]
         self.runner.handle_key("f1")
         self.scheduler.run_one()
         pending = self.state.pending_steps[("", "f1")]
-        self.assertEqual(pending.position, 2)
+        self.assertEqual(pending.position, 3)
+        self.assertEqual(self.state.indices["f1"], 2)
+        self.assertEqual(self.scheduler.delays[-1], 5)
         self.scheduler.run_one()
         self.assertEqual(self.state.indices["f1"], 3)
         self.assertEqual(len(self.state.history["f1"]), 1)
@@ -436,6 +438,7 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
 
     def test_runtime_reset_stops_system_wait_and_ignores_its_scheduled_resume(self):
         self.run_to_end_trigger("f1", [
+            {"type": "text", "value": "before"},
             {"type": "system", "op": "wait", "ms": 5},
             {"type": "text", "value": "after"},
         ])
@@ -447,7 +450,7 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
         stale()
 
         self.assertIsNone(self.state.run_to_end_key)
-        self.assertEqual(self.performed, [])
+        self.assertEqual(self.performed, [{"type": "text", "value": "before"}])
         self.assertFalse(self.scheduler.queue)
         self.assertEqual(self.state.history, {})
 
@@ -488,6 +491,7 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
     def test_run_to_end_file_line_stale_poll_preserves_new_run_state(self):
         self.run_to_end_trigger("f1", [self.file_line()])
         self.run_to_end_trigger("f2", [
+            {"type": "text", "value": "before"},
             {"type": "system", "op": "wait", "ms": 5},
             {"type": "text", "value": "after"},
         ])
@@ -504,9 +508,9 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
         self.assertEqual(self.state.run_to_end_key, "f2")
         self.assertIsNotNone(self.runner._run_to_end_resume)
         self.assertIsNotNone(self.runner._run_to_end_snapshot)
-        self.assertEqual(self.runner._run_to_end_wait_position, 0)
+        self.assertEqual(self.runner._run_to_end_wait_position, 1)
         self.assertEqual(len(self.scheduler.queue), 1)
-        self.assertEqual(self.performed, [])
+        self.assertEqual(self.performed, [{"type": "text", "value": "before"}])
 
 if __name__ == "__main__":
     unittest.main()

@@ -9,10 +9,10 @@ from keyseq.application.sequence_history import (
 )
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
 from keyseq.domain.sequence_control import (
-    ACTION_TYPE_FILE_LINE, ACTION_TYPE_SYSTEM, OP_CALL, system_op,
+    ACTION_TYPE_FILE_LINE, ACTION_TYPE_SYSTEM, OP_CALL, OP_WAIT, system_op,
 )
 from keyseq.application.sequence_steps import (
-    LoopFrame, StepOutcome, StepResume, advance, after_normal_action,
+    LoopFrame, SettleOutcome, StepOutcome, StepResume, advance, after_normal_action,
     apply_deferred_counters, format_system_error_notification, reset_frames,
     resume_for_pending, settle_after_normal,
 )
@@ -124,16 +124,21 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, FileLineWaitMixin,
     def cancel_pending_waits(self) -> None:
         self._cancel_pending_steps()
 
-    def _queue_single_wait(self, key: str, outcome: StepOutcome, snapshot: StepSnapshot) -> None:
+    def _queue_single_wait(self, key: str, settled: SettleOutcome,
+                           resume: StepResume, snapshot: StepSnapshot) -> None:
         trigger_set_id = self._get_trigger_set_id()
         identity = (trigger_set_id, key)
+        continuation = StepResume(
+            resume.initial_position, settled.wrapped, settled.processed,
+            resume.counter_deltas + settled.counter_deltas, settled.deferred_counters,
+        )
         with self.state.lock:
             self.state.pending_step_generation += 1
             generation = self.state.pending_step_generation
-            pending = PendingStep(generation, None, outcome.resume_position, outcome.resume, snapshot)
+            pending = PendingStep(generation, None, settled.position + 1, continuation, snapshot)
             self.state.pending_steps[identity] = pending
         pending.after_id = self._after(
-            outcome.wait_ms,
+            settled.wait_ms,
             lambda: self._resume_single_wait(trigger_set_id, key, generation),
         )
 
@@ -143,44 +148,55 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, FileLineWaitMixin,
             pending = self.state.pending_steps.get(identity)
             if pending is None or pending.generation != generation:
                 return
-            self.state.pending_steps.pop(identity)
-        if self._get_trigger_set_id() != trigger_set_id:
-            return
-        trigger = self._find_trigger(key)
+        trigger = self._find_trigger(key) if self._get_trigger_set_id() == trigger_set_id else None
         if trigger is None:
+            with self.state.lock:
+                if self.state.pending_steps.get(identity) is pending:
+                    self.state.pending_steps.pop(identity)
             return
-        if self._active_key() is not None:
-            actions = trigger.get("actions", [])
-            settled = settle_after_normal(
-                actions, pending.position, self._get_frames(key), self.state.counters,
-                allow_wrap=pending.position != 0 and not pending.resume.wrapped,
-                processed=pending.resume.processed,
-            )
-            self._save_progress(key, settled.position, settled.frames,
-                                settled.deferred_counters)
+        settled = settle_after_normal(
+            trigger.get("actions", []), pending.position, self._get_frames(key),
+            self.state.counters, allow_wrap=not pending.resume.wrapped,
+            processed=pending.resume.processed, wrapped=pending.resume.wrapped,
+            deferred_counters=pending.resume.deferred_counters, wait_mode="wait",
+        )
+        self._save_progress(key, settled.position, settled.frames,
+                            settled.deferred_counters)
+        with self.state.lock:
+            if self.state.pending_steps.get(identity) is pending:
+                self.state.pending_steps.pop(identity)
+        if settled.wait_ms is not None:
+            self._queue_single_wait(key, settled, pending.resume, pending.snapshot)
+        else:
             commit_step(self.state, pending.snapshot,
                         pending.resume.counter_deltas + settled.counter_deltas)
-            self._select_trigger(key)
-            return
-        self._run_single_action(key, trigger.get("actions", []),
-                                position=pending.position, resume=pending.resume,
-                                snapshot=pending.snapshot)
+        self._select_trigger(key)
 
     def _finish_single_normal_action(
         self, key: str, actions: list[dict[str, Any]], index: int,
-        outcome: StepOutcome | StepResume,
-    ) -> tuple[tuple[str, int], ...]:
+        outcome: StepOutcome | StepResume, snapshot: StepSnapshot,
+    ) -> tuple[tuple[str, int], ...] | None:
         position, frames = after_normal_action(actions, index, self._get_frames(key))
         deferred = ()
         if not (position == 0 and outcome.wrapped):
             settled = settle_after_normal(
                 actions, position, frames, self.state.counters,
                 allow_wrap=position != 0 and not outcome.wrapped,
-                processed=outcome.processed,
+                processed=outcome.processed, wait_mode="wait",
+                wrapped=position == 0 or outcome.wrapped,
             )
             position, frames = settled.position, settled.frames
             deltas = outcome.counter_deltas + settled.counter_deltas
             deferred = settled.deferred_counters
+            if settled.wait_ms is not None:
+                self._save_progress(key, position, frames, deferred)
+                self._queue_single_wait(
+                    key, settled, StepResume(
+                        index, outcome.wrapped, outcome.processed,
+                        outcome.counter_deltas,
+                    ), snapshot,
+                )
+                return None
         else:
             deltas = outcome.counter_deltas
         self._save_progress(key, position, frames, deferred)
@@ -231,10 +247,6 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, FileLineWaitMixin,
                                   self._get_trigger_set_id()).get(key, ()),
                               on_control=on_control)
             self._save_progress(key, outcome.position, outcome.frames)
-            if outcome.wait_ms is not None:
-                self._queue_single_wait(key, outcome, snapshot)
-                waiting = True
-                return
             if outcome.error:
                 index, message = outcome.error
                 self._report_error(actions[index], message)
@@ -269,8 +281,9 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, FileLineWaitMixin,
             if self._perform_action(action) is False:
                 return
             outcome.counter_deltas = self._finish_single_normal_action(
-                key, actions, index, outcome,
+                key, actions, index, outcome, snapshot,
             )
+            waiting = outcome.counter_deltas is None
         finally:
             if not waiting and outcome is not None:
                 commit_step(self.state, snapshot, outcome.counter_deltas)
@@ -405,6 +418,12 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, FileLineWaitMixin,
                 return
             self._schedule_run_to_end_step(key, delay)
             return
+        if self._run_to_end_wait_position is not None and self._run_to_end_resume is not None:
+            index = self._run_to_end_wait_position
+            if (0 <= index < len(actions) and isinstance(actions[index], dict)
+                    and system_op(actions[index]) == OP_WAIT):
+                self._continue_run_to_end_wait(key, actions)
+                return
         self._perform_run_to_end_step(key, actions, delay)
 
     def _schedule_run_to_end_step(self, key: str, delay: int) -> None:
@@ -429,78 +448,74 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, FileLineWaitMixin,
                               self._get_trigger_set_id()).get(key, ()),
                           on_control=on_control,
                           stop_ends_run=self._run_to_end_sent)
-        self._save_progress(key, outcome.resume_position if outcome.wait_ms is not None
-                            else outcome.position, outcome.frames)
-        if outcome.wait_ms is not None:
-            self._run_to_end_resume = outcome.resume
-            self._run_to_end_snapshot = snapshot
-            self._run_to_end_wait_position = outcome.resume_position - 1
-            self._schedule_run_to_end_step(key, outcome.wait_ms)
-        else:
-            self._run_to_end_resume = None
-            self._run_to_end_wait_position = None
-            stop = outcome.error is not None or outcome.normal_index is None
-            if outcome.error:
-                index, message = outcome.error
-                self._report_error(actions[index], message)
-            elif outcome.normal_index is not None:
-                index = outcome.normal_index
-                action = actions[index]
-                raw_type = action.get("type")
-                action_type = raw_type.strip().lower() if isinstance(raw_type, str) else ""
-                if action_type == ACTION_TYPE_FILE_LINE:
-                    initial_position = (
-                        previous_resume.initial_position
-                        if previous_resume is not None else advance_position
-                    )
-                    if self._begin_run_to_end_file_line(
-                        key, action, index, outcome, snapshot, initial_position,
-                    ):
-                        self._select_trigger(key)
-                        if target is not None:
-                            self._select_trigger(target)
-                        return
-                    stop = True
-                elif (action_type == ACTION_TYPE_SYSTEM
-                      and system_op(action) == OP_CALL):
-                    initial_position = (
-                        previous_resume.initial_position
-                        if previous_resume is not None else advance_position
-                    )
-                    self._begin_run_to_end_call(
-                        key, actions, index, outcome, snapshot, initial_position,
-                    )
+        self._save_progress(key, outcome.position, outcome.frames)
+        self._run_to_end_resume = None
+        self._run_to_end_wait_position = None
+        stop = outcome.error is not None or outcome.normal_index is None
+        if outcome.error:
+            index, message = outcome.error
+            self._report_error(actions[index], message)
+        elif outcome.normal_index is not None:
+            index = outcome.normal_index
+            action = actions[index]
+            raw_type = action.get("type")
+            action_type = raw_type.strip().lower() if isinstance(raw_type, str) else ""
+            if action_type == ACTION_TYPE_FILE_LINE:
+                initial_position = (
+                    previous_resume.initial_position
+                    if previous_resume is not None else advance_position
+                )
+                if self._begin_run_to_end_file_line(
+                    key, action, index, outcome, snapshot, initial_position,
+                ):
                     self._select_trigger(key)
                     if target is not None:
                         self._select_trigger(target)
                     return
-                elif self._perform_action(action) is False:
-                    stop = True
-                else:
-                    self._run_to_end_sent = True
-                    outcome.counter_deltas, position, stopped = self._finish_run_to_end_normal_action(
-                        key, actions, index, outcome,
-                    )
-                    stop = position == 0 or stopped
-            elif outcome.stopped:
-                outcome.counter_deltas, _position = self._settle_after_stopped_sequence(
-                    key, actions, outcome.position, outcome.frames,
-                    outcome.processed, outcome.counter_deltas,
+                stop = True
+            elif (action_type == ACTION_TYPE_SYSTEM
+                  and system_op(action) == OP_CALL):
+                initial_position = (
+                    previous_resume.initial_position
+                    if previous_resume is not None else advance_position
                 )
-            commit_step(self.state, snapshot, outcome.counter_deltas)
-            if stop:
-                self.stop_run_to_end()
+                self._begin_run_to_end_call(
+                    key, actions, index, outcome, snapshot, initial_position,
+                )
+                self._select_trigger(key)
+                if target is not None:
+                    self._select_trigger(target)
+                return
+            elif self._perform_action(action) is False:
+                stop = True
             else:
-                self._schedule_run_to_end_step(key, delay)
-            self._run_to_end_snapshot = None
+                self._run_to_end_sent = True
+                outcome.counter_deltas, position, stopped, waiting = self._finish_run_to_end_normal_action(
+                    key, actions, index, outcome, snapshot,
+                )
+                if waiting:
+                    self._select_trigger(key)
+                    return
+                stop = position == 0 or stopped
+        elif outcome.stopped:
+            outcome.counter_deltas, _position = self._settle_after_stopped_sequence(
+                key, actions, outcome.position, outcome.frames,
+                outcome.processed, outcome.counter_deltas,
+            )
+        commit_step(self.state, snapshot, outcome.counter_deltas)
+        if stop:
+            self.stop_run_to_end()
+        else:
+            self._schedule_run_to_end_step(key, delay)
+        self._run_to_end_snapshot = None
         self._select_trigger(key)
         if target is not None:
             self._select_trigger(target)
 
     def _finish_run_to_end_normal_action(
         self, key: str, actions: list[dict[str, Any]], index: int,
-        outcome: StepOutcome | StepResume,
-    ) -> tuple[tuple[tuple[str, int], ...], int, bool]:
+        outcome: StepOutcome | StepResume, snapshot: StepSnapshot,
+    ) -> tuple[tuple[tuple[str, int], ...], int, bool, bool]:
         position, frames = after_normal_action(actions, index, self._get_frames(key))
         deferred = ()
         deltas = tuple(outcome.counter_deltas)
@@ -509,22 +524,76 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, FileLineWaitMixin,
             settled = settle_after_normal(
                 actions, position, frames, self.state.counters,
                 allow_wrap=False, processed=outcome.processed,
-                stop_ends_run=True,
+                stop_ends_run=True, wait_mode="wait",
             )
             position, frames = settled.position, settled.frames
             deltas += settled.counter_deltas
             deferred = settled.deferred_counters
             stopped = settled.stopped
+            if settled.wait_ms is not None:
+                self._queue_run_to_end_wait(key, settled, outcome, snapshot)
+                return deltas, position, False, True
         if (position == 0 or stopped) and deferred:
             deltas += apply_deferred_counters(deferred, self.state.counters)
             deferred = ()
         if stopped:
             deltas, position = self._settle_after_stopped_sequence(
-                key, actions, position, frames, outcome.processed, deltas,
+                key, actions, position, frames, settled.processed, deltas,
             )
         else:
             self._save_progress(key, position, frames, deferred)
-        return deltas, position, stopped
+        return deltas, position, stopped, False
+
+    def _queue_run_to_end_wait(
+        self, key: str, settled: SettleOutcome,
+        outcome: StepOutcome | StepResume, snapshot: StepSnapshot,
+    ) -> None:
+        self._run_to_end_resume = StepResume(
+            settled.position, settled.wrapped, settled.processed,
+            outcome.counter_deltas + settled.counter_deltas, settled.deferred_counters,
+        )
+        self._run_to_end_snapshot = snapshot
+        self._run_to_end_wait_position = settled.position
+        self._save_progress(key, settled.position, settled.frames,
+                            settled.deferred_counters)
+        self._schedule_run_to_end_step(key, settled.wait_ms)
+
+    def _continue_run_to_end_wait(self, key: str, actions: list[dict[str, Any]]) -> None:
+        resume = self._run_to_end_resume
+        snapshot = self._run_to_end_snapshot
+        index = self._run_to_end_wait_position
+        if resume is None or snapshot is None or index is None:
+            return
+        settled = settle_after_normal(
+            actions, index + 1, self._get_frames(key), self.state.counters,
+            allow_wrap=False, processed=resume.processed, stop_ends_run=True,
+            deferred_counters=resume.deferred_counters, wait_mode="wait",
+        )
+        if settled.wait_ms is not None:
+            self._queue_run_to_end_wait(key, settled, resume, snapshot)
+            self._select_trigger(key)
+            return
+        deltas = resume.counter_deltas + settled.counter_deltas
+        position, stopped = settled.position, settled.stopped
+        deferred = settled.deferred_counters
+        if (position == 0 or stopped) and deferred:
+            deltas += apply_deferred_counters(deferred, self.state.counters)
+            deferred = ()
+        if stopped:
+            deltas, position = self._settle_after_stopped_sequence(
+                key, actions, position, settled.frames, settled.processed, deltas,
+            )
+        else:
+            self._save_progress(key, position, settled.frames, deferred)
+        self._run_to_end_resume = None
+        self._run_to_end_wait_position = None
+        self._run_to_end_snapshot = None
+        commit_step(self.state, snapshot, deltas)
+        self._select_trigger(key)
+        if position == 0 or stopped:
+            self.stop_run_to_end()
+        else:
+            self._schedule_run_to_end_step(key, 0)
 
     def _settle_after_stopped_sequence(
         self, key: str, actions: list[dict[str, Any]], position: int,
@@ -537,6 +606,7 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, FileLineWaitMixin,
         settled = settle_after_normal(
             actions, position, frames, self.state.counters,
             allow_wrap=False, processed=processed, stop_ends_run=False,
+            wait_mode="skip",
         )
         position, frames = settled.position, settled.frames
         deltas += settled.counter_deltas
