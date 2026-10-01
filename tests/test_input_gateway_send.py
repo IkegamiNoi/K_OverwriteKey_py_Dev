@@ -178,6 +178,14 @@ class InputGatewaySendTests(unittest.TestCase):
                 self.gateway.write_text("text")
         restore.assert_called_once_with(reservation, 4)
 
+    def test_write_text_continues_after_ime_timeout_fallback(self) -> None:
+        with patch.object(input_gateway.ime_control, "disable_for_text", return_value=None), \
+             patch.object(input_gateway.keyboard, "write") as write, \
+             patch.object(input_gateway.ime_control, "restore_after_text") as restore:
+            self.gateway.write_text("text")
+        write.assert_called_once_with("text")
+        restore.assert_called_once_with(None, 4)
+
     def test_empty_write_does_not_touch_ime(self) -> None:
         with patch.object(input_gateway.ime_control, "disable_for_text") as disable, \
              patch.object(input_gateway.ime_control, "restore_after_text") as restore, \
@@ -186,6 +194,18 @@ class InputGatewaySendTests(unittest.TestCase):
         write.assert_called_once_with("")
         disable.assert_not_called()
         restore.assert_not_called()
+
+    def test_restore_ime_now_delegates(self) -> None:
+        with patch.object(input_gateway.ime_control, "restore_ime_now") as restore:
+            self.gateway.restore_ime_now()
+        restore.assert_called_once_with()
+
+    def test_restore_ime_now_logs_failure(self) -> None:
+        with patch.object(input_gateway.ime_control, "restore_ime_now",
+                          side_effect=OSError("restore failed")), self.assertLogs(
+            "keyseq.infrastructure.input_gateway", level="ERROR",
+        ):
+            self.gateway.restore_ime_now()
 
 
 class InputGatewayExtendedFlagTests(unittest.TestCase):

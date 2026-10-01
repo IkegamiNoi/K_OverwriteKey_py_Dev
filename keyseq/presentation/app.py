@@ -617,6 +617,7 @@ class App(tk.Tk):
                     pass
             self.hook.stop_hook()
         finally:
+            self.input_gateway.restore_ime_now()
             self.destroy()
 
 

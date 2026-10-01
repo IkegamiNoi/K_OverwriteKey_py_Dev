@@ -4,7 +4,8 @@ import ctypes
 import logging
 import sys
 import threading
-from dataclasses import dataclass
+import time
+from dataclasses import dataclass, field
 from typing import Callable
 
 
@@ -13,6 +14,8 @@ IME_RESTORE_PER_CHARACTER_DELAY_MS = 40
 WM_IME_CONTROL = 0x0283
 IMC_GETOPENSTATUS = 0x0005
 IMC_SETOPENSTATUS = 0x0006
+SMTO_ABORTIFHUNG = 0x0002
+IME_MESSAGE_TIMEOUT_MS = 200
 
 _logger = logging.getLogger(__name__)
 
@@ -49,10 +52,11 @@ class _Win32ImeApi:
         self._user32.GetGUIThreadInfo.restype = ctypes.c_int
         self._imm32.ImmGetDefaultIMEWnd.argtypes = [ctypes.c_void_p]
         self._imm32.ImmGetDefaultIMEWnd.restype = ctypes.c_void_p
-        self._user32.SendMessageW.argtypes = [
-            ctypes.c_void_p, ctypes.c_uint32, ctypes.c_size_t, ctypes.c_ssize_t
+        self._user32.SendMessageTimeoutW.argtypes = [
+            ctypes.c_void_p, ctypes.c_uint32, ctypes.c_size_t, ctypes.c_ssize_t,
+            ctypes.c_uint32, ctypes.c_uint32, ctypes.POINTER(ctypes.c_size_t),
         ]
-        self._user32.SendMessageW.restype = ctypes.c_ssize_t
+        self._user32.SendMessageTimeoutW.restype = ctypes.c_void_p
 
     def get_ime_window(self) -> int | None:
         foreground = self._user32.GetForegroundWindow()
@@ -72,14 +76,20 @@ class _Win32ImeApi:
         return int(ime_window) if ime_window else None
 
     def get_open_status(self, ime_window: int) -> int:
-        return int(self._user32.SendMessageW(
-            ime_window, WM_IME_CONTROL, IMC_GETOPENSTATUS, 0
-        ))
+        return self._send(ime_window, IMC_GETOPENSTATUS, 0)
 
     def set_open_status(self, ime_window: int, is_open: bool) -> None:
-        self._user32.SendMessageW(
-            ime_window, WM_IME_CONTROL, IMC_SETOPENSTATUS, int(is_open)
+        self._send(ime_window, IMC_SETOPENSTATUS, int(is_open))
+
+    def _send(self, ime_window: int, command: int, value: int) -> int:
+        result = ctypes.c_size_t()
+        success = self._user32.SendMessageTimeoutW(
+            ime_window, WM_IME_CONTROL, command, value,
+            SMTO_ABORTIFHUNG, IME_MESSAGE_TIMEOUT_MS, ctypes.byref(result),
         )
+        if not success:
+            raise OSError(f"IME message {command} failed or timed out")
+        return int(result.value)
 
 
 @dataclass(frozen=True, slots=True)
@@ -92,6 +102,10 @@ class ImeReservation:
 class _ImeState:
     generation: int
     timer: threading.Timer | None = None
+    deadline: float = 0.0
+    busy: bool = False
+    owned: bool = False
+    active: set[int] = field(default_factory=set)
 
 
 class ImeController:
@@ -100,11 +114,16 @@ class ImeController:
         api: _Win32ImeApi | None,
         *,
         timer_factory: Callable[[float, Callable[[], None]], threading.Timer] = threading.Timer,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._api = api
         self._timer_factory = timer_factory
+        self._clock = clock
         self._lock = threading.Lock()
+        self._changed = threading.Condition(self._lock)
         self._states: dict[int, _ImeState] = {}
+        self._next_generation = 0
+        self._closed = False
 
     def before_send(self) -> ImeReservation | None:
         if self._api is None:
@@ -113,20 +132,71 @@ class ImeController:
             ime_window = self._api.get_ime_window()
             if not ime_window:
                 return None
-            with self._lock:
-                state = self._states.get(ime_window)
-                if state is not None:
-                    self._cancel_timer(state)
-                    state.generation += 1
-                    return ImeReservation(ime_window, state.generation)
-                if not self._api.get_open_status(ime_window):
+        except Exception:
+            _logger.exception("Failed to locate the destination IME")
+            return None
+        while True:
+            with self._changed:
+                if self._closed:
                     return None
-                self._api.set_open_status(ime_window, False)
-                self._states[ime_window] = _ImeState(generation=1)
-                return ImeReservation(ime_window, 1)
+                state = self._states.get(ime_window)
+                if state is None:
+                    state = _ImeState(generation=0)
+                    self._states[ime_window] = state
+                self._next_generation += 1
+                state.generation = self._next_generation
+                generation = state.generation
+                self._cancel_timer(state)
+                while state.busy:
+                    self._changed.wait()
+                    if self._closed:
+                        return None
+                state.busy = True
+            result = self._turn_off(ime_window, state, generation)
+            with self._lock:
+                current = (not self._closed and self._states.get(ime_window) is state
+                           and state.generation == generation)
+                if result == "ready" and current:
+                    state.active.add(generation)
+            if result == "stale" or (result == "ready" and not current):
+                continue
+            return ImeReservation(ime_window, generation) if result == "ready" else None
+
+    def _current(self, ime_window: int, state: _ImeState, generation: int) -> bool:
+        with self._lock:
+            return (not self._closed and self._states.get(ime_window) is state
+                    and state.generation == generation)
+
+    def _finish(self, ime_window: int, state: _ImeState, generation: int,
+                *, discard: bool = False) -> bool:
+        with self._changed:
+            current = (not self._closed and self._states.get(ime_window) is state
+                       and state.generation == generation)
+            if current and discard:
+                self._states.pop(ime_window)
+            state.busy = False
+            self._changed.notify_all()
+            return current
+
+    def _turn_off(self, window: int, state: _ImeState, generation: int) -> str:
+        try:
+            is_open = self._api.get_open_status(window)
+            if not self._current(window, state, generation):
+                return "stale"
+            if is_open:
+                self._api.set_open_status(window, False)
+                state.owned = True
+                if not self._current(window, state, generation):
+                    return "stale"
+            elif not state.owned:
+                return "skip"
+            return "ready"
         except Exception:
             _logger.exception("Failed to turn off the destination IME")
-            return None
+            return "ready" if state.owned else "skip"
+        finally:
+            # A superseding sender retries only after this operation has finished.
+            self._finish(window, state, generation, discard=not state.owned)
 
     def after_send(self, reservation: ImeReservation | None, character_count: int) -> None:
         if reservation is None:
@@ -135,43 +205,93 @@ class ImeController:
             IME_RESTORE_BASE_DELAY_MS
             + IME_RESTORE_PER_CHARACTER_DELAY_MS * character_count
         ) / 1000
-        with self._lock:
+        restore_now = character_count <= 0
+        with self._changed:
             state = self._states.get(reservation.ime_window)
-            if state is None or state.generation != reservation.generation:
+            if state is None or reservation.generation not in state.active:
+                return
+            state.active.remove(reservation.generation)
+            self._changed.notify_all()
+            if self._closed:
+                return
+            state.deadline = max(state.deadline, self._clock() + delay)
+            if state.active:
                 return
             self._cancel_timer(state)
-            if character_count <= 0:
-                self._restore_locked(reservation.ime_window, reservation.generation)
-                return
-            try:
-                timer = self._timer_factory(
-                    delay,
-                    lambda: self._restore(
-                        reservation.ime_window, reservation.generation
-                    ),
-                )
-                timer.daemon = False
-                state.timer = timer
-                timer.start()
-            except Exception:
-                _logger.exception("Failed to schedule destination IME restoration")
-                self._restore_locked(reservation.ime_window, reservation.generation)
+            generation = state.generation
+            if not restore_now:
+                try:
+                    timer = self._timer_factory(
+                        max(0.0, state.deadline - self._clock()),
+                        lambda: self._restore(reservation.ime_window, generation),
+                    )
+                    timer.daemon = False
+                    state.timer = timer
+                    timer.start()
+                except Exception:
+                    _logger.exception("Failed to schedule destination IME restoration")
+                    restore_now = True
+        if restore_now:
+            self._restore(reservation.ime_window, generation)
 
     def _restore(self, ime_window: int, generation: int) -> None:
-        with self._lock:
-            self._restore_locked(ime_window, generation)
-
-    def _restore_locked(self, ime_window: int, generation: int) -> None:
-        state = self._states.get(ime_window)
-        if state is None or state.generation != generation:
-            return
+        with self._changed:
+            state = self._states.get(ime_window)
+            if state is None or state.generation != generation or state.active:
+                return
+            while state.busy:
+                self._changed.wait()
+                if (self._states.get(ime_window) is not state
+                        or state.generation != generation or state.active):
+                    return
+            state.busy = True
         try:
-            if self._api is not None:
+            is_open = self._api.get_open_status(ime_window)
+            if self._current(ime_window, state, generation) and not is_open:
                 self._api.set_open_status(ime_window, True)
+                self._current(ime_window, state, generation)
         except Exception:
             _logger.exception("Failed to restore the destination IME")
         finally:
-            self._states.pop(ime_window, None)
+            self._finish(ime_window, state, generation, discard=True)
+
+    def restore_all_now(self) -> None:
+        with self._changed:
+            self._closed = True
+            reservations = []
+            for window, state in self._states.items():
+                self._cancel_timer(state)
+                reservations.append((window, state))
+        for window, state in reservations:
+            with self._changed:
+                while state.busy or state.active:
+                    self._changed.wait()
+                if self._states.get(window) is not state:
+                    continue
+                if not state.owned:
+                    self._states.pop(window)
+                    continue
+                state.busy = True
+                generation = state.generation
+            try:
+                is_open = self._api.get_open_status(window)
+                with self._lock:
+                    current = (self._states.get(window) is state
+                               and state.generation == generation)
+                if current and not is_open:
+                    self._api.set_open_status(window, True)
+                    with self._lock:
+                        current = (self._states.get(window) is state
+                                   and state.generation == generation)
+                    if not current:
+                        continue
+            except Exception:
+                _logger.exception("Failed to restore the destination IME at shutdown")
+            finally:
+                with self._changed:
+                    self._states.pop(window, None)
+                    state.busy = False
+                    self._changed.notify_all()
 
     @staticmethod
     def _cancel_timer(state: _ImeState) -> None:
@@ -183,8 +303,11 @@ class ImeController:
 def _create_default_controller() -> ImeController:
     try:
         api = _Win32ImeApi()
+    except OSError as exc:
+        _logger.warning("Win32 IME APIs are unavailable: %s", exc)
+        api = None
     except Exception:
-        _logger.exception("Win32 IME APIs are unavailable")
+        _logger.exception("Failed to initialize Win32 IME APIs")
         api = None
     return ImeController(api)
 
@@ -209,3 +332,7 @@ def restore_after_text(
     reservation: ImeReservation | None, character_count: int
 ) -> None:
     _get_controller().after_send(reservation, character_count)
+
+
+def restore_ime_now() -> None:
+    _get_controller().restore_all_now()

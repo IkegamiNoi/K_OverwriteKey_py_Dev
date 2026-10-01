@@ -580,3 +580,5 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - deep L1（フォーカスが取れなければ前面の窓）→ 正本に明記 / L2（Windows 以外でエラー級ログ）→ 警告へ下げる / L3 → 除外。
 - 正本 §7.7 を上記で改訂 → task_03a（実装）→ 再度実機目視。
 
+- 【task_03a】Codex（delegating・サブエージェント不使用）実装 → tests 1039 / tests_ui 636 / smoke pass（float 比較 1 件はメインが assertAlmostEqual に修正）→ reviewer 完了可。
+  任意の指摘（終了時の待ちに上限なし〔`keyboard.write` 自体が固まる場合のみ・その時は UI も止まっている〕/ `_restore` 内の結果を使わない `_current` 呼び出し / `owned` のロック外更新〔busy で直列化済み〕）→ **受容**（記録のみ）。

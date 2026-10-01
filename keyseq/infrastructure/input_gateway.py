@@ -1,6 +1,7 @@
 ﻿from __future__ import annotations
 
 import ctypes
+import logging
 from typing import Callable
 
 import keyboard
@@ -8,6 +9,9 @@ import pyautogui
 
 from keyseq.domain.key_identifiers import resolve_known_scan_code_from_key_name
 from keyseq.infrastructure import ime_control
+
+
+_logger = logging.getLogger(__name__)
 
 
 _EXTENDED_KEYS = {
@@ -125,6 +129,12 @@ class InputGateway:
             keyboard.write(text)
         finally:
             ime_control.restore_after_text(reservation, len(text))
+
+    def restore_ime_now(self) -> None:
+        try:
+            ime_control.restore_ime_now()
+        except Exception:
+            _logger.exception("Failed to restore destination IME during shutdown")
 
     def validate_key_name(self, key_name: str) -> None:
         try:
