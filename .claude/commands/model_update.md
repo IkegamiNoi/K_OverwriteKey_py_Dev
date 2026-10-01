@@ -21,7 +21,8 @@ description: エージェントが使うモデルの ID・推論レベルを更�
 
 - Codex: `~/.codex/config.toml` の `model` と、`~/.codex/models_cache.json` に現れる ID を確かめる
   （例: `grep -ohE "gpt-[0-9.]+-(sol|luna)" ~/.codex/models_cache.json | sort | uniq -c`）。見つからなければユーザーに確認する
-- Claude 側エージェントの `model:` 欄は別名（`sonnet` / `opus` 等）で指定している。別名のままでよいなら変更不要
+- Claude 側（エージェントの `model:` 欄・フックの `"model"`）は別名（`sonnet` / `opus` / `haiku`）で指定しており、別名は Claude Code が最新版へ解決する。
+  **バージョンの追従では変更不要**（別名から特定の版や別の種類へ変えるときだけ対象）
 
 ### 3. 指定箇所の洗い出し
 
@@ -29,6 +30,7 @@ description: エージェントが使うモデルの ID・推論レベルを更�
 
 - 稼働側: `.claude/agents/*.md`（`--model` / `--effort`・`spawn_agent` の `model` / `reasoning_effort`・frontmatter の `model:`）/ `.claude/rules/agent_selection.md`
 - モード変種: `.claude_data/modes/agent_mode/switch_files/<各モード>/.claude/` 配下（存在するモードすべて。一覧は `modes.json`）
+- フックのモデル: `.claude/settings.json` の `"model"` と、その変種 `.claude_data/modes/save_mode/switch_files/*.json`（保存モードの全変種）
 - **書き換えない**: 過去の記録（`.claude_data/state/decisions_archive/`・`instructions/phase/<過去フェーズ>/`・`instructions/history/`・`decisions.md` の過去節）。当時の事実なので残す
 
 ### 4. 編集（`.claude_data/modes/README.md` の変更手順に従う）
