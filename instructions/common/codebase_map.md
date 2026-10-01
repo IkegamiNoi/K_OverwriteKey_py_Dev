@@ -613,17 +613,17 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 |---|---|
 | `domain/sequence_control.py` | 定数（種別・op〔`OP_STOP` は phase 39〕・深さ上限 9 等）/ `analyze_loops`（括弧の対応・深さ・対応崩れ・深さ超過）/ `enclosing_loop_starts`（位置を囲むループ・終わりの行は内側）/ `loop_depth_style`（深さ → 色相・濃さ）/ `format_control_value`（表示名・runtime 値は引数） |
 | `domain/sequence_editing.py` | 編集規則の純関数: 挿入と位置補正 / ループの対の生成・深さ上限 / 対の添字・削除する添字 / 移動の可否 / 戻す・先頭への単独登録の判定 |
-| `domain/config.py` | `normalize_actions` が新キー（`op` / `counter` / `path` / `encoding` / `out_of_range`）を種別を問わず trim。`format_action_list_item` は system / file_line を `format_control_value` へ委譲 |
-| `application/sequence_steps.py` | ステップの進め方（UI・タイマー非依存）: `advance`（保留の反映 → 周回の整合 → system の処理 → 通常アクションの手前で止まる・待機で `wait_ms` と `StepResume`）・停止の行〔`stop_ends_run`〕/ `after_normal_action` / `settle_after_normal`（先行処理・カウンターは保留へ）/ エラー通知用の整形 |
+| `domain/config.py` | `normalize_actions` が新キー（`op` / `counter` / `path` / `encoding` / `out_of_range` / phase 40 の `target`）を種別を問わず trim。`format_action_list_item` は system / file_line を `format_control_value` へ委譲 |
+| `application/sequence_steps.py` | ステップの進め方（UI・タイマー非依存）: `advance`（保留の反映 → 周回の整合 → system の処理 → 通常アクションの手前で止まる・呼び出しの文脈の中〔`in_call`〕では待機で `wait_ms` と `StepResume`・それ以外では送る前の待機を読み飛ばす〔phase 40〕）・停止の行〔`stop_ends_run`〕/ `after_normal_action` / `settle_after_normal`（先行処理・カウンターは保留へ）/ エラー通知用の整形 |
 | `application/sequence_history.py` | 戻す履歴（`StepSnapshot` / `HistoryEntry`・上限 100）/ 差分の打ち消し / `commit_step`（直前のトリガーの更新）/ `apply_control`（back / rewind の対象判定と復元）/ 保留中ステップの取り消し |
-| `application/sequence_runner/`（phase 38 でパッケージ化）: `sequence_runner.py`（本体）+ `file_line_wait.py`（`FileLineWaitMixin` = file_line の読込中の保留・確認タイマー・`FILE_LINE_POLL_INTERVAL_MS`）。`__init__` が `SequenceRunner` / `FILE_LINE_POLL_INTERVAL_MS` を再輸出 | 実行制御（単発・連続・単発の非同期待機〔保留中ステップ・世代番号〕・連続実行の世代番号・取り消しの公開メソッド `cancel_pending_wait(s)` / `reset_loop_frames`） |
+| `application/sequence_runner/`（phase 38 でパッケージ化）: `sequence_runner.py`（本体）+ `file_line_wait.py`（`FileLineWaitMixin` = file_line の読込中の保留・確認タイマー・`FILE_LINE_POLL_INTERVAL_MS`）+ phase 40 の mixin 4 つ（下記）。`__init__` が `SequenceRunner` / `FILE_LINE_POLL_INTERVAL_MS` を再輸出 | 実行制御（単発・連続・単発の非同期待機〔保留中ステップ・世代番号〕・連続実行の世代番号・取り消しの公開メソッド `cancel_pending_wait(s)` / `reset_loop_frames`） |
 | `application/app_state.py` | runtime 状態: 周回スタック・戻す履歴・保留中のカウンター操作（いずれも trigger_set_id → key）・カウンター・直前のトリガー・保留中ステップ。`reset_indices` / `forget_trigger_set` / `rekey_trigger_set` / `forget_trigger` / `rekey_trigger` で一緒に消す・付け替える |
 | `application/file_line_reader.py` | file_line の読込の部品（パス解決 §5.7・`validate_file_line_request`〔I/O なし〕/ `load_file_lines`〔1 MB 上限・utf-8-sig / cp932・改行 3 種のみで分割〕/ `pick_file_line`〔範囲外 3 種〕。`read_file_line` は 3 つの合成で本番からは呼ばない） |
 | `application/file_line_loader.py`（phase 38） | `FileLineLoader`: 読込キー（正規化パス, encoding）ごとの登録簿（同時 1 本・待ち合わせ・上限超過の印）と行の一覧のキャッシュ（stat 確認・世代つき全破棄 `clear_cache`）。共有状態はすべて 1 つの `threading.Lock` 下、`stat` / `load` はロック外。ワーカー起動・時計・stat・load は差し替え可能（テスト用） |
 | `presentation/controllers/action_list_rendering.py` | 一覧の 1 行（周回・カウンターの現在値）と背景色、省略表示の要約。色値（薄 / 中 / 濃）: 青 `#DCEBFF` / `#C2DBFF` / `#A8CBFF`・緑 `#DDF3DD` / `#C4E8C4` / `#ABDDAB`・橙 `#FFEBD2` / `#FFDDB3` / `#FFCF94` |
 | `presentation/controllers/trigger_panel/trigger_panel_controller.py` / `presentation/controllers/trigger_panel/action_edit.py` | トリガーパネルの一覧・描画・状態表示 / `ActionEditFlow` による出力シーケンスの選択・追加・編集・削除・移動 |
 
-- 取り消しの配線（presentation）: `HookController.stop_hook` と `toggle_custom_input_enabled`（無効化）→ `cancel_pending_waits` / `KeymapPanelController.activate_keymap_by_id`（切り替わったとき）→ `cancel_pending_waits` /
+- 取り消しの配線（presentation）: 一時停止中のものを捨てる `SequenceRunner.discard_paused` は `KeymapPanelController` のキーマップの切替・アクティブの削除から（phase 40）/ `HookController.stop_hook` と `toggle_custom_input_enabled`（無効化）→ `cancel_pending_waits` / `KeymapPanelController.activate_keymap_by_id`（切り替わったとき）→ `cancel_pending_waits` /
   `TriggerPanelController` の位置変更（位置が実際に変わったときだけ）・追加 / 編集 / 削除 / 移動 → `reset_loop_frames`、トリガー削除・改名 → `cancel_pending_wait` と `AppState.forget_trigger` / `rekey_trigger`。
 - 一覧の `<KeyRelease>` は `on_action_list_select` へ流れる（フォーカス同期）。**同じ行なら何もしない**（phase 37 統合レビュー H1 の再発防止）。
 - phase 38（file_line の非同期読込）: `SequenceRunner` は `begin_file_line` / `poll_file_line` の注入で file_line を読込中の保留にする（単発 = `PendingStep.file_line`〔札〕+ 世代 /
@@ -631,7 +631,21 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `_finish_run_to_end_normal_action` で通常アクションと共有。連続実行の次ステップ予約は `_schedule_run_to_end_step` に集約。保留の `StepResume` は `sequence_steps.resume_for_pending` で作る。`App` が `FileLineLoader` を作って executor へ渡し、`AppState.reset_listeners` に `clear_cache` と
   `SequenceRunner.on_runtime_reset`（連続実行を停止）を登録（`reset_indices` = 構成セットの読込等で呼ばれる）。`AppState` は `PendingStep.file_line`（単発の読込中の札）も持つ。
   テスト: `tests/test_file_line_loader.py` / `tests/test_sequence_runner_file_line.py`。
-- phase 39（停止）: `advance` / `settle_after_normal` の `stop_ends_run` 引数（False = 読み飛ばし）と `StepOutcome.stopped` / `SettleOutcome.stopped`。runner は連続実行ごとの印 `_run_to_end_sent`（開始で False・通常アクションの行の実行 / file_line の成功で True）を `advance` の `stop_ends_run` に渡す（先行処理 `settle_after_normal` には送信の直後なので常に True）。`_finish_run_to_end_normal_action` は `(deltas, position, stopped)` を返し、停止の行では手前の保留を反映して、停止の次から先行処理（停止の行は通過）をしてから終える。テスト: `tests/test_sequence_runner_stop.py`。
+- phase 39（停止）: `advance` / `settle_after_normal` の `stop_ends_run` 引数（False = 読み飛ばし）と `StepOutcome.stopped` / `SettleOutcome.stopped`。runner は連続実行ごとの印 `_run_to_end_sent`（開始で False・通常アクションの行の実行 / file_line の成功で True）を `advance` の `stop_ends_run` に渡す（先行処理 `settle_after_normal` には送信の直後なので常に True）。`_finish_run_to_end_normal_action` は `(deltas, position, stopped, waiting)` を返し（`waiting` は phase 40）、停止の行では手前の保留を反映して、停止の次から先行処理（停止の行は通過）をしてから終える。テスト: `tests/test_sequence_runner_stop.py`。
+- phase 40（呼び出し・入力の受け付け・待機の扱い。仕様 = `features.md` §4.2.5・§4.2.9・§4.2.10 / `data_schema.md` §5.11.6・§5.11.8。判断 = `decisions_archive/40_sequence_call.md`）:
+  - `domain/call_graph.py`: 呼び出しの辺の純関数（`call_target`〔正規化済みキー〕/ `rename_call_targets`〔キー変更時の書き換え〕/
+    `collect_call_snapshot`〔開始時点のコピー・深さ 9 まで・`CallEntry` = シーケンスのコピー + 間隔〕/ `edit_call_violation`〔編集時の拒否理由・下流の深さ〕）。
+    `sequence_control.OP_CALL` / `MAX_CALL_DEPTH`、`format_control_value` は呼び出し先の解決関数 `resolve_call` を引数で受ける（`action_list_rendering` が配線）。
+  - `application/call_context.py`: 呼び出し文脈（`CallContext` = 一覧 ID・呼び出し元・コピー・スタック〔`CallFrame`〕）と「文脈の 1 ステップ」`call_step` / `finish_call_action`
+    （戻り値 `CallStep` の kind = action / wait / next / done / error・連鎖・差分・間隔）。単発・連続実行の両経路で共有し、UI・タイマーに依存しない。
+  - runner の mixin（`sequence_runner/`）: `call_wait.py`（`CallWaitMixin` = 単発の呼び出し。`PendingStep.call` / `call_file_line` / `call_paused`）/
+    `call_run_to_end.py`（`CallRunToEndMixin` = 連続実行の呼び出し）/ `input_acceptance.py`（`InputAcceptanceMixin` = 押下の受け付けの判定・単発の呼び出しの一時停止 / 再開・
+    `paused_keys` / `discard_paused`〔捨てて通知〕・戻す / 先頭への 2 回押し〔`_pending_control_discard` に控える〕）/ `wait_stop.py`（`WaitStopMixin` = 待機中に止めたときの「終えた扱い」）。
+  - 待機の扱い: `sequence_steps.settle_after_normal` の `wait_mode`（`stop` = 待機の行で止まる〔既定。呼び出しの文脈の中〈`in_call`〉は常にこの扱い〕/ `wait` = 送った後に待つ / `skip` = 止めた後・停止の後で読み飛ばす）と
+    `StepResume.deferred_counters`（待機をまたいで控えるカウンター操作）。`advance` は送る前の待機を読み飛ばす。
+  - presentation: `KeymapPanelController` がキーマップの切替・アクティブの削除で `discard_paused` を呼ぶ（実行中の拒否は `AppState.can_switch_keymap`）/
+    `trigger_panel/action_edit.py` が呼び出し先の候補と `edit_call_violation` を編集ダイアログ（`action_control_fields.py`）へ渡す / `trigger_panel_controller.py` の改名で `rename_call_targets`。
+  - テスト: `tests/test_call_graph.py` / `test_call_context.py` / `test_sequence_runner_call.py`（ほか phase 37〜39 のテストへ追補）。
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 

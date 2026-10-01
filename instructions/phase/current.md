@@ -218,6 +218,9 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 - `application/sequence_runner.py` 359 行で先行処理の呼び出しが単発・連続に重複（完了判定前レビュー L-8）。次に触るなら `sequence_steps` / `sequence_history` へ寄せる
 - phase 38 由来（詳細は decisions_archive/38）: 通常アクション（hotkey 等）のエラー通知ダイアログ中の停止・別の連続実行の開始の後に続く処理を再照合していない（file_line だけ task_07a で対処）/
   統合 L2 `execute()` に file_line を渡したときの防御文言に内部名 `begin_file_line / poll_file_line` が出る（本番で到達しない・保留）
+- phase 40 由来（詳細は decisions_archive/40）: file_line の開始・poll が「単発 / 連続実行 × 通常 / 呼び出し」の 4 組で並行構造（`file_line_wait.py` / `call_wait.py` / `call_run_to_end.py`。
+  照合が経路ごとに違い統合のリスクが高いため提案書 17 から除外）/ 完了判定前レビュー L8 キーマップの切替・削除が失敗しても一時停止中のものは捨て済み（受容）/
+  `StepOutcome.wait_ms` / `resume_position` / `resume` は in_call 専用（コメント追加は任意）
 
 ### テスト負債
 
