@@ -51,6 +51,7 @@
 | 39_sequence_stop | [39_sequence_stop.md](decisions_archive/39_sequence_stop.md) | 制御アクション第 2 弾 前半 = 停止（2026-09-28 完了・**JSON スキーマ変更あり**＝op `stop`）。連続実行は停止の行で終える（間隔なし・保留をその場で反映・停止の後も先行処理）/ 単発は読み飛ばす / まだ送っていない間の停止は読み飛ばす。呼び出しは phase 40（暫定 28 §9 へ申し送り）。refactor_check: **不要** |
 | 40_sequence_call | [40_sequence_call.md](decisions_archive/40_sequence_call.md) | 制御アクション第 2 弾 後半 = 呼び出し（2026-10-01 完了・**JSON スキーマ変更あり**＝op `call`・`target`）。同じ一覧のトリガーを開始時点のコピーで丸ごと実行（入れ子 9・循環 / 参照先なしは実行時エラー・呼び出し先の位置は不変）/ 処理中は他のトリガーを無視・止まっている間は受け付ける・単発の呼び出しにも一時停止・捨てるのはステータスバーの通知（ダイアログ廃止）/ 待機は送った後の待ち（送る前は読み飛ばす・連続実行は待機の前に間隔なし）。実機目視 3 回で v0.6〜v0.8。refactor_check: 推奨 → 提案書 17 を task_11 で実施 |
 | 41_ime_off_while_typing | [41_ime_off_while_typing.md](decisions_archive/41_ime_off_while_typing.md) | 文字の送信中は送り先の IME をオフにする（2026-10-02 完了・直接改訂・スキーマ変更なし）。フォーカスの窓の IME を `WM_IME_CONTROL`（`SendMessageTimeoutW`・ロックの外）でオフ → 送信 → 200 ms + 40 ms × 文字数後に別スレッドで戻す（オフのときだけ・時刻は延ばすだけ・終了時は全部戻す）。probe 4 回で方式を確定。refactor_check: 不要 |
+| 42_listbox_click_selection_sync | [42_listbox_click_selection_sync.md](decisions_archive/42_listbox_click_selection_sync.md) | 一覧のクリックで選択と下線がずれる不具合の修正（2026-10-02 完了・直接改訂・presentation のみ）。原因 = Tk は押した時点で選択・離した時点で下線を動かすが、同期処理がフォーカス中は下線を正としていた。クリックは選択を正・キー操作は下線を正 / 押している間は帯だけ・離したとき after_idle で反映（ドラッグ・切替拒否・Shift クリックも揃う）。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -556,19 +557,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   （`_check_import_nodes` → **単数形へ改名** / `prefix` の毎ノード再計算を
   **モジュール定数 `_PACKAGE_PREFIX`** へ）。残る 1 件（分割後の関数が 30 行目安をわずかに超える）は
   **提案書が想定した分割形**のため据え置き。
-
-## 2026-10-02〜 (phase 42: 一覧のクリックで選択と下線がずれる不具合の修正・直接改訂)
-
-### 【起票】方針 = ユーザー確定（2026-10-02）
-- 原因（Tk 8.6 のクラスバインドで裏取り）: `<1>` で選択 → `<<ListboxSelect>>`、下線（active）は `<ButtonRelease-1>` で後から移る。`listbox_utils.sync_listbox_selection_to_focus` はフォーカスがあると active を正とするため、クリック時に選択を古い下線の行へ戻す。
-- 採用: `<<ListboxSelect>>` では選択された行を正 / `<KeyRelease>` では従来どおり下線の行を正（2026-06-21 の同期の意図を保つ）。対象 = トリガー・シーケンス・キーマップ一覧。
-
-
-### 【task_02 完了判定前レビュー】deep-reviewer 完了可 / Codex 敵対的 needs-attention（2026-10-02・ユーザー判断 = 推奨どおり）
-- deep M1 = Codex Medium（キーマップの切替拒否後、離した時点の `activate @x,y` で下線だけクリックした行へ・以前から）/ deep M2（ドラッグで行ごとに状態が書き換わる・task_01 で新規。Tk の `tk::ListboxMotion` で裏取り）
-  → **採用**（task_01a）: 押している間の `<<ListboxSelect>>` は帯だけ動かし、離したとき `after_idle` で選択の行へ下線を合わせて状態へ反映。副次で deep L1（Shift / Ctrl クリック）も解消。
-- deep L2（例外時のフォールバック）→ 除外 / L3（テストが Tk のクラスバインドを通していない）→ task_01a のテストで補う。
-- `/refactor_check`: 不要（M1〜M6 該当なし）。`trigger_panel_controller.py` 594 行は M1 の基準 600 に近い → 別タスク化候補へ。
-- 【task_01a】codex-implementer 実装 → tests 1039 / tests_ui 645（新規 9 件・3 回連続安定）/ smoke pass。既存テストのスタブ 1 行（`on_action_list_mouse_release`）はメインが追加。
-  変異検査（押下中の印と離したときの反映を無効化）で拒否・ドラッグ 3 件・Shift クリックの 5 件が落ちる → reviewer 完了可。
-  参考指摘（破棄後の `after_idle`〔pack_forget 切替のため稀〕/ 離しが届かない異常系で印が残る / 未使用の引数）→ **受容**（記録のみ）。

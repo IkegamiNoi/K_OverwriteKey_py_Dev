@@ -4,42 +4,44 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-02T12:00:00
-phase: `instructions/phase/42_listbox_click_selection_sync`（**起票済・task_01 未着手**・直接改訂モード）。次採番 = phase 43 / 暫定 30 / decisions 43 / 提案書 18。
-直前の完了フェーズ = **phase 41**（送信中の IME オフ・判断履歴 = `decisions_archive/41_ime_off_while_typing.md`）。
+last_updated: 2026-10-02T18:00:00
+phase: なし（**phase 42 は 2026-10-02 完了**・次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 43 / 暫定 30 / decisions 43 / 提案書 18。
+直前の完了フェーズ = **phase 42**（一覧の選択と下線のずれ・判断履歴 = `decisions_archive/42_listbox_click_selection_sync.md`）。
 last_commit_location: `claude/physical-device-verification-25ec98`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 42 起票済（一覧のクリックで選択と下線がずれる不具合の修正・presentation のみ）。次は task_01（Codex で実装 → verifier → reviewer → 実機目視）。**
-mode: implementing
+focus: **phase 42 完了（一覧のクリックで選択と下線がずれる不具合の修正・presentation のみ・実機目視 OK）。次フェーズは未定（ユーザー判断待ち）。**
+mode: completed
 
 ## last_action
-ts: 2026-10-02T12:00:00
+ts: 2026-10-02T18:00:00
 who: main
 summary: |
-  phase 41: task_01 probe 4 回（フォーカスの窓へ問い合わせ・戻すのが早すぎるとひらがな・約 20〜26 ms/文字）→ §7.7 改訂 / task_02 実装（ime_control.py）・実機 OK /
-  完了判定前レビュー（deep 修正要・Codex needs-attention）→ ユーザー判断「推奨どおり」→ §7.7 再改訂・task_03a（時刻を延ばすだけ・SendMessageTimeoutW をロックの外・オフのときだけ戻す・終了時に全部戻す）・実機 OK /
-  task_03: codebase_map・decisions_archive/41・current.md 完了記載・/refactor_check 不要。
+  phase 42: task_01（クリックは選択を正・キー操作は下線を正）・実機 OK / 完了判定前レビュー（deep 完了可・Codex needs-attention = 切替拒否後のずれ・ドラッグの副作用）→ ユーザー判断「推奨どおり」→
+  task_01a（押している間は帯だけ・離したとき after_idle で反映）・実機 OK / task_02: codebase_map・decisions_archive/42・current.md 完了記載・/refactor_check 不要。
+  別件: `/model_update` スキル追加（Codex Sol を gpt-6.1-sol へ更新した手順を一般化）。
 result_files:
-  - keyseq/infrastructure/{ime_control,input_gateway}.py・keyseq/presentation/app.py（on_close 1 行）/ tests/test_ime_control.py・tests/test_input_gateway_send.py・tests_ui/test_app_ime_shutdown.py
-  - instructions/common/spec_detail/key_input.md・instructions/common/codebase_map.md・instructions/phase/{current.md,41_ime_off_while_typing/}・.claude_data/state/decisions_archive/41_ime_off_while_typing.md
+  - keyseq/presentation/listbox_utils.py・controllers/{trigger_panel/trigger_panel_controller,keymap_panel/keymap_panel_controller}.py・views/{full_view/{trigger_box,sequence_box,keymap_box},compact_view/trigger_box}.py
+  - tests_ui/test_listbox_click_selection_sync.py・tests_ui/test_action_list_rendering.py（スタブ 1 行）
+  - instructions/common/codebase_map.md・instructions/phase/{current.md,42_listbox_click_selection_sync/}・.claude_data/state/decisions_archive/42_listbox_click_selection_sync.md
 verified:
   compile: clean
   tests: 1039 OK（skipped 7）
-  tests_ui: 636 OK
+  tests_ui: 645 OK
   smoke: pass
-  review: task_03a reviewer 完了可 / 実機目視 OK
+  review: task_01a reviewer 完了可 / 実機目視 OK
 
 ## next_action
-- phase 42 task_01: `tasks/task_01_*.md` を起票し、Codex（codex-implementer）へ `listbox_utils.py` と 3 つの一覧のハンドラ・テストを依頼 → verifier → reviewer → 実機目視。
-- **main へのマージはユーザーが行う**（本ブランチに phase 38〜41）。
+- 次フェーズの選定（ユーザー判断）。候補は `instructions/phase/current.md`「次フェーズ候補」（カウンター条件分岐 = idea_37 など）。着手時は `/phase_start`。
+- **main へのマージはユーザーが行う**（本ブランチに phase 38〜42）。
 
 ## blockers
 - なし
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 42】一覧の選択と下線の同期は `presentation/listbox_utils.py`**（クリックは選択を正・キー操作は下線を正・押している間は帯だけで離したときに反映）。地図は `codebase_map.md` の `listbox_utils.py` の項。
 - **【phase 41 の成果は正本が正】送信中の IME 制御 = `key_input.md` §7.7**（地図は `codebase_map.md`「キーの送信」節。Win32 は `infrastructure/ime_control.py` に閉じる）。Win32 の挙動は probe で実測してから決める。
 - **【phase 40 の成果は正本が正】呼び出し = `features.md` §4.2.9 / 入力の受け付けと一時停止 = §4.2.10 / 待機 = §4.2.5 / `data_schema.md` §5.11.6・§5.11.8**（暫定 29 は凍結）。runner の mixin 構成は `codebase_map.md`「出力シーケンスの制御アクション」節。
 - **【phase 39 の成果は正本が正】停止 = `features.md` §4.2.8**（暫定 28 は凍結・ただし §9 は phase 40 の起票元）。テストでカウンターを見るときは `counters.get(name, 0)`（未使用はキーが無い）。

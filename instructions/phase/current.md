@@ -7,15 +7,13 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 42](42_listbox_click_selection_sync/phase.md)**（一覧のクリックで選択と下線がずれる不具合の修正・2026-10-02 起票）。
-  トリガー / シーケンス / キーマップ一覧で、クリックでは選択された行を正として下線を合わせ、キー操作では従来どおり下線の行を正とする。
-  **直接改訂モード**（正本の改訂なし）・presentation のみ / 起票元 = ユーザー要望（2026-10-02）/ 番号対応: phase 42 / 暫定なし / decisions 42。
-- 直前の完了フェーズ = [phase 41](41_ime_off_while_typing/phase.md)（2026-10-02・文字の送信中は送り先の IME をオフにする・
+- **アクティブなフェーズ = なし**（phase 42 は 2026-10-02 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- 直前の完了フェーズ = [phase 42](42_listbox_click_selection_sync/phase.md)（2026-10-02・一覧のクリックで選択と下線がずれる不具合の修正・
+  判断は [decisions_archive/42](../../.claude_data/state/decisions_archive/42_listbox_click_selection_sync.md)）/
+  [phase 41](41_ime_off_while_typing/phase.md)（2026-10-02・文字の送信中は送り先の IME をオフにする・
   判断は [decisions_archive/41](../../.claude_data/state/decisions_archive/41_ime_off_while_typing.md)）/
   [phase 40](40_sequence_call/phase.md)（2026-10-01・制御アクション第 2 弾 後半 = 呼び出し・
-  判断は [decisions_archive/40](../../.claude_data/state/decisions_archive/40_sequence_call.md)）/
-  [phase 39](39_sequence_stop/phase.md)（2026-09-28・制御アクション第 2 弾 前半 = 停止・
-  判断は [decisions_archive/39](../../.claude_data/state/decisions_archive/39_sequence_stop.md)）。
+  判断は [decisions_archive/40](../../.claude_data/state/decisions_archive/40_sequence_call.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
 - **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37〜40）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**・phase 37）。
@@ -25,6 +23,7 @@
   phase 40 で呼び出し（`op: call`・`target`・**JSON スキーマ変更あり**・§4.2.9）と入力の受け付け・一時停止（§4.2.10）を加え、待機を「送った後の待ち」に改めた（§4.2.5）。
   **残件** = カウンター条件分岐（idea_37）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
   phase 41 で text / file_line の送信中は送り先の IME をオフにした（`key_input.md` §7.7・`infrastructure/ime_control.py`。IME オンでカタカナがひらがなの変換待ちになる不具合）。
+  phase 42 で一覧のクリックで選択と下線がずれる不具合を直した（presentation の `listbox_utils.py`。押している間は帯だけ・離したときに反映）。
 - その前の領域 = **トリガー一覧のキーマップ従属化**（phase 34）。
   トリガー一覧（と従属するシーケンス）はキーマップに従属し、キーマップ＝モードとして一括で切り替わる（**JSON スキーマ変更あり**）。
   正本 = `data_schema.md` §5.13（runtime の形・共有・移行・保存計画）+ §5.2/5.4/5.5/5.6/5.8.x / `key_input.md` §7.3
@@ -54,7 +53,7 @@
   **phase 39 は 2026-09-28 完了**（`39_sequence_stop` / 暫定 28〔v0.6・凍結〕/ decisions 39〔アーカイブ済〕）。
   **phase 40 は 2026-10-01 完了**（`40_sequence_call` / 暫定 29〔v0.9・凍結〕/ decisions 40〔アーカイブ済〕）。
   **phase 41 は 2026-10-02 完了**（`41_ime_off_while_typing` / 暫定なし〔直接改訂モード〕/ decisions 41〔アーカイブ済〕）。
-  **phase 42 は 2026-10-02 起票・進行中**（`42_listbox_click_selection_sync` / 暫定なし〔直接改訂モード〕/ decisions 42）。
+  **phase 42 は 2026-10-02 完了**（`42_listbox_click_selection_sync` / 暫定なし〔直接改訂モード〕/ decisions 42〔アーカイブ済〕）。
   次フェーズは **`43_<topic>`**・decisions も **43** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -226,6 +225,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 - phase 40 由来（詳細は decisions_archive/40）: file_line の開始・poll が「単発 / 連続実行 × 通常 / 呼び出し」の 4 組で並行構造（`file_line_wait.py` / `call_wait.py` / `call_run_to_end.py`。
   照合が経路ごとに違い統合のリスクが高いため提案書 17 から除外）/ 完了判定前レビュー L8 キーマップの切替・削除が失敗しても一時停止中のものは捨て済み（受容）/
   `StepOutcome.wait_ms` / `resume_position` / `resume` は in_call 専用（コメント追加は任意）
+- phase 42 由来: `presentation/controllers/trigger_panel/trigger_panel_controller.py` が 606 行（M1 の基準 600 を超過・phase 42 の増分は +25 で非該当）。次に触るフェーズで分割を再判定
 
 ### テスト負債
 

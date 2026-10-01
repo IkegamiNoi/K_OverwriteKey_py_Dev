@@ -315,7 +315,11 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     自分では止めない子を足したら、同テストの `NESTED_CHILD_DIALOGS`（(ファイル名, クラス名) の組）へ追加する**
     （両方から開く `PresetManagerDialog` のような子は自分で止めるので含めない）。
   - **アプリ終了が確定したらフックを再開しない**（終了ガード。解除経路によらず効く）。
-- listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）
+- listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）。トリガー / シーケンス / キーマップ一覧の選択と下線（active）の同期（phase 42）:
+  `sync_listbox_selection_to_focus(..., prefer_selection=)` = クリック（`<<ListboxSelect>>`）は選択の行を正・キー操作（`<KeyRelease>`）は下線の行を正 /
+  `bind_listbox_click_selection_sync(listbox, callback)` = 一覧自体の `<ButtonPress-1>` / `<ButtonRelease-1>`（`add="+"`・クラスより先に動く）で押下中の印を管理し、
+  離したら `after_idle`（Tk の `activate @x,y` の後）で `callback` を呼ぶ。押下中（`listbox_mouse_button_is_down`）の `<<ListboxSelect>>` は帯だけでアプリ側の状態を変えない
+  （ドラッグの途中・キーマップの切替拒否・Shift クリックで下線がずれない）。各一覧の反映は `on_*_mouse_release`。テスト = `tests_ui/test_listbox_click_selection_sync.py`
 - modal.py（presentation 直下）: `grab_modal(window, parent=None, *, focus=None)` = モーダル化・
   **初期キーボードフォーカス**・**破棄時の grab 復元**・**最小化中の grab 預かりと復元時のフォーカス復帰**
   （`features.md` §4.6「モーダルダイアログの作法」）。**`dialogs/` と `controllers/config_io/` の

@@ -52,8 +52,8 @@
 タスク定義（`tasks/task_NN_<topic>.md`）は着手時に `/task_new` で順に起票する。
 
 - task_01（**完了** 2026-10-02。reviewer 完了可・実機目視 OK）: 実装（`listbox_utils.py` と 3 つの一覧のハンドラ・バインド）・テスト・実機目視（3 つの一覧で 1 回のクリックで選択と下線が揃う / 矢印キー・Tab での同期は従来どおり）
-- task_01a: 完了判定前レビューの修正（押している間は帯だけ・離したときに選択へ下線を合わせて反映）・再度の実機目視 — 未着手
-- task_02: 締め（`codebase_map.md`・`decisions_archive/42_listbox_click_selection_sync.md`・current.md の完了記載・`/refactor_check`）
+- task_01a: 完了判定前レビューの修正（押している間は帯だけ・離したときに選択へ下線を合わせて反映）・再度の実機目視 — **完了**（2026-10-02。reviewer 完了可・実機目視 OK）
+- task_02（**完了** 2026-10-02。完了判定前レビュー = deep-reviewer 完了可 / Codex 敵対的 needs-attention → task_01a・`/refactor_check` 不要）: 締め（`codebase_map.md`・`decisions_archive/42_listbox_click_selection_sync.md`・current.md の完了記載・`/refactor_check`）
 
 ## レビュー方針
 
