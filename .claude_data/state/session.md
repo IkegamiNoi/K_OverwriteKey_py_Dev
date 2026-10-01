@@ -5,14 +5,14 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-10-02T12:00:00
-phase: なし（**phase 41 は 2026-10-02 完了**・次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 42 / 暫定 30 / decisions 42 / 提案書 18。
+phase: `instructions/phase/42_listbox_click_selection_sync`（**起票済・task_01 未着手**・直接改訂モード）。次採番 = phase 43 / 暫定 30 / decisions 43 / 提案書 18。
 直前の完了フェーズ = **phase 41**（送信中の IME オフ・判断履歴 = `decisions_archive/41_ime_off_while_typing.md`）。
 last_commit_location: `claude/physical-device-verification-25ec98`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 41 完了（text / file_line の送信中は送り先の IME をオフにする・正本 key_input.md §7.7・実機目視 OK）。次フェーズは未定（ユーザー判断待ち）。**
-mode: completed
+focus: **phase 42 起票済（一覧のクリックで選択と下線がずれる不具合の修正・presentation のみ）。次は task_01（Codex で実装 → verifier → reviewer → 実機目視）。**
+mode: implementing
 
 ## last_action
 ts: 2026-10-02T12:00:00
@@ -32,7 +32,7 @@ verified:
   review: task_03a reviewer 完了可 / 実機目視 OK
 
 ## next_action
-- 次フェーズの選定（ユーザー判断）。候補は `instructions/phase/current.md`「次フェーズ候補」（カウンター条件分岐 = idea_37 など）。着手時は `/phase_start`。
+- phase 42 task_01: `tasks/task_01_*.md` を起票し、Codex（codex-implementer）へ `listbox_utils.py` と 3 つの一覧のハンドラ・テストを依頼 → verifier → reviewer → 実機目視。
 - **main へのマージはユーザーが行う**（本ブランチに phase 38〜41）。
 
 ## blockers

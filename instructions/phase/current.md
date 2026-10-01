@@ -7,7 +7,9 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 41 は 2026-10-02 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- **アクティブなフェーズ = [phase 42](42_listbox_click_selection_sync/phase.md)**（一覧のクリックで選択と下線がずれる不具合の修正・2026-10-02 起票）。
+  トリガー / シーケンス / キーマップ一覧で、クリックでは選択された行を正として下線を合わせ、キー操作では従来どおり下線の行を正とする。
+  **直接改訂モード**（正本の改訂なし）・presentation のみ / 起票元 = ユーザー要望（2026-10-02）/ 番号対応: phase 42 / 暫定なし / decisions 42。
 - 直前の完了フェーズ = [phase 41](41_ime_off_while_typing/phase.md)（2026-10-02・文字の送信中は送り先の IME をオフにする・
   判断は [decisions_archive/41](../../.claude_data/state/decisions_archive/41_ime_off_while_typing.md)）/
   [phase 40](40_sequence_call/phase.md)（2026-10-01・制御アクション第 2 弾 後半 = 呼び出し・
@@ -52,7 +54,8 @@
   **phase 39 は 2026-09-28 完了**（`39_sequence_stop` / 暫定 28〔v0.6・凍結〕/ decisions 39〔アーカイブ済〕）。
   **phase 40 は 2026-10-01 完了**（`40_sequence_call` / 暫定 29〔v0.9・凍結〕/ decisions 40〔アーカイブ済〕）。
   **phase 41 は 2026-10-02 完了**（`41_ime_off_while_typing` / 暫定なし〔直接改訂モード〕/ decisions 41〔アーカイブ済〕）。
-  次フェーズは **`42_<topic>`**・decisions も **42** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 42 は 2026-10-02 起票・進行中**（`42_listbox_click_selection_sync` / 暫定なし〔直接改訂モード〕/ decisions 42）。
+  次フェーズは **`43_<topic>`**・decisions も **43** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
