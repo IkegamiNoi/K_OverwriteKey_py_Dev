@@ -328,6 +328,22 @@ class SequenceRunnerStopTests(unittest.TestCase):
         self.assertEqual(state.deferred_counters_for("")["f1"], [("counter_inc", "n")])
         self.assertIsNone(state.run_to_end_key)
 
+    def test_pause_during_wait_settles_through_stop_and_ends_run(self):
+        a = {"type": "text", "value": "A"}
+        wait = {"type": "system", "op": "wait", "ms": 20}
+        b = {"type": "text", "value": "B"}
+        runner, state, scheduler, performed = self.make_runner(
+            [a, wait, self.stop(), b], delay=5,
+        )
+
+        runner.handle_key("f1")
+        runner.pause_run_to_end()
+
+        self.assertEqual(performed, [a])
+        self.assertEqual(state.indices["f1"], 3)
+        self.assertIsNone(state.run_to_end_key)
+        self.assertEqual(scheduler.queue, [])
+
     def test_12_stop_row_skips_following_wait_without_waiting(self):
         wait = {"type": "system", "op": "wait", "ms": 20}
         a = {"type": "text", "value": "A"}

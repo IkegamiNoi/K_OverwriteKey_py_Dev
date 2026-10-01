@@ -62,15 +62,24 @@ class CallRunToEndMixin:
         self, generation: int, key: str, token: int,
         ctx: CallContext | None = None,
     ) -> bool:
-        current_token = self._run_to_end_call_token
-        # pause_run_to_end advances the token once while preserving this context.
-        same_token = token == current_token or token + 1 == current_token
         return (
             generation == self._run_to_end_generation
             and key == self.state.run_to_end_key
-            and same_token
+            and token == self._run_to_end_call_token
             and (self._run_to_end_call is ctx if ctx is not None
                  else isinstance(self._run_to_end_call, CallContext))
+        )
+
+    def _run_to_end_call_failure_matches(
+        self, generation: int, key: str, token: int, ctx: CallContext,
+    ) -> bool:
+        """Allow a pause token change only while confirming a reported failure."""
+        return (
+            generation == self._run_to_end_generation
+            and key == self.state.run_to_end_key
+            and token in (self._run_to_end_call_token,
+                          self._run_to_end_call_token - 1)
+            and self._run_to_end_call is ctx
         )
 
     def _run_to_end_call_parent_is_current(self, ctx: CallContext) -> bool:
@@ -133,7 +142,7 @@ class CallRunToEndMixin:
             return
         succeeded = self._perform_action(action)
         if succeeded is False:
-            if not self._run_to_end_call_matches(generation, key, token, ctx):
+            if not self._run_to_end_call_failure_matches(generation, key, token, ctx):
                 return
             if not self._run_to_end_call_parent_is_current(ctx):
                 self._abandon_invalid_run_to_end_call()
@@ -161,7 +170,7 @@ class CallRunToEndMixin:
             return
         handle = self._begin_file_line(step.action or {})
         if handle is None:
-            if not self._run_to_end_call_matches(generation, key, token, ctx):
+            if not self._run_to_end_call_failure_matches(generation, key, token, ctx):
                 return
             if not self._run_to_end_call_parent_is_current(ctx):
                 self._abandon_invalid_run_to_end_call()
@@ -195,7 +204,7 @@ class CallRunToEndMixin:
             same_file_line = self._run_to_end_call_file_line is handle or (
                 self._run_to_end_call_file_line is None
             )
-            if (not self._run_to_end_call_matches(generation, key, token, ctx)
+            if (not self._run_to_end_call_failure_matches(generation, key, token, ctx)
                     or not same_file_line
                     or not isinstance(self._run_to_end_call, CallContext)):
                 return
@@ -258,7 +267,7 @@ class CallRunToEndMixin:
         action = actions[index] if index is not None and index < len(actions) else {}
         suffix = f" / {chain_text(step.chain)}" if step.chain else ""
         self._report_error(action, message + suffix)
-        if not self._run_to_end_call_matches(generation, key, token, ctx):
+        if not self._run_to_end_call_failure_matches(generation, key, token, ctx):
             return
         if not self._run_to_end_call_parent_is_current(ctx):
             self._abandon_invalid_run_to_end_call()

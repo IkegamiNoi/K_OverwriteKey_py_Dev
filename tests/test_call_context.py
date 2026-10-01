@@ -200,6 +200,43 @@ class CallContextTest(unittest.TestCase):
             "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）",
         )
 
+    def test_processing_limit_counts_controls_before_and_after_sent_action(self):
+        for count, expected in ((6000, "error"), (5000, "done")):
+            with self.subTest(count=count):
+                actions = [control("stop") for _ in range(count)]
+                actions.append({"type": "text", "value": "A"})
+                actions.extend(control("stop") for _ in range(count))
+                ctx = self.run_call("root", "f5", {"f5": trigger(actions)})
+
+                sent = call_step(ctx, {})
+                self.assertEqual(sent.kind, "action")
+                result = finish_call_action(ctx, {})
+
+                self.assertEqual(result.kind, expected)
+                if expected == "error":
+                    self.assertEqual(
+                        result.message,
+                        "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）",
+                    )
+
+    def test_processing_limit_carries_before_count_through_returned_frames(self):
+        def stops(count):
+            return [control("stop") for _ in range(count)]
+
+        ctx = self.run_call("root", "f5", {
+            "f5": trigger([*stops(3000), control("call", target="f6"), *stops(3000)]),
+            "f6": trigger([*stops(3000), {"type": "text", "value": "A"}, *stops(3000)]),
+        })
+
+        self.assertEqual(call_step(ctx, {}).kind, "action")
+        result = finish_call_action(ctx, {})
+
+        self.assertEqual(result.kind, "error")
+        self.assertEqual(
+            result.message,
+            "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）",
+        )
+
     def test_missing_target_is_reported(self):
         missing = self.run_call("root", "f5", {"f5": trigger([control("call", target="absent")])})
         self.assertEqual(call_step(missing, {}).message, "呼び出し先のトリガーがありません（absent）")

@@ -39,6 +39,7 @@ class CallContext:
     snapshot: dict[str, CallEntry | None]
     stack: list[CallFrame] = field(default_factory=list)
     started: bool = False
+    processed_before_action: int = 0
 
 
 @dataclass(frozen=True)
@@ -145,6 +146,9 @@ def _advance_call(ctx: CallContext, counters: dict[str, int]) -> CallStep:
     while ctx.stack:
         result = _advance_frame(ctx, counters, deltas, processed)
         if result is not None:
+            ctx.processed_before_action = (
+                processed[0] if result.kind == "action" else 0
+            )
             return result
     return CallStep("done", counter_deltas=tuple(deltas))
 
@@ -236,7 +240,8 @@ def finish_call_action(ctx: CallContext, counters: dict[str, int]) -> CallStep:
     if not ctx.stack:
         return CallStep("done")
     deltas: list[tuple[str, int]] = []
-    processed = [0]
+    processed = [ctx.processed_before_action]
+    ctx.processed_before_action = 0
     frame = ctx.stack[-1]
     entry = ctx.snapshot.get(frame.key)
     if entry is None:

@@ -420,6 +420,22 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.scheduler.run_one()
         self.assertEqual([item["value"] for item in self.performed], ["A", "B"])
 
+    def test_run_to_end_call_callback_from_before_pause_is_stale_after_resume(self):
+        self.trigger("f1", [call("f5")], run_to_end=True)
+        self.trigger("f5", [text("A"), text("B")], delay=9)
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        stale_callback = self.scheduler.queue[0][1]
+        self.runner.pause_run_to_end()
+        self.runner.resume_run_to_end()
+        stale_callback()
+
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+        self.assertEqual(len(self.scheduler.queue), 1)
+        self.scheduler.run_one()
+        self.assertEqual([item["value"] for item in self.performed], ["A", "B"])
+
     def test_12_manual_stop_commits_call_counter_delta_once_and_stale_callback_is_ignored(self):
         self.trigger("f1", [call("f5"), text("X")], run_to_end=True)
         self.trigger("f5", [system("counter_inc", counter="n"),
@@ -660,7 +676,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
                 self.trigger("f2", [call("f6"), text("caller two")])
                 self.trigger("f6", [system("counter_inc", counter="m"),
                                      system("wait", ms=30), text("B")])
-                self.trigger("f3", [system(op)])
+                self.trigger("f3", [system(op)], run_to_end=True)
 
                 self.runner.handle_key("f1")
                 self.scheduler.run_one()
@@ -684,6 +700,52 @@ class SequenceRunnerCallTests(unittest.TestCase):
                     self.assertEqual(self.state.counters.get("n"), 0)
                 else:
                     self.assertEqual(self.state.counters.get("n"), 1)
+
+    def _prepare_run_to_end_discard_case(self, op):
+        self.trigger("f1", [text("A"), text("B")], run_to_end=True)
+        self.trigger("f5", [call("f6")])
+        self.trigger("f6", [text("C"), text("D")], delay=20)
+        self.trigger("f2", [system(op)], run_to_end=True)
+        self.runner.handle_key("f1")
+        self.runner.handle_key("f1")
+        self.runner.handle_key("f5")
+        self.scheduler.run_one()
+        self.runner.handle_key("f5")
+        self.state.last_trigger = ("set", "f1")
+
+    def test_run_to_end_back_and_rewind_use_two_press_discard_for_only_target(self):
+        for op in ("back", "rewind"):
+            with self.subTest(op=op):
+                self.setUp()
+                self._prepare_run_to_end_discard_case(op)
+                self.assertEqual(self.runner.paused_keys(), ("f1", "f5"))
+                position = self.index("f1")
+
+                self.runner.handle_key("f2")
+                self.assertEqual(self.index("f1"), position)
+                self.assertEqual(set(self.runner.paused_keys()), {"f1", "f5"})
+                self.assertIn("一時停止中の f1 を破棄します。もう一度押すと実行します",
+                              self.messages)
+                self.runner.handle_key("f2")
+                self.assertEqual(self.runner.paused_keys(), ("f5",))
+                self.assertNotIn(("set", "f1"), self.state.pending_steps)
+                self.assertIn(("set", "f5"), self.state.pending_steps)
+                self.assertEqual(self.index("f1"), 0)
+
+    def test_run_to_end_standalone_control_executes_when_target_is_not_paused(self):
+        for op in ("back", "rewind"):
+            with self.subTest(op=op):
+                self.setUp()
+                self.trigger("f1", [text("A"), text("B")])
+                self.trigger("f2", [system(op)], run_to_end=True)
+                self.runner.handle_key("f1")
+                self.state.last_trigger = ("set", "f1")
+
+                self.runner.handle_key("f2")
+
+                self.assertEqual(self.index("f1"), 0)
+                self.assertIsNone(self.state.run_to_end_key)
+                self.assertFalse(self.messages)
 
     def test_other_press_resets_back_discard_prompt(self):
         self.trigger("f1", [call("f5"), text("caller")])

@@ -1102,7 +1102,7 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         self.assertEqual(state.counters.get("n", 0), 0)  # 待機をまたいで控えた操作は反映されずに捨てられる
         self.assertEqual(state.history_for("").get("f1", []), [])
 
-    def test_single_wait_expiring_during_continuous_work_skips_next_action(self):
+    def test_single_wait_expiring_during_continuous_run_skips_next_action(self):
         triggers = [
             {"key": "f1", "run_to_end": False,
              "actions": [A1, {"type": "system", "op": "wait", "ms": 19}, A2]},

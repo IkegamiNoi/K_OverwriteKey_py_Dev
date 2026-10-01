@@ -2,7 +2,14 @@
 
 from __future__ import annotations
 
+from collections.abc import Mapping, Sequence
+from typing import Any
+
 from keyseq.application.call_context import CallContext, top_interval
+from keyseq.domain.sequence_control import (
+    ACTION_TYPE_SYSTEM, OP_BACK, OP_REWIND, action_type, system_op,
+)
+from keyseq.domain.sequence_editing import standalone_violation
 
 
 class InputAcceptanceMixin:
@@ -128,7 +135,22 @@ class InputAcceptanceMixin:
         if not trigger or not trigger.get("actions", []):
             return
         if bool(trigger.get("run_to_end", False)):
+            actions = trigger.get("actions", [])
+            if self._is_standalone_control(actions):
+                self._run_single_action(key, actions)
+                return
             self.discard_paused()
             self._start_run_to_end(key)
             return
         self._run_single_action(key, trigger.get("actions", []))
+
+    @staticmethod
+    def _is_standalone_control(actions: Sequence[Any]) -> bool:
+        if len(actions) != 1 or not isinstance(actions[0], Mapping):
+            return False
+        action = actions[0]
+        is_control = (action_type(action) == ACTION_TYPE_SYSTEM
+                      and system_op(action) in (OP_BACK, OP_REWIND))
+        return is_control and not standalone_violation(
+            actions, action, replace_index=0,
+        )
