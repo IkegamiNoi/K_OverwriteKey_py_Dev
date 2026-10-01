@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import ttk
 from typing import TYPE_CHECKING
 
+from keyseq.presentation.listbox_utils import bind_listbox_click_selection_sync
+
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -25,6 +27,9 @@ class FullTriggerBox(ttk.LabelFrame):
         self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_select)
         self.trigger_list.bind("<KeyRelease>", app.trigger_panel.on_trigger_list_focus_index_change)
         self.trigger_list.bind("<Double-Button-1>", app.trigger_panel.on_trigger_double_click)
+        bind_listbox_click_selection_sync(
+            self.trigger_list, app.trigger_panel.on_trigger_list_mouse_release
+        )
         app.trigger_panel.register_trigger_list(self.trigger_list)
 
         tbtns = ttk.Frame(self)

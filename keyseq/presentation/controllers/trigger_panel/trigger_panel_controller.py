@@ -16,7 +16,10 @@ from keyseq.presentation.controllers.action_list_rendering import (
     build_action_rows,
     format_next_action_summary,
 )
-from keyseq.presentation.listbox_utils import sync_listbox_selection_to_focus
+from keyseq.presentation.listbox_utils import (
+    listbox_mouse_button_is_down,
+    sync_listbox_selection_to_focus,
+)
 from keyseq.presentation.controllers.trigger_panel.action_edit import ActionEditFlow
 
 
@@ -109,12 +112,15 @@ class TriggerPanelController:
     def on_trigger_list_focus_index_change(self, event=None):
         self._sync_trigger_list_selection(event, prefer_selection=False)
 
+    def on_trigger_list_mouse_release(self, listbox: tk.Listbox) -> None:
+        self._sync_trigger_list_selection(listbox, prefer_selection=True)
+
     def _sync_trigger_list_selection(self, event, *, prefer_selection: bool) -> None:
         triggers = get_active_triggers(self._app.data)
-        widget = getattr(event, "widget", None)
+        widget = event if isinstance(event, tk.Listbox) else getattr(event, "widget", None)
         if not isinstance(widget, tk.Listbox):
             widget = None
-        if widget is None:
+        if widget is None or listbox_mouse_button_is_down(widget):
             return
         idx = sync_listbox_selection_to_focus(
             self._app, widget, len(triggers), prefer_selection=prefer_selection
@@ -557,6 +563,9 @@ class TriggerPanelController:
         """ユーザーが action_list の行を選んだら、その行を『次に実行』として indices に反映"""
         if self._app._programmatic_action_select:
             return
+        listbox = self._app.full_view.action_list
+        if listbox_mouse_button_is_down(listbox):
+            return
         key = self.selected_trigger_key()
         if not key:
             return
@@ -568,7 +577,7 @@ class TriggerPanelController:
             return
         idx = sync_listbox_selection_to_focus(
             self._app,
-            self._app.full_view.action_list,
+            listbox,
             len(actions),
             prefer_selection=prefer_selection,
         )
@@ -585,6 +594,9 @@ class TriggerPanelController:
 
     def on_action_list_focus_index_change(self, _event=None):
         self.on_action_list_select(prefer_selection=False)
+
+    def on_action_list_mouse_release(self, listbox: tk.Listbox) -> None:
+        self.on_action_list_select(prefer_selection=True)
 
     def on_action_double_click(self, _event=None):
         """シーケンス一覧をダブルクリックしたら編集を開く"""

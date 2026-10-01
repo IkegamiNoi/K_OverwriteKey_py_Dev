@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import ttk
 from typing import TYPE_CHECKING
 
+from keyseq.presentation.listbox_utils import bind_listbox_click_selection_sync
+
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -18,6 +20,9 @@ class SequenceBox(ttk.LabelFrame):
         self.action_list.bind("<<ListboxSelect>>", app.trigger_panel.on_action_list_select)
         self.action_list.bind("<KeyRelease>", app.trigger_panel.on_action_list_focus_index_change)
         self.action_list.bind("<Double-Button-1>", app.trigger_panel.on_action_double_click)
+        bind_listbox_click_selection_sync(
+            self.action_list, app.trigger_panel.on_action_list_mouse_release
+        )
         asb = ttk.Scrollbar(self, orient="vertical", command=self.action_list.yview)
         self.action_list.configure(yscrollcommand=asb.set)
 

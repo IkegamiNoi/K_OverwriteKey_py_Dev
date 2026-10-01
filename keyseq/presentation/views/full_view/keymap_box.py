@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import ttk
 from typing import TYPE_CHECKING
 
+from keyseq.presentation.listbox_utils import bind_listbox_click_selection_sync
+
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -20,6 +22,9 @@ class KeymapBox(ttk.LabelFrame):
         self.keymap_listbox.bind("<<ListboxSelect>>", app.keymap_panel.on_keymap_list_select)
         self.keymap_listbox.bind("<KeyRelease>", app.keymap_panel.on_keymap_list_focus_index_change)
         self.keymap_listbox.bind("<Double-Button-1>", app.keymap_panel.on_keymap_list_double_click)
+        bind_listbox_click_selection_sync(
+            self.keymap_listbox, app.keymap_panel.on_keymap_list_mouse_release
+        )
         keymap_list_scrollbar = ttk.Scrollbar(keymap_list_frame, orient="vertical", command=self.keymap_listbox.yview)
         keymap_list_scrollbar.pack(side="right", fill="y")
         self.keymap_listbox.pack(side="left", fill="both", expand=True)

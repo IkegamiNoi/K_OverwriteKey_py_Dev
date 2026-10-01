@@ -569,3 +569,6 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   → **採用**（task_01a）: 押している間の `<<ListboxSelect>>` は帯だけ動かし、離したとき `after_idle` で選択の行へ下線を合わせて状態へ反映。副次で deep L1（Shift / Ctrl クリック）も解消。
 - deep L2（例外時のフォールバック）→ 除外 / L3（テストが Tk のクラスバインドを通していない）→ task_01a のテストで補う。
 - `/refactor_check`: 不要（M1〜M6 該当なし）。`trigger_panel_controller.py` 594 行は M1 の基準 600 に近い → 別タスク化候補へ。
+- 【task_01a】codex-implementer 実装 → tests 1039 / tests_ui 645（新規 9 件・3 回連続安定）/ smoke pass。既存テストのスタブ 1 行（`on_action_list_mouse_release`）はメインが追加。
+  変異検査（押下中の印と離したときの反映を無効化）で拒否・ドラッグ 3 件・Shift クリックの 5 件が落ちる → reviewer 完了可。
+  参考指摘（破棄後の `after_idle`〔pack_forget 切替のため稀〕/ 離しが届かない異常系で印が残る / 未使用の引数）→ **受容**（記録のみ）。

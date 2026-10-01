@@ -10,6 +10,7 @@ from keyseq.presentation.dialogs import KeymapEditDialog
 from .keymap_add_flow import KeymapAddFlow
 from keyseq.presentation.listbox_utils import (
     focused_listbox_index,
+    listbox_mouse_button_is_down,
     sync_listbox_selection_to_focus,
 )
 
@@ -127,6 +128,8 @@ class KeymapPanelController:
     def on_keymap_list_select(self, _event=None, *, prefer_selection: bool = True) -> None:
         keymaps = self._app.keymap_service.get_keymaps(self._app.data)
         listbox = self._app.full_view.keymap_box.keymap_listbox
+        if listbox_mouse_button_is_down(listbox):
+            return
         index = sync_listbox_selection_to_focus(
             self._app, listbox, len(keymaps), prefer_selection=prefer_selection
         )
@@ -138,6 +141,9 @@ class KeymapPanelController:
 
     def on_keymap_list_focus_index_change(self, _event=None) -> None:
         self.on_keymap_list_select(prefer_selection=False)
+
+    def on_keymap_list_mouse_release(self, _listbox: tk.Listbox) -> None:
+        self.on_keymap_list_select(prefer_selection=True)
 
     def on_keymap_list_double_click(self, _event=None) -> None:
         """一覧ダブルクリックで選択中 keymap の編集導線を開く。"""

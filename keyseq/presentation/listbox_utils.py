@@ -3,6 +3,47 @@ from __future__ import annotations
 import tkinter as tk
 
 
+_CLICK_SYNC_STATE_ATTR = "_listbox_click_selection_sync_state"
+
+
+def bind_listbox_click_selection_sync(listbox: tk.Listbox, callback) -> None:
+    """押下/解放を追跡し、クラスバインド後に選択同期を呼び出す。"""
+    state = {"pressed": False, "after_id": None}
+    setattr(listbox, _CLICK_SYNC_STATE_ATTR, state)
+
+    def on_press(_event=None):
+        state["pressed"] = True
+        after_id = state["after_id"]
+        if after_id is not None:
+            try:
+                listbox.after_cancel(after_id)
+            except tk.TclError:
+                pass
+            state["after_id"] = None
+
+    def on_release(_event=None):
+        state["pressed"] = False
+
+        def commit_selection():
+            state["after_id"] = None
+            try:
+                if listbox.winfo_exists():
+                    callback(listbox)
+            except tk.TclError:
+                return
+
+        state["after_id"] = listbox.after_idle(commit_selection)
+
+    listbox.bind("<ButtonPress-1>", on_press, add="+")
+    listbox.bind("<ButtonRelease-1>", on_release, add="+")
+
+
+def listbox_mouse_button_is_down(listbox: tk.Listbox) -> bool:
+    """この一覧で左ボタンを押している間かを返す。"""
+    state = getattr(listbox, _CLICK_SYNC_STATE_ATTR, None)
+    return bool(state and state["pressed"])
+
+
 def focused_listbox_index(root: tk.Misc, listbox: tk.Listbox, item_count: int) -> int | None:
     """Listbox にフォーカスがある場合は active 行を、なければ選択行を返す。"""
     if item_count <= 0:

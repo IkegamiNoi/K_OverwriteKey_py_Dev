@@ -275,6 +275,7 @@ class ActionListRenderingTest(unittest.TestCase):
             trigger_panel=SimpleNamespace(
                 on_action_list_select=Mock(),
                 on_action_list_focus_index_change=Mock(),
+                on_action_list_mouse_release=Mock(),
                 on_action_double_click=Mock(),
                 add_action=Mock(), edit_action=Mock(), delete_action=Mock(),
                 move_action=Mock(), update_run_to_end=Mock(),
