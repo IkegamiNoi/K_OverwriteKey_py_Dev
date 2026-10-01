@@ -58,7 +58,7 @@
 - task_09c: 入力の受け付けと一時停止（暫定 29 v0.6 §4.7 の application 側: 押下の判定・単発の呼び出しの一時停止・待機明け・確認して捨てる口・`can_switch_keymap`） — **完了**（2026-09-29。新規 `sequence_runner/input_acceptance.py`・`PendingStep.call_paused`・`confirm_discard` の注入口。reviewer 完了可。tests_ui の旧前提 1 件は task_09d で修正）
 - task_09d: 警告のダイアログと配線（暫定 29 v0.6 §4.7 の presentation 側: ダイアログ・キーマップの切替 / 削除・確認中の切替キーの無視）・task_08 と合わせて実機目視 — コード完了（2026-09-29。reviewer 完了可）。実機目視: ダイアログはフォーカスを奪うため不可 → v0.7 で廃止（task_09e）
 - task_09e: ステータスバーの通知と待機中の停止（暫定 29 v0.7 §4.7: ダイアログ廃止・戻す / 先頭への 2 回押し・捨てて通知・待機中に止めたら次の送る行へ）・実機目視 — コード完了（2026-09-29。新規 `sequence_runner/wait_stop.py`・`discard_paused`。reviewer 完了可）。実機目視（2026-10-01）: 項目 2〜4 OK・待機の扱いを v0.8 で見直し（task_09f）
-- task_09f: 待機の扱い（暫定 29 v0.8 §4.8: 送った後の先行処理で待つ・送る前の待機は読み飛ばす・連続実行は待機の前に間隔なし・止めた後は続く待機も読み飛ばす）・実機目視 — コード完了（2026-10-01。settle の `wait_mode`〔stop / wait / skip〕・`StepResume.deferred_counters`。reviewer 完了可）**※実機目視待ち**
+- task_09f: 待機の扱い（暫定 29 v0.8 §4.8: 送った後の先行処理で待つ・送る前の待機は読み飛ばす・連続実行は待機の前に間隔なし・止めた後は続く待機も読み飛ばす）・実機目視 — コード完了（2026-10-01。settle の `wait_mode`〔stop / wait / skip〕・`StepResume.deferred_counters`。reviewer 完了可）。実機目視（2026-10-01）: OK・**完了**
 - task_10: 正本反映（暫定 29 §11 / 暫定 29 の凍結 / `decisions_archive/40_sequence_call.md` / current.md 完了記載 / `/refactor_check`）
 
 ## レビュー方針

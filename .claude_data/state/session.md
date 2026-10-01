@@ -4,40 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-01T12:00:00
-phase: `instructions/phase/40_sequence_call`（**進行中・task_01〜09f 完了・task_09f の実機目視待ち**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
+last_updated: 2026-10-01T12:30:00
+phase: `instructions/phase/40_sequence_call`（**進行中・task_01〜09f 完了・次は task_10〔正本反映・フェーズ末〕**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
 直前の完了フェーズ = **phase 39**（停止・判断履歴 = `decisions_archive/39_sequence_stop.md`）。
-last_commit_location: `claude/wait-line-focus-control-831cea`
+last_commit_location: `claude/physical-device-verification-25ec98`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 40 進行中（暫定 29 v0.8）。task_09f（待機は送った後の待ち・送る前の待機は読み飛ばす・連続実行は待機の前に間隔なし）まで完了。ユーザーの実機目視待ち。**
-mode: verifying
+focus: **phase 40 進行中（暫定 29 v0.8）。task_09f まで完了（実機目視 OK）。次は task_10（正本反映・暫定 29 凍結・フェーズ完了処理）。**
+mode: implementing
 
 ## last_action
-ts: 2026-10-01T12:00:00
-who: main
+ts: 2026-10-01T12:30:00
+who: user
 summary: |
-  task_09e 実機目視: 項目 2〜4 OK。項目 1（待機）で 3 点（連続実行の待機中にフォーカスが次の行へ / 単発がタイマー的挙動 / 待機の行で止めても進まない）→ 暫定 29 v0.8（ユーザー判断・decisions「task_09e 実機目視」）:
-  待機は直前に送った行の後の待ち（送った後の先行処理で同じステップ内で待つ・明けても送らない・待機中の「次に実行」は待機の行）/ 送る前に達した待機はすべて読み飛ばす /
-  連続実行は待機の前に間隔なし / 止めた後・停止の行の後は続く待機も読み飛ばす（Codex 敵対的レビュー High1・Medium1 を反映・ユーザー確定）。`28d1148` で仕様・task_09f 起票をコミット。
-  task_09f を Codex（delegating・サブエージェント使用）で実装（application のみ・settle の `wait_mode` stop/wait/skip・`StepResume.deferred_counters`）。
-  verifier で 5 件 fail → いずれもテスト期待値の誤り（実装は仕様どおり）→ メインで修正。reviewer 完了可（指摘 1 = 連続実行の到達不能な待機分岐 → メインで削除）。
+  task_09f 実機目視: ユーザー報告「問題なし」→ task_09f 完了（phase.md の task_09f 行を完了に更新）。コード変更なし。
 result_files:
-  - keyseq/application/sequence_steps.py・sequence_runner/{sequence_runner,wait_stop,file_line_wait,call_wait,call_run_to_end}.py
-  - tests/test_sequence_{steps,runner,runner_stop,runner_call,runner_file_line}.py / instructions/phase/40_sequence_call/{phase.md,tasks/task_09f_wait_after_send.md}
+  - instructions/phase/40_sequence_call/phase.md
 verified:
-  compile: clean
+  compile: clean（task_09f 時点）
   tests: 1003 OK（skipped 7）
   tests_ui: 634 OK
   smoke: pass
-  review: task_09f reviewer 完了可
+  review: task_09f reviewer 完了可 / 実機目視 OK
 
 ## next_action
-- **ユーザーの実機目視（task_09f）**: ①単発 `[A, 待機, B]`: 押すと A → 待機中は待機の行にフォーカス → 明けたら B の行へ移り何も送らない / 次の押下で B
-  ②位置が待機の行・先頭が待機なら待たずに次を送る ③連続実行: 待機の前に間隔なし・待機中は待機の行 ④待機中にフック停止・一時停止 → 次の送る行へ（続く待機も飛ばす）
-  ⑤連続実行 `[A, 停止, 待機, B]` は A の後に待たずに終えて位置 B。
-- 目視 OK → task_10（正本反映〔v0.7 §4.7・v0.8 §4.8＝features.md §4.2.1・§4.2.2・§4.2.5 の改訂を含む〕・暫定 29 凍結・decisions_archive/40・current.md・/refactor_check〔L5 の重複・runner 行数〕）。
+- task_10（メインで実施・文書作業）: ①暫定 29 §11 の正本反映（v0.7 §4.7・v0.8 §4.8 = `features.md` §4.2.1・§4.2.2・§4.2.5 の改訂を含む / `data_schema.md` / `codebase_map.md`）
+  ②暫定 29 の凍結 ③`decisions_archive/40_sequence_call.md` 作成・decisions.md 索引へ 1 行 ④`instructions/phase/current.md` 完了記載（次採番 phase 41 / 暫定 30 / decisions 41 / 提案書 17）
+  ⑤`/refactor_check`（メトリクスは verifier・観点: L5 の重複・runner 行数）⑥フェーズ完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）。
 - 申し送り（任意）: `StepOutcome.wait_ms` / `resume_position` / `resume` は in_call 専用になった（コメント追加は任意）/ `call_run_to_end.py` `_run_to_end_call_matches` のトークン照合は一時停止 1 回分のずれのみ吸収。
 - **main へのマージはユーザーが行う**。
 
