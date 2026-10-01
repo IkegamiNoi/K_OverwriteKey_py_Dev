@@ -20,7 +20,7 @@ class CompactTriggerBox(ttk.LabelFrame):
         sb = ttk.Scrollbar(tl_frame, orient="vertical", command=self.trigger_list.yview)
         sb.pack(side="left", fill="y")
         self.trigger_list.configure(yscrollcommand=sb.set)
-        self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_focus_index_change)
+        self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_select)
         self.trigger_list.bind("<KeyRelease>", app.trigger_panel.on_trigger_list_focus_index_change)
         self.trigger_list.bind("<Double-Button-1>", app.trigger_panel.on_trigger_double_click)
         app.trigger_panel.register_trigger_list(self.trigger_list)

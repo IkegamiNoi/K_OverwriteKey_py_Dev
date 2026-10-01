@@ -22,8 +22,25 @@ def focused_listbox_index(root: tk.Misc, listbox: tk.Listbox, item_count: int) -
     return None
 
 
-def sync_listbox_selection_to_focus(root: tk.Misc, listbox: tk.Listbox, item_count: int) -> int | None:
-    index = focused_listbox_index(root, listbox, item_count)
+def sync_listbox_selection_to_focus(
+    root: tk.Misc,
+    listbox: tk.Listbox,
+    item_count: int,
+    *,
+    prefer_selection: bool = False,
+) -> int | None:
+    index = None
+    if prefer_selection and item_count > 0:
+        try:
+            selection = listbox.curselection()
+            if selection:
+                selected_index = int(selection[0])
+                if 0 <= selected_index < item_count:
+                    index = selected_index
+        except Exception:
+            return None
+    if index is None:
+        index = focused_listbox_index(root, listbox, item_count)
     if index is None:
         return None
     try:

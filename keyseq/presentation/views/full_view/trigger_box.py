@@ -22,7 +22,7 @@ class FullTriggerBox(ttk.LabelFrame):
         sb.pack(side="right", fill="y")
         self.trigger_list.pack(side="left", fill="both", expand=True)
         self.trigger_list.configure(yscrollcommand=sb.set)
-        self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_focus_index_change)
+        self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_select)
         self.trigger_list.bind("<KeyRelease>", app.trigger_panel.on_trigger_list_focus_index_change)
         self.trigger_list.bind("<Double-Button-1>", app.trigger_panel.on_trigger_double_click)
         app.trigger_panel.register_trigger_list(self.trigger_list)

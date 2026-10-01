@@ -103,14 +103,22 @@ class TriggerPanelController:
             return None
         return normalize_key_name(t.get("key", ""))
 
+    def on_trigger_list_select(self, event=None):
+        self._sync_trigger_list_selection(event, prefer_selection=True)
+
     def on_trigger_list_focus_index_change(self, event=None):
+        self._sync_trigger_list_selection(event, prefer_selection=False)
+
+    def _sync_trigger_list_selection(self, event, *, prefer_selection: bool) -> None:
         triggers = get_active_triggers(self._app.data)
         widget = getattr(event, "widget", None)
         if not isinstance(widget, tk.Listbox):
             widget = None
         if widget is None:
             return
-        idx = sync_listbox_selection_to_focus(self._app, widget, len(triggers))
+        idx = sync_listbox_selection_to_focus(
+            self._app, widget, len(triggers), prefer_selection=prefer_selection
+        )
         if idx is not None:
             self.set_selected_trigger_index(idx)
 
@@ -545,7 +553,7 @@ class TriggerPanelController:
     def _counter_names(self) -> list[str]:
         return self._action_edit._counter_names()
 
-    def on_action_list_select(self, _event=None):
+    def on_action_list_select(self, _event=None, *, prefer_selection: bool = True):
         """ユーザーが action_list の行を選んだら、その行を『次に実行』として indices に反映"""
         if self._app._programmatic_action_select:
             return
@@ -558,7 +566,12 @@ class TriggerPanelController:
         actions = trig.get("actions", [])
         if not actions:
             return
-        idx = sync_listbox_selection_to_focus(self._app, self._app.full_view.action_list, len(actions))
+        idx = sync_listbox_selection_to_focus(
+            self._app,
+            self._app.full_view.action_list,
+            len(actions),
+            prefer_selection=prefer_selection,
+        )
         if idx is None:
             return
         if 0 <= idx < len(actions):
@@ -571,7 +584,7 @@ class TriggerPanelController:
             self.update_status()
 
     def on_action_list_focus_index_change(self, _event=None):
-        self.on_action_list_select()
+        self.on_action_list_select(prefer_selection=False)
 
     def on_action_double_click(self, _event=None):
         """シーケンス一覧をダブルクリックしたら編集を開く"""

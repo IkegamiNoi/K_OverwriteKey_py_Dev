@@ -124,10 +124,12 @@ class KeymapPanelController:
         listbox.see(target_index)
         self.sync_keymap_manage_buttons()
 
-    def on_keymap_list_select(self, _event=None) -> None:
+    def on_keymap_list_select(self, _event=None, *, prefer_selection: bool = True) -> None:
         keymaps = self._app.keymap_service.get_keymaps(self._app.data)
         listbox = self._app.full_view.keymap_box.keymap_listbox
-        index = sync_listbox_selection_to_focus(self._app, listbox, len(keymaps))
+        index = sync_listbox_selection_to_focus(
+            self._app, listbox, len(keymaps), prefer_selection=prefer_selection
+        )
         if index is not None:
             keymap_id = normalize_key_name(keymaps[index].get("id", ""))
             if keymap_id != self._app.keymap_service.get_active_keymap_id(self._app.data):
@@ -135,7 +137,7 @@ class KeymapPanelController:
         self.sync_keymap_manage_buttons()
 
     def on_keymap_list_focus_index_change(self, _event=None) -> None:
-        self.on_keymap_list_select()
+        self.on_keymap_list_select(prefer_selection=False)
 
     def on_keymap_list_double_click(self, _event=None) -> None:
         """一覧ダブルクリックで選択中 keymap の編集導線を開く。"""
