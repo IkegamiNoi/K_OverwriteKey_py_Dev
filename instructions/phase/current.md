@@ -7,7 +7,9 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 40 は 2026-10-01 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- **アクティブなフェーズ = [phase 41](41_ime_off_while_typing/phase.md)**（文字の送信中は送り先の IME をオフにする・2026-10-01 起票）。
+  text / file_line の文字を送る間だけ送り先の窓の IME をオフにし、送り終えたら元へ戻す（IME オンでカタカナがひらがなの変換待ちになる不具合・ユーザー実機確認済み）。
+  **直接改訂モード**（正本 `key_input.md` §7.7）・JSON スキーマ変更なし / 起票元 = ユーザー要望（2026-10-01）/ 番号対応: phase 41 / 暫定なし / decisions 41。
 - 直前の完了フェーズ = [phase 40](40_sequence_call/phase.md)（2026-10-01・制御アクション第 2 弾 後半 = 呼び出し・
   判断は [decisions_archive/40](../../.claude_data/state/decisions_archive/40_sequence_call.md)）/
   [phase 39](39_sequence_stop/phase.md)（2026-09-28・制御アクション第 2 弾 前半 = 停止・
@@ -50,7 +52,8 @@
   **phase 38 は 2026-09-27 完了**（`38_file_line_async_read` / 暫定 27〔v0.8・凍結〕/ decisions 38〔アーカイブ済〕）。
   **phase 39 は 2026-09-28 完了**（`39_sequence_stop` / 暫定 28〔v0.6・凍結〕/ decisions 39〔アーカイブ済〕）。
   **phase 40 は 2026-10-01 完了**（`40_sequence_call` / 暫定 29〔v0.9・凍結〕/ decisions 40〔アーカイブ済〕）。
-  次フェーズは **`41_<topic>`**・decisions も **41** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 41 は 2026-10-01 起票・進行中**（`41_ime_off_while_typing` / 暫定なし〔直接改訂モード〕/ decisions 41）。
+  次フェーズは **`42_<topic>`**・decisions も **42** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
