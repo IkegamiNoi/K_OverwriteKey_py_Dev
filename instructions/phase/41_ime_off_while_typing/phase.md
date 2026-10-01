@@ -53,7 +53,7 @@ text / file_line の文字を送る間だけ送り先の窓の IME をオフに�
 
 タスク定義（`tasks/task_NN_<topic>.md`）は着手時に `/task_new` で順に起票する。
 
-- task_01: probe（`.venv` python の小スクリプトで、IME オンのメモ帳等へ「オフ → 送信 → 戻す」を実測し、戻すタイミングと失敗時の扱いを決める。ユーザーの実機確認を含む）→ 正本 `key_input.md` §7.7 の改訂（ユーザー承認）
+- task_01（**完了** 2026-10-01。フォーカスの窓へ問い合わせ・戻す待ち 200 ms + 40 ms × 文字数・正本 §7.7 改訂済）: probe（`.venv` python の小スクリプトで、IME オンのメモ帳等へ「オフ → 送信 → 戻す」を実測し、戻すタイミングと失敗時の扱いを決める。ユーザーの実機確認を含む）→ 正本 `key_input.md` §7.7 の改訂（ユーザー承認）
 - task_02: 実装（`write_text` の IME 制御・テスト）・実機目視（IME オンで text / file_line のカタカナ・英数字が変換待ちにならず入る / 送信後に IME が元の状態に戻る）
 - task_03: 正本反映の確認・`codebase_map.md`・`decisions_archive/41_ime_off_while_typing.md`・current.md の完了記載・`/refactor_check`
 
