@@ -151,6 +151,42 @@ class InputGatewaySendTests(unittest.TestCase):
             call.release("shift"),
         ])
 
+    def test_write_text_disables_ime_writes_then_schedules_restore(self) -> None:
+        reservation = object()
+        calls = []
+        with patch.object(
+            input_gateway.ime_control, "disable_for_text",
+            side_effect=lambda: calls.append("disable") or reservation,
+        ), patch.object(
+            input_gateway.keyboard, "write", side_effect=lambda text: calls.append(("write", text)),
+        ), patch.object(
+            input_gateway.ime_control, "restore_after_text",
+            side_effect=lambda value, count: calls.append(("restore", value, count)),
+        ):
+            self.gateway.write_text("abc")
+        self.assertEqual(calls, [
+            "disable", ("write", "abc"), ("restore", reservation, 3),
+        ])
+
+    def test_write_text_schedules_restore_when_keyboard_write_raises(self) -> None:
+        reservation = object()
+        send_error = RuntimeError("keyboard write failed")
+        with patch.object(input_gateway.ime_control, "disable_for_text", return_value=reservation), \
+             patch.object(input_gateway.keyboard, "write", side_effect=send_error), \
+             patch.object(input_gateway.ime_control, "restore_after_text") as restore:
+            with self.assertRaisesRegex(RuntimeError, "keyboard write failed"):
+                self.gateway.write_text("text")
+        restore.assert_called_once_with(reservation, 4)
+
+    def test_empty_write_does_not_touch_ime(self) -> None:
+        with patch.object(input_gateway.ime_control, "disable_for_text") as disable, \
+             patch.object(input_gateway.ime_control, "restore_after_text") as restore, \
+             patch.object(input_gateway.keyboard, "write") as write:
+            self.gateway.write_text("")
+        write.assert_called_once_with("")
+        disable.assert_not_called()
+        restore.assert_not_called()
+
 
 class InputGatewayExtendedFlagTests(unittest.TestCase):
     def test_extended_key_flags(self) -> None:

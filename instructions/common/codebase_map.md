@@ -660,6 +660,11 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   名前の正規化は公開 API の `keyboard.normalize_name`（別名 `pgup` / `del` / `apps` / `win` 等）。
 - `send_hotkey`: 要素に拡張キーが無ければ従来どおり `keyboard.send(hotkey)`。含む場合は要素を記述順に押して逆順に離し、途中の例外でも押したキーを逆順に離してから再送出する。
 - text（`keyboard.write`）・マウス（`pyautogui`）は対象外（マウスは下記「マウス操作」節）。
+- **文字の入力中は送り先の IME をオフにする**（phase 41・仕様 = `spec_detail/key_input.md` §7.7）: `write_text`（text・file_line 共通）が
+  `infrastructure/ime_control.py` の `disable_for_text()` → `keyboard.write` → `finally` で `restore_after_text(reservation, len(text))`。空文字は IME に触らない。
+  `ImeController` が送り先（`GetGUIThreadInfo` のフォーカスの窓 → `ImmGetDefaultIMEWnd`）の状態を `WM_IME_CONTROL` で読み、オンならオフにして IME 窓ごとに予約（世代つき・`threading.Lock`）。
+  戻すのは非デーモンの `threading.Timer`（200 ms + 40 ms × 文字数）。同じ IME 窓への再送は問い合わせずに送り予約を張り直す。タイマーを張れない・文字数 0 ならその場で戻す。
+  Win32 の失敗は `logging` に記録して送信だけ続ける。Win32 呼び出し（`_Win32ImeApi`）とタイマーは差し替え可能（`tests/test_ime_control.py`）。
 
 ### マウス操作（infrastructure/input_gateway.py の InputGateway・phase 22）
 

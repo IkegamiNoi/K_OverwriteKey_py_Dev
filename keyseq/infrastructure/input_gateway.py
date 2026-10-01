@@ -7,6 +7,7 @@ import keyboard
 import pyautogui
 
 from keyseq.domain.key_identifiers import resolve_known_scan_code_from_key_name
+from keyseq.infrastructure import ime_control
 
 
 _EXTENDED_KEYS = {
@@ -116,7 +117,14 @@ class InputGateway:
             raise first_error
 
     def write_text(self, text: str) -> None:
-        keyboard.write(text)
+        if not text:
+            keyboard.write(text)
+            return
+        reservation = ime_control.disable_for_text()
+        try:
+            keyboard.write(text)
+        finally:
+            ime_control.restore_after_text(reservation, len(text))
 
     def validate_key_name(self, key_name: str) -> None:
         try:
