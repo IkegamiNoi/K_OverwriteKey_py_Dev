@@ -61,7 +61,7 @@
 - task_09f: 待機の扱い（暫定 29 v0.8 §4.8: 送った後の先行処理で待つ・送る前の待機は読み飛ばす・連続実行は待機の前に間隔なし・止めた後は続く待機も読み飛ばす）・実機目視 — コード完了（2026-10-01。settle の `wait_mode`〔stop / wait / skip〕・`StepResume.deferred_counters`。reviewer 完了可）。実機目視（2026-10-01）: OK・**完了**
 - task_10a: 完了判定前レビューの修正（戻す / 先頭へだけのトリガーは連続実行 ON でも 2 回押し・呼び出しのタイマー照合の完全一致・処理数の通算・テスト補完）— **完了**（2026-10-01。reviewer 完了可・tests 1009 OK）
 - task_11_refactor: 提案書 17（上限 10000 の定数化・`continue_resume`・待機の mixin〔`send_wait.py`〕・file_line 未設定の判定の一本化）— **完了**（2026-10-01。reviewer 完了可・挙動不変・tests 1010 OK / tests_ui 634 OK / smoke pass・`sequence_runner.py` 618 → 467 行）
-- task_10: 正本反映（暫定 29 §11 / 暫定 29 の凍結 / `decisions_archive/40_sequence_call.md` / current.md 完了記載 / `/refactor_check`）
+- task_10: 正本反映（暫定 29 §11 / 暫定 29 の凍結 / `decisions_archive/40_sequence_call.md` / current.md 完了記載 / `/refactor_check`）— **完了**（2026-10-01。完了判定前レビュー = deep-reviewer 修正して採用 / Codex 敵対的 needs-attention → task_10a・文言修正 / `/refactor_check` 推奨 → 提案書 17 → task_11_refactor）
 
 ## レビュー方針
 

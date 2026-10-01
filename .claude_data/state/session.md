@@ -4,42 +4,45 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-01T12:30:00
-phase: `instructions/phase/40_sequence_call`（**進行中・task_01〜09f 完了・次は task_10〔正本反映・フェーズ末〕**）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 17。
-直前の完了フェーズ = **phase 39**（停止・判断履歴 = `decisions_archive/39_sequence_stop.md`）。
+last_updated: 2026-10-01T18:00:00
+phase: なし（**phase 40 は 2026-10-01 完了**・次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 18。
+直前の完了フェーズ = **phase 40**（呼び出し・判断履歴 = `decisions_archive/40_sequence_call.md`）。
 last_commit_location: `claude/physical-device-verification-25ec98`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 40 進行中（暫定 29 v0.8）。task_09f まで完了（実機目視 OK）。次は task_10（正本反映・暫定 29 凍結・フェーズ完了処理）。**
-mode: implementing
+focus: **phase 40 完了（呼び出し・入力の受け付けと一時停止・待機は送った後の待ち。暫定 29 v0.9 凍結・正本反映済・提案書 17 を task_11 で実施済）。次フェーズは未定（ユーザー判断待ち）。**
+mode: completed
 
 ## last_action
-ts: 2026-10-01T12:30:00
-who: user
+ts: 2026-10-01T18:00:00
+who: main
 summary: |
-  task_09f 実機目視: ユーザー報告「問題なし」→ task_09f 完了（phase.md の task_09f 行を完了に更新）。コード変更なし。
+  task_10（正本反映）: features.md §4.2.9 呼び出し・§4.2.10 入力の受け付け新設・§4.2.5 待機を全面改訂ほか / data_schema §5.11 / codebase_map。
+  完了判定前レビュー: deep-reviewer 修正して採用 / Codex 敵対的 needs-attention → ユーザー判断「推奨どおり」→ task_10a（2 回押しの衝突・タイマー照合の完全一致・処理数の通算）+ 文言修正・暫定 29 v0.9。
+  /refactor_check 推奨 → 提案書 17 → ユーザー判断 (a) → task_11_refactor（挙動不変・sequence_runner.py 618 → 467 行・send_wait.py）。特性テストの期待値誤り 1 件はメインが修正。
+  暫定 29 凍結・decisions_archive/40 作成（decisions.md から phase 40 節を移動・索引 1 行）・current.md 完了記載。
 result_files:
-  - instructions/phase/40_sequence_call/phase.md
+  - instructions/common/spec_detail/{features,data_schema}.md・instructions/common/codebase_map.md・instructions/history/29_sequence_call.md
+  - keyseq/application/{call_context,sequence_steps}.py・sequence_runner/{input_acceptance,call_run_to_end,call_wait,file_line_wait,sequence_runner,send_wait}.py / tests
+  - .claude_data/state/decisions_archive/40_sequence_call.md・instructions/modified_proposal/17_refactor_sequence_call.md・instructions/phase/{current.md,40_sequence_call/}
 verified:
-  compile: clean（task_09f 時点）
-  tests: 1003 OK（skipped 7）
+  compile: clean
+  tests: 1010 OK（skipped 7）
   tests_ui: 634 OK
   smoke: pass
-  review: task_09f reviewer 完了可 / 実機目視 OK
+  review: task_10a / task_11 reviewer 完了可
 
 ## next_action
-- task_10（メインで実施・文書作業）: ①暫定 29 §11 の正本反映（v0.7 §4.7・v0.8 §4.8 = `features.md` §4.2.1・§4.2.2・§4.2.5 の改訂を含む / `data_schema.md` / `codebase_map.md`）
-  ②暫定 29 の凍結 ③`decisions_archive/40_sequence_call.md` 作成・decisions.md 索引へ 1 行 ④`instructions/phase/current.md` 完了記載（次採番 phase 41 / 暫定 30 / decisions 41 / 提案書 17）
-  ⑤`/refactor_check`（メトリクスは verifier・観点: L5 の重複・runner 行数）⑥フェーズ完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）。
-- 申し送り（任意）: `StepOutcome.wait_ms` / `resume_position` / `resume` は in_call 専用になった（コメント追加は任意）/ `call_run_to_end.py` `_run_to_end_call_matches` のトークン照合は一時停止 1 回分のずれのみ吸収。
-- **main へのマージはユーザーが行う**。
+- 次フェーズの選定（ユーザー判断）。候補は `instructions/phase/current.md`「次フェーズ候補」（カウンター条件分岐 = idea_37 など）。着手時は `/phase_start`。
+- **main へのマージはユーザーが行う**（本ブランチ `claude/physical-device-verification-25ec98` に phase 40 の残りのタスクを含む）。
 
 ## blockers
 - なし
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 40 の成果は正本が正】呼び出し = `features.md` §4.2.9 / 入力の受け付けと一時停止 = §4.2.10 / 待機 = §4.2.5 / `data_schema.md` §5.11.6・§5.11.8**（暫定 29 は凍結）。runner の mixin 構成は `codebase_map.md`「出力シーケンスの制御アクション」節。
 - **【phase 39 の成果は正本が正】停止 = `features.md` §4.2.8**（暫定 28 は凍結・ただし §9 は phase 40 の起票元）。テストでカウンターを見るときは `counters.get(name, 0)`（未使用はキーが無い）。
 - **【phase 38 の成果は正本が正】file_line の非同期読込 = `features.md` §4.2.7 + `data_schema.md` §5.11.5・§5.11.7 + `codebase_map.md`「出力シーケンスの制御アクション」節**。
   暫定 27 は凍結済で条項の根拠に引かない。runner は `application/sequence_runner/` パッケージ（file_line の読込中は `file_line_wait.py` の mixin）。
