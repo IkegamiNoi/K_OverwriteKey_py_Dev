@@ -231,6 +231,38 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.poll_results, [])
         self.assertNotIn(("set", "f4"), self.state.pending_steps)
 
+    def test_file_line_without_callbacks_reports_for_single_and_run_to_end_calls(self):
+        self.runner._begin_file_line = None
+        self.runner._poll_file_line = None
+        self.trigger("f1", [call("f5"), text("X")])
+        self.trigger("f5", [{"type": "file_line", "path": "rows.txt"}])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(
+            self.errors[-1][1],
+            "system 実行エラー（call 呼び出し先=f5）: "
+            "file_line の読込の仕組みが未設定です / 呼び出し: f5",
+        )
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+
+        self.setUp()
+        self.runner._begin_file_line = None
+        self.runner._poll_file_line = None
+        self.trigger("f1", [call("f5"), text("X")], run_to_end=True)
+        self.trigger("f5", [{"type": "file_line", "path": "rows.txt"}])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(
+            self.errors[-1][1],
+            "system 実行エラー（call 呼び出し先=f5）: "
+            "file_line の読込の仕組みが未設定です / 呼び出し: f5",
+        )
+        self.assertIsNone(self.state.run_to_end_key)
+
     def test_04_missing_cycle_depth_and_infinite_loop_errors_include_call_chain(self):
         cases = {
             "missing": [call("absent")],

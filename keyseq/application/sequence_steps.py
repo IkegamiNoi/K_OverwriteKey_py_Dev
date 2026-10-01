@@ -10,6 +10,11 @@ from keyseq.domain.sequence_control import (
     analyze_loops, enclosing_loop_starts, system_op,
 )
 
+MAX_PROCESSED_SYSTEM_ACTIONS = 10000
+PROCESSED_LIMIT_MESSAGE = (
+    "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）"
+)
+
 
 @dataclass(frozen=True)
 class LoopFrame:
@@ -24,6 +29,12 @@ class StepResume:
     processed: int
     counter_deltas: tuple[tuple[str, int], ...] = ()
     deferred_counters: tuple[tuple[str, str], ...] = ()
+
+
+def continue_resume(resume: StepResume, settled: SettleOutcome) -> StepResume:
+    """先行処理（待機をまたぐ）の結果を足した続きの StepResume。"""
+    return StepResume(resume.initial_position, settled.wrapped, settled.processed,
+                      resume.counter_deltas + settled.counter_deltas, settled.deferred_counters)
 
 
 def format_system_error_notification(
@@ -221,10 +232,10 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             return StepOutcome(position, position, current,
                                counter_deltas=tuple(counter_deltas),
                                wrapped=wrapped, processed=processed)
-        if processed >= 10000:
+        if processed >= MAX_PROCESSED_SYSTEM_ACTIONS:
             return StepOutcome(
                 None, position, current,
-                (position, "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）"),
+                (position, PROCESSED_LIMIT_MESSAGE),
                 counter_deltas=tuple(counter_deltas), processed=processed,
             )
         if (in_call and system_op(action) == OP_LOOP_START
@@ -315,7 +326,7 @@ def settle_after_normal(actions: Sequence[Any], position: int,
         op = system_op(action)
         if op == OP_CALL:
             break
-        if processed >= 10000:
+        if processed >= MAX_PROCESSED_SYSTEM_ACTIONS:
             break
         if in_call and op == OP_LOOP_START and bool(action.get("infinite")):
             break

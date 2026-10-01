@@ -9,7 +9,10 @@ from keyseq.application.call_context import (
 )
 from keyseq.application.sequence_history import StepSnapshot, commit_step
 from keyseq.application.sequence_steps import StepOutcome, resume_for_pending
-from keyseq.application.sequence_runner.file_line_wait import FILE_LINE_POLL_INTERVAL_MS
+from keyseq.application.sequence_runner.file_line_wait import (
+    FILE_LINE_POLL_INTERVAL_MS,
+    FILE_LINE_UNAVAILABLE_MESSAGE,
+)
 from keyseq.domain.call_graph import call_target
 from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE
 
@@ -175,10 +178,10 @@ class CallWaitMixin:
         self, trigger_set_id: str, key: str, generation: int,
         pending: PendingStep, step: CallStep,
     ) -> None:
-        if self._begin_file_line is None or self._poll_file_line is None:
+        if self._file_line_unavailable():
             self._report_error(
                 self._call_action(key, pending),
-                "file_line の読込の仕組みが未設定です" + self._call_chain_suffix(step),
+                FILE_LINE_UNAVAILABLE_MESSAGE + self._call_chain_suffix(step),
             )
             if self._call_parent_is_current(trigger_set_id, key, generation, pending):
                 self._fail_single_call(trigger_set_id, key, generation, pending)

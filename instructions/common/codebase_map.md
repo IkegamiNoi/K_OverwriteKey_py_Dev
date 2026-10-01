@@ -640,7 +640,9 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     （戻り値 `CallStep` の kind = action / wait / next / done / error・連鎖・差分・間隔）。単発・連続実行の両経路で共有し、UI・タイマーに依存しない。
   - runner の mixin（`sequence_runner/`）: `call_wait.py`（`CallWaitMixin` = 単発の呼び出し。`PendingStep.call` / `call_file_line` / `call_paused`）/
     `call_run_to_end.py`（`CallRunToEndMixin` = 連続実行の呼び出し）/ `input_acceptance.py`（`InputAcceptanceMixin` = 押下の受け付けの判定・単発の呼び出しの一時停止 / 再開・
-    `paused_keys` / `discard_paused`〔捨てて通知〕・戻す / 先頭への 2 回押し〔`_pending_control_discard` に控える〕）/ `wait_stop.py`（`WaitStopMixin` = 待機中に止めたときの「終えた扱い」）。
+    `paused_keys` / `discard_paused`〔捨てて通知〕・戻す / 先頭への 2 回押し〔`_pending_control_discard` に控える〕）/ `wait_stop.py`（`WaitStopMixin` = 待機中に止めたときの「終えた扱い」）/
+    `send_wait.py`（`SendWaitMixin` = 送った後の待機の予約・明け・止めた後 / 停止の後の先行処理。task_11 で `sequence_runner.py` から移動）。
+    上限 10,000 と文言は `sequence_steps.MAX_PROCESSED_SYSTEM_ACTIONS` / `PROCESSED_LIMIT_MESSAGE`、「file_line の読込の仕組みが未設定」は `file_line_wait.FILE_LINE_UNAVAILABLE_MESSAGE` と `_file_line_unavailable()` に一本化（task_11）。
   - 待機の扱い: `sequence_steps.settle_after_normal` の `wait_mode`（`stop` = 待機の行で止まる〔既定。呼び出しの文脈の中〈`in_call`〉は常にこの扱い〕/ `wait` = 送った後に待つ / `skip` = 止めた後・停止の後で読み飛ばす）と
     `StepResume.deferred_counters`（待機をまたいで控えるカウンター操作）。`advance` は送る前の待機を読み飛ばす。
   - presentation: `KeymapPanelController` がキーマップの切替・アクティブの削除で `discard_paused` を呼ぶ（実行中の拒否は `AppState.can_switch_keymap`）/

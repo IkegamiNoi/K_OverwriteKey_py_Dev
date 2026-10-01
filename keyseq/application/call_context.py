@@ -8,17 +8,14 @@ from keyseq.domain import call_graph, sequence_control
 from keyseq.domain.call_graph import CallEntry
 from keyseq.application.sequence_steps import (
     LoopFrame,
+    MAX_PROCESSED_SYSTEM_ACTIONS,
+    PROCESSED_LIMIT_MESSAGE,
     StepResume,
     StepOutcome,
     advance,
     after_normal_action,
     apply_deferred_counters,
     settle_after_normal,
-)
-
-_MAX_PROCESSED_SYSTEM_ACTIONS = 10000
-_PROCESSED_LIMIT_MESSAGE = (
-    "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）"
 )
 
 
@@ -174,8 +171,8 @@ def _advance_frame(
     deltas.extend(_new_deltas(outcome, resume))
     frame.resume = None
     frame.frames = outcome.frames
-    if processed[0] > _MAX_PROCESSED_SYSTEM_ACTIONS:
-        return _error(_PROCESSED_LIMIT_MESSAGE, _chain(ctx), deltas)
+    if processed[0] > MAX_PROCESSED_SYSTEM_ACTIONS:
+        return _error(PROCESSED_LIMIT_MESSAGE, _chain(ctx), deltas)
     if outcome.error is not None:
         frame.position = outcome.position
         return _error(outcome.error[1], _chain(ctx), deltas)
@@ -222,8 +219,8 @@ def _finish_returned_call(
         frame.position, frame.frames = settled.position, settled.frames
         deltas.extend(settled.counter_deltas)
         frame.deferred.extend(settled.deferred_counters)
-        if processed[0] > _MAX_PROCESSED_SYSTEM_ACTIONS:
-            return _error(_PROCESSED_LIMIT_MESSAGE, _chain(ctx), deltas)
+        if processed[0] > MAX_PROCESSED_SYSTEM_ACTIONS:
+            return _error(PROCESSED_LIMIT_MESSAGE, _chain(ctx), deltas)
         if frame.position != 0 or not entry.actions:
             return None
         deltas.extend(_pop_frame(ctx, counters))
@@ -266,8 +263,8 @@ def finish_call_action(ctx: CallContext, counters: dict[str, int]) -> CallStep:
     frame.position, frame.frames = settled.position, settled.frames
     frame.deferred.extend(settled.deferred_counters)
     deltas.extend(settled.counter_deltas)
-    if processed[0] > _MAX_PROCESSED_SYSTEM_ACTIONS:
-        return _error(_PROCESSED_LIMIT_MESSAGE, _chain(ctx), deltas)
+    if processed[0] > MAX_PROCESSED_SYSTEM_ACTIONS:
+        return _error(PROCESSED_LIMIT_MESSAGE, _chain(ctx), deltas)
     if frame.position == 0:
         deltas.extend(_pop_frame(ctx, counters))
         failure = _finish_returned_call(ctx, counters, deltas, processed)

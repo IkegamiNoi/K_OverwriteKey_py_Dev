@@ -8,6 +8,7 @@ from keyseq.application.sequence_steps import StepOutcome, resume_for_pending
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
 
 FILE_LINE_POLL_INTERVAL_MS = 50
+FILE_LINE_UNAVAILABLE_MESSAGE = "file_line の読込の仕組みが未設定です"
 
 
 class FileLineWaitMixin:
@@ -19,6 +20,9 @@ class FileLineWaitMixin:
     # _finish_single_normal_action, _finish_run_to_end_normal_action,
     # _schedule_run_to_end_step, _select_trigger, _report_error,
     # stop_run_to_end.
+    def _file_line_unavailable(self) -> bool:
+        return self._begin_file_line is None or self._poll_file_line is None
+
     def _queue_single_file_line(
         self, key: str, outcome: StepOutcome, snapshot: StepSnapshot,
         handle: object, initial_position: int,
@@ -84,8 +88,8 @@ class FileLineWaitMixin:
         self, key: str, action: dict[str, Any], index: int,
         outcome: StepOutcome, snapshot: StepSnapshot, initial_position: int,
     ) -> bool:
-        if self._begin_file_line is None or self._poll_file_line is None:
-            self._report_error(action, "file_line の読込の仕組みが未設定です")
+        if self._file_line_unavailable():
+            self._report_error(action, FILE_LINE_UNAVAILABLE_MESSAGE)
             return False
         handle = self._begin_file_line(action)
         if handle is None:

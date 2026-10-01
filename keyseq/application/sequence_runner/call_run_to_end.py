@@ -13,7 +13,10 @@ from keyseq.application.call_context import (
 )
 from keyseq.application.sequence_history import StepSnapshot, commit_step
 from keyseq.application.sequence_steps import StepOutcome, resume_for_pending
-from keyseq.application.sequence_runner.file_line_wait import FILE_LINE_POLL_INTERVAL_MS
+from keyseq.application.sequence_runner.file_line_wait import (
+    FILE_LINE_POLL_INTERVAL_MS,
+    FILE_LINE_UNAVAILABLE_MESSAGE,
+)
 from keyseq.domain.call_graph import call_target
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
 from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE
@@ -162,10 +165,10 @@ class CallRunToEndMixin:
         self, generation: int, key: str, token: int,
         ctx: CallContext, step: CallStep,
     ) -> None:
-        if self._begin_file_line is None or self._poll_file_line is None:
+        if self._file_line_unavailable():
             self._report_call_error_message(
                 generation, key, token, ctx,
-                "file_line の読込の仕組みが未設定です", step,
+                FILE_LINE_UNAVAILABLE_MESSAGE, step,
             )
             return
         handle = self._begin_file_line(step.action or {})
