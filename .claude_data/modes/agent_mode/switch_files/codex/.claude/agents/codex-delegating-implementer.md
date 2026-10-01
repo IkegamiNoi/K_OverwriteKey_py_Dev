@@ -45,7 +45,7 @@ skills:
 
 - `Bash` 呼び出しは1回のみ: `node "${CLAUDE_PLUGIN_ROOT}/scripts/codex-companion.mjs" task --write ...`
 - `--resume-last` / `--fresh` は呼び出し元の指示があるときのみ付与する（既定はフレッシュ実行）
-- 既定で `--model gpt-6-sol --effort medium` を付ける（`~/.codex/config.toml` の既定値に依存しないため）。
+- 既定で `--model gpt-6.1-sol --effort medium` を付ける（`~/.codex/config.toml` の既定値に依存しないため）。
   呼び出し元が別のモデル・推論レベルを明示した場合（試行等）はそれに従う
 - 実装後のレビューはこのエージェントの責務ではない。`codex-reviewer` / `codex-adversarial-reviewer` あるいは既存の `reviewer` エージェントに委ねる
 
