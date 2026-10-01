@@ -563,3 +563,9 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 原因（Tk 8.6 のクラスバインドで裏取り）: `<1>` で選択 → `<<ListboxSelect>>`、下線（active）は `<ButtonRelease-1>` で後から移る。`listbox_utils.sync_listbox_selection_to_focus` はフォーカスがあると active を正とするため、クリック時に選択を古い下線の行へ戻す。
 - 採用: `<<ListboxSelect>>` では選択された行を正 / `<KeyRelease>` では従来どおり下線の行を正（2026-06-21 の同期の意図を保つ）。対象 = トリガー・シーケンス・キーマップ一覧。
 
+
+### 【task_02 完了判定前レビュー】deep-reviewer 完了可 / Codex 敵対的 needs-attention（2026-10-02・ユーザー判断 = 推奨どおり）
+- deep M1 = Codex Medium（キーマップの切替拒否後、離した時点の `activate @x,y` で下線だけクリックした行へ・以前から）/ deep M2（ドラッグで行ごとに状態が書き換わる・task_01 で新規。Tk の `tk::ListboxMotion` で裏取り）
+  → **採用**（task_01a）: 押している間の `<<ListboxSelect>>` は帯だけ動かし、離したとき `after_idle` で選択の行へ下線を合わせて状態へ反映。副次で deep L1（Shift / Ctrl クリック）も解消。
+- deep L2（例外時のフォールバック）→ 除外 / L3（テストが Tk のクラスバインドを通していない）→ task_01a のテストで補う。
+- `/refactor_check`: 不要（M1〜M6 該当なし）。`trigger_panel_controller.py` 594 行は M1 の基準 600 に近い → 別タスク化候補へ。
