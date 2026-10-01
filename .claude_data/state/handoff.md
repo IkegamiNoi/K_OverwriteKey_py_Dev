@@ -15,17 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 40 は 2026-10-01 完了〕。
-   次採番 = phase 41 / 暫定 30 / decisions 41 / 提案書 18。次フェーズはユーザー判断・着手時は `/phase_start`）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 41 は 2026-10-02 完了〕。
+   次採番 = phase 42 / 暫定 30 / decisions 42 / 提案書 18。次フェーズはユーザー判断・着手時は `/phase_start`）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜29）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 40 完了（呼び出し・入力の受け付けと一時停止・待機は送った後の待ち。暫定 29 v0.9 凍結・正本反映済・提案書 17 を task_11 で実施済）。次フェーズは未定（ユーザー判断待ち）。**
-ブランチ `claude/physical-device-verification-25ec98`（直近: task_11_refactor `d61eb19` / task_10 `06838d2` / task_10a `7688f95`）。
-**main は phase 37 まで取り込み済み**（phase 38〜40 はユーザーがマージする）。
+**phase 41 完了（text / file_line の送信中は送り先の IME をオフにする・正本 key_input.md §7.7・実機目視 OK）。次フェーズは未定（ユーザー判断待ち）。**
+ブランチ `claude/physical-device-verification-25ec98`（phase 40・41 を含む）。**main は phase 37 まで取り込み済み**（phase 38〜41 はユーザーがマージする）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +34,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 40 完了時 = 2026-10-01**）:
-compile **clean** / tests **1010 実行 OK**（skip 7）/ tests_ui **634 実行 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 39 完了 906 → phase 40 完了 1010 / tests_ui: 616 → 634。tests_ui は task_09e でダイアログのテストを削除して 635 → 634）。
+直近の実測（**phase 41 完了時 = 2026-10-02**）:
+compile **clean** / tests **1039 実行 OK**（skip 7）/ tests_ui **636 実行 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 40 完了 1010 → phase 41 完了 1039 / tests_ui: 634 → 636。tests_ui は task_09e でダイアログのテストを削除して 635 → 634）。
 **`tests_ui` と smoke を並行実行しない**（フックの取り合いで 13 件落ちる。逐次で実行する）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
@@ -53,15 +52,14 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 
 ## 次アクション（session.md.next_action より）
 - 次フェーズの選定（ユーザー判断）。候補は `instructions/phase/current.md`「次フェーズ候補」（カウンター条件分岐 = idea_37 など）。着手時は `/phase_start`。
-- **main へのマージはユーザーが行う**（ブランチ `claude/physical-device-verification-25ec98`・phase 38〜40）。
+- **main へのマージはユーザーが行う**（ブランチ `claude/physical-device-verification-25ec98`・phase 38〜41）。
 
-## 直前フェーズ（phase 40 = 呼び出し）の要点
+## 直前フェーズ（phase 41 = 送信中の IME オフ）の要点
 
-**JSON スキーマ変更あり（op `call`・`target`）**（暫定仕様先行・暫定 29 v0.9 凍結）。判断は `decisions_archive/40`、正本は `features.md` §4.2.5・§4.2.9・§4.2.10・§4.3・§4.6 / `data_schema.md` §5.11。
+直接改訂モード・スキーマ変更なし。判断は `decisions_archive/41`、正本は `key_input.md` §7.7。
 
-- 呼び出しは開始時点のコピー（深さ 9）で丸ごと実行・押下を消費する・呼び出し先の位置は不変。文脈 = `application/call_context.py` / 単発 `CallWaitMixin` / 連続 `CallRunToEndMixin`。
-- 処理中は他のトリガーを無視・止まっている間は受け付ける（`InputAcceptanceMixin`）。一時停止中のものを捨てるのはステータスバーの通知（戻す / 先頭へは 2 回押し・連続実行 ON でも）。
-- 待機は送った後の待ち（`SendWaitMixin`・`wait_mode`）。止めたら次の送る行へ（`WaitStopMixin`）。実機目視 3 回で仕様を見直した（v0.6〜v0.8）。
+- `keyboard.write` は Windows で 1 文字ずつ Unicode 文字（VK_PACKET）として送るため、送り先の IME オンだと変換待ちになる → 送る間だけフォーカスの窓の IME をオフにして、200 ms + 40 ms × 文字数の後に別スレッドで戻す。
+- Win32 は `infrastructure/ime_control.py` に閉じる（`SendMessageTimeoutW` をロックの外・世代で再検証・終了時は `App.on_close` → `InputGateway.restore_ime_now`）。
 
 ## 運用インフラ
 
@@ -95,6 +93,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   連続実行の待機中の停止では停止の行の規則（`stop_ends_run`）を、file_line・呼び出しの途中には待機の規則を当てない。**実測で差し戻す**。
 - **【設計・phase 40 v0.8】待機は「直前に送った行の後の待ち」**: `settle_after_normal` の `wait_mode`（stop = in_call・従来 / wait = 送った後の先行処理で待つ / skip = 止めた後・停止の行の後）。
   `advance` は in_call 外では送る前の待機を読み飛ばす。待機をまたぐ控えのカウンター操作は `StepResume.deferred_counters`。
+- **【罠・phase 41 で実証】Win32 の定番の前提も probe で確かめる**（前面の窓への IME 問い合わせは Windows 11 のメモ帳で常に 0。SendInput の文字は後から処理されるので、直後の状態変更は文字より先に効く）。
 - **【罠・phase 40 で実証】verifier の失敗報告の「実際の値」は文字化けの書き写しで誤ることがある**（`呼び出し先` → `呼び出し元`）。期待値を直す前に `PYTHONIOENCODING=utf-8` で単体実行して原文を見る。
 - **【運用・phase 40】ダイアログは操作中のアプリからフォーカスを奪うため、実行中の知らせはステータスバー（`notify_message`）にする**（暫定 29 v0.7）。
 - **【罠・phase 40】呼び出しの最初のステップは `after(0)` の予約**。テストでは `run_one` が要る。未使用のカウンターは辞書にキーが無い（`counters.get(name, 0)`）。
@@ -130,7 +129,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 40_sequence_call / 39_sequence_stop / 38_file_line_async_read）。
+  （直近 3 件: 41_ime_off_while_typing / 40_sequence_call / 39_sequence_stop）。
 - 着手中 idea: なし。未着手/保留 idea: **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/ **idea_23**（押す / 離すアクション）/
   idea_29〜idea_31 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/

@@ -662,9 +662,11 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - text（`keyboard.write`）・マウス（`pyautogui`）は対象外（マウスは下記「マウス操作」節）。
 - **文字の入力中は送り先の IME をオフにする**（phase 41・仕様 = `spec_detail/key_input.md` §7.7）: `write_text`（text・file_line 共通）が
   `infrastructure/ime_control.py` の `disable_for_text()` → `keyboard.write` → `finally` で `restore_after_text(reservation, len(text))`。空文字は IME に触らない。
-  `ImeController` が送り先（`GetGUIThreadInfo` のフォーカスの窓 → `ImmGetDefaultIMEWnd`）の状態を `WM_IME_CONTROL` で読み、オンならオフにして IME 窓ごとに予約（世代つき・`threading.Lock`）。
-  戻すのは非デーモンの `threading.Timer`（200 ms + 40 ms × 文字数）。同じ IME 窓への再送は問い合わせずに送り予約を張り直す。タイマーを張れない・文字数 0 ならその場で戻す。
-  Win32 の失敗は `logging` に記録して送信だけ続ける。Win32 呼び出し（`_Win32ImeApi`）とタイマーは差し替え可能（`tests/test_ime_control.py`）。
+  `ImeController` が送り先（`GetGUIThreadInfo` のフォーカスの窓 → `ImmGetDefaultIMEWnd`）の状態を `WM_IME_CONTROL` で読み、オンならオフにして IME 窓ごとに予約（世代つき・`threading.Lock`・送信中の数）。
+  Win32 は `SendMessageTimeoutW`（200 ms・`SMTO_ABORTIFHUNG`）を**ロックの外**で呼び、呼び出しの後に世代を再検証する（task_03a）。
+  戻すのは非デーモンの `threading.Timer`。戻す時刻 = max(前の時刻, 今 + 200 ms + 40 ms × 文字数)・最後の送信が終わってから張る。戻すときは問い合わせてオフのときだけオン。
+  予約中の再送は問い合わせ直し、オンなら再びオフ。タイマーを張れない・文字数 0 ならその場で戻す。終了時は `App.on_close` → `InputGateway.restore_ime_now` → `ImeController.restore_all_now`（全予約をその場で戻し、以後は予約しない）。
+  Win32 の失敗は `logging` に記録して送信だけ続ける。Win32 呼び出し（`_Win32ImeApi`）・タイマー・時計は差し替え可能（`tests/test_ime_control.py` / `tests_ui/test_app_ime_shutdown.py`）。
 
 ### マウス操作（infrastructure/input_gateway.py の InputGateway・phase 22）
 

@@ -7,15 +7,13 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 41](41_ime_off_while_typing/phase.md)**（文字の送信中は送り先の IME をオフにする・2026-10-01 起票）。
-  text / file_line の文字を送る間だけ送り先の窓の IME をオフにし、送り終えたら元へ戻す（IME オンでカタカナがひらがなの変換待ちになる不具合・ユーザー実機確認済み）。
-  **直接改訂モード**（正本 `key_input.md` §7.7）・JSON スキーマ変更なし / 起票元 = ユーザー要望（2026-10-01）/ 番号対応: phase 41 / 暫定なし / decisions 41。
-- 直前の完了フェーズ = [phase 40](40_sequence_call/phase.md)（2026-10-01・制御アクション第 2 弾 後半 = 呼び出し・
+- **アクティブなフェーズ = なし**（phase 41 は 2026-10-02 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- 直前の完了フェーズ = [phase 41](41_ime_off_while_typing/phase.md)（2026-10-02・文字の送信中は送り先の IME をオフにする・
+  判断は [decisions_archive/41](../../.claude_data/state/decisions_archive/41_ime_off_while_typing.md)）/
+  [phase 40](40_sequence_call/phase.md)（2026-10-01・制御アクション第 2 弾 後半 = 呼び出し・
   判断は [decisions_archive/40](../../.claude_data/state/decisions_archive/40_sequence_call.md)）/
   [phase 39](39_sequence_stop/phase.md)（2026-09-28・制御アクション第 2 弾 前半 = 停止・
-  判断は [decisions_archive/39](../../.claude_data/state/decisions_archive/39_sequence_stop.md)）/
-  [phase 38](38_file_line_async_read/phase.md)（2026-09-27・file_line の非同期読込・
-  判断は [decisions_archive/38](../../.claude_data/state/decisions_archive/38_file_line_async_read.md)）。
+  判断は [decisions_archive/39](../../.claude_data/state/decisions_archive/39_sequence_stop.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
 - **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37〜40）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**・phase 37）。
@@ -24,6 +22,7 @@
   phase 39 で system に停止（`op: stop`・連続実行の区切り）を加えた（`features.md` §4.2.8）。
   phase 40 で呼び出し（`op: call`・`target`・**JSON スキーマ変更あり**・§4.2.9）と入力の受け付け・一時停止（§4.2.10）を加え、待機を「送った後の待ち」に改めた（§4.2.5）。
   **残件** = カウンター条件分岐（idea_37）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
+  phase 41 で text / file_line の送信中は送り先の IME をオフにした（`key_input.md` §7.7・`infrastructure/ime_control.py`。IME オンでカタカナがひらがなの変換待ちになる不具合）。
 - その前の領域 = **トリガー一覧のキーマップ従属化**（phase 34）。
   トリガー一覧（と従属するシーケンス）はキーマップに従属し、キーマップ＝モードとして一括で切り替わる（**JSON スキーマ変更あり**）。
   正本 = `data_schema.md` §5.13（runtime の形・共有・移行・保存計画）+ §5.2/5.4/5.5/5.6/5.8.x / `key_input.md` §7.3
@@ -52,7 +51,7 @@
   **phase 38 は 2026-09-27 完了**（`38_file_line_async_read` / 暫定 27〔v0.8・凍結〕/ decisions 38〔アーカイブ済〕）。
   **phase 39 は 2026-09-28 完了**（`39_sequence_stop` / 暫定 28〔v0.6・凍結〕/ decisions 39〔アーカイブ済〕）。
   **phase 40 は 2026-10-01 完了**（`40_sequence_call` / 暫定 29〔v0.9・凍結〕/ decisions 40〔アーカイブ済〕）。
-  **phase 41 は 2026-10-01 起票・進行中**（`41_ime_off_while_typing` / 暫定なし〔直接改訂モード〕/ decisions 41）。
+  **phase 41 は 2026-10-02 完了**（`41_ime_off_while_typing` / 暫定なし〔直接改訂モード〕/ decisions 41〔アーカイブ済〕）。
   次フェーズは **`42_<topic>`**・decisions も **42** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。

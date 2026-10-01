@@ -4,44 +4,43 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-01T18:00:00
-phase: `instructions/phase/41_ime_off_while_typing`（**起票済・task_01 未着手**・直接改訂モード）。次採番 = phase 42 / 暫定 30 / decisions 42 / 提案書 18。
-直前の完了フェーズ = **phase 40**（呼び出し・判断履歴 = `decisions_archive/40_sequence_call.md`）。
+last_updated: 2026-10-02T12:00:00
+phase: なし（**phase 41 は 2026-10-02 完了**・次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 42 / 暫定 30 / decisions 42 / 提案書 18。
+直前の完了フェーズ = **phase 41**（送信中の IME オフ・判断履歴 = `decisions_archive/41_ime_off_while_typing.md`）。
 last_commit_location: `claude/physical-device-verification-25ec98`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 41 起票済（text / file_line の送信中は送り先の IME をオフにする・直接改訂モード）。次は task_01（probe で戻すタイミングを実測 → 正本 key_input.md §7.7 改訂）。**
-mode: implementing
+focus: **phase 41 完了（text / file_line の送信中は送り先の IME をオフにする・正本 key_input.md §7.7・実機目視 OK）。次フェーズは未定（ユーザー判断待ち）。**
+mode: completed
 
 ## last_action
-ts: 2026-10-01T18:00:00
+ts: 2026-10-02T12:00:00
 who: main
 summary: |
-  task_10（正本反映）: features.md §4.2.9 呼び出し・§4.2.10 入力の受け付け新設・§4.2.5 待機を全面改訂ほか / data_schema §5.11 / codebase_map。
-  完了判定前レビュー: deep-reviewer 修正して採用 / Codex 敵対的 needs-attention → ユーザー判断「推奨どおり」→ task_10a（2 回押しの衝突・タイマー照合の完全一致・処理数の通算）+ 文言修正・暫定 29 v0.9。
-  /refactor_check 推奨 → 提案書 17 → ユーザー判断 (a) → task_11_refactor（挙動不変・sequence_runner.py 618 → 467 行・send_wait.py）。特性テストの期待値誤り 1 件はメインが修正。
-  暫定 29 凍結・decisions_archive/40 作成（decisions.md から phase 40 節を移動・索引 1 行）・current.md 完了記載。
+  phase 41: task_01 probe 4 回（フォーカスの窓へ問い合わせ・戻すのが早すぎるとひらがな・約 20〜26 ms/文字）→ §7.7 改訂 / task_02 実装（ime_control.py）・実機 OK /
+  完了判定前レビュー（deep 修正要・Codex needs-attention）→ ユーザー判断「推奨どおり」→ §7.7 再改訂・task_03a（時刻を延ばすだけ・SendMessageTimeoutW をロックの外・オフのときだけ戻す・終了時に全部戻す）・実機 OK /
+  task_03: codebase_map・decisions_archive/41・current.md 完了記載・/refactor_check 不要。
 result_files:
-  - instructions/common/spec_detail/{features,data_schema}.md・instructions/common/codebase_map.md・instructions/history/29_sequence_call.md
-  - keyseq/application/{call_context,sequence_steps}.py・sequence_runner/{input_acceptance,call_run_to_end,call_wait,file_line_wait,sequence_runner,send_wait}.py / tests
-  - .claude_data/state/decisions_archive/40_sequence_call.md・instructions/modified_proposal/17_refactor_sequence_call.md・instructions/phase/{current.md,40_sequence_call/}
+  - keyseq/infrastructure/{ime_control,input_gateway}.py・keyseq/presentation/app.py（on_close 1 行）/ tests/test_ime_control.py・tests/test_input_gateway_send.py・tests_ui/test_app_ime_shutdown.py
+  - instructions/common/spec_detail/key_input.md・instructions/common/codebase_map.md・instructions/phase/{current.md,41_ime_off_while_typing/}・.claude_data/state/decisions_archive/41_ime_off_while_typing.md
 verified:
   compile: clean
-  tests: 1010 OK（skipped 7）
-  tests_ui: 634 OK
+  tests: 1039 OK（skipped 7）
+  tests_ui: 636 OK
   smoke: pass
-  review: task_10a / task_11 reviewer 完了可
+  review: task_03a reviewer 完了可 / 実機目視 OK
 
 ## next_action
-- phase 41 task_01: `tasks/task_01_*.md` を起票し、`.venv` python の probe スクリプト（scratchpad）で IME オンのメモ帳へ「オフ → SendInput の Unicode 送信 → 戻す」を実測（戻すタイミング・失敗時）。ユーザーに実機で見てもらい、結果で正本 `key_input.md` §7.7 の文言を提案 → 承認。
-- **main へのマージはユーザーが行う**（本ブランチ `claude/physical-device-verification-25ec98` に phase 40 の残りのタスクを含む）。
+- 次フェーズの選定（ユーザー判断）。候補は `instructions/phase/current.md`「次フェーズ候補」（カウンター条件分岐 = idea_37 など）。着手時は `/phase_start`。
+- **main へのマージはユーザーが行う**（本ブランチに phase 38〜41）。
 
 ## blockers
 - なし
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
+- **【phase 41 の成果は正本が正】送信中の IME 制御 = `key_input.md` §7.7**（地図は `codebase_map.md`「キーの送信」節。Win32 は `infrastructure/ime_control.py` に閉じる）。Win32 の挙動は probe で実測してから決める。
 - **【phase 40 の成果は正本が正】呼び出し = `features.md` §4.2.9 / 入力の受け付けと一時停止 = §4.2.10 / 待機 = §4.2.5 / `data_schema.md` §5.11.6・§5.11.8**（暫定 29 は凍結）。runner の mixin 構成は `codebase_map.md`「出力シーケンスの制御アクション」節。
 - **【phase 39 の成果は正本が正】停止 = `features.md` §4.2.8**（暫定 28 は凍結・ただし §9 は phase 40 の起票元）。テストでカウンターを見るときは `counters.get(name, 0)`（未使用はキーが無い）。
 - **【phase 38 の成果は正本が正】file_line の非同期読込 = `features.md` §4.2.7 + `data_schema.md` §5.11.5・§5.11.7 + `codebase_map.md`「出力シーケンスの制御アクション」節**。

@@ -50,6 +50,7 @@
 | 38_file_line_async_read | [38_file_line_async_read.md](decisions_archive/38_file_line_async_read.md) | file_line の非同期読込（2026-09-27 完了・JSON スキーマ変更なし）。ワーカー + UI 側 50 ms 確認タイマー・上限 5 秒・同じ読込キーは待ち合わせ・読込結果のキャッシュ（stat 確認・世代つき全破棄）。**構成セットの読込等で連続実行を常に停止**（既存挙動の変更）。refactor_check: **推奨 → 提案書 16 → task_08 で実施済** |
 | 39_sequence_stop | [39_sequence_stop.md](decisions_archive/39_sequence_stop.md) | 制御アクション第 2 弾 前半 = 停止（2026-09-28 完了・**JSON スキーマ変更あり**＝op `stop`）。連続実行は停止の行で終える（間隔なし・保留をその場で反映・停止の後も先行処理）/ 単発は読み飛ばす / まだ送っていない間の停止は読み飛ばす。呼び出しは phase 40（暫定 28 §9 へ申し送り）。refactor_check: **不要** |
 | 40_sequence_call | [40_sequence_call.md](decisions_archive/40_sequence_call.md) | 制御アクション第 2 弾 後半 = 呼び出し（2026-10-01 完了・**JSON スキーマ変更あり**＝op `call`・`target`）。同じ一覧のトリガーを開始時点のコピーで丸ごと実行（入れ子 9・循環 / 参照先なしは実行時エラー・呼び出し先の位置は不変）/ 処理中は他のトリガーを無視・止まっている間は受け付ける・単発の呼び出しにも一時停止・捨てるのはステータスバーの通知（ダイアログ廃止）/ 待機は送った後の待ち（送る前は読み飛ばす・連続実行は待機の前に間隔なし）。実機目視 3 回で v0.6〜v0.8。refactor_check: 推奨 → 提案書 17 を task_11 で実施 |
+| 41_ime_off_while_typing | [41_ime_off_while_typing.md](decisions_archive/41_ime_off_while_typing.md) | 文字の送信中は送り先の IME をオフにする（2026-10-02 完了・直接改訂・スキーマ変更なし）。フォーカスの窓の IME を `WM_IME_CONTROL`（`SendMessageTimeoutW`・ロックの外）でオフ → 送信 → 200 ms + 40 ms × 文字数後に別スレッドで戻す（オフのときだけ・時刻は延ばすだけ・終了時は全部戻す）。probe 4 回で方式を確定。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -555,30 +556,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
   （`_check_import_nodes` → **単数形へ改名** / `prefix` の毎ノード再計算を
   **モジュール定数 `_PACKAGE_PREFIX`** へ）。残る 1 件（分割後の関数が 30 行目安をわずかに超える）は
   **提案書が想定した分割形**のため据え置き。
-
-## 2026-10-01〜 (phase 41: 文字の送信中は送り先の IME をオフにする・直接改訂)
-
-### 【起票】方針 = ユーザー確定（2026-10-01）
-- 原因: `keyboard.write` が Windows で KEYEVENTF_UNICODE（VK_PACKET）送信 → 送り先の IME オンで変換前の入力として扱われる（ユーザー実機: IME オン = ひらがな・変換待ち / オフ = カタカナで正しい / text も同様）。
-- 採用: 送る間だけ前面の窓の IME をオフ → 送信 → 元の状態へ戻す（IMM: `ImmGetDefaultIMEWnd` + `WM_IME_CONTROL`）。不採用: クリップボード経由（クリップボードを書き換える）/ `WM_CHAR` 直送（受け取れないアプリがある）。
-- 未確定: 戻すタイミング（入力キューの処理前に IME が戻るおそれ）と失敗時の扱い → task_01 の probe で決める。
-
-
-### 【task_01 probe → 正本 §7.7】（2026-10-01・ユーザー承認）
-- probe 1: 前面の窓（`Notepad`）の IME 窓へ問い合わせると IME オンでも 0 → オフ操作が走らず効果なし。probe 2: フォーカスの窓（`RichEditD2DPT`・`GetGUIThreadInfo`）なら 1 と読める。
-- probe 3: オフにする操作は即時に効く（オフ後の待ち不要）。**戻すのが早すぎると途中からひらがな**（送った文字は後から処理される）。
-- probe 4（57 文字）: 処理は約 20〜26 ms/文字。20 ms/文字以上の待ちで全部カタカナ。
-- 採用: 送り先 = フォーカスの窓 / 戻す待ち = **200 ms + 40 ms × 文字数**（約 1.6 倍の余裕）を別スレッドのタイマーで（UI を止めない）/ 戻す前の次の送信はオフのまま送り戻す時刻を延ばす / 失敗時は IME に触らず送る。
-- 受容: 戻すまでの間のユーザーの打鍵も IME オフ / 遅い送り先では末尾がひらがなになり得る / 変換途中の文字列は IME 次第で確定または破棄。
-
-### 【task_03 完了判定前レビュー】deep-reviewer 修正要 / Codex 敵対的 needs-attention（2026-10-01・ユーザー判断 = 推奨どおり）
-- deep H1（短い文字列の再送で戻す時刻が早まる）→ **採用**: 戻す時刻 = 前の時刻と今回の待ちの遅いほう。
-- deep M1 / Codex High（タイムアウトなしの SendMessageW をロック保持中に呼ぶ → UI 停止・自窓でデッドロック）→ **採用**: `SendMessageTimeoutW`（200 ms・SMTO_ABORTIFHUNG）をロックの外で。
-- Codex High（ユーザーの IME 操作の上書き）/ deep M3b → **一部採用**: 戻すときはオフのときだけオン / 予約中の再送も問い合わせてオンなら再びオフ。手での「オン → オフ」は見分けられず受容（正本に明記）。
-- Codex High（同スレッドの別入力欄）/ deep M3a・M3c → **受容**（正本の既知の制約へ）。
-- deep M2 / Codex Medium（終了時に非デーモンタイマーでプロセスが残る）→ **採用**: 終了時に予約をすべてその場で戻す（`App.on_close` から）。
-- deep L1（フォーカスが取れなければ前面の窓）→ 正本に明記 / L2（Windows 以外でエラー級ログ）→ 警告へ下げる / L3 → 除外。
-- 正本 §7.7 を上記で改訂 → task_03a（実装）→ 再度実機目視。
-
-- 【task_03a】Codex（delegating・サブエージェント不使用）実装 → tests 1039 / tests_ui 636 / smoke pass（float 比較 1 件はメインが assertAlmostEqual に修正）→ reviewer 完了可。
-  任意の指摘（終了時の待ちに上限なし〔`keyboard.write` 自体が固まる場合のみ・その時は UI も止まっている〕/ `_restore` 内の結果を使わない `_current` 呼び出し / `owned` のロック外更新〔busy で直列化済み〕）→ **受容**（記録のみ）。
