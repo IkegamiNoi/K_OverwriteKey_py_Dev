@@ -22,7 +22,7 @@ text / file_line の文字を送る間だけ送り先の窓の IME をオフに�
 - 方式: Windows の IMM（`ImmGetDefaultIMEWnd` + `WM_IME_CONTROL` / `IMC_GETOPENSTATUS`・`IMC_SETOPENSTATUS`）。追加ライブラリなし。
 - 不採用: クリップボード経由の貼り付け（ユーザーのクリップボードを書き換える）/ `WM_CHAR` の直送（受け取れないアプリがある）。
 
-## 未確定（task_01 の probe で決め、ユーザー確認を経て正本へ）
+## 未確定 → task_01 で決定済（2026-10-01・正本 `key_input.md` §7.7 / decisions「task_01 probe」）
 
 - **戻すタイミング**: SendInput の入力は送り先の入力キューに積まれて後から処理され、IME の切替（SendMessage）はそれより先に処理されるため、
   送った直後に戻すと文字の処理前に IME がオンへ戻るおそれがある。待ち方（固定の待ち / 送り先の処理完了の確認 等）と UI スレッドを塞ぐ時間を実測で決める。
