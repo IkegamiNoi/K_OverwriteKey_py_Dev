@@ -6,6 +6,27 @@ from typing import Any
 from keyseq.domain.config import normalize_key_name
 
 
+def effective_rows_by_key(triggers: Sequence[Any]) -> dict[str, int]:
+    """Map each non-empty normalized key to its first row's position."""
+    rows: dict[str, int] = {}
+    for index, trigger in enumerate(triggers):
+        if isinstance(trigger, dict):
+            key = normalize_key_name(trigger.get("key", ""))
+            if key:
+                rows.setdefault(key, index)
+    return rows
+
+
+def replaced_effective_keys(before: Sequence[Any], after: Sequence[Any]) -> frozenset[str]:
+    """Return surviving keys whose effective row changed by identity."""
+    previous = effective_rows_by_key(before)
+    current = effective_rows_by_key(after)
+    return frozenset(
+        key for key in previous.keys() & current.keys()
+        if before[previous[key]] is not after[current[key]]
+    )
+
+
 def shadowed_duplicate_indices(triggers: Sequence[Any]) -> frozenset[int]:
     """Return indices whose non-empty key already appeared earlier."""
     seen: set[str] = set()

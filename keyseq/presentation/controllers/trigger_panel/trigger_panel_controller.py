@@ -22,6 +22,10 @@ from keyseq.presentation.listbox_utils import (
     sync_listbox_selection_to_focus,
 )
 from keyseq.presentation.controllers.trigger_panel.action_edit import ActionEditFlow
+from keyseq.presentation.controllers.trigger_panel.effective_row_transition import (
+    apply_effective_row_transition,
+    clear_trigger_state,
+)
 
 
 class TriggerPanelController:
@@ -106,6 +110,12 @@ class TriggerPanelController:
         if not t:
             return None
         return normalize_key_name(t.get("key", ""))
+
+    def selected_trigger_is_effective(self) -> bool:
+        index = self.selected_trigger_index()
+        return index is not None and is_effective_trigger(
+            get_active_triggers(self._app.data), index
+        )
 
     def on_trigger_list_select(self, event=None):
         self._sync_trigger_list_selection(event, prefer_selection=True)
@@ -205,8 +215,9 @@ class TriggerPanelController:
             return
         actions = trig.get("actions", [])
         key = normalize_key_name(trig.get("key", ""))
+        effective = self.selected_trigger_is_effective()
         trigger_set_id = self._app._active_trigger_set_id()
-        loop_iterations = self._app.state.loop_iterations_for(trigger_set_id, key)
+        loop_iterations = self._app.state.loop_iterations_for(trigger_set_id, key) if effective else {}
         counters = self._app.state.counters
         rows = build_action_rows(
             actions,
@@ -214,10 +225,12 @@ class TriggerPanelController:
             counters=counters,
             resolve_call=self._resolve_call_target,
         )
-        if key not in self._app._indices:
+        if effective and key not in self._app._indices:
             self._app._indices[key] = 0
         # index補正
-        if not actions:
+        if not effective:
+            next_index = None
+        elif not actions:
             self._app._indices[key] = 0
         else:
             if bool(trig.get("run_to_end", False)):
@@ -231,7 +244,8 @@ class TriggerPanelController:
             else:
                 # 従来: 循環
                 self._app._indices[key] %= len(actions)
-        next_index = self._app._indices[key]
+        if effective:
+            next_index = self._app._indices[key]
         if actions and next_index == len(actions):
             next_index = 0
         for i, (item_text, background) in enumerate(rows):
@@ -250,6 +264,8 @@ class TriggerPanelController:
     def select_next_action_row(self, key: str):
         """現在の next index（self._indices[key]）を action_list 上で選択表示する（UIスレッド専用）"""
         key = normalize_key_name(key)
+        if not self.selected_trigger_is_effective() or key != self.selected_trigger_key():
+            return
         actions = self._app._find_trigger_by_key(key).get("actions", []) if self._app._find_trigger_by_key(key) else []
         if not actions:
             self._app.full_view.action_list.selection_clear(0, tk.END)
@@ -316,10 +332,12 @@ class TriggerPanelController:
         hook_state = "ON" if self._app.hook.hook_active else "OFF"
         keymap_text = self._app.keymap_panel.get_active_keymap_text()
         sel_key = self.selected_trigger_key() or "(未選択)"
+        effective = self.selected_trigger_is_effective()
         if getattr(self._app, "_compact_mode", False):
             # 省略表示：フック状態 + キーマップの動作状態 + 選択中トリガー + 次に実行（行の内容）
             line = self.get_next_action_summary(sel_key)
-            self._app.ui_vars.status_var.set(f"フック: {hook_state} / キーマップ: {keymap_text}\n選択: {sel_key} / 次: {line}")
+            suffix = f" / 次: {line}" if effective else ""
+            self._app.ui_vars.status_var.set(f"フック: {hook_state} / キーマップ: {keymap_text}\n選択: {sel_key}{suffix}")
             return
 
         triggers = get_active_triggers(self._app.data)
@@ -328,9 +346,9 @@ class TriggerPanelController:
         # 「次」は run_to_end の場合、終端（len）なら次回は先頭なので 1 を出す
         next_i = 0
         try:
-            trig = self._app._find_trigger_by_key(sel_key) if sel_key and sel_key != "(未選択)" else None
+            trig = self.selected_trigger() if effective else None
             actions = trig.get("actions", []) if trig else []
-            idx = int(self._app._indices.get(sel_key, 0) or 0) if sel_key in self._app._indices else 0
+            idx = int(self._app._indices.get(sel_key, 0) or 0) if effective else 0
             if actions:
                 if bool(trig.get("run_to_end", False)) and idx >= len(actions):
                     next_i = 1
@@ -341,13 +359,16 @@ class TriggerPanelController:
                 next_i = 0
         except Exception:
             next_i = 0
+        suffix = f" / 選択中の次: {next_i}" if effective else ""
         self._app.ui_vars.status_var.set(
-            f"フック: {hook_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_key} / 選択中の次: {next_i}"
+            f"フック: {hook_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_key}{suffix}"
         )
 
     def get_next_action_summary(self, trigger_key: str) -> str:
         """省略表示用：次に実行されるアクションを1行で返す"""
         key = normalize_key_name(trigger_key or "")
+        if not self.selected_trigger_is_effective():
+            return ""
         trig = self._app._find_trigger_by_key(key) if key and key != "(未選択)" else None
         if not trig:
             return "(なし)"
@@ -508,6 +529,23 @@ class TriggerPanelController:
         if new in self._app._key_overlap_report().active_source_keys:
             messagebox.showerror("変更できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{new}")
             return
+        after = list(triggers)
+        if old != new and trigger_index is not None:
+            after[trigger_index] = dict(t, key=new)
+        if not apply_effective_row_transition(
+            self._app, triggers, after,
+            lambda: self._apply_trigger_rename(t, old, new, new_label, was_effective),
+        ):
+            return
+        self.refresh_triggers()
+        if old != new:
+            self._app.dirty_tracker.mark_trigger_set_dirty()
+        if cur_label != new_label:
+            self._app.mark_sequence_dirty(t)
+        if self._app.hook.hook_active:
+            self._app.hook.start_hook()
+
+    def _apply_trigger_rename(self, t, old, new, new_label, was_effective):
         if old != new and was_effective:
             self._app.sequence_runner.cancel_pending_wait(old)
         if old != new and was_effective:
@@ -534,13 +572,6 @@ class TriggerPanelController:
                 if renamed_actions is not None:
                     trigger["actions"] = renamed_actions
                     self._app.mark_sequence_dirty(trigger)
-        self.refresh_triggers()
-        if old != new:
-            self._app.dirty_tracker.mark_trigger_set_dirty()
-        if cur_label != new_label:
-            self._app.mark_sequence_dirty(t)
-        if self._app.hook.hook_active:
-            self._app.hook.start_hook()
 
     def delete_trigger(self):
         idx = self.selected_trigger_index()
@@ -552,11 +583,16 @@ class TriggerPanelController:
             return
         key = normalize_key_name(triggers[idx].get("key", ""))
         if messagebox.askyesno("確認", f"トリガー {key} を削除しますか？"):
-            del triggers[idx]
-            self._app._indices.pop(key, None)
-            self._app.state.loop_frames_for(self._app._active_trigger_set_id()).pop(key, None)
-            self._app.sequence_runner.cancel_pending_wait(key)
-            self._app.state.forget_trigger(self._app._active_trigger_set_id(), key)
+            was_effective = is_effective_trigger(triggers, idx)
+            after = triggers[:idx] + triggers[idx + 1:]
+            if not apply_effective_row_transition(
+                self._app, triggers, after, lambda: triggers.__delitem__(idx),
+            ):
+                return
+            if was_effective and not any(
+                normalize_key_name(row.get("key", "")) == key for row in after
+            ):
+                clear_trigger_state(self._app, key)
             self.refresh_triggers()
             self.refresh_actions()
             self._app.dirty_tracker.mark_trigger_set_dirty()
@@ -597,6 +633,8 @@ class TriggerPanelController:
     def on_action_list_select(self, _event=None, *, prefer_selection: bool = True):
         """ユーザーが action_list の行を選んだら、その行を『次に実行』として indices に反映"""
         if self._app._programmatic_action_select:
+            return
+        if not self.selected_trigger_is_effective():
             return
         listbox = self._app.full_view.action_list
         if listbox_mouse_button_is_down(listbox):

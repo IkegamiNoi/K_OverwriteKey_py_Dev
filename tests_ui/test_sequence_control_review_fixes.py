@@ -92,6 +92,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         )
         controller._app = app
         controller.selected_trigger_key = Mock(return_value="a")
+        controller.selected_trigger_is_effective = Mock(return_value=True)
         controller.refresh_actions = Mock()
         controller.update_status = Mock()
         with patch.object(trigger_module, "sync_listbox_selection_to_focus", return_value=1):

@@ -74,6 +74,41 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
     def _get_index(self, key: str) -> int:
         return int(self.state.indices_for(self._get_trigger_set_id()).get(key, 0) or 0)
 
+    def has_active_execution(self, key: str) -> bool:
+        """Return whether the active trigger set is using this normalized key."""
+        key = normalize_key_name(key)
+        if not key:
+            return False
+        trigger_set_id = self._get_trigger_set_id()
+        if normalize_key_name(self.state.run_to_end_key or "") == key:
+            return True
+
+        with self.state.lock:
+            pending_steps = tuple(
+                (identity, pending)
+                for identity, pending in self.state.pending_steps.items()
+                if identity[0] == trigger_set_id
+            )
+        if any(normalize_key_name(identity[1]) == key
+               for identity, _pending in pending_steps):
+            return True
+
+        context = self._run_to_end_call
+        if (context is not None and context.trigger_set_id == trigger_set_id
+                and self._call_context_uses_key(context, key)):
+            return True
+        for _identity, pending in pending_steps:
+            context = getattr(pending, "call", None)
+            if context is not None and self._call_context_uses_key(context, key):
+                return True
+        return False
+
+    @staticmethod
+    def _call_context_uses_key(context: CallContext, key: str) -> bool:
+        keys = (context.root_key, context.first_target,
+                *(frame.key for frame in context.stack))
+        return any(normalize_key_name(frame_key) == key for frame_key in keys)
+
     def _set_index(self, key: str, value: int) -> None:
         self.state.indices_for(self._get_trigger_set_id())[key] = int(value)
 
