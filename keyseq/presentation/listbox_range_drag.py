@@ -52,6 +52,7 @@ class ListboxRangeDrag:
         self._anchor = self._original_anchor = self._original_active = 0
         self._dragging = False
         self._shift_gesture = False
+        self._last_commit_extended = False
         self._cancelled = False
         self._items: list[str] = []
         self._styles: list[dict[str, str]] = []
@@ -61,6 +62,11 @@ class ListboxRangeDrag:
         self._arrow_id: str | None = None
         self._pointer_y: int | None = None
         self._bind()
+
+    @property
+    def last_commit_extended(self) -> bool:
+        """Whether the latest selection commit came from a Shift gesture."""
+        return self._last_commit_extended
 
     def _bind(self) -> None:
         box = self.listbox
@@ -209,7 +215,7 @@ class ListboxRangeDrag:
         elif self._press_row is not None:
             if not self._shift_gesture:
                 select_range(self.listbox, self._press_row, self._press_row)
-            self._commit_later()
+            self._commit_later(extended=self._shift_gesture)
         self._press_row = None
         self._shift_gesture = False
         return "break"
@@ -260,7 +266,7 @@ class ListboxRangeDrag:
             if 0 <= target < count:
                 anchor = int(self.listbox.index("anchor"))
                 self._set_range(anchor, target, active=target)
-        self._commit_later()
+        self._commit_later(extended=True)
         return "break"
 
     def _plain_arrow(self, _event=None):
@@ -274,7 +280,8 @@ class ListboxRangeDrag:
         active = int(self.listbox.index(tk.ACTIVE))
         self.listbox.selection_anchor(active)
 
-    def _commit_later(self) -> None:
+    def _commit_later(self, *, extended: bool) -> None:
+        self._last_commit_extended = extended
         if self.on_commit is not None:
             if self._commit_id is not None:
                 try:

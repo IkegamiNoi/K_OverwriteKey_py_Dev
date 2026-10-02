@@ -42,6 +42,9 @@ class _Listbox:
     def insert(self, _index, item):
         self.items.append(item)
 
+    def selection_anchor(self, _index):
+        pass
+
     def itemconfigure(self, _index, **_kwargs):
         pass
 
@@ -201,10 +204,10 @@ class ActionListRenderingTest(unittest.TestCase):
         })
         controller.refresh_actions()
 
-        self.assertEqual(action_list.items[0], "01. [call] z9（Target Label）: Launch")
-        self.assertEqual(action_list.items[1], "02. [call] f8")
-        self.assertEqual(action_list.items[2], "03. [call] f7（参照先なし）")
-        self.assertEqual(action_list.items[3], "04. [text] unchanged")
+        self.assertEqual(action_list.items[0], "▶ 01. [call] z9（Target Label）: Launch")
+        self.assertEqual(action_list.items[1], "　 02. [call] f8")
+        self.assertEqual(action_list.items[2], "　 03. [call] f7（参照先なし）")
+        self.assertEqual(action_list.items[3], "　 04. [text] unchanged")
         app._find_trigger_by_key = Mock(return_value={"actions": [actions[0]]})
         app._indices = {"z9": 0}
         app.state = SimpleNamespace(
@@ -276,6 +279,7 @@ class ActionListRenderingTest(unittest.TestCase):
                 on_action_list_select=Mock(),
                 on_action_list_focus_index_change=Mock(),
                 on_action_list_mouse_release=Mock(),
+                on_action_list_move=Mock(return_value=True),
                 on_action_double_click=Mock(),
                 add_action=Mock(), edit_action=Mock(), delete_action=Mock(),
                 move_action=Mock(), update_run_to_end=Mock(),
@@ -342,7 +346,7 @@ class ActionListRenderingTest(unittest.TestCase):
 
         self.assertEqual(action_list.itemcget(0, "background"), "#DCEBFF")
         self.assertEqual(action_list.itemcget(1, "background"), "#DCEBFF")
-        self.assertEqual(action_list.get(0), "01. [loop] 2/3")
+        self.assertEqual(action_list.get(0), "▶ 01. [loop] 2/3")
 
 
 if __name__ == "__main__":

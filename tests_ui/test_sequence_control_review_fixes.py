@@ -86,7 +86,9 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         app = SimpleNamespace(
             _programmatic_action_select=False, _indices={"a": 1},
             _find_trigger_by_key=Mock(return_value={"actions": [{}, {}, {}]}),
-            sequence_runner=runner, full_view=SimpleNamespace(action_list=object()),
+            sequence_runner=runner, full_view=SimpleNamespace(
+                action_list=SimpleNamespace(curselection=lambda: ())
+            ),
         )
         controller._app = app
         controller.selected_trigger_key = Mock(return_value="a")

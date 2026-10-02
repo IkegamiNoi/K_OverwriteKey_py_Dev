@@ -35,6 +35,12 @@ class _ActionListbox:
     def selection_set(self, index):
         self.selection = [int(index)]
 
+    def selection_anchor(self, _index):
+        pass
+
+    def curselection(self):
+        return tuple(self.selection)
+
     def activate(self, _index):
         pass
 
@@ -63,6 +69,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
             config_root="C:/config",
             sequence_runner=SimpleNamespace(reset_loop_frames=Mock()),
             mark_sequence_dirty=Mock(),
+            _set_flash_message=Mock(),
         )
         self.controller = TriggerPanelController(self.app)
         self.controller.refresh_actions = Mock()

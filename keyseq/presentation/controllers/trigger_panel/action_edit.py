@@ -7,6 +7,7 @@ from typing import Callable
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.call_graph import edit_call_violation
 from keyseq.domain.keymap_triggers import get_active_triggers
+from keyseq.domain.list_editing import index_after_reorder, move_block, shift_block
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM,
     MAX_LOOP_DEPTH,
@@ -18,7 +19,7 @@ from keyseq.domain.sequence_control import (
 from keyseq.domain.sequence_editing import (
     adjust_position_after_insert,
     can_insert_loop,
-    can_move,
+    can_move_block,
     delete_indices,
     insert_actions,
     loop_pair_items,
@@ -27,6 +28,7 @@ from keyseq.domain.sequence_editing import (
 )
 from keyseq.presentation.dialogs import ActionDialog
 from keyseq.presentation.listbox_utils import focused_listbox_index
+from keyseq.presentation.listbox_range_drag import select_range, selected_range
 
 
 class ActionEditFlow:
@@ -149,16 +151,8 @@ class ActionEditFlow:
                 return
             actions[target_idx] = result
             self._app.sequence_runner.reset_loop_frames(normalize_key_name(trig.get("key", "")))
-            self._trigger_panel.refresh_actions()
+            self._trigger_panel.refresh_actions(select=(idx, idx))
             self._app.mark_sequence_dirty(trig)
-            # action_list は FullView 側にある（選択表示を復帰）
-            try:
-                self._app.full_view.action_list.selection_clear(0, tk.END)
-                self._app.full_view.action_list.selection_set(idx)
-                self._app.full_view.action_list.activate(idx)
-                self._app.full_view.action_list.see(idx)
-            except Exception:
-                pass
             self._app._dialog_result = None
 
     def delete_action(self):
@@ -171,18 +165,32 @@ class ActionEditFlow:
             messagebox.showinfo("削除", "削除したい行を選択してください。")
             return
         actions = trig.get("actions", [])
-        indices = delete_indices(actions, idx)
-        paired_loop = len(indices) > 1
-        prompt = (
-            "ループの始まりと終わりを削除します（中の行は残ります）。よろしいですか？"
-            if paired_loop else "選択した行を削除しますか？"
-        )
+        start, end = self._selection_bounds(idx)
+        selected = set(range(start, end + 1))
+        indices = {i for row in selected for i in delete_indices(actions, row)}
+        prompt = self._delete_prompt(actions, selected, indices)
         if messagebox.askyesno("確認", prompt):
+            before = list(actions)
+            key = normalize_key_name(trig.get("key", ""))
+            position = int(self._app._indices.get(key, 0) or 0)
             for action_index in sorted(indices, reverse=True):
                 del actions[action_index]
-            self._app.sequence_runner.reset_loop_frames(normalize_key_name(trig.get("key", "")))
-            self._trigger_panel.refresh_actions()
+            if position not in indices:
+                self._app._indices[key] = index_after_reorder(before, actions, position)
+            self._app.sequence_runner.reset_loop_frames(key)
+            self._trigger_panel.refresh_actions(select=(start, start))
             self._app.mark_sequence_dirty(trig)
+
+    def _delete_prompt(self, actions: list, selected: set[int], indices: set[int]) -> str:
+        if len(indices) == 1:
+            return "選択した行を削除しますか？"
+        first = min(indices)
+        if len(indices) == 2 and set(delete_indices(actions, first)) == indices:
+            return "ループの始まりと終わりを削除します（中の行は残ります）。よろしいですか？"
+        prompt = f"選択した {len(indices)} 行を削除しますか？"
+        if indices - selected:
+            prompt += "\nループの始まりと終わりは対で削除します（中の行は残ります）。"
+        return prompt
 
     def move_action(self, delta: int):
         trig = self._trigger_panel.selected_trigger()
@@ -194,18 +202,55 @@ class ActionEditFlow:
             messagebox.showinfo("移動", "移動したい行を選択してください。")
             return
         actions = trig.get("actions", [])
-        j = idx + delta
-        if j < 0 or j >= len(actions):
+        start, end = self._selection_bounds(idx)
+        target = shift_block(len(actions), start, end, delta)
+        if target is None:
             return
-        if not can_move(actions, idx, delta):
-            return
-        actions[idx], actions[j] = actions[j], actions[idx]
-        key = self._trigger_panel.selected_trigger_key()
-        if key:
-            self._app._indices[key] = j
-            self._app.sequence_runner.reset_loop_frames(key)
-        self._trigger_panel.refresh_actions()
+        self.move_action_range(start, end, target)
+
+    def move_action_range(self, start: int, end: int, target_start: int) -> bool:
+        trig = self._trigger_panel.selected_trigger()
+        if not trig:
+            return False
+        actions = trig.get("actions", [])
+        if not can_move_block(actions, start, end, target_start):
+            self._app._set_flash_message("ループの始まりと終わりの組が変わるため移動できません")
+            return False
+        after = move_block(actions, start, end, target_start)
+        if all(old is new for old, new in zip(actions, after)):
+            return True
+        key = normalize_key_name(trig.get("key", ""))
+        position = int(self._app._indices.get(key, 0) or 0)
+        self._app._indices[key] = index_after_reorder(actions, after, position)
+        actions[:] = after
+        self._app.sequence_runner.reset_loop_frames(key)
+        target = max(0, min(target_start, len(actions) - (end - start + 1)))
+        self._trigger_panel.refresh_actions(select=(target, target + end - start))
         self._app.mark_sequence_dirty(trig)
+        return True
+
+    def _selection_bounds(self, fallback: int) -> tuple[int, int]:
+        listbox = getattr(getattr(self._app, "full_view", None), "action_list", None)
+        bounds = selected_range(listbox) if listbox is not None else None
+        return bounds if bounds and bounds[0] != bounds[1] else (fallback, fallback)
+
+    def select_action_range(self, start: int, end: int) -> None:
+        self._app._programmatic_action_select = True
+        try:
+            select_range(self._app.full_view.action_list, start, end)
+        finally:
+            self._app._programmatic_action_select = False
+
+    def on_selection_commit(self, listbox: tk.Listbox) -> None:
+        sequence_box = self._app.full_view.sequence_box
+        if not sequence_box.action_range_drag.last_commit_extended:
+            self._trigger_panel.on_action_list_select(prefer_selection=True)
+
+    def on_focus_index_change(self, event) -> None:
+        if event is None or event.state & 0x0001:
+            return
+        if event.keysym in ("Up", "Down", "Prior", "Next", "Home", "End"):
+            self._trigger_panel.on_action_list_select(prefer_selection=False)
 
     def _counter_names(self) -> list[str]:
         names = set()

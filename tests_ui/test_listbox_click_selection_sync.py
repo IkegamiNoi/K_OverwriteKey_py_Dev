@@ -110,6 +110,82 @@ class ListboxClickSelectionSyncTest(unittest.TestCase):
         self._assert_row_synced(listbox, 1)
         self.assertEqual(self.app._indices["f1"], 1)
 
+    def test_shift_click_extends_without_changing_next_execution(self):
+        listbox = self.app.full_view.action_list
+        original_index = self.app._indices["f1"]
+        x, y = self._row_xy(listbox, 1)
+        listbox.focus_force()
+        listbox.selection_anchor(0)
+        listbox.event_generate("<ButtonPress-1>", x=x, y=y, state=0x1)
+        listbox.event_generate("<ButtonRelease-1>", x=x, y=y, state=0x1)
+        self.app.update()
+
+        self.assertEqual(tuple(listbox.curselection()), (0, 1))
+        self.assertEqual(self.app._indices["f1"], original_index)
+
+    def test_shift_drag_extends_without_changing_next_execution(self):
+        listbox = self.app.full_view.action_list
+        original_index = self.app._indices["f1"]
+        listbox.selection_anchor(0)
+        x, y = self._row_xy(listbox, 1)
+        listbox.focus_force()
+        listbox.event_generate("<ButtonPress-1>", x=x, y=y, state=0x1)
+        x, y = self._row_xy(listbox, 2)
+        listbox.event_generate("<B1-Motion>", x=x, y=y, state=0x101)
+        listbox.event_generate("<ButtonRelease-1>", x=x, y=y, state=0x1)
+        self.app.update()
+
+        self.assertEqual(tuple(listbox.curselection()), (0, 1, 2))
+        self.assertEqual(self.app._indices["f1"], original_index)
+
+    def test_shift_down_extends_selection_without_changing_next_execution(self):
+        listbox = self.app.full_view.action_list
+        listbox.focus_force()
+        listbox.selection_clear(0, "end")
+        listbox.selection_set(1)
+        listbox.selection_anchor(1)
+        listbox.activate(1)
+        self.app._indices["f1"] = 1
+
+        listbox.event_generate("<KeyPress-Down>", state=0x1)
+        listbox.event_generate("<KeyRelease-Down>", state=0x1)
+        self.app.update()
+
+        self.assertEqual(tuple(listbox.curselection()), (1, 2))
+        self.assertEqual(self.app._indices["f1"], 1)
+
+    def test_shift_up_keeps_existing_range_and_next_execution(self):
+        listbox = self.app.full_view.action_list
+        listbox.focus_force()
+        listbox.selection_clear(0, "end")
+        listbox.selection_set(1, 2)
+        listbox.selection_anchor(2)
+        listbox.activate(2)
+        self.app._indices["f1"] = 2
+
+        listbox.event_generate("<KeyPress-Up>", state=0x1)
+        listbox.event_generate("<KeyRelease-Up>", state=0x1)
+        self.app.update()
+
+        self.assertEqual(tuple(listbox.curselection()), (1, 2))
+        self.assertEqual(self.app._indices["f1"], 2)
+
+    def test_plain_down_keypress_updates_next_execution(self):
+        listbox = self.app.full_view.action_list
+        listbox.focus_force()
+        listbox.selection_clear(0, "end")
+        listbox.selection_set(0)
+        listbox.selection_anchor(0)
+        listbox.activate(0)
+        self.app._indices["f1"] = 0
+
+        listbox.event_generate("<KeyPress-Down>")
+        listbox.event_generate("<KeyRelease-Down>")
+        self.app.update()
+
+        self.assertEqual(tuple(listbox.curselection()), (1,))
+        self.assertEqual(self.app._indices["f1"], 1)
+
     def test_keymap_click_selects_row_and_activates_keymap(self):
         listbox = self.app.full_view.keymap_box.keymap_listbox
 
@@ -126,7 +202,7 @@ class ListboxClickSelectionSyncTest(unittest.TestCase):
         self._assert_row_synced(listbox, 0)
         self.assertEqual(self.app.keymap_service.get_active_keymap_id(self.app.data), "km1")
 
-    def test_sequence_drag_commits_only_the_row_released(self):
+    def test_sequence_drag_reorders_row_and_preserves_next_action(self):
         listbox = self.app.full_view.action_list
         original_reset = self.app.sequence_runner.reset_loop_frames
         reset = Mock(wraps=original_reset)
@@ -145,6 +221,8 @@ class ListboxClickSelectionSyncTest(unittest.TestCase):
         self._release(listbox, 2)
 
         self._assert_row_synced(listbox, 2)
+        # Dragging reorders the sequence; the next index follows its original action.
+        self.assertEqual(listbox.get(2), "▶ 03. [text] one")
         self.assertEqual(self.app._indices["f1"], 2)
         reset.assert_called_once_with("f1")
 

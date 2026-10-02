@@ -182,7 +182,7 @@ class TriggerPanelController:
         color = "#888888" if is_shadowed else listbox.cget("foreground")
         listbox.itemconfigure(index, foreground=color)
 
-    def refresh_actions(self):
+    def refresh_actions(self, select: tuple[int, int] | None = None):
         # 省略画面では右側（action_list）が無いので、フル側のみ更新
         try:
             self._app.full_view.action_list.delete(0, tk.END)
@@ -208,11 +208,6 @@ class TriggerPanelController:
             counters=counters,
             resolve_call=self._resolve_call_target,
         )
-        for i, (item_text, background) in enumerate(rows):
-            self._app.full_view.action_list.insert(tk.END, item_text)
-            if background is not None:
-                self._app.full_view.action_list.itemconfigure(i, background=background)
-
         if key not in self._app._indices:
             self._app._indices[key] = 0
         # index補正
@@ -230,8 +225,18 @@ class TriggerPanelController:
             else:
                 # 従来: 循環
                 self._app._indices[key] %= len(actions)
-        # 「次に実行する行」を選択状態にする
-        self.select_next_action_row(key)
+        next_index = self._app._indices[key]
+        if actions and next_index == len(actions):
+            next_index = 0
+        for i, (item_text, background) in enumerate(rows):
+            prefix = "▶ " if i == next_index else "　 "
+            self._app.full_view.action_list.insert(tk.END, prefix + item_text)
+            if background is not None:
+                self._app.full_view.action_list.itemconfigure(i, background=background)
+        if select is None:
+            self.select_next_action_row(key)
+        else:
+            self._action_edit.select_action_range(*select)
         self.sync_suppress_checkbox()
         self.sync_run_to_end_ui()
         self.update_status()
@@ -259,6 +264,7 @@ class TriggerPanelController:
         try:
             self._app.full_view.action_list.selection_clear(0, tk.END)
             self._app.full_view.action_list.selection_set(idx)
+            self._app.full_view.action_list.selection_anchor(idx)
             self._app.full_view.action_list.activate(idx)
             self._app.full_view.action_list.see(idx)
         finally:
@@ -556,6 +562,9 @@ class TriggerPanelController:
     def move_action(self, delta: int):
         return self._action_edit.move_action(delta)
 
+    def on_action_list_move(self, start: int, end: int, target_start: int) -> bool:
+        return self._action_edit.move_action_range(start, end, target_start)
+
     def _counter_names(self) -> list[str]:
         return self._action_edit._counter_names()
 
@@ -565,6 +574,8 @@ class TriggerPanelController:
             return
         listbox = self._app.full_view.action_list
         if listbox_mouse_button_is_down(listbox):
+            return
+        if prefer_selection and len(listbox.curselection()) > 1:
             return
         key = self.selected_trigger_key()
         if not key:
@@ -593,10 +604,10 @@ class TriggerPanelController:
             self.update_status()
 
     def on_action_list_focus_index_change(self, _event=None):
-        self.on_action_list_select(prefer_selection=False)
+        return self._action_edit.on_focus_index_change(_event)
 
     def on_action_list_mouse_release(self, listbox: tk.Listbox) -> None:
-        self.on_action_list_select(prefer_selection=True)
+        return self._action_edit.on_selection_commit(listbox)
 
     def on_action_double_click(self, _event=None):
         """シーケンス一覧をダブルクリックしたら編集を開く"""
