@@ -5,8 +5,20 @@ from unittest.mock import patch
 from keyseq.presentation.app import App
 from keyseq.application.sequence_steps import LoopFrame
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
+from keyseq.presentation.controllers.trigger_panel import action_edit as action_edit_module
 from keyseq.presentation.controllers.trigger_panel import trigger_panel_controller as panel_module
+from keyseq.presentation.list_clipboard import CLIP_ACTIONS
 from tests_ui.test_trigger_effective_row import _DialogResult, make_runtime
+
+
+class _ActionDialogResult:
+    def __init__(self, app, result):
+        self.app = app
+        self.result = result
+        self.append_to_end = True
+
+    def wait_window(self):
+        self.app._dialog_result = self.result
 
 
 class TriggerEffectiveRowTransitionUiTest(unittest.TestCase):
@@ -75,11 +87,16 @@ class TriggerEffectiveRowTransitionUiTest(unittest.TestCase):
         del self.rows[1]
         self.app._selected_trigger_idx = 0
         self.app.state.run_to_end_key = "f1"
-        with patch.object(self.app.sequence_runner, "has_active_execution") as active:
+        with patch.object(self.app.sequence_runner, "has_active_execution") as active, \
+             patch.object(self.app.sequence_runner, "cancel_pending_wait") as cancel:
             self.delete_selected()
+        identity = self.app._active_trigger_set_id()
         active.assert_not_called()
+        cancel.assert_called_once_with("f1")
         self.assertNotIn("f1", self.app._indices)
-        self.assertNotIn("f1", self.app.state.history_for(self.app._active_trigger_set_id()))
+        self.assertNotIn("f1", self.app.state.history_for(identity))
+        self.assertNotIn("f1", self.app.state.loop_frames_for(identity))
+        self.assertNotIn("f1", self.app.state.deferred_counters_for(identity))
 
     def test_effective_deletion_replaces_row_and_clears_state(self):
         self.app._selected_trigger_idx = 0
@@ -134,6 +151,83 @@ class TriggerEffectiveRowTransitionUiTest(unittest.TestCase):
         self.assertIs(self.app.state.deferred_counters_for(identity)["f2"], self.deferred)
         self.assertEqual(self.app.state.last_trigger, (identity, "f2"))
         self.assertEqual(self.rows[2]["actions"][0]["target"], "f2")
+
+    def test_gray_sequence_edits_leave_effective_runtime_state_untouched(self):
+        panel = self.app.trigger_panel
+        edit = panel._action_edit
+        operations = ("add", "duplicate", "paste", "edit", "delete", "move")
+        for operation in operations:
+            with self.subTest(operation=operation):
+                self.rows[1]["actions"] = [
+                    {"type": "text", "value": value} for value in ("one", "two", "three")
+                ]
+                self.app._selected_trigger_idx = 1
+                with patch.object(panel, "selected_action_index", return_value=0), \
+                     patch.object(panel, "refresh_actions"), \
+                     patch.object(self.app.sequence_runner, "reset_loop_frames") as reset:
+                    if operation in ("add", "edit"):
+                        result = {"type": "text", "value": "changed"}
+                        with patch.object(action_edit_module, "ActionDialog", return_value=
+                                          _ActionDialogResult(self.app, result)):
+                            getattr(edit, f"{operation}_action")()
+                    elif operation == "duplicate":
+                        edit.duplicate_action()
+                    elif operation == "paste":
+                        self.app.list_clipboard.copy(CLIP_ACTIONS, [
+                            {"type": "text", "value": "pasted"},
+                        ])
+                        edit.paste_actions()
+                    elif operation == "delete":
+                        with patch.object(action_edit_module.messagebox, "askyesno", return_value=True):
+                            edit.delete_action()
+                    else:
+                        edit.move_action_range(0, 0, 1)
+                    reset.assert_not_called()
+                identity = self.app._active_trigger_set_id()
+                self.assertEqual(self.app._indices["f1"], 2)
+                self.assertIs(self.app.state.history_for(identity)["f1"], self.history)
+                self.assertIs(self.app.state.loop_frames_for(identity)["f1"], self.frames)
+                self.assertIs(self.app.state.deferred_counters_for(identity)["f1"], self.deferred)
+
+    def test_effective_sequence_edit_still_resets_loop_frames(self):
+        self.app._selected_trigger_idx = 0
+        with patch.object(self.app.trigger_panel, "selected_action_index", return_value=None), \
+             patch.object(self.app.trigger_panel, "refresh_actions"), \
+             patch.object(action_edit_module, "ActionDialog", return_value=
+                          _ActionDialogResult(self.app, {"type": "text", "value": "added"})), \
+             patch.object(self.app.sequence_runner, "reset_loop_frames") as reset:
+            self.app.trigger_panel.add_action()
+        reset.assert_called_once_with("f1")
+
+    def test_stop_overlap_label_edit_is_allowed_but_key_change_is_rejected(self):
+        self.app._selected_trigger_idx = 3
+        with patch.object(panel_module, "TriggerDialog", return_value=_DialogResult({
+            "key": "f12", "label": "Edited stop overlap",
+        })), patch.object(panel_module.messagebox, "showerror") as showerror, \
+             patch.object(self.app.trigger_service, "is_stop_key_conflict", wraps=
+                          self.app.trigger_service.is_stop_key_conflict) as stop_conflict:
+            self.app.trigger_panel.rename_trigger()
+        self.assertEqual(self.rows[3]["label"], "Edited stop overlap")
+        stop_conflict.assert_not_called()
+        showerror.assert_not_called()
+
+        del self.rows[3]
+        self.app._selected_trigger_idx = 2
+        with patch.object(panel_module, "TriggerDialog", return_value=_DialogResult({
+            "key": "f12", "label": "Changed key",
+        })), patch.object(panel_module.messagebox, "showerror") as showerror:
+            self.app.trigger_panel.rename_trigger()
+        self.assertEqual(self.rows[2]["key"], "caller")
+        showerror.assert_called_once()
+
+    def test_renamed_gray_row_refreshes_sequence_marker_when_it_becomes_effective(self):
+        self.app._selected_trigger_idx = 1
+        with patch.object(panel_module, "TriggerDialog", return_value=_DialogResult({
+            "key": "f2", "label": "Now effective",
+        })):
+            self.app.trigger_panel.rename_trigger()
+        self.assertEqual(self.rows[1]["key"], "f2")
+        self.assertIn("▶", self.app.full_view.action_list.get(0))
 
     def test_gray_selection_has_own_actions_no_pointer_or_runtime_changes(self):
         panel = self.app.trigger_panel

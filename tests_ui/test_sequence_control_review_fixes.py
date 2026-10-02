@@ -139,6 +139,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         state = SimpleNamespace(
             loop_frames_for=Mock(return_value={"a": ["frame"]}),
             rekey_trigger=Mock(side_effect=lambda *_args: events.append("rekey")),
+            forget_trigger=Mock(),
         )
         app = SimpleNamespace(
             data={"keymaps": [{"id": "main", "triggers": [trigger]}], "active_keymap_id": "main"},
@@ -155,12 +156,14 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         controller._app = app
         controller.selected_trigger = Mock(return_value=trigger)
         controller.refresh_triggers = Mock()
+        controller.refresh_actions = Mock()
         dialog = SimpleNamespace(result={"key": "b", "label": "new"}, wait_window=Mock())
         with patch.object(trigger_module, "TriggerDialog", return_value=dialog):
             controller.rename_trigger()
         state.rekey_trigger.assert_called_once_with("main", "a", "b")
         self.assertEqual(app._indices, {"b": 1})
-        self.assertEqual(events, [("a",), "rekey"])
+        # 旧キーの待ちの取り消しは移し替えより前（task_05b 以降は共通手順が旧キーの後始末を重ねて呼ぶが、移し替え後なので無害）。
+        self.assertEqual(events[:2], [("a",), "rekey"])
 
     def test_rename_trigger_updates_call_targets_without_changing_other_history(self):
         trigger = {"key": "z7", "label": "renamed", "actions": []}
@@ -179,7 +182,8 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         app = SimpleNamespace(
             data={"keymaps": [{"id": "main", "triggers": [trigger, caller, untouched]}], "active_keymap_id": "main"},
             _indices=indices,
-            state=SimpleNamespace(loop_frames_for=Mock(return_value=frames), rekey_trigger=Mock()),
+            state=SimpleNamespace(loop_frames_for=Mock(return_value=frames), rekey_trigger=Mock(),
+                                  forget_trigger=Mock()),
             sequence_runner=SimpleNamespace(cancel_pending_wait=Mock()),
             _active_trigger_set_id=Mock(return_value="main"), trigger_service=service,
             keymap_service=SimpleNamespace(get_keymap_by_switch_key=Mock(return_value=None)),
@@ -191,6 +195,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         controller._app = app
         controller.selected_trigger = Mock(return_value=trigger)
         controller.refresh_triggers = Mock()
+        controller.refresh_actions = Mock()
         dialog = SimpleNamespace(result={"key": "z8", "label": "renamed"}, wait_window=Mock())
 
         with patch.object(trigger_module, "TriggerDialog", return_value=dialog):

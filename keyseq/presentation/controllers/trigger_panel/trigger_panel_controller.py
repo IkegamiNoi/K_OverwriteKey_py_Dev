@@ -24,7 +24,6 @@ from keyseq.presentation.listbox_utils import (
 from keyseq.presentation.controllers.trigger_panel.action_edit import ActionEditFlow
 from keyseq.presentation.controllers.trigger_panel.effective_row_transition import (
     apply_effective_row_transition,
-    clear_trigger_state,
 )
 
 
@@ -512,23 +511,24 @@ class TriggerPanelController:
         new_label = (res.get("label") or "").strip()
         if not new:
             return
-        if old != new and self._app.trigger_service.key_exists(
-            self._app.data, new, exclude_trigger=t
-        ):
-            messagebox.showerror("変更できません", f"すでに存在します: {new}")
-            return
-        if self._app.trigger_service.is_stop_key_conflict(self._app.data, new):
-            messagebox.showerror("変更できません", f"このキーはフック停止トリガーに設定されています:\n{new}")
-            return
-        if self._app.trigger_service.is_toggle_key_conflict(self._app.data, new):
-            messagebox.showerror("変更できません", f"このキーは一時停止/再開キーに設定されています:\n{new}")
-            return
-        if self._app.keymap_service.get_keymap_by_switch_key(self._app.data, new):
-            messagebox.showerror("変更できません", f"このキーはキーマップ直接切替キーに設定されています:\n{new}")
-            return
-        if new in self._app._key_overlap_report().active_source_keys:
-            messagebox.showerror("変更できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{new}")
-            return
+        if old != new:
+            if self._app.trigger_service.key_exists(
+                self._app.data, new, exclude_trigger=t
+            ):
+                messagebox.showerror("変更できません", f"すでに存在します: {new}")
+                return
+            if self._app.trigger_service.is_stop_key_conflict(self._app.data, new):
+                messagebox.showerror("変更できません", f"このキーはフック停止トリガーに設定されています:\n{new}")
+                return
+            if self._app.trigger_service.is_toggle_key_conflict(self._app.data, new):
+                messagebox.showerror("変更できません", f"このキーは一時停止/再開キーに設定されています:\n{new}")
+                return
+            if self._app.keymap_service.get_keymap_by_switch_key(self._app.data, new):
+                messagebox.showerror("変更できません", f"このキーはキーマップ直接切替キーに設定されています:\n{new}")
+                return
+            if new in self._app._key_overlap_report().active_source_keys:
+                messagebox.showerror("変更できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{new}")
+                return
         after = list(triggers)
         if old != new and trigger_index is not None:
             after[trigger_index] = dict(t, key=new)
@@ -538,6 +538,7 @@ class TriggerPanelController:
         ):
             return
         self.refresh_triggers()
+        self.refresh_actions()
         if old != new:
             self._app.dirty_tracker.mark_trigger_set_dirty()
         if cur_label != new_label:
@@ -583,16 +584,11 @@ class TriggerPanelController:
             return
         key = normalize_key_name(triggers[idx].get("key", ""))
         if messagebox.askyesno("確認", f"トリガー {key} を削除しますか？"):
-            was_effective = is_effective_trigger(triggers, idx)
             after = triggers[:idx] + triggers[idx + 1:]
             if not apply_effective_row_transition(
                 self._app, triggers, after, lambda: triggers.__delitem__(idx),
             ):
                 return
-            if was_effective and not any(
-                normalize_key_name(row.get("key", "")) == key for row in after
-            ):
-                clear_trigger_state(self._app, key)
             self.refresh_triggers()
             self.refresh_actions()
             self._app.dirty_tracker.mark_trigger_set_dirty()

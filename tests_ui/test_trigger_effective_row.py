@@ -21,7 +21,10 @@ def make_runtime():
             "label": "Main",
             "mappings": {},
             "triggers": [
-                {"key": "f1", "label": "First", "actions": [{"type": "text", "text": "first"}]},
+                {"key": "f1", "label": "First", "actions": [
+                    {"type": "text", "text": "first"}, {"type": "text", "text": "second"},
+                    {"type": "text", "text": "third"},
+                ]},
                 {"key": "F1", "label": "Shadow", "actions": [{"type": "text", "text": "shadow"}]},
                 {"key": "caller", "label": "Caller", "actions": [
                     {"type": "system", "op": "call", "target": "f1"},

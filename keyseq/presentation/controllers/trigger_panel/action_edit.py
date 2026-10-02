@@ -7,7 +7,7 @@ from typing import Callable
 from keyseq.domain.config import normalize_key_name, safe_deepcopy
 from keyseq.domain.call_graph import edit_call_violation
 from keyseq.domain.keymap_triggers import get_active_triggers
-from keyseq.domain.trigger_duplicates import shadowed_duplicate_indices
+from keyseq.domain.trigger_duplicates import is_effective_trigger, shadowed_duplicate_indices
 from keyseq.domain.list_editing import index_after_reorder, move_block, shift_block
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM,
@@ -53,11 +53,17 @@ class ActionEditFlow:
             return None
         return focused_listbox_index(self._app, self._app.full_view.action_list, len(actions))
 
+    def _is_effective_row(self, trigger: dict) -> bool:
+        rows = get_active_triggers(self._app.data)
+        index = next((i for i, row in enumerate(rows) if row is trigger), None)
+        return index is not None and is_effective_trigger(rows, index)
+
     def add_action(self):
         trig = self._trigger_panel.selected_trigger()
         if not trig:
             messagebox.showinfo("追加", "まずトリガーを選択してください。")
             return
+        effective = self._is_effective_row(trig)
         actions = trig.setdefault("actions", [])
         selected_index = self._trigger_panel.selected_action_index()
         key = normalize_key_name(trig.get("key", ""))
@@ -98,10 +104,11 @@ class ActionEditFlow:
             return
         items = loop_pair_items(result) if is_loop else [result]
         insert_at = insert_actions(actions, items, after_index=after_index)
-        self._app._indices[key] = adjust_position_after_insert(
-            position, insert_at, len(items)
-        )
-        self._app.sequence_runner.reset_loop_frames(key)
+        if effective:
+            self._app._indices[key] = adjust_position_after_insert(
+                position, insert_at, len(items)
+            )
+            self._app.sequence_runner.reset_loop_frames(key)
         self._trigger_panel.refresh_actions()
         self._app.mark_sequence_dirty(trig)
         self._app._dialog_result = None
@@ -150,13 +157,15 @@ class ActionEditFlow:
         if reason:
             self._show_append_violation(title, reason)
             return
+        effective = self._is_effective_row(trig)
         key = normalize_key_name(trig.get("key", ""))
         old_length = len(actions)
         position = int(self._app._indices.get(key, 0) or 0)
         actions.extend(items)
-        if bool(trig.get("run_to_end", False)) and position == old_length:
-            self._app._indices[key] = len(actions)
-        self._app.sequence_runner.reset_loop_frames(key)
+        if effective:
+            if bool(trig.get("run_to_end", False)) and position == old_length:
+                self._app._indices[key] = len(actions)
+            self._app.sequence_runner.reset_loop_frames(key)
         self._trigger_panel.refresh_actions(select=(old_length, len(actions) - 1))
         self._app.mark_sequence_dirty(trig)
 
@@ -174,6 +183,7 @@ class ActionEditFlow:
         if not trig:
             messagebox.showinfo("編集", "まずトリガーを選択してください。")
             return
+        effective = self._is_effective_row(trig)
         idx = self._trigger_panel.selected_action_index()
         if idx is None:
             messagebox.showinfo("編集", "編集したい行を選択してください。")
@@ -219,7 +229,10 @@ class ActionEditFlow:
                 self._app._dialog_result = None
                 return
             actions[target_idx] = result
-            self._app.sequence_runner.reset_loop_frames(normalize_key_name(trig.get("key", "")))
+            if effective:
+                self._app.sequence_runner.reset_loop_frames(
+                    normalize_key_name(trig.get("key", ""))
+                )
             self._trigger_panel.refresh_actions(select=(idx, idx))
             self._app.mark_sequence_dirty(trig)
             self._app._dialog_result = None
@@ -229,6 +242,7 @@ class ActionEditFlow:
         if not trig:
             messagebox.showinfo("削除", "まずトリガーを選択してください。")
             return
+        effective = self._is_effective_row(trig)
         idx = self._trigger_panel.selected_action_index()
         if idx is None:
             messagebox.showinfo("削除", "削除したい行を選択してください。")
@@ -244,9 +258,10 @@ class ActionEditFlow:
             position = int(self._app._indices.get(key, 0) or 0)
             for action_index in sorted(indices, reverse=True):
                 del actions[action_index]
-            if position not in indices:
-                self._app._indices[key] = index_after_reorder(before, actions, position)
-            self._app.sequence_runner.reset_loop_frames(key)
+            if effective:
+                if position not in indices:
+                    self._app._indices[key] = index_after_reorder(before, actions, position)
+                self._app.sequence_runner.reset_loop_frames(key)
             self._trigger_panel.refresh_actions(select=(start, start))
             self._app.mark_sequence_dirty(trig)
 
@@ -281,6 +296,7 @@ class ActionEditFlow:
         trig = self._trigger_panel.selected_trigger()
         if not trig:
             return False
+        effective = self._is_effective_row(trig)
         actions = trig.get("actions", [])
         if not can_move_block(actions, start, end, target_start):
             self._app._set_flash_message("ループの始まりと終わりの組が変わるため移動できません")
@@ -290,9 +306,11 @@ class ActionEditFlow:
             return True
         key = normalize_key_name(trig.get("key", ""))
         position = int(self._app._indices.get(key, 0) or 0)
-        self._app._indices[key] = index_after_reorder(actions, after, position)
+        if effective:
+            self._app._indices[key] = index_after_reorder(actions, after, position)
         actions[:] = after
-        self._app.sequence_runner.reset_loop_frames(key)
+        if effective:
+            self._app.sequence_runner.reset_loop_frames(key)
         target = max(0, min(target_start, len(actions) - (end - start + 1)))
         self._trigger_panel.refresh_actions(select=(target, target + end - start))
         self._app.mark_sequence_dirty(trig)
