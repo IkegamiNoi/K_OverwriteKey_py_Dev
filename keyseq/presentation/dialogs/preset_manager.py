@@ -5,7 +5,11 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING
 
 from keyseq.domain.config import format_preset_list_item, safe_deepcopy
+from keyseq.domain.list_editing import move_block, shift_block
 from keyseq.presentation.dialogs.preset_dialog import PresetDialog
+from keyseq.presentation.listbox_range_drag import (
+    bind_listbox_range_drag, selected_range, select_range,
+)
 from keyseq.presentation.modal import grab_modal
 
 if TYPE_CHECKING:
@@ -167,6 +171,7 @@ class PresetManagerDialog(tk.Toplevel):
         frm.grid_rowconfigure(1, weight=1)
 
     def _bind_preset_manager_events(self) -> None:
+        self._range_drag = bind_listbox_range_drag(self.listbox, on_move=self._move_range)
         # ダブルクリックで編集
         self.listbox.bind("<Double-Button-1>", self._on_double_click)
         self.individual_check.configure(command=self._reload_presets_for_individual_toggle)
@@ -262,6 +267,7 @@ class PresetManagerDialog(tk.Toplevel):
         if not self.listbox.curselection():
             return
         self.edit()
+        return "break"
 
     def _refresh(self):
         self.listbox.delete(0, tk.END)
@@ -270,7 +276,7 @@ class PresetManagerDialog(tk.Toplevel):
 
     def _sel(self):
         s = self.listbox.curselection()
-        return int(s[0]) if s else None
+        return int(self.listbox.index(tk.ACTIVE)) if s else None
     
     def _norm_label(self, s: str) -> str:
         return (s or "").strip().lower()
@@ -309,7 +315,8 @@ class PresetManagerDialog(tk.Toplevel):
 
         self._temp.append({"label": label, "value": normalized})
         self._refresh()
-        self.listbox.selection_set(len(self._temp) - 1)
+        n = len(self._temp)
+        select_range(self.listbox, n - 1, n - 1)
 
     def edit(self):
         idx = self._sel()
@@ -342,30 +349,42 @@ class PresetManagerDialog(tk.Toplevel):
             messagebox.showerror("不正なhotkey", f"プリセットの hotkey 値が不正です。\n\n入力: {value}\n理由: {err_msg}")
             return
 
+        selection = selected_range(self.listbox)
+        anchor = int(self.listbox.index(tk.ANCHOR))
         self._temp[idx] = {"label": label, "value": normalized}
         self._refresh()
-        self.listbox.selection_set(idx)
+        select_range(self.listbox, *selection, active=idx)
+        self.listbox.selection_anchor(anchor)
 
     def delete(self):
-        idx = self._sel()
-        if idx is None:
+        selection = selected_range(self.listbox)
+        if selection is None:
             messagebox.showinfo("削除", "削除したい行を選択してください。")
             return
-        if messagebox.askyesno("確認", "選択したプリセットを削除しますか？"):
-            del self._temp[idx]
+        start, end = selection
+        count = end - start + 1
+        prompt = ("選択したプリセットを削除しますか？" if count == 1
+                  else f"選択した {count} 件のプリセットを削除しますか？")
+        if messagebox.askyesno("確認", prompt):
+            del self._temp[start:end + 1]
             self._refresh()
 
     def move(self, delta: int):
-        idx = self._sel()
-        if idx is None:
+        selection = selected_range(self.listbox)
+        if selection is None:
             messagebox.showinfo("移動", "移動したい行を選択してください。")
             return
-        j = idx + delta
-        if j < 0 or j >= len(self._temp):
+        start, end = selection
+        target = shift_block(len(self._temp), start, end, delta)
+        if target is None:
             return
-        self._temp[idx], self._temp[j] = self._temp[j], self._temp[idx]
+        self._move_range(start, end, target)
+
+    def _move_range(self, start: int, end: int, target_start: int) -> bool:
+        self._temp = move_block(self._temp, start, end, target_start)
         self._refresh()
-        self.listbox.selection_set(j)
+        select_range(self.listbox, target_start, target_start + end - start)
+        return True
 
     def on_ok(self):
         def on_overwrite_conflict(stored_path: str, existing: list | None) -> str:

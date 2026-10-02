@@ -44,6 +44,15 @@ def listbox_mouse_button_is_down(listbox: tk.Listbox) -> bool:
     return bool(state and state["pressed"])
 
 
+def set_listbox_mouse_button_down(listbox: tk.Listbox, pressed: bool) -> None:
+    """一覧の選択部品から、既存の押下中の印を更新する。"""
+    state = getattr(listbox, _CLICK_SYNC_STATE_ATTR, None)
+    if state is None:
+        state = {"pressed": False, "after_id": None}
+        setattr(listbox, _CLICK_SYNC_STATE_ATTR, state)
+    state["pressed"] = pressed
+
+
 def focused_listbox_index(root: tk.Misc, listbox: tk.Listbox, item_count: int) -> int | None:
     """Listbox にフォーカスがある場合は active 行を、なければ選択行を返す。"""
     if item_count <= 0:

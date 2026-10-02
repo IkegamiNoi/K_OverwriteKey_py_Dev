@@ -11,7 +11,7 @@ last_commit_location: `claude/list-drag-range-select-11c044`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 43 task_01 完了（domain の純関数 = list_editing.py 新規・sequence_editing.py に can_move_block / paste_violation）。次は task_02（一覧操作の共通部品 + プリセット一覧）。**
+focus: **phase 43 task_02 実装完了・実機目視待ち（listbox_range_drag.py 新規・プリセット編集に適用）。task_03 へ並行で進む。**
 mode: in_progress（ユーザーがタスクの連続実行を許可 2026-10-02）
 
 ## last_action
