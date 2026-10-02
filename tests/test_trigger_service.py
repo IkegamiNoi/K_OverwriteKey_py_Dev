@@ -17,6 +17,12 @@ class TriggerServiceTest(unittest.TestCase):
         self.assertIs(TriggerService.find_trigger_by_key(self.data, " F1 "), self.trigger)
         self.assertIsNone(TriggerService.find_trigger_by_key(self.data, "f2"))
 
+    def test_find_trigger_by_key_returns_first_duplicate_even_when_empty(self):
+        shadowed = {"key": "F1", "actions": [{"type": "text", "text": "lower"}]}
+        self.data["keymaps"][0]["triggers"].append(shadowed)
+        self.assertIs(TriggerService.find_trigger_by_key(self.data, "f1"), self.trigger)
+        self.assertEqual(self.trigger["actions"], [])
+
     def test_key_exists_exclude_trigger(self):
         self.assertTrue(TriggerService.key_exists(self.data, "f1"))
         self.assertFalse(TriggerService.key_exists(self.data, "f1", exclude_trigger=self.trigger))

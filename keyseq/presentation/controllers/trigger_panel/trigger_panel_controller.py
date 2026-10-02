@@ -5,6 +5,7 @@ from tkinter import messagebox
 
 from keyseq.domain.call_graph import rename_call_targets
 from keyseq.domain.keymap_triggers import ensure_active_triggers, get_active_triggers
+from keyseq.domain.trigger_duplicates import is_effective_trigger, shadowed_duplicate_indices
 from keyseq.domain.config import (
     DEFAULT_RUN_TO_END_DELAY_MS,
     coerce_nonnegative_int,
@@ -142,16 +143,21 @@ class TriggerPanelController:
                 pass
         triggers = get_active_triggers(self._app.data)
         overlap = self._app._refresh_key_overlap_report()
+        duplicate_indices = shadowed_duplicate_indices(triggers)
         for i, t in enumerate(triggers):
             k = normalize_key_name(t.get("key", ""))
             conflict = overlap.trigger_conflict(k)
             s = format_trigger_list_item(i, t)
             if conflict is not None:
                 s = f"{s}（{self._trigger_conflict_reason(conflict.winner)}）"
+            elif i in duplicate_indices:
+                s = f"{s}（上のトリガーと重複）"
             for trigger_list in self._trigger_lists:
                 try:
                     trigger_list.insert(tk.END, s)
-                    self._set_trigger_row_color(trigger_list, i, conflict is not None)
+                    self._set_trigger_row_color(
+                        trigger_list, i, conflict is not None or i in duplicate_indices
+                    )
                 except Exception:
                     pass
             if k not in self._app._indices:
@@ -468,6 +474,13 @@ class TriggerPanelController:
             messagebox.showinfo("変更", "変更したいトリガーを選択してください。")
             return
         old = normalize_key_name(t.get("key", ""))
+        triggers = get_active_triggers(self._app.data)
+        trigger_index = next(
+            (index for index, trigger in enumerate(triggers) if trigger is t), None
+        )
+        was_effective = (
+            trigger_index is not None and is_effective_trigger(triggers, trigger_index)
+        )
         cur_label = (t.get("label") or "").strip()
         dlg = TriggerDialog(self._app, title="トリガー変更", initial_key=old, initial_label=cur_label)
         dlg.wait_window()
@@ -478,7 +491,9 @@ class TriggerPanelController:
         new_label = (res.get("label") or "").strip()
         if not new:
             return
-        if self._app.trigger_service.key_exists(self._app.data, new, exclude_trigger=t):
+        if old != new and self._app.trigger_service.key_exists(
+            self._app.data, new, exclude_trigger=t
+        ):
             messagebox.showerror("変更できません", f"すでに存在します: {new}")
             return
         if self._app.trigger_service.is_stop_key_conflict(self._app.data, new):
@@ -493,22 +508,24 @@ class TriggerPanelController:
         if new in self._app._key_overlap_report().active_source_keys:
             messagebox.showerror("変更できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{new}")
             return
-        if old != new:
+        if old != new and was_effective:
             self._app.sequence_runner.cancel_pending_wait(old)
-        # indices の移し替え
-        self._app._indices.setdefault(old, 0)
-        self._app._indices.setdefault(new, self._app._indices.get(old, 0))
-        if old in self._app._indices:
-            del self._app._indices[old]
-        if old != new:
+        if old != new and was_effective:
+            # Transfer key-scoped runtime state only with its effective row.
+            self._app._indices.setdefault(old, 0)
+            self._app._indices.setdefault(new, self._app._indices.get(old, 0))
+            if old in self._app._indices:
+                del self._app._indices[old]
             frames = self._app.state.loop_frames_for(self._app._active_trigger_set_id())
             if old in frames:
                 frames.setdefault(new, frames[old])
                 del frames[old]
             self._app.state.rekey_trigger(self._app._active_trigger_set_id(), old, new)
+        elif old != new:
+            self._app._indices.setdefault(new, 0)
         t["key"] = new
         t["label"] = new_label
-        if old != new:
+        if old != new and was_effective:
             for trigger in get_active_triggers(self._app.data):
                 actions = trigger.get("actions", [])
                 if not isinstance(actions, list):

@@ -15,6 +15,7 @@ from keyseq.application.input_router import (
     TriggerAction,
 )
 from keyseq.application.key_state_manager import KeyStateManager
+from keyseq.application.trigger_service import TriggerService
 
 
 def make_router(
@@ -134,6 +135,23 @@ class InputRouterTest(unittest.TestCase):
 
         gateway.press_key.assert_called_once_with("b")
         gateway.release_key.assert_called_once_with("b")
+
+    def test_duplicate_key_uses_first_row_and_empty_first_row_falls_through(self):
+        first = {"key": "a", "suppress": True, "actions": []}
+        second = {"key": "A", "suppress": True, "actions": [{"type": "text", "value": "lower"}]}
+        runtime = {
+            "keymaps": [{"id": "km1", "triggers": [first, second], "mappings": {"a": "b"}}],
+            "active_keymap_id": "km1",
+        }
+        router = make_router(
+            trigger=lambda key: TriggerService.find_trigger_by_key(runtime, key),
+            keymap_target="b",
+            runtime_data=runtime,
+        )
+
+        route = router.handle(down("a"))
+
+        self.assertEqual(route.actions, (SendKeyAction(source_key="a", target_key="b"),))
 
     def test_trigger_precedes_keymap_replacement_without_shadow_notice(self):
         trigger = {"key": "a", "suppress": True, "actions": [{"type": "text", "value": "x"}]}

@@ -7,6 +7,7 @@ from typing import Callable
 from keyseq.domain.config import normalize_key_name, safe_deepcopy
 from keyseq.domain.call_graph import edit_call_violation
 from keyseq.domain.keymap_triggers import get_active_triggers
+from keyseq.domain.trigger_duplicates import shadowed_duplicate_indices
 from keyseq.domain.list_editing import index_after_reorder, move_block, shift_block
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM,
@@ -341,8 +342,11 @@ class ActionEditFlow:
         self, owner_key: str,
     ) -> tuple[list[tuple[str, str]], Callable[[str], str | None]]:
         triggers = get_active_triggers(self._app.data)
+        shadowed = shadowed_duplicate_indices(triggers)
         candidates = []
-        for trigger in triggers:
+        for index, trigger in enumerate(triggers):
+            if not isinstance(trigger, dict) or index in shadowed:
+                continue
             key = normalize_key_name(trigger.get("key", ""))
             if not key or key == owner_key:
                 continue
