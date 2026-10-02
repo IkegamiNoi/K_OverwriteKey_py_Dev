@@ -2,9 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, MutableSequence, Sequence
+from collections.abc import Iterable, Mapping, MutableSequence, Sequence
 from typing import Any
 
+from keyseq.domain.list_editing import move_block
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM,
     MAX_LOOP_DEPTH,
@@ -16,6 +17,10 @@ from keyseq.domain.sequence_control import (
     action_type,
     system_op,
 )
+
+PASTE_UNBALANCED_LOOP = "paste_unbalanced_loop"
+PASTE_TOO_DEEP = "paste_too_deep"
+PASTE_STANDALONE = "paste_standalone"
 
 
 def standalone_violation(
@@ -113,3 +118,55 @@ def _is_loop_marker(action: Any) -> bool:
         and action_type(action) == ACTION_TYPE_SYSTEM
         and system_op(action) in (OP_LOOP_START, OP_LOOP_END)
     )
+
+
+def can_move_block(
+    actions: Sequence[Any], start: int, end: int, target_start: int
+) -> bool:
+    """Allow a block move only when loop relations stay valid by row identity."""
+    try:
+        candidate = move_block(actions, start, end, target_start)
+    except ValueError:
+        return False
+    before = analyze_loops(actions)
+    after = analyze_loops(candidate)
+    before_pairs = _identity_pairs(actions, before.pairs)
+    after_pairs = _identity_pairs(candidate, after.pairs)
+    if before_pairs != after_pairs:
+        return False
+    before_unmatched = _identity_indices(actions, before.unmatched)
+    after_unmatched = _identity_indices(candidate, after.unmatched)
+    if before_unmatched != after_unmatched:
+        return False
+    before_deep = _identity_indices(actions, before.too_deep)
+    after_deep = _identity_indices(candidate, after.too_deep)
+    return after_deep <= before_deep
+
+
+def _identity_pairs(actions: Sequence[Any], pairs: Mapping[int, int]) -> set[frozenset[int]]:
+    return {frozenset((id(actions[start]), id(actions[end]))) for start, end in pairs.items()}
+
+
+def _identity_indices(actions: Sequence[Any], indices: Iterable[int]) -> set[int]:
+    return {id(actions[index]) for index in indices}
+
+
+def paste_violation(actions: Sequence[Any], items: Sequence[Any]) -> str | None:
+    """Return the first loop or standalone rule violated by appending items."""
+    if not items:
+        return None
+    if analyze_loops(items).unmatched:
+        return PASTE_UNBALANCED_LOOP
+    before_deep = _identity_indices(actions, analyze_loops(actions).too_deep)
+    combined = list(actions) + list(items)
+    if not _identity_indices(combined, analyze_loops(combined).too_deep) <= before_deep:
+        return PASTE_TOO_DEEP
+    has_standalone = any(
+        isinstance(action, Mapping)
+        and action_type(action) == ACTION_TYPE_SYSTEM
+        and system_op(action) in (OP_BACK, OP_REWIND)
+        for action in combined
+    )
+    if has_standalone and len(combined) != 1:
+        return PASTE_STANDALONE
+    return None

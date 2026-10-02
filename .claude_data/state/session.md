@@ -4,37 +4,31 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-02T18:00:00
-phase: なし（**phase 42 は 2026-10-02 完了**・次フェーズはユーザー判断・着手時は `/phase_start`）。次採番 = phase 43 / 暫定 30 / decisions 43 / 提案書 18。
+last_updated: 2026-10-02T21:00:00
+phase: **phase 43**（`43_list_reorder_range_copy`・一覧のドラッグ移動・範囲選択・複製・暫定仕様先行モード・主入力 = 暫定 30 v0.4〔ユーザー確定済〕）。次採番 = phase 44 / 暫定 31 / decisions 44 / 提案書 18。
 直前の完了フェーズ = **phase 42**（一覧の選択と下線のずれ・判断履歴 = `decisions_archive/42_listbox_click_selection_sync.md`）。
-last_commit_location: `claude/physical-device-verification-25ec98`
+last_commit_location: `claude/list-drag-range-select-11c044`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 42 完了（一覧のクリックで選択と下線がずれる不具合の修正・presentation のみ・実機目視 OK）。次フェーズは未定（ユーザー判断待ち）。**
-mode: completed
+focus: **phase 43 task_01 完了（domain の純関数 = list_editing.py 新規・sequence_editing.py に can_move_block / paste_violation）。次は task_02（一覧操作の共通部品 + プリセット一覧）。**
+mode: in_progress（ユーザーがタスクの連続実行を許可 2026-10-02）
 
 ## last_action
-ts: 2026-10-02T18:00:00
+ts: 2026-10-02T21:00:00
 who: main
 summary: |
-  phase 42: task_01（クリックは選択を正・キー操作は下線を正）・実機 OK / 完了判定前レビュー（deep 完了可・Codex needs-attention = 切替拒否後のずれ・ドラッグの副作用）→ ユーザー判断「推奨どおり」→
-  task_01a（押している間は帯だけ・離したとき after_idle で反映）・実機 OK / task_02: codebase_map・decisions_archive/42・current.md 完了記載・/refactor_check 不要。
-  別件: `/model_update` スキル追加（Codex Sol を gpt-6.1-sol へ更新した手順を一般化）。
+  phase 43 起票（暫定 30 を v0.1 → deep-reviewer → v0.2〔ユーザー判断: ▶ で次に実行を分離・有効な行だけが状態を持つ A1〕→ codex 敵対的 → v0.3 → プリセット一覧追加 v0.4・確定）。
+  task_01: codex-implementer（Luna high）で実装 → verifier 実測 → reviewer 採用。
 result_files:
-  - keyseq/presentation/listbox_utils.py・controllers/{trigger_panel/trigger_panel_controller,keymap_panel/keymap_panel_controller}.py・views/{full_view/{trigger_box,sequence_box,keymap_box},compact_view/trigger_box}.py
-  - tests_ui/test_listbox_click_selection_sync.py・tests_ui/test_action_list_rendering.py（スタブ 1 行）
-  - instructions/common/codebase_map.md・instructions/phase/{current.md,42_listbox_click_selection_sync/}・.claude_data/state/decisions_archive/42_listbox_click_selection_sync.md
+  - keyseq/domain/list_editing.py・keyseq/domain/sequence_editing.py・tests/test_list_editing.py・tests/test_sequence_editing.py
 verified:
   compile: clean
-  tests: 1039 OK（skipped 7）
-  tests_ui: 645 OK
-  smoke: pass
-  review: task_01a reviewer 完了可 / 実機目視 OK
+  tests: 1059 OK（skipped 7）
+  review: task_01 reviewer 採用（参考: PASTE_TOO_DEEP の実データテストは mock のみ / can_move_block は範囲外で False を返す）
 
 ## next_action
-- 次フェーズの選定（ユーザー判断）。候補は `instructions/phase/current.md`「次フェーズ候補」（カウンター条件分岐 = idea_37 など）。着手時は `/phase_start`。
-- **main へのマージはユーザーが行う**（本ブランチに phase 38〜42）。
+- task_02 を `/task_new` で起票して実装（phase.md のタスク一覧の順）。タスク間はユーザー確認なしで進めてよい（スペックフラグ・フォールバック・実機目視は止める）。
 
 ## blockers
 - なし

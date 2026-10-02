@@ -139,5 +139,100 @@ class CanMoveTest(unittest.TestCase):
         self.assertFalse(can_move(actions, 3, -1))
 
 
+class CanMoveBlockTest(unittest.TestCase):
+    def test_regular_rows_move_into_and_out_of_loops(self) -> None:
+        from keyseq.domain.sequence_editing import can_move_block
+
+        inside = [system("loop_start"), {"type": "text"}, system("loop_end"), {"type": "tail"}]
+        self.assertTrue(can_move_block(inside, 1, 1, 3))
+        outside = [system("loop_start"), system("loop_end"), {"type": "text"}]
+        self.assertTrue(can_move_block(outside, 2, 2, 1))
+
+    def test_complete_loop_can_move_into_another_loop(self) -> None:
+        from keyseq.domain.sequence_editing import can_move_block
+
+        actions = [
+            system("loop_start"),
+            system("loop_end"),
+            system("loop_start"),
+            system("loop_end"),
+        ]
+        self.assertTrue(can_move_block(actions, 0, 1, 0))
+        self.assertTrue(can_move_block(actions, 0, 1, 1))
+
+    def test_changed_pair_and_reversed_markers_are_rejected(self) -> None:
+        from keyseq.domain.sequence_editing import can_move_block
+
+        crossing = [
+            system("loop_start"),
+            system("loop_start"),
+            system("loop_end"),
+            system("loop_end"),
+        ]
+        self.assertFalse(can_move_block(crossing, 1, 1, 2))
+        self.assertFalse(can_move_block([system("loop_start"), system("loop_end")], 0, 0, 1))
+
+    def test_unrelated_move_preserves_existing_depth_errors(self) -> None:
+        from keyseq.domain.sequence_editing import can_move_block
+
+        actions = [system("loop_start") for _ in range(MAX_LOOP_DEPTH + 1)]
+        actions.extend(system("loop_end") for _ in range(MAX_LOOP_DEPTH + 1))
+        actions.append({"type": "text"})
+        self.assertTrue(can_move_block(actions, len(actions) - 1, len(actions) - 1, 0))
+
+    def test_new_depth_error_and_changed_malformed_rows_are_rejected(self) -> None:
+        from keyseq.domain.sequence_editing import can_move_block
+
+        actions = [system("loop_start") for _ in range(MAX_LOOP_DEPTH)]
+        actions.extend(system("loop_end") for _ in range(MAX_LOOP_DEPTH))
+        actions.extend((system("loop_start"), system("loop_end")))
+        self.assertFalse(
+            can_move_block(
+                actions,
+                2 * MAX_LOOP_DEPTH,
+                2 * MAX_LOOP_DEPTH + 1,
+                MAX_LOOP_DEPTH,
+            )
+        )
+        malformed = [system("loop_end"), system("loop_start"), system("loop_end")]
+        self.assertFalse(can_move_block(malformed, 2, 2, 1))
+
+
+class PasteViolationTest(unittest.TestCase):
+    def test_reports_unbalanced_fragment_first(self) -> None:
+        from keyseq.domain.sequence_editing import PASTE_UNBALANCED_LOOP, paste_violation
+
+        fragment = [system("back"), system("loop_start")]
+        self.assertEqual(paste_violation([], fragment), PASTE_UNBALANCED_LOOP)
+
+    def test_reports_new_depth_error(self) -> None:
+        from types import SimpleNamespace
+        from unittest.mock import patch
+
+        from keyseq.domain.sequence_editing import PASTE_TOO_DEEP, paste_violation
+
+        actions, fragment = [object()], [system("back")]
+
+        def structure(rows: list[object]) -> SimpleNamespace:
+            too_deep = frozenset({1}) if len(rows) == 2 else frozenset()
+            return SimpleNamespace(unmatched=frozenset(), too_deep=too_deep)
+
+        with patch("keyseq.domain.sequence_editing.analyze_loops", side_effect=structure):
+            self.assertEqual(paste_violation(actions, fragment), PASTE_TOO_DEEP)
+
+    def test_reports_standalone_rule_after_loop_checks(self) -> None:
+        from keyseq.domain.sequence_editing import PASTE_STANDALONE, paste_violation
+
+        back = system("back")
+        self.assertEqual(paste_violation([{"type": "text"}], [back]), PASTE_STANDALONE)
+
+    def test_accepts_valid_fragments_and_empty_fragment(self) -> None:
+        from keyseq.domain.sequence_editing import paste_violation
+
+        self.assertIsNone(paste_violation([], []))
+        self.assertIsNone(paste_violation([], [system("loop_start"), system("loop_end")]))
+        self.assertIsNone(paste_violation([], [system("back")]))
+
+
 if __name__ == "__main__":
     unittest.main()
