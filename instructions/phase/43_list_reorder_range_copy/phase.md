@@ -1,0 +1,73 @@
+# phase.md
+
+## フェーズ名
+
+一覧のドラッグ移動・範囲選択・複製（list_reorder_range_copy）
+
+## フェーズの目的
+
+フル表示のキーマップ一覧・トリガー一覧・出力シーケンスと、プリセット編集ダイアログの一覧に、ドラッグでの並べ替え・Shift の連続範囲選択・
+範囲のまとめて移動を加え、プリセット一覧を除く 3 つに複製（出力シーケンスの「複製」ボタン / Ctrl+C → Ctrl+V）を加える。
+トリガーの複製で同じキーの行が並ぶことを許し、上の行を有効・下をグレー表示にする。
+**対象は presentation が中心で、domain（範囲移動・ループ判定・連番の純関数）・application（有効な行の判定・重なりの表・保存計画の識別子）にも及ぶ。
+JSON スキーマ変更なし（実行中の状態はキー単位のまま・行単位の識別子は導入しない）。**
+
+- 起票元: ユーザー要望（2026-10-02）。
+- 主入力（暫定仕様）: [30_list_reorder_range_copy.md](../../history/30_list_reorder_range_copy.md)（v0.4・ユーザー確定済 2026-10-02）
+- モード: **暫定仕様先行モード**。番号対応: phase 43 / 暫定 30 / decisions 43。
+
+## 確定（ユーザー 2026-10-02）
+
+暫定仕様 §2 が正。要点:
+
+- 範囲選択は連続範囲のみ。キーマップ一覧はフォーカス（下線）= アクティブ・ドラッグではアクティブを変えない
+- 出力シーケンスの次に実行は `▶` で示し、変えるのは Shift なしのクリックと ↑↓ だけ
+- トリガーの同じキーは上の行が有効・下はグレー（「上のトリガーと重複」）。実行中の状態は有効な行だけが持つ（キー単位）。有効な行の交代でそのキーの状態は削除と同じく消え、そのキーに進行中の実行があれば交代する操作を拒否する
+- 複製・貼り付けは末尾・貼った行を選択・ラベルは連番。キーマップの複製は切替キーの入力ダイアログ（キャンセルで残りを中止）
+- プリセット一覧は範囲選択・ドラッグ・まとめて移動・範囲削除のみ（複製なし）
+
+## スコープ
+
+### 含む
+
+暫定仕様 §3〜§8 の全項目（4 つの一覧の操作・出力シーケンスの `▶` とループの移動規則・トリガーの有効な行とグレー表示・保存計画の識別子と対象の固定・
+キーマップの並べ替えと複製・プリセット一覧・ラベルの連番）と、フェーズ末の正本反映（§12）。
+
+### 含まない（後送り）
+
+暫定仕様 §11（省略表示のトリガー一覧・プリセットの複製・Ctrl+クリック・一覧間のドラッグ・OS のクリップボード・構成セットをまたぐ貼り付け・
+貼り付け位置の指定・Ctrl+X・グレーの行の実行位置の保持・キーマップの切替キーの重複保持）。
+
+## このフェーズで読むファイル
+
+1. 暫定仕様 [30_list_reorder_range_copy.md](../../history/30_list_reorder_range_copy.md)（§1 現状監査の `ファイルパス:行` が入口）
+2. `instructions/common/codebase_map.md` の `listbox_utils.py` の項・「キーマップとトリガー一覧（phase 34）」節・「出力シーケンスの制御アクション」節
+3. 一覧の操作: `keyseq/presentation/listbox_utils.py`・`views/full_view/{keymap_box,trigger_box,sequence_box}.py`・`dialogs/preset_manager.py`
+4. 出力シーケンス: `controllers/trigger_panel/{trigger_panel_controller,action_edit}.py`・`domain/{sequence_editing,sequence_control}.py`
+5. トリガーの有効な行: `application/{trigger_service,key_overlap,input_router,app_state}.py`・`presentation/keyboard_window.py`・呼び出しの編集ダイアログ
+6. 保存: `application/config_service/{split_payloads,save_plan_execution}.py`・`application/save_plan.py`・`controllers/config_io/{child_save_plan,child_save_rows,trigger_set_file_io}.py`
+7. キーマップ: `controllers/keymap_panel/{keymap_panel_controller,keymap_add_flow}.py`・`application/keymap_service.py`・`domain/keymap_triggers.py`
+8. 既存テスト: `tests_ui/test_listbox_click_selection_sync.py`（phase 42 の同期）ほか、各タスク定義で指定
+
+## タスク
+
+タスク定義（`tasks/task_NN_<topic>.md`）は着手時に `/task_new` で順に起票する。依存順:
+
+- task_01: domain の純関数（範囲の移動・§4.2 ループの移動判定・§4.3 貼り付けの拒否判定・§7 ラベルの連番）とテスト
+- task_02: 一覧操作の共通部品（§3.1 範囲選択と Tk 既定バインドの置き換え・§3.2 ドラッグ移動・Escape の取り消し・自動スクロール）＋ プリセット一覧への適用（§6a）。§8（バインドは対象の Listbox だけ・`bind_all` 不使用）
+- task_03: 出力シーケンスの操作（§4.1 `▶` と次に実行の分離・範囲選択・ドラッグ・上へ / 下へのまとめて移動・範囲削除）
+- task_04: 出力シーケンスの複製（複製ボタン・Ctrl+C / V の保管庫・読込 / 新規作成で空にする）（§3.4・§4.3）
+- task_05: トリガーの有効な行（§5.1・§5.2: グレー表示の理由・入力判定 / 呼び出し / キーボード表示 / 重なりの表・presentation のキー参照・キーを変えない編集・
+  呼び出しの書き換え条件とドロップダウン・有効な行の交代の判定と進行中の拒否）。テストは domain / application で重複キーのデータを直接作る（貼り付けは task_07）
+- task_06: 保存（§5.4: 行の位置による計画の識別子・対象の一覧と並びの固定と照合・個別保存の行番号の併記・保存の前後で状態を保つ）
+- task_07: トリガー一覧の操作（範囲選択・ドラッグ・範囲削除・複製 / 貼り付け・連番）（§3・§5.3）。task_05 の交代の判定と進行中の拒否（§10-9a）を各操作へ適用・操作後の重なりの表の作り直し・フック再登録・キーボード表示の再描画（§5.2 末行）
+- task_08: キーマップ一覧の操作（§6: フォーカス = アクティブの範囲選択・並べ替えの禁止条件と代表の付け替え・範囲削除・複製と切替キーのダイアログ）
+- task_09: 正本反映（暫定 30 の §12 を正本へ昇格・凍結）・`codebase_map.md`・`decisions_archive/43_list_reorder_range_copy.md`・current.md の完了記載・`/refactor_check`
+
+## レビュー方針
+
+- 各タスク: `reviewer`（5 観点）・既存テスト（tests / tests_ui / smoke）の通過を完了条件に含める（§10-15）。task_05・task_06 は実行と保存に跨るため、完了判定前に `deep-reviewer` + Codex レビューを併用する
+- 重点: 有効な行の交代で実行位置・履歴・進行中の実行が別のトリガーへ付かないか / 保存で行のシーケンスが入れ替わる・消えることがないか /
+  キーマップの並べ替えで代表の付け替えが漏れないか / Tk の既定バインドの置き換え漏れ（Ctrl+クリック・Shift なしドラッグ・Escape）/
+  phase 42 の「押下中は帯だけ・離したとき反映」が保たれるか / 省略表示が単一選択のままか
+- 実機目視（ユーザー）: task_02・03・04・07・08 の操作感
