@@ -15,16 +15,18 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 42 は 2026-10-02 完了〕。
-   次採番 = phase 43 / 暫定 30 / decisions 43 / 提案書 18。次フェーズはユーザー判断・着手時は `/phase_start`）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 43**〔`43_list_reorder_range_copy`・暫定仕様先行・主入力 = 暫定 30 v0.4〕）。
+   続けて `instructions/phase/43_list_reorder_range_copy/phase.md`（タスク一覧と進捗）・暫定 `instructions/history/30_list_reorder_range_copy.md`。
+   次採番 = phase 44 / 暫定 31 / decisions 44 / 提案書 18
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜29）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 42 完了（一覧のクリックで選択と下線がずれる不具合の修正・presentation のみ・実機目視 OK）。次フェーズは未定（ユーザー判断待ち）。**
-ブランチ `claude/physical-device-verification-25ec98`（phase 40〜42 を含む）。**main は phase 37 まで取り込み済み**（phase 38〜42 はユーザーがマージする）。
+**phase 43 task_01〜05b 完了（02〜04 は実機目視待ち）。task_06（保存）は暫定 §5.4 の改訂案〔計画の識別子を「行の位置」→「キー + 同じキーの何番目か」〕のユーザー判断待ち。**
+ブランチ `claude/list-drag-range-select-11c044`（最新 `5aa3893`）。phase 38〜42 は `claude/physical-device-verification-25ec98`（**main は phase 37 まで取り込み済み**・マージはユーザー）。
+ユーザーはフェーズ内のタスクの連続実行を許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,9 +36,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 42 完了時 = 2026-10-02**）:
-compile **clean** / tests **1039 実行 OK**（skip 7）/ tests_ui **645 実行 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 41 完了 1039 → phase 42 同数 / tests_ui: 636 → 645。tests_ui は task_09e でダイアログのテストを削除して 635 → 634）。
+直近の実測（**phase 43 task_05b 完了時 = 2026-10-02**）:
+compile **clean** / tests **1079 実行 OK**（skip 7）/ tests_ui **716 実行 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 42 完了 1039 → 1079 / tests_ui: 645 → 716）。
 **`tests_ui` と smoke を並行実行しない**（フックの取り合いで 13 件落ちる。逐次で実行する）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
@@ -51,8 +53,17 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズの選定（ユーザー判断）。候補は `instructions/phase/current.md`「次フェーズ候補」（カウンター条件分岐 = idea_37 など）。着手時は `/phase_start`。
-- **main へのマージはユーザーが行う**（ブランチ `claude/physical-device-verification-25ec98`・phase 38〜42）。
+- ユーザーの回答を受けて: 推奨（キー + 何番目かの印）なら暫定 30 を v0.5 に改訂（§5.4・decisions 記録）→ task_06 を `/task_new` で起票 → 実装。
+- task_02〜04 の実機目視の結果を受け取る（プリセット編集・出力シーケンス欄の範囲選択 / ドラッグ / ▶ / 複製 / Ctrl+C/V）。
+- 以降 task_07（トリガー一覧）→ task_08（キーマップ一覧）→ task_09（正本反映。decisions の「task_09 でユーザー確認」1 件を含む）。
+- **main へのマージはユーザーが行う**。
+
+## 現フェーズ（phase 43）の要点
+
+- 主な新規: `domain/{list_editing,trigger_duplicates}.py`・`presentation/{listbox_range_drag,list_clipboard}.py`・`controllers/trigger_panel/effective_row_transition.py`・
+  `SequenceRunner.has_active_execution`。出力シーケンスの次に実行は `▶`（選択と分離）。
+- 同じキーのトリガーは上の行が有効・状態はキー単位で有効な行のもの。**有効な行が入れ替わる操作は `apply_effective_row_transition` を通す**（実行中なら拒否・交代 / 消えたキーの後始末）。
+- **テストの罠（phase 43 で 4 回）**: 実行位置の値はアクション数未満にする（再描画で補正される）/ 連続実行の「実行中」は 2 行以上で作る / 既存テストのスタブは新しい判定・後始末の呼び出しに追随が要る。
 
 ## 直前フェーズ（phase 42 = 一覧の選択と下線のずれ）の要点
 

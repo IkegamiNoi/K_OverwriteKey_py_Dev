@@ -4,31 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-02T21:00:00
+last_updated: 2026-10-02T23:30:00
 phase: **phase 43**（`43_list_reorder_range_copy`・一覧のドラッグ移動・範囲選択・複製・暫定仕様先行モード・主入力 = 暫定 30 v0.4〔ユーザー確定済〕）。次採番 = phase 44 / 暫定 31 / decisions 44 / 提案書 18。
 直前の完了フェーズ = **phase 42**（一覧の選択と下線のずれ・判断履歴 = `decisions_archive/42_listbox_click_selection_sync.md`）。
-last_commit_location: `claude/list-drag-range-select-11c044`
+last_commit_location: `claude/list-drag-range-select-11c044`（最新 `5aa3893` = task_05b）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 43 task_05・05a・05b 完了。次は task_06（保存）。task_02〜04 は実機目視待ち。**
-mode: in_progress（ユーザーがタスクの連続実行を許可 2026-10-02）
+focus: **phase 43 task_01〜05b 完了（02〜04 は実機目視待ち）。task_06（保存）は暫定 §5.4 の改訂案〔計画の識別子を「行の位置」→「キー + 同じキーの何番目か」〕のユーザー判断待ち。**
+mode: in_progress（ユーザーがタスクの連続実行を許可 2026-10-02。スペックフラグ・フォールバック・実機目視では止まる）
 
 ## last_action
-ts: 2026-10-02T21:00:00
+ts: 2026-10-02T23:30:00
 who: main
 summary: |
-  phase 43 起票（暫定 30 を v0.1 → deep-reviewer → v0.2〔ユーザー判断: ▶ で次に実行を分離・有効な行だけが状態を持つ A1〕→ codex 敵対的 → v0.3 → プリセット一覧追加 v0.4・確定）。
-  task_01: codex-implementer（Luna high）で実装 → verifier 実測 → reviewer 採用。
+  task_01（domain 純関数）・task_02（範囲選択 / ドラッグの共通部品 listbox_range_drag.py + プリセット編集）・task_03（出力シーケンスの ▶・範囲選択・ドラッグ・まとめて移動・範囲削除）・
+  task_04（複製ボタン・Ctrl+C/V の保管庫 list_clipboard.py）・task_05（同じキーは上の行が有効・下はグレー）・task_05a（有効な行の交代と実行中なら拒否・has_active_execution）・
+  task_05b（完了判定前レビュー deep 修正要 / Codex P2 の修正）を実装・コミット。05+05a の deep-reviewer + Codex レビュー実施済。
+  task_06 起票前に、§5.4「計画の識別子 = 行の位置」は compose/split_sequence_key の 8 ファイル 15 か所の書き換えになると判明 → 改訂案をユーザーへ提示（回答待ち）。
 result_files:
-  - keyseq/domain/list_editing.py・keyseq/domain/sequence_editing.py・tests/test_list_editing.py・tests/test_sequence_editing.py
+  - keyseq/domain/{list_editing,trigger_duplicates}.py・keyseq/presentation/{listbox_range_drag,list_clipboard}.py・controllers/trigger_panel/{action_edit,effective_row_transition,trigger_panel_controller}.py・
+    application/sequence_runner/sequence_runner.py（has_active_execution）・dialogs/preset_manager.py・views/full_view/sequence_box.py ほか tests / tests_ui
 verified:
   compile: clean
-  tests: 1059 OK（skipped 7）
-  review: task_01 reviewer 採用（参考: PASTE_TOO_DEEP の実データテストは mock のみ / can_move_block は範囲外で False を返す）
+  tests: 1079 OK（skipped 7）
+  tests_ui: 716 OK
+  smoke: pass
+  review: task_01〜05b reviewer 採用 / 05+05a deep-reviewer 修正要 → 05b で対応・Codex P2 → 05b で対応
 
 ## next_action
-- task_02 を `/task_new` で起票して実装（phase.md のタスク一覧の順）。タスク間はユーザー確認なしで進めてよい（スペックフラグ・フォールバック・実機目視は止める）。
+- ユーザーの回答を受けて: 推奨（キー + 何番目かの印）なら暫定 30 を v0.5 に改訂（§5.4・decisions 記録）→ task_06 を `/task_new` で起票 → 実装。
+- task_02〜04 の実機目視の結果を受け取る（プリセット編集・出力シーケンス欄の範囲選択 / ドラッグ / ▶ / 複製 / Ctrl+C/V）。
+- 以降 task_07（トリガー一覧）→ task_08（キーマップ一覧）→ task_09（正本反映。decisions の「task_09 でユーザー確認」1 件を含む）。
 
 ## blockers
 - なし
