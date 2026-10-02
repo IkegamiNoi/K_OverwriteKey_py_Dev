@@ -20,6 +20,10 @@ class SequenceBox(ttk.LabelFrame):
         self.action_list.bind("<<ListboxSelect>>", app.trigger_panel.on_action_list_select)
         self.action_list.bind("<KeyRelease>", app.trigger_panel.on_action_list_focus_index_change)
         self.action_list.bind("<Double-Button-1>", app.trigger_panel.on_action_double_click)
+        self.action_list.bind("<Control-c>", app.trigger_panel.copy_actions)
+        self.action_list.bind("<Control-C>", app.trigger_panel.copy_actions)
+        self.action_list.bind("<Control-v>", app.trigger_panel.paste_actions)
+        self.action_list.bind("<Control-V>", app.trigger_panel.paste_actions)
         self.action_range_drag = bind_listbox_range_drag(
             self.action_list,
             on_move=app.trigger_panel.on_action_list_move,
@@ -35,6 +39,7 @@ class SequenceBox(ttk.LabelFrame):
         ttk.Button(abtns, text="追加", width=16, command=app.trigger_panel.add_action).pack(pady=(0, 6))
         ttk.Button(abtns, text="編集", width=16, command=app.trigger_panel.edit_action).pack(pady=6)
         ttk.Button(abtns, text="削除", width=16, command=app.trigger_panel.delete_action).pack(pady=6)
+        ttk.Button(abtns, text="複製", width=16, command=app.trigger_panel.duplicate_action).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
         ttk.Button(abtns, text="上へ", width=16, command=lambda: app.trigger_panel.move_action(-1)).pack(pady=6)
         ttk.Button(abtns, text="下へ", width=16, command=lambda: app.trigger_panel.move_action(+1)).pack(pady=6)

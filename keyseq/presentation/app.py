@@ -23,6 +23,7 @@ from keyseq.presentation.controllers.config_io.orphan_sweep_io import OrphanSwee
 from keyseq.presentation.controllers.config_io.keymap_set_history_io import KeymapSetHistoryIo
 from keyseq.presentation.controllers.config_io.quarantine_manage_io import QuarantineManageIo
 from keyseq.presentation.config_paths import ConfigPaths
+from keyseq.presentation.list_clipboard import ListClipboard
 from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
 from keyseq.presentation.controllers.hook_controller import HookController
 from keyseq.presentation.controllers.key_capture import SingleKeyCaptureController
@@ -187,6 +188,7 @@ class App(tk.Tk):
             ],
         )
         self.keymap_set_io = KeymapSetIo(self)
+        self.list_clipboard = ListClipboard()
         self.keymap_set_history_io = KeymapSetHistoryIo(self)
         self.startup_io = StartupIo(self)
         self.hotkey_presets_io = HotkeyPresetsIo(self)

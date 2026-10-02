@@ -11,7 +11,7 @@ last_commit_location: `claude/list-drag-range-select-11c044`
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 43 task_02・task_03 実装完了・実機目視待ち。task_04 へ進む。**
+focus: **phase 43 task_02〜04 実装完了・実機目視待ち。task_05（トリガーの有効な行）へ進む。**
 mode: in_progress（ユーザーがタスクの連続実行を許可 2026-10-02）
 
 ## last_action

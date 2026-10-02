@@ -55,6 +55,10 @@ class KeymapSetIo:
         if not self.confirm_save_if_dirty("新規作成"):
             return
 
+        clipboard = getattr(self._app, "list_clipboard", None)
+        if clipboard is not None:
+            clipboard.clear()
+
         self._app.data = self._app.config_service.new_default_data()
         self._app.config_service.apply_global_defaults(self._app.data, config_root=self._app.config_root)
         set_active_triggers(self._app.data, [])
@@ -681,6 +685,9 @@ class KeymapSetIo:
         self.notify_migrated_legacy_trigger_set()
 
     def apply_loaded_data_to_ui(self):
+        clipboard = getattr(self._app, "list_clipboard", None)
+        if clipboard is not None:
+            clipboard.clear()
         self._app.discard_retained_hook_keys()
         self._app.dirty_tracker.sync_trigger_set_source_path_from_data()
         self._app.dirty_tracker.trigger_set_imported = False

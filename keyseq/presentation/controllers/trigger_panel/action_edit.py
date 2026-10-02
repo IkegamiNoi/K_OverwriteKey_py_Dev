@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import messagebox
 from typing import Callable
 
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_key_name, safe_deepcopy
 from keyseq.domain.call_graph import edit_call_violation
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.list_editing import index_after_reorder, move_block, shift_block
@@ -23,12 +23,17 @@ from keyseq.domain.sequence_editing import (
     delete_indices,
     insert_actions,
     loop_pair_items,
+    PASTE_STANDALONE,
+    PASTE_TOO_DEEP,
+    PASTE_UNBALANCED_LOOP,
+    paste_violation,
     pair_index,
     standalone_violation,
 )
 from keyseq.presentation.dialogs import ActionDialog
 from keyseq.presentation.listbox_utils import focused_listbox_index
 from keyseq.presentation.listbox_range_drag import select_range, selected_range
+from keyseq.presentation.list_clipboard import CLIP_ACTIONS
 
 
 class ActionEditFlow:
@@ -99,6 +104,69 @@ class ActionEditFlow:
         self._trigger_panel.refresh_actions()
         self._app.mark_sequence_dirty(trig)
         self._app._dialog_result = None
+
+    def duplicate_action(self) -> None:
+        trig = self._trigger_panel.selected_trigger()
+        if not trig:
+            return
+        actions = trig.get("actions", [])
+        bounds = self._copy_range(actions)
+        if bounds is None:
+            return
+        start, end = bounds
+        self._append_actions(trig, safe_deepcopy(actions[start : end + 1]), "複製")
+
+    def copy_actions(self, _event=None) -> str:
+        trig = self._trigger_panel.selected_trigger()
+        if trig:
+            actions = trig.get("actions", [])
+            bounds = self._copy_range(actions)
+            if bounds is not None:
+                start, end = bounds
+                self._app.list_clipboard.copy(CLIP_ACTIONS, actions[start : end + 1])
+        return "break"
+
+    def paste_actions(self, _event=None) -> str:
+        trig = self._trigger_panel.selected_trigger()
+        items = self._app.list_clipboard.paste(CLIP_ACTIONS)
+        if trig and items:
+            self._append_actions(trig, items, "貼り付け")
+        return "break"
+
+    def _copy_range(self, actions: list) -> tuple[int, int] | None:
+        if not isinstance(actions, list) or not actions:
+            return None
+        listbox = getattr(getattr(self._app, "full_view", None), "action_list", None)
+        bounds = selected_range(listbox) if listbox is not None else None
+        if bounds is not None:
+            return bounds
+        index = self._trigger_panel.selected_action_index()
+        return (index, index) if index is not None and 0 <= index < len(actions) else None
+
+    def _append_actions(self, trig: dict, items: list[dict], title: str) -> None:
+        actions = trig.get("actions", [])
+        reason = paste_violation(actions, items)
+        if reason:
+            self._show_append_violation(title, reason)
+            return
+        key = normalize_key_name(trig.get("key", ""))
+        old_length = len(actions)
+        position = int(self._app._indices.get(key, 0) or 0)
+        actions.extend(items)
+        if bool(trig.get("run_to_end", False)) and position == old_length:
+            self._app._indices[key] = len(actions)
+        self._app.sequence_runner.reset_loop_frames(key)
+        self._trigger_panel.refresh_actions(select=(old_length, len(actions) - 1))
+        self._app.mark_sequence_dirty(trig)
+
+    @staticmethod
+    def _show_append_violation(title: str, reason: str) -> None:
+        messages = {
+            PASTE_UNBALANCED_LOOP: "ループの始まりと終わりの片方だけは複製 / 貼り付けできません。",
+            PASTE_TOO_DEEP: f"ループの入れ子が {MAX_LOOP_DEPTH} 段を超えるため複製 / 貼り付けできません。",
+            PASTE_STANDALONE: "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。",
+        }
+        messagebox.showinfo(title, messages[reason])
 
     def edit_action(self):
         trig = self._trigger_panel.selected_trigger()

@@ -559,6 +559,15 @@ class TriggerPanelController:
     def delete_action(self):
         return self._action_edit.delete_action()
 
+    def duplicate_action(self):
+        return self._action_edit.duplicate_action()
+
+    def copy_actions(self, event=None):
+        return self._action_edit.copy_actions(event)
+
+    def paste_actions(self, event=None):
+        return self._action_edit.paste_actions(event)
+
     def move_action(self, delta: int):
         return self._action_edit.move_action(delta)
 

@@ -282,6 +282,7 @@ class ActionListRenderingTest(unittest.TestCase):
                 on_action_list_move=Mock(return_value=True),
                 on_action_double_click=Mock(),
                 add_action=Mock(), edit_action=Mock(), delete_action=Mock(),
+                duplicate_action=Mock(), copy_actions=Mock(), paste_actions=Mock(),
                 move_action=Mock(), update_run_to_end=Mock(),
                 update_run_to_end_delay=Mock(),
             ),
