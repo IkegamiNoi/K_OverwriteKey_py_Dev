@@ -57,6 +57,49 @@ class SequenceCopyPasteTest(unittest.TestCase):
         self.app.sequence_runner.reset_loop_frames.assert_called_once_with("a")
         self.app.mark_sequence_dirty.assert_called_once_with(self.first)
 
+    def test_duplicate_completes_selected_loop_range(self):
+        start = {"type": "system", "op": "loop_start", "count": 3, "label": "L1"}
+        first = _action("T1")
+        second = _action("T2")
+        end = {"type": "system", "op": "loop_end", "label": "L1"}
+        self.first["actions"] = [start, first, second, end]
+        self.listbox.selection = [2, 3]
+
+        self.controller.duplicate_action()
+
+        actions = self.first["actions"]
+        self.assertEqual(len(actions), 7)
+        self.assertEqual(actions[4]["op"], "loop_start")
+        self.assertEqual(actions[4]["count"], 3)
+        self.assertEqual(actions[5]["value"], "T2")
+        self.assertEqual(actions[6]["op"], "loop_end")
+        self.assertIsNot(actions[4], start)
+        self.assertIsNot(actions[5], second)
+        self.assertIsNot(actions[6], end)
+        self.controller.refresh_actions.assert_called_once_with(select=(4, 6))
+
+    def test_copy_completes_loop_and_pastes_detached_pair_to_another_trigger(self):
+        start = {"type": "system", "op": "loop_start", "count": 2, "label": "L1"}
+        body = _action("B")
+        end = {"type": "system", "op": "loop_end", "label": "L1"}
+        self.first["actions"] = [start, body, end]
+        self.listbox.selection = [0]
+
+        self.assertEqual(self.controller.copy_actions(), "break")
+        start["count"] = 9
+        end["label"] = "edited"
+        stored = self.app.list_clipboard.paste(CLIP_ACTIONS)
+        self.assertEqual([item.get("op") for item in stored], ["loop_start", "loop_end"])
+        self.assertEqual(stored[0]["count"], 2)
+        self.assertEqual(stored[1]["label"], "L1")
+
+        self.app._selected_trigger_idx = 1
+        self.assertEqual(self.controller.paste_actions(), "break")
+        pasted = self.second["actions"][1:]
+        self.assertEqual([item.get("op") for item in pasted], ["loop_start", "loop_end"])
+        self.assertEqual(pasted[0]["count"], 2)
+        self.assertEqual(pasted[1]["label"], "L1")
+
     def test_copy_then_paste_to_another_trigger_is_repeatable_and_detached(self):
         self.listbox.selection = [1]
         self.assertEqual(self.controller.copy_actions(), "break")
@@ -79,22 +122,21 @@ class SequenceCopyPasteTest(unittest.TestCase):
         self.assertEqual(self.controller.paste_actions(), "break")
 
     def test_invalid_loop_and_standalone_appends_show_reason_without_mutating(self):
-        self.listbox.selection = [0]
-        start = {"type": "system", "op": "loop_start", "count": 2}
-        self.first["actions"] = [start, _action("inside"), {"type": "system", "op": "loop_end"}]
+        self.listbox.selection = [1]
+        self.first["actions"] = [_action("A"), {"type": "system", "op": "loop_end"}]
         with patch.object(action_edit_module.messagebox, "showinfo") as showinfo:
             self.controller.copy_actions()
             self.controller.paste_actions()
 
-        self.assertEqual(len(self.first["actions"]), 3)
-        self.assertIn("ループの始まりと終わり", showinfo.call_args.args[1])
+        self.assertEqual(len(self.first["actions"]), 2)
+        self.assertIn("対になっていない", showinfo.call_args.args[1])
         self.app.mark_sequence_dirty.assert_not_called()
 
         self.app.list_clipboard.copy(CLIP_ACTIONS, [{"type": "system", "op": "back"}])
         with patch.object(action_edit_module.messagebox, "showinfo") as showinfo:
             self.controller.paste_actions()
         self.assertIn("それ 1 つだけ", showinfo.call_args.args[1])
-        self.assertEqual(len(self.first["actions"]), 3)
+        self.assertEqual(len(self.first["actions"]), 2)
 
     def test_loop_depth_violation_shows_limit(self):
         # 末尾へ貼る対は既存の閉じたループの外に付くため、深さ超過は貼る内容自体が 10 段の入れ子のときに生じる。

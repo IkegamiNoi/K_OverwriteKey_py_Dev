@@ -5,6 +5,7 @@ from keyseq.domain.sequence_editing import (
     adjust_position_after_insert,
     can_insert_loop,
     can_move,
+    closed_loop_range,
     delete_indices,
     insert_actions,
     loop_pair_items,
@@ -44,6 +45,75 @@ class InsertActionsTest(unittest.TestCase):
         self.assertEqual(adjust_position_after_insert(3, 2, 2), 5)
         self.assertEqual(adjust_position_after_insert(3, 3, 2), 5)
         self.assertEqual(adjust_position_after_insert(3, 4, 2), 3)
+
+
+class ClosedLoopRangeTest(unittest.TestCase):
+    def test_completes_loop_ends_and_starts_with_original_objects(self) -> None:
+        start, first, second, end = (
+            system("loop_start", label="L1"),
+            {"type": "text", "value": "T1"},
+            {"type": "text", "value": "T2"},
+            system("loop_end", label="L1"),
+        )
+        actions = [start, first, second, end]
+        before = list(actions)
+
+        ending_range = closed_loop_range(actions, 2, 3)
+        starting_range = closed_loop_range(actions, 0, 1)
+
+        self.assertEqual(ending_range, [start, second, end])
+        self.assertEqual(starting_range, [start, first, end])
+        self.assertIs(ending_range[0], start)
+        self.assertIs(ending_range[1], second)
+        self.assertIs(ending_range[2], end)
+        self.assertEqual(actions, before)
+        self.assertTrue(
+            all(actual is original for actual, original in zip(actions, before))
+        )
+
+    def test_completes_multiple_loops_in_source_order(self) -> None:
+        actions = [
+            system("loop_start", label="L1"),
+            {"type": "text", "value": "A"},
+            system("loop_end", label="L1"),
+            system("loop_start", label="L2"),
+            {"type": "text", "value": "B"},
+            system("loop_end", label="L2"),
+        ]
+        self.assertEqual(closed_loop_range(actions, 1, 4), [*actions])
+
+    def test_nested_ranges_keep_pair_order_and_leave_inner_body_alone(self) -> None:
+        actions = [
+            system("loop_start", label="L1"),
+            system("loop_start", label="L2"),
+            {"type": "text", "value": "A"},
+            system("loop_end", label="L2"),
+            system("loop_end", label="L1"),
+        ]
+
+        self.assertEqual(
+            closed_loop_range(actions, 3, 4),
+            [actions[0], actions[1], actions[3], actions[4]],
+        )
+        self.assertEqual(closed_loop_range(actions, 2, 2), [actions[2]])
+        self.assertEqual(closed_loop_range(actions, 1, 2), [actions[1], actions[2], actions[3]])
+
+    def test_closed_ranges_and_unmatched_end_are_returned_without_completion(self) -> None:
+        actions = [system("loop_start"), {"type": "text"}, system("loop_end")]
+        selected = closed_loop_range(actions, 0, 2)
+        self.assertTrue(
+            all(actual is original for actual, original in zip(selected, actions))
+        )
+        plain = [{"type": "text"}, {"type": "text"}]
+        self.assertTrue(all(a is b for a, b in zip(closed_loop_range(plain, 0, 1), plain)))
+        unmatched = [{"type": "text"}, system("loop_end")]
+        self.assertEqual(closed_loop_range(unmatched, 1, 1), [unmatched[1]])
+
+    def test_invalid_ranges_raise_value_error(self) -> None:
+        actions = [{"type": "text"}]
+        for start, end in ((1, 0), (-1, 0), (0, 1), (2, 2)):
+            with self.subTest(start=start, end=end), self.assertRaises(ValueError):
+                closed_loop_range(actions, start, end)
 
 
 class StandaloneViolationTest(unittest.TestCase):

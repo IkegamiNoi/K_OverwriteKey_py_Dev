@@ -21,6 +21,7 @@ from keyseq.domain.sequence_editing import (
     adjust_position_after_insert,
     can_insert_loop,
     can_move_block,
+    closed_loop_range,
     delete_indices,
     insert_actions,
     loop_pair_items,
@@ -122,7 +123,7 @@ class ActionEditFlow:
         if bounds is None:
             return
         start, end = bounds
-        self._append_actions(trig, safe_deepcopy(actions[start : end + 1]), "複製")
+        self._append_actions(trig, safe_deepcopy(closed_loop_range(actions, start, end)), "複製")
 
     def copy_actions(self, _event=None) -> str:
         trig = self._trigger_panel.selected_trigger()
@@ -131,7 +132,9 @@ class ActionEditFlow:
             bounds = self._copy_range(actions)
             if bounds is not None:
                 start, end = bounds
-                self._app.list_clipboard.copy(CLIP_ACTIONS, actions[start : end + 1])
+                self._app.list_clipboard.copy(
+                    CLIP_ACTIONS, closed_loop_range(actions, start, end)
+                )
         return "break"
 
     def paste_actions(self, _event=None) -> str:
@@ -172,7 +175,7 @@ class ActionEditFlow:
     @staticmethod
     def _show_append_violation(title: str, reason: str) -> None:
         messages = {
-            PASTE_UNBALANCED_LOOP: "ループの始まりと終わりの片方だけは複製 / 貼り付けできません。",
+            PASTE_UNBALANCED_LOOP: "対になっていないループの始まり / 終わりは複製 / 貼り付けできません。",
             PASTE_TOO_DEEP: f"ループの入れ子が {MAX_LOOP_DEPTH} 段を超えるため複製 / 貼り付けできません。",
             PASTE_STANDALONE: "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。",
         }

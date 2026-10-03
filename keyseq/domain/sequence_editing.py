@@ -94,6 +94,27 @@ def pair_index(actions: Sequence[Any], index: int) -> int | None:
     return structure.reverse_pairs.get(index)
 
 
+def closed_loop_range(actions: Sequence[Any], start: int, end: int) -> list[Any]:
+    """Return a range with any matched loop markers outside it added at its edges."""
+    if start < 0 or end >= len(actions) or start > end:
+        raise ValueError("range must be a non-empty interval within actions")
+
+    structure = analyze_loops(actions)
+    before = sorted(
+        pair_start
+        for pair_end, pair_start in structure.reverse_pairs.items()
+        if start <= pair_end <= end and pair_start < start
+    )
+    after = sorted(
+        pair_end
+        for pair_start, pair_end in structure.pairs.items()
+        if start <= pair_start <= end and pair_end > end
+    )
+    return [actions[index] for index in before] + list(actions[start : end + 1]) + [
+        actions[index] for index in after
+    ]
+
+
 def delete_indices(actions: Sequence[Any], index: int) -> list[int]:
     """Return sorted rows to delete, removing a matched loop as a pair."""
     if index < 0 or index >= len(actions):

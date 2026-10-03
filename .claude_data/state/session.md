@@ -4,37 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-02T23:30:00
-phase: **phase 43**（`43_list_reorder_range_copy`・一覧のドラッグ移動・範囲選択・複製・暫定仕様先行モード・主入力 = 暫定 30 v0.4〔ユーザー確定済〕）。次採番 = phase 44 / 暫定 31 / decisions 44 / 提案書 18。
+last_updated: 2026-10-03T12:00:00
+phase: **phase 43**（`instructions/phase/43_list_reorder_range_copy`・一覧のドラッグ移動・範囲選択・複製・暫定仕様先行モード・主入力 = 暫定 30 v0.5〔ユーザー確定済〕）。次採番 = phase 44 / 暫定 31 / decisions 44 / 提案書 18。
 直前の完了フェーズ = **phase 42**（一覧の選択と下線のずれ・判断履歴 = `decisions_archive/42_listbox_click_selection_sync.md`）。
-last_commit_location: `claude/list-drag-range-select-11c044`（最新 `5aa3893` = task_05b）
+last_commit_location: `claude/output-sequence-duplication-range-4b01f6`（a71ee49 = phase 43 task_05b 後の state 更新から fast-forward して task_04a を積む）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 43 task_01〜05b 完了（02〜04 は実機目視待ち）。task_06（保存）は暫定 §5.4 の改訂案〔計画の識別子を「行の位置」→「キー + 同じキーの何番目か」〕のユーザー判断待ち。**
+focus: **phase 43 task_01〜05b 完了（02・03 は実機目視 OK）。task_04a（ループの片側の補完・v0.5）実装完了・実機目視待ち。task_06 は §5.4 改訂案のユーザー判断待ち。**
 mode: in_progress（ユーザーがタスクの連続実行を許可 2026-10-02。スペックフラグ・フォールバック・実機目視では止まる）
 
 ## last_action
-ts: 2026-10-02T23:30:00
+ts: 2026-10-03T12:00:00
 who: main
 summary: |
-  task_01（domain 純関数）・task_02（範囲選択 / ドラッグの共通部品 listbox_range_drag.py + プリセット編集）・task_03（出力シーケンスの ▶・範囲選択・ドラッグ・まとめて移動・範囲削除）・
-  task_04（複製ボタン・Ctrl+C/V の保管庫 list_clipboard.py）・task_05（同じキーは上の行が有効・下はグレー）・task_05a（有効な行の交代と実行中なら拒否・has_active_execution）・
-  task_05b（完了判定前レビュー deep 修正要 / Codex P2 の修正）を実装・コミット。05+05a の deep-reviewer + Codex レビュー実施済。
-  task_06 起票前に、§5.4「計画の識別子 = 行の位置」は compose/split_sequence_key の 8 ファイル 15 か所の書き換えになると判明 → 改訂案をユーザーへ提示（回答待ち）。
+  実機目視: task_02・03 OK / task_04 は「ループの片側だけなら範囲の外に反対側を補う」のユーザー提案 → 暫定 30 を v0.5 に改訂（§3.4・§4.3・§10-6）・decisions 記録。
+  task_04a 起票 → codex-implementer で実装（domain `closed_loop_range` + action_edit の複製 / Ctrl+C の配線・文言変更・テスト）。
+  reviewer 修正要（テスト期待値の取り残し 1 件）→ メインで修正して採用。domain + presentation に跨る（application 不変・スキーマ不変）。
 result_files:
-  - keyseq/domain/{list_editing,trigger_duplicates}.py・keyseq/presentation/{listbox_range_drag,list_clipboard}.py・controllers/trigger_panel/{action_edit,effective_row_transition,trigger_panel_controller}.py・
-    application/sequence_runner/sequence_runner.py（has_active_execution）・dialogs/preset_manager.py・views/full_view/sequence_box.py ほか tests / tests_ui
+  - keyseq/domain/sequence_editing.py・keyseq/presentation/controllers/trigger_panel/action_edit.py・tests/test_sequence_editing.py・tests_ui/test_sequence_copy_paste.py
+  - instructions/history/30_list_reorder_range_copy.md・instructions/phase/43_list_reorder_range_copy/{phase.md,tasks/task_04a_loop_range_completion.md}・.claude_data/state/decisions.md・instructions/phase/current.md
 verified:
   compile: clean
-  tests: 1079 OK（skipped 7）
-  tests_ui: 716 OK
+  tests: 1084 OK（skipped 7）
+  tests_ui: 718 OK
   smoke: pass
-  review: task_01〜05b reviewer 採用 / 05+05a deep-reviewer 修正要 → 05b で対応・Codex P2 → 05b で対応
+  review: task_04a reviewer 修正要 → 修正して採用
 
 ## next_action
-- ユーザーの回答を受けて: 推奨（キー + 何番目かの印）なら暫定 30 を v0.5 に改訂（§5.4・decisions 記録）→ task_06 を `/task_new` で起票 → 実装。
-- task_02〜04 の実機目視の結果を受け取る（プリセット編集・出力シーケンス欄の範囲選択 / ドラッグ / ▶ / 複製 / Ctrl+C/V）。
+- task_04a の実機目視の結果を受け取る（`L始 → T1 → T2 → L終` で `T2 → L終` を複製 → 末尾に `L始 → T2 → L終` / 始まり側だけの Ctrl+C → 別のトリガーへ Ctrl+V）。
+- §5.4 改訂案（保存計画の識別子を「行の位置」→「キー + 同じキーの何番目か」）のユーザー回答 → 推奨なら暫定 30 を v0.6 に改訂・decisions 記録 → task_06 を `/task_new` で起票 → 実装。
 - 以降 task_07（トリガー一覧）→ task_08（キーマップ一覧）→ task_09（正本反映。decisions の「task_09 でユーザー確認」1 件を含む）。
 
 ## blockers

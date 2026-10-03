@@ -10,7 +10,7 @@
 - **アクティブなフェーズ = [phase 43](43_list_reorder_range_copy/phase.md)**（2026-10-02 起票・一覧のドラッグ移動・範囲選択・複製。暫定仕様先行モード）。
   フル表示のキーマップ一覧・トリガー一覧・出力シーケンスとプリセット一覧に、ドラッグ移動・Shift の連続範囲選択・まとめて移動を加え、プリセット以外に複製（Ctrl+C → Ctrl+V・出力シーケンスの複製ボタン）を加える。
   トリガーの同じキーは上の行が有効・下をグレー表示（実行中の状態はキー単位のまま）。JSON スキーマ変更なし。
-  主入力 = 暫定仕様 [30_list_reorder_range_copy.md](../history/30_list_reorder_range_copy.md)（v0.4・ユーザー確定済）。起票元 = ユーザー要望（2026-10-02）。番号対応: phase 43 / 暫定 30 / decisions 43。
+  主入力 = 暫定仕様 [30_list_reorder_range_copy.md](../history/30_list_reorder_range_copy.md)（v0.5・ユーザー確定済〔v0.5 = 2026-10-03 ループの片側の補完〕）。起票元 = ユーザー要望（2026-10-02）。番号対応: phase 43 / 暫定 30 / decisions 43。
 - 直前の完了フェーズ = [phase 42](42_listbox_click_selection_sync/phase.md)（2026-10-02・一覧のクリックで選択と下線がずれる不具合の修正・
   判断は [decisions_archive/42](../../.claude_data/state/decisions_archive/42_listbox_click_selection_sync.md)）/
   [phase 41](41_ime_off_while_typing/phase.md)（2026-10-02・文字の送信中は送り先の IME をオフにする・
@@ -85,7 +85,7 @@
   27=file_line の非同期読込〔**v0.8・凍結**〕/
   28=制御アクション第 2 弾 前半（停止）〔**v0.6・凍結**・§9 は phase 40 の起票元〕/
   29=制御アクション第 2 弾 後半（呼び出し）〔**v0.9・凍結**〕/
-  30=一覧のドラッグ移動・範囲選択・複製〔**v0.4・ユーザー確定済・phase 43 の主入力**〕）。
+  30=一覧のドラッグ移動・範囲選択・複製〔**v0.5・ユーザー確定済・phase 43 の主入力**〕）。
   次採番は **`31_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**17 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
