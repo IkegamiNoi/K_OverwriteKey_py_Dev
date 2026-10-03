@@ -274,9 +274,9 @@ class ListboxClickSelectionSyncTest(unittest.TestCase):
         self.app.update()
 
         selection = tuple(listbox.curselection())
-        self.assertEqual(len(selection), 1)
-        self.assertEqual(int(listbox.index("active")), selection[0])
-        self.assertEqual(self.app.trigger_panel.selected_trigger_index(), selection[0])
+        self.assertEqual(selection, (0, 1, 2))
+        self.assertEqual(int(listbox.index("active")), 2)
+        self.assertEqual(self.app.trigger_panel.selected_trigger_index(), 2)
 
     def test_key_release_keeps_active_row_authoritative_for_sequence(self):
         listbox = self.app.full_view.action_list

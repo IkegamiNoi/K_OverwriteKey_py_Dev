@@ -73,6 +73,7 @@ keyseq/presentation/
             __init__.py        # TriggerPanelController の再輸出
             trigger_panel_controller.py  # TriggerPanelController: トリガー一覧・描画・状態表示・アクション編集の委譲
             action_edit.py     # ActionEditFlow: 出力シーケンスの選択・追加・編集・削除・移動
+            trigger_list_edit.py  # TriggerListEditFlow: フル表示のトリガー範囲移動・削除・コピー/末尾貼り付け（有効行交代の口を使用）
         action_list_rendering.py   # build_action_rows / format_next_action_summary: 出力シーケンス一覧の 1 行の文字列と背景色（tkinter 非依存・phase 37）
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)
@@ -301,7 +302,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     自動決定幅と同じなら書かない → 異なれば無効化 → 保存値と同じなら書かない）。
     予約は `on_close`（`cancel_window_width_save`）と App の `<Destroy>` で取り消す。**終了時には書かない**
 - KeymapPanelController（controllers/keymap_panel/keymap_panel_controller.py）: キーマップ管理パネル。追加フローは `KeymapAddFlow`（同フォルダ `keymap_add_flow.py`）へ委譲
-- TriggerPanelController（controllers/trigger_panel/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示。アクション編集は `ActionEditFlow`（同フォルダ `action_edit.py`）へ委譲
+- TriggerPanelController（controllers/trigger_panel/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示。アクション編集は `ActionEditFlow`（同フォルダ `action_edit.py`）、フル表示のトリガー範囲操作は `TriggerListEditFlow`（`trigger_list_edit.py`）へ委譲。編集再描画では範囲と下線の行を維持し、実行による選択は単一選択へ戻す
 - HookController（controllers/hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
   - `register_hook_buttons(hook_btn, trigger_btn, *, fixed_width=False)`: `fixed_width=True`（FullHookFrame のみ）の組は登録時と `apply_fixed_button_widths()` で最大文言幅に固定する
   - **`suspend_hook_for_dialog(window)` はウィンドウを渡すと破棄時に自動で解除する**
@@ -566,7 +567,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - FullDisplayFrame（display_frame.py）: 常に手前・省略表示へ・キーボードUI・レイアウト選択
   - FileFrame（file_frame.py）: 保存 / 別名で保存 / 読込 / 新規作成
   - KeymapBox（keymap_box.py）: キーマップ一覧と管理ボタン（追加・変更・削除・保存系。phase 34 で「選択」ボタンを削除し一覧の選択 = アクティブ化）
-  - FullTriggerBox（trigger_box.py）: トリガー一覧・編集ボタン・suppress チェック
+  - FullTriggerBox（trigger_box.py）: トリガー一覧・編集ボタン・suppress チェック。範囲ドラッグ部品で選択/移動を接続し、一覧内の Ctrl+C/V（大小両方）でトリガーをコピー/末尾貼り付けする。編集対象は下線の行、削除/コピー/移動対象は選択範囲。省略表示は単一選択のまま
   - SequenceBox（sequence_box.py）: 出力シーケンス一覧・アクション操作・連続実行と間隔(ms)
 
 ### CompactView（views/compact_view/）

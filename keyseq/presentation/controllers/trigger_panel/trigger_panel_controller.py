@@ -22,6 +22,8 @@ from keyseq.presentation.listbox_utils import (
     sync_listbox_selection_to_focus,
 )
 from keyseq.presentation.controllers.trigger_panel.action_edit import ActionEditFlow
+from keyseq.presentation.controllers.trigger_panel.trigger_list_edit import TriggerListEditFlow
+from keyseq.presentation.listbox_range_drag import select_range, selected_range
 from keyseq.presentation.controllers.trigger_panel.effective_row_transition import (
     apply_effective_row_transition,
 )
@@ -46,6 +48,14 @@ class TriggerPanelController:
     def register_trigger_list(self, listbox) -> None:
         self._trigger_lists.append(listbox)
 
+    @property
+    def _trigger_edit(self) -> TriggerListEditFlow:
+        flow = self.__dict__.get("_trigger_edit_flow")
+        if flow is None:
+            flow = TriggerListEditFlow(self)
+            self.__dict__["_trigger_edit_flow"] = flow
+        return flow
+
     # ---------------- 選択系 ----------------
     def sync_trigger_selection_to_views(self):
         """現在の選択idxを、Full/Compact両方のトリガーListboxへ反映"""
@@ -56,6 +66,7 @@ class TriggerPanelController:
                 if lb.size() > 0:
                     idx = max(0, min(idx, lb.size() - 1))
                     lb.selection_set(idx)
+                    lb.selection_anchor(idx)
                     lb.activate(idx)
                     lb.see(idx)
             except Exception:
@@ -132,6 +143,15 @@ class TriggerPanelController:
             widget = None
         if widget is None or listbox_mouse_button_is_down(widget):
             return
+        full_list = self._trigger_edit.listbox
+        if widget is full_list and triggers:
+            idx = int(widget.index(tk.ACTIVE))
+            if 0 <= idx < len(triggers):
+                self._app._selected_trigger_idx = idx
+                self._sync_trigger_selection_preserving_range(widget)
+                self.refresh_actions()
+                self.update_status()
+            return
         idx = sync_listbox_selection_to_focus(
             self._app, widget, len(triggers), prefer_selection=prefer_selection
         )
@@ -143,7 +163,26 @@ class TriggerPanelController:
         self.rename_trigger()
 
     # ---------------- 表示系 ----------------
-    def refresh_triggers(self):
+    def _sync_trigger_selection_preserving_range(self, listbox):
+        bounds = selected_range(listbox)
+        active = int(listbox.index(tk.ACTIVE))
+        anchor = int(listbox.index(tk.ANCHOR))
+        self.sync_trigger_selection_to_views()
+        if bounds is not None:
+            select_range(listbox, *bounds, active=active)
+            listbox.selection_anchor(anchor)
+
+    def refresh_triggers(self, select: tuple[int, int] | None = None):
+        full_list = self._trigger_edit.listbox
+        active = None
+        anchor = None
+        if select is None and full_list is not None and not getattr(self._app, "_compact_mode", False):
+            bounds = selected_range(full_list)
+            if bounds and bounds[0] != bounds[1]:
+                active = int(full_list.index(tk.ACTIVE))
+                if active == self.selected_trigger_index():
+                    select = bounds
+                    anchor = int(full_list.index(tk.ANCHOR))
         # Full/Compact 両方に反映
         for trigger_list in self._trigger_lists:
             try:
@@ -174,10 +213,16 @@ class TriggerPanelController:
 
         # 選択を維持/補正（共通idx）
         if triggers:
+            if select is not None:
+                self._app._selected_trigger_idx = select[1] if active is None else active
             if getattr(self._app, "_selected_trigger_idx", None) is None:
                 self._app._selected_trigger_idx = 0
             self._app._selected_trigger_idx = max(0, min(int(self._app._selected_trigger_idx), len(triggers) - 1))
             self.sync_trigger_selection_to_views()
+            if select is not None and full_list is not None:
+                select_range(full_list, *select, active=active)
+                if anchor is not None:
+                    full_list.selection_anchor(max(0, min(anchor, len(triggers) - 1)))
         self.sync_suppress_checkbox()
         self.sync_run_to_end_ui()
         self._app.keymap_panel.refresh_keymap_list_ui(overlap=overlap)
@@ -575,6 +620,9 @@ class TriggerPanelController:
                     self._app.mark_sequence_dirty(trigger)
 
     def delete_trigger(self):
+        bounds = self._trigger_edit.selection_bounds()
+        if bounds is not None and bounds[0] != bounds[1]:
+            return self._trigger_edit.delete_trigger_range()
         idx = self.selected_trigger_index()
         if idx is None:
             messagebox.showinfo("削除", "削除したいトリガーを選択してください。")
@@ -594,6 +642,15 @@ class TriggerPanelController:
             self._app.dirty_tracker.mark_trigger_set_dirty()
             if self._app.hook.hook_active:
                 self._app.hook.start_hook()
+
+    def copy_triggers(self, event=None):
+        return self._trigger_edit.copy_triggers(event)
+
+    def paste_triggers(self, event=None):
+        return self._trigger_edit.paste_triggers(event)
+
+    def on_trigger_list_move(self, start: int, end: int, target_start: int) -> bool:
+        return self._trigger_edit.move_trigger_range(start, end, target_start)
 
     # ---------------- Actions CRUD (selected trigger) ----------------
     def selected_action_index(self):

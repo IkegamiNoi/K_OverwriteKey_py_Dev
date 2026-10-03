@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import TYPE_CHECKING
 
-from keyseq.presentation.listbox_utils import bind_listbox_click_selection_sync
+from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag
 
 
 if TYPE_CHECKING:
@@ -27,8 +27,14 @@ class FullTriggerBox(ttk.LabelFrame):
         self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_select)
         self.trigger_list.bind("<KeyRelease>", app.trigger_panel.on_trigger_list_focus_index_change)
         self.trigger_list.bind("<Double-Button-1>", app.trigger_panel.on_trigger_double_click)
-        bind_listbox_click_selection_sync(
-            self.trigger_list, app.trigger_panel.on_trigger_list_mouse_release
+        self.trigger_list.bind("<Control-c>", app.trigger_panel.copy_triggers)
+        self.trigger_list.bind("<Control-C>", app.trigger_panel.copy_triggers)
+        self.trigger_list.bind("<Control-v>", app.trigger_panel.paste_triggers)
+        self.trigger_list.bind("<Control-V>", app.trigger_panel.paste_triggers)
+        self.trigger_range_drag = bind_listbox_range_drag(
+            self.trigger_list,
+            on_move=app.trigger_panel.on_trigger_list_move,
+            on_commit=app.trigger_panel.on_trigger_list_mouse_release,
         )
         app.trigger_panel.register_trigger_list(self.trigger_list)
 
