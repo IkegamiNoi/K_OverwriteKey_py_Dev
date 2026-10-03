@@ -14,6 +14,7 @@ from keyseq.application.save_plan import (
     SavePlan,
     SavePlanError,
     compose_sequence_key,
+    sequence_rows,
     split_sequence_key,
 )
 from keyseq.domain.keymap_triggers import iter_trigger_sets
@@ -483,8 +484,8 @@ def apply_saved_child_paths(service,
                 member[service.INTERNAL_TRIGGER_SET_SOURCE_PATH] = item["path"]
                 if service.PARENT_REFS_KEY in item["payload"]:
                     member[service.INTERNAL_TRIGGER_SET_PARENT_REFS] = safe_deepcopy(item["payload"][service.PARENT_REFS_KEY])
-        for trigger in triggers:
-            item = sequences.get(compose_sequence_key(key, normalize_key_name(str(trigger.get("key") or ""))))
+        for trigger, trigger_key, occurrence in sequence_rows(triggers):
+            item = sequences.get(compose_sequence_key(key, trigger_key, occurrence))
             if item:
                 trigger[service.INTERNAL_SEQUENCE_SOURCE_PATH] = item["path"]
                 if service.PARENT_REFS_KEY in item["payload"]:

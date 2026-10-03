@@ -8,8 +8,9 @@ from keyseq.application.save_plan import (
     SavePlan,
     SavePlanError,
     split_sequence_key,
+    sequence_rows,
 )
-from keyseq.domain.config import normalize_key_name, safe_deepcopy
+from keyseq.domain.config import safe_deepcopy
 from keyseq.domain.keymap_triggers import (
     INTERNAL_TRIGGER_SET_DIRTY,
     INTERNAL_TRIGGER_SET_IMPORTED,
@@ -173,10 +174,10 @@ def _clear_saved_sequence_states(
     for item in items:
         if item["skip"]:
             continue
-        trigger_set_id, trigger_key = split_sequence_key(str(item["key"]))
+        trigger_set_id, trigger_key, occurrence = split_sequence_key(str(item["key"]))
         for member in trigger_set_members(runtime_data, trigger_set_id):
-            for trigger in member.get("triggers", []):
-                if normalize_key_name(str(trigger.get("key") or "")) != trigger_key:
+            for trigger, row_key, row_occurrence in sequence_rows(member.get("triggers", [])):
+                if (row_key, row_occurrence) != (trigger_key, occurrence):
                     continue
                 trigger[service.INTERNAL_SEQUENCE_IMPORTED] = False
                 trigger[service.INTERNAL_SEQUENCE_DIRTY] = False

@@ -8,10 +8,11 @@ from unittest.mock import Mock, patch
 from keyseq.application.app_state import AppState
 from keyseq.application.config_service import ConfigService
 from keyseq.application.keymap_service import KeymapService
+from keyseq.application.sequence_steps import LoopFrame
 from keyseq.application.save_plan import (
     ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_TRIGGER_SET,
     CHILD_SEQUENCE, ChildSaveEntry, SavePlan, SavePlanError,
-    compose_sequence_key, split_sequence_key,
+    compose_sequence_key, sequence_row_token, split_sequence_key,
 )
 from keyseq.domain.keymap_triggers import (
     INTERNAL_TRIGGER_SET_DIRTY,
@@ -856,12 +857,278 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         self.assertEqual(saved["keymaps"][0][self.service.INTERNAL_TRIGGER_SET_PARENT_REFS], ["user/keymaps/parent.json"])
 
     def test_sequence_identity_rejects_ambiguous_parts(self):
-        self.assertEqual(split_sequence_key(compose_sequence_key("a", "f1")), ("a", "f1"))
+        self.assertEqual(split_sequence_key(compose_sequence_key("a", "f1")), ("a", "f1", 1))
         for owner, key in (("a\x1fb", "f1"), ("a", "f1\x1ff2"), ("", "f1")):
             with self.subTest(owner=owner, key=key), self.assertRaises(SavePlanError):
                 compose_sequence_key(owner, key)
         with self.assertRaises(SavePlanError):
             split_sequence_key("a\x1ff1\x1ff2")
+
+    def test_duplicate_sequence_rows_bulk_save_and_reload_keep_actions_and_paths(self):
+        data = {
+            "active_keymap_id": "a",
+            "keymaps": [{"id": "a", "label": "Main", "triggers": [
+                {"key": "f1", "label": "Copy", "actions": [{"type": "text", "value": "first"}], "_sequence_dirty": True},
+                {"key": "f1", "label": "Copy", "actions": [{"type": "text", "value": "second"}], "_sequence_dirty": True},
+            ], "_trigger_set_dirty": True}],
+        }
+        first_key = compose_sequence_key("a", "f1")
+        second_key = compose_sequence_key("a", "f1", 2)
+        targets = self.targets(data)
+        self.assertNotEqual(targets[(CHILD_SEQUENCE, first_key)], targets[(CHILD_SEQUENCE, second_key)])
+
+        saved = self.save(data)
+        loaded = self.service.load_runtime_data_from_keymap_set_path(self.path, config_root=self.root)
+        saved_triggers = saved["keymaps"][0]["triggers"]
+        loaded_triggers = loaded["keymaps"][0]["triggers"]
+
+        self.assertEqual([trigger["actions"][0]["value"] for trigger in loaded_triggers], ["first", "second"])
+        self.assertEqual(
+            [trigger[self.service.INTERNAL_SEQUENCE_SOURCE_PATH] for trigger in saved_triggers],
+            [
+                self.service.to_config_relative_or_absolute(targets[(CHILD_SEQUENCE, first_key)], self.root),
+                self.service.to_config_relative_or_absolute(targets[(CHILD_SEQUENCE, second_key)], self.root),
+            ],
+        )
+        self.assertNotEqual(
+            loaded_triggers[0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+            loaded_triggers[1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+        )
+        self.assertEqual(
+            [trigger[self.service.INTERNAL_SEQUENCE_SOURCE_PATH] for trigger in loaded_triggers],
+            [
+                self.service.to_config_relative_or_absolute(targets[(CHILD_SEQUENCE, first_key)], self.root),
+                self.service.to_config_relative_or_absolute(targets[(CHILD_SEQUENCE, second_key)], self.root),
+            ],
+        )
+
+    def test_duplicate_sequence_skip_clears_only_saved_occurrence(self):
+        data = {
+            "active_keymap_id": "a",
+            "keymaps": [{"id": "a", "label": "Main", "triggers": [
+                {"key": "f1", "label": "Copy", "actions": [{"type": "text", "value": "first"}], "_sequence_dirty": True},
+                {"key": "f1", "label": "Copy", "actions": [{"type": "text", "value": "second"}], "_sequence_dirty": True},
+            ], "_trigger_set_dirty": True}],
+        }
+        first_key = compose_sequence_key("a", "f1")
+        second_key = compose_sequence_key("a", "f1", 2)
+        targets = self.targets(data)
+        io = self._make_keymap_set_io(data, SavePlan((ChildSaveEntry(CHILD_SEQUENCE, second_key, ACTION_SKIP),)))
+        app = io._test_app
+
+        self.assertTrue(io.save_keymap_set_to(self.path, flash_message="", show_success_dialog=False))
+
+        triggers = app.data["keymaps"][0]["triggers"]
+        self.assertFalse(triggers[0][self.service.INTERNAL_SEQUENCE_DIRTY])
+        self.assertTrue(triggers[1][self.service.INTERNAL_SEQUENCE_DIRTY])
+        self.assertTrue(os.path.exists(targets[(CHILD_SEQUENCE, first_key)]))
+        self.assertFalse(os.path.exists(targets[(CHILD_SEQUENCE, second_key)]))
+        self.assertEqual(app._indices, {"f1": 1})
+        self.assertIs(app._indices, app.state.indices_for("a"))
+        self.assertIs(app.state.loop_frames_for("a")["f1"][0], io._test_loop_frame)
+        self.assertIs(app.state.history_for("a")["f1"][0], io._test_history_entry)
+
+    def test_duplicate_sequence_skip_clears_only_saved_occurrence_in_keymap_file_save(self):
+        data = {
+            "active_keymap_id": "a",
+            "keymaps": [{"id": "a", "label": "Main", "triggers": [
+                {"key": "f1", "label": "Copy", "actions": [{"type": "text", "value": "first"}], "_sequence_dirty": True},
+                {"key": "f1", "label": "Copy", "actions": [{"type": "text", "value": "second"}], "_sequence_dirty": True},
+            ], "_trigger_set_dirty": True}],
+        }
+        targets = self.targets(data)
+        plan = SavePlan((
+            ChildSaveEntry(CHILD_KEYMAP, "a", ACTION_SAVE),
+            ChildSaveEntry(CHILD_SEQUENCE, compose_sequence_key("a", "f1", 2), ACTION_SKIP),
+        ))
+
+        self.service.save_keymap_file(
+            targets[(CHILD_KEYMAP, "a")],
+            data["keymaps"][0],
+            parent_ref=self.path,
+            config_root=self.root,
+            runtime_data=data,
+            save_plan=plan,
+        )
+
+        triggers = data["keymaps"][0]["triggers"]
+        self.assertFalse(triggers[0][self.service.INTERNAL_SEQUENCE_DIRTY])
+        self.assertTrue(triggers[1][self.service.INTERNAL_SEQUENCE_DIRTY])
+        self.assertTrue(os.path.exists(targets[(CHILD_SEQUENCE, compose_sequence_key("a", "f1"))]))
+        self.assertFalse(os.path.exists(targets[(CHILD_SEQUENCE, compose_sequence_key("a", "f1", 2))]))
+
+    def test_duplicate_sequence_source_lookup_and_blocked_labels_are_row_specific(self):
+        from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
+
+        data = {"active_keymap_id": "a", "keymaps": [{
+            "id": "a", "label": "Main", "triggers": [
+                {"key": "f1", "label": "Copy", "actions": [], "_sequence_source_path": "user/sequences/first.json"},
+                {"key": "f1", "label": "Copy", "actions": []},
+            ],
+        }]}
+        app = SimpleNamespace(data=data, config_service=self.service, config_root=self.root)
+        io = KeymapSetIo(app)
+
+        first_key = compose_sequence_key("a", "f1")
+        second_key = compose_sequence_key("a", "f1", 2)
+        self.assertTrue(io._has_source_path(CHILD_SEQUENCE, first_key))
+        self.assertFalse(io._has_source_path(CHILD_SEQUENCE, second_key))
+        self.assertEqual(
+            io._blocked_labels([first_key, second_key]),
+            ["Main / Copy（1 行目）", "Main / Copy（2 行目）"],
+        )
+
+    def test_duplicate_sequence_rows_individual_save_preserves_runtime_state(self):
+        from keyseq.presentation.controllers.config_io.trigger_set_file_io import TriggerSetFileIo
+
+        data = {"active_keymap_id": "a", "keymaps": [{"id": "a", "label": "Main", "triggers": [
+            {"key": "f1", "label": "Copy", "actions": [{"type": "text", "value": "first"}], "_sequence_dirty": True},
+            {"key": "f1", "label": "Copy", "actions": [{"type": "text", "value": "second"}], "_sequence_dirty": True},
+        ], "_trigger_set_dirty": True}]}
+        state = AppState()
+        indices = state.indices_for("a")
+        indices["f1"] = 1
+        loop_frame = LoopFrame(start=0, iteration=3)
+        history_entry = object()
+        state.loop_frames_for("a")["f1"] = [loop_frame]
+        state.history_for("a")["f1"] = [history_entry]
+        dialog = SimpleNamespace(ask_child_save_actions=Mock())
+        app = SimpleNamespace(
+            data=data,
+            config_service=self.service,
+            config_root=self.root,
+            keymap_set_path=self.path,
+            paths=SimpleNamespace(filename_stem=lambda path: os.path.splitext(os.path.basename(path))[0]),
+            child_save_dialog=dialog,
+            trigger_panel=SimpleNamespace(refresh_triggers=Mock(), refresh_actions=Mock()),
+            _set_flash_message=Mock(),
+            state=state,
+            _indices=indices,
+        )
+        app.dirty_tracker = DirtyStateTracker(
+            get_data=lambda: app.data,
+            keymap_service=KeymapService(),
+            config_service=self.service,
+            on_change=Mock(),
+        )
+        io = TriggerSetFileIo(app)
+        sequence_tokens = (sequence_row_token("f1"), sequence_row_token("f1", 2))
+        dialog.ask_child_save_actions.return_value = {
+            (CHILD_SEQUENCE, token): (ACTION_SAVE, "") for token in sequence_tokens
+        }
+        path = os.path.join(self.root, "user", "trigger_sets", "individual.json")
+        plan = io._collect_sequence_save_plan(path)
+        self.assertEqual(
+            [entry.key for entry in plan.entries if entry.kind == CHILD_SEQUENCE],
+            list(sequence_tokens),
+        )
+        targets = self.service.resolve_child_save_targets(
+            data,
+            config_root=self.root,
+            keymap_set_path=self.path,
+            save_plan=SavePlan((ChildSaveEntry(CHILD_TRIGGER_SET, "a", ACTION_SAVE_AS, path),)),
+        )
+
+        io._save_trigger_set(path, plan)
+
+        triggers = data["keymaps"][0]["triggers"]
+        loaded_triggers = self.service.load_trigger_set_file(path, config_root=self.root)
+        self.assertEqual([trigger["actions"][0]["value"] for trigger in loaded_triggers], ["first", "second"])
+        expected_paths = [
+            self.service.to_config_relative_or_absolute(
+                targets[(CHILD_SEQUENCE, compose_sequence_key("a", "f1", occurrence))],
+                self.root,
+            )
+            for occurrence in (1, 2)
+        ]
+        self.assertEqual(
+            [trigger[self.service.INTERNAL_SEQUENCE_SOURCE_PATH] for trigger in triggers],
+            expected_paths,
+        )
+        self.assertEqual(
+            [trigger[self.service.INTERNAL_SEQUENCE_SOURCE_PATH] for trigger in loaded_triggers],
+            expected_paths,
+        )
+        self.assertFalse(triggers[0][self.service.INTERNAL_SEQUENCE_DIRTY])
+        self.assertFalse(triggers[1][self.service.INTERNAL_SEQUENCE_DIRTY])
+        self.assertEqual(app._indices, {"f1": 1})
+        self.assertIs(app._indices, state.indices_for("a"))
+        self.assertIs(state.loop_frames_for("a")["f1"][0], loop_frame)
+        self.assertIs(state.history_for("a")["f1"][0], history_entry)
+
+    def test_duplicate_sequence_individual_save_skip_keeps_only_skipped_row_dirty(self):
+        data = {"active_keymap_id": "a", "keymaps": [{"id": "a", "label": "Main", "triggers": [
+            {"key": "f1", "label": "Copy", "actions": [{"type": "text", "value": "first"}], "_sequence_dirty": True},
+            {"key": "f1", "label": "Copy", "actions": [{"type": "text", "value": "second"}], "_sequence_dirty": True},
+        ], "_trigger_set_dirty": True}]}
+        first_token = sequence_row_token("f1")
+        second_token = sequence_row_token("f1", 2)
+        path = os.path.join(self.root, "user", "trigger_sets", "individual.json")
+        plan = SavePlan((
+            ChildSaveEntry(CHILD_TRIGGER_SET, "a", ACTION_SAVE_AS, path),
+            ChildSaveEntry(CHILD_SEQUENCE, first_token, ACTION_SAVE),
+            ChildSaveEntry(CHILD_SEQUENCE, second_token, ACTION_SKIP),
+        ))
+
+        saved_triggers, _ = self.service.save_trigger_set_file(
+            path,
+            data,
+            config_root=self.root,
+            save_plan=plan,
+        )
+
+        self.assertFalse(saved_triggers[0][self.service.INTERNAL_SEQUENCE_DIRTY])
+        self.assertTrue(saved_triggers[1][self.service.INTERNAL_SEQUENCE_DIRTY])
+        self.assertTrue(saved_triggers[0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH])
+        self.assertFalse(saved_triggers[1].get(self.service.INTERNAL_SEQUENCE_SOURCE_PATH, ""))
+        loaded_triggers = self.service.load_trigger_set_file(path, config_root=self.root)
+        self.assertEqual(loaded_triggers[0]["actions"][0]["value"], "first")
+        self.assertNotEqual(
+            loaded_triggers[0][self.service.INTERNAL_SEQUENCE_SOURCE_PATH],
+            loaded_triggers[1].get(self.service.INTERNAL_SEQUENCE_SOURCE_PATH, ""),
+        )
+
+    def _make_keymap_set_io(self, data, save_plan):
+        from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
+
+        state = AppState()
+        indices = state.indices_for("a")
+        indices["f1"] = 1
+        loop_frame = LoopFrame(start=0, iteration=2)
+        history_entry = object()
+        state.loop_frames_for("a")["f1"] = [loop_frame]
+        state.history_for("a")["f1"] = [history_entry]
+        app = SimpleNamespace(
+            data=data,
+            config_service=self.service,
+            config_root=self.root,
+            keymap_set_path=self.path,
+            paths=SimpleNamespace(
+                normalize_keymap_set_save_path=lambda path: path,
+                is_within_config_root=lambda path: True,
+                preferred_startup_path=lambda: "",
+            ),
+            startup_io=SimpleNamespace(entry_loaded=False),
+            _startup_settings={},
+            state=state,
+            _indices=indices,
+            discard_retained_hook_keys=Mock(),
+            _set_flash_message=Mock(),
+            keymap_set_history_io=SimpleNamespace(record=Mock(return_value=(True, ""))),
+            _refresh_key_overlap_report=Mock(),
+        )
+        app.dirty_tracker = DirtyStateTracker(
+            get_data=lambda: app.data,
+            keymap_service=KeymapService(),
+            config_service=self.service,
+            on_change=Mock(),
+        )
+        io = KeymapSetIo(app)
+        io._collect_child_save_plan = lambda save_path, split_base_dir: (save_plan, "", False)
+        io._test_app = app
+        io._test_loop_frame = loop_frame
+        io._test_history_entry = history_entry
+        return io
 
     def test_migration_marks_config_dirty_after_loading_ui(self):
         from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo

@@ -3,8 +3,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from keyseq.application.save_plan import SavePlan
-from keyseq.domain.config import ensure_config_compatibility, normalize_key_name, safe_deepcopy
+from keyseq.application.save_plan import SavePlan, sequence_row_token, sequence_rows
+from keyseq.domain.config import ensure_config_compatibility, safe_deepcopy
 from keyseq.domain.keymap_triggers import get_active_triggers, trigger_set_members
 
 from . import split_loading, split_payloads
@@ -120,13 +120,12 @@ def save_trigger_set_file(
 
     triggers = safe_deepcopy(get_active_triggers(normalized))
     by_key = {
-        normalize_key_name(str(item.get("key") or "")): item
+        item["key"]: item
         for item in sequence_items
         if isinstance(item, dict) and not item["skip"]
     }
-    for trigger in triggers:
-        key = normalize_key_name(str(trigger.get("key") or ""))
-        sequence_item = by_key.get(key)
+    for trigger, key, occurrence in sequence_rows(triggers):
+        sequence_item = by_key.get(sequence_row_token(key, occurrence))
         if not isinstance(sequence_item, dict):
             continue
         trigger[service.INTERNAL_SEQUENCE_SOURCE_PATH] = str(sequence_item.get("path") or "")

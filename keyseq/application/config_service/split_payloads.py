@@ -3,7 +3,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_SEQUENCE, CHILD_TRIGGER_SET, SavePlan, compose_sequence_key
+from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_SEQUENCE, CHILD_TRIGGER_SET, SavePlan, compose_sequence_key, sequence_row_token, sequence_rows
 from keyseq.domain.keymap_triggers import iter_trigger_sets, trigger_set_members
 from keyseq.domain.config import (
     DEFAULT_KEYBOARD_LAYOUT_ID,
@@ -325,14 +325,7 @@ def build_trigger_set_payloads(service,
     used_paths = used_paths if used_paths is not None else set()
     trigger_entries: list[dict[str, Any]] = []
     sequence_payloads: list[dict[str, Any]] = []
-    for trigger in triggers:
-        if not isinstance(trigger, dict):
-            continue
-
-        key = normalize_key_name(str(trigger.get("key") or ""))
-        if not key:
-            continue
-
+    for trigger, key, occurrence in sequence_rows(triggers):
         sequence_path = save_path_resolution.resolve_sequence_save_path(
             service,
             trigger,
@@ -341,7 +334,10 @@ def build_trigger_set_payloads(service,
             sequences_dir=sequences_dir,
             used_paths=used_paths,
         )
-        plan_key = compose_sequence_key(trigger_set_id, key) if trigger_set_id is not None else key
+        plan_key = (
+            compose_sequence_key(trigger_set_id, key, occurrence)
+            if trigger_set_id is not None else sequence_row_token(key, occurrence)
+        )
         entry = save_plan.entry_for(CHILD_SEQUENCE, plan_key)
         action = entry.action if entry is not None else ACTION_SAVE
         if action == ACTION_SAVE_AS and entry is not None:

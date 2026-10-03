@@ -14,6 +14,7 @@ from keyseq.application.save_plan import (
     SavePlan,
     SavePlanError,
     compose_sequence_key,
+    sequence_rows,
 )
 from keyseq.domain.keymap_triggers import iter_trigger_sets
 from keyseq.domain.config import normalize_key_name
@@ -98,9 +99,9 @@ def _keymap_ids(data: dict[str, Any]) -> list[str]:
 
 def _sequence_keys(data: dict[str, Any]) -> list[str]:
     return [
-        compose_sequence_key(str(owner["id"]), key)
+        compose_sequence_key(str(owner["id"]), key, occurrence)
         for owner, _, triggers in iter_trigger_sets(data)
-        for key in _unique_normalized_keys(item.get("key") for item in triggers if isinstance(item, dict))
+        for _, key, occurrence in sequence_rows(triggers)
     ]
 
 def _unique_normalized_keys(values) -> list[str]:

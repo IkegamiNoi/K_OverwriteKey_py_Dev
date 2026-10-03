@@ -12,6 +12,7 @@ from keyseq.application.save_plan import (
     ChildSaveEntry,
     SavePlan,
     compose_sequence_key,
+    sequence_rows,
     split_sequence_key,
 )
 from keyseq.domain.keymap_triggers import get_active_triggers, set_active_triggers, iter_trigger_sets, trigger_set_members
@@ -469,11 +470,12 @@ class KeymapSetIo:
             return bool(members and members[0].get(self._app.config_service.INTERNAL_TRIGGER_SET_SOURCE_PATH))
         if kind == CHILD_KEYMAP:
             return any(item.get("id") == key and item.get(self._app.config_service.INTERNAL_KEYMAP_SOURCE_PATH) for item in self._app.data.get("keymaps", []))
-        owner_id, trigger_key = split_sequence_key(key)
+        owner_id, trigger_key, occurrence = split_sequence_key(key)
         return any(
-            trigger.get("key") == trigger_key and trigger.get(self._app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH)
+            (row_key, row_occurrence) == (trigger_key, occurrence)
+            and trigger.get(self._app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH)
             for owner, _, triggers in iter_trigger_sets(self._app.data) if owner["id"] == owner_id
-            for trigger in triggers
+            for trigger, row_key, row_occurrence in sequence_rows(triggers)
         )
 
     def _blocked_labels(self, blocked_keys: list[str]) -> list[str]:
@@ -481,9 +483,16 @@ class KeymapSetIo:
         for owner, _, triggers in iter_trigger_sets(self._app.data):
             name = str(owner.get("label") or owner["id"])
             labels[str(owner["id"])] = f"{name} / トリガー一覧"
-            for trigger in triggers:
-                key = compose_sequence_key(str(owner["id"]), str(trigger["key"]))
-                labels[key] = f"{name} / {trigger.get('label') or trigger['key']}"
+            sequence_entries = sequence_rows(triggers)
+            counts = {key: occurrence for _, key, occurrence in sequence_entries}
+            positions = iter(enumerate(triggers, 1))
+            for trigger, trigger_key, occurrence in sequence_entries:
+                row_number = next(position for position, row in positions if row is trigger)
+                key = compose_sequence_key(str(owner["id"]), trigger_key, occurrence)
+                label = f"{name} / {trigger.get('label') or trigger['key']}"
+                if counts[trigger_key] > 1:
+                    label += f"（{row_number} 行目）"
+                labels[key] = label
         return [labels.get(key, key) for key in blocked_keys]
 
     def _skipped_dirty_children(self, save_plan: SavePlan) -> tuple[list[str], list[str], list[str]]:

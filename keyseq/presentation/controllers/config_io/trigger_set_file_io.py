@@ -11,6 +11,7 @@ from keyseq.application.save_plan import (
     ChildSaveEntry,
     SavePlan,
     split_sequence_key,
+    sequence_row_token,
 )
 from keyseq.domain.keymap_triggers import (
     INTERNAL_TRIGGER_SET_DIRTY,
@@ -144,7 +145,7 @@ class TriggerSetFileIo:
             save_plan=confirmed,
         )
         rows = [
-            replace(row, key=split_sequence_key(row.key)[1])
+            replace(row, key=sequence_row_token(*split_sequence_key(row.key)[1:]))
             for row in collect_child_save_rows(
                 data=scoped_data,
                 dirty_tracker=self._app.dirty_tracker,
@@ -162,7 +163,7 @@ class TriggerSetFileIo:
         for (kind, key), target in targets.items():
             if kind != CHILD_SEQUENCE or split_sequence_key(key)[0] != owner_id:
                 continue
-            trigger_key = split_sequence_key(key)[1]
+            trigger_key = sequence_row_token(*split_sequence_key(key)[1:])
             action, destination = choices.get(
                 (kind, trigger_key), (ACTION_SKIP if os.path.exists(target) else ACTION_SAVE, ""),
             )

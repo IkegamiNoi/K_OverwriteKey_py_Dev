@@ -11,30 +11,31 @@ last_commit_location: `claude/output-sequence-duplication-range-4b01f6`（a71ee4
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 43 task_01〜05b 完了（02・03 は実機目視 OK）。task_04a（ループの片側の補完・v0.5）実装完了・実機目視待ち。task_06 は §5.4 改訂案のユーザー判断待ち。**
-mode: in_progress（ユーザーがタスクの連続実行を許可 2026-10-02。スペックフラグ・フォールバック・実機目視では止まる）
+focus: **phase 43 task_01〜06 完了（task_06 = 保存の識別子・06a と合わせた完了判定前レビュー待ち）。次は task_06a（保存の対象の固定と照合）。**
+mode: in_progress（ユーザーがタスクの連続実行を許可 2026-10-03。スペックフラグ・フォールバック・実機目視では止まる）
 
 ## last_action
-ts: 2026-10-03T12:00:00
+ts: 2026-10-03T15:00:00
 who: main
 summary: |
-  実機目視: task_02・03 OK / task_04 は「ループの片側だけなら範囲の外に反対側を補う」のユーザー提案 → 暫定 30 を v0.5 に改訂（§3.4・§4.3・§10-6）・decisions 記録。
-  task_04a 起票 → codex-implementer で実装（domain `closed_loop_range` + action_edit の複製 / Ctrl+C の配線・文言変更・テスト）。
-  reviewer 修正要（テスト期待値の取り残し 1 件）→ メインで修正して採用。domain + presentation に跨る（application 不変・スキーマ不変）。
+  task_04a 実機目視 OK。§5.4 を v0.6 に改訂（保存計画の識別子 = 一覧 id + キー + 同じキーの何番目か・1 番目は現行と同一・ユーザー確定）・decisions 記録。
+  task_06 を分割起票（06 = 識別子を全箇所へ・ダイアログの（N 行目）・状態保持の固定 / 06a = 計画時の固定と書き込み直前の照合）→ codex-delegating-implementer で 06 を実装。
+  reviewer 完了可（application + presentation に跨る・domain / スキーマ不変）。
 result_files:
-  - keyseq/domain/sequence_editing.py・keyseq/presentation/controllers/trigger_panel/action_edit.py・tests/test_sequence_editing.py・tests_ui/test_sequence_copy_paste.py
-  - instructions/history/30_list_reorder_range_copy.md・instructions/phase/43_list_reorder_range_copy/{phase.md,tasks/task_04a_loop_range_completion.md}・.claude_data/state/decisions.md・instructions/phase/current.md
+  - keyseq/application/save_plan.py・keyseq/application/config_service/{split_payloads,save_plan_execution,keymap_save_plan,child_file_io}.py
+  - keyseq/presentation/controllers/config_io/{child_save_plan,child_save_rows,keymap_set_io,trigger_set_file_io}.py・keyseq/presentation/controllers/dirty_state.py
+  - tests/{test_save_plan,test_child_save_rows,test_per_keymap_bulk_save}.py・instructions/phase/43_list_reorder_range_copy/tasks/task_06_sequence_save_identifier.md
 verified:
   compile: clean
-  tests: 1084 OK（skipped 7）
+  tests: 1097 OK（skipped 7）
   tests_ui: 718 OK
   smoke: pass
-  review: task_04a reviewer 修正要 → 修正して採用
+  review: task_06 reviewer 完了可
 
 ## next_action
-- task_04a の実機目視の結果を受け取る（`L始 → T1 → T2 → L終` で `T2 → L終` を複製 → 末尾に `L始 → T2 → L終` / 始まり側だけの Ctrl+C → 別のトリガーへ Ctrl+V）。
-- §5.4 改訂案（保存計画の識別子を「行の位置」→「キー + 同じキーの何番目か」）のユーザー回答 → 推奨なら暫定 30 を v0.6 に改訂・decisions 記録 → task_06 を `/task_new` で起票 → 実装。
-- 以降 task_07（トリガー一覧）→ task_08（キーマップ一覧）→ task_09（正本反映。decisions の「task_09 でユーザー確認」1 件を含む）。
+- task_06a を `/task_new` で起票（§5.4: 計画時に対象の一覧の実体と行の並びを固定・書き込み直前に照合し違えば中止して理由を示す。固定 = 一括 `keymap_set_io.py:181-212` / 個別 `trigger_set_file_io.py:129-170`、照合 = `save_plan_execution.py:96-145` / `child_file_io.py:97-119`）→ 実装 → reviewer。
+- 06 + 06a の完了判定前に deep-reviewer + Codex レビュー → 実機目視（同じキーの 2 行を保存 → 読込）。
+- 以降 task_07（トリガー一覧）→ task_08（キーマップ一覧）→ task_09（正本反映）。
 
 ## blockers
 - なし

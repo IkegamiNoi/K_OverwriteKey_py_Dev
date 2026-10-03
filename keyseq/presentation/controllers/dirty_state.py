@@ -6,7 +6,7 @@ from keyseq.domain.keymap_triggers import (
     iter_trigger_sets, trigger_set_members, INTERNAL_TRIGGER_SET_DIRTY,
     INTERNAL_TRIGGER_SET_IMPORTED,
 )
-from keyseq.application.save_plan import compose_sequence_key
+from keyseq.application.save_plan import compose_sequence_key, sequence_rows
 from keyseq.domain.config import normalize_key_name
 
 
@@ -153,9 +153,8 @@ class DirtyStateTracker:
                 for member in members:
                     member[INTERNAL_TRIGGER_SET_DIRTY] = False
                     member[INTERNAL_TRIGGER_SET_IMPORTED] = False
-            for trigger in triggers:
-                key = normalize_key_name(str(trigger.get("key") or ""))
-                if compose_sequence_key(owner_id, key) not in skipped_sequences:
+            for trigger, key, occurrence in sequence_rows(triggers):
+                if compose_sequence_key(owner_id, key, occurrence) not in skipped_sequences:
                     trigger[self._config_service.INTERNAL_SEQUENCE_DIRTY] = False
                     trigger[self._config_service.INTERNAL_SEQUENCE_IMPORTED] = False
         for keymap in self._keymap_service.get_keymaps(data):

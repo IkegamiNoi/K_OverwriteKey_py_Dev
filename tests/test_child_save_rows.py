@@ -82,6 +82,49 @@ class ChildSaveRowsTest(unittest.TestCase):
             self.assertTrue(all(row.share_state == SHARE_NEW for row in rows))
             self.assertTrue(all(row.default_action == ACTION_SAVE for row in rows))
 
+    def test_duplicate_sequence_keys_get_distinct_rows_and_row_number_labels(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            data = make_runtime_data()
+            data["keymaps"][0]["triggers"] = [
+                {"key": "f1", "label": "Copy", "actions": [], "_sequence_dirty": True},
+                {"key": "f1", "label": "Copy", "actions": [], "_sequence_dirty": True},
+            ]
+
+            rows = collect_child_save_rows(
+                data=data,
+                dirty_tracker=DummyDirtyTracker(),
+                config_service=self.service,
+                config_root=root,
+                keymap_set_path=os.path.join(root, "user", "keymap_sets", "main.json"),
+            )
+            sequence_rows = [row for row in rows if row.kind == CHILD_SEQUENCE]
+
+            self.assertEqual(
+                [(row.key, row.display_name) for row in sequence_rows],
+                [
+                    (compose_sequence_key("km1", "f1"), "Main / Copy（1 行目）"),
+                    (compose_sequence_key("km1", "f1", 2), "Main / Copy（2 行目）"),
+                ],
+            )
+
+    def test_single_sequence_key_keeps_legacy_display_name(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            data = make_runtime_data()
+            data["keymaps"][0]["triggers"][1][self.service.INTERNAL_SEQUENCE_SOURCE_PATH] = "user/sequences/f2.json"
+            rows = collect_child_save_rows(
+                data=data,
+                dirty_tracker=DummyDirtyTracker(),
+                config_service=self.service,
+                config_root=root,
+                keymap_set_path=os.path.join(root, "user", "keymap_sets", "main.json"),
+            )
+            sequence_rows = [row for row in rows if row.kind == CHILD_SEQUENCE]
+
+            self.assertEqual(len(sequence_rows), 1)
+            self.assertEqual(sequence_rows[0].display_name, "Main / Copy")
+
     def test_returns_no_rows_when_no_child_is_dirty(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")

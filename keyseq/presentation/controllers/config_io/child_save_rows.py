@@ -11,6 +11,7 @@ from keyseq.application.save_plan import (
     CHILD_TRIGGER_SET,
     SavePlan,
     compose_sequence_key,
+    sequence_rows,
 )
 from keyseq.domain.keymap_triggers import iter_trigger_sets, INTERNAL_TRIGGER_SET_DIRTY
 from keyseq.domain.config import normalize_key_name
@@ -180,17 +181,24 @@ def _append_sequence_rows(
     rows: list[ChildSaveRow], triggers, owner_id: str, owner_name: str,
     trigger_target, targets, config_service, config_root,
 ) -> None:
-    for trigger in triggers:
+    sequence_entries = sequence_rows(triggers)
+    counts = {key: occurrence for _, key, occurrence in sequence_entries}
+    positions = iter(enumerate(triggers, 1))
+    for trigger, trigger_key, occurrence in sequence_entries:
+        row_number = next(position for position, row in positions if row is trigger)
         source_path = str(trigger.get(config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
         if not trigger.get(config_service.INTERNAL_SEQUENCE_DIRTY, False) and source_path:
             continue
-        key = compose_sequence_key(owner_id, normalize_key_name(str(trigger.get("key") or "")))
+        key = compose_sequence_key(owner_id, trigger_key, occurrence)
         target_path = targets.get((CHILD_SEQUENCE, key))
         if not target_path:
             continue
+        display_name = f"{owner_name} / {trigger.get('label') or trigger['key']}"
+        if counts[trigger_key] > 1:
+            display_name += f"（{row_number} 行目）"
         rows.append(build_row(
             kind=CHILD_SEQUENCE, key=key,
-            display_name=f"{owner_name} / {trigger.get('label') or trigger['key']}",
+            display_name=display_name,
             target_path=target_path,
             current_parent=_stored_parent_path(config_service, trigger_target, config_root),
             config_service=config_service, config_root=config_root,

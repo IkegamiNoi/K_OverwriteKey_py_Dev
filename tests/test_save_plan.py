@@ -13,6 +13,10 @@ from keyseq.application.save_plan import (
     CHILD_SEQUENCE,
     CHILD_TRIGGER_SET,
     compose_sequence_key,
+    sequence_row_token,
+    sequence_rows,
+    split_sequence_key,
+    split_sequence_row_token,
     ChildSaveEntry,
     SavePlan,
     SavePlanError,
@@ -673,6 +677,51 @@ class SavePlanTest(unittest.TestCase):
                     "config.json",
                 ],
             )
+
+
+class SequenceRowIdentityTest(unittest.TestCase):
+    def test_sequence_row_token_round_trips_and_keeps_first_occurrence_compatible(self):
+        self.assertEqual(sequence_row_token("f1"), "f1")
+        self.assertEqual(sequence_row_token("f1", 2), "f1\x1f2")
+        self.assertEqual(split_sequence_row_token("f1"), ("f1", 1))
+        self.assertEqual(split_sequence_row_token("f1\x1f2"), ("f1", 2))
+
+    def test_composed_sequence_key_round_trips_with_occurrence(self):
+        self.assertEqual(compose_sequence_key("km1", "f1"), "km1\x1ff1")
+        self.assertEqual(
+            split_sequence_key(compose_sequence_key("km1", "f1", 2)),
+            ("km1", "f1", 2),
+        )
+        self.assertEqual(split_sequence_key("km1\x1ff1"), ("km1", "f1", 1))
+
+    def test_sequence_row_tokens_reject_invalid_keys_and_occurrences(self):
+        for key, occurrence in (("", 1), ("f1\x1fx", 1), ("f1", 0)):
+            with self.subTest(key=key, occurrence=occurrence), self.assertRaises(SavePlanError):
+                sequence_row_token(key, occurrence)
+        for token in ("", "f1\x1f1", "f1\x1f0", "f1\x1fx", "f1\x1f2\x1f3"):
+            with self.subTest(token=token), self.assertRaises(SavePlanError):
+                split_sequence_row_token(token)
+
+    def test_sequence_keys_reject_invalid_occurrences_and_parts(self):
+        for owner, key, occurrence in (
+            ("", "f1", 1),
+            ("km1\x1fx", "f1", 1),
+            ("km1", "", 1),
+            ("km1", "f1\x1fx", 1),
+            ("km1", "f1", 0),
+        ):
+            with self.subTest(owner=owner, key=key, occurrence=occurrence), self.assertRaises(SavePlanError):
+                compose_sequence_key(owner, key, occurrence)
+        for key in ("", "km1", "km1\x1ff1\x1f1", "km1\x1ff1\x1f0", "km1\x1ff1\x1fx"):
+            with self.subTest(key=key), self.assertRaises(SavePlanError):
+                split_sequence_key(key)
+
+    def test_sequence_rows_skip_non_dict_and_empty_keys_and_count_normalized_keys(self):
+        first = {"key": " F1 ", "actions": []}
+        second = {"key": "f1", "actions": []}
+        other = {"key": "f2", "actions": []}
+        rows = sequence_rows([first, None, {"key": "  "}, second, "ignored", other])
+        self.assertEqual(rows, [(first, "f1", 1), (second, "f1", 2), (other, "f2", 1)])
 
 
 if __name__ == "__main__":
