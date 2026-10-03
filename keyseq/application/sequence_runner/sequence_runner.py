@@ -103,6 +103,22 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
                 return True
         return False
 
+    def has_any_active_execution(self) -> bool:
+        """Return whether any trigger set has work in progress or waiting."""
+        with self.state.lock:
+            has_pending_steps = bool(self.state.pending_steps)
+            has_single_action = bool(self.state.reentry_guard)
+        return bool(
+            self.state.run_to_end_key is not None
+            or has_single_action
+            # Pending steps include paused calls, send waits, and file-line loads.
+            or has_pending_steps
+            or self._run_to_end_wait_position is not None
+            or self._run_to_end_file_line is not None
+            or self._run_to_end_call is not None
+            or self._run_to_end_call_file_line is not None
+        )
+
     @staticmethod
     def _call_context_uses_key(context: CallContext, key: str) -> bool:
         keys = (context.root_key, context.first_target,

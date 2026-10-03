@@ -5,6 +5,7 @@
 
 from __future__ import annotations
 
+from copy import deepcopy
 from typing import Any
 
 from keyseq.domain.config import normalize_key_name
@@ -14,6 +15,21 @@ INTERNAL_TRIGGER_SET_DIRTY = "_trigger_set_dirty"
 INTERNAL_TRIGGER_SET_IMPORTED = "_trigger_set_imported"
 INTERNAL_TRIGGER_SET_SOURCE_PATH = "_trigger_set_source_path"
 INTERNAL_TRIGGER_SET_PARENT_REFS = "_trigger_set_parent_refs"
+
+
+def duplicate_keymap(keymap: dict[str, Any], new_id: str, label: str) -> dict[str, Any]:
+    """Return a deep, independent copy suitable for adding as a new keymap."""
+    duplicate = deepcopy({key: value for key, value in keymap.items()
+                          if not key.startswith("_")})
+    rows = keymap_trigger_list(keymap)
+    if rows is not None:
+        duplicate["triggers"] = [
+            deepcopy({key: value for key, value in row.items() if not key.startswith("_")})
+            for row in rows
+        ]
+    duplicate["id"] = new_id
+    duplicate["label"] = label
+    return duplicate
 
 
 def keymap_trigger_list(keymap: dict[str, Any]) -> list[dict[str, Any]] | None:

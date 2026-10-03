@@ -7,12 +7,10 @@ from keyseq.application.key_overlap import KeyOverlapAnalysis
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.keymap_triggers import INTERNAL_TRIGGER_SET_DIRTY, iter_trigger_sets, trigger_set_members
 from keyseq.presentation.dialogs import KeymapEditDialog
+from keyseq.presentation.listbox_range_drag import select_range
+from keyseq.presentation.listbox_utils import focused_listbox_index
 from .keymap_add_flow import KeymapAddFlow
-from keyseq.presentation.listbox_utils import (
-    focused_listbox_index,
-    listbox_mouse_button_is_down,
-    sync_listbox_selection_to_focus,
-)
+from .keymap_list_edit import KeymapListEditFlow
 
 
 class KeymapPanelController:
@@ -23,6 +21,7 @@ class KeymapPanelController:
     def __init__(self, app) -> None:
         self._app = app
         self._keymap_add_flow = KeymapAddFlow(self)
+        self._keymap_list_edit = KeymapListEditFlow(self)
 
     def format_keymap_display_name(self, keymap: dict | None) -> str:
         if not isinstance(keymap, dict):
@@ -75,7 +74,8 @@ class KeymapPanelController:
             keymap_box.keymap_delete_btn.configure(state=delete_state)
 
     def refresh_keymap_list_ui(
-        self, preferred_index: int | None = None, *, overlap: KeyOverlapAnalysis | None = None
+        self, preferred_index: int | None = None, *, overlap: KeyOverlapAnalysis | None = None,
+        select: tuple[int, int] | None = None,
     ) -> None:
         """keymap 管理一覧の表示内容と選択を更新する。"""
         keymap_box = getattr(getattr(self._app, "full_view", None), "keymap_box", None)
@@ -123,21 +123,27 @@ class KeymapPanelController:
         listbox.selection_set(target_index)
         listbox.activate(target_index)
         listbox.see(target_index)
+        if select is not None and not getattr(self._app, "_compact_mode", False):
+            active_index = next((index for index, row in enumerate(keymaps)
+                                 if normalize_key_name(row.get("id", "")) == active_id), 0)
+            select_range(listbox, *select, active=active_index)
+            listbox.see(select[1])
         self.sync_keymap_manage_buttons()
 
     def on_keymap_list_select(self, _event=None, *, prefer_selection: bool = True) -> None:
-        keymaps = self._app.keymap_service.get_keymaps(self._app.data)
-        listbox = self._app.full_view.keymap_box.keymap_listbox
-        if listbox_mouse_button_is_down(listbox):
-            return
-        index = sync_listbox_selection_to_focus(
-            self._app, listbox, len(keymaps), prefer_selection=prefer_selection
-        )
-        if index is not None:
-            keymap_id = normalize_key_name(keymaps[index].get("id", ""))
-            if keymap_id != self._app.keymap_service.get_active_keymap_id(self._app.data):
-                self.activate_keymap_by_id(keymap_id, preferred_index=index, show_flash=False)
-        self.sync_keymap_manage_buttons()
+        self._keymap_list_edit.commit_selection()
+
+    def on_keymap_list_move(self, start: int, end: int, target_start: int) -> bool:
+        return self._keymap_list_edit.move_keymap_range(start, end, target_start)
+
+    def can_start_keymap_drag(self) -> bool:
+        return self._keymap_list_edit.can_start_drag()
+
+    def copy_keymaps(self, event=None) -> str:
+        return self._keymap_list_edit.copy_keymaps(event)
+
+    def paste_keymaps(self, event=None) -> str:
+        return self._keymap_list_edit.paste_keymaps(event)
 
     def on_keymap_list_focus_index_change(self, _event=None) -> None:
         self.on_keymap_list_select(prefer_selection=False)
@@ -263,7 +269,11 @@ class KeymapPanelController:
 
     def delete_keymap(self) -> None:
         """選択中の keymap を削除する。"""
-        index = self.selected_keymap_list_index()
+        bounds = self._keymap_list_edit.selection_bounds()
+        if bounds is not None and bounds[0] != bounds[1]:
+            self._keymap_list_edit.delete_keymap_range()
+            return
+        index = bounds[0] if bounds is not None else self.selected_keymap_list_index()
         keymaps = self._app.keymap_service.get_keymaps(self._app.data)
         if index is None or not keymaps or not (0 <= index < len(keymaps)):
             messagebox.showinfo("削除", "削除したい keymap を選択してください。")
@@ -274,13 +284,6 @@ class KeymapPanelController:
 
         target = keymaps[index]
         target_id = normalize_key_name(target.get("id", ""))
-        trigger_set_id = self._app.keymap_service.get_trigger_set_id(self._app.data, target_id)
-        members = trigger_set_members(self._app.data, target_id)
-        drops_trigger_set = len(members) <= 1
-        next_trigger_set_id = next(
-            (normalize_key_name(member.get("id", "")) for member in members if member is not target),
-            "",
-        )
         if target_id == self._app.keymap_service.get_active_keymap_id(self._app.data):
             if not self._app.state.can_switch_keymap(
                 target_id, self._app.keymap_service.get_active_keymap_id(self._app.data), changes_active=True
@@ -294,6 +297,26 @@ class KeymapPanelController:
             prompt += "\n\n未保存のトリガー一覧・シーケンスも破棄されます。"
         if not messagebox.askyesno("確認", prompt):
             return
+        deleted, next_active_id, discarded = self._delete_keymap_confirmed(target)
+        if not deleted:
+            return
+        self._keymap_list_edit._finish(None)
+        if discarded:
+            return
+        if next_active_id:
+            self._app._set_flash_message(f"キーマップを削除しました: {target_name} / 現在: {self.get_active_keymap_text()}")
+        else:
+            self._app._set_flash_message(f"キーマップを削除しました: {target_name}")
+
+    def _delete_keymap_confirmed(self, target: dict) -> tuple[bool, str, tuple]:
+        """単件・範囲の両方から使う、確認後の削除と実行状態の後始末。"""
+        target_id = normalize_key_name(target.get("id", ""))
+        trigger_set_id = self._app.keymap_service.get_trigger_set_id(self._app.data, target_id)
+        members = trigger_set_members(self._app.data, target_id)
+        drops_trigger_set = len(members) <= 1
+        next_trigger_set_id = next(
+            (normalize_key_name(member.get("id", "")) for member in members if member is not target), "",
+        )
         discarded = ()
         if target_id == self._app.keymap_service.get_active_keymap_id(self._app.data):
             discarded = self._app.sequence_runner.discard_paused()
@@ -302,7 +325,7 @@ class KeymapPanelController:
         deleted, next_active_id = self._app.keymap_service.delete_keymap(self._app.data, target.get("id", ""))
         if not deleted:
             messagebox.showerror("削除できません", "選択した keymap を削除できませんでした。")
-            return
+            return False, next_active_id, discarded
         legacy = self._app.data.get(self._app.config_service.INTERNAL_LEGACY_TRIGGER_SET, {})
         if legacy.get("state") == "migrated" and legacy.get("keymap_id") == target_id:
             self._app.data[self._app.config_service.INTERNAL_LEGACY_TRIGGER_SET] = {
@@ -313,19 +336,12 @@ class KeymapPanelController:
         elif trigger_set_id == target_id and next_trigger_set_id:
             self._app.state.rekey_trigger_set(trigger_set_id, next_trigger_set_id)
 
-        self._refresh_after_keymap_change()
-        self._app.dirty_tracker.set_dirty(True)
-        if discarded:
-            return
-        if next_active_id:
-            self._app._set_flash_message(f"キーマップを削除しました: {target_name} / 現在: {self.get_active_keymap_text()}")
-        else:
-            self._app._set_flash_message(f"キーマップを削除しました: {target_name}")
+        return True, next_active_id, discarded
 
-    def _has_unsaved_children(self, keymap: dict) -> bool:
+    def _has_unsaved_children(self, keymap: dict, *, deleting_members: bool = False) -> bool:
         keymap_id = normalize_key_name(keymap.get("id", ""))
         members = trigger_set_members(self._app.data, keymap_id)
-        if len(members) > 1:
+        if len(members) > 1 and not deleting_members:
             return False
         if any(bool(member.get(INTERNAL_TRIGGER_SET_DIRTY, False)) for member in members):
             return True

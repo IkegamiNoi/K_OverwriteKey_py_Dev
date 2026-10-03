@@ -2,7 +2,7 @@ import unittest
 from unittest.mock import Mock, call
 
 from keyseq.application.action_executor import ActionExecutor
-from keyseq.application.app_state import AppState
+from keyseq.application.app_state import AppState, PendingStep
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.sequence_steps import LoopFrame
 
@@ -1342,6 +1342,95 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         notified_action, message = runner._notify_error.call_args.args
         self.assertEqual(notified_action["value"], "WAIT 0ms")
         self.assertIn("WAIT 0ms", message)
+
+
+class AnyActiveExecutionTest(unittest.TestCase):
+    def test_no_runtime_work_returns_false(self):
+        runner, _state, _scheduler, _performed = make_runner([])
+
+        self.assertFalse(runner.has_any_active_execution())
+
+    def test_single_action_reentry_guard_is_active(self):
+        runner, state, _scheduler, _performed = make_runner([])
+        state.reentry_guard.add("f1")
+
+        self.assertTrue(runner.has_any_active_execution())
+
+    def test_continuous_execution_is_active_while_running_or_paused(self):
+        trigger = {"key": "f1", "run_to_end": True, "actions": [A1, A1]}
+        runner, state, _scheduler, _performed = make_runner([trigger])
+
+        runner.handle_key("f1")
+        self.assertEqual(state.run_to_end_key, "f1")
+        self.assertFalse(state.run_to_end_paused)
+        self.assertTrue(runner.has_any_active_execution())
+
+        state.run_to_end_paused = True
+        self.assertTrue(runner.has_any_active_execution())
+
+    def test_single_call_context_and_call_interval_remain_active(self):
+        triggers = [
+            {"key": "f1", "actions": [{"type": "system", "op": "call", "target": "f2"}]},
+            {"key": "f2", "run_to_end_delay_ms": 12, "actions": [A1, A1]},
+        ]
+        runner, state, scheduler, _performed = make_runner(triggers)
+
+        runner.handle_key("f1")
+        pending = state.pending_steps[("", "f1")]
+        self.assertIsNotNone(pending.call)
+        self.assertTrue(runner.has_any_active_execution())
+
+        runner.handle_key("f1")
+        self.assertTrue(pending.call_paused)
+        self.assertTrue(runner.has_any_active_execution())
+
+        runner.handle_key("f1")
+        scheduler.run_one()
+        self.assertEqual(scheduler.delays[-1], 12)
+        self.assertTrue(runner.has_any_active_execution())
+
+    def test_pending_wait_and_file_line_work_in_any_trigger_set_are_active(self):
+        runner, state, _scheduler, _performed = make_runner([])
+        state.pending_steps[("inactive-set", "f9")] = PendingStep(
+            generation=1, after_id=None, position=0, resume=None, snapshot=None,
+        )
+        self.assertTrue(runner.has_any_active_execution())
+
+        state.pending_steps.clear()
+        state.pending_steps[("inactive-set", "f8")] = PendingStep(
+            generation=2, after_id=None, position=0, resume=None, snapshot=None,
+            file_line=object(),
+        )
+        self.assertTrue(runner.has_any_active_execution())
+
+        state.pending_steps.clear()
+        runner._run_to_end_file_line = object()
+        self.assertTrue(runner.has_any_active_execution())
+
+    def test_single_send_wait_is_active(self):
+        trigger = {
+            "key": "f1",
+            "actions": [A1, {"type": "system", "op": "wait", "ms": 9}, A2],
+        }
+        runner, state, _scheduler, performed = make_runner([trigger])
+
+        runner.handle_key("f1")
+
+        self.assertEqual(performed, [A1])
+        self.assertIn(("", "f1"), state.pending_steps)
+        self.assertTrue(runner.has_any_active_execution())
+
+    def test_run_to_end_call_file_line_fields_are_active(self):
+        runner, _state, _scheduler, _performed = make_runner([])
+        for field in (
+            "_run_to_end_wait_position",
+            "_run_to_end_call",
+            "_run_to_end_call_file_line",
+        ):
+            with self.subTest(field=field):
+                setattr(runner, field, 0 if field == "_run_to_end_wait_position" else object())
+                self.assertTrue(runner.has_any_active_execution())
+                setattr(runner, field, None)
 
 
 if __name__ == "__main__":

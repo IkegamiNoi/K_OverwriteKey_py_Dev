@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import TYPE_CHECKING
 
-from keyseq.presentation.listbox_utils import bind_listbox_click_selection_sync
+from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag
 
 
 if TYPE_CHECKING:
@@ -22,9 +22,16 @@ class KeymapBox(ttk.LabelFrame):
         self.keymap_listbox.bind("<<ListboxSelect>>", app.keymap_panel.on_keymap_list_select)
         self.keymap_listbox.bind("<KeyRelease>", app.keymap_panel.on_keymap_list_focus_index_change)
         self.keymap_listbox.bind("<Double-Button-1>", app.keymap_panel.on_keymap_list_double_click)
-        bind_listbox_click_selection_sync(
-            self.keymap_listbox, app.keymap_panel.on_keymap_list_mouse_release
+        self.keymap_range_drag = bind_listbox_range_drag(
+            self.keymap_listbox,
+            on_move=app.keymap_panel.on_keymap_list_move,
+            on_commit=app.keymap_panel.on_keymap_list_mouse_release,
+            can_start_drag=app.keymap_panel.can_start_keymap_drag,
         )
+        for sequence in ("<Control-c>", "<Control-C>"):
+            self.keymap_listbox.bind(sequence, app.keymap_panel.copy_keymaps)
+        for sequence in ("<Control-v>", "<Control-V>"):
+            self.keymap_listbox.bind(sequence, app.keymap_panel.paste_keymaps)
         keymap_list_scrollbar = ttk.Scrollbar(keymap_list_frame, orient="vertical", command=self.keymap_listbox.yview)
         keymap_list_scrollbar.pack(side="right", fill="y")
         self.keymap_listbox.pack(side="left", fill="both", expand=True)

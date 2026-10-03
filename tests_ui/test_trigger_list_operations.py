@@ -8,6 +8,7 @@ from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.controllers.trigger_panel import trigger_list_edit as edit_module
 from keyseq.presentation.list_clipboard import CLIP_ACTIONS, CLIP_TRIGGERS
 from keyseq.presentation.listbox_range_drag import select_range
+from tests_ui.click_time import next_click_time
 
 
 def make_runtime():
@@ -248,7 +249,7 @@ class TriggerListOperationsTest(unittest.TestCase):
         x, y = x + width // 2, y + height // 2
         _, target_y, _, target_height = self.listbox.bbox(3)
         target_y += target_height // 2
-        self.listbox.event_generate("<ButtonPress-1>", x=x, y=y)
+        self.listbox.event_generate("<ButtonPress-1>", time=next_click_time(), x=x, y=y)
         self.listbox.event_generate("<B1-Motion>", x=x, y=target_y, state=0x100)
         self.app.update_idletasks()
         self.assertEqual(self.rows, before)
@@ -256,7 +257,7 @@ class TriggerListOperationsTest(unittest.TestCase):
         self.listbox.event_generate("<ButtonRelease-1>", x=x, y=target_y)
         self.app.update()
         self.assertEqual(self.rows, before)
-        self.listbox.event_generate("<ButtonPress-1>", x=x, y=y)
+        self.listbox.event_generate("<ButtonPress-1>", time=next_click_time(), x=x, y=y)
         self.listbox.event_generate("<B1-Motion>", x=x, y=target_y, state=0x100)
         self.listbox.event_generate("<ButtonRelease-1>", x=x, y=target_y)
         self.app.update()
@@ -269,7 +270,7 @@ class TriggerListOperationsTest(unittest.TestCase):
         self.app.update_idletasks()
         x, y, width, height = self.listbox.bbox(2)
         self.listbox.focus_force()
-        self.listbox.event_generate("<ButtonPress-1>", x=x + width // 2,
+        self.listbox.event_generate("<ButtonPress-1>", time=next_click_time(), x=x + width // 2,
                                     y=y + height // 2, state=0x1)
         self.app.update_idletasks()
         self.assertEqual(self.panel.selected_trigger_index(), 0)

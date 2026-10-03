@@ -9,6 +9,7 @@ from keyseq.domain.config import safe_deepcopy
 
 CLIP_ACTIONS = "actions"
 CLIP_TRIGGERS = "trigger_rows"
+CLIP_KEYMAPS = "keymap_rows"
 
 
 class ListClipboard:

@@ -5,6 +5,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.keymap_triggers import duplicate_keymap, keymap_trigger_list
 from keyseq.presentation.dialogs import KeymapEditDialog
 
 
@@ -87,6 +88,34 @@ class KeymapAddFlow:
         self._restore_active_keymap(original_active)
         self._keymap_panel._refresh_after_keymap_change()
         return True
+
+    def prepare_keymap_paste(self, original_active: str) -> list | None:
+        """貼り付けの最初にだけ、既存の切替キーの補完を集める。"""
+        return self._collect_missing_switch_edits(original_active)
+
+    def paste_keymap(self, source: dict, label: str, pending: list) -> dict | None:
+        """既存の追加用検証でダイアログを開き、確定した写しを追加する。"""
+        original_active = self._app.keymap_service.get_active_keymap_id(self._app.data)
+        candidate_id = self._app.keymap_service.next_keymap_id(self._app.data)
+        result = self._prompt_keymap_edit(
+            "キーマップ貼り付け", label,
+            validate=lambda values, parent: self._validate_addition_key(
+                values.get("key", ""), candidate_id, pending, message_parent=parent
+            ),
+        )
+        if not result or not self._apply_pending_switch_edits(pending):
+            self._restore_active_keymap(original_active)
+            return None
+        pending.clear()
+        created = duplicate_keymap(source, candidate_id, str(result.get("label") or "").strip())
+        self._append_keymap(created)
+        self._app.keymap_service.set_keymap_switch_key(self._app.data, result["key"], candidate_id)
+        self._app.mark_keymap_dirty(created)
+        self._app.dirty_tracker.mark_trigger_set_dirty(candidate_id)
+        for row in keymap_trigger_list(created) or []:
+            self._app.mark_sequence_dirty(row)
+        self._restore_active_keymap(original_active)
+        return created
 
     def _collect_missing_switch_edits(self, original_active: str) -> list[tuple[dict, dict, int]] | None:
         pending = []

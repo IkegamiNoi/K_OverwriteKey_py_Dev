@@ -3,6 +3,8 @@
 import unittest
 from unittest.mock import Mock, patch
 
+from tests_ui.click_time import next_click_time
+
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 
@@ -72,7 +74,7 @@ class ListboxClickSelectionSyncTest(unittest.TestCase):
     def _press(self, listbox, row):
         x, y = self._row_xy(listbox, row)
         listbox.focus_force()
-        listbox.event_generate("<ButtonPress-1>", x=x, y=y)
+        listbox.event_generate("<ButtonPress-1>", time=next_click_time(), x=x, y=y)
         self.app.update_idletasks()
         return x, y
 
@@ -116,7 +118,7 @@ class ListboxClickSelectionSyncTest(unittest.TestCase):
         x, y = self._row_xy(listbox, 1)
         listbox.focus_force()
         listbox.selection_anchor(0)
-        listbox.event_generate("<ButtonPress-1>", x=x, y=y, state=0x1)
+        listbox.event_generate("<ButtonPress-1>", time=next_click_time(), x=x, y=y, state=0x1)
         listbox.event_generate("<ButtonRelease-1>", x=x, y=y, state=0x1)
         self.app.update()
 
@@ -129,7 +131,7 @@ class ListboxClickSelectionSyncTest(unittest.TestCase):
         listbox.selection_anchor(0)
         x, y = self._row_xy(listbox, 1)
         listbox.focus_force()
-        listbox.event_generate("<ButtonPress-1>", x=x, y=y, state=0x1)
+        listbox.event_generate("<ButtonPress-1>", time=next_click_time(), x=x, y=y, state=0x1)
         x, y = self._row_xy(listbox, 2)
         listbox.event_generate("<B1-Motion>", x=x, y=y, state=0x101)
         listbox.event_generate("<ButtonRelease-1>", x=x, y=y, state=0x1)
@@ -226,30 +228,27 @@ class ListboxClickSelectionSyncTest(unittest.TestCase):
         self.assertEqual(self.app._indices["f1"], 2)
         reset.assert_called_once_with("f1")
 
-    def test_keymap_drag_commits_only_the_row_released(self):
+    def test_keymap_drag_reorders_row_and_keeps_active_underline_separate(self):
         listbox = self.app.full_view.keymap_box.keymap_listbox
         original_activate = self.app.keymap_panel.activate_keymap_by_id
         activate = Mock(wraps=original_activate)
         self.app.keymap_panel.activate_keymap_by_id = activate
         self.addCleanup(setattr, self.app.keymap_panel, "activate_keymap_by_id", original_activate)
 
-        self._press(listbox, 0)
-        self._motion(listbox, 1)
-        self.assertEqual(tuple(listbox.curselection()), (1,))
-        self.assertEqual(self.app.keymap_service.get_active_keymap_id(self.app.data), "km1")
-        activate.assert_not_called()
+        self._press(listbox, 1)
         self._motion(listbox, 2)
         self.assertEqual(tuple(listbox.curselection()), (2,))
         self.assertEqual(self.app.keymap_service.get_active_keymap_id(self.app.data), "km1")
         activate.assert_not_called()
         self._release(listbox, 2)
 
-        self._assert_row_synced(listbox, 2)
-        self.assertEqual(self.app.keymap_service.get_active_keymap_id(self.app.data), "km3")
-        activate.assert_called_once()
-        self.assertEqual(activate.call_args.args[0], "km3")
+        self.assertEqual(tuple(listbox.curselection()), (2,))
+        self.assertEqual(int(listbox.index("active")), 0)
+        self.assertEqual(self.app.keymap_service.get_active_keymap_id(self.app.data), "km1")
+        self.assertEqual([item["id"] for item in self.app.data["keymaps"]], ["km1", "km3", "km2"])
+        activate.assert_not_called()
 
-    def test_drag_back_to_original_keymap_keeps_active_keymap(self):
+    def test_drag_back_to_original_position_keeps_active_keymap(self):
         listbox = self.app.full_view.keymap_box.keymap_listbox
         original_activate = self.app.keymap_panel.activate_keymap_by_id
         activate = Mock(wraps=original_activate)
@@ -269,7 +268,7 @@ class ListboxClickSelectionSyncTest(unittest.TestCase):
         listbox = self.app.full_view.trigger_box.trigger_list
         x, y = self._row_xy(listbox, 2)
         listbox.focus_force()
-        listbox.event_generate("<ButtonPress-1>", x=x, y=y, state=0x1)
+        listbox.event_generate("<ButtonPress-1>", time=next_click_time(), x=x, y=y, state=0x1)
         listbox.event_generate("<ButtonRelease-1>", x=x, y=y, state=0x1)
         self.app.update()
 

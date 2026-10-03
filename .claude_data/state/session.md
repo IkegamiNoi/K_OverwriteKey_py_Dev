@@ -11,31 +11,32 @@ last_commit_location: `claude/output-sequence-duplication-range-4b01f6`（a71ee4
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 43 task_01〜06b 完了（06・06a・06b は実機目視待ち）。§5.4 の文言（L8）のユーザー判断待ち。次は task_07（トリガー一覧の操作）。**
+focus: **phase 43 task_01〜08 完了（07・08 は実機目視待ち）。次は task_09（正本反映・フェーズ完了）。task_09 前にユーザー確認 1 件（§5.1「呼び出し先」の意味の明記）。**
 mode: in_progress（ユーザーがタスクの連続実行を許可 2026-10-03。スペックフラグ・フォールバック・実機目視では止まる）
 
 ## last_action
-ts: 2026-10-03T18:00:00
+ts: 2026-10-03T21:00:00
 who: main
 summary: |
-  task_06a（計画時に対象の一覧と行の並びを固定・書き込み直前に照合し中止）を実装。reviewer 修正要 → 修正（domain に読み取り専用の口 keymap_trigger_list を追加〔逸脱・decisions 記録〕）。
-  06+06a の完了判定前レビュー: Codex 指摘なし / deep-reviewer 修正要 → M1（個別保存の固定をパスのダイアログより前へ）・L2（計画の組み立ての例外は中止の文言に）を task_06b で実装・M2（暫定 30 §12 の追記）はメインで反映。
-  task_06b の reviewer 修正要（テスト 2 件）→ メインで修正して採用。L8（§5.4「引き直さない」の文言）はユーザー判断へ。
+  task_06 系の実機目視 OK・L8 はユーザー判断で §5.4 を「照合の後はイベントループを挟まずに書き込む」に改訂（暫定 30 v0.7）。
+  task_07（トリガー一覧の範囲選択・ドラッグ・範囲削除・Ctrl+C/V）実装・reviewer 完了可（保管庫の種類の値を "trigger_rows" へメイン修正）。
+  task_08（キーマップ一覧: 下線 = アクティブ・並べ替えの禁止条件 has_any_active_execution・rekey・範囲削除・Ctrl+C/V と切替キーのダイアログ・domain の duplicate_keymap）実装・reviewer 完了可。
+  task_08 のテストの誤り 2 件をメイン修正（生成クリックの時刻 0 → Tk のダブルクリック扱い → tests_ui/click_time.py）。tests_ui 全体は 590 秒（変更前のコミットでも同程度・環境負荷）。
 result_files:
-  - keyseq/presentation/controllers/config_io/{save_target_snapshot,keymap_set_io,trigger_set_file_io}.py・keyseq/domain/keymap_triggers.py
-  - tests/{test_save_target_snapshot,test_keymap_triggers}.py・tests_ui/test_config_io_characterization.py
-  - instructions/history/30_list_reorder_range_copy.md（§12）・instructions/phase/43_list_reorder_range_copy/{phase.md,tasks/task_06a_*.md,tasks/task_06b_*.md}・.claude_data/state/decisions.md
+  - keyseq/presentation/controllers/{trigger_panel/trigger_list_edit.py,keymap_panel/keymap_list_edit.py}（新規）・trigger_panel_controller.py・keymap_panel_controller.py・keymap_add_flow.py・views/full_view/{trigger_box,keymap_box}.py・list_clipboard.py
+  - keyseq/domain/keymap_triggers.py（duplicate_keymap）・keyseq/application/sequence_runner/sequence_runner.py（has_any_active_execution）
+  - tests_ui/{test_trigger_list_operations,test_keymap_list_operations,click_time}.py・tests_ui/test_listbox_click_selection_sync.py・tests/{test_keymap_triggers,test_sequence_runner}.py
 verified:
   compile: clean
-  tests: OK（skipped 7）
-  tests_ui: 723 OK
+  tests: 1114 OK（skipped 7）
+  tests_ui: 756 OK（590 秒）
   smoke: pass
-  review: 06a reviewer 修正して採用 / 06+06a deep 修正要 → 06b・Codex 指摘なし / 06b reviewer 修正して採用
+  review: task_07 reviewer 完了可 / task_08 reviewer 完了可
 
 ## next_action
-- ユーザー判断 L8: §5.4「実行・後処理でアクティブから一覧を引き直さない」を、正本反映（task_09）で「照合の後、イベントループを挟まずに書き込む」に合わせるか（実装は照合後に同期で引き直す・結果は同じ）。
-- task_06 系の実機目視の結果を受け取る（同じキーの 2 行〔シーケンスが異なる〕を一括保存 → 読込 / 個別保存 → 読込で入れ替わらない・消えない / 保存ダイアログの `（N 行目）` / 保存の前後で `▶` と実行位置が変わらない）。
-- task_07（トリガー一覧の操作: 範囲選択・ドラッグ・範囲削除・複製 / 貼り付け・連番〔§3・§5.3〕・交代の判定と進行中の拒否の適用・重なりの表の作り直し）を `/task_new` で起票 → 実装。以降 task_08 → task_09。
+- task_07・08 の実機目視の結果を受け取る（トリガー一覧 / キーマップ一覧の範囲選択・ドラッグ・範囲削除・Ctrl+C/V。キーマップは下線 = アクティブ・連続実行中は並べ替え不可・切替キーのダイアログ・キャンセルで残り中止）。
+- ユーザー確認（decisions の「task_09 でユーザー確認」）: §5.1「呼び出し先」は「現在入っているフレーム」の意味（未突入の呼び出し先は開始時の写しで動くため交代の影響を受けない）と明記するか。
+- task_09 を `/task_new` で起票: 暫定 30 §12 の正本昇格（features / key_input / data_schema §5.13.1・§5.13.5 / codebase_map〔task_08 の分を含む〕）・暫定 30 の凍結・decisions_archive/43・current.md 完了記載・/refactor_check。完了判定前に deep-reviewer + Codex 敵対的レビュー。
 
 ## blockers
 - なし

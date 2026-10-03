@@ -1,8 +1,10 @@
 import ast
+from copy import deepcopy
 from pathlib import Path
 import unittest
 
 from keyseq.domain.keymap_triggers import (
+    duplicate_keymap,
     ensure_active_triggers,
     get_active_triggers,
     keymap_trigger_list,
@@ -11,6 +13,40 @@ from keyseq.domain.keymap_triggers import (
 
 
 class KeymapTriggersTest(unittest.TestCase):
+    def test_duplicate_keymap_copies_without_internal_values(self):
+        source = {
+            "id": "old",
+            "label": "Original",
+            "_private": {"hidden": True},
+            "mappings": {"_": "underscore", "f1": {"actions": [{"value": "original"}]}},
+            "triggers": [
+                {"key": "f2", "actions": [{"value": "trigger"}], "_runtime": 2},
+                {"key": "f3", "_runtime": {"nested": True}},
+            ],
+        }
+        original = deepcopy(source)
+
+        duplicate = duplicate_keymap(source, "new", "Copy")
+
+        self.assertEqual(duplicate["id"], "new")
+        self.assertEqual(duplicate["label"], "Copy")
+        self.assertNotIn("_private", duplicate)
+        self.assertEqual(duplicate["mappings"]["_"], "underscore")
+        self.assertEqual(duplicate["triggers"], [
+            {"key": "f2", "actions": [{"value": "trigger"}]},
+            {"key": "f3"},
+        ])
+        self.assertIsNot(duplicate["triggers"], source["triggers"])
+        for index, row in enumerate(source["triggers"]):
+            self.assertIsNot(duplicate["triggers"][index], row)
+        self.assertIsNot(duplicate["mappings"], source["mappings"])
+        self.assertIsNot(duplicate["mappings"]["f1"], source["mappings"]["f1"])
+        self.assertIsNot(
+            duplicate["mappings"]["f1"]["actions"][0],
+            source["mappings"]["f1"]["actions"][0],
+        )
+        self.assertEqual(source, original)
+
     def test_keymap_trigger_list_returns_same_list(self):
         for triggers in ([], [{"key": "f1"}]):
             with self.subTest(triggers=triggers):
