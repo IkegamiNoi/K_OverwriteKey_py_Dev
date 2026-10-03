@@ -22,6 +22,11 @@ from keyseq.domain.keymap_triggers import (
 )
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.controllers.config_io.child_save_rows import collect_child_save_rows
+from keyseq.presentation.controllers.config_io.save_target_snapshot import (
+    SAVE_TARGET_CHANGED_MESSAGE,
+    capture_active,
+    snapshot_matches,
+)
 
 
 class TriggerSetFileIo:
@@ -61,9 +66,14 @@ class TriggerSetFileIo:
 
     def save_trigger_set_to_path(self, path: str) -> bool:
         try:
+            save_target = capture_active(self._app.data)
             save_plan = self._collect_sequence_save_plan(path)
             if save_plan is None:
                 self._app._set_flash_message("トリガー一覧の保存を中止しました。")
+                return False
+            if not snapshot_matches(self._app.data, save_target):
+                self._app._set_flash_message(SAVE_TARGET_CHANGED_MESSAGE, auto_clear=False)
+                messagebox.showwarning("保存", SAVE_TARGET_CHANGED_MESSAGE)
                 return False
             source_path_changed = self._save_trigger_set(path, save_plan)
             self._show_save_success(path, source_path_changed)

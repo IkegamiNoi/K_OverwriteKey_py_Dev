@@ -16,6 +16,12 @@ INTERNAL_TRIGGER_SET_SOURCE_PATH = "_trigger_set_source_path"
 INTERNAL_TRIGGER_SET_PARENT_REFS = "_trigger_set_parent_refs"
 
 
+def keymap_trigger_list(keymap: dict[str, Any]) -> list[dict[str, Any]] | None:
+    """Return the stored trigger list without creating or changing it."""
+    triggers = keymap.get("triggers")
+    return triggers if isinstance(triggers, list) else None
+
+
 def iter_trigger_sets(data: dict[str, Any]):
     """一覧順の代表キーマップ、共有メンバー、一覧実体を返す。"""
     groups: dict[int, tuple[dict[str, Any], list[dict[str, Any]], list]] = {}

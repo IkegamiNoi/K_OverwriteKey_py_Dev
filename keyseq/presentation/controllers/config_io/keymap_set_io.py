@@ -24,6 +24,11 @@ from keyseq.presentation.controllers.config_io.child_save_rows import (
     build_row,
     collect_child_save_rows,
 )
+from keyseq.presentation.controllers.config_io.save_target_snapshot import (
+    SAVE_TARGET_CHANGED_MESSAGE,
+    capture_all,
+    snapshot_matches,
+)
 
 
 DEFAULT_KEYMAP_SET_FILENAME = "keymap_set.json"
@@ -114,6 +119,7 @@ class KeymapSetIo:
             migration_source_path = self._app.keymap_set_path
             post_save_warnings: list[str] = []
             split_base_dir = self.choose_split_base_dir_for_keymap_set(save_path)
+            save_target = capture_all(self._app.data)
             save_plan, recalculation_notice, deferred_index = self._collect_child_save_plan(
                 save_path,
                 split_base_dir,
@@ -123,6 +129,10 @@ class KeymapSetIo:
                 return False
             skipped_dirty_children = self._skipped_dirty_children(save_plan)
             deferred_parents = self._blocked_parents(save_path, split_base_dir, save_plan) if deferred_index else {}
+            if not snapshot_matches(self._app.data, save_target):
+                self._app._set_flash_message(SAVE_TARGET_CHANGED_MESSAGE, auto_clear=False)
+                messagebox.showwarning("保存", SAVE_TARGET_CHANGED_MESSAGE)
+                return False
             self._app.discard_retained_hook_keys()
             if save_path != self._app.keymap_set_path:
                 relocated_path = self._app.config_service.relocate_individual_hotkey_presets(

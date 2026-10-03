@@ -5,11 +5,23 @@ import unittest
 from keyseq.domain.keymap_triggers import (
     ensure_active_triggers,
     get_active_triggers,
+    keymap_trigger_list,
     set_active_triggers,
 )
 
 
 class KeymapTriggersTest(unittest.TestCase):
+    def test_keymap_trigger_list_returns_same_list(self):
+        for triggers in ([], [{"key": "f1"}]):
+            with self.subTest(triggers=triggers):
+                self.assertIs(keymap_trigger_list({"triggers": triggers}), triggers)
+
+    def test_keymap_trigger_list_missing_or_non_list_returns_none(self):
+        self.assertIsNone(keymap_trigger_list({}))
+        for value in (None, {}, (), "invalid", 0):
+            with self.subTest(value=value):
+                self.assertIsNone(keymap_trigger_list({"triggers": value}))
+
     def test_get_returns_same_list(self):
         for triggers in ([], [{"key": "f1"}]):
             with self.subTest(triggers=triggers):
