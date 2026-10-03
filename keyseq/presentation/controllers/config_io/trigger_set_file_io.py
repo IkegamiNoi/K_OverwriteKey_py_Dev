@@ -24,6 +24,7 @@ from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.controllers.config_io.child_save_rows import collect_child_save_rows
 from keyseq.presentation.controllers.config_io.save_target_snapshot import (
     SAVE_TARGET_CHANGED_MESSAGE,
+    SaveTargetSnapshot,
     capture_active,
     snapshot_matches,
 )
@@ -34,6 +35,7 @@ class TriggerSetFileIo:
         self._app = app
 
     def save_trigger_set_file(self) -> bool:
+        save_target = capture_active(self._app.data)
         path = str(self._app.dirty_tracker.trigger_set_source_path or "").strip()
         if not path:
             suggested = self._app.paths.suggest_json_path(
@@ -44,9 +46,10 @@ class TriggerSetFileIo:
             path = self._app.io_dialogs.choose_save_path_with_collision(title="トリガー一覧を保存", suggested_path=suggested)
             if not path:
                 return False
-        return self.save_trigger_set_to_path(path)
+        return self.save_trigger_set_to_path(path, save_target=save_target)
 
     def save_trigger_set_file_as(self) -> bool:
+        save_target = capture_active(self._app.data)
         source_path = str(self._app.dirty_tracker.trigger_set_source_path or "").strip()
         suggested = self._app.paths.suggest_json_path(
             self._app.paths.json_dialog_initial_dir(self._app.paths.preferred_trigger_sets_dir(), source_path),
@@ -62,11 +65,14 @@ class TriggerSetFileIo:
         )
         if not path:
             return False
-        return self.save_trigger_set_to_path(path)
+        return self.save_trigger_set_to_path(path, save_target=save_target)
 
-    def save_trigger_set_to_path(self, path: str) -> bool:
+    def save_trigger_set_to_path(
+        self, path: str, save_target: SaveTargetSnapshot | None = None,
+    ) -> bool:
         try:
-            save_target = capture_active(self._app.data)
+            if save_target is None:
+                save_target = capture_active(self._app.data)
             save_plan = self._collect_sequence_save_plan(path)
             if save_plan is None:
                 self._app._set_flash_message("トリガー一覧の保存を中止しました。")
@@ -79,9 +85,16 @@ class TriggerSetFileIo:
             self._show_save_success(path, source_path_changed)
             return True
         except Exception as e:
+            if save_target is not None and not snapshot_matches(self._app.data, save_target):
+                self._show_save_target_changed()
+                return False
             self._app._set_flash_message(f"トリガー一覧保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
             return False
+
+    def _show_save_target_changed(self) -> None:
+        self._app._set_flash_message(SAVE_TARGET_CHANGED_MESSAGE, auto_clear=False)
+        messagebox.showwarning("保存", SAVE_TARGET_CHANGED_MESSAGE)
 
     def _save_trigger_set(self, path: str, save_plan: SavePlan) -> bool:
         previous_path = str(self._app.dirty_tracker.trigger_set_source_path or "").strip()

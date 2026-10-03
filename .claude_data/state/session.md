@@ -11,31 +11,31 @@ last_commit_location: `claude/output-sequence-duplication-range-4b01f6`（a71ee4
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 43 task_01〜06 完了（task_06 = 保存の識別子・06a と合わせた完了判定前レビュー待ち）。次は task_06a（保存の対象の固定と照合）。**
+focus: **phase 43 task_01〜06b 完了（06・06a・06b は実機目視待ち）。§5.4 の文言（L8）のユーザー判断待ち。次は task_07（トリガー一覧の操作）。**
 mode: in_progress（ユーザーがタスクの連続実行を許可 2026-10-03。スペックフラグ・フォールバック・実機目視では止まる）
 
 ## last_action
-ts: 2026-10-03T15:00:00
+ts: 2026-10-03T18:00:00
 who: main
 summary: |
-  task_04a 実機目視 OK。§5.4 を v0.6 に改訂（保存計画の識別子 = 一覧 id + キー + 同じキーの何番目か・1 番目は現行と同一・ユーザー確定）・decisions 記録。
-  task_06 を分割起票（06 = 識別子を全箇所へ・ダイアログの（N 行目）・状態保持の固定 / 06a = 計画時の固定と書き込み直前の照合）→ codex-delegating-implementer で 06 を実装。
-  reviewer 完了可（application + presentation に跨る・domain / スキーマ不変）。
+  task_06a（計画時に対象の一覧と行の並びを固定・書き込み直前に照合し中止）を実装。reviewer 修正要 → 修正（domain に読み取り専用の口 keymap_trigger_list を追加〔逸脱・decisions 記録〕）。
+  06+06a の完了判定前レビュー: Codex 指摘なし / deep-reviewer 修正要 → M1（個別保存の固定をパスのダイアログより前へ）・L2（計画の組み立ての例外は中止の文言に）を task_06b で実装・M2（暫定 30 §12 の追記）はメインで反映。
+  task_06b の reviewer 修正要（テスト 2 件）→ メインで修正して採用。L8（§5.4「引き直さない」の文言）はユーザー判断へ。
 result_files:
-  - keyseq/application/save_plan.py・keyseq/application/config_service/{split_payloads,save_plan_execution,keymap_save_plan,child_file_io}.py
-  - keyseq/presentation/controllers/config_io/{child_save_plan,child_save_rows,keymap_set_io,trigger_set_file_io}.py・keyseq/presentation/controllers/dirty_state.py
-  - tests/{test_save_plan,test_child_save_rows,test_per_keymap_bulk_save}.py・instructions/phase/43_list_reorder_range_copy/tasks/task_06_sequence_save_identifier.md
+  - keyseq/presentation/controllers/config_io/{save_target_snapshot,keymap_set_io,trigger_set_file_io}.py・keyseq/domain/keymap_triggers.py
+  - tests/{test_save_target_snapshot,test_keymap_triggers}.py・tests_ui/test_config_io_characterization.py
+  - instructions/history/30_list_reorder_range_copy.md（§12）・instructions/phase/43_list_reorder_range_copy/{phase.md,tasks/task_06a_*.md,tasks/task_06b_*.md}・.claude_data/state/decisions.md
 verified:
   compile: clean
-  tests: 1097 OK（skipped 7）
-  tests_ui: 718 OK
+  tests: OK（skipped 7）
+  tests_ui: 723 OK
   smoke: pass
-  review: task_06 reviewer 完了可
+  review: 06a reviewer 修正して採用 / 06+06a deep 修正要 → 06b・Codex 指摘なし / 06b reviewer 修正して採用
 
 ## next_action
-- task_06a を `/task_new` で起票（§5.4: 計画時に対象の一覧の実体と行の並びを固定・書き込み直前に照合し違えば中止して理由を示す。固定 = 一括 `keymap_set_io.py:181-212` / 個別 `trigger_set_file_io.py:129-170`、照合 = `save_plan_execution.py:96-145` / `child_file_io.py:97-119`）→ 実装 → reviewer。
-- 06 + 06a の完了判定前に deep-reviewer + Codex レビュー → 実機目視（同じキーの 2 行を保存 → 読込）。
-- 以降 task_07（トリガー一覧）→ task_08（キーマップ一覧）→ task_09（正本反映）。
+- ユーザー判断 L8: §5.4「実行・後処理でアクティブから一覧を引き直さない」を、正本反映（task_09）で「照合の後、イベントループを挟まずに書き込む」に合わせるか（実装は照合後に同期で引き直す・結果は同じ）。
+- task_06 系の実機目視の結果を受け取る（同じキーの 2 行〔シーケンスが異なる〕を一括保存 → 読込 / 個別保存 → 読込で入れ替わらない・消えない / 保存ダイアログの `（N 行目）` / 保存の前後で `▶` と実行位置が変わらない）。
+- task_07（トリガー一覧の操作: 範囲選択・ドラッグ・範囲削除・複製 / 貼り付け・連番〔§3・§5.3〕・交代の判定と進行中の拒否の適用・重なりの表の作り直し）を `/task_new` で起票 → 実装。以降 task_08 → task_09。
 
 ## blockers
 - なし

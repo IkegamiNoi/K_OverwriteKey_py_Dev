@@ -114,6 +114,7 @@ class KeymapSetIo:
         )
 
     def save_keymap_set_to(self, path: str, *, flash_message: str, show_success_dialog: bool) -> bool:
+        save_target = None
         try:
             save_path = self._app.paths.normalize_keymap_set_save_path(path)
             migration_source_path = self._app.keymap_set_path
@@ -185,9 +186,16 @@ class KeymapSetIo:
                 self._app._set_flash_message(reason, auto_clear=False)
             return True
         except Exception as e:
+            if save_target is not None and not snapshot_matches(self._app.data, save_target):
+                self._show_save_target_changed()
+                return False
             self._app._set_flash_message(f"保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
             return False
+
+    def _show_save_target_changed(self) -> None:
+        self._app._set_flash_message(SAVE_TARGET_CHANGED_MESSAGE, auto_clear=False)
+        messagebox.showwarning("保存", SAVE_TARGET_CHANGED_MESSAGE)
 
     def _collect_child_save_plan(self, save_path: str, split_base_dir: str) -> tuple[SavePlan | None, str, bool]:
         pending = SavePlan()

@@ -960,6 +960,59 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 "保存",
                 "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
             )
+    def test_bulk_save_shows_abort_when_plan_build_fails_after_rows_change(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._prepare_loaded_keymap_set(root)
+            triggers = get_active_triggers(self.app.data)
+            triggers.append({"key": "f2", "label": "Paste", "actions": []})
+            save_path = os.path.join(root, "changed-during-dialog.json")
+
+            def reorder_rows_with_stale_choices(rows):
+                # 行を変えたうえで古い選択（行に答えない）を返し、計画の組み立てを例外にする。
+                triggers.reverse()
+                return {}
+
+            with patch.object(
+                self.app.paths,
+                "normalize_keymap_set_save_path",
+                side_effect=lambda value: value,
+            ), patch.object(
+                self.app.keymap_set_io,
+                "choose_split_base_dir_for_keymap_set",
+                return_value="",
+            ), patch.object(
+                self.app.child_save_dialog,
+                "ask_child_save_actions",
+                side_effect=reorder_rows_with_stale_choices,
+            ), patch.object(
+                self.app.config_service,
+                "save_runtime_data",
+                wraps=self.app.config_service.save_runtime_data,
+            ) as save_runtime, patch.object(
+                self.app,
+                "_set_flash_message",
+            ) as flash, patch.object(tkinter.messagebox, "showwarning") as warning, patch.object(
+                tkinter.messagebox, "showerror"
+            ) as showerror:
+                self.assertFalse(
+                    self.app.keymap_set_io.save_keymap_set_to(
+                        save_path,
+                        flash_message="保存しました。",
+                        show_success_dialog=False,
+                    )
+                )
+
+            self.assertFalse(os.path.exists(save_path))
+            save_runtime.assert_not_called()
+            showerror.assert_not_called()
+            flash.assert_called_once_with(
+                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+                auto_clear=False,
+            )
+            warning.assert_called_once_with(
+                "保存",
+                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+            )
 
     def test_individual_trigger_save_aborts_when_active_set_changes_in_child_dialog(self):
         with tempfile.TemporaryDirectory() as root:
@@ -1004,6 +1057,64 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 "保存",
                 "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
             )
+
+    def _assert_individual_trigger_save_cancels_on_path_dialog_switch(
+        self, save_method_name, dialog_owner, dialog_method_name,
+    ):
+        with tempfile.TemporaryDirectory() as root:
+            first_rows = [{"key": "f1", "label": "First", "actions": []}]
+            second_rows = [{"key": "f2", "label": "Second", "actions": []}]
+            self.app.config_root = root
+            self.app.data = {
+                "keymaps": [
+                    {"id": "km1", "label": "First", "mappings": {}, "triggers": first_rows},
+                    {"id": "km2", "label": "Second", "mappings": {}, "triggers": second_rows},
+                ],
+                "active_keymap_id": "km1",
+            }
+            path = os.path.join(root, "must-not-be-written.json")
+
+            def switch_active(*_args, **_kwargs):
+                self.app.data["active_keymap_id"] = "km2"
+                return path
+
+            with patch.object(
+                dialog_owner, dialog_method_name, side_effect=switch_active
+            ) as dialog, patch.object(
+                self.app.config_service, "save_trigger_set_file"
+            ) as save_trigger_set, patch.object(
+                self.app, "_set_flash_message"
+            ) as flash, patch.object(
+                tkinter.messagebox, "showwarning"
+            ) as warning, patch.object(tkinter.messagebox, "showerror") as showerror:
+                self.assertFalse(getattr(_trigger_set_io(self.app), save_method_name)())
+
+            dialog.assert_called_once()
+            self.assertFalse(os.path.exists(path))
+            self.assertIs(self.app.data["keymaps"][0]["triggers"], first_rows)
+            self.assertIs(self.app.data["keymaps"][1]["triggers"], second_rows)
+            self.assertEqual(first_rows, [{"key": "f1", "label": "First", "actions": []}])
+            self.assertEqual(second_rows, [{"key": "f2", "label": "Second", "actions": []}])
+            save_trigger_set.assert_not_called()
+            showerror.assert_not_called()
+            flash.assert_called_once_with(
+                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+                auto_clear=False,
+            )
+            warning.assert_called_once_with(
+                "保存",
+                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+            )
+
+    def test_individual_trigger_save_as_aborts_when_active_set_changes_in_path_dialog(self):
+        self._assert_individual_trigger_save_cancels_on_path_dialog_switch(
+            "save_trigger_set_file_as", tkinter.filedialog, "asksaveasfilename"
+        )
+
+    def test_individual_trigger_save_aborts_when_active_set_changes_in_path_dialog(self):
+        self._assert_individual_trigger_save_cancels_on_path_dialog_switch(
+            "save_trigger_set_file", _dialog_io(self.app), "choose_save_path_with_collision"
+        )
 
     def test_individual_trigger_save_keeps_bulk_save_on_new_path(self):
         with tempfile.TemporaryDirectory() as root:
