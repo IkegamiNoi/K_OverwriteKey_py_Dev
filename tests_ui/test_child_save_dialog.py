@@ -12,6 +12,7 @@ from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.application.save_plan import compose_sequence_key, ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_SEQUENCE, CHILD_TRIGGER_SET
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
+from keyseq.presentation.controllers.config_io import child_save_columns as child_save_columns_module
 from keyseq.presentation.controllers.config_io.child_save_rows import (
     SHARE_NEW,
     SHARE_NEW_COLLIDES,
@@ -154,11 +155,27 @@ class _FakeDialogWidget:
         return True
 
     def grid_bbox(self, *args):
-        if len(args) >= 4:
-            final_row = args[3]
+        start_column = args[0] if args else 0
+        end_column = args[2] if len(args) >= 4 else start_column
+        final_row = args[3] if len(args) >= 4 else max(
+            (call.get("row", 0) for call in self.grid_calls), default=0
+        )
+        configured = {
+            call_args[0]: kwargs["minsize"]
+            for call_args, kwargs in self.columnconfigure_calls
+            if call_args and "minsize" in kwargs
+        }
+        if start_column == end_column:
+            if start_column in configured:
+                width = configured[start_column]
+            elif start_column == 4:
+                width = 110
+            else:
+                width = 20
         else:
-            final_row = max((call.get("row", 0) for call in self.grid_calls), default=0)
-        return (0, 0, 800, 30 * (final_row + 1))
+            width = sum(configured.get(column, 110 if column == 4 else 20)
+                        for column in range(start_column, end_column + 1))
+        return (0, 0, width, 30 * (final_row + 1))
 
 
 class _FakeStringVar:
@@ -378,6 +395,14 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             dialog.frames.append(widget)
             if args and args[0] is canvas:
                 dialog.content_frame = widget
+            elif args and args[0] is getattr(dialog, "list_frame", None):
+                dialog.header_frame = widget
+            elif kwargs.get("padding") == 12:
+                dialog.outer_frame = widget
+            elif args and args[0] is getattr(dialog, "outer_frame", None):
+                dialog.outer_frame_child_count = getattr(dialog, "outer_frame_child_count", 0) + 1
+                if dialog.outer_frame_child_count == 2:
+                    dialog.list_frame = widget
             return widget
 
         def make_label(*args, **kwargs):
@@ -518,7 +543,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
 
         self.assertEqual(len(dialog.geometry_calls), 1)
         width, height = (int(value) for value in dialog.geometry_calls[0].split("x"))
-        self.assertGreaterEqual(width, 960)
+        self.assertEqual(width, child_save_columns_module.OPENING_WIDTH)
         self.assertLess(height, 480)
         self.assertEqual(height, 90)
         self.assertEqual(dialog.resizable_calls, [(True, True)])
@@ -562,6 +587,164 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         self.assertTrue(
             all(any(call.get("sticky") == "ew" for call in label.grid_calls) for label in flexible_labels)
         )
+        header_configurations = {
+            args[0]: kwargs for args, kwargs in dialog.header_frame.columnconfigure_calls
+        }
+        self.assertEqual(header_configurations, configurations)
+
+    def test_opening_width_uses_screen_width_below_opening_width(self):
+        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
+        _result, _variables, dialog = self._ask_dialog_internally(
+            rows,
+            lambda current, _variables: current.buttons["キャンセル"](),
+            screen_width=600,
+        )
+
+        width = int(dialog.geometry_calls[0].split("x")[0])
+        self.assertEqual(width, 600)
+        self.assertLessEqual(dialog.minsize_calls[0][0], dialog.screen_width)
+
+    def test_default_column_widths_and_name_cap_use_opening_list_width(self):
+        long_name = "長い対象名" * 30
+        row = ChildSaveRow(
+            CHILD_SEQUENCE,
+            "f1",
+            long_name,
+            "C:/copy.json",
+            SHARE_SOLE,
+            "この構成のみが所有・既存を上書き",
+            ACTION_SAVE,
+        )
+        _result, _variables, dialog = self._ask_dialog_internally(
+            [row], lambda current, _variables: current.buttons["キャンセル"]()
+        )
+        columns = dialog._child_save_columns
+        measure = font.nametofont("TkDefaultFont").measure
+
+        self.assertEqual(
+            columns.widths[0],
+            max(columns.minimums[0], measure(child_save_dialog_module._kind_label(row.kind)) + child_save_columns_module.CELL_GAP),
+        )
+        self.assertEqual(
+            columns.widths[3],
+            max(columns.minimums[3], measure(row.share_text) + child_save_columns_module.CELL_GAP),
+        )
+        expected_name_cap = max(
+            columns.minimums[1],
+            int((child_save_columns_module.OPENING_WIDTH - columns.overhead_width) * .3),
+        )
+        self.assertEqual(columns.widths[1], expected_name_cap)
+
+    def test_opening_width_uses_minimum_above_opening_width(self):
+        row = ChildSaveRow(
+            CHILD_SEQUENCE, "f1", "長い対象名" * 30, "C:/copy.json", SHARE_SOLE,
+            "共有状況" * 22, ACTION_SAVE,
+        )
+        with patch.object(
+            child_save_columns_module.font, "nametofont",
+            return_value=SimpleNamespace(measure=lambda text: len(text) * 10),
+        ):
+            _result, _variables, dialog = self._ask_dialog_internally(
+                [row], lambda current, _variables: current.buttons["キャンセル"](),
+                screen_width=2000,
+            )
+        columns = dialog._child_save_columns
+        self.assertEqual(
+            columns.widths[1],
+            int((child_save_columns_module.OPENING_WIDTH - columns.overhead_width) * .3),
+        )
+        self.assertGreater(columns.minimum_width(), child_save_columns_module.OPENING_WIDTH)
+        self.assertLessEqual(columns.minimum_width(), dialog.screen_width)
+        self.assertEqual(int(dialog.geometry_calls[0].split("x")[0]), columns.minimum_width())
+
+    def test_columns_shrink_to_screen_in_name_share_kind_order(self):
+        row = ChildSaveRow(
+            CHILD_SEQUENCE,
+            "f1",
+            "Very long target name " * 10,
+            "C:/copy.json",
+            SHARE_SOLE,
+            "この構成のみが所有・既存を上書きする長い共有状況",
+            ACTION_SAVE,
+        )
+
+        with patch.object(
+            child_save_columns_module.font,
+            "nametofont",
+            return_value=SimpleNamespace(measure=lambda text: len(text) * 10),
+        ):
+            _result, _variables, wide_dialog = self._ask_dialog_internally(
+                [row],
+                lambda current, _variables: current.buttons["キャンセル"](),
+                screen_width=1400,
+            )
+            wide = wide_dialog._child_save_columns
+            name_reduction = wide.widths[1] - wide.minimums[1]
+            share_reduction = wide.widths[3] - wide.minimums[3]
+            _result, _variables, narrow_dialog = self._ask_dialog_internally(
+                [row],
+                lambda current, _variables: current.buttons["キャンセル"](),
+                screen_width=wide.minimum_width() - max(1, name_reduction // 2),
+            )
+            narrow = narrow_dialog._child_save_columns
+            _result, _variables, share_dialog = self._ask_dialog_internally(
+                [row],
+                lambda current, _variables: current.buttons["キャンセル"](),
+                screen_width=wide.minimum_width() - name_reduction - 10,
+            )
+            share = share_dialog._child_save_columns
+            _result, _variables, kind_dialog = self._ask_dialog_internally(
+                [row],
+                lambda current, _variables: current.buttons["キャンセル"](),
+                screen_width=wide.minimum_width() - name_reduction - share_reduction - 1,
+            )
+            kind = kind_dialog._child_save_columns
+
+        self.assertLess(narrow.widths[1], wide.widths[1])
+        self.assertEqual(narrow.widths[3], wide.widths[3])
+        self.assertEqual(narrow.widths[0], wide.widths[0])
+        self.assertEqual(narrow.widths[1], wide.widths[1] - max(1, name_reduction // 2))
+        self.assertEqual(share.widths[1], share.minimums[1])
+        self.assertLess(share.widths[3], wide.widths[3])
+        self.assertEqual(share.widths[0], wide.widths[0])
+        self.assertEqual(kind.widths[1], kind.minimums[1])
+        self.assertEqual(kind.widths[3], kind.minimums[3])
+        self.assertLess(kind.widths[0], wide.widths[0])
+        self.assertEqual(narrow.widths[4], wide.widths[4])
+        self.assertEqual(share.widths[4], wide.widths[4])
+        self.assertEqual(kind.widths[4], wide.widths[4])
+        for current_dialog, current_columns in (
+            (narrow_dialog, narrow),
+            (share_dialog, share),
+        ):
+            self.assertEqual(current_dialog.minsize_calls[0][0], current_columns.minimum_width())
+            self.assertLessEqual(current_dialog.minsize_calls[0][0], current_dialog.screen_width)
+        self.assertEqual(kind_dialog.minsize_calls[0][0], kind.minimum_width())
+        self.assertLessEqual(kind_dialog.minsize_calls[0][0], kind_dialog.screen_width)
+
+    def test_columns_keep_irreducible_minimum_when_it_exceeds_screen(self):
+        row = ChildSaveRow(
+            CHILD_SEQUENCE,
+            "f1",
+            "Very long target name " * 10,
+            "C:/copy.json",
+            SHARE_SOLE,
+            "この構成のみが所有・既存を上書きする長い共有状況",
+            ACTION_SAVE,
+        )
+        _result, _variables, dialog = self._ask_dialog_internally(
+            [row],
+            lambda current, _variables: current.buttons["キャンセル"](),
+            screen_width=100,
+        )
+        columns = dialog._child_save_columns
+        width = int(dialog.geometry_calls[0].split("x")[0])
+
+        for column in (0, 1, 3):
+            self.assertEqual(columns.widths[column], columns.minimums[column])
+        self.assertEqual(dialog.minsize_calls[0][0], columns.minimum_width())
+        self.assertEqual(width, columns.minimum_width())
+        self.assertGreater(width, dialog.screen_width)
 
     def test_configures_track_content_and_text_cell_widths_without_repeat_fitting(self):
         rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "長い対象名" * 7, "C:/" + "long-directory/" * 5, SHARE_SOLE, "この構成のみが所有・既存を上書き", ACTION_SAVE)]
@@ -735,8 +918,8 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             if canvas.winfo_width() <= 1:
                 self.skipTest("ウィンドウマネージャーがないため、Canvas の実レイアウトを検証できません")
             content_frame = canvas.winfo_children()[0]
-            name_label = content_frame.grid_slaves(row=1, column=1)[0]
-            path_label = content_frame.grid_slaves(row=1, column=2)[0]
+            name_label = content_frame.grid_slaves(row=0, column=1)[0]
+            path_label = content_frame.grid_slaves(row=0, column=2)[0]
 
             self.assertNotEqual(name_label.cget("text"), "…")
             self.assertNotEqual(path_label.cget("text"), "…")
@@ -773,8 +956,8 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             if canvas.winfo_width() <= 1:
                 self.skipTest("ウィンドウマネージャーがないため、Canvas の実レイアウトを検証できません")
             content_frame = canvas.winfo_children()[0]
-            name_label = content_frame.grid_slaves(row=1, column=1)[0]
-            path_label = content_frame.grid_slaves(row=1, column=2)[0]
+            name_label = content_frame.grid_slaves(row=0, column=1)[0]
+            path_label = content_frame.grid_slaves(row=0, column=2)[0]
             minimum_width, minimum_height = dialog.minsize()
 
             dialog.geometry(f"{minimum_width}x{minimum_height}")
@@ -814,7 +997,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             if canvas.winfo_height() <= 1:
                 self.skipTest("ウィンドウマネージャーがないため、Canvas の実レイアウトを検証できません")
             content_frame = canvas.winfo_children()[0]
-            row_label = content_frame.grid_slaves(row=1, column=1)[0]
+            row_label = content_frame.grid_slaves(row=0, column=1)[0]
             before = canvas.yview()[0]
 
             row_label.event_generate("<MouseWheel>", delta=-120)
@@ -844,7 +1027,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             )
             canvas = next(widget for widget in list_frame.winfo_children() if isinstance(widget, tkinter.Canvas))
             content_frame = canvas.winfo_children()[0]
-            row_label = content_frame.grid_slaves(row=1, column=1)[0]
+            row_label = content_frame.grid_slaves(row=0, column=1)[0]
 
             self.assertIn(str(dialog), row_label.bindtags())
             self.assertTrue(dialog.bind("<MouseWheel>"))
@@ -905,9 +1088,9 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             list_frame = next(widget for widget in frame.winfo_children() if widget is not buttons)
             canvas = next(widget for widget in list_frame.winfo_children() if isinstance(widget, tkinter.Canvas))
             content_frame = canvas.winfo_children()[0]
-            actions = content_frame.grid_slaves(row=1, column=4)[0]
-            name_label = content_frame.grid_slaves(row=1, column=1)[0]
-            path_label = content_frame.grid_slaves(row=1, column=2)[0]
+            actions = content_frame.grid_slaves(row=0, column=4)[0]
+            name_label = content_frame.grid_slaves(row=0, column=1)[0]
+            path_label = content_frame.grid_slaves(row=0, column=2)[0]
             narrow_widths = (name_label.winfo_width(), path_label.winfo_width())
 
             if canvas.winfo_width() <= 1:
@@ -963,6 +1146,20 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             canvas.yview_moveto(1.0)
             dialog.update()
             self.assertGreater(canvas.yview()[0], before)
+            columns = dialog._child_save_columns
+            header_frame = columns.header_frame
+            content = columns.content
+            self.assertIs(header_frame.master, list_frame)
+            self.assertIs(content.master, canvas)
+            self.assertTrue(header_frame.winfo_viewable())
+            self.assertTrue(all(handle.winfo_viewable() for handle in columns.handles))
+            for column in range(5):
+                header = header_frame.grid_slaves(row=0, column=column)[0]
+                self.assertIs(header.master, header_frame)
+                self.assertTrue(header.winfo_viewable())
+            for handle in columns.handles:
+                self.assertIs(handle.master, header_frame)
+            self.assertEqual(len(rows), 60)
         finally:
             dialog.destroy()
             root.destroy()
@@ -993,15 +1190,35 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 "単独",
                 ACTION_SAVE,
             )
-            for index in range(2, 32)
+            for index in range(2, 61)
         ]
         dialog, choices = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog(rows, {})
         try:
             dialog.deiconify()
             dialog.update()
+            columns = dialog._child_save_columns
+            content = columns.content
+
+            def assert_header_columns_aligned():
+                header_frame = columns.header_frame
+                for column in range(5):
+                    header_box = header_frame.grid_bbox(column, 0, column, 0)
+                    content_box = content.grid_bbox(column, 0, column, 0)
+                    self.assertEqual(
+                        header_frame.winfo_rootx() + header_box[0],
+                        content.winfo_rootx() + content_box[0],
+                    )
+                    self.assertEqual(header_box[2], content_box[2])
+
+            assert_header_columns_aligned()
+            for column, full_text in (
+                (0, child_save_dialog_module._kind_label(rows[0].kind)),
+                (3, rows[0].share_text),
+            ):
+                self.assertEqual(content.grid_slaves(row=0, column=column)[0].cget("text"), full_text)
             dialog.geometry(f"{dialog.winfo_width() + 300}x{dialog.winfo_height()}")
             dialog.update()
-            columns = dialog._child_save_columns
+            assert_header_columns_aligned()
             frame = dialog.winfo_children()[0]
             list_frame = next(
                 widget
@@ -1010,9 +1227,12 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             )
             canvas = next(widget for widget in list_frame.winfo_children() if isinstance(widget, tkinter.Canvas))
             content = canvas.winfo_children()[0]
-            canvas.yview_moveto(0.01)
+            canvas.yview_moveto(1.0)
             dialog.update()
             initial_scroll = canvas.yview()[0]
+            self.assertGreater(initial_scroll, 0)
+            self.assertTrue(columns.header_frame.winfo_viewable())
+            self.assertTrue(all(handle.winfo_viewable() for handle in columns.handles))
             minimum_width = dialog.minsize()[0]
 
             def drag(handle, delta):
@@ -1038,6 +1258,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 delta = motion_x - 3
                 drag(handle, delta)
                 dialog.update()
+                assert_header_columns_aligned()
                 self.assertEqual(content.grid_bbox(column, 0, column, 0)[2], initial_width + abs(delta))
                 self.assertEqual(content.grid_bbox(2, 0, 2, 0)[2], initial_path - abs(delta))
                 self.assertAlmostEqual(canvas.yview()[0], initial_scroll, places=2)
@@ -1073,6 +1294,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             current = {column: content.grid_bbox(column, 0, column, 0)[2] for column in range(5)}
             dialog.geometry(f"{dialog.winfo_width() + 160}x{dialog.winfo_height()}")
             dialog.update()
+            assert_header_columns_aligned()
             expanded = {column: content.grid_bbox(column, 0, column, 0)[2] for column in range(5)}
             for column in (0, 1, 3, 4):
                 self.assertEqual(expanded[column], current[column])
@@ -1114,13 +1336,9 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             dialog.deiconify()
             dialog.update()
             columns = dialog._child_save_columns
-            content = next(
-                widget
-                for widget in dialog.winfo_children()[0].winfo_children()
-                if isinstance(widget, ttk.Frame) and widget.pack_info().get("fill") == "both"
-            ).winfo_children()[0].winfo_children()[0]
-            type_label = content.grid_slaves(row=1, column=0)[0]
-            share_label = content.grid_slaves(row=1, column=3)[0]
+            content = columns.content
+            type_label = content.grid_slaves(row=0, column=0)[0]
+            share_label = content.grid_slaves(row=0, column=3)[0]
 
             for handle_index, delta in ((0, -2003), (2, 1997)):
                 handle = columns.handles[handle_index]

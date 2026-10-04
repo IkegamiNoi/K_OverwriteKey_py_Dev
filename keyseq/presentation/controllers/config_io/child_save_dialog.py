@@ -7,7 +7,7 @@ from tkinter import filedialog, font, messagebox, ttk
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP
 from keyseq.presentation.controllers.config_io.child_save_rows import ChildSaveRow
-from keyseq.presentation.controllers.config_io.child_save_columns import size_action_dialog
+from keyseq.presentation.controllers.config_io.child_save_columns import CELL_GAP, HEADINGS, size_action_dialog
 from keyseq.presentation.modal import grab_modal
 
 
@@ -42,7 +42,9 @@ class ChildSaveDialog:
         list_frame = ttk.Frame(frame)
         list_frame.pack(fill="both", expand=True)
         list_frame.columnconfigure(0, weight=1)
-        list_frame.rowconfigure(0, weight=1)
+        list_frame.rowconfigure(1, weight=1)
+        header_frame = ttk.Frame(list_frame)
+        header_frame.grid(row=0, column=0, sticky="ew")
         canvas = tk.Canvas(list_frame, highlightthickness=0)
         scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=canvas.yview)
         content_frame = ttk.Frame(canvas)
@@ -56,24 +58,25 @@ class ChildSaveDialog:
             "<MouseWheel>",
             lambda event: canvas.yview_scroll(-int(event.delta / 120), "units"),
         )
-        canvas.grid(row=0, column=0, sticky="nsew")
-        scrollbar.grid(row=0, column=1, sticky="ns")
-        headers = self._add_headers(content_frame, 0)
-        choices, text_cells = self._add_rows(content_frame, rows, 1)
+        canvas.grid(row=1, column=0, sticky="nsew")
+        scrollbar.grid(row=1, column=1, sticky="ns")
+        headers = self._add_headers(header_frame, 0)
+        choices, text_cells = self._add_rows(content_frame, rows, 0)
         self._bind_content_width(canvas, content_frame, window_id, text_cells)
         ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right")
         ttk.Button(
             buttons,
             text="OK",
             command=lambda: self._confirm_actions(dialog, rows, choices, result),
-        ).pack(side="right", padx=(0, 8))
-        size_action_dialog(dialog, frame, list_frame, content_frame, scrollbar, headers, text_cells, len(rows))
+        ).pack(side="right", padx=(0, CELL_GAP))
+        size_action_dialog(dialog, frame, list_frame, header_frame, content_frame,
+                           scrollbar, headers, text_cells, len(rows))
         return dialog, choices
 
     @staticmethod
     def _add_headers(frame, row: int) -> list:
         headers = []
-        for column, text in enumerate(("種別", "対象名", "保存先パス", "共有状況", "操作")):
+        for column, text in enumerate(HEADINGS):
             is_flexible = column < 4
             label_options = {"width": 1, "anchor": "w"} if is_flexible else {}
             label = ttk.Label(frame, text=text, **label_options)
@@ -81,7 +84,7 @@ class ChildSaveDialog:
                 row=row,
                 column=column,
                 sticky="ew" if is_flexible else "w",
-                padx=(0, 8),
+                padx=(0, CELL_GAP),
             )
             headers.append(label)
         return headers
@@ -110,7 +113,7 @@ class ChildSaveDialog:
     def _add_text_cell(self, frame, row: int, column: int, text: str, ellipsize):
         cell = {"text": text, "display": "", "column": column, "ellipsize": ellipsize, "last_fit_width": None}
         label = ttk.Label(frame, text="", width=1, anchor="w")
-        label.grid(row=row, column=column, sticky="ew", padx=(0, 8))
+        label.grid(row=row, column=column, sticky="ew", padx=(0, CELL_GAP))
         cell["label"] = label
         self._bind_tooltip(label, text, lambda: cell["display"] != cell["text"])
         return cell

@@ -253,7 +253,9 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     - ChildSaveDialog（child_save_dialog.py = `app.child_save_dialog`）: 子一覧ダイアログ・
       依存確認（4 択）・再計算先の上書き確認
       子一覧は見出し・全行・ボタンの高さで開き、タイトルバー込みで画面の高さの 6 割を上限とする（最小高さ優先）。
-      `child_save_columns.py` が列幅・最小サイズと見出しの3境界のドラッグを担当し、保存先パスだけ weight=1 で幅の変化を受け持つ。
+      見出しは一覧の上の独立 frame（スクロール領域外）に置き、canvas と同じ grid 列で幅を揃える。
+      `child_save_columns.py` が見出し・一覧共通の列幅・最小サイズと見出しの3境界のドラッグを担当し、保存先パスだけ weight=1 で幅の変化を受け持つ。
+      対象名の上限は OPENING_WIDTH（960px）基準の一覧幅の3割。最小幅が画面を超えるときは対象名・共有状況・種別の順に縮める（操作列は固定、各列の最小幅でも収まらない場合は受容）。
     - child_save_plan.py: 一覧の選択 > 確定エントリ > 既定規則（保存先に実体があれば保存しない /
       無ければ保存）の優先順位で `SavePlan` を組み立てる
     - **カスケードが書くのは startup / keymap_set / trigger_set / sequence / keymap**。
