@@ -9,7 +9,7 @@
 
 - **アクティブなフェーズ = [phase 45](45_call_step_and_view/phase.md)**（2026-10-04 起票・呼び出しのステップ実行と呼び出し先の表示。暫定仕様先行モード）。
   呼び出しの行ごとに一括 / ステップを選び、ステップは呼び出し先の中も 1 押下ずつ進め停止の行を効かせる。呼び出し先の中で止まったら写し・位置・経路を表示する枠を開く（フル / 省略表示）。
-  JSON は呼び出しの行の `step` と config.json の `call_view_heights` を追加（後方互換）。主入力 = 暫定仕様 [31_call_step_and_view.md](../history/31_call_step_and_view.md)（v0.4・ユーザー確定済）。
+  JSON は呼び出しの行の `step` と config.json の `call_view_heights` を追加（後方互換）。主入力 = 暫定仕様 [31_call_step_and_view.md](../history/31_call_step_and_view.md)（v0.5・ユーザー確定済）。
   起票元 = ユーザー要望（2026-10-04）。番号対応: phase 45 / 暫定 31 / decisions 45。
 - 直前の完了フェーズ = [phase 44](44_child_save_dialog_layout/phase.md)（2026-10-04・子ファイル保存ダイアログの高さと列幅の調整・
   判断は [decisions_archive/44](../../.claude_data/state/decisions_archive/44_child_save_dialog_layout.md)）/
@@ -92,7 +92,7 @@
   28=制御アクション第 2 弾 前半（停止）〔**v0.6・凍結**・§9 は phase 40 の起票元〕/
   29=制御アクション第 2 弾 後半（呼び出し）〔**v0.9・凍結**〕/
   30=一覧のドラッグ移動・範囲選択・複製〔v0.11・凍結〕 /
-  31=呼び出しのステップ実行と呼び出し先の表示〔**v0.4・ユーザー確定済・phase 45 の主入力**〕）。
+  31=呼び出しのステップ実行と呼び出し先の表示〔**v0.5・ユーザー確定済・phase 45 の主入力**〕）。
   次採番は **`32_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**17 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
