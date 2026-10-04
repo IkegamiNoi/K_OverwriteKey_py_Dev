@@ -51,7 +51,7 @@
 ## タスク
 
 - task_01: 呼び出しの行の `step`（読込・表示名 `[call step]`・編集ダイアログのチェックボックス・複製で写す）（§3） — **完了・実機目視 OK（2026-10-04）**（codex-implementer・reviewer 採用・tests 1130 / tests_ui 792 / smoke pass）
-- task_01a（2026-10-04 実機目視でのユーザー判断・暫定 31 v0.5）: ステップを標準に反転（JSON `all: true` = 一括・表示 `[call]` / `[call all]`・チェックボックス「一括で実行」） — **実装完了・実機目視待ち**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント 2 名使用・自己申告〕・reviewer 採用〔実行の assert の変更 0 件を機械照合〕・tests 1166 / tests_ui 794 / smoke pass）
+- task_01a（2026-10-04 実機目視でのユーザー判断・暫定 31 v0.5）: ステップを標準に反転（JSON `all: true` = 一括・表示 `[call]` / `[call all]`・チェックボックス「一括で実行」） — **完了・実機目視 OK（2026-10-04）**（codex-delegating-implementer〔Luna サブエージェント 2 名使用・自己申告〕・reviewer 採用〔実行の assert の変更 0 件を機械照合〕・tests 1166 / tests_ui 794 / smoke pass）
 - task_02: ステップの実行の土台と単発（段の印〔§4.1〕・1 押下 = 1 ステップ・押下の合間 = 単発の呼び出しの一時停止・待機と間隔・処理中の同じキーは無視・履歴は呼び出し全体で 1 段・単発の一時停止 → 再開で続きから〔§10-6〕）（§4.1・§4.2・§4.4） — **実装完了**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント使用・自己申告〕・処理中の同じキーの無視の条件をメインで「ステップの文脈」へ訂正〔タスク定義の誤り〕・reviewer 採用・tests 1139 / tests_ui 792 / smoke pass。統合確認は task_03a・実機目視 OK〔2026-10-04〕）
 - task_03: 連続実行のステップ（呼び出し先の停止の行・文脈ごとの「送った」の印・停止の後の分岐〔一時停止 / 終える〕・一括の互換・連続実行の一時停止 → 再開で続きから〔§10-6〕）（§4.3・§4.4） — **実装完了**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント使用・自己申告〕・連続実行の呼び出しの開始で step を渡していなかった入口も修正・reviewer 採用・tests 1152 / tests_ui 792 / smoke pass。統合確認は task_03a・実機目視 OK〔2026-10-04〕）
 - task_03a（2026-10-04 task_02・03 の統合確認〔deep-reviewer 採用 / codex-reviewer P2〕から）: 入れ子の一括の呼び出しの後のステップの区切り（P2）・単発で stopped の防御・送った印の持ち越しの修正（R1）・テスト追加 — **実装完了**（codex-implementer・reviewer 修正要 ×3 → 採用・tests 1165 / tests_ui 792 / smoke pass。実機目視 OK〔2026-10-04〕）
