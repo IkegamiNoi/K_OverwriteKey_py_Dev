@@ -41,6 +41,14 @@ def system_op(action: Mapping[str, Any]) -> str:
     return value.strip().lower() if isinstance(value, str) else ""
 
 
+def is_step_call(action: Mapping[str, Any]) -> bool:
+    return (
+        action_type(action) == ACTION_TYPE_SYSTEM
+        and system_op(action) == OP_CALL
+        and bool(action.get("step"))
+    )
+
+
 @dataclass(frozen=True)
 class LoopStructure:
     pairs: Mapping[int, int]
@@ -169,17 +177,18 @@ def _format_system_value(
     if op == OP_STOP:
         return "[stop]"
     if op == OP_CALL:
+        display_name = "[call step]" if is_step_call(action) else "[call]"
         target = action.get("target")
         if resolve_call is None:
             if not isinstance(target, str) or not target.strip():
-                return "[call] （呼び出し先なし）"
-            return f"[call] {target.strip()}"
+                return f"{display_name} （呼び出し先なし）"
+            return f"{display_name} {target.strip()}"
         key, label = resolve_call(target)
         if label is None:
-            return f"[call] {key}（参照先なし）"
+            return f"{display_name} {key}（参照先なし）"
         if label:
-            return f"[call] {key}（{label}）"
-        return f"[call] {key}"
+            return f"{display_name} {key}（{label}）"
+        return f"{display_name} {key}"
     return f"[system] {action.get('op', '')}"
 
 

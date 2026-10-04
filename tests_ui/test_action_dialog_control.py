@@ -135,6 +135,8 @@ class ActionDialogControlTest(unittest.TestCase):
         self.assertEqual(fields.call_target_combo.cget("values"), ("f5: Macro", "f6"))
         self.assertEqual(str(fields.call_target_combo.cget("state")), "readonly")
         self.assertNotEqual(fields.call_target_combo.winfo_manager(), "")
+        self.assertEqual(fields.call_step_check.cget("text"), "呼び出し先の中も 1 回ずつ進める（ステップ）")
+        self.assertNotEqual(fields.call_step_check.winfo_manager(), "")
         for widget in (
             fields.loop_count_label, fields.loop_count_entry, fields.loop_infinite_check,
             fields.system_counter_label, fields.system_counter_combo,
@@ -239,6 +241,28 @@ class ActionDialogControlTest(unittest.TestCase):
         fields.system_op_var.set("待機")
         fields.sync_system()
         self.assertFalse(fields.call_note_label.winfo_manager())
+        self.assertFalse(fields.call_step_check.winfo_manager())
+
+    def test_call_step_checkbox_loads_and_is_saved_only_when_enabled(self) -> None:
+        dialog = self.make_dialog(
+            mode="edit", initial={"type": "system", "op": "call", "target": "f5", "step": True},
+            call_candidates=[("f5", "Macro")],
+        )
+        fields = dialog.control_fields
+        self.assertTrue(fields.call_step_var.get())
+        fields.call_step_var.set(False)
+        fields.call_target_var.set("f5: Macro")
+        dialog.type_var.set("system")
+        dialog.on_ok()
+        self.assertNotIn("step", self.app._dialog_result)
+
+        enabled = self.make_dialog(call_candidates=[("f5", "Macro")])
+        enabled.type_var.set("system")
+        enabled.control_fields.system_op_var.set("呼び出し")
+        enabled.control_fields.call_target_var.set("f5: Macro")
+        enabled.control_fields.call_step_var.set(True)
+        enabled.on_ok()
+        self.assertIs(self.app._dialog_result["step"], True)
 
     def test_system_operation_order_remains_unchanged_around_call(self) -> None:
         values = list(self.make_dialog().control_fields.system_op_combo.cget("values"))

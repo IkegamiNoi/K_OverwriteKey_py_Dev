@@ -115,6 +115,21 @@ class SequenceCopyPasteTest(unittest.TestCase):
         self.assertEqual(self.app.list_clipboard.paste(CLIP_ACTIONS), [_action("B")])
         self.assertEqual(self.controller.refresh_actions.call_count, 2)
 
+    def test_copy_and_paste_preserves_step_call_flag(self):
+        step_call = {"type": "system", "op": "call", "target": "f5", "step": True}
+        self.first["actions"] = [step_call]
+        self.listbox.selection = [0]
+
+        self.assertEqual(self.controller.copy_actions(), "break")
+        stored = self.app.list_clipboard.paste(CLIP_ACTIONS)
+        self.assertEqual(stored, [step_call])
+        self.assertIsNot(stored[0], step_call)
+
+        self.app._selected_trigger_idx = 1
+        self.listbox.selection = []
+        self.assertEqual(self.controller.paste_actions(), "break")
+        self.assertEqual(self.second["actions"][-1], step_call)
+
     def test_empty_selection_uses_focused_action_and_handlers_break(self):
         self.controller.selected_action_index.return_value = 2
         self.assertEqual(self.controller.copy_actions(), "break")

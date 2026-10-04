@@ -128,6 +128,13 @@ class ActionControlFields:
             self.system_frame, text="呼び出し先の「間隔(ms)」の間隔で実行します（連続実行 OFF でも使います）",
         )
         self.call_note_label.grid(row=5, column=0, columnspan=3, sticky="w", pady=(4, 0))
+        self.call_step_var = tk.BooleanVar(value=False)
+        self.call_step_check = ttk.Checkbutton(
+            self.system_frame,
+            text="呼び出し先の中も 1 回ずつ進める（ステップ）",
+            variable=self.call_step_var,
+        )
+        self.call_step_check.grid(row=6, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
     def _build_file_fields(self) -> None:
         self.file_path_var = tk.StringVar(value="")
@@ -182,6 +189,7 @@ class ActionControlFields:
         self._show(self.call_target_label, op == OP_CALL)
         self._show(self.call_target_combo, op == OP_CALL)
         self._show(self.call_note_label, op == OP_CALL)
+        self._show(self.call_step_check, op == OP_CALL)
 
     def _remember_loop_count(self, *_args) -> None:
         try:
@@ -207,6 +215,7 @@ class ActionControlFields:
             self.loop_infinite_var.set(bool(action.get("infinite", False)))
             self.system_counter_var.set(str(action.get("counter", "")))
             self.wait_ms_var.set(str(action.get("ms", 1)))
+            self.call_step_var.set(bool(action.get("step")))
             self.sync_system()
             if op == OP_CALL:
                 target = normalize_key_name(str(action.get("target", "")))
@@ -295,6 +304,8 @@ class ActionControlFields:
                 messagebox.showerror("入力エラー", error)
                 return None
         result.update({"target": target, "label": label})
+        if bool(self.call_step_var.get()):
+            result["step"] = True
         return result
 
     def _build_loop_result(self, label: str, result: dict[str, Any]) -> dict[str, Any] | None:

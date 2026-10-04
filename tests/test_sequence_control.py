@@ -12,6 +12,7 @@ from keyseq.domain.sequence_control import (
     analyze_loops,
     enclosing_loop_starts,
     format_control_value,
+    is_step_call,
     loop_depth_style,
     system_op,
 )
@@ -198,6 +199,33 @@ class FormatControlValueTest(unittest.TestCase):
             format_control_value(action, resolve_call=lambda target: ("f5", None)),
             "[call] f5（参照先なし）",
         )
+
+    def test_step_call_display_for_all_target_states(self) -> None:
+        resolver = lambda target: ("f5", "Macro")
+        self.assertEqual(
+            format_control_value(system("call", step=True, target="f5"), resolve_call=resolver),
+            "[call step] f5（Macro）",
+        )
+        self.assertEqual(
+            format_control_value(system("call", step="x", target="f5"),
+                                 resolve_call=lambda target: ("f5", None)),
+            "[call step] f5（参照先なし）",
+        )
+        self.assertEqual(
+            format_control_value(system("call", step=True, target="f5"),
+                                 resolve_call=lambda target: ("f5", "")),
+            "[call step] f5",
+        )
+        self.assertEqual(
+            format_control_value(system("call", step=True, target="")),
+            "[call step] （呼び出し先なし）",
+        )
+
+    def test_is_step_call_checks_type_operation_and_truthiness(self) -> None:
+        self.assertTrue(is_step_call(system("call", step="x")))
+        self.assertFalse(is_step_call(system("call", step=False)))
+        self.assertFalse(is_step_call(system("wait", step=True)))
+        self.assertFalse(is_step_call({"type": "text", "op": "call", "step": True}))
 
     def test_call_display_without_resolver_and_empty_target(self) -> None:
         self.assertEqual(format_control_value(system("call", target=" F5 ")), "[call] F5")

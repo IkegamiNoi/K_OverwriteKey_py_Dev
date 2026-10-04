@@ -108,6 +108,16 @@ class NormalizeActionsTest(unittest.TestCase):
             [{"type": "system", "op": "call", "target": "F5", "label": ""}],
         )
 
+    def test_step_value_is_preserved_without_type_normalization(self):
+        actions = [
+            {"type": "system", "op": "call", "step": True},
+            {"type": "system", "op": "call", "step": "x"},
+        ]
+        normalized = normalize_actions(actions)
+        self.assertIs(normalized[0]["step"], True)
+        self.assertEqual(normalized[1]["step"], "x")
+        self.assertIsInstance(normalized[1]["step"], str)
+
     def test_does_not_mutate_input_and_deep_copies_items(self):
         actions = [{"type": "text", "label": "  x  ", "extra": {"values": ["a"]}}]
         normalized = normalize_actions(actions)
