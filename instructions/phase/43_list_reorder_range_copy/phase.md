@@ -69,7 +69,7 @@ JSON スキーマ変更なし（実行中の状態はキー単位のまま・行
 - task_08: キーマップ一覧の操作（§6: フォーカス = アクティブの範囲選択・並べ替えの禁止条件と代表の付け替え・範囲削除・複製と切替キーのダイアログ） — **完了・実機目視 OK（2026-10-04）**（2026-10-03。codex-delegating-implementer〔サブエージェント 3 名使用・自己申告〕・reviewer 完了可。テストの誤り 2 件をメインで修正〔共有一覧の実行位置がアクション数 1 で正規化され 0 に戻る / 生成クリックの時刻が 0 で Tk がダブルクリック扱い→編集ダイアログで停止 → `tests_ui/click_time.py` を追加し task_07 のテストにも適用〕。tests_ui 全体が 590 秒に伸びたが変更前のコミットでも同程度〔環境負荷〕。参考: 単一削除でも一覧の再描画とフック再登録が走るようになった・部品の private 属性 `_original_active` を外から設定）
 - task_08a（2026-10-04 task_08 の実機目視でのユーザー提案から・暫定 30 v0.9）: キーマップの追加・個別読込・貼り付けで切替キーをまとめて設定するダイアログ（§6.3・§6.4・§10-12） — **完了・実機目視 OK（2026-10-04）**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント 3 名使用・自己申告〕・reviewer 採用。範囲外の既存テスト〔test_config_io_characterization の個別読込〕の patch をメインで追随・新ダイアログのフォーカスのテストをアプリ非フォーカス環境でも判定できる形にメインで修正）
 - task_09: 正本反映（暫定 30 の §12 を正本へ昇格・凍結）・`codebase_map.md`・`decisions_archive/43_list_reorder_range_copy.md`・current.md の完了記載・`/refactor_check`
-- task_09a（2026-10-04 完了判定前レビューから）: キーマップの単一対象の操作をアクティブから引く・プリセット一覧の Escape を 1 ハンドラに — **実装完了・実機目視待ち**（2026-10-04。codex-implementer・reviewer 採用・tests 1127 / tests_ui 771 / smoke pass）
+- task_09a（2026-10-04 完了判定前レビューから）: キーマップの単一対象の操作をアクティブから引く・プリセット一覧の Escape を 1 ハンドラに — **完了・実機目視 OK（2026-10-04）**（2026-10-04。codex-implementer・reviewer 採用・tests 1127 / tests_ui 771 / smoke pass）
 - task_10（2026-10-04 /refactor_check 推奨・ユーザー判断）: 提案書 18（トリガー一覧の追加・改名・削除の切り出し・まとめて設定のダイアログの __init__ 分割・範囲か下線の 1 行の取得の共通化） — **完了**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント 2 名使用・自己申告〕・reviewer 採用・tests 1127 / tests_ui 779 / smoke pass。項目 3 は action_edit が長さ未検証の現行挙動のため 2 か所のみ）
 
 ## レビュー方針
