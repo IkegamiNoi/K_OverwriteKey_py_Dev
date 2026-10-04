@@ -15,16 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 44 は 2026-10-04 完了〕）。
-   次採番 = phase 45 / 暫定 31 / decisions 45 / 提案書 19。次フェーズはユーザー判断・着手時は `/phase_start`
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 45**〔`45_call_step_and_view`・暫定仕様先行・主入力 = 暫定 31 v0.5〕）。
+   続けて `instructions/phase/45_call_step_and_view/phase.md`（タスク一覧と進捗）・暫定 `instructions/history/31_call_step_and_view.md`。
+   次採番 = phase 46 / 暫定 32 / decisions 46 / 提案書 19
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜30）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 44 完了（2026-10-04・子ファイル保存ダイアログの高さと列幅の調整・直接改訂）。phase 43 も同日完了。次フェーズは未定（ユーザー判断待ち）。**
-ブランチ `claude/keymap-spec-review-d08fed`（phase 43 の後半〔task_08 実機目視以降〕と phase 44）。phase 38〜42 は `claude/physical-device-verification-25ec98`（**main は phase 37 まで取り込み済み**・マージはユーザー）。
+**phase 45 task_01〜05 実装完了（task_05 は実機目視待ち）。次は task_06（省略表示の枠）→ task_07（正本反映・フェーズ完了）。**
+ブランチ `claude/keymap-spec-review-d08fed`（phase 43 の後半・phase 44・phase 45）。phase 38〜42 は `claude/physical-device-verification-25ec98`（**main は phase 37 まで取り込み済み**・マージはユーザー）。
 ユーザーはフェーズ内のタスクの連続実行を許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -35,10 +36,11 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 44 完了時 = 2026-10-04**）:
-compile **clean** / tests **1127 実行 OK**（skip 7）/ tests_ui **790 実行 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 42 完了 1039 → 1127 / tests_ui: 645 → 790）。
-**`tests_ui` と smoke を並行実行しない**（フックの取り合いで 13 件落ちる。逐次で実行する）。
+直近の実測（**phase 45 task_05 = 2026-10-04**）:
+compile **clean** / tests **1191 実行 OK**（skip 7）/ tests_ui **803 実行 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 44 完了 1127 → 1191 / tests_ui: 790 → 803）。
+**`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
+**verifier に `taskkill` で python.exe を一括終了させない**（2026-10-04 に全 python が落ちた）。tests_ui は 260〜730 秒・タイムアウト 1800 秒・出力はファイルへ。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /
 `keymap_set_history*.json` が生成されていない**ことを確認する。
@@ -52,25 +54,24 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- ユーザーの回答を受けて: 推奨（キー + 何番目かの印）なら暫定 30 を v0.5 に改訂（§5.4・decisions 記録）→ task_06 を `/task_new` で起票 → 実装。
-- task_02〜04 の実機目視の結果を受け取る（プリセット編集・出力シーケンス欄の範囲選択 / ドラッグ / ▶ / 複製 / Ctrl+C/V）。
-- 以降 task_07（トリガー一覧）→ task_08（キーマップ一覧）→ task_09（正本反映。decisions の「task_09 でユーザー確認」1 件を含む）。
+- task_05 の実機目視の結果を受け取る（①枠が開き ▶ が進み終わると閉じる ②連続実行の停止の行で開く ③境界線の高さが開き直し・再起動後も保たれる ④枠のクリックで何も起きない ⑤`[call all]` だけでは開かない）。
+- task_06 を `/task_new` で起票・実装: 省略表示の枠（トリガー一覧の下・境界線・表示の切替で同じ文脈〔`CallViewController.last_summary`〕・高さは `call_view_heights` の compact）。暫定 31 §5.1・§5.2。
+- task_07: 暫定 31 §12 の正本昇格・凍結・decisions_archive/45・current.md・/refactor_check。完了判定前に deep-reviewer + Codex 敵対的レビュー。
+  deep-reviewer M1（文脈の「送った」に入れ子の呼び出しの成功を数えない＝実装のまま）を正本に明記する。
 - **main へのマージはユーザーが行う**。
 
-## 現フェーズ（phase 43）の要点
+## 現フェーズ（phase 45）の要点
 
-- 主な新規: `domain/{list_editing,trigger_duplicates}.py`・`presentation/{listbox_range_drag,list_clipboard}.py`・`controllers/trigger_panel/effective_row_transition.py`・
-  `SequenceRunner.has_active_execution`。出力シーケンスの次に実行は `▶`（選択と分離）。
-- 同じキーのトリガーは上の行が有効・状態はキー単位で有効な行のもの。**有効な行が入れ替わる操作は `apply_effective_row_transition` を通す**（実行中なら拒否・交代 / 消えたキーの後始末）。
-- **テストの罠（phase 43 で 4 回）**: 実行位置の値はアクション数未満にする（再描画で補正される）/ 連続実行の「実行中」は 2 行以上で作る / 既存テストのスタブは新しい判定・後始末の呼び出しに追随が要る。
+- 呼び出しの種類: JSON `all: true` = 一括 / 無し = ステップ（既定・v0.5）。判定は `domain/sequence_control.is_step_call` / `is_all_call`（`step` キーは無視）。
+- ステップ: 段の印 `CallFrame.step`・文脈の `first_step`（`is_step_context`）・停止の行の判定は文脈の `ctx.sent`・区切りの判定は段の `frame.sent`（区切りを返すとき最上段がステップなら `_clear_step_frame_sent` で下ろす）。
+  単発の押下の合間 = `call_paused`（単発の呼び出しの一時停止）。呼び出し先の停止の行 = 連続実行の一時停止（呼び出しが終わる形なら終える）。
+- 表示: 要約 `application/call_view.py`・通知 `sequence_runner/call_view_notice.py`（止まった順・最後に止まった文脈・カウンターは `_commit_step_and_publish`）・UI `controllers/call_view_controller.py`・`views/full_view/call_view_frame.py`・高さ `presentation/call_view_heights.py`（config.json の `call_view_heights`）。
+- **tk.PanedWindow の罠**: `panes()` は Tcl_Obj（`str()` に揃える）/ `paneconfigure` の後は `update_idletasks()` してから `sash_place` / テストのドラッグは押下の後に `update()`。
 
-## 直前フェーズ（phase 42 = 一覧の選択と下線のずれ）の要点
+## 直前フェーズ（phase 44 = 子ファイル保存ダイアログの高さと列幅）の要点
 
-直接改訂モード・正本改訂なし・presentation のみ。判断は `decisions_archive/42`、地図は `codebase_map.md` の `listbox_utils.py` の項。
-
-- 原因: Tk の Listbox は押した時点で選択・離した時点で下線（active）を動かすのに、同期処理がフォーカス中は下線を正としていた。
-- 修正: クリックは選択を正・キー操作は下線を正。押している間の `<<ListboxSelect>>` は帯だけで、離したとき `after_idle` で反映（`bind_listbox_click_selection_sync`）。
-- `trigger_panel_controller.py` が 606 行（別タスク化候補）。
+直接改訂・presentation のみ。判断は `decisions_archive/44`。列幅と境界のドラッグは `controllers/config_io/child_save_columns.py`。
+見出しはスクロール領域の外・高さは主モニタの 6 割まで・画面より広いときは対象名 → 共有状況 → 種別の順に縮める。
 
 ## 運用インフラ
 
@@ -141,7 +142,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 42_listbox_click_selection_sync / 41_ime_off_while_typing / 40_sequence_call）。
+  （直近 3 件: 44_child_save_dialog_layout / 43_list_reorder_range_copy / 42_listbox_click_selection_sync）。
 - 着手中 idea: なし。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/ **idea_23**（押す / 離すアクション）/
   idea_29〜idea_31 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
