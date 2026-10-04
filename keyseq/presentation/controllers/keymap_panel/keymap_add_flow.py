@@ -1,230 +1,143 @@
 from __future__ import annotations
 
-from collections.abc import Callable
-import tkinter as tk
-from tkinter import messagebox
-
+from keyseq.application.keymap_switch_batch import validate_switch_batch
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.keymap_triggers import duplicate_keymap, keymap_trigger_list
-from keyseq.presentation.dialogs import KeymapEditDialog
+from keyseq.domain.list_editing import numbered_labels
+from keyseq.presentation.dialogs import KeymapSwitchBatchDialog
 
 
 class KeymapAddFlow:
-    """キーマップ追加時の切替キー設定・編集ダイアログをまとめる。"""
+    """追加・個別読込・貼り付けの切替キーをまとめて確定する。"""
 
     def __init__(self, keymap_panel) -> None:
         self._keymap_panel = keymap_panel
         self._app = keymap_panel._app
 
     def add_keymap(self) -> None:
-        """必要な切替キーを確認してから、新しいキーマップを追加する。"""
         if not self._app.keymap_service.get_keymaps(self._app.data):
             created = self._app.keymap_service.create_keymap(self._app.data)
             self._app.mark_keymap_dirty(created)
             self._keymap_panel._refresh_after_keymap_change()
-            self._app._set_flash_message(f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}")
-            return
-
-        original_active = self._app.keymap_service.get_active_keymap_id(self._app.data)
-        pending = self._collect_missing_switch_edits(original_active)
-        if pending is None:
-            self._restore_active_keymap(original_active)
-            return
-        candidate_id = self._app.keymap_service.next_keymap_id(self._app.data)
-        result = self._prompt_keymap_edit(
-            "キーマップ追加",
-            "",
-            validate=lambda values, parent: self._validate_addition_key(
-                values.get("key", ""), candidate_id, pending, message_parent=parent
-            ),
+        else:
+            candidates = self._make_candidates("新規", [{}])
+            if not self._run_batch("新規", candidates):
+                return
+            created = candidates[0]
+        self._app._set_flash_message(
+            f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}"
         )
-        if not result:
-            self._restore_active_keymap(original_active)
-            return
-        if not self._apply_pending_switch_edits(pending):
-            self._restore_active_keymap(original_active)
-            return
-
-        created = self._app.keymap_service.create_keymap(self._app.data)
-        created["label"] = str(result.get("label", "") or "").strip()
-        self._app.keymap_service.set_keymap_switch_key(self._app.data, result["key"], candidate_id)
-        self._app.mark_keymap_dirty(created)
-        self._restore_active_keymap(original_active)
-        self._keymap_panel._refresh_after_keymap_change()
-        self._app._set_flash_message(f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}")
 
     def add_imported_keymap(self, keymap: dict) -> bool:
-        """個別読込を追加フローとして実行し、取消時は runtime を変えない。"""
-        original_active = self._app.keymap_service.get_active_keymap_id(self._app.data)
-        keymaps = self._app.keymap_service.get_keymaps(self._app.data)
-        if not keymaps:
-            self._append_keymap(keymap)
+        # 読込側で採番済みの dict を保ち、共有トリガー一覧や読込元の情報を維持する。
+        return self._run_batch("読込", [keymap])
+
+    def paste_keymaps(self, sources: list[dict]) -> tuple[int, int] | None:
+        if not sources:
+            return None
+        start = len(self._app.keymap_service.get_keymaps(self._app.data))
+        candidates = self._make_candidates("貼り付け", sources)
+        if not self._run_batch("貼り付け", candidates):
+            return None
+        return start, start + len(candidates) - 1
+
+    def _make_candidates(self, kind: str, sources: list[dict]) -> list[dict]:
+        existing = self._app.keymap_service.get_keymaps(self._app.data)
+        planned = {**self._app.data, "keymaps": list(existing)}
+        labels = numbered_labels(
+            [str(source.get("label") or "") for source in sources],
+            [str(keymap.get("label") or "") for keymap in existing],
+        )
+        candidates: list[dict] = []
+        for source, label in zip(sources, labels):
+            keymap_id = self._app.keymap_service.next_keymap_id(planned)
+            candidate = (
+                duplicate_keymap(source, keymap_id, label) if kind == "貼り付け"
+                else {"id": keymap_id, "label": "", "mappings": {}}
+            )
+            candidates.append(candidate)
+            planned["keymaps"].append(candidate)
+        return candidates
+
+    def _run_batch(self, kind: str, new_keymaps: list[dict]) -> bool:
+        existing = self._app.keymap_service.get_keymaps(self._app.data)
+        if not existing:
+            for keymap in new_keymaps:
+                self._append_keymap(keymap)
             self._keymap_panel._refresh_after_keymap_change()
             return True
-
-        pending = self._collect_missing_switch_edits(original_active)
-        if pending is None:
-            self._restore_active_keymap(original_active)
-            return False
-        keymap_id = normalize_key_name(keymap.get("id", ""))
-        result = self._prompt_keymap_edit(
-            "読込キーマップの追加",
-            str(keymap.get("label") or ""),
-            validate=lambda values, parent: self._validate_addition_key(
-                values.get("key", ""), keymap_id, pending, message_parent=parent
-            ),
+        missing = [
+            keymap for keymap in existing
+            if not self._app.keymap_service.find_switch_key_for_keymap(
+                self._app.data, keymap.get("id", "")
+            )
+        ]
+        targets = missing + new_keymaps
+        rows = self._make_rows(kind, missing, new_keymaps)
+        titles = {"新規": "キーマップ追加", "読込": "読込キーマップの追加",
+                  "貼り付け": "キーマップ貼り付け"}
+        dialog = KeymapSwitchBatchDialog(
+            self._app, title=titles[kind], rows=rows,
+            validate=lambda values: self._validate_values(values, targets, rows, new_keymaps),
         )
-        if not result:
-            self._restore_active_keymap(original_active)
+        dialog.wait_window()
+        values = dialog.result
+        if values is None:
             return False
-        if not self._apply_pending_switch_edits(pending):
-            self._restore_active_keymap(original_active)
-            return False
-
-        keymap["label"] = str(result.get("label", "") or "").strip()
-        self._append_keymap(keymap)
-        self._app.keymap_service.set_keymap_switch_key(self._app.data, result["key"], keymap_id)
-        self._app.mark_keymap_dirty(keymap)
-        self._restore_active_keymap(original_active)
+        self._commit_batch(kind, missing, new_keymaps, values)
         self._keymap_panel._refresh_after_keymap_change()
         return True
 
-    def prepare_keymap_paste(self, original_active: str) -> list | None:
-        """貼り付けの最初にだけ、既存の切替キーの補完を集める。"""
-        return self._collect_missing_switch_edits(original_active)
+    def _make_rows(self, kind: str, missing: list[dict], new_keymaps: list[dict]) -> list[tuple[str, str, str, str]]:
+        return [
+            (row_kind, self._keymap_panel.format_keymap_display_name(keymap)
+             or normalize_key_name(keymap.get("id", "")),
+             str(keymap.get("label") or ""), "")
+            for row_kind, keymaps in (("既存", missing), (kind, new_keymaps))
+            for keymap in keymaps
+        ]
 
-    def paste_keymap(self, source: dict, label: str, pending: list) -> dict | None:
-        """既存の追加用検証でダイアログを開き、確定した写しを追加する。"""
-        original_active = self._app.keymap_service.get_active_keymap_id(self._app.data)
-        candidate_id = self._app.keymap_service.next_keymap_id(self._app.data)
-        result = self._prompt_keymap_edit(
-            "キーマップ貼り付け", label,
-            validate=lambda values, parent: self._validate_addition_key(
-                values.get("key", ""), candidate_id, pending, message_parent=parent
-            ),
+    def _validate_values(self, values: list[dict], targets: list[dict],
+                         rows: list[tuple[str, str, str, str]], new_keymaps: list[dict]) -> tuple[int, str] | None:
+        error = validate_switch_batch(
+            self._app.data, self._app.data.get("hook_stop_key", ""),
+            self._app.data.get("hook_toggle_key", ""), new_keymaps,
+            [value["key"] for value in values],
+            [keymap["id"] for keymap in targets],
         )
-        if not result or not self._apply_pending_switch_edits(pending):
-            self._restore_active_keymap(original_active)
-            return None
-        pending.clear()
-        created = duplicate_keymap(source, candidate_id, str(result.get("label") or "").strip())
-        self._append_keymap(created)
-        self._app.keymap_service.set_keymap_switch_key(self._app.data, result["key"], candidate_id)
-        self._app.mark_keymap_dirty(created)
-        self._app.dirty_tracker.mark_trigger_set_dirty(candidate_id)
-        for row in keymap_trigger_list(created) or []:
-            self._app.mark_sequence_dirty(row)
-        self._restore_active_keymap(original_active)
-        return created
+        if error is not None:
+            index, reason = error
+            return index, f"{rows[index][1]}: {reason}"
+        for index, value in enumerate(values):
+            try:
+                self._app.input_gateway.validate_key_name(value["key"])
+            except Exception as exc:
+                return index, f"{rows[index][1]}: 不明なキー名です:\n{value['key']}\n\n{exc}"
+        return None
 
-    def _collect_missing_switch_edits(self, original_active: str) -> list[tuple[dict, dict, int]] | None:
-        pending = []
-        for index, keymap in enumerate(self._app.keymap_service.get_keymaps(self._app.data)):
-            keymap_id = normalize_key_name(keymap.get("id", ""))
-            if self._app.keymap_service.find_switch_key_for_keymap(self._app.data, keymap_id):
-                continue
-            if keymap_id != self._app.keymap_service.get_active_keymap_id(self._app.data):
-                if not self._keymap_panel.activate_keymap_by_id(
-                    keymap_id, preferred_index=index, show_flash=False
-                ):
-                    return None
-            name = self._keymap_panel.format_keymap_display_name(keymap) or keymap_id
-            messagebox.showerror("切替キーが必要です", f"{name} に切替キーを設定してください")
-            result = self._prompt_keymap_edit(
-                "キーマップ変更",
-                keymap,
-                is_existing_keymap=True,
-                validate=lambda values, parent: self._validate_addition_key(
-                    values.get("key", ""), keymap_id, pending, message_parent=parent
-                ),
+    def _commit_batch(self, kind: str, missing: list[dict], new_keymaps: list[dict],
+                      values: list[dict]) -> None:
+        targets = missing + new_keymaps
+        for keymap, value in zip(targets, values):
+            keymap["label"] = value["label"]
+        for keymap in new_keymaps:
+            self._append_keymap(keymap)
+        for keymap, value in zip(targets, values):
+            self._app.keymap_service.set_keymap_switch_key(
+                self._app.data, value["key"], keymap["id"]
             )
-            if not result:
-                return None
-            pending.append((keymap, result, index))
-        self._restore_active_keymap(original_active)
-        return pending
-
-    def _prompt_keymap_edit(
-        self,
-        title: str,
-        keymap_or_label,
-        *,
-        is_existing_keymap: bool = False,
-        validate: Callable[[dict[str, str], tk.Misc], bool] | None = None,
-    ) -> dict[str, str] | None:
-        keymap = keymap_or_label if isinstance(keymap_or_label, dict) else None
-        label = str(keymap.get("label") or "") if keymap else str(keymap_or_label or "")
-        dialog_ref: dict[str, tk.Misc] = {}
-        dialog_validate: Callable[[dict[str, str]], bool] | None = None
-        if validate is not None:
-            def validate_dialog(values: dict[str, str]) -> bool:
-                return validate(values, dialog_ref["dialog"])
-
-            dialog_validate = validate_dialog
-
-        dlg = KeymapEditDialog(
-            self._app,
-            title=title,
-            initial_key=(
-                self._app.keymap_service.find_switch_key_for_keymap(self._app.data, keymap.get("id", ""))
-                if is_existing_keymap and keymap
-                else ""
-            ),
-            initial_label=label,
-            validate=dialog_validate,
-        )
-        dialog_ref["dialog"] = dlg
-        dlg.wait_window()
-        result = getattr(dlg, "result", None)
-        return result if isinstance(result, dict) else None
-
-    def _validate_addition_key(
-        self,
-        key: str,
-        target_id: str,
-        pending: list[tuple[dict, dict, int]],
-        *,
-        message_parent: tk.Misc | None = None,
-    ) -> bool:
-        normalized = normalize_key_name(key)
-        if not normalized:
-            messagebox.showerror("設定できません", "切替キーは必須です。", parent=message_parent)
-            return False
-        if any(normalize_key_name(item[1].get("key", "")) == normalized for item in pending):
-            messagebox.showerror(
-                "設定できません", f"直接切替キーは既に使用されています:\n{normalized}", parent=message_parent
-            )
-            return False
-        return self._keymap_panel.validate_keymap_switch_assignment(
-            normalized, target_id=target_id, message_parent=message_parent
-        )
-
-    def _apply_pending_switch_edits(self, pending: list[tuple[dict, dict, int]]) -> bool:
-        original_active = self._app.keymap_service.get_active_keymap_id(self._app.data)
-        for keymap, result, index in pending:
-            keymap_id = normalize_key_name(keymap.get("id", ""))
-            if keymap_id != self._app.keymap_service.get_active_keymap_id(self._app.data):
-                if not self._keymap_panel.activate_keymap_by_id(
-                    keymap_id, preferred_index=index, show_flash=False
-                ):
-                    return False
-            if not self._keymap_panel.apply_keymap_edit(
-                keymap, new_label=result.get("label", ""), new_key=result.get("key", ""),
-                preferred_index=index,
-            ):
-                return False
-        self._restore_active_keymap(original_active)
-        return True
+            self._app.mark_keymap_dirty(keymap)
+        if kind == "貼り付け":
+            for keymap in new_keymaps:
+                self._app.dirty_tracker.mark_trigger_set_dirty(keymap["id"])
+                for row in keymap_trigger_list(keymap) or []:
+                    self._app.mark_sequence_dirty(row)
 
     def _append_keymap(self, keymap: dict) -> None:
         keymaps = self._app.data.get("keymaps")
         if not isinstance(keymaps, list):
             keymaps = []
             self._app.data["keymaps"] = keymaps
-        if not self._app.data.get("active_keymap_id"):
+        if not keymaps:
             self._app.data["active_keymap_id"] = normalize_key_name(keymap.get("id", ""))
         keymaps.append(keymap)
-
-    def _restore_active_keymap(self, keymap_id: str) -> None:
-        if keymap_id and self._app.keymap_service.get_active_keymap_id(self._app.data) != keymap_id:
-            self._keymap_panel.activate_keymap_by_id(keymap_id, show_flash=False)

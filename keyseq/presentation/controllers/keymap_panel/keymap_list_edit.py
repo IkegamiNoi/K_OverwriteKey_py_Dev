@@ -5,7 +5,7 @@ from tkinter import messagebox
 
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.keymap_triggers import iter_trigger_sets
-from keyseq.domain.list_editing import move_block, numbered_labels
+from keyseq.domain.list_editing import move_block
 from keyseq.presentation.list_clipboard import CLIP_KEYMAPS
 from keyseq.presentation.listbox_range_drag import selected_range, select_range
 from keyseq.presentation.listbox_utils import listbox_mouse_button_is_down
@@ -133,23 +133,9 @@ class KeymapListEditFlow:
         items = self._app.list_clipboard.paste(CLIP_KEYMAPS)
         if not items:
             return "break"
-        flow = self._panel._keymap_add_flow
-        original_active = self._app.keymap_service.get_active_keymap_id(self._app.data)
-        pending = flow.prepare_keymap_paste(original_active)
-        if pending is None:
-            flow._restore_active_keymap(original_active)
-            return "break"
-        start = len(self._app.keymap_service.get_keymaps(self._app.data))
-        for source in items:
-            existing = self._app.keymap_service.get_keymaps(self._app.data)
-            label = numbered_labels([source.get("label", "")],
-                                    [row.get("label", "") for row in existing])[0]
-            if flow.paste_keymap(source, label, pending) is None:
-                break
-        flow._restore_active_keymap(original_active)
-        end = len(self._app.keymap_service.get_keymaps(self._app.data)) - 1
-        if end >= start:
-            self._finish((start, end))
+        bounds = self._panel._keymap_add_flow.paste_keymaps(items)
+        if bounds is not None:
+            self._finish(select=bounds)
         return "break"
 
     def _finish(self, select: tuple[int, int] | None) -> None:

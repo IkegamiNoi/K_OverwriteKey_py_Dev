@@ -8,7 +8,7 @@ from keyseq.application.input_router import SelectKeymapAction
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
-from keyseq.presentation.dialogs import KeymapEditDialog
+from keyseq.presentation.dialogs import KeymapEditDialog, KeymapSwitchBatchDialog
 
 
 def make_runtime(*, one_keymap=False, switch_keys=None):
@@ -227,118 +227,119 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
             make_runtime(switch_keys={})
         )
         self.app.trigger_panel.refresh_triggers()
-        dialog_results = [
-            _DialogResult({"key": "f8", "label": "Main updated"}),
-            _DialogResult({"key": "f6", "label": "Other updated"}),
-            _DialogResult({"key": "f7", "label": ""}),
-        ]
+        dialog_result = _DialogResult([
+            {"key": "f8", "label": "Main updated"},
+            {"key": "f6", "label": "Other updated"},
+            {"key": "f7", "label": ""},
+        ])
         with patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
-        ) as showerror, patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
-            side_effect=dialog_results,
-        ) as edit_dialog:
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
+            return_value=dialog_result,
+        ) as batch_dialog, patch.object(
+            self.app.keymap_panel, "activate_keymap_by_id", wraps=self.app.keymap_panel.activate_keymap_by_id
+        ) as activate:
             self.app.keymap_panel.add_keymap()
-        self.assertEqual(edit_dialog.call_count, 3)
-        self.assertEqual(showerror.call_count, 2)
+        batch_dialog.assert_called_once()
+        rows = batch_dialog.call_args.kwargs["rows"]
+        self.assertEqual([row[0] for row in rows], ["既存", "既存", "新規"])
+        self.assertEqual([row[1] for row in rows[:2]], ["Main", "Other"])
         self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, "km1"), "f8")
         self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, "km2"), "f6")
         added = self.app.data["keymaps"][-1]
+        self.assertEqual(rows[2][1], added["id"])
         self.assertEqual(added["label"], "")
         self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, added["id"]), "f7")
+        self.assertEqual(self.app.data["active_keymap_id"], "km1")
+        activate.assert_not_called()
 
-        before_count = len(self.app.data["keymaps"])
-        with patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
-        ) as showerror, patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
-            return_value=_DialogResult(None),
-        ):
-            self.app.keymap_panel.add_keymap()
-        showerror.assert_not_called()
-        self.assertEqual(len(self.app.data["keymaps"]), before_count)
-
-    def test_addition_dialog_retries_empty_key_and_cancel_aborts(self):
+    def test_add_batch_cancel_changes_nothing(self):
         self.app.data = self.app.config_service.normalize_runtime_data(
-            make_runtime(switch_keys={"f8": "km1", "f9": "km2"})
-        )
-        dialogs = []
-
-        def enter_empty_then_valid(dialog):
-            dialogs.append(dialog)
-            dialog.key_var.set("")
-            dialog._ok()
-            self.assertIsNone(dialog.result)
-            self.assertTrue(dialog.winfo_exists())
-            dialog.key_var.set("f7")
-            dialog._ok()
-
-        with patch.object(KeymapEditDialog, "wait_window", new=enter_empty_then_valid), patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
-        ) as showerror, patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog", wraps=KeymapEditDialog
-        ) as edit_dialog:
-            self.app.keymap_panel.add_keymap()
-        self.assertEqual(len(dialogs), 1)
-        edit_dialog.assert_called_once()
-        self.assertEqual(len(self.app.data["keymaps"]), 3)
-        added = self.app.data["keymaps"][-1]
-        self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, added["id"]), "f7")
-        showerror.assert_called_once()
-        self.assertIs(showerror.call_args.kwargs["parent"], dialogs[0])
-
-        self.app.data = self.app.config_service.normalize_runtime_data(
-            make_runtime(switch_keys={"f8": "km1", "f9": "km2"})
+            make_runtime(switch_keys={})
         )
         before = copy.deepcopy(self.app.data)
+        self.app.dirty_tracker.set_dirty(False)
+        with patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
+            return_value=_DialogResult(None),
+        ) as batch_dialog, patch.object(
+            self.app.keymap_panel, "activate_keymap_by_id", wraps=self.app.keymap_panel.activate_keymap_by_id
+        ) as activate:
+            self.app.keymap_panel.add_keymap()
+        batch_dialog.assert_called_once()
+        self.assertEqual(self.app.data, before)
+        self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
+        self.assertEqual(self.app.data["active_keymap_id"], "km1")
+        activate.assert_not_called()
 
-        def cancel_after_empty(dialog):
-            dialog.key_var.set("")
+    def test_batch_ok_updates_existing_and_new_without_switching_active_map(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(make_runtime(switch_keys={}))
+        self.app.dirty_tracker.set_dirty(False)
+        result = _DialogResult([
+            {"key": "f8", "label": "Main batch"},
+            {"key": "f6", "label": "Other batch"},
+            {"key": "f7", "label": "Added batch"},
+        ])
+        with patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
+            return_value=result,
+        ), patch.object(
+            self.app.keymap_panel, "activate_keymap_by_id", wraps=self.app.keymap_panel.activate_keymap_by_id
+        ) as activate:
+            self.app.keymap_panel.add_keymap()
+
+        self.assertEqual(self.app.data["active_keymap_id"], "km1")
+        self.assertEqual([item["label"] for item in self.app.data["keymaps"]], [
+            "Main batch", "Other batch", "Added batch",
+        ])
+        self.assertEqual(
+            [self.app.keymap_service.find_switch_key_for_keymap(self.app.data, keymap_id)
+             for keymap_id in ("km1", "km2", self.app.data["keymaps"][-1]["id"])],
+            ["f8", "f6", "f7"],
+        )
+        self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+        self.assertTrue(all(item[self.app.config_service.INTERNAL_KEYMAP_DIRTY]
+                            for item in self.app.data["keymaps"]))
+        activate.assert_not_called()
+
+    def test_batch_retries_duplicate_key_then_commits_all_rows_once(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(make_runtime(switch_keys={}))
+        before = copy.deepcopy(self.app.data)
+        self.app.dirty_tracker.set_dirty(False)
+        dialogs = []
+
+        def enter_duplicate_then_correct(dialog):
+            dialogs.append(dialog)
             dialog._ok()
             self.assertIsNone(dialog.result)
             self.assertTrue(dialog.winfo_exists())
-            dialog.destroy()
+            self.assertEqual(self.app.data, before)
+            for variable, value in zip(dialog.key_vars, ("f8", "f8", "f7")):
+                variable.set(value)
+            dialog._ok()
+            self.assertIsNone(dialog.result)
+            self.assertTrue(dialog.winfo_exists())
+            self.assertEqual(self.app.data, before)
+            dialog.key_vars[1].set("f6")
+            dialog._ok()
 
-        with patch.object(KeymapEditDialog, "wait_window", new=cancel_after_empty), patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
-        ) as showerror:
-            self.app.keymap_panel.add_keymap()
-        showerror.assert_called_once()
-        self.assertEqual(self.app.data, before)
-
-    def test_missing_existing_switch_dialog_retries_empty_and_duplicate_keys(self):
-        self.app.data = self.app.config_service.normalize_runtime_data(make_runtime(switch_keys={}))
-        dialogs = []
-        key_attempts = [("", "f8"), ("f8", "f6"), ("", "f7")]
-
-        def enter_retry_values(dialog):
-            dialogs.append(dialog)
-            for index, key in enumerate(key_attempts[len(dialogs) - 1]):
-                dialog.key_var.set(key)
-                dialog._ok()
-                if index == 0:
-                    self.assertIsNone(dialog.result)
-                    self.assertTrue(dialog.winfo_exists())
-
-        with patch.object(KeymapEditDialog, "wait_window", new=enter_retry_values), patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
-        ) as showerror:
+        with patch.object(KeymapSwitchBatchDialog, "wait_window", new=enter_duplicate_then_correct), patch(
+            "keyseq.presentation.dialogs.keymap_switch_batch_dialog.messagebox.showerror"
+        ) as showerror, patch.object(
+            self.app.keymap_panel, "activate_keymap_by_id", wraps=self.app.keymap_panel.activate_keymap_by_id
+        ) as activate:
             self.app.keymap_panel.add_keymap()
 
-        self.assertEqual(len(dialogs), 3)
-        self.assertEqual(showerror.call_count, 5)
-        self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, "km1"), "f8")
-        self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, "km2"), "f6")
-        added = self.app.data["keymaps"][-1]
+        self.assertEqual(len(dialogs), 1)
+        self.assertEqual(showerror.call_count, 2)
+        self.assertTrue(all(call.kwargs.get("parent") is dialogs[0] for call in showerror.call_args_list))
+        self.assertEqual(len(self.app.data["keymaps"]), 3)
         self.assertEqual(
-            self.app.keymap_service.find_switch_key_for_keymap(self.app.data, added["id"]), "f7"
+            [self.app.keymap_service.find_switch_key_for_keymap(self.app.data, keymap_id)
+             for keymap_id in ("km1", "km2", self.app.data["keymaps"][-1]["id"])],
+            ["f8", "f6", "f7"],
         )
-        # 入力エラー（ダイアログ表示中）はダイアログを親にする。設定ダイアログを開く前の
-        # 「<名前> に切替キーを設定してください」はダイアログがまだ無いので対象外。
-        validation_calls = [call for call in showerror.call_args_list if call.args[0] == "設定できません"]
-        self.assertEqual(len(validation_calls), 3)
-        for call in validation_calls:
-            self.assertIn(call.kwargs.get("parent"), dialogs)
+        self.assertEqual(self.app.data["active_keymap_id"], "km1")
+        activate.assert_not_called()
 
     def test_keymap_edit_dialog_validation_controls_close_and_preserves_default(self):
         invalid = KeymapEditDialog(self.app, "追加", validate=lambda _values: False)
@@ -361,41 +362,55 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.assertEqual(unchanged.result, {"key": "f8", "label": "Main"})
         self.assertFalse(unchanged.winfo_exists())
 
-    def test_add_cancel_after_existing_key_prompt_does_not_add_keymap(self):
-        self.app.data = self.app.config_service.normalize_runtime_data(
-            make_runtime(switch_keys={"f9": "km1"})
-        )
-        before = copy.deepcopy(self.app.data)
+    def test_add_with_no_existing_keymaps_skips_batch_dialog(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(make_runtime(one_keymap=True))
+        self.app.data["keymaps"] = []
+        self.app.data["active_keymap_id"] = None
         with patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
-        ), patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
-            return_value=_DialogResult(None),
-        ):
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog"
+        ) as batch_dialog:
             self.app.keymap_panel.add_keymap()
-        self.assertEqual(self.app.data, before)
+        batch_dialog.assert_not_called()
+        self.assertEqual(len(self.app.data["keymaps"]), 1)
+
+    def test_individual_load_with_no_existing_keymaps_skips_batch_dialog(self):
+        loaded = {"id": "km3", "label": "Loaded", "mappings": {"c": "d"}, "triggers": []}
+        self.app.data = self.app.config_service.normalize_runtime_data(make_runtime(one_keymap=True))
+        self.app.data["keymaps"] = []
+        self.app.data["active_keymap_id"] = None
+        with patch(
+            "keyseq.presentation.controllers.config_io.keymap_file_io.filedialog.askopenfilename",
+            return_value="loaded.json",
+        ), patch.object(self.app.keymap_io, "_load_keymap", return_value=copy.deepcopy(loaded)), patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog"
+        ) as batch_dialog, patch(
+            "keyseq.presentation.controllers.config_io.keymap_file_io.messagebox.showinfo"
+        ):
+            self.app.keymap_io.load_keymap_file()
+        batch_dialog.assert_not_called()
+        self.assertEqual([item["id"] for item in self.app.data["keymaps"]], ["km3"])
 
     def test_individual_load_uses_add_rules_and_cancel_preserves_runtime(self):
         loaded = {"id": "km3", "label": "Loaded", "mappings": {"c": "d"}, "triggers": []}
         self.app.data = self.app.config_service.normalize_runtime_data(
             make_runtime(switch_keys={"f9": "km1"})
         )
-        dialog_results = [
-            _DialogResult({"key": "f8", "label": "Other"}),
-            _DialogResult({"key": "f7", "label": "Loaded"}),
-        ]
+        dialog_result = _DialogResult([
+            {"key": "f8", "label": "Other"},
+            {"key": "f7", "label": "Loaded"},
+        ])
         with patch(
             "keyseq.presentation.controllers.config_io.keymap_file_io.filedialog.askopenfilename",
             return_value="loaded.json",
         ), patch.object(self.app.keymap_io, "_load_keymap", return_value=copy.deepcopy(loaded)), patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
-        ), patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
-            side_effect=dialog_results,
-        ), patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
+            return_value=dialog_result,
+        ) as batch_dialog, patch(
             "keyseq.presentation.controllers.config_io.keymap_file_io.messagebox.showinfo"
         ):
             self.app.keymap_io.load_keymap_file()
+        batch_dialog.assert_called_once()
+        self.assertEqual([row[0] for row in batch_dialog.call_args.kwargs["rows"]], ["既存", "読込"])
         self.assertEqual(len(self.app.data["keymaps"]), 3)
         self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, "km2"), "f8")
         self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(self.app.data, "km3"), "f7")
@@ -405,17 +420,22 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
             make_runtime(switch_keys={"f9": "km1"})
         )
         before = copy.deepcopy(self.app.data)
+        self.app.dirty_tracker.set_dirty(False)
         with patch(
             "keyseq.presentation.controllers.config_io.keymap_file_io.filedialog.askopenfilename",
             return_value="loaded.json",
         ), patch.object(self.app.keymap_io, "_load_keymap", return_value=copy.deepcopy(loaded)), patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
-        ), patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
             return_value=_DialogResult(None),
-        ):
+        ) as batch_dialog, patch.object(
+            self.app.keymap_panel, "activate_keymap_by_id", wraps=self.app.keymap_panel.activate_keymap_by_id
+        ) as activate:
             self.app.keymap_io.load_keymap_file()
+        batch_dialog.assert_called_once()
         self.assertEqual(self.app.data, before)
+        self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
+        self.assertEqual(self.app.data["active_keymap_id"], "km1")
+        activate.assert_not_called()
 
     def test_edit_cannot_clear_switch_key_with_two_maps_but_can_with_one(self):
         with patch(

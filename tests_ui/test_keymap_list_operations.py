@@ -1,11 +1,13 @@
 """Full-view keymap range operations and selection integration."""
 
+import copy
 import unittest
 from unittest.mock import patch
 
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.controllers.keymap_panel import keymap_list_edit as edit_module
+from keyseq.presentation.dialogs import KeymapSwitchBatchDialog
 from keyseq.presentation.list_clipboard import CLIP_KEYMAPS
 from keyseq.presentation.listbox_range_drag import select_range
 from tests_ui.click_time import next_click_time
@@ -39,17 +41,6 @@ class _DialogResult:
 
     def wait_window(self):
         pass
-
-
-class _ValidatedDialogResult(_DialogResult):
-    def __init__(self, result, validate):
-        super().__init__(result)
-        self._validate = validate
-
-    def wait_window(self):
-        if self.result and self._validate is not None:
-            if not self._validate(self.result):
-                self.result = None
 
 
 class KeymapListOperationsTest(unittest.TestCase):
@@ -278,28 +269,34 @@ class KeymapListOperationsTest(unittest.TestCase):
         self.assertEqual([item["id"] for item in self.app.data["keymaps"]], ["km1", "km3"])
         self.assertEqual(self.app.keymap_service.get_active_keymap_id(self.app.data), "km1")
 
-    def test_copy_paste_prompts_each_map_numbers_labels_and_detaches_lists(self):
+    def test_copy_paste_uses_one_batch_numbers_labels_and_detaches_lists(self):
         self.select(0, 1)
         original_rows = [item["triggers"] for item in self.app.data["keymaps"][:2]]
         self.assertEqual(self.panel.copy_keymaps(), "break")
         copied = self.app.list_clipboard.paste(CLIP_KEYMAPS)
         self.assertEqual(len(copied), 2)
-        dialogs = [_DialogResult({"key": "f10", "label": "Map (3)"}),
-                   _DialogResult({"key": "f6", "label": "Map (4)"})]
+        dialog_result = _DialogResult([
+            {"key": "f10", "label": "Map (3)"},
+            {"key": "f6", "label": "Map (4)"},
+        ])
         with patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
-            side_effect=dialogs,
-        ) as edit_dialog:
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
+            return_value=dialog_result,
+        ) as batch_dialog, patch.object(
+            self.panel, "activate_keymap_by_id", wraps=self.panel.activate_keymap_by_id
+        ) as activate:
             self.assertEqual(self.panel.paste_keymaps(), "break")
 
-        self.assertEqual(edit_dialog.call_count, 2)
+        batch_dialog.assert_called_once()
         self.assertEqual(
-            [call.kwargs["initial_label"] for call in edit_dialog.call_args_list],
+            [row[2] for row in batch_dialog.call_args.kwargs["rows"]],
             ["Map (3)", "Map (4)"],
         )
+        self.assertEqual([row[0] for row in batch_dialog.call_args.kwargs["rows"]], ["貼り付け", "貼り付け"])
         pasted = self.app.data["keymaps"][3:]
         self.assertEqual([item["label"] for item in pasted], ["Map (3)", "Map (4)"])
         self.assertEqual(self.app.keymap_service.get_active_keymap_id(self.app.data), "km1")
+        activate.assert_not_called()
         self.assertEqual(tuple(self.listbox.curselection()), (3, 4))
         self.assertEqual(int(self.listbox.index("active")), 0)
         self.assertIsNot(pasted[0]["triggers"], copied[0]["triggers"])
@@ -314,21 +311,27 @@ class KeymapListOperationsTest(unittest.TestCase):
                 self.assertTrue(row[self.app.config_service.INTERNAL_SEQUENCE_DIRTY])
         self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
 
-    def test_second_paste_dialog_cancel_keeps_only_first_new_keymap(self):
+    def test_paste_batch_cancel_keeps_all_keymaps_unchanged(self):
         self.select(0, 1)
         self.panel.copy_keymaps()
-        dialogs = [_DialogResult({"key": "f10", "label": "Map (3)"}), _DialogResult(None)]
+        before = copy.deepcopy(self.app.data)
+        before_active = self.app.data["active_keymap_id"]
+        self.app.dirty_tracker.set_dirty(False)
         with patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
-            side_effect=dialogs,
-        ) as edit_dialog:
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
+            return_value=_DialogResult(None),
+        ) as batch_dialog, patch.object(
+            self.panel, "activate_keymap_by_id", wraps=self.panel.activate_keymap_by_id
+        ) as activate:
             self.panel.paste_keymaps()
 
-        self.assertEqual(edit_dialog.call_count, 2)
-        self.assertEqual([item["label"] for item in self.app.data["keymaps"][3:]], ["Map (3)"])
-        self.assertEqual(self.app.keymap_service.get_active_keymap_id(self.app.data), "km1")
+        batch_dialog.assert_called_once()
+        self.assertEqual(self.app.data, before)
+        self.assertEqual(self.app.data["active_keymap_id"], before_active)
+        self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
+        activate.assert_not_called()
 
-    def test_missing_switch_keys_are_completed_once_before_paste_dialogs(self):
+    def test_missing_switch_keys_and_pasted_maps_share_one_dialog(self):
         self.app.data["keymap_switch_keys"] = {}
         self.select(0, 1)
         self.panel.copy_keymaps()
@@ -343,42 +346,70 @@ class KeymapListOperationsTest(unittest.TestCase):
 
         def make_dialog(*args, **kwargs):
             calls.append((args, kwargs))
-            return _ValidatedDialogResult(candidates[len(calls) - 1], kwargs.get("validate"))
+            return _DialogResult(candidates)
 
         with patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
             side_effect=make_dialog,
-        ) as edit_dialog, patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
-        ) as showerror:
+        ) as batch_dialog:
             self.panel.paste_keymaps()
 
-        self.assertEqual(edit_dialog.call_count, 5)
-        self.assertEqual([call[1]["title"] for call in calls], [
-            "キーマップ変更", "キーマップ変更", "キーマップ変更",
-            "キーマップ貼り付け", "キーマップ貼り付け",
+        batch_dialog.assert_called_once()
+        self.assertEqual(len(calls[0][1]["rows"]), 5)
+        self.assertEqual([row[2] for row in calls[0][1]["rows"]], [
+            "Map", "Map (2)", "Other", "Map (3)", "Map (4)",
         ])
-        self.assertEqual([call[1]["initial_label"] for call in calls[:3]], ["Map", "Map (2)", "Other"])
-        self.assertEqual([call[1]["initial_label"] for call in calls[3:]], ["Map (3)", "Map (4)"])
+        self.assertEqual([row[0] for row in calls[0][1]["rows"]], [
+            "既存", "既存", "既存", "貼り付け", "貼り付け",
+        ])
         for index, keymap_id in enumerate(("km1", "km2", "km3")):
             self.assertEqual(
                 self.app.keymap_service.find_switch_key_for_keymap(self.app.data, keymap_id),
                 ("f6", "f7", "f8")[index],
             )
         self.assertEqual([item["label"] for item in self.app.data["keymaps"][3:]], ["Map (3)", "Map (4)"])
-        self.assertEqual(showerror.call_count, 3)
+        self.assertEqual(self.app.data["active_keymap_id"], "km1")
+
+    def test_paste_rejects_switch_key_matching_the_pasted_map_trigger(self):
+        self.app.data["keymaps"][0]["triggers"][0]["key"] = "f5"
+        self.select(0, 0)
+        self.panel.copy_keymaps()
+        # Keep f5 only in the duplicated candidate so validation must inspect the completed state.
+        self.app.data["keymaps"][0]["triggers"][0]["key"] = "f1"
+        dialogs = []
+
+        def enter_conflict_then_correct(dialog):
+            dialogs.append(dialog)
+            dialog.key_vars[0].set("f5")
+            dialog._ok()
+            self.assertIsNone(dialog.result)
+            self.assertTrue(dialog.winfo_exists())
+            dialog.key_vars[0].set("f10")
+            dialog._ok()
+
+        with patch.object(KeymapSwitchBatchDialog, "wait_window", new=enter_conflict_then_correct), patch(
+            "keyseq.presentation.dialogs.keymap_switch_batch_dialog.messagebox.showerror"
+        ) as showerror:
+            self.panel.paste_keymaps()
+
+        self.assertEqual(len(dialogs), 1)
+        showerror.assert_called_once()
+        self.assertEqual(len(self.app.data["keymaps"]), 4)
+        self.assertEqual(self.app.keymap_service.find_switch_key_for_keymap(
+            self.app.data, self.app.data["keymaps"][-1]["id"]
+        ), "f10")
 
     def test_empty_or_wrong_clipboard_kind_is_a_no_op(self):
         before = list(self.app.data["keymaps"])
         self.app.list_clipboard.copy("actions", [{"type": "text", "value": "x"}])
         with patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog"
-        ) as edit_dialog:
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog"
+        ) as batch_dialog:
             self.assertEqual(self.panel.paste_keymaps(), "break")
             self.app.list_clipboard.clear()
             self.assertEqual(self.panel.paste_keymaps(), "break")
         self.assertEqual(self.app.data["keymaps"], before)
-        edit_dialog.assert_not_called()
+        batch_dialog.assert_not_called()
 
     def test_clipboard_shortcuts_are_bound_to_keymap_list_in_both_cases(self):
         for sequence in ("<Control-c>", "<Control-C>", "<Control-v>", "<Control-V>"):

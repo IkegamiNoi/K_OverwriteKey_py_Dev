@@ -408,15 +408,13 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             _trigger_set_io(self.app).load_trigger_set_file()
 
     def _load_keymap_path(self, path):
-        keymap_dialogs = [
-            Mock(result={"key": "f8", "label": "Main"}),
-            Mock(result={"key": "f7", "label": "Loaded"}),
-        ]
+        keymap_dialog = Mock(result=[
+            {"key": "f8", "label": "Main"},
+            {"key": "f7", "label": "Loaded"},
+        ])
         with patch.object(tkinter.filedialog, "askopenfilename", return_value=path), patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.messagebox.showerror"
-        ), patch(
-            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapEditDialog",
-            side_effect=keymap_dialogs,
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
+            return_value=keymap_dialog,
         ), patch.object(
             self.app.keymap_panel, "refresh_keymap_list_ui"
         ), patch.object(self.app.layout, "refresh_keyboard_window"), patch.object(

@@ -3,6 +3,7 @@ from .preset_manager import PresetManagerDialog, format_preset_manager_source_la
 from .preset_dialog import PresetDialog
 from .trigger_dialog import TriggerDialog
 from .keymap_edit_dialog import KeymapEditDialog
+from .keymap_switch_batch_dialog import KeymapSwitchBatchDialog
 from .layout_delete_dialog import LayoutDeleteDialog
 from .reference_cleanup_dialog import ReferenceCleanupDialog
 from .orphan_sweep_dialog import OrphanSweepDialog
