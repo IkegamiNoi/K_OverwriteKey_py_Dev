@@ -4,6 +4,7 @@ from tkinter import font as tkfont
 import unittest
 from unittest.mock import patch
 
+from keyseq.application.call_view import CallViewSummary
 from keyseq.presentation.app import App
 from keyseq.presentation import app as app_module
 from keyseq.presentation import theme
@@ -158,10 +159,40 @@ class FullViewPanesTest(unittest.TestCase):
                     font = tkfont.Font(root=self.app, font=listing.cget("font"))
                     self.assertGreaterEqual(listing.winfo_width(), font.measure("0") * 10)
                     self._assert_children_fit(box, listing)
+                sequence = self.view.sequence_box
+                self.assertEqual(
+                    sequence.action_panes.winfo_reqwidth(),
+                    sequence.action_frame.winfo_reqwidth(),
+                )
+                before_widths = tuple(box.winfo_width() for box in self.boxes)
+                before_minimum = self.app.wm_minsize()
+                try:
+                    self.app.call_view.on_summary(CallViewSummary(
+                        path=("f1", "f5", "f7"), actions=(), position=0,
+                        loop_frames=(), counters={},
+                    ))
+                    self.app.update()
+                    self.assertEqual(self.app.pane_layout.measure_min_widths(), mins)
+                    self.assertEqual(tuple(box.winfo_width() for box in self.boxes), before_widths)
+                    self.assertEqual(self.app.wm_minsize(), before_minimum)
+                    self.assertGreaterEqual(
+                        sequence.action_panes.winfo_width(),
+                        sequence.action_panes.winfo_reqwidth(),
+                    )
+                finally:
+                    self.app.call_view.on_summary(None)
+                    self.app.update()
+                self.assertEqual(tuple(box.winfo_width() for box in self.boxes), before_widths)
+                self.assertEqual(self.app.wm_minsize(), before_minimum)
 
     def _assert_children_fit(self, parent: tk.Misc, listing: tk.Listbox) -> None:
         for child in parent.winfo_children():
-            # 一覧と一覧だけを包むフレームの要求幅は26文字のまま維持する。
+            if isinstance(parent, tk.PanedWindow) and str(child) not in {
+                str(pane) for pane in parent.panes()
+            }:
+                # 閉じた呼び出し枠は管理対象外であり、表示する中身に含めない。
+                continue
+            # 一覧の幅は要求幅ではなく、上で 10 文字相当を確認する。
             if child is not listing and child is not listing.master:
                 self.assertTrue(child.winfo_ismapped(), str(child))
                 self.assertGreaterEqual(child.winfo_width(), child.winfo_reqwidth(), str(child))

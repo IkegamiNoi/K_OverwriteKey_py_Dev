@@ -31,6 +31,7 @@ from keyseq.presentation.controllers.keymap_panel.keymap_panel_controller import
     KeymapPanelController,
 )
 from keyseq.presentation.controllers.layout_controller import LayoutController
+from keyseq.presentation.controllers.call_view_controller import CallViewController
 from keyseq.presentation.controllers.pane_layout import PaneLayoutController
 from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
 from keyseq.presentation.pane_width_rules import (
@@ -204,6 +205,7 @@ class App(tk.Tk):
         self.pane_layout = PaneLayoutController(self)
         self.keymap_panel = KeymapPanelController(self)
         self.trigger_panel = TriggerPanelController(self)
+        self.call_view = CallViewController(self)
         self.hook = HookController(self)
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
@@ -214,6 +216,7 @@ class App(tk.Tk):
             select_trigger=lambda key: self.trigger_panel.select_trigger_by_key(key),
             refresh_actions=lambda: self.trigger_panel.refresh_actions(),
             update_status=lambda: self.trigger_panel.update_status(),
+            notify_call_view=self.call_view.on_summary,
             after=self.after,
             after_cancel=self.after_cancel,
             get_trigger_set_id=lambda: self.keymap_service.get_active_trigger_set_id(self.data),
@@ -231,6 +234,7 @@ class App(tk.Tk):
         self._programmatic_action_select = False  # action_list選択をコード側で変更中か
         self._flash_after_id = None
         self._build_ui()
+        self.call_view.install()
         self.pane_layout.install()
         self.startup_io.load_startup_and_config()
         self.layout.reload_keyboard_layouts()
@@ -332,6 +336,7 @@ class App(tk.Tk):
         self.ui_vars.ui_font_delta_var.set(int(new_delta))
         apply_global_theme(self, font_delta_pt=new_delta)
         self._apply_fixed_button_widths()
+        self.call_view.on_font_changed()
         self.pane_layout.on_font_changed()
         self.startup_io.write_startup({"ui_font_delta_pt": new_delta})
         return True

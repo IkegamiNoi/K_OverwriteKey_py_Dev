@@ -144,6 +144,7 @@ class KeymapListEditFlow:
 
     def _finish(self, select: tuple[int, int] | None) -> None:
         self._panel._refresh_after_keymap_change()
+        self._app.sequence_runner.publish_call_view()
         self._panel.refresh_keymap_list_ui(select=select)
         self._app.dirty_tracker.set_dirty(True)
         if self._app.hook.hook_active:

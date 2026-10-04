@@ -5,6 +5,8 @@ from tkinter import ttk
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag
+from keyseq.presentation.pane_width_rules import MIN_LIST_CHARS
+from keyseq.presentation.views.full_view.call_view_frame import CallViewFrame
 
 
 if TYPE_CHECKING:
@@ -16,7 +18,15 @@ class SequenceBox(ttk.LabelFrame):
         super().__init__(parent, text="出力シーケンス（選択中トリガーの内容）", padding=10)
 
         # 既定18行の半分をフル表示の最小高さの基準にする（表示行数は伸びた分で決まる）。
-        self.action_list = tk.Listbox(self, height=9, exportselection=False)
+        self.action_panes = tk.PanedWindow(
+            self, orient="vertical", borderwidth=0, sashwidth=6,
+            sashpad=0, showhandle=False, sashrelief="raised",
+        )
+        self.action_frame = ttk.Frame(self.action_panes)
+        # 包む PanedWindow の要求幅も、幅計測の 10 文字 + スクロールバーに揃える。
+        self.action_list = tk.Listbox(
+            self.action_frame, height=9, width=MIN_LIST_CHARS, exportselection=False,
+        )
         self.action_list.bind("<<ListboxSelect>>", app.trigger_panel.on_action_list_select)
         self.action_list.bind("<KeyRelease>", app.trigger_panel.on_action_list_focus_index_change)
         self.action_list.bind("<Double-Button-1>", app.trigger_panel.on_action_double_click)
@@ -29,13 +39,16 @@ class SequenceBox(ttk.LabelFrame):
             on_move=app.trigger_panel.on_action_list_move,
             on_commit=app.trigger_panel.on_action_list_mouse_release,
         )
-        asb = ttk.Scrollbar(self, orient="vertical", command=self.action_list.yview)
+        asb = ttk.Scrollbar(self.action_frame, orient="vertical", command=self.action_list.yview)
         self.action_list.configure(yscrollcommand=asb.set)
 
         abtns = ttk.Frame(self)
         abtns.pack(side="right", fill="y", padx=(12, 0))
         asb.pack(side="right", fill="y")
         self.action_list.pack(side="left", fill="both", expand=True)
+        self.action_panes.add(self.action_frame, stretch="always", padx=0, pady=0)
+        self.call_view_frame = CallViewFrame(self.action_panes)
+        self.action_panes.pack(side="left", fill="both", expand=True)
         ttk.Button(abtns, text="追加", width=16, command=app.trigger_panel.add_action).pack(pady=(0, 6))
         ttk.Button(abtns, text="編集", width=16, command=app.trigger_panel.edit_action).pack(pady=6)
         ttk.Button(abtns, text="削除", width=16, command=app.trigger_panel.delete_action).pack(pady=6)

@@ -22,6 +22,10 @@ class CallViewMixin:
         self._call_view_contexts.pop(identity, None)
         self._publish_call_view()
 
+    def publish_call_view(self) -> None:
+        """Republish the current call view after external state cleanup."""
+        self._publish_call_view()
+
     def _publish_call_view(self) -> None:
         # Only calls that have stopped can open the view. Resuming keeps their order.
         for identity, ctx in tuple(self._call_view_contexts.items()):

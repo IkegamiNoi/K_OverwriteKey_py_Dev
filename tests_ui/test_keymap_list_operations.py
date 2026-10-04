@@ -142,10 +142,16 @@ class KeymapListOperationsTest(unittest.TestCase):
         execution_indices = self.app.state.keymap_indices["km1"]
         self.app.state.keymap_history["km1"] = {"f1": [object()]}
         history = self.app.state.keymap_history["km1"]
-        with patch.object(self.app.state, "rekey_trigger_set", wraps=self.app.state.rekey_trigger_set) as rekey:
+        with patch.object(self.app.state, "rekey_trigger_set", wraps=self.app.state.rekey_trigger_set) as rekey, \
+             patch.object(
+                 self.app.sequence_runner,
+                 "publish_call_view",
+                 wraps=self.app.sequence_runner.publish_call_view,
+             ) as publish_call_view:
             self.assertTrue(self.panel.on_keymap_list_move(0, 0, 1))
 
         rekey.assert_called_once_with("km1", "km2")
+        publish_call_view.assert_called_once_with()
         self.assertIs(self.app.state.keymap_history["km2"], history)
         self.assertNotIn("km1", self.app.state.keymap_history)
         self.assertIs(self.app.state.keymap_indices["km2"], execution_indices)
@@ -263,10 +269,16 @@ class KeymapListOperationsTest(unittest.TestCase):
         self.assertTrue(self.panel.on_keymap_list_move(1, 1, 2))
         self.assertEqual(tuple(self.listbox.curselection()), (2,))
         self.assertEqual(int(self.listbox.index("active")), 0)
-        with patch.object(edit_module.messagebox, "askyesno", return_value=True) as confirm:
+        with patch.object(edit_module.messagebox, "askyesno", return_value=True) as confirm, \
+             patch.object(
+                 self.app.sequence_runner,
+                 "publish_call_view",
+                 wraps=self.app.sequence_runner.publish_call_view,
+             ) as publish_call_view:
             self.panel.delete_keymap()
 
         confirm.assert_called_once()
+        publish_call_view.assert_called_once_with()
         self.assertEqual([item["id"] for item in self.app.data["keymaps"]], ["km1", "km3"])
         self.assertEqual(self.app.keymap_service.get_active_keymap_id(self.app.data), "km1")
 

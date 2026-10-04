@@ -1,10 +1,13 @@
 import unittest
+from types import SimpleNamespace
 from unittest.mock import Mock, call
 
 from keyseq.application.action_executor import ActionExecutor
 from keyseq.application.app_state import AppState, PendingStep
+from keyseq.application.call_context import CallContext, CallFrame
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.sequence_steps import LoopFrame
+from keyseq.domain.call_graph import CallEntry
 
 
 class FakeScheduler:
@@ -1431,6 +1434,37 @@ class AnyActiveExecutionTest(unittest.TestCase):
                 setattr(runner, field, 0 if field == "_run_to_end_wait_position" else object())
                 self.assertTrue(runner.has_any_active_execution())
                 setattr(runner, field, None)
+
+
+class CallViewExternalCleanupTest(unittest.TestCase):
+    def test_publication_closes_view_after_trigger_set_is_rekeyed_or_forgotten(self):
+        for cleanup in ("rekey", "forget"):
+            with self.subTest(cleanup=cleanup):
+                trigger = {"key": "f1", "actions": [A1]}
+                runner, state, _scheduler, _performed = make_runner([trigger])
+                notifications = []
+                runner._notify_call_view = notifications.append
+                identity = ("old-set", "f1")
+                context = CallContext(
+                    trigger_set_id="old-set",
+                    root_key="f1",
+                    first_target="f5",
+                    snapshot={"f5": CallEntry((A1,), 0)},
+                    stack=[CallFrame("f5")],
+                )
+                state.pending_steps[identity] = SimpleNamespace(call=context)
+                runner._call_view_contexts[identity] = context
+                runner._call_view_open = True
+
+                if cleanup == "rekey":
+                    state.rekey_trigger_set("old-set", "new-set")
+                else:
+                    state.forget_trigger_set("old-set")
+                runner.publish_call_view()
+
+                self.assertEqual(notifications, [None])
+                self.assertFalse(runner._call_view_open)
+                self.assertEqual(runner._call_view_contexts, {})
 
 
 if __name__ == "__main__":
