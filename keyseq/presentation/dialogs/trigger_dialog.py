@@ -5,7 +5,13 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
+from keyseq.presentation.hook_button_texts import (
+    CAPTURE_ACTIVE_TEXT,
+    CAPTURE_IDLE_TEXT,
+    CAPTURE_TEXTS,
+)
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_keysym
 
@@ -34,7 +40,8 @@ class TriggerDialog(tk.Toplevel):
         self.key_var = tk.StringVar(value=initial_key or "")
         self.key_entry = ttk.Entry(frm, textvariable=self.key_var, width=28)
         self.key_entry.grid(row=0, column=1, sticky="we", padx=(8, 0))
-        self.capture_btn = ttk.Button(frm, text="キー入力で取得", command=self._toggle_capture)
+        self.capture_btn = ttk.Button(frm, text=CAPTURE_IDLE_TEXT, command=self._toggle_capture)
+        apply_fixed_button_width(self.capture_btn, CAPTURE_TEXTS)
         self.capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
 
         ttk.Label(frm, text="ラベル").grid(row=1, column=0, sticky="w", pady=(10, 0))
@@ -75,7 +82,7 @@ class TriggerDialog(tk.Toplevel):
     def _start_capture(self):
         # 単キーの取得（F1等）を想定。Escでキャンセル。
         self._capturing = True
-        self.capture_btn.configure(text="取得中…（Escで停止）")
+        self.capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
         self.hint.configure(text="取得中：トリガーにしたいキーを1回押してください（Escでキャンセル）")
         self.key_entry.focus_set()
         # ダイアログ全体で拾う（Entryにフォーカスが無くてもOK）
@@ -85,7 +92,7 @@ class TriggerDialog(tk.Toplevel):
         if not getattr(self, "_capturing", False):
             return
         self._capturing = False
-        self.capture_btn.configure(text="キー入力で取得")
+        self.capture_btn.configure(text=CAPTURE_IDLE_TEXT)
         self.hint.configure(text="例）トリガー: f1 / ラベル: コピー→ウィンドウ切替→貼り")
         try:
             self.unbind("<KeyPress>")

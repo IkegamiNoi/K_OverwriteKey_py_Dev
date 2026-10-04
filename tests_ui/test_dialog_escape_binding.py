@@ -163,7 +163,12 @@ class DialogEscapeBindingTest(unittest.TestCase):
                     resume.assert_called_once_with()
 
     def test_keymap_edit_capture_button_width_is_fixed(self):
-        dialog = KeymapEditDialog(self.app, title="幅検査")
+        self._assert_capture_button_width_is_fixed(KeymapEditDialog(self.app, title="幅検査"))
+
+    def test_trigger_capture_button_width_is_fixed(self):
+        self._assert_capture_button_width_is_fixed(TriggerDialog(self.app, title="幅検査"))
+
+    def _assert_capture_button_width_is_fixed(self, dialog):
         button = dialog.capture_btn
         font_spec = ttk.Style(button).lookup("TButton", "font")
         font = tkfont.Font(root=button, font=font_spec or "TkDefaultFont")

@@ -15,17 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 43**〔`43_list_reorder_range_copy`・暫定仕様先行・主入力 = 暫定 30 v0.4〕）。
-   続けて `instructions/phase/43_list_reorder_range_copy/phase.md`（タスク一覧と進捗）・暫定 `instructions/history/30_list_reorder_range_copy.md`。
-   次採番 = phase 44 / 暫定 31 / decisions 44 / 提案書 18
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 43 は 2026-10-04 完了〕）。
+   次採番 = phase 44 / 暫定 31 / decisions 44 / 提案書 19。次フェーズはユーザー判断・着手時は `/phase_start`
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜29）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜30）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 43 task_01〜05b 完了（02〜04 は実機目視待ち）。task_06（保存）は暫定 §5.4 の改訂案〔計画の識別子を「行の位置」→「キー + 同じキーの何番目か」〕のユーザー判断待ち。**
-ブランチ `claude/list-drag-range-select-11c044`（最新 `5aa3893`）。phase 38〜42 は `claude/physical-device-verification-25ec98`（**main は phase 37 まで取り込み済み**・マージはユーザー）。
+**phase 43 完了（2026-10-04・一覧のドラッグ移動・範囲選択・複製・暫定 30 v0.11 凍結・decisions_archive/43）。次フェーズは未定（ユーザー判断待ち）。**
+ブランチ `claude/keymap-spec-review-d08fed`（phase 43 の後半〔task_08 実機目視以降〕）。phase 38〜42 は `claude/physical-device-verification-25ec98`（**main は phase 37 まで取り込み済み**・マージはユーザー）。
 ユーザーはフェーズ内のタスクの連続実行を許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -36,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 43 task_05b 完了時 = 2026-10-02**）:
-compile **clean** / tests **1079 実行 OK**（skip 7）/ tests_ui **716 実行 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 42 完了 1039 → 1079 / tests_ui: 645 → 716）。
+直近の実測（**phase 43 完了時 = 2026-10-04**）:
+compile **clean** / tests **1127 実行 OK**（skip 7）/ tests_ui **781 実行 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 42 完了 1039 → 1127 / tests_ui: 645 → 781）。
 **`tests_ui` と smoke を並行実行しない**（フックの取り合いで 13 件落ちる。逐次で実行する）。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
 実行後に **`config/config.json` の mtime が変わっていない**・worktree ルートへ **`user/` / `quarantine/` /

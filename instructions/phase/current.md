@@ -7,11 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 43](43_list_reorder_range_copy/phase.md)**（2026-10-02 起票・一覧のドラッグ移動・範囲選択・複製。暫定仕様先行モード）。
-  フル表示のキーマップ一覧・トリガー一覧・出力シーケンスとプリセット一覧に、ドラッグ移動・Shift の連続範囲選択・まとめて移動を加え、プリセット以外に複製（Ctrl+C → Ctrl+V・出力シーケンスの複製ボタン）を加える。
-  トリガーの同じキーは上の行が有効・下をグレー表示（実行中の状態はキー単位のまま）。JSON スキーマ変更なし。
-  主入力 = 暫定仕様 [30_list_reorder_range_copy.md](../history/30_list_reorder_range_copy.md)（v0.11・ユーザー確定済〔v0.5 = ループの片側の補完・v0.6 = 保存計画の識別子・v0.7 = 保存の照合後の文言。いずれも 2026-10-03 / v0.8 = §5.1 の呼び出し先 = 現在のフレーム / v0.9 = 切替キーのまとめて設定 / v0.10 = キー移動の範囲と挿入位置 / v0.11 = 切替キーのダイアログのクリアとボタン幅〔いずれも 2026-10-04〕〕）。起票元 = ユーザー要望（2026-10-02）。番号対応: phase 43 / 暫定 30 / decisions 43。
-- 直前の完了フェーズ = [phase 42](42_listbox_click_selection_sync/phase.md)（2026-10-02・一覧のクリックで選択と下線がずれる不具合の修正・
+- **アクティブなフェーズ = なし**（phase 43 は 2026-10-04 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- 直前の完了フェーズ = [phase 43](43_list_reorder_range_copy/phase.md)（2026-10-04・一覧のドラッグ移動・範囲選択・複製・
+  判断は [decisions_archive/43](../../.claude_data/state/decisions_archive/43_list_reorder_range_copy.md)）/
+  [phase 42](42_listbox_click_selection_sync/phase.md)（2026-10-02・一覧のクリックで選択と下線がずれる不具合の修正・
   判断は [decisions_archive/42](../../.claude_data/state/decisions_archive/42_listbox_click_selection_sync.md)）/
   [phase 41](41_ime_off_while_typing/phase.md)（2026-10-02・文字の送信中は送り先の IME をオフにする・
   判断は [decisions_archive/41](../../.claude_data/state/decisions_archive/41_ime_off_while_typing.md)）/
@@ -38,7 +37,7 @@
   **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**17 まで起票済**・次採番は「次採番」節が正）。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**18 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -57,7 +56,7 @@
   **phase 40 は 2026-10-01 完了**（`40_sequence_call` / 暫定 29〔v0.9・凍結〕/ decisions 40〔アーカイブ済〕）。
   **phase 41 は 2026-10-02 完了**（`41_ime_off_while_typing` / 暫定なし〔直接改訂モード〕/ decisions 41〔アーカイブ済〕）。
   **phase 42 は 2026-10-02 完了**（`42_listbox_click_selection_sync` / 暫定なし〔直接改訂モード〕/ decisions 42〔アーカイブ済〕）。
-  **phase 43 は 2026-10-02 起票・進行中**（`43_list_reorder_range_copy` / 暫定 30 / decisions 43）。
+  **phase 43 は 2026-10-04 完了**（`43_list_reorder_range_copy` / 暫定 30〔v0.11・凍結〕/ decisions 43〔アーカイブ済〕）。
   次フェーズは **`44_<topic>`**・decisions も **44** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -85,7 +84,7 @@
   27=file_line の非同期読込〔**v0.8・凍結**〕/
   28=制御アクション第 2 弾 前半（停止）〔**v0.6・凍結**・§9 は phase 40 の起票元〕/
   29=制御アクション第 2 弾 後半（呼び出し）〔**v0.9・凍結**〕/
-  30=一覧のドラッグ移動・範囲選択・複製〔**v0.11・ユーザー確定済・phase 43 の主入力**〕）。
+  30=一覧のドラッグ移動・範囲選択・複製〔v0.11・凍結〕）。
   次採番は **`31_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**17 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -98,7 +97,8 @@
   **15 = phase 37 由来・実施済＝phase 37 task_09**〔アクション編集を `controllers/trigger_panel/` へ・`ActionControlFields.__init__` の分割と定数参照〕 /
   **16 = phase 38 由来・実施済＝phase 38 task_08**〔`sequence_runner.py` の次ステップ予約の集約・file_line 分岐の切り出し・分割〕 /
   **17 = phase 40 由来・実施済＝phase 40 task_11_refactor**〔上限 10000 の定数化・待機の mixin `send_wait.py`・file_line 未設定の判定の一本化〕）・
-  次採番は **`18_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **18 = phase 43 由来・実施済＝phase 43 task_10**〔トリガーの追加・改名・削除を `trigger_row_edit.py` へ・まとめて設定のダイアログの `__init__` 分割・`range_or_index` の共通化〕 /
+  次採番は **`19_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
@@ -233,7 +233,6 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 - phase 42 由来: `presentation/controllers/trigger_panel/trigger_panel_controller.py` が 606 行（M1 の基準 600 を超過・phase 42 の増分は +25 で非該当）。次に触るフェーズで分割を再判定
 - phase 43 由来（完了判定前の deep-reviewer）: `domain/sequence_editing.py` の `can_move` が未使用（`can_move_block` へ置き換え済み）/ `KeymapEditDialog` の `validate` 引数が未使用（追加フローがまとめて設定へ移ったため）/ `KeymapSwitchBatchDialog` の Escape 処理が `bind_escape_close` を使わず同じ判定順を自前で持つ
 - phase 43 由来（完了判定前の Codex 敵対的レビュー）: シーケンスの個別保存（`sequence_file_io.py:54-86`）はパスのダイアログ中にアクティブが変わると、保持した A の行を保存しつつ参照元・未保存の印を現在のアクティブ B へ付ける（phase 43 より前からの挙動・キーマップの個別保存の固定なし〔decisions 43 の task_06b 保留 L1〕と同類）
-- phase 43 由来（task_09b の reviewer 参考）: `dialogs/trigger_dialog.py:37,78,88` の取得ボタンの文言が直値のまま（`hook_button_texts.CAPTURE_*` を使っていない・幅も固定していない）
 
 ### テスト負債
 

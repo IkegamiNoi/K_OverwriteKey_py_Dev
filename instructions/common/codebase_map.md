@@ -102,7 +102,7 @@ keyseq/presentation/
       action_control_fields.py # system / file_line の入力欄の組み立て・値の読み取り・検証（ActionDialog 専用の補助・再輸出しない・phase 37）
       preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）
-      trigger_dialog.py        # TriggerDialog
+      trigger_dialog.py        # TriggerDialog（取得ボタンは最大文言幅で固定 = `apply_fixed_button_width`・phase 43）
       keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集・取得ボタンは最大文言幅で固定（apply_fixed_button_width）。phase 43 以降はダブルクリック編集だけで使う）
       keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・クリアボタンなし・取得ボタンは最大文言幅で固定（apply_fixed_button_width）・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・行/スクロール領域/ボタンとバインドの生成は専用メソッド・phase 43）
       layout_delete_dialog.py  # LayoutDeleteDialog
