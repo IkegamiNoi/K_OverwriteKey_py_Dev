@@ -7,10 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 44](44_child_save_dialog_layout/phase.md)**（2026-10-04 起票・子ファイル保存ダイアログの高さと列幅の調整。直接改訂モード・改訂先 = `features.md` §4.6「子ファイル保存ダイアログ」）。
-  行数に合わせた高さ（上限は画面の 6 割）・列の境界 3 つのドラッグ（差は保存先パスが受け持つ・操作列は固定）・ウィンドウを広げたら保存先パスだけが伸びる・列幅は保存しない。
-  presentation のみ・JSON スキーマ変更なし。起票元 = ユーザー要望（2026-10-04）。番号対応: phase 44 / 暫定なし / decisions 44。
-- 直前の完了フェーズ = [phase 43](43_list_reorder_range_copy/phase.md)（2026-10-04・一覧のドラッグ移動・範囲選択・複製・
+- **アクティブなフェーズ = なし**（phase 44 は 2026-10-04 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- 直前の完了フェーズ = [phase 44](44_child_save_dialog_layout/phase.md)（2026-10-04・子ファイル保存ダイアログの高さと列幅の調整・
+  判断は [decisions_archive/44](../../.claude_data/state/decisions_archive/44_child_save_dialog_layout.md)）/
+  [phase 43](43_list_reorder_range_copy/phase.md)（2026-10-04・一覧のドラッグ移動・範囲選択・複製・
   判断は [decisions_archive/43](../../.claude_data/state/decisions_archive/43_list_reorder_range_copy.md)）/
   [phase 42](42_listbox_click_selection_sync/phase.md)（2026-10-02・一覧のクリックで選択と下線がずれる不具合の修正・
   判断は [decisions_archive/42](../../.claude_data/state/decisions_archive/42_listbox_click_selection_sync.md)）/
@@ -59,7 +59,7 @@
   **phase 41 は 2026-10-02 完了**（`41_ime_off_while_typing` / 暫定なし〔直接改訂モード〕/ decisions 41〔アーカイブ済〕）。
   **phase 42 は 2026-10-02 完了**（`42_listbox_click_selection_sync` / 暫定なし〔直接改訂モード〕/ decisions 42〔アーカイブ済〕）。
   **phase 43 は 2026-10-04 完了**（`43_list_reorder_range_copy` / 暫定 30〔v0.11・凍結〕/ decisions 43〔アーカイブ済〕）。
-  **phase 44 は 2026-10-04 起票・進行中**（`44_child_save_dialog_layout` / 暫定なし〔直接改訂モード〕/ decisions 44）。
+  **phase 44 は 2026-10-04 完了**（`44_child_save_dialog_layout` / 暫定なし〔直接改訂モード〕/ decisions 44〔アーカイブ済〕）。
   次フェーズは **`45_<topic>`**・decisions も **45** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
