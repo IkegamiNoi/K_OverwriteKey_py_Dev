@@ -7,7 +7,7 @@ from keyseq.application.app_state import PendingStep
 from keyseq.application.call_context import (
     CallContext, CallStep, call_step, chain_text, finish_call_action, start_call,
 )
-from keyseq.application.sequence_history import StepSnapshot, commit_step
+from keyseq.application.sequence_history import StepSnapshot
 from keyseq.application.sequence_steps import StepOutcome, resume_for_pending
 from keyseq.application.sequence_runner.file_line_wait import (
     FILE_LINE_POLL_INTERVAL_MS,
@@ -79,7 +79,8 @@ class CallWaitMixin:
                     or pending.generation != generation):
                 return False
             self.state.pending_steps.pop(identity)
-            return True
+        self._call_view_disappeared(identity)
+        return True
 
     def _discard_if_parent_invalid(
         self, trigger_set_id: str, key: str, generation: int, pending: PendingStep,
@@ -102,6 +103,7 @@ class CallWaitMixin:
         pending.resume = replace(
             pending.resume, counter_deltas=pending.resume.counter_deltas + deltas,
         )
+        self._publish_call_view()
 
     def _advance_single_call(self, trigger_set_id: str, key: str, generation: int) -> None:
         pending = self._single_call_pending(trigger_set_id, key, generation)
@@ -301,7 +303,7 @@ class CallWaitMixin:
     ) -> None:
         if not self._drop_single_call(trigger_set_id, key, generation, pending):
             return
-        commit_step(self.state, pending.snapshot, pending.resume.counter_deltas)
+        self._commit_step_and_publish(pending.snapshot, pending.resume.counter_deltas)
         self._select_trigger(key)
 
     def _complete_single_call(
@@ -317,5 +319,5 @@ class CallWaitMixin:
             pending.snapshot,
         )
         if deltas is not None:
-            commit_step(self.state, pending.snapshot, deltas)
+            self._commit_step_and_publish(pending.snapshot, deltas)
         self._select_trigger(key)

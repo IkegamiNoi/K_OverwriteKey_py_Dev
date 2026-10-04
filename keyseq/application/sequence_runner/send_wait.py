@@ -5,14 +5,13 @@ from __future__ import annotations
 from typing import Any
 
 from keyseq.application.app_state import PendingStep
-from keyseq.application.sequence_history import StepSnapshot, commit_step
+from keyseq.application.sequence_history import StepSnapshot
 from keyseq.application.sequence_steps import (
     LoopFrame,
     SettleOutcome,
     StepOutcome,
     StepResume,
     after_normal_action,
-    apply_deferred_counters,
     continue_resume,
     settle_after_normal,
 )
@@ -60,8 +59,9 @@ class SendWaitMixin:
         if settled.wait_ms is not None:
             self._queue_single_wait(key, settled, pending.resume, pending.snapshot)
         else:
-            commit_step(self.state, pending.snapshot,
-                        pending.resume.counter_deltas + settled.counter_deltas)
+            self._commit_step_and_publish(
+                pending.snapshot, pending.resume.counter_deltas + settled.counter_deltas,
+            )
         self._select_trigger(key)
 
     def _finish_single_normal_action(
@@ -127,7 +127,7 @@ class SendWaitMixin:
         position, stopped = settled.position, settled.stopped
         deferred = settled.deferred_counters
         if (position == 0 or stopped) and deferred:
-            deltas += apply_deferred_counters(deferred, self.state.counters)
+            deltas += self._apply_deferred_counters_and_publish(deferred)
             deferred = ()
         if stopped:
             deltas, position = self._settle_after_stopped_sequence(
@@ -138,7 +138,7 @@ class SendWaitMixin:
         self._run_to_end_resume = None
         self._run_to_end_wait_position = None
         self._run_to_end_snapshot = None
-        commit_step(self.state, snapshot, deltas)
+        self._commit_step_and_publish(snapshot, deltas)
         self._select_trigger(key)
         if position == 0 or stopped:
             self.stop_run_to_end()
@@ -162,7 +162,7 @@ class SendWaitMixin:
         deltas += settled.counter_deltas
         deferred = settled.deferred_counters
         if position == 0 and deferred:
-            deltas += apply_deferred_counters(deferred, self.state.counters)
+            deltas += self._apply_deferred_counters_and_publish(deferred)
             deferred = ()
         self._save_progress(key, position, frames, deferred)
         return deltas, position

@@ -1,8 +1,10 @@
 from __future__ import annotations
 
+from collections.abc import Iterable, Sequence
 from typing import Any, Callable
 
 from keyseq.application.call_context import CallContext, top_interval
+from keyseq.application.call_view import CallViewSummary
 from keyseq.application.sequence_history import (
     StepSnapshot, apply_control, commit_step, snapshot_for,
 )
@@ -23,9 +25,10 @@ from keyseq.application.sequence_runner.call_run_to_end import CallRunToEndMixin
 from keyseq.application.sequence_runner.input_acceptance import InputAcceptanceMixin
 from keyseq.application.sequence_runner.wait_stop import WaitStopMixin
 from keyseq.application.sequence_runner.send_wait import SendWaitMixin
+from keyseq.application.sequence_runner.call_view_notice import CallViewMixin, RUN_TO_END_CALL_VIEW
 
 
-class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLineWaitMixin,
+class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLineWaitMixin,
                      CallWaitMixin, CallRunToEndMixin):
     def __init__(
         self,
@@ -43,6 +46,7 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
         notify_message: Callable[[str], None] | None = None,
         begin_file_line: Callable[[dict[str, Any]], object | None] | None = None,
         poll_file_line: Callable[[object], bool | None] | None = None,
+        notify_call_view: Callable[[CallViewSummary | None], None] | None = None,
     ):
         self.state = state
         self._find_trigger = find_trigger
@@ -55,6 +59,9 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
         self._get_trigger_set_id = get_trigger_set_id or (lambda: "")
         self._notify_error = notify_error
         self._notify_message = notify_message
+        self._notify_call_view = notify_call_view
+        self._call_view_contexts: dict[tuple[str, str] | str, CallContext] = {}
+        self._call_view_open = False
         self._begin_file_line = begin_file_line
         self._poll_file_line = poll_file_line
         self._pending_control_discard: tuple | None = None
@@ -131,12 +138,27 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
     def _get_frames(self, key: str) -> list[LoopFrame]:
         return self.state.loop_frames_for(self._get_trigger_set_id()).get(key, [])
 
+    def _commit_step_and_publish(
+        self, snapshot: StepSnapshot, deltas: Iterable[tuple[str, int]],
+    ) -> bool:
+        committed = commit_step(self.state, snapshot, deltas)
+        self._publish_call_view()
+        return committed
+
+    def _apply_deferred_counters_and_publish(
+        self, deferred: Sequence[tuple[str, str]],
+    ) -> tuple[tuple[str, int], ...]:
+        deltas = apply_deferred_counters(deferred, self.state.counters)
+        self._publish_call_view()
+        return deltas
+
     def _save_progress(self, key: str, position: int, frames: list[LoopFrame],
                        deferred: list[tuple[str, str]] | tuple[tuple[str, str], ...] = ()) -> None:
         with self.state.lock:
             self._set_index(key, position)
             self.state.loop_frames_for(self._get_trigger_set_id())[key] = list(frames)
             self.state.deferred_counters_for(self._get_trigger_set_id())[key] = list(deferred)
+        self._publish_call_view()
 
     def reset_loop_frames(self, key: str) -> None:
         key = normalize_key_name(key)
@@ -180,6 +202,7 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
         target, message = apply_control(self.state, (self._get_trigger_set_id(), key),
                                         op, self._find_trigger,
                                         self._prepare_control_target)
+        self._publish_call_view()
         if message and self._notify_message is not None:
             self._notify_message(message)
         return target
@@ -259,9 +282,10 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
             waiting = outcome.counter_deltas is None
         finally:
             if not waiting and outcome is not None:
-                commit_step(self.state, snapshot, outcome.counter_deltas)
+                self._commit_step_and_publish(snapshot, outcome.counter_deltas)
             with self.state.lock:
                 self.state.reentry_guard.discard(key)
+            self._publish_call_view()
             self._select_trigger(key)
             if target is not None:
                 self._select_trigger(target)
@@ -304,6 +328,7 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
         if self._run_to_end_call is not None:
             self._run_to_end_call_file_line = None
             self._run_to_end_call_token += 1
+            self._call_view_stopped(RUN_TO_END_CALL_VIEW, self._run_to_end_call)
 
     def resume_run_to_end(self) -> None:
         self.state.run_to_end_paused = False
@@ -326,7 +351,7 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
             resume = self._run_to_end_resume
             if key is not None and snapshot is not None:
                 self._set_index(key, self._run_to_end_wait_position)
-                commit_step(self.state, snapshot, resume.counter_deltas if resume else ())
+                self._commit_step_and_publish(snapshot, resume.counter_deltas if resume else ())
         self.state.run_to_end_key = None
         self.state.run_to_end_paused = False
         self._run_to_end_resume = None
@@ -335,6 +360,8 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
         self._update_status()
 
     def on_runtime_reset(self) -> None:
+        self._call_view_contexts.clear()
+        self._publish_call_view()
         if self.state.run_to_end_key is None:
             return
         self._discard_run_to_end_file_line()
@@ -475,7 +502,7 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
                 key, actions, outcome.position, outcome.frames,
                 outcome.processed, outcome.counter_deltas,
             )
-        commit_step(self.state, snapshot, outcome.counter_deltas)
+        self._commit_step_and_publish(snapshot, outcome.counter_deltas)
         if stop:
             self.stop_run_to_end()
         else:
@@ -507,7 +534,7 @@ class SequenceRunner(InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLin
                 self._queue_run_to_end_wait(key, settled, outcome, snapshot)
                 return deltas, position, False, True
         if (position == 0 or stopped) and deferred:
-            deltas += apply_deferred_counters(deferred, self.state.counters)
+            deltas += self._apply_deferred_counters_and_publish(deferred)
             deferred = ()
         if stopped:
             deltas, position = self._settle_after_stopped_sequence(

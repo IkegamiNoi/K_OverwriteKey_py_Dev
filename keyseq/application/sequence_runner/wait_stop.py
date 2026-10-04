@@ -5,8 +5,8 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import replace
 
-from keyseq.application.sequence_history import cancel_pending_steps, commit_step
-from keyseq.application.sequence_steps import apply_deferred_counters, settle_after_normal
+from keyseq.application.sequence_history import cancel_pending_steps
+from keyseq.application.sequence_steps import settle_after_normal
 from keyseq.domain.sequence_control import ACTION_TYPE_SYSTEM, OP_WAIT, action_type, system_op
 
 
@@ -39,6 +39,7 @@ class WaitStopMixin:
                 if pending.file_line is None and pending.call is None:
                     self._settle_stopped_wait(current[1], pending)
         cancel_pending_steps(self.state, self._after_cancel, identity)
+        self._publish_call_view()
 
     def _finish_run_to_end_wait(self) -> bool:
         key = self.state.run_to_end_key
@@ -75,7 +76,7 @@ class WaitStopMixin:
         position = settled.position
         deferred = settled.deferred_counters
         if (position == 0 or settled.stopped) and deferred:
-            deltas += apply_deferred_counters(deferred, self.state.counters)
+            deltas += self._apply_deferred_counters_and_publish(deferred)
             deferred = ()
         if settled.stopped:
             deltas, position = self._settle_after_stopped_sequence(
@@ -83,7 +84,7 @@ class WaitStopMixin:
             )
         else:
             self._save_progress(key, position, settled.frames, deferred)
-        commit_step(self.state, snapshot, deltas)
+        self._commit_step_and_publish(snapshot, deltas)
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
         self._run_to_end_wait_position = None

@@ -55,7 +55,7 @@
 - task_02: ステップの実行の土台と単発（段の印〔§4.1〕・1 押下 = 1 ステップ・押下の合間 = 単発の呼び出しの一時停止・待機と間隔・処理中の同じキーは無視・履歴は呼び出し全体で 1 段・単発の一時停止 → 再開で続きから〔§10-6〕）（§4.1・§4.2・§4.4） — **実装完了**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント使用・自己申告〕・処理中の同じキーの無視の条件をメインで「ステップの文脈」へ訂正〔タスク定義の誤り〕・reviewer 採用・tests 1139 / tests_ui 792 / smoke pass。統合確認は task_03a・実機目視 OK〔2026-10-04〕）
 - task_03: 連続実行のステップ（呼び出し先の停止の行・文脈ごとの「送った」の印・停止の後の分岐〔一時停止 / 終える〕・一括の互換・連続実行の一時停止 → 再開で続きから〔§10-6〕）（§4.3・§4.4） — **実装完了**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント使用・自己申告〕・連続実行の呼び出しの開始で step を渡していなかった入口も修正・reviewer 採用・tests 1152 / tests_ui 792 / smoke pass。統合確認は task_03a・実機目視 OK〔2026-10-04〕）
 - task_03a（2026-10-04 task_02・03 の統合確認〔deep-reviewer 採用 / codex-reviewer P2〕から）: 入れ子の一括の呼び出しの後のステップの区切り（P2）・単発で stopped の防御・送った印の持ち越しの修正（R1）・テスト追加 — **実装完了**（codex-implementer・reviewer 修正要 ×3 → 採用・tests 1165 / tests_ui 792 / smoke pass。実機目視 OK〔2026-10-04〕）
-- task_04: 表示の要約と通知の口（runner → UI のコールバック・表示する文脈の選び方・カウンターの再通知）（§5.2・§5.3 の application 側）
+- task_04: 表示の要約と通知の口（runner → UI のコールバック・表示する文脈の選び方・カウンターの再通知）（§5.2・§5.3 の application 側） — **完了**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント使用・自己申告〕・reviewer 修正して採用〔カウンターの再通知の漏れ → commit を包む口へ統一・runner 側を call_view_notice.py へ改名〕・tests 1184 / tests_ui 794 / smoke pass。キーマップの並べ替え〔app_state の forget / rekey〕での表示の残りは task_05 で確認）
 - task_05: フル表示の枠（出力シーケンスの一覧の下・境界線・開閉・読み取り専用の一覧と `▶`・経路の見出し）と高さの保存（`call_view_heights`）（§5.1〜§5.3・§6）
 - task_06: 省略表示の枠（トリガー一覧の下・表示の切替で同じ文脈）（§5.1・§5.2）
 - task_07: 正本反映（暫定 31 §12 の昇格・凍結）・`codebase_map.md`・`decisions_archive/45_call_step_and_view.md`・current.md の完了記載・`/refactor_check`。起票元 idea なし

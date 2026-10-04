@@ -79,6 +79,8 @@ class InputAcceptanceMixin:
             except Exception:
                 pass
         self._update_status()
+        if isinstance(pending.call, CallContext):
+            self._call_view_stopped((self._get_trigger_set_id(), key), pending.call)
 
     def _resume_single_call(self, key: str) -> None:
         trigger_set_id = self._get_trigger_set_id()

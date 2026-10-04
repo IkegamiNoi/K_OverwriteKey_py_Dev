@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Any
 
 from keyseq.application.app_state import PendingStep
-from keyseq.application.sequence_history import StepSnapshot, commit_step
+from keyseq.application.sequence_history import StepSnapshot
 from keyseq.application.sequence_steps import StepOutcome, resume_for_pending
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
 
@@ -74,9 +74,9 @@ class FileLineWaitMixin:
                 key, actions, pending.position, pending.resume, pending.snapshot,
             )
             if deltas is not None:
-                commit_step(self.state, pending.snapshot, deltas)
+                self._commit_step_and_publish(pending.snapshot, deltas)
         else:
-            commit_step(self.state, pending.snapshot, pending.resume.counter_deltas)
+            self._commit_step_and_publish(pending.snapshot, pending.resume.counter_deltas)
         self._select_trigger(key)
 
     def _discard_run_to_end_file_line(self) -> None:
@@ -172,7 +172,7 @@ class FileLineWaitMixin:
             stop = position == 0 or stopped
         else:
             deltas = resume.counter_deltas
-        commit_step(self.state, snapshot, deltas)
+        self._commit_step_and_publish(snapshot, deltas)
         self._run_to_end_snapshot = None
         self._select_trigger(key)
         if stop:

@@ -45,7 +45,7 @@ class FakeScheduler:
 
 
 class SequenceRunnerCallTests(unittest.TestCase):
-    def setUp(self):
+    def setUp(self, *, include_call_view=True):
         self.state = AppState()
         self.trigger_set_id = "set"
         self.trigger_sets = {"set": []}
@@ -56,9 +56,12 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.selected = []
         self.begin_results = []
         self.poll_results = []
+        self.call_views = []
         self.begin_result = object()
         self.perform_result = True
         self.perform_callback = None
+        notify_call_view = {"notify_call_view": self.call_views.append} \
+            if include_call_view else {}
         self.runner = SequenceRunner(
             state=self.state,
             find_trigger=self._find_trigger,
@@ -73,6 +76,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
             notify_message=self.messages.append,
             begin_file_line=self._begin,
             poll_file_line=self._poll,
+            **notify_call_view,
         )
 
     def _find_trigger(self, key):
@@ -107,6 +111,252 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
     def history(self, key="f1", trigger_set_id="set"):
         return self.state.history_for(trigger_set_id).get(key, [])
+
+    def test_call_view_stays_closed_for_uninterrupted_batch_call(self):
+        self.trigger("f1", [call("f5", all=True)])
+        self.trigger("f5", [text("A"), text("B")])
+
+        self.runner.handle_key("f1")
+        self.run_all()
+
+        self.assertEqual(self.call_views, [])
+
+    def test_runner_without_call_view_callback_keeps_existing_call_behavior(self):
+        self.setUp(include_call_view=False)
+        self.trigger("f1", [call("f5", all=True)])
+        self.trigger("f5", [text("A")])
+
+        self.runner.handle_key("f1")
+        self.run_all()
+
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+        self.assertFalse(self.call_views)
+
+    def test_call_view_opens_and_tracks_each_single_step_then_closes_on_success(self):
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [text("A"), text("B"), text("C")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertTrue(self.state.pending_steps[("set", "f1")].call_paused)
+        first = self.call_views[-1]
+        self.assertEqual(first.path, ("f1", "f5"))
+        self.assertEqual(first.position, 1)
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        second = self.call_views[-1]
+        self.assertEqual(second.path, ("f1", "f5"))
+        self.assertEqual(second.position, 2)
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertIsNone(self.call_views[-1])
+
+    def test_call_view_re_notifies_paused_context_when_other_trigger_changes_counter(self):
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [text("A"), text("B")])
+        self.trigger("f2", [system("counter_inc", counter="n")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        initial_count = len(self.call_views)
+        self.assertEqual(self.call_views[-1].counters.get("n", 0), 0)
+
+        self.runner.handle_key("f2")
+
+        self.assertGreater(len(self.call_views), initial_count)
+        self.assertEqual(self.call_views[-1].path, ("f1", "f5"))
+        self.assertEqual(self.call_views[-1].counters["n"], 1)
+
+    def test_call_view_re_notifies_when_paused_run_to_end_changes_counter(self):
+        self.trigger("f2", [text("continuous X"),
+                             system("counter_inc", counter="n"),
+                             text("continuous Y")], run_to_end=True)
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [text("step A"), text("step B")])
+
+        self.runner.handle_key("f2")
+        self.runner.pause_run_to_end()
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(self.call_views[-1].path, ("f1", "f5"))
+        initial_count = len(self.call_views)
+
+        self.runner.resume_run_to_end()
+        self.run_all()
+
+        self.assertGreater(len(self.call_views), initial_count)
+        self.assertEqual(self.call_views[-1].path, ("f1", "f5"))
+        self.assertEqual(self.call_views[-1].counters["n"], 1)
+
+    def test_call_view_re_notifies_after_send_wait_resumes_counter_step(self):
+        self.trigger("f2", [text("continuous X"), text("continuous Y"),
+                             system("wait", ms=100),
+                             system("counter_inc", counter="n")], run_to_end=True)
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [text("step A"), text("step B")])
+
+        self.runner.handle_key("f2")
+        self.runner.pause_run_to_end()
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(self.call_views[-1].path, ("f1", "f5"))
+        self.runner.resume_run_to_end()
+        self.scheduler.run_one()
+        self.assertEqual(self.scheduler.delays[-1], 100)
+        self.assertEqual(self.call_views[-1].counters.get("n", 0), 0)
+        initial_count = len(self.call_views)
+        self.scheduler.run_one()
+
+        self.assertGreater(len(self.call_views), initial_count)
+        self.assertEqual(self.call_views[-1].path, ("f1", "f5"))
+        self.assertEqual(self.call_views[-1].counters["n"], 1)
+
+    def test_call_view_closes_when_paused_single_call_is_discarded(self):
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [text("A"), text("B")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertTrue(self.call_views[-1])
+
+        self.runner.discard_paused(("f1",))
+
+        self.assertIsNone(self.call_views[-1])
+
+    def test_call_view_re_notifies_after_deferred_counter_is_applied(self):
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [text("A"), text("B")])
+        self.trigger("f2", [text("X"), system("counter_inc", counter="n"), text("Y")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.runner.handle_key("f2")
+        before = self.call_views[-1]
+        self.assertEqual(before.counters.get("n", 0), 0)
+        notification_count = len(self.call_views)
+        self.runner.handle_key("f2")
+
+        self.assertGreater(len(self.call_views), notification_count)
+        self.assertEqual(self.call_views[-1].path, ("f1", "f5"))
+        self.assertEqual(self.call_views[-1].counters["n"], 1)
+        self.assertEqual(before.counters.get("n", 0), 0)
+
+    def test_call_view_re_notifies_after_back_and_rewind_on_other_trigger(self):
+        for op in ("back", "rewind"):
+            with self.subTest(op=op):
+                self.setUp()
+                self.trigger("f1", [call("f5")])
+                self.trigger("f5", [text("A"), text("B")])
+                self.trigger("f2", [system("counter_inc", counter="n")])
+                self.trigger("f3", [system(op)])
+                self.runner.handle_key("f1")
+                self.scheduler.run_one()
+                self.runner.handle_key("f2")
+                self.assertEqual(self.call_views[-1].counters["n"], 1)
+                notification_count = len(self.call_views)
+
+                self.runner.handle_key("f3")
+
+                self.assertGreater(len(self.call_views), notification_count)
+                self.assertEqual(self.call_views[-1].path, ("f1", "f5"))
+                expected_counter = 0 if op == "back" else 1
+                self.assertEqual(self.call_views[-1].counters.get("n", 0), expected_counter)
+
+    def test_call_view_closes_on_runtime_reset_with_only_a_paused_single_call(self):
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [text("A"), text("B")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertTrue(self.call_views[-1])
+
+        self.runner.on_runtime_reset()
+
+        self.assertIsNone(self.call_views[-1])
+
+    def test_call_view_closes_when_paused_call_errors_or_hook_cancels(self):
+        for close in ("error", "hook"):
+            with self.subTest(close=close):
+                self.setUp()
+                self.trigger("f1", [call("f5")])
+                target_actions = [text("A"), call("missing")] if close == "error" \
+                    else [text("A"), text("B")]
+                self.trigger("f5", target_actions)
+
+                self.runner.handle_key("f1")
+                self.scheduler.run_one()
+                self.assertTrue(self.call_views[-1])
+
+                if close == "error":
+                    self.runner.handle_key("f1")
+                    self.scheduler.run_one()
+                else:
+                    self.runner.cancel_pending_waits()
+
+                self.assertIsNone(self.call_views[-1])
+
+    def test_call_view_closes_when_run_to_end_is_stopped_or_runtime_reset(self):
+        for close in ("stop", "reset"):
+            with self.subTest(close=close):
+                self.setUp()
+                self.trigger("f1", [call("f5", all=True)], run_to_end=True)
+                self.trigger("f5", [text("A"), text("B")])
+                self.runner.handle_key("f1")
+                self.scheduler.run_one()
+                self.runner.pause_run_to_end()
+                self.assertTrue(self.call_views[-1])
+
+                if close == "stop":
+                    self.runner.stop_run_to_end()
+                else:
+                    self.runner.on_runtime_reset()
+
+                self.assertIsNone(self.call_views[-1])
+
+    def test_call_view_opens_for_continuous_stop_row_and_tracks_resume(self):
+        self.trigger("f1", [call("f5")], run_to_end=True)
+        self.trigger("f5", [text("A"), system("stop"), text("B"), text("C")])
+
+        self.runner.handle_key("f1")
+        self.run_all()
+
+        stopped_summary = self.call_views[-1]
+        self.assertIsNotNone(stopped_summary)
+        self.assertEqual(stopped_summary.path, ("f1", "f5"))
+        stopped_position = stopped_summary.position
+
+        self.runner.resume_run_to_end()
+        self.run_all()
+
+        self.assertTrue(any(
+            summary is not None and summary.path == ("f1", "f5")
+            and summary.position != stopped_position
+            for summary in self.call_views
+        ))
+        self.assertIsNone(self.call_views[-1])
+
+    def test_call_view_selects_last_stopped_context_then_restores_previous(self):
+        self.trigger("f2", [call("f6", all=True)], run_to_end=True)
+        self.trigger("f6", [text("continuous A"), text("continuous B")])
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [text("step A"), text("step B")])
+
+        self.runner.handle_key("f2")
+        self.scheduler.run_one()
+        self.runner.pause_run_to_end()
+        self.assertEqual(self.call_views[-1].path, ("f2", "f6"))
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(self.call_views[-1].path, ("f1", "f5"))
+
+        self.runner.cancel_pending_wait("f1")
+        self.assertEqual(self.call_views[-1].path, ("f2", "f6"))
+
+        self.runner.stop_run_to_end()
+        self.assertIsNone(self.call_views[-1])
 
     def test_01_single_press_calls_target_and_returns_to_callers_next_action(self):
         self.trigger("f1", [call("f5", all=True), text("X")])

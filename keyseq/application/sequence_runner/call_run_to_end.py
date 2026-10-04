@@ -11,8 +11,9 @@ from keyseq.application.call_context import (
     finish_call_action,
     start_call,
 )
-from keyseq.application.sequence_history import StepSnapshot, commit_step
+from keyseq.application.sequence_history import StepSnapshot
 from keyseq.application.sequence_steps import StepOutcome, after_normal_action, resume_for_pending
+from keyseq.application.sequence_runner.call_view_notice import RUN_TO_END_CALL_VIEW
 from keyseq.application.sequence_runner.file_line_wait import (
     FILE_LINE_POLL_INTERVAL_MS,
     FILE_LINE_UNAVAILABLE_MESSAGE,
@@ -55,6 +56,7 @@ class CallRunToEndMixin:
         self._run_to_end_call = None
         self._run_to_end_call_file_line = None
         self._run_to_end_call_token += 1
+        self._call_view_disappeared(RUN_TO_END_CALL_VIEW)
 
     def _run_to_end_call_is_current(self, generation: int, key: str, token: int) -> bool:
         return (
@@ -130,6 +132,7 @@ class CallRunToEndMixin:
             self._run_to_end_resume = replace(
                 resume, counter_deltas=resume.counter_deltas + deltas,
             )
+        self._publish_call_view()
 
     def _schedule_run_to_end_call(
         self, generation: int, key: str, token: int, delay: int,
@@ -301,7 +304,7 @@ class CallRunToEndMixin:
         self._run_to_end_wait_position = None
         self._run_to_end_resume = None
         if snapshot is not None and resume is not None:
-            commit_step(self.state, snapshot, resume.counter_deltas)
+            self._commit_step_and_publish(snapshot, resume.counter_deltas)
         self.stop_run_to_end()
 
     def _complete_run_to_end_call(
@@ -338,7 +341,7 @@ class CallRunToEndMixin:
         if waiting:
             self._select_trigger(key)
             return
-        commit_step(self.state, snapshot, deltas)
+        self._commit_step_and_publish(snapshot, deltas)
         self._run_to_end_snapshot = None
         self._select_trigger(key)
         if position == 0 or stopped:
