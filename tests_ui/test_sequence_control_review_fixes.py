@@ -8,6 +8,7 @@ from tkinter import messagebox
 
 from keyseq.presentation.controllers.trigger_panel import action_edit as action_edit_module
 from keyseq.presentation.controllers.trigger_panel import trigger_panel_controller as trigger_module
+from keyseq.presentation.controllers.trigger_panel import trigger_row_edit as trigger_row_module
 from keyseq.presentation.controllers.hook_controller import HookController
 from keyseq.presentation.controllers.keymap_panel.keymap_panel_controller import KeymapPanelController
 from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
@@ -158,7 +159,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         controller.refresh_triggers = Mock()
         controller.refresh_actions = Mock()
         dialog = SimpleNamespace(result={"key": "b", "label": "new"}, wait_window=Mock())
-        with patch.object(trigger_module, "TriggerDialog", return_value=dialog):
+        with patch.object(trigger_row_module, "TriggerDialog", return_value=dialog):
             controller.rename_trigger()
         state.rekey_trigger.assert_called_once_with("main", "a", "b")
         self.assertEqual(app._indices, {"b": 1})
@@ -198,7 +199,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         controller.refresh_actions = Mock()
         dialog = SimpleNamespace(result={"key": "z8", "label": "renamed"}, wait_window=Mock())
 
-        with patch.object(trigger_module, "TriggerDialog", return_value=dialog):
+        with patch.object(trigger_row_module, "TriggerDialog", return_value=dialog):
             controller.rename_trigger()
 
         self.assertEqual(caller["actions"], [{"type": "system", "op": "call", "target": "z8"}])

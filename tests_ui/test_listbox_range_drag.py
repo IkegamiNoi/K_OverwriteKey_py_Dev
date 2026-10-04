@@ -4,8 +4,50 @@ import tkinter as tk
 import unittest
 from unittest.mock import Mock
 
-from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag
+from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag, range_or_index
 from keyseq.presentation.listbox_utils import listbox_mouse_button_is_down
+
+
+class RangeOrIndexTest(unittest.TestCase):
+    def test_returns_valid_selected_range(self):
+        box = Mock()
+        box.curselection.return_value = (1, 2, 3)
+        self.assertEqual(range_or_index(box, 5, 4, compact=False), (1, 3))
+
+    def test_uses_fallback_for_range_outside_length(self):
+        box = Mock()
+        box.curselection.return_value = (1, 5)
+        self.assertEqual(range_or_index(box, 5, 3, compact=False), (3, 3))
+
+    def test_uses_fallback_for_range_below_zero(self):
+        box = Mock()
+        box.curselection.return_value = (-1, 2)
+        self.assertEqual(range_or_index(box, 5, 3, compact=False), (3, 3))
+
+    def test_ignores_selection_in_compact_mode(self):
+        box = Mock()
+        self.assertEqual(range_or_index(box, 5, 4, compact=True), (4, 4))
+        box.curselection.assert_not_called()
+
+    def test_returns_none_for_missing_or_out_of_range_fallback(self):
+        box = Mock()
+        box.curselection.return_value = ()
+        self.assertIsNone(range_or_index(box, 5, None, compact=False))
+        self.assertIsNone(range_or_index(box, 5, 5, compact=False))
+
+    def test_returns_none_for_negative_fallback_and_zero_length(self):
+        box = Mock()
+        box.curselection.return_value = ()
+        self.assertIsNone(range_or_index(box, 5, -1, compact=False))
+        self.assertIsNone(range_or_index(box, 0, 0, compact=False))
+
+    def test_allows_fallback_without_listbox(self):
+        self.assertEqual(range_or_index(None, 5, 2, compact=False), (2, 2))
+
+    def test_empty_selection_uses_valid_fallback(self):
+        box = Mock()
+        box.curselection.return_value = ()
+        self.assertEqual(range_or_index(box, 5, 2, compact=False), (2, 2))
 
 
 class ListboxRangeDragTest(unittest.TestCase):

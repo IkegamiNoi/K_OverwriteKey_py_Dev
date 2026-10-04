@@ -6,7 +6,7 @@ from keyseq.domain.config import normalize_key_name
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.list_editing import move_block, numbered_labels
 from keyseq.presentation.list_clipboard import CLIP_TRIGGERS
-from keyseq.presentation.listbox_range_drag import selected_range
+from keyseq.presentation.listbox_range_drag import range_or_index
 from keyseq.presentation.controllers.trigger_panel.effective_row_transition import (
     apply_effective_row_transition,
 )
@@ -25,13 +25,12 @@ class TriggerListEditFlow:
 
     def selection_bounds(self) -> tuple[int, int] | None:
         triggers = get_active_triggers(self._app.data)
-        listbox = self.listbox
-        if listbox is not None and not getattr(self._app, "_compact_mode", False):
-            bounds = selected_range(listbox)
-            if bounds is not None and 0 <= bounds[0] <= bounds[1] < len(triggers):
-                return bounds
-        index = self._panel.selected_trigger_index()
-        return (index, index) if index is not None and 0 <= index < len(triggers) else None
+        return range_or_index(
+            self.listbox,
+            len(triggers),
+            self._panel.selected_trigger_index(),
+            compact=getattr(self._app, "_compact_mode", False),
+        )
 
     def move_trigger_range(self, start: int, end: int, target_start: int) -> bool:
         triggers = get_active_triggers(self._app.data)

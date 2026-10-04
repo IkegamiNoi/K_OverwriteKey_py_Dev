@@ -15,6 +15,23 @@ def selected_range(listbox: tk.Listbox) -> tuple[int, int] | None:
     return (min(selected), max(selected)) if selected else None
 
 
+def range_or_index(
+    listbox: tk.Listbox | None,
+    length: int,
+    fallback_index: int | None,
+    *,
+    compact: bool,
+) -> tuple[int, int] | None:
+    """Return a valid selected range or a valid fallback row as bounds."""
+    if listbox is not None and not compact:
+        bounds = selected_range(listbox)
+        if bounds is not None and 0 <= bounds[0] <= bounds[1] < length:
+            return bounds
+    if fallback_index is not None and 0 <= fallback_index < length:
+        return fallback_index, fallback_index
+    return None
+
+
 def select_range(
     listbox: tk.Listbox, start: int, end: int, *, active: int | None = None
 ) -> None:

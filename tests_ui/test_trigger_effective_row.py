@@ -3,7 +3,7 @@ from unittest.mock import patch
 
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
-from keyseq.presentation.controllers.trigger_panel import trigger_panel_controller as panel_module
+from keyseq.presentation.controllers.trigger_panel import trigger_row_edit as panel_module
 
 
 class _DialogResult:

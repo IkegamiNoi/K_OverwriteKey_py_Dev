@@ -6,7 +6,7 @@ from keyseq.presentation.app import App
 from keyseq.application.sequence_steps import LoopFrame
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.controllers.trigger_panel import action_edit as action_edit_module
-from keyseq.presentation.controllers.trigger_panel import trigger_panel_controller as panel_module
+from keyseq.presentation.controllers.trigger_panel import trigger_row_edit as panel_module
 from keyseq.presentation.list_clipboard import CLIP_ACTIONS
 from tests_ui.test_trigger_effective_row import _DialogResult, make_runtime
 

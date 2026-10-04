@@ -7,7 +7,11 @@ from keyseq.domain.config import normalize_key_name
 from keyseq.domain.keymap_triggers import iter_trigger_sets
 from keyseq.domain.list_editing import move_block
 from keyseq.presentation.list_clipboard import CLIP_KEYMAPS
-from keyseq.presentation.listbox_range_drag import selected_range, select_range
+from keyseq.presentation.listbox_range_drag import (
+    range_or_index,
+    selected_range,
+    select_range,
+)
 from keyseq.presentation.listbox_utils import listbox_mouse_button_is_down
 
 
@@ -23,12 +27,12 @@ class KeymapListEditFlow:
 
     def selection_bounds(self) -> tuple[int, int] | None:
         keymaps = self._app.keymap_service.get_keymaps(self._app.data)
-        if self.listbox is not None and not getattr(self._app, "_compact_mode", False):
-            bounds = selected_range(self.listbox)
-            if bounds is not None and 0 <= bounds[0] <= bounds[1] < len(keymaps):
-                return bounds
-        index = self._panel.selected_keymap_list_index()
-        return (index, index) if index is not None and 0 <= index < len(keymaps) else None
+        return range_or_index(
+            self.listbox,
+            len(keymaps),
+            self._panel.selected_keymap_list_index(),
+            compact=getattr(self._app, "_compact_mode", False),
+        )
 
     def commit_selection(self) -> None:
         box = self.listbox

@@ -75,6 +75,7 @@ keyseq/presentation/
             __init__.py        # TriggerPanelController の再輸出
             trigger_panel_controller.py  # TriggerPanelController: トリガー一覧・描画・状態表示・アクション編集の委譲
             action_edit.py     # ActionEditFlow: 出力シーケンスの選択・追加・編集・削除・移動
+            trigger_row_edit.py  # TriggerRowEditFlow: トリガー行の追加・改名・削除（controller から遅延生成して委譲）
             trigger_list_edit.py  # TriggerListEditFlow: フル表示のトリガー範囲移動・削除・コピー/末尾貼り付け（有効行交代の口を使用）
             effective_row_transition.py  # 有効な行の交代の口: 交代するキーに進行中の実行があれば拒否・交代したキーの状態を削除と同じく消す（phase 43）
         action_list_rendering.py   # build_action_rows / format_next_action_summary: 出力シーケンス一覧の 1 行の文字列と背景色（tkinter 非依存・phase 37）
@@ -103,7 +104,7 @@ keyseq/presentation/
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）
       trigger_dialog.py        # TriggerDialog
       keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集。phase 43 以降はダブルクリック編集だけで使う）
-      keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・phase 43）
+      keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・行/スクロール領域/ボタンとバインドの生成は専用メソッド・phase 43）
       layout_delete_dialog.py  # LayoutDeleteDialog
       escape_close.py          # bind_escape_close（Esc に別用途がある 4 ダイアログの Escape 結線。印はクロージャに持つ・提案書 11 / phase 28 task_07）
       orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
@@ -113,7 +114,7 @@ keyseq/presentation/
     keyboard_layouts.py
     keyboard_window.py
     listbox_utils.py
-    listbox_range_drag.py      # ListboxRangeDrag / bind_listbox_range_drag: 対象 4 一覧の連続範囲選択・ドラッグ移動のプレビューと確定・Escape の取り消し・自動スクロール・Tk 既定バインドの置き換え（phase 43）
+    listbox_range_drag.py      # ListboxRangeDrag / bind_listbox_range_drag: 対象 4 一覧の連続範囲選択・ドラッグ移動のプレビューと確定・Escape の取り消し・自動スクロール・Tk 既定バインドの置き換え。range_or_index: 有効な選択範囲か代替の 1 行を取得（compact は範囲を無視・phase 43）
     list_clipboard.py          # ListClipboard: 一覧の Ctrl+C / V のアプリ内保管庫（種類つきの写し・構成セットの読込 / 新規作成で空にする・phase 43）
     modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
@@ -308,7 +309,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     自動決定幅と同じなら書かない → 異なれば無効化 → 保存値と同じなら書かない）。
     予約は `on_close`（`cancel_window_width_save`）と App の `<Destroy>` で取り消す。**終了時には書かない**
 - KeymapPanelController（controllers/keymap_panel/keymap_panel_controller.py）: キーマップ管理パネル。追加フローは `KeymapAddFlow`（同フォルダ `keymap_add_flow.py`）へ委譲
-- TriggerPanelController（controllers/trigger_panel/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示。アクション編集は `ActionEditFlow`（同フォルダ `action_edit.py`）、フル表示のトリガー範囲操作は `TriggerListEditFlow`（`trigger_list_edit.py`）へ委譲。編集再描画では範囲と下線の行を維持し、実行による選択は単一選択へ戻す
+- TriggerPanelController（controllers/trigger_panel/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示。アクション編集は `ActionEditFlow`（同フォルダ `action_edit.py`）、フル表示のトリガー範囲操作は `TriggerListEditFlow`（`trigger_list_edit.py`）、トリガー行の追加・改名・削除は `TriggerRowEditFlow`（`trigger_row_edit.py`）へ遅延生成して委譲。編集再描画では範囲と下線の行を維持し、実行による選択は単一選択へ戻す
 - HookController（controllers/hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
   - `register_hook_buttons(hook_btn, trigger_btn, *, fixed_width=False)`: `fixed_width=True`（FullHookFrame のみ）の組は登録時と `apply_fixed_button_widths()` で最大文言幅に固定する
   - **`suspend_hook_for_dialog(window)` はウィンドウを渡すと破棄時に自動で解除する**
@@ -636,7 +637,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 | `application/file_line_reader.py` | file_line の読込の部品（パス解決 §5.7・`validate_file_line_request`〔I/O なし〕/ `load_file_lines`〔1 MB 上限・utf-8-sig / cp932・改行 3 種のみで分割〕/ `pick_file_line`〔範囲外 3 種〕。`read_file_line` は 3 つの合成で本番からは呼ばない） |
 | `application/file_line_loader.py`（phase 38） | `FileLineLoader`: 読込キー（正規化パス, encoding）ごとの登録簿（同時 1 本・待ち合わせ・上限超過の印）と行の一覧のキャッシュ（stat 確認・世代つき全破棄 `clear_cache`）。共有状態はすべて 1 つの `threading.Lock` 下、`stat` / `load` はロック外。ワーカー起動・時計・stat・load は差し替え可能（テスト用） |
 | `presentation/controllers/action_list_rendering.py` | 一覧の 1 行（周回・カウンターの現在値）と背景色、省略表示の要約。色値（薄 / 中 / 濃）: 青 `#DCEBFF` / `#C2DBFF` / `#A8CBFF`・緑 `#DDF3DD` / `#C4E8C4` / `#ABDDAB`・橙 `#FFEBD2` / `#FFDDB3` / `#FFCF94` |
-| `presentation/controllers/trigger_panel/trigger_panel_controller.py` / `presentation/controllers/trigger_panel/action_edit.py` | トリガーパネルの一覧・描画・状態表示 / `ActionEditFlow` による出力シーケンスの選択・追加・編集・削除・移動 |
+| `presentation/controllers/trigger_panel/trigger_panel_controller.py` / `presentation/controllers/trigger_panel/action_edit.py` / `presentation/controllers/trigger_panel/trigger_row_edit.py` | トリガーパネルの一覧・描画・状態表示 / `ActionEditFlow` による出力シーケンスの選択・追加・編集・削除・移動 / `TriggerRowEditFlow` によるトリガー行の追加・改名・削除 |
 
 - 取り消しの配線（presentation）: 一時停止中のものを捨てる `SequenceRunner.discard_paused` は `KeymapPanelController` のキーマップの切替・アクティブの削除から（phase 40）/ `HookController.stop_hook` と `toggle_custom_input_enabled`（無効化）→ `cancel_pending_waits` / `KeymapPanelController.activate_keymap_by_id`（切り替わったとき）→ `cancel_pending_waits` /
   `TriggerPanelController` の位置変更（位置が実際に変わったときだけ）・追加 / 編集 / 削除 / 移動 → `reset_loop_frames`、トリガー削除・改名 → `cancel_pending_wait` と `AppState.forget_trigger` / `rekey_trigger`。
@@ -661,7 +662,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - 待機の扱い: `sequence_steps.settle_after_normal` の `wait_mode`（`stop` = 待機の行で止まる〔既定。呼び出しの文脈の中〈`in_call`〉は常にこの扱い〕/ `wait` = 送った後に待つ / `skip` = 止めた後・停止の後で読み飛ばす）と
     `StepResume.deferred_counters`（待機をまたいで控えるカウンター操作）。`advance` は送る前の待機を読み飛ばす。
   - presentation: `KeymapPanelController` がキーマップの切替・アクティブの削除で `discard_paused` を呼ぶ（実行中の拒否は `AppState.can_switch_keymap`）/
-    `trigger_panel/action_edit.py` が呼び出し先の候補と `edit_call_violation` を編集ダイアログ（`action_control_fields.py`）へ渡す / `trigger_panel_controller.py` の改名で `rename_call_targets`。
+    `trigger_panel/action_edit.py` が呼び出し先の候補と `edit_call_violation` を編集ダイアログ（`action_control_fields.py`）へ渡す / `trigger_panel/trigger_row_edit.py` の改名で `rename_call_targets`。
   - テスト: `tests/test_call_graph.py` / `test_call_context.py` / `test_sequence_runner_call.py`（ほか phase 37〜39 のテストへ追補）。
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。

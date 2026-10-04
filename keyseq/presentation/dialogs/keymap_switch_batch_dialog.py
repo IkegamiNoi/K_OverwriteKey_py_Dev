@@ -48,7 +48,17 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         outer = ttk.Frame(self, padding=12)
         outer.pack(fill="both", expand=True)
         single_row = len(rows) == 1
+        rows_frame = self._build_rows_area(outer, rows)
+        self.hint = ttk.Label(outer, text="例) 切替キー: 1\nラベル: numpad")
+        self._build_rows(rows_frame, rows, single_row)
+        self.hint.pack(anchor="w", pady=(0, 0))
+        self._build_buttons(outer)
+        self._bind_dialog_events()
+        grab_modal(self, parent, focus=self.label_entries[0] if self.label_entries else None)
 
+    def _build_rows_area(
+        self, outer: ttk.Frame, rows: list[tuple[str, str, str, str]]
+    ) -> ttk.Frame:
         if len(rows) > self._SCROLL_THRESHOLD:
             body = ttk.Frame(outer)
             body.pack(fill="both", expand=True)
@@ -76,8 +86,14 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             self._rows_frame = rows_frame
             rows_frame.pack(fill="both", expand=True)
             self._canvas = None
+        return rows_frame
 
-        self.hint = ttk.Label(outer, text="例) 切替キー: 1\nラベル: numpad")
+    def _build_rows(
+        self,
+        rows_frame: ttk.Frame,
+        rows: list[tuple[str, str, str, str]],
+        single_row: bool,
+    ) -> None:
         for index, (kind, name, initial_label, initial_key) in enumerate(rows):
             row = ttk.Frame(rows_frame, padding=(0, 0, 0, 10))
             row.pack(fill="x", expand=True)
@@ -115,16 +131,16 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             self.clear_buttons.append(clear_btn)
             self.label_entries.append(label_entry)
 
-        self.hint.pack(anchor="w", pady=(0, 0))
+    def _build_buttons(self, outer: ttk.Frame) -> None:
         btns = ttk.Frame(outer)
         btns.pack(fill="x", pady=(14, 0))
         ttk.Button(btns, text="OK", command=self._ok).pack(side="right", padx=(8, 0))
         ttk.Button(btns, text="キャンセル", command=self._cancel).pack(side="right")
 
+    def _bind_dialog_events(self) -> None:
         self.bind("<Escape>", self._on_escape)
         self.bind("<KeyRelease-Escape>", self._on_escape_release)
         self.protocol("WM_DELETE_WINDOW", self._cancel)
-        grab_modal(self, parent, focus=self.label_entries[0] if self.label_entries else None)
 
     def _ok(self) -> None:
         values = [
