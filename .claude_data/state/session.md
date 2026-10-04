@@ -11,7 +11,7 @@ last_commit_location: `claude/output-sequence-duplication-range-4b01f6`（a71ee4
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 44 完了（2026-10-04・子ファイル保存ダイアログの高さと列幅・decisions_archive/44）。アクティブなフェーズなし。次採番 = phase 45 / 暫定 31 / decisions 45 / 提案書 19。**
+focus: **phase 45 起票（呼び出しのステップ実行と呼び出し先の表示・暫定 31 v0.4）。次は task_01（呼び出しの行の step）。**
 mode: in_progress（ユーザーがタスクの連続実行を許可 2026-10-03。スペックフラグ・フォールバック・実機目視では止まる）
 
 ## last_action

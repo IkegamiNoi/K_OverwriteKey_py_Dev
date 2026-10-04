@@ -7,7 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 44 は 2026-10-04 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- **アクティブなフェーズ = [phase 45](45_call_step_and_view/phase.md)**（2026-10-04 起票・呼び出しのステップ実行と呼び出し先の表示。暫定仕様先行モード）。
+  呼び出しの行ごとに一括 / ステップを選び、ステップは呼び出し先の中も 1 押下ずつ進め停止の行を効かせる。呼び出し先の中で止まったら写し・位置・経路を表示する枠を開く（フル / 省略表示）。
+  JSON は呼び出しの行の `step` と config.json の `call_view_heights` を追加（後方互換）。主入力 = 暫定仕様 [31_call_step_and_view.md](../history/31_call_step_and_view.md)（v0.4・ユーザー確定済）。
+  起票元 = ユーザー要望（2026-10-04）。番号対応: phase 45 / 暫定 31 / decisions 45。
 - 直前の完了フェーズ = [phase 44](44_child_save_dialog_layout/phase.md)（2026-10-04・子ファイル保存ダイアログの高さと列幅の調整・
   判断は [decisions_archive/44](../../.claude_data/state/decisions_archive/44_child_save_dialog_layout.md)）/
   [phase 43](43_list_reorder_range_copy/phase.md)（2026-10-04・一覧のドラッグ移動・範囲選択・複製・
@@ -60,7 +63,8 @@
   **phase 42 は 2026-10-02 完了**（`42_listbox_click_selection_sync` / 暫定なし〔直接改訂モード〕/ decisions 42〔アーカイブ済〕）。
   **phase 43 は 2026-10-04 完了**（`43_list_reorder_range_copy` / 暫定 30〔v0.11・凍結〕/ decisions 43〔アーカイブ済〕）。
   **phase 44 は 2026-10-04 完了**（`44_child_save_dialog_layout` / 暫定なし〔直接改訂モード〕/ decisions 44〔アーカイブ済〕）。
-  次フェーズは **`45_<topic>`**・decisions も **45** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 45 は 2026-10-04 起票・進行中**（`45_call_step_and_view` / 暫定 31 / decisions 45）。
+  次フェーズは **`46_<topic>`**・decisions も **46** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -87,8 +91,9 @@
   27=file_line の非同期読込〔**v0.8・凍結**〕/
   28=制御アクション第 2 弾 前半（停止）〔**v0.6・凍結**・§9 は phase 40 の起票元〕/
   29=制御アクション第 2 弾 後半（呼び出し）〔**v0.9・凍結**〕/
-  30=一覧のドラッグ移動・範囲選択・複製〔v0.11・凍結〕）。
-  次採番は **`31_<topic>`**。
+  30=一覧のドラッグ移動・範囲選択・複製〔v0.11・凍結〕 /
+  31=呼び出しのステップ実行と呼び出し先の表示〔**v0.4・ユーザー確定済・phase 45 の主入力**〕）。
+  次採番は **`32_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**17 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
