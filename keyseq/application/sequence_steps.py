@@ -342,7 +342,7 @@ def settle_after_normal(actions: Sequence[Any], position: int,
             position += 1
             processed += 1
             continue
-        if op == OP_WAIT and not in_call and wait_mode != "stop":
+        if op == OP_WAIT and wait_mode != "stop" and (not in_call or wait_mode == "skip"):
             try:
                 wait_ms = int(action.get("ms"))
             except (TypeError, ValueError, OverflowError):

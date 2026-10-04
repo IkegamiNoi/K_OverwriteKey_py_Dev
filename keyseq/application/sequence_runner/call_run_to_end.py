@@ -12,14 +12,14 @@ from keyseq.application.call_context import (
     start_call,
 )
 from keyseq.application.sequence_history import StepSnapshot, commit_step
-from keyseq.application.sequence_steps import StepOutcome, resume_for_pending
+from keyseq.application.sequence_steps import StepOutcome, after_normal_action, resume_for_pending
 from keyseq.application.sequence_runner.file_line_wait import (
     FILE_LINE_POLL_INTERVAL_MS,
     FILE_LINE_UNAVAILABLE_MESSAGE,
 )
 from keyseq.domain.call_graph import call_target
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
-from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE
+from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE, is_step_call
 
 
 class CallRunToEndMixin:
@@ -36,6 +36,7 @@ class CallRunToEndMixin:
     ) -> None:
         ctx = start_call(
             self._get_trigger_set_id(), key, call_target(actions[index]), self._find_trigger,
+            step=is_step_call(actions[index]),
         )
         self._run_to_end_resume = resume_for_pending(outcome, initial_position)
         self._run_to_end_snapshot = snapshot
@@ -106,7 +107,7 @@ class CallRunToEndMixin:
         if not isinstance(ctx, CallContext) or not self._run_to_end_call_parent_is_current(ctx):
             self._abandon_invalid_run_to_end_call()
             return
-        step = call_step(ctx, self.state.counters)
+        step = call_step(ctx, self.state.counters, run_to_end=True)
         self._append_run_to_end_call_deltas(step.counter_deltas)
         if step.kind == "action":
             self._perform_run_to_end_call_action(generation, key, token, ctx, step)
@@ -116,6 +117,8 @@ class CallRunToEndMixin:
             self._report_run_to_end_call_error(generation, key, token, ctx, step)
         elif step.kind == "done":
             self._complete_run_to_end_call(generation, key, token, ctx)
+        elif step.kind == "stopped":
+            self._handle_stopped_run_to_end_call(generation, key, token, ctx, step)
 
     def _append_run_to_end_call_deltas(
         self, deltas: tuple[tuple[str, int], ...],
@@ -157,7 +160,7 @@ class CallRunToEndMixin:
         if not self._run_to_end_call_parent_is_current(ctx):
             self._abandon_invalid_run_to_end_call()
             return
-        following = finish_call_action(ctx, self.state.counters)
+        following = finish_call_action(ctx, self.state.counters, run_to_end=True)
         self._append_run_to_end_call_deltas(following.counter_deltas)
         self._handle_finished_run_to_end_call(generation, key, token, ctx, following)
 
@@ -234,7 +237,7 @@ class CallRunToEndMixin:
             )
             return
         self._run_to_end_call_file_line = None
-        following = finish_call_action(ctx, self.state.counters)
+        following = finish_call_action(ctx, self.state.counters, run_to_end=True)
         self._append_run_to_end_call_deltas(following.counter_deltas)
         self._handle_finished_run_to_end_call(generation, key, token, ctx, following)
 
@@ -250,6 +253,18 @@ class CallRunToEndMixin:
             self._complete_run_to_end_call(generation, key, token, ctx)
         elif step.kind == "error":
             self._report_run_to_end_call_error(generation, key, token, ctx, step)
+        elif step.kind == "stopped":
+            self._handle_stopped_run_to_end_call(generation, key, token, ctx, step)
+
+    def _handle_stopped_run_to_end_call(
+        self, generation: int, key: str, token: int,
+        ctx: CallContext, step: CallStep,
+    ) -> None:
+        if step.call_done:
+            self._complete_run_to_end_call(generation, key, token, ctx, stopped_call=True)
+        else:
+            self.pause_run_to_end()
+            self._update_status()
 
     def _report_run_to_end_call_error(
         self, generation: int, key: str, token: int,
@@ -289,6 +304,7 @@ class CallRunToEndMixin:
 
     def _complete_run_to_end_call(
         self, generation: int, key: str, token: int, ctx: CallContext,
+        *, stopped_call: bool = False,
     ) -> None:
         if not self._run_to_end_call_is_current(generation, key, token):
             return
@@ -307,9 +323,16 @@ class CallRunToEndMixin:
         self._run_to_end_sent = True
         self._run_to_end_resume = None
         self._run_to_end_wait_position = None
-        deltas, position, stopped, waiting = self._finish_run_to_end_normal_action(
-            key, actions, index, resume, snapshot,
-        )
+        if stopped_call:
+            position, frames = after_normal_action(actions, index, self._get_frames(key))
+            deltas, position = self._settle_after_stopped_sequence(
+                key, actions, position, frames, resume.processed, resume.counter_deltas,
+            )
+            stopped, waiting = True, False
+        else:
+            deltas, position, stopped, waiting = self._finish_run_to_end_normal_action(
+                key, actions, index, resume, snapshot,
+            )
         if waiting:
             self._select_trigger(key)
             return
