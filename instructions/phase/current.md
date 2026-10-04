@@ -10,7 +10,7 @@
 - **アクティブなフェーズ = [phase 43](43_list_reorder_range_copy/phase.md)**（2026-10-02 起票・一覧のドラッグ移動・範囲選択・複製。暫定仕様先行モード）。
   フル表示のキーマップ一覧・トリガー一覧・出力シーケンスとプリセット一覧に、ドラッグ移動・Shift の連続範囲選択・まとめて移動を加え、プリセット以外に複製（Ctrl+C → Ctrl+V・出力シーケンスの複製ボタン）を加える。
   トリガーの同じキーは上の行が有効・下をグレー表示（実行中の状態はキー単位のまま）。JSON スキーマ変更なし。
-  主入力 = 暫定仕様 [30_list_reorder_range_copy.md](../history/30_list_reorder_range_copy.md)（v0.9・ユーザー確定済〔v0.5 = ループの片側の補完・v0.6 = 保存計画の識別子・v0.7 = 保存の照合後の文言。いずれも 2026-10-03 / v0.8 = §5.1 の呼び出し先 = 現在のフレーム / v0.9 = 切替キーのまとめて設定〔いずれも 2026-10-04〕〕）。起票元 = ユーザー要望（2026-10-02）。番号対応: phase 43 / 暫定 30 / decisions 43。
+  主入力 = 暫定仕様 [30_list_reorder_range_copy.md](../history/30_list_reorder_range_copy.md)（v0.10・ユーザー確定済〔v0.5 = ループの片側の補完・v0.6 = 保存計画の識別子・v0.7 = 保存の照合後の文言。いずれも 2026-10-03 / v0.8 = §5.1 の呼び出し先 = 現在のフレーム / v0.9 = 切替キーのまとめて設定 / v0.10 = キー移動の範囲と挿入位置〔いずれも 2026-10-04〕〕）。起票元 = ユーザー要望（2026-10-02）。番号対応: phase 43 / 暫定 30 / decisions 43。
 - 直前の完了フェーズ = [phase 42](42_listbox_click_selection_sync/phase.md)（2026-10-02・一覧のクリックで選択と下線がずれる不具合の修正・
   判断は [decisions_archive/42](../../.claude_data/state/decisions_archive/42_listbox_click_selection_sync.md)）/
   [phase 41](41_ime_off_while_typing/phase.md)（2026-10-02・文字の送信中は送り先の IME をオフにする・
@@ -85,7 +85,7 @@
   27=file_line の非同期読込〔**v0.8・凍結**〕/
   28=制御アクション第 2 弾 前半（停止）〔**v0.6・凍結**・§9 は phase 40 の起票元〕/
   29=制御アクション第 2 弾 後半（呼び出し）〔**v0.9・凍結**〕/
-  30=一覧のドラッグ移動・範囲選択・複製〔**v0.9・ユーザー確定済・phase 43 の主入力**〕）。
+  30=一覧のドラッグ移動・範囲選択・複製〔**v0.10・ユーザー確定済・phase 43 の主入力**〕）。
   次採番は **`31_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**17 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -231,6 +231,8 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   照合が経路ごとに違い統合のリスクが高いため提案書 17 から除外）/ 完了判定前レビュー L8 キーマップの切替・削除が失敗しても一時停止中のものは捨て済み（受容）/
   `StepOutcome.wait_ms` / `resume_position` / `resume` は in_call 専用（コメント追加は任意）
 - phase 42 由来: `presentation/controllers/trigger_panel/trigger_panel_controller.py` が 606 行（M1 の基準 600 を超過・phase 42 の増分は +25 で非該当）。次に触るフェーズで分割を再判定
+- phase 43 由来（完了判定前の deep-reviewer）: `domain/sequence_editing.py` の `can_move` が未使用（`can_move_block` へ置き換え済み）/ `KeymapEditDialog` の `validate` 引数が未使用（追加フローがまとめて設定へ移ったため）/ `KeymapSwitchBatchDialog` の Escape 処理が `bind_escape_close` を使わず同じ判定順を自前で持つ
+- phase 43 由来（完了判定前の Codex 敵対的レビュー）: シーケンスの個別保存（`sequence_file_io.py:54-86`）はパスのダイアログ中にアクティブが変わると、保持した A の行を保存しつつ参照元・未保存の印を現在のアクティブ B へ付ける（phase 43 より前からの挙動・キーマップの個別保存の固定なし〔decisions 43 の task_06b 保留 L1〕と同類）
 
 ### テスト負債
 

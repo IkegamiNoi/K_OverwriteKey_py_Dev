@@ -52,6 +52,7 @@ keyseq/presentation/
             child_save_rows.py      # 子ファイルの共有状況判定と行モデル（判定名 / 表示文言 / 既定アクション）
             child_save_dialog.py    # ChildSaveDialog: 子一覧 / 依存確認 / 再計算先の上書き確認
             child_save_plan.py      # 行の選択・確定エントリ・既定規則から保存計画を組み立てる
+            save_target_snapshot.py # 保存の対象のトリガー一覧の実体と行の並びの固定（capture_all / capture_active）と書き込み直前の照合（snapshot_matches）（phase 43）
             reference_cleanup_io.py # ReferenceCleanupIo: 参照元の掃除のフロー（保存確認→検査→確認→除去→通知）
             orphan_sweep_io.py      # OrphanSweepIo: 孤児ファイルの棚卸しのフロー（保存確認→走査→棚卸しダイアログ→確認→隔離→通知）+ 走査先設定の保存（→ StartupIo）
             quarantine_manage_io.py # QuarantineManageIo: 隔離の管理のフロー（一覧→単位選択→復元 / 削除の確認→実行→通知）
@@ -63,7 +64,8 @@ keyseq/presentation/
         keymap_panel/          # キーマップ管理（所有者フォルダ・phase 34 task_09）
             __init__.py        # KeymapPanelController の再輸出
             keymap_panel_controller.py  # KeymapPanelController: 一覧・選択 = アクティブ化・編集・削除・グレー表示
-            keymap_add_flow.py # KeymapAddFlow: キーマップの追加フロー（切替キー未設定の既存への設定 → 追加ダイアログ・読込分の追加）
+            keymap_add_flow.py # KeymapAddFlow: キーマップを増やす 3 つの流れ（追加・個別読込・貼り付け）を 1 経路で処理（切替キーのまとめて設定 → 一括確定・アクティブ不変・phase 43）
+            keymap_list_edit.py   # KeymapListEditFlow: キーマップ一覧の範囲確定 = アクティブ化・ドラッグ並べ替え（禁止条件・代表の付け替え）・範囲削除・Ctrl+C/V（phase 43）
         layout_controller.py
         pane_layout/           # フル表示の幅配分（所有者フォルダ・phase 18）
             __init__.py        # PaneLayoutController の再輸出
@@ -74,6 +76,7 @@ keyseq/presentation/
             trigger_panel_controller.py  # TriggerPanelController: トリガー一覧・描画・状態表示・アクション編集の委譲
             action_edit.py     # ActionEditFlow: 出力シーケンスの選択・追加・編集・削除・移動
             trigger_list_edit.py  # TriggerListEditFlow: フル表示のトリガー範囲移動・削除・コピー/末尾貼り付け（有効行交代の口を使用）
+            effective_row_transition.py  # 有効な行の交代の口: 交代するキーに進行中の実行があれば拒否・交代したキーの状態を削除と同じく消す（phase 43）
         action_list_rendering.py   # build_action_rows / format_next_action_summary: 出力シーケンス一覧の 1 行の文字列と背景色（tkinter 非依存・phase 37）
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)
@@ -99,7 +102,8 @@ keyseq/presentation/
       preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）
       trigger_dialog.py        # TriggerDialog
-      keymap_edit_dialog.py    # KeymapEditDialog（phase 34: 任意の検証コールバック `validate` を受け、False なら閉じない＝追加フローで使う）
+      keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集。phase 43 以降はダブルクリック編集だけで使う）
+      keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・phase 43）
       layout_delete_dialog.py  # LayoutDeleteDialog
       escape_close.py          # bind_escape_close（Esc に別用途がある 3 ダイアログの Escape 結線。印はクロージャに持つ・提案書 11 / phase 28 task_07）
       orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
@@ -109,6 +113,8 @@ keyseq/presentation/
     keyboard_layouts.py
     keyboard_window.py
     listbox_utils.py
+    listbox_range_drag.py      # ListboxRangeDrag / bind_listbox_range_drag: 対象 4 一覧の連続範囲選択・ドラッグ移動のプレビューと確定・Escape の取り消し・自動スクロール・Tk 既定バインドの置き換え（phase 43）
+    list_clipboard.py          # ListClipboard: 一覧の Ctrl+C / V のアプリ内保管庫（種類つきの写し・構成セットの読込 / 新規作成で空にする・phase 43）
     modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
     pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
@@ -316,7 +322,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     自分では止めない子を足したら、同テストの `NESTED_CHILD_DIALOGS`（(ファイル名, クラス名) の組）へ追加する**
     （両方から開く `PresetManagerDialog` のような子は自分で止めるので含めない）。
   - **アプリ終了が確定したらフックを再開しない**（終了ガード。解除経路によらず効く）。
-- listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）。トリガー / シーケンス / キーマップ一覧の選択と下線（active）の同期（phase 42）:
+- listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）。一覧の選択と下線（active）の同期（phase 42）。**phase 43 以降、フル表示の 3 一覧のクリック・ドラッグは `listbox_range_drag.bind_listbox_range_drag` が受け持ち、`bind_listbox_click_selection_sync` を使うのは省略表示のトリガー一覧だけ**（`sync_listbox_selection_to_focus` はトリガー / シーケンスの選択の同期で引き続き使う）:
   `sync_listbox_selection_to_focus(..., prefer_selection=)` = クリック（`<<ListboxSelect>>`）は選択の行を正・キー操作（`<KeyRelease>`）は下線の行を正 /
   `bind_listbox_click_selection_sync(listbox, callback)` = 一覧自体の `<ButtonPress-1>` / `<ButtonRelease-1>`（`add="+"`・クラスより先に動く）で押下中の印を管理し、
   離したら `after_idle`（Tk の `activate @x,y` の後）で `callback` を呼ぶ。押下中（`listbox_mouse_button_is_down`）の `<<ListboxSelect>>` は帯だけでアプリ側の状態を変えない
@@ -335,6 +341,8 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     （`io_dialogs.py` のみ `on_cancel`、他は `destroy`）。**Esc の別用途がある
     `ActionDialog` / `TriggerDialog` / `KeymapEditDialog` は `dialogs/escape_close.py` の
     `bind_escape_close(window, *, is_busy, stop)` で単一ハンドラ + 状態分岐**
+    （`KeymapSwitchBatchDialog`〔phase 43〕は取得中の Esc を同じ判定順で自前の `_on_escape` / `_on_escape_release` に持つ。
+    `PresetManagerDialog` はドラッグ中の Esc を一覧側〔`listbox_range_drag`〕で取り消す）
     （記録中・取得中は停止して `"break"`。同一 widget では `<Escape>` が `<KeyPress>` より優先して
     単独発火するため、ハンドラを重ねると停止処理が死ぬ）。
     **判定順 = `is_busy()`（停止して印を立てる）→ 印（閉じない）→ 閉じる**。印は**クロージャに持つ**（ウィジェット属性を増やさない）。
@@ -617,7 +625,9 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 | モジュール | 責務 |
 |---|---|
 | `domain/sequence_control.py` | 定数（種別・op〔`OP_STOP` は phase 39〕・深さ上限 9 等）/ `analyze_loops`（括弧の対応・深さ・対応崩れ・深さ超過）/ `enclosing_loop_starts`（位置を囲むループ・終わりの行は内側）/ `loop_depth_style`（深さ → 色相・濃さ）/ `format_control_value`（表示名・runtime 値は引数） |
-| `domain/sequence_editing.py` | 編集規則の純関数: 挿入と位置補正 / ループの対の生成・深さ上限 / 対の添字・削除する添字 / 移動の可否 / 戻す・先頭への単独登録の判定 |
+| `domain/sequence_editing.py` | 編集規則の純関数: 挿入と位置補正 / ループの対の生成・深さ上限 / 対の添字・削除する添字 / 移動の可否（`can_move_block` = 対・対応崩れ・深さ超過を行の実体で比べる・phase 43）/ 範囲の片側のループを補う `closed_loop_range` / 貼り付けの拒否理由 `paste_violation` / 戻す・先頭への単独登録の判定 |
+| `domain/list_editing.py` | 一覧の並べ替えの純関数（phase 43）: `move_block` / `shift_block` / `index_after_reorder`（次に実行・選択の付け替え）/ ラベルの連番 `numbered_label(s)` |
+| `domain/trigger_duplicates.py` | 同じキーの行の規則（phase 43）: `effective_rows_by_key` / `effective_trigger_index` / `is_effective_trigger`（一番上が有効）/ `shadowed_duplicate_indices`（グレー表示）/ `replaced_effective_keys`（操作の前後で交代したキー）。入力判定・キーボード表示・重なりの表は従来の先頭一致のまま（有効な行と同じ結果）。理由「上のトリガーと重複」は重なりの表とは別に `trigger_panel_controller.refresh_triggers` で付ける |
 | `domain/config.py` | `normalize_actions` が新キー（`op` / `counter` / `path` / `encoding` / `out_of_range` / phase 40 の `target`）を種別を問わず trim。`format_action_list_item` は system / file_line を `format_control_value` へ委譲 |
 | `application/sequence_steps.py` | ステップの進め方（UI・タイマー非依存）: `advance`（保留の反映 → 周回の整合 → system の処理 → 通常アクションの手前で止まる・呼び出しの文脈の中〔`in_call`〕では待機で `wait_ms` と `StepResume`・それ以外では送る前の待機を読み飛ばす〔phase 40〕）・停止の行〔`stop_ends_run`〕/ `after_normal_action` / `settle_after_normal`（先行処理・カウンターは保留へ）/ エラー通知用の整形 |
 | `application/sequence_history.py` | 戻す履歴（`StepSnapshot` / `HistoryEntry`・上限 100）/ 差分の打ち消し / `commit_step`（直前のトリガーの更新）/ `apply_control`（back / rewind の対象判定と復元）/ 保留中ステップの取り消し |
@@ -727,7 +737,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 - **口 `domain/keymap_triggers.py`**: アクティブキーマップのトリガー一覧の取得・確保・代入（`get_active_triggers` / `ensure_active_triggers` /
   `set_active_triggers`）と、共有実体の列挙（`iter_trigger_sets` = 同一 list を共有するキーマップ群を一覧順の代表でまとめる / `trigger_set_members` /
-  `trigger_set_owner`）、キーマップ 1 つ以上の保証（`ensure_at_least_one_keymap`）、単一 JSON の移行（`migrate_single_json_triggers`）。
+  `trigger_set_owner`）、キーマップ 1 つ以上の保証（`ensure_at_least_one_keymap`）、単一 JSON の移行（`migrate_single_json_triggers`）、
+  読み取り専用の `keymap_trigger_list`（保存の対象の固定用）と、キーマップの写し `duplicate_keymap`（内部の値を除く深い写し・トリガー一覧を共有しない。phase 43）。
   **presentation は runtime の `"triggers"` を直接書かない**（`tests/test_keymap_triggers.py` の静的テストで固定）。
 - **runtime の形**: 各 `keymaps[]` 要素が `triggers` と trigger_set の内部キー（`_trigger_set_source_path` / `_parent_refs` / `_dirty` / `_imported`）を持つ。
   トップレベル `triggers` は `[]`。移行状態はトップレベル `_legacy_trigger_set`（状態・旧値・移行先 keymap id・`auto_created`）。
@@ -749,9 +760,13 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - **切替と実行位置** `application/app_state.py`: 実行位置・選択行はトリガー一覧の実体（代表キーマップ id）ごと（`indices_for` / `keymap_indices` /
   `selected_trigger_indices`・代表削除で `rekey_trigger_set`）。連続実行中の切替可否は `AppState.can_switch_keymap` の 1 箇所で、
   一覧の選択・直接切替キー（`ActionExecutor`）・アクティブの削除が共有する。
-- **キーマップ管理** `controllers/keymap_panel/`（`keymap_panel_controller.py` + 追加フロー `keymap_add_flow.py`）: 一覧の選択 = アクティブ化（未保存にしない）・追加フロー（切替キー未設定の既存への設定 →
-  追加ダイアログ。`KeymapEditDialog(validate=...)` で入力エラー時に閉じない）・編集（2 つ以上で切替キー空不可）・削除（1 つなら不可・移行先なら移行記録を消す）・
-  グレー表示。個別読込の二重読込拒否は `keymap_file_io`。
+- **キーマップ管理** `controllers/keymap_panel/`（`keymap_panel_controller.py` + 追加フロー `keymap_add_flow.py` + 一覧の操作 `keymap_list_edit.py`）: 一覧の選択 = アクティブ化（未保存にしない）・
+  追加 / 個別読込 / 貼り付けは `KeymapAddFlow` の 1 経路（切替キー未設定の既存と増やすキーマップを `KeymapSwitchBatchDialog` でまとめて設定。検査は
+  `application/keymap_switch_batch.py` の `validate_switch_batch` = 反映後の完成予定の状態に `analyze_key_overlaps` を当てる純関数。OK で一括確定・キャンセルで無変更・アクティブ不変。phase 43）・
+  編集（ダブルクリック・`KeymapEditDialog`・2 つ以上で切替キー空不可）・削除（1 つなら不可・移行先なら移行記録を消す）・グレー表示。
+  並べ替えの禁止条件は `SequenceRunner.has_any_active_execution`（全トリガー一覧の連続実行・呼び出しの文脈・保留中のステップ・待ち・file_line の読込に加え、単発実行中の再入防止〔`reentry_guard`〕も見る＝正本の条件より少し厳しい）。個別読込の二重読込拒否は `keymap_file_io`。
+- **保存計画の sequence の識別子**（phase 43）: `application/save_plan.py` の `compose_sequence_key` / `split_sequence_key`（同じキーの 2 番目以降だけ何番目かを加える・1 番目は従来と同一）/
+  `sequence_rows`。対象の固定と照合は `controllers/config_io/save_target_snapshot.py`。
 
 ---
 
