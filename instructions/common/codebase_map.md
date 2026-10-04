@@ -251,6 +251,8 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       （判定名 / 表示文言 / 既定アクション）を組み立てる。**分岐は判定名で行い、表示文言では分岐しない**
     - ChildSaveDialog（child_save_dialog.py = `app.child_save_dialog`）: 子一覧ダイアログ・
       依存確認（4 択）・再計算先の上書き確認
+      子一覧は見出し・全行・ボタンの高さで開き、タイトルバー込みで主画面の6割を上限とする（最小高さ優先）。
+      `child_save_columns.py` が列幅・最小サイズと見出しの3境界のドラッグを担当し、保存先パスだけ weight=1 で幅の変化を受け持つ。
     - child_save_plan.py: 一覧の選択 > 確定エントリ > 既定規則（保存先に実体があれば保存しない /
       無ければ保存）の優先順位で `SavePlan` を組み立てる
     - **カスケードが書くのは startup / keymap_set / trigger_set / sequence / keymap**。

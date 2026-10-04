@@ -83,10 +83,20 @@ class _FakeDialogWidget:
         self.pack_calls = []
         self.columnconfigure_calls = []
         self.focused = False
+        self.place_calls = []
+        self._placed = {}
 
     def grid(self, **kwargs):
         self.grid_calls.append(kwargs)
         return self
+
+    def place(self, **kwargs):
+        self.place_calls.append(kwargs)
+        self._placed.update(kwargs)
+        return self
+
+    def lift(self):
+        pass
 
     def pack(self, **kwargs):
         self.pack_calls.append(kwargs)
@@ -140,8 +150,15 @@ class _FakeDialogWidget:
     def winfo_reqheight(self):
         return 20
 
-    def grid_bbox(self, *_args):
-        return (0, 0, 800, 60)
+    def winfo_exists(self):
+        return True
+
+    def grid_bbox(self, *args):
+        if len(args) >= 4:
+            final_row = args[3]
+        else:
+            final_row = max((call.get("row", 0) for call in self.grid_calls), default=0)
+        return (0, 0, 800, 30 * (final_row + 1))
 
 
 class _FakeStringVar:
@@ -166,6 +183,10 @@ class _FakeSaveDialog:
         self.minsize_calls = []
         self.resizable_calls = []
         self.call_log = []
+        self.screen_width = 1400
+        self.screen_height = 1000
+        self.root_x = 0
+        self.root_y = 30
 
     def focus_set(self):
         self.call_log.append("focus_set")
@@ -185,6 +206,27 @@ class _FakeSaveDialog:
 
     def update_idletasks(self):
         self.call_log.append("update_idletasks")
+
+    def winfo_screenwidth(self):
+        return self.screen_width
+
+    def winfo_screenheight(self):
+        return self.screen_height
+
+    def winfo_rootx(self):
+        return self.root_x
+
+    def winfo_rooty(self):
+        return self.root_y
+
+    def winfo_x(self):
+        return 0
+
+    def winfo_y(self):
+        return 0
+
+    def after_idle(self, callback):
+        callback()
 
     def transient(self, _master):
         pass
@@ -296,9 +338,13 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         payload["_parent_refs"] = refs
         self.app.config_service.repository.save_json(path, payload)
 
-    def _ask_dialog_internally(self, rows, on_wait, *, save_as_path=""):
+    def _ask_dialog_internally(
+        self, rows, on_wait, *, save_as_path="", screen_width=1400, screen_height=1000
+    ):
         variables = []
         dialog = _FakeSaveDialog(lambda current: on_wait(current, variables))
+        dialog.screen_width = screen_width
+        dialog.screen_height = screen_height
         _FakeDialogWidget.pack_history = []
         dialog.frames = []
         dialog.labels = []
@@ -460,17 +506,26 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         self.assertIsNone(result)
         self.assertFalse(dialog.destroyed)
 
-    def test_dialog_layout_uses_fixed_resizable_size(self):
-        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
+    def test_dialog_layout_uses_content_height_and_resizable_width(self):
+        rows = [
+            ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE),
+            ChildSaveRow(CHILD_SEQUENCE, "f1", "Copy", "C:/copy.json", SHARE_UNKNOWN, "不明", ACTION_SAVE),
+        ]
         _result, _variables, dialog = self._ask_dialog_internally(
             rows,
             lambda current, _variables: current.buttons["キャンセル"](),
         )
 
-        self.assertEqual(dialog.geometry_calls, ["960x480"])
+        self.assertEqual(len(dialog.geometry_calls), 1)
+        width, height = (int(value) for value in dialog.geometry_calls[0].split("x"))
+        self.assertGreaterEqual(width, 960)
+        self.assertLess(height, 480)
+        self.assertEqual(height, 90)
         self.assertEqual(dialog.resizable_calls, [(True, True)])
         self.assertLess(dialog.call_log.index("update_idletasks"), dialog.call_log.index("minsize"))
-        self.assertEqual(dialog.minsize_calls, [(820, 320)])
+        self.assertEqual(len(dialog.minsize_calls), 1)
+        self.assertGreater(dialog.minsize_calls[0][0], 0)
+        self.assertGreater(dialog.minsize_calls[0][1], 0)
 
     def test_dialog_packs_button_row_before_expandable_list(self):
         rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
@@ -496,12 +551,11 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         )
 
         configurations = {args[0]: kwargs for args, kwargs in dialog.content_frame.columnconfigure_calls}
-        for column in (0, 3, 4):
+        for column in (0, 1, 3, 4):
             self.assertEqual(configurations[column]["weight"], 0)
-        self.assertGreaterEqual(configurations[1]["weight"], 1)
         self.assertGreaterEqual(configurations[2]["weight"], 1)
-        self.assertIn("minsize", configurations[1])
-        self.assertIn("minsize", configurations[2])
+        for column in (0, 1, 2, 3):
+            self.assertIn("minsize", configurations[column])
         flexible_labels = [label for label in dialog.labels if label.kwargs.get("width") == 1]
         self.assertTrue(flexible_labels)
         self.assertTrue(all(label.kwargs.get("anchor") == "w" for label in flexible_labels))
@@ -517,7 +571,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             current.canvas.bindings["<Configure>"](SimpleNamespace(width=300))
             for _ in range(2):
                 for label in current.labels:
-                    if "<Configure>" in label.bindings:
+                    if "<Enter>" in label.bindings:
                         label.bindings["<Configure>"](SimpleNamespace(width=200))
             current.buttons["キャンセル"]()
 
@@ -529,9 +583,9 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
 
         self.assertIn("<Configure>", dialog.canvas.bindings)
         self.assertEqual(dialog.canvas.itemconfigure_calls, [((1,), {"width": 300})])
-        text_cell_labels = [label for label in dialog.labels if "<Configure>" in label.bindings]
-        self.assertEqual(len(text_cell_labels), 2)
-        self.assertEqual(fit.call_count, 2)
+        text_cell_labels = [label for label in dialog.labels if "<Enter>" in label.bindings]
+        self.assertEqual(len(text_cell_labels), 4)
+        self.assertEqual(fit.call_count, 4)
         self.assertTrue(all(label.configure_calls for label in text_cell_labels))
 
     def test_dialog_layout_creates_vertical_scroll_region_without_horizontal_scrollbar(self):
@@ -549,16 +603,18 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         self.assertNotIn("<MouseWheel>", dialog.canvas.bindings)
 
     def test_dialog_binds_tooltips_for_all_cells_but_shows_only_ellipsized_text(self):
-        short_row = ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)
+        short_row = ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "x", SHARE_SOLE, "新規", ACTION_SAVE)
         long_name = "長い対象名" * 7
         long_path = "C:/" + "long-directory/" * 5 + "target.json"
-        long_row = ChildSaveRow(CHILD_SEQUENCE, compose_sequence_key("km1", "f1"), long_name, long_path, SHARE_SOLE, "単独", ACTION_SAVE)
+        long_share = "共有（他の構成セットからも参照されるため上書きします）"
+        long_row = ChildSaveRow(CHILD_SEQUENCE, compose_sequence_key("km1", "f1"), long_name, long_path, SHARE_SOLE, long_share, ACTION_SAVE)
 
         def configure_content_and_cells(current, _variables):
             current.canvas.bindings["<Configure>"](SimpleNamespace(width=100))
             for label in current.labels:
+                # _bind_tooltip を差し替えているため <Enter> は付かない。文言のセルは幅の <Configure> で選ぶ
                 if "<Configure>" in label.bindings:
-                    label.bindings["<Configure>"](SimpleNamespace(width=200))
+                    label.bindings["<Configure>"](SimpleNamespace(width=80))
             current.buttons["キャンセル"]()
 
         with patch.object(self.app.child_save_dialog, "_bind_tooltip") as bind_tooltip:
@@ -569,21 +625,46 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
 
         self.assertEqual(
             [call.args[1] for call in bind_tooltip.call_args_list],
-            [short_row.display_name, short_row.target_path, long_name, long_path],
+            [
+                child_save_dialog_module._kind_label(short_row.kind),
+                short_row.display_name,
+                short_row.target_path,
+                short_row.share_text,
+                child_save_dialog_module._kind_label(long_row.kind),
+                long_name,
+                long_path,
+                long_row.share_text,
+            ],
         )
-        self.assertEqual([call.args[2]() for call in bind_tooltip.call_args_list], [False, False, True, True])
+        self.assertEqual(
+            [call.args[2]() for call in bind_tooltip.call_args_list],
+            [False, False, False, False, False, True, True, True],
+        )
 
-    def test_dialog_layout_geometry_is_constant_for_many_rows(self):
+    def test_dialog_layout_caps_height_for_many_rows(self):
         rows = [
             ChildSaveRow(CHILD_SEQUENCE, f"f{index}", f"Copy {index}", f"C:/copy-{index}.json", SHARE_SOLE, "単独", ACTION_SAVE)
-            for index in range(12)
+            for index in range(60)
         ]
         _result, _variables, dialog = self._ask_dialog_internally(
             rows,
             lambda current, _variables: current.buttons["キャンセル"](),
         )
 
-        self.assertEqual(dialog.geometry_calls, ["960x480"])
+        self.assertEqual(len(dialog.geometry_calls), 1)
+        _width, height = (int(value) for value in dialog.geometry_calls[0].split("x"))
+        self.assertLessEqual(height + dialog.root_y, int(dialog.screen_height * 0.6))
+
+    def test_dialog_prefers_minimum_height_when_screen_limit_is_smaller(self):
+        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]
+        _result, _variables, dialog = self._ask_dialog_internally(
+            rows,
+            lambda current, _variables: current.buttons["キャンセル"](),
+            screen_height=100,
+        )
+
+        _width, height = (int(value) for value in dialog.geometry_calls[0].split("x"))
+        self.assertEqual(height, dialog.minsize_calls[0][1])
 
     def test_ellipsize_preserves_short_text_and_truncates_long_text(self):
         self.assertEqual(child_save_dialog_module._ellipsize("short", 8), "short")
@@ -663,7 +744,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             dialog.destroy()
             root.destroy()
 
-    def test_text_ellipsis_changes_when_dialog_width_changes(self):
+    def test_only_path_cell_gains_width_when_dialog_width_changes(self):
         try:
             root = tkinter.Tk()
         except tkinter.TclError as error:
@@ -703,7 +784,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             dialog.update()
             wide_text = (name_label.cget("text"), path_label.cget("text"))
 
-            self.assertGreater(len(wide_text[0]), len(narrow_text[0]))
+            self.assertEqual(wide_text[0], narrow_text[0])
             self.assertGreater(len(wide_text[1]), len(narrow_text[1]))
         finally:
             dialog.destroy()
@@ -836,8 +917,258 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
 
             dialog.geometry(f"{minimum_width + 240}x{minimum_height}")
             dialog.update()
-            self.assertGreater(name_label.winfo_width(), narrow_widths[0])
+            self.assertEqual(name_label.winfo_width(), narrow_widths[0])
             self.assertGreater(path_label.winfo_width(), narrow_widths[1])
+        finally:
+            dialog.destroy()
+            root.destroy()
+
+    def test_many_rows_open_at_screen_cap_and_can_scroll_in_real_tk(self):
+        try:
+            root = tkinter.Tk()
+        except tkinter.TclError as error:
+            self.skipTest(f"Tk を利用できません: {error}")
+        root.withdraw()
+        rows = [
+            ChildSaveRow(
+                CHILD_SEQUENCE,
+                f"f{index}",
+                f"Copy {index}",
+                f"C:/copy-{index}.json",
+                SHARE_SOLE,
+                "単独",
+                ACTION_SAVE,
+            )
+            for index in range(60)
+        ]
+        dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog(rows, {})[0]
+        try:
+            dialog.deiconify()
+            dialog.update()
+            decoration = max(0, dialog.winfo_rooty() - dialog.winfo_y()) + max(
+                0, dialog.winfo_rootx() - dialog.winfo_x()
+            )
+            self.assertLessEqual(
+                dialog.winfo_height() + decoration,
+                int(dialog.winfo_screenheight() * 0.6),
+            )
+            frame = dialog.winfo_children()[0]
+            list_frame = next(
+                widget
+                for widget in frame.winfo_children()
+                if isinstance(widget, ttk.Frame) and widget.pack_info().get("fill") == "both"
+            )
+            canvas = next(widget for widget in list_frame.winfo_children() if isinstance(widget, tkinter.Canvas))
+            before = canvas.yview()[0]
+            canvas.yview_moveto(1.0)
+            dialog.update()
+            self.assertGreater(canvas.yview()[0], before)
+        finally:
+            dialog.destroy()
+            root.destroy()
+
+    def test_header_handles_resize_adjacent_fixed_columns_and_preserve_selection(self):
+        try:
+            root = tkinter.Tk()
+        except tkinter.TclError as error:
+            self.skipTest(f"Tk を利用できません: {error}")
+        root.withdraw()
+        rows = [
+            ChildSaveRow(
+                CHILD_SEQUENCE,
+                "f1",
+                "Very long target name " * 5,
+                "C:/long-directory/target.json",
+                SHARE_SOLE,
+                "この構成のみが所有・既存を上書き",
+                ACTION_SAVE,
+            )
+        ] + [
+            ChildSaveRow(
+                CHILD_SEQUENCE,
+                f"f{index}",
+                f"Copy {index}",
+                f"C:/copy-{index}.json",
+                SHARE_SOLE,
+                "単独",
+                ACTION_SAVE,
+            )
+            for index in range(2, 32)
+        ]
+        dialog, choices = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog(rows, {})
+        try:
+            dialog.deiconify()
+            dialog.update()
+            dialog.geometry(f"{dialog.winfo_width() + 300}x{dialog.winfo_height()}")
+            dialog.update()
+            columns = dialog._child_save_columns
+            frame = dialog.winfo_children()[0]
+            list_frame = next(
+                widget
+                for widget in frame.winfo_children()
+                if isinstance(widget, ttk.Frame) and widget.pack_info().get("fill") == "both"
+            )
+            canvas = next(widget for widget in list_frame.winfo_children() if isinstance(widget, tkinter.Canvas))
+            content = canvas.winfo_children()[0]
+            canvas.yview_moveto(0.01)
+            dialog.update()
+            initial_scroll = canvas.yview()[0]
+            minimum_width = dialog.minsize()[0]
+
+            def drag(handle, delta):
+                start_x = handle.winfo_rootx() + 3
+                start_y = handle.winfo_rooty() + 5
+                for sequence, root_x in (
+                    ("<ButtonPress-1>", start_x),
+                    ("<B1-Motion>", start_x + delta),
+                    ("<ButtonRelease-1>", start_x + delta),
+                ):
+                    handle.event_generate(
+                        sequence,
+                        x=root_x - handle.winfo_rootx(),
+                        y=5,
+                        rootx=root_x,
+                        rooty=start_y,
+                    )
+
+            for handle_index, column, motion_x in ((0, 0, 27), (1, 1, 27), (2, 3, -21)):
+                handle = columns.handles[handle_index]
+                initial_width = content.grid_bbox(column, 0, column, 0)[2]
+                initial_path = content.grid_bbox(2, 0, 2, 0)[2]
+                delta = motion_x - 3
+                drag(handle, delta)
+                dialog.update()
+                self.assertEqual(content.grid_bbox(column, 0, column, 0)[2], initial_width + abs(delta))
+                self.assertEqual(content.grid_bbox(2, 0, 2, 0)[2], initial_path - abs(delta))
+                self.assertAlmostEqual(canvas.yview()[0], initial_scroll, places=2)
+
+            self.assertGreater(dialog.minsize()[0], minimum_width)
+            self.assertEqual(choices[(CHILD_SEQUENCE, "f1")].get(), ACTION_SAVE)
+
+            handle = columns.handles[0]
+            drag(handle, -2003)
+            dialog.update()
+            self.assertEqual(columns.widths[0], columns.minimums[0])
+
+            handle = columns.handles[1]
+            drag(handle, -2003)
+            dialog.update()
+            self.assertEqual(columns.widths[1], columns.minimums[1])
+
+            handle = columns.handles[2]
+            drag(handle, 1997)
+            dialog.update()
+            self.assertEqual(columns.widths[3], columns.minimums[3])
+
+            handle = columns.handles[0]
+            drag(handle, 1997)
+            dialog.update()
+            path_minimum = columns.minimums[2]
+            self.assertEqual(content.grid_bbox(2, 0, 2, 0)[2], path_minimum)
+            stopped_width = columns.widths[0]
+            drag(handle, 2197)
+            dialog.update()
+            self.assertEqual(columns.widths[0], stopped_width)
+
+            current = {column: content.grid_bbox(column, 0, column, 0)[2] for column in range(5)}
+            dialog.geometry(f"{dialog.winfo_width() + 160}x{dialog.winfo_height()}")
+            dialog.update()
+            expanded = {column: content.grid_bbox(column, 0, column, 0)[2] for column in range(5)}
+            for column in (0, 1, 3, 4):
+                self.assertEqual(expanded[column], current[column])
+            self.assertGreater(expanded[2], current[2])
+        finally:
+            dialog.destroy()
+            root.destroy()
+
+    def test_narrow_kind_and_share_columns_ellipsize_and_enable_full_tooltips(self):
+        try:
+            root = tkinter.Tk()
+        except tkinter.TclError as error:
+            self.skipTest(f"Tk を利用できません: {error}")
+        root.withdraw()
+        share_text = "この構成のみが所有・既存を上書き"
+        row = ChildSaveRow(
+            CHILD_SEQUENCE,
+            "f1",
+            "Copy",
+            "C:/copy.json",
+            SHARE_SOLE,
+            share_text,
+            ACTION_SAVE,
+        )
+        tooltip_conditions = []
+        real_bind_tooltip = child_save_dialog_module.ChildSaveDialog._bind_tooltip
+
+        def bind_tooltip(widget, text, should_show):
+            tooltip_conditions.append((widget, text, should_show))
+            real_bind_tooltip(widget, text, should_show)
+
+        with patch.object(
+            child_save_dialog_module.ChildSaveDialog,
+            "_bind_tooltip",
+            side_effect=bind_tooltip,
+        ):
+            dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog([row], {})[0]
+        try:
+            dialog.deiconify()
+            dialog.update()
+            columns = dialog._child_save_columns
+            content = next(
+                widget
+                for widget in dialog.winfo_children()[0].winfo_children()
+                if isinstance(widget, ttk.Frame) and widget.pack_info().get("fill") == "both"
+            ).winfo_children()[0].winfo_children()[0]
+            type_label = content.grid_slaves(row=1, column=0)[0]
+            share_label = content.grid_slaves(row=1, column=3)[0]
+
+            for handle_index, delta in ((0, -2003), (2, 1997)):
+                handle = columns.handles[handle_index]
+                start_x = handle.winfo_rootx() + 3
+                start_y = handle.winfo_rooty() + 5
+                for sequence, root_x in (
+                    ("<ButtonPress-1>", start_x),
+                    ("<B1-Motion>", start_x + delta),
+                    ("<ButtonRelease-1>", start_x + delta),
+                ):
+                    handle.event_generate(
+                        sequence,
+                        x=root_x - handle.winfo_rootx(),
+                        y=5,
+                        rootx=root_x,
+                        rooty=start_y,
+                    )
+                dialog.update()
+
+            full_kind = child_save_dialog_module._kind_label(row.kind)
+            self.assertNotEqual(type_label.cget("text"), full_kind)
+            self.assertNotEqual(share_label.cget("text"), share_text)
+            conditions = {text: should_show for _widget, text, should_show in tooltip_conditions}
+            self.assertTrue(conditions[full_kind]())
+            self.assertTrue(conditions[share_text]())
+            for full_text in (full_kind, share_text):
+                label = next(widget for widget, text, _show in tooltip_conditions if text == full_text)
+                label.event_generate(
+                    "<Enter>",
+                    x=1,
+                    y=1,
+                    rootx=label.winfo_rootx() + 1,
+                    rooty=label.winfo_rooty() + 1,
+                )
+                dialog.update()
+                tooltip = next(
+                    widget
+                    for widget in label.winfo_children()
+                    if isinstance(widget, tkinter.Toplevel)
+                )
+                tooltip_text = next(
+                    widget.cget("text")
+                    for widget in tooltip.winfo_children()
+                    if isinstance(widget, ttk.Label)
+                )
+                self.assertEqual(tooltip_text, full_text)
+                label.event_generate("<Leave>")
+                dialog.update()
         finally:
             dialog.destroy()
             root.destroy()

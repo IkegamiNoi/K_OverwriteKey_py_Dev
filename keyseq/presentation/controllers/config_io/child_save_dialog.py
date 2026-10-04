@@ -7,6 +7,7 @@ from tkinter import filedialog, font, messagebox, ttk
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP
 from keyseq.presentation.controllers.config_io.child_save_rows import ChildSaveRow
+from keyseq.presentation.controllers.config_io.child_save_columns import size_action_dialog
 from keyseq.presentation.modal import grab_modal
 
 
@@ -33,7 +34,6 @@ class ChildSaveDialog:
     def _create_action_dialog(self, rows, result):
         dialog = tk.Toplevel(self._app)
         dialog.title("子ファイルの保存")
-        dialog.geometry("960x480")
         dialog.resizable(True, True)
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill="both", expand=True)
@@ -58,9 +58,8 @@ class ChildSaveDialog:
         )
         canvas.grid(row=0, column=0, sticky="nsew")
         scrollbar.grid(row=0, column=1, sticky="ns")
-        self._add_headers(content_frame, 0)
+        headers = self._add_headers(content_frame, 0)
         choices, text_cells = self._add_rows(content_frame, rows, 1)
-        self._configure_columns(content_frame)
         self._bind_content_width(canvas, content_frame, window_id, text_cells)
         ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right")
         ttk.Button(
@@ -68,20 +67,24 @@ class ChildSaveDialog:
             text="OK",
             command=lambda: self._confirm_actions(dialog, rows, choices, result),
         ).pack(side="right", padx=(0, 8))
-        self._set_minimum_size(dialog, frame, list_frame, content_frame, scrollbar, len(rows))
+        size_action_dialog(dialog, frame, list_frame, content_frame, scrollbar, headers, text_cells, len(rows))
         return dialog, choices
 
     @staticmethod
-    def _add_headers(frame, row: int) -> None:
+    def _add_headers(frame, row: int) -> list:
+        headers = []
         for column, text in enumerate(("種別", "対象名", "保存先パス", "共有状況", "操作")):
-            is_flexible = column in (1, 2)
+            is_flexible = column < 4
             label_options = {"width": 1, "anchor": "w"} if is_flexible else {}
-            ttk.Label(frame, text=text, **label_options).grid(
+            label = ttk.Label(frame, text=text, **label_options)
+            label.grid(
                 row=row,
                 column=column,
                 sticky="ew" if is_flexible else "w",
                 padx=(0, 8),
             )
+            headers.append(label)
+        return headers
 
     def _add_rows(
         self, frame, rows, start_row: int
@@ -92,11 +95,11 @@ class ChildSaveDialog:
             child_id = (child_row.kind, child_row.key)
             choice = tk.StringVar(value=child_row.default_action)
             choices[child_id] = choice
-            ttk.Label(frame, text=_kind_label(child_row.kind)).grid(row=index, column=0, sticky="w", padx=(0, 8))
+            kind_cell = self._add_text_cell(frame, index, 0, _kind_label(child_row.kind), _ellipsize)
             name_cell = self._add_text_cell(frame, index, 1, child_row.display_name, _ellipsize)
             path_cell = self._add_text_cell(frame, index, 2, child_row.target_path, _ellipsize_path)
-            text_cells.extend((name_cell, path_cell))
-            ttk.Label(frame, text=child_row.share_text).grid(row=index, column=3, sticky="w", padx=(0, 8))
+            share_cell = self._add_text_cell(frame, index, 3, child_row.share_text, _ellipsize)
+            text_cells.extend((kind_cell, name_cell, path_cell, share_cell))
             actions = ttk.Frame(frame)
             actions.grid(row=index, column=4, sticky="w")
             for action, label in ((ACTION_SAVE, "保存"), (ACTION_SAVE_AS, "別名保存"), (ACTION_SKIP, "保存しない")):
@@ -105,19 +108,12 @@ class ChildSaveDialog:
         return choices, text_cells
 
     def _add_text_cell(self, frame, row: int, column: int, text: str, ellipsize):
-        cell = {"text": text, "display": "", "ellipsize": ellipsize, "last_fit_width": None}
+        cell = {"text": text, "display": "", "column": column, "ellipsize": ellipsize, "last_fit_width": None}
         label = ttk.Label(frame, text="", width=1, anchor="w")
         label.grid(row=row, column=column, sticky="ew", padx=(0, 8))
         cell["label"] = label
         self._bind_tooltip(label, text, lambda: cell["display"] != cell["text"])
         return cell
-
-    @staticmethod
-    def _configure_columns(frame) -> None:
-        for column in (0, 3, 4):
-            frame.columnconfigure(column, weight=0)
-        for column, weight in ((1, 1), (2, 2)):
-            frame.columnconfigure(column, weight=weight, minsize=1)
 
     @staticmethod
     def _bind_content_width(canvas, content_frame, window_id, text_cells) -> None:
@@ -150,17 +146,6 @@ class ChildSaveDialog:
                 "<Configure>",
                 lambda event, cell=cell: resize_text_cell(cell, event),
             )
-
-    @staticmethod
-    def _set_minimum_size(dialog, frame, list_frame, content_frame, scrollbar, row_count: int) -> None:
-        dialog.update_idletasks()
-        visible_rows = min(1, row_count)
-        content_width, content_height = content_frame.grid_bbox(0, 0, 4, visible_rows)[2:]
-        frame_overhead_width = max(0, frame.winfo_reqwidth() - list_frame.winfo_reqwidth())
-        frame_overhead_height = max(0, frame.winfo_reqheight() - list_frame.winfo_reqheight())
-        required_width = content_width + scrollbar.winfo_reqwidth() + frame_overhead_width
-        required_height = content_height + frame_overhead_height
-        dialog.minsize(max(720, required_width), max(320, required_height))
 
     @staticmethod
     def _bind_tooltip(widget, text: str, should_show: Callable[[], bool]) -> None:
