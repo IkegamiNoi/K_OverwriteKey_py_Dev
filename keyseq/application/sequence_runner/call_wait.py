@@ -124,12 +124,19 @@ class CallWaitMixin:
             self._schedule_single_call(
                 trigger_set_id, key, generation, pending, step.wait_ms or 0,
             )
+        elif step.kind == "next":
+            self._handle_finished_call_step(
+                trigger_set_id, key, generation, pending, step,
+            )
         elif step.kind == "error":
             self._report_single_call_error(
                 trigger_set_id, key, generation, pending, step,
             )
         elif step.kind == "done":
             self._complete_single_call(trigger_set_id, key, generation, pending)
+        elif step.kind == "stopped":
+            # call_step runs with run_to_end=False here, so stopped is defensive only.
+            self._drop_single_call(trigger_set_id, key, generation, pending)
 
     def _perform_single_call_action(
         self, trigger_set_id: str, key: str, generation: int,
@@ -257,6 +264,9 @@ class CallWaitMixin:
             self._report_single_call_error(
                 trigger_set_id, key, generation, pending, step,
             )
+        elif step.kind == "stopped":
+            # finish_call_action also cannot stop on the single-step path.
+            self._drop_single_call(trigger_set_id, key, generation, pending)
 
     def _report_single_call_error(
         self, trigger_set_id: str, key: str, generation: int,

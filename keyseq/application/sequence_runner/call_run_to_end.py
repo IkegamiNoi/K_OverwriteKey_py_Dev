@@ -113,6 +113,8 @@ class CallRunToEndMixin:
             self._perform_run_to_end_call_action(generation, key, token, ctx, step)
         elif step.kind == "wait":
             self._schedule_run_to_end_call(generation, key, token, step.wait_ms or 0)
+        elif step.kind == "next":
+            self._handle_finished_run_to_end_call(generation, key, token, ctx, step)
         elif step.kind == "error":
             self._report_run_to_end_call_error(generation, key, token, ctx, step)
         elif step.kind == "done":

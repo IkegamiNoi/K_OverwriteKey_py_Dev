@@ -27,6 +27,7 @@ class CallFrame:
     deferred: list[tuple[str, str]] = field(default_factory=list)
     resume: StepResume | None = None
     step: bool = False
+    sent: bool = False
 
 
 @dataclass
@@ -147,6 +148,12 @@ def _pop_frame(ctx: CallContext, counters: dict[str, int]) -> tuple[tuple[str, i
     return apply_deferred_counters(frame.deferred, counters)
 
 
+def _clear_step_frame_sent(ctx: CallContext) -> None:
+    if ctx.top_is_step():
+        for frame in ctx.stack:
+            frame.sent = False
+
+
 def _stop_enabled(ctx: CallContext, run_to_end: bool) -> bool:
     return ctx.top_is_step() and run_to_end and ctx.sent
 
@@ -206,10 +213,14 @@ def _advance_frame(
         return CallStep("wait", wait_ms=outcome.wait_ms, chain=_chain(ctx),
                         counter_deltas=tuple(deltas))
     if outcome.reached_end:
+        returned_sent = frame.sent
         deltas.extend(_pop_frame(ctx, counters))
         if not ctx.stack:
             return CallStep("done", chain=(), counter_deltas=tuple(deltas))
-        return _finish_returned_call(ctx, counters, deltas, processed, run_to_end)
+        return _finish_returned_call(
+            ctx, counters, deltas, processed, run_to_end,
+            returned_sent=returned_sent,
+        )
     if outcome.normal_index is None:
         return _error("呼び出し先のステップを進められません", _chain(ctx), deltas)
     action = entry.actions[outcome.normal_index]
@@ -226,13 +237,15 @@ def _finish_returned_call(
     ctx: CallContext, counters: dict[str, int], deltas: list[tuple[str, int]],
     processed: list[int],
     run_to_end: bool = False,
+    *, returned_sent: bool = False,
 ) -> CallStep | None:
-    """Resume the parent after a nested frame ends; return on an error."""
+    """Resume a parent frame, returning when a boundary or control outcome is reached."""
     while ctx.stack:
         frame = ctx.stack[-1]
         entry = ctx.snapshot[frame.key]
         call_index = frame.position
         if call_index + 1 >= len(entry.actions):
+            returned_sent = returned_sent or frame.sent
             deltas.extend(_pop_frame(ctx, counters))
             continue
         frame.position, frame.frames = after_normal_action(
@@ -251,7 +264,12 @@ def _finish_returned_call(
         if settled.stopped:
             return _settle_stopped_call(ctx, counters, deltas, processed)
         if frame.position != 0 or not entry.actions:
+            if frame.step and returned_sent:
+                _clear_step_frame_sent(ctx)
+                return CallStep("next", chain=_chain(ctx), counter_deltas=tuple(deltas),
+                                interval_ms=top_interval(ctx))
             return None
+        returned_sent = returned_sent or frame.sent
         deltas.extend(_pop_frame(ctx, counters))
     return None
 
@@ -292,7 +310,10 @@ def call_step(
     ctx: CallContext, counters: dict[str, int], *, run_to_end: bool = False,
 ) -> CallStep:
     """Advance the call context to its next action, wait, completion, or error."""
-    return _advance_call(ctx, counters, run_to_end)
+    result = _advance_call(ctx, counters, run_to_end)
+    if result.kind == "next":
+        _clear_step_frame_sent(ctx)
+    return result
 
 
 def finish_call_action(
@@ -304,6 +325,8 @@ def finish_call_action(
     # A nested batch delivers actions within the enclosing step context too.
     if ctx.is_step_context():
         ctx.sent = True
+        for active_frame in ctx.stack:
+            active_frame.sent = True
     deltas: list[tuple[str, int]] = []
     processed = [ctx.processed_before_action]
     ctx.processed_before_action = 0
@@ -312,12 +335,19 @@ def finish_call_action(
     if entry is None:
         return _error(f"呼び出し先のトリガーがありません（{frame.key}）", _chain(ctx), deltas)
     if frame.position + 1 >= len(entry.actions):
+        returned_sent = frame.sent
         deltas.extend(_pop_frame(ctx, counters))
-        failure = _finish_returned_call(ctx, counters, deltas, processed, run_to_end)
-        if failure is not None:
-            return failure
+        returned = _finish_returned_call(
+            ctx, counters, deltas, processed, run_to_end,
+            returned_sent=returned_sent,
+        )
+        if returned is not None:
+            if returned.kind == "next":
+                _clear_step_frame_sent(ctx)
+            return returned
         if not ctx.stack:
             return CallStep("done", counter_deltas=tuple(deltas))
+        _clear_step_frame_sent(ctx)
         return CallStep("next", chain=_chain(ctx), counter_deltas=tuple(deltas),
                         interval_ms=top_interval(ctx))
     frame.position, frame.frames = after_normal_action(
@@ -336,11 +366,18 @@ def finish_call_action(
     if settled.stopped:
         return _settle_stopped_call(ctx, counters, deltas, processed)
     if frame.position == 0:
+        returned_sent = frame.sent
         deltas.extend(_pop_frame(ctx, counters))
-        failure = _finish_returned_call(ctx, counters, deltas, processed, run_to_end)
-        if failure is not None:
-            return failure
+        returned = _finish_returned_call(
+            ctx, counters, deltas, processed, run_to_end,
+            returned_sent=returned_sent,
+        )
+        if returned is not None:
+            if returned.kind == "next":
+                _clear_step_frame_sent(ctx)
+            return returned
     if not ctx.stack:
         return CallStep("done", counter_deltas=tuple(deltas))
+    _clear_step_frame_sent(ctx)
     return CallStep("next", chain=_chain(ctx), counter_deltas=tuple(deltas),
                     interval_ms=top_interval(ctx))
