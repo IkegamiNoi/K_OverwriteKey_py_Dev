@@ -51,6 +51,7 @@ keyseq/presentation/
             sequence_file_io.py     # SequenceFileIo: sequence 個別 JSON
             child_save_rows.py      # 子ファイルの共有状況判定と行モデル（判定名 / 表示文言 / 既定アクション）
             child_save_dialog.py    # ChildSaveDialog: 子一覧 / 依存確認 / 再計算先の上書き確認
+            child_save_columns.py   # ChildSaveColumns: 子一覧の列幅（保存先パスだけ weight）・見出しの境界 3 つのドラッグ・開いたときの大きさと最小の大きさ（phase 44）
             child_save_plan.py      # 行の選択・確定エントリ・既定規則から保存計画を組み立てる
             save_target_snapshot.py # 保存の対象のトリガー一覧の実体と行の並びの固定（capture_all / capture_active）と書き込み直前の照合（snapshot_matches）（phase 43）
             reference_cleanup_io.py # ReferenceCleanupIo: 参照元の掃除のフロー（保存確認→検査→確認→除去→通知）
@@ -251,7 +252,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       （判定名 / 表示文言 / 既定アクション）を組み立てる。**分岐は判定名で行い、表示文言では分岐しない**
     - ChildSaveDialog（child_save_dialog.py = `app.child_save_dialog`）: 子一覧ダイアログ・
       依存確認（4 択）・再計算先の上書き確認
-      子一覧は見出し・全行・ボタンの高さで開き、タイトルバー込みで主画面の6割を上限とする（最小高さ優先）。
+      子一覧は見出し・全行・ボタンの高さで開き、タイトルバー込みで画面の高さの 6 割を上限とする（最小高さ優先）。
       `child_save_columns.py` が列幅・最小サイズと見出しの3境界のドラッグを担当し、保存先パスだけ weight=1 で幅の変化を受け持つ。
     - child_save_plan.py: 一覧の選択 > 確定エントリ > 既定規則（保存先に実体があれば保存しない /
       無ければ保存）の優先順位で `SavePlan` を組み立てる
