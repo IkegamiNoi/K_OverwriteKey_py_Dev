@@ -6,6 +6,7 @@ from unittest.mock import patch
 
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
+from keyseq.presentation.controllers.config_io.keymap_file_io import KeymapFileIo
 from keyseq.presentation.controllers.keymap_panel import keymap_list_edit as edit_module
 from keyseq.presentation.dialogs import KeymapSwitchBatchDialog
 from keyseq.presentation.list_clipboard import CLIP_KEYMAPS
@@ -310,6 +311,41 @@ class KeymapListOperationsTest(unittest.TestCase):
             for row in keymap["triggers"]:
                 self.assertTrue(row[self.app.config_service.INTERNAL_SEQUENCE_DIRTY])
         self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+
+    def test_single_keymap_actions_target_active_after_focus_leaves_range(self):
+        self.select(0, 2, active=2)
+        self.panel.on_keymap_list_select()
+        self.assertEqual(self.app.keymap_service.get_active_keymap_id(self.app.data), "km3")
+        self.listbox.selection_clear(0, "end")
+        self.app.focus_force()
+        self.app.update()
+        self.assertIsNot(self.app.focus_get(), self.listbox)
+
+        with patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.KeymapEditDialog",
+            return_value=_DialogResult(None),
+        ) as edit_dialog:
+            self.panel.edit_selected_keymap()
+        self.assertEqual(edit_dialog.call_args.kwargs["initial_label"], "Other")
+        self.assertEqual(edit_dialog.call_args.kwargs["initial_key"], "f9")
+
+        with patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.simpledialog.askstring",
+            return_value=None,
+        ) as askstring:
+            self.panel.rename_keymap_label()
+        self.assertIn("km3", askstring.call_args.args[1])
+
+        with patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.askyesno",
+            return_value=False,
+        ) as confirm:
+            self.panel.delete_keymap()
+        self.assertIn("Other", confirm.call_args.args[1])
+
+        index, keymap = KeymapFileIo(self.app).selected_keymap_for_io()
+        self.assertEqual(index, 2)
+        self.assertEqual(keymap["id"], "km3")
 
     def test_paste_batch_cancel_keeps_all_keymaps_unchanged(self):
         self.select(0, 1)

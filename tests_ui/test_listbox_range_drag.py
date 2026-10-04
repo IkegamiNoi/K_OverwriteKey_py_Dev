@@ -243,6 +243,34 @@ class ListboxRangeDragTest(unittest.TestCase):
         self.root.update()
         self.assertEqual(escaped, [True])
 
+    def test_is_dragging_and_cancel_drag_restore_preview(self):
+        original = tuple(self.box.get(0, tk.END))
+        self.assertFalse(self.controller.is_dragging())
+        self._press(1)
+        self._motion(5)
+        self.assertTrue(self.controller.is_dragging())
+
+        self.controller.cancel_drag()
+
+        self.assertFalse(self.controller.is_dragging())
+        self.assertEqual(tuple(self.box.get(0, tk.END)), original)
+        self.assertEqual(tuple(self.box.curselection()), (1,))
+        self._release(5)
+        self.assertEqual(self.moves, [])
+
+    def test_bind_escape_false_leaves_escape_unbound_on_listbox(self):
+        self.box.destroy()
+        self.box = tk.Listbox(self.root, height=8)
+        self.box.pack(fill="both", expand=True)
+        for item in self.items:
+            self.box.insert(tk.END, item)
+        self.controller = bind_listbox_range_drag(
+            self.box, on_move=self.on_move, bind_escape=False
+        )
+        self.root.update()
+
+        self.assertFalse(self.box.bind("<Escape>"))
+
     def test_drag_autoscrolls_when_pointer_is_outside(self):
         self.box.configure(height=3)
         self.box.pack_configure(fill="x", expand=False)

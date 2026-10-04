@@ -100,6 +100,7 @@ class DialogEscapeBindingTest(unittest.TestCase):
             dialog._temp.append({"label": "unsaved", "keys": []})
             self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
             self.assertTrue(dialog.bind("<Escape>"))
+            self.assertFalse(dialog.listbox.bind("<Escape>"))
             send_escape(self, self.app, dialog)
             self.assertFalse(dialog.winfo_exists())
             # <Destroy> から after(0) で予約されたフック再開を流してから数える。

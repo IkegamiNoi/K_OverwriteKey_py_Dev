@@ -176,7 +176,7 @@ class PresetManagerRangeDragTest(unittest.TestCase):
         self.assertEqual(factory.call_args.kwargs["initial_label"], "Preset 4")
         self.assertEqual(self.dialog._temp, self.presets)
 
-    def test_escape_cancels_drag_without_closing_then_idle_escape_closes(self):
+    def test_escape_cancels_drag_and_held_escape_does_not_close_dialog(self):
         before = self.listbox.get(0, tk.END)
         self._start_drag(1, 2, 3)
         self.listbox.event_generate("<Escape>")
@@ -184,8 +184,19 @@ class PresetManagerRangeDragTest(unittest.TestCase):
         self.assertTrue(self.dialog.winfo_exists())
         self.assertEqual(self.listbox.get(0, tk.END), before)
         self.assertEqual(tuple(self.listbox.curselection()), (1, 2))
+        self.listbox.event_generate("<Escape>")
+        self.app.update()
+        self.assertTrue(self.dialog.winfo_exists())
         self._finish_drag(3)
         self.assertEqual(self.dialog._temp, self.presets)
+        self.dialog.event_generate("<KeyRelease-Escape>")
+        self.app.update()
+        self.listbox.event_generate("<Escape>")
+        self.app.update()
+        self.assertFalse(self.dialog.winfo_exists())
+
+    def test_escape_closes_dialog_when_not_dragging(self):
+        self.assertFalse(self.dialog._range_drag.is_dragging())
         self.listbox.event_generate("<Escape>")
         self.app.update()
         self.assertFalse(self.dialog.winfo_exists())

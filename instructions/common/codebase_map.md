@@ -105,7 +105,7 @@ keyseq/presentation/
       keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集。phase 43 以降はダブルクリック編集だけで使う）
       keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・phase 43）
       layout_delete_dialog.py  # LayoutDeleteDialog
-      escape_close.py          # bind_escape_close（Esc に別用途がある 3 ダイアログの Escape 結線。印はクロージャに持つ・提案書 11 / phase 28 task_07）
+      escape_close.py          # bind_escape_close（Esc に別用途がある 4 ダイアログの Escape 結線。印はクロージャに持つ・提案書 11 / phase 28 task_07）
       orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
       quarantine_manage_dialog.py  # QuarantineManageDialog（隔離の管理・実行単位のリスト選択 + 復元 / 削除ボタン）
       reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 隔離 / 復元 / 削除で再利用）
@@ -342,7 +342,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     `ActionDialog` / `TriggerDialog` / `KeymapEditDialog` は `dialogs/escape_close.py` の
     `bind_escape_close(window, *, is_busy, stop)` で単一ハンドラ + 状態分岐**
     （`KeymapSwitchBatchDialog`〔phase 43〕は取得中の Esc を同じ判定順で自前の `_on_escape` / `_on_escape_release` に持つ。
-    `PresetManagerDialog` はドラッグ中の Esc を一覧側〔`listbox_range_drag`〕で取り消す）
+    `PresetManagerDialog` は `bind_escape_close` で単一ハンドラにまとめる)
     （記録中・取得中は停止して `"break"`。同一 widget では `<Escape>` が `<KeyPress>` より優先して
     単独発火するため、ハンドラを重ねると停止処理が死ぬ）。
     **判定順 = `is_busy()`（停止して印を立てる）→ 印（閉じない）→ 閉じる**。印は**クロージャに持つ**（ウィジェット属性を増やさない）。

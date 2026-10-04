@@ -42,6 +42,7 @@ class ListboxRangeDrag:
         on_move: Callable[[int, int, int], bool],
         on_commit: Callable[[tk.Listbox], None] | None,
         can_start_drag: Callable[[], bool] | None,
+        bind_escape: bool,
     ) -> None:
         self.listbox = listbox
         self.on_move = on_move
@@ -61,6 +62,7 @@ class ListboxRangeDrag:
         self._commit_id: str | None = None
         self._arrow_id: str | None = None
         self._pointer_y: int | None = None
+        self._bind_escape = bind_escape
         self._bind()
 
     @property
@@ -75,7 +77,8 @@ class ListboxRangeDrag:
         box.bind("<ButtonRelease-1>", self._release)
         box.bind("<B1-Leave>", self._break_event)
         box.bind("<B1-Enter>", self._break_event)
-        box.bind("<Escape>", self._escape)
+        if self._bind_escape:
+            box.bind("<Escape>", self._escape)
         box.bind("<Destroy>", self._on_destroy, add="+")
         box.bind("<Shift-ButtonPress-1>", lambda event: self._begin_press(event, shift=True))
         box.bind("<Shift-ButtonRelease-1>", self._release)
@@ -229,14 +232,24 @@ class ListboxRangeDrag:
             box.itemconfigure(tk.END, **self._styles[index])
         box.yview_moveto(top)
 
-    def _escape(self, _event=None):
+    def is_dragging(self) -> bool:
+        """Return whether a reorder preview is currently active."""
+        return self._dragging
+
+    def cancel_drag(self) -> None:
+        """Cancel an active reorder preview and restore its original rows and selection."""
         if not self._dragging:
-            return None
+            return
         self._cancel_timers()
         self._render_order(list(range(len(self._items))))
         self._restore_selection()
         self._dragging = False
         self._cancelled = True
+
+    def _escape(self, _event=None):
+        if not self._dragging:
+            return None
+        self.cancel_drag()
         return "break"
 
     def _cancel_timers(self) -> None:
@@ -306,6 +319,7 @@ def bind_listbox_range_drag(
     on_move: Callable[[int, int, int], bool],
     on_commit: Callable[[tk.Listbox], None] | None = None,
     can_start_drag: Callable[[], bool] | None = None,
+    bind_escape: bool = True,
 ) -> ListboxRangeDrag:
     """Bind range selection and block dragging to one Listbox."""
-    return ListboxRangeDrag(listbox, on_move, on_commit, can_start_drag)
+    return ListboxRangeDrag(listbox, on_move, on_commit, can_start_drag, bind_escape)

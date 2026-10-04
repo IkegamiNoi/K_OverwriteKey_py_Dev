@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from keyseq.domain.config import format_preset_list_item, safe_deepcopy
 from keyseq.domain.list_editing import move_block, shift_block
+from keyseq.presentation.dialogs.escape_close import bind_escape_close
 from keyseq.presentation.dialogs.preset_dialog import PresetDialog
 from keyseq.presentation.listbox_range_drag import (
     bind_listbox_range_drag, selected_range, select_range,
@@ -80,7 +81,11 @@ class PresetManagerDialog(tk.Toplevel):
         self._bind_preset_manager_events()
         self._sync_initial_presets()
         self._update_source_labels()
-        self.bind("<Escape>", lambda _event: self.destroy())
+        bind_escape_close(
+            self,
+            is_busy=self._range_drag.is_dragging,
+            stop=self._range_drag.cancel_drag,
+        )
         grab_modal(self, transient_parent if transient_parent is not None else parent)
 
     def _init_preset_manager_state(self, parent: App, title: str) -> None:
@@ -171,7 +176,9 @@ class PresetManagerDialog(tk.Toplevel):
         frm.grid_rowconfigure(1, weight=1)
 
     def _bind_preset_manager_events(self) -> None:
-        self._range_drag = bind_listbox_range_drag(self.listbox, on_move=self._move_range)
+        self._range_drag = bind_listbox_range_drag(
+            self.listbox, on_move=self._move_range, bind_escape=False
+        )
         # ダブルクリックで編集
         self.listbox.bind("<Double-Button-1>", self._on_double_click)
         self.individual_check.configure(command=self._reload_presets_for_individual_toggle)

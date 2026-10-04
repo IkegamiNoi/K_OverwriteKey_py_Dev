@@ -8,7 +8,6 @@ from keyseq.domain.config import normalize_key_name
 from keyseq.domain.keymap_triggers import INTERNAL_TRIGGER_SET_DIRTY, iter_trigger_sets, trigger_set_members
 from keyseq.presentation.dialogs import KeymapEditDialog
 from keyseq.presentation.listbox_range_drag import select_range
-from keyseq.presentation.listbox_utils import focused_listbox_index
 from .keymap_add_flow import KeymapAddFlow
 from .keymap_list_edit import KeymapListEditFlow
 
@@ -55,12 +54,16 @@ class KeymapPanelController:
         listbox.itemconfigure(index, foreground=color)
 
     def selected_keymap_list_index(self) -> int | None:
-        """keymap 管理Listboxの選択行を返す。"""
-        keymap_box = getattr(getattr(self._app, "full_view", None), "keymap_box", None)
-        listbox = getattr(keymap_box, "keymap_listbox", None)
-        if listbox is None:
-            return None
-        return focused_listbox_index(self._app, listbox, len(self._app.keymap_service.get_keymaps(self._app.data)))
+        """アクティブな keymap の一覧上の位置を返す。"""
+        active_id = self._app.keymap_service.get_active_keymap_id(self._app.data)
+        return next(
+            (
+                index
+                for index, keymap in enumerate(self._app.keymap_service.get_keymaps(self._app.data))
+                if normalize_key_name(keymap.get("id", "")) == active_id
+            ),
+            None,
+        )
 
     def sync_keymap_manage_buttons(self) -> None:
         """keymap 件数に応じて管理ボタン状態を揃える。"""
