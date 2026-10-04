@@ -5,6 +5,12 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Callable
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.presentation.controllers.button_width import apply_fixed_button_width
+from keyseq.presentation.hook_button_texts import (
+    CAPTURE_ACTIVE_TEXT,
+    CAPTURE_IDLE_TEXT,
+    CAPTURE_TEXTS,
+)
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_keysym
 
@@ -38,7 +44,6 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         self.label_vars: list[tk.StringVar] = []
         self.key_entries: list[ttk.Entry] = []
         self.capture_buttons: list[ttk.Button] = []
-        self.clear_buttons: list[ttk.Button] = []
         self.label_entries: list[ttk.Entry] = []
         self._row_frames: list[ttk.Frame] = []
         self._rows_frame: ttk.Frame | None = None
@@ -102,7 +107,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             line = 0
             if not single_row:
                 ttk.Label(row, text=f"{kind}　{name}").grid(
-                    row=line, column=0, columnspan=4, sticky="w", pady=(0, 4)
+                    row=line, column=0, columnspan=3, sticky="w", pady=(0, 4)
                 )
                 line += 1
 
@@ -111,24 +116,24 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             key_entry = ttk.Entry(row, textvariable=key_var, width=24, state="readonly")
             key_entry.grid(row=line, column=1, sticky="we", padx=(8, 0))
             capture_btn = ttk.Button(
-                row, text="キー入力で取得", command=lambda i=index: self._toggle_capture(i)
+                row,
+                text=CAPTURE_IDLE_TEXT,
+                command=lambda i=index: self._toggle_capture(i),
             )
+            apply_fixed_button_width(capture_btn, CAPTURE_TEXTS)
             capture_btn.grid(row=line, column=2, sticky="w", padx=(8, 0))
-            clear_btn = ttk.Button(row, text="クリア", command=lambda i=index: self._clear_key(i))
-            clear_btn.grid(row=line, column=3, sticky="w", padx=(8, 0))
 
             line += 1
             ttk.Label(row, text="ラベル").grid(row=line, column=0, sticky="w", pady=(8, 0))
             label_var = tk.StringVar(value=initial_label or "")
             label_entry = ttk.Entry(row, textvariable=label_var, width=42)
             label_entry.grid(
-                row=line, column=1, columnspan=3, sticky="we", padx=(8, 0), pady=(8, 0)
+                row=line, column=1, columnspan=2, sticky="we", padx=(8, 0), pady=(8, 0)
             )
             self.key_vars.append(key_var)
             self.label_vars.append(label_var)
             self.key_entries.append(key_entry)
             self.capture_buttons.append(capture_btn)
-            self.clear_buttons.append(clear_btn)
             self.label_entries.append(label_entry)
 
     def _build_buttons(self, outer: ttk.Frame) -> None:
@@ -185,10 +190,6 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         self._stop_capture()
         super().destroy()
 
-    def _clear_key(self, index: int) -> None:
-        self.key_vars[index].set("")
-        self.key_entries[index].icursor(tk.END)
-
     def _toggle_capture(self, index: int) -> None:
         if self._capturing:
             self._stop_capture()
@@ -198,7 +199,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
     def _start_capture(self, index: int) -> None:
         self._capturing = True
         self._capture_index = index
-        self.capture_buttons[index].configure(text="取得中…（Escで停止）")
+        self.capture_buttons[index].configure(text=CAPTURE_ACTIVE_TEXT)
         for label_entry in self.label_entries:
             label_entry.configure(state="disabled")
         self.hint.configure(text="取得中：切替キーにしたいキーを1回押してください（Escでキャンセル）")
@@ -212,7 +213,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         index = self._capture_index
         self._capture_index = None
         if index is not None:
-            self.capture_buttons[index].configure(text="キー入力で取得")
+            self.capture_buttons[index].configure(text=CAPTURE_IDLE_TEXT)
         for label_entry in self.label_entries:
             label_entry.configure(state="normal")
         self.hint.configure(text="例) 切替キー: 1\nラベル: numpad")

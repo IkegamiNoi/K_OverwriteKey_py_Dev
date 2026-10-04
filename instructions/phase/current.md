@@ -233,6 +233,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 - phase 42 由来: `presentation/controllers/trigger_panel/trigger_panel_controller.py` が 606 行（M1 の基準 600 を超過・phase 42 の増分は +25 で非該当）。次に触るフェーズで分割を再判定
 - phase 43 由来（完了判定前の deep-reviewer）: `domain/sequence_editing.py` の `can_move` が未使用（`can_move_block` へ置き換え済み）/ `KeymapEditDialog` の `validate` 引数が未使用（追加フローがまとめて設定へ移ったため）/ `KeymapSwitchBatchDialog` の Escape 処理が `bind_escape_close` を使わず同じ判定順を自前で持つ
 - phase 43 由来（完了判定前の Codex 敵対的レビュー）: シーケンスの個別保存（`sequence_file_io.py:54-86`）はパスのダイアログ中にアクティブが変わると、保持した A の行を保存しつつ参照元・未保存の印を現在のアクティブ B へ付ける（phase 43 より前からの挙動・キーマップの個別保存の固定なし〔decisions 43 の task_06b 保留 L1〕と同類）
+- phase 43 由来（task_09b の reviewer 参考）: `dialogs/trigger_dialog.py:37,78,88` の取得ボタンの文言が直値のまま（`hook_button_texts.CAPTURE_*` を使っていない・幅も固定していない）
 
 ### テスト負債
 

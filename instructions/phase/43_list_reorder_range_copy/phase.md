@@ -70,7 +70,7 @@ JSON スキーマ変更なし（実行中の状態はキー単位のまま・行
 - task_08a（2026-10-04 task_08 の実機目視でのユーザー提案から・暫定 30 v0.9）: キーマップの追加・個別読込・貼り付けで切替キーをまとめて設定するダイアログ（§6.3・§6.4・§10-12） — **完了・実機目視 OK（2026-10-04）**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント 3 名使用・自己申告〕・reviewer 採用。範囲外の既存テスト〔test_config_io_characterization の個別読込〕の patch をメインで追随・新ダイアログのフォーカスのテストをアプリ非フォーカス環境でも判定できる形にメインで修正）
 - task_09: 正本反映（暫定 30 の §12 を正本へ昇格・凍結）・`codebase_map.md`・`decisions_archive/43_list_reorder_range_copy.md`・current.md の完了記載・`/refactor_check`
 - task_09a（2026-10-04 完了判定前レビューから）: キーマップの単一対象の操作をアクティブから引く・プリセット一覧の Escape を 1 ハンドラに — **完了・実機目視 OK（2026-10-04）**（2026-10-04。codex-implementer・reviewer 採用・tests 1127 / tests_ui 771 / smoke pass）
-- task_09b（2026-10-04 task_09a の実機目視でのユーザー提案・暫定 30 v0.11）: まとめて設定のダイアログのクリアを外す・キー入力で取得ボタンの幅を固定 — **未着手**
+- task_09b（2026-10-04 task_09a の実機目視でのユーザー提案・暫定 30 v0.11）: まとめて設定のダイアログのクリアを外す・キー入力で取得ボタンの幅を固定 — **実装完了・実機目視待ち**（2026-10-04。codex-implementer・reviewer 採用・tests 1127 / tests_ui 780 / smoke pass）
 - task_10（2026-10-04 /refactor_check 推奨・ユーザー判断）: 提案書 18（トリガー一覧の追加・改名・削除の切り出し・まとめて設定のダイアログの __init__ 分割・範囲か下線の 1 行の取得の共通化） — **完了**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント 2 名使用・自己申告〕・reviewer 採用・tests 1127 / tests_ui 779 / smoke pass。項目 3 は action_edit が長さ未検証の現行挙動のため 2 か所のみ）
 
 ## レビュー方針

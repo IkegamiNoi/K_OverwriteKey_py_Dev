@@ -103,8 +103,8 @@ keyseq/presentation/
       preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）
       trigger_dialog.py        # TriggerDialog
-      keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集。phase 43 以降はダブルクリック編集だけで使う）
-      keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・行/スクロール領域/ボタンとバインドの生成は専用メソッド・phase 43）
+      keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集・取得ボタンは最大文言幅で固定（apply_fixed_button_width）。phase 43 以降はダブルクリック編集だけで使う）
+      keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・クリアボタンなし・取得ボタンは最大文言幅で固定（apply_fixed_button_width）・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・行/スクロール領域/ボタンとバインドの生成は専用メソッド・phase 43）
       layout_delete_dialog.py  # LayoutDeleteDialog
       escape_close.py          # bind_escape_close（Esc に別用途がある 4 ダイアログの Escape 結線。印はクロージャに持つ・提案書 11 / phase 28 task_07）
       orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）

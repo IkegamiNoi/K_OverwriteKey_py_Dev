@@ -2,12 +2,14 @@
 
 import copy
 import tkinter as tk
+from tkinter import font as tkfont, ttk
 import unittest
 from contextlib import ExitStack
 from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation import app as app_module
+from keyseq.presentation.button_width_rules import fixed_button_width_chars
 from keyseq.presentation.controllers.config_io import hotkey_presets_io
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from keyseq.presentation.dialogs.keymap_edit_dialog import KeymapEditDialog
@@ -15,6 +17,7 @@ from keyseq.presentation.dialogs.layout_delete_dialog import LayoutDeleteDialog
 from keyseq.presentation.dialogs.preset_dialog import PresetDialog
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
+from keyseq.presentation.hook_button_texts import CAPTURE_TEXTS
 from tests_ui.escape_delivery import acquire_focus, send_escape
 from tests_ui.hook_resume_wait import wait_for_hook_pause_count
 
@@ -158,6 +161,23 @@ class DialogEscapeBindingTest(unittest.TestCase):
                     wait_for_hook_pause_count(self, self.app, 0)
                     self._assert_group_a_cancelled(dialog)
                     resume.assert_called_once_with()
+
+    def test_keymap_edit_capture_button_width_is_fixed(self):
+        dialog = KeymapEditDialog(self.app, title="幅検査")
+        button = dialog.capture_btn
+        font_spec = ttk.Style(button).lookup("TButton", "font")
+        font = tkfont.Font(root=button, font=font_spec or "TkDefaultFont")
+        expected = fixed_button_width_chars(
+            [font.measure(text) for text in CAPTURE_TEXTS], font.measure("0")
+        )
+        width = int(button.cget("width"))
+
+        self.assertEqual(width, expected)
+        dialog._start_capture()
+        self.assertEqual(int(button.cget("width")), width)
+        dialog._stop_capture()
+        self.assertEqual(int(button.cget("width")), width)
+        dialog.destroy()
 
     def _assert_escape_stops_without_closing(self, dialog, state_name, resume):
         self.assertTrue(getattr(dialog, state_name))

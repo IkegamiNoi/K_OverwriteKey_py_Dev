@@ -1,13 +1,15 @@
 """KeymapSwitchBatchDialog の入力・キャンセル動作を固定する。"""
 
 from types import SimpleNamespace
-from tkinter import ttk
+from tkinter import font as tkfont, ttk
 import unittest
 from unittest.mock import patch
 
 from keyseq.presentation import app as app_module
+from keyseq.presentation.button_width_rules import fixed_button_width_chars
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs.keymap_switch_batch_dialog import KeymapSwitchBatchDialog
+from keyseq.presentation.hook_button_texts import CAPTURE_TEXTS
 
 
 class KeymapSwitchBatchDialogTest(unittest.TestCase):
@@ -56,25 +58,46 @@ class KeymapSwitchBatchDialogTest(unittest.TestCase):
                 self.assertNotIn("新しいキーマップ", labels)
                 dialog.destroy()
 
-    def test_each_row_can_capture_and_clear_key(self):
+    def test_each_row_can_capture_key_without_clear_button_and_width_stays_fixed(self):
         dialog = self._dialog([
             ("既存", "Main", "Main", "f8"),
             ("新規", "Other", "Other", ""),
         ])
 
-        dialog._clear_key(0)
-        self.assertEqual(dialog.key_vars[0].get(), "")
+        self.assertFalse(hasattr(dialog, "clear_buttons"))
+        self.assertFalse(hasattr(dialog, "_clear_key"))
+        for row in dialog._row_frames:
+            button_labels = [
+                str(child.cget("text"))
+                for child in row.winfo_children()
+                if isinstance(child, ttk.Button)
+            ]
+            self.assertNotIn("クリア", button_labels)
+
+        widths = []
+        for button in dialog.capture_buttons:
+            font_spec = ttk.Style(button).lookup("TButton", "font")
+            font = tkfont.Font(root=button, font=font_spec or "TkDefaultFont")
+            expected = fixed_button_width_chars(
+                [font.measure(text) for text in CAPTURE_TEXTS], font.measure("0")
+            )
+            width = int(button.cget("width"))
+            self.assertEqual(width, expected)
+            widths.append(width)
+
         dialog._start_capture(0)
+        self.assertEqual(int(dialog.capture_buttons[0].cget("width")), widths[0])
         dialog._on_capture_keypress(SimpleNamespace(keysym="F8"))
         self.assertEqual(dialog.key_vars[0].get(), "f8")
-        dialog._clear_key(0)
         dialog._start_capture(1)
+        self.assertEqual(int(dialog.capture_buttons[1].cget("width")), widths[1])
         dialog._on_capture_keypress(SimpleNamespace(keysym="F9"))
 
         self.assertEqual(dialog.key_vars[1].get(), "f9")
         self.assertFalse(dialog._capturing)
-        dialog._clear_key(1)
-        self.assertEqual(dialog.key_vars[1].get(), "")
+        self.assertEqual(
+            [int(button.cget("width")) for button in dialog.capture_buttons], widths
+        )
 
     def test_validation_error_keeps_dialog_open_and_focuses_row(self):
         dialog = self._dialog(

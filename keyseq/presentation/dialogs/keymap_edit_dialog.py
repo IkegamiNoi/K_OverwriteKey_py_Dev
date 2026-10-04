@@ -5,7 +5,13 @@ from tkinter import ttk
 from typing import TYPE_CHECKING, Callable
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
+from keyseq.presentation.hook_button_texts import (
+    CAPTURE_ACTIVE_TEXT,
+    CAPTURE_IDLE_TEXT,
+    CAPTURE_TEXTS,
+)
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_keysym
 
@@ -41,7 +47,10 @@ class KeymapEditDialog(tk.Toplevel):
         self.key_var = tk.StringVar(value=initial_key or "")
         self.key_entry = ttk.Entry(frm, textvariable=self.key_var, width=24, state="readonly")
         self.key_entry.grid(row=0, column=1, sticky="we", padx=(8, 0))
-        self.capture_btn = ttk.Button(frm, text="キー入力で取得", command=self._toggle_capture)
+        self.capture_btn = ttk.Button(
+            frm, text=CAPTURE_IDLE_TEXT, command=self._toggle_capture
+        )
+        apply_fixed_button_width(self.capture_btn, CAPTURE_TEXTS)
         self.capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
         self.clear_btn = ttk.Button(frm, text="クリア", command=self._clear_key)
         self.clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
@@ -89,7 +98,7 @@ class KeymapEditDialog(tk.Toplevel):
 
     def _start_capture(self):
         self._capturing = True
-        self.capture_btn.configure(text="取得中…（Escで停止）")
+        self.capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
         self.label_entry.configure(state="disabled")
         self.hint.configure(text="取得中：切替キーにしたいキーを1回押してください（Escでキャンセル）")
         self.capture_btn.focus_set()
@@ -99,7 +108,7 @@ class KeymapEditDialog(tk.Toplevel):
         if not getattr(self, "_capturing", False):
             return
         self._capturing = False
-        self.capture_btn.configure(text="キー入力で取得")
+        self.capture_btn.configure(text=CAPTURE_IDLE_TEXT)
         self.label_entry.configure(state="normal")
         self.hint.configure(text="例) 切替キー: 1\nラベル: numpad")
         try:
