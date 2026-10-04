@@ -76,7 +76,7 @@ class SequenceRunnerActiveExecutionTests(unittest.TestCase):
         self.assertTrue(self.runner.has_active_execution("f1"))
 
     def test_single_call_interval_wait_marks_caller_and_active_frame(self):
-        self.add_trigger("f1", [{"type": "system", "op": "call", "target": "f2"}])
+        self.add_trigger("f1", [{"type": "system", "op": "call", "target": "f2", "all": True}])
         self.add_trigger("f2", [
             {"type": "text", "value": "one"},
             {"type": "text", "value": "two"},
@@ -105,7 +105,7 @@ class SequenceRunnerActiveExecutionTests(unittest.TestCase):
         self.assertTrue(self.runner.has_active_execution("f2"))
 
     def test_call_frame_of_continuous_execution_is_active(self):
-        self.add_trigger("f1", [{"type": "system", "op": "call", "target": "f2"}],
+        self.add_trigger("f1", [{"type": "system", "op": "call", "target": "f2", "all": True}],
                          run_to_end=True)
         self.add_trigger("f2", [
             {"type": "text", "value": "one"},
@@ -118,9 +118,9 @@ class SequenceRunnerActiveExecutionTests(unittest.TestCase):
         self.assertTrue(self.runner.has_active_execution("f2"))
 
     def test_nested_call_frame_of_continuous_execution_is_active(self):
-        self.add_trigger("f1", [{"type": "system", "op": "call", "target": "f2"}],
+        self.add_trigger("f1", [{"type": "system", "op": "call", "target": "f2", "all": True}],
                          run_to_end=True)
-        self.add_trigger("f2", [{"type": "system", "op": "call", "target": "f3"}])
+        self.add_trigger("f2", [{"type": "system", "op": "call", "target": "f3", "all": True}])
         self.add_trigger("f3", [
             {"type": "text", "value": "one"},
             {"type": "text", "value": "two"},

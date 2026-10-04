@@ -41,7 +41,7 @@ class CallContextTest(unittest.TestCase):
 
     def test_top_is_step_tracks_call_row_and_inherits_parent_step(self):
         stepped = self.run_call("root", "f5", {
-            "f5": trigger([control("call", target="f6", step=True),
+            "f5": trigger([control("call", target="f6"),
                            {"type": "text", "value": "B"}]),
             "f6": trigger([{"type": "text", "value": "A"}]),
         }, step=True)
@@ -53,7 +53,7 @@ class CallContextTest(unittest.TestCase):
         self.assertEqual(call_step(stepped, {}).action["value"], "B")
 
         batch_parent = self.run_call("root", "f5", {
-            "f5": trigger([control("call", target="f6", step=True)]),
+            "f5": trigger([control("call", target="f6")]),
             "f6": trigger([{"type": "text", "value": "A"}]),
         })
         self.assertFalse(batch_parent.top_is_step())
@@ -65,7 +65,7 @@ class CallContextTest(unittest.TestCase):
 
     def test_step_context_stays_true_while_nested_batch_runs(self):
         ctx = self.run_call("root", "f5", {
-            "f5": trigger([control("call", target="f6"), {"type": "text", "value": "B"}]),
+            "f5": trigger([control("call", target="f6", all=True), {"type": "text", "value": "B"}]),
             "f6": trigger([{"type": "text", "value": "A"}]),
         }, step=True)
         self.assertTrue(ctx.is_step_context())
@@ -76,7 +76,7 @@ class CallContextTest(unittest.TestCase):
     def test_nested_call_advances_in_same_step_and_reports_chain(self):
         ctx = self.run_call("root", "f5", {
             "f5": trigger([
-                {"type": "text", "value": "A"}, control("call", target="f6"),
+                {"type": "text", "value": "A"}, control("call", target="f6", all=True),
                 {"type": "text", "value": "C"},
             ]),
             "f6": trigger([{"type": "text", "value": "B"}], interval=51),
@@ -163,7 +163,7 @@ class CallContextTest(unittest.TestCase):
     def test_depth_error_precedes_missing_target_and_includes_attempted_key(self):
         deep_triggers = {}
         for index in range(1, 11):
-            actions = [control("call", target=f"f{index + 1}")] if index < 10 else [
+            actions = [control("call", target=f"f{index + 1}", all=True)] if index < 10 else [
                 {"type": "text", "value": "Z"}
             ]
             deep_triggers[f"f{index}"] = trigger(actions)
@@ -175,7 +175,7 @@ class CallContextTest(unittest.TestCase):
 
     def test_root_and_stack_cycles_report_key_and_chain(self):
         root_cycle = self.run_call("root", "f5", {
-            "f5": trigger([control("call", target="root")]),
+            "f5": trigger([control("call", target="root", all=True)]),
             "root": trigger([]),
         })
         cycle = call_step(root_cycle, {})
@@ -183,8 +183,8 @@ class CallContextTest(unittest.TestCase):
         self.assertEqual(cycle.chain, ("f5", "root"))
 
         stack_cycle = self.run_call("root", "f5", {
-            "f5": trigger([control("call", target="f6")]),
-            "f6": trigger([control("call", target="f5")]),
+            "f5": trigger([control("call", target="f6", all=True)]),
+            "f6": trigger([control("call", target="f5", all=True)]),
         })
         cycle = call_step(stack_cycle, {})
         self.assertEqual(cycle.message, "呼び出しが循環します（f5）")
@@ -202,7 +202,7 @@ class CallContextTest(unittest.TestCase):
     def test_nested_call_loop_controls_share_one_processing_limit(self):
         ctx = self.run_call("root", "f5", {
             "f5": trigger([
-                control("loop_start", count=20000), control("call", target="f6"),
+                control("loop_start", count=20000), control("call", target="f6", all=True),
                 control("loop_end"),
             ]),
             "f6": trigger([]),
@@ -219,9 +219,9 @@ class CallContextTest(unittest.TestCase):
     def test_finish_call_action_counts_settled_controls_across_returned_frames(self):
         stop_tail = [control("stop") for _ in range(4000)]
         ctx = self.run_call("root", "f4", {
-            "f4": trigger([control("call", target="f5"), *stop_tail]),
-            "f5": trigger([control("call", target="f6"), *stop_tail]),
-            "f6": trigger([control("call", target="f7"), *stop_tail]),
+            "f4": trigger([control("call", target="f5", all=True), *stop_tail]),
+            "f5": trigger([control("call", target="f6", all=True), *stop_tail]),
+            "f6": trigger([control("call", target="f7", all=True), *stop_tail]),
             "f7": trigger([{"type": "text", "value": "A"}]),
         })
         self.assertEqual(call_step(ctx, {}).action["value"], "A")
@@ -258,7 +258,7 @@ class CallContextTest(unittest.TestCase):
             return [control("stop") for _ in range(count)]
 
         ctx = self.run_call("root", "f5", {
-            "f5": trigger([*stops(3000), control("call", target="f6"), *stops(3000)]),
+            "f5": trigger([*stops(3000), control("call", target="f6", all=True), *stops(3000)]),
             "f6": trigger([*stops(3000), {"type": "text", "value": "A"}, *stops(3000)]),
         })
 
@@ -272,7 +272,7 @@ class CallContextTest(unittest.TestCase):
         )
 
     def test_missing_target_is_reported(self):
-        missing = self.run_call("root", "f5", {"f5": trigger([control("call", target="absent")])})
+        missing = self.run_call("root", "f5", {"f5": trigger([control("call", target="absent", all=True)])})
         self.assertEqual(call_step(missing, {}).message, "呼び出し先のトリガーがありません（absent）")
 
     def test_single_back_and_rewind_targets_are_rejected(self):
@@ -293,7 +293,7 @@ class CallContextTest(unittest.TestCase):
                 self.assertEqual(error.message, "戻す・先頭へは単独で登録してください")
 
     def test_empty_nested_target_is_reported(self):
-        empty = self.run_call("root", "f5", {"f5": trigger([control("call")])})
+        empty = self.run_call("root", "f5", {"f5": trigger([control("call", all=True)])})
         self.assertEqual(call_step(empty, {}).message, "呼び出し先が指定されていません")
 
     def test_snapshot_freezes_actions_and_interval_at_start(self):
@@ -309,7 +309,7 @@ class CallContextTest(unittest.TestCase):
     def test_nested_call_inside_finite_loop_runs_twice(self):
         ctx = self.run_call("root", "f5", {
             "f5": trigger([
-                control("loop_start", count=2), control("call", target="f6"),
+                control("loop_start", count=2), control("call", target="f6", all=True),
                 control("loop_end"),
             ]),
             "f6": trigger([{"type": "text", "value": "B"}]),

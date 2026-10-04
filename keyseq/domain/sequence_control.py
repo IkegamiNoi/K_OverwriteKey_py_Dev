@@ -45,7 +45,15 @@ def is_step_call(action: Mapping[str, Any]) -> bool:
     return (
         action_type(action) == ACTION_TYPE_SYSTEM
         and system_op(action) == OP_CALL
-        and bool(action.get("step"))
+        and not bool(action.get("all"))
+    )
+
+
+def is_all_call(action: Mapping[str, Any]) -> bool:
+    return (
+        action_type(action) == ACTION_TYPE_SYSTEM
+        and system_op(action) == OP_CALL
+        and bool(action.get("all"))
     )
 
 
@@ -177,7 +185,7 @@ def _format_system_value(
     if op == OP_STOP:
         return "[stop]"
     if op == OP_CALL:
-        display_name = "[call step]" if is_step_call(action) else "[call]"
+        display_name = "[call all]" if is_all_call(action) else "[call]"
         target = action.get("target")
         if resolve_call is None:
             if not isinstance(target, str) or not target.strip():

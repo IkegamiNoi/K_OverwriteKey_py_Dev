@@ -1370,7 +1370,7 @@ class AnyActiveExecutionTest(unittest.TestCase):
 
     def test_single_call_context_and_call_interval_remain_active(self):
         triggers = [
-            {"key": "f1", "actions": [{"type": "system", "op": "call", "target": "f2"}]},
+            {"key": "f1", "actions": [{"type": "system", "op": "call", "target": "f2", "all": True}]},
             {"key": "f2", "run_to_end_delay_ms": 12, "actions": [A1, A1]},
         ]
         runner, state, scheduler, _performed = make_runner(triggers)
