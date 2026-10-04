@@ -14,7 +14,7 @@ from keyseq.application.sequence_runner.file_line_wait import (
     FILE_LINE_UNAVAILABLE_MESSAGE,
 )
 from keyseq.domain.call_graph import call_target
-from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE
+from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE, is_step_call
 
 
 class CallWaitMixin:
@@ -28,6 +28,7 @@ class CallWaitMixin:
         trigger_set_id = self._get_trigger_set_id()
         ctx = start_call(
             trigger_set_id, key, call_target(actions[outcome.normal_index]), self._find_trigger,
+            step=is_step_call(actions[outcome.normal_index]),
         )
         identity = (trigger_set_id, key)
         with self.state.lock:
@@ -244,9 +245,12 @@ class CallWaitMixin:
         pending: PendingStep, step: CallStep,
     ) -> None:
         if step.kind == "next":
-            self._schedule_single_call(
-                trigger_set_id, key, generation, pending, step.interval_ms or 0,
-            )
+            if isinstance(pending.call, CallContext) and pending.call.top_is_step():
+                self._pause_single_call(key)
+            else:
+                self._schedule_single_call(
+                    trigger_set_id, key, generation, pending, step.interval_ms or 0,
+                )
         elif step.kind == "done":
             self._complete_single_call(trigger_set_id, key, generation, pending)
         elif step.kind == "error":

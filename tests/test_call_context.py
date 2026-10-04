@@ -18,8 +18,8 @@ def trigger(actions, interval=25):
 
 
 class CallContextTest(unittest.TestCase):
-    def run_call(self, root_key, target_key, triggers):
-        return start_call("set", root_key, target_key, triggers.get)
+    def run_call(self, root_key, target_key, triggers, *, step=False):
+        return start_call("set", root_key, target_key, triggers.get, step=step)
 
     def test_linear_actions_finish_and_report_interval(self):
         actions = [{"type": "text", "value": value} for value in ("A", "B")]
@@ -38,6 +38,40 @@ class CallContextTest(unittest.TestCase):
     def test_empty_sequence_finishes_immediately(self):
         ctx = self.run_call("root", "f5", {"f5": trigger([])})
         self.assertEqual(call_step(ctx, {}).kind, "done")
+
+    def test_top_is_step_tracks_call_row_and_inherits_parent_step(self):
+        stepped = self.run_call("root", "f5", {
+            "f5": trigger([control("call", target="f6", step=True),
+                           {"type": "text", "value": "B"}]),
+            "f6": trigger([{"type": "text", "value": "A"}]),
+        }, step=True)
+        self.assertFalse(stepped.top_is_step())  # 文脈開始前は段がまだない
+        self.assertEqual(call_step(stepped, {}).action["value"], "A")
+        self.assertTrue(stepped.top_is_step())
+        self.assertEqual([frame.step for frame in stepped.stack], [True, True])
+        self.assertEqual(finish_call_action(stepped, {}).kind, "next")
+        self.assertEqual(call_step(stepped, {}).action["value"], "B")
+
+        batch_parent = self.run_call("root", "f5", {
+            "f5": trigger([control("call", target="f6", step=True)]),
+            "f6": trigger([{"type": "text", "value": "A"}]),
+        })
+        self.assertFalse(batch_parent.top_is_step())
+        self.assertEqual(call_step(batch_parent, {}).action["value"], "A")
+        self.assertFalse(batch_parent.top_is_step())
+        self.assertEqual([frame.step for frame in batch_parent.stack], [False, False])
+        finish_call_action(batch_parent, {})
+        self.assertFalse(batch_parent.top_is_step())
+
+    def test_step_context_stays_true_while_nested_batch_runs(self):
+        ctx = self.run_call("root", "f5", {
+            "f5": trigger([control("call", target="f6"), {"type": "text", "value": "B"}]),
+            "f6": trigger([{"type": "text", "value": "A"}]),
+        }, step=True)
+        self.assertTrue(ctx.is_step_context())
+        self.assertEqual(call_step(ctx, {}).action["value"], "A")
+        self.assertFalse(ctx.top_is_step())  # 最上段は一括の段
+        self.assertTrue(ctx.is_step_context())  # 文脈はステップのまま（処理中の同じキーは無視）
 
     def test_nested_call_advances_in_same_step_and_reports_chain(self):
         ctx = self.run_call("root", "f5", {

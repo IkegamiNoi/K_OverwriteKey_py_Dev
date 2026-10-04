@@ -85,7 +85,8 @@ class InputAcceptanceMixin:
         with self.state.lock:
             pending = self.state.pending_steps[(trigger_set_id, key)]
             pending.call_paused = False
-        delay = top_interval(pending.call) if isinstance(pending.call, CallContext) else 0
+        ctx = pending.call
+        delay = top_interval(ctx) if isinstance(ctx, CallContext) and not ctx.top_is_step() else 0
         self._schedule_single_call(trigger_set_id, key, pending.generation, pending, delay)
         self._update_status()
 
@@ -120,7 +121,10 @@ class InputAcceptanceMixin:
                 else:
                     pending = self.state.pending_steps.get((self._get_trigger_set_id(), key))
                     if pending is not None and pending.call is not None:
-                        self._pause_single_call(key)
+                        # ステップの文脈の 1 ステップの処理中（入れ子の一括の実行中を含む）は無視する
+                        if not (isinstance(pending.call, CallContext)
+                                and pending.call.is_step_context()):
+                            self._pause_single_call(key)
             return
         if key == self.state.run_to_end_key and self.state.run_to_end_paused:
             self.resume_run_to_end()

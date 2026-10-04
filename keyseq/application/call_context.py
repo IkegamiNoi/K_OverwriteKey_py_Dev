@@ -26,6 +26,7 @@ class CallFrame:
     frames: list[LoopFrame] = field(default_factory=list)
     deferred: list[tuple[str, str]] = field(default_factory=list)
     resume: StepResume | None = None
+    step: bool = False
 
 
 @dataclass
@@ -37,6 +38,14 @@ class CallContext:
     stack: list[CallFrame] = field(default_factory=list)
     started: bool = False
     processed_before_action: int = 0
+    first_step: bool = False
+
+    def top_is_step(self) -> bool:
+        return bool(self.stack and self.stack[-1].step)
+
+    def is_step_context(self) -> bool:
+        """呼び出しの行がステップの文脈か（最初の段の印。入れ子の一括の実行中も真）。"""
+        return self.first_step
 
 
 @dataclass(frozen=True)
@@ -55,6 +64,7 @@ def start_call(
     root_key: str,
     target_key: str,
     find_trigger: Callable[[str], Mapping[str, Any] | None],
+    *, step: bool = False,
 ) -> CallContext:
     """Capture the reachable call targets before beginning a call."""
     return CallContext(
@@ -62,6 +72,7 @@ def start_call(
         root_key=root_key,
         first_target=target_key,
         snapshot=call_graph.collect_call_snapshot(target_key, find_trigger),
+        first_step=step,
     )
 
 
@@ -85,7 +96,9 @@ def _error(message: str, chain: tuple[str, ...], deltas: list[tuple[str, int]]) 
     return CallStep("error", message=message, chain=chain, counter_deltas=tuple(deltas))
 
 
-def _push_frame(ctx: CallContext, key: str, deltas: list[tuple[str, int]]) -> CallStep | None:
+def _push_frame(
+    ctx: CallContext, key: str, deltas: list[tuple[str, int]], step: bool,
+) -> CallStep | None:
     chain = _chain(ctx, key)
     if len(ctx.stack) + 1 > sequence_control.MAX_CALL_DEPTH:
         return _error(
@@ -107,7 +120,8 @@ def _push_frame(ctx: CallContext, key: str, deltas: list[tuple[str, int]]) -> Ca
             return _error("戻す・先頭へのトリガーは呼び出せません", chain, deltas)
     if not key:
         return _error("呼び出し先が指定されていません", chain, deltas)
-    ctx.stack.append(CallFrame(key))
+    parent_step = ctx.top_is_step() if ctx.stack else True
+    ctx.stack.append(CallFrame(key, step=step and parent_step))
     return None
 
 
@@ -136,7 +150,7 @@ def _advance_call(ctx: CallContext, counters: dict[str, int]) -> CallStep:
     processed = [0]
     if not ctx.started:
         ctx.started = True
-        failure = _push_frame(ctx, ctx.first_target, deltas)
+        failure = _push_frame(ctx, ctx.first_target, deltas, ctx.first_step)
         if failure is not None:
             ctx.started = False
             return failure
@@ -191,7 +205,9 @@ def _advance_frame(
     action = entry.actions[outcome.normal_index]
     frame.position = outcome.normal_index
     if _is_call(action):
-        return _push_frame(ctx, call_graph.call_target(action), deltas)
+        return _push_frame(
+            ctx, call_graph.call_target(action), deltas, sequence_control.is_step_call(action),
+        )
     return CallStep("action", action=dict(action), chain=_chain(ctx),
                     counter_deltas=tuple(deltas))
 
