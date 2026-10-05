@@ -67,7 +67,12 @@ class SequenceListOperationsTest(unittest.TestCase):
         self.listbox = _Listbox()
         self.app = SimpleNamespace(
             data={"active_keymap_id": "main", "keymaps": [{"id": "main", "triggers": [self.trigger]}]},
-            full_view=SimpleNamespace(action_list=self.listbox),
+            full_view=SimpleNamespace(
+                action_list=self.listbox,
+                sequence_box=SimpleNamespace(
+                    action_range_drag=SimpleNamespace(last_commit_extended=False),
+                ),
+            ),
             _selected_trigger_idx=0,
             _indices={"a": 1},
             _programmatic_action_select=False,
@@ -75,7 +80,11 @@ class SequenceListOperationsTest(unittest.TestCase):
             _active_trigger_set_id=lambda: "main",
             _find_trigger_by_key=lambda key: self.trigger if key == "a" else None,
             state=SimpleNamespace(loop_iterations_for=Mock(return_value={}), counters={}),
-            sequence_runner=SimpleNamespace(reset_loop_frames=Mock()),
+            sequence_runner=SimpleNamespace(
+                reset_loop_frames=Mock(),
+                is_running_chain_callee=Mock(return_value=False),
+            ),
+            list_clipboard=SimpleNamespace(paste=Mock(return_value=[_action("paste")])),
             mark_sequence_dirty=Mock(),
             _set_flash_message=Mock(),
         )
@@ -118,6 +127,50 @@ class SequenceListOperationsTest(unittest.TestCase):
         self.assertEqual(self.listbox.curselection(), (2, 3))
         self.app.sequence_runner.reset_loop_frames.assert_called_once_with("a")
         self.app.mark_sequence_dirty.assert_called_once_with(self.trigger)
+
+    def test_running_chain_callee_rejects_click_and_sequence_list_edits(self):
+        self.app.sequence_runner.is_running_chain_callee.return_value = True
+        before = list(self.trigger["actions"])
+        self.select(2)
+
+        self.controller.on_action_list_mouse_release(self.listbox)
+        self.assertFalse(self.controller.on_action_list_move(1, 1, 0))
+        self.controller.move_action(-1)
+        self.controller.paste_actions()
+        self.controller.duplicate_action()
+
+        self.assertEqual(self.app._indices["a"], 1)
+        self.assertEqual(self.trigger["actions"], before)
+        self.assertEqual(self.app._set_flash_message.call_count, 5)
+        for call in self.app._set_flash_message.call_args_list:
+            self.assertEqual(
+                call.args[0],
+                "連続実行中は呼び出し先を変更できません（一時停止してから操作してください）",
+            )
+        self.app.sequence_runner.reset_loop_frames.assert_not_called()
+        self.app.mark_sequence_dirty.assert_not_called()
+
+    def test_paused_chain_callee_still_accepts_sequence_list_move(self):
+        # is_running_chain_callee=False also covers a paused run: paused edits are
+        # accepted and a later resume uses the reordered actions.
+        self.app.sequence_runner.is_running_chain_callee.return_value = False
+
+        self.assertTrue(self.controller.on_action_list_move(1, 1, 0))
+
+        self.assertEqual(self.trigger["actions"], [self.rows[1], self.rows[0], self.rows[2], self.rows[3]])
+        self.app._set_flash_message.assert_not_called()
+
+    def test_running_caller_itself_still_accepts_click_position_change(self):
+        # The application query excludes the run-to-end key itself.
+        self.trigger["run_to_end"] = True
+        self.app.sequence_runner.is_running_chain_callee.return_value = False
+        self.select(2)
+
+        self.controller.on_action_list_mouse_release(self.listbox)
+
+        self.assertEqual(self.app._indices["a"], 2)
+        self.app.sequence_runner.reset_loop_frames.assert_called_once_with("a")
+        self.app._set_flash_message.assert_not_called()
 
     def test_move_up_moves_selected_block_and_keeps_next_action(self):
         next_action = self.rows[3]

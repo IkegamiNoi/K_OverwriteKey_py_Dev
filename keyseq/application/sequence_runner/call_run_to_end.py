@@ -370,7 +370,6 @@ class CallRunToEndMixin:
         self._run_to_end_wait_position = None
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
-        self.cancel_pending_waits()
         self.stop_run_to_end()
 
     def _complete_run_to_end_call(
@@ -399,7 +398,6 @@ class CallRunToEndMixin:
             return
         self._commit_run_to_end_call(ctx)
         self._discard_run_to_end_call()
-        self.cancel_pending_waits()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
         self._run_to_end_wait_position = None

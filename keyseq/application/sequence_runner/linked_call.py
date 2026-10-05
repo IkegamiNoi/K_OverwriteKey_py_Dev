@@ -77,6 +77,13 @@ class LinkedCallMixin:
         trigger_set_id = self._get_trigger_set_id()
         refs = self.state.call_refs_for(trigger_set_id)
         def finish_callers(target: str) -> None:
+            if target == self.state.run_to_end_key and self.state.run_to_end_paused:
+                # The run itself can be another invocation's callee.
+                self._discard_run_to_end_call()
+                self._run_to_end_resume = None
+                self._run_to_end_snapshot = None
+                self._run_to_end_wait_position = None
+                self.stop_run_to_end()
             for caller in self._ordered_callers():
                 if caller in excluded or caller not in refs:
                     continue
@@ -94,7 +101,7 @@ class LinkedCallMixin:
                     settled = settle_after_normal(
                         actions, position, frames, self.state.counters, allow_wrap=False,
                         in_call=True, deferred_counters=deferred,
-                        wait_mode="skip" if paused else "stop",
+                        wait_mode="stop", stop_before_stop=paused,
                     )
                     position, frames, deferred = settled.position, settled.frames, settled.deferred_counters
                     deltas_by_key.setdefault(caller, []).extend(settled.counter_deltas)

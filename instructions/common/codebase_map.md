@@ -664,7 +664,17 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     押下の合間に `PendingStep` は残さない。待機・読込・一括実行の処理中と明示的一時停止だけ保持する。
     連続実行も各ステップで `commit_press` し、停止の判定は実行全体の `_run_to_end_sent` を使う。
     `linked_call.py`（`LinkedCallMixin`）へ task_09 の書き戻し・一覧順の完了伝播・履歴処理を移動し、両経路で共有する。
-    一時停止中の呼び出し元は完了伝播で先行処理まで進め、末尾なら実行を終える。再開は実状態から再構築する。
+    一時停止中の呼び出し元は完了伝播で先行処理まで進めるが、待機・停止の行ではその行の手前で止める
+    （`settle_after_normal(stop_before_stop=True, wait_mode="stop")`）。再開は実状態から再構築し、未処理の待機は予約する。
+    末尾なら実行を終え、一時停止中の連続実行のキー自身が別の呼び出しの呼び出し先として完了した場合も終える（task_11b・M4/L1）。
+    `SequenceRunner.is_running_chain_callee(key)` は実行中の連続実行の呼び出し先だけを問い合わせる口。
+    出力シーケンス欄のクリック確定・ドラッグ・上へ/下へ・貼り付け・複製の入口は、真なら一時メッセージで拒否する。
+    一時停止中は変更でき、再開は変更後の状態から（task_11b・M3）。
+    連続実行の開始は、最初の行が呼び出しでも単発の待機だけを取り消す。全保留の取消しは停止操作用に維持し、
+    一時停止中の呼び出しの破棄は入力受付の §4.2.10 の規則だけで扱う（task_11b）。
+    `sequence_history.apply_control` は戻す対象の同じ押下番号のグループを先に検査し、待機・処理中なら全体を拒否。
+    印のある対象の最上段の履歴が空なら自身の履歴を起点にする。
+    `prepare_targets` / `_prepare_control_targets` は対象グループ全体で2回押しを照合し、一時停止中の対象だけをまとめて破棄する（task_11b・L2）。
     `SequenceRunner.list_trigger_keys` は有効なトリガー一覧の上から順のキー取得（省略時は参照印のキー順）。単発・連続実行の完了伝播の順を決める。
     phase 45 task_11: `call_view_notice.py` の `call_view_summary_for(key)` はアクティブな一覧の参照印を
     `call_chain.chain_from` でたどり、最上段の現在の行・位置・周回・カウンターを複製して返す。

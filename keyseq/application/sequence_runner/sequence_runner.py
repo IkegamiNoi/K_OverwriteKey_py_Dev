@@ -4,6 +4,7 @@ from collections.abc import Iterable, Sequence
 from typing import Any, Callable
 
 from keyseq.application.call_context import CallContext, top_interval
+from keyseq.application.call_chain import chain_from
 from keyseq.application.sequence_history import (
     StepSnapshot, apply_control, commit_step, commit_press, snapshot_for,
 )
@@ -126,6 +127,22 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             or self._run_to_end_call is not None
             or self._run_to_end_call_file_line is not None
         )
+
+    def is_running_chain_callee(self, key: str) -> bool:
+        """Identify callees protected from list edits during a running chain."""
+        key = normalize_key_name(key)
+        root = self.state.run_to_end_key
+        if not key or root is None or self.state.run_to_end_paused or key == root:
+            return False
+        ctx = self._run_to_end_call
+        if ctx is not None and ctx.trigger_set_id == self._get_trigger_set_id():
+            if any(normalize_key_name(frame.key) == key for frame in ctx.stack):
+                return True
+            if not ctx.started and normalize_key_name(ctx.first_target) == key:
+                return True
+        return key in chain_from(
+            self.state, self._get_trigger_set_id(), root, self._find_trigger,
+        )[1:]
 
     @staticmethod
     def _call_context_uses_key(context: CallContext, key: str) -> bool:
@@ -253,7 +270,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         self._control_source = key
         target, message = apply_control(self.state, (self._get_trigger_set_id(), key),
                                         op, self._find_trigger,
-                                        self._prepare_control_target)
+                                        prepare_targets=self._prepare_control_targets)
         self._publish_call_view()
         if message and self._notify_message is not None:
             self._notify_message(message)
@@ -354,6 +371,11 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         if not actions:
             return
 
+        # Starting a run finishes ordinary single waits, never paused calls.
+        for identity, pending in tuple(self.state.pending_steps.items()):
+            if (identity[0] == self._get_trigger_set_id()
+                    and pending.call is None and pending.file_line is None):
+                self._cancel_pending_steps(identity)
         self._discard_run_to_end_file_line()
         self._discard_run_to_end_call()
         self._run_to_end_resume = None
@@ -389,6 +411,25 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         if self._rebuild_paused_run_to_end_call():
             return
         self.state.run_to_end_paused = False
+        key = self.state.run_to_end_key
+        trigger = self._find_trigger(key) if key is not None else None
+        actions = trigger.get("actions", []) if trigger else []
+        position = self._get_index(key) if key is not None else 0
+        if (0 <= position < len(actions) and system_op(actions[position]) == OP_WAIT
+                and self._run_to_end_wait_position is None):
+            # Completion propagation left this row unprocessed while paused.
+            settled = settle_after_normal(
+                actions, position, self._get_frames(key), self.state.counters,
+                allow_wrap=False, wait_mode="wait",
+                deferred_counters=self.state.deferred_counters_for(
+                    self._get_trigger_set_id()).get(key, ()),
+            )
+            if settled.wait_ms is not None:
+                self._queue_run_to_end_wait(
+                    key, settled, StepResume(position, False, 0),
+                    snapshot_for(self.state, self._get_trigger_set_id(), key),
+                )
+                return
         self._run_to_end_step(schedule_only=True)
 
     def stop_run_to_end(self) -> None:
@@ -517,7 +558,6 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         self._run_to_end_wait_position = None
         stop = outcome.error is not None or outcome.normal_index is None
         if outcome.error:
-            self.cancel_pending_waits()
             index, message = outcome.error
             self._report_error(actions[index], message)
         elif outcome.normal_index is not None:
@@ -525,8 +565,6 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             action = actions[index]
             raw_type = action.get("type")
             action_type = raw_type.strip().lower() if isinstance(raw_type, str) else ""
-            if not (action_type == ACTION_TYPE_SYSTEM and system_op(action) == OP_CALL):
-                self.cancel_pending_waits()
             if action_type == ACTION_TYPE_FILE_LINE:
                 initial_position = (
                     previous_resume.initial_position
@@ -561,13 +599,10 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                     return
                 stop = position == 0 or stopped
         elif outcome.stopped:
-            self.cancel_pending_waits()
             outcome.counter_deltas, _position = self._settle_after_stopped_sequence(
                 key, actions, outcome.position, outcome.frames,
                 outcome.processed, outcome.counter_deltas,
             )
-        elif outcome.normal_index is None:
-            self.cancel_pending_waits()
         if outcome.reached_end:
             self._record_single_completion(snapshot, True)
         self._commit_step_and_publish(snapshot, outcome.counter_deltas)

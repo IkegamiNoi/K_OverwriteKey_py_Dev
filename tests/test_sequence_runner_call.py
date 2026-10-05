@@ -663,8 +663,9 @@ class SequenceRunnerCallTests(unittest.TestCase):
                 self.assertEqual([action["value"] for action in self.performed], expected)
                 self.assertEqual(self.index("f1"), 1)
 
-    def test_continuous_call_of_callee_with_pending_single_does_not_consume_press(self):
-        # §4.5.2 の待機・読込中の押下無視は、呼び出し元の実行設定によらない。
+    def test_continuous_call_start_cancels_pending_single_wait_but_not_file_line(self):
+        # §4.2.10: continuous start settles single waits, including when its
+        # first row is a call. A pending file-line read still blocks the press.
         for kind in ("wait", "file_line"):
             with self.subTest(kind=kind):
                 self.setUp()
@@ -680,16 +681,19 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
                 self.runner.handle_key("f1")
                 if kind == "wait":
-                    self.run_last()
-
-                self.assertIsNone(self.state.run_to_end_key)
-                self.assertIsNone(self.runner._run_to_end_call)
-                self.assertIs(self.state.pending_steps[("set", "f5")], pending)
-                self.assertEqual(self.index("f5"), position)
-                self.assertEqual(self.scheduler.queue, queue)
-                self.assertEqual(self.state.last_trigger, last_trigger)
-                self.assertEqual(len(self.history("f1")), 0)
-                self.assertNotIn("f1", self.state.call_refs_for("set"))
+                    self.assertEqual(self.state.run_to_end_key, "f1")
+                    self.assertNotIn(("set", "f5"), self.state.pending_steps)
+                    self.assertIsNotNone(self.runner._run_to_end_call)
+                    self.assertNotEqual(self.index("f5"), position)
+                else:
+                    self.assertIsNone(self.state.run_to_end_key)
+                    self.assertIsNone(self.runner._run_to_end_call)
+                    self.assertIs(self.state.pending_steps[("set", "f5")], pending)
+                    self.assertEqual(self.index("f5"), position)
+                    self.assertEqual(self.scheduler.queue, queue)
+                    self.assertEqual(self.state.last_trigger, last_trigger)
+                    self.assertEqual(len(self.history("f1")), 0)
+                    self.assertNotIn("f1", self.state.call_refs_for("set"))
 
     def test_13_unmarked_caller_stays_put_and_call_continues_from_callee_position(self):
         self.trigger("f1", [call("f5"), text("caller next")])
@@ -2594,20 +2598,21 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertNotIn(("set", "f1"), self.state.pending_steps)
 
     def test_run_to_end_call_does_not_resend_action_after_busy_guard(self):
-        self.trigger("busy", [text("busy"), system("wait", ms=1000)])
         self.trigger("f5", [text("A"), call("busy")])
         self.trigger("f1", [call("f5", all=True)], run_to_end=True)
-        self.runner.handle_key("busy")
-        self.hold_pending_wait("busy")
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
         self.assertEqual(self.performed.count(text("A")), 1)
-        self.scheduler.run_one()
+        self.runner.pause_run_to_end()
+        self.trigger("busy", [text("busy"), system("wait", ms=1000)])
+        self.runner.handle_key("busy")
+        self.hold_pending_wait("busy")
 
+        self.runner.resume_run_to_end()
+        self.scheduler.run_one()
         self.assertEqual(self.state.run_to_end_key, "f1")
         self.assertTrue(self.state.run_to_end_paused)
-        self.assertIsNotNone(self.runner._run_to_end_call)
         self.assertEqual(self.index("f5"), 1)
         self.assertEqual(self.performed.count(text("A")), 1)
 

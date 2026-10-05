@@ -305,6 +305,7 @@ def settle_after_normal(actions: Sequence[Any], position: int,
                         allow_wrap: bool, processed: int = 0,
                         stop_ends_run: bool = False,
                         in_call: bool = False, wait_mode: str = "stop",
+                        stop_before_stop: bool = False,
                         wrapped: bool = False,
                         deferred_counters: Sequence[tuple[str, str]] = ()) -> SettleOutcome:
     """Prepare the next step without executing controls or reporting errors."""
@@ -331,6 +332,8 @@ def settle_after_normal(actions: Sequence[Any], position: int,
         if in_call and op == OP_LOOP_START and bool(action.get("infinite")):
             break
         if op == OP_STOP:
+            if stop_before_stop:
+                break
             if stop_ends_run:
                 position += 1
                 if position == len(actions):

@@ -195,7 +195,7 @@ def apply_control(
     source: tuple[str, str],
     op: str,
     find_trigger: Callable[[str], object | None],
-    prepare_target: Callable[[tuple[str, str]], bool] | None = None,
+    prepare_targets: Callable[[tuple[tuple[str, str], ...]], bool] | None = None,
 ) -> tuple[str | None, str | None]:
     """Apply a back/rewind control to the most recently recorded trigger.
 
@@ -213,24 +213,52 @@ def apply_control(
         return None, NO_TARGET_MESSAGE
 
     target_id, target_key = target
-    identity = (target_id, target_key)
-    if prepare_target is not None and not prepare_target(identity):
-        return None, None
     restore_key = target_key
+    histories: MutableMapping[str, list[HistoryEntry]]
+    grouped_keys: tuple[str, ...] = ()
     if op == "back":
         with state.lock:
             target_has_call_ref = target_key in state.call_refs_for(target_id)
         if target_has_call_ref:
-            restore_key = chain_top(state, target_id, target_key, find_trigger)
+            candidate = chain_top(state, target_id, target_key, find_trigger)
+            with state.lock:
+                candidate_history = state.history_for(target_id).get(candidate)
+                if candidate_history:
+                    restore_key = candidate
     with state.lock:
-        if identity in state.pending_steps:
-            return None, PENDING_TARGET_MESSAGE
-
         histories = state.history_for(target_id)
-        history = histories.get(restore_key)
+        top_entry = None
         if op == "back":
-            if history is None:
-                return None, None
+            origin_history = histories.get(restore_key)
+            top_entry = origin_history[-1] if origin_history else None
+            if top_entry is not None:
+                press_id = top_entry.press_id
+                grouped_keys = tuple(
+                    key for key, trigger_history in histories.items()
+                    if trigger_history and trigger_history[-1].press_id == press_id
+                    and (press_id != 0 or key == restore_key)
+                )
+        control_keys = tuple(dict.fromkeys((target_key, *grouped_keys)))
+        control_identities = tuple((target_id, key) for key in control_keys)
+        pending_steps = state.pending_steps
+        for pending_identity in control_identities:
+            pending = pending_steps.get(pending_identity)
+            if pending is None:
+                continue
+            paused_call = (getattr(pending, "call", None) is not None
+                           and bool(getattr(pending, "call_paused", False)))
+            if not paused_call:
+                return None, PENDING_TARGET_MESSAGE
+
+    if prepare_targets is not None:
+        if not prepare_targets(control_identities):
+            return None, None
+
+    with state.lock:
+        if op == "back":
+            # Re-read the selected history after preparation: a paused call may
+            # have been discarded by the two-press control flow.
+            history = histories.get(restore_key)
             top_entry = history[-1] if history else None
             if top_entry is None:
                 return None, None
@@ -255,6 +283,7 @@ def apply_control(
                 restored = True
             return (restore_key, None) if restored else (None, None)
 
+        history = histories.get(restore_key)
         if op == "rewind":
             state.indices_for(target_id)[target_key] = 0
             state.loop_frames_for(target_id)[target_key] = []

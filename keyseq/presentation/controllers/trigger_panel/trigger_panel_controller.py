@@ -27,6 +27,10 @@ from keyseq.presentation.listbox_range_drag import select_range, selected_range
 class TriggerPanelController:
     """トリガー/シーケンスパネルの選択・表示・編集とステータス表示。"""
 
+    _RUNNING_CALLEE_EDIT_MESSAGE = (
+        "連続実行中は呼び出し先を変更できません（一時停止してから操作してください）"
+    )
+
     def __init__(self, app) -> None:
         self._app = app
         self._trigger_lists = []
@@ -123,6 +127,16 @@ class TriggerPanelController:
         if not t:
             return None
         return normalize_key_name(t.get("key", ""))
+
+    def _refuse_running_chain_callee_edit(self) -> bool:
+        """出力シーケンスの直接編集を実行中の呼び出し先だけ拒否する。"""
+        key = self.selected_trigger_key()
+        runner = getattr(self._app, "sequence_runner", None)
+        query = getattr(runner, "is_running_chain_callee", None)
+        if key and callable(query) and query(key):
+            self._app._set_flash_message(self._RUNNING_CALLEE_EDIT_MESSAGE)
+            return True
+        return False
 
     def selected_trigger_is_effective(self) -> bool:
         index = self.selected_trigger_index()
@@ -539,18 +553,26 @@ class TriggerPanelController:
         return self._action_edit.delete_action()
 
     def duplicate_action(self):
+        if self._refuse_running_chain_callee_edit():
+            return
         return self._action_edit.duplicate_action()
 
     def copy_actions(self, event=None):
         return self._action_edit.copy_actions(event)
 
     def paste_actions(self, event=None):
+        if self._refuse_running_chain_callee_edit():
+            return "break"
         return self._action_edit.paste_actions(event)
 
     def move_action(self, delta: int):
+        if self._refuse_running_chain_callee_edit():
+            return
         return self._action_edit.move_action(delta)
 
     def on_action_list_move(self, start: int, end: int, target_start: int) -> bool:
+        if self._refuse_running_chain_callee_edit():
+            return False
         return self._action_edit.move_action_range(start, end, target_start)
 
     def _counter_names(self) -> list[str]:
@@ -597,6 +619,8 @@ class TriggerPanelController:
         return self._action_edit.on_focus_index_change(_event)
 
     def on_action_list_mouse_release(self, listbox: tk.Listbox) -> None:
+        if self._refuse_running_chain_callee_edit():
+            return
         return self._action_edit.on_selection_commit(listbox)
 
     def on_action_double_click(self, _event=None):

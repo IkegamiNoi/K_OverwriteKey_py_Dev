@@ -115,23 +115,28 @@ class InputAcceptanceMixin:
         self._schedule_single_call(trigger_set_id, key, pending.generation, pending, delay)
         self._update_status()
 
-    def _prepare_control_target(self, identity: tuple[str, str]) -> bool:
-        trigger_set_id, key = identity
-        if key == self.state.run_to_end_key and not self.state.run_to_end_paused:
-            return False
-        pending = self.state.pending_steps.get(identity)
-        paused_call = pending is not None and pending.call is not None and pending.call_paused
-        paused_run = key == self.state.run_to_end_key and self.state.run_to_end_paused
-        if paused_call or paused_run:
-            current = (self._control_source, identity, self._acceptance_snapshot(key))
+    def _prepare_control_targets(self, identities: tuple[tuple[str, str], ...]) -> bool:
+        """Confirm the entire restoration group before discarding any execution."""
+        paused = []
+        for identity in identities:
+            _trigger_set_id, key = identity
+            if key == self.state.run_to_end_key and not self.state.run_to_end_paused:
+                return False
+            pending = self.state.pending_steps.get(identity)
+            paused_call = pending is not None and pending.call is not None and pending.call_paused
+            paused_run = key == self.state.run_to_end_key and self.state.run_to_end_paused
+            if paused_call or paused_run:
+                paused.append(key)
+        if paused:
+            current = (self._control_source, identities, self._acceptance_snapshot())
             if self._pending_control_discard == current:
                 self._pending_control_discard = None
-                self.discard_paused((key,))
+                self.discard_paused(tuple(paused))
                 return True
             self._pending_control_discard = current
             if self._notify_message is not None:
                 self._notify_message(
-                    f"一時停止中の {key} を破棄します。もう一度押すと実行します"
+                    f"一時停止中の {', '.join(paused)} を破棄します。もう一度押すと実行します"
                 )
             return False
         return True

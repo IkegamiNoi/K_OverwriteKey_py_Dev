@@ -1,4 +1,5 @@
 import unittest
+from types import SimpleNamespace
 
 from keyseq.application.app_state import AppState
 from keyseq.application.sequence_history import (
@@ -310,6 +311,89 @@ class SequenceHistoryControlTest(unittest.TestCase):
         self.assertEqual((selected, message), ("callee", None))
         self.assertEqual(self.state.indices_for("set-a")["target"], 0)
         self.assertEqual(self.state.indices_for("set-a")["callee"], 1)
+
+    def test_back_refuses_when_any_grouped_trigger_is_waiting_without_mutation(self):
+        histories = self.state.history_for("set-a")
+        histories["target"] = [HistoryEntry(2, [], [], press_id=92)]
+        histories["callee"] = [HistoryEntry(1, [], [("n", 1)], press_id=92)]
+        self.state.indices_for("set-a").update(target=4, callee=3)
+        self.state.counters["n"] = 1
+        self.state.pending_steps[("set-a", "callee")] = SimpleNamespace(
+            call=None, file_line=None, call_paused=False
+        )
+        prepared = []
+
+        result = apply_control(
+            self.state, ("set-a", "undo-key"), "back", self.find_trigger,
+            prepare_targets=lambda identities: prepared.append(identities) or True,
+        )
+
+        self.assertEqual(result, (None, PENDING_TARGET_MESSAGE))
+        self.assertEqual(prepared, [])
+        self.assertEqual(histories["target"], [HistoryEntry(2, [], [], press_id=92)])
+        self.assertEqual(histories["callee"], [HistoryEntry(1, [], [("n", 1)], press_id=92)])
+        self.assertEqual(self.state.indices_for("set-a"), {"target": 4, "callee": 3})
+        self.assertEqual(self.state.counters["n"], 1)
+
+        # Loading or executing a call is refused before preparation as well.
+        pending = self.state.pending_steps[("set-a", "callee")]
+        for kind in ("file_line", "call"):
+            with self.subTest(kind=kind):
+                pending.file_line = object() if kind == "file_line" else None
+                pending.call = object() if kind == "call" else None
+                self.assertEqual(apply_control(
+                    self.state, ("set-a", "undo-key"), "back", self.find_trigger,
+                    prepare_targets=lambda identities: prepared.append(identities) or True,
+                ), (None, PENDING_TARGET_MESSAGE))
+                self.assertEqual(prepared, [])
+                self.assertEqual(len(histories["target"]), 1)
+                self.assertEqual(len(histories["callee"]), 1)
+                self.assertEqual(self.state.counters["n"], 1)
+
+    def test_back_prepares_all_grouped_paused_triggers_as_one_batch(self):
+        histories = self.state.history_for("set-a")
+        histories["target"] = [HistoryEntry(1, [], [], press_id=93)]
+        histories["callee"] = [HistoryEntry(2, [], [], press_id=93)]
+        histories["other"] = [HistoryEntry(0, [], [], press_id=94)]
+        self.state.indices_for("set-a").update(target=4, callee=5, other=3)
+        self.state.pending_steps[("set-a", "callee")] = SimpleNamespace(
+            call=object(), call_paused=True
+        )
+        batches = []
+
+        result = apply_control(
+            self.state, ("set-a", "undo-key"), "back", self.find_trigger,
+            prepare_targets=lambda identities: batches.append(identities) or False,
+        )
+
+        self.assertEqual(result, (None, None))
+        self.assertEqual(batches, [(('set-a', 'target'), ('set-a', 'callee'))])
+        self.assertEqual(self.state.indices_for("set-a"), {"target": 4, "callee": 5, "other": 3})
+        self.assertEqual(len(histories["target"]), 1)
+        self.assertEqual(len(histories["callee"]), 1)
+        self.assertEqual(len(histories["other"]), 1)
+
+    def test_marked_target_falls_back_to_own_history_when_chain_top_is_empty(self):
+        histories = self.state.history_for("set-a")
+        histories["target"] = [HistoryEntry(3, [], [], press_id=95)]
+        histories["callee"] = []
+        self.state.call_refs_for("set-a").add("target")
+        self.state.last_trigger = ("set-a", "target")
+        self.state.indices_for("set-a")["target"] = 0
+        self.active_keys.add("callee")
+        batches = []
+
+        selected, message = apply_control(
+            self.state, ("set-a", "undo-key"), "back",
+            lambda key: {"actions": [{"type": "system", "op": "call", "target": "callee"}]}
+            if key == "target" else {"actions": []} if key == "callee" else None,
+            prepare_targets=lambda identities: batches.append(identities) or True,
+        )
+
+        self.assertEqual((selected, message), ("target", None))
+        self.assertEqual(batches, [(('set-a', 'target'),)])
+        self.assertEqual(self.state.indices_for("set-a")["target"], 3)
+        self.assertEqual(histories["target"], [])
 
     def test_rewind_clears_target_call_ref_only(self):
         self.state.call_refs_for("set-a").update({"target", "other"})
