@@ -9,6 +9,7 @@ from keyseq.application.sequence_history import (
     StepSnapshot,
     apply_control,
     clear_history,
+    commit_press,
     commit_step,
     pop_history,
     push_history,
@@ -202,6 +203,120 @@ class SequenceHistoryControlTest(unittest.TestCase):
         frames.append((3, 1))
 
         self.assertEqual(snapshot, StepSnapshot("set-a", "target", 4, [(1, 2)]))
+
+    def test_snapshot_for_copies_call_ref_mark(self):
+        self.state.call_refs_for("set-a").add("target")
+
+        snapshot = snapshot_for(self.state, "set-a", "target")
+
+        self.assertTrue(snapshot.call_ref)
+
+    def test_call_ref_change_alone_is_recorded(self):
+        snapshot = StepSnapshot("set-a", "target", 4, [(1, 2)])
+        history = []
+
+        self.assertTrue(push_history(
+            history, snapshot, 4, [(1, 2)], [], press_id=27, call_ref=True
+        ))
+        self.assertEqual(history[0].call_ref, False)
+        self.assertEqual(history[0].press_id, 27)
+
+    def test_commit_press_records_only_changed_triggers_with_one_press_id(self):
+        first = StepSnapshot("set-a", "first", 0, [])
+        second = StepSnapshot("set-a", "second", 2, [])
+        unchanged = StepSnapshot("set-a", "unchanged", 3, [])
+        self.state.indices_for("set-a")["first"] = 1
+        self.state.indices_for("set-a")["second"] = 3
+        self.state.indices_for("set-a")["unchanged"] = 3
+
+        self.assertTrue(commit_press(
+            self.state, [first, second, unchanged], {}, pressed_key="pressed"
+        ))
+
+        first_entry = self.state.history_for("set-a")["first"][0]
+        second_entry = self.state.history_for("set-a")["second"][0]
+        self.assertGreater(first_entry.press_id, 0)
+        self.assertEqual(second_entry.press_id, first_entry.press_id)
+        self.assertNotIn("unchanged", self.state.history_for("set-a"))
+        self.assertEqual(self.state.last_trigger, ("set-a", "pressed"))
+
+    def test_back_restores_top_entries_sharing_press_id_and_undoes_all_deltas(self):
+        histories = self.state.history_for("set-a")
+        histories["caller"] = [HistoryEntry(0, [], [], press_id=71)]
+        histories["callee"] = [HistoryEntry(2, [], [("n", 1)], [], 71, True)]
+        histories["inner"] = [HistoryEntry(1, [], [("n", 2)], [], 71)]
+        self.state.call_refs_for("set-a").update({"caller", "callee"})
+        self.state.indices_for("set-a").update(caller=0, callee=0, inner=1)
+        self.state.counters["n"] = 3
+        self.state.last_trigger = ("set-a", "caller")
+        triggers = {
+            "caller": {"actions": [{"type": "system", "op": "call", "target": "callee"}]},
+            "callee": {"actions": [{"type": "system", "op": "call", "target": "inner"}]},
+            "inner": {"actions": []},
+        }
+
+        selected, message = apply_control(
+            self.state, ("set-a", "undo"), "back", triggers.get
+        )
+
+        self.assertEqual((selected, message), ("inner", None))
+        indices = self.state.indices_for("set-a")
+        self.assertEqual(
+            {key: indices[key] for key in ("caller", "callee", "inner")},
+            {"caller": 0, "callee": 2, "inner": 1},
+        )
+        self.assertEqual(self.state.counters["n"], 0)
+        self.assertEqual(self.state.call_refs_for("set-a"), {"callee"})
+        self.assertTrue(all(not entries for entries in histories.values()))
+
+    def test_back_does_not_restore_another_trigger_with_a_newer_top_entry(self):
+        histories = self.state.history_for("set-a")
+        histories["target"] = [HistoryEntry(1, [], [], press_id=81)]
+        histories["other"] = [HistoryEntry(0, [], [], press_id=80)]
+        self.state.last_trigger = ("set-a", "target")
+        self.state.indices_for("set-a").update(target=2, other=3)
+
+        apply_control(self.state, ("set-a", "undo"), "back", self.find_trigger)
+
+        self.assertEqual(self.state.indices_for("set-a"), {"target": 1, "other": 3})
+        self.assertEqual(len(histories["other"]), 1)
+
+    def test_unmarked_legacy_history_without_press_ids_restores_only_target(self):
+        histories = self.state.history_for("set-a")
+        histories["target"] = [HistoryEntry(1, [], [])]
+        histories["other"] = [HistoryEntry(0, [], [])]
+        self.state.last_trigger = ("set-a", "target")
+        self.state.indices_for("set-a").update(target=2, other=3)
+
+        apply_control(self.state, ("set-a", "undo"), "back", self.find_trigger)
+
+        self.assertEqual(self.state.indices_for("set-a"), {"target": 1, "other": 3})
+
+    def test_back_from_marked_target_uses_chain_top_as_origin(self):
+        histories = self.state.history_for("set-a")
+        histories["target"] = [HistoryEntry(3, [], [], press_id=90)]
+        histories["callee"] = [HistoryEntry(1, [], [], press_id=91)]
+        self.state.call_refs_for("set-a").add("target")
+        self.state.last_trigger = ("set-a", "target")
+        self.state.indices_for("set-a")["target"] = 0
+        self.active_keys.add("callee")
+
+        selected, message = apply_control(
+            self.state, ("set-a", "undo"), "back",
+            lambda key: {"actions": [{"type": "system", "op": "call", "target": "callee"}]}
+            if key == "target" else {"actions": []} if key == "callee" else None,
+        )
+
+        self.assertEqual((selected, message), ("callee", None))
+        self.assertEqual(self.state.indices_for("set-a")["target"], 0)
+        self.assertEqual(self.state.indices_for("set-a")["callee"], 1)
+
+    def test_rewind_clears_target_call_ref_only(self):
+        self.state.call_refs_for("set-a").update({"target", "other"})
+
+        apply_control(self.state, ("set-a", "undo"), "rewind", self.find_trigger)
+
+        self.assertEqual(self.state.call_refs_for("set-a"), {"other"})
 
 
 if __name__ == "__main__":

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Any, Callable, Iterable, MutableMapping, Sequence
+from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
+
+from keyseq.application.call_chain import chain_top
 
 
 MAX_HISTORY_ENTRIES = 100
@@ -20,6 +22,8 @@ class HistoryEntry:
     frames: list[Any]
     counter_deltas: list[CounterDelta]
     deferred_counters: list[tuple[str, str]] = field(default_factory=list)
+    press_id: int = field(default=0, compare=False)
+    call_ref: bool = field(default=False, compare=False)
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "frames", list(self.frames))
@@ -36,6 +40,7 @@ class StepSnapshot:
     position: int
     frames: list[Any]
     deferred_counters: list[tuple[str, str]] = field(default_factory=list)
+    call_ref: bool = False
 
     def __post_init__(self) -> None:
         object.__setattr__(self, "frames", list(self.frames))
@@ -48,7 +53,8 @@ def snapshot_for(state: Any, trigger_set_id: str, key: str) -> StepSnapshot:
         position = state.indices_for(trigger_set_id).get(key, 0)
         frames = state.loop_frames_for(trigger_set_id).get(key, [])
         deferred = state.deferred_counters_for(trigger_set_id).get(key, [])
-        return StepSnapshot(trigger_set_id, key, position, list(frames), list(deferred))
+        call_ref = key in state.call_refs_for(trigger_set_id)
+        return StepSnapshot(trigger_set_id, key, position, list(frames), list(deferred), call_ref)
 
 
 def push_history(
@@ -58,13 +64,17 @@ def push_history(
     frames: Sequence[Any],
     counter_deltas: Iterable[CounterDelta],
     deferred_counters: Sequence[tuple[str, str]] = (),
+    press_id: int = 0,
+    call_ref: bool | None = None,
 ) -> bool:
     """Append a changed step's start state, keeping only the newest 100 entries."""
     deltas = list(counter_deltas)
     current_frames = list(frames)
     current_deferred = list(deferred_counters)
+    current_call_ref = snapshot.call_ref if call_ref is None else call_ref
     if (snapshot.position == position and snapshot.frames == current_frames
-            and snapshot.deferred_counters == current_deferred and not deltas):
+            and snapshot.deferred_counters == current_deferred
+            and snapshot.call_ref == current_call_ref and not deltas):
         return False
 
     history.append(
@@ -73,6 +83,8 @@ def push_history(
             frames=list(snapshot.frames),
             counter_deltas=deltas,
             deferred_counters=list(snapshot.deferred_counters),
+            press_id=press_id,
+            call_ref=snapshot.call_ref,
         )
     )
     overflow = len(history) - MAX_HISTORY_ENTRIES
@@ -100,24 +112,60 @@ def undo_counter_deltas(
 
 
 def commit_step(
-    state: Any, snapshot: StepSnapshot, deltas: Iterable[CounterDelta]
+    state: Any, snapshot: StepSnapshot, deltas: Iterable[CounterDelta], press_id: int | None = None
 ) -> bool:
     """Record the start state when the completed step changed runtime state."""
     trigger_set_id, key = snapshot.trigger_set_id, snapshot.key
     with state.lock:
+        if press_id is None:
+            press_id = state.next_press_id()
         position = state.indices_for(trigger_set_id).get(key, snapshot.position)
         frames = state.loop_frames_for(trigger_set_id).get(key, [])
         deferred = state.deferred_counters_for(trigger_set_id).get(key, [])
+        call_ref = key in state.call_refs_for(trigger_set_id)
         histories = state.history_for(trigger_set_id)
         history = histories.get(key)
         pending_history = history if history is not None else []
         if not push_history(pending_history, snapshot, position, frames, deltas,
-                            deferred_counters=deferred):
+                            deferred_counters=deferred, press_id=press_id, call_ref=call_ref):
             return False
         if history is None:
             histories[key] = pending_history
         state.last_trigger = (trigger_set_id, key)
         return True
+
+
+def commit_press(
+    state: Any,
+    snapshots: Sequence[StepSnapshot],
+    deltas_by_key: Mapping[str, Sequence[CounterDelta]],
+    *,
+    pressed_key: str,
+) -> bool:
+    """Commit one press across changed triggers, sharing one press identifier."""
+    with state.lock:
+        press_id = state.next_press_id()
+        committed = False
+        for snapshot in snapshots:
+            trigger_set_id, key = snapshot.trigger_set_id, snapshot.key
+            position = state.indices_for(trigger_set_id).get(key, snapshot.position)
+            frames = state.loop_frames_for(trigger_set_id).get(key, [])
+            deferred = state.deferred_counters_for(trigger_set_id).get(key, [])
+            call_ref = key in state.call_refs_for(trigger_set_id)
+            histories = state.history_for(trigger_set_id)
+            history = histories.get(key)
+            pending_history = history if history is not None else []
+            if not push_history(
+                pending_history, snapshot, position, frames, deltas_by_key.get(key, ()),
+                deferred_counters=deferred, press_id=press_id, call_ref=call_ref,
+            ):
+                continue
+            if history is None:
+                histories[key] = pending_history
+            committed = True
+        if committed:
+            state.last_trigger = (snapshots[0].trigger_set_id, pressed_key)
+        return committed
 
 
 def cancel_pending_steps(
@@ -168,28 +216,50 @@ def apply_control(
     identity = (target_id, target_key)
     if prepare_target is not None and not prepare_target(identity):
         return None, None
+    restore_key = target_key
+    if op == "back":
+        with state.lock:
+            target_has_call_ref = target_key in state.call_refs_for(target_id)
+        if target_has_call_ref:
+            restore_key = chain_top(state, target_id, target_key, find_trigger)
     with state.lock:
         if identity in state.pending_steps:
             return None, PENDING_TARGET_MESSAGE
 
         histories = state.history_for(target_id)
-        history = histories.get(target_key)
+        history = histories.get(restore_key)
         if op == "back":
             if history is None:
                 return None, None
-            entry = pop_history(history)
-            if entry is None:
+            top_entry = history[-1] if history else None
+            if top_entry is None:
                 return None, None
-            state.indices_for(target_id)[target_key] = entry.position
-            state.loop_frames_for(target_id)[target_key] = list(entry.frames)
-            state.deferred_counters_for(target_id)[target_key] = list(entry.deferred_counters)
-            undo_counter_deltas(state.counters, entry.counter_deltas)
-            return target_key, None
+            press_id = top_entry.press_id
+            restored = False
+            for key, trigger_history in tuple(histories.items()):
+                if (not trigger_history or trigger_history[-1].press_id != press_id
+                        or (press_id == 0 and key != restore_key)):
+                    continue
+                entry = pop_history(trigger_history)
+                if entry is None:
+                    continue
+                state.indices_for(target_id)[key] = entry.position
+                state.loop_frames_for(target_id)[key] = list(entry.frames)
+                state.deferred_counters_for(target_id)[key] = list(entry.deferred_counters)
+                call_refs = state.call_refs_for(target_id)
+                if entry.call_ref:
+                    call_refs.add(key)
+                else:
+                    call_refs.discard(key)
+                undo_counter_deltas(state.counters, entry.counter_deltas)
+                restored = True
+            return (restore_key, None) if restored else (None, None)
 
         if op == "rewind":
             state.indices_for(target_id)[target_key] = 0
             state.loop_frames_for(target_id)[target_key] = []
             state.deferred_counters_for(target_id).pop(target_key, None)
+            state.call_refs_for(target_id).discard(target_key)
             if history is not None:
                 clear_history(history)
             return target_key, None
