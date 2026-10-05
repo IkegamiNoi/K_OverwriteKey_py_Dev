@@ -212,6 +212,8 @@ class App(tk.Tk):
         self.sequence_runner = SequenceRunner(
             state=self.state,
             find_trigger=self._find_trigger_by_key,
+            list_trigger_keys=lambda: [t["key"] for t in self.trigger_service.get_triggers(self.data)
+                                       if self._find_trigger_by_key(t["key"]) is t],
             perform_action=self._perform_action,
             select_trigger=lambda key: self.trigger_panel.select_trigger_by_key(key),
             refresh_actions=lambda: self.trigger_panel.refresh_actions(),

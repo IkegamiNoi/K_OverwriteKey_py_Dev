@@ -5,10 +5,14 @@ from typing import Any
 
 from keyseq.application.app_state import PendingStep
 from keyseq.application.call_context import (
-    CallContext, CallStep, call_step, chain_text, finish_call_action, start_call,
+    CallContext, CallStep, call_step, chain_text, finish_call_action, start_linked_call,
 )
-from keyseq.application.sequence_history import StepSnapshot
-from keyseq.application.sequence_steps import StepOutcome, resume_for_pending
+from keyseq.application.call_chain import chain_from
+from keyseq.application.sequence_history import StepSnapshot, commit_press, snapshot_for
+from keyseq.application.sequence_steps import (
+    StepOutcome, resume_for_pending, after_normal_action, settle_after_normal,
+    apply_deferred_counters,
+)
 from keyseq.application.sequence_runner.file_line_wait import (
     FILE_LINE_POLL_INTERVAL_MS,
     FILE_LINE_UNAVAILABLE_MESSAGE,
@@ -26,10 +30,18 @@ class CallWaitMixin:
         snapshot: StepSnapshot, initial_position: int,
     ) -> None:
         trigger_set_id = self._get_trigger_set_id()
-        ctx = start_call(
+        ancestors, ancestor_depth = self._linked_ancestors(key)
+        ctx = start_linked_call(
             trigger_set_id, key, call_target(actions[outcome.normal_index]), self._find_trigger,
+            self.state,
             step=is_step_call(actions[outcome.normal_index]),
+            ancestors=ancestors, ancestor_depth=ancestor_depth,
         )
+        ctx.before[key] = snapshot
+        ctx.press_processed = outcome.processed
+        ctx.record_deltas(key, outcome.counter_deltas)
+        for member in chain_from(self.state, trigger_set_id, key, self._find_trigger):
+            ctx.before.setdefault(member, snapshot_for(self.state, trigger_set_id, member))
         identity = (trigger_set_id, key)
         with self.state.lock:
             self.state.pending_step_generation += 1
@@ -103,7 +115,95 @@ class CallWaitMixin:
         pending.resume = replace(
             pending.resume, counter_deltas=pending.resume.counter_deltas + deltas,
         )
+        if isinstance(pending.call, CallContext) and pending.call.state is not None:
+            self._write_linked_progress(pending.call)
         self._publish_call_view()
+
+    def _linked_ancestors(self, key: str) -> tuple[tuple[str, ...], int]:
+        """Include marked callers above the pressed trigger in call validation."""
+        refs = self.state.call_refs_for(self._get_trigger_set_id())
+        paths = []
+        for caller in self._ordered_callers():
+            if caller not in refs or caller == key:
+                continue
+            chain = chain_from(self.state, self._get_trigger_set_id(), caller, self._find_trigger)
+            if key in chain:
+                paths.append(chain[:chain.index(key)])
+        return tuple(dict.fromkeys(member for path in paths for member in path)), max(
+            (len(path) for path in paths), default=0,
+        )
+
+    def _ordered_callers(self) -> tuple[str, ...]:
+        if self._list_trigger_keys is not None:
+            return tuple(self._list_trigger_keys())
+        return tuple(sorted(self.state.call_refs_for(self._get_trigger_set_id())))
+
+    def _write_linked_progress(self, ctx: CallContext, *, failed: bool = False) -> None:
+        """Publish frame positions and marks as the triggers' own runtime state."""
+        with self.state.lock:
+            refs = self.state.call_refs_for(ctx.trigger_set_id)
+            for frame in ctx.changed_frames.values():
+                self.state.indices_for(ctx.trigger_set_id)[frame.key] = frame.position
+                self.state.loop_frames_for(ctx.trigger_set_id)[frame.key] = list(frame.frames)
+                deferred = frame.resume.deferred_counters if frame.resume is not None else frame.deferred
+                self.state.deferred_counters_for(ctx.trigger_set_id)[frame.key] = list(deferred)
+                refs.discard(frame.key)
+            refs.discard(ctx.root_key)
+            if not failed and ctx.stack:
+                refs.add(ctx.root_key)
+                refs.update(frame.key for frame in ctx.stack[:-1])
+
+    def _propagate_linked_completion(
+        self, completed: list[str], before: dict[str, StepSnapshot],
+        deltas_by_key: dict[str, list[tuple[str, int]]], excluded: set[str],
+    ) -> None:
+        trigger_set_id = self._get_trigger_set_id()
+        refs = self.state.call_refs_for(trigger_set_id)
+        def finish_callers(target: str) -> None:
+            for caller in self._ordered_callers():
+                if caller in excluded or caller not in refs:
+                    continue
+                trigger = self._find_trigger(caller)
+                actions = trigger.get("actions", []) if trigger else []
+                index = self._get_index(caller)
+                if not (0 <= index < len(actions)) or call_target(actions[index]) != target:
+                    continue
+                before.setdefault(caller, snapshot_for(self.state, trigger_set_id, caller))
+                refs.discard(caller)
+                position, frames = after_normal_action(actions, index, self._get_frames(caller))
+                deferred = self.state.deferred_counters_for(trigger_set_id).get(caller, ())
+                if index + 1 < len(actions):
+                    settled = settle_after_normal(
+                        actions, position, frames, self.state.counters, allow_wrap=False,
+                        in_call=True, deferred_counters=deferred,
+                    )
+                    position, frames, deferred = settled.position, settled.frames, settled.deferred_counters
+                    deltas_by_key.setdefault(caller, []).extend(settled.counter_deltas)
+                if position == 0:
+                    deltas_by_key.setdefault(caller, []).extend(
+                        apply_deferred_counters(deferred, self.state.counters))
+                    deferred = ()
+                self._save_progress(caller, position, frames, deferred)
+                if position == 0:
+                    finish_callers(caller)
+        for target in completed:
+            finish_callers(target)
+
+    def _commit_linked_call(self, pending: PendingStep, *, failed: bool = False) -> None:
+        ctx = pending.call
+        self._write_linked_progress(ctx, failed=failed or ctx.failed)
+        self._propagate_linked_completion(
+            ctx.completed, ctx.before, ctx.deltas_by_key,
+            {ctx.root_key, *ctx.changed_frames},
+        )
+        commit_press(self.state, list(ctx.before.values()), ctx.deltas_by_key, pressed_key=ctx.root_key)
+        self.state.last_trigger = (ctx.trigger_set_id, ctx.root_key)
+        ctx.completed.clear()
+        ctx.deltas_by_key.clear()
+        ctx.before = {key: snapshot_for(self.state, ctx.trigger_set_id, key)
+                      for key in ctx.before}
+        self._refresh_actions()
+        self._update_status()
 
     def _advance_single_call(self, trigger_set_id: str, key: str, generation: int) -> None:
         pending = self._single_call_pending(trigger_set_id, key, generation)
@@ -115,6 +215,9 @@ class CallWaitMixin:
         if (self._get_trigger_set_id() != ctx.trigger_set_id
                 or self._find_trigger(key) is None):
             self._drop_single_call(trigger_set_id, key, generation, pending)
+            return
+        if ctx.root_continuation is not None:
+            self._complete_single_call(trigger_set_id, key, generation, pending)
             return
         step = call_step(ctx, self.state.counters)
         self._add_call_deltas(pending, step.counter_deltas)
@@ -152,7 +255,12 @@ class CallWaitMixin:
                 trigger_set_id, key, generation, pending, step,
             )
             return
-        succeeded = self._perform_action(action)
+        ctx = pending.call
+        ctx.performing = True
+        try:
+            succeeded = self._perform_action(action)
+        finally:
+            ctx.performing = False
         if (pending.call_paused
                 and self.state.pending_steps.get((trigger_set_id, key)) is pending
                 and pending.generation != generation):
@@ -168,6 +276,10 @@ class CallWaitMixin:
                     self._report_error(self._call_action(key, pending),
                                        message + self._call_chain_suffix(following))
                     self._fail_single_call(trigger_set_id, key, pending.generation, pending)
+                elif following.kind == "done":
+                    self._complete_single_call(trigger_set_id, key, pending.generation, pending)
+                else:
+                    self._commit_linked_call(pending)
             return
         if not self._call_parent_is_current(trigger_set_id, key, generation, pending):
             self._discard_if_parent_invalid(trigger_set_id, key, generation, pending)
@@ -189,6 +301,8 @@ class CallWaitMixin:
         pending: PendingStep, step: CallStep,
     ) -> None:
         if self._file_line_unavailable():
+            pending.call.failed = True
+            self._write_linked_progress(pending.call, failed=True)
             self._report_error(
                 self._call_action(key, pending),
                 FILE_LINE_UNAVAILABLE_MESSAGE + self._call_chain_suffix(step),
@@ -255,7 +369,7 @@ class CallWaitMixin:
     ) -> None:
         if step.kind == "next":
             if isinstance(pending.call, CallContext) and pending.call.top_is_step():
-                self._pause_single_call(key)
+                self._finish_linked_press(trigger_set_id, key, generation, pending)
             else:
                 self._schedule_single_call(
                     trigger_set_id, key, generation, pending, step.interval_ms or 0,
@@ -276,6 +390,8 @@ class CallWaitMixin:
     ) -> None:
         message = step.message or "呼び出しを実行できません"
         suffix = f" / {chain_text(step.chain)}" if step.chain else ""
+        pending.call.failed = True
+        self._write_linked_progress(pending.call, failed=True)
         self._report_error(self._call_action(key, pending), message + suffix)
         if self._call_parent_is_current(trigger_set_id, key, generation, pending):
             self._fail_single_call(trigger_set_id, key, generation, pending)
@@ -303,21 +419,51 @@ class CallWaitMixin:
     ) -> None:
         if not self._drop_single_call(trigger_set_id, key, generation, pending):
             return
-        self._commit_step_and_publish(pending.snapshot, pending.resume.counter_deltas)
+        self._commit_linked_call(pending, failed=True)
         self._select_trigger(key)
 
     def _complete_single_call(
         self, trigger_set_id: str, key: str, generation: int, pending: PendingStep,
     ) -> None:
-        if not self._drop_single_call(trigger_set_id, key, generation, pending):
-            return
         trigger = self._find_trigger(key)
         if trigger is None:
             return
-        deltas = self._finish_single_normal_action(
-            key, trigger.get("actions", []), pending.position, pending.resume,
-            pending.snapshot,
-        )
-        if deltas is not None:
-            self._commit_step_and_publish(pending.snapshot, deltas)
+        ctx = pending.call
+        # Completion is successful only when the root moves beyond its call row.
+        self._write_linked_progress(ctx)
+        if ctx.root_continuation is None:
+            position, frames = after_normal_action(trigger.get("actions", []), pending.position,
+                                                   self._get_frames(key))
+        else:
+            position, frames = ctx.root_continuation, self._get_frames(key)
+        deferred = self.state.deferred_counters_for(trigger_set_id).get(key, ())
+        if position != 0:
+            settled = settle_after_normal(
+                trigger["actions"], position, frames, self.state.counters,
+                allow_wrap=False, wait_mode="wait", deferred_counters=deferred,
+            )
+            position, frames, deferred = settled.position, settled.frames, settled.deferred_counters
+            ctx.record_deltas(key, settled.counter_deltas)
+            if settled.wait_ms is not None:
+                ctx.root_continuation = position + 1
+                self._save_progress(key, position, frames, deferred)
+                self._schedule_single_call(trigger_set_id, key, generation, pending, settled.wait_ms)
+                return
+        if position == 0:
+            ctx.record_deltas(key, apply_deferred_counters(deferred, self.state.counters))
+            deferred = ()
+            ctx.completed.append(key)
+        self._save_progress(key, position, frames, deferred)
+        if not self._drop_single_call(trigger_set_id, key, generation, pending):
+            return
+        self._commit_linked_call(pending)
+        self._select_trigger(key)
+
+    def _finish_linked_press(
+        self, trigger_set_id: str, key: str, generation: int, pending: PendingStep,
+    ) -> None:
+        if not self._drop_single_call(trigger_set_id, key, generation, pending):
+            return
+        self._commit_linked_call(pending)
+        self._call_view_stopped((trigger_set_id, key), pending.call)
         self._select_trigger(key)

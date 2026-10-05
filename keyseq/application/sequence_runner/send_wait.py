@@ -51,6 +51,7 @@ class SendWaitMixin:
             processed=pending.resume.processed, wrapped=pending.resume.wrapped,
             deferred_counters=pending.resume.deferred_counters, wait_mode="wait",
         )
+        self._record_single_completion(pending.snapshot, settled.wrapped)
         self._save_progress(key, settled.position, settled.frames,
                             settled.deferred_counters)
         with self.state.lock:
@@ -77,6 +78,7 @@ class SendWaitMixin:
                 processed=outcome.processed, wait_mode="wait",
                 wrapped=position == 0 or outcome.wrapped,
             )
+            self._record_single_completion(snapshot, settled.wrapped)
             position, frames = settled.position, settled.frames
             deltas = outcome.counter_deltas + settled.counter_deltas
             deferred = settled.deferred_counters

@@ -1,11 +1,13 @@
 from __future__ import annotations
 
-from collections.abc import Callable, Mapping
+from collections.abc import Callable, Iterable, Mapping
 from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from keyseq.domain import call_graph, sequence_control
 from keyseq.domain.call_graph import CallEntry
+from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
+from keyseq.application.sequence_history import StepSnapshot, snapshot_for
 from keyseq.application.sequence_steps import (
     LoopFrame,
     MAX_PROCESSED_SYSTEM_ACTIONS,
@@ -15,6 +17,7 @@ from keyseq.application.sequence_steps import (
     advance,
     after_normal_action,
     apply_deferred_counters,
+    reset_frames,
     settle_after_normal,
 )
 
@@ -41,6 +44,33 @@ class CallContext:
     processed_before_action: int = 0
     first_step: bool = False
     sent: bool = False
+    state: Any = None
+    find_trigger: Callable[[str], Mapping[str, Any] | None] | None = None
+    before: dict[str, StepSnapshot] = field(default_factory=dict)
+    changed_frames: dict[str, CallFrame] = field(default_factory=dict)
+    completed: list[str] = field(default_factory=list)
+    deltas_by_key: dict[str, list[tuple[str, int]]] = field(default_factory=dict)
+    ancestors: tuple[str, ...] = ()
+    ancestor_depth: int = 0
+    root_continuation: int | None = None
+    performing: bool = False
+    failed: bool = False
+    press_processed: int = 0
+
+    def entry_for(self, key: str) -> CallEntry | None:
+        if self.find_trigger is not None:
+            trigger = self.find_trigger(key)
+            self.snapshot[key] = None if trigger is None else CallEntry(
+                tuple(trigger.get("actions", [])), coerce_nonnegative_int(
+                    trigger.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
+                    DEFAULT_RUN_TO_END_DELAY_MS,
+                ),
+            )
+        return self.snapshot.get(key)
+
+    def record_deltas(self, key: str, deltas: Iterable[tuple[str, int]]) -> None:
+        if self.state is not None:
+            self.deltas_by_key.setdefault(key, []).extend(deltas)
 
     def top_is_step(self) -> bool:
         return bool(self.stack and self.stack[-1].step)
@@ -79,6 +109,19 @@ def start_call(
     )
 
 
+def start_linked_call(
+    trigger_set_id: str, root_key: str, target_key: str,
+    find_trigger: Callable[[str], Mapping[str, Any] | None], state: Any,
+    *, step: bool, ancestors: tuple[str, ...] = (), ancestor_depth: int = 0,
+) -> CallContext:
+    """Build a single press from live trigger states, without copying actions."""
+    ctx = CallContext(trigger_set_id, root_key, target_key, {}, first_step=step,
+                      state=state, find_trigger=find_trigger, ancestors=ancestors,
+                      ancestor_depth=ancestor_depth)
+    ctx.before[root_key] = snapshot_for(state, trigger_set_id, root_key)
+    return ctx
+
+
 def chain_text(chain: tuple[str, ...]) -> str:
     return f"呼び出し: {' > '.join(key for key in chain if key)}"
 
@@ -86,7 +129,7 @@ def chain_text(chain: tuple[str, ...]) -> str:
 def top_interval(ctx: CallContext) -> int:
     if not ctx.stack:
         return 0
-    entry = ctx.snapshot.get(ctx.stack[-1].key)
+    entry = ctx.entry_for(ctx.stack[-1].key)
     return entry.interval_ms if entry is not None else 0
 
 
@@ -103,13 +146,13 @@ def _push_frame(
     ctx: CallContext, key: str, deltas: list[tuple[str, int]], step: bool,
 ) -> CallStep | None:
     chain = _chain(ctx, key)
-    if len(ctx.stack) + 1 > sequence_control.MAX_CALL_DEPTH:
+    if ctx.ancestor_depth + len(ctx.stack) + 1 > sequence_control.MAX_CALL_DEPTH:
         return _error(
             f"呼び出しの深さが {sequence_control.MAX_CALL_DEPTH} を超えます", chain, deltas,
         )
-    if key == ctx.root_key or any(frame.key == key for frame in ctx.stack):
+    if key in ctx.ancestors or key == ctx.root_key or any(frame.key == key for frame in ctx.stack):
         return _error(f"呼び出しが循環します（{key}）", chain, deltas)
-    entry = ctx.snapshot.get(key) if key else None
+    entry = ctx.entry_for(key) if key else None
     if key and (key not in ctx.snapshot or entry is None):
         return _error(f"呼び出し先のトリガーがありません（{key}）", chain, deltas)
     if entry is not None and len(entry.actions) == 1:
@@ -124,7 +167,20 @@ def _push_frame(
     if not key:
         return _error("呼び出し先が指定されていません", chain, deltas)
     parent_step = ctx.top_is_step() if ctx.stack else True
-    ctx.stack.append(CallFrame(key, step=step and parent_step))
+    frame = CallFrame(key, step=step and parent_step)
+    if ctx.state is not None:
+        saved = ctx.before.setdefault(key, snapshot_for(ctx.state, ctx.trigger_set_id, key))
+        previous = ctx.changed_frames.get(key)
+        frame.position = previous.position if previous is not None else saved.position
+        frame.frames = list(previous.frames if previous is not None else saved.frames)
+        frame.deferred = list(previous.deferred if previous is not None else saved.deferred_counters)
+        if entry is not None and any(
+            bool(entry.actions[loop.start].get("infinite"))
+            for loop in reset_frames(entry.actions, frame.position)
+        ):
+            return _error("呼び出し先に無限ループがあります", chain, deltas)
+        ctx.changed_frames[key] = frame
+    ctx.stack.append(frame)
     return None
 
 
@@ -145,7 +201,12 @@ def _new_deltas(
 
 def _pop_frame(ctx: CallContext, counters: dict[str, int]) -> tuple[tuple[str, int], ...]:
     frame = ctx.stack.pop()
-    return apply_deferred_counters(frame.deferred, counters)
+    deltas = apply_deferred_counters(frame.deferred, counters)
+    ctx.record_deltas(frame.key, deltas)
+    if ctx.state is not None:
+        frame.position, frame.frames, frame.deferred = 0, [], []
+        ctx.completed.append(frame.key)
+    return deltas
 
 
 def _clear_step_frame_sent(ctx: CallContext) -> None:
@@ -160,7 +221,7 @@ def _stop_enabled(ctx: CallContext, run_to_end: bool) -> bool:
 
 def _advance_call(ctx: CallContext, counters: dict[str, int], run_to_end: bool) -> CallStep:
     deltas: list[tuple[str, int]] = []
-    processed = [0]
+    processed = [ctx.press_processed if ctx.state is not None else 0]
     if not ctx.started:
         ctx.started = True
         failure = _push_frame(ctx, ctx.first_target, deltas, ctx.first_step)
@@ -169,6 +230,8 @@ def _advance_call(ctx: CallContext, counters: dict[str, int], run_to_end: bool) 
             return failure
     while ctx.stack:
         result = _advance_frame(ctx, counters, deltas, processed, run_to_end)
+        if ctx.state is not None:
+            ctx.press_processed = processed[0]
         if result is not None:
             ctx.processed_before_action = (
                 processed[0] if result.kind == "action" else 0
@@ -183,7 +246,7 @@ def _advance_frame(
     run_to_end: bool,
 ) -> CallStep | None:
     frame = ctx.stack[-1]
-    entry = ctx.snapshot.get(frame.key)
+    entry = ctx.entry_for(frame.key)
     if entry is None:
         return _error(f"呼び出し先のトリガーがありません（{frame.key}）", _chain(ctx), deltas)
     resume = frame.resume
@@ -197,6 +260,7 @@ def _advance_frame(
     )
     processed[0] += max(0, outcome.processed - (resume.processed if resume else 0))
     deltas.extend(_new_deltas(outcome, resume))
+    ctx.record_deltas(frame.key, _new_deltas(outcome, resume))
     frame.resume = None
     frame.frames = outcome.frames
     if processed[0] > MAX_PROCESSED_SYSTEM_ACTIONS:
@@ -242,7 +306,9 @@ def _finish_returned_call(
     """Resume a parent frame, returning when a boundary or control outcome is reached."""
     while ctx.stack:
         frame = ctx.stack[-1]
-        entry = ctx.snapshot[frame.key]
+        entry = ctx.entry_for(frame.key)
+        if entry is None:
+            return _error(f"呼び出し先のトリガーがありません（{frame.key}）", _chain(ctx), deltas)
         call_index = frame.position
         if call_index + 1 >= len(entry.actions):
             returned_sent = returned_sent or frame.sent
@@ -256,8 +322,11 @@ def _finish_returned_call(
             allow_wrap=False, stop_ends_run=_stop_enabled(ctx, run_to_end), in_call=True,
         )
         processed[0] += settled.processed
+        if ctx.state is not None:
+            ctx.press_processed = processed[0]
         frame.position, frame.frames = settled.position, settled.frames
         deltas.extend(settled.counter_deltas)
+        ctx.record_deltas(frame.key, settled.counter_deltas)
         frame.deferred.extend(settled.deferred_counters)
         if processed[0] > MAX_PROCESSED_SYSTEM_ACTIONS:
             return _error(PROCESSED_LIMIT_MESSAGE, _chain(ctx), deltas)
@@ -331,7 +400,7 @@ def finish_call_action(
     processed = [ctx.processed_before_action]
     ctx.processed_before_action = 0
     frame = ctx.stack[-1]
-    entry = ctx.snapshot.get(frame.key)
+    entry = ctx.entry_for(frame.key)
     if entry is None:
         return _error(f"呼び出し先のトリガーがありません（{frame.key}）", _chain(ctx), deltas)
     if frame.position + 1 >= len(entry.actions):
@@ -358,9 +427,12 @@ def finish_call_action(
         allow_wrap=False, stop_ends_run=_stop_enabled(ctx, run_to_end), in_call=True,
     )
     processed[0] += settled.processed
+    if ctx.state is not None:
+        ctx.press_processed = processed[0]
     frame.position, frame.frames = settled.position, settled.frames
     frame.deferred.extend(settled.deferred_counters)
     deltas.extend(settled.counter_deltas)
+    ctx.record_deltas(frame.key, settled.counter_deltas)
     if processed[0] > MAX_PROCESSED_SYSTEM_ACTIONS:
         return _error(PROCESSED_LIMIT_MESSAGE, _chain(ctx), deltas)
     if settled.stopped:

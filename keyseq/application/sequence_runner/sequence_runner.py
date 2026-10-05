@@ -6,7 +6,7 @@ from typing import Any, Callable
 from keyseq.application.call_context import CallContext, top_interval
 from keyseq.application.call_view import CallViewSummary
 from keyseq.application.sequence_history import (
-    StepSnapshot, apply_control, commit_step, snapshot_for,
+    StepSnapshot, apply_control, commit_step, commit_press, snapshot_for,
 )
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int, normalize_key_name
 from keyseq.domain.sequence_control import (
@@ -47,9 +47,12 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         begin_file_line: Callable[[dict[str, Any]], object | None] | None = None,
         poll_file_line: Callable[[object], bool | None] | None = None,
         notify_call_view: Callable[[CallViewSummary | None], None] | None = None,
+        list_trigger_keys: Callable[[], Sequence[str]] | None = None,
     ):
         self.state = state
         self._find_trigger = find_trigger
+        self._list_trigger_keys = list_trigger_keys
+        self._single_finishing_steps: dict[tuple[str, str], tuple[StepSnapshot, bool]] = {}
         self._perform_action = perform_action
         self._select_trigger = select_trigger
         self._refresh_actions = refresh_actions
@@ -141,9 +144,58 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
     def _commit_step_and_publish(
         self, snapshot: StepSnapshot, deltas: Iterable[tuple[str, int]],
     ) -> bool:
-        committed = commit_step(self.state, snapshot, deltas)
+        identity = (snapshot.trigger_set_id, snapshot.key)
+        finishing = self._single_finishing_steps.get(identity)
+        if finishing is not None and finishing[0] is snapshot and finishing[1]:
+            before = {snapshot.key: snapshot}
+            owned = {snapshot.key: list(deltas)}
+            self._propagate_linked_completion([snapshot.key], before, owned, {snapshot.key})
+            committed = commit_press(self.state, list(before.values()), owned,
+                                     pressed_key=snapshot.key)
+        else:
+            committed = commit_step(self.state, snapshot, deltas)
+        if finishing is not None and finishing[0] is snapshot:
+            self._single_finishing_steps.pop(identity)
         self._publish_call_view()
         return committed
+
+    def _finish_single_normal_action(
+        self, key: str, actions: list[dict[str, Any]], index: int,
+        outcome: StepOutcome | StepResume, snapshot: StepSnapshot,
+    ) -> tuple[tuple[str, int], ...] | None:
+        self._record_single_completion(snapshot, index + 1 >= len(actions) or outcome.wrapped)
+        return super()._finish_single_normal_action(key, actions, index, outcome, snapshot)
+
+    def _record_single_completion(self, snapshot: StepSnapshot, reached_end: bool) -> None:
+        identity = (snapshot.trigger_set_id, snapshot.key)
+        previous = self._single_finishing_steps.get(identity)
+        reached_end = reached_end or (previous is not None and previous[0] is snapshot and previous[1])
+        self._single_finishing_steps[identity] = (snapshot, reached_end)
+
+    def _cancel_pending_steps(
+        self, identity: tuple[str, str] | None = None, *, settle_wait: bool = True,
+    ) -> None:
+        # Keep the legacy cancellation helper untouched for snapshot-based runs.
+        cancelling = tuple((current, pending) for current, pending in self.state.pending_steps.items()
+                           if identity is None or current == identity)
+        for current, pending in cancelling:
+            ctx = pending.call
+            if ((identity is not None and current != identity)
+                    or not isinstance(ctx, CallContext) or ctx.state is None):
+                continue
+            self.state.pending_steps.pop(current, None)
+            if pending.after_id is not None:
+                try:
+                    self._after_cancel(pending.after_id)
+                except Exception:
+                    pass
+            self._commit_linked_call(pending)
+            self._call_view_disappeared(current)
+        super()._cancel_pending_steps(identity, settle_wait=settle_wait)
+        for _current, pending in cancelling:
+            finishing = self._single_finishing_steps.get(_current)
+            if finishing is not None and finishing[0] is pending.snapshot:
+                self._single_finishing_steps.pop(_current)
 
     def _apply_deferred_counters_and_publish(
         self, deferred: Sequence[tuple[str, str]],
@@ -248,6 +300,8 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                 self._report_error(actions[index], message)
                 return
             if outcome.normal_index is None:
+                if outcome.reached_end:
+                    self._record_single_completion(snapshot, True)
                 return
             index = outcome.normal_index
             action = actions[index]
@@ -360,6 +414,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         self._update_status()
 
     def on_runtime_reset(self) -> None:
+        self._single_finishing_steps.clear()
         self._call_view_contexts.clear()
         self._publish_call_view()
         if self.state.run_to_end_key is None:

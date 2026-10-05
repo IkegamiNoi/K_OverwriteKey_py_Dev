@@ -45,7 +45,7 @@ class FakeScheduler:
 
 
 class SequenceRunnerCallTests(unittest.TestCase):
-    def setUp(self, *, include_call_view=True):
+    def setUp(self, *, include_call_view=True, include_trigger_order=True):
         self.state = AppState()
         self.trigger_set_id = "set"
         self.trigger_sets = {"set": []}
@@ -62,6 +62,9 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.perform_callback = None
         notify_call_view = {"notify_call_view": self.call_views.append} \
             if include_call_view else {}
+        trigger_order = {"list_trigger_keys": lambda: [trigger["key"] for trigger in
+                          self.trigger_sets.get(self.trigger_set_id, [])]} \
+            if include_trigger_order else {}
         self.runner = SequenceRunner(
             state=self.state,
             find_trigger=self._find_trigger,
@@ -76,6 +79,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
             notify_message=self.messages.append,
             begin_file_line=self._begin,
             poll_file_line=self._poll,
+            **trigger_order,
             **notify_call_view,
         )
 
@@ -138,7 +142,8 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
-        self.assertTrue(self.state.pending_steps[("set", "f1")].call_paused)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertIn("f1", self.state.call_refs_for("set"))
         first = self.call_views[-1]
         self.assertEqual(first.path, ("f1", "f5"))
         self.assertEqual(first.position, 1)
@@ -213,16 +218,21 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.call_views[-1].path, ("f1", "f5"))
         self.assertEqual(self.call_views[-1].counters["n"], 1)
 
-    def test_call_view_closes_when_paused_single_call_is_discarded(self):
+    def test_call_view_stays_open_across_press_gap_until_call_completes(self):
         self.trigger("f1", [call("f5")])
         self.trigger("f5", [text("A"), text("B")])
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
         self.assertTrue(self.call_views[-1])
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
 
         self.runner.discard_paused(("f1",))
 
+        self.assertTrue(self.call_views[-1])
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
         self.assertIsNone(self.call_views[-1])
 
     def test_call_view_re_notifies_after_deferred_counter_is_applied(self):
@@ -276,26 +286,30 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         self.assertIsNone(self.call_views[-1])
 
-    def test_call_view_closes_when_paused_call_errors_or_hook_cancels(self):
-        for close in ("error", "hook"):
-            with self.subTest(close=close):
-                self.setUp()
-                self.trigger("f1", [call("f5")])
-                target_actions = [text("A"), call("missing")] if close == "error" \
-                    else [text("A"), text("B")]
-                self.trigger("f5", target_actions)
+    def test_call_view_closes_when_call_errors(self):
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [text("A"), call("missing")])
 
-                self.runner.handle_key("f1")
-                self.scheduler.run_one()
-                self.assertTrue(self.call_views[-1])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertTrue(self.call_views[-1])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
 
-                if close == "error":
-                    self.runner.handle_key("f1")
-                    self.scheduler.run_one()
-                else:
-                    self.runner.cancel_pending_waits()
+        self.assertIsNone(self.call_views[-1])
 
-                self.assertIsNone(self.call_views[-1])
+    def test_hook_stop_between_single_call_presses_keeps_call_view_and_reference(self):
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [text("A"), text("B")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertTrue(self.call_views[-1])
+        self.runner.cancel_pending_waits()
+
+        self.assertTrue(self.call_views[-1])
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.index("f5"), 1)
 
     def test_call_view_closes_when_run_to_end_is_stopped_or_runtime_reset(self):
         for close in ("stop", "reset"):
@@ -352,11 +366,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.scheduler.run_one()
         self.assertEqual(self.call_views[-1].path, ("f1", "f5"))
 
-        self.runner.cancel_pending_wait("f1")
-        self.assertEqual(self.call_views[-1].path, ("f2", "f6"))
-
-        self.runner.stop_run_to_end()
-        self.assertIsNone(self.call_views[-1])
+        # 復元の確認は task_11（表示の切替）で書き直す
 
     def test_01_single_press_calls_target_and_returns_to_callers_next_action(self):
         self.trigger("f1", [call("f5", all=True), text("X")])
@@ -373,7 +383,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.index("f1"), 1)
         self.assertEqual(self.index("f5"), 0)
 
-    def test_step_call_advances_one_target_action_per_press_and_keeps_one_history_step(self):
+    def test_step_call_advances_live_target_and_commits_each_trigger_history(self):
         self.trigger("f1", [call("f5"), text("X")])
         self.trigger("f5", [system("counter_inc", counter="n"), text("A"),
                              system("stop"), text("B")], delay=17)
@@ -381,11 +391,13 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.runner.handle_key("f1")
         self.assertEqual(self.scheduler.delays, [0])
         self.scheduler.run_one()
-        pending = self.state.pending_steps[("set", "f1")]
-        self.assertTrue(pending.call_paused)
         self.assertEqual([item["value"] for item in self.performed], ["A"])
         self.assertEqual(self.index("f1"), 0)
-        self.assertEqual(self.history("f1"), [])
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertEqual(self.index("f5"), 3)  # 停止の行は先行処理で読み飛ばす。
+        self.assertEqual(len(self.history("f1")), 1)
+        self.assertEqual(len(self.history("f5")), 1)
+        self.assertIn("f1", self.state.call_refs_for("set"))
         self.assertEqual(self.state.counters.get("n"), 1)
 
         self.runner.handle_key("f1")
@@ -394,7 +406,10 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual([item["value"] for item in self.performed], ["A", "B"])
         self.assertNotIn(("set", "f1"), self.state.pending_steps)
         self.assertEqual(self.index("f1"), 1)
-        self.assertEqual(len(self.history("f1")), 1)
+        self.assertEqual(self.index("f5"), 0)
+        self.assertEqual(len(self.history("f1")), 2)
+        self.assertEqual(len(self.history("f5")), 2)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
 
         self.runner.handle_key("f1")
         self.assertEqual([item["value"] for item in self.performed], ["A", "B", "X"])
@@ -403,42 +418,398 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.runner.handle_key("f2")
         self.assertEqual(self.state.counters.get("n"), 1)
         self.runner.handle_key("f2")
+        self.assertEqual(self.state.counters.get("n"), 1)
+        self.assertEqual(self.index("f5"), 3)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.runner.handle_key("f2")
         self.assertEqual(self.state.counters.get("n"), 0)
 
-    def test_step_call_allows_other_single_trigger_between_actions(self):
+    def test_step_call_allows_other_single_trigger_between_presses(self):
         self.trigger("f1", [call("f5"), text("caller")])
         self.trigger("f5", [text("A"), text("B")])
         self.trigger("f2", [text("other")])
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
-        self.assertTrue(self.state.pending_steps[("set", "f1")].call_paused)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.index("f5"), 1)
 
         self.runner.handle_key("f2")
         self.assertEqual([item["value"] for item in self.performed], ["A", "other"])
-        self.assertIn(("set", "f1"), self.state.pending_steps)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertEqual(self.index("f5"), 1)
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
         self.assertEqual([item["value"] for item in self.performed], ["A", "other", "B"])
         self.assertNotIn(("set", "f1"), self.state.pending_steps)
-        self.assertEqual(len(self.history("f1")), 1)
+        self.assertEqual(len(self.history("f1")), 2)
+        self.assertEqual(len(self.history("f5")), 2)
 
-    def test_step_call_gap_discards_call_when_other_continuous_run_starts(self):
+    def test_step_call_reference_survives_unrelated_continuous_run(self):
         self.trigger("f1", [call("f5"), text("caller")])
         self.trigger("f5", [text("A"), text("B")])
         self.trigger("f2", [text("continuous")], run_to_end=True)
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
-        self.assertTrue(self.state.pending_steps[("set", "f1")].call_paused)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.index("f5"), 1)
 
         self.runner.handle_key("f2")
-        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertIn("f1", self.state.call_refs_for("set"))
         self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.index("f5"), 1)
         self.assertEqual(self.performed[-1]["value"], "continuous")
-        self.assertTrue(any("一時停止中の実行を破棄しました（f1）" in message
-                            for message in self.messages))
+        self.assertFalse(any("一時停止中の実行を破棄しました（f1）" in message
+                             for message in self.messages))
+
+    def test_12_callee_press_completes_marked_caller_without_sending_its_next_action(self):
+        self.trigger("f1", [call("f5"), text("B")])
+        self.trigger("f5", [text("a"), text("b"), text("c")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f5")
+        self.runner.handle_key("f5")
+
+        self.assertEqual([item["value"] for item in self.performed], ["a", "b", "c"])
+        self.assertEqual(self.index("f1"), 1)
+        self.assertEqual(self.index("f5"), 0)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+
+    def test_callee_loop_at_zero_does_not_complete_caller_before_real_end(self):
+        # §4.5.3: 周回中の先頭への移動は、シーケンスの末尾到達ではない。
+        self.trigger("f1", [call("f5"), text("caller next")])
+        self.trigger("f5", [system("loop_start", count=2), text("a"),
+                             system("loop_end"), text("b")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(self.state.loop_frames_for("set")["f5"], [LoopFrame(0, 2)])
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.index("f1"), 0)
+
+        self.runner.handle_key("f5")
+        self.assertEqual(self.index("f5"), 3)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.index("f1"), 0)
+        self.runner.handle_key("f5")
+        self.assertEqual([action["value"] for action in self.performed], ["a", "a", "b"])
+        self.assertEqual(self.index("f1"), 1)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+
+    def test_single_loop_head_with_frames_is_not_a_completion(self):
+        # Explicitly exercise the zero-position/active-loop boundary at commit.
+        self.trigger("f1", [call("f5"), text("caller next")])
+        self.trigger("f5", [system("loop_start", count=2), text("a"),
+                             system("loop_end"), text("b")])
+        self.state.call_refs_for("set").add("f1")
+        commit = self.runner._commit_step_and_publish
+        def commit_at_loop_head(snapshot, deltas):
+            self.assertTrue(self.state.loop_frames_for("set")["f5"])
+            self.state.indices_for("set")["f5"] = 0
+            return commit(snapshot, deltas)
+        with patch.object(self.runner, "_commit_step_and_publish", side_effect=commit_at_loop_head):
+            self.runner.handle_key("f5")
+        self.assertEqual(self.index("f5"), 0)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.index("f1"), 0)
+
+    def test_callee_starting_with_loop_start_propagates_at_real_end(self):
+        self.trigger("f1", [call("f5"), text("caller next")])
+        self.trigger("f5", [system("loop_start", count=2), text("a"),
+                             system("loop_end"), text("b")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(self.index("f1"), 0)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.runner.handle_key("f5")
+        self.assertEqual(self.index("f1"), 0)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.runner.handle_key("f5")
+        self.assertEqual(self.index("f5"), 1)
+        self.assertEqual(self.state.loop_frames_for("set")["f5"], [LoopFrame(0, 1)])
+        self.assertEqual(self.index("f1"), 1)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual([action["value"] for action in self.performed], ["a", "a", "b"])
+
+    def test_callee_starting_with_counter_inc_propagates_at_real_end(self):
+        self.trigger("f1", [call("f5"), text("caller next")])
+        self.trigger("f5", [system("counter_inc", counter="n"), text("a"), text("b")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(self.index("f1"), 0)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.runner.handle_key("f5")
+        self.assertEqual(self.index("f5"), 1)
+        self.assertEqual(self.index("f1"), 1)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.state.counters["n"], 1)
+        self.assertEqual([action["value"] for action in self.performed], ["a", "b"])
+
+    def test_callee_starting_with_stop_propagates_at_real_end(self):
+        self.trigger("f1", [call("f5"), text("caller next")])
+        self.trigger("f5", [system("stop"), text("a"), text("b")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(self.index("f1"), 0)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.runner.handle_key("f5")
+        self.assertEqual(self.index("f5"), 1)
+        self.assertEqual(self.index("f1"), 1)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual([action["value"] for action in self.performed], ["a", "b"])
+
+    def test_callee_tail_system_rows_propagate_completion_after_settle_wrap(self):
+        self.trigger("f1", [call("f5"), text("caller next")])
+        self.trigger("f5", [system("counter_inc", counter="n"), text("a"),
+                             text("b"), system("stop")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(self.index("f1"), 0)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.runner.handle_key("f5")
+        self.assertEqual(self.index("f5"), 1)
+        self.assertEqual(self.index("f1"), 1)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual([action["value"] for action in self.performed], ["a", "b"])
+
+    def test_callee_tail_wait_propagates_completion_when_wait_settle_reaches_end(self):
+        self.trigger("f1", [call("f5"), text("caller next")])
+        self.trigger("f5", [text("a"), text("b"), system("wait", ms=10), system("stop")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f5")
+        self.assertEqual(self.index("f1"), 0)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.scheduler.run_one()
+        self.assertEqual(self.index("f1"), 1)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual([action["value"] for action in self.performed], ["a", "b"])
+
+    def test_callee_with_only_system_rows_propagates_reached_end(self):
+        self.trigger("f1", [call("f5"), text("caller next")])
+        self.trigger("f5", [system("counter_inc", counter="n"), system("stop")])
+        self.state.call_refs_for("set").add("f1")
+        self.runner.handle_key("f5")
+        self.assertEqual(self.index("f1"), 1)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.state.counters["n"], 1)
+        self.assertEqual(self.performed, [])
+
+    def test_call_of_callee_with_own_pending_wait_or_file_line_does_not_consume_press(self):
+        # §4.5.2: 呼び出し先自身の待機・読込中は、呼び出す押下も無視する。
+        for kind in ("wait", "file_line"):
+            with self.subTest(kind=kind):
+                self.setUp()
+                self.trigger("f1", [call("f5"), text("caller next")])
+                actions = [text("a"), system("wait", ms=50), text("b")] if kind == "wait" else [
+                    {"type": "file_line", "path": "rows.txt"}, text("b"),
+                ]
+                self.trigger("f5", actions)
+                self.poll_results[:] = [True]
+                self.runner.handle_key("f5")
+                pending = self.state.pending_steps[("set", "f5")]
+                position, last_trigger = self.index("f5"), self.state.last_trigger
+                queue = list(self.scheduler.queue)
+                histories = {key: list(self.history(key)) for key in ("f1", "f5")}
+                self.runner.handle_key("f1")
+                self.assertEqual(self.index("f1"), 0)
+                self.assertEqual(self.index("f5"), position)
+                self.assertNotIn("f1", self.state.call_refs_for("set"))
+                self.assertNotIn(("set", "f1"), self.state.pending_steps)
+                self.assertIs(self.state.pending_steps[("set", "f5")], pending)
+                self.assertEqual(self.scheduler.queue, queue)
+                self.assertEqual(self.state.last_trigger, last_trigger)
+                self.assertEqual({key: self.history(key) for key in histories}, histories)
+                self.run_all()
+                self.runner.handle_key("f1")
+                self.scheduler.run_one()
+                expected = ["a", "b"] if kind == "wait" else ["b"]
+                self.assertEqual([action["value"] for action in self.performed], expected)
+                self.assertEqual(self.index("f1"), 1)
+
+    def test_13_unmarked_caller_stays_put_and_call_continues_from_callee_position(self):
+        self.trigger("f1", [call("f5"), text("caller next")])
+        self.trigger("f5", [text("a"), text("b"), text("c")])
+
+        for _ in range(3):
+            self.runner.handle_key("f5")
+
+        self.assertEqual(self.performed, [text("a"), text("b"), text("c")])
+        self.assertEqual(self.index("f1"), 0)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+
+        self.runner.handle_key("f5")
+        self.assertEqual(self.index("f5"), 1)
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual([item["value"] for item in self.performed], ["a", "b", "c", "a", "b"])
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.index("f5"), 2)
+
+    def test_14_multiple_callers_share_one_live_callee_and_complete_together(self):
+        self.trigger("f1", [call("f5"), text("X next")])
+        self.trigger("f2", [call("f5"), text("Y next")])
+        self.trigger("f5", [text("a"), text("b"), text("c")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f2")
+        self.scheduler.run_one()
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual([item["value"] for item in self.performed], ["a", "b", "c"])
+        self.assertEqual(self.index("f1"), 1)
+        self.assertEqual(self.index("f2"), 1)
+        self.assertEqual(self.index("f5"), 0)
+        self.assertFalse({"f1", "f2"} & self.state.call_refs_for("set"))
+
+    def test_external_callers_complete_in_trigger_list_order(self):
+        self.trigger("f2", [call("f5"), system("counter_inc", counter="n")])
+        self.trigger("f1", [call("f5"), system("counter_reset", counter="n")])
+        self.trigger("f5", [text("a"), text("b"), text("c")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f2")
+        self.scheduler.run_one()
+        self.runner.handle_key("f5")
+
+        # f2 is listed above f1, so its increment precedes f1's reset.
+        self.assertEqual(self.state.counters.get("n", 0), 0)
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.index("f2"), 0)
+
+    def test_external_callers_use_sorted_order_when_trigger_order_callback_is_absent(self):
+        self.setUp(include_trigger_order=False)
+        self.trigger("f2", [call("f5"), system("counter_inc", counter="n")])
+        self.trigger("f1", [call("f5"), system("counter_reset", counter="n")])
+        self.trigger("f5", [text("a"), text("b"), text("c")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f2")
+        self.scheduler.run_one()
+        self.runner.handle_key("f5")
+
+        # The fallback sorts f1 before f2: reset, then increment.
+        self.assertEqual(self.state.counters.get("n", 0), 1)
+
+    def test_caller_deferred_counter_is_applied_on_its_next_press(self):
+        self.trigger("f1", [call("f5"), system("counter_inc", counter="n"),
+                             text("after")])
+        self.trigger("f5", [text("a")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(self.state.counters.get("n", 0), 0)
+        self.assertEqual(self.index("f1"), 2)
+        self.assertTrue(self.state.deferred_counters_for("set").get("f1"))
+
+        self.runner.handle_key("f1")
+
+        self.assertEqual(self.state.counters.get("n"), 1)
+        self.assertEqual([item["value"] for item in self.performed], ["a", "after"])
+        self.assertEqual(len(self.history("f1")), 2)
+
+    def test_15_back_rewinds_callee_to_the_action_before_its_completion(self):
+        self.trigger("f1", [call("f5"), text("X next")])
+        self.trigger("f2", [call("f5"), text("Y next")])
+        self.trigger("f5", [text("a"), text("b"), text("c")])
+        self.trigger("f3", [system("back")])
+
+        for key in ("f1", "f2", "f1"):
+            self.runner.handle_key(key)
+            self.scheduler.run_one()
+        self.runner.handle_key("f3")
+
+        self.assertEqual(self.index("f5"), 2)
+        self.assertEqual(self.index("f1"), 0)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual([item["value"] for item in self.performed], ["a", "b", "c", "c"])
+
+    def test_15a_step_callee_inside_batch_call_finishes_batch_range_in_one_press(self):
+        self.trigger("f1", [call("f5", all=True)])
+        self.trigger("f5", [call("f7"), text("d")])
+        self.trigger("f7", [text("a"), text("b")])
+
+        self.runner.handle_key("f1")
+        self.run_all()
+
+        self.assertEqual([item["value"] for item in self.performed], ["a", "b", "d"])
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.index("f5"), 0)
+        self.assertEqual(self.index("f7"), 0)
+
+    def test_15_alternating_callers_undo_shared_callee_in_newest_order(self):
+        self.trigger("f1", [call("f5"), text("X next")])
+        self.trigger("f2", [call("f5"), text("Y next")])
+        self.trigger("f5", [text(value) for value in ("a", "b", "c", "d")])
+        self.trigger("f3", [system("back")])
+        for key in ("f1", "f2", "f1"):
+            self.runner.handle_key(key)
+            self.scheduler.run_one()
+        self.state.last_trigger = ("set", "f2")
+        self.runner.handle_key("f3")
+        self.assertEqual(self.index("f5"), 2)
+        self.state.last_trigger = ("set", "f1")
+        self.runner.handle_key("f3")
+        self.assertEqual(self.index("f5"), 1)
+        self.assertNotIn("f2", self.state.call_refs_for("set"))
+        self.runner.handle_key("f3")
+        self.assertEqual(self.index("f5"), 0)
+
+    def test_batch_call_callee_key_pauses_and_preserves_current_progress(self):
+        self.trigger("f1", [call("f5", all=True), text("next")])
+        self.trigger("f5", [text("a"), text("b")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f5")
+        self.assertEqual(self.runner.paused_keys(), ("f1",))
+        self.assertEqual(self.index("f5"), 1)
+        self.assertEqual(self.scheduler.queue, [])
+        self.runner.cancel_pending_wait("f1")
+        self.assertEqual(self.index("f5"), 1)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(len(self.history("f5")), 1)
+
+    def test_15d_nested_completion_undo_restores_each_trigger_and_counter(self):
+        self.trigger("f1", [call("f5"), text("B")])
+        self.trigger("f5", [call("f7"), text("d")])
+        self.trigger("f7", [system("counter_inc", counter="n"), text("u")])
+        self.trigger("f2", [system("back")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(self.state.counters.get("n"), 1)
+        self.assertEqual(self.index("f5"), 1)
+        self.assertEqual(self.index("f7"), 0)
+
+        self.runner.handle_key("f2")
+
+        self.assertEqual(self.state.counters.get("n", 0), 0)
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.index("f5"), 0)
+        self.assertEqual(self.index("f7"), 0)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+
+    def test_call_press_selects_callee_at_its_advanced_index(self):
+        self.trigger("f1", [call("f5")])
+        self.trigger("f5", [text("a"), text("b")])
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(self.index("f5"), 1)
+        self.runner._select_trigger("f5")
+        self.assertIn("f5", self.selected)
 
     def test_nested_step_call_and_empty_target_do_not_consume_extra_press(self):
         self.trigger("f1", [call("f5")])
@@ -448,7 +819,9 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.runner.handle_key("f1")
         self.scheduler.run_one()
         self.assertEqual([item["value"] for item in self.performed], ["C"])
-        self.assertTrue(self.state.pending_steps[("set", "f1")].call_paused)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.index("f5"), 1)
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
@@ -473,7 +846,8 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.runner.handle_key("f3")
         self.scheduler.run_one()
         self.assertEqual([item["value"] for item in self.performed], ["batch child"])
-        self.assertTrue(self.state.pending_steps[("set", "f3")].call_paused)
+        self.assertNotIn(("set", "f3"), self.state.pending_steps)
+        self.assertIn("f3", self.state.call_refs_for("set"))
 
         self.runner.handle_key("f3")
         self.scheduler.run_one()
@@ -495,8 +869,8 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.scheduler.run_one()
 
         self.assertEqual([item["value"] for item in self.performed], ["A"])
-        pending = self.state.pending_steps[("set", "f1")]
-        self.assertTrue(pending.call_paused)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertIn("f1", self.state.call_refs_for("set"))
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
@@ -521,7 +895,8 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.scheduler.run_one()
 
         self.assertEqual([item["value"] for item in self.performed], ["A"])
-        self.assertTrue(self.state.pending_steps[("set", "f1")].call_paused)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertIn("f1", self.state.call_refs_for("set"))
 
     def test_empty_nested_batch_does_not_add_a_boundary_after_prior_step_send(self):
         self.trigger("f1", [call("g"), text("X")])
@@ -532,11 +907,11 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         self.runner.handle_key("f1")
         self.run_all()
-        pending = self.state.pending_steps[("set", "f1")]
         self.assertEqual([item["value"] for item in self.performed], ["A"])
-        self.assertTrue(pending.call_paused)
-        self.assertTrue(pending.call.sent)
-        self.assertTrue(all(not frame.sent for frame in pending.call.stack))
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.index("g"), 0)
+        self.assertEqual(self.index("f5"), 1)
 
         self.runner.handle_key("f1")
         self.run_all()
@@ -554,7 +929,9 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.runner.handle_key("f1")
         self.scheduler.run_one()
         self.assertEqual([item["value"] for item in self.performed], ["A"])
-        self.assertTrue(self.state.pending_steps[("set", "f1")].call_paused)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.index("f5"), 1)
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
@@ -627,38 +1004,43 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.scheduler.queue, [])
         self.assertTrue(self.state.pending_steps[("set", "f1")].call_paused)
 
-    def test_hook_stop_between_step_call_presses_commits_history_when_state_changed(self):
+    def test_hook_stop_between_step_call_presses_keeps_live_callee_progress(self):
         self.trigger("f1", [call("f5"), text("X")])
         self.trigger("f5", [system("counter_inc", counter="n"), text("A"), text("B")])
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
-        self.assertTrue(self.state.pending_steps[("set", "f1")].call_paused)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
         self.assertEqual([item["value"] for item in self.performed], ["A"])
-        self.assertEqual(len(self.history("f1")), 0)
+        self.assertEqual(len(self.history("f1")), 1)
+        self.assertEqual(len(self.history("f5")), 1)
         self.assertEqual(self.state.counters.get("n"), 1)
 
         self.runner.cancel_pending_waits()
 
         self.assertNotIn(("set", "f1"), self.state.pending_steps)
         self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.index("f5"), 2)
+        self.assertIn("f1", self.state.call_refs_for("set"))
         self.assertEqual(len(self.history("f1")), 1)
         self.assertEqual([item["value"] for item in self.performed], ["A"])
 
-    def test_hook_stop_between_step_call_presses_adds_no_history_without_state_change(self):
+    def test_hook_stop_between_step_call_presses_keeps_reference_without_pending_pause(self):
         self.trigger("f1", [call("f5"), text("X")])
         self.trigger("f5", [text("A"), text("B")])
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
-        self.assertTrue(self.state.pending_steps[("set", "f1")].call_paused)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
         self.assertEqual([item["value"] for item in self.performed], ["A"])
 
         self.runner.cancel_pending_waits()
 
         self.assertNotIn(("set", "f1"), self.state.pending_steps)
         self.assertEqual(self.index("f1"), 0)
-        self.assertEqual(len(self.history("f1")), 0)
+        self.assertEqual(self.index("f5"), 1)
+        self.assertEqual(len(self.history("f5")), 1)
+        self.assertIn("f1", self.state.call_refs_for("set"))
 
     def test_02_pending_call_ignores_other_triggers_and_rejects_back_target(self):
         self.trigger("f1", [call("f5", all=True)])
@@ -850,6 +1232,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.run_all()
         self.assertEqual(self.state.counters.get("n", 0), 1)
         self.assertEqual(len(self.history()), 1)
+        self.assertEqual(len(self.history("f5")), 1)
         self.trigger("f2", [system("back")])
         self.runner.handle_key("f2")
         self.assertEqual(self.state.counters.get("n", 0), 0)
@@ -863,6 +1246,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.index("f3"), 0)
         self.assertEqual(self.state.counters.get("n", 0), 1)
         self.assertEqual(len(self.history("f3")), 1)
+        self.assertEqual(len(self.history("f6")), 1)
 
     def test_successful_call_then_parent_wait_resumes_without_sending(self):
         self.trigger("f1", [call("f5", all=True), system("wait", ms=13), text("X")])
@@ -888,8 +1272,8 @@ class SequenceRunnerCallTests(unittest.TestCase):
     def test_06_rechecks_pending_after_perform_returns_true_or_false(self):
         for result in (False, True):
             with self.subTest(result=result):
-                self.state.history_for("set").clear()
-                self.state.counters.clear()
+                # §4.5.1: 取り消しで残る参照印・位置を次のケースへ持ち越さない。
+                self.setUp()
                 self.trigger("f1", [call("f5", all=True), text("X")])
                 self.trigger("f5", [system("counter_inc", counter="n"), text("A")])
                 self.perform_result = result
@@ -898,6 +1282,8 @@ class SequenceRunnerCallTests(unittest.TestCase):
                 self.scheduler.run_one()
                 self.assertEqual(self.index("f1"), 0)
                 self.assertEqual(len(self.history()), 1)
+                self.assertEqual(len(self.history("f5")), 1)
+                self.assertIn("f1", self.state.call_refs_for("set"))
                 self.assertEqual(len(self.state.pending_steps), 0)
                 self.trigger_sets["set"] = []
                 self.perform_callback = None
@@ -923,13 +1309,17 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(len(self.state.pending_steps), 0)
         self.assertEqual(len(self.history("f1")), 0)
 
-    def test_08_call_uses_start_time_copy_of_target_actions(self):
+    def test_08_call_reads_the_live_target_sequence_from_its_current_position(self):
         self.trigger("f1", [call("f5", all=True), text("X")])
         target = self.trigger("f5", [text("A"), text("B")], delay=3)
+        self.runner.handle_key("f5")
+        target["actions"][1] = text("changed")
+
         self.runner.handle_key("f1")
-        target["actions"][:] = [text("changed")]
         self.run_all()
-        self.assertEqual([item["value"] for item in self.performed], ["A", "B"])
+
+        self.assertEqual([item["value"] for item in self.performed], ["A", "changed"])
+        self.assertEqual(self.index("f5"), 0)
 
     def test_09_call_free_single_action_behavior_is_unchanged(self):
         self.trigger("f1", [text("plain")])
@@ -1085,13 +1475,16 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         self.runner.handle_key("f2")
         self.scheduler.run_one()
-        self.assertTrue(self.state.pending_steps[("set", "f2")].call_paused)
-        self.assertEqual(self.runner.paused_keys(), ("f1", "f2"))
+        self.assertNotIn(("set", "f2"), self.state.pending_steps)
+        self.assertIn("f2", self.state.call_refs_for("set"))
+        self.assertEqual(self.runner.paused_keys(), ("f1",))
+        self.assertEqual(self.index("f7"), 1)
 
         self.runner.handle_key("f2")
         self.scheduler.run_one()
         self.assertEqual([item["value"] for item in self.performed], ["A", "C", "D"])
         self.assertNotIn(("set", "f2"), self.state.pending_steps)
+        self.assertNotIn("f2", self.state.call_refs_for("set"))
         self.assertEqual(self.runner.paused_keys(), ("f1",))
 
         self.runner.handle_key("f1")
@@ -1205,7 +1598,9 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(len(self.begin_results), 1)
         self.scheduler.run_one()
         self.assertEqual(self.performed, [])
-        self.assertTrue(self.state.pending_steps[("set", "f1")].call_paused)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.index("f5"), 1)
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
@@ -1508,22 +1903,20 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         self.assertEqual(self.errors[-1][0]["value"], "call 呼び出し先=z9")
 
-    def test_23_single_call_preserves_target_position_and_history(self):
-        self.trigger("f1", [call("f5", all=True)])
+    def test_23_single_call_advances_target_position_and_loop_state(self):
+        self.trigger("f1", [call("f5")])
         self.trigger("f5", [system("loop_start", count=2), text("A"),
                              system("loop_end"), text("B")])
-        self.runner.handle_key("f5")
-        target_index = self.index("f5")
-        target_history = list(self.history("f5"))
-        target_frames = list(self.state.loop_frames_for("set").get("f5", []))
 
         self.runner.handle_key("f1")
-        self.run_all()
+        self.scheduler.run_one()
 
-        self.assertEqual(self.index("f5"), target_index)
-        self.assertEqual(self.history("f5"), target_history)
-        self.assertEqual(self.state.loop_frames_for("set").get("f5", []), target_frames)
-        self.assertEqual([item["value"] for item in self.performed], ["A", "A", "A", "B"])
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.index("f5"), 1)
+        self.assertEqual(len(self.history("f1")), 1)
+        self.assertEqual(len(self.history("f5")), 1)
+        self.assertEqual(self.state.loop_frames_for("set")["f5"], [LoopFrame(0, 2)])
 
     def test_24_empty_call_counts_as_sent_for_caller_stop(self):
         self.trigger("f1", [call("f5", all=True), system("stop"), text("Y")], run_to_end=True)
@@ -1548,6 +1941,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         self.assertEqual(self.state.counters.get("n", 0), 1)
         self.assertEqual(len(self.history("f1")), 1)
+        self.assertEqual(len(self.history("f5")), 1)
         self.assertEqual([item["value"] for item in self.performed], ["target"])
         self.assertIsNone(self.state.run_to_end_key)
 
@@ -1730,7 +2124,8 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.scheduler.run_one()
 
         self.assertEqual(self.state.counters.get("n", 0), 1)
-        self.assertEqual(len(self.history("f1")), 1)
+        self.assertEqual(len(self.history("f1")), 0)
+        self.assertEqual(len(self.history("f5")), 1)
         self.assertNotIn(("set", "f1"), self.state.pending_steps)
 
     def test_29_run_to_end_error_notification_stop_commits_one_history_step(self):

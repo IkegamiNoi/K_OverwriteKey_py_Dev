@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from keyseq.application.call_context import CallContext
+from keyseq.application.call_chain import chain_from
 from keyseq.application.call_view import build_call_view_summary
 
 
@@ -34,6 +35,18 @@ class CallViewMixin:
             else:
                 pending = self.state.pending_steps.get(identity)
                 current = pending.call if pending is not None else None
+                if ctx.state is not None and pending is None:
+                    # This temporary display bridge is replaced in task_11 (表示の切替).
+                    chain = chain_from(self.state, identity[0], identity[1], self._find_trigger)
+                    if len(chain) > 1:
+                        # Display compatibility only: this object never resumes execution.
+                        ctx.stack = [ctx.changed_frames[key] for key in chain[1:]
+                                     if key in ctx.changed_frames]
+                        for frame in ctx.stack:
+                            frame.position = self.state.indices_for(identity[0]).get(frame.key, 0)
+                            frame.frames = list(self.state.loop_frames_for(identity[0]).get(frame.key, []))
+                            ctx.entry_for(frame.key)
+                        current = ctx
             if current is not ctx or not ctx.stack:
                 self._call_view_contexts.pop(identity)
         opened = bool(self._call_view_contexts)

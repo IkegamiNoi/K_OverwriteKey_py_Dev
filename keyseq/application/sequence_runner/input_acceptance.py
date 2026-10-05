@@ -5,9 +5,13 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any
 
-from keyseq.application.call_context import CallContext, top_interval
+from keyseq.application.call_context import CallContext, start_linked_call, top_interval
+from keyseq.application.call_chain import chain_from, chain_top
+from keyseq.application.sequence_history import snapshot_for
+from keyseq.domain.call_graph import call_target
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM, OP_BACK, OP_REWIND, action_type, system_op,
+    is_step_call,
 )
 from keyseq.domain.sequence_editing import standalone_violation
 
@@ -80,6 +84,10 @@ class InputAcceptanceMixin:
                 pass
         self._update_status()
         if isinstance(pending.call, CallContext):
+            if pending.call.state is not None:
+                self._write_linked_progress(pending.call)
+                if not pending.call.performing:
+                    self._commit_linked_call(pending)
             self._call_view_stopped((self._get_trigger_set_id(), key), pending.call)
 
     def _resume_single_call(self, key: str) -> None:
@@ -89,6 +97,25 @@ class InputAcceptanceMixin:
             pending.call_paused = False
         ctx = pending.call
         delay = top_interval(ctx) if isinstance(ctx, CallContext) and not ctx.top_is_step() else 0
+        if isinstance(ctx, CallContext) and ctx.state is not None:
+            if ctx.root_continuation is None:
+                trigger = self._find_trigger(key)
+                actions = trigger.get("actions", []) if trigger else []
+                index = self._get_index(key)
+                if key not in self.state.call_refs_for(trigger_set_id):
+                    self._drop_single_call(trigger_set_id, key, pending.generation, pending)
+                    self._run_single_action(key, actions)
+                    return
+                ancestors, depth = self._linked_ancestors(key)
+                ctx = start_linked_call(trigger_set_id, key, call_target(actions[index]),
+                                        self._find_trigger, self.state, step=is_step_call(actions[index]),
+                                        ancestors=ancestors, ancestor_depth=depth)
+                for member in chain_from(self.state, trigger_set_id, key, self._find_trigger):
+                    ctx.before[member] = snapshot_for(self.state, trigger_set_id, member)
+                pending.call = ctx
+                pending.position = index
+                if (trigger_set_id, key) in self._call_view_contexts:
+                    self._call_view_contexts[(trigger_set_id, key)] = ctx
         self._schedule_single_call(trigger_set_id, key, pending.generation, pending, delay)
         self._update_status()
 
@@ -116,17 +143,27 @@ class InputAcceptanceMixin:
     def _accept_key(self, key: str) -> None:
         active = self._active_key()
         if active is not None:
-            if key == active:
+            pending = self.state.pending_steps.get((self._get_trigger_set_id(), active))
+            linked = (pending is not None and isinstance(pending.call, CallContext)
+                      and pending.call.state is not None)
+            same_chain = False
+            if linked:
+                chain = chain_from(self.state, self._get_trigger_set_id(), key, self._find_trigger)
+                same_chain = (key in (active, pending.call.first_target,
+                                     *(frame.key for frame in pending.call.stack))
+                              or chain[-1] in {pending.call.first_target,
+                                               *(frame.key for frame in pending.call.stack)})
+            if key == active or same_chain:
                 if key == self.state.run_to_end_key:
                     self.pause_run_to_end()
                     self._update_status()
                 else:
-                    pending = self.state.pending_steps.get((self._get_trigger_set_id(), key))
                     if pending is not None and pending.call is not None:
                         # ステップの文脈の 1 ステップの処理中（入れ子の一括の実行中を含む）は無視する
                         if not (isinstance(pending.call, CallContext)
-                                and pending.call.is_step_context()):
-                            self._pause_single_call(key)
+                                and (pending.call.is_step_context()
+                                     or pending.call.root_continuation is not None)):
+                            self._pause_single_call(active)
             return
         if key == self.state.run_to_end_key and self.state.run_to_end_paused:
             self.resume_run_to_end()
@@ -148,6 +185,14 @@ class InputAcceptanceMixin:
             self.discard_paused()
             self._start_run_to_end(key)
             return
+        # Calling a trigger with its own pending wait/read must not consume a press.
+        position = self._get_index(key)
+        actions = trigger.get("actions", [])
+        if 0 <= position < len(actions):
+            target = call_target(actions[position])
+            top = chain_top(self.state, self._get_trigger_set_id(), target, self._find_trigger) if target else key
+            if (self._get_trigger_set_id(), top) in self.state.pending_steps:
+                return
         self._run_single_action(key, trigger.get("actions", []))
 
     @staticmethod

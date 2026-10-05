@@ -5,8 +5,10 @@ from keyseq.application.call_context import (
     chain_text,
     finish_call_action,
     start_call,
+    start_linked_call,
     top_interval,
 )
+from keyseq.application.app_state import AppState
 
 
 def control(op, **values):
@@ -297,6 +299,7 @@ class CallContextTest(unittest.TestCase):
         self.assertEqual(call_step(empty, {}).message, "呼び出し先が指定されていません")
 
     def test_snapshot_freezes_actions_and_interval_at_start(self):
+        # The run-to-end entry point deliberately keeps snapshots until task_10.
         original = trigger([{"type": "text", "value": "before"}], interval=67)
         ctx = self.run_call("root", "f5", {"f5": original})
         original["actions"][0]["value"] = "after"
@@ -305,6 +308,69 @@ class CallContextTest(unittest.TestCase):
         result = call_step(ctx, {})
         self.assertEqual(top_interval(ctx), 67)
         self.assertEqual(result.action["value"], "before")
+
+    def test_linked_single_uses_current_position_and_live_actions(self):
+        state = AppState()
+        state.indices_for("set")["f5"] = 1
+        original = trigger([{"type": "text", "value": "a"},
+                            {"type": "text", "value": "b"}], interval=67)
+        ctx = start_linked_call("set", "root", "f5", {"f5": original}.get,
+                                state, step=True)
+        original["actions"][1]["value"] = "changed"
+        original["run_to_end_delay_ms"] = 99
+        self.assertEqual(call_step(ctx, {}).action["value"], "changed")
+        self.assertEqual(top_interval(ctx), 99)
+        self.assertEqual(finish_call_action(ctx, {}).kind, "done")
+        self.assertEqual(ctx.changed_frames["f5"].position, 0)
+        self.assertEqual(ctx.completed, ["f5"])
+
+    def test_linked_counter_deltas_belong_to_each_nested_trigger(self):
+        state = AppState()
+        triggers = {
+            "f5": trigger([control("call", target="f6"), {"type": "text", "value": "d"}]),
+            "f6": trigger([control("counter_inc", counter="n"),
+                           {"type": "text", "value": "u"}]),
+        }
+        ctx = start_linked_call("set", "root", "f5", triggers.get, state, step=True)
+        counters = {}
+        self.assertEqual(call_step(ctx, counters).action["value"], "u")
+        self.assertEqual(finish_call_action(ctx, counters).kind, "next")
+        self.assertEqual(ctx.deltas_by_key["f6"], [("n", 1)])
+        self.assertEqual(ctx.changed_frames["f5"].position, 1)
+
+    def test_linked_call_rejects_entry_inside_an_active_infinite_loop(self):
+        state = AppState()
+        state.indices_for("set")["f5"] = 1
+        ctx = start_linked_call("set", "root", "f5", {"f5": trigger([
+            control("loop_start", infinite=True), {"type": "text", "value": "a"},
+            control("loop_end"),
+        ])}.get, state, step=True)
+        self.assertEqual(call_step(ctx, {}).message, "呼び出し先に無限ループがあります")
+
+    def test_linked_call_validates_marked_upstream_depth_and_cycle(self):
+        for target, ancestors, depth, message in (
+            ("f5", ("f5",), 1, "循環"),
+            ("f5", (), 9, "深さ"),
+        ):
+            with self.subTest(message=message):
+                ctx = start_linked_call("set", "root", target,
+                                        {"f5": trigger([])}.get, AppState(), step=True,
+                                        ancestors=ancestors, ancestor_depth=depth)
+                result = call_step(ctx, {})
+                self.assertEqual(result.kind, "error")
+                self.assertIn(message, result.message)
+
+    def test_linked_batch_shares_processing_limit_across_delivered_actions(self):
+        stops = [control("stop") for _ in range(6000)]
+        ctx = start_linked_call("set", "root", "f5", {"f5": trigger([
+            {"type": "text", "value": "a"}, *stops,
+            {"type": "text", "value": "b"}, *stops,
+            {"type": "text", "value": "c"},
+        ])}.get, AppState(), step=False)
+        self.assertEqual(call_step(ctx, {}).action["value"], "a")
+        self.assertEqual(finish_call_action(ctx, {}).kind, "next")
+        self.assertEqual(call_step(ctx, {}).action["value"], "b")
+        self.assertEqual(finish_call_action(ctx, {}).kind, "error")
 
     def test_nested_call_inside_finite_loop_runs_twice(self):
         ctx = self.run_call("root", "f5", {
