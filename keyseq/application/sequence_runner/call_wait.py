@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import Any
 
 from keyseq.application.app_state import PendingStep
@@ -111,10 +110,7 @@ class CallWaitMixin:
             lambda: self._advance_single_call(trigger_set_id, key, generation),
         )
 
-    def _add_call_deltas(self, pending: PendingStep, deltas: tuple[tuple[str, int], ...]) -> None:
-        pending.resume = replace(
-            pending.resume, counter_deltas=pending.resume.counter_deltas + deltas,
-        )
+    def _add_call_deltas(self, pending: PendingStep) -> None:
         if isinstance(pending.call, CallContext):
             self._write_linked_progress(pending.call)
         self._publish_call_view()
@@ -134,7 +130,14 @@ class CallWaitMixin:
             self._complete_single_call(trigger_set_id, key, generation, pending)
             return
         step = call_step(ctx, self.state.counters)
-        self._add_call_deltas(pending, step.counter_deltas)
+        if step.kind == "ignored":
+            if pending.call_sent:
+                self._pause_single_call(key)
+            else:
+                self._rollback_linked_press(ctx)
+                self._drop_single_call(trigger_set_id, key, generation, pending)
+            return
+        self._add_call_deltas(pending)
         if step.kind == "action":
             self._perform_single_call_action(
                 trigger_set_id, key, generation, pending, step,
@@ -181,10 +184,11 @@ class CallWaitMixin:
             if succeeded is False:
                 self._fail_single_call(trigger_set_id, key, pending.generation, pending)
                 return
+            pending.call_sent = True
             ctx = pending.call
             if isinstance(ctx, CallContext):
                 following = finish_call_action(ctx, self.state.counters)
-                self._add_call_deltas(pending, following.counter_deltas)
+                self._add_call_deltas(pending)
                 if following.kind == "error":
                     message = following.message or "呼び出しを実行できません"
                     self._report_error(self._call_action(key, pending),
@@ -201,11 +205,12 @@ class CallWaitMixin:
         if succeeded is False:
             self._fail_single_call(trigger_set_id, key, generation, pending)
             return
+        pending.call_sent = True
         ctx = pending.call
         if not isinstance(ctx, CallContext):
             return
         following = finish_call_action(ctx, self.state.counters)
-        self._add_call_deltas(pending, following.counter_deltas)
+        self._add_call_deltas(pending)
         self._handle_finished_call_step(
             trigger_set_id, key, generation, pending, following,
         )
@@ -267,12 +272,13 @@ class CallWaitMixin:
         if result is False:
             self._fail_single_call(trigger_set_id, key, generation, pending)
             return
+        pending.call_sent = True
         ctx = pending.call
         if not isinstance(ctx, CallContext):
             return
         following = finish_call_action(ctx, self.state.counters)
         pending.call_file_line = None
-        self._add_call_deltas(pending, following.counter_deltas)
+        self._add_call_deltas(pending)
         self._handle_finished_call_step(
             trigger_set_id, key, generation, pending, following,
         )

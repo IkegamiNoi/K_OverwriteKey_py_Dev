@@ -173,7 +173,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
     def _cancel_pending_steps(
         self, identity: tuple[str, str] | None = None, *, settle_wait: bool = True,
     ) -> None:
-        # Keep the legacy cancellation helper untouched for snapshot-based runs.
+        # Paused calls already published their live progress when they paused.
         cancelling = tuple((current, pending) for current, pending in self.state.pending_steps.items()
                            if identity is None or current == identity)
         for current, pending in cancelling:
@@ -187,7 +187,8 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                     self._after_cancel(pending.after_id)
                 except Exception:
                     pass
-            self._commit_linked_call(pending)
+            if not pending.call_paused:
+                self._commit_linked_call(pending)
             self._publish_call_view()
         super()._cancel_pending_steps(identity, settle_wait=settle_wait)
         for _current, pending in cancelling:
@@ -353,7 +354,6 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         if not actions:
             return
 
-        self.cancel_pending_waits()
         self._discard_run_to_end_file_line()
         self._discard_run_to_end_call()
         self._run_to_end_resume = None
@@ -517,6 +517,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         self._run_to_end_wait_position = None
         stop = outcome.error is not None or outcome.normal_index is None
         if outcome.error:
+            self.cancel_pending_waits()
             index, message = outcome.error
             self._report_error(actions[index], message)
         elif outcome.normal_index is not None:
@@ -524,6 +525,8 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             action = actions[index]
             raw_type = action.get("type")
             action_type = raw_type.strip().lower() if isinstance(raw_type, str) else ""
+            if not (action_type == ACTION_TYPE_SYSTEM and system_op(action) == OP_CALL):
+                self.cancel_pending_waits()
             if action_type == ACTION_TYPE_FILE_LINE:
                 initial_position = (
                     previous_resume.initial_position
@@ -539,12 +542,8 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                 stop = True
             elif (action_type == ACTION_TYPE_SYSTEM
                   and system_op(action) == OP_CALL):
-                initial_position = (
-                    previous_resume.initial_position
-                    if previous_resume is not None else advance_position
-                )
                 self._begin_run_to_end_call(
-                    key, actions, index, outcome, snapshot, initial_position,
+                    key, actions, index, outcome, snapshot,
                 )
                 self._select_trigger(key)
                 if target is not None:
@@ -562,10 +561,13 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                     return
                 stop = position == 0 or stopped
         elif outcome.stopped:
+            self.cancel_pending_waits()
             outcome.counter_deltas, _position = self._settle_after_stopped_sequence(
                 key, actions, outcome.position, outcome.frames,
                 outcome.processed, outcome.counter_deltas,
             )
+        elif outcome.normal_index is None:
+            self.cancel_pending_waits()
         if outcome.reached_end:
             self._record_single_completion(snapshot, True)
         self._commit_step_and_publish(snapshot, outcome.counter_deltas)

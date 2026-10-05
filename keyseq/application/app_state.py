@@ -19,6 +19,7 @@ class PendingStep:
     call: object | None = None
     call_file_line: object | None = None
     call_paused: bool = False
+    call_sent: bool = False
 
 
 @dataclass

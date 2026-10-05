@@ -5,12 +5,34 @@ from __future__ import annotations
 from keyseq.application.app_state import PendingStep
 from keyseq.application.call_context import CallContext
 from keyseq.application.call_chain import chain_from
-from keyseq.application.sequence_history import StepSnapshot, commit_press, snapshot_for
+from keyseq.application.sequence_history import (
+    StepSnapshot, commit_press, snapshot_for, undo_counter_deltas,
+)
 from keyseq.application.sequence_steps import after_normal_action, settle_after_normal, apply_deferred_counters
 from keyseq.domain.call_graph import call_target
 
 
 class LinkedCallMixin:
+    def _rollback_linked_press(self, ctx: CallContext) -> None:
+        deltas = [delta for values in ctx.deltas_by_key.values() for delta in values]
+        with self.state.lock:
+            undo_counter_deltas(self.state.counters, deltas)
+            for snapshot in ctx.before.values():
+                trigger_set_id, key = snapshot.trigger_set_id, snapshot.key
+                self.state.indices_for(trigger_set_id)[key] = snapshot.position
+                self.state.loop_frames_for(trigger_set_id)[key] = list(snapshot.frames)
+                self.state.deferred_counters_for(trigger_set_id)[key] = list(
+                    snapshot.deferred_counters)
+                refs = self.state.call_refs_for(trigger_set_id)
+                if snapshot.call_ref:
+                    refs.add(key)
+                else:
+                    refs.discard(key)
+        ctx.stack.clear()
+        ctx.changed_frames.clear()
+        ctx.completed.clear()
+        ctx.deltas_by_key.clear()
+
     def _linked_ancestors(self, key: str) -> tuple[tuple[str, ...], int]:
         """Include marked callers above the pressed trigger in call validation."""
         refs = self.state.call_refs_for(self._get_trigger_set_id())
@@ -103,7 +125,6 @@ class LinkedCallMixin:
             {ctx.root_key, *ctx.changed_frames},
         )
         commit_press(self.state, list(ctx.before.values()), ctx.deltas_by_key, pressed_key=ctx.root_key)
-        self.state.last_trigger = (ctx.trigger_set_id, ctx.root_key)
         ctx.completed.clear()
         ctx.deltas_by_key.clear()
         ctx.before = {key: snapshot_for(self.state, ctx.trigger_set_id, key)

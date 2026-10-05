@@ -57,6 +57,7 @@ class CallContext:
     ancestors: tuple[str, ...] = ()
     ancestor_depth: int = 0
     root_continuation: int | None = None
+    sent_action: bool = False
     performing: bool = False
     failed: bool = False
     press_processed: int = 0
@@ -85,7 +86,7 @@ class CallContext:
 
 @dataclass(frozen=True)
 class CallStep:
-    kind: Literal["action", "wait", "next", "done", "stopped", "error"]
+    kind: Literal["action", "wait", "next", "done", "stopped", "error", "ignored"]
     action: dict[str, Any] | None = None
     wait_ms: int | None = None
     message: str | None = None
@@ -100,7 +101,7 @@ def start_linked_call(
     find_trigger: Callable[[str], Mapping[str, Any] | None], state: Any,
     *, step: bool, ancestors: tuple[str, ...] = (), ancestor_depth: int = 0,
 ) -> CallContext:
-    """Build a single press from live trigger states, without copying actions."""
+    """Build a linked call from live trigger states, without copying actions."""
     ctx = CallContext(trigger_set_id, root_key, target_key, first_step=step,
                       state=state, find_trigger=find_trigger, ancestors=ancestors,
                       ancestor_depth=ancestor_depth)
@@ -154,6 +155,7 @@ def _push_frame(
         return _error("呼び出し先が指定されていません", chain, deltas)
     parent_step = ctx.top_is_step() if ctx.stack else True
     frame = CallFrame(key, step=step and parent_step)
+    # Keep this even for a busy target so rollback can restore its press-start state.
     saved = ctx.before.setdefault(key, snapshot_for(ctx.state, ctx.trigger_set_id, key))
     previous = ctx.changed_frames.get(key)
     frame.position = previous.position if previous is not None else saved.position
@@ -164,6 +166,10 @@ def _push_frame(
         for loop in reset_frames(entry.actions, frame.position)
     ):
         return _error("呼び出し先に無限ループがあります", chain, deltas)
+    if (key not in ctx.ancestors and key != ctx.root_key
+            and (ctx.trigger_set_id, key) in ctx.state.pending_steps):
+        # This ends call_step before it can return an action to the sender.
+        return CallStep("ignored", chain=chain)
     ctx.changed_frames[key] = frame
     ctx.stack.append(frame)
     return None

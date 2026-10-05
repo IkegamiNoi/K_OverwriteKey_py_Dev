@@ -6,12 +6,11 @@ from collections.abc import Mapping, Sequence
 from typing import Any
 
 from keyseq.application.call_context import CallContext, start_linked_call, top_interval
-from keyseq.application.call_chain import chain_from, chain_top
+from keyseq.application.call_chain import chain_from
 from keyseq.application.sequence_history import snapshot_for
 from keyseq.domain.call_graph import call_target
 from keyseq.domain.sequence_control import (
-    ACTION_TYPE_SYSTEM, OP_BACK, OP_REWIND, action_type, system_op,
-    is_step_call,
+    ACTION_TYPE_SYSTEM, OP_BACK, OP_REWIND, action_type, system_op, is_step_call,
 )
 from keyseq.domain.sequence_editing import standalone_violation
 
@@ -172,14 +171,6 @@ class InputAcceptanceMixin:
         trigger = self._find_trigger(key)
         if not trigger or not trigger.get("actions", []):
             return
-        # Calling a trigger with its own pending wait/read must not consume a press.
-        position = self._get_index(key)
-        actions = trigger.get("actions", [])
-        if 0 <= position < len(actions):
-            target = call_target(actions[position])
-            top = chain_top(self.state, self._get_trigger_set_id(), target, self._find_trigger) if target else key
-            if (self._get_trigger_set_id(), top) in self.state.pending_steps:
-                return
         if bool(trigger.get("run_to_end", False)):
             actions = trigger.get("actions", [])
             if self._is_standalone_control(actions):

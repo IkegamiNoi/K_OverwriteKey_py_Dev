@@ -112,6 +112,20 @@ class SequenceRunnerCallTests(unittest.TestCase):
         while self.scheduler.queue:
             self.scheduler.run_one()
 
+    def run_last(self):
+        handle, callback = self.scheduler.queue.pop()
+        callback()
+        return handle
+
+    def hold_pending_wait(self, key):
+        pending = self.state.pending_steps.get((self.trigger_set_id, key))
+        self.assertIsNotNone(pending)
+        if pending is None:
+            return
+        if pending.after_id is not None:
+            self.scheduler.after_cancel(pending.after_id)
+            pending.after_id = None
+
     def index(self, key, trigger_set_id="set"):
         return self.state.indices_for(trigger_set_id).get(key, 0)
 
@@ -632,6 +646,8 @@ class SequenceRunnerCallTests(unittest.TestCase):
                 queue = list(self.scheduler.queue)
                 histories = {key: list(self.history(key)) for key in ("f1", "f5")}
                 self.runner.handle_key("f1")
+                if kind == "wait":
+                    self.run_last()
                 self.assertEqual(self.index("f1"), 0)
                 self.assertEqual(self.index("f5"), position)
                 self.assertNotIn("f1", self.state.call_refs_for("set"))
@@ -663,6 +679,8 @@ class SequenceRunnerCallTests(unittest.TestCase):
                 queue = list(self.scheduler.queue)
 
                 self.runner.handle_key("f1")
+                if kind == "wait":
+                    self.run_last()
 
                 self.assertIsNone(self.state.run_to_end_key)
                 self.assertIsNone(self.runner._run_to_end_call)
@@ -2408,6 +2426,197 @@ class SequenceRunnerCallTests(unittest.TestCase):
         ))
         self.assertEqual(len(self.history("f1")), 0)
         self.assertEqual(self.performed, [])
+
+    def test_paused_single_call_discard_does_not_recommit_after_callee_completes(self):
+        self.trigger("f1", [call("f5", all=True), text("next")])
+        self.trigger("f5", [text("A"), text("B")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.runner.handle_key("f1")
+        pending = self.state.pending_steps[("set", "f1")]
+        self.assertTrue(pending.call_paused)
+
+        self.runner.handle_key("f5")
+        before_history = len(self.history("f1"))
+        before_last_trigger = self.state.last_trigger
+        self.assertEqual(self.index("f1"), 1)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.index("f5"), 0)
+
+        self.runner.cancel_pending_wait("f1")
+
+        self.assertEqual(self.index("f5"), 0)
+        self.assertEqual(self.index("f1"), 1)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(len(self.history("f1")), before_history)
+        self.assertEqual(self.state.last_trigger, before_last_trigger)
+
+    def test_busy_nested_call_after_counter_prefix_does_not_consume_press(self):
+        self.trigger("busy", [text("busy"), system("wait", ms=1000)])
+        self.trigger("f1", [system("counter_inc", counter="n"), call("busy"), text("X")])
+        self.runner.handle_key("busy")
+        self.hold_pending_wait("busy")
+        self.state.last_trigger = ("set", "prior")
+        before_history = {key: len(self.history(key)) for key in ("busy", "f1")}
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.state.counters.get("n", 0), 0)
+        self.assertEqual(self.state.last_trigger, ("set", "prior"))
+        self.assertEqual({key: len(self.history(key)) for key in before_history}, before_history)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertEqual(self.performed, [text("busy")])
+
+    def test_busy_nested_call_through_unmarked_trigger_does_not_consume_press(self):
+        self.trigger("busy", [text("busy"), system("wait", ms=1000)])
+        self.trigger("f5", [call("busy")])
+        self.trigger("f1", [call("f5"), text("X")])
+        self.runner.handle_key("busy")
+        self.hold_pending_wait("busy")
+        busy_position = self.index("busy")
+        self.state.last_trigger = ("set", "prior")
+        before_history = {key: len(self.history(key)) for key in ("busy", "f5", "f1")}
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.index("f5"), 0)
+        self.assertEqual(self.index("busy"), busy_position)
+        self.assertEqual(self.state.last_trigger, ("set", "prior"))
+        self.assertEqual({key: len(self.history(key)) for key in before_history}, before_history)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertEqual(self.performed, [text("busy")])
+
+    def test_cancelling_single_wait_at_target_end_propagates_linked_completion(self):
+        self.trigger("f1", [call("f5"), text("B")])
+        self.trigger("f5", [text("A"), system("wait", ms=1000)])
+        # Model a live reference left by an earlier call; U is then advanced alone.
+        self.state.call_refs_for("set").add("f1")
+
+        self.runner.handle_key("f5")
+        self.assertIn(("set", "f5"), self.state.pending_steps)
+        self.runner.cancel_pending_wait("f5")
+
+        self.assertEqual(self.index("f5"), 0)
+        self.assertEqual(self.index("f1"), 1)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual([item["value"] for item in self.performed], ["A"])
+
+    def test_single_call_deltas_stay_with_callee_when_trigger_set_is_rekeyed(self):
+        self.trigger("f1", [call("f5", all=True)])
+        self.trigger("f5", [system("counter_inc", counter="n"),
+                              system("wait", ms=1000)])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        pending = self.state.pending_steps[("set", "f1")]
+        self.assertEqual(pending.resume.counter_deltas, ())
+        self.assertEqual(pending.call.deltas_by_key["f5"], [("n", 1)])
+        self.assertEqual(self.state.counters["n"], 1)
+
+        self.state.rekey_trigger_set("set", "set2")
+
+        entry = self.history("f1", "set2")[-1]
+        self.assertEqual(entry.counter_deltas, [])
+        self.assertEqual(self.state.counters["n"], 1)
+
+    def test_busy_nested_call_after_loop_end_jump_rolls_back_press(self):
+        self.trigger("busy", [text("busy"), system("wait", ms=1000)])
+        self.trigger("f5", [system("loop_start", count=2),
+                             system("counter_inc", counter="n"),
+                             system("loop_end"), call("busy")])
+        self.trigger("f1", [call("f5"), text("X")])
+        self.runner.handle_key("busy")
+        self.hold_pending_wait("busy")
+        last_trigger = self.state.last_trigger
+        before_history = {key: len(self.history(key)) for key in ("busy", "f5", "f1")}
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+
+        self.assertEqual(self.index("f1"), 0)
+        self.assertEqual(self.index("f5"), 0)
+        self.assertEqual(self.state.counters.get("n", 0), 0)
+        self.assertEqual({key: len(self.history(key)) for key in before_history}, before_history)
+        self.assertEqual(self.state.last_trigger, last_trigger)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertEqual(self.performed, [text("busy")])
+
+    def test_busy_call_pauses_run_to_end_after_rolling_back_call_step(self):
+        self.trigger("busy", [text("busy"), system("wait", ms=1000)])
+        self.trigger("f5", [system("counter_inc", counter="n"), call("busy")])
+        self.trigger("f1", [text("prefix"), call("f5")], run_to_end=True)
+        self.runner.handle_key("f1")
+        self.runner.pause_run_to_end()
+        self.runner.handle_key("busy")
+        self.hold_pending_wait("busy")
+
+        self.runner.resume_run_to_end()
+        self.scheduler.run_one()
+        self.scheduler.run_one()
+
+        self.assertEqual(self.state.run_to_end_key, "f1")
+        self.assertTrue(self.state.run_to_end_paused)
+        self.assertEqual(self.index("f1"), 1)
+        self.assertEqual(self.index("f5"), 0)
+        self.assertEqual(self.state.counters.get("n", 0), 0)
+        self.assertIn(("set", "busy"), self.state.pending_steps)
+        self.assertNotIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.performed, [text("prefix"), text("busy")])
+        self.assertEqual(len(self.history("f1")), 1)
+
+    def test_single_batch_call_does_not_resend_action_after_busy_guard(self):
+        self.trigger("busy", [text("busy"), system("wait", ms=1000)])
+        self.trigger("f5", [text("A"), call("busy")])
+        self.trigger("f1", [call("f5", all=True)])
+        self.runner.handle_key("busy")
+        self.hold_pending_wait("busy")
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(self.performed.count(text("A")), 1)
+        self.scheduler.run_one()
+
+        pending = self.state.pending_steps[("set", "f1")]
+        self.assertTrue(pending.call_paused)
+        self.assertTrue(pending.call_sent)
+        self.assertEqual(self.index("f5"), 1)
+        self.assertEqual(self.performed.count(text("A")), 1)
+
+        self.runner.cancel_pending_wait("busy")
+        self.runner.handle_key("f1")
+        self.run_all()
+
+        self.assertEqual(self.performed.count(text("A")), 1)
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+
+    def test_run_to_end_call_does_not_resend_action_after_busy_guard(self):
+        self.trigger("busy", [text("busy"), system("wait", ms=1000)])
+        self.trigger("f5", [text("A"), call("busy")])
+        self.trigger("f1", [call("f5", all=True)], run_to_end=True)
+        self.runner.handle_key("busy")
+        self.hold_pending_wait("busy")
+
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertEqual(self.performed.count(text("A")), 1)
+        self.scheduler.run_one()
+
+        self.assertEqual(self.state.run_to_end_key, "f1")
+        self.assertTrue(self.state.run_to_end_paused)
+        self.assertIsNotNone(self.runner._run_to_end_call)
+        self.assertEqual(self.index("f5"), 1)
+        self.assertEqual(self.performed.count(text("A")), 1)
+
+        self.runner.cancel_pending_wait("busy")
+        self.runner.resume_run_to_end()
+        self.run_all()
+
+        self.assertEqual(self.performed.count(text("A")), 1)
+        self.assertIsNone(self.state.run_to_end_key)
 
 
 if __name__ == "__main__":

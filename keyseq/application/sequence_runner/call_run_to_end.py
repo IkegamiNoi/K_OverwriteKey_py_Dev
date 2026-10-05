@@ -13,7 +13,7 @@ from keyseq.application.call_context import (
 )
 from keyseq.application.sequence_history import StepSnapshot
 from keyseq.application.sequence_steps import (
-    LoopFrame, StepOutcome, after_normal_action, resume_for_pending, settle_after_normal,
+    LoopFrame, StepOutcome, after_normal_action, settle_after_normal,
     apply_deferred_counters,
 )
 from keyseq.application.sequence_runner.file_line_wait import (
@@ -35,7 +35,7 @@ class CallRunToEndMixin:
     # stop_run_to_end.
     def _begin_run_to_end_call(
         self, key: str, actions: list[dict[str, Any]], index: int,
-        outcome: StepOutcome, snapshot: StepSnapshot, initial_position: int,
+        outcome: StepOutcome, snapshot: StepSnapshot,
     ) -> None:
         ancestors, depth = self._linked_ancestors(key)
         ctx = start_linked_call(
@@ -46,8 +46,6 @@ class CallRunToEndMixin:
         ctx.before[key] = snapshot
         ctx.press_processed = outcome.processed
         ctx.record_deltas(key, outcome.counter_deltas)
-        self._run_to_end_resume = resume_for_pending(outcome, initial_position)
-        self._run_to_end_snapshot = snapshot
         self._run_to_end_wait_position = index
         self._run_to_end_call = ctx
         self._run_to_end_call_token += 1
@@ -119,9 +117,31 @@ class CallRunToEndMixin:
         if ctx.root_continuation is not None:
             self._complete_run_to_end_call(generation, key, token, ctx)
             return
+        sent_before_step = self._run_to_end_sent
         step = call_step(ctx, self.state.counters, run_to_end=True,
                          sent=lambda: self._run_to_end_sent,
                          on_call_success=self._mark_run_to_end_sent)
+        if step.kind == "ignored":
+            if ctx.sent_action:
+                # Keep progress through actions already sent in this call context.
+                self._commit_run_to_end_call(ctx)
+                self.state.run_to_end_paused = True
+            else:
+                self._rollback_linked_press(ctx)
+                self._discard_run_to_end_call()
+                self._run_to_end_resume = None
+                self._run_to_end_snapshot = None
+                self._run_to_end_wait_position = None
+                if sent_before_step:
+                    self.state.run_to_end_paused = True
+                else:
+                    self.state.run_to_end_key = None
+                    self.state.run_to_end_paused = False
+                    self.state.run_to_end_after_id = None
+                    self._run_to_end_sent = False
+                    self._run_to_end_generation += 1
+            self._update_status()
+            return
         self._publish_run_to_end_call_progress()
         if step.kind == "action":
             self._perform_run_to_end_call_action(generation, key, token, ctx, step)
@@ -173,6 +193,7 @@ class CallRunToEndMixin:
             return
         if (self.state.run_to_end_paused
                 and self._run_to_end_call_failure_matches(generation, key, token, ctx)):
+            ctx.sent_action = True
             self._finish_paused_run_to_end_action(ctx)
             return
         if not self._run_to_end_call_is_current(generation, key, token):
@@ -180,6 +201,7 @@ class CallRunToEndMixin:
         if not self._run_to_end_call_parent_is_current(ctx):
             self._abandon_invalid_run_to_end_call()
             return
+        ctx.sent_action = True
         self._run_to_end_sent = True
         following = finish_call_action(ctx, self.state.counters, run_to_end=True,
                                        sent=lambda: self._run_to_end_sent)
@@ -254,6 +276,7 @@ class CallRunToEndMixin:
             elif result is None:
                 self._commit_run_to_end_call(ctx)
             else:
+                ctx.sent_action = True
                 self._finish_paused_run_to_end_action(ctx)
             return
         if not self._run_to_end_call_is_current(generation, key, token):
@@ -272,6 +295,7 @@ class CallRunToEndMixin:
             )
             return
         self._run_to_end_call_file_line = None
+        ctx.sent_action = True
         self._run_to_end_sent = True
         following = finish_call_action(ctx, self.state.counters, run_to_end=True,
                                        sent=lambda: self._run_to_end_sent)
@@ -346,6 +370,7 @@ class CallRunToEndMixin:
         self._run_to_end_wait_position = None
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
+        self.cancel_pending_waits()
         self.stop_run_to_end()
 
     def _complete_run_to_end_call(
@@ -374,6 +399,7 @@ class CallRunToEndMixin:
             return
         self._commit_run_to_end_call(ctx)
         self._discard_run_to_end_call()
+        self.cancel_pending_waits()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
         self._run_to_end_wait_position = None
@@ -419,6 +445,7 @@ class CallRunToEndMixin:
         return position, stopped, waiting
 
     def _finish_paused_run_to_end_action(self, ctx: CallContext) -> None:
+        ctx.sent_action = True
         self._run_to_end_sent = True
         step = finish_call_action(ctx, self.state.counters, run_to_end=True, sent=True)
         if step.kind == "error":

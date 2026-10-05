@@ -12,10 +12,10 @@ from keyseq.domain.sequence_control import ACTION_TYPE_SYSTEM, OP_WAIT, action_t
 
 
 class WaitStopMixin:
-    def _settle_stopped_wait(self, key, pending) -> None:
+    def _settle_stopped_wait(self, key, pending) -> bool:
         trigger = self._find_trigger(key)
         if trigger is None:
-            return
+            return False
         settled = settle_after_normal(
             trigger.get("actions", []), pending.position, self._get_frames(key),
             self.state.counters,
@@ -31,14 +31,26 @@ class WaitStopMixin:
             pending.resume,
             counter_deltas=pending.resume.counter_deltas + settled.counter_deltas,
         )
+        return settled.position == 0
 
     def _cancel_pending_steps(self, identity=None, *, settle_wait=True) -> None:
+        settled_waits = []
         if settle_wait:
             for current, pending in tuple(self.state.pending_steps.items()):
                 if (identity is not None and current != identity) or current[0] != self._get_trigger_set_id():
                     continue
                 if pending.file_line is None and pending.call is None:
-                    self._settle_stopped_wait(current[1], pending)
+                    reached_end = self._settle_stopped_wait(current[1], pending)
+                    self._record_single_completion(pending.snapshot, reached_end)
+                    settled_waits.append((current, pending))
+        for current, pending in settled_waits:
+            self.state.pending_steps.pop(current, None)
+            if pending.after_id is not None:
+                try:
+                    self._after_cancel(pending.after_id)
+                except Exception:
+                    pass
+            self._commit_step_and_publish(pending.snapshot, pending.resume.counter_deltas)
         cancel_pending_steps(self.state, self._after_cancel, identity)
         self._publish_call_view()
 
