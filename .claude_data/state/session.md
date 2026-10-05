@@ -4,39 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-04T23:00:00
-phase: **phase 45**（`instructions/phase/45_call_step_and_view`・呼び出しのステップ実行と呼び出し先の表示・暫定仕様先行モード・主入力 = 暫定 31 v0.5〔ユーザー確定済〕）。次採番 = phase 46 / 暫定 32 / decisions 46 / 提案書 19。
+last_updated: 2026-10-05T12:00:00
+phase: **phase 45**（`instructions/phase/45_call_step_and_view`・呼び出しのステップ実行と呼び出し先の表示・暫定仕様先行モード・主入力 = 暫定 31 v0.6〔ユーザー確定済 2026-10-05・§4.5 参照による連動〕）。次採番 = phase 46 / 暫定 32 / decisions 46 / 提案書 19。
 直前の完了フェーズ = **phase 44**（子ファイル保存ダイアログの高さと列幅・`decisions_archive/44_child_save_dialog_layout.md`）/ **phase 43**（一覧のドラッグ移動・範囲選択・複製・`decisions_archive/43_list_reorder_range_copy.md`）。
-last_commit_location: `claude/keymap-spec-review-d08fed`（066c680 = phase 45 task_05）
+last_commit_location: `claude/keymap-spec-review-d08fed`（phase 45 task_05a まで）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 45 task_01〜05 実装完了（task_05 は実機目視待ち）。次は task_06（省略表示の枠）→ task_07（正本反映・フェーズ完了）。**
+focus: **phase 45 task_05a 完了（実機目視待ち）。次は task_08（参照中の印・押下の番号つき履歴）→ task_09〜11（参照による連動への作り直し）→ task_06 → task_07。**
 mode: in_progress（ユーザーがタスクの連続実行を許可。スペックフラグ・フォールバック・実機目視では止まる）
 
 ## last_action
-ts: 2026-10-04T23:00:00
+ts: 2026-10-05T12:00:00
 who: main
 summary: |
-  phase 45 を暫定 31 で起票し task_01〜05 を実装。実機目視中のユーザー判断で v0.5（ステップを標準・一括は JSON `all: true` / 表示 `[call all]`・チェックボックス「一括で実行」）。
-  task_02・03 の統合確認（deep 採用 / codex P2）→ task_03a（入れ子の一括の後の区切り・送った印の持ち越し）。task_04 = 要約 CallViewSummary と runner の通知の口（call_view_notice.py）。
-  task_05 = フル表示の枠（出力シーケンスの一覧の下・tk.PanedWindow・読み取り専用・config.json の call_view_heights）。メインで「保存した高さが開き直しで反映されない」（paneconfigure の再配置が sash_place を戻す）を修正。
+  task_05 の実機目視（動作 OK）での要望から暫定 31 を v0.6 へ: 枠を常設の Expander・境界線を控えめ・写しと呼び出し文脈を廃し「参照による連動」（§4.5）。
+  codex 敵対的 3 回（3・4・3 件をすべて反映）→ ユーザー確定。判断は decisions.md「task_05 実機目視」節。
+  task_05a = Expander（見出しのクリックで開閉・トリガーごとの開閉・自動で開くが自動で閉じない・「呼び出し中ではありません」）。task_08 を起票済（未着手）。
 result_files:
-  - keyseq/application/{call_context,call_view}.py・application/sequence_runner/{call_wait,call_run_to_end,input_acceptance,send_wait,file_line_wait,wait_stop,call_view_notice}.py
-  - keyseq/domain/sequence_control.py（is_step_call / is_all_call・表示名）・presentation/dialogs/action_control_fields.py
-  - keyseq/presentation/{call_view_heights.py,controllers/call_view_controller.py,views/full_view/{call_view_frame,sequence_box}.py,app.py}
+  - instructions/history/31_call_step_and_view.md（v0.6）・phase 45 phase.md・tasks/task_05a・task_08
+  - keyseq/presentation/{controllers/call_view_controller.py,views/full_view/{call_view_frame,sequence_box}.py,controllers/trigger_panel/trigger_panel_controller.py}
 verified:
   compile: clean
   tests: 1191 OK（skipped 7）
-  tests_ui: 803 OK（261 秒）
+  tests_ui: 809 OK
   smoke: pass
-  review: task_01〜05 すべて reviewer 採用（task_03a・04・05 は修正要を経て採用）
+  review: task_05a reviewer 修正要 → 採用（メインで追加の 3 点修正）
 
 ## next_action
-- task_05 の実機目視の結果を受け取る（①枠が開き ▶ が進み終わると閉じる ②連続実行の停止の行で開く ③境界線の高さが開き直し・再起動後も保たれる ④枠のクリックで何も起きない ⑤`[call all]` だけでは開かない）。
-- task_06 を `/task_new` で起票・実装: 省略表示の枠（トリガー一覧の下・境界線・表示の切替で同じ文脈〔CallViewController.last_summary〕・高さは call_view_heights の compact）。暫定 31 §5.1・§5.2。
-- task_07: 暫定 31 §12 の正本昇格（features §4.2.8〜4.2.10・§4.6 / data_schema §5.4・§5.11.6 / codebase_map）・暫定 31 の凍結・decisions_archive/45・current.md・/refactor_check。完了判定前に deep-reviewer + Codex 敵対的レビュー。
-  deep-reviewer M1（文脈の「送った」に入れ子の呼び出しの成功を数えない＝実装のまま）を正本に明記する。
+- task_05a の実機目視（①起動時は「▸ 呼び出し先」1 行 ②止まると開き終わっても閉じない ③見出しで開閉・手で閉じたら勝手に開かない ④開閉がトリガーごと ⑤境界線が控えめ）。
+- task_08 を codex-implementer で実装（application の状態層のみ・既存テスト不変）→ verifier → reviewer → コミット。
+- task_09〜11 は前タスク完了ごとに /task_new で起票（phase.md の task_08 行以下に概要）。task_11 の後に統合確認（deep-reviewer + codex-reviewer）。
+- task_07 の正本反映では v0.6 §12 と deep-reviewer M1 の扱い（v0.6 で「送った」は連続実行 1 回ごとに変わる）を見直す。
 
 ## blockers
 - なし

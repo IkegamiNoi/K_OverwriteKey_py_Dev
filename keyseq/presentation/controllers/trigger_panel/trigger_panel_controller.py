@@ -253,12 +253,18 @@ class TriggerPanelController:
             self.sync_suppress_checkbox()
             self.sync_run_to_end_ui()
             self.update_status()
+            call_view = getattr(self._app, "call_view", None)
+            if call_view is not None:
+                call_view.on_selection_changed()
             return
         trig = self.selected_trigger()
         if not trig:
             self.sync_suppress_checkbox()
             self.sync_run_to_end_ui()
             self.update_status()
+            call_view = getattr(self._app, "call_view", None)
+            if call_view is not None:
+                call_view.on_selection_changed()
             return
         actions = trig.get("actions", [])
         key = normalize_key_name(trig.get("key", ""))
@@ -307,6 +313,9 @@ class TriggerPanelController:
         self.sync_suppress_checkbox()
         self.sync_run_to_end_ui()
         self.update_status()
+        call_view = getattr(self._app, "call_view", None)
+        if call_view is not None:
+            call_view.on_selection_changed()
 
     def select_next_action_row(self, key: str):
         """現在の next index（self._indices[key]）を action_list 上で選択表示する（UIスレッド専用）"""

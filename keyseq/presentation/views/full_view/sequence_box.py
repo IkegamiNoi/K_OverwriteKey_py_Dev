@@ -18,9 +18,11 @@ class SequenceBox(ttk.LabelFrame):
         super().__init__(parent, text="出力シーケンス（選択中トリガーの内容）", padding=10)
 
         # 既定18行の半分をフル表示の最小高さの基準にする（表示行数は伸びた分で決まる）。
+        self.action_column = ttk.Frame(self)
+        self.action_column.pack(side="left", fill="both", expand=True)
         self.action_panes = tk.PanedWindow(
-            self, orient="vertical", borderwidth=0, sashwidth=6,
-            sashpad=0, showhandle=False, sashrelief="raised",
+            self.action_column, orient="vertical", borderwidth=0, sashwidth=4,
+            sashpad=0, showhandle=False, sashrelief="flat", background="#E8E8E8",
         )
         self.action_frame = ttk.Frame(self.action_panes)
         # 包む PanedWindow の要求幅も、幅計測の 10 文字 + スクロールバーに揃える。
@@ -47,8 +49,10 @@ class SequenceBox(ttk.LabelFrame):
         asb.pack(side="right", fill="y")
         self.action_list.pack(side="left", fill="both", expand=True)
         self.action_panes.add(self.action_frame, stretch="always", padx=0, pady=0)
-        self.call_view_frame = CallViewFrame(self.action_panes)
-        self.action_panes.pack(side="left", fill="both", expand=True)
+        self.action_panes.pack(side="top", fill="both", expand=True)
+        self.call_view_frame = CallViewFrame(
+            self.action_column, self.action_panes, lambda: app.call_view.on_heading_click(),
+        )
         ttk.Button(abtns, text="追加", width=16, command=app.trigger_panel.add_action).pack(pady=(0, 6))
         ttk.Button(abtns, text="編集", width=16, command=app.trigger_panel.edit_action).pack(pady=6)
         ttk.Button(abtns, text="削除", width=16, command=app.trigger_panel.delete_action).pack(pady=6)

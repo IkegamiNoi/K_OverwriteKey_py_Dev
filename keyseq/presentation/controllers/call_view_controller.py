@@ -25,6 +25,8 @@ class CallViewController:
             startup.get(CALL_VIEW_HEIGHTS_KEY) if isinstance(startup, dict) else None,
         )
         self.last_summary: CallViewSummary | None = None
+        self._open_by_trigger: dict[tuple[str, str], bool] = {}
+        self._manually_operated: set[tuple[str, str]] = set()
         self._drag_height: int | None = None
         self._layout_id: str | None = None
 
@@ -33,9 +35,16 @@ class CallViewController:
         return self.app.full_view.sequence_box
 
     @property
+    def _identity(self) -> tuple[str, str] | None:
+        key = self.app.trigger_panel.selected_trigger_key()
+        if not key:
+            return None
+        return self.app._active_trigger_set_id(), key
+
+    @property
     def is_open(self) -> bool:
-        # panes() は Tcl_Obj を返すことがあるため文字列に揃えて比べる
-        return str(self.box.call_view_frame) in {str(pane) for pane in self.box.action_panes.panes()}
+        body = self.box.call_view_frame.body
+        return str(body) in {str(pane) for pane in self.box.action_panes.panes()}
 
     def install(self) -> None:
         self.on_font_changed()
@@ -47,11 +56,17 @@ class CallViewController:
             panes.bind(event, lambda _event: "break", add="+")
 
     def on_font_changed(self) -> None:
-        # 要求寸法は従来の 9 行の一覧だけで固定し、下の枠は加算しない。
         self.box.action_frame.update_idletasks()
+        self.box.call_view_frame.heading.update_idletasks()
+        # 下の枠は要求寸法に加算しない。
+        pane_height = max(
+            list_minimum_height(self.box.action_list),
+            self.box.action_frame.winfo_reqheight()
+            - self.box.call_view_frame.heading.winfo_reqheight(),
+        )
         self.box.action_panes.configure(
             width=self.box.action_frame.winfo_reqwidth(),
-            height=self.box.action_frame.winfo_reqheight(),
+            height=pane_height,
         )
         self._set_minimums()
         self._schedule_layout()
@@ -60,44 +75,91 @@ class CallViewController:
         panes = self.box.action_panes
         panes.paneconfigure(self.box.action_frame, minsize=list_minimum_height(self.box.action_list))
         if self.is_open:
-            panes.paneconfigure(self.box.call_view_frame, minsize=self.box.call_view_frame.minimum_height())
+            panes.paneconfigure(
+                self.box.call_view_frame.body,
+                minsize=(
+                    self.box.call_view_frame.heading.winfo_reqheight()
+                    + self.box.call_view_frame.minimum_body_height()
+                ),
+            )
 
     def _ensure_desired(self) -> None:
-        self.desired.setdefault("full", default_call_view_height(self.box.action_panes.winfo_height()))
+        # 既定は開いたときの一覧と枠の合計から決める（閉じている間は見出しが PanedWindow の外）
+        total = self.box.action_panes.winfo_height()
+        if not self.is_open:
+            total += self.box.call_view_frame.heading.winfo_reqheight()
+        self.desired.setdefault("full", default_call_view_height(total))
         compact = self.app.compact_view.trigger_box.trigger_list
         self.desired.setdefault("compact", default_call_view_height(compact.winfo_reqheight()))
 
     def on_summary(self, summary: CallViewSummary | None) -> None:
         """runner が UI スレッドから通知する。実行状態は変更しない。"""
         self.last_summary = summary
-        if summary is None:
+        identity = self._identity
+        if (
+            summary is not None and identity is not None
+            and summary.path and summary.path[0] == identity[1]
+            and identity not in self._manually_operated
+        ):
+            self._open_by_trigger[identity] = True
+        self._render()
+
+    def on_selection_changed(self) -> None:
+        """選択中トリガーに対応する開閉状態と表示内容へ切り替える。"""
+        self._render()
+
+    def on_heading_click(self) -> None:
+        identity = self._identity
+        if identity is None:
+            return
+        self._manually_operated.add(identity)
+        self._open_by_trigger[identity] = not self._open_by_trigger.get(identity, False)
+        self._render()
+
+    def _render(self) -> None:
+        identity = self._identity
+        is_open = bool(identity and self._open_by_trigger.get(identity, False))
+        frame = self.box.call_view_frame
+        summary = self.last_summary
+        visible_summary = (
+            summary if is_open and identity is not None and identity[1] in summary.path else None
+        ) if summary is not None else None
+        frame.set_heading(is_open, visible_summary.path if visible_summary is not None else ())
+        if not is_open:
             if self.is_open:
-                self.box.action_panes.forget(self.box.call_view_frame)
+                self.box.action_panes.forget(frame.body)
+            frame.show_heading_below_list(self.box.action_column)
             self._drag_height = None
             return
+
         self._ensure_desired()
+        panes = self.box.action_panes
         if not self.is_open:
-            self.box.action_panes.add(
-                self.box.call_view_frame, stretch="never", padx=0, pady=0,
-                minsize=self.box.call_view_frame.minimum_height(),
+            panes.add(
+                frame.body, stretch="never", padx=0, pady=0,
+                minsize=(
+                    frame.heading.winfo_reqheight() + frame.minimum_body_height()
+                ),
             )
+            frame.show_heading_in_body()
             self._schedule_layout()
-        frame = self.box.call_view_frame
-        frame.heading.configure(text=" › ".join(summary.path))
+        if visible_summary is None:
+            frame.set_empty_state()
+            return
         rows = build_action_rows(
-            summary.actions,
-            loop_iterations={loop.start: loop.iteration for loop in summary.loop_frames},
-            counters=summary.counters,
+            visible_summary.actions,
+            loop_iterations={loop.start: loop.iteration for loop in visible_summary.loop_frames},
+            counters=visible_summary.counters,
             resolve_call=self.app.trigger_panel._resolve_call_target,
         )
         frame.action_list.delete(0, tk.END)
         for index, (text, background) in enumerate(rows):
-            prefix = "▶ " if index == summary.position else "　 "
+            prefix = "▶ " if index == visible_summary.position else "　 "
             frame.action_list.insert(tk.END, prefix + text)
             if background is not None:
                 frame.action_list.itemconfigure(index, background=background)
-        if 0 <= summary.position < len(rows):
-            frame.action_list.see(summary.position)
+        if 0 <= visible_summary.position < len(rows):
+            frame.action_list.see(visible_summary.position)
 
     def _on_configure(self, event) -> None:
         if event.height > 1:
@@ -114,10 +176,11 @@ class CallViewController:
             return
         self._set_minimums()
         panes = self.box.action_panes
-        # paneconfigure の再配置を先に済ませる（後から走ると sash_place の位置を要求の高さへ戻す）
         panes.update_idletasks()
         height = displayed_call_view_height(
-            self.desired["full"], self.box.call_view_frame.minimum_height(),
+            self.desired["full"],
+            self.box.call_view_frame.heading.winfo_reqheight()
+            + self.box.call_view_frame.minimum_body_height(),
             panes.winfo_height(), list_minimum_height(self.box.action_list),
             int(panes.cget("sashwidth")),
         )
@@ -125,7 +188,7 @@ class CallViewController:
 
     def _on_press(self, event) -> None:
         if self.is_open and self.box.action_panes.identify(event.x, event.y):
-            self._drag_height = self.box.call_view_frame.winfo_height()
+            self._drag_height = self.box.call_view_frame.body.winfo_height()
 
     def _on_release(self, _event) -> None:
         before = self._drag_height
@@ -133,7 +196,7 @@ class CallViewController:
             self._drag_height = None
             return
         self.box.action_panes.update_idletasks()
-        height = self.box.call_view_frame.winfo_height()
+        height = self.box.call_view_frame.body.winfo_height()
         self._drag_height = None
         if height != before and height != self.desired["full"]:
             self.desired["full"] = height

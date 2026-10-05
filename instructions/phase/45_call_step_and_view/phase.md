@@ -11,7 +11,7 @@
 **domain / application / presentation の全レイヤ。JSON は呼び出しの行に `step`（任意・無ければ一括）と `config/config.json` に `call_view_heights` を足す（後方互換）。**
 
 - 起票元: ユーザー要望（2026-10-04・「呼び出し先がどう進んでいるか分からない・停止が効かない」）。
-- 主入力（暫定仕様）: [31_call_step_and_view.md](../../history/31_call_step_and_view.md)（v0.5・ユーザー確定済）
+- 主入力（暫定仕様）: [31_call_step_and_view.md](../../history/31_call_step_and_view.md)（v0.6・ユーザー確定済 2026-10-05。§4.5 の参照による連動が §4.2〜§4.4 の文脈の記述に優先）
 - モード: **暫定仕様先行モード**。番号対応: phase 45 / 暫定 31 / decisions 45。
 
 ## 確定（ユーザー 2026-10-04）
@@ -56,7 +56,13 @@
 - task_03: 連続実行のステップ（呼び出し先の停止の行・文脈ごとの「送った」の印・停止の後の分岐〔一時停止 / 終える〕・一括の互換・連続実行の一時停止 → 再開で続きから〔§10-6〕）（§4.3・§4.4） — **実装完了**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント使用・自己申告〕・連続実行の呼び出しの開始で step を渡していなかった入口も修正・reviewer 採用・tests 1152 / tests_ui 792 / smoke pass。統合確認は task_03a・実機目視 OK〔2026-10-04〕）
 - task_03a（2026-10-04 task_02・03 の統合確認〔deep-reviewer 採用 / codex-reviewer P2〕から）: 入れ子の一括の呼び出しの後のステップの区切り（P2）・単発で stopped の防御・送った印の持ち越しの修正（R1）・テスト追加 — **実装完了**（codex-implementer・reviewer 修正要 ×3 → 採用・tests 1165 / tests_ui 792 / smoke pass。実機目視 OK〔2026-10-04〕）
 - task_04: 表示の要約と通知の口（runner → UI のコールバック・表示する文脈の選び方・カウンターの再通知）（§5.2・§5.3 の application 側） — **完了**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント使用・自己申告〕・reviewer 修正して採用〔カウンターの再通知の漏れ → commit を包む口へ統一・runner 側を call_view_notice.py へ改名〕・tests 1184 / tests_ui 794 / smoke pass。キーマップの並べ替え〔app_state の forget / rekey〕での表示の残りは task_05 で確認）
-- task_05: フル表示の枠（出力シーケンスの一覧の下・境界線・開閉・読み取り専用の一覧と `▶`・経路の見出し）と高さの保存（`call_view_heights`）（§5.1〜§5.3・§6） — **実装完了・実機目視待ち**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント使用・自己申告〕・reviewer 修正要 → 採用〔is_open の Tcl_Obj 比較・最小幅で境界線が切れる → 一覧の要求幅を最小幅の基準へ〕・メインで修正: 保存した高さが開き直しで反映されない〔paneconfigure の再配置が sash_place を戻す → update_idletasks を先に〕・テストのドラッグの update 待ち・再通知の重複を外す。tests 1191 / tests_ui 803 / smoke pass）
+- task_05: フル表示の枠（出力シーケンスの一覧の下・境界線・開閉・読み取り専用の一覧と `▶`・経路の見出し）と高さの保存（`call_view_heights`）（§5.1〜§5.3・§6） — **実装完了・実機目視待ち**（2026-10-04。codex-delegating-implementer〔Luna サブエージェント使用・自己申告〕・reviewer 修正要 → 採用〔is_open の Tcl_Obj 比較・最小幅で境界線が切れる → 一覧の要求幅を最小幅の基準へ〕・メインで修正: 保存した高さが開き直しで反映されない〔paneconfigure の再配置が sash_place を戻す → update_idletasks を先に〕・テストのドラッグの update 待ち・再通知の重複を外す。tests 1191 / tests_ui 803 / smoke pass。実機目視 2026-10-05: 動作 OK・改善要望 → 暫定 31 v0.6 / task_05a・task_08 系）
+- task_05a（2026-10-05 task_05 の実機目視でのユーザー判断・暫定 31 v0.6）: 枠を常設の Expander に（起動時は閉・参照中で自動で開く・自動で閉じない・開閉はトリガーごと・見出しのクリックで開閉）・境界線を控えめに（§5.1・§5.2） — **実装完了・実機目視待ち**（2026-10-05。codex-implementer・reviewer 修正要〔開いたとき見出しが本体の下・最小の高さ・簡易 app の call_view〕→ 採用・メインで修正: テストが隠れた一覧を比べていた・既定の高さに閉じた見出しを足す・SequenceBox の call_view 参照を遅延。tests 1191 / tests_ui 809 / smoke pass）
+- task_08（2026-10-05・§4.5.1・§4.5.5）: 参照中の印と押下の番号つきの戻す履歴・まとめて戻す・連鎖をたどる関数（application の状態層・挙動不変の土台） — 未着手
+- task_09（§4.5.1〜§4.5.4）: 単発の実行を参照による連動へ（印を立てる・押下で最上段を進める・完了で呼び出し元を進める・一括の範囲・call_context の写しとスタックを廃止）— 未起票
+- task_10（§4.5.2・§4.5.3・§4.5.6）: 連続実行（送ったを実行 1 回ごと・停止の行・一時停止中への合流・完了での位置だけの前進）— 未起票
+- task_11（§4.5.1・§4.5.7・§5.3）: 後始末の統合（停止操作・ダイアログ・キーマップ切替で印を残す・編集等で消す）と表示の要約の問い合わせ方式・task_05a の枠を連動の要約へ — 未起票
+- 実施順: task_05a → task_08 → task_09 → task_10 → task_11（統合確認: deep-reviewer + codex-reviewer）→ task_06 → task_07
 - task_06: 省略表示の枠（トリガー一覧の下・表示の切替で同じ文脈）（§5.1・§5.2）
 - task_07: 正本反映（暫定 31 §12 の昇格・凍結）・`codebase_map.md`・`decisions_archive/45_call_step_and_view.md`・current.md の完了記載・`/refactor_check`。起票元 idea なし
 

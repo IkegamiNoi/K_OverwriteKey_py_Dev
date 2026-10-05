@@ -63,12 +63,24 @@ class CallViewFrameTest(unittest.TestCase):
             "desired": dict(self.controller.desired),
             "startup": dict(self.app._startup_settings),
         }
+        self.selected_key = "f1"
+        self._selected_key_patch = patch.object(
+            self.app.trigger_panel, "selected_trigger_key",
+            side_effect=lambda: self.selected_key,
+        )
+        self._selected_key_patch.start()
+        self.addCleanup(self._selected_key_patch.stop)
         self.addCleanup(self._restore)
+        self.controller._open_by_trigger.clear()
+        self.controller._manually_operated.clear()
         self.controller.on_summary(None)
+        self.controller.on_selection_changed()
         self.app.update()
 
     def _restore(self):
         self.controller.on_summary(None)
+        self.controller._open_by_trigger.clear()
+        self.controller._manually_operated.clear()
         self.controller.desired = self.saved["desired"]
         self.app._startup_settings = self.saved["startup"]
         self.app.minsize(*self.saved["minsize"])
@@ -99,7 +111,18 @@ class CallViewFrameTest(unittest.TestCase):
             for box in boxes
         )
 
-    def test_summary_opens_and_renders_path_position_names_counters_and_loop_colors(self):
+    def test_startup_is_collapsed_and_summary_opens_and_renders_content(self):
+        frame = self.box.call_view_frame
+        self.assertFalse(self.controller.is_open)
+        self.assertEqual(frame.heading.cget("text"), "▸ 呼び出し先")
+        self.assertEqual(tuple(map(str, self.panes.panes())), (str(self.box.action_frame),))
+        # 閉じている間は呼び出し先の一覧が外れるため、出力シーケンスの一覧と比べる
+        sequence_list = self.box.action_list
+        self.assertGreater(sequence_list.winfo_height(), 0)
+        self.assertGreaterEqual(
+            frame.heading.winfo_rooty(),
+            sequence_list.winfo_rooty() + sequence_list.winfo_height(),
+        )
         self.assertEqual(self.controller.desired, SAVED_HEIGHTS)
 
         self.controller.on_summary(self.summary())
@@ -107,7 +130,8 @@ class CallViewFrameTest(unittest.TestCase):
 
         frame = self.box.call_view_frame
         self.assertTrue(self.controller.is_open)
-        self.assertEqual(frame.heading.cget("text"), "f1 › f5")
+        self.assertEqual(frame.heading.cget("text"), "▾ 呼び出し先　f1 › f5")
+        self.assertLess(frame.heading.winfo_rooty(), frame.content.winfo_rooty())
         self.assertEqual(
             tuple(frame.action_list.get(0, tk.END)),
             (
@@ -123,7 +147,21 @@ class CallViewFrameTest(unittest.TestCase):
         ))
         self.assertEqual(frame.action_list.yview()[0], 0.0)
 
-    def test_none_closes_the_pane_and_is_safe_while_already_closed(self):
+    def test_selected_trigger_in_path_but_not_first_does_not_auto_open(self):
+        self.selected_key = "f5"
+        self.controller.on_summary(self.summary())
+        self.app.update()
+
+        self.assertFalse(self.controller.is_open)
+        self.assertEqual(self.box.call_view_frame.heading.cget("text"), "▸ 呼び出し先")
+
+    def test_refresh_actions_notifies_call_view_of_selection(self):
+        with patch.object(self.controller, "on_selection_changed", wraps=self.controller.on_selection_changed) as changed:
+            self.app.trigger_panel.refresh_actions()
+
+        changed.assert_called_once_with()
+
+    def test_none_does_not_close_and_open_empty_state_is_read_only_message(self):
         self.controller.on_summary(None)
         self.assertFalse(self.controller.is_open)
 
@@ -133,8 +171,46 @@ class CallViewFrameTest(unittest.TestCase):
         self.controller.on_summary(None)
         self.app.update()
 
+        self.assertTrue(self.controller.is_open)
+        self.assertEqual(self.box.call_view_frame.action_list.get(0), "呼び出し中ではありません")
+        self.assertEqual(self.box.call_view_frame.heading.cget("text"), "▾ 呼び出し先")
+
+    def test_manual_close_suppresses_automatic_reopen_for_that_trigger(self):
+        self.controller.on_summary(self.summary())
+        self.controller.on_heading_click()
         self.assertFalse(self.controller.is_open)
-        self.assertNotIn(str(self.box.call_view_frame), {str(pane) for pane in self.panes.panes()})
+        self.controller.on_summary(self.summary())
+        self.app.update()
+        self.assertFalse(self.controller.is_open)
+        self.assertEqual(self.box.call_view_frame.heading.cget("text"), "▸ 呼び出し先")
+
+    def test_open_state_is_per_trigger_and_nonmatching_summary_shows_empty_state_when_opened(self):
+        self.controller.on_summary(self.summary())
+        self.assertTrue(self.controller.is_open)
+
+        self.selected_key = "f2"
+        self.controller.on_selection_changed()
+        self.app.update()
+        self.assertFalse(self.controller.is_open)
+        self.assertEqual(self.box.call_view_frame.heading.cget("text"), "▸ 呼び出し先")
+        self.controller.on_heading_click()
+        self.assertTrue(self.controller.is_open)
+        self.assertEqual(self.box.call_view_frame.action_list.get(0), "呼び出し中ではありません")
+
+        self.selected_key = "f1"
+        self.controller.on_selection_changed()
+        self.app.update()
+        self.assertTrue(self.controller.is_open)
+        self.assertTrue(self.box.call_view_frame.action_list.get(0).startswith("　 "))
+
+    def test_heading_click_toggles_open_and_closed(self):
+        heading = self.box.call_view_frame.heading
+        heading.event_generate("<Button-1>")
+        self.app.update()
+        self.assertTrue(self.controller.is_open)
+        heading.event_generate("<Button-1>")
+        self.app.update()
+        self.assertFalse(self.controller.is_open)
 
     def test_call_view_is_read_only_for_mouse_and_keyboard_events(self):
         self.controller.on_summary(self.summary())
@@ -179,8 +255,11 @@ class CallViewFrameTest(unittest.TestCase):
         self.app.update()
         self.app.update_idletasks()
         self.assertTrue(self.controller.is_open)
-        self.assertTrue(self.box.call_view_frame.winfo_ismapped())
-        start_height = self.box.call_view_frame.winfo_height()
+        self.assertTrue(self.box.call_view_frame.body.winfo_ismapped())
+        start_height = (
+            self.box.call_view_frame.heading.winfo_height()
+            + self.box.call_view_frame.content.winfo_height()
+        )
         _sash_x, sash_y = self.panes.sash_coord(0)
         with patch.object(self.app.config_service, "save_startup", return_value=None) as save:
             self.panes.event_generate(
@@ -199,7 +278,10 @@ class CallViewFrameTest(unittest.TestCase):
                 "<ButtonRelease-1>", x=self.panes.winfo_width() // 2, y=sash_y - 35,
             )
             self.app.update()
-        changed_height = self.box.call_view_frame.winfo_height()
+        changed_height = (
+            self.box.call_view_frame.heading.winfo_height()
+            + self.box.call_view_frame.content.winfo_height()
+        )
         self.assertNotEqual(changed_height, start_height)
 
         save.assert_called_once()
@@ -223,8 +305,19 @@ class CallViewFrameTest(unittest.TestCase):
         self.controller.on_summary(self.summary())
         self.app.update()
         self.assertAlmostEqual(
-            self.box.call_view_frame.winfo_height(), changed_height, delta=2,
+            self.box.call_view_frame.heading.winfo_height()
+            + self.box.call_view_frame.content.winfo_height(),
+            changed_height, delta=2,
         )
+
+        self.controller.on_heading_click()
+        self.assertFalse(self.controller.is_open)
+        with patch.object(self.app.config_service, "save_startup", return_value=None) as save:
+            self.controller.on_heading_click()
+            self.app.update()
+        self.assertTrue(self.controller.is_open)
+        save.assert_not_called()
+        self.assertEqual(self.controller.desired["full"], changed_height)
 
     def test_press_and_release_without_sash_motion_does_not_save(self):
         self.controller.on_summary(self.summary())
@@ -239,6 +332,10 @@ class CallViewFrameTest(unittest.TestCase):
             self.app.update()
 
         save.assert_not_called()
+
+    def test_sash_uses_a_flat_three_or_four_pixel_divider(self):
+        self.assertEqual(self.panes.cget("sashrelief"), "flat")
+        self.assertIn(int(self.panes.cget("sashwidth")), (3, 4))
 
     def test_invalid_saved_values_use_default_heights(self):
         invalid = parse_call_view_heights({"full": True, "compact": 0})
@@ -263,16 +360,25 @@ class CallViewFrameTest(unittest.TestCase):
         self.app.update_idletasks()
         before_minimum = self.app.wm_minsize()
         before_widths = self._outer_pane_sizes()
+        self.assertEqual(
+            self.box.action_column.winfo_reqheight(),
+            self.box.action_frame.winfo_reqheight(),
+        )
 
         self.controller.on_summary(self.summary())
         self.app.update()
         self.assertEqual(self.app.wm_minsize(), before_minimum)
         self.assertEqual(self._outer_pane_sizes(), before_widths)
 
-        self.controller.on_summary(None)
+        self.controller.on_heading_click()
         self.app.update()
+        self.assertFalse(self.controller.is_open)
         self.assertEqual(self.app.wm_minsize(), before_minimum)
         self.assertEqual(self._outer_pane_sizes(), before_widths)
+        self.assertEqual(
+            self.box.action_column.winfo_reqheight(),
+            self.box.action_frame.winfo_reqheight(),
+        )
 
     def test_low_saved_height_stays_desired_while_display_meets_minimum(self):
         self.controller.desired["full"] = 1
@@ -282,8 +388,9 @@ class CallViewFrameTest(unittest.TestCase):
 
         self.assertEqual(self.controller.desired["full"], 1)
         self.assertGreaterEqual(
-            self.box.call_view_frame.winfo_height(),
-            self.box.call_view_frame.minimum_height(),
+            self.box.call_view_frame.body.winfo_height(),
+            self.box.call_view_frame.heading.winfo_reqheight()
+            + self.box.call_view_frame.minimum_body_height(),
         )
 
     def test_long_summary_scrolls_to_the_current_position(self):
