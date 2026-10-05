@@ -86,7 +86,7 @@ class CallContext:
 
 @dataclass(frozen=True)
 class CallStep:
-    kind: Literal["action", "wait", "next", "done", "stopped", "error", "ignored"]
+    kind: Literal["action", "wait", "next", "done", "stopped", "error", "ignored", "paused_callee"]
     action: dict[str, Any] | None = None
     wait_ms: int | None = None
     message: str | None = None
@@ -168,6 +168,9 @@ def _push_frame(
         return _error("呼び出し先に無限ループがあります", chain, deltas)
     if (key not in ctx.ancestors and key != ctx.root_key
             and (ctx.trigger_set_id, key) in ctx.state.pending_steps):
+        pending = ctx.state.pending_steps[(ctx.trigger_set_id, key)]
+        if isinstance(pending.call, CallContext) and pending.call_paused:
+            return CallStep("paused_callee", chain=chain, counter_deltas=tuple(deltas))
         # This ends call_step before it can return an action to the sender.
         return CallStep("ignored", chain=chain)
     ctx.changed_frames[key] = frame

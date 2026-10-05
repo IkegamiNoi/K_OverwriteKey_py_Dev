@@ -79,6 +79,7 @@ keyseq/presentation/
             trigger_row_edit.py  # TriggerRowEditFlow: トリガー行の追加・改名・削除（controller から遅延生成して委譲）
             trigger_list_edit.py  # TriggerListEditFlow: フル表示のトリガー範囲移動・削除・コピー/末尾貼り付け（有効行交代の口を使用）
             effective_row_transition.py  # 有効な行の交代の口: 交代するキーに進行中の実行があれば拒否・交代したキーの状態を削除と同じく消す（phase 43）
+        call_view_controller.py    # CallViewController: 呼び出し先の表示枠（フル / 省略の 2 つの置き場〔_CallViewHost〕・開閉はトリガーごとに共有・高さは置き場ごと・要約の問い合わせと描画・境界線の高さの保存。phase 45）
         action_list_rendering.py   # build_action_rows / format_next_action_summary: 出力シーケンス一覧の 1 行の文字列と背景色（tkinter 非依存・phase 37）
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)
@@ -90,12 +91,13 @@ keyseq/presentation/
             file_frame.py      # FileFrame
             keymap_box.py      # KeymapBox
             trigger_box.py     # FullTriggerBox（編集ボタン・suppress 付き）
-            sequence_box.py    # SequenceBox
+            sequence_box.py    # SequenceBox（一覧と呼び出し先の表示枠を縦の PanedWindow で上下に分ける・phase 45）
+            call_view_frame.py # CallViewFrame: 呼び出し先の表示枠の Widget（見出しの Expander・読み取り専用の一覧）/ list_minimum_height（3 行の高さ）。省略表示からも使う（phase 45）
         compact_view/
             compact_view.py    # CompactView
             hook_frame.py      # CompactHookFrame（表示のみ）
             display_frame.py   # CompactDisplayFrame
-            trigger_box.py     # CompactTriggerBox（一覧のみ）
+            trigger_box.py     # CompactTriggerBox（一覧 + 呼び出し先の表示枠〔縦の PanedWindow・phase 45〕）
     config_paths.py            # 以下は presentation 直下（複数種から使われる共有モジュール）
     dialogs/                   # ダイアログ群（計画07 項目2 で dialogs.py 1026 行から分割・1クラス1ファイル）
       __init__.py              # 公開面（明示列挙の再輸出のみ。tk / messagebox は持たない）
@@ -119,6 +121,7 @@ keyseq/presentation/
     list_clipboard.py          # ListClipboard: 一覧の Ctrl+C / V のアプリ内保管庫（種類つきの写し・構成セットの読込 / 新規作成で空にする・phase 43）
     modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
+    call_view_heights.py       # 呼び出し先の表示枠の希望の高さの検証・既定・表示の高さ（`call_view_heights`・tkinter 非依存・phase 45）
     pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
     hook_button_texts.py       # フックの枠の切替ボタンの文言とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
@@ -582,7 +585,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - FileFrame（file_frame.py）: 保存 / 別名で保存 / 読込 / 新規作成
   - KeymapBox（keymap_box.py）: キーマップ一覧と管理ボタン（追加・変更・削除・保存系。phase 34 で「選択」ボタンを削除し一覧の選択 = アクティブ化）
   - FullTriggerBox（trigger_box.py）: トリガー一覧・編集ボタン・suppress チェック。範囲ドラッグ部品で選択/移動を接続し、一覧内の Ctrl+C/V（大小両方）でトリガーをコピー/末尾貼り付けする。編集対象は下線の行、削除/コピー/移動対象は選択範囲。省略表示は単一選択のまま
-  - SequenceBox（sequence_box.py）: 出力シーケンス一覧・アクション操作・連続実行と間隔(ms)
+  - SequenceBox（sequence_box.py）: 出力シーケンス一覧・アクション操作・連続実行と間隔(ms)・一覧の下の呼び出し先の表示枠（phase 45）
 
 ### CompactView（views/compact_view/）
 - 簡易表示 / フック制御
@@ -590,7 +593,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - CompactHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの**表示のみ**
     （個別指定チェックも `state="disabled"` の状態表示のみ）
   - CompactDisplayFrame（display_frame.py）: 常に手前・フルに戻す・キーボードUI・レイアウト選択
-  - CompactTriggerBox（trigger_box.py）: トリガー一覧のみ
+  - CompactTriggerBox（trigger_box.py）: トリガー一覧と、その下の呼び出し先の表示枠（phase 45）
 
 ### メニュー / ステータス
 - menu_bar.py: `build_menu_bar(app)`（ファイル / 設定メニュー）と `bind_menu_shortcuts(app)`（Ctrl 系アクセラレータ）。
@@ -636,9 +639,9 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 | `domain/trigger_duplicates.py` | 同じキーの行の規則（phase 43）: `effective_rows_by_key` / `effective_trigger_index` / `is_effective_trigger`（一番上が有効）/ `shadowed_duplicate_indices`（グレー表示）/ `replaced_effective_keys`（操作の前後で交代したキー）。入力判定・キーボード表示・重なりの表は従来の先頭一致のまま（有効な行と同じ結果）。理由「上のトリガーと重複」は重なりの表とは別に `trigger_panel_controller.refresh_triggers` で付ける |
 | `domain/config.py` | `normalize_actions` が新キー（`op` / `counter` / `path` / `encoding` / `out_of_range` / phase 40 の `target`）を種別を問わず trim。`format_action_list_item` は system / file_line を `format_control_value` へ委譲 |
 | `application/sequence_steps.py` | ステップの進め方（UI・タイマー非依存）: `advance`（保留の反映 → 周回の整合 → system の処理 → 通常アクションの手前で止まる・呼び出しの文脈の中〔`in_call`〕では待機で `wait_ms` と `StepResume`・それ以外では送る前の待機を読み飛ばす〔phase 40〕）・停止の行〔`stop_ends_run`〕/ `after_normal_action` / `settle_after_normal`（先行処理・カウンターは保留へ）/ エラー通知用の整形 |
-| `application/sequence_history.py` | 戻す履歴（`StepSnapshot` / `HistoryEntry`・上限 100）/ 差分の打ち消し / `commit_step`（直前のトリガーの更新）/ `apply_control`（back / rewind の対象判定と復元）/ 保留中ステップの取り消し |
-| `application/sequence_runner/`（phase 38 でパッケージ化）: `sequence_runner.py`（本体）+ `file_line_wait.py`（`FileLineWaitMixin` = file_line の読込中の保留・確認タイマー・`FILE_LINE_POLL_INTERVAL_MS`）+ phase 40 の mixin 4 つ（下記）。`__init__` が `SequenceRunner` / `FILE_LINE_POLL_INTERVAL_MS` を再輸出 | 実行制御（単発・連続・単発の非同期待機〔保留中ステップ・世代番号〕・連続実行の世代番号・取り消しの公開メソッド `cancel_pending_wait(s)` / `reset_loop_frames`） |
-| `application/app_state.py` | runtime 状態: 周回スタック・戻す履歴・保留中のカウンター操作（いずれも trigger_set_id → key）・カウンター・直前のトリガー・保留中ステップ。`reset_indices` / `forget_trigger_set` / `rekey_trigger_set` / `forget_trigger` / `rekey_trigger` で一緒に消す・付け替える |
+| `application/sequence_history.py` | 戻す履歴（`StepSnapshot` / `HistoryEntry`・上限 100）/ 差分の打ち消し / `commit_step`（直前のトリガーの更新）/ `commit_press`（押下の番号つきで各トリガーへ 1 段・phase 45）/ `apply_control`（back / rewind の対象判定と復元・同じ押下の番号の段をまとめて戻す）/ 保留中ステップの取り消し |
+| `application/sequence_runner/`（phase 38 でパッケージ化）: `sequence_runner.py`（本体）+ `file_line_wait.py`（`FileLineWaitMixin` = file_line の読込中の保留・確認タイマー・`FILE_LINE_POLL_INTERVAL_MS`）+ phase 40 の mixin 4 つと phase 45 の `linked_call.py` / `call_view_notice.py`、task_11 で分けた `send_wait.py`（下記）。`__init__` が `SequenceRunner` / `FILE_LINE_POLL_INTERVAL_MS` を再輸出 | 実行制御（単発・連続・単発の非同期待機〔保留中ステップ・世代番号〕・連続実行の世代番号・取り消しの公開メソッド `cancel_pending_wait(s)` / `reset_loop_frames`） |
+| `application/app_state.py` | runtime 状態: 周回スタック・戻す履歴・保留中のカウンター操作（いずれも trigger_set_id → key）・参照中の印（`call_refs_for`・phase 45）・押下の番号の採番・カウンター・直前のトリガー・保留中ステップ。`reset_indices` / `forget_trigger_set` / `rekey_trigger_set` / `forget_trigger` / `rekey_trigger` で一緒に消す・付け替える |
 | `application/file_line_reader.py` | file_line の読込の部品（パス解決 §5.7・`validate_file_line_request`〔I/O なし〕/ `load_file_lines`〔1 MB 上限・utf-8-sig / cp932・改行 3 種のみで分割〕/ `pick_file_line`〔範囲外 3 種〕。`read_file_line` は 3 つの合成で本番からは呼ばない） |
 | `application/file_line_loader.py`（phase 38） | `FileLineLoader`: 読込キー（正規化パス, encoding）ごとの登録簿（同時 1 本・待ち合わせ・上限超過の印）と行の一覧のキャッシュ（stat 確認・世代つき全破棄 `clear_cache`）。共有状態はすべて 1 つの `threading.Lock` 下、`stat` / `load` はロック外。ワーカー起動・時計・stat・load は差し替え可能（テスト用） |
 | `presentation/controllers/action_list_rendering.py` | 一覧の 1 行（周回・カウンターの現在値）と背景色、省略表示の要約。色値（薄 / 中 / 濃）: 青 `#DCEBFF` / `#C2DBFF` / `#A8CBFF`・緑 `#DDF3DD` / `#C4E8C4` / `#ABDDAB`・橙 `#FFEBD2` / `#FFDDB3` / `#FFCF94` |
@@ -659,7 +662,24 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     `sequence_control.OP_CALL` / `MAX_CALL_DEPTH`、`format_control_value` は呼び出し先の解決関数 `resolve_call` を引数で受ける（`action_list_rendering` が配線）。
   - `application/call_context.py`: 連動の実行（`CallContext` = 一覧 ID・呼び出し元・実状態への参照・スタック〔`CallFrame`〕）と「文脈の 1 ステップ」`call_step` / `finish_call_action`
     （戻り値 `CallStep` の kind = action / wait / next / done / error・連鎖・差分・間隔）。単発・連続実行の両経路で共有し、UI・タイマーに依存しない。
-    phase 45 task_09〜10: 単発・連続実行は `start_linked_call` で押下ごとに実状態（位置・周回・保留）を読み、現在のシーケンスを参照する。
+  - runner の mixin（`sequence_runner/`）: `call_wait.py`（`CallWaitMixin` = 単発の呼び出し。`PendingStep.call` / `call_file_line` / `call_paused`）/
+    `call_run_to_end.py`（`CallRunToEndMixin` = 連続実行の呼び出し）/ `input_acceptance.py`（`InputAcceptanceMixin` = 押下の受け付けの判定・単発の呼び出しの一時停止 / 再開・
+    `paused_keys` / `discard_paused`〔捨てて通知〕・戻す / 先頭への 2 回押し〔`_pending_control_discard` に控える〕）/ `wait_stop.py`（`WaitStopMixin` = 待機中に止めたときの「終えた扱い」）/
+    `send_wait.py`（`SendWaitMixin` = 送った後の待機の予約・明け・止めた後 / 停止の後の先行処理。task_11 で `sequence_runner.py` から移動）。
+    上限 10,000 と文言は `sequence_steps.MAX_PROCESSED_SYSTEM_ACTIONS` / `PROCESSED_LIMIT_MESSAGE`、「file_line の読込の仕組みが未設定」は `file_line_wait.FILE_LINE_UNAVAILABLE_MESSAGE` と `_file_line_unavailable()` に一本化（task_11）。
+  - 待機の扱い: `sequence_steps.settle_after_normal` の `wait_mode`（`stop` = 待機の行で止まる〔既定。呼び出しの文脈の中〈`in_call`〉は常にこの扱い〕/ `wait` = 送った後に待つ / `skip` = 止めた後・停止の後で読み飛ばす）と
+    `StepResume.deferred_counters`（待機をまたいで控えるカウンター操作）。`advance` は送る前の待機を読み飛ばす。
+  - presentation: `KeymapPanelController` がキーマップの切替・アクティブの削除で `discard_paused` を呼ぶ（実行中の拒否は `AppState.can_switch_keymap`）/
+    `trigger_panel/action_edit.py` が呼び出し先の候補と `edit_call_violation` を編集ダイアログ（`action_control_fields.py`）へ渡す / `trigger_panel/trigger_row_edit.py` の改名で `rename_call_targets`。
+  - テスト: `tests/test_call_graph.py` / `test_call_context.py` / `test_sequence_runner_call.py`（ほか phase 37〜39 のテストへ追補）。
+- phase 45（呼び出しのステップ / 一括・呼び出し元と呼び出し先の連動・呼び出し先の表示枠。仕様 = `features.md` §4.2.6・§4.2.8・§4.2.9・§4.2.10・§4.6「呼び出し先の表示枠」/
+  `data_schema.md` §5.4・§5.11.6。判断 = `decisions_archive/45_call_step_and_view.md`）:
+  - 種類: `domain/sequence_control.is_step_call` / `is_all_call`（`all` の真偽）。一覧の表示 `[call]` / `[call all]`・編集ダイアログのチェックボックス（`action_control_fields.py`）
+  - 状態: `AppState.call_refs_for(trigger_set_id)`（参照中の印の集合・キー変更で移る）/ `application/call_chain.chain_from`（印をたどった連鎖・最上段）/
+    `sequence_history.commit_press`（押下の番号つきで状態が変わった各トリガーへ 1 段）・`apply_control`（同じ番号の段が一番上のトリガーをまとめて戻す）
+  - 実行: `call_context.start_linked_call` で押下（連続実行はステップ）ごとに各トリガー自身の状態から `CallContext` を組み立て、`sequence_runner/linked_call.py`（`LinkedCallMixin`）が書き戻し・
+    印の更新・一覧順の完了の伝播・履歴を受け持つ（単発 = `call_wait.py` / 連続実行 = `call_run_to_end.py` が共有）。写しは持たない
+  - task 別の補足: phase 45 task_09〜10: 単発・連続実行は `start_linked_call` で押下ごとに実状態（位置・周回・保留）を読み、現在のシーケンスを参照する。
     残った段と完了した段を書き戻し、参照印を更新・完了を他の参照元へ伝播し、`commit_press` で同じ番号の履歴を各トリガーへ積む。
     押下の合間に `PendingStep` は残さない。待機・読込・一括実行の処理中と明示的一時停止だけ保持する。
     連続実行も各ステップで `commit_press` し、停止の判定は実行全体の `_run_to_end_sent` を使う。
@@ -675,7 +695,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     `sequence_history.apply_control` は戻す対象の同じ押下番号のグループを先に検査し、待機・処理中なら全体を拒否。
     印のある対象の最上段の履歴が空なら自身の履歴を起点にする。
     `prepare_targets` / `_prepare_control_targets` は対象グループ全体で2回押しを照合し、一時停止中の対象だけをまとめて破棄する（task_11b・L2）。
-    `SequenceRunner.list_trigger_keys` は有効なトリガー一覧の上から順のキー取得（省略時は参照印のキー順）。単発・連続実行の完了伝播の順を決める。
+    `SequenceRunner` の生成時に渡すコールバック `list_trigger_keys`（`App` が配線・内部は `_list_trigger_keys`）は有効なトリガー一覧の上から順のキー取得（省略時は参照印のキー順）。単発・連続実行の完了伝播の順を決める。
     phase 45 task_11: `call_view_notice.py` の `call_view_summary_for(key)` はアクティブな一覧の参照印を
     `call_chain.chain_from` でたどり、最上段の現在の行・位置・周回・カウンターを複製して返す。
     書き戻し前は実行中の文脈の位置・周回・印を優先し、一時停止中の文脈は使わない（共有状態を参照）。
@@ -683,16 +703,12 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     トリガー別の Expander を描画する。停止順の文脈管理・前の要約の保持・表示用の段の書き換えは廃止。
     通常の単押しの完了は、末尾の通常行の送信・先行処理の折り返し・system 行だけの末尾到達時に記録する。
     処理中の履歴起点と完了の事実は一覧 ID・キーで保持し、書き込み時の位置・周回からは推定しない（先頭の system 行の先行処理後も完了を伝播する）。
-  - runner の mixin（`sequence_runner/`）: `call_wait.py`（`CallWaitMixin` = 単発の呼び出し。`PendingStep.call` / `call_file_line` / `call_paused`）/
-    `call_run_to_end.py`（`CallRunToEndMixin` = 連続実行の呼び出し）/ `input_acceptance.py`（`InputAcceptanceMixin` = 押下の受け付けの判定・単発の呼び出しの一時停止 / 再開・
-    `paused_keys` / `discard_paused`〔捨てて通知〕・戻す / 先頭への 2 回押し〔`_pending_control_discard` に控える〕）/ `wait_stop.py`（`WaitStopMixin` = 待機中に止めたときの「終えた扱い」）/
-    `send_wait.py`（`SendWaitMixin` = 送った後の待機の予約・明け・止めた後 / 停止の後の先行処理。task_11 で `sequence_runner.py` から移動）。
-    上限 10,000 と文言は `sequence_steps.MAX_PROCESSED_SYSTEM_ACTIONS` / `PROCESSED_LIMIT_MESSAGE`、「file_line の読込の仕組みが未設定」は `file_line_wait.FILE_LINE_UNAVAILABLE_MESSAGE` と `_file_line_unavailable()` に一本化（task_11）。
-  - 待機の扱い: `sequence_steps.settle_after_normal` の `wait_mode`（`stop` = 待機の行で止まる〔既定。呼び出しの文脈の中〈`in_call`〉は常にこの扱い〕/ `wait` = 送った後に待つ / `skip` = 止めた後・停止の後で読み飛ばす）と
-    `StepResume.deferred_counters`（待機をまたいで控えるカウンター操作）。`advance` は送る前の待機を読み飛ばす。
-  - presentation: `KeymapPanelController` がキーマップの切替・アクティブの削除で `discard_paused` を呼ぶ（実行中の拒否は `AppState.can_switch_keymap`）/
-    `trigger_panel/action_edit.py` が呼び出し先の候補と `edit_call_violation` を編集ダイアログ（`action_control_fields.py`）へ渡す / `trigger_panel/trigger_row_edit.py` の改名で `rename_call_targets`。
-  - テスト: `tests/test_call_graph.py` / `test_call_context.py` / `test_sequence_runner_call.py`（ほか phase 37〜39 のテストへ追補）。
+  - task_07a: `SequenceRunner._cancel_calls_for_reset`（`reset_loop_frames` で、変えた呼び出し先を使う一時停止していない単発の呼び出しを取り消し、変えた位置を戻す）/
+    `call_context` の `CallStep` kind `paused_callee`（段に入る呼び出し先が単発の呼び出しの一時停止中）→ `input_acceptance._call_step_discarding_paused` が `discard_paused` で捨てて続ける
+  - 表示: `application/call_view.py`（`CallViewSummary` = 経路・最上段の行・位置・周回・カウンターの写し）/ `sequence_runner/call_view_notice.py`（`call_view_summary_for(key)`）/
+    presentation の `CallViewController`（`app.call_view`）・`views/full_view/call_view_frame.py`・`views/compact_view/trigger_box.py`・`call_view_heights.py`。
+    選択の変化は `trigger_panel_controller` の `refresh_actions` と省略表示の `set_selected_trigger_index`、表示の切替は `App.show_compact_view` から `on_selection_changed`
+  - テスト: `tests/test_call_chain*.py` / `test_call_link_lifecycle.py` / `test_sequence_runner_call.py` / `test_call_context.py` / `test_call_view.py` / `test_call_view_heights.py` / `tests_ui/test_call_view_frame.py` / `test_call_view_compact.py`
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 

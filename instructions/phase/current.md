@@ -7,11 +7,12 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 45](45_call_step_and_view/phase.md)**（2026-10-04 起票・呼び出しのステップ実行と呼び出し先の表示。暫定仕様先行モード）。
+- **アクティブなフェーズ = なし**（phase 45 は 2026-10-05 完了。次フェーズはユーザー判断・着手時は `/phase_start`。提案書 19 の実施はユーザー判断待ち）。
+- 直前の完了フェーズ = [phase 45](45_call_step_and_view/phase.md)（2026-10-05・呼び出しのステップ実行と呼び出し先の表示。暫定仕様先行モード・判断は [decisions_archive/45](../../.claude_data/state/decisions_archive/45_call_step_and_view.md)）。
   呼び出しの行ごとに一括 / ステップを選び、ステップは呼び出し先の中も 1 押下ずつ進め停止の行を効かせる。呼び出し先の中で止まったら写し・位置・経路を表示する枠を開く（フル / 省略表示）。
   JSON は呼び出しの行の `step` と config.json の `call_view_heights` を追加（後方互換）。主入力 = 暫定仕様 [31_call_step_and_view.md](../history/31_call_step_and_view.md)（v0.6・ユーザー確定済 2026-10-05）。
   起票元 = ユーザー要望（2026-10-04）。番号対応: phase 45 / 暫定 31 / decisions 45。
-- 直前の完了フェーズ = [phase 44](44_child_save_dialog_layout/phase.md)（2026-10-04・子ファイル保存ダイアログの高さと列幅の調整・
+- その前の完了フェーズ = [phase 44](44_child_save_dialog_layout/phase.md)（2026-10-04・子ファイル保存ダイアログの高さと列幅の調整・
   判断は [decisions_archive/44](../../.claude_data/state/decisions_archive/44_child_save_dialog_layout.md)）/
   [phase 43](43_list_reorder_range_copy/phase.md)（2026-10-04・一覧のドラッグ移動・範囲選択・複製・
   判断は [decisions_archive/43](../../.claude_data/state/decisions_archive/43_list_reorder_range_copy.md)）/
@@ -28,6 +29,7 @@
   正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.10・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
   phase 39 で system に停止（`op: stop`・連続実行の区切り）を加えた（`features.md` §4.2.8）。
   phase 40 で呼び出し（`op: call`・`target`・**JSON スキーマ変更あり**・§4.2.9）と入力の受け付け・一時停止（§4.2.10）を加え、待機を「送った後の待ち」に改めた（§4.2.5）。
+  phase 45 で呼び出しの行ごとにステップ（既定）/ 一括（`all`・**JSON スキーマ変更あり**）を選べるようにし、写しをやめて参照中の印で呼び出し元と呼び出し先を連動させ、呼び出し先の表示枠（`call_view_heights`）を加えた（§4.2.6・§4.2.8・§4.2.9・§4.2.10・§4.6）。
   **残件** = カウンター条件分岐（idea_37）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
   phase 41 で text / file_line の送信中は送り先の IME をオフにした（`key_input.md` §7.7・`infrastructure/ime_control.py`。IME オンでカタカナがひらがなの変換待ちになる不具合）。
   phase 42 で一覧のクリックで選択と下線がずれる不具合を直した（presentation の `listbox_utils.py`。押している間は帯だけ・離したときに反映）。
@@ -42,7 +44,7 @@
   **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**18 まで起票済**・次採番は「次採番」節が正）。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**19 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -63,7 +65,7 @@
   **phase 42 は 2026-10-02 完了**（`42_listbox_click_selection_sync` / 暫定なし〔直接改訂モード〕/ decisions 42〔アーカイブ済〕）。
   **phase 43 は 2026-10-04 完了**（`43_list_reorder_range_copy` / 暫定 30〔v0.11・凍結〕/ decisions 43〔アーカイブ済〕）。
   **phase 44 は 2026-10-04 完了**（`44_child_save_dialog_layout` / 暫定なし〔直接改訂モード〕/ decisions 44〔アーカイブ済〕）。
-  **phase 45 は 2026-10-04 起票・進行中**（`45_call_step_and_view` / 暫定 31 / decisions 45）。
+  **phase 45 は 2026-10-05 完了**（`45_call_step_and_view` / 暫定 31〔v0.6・凍結〕/ decisions 45〔アーカイブ済〕）。
   次フェーズは **`46_<topic>`**・decisions も **46** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -92,9 +94,9 @@
   28=制御アクション第 2 弾 前半（停止）〔**v0.6・凍結**・§9 は phase 40 の起票元〕/
   29=制御アクション第 2 弾 後半（呼び出し）〔**v0.9・凍結**〕/
   30=一覧のドラッグ移動・範囲選択・複製〔v0.11・凍結〕 /
-  31=呼び出しのステップ実行と呼び出し先の表示〔**v0.5・ユーザー確定済・phase 45 の主入力**〕）。
+  31=呼び出しのステップ実行と呼び出し先の表示〔**v0.6・凍結**〕）。
   次採番は **`32_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**17 まで起票済**
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**19 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
   **10 = phase 19 由来・実施済＝phase 19 task_07** /
@@ -106,7 +108,8 @@
   **16 = phase 38 由来・実施済＝phase 38 task_08**〔`sequence_runner.py` の次ステップ予約の集約・file_line 分岐の切り出し・分割〕 /
   **17 = phase 40 由来・実施済＝phase 40 task_11_refactor**〔上限 10000 の定数化・待機の mixin `send_wait.py`・file_line 未設定の判定の一本化〕）・
   **18 = phase 43 由来・実施済＝phase 43 task_10**〔トリガーの追加・改名・削除を `trigger_row_edit.py` へ・まとめて設定のダイアログの `__init__` 分割・`range_or_index` の共通化〕 /
-  次採番は **`19_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **19 = phase 45 由来・ユーザー判断待ち**〔`sequence_runner.py` 649 行の連続実行の進行を mixin へ・`apply_control` 104 行の分割〕 /
+  次採番は **`20_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）

@@ -2624,5 +2624,172 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertIsNone(self.state.run_to_end_key)
 
 
+    def _start_review_batch_wait(self):
+        self.trigger("f1", [call("f5", all=True)])
+        self.trigger("f5", [text("a"), system("wait", ms=100), text("b")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()  # a を送り、待機の行に進む。
+        self.scheduler.run_one()  # 待機に入り、b の予約を残す。
+        self.assertEqual(self.scheduler.delays[-1], 100)
+
+    def test_callee_position_change_cancels_running_single_call_without_overwrite(self):
+        self._start_review_batch_wait()
+        stale_callback = self.scheduler.queue[0][1]
+        self.state.indices_for("set")["f5"] = 0
+
+        self.runner.reset_loop_frames("f5")
+
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertEqual(self.index("f5"), 0)
+        self.assertEqual(self.index("f1"), 0)
+        self.assertIn("f1", self.state.call_refs_for("set"))
+        self.assertEqual(self.scheduler.queue, [])
+        self.assertEqual(len(self.history("f1")), 1)
+        self.assertEqual(self.history("f5"), [])
+        stale_callback()
+        self.run_all()
+        self.assertEqual(self.performed, [text("a")])
+        self.assertEqual(self.index("f5"), 0)
+        self.assertEqual(self.messages, [])
+
+    def test_callee_position_change_keeps_paused_single_call_and_resumes_live_position(self):
+        self._start_review_batch_wait()
+        self.runner.handle_key("f1")
+        pending = self.state.pending_steps[("set", "f1")]
+        self.assertTrue(pending.call_paused)
+        self.state.indices_for("set")["f5"] = 0
+
+        self.runner.reset_loop_frames("f5")
+
+        self.assertIs(self.state.pending_steps[("set", "f1")], pending)
+        self.assertTrue(pending.call_paused)
+        self.assertEqual(self.index("f5"), 0)
+        self.runner.handle_key("f1")
+        self.run_all()
+        self.assertEqual(self.performed, [text("a"), text("a"), text("b")])
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertEqual(self.messages, [])
+
+    def test_unrelated_position_change_keeps_running_single_call(self):
+        self._start_review_batch_wait()
+        self.trigger("f9", [text("other")])
+        pending = self.state.pending_steps[("set", "f1")]
+        queue = list(self.scheduler.queue)
+        self.state.indices_for("set")["f9"] = 0
+
+        self.runner.reset_loop_frames("f9")
+
+        self.assertIs(self.state.pending_steps[("set", "f1")], pending)
+        self.assertEqual(self.scheduler.queue, queue)
+        self.run_all()
+        self.assertEqual(self.performed, [text("a"), text("b")])
+
+    def test_first_target_position_change_cancels_single_call_reservation(self):
+        self.trigger("f1", [call("f5", all=True)])
+        self.trigger("f5", [text("a"), text("b")])
+        self.runner.handle_key("f1")
+        stale_callback = self.scheduler.queue[0][1]
+        self.state.indices_for("set")["f5"] = 1
+
+        self.runner.reset_loop_frames("f5")
+
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        stale_callback()
+        self.assertEqual(self.index("f5"), 1)
+        self.assertEqual(self.performed, [])
+        self.assertEqual(self.history("f1"), [])
+
+    def test_nested_callee_position_change_cancels_single_call(self):
+        self.trigger("f1", [call("f5", all=True)])
+        self.trigger("f5", [call("f7", all=True), text("caller")])
+        self.trigger("f7", [text("a"), system("wait", ms=100), text("b")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.scheduler.run_one()
+        self.state.indices_for("set")["f7"] = 0
+
+        self.runner.reset_loop_frames("f7")
+
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+        self.assertEqual(self.index("f7"), 0)
+        self.assertTrue({"f1", "f5"} <= self.state.call_refs_for("set"))
+        self.run_all()
+        self.assertEqual(self.performed, [text("a")])
+
+    def _pause_review_callee(self):
+        self.trigger("f5", [call("f7", all=True)])
+        self.trigger("f7", [text("v1"), system("wait", ms=100), text("v2")])
+        self.runner.handle_key("f5")
+        self.scheduler.run_one()
+        self.scheduler.run_one()
+        stale_callback = self.scheduler.queue[0][1]
+        self.runner.handle_key("f5")
+        self.assertTrue(self.state.pending_steps[("set", "f5")].call_paused)
+        self.assertEqual(self.index("f7"), 2)
+        self.assertIn("f5", self.state.call_refs_for("set"))
+        return stale_callback
+
+    def test_call_discards_paused_single_callee_with_one_notice(self):
+        for run_to_end in (False, True):
+            with self.subTest(run_to_end=run_to_end):
+                self.setUp()
+                stale_callback = self._pause_review_callee()
+                discarded = []
+
+                def notify(message):
+                    self.messages.append(message)
+                    discarded.append((self.index("f5"), self.index("f7"),
+                                      "f5" in self.state.call_refs_for("set"),
+                                      len(self.history("f5"))))
+
+                self.runner._notify_message = notify
+                history_size = len(self.history("f5"))
+                self.trigger("f1", [call("f5")], run_to_end=run_to_end)
+                self.runner.handle_key("f1")
+                self.run_all()
+                stale_callback()
+
+                self.assertNotIn(("set", "f5"), self.state.pending_steps)
+                self.assertEqual(self.performed, [text("v1"), text("v2")])
+                self.assertEqual(self.messages, ["一時停止中の実行を破棄しました（f5）"])
+                self.assertEqual(discarded, [(0, 2, True, history_size)])
+                self.assertEqual(self.runner.paused_keys(), ())
+                self.assertNotIn(("set", "f1"), self.state.pending_steps)
+                self.assertIsNone(self.state.run_to_end_key)
+
+    def test_nested_call_discards_paused_callee_after_sending_without_repeating_prefix(self):
+        self._pause_review_callee()
+        self.trigger("f1", [call("f3", all=True)])
+        self.trigger("f3", [text("prefix"), system("counter_inc", counter="n"),
+                            call("f5"), text("after")])
+        self.runner.handle_key("f1")
+        self.scheduler.run_one()
+        self.assertTrue(self.state.pending_steps[("set", "f5")].call_paused)
+        self.assertEqual(self.messages, [])
+
+        self.run_all()
+
+        self.assertNotIn(("set", "f5"), self.state.pending_steps)
+        self.assertEqual(self.performed, [text("v1"), text("prefix"), text("v2"), text("after")])
+        self.assertEqual(self.state.counters["n"], 1)
+        self.assertEqual(self.messages, ["一時停止中の実行を破棄しました（f5）"])
+        self.assertNotIn(("set", "f1"), self.state.pending_steps)
+
+    def test_resumed_continuous_call_discards_new_paused_single_callee(self):
+        self.trigger("f1", [system("wait", ms=100), call("f5")], run_to_end=True)
+        self.runner.handle_key("f1")
+        self.runner.handle_key("f1")
+        self.assertTrue(self.state.run_to_end_paused)
+        self._pause_review_callee()
+
+        self.runner.handle_key("f1")
+        self.run_all()
+
+        self.assertNotIn(("set", "f5"), self.state.pending_steps)
+        self.assertEqual(self.performed, [text("v1"), text("v2")])
+        self.assertEqual(self.messages, ["一時停止中の実行を破棄しました（f5）"])
+        self.assertIsNone(self.state.run_to_end_key)
+
+
 if __name__ == "__main__":
     unittest.main()

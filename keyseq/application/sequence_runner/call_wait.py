@@ -129,7 +129,7 @@ class CallWaitMixin:
         if ctx.root_continuation is not None:
             self._complete_single_call(trigger_set_id, key, generation, pending)
             return
-        step = call_step(ctx, self.state.counters)
+        step = self._call_step_discarding_paused(lambda: call_step(ctx, self.state.counters))
         if step.kind == "ignored":
             if pending.call_sent:
                 self._pause_single_call(key)

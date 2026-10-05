@@ -230,7 +230,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
 
     def reset_loop_frames(self, key: str) -> None:
         key = normalize_key_name(key)
-        self._cancel_pending_steps((self._get_trigger_set_id(), key), settle_wait=False)
+        self._cancel_calls_for_reset(key)
         reschedule_run_to_end = (
             self.state.run_to_end_key == key
             and (self._run_to_end_file_line is not None
@@ -258,6 +258,21 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         if reschedule_run_to_end:
             self._run_to_end_step(schedule_only=True)
         self._publish_call_view()
+
+    def _cancel_calls_for_reset(self, key: str) -> None:
+        trigger_set_id = self._get_trigger_set_id()
+        # The caller has already selected the new position; writeback must not undo it.
+        position = self._get_index(key)
+        identities = tuple(
+            identity for identity, pending in self.state.pending_steps.items()
+            if identity[0] == trigger_set_id and not pending.call_paused
+            and isinstance(pending.call, CallContext)
+            and self._call_context_uses_key(pending.call, key)
+        )
+        for identity in identities:
+            self._cancel_pending_steps(identity, settle_wait=False)
+        self._cancel_pending_steps((trigger_set_id, key), settle_wait=False)
+        self.state.indices_for(trigger_set_id)[key] = position
 
     def cancel_pending_wait(self, key: str) -> None:
         identity = (self._get_trigger_set_id(), normalize_key_name(key))

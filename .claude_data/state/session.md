@@ -4,39 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-05T22:00:00
-phase: **phase 45**（`instructions/phase/45_call_step_and_view`・呼び出しのステップ実行と呼び出し先の表示・暫定仕様先行モード・主入力 = 暫定 31 v0.6〔ユーザー確定済 2026-10-05・§4.5 参照による連動〕）。次採番 = phase 46 / 暫定 32 / decisions 46 / 提案書 19。
-直前の完了フェーズ = **phase 44**（子ファイル保存ダイアログの高さと列幅・`decisions_archive/44_child_save_dialog_layout.md`）/ **phase 43**（一覧のドラッグ移動・範囲選択・複製・`decisions_archive/43_list_reorder_range_copy.md`）。
-last_commit_location: `claude/sequential-trigger-cancellation-priority-8eebac`（phase 45 task_06。main へのマージはユーザー）
+last_updated: 2026-10-05T23:30:00
+phase: **なし**（phase 45 は 2026-10-05 完了・`instructions/phase/45_call_step_and_view`・暫定 31 v0.6 凍結）。次採番 = phase 46 / 暫定 32 / decisions 46 / 提案書 20。
+直前の完了フェーズ = **phase 45**（呼び出しのステップ実行と呼び出し先の表示・`decisions_archive/45_call_step_and_view.md`）/ phase 44 / phase 43。
+last_commit_location: `claude/sequential-trigger-cancellation-priority-8eebac`（phase 45 完了。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 45 task_06 完了（省略表示の枠）。実機目視待ち（task_06 の 4 項目）。その後 task_07（正本反映・凍結・/refactor_check）。**
-mode: in_progress（ユーザーがタスクの連続実行を許可。スペックフラグ・フォールバック・実機目視では止まる）
+focus: **phase 45 完了。提案書 19（/refactor_check 推奨）の実施可否と次フェーズはユーザー判断待ち。**
+mode: idle
 
 ## last_action
-ts: 2026-10-05T22:00:00
+ts: 2026-10-05T23:30:00
 who: main
 summary: |
-  ユーザー回答: task_05a〜11b の実機目視 OK / 連続実行の T が待機中の U を呼ぶときは §4.2.10 の取り消しを優先（暫定 31 §4.5.2 に追記・decisions.md 記録。実装は task_11b で既にそうなっている）。
-  task_06 を起票・実装（codex-delegating-implementer）: 省略表示のトリガー一覧の下に Expander の枠。controller は host 2 つ（full / compact）で開閉は共有・高さは host ごと。
-  verifier で 1 件失敗（省略表示の既定の高さが切替途中の高さで確定）→ 差し戻し（show_compact_view の pack を geometry の後へ・既定の確定を _apply_height に限定）→ 全 pass・reviewer 採用。
+  task_06 の実機目視 OK → task_07（正本反映: features.md §4.2.3・4.2.5・4.2.6・4.2.8・4.2.9 全面改訂・4.2.10・4.6 呼び出し先の表示枠 / data_schema.md §5.4・§5.11.6 / codebase_map.md）。
+  完了判定前レビュー: deep-reviewer 修正要 / codex 敵対的 needs-attention → 転記の誤りを修正、M1〜M4 はユーザー判断（M1 一時停止で書き戻して積む＝実装のまま / M2 実行中の単発の呼び出しは呼び出し先の変更で取り消し / M3 受容 / M4 一時停止中の呼び出し先は捨てて進める）。
+  task_07a（M2・M4・codex-delegating）→ reviewer 採用。暫定 31 凍結・decisions_archive/45・索引・current.md。/refactor_check = 推奨（M1 sequence_runner.py 649 行 / M2 apply_control 104 行）→ 提案書 19。
 result_files:
-  - keyseq/presentation/controllers/call_view_controller.py・views/compact_view/trigger_box.py・app.py（show_compact_view）・controllers/trigger_panel/trigger_panel_controller.py
-  - tests_ui/test_call_view_compact.py（新規）・tests_ui/test_call_view_frame.py
-  - instructions/phase/45_call_step_and_view/tasks/task_06_call_view_compact.md・history/31 §4.5.2
+  - instructions/common/spec_detail/{features,data_schema}.md・instructions/common/codebase_map.md
+  - keyseq/application/{call_context.py,sequence_runner/{sequence_runner,input_acceptance,call_wait,call_run_to_end}.py}・tests/test_sequence_runner_call.py
+  - instructions/history/31（凍結）・decisions_archive/45・instructions/modified_proposal/19_refactor_call_step_and_view.md
 verified:
   compile: clean
-  tests: 1284 OK（skipped 7）
+  tests: 1292 OK（skipped 7）
   tests_ui: 824 OK
   smoke: pass
-  review: task_06 reviewer 採用（参考: フル表示へ戻すときの再配置は <Configure> 頼み → 実機目視③で確認）
+  review: task_07 = deep-reviewer + codex-adversarial（指摘は修正・ユーザー判断済み）/ task_07a = reviewer 採用
 
 ## next_action
-- **ユーザーの実機目視待ち（task_06）**: ①省略表示でトリガー一覧の下に `▸ 呼び出し先` ②ステップの呼び出しで止まると開き、ウィンドウの大きさは変わらず一覧が縮む ③フル ⇔ 省略の切替で同じトリガーの開閉・表示が保たれる（フルへ戻したとき枠の高さが正しいか）④境界線の位置がフル表示と別に保たれ再起動後も残る。
-- 目視 OK 後: task_07（正本反映・凍結・decisions_archive/45・current.md・codebase_map・/refactor_check）。完了判定前に deep-reviewer + codex-adversarial-reviewer。
-- task_07 で正本に明記: §4.5.1 の「キー変更」は印が移る / §10-4a は §4.5.6 で置き換え / 待機中の呼び出し先の扱い（未送信なら巻き戻し・送った後は一時停止）/ §4.5.8 / §4.5.2 の連続実行の T は §4.2.10 の取り消しを優先。
-- /refactor_check の候補: sequence_runner.py 615 行・call_run_to_end.py 約 470 行・call_context.py 約 460 行・30 行超の関数（deep L4・L6）。
+- ユーザー判断: ①提案書 19 を実施するか（する場合は phase 45 末の追加タスク or 次フェーズ前のミニフェーズ）②次フェーズ（候補は current.md「次フェーズ候補」）。
+- main へのマージはユーザー。
 
 ## blockers
 - なし

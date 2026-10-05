@@ -2,10 +2,10 @@
 
 from __future__ import annotations
 
-from collections.abc import Mapping, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
-from keyseq.application.call_context import CallContext, start_linked_call, top_interval
+from keyseq.application.call_context import CallContext, CallStep, start_linked_call, top_interval
 from keyseq.application.call_chain import chain_from
 from keyseq.application.sequence_history import snapshot_for
 from keyseq.domain.call_graph import call_target
@@ -66,6 +66,15 @@ class InputAcceptanceMixin:
         if self._notify_message is not None:
             self._notify_message(f"一時停止中の実行を破棄しました（{', '.join(selected)}）")
         return selected
+
+    def _call_step_discarding_paused(self, advance_call: Callable[[], CallStep]) -> CallStep:
+        step = advance_call()
+        while step.kind == "paused_callee":
+            # Discard at frame entry, including callees reached midway through a press.
+            if not self.discard_paused((step.chain[-1],)):
+                return CallStep("ignored", chain=step.chain)
+            step = advance_call()
+        return step
 
     def _pause_single_call(self, key: str) -> None:
         with self.state.lock:

@@ -118,9 +118,11 @@ class CallRunToEndMixin:
             self._complete_run_to_end_call(generation, key, token, ctx)
             return
         sent_before_step = self._run_to_end_sent
-        step = call_step(ctx, self.state.counters, run_to_end=True,
-                         sent=lambda: self._run_to_end_sent,
-                         on_call_success=self._mark_run_to_end_sent)
+        step = self._call_step_discarding_paused(lambda: call_step(
+            ctx, self.state.counters, run_to_end=True,
+            sent=lambda: self._run_to_end_sent,
+            on_call_success=self._mark_run_to_end_sent,
+        ))
         if step.kind == "ignored":
             if ctx.sent_action:
                 # Keep progress through actions already sent in this call context.
