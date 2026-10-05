@@ -338,6 +338,30 @@ class BackRewindRunnerTest(unittest.TestCase):
         return {"key": key, "run_to_end": False,
                 "actions": [{"type": "system", "op": op}]}
 
+    def test_explicit_back_target_ignores_last_trigger_and_selects_target(self):
+        target = {"key": "t", "run_to_end": False, "actions": [A1, A2]}
+        other = {"key": "x", "run_to_end": False, "actions": [A2, A1]}
+        back = {"key": "b", "run_to_end": False,
+                "actions": [{"type": "system", "op": "back", "target": " T "}]}
+        selected = []
+        runner, state, _scheduler, performed = make_runner(
+            [target, other, back], selected=selected,
+        )
+
+        runner.handle_key("t")
+        runner.handle_key("x")
+        self.assertEqual(state.last_trigger, ("", "x"))
+        selected.clear()
+        runner.handle_key("b")
+
+        self.assertEqual(state.indices_for("")["t"], 0)
+        self.assertEqual(state.indices_for("")["x"], 1)
+        self.assertEqual(state.history_for("")["t"], [])
+        self.assertEqual(len(state.history_for("")["x"]), 1)
+        self.assertEqual(state.last_trigger, ("", "x"))
+        self.assertEqual(selected, ["b", "t"])
+        self.assertEqual(performed, [A1, A2])
+
     def test_back_restores_each_step_position_frames_and_counter(self):
         trigger = {
             "key": "f1", "run_to_end": False,
@@ -1103,6 +1127,60 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         self.assertEqual(state.indices.get("f1", 0), 0)
         self.assertEqual(state.counters.get("n", 0), 0)  # 待機をまたいで控えた操作は反映されずに捨てられる
         self.assertEqual(state.history_for("").get("f1", []), [])
+
+    def test_explicit_back_discards_paused_target_without_history_or_selection(self):
+        target = {
+            "key": "t", "run_to_end": True, "run_to_end_delay_ms": 0,
+            "actions": [A1, {"type": "system", "op": "wait", "ms": 25}, A2],
+        }
+        back = {
+            "key": "b", "run_to_end": False,
+            "actions": [{"type": "system", "op": "back", "target": "t"}],
+        }
+        selected = []
+        messages = []
+        runner, state, _scheduler, _performed = make_runner(
+            [target, back], selected=selected, messages=messages,
+        )
+        control_results = []
+        original_control = runner._control
+
+        def capture_control(key, op, target_key=None):
+            result = original_control(key, op, target_key)
+            control_results.append(result)
+            return result
+
+        runner._control = capture_control
+        runner.handle_key("t")
+        runner.handle_key("t")  # 送った後の wait 中に連続実行を一時停止する
+        self.assertTrue(state.run_to_end_paused)
+        # 位置変更・編集で履歴が消えた状態を作る（履歴が空のまま一時停止中）
+        state.history_for("")["t"] = []
+        self.assertEqual(state.history_for("").get("t", []), [])
+        selected.clear()
+        before = (
+            state.indices_for("").get("t", 0), state.last_trigger,
+            state.run_to_end_key, state.run_to_end_paused,
+            list(state.history_for("").get("t", [])),
+        )
+
+        runner.handle_key("b")
+        self.assertIn("一時停止中の t を破棄します。もう一度押すと実行します", messages)
+        self.assertTrue(state.run_to_end_paused)
+        self.assertEqual((
+            state.indices_for("").get("t", 0), state.last_trigger,
+            state.run_to_end_key, state.run_to_end_paused,
+            list(state.history_for("").get("t", [])),
+        ), before)
+        self.assertEqual(control_results, [None])
+
+        runner.handle_key("b")
+        self.assertIsNone(state.run_to_end_key)
+        self.assertEqual(state.indices_for("").get("t", 0), before[0])
+        self.assertEqual(state.history_for("").get("t", []), [])
+        self.assertEqual(state.last_trigger, before[1])
+        self.assertEqual(control_results, [None, None])
+        self.assertEqual(selected, ["b", "b"])
 
     def test_single_wait_expiring_during_continuous_run_skips_next_action(self):
         triggers = [

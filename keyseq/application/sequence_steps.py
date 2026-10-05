@@ -7,7 +7,7 @@ from typing import Any
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM, OP_BACK, OP_CALL, OP_COUNTER_INC, OP_COUNTER_RESET,
     MAX_LOOP_DEPTH, OP_LOOP_END, OP_LOOP_START, OP_REWIND, OP_STOP, OP_WAIT, action_type,
-    analyze_loops, enclosing_loop_starts, system_op,
+    analyze_loops, control_target, enclosing_loop_starts, system_op,
 )
 
 MAX_PROCESSED_SYSTEM_ACTIONS = 10000
@@ -192,7 +192,7 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             counters: dict[str, int], *, wrap_once: bool,
             resume: StepResume | None = None,
             deferred_counters: Sequence[tuple[str, str]] = (),
-            on_control: Callable[[str], None] | None = None,
+            on_control: Callable[[str, str | None], None] | None = None,
             stop_ends_run: bool = False,
             in_call: bool = False) -> StepOutcome:
     structure = analyze_loops(actions)
@@ -283,7 +283,7 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
                                (position, "戻す・先頭へは単独で登録してください"),
                                counter_deltas=tuple(counter_deltas), processed=processed)
         if op in (OP_BACK, OP_REWIND) and on_control is not None:
-            on_control(op)
+            on_control(op, control_target(action))
         next_position, error = _system_step(
             actions, position, current, counters, structure, counter_deltas,
         )

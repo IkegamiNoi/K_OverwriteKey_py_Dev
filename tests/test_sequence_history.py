@@ -157,6 +157,109 @@ class SequenceHistoryControlTest(unittest.TestCase):
         self.assertEqual(self.state.history_for("set-a")["target"], [])
         self.assertEqual(self.state.counters["n"], 9)
 
+    def test_explicit_target_controls_back_and_rewind_without_changing_last_trigger(self):
+        self.active_keys.update({"other", "undo"})
+        self.state.last_trigger = ("set-a", "other")
+        self.state.indices_for("set-a")["other"] = 6
+        self.state.history_for("set-a")["target"].append(
+            HistoryEntry(2, [(0, 1)], [("n", 1)])
+        )
+        self.state.indices_for("set-a")["target"] = 5
+        self.state.counters["n"] = 1
+
+        result = apply_control(
+            self.state, ("set-a", "undo"), "back", self.find_trigger,
+            target_key="target",
+        )
+
+        self.assertEqual(result, ("target", None))
+        self.assertEqual(self.state.indices_for("set-a")["target"], 2)
+        self.assertEqual(self.state.loop_frames_for("set-a")["target"], [(0, 1)])
+        self.assertEqual(self.state.history_for("set-a")["target"], [])
+        self.assertEqual(self.state.indices_for("set-a")["other"], 6)
+        self.assertEqual(self.state.last_trigger, ("set-a", "other"))
+        self.assertEqual(self.state.counters["n"], 0)
+
+        self.state.history_for("set-a")["target"].append(HistoryEntry(1, [], []))
+        result = apply_control(
+            self.state, ("set-a", "undo"), "rewind", self.find_trigger,
+            target_key="target",
+        )
+        self.assertEqual(result, ("target", None))
+        self.assertEqual(self.state.indices_for("set-a")["target"], 0)
+        self.assertEqual(self.state.loop_frames_for("set-a")["target"], [])
+        self.assertEqual(self.state.history_for("set-a")["target"], [])
+        self.assertEqual(self.state.last_trigger, ("set-a", "other"))
+
+    def test_explicit_target_works_without_last_trigger(self):
+        self.state.last_trigger = None
+        self.state.history_for("set-a")["target"].append(HistoryEntry(2, [], []))
+
+        result = apply_control(
+            self.state, ("set-a", "undo-key"), "back", self.find_trigger,
+            target_key="target",
+        )
+
+        self.assertEqual(result, ("target", None))
+        self.assertEqual(self.state.indices_for("set-a")["target"], 2)
+        self.assertIsNone(self.state.last_trigger)
+
+    def test_empty_self_or_missing_explicit_target_returns_message_without_mutation(self):
+        self.active_keys.add("undo-key")
+        self.state.last_trigger = ("set-a", "target")
+        before = (
+            dict(self.state.indices_for("set-a")),
+            dict(self.state.loop_frames_for("set-a")),
+            {key: list(history) for key, history in self.state.history_for("set-a").items()},
+            set(self.state.call_refs_for("set-a")),
+            self.state.last_trigger,
+        )
+        for target_key in ("", "undo-key", "missing"):
+            with self.subTest(target_key=target_key):
+                result = apply_control(
+                    self.state, ("set-a", "undo-key"), "rewind", self.find_trigger,
+                    target_key=target_key,
+                )
+                self.assertEqual(result, (None, NO_TARGET_MESSAGE))
+                self.assertEqual((
+                    dict(self.state.indices_for("set-a")),
+                    dict(self.state.loop_frames_for("set-a")),
+                    {key: list(history) for key, history in self.state.history_for("set-a").items()},
+                    set(self.state.call_refs_for("set-a")),
+                    self.state.last_trigger,
+                ), before)
+
+    def test_explicit_marked_target_uses_chain_top_as_back_origin(self):
+        histories = self.state.history_for("set-a")
+        histories["target"] = [HistoryEntry(3, [], [], press_id=90)]
+        histories["callee"] = [HistoryEntry(1, [], [], press_id=91)]
+        self.state.call_refs_for("set-a").add("target")
+        self.state.last_trigger = ("set-a", "other")
+        self.state.indices_for("set-a").update(target=0, callee=4)
+        self.active_keys.update({"callee", "other", "undo"})
+
+        selected, message = apply_control(
+            self.state, ("set-a", "undo"), "back",
+            lambda key: {"actions": [{"type": "system", "op": "call", "target": "callee"}]}
+            if key == "target" else {"actions": []} if key == "callee" else None,
+            target_key="target",
+        )
+
+        self.assertEqual((selected, message), ("callee", None))
+        self.assertEqual(self.state.indices_for("set-a")["target"], 0)
+        self.assertEqual(self.state.indices_for("set-a")["callee"], 1)
+        self.assertEqual(self.state.last_trigger, ("set-a", "other"))
+
+    def test_explicit_pending_target_returns_pending_message(self):
+        self.state.pending_steps[("set-a", "target")] = object()
+
+        result = apply_control(
+            self.state, ("set-a", "undo-key"), "rewind", self.find_trigger,
+            target_key="target",
+        )
+
+        self.assertEqual(result, (None, PENDING_TARGET_MESSAGE))
+
     def test_missing_self_or_inactive_target_returns_no_target_message(self):
         cases = (
             (None, ("set-a", "undo-key"), {"target"}),

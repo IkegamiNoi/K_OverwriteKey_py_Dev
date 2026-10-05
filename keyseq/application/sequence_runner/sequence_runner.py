@@ -281,11 +281,12 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
     def cancel_pending_waits(self) -> None:
         self._cancel_pending_steps()
 
-    def _control(self, key: str, op: str) -> str | None:
+    def _control(self, key: str, op: str, target_key: str | None = None) -> str | None:
         self._control_source = key
         target, message = apply_control(self.state, (self._get_trigger_set_id(), key),
                                         op, self._find_trigger,
-                                        prepare_targets=self._prepare_control_targets)
+                                        prepare_targets=self._prepare_control_targets,
+                                        target_key=target_key)
         self._publish_call_view()
         if message and self._notify_message is not None:
             self._notify_message(message)
@@ -315,9 +316,9 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         outcome = None
         target = None
         waiting = False
-        def on_control(op: str) -> None:
+        def on_control(op: str, target_key: str | None) -> None:
             nonlocal target
-            target = self._control(key, op) or target
+            target = self._control(key, op, target_key) or target
         try:
             starting_position = self._get_index(key) if position is None else position
             outcome = advance(actions, self._get_index(key) if position is None else position,

@@ -50,7 +50,9 @@ OK 時に未選択 / 参照先なし / 自分自身 / 戻す・先頭へだけ�
   キー変更の書き換え（§2。`rename_call_targets` の「call の target だけ」の契約を変えるなら改名か別関数）・複製 / 貼り付けで `target` が保たれることのテスト（§3） —
   **完了**（2026-10-06。codex-implementer・新規 `domain/control_target.py`・reviewer 採用〔軽微: 1 行の back/rewind 以外は拒否しない境界テスト・型注釈 → メインで追記〕・tests 1300 / tests_ui 824 / smoke pass）
 - task_02: application — `apply_control` の対象の決定（§4: `target` あり / 空 / 無い・判定の順序・直前のトリガー不変）。
-  2 回押しの対象が T になることはテストで担保（`input_acceptance.py` は変更不要の見込み）
+  2 回押しの対象が T になることはテストで担保（`input_acceptance.py` は変更不要の見込み） —
+  **完了**（2026-10-06。codex-implementer・`input_acceptance.py` は変更なし・reviewer 採用・メインでテスト 2 件を修正〔2 引数の on_control に合わせる /
+  先頭の待機は読み飛ばされ一時停止を作れない → 送った後の待機で一時停止し履歴を空にする〕。tests 1308 / tests_ui 824 / smoke pass）
 - task_03: presentation — 編集ダイアログ（チェック・ドロップダウンの流用・OFF でグレー・操作の切替・拒否）・キー変更の書き換えの配線・
   表示の解決（一覧・省略表示の「次に実行」の要約・呼び出し先の表示枠。`_resolve_call_target` 経由を含む）
 - task_04: 正本反映（暫定 32 §10 の昇格・凍結。`data_schema.md` §5.11.6 は空の `target` の文言を呼び出しと行を分けて書く）・`codebase_map.md`・

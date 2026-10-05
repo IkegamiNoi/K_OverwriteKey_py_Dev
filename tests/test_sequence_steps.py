@@ -416,15 +416,22 @@ class SequenceStepsTest(unittest.TestCase):
             with self.subTest(op=op):
                 controls = []
                 mixed = advance([NORMAL, control(op)], 1, [], {},
-                                wrap_once=False, on_control=controls.append)
+                                wrap_once=False,
+                                on_control=lambda *args: controls.append(args))
                 self.assertEqual(mixed.error,
                                  (1, "戻す・先頭へは単独で登録してください"))
                 self.assertEqual(mixed.position, 1)
                 self.assertEqual(controls, [])
                 alone = advance([control(op)], 0, [], {},
-                                wrap_once=False, on_control=controls.append)
-                self.assertEqual(controls, [op])
+                                wrap_once=False,
+                                on_control=lambda *args: controls.append(args))
+                self.assertEqual(controls, [(op, None)])
                 self.assertTrue(alone.reached_end)
+                targeted = advance([control(op, target=" Z9 ")], 0, [], {},
+                                   wrap_once=False,
+                                   on_control=lambda *args: controls.append(args))
+                self.assertEqual(controls[-1], (op, "z9"))
+                self.assertTrue(targeted.reached_end)
 
     def test_deferred_counters_are_not_reapplied_on_wait_resume(self):
         actions = [control("wait", ms=1), NORMAL]

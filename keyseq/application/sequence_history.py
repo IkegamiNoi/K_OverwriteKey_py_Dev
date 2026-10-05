@@ -194,12 +194,19 @@ def apply_control(
     state: Any, source: tuple[str, str],
     op: str, find_trigger: Callable[[str], object | None],
     prepare_targets: Callable[[tuple[tuple[str, str], ...]], bool] | None = None,
+    *, target_key: str | None = None,
 ) -> tuple[str | None, str | None]:
-    """Apply back/rewind to the last trigger: (key to select, None) or (None, reason)."""
-    target = state.last_trigger
-    if (target is None or target == source
-            or target[0] != source[0] or find_trigger(target[1]) is None):
-        return None, NO_TARGET_MESSAGE
+    """Apply back/rewind to target_key or the last trigger; return key and reason."""
+    if target_key is None:
+        target = state.last_trigger
+        if (target is None or target == source
+                or target[0] != source[0] or find_trigger(target[1]) is None):
+            return None, NO_TARGET_MESSAGE
+    else:
+        target = (source[0], target_key)
+        if (target_key == "" or target_key == source[1]
+                or find_trigger(target_key) is None):
+            return None, NO_TARGET_MESSAGE
 
     target_id, target_key = target
     restore_key = (_back_origin(state, target_id, target_key, find_trigger)

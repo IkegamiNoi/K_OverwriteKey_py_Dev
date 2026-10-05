@@ -4,14 +4,14 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-06T15:00:00
+last_updated: 2026-10-06T16:00:00
 phase: `instructions/phase/46_back_rewind_target`（戻す・先頭への対象トリガー指定・暫定仕様先行・主入力 = 暫定 32 v0.3 ユーザー確定済）。番号対応 phase 46 / 暫定 32 / decisions 46。次採番 = phase 47 / 暫定 33 / 提案書 20。
 直前の完了フェーズ = **phase 45**（呼び出しのステップ実行と呼び出し先の表示・`decisions_archive/45_call_step_and_view.md`）。
-last_commit_location: `claude/back-sequence-trigger-limit-49fff0`（phase 46 task_01 まで。main へのマージはユーザー）
+last_commit_location: `claude/back-sequence-trigger-limit-49fff0`（phase 46 task_02 まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 46 task_01 完了（domain）。次は task_02（apply_control の対象の決定・定義起票済）。ユーザーはタスクの連続実行を許可済み。**
+focus: **phase 46 task_02 完了（application: apply_control の target_key）。次は task_03（presentation: ダイアログ・書き換えの配線・定義起票済）→ ユーザー実機目視。ユーザーはタスクの連続実行を許可済み。**
 mode: implementing
 
 ## last_action
@@ -28,14 +28,14 @@ result_files:
   - instructions/phase/46_back_rewind_target/{phase.md,tasks/task_01_domain_control_target.md,tasks/task_02_apply_control_target.md}
 verified:
   compile: clean
-  tests: 1300 OK（skipped 7）
+  tests: 1308 OK（skipped 7）
   tests_ui: 824 OK
   smoke: pass
-  review: task_01 = reviewer 採用
+  review: task_01・task_02 = reviewer 採用
 
 ## next_action
-- codex-implementer に `instructions/phase/46_back_rewind_target/tasks/task_02_apply_control_target.md` の実装を依頼 → verifier → reviewer → コミット。
-- 続いて task_03（presentation: ダイアログ・キー変更の書き換えの配線・表示の解決）を起票・実装 → ユーザーの実機目視 → task_04（正本反映）。
+- codex-implementer に `instructions/phase/46_back_rewind_target/tasks/task_03_dialog_and_rename_wiring.md` の実装を依頼 → verifier → reviewer → コミット → ユーザーの実機目視。
+- 実機目視 OK 後に task_04（正本反映・暫定 32 凍結・decisions_archive/46・/refactor_check）。
 
 ## blockers
 - なし

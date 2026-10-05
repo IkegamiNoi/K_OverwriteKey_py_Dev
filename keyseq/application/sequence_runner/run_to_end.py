@@ -193,9 +193,9 @@ class RunToEndMixin:
         previous_resume = self._run_to_end_resume
         advance_position = self._get_index(key)
         target = None
-        def on_control(op: str) -> None:
+        def on_control(op: str, target_key: str | None) -> None:
             nonlocal target
-            target = self._control(key, op) or target
+            target = self._control(key, op, target_key) or target
         outcome = advance(actions, self._get_index(key), self._get_frames(key),
                           self.state.counters, wrap_once=False,
                           resume=self._run_to_end_resume,
