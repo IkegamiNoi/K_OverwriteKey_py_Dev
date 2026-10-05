@@ -20,6 +20,7 @@ from keyseq.application.sequence_steps import (
 from keyseq.application.sequence_runner.file_line_wait import (
     FILE_LINE_POLL_INTERVAL_MS, FILE_LINE_UNAVAILABLE_MESSAGE, FileLineWaitMixin,
 )
+from keyseq.application.sequence_runner.linked_call import LinkedCallMixin
 from keyseq.application.sequence_runner.call_wait import CallWaitMixin
 from keyseq.application.sequence_runner.call_run_to_end import CallRunToEndMixin
 from keyseq.application.sequence_runner.input_acceptance import InputAcceptanceMixin
@@ -29,7 +30,7 @@ from keyseq.application.sequence_runner.call_view_notice import CallViewMixin, R
 
 
 class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLineWaitMixin,
-                     CallWaitMixin, CallRunToEndMixin):
+                     LinkedCallMixin, CallWaitMixin, CallRunToEndMixin):
     def __init__(
         self,
         *,
@@ -181,7 +182,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         for current, pending in cancelling:
             ctx = pending.call
             if ((identity is not None and current != identity)
-                    or not isinstance(ctx, CallContext) or ctx.state is None):
+                    or not isinstance(ctx, CallContext)):
                 continue
             self.state.pending_steps.pop(current, None)
             if pending.after_id is not None:
@@ -380,11 +381,15 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             return
         self._discard_run_to_end_file_line()
         if self._run_to_end_call is not None:
+            if not self._run_to_end_call.performing:
+                self._commit_run_to_end_call(self._run_to_end_call)
             self._run_to_end_call_file_line = None
             self._run_to_end_call_token += 1
             self._call_view_stopped(RUN_TO_END_CALL_VIEW, self._run_to_end_call)
 
     def resume_run_to_end(self) -> None:
+        if self._rebuild_paused_run_to_end_call():
+            return
         self.state.run_to_end_paused = False
         self._run_to_end_step(schedule_only=True)
 
@@ -396,7 +401,14 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             except Exception:
                 pass
         self.state.run_to_end_after_id = None
-        self._finish_run_to_end_wait()
+        if not self.state.run_to_end_paused:
+            self._finish_run_to_end_wait()
+        if self._run_to_end_call is not None:
+            if not self.state.run_to_end_paused:
+                self._commit_run_to_end_call(self._run_to_end_call)
+            self._run_to_end_resume = None
+            self._run_to_end_snapshot = None
+            self._run_to_end_wait_position = None
         self._discard_run_to_end_file_line()
         self._discard_run_to_end_call()
         if self._run_to_end_wait_position is not None:
@@ -557,6 +569,8 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                 key, actions, outcome.position, outcome.frames,
                 outcome.processed, outcome.counter_deltas,
             )
+        if outcome.reached_end:
+            self._record_single_completion(snapshot, True)
         self._commit_step_and_publish(snapshot, outcome.counter_deltas)
         if stop:
             self.stop_run_to_end()
@@ -597,4 +611,5 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             )
         else:
             self._save_progress(key, position, frames, deferred)
+        self._record_single_completion(snapshot, position == 0)
         return deltas, position, stopped, False

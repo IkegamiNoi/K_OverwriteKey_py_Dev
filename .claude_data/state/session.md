@@ -11,7 +11,7 @@ last_commit_location: `claude/keymap-spec-review-d08fed`（phase 45 task_05a ま
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 45 task_09 完了。次は task_10（連続実行の連動・未起票）→ task_11 → task_06 → task_07。task_05a は実機目視待ち。**
+focus: **phase 45 task_10 完了。次は task_11（後始末の統合・表示の要約の問い合わせ・未起票）→ 統合確認 → task_06 → task_07。task_05a は実機目視待ち。**
 mode: in_progress（ユーザーがタスクの連続実行を許可。スペックフラグ・フォールバック・実機目視では止まる）
 
 ## last_action

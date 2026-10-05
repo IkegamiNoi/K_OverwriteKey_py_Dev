@@ -4,7 +4,6 @@ from keyseq.application.call_context import (
     call_step,
     chain_text,
     finish_call_action,
-    start_call,
     start_linked_call,
     top_interval,
 )
@@ -21,7 +20,9 @@ def trigger(actions, interval=25):
 
 class CallContextTest(unittest.TestCase):
     def run_call(self, root_key, target_key, triggers, *, step=False):
-        return start_call("set", root_key, target_key, triggers.get, step=step)
+        return start_linked_call(
+            "set", root_key, target_key, triggers.get, AppState(), step=step,
+        )
 
     def test_linear_actions_finish_and_report_interval(self):
         actions = [{"type": "text", "value": value} for value in ("A", "B")]
@@ -298,16 +299,18 @@ class CallContextTest(unittest.TestCase):
         empty = self.run_call("root", "f5", {"f5": trigger([control("call", all=True)])})
         self.assertEqual(call_step(empty, {}).message, "呼び出し先が指定されていません")
 
-    def test_snapshot_freezes_actions_and_interval_at_start(self):
-        # The run-to-end entry point deliberately keeps snapshots until task_10.
+    def test_linked_call_reads_live_actions_interval_and_current_position(self):
+        state = AppState()
         original = trigger([{"type": "text", "value": "before"}], interval=67)
-        ctx = self.run_call("root", "f5", {"f5": original})
-        original["actions"][0]["value"] = "after"
         original["actions"].append({"type": "text", "value": "extra"})
+        state.indices_for("set")["f5"] = 1
+        ctx = start_linked_call("set", "root", "f5", {"f5": original}.get,
+                                state, step=False)
+        original["actions"][1]["value"] = "after"
         original["run_to_end_delay_ms"] = 999
         result = call_step(ctx, {})
-        self.assertEqual(top_interval(ctx), 67)
-        self.assertEqual(result.action["value"], "before")
+        self.assertEqual(top_interval(ctx), 999)
+        self.assertEqual(result.action["value"], "after")
 
     def test_linked_single_uses_current_position_and_live_actions(self):
         state = AppState()

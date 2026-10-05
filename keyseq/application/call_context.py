@@ -5,7 +5,6 @@ from dataclasses import dataclass, field
 from typing import Any, Literal
 
 from keyseq.domain import call_graph, sequence_control
-from keyseq.domain.call_graph import CallEntry
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
 from keyseq.application.sequence_history import StepSnapshot, snapshot_for
 from keyseq.application.sequence_steps import (
@@ -22,6 +21,13 @@ from keyseq.application.sequence_steps import (
 )
 
 
+@dataclass(frozen=True)
+class CallSequence:
+    """A live action list and its trigger's current interval."""
+    actions: list[dict[str, Any]]
+    interval_ms: int
+
+
 @dataclass
 class CallFrame:
     key: str
@@ -30,7 +36,7 @@ class CallFrame:
     deferred: list[tuple[str, str]] = field(default_factory=list)
     resume: StepResume | None = None
     step: bool = False
-    sent: bool = False
+    sent: bool = False  # Step-return boundary only; stops use the run-level gate.
 
 
 @dataclass
@@ -38,14 +44,12 @@ class CallContext:
     trigger_set_id: str
     root_key: str
     first_target: str
-    snapshot: dict[str, CallEntry | None]
+    state: Any
+    find_trigger: Callable[[str], Mapping[str, Any] | None]
     stack: list[CallFrame] = field(default_factory=list)
     started: bool = False
     processed_before_action: int = 0
     first_step: bool = False
-    sent: bool = False
-    state: Any = None
-    find_trigger: Callable[[str], Mapping[str, Any] | None] | None = None
     before: dict[str, StepSnapshot] = field(default_factory=dict)
     changed_frames: dict[str, CallFrame] = field(default_factory=dict)
     completed: list[str] = field(default_factory=list)
@@ -56,21 +60,20 @@ class CallContext:
     performing: bool = False
     failed: bool = False
     press_processed: int = 0
+    stop_gate: Callable[[], bool] = field(default=lambda: False)
+    on_call_success: Callable[[], None] | None = None
 
-    def entry_for(self, key: str) -> CallEntry | None:
-        if self.find_trigger is not None:
-            trigger = self.find_trigger(key)
-            self.snapshot[key] = None if trigger is None else CallEntry(
-                tuple(trigger.get("actions", [])), coerce_nonnegative_int(
-                    trigger.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
-                    DEFAULT_RUN_TO_END_DELAY_MS,
-                ),
-            )
-        return self.snapshot.get(key)
+    def entry_for(self, key: str) -> CallSequence | None:
+        trigger = self.find_trigger(key)
+        if trigger is None:
+            return None
+        return CallSequence(trigger.get("actions", []), coerce_nonnegative_int(
+            trigger.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
+            DEFAULT_RUN_TO_END_DELAY_MS,
+        ))
 
     def record_deltas(self, key: str, deltas: Iterable[tuple[str, int]]) -> None:
-        if self.state is not None:
-            self.deltas_by_key.setdefault(key, []).extend(deltas)
+        self.deltas_by_key.setdefault(key, []).extend(deltas)
 
     def top_is_step(self) -> bool:
         return bool(self.stack and self.stack[-1].step)
@@ -92,30 +95,13 @@ class CallStep:
     call_done: bool = False
 
 
-def start_call(
-    trigger_set_id: str,
-    root_key: str,
-    target_key: str,
-    find_trigger: Callable[[str], Mapping[str, Any] | None],
-    *, step: bool = False,
-) -> CallContext:
-    """Capture the reachable call targets before beginning a call."""
-    return CallContext(
-        trigger_set_id=trigger_set_id,
-        root_key=root_key,
-        first_target=target_key,
-        snapshot=call_graph.collect_call_snapshot(target_key, find_trigger),
-        first_step=step,
-    )
-
-
 def start_linked_call(
     trigger_set_id: str, root_key: str, target_key: str,
     find_trigger: Callable[[str], Mapping[str, Any] | None], state: Any,
     *, step: bool, ancestors: tuple[str, ...] = (), ancestor_depth: int = 0,
 ) -> CallContext:
     """Build a single press from live trigger states, without copying actions."""
-    ctx = CallContext(trigger_set_id, root_key, target_key, {}, first_step=step,
+    ctx = CallContext(trigger_set_id, root_key, target_key, first_step=step,
                       state=state, find_trigger=find_trigger, ancestors=ancestors,
                       ancestor_depth=ancestor_depth)
     ctx.before[root_key] = snapshot_for(state, trigger_set_id, root_key)
@@ -153,7 +139,7 @@ def _push_frame(
     if key in ctx.ancestors or key == ctx.root_key or any(frame.key == key for frame in ctx.stack):
         return _error(f"呼び出しが循環します（{key}）", chain, deltas)
     entry = ctx.entry_for(key) if key else None
-    if key and (key not in ctx.snapshot or entry is None):
+    if key and entry is None:
         return _error(f"呼び出し先のトリガーがありません（{key}）", chain, deltas)
     if entry is not None and len(entry.actions) == 1:
         action = entry.actions[0]
@@ -168,18 +154,17 @@ def _push_frame(
         return _error("呼び出し先が指定されていません", chain, deltas)
     parent_step = ctx.top_is_step() if ctx.stack else True
     frame = CallFrame(key, step=step and parent_step)
-    if ctx.state is not None:
-        saved = ctx.before.setdefault(key, snapshot_for(ctx.state, ctx.trigger_set_id, key))
-        previous = ctx.changed_frames.get(key)
-        frame.position = previous.position if previous is not None else saved.position
-        frame.frames = list(previous.frames if previous is not None else saved.frames)
-        frame.deferred = list(previous.deferred if previous is not None else saved.deferred_counters)
-        if entry is not None and any(
-            bool(entry.actions[loop.start].get("infinite"))
-            for loop in reset_frames(entry.actions, frame.position)
-        ):
-            return _error("呼び出し先に無限ループがあります", chain, deltas)
-        ctx.changed_frames[key] = frame
+    saved = ctx.before.setdefault(key, snapshot_for(ctx.state, ctx.trigger_set_id, key))
+    previous = ctx.changed_frames.get(key)
+    frame.position = previous.position if previous is not None else saved.position
+    frame.frames = list(previous.frames if previous is not None else saved.frames)
+    frame.deferred = list(previous.deferred if previous is not None else saved.deferred_counters)
+    if entry is not None and any(
+        bool(entry.actions[loop.start].get("infinite"))
+        for loop in reset_frames(entry.actions, frame.position)
+    ):
+        return _error("呼び出し先に無限ループがあります", chain, deltas)
+    ctx.changed_frames[key] = frame
     ctx.stack.append(frame)
     return None
 
@@ -201,11 +186,12 @@ def _new_deltas(
 
 def _pop_frame(ctx: CallContext, counters: dict[str, int]) -> tuple[tuple[str, int], ...]:
     frame = ctx.stack.pop()
+    if ctx.on_call_success is not None:
+        ctx.on_call_success()
     deltas = apply_deferred_counters(frame.deferred, counters)
     ctx.record_deltas(frame.key, deltas)
-    if ctx.state is not None:
-        frame.position, frame.frames, frame.deferred = 0, [], []
-        ctx.completed.append(frame.key)
+    frame.position, frame.frames, frame.deferred = 0, [], []
+    ctx.completed.append(frame.key)
     return deltas
 
 
@@ -216,12 +202,12 @@ def _clear_step_frame_sent(ctx: CallContext) -> None:
 
 
 def _stop_enabled(ctx: CallContext, run_to_end: bool) -> bool:
-    return ctx.top_is_step() and run_to_end and ctx.sent
+    return ctx.top_is_step() and run_to_end and ctx.stop_gate()
 
 
 def _advance_call(ctx: CallContext, counters: dict[str, int], run_to_end: bool) -> CallStep:
     deltas: list[tuple[str, int]] = []
-    processed = [ctx.press_processed if ctx.state is not None else 0]
+    processed = [ctx.press_processed]
     if not ctx.started:
         ctx.started = True
         failure = _push_frame(ctx, ctx.first_target, deltas, ctx.first_step)
@@ -230,8 +216,7 @@ def _advance_call(ctx: CallContext, counters: dict[str, int], run_to_end: bool) 
             return failure
     while ctx.stack:
         result = _advance_frame(ctx, counters, deltas, processed, run_to_end)
-        if ctx.state is not None:
-            ctx.press_processed = processed[0]
+        ctx.press_processed = processed[0]
         if result is not None:
             ctx.processed_before_action = (
                 processed[0] if result.kind == "action" else 0
@@ -322,8 +307,7 @@ def _finish_returned_call(
             allow_wrap=False, stop_ends_run=_stop_enabled(ctx, run_to_end), in_call=True,
         )
         processed[0] += settled.processed
-        if ctx.state is not None:
-            ctx.press_processed = processed[0]
+        ctx.press_processed = processed[0]
         frame.position, frame.frames = settled.position, settled.frames
         deltas.extend(settled.counter_deltas)
         ctx.record_deltas(frame.key, settled.counter_deltas)
@@ -349,11 +333,13 @@ def _settle_stopped_call(
 ) -> CallStep:
     """Settle past a stop, unwinding completed frames without starting actions."""
     frame = ctx.stack[-1]
-    deltas.extend(apply_deferred_counters(frame.deferred, counters))
+    applied = apply_deferred_counters(frame.deferred, counters)
+    deltas.extend(applied)
+    ctx.record_deltas(frame.key, applied)
     frame.deferred.clear()
     while ctx.stack:
         frame = ctx.stack[-1]
-        entry = ctx.snapshot[frame.key]
+        entry = ctx.entry_for(frame.key)
         if frame.position != 0:
             settled = settle_after_normal(
                 entry.actions, frame.position, frame.frames, counters,
@@ -363,13 +349,14 @@ def _settle_stopped_call(
             frame.position, frame.frames = settled.position, settled.frames
             frame.deferred.extend(settled.deferred_counters)
             deltas.extend(settled.counter_deltas)
+            ctx.record_deltas(frame.key, settled.counter_deltas)
             if frame.position != 0:
                 break
         deltas.extend(_pop_frame(ctx, counters))
         if ctx.stack:
             parent = ctx.stack[-1]
             parent.position, parent.frames = after_normal_action(
-                ctx.snapshot[parent.key].actions, parent.position, parent.frames,
+                ctx.entry_for(parent.key).actions, parent.position, parent.frames,
             )
     return CallStep("stopped", chain=_chain(ctx), counter_deltas=tuple(deltas),
                     call_done=not ctx.stack)
@@ -377,8 +364,12 @@ def _settle_stopped_call(
 
 def call_step(
     ctx: CallContext, counters: dict[str, int], *, run_to_end: bool = False,
+    sent: bool | Callable[[], bool] = False,
+    on_call_success: Callable[[], None] | None = None,
 ) -> CallStep:
     """Advance the call context to its next action, wait, completion, or error."""
+    ctx.stop_gate = sent if callable(sent) else lambda: sent
+    ctx.on_call_success = on_call_success
     result = _advance_call(ctx, counters, run_to_end)
     if result.kind == "next":
         _clear_step_frame_sent(ctx)
@@ -387,13 +378,14 @@ def call_step(
 
 def finish_call_action(
     ctx: CallContext, counters: dict[str, int], *, run_to_end: bool = False,
+    sent: bool | Callable[[], bool] = True,
 ) -> CallStep:
     """Complete the delivered action and prepare the next call-context step."""
+    ctx.stop_gate = sent if callable(sent) else lambda: sent
     if not ctx.stack:
         return CallStep("done")
     # A nested batch delivers actions within the enclosing step context too.
     if ctx.is_step_context():
-        ctx.sent = True
         for active_frame in ctx.stack:
             active_frame.sent = True
     deltas: list[tuple[str, int]] = []
@@ -427,8 +419,7 @@ def finish_call_action(
         allow_wrap=False, stop_ends_run=_stop_enabled(ctx, run_to_end), in_call=True,
     )
     processed[0] += settled.processed
-    if ctx.state is not None:
-        ctx.press_processed = processed[0]
+    ctx.press_processed = processed[0]
     frame.position, frame.frames = settled.position, settled.frames
     frame.deferred.extend(settled.deferred_counters)
     deltas.extend(settled.counter_deltas)
@@ -453,3 +444,13 @@ def finish_call_action(
     _clear_step_frame_sent(ctx)
     return CallStep("next", chain=_chain(ctx), counter_deltas=tuple(deltas),
                     interval_ms=top_interval(ctx))
+
+
+def settle_call_wait(ctx: CallContext, counters: dict[str, int]) -> CallStep | None:
+    """Cancel a pending call wait and settle without sending another action."""
+    if not ctx.stack or ctx.stack[-1].resume is None:
+        return None
+    frame = ctx.stack[-1]
+    frame.deferred.extend(frame.resume.deferred_counters)
+    frame.resume = None
+    return _settle_stopped_call(ctx, counters, [], [ctx.press_processed])

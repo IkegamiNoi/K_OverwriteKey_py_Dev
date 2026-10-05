@@ -84,10 +84,9 @@ class InputAcceptanceMixin:
                 pass
         self._update_status()
         if isinstance(pending.call, CallContext):
-            if pending.call.state is not None:
-                self._write_linked_progress(pending.call)
-                if not pending.call.performing:
-                    self._commit_linked_call(pending)
+            self._write_linked_progress(pending.call)
+            if not pending.call.performing:
+                self._commit_linked_call(pending)
             self._call_view_stopped((self._get_trigger_set_id(), key), pending.call)
 
     def _resume_single_call(self, key: str) -> None:
@@ -97,7 +96,7 @@ class InputAcceptanceMixin:
             pending.call_paused = False
         ctx = pending.call
         delay = top_interval(ctx) if isinstance(ctx, CallContext) and not ctx.top_is_step() else 0
-        if isinstance(ctx, CallContext) and ctx.state is not None:
+        if isinstance(ctx, CallContext):
             if ctx.root_continuation is None:
                 trigger = self._find_trigger(key)
                 actions = trigger.get("actions", []) if trigger else []
@@ -144,17 +143,15 @@ class InputAcceptanceMixin:
         active = self._active_key()
         if active is not None:
             pending = self.state.pending_steps.get((self._get_trigger_set_id(), active))
-            linked = (pending is not None and isinstance(pending.call, CallContext)
-                      and pending.call.state is not None)
+            ctx = self._run_to_end_call if active == self.state.run_to_end_key else (
+                pending.call if pending is not None else None)
             same_chain = False
-            if linked:
+            if isinstance(ctx, CallContext):
                 chain = chain_from(self.state, self._get_trigger_set_id(), key, self._find_trigger)
-                same_chain = (key in (active, pending.call.first_target,
-                                     *(frame.key for frame in pending.call.stack))
-                              or chain[-1] in {pending.call.first_target,
-                                               *(frame.key for frame in pending.call.stack)})
+                members = {active, ctx.first_target, *(frame.key for frame in ctx.stack)}
+                same_chain = key in members or chain[-1] in members
             if key == active or same_chain:
-                if key == self.state.run_to_end_key:
+                if active == self.state.run_to_end_key:
                     self.pause_run_to_end()
                     self._update_status()
                 else:
@@ -177,14 +174,6 @@ class InputAcceptanceMixin:
         trigger = self._find_trigger(key)
         if not trigger or not trigger.get("actions", []):
             return
-        if bool(trigger.get("run_to_end", False)):
-            actions = trigger.get("actions", [])
-            if self._is_standalone_control(actions):
-                self._run_single_action(key, actions)
-                return
-            self.discard_paused()
-            self._start_run_to_end(key)
-            return
         # Calling a trigger with its own pending wait/read must not consume a press.
         position = self._get_index(key)
         actions = trigger.get("actions", [])
@@ -193,6 +182,14 @@ class InputAcceptanceMixin:
             top = chain_top(self.state, self._get_trigger_set_id(), target, self._find_trigger) if target else key
             if (self._get_trigger_set_id(), top) in self.state.pending_steps:
                 return
+        if bool(trigger.get("run_to_end", False)):
+            actions = trigger.get("actions", [])
+            if self._is_standalone_control(actions):
+                self._run_single_action(key, actions)
+                return
+            self.discard_paused()
+            self._start_run_to_end(key)
+            return
         self._run_single_action(key, trigger.get("actions", []))
 
     @staticmethod

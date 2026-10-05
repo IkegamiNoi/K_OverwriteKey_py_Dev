@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from dataclasses import replace
 from typing import Any
 
 from keyseq.application.call_context import (
@@ -9,10 +8,14 @@ from keyseq.application.call_context import (
     call_step,
     chain_text,
     finish_call_action,
-    start_call,
+    top_interval,
+    start_linked_call,
 )
 from keyseq.application.sequence_history import StepSnapshot
-from keyseq.application.sequence_steps import StepOutcome, after_normal_action, resume_for_pending
+from keyseq.application.sequence_steps import (
+    LoopFrame, StepOutcome, after_normal_action, resume_for_pending, settle_after_normal,
+    apply_deferred_counters,
+)
 from keyseq.application.sequence_runner.call_view_notice import RUN_TO_END_CALL_VIEW
 from keyseq.application.sequence_runner.file_line_wait import (
     FILE_LINE_POLL_INTERVAL_MS,
@@ -20,7 +23,7 @@ from keyseq.application.sequence_runner.file_line_wait import (
 )
 from keyseq.domain.call_graph import call_target
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
-from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE, is_step_call
+from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE, OP_CALL, is_step_call, system_op
 
 
 class CallRunToEndMixin:
@@ -35,10 +38,15 @@ class CallRunToEndMixin:
         self, key: str, actions: list[dict[str, Any]], index: int,
         outcome: StepOutcome, snapshot: StepSnapshot, initial_position: int,
     ) -> None:
-        ctx = start_call(
+        ancestors, depth = self._linked_ancestors(key)
+        ctx = start_linked_call(
             self._get_trigger_set_id(), key, call_target(actions[index]), self._find_trigger,
-            step=is_step_call(actions[index]),
+            self.state, step=is_step_call(actions[index]),
+            ancestors=ancestors, ancestor_depth=depth,
         )
+        ctx.before[key] = snapshot
+        ctx.press_processed = outcome.processed
+        ctx.record_deltas(key, outcome.counter_deltas)
         self._run_to_end_resume = resume_for_pending(outcome, initial_position)
         self._run_to_end_snapshot = snapshot
         self._run_to_end_wait_position = index
@@ -52,11 +60,12 @@ class CallRunToEndMixin:
             0, lambda: self._advance_run_to_end_call(generation, key, token),
         )
 
-    def _discard_run_to_end_call(self) -> None:
+    def _discard_run_to_end_call(self, *, keep_view: bool = False) -> None:
         self._run_to_end_call = None
         self._run_to_end_call_file_line = None
         self._run_to_end_call_token += 1
-        self._call_view_disappeared(RUN_TO_END_CALL_VIEW)
+        if not keep_view:
+            self._call_view_disappeared(RUN_TO_END_CALL_VIEW)
 
     def _run_to_end_call_is_current(self, generation: int, key: str, token: int) -> bool:
         return (
@@ -109,8 +118,13 @@ class CallRunToEndMixin:
         if not isinstance(ctx, CallContext) or not self._run_to_end_call_parent_is_current(ctx):
             self._abandon_invalid_run_to_end_call()
             return
-        step = call_step(ctx, self.state.counters, run_to_end=True)
-        self._append_run_to_end_call_deltas(step.counter_deltas)
+        if ctx.root_continuation is not None:
+            self._complete_run_to_end_call(generation, key, token, ctx)
+            return
+        step = call_step(ctx, self.state.counters, run_to_end=True,
+                         sent=lambda: self._run_to_end_sent,
+                         on_call_success=self._mark_run_to_end_sent)
+        self._publish_run_to_end_call_progress()
         if step.kind == "action":
             self._perform_run_to_end_call_action(generation, key, token, ctx, step)
         elif step.kind == "wait":
@@ -124,14 +138,9 @@ class CallRunToEndMixin:
         elif step.kind == "stopped":
             self._handle_stopped_run_to_end_call(generation, key, token, ctx, step)
 
-    def _append_run_to_end_call_deltas(
-        self, deltas: tuple[tuple[str, int], ...],
-    ) -> None:
-        resume = self._run_to_end_resume
-        if resume is not None and deltas:
-            self._run_to_end_resume = replace(
-                resume, counter_deltas=resume.counter_deltas + deltas,
-            )
+    def _publish_run_to_end_call_progress(self) -> None:
+        if self._run_to_end_call is not None:
+            self._write_linked_progress(self._run_to_end_call)
         self._publish_call_view()
 
     def _schedule_run_to_end_call(
@@ -151,7 +160,11 @@ class CallRunToEndMixin:
         if action_type == ACTION_TYPE_FILE_LINE:
             self._begin_run_to_end_call_file_line(generation, key, token, ctx, step)
             return
-        succeeded = self._perform_action(action)
+        ctx.performing = True
+        try:
+            succeeded = self._perform_action(action)
+        finally:
+            ctx.performing = False
         if succeeded is False:
             if not self._run_to_end_call_failure_matches(generation, key, token, ctx):
                 return
@@ -160,13 +173,19 @@ class CallRunToEndMixin:
                 return
             self._fail_run_to_end_call()
             return
+        if (self.state.run_to_end_paused
+                and self._run_to_end_call_failure_matches(generation, key, token, ctx)):
+            self._finish_paused_run_to_end_action(ctx)
+            return
         if not self._run_to_end_call_is_current(generation, key, token):
             return
         if not self._run_to_end_call_parent_is_current(ctx):
             self._abandon_invalid_run_to_end_call()
             return
-        following = finish_call_action(ctx, self.state.counters, run_to_end=True)
-        self._append_run_to_end_call_deltas(following.counter_deltas)
+        self._run_to_end_sent = True
+        following = finish_call_action(ctx, self.state.counters, run_to_end=True,
+                                       sent=lambda: self._run_to_end_sent)
+        self._publish_run_to_end_call_progress()
         self._handle_finished_run_to_end_call(generation, key, token, ctx, following)
 
     def _begin_run_to_end_call_file_line(
@@ -210,7 +229,11 @@ class CallRunToEndMixin:
         if not isinstance(ctx, CallContext) or not self._run_to_end_call_parent_is_current(ctx):
             self._abandon_invalid_run_to_end_call()
             return
-        result = self._poll_file_line(handle)
+        ctx.performing = True
+        try:
+            result = self._poll_file_line(handle)
+        finally:
+            ctx.performing = False
         if result is False:
             same_file_line = self._run_to_end_call_file_line is handle or (
                 self._run_to_end_call_file_line is None
@@ -225,6 +248,15 @@ class CallRunToEndMixin:
                 return
             self._run_to_end_call_file_line = None
             self._fail_run_to_end_call()
+            return
+        if (self.state.run_to_end_paused
+                and self._run_to_end_call_failure_matches(generation, key, token, ctx)):
+            if not self._run_to_end_call_parent_is_current(ctx):
+                self._abandon_invalid_run_to_end_call()
+            elif result is None:
+                self._commit_run_to_end_call(ctx)
+            else:
+                self._finish_paused_run_to_end_action(ctx)
             return
         if not self._run_to_end_call_is_current(generation, key, token):
             return
@@ -242,8 +274,10 @@ class CallRunToEndMixin:
             )
             return
         self._run_to_end_call_file_line = None
-        following = finish_call_action(ctx, self.state.counters, run_to_end=True)
-        self._append_run_to_end_call_deltas(following.counter_deltas)
+        self._run_to_end_sent = True
+        following = finish_call_action(ctx, self.state.counters, run_to_end=True,
+                                       sent=lambda: self._run_to_end_sent)
+        self._publish_run_to_end_call_progress()
         self._handle_finished_run_to_end_call(generation, key, token, ctx, following)
 
     def _handle_finished_run_to_end_call(
@@ -251,6 +285,7 @@ class CallRunToEndMixin:
         ctx: CallContext, step: CallStep,
     ) -> None:
         if step.kind == "next":
+            self._commit_run_to_end_call(ctx)
             self._schedule_run_to_end_call(
                 generation, key, token, step.interval_ms or 0,
             )
@@ -268,6 +303,7 @@ class CallRunToEndMixin:
         if step.call_done:
             self._complete_run_to_end_call(generation, key, token, ctx, stopped_call=True)
         else:
+            self._commit_run_to_end_call(ctx)
             self.pause_run_to_end()
             self._update_status()
 
@@ -289,6 +325,8 @@ class CallRunToEndMixin:
         index = self._run_to_end_wait_position
         action = actions[index] if index is not None and index < len(actions) else {}
         suffix = f" / {chain_text(step.chain)}" if step.chain else ""
+        ctx.failed = True
+        self._write_linked_progress(ctx, failed=True)
         self._report_error(action, message + suffix)
         if not self._run_to_end_call_failure_matches(generation, key, token, ctx):
             return
@@ -297,14 +335,19 @@ class CallRunToEndMixin:
             return
         self._fail_run_to_end_call()
 
+    def _commit_run_to_end_call(self, ctx: CallContext, *, failed: bool = False) -> None:
+        self._commit_linked_context(ctx, failed=failed)
+        ctx.press_processed = 0
+
     def _fail_run_to_end_call(self) -> None:
-        snapshot = self._run_to_end_snapshot
-        resume = self._run_to_end_resume
+        ctx = self._run_to_end_call
+        if ctx is not None:
+            ctx.failed = True
+            self._commit_run_to_end_call(ctx, failed=True)
         self._discard_run_to_end_call()
         self._run_to_end_wait_position = None
         self._run_to_end_resume = None
-        if snapshot is not None and resume is not None:
-            self._commit_step_and_publish(snapshot, resume.counter_deltas)
+        self._run_to_end_snapshot = None
         self.stop_run_to_end()
 
     def _complete_run_to_end_call(
@@ -316,35 +359,28 @@ class CallRunToEndMixin:
         if not self._run_to_end_call_parent_is_current(ctx):
             self._abandon_invalid_run_to_end_call()
             return
-        snapshot = self._run_to_end_snapshot
-        resume = self._run_to_end_resume
-        index = self._run_to_end_wait_position
         trigger = self._find_trigger(key)
-        if snapshot is None or resume is None or index is None or trigger is None:
-            self._abandon_invalid_run_to_end_call()
-            return
         actions = trigger.get("actions", [])
-        self._discard_run_to_end_call()
         self._run_to_end_sent = True
-        self._run_to_end_resume = None
-        self._run_to_end_wait_position = None
-        if stopped_call:
+        self._write_linked_progress(ctx)
+        if ctx.root_continuation is None:
+            index = self._run_to_end_wait_position
             position, frames = after_normal_action(actions, index, self._get_frames(key))
-            deltas, position = self._settle_after_stopped_sequence(
-                key, actions, position, frames, resume.processed, resume.counter_deltas,
-            )
-            stopped, waiting = True, False
         else:
-            deltas, position, stopped, waiting = self._finish_run_to_end_normal_action(
-                key, actions, index, resume, snapshot,
-            )
-        if waiting:
-            self._select_trigger(key)
+            position, frames = ctx.root_continuation, self._get_frames(key)
+        position, stopped, waiting = self._settle_run_to_end_call_root(
+            ctx, actions, position, frames, stopped_call,
+        )
+        if waiting is not None:
+            self._schedule_run_to_end_call(generation, key, token, waiting)
             return
-        self._commit_step_and_publish(snapshot, deltas)
+        self._commit_run_to_end_call(ctx)
+        self._discard_run_to_end_call()
+        self._run_to_end_resume = None
         self._run_to_end_snapshot = None
+        self._run_to_end_wait_position = None
         self._select_trigger(key)
-        if position == 0 or stopped:
+        if position == 0 or stopped or stopped_call:
             self.stop_run_to_end()
         else:
             delay = coerce_nonnegative_int(
@@ -352,3 +388,87 @@ class CallRunToEndMixin:
                 DEFAULT_RUN_TO_END_DELAY_MS,
             )
             self._schedule_run_to_end_step(key, delay)
+
+    def _settle_run_to_end_call_root(
+        self, ctx: CallContext, actions: list[dict[str, Any]], position: int,
+        frames: list[LoopFrame], stopped_call: bool,
+    ) -> tuple[int, bool, int | None]:
+        deferred = self.state.deferred_counters_for(ctx.trigger_set_id).get(ctx.root_key, ())
+        stopped, waiting = False, None
+        if position != 0:
+            settled = settle_after_normal(
+                actions, position, frames, self.state.counters, allow_wrap=False,
+                stop_ends_run=not stopped_call, deferred_counters=deferred,
+                wait_mode="skip" if stopped_call else "wait",
+            )
+            position, frames, deferred = settled.position, settled.frames, settled.deferred_counters
+            ctx.record_deltas(ctx.root_key, settled.counter_deltas)
+            stopped, waiting = settled.stopped, settled.wait_ms
+            if stopped:
+                ctx.record_deltas(ctx.root_key, apply_deferred_counters(deferred, self.state.counters))
+                deltas, position = self._settle_after_stopped_sequence(
+                    ctx.root_key, actions, position, frames, settled.processed, (),
+                )
+                ctx.record_deltas(ctx.root_key, deltas)
+                frames = self._get_frames(ctx.root_key)
+                deferred = self.state.deferred_counters_for(ctx.trigger_set_id).get(ctx.root_key, ())
+        if position == 0:
+            ctx.record_deltas(ctx.root_key, apply_deferred_counters(deferred, self.state.counters))
+            deferred = ()
+            ctx.completed.append(ctx.root_key)
+        ctx.root_continuation = position + 1 if waiting is not None else position
+        self._save_progress(ctx.root_key, position, frames, deferred)
+        return position, stopped, waiting
+
+    def _finish_paused_run_to_end_action(self, ctx: CallContext) -> None:
+        self._run_to_end_sent = True
+        step = finish_call_action(ctx, self.state.counters, run_to_end=True, sent=True)
+        if step.kind == "error":
+            self._fail_run_to_end_call()
+            return
+        if step.kind == "done" or (step.kind == "stopped" and step.call_done):
+            trigger = self._find_trigger(ctx.root_key)
+            actions = trigger.get("actions", []) if trigger else []
+            position, frames = after_normal_action(
+                actions, self._run_to_end_wait_position, self._get_frames(ctx.root_key),
+            )
+            position, _, _ = self._settle_run_to_end_call_root(ctx, actions, position, frames, True)
+            self._commit_run_to_end_call(ctx)
+            self._discard_run_to_end_call()
+            self._run_to_end_resume = None
+            self._run_to_end_snapshot = None
+            self._run_to_end_wait_position = None
+            if position == 0 or step.kind == "stopped":
+                self.stop_run_to_end()
+        else:
+            self._commit_run_to_end_call(ctx)
+
+    def _mark_run_to_end_sent(self) -> None:
+        self._run_to_end_sent = True
+
+    def _rebuild_paused_run_to_end_call(self) -> bool:
+        ctx = self._run_to_end_call
+        if ctx is None:
+            return False
+        key = ctx.root_key
+        delay = top_interval(ctx)
+        trigger = self._find_trigger(key)
+        actions = trigger.get("actions", []) if trigger else []
+        index = self._get_index(key)
+        is_call = 0 <= index < len(actions) and system_op(actions[index]) == OP_CALL
+        self._discard_run_to_end_call(keep_view=is_call)
+        self._run_to_end_resume = None
+        self._run_to_end_snapshot = None
+        self._run_to_end_wait_position = None
+        if not is_call:
+            return False
+        ancestors, depth = self._linked_ancestors(key)
+        self._run_to_end_call = start_linked_call(
+            self._get_trigger_set_id(), key, call_target(actions[index]), self._find_trigger,
+            self.state, step=is_step_call(actions[index]), ancestors=ancestors, ancestor_depth=depth,
+        )
+        self._run_to_end_wait_position = index
+        self.state.run_to_end_paused = False
+        self._schedule_run_to_end_call(self._run_to_end_generation, key,
+                                       self._run_to_end_call_token, delay)
+        return True

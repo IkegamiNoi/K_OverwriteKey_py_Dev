@@ -3,20 +3,24 @@ from types import MappingProxyType
 
 from keyseq.application.call_context import CallContext, CallFrame
 from keyseq.application.call_view import CallViewSummary, build_call_view_summary
+from keyseq.application.app_state import AppState
 from keyseq.application.sequence_steps import LoopFrame
-from keyseq.domain.call_graph import CallEntry
 
 
 class BuildCallViewSummaryTests(unittest.TestCase):
     def make_context(self):
-        actions = ({"type": "text", "value": "original", "meta": {"items": [1]}},)
+        actions = [{"type": "text", "value": "original", "meta": {"items": [1]}}]
+        triggers = {
+            "f5": {"actions": [{"type": "text", "value": "middle"}]},
+            "f7": {"actions": actions},
+        }
         ctx = CallContext(
             trigger_set_id="set",
-            root_key="F1",
-            first_target="F5",
-            snapshot={"F5": CallEntry(({"type": "text", "value": "middle"},), 0),
-                      "F7": CallEntry(actions, 0)},
-            stack=[CallFrame("F5"), CallFrame("F7", position=2,
+            root_key="f1",
+            first_target="f5",
+            state=AppState(),
+            find_trigger=triggers.get,
+            stack=[CallFrame("f5"), CallFrame("f7", position=2,
                                                  frames=[LoopFrame(0, 2)])],
         )
         return ctx, actions

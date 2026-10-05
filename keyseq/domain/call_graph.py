@@ -2,22 +2,10 @@ from __future__ import annotations
 
 from collections import deque
 from collections.abc import Callable, Mapping, Sequence
-from copy import deepcopy
-from dataclasses import dataclass
 from typing import Any
 
 from . import sequence_control
-from .config import (
-    DEFAULT_RUN_TO_END_DELAY_MS,
-    coerce_nonnegative_int,
-    normalize_key_name,
-)
-
-
-@dataclass(frozen=True)
-class CallEntry:
-    actions: tuple[dict, ...]
-    interval_ms: int
+from .config import normalize_key_name
 
 
 def call_target(action: Any) -> str:
@@ -53,44 +41,6 @@ def rename_call_targets(
             changed = True
         renamed.append(copied)
     return renamed if changed else None
-
-
-def _entry(trigger: Mapping[str, Any] | None) -> CallEntry | None:
-    if trigger is None:
-        return None
-    actions = trigger.get("actions", [])
-    if not isinstance(actions, (list, tuple)):
-        actions = []
-    copied = tuple(deepcopy(action) for action in actions if isinstance(action, dict))
-    interval = coerce_nonnegative_int(
-        trigger.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
-        DEFAULT_RUN_TO_END_DELAY_MS,
-    )
-    return CallEntry(actions=copied, interval_ms=interval)
-
-
-def collect_call_snapshot(
-    target_key: str,
-    find_trigger: Callable[[str], Mapping[str, Any] | None],
-) -> dict[str, CallEntry | None]:
-    root = normalize_key_name(target_key)
-    snapshot: dict[str, CallEntry | None] = {}
-    depths = {root: 1}
-    pending = deque([root])
-    while pending:
-        key = pending.popleft()
-        depth = depths[key]
-        entry = _entry(find_trigger(key))
-        snapshot[key] = entry
-        if entry is None or depth >= sequence_control.MAX_CALL_DEPTH:
-            continue
-        for child in call_targets(entry.actions):
-            if child in snapshot or child in depths:
-                continue
-            if depth + 1 <= sequence_control.MAX_CALL_DEPTH:
-                depths[child] = depth + 1
-                pending.append(child)
-    return snapshot
 
 
 def edit_call_violation(

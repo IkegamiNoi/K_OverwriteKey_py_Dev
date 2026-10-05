@@ -5,8 +5,9 @@ from __future__ import annotations
 from collections.abc import Mapping
 from dataclasses import replace
 
+from keyseq.application.call_context import CallContext, settle_call_wait
 from keyseq.application.sequence_history import cancel_pending_steps
-from keyseq.application.sequence_steps import settle_after_normal
+from keyseq.application.sequence_steps import after_normal_action, settle_after_normal
 from keyseq.domain.sequence_control import ACTION_TYPE_SYSTEM, OP_WAIT, action_type, system_op
 
 
@@ -42,12 +43,13 @@ class WaitStopMixin:
         self._publish_call_view()
 
     def _finish_run_to_end_wait(self) -> bool:
+        if self._run_to_end_call is not None:
+            return self._finish_linked_run_to_end_wait()
         key = self.state.run_to_end_key
         resume = self._run_to_end_resume
         snapshot = self._run_to_end_snapshot
         if (key is None or resume is None or snapshot is None
                 or self._run_to_end_wait_position is None
-                or self._run_to_end_call is not None
                 or self._run_to_end_file_line is not None):
             return False
         trigger = self._find_trigger(key)
@@ -84,8 +86,37 @@ class WaitStopMixin:
             )
         else:
             self._save_progress(key, position, settled.frames, deferred)
+        self._record_single_completion(snapshot, position == 0)
         self._commit_step_and_publish(snapshot, deltas)
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
         self._run_to_end_wait_position = None
         return settled.stopped or position == 0
+
+    def _finish_linked_run_to_end_wait(self) -> bool:
+        ctx = self._run_to_end_call
+        if ctx.performing:
+            return False
+        step = settle_call_wait(ctx, self.state.counters)
+        if step is None and ctx.root_continuation is None:
+            return False
+        finished = False
+        if not ctx.stack:
+            trigger = self._find_trigger(ctx.root_key)
+            if trigger is None:
+                return False
+            actions = trigger.get("actions", [])
+            if ctx.root_continuation is None:
+                position, frames = self._call_root_after_wait(ctx, actions)
+            else:
+                position, frames = ctx.root_continuation, self._get_frames(ctx.root_key)
+            position, stopped, _ = self._settle_run_to_end_call_root(
+                ctx, actions, position, frames, True,
+            )
+            finished = position == 0 or stopped
+        self._commit_run_to_end_call(ctx)
+        return finished
+
+    def _call_root_after_wait(self, ctx: CallContext, actions: list[dict]):
+        return after_normal_action(actions, self._run_to_end_wait_position,
+                                   self._get_frames(ctx.root_key))

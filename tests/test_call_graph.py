@@ -3,7 +3,6 @@ import unittest
 from keyseq.domain.call_graph import (
     call_target,
     call_targets,
-    collect_call_snapshot,
     edit_call_violation,
     rename_call_targets,
 )
@@ -61,33 +60,6 @@ class RenameCallTargetsTest(unittest.TestCase):
     def test_returns_none_when_no_rewrite_is_needed(self):
         self.assertIsNone(rename_call_targets([call("f6")], "f5", "f7"))
         self.assertIsNone(rename_call_targets([call("f5")], "F5", " f5 "))
-
-
-class CollectCallSnapshotTest(unittest.TestCase):
-    def test_snapshot_is_deep_copy_and_coerces_intervals(self):
-        original = {"nested": {"items": [1]}}
-        triggers = {
-            "f1": trigger({"type": "text", **original}, call("f2"), delay="17"),
-            "f2": trigger(call("missing"), delay="invalid"),
-            "f3": {"actions": []},
-        }
-        snapshot = collect_call_snapshot("F1", finder(triggers))
-        self.assertEqual(snapshot["f1"].interval_ms, 17)
-        self.assertEqual(snapshot["f2"].interval_ms, DEFAULT_RUN_TO_END_DELAY_MS)
-        self.assertEqual(collect_call_snapshot("f3", finder(triggers))["f3"].interval_ms, DEFAULT_RUN_TO_END_DELAY_MS)
-        self.assertIsNone(snapshot["missing"])
-        triggers["f1"]["actions"][0]["nested"]["items"].append(2)
-        self.assertEqual(snapshot["f1"].actions[0]["nested"]["items"], [1])
-
-    def test_missing_root_is_recorded_as_none(self):
-        self.assertEqual(collect_call_snapshot("F5", finder({})), {"f5": None})
-
-    def test_stops_at_depth_nine_and_terminates_cycles(self):
-        chain = {f"f{i}": trigger(call(f"f{i + 1}")) for i in range(1, 11)}
-        snapshot = collect_call_snapshot("f1", finder(chain))
-        self.assertEqual(set(snapshot), {f"f{i}" for i in range(1, 10)})
-        cycle = {"f1": trigger(call("f2")), "f2": trigger(call("f1"))}
-        self.assertEqual(set(collect_call_snapshot("f1", finder(cycle))), {"f1", "f2"})
 
 
 class EditCallViolationTest(unittest.TestCase):

@@ -7,7 +7,6 @@ from keyseq.application.app_state import AppState, PendingStep
 from keyseq.application.call_context import CallContext, CallFrame
 from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.sequence_steps import LoopFrame
-from keyseq.domain.call_graph import CallEntry
 
 
 class FakeScheduler:
@@ -1449,7 +1448,8 @@ class CallViewExternalCleanupTest(unittest.TestCase):
                     trigger_set_id="old-set",
                     root_key="f1",
                     first_target="f5",
-                    snapshot={"f5": CallEntry((A1,), 0)},
+                    state=AppState(),
+                    find_trigger=lambda _key: {"actions": [A1]},
                     stack=[CallFrame("f5")],
                 )
                 state.pending_steps[identity] = SimpleNamespace(call=context)

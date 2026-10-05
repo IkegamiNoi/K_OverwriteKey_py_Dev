@@ -655,15 +655,17 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - phase 39（停止）: `advance` / `settle_after_normal` の `stop_ends_run` 引数（False = 読み飛ばし）と `StepOutcome.stopped` / `SettleOutcome.stopped`。runner は連続実行ごとの印 `_run_to_end_sent`（開始で False・通常アクションの行の実行 / file_line の成功で True）を `advance` の `stop_ends_run` に渡す（先行処理 `settle_after_normal` には送信の直後なので常に True）。`_finish_run_to_end_normal_action` は `(deltas, position, stopped, waiting)` を返し（`waiting` は phase 40）、停止の行では手前の保留を反映して、停止の次から先行処理（停止の行は通過）をしてから終える。テスト: `tests/test_sequence_runner_stop.py`。
 - phase 40（呼び出し・入力の受け付け・待機の扱い。仕様 = `features.md` §4.2.5・§4.2.9・§4.2.10 / `data_schema.md` §5.11.6・§5.11.8。判断 = `decisions_archive/40_sequence_call.md`）:
   - `domain/call_graph.py`: 呼び出しの辺の純関数（`call_target`〔正規化済みキー〕/ `rename_call_targets`〔キー変更時の書き換え〕/
-    `collect_call_snapshot`〔開始時点のコピー・深さ 9 まで・`CallEntry` = シーケンスのコピー + 間隔〕/ `edit_call_violation`〔編集時の拒否理由・下流の深さ〕）。
+    `edit_call_violation`〔編集時の拒否理由・下流の深さ〕）。phase 45 task_10 で写しの収集と `CallEntry` は廃止。
     `sequence_control.OP_CALL` / `MAX_CALL_DEPTH`、`format_control_value` は呼び出し先の解決関数 `resolve_call` を引数で受ける（`action_list_rendering` が配線）。
-  - `application/call_context.py`: 呼び出し文脈（`CallContext` = 一覧 ID・呼び出し元・コピー・スタック〔`CallFrame`〕）と「文脈の 1 ステップ」`call_step` / `finish_call_action`
+  - `application/call_context.py`: 連動の実行（`CallContext` = 一覧 ID・呼び出し元・実状態への参照・スタック〔`CallFrame`〕）と「文脈の 1 ステップ」`call_step` / `finish_call_action`
     （戻り値 `CallStep` の kind = action / wait / next / done / error・連鎖・差分・間隔）。単発・連続実行の両経路で共有し、UI・タイマーに依存しない。
-    phase 45 task_09: 単発は `start_linked_call` で押下ごとに実状態（位置・周回・保留）を読み、現在のシーケンスを参照する。
+    phase 45 task_09〜10: 単発・連続実行は `start_linked_call` で押下ごとに実状態（位置・周回・保留）を読み、現在のシーケンスを参照する。
     残った段と完了した段を書き戻し、参照印を更新・完了を他の参照元へ伝播し、`commit_press` で同じ番号の履歴を各トリガーへ積む。
     押下の合間に `PendingStep` は残さない。待機・読込・一括実行の処理中と明示的一時停止だけ保持する。
-    連続実行は task_10 まで `start_call` / `collect_call_snapshot` のコピー方式を維持する。
-    `SequenceRunner.list_trigger_keys` は有効なトリガー一覧の上から順のキー取得（省略時は参照印のキー順）。単発の完了伝播の順を決める。
+    連続実行も各ステップで `commit_press` し、停止の判定は実行全体の `_run_to_end_sent` を使う。
+    `linked_call.py`（`LinkedCallMixin`）へ task_09 の書き戻し・一覧順の完了伝播・履歴処理を移動し、両経路で共有する。
+    一時停止中の呼び出し元は完了伝播で先行処理まで進め、末尾なら実行を終える。再開は実状態から再構築する。
+    `SequenceRunner.list_trigger_keys` は有効なトリガー一覧の上から順のキー取得（省略時は参照印のキー順）。単発・連続実行の完了伝播の順を決める。
     通常の単押しの完了は、末尾の通常行の送信・先行処理の折り返し・system 行だけの末尾到達時に記録する。
     処理中の履歴起点と完了の事実は一覧 ID・キーで保持し、書き込み時の位置・周回からは推定しない（先頭の system 行の先行処理後も完了を伝播する）。
   - runner の mixin（`sequence_runner/`）: `call_wait.py`（`CallWaitMixin` = 単発の呼び出し。`PendingStep.call` / `call_file_line` / `call_paused`）/

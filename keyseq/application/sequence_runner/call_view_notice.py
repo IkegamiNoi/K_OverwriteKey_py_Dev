@@ -32,10 +32,16 @@ class CallViewMixin:
         for identity, ctx in tuple(self._call_view_contexts.items()):
             if identity == RUN_TO_END_CALL_VIEW:
                 current = self._run_to_end_call
+                if current is not None and current is not ctx:
+                    # Keep the stopped view until the rebuilt live frames are ready.
+                    if not current.started:
+                        continue
+                    self._call_view_contexts[identity] = current
+                    ctx = current
             else:
                 pending = self.state.pending_steps.get(identity)
                 current = pending.call if pending is not None else None
-                if ctx.state is not None and pending is None:
+                if pending is None:
                     # This temporary display bridge is replaced in task_11 (表示の切替).
                     chain = chain_from(self.state, identity[0], identity[1], self._find_trigger)
                     if len(chain) > 1:

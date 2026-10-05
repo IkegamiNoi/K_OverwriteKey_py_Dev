@@ -140,6 +140,7 @@ class SendWaitMixin:
         self._run_to_end_resume = None
         self._run_to_end_wait_position = None
         self._run_to_end_snapshot = None
+        self._record_single_completion(snapshot, position == 0)
         self._commit_step_and_publish(snapshot, deltas)
         self._select_trigger(key)
         if position == 0 or stopped:

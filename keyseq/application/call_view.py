@@ -24,15 +24,15 @@ class CallViewSummary:
 def build_call_view_summary(
     ctx: CallContext, counters: Mapping[str, int],
 ) -> CallViewSummary | None:
-    """Copy the captured actions and current progress without changing runtime data."""
+    """Copy the current actions and progress without changing runtime data."""
     if not ctx.stack:
         return None
     top = ctx.stack[-1]
-    entry = ctx.snapshot[top.key]
+    entry = ctx.entry_for(top.key)
     return CallViewSummary(
         path=tuple(normalize_key_name(key) for key in
                    (ctx.root_key, *(frame.key for frame in ctx.stack))),
-        actions=deepcopy(entry.actions) if entry is not None else (),
+        actions=tuple(deepcopy(entry.actions)) if entry is not None else (),
         position=top.position,
         loop_frames=tuple(deepcopy(top.frames)),
         counters=MappingProxyType(dict(counters)),
