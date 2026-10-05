@@ -15,7 +15,7 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 45**〔`45_call_step_and_view`・暫定仕様先行・主入力 = 暫定 31 v0.5〕）。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 45**〔`45_call_step_and_view`・暫定仕様先行・主入力 = 暫定 31 v0.6〔§4.5 参照による連動・§4.5.8〕〕）。
    続けて `instructions/phase/45_call_step_and_view/phase.md`（タスク一覧と進捗）・暫定 `instructions/history/31_call_step_and_view.md`。
    次採番 = phase 46 / 暫定 32 / decisions 46 / 提案書 19
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜30）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 45 task_01〜05 実装完了（task_05 は実機目視待ち）。次は task_06（省略表示の枠）→ task_07（正本反映・フェーズ完了）。**
-ブランチ `claude/keymap-spec-review-d08fed`（phase 43 の後半・phase 44・phase 45）。phase 38〜42 は `claude/physical-device-verification-25ec98`（**main は phase 37 まで取り込み済み**・マージはユーザー）。
+**phase 45 task_11b 完了。実機目視待ち（task_05a の枠・呼び出しの連動・M3）。§4.5.2 と §4.2.10 の優先の確認待ち。その後 task_06 → task_07。**
+ブランチ `claude/callee-display-frame-behavior-d23bd8`（phase 45 task_05a〜11b）。それ以前の phase 45 と phase 43 後半・44 は `claude/keymap-spec-review-d08fed`（**main は phase 37 まで取り込み済み**・マージはユーザー）。
 ユーザーはフェーズ内のタスクの連続実行を許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -36,9 +36,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 45 task_05 = 2026-10-04**）:
-compile **clean** / tests **1191 実行 OK**（skip 7）/ tests_ui **803 実行 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 44 完了 1127 → 1191 / tests_ui: 790 → 803）。
+直近の実測（**phase 45 task_11b = 2026-10-05**）:
+compile **clean** / tests **1284 実行 OK**（skip 7）/ tests_ui **813 実行 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 44 完了 1127 → 1284 / tests_ui: 790 → 813）。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
 **verifier に `taskkill` で python.exe を一括終了させない**（2026-10-04 に全 python が落ちた）。tests_ui は 260〜730 秒・タイムアウト 1800 秒・出力はファイルへ。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
@@ -54,18 +54,18 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- task_05 の実機目視の結果を受け取る（①枠が開き ▶ が進み終わると閉じる ②連続実行の停止の行で開く ③境界線の高さが開き直し・再起動後も保たれる ④枠のクリックで何も起きない ⑤`[call all]` だけでは開かない）。
-- task_06 を `/task_new` で起票・実装: 省略表示の枠（トリガー一覧の下・境界線・表示の切替で同じ文脈〔`CallViewController.last_summary`〕・高さは `call_view_heights` の compact）。暫定 31 §5.1・§5.2。
-- task_07: 暫定 31 §12 の正本昇格・凍結・decisions_archive/45・current.md・/refactor_check。完了判定前に deep-reviewer + Codex 敵対的レビュー。
-  deep-reviewer M1（文脈の「送った」に入れ子の呼び出しの成功を数えない＝実装のまま）を正本に明記する。
+- **ユーザーの返答待ち 2 点**: ①実機目視（task_05a の枠 / 連動 §10-12〜16 / M3 のメッセージ）②連続実行の T が待機中の U を呼ぶときは §4.2.10 の取り消しを優先（§4.5.2 の「無視」は単発の T のみ）でよいか（推奨 = 優先）。
+- 実機目視 OK 後: task_06（省略表示の枠・`/task_new` で起票。問い合わせ口 `call_view_summary_for` と task_05a の開閉の状態を使う）→ task_07（正本反映・凍結・decisions_archive/45・current.md・/refactor_check）。
+- task_07 で正本に明記: §4.5.1 の「キー変更」は印が移る / §10-4a は §4.5.6 で置き換え / 待機中の呼び出し先の扱い（未送信なら巻き戻し・送った後は一時停止）/ §4.5.8 / ②の結果。完了判定前に deep-reviewer + codex-adversarial-reviewer。
 - **main へのマージはユーザーが行う**。
 
 ## 現フェーズ（phase 45）の要点
 
-- 呼び出しの種類: JSON `all: true` = 一括 / 無し = ステップ（既定・v0.5）。判定は `domain/sequence_control.is_step_call` / `is_all_call`（`step` キーは無視）。
-- ステップ: 段の印 `CallFrame.step`・文脈の `first_step`（`is_step_context`）・停止の行の判定は文脈の `ctx.sent`・区切りの判定は段の `frame.sent`（区切りを返すとき最上段がステップなら `_clear_step_frame_sent` で下ろす）。
-  単発の押下の合間 = `call_paused`（単発の呼び出しの一時停止）。呼び出し先の停止の行 = 連続実行の一時停止（呼び出しが終わる形なら終える）。
-- 表示: 要約 `application/call_view.py`・通知 `sequence_runner/call_view_notice.py`（止まった順・最後に止まった文脈・カウンターは `_commit_step_and_publish`）・UI `controllers/call_view_controller.py`・`views/full_view/call_view_frame.py`・高さ `presentation/call_view_heights.py`（config.json の `call_view_heights`）。
+- 呼び出しの種類: JSON `all: true` = 一括 / 無し = ステップ（既定）。判定は `domain/sequence_control.is_step_call` / `is_all_call`。
+- **v0.6 = 参照による連動**（写し・常駐の呼び出し文脈は無い）: 押下（連続実行はステップ）ごとに各トリガー自身の状態から `CallContext` を組み立て（`call_context.start_linked_call`）、終わりに書き戻す（`sequence_runner/linked_call.py`）。
+  参照中の印 = `AppState.call_refs_for`・連鎖 = `application/call_chain.chain_from`・完了は印のある呼び出し元へ一覧順に伝播・履歴は押下の番号つきで各トリガーへ（`sequence_history.commit_press`・戻すは同じ番号の一番上の段をまとめて）。
+- 表示: `SequenceRunner.call_view_summary_for(key)` を選んでいるトリガーで問い合わせ（通知は引数なし）・UI `controllers/call_view_controller.py`（トリガーごとの Expander）・高さ `presentation/call_view_heights.py`。
+- **Codex は python を実行できず修正の往復が増えやすい**（task_11a は 3 往復）→ 修正依頼には verifier の失敗（テスト名・assert・行）をそのまま渡し、実装かテストかを条項つきで判断させる。
 - **tk.PanedWindow の罠**: `panes()` は Tcl_Obj（`str()` に揃える）/ `paneconfigure` の後は `update_idletasks()` してから `sash_place` / テストのドラッグは押下の後に `update()`。
 
 ## 直前フェーズ（phase 44 = 子ファイル保存ダイアログの高さと列幅）の要点
