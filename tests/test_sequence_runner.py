@@ -1436,13 +1436,13 @@ class AnyActiveExecutionTest(unittest.TestCase):
 
 
 class CallViewExternalCleanupTest(unittest.TestCase):
-    def test_publication_closes_view_after_trigger_set_is_rekeyed_or_forgotten(self):
+    def test_publication_notifies_after_trigger_set_is_rekeyed_or_forgotten(self):
         for cleanup in ("rekey", "forget"):
             with self.subTest(cleanup=cleanup):
                 trigger = {"key": "f1", "actions": [A1]}
                 runner, state, _scheduler, _performed = make_runner([trigger])
                 notifications = []
-                runner._notify_call_view = notifications.append
+                runner._notify_call_view = lambda: notifications.append("changed")
                 identity = ("old-set", "f1")
                 context = CallContext(
                     trigger_set_id="old-set",
@@ -1453,8 +1453,6 @@ class CallViewExternalCleanupTest(unittest.TestCase):
                     stack=[CallFrame("f5")],
                 )
                 state.pending_steps[identity] = SimpleNamespace(call=context)
-                runner._call_view_contexts[identity] = context
-                runner._call_view_open = True
 
                 if cleanup == "rekey":
                     state.rekey_trigger_set("old-set", "new-set")
@@ -1462,9 +1460,7 @@ class CallViewExternalCleanupTest(unittest.TestCase):
                     state.forget_trigger_set("old-set")
                 runner.publish_call_view()
 
-                self.assertEqual(notifications, [None])
-                self.assertFalse(runner._call_view_open)
-                self.assertEqual(runner._call_view_contexts, {})
+                self.assertEqual(notifications, ["changed"])
 
 
 if __name__ == "__main__":

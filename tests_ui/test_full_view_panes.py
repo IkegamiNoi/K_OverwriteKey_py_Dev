@@ -167,10 +167,16 @@ class FullViewPanesTest(unittest.TestCase):
                 before_widths = tuple(box.winfo_width() for box in self.boxes)
                 before_minimum = self.app.wm_minsize()
                 try:
-                    self.app.call_view.on_summary(CallViewSummary(
+                    summary = CallViewSummary(
                         path=("f1", "f5", "f7"), actions=(), position=0,
                         loop_frames=(), counters={},
-                    ))
+                    )
+                    with patch.object(self.app.sequence_runner, "call_view_summary_for", return_value=summary), \
+                            patch.object(self.app.trigger_panel, "selected_trigger_key", return_value="f1"):
+                        identity = self.app.call_view._identity
+                        self.app.call_view._manually_operated.discard(identity)
+                        self.app.call_view.on_changed()
+                        self.assertTrue(self.app.call_view.is_open)
                     self.app.update()
                     self.assertEqual(self.app.pane_layout.measure_min_widths(), mins)
                     self.assertEqual(tuple(box.winfo_width() for box in self.boxes), before_widths)
@@ -180,7 +186,7 @@ class FullViewPanesTest(unittest.TestCase):
                         sequence.action_panes.winfo_reqwidth(),
                     )
                 finally:
-                    self.app.call_view.on_summary(None)
+                    self.app.call_view.on_changed()
                     self.app.update()
                 self.assertEqual(tuple(box.winfo_width() for box in self.boxes), before_widths)
                 self.assertEqual(self.app.wm_minsize(), before_minimum)

@@ -47,7 +47,7 @@ class CallViewFrameTest(unittest.TestCase):
     def _destroy_app(cls):
         try:
             cls.app.pane_layout.cancel_window_width_save()
-            cls.app.call_view.on_summary(None)
+            cls.app.call_view.on_changed()
             cls.app.update_idletasks()
         finally:
             cls.app.destroy()
@@ -64,6 +64,11 @@ class CallViewFrameTest(unittest.TestCase):
             "startup": dict(self.app._startup_settings),
         }
         self.selected_key = "f1"
+        self.summaries = {}
+        query_patch = patch.object(self.app.sequence_runner, "call_view_summary_for",
+                                   side_effect=lambda key: self.summaries.get(key))
+        query_patch.start()
+        self.addCleanup(query_patch.stop)
         self._selected_key_patch = patch.object(
             self.app.trigger_panel, "selected_trigger_key",
             side_effect=lambda: self.selected_key,
@@ -73,12 +78,12 @@ class CallViewFrameTest(unittest.TestCase):
         self.addCleanup(self._restore)
         self.controller._open_by_trigger.clear()
         self.controller._manually_operated.clear()
-        self.controller.on_summary(None)
+        self.notify(None)
         self.controller.on_selection_changed()
         self.app.update()
 
     def _restore(self):
-        self.controller.on_summary(None)
+        self.notify(None)
         self.controller._open_by_trigger.clear()
         self.controller._manually_operated.clear()
         self.controller.desired = self.saved["desired"]
@@ -103,6 +108,30 @@ class CallViewFrameTest(unittest.TestCase):
             counters={"score": 4},
         )
 
+    def notify(self, summary):
+        if summary is None:
+            self.summaries.clear()
+        else:
+            self.summaries[summary.path[0]] = summary
+        self.controller.on_changed()
+
+    def test_selection_switches_between_two_chains_and_unmarked_trigger(self):
+        self.notify(self.summary())
+        self.notify(CallViewSummary(path=("f2", "f6"), actions=({"type": "text", "value": "other"},),
+                                    position=0, loop_frames=(), counters={}))
+        self.assertEqual(self.box.call_view_frame.heading.cget("text"), "▾ 呼び出し先　f1 › f5")
+        self.selected_key = "f2"
+        self.controller.on_selection_changed()
+        self.assertTrue(self.controller.is_open)
+        self.assertEqual(self.box.call_view_frame.heading.cget("text"), "▾ 呼び出し先　f2 › f6")
+        self.assertIn("other", self.box.call_view_frame.action_list.get(0))
+        self.selected_key = "f1"
+        self.controller.on_selection_changed()
+        self.assertEqual(self.box.call_view_frame.heading.cget("text"), "▾ 呼び出し先　f1 › f5")
+        self.selected_key = "f3"
+        self.controller.on_heading_click()
+        self.assertEqual(self.box.call_view_frame.action_list.get(0), "呼び出し中ではありません")
+
     def _outer_pane_sizes(self):
         panes = self.app.full_view.panes
         boxes = (self.app.full_view.keymap_box, self.app.full_view.trigger_box, self.box)
@@ -125,7 +154,7 @@ class CallViewFrameTest(unittest.TestCase):
         )
         self.assertEqual(self.controller.desired, SAVED_HEIGHTS)
 
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.app.update()
 
         frame = self.box.call_view_frame
@@ -149,7 +178,7 @@ class CallViewFrameTest(unittest.TestCase):
 
     def test_selected_trigger_in_path_but_not_first_does_not_auto_open(self):
         self.selected_key = "f5"
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.app.update()
 
         self.assertFalse(self.controller.is_open)
@@ -162,13 +191,13 @@ class CallViewFrameTest(unittest.TestCase):
         changed.assert_called_once_with()
 
     def test_none_does_not_close_and_open_empty_state_is_read_only_message(self):
-        self.controller.on_summary(None)
+        self.notify(None)
         self.assertFalse(self.controller.is_open)
 
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.app.update()
         self.assertTrue(self.controller.is_open)
-        self.controller.on_summary(None)
+        self.notify(None)
         self.app.update()
 
         self.assertTrue(self.controller.is_open)
@@ -176,16 +205,16 @@ class CallViewFrameTest(unittest.TestCase):
         self.assertEqual(self.box.call_view_frame.heading.cget("text"), "▾ 呼び出し先")
 
     def test_manual_close_suppresses_automatic_reopen_for_that_trigger(self):
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.controller.on_heading_click()
         self.assertFalse(self.controller.is_open)
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.app.update()
         self.assertFalse(self.controller.is_open)
         self.assertEqual(self.box.call_view_frame.heading.cget("text"), "▸ 呼び出し先")
 
     def test_open_state_is_per_trigger_and_nonmatching_summary_shows_empty_state_when_opened(self):
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.assertTrue(self.controller.is_open)
 
         self.selected_key = "f2"
@@ -213,7 +242,7 @@ class CallViewFrameTest(unittest.TestCase):
         self.assertFalse(self.controller.is_open)
 
     def test_call_view_is_read_only_for_mouse_and_keyboard_events(self):
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.app.update()
         listing = self.box.call_view_frame.action_list
         before_history = dict(self.app.state.keymap_history)
@@ -251,7 +280,7 @@ class CallViewFrameTest(unittest.TestCase):
         self.assertEqual(self.app.list_clipboard.paste("actions"), before_clipboard)
 
     def test_sash_release_writes_both_heights_and_reopening_uses_saved_full_height(self):
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.app.update()
         self.app.update_idletasks()
         self.assertTrue(self.controller.is_open)
@@ -300,9 +329,9 @@ class CallViewFrameTest(unittest.TestCase):
             {"full": changed_height, "compact": SAVED_HEIGHTS["compact"]},
         )
 
-        self.controller.on_summary(None)
+        self.notify(None)
         self.app.update()
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.app.update()
         self.assertAlmostEqual(
             self.box.call_view_frame.heading.winfo_height()
@@ -320,7 +349,7 @@ class CallViewFrameTest(unittest.TestCase):
         self.assertEqual(self.controller.desired["full"], changed_height)
 
     def test_press_and_release_without_sash_motion_does_not_save(self):
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.app.update()
         _sash_x, sash_y = self.panes.sash_coord(0)
         x = self.panes.winfo_width() // 2
@@ -342,7 +371,7 @@ class CallViewFrameTest(unittest.TestCase):
         self.assertEqual(invalid, {})
         self.controller.desired = invalid
 
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.app.update()
 
         self.assertEqual(
@@ -365,7 +394,7 @@ class CallViewFrameTest(unittest.TestCase):
             self.box.action_frame.winfo_reqheight(),
         )
 
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.app.update()
         self.assertEqual(self.app.wm_minsize(), before_minimum)
         self.assertEqual(self._outer_pane_sizes(), before_widths)
@@ -383,7 +412,7 @@ class CallViewFrameTest(unittest.TestCase):
     def test_low_saved_height_stays_desired_while_display_meets_minimum(self):
         self.controller.desired["full"] = 1
 
-        self.controller.on_summary(self.summary())
+        self.notify(self.summary())
         self.app.update()
 
         self.assertEqual(self.controller.desired["full"], 1)
@@ -400,7 +429,7 @@ class CallViewFrameTest(unittest.TestCase):
             loop_frames=(), counters={},
         )
 
-        self.controller.on_summary(summary)
+        self.notify(summary)
         self.app.update()
 
         listing = self.box.call_view_frame.action_list

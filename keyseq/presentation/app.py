@@ -218,7 +218,7 @@ class App(tk.Tk):
             select_trigger=lambda key: self.trigger_panel.select_trigger_by_key(key),
             refresh_actions=lambda: self.trigger_panel.refresh_actions(),
             update_status=lambda: self.trigger_panel.update_status(),
-            notify_call_view=self.call_view.on_summary,
+            notify_call_view=self.call_view.on_changed,
             after=self.after,
             after_cancel=self.after_cancel,
             get_trigger_set_id=lambda: self.keymap_service.get_active_trigger_set_id(self.data),

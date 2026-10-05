@@ -4,7 +4,6 @@ from collections.abc import Iterable, Sequence
 from typing import Any, Callable
 
 from keyseq.application.call_context import CallContext, top_interval
-from keyseq.application.call_view import CallViewSummary
 from keyseq.application.sequence_history import (
     StepSnapshot, apply_control, commit_step, commit_press, snapshot_for,
 )
@@ -26,7 +25,7 @@ from keyseq.application.sequence_runner.call_run_to_end import CallRunToEndMixin
 from keyseq.application.sequence_runner.input_acceptance import InputAcceptanceMixin
 from keyseq.application.sequence_runner.wait_stop import WaitStopMixin
 from keyseq.application.sequence_runner.send_wait import SendWaitMixin
-from keyseq.application.sequence_runner.call_view_notice import CallViewMixin, RUN_TO_END_CALL_VIEW
+from keyseq.application.sequence_runner.call_view_notice import CallViewMixin
 
 
 class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLineWaitMixin,
@@ -47,7 +46,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         notify_message: Callable[[str], None] | None = None,
         begin_file_line: Callable[[dict[str, Any]], object | None] | None = None,
         poll_file_line: Callable[[object], bool | None] | None = None,
-        notify_call_view: Callable[[CallViewSummary | None], None] | None = None,
+        notify_call_view: Callable[[], None] | None = None,
         list_trigger_keys: Callable[[], Sequence[str]] | None = None,
     ):
         self.state = state
@@ -64,8 +63,6 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         self._notify_error = notify_error
         self._notify_message = notify_message
         self._notify_call_view = notify_call_view
-        self._call_view_contexts: dict[tuple[str, str] | str, CallContext] = {}
-        self._call_view_open = False
         self._begin_file_line = begin_file_line
         self._poll_file_line = poll_file_line
         self._pending_control_discard: tuple | None = None
@@ -191,7 +188,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                 except Exception:
                     pass
             self._commit_linked_call(pending)
-            self._call_view_disappeared(current)
+            self._publish_call_view()
         super()._cancel_pending_steps(identity, settle_wait=settle_wait)
         for _current, pending in cancelling:
             finishing = self._single_finishing_steps.get(_current)
@@ -242,6 +239,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             self.state.loop_frames_for(self._get_trigger_set_id())[key] = frames
         if reschedule_run_to_end:
             self._run_to_end_step(schedule_only=True)
+        self._publish_call_view()
 
     def cancel_pending_wait(self, key: str) -> None:
         identity = (self._get_trigger_set_id(), normalize_key_name(key))
@@ -385,7 +383,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                 self._commit_run_to_end_call(self._run_to_end_call)
             self._run_to_end_call_file_line = None
             self._run_to_end_call_token += 1
-            self._call_view_stopped(RUN_TO_END_CALL_VIEW, self._run_to_end_call)
+            self._publish_call_view()
 
     def resume_run_to_end(self) -> None:
         if self._rebuild_paused_run_to_end_call():
@@ -427,9 +425,8 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
 
     def on_runtime_reset(self) -> None:
         self._single_finishing_steps.clear()
-        self._call_view_contexts.clear()
-        self._publish_call_view()
         if self.state.run_to_end_key is None:
+            self._publish_call_view()
             return
         self._discard_run_to_end_file_line()
         self._discard_run_to_end_call()

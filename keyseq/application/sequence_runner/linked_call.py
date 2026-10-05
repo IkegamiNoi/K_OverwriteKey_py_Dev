@@ -32,6 +32,9 @@ class LinkedCallMixin:
 
     def _write_linked_progress(self, ctx: CallContext, *, failed: bool = False) -> None:
         """Publish frame positions and marks as the triggers' own runtime state."""
+        if not ctx.started and not failed:
+            # A cancelled reservation has not inspected or changed the saved chain.
+            return
         with self.state.lock:
             refs = self.state.call_refs_for(ctx.trigger_set_id)
             for frame in ctx.changed_frames.values():

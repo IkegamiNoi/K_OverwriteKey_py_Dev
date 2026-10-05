@@ -57,10 +57,12 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.begin_results = []
         self.poll_results = []
         self.call_views = []
+        self.view_key = "f1"
         self.begin_result = object()
         self.perform_result = True
         self.perform_callback = None
-        notify_call_view = {"notify_call_view": self.call_views.append} \
+        notify_call_view = {"notify_call_view": lambda: self.call_views.append(
+            self.runner.call_view_summary_for(self.view_key))} \
             if include_call_view else {}
         trigger_order = {"list_trigger_keys": lambda: [trigger["key"] for trigger in
                           self.trigger_sets.get(self.trigger_set_id, [])]} \
@@ -116,14 +118,15 @@ class SequenceRunnerCallTests(unittest.TestCase):
     def history(self, key="f1", trigger_set_id="set"):
         return self.state.history_for(trigger_set_id).get(key, [])
 
-    def test_call_view_stays_closed_for_uninterrupted_batch_call(self):
+    def test_call_view_notifies_during_uninterrupted_batch_call(self):
         self.trigger("f1", [call("f5", all=True)])
         self.trigger("f5", [text("A"), text("B")])
 
         self.runner.handle_key("f1")
         self.run_all()
 
-        self.assertEqual(self.call_views, [])
+        self.assertTrue(any(summary is not None for summary in self.call_views))
+        self.assertIsNone(self.call_views[-1])
 
     def test_runner_without_call_view_callback_keeps_existing_call_behavior(self):
         self.setUp(include_call_view=False)
@@ -274,7 +277,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
                 expected_counter = 0 if op == "back" else 1
                 self.assertEqual(self.call_views[-1].counters.get("n", 0), expected_counter)
 
-    def test_call_view_closes_on_runtime_reset_with_only_a_paused_single_call(self):
+    def test_call_view_summary_clears_on_runtime_reset_with_only_a_single_reference(self):
         self.trigger("f1", [call("f5")])
         self.trigger("f5", [text("A"), text("B")])
 
@@ -282,6 +285,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.scheduler.run_one()
         self.assertTrue(self.call_views[-1])
 
+        self.state.reset_indices()
         self.runner.on_runtime_reset()
 
         self.assertIsNone(self.call_views[-1])
@@ -311,7 +315,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertIn("f1", self.state.call_refs_for("set"))
         self.assertEqual(self.index("f5"), 1)
 
-    def test_call_view_closes_when_run_to_end_is_stopped_or_runtime_reset(self):
+    def test_call_view_reference_survives_stop_and_clears_on_runtime_reset(self):
         for close in ("stop", "reset"):
             with self.subTest(close=close):
                 self.setUp()
@@ -325,9 +329,13 @@ class SequenceRunnerCallTests(unittest.TestCase):
                 if close == "stop":
                     self.runner.stop_run_to_end()
                 else:
+                    self.state.reset_indices()
                     self.runner.on_runtime_reset()
 
-                self.assertIsNone(self.call_views[-1])
+                if close == "stop":
+                    self.assertIsNotNone(self.call_views[-1])
+                else:
+                    self.assertIsNone(self.call_views[-1])
 
     def test_call_view_opens_for_continuous_stop_row_and_tracks_resume(self):
         self.trigger("f1", [call("f5")], run_to_end=True)
@@ -343,7 +351,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         resume_updates_start = len(self.call_views)
         self.runner.resume_run_to_end()
-        self.assertIs(self.call_views[-1], stopped_summary)
+        self.assertEqual(self.call_views[-1], stopped_summary)
         self.run_all()
 
         self.assertTrue(any(
@@ -353,22 +361,29 @@ class SequenceRunnerCallTests(unittest.TestCase):
         ))
         self.assertIsNone(self.call_views[-1])
 
-    def test_call_view_selects_last_stopped_context_then_restores_previous(self):
+    def test_call_view_selection_queries_independent_chains_and_restores_previous(self):
         self.trigger("f2", [call("f6", all=True)], run_to_end=True)
         self.trigger("f6", [text("continuous A"), text("continuous B")])
         self.trigger("f1", [call("f5")])
         self.trigger("f5", [text("step A"), text("step B")])
 
+        self.view_key = "f2"
         self.runner.handle_key("f2")
         self.scheduler.run_one()
         self.runner.pause_run_to_end()
         self.assertEqual(self.call_views[-1].path, ("f2", "f6"))
+        self.view_key = "f1"
 
         self.runner.handle_key("f1")
         self.scheduler.run_one()
         self.assertEqual(self.call_views[-1].path, ("f1", "f5"))
 
-        # 復元の確認は task_11（表示の切替）で書き直す
+        self.view_key = "f2"
+        self.runner.publish_call_view()
+        self.assertEqual(self.call_views[-1].path, ("f2", "f6"))
+        self.view_key = "f5"
+        self.runner.publish_call_view()
+        self.assertIsNone(self.call_views[-1])
 
     def test_01_single_press_calls_target_and_returns_to_callers_next_action(self):
         self.trigger("f1", [call("f5", all=True), text("X")])

@@ -666,6 +666,11 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     `linked_call.py`（`LinkedCallMixin`）へ task_09 の書き戻し・一覧順の完了伝播・履歴処理を移動し、両経路で共有する。
     一時停止中の呼び出し元は完了伝播で先行処理まで進め、末尾なら実行を終える。再開は実状態から再構築する。
     `SequenceRunner.list_trigger_keys` は有効なトリガー一覧の上から順のキー取得（省略時は参照印のキー順）。単発・連続実行の完了伝播の順を決める。
+    phase 45 task_11: `call_view_notice.py` の `call_view_summary_for(key)` はアクティブな一覧の参照印を
+    `call_chain.chain_from` でたどり、最上段の現在の行・位置・周回・カウンターを複製して返す。
+    書き戻し前は実行中の文脈の位置・周回・印を優先し、一時停止中の文脈は使わない（共有状態を参照）。
+    `notify_call_view` は引数なしの変更通知。`CallViewController.on_changed` と選択変更は選択キーで問い合わせ、
+    トリガー別の Expander を描画する。停止順の文脈管理・前の要約の保持・表示用の段の書き換えは廃止。
     通常の単押しの完了は、末尾の通常行の送信・先行処理の折り返し・system 行だけの末尾到達時に記録する。
     処理中の履歴起点と完了の事実は一覧 ID・キーで保持し、書き込み時の位置・周回からは推定しない（先頭の system 行の先行処理後も完了を伝播する）。
   - runner の mixin（`sequence_runner/`）: `call_wait.py`（`CallWaitMixin` = 単発の呼び出し。`PendingStep.call` / `call_file_line` / `call_paused`）/

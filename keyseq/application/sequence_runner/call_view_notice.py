@@ -1,67 +1,58 @@
-"""Remember stopped calls in stop order and publish their display snapshots."""
+"""Query the selected trigger's live chain and notify of possible changes."""
 
 from __future__ import annotations
 
 from keyseq.application.call_context import CallContext
 from keyseq.application.call_chain import chain_from
-from keyseq.application.call_view import build_call_view_summary
-
-
-RUN_TO_END_CALL_VIEW = "run_to_end"
-CallViewIdentity = tuple[str, str] | str
+from keyseq.application.call_view import CallViewSummary, build_call_view_summary
+from keyseq.application.sequence_steps import LoopFrame
+from keyseq.domain.config import normalize_key_name
 
 
 class CallViewMixin:
-    def _call_view_stopped(self, identity: CallViewIdentity, ctx: CallContext) -> None:
-        if not ctx.stack:
-            return
-        self._call_view_contexts.pop(identity, None)
-        self._call_view_contexts[identity] = ctx
-        self._publish_call_view()
+    def call_view_summary_for(self, key: str) -> CallViewSummary | None:
+        """Prefer in-flight frame values until linked progress is written back."""
+        key = normalize_key_name(key)
+        trigger_set_id = self._get_trigger_set_id()
+        with self.state.lock:
+            positions = dict(self.state.indices_for(trigger_set_id))
+            refs = set(self.state.call_refs_for(trigger_set_id))
+            frames_by_key: dict[str, list[LoopFrame]] = {}
+            for ctx in self._live_call_view_contexts(trigger_set_id):
+                for frame in ctx.changed_frames.values():
+                    positions[frame.key] = frame.position
+                    frames_by_key[frame.key] = frame.frames
+                    refs.discard(frame.key)
+                refs.discard(ctx.root_key)
+                if ctx.stack and not ctx.failed:
+                    refs.add(ctx.root_key)
+                    refs.update(frame.key for frame in ctx.stack[:-1])
+        path = chain_from(self.state, trigger_set_id, key, self._find_trigger,
+                          positions=positions, call_refs=refs)
+        if len(path) < 2:
+            return None
+        top = path[-1]
+        trigger = self._find_trigger(top)
+        if trigger is None:
+            return None
+        with self.state.lock:
+            frames = frames_by_key.get(top, self.state.loop_frames_for(trigger_set_id).get(top, []))
+            return build_call_view_summary(path, trigger.get("actions", []),
+                                           positions.get(top, 0), frames, self.state.counters)
 
-    def _call_view_disappeared(self, identity: CallViewIdentity) -> None:
-        self._call_view_contexts.pop(identity, None)
-        self._publish_call_view()
+    def _live_call_view_contexts(self, trigger_set_id: str) -> list[CallContext]:
+        # Paused contexts can lag behind another press on the shared callee.
+        contexts = [pending.call for identity, pending in self.state.pending_steps.items()
+                    if identity[0] == trigger_set_id and not pending.call_paused]
+        if not self.state.run_to_end_paused:
+            contexts.append(self._run_to_end_call)
+        return [ctx for ctx in contexts if isinstance(ctx, CallContext)
+                and ctx.trigger_set_id == trigger_set_id and ctx.started]
 
     def publish_call_view(self) -> None:
-        """Republish the current call view after external state cleanup."""
+        """Notify after external state cleanup."""
         self._publish_call_view()
 
     def _publish_call_view(self) -> None:
-        # Only calls that have stopped can open the view. Resuming keeps their order.
-        for identity, ctx in tuple(self._call_view_contexts.items()):
-            if identity == RUN_TO_END_CALL_VIEW:
-                current = self._run_to_end_call
-                if current is not None and current is not ctx:
-                    # Keep the stopped view until the rebuilt live frames are ready.
-                    if not current.started:
-                        continue
-                    self._call_view_contexts[identity] = current
-                    ctx = current
-            else:
-                pending = self.state.pending_steps.get(identity)
-                current = pending.call if pending is not None else None
-                if pending is None:
-                    # This temporary display bridge is replaced in task_11 (表示の切替).
-                    chain = chain_from(self.state, identity[0], identity[1], self._find_trigger)
-                    if len(chain) > 1:
-                        # Display compatibility only: this object never resumes execution.
-                        ctx.stack = [ctx.changed_frames[key] for key in chain[1:]
-                                     if key in ctx.changed_frames]
-                        for frame in ctx.stack:
-                            frame.position = self.state.indices_for(identity[0]).get(frame.key, 0)
-                            frame.frames = list(self.state.loop_frames_for(identity[0]).get(frame.key, []))
-                            ctx.entry_for(frame.key)
-                        current = ctx
-            if current is not ctx or not ctx.stack:
-                self._call_view_contexts.pop(identity)
-        opened = bool(self._call_view_contexts)
-        if not opened and not self._call_view_open:
-            return
-        self._call_view_open = opened
         if self._notify_call_view is not None:
-            summary = None
-            if opened:
-                ctx = next(reversed(self._call_view_contexts.values()))
-                summary = build_call_view_summary(ctx, self.state.counters)
-            self._notify_call_view(summary)
+            self._notify_call_view()

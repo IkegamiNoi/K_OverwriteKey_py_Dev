@@ -16,7 +16,6 @@ from keyseq.application.sequence_steps import (
     LoopFrame, StepOutcome, after_normal_action, resume_for_pending, settle_after_normal,
     apply_deferred_counters,
 )
-from keyseq.application.sequence_runner.call_view_notice import RUN_TO_END_CALL_VIEW
 from keyseq.application.sequence_runner.file_line_wait import (
     FILE_LINE_POLL_INTERVAL_MS,
     FILE_LINE_UNAVAILABLE_MESSAGE,
@@ -60,12 +59,11 @@ class CallRunToEndMixin:
             0, lambda: self._advance_run_to_end_call(generation, key, token),
         )
 
-    def _discard_run_to_end_call(self, *, keep_view: bool = False) -> None:
+    def _discard_run_to_end_call(self) -> None:
         self._run_to_end_call = None
         self._run_to_end_call_file_line = None
         self._run_to_end_call_token += 1
-        if not keep_view:
-            self._call_view_disappeared(RUN_TO_END_CALL_VIEW)
+        self._publish_call_view()
 
     def _run_to_end_call_is_current(self, generation: int, key: str, token: int) -> bool:
         return (
@@ -456,7 +454,7 @@ class CallRunToEndMixin:
         actions = trigger.get("actions", []) if trigger else []
         index = self._get_index(key)
         is_call = 0 <= index < len(actions) and system_op(actions[index]) == OP_CALL
-        self._discard_run_to_end_call(keep_view=is_call)
+        self._discard_run_to_end_call()
         self._run_to_end_resume = None
         self._run_to_end_snapshot = None
         self._run_to_end_wait_position = None

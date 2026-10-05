@@ -5,7 +5,6 @@ from __future__ import annotations
 import tkinter as tk
 from typing import TYPE_CHECKING
 
-from keyseq.application.call_view import CallViewSummary
 from keyseq.presentation.call_view_heights import (
     CALL_VIEW_HEIGHTS_KEY, default_call_view_height,
     displayed_call_view_height, parse_call_view_heights,
@@ -24,7 +23,6 @@ class CallViewController:
         self.desired = parse_call_view_heights(
             startup.get(CALL_VIEW_HEIGHTS_KEY) if isinstance(startup, dict) else None,
         )
-        self.last_summary: CallViewSummary | None = None
         self._open_by_trigger: dict[tuple[str, str], bool] = {}
         self._manually_operated: set[tuple[str, str]] = set()
         self._drag_height: int | None = None
@@ -92,16 +90,8 @@ class CallViewController:
         compact = self.app.compact_view.trigger_box.trigger_list
         self.desired.setdefault("compact", default_call_view_height(compact.winfo_reqheight()))
 
-    def on_summary(self, summary: CallViewSummary | None) -> None:
+    def on_changed(self) -> None:
         """runner が UI スレッドから通知する。実行状態は変更しない。"""
-        self.last_summary = summary
-        identity = self._identity
-        if (
-            summary is not None and identity is not None
-            and summary.path and summary.path[0] == identity[1]
-            and identity not in self._manually_operated
-        ):
-            self._open_by_trigger[identity] = True
         self._render()
 
     def on_selection_changed(self) -> None:
@@ -118,12 +108,12 @@ class CallViewController:
 
     def _render(self) -> None:
         identity = self._identity
+        summary = self.app.sequence_runner.call_view_summary_for(identity[1]) if identity else None
+        if summary is not None and identity not in self._manually_operated:
+            self._open_by_trigger[identity] = True
         is_open = bool(identity and self._open_by_trigger.get(identity, False))
         frame = self.box.call_view_frame
-        summary = self.last_summary
-        visible_summary = (
-            summary if is_open and identity is not None and identity[1] in summary.path else None
-        ) if summary is not None else None
+        visible_summary = summary if is_open else None
         frame.set_heading(is_open, visible_summary.path if visible_summary is not None else ())
         if not is_open:
             if self.is_open:

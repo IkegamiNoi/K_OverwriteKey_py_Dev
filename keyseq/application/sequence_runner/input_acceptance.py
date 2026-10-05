@@ -87,7 +87,7 @@ class InputAcceptanceMixin:
             self._write_linked_progress(pending.call)
             if not pending.call.performing:
                 self._commit_linked_call(pending)
-            self._call_view_stopped((self._get_trigger_set_id(), key), pending.call)
+            self._publish_call_view()
 
     def _resume_single_call(self, key: str) -> None:
         trigger_set_id = self._get_trigger_set_id()
@@ -113,8 +113,6 @@ class InputAcceptanceMixin:
                     ctx.before[member] = snapshot_for(self.state, trigger_set_id, member)
                 pending.call = ctx
                 pending.position = index
-                if (trigger_set_id, key) in self._call_view_contexts:
-                    self._call_view_contexts[(trigger_set_id, key)] = ctx
         self._schedule_single_call(trigger_set_id, key, pending.generation, pending, delay)
         self._update_status()
 

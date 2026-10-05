@@ -91,7 +91,7 @@ class CallWaitMixin:
                     or pending.generation != generation):
                 return False
             self.state.pending_steps.pop(identity)
-        self._call_view_disappeared(identity)
+        self._publish_call_view()
         return True
 
     def _discard_if_parent_invalid(
@@ -379,5 +379,5 @@ class CallWaitMixin:
         if not self._drop_single_call(trigger_set_id, key, generation, pending):
             return
         self._commit_linked_call(pending)
-        self._call_view_stopped((trigger_set_id, key), pending.call)
+        self._publish_call_view()
         self._select_trigger(key)

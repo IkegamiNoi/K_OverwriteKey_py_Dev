@@ -13,20 +13,21 @@ def chain_from(
     trigger_set_id: str,
     key: str,
     find_trigger: Callable[[str], object | None],
+    *, positions: Mapping[str, int] | None = None, call_refs: set[str] | None = None,
 ) -> tuple[str, ...]:
-    """Follow active call marks from ``key`` until the chain stops."""
+    """Follow active marks, optionally using in-flight positions and marks."""
     with state.lock:
         chain: list[str] = []
         current = key
         while current not in chain:
             chain.append(current)
-            if current not in state.call_refs_for(trigger_set_id):
+            if current not in (state.call_refs_for(trigger_set_id) if call_refs is None else call_refs):
                 break
             if len(chain) - 1 >= sequence_control.MAX_CALL_DEPTH:
                 break
             trigger = find_trigger(current)
             actions = _actions_for(trigger)
-            position = state.indices_for(trigger_set_id).get(current, 0)
+            position = (state.indices_for(trigger_set_id) if positions is None else positions).get(current, 0)
             if actions is None or position < 0 or position >= len(actions):
                 break
             target = call_graph.call_target(actions[position])
