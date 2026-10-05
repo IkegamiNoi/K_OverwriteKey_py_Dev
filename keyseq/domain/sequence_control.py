@@ -41,6 +41,16 @@ def system_op(action: Mapping[str, Any]) -> str:
     return value.strip().lower() if isinstance(value, str) else ""
 
 
+def control_target(action: Mapping[str, Any]) -> str | None:
+    if action_type(action) != ACTION_TYPE_SYSTEM or system_op(action) not in (OP_BACK, OP_REWIND):
+        return None
+    if "target" not in action:
+        return None
+    target = action.get("target")
+    # config imports this module, so keep key normalization inline to avoid a cycle.
+    return target.strip().lower() if isinstance(target, str) else ""
+
+
 def is_step_call(action: Mapping[str, Any]) -> bool:
     return (
         action_type(action) == ACTION_TYPE_SYSTEM
@@ -179,9 +189,9 @@ def _format_system_value(
     if op == OP_WAIT:
         return f"[wait] {action.get('ms', '')}ms"
     if op == OP_BACK:
-        return "[back]"
+        return _format_control_target("[back]", action, resolve_call)
     if op == OP_REWIND:
-        return "[rewind]"
+        return _format_control_target("[rewind]", action, resolve_call)
     if op == OP_STOP:
         return "[stop]"
     if op == OP_CALL:
@@ -198,6 +208,24 @@ def _format_system_value(
             return f"{display_name} {key}（{label}）"
         return f"{display_name} {key}"
     return f"[system] {action.get('op', '')}"
+
+
+def _format_control_target(
+    display_name: str,
+    action: Mapping[str, Any],
+    resolve_call: Callable[[Any], tuple[str, str | None]] | None,
+) -> str:
+    target = control_target(action)
+    if target is None:
+        return display_name
+    if not target:
+        return f"{display_name} → （参照先なし）"
+    if resolve_call is None:
+        return f"{display_name} → {target}"
+    key, label = resolve_call(action.get("target"))
+    if label is None:
+        return f"{display_name} → {key}（参照先なし）"
+    return f"{display_name} → {key}"
 
 
 def _format_counter_value(

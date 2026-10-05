@@ -23,6 +23,14 @@ class ListClipboardTest(unittest.TestCase):
 
         self.assertIsNone(clipboard.paste("triggers"))
 
+    def test_copy_and_paste_preserve_back_control_target(self):
+        action = {"type": "system", "op": "back", "target": " F5 "}
+        clipboard = ListClipboard()
+
+        clipboard.copy(CLIP_ACTIONS, [action])
+
+        self.assertEqual(clipboard.paste(CLIP_ACTIONS), [action])
+
     def test_clear_removes_stored_items(self):
         clipboard = ListClipboard()
         clipboard.copy(CLIP_ACTIONS, [{"type": "text"}])

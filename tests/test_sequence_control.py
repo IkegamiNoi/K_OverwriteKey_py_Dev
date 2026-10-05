@@ -10,6 +10,7 @@ from keyseq.domain.sequence_control import (
     OP_CALL,
     action_type,
     analyze_loops,
+    control_target,
     enclosing_loop_starts,
     format_control_value,
     is_all_call,
@@ -183,6 +184,41 @@ class FormatControlValueTest(unittest.TestCase):
         self.assertEqual(format_control_value(system("wait", ms=500)), "[wait] 500ms")
         self.assertEqual(format_control_value(system("back")), "[back]")
         self.assertEqual(format_control_value(system("rewind")), "[rewind]")
+
+    def test_control_target_distinguishes_missing_empty_and_normalized_values(self) -> None:
+        self.assertIsNone(control_target(system("back")))
+        self.assertEqual(control_target(system("back", target=" ")), "")
+        self.assertEqual(control_target(system("rewind", target=None)), "")
+        self.assertEqual(control_target(system("back", target="  F5  ")), "f5")
+        self.assertEqual(control_target(system("call", target="F5")), None)
+        self.assertIsNone(control_target({"type": "text", "op": "back", "target": "F5"}))
+
+    def test_back_and_rewind_target_display(self) -> None:
+        resolver = lambda target: ("f5", "Macro")
+        self.assertEqual(
+            format_control_value(system("back", target=" F5 "), resolve_call=resolver),
+            "[back] → f5",
+        )
+        self.assertEqual(
+            format_control_value(system("rewind", target="F5"), resolve_call=lambda target: ("f5", "")),
+            "[rewind] → f5",
+        )
+        self.assertEqual(
+            format_control_value(system("back", target="F5"), resolve_call=lambda target: ("f5", None)),
+            "[back] → f5（参照先なし）",
+        )
+        self.assertEqual(
+            format_control_value(system("back", target="F5")),
+            "[back] → f5",
+        )
+        self.assertEqual(format_control_value(system("rewind", target=" ")), "[rewind] → （参照先なし）")
+        self.assertEqual(
+            format_control_value(
+                system("back", target=""),
+                resolve_call=lambda target: self.fail("resolver must not be called for an empty target"),
+            ),
+            "[back] → （参照先なし）",
+        )
 
     def test_call_display_with_resolved_labels(self) -> None:
         action = system("call", target="F5")

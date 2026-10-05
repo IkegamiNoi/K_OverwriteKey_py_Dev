@@ -47,7 +47,8 @@ OK 時に未選択 / 参照先なし / 自分自身 / 戻す・先頭へだけ�
 ## タスク
 
 - task_01: domain — `target` の 3 状態の判定・一覧の表示（§6）・戻す / 先頭へ用の OK 時の検査（§5 の 4 文言・呼び出しの検査とは別関数）・
-  キー変更の書き換え（§2。`rename_call_targets` の「call の target だけ」の契約を変えるなら改名か別関数）・複製 / 貼り付けで `target` が保たれることのテスト（§3）
+  キー変更の書き換え（§2。`rename_call_targets` の「call の target だけ」の契約を変えるなら改名か別関数）・複製 / 貼り付けで `target` が保たれることのテスト（§3） —
+  **完了**（2026-10-06。codex-implementer・新規 `domain/control_target.py`・reviewer 採用〔軽微: 1 行の back/rewind 以外は拒否しない境界テスト・型注釈 → メインで追記〕・tests 1300 / tests_ui 824 / smoke pass）
 - task_02: application — `apply_control` の対象の決定（§4: `target` あり / 空 / 無い・判定の順序・直前のトリガー不変）。
   2 回押しの対象が T になることはテストで担保（`input_acceptance.py` は変更不要の見込み）
 - task_03: presentation — 編集ダイアログ（チェック・ドロップダウンの流用・OFF でグレー・操作の切替・拒否）・キー変更の書き換えの配線・
