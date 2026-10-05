@@ -69,6 +69,7 @@ v0.6 で写しをやめ、呼び出し元と呼び出し先を参照中の印で
 - task_06: 省略表示の枠（トリガー一覧の下・表示の切替で同じ文脈）（§5.1・§5.2） — **完了**（2026-10-05・実機目視 OK。codex-delegating-implementer〔Luna サブエージェント使用・自己申告〕・枠の置き場を host 2 つに一般化し開閉は共有・省略表示の既定の高さが切替途中の高さで決まる不具合を 1 回差し戻して修正・reviewer 採用。tests 1284 / tests_ui 824 / smoke pass）
 - task_07: 正本反映（暫定 31 §12 の昇格・凍結）・`codebase_map.md`・`decisions_archive/45_call_step_and_view.md`・current.md の完了記載・`/refactor_check`。起票元 idea なし — **完了**（2026-10-05。メイン・deep-reviewer 修正要 / codex 敵対的 needs-attention → 転記を修正・M1〜M4 はユーザー判断〔M1 実装のまま・M2 取り消し・M3 受容・M4 捨てて進める〕・暫定 31 凍結・/refactor_check = 推奨 → 提案書 19〔ユーザー判断待ち〕）
 - task_07a（2026-10-05 完了判定前レビューのユーザー確定 M2・M4）: 実行中の単発の呼び出しの連鎖の呼び出し先を変えたら取り消して変えた位置を優先 / 一時停止中の呼び出し先を捨てて進める — **完了**（2026-10-05。codex-delegating-implementer〔サブエージェント未使用・自己申告〕・reviewer 採用。tests 1292 / tests_ui 824 / smoke pass）
+- task_12_refactor（2026-10-06 ユーザー判断・/refactor_check 推奨）: 提案書 19（連続実行の進行を `run_to_end.py` へ・`apply_control` の分割） — **完了**（2026-10-06。codex-delegating-implementer〔Luna サブエージェント使用・自己申告〕・reviewer 採用〔移動したメソッドの本文が一致することを機械比較〕・メインで docstring の戻り値の説明を戻す。tests 1292 / tests_ui 824 / smoke pass〔件数不変〕）
 
 ## レビュー方針
 

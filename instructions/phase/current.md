@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 45 は 2026-10-05 完了。次フェーズはユーザー判断・着手時は `/phase_start`。提案書 19 の実施はユーザー判断待ち）。
+- **アクティブなフェーズ = なし**（phase 45 は 2026-10-05 完了。次フェーズはユーザー判断・着手時は `/phase_start`。提案書 19 は 2026-10-06 に task_12_refactor で実施済み）。
 - 直前の完了フェーズ = [phase 45](45_call_step_and_view/phase.md)（2026-10-05・呼び出しのステップ実行と呼び出し先の表示。暫定仕様先行モード・判断は [decisions_archive/45](../../.claude_data/state/decisions_archive/45_call_step_and_view.md)）。
   呼び出しの行ごとに一括 / ステップを選び、ステップは呼び出し先の中も 1 押下ずつ進め停止の行を効かせる。呼び出し先の中で止まったら写し・位置・経路を表示する枠を開く（フル / 省略表示）。
   JSON は呼び出しの行の `step` と config.json の `call_view_heights` を追加（後方互換）。主入力 = 暫定仕様 [31_call_step_and_view.md](../history/31_call_step_and_view.md)（v0.6・ユーザー確定済 2026-10-05）。
@@ -108,7 +108,7 @@
   **16 = phase 38 由来・実施済＝phase 38 task_08**〔`sequence_runner.py` の次ステップ予約の集約・file_line 分岐の切り出し・分割〕 /
   **17 = phase 40 由来・実施済＝phase 40 task_11_refactor**〔上限 10000 の定数化・待機の mixin `send_wait.py`・file_line 未設定の判定の一本化〕）・
   **18 = phase 43 由来・実施済＝phase 43 task_10**〔トリガーの追加・改名・削除を `trigger_row_edit.py` へ・まとめて設定のダイアログの `__init__` 分割・`range_or_index` の共通化〕 /
-  **19 = phase 45 由来・ユーザー判断待ち**〔`sequence_runner.py` 649 行の連続実行の進行を mixin へ・`apply_control` 104 行の分割〕 /
+  **19 = phase 45 由来・実施済＝phase 45 task_12_refactor**〔`sequence_runner.py` 649 行の連続実行の進行を mixin へ・`apply_control` 104 行の分割〕 /
   次採番は **`20_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 

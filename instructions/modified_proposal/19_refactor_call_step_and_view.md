@@ -1,6 +1,6 @@
 # 提案書 19: phase 45（呼び出しのステップ実行と呼び出し先の表示）後のリファクタ
 
-> 状態: **提案中**（2026-10-05・phase 45 task_07 の `/refactor_check`。実施はユーザー承認後）。
+> 状態: **実施済**（2026-10-06・phase 45 task_12_refactor。`sequence_runner.py` 649 → 377 行・`run_to_end.py` 299 行・`apply_control` 104 → 39 行）。
 
 ## 判定の要約
 

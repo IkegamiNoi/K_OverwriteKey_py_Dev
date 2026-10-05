@@ -4,23 +4,23 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-05T23:30:00
+last_updated: 2026-10-06T10:00:00
 phase: **なし**（phase 45 は 2026-10-05 完了・`instructions/phase/45_call_step_and_view`・暫定 31 v0.6 凍結）。次採番 = phase 46 / 暫定 32 / decisions 46 / 提案書 20。
 直前の完了フェーズ = **phase 45**（呼び出しのステップ実行と呼び出し先の表示・`decisions_archive/45_call_step_and_view.md`）/ phase 44 / phase 43。
 last_commit_location: `claude/sequential-trigger-cancellation-priority-8eebac`（phase 45 完了。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 45 完了。提案書 19（/refactor_check 推奨）の実施可否と次フェーズはユーザー判断待ち。**
+focus: **phase 45 完了（提案書 19 も task_12_refactor で実施済み）。次フェーズはユーザー判断待ち。**
 mode: idle
 
 ## last_action
-ts: 2026-10-05T23:30:00
+ts: 2026-10-06T10:00:00
 who: main
 summary: |
   task_06 の実機目視 OK → task_07（正本反映: features.md §4.2.3・4.2.5・4.2.6・4.2.8・4.2.9 全面改訂・4.2.10・4.6 呼び出し先の表示枠 / data_schema.md §5.4・§5.11.6 / codebase_map.md）。
   完了判定前レビュー: deep-reviewer 修正要 / codex 敵対的 needs-attention → 転記の誤りを修正、M1〜M4 はユーザー判断（M1 一時停止で書き戻して積む＝実装のまま / M2 実行中の単発の呼び出しは呼び出し先の変更で取り消し / M3 受容 / M4 一時停止中の呼び出し先は捨てて進める）。
-  task_07a（M2・M4・codex-delegating）→ reviewer 採用。暫定 31 凍結・decisions_archive/45・索引・current.md。/refactor_check = 推奨（M1 sequence_runner.py 649 行 / M2 apply_control 104 行）→ 提案書 19。
+  task_07a（M2・M4・codex-delegating）→ reviewer 採用。暫定 31 凍結・decisions_archive/45・索引・current.md。/refactor_check = 推奨 → 提案書 19 → ユーザー判断で task_12_refactor として実施（sequence_runner.py 649 → 377 行・run_to_end.py 新設・apply_control 104 → 39 行・reviewer 採用・件数不変）。
 result_files:
   - instructions/common/spec_detail/{features,data_schema}.md・instructions/common/codebase_map.md
   - keyseq/application/{call_context.py,sequence_runner/{sequence_runner,input_acceptance,call_wait,call_run_to_end}.py}・tests/test_sequence_runner_call.py
@@ -33,7 +33,7 @@ verified:
   review: task_07 = deep-reviewer + codex-adversarial（指摘は修正・ユーザー判断済み）/ task_07a = reviewer 採用
 
 ## next_action
-- ユーザー判断: ①提案書 19 を実施するか（する場合は phase 45 末の追加タスク or 次フェーズ前のミニフェーズ）②次フェーズ（候補は current.md「次フェーズ候補」）。
+- ユーザー判断: 次フェーズ（候補は current.md「次フェーズ候補」）。
 - main へのマージはユーザー。
 
 ## blockers

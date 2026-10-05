@@ -191,96 +191,31 @@ def cancel_pending_steps(
 
 
 def apply_control(
-    state: Any,
-    source: tuple[str, str],
-    op: str,
-    find_trigger: Callable[[str], object | None],
+    state: Any, source: tuple[str, str],
+    op: str, find_trigger: Callable[[str], object | None],
     prepare_targets: Callable[[tuple[tuple[str, str], ...]], bool] | None = None,
 ) -> tuple[str | None, str | None]:
-    """Apply a back/rewind control to the most recently recorded trigger.
-
-    The caller performs any selection after the triggering key's normal selection
-    work.  A returned key requests selecting the restored target; a returned
-    message reports why no target could be operated on.
-    """
+    """Apply back/rewind to the last trigger: (key to select, None) or (None, reason)."""
     target = state.last_trigger
-    if (
-        target is None
-        or target == source
-        or target[0] != source[0]
-        or find_trigger(target[1]) is None
-    ):
+    if (target is None or target == source
+            or target[0] != source[0] or find_trigger(target[1]) is None):
         return None, NO_TARGET_MESSAGE
 
     target_id, target_key = target
-    restore_key = target_key
-    histories: MutableMapping[str, list[HistoryEntry]]
-    grouped_keys: tuple[str, ...] = ()
-    if op == "back":
-        with state.lock:
-            target_has_call_ref = target_key in state.call_refs_for(target_id)
-        if target_has_call_ref:
-            candidate = chain_top(state, target_id, target_key, find_trigger)
-            with state.lock:
-                candidate_history = state.history_for(target_id).get(candidate)
-                if candidate_history:
-                    restore_key = candidate
+    restore_key = (_back_origin(state, target_id, target_key, find_trigger)
+                   if op == "back" else target_key)
     with state.lock:
         histories = state.history_for(target_id)
-        top_entry = None
-        if op == "back":
-            origin_history = histories.get(restore_key)
-            top_entry = origin_history[-1] if origin_history else None
-            if top_entry is not None:
-                press_id = top_entry.press_id
-                grouped_keys = tuple(
-                    key for key, trigger_history in histories.items()
-                    if trigger_history and trigger_history[-1].press_id == press_id
-                    and (press_id != 0 or key == restore_key)
-                )
-        control_keys = tuple(dict.fromkeys((target_key, *grouped_keys)))
-        control_identities = tuple((target_id, key) for key in control_keys)
-        pending_steps = state.pending_steps
-        for pending_identity in control_identities:
-            pending = pending_steps.get(pending_identity)
-            if pending is None:
-                continue
-            paused_call = (getattr(pending, "call", None) is not None
-                           and bool(getattr(pending, "call_paused", False)))
-            if not paused_call:
-                return None, PENDING_TARGET_MESSAGE
+        control_identities = _control_group(state, target_id, op, restore_key, target_key)
+        if control_identities is None:
+            return None, PENDING_TARGET_MESSAGE
 
-    if prepare_targets is not None:
-        if not prepare_targets(control_identities):
-            return None, None
+    if prepare_targets is not None and not prepare_targets(control_identities):
+        return None, None
 
     with state.lock:
         if op == "back":
-            # Re-read the selected history after preparation: a paused call may
-            # have been discarded by the two-press control flow.
-            history = histories.get(restore_key)
-            top_entry = history[-1] if history else None
-            if top_entry is None:
-                return None, None
-            press_id = top_entry.press_id
-            restored = False
-            for key, trigger_history in tuple(histories.items()):
-                if (not trigger_history or trigger_history[-1].press_id != press_id
-                        or (press_id == 0 and key != restore_key)):
-                    continue
-                entry = pop_history(trigger_history)
-                if entry is None:
-                    continue
-                state.indices_for(target_id)[key] = entry.position
-                state.loop_frames_for(target_id)[key] = list(entry.frames)
-                state.deferred_counters_for(target_id)[key] = list(entry.deferred_counters)
-                call_refs = state.call_refs_for(target_id)
-                if entry.call_ref:
-                    call_refs.add(key)
-                else:
-                    call_refs.discard(key)
-                undo_counter_deltas(state.counters, entry.counter_deltas)
-                restored = True
+            restored = _restore_press_group(state, target_id, histories, restore_key)
             return (restore_key, None) if restored else (None, None)
 
         history = histories.get(restore_key)
@@ -294,3 +229,88 @@ def apply_control(
             return target_key, None
 
     return None, None
+
+
+def _back_origin(
+    state: Any,
+    target_id: str,
+    target_key: str,
+    find_trigger: Callable[[str], object | None],
+) -> str:
+    restore_key = target_key
+    with state.lock:
+        target_has_call_ref = target_key in state.call_refs_for(target_id)
+    if target_has_call_ref:
+        candidate = chain_top(state, target_id, target_key, find_trigger)
+        with state.lock:
+            candidate_history = state.history_for(target_id).get(candidate)
+            if candidate_history:
+                restore_key = candidate
+    return restore_key
+
+
+def _control_group(
+    state: Any,
+    target_id: str,
+    op: str,
+    restore_key: str,
+    target_key: str,
+) -> tuple[tuple[str, str], ...] | None:
+    grouped_keys: tuple[str, ...] = ()
+    histories = state.history_for(target_id)
+    if op == "back":
+        origin_history = histories.get(restore_key)
+        top_entry = origin_history[-1] if origin_history else None
+        if top_entry is not None:
+            press_id = top_entry.press_id
+            grouped_keys = tuple(
+                key for key, trigger_history in histories.items()
+                if trigger_history and trigger_history[-1].press_id == press_id
+                and (press_id != 0 or key == restore_key)
+            )
+    control_keys = tuple(dict.fromkeys((target_key, *grouped_keys)))
+    control_identities = tuple((target_id, key) for key in control_keys)
+    pending_steps = state.pending_steps
+    for pending_identity in control_identities:
+        pending = pending_steps.get(pending_identity)
+        if pending is None:
+            continue
+        paused_call = (getattr(pending, "call", None) is not None
+                       and bool(getattr(pending, "call_paused", False)))
+        if not paused_call:
+            return None
+    return control_identities
+
+
+def _restore_press_group(
+    state: Any,
+    target_id: str,
+    histories: MutableMapping[str, list[HistoryEntry]],
+    restore_key: str,
+) -> bool:
+    # Re-read the selected history after preparation: a paused call may have
+    # been discarded by the two-press control flow.
+    history = histories.get(restore_key)
+    top_entry = history[-1] if history else None
+    if top_entry is None:
+        return False
+    press_id = top_entry.press_id
+    restored = False
+    for key, trigger_history in tuple(histories.items()):
+        if (not trigger_history or trigger_history[-1].press_id != press_id
+                or (press_id == 0 and key != restore_key)):
+            continue
+        entry = pop_history(trigger_history)
+        if entry is None:
+            continue
+        state.indices_for(target_id)[key] = entry.position
+        state.loop_frames_for(target_id)[key] = list(entry.frames)
+        state.deferred_counters_for(target_id)[key] = list(entry.deferred_counters)
+        call_refs = state.call_refs_for(target_id)
+        if entry.call_ref:
+            call_refs.add(key)
+        else:
+            call_refs.discard(key)
+        undo_counter_deltas(state.counters, entry.counter_deltas)
+        restored = True
+    return restored

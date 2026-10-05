@@ -41,11 +41,12 @@
 | task_11a・11b | 統合確認の修正・§4.5.8（M3・M4・L1・L2） | codex / codex-delegating |
 | task_06 | 省略表示の枠（置き場 2 つ・開閉は共有） | codex-delegating |
 | task_07 | 正本反映・凍結・本アーカイブ。完了判定前レビュー: deep-reviewer 修正要（H1・H2・M1〜M4・L1〜L9）/ codex 敵対的 needs-attention（2 件）→ 転記を修正・M1〜M4 はユーザー判断 | メイン |
+| task_12_refactor | 提案書 19（連続実行の進行を `run_to_end.py` へ・`apply_control` の分割） | codex-delegating |
 | task_07a | M2（実行中の単発の呼び出しの取り消し・変えた位置を守る）・M4（一時停止中の呼び出し先を捨てて進める） | codex-delegating |
 
 ## /refactor_check
 
-- **推奨**（M1 `sequence_runner.py` 649 行・+146 / M2 `sequence_history.apply_control` 53 → 104 行）→ 提案書 19（`instructions/modified_proposal/19_refactor_call_step_and_view.md`・2 項目）。実施はユーザー判断
+- **推奨**（M1 `sequence_runner.py` 649 行・+146 / M2 `sequence_history.apply_control` 53 → 104 行）→ 提案書 19（`instructions/modified_proposal/19_refactor_call_step_and_view.md`・2 項目）→ **task_12_refactor で実施済み**（2026-10-06・`sequence_runner.py` 649 → 377 行・`apply_control` 104 → 39 行）
 - 非該当: M3（`trigger.get("actions", [])` の慣用 8 か所）・M4・M5・M6。参考: `call_run_to_end.py` 497 行・`call_context.py` 462 行
 
 ## 教訓
