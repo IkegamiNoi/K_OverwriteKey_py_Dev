@@ -295,7 +295,7 @@ class CallViewFrameTest(unittest.TestCase):
                 "<Button-1>", x=self.panes.winfo_width() // 2,
                 y=sash_y + int(self.panes.cget("sashwidth")) // 2,
             )
-            self.assertEqual(self.controller._drag_height, start_height)
+            self.assertEqual(self.controller.hosts["full"].drag_height, start_height)
             # 押下を Tk の境界線の処理（MarkSash）まで通してから動かす（実機ではイベントループが順に処理する）
             self.app.update()
             self.panes.event_generate(
@@ -379,10 +379,7 @@ class CallViewFrameTest(unittest.TestCase):
             default_call_view_height(self.panes.winfo_height()),
         )
         self.assertEqual(
-            self.controller.desired["compact"],
-            default_call_view_height(
-                self.app.compact_view.trigger_box.trigger_list.winfo_reqheight(),
-            ),
+            self.controller.desired.get("compact"), None,
         )
 
     def test_open_close_preserves_full_view_minimum_and_three_outer_pane_widths(self):

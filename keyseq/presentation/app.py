@@ -410,11 +410,14 @@ class App(tk.Tk):
             self.full_view.pack_forget()
         except Exception:
             pass
-        self.compact_view.pack(fill="both", expand=True)
         self.pane_layout.release_window_min_size()
         self._apply_compact_geometry()
+        # geometry 内の idle 処理では、切替前の幅で省略表示の既定高さを決めない。
+        # （子が外れていても geometry を明示済みなのでウィンドウの高さは保たれる）
+        self.compact_view.pack(fill="both", expand=True)
         self.trigger_panel.sync_trigger_selection_to_views()
         self.trigger_panel.update_status()
+        self.call_view.on_selection_changed()
 
     def show_full_view(self):
         if not self._compact_mode:

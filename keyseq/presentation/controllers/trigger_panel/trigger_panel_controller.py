@@ -85,6 +85,8 @@ class TriggerPanelController:
         # フル画面なら右側も追従
         if not self._app._compact_mode:
             self.refresh_actions()
+        else:
+            self._app.call_view.on_selection_changed()
         self.update_status()
 
     def select_trigger_by_key(self, key: str):

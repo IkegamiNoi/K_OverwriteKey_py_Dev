@@ -4,38 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-05T20:00:00
+last_updated: 2026-10-05T22:00:00
 phase: **phase 45**（`instructions/phase/45_call_step_and_view`・呼び出しのステップ実行と呼び出し先の表示・暫定仕様先行モード・主入力 = 暫定 31 v0.6〔ユーザー確定済 2026-10-05・§4.5 参照による連動〕）。次採番 = phase 46 / 暫定 32 / decisions 46 / 提案書 19。
 直前の完了フェーズ = **phase 44**（子ファイル保存ダイアログの高さと列幅・`decisions_archive/44_child_save_dialog_layout.md`）/ **phase 43**（一覧のドラッグ移動・範囲選択・複製・`decisions_archive/43_list_reorder_range_copy.md`）。
-last_commit_location: `claude/callee-display-frame-behavior-d23bd8`（27e623f = phase 45 task_11b。main へのマージはユーザー）
+last_commit_location: `claude/sequential-trigger-cancellation-priority-8eebac`（phase 45 task_06。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 45 task_11b 完了。実機目視待ち（task_05a の枠・呼び出しの連動・M3）。§4.5.2 と §4.2.10 の優先の確認待ち。その後 task_06 → task_07。**
+focus: **phase 45 task_06 完了（省略表示の枠）。実機目視待ち（task_06 の 4 項目）。その後 task_07（正本反映・凍結・/refactor_check）。**
 mode: in_progress（ユーザーがタスクの連続実行を許可。スペックフラグ・フォールバック・実機目視では止まる）
 
 ## last_action
-ts: 2026-10-05T20:00:00
+ts: 2026-10-05T22:00:00
 who: main
 summary: |
-  暫定 31 v0.6（参照による連動・§4.5）を実装: task_05a（枠の Expander）→ task_08（印・押下番号つき履歴）→ task_09（単発）→ task_10（連続実行・写しの廃止・linked_call.py）→ task_11（印の後始末・選んでいるトリガーの連鎖を問い合わせる表示）。
-  統合確認（deep 修正して採用 / codex P1・P2）→ task_11a（一時停止中の文脈を捨てても書き戻さない・待機中の呼び出し先は段に入る時点で判定し未送信なら押下を巻き戻す / 送った後は一時停止）→ ユーザー確定の §4.5.8（M3・M4・L1・L2）を task_11b で実装。
-  判断は decisions.md 末尾（§10-4a の置き換え・キー変更で印は移る・待機中の呼び出し先の扱い・§4.5.8）。
+  ユーザー回答: task_05a〜11b の実機目視 OK / 連続実行の T が待機中の U を呼ぶときは §4.2.10 の取り消しを優先（暫定 31 §4.5.2 に追記・decisions.md 記録。実装は task_11b で既にそうなっている）。
+  task_06 を起票・実装（codex-delegating-implementer）: 省略表示のトリガー一覧の下に Expander の枠。controller は host 2 つ（full / compact）で開閉は共有・高さは host ごと。
+  verifier で 1 件失敗（省略表示の既定の高さが切替途中の高さで確定）→ 差し戻し（show_compact_view の pack を geometry の後へ・既定の確定を _apply_height に限定）→ 全 pass・reviewer 採用。
 result_files:
-  - keyseq/application/{app_state,call_chain,call_context,call_view,sequence_history,sequence_steps}.py・application/sequence_runner/{linked_call,call_wait,call_run_to_end,input_acceptance,wait_stop,send_wait,call_view_notice,sequence_runner}.py
-  - keyseq/presentation/{controllers/call_view_controller.py,views/full_view/{call_view_frame,sequence_box}.py,controllers/trigger_panel/trigger_panel_controller.py,app.py}
-  - instructions/history/31_call_step_and_view.md（v0.6 §4.5・§4.5.8）・phase 45 tasks/task_05a・08〜11b
+  - keyseq/presentation/controllers/call_view_controller.py・views/compact_view/trigger_box.py・app.py（show_compact_view）・controllers/trigger_panel/trigger_panel_controller.py
+  - tests_ui/test_call_view_compact.py（新規）・tests_ui/test_call_view_frame.py
+  - instructions/phase/45_call_step_and_view/tasks/task_06_call_view_compact.md・history/31 §4.5.2
 verified:
   compile: clean
   tests: 1284 OK（skipped 7）
-  tests_ui: 813 OK
+  tests_ui: 824 OK
   smoke: pass
-  review: task_05a〜11b すべて reviewer 採用（11a は修正要 ×3 を経て）・task_08〜11 統合確認は deep-reviewer + codex-reviewer（指摘は 11a・11b で対応）
+  review: task_06 reviewer 採用（参考: フル表示へ戻すときの再配置は <Configure> 頼み → 実機目視③で確認）
 
 ## next_action
-- **ユーザーの返答待ち 2 点**: ①実機目視（task_05a の枠 / 連動 §10-12〜16 / M3 のメッセージ）②連続実行の T が待機中の U を呼ぶときは §4.2.10 の取り消しを優先（§4.5.2 の「無視」は単発の T のみ）でよいか（推奨 = 優先）。
-- 実機目視 OK 後: task_06（省略表示の枠・`/task_new` で起票。task_11 の問い合わせ口 `call_view_summary_for` と task_05a の開閉の状態を使う）→ task_07（正本反映・凍結・decisions_archive/45・current.md・/refactor_check）。
-- task_07 で正本に明記: §4.5.1 の「キー変更」は印が移る / §10-4a は §4.5.6 で置き換え / 待機中の呼び出し先の扱い（未送信なら巻き戻し・送った後は一時停止）/ §4.5.8 / ②の結果。完了判定前に deep-reviewer + codex-adversarial-reviewer。
+- **ユーザーの実機目視待ち（task_06）**: ①省略表示でトリガー一覧の下に `▸ 呼び出し先` ②ステップの呼び出しで止まると開き、ウィンドウの大きさは変わらず一覧が縮む ③フル ⇔ 省略の切替で同じトリガーの開閉・表示が保たれる（フルへ戻したとき枠の高さが正しいか）④境界線の位置がフル表示と別に保たれ再起動後も残る。
+- 目視 OK 後: task_07（正本反映・凍結・decisions_archive/45・current.md・codebase_map・/refactor_check）。完了判定前に deep-reviewer + codex-adversarial-reviewer。
+- task_07 で正本に明記: §4.5.1 の「キー変更」は印が移る / §10-4a は §4.5.6 で置き換え / 待機中の呼び出し先の扱い（未送信なら巻き戻し・送った後は一時停止）/ §4.5.8 / §4.5.2 の連続実行の T は §4.2.10 の取り消しを優先。
 - /refactor_check の候補: sequence_runner.py 615 行・call_run_to_end.py 約 470 行・call_context.py 約 460 行・30 行超の関数（deep L4・L6）。
 
 ## blockers

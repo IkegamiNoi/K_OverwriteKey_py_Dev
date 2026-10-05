@@ -5,6 +5,7 @@ from tkinter import ttk
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.listbox_utils import bind_listbox_click_selection_sync
+from keyseq.presentation.views.full_view.call_view_frame import CallViewFrame
 
 
 if TYPE_CHECKING:
@@ -15,13 +16,18 @@ class CompactTriggerBox(ttk.LabelFrame):
     def __init__(self, parent, app: App):
         super().__init__(parent, text="トリガー一覧", padding=10)
 
-        tl_frame = ttk.Frame(self)
-        tl_frame.pack(side="top", fill="both", expand=True)
+        self._build_panes()
+        tl_frame = self.trigger_frame
         self.trigger_list = tk.Listbox(tl_frame, height=16, width=26, exportselection=False)
         self.trigger_list.pack(side="left", fill="both", expand=True)
         sb = ttk.Scrollbar(tl_frame, orient="vertical", command=self.trigger_list.yview)
         sb.pack(side="left", fill="y")
         self.trigger_list.configure(yscrollcommand=sb.set)
+        self.trigger_panes.add(tl_frame, stretch="always", padx=0, pady=0)
+        self.trigger_panes.pack(side="top", fill="both", expand=True)
+        self.call_view_frame = CallViewFrame(
+            self.call_view_column, self.trigger_panes, lambda: app.call_view.on_heading_click(),
+        )
         self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_select)
         self.trigger_list.bind("<KeyRelease>", app.trigger_panel.on_trigger_list_focus_index_change)
         self.trigger_list.bind("<Double-Button-1>", app.trigger_panel.on_trigger_double_click)
@@ -29,3 +35,12 @@ class CompactTriggerBox(ttk.LabelFrame):
             self.trigger_list, app.trigger_panel.on_trigger_list_mouse_release
         )
         app.trigger_panel.register_trigger_list(self.trigger_list)
+
+    def _build_panes(self) -> None:
+        self.call_view_column = ttk.Frame(self)
+        self.call_view_column.pack(side="top", fill="both", expand=True)
+        self.trigger_panes = tk.PanedWindow(
+            self.call_view_column, orient="vertical", borderwidth=0, sashwidth=4,
+            sashpad=0, showhandle=False, sashrelief="flat", background="#E8E8E8",
+        )
+        self.trigger_frame = ttk.Frame(self.trigger_panes)
