@@ -123,6 +123,43 @@ class ActionDialogControlTest(unittest.TestCase):
         self.assertEqual(str(dialog.capture_btn.cget("text")), "キー入力で記録")
         self.assertFalse(dialog.capture_btn.winfo_ismapped())
 
+    def test_reselecting_hotkey_keeps_recording_label(self) -> None:
+        dialog = self.make_dialog()
+        dialog._start_recording()
+        dialog.type_var.set("hotkey")
+        dialog._sync_capture_ui()
+        self.app.update()
+        self.assertTrue(dialog._recording)
+        self.assertEqual(str(dialog.capture_btn.cget("text")), "記録停止")
+
+    def test_hotkey_controls_are_shown_again_after_switching_away_and_back(self) -> None:
+        dialog = self.make_dialog()
+        dialog.type_var.set("system")
+        dialog._sync_capture_ui()
+        dialog.type_var.set("hotkey")
+        dialog._sync_capture_ui()
+        self.app.update()
+        visible_widgets = (
+            dialog.value_label,
+            dialog.value_entry,
+            dialog.capture_btn,
+            dialog.capture_hint,
+            dialog.presets_frame,
+            dialog.preset_edit_btn,
+        )
+        for widget in visible_widgets:
+            with self.subTest(widget=widget):
+                self.assertTrue(widget.winfo_ismapped())
+
+    def test_focus_moves_to_type_combo_when_capture_button_is_hidden(self) -> None:
+        dialog = self.make_dialog()
+        dialog.capture_btn.focus_set()
+        self.app.update()
+        self.assertIs(self.app.focus_get(), dialog.capture_btn)
+        dialog.type_var.set("text")
+        dialog._sync_capture_ui()
+        self.assertIs(self.app.focus_get(), dialog.type_combo)
+
     def test_system_loop_keeps_count_when_infinite(self) -> None:
         dialog = self.make_dialog()
         dialog.type_var.set("system")

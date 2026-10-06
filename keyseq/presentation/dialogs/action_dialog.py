@@ -405,7 +405,7 @@ class ActionDialog(tk.Toplevel):
         if not is_hotkey:
             self._stop_recording()
         self.value_entry.configure(state="normal")
-        self.capture_btn.configure(state="normal", text="キー入力で記録")
+        self.capture_btn.configure(state="normal")
         self.capture_hint.configure(text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
         for button in getattr(self, "preset_buttons", []):
             button.configure(state="normal")
