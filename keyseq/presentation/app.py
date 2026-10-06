@@ -32,6 +32,7 @@ from keyseq.presentation.controllers.keymap_panel.keymap_panel_controller import
 )
 from keyseq.presentation.controllers.layout_controller import LayoutController
 from keyseq.presentation.controllers.call_view_controller import CallViewController
+from keyseq.presentation.controllers.compact_sequence_controller import CompactSequenceController
 from keyseq.presentation.controllers.pane_layout import PaneLayoutController
 from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
 from keyseq.presentation.pane_width_rules import (
@@ -206,6 +207,7 @@ class App(tk.Tk):
         self.keymap_panel = KeymapPanelController(self)
         self.trigger_panel = TriggerPanelController(self)
         self.call_view = CallViewController(self)
+        self.compact_sequence = CompactSequenceController(self)
         self.hook = HookController(self)
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
@@ -416,6 +418,7 @@ class App(tk.Tk):
         # （子が外れていても geometry を明示済みなのでウィンドウの高さは保たれる）
         self.compact_view.pack(fill="both", expand=True)
         self.trigger_panel.sync_trigger_selection_to_views()
+        self.trigger_panel.refresh_actions()
         self.trigger_panel.update_status()
         self.call_view.on_selection_changed()
 

@@ -82,10 +82,8 @@ class TriggerPanelController:
     def set_selected_trigger_index(self, idx: int):
         self._app._selected_trigger_idx = int(idx)
         self.sync_trigger_selection_to_views()
-        # フル画面なら右側も追従
-        if not self._app._compact_mode:
-            self.refresh_actions()
-        else:
+        self.refresh_actions()
+        if self._app._compact_mode:
             self._app.call_view.on_selection_changed()
         self.update_status()
 
@@ -262,10 +260,12 @@ class TriggerPanelController:
         listbox.itemconfigure(index, foreground=color)
 
     def refresh_actions(self, select: tuple[int, int] | None = None):
-        # 省略画面では右側（action_list）が無いので、フル側のみ更新
+        compact_sequence = getattr(self._app, "compact_sequence", None)
         try:
             self._app.full_view.action_list.delete(0, tk.END)
         except Exception:
+            if compact_sequence is not None:
+                compact_sequence.render([], None)
             self.sync_suppress_checkbox()
             self.sync_run_to_end_ui()
             self.update_status()
@@ -275,6 +275,8 @@ class TriggerPanelController:
             return
         trig = self.selected_trigger()
         if not trig:
+            if compact_sequence is not None:
+                compact_sequence.render([], None)
             self.sync_suppress_checkbox()
             self.sync_run_to_end_ui()
             self.update_status()
@@ -322,6 +324,8 @@ class TriggerPanelController:
             self._app.full_view.action_list.insert(tk.END, prefix + item_text)
             if background is not None:
                 self._app.full_view.action_list.itemconfigure(i, background=background)
+        if compact_sequence is not None:
+            compact_sequence.render(rows, next_index if actions else None)
         if select is None:
             self.select_next_action_row(key)
         else:
@@ -580,7 +584,9 @@ class TriggerPanelController:
     def _counter_names(self) -> list[str]:
         return self._action_edit._counter_names()
 
-    def set_next_action_index(self, idx: int) -> bool:
+    def set_next_action_index(self, idx: int, *, refuse_running_callee: bool = False) -> bool:
+        if refuse_running_callee and self._refuse_running_chain_callee_edit():
+            return False
         if not self.selected_trigger_is_effective():
             return False
         key = self.selected_trigger_key()

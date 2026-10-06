@@ -203,8 +203,7 @@ class HookController:
                 return
             self.custom_input_enabled = True
 
-        if not getattr(self._app, "_compact_mode", False):
-            self._app.trigger_panel.refresh_actions()
+        self._app.trigger_panel.refresh_actions()
         self.sync_trigger_toggle_buttons()
         self._app.layout.refresh_keyboard_window()
         self._app.trigger_panel.update_status()

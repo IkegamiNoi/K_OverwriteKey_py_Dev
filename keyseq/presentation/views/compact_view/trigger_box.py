@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 
 from keyseq.presentation.listbox_utils import bind_listbox_click_selection_sync
 from keyseq.presentation.views.full_view.call_view_frame import CallViewFrame
+from keyseq.presentation.views.compact_view.sequence_frame import CompactSequenceFrame
 
 
 if TYPE_CHECKING:
@@ -28,6 +29,14 @@ class CompactTriggerBox(ttk.LabelFrame):
         self.call_view_frame = CallViewFrame(
             self.call_view_column, self.trigger_panes, lambda: app.call_view.on_heading_click(),
         )
+        controller = app.compact_sequence
+        self.sequence_frame = CompactSequenceFrame(
+            self.call_view_column, self.trigger_panes, controller.on_heading_click,
+            on_press=controller.on_press, on_release=controller.on_release,
+            on_key=controller.on_key, on_ignore=controller.ignore,
+        )
+        self.sequence_frame.show_heading_at(tl_frame)
+        controller.register_frame(self.sequence_frame)
         self.trigger_list.bind("<<ListboxSelect>>", app.trigger_panel.on_trigger_list_select)
         self.trigger_list.bind("<KeyRelease>", app.trigger_panel.on_trigger_list_focus_index_change)
         self.trigger_list.bind("<Double-Button-1>", app.trigger_panel.on_trigger_double_click)
