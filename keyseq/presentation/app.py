@@ -48,6 +48,7 @@ from keyseq.presentation.views.status_bar import build_status_area
 from keyseq.presentation.startup_settings import load_startup_settings
 from keyseq.presentation.theme import apply_global_theme, coerce_font_delta
 from keyseq.presentation.modal import install_minimize_grab_custody
+from keyseq.presentation.status_text import one_line
 
 
 from keyseq.application.action_executor import ActionExecutor
@@ -309,7 +310,7 @@ class App(tk.Tk):
         self.ui_vars.file_status_var.set(self._status_bar_text(text))
 
     def _status_bar_text(self, text: str) -> str:
-        return text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ") if self._compact_mode else text
+        return one_line(text) if self._compact_mode else text
 
     def _refresh_status_bar(self) -> None:
         self._update_file_status()
@@ -439,8 +440,6 @@ class App(tk.Tk):
         self.compact_view.pack(fill="both", expand=True)
         self.trigger_panel.sync_trigger_selection_to_views()
         self.trigger_panel.refresh_actions()
-        self.trigger_panel.update_status()
-        self.call_view.on_selection_changed()
 
     def show_full_view(self):
         if not self._compact_mode:

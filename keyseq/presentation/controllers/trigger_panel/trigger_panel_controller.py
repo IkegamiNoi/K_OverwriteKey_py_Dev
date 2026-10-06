@@ -22,6 +22,7 @@ from keyseq.presentation.controllers.trigger_panel.action_edit import ActionEdit
 from keyseq.presentation.controllers.trigger_panel.trigger_list_edit import TriggerListEditFlow
 from keyseq.presentation.controllers.trigger_panel.trigger_row_edit import TriggerRowEditFlow
 from keyseq.presentation.listbox_range_drag import select_range, selected_range
+from keyseq.presentation.status_text import one_line
 
 
 class TriggerPanelController:
@@ -83,8 +84,6 @@ class TriggerPanelController:
         self._app._selected_trigger_idx = int(idx)
         self.sync_trigger_selection_to_views()
         self.refresh_actions()
-        if self._app._compact_mode:
-            self._app.call_view.on_selection_changed()
         self.update_status()
 
     def select_trigger_by_key(self, key: str):
@@ -412,7 +411,7 @@ class TriggerPanelController:
         if getattr(self._app, "_compact_mode", False):
             # 省略表示：フック状態 + キーマップの動作状態 + 選択中トリガー + 次に実行（行の内容）
             line = self.get_next_action_summary(sel_key)
-            hook_state, keymap_text, sel_key, line = (text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ") for text in (hook_state, keymap_text, sel_key, line))
+            hook_state, keymap_text, sel_key, line = map(one_line, (hook_state, keymap_text, sel_key, line))
             suffix = f" / 次: {line}" if effective else ""
             self._app.ui_vars.status_var.set(f"フック: {hook_state} / キーマップ: {keymap_text}\n選択: {sel_key}{suffix}")
             return

@@ -48,7 +48,8 @@
 - task_02: 省略表示のシーケンス欄の部品と描画・操作（Expander の見出し・`refresh_actions` から省略表示の一覧へ描く・省略表示中に描き直す経路・クリック / キー / 選択の帯・押している間の取り消し）。開閉はメモリ上のみ（暫定 33 §3・§4・§8） — **完了**（2026-10-07・codex-delegating-implementer〔Luna サブエージェント使用〕・reviewer 採用・tests 1308 / tests_ui 851 / smoke pass。実行中は描き直しのたびにクリックが取り消される＝§2-7 どおり・task_05 の目視項目）
 - task_03: 省略表示の 3 段の高さの制御（配置・ドラッグ・保存を 1 か所へ・既定 / 優先順 / 見出しを残す）と `compact_sequence_view` の保存・読込（開閉と高さ・初回は開く）・省略表示中のフォント変更でシーケンス欄の最小を測り直す（暫定 33 §2-5・§2-8・§5・§6・§7） — **完了**（2026-10-07・codex-delegating-implementer〔サブエージェント使用〕・reviewer 修正して採用〔呼ばれない委譲分岐の削除・既存テストの窓の高さに閉じた見出し 1 行分を足す追随＝仕様起因〕→ 新規テスト 2 件の確かめ方の誤り〔0 に縮んだ一覧の古い winfo_height・Tk が上の境界ごと押す順序依存〕と合わせて修正・tests 1319 / tests_ui 858 / smoke pass）
 - task_04: 省略表示のウィンドウ（`compact_window_size` の保存・適用・最小の高さ・ステータス欄 2 行 / ステータスバー 1 行〔省略表示中は文言の改行を空白へ置き換える〕）（暫定 33 §2-9〜11・§7.2・§7.3） — **完了**（2026-10-07・codex-delegating-implementer〔サブエージェント使用〕・reviewer 修正して採用〔省略表示で重複通知が累積する読み手の修正〕→ 検証で pack 順によりステータス・閉じた見出しが押し出される不具合を修正〔status_bar・call_view_frame を side=bottom で先に pack・並びは不変〕・既存テスト 4 件を §2-10 に合わせて追随・tests 1323 / tests_ui 867 / smoke pass）
-- task_05: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）と**ユーザーの実機目視**
+- task_05: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）と**ユーザーの実機目視** — **統合レビュー済・実機目視待ち**（2026-10-07・deep-reviewer 修正して採用 / codex-reviewer P2 1 件〔行の下の空白のクリック → ユーザー判断で「何もしない」〕→ task_05a）
+- task_05a: 統合レビューの指摘対応（押したまま外へ出たときの選択の帯・空白のクリック・改行の 1 行化の一本化・重複呼び出しの削除・テストの穴）— **完了**（2026-10-07・codex-implementer・reviewer 採用。検証で見つかった「欄の高さが Tk の都合で要求の高さへ戻る / 古い大きさで境界が押さえ込まれる」不具合をメインで修正〔高さの明示 + 境界を置く前の update_idletasks〕・reviewer 修正して採用〔テストの検査を実測へ〕・tests 1325 / tests_ui 873 ×2 / smoke pass）
 - task_06: 正本反映（暫定 33 §12 の昇格・凍結）・`decisions_archive/48_compact_sequence_view.md`・current.md の完了記載・`/refactor_check`。起票元 idea なし
 
 ## レビュー方針

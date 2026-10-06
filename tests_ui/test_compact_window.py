@@ -10,6 +10,7 @@ from keyseq.presentation import app as app_module
 from keyseq.presentation.app import App
 from keyseq.presentation.compact_window_size import COMPACT_WINDOW_SIZE_KEY
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
+from keyseq.presentation.views.full_view.call_view_frame import list_minimum_height
 
 
 def _trigger(key, values):
@@ -219,7 +220,9 @@ class CompactWindowTest(unittest.TestCase):
                 self.assertTrue(widget.winfo_ismapped())
                 top = widget.winfo_rooty() - self.app.winfo_rooty()
                 self.assertGreaterEqual(top, 0)
-                self.assertLess(top, self.app.winfo_height())
+                self.assertGreaterEqual(
+                    self.app.winfo_height() - (top + widget.winfo_height()), -4,
+                )
 
         for toggle in (
             self.app.compact_sequence.on_heading_click,
@@ -228,6 +231,21 @@ class CompactWindowTest(unittest.TestCase):
             toggle()
             self.app.update()
             self.assertEqual(self.app.wm_minsize()[1], minimum)
+
+        self.app.compact_sequence.on_heading_click()
+        self.app.call_view.on_heading_click()
+        self.app.update()
+        # 両方閉じると境界は無く、閉じたシーケンスの見出しはトリガー一覧の欄の下端にある。
+        box = self.app.compact_view.trigger_box
+        self.assertEqual(len(box.trigger_panes.panes()), 1)
+        # 唯一の欄なので実寸が入る。見出しの実寸を除いた分が一覧の欄の高さ。
+        trigger_height = (
+            box.trigger_frame.winfo_height() - box.sequence_frame.heading.winfo_height()
+        )
+        self.assertGreaterEqual(
+            trigger_height,
+            list_minimum_height(self.app.compact_view.trigger_box.trigger_list),
+        )
 
     def test_full_view_restores_its_existing_minimum(self):
         self._enter_compact()

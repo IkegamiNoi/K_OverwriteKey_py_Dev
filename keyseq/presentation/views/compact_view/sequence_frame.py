@@ -32,7 +32,7 @@ class CompactSequenceFrame:
             self.action_list.bind(f"<KeyPress-{key}>", on_key)
         for event in (
             "<B1-Motion>", "<Double-Button-1>", "<Control-c>", "<Control-C>",
-            "<Control-v>", "<Control-V>", "<Delete>",
+            "<Control-v>", "<Control-V>", "<Delete>", "<B1-Leave>", "<B1-Enter>",
         ):
             self.action_list.bind(event, on_ignore)
 

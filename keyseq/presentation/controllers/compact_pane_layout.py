@@ -116,9 +116,14 @@ class CompactPaneLayout:
         trigger_height = max(floor, available - sum(height or 0 for height in heights))
         minimum = list_minimum_height(self.box.trigger_list) + floor
         panes.paneconfigure(self.box.trigger_frame, minsize=min(minimum, trigger_height))
+        # 高さを明示しないと、子の要求の高さが変わったとき Tk が欄の大きさを決め直す。
+        panes.paneconfigure(self.box.trigger_frame, height=trigger_height)
         for key, frame in frames.items():
             minimum = frame.heading.winfo_reqheight() + frame.minimum_body_height()
             panes.paneconfigure(frame.body, minsize=min(minimum, displayed[key]))
+            panes.paneconfigure(frame.body, height=displayed[key])
+        # 明示した高さで Tk が欄を並べ終えてから境界を置く（古い大きさで押さえ込まれないように）。
+        panes.update_idletasks()
         position = trigger_height
         # frames は常にシーケンス、呼び出し先の順。
         for index, key in enumerate(frames):

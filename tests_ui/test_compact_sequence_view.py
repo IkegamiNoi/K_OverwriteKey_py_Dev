@@ -205,6 +205,13 @@ class CompactSequenceViewTest(unittest.TestCase):
         compact_rows = tuple(self.frame.action_list.get(0, tk.END))
         self.assertEqual(self.frame.action_list.curselection(), (0,))
         self.assertTrue(compact_rows[0].startswith("▶ "))
+        with patch.object(
+            self.app.call_view, "on_selection_changed",
+            wraps=self.app.call_view.on_selection_changed,
+        ) as selection_changed:
+            self.app.trigger_panel.set_selected_trigger_index(0)
+            selection_changed.assert_called_once_with()
+        self.app.trigger_panel.set_selected_trigger_index(2)
         self.app.show_full_view()
         self.app.update()
         self.assertEqual(tuple(self.app.full_view.action_list.get(0, tk.END)), compact_rows)
@@ -243,6 +250,47 @@ class CompactSequenceViewTest(unittest.TestCase):
         self.app.update()
         self._row_event("<ButtonRelease-1>", 3)
         self.assertEqual(self.app._indices["f1"], 2)
+
+    def test_clicking_blank_space_below_rows_does_not_change_next_action(self):
+        self.app.geometry("270x900")
+        self.app.update()
+        self._open()
+        # 6 行すべてと下の空白が見える高さにする（一覧の行数ではなく欄の高さで決まる）。
+        self.sequence.desired_height = self.panes.winfo_height()
+        self.app.compact_pane_layout.schedule_layout()
+        self.app.update()
+        listing = self.frame.action_list
+        listing.yview_moveto(0)
+        self.app.update()
+        _x, top, _width, height = listing.bbox(5)
+        blank_y = top + height + 2
+        self.assertLess(blank_y, listing.winfo_height())
+        self.sequence.on_press(SimpleNamespace(y=blank_y))
+        self.sequence.on_release(SimpleNamespace(y=blank_y))
+        self.assertEqual(self.app._indices["f1"], 1)
+        self.assertEqual(listing.curselection(), (1,))
+
+    def test_press_on_row_and_release_outside_does_not_change_next_action(self):
+        self._open()
+        listing = self.frame.action_list
+        _x, y, _width, height = listing.bbox(2)
+        self.sequence.on_press(SimpleNamespace(y=y + height // 2))
+        self.sequence.on_release(SimpleNamespace(y=listing.winfo_height() + 1))
+        self.assertEqual(self.app._indices["f1"], 1)
+        self.assertEqual(listing.curselection(), (1,))
+
+    def test_leaving_and_reentering_while_pressed_keeps_next_action_highlighted(self):
+        self._open()
+        listing = self.frame.action_list
+        self._row_event("<Button-1>", 2)
+        listing.event_generate("<B1-Leave>", x=-1, y=-1, state=0x100)
+        listing.event_generate("<B1-Enter>", x=5, y=5, state=0x100)
+        self.app.update()
+        self.assertEqual(listing.curselection(), (1,))
+        self.assertEqual(self.app._indices["f1"], 1)
+        self.sequence.on_release(SimpleNamespace(y=listing.winfo_height() + 1))
+        self.assertEqual(listing.curselection(), (1,))
+        self.assertEqual(self.app._indices["f1"], 1)
 
     def test_navigation_rejects_ineffective_trigger_and_running_callee(self):
         self._open()
@@ -335,6 +383,35 @@ class CompactSequenceViewTest(unittest.TestCase):
         self.app.update()
         self.assertEqual(self.app.geometry(), geometry)
         self.assertGreater(self.box.trigger_list.winfo_height(), open_height)
+
+    def test_saved_sequence_height_controls_open_pane_height(self):
+        self._open()
+        desired = max(100, self.panes.winfo_height() // 2)
+        self.sequence.desired_height = desired
+        self.app.compact_pane_layout.schedule_layout()
+        self.app.update()
+        self.assertAlmostEqual(self.frame.body.winfo_height(), desired, delta=8)
+
+    def test_default_sequence_height_is_about_one_third_of_paned_window(self):
+        self.app._startup_settings.pop("compact_sequence_view", None)
+        self.sequence.desired_height = None
+        self.assertNotIn("compact_sequence_view", self.app._startup_settings)
+        initial_panes_height = self.panes.winfo_height()
+        self._open()
+        self.assertAlmostEqual(
+            self.frame.body.winfo_height(), initial_panes_height / 3, delta=12,
+        )
+
+    def test_font_change_remeasures_sequence_pane_minimum(self):
+        self._open()
+
+        def pane_minimum():
+            return int(self.panes.paneconfigure(str(self.frame.body))["minsize"][-1])
+
+        before = pane_minimum()
+        self.app._apply_font_delta(3)
+        self.app.update()
+        self.assertGreater(pane_minimum(), before)
 
     def test_low_window_keeps_sequence_and_call_headings_visible(self):
         self._open()
