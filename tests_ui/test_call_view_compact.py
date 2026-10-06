@@ -6,6 +6,7 @@ import unittest
 from unittest.mock import patch
 
 from keyseq.application.call_view import CallViewSummary
+from keyseq.application.config_service import ConfigService
 from keyseq.application.sequence_steps import LoopFrame
 from keyseq.presentation import app as app_module
 from keyseq.presentation.app import App
@@ -15,6 +16,7 @@ from keyseq.presentation.views.full_view.call_view_frame import list_minimum_hei
 
 
 SAVED_HEIGHTS = {"full": 180, "compact": 120}
+WRITE_STARTUP = StartupIo.write_startup
 
 
 class CallViewCompactTest(unittest.TestCase):
@@ -24,6 +26,10 @@ class CallViewCompactTest(unittest.TestCase):
         for target, name, value in (
             (app_module, "load_startup_settings", {CALL_VIEW_HEIGHTS_KEY: dict(SAVED_HEIGHTS)}),
             (StartupIo, "load_startup_and_config", None),
+            (StartupIo, "write_startup", True),
+            (app_module.JsonRepository, "save_json", None),
+            (ConfigService, "ensure_split_config_dirs", None),
+            (ConfigService, "save_keymap_set_history", None),
         ):
             patcher = patch.object(target, name, return_value=value)
             patcher.start()
@@ -76,6 +82,8 @@ class CallViewCompactTest(unittest.TestCase):
         selected_patch.start()
         self.addCleanup(selected_patch.stop)
         self.addCleanup(self._restore)
+        if self.app.compact_sequence.is_open:
+            self.app.compact_sequence.on_heading_click()
         self.controller._open_by_trigger.clear()
         self.controller._manually_operated.clear()
         self.notify(None)
@@ -228,7 +236,10 @@ class CallViewCompactTest(unittest.TestCase):
         self.app.update_idletasks()
         _sash_x, sash_y = self.panes.sash_coord(0)
         x = self.panes.winfo_width() // 2
-        with patch.object(self.app.config_service, "save_startup", return_value=None) as save:
+        with patch.object(
+            self.app.startup_io, "write_startup",
+            side_effect=lambda data: WRITE_STARTUP(self.app.startup_io, data),
+        ), patch.object(self.app.config_service, "save_startup", return_value=None) as save:
             self.panes.event_generate(
                 "<Button-1>", x=x, y=sash_y + int(self.panes.cget("sashwidth")) // 2,
             )
@@ -263,7 +274,10 @@ class CallViewCompactTest(unittest.TestCase):
         frame = self.box.call_view_frame
         minimum = frame.heading.winfo_reqheight() + frame.minimum_body_height()
         overhead = self.app.winfo_height() - self.panes.winfo_height()
-        height = overhead + minimum + list_minimum_height(self.box.trigger_list) + 4
+        height = (
+            overhead + minimum + list_minimum_height(self.box.trigger_list)
+            + self.box.sequence_frame.heading.winfo_reqheight() + 4
+        )
         self.app.geometry(f"270x{height}")
         self.app.update()
         self.assertGreaterEqual(

@@ -10,6 +10,9 @@ from unittest.mock import patch
 from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation import app as app_module
 from keyseq.presentation.app import App
+from keyseq.presentation.compact_pane_heights import plan_compact_heights
+from keyseq.presentation.controllers.config_io.startup_io import StartupIo
+from keyseq.presentation.views.full_view.call_view_frame import list_minimum_height
 
 
 def _trigger(key, values, *, label=None):
@@ -27,6 +30,9 @@ class CompactSequenceViewTest(unittest.TestCase):
         cls.addClassCleanup(stack.close)
         stack.enter_context(patch.object(app_module.JsonRepository, "save_json"))
         stack.enter_context(patch.object(ConfigService, "ensure_split_config_dirs"))
+        stack.enter_context(patch.object(app_module, "load_startup_settings", return_value={}))
+        stack.enter_context(patch.object(StartupIo, "load_startup_and_config"))
+        stack.enter_context(patch.object(StartupIo, "write_startup", return_value=True))
         stack.enter_context(patch.object(
             ConfigService, "load_keymap_set_history",
             return_value=({"recent": [], "categories": []}, contracts.HISTORY_OK),
@@ -45,6 +51,14 @@ class CompactSequenceViewTest(unittest.TestCase):
 
     def setUp(self):
         self.app = type(self).app
+        self.saved_layout = {
+            "geometry": self.app.geometry(),
+            "minsize": self.app.wm_minsize(),
+            "sequence_height": self.app.compact_sequence.desired_height,
+            "call_desired": dict(self.app.call_view.desired),
+            "startup": dict(self.app._startup_settings),
+        }
+        self.addCleanup(self._restore_layout)
         if self.app._compact_mode:
             self.app.show_full_view()
         self.app.data = self.app.config_service.normalize_runtime_data({
@@ -76,6 +90,20 @@ class CompactSequenceViewTest(unittest.TestCase):
         self.sequence = self.app.compact_sequence
         self.frame = self.sequence.frame
 
+    def _restore_layout(self):
+        if self.app.compact_sequence.is_open:
+            self.app.compact_sequence.on_heading_click()
+        self.app.call_view._open_by_trigger.clear()
+        self.app.call_view._manually_operated.clear()
+        self.app.call_view.on_selection_changed()
+        self.app.compact_sequence.desired_height = self.saved_layout["sequence_height"]
+        self.app.call_view.desired = self.saved_layout["call_desired"]
+        self.app._startup_settings = self.saved_layout["startup"]
+        self.app.minsize(*self.saved_layout["minsize"])
+        self.app.geometry(self.saved_layout["geometry"])
+        self.app.show_compact_view()
+        self.app.update()
+
     def _open(self):
         if not self.sequence.is_open:
             self.frame.heading.event_generate("<Button-1>")
@@ -105,8 +133,8 @@ class CompactSequenceViewTest(unittest.TestCase):
                 for token in substitutions.split()]
         return self.frame.action_list.tk.call(command, *args)
 
-    def test_default_closed_heading_moves_between_trigger_and_sequence_panes(self):
-        self.assertFalse(type(self).initially_open)
+    def test_default_open_heading_moves_between_trigger_and_sequence_panes(self):
+        self.assertTrue(type(self).initially_open)
         self.assertFalse(self.sequence.is_open)
         self.assertEqual(self.frame.heading.cget("text"), "▸ シーケンス")
         self.assertEqual(len(self.panes.panes()), 1)
@@ -120,6 +148,37 @@ class CompactSequenceViewTest(unittest.TestCase):
 
         self.frame.heading.event_generate("<Button-1>")
         self.app.update()
+        self.assertFalse(self.sequence.is_open)
+        self.assertEqual(self.frame.heading.cget("text"), "▸ シーケンス")
+        self.assertIn(self.frame.heading, self.box.trigger_frame.pack_slaves())
+
+    def test_saved_open_false_starts_closed(self):
+        with patch.object(
+            app_module, "load_startup_settings",
+            return_value={"compact_sequence_view": {"open": False, "height": 123}},
+        ), patch.object(StartupIo, "load_startup_and_config"), \
+                patch.object(StartupIo, "write_startup", return_value=True):
+            app = App()
+        try:
+            self.assertFalse(app.compact_sequence.is_open)
+            self.assertEqual(app.compact_sequence.desired_height, 123)
+        finally:
+            app.destroy()
+
+    def test_open_and_close_persist_compact_sequence_settings(self):
+        with patch.object(self.app.startup_io, "write_startup", return_value=True) as write:
+            self._open()
+            write.assert_called_once()
+            self.assertTrue(write.call_args.args[0]["compact_sequence_view"]["open"])
+            write.reset_mock()
+            self.frame.heading.event_generate("<Button-1>")
+            self.app.update()
+            write.assert_called_once()
+            self.assertFalse(write.call_args.args[0]["compact_sequence_view"]["open"])
+            self.assertEqual(
+                write.call_args.args[0]["compact_sequence_view"],
+                {"open": False, "height": self.sequence.desired_height},
+            )
         self.assertFalse(self.sequence.is_open)
         self.assertEqual(self.frame.heading.cget("text"), "▸ シーケンス")
         self.assertIn(self.frame.heading, self.box.trigger_frame.pack_slaves())
@@ -263,3 +322,162 @@ class CompactSequenceViewTest(unittest.TestCase):
         self.assertEqual(tuple(self.frame.action_list.get(0, tk.END)), expected)
         self.app.hook.hook_active = False
         self.app.hook.custom_input_enabled = True
+
+    def test_opening_and_closing_preserves_window_size_and_resizes_trigger_list(self):
+        self.app.update_idletasks()
+        geometry = self.app.geometry()
+        closed_height = self.box.trigger_list.winfo_height()
+        self._open()
+        open_height = self.box.trigger_list.winfo_height()
+        self.assertEqual(self.app.geometry(), geometry)
+        self.assertLess(open_height, closed_height)
+        self.frame.heading.event_generate("<Button-1>")
+        self.app.update()
+        self.assertEqual(self.app.geometry(), geometry)
+        self.assertGreater(self.box.trigger_list.winfo_height(), open_height)
+
+    def test_low_window_keeps_sequence_and_call_headings_visible(self):
+        self._open()
+        self.app.call_view.on_heading_click()
+        self.app.update()
+        sequence = self.frame
+        call = self.box.call_view_frame
+        self.app.compact_sequence.desired_height = max(240, self.panes.winfo_height())
+        self.app.call_view.desired["compact"] = max(240, self.panes.winfo_height())
+        desired = (
+            self.app.compact_sequence.desired_height,
+            self.app.call_view.desired["compact"],
+        )
+        self.app.update_idletasks()
+        overhead = self.app.winfo_height() - self.panes.winfo_height()
+        self.app.minsize(1, 1)
+        self.app.geometry(f"270x{max(1, overhead + sequence.heading.winfo_reqheight() + call.heading.winfo_reqheight() + 8)}")
+        self.app.update()
+        panes_height = self.panes.winfo_height()
+        sash = int(self.panes.cget("sashwidth"))
+        seq_min = sequence.heading.winfo_reqheight() + sequence.minimum_body_height()
+        call_min = call.heading.winfo_reqheight() + call.minimum_body_height()
+        expected = plan_compact_heights(
+            panes_height - 2 * sash, list_minimum_height(self.box.trigger_list), 0,
+            (desired[0], seq_min, sequence.heading.winfo_reqheight()),
+            (desired[1], call_min, call.heading.winfo_reqheight()),
+        )
+        self.assertAlmostEqual(sequence.body.winfo_height(), expected[0], delta=2)
+        self.assertAlmostEqual(call.body.winfo_height(), expected[1], delta=2)
+        self.assertGreaterEqual(sequence.heading.winfo_height(), sequence.heading.winfo_reqheight())
+        self.assertGreaterEqual(call.heading.winfo_height(), call.heading.winfo_reqheight())
+        trigger_height = self.panes.sash_coord(0)[1]
+        self.assertLess(trigger_height, list_minimum_height(self.box.trigger_list))
+        self.assertEqual(self.app.compact_sequence.desired_height, desired[0])
+        self.assertEqual(self.app.call_view.desired["compact"], desired[1])
+
+    def test_sash_release_saves_only_changed_compact_pane_keys_once(self):
+        self._open()
+        self.app.call_view.on_heading_click()
+        self.app.minsize(1, 1)
+        self.app.geometry("270x820")
+        self.app.update()
+        desired = max(1, self.panes.winfo_height() // 3)
+        self.app.compact_sequence.desired_height = desired
+        self.app.call_view.desired["compact"] = desired
+        self.app.compact_pane_layout.schedule_layout()
+        self.app.update()
+        before = {
+            "sequence": self.frame.body.winfo_height(),
+            "call": self.box.call_view_frame.body.winfo_height(),
+        }
+        sash_y = self.panes.sash_coord(1)[1]
+        x = self.panes.winfo_width() // 2
+        persisted = {}
+
+        def capture_write(data):
+            persisted["data"] = data
+            persisted["heights"] = {
+                "sequence": self.frame.body.winfo_height(),
+                "call": self.box.call_view_frame.body.winfo_height(),
+            }
+            return True
+
+        with patch.object(self.app.startup_io, "write_startup", side_effect=capture_write) as write:
+            self.panes.event_generate("<Button-1>", x=x, y=sash_y + int(self.panes.cget("sashwidth")) // 2)
+            self.app.update()
+            self.panes.event_generate("<B1-Motion>", x=x, y=sash_y - 30, state=0x100)
+            self.app.update()
+            self.app.update_idletasks()
+            self.panes.event_generate("<ButtonRelease-1>", x=x, y=sash_y - 30)
+            self.app.update()
+        after = {
+            "sequence": self.frame.body.winfo_height(),
+            "call": self.box.call_view_frame.body.winfo_height(),
+        }
+        changed = {name for name in before if before[name] != after[name]}
+        self.assertTrue(changed)
+        write.assert_called_once()
+        changed_at_save = {
+            name for name in before if before[name] != persisted["heights"][name]
+        }
+        self.assertTrue(changed_at_save)
+        expected_keys = {
+            "compact_sequence_view" if name == "sequence" else "call_view_heights"
+            for name in changed_at_save
+        }
+        self.assertEqual(set(persisted["data"]), expected_keys)
+        if "sequence" in changed_at_save:
+            self.assertEqual(
+                persisted["data"]["compact_sequence_view"]["height"],
+                persisted["heights"]["sequence"],
+            )
+        if "call" in changed_at_save:
+            self.assertEqual(
+                persisted["data"]["call_view_heights"]["compact"],
+                persisted["heights"]["call"],
+            )
+
+    def test_first_sash_release_saves_only_sequence_height(self):
+        self._open()
+        self.app.call_view.on_heading_click()
+        self.app.update()
+        before = {
+            "sequence": self.frame.body.winfo_height(),
+            "call": self.box.call_view_frame.body.winfo_height(),
+        }
+        sash_y = self.panes.sash_coord(0)[1]
+        x = self.panes.winfo_width() // 2
+        captured = {}
+
+        def capture_write(data):
+            captured["data"] = data
+            captured["heights"] = {
+                "sequence": self.frame.body.winfo_height(),
+                "call": self.box.call_view_frame.body.winfo_height(),
+            }
+            return True
+
+        with patch.object(self.app.startup_io, "write_startup", side_effect=capture_write) as write:
+            self.panes.event_generate(
+                "<Button-1>", x=x, y=sash_y + int(self.panes.cget("sashwidth")) // 2,
+            )
+            self.app.update()
+            self.panes.event_generate("<B1-Motion>", x=x, y=sash_y - 25, state=0x100)
+            self.app.update()
+            self.panes.event_generate("<ButtonRelease-1>", x=x, y=sash_y - 25)
+            self.app.update()
+        changed = {name for name in before if before[name] != captured["heights"][name]}
+        self.assertEqual(changed, {"sequence"})
+        write.assert_called_once()
+        self.assertEqual(set(captured["data"]), {"compact_sequence_view"})
+
+    def test_sash_release_without_height_changes_does_not_save(self):
+        self._open()
+        self.app.call_view.on_heading_click()
+        self.app.update()
+        sash_y = self.panes.sash_coord(1)[1]
+        x = self.panes.winfo_width() // 2
+        with patch.object(self.app.startup_io, "write_startup", return_value=True) as write:
+            self.panes.event_generate(
+                "<Button-1>", x=x, y=sash_y + int(self.panes.cget("sashwidth")) // 2,
+            )
+            self.app.update()
+            self.panes.event_generate("<ButtonRelease-1>", x=x, y=sash_y)
+            self.app.update()
+        write.assert_not_called()

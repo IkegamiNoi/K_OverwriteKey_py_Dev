@@ -5,6 +5,10 @@ from __future__ import annotations
 import tkinter as tk
 from typing import TYPE_CHECKING
 
+from keyseq.presentation.compact_pane_heights import (
+    COMPACT_SEQUENCE_VIEW_KEY, parse_compact_sequence_view,
+)
+
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
     from keyseq.presentation.views.compact_view.sequence_frame import CompactSequenceFrame
@@ -14,7 +18,9 @@ class CompactSequenceController:
     def __init__(self, app: App):
         self.app = app
         self.frame: CompactSequenceFrame | None = None
-        self.is_open = False
+        self.is_open, self.desired_height = parse_compact_sequence_view(
+            app._startup_settings.get(COMPACT_SEQUENCE_VIEW_KEY),
+        )
         self._rendering = False
         self._generation = 0
         self._next_index: int | None = None
@@ -22,6 +28,10 @@ class CompactSequenceController:
 
     def register_frame(self, frame: CompactSequenceFrame) -> None:
         self.frame = frame
+        frame.set_heading(self.is_open)
+        if self.is_open:
+            frame.body.master.add(frame.body, stretch="never", padx=0, pady=0)
+            frame.show_heading_in_body()
 
     def render(self, rows: list[tuple[str, str | None]], next_index: int | None) -> None:
         self._generation += 1
@@ -61,7 +71,7 @@ class CompactSequenceController:
             )
             box.trigger_panes.add(
                 frame.body, stretch="never", padx=0, pady=0,
-                minsize=frame.minimum_body_height(), **options,
+                **options,
             )
             frame.show_heading_in_body()
             self.app.trigger_panel.refresh_actions()
@@ -69,6 +79,8 @@ class CompactSequenceController:
             self._pressed = None
             box.trigger_panes.forget(frame.body)
             frame.show_heading_at(box.trigger_frame)
+        self.app.compact_pane_layout.schedule_layout()
+        self.app.compact_pane_layout.save_sequence()
 
     def _row_at(self, event) -> int | None:
         listing = self.frame.action_list

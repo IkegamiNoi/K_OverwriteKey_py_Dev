@@ -74,6 +74,8 @@ class CallViewController:
         }
         self.on_font_changed()
         for host in self.hosts.values():
+            if host.key == "compact":
+                continue
             for event, callback in (
                 ("<Configure>", self._on_configure), ("<Button-1>", self._on_press),
                 ("<ButtonRelease-1>", self._on_release),
@@ -84,6 +86,9 @@ class CallViewController:
 
     def on_font_changed(self) -> None:
         for host in self.hosts.values():
+            if host.key == "compact":
+                self.app.compact_pane_layout.on_font_changed()
+                continue
             host.top_frame.update_idletasks()
             host.frame.heading.update_idletasks()
             # 下の枠は要求寸法に加算しない。
@@ -96,6 +101,9 @@ class CallViewController:
             self._schedule_layout(host)
 
     def _set_minimums(self, host: _CallViewHost) -> None:
+        if host.key == "compact":
+            self.app.compact_pane_layout.schedule_layout()
+            return
         host.panes.paneconfigure(host.top_frame, minsize=list_minimum_height(host.listing))
         if host.is_open:
             host.panes.paneconfigure(host.frame.body, minsize=host.minimum_height())
@@ -144,13 +152,16 @@ class CallViewController:
                 host.panes.forget(frame.body)
             frame.show_heading_below_list(host.column)
             host.drag_height = None
+            if host.key == "compact":
+                self.app.compact_pane_layout.schedule_layout()
             return
         # 省略表示は幅変更・ヘッダの折り返しが済んだ _apply_height で既定を決める。
         if host.key == "full":
             self._ensure_desired(host)
         if not host.is_open:
             host.panes.add(
-                frame.body, stretch="never", padx=0, pady=0, minsize=host.minimum_height(),
+                frame.body, stretch="never", padx=0, pady=0,
+                minsize=host.minimum_height() if host.key == "full" else 0,
             )
             frame.show_heading_in_body()
         self._schedule_layout(host)
@@ -180,6 +191,9 @@ class CallViewController:
             self._schedule_layout(host)
 
     def _schedule_layout(self, host: _CallViewHost) -> None:
+        if host.key == "compact":
+            self.app.compact_pane_layout.schedule_layout()
+            return
         if host.layout_id is None and host.is_open and host.panes.winfo_ismapped():
             host.layout_id = self.app.after_idle(lambda: self._apply_height(host))
 

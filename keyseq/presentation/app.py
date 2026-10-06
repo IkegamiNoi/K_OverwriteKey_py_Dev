@@ -33,6 +33,7 @@ from keyseq.presentation.controllers.keymap_panel.keymap_panel_controller import
 from keyseq.presentation.controllers.layout_controller import LayoutController
 from keyseq.presentation.controllers.call_view_controller import CallViewController
 from keyseq.presentation.controllers.compact_sequence_controller import CompactSequenceController
+from keyseq.presentation.controllers.compact_pane_layout import CompactPaneLayout
 from keyseq.presentation.controllers.pane_layout import PaneLayoutController
 from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
 from keyseq.presentation.pane_width_rules import (
@@ -208,6 +209,7 @@ class App(tk.Tk):
         self.trigger_panel = TriggerPanelController(self)
         self.call_view = CallViewController(self)
         self.compact_sequence = CompactSequenceController(self)
+        self.compact_pane_layout = CompactPaneLayout(self)
         self.hook = HookController(self)
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
@@ -239,6 +241,7 @@ class App(tk.Tk):
         self._flash_after_id = None
         self._build_ui()
         self.call_view.install()
+        self.compact_pane_layout.install()
         self.pane_layout.install()
         self.startup_io.load_startup_and_config()
         self.layout.reload_keyboard_layouts()
