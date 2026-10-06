@@ -91,16 +91,42 @@ class DialogInitialFocusTest(unittest.TestCase):
         self._assert_focus_inside(dialog)
         self.assertIs(self.app.focus_get(), dialog)
 
-    def test_action_initial_focus_is_value_entry_in_all_modes(self):
+    def test_action_initial_focus_matches_action_type(self):
         self._require_app_focus()
-        for mode in ("hotkey", "text", "mouse_click"):
-            with self.subTest(mode=mode):
+        cases = (
+            ("hotkey", None, "value_entry"),
+            ("text", None, "value_entry"),
+            ("mouse_click", None, "type_combo"),
+            ("system", "edit", "type_combo"),
+            ("file_line", "edit", "type_combo"),
+        )
+        for action_type, mode, widget_name in cases:
+            with self.subTest(action_type=action_type, mode=mode):
                 self._require_app_focus()
-                dialog = ActionDialog(self.app, title="初期フォーカス", initial={"type": mode})
+                dialog = ActionDialog(
+                    self.app, title="初期フォーカス", mode=mode,
+                    initial={"type": action_type},
+                )
                 self.addCleanup(self._close_dialog, dialog)
                 try:
                     self._assert_focus_inside(dialog)
-                    self.assertIs(self.app.focus_get(), dialog.value_entry)
+                    self.assertIs(self.app.focus_get(), getattr(dialog, widget_name))
+                finally:
+                    self._close_dialog(dialog)
+
+    def test_edit_loop_initial_focus_matches_infinite_state(self):
+        self._require_app_focus()
+        for infinite, widget_name in ((False, "loop_count_entry"), (True, "loop_infinite_check")):
+            with self.subTest(infinite=infinite):
+                dialog = ActionDialog(
+                    self.app, title="ループ編集", mode="edit_loop",
+                    initial={"type": "system", "op": "loop_start", "count": 3,
+                             "infinite": infinite},
+                )
+                self.addCleanup(self._close_dialog, dialog)
+                try:
+                    self._assert_focus_inside(dialog)
+                    self.assertIs(self.app.focus_get(), getattr(dialog.control_fields, widget_name))
                 finally:
                     self._close_dialog(dialog)
 

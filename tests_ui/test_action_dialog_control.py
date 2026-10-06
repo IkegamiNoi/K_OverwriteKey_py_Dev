@@ -47,6 +47,82 @@ class ActionDialogControlTest(unittest.TestCase):
         self.addCleanup(self.cleanup_window, dialog)
         return dialog
 
+    def test_action_type_shows_only_its_value_and_capture_controls(self) -> None:
+        dialog = self.make_dialog()
+        cases = (
+            ("hotkey", True, True),
+            ("text", True, False),
+            ("mouse_click", False, False),
+            ("system", False, False),
+            ("file_line", False, False),
+        )
+        value_widgets = (dialog.value_label, dialog.value_entry)
+        hotkey_widgets = (
+            dialog.capture_btn, dialog.capture_hint,
+            dialog.presets_frame, dialog.preset_edit_btn,
+        )
+        for action_type, show_value, show_hotkey in cases:
+            with self.subTest(action_type=action_type):
+                dialog.type_var.set(action_type)
+                dialog._sync_capture_ui()
+                self.app.update()
+                for widget in value_widgets:
+                    self.assertEqual(bool(widget.winfo_ismapped()), show_value)
+                for widget in hotkey_widgets:
+                    self.assertEqual(bool(widget.winfo_ismapped()), show_hotkey)
+
+    def test_hotkey_controls_return_normal_after_switching_away_and_back(self) -> None:
+        dialog = self.make_dialog()
+        for action_type in ("system", "hotkey"):
+            dialog.type_var.set(action_type)
+            dialog._sync_capture_ui()
+        self.assertEqual(str(dialog.value_entry.cget("state")), "normal")
+        self.assertEqual(str(dialog.capture_btn.cget("state")), "normal")
+        self.assertEqual(str(dialog.preset_edit_btn.cget("state")), "normal")
+        for button in dialog.preset_buttons:
+            self.assertEqual(str(button.cget("state")), "normal")
+
+    def test_append_to_end_is_on_type_row_only_in_add_mode(self) -> None:
+        dialog = self.make_dialog()
+        self.assertEqual(dialog.append_to_end_check.grid_info()["row"], 0)
+        self.assertEqual(dialog.append_to_end_check.grid_info()["column"], 3)
+        self.assertEqual(dialog.append_to_end_check.grid_info()["sticky"], "e")
+        for mode in ("edit", "edit_loop", None):
+            with self.subTest(mode=mode):
+                other = self.make_dialog(mode=mode)
+                self.assertFalse(hasattr(other, "append_to_end_check"))
+
+    def test_focus_moves_to_type_combo_when_value_entry_is_hidden(self) -> None:
+        dialog = self.make_dialog()
+        dialog.value_entry.focus_set()
+        self.app.update()
+        self.assertIs(self.app.focus_get(), dialog.value_entry)
+        dialog.type_var.set("system")
+        dialog._sync_capture_ui()
+        self.assertIs(self.app.focus_get(), dialog.type_combo)
+
+    def test_focus_moves_when_hidden_widget_is_only_last_focus(self) -> None:
+        # アプリが非アクティブで focus_get() が None でも、復元先が隠れる欄なら種別へ移す
+        dialog = self.make_dialog()
+        dialog.value_entry.focus_set()
+        self.app.update()
+        with patch.object(dialog, "focus_get", return_value=None):
+            dialog.type_var.set("system")
+            dialog._sync_capture_ui()
+        self.app.update()
+        self.assertIs(dialog.focus_lastfor(), dialog.type_combo)
+
+    def test_type_change_stops_recording(self) -> None:
+        dialog = self.make_dialog()
+        dialog._start_recording()
+        self.assertTrue(dialog._recording)
+        dialog.type_var.set("system")
+        dialog._sync_capture_ui()
+        self.app.update()
+        self.assertFalse(dialog._recording)
+        self.assertEqual(str(dialog.capture_btn.cget("text")), "キー入力で記録")
+        self.assertFalse(dialog.capture_btn.winfo_ismapped())
+
     def test_system_loop_keeps_count_when_infinite(self) -> None:
         dialog = self.make_dialog()
         dialog.type_var.set("system")

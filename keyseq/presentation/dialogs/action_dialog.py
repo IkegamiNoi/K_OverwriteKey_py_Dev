@@ -50,7 +50,8 @@ class ActionDialog(tk.Toplevel):
         self.type_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
         self.type_combo.bind("<<ComboboxSelected>>", lambda _e: self._sync_capture_ui())
 
-        ttk.Label(frm, text="値").grid(row=1, column=0, sticky="w", pady=(10, 0))
+        self.value_label = ttk.Label(frm, text="値")
+        self.value_label.grid(row=1, column=0, sticky="w", pady=(10, 0))
         self.value_var = tk.StringVar(value="")
         self.value_entry = ttk.Entry(frm, textvariable=self.value_var, width=42)
         self.value_entry.grid(row=1, column=1, columnspan=3, sticky="we", padx=(8, 0), pady=(10, 0))
@@ -130,7 +131,10 @@ class ActionDialog(tk.Toplevel):
         self.control_fields.file_frame.grid_remove()
         if mode == "add":
             self.append_to_end_var = tk.BooleanVar(value=True)
-            ttk.Checkbutton(frm, text="末尾に追加", variable=self.append_to_end_var).grid(row=7, column=0, columnspan=2, sticky="w", padx=(8, 0), pady=(10, 0))
+            self.append_to_end_check = ttk.Checkbutton(
+                frm, text="末尾に追加", variable=self.append_to_end_var,
+            )
+            self.append_to_end_check.grid(row=0, column=3, sticky="e")
 
         if mode == "edit_loop":
             self.type_var.set("system")
@@ -157,7 +161,7 @@ class ActionDialog(tk.Toplevel):
 
         self._sync_capture_ui()
         bind_escape_close(self, is_busy=lambda: getattr(self, "_recording", False), stop=self._stop_recording)
-        grab_modal(self, parent, focus=self.value_entry)
+        grab_modal(self, parent, focus=self._initial_focus_widget())
 
     def on_ok(self):
         t = (self.type_var.get() or "").strip().lower()
@@ -378,38 +382,73 @@ class ActionDialog(tk.Toplevel):
         if hasattr(self, "control_fields"):
             self.control_fields.system_frame.grid() if t == "system" else self.control_fields.system_frame.grid_remove()
             self.control_fields.file_frame.grid() if t == "file_line" else self.control_fields.file_frame.grid_remove()
-            self.value_entry.configure(state="disabled" if t in ("system", "file_line", "mouse_click") else "normal")
             if t in ("system", "file_line"): self.mouse_frame.grid_remove()
             else: self.control_fields.sync_system()
-        is_hotkey = (t == "hotkey")
+        hidden_focus = self._focus_is_hidden_for_type(t)
+        self._sync_type_visibility(t)
+        self._sync_hotkey_controls(t == "hotkey")
+        self._sync_mouse_visibility(t)
+        if hidden_focus:
+            self.type_combo.focus_set()
+
+    def _sync_type_visibility(self, action_type: str) -> None:
+        show_value = action_type in ("hotkey", "text")
+        show_hotkey = action_type == "hotkey"
+        self._show(self.value_label, show_value)
+        self._show(self.value_entry, show_value)
+        self._show(self.capture_btn, show_hotkey)
+        self._show(self.capture_hint, show_hotkey)
+        self._show(self.presets_frame, show_hotkey)
+        self._show(self.preset_edit_btn, show_hotkey)
+
+    def _sync_hotkey_controls(self, is_hotkey: bool) -> None:
         if not is_hotkey:
-            # text のときは記録UIを無効化し、記録も止める
             self._stop_recording()
-            self.capture_btn.configure(state="disabled", text="キー入力で記録")
-            self.capture_hint.configure(text="※text は通常の文字入力です（記録は hotkey のみ）")
-            # プリセットも無効化
-            for b in getattr(self, "preset_buttons", []):
-                b.configure(state="disabled")
-            if hasattr(self, "preset_edit_btn"):
-                self.preset_edit_btn.configure(state="disabled")
-        else:
-            self.capture_btn.configure(state="normal")
-            self.capture_hint.configure(text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
-            for b in getattr(self, "preset_buttons", []):
-                b.configure(state="normal")
-            if hasattr(self, "preset_edit_btn"):
-                self.preset_edit_btn.configure(state="normal")
-                
-        # mouse_click UI の表示制御
+        self.value_entry.configure(state="normal")
+        self.capture_btn.configure(state="normal", text="キー入力で記録")
+        self.capture_hint.configure(text="※記録中は、押したキーが hotkey として反映されます（Escで停止）")
+        for button in getattr(self, "preset_buttons", []):
+            button.configure(state="normal")
+        self.preset_edit_btn.configure(state="normal")
+
+    def _sync_mouse_visibility(self, action_type: str) -> None:
         if hasattr(self, "mouse_frame"):
-            if t == "mouse_click":
+            if action_type == "mouse_click":
                 self.mouse_frame.grid()  # 表示
                 self._sync_drag_ui()
-                # mouse_click は value を使わないので無効化（ラベルは使う）
-                self.value_entry.configure(state="disabled")
             else:
                 self.mouse_frame.grid_remove()  # 非表示
-                self.value_entry.configure(state="disabled" if t in ("system", "file_line") else "normal")
+
+    @staticmethod
+    def _show(widget: ttk.Widget, visible: bool) -> None:
+        if visible:
+            widget.grid()
+        else:
+            widget.grid_remove()
+
+    def _focus_is_hidden_for_type(self, action_type: str) -> bool:
+        # 非アクティブ中は focus_get() が None になるため、復元先（focus_lastfor）も見る
+        try:
+            candidates = (self.focus_get(), self.focus_lastfor())
+        except (tk.TclError, KeyError):
+            # tkinter 管理外のウィジェット（ポップダウン等）は判定対象外
+            return False
+        hidden_widgets = []
+        if action_type not in ("hotkey", "text"):
+            hidden_widgets.extend((self.value_label, self.value_entry))
+        if action_type != "hotkey":
+            hidden_widgets.extend((self.capture_btn, self.capture_hint, self.presets_frame,
+                                   self.preset_edit_btn, *self.preset_buttons))
+        return any(focused is widget for focused in candidates for widget in hidden_widgets)
+
+    def _initial_focus_widget(self) -> tk.Misc:
+        if self.mode == "edit_loop":
+            if self.control_fields.loop_infinite_var.get():
+                return self.control_fields.loop_infinite_check
+            return self.control_fields.loop_count_entry
+        if (self.type_var.get() or "").strip().lower() in ("hotkey", "text"):
+            return self.value_entry
+        return self.type_combo
 
     def _apply_preset(self, hotkey: str):
         """プリセットボタンで hotkey を値欄にセット"""
@@ -447,9 +486,6 @@ class ActionDialog(tk.Toplevel):
             if c >= cols:
                 c = 0
                 r += 1
-
-        # 現在のタイプに応じて enable/disable
-        self._sync_capture_ui()
 
     def _open_preset_manager(self):
         """プリセット編集ダイアログを開き、戻ったらボタンを再生成"""

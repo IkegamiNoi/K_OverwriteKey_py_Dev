@@ -421,6 +421,18 @@ class MinimizeGrabCustodyTest(unittest.TestCase):
             self._restore_app()
             focus.assert_called_once_with()
 
+    def test_b1_system_action_restores_visible_type_combo_focus(self):
+        """system の初期フォーカスを最小化から復元しても維持する。"""
+        dialog = self._track_window(ActionDialog(
+            self.app, title="アクション編集", mode="edit", initial={"type": "system"},
+        ))
+        self.assertIs(self.app.focus_get(), dialog.type_combo)
+        self._minimize(dialog)
+        with patch.object(dialog.type_combo, "focus_set", wraps=dialog.type_combo.focus_set) as focus:
+            self._restore_app()
+            focus.assert_called_once_with()
+        self.assertIs(self.app.focus_get(), dialog.type_combo)
+
     def test_b2_no_custody_restores_entry_focus(self):
         """②: transient のない表示中の保持者は預かりなしでも復帰する。"""
         window = self._track_window(tk.Toplevel(self.app))
