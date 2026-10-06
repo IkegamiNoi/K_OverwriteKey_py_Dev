@@ -45,6 +45,9 @@
 新フェーズの起票 = `/phase_start` / タスク定義の起票 = `/task_new`
 （いずれも `.claude/commands/` 同名ファイル）。
 
+ユーザー不在（就寝・外出）の間は `/away [戻る予定時刻]` に従う（判断待ちに当たったら、戻るまで 1 時間以内ならその場で待ち、
+それより先なら `/save_state` + `/save_handoff` で引き継いで終了）。解除は `/back`。状態は `session.md` の `presence` 行。
+
 生成元 template リポジトリで育った運用ルール・インフラの取り込み（逆同期）は
 `/template_pull`（`.claude/commands/template_pull.md`）。同期状態と template との
 意図的な差分は `.claude/template_pull_state.md` に記録する。
