@@ -15,16 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 47 は 2026-10-06 完了〕）。
-   次採番 = phase 48 / 暫定 33 / decisions 48 / 提案書 20。次フェーズはユーザー判断・着手時は `/phase_start`
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 48**〔`48_compact_sequence_view`・暫定仕様先行・主入力 = 暫定 33 v0.6 確定済〕）。
+   次採番 = phase 49 / 暫定 34 / decisions 49 / 提案書 20。
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜32）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 47 完了。次フェーズはユーザー判断待ち。**
-ブランチ `claude/jikki-mokushi-ok-5df544`（phase 47 task_01 の目視以降）。それ以前は `claude/physical-device-verification-d3c460`（**main への取り込み状況は git で確認**・マージはユーザー）。
+**phase 48 task_01〜04・05a 完了・統合レビュー済。ユーザーの実機目視待ち（task_05）→ OK なら task_06（正本反映）。**
+ブランチ `claude/jikki-mokushi-ok-5df544`（phase 47 task_01 の目視以降・phase 48 も同じ）。それ以前は `claude/physical-device-verification-d3c460`（**main への取り込み状況は git で確認**・マージはユーザー）。
 ユーザーはフェーズ内のタスクの連続実行を許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 47 完了 = 2026-10-06**）:
-compile **clean** / tests **1308 実行 OK**（skip 7）/ tests_ui **840 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 45 完了 1292 → 1308 / tests_ui: 824 → 840）。
+直近の実測（**phase 48 task_05a = 2026-10-07**）:
+compile **clean** / tests **1325 実行 OK**（skip 7）/ tests_ui **873 OK**（2 回）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 47 完了 1308 → 1325 / tests_ui: 840 → 873）。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
 **verifier に `taskkill` で python.exe を一括終了させない**（2026-10-04 に全 python が落ちた）。tests_ui は 260〜730 秒・タイムアウト 1800 秒・出力はファイルへ。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
@@ -53,7 +53,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズはユーザー判断（`/phase_start`）。候補: **idea_39** 表示中のトリガーを戻す・先頭への対象にする / idea_37 カウンター条件分岐 / idea_23 押す / 離すアクション。
+- **ユーザーの実機目視（phase 48 task_05 の確認 1〜7・`tasks/task_05_integration_check.md`）の結果を受ける**。NG なら枝番で修正。
+- OK 後に task_06: 暫定 33 §12 の正本反映・凍結・`decisions_archive/48_compact_sequence_view.md`・decisions.md 索引・current.md 完了記載・`/refactor_check`
+  （統合レビューの保留 = 実行ごとの再配置・render の作り直し・CallViewController の compact 分岐・`_flash_message` の読み取り口・拒否と有効の順序 を判定）・完了判定前 deep-reviewer + codex-adversarial-reviewer。
+- その後の次フェーズ候補: **idea_39** 表示中のトリガーを戻す・先頭への対象にする / idea_37 カウンター条件分岐 / idea_23 押す / 離すアクション。
 - **main へのマージはユーザーが行う**。
 
 ## 直前フェーズ（phase 47 = アクションの追加・編集ダイアログの整理）の要点
@@ -72,7 +75,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **blockers: なし**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **blockers: ユーザーの実機目視待ち（phase 48 task_05）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **【罠・phase 48 で実証】Tk の PanedWindow は欄の高さを明示しないと子の要求の高さへ戻し、明示直後の `sash_place` は古い大きさで押さえ込まれる**
+  （`compact_pane_layout._place_heights` は paneconfigure height → update_idletasks → sash_place）。**pack は先に入れた子が高さを先に取る**（ステータス類・閉じた見出しは side=bottom で先に pack）。
+  **0 に縮んだ欄の子の `winfo_height` は古い値のまま**・見えていない行の `bbox` は None（テストで頼らない）。
 - **【罠】Bash ツールで `python3` / `python` を呼ばない**（Windows ストア版スタブが stdin 待ちでハングし、同じコマンド内の後続も実行されない）。
   スクリプトを直接走らせるときは `PYTHONPATH=.` を付ける。
 - **【裏取り】レビュー・調査・サブエージェントの「コードがこうなっている」という主張は、採用前に `ファイルパス:行` を実測確認する**。
