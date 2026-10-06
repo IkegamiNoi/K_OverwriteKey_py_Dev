@@ -54,7 +54,9 @@ OK 時に未選択 / 参照先なし / 自分自身 / 戻す・先頭へだけ�
   **完了**（2026-10-06。codex-implementer・`input_acceptance.py` は変更なし・reviewer 採用・メインでテスト 2 件を修正〔2 引数の on_control に合わせる /
   先頭の待機は読み飛ばされ一時停止を作れない → 送った後の待機で一時停止し履歴を空にする〕。tests 1308 / tests_ui 824 / smoke pass）
 - task_03: presentation — 編集ダイアログ（チェック・ドロップダウンの流用・OFF でグレー・操作の切替・拒否）・キー変更の書き換えの配線・
-  表示の解決（一覧・省略表示の「次に実行」の要約・呼び出し先の表示枠。`_resolve_call_target` 経由を含む）
+  表示の解決（一覧・省略表示の「次に実行」の要約・呼び出し先の表示枠。`_resolve_call_target` 経由を含む） —
+  **実装完了・実機目視待ち**（2026-10-06。codex-implementer・reviewer 修正要〔テスト 1 件: OFF で OK の検証が ON のまま〕→ メインで修正・
+  メインでテスト 2 件を修正〔周回に object() を入れクラス共有の状態を壊していた → 本物の形 + addCleanup / 改名した行自身の未保存の印も数えていた〕。tests 1308 / tests_ui 829 / smoke pass）
 - task_04: 正本反映（暫定 32 §10 の昇格・凍結。`data_schema.md` §5.11.6 は空の `target` の文言を呼び出しと行を分けて書く）・`codebase_map.md`・
   `decisions_archive/46_back_rewind_target.md`・current.md の完了記載・`/refactor_check`。起票元 idea なし
 
