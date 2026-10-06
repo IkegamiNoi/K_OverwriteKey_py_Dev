@@ -34,6 +34,7 @@ from keyseq.presentation.controllers.layout_controller import LayoutController
 from keyseq.presentation.controllers.call_view_controller import CallViewController
 from keyseq.presentation.controllers.compact_sequence_controller import CompactSequenceController
 from keyseq.presentation.controllers.compact_pane_layout import CompactPaneLayout
+from keyseq.presentation.controllers.compact_window_controller import CompactWindowController
 from keyseq.presentation.controllers.pane_layout import PaneLayoutController
 from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
 from keyseq.presentation.pane_width_rules import (
@@ -210,6 +211,7 @@ class App(tk.Tk):
         self.call_view = CallViewController(self)
         self.compact_sequence = CompactSequenceController(self)
         self.compact_pane_layout = CompactPaneLayout(self)
+        self.compact_window = CompactWindowController(self)
         self.hook = HookController(self)
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
@@ -239,10 +241,12 @@ class App(tk.Tk):
 
         self._programmatic_action_select = False  # action_list選択をコード側で変更中か
         self._flash_after_id = None
+        self._flash_message = ""
         self._build_ui()
         self.call_view.install()
         self.compact_pane_layout.install()
         self.pane_layout.install()
+        self.compact_window.install()
         self.startup_io.load_startup_and_config()
         self.layout.reload_keyboard_layouts()
         self.trigger_panel.refresh_triggers()
@@ -301,7 +305,15 @@ class App(tk.Tk):
     def _update_file_status(self):
         name = os.path.basename(self.keymap_set_path or "") or "(未設定)"
         save_state = "未保存" if self.dirty_tracker.has_unsaved_changes() else "保存済み"
-        self.ui_vars.file_status_var.set(f"ファイル: {name} / {save_state}")
+        text = f"ファイル: {name} / {save_state}"
+        self.ui_vars.file_status_var.set(self._status_bar_text(text))
+
+    def _status_bar_text(self, text: str) -> str:
+        return text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ") if self._compact_mode else text
+
+    def _refresh_status_bar(self) -> None:
+        self._update_file_status()
+        self.ui_vars.flash_message_var.set(self._status_bar_text(self._flash_message))
 
 
     def mark_keymap_dirty(self, keymap: dict | None = None) -> None:
@@ -316,6 +328,7 @@ class App(tk.Tk):
 
     def _clear_flash_message(self):
         self._flash_after_id = None
+        self._flash_message = ""
         self.ui_vars.flash_message_var.set("")
 
     def _set_flash_message(self, msg: str, *, auto_clear: bool = True):
@@ -325,7 +338,8 @@ class App(tk.Tk):
                 self._flash_after_id = None
         except Exception:
             self._flash_after_id = None
-        self.ui_vars.flash_message_var.set(str(msg or ""))
+        self._flash_message = str(msg or "")
+        self.ui_vars.flash_message_var.set(self._status_bar_text(self._flash_message))
         if auto_clear and msg:
             self._flash_after_id = self.after(4000, self._clear_flash_message)
 
@@ -345,6 +359,7 @@ class App(tk.Tk):
         self._apply_fixed_button_widths()
         self.call_view.on_font_changed()
         self.pane_layout.on_font_changed()
+        self.compact_window.on_font_changed()
         self.startup_io.write_startup({"ui_font_delta_pt": new_delta})
         return True
 
@@ -416,6 +431,8 @@ class App(tk.Tk):
         except Exception:
             pass
         self.pane_layout.release_window_min_size()
+        self.trigger_panel.update_status()
+        self._refresh_status_bar()
         self._apply_compact_geometry()
         # geometry 内の idle 処理では、切替前の幅で省略表示の既定高さを決めない。
         # （子が外れていても geometry を明示済みなのでウィンドウの高さは保たれる）
@@ -428,7 +445,9 @@ class App(tk.Tk):
     def show_full_view(self):
         if not self._compact_mode:
             return
+        self.compact_window.cancel_save()
         self._compact_mode = False
+        self._refresh_status_bar()
         try:
             self.compact_view.pack_forget()
         except Exception:
@@ -441,15 +460,7 @@ class App(tk.Tk):
         self.pane_layout.on_full_view_shown()
 
     def _apply_compact_geometry(self):
-        """省略表示時のサイズ（細め）へ"""
-        try:
-            # 高さは現状維持、幅だけ細めに寄せる（トリガー一覧程度）
-            self.update_idletasks()
-            h = max(360, int(self.winfo_height() or 560))
-            w = 270
-            self.geometry(f"{w}x{h}")
-        except Exception:
-            pass
+        self.compact_window.apply()
 
     def _restore_full_geometry(self):
         """省略表示に入る前のサイズへ復元（取れていれば）"""
@@ -625,6 +636,7 @@ class App(tk.Tk):
         if not self.keymap_set_io.confirm_save_if_dirty("終了"):
             return
         self.pane_layout.cancel_window_width_save()
+        self.compact_window.cancel_save()
         self.hook.begin_shutdown()
         try:
             if self.layout.keyboard_window is not None:

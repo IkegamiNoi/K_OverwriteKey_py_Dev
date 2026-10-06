@@ -12,6 +12,7 @@ class AppImeShutdownTests(unittest.TestCase):
         app = SimpleNamespace(
             keymap_set_io=SimpleNamespace(confirm_save_if_dirty=trace.confirm),
             pane_layout=SimpleNamespace(cancel_window_width_save=trace.cancel),
+            compact_window=SimpleNamespace(cancel_save=trace.cancel),
             hook=SimpleNamespace(begin_shutdown=trace.begin, stop_hook=trace.stop),
             layout=SimpleNamespace(keyboard_window=None),
             input_gateway=SimpleNamespace(restore_ime_now=trace.restore),
@@ -20,7 +21,7 @@ class AppImeShutdownTests(unittest.TestCase):
         trace.confirm.return_value = True
         App.on_close(app)
         self.assertEqual(trace.mock_calls, [
-            call.confirm("終了"), call.cancel(), call.begin(), call.stop(),
+            call.confirm("終了"), call.cancel(), call.cancel(), call.begin(), call.stop(),
             call.restore(), call.destroy(),
         ])
 
@@ -29,6 +30,7 @@ class AppImeShutdownTests(unittest.TestCase):
         app = SimpleNamespace(
             keymap_set_io=SimpleNamespace(confirm_save_if_dirty=trace.confirm),
             pane_layout=SimpleNamespace(cancel_window_width_save=trace.cancel),
+            compact_window=SimpleNamespace(cancel_save=trace.cancel),
             hook=SimpleNamespace(begin_shutdown=trace.begin, stop_hook=trace.stop),
             layout=SimpleNamespace(keyboard_window=None),
             input_gateway=SimpleNamespace(restore_ime_now=trace.restore),

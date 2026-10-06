@@ -51,7 +51,10 @@ class CallViewFrame:
         self.heading.lift()
 
     def show_heading_below_list(self, parent) -> None:
-        self.heading.pack(in_=parent, side="top", fill="x")
+        # 一覧より先に pack して下端に置き、窓が低くても見出しの高さを先に確保する。
+        others = [slave for slave in parent.pack_slaves() if slave is not self.heading]
+        before = {"before": others[0]} if others else {}
+        self.heading.pack(in_=parent, side="bottom", fill="x", **before)
 
     def set_heading(self, is_open: bool, path: tuple[str, ...] = ()) -> None:
         if not is_open:

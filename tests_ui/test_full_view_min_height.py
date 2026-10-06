@@ -224,10 +224,12 @@ class FullViewMinHeightTest(unittest.TestCase):
         self.assertEqual(self.app.wm_minsize()[1], self.layout.window_min_height)
 
     def test_compact_view_releases_and_full_view_restores_minimum(self) -> None:
+        """省略表示の最小高さを保ち、フル表示では従来の最小高さへ戻す。"""
         self.app.show_compact_view()
         self.app.update()
         self.assertTrue(self.app._compact_mode)
-        self.assertEqual(self.app.wm_minsize(), self.released_minsize)
+        self.assertEqual(self.app.wm_minsize()[0], self.released_minsize[0])
+        self.assertEqual(self.app.wm_minsize()[1], self.app.compact_window.minimum_height)
         self.app.show_full_view()
         self.app.update()
         self.assertFalse(self.app._compact_mode)

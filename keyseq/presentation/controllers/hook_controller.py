@@ -238,7 +238,10 @@ class HookController:
         if not notices:
             return
         flash_var = getattr(self._app.ui_vars, "flash_message_var", None)
-        current = str(flash_var.get() or "") if flash_var is not None else ""
+        if hasattr(self._app, "_flash_message"):
+            current = str(self._app._flash_message or "")
+        else:
+            current = str(flash_var.get() or "") if flash_var is not None else ""
         if current == self._last_shadowed_status:
             current = self._status_before_shadowed_notice or ""
         self._status_before_shadowed_notice = current

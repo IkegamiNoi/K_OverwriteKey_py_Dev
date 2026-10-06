@@ -195,16 +195,19 @@ class PaneDragAndWindowMinTest(unittest.TestCase):
         self.assertEqual(self.sequence.winfo_width(), sequence)
 
     def test_08_compact_view_releases_window_min(self) -> None:
+        """省略表示では専用の最小高さを使い、フル表示復帰時に幅最小値を戻す。"""
         expected = self._expected_window_min()
         self.app.show_compact_view()
         self.app.update()
-        self.assertEqual(self.app.wm_minsize(), self.released_minsize)
+        self.assertEqual(self.app.wm_minsize()[0], self.released_minsize[0])
+        self.assertEqual(self.app.wm_minsize()[1], self.app.compact_window.minimum_height)
         self.assertEqual(self.app.winfo_width(), 270)
         self.app.show_full_view()
         self.app.update()
         self.assertEqual(self.app.wm_minsize()[0], expected)
 
     def test_09_font_change_in_compact_view_defers_remeasure(self) -> None:
+        """省略表示中も最小高さを測り直し、フル表示で幅最小値を再計算する。"""
         self.app._apply_font_delta(0)
         self.app.update()
         keymap_min = self.layout.min_widths.keymap
@@ -212,7 +215,8 @@ class PaneDragAndWindowMinTest(unittest.TestCase):
         self.app.update()
         self.app._apply_font_delta(2)
         self.app.update()
-        self.assertEqual(self.app.wm_minsize(), self.released_minsize)
+        self.assertEqual(self.app.wm_minsize()[0], self.released_minsize[0])
+        self.assertEqual(self.app.wm_minsize()[1], self.app.compact_window.minimum_height)
         self.assertEqual(self.app.winfo_width(), 270)
         self.app.show_full_view()
         self.app.update()

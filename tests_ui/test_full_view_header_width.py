@@ -125,6 +125,7 @@ class FullViewHeaderWidthTest(unittest.TestCase):
         self.assertEqual(self.app.winfo_width(), larger_width)
 
     def test_compact_font_change_defers_header_measurement(self) -> None:
+        """省略表示中は見出し幅を保留し、窓の最小高さはフォントに追随する。"""
         self._set_font(3)
         larger_minimum = self.app.wm_minsize()[0]
         larger_header = self.layout.header_window_width
@@ -134,7 +135,8 @@ class FullViewHeaderWidthTest(unittest.TestCase):
         self.app.update()
         compact_minimum = self.app.wm_minsize()
         self._set_font(3)
-        self.assertEqual(self.app.wm_minsize(), compact_minimum)
+        self.assertEqual(self.app.wm_minsize()[0], compact_minimum[0])
+        self.assertEqual(self.app.wm_minsize()[1], self.app.compact_window.minimum_height)
         self.assertEqual(self.layout.header_window_width, original_header)
         self.app.show_full_view()
         self.app.update()

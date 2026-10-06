@@ -412,6 +412,7 @@ class TriggerPanelController:
         if getattr(self._app, "_compact_mode", False):
             # 省略表示：フック状態 + キーマップの動作状態 + 選択中トリガー + 次に実行（行の内容）
             line = self.get_next_action_summary(sel_key)
+            hook_state, keymap_text, sel_key, line = (text.replace("\r\n", " ").replace("\r", " ").replace("\n", " ") for text in (hook_state, keymap_text, sel_key, line))
             suffix = f" / 次: {line}" if effective else ""
             self._app.ui_vars.status_var.set(f"フック: {hook_state} / キーマップ: {keymap_text}\n選択: {sel_key}{suffix}")
             return

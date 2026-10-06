@@ -152,6 +152,42 @@ class Task05OverlapUiTest(unittest.TestCase):
             for key in previous_pressed:
                 self.app.key_state_manager.key_down(key)
 
+    def test_shadowed_notice_does_not_accumulate_in_compact_view(self):
+        previous_compact_mode = self.app._compact_mode
+        previous_flash = self.app._flash_message
+        previous_display = self.app.ui_vars.flash_message_var.get()
+        previous_before = self.app.hook._status_before_shadowed_notice
+        previous_last = self.app.hook._last_shadowed_status
+        self.app._compact_mode = True
+        self.app._flash_message = "停止しました"
+        self.app.ui_vars.flash_message_var.set("停止しました")
+        self.app.hook._status_before_shadowed_notice = None
+        self.app.hook._last_shadowed_status = None
+
+        def set_flash(message, *, auto_clear=True):
+            self.app._flash_message = message
+            self.app.ui_vars.flash_message_var.set(self.app._status_bar_text(message))
+
+        try:
+            conflicts = self.app._key_overlap_report().shadowed_for_key("f12")
+            with patch.object(self.app, "_set_flash_message", side_effect=set_flash):
+                self.app.hook.show_shadowed_assignments(StopHookAction(), conflicts)
+                first_message = self.app._flash_message
+                displayed_message = self.app.ui_vars.flash_message_var.get()
+                self.assertIn("\n", first_message)
+                self.assertNotIn("\n", displayed_message)
+
+                self.app.hook.show_shadowed_assignments(StopHookAction(), conflicts)
+
+            self.assertEqual(self.app._flash_message, first_message)
+            self.assertEqual(self.app.ui_vars.flash_message_var.get(), displayed_message)
+        finally:
+            self.app._compact_mode = previous_compact_mode
+            self.app._flash_message = previous_flash
+            self.app.ui_vars.flash_message_var.set(previous_display)
+            self.app.hook._status_before_shadowed_notice = previous_before
+            self.app.hook._last_shadowed_status = previous_last
+
     def test_edit_refusals_use_active_or_all_keymap_sets_as_specified(self):
         with patch(
             "keyseq.presentation.controllers.trigger_panel.trigger_row_edit.TriggerDialog",
