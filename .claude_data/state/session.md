@@ -4,50 +4,51 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-06T18:00:00
-phase: なし（アクティブなフェーズ無し）。次採番 = phase 47 / 暫定 33 / decisions 47 / 提案書 20。
+last_updated: 2026-10-06T20:00:00
+phase: `instructions/phase/47_action_dialog_layout_cleanup`（アクションの追加・編集ダイアログの整理・直接改訂モード・暫定なし）。番号対応 phase 47 / 暫定なし / decisions 47。次採番 = phase 48 / 暫定 33 / 提案書 20。
 直前の完了フェーズ = **phase 46**（戻す・先頭への対象トリガー指定・`decisions_archive/46_back_rewind_target.md`）。
-last_commit_location: `claude/physical-device-verification-d3c460`（phase 46 完了まで。main へのマージはユーザー）
+last_commit_location: `claude/physical-device-verification-d3c460`（phase 47 task_01 まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 46 完了（2026-10-06・正本反映・暫定 32 凍結・refactor_check 不要）。次フェーズはユーザー判断待ち。**
-mode: completed
+focus: **phase 47 task_01 実装完了（presentation）。ユーザーの実機目視待ち → OK なら task_02（正本反映）。**
+mode: blocked
 
 ## last_action
-ts: 2026-10-06T18:00:00
+ts: 2026-10-06T20:00:00
 who: main
 summary: |
-  task_03: ユーザー実機目視 OK で完了。task_04: 暫定 32 を正本（features.md §4.1・§4.2.6・§4.2.10・§4.6 / data_schema.md §5.11.6 / codebase_map.md）へ昇格・凍結。
-  完了判定前レビュー: deep-reviewer 完了可（低 L1〜L8・L3/L4/L7 は正本の文言修正・他は保留）/ codex 敵対的 needs-attention 1 件
-  （2 回押しの破棄で直前のトリガーが指定先になる）→ ユーザー判断で受容し §4.2.6 に明記。表示中のトリガーを対象にする案は idea_39 に起票（ユーザー提案）。
-  /refactor_check = 不要（M4 境界は current.md「別タスク化候補」へ 1 行）。decisions_archive/46 作成・decisions.md 索引・current.md 完了記載。
+  phase 47 起票（ユーザー確定 4 点・reviewer 整合チェックで edit_loop の初期フォーカス = ループ回数の欄〔無限ならそのチェック〕を補った）。
+  task_01: codex-implementer で `action_dialog.py` の値・記録・プリセットを grid_remove で非表示・「末尾に追加」を row=0 右端・初期フォーカス `_initial_focus_widget`。
+  reviewer 修正要（中: 非アクティブ時 focus_get() が None）→ メインで focus_lastfor も見る + テスト 2 件。
+  verifier 1 回目 tests_ui 104 件落ち（`__init__` 途中の `_rebuild_preset_buttons` → `_sync_capture_ui` で preset_edit_btn 未定義）→ メインで同期の呼び出しを外して解消。2 回目 1 件（テストの update_idletasks → update）。
 result_files:
-  - instructions/common/{spec_detail/features.md,spec_detail/data_schema.md,codebase_map.md}
-  - instructions/history/32_back_rewind_target.md
-  - instructions/backlog/{idea_39_back_rewind_visible_trigger.md,INDEX.md}
-  - instructions/phase/{current.md,46_back_rewind_target/phase.md,46_back_rewind_target/tasks/task_04_canonical_reflection.md}
-  - .claude_data/state/{decisions.md,decisions_archive/46_back_rewind_target.md}
+  - keyseq/presentation/dialogs/action_dialog.py
+  - tests_ui/{test_action_dialog_control.py,test_dialog_initial_focus.py,test_minimize_grab_custody.py}
+  - instructions/phase/{current.md,47_action_dialog_layout_cleanup/phase.md,47_action_dialog_layout_cleanup/tasks/task_01_hide_unused_fields.md}
 verified:
-  compile: clean（task_03 時点・task_04 は文書のみ）
+  compile: clean
   tests: 1308 OK（skipped 7）
-  tests_ui: 829 OK
+  tests_ui: 837（全体実行で 836 OK + 失敗 1 件はテスト修正後に該当 41 件 OK）
   smoke: pass
-  review: deep-reviewer 完了可 / codex 敵対的 1 件（受容）
+  review: task_01 = reviewer 修正して採用（指摘 1 はメインで修正済み）
 
 ## next_action
-- 次フェーズをユーザーに確認する（候補: idea_39 表示中のトリガーを戻す・先頭への対象にする / idea_37 カウンター条件分岐）。着手時は `/phase_start`。
+- ユーザーの実機目視（task_01 の完了条件: 各種別の表示・「末尾に追加」の位置・開いたときのフォーカス・切替での高さの伸び縮み・記録中の種別変更）の結果を受ける。NG なら修正。
+- OK 後に task_02 を `/task_new` で起票して実施: `features.md` §4.6「出力シーケンスの編集」へ確定 1・2・4（edit_loop 含む）を追記（「モーダルダイアログの作法」:679-682 は改訂不要）・`codebase_map.md`・
+  完了判定前 deep-reviewer + codex-adversarial-reviewer・`decisions_archive/47_action_dialog_layout_cleanup.md`・decisions.md 索引・current.md 完了記載・`/refactor_check`。
 
 ## blockers
-- なし（次フェーズはユーザー判断待ち）
+- ユーザーの実機目視待ち（task_01）
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
 - **tests_ui は同時に 1 本だけ**走らせる。verifier には **`taskkill` で python.exe を一括終了しない**よう必ず書く。tests_ui は 150〜730 秒。
 - **素の `python` を Bash で呼ばない**（ストア版スタブでハングする。必ず `..\..\..\.venv\Scripts\python.exe`）。
-- **【戻す・先頭へ】対象 = `target` があればそれ・無ければ直前のトリガー**（正本 `features.md` §4.2.6）。`target` の判定は `domain/sequence_control.control_target` の 1 か所。
-  idea_39 に着手するなら、対象の決定は `application/sequence_history.apply_control`・押下で選択が移るのは `sequence_runner/run_to_end.py:38` 等。
-- **【phase 45 の成果は正本が正】** 呼び出し・参照中の印・まとめて戻すは `features.md` §4.2.6・§4.2.9・§4.2.10。runner の mixin 構成は `codebase_map.md`「出力シーケンスの制御アクション」節。
+- **【phase 47】`ActionDialog` の表示切替は `_sync_capture_ui` → `_sync_type_visibility` / `_sync_hotkey_controls` / `_sync_mouse_visibility`**。
+  `_rebuild_preset_buttons` は `__init__` の途中（preset_edit_btn 作成前）で呼ばれるため、そこから `_sync_capture_ui` を呼ばない。
+  `winfo_ismapped()` のテストは `update()` で表示を待つ（`update_idletasks()` では初回が False）。
+- **【戻す・先頭へ】対象 = `target` があればそれ・無ければ直前のトリガー**（正本 `features.md` §4.2.6）。表示中のトリガーを対象にする案は idea_39。
 - トリガー一覧へのアクセスは `domain/keymap_triggers.py` の口だけ（presentation に `"triggers"` 直値を書くと静的検査で落ちる）。
 - **Codex のプラグインのレビュー系コマンドは推論レベルを渡せない**。`CLAUDE_PLUGIN_ROOT` 未設定時は companion を絶対パスで呼ぶ。
 - それ以前の完了フェーズの要点は `decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。凍結済の暫定仕様（`instructions/history/` の 04〜32）の条項を実装の根拠に引かない。

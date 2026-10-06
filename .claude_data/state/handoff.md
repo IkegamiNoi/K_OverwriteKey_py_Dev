@@ -15,16 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 46 は 2026-10-06 完了〕）。
-   次採番 = phase 47 / 暫定 33 / decisions 47 / 提案書 20。次フェーズはユーザー判断・着手時は `/phase_start`
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 47**〔`47_action_dialog_layout_cleanup`・直接改訂モード〕）。
+   次採番 = phase 48 / 暫定 33 / decisions 48 / 提案書 20。
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜32）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 46 完了（2026-10-06・正本反映・暫定 32 凍結・refactor_check 不要）。次フェーズはユーザー判断待ち。**
-ブランチ `claude/physical-device-verification-d3c460`（phase 46 task_03 の目視以降）。task_03 までは `claude/back-sequence-trigger-limit-49fff0`（**main への取り込み状況は git で確認**・マージはユーザー）。
+**phase 47 task_01 実装完了（presentation）。ユーザーの実機目視待ち → OK なら task_02（正本反映）。**
+ブランチ `claude/physical-device-verification-d3c460`（phase 46 task_03 の目視以降・phase 47 も同じ）。task_03 までは `claude/back-sequence-trigger-limit-49fff0`（**main への取り込み状況は git で確認**・マージはユーザー）。
 ユーザーはフェーズ内のタスクの連続実行を許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 46 task_03 = 2026-10-06**）:
-compile **clean** / tests **1308 実行 OK**（skip 7）/ tests_ui **829 実行 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 45 完了 1292 → 1308 / tests_ui: 824 → 829）。
+直近の実測（**phase 47 task_01 = 2026-10-06**）:
+compile **clean** / tests **1308 実行 OK**（skip 7）/ tests_ui **837 実行**（全体で 836 OK・残り 1 件はテスト修正後に該当 41 件 OK） / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 45 完了 1292 → 1308 / tests_ui: 824 → 837）。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
 **verifier に `taskkill` で python.exe を一括終了させない**（2026-10-04 に全 python が落ちた）。tests_ui は 260〜730 秒・タイムアウト 1800 秒・出力はファイルへ。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
@@ -53,7 +53,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- ユーザー判断: 次フェーズ（候補: **idea_39** 表示中のトリガーを戻す・先頭への対象にする / idea_37 カウンター条件分岐 / idea_23 押す / 離すアクション 等）。着手時は `/phase_start`。
+- ユーザーの実機目視（task_01）の結果を受ける → OK なら task_02（`/task_new` で起票・正本 §4.6 へ追記・codebase_map・完了判定前レビュー 2 種・decisions_archive/47・current.md・/refactor_check）。
+- その後の次フェーズ候補: **idea_39** 表示中のトリガーを戻す・先頭への対象にする / idea_37 カウンター条件分岐 / idea_23 押す / 離すアクション。
 - **main へのマージはユーザーが行う**。
 
 ## 直前フェーズ（phase 46 = 戻す・先頭への対象トリガー指定）の要点
