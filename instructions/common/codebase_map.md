@@ -709,6 +709,16 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     presentation の `CallViewController`（`app.call_view`）・`views/full_view/call_view_frame.py`・`views/compact_view/trigger_box.py`・`call_view_heights.py`。
     選択の変化は `trigger_panel_controller` の `refresh_actions` と省略表示の `set_selected_trigger_index`、表示の切替は `App.show_compact_view` から `on_selection_changed`
   - テスト: `tests/test_call_chain*.py` / `test_call_link_lifecycle.py` / `test_sequence_runner_call.py` / `test_call_context.py` / `test_call_view.py` / `test_call_view_heights.py` / `tests_ui/test_call_view_frame.py` / `test_call_view_compact.py`
+- phase 46（戻す・先頭への対象トリガー `target`。仕様 = `features.md` §4.1・§4.2.6・§4.2.10・§4.6 / `data_schema.md` §5.11.6。判断 = `decisions_archive/46_back_rewind_target.md`）:
+  - domain: `sequence_control.control_target`（`target` の 3 状態の判定の 1 か所: None = キー無し・従来どおり直前のトリガー / "" = 空 / 正規化キー）と
+    `format_control_value` の `[back] → f5` 表示（呼び出しと同じ `resolve_call` で参照先なしを解決）/ `domain/control_target.py`（`edit_control_target_violation` = OK 時の 4 文言・
+    呼び出しの `edit_call_violation` とは別で循環・深さを見ない / `rename_control_targets` = キー変更時の back・rewind の `target` の書き換え。`call_graph.rename_call_targets` は call だけの契約のまま）
+  - application: `sequence_steps.advance` の `on_control(op, target_key)` → runner `_control(key, op, target_key)` → `sequence_history.apply_control(..., target_key=)`
+    （`target_key` が None なら直前のトリガー・空 / 自分自身 / 一覧に無いなら `NO_TARGET_MESSAGE`）。直前のトリガーは更新しない。2 回押しの控えは対象の identity のため `input_acceptance.py` は不変
+  - presentation: `action_control_fields.py` のチェック「対象のトリガーを指定する」（`control_target_var`）・呼び出し先ドロップダウンの流用・`_build_control_target_result` /
+    `trigger_panel/action_edit.py` の `_call_dialog_options` が `edit_control_target_violation` を `control_target_check` として渡す /
+    `trigger_panel/trigger_row_edit.py` の改名で `rename_call_targets` に続けて `rename_control_targets`
+  - テスト: `tests/test_control_target.py` / `test_sequence_control.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_sequence_steps.py` / `test_list_clipboard.py` / `tests_ui/test_action_dialog_control.py` / `test_action_list_rendering.py` / `test_trigger_effective_row.py`
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 

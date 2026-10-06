@@ -7,15 +7,11 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 46](46_back_rewind_target/phase.md)**（2026-10-06 起票・戻す・先頭への対象トリガー指定。暫定仕様先行モード）。
-  戻す / 先頭への行に任意キー `target`（**JSON スキーマ変更あり・後方互換**）を足し、指定があれば直前のトリガーに関係なく指定先を戻す / 先頭へ移す。
-  確定事項は暫定 32 §2。主入力 = 暫定仕様 [32_back_rewind_target.md](../history/32_back_rewind_target.md)（v0.3・ユーザー確定済 2026-10-06）。
-  起票元 = ユーザー要望（2026-10-06）。番号対応: phase 46 / 暫定 32 / decisions 46。
-- 直前の完了フェーズ = [phase 45](45_call_step_and_view/phase.md)（2026-10-05・呼び出しのステップ実行と呼び出し先の表示。暫定仕様先行モード・判断は [decisions_archive/45](../../.claude_data/state/decisions_archive/45_call_step_and_view.md)）。
-  呼び出しの行ごとに一括 / ステップを選び、ステップは呼び出し先の中も 1 押下ずつ進め停止の行を効かせる。呼び出し先の中で止まったら写し・位置・経路を表示する枠を開く（フル / 省略表示）。
-  JSON は呼び出しの行の `step` と config.json の `call_view_heights` を追加（後方互換）。主入力 = 暫定仕様 [31_call_step_and_view.md](../history/31_call_step_and_view.md)（v0.6・ユーザー確定済 2026-10-05）。
-  起票元 = ユーザー要望（2026-10-04）。番号対応: phase 45 / 暫定 31 / decisions 45。
-- その前の完了フェーズ = [phase 44](44_child_save_dialog_layout/phase.md)（2026-10-04・子ファイル保存ダイアログの高さと列幅の調整・
+- **アクティブなフェーズ = なし**（phase 46 は 2026-10-06 完了）。次フェーズはユーザー判断・着手時は `/phase_start`。
+- 直前の完了フェーズ = [phase 46](46_back_rewind_target/phase.md)（2026-10-06・戻す・先頭への対象トリガー指定。暫定仕様先行モード・判断は [decisions_archive/46](../../.claude_data/state/decisions_archive/46_back_rewind_target.md)）。
+- その前の完了フェーズ = [phase 45](45_call_step_and_view/phase.md)（2026-10-05・呼び出しのステップ実行と呼び出し先の表示・
+  判断は [decisions_archive/45](../../.claude_data/state/decisions_archive/45_call_step_and_view.md)）/
+  [phase 44](44_child_save_dialog_layout/phase.md)（2026-10-04・子ファイル保存ダイアログの高さと列幅の調整・
   判断は [decisions_archive/44](../../.claude_data/state/decisions_archive/44_child_save_dialog_layout.md)）/
   [phase 43](43_list_reorder_range_copy/phase.md)（2026-10-04・一覧のドラッグ移動・範囲選択・複製・
   判断は [decisions_archive/43](../../.claude_data/state/decisions_archive/43_list_reorder_range_copy.md)）/
@@ -33,7 +29,8 @@
   phase 39 で system に停止（`op: stop`・連続実行の区切り）を加えた（`features.md` §4.2.8）。
   phase 40 で呼び出し（`op: call`・`target`・**JSON スキーマ変更あり**・§4.2.9）と入力の受け付け・一時停止（§4.2.10）を加え、待機を「送った後の待ち」に改めた（§4.2.5）。
   phase 45 で呼び出しの行ごとにステップ（既定）/ 一括（`all`・**JSON スキーマ変更あり**）を選べるようにし、写しをやめて参照中の印で呼び出し元と呼び出し先を連動させ、呼び出し先の表示枠（`call_view_heights`）を加えた（§4.2.6・§4.2.8・§4.2.9・§4.2.10・§4.6）。
-  **残件** = カウンター条件分岐（idea_37）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
+  phase 46 で戻す・先頭への行に任意キー `target`（**JSON スキーマ変更あり**）を加え、指定があれば直前のトリガーに関係なく指定先を戻す / 先頭へ移す（§4.1・§4.2.6・§4.6）。
+  **残件** = カウンター条件分岐（idea_37）/ 表示中のトリガーを戻す・先頭への対象にする（idea_39）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
   phase 41 で text / file_line の送信中は送り先の IME をオフにした（`key_input.md` §7.7・`infrastructure/ime_control.py`。IME オンでカタカナがひらがなの変換待ちになる不具合）。
   phase 42 で一覧のクリックで選択と下線がずれる不具合を直した（presentation の `listbox_utils.py`。押している間は帯だけ・離したときに反映）。
 - その前の領域 = **トリガー一覧のキーマップ従属化**（phase 34）。
@@ -69,7 +66,7 @@
   **phase 43 は 2026-10-04 完了**（`43_list_reorder_range_copy` / 暫定 30〔v0.11・凍結〕/ decisions 43〔アーカイブ済〕）。
   **phase 44 は 2026-10-04 完了**（`44_child_save_dialog_layout` / 暫定なし〔直接改訂モード〕/ decisions 44〔アーカイブ済〕）。
   **phase 45 は 2026-10-05 完了**（`45_call_step_and_view` / 暫定 31〔v0.6・凍結〕/ decisions 45〔アーカイブ済〕）。
-  **phase 46 は 2026-10-06 起票**（`46_back_rewind_target` / 暫定 32 / decisions 46）。
+  **phase 46 は 2026-10-06 完了**（`46_back_rewind_target` / 暫定 32〔v0.3・凍結〕/ decisions 46〔アーカイブ済〕）。
   次フェーズは **`47_<topic>`**・decisions も **47** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -99,7 +96,7 @@
   29=制御アクション第 2 弾 後半（呼び出し）〔**v0.9・凍結**〕/
   30=一覧のドラッグ移動・範囲選択・複製〔v0.11・凍結〕 /
   31=呼び出しのステップ実行と呼び出し先の表示〔**v0.6・凍結**〕 /
-  32=戻す・先頭への対象トリガー指定〔v0.3・未凍結・phase 46 の主入力〕）。
+  32=戻す・先頭への対象トリガー指定〔**v0.3・凍結**〕）。
   次採番は **`33_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**19 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -248,6 +245,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   `StepOutcome.wait_ms` / `resume_position` / `resume` は in_call 専用（コメント追加は任意）
 - phase 42 由来: `presentation/controllers/trigger_panel/trigger_panel_controller.py` が 606 行（M1 の基準 600 を超過・phase 42 の増分は +25 で非該当）。次に触るフェーズで分割を再判定
 - phase 43 由来（完了判定前の deep-reviewer）: `domain/sequence_editing.py` の `can_move` が未使用（`can_move_block` へ置き換え済み）/ `KeymapEditDialog` の `validate` 引数が未使用（追加フローがまとめて設定へ移ったため）/ `KeymapSwitchBatchDialog` の Escape 処理が `bind_escape_close` を使わず同じ判定順を自前で持つ
+- phase 46 由来（`/refactor_check` の M4 境界）: `(OP_BACK, OP_REWIND)` の所属判定が 3 → 8 か所（`action_control_fields.py` 4・`sequence_steps.py` 3・`sequence_control.py` 1）。戻す・先頭へのまとまりを表す定数か判定関数を `sequence_control` に置くか次に触るフェーズで再判定
 - phase 43 由来（完了判定前の Codex 敵対的レビュー）: シーケンスの個別保存（`sequence_file_io.py:54-86`）はパスのダイアログ中にアクティブが変わると、保持した A の行を保存しつつ参照元・未保存の印を現在のアクティブ B へ付ける（phase 43 より前からの挙動・キーマップの個別保存の固定なし〔decisions 43 の task_06b 保留 L1〕と同類）
 
 ### テスト負債

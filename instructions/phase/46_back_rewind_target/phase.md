@@ -59,6 +59,7 @@ OK 時に未選択 / 参照先なし / 自分自身 / 戻す・先頭へだけ�
   メインでテスト 2 件を修正〔周回に object() を入れクラス共有の状態を壊していた → 本物の形 + addCleanup / 改名した行自身の未保存の印も数えていた〕。tests 1308 / tests_ui 829 / smoke pass）
 - task_04: 正本反映（暫定 32 §10 の昇格・凍結。`data_schema.md` §5.11.6 は空の `target` の文言を呼び出しと行を分けて書く）・`codebase_map.md`・
   `decisions_archive/46_back_rewind_target.md`・current.md の完了記載・`/refactor_check`。起票元 idea なし（[task_04](tasks/task_04_canonical_reflection.md)）
+  — **完了**（2026-10-06。メイン。deep-reviewer 完了可〔低 L1〜L8・L3/L4/L7 は正本の文言を修正・他は保留〕/ codex 敵対的 needs-attention 1 件〔2 回押しの破棄で直前のトリガーが指定先になる〕→ ユーザー判断で受容し正本 §4.2.6 に明記・表示中のトリガーを対象にする案は idea_39。/refactor_check = 不要）
 
 ## レビュー方針
 
