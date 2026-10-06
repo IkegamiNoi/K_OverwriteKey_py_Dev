@@ -580,11 +580,26 @@ class TriggerPanelController:
     def _counter_names(self) -> list[str]:
         return self._action_edit._counter_names()
 
+    def set_next_action_index(self, idx: int) -> bool:
+        if not self.selected_trigger_is_effective():
+            return False
+        key = self.selected_trigger_key()
+        trig = self._app._find_trigger_by_key(key) if key else None
+        actions = (trig or {}).get("actions", [])
+        if not actions or idx < 0 or idx >= len(actions):
+            return False
+        if idx == self._app._indices.get(key, 0):
+            self.update_status()
+            return False
+        self._app._indices[key] = idx
+        self._app.sequence_runner.reset_loop_frames(key)
+        self.refresh_actions()
+        self.update_status()
+        return True
+
     def on_action_list_select(self, _event=None, *, prefer_selection: bool = True):
         """ユーザーが action_list の行を選んだら、その行を『次に実行』として indices に反映"""
-        if self._app._programmatic_action_select:
-            return
-        if not self.selected_trigger_is_effective():
+        if self._app._programmatic_action_select or not self.selected_trigger_is_effective():
             return
         listbox = self._app.full_view.action_list
         if listbox_mouse_button_is_down(listbox):
@@ -592,30 +607,15 @@ class TriggerPanelController:
         if prefer_selection and len(listbox.curselection()) > 1:
             return
         key = self.selected_trigger_key()
-        if not key:
-            return
-        trig = self._app._find_trigger_by_key(key)
-        if not trig:
-            return
-        actions = trig.get("actions", [])
+        trig = self._app._find_trigger_by_key(key) if key else None
+        actions = (trig or {}).get("actions", [])
         if not actions:
             return
         idx = sync_listbox_selection_to_focus(
-            self._app,
-            listbox,
-            len(actions),
-            prefer_selection=prefer_selection,
+            self._app, listbox, len(actions), prefer_selection=prefer_selection
         )
-        if idx is None:
-            return
-        if 0 <= idx < len(actions):
-            if idx == self._app._indices.get(key, 0):
-                self.update_status()
-                return
-            self._app._indices[key] = idx
-            self._app.sequence_runner.reset_loop_frames(key)
-            self.refresh_actions()
-            self.update_status()
+        if idx is not None:
+            self.set_next_action_index(idx)
 
     def on_action_list_focus_index_change(self, _event=None):
         return self._action_edit.on_focus_index_change(_event)

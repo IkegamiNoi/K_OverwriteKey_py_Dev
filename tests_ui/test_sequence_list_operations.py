@@ -118,6 +118,39 @@ class SequenceListOperationsTest(unittest.TestCase):
         self.assertTrue(self.listbox.items[0].startswith("▶ "))
         self.assertTrue(self.listbox.items[1].startswith("　 "))
 
+    def test_set_next_action_index_moves_next_action_marker(self):
+        self.assertTrue(self.controller.set_next_action_index(2))
+
+        self.assertEqual(self.app._indices["a"], 2)
+        self.assertTrue(self.listbox.items[2].startswith("▶ "))
+        self.app.sequence_runner.reset_loop_frames.assert_called_once_with("a")
+
+    def test_set_next_action_index_same_index_does_not_change_index(self):
+        self.assertFalse(self.controller.set_next_action_index(1))
+
+        self.assertEqual(self.app._indices["a"], 1)
+        self.app.sequence_runner.reset_loop_frames.assert_not_called()
+        self.controller.update_status.assert_called_once_with()
+
+    def test_set_next_action_index_out_of_range_does_nothing(self):
+        self.assertFalse(self.controller.set_next_action_index(len(self.actions)))
+
+        self.assertEqual(self.app._indices["a"], 1)
+        self.app.sequence_runner.reset_loop_frames.assert_not_called()
+        self.controller.update_status.assert_not_called()
+
+    def test_set_next_action_index_ignores_ineffective_trigger(self):
+        self.app.data["keymaps"][0]["triggers"].append(
+            {"key": "a", "actions": [_action("duplicate")]}
+        )
+        self.app._selected_trigger_idx = 1
+
+        self.assertFalse(self.controller.set_next_action_index(0))
+
+        self.assertEqual(self.app._indices["a"], 1)
+        self.app.sequence_runner.reset_loop_frames.assert_not_called()
+        self.controller.update_status.assert_not_called()
+
     def test_drag_move_preserves_next_action_identity_and_selects_moved_block(self):
         next_action = self.actions[1]
         self.assertTrue(self.controller.on_action_list_move(1, 2, 2))
