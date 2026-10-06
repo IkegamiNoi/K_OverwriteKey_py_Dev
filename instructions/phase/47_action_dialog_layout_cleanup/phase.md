@@ -54,7 +54,7 @@
   verifier 1 回目 tests_ui 104 件落ち〔`__init__` 途中の `_rebuild_preset_buttons` → `_sync_capture_ui` で preset_edit_btn 未定義・旧コードの hasattr ガードが消えていた〕→ メインで同期の呼び出しを外して解消。
   2 回目 1 件〔初回表示前の winfo_ismapped・テストを update() へ〕→ 該当 41 件 OK。tests 1308 / tests_ui 837 / smoke pass）
 - task_01a: presentation — 記録中に hotkey を選び直すと「記録停止」の文言だけ戻る後退の修正（完了判定前レビュー Codex 敵対的 / deep-reviewer 指摘・ユーザー承認 2026-10-06）とテスト 3 件 — **完了**（2026-10-06・codex-implementer・reviewer 採用・tests 1308 / tests_ui 840 / smoke pass）
-- task_02: 正本反映（`features.md` §4.6「出力シーケンスの編集」へ確定 1〔種別ごとの表示〕・2〔「末尾に追加」の位置〕・4〔初期フォーカス・edit_loop を含む〕を追記。「モーダルダイアログの作法」:679-682 は一般形のため改訂不要・`codebase_map.md`）・`decisions_archive/47_action_dialog_layout_cleanup.md`・current.md の完了記載・`/refactor_check`。起票元 idea なし
+- task_02: 正本反映（`features.md` §4.6「出力シーケンスの編集」へ確定 1〔種別ごとの表示〕・2〔「末尾に追加」の位置〕・4〔初期フォーカス・edit_loop を含む〕を追記。「モーダルダイアログの作法」:679-682 は一般形のため改訂不要・`codebase_map.md`）・`decisions_archive/47_action_dialog_layout_cleanup.md`・current.md の完了記載・`/refactor_check`。起票元 idea なし — **完了**（2026-10-06・deep-reviewer 修正要〔軽微・指摘 1 = 正本の文言を絞る・指摘 2 = task_01a〕/ codex 敵対的 needs-attention〔= 指摘 2〕・refactor_check 不要）
 
 ## レビュー方針
 

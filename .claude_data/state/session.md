@@ -4,38 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-06T21:00:00
-phase: `instructions/phase/47_action_dialog_layout_cleanup`（アクションの追加・編集ダイアログの整理・直接改訂モード・暫定なし）。番号対応 phase 47 / 暫定なし / decisions 47。次採番 = phase 48 / 暫定 33 / 提案書 20。
-直前の完了フェーズ = **phase 46**（戻す・先頭への対象トリガー指定・`decisions_archive/46_back_rewind_target.md`）。
-last_commit_location: `claude/jikki-mokushi-ok-5df544`（phase 47 task_01 完了まで。main へのマージはユーザー）
+last_updated: 2026-10-06T22:00:00
+phase: なし（**phase 47 完了** 2026-10-06）。次採番 = phase 48 / 暫定 33 / decisions 48 / 提案書 20。
+直前の完了フェーズ = **phase 47**（アクションの追加・編集ダイアログの整理・`decisions_archive/47_action_dialog_layout_cleanup.md`）。
+last_commit_location: `claude/jikki-mokushi-ok-5df544`（phase 47 完了まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 47 task_01 完了（ユーザー実機目視 OK）。次 = task_02（正本反映・フェーズ完了処理）。**
-mode: active
+focus: **phase 47 完了。次フェーズはユーザー判断待ち。**
+mode: idle
 
 ## last_action
-ts: 2026-10-06T20:00:00
+ts: 2026-10-06T22:00:00
 who: main
 summary: |
-  phase 47 起票（ユーザー確定 4 点・reviewer 整合チェックで edit_loop の初期フォーカス = ループ回数の欄〔無限ならそのチェック〕を補った）。
-  task_01: codex-implementer で `action_dialog.py` の値・記録・プリセットを grid_remove で非表示・「末尾に追加」を row=0 右端・初期フォーカス `_initial_focus_widget`。
-  reviewer 修正要（中: 非アクティブ時 focus_get() が None）→ メインで focus_lastfor も見る + テスト 2 件。
-  verifier 1 回目 tests_ui 104 件落ち（`__init__` 途中の `_rebuild_preset_buttons` → `_sync_capture_ui` で preset_edit_btn 未定義）→ メインで同期の呼び出しを外して解消。2 回目 1 件（テストの update_idletasks → update）。
+  task_01 実機目視 OK → 完了。task_02 起票・features.md §4.6 / codebase_map.md 追記。
+  完了判定前 deep-reviewer 修正要（軽微）/ codex 敵対的 needs-attention → ユーザー承認で 指摘1 = 正本の文言を値・記録・プリセットまわりに絞る / 指摘2 = task_01a（記録中の hotkey 再選択で文言が戻る後退・codex-implementer・reviewer 採用）。
+  refactor_check 不要。decisions_archive/47・decisions.md 索引・current.md 完了記載。
 result_files:
-  - keyseq/presentation/dialogs/action_dialog.py
-  - tests_ui/{test_action_dialog_control.py,test_dialog_initial_focus.py,test_minimize_grab_custody.py}
-  - instructions/phase/{current.md,47_action_dialog_layout_cleanup/phase.md,47_action_dialog_layout_cleanup/tasks/task_01_hide_unused_fields.md}
+  - keyseq/presentation/dialogs/action_dialog.py / tests_ui/test_action_dialog_control.py
+  - instructions/common/{spec_detail/features.md,codebase_map.md} / instructions/phase/{current.md,47_action_dialog_layout_cleanup/}
+  - .claude_data/state/{decisions.md,decisions_archive/47_action_dialog_layout_cleanup.md}
 verified:
   compile: clean
   tests: 1308 OK（skipped 7）
-  tests_ui: 837（全体実行で 836 OK + 失敗 1 件はテスト修正後に該当 41 件 OK）
+  tests_ui: 840 OK
   smoke: pass
-  review: task_01 = reviewer 修正して採用（指摘 1 はメインで修正済み）
+  review: task_01a = reviewer 採用 / フェーズ完了 = deep-reviewer + codex 敵対的（指摘対応済み）
 
 ## next_action
-- task_02 を `/task_new` で起票して実施: `features.md` §4.6「出力シーケンスの編集」へ確定 1・2・4（edit_loop 含む）を追記（「モーダルダイアログの作法」:679-682 は改訂不要）・`codebase_map.md`・
-  完了判定前 deep-reviewer + codex-adversarial-reviewer・`decisions_archive/47_action_dialog_layout_cleanup.md`・decisions.md 索引・current.md 完了記載・`/refactor_check`。
+- 次フェーズはユーザー判断（着手時は `/phase_start`）。候補 = idea_37（カウンター条件分岐）/ idea_39（表示中のトリガーを戻す・先頭への対象に）ほか backlog。
 
 ## blockers
 - なし

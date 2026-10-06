@@ -56,6 +56,7 @@
 | 45_call_step_and_view | [45_call_step_and_view.md](decisions_archive/45_call_step_and_view.md) | 呼び出しのステップ実行と呼び出し先の表示（2026-10-05 完了・暫定仕様先行・暫定 31 v0.6 凍結・スキーマ変更あり〔`all`・`call_view_heights`〕）。呼び出しの行ごとにステップ（既定）/ 一括・写しをやめ参照中の印で呼び出し元と呼び出し先を連動・戻す履歴は押下の番号つきで各トリガーへ・連続実行は呼び出し先の停止の行で一時停止・呼び出し先の表示枠（常設の Expander・フル / 省略・高さは config.json）。refactor_check: 推奨 → 提案書 19 を task_12_refactor で実施 |
 | 46_back_rewind_target | [46_back_rewind_target.md](decisions_archive/46_back_rewind_target.md) | 戻す・先頭への対象トリガー指定（2026-10-06 完了・暫定仕様先行・暫定 32 v0.3 凍結・スキーマ変更あり〔`back` / `rewind` の `target`〕）。指定があれば直前のトリガーに関係なく指定先を戻す / 先頭へ・ダイアログは呼び出し先のドロップダウンを流用・キー変更で追従・2 回押しの破棄で直前が指定先になるのは受容。表示中のトリガーを対象にする案は idea_39。refactor_check: 不要 |
 | 44_child_save_dialog_layout | [44_child_save_dialog_layout.md](decisions_archive/44_child_save_dialog_layout.md) | 子ファイル保存ダイアログの高さと列幅の調整（2026-10-04 完了・直接改訂・presentation のみ）。高さは行数に合わせ上限は主モニタの 6 割 / 見出しの境界 3 つのドラッグ（差は保存先パス・操作列は固定）/ ウィンドウの幅は保存先パスだけ / 見出しは常に見える / 小さい画面では対象名 → 共有状況 → 種別の順に縮める / 列幅は保存しない。refactor_check: 推奨（M6）→ task_02a で解消 |
+| 47_action_dialog_layout_cleanup | [47_action_dialog_layout_cleanup.md](decisions_archive/47_action_dialog_layout_cleanup.md) | アクションの追加・編集ダイアログの整理（2026-10-06 完了・直接改訂・presentation のみ）。使わない項目（値・記録・プリセット）をグレーでなく非表示・「末尾に追加」を種別の行の右端・開いたときの入力先を種別で切替（edit_loop はループ回数）・非表示の欄からのフォーカス移動は値・記録・プリセットまわりに限定。完了判定前レビューで記録中の文言の後退を task_01a で修正。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。

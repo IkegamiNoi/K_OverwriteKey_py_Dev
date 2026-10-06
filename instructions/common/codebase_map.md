@@ -101,7 +101,7 @@ keyseq/presentation/
     config_paths.py            # 以下は presentation 直下（複数種から使われる共有モジュール）
     dialogs/                   # ダイアログ群（計画07 項目2 で dialogs.py 1026 行から分割・1クラス1ファイル）
       __init__.py              # 公開面（明示列挙の再輸出のみ。tk / messagebox は持たない）
-      action_dialog.py         # ActionDialog（+ キーキャプチャ）。mode = add / edit / edit_loop（phase 37）
+      action_dialog.py         # ActionDialog（+ キーキャプチャ）。mode = add / edit / edit_loop（phase 37）。種別ごとの表示 = `_sync_capture_ui` → `_sync_type_visibility` / `_sync_hotkey_controls` / `_sync_mouse_visibility`（grid_remove）・非表示の欄からのフォーカス移動 = `_focus_is_hidden_for_type`・初期フォーカス = `_initial_focus_widget`（phase 47）
       action_control_fields.py # system / file_line の入力欄の組み立て・値の読み取り・検証（ActionDialog 専用の補助・再輸出しない・phase 37）
       preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）

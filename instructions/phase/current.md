@@ -7,11 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 47](47_action_dialog_layout_cleanup/phase.md)**（2026-10-06 起票・アクションの追加・編集ダイアログの整理。直接改訂モード）。
-  選んだ種別で使わない項目（値・キー入力で記録・プリセット）をグレーではなく非表示にし、「末尾に追加」を種別の行の右端へ移す。presentation 限定・スキーマ不変。
-  確定事項は phase.md「確定」。起票元 = ユーザー要望（2026-10-06）。番号対応: phase 47 / 暫定なし / decisions 47。
-- 直前の完了フェーズ = [phase 46](46_back_rewind_target/phase.md)（2026-10-06・戻す・先頭への対象トリガー指定。暫定仕様先行モード・判断は [decisions_archive/46](../../.claude_data/state/decisions_archive/46_back_rewind_target.md)）。
-- その前の完了フェーズ = [phase 45](45_call_step_and_view/phase.md)（2026-10-05・呼び出しのステップ実行と呼び出し先の表示・
+- **アクティブなフェーズ = なし**（phase 47 は 2026-10-06 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- 直前の完了フェーズ = [phase 47](47_action_dialog_layout_cleanup/phase.md)（2026-10-06・アクションの追加・編集ダイアログの整理。直接改訂モード・判断は [decisions_archive/47](../../.claude_data/state/decisions_archive/47_action_dialog_layout_cleanup.md)）。
+- その前の完了フェーズ = [phase 46](46_back_rewind_target/phase.md)（2026-10-06・戻す・先頭への対象トリガー指定。暫定仕様先行モード・判断は [decisions_archive/46](../../.claude_data/state/decisions_archive/46_back_rewind_target.md)）/
+  [phase 45](45_call_step_and_view/phase.md)（2026-10-05・呼び出しのステップ実行と呼び出し先の表示・
   判断は [decisions_archive/45](../../.claude_data/state/decisions_archive/45_call_step_and_view.md)）/
   [phase 44](44_child_save_dialog_layout/phase.md)（2026-10-04・子ファイル保存ダイアログの高さと列幅の調整・
   判断は [decisions_archive/44](../../.claude_data/state/decisions_archive/44_child_save_dialog_layout.md)）/
@@ -69,7 +68,7 @@
   **phase 44 は 2026-10-04 完了**（`44_child_save_dialog_layout` / 暫定なし〔直接改訂モード〕/ decisions 44〔アーカイブ済〕）。
   **phase 45 は 2026-10-05 完了**（`45_call_step_and_view` / 暫定 31〔v0.6・凍結〕/ decisions 45〔アーカイブ済〕）。
   **phase 46 は 2026-10-06 完了**（`46_back_rewind_target` / 暫定 32〔v0.3・凍結〕/ decisions 46〔アーカイブ済〕）。
-  **phase 47 は 2026-10-06 起票**（`47_action_dialog_layout_cleanup` / 暫定なし〔直接改訂モード〕/ decisions 47）。
+  **phase 47 は 2026-10-06 完了**（`47_action_dialog_layout_cleanup` / 暫定なし〔直接改訂モード〕/ decisions 47〔アーカイブ済〕）。
   次フェーズは **`48_<topic>`**・decisions も **48** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
