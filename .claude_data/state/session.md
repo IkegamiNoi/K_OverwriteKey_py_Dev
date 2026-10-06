@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-06T20:00:00
+last_updated: 2026-10-06T21:00:00
 phase: `instructions/phase/47_action_dialog_layout_cleanup`（アクションの追加・編集ダイアログの整理・直接改訂モード・暫定なし）。番号対応 phase 47 / 暫定なし / decisions 47。次採番 = phase 48 / 暫定 33 / 提案書 20。
 直前の完了フェーズ = **phase 46**（戻す・先頭への対象トリガー指定・`decisions_archive/46_back_rewind_target.md`）。
-last_commit_location: `claude/physical-device-verification-d3c460`（phase 47 task_01 まで。main へのマージはユーザー）
+last_commit_location: `claude/jikki-mokushi-ok-5df544`（phase 47 task_01 完了まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 47 task_01 実装完了（presentation）。ユーザーの実機目視待ち → OK なら task_02（正本反映）。**
-mode: blocked
+focus: **phase 47 task_01 完了（ユーザー実機目視 OK）。次 = task_02（正本反映・フェーズ完了処理）。**
+mode: active
 
 ## last_action
 ts: 2026-10-06T20:00:00
@@ -34,12 +34,11 @@ verified:
   review: task_01 = reviewer 修正して採用（指摘 1 はメインで修正済み）
 
 ## next_action
-- ユーザーの実機目視（task_01 の完了条件: 各種別の表示・「末尾に追加」の位置・開いたときのフォーカス・切替での高さの伸び縮み・記録中の種別変更）の結果を受ける。NG なら修正。
-- OK 後に task_02 を `/task_new` で起票して実施: `features.md` §4.6「出力シーケンスの編集」へ確定 1・2・4（edit_loop 含む）を追記（「モーダルダイアログの作法」:679-682 は改訂不要）・`codebase_map.md`・
+- task_02 を `/task_new` で起票して実施: `features.md` §4.6「出力シーケンスの編集」へ確定 1・2・4（edit_loop 含む）を追記（「モーダルダイアログの作法」:679-682 は改訂不要）・`codebase_map.md`・
   完了判定前 deep-reviewer + codex-adversarial-reviewer・`decisions_archive/47_action_dialog_layout_cleanup.md`・decisions.md 索引・current.md 完了記載・`/refactor_check`。
 
 ## blockers
-- ユーザーの実機目視待ち（task_01）
+- なし
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。

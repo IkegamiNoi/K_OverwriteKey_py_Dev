@@ -50,7 +50,7 @@
 ## タスク
 
 - task_01: presentation — 種別ごとの非表示・「末尾に追加」の移動・初期フォーカスの切替とテスト。**実装後にユーザーの実機目視** —
-  **実装完了・実機目視待ち**（2026-10-06。codex-implementer・reviewer 修正要〔中: 非アクティブ時に focus_get() が None で隠れる欄からフォーカスを移せない〕→ メインで focus_lastfor も見るよう修正 + テスト 2 件。
+  **完了**（2026-10-06・ユーザー実機目視 OK。codex-implementer・reviewer 修正要〔中: 非アクティブ時に focus_get() が None で隠れる欄からフォーカスを移せない〕→ メインで focus_lastfor も見るよう修正 + テスト 2 件。
   verifier 1 回目 tests_ui 104 件落ち〔`__init__` 途中の `_rebuild_preset_buttons` → `_sync_capture_ui` で preset_edit_btn 未定義・旧コードの hasattr ガードが消えていた〕→ メインで同期の呼び出しを外して解消。
   2 回目 1 件〔初回表示前の winfo_ismapped・テストを update() へ〕→ 該当 41 件 OK。tests 1308 / tests_ui 837 / smoke pass）
 - task_02: 正本反映（`features.md` §4.6「出力シーケンスの編集」へ確定 1〔種別ごとの表示〕・2〔「末尾に追加」の位置〕・4〔初期フォーカス・edit_loop を含む〕を追記。「モーダルダイアログの作法」:679-682 は一般形のため改訂不要・`codebase_map.md`）・`decisions_archive/47_action_dialog_layout_cleanup.md`・current.md の完了記載・`/refactor_check`。起票元 idea なし
