@@ -51,7 +51,8 @@ class ActionControlFields:
     def __init__(self, parent: tk.Misc, *, counter_names: list[str], config_root: str,
                  config_service: Any, mode: str | None,
                  call_candidates: list[tuple[str, str]] | None = None,
-                 call_check: Callable[[str], str | None] | None = None) -> None:
+                 call_check: Callable[[str], str | None] | None = None,
+                 control_target_check: Callable[[str], str | None] | None = None) -> None:
         self.parent = parent
         self.counter_names = list(counter_names)
         self.config_root = config_root
@@ -59,6 +60,7 @@ class ActionControlFields:
         self.mode = mode
         self.call_candidates = list(call_candidates or [])
         self.call_check = call_check
+        self.control_target_validator = control_target_check
         self._call_candidate_by_label: dict[str, tuple[str, str]] = {}
         self._missing_call_target: str | None = None
         operation_labels = list(SYSTEM_OPERATIONS)
@@ -135,6 +137,12 @@ class ActionControlFields:
             variable=self.call_all_var,
         )
         self.call_all_check.grid(row=6, column=0, columnspan=3, sticky="w", pady=(4, 0))
+        self.control_target_var = tk.BooleanVar(value=False)
+        self.control_target_check = ttk.Checkbutton(
+            self.system_frame, text="対象のトリガーを指定する",
+            variable=self.control_target_var, command=self.sync_system,
+        )
+        self.control_target_check.grid(row=7, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
     def _build_file_fields(self) -> None:
         self.file_path_var = tk.StringVar(value="")
@@ -186,8 +194,16 @@ class ActionControlFields:
         self._show(self.system_counter_combo, counter_op)
         self._show(self.wait_label, op == OP_WAIT)
         self._show(self.wait_entry, op == OP_WAIT)
-        self._show(self.call_target_label, op == OP_CALL)
-        self._show(self.call_target_combo, op == OP_CALL)
+        control_target_op = op in (OP_BACK, OP_REWIND)
+        show_target = op == OP_CALL or control_target_op
+        self._show(self.control_target_check, control_target_op)
+        self.call_target_label.configure(text="対象のトリガー" if control_target_op else "呼び出し先")
+        self._show(self.call_target_label, show_target)
+        self._show(self.call_target_combo, show_target)
+        self.call_target_combo.configure(
+            state="readonly" if op == OP_CALL or (control_target_op and self.control_target_var.get())
+            else "disabled"
+        )
         self._show(self.call_note_label, op == OP_CALL)
         self._show(self.call_all_check, op == OP_CALL)
 
@@ -216,8 +232,9 @@ class ActionControlFields:
             self.system_counter_var.set(str(action.get("counter", "")))
             self.wait_ms_var.set(str(action.get("ms", 1)))
             self.call_all_var.set(bool(action.get("all")))
+            self.control_target_var.set(op in (OP_BACK, OP_REWIND) and "target" in action)
             self.sync_system()
-            if op == OP_CALL:
+            if op in (OP_CALL, OP_BACK, OP_REWIND) and "target" in action:
                 target = normalize_key_name(str(action.get("target", "")))
                 self._select_call_target(target)
         elif action_type == ACTION_TYPE_FILE_LINE:
@@ -250,6 +267,8 @@ class ActionControlFields:
             return self._build_loop_result(label, result)
         if op == OP_CALL:
             return self._build_call_result(label, result)
+        if op in (OP_BACK, OP_REWIND) and self.control_target_var.get():
+            return self._build_control_target_result(label, result)
         if op in (OP_COUNTER_INC, OP_COUNTER_RESET):
             counter = self.system_counter_var.get().strip()
             if not counter:
@@ -306,6 +325,29 @@ class ActionControlFields:
         result.update({"target": target, "label": label})
         if bool(self.call_all_var.get()):
             result["all"] = True
+        return result
+
+    def _build_control_target_result(
+        self, label: str, result: dict[str, Any],
+    ) -> dict[str, Any] | None:
+        display = self.call_target_var.get()
+        candidate = self._call_candidate_by_label.get(display)
+        if candidate is None:
+            if self._missing_call_target and display == self._missing_call_display():
+                error = (self.control_target_validator(self._missing_call_target)
+                         if self.control_target_validator else None)
+                messagebox.showerror("入力エラー", error or
+                                     f"対象のトリガーがありません（{self._missing_call_target}）")
+            else:
+                messagebox.showerror("入力エラー", "対象のトリガーを選んでください")
+            return None
+        target = candidate[0]
+        if self.control_target_validator is not None:
+            error = self.control_target_validator(target)
+            if error:
+                messagebox.showerror("入力エラー", error)
+                return None
+        result.update({"target": target, "label": label})
         return result
 
     def _build_loop_result(self, label: str, result: dict[str, Any]) -> dict[str, Any] | None:

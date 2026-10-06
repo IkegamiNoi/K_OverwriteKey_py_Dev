@@ -21,7 +21,8 @@ class ActionDialog(tk.Toplevel):
     def __init__(self, parent: App, title: str, initial: dict | None = None, *, mode: str | None = None,
                  counter_names: list[str] | None = None, config_root: str = "",
                  call_candidates: list[tuple[str, str]] | None = None,
-                 call_check: Callable[[str], str | None] | None = None):
+                 call_check: Callable[[str], str | None] | None = None,
+                 control_target_check: Callable[[str], str | None] | None = None):
         super().__init__(parent)
         self.parent = parent
         self.mode = mode
@@ -121,6 +122,7 @@ class ActionDialog(tk.Toplevel):
             frm, counter_names=counter_names or [], config_root=config_root,
             config_service=parent.config_service, mode=mode,
             call_candidates=call_candidates, call_check=call_check,
+            control_target_check=control_target_check,
         )
         self.control_fields.system_frame.grid(row=4, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.control_fields.file_frame.grid(row=4, column=0, columnspan=4, sticky="we", pady=(10, 0))

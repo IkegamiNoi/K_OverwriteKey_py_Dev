@@ -4,6 +4,7 @@ from tkinter import messagebox
 
 from keyseq.domain.call_graph import rename_call_targets
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.control_target import rename_control_targets
 from keyseq.domain.keymap_triggers import ensure_active_triggers, get_active_triggers
 from keyseq.domain.trigger_duplicates import is_effective_trigger
 from keyseq.presentation.dialogs import TriggerDialog
@@ -138,8 +139,13 @@ class TriggerRowEditFlow:
                 if not isinstance(actions, list):
                     continue
                 renamed_actions = rename_call_targets(actions, old, new)
-                if renamed_actions is not None:
-                    trigger["actions"] = renamed_actions
+                actions_after_call_rename = renamed_actions if renamed_actions is not None else actions
+                renamed_control_actions = rename_control_targets(actions_after_call_rename, old, new)
+                if renamed_control_actions is not None or renamed_actions is not None:
+                    trigger["actions"] = (
+                        renamed_control_actions if renamed_control_actions is not None
+                        else actions_after_call_rename
+                    )
                     self._panel._app.mark_sequence_dirty(trigger)
 
     def delete_trigger(self):

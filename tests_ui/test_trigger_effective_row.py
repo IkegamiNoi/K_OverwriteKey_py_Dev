@@ -1,6 +1,7 @@
 import unittest
 from unittest.mock import patch
 
+from keyseq.application.sequence_history import HistoryEntry
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.controllers.trigger_panel import trigger_row_edit as panel_module
@@ -28,6 +29,8 @@ def make_runtime():
                 {"key": "F1", "label": "Shadow", "actions": [{"type": "text", "text": "shadow"}]},
                 {"key": "caller", "label": "Caller", "actions": [
                     {"type": "system", "op": "call", "target": "f1"},
+                    {"type": "system", "op": "back", "target": "F1"},
+                    {"type": "system", "op": "rewind", "target": "f1"},
                 ]},
                 {"key": "f12", "label": "Stop overlap", "actions": []},
             ],
@@ -115,9 +118,40 @@ class TriggerEffectiveRowUiTest(unittest.TestCase):
         self.assertEqual(self.app._indices.get("f2"), 2)
         self.assertNotIn("f1", self.app._indices)
         self.assertEqual(self.rows[2]["actions"][0]["target"], "f2")
+        self.assertEqual(self.rows[2]["actions"][1]["target"], "f2")
+        self.assertEqual(self.rows[2]["actions"][2]["target"], "f2")
+
+    def test_effective_key_change_marks_rewritten_control_targets_dirty_and_keeps_state(self):
+        self.rows[1]["key"] = "f3"
+        self.app._selected_trigger_idx = 0
+        self.app.trigger_panel.refresh_triggers()
+        trigger_set_id = self.app._active_trigger_set_id()
+        history = [HistoryEntry(0, [], [])]
+        frames = []
+        self.app.state.history_for(trigger_set_id)["f1"] = history
+        self.app.state.loop_frames_for(trigger_set_id)["f1"] = frames
+        self.app._indices["f1"] = 1
+        self.addCleanup(self.app.state.history_for(trigger_set_id).pop, "f2", None)
+        self.addCleanup(self.app.state.loop_frames_for(trigger_set_id).pop, "f2", None)
+
+        with patch.object(panel_module, "TriggerDialog", return_value=_DialogResult({
+            "key": "f2", "label": "Renamed first",
+        })), patch.object(self.app, "mark_sequence_dirty", wraps=self.app.mark_sequence_dirty) as mark_dirty:
+            self.app.trigger_panel.rename_trigger()
+
+        self.assertEqual(self.rows[2]["actions"][1]["target"], "f2")
+        self.assertEqual(self.rows[2]["actions"][2]["target"], "f2")
+        self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+        self.assertEqual(self.app._indices.get("f2"), 1)
+        self.assertIs(self.app.state.history_for(trigger_set_id).get("f2"), history)
+        self.assertIs(self.app.state.loop_frames_for(trigger_set_id).get("f2"), frames)
+        self.assertNotIn("f1", self.app.state.history_for(trigger_set_id))
+        self.assertNotIn("f1", self.app.state.loop_frames_for(trigger_set_id))
+        caller_marks = [call for call in mark_dirty.call_args_list if call.args[0] is self.rows[2]]
+        self.assertEqual(len(caller_marks), 1)
 
     def test_call_candidates_exclude_duplicate_but_keep_overlap_rows(self):
-        candidates, _check = self.app.trigger_panel._action_edit._call_dialog_options("caller")
+        candidates, _call_check, _control_check = self.app.trigger_panel._action_edit._call_dialog_options("caller")
         self.assertEqual(candidates, [("f1", "First"), ("f12", "Stop overlap")])
 
     def test_keyboard_uses_first_duplicate_row_number(self):

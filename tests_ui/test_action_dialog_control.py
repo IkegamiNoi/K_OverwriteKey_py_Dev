@@ -37,11 +37,12 @@ class ActionDialogControlTest(unittest.TestCase):
 
     def make_dialog(self, mode: str = "add", initial: dict | None = None, *,
                     call_candidates: list[tuple[str, str]] | None = None,
-                    call_check=None) -> ActionDialog:
+                    call_check=None, control_target_check=None) -> ActionDialog:
         dialog = ActionDialog(
             self.app, title="アクション", initial=initial, mode=mode,
             counter_names=["alpha", "beta"], config_root=self.app.config_root,
             call_candidates=call_candidates, call_check=call_check,
+            control_target_check=control_target_check,
         )
         self.addCleanup(self.cleanup_window, dialog)
         return dialog
@@ -230,6 +231,115 @@ class ActionDialogControlTest(unittest.TestCase):
         self.assertEqual(checked, ["z9"])
         self.assertEqual(self.showerror.call_args.args[1], "自分自身は呼び出せません")
         self.assertTrue(missing.winfo_exists())
+
+    def test_back_and_rewind_share_optional_control_target_dropdown(self) -> None:
+        for operation, op in (("戻す", "back"), ("先頭へ", "rewind")):
+            dialog = self.make_dialog(
+                mode="edit", initial={"type": "system", "op": op, "target": "F5"},
+                call_candidates=[("f5", "Macro")],
+            )
+            dialog.type_var.set("system")
+            fields = dialog.control_fields
+            fields.system_op_var.set(operation)
+            fields.sync_system()
+            self.assertTrue(fields.control_target_var.get())
+            fields.control_target_var.set(False)
+            fields.sync_system()
+
+            self.assertTrue(fields.control_target_check.winfo_manager())
+            self.assertEqual(fields.call_target_label.cget("text"), "対象のトリガー")
+            self.assertEqual(str(fields.call_target_combo.cget("state")), "disabled")
+            self.assertTrue(fields.call_target_combo.winfo_manager())
+            self.assertFalse(fields.call_note_label.winfo_manager())
+            self.assertFalse(fields.call_all_check.winfo_manager())
+
+            fields.control_target_var.set(True)
+            fields.sync_system()
+            self.assertEqual(str(fields.call_target_combo.cget("state")), "readonly")
+            fields.control_target_var.set(False)
+            dialog.action_label_var.set("control")
+            dialog.on_ok()
+            self.assertEqual(self.app._dialog_result, {
+                "type": "system", "op": op, "label": "control",
+            })
+
+            selected = self.make_dialog(call_candidates=[("f5", "Macro")])
+            selected.type_var.set("system")
+            selected.control_fields.system_op_var.set(operation)
+            selected.control_fields.control_target_var.set(True)
+            selected.control_fields.call_target_var.set("f5: Macro")
+            selected.on_ok()
+            self.assertEqual(self.app._dialog_result, {
+                "type": "system", "op": op, "target": "f5", "label": "",
+            })
+
+    def test_control_target_validation_and_missing_target_keep_dialog_open(self) -> None:
+        unselected = self.make_dialog(call_candidates=[("f5", "Macro")])
+        unselected.type_var.set("system")
+        unselected.control_fields.system_op_var.set("戻す")
+        unselected.control_fields.control_target_var.set(True)
+        unselected.on_ok()
+        self.assertTrue(unselected.winfo_exists())
+        self.assertEqual(self.showerror.call_args.args[1], "対象のトリガーを選んでください")
+
+        rejected = self.make_dialog(
+            call_candidates=[("f5", "Macro")],
+            control_target_check=lambda _target: "自分自身は指定できません",
+        )
+        rejected.type_var.set("system")
+        rejected.control_fields.system_op_var.set("先頭へ")
+        rejected.control_fields.control_target_var.set(True)
+        rejected.control_fields.call_target_var.set("f5: Macro")
+        rejected.on_ok()
+        self.assertTrue(rejected.winfo_exists())
+        self.assertEqual(self.showerror.call_args.args[1], "自分自身は指定できません")
+
+        missing = self.make_dialog(
+            mode="edit", initial={"type": "system", "op": "back", "target": "F5"},
+            call_candidates=[("f6", "Other")],
+            control_target_check=lambda target: f"対象のトリガーがありません（{target}）",
+        )
+        self.assertTrue(missing.control_fields.control_target_var.get())
+        self.assertEqual(missing.control_fields.call_target_var.get(), "f5（参照先なし）")
+        missing.on_ok()
+        self.assertTrue(missing.winfo_exists())
+        self.assertEqual(self.showerror.call_args.args[1], "対象のトリガーがありません（f5）")
+
+        fallback = self.make_dialog(
+            mode="edit", initial={"type": "system", "op": "back", "target": "z9"},
+            call_candidates=[("f6", "Other")],
+        )
+        fallback.on_ok()
+        self.assertTrue(fallback.winfo_exists())
+        self.assertEqual(self.showerror.call_args.args[1], "対象のトリガーがありません（z9）")
+
+    def test_control_target_load_and_operation_switch_preserve_shared_selection(self) -> None:
+        selected = self.make_dialog(
+            mode="edit", initial={"type": "system", "op": "rewind", "target": "F5"},
+            call_candidates=[("f5", "Macro")],
+        )
+        fields = selected.control_fields
+        self.assertTrue(fields.control_target_var.get())
+        self.assertEqual(fields.call_target_var.get(), "f5: Macro")
+
+        fields.system_op_var.set("呼び出し")
+        fields.sync_system()
+        self.assertFalse(fields.control_target_check.winfo_manager())
+        self.assertEqual(fields.call_target_label.cget("text"), "呼び出し先")
+        self.assertEqual(str(fields.call_target_combo.cget("state")), "readonly")
+        self.assertEqual(fields.call_target_var.get(), "f5: Macro")
+        self.assertTrue(fields.control_target_var.get())
+
+        fields.system_op_var.set("戻す")
+        fields.sync_system()
+        self.assertEqual(fields.call_target_var.get(), "f5: Macro")
+        self.assertEqual(str(fields.call_target_combo.cget("state")), "readonly")
+
+        unassigned = self.make_dialog(
+            mode="edit", initial={"type": "system", "op": "back"},
+            call_candidates=[("f5", "Macro")],
+        )
+        self.assertFalse(unassigned.control_fields.control_target_var.get())
 
     def test_call_note_about_interval_is_shown_only_for_call(self) -> None:
         dialog = self.make_dialog(call_candidates=[("f6", "")])

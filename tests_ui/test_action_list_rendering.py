@@ -219,6 +219,20 @@ class ActionListRenderingTest(unittest.TestCase):
             "01. [call] z9（Target Label）: Launch",  # 制御アクションの要約は一覧と同じく行ラベルを含む
         )
 
+    def test_back_target_rows_resolve_and_show_missing_target(self):
+        rows = build_action_rows(
+            [
+                {"type": "system", "op": "back", "target": "f8"},
+                {"type": "system", "op": "back", "target": "f5"},
+            ],
+            loop_iterations={},
+            counters={},
+            resolve_call=lambda target: ("f5", None) if target == "f5" else ("f8", "Macro"),
+        )
+
+        self.assertEqual(rows[0][0], "01. [back] → f8")
+        self.assertEqual(rows[1][0], "02. [back] → f5（参照先なし）")
+
     def test_delay_entry_stays_enabled_when_run_to_end_is_off_and_saves_value(self):
         trigger = {"key": "a", "run_to_end": True, "run_to_end_delay_ms": 300}
         entry = _Entry()

@@ -6,6 +6,7 @@ from typing import Callable
 
 from keyseq.domain.config import normalize_key_name, safe_deepcopy
 from keyseq.domain.call_graph import edit_call_violation
+from keyseq.domain.control_target import edit_control_target_violation
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.trigger_duplicates import is_effective_trigger, shadowed_duplicate_indices
 from keyseq.domain.list_editing import index_after_reorder, move_block, shift_block
@@ -68,7 +69,7 @@ class ActionEditFlow:
         actions = trig.setdefault("actions", [])
         selected_index = self._trigger_panel.selected_action_index()
         key = normalize_key_name(trig.get("key", ""))
-        call_candidates, call_check = self._call_dialog_options(key)
+        call_candidates, call_check, control_target_check = self._call_dialog_options(key)
         dialog = ActionDialog(
             self._app,
             title="追加",
@@ -77,6 +78,7 @@ class ActionEditFlow:
             config_root=getattr(self._app, "config_root", ""),
             call_candidates=call_candidates,
             call_check=call_check,
+            control_target_check=control_target_check,
         )
         dialog.wait_window()
         position = int(self._app._indices.get(key, 0) or 0)
@@ -211,7 +213,7 @@ class ActionEditFlow:
             mode = "edit_loop"
         initial = actions[target_idx]
         key = normalize_key_name(trig.get("key", ""))
-        call_candidates, call_check = self._call_dialog_options(key)
+        call_candidates, call_check, control_target_check = self._call_dialog_options(key)
         ActionDialog(
             self._app,
             title="編集",
@@ -221,6 +223,7 @@ class ActionEditFlow:
             config_root=getattr(self._app, "config_root", ""),
             call_candidates=call_candidates,
             call_check=call_check,
+            control_target_check=control_target_check,
         ).wait_window()
         result = getattr(self._app, "_dialog_result", None)
         if result:
@@ -361,7 +364,7 @@ class ActionEditFlow:
 
     def _call_dialog_options(
         self, owner_key: str,
-    ) -> tuple[list[tuple[str, str]], Callable[[str], str | None]]:
+    ) -> tuple[list[tuple[str, str]], Callable[[str], str | None], Callable[[str], str | None]]:
         triggers = get_active_triggers(self._app.data)
         shadowed = shadowed_duplicate_indices(triggers)
         candidates = []
@@ -382,4 +385,8 @@ class ActionEditFlow:
                 None,
             )
 
-        return candidates, lambda target: edit_call_violation(owner_key, target, find_trigger)
+        return (
+            candidates,
+            lambda target: edit_call_violation(owner_key, target, find_trigger),
+            lambda target: edit_control_target_violation(owner_key, target, find_trigger),
+        )
