@@ -1764,7 +1764,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.assertEqual(
                 Path(path).read_bytes(),
                 _expected_json_bytes(
-                    '{\n  "label": "Run",\n  "run_to_end": false,\n'
+                    '{\n  "label": "Run",\n  "run_to_end": false,\n  "select_before_run": false,\n'
                     '  "run_to_end_delay_ms": 300,\n  "actions": []\n}'
                 ),
             )
@@ -1797,7 +1797,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
     def test_sequence_individual_save_inside_config_stores_relative_path_without_changing_json_bytes(self):
         expected = _expected_json_bytes(
-            '{\n  "label": "Run",\n  "run_to_end": false,\n'
+            '{\n  "label": "Run",\n  "run_to_end": false,\n  "select_before_run": false,\n'
             '  "run_to_end_delay_ms": 300,\n  "actions": []\n}'
         )
         with tempfile.TemporaryDirectory() as directory:
@@ -1967,6 +1967,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                         {
                             "label": "Loaded",
                             "run_to_end": True,
+                            "select_before_run": False,
                             "run_to_end_delay_ms": 3,
                             "actions": [],
                         },

@@ -460,6 +460,11 @@ def build_keymap_set_payload(service,
         "hotkey_presets_individual": (
             hotkey_presets_individual if isinstance(hotkey_presets_individual, bool) else False
         ),
+        "select_before_run": (
+            runtime.get("select_before_run", False)
+            if isinstance(runtime.get("select_before_run", False), bool)
+            else False
+        ),
         "active_keymap_path": active_keymap_path,
         "keymaps": keymap_entries,
         "hook_stop_key": normalize_key_name(runtime.get(HOOK_STOP_KEY, "")) if hook_keys_individual else "",
@@ -534,6 +539,7 @@ def build_sequence_payload(service,
     payload = {
         "label": str(trigger.get("label") or "").strip(),
         "run_to_end": bool(trigger.get("run_to_end", False)),
+        "select_before_run": bool(trigger.get("select_before_run", False)),
         "run_to_end_delay_ms": service._coerce_nonnegative_int(
             trigger.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
             DEFAULT_RUN_TO_END_DELAY_MS,

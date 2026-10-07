@@ -42,7 +42,7 @@
 
 ## タスク
 
-- task_01: domain / application（保存）— keymap_set と sequence（trigger_set 内・単一 JSON のインラインを含む）の `select_before_run` の読み書きとテスト（往復: 保存 → 再読込 / Import → Export / 個別保存 → 個別読込）（暫定 34 §6）
+- task_01: domain / application（保存）— keymap_set と sequence（trigger_set 内・単一 JSON のインラインを含む）の `select_before_run` の読み書きとテスト（往復: 保存 → 再読込 / Import → Export / 個別保存 → 個別読込）（暫定 34 §6） — **完了**（2026-10-08・codex-implementer・reviewer 完了可。出力を固定している既存テスト 11 件〔キー集合・順序・保存バイト列〕を §6「常に書く」に合わせて追随＝仕様起因。tests 1330 / tests_ui 895 / smoke pass）
 - task_02: application（判定）— 選ぶだけの判定（§3・§4・戻す・先頭へだけの除外）・リピートの無視（InputRouter の印 + runner）・待機明けの選び直しの変更（§8）・注入口（省略時は機能 OFF）とテスト・既存テストの追随（§3・§4・§7・§8）
 - task_03: presentation — フル表示のフック欄の全体のチェック（dirty・読込等での同期）・省略表示の表示のみのチェック・出力シーケンス欄のトリガーごとのチェック（同期・書き戻し・dirty）・選択の口の注入と配線とテスト（§5・§7）。**実装後にユーザーの実機目視**
 - task_04: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）と**ユーザーの実機目視**（暫定 34 §10）

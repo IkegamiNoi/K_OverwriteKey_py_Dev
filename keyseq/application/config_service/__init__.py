@@ -459,6 +459,7 @@ class ConfigService:
         return {
             "label": coerce_label(sequence.get("label")),
             "run_to_end": bool(sequence.get("run_to_end", False)),
+            "select_before_run": bool(sequence.get("select_before_run", False)),
             "run_to_end_delay_ms": self._coerce_nonnegative_int(
                 sequence.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
                 DEFAULT_RUN_TO_END_DELAY_MS,
@@ -556,6 +557,7 @@ class ConfigService:
         config_root: str,
     ) -> dict[str, Any]:
         """runtime を新規化・置換した直後に、config.json の全体デフォルトを注入する。"""
+        runtime.setdefault("select_before_run", False)
         self.apply_global_hook_key_defaults(runtime, config_root=config_root)
         hotkey_presets = hotkey_presets_files.load_global_hotkey_presets(self, config_root=config_root)
         if hotkey_presets is not None:

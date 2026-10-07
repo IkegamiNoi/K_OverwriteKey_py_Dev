@@ -99,6 +99,7 @@ class SavePlanTest(unittest.TestCase):
             "trigger_set_path",
             "hotkey_presets_path",
             "hotkey_presets_individual",
+            "select_before_run",
             "active_keymap_path",
             "keymaps",
             "hook_stop_key",
@@ -166,6 +167,7 @@ class SavePlanTest(unittest.TestCase):
                     "trigger_set_path": "",
                     "hotkey_presets_path": "",
                     "hotkey_presets_individual": False,
+                    "select_before_run": False,
                     "active_keymap_path": "user/keymaps/Main.json",
                     "keymaps": [{"path": "user/keymaps/Main.json", "switch_key": "1"}],
                     "hook_stop_key": "f12",
@@ -212,6 +214,7 @@ class SavePlanTest(unittest.TestCase):
                 {
                     "label": "copy",
                     "run_to_end": False,
+                    "select_before_run": False,
                     "run_to_end_delay_ms": 300,
                     "actions": [{"type": "text", "value": "hello", "label": ""}],
                     "_parent_refs": ["user/trigger_sets/Main.json"],

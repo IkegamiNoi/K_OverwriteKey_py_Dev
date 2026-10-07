@@ -724,6 +724,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                     "legacy": True,
                     "hotkey_presets_individual": False,
                     "hotkey_presets_path": "",
+                    "select_before_run": False,
                     "hook_keys_individual": False,
                     "hook_stop_key": "f11",
                     "hook_toggle_key": "f12",
@@ -854,7 +855,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         # config.json に全体デフォルトが無いため空文字で入る。
         self.assertEqual(
             self.app.data,
-            {"d": 1, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
+            {"d": 1, "select_before_run": False, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
         )
         self.assertEqual(set_dirty.call_args.args, (True,))
         self.assertEqual(set_dirty.call_args.kwargs, {})
@@ -1530,7 +1531,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         # 空データフォールバックでも hook キーの全体デフォルトが注入される（phase 07 task_02）。
         self.assertEqual(
             self.app.data,
-            {"empty": True, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
+            {"empty": True, "select_before_run": False, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
         )
         self.assertEqual(self.app.keymap_set_path, "")
         apply_ui.assert_called_once_with()
@@ -1565,7 +1566,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             # （空データにも hook キーの全体デフォルトが注入される。phase 07 task_02）
             self.assertEqual(
                 self.app.data,
-                {"empty": True, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
+                {"empty": True, "select_before_run": False, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
             )
             # 読込例外時も keymap_set_path は空のまま（受入 4）
             self.assertEqual(self.app.keymap_set_path, "")

@@ -37,6 +37,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
     "hook_toggle_key": "",
     "hook_keys_individual": False,
     "hotkey_presets_individual": False,
+    "select_before_run": False,
     "hotkey_presets_path": "",
     "keyboard_layout": DEFAULT_KEYBOARD_LAYOUT_ID,
     "keyboard_show_physical_key_labels": False,
@@ -50,6 +51,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
                 "suppress": True,
                 "label": "",
                 "run_to_end": False,
+                "select_before_run": False,
                 "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
                 "actions": [
                     {"type": "hotkey", "value": "ctrl+c"},
@@ -65,6 +67,7 @@ DEFAULT_CONFIG: dict[str, Any] = {
                 "suppress": True,
                 "label": "",
                 "run_to_end": False,
+                "select_before_run": False,
                 "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
                 "actions": [
                     {"type": "text", "value": "sequence_1"},
@@ -178,6 +181,7 @@ def normalize_triggers(raw_triggers: Any) -> list[dict[str, Any]]:
         t["label"] = coerce_label(t.get("label"))
         t["suppress"] = bool(t.get("suppress", True))
         t["run_to_end"] = bool(t.get("run_to_end", False))
+        t["select_before_run"] = bool(t.get("select_before_run", False))
 
         t["run_to_end_delay_ms"] = coerce_nonnegative_int(
             t.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
@@ -209,6 +213,7 @@ def _migrate_legacy_triggers(config: dict[str, Any]) -> None:
                 "label": "",
                 "suppress": True,
                 "run_to_end": False,
+                "select_before_run": False,
                 "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
                 "actions": old_actions,
             }
@@ -228,6 +233,10 @@ def _normalize_general_settings(config: dict[str, Any]) -> None:
     hotkey_presets_individual = config.get("hotkey_presets_individual", False)
     config["hotkey_presets_individual"] = (
         hotkey_presets_individual if isinstance(hotkey_presets_individual, bool) else False
+    )
+    select_before_run = config.get("select_before_run", False)
+    config["select_before_run"] = (
+        select_before_run if isinstance(select_before_run, bool) else False
     )
     hotkey_presets_path = config.get("hotkey_presets_path", "")
     config["hotkey_presets_path"] = (

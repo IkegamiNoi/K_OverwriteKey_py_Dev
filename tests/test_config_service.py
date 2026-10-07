@@ -529,6 +529,130 @@ class HotkeyPresetIndividualKeymapSetSchemaTest(unittest.TestCase):
             )
 
 
+class SelectBeforeRunStorageTest(unittest.TestCase):
+    def setUp(self):
+        self.service = ConfigService(JsonRepository())
+
+    def _load_keymap_set(self, root, keymap_set):
+        path = os.path.join(root, "user", "keymap_sets", "main.json")
+        self.service.repository.save_json(path, keymap_set)
+        return self.service.load_runtime_data_from_keymap_set_path(path, config_root=root)
+
+    def test_keymap_set_flag_round_trip_and_legacy_values(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            for value in (True, False):
+                with self.subTest(value=value):
+                    runtime = self.service.new_default_data()
+                    runtime["select_before_run"] = value
+                    _saved, startup = self.service.save_runtime_data(
+                        "", runtime, config_root=root, startup_data={}, split_base_dir="",
+                    )
+                    keymap_set_path = os.path.join(root, startup["keymap_set_path"])
+                    payload = self.service.repository.load_json(keymap_set_path)
+                    self.assertIs(payload["select_before_run"], value)
+                    loaded = self.service.load_runtime_data_from_keymap_set_path(
+                        keymap_set_path, config_root=root,
+                    )
+                    self.assertIs(loaded["select_before_run"], value)
+
+            self.assertFalse(self._load_keymap_set(root, {})["select_before_run"])
+            for raw_flag in ("yes", 1, None):
+                with self.subTest(raw_flag=raw_flag):
+                    self.assertFalse(
+                        self._load_keymap_set(root, {"select_before_run": raw_flag})[
+                            "select_before_run"
+                        ]
+                    )
+
+    def test_sequence_flag_split_and_individual_round_trip(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            runtime = make_runtime_data()
+            runtime["keymaps"][0]["triggers"][0]["select_before_run"] = True
+            _saved, startup = self.service.save_runtime_data(
+                "", runtime, config_root=root, startup_data={}, split_base_dir="",
+            )
+            keymap_set_path = os.path.join(root, startup["keymap_set_path"])
+            sequence_path = os.path.join(root, "user", "sequences", "copy.json")
+            self.assertTrue(self.service.repository.load_json(sequence_path)["select_before_run"])
+            loaded = self.service.load_runtime_data_from_keymap_set_path(
+                keymap_set_path, config_root=root,
+            )
+            self.assertTrue(loaded["keymaps"][0]["triggers"][0]["select_before_run"])
+
+            standalone_path = os.path.join(tmp, "standalone.json")
+            saved = self.service.save_sequence_file(
+                standalone_path,
+                {"label": "copy", "select_before_run": True, "actions": []},
+            )
+            reread = self.service.load_sequence_file(standalone_path)
+            self.assertTrue(saved["select_before_run"])
+            self.assertTrue(reread["select_before_run"])
+
+    def test_trigger_set_value_is_read_and_sequence_value_wins(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = os.path.join(tmp, "config")
+            _saved, startup = self.service.save_runtime_data(
+                "", make_runtime_data(), config_root=root, startup_data={}, split_base_dir="",
+            )
+            keymap_set_path = os.path.join(root, startup["keymap_set_path"])
+            trigger_set_path = os.path.join(root, "user", "trigger_sets", "Main.json")
+            sequence_path = os.path.join(root, "user", "sequences", "copy.json")
+            trigger_set = self.service.repository.load_json(trigger_set_path)
+            trigger_set["triggers"][0]["select_before_run"] = True
+            self.service.repository.save_json(trigger_set_path, trigger_set)
+            sequence = self.service.repository.load_json(sequence_path)
+            sequence["select_before_run"] = False
+            self.service.repository.save_json(sequence_path, sequence)
+
+            loaded = self.service.load_runtime_data_from_keymap_set_path(
+                keymap_set_path, config_root=root,
+            )
+            self.assertFalse(loaded["keymaps"][0]["triggers"][0]["select_before_run"])
+
+            trigger_set["triggers"][0]["sequence_path"] = ""
+            for raw_flag, expected in ((1, True), (0, False), (None, False)):
+                with self.subTest(raw_flag=raw_flag):
+                    trigger_set["triggers"][0]["select_before_run"] = raw_flag
+                    self.service.repository.save_json(trigger_set_path, trigger_set)
+                    loaded = self.service.load_runtime_data_from_keymap_set_path(
+                        keymap_set_path, config_root=root,
+                    )
+                    self.assertIs(
+                        loaded["keymaps"][0]["triggers"][0]["select_before_run"],
+                        expected,
+                    )
+
+    def test_sequence_normalization_uses_run_to_end_boolean_interpretation(self):
+        cases = (
+            ({}, False),
+            ({"select_before_run": 1}, True),
+            ({"select_before_run": 0}, False),
+            ({"select_before_run": None}, False),
+        )
+        for payload, expected in cases:
+            with self.subTest(payload=payload):
+                self.assertIs(
+                    self.service._normalize_sequence_payload(payload)["select_before_run"],
+                    expected,
+                )
+
+    def test_single_json_import_export_preserves_values(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            source = os.path.join(tmp, "import.json")
+            exported = os.path.join(tmp, "export.json")
+            self.service.repository.save_json(source, {
+                "select_before_run": True,
+                "triggers": [{"key": "f1", "select_before_run": True, "actions": []}],
+            })
+            imported = self.service.load(source)
+            self.service.export_runtime_data(exported, imported)
+            reread = self.service.load(exported)
+            self.assertTrue(reread["select_before_run"])
+            self.assertTrue(get_active_triggers(reread)[0]["select_before_run"])
+
+
 class GlobalHotkeyPresetsSavingTest(unittest.TestCase):
     def setUp(self):
         self.service = ConfigService(JsonRepository())
@@ -856,6 +980,7 @@ class IndividualHotkeyPresetsSavingTest(unittest.TestCase):
                 "trigger_set_path",
                 "hotkey_presets_path",
                 "hotkey_presets_individual",
+                "select_before_run",
                 "active_keymap_path",
                 "keymaps",
                 "hook_stop_key",

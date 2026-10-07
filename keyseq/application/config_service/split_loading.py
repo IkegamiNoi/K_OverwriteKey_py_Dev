@@ -104,12 +104,18 @@ def _build_runtime_data_from_keymap_set(
     for key in (
         *HOOK_KEY_FIELDS,
         "hotkey_presets_individual",
+        "select_before_run",
         "keyboard_layout",
         "keyboard_show_physical_key_labels",
         "debug_jis_special_key_events",
     ):
         if key in keymap_set:
             runtime[key] = safe_deepcopy(keymap_set.get(key))
+
+    select_before_run = runtime.get("select_before_run", False)
+    runtime["select_before_run"] = (
+        select_before_run if isinstance(select_before_run, bool) else False
+    )
 
     if "hotkey_presets_individual" in keymap_set and "hotkey_presets_path" in keymap_set:
         runtime["hotkey_presets_path"] = safe_deepcopy(keymap_set.get("hotkey_presets_path"))
@@ -493,6 +499,7 @@ def load_triggers_from_trigger_set(
             "suppress": bool(raw_trigger.get("suppress", True)),
             "label": coerce_label(raw_trigger.get("label")),
             "run_to_end": bool(raw_trigger.get("run_to_end", False)),
+            "select_before_run": bool(raw_trigger.get("select_before_run", False)),
             "run_to_end_delay_ms": service._coerce_nonnegative_int(
                 raw_trigger.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
                 DEFAULT_RUN_TO_END_DELAY_MS,

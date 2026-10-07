@@ -280,6 +280,7 @@ class EnsureConfigCompatibilityTest(unittest.TestCase):
         self.assertEqual(
             config["triggers"],
             [{"key": "f1", "label": "", "suppress": True, "run_to_end": False,
+              "select_before_run": False,
               "run_to_end_delay_ms": 300, "actions": []}],
         )
 
