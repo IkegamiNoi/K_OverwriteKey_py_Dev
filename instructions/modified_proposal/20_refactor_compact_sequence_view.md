@@ -1,6 +1,6 @@
 # 提案書 20: phase 48（省略表示の出力シーケンス欄）後のリファクタ
 
-> 状態: **提案（ユーザー判断待ち）**（2026-10-07・phase 48 task_06 の `/refactor_check`）。
+> 状態: **実施済**（2026-10-07・phase 48 task_07_refactor。`call_view_controller.py` の `host.key == "compact"` 7 → 0〔`_FullCallViewLayout` / `_CompactCallViewLayout`〕・`WINDOW_SIZE_SAVE_DELAY_MS` を共有）。
 
 ## 判定の要約
 

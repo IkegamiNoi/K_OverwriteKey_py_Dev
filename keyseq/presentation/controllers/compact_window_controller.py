@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 from keyseq.presentation.compact_window_size import (
     COMPACT_WINDOW_SIZE_KEY, compact_geometry, parse_compact_window_size,
 )
+from keyseq.presentation.controllers.pane_layout.pane_layout_controller import WINDOW_SIZE_SAVE_DELAY_MS
 from keyseq.presentation.views.full_view.call_view_frame import list_minimum_height
 
 if TYPE_CHECKING:
@@ -104,7 +105,7 @@ class CompactWindowController:
             return
         self._last_size = size
         self.cancel_save()
-        self._save_id = self.app.after(500, self._save_size)
+        self._save_id = self.app.after(WINDOW_SIZE_SAVE_DELAY_MS, self._save_size)
 
     def _save_size(self) -> None:
         self._save_id = None

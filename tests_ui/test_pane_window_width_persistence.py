@@ -8,7 +8,7 @@ from keyseq.presentation import app as app_module, theme
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.pane_layout import pane_layout_controller as controller_module
 from keyseq.presentation.controllers.pane_layout.pane_layout_controller import (
-    PaneLayoutController, WINDOW_WIDTH_SAVE_DELAY_MS,
+    PaneLayoutController, WINDOW_SIZE_SAVE_DELAY_MS,
 )
 from keyseq.presentation.pane_width_rules import (
     DEFAULT_WINDOW_WIDTH, PANE_WIDTHS_KEY, SASH_WIDTH, WINDOW_WIDTH_KEY,
@@ -32,7 +32,7 @@ class WindowWidthSchedulingTest(unittest.TestCase):
         self.app.after_cancel.side_effect = pending.pop
         for width in (800, 900, 1000):
             self.layout._on_window_configure(SimpleNamespace(widget=self.app, width=width))
-        self.assertEqual(WINDOW_WIDTH_SAVE_DELAY_MS, 500)
+        self.assertEqual(WINDOW_SIZE_SAVE_DELAY_MS, 500)
         self.assertEqual(self.app.after.call_args_list, [call(500, self.layout._save_window_width)] * 3)
         self.assertEqual(self.app.after_cancel.call_args_list, [call("width-1"), call("width-2")])
         self.assertEqual(list(pending), [self.layout._width_save_id])
@@ -178,7 +178,7 @@ class WindowWidthPersistenceTest(WindowAppFixture, unittest.TestCase):
         )
         self.addCleanup(self._restore)
         # 保存予約は各テストが直接実行する。実時間の 500ms で先に走ると呼び出し回数が揺れるため遅らせる。
-        delay = patch.object(controller_module, "WINDOW_WIDTH_SAVE_DELAY_MS", 3_600_000)
+        delay = patch.object(controller_module, "WINDOW_SIZE_SAVE_DELAY_MS", 3_600_000)
         delay.start()
         self.addCleanup(delay.stop)
         self.layout.cancel_window_width_save()

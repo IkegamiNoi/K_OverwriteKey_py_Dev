@@ -15,16 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 48**〔`48_compact_sequence_view`・暫定仕様先行・主入力 = 暫定 33 v0.6 確定済〕）。
-   次採番 = phase 49 / 暫定 34 / decisions 49 / 提案書 20。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 48 は 2026-10-07 完了〕）。
+   次採番 = phase 49 / 暫定 34 / decisions 49 / 提案書 21。次フェーズはユーザー判断・着手時は `/phase_start`
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜32）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜33）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 48 task_01〜04・05a 完了・統合レビュー済。ユーザーの実機目視待ち（task_05）→ OK なら task_06（正本反映）。**
-ブランチ `claude/jikki-mokushi-ok-5df544`（phase 47 task_01 の目視以降・phase 48 も同じ）。それ以前は `claude/physical-device-verification-d3c460`（**main への取り込み状況は git で確認**・マージはユーザー）。
+**phase 48 完了（2026-10-07）。アクティブなフェーズなし・次フェーズはユーザー判断待ち（候補 idea_40 = ステータスの見切れのツールチップ）。**
+ブランチ `claude/status-field-tooltip-e6161e`（phase 48 task_05 の目視以降）。それ以前は `claude/jikki-mokushi-ok-5df544`（**main への取り込み状況は git で確認**・マージはユーザー）。
 ユーザーはフェーズ内のタスクの連続実行を許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -35,9 +35,10 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 48 task_05a = 2026-10-07**）:
-compile **clean** / tests **1325 実行 OK**（skip 7）/ tests_ui **873 OK**（2 回）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 47 完了 1308 → 1325 / tests_ui: 840 → 873）。
+直近の実測（**phase 48 完了 = 2026-10-07**）:
+compile **clean** / tests **1325 実行 OK**（skip 7）/ tests_ui **875 OK**（2 回）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 47 完了 1308 → 1325 / tests_ui: 840 → 875）。
+`tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が 1 回だけ `1 != 0` で落ちた（単独 2 回・全体 2 回で再現せず）。再発したら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
 **verifier に `taskkill` で python.exe を一括終了させない**（2026-10-04 に全 python が落ちた）。tests_ui は 260〜730 秒・タイムアウト 1800 秒・出力はファイルへ。
 skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 1314`）で環境依存。
@@ -53,19 +54,17 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **ユーザーの実機目視（phase 48 task_05 の確認 1〜7・`tasks/task_05_integration_check.md`）の結果を受ける**。NG なら枝番で修正。
-- OK 後に task_06: 暫定 33 §12 の正本反映・凍結・`decisions_archive/48_compact_sequence_view.md`・decisions.md 索引・current.md 完了記載・`/refactor_check`
-  （統合レビューの保留 = 実行ごとの再配置・render の作り直し・CallViewController の compact 分岐・`_flash_message` の読み取り口・拒否と有効の順序 を判定）・完了判定前 deep-reviewer + codex-adversarial-reviewer。
-- その後の次フェーズ候補: **idea_39** 表示中のトリガーを戻す・先頭への対象にする / idea_37 カウンター条件分岐 / idea_23 押す / 離すアクション。
+- **ユーザーに次フェーズを確認する**。候補 = **idea_40**（`instructions/backlog/idea_40_status_truncation_tooltip.md`・ステータス欄 / ステータスバーの見切れをツールチップで全文・直接改訂モード 1〜2 タスク想定）/
+  idea_39 表示中のトリガーを戻す・先頭への対象にする / idea_37 カウンター条件分岐 / idea_23 押す / 離すアクション。着手時は `/phase_start` で phase 49 を起票。
 - **main へのマージはユーザーが行う**。
 
-## 直前フェーズ（phase 47 = アクションの追加・編集ダイアログの整理）の要点
+## 直前フェーズ（phase 48 = 省略表示の出力シーケンス欄）の要点
 
-正本 = `features.md` §4.6「出力シーケンスの編集」。判断は `decisions_archive/47`。presentation（`dialogs/action_dialog.py`）のみ。
-- 使わない項目（値 = hotkey / text のみ・記録とプリセット = hotkey のみ）は `grid_remove` で非表示。表示切替は `_sync_capture_ui` → `_sync_type_visibility` / `_sync_hotkey_controls` / `_sync_mouse_visibility`。
-  `_rebuild_preset_buttons` は `__init__` 途中で呼ばれるため、そこから `_sync_capture_ui` を呼ばない。記録中の文言の戻しは `_stop_recording` の責務。
-- 初期フォーカス = `_initial_focus_widget`（値の欄 / 無ければ種別 / edit_loop はループ回数）。非表示の欄からのフォーカス移動（`_focus_is_hidden_for_type`・`focus_lastfor` も見る）は値・記録・プリセットまわりだけ（マウス・system / file_line の欄は対象外）。
-- 前フェーズ 46（戻す・先頭への `target`）の要点は `decisions_archive/46` と正本 §4.2.6。
+正本 = `features.md` §4.6「省略表示のシーケンス欄」「省略表示のウィンドウ」/ `data_schema.md` §5.4（`compact_sequence_view`・`compact_window_size`）。判断は `decisions_archive/48`。presentation のみ。
+- 部品: `CompactSequenceController`（描画・押した行で離したときだけ次に実行・取り消し）/ `CompactPaneLayout`（3 段の配置・ドラッグ・保存の唯一の受け持ち）/ `CompactWindowController`（窓の大きさ・最小の高さ・500ms 遅延保存）/ 純関数 `compact_pane_heights.py`・`compact_window_size.py`・`status_text.one_line`。
+- 次に実行の変更はフル・省略で `TriggerPanelController.set_next_action_index` を共有（有効か → 呼び出し先の実行中の拒否の順）。`CallViewController` の置き場ごとの差は `_FullCallViewLayout` / `_CompactCallViewLayout`（提案書 20）。
+- **idea_40 の手がかり**: 見切れ時だけのツールチップは `controllers/config_io/child_save_dialog.py` の `_bind_tooltip`。ステータスは `views/status_bar.py`。
+- 前フェーズ 47（アクション編集ダイアログの整理）の要点は `decisions_archive/47` と正本 §4.6「出力シーケンスの編集」。
 
 ## 運用インフラ
 
@@ -75,7 +74,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **blockers: ユーザーの実機目視待ち（phase 48 task_05）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **blockers: なし（次フェーズのユーザー判断待ち）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **【罠・phase 48 で実証】遅延保存（after 500ms）を持つ部品は、書き込み回数を数えるテストに時間依存で混ざる**。テストでは先に `app.compact_window.cancel_save()`。
 - **【罠・phase 48 で実証】Tk の PanedWindow は欄の高さを明示しないと子の要求の高さへ戻し、明示直後の `sash_place` は古い大きさで押さえ込まれる**
   （`compact_pane_layout._place_heights` は paneconfigure height → update_idletasks → sash_place）。**pack は先に入れた子が高さを先に取る**（ステータス類・閉じた見出しは side=bottom で先に pack）。
   **0 に縮んだ欄の子の `winfo_height` は古い値のまま**・見えていない行の `bbox` は None（テストで頼らない）。
@@ -119,7 +119,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **App を作る新規テストは `tests_ui/test_keymap_set_history_flow.py:17-34` の ExitStack 手法を踏襲する**。
 - **【Codex 運用】フォワーダが切れても Codex ワーカーは生き続ける**（判別は作業ツリーの更新時刻）。
   **書き換え途中で `verifier` / `reviewer` を回さない**。`taskkill /T` を使わない。**Codex 申告のテスト結果は信用せず実測**。
-  **Codex が書いた行は LF で入ることがある**（CRLF のファイルへ混在）。
+  **Codex は改行コードを混在させることがある**（LF のファイルを CRLF で書き戻す・CRLF のファイルへ LF の行を入れる。phase 48 でも発生）。コミット前に `git diff --stat` の行数と改行コードを確かめる。
 - **【運用・重要】委任の実行中はメイン側でコードを編集しない**（文書のみ・対象ファイルが重ならない場合は可）。
 - **【config.json の書き手は 2 本】** `StartupIo.write_startup`（現在値へマージ）と keymap_set 保存。
   **直接 `config.json` を read-modify-write しない**。**`keymap_set_path` だけは保存で据え置く**（phase 26）。
@@ -139,8 +139,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 47_action_dialog_layout_cleanup / 46_back_rewind_target / 45_call_step_and_view）。
-- 着手中 idea: なし。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（表示中のトリガーを戻す・先頭への対象に）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/ **idea_23**（押す / 離すアクション）/
+  （直近 3 件: 48_compact_sequence_view / 47_action_dialog_layout_cleanup / 46_back_rewind_target）。
+- 着手中 idea: なし。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_40**（ステータスの見切れのツールチップ）/ **idea_39**（表示中のトリガーを戻す・先頭への対象に）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/ **idea_23**（押す / 離すアクション）/
   idea_29〜idea_31 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/

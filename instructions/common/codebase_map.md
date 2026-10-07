@@ -79,7 +79,7 @@ keyseq/presentation/
             trigger_row_edit.py  # TriggerRowEditFlow: トリガー行の追加・改名・削除（controller から遅延生成して委譲）
             trigger_list_edit.py  # TriggerListEditFlow: フル表示のトリガー範囲移動・削除・コピー/末尾貼り付け（有効行交代の口を使用）
             effective_row_transition.py  # 有効な行の交代の口: 交代するキーに進行中の実行があれば拒否・交代したキーの状態を削除と同じく消す（phase 43）
-        call_view_controller.py    # CallViewController: 呼び出し先の表示枠（フル / 省略の 2 つの置き場〔_CallViewHost〕・開閉はトリガーごとに共有・高さは置き場ごと・要約の問い合わせと描画・境界線の高さの保存。phase 45。省略表示の置き場の配置・ドラッグ・保存は phase 48 から `CompactPaneLayout` へ委ねる）
+        call_view_controller.py    # CallViewController: 呼び出し先の表示枠（フル / 省略の 2 つの置き場〔_CallViewHost〕・開閉はトリガーごとに共有・高さは置き場ごと・要約の問い合わせと描画・境界線の高さの保存。phase 45。置き場ごとの配置役 = `_FullCallViewLayout`〔フル表示の測定・配置の予約・境界線イベント〕/ `_CompactCallViewLayout`〔省略表示は配置・ドラッグ・保存を `CompactPaneLayout` へ委ねる〕・phase 48）
         compact_sequence_controller.py  # CompactSequenceController（`app.compact_sequence`）: 省略表示のシーケンス欄の描画（`refresh_actions` から `render`）・見出しの開閉・押した行で離したときだけ次に実行を変える / キー操作（共有処理 `TriggerPanelController.set_next_action_index(idx, refuse_running_callee=True)` を呼ぶ）・押している間の取り消し（phase 48）
         compact_pane_layout.py     # CompactPaneLayout（`app.compact_pane_layout`）: 省略表示の縦の PanedWindow（トリガー一覧 / シーケンス欄 / 呼び出し先の枠）の配置・ドラッグ・高さの保存を 1 か所で受け持つ（欄の高さは paneconfigure height で明示し、境界を置く前に update_idletasks・phase 48）
         compact_window_controller.py  # CompactWindowController（`app.compact_window`）: 省略表示のウィンドウの大きさの適用・最小の高さ・500ms の遅延保存（`compact_window_size`・phase 48）

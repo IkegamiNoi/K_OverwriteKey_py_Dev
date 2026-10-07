@@ -4,49 +4,52 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-07T12:00:00
-phase: `instructions/phase/48_compact_sequence_view`（省略表示の出力シーケンス欄・暫定仕様先行・主入力 = 暫定 33 v0.6 確定済）。番号対応 phase 48 / 暫定 33 / decisions 48。次採番 = phase 49 / 暫定 34 / 提案書 20。
-直前の完了フェーズ = **phase 47**（アクションの追加・編集ダイアログの整理・`decisions_archive/47_action_dialog_layout_cleanup.md`）。
-last_commit_location: `claude/jikki-mokushi-ok-5df544`（phase 48 task_05a まで。main へのマージはユーザー）
+last_updated: 2026-10-07T18:00:00
+phase: なし（直前の完了フェーズ = `instructions/phase/48_compact_sequence_view`・2026-10-07 完了）。次採番 = phase 49 / 暫定 34 / decisions 49 / 提案書 21。
+直前の完了フェーズ = **phase 48**（省略表示の出力シーケンス欄・`decisions_archive/48_compact_sequence_view.md`）。
+last_commit_location: `claude/status-field-tooltip-e6161e`（phase 48 完了まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 48 task_01〜04・05a 完了・統合レビュー済。ユーザーの実機目視待ち（task_05）→ OK なら task_06（正本反映）。**
-mode: blocked
+focus: **phase 48 完了（2026-10-07）。アクティブなフェーズなし・次フェーズはユーザー判断待ち（候補 idea_40 = ステータスの見切れのツールチップ）。**
+mode: completed
 
 ## last_action
-ts: 2026-10-07T12:00:00
+ts: 2026-10-07T18:00:00
 who: main
 summary: |
-  phase 48 起票（暫定 33 v0.1→v0.6・deep-reviewer + Codex 敵対的 2 回・ユーザー確定）。task_01 共有処理 / task_02 欄の部品と描画 / task_03 3 段の高さの制御と保存 / task_04 窓の大きさの記録・最小の高さ・ステータス 2 行 / 1 行。
-  統合レビュー（deep-reviewer 修正して採用・codex-reviewer P2 → ユーザー判断で空白クリックは何もしない）→ task_05a。検証で欄の高さが Tk の都合で戻る不具合を発見しメインで修正（paneconfigure height + update_idletasks）。
+  実施: ユーザー実機目視 OK → task_05 完了。目視時の要望（ステータス欄・ステータスバーの見切れをツールチップで）を idea_40 へ起票（phase 48 の範囲外・ユーザー判断）。
+  task_06 正本反映（features.md §4.6 新節「省略表示のシーケンス欄」「省略表示のウィンドウ」ほか / data_schema.md §5.4 / codebase_map.md）・暫定 33 凍結・decisions_archive/48・current.md 完了記載。
+  完了判定前レビュー: deep-reviewer 修正して採用（文書指摘は反映）/ Codex 敵対的 needs-attention 1 件。ユーザー判断: 左右の外で離したとき確定しない・判定順序を直す → task_06a。/refactor_check 推奨（M4・M6）→ 提案書 20 をユーザー承認 → task_07_refactor。
+  task_06a（codex-implementer・reviewer 採用）: 検証で境界ドラッグのテストに窓の大きさの遅延保存が混ざる不安定さをメインで修正。task_07（codex-delegating-implementer・reviewer 採用）: CallViewController の compact 分岐 7 → 0。
+  task_07 後の tests_ui 1 回目で test_dialog_teardown_flows の 3 件が 1 回だけ失敗（単独 2 回・全体 2 回で再現せず＝タイミング依存として記録）。
 result_files:
-  - keyseq/presentation/{compact_pane_heights.py,compact_window_size.py,status_text.py}
-  - keyseq/presentation/controllers/{compact_sequence_controller.py,compact_pane_layout.py,compact_window_controller.py,call_view_controller.py}
-  - keyseq/presentation/views/compact_view/{sequence_frame.py,trigger_box.py} / views/status_bar.py / views/full_view/call_view_frame.py / app.py / hook_controller.py / trigger_panel_controller.py
+  - instructions/common/spec_detail/{features.md,data_schema.md} / instructions/common/codebase_map.md / instructions/history/33_compact_sequence_view.md
+  - .claude_data/state/decisions_archive/48_compact_sequence_view.md / decisions.md / instructions/phase/current.md / instructions/phase/48_compact_sequence_view/
+  - instructions/backlog/{idea_40_status_truncation_tooltip.md,INDEX.md} / instructions/modified_proposal/20_refactor_compact_sequence_view.md
+  - keyseq/presentation/controllers/{call_view_controller.py,compact_sequence_controller.py,compact_window_controller.py,pane_layout/pane_layout_controller.py,trigger_panel/trigger_panel_controller.py}
+  - tests_ui/{test_compact_sequence_view.py,test_call_view_compact.py,test_pane_window_width_persistence.py}
 verified:
   compile: clean
   tests: 1325 OK（skipped 7）
-  tests_ui: 873 OK（2 回）
+  tests_ui: 875 OK（task_07 後 2 回連続）
   smoke: pass
-  review: 各タスク reviewer 採用 / 統合 = deep-reviewer + codex-reviewer（指摘対応済み）
+  review: task_06a / task_07 reviewer 採用 / 完了判定前 = deep-reviewer + codex-adversarial-reviewer（指摘対応済み）
 
 ## next_action
-- ユーザーの実機目視（task_05 の確認 1〜7。実行中はクリックが描き直しのたびに取り消される点・フル表示の最下部と呼び出し先の見出しの位置も見てもらう）。NG なら枝番で修正。
-- OK 後に task_06: 暫定 33 §12 の正本反映・凍結・decisions_archive/48・decisions.md 索引・current.md 完了記載・/refactor_check（deep-reviewer の保留〔実行ごとの再配置・render の作り直し・CallViewController の compact 分岐・_flash_message の読み取り口・拒否と有効の順序〕を判定）・完了判定前 deep-reviewer + codex-adversarial-reviewer。
+- ユーザーに次フェーズを確認する。候補 = idea_40（`instructions/backlog/idea_40_status_truncation_tooltip.md`・直接改訂モード 1〜2 タスク想定）。着手時は `/phase_start` で phase 49 を起票。
+- ブランチ `claude/status-field-tooltip-e6161e` の main へのマージはユーザー判断。
 
 ## blockers
-- ユーザーの実機目視待ち（phase 48 task_05）
+- なし（次フェーズのユーザー判断待ち）
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **tests_ui は同時に 1 本だけ**走らせる。verifier には **`taskkill` で python.exe を一括終了しない**よう必ず書く。tests_ui は 150〜730 秒。
-- **素の `python` を Bash で呼ばない**（ストア版スタブでハングする。必ず `..\..\..\.venv\Scripts\python.exe`）。
-- **【phase 48】省略表示の PanedWindow の配置・ドラッグ・保存は `CompactPaneLayout` だけ**（欄の高さは paneconfigure height で明示し、境界を置く前に update_idletasks。明示しないと Tk が要求の高さへ戻す）。0 に縮んだ欄の子の `winfo_height` は古い値のまま残るのでテストで頼らない。
-- **【phase 47】`ActionDialog` の表示切替は `_sync_capture_ui` → `_sync_type_visibility` / `_sync_hotkey_controls` / `_sync_mouse_visibility`**。
-  `_rebuild_preset_buttons` は `__init__` の途中（preset_edit_btn 作成前）で呼ばれるため、そこから `_sync_capture_ui` を呼ばない。
-  `winfo_ismapped()` のテストは `update()` で表示を待つ（`update_idletasks()` では初回が False）。
-- **【戻す・先頭へ】対象 = `target` があればそれ・無ければ直前のトリガー**（正本 `features.md` §4.2.6）。表示中のトリガーを対象にする案は idea_39。
-- トリガー一覧へのアクセスは `domain/keymap_triggers.py` の口だけ（presentation に `"triggers"` 直値を書くと静的検査で落ちる）。
-- **Codex のプラグインのレビュー系コマンドは推論レベルを渡せない**。`CLAUDE_PLUGIN_ROOT` 未設定時は companion を絶対パスで呼ぶ。
-- それ以前の完了フェーズの要点は `decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。凍結済の暫定仕様（`instructions/history/` の 04〜32）の条項を実装の根拠に引かない。
+- **tests_ui は同時に 1 本だけ**走らせる。verifier には **`taskkill` で python.exe を一括終了しないこと**を必ず書く。tests_ui は 150〜730 秒。
+- **素の `python` を Bash で呼ばない**（必ず `..\..\..\.venv\Scripts\python.exe`）。
+- **Codex が LF のファイルを CRLF で書き戻すことがある**。コミット前に改行コードを確かめる（phase 48 task_06a）。
+- **idea_40 の手がかり**: 見切れ時だけのツールチップは `controllers/config_io/child_save_dialog.py` の `_bind_tooltip` に既存。ステータスは `views/status_bar.py`・省略表示の 1 行化は `presentation/status_text.py` の `one_line`。
+- 省略表示の縦ペインの配置・ドラッグ・保存は `CompactPaneLayout` だけ（欄の高さは paneconfigure height で明示し、境界を置く前に update_idletasks）。窓の大きさの遅延保存（500ms）を持つため、書き込み回数を数えるテストは先に `compact_window.cancel_save()`。
+- `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 がまれに `1 != 0` で落ちる（再現せず・phase 48 と無関係）。再発したら idea 化を検討。
+- トリガー一覧へのアクセスは `domain/keymap_triggers.py` の口だけ。**Codex のプラグインのレビュー系コマンドは推論レベルを渡せない**。
+- 過去の判断は `decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。凍結済の暫定仕様（`instructions/history/` の 04〜33）の条項を実装の根拠に引かない。

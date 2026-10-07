@@ -7,11 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 48](48_compact_sequence_view/phase.md)**（2026-10-07 起票・省略表示の出力シーケンス欄。暫定仕様先行モード）。
-  省略表示のトリガー一覧と呼び出し先の枠の間に、開閉・境界のドラッグができる出力シーケンス欄（見る + 次に実行の変更）を足し、省略表示のウィンドウの大きさの記録・最小の高さ・ステータスの行数の固定を加える。presentation 限定・`config.json` にキー 2 つ追加（後方互換）。
-  主入力 = [暫定 33](../history/33_compact_sequence_view.md)（v0.6・ユーザー確定済）。起票元 = ユーザー要望（2026-10-06）。番号対応: phase 48 / 暫定 33 / decisions 48。
-- 直前の完了フェーズ = [phase 47](47_action_dialog_layout_cleanup/phase.md)（2026-10-06・アクションの追加・編集ダイアログの整理。直接改訂モード・判断は [decisions_archive/47](../../.claude_data/state/decisions_archive/47_action_dialog_layout_cleanup.md)）。
-- その前の完了フェーズ = [phase 46](46_back_rewind_target/phase.md)（2026-10-06・戻す・先頭への対象トリガー指定。暫定仕様先行モード・判断は [decisions_archive/46](../../.claude_data/state/decisions_archive/46_back_rewind_target.md)）/
+- **アクティブなフェーズ = なし**（phase 48 は 2026-10-07 完了）。次フェーズはユーザー判断・着手時は `/phase_start`。
+- 直前の完了フェーズ = [phase 48](48_compact_sequence_view/phase.md)（2026-10-07・省略表示の出力シーケンス欄。暫定仕様先行モード〔暫定 33 v0.6 凍結〕・判断は [decisions_archive/48](../../.claude_data/state/decisions_archive/48_compact_sequence_view.md)）。
+- その前の完了フェーズ = [phase 47](47_action_dialog_layout_cleanup/phase.md)（2026-10-06・アクションの追加・編集ダイアログの整理。直接改訂モード・判断は [decisions_archive/47](../../.claude_data/state/decisions_archive/47_action_dialog_layout_cleanup.md)）/
+  [phase 46](46_back_rewind_target/phase.md)（2026-10-06・戻す・先頭への対象トリガー指定。暫定仕様先行モード・判断は [decisions_archive/46](../../.claude_data/state/decisions_archive/46_back_rewind_target.md)）/
   [phase 45](45_call_step_and_view/phase.md)（2026-10-05・呼び出しのステップ実行と呼び出し先の表示・
   判断は [decisions_archive/45](../../.claude_data/state/decisions_archive/45_call_step_and_view.md)）/
   [phase 44](44_child_save_dialog_layout/phase.md)（2026-10-04・子ファイル保存ダイアログの高さと列幅の調整・
@@ -47,7 +46,7 @@
   **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**19 まで起票済**・次採番は「次採番」節が正）。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**20 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -71,7 +70,7 @@
   **phase 45 は 2026-10-05 完了**（`45_call_step_and_view` / 暫定 31〔v0.6・凍結〕/ decisions 45〔アーカイブ済〕）。
   **phase 46 は 2026-10-06 完了**（`46_back_rewind_target` / 暫定 32〔v0.3・凍結〕/ decisions 46〔アーカイブ済〕）。
   **phase 47 は 2026-10-06 完了**（`47_action_dialog_layout_cleanup` / 暫定なし〔直接改訂モード〕/ decisions 47〔アーカイブ済〕）。
-  **phase 48 は 2026-10-07 起票**（`48_compact_sequence_view` / 暫定 33〔v0.6〕/ decisions 48）。
+  **phase 48 は 2026-10-07 完了**（`48_compact_sequence_view` / 暫定 33〔v0.6・凍結〕/ decisions 48〔アーカイブ済〕）。
   次フェーズは **`49_<topic>`**・decisions も **49** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -102,9 +101,9 @@
   30=一覧のドラッグ移動・範囲選択・複製〔v0.11・凍結〕 /
   31=呼び出しのステップ実行と呼び出し先の表示〔**v0.6・凍結**〕 /
   32=戻す・先頭への対象トリガー指定〔**v0.3・凍結**〕 /
-  33=省略表示の出力シーケンス欄〔v0.6・ユーザー確定済・phase 48 の主入力〕）。
+  33=省略表示の出力シーケンス欄〔**v0.6・凍結**〕）。
   次採番は **`34_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**19 まで起票済**
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**20 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
   **10 = phase 19 由来・実施済＝phase 19 task_07** /
@@ -117,7 +116,8 @@
   **17 = phase 40 由来・実施済＝phase 40 task_11_refactor**〔上限 10000 の定数化・待機の mixin `send_wait.py`・file_line 未設定の判定の一本化〕）・
   **18 = phase 43 由来・実施済＝phase 43 task_10**〔トリガーの追加・改名・削除を `trigger_row_edit.py` へ・まとめて設定のダイアログの `__init__` 分割・`range_or_index` の共通化〕 /
   **19 = phase 45 由来・実施済＝phase 45 task_12_refactor**〔`sequence_runner.py` 649 行の連続実行の進行を mixin へ・`apply_control` 104 行の分割〕 /
-  次採番は **`20_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **20 = phase 48 由来・実施済＝phase 48 task_07_refactor**〔`CallViewController` の省略表示の分岐を置き場の配置役へ・保存の待ち時間の定数共有〕 /
+  次採番は **`21_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
@@ -125,6 +125,8 @@
 （`instructions/backlog/INDEX.md` の idea から着手候補を 1〜3 件リンクする。
 **完了した候補の履歴はここに残さない**〔完了 idea は `backlog/INDEX_done.md` が正〕）
 
+- [idea_40](../backlog/idea_40_status_truncation_tooltip.md)（ステータス欄・ステータスバーの見切れをツールチップで全文表示。
+  2026-10-07 phase 48 実機目視時のユーザー要望・直接改訂モード 1〜2 タスク想定）
 - [idea_23](../backlog/idea_23_key_press_release_actions.md)（キーを押す / 離すアクションの追加。
   2026-09-18 ユーザー要望・優先度低）
 

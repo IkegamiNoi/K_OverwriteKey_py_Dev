@@ -17,7 +17,7 @@ from .pane_measure import measure_header_window_width, measure_min_widths, measu
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
 
-WINDOW_WIDTH_SAVE_DELAY_MS = 500
+WINDOW_SIZE_SAVE_DELAY_MS = 500
 
 
 class _Drag:
@@ -231,7 +231,7 @@ class PaneLayoutController:
             return
         self._last_window_width = event.width
         self.cancel_window_width_save()
-        self._width_save_id = self.app.after(WINDOW_WIDTH_SAVE_DELAY_MS, self._save_window_width)
+        self._width_save_id = self.app.after(WINDOW_SIZE_SAVE_DELAY_MS, self._save_window_width)
 
     def _save_window_width(self) -> None:
         """予約実行時の状態で幅を保存する（暫定仕様16 §3-8）。"""
