@@ -40,4 +40,4 @@
 | idea_36 | [idea_36_common_trigger_layer.md](idea_36_common_trigger_layer.md) | トリガー一覧のキーマップ従属化（phase 34 予定）の後、全キーマップで有効な共通トリガー層を追加する（共通 + キーマップ別の 2 層）。 | 未着手（検討段階・2026-09-24 設計議論から分離・現時点では不要とユーザー判断）|
 | idea_37 | [idea_37_counter_conditional_branch.md](idea_37_counter_conditional_branch.md) | 出力シーケンスの system 種別にカウンター値による条件分岐（N 以上でループを抜ける / 停止 等）を加える。file_line の終端で止める用途。 | 未着手（検討段階・2026-09-26 暫定 26 の設計対話から分離・第 2 弾の完了後に要否判断）|
 | idea_39 | [idea_39_back_rewind_visible_trigger.md](idea_39_back_rewind_visible_trigger.md) | 対象を指定しない戻す・先頭への対象を「直前のトリガー」から「押した時点で一覧に表示されているトリガー」へ変える。 | 未着手（検討段階・2026-10-06 phase 46 完了判定前の Codex 指摘の議論から分離・ユーザー提案）|
-| idea_40 | [idea_40_status_truncation_tooltip.md](idea_40_status_truncation_tooltip.md) | ステータス欄・ステータスバーが見切れたとき、マウスを乗せると全文をツールチップで表示する（子ファイル保存ダイアログのツールチップを共有化して再利用）。 | 未着手（検討段階・2026-10-07 phase 48 実機目視時のユーザー要望）|
+| idea_40 | [idea_40_status_truncation_tooltip.md](idea_40_status_truncation_tooltip.md) | ステータス欄・ステータスバーが見切れたとき、マウスを乗せると全文をツールチップで表示する（子ファイル保存ダイアログのツールチップを共有化して再利用）。 | **着手**（→ phase [49_status_truncation_tooltip](../phase/49_status_truncation_tooltip/phase.md)・直接改訂モード）|
