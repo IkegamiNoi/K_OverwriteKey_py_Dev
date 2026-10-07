@@ -79,7 +79,10 @@ keyseq/presentation/
             trigger_row_edit.py  # TriggerRowEditFlow: トリガー行の追加・改名・削除（controller から遅延生成して委譲）
             trigger_list_edit.py  # TriggerListEditFlow: フル表示のトリガー範囲移動・削除・コピー/末尾貼り付け（有効行交代の口を使用）
             effective_row_transition.py  # 有効な行の交代の口: 交代するキーに進行中の実行があれば拒否・交代したキーの状態を削除と同じく消す（phase 43）
-        call_view_controller.py    # CallViewController: 呼び出し先の表示枠（フル / 省略の 2 つの置き場〔_CallViewHost〕・開閉はトリガーごとに共有・高さは置き場ごと・要約の問い合わせと描画・境界線の高さの保存。phase 45）
+        call_view_controller.py    # CallViewController: 呼び出し先の表示枠（フル / 省略の 2 つの置き場〔_CallViewHost〕・開閉はトリガーごとに共有・高さは置き場ごと・要約の問い合わせと描画・境界線の高さの保存。phase 45。省略表示の置き場の配置・ドラッグ・保存は phase 48 から `CompactPaneLayout` へ委ねる）
+        compact_sequence_controller.py  # CompactSequenceController（`app.compact_sequence`）: 省略表示のシーケンス欄の描画（`refresh_actions` から `render`）・見出しの開閉・押した行で離したときだけ次に実行を変える / キー操作（共有処理 `TriggerPanelController.set_next_action_index(idx, refuse_running_callee=True)` を呼ぶ）・押している間の取り消し（phase 48）
+        compact_pane_layout.py     # CompactPaneLayout（`app.compact_pane_layout`）: 省略表示の縦の PanedWindow（トリガー一覧 / シーケンス欄 / 呼び出し先の枠）の配置・ドラッグ・高さの保存を 1 か所で受け持つ（欄の高さは paneconfigure height で明示し、境界を置く前に update_idletasks・phase 48）
+        compact_window_controller.py  # CompactWindowController（`app.compact_window`）: 省略表示のウィンドウの大きさの適用・最小の高さ・500ms の遅延保存（`compact_window_size`・phase 48）
         action_list_rendering.py   # build_action_rows / format_next_action_summary: 出力シーケンス一覧の 1 行の文字列と背景色（tkinter 非依存・phase 37）
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)
@@ -97,7 +100,8 @@ keyseq/presentation/
             compact_view.py    # CompactView
             hook_frame.py      # CompactHookFrame（表示のみ）
             display_frame.py   # CompactDisplayFrame
-            trigger_box.py     # CompactTriggerBox（一覧 + 呼び出し先の表示枠〔縦の PanedWindow・phase 45〕）
+            trigger_box.py     # CompactTriggerBox（一覧 + シーケンス欄 + 呼び出し先の表示枠〔縦の PanedWindow・phase 45 / 48〕）
+            sequence_frame.py  # CompactSequenceFrame: 省略表示のシーケンス欄の Widget（見出しの Expander・一覧・閉じた見出しの置き場の移動・Tk 既定の選択 / ドラッグ系イベントの無効化・phase 48）
     config_paths.py            # 以下は presentation 直下（複数種から使われる共有モジュール）
     dialogs/                   # ダイアログ群（計画07 項目2 で dialogs.py 1026 行から分割・1クラス1ファイル）
       __init__.py              # 公開面（明示列挙の再輸出のみ。tk / messagebox は持たない）
@@ -122,6 +126,9 @@ keyseq/presentation/
     modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
     call_view_heights.py       # 呼び出し先の表示枠の希望の高さの検証・既定・表示の高さ（`call_view_heights`・tkinter 非依存・phase 45）
+    compact_pane_heights.py    # 省略表示の 3 段の表示の高さの計算（下の欄の最小を優先・見出しを残す）と `compact_sequence_view` の検証（tkinter 非依存・phase 48）
+    compact_window_size.py     # `compact_window_size` の検証と省略表示の大きさの計算（最小の高さ・主モニタへの切り詰め・tkinter 非依存・phase 48）
+    status_text.py             # one_line: 省略表示中のステータス欄・ステータスバーの文言の改行を空白へ（phase 48）
     pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
     hook_button_texts.py       # フックの枠の切替ボタンの文言とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
@@ -146,7 +153,7 @@ keyseq/presentation/
 
 - Tk ルートウィンドウ管理（title / geometry / topmost / フォント適用 / 終了処理）
 - 生成と配線（各サービス・コントローラの生成。コールバックはラムダで包み、実行時に `self.<コントローラ>.…` を解決）
-- View切替（`show_full_view` / `show_compact_view` と geometry の退避・復元）。`show_full_view` は表示内容の更新（選択同期・シーケンス一覧・ステータス）を済ませてから末尾で `pane_layout.on_full_view_shown()` を呼ぶ（最小の高さを 1 行のステータスで測るため・phase 20）
+- View切替（`show_full_view` / `show_compact_view` と geometry の退避・復元）。`show_full_view` は表示内容の更新（選択同期・シーケンス一覧・ステータス）を済ませてから末尾で `pane_layout.on_full_view_shown()` を呼ぶ（最小の高さを 1 行のステータスで測るため・phase 20）。`show_compact_view` は逆に、ステータス欄・ステータスバーを 1 行化してから `compact_window.apply()` で大きさと最小の高さを当てる（省略表示の 2 行のステータスで測るため・phase 48）
 - 調整役メソッド（キャプチャ相互排他: `toggle_stop_key_capture` / `start_stop_key_capture` / `toggle_toggle_key_capture` / `start_toggle_key_capture`、ダーティ既定解決: `mark_keymap_dirty` / `mark_sequence_dirty`、フラッシュメッセージ、`_sync_control_vars_from_data`）
 - hook キーの個別指定（`spec_detail/data_schema.md` §5.9）: `toggle_hook_keys_individual`（Var → data + dirty +
   ON→OFF で個別値を退避 / OFF→ON で復元・退避が無ければ両キーを `""`。フラグを data へ書いた**後**に
@@ -593,7 +600,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - CompactHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの**表示のみ**
     （個別指定チェックも `state="disabled"` の状態表示のみ）
   - CompactDisplayFrame（display_frame.py）: 常に手前・フルに戻す・キーボードUI・レイアウト選択
-  - CompactTriggerBox（trigger_box.py）: トリガー一覧と、その下の呼び出し先の表示枠（phase 45）
+  - CompactTriggerBox（trigger_box.py）: 上から トリガー一覧 / シーケンス欄（CompactSequenceFrame・phase 48）/ 呼び出し先の表示枠（phase 45）。仕様 = `features.md` §4.6「省略表示のシーケンス欄」「省略表示のウィンドウ」
 
 ### メニュー / ステータス
 - menu_bar.py: `build_menu_bar(app)`（ファイル / 設定メニュー）と `bind_menu_shortcuts(app)`（Ctrl 系アクセラレータ）。
@@ -602,7 +609,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   「**履歴から読み込む…**」を持つ（phase 27・`data_schema.md` §5.12）。**テストはメニュー項目をインデックスで固定しない**
   （top-level menubar には tearoff があり位置がずれる。カスケードとラベルで探す）。
   **build と bind は別関数**（フォントサイズ変更時はメニューのみ再構築し、バインドは再実行しない）。
-- status_bar.py: `build_status_area(app, parent)`（「ステータス」欄 + 下部ステータスバー: ファイル状態 / 一時メッセージ）
+- status_bar.py: `build_status_area(app, parent)`（「ステータス」欄 + 下部ステータスバー: ファイル状態 / 一時メッセージ）。
+  両方とも `side="bottom"` で本体（`app.outer`）より先に pack する（縦を縮めても押し出されない・phase 48）。省略表示中の文言は `status_text.one_line` で 1 行化（ステータス欄 2 行 / ステータスバー 1 行）
 
 ---
 
@@ -706,8 +714,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - task_07a: `SequenceRunner._cancel_calls_for_reset`（`reset_loop_frames` で、変えた呼び出し先を使う一時停止していない単発の呼び出しを取り消し、変えた位置を戻す）/
     `call_context` の `CallStep` kind `paused_callee`（段に入る呼び出し先が単発の呼び出しの一時停止中）→ `input_acceptance._call_step_discarding_paused` が `discard_paused` で捨てて続ける
   - 表示: `application/call_view.py`（`CallViewSummary` = 経路・最上段の行・位置・周回・カウンターの写し）/ `sequence_runner/call_view_notice.py`（`call_view_summary_for(key)`）/
-    presentation の `CallViewController`（`app.call_view`）・`views/full_view/call_view_frame.py`・`views/compact_view/trigger_box.py`・`call_view_heights.py`。
-    選択の変化は `trigger_panel_controller` の `refresh_actions` と省略表示の `set_selected_trigger_index`、表示の切替は `App.show_compact_view` から `on_selection_changed`
+    presentation の `CallViewController`（`app.call_view`）・`views/full_view/call_view_frame.py`・`views/compact_view/trigger_box.py`・`call_view_heights.py`（省略表示の配置は phase 48 から `CompactPaneLayout`）。
+    選択の変化は `trigger_panel_controller` の `refresh_actions`（phase 48 から省略表示の選び替え・表示の切替も `refresh_actions` を通る）
   - テスト: `tests/test_call_chain*.py` / `test_call_link_lifecycle.py` / `test_sequence_runner_call.py` / `test_call_context.py` / `test_call_view.py` / `test_call_view_heights.py` / `tests_ui/test_call_view_frame.py` / `test_call_view_compact.py`
 - phase 46（戻す・先頭への対象トリガー `target`。仕様 = `features.md` §4.1・§4.2.6・§4.2.10・§4.6 / `data_schema.md` §5.11.6。判断 = `decisions_archive/46_back_rewind_target.md`）:
   - domain: `sequence_control.control_target`（`target` の 3 状態の判定の 1 か所: None = キー無し・従来どおり直前のトリガー / "" = 空 / 正規化キー）と
