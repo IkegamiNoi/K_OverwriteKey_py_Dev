@@ -13,7 +13,6 @@ last_commit_location: `claude/status-field-tooltip-e6161e`（phase 50 task_03 �
 ## current
 focus: **phase 50 task_01〜03 完了・統合レビュー済。ユーザー判断 2 点と実機目視待ち（task_04）。**
 mode: blocked
-presence: away（戻る予定 2026-10-08T07:30）
 
 ## last_action
 ts: 2026-10-08T01:25:00

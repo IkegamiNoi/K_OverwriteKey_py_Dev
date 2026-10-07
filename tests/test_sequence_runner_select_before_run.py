@@ -287,6 +287,162 @@ class SelectBeforeRunTest(unittest.TestCase):
         scheduler.run_one()
         self.assertEqual(selections, [])
 
+    def test_step_call_caller_can_be_pressed_again_without_select_only_interruption(self):
+        caller = {"key": "f1", "actions": [
+            {"type": "system", "op": "call", "target": "f2"}, A2,
+        ]}
+        callee = {"key": "f2", "actions": [A1, A2]}
+        runner, _state, scheduler, performed, selected, selections, messages = make_runner(
+            [caller, callee], selected_key="f1", enabled=True,
+        )
+
+        runner.handle_key("f1")
+        scheduler.run_one()
+        self.assertEqual(performed, [A1])
+        self.assertEqual(selected["key"], "f1")
+        selections.clear()
+        messages.clear()
+
+        runner.handle_key("f1")
+        scheduler.run_one()
+
+        self.assertEqual(performed, [A1, A2])
+        # 実行後に runner が押したキーを選ぶ既存の動きだけで、選ぶだけの案内は出ない
+        self.assertEqual(set(selections), {"f1"})
+        self.assertEqual(messages, [])
+
+    def test_call_chain_other_trigger_is_select_only_on_first_press(self):
+        caller = {"key": "f1", "actions": [
+            {"type": "system", "op": "call", "target": "f2"},
+        ]}
+        callee = {"key": "f2", "actions": [A1, A2]}
+        runner, _state, scheduler, performed, selected, selections, messages = make_runner(
+            [caller, callee], selected_key="f1", enabled=True,
+        )
+
+        runner.handle_key("f1")
+        scheduler.run_one()
+        self.assertEqual(performed, [A1])
+        selections.clear()
+        messages.clear()
+
+        runner.handle_key("f2")
+
+        self.assertEqual(performed, [A1])
+        self.assertEqual(selected["key"], "f2")
+        self.assertEqual(selections, ["f2"])
+        self.assertEqual(messages, ["f2 を選びました（もう一度押すと実行します）"])
+
+    def test_call_to_trigger_with_pending_wait_selects_then_keeps_existing_ignore(self):
+        caller = {"key": "f1", "actions": [
+            {"type": "system", "op": "call", "target": "f2"},
+        ]}
+        waiting = {"key": "f2", "actions": [A1, {"type": "system", "op": "wait", "ms": 5}, A2]}
+        runner, state, _scheduler, performed, selected, selections, messages = make_runner(
+            [caller, waiting], selected_key="f2", enabled=True,
+        )
+        runner.handle_key("f2")
+        self.assertIn(("", "f2"), state.pending_steps)
+        performed.clear()
+        selections.clear()
+        messages.clear()
+        selected["key"] = None
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [])
+        self.assertEqual(selected["key"], "f1")
+        self.assertEqual(selections, ["f1"])
+        self.assertEqual(messages, ["f1 を選びました（もう一度押すと実行します）"])
+
+        runner.handle_key("f1")
+        self.assertEqual(performed, [])
+        self.assertIn(("", "f2"), state.pending_steps)
+        # 2 回目は選ぶだけにならない（案内は 1 回目の分だけ）。選択は実行後の既存の選び直しで f1 のまま
+        self.assertEqual(messages, ["f1 を選びました（もう一度押すと実行します）"])
+        self.assertEqual(selected["key"], "f1")
+
+    def test_call_to_paused_trigger_selects_then_keeps_existing_discard(self):
+        paused = {"key": "f2", "actions": [
+            {"type": "system", "op": "call", "target": "f3", "all": True},
+        ]}
+        callee = {"key": "f3", "actions": [A1, {"type": "system", "op": "wait", "ms": 5}, A2]}
+        caller = {"key": "f1", "actions": [
+            {"type": "system", "op": "call", "target": "f2"},
+        ]}
+        runner, state, scheduler, performed, selected, selections, messages = make_runner(
+            [caller, paused, callee], selected_key="f2", enabled=True,
+        )
+
+        runner.handle_key("f2")
+        scheduler.run_one()
+        scheduler.run_one()
+        runner.handle_key("f2")
+        pending = state.pending_steps[("", "f2")]
+        self.assertTrue(pending.call_paused)
+        performed.clear()
+        selections.clear()
+        messages.clear()
+        selected["key"] = None
+
+        runner.handle_key("f1")
+        self.assertEqual(selected["key"], "f1")
+        self.assertTrue(state.pending_steps[("", "f2")].call_paused)
+        self.assertEqual(performed, [])
+        self.assertEqual(selections, ["f1"])
+
+        runner.handle_key("f1")
+        while scheduler.queue:
+            scheduler.run_one()
+        self.assertNotIn(("", "f2"), state.pending_steps)
+        self.assertFalse(runner.paused_keys())
+        self.assertEqual(performed, [A2])
+        self.assertEqual(messages, [
+            "f1 を選びました（もう一度押すと実行します）",
+            "一時停止中の実行を破棄しました（f2）",
+        ])
+
+    def test_single_wait_keeps_selection_made_by_trigger_press(self):
+        waiting = {"key": "f1", "actions": [
+            A1, {"type": "system", "op": "wait", "ms": 5},
+        ]}
+        other = {"key": "f2", "actions": [A2]}
+        runner, _state, scheduler, _performed, selected, selections, _messages = make_runner(
+            [waiting, other], selected_key="f1", enabled=True,
+        )
+        runner.handle_key("f1")
+        selections.clear()
+
+        runner.handle_key("f2")
+        self.assertEqual(selected["key"], "f2")
+        self.assertEqual(selections, ["f2"])
+        scheduler.run_one()
+
+        self.assertEqual(selected["key"], "f2")
+        self.assertEqual(selections, ["f2"])
+
+    def test_repeated_waits_keep_selection_made_by_trigger_press(self):
+        waiting = {"key": "f1", "actions": [
+            A1, {"type": "system", "op": "wait", "ms": 5}, A2,
+            {"type": "system", "op": "wait", "ms": 7}, A1,
+        ]}
+        other = {"key": "f2", "actions": [A2]}
+        runner, _state, scheduler, _performed, selected, selections, _messages = make_runner(
+            [waiting, other], selected_key="f1", enabled=True,
+        )
+        runner.handle_key("f1")
+        selections.clear()
+
+        runner.handle_key("f2")
+        self.assertEqual(selected["key"], "f2")
+        self.assertEqual(selections, ["f2"])
+
+        scheduler.run_one()
+        self.assertEqual(selected["key"], "f2")
+        self.assertEqual(selections, ["f2"])
+        scheduler.run_one()
+        self.assertEqual(selected["key"], "f2")
+        self.assertEqual(selections, ["f2"])
+
 
 if __name__ == "__main__":
     unittest.main()
