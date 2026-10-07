@@ -795,19 +795,20 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         def configure_content_and_cells(current, _variables):
             current.canvas.bindings["<Configure>"](SimpleNamespace(width=100))
             for label in current.labels:
-                # _bind_tooltip を差し替えているため <Enter> は付かない。文言のセルは幅の <Configure> で選ぶ
+                # bind_hover_tooltip を差し替えているため <Enter> は付かない。
+                # 文言のセルは幅の <Configure> で選ぶ。
                 if "<Configure>" in label.bindings:
                     label.bindings["<Configure>"](SimpleNamespace(width=80))
             current.buttons["キャンセル"]()
 
-        with patch.object(self.app.child_save_dialog, "_bind_tooltip") as bind_tooltip:
+        with patch.object(child_save_dialog_module, "bind_hover_tooltip") as bind_tooltip:
             self._ask_dialog_internally(
                 [short_row, long_row],
                 configure_content_and_cells,
             )
 
         self.assertEqual(
-            [call.args[1] for call in bind_tooltip.call_args_list],
+            [call.args[1]() for call in bind_tooltip.call_args_list],
             [
                 child_save_dialog_module._kind_label(short_row.kind),
                 short_row.display_name,
@@ -1320,15 +1321,15 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             ACTION_SAVE,
         )
         tooltip_conditions = []
-        real_bind_tooltip = child_save_dialog_module.ChildSaveDialog._bind_tooltip
+        real_bind_tooltip = child_save_dialog_module.bind_hover_tooltip
 
         def bind_tooltip(widget, text, should_show):
             tooltip_conditions.append((widget, text, should_show))
             real_bind_tooltip(widget, text, should_show)
 
         with patch.object(
-            child_save_dialog_module.ChildSaveDialog,
-            "_bind_tooltip",
+            child_save_dialog_module,
+            "bind_hover_tooltip",
             side_effect=bind_tooltip,
         ):
             dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog([row], {})[0]
@@ -1361,11 +1362,11 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             full_kind = child_save_dialog_module._kind_label(row.kind)
             self.assertNotEqual(type_label.cget("text"), full_kind)
             self.assertNotEqual(share_label.cget("text"), share_text)
-            conditions = {text: should_show for _widget, text, should_show in tooltip_conditions}
+            conditions = {text(): should_show for _widget, text, should_show in tooltip_conditions}
             self.assertTrue(conditions[full_kind]())
             self.assertTrue(conditions[share_text]())
             for full_text in (full_kind, share_text):
-                label = next(widget for widget, text, _show in tooltip_conditions if text == full_text)
+                label = next(widget for widget, text, _show in tooltip_conditions if text() == full_text)
                 label.event_generate(
                     "<Enter>",
                     x=1,

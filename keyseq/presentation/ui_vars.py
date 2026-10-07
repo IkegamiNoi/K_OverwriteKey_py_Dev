@@ -16,8 +16,11 @@ class UiVars:
             value=bool(master.data.get("hook_keys_individual", False)),
         )
         self.status_var = tk.StringVar(master=master, value="")
+        self.status_full_var = tk.StringVar(master=master, value="")
         self.file_status_var = tk.StringVar(master=master, value="")
+        self.file_status_full_var = tk.StringVar(master=master, value="")
         self.flash_message_var = tk.StringVar(master=master, value="")
+        self.flash_message_full_var = tk.StringVar(master=master, value="")
         self.ui_font_delta_var = tk.IntVar(master=master, value=int(ui_font_delta_pt))
         self.suppress_var = tk.BooleanVar(master=master, value=True)
         self.run_to_end_var = tk.BooleanVar(master=master, value=False)

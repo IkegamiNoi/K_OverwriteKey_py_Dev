@@ -307,14 +307,18 @@ class App(tk.Tk):
         name = os.path.basename(self.keymap_set_path or "") or "(未設定)"
         save_state = "未保存" if self.dirty_tracker.has_unsaved_changes() else "保存済み"
         text = f"ファイル: {name} / {save_state}"
-        self.ui_vars.file_status_var.set(self._status_bar_text(text))
+        self._write_status_bar_text(self.ui_vars.file_status_var, self.ui_vars.file_status_full_var, text)
 
     def _status_bar_text(self, text: str) -> str:
         return one_line(text) if self._compact_mode else text
 
+    def _write_status_bar_text(self, var, full_var, text: str) -> None:
+        full_var.set(text)
+        var.set(self._status_bar_text(text))
+
     def _refresh_status_bar(self) -> None:
         self._update_file_status()
-        self.ui_vars.flash_message_var.set(self._status_bar_text(self._flash_message))
+        self._write_status_bar_text(self.ui_vars.flash_message_var, self.ui_vars.flash_message_full_var, self._flash_message)
 
 
     def mark_keymap_dirty(self, keymap: dict | None = None) -> None:
@@ -330,7 +334,7 @@ class App(tk.Tk):
     def _clear_flash_message(self):
         self._flash_after_id = None
         self._flash_message = ""
-        self.ui_vars.flash_message_var.set("")
+        self._write_status_bar_text(self.ui_vars.flash_message_var, self.ui_vars.flash_message_full_var, "")
 
     def _set_flash_message(self, msg: str, *, auto_clear: bool = True):
         try:
@@ -340,7 +344,7 @@ class App(tk.Tk):
         except Exception:
             self._flash_after_id = None
         self._flash_message = str(msg or "")
-        self.ui_vars.flash_message_var.set(self._status_bar_text(self._flash_message))
+        self._write_status_bar_text(self.ui_vars.flash_message_var, self.ui_vars.flash_message_full_var, self._flash_message)
         if auto_clear and msg:
             self._flash_after_id = self.after(4000, self._clear_flash_message)
 

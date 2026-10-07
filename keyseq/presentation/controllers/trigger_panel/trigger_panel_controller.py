@@ -409,11 +409,12 @@ class TriggerPanelController:
         sel_key = self.selected_trigger_key() or "(未選択)"
         effective = self.selected_trigger_is_effective()
         if getattr(self._app, "_compact_mode", False):
-            # 省略表示：フック状態 + キーマップの動作状態 + 選択中トリガー + 次に実行（行の内容）
-            line = self.get_next_action_summary(sel_key)
-            hook_state, keymap_text, sel_key, line = map(one_line, (hook_state, keymap_text, sel_key, line))
-            suffix = f" / 次: {line}" if effective else ""
-            self._app.ui_vars.status_var.set(f"フック: {hook_state} / キーマップ: {keymap_text}\n選択: {sel_key}{suffix}")
+            # 省略表示：欄は各値を1行化し、ツールチップには元の改行を残す。
+            suffix = f" / 次: {self.get_next_action_summary(sel_key)}" if effective else ""
+            self._app.ui_vars.status_full_var.set(f"フック: {hook_state} / キーマップ: {keymap_text}\n選択: {sel_key}{suffix}")
+            self._app.ui_vars.status_var.set(
+                f"フック: {one_line(hook_state)} / キーマップ: {one_line(keymap_text)}\n選択: {one_line(sel_key)}{one_line(suffix)}"
+            )
             return
 
         triggers = get_active_triggers(self._app.data)
@@ -426,19 +427,16 @@ class TriggerPanelController:
             actions = trig.get("actions", []) if trig else []
             idx = int(self._app._indices.get(sel_key, 0) or 0) if effective else 0
             if actions:
-                if bool(trig.get("run_to_end", False)) and idx >= len(actions):
-                    next_i = 1
-                else:
-                    # 通常は idx+1（=次に実行される行番号）
-                    next_i = min(idx, len(actions)-1) + 1
-            else:
-                next_i = 0
+                next_i = (
+                    1 if bool(trig.get("run_to_end", False)) and idx >= len(actions)
+                    else min(idx, len(actions)-1) + 1
+                )
         except Exception:
             next_i = 0
         suffix = f" / 選択中の次: {next_i}" if effective else ""
-        self._app.ui_vars.status_var.set(
-            f"フック: {hook_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_key}{suffix}"
-        )
+        text = f"フック: {hook_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_key}{suffix}"
+        self._app.ui_vars.status_full_var.set(text)
+        self._app.ui_vars.status_var.set(text)
 
     def get_next_action_summary(self, trigger_key: str) -> str:
         """省略表示用：次に実行されるアクションを1行で返す"""

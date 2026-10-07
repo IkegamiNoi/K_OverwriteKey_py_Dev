@@ -39,7 +39,7 @@ infrastructure
 ```text
 keyseq/presentation/
     app.py                     # Tk ルート・生成と配線（組み立て）・View切替・調整役・dialogs向け契約
-    ui_vars.py                 # UiVars: View / コントローラ間で共有する Tk 変数ホルダー
+    ui_vars.py                 # UiVars: View / コントローラ間で共有する Tk 変数ホルダー（ステータスの表示用 / 全文用を保持）
     controllers/               # 種類別フォルダ
         config_io/             # 構成セット・個別JSONの保存/読込を7クラスへ分割（所有者フォルダ・計画04）
             keymap_set_io.py   # KeymapSetIo: 構成セット（keymap_set）+ 専用ヘルパ
@@ -50,7 +50,7 @@ keyseq/presentation/
             trigger_set_file_io.py  # TriggerSetFileIo: trigger_set 個別 JSON
             sequence_file_io.py     # SequenceFileIo: sequence 個別 JSON
             child_save_rows.py      # 子ファイルの共有状況判定と行モデル（判定名 / 表示文言 / 既定アクション）
-            child_save_dialog.py    # ChildSaveDialog: 子一覧 / 依存確認 / 再計算先の上書き確認
+            child_save_dialog.py    # ChildSaveDialog: 子一覧 / 依存確認 / 再計算先の上書き確認（共有 hover_tooltip を使用）
             child_save_columns.py   # ChildSaveColumns: 子一覧の列幅（保存先パスだけ weight）・見出しの境界 3 つのドラッグ・開いたときの大きさと最小の大きさ（phase 44）
             child_save_plan.py      # 行の選択・確定エントリ・既定規則から保存計画を組み立てる
             save_target_snapshot.py # 保存の対象のトリガー一覧の実体と行の並びの固定（capture_all / capture_active）と書き込み直前の照合（snapshot_matches）（phase 43）
@@ -86,7 +86,7 @@ keyseq/presentation/
         action_list_rendering.py   # build_action_rows / format_next_action_summary: 出力シーケンス一覧の 1 行の文字列と背景色（tkinter 非依存・phase 37）
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)
-        status_bar.py          # build_status_area(app, parent)
+        status_bar.py          # build_status_area(app, parent): ステータス3欄に見切れ時の全文ツールチップ
         full_view/             # 所有者フォルダ
             full_view.py       # FullView: Widget の生成と pack/grid 配置のみ
             hook_frame.py      # FullHookFrame（取得/クリアボタン付き）
@@ -128,6 +128,7 @@ keyseq/presentation/
     call_view_heights.py       # 呼び出し先の表示枠の希望の高さの検証・既定・表示の高さ（`call_view_heights`・tkinter 非依存・phase 45）
     compact_pane_heights.py    # 省略表示の 3 段の表示の高さの計算（下の欄の最小を優先・見出しを残す）と `compact_sequence_view` の検証（tkinter 非依存・phase 48）
     compact_window_size.py     # `compact_window_size` の検証と省略表示の大きさの計算（最小の高さ・主モニタへの切り詰め・tkinter 非依存・phase 48）
+    hover_tooltip.py           # HoverTooltip / bind_hover_tooltip: callable の全文をホバーで表示・refresh で差し替え / 閉じる（phase 49）
     status_text.py             # one_line: 省略表示中のステータス欄・ステータスバーの文言の改行を空白へ（phase 48）
     pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
@@ -200,6 +201,7 @@ keyseq/presentation/
   引数で受け取る（`master._ui_font_delta_pt` の直読みを廃止）。他の初期値は `master.data.get(...)` から取得。
 - **`AppState`（application 層）とは別物**。UiVars は Tk に依存する presentation 層の部品であり、
   選択インデックス等のアプリ状態は引き続き `AppState` が持つ。混ぜない。
+- ステータス3欄は表示用の `status_var / file_status_var / flash_message_var` と、1 行化前の全文用の `status_full_var / file_status_full_var / flash_message_full_var` を対にして保持する（phase 49）。
 - Tk 変数はアプリ生存中に差し替わらないため、Widget・コントローラがコンストラクタで受け取って保持してよい。
 - `hook_keys_individual_var`（BooleanVar）は **full / compact が同一インスタンスを共有**する
   （compact 側は `state="disabled"` の表示専用）。
@@ -261,7 +263,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     - child_save_rows.py: 保存先の `_parent_refs` と現在の上位から**共有状況を判定**し、行モデル
       （判定名 / 表示文言 / 既定アクション）を組み立てる。**分岐は判定名で行い、表示文言では分岐しない**
     - ChildSaveDialog（child_save_dialog.py = `app.child_save_dialog`）: 子一覧ダイアログ・
-      依存確認（4 択）・再計算先の上書き確認
+      依存確認（4 択）・再計算先の上書き確認。見切れたセルの全文表示は共有部品 `hover_tooltip.bind_hover_tooltip` を使う
       子一覧は見出し・全行・ボタンの高さで開き、タイトルバー込みで画面の高さの 6 割を上限とする（最小高さ優先）。
       見出しは一覧の上の独立 frame（スクロール領域外）に置き、canvas と同じ grid 列で幅を揃える。
       `child_save_columns.py` が見出し・一覧共通の列幅・最小サイズと見出しの3境界のドラッグを担当し、保存先パスだけ weight=1 で幅の変化を受け持つ。
@@ -610,7 +612,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   （top-level menubar には tearoff があり位置がずれる。カスケードとラベルで探す）。
   **build と bind は別関数**（フォントサイズ変更時はメニューのみ再構築し、バインドは再実行しない）。
 - status_bar.py: `build_status_area(app, parent)`（「ステータス」欄 + 下部ステータスバー: ファイル状態 / 一時メッセージ）。
-  両方とも `side="bottom"` で本体（`app.outer`）より先に pack する（縦を縮めても押し出されない・phase 48）。省略表示中の文言は `status_text.one_line` で 1 行化（ステータス欄 2 行 / ステータスバー 1 行）
+  両方とも `side="bottom"` で本体（`app.outer`）より先に pack する（縦を縮めても押し出されない・phase 48）。省略表示中の文言は `status_text.one_line` で 1 行化（ステータス欄 2 行 / ステータスバー 1 行）。
+  フル / 省略とも Label の要求幅が実幅（1 より大）を超える3欄だけ、共有 `hover_tooltip` で改行を残した全文を表示する。全文 / 表示変数の書き込みと `<Configure>` から idle 後に `refresh()` し、表示中の文言変更・幅 / フォント変更に追従（見切れ解消・空文言は閉じる・phase 49）
 
 ---
 

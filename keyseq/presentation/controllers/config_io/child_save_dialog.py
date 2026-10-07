@@ -8,6 +8,7 @@ from tkinter import filedialog, font, messagebox, ttk
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP
 from keyseq.presentation.controllers.config_io.child_save_rows import ChildSaveRow
 from keyseq.presentation.controllers.config_io.child_save_columns import CELL_GAP, HEADINGS, size_action_dialog
+from keyseq.presentation.hover_tooltip import bind_hover_tooltip
 from keyseq.presentation.modal import grab_modal
 
 
@@ -115,7 +116,11 @@ class ChildSaveDialog:
         label = ttk.Label(frame, text="", width=1, anchor="w")
         label.grid(row=row, column=column, sticky="ew", padx=(0, CELL_GAP))
         cell["label"] = label
-        self._bind_tooltip(label, text, lambda: cell["display"] != cell["text"])
+        bind_hover_tooltip(
+            label,
+            lambda: text,
+            lambda: cell["display"] != cell["text"],
+        )
         return cell
 
     @staticmethod
@@ -149,45 +154,6 @@ class ChildSaveDialog:
                 "<Configure>",
                 lambda event, cell=cell: resize_text_cell(cell, event),
             )
-
-    @staticmethod
-    def _bind_tooltip(widget, text: str, should_show: Callable[[], bool]) -> None:
-        tooltip = None
-
-        def hide_tooltip(_event=None) -> None:
-            nonlocal tooltip
-            if tooltip is None:
-                return
-            try:
-                tooltip.destroy()
-            except Exception:
-                pass
-            tooltip = None
-
-        def show_tooltip(event) -> None:
-            nonlocal tooltip
-            hide_tooltip()
-            if not should_show():
-                return
-            try:
-                tooltip = tk.Toplevel(widget)
-                tooltip.overrideredirect(True)
-                tooltip.geometry(f"+{event.x_root + 12}+{event.y_root + 12}")
-                ttk.Label(tooltip, text=text, padding=4).pack()
-            except Exception:
-                if tooltip is not None:
-                    try:
-                        tooltip.destroy()
-                    except Exception:
-                        pass
-                tooltip = None
-
-        try:
-            widget.bind("<Enter>", show_tooltip)
-            widget.bind("<Leave>", hide_tooltip)
-            widget.bind("<Button>", hide_tooltip)
-        except Exception:
-            pass
 
     def _confirm_actions(self, dialog, rows, choice_vars, result) -> None:
         choices = self._resolve_action_targets(rows, choice_vars)
