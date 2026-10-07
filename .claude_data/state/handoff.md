@@ -15,16 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 48 は 2026-10-07 完了〕）。
-   次採番 = phase 49 / 暫定 34 / decisions 49 / 提案書 21。次フェーズはユーザー判断・着手時は `/phase_start`
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 49 は 2026-10-07 完了〕）。
+   次採番 = phase 50 / 暫定 34 / decisions 50 / 提案書 21。次フェーズはユーザー判断・着手時は `/phase_start`
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜33）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 48 完了（2026-10-07）。アクティブなフェーズなし・次フェーズはユーザー判断待ち（候補 idea_40 = ステータスの見切れのツールチップ）。**
-ブランチ `claude/status-field-tooltip-e6161e`（phase 48 task_05 の目視以降）。それ以前は `claude/jikki-mokushi-ok-5df544`（**main への取り込み状況は git で確認**・マージはユーザー）。
+**phase 49 完了（2026-10-07）。アクティブなフェーズなし・次フェーズはユーザー判断待ち。**
+ブランチ `claude/status-field-tooltip-e6161e`（phase 48 task_05 の目視以降・phase 49 も同じ）。それ以前は `claude/jikki-mokushi-ok-5df544`（**main への取り込み状況は git で確認**・マージはユーザー）。
 ユーザーはフェーズ内のタスクの連続実行を許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 48 完了 = 2026-10-07**）:
-compile **clean** / tests **1325 実行 OK**（skip 7）/ tests_ui **875 OK**（2 回）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 47 完了 1308 → 1325 / tests_ui: 840 → 875）。
+直近の実測（**phase 49 完了 = 2026-10-07**）:
+compile **clean** / tests **1325 実行 OK**（skip 7）/ tests_ui **895 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: phase 47 完了 1308 → 1325 / tests_ui: 840 → 875〔phase 48〕→ 895〔phase 49〕）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が 1 回だけ `1 != 0` で落ちた（単独 2 回・全体 2 回で再現せず）。再発したら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
 **verifier に `taskkill` で python.exe を一括終了させない**（2026-10-04 に全 python が落ちた）。tests_ui は 260〜730 秒・タイムアウト 1800 秒・出力はファイルへ。
@@ -54,17 +54,15 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **ユーザーに次フェーズを確認する**。候補 = **idea_40**（`instructions/backlog/idea_40_status_truncation_tooltip.md`・ステータス欄 / ステータスバーの見切れをツールチップで全文・直接改訂モード 1〜2 タスク想定）/
-  idea_39 表示中のトリガーを戻す・先頭への対象にする / idea_37 カウンター条件分岐 / idea_23 押す / 離すアクション。着手時は `/phase_start` で phase 49 を起票。
+- **ユーザーに次フェーズを確認する**。候補 = **idea_39** 表示中のトリガーを戻す・先頭への対象にする / idea_37 カウンター条件分岐 / idea_23 押す / 離すアクション。着手時は `/phase_start` で phase 50 を起票。
 - **main へのマージはユーザーが行う**。
 
-## 直前フェーズ（phase 48 = 省略表示の出力シーケンス欄）の要点
+## 直前フェーズ（phase 49 = ステータスの見切れのツールチップ）の要点
 
-正本 = `features.md` §4.6「省略表示のシーケンス欄」「省略表示のウィンドウ」/ `data_schema.md` §5.4（`compact_sequence_view`・`compact_window_size`）。判断は `decisions_archive/48`。presentation のみ。
-- 部品: `CompactSequenceController`（描画・押した行で離したときだけ次に実行・取り消し）/ `CompactPaneLayout`（3 段の配置・ドラッグ・保存の唯一の受け持ち）/ `CompactWindowController`（窓の大きさ・最小の高さ・500ms 遅延保存）/ 純関数 `compact_pane_heights.py`・`compact_window_size.py`・`status_text.one_line`。
-- 次に実行の変更はフル・省略で `TriggerPanelController.set_next_action_index` を共有（有効か → 呼び出し先の実行中の拒否の順）。`CallViewController` の置き場ごとの差は `_FullCallViewLayout` / `_CompactCallViewLayout`（提案書 20）。
-- **idea_40 の手がかり**: 見切れ時だけのツールチップは `controllers/config_io/child_save_dialog.py` の `_bind_tooltip`。ステータスは `views/status_bar.py`。
-- 前フェーズ 47（アクション編集ダイアログの整理）の要点は `decisions_archive/47` と正本 §4.6「出力シーケンスの編集」。
+正本 = `features.md` §4.5「ステータスの見切れのツールチップ」。判断は `decisions_archive/49`。presentation のみ。
+- 共有部品 `presentation/hover_tooltip.py`（`bind_hover_tooltip(widget, text_callable, should_show)` → `HoverTooltip.refresh()`）。子ファイル保存ダイアログとステータス 3 か所で使う。乗せている状態と最後のマウス位置を持ち、乗せている間は見切れたら出す・最前面。マウスには付いてこない。
+- 全文は `ui_vars` の `*_full_var`（1 行化前）・表示は従来の `*_var`。書き手は `App._write_status_bar_text(var, full_var, text)` と `TriggerPanelController.update_status`。見切れ判定は `status_bar._bind_status_tooltip`（要求幅 > 実幅）。
+- 前フェーズ 48（省略表示の出力シーケンス欄・`CompactPaneLayout` 等）の要点は `decisions_archive/48` と正本 §4.6。
 
 ## 運用インフラ
 
@@ -75,6 +73,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 
 ## 注意事項・blockers
 - **blockers: なし（次フェーズのユーザー判断待ち）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **【罠・phase 49 で実証】共有 App の tests_ui で `<Enter>` を送ったら後始末で `<Leave>` も送る**（乗せた状態が次のテストに漏れてツールチップが重複する）。**実機目視の手順はカーソル・窓の位置まで考えて書く**。
 - **【罠・phase 48 で実証】遅延保存（after 500ms）を持つ部品は、書き込み回数を数えるテストに時間依存で混ざる**。テストでは先に `app.compact_window.cancel_save()`。
 - **【罠・phase 48 で実証】Tk の PanedWindow は欄の高さを明示しないと子の要求の高さへ戻し、明示直後の `sash_place` は古い大きさで押さえ込まれる**
   （`compact_pane_layout._place_heights` は paneconfigure height → update_idletasks → sash_place）。**pack は先に入れた子が高さを先に取る**（ステータス類・閉じた見出しは side=bottom で先に pack）。
@@ -139,8 +138,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 48_compact_sequence_view / 47_action_dialog_layout_cleanup / 46_back_rewind_target）。
-- 着手中 idea: なし。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_40**（ステータスの見切れのツールチップ）/ **idea_39**（表示中のトリガーを戻す・先頭への対象に）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/ **idea_23**（押す / 離すアクション）/
+  （直近 3 件: 49_status_truncation_tooltip / 48_compact_sequence_view / 47_action_dialog_layout_cleanup）。
+- 着手中 idea: なし。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（表示中のトリガーを戻す・先頭への対象に）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/ **idea_23**（押す / 離すアクション）/
   idea_29〜idea_31 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/

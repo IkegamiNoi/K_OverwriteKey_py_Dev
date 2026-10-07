@@ -58,6 +58,7 @@
 | 44_child_save_dialog_layout | [44_child_save_dialog_layout.md](decisions_archive/44_child_save_dialog_layout.md) | 子ファイル保存ダイアログの高さと列幅の調整（2026-10-04 完了・直接改訂・presentation のみ）。高さは行数に合わせ上限は主モニタの 6 割 / 見出しの境界 3 つのドラッグ（差は保存先パス・操作列は固定）/ ウィンドウの幅は保存先パスだけ / 見出しは常に見える / 小さい画面では対象名 → 共有状況 → 種別の順に縮める / 列幅は保存しない。refactor_check: 推奨（M6）→ task_02a で解消 |
 | 47_action_dialog_layout_cleanup | [47_action_dialog_layout_cleanup.md](decisions_archive/47_action_dialog_layout_cleanup.md) | アクションの追加・編集ダイアログの整理（2026-10-06 完了・直接改訂・presentation のみ）。使わない項目（値・記録・プリセット）をグレーでなく非表示・「末尾に追加」を種別の行の右端・開いたときの入力先を種別で切替（edit_loop はループ回数）・非表示の欄からのフォーカス移動は値・記録・プリセットまわりに限定。完了判定前レビューで記録中の文言の後退を task_01a で修正。refactor_check: 不要 |
 | 48_compact_sequence_view | [48_compact_sequence_view.md](decisions_archive/48_compact_sequence_view.md) | 省略表示の出力シーケンス欄（2026-10-07 完了・暫定 33 v0.6 凍結・presentation のみ・config.json にキー 2 つ追加）。トリガー一覧と呼び出し先の間に開閉・境界ドラッグできるシーケンス欄（見る + 次に実行の変更・押した行で離したときだけ）・3 段の高さを `CompactPaneLayout` へ集約・省略表示の窓の大きさの記録と最小の高さ・ステータス 2 行 / 1 行の固定。提案書 20 を task_07 で実施。ステータスの見切れのツールチップは idea_40 |
+| 49_status_truncation_tooltip | [49_status_truncation_tooltip.md](decisions_archive/49_status_truncation_tooltip.md) | ステータスの見切れのツールチップ（2026-10-07 完了・直接改訂・presentation のみ）。ステータス欄・ステータスバーの左 / 中央が見切れているとき、1 行化前の改行入りの全文をツールチップで出す（フル・省略の両方・乗せている間の追従・最前面）。子ファイル保存ダイアログのツールチップを共有部品 `hover_tooltip.py` へ昇格。idea_40 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
