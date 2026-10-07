@@ -585,9 +585,9 @@ class TriggerPanelController:
         return self._action_edit._counter_names()
 
     def set_next_action_index(self, idx: int, *, refuse_running_callee: bool = False) -> bool:
-        if refuse_running_callee and self._refuse_running_chain_callee_edit():
-            return False
         if not self.selected_trigger_is_effective():
+            return False
+        if refuse_running_callee and self._refuse_running_chain_callee_edit():
             return False
         key = self.selected_trigger_key()
         trig = self._app._find_trigger_by_key(key) if key else None

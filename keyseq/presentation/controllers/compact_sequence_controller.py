@@ -84,7 +84,11 @@ class CompactSequenceController:
 
     def _row_at(self, event) -> int | None:
         listing = self.frame.action_list
-        if not 0 <= event.y < listing.winfo_height() or not listing.size():
+        if (
+            not 0 <= event.x < listing.winfo_width()
+            or not 0 <= event.y < listing.winfo_height()
+            or not listing.size()
+        ):
             return None
         row = int(listing.nearest(event.y))
         bounds = listing.bbox(row)

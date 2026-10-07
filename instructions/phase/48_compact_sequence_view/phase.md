@@ -51,7 +51,7 @@
 - task_05: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）と**ユーザーの実機目視** — **完了**（2026-10-07・実機目視 OK〔確認 1〜7 問題なし〕。統合レビュー: deep-reviewer 修正して採用 / codex-reviewer P2 1 件〔行の下の空白のクリック → ユーザー判断で「何もしない」〕→ task_05a）
 - task_05a: 統合レビューの指摘対応（押したまま外へ出たときの選択の帯・空白のクリック・改行の 1 行化の一本化・重複呼び出しの削除・テストの穴）— **完了**（2026-10-07・codex-implementer・reviewer 採用。検証で見つかった「欄の高さが Tk の都合で要求の高さへ戻る / 古い大きさで境界が押さえ込まれる」不具合をメインで修正〔高さの明示 + 境界を置く前の update_idletasks〕・reviewer 修正して採用〔テストの検査を実測へ〕・tests 1325 / tests_ui 873 ×2 / smoke pass）
 - task_06: 正本反映（暫定 33 §12 の昇格・凍結）・`decisions_archive/48_compact_sequence_view.md`・current.md の完了記載・`/refactor_check`。起票元 idea なし（目視時のユーザー要望「ステータスの見切れをツールチップで」は範囲外として idea_40 へ分離・2026-10-07） — **正本反映済・完了判定前レビュー済**（2026-10-07・deep-reviewer 修正して採用〔文書の指摘 M1・L1・L3・L4・L6 は反映済〕/ codex-adversarial-reviewer needs-attention 1 件 = deep-reviewer M2。/refactor_check = 推奨〔M4・M6・提案書 20〕。ユーザー判断: M2・L2 を直す → task_06a / 提案書 20 をこのフェーズ末で実施 → task_07_refactor。凍結・decisions_archive・current.md は task_07 の後）
-- task_06a: 完了判定前レビューの指摘対応（省略表示の欄で左右の外で離したときに確定する / グレーの行で拒否の一時メッセージが出る順序）
+- task_06a: 完了判定前レビューの指摘対応（省略表示の欄で左右の外で離したときに確定する / グレーの行で拒否の一時メッセージが出る順序） — **完了**（2026-10-07・codex-implementer・reviewer 採用。検証で tests_ui に 1 回だけ出た失敗〔窓の大きさの 500ms の遅延保存が境界ドラッグのテストの書き込み回数に混ざる・task_04 から潜在〕をメインで修正〔該当テスト 5 か所で先に cancel_save〕。Codex が CRLF にした改行を LF へ戻した。tests 1325 / tests_ui 875 ×2 / smoke pass）
 - task_07_refactor: 提案書 20（CallViewController の省略表示の分岐を置き場の配置役へ・保存の待ち時間の定数の共有）
 
 ## レビュー方針

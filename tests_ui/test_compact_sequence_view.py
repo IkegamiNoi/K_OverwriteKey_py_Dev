@@ -166,6 +166,7 @@ class CompactSequenceViewTest(unittest.TestCase):
             app.destroy()
 
     def test_open_and_close_persist_compact_sequence_settings(self):
+        self.app.compact_window.cancel_save()  # 窓の大きさの遅延保存が書き込みの回数に混ざらないように
         with patch.object(self.app.startup_io, "write_startup", return_value=True) as write:
             self._open()
             write.assert_called_once()
@@ -265,8 +266,8 @@ class CompactSequenceViewTest(unittest.TestCase):
         _x, top, _width, height = listing.bbox(5)
         blank_y = top + height + 2
         self.assertLess(blank_y, listing.winfo_height())
-        self.sequence.on_press(SimpleNamespace(y=blank_y))
-        self.sequence.on_release(SimpleNamespace(y=blank_y))
+        self.sequence.on_press(SimpleNamespace(x=5, y=blank_y))
+        self.sequence.on_release(SimpleNamespace(x=5, y=blank_y))
         self.assertEqual(self.app._indices["f1"], 1)
         self.assertEqual(listing.curselection(), (1,))
 
@@ -274,10 +275,21 @@ class CompactSequenceViewTest(unittest.TestCase):
         self._open()
         listing = self.frame.action_list
         _x, y, _width, height = listing.bbox(2)
-        self.sequence.on_press(SimpleNamespace(y=y + height // 2))
-        self.sequence.on_release(SimpleNamespace(y=listing.winfo_height() + 1))
+        self.sequence.on_press(SimpleNamespace(x=5, y=y + height // 2))
+        self.sequence.on_release(SimpleNamespace(x=5, y=listing.winfo_height() + 1))
         self.assertEqual(self.app._indices["f1"], 1)
         self.assertEqual(listing.curselection(), (1,))
+
+    def test_press_on_row_and_release_horizontally_outside_does_not_change_next_action(self):
+        self._open()
+        listing = self.frame.action_list
+        _x, y, _width, height = listing.bbox(2)
+        for outside_x in (listing.winfo_width() + 1, -1):
+            with self.subTest(outside_x=outside_x):
+                self.sequence.on_press(SimpleNamespace(x=5, y=y + height // 2))
+                self.sequence.on_release(SimpleNamespace(x=outside_x, y=y + height // 2))
+                self.assertEqual(self.app._indices["f1"], 1)
+                self.assertEqual(listing.curselection(), (1,))
 
     def test_leaving_and_reentering_while_pressed_keeps_next_action_highlighted(self):
         self._open()
@@ -288,7 +300,7 @@ class CompactSequenceViewTest(unittest.TestCase):
         self.app.update()
         self.assertEqual(listing.curselection(), (1,))
         self.assertEqual(self.app._indices["f1"], 1)
-        self.sequence.on_release(SimpleNamespace(y=listing.winfo_height() + 1))
+        self.sequence.on_release(SimpleNamespace(x=5, y=listing.winfo_height() + 1))
         self.assertEqual(listing.curselection(), (1,))
         self.assertEqual(self.app._indices["f1"], 1)
 
@@ -318,6 +330,22 @@ class CompactSequenceViewTest(unittest.TestCase):
             self._row_event("<Button-1>", 2)
             self._row_event("<ButtonRelease-1>", 2)
         self.assertEqual(self.app._indices["f1"], 0)
+
+    def test_ineffective_duplicate_does_not_report_running_callee_refusal(self):
+        self._open()
+        self.app.trigger_panel.set_selected_trigger_index(1)
+        listing = self.frame.action_list
+        status_before = self.app.ui_vars.file_status_var.get()
+        with patch.object(self.app.sequence_runner, "is_running_chain_callee", return_value=True), \
+                patch.object(self.app, "_set_flash_message") as flash:
+            self._row_event("<Button-1>", 0)
+            self._row_event("<ButtonRelease-1>", 0)
+            self.assertEqual(self.app._indices["f1"], 1)
+            self._key("Down")
+            self.assertEqual(self.app._indices["f1"], 1)
+            flash.assert_not_called()
+        self.assertEqual(listing.curselection(), ())
+        self.assertEqual(self.app.ui_vars.file_status_var.get(), status_before)
 
     def test_prior_next_use_visible_rows_and_noop_bindings_do_not_edit(self):
         self._open()
@@ -475,6 +503,7 @@ class CompactSequenceViewTest(unittest.TestCase):
             }
             return True
 
+        self.app.compact_window.cancel_save()  # 窓の大きさの遅延保存が書き込みの回数に混ざらないように
         with patch.object(self.app.startup_io, "write_startup", side_effect=capture_write) as write:
             self.panes.event_generate("<Button-1>", x=x, y=sash_y + int(self.panes.cget("sashwidth")) // 2)
             self.app.update()
@@ -530,6 +559,7 @@ class CompactSequenceViewTest(unittest.TestCase):
             }
             return True
 
+        self.app.compact_window.cancel_save()  # 窓の大きさの遅延保存が書き込みの回数に混ざらないように
         with patch.object(self.app.startup_io, "write_startup", side_effect=capture_write) as write:
             self.panes.event_generate(
                 "<Button-1>", x=x, y=sash_y + int(self.panes.cget("sashwidth")) // 2,
@@ -550,6 +580,7 @@ class CompactSequenceViewTest(unittest.TestCase):
         self.app.update()
         sash_y = self.panes.sash_coord(1)[1]
         x = self.panes.winfo_width() // 2
+        self.app.compact_window.cancel_save()  # 窓の大きさの遅延保存が書き込みの回数に混ざらないように
         with patch.object(self.app.startup_io, "write_startup", return_value=True) as write:
             self.panes.event_generate(
                 "<Button-1>", x=x, y=sash_y + int(self.panes.cget("sashwidth")) // 2,

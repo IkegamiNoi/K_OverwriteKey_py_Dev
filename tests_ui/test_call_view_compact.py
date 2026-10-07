@@ -236,6 +236,7 @@ class CallViewCompactTest(unittest.TestCase):
         self.app.update_idletasks()
         _sash_x, sash_y = self.panes.sash_coord(0)
         x = self.panes.winfo_width() // 2
+        self.app.compact_window.cancel_save()  # 窓の大きさの遅延保存が書き込みの回数に混ざらないように
         with patch.object(
             self.app.startup_io, "write_startup",
             side_effect=lambda data: WRITE_STARTUP(self.app.startup_io, data),
