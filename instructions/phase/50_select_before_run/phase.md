@@ -44,7 +44,7 @@
 
 - task_01: domain / application（保存）— keymap_set と sequence（trigger_set 内・単一 JSON のインラインを含む）の `select_before_run` の読み書きとテスト（往復: 保存 → 再読込 / Import → Export / 個別保存 → 個別読込）（暫定 34 §6） — **完了**（2026-10-08・codex-implementer・reviewer 完了可。出力を固定している既存テスト 11 件〔キー集合・順序・保存バイト列〕を §6「常に書く」に合わせて追随＝仕様起因。tests 1330 / tests_ui 895 / smoke pass）
 - task_02: application（判定）— 選ぶだけの判定（§3・§4・戻す・先頭へだけの除外）・リピートの無視（InputRouter の印 + runner）・待機明けの選び直しの変更（§8）・注入口（省略時は機能 OFF）とテスト・既存テストの追随（§3・§4・§7・§8） — **完了**（2026-10-08・codex-delegating-implementer〔Luna サブエージェント使用〕・reviewer 修正要〔on_trigger の内省による互換 → `(key, repeat)` に固定・app.py の配線 1 行を含む〕→ メインで修正。既存の切替テスト 1 件は離さず再押下＝repeat の印が付くのが正しいため種類とキーの比較へ。tests 1345 / tests_ui 895 / smoke pass）
-- task_03: presentation — フル表示のフック欄の全体のチェック（dirty・読込等での同期）・省略表示の表示のみのチェック・出力シーケンス欄のトリガーごとのチェック（同期・書き戻し・dirty）・選択の口の注入と配線とテスト（§5・§7）。**実装後にユーザーの実機目視**
+- task_03: presentation — フル表示のフック欄の全体のチェック（dirty・読込等での同期）・省略表示の表示のみのチェック・出力シーケンス欄のトリガーごとのチェック（同期・書き戻し・dirty）・選択の口の注入と配線とテスト（§5・§7）。**実装後にユーザーの実機目視** — **実装・検証済・実機目視待ち**（2026-10-08・codex-delegating-implementer〔サブエージェント不使用〕・reviewer 修正要〔テスト用の getattr の逃げ道・view から controller の直 import・import の並び〕→ メインで修正。検証でフォント +3 のフル表示の最小の高さが画面の上限を超えた〔フック欄に行を足したため〕→ 全体のチェックを個別指定チェックと**同じ行の右隣**へ（省略表示は次の行・§5「置き場は実装時に決め実機目視」の範囲）。新規テストの期待値〔label の補完〕もメインで修正。tests 1345 / tests_ui 907 / smoke pass）
 - task_04: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）と**ユーザーの実機目視**（暫定 34 §10）
 - task_05: 正本反映（暫定 34 §12 の昇格・凍結）・`decisions_archive/50_select_before_run.md`・decisions.md の索引・current.md の完了記載・`/refactor_check`。起票元 idea なし
 

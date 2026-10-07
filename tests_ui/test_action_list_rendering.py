@@ -242,7 +242,8 @@ class ActionListRenderingTest(unittest.TestCase):
             ]},
             _selected_trigger_idx=0,
             ui_vars=SimpleNamespace(
-                run_to_end_var=_Value(False), run_to_end_delay_var=_Value("450")
+                run_to_end_var=_Value(False), run_to_end_delay_var=_Value("450"),
+                sequence_select_before_run_var=_Value(False),
             ),
             full_view=SimpleNamespace(sequence_box=SimpleNamespace(
                 run_to_end_delay_entry=entry
@@ -270,7 +271,8 @@ class ActionListRenderingTest(unittest.TestCase):
             ]},
             _selected_trigger_idx=None,
             ui_vars=SimpleNamespace(
-                run_to_end_var=_Value(False), run_to_end_delay_var=_Value("300")
+                run_to_end_var=_Value(False), run_to_end_delay_var=_Value("300"),
+                sequence_select_before_run_var=_Value(False),
             ),
             full_view=SimpleNamespace(sequence_box=SimpleNamespace(
                 run_to_end_delay_entry=entry
@@ -297,7 +299,7 @@ class ActionListRenderingTest(unittest.TestCase):
                 on_action_double_click=Mock(),
                 add_action=Mock(), edit_action=Mock(), delete_action=Mock(),
                 duplicate_action=Mock(), copy_actions=Mock(), paste_actions=Mock(),
-                move_action=Mock(), update_run_to_end=Mock(),
+                move_action=Mock(), update_run_to_end=Mock(), update_select_before_run=Mock(),
                 update_run_to_end_delay=Mock(),
             ),
             sequence_io=SimpleNamespace(
@@ -307,6 +309,7 @@ class ActionListRenderingTest(unittest.TestCase):
             ),
             ui_vars=SimpleNamespace(
                 run_to_end_var=tk.BooleanVar(root),
+                sequence_select_before_run_var=tk.BooleanVar(root),
                 run_to_end_delay_var=tk.StringVar(root),
             ),
         )

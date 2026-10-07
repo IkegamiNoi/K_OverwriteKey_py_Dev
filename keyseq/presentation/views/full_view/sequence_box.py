@@ -73,6 +73,12 @@ class SequenceBox(ttk.LabelFrame):
             command=app.trigger_panel.update_run_to_end,
         )
         self.run_to_end_chk.pack(anchor="w", pady=(8, 0))
+        self.select_before_run_chk = ttk.Checkbutton(
+            abtns, text="選んでから実行",
+            variable=app.ui_vars.sequence_select_before_run_var,
+            command=app.trigger_panel.update_select_before_run,
+        )
+        self.select_before_run_chk.pack(anchor="w", pady=(6, 0))
 
         # 連続実行 間隔（ms） ※トリガーごと / デフォルト300
         delay_line = ttk.Frame(abtns)

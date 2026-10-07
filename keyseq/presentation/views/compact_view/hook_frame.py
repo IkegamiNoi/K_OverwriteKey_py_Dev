@@ -45,3 +45,8 @@ class CompactHookFrame(ttk.LabelFrame):
             state="disabled",
         )
         self.hook_keys_individual_check.grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 0))
+        self.select_before_run_check = ttk.Checkbutton(
+            self.compact_hook_line2, text="選んでから実行",
+            variable=app.ui_vars.select_before_run_var, state="disabled",
+        )
+        self.select_before_run_check.grid(row=3, column=0, columnspan=2, sticky="w", pady=(4, 0))

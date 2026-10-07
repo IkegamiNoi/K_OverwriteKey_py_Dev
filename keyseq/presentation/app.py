@@ -223,6 +223,11 @@ class App(tk.Tk):
                                        if self._find_trigger_by_key(t["key"]) is t],
             perform_action=self._perform_action,
             select_trigger=lambda key: self.trigger_panel.select_trigger_by_key(key),
+            get_selected_trigger_key=lambda: (
+                self.trigger_panel.selected_trigger_key()
+                if self.trigger_panel.selected_trigger_is_effective() else None
+            ),
+            is_select_before_run_enabled=lambda: self.data.get("select_before_run") is True,
             refresh_actions=lambda: self.trigger_panel.refresh_actions(),
             update_status=lambda: self.trigger_panel.update_status(),
             notify_call_view=self.call_view.on_changed,
@@ -519,6 +524,7 @@ class App(tk.Tk):
         self.ui_vars.stop_key_var.set(str(self.data.get(HOOK_STOP_KEY, "")))
         self.ui_vars.toggle_key_var.set(str(self.data.get(HOOK_TOGGLE_KEY, "")))
         self.ui_vars.hook_keys_individual_var.set(bool(self.data.get("hook_keys_individual", False)))
+        self.ui_vars.select_before_run_var.set(self.data.get("select_before_run") is True)
         self.ui_vars.keyboard_show_physical_key_labels_var.set(
             bool(self.data.get("keyboard_show_physical_key_labels", False))
         )
@@ -592,6 +598,10 @@ class App(tk.Tk):
         return self.hotkey_service.validate(hotkey)
 
     # ---------------- Control key capture logic (相互排他の調整役。App に残す) ----------------
+    def toggle_select_before_run(self) -> None:
+        self.data["select_before_run"] = bool(self.ui_vars.select_before_run_var.get())
+        self.dirty_tracker.set_dirty(True)
+
     def toggle_hook_keys_individual(self):
         individual = bool(self.ui_vars.hook_keys_individual_var.get())
         if individual:

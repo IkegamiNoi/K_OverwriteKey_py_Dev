@@ -15,6 +15,9 @@ class UiVars:
             master=master,
             value=bool(master.data.get("hook_keys_individual", False)),
         )
+        self.select_before_run_var = tk.BooleanVar(
+            master=master, value=master.data.get("select_before_run") is True,
+        )
         self.status_var = tk.StringVar(master=master, value="")
         self.status_full_var = tk.StringVar(master=master, value="")
         self.file_status_var = tk.StringVar(master=master, value="")
@@ -24,6 +27,7 @@ class UiVars:
         self.ui_font_delta_var = tk.IntVar(master=master, value=int(ui_font_delta_pt))
         self.suppress_var = tk.BooleanVar(master=master, value=True)
         self.run_to_end_var = tk.BooleanVar(master=master, value=False)
+        self.sequence_select_before_run_var = tk.BooleanVar(master=master, value=False)
         self.run_to_end_delay_var = tk.StringVar(master=master, value=str(DEFAULT_RUN_TO_END_DELAY_MS))
         self.keyboard_layout_var = tk.StringVar(
             master=master,

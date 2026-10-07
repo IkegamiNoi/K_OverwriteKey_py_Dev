@@ -19,6 +19,7 @@ from keyseq.presentation.listbox_utils import (
     sync_listbox_selection_to_focus,
 )
 from keyseq.presentation.controllers.trigger_panel.action_edit import ActionEditFlow
+from keyseq.presentation.controllers.trigger_panel.select_before_run import sync_select_before_run, update_select_before_run
 from keyseq.presentation.controllers.trigger_panel.trigger_list_edit import TriggerListEditFlow
 from keyseq.presentation.controllers.trigger_panel.trigger_row_edit import TriggerRowEditFlow
 from keyseq.presentation.listbox_range_drag import select_range, selected_range
@@ -27,6 +28,7 @@ from keyseq.presentation.status_text import one_line
 
 class TriggerPanelController:
     """トリガー/シーケンスパネルの選択・表示・編集とステータス表示。"""
+    update_select_before_run = update_select_before_run  # 出力シーケンス欄のチェックの書き戻し
 
     _RUNNING_CALLEE_EDIT_MESSAGE = (
         "連続実行中は呼び出し先を変更できません（一時停止してから操作してください）"
@@ -377,6 +379,7 @@ class TriggerPanelController:
     def sync_run_to_end_ui(self):
         """選択中トリガーの run_to_end / delay を UI へ反映"""
         t = self.selected_trigger()
+        sync_select_before_run(self._app, t)
         if not t:
             self._app.ui_vars.run_to_end_var.set(False)
             self._app.ui_vars.run_to_end_delay_var.set(str(DEFAULT_RUN_TO_END_DELAY_MS))
