@@ -15,15 +15,15 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 49 は 2026-10-07 完了〕）。
-   次採番 = phase 50 / 暫定 34 / decisions 50 / 提案書 21。次フェーズはユーザー判断・着手時は `/phase_start`
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 50**〔`50_select_before_run`・暫定仕様先行・主入力 = 暫定 34 v0.4 確定済〕）。
+   次採番 = phase 51 / 暫定 35 / decisions 51 / 提案書 21。
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜33）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 49 完了（2026-10-07）。アクティブなフェーズなし・次フェーズはユーザー判断待ち。**
+**phase 50（選んでから実行）task_01〜03 完了・統合レビュー済。ユーザー判断 2 点と実機目視待ち（task_04）。判断の内容は session.md の next_action 先頭。**
 ブランチ `claude/status-field-tooltip-e6161e`（phase 48 task_05 の目視以降・phase 49 も同じ）。それ以前は `claude/jikki-mokushi-ok-5df544`（**main への取り込み状況は git で確認**・マージはユーザー）。
 ユーザーはフェーズ内のタスクの連続実行を許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 49 完了 = 2026-10-07**）:
-compile **clean** / tests **1325 実行 OK**（skip 7）/ tests_ui **895 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: phase 47 完了 1308 → 1325 / tests_ui: 840 → 875〔phase 48〕→ 895〔phase 49〕）。
+直近の実測（**phase 50 task_03 = 2026-10-08**）:
+compile **clean** / tests **1345 実行 OK**（skip 7）/ tests_ui **907 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1325〔phase 49〕→ 1345 / tests_ui: 895〔phase 49〕→ 907）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が 1 回だけ `1 != 0` で落ちた（単独 2 回・全体 2 回で再現せず）。再発したら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
 **verifier に `taskkill` で python.exe を一括終了させない**（2026-10-04 に全 python が落ちた）。tests_ui は 260〜730 秒・タイムアウト 1800 秒・出力はファイルへ。
@@ -54,15 +54,16 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **ユーザーに次フェーズを確認する**。候補 = **idea_39** 表示中のトリガーを戻す・先頭への対象にする / idea_37 カウンター条件分岐 / idea_23 押す / 離すアクション。着手時は `/phase_start` で phase 50 を起票。
+- **ユーザー判断 2 点を聞く**（session.md の next_action 先頭に選択肢・推奨・根拠の `ファイル:行`）: ①長押しの無視がトリガー以外のキーで終わらない（推奨 = 仕様の文言を「K 以外のトリガーの押下」へ）②待機明けの選び直しの判定方法（推奨 = 実装の「今の選択が K なら選び直す」を正として §8 の文言を改める）
+- 判断の後: 枝番 task_04a（判断の反映 + deep-reviewer M2 のテスト追加〔受け入れ条件 7・8〕）→ **ユーザーの実機目視**（task_04・項目は session.md）→ task_05 正本反映（L4・L7・L8 を含む）・凍結・decisions_archive/50・/refactor_check
 - **main へのマージはユーザーが行う**。
 
-## 直前フェーズ（phase 49 = ステータスの見切れのツールチップ）の要点
+## 現フェーズ（phase 50 = 選んでから実行）の要点
 
-正本 = `features.md` §4.5「ステータスの見切れのツールチップ」。判断は `decisions_archive/49`。presentation のみ。
-- 共有部品 `presentation/hover_tooltip.py`（`bind_hover_tooltip(widget, text_callable, should_show)` → `HoverTooltip.refresh()`）。子ファイル保存ダイアログとステータス 3 か所で使う。乗せている状態と最後のマウス位置を持ち、乗せている間は見切れたら出す・最前面。マウスには付いてこない。
-- 全文は `ui_vars` の `*_full_var`（1 行化前）・表示は従来の `*_var`。書き手は `App._write_status_bar_text(var, full_var, text)` と `TriggerPanelController.update_status`。見切れ判定は `status_bar._bind_status_tooltip`（要求幅 > 実幅）。
-- 前フェーズ 48（省略表示の出力シーケンス欄・`CompactPaneLayout` 等）の要点は `decisions_archive/48` と正本 §4.6。
+主入力 = 暫定 34（`instructions/history/34_select_before_run.md`）。phase.md に各タスクの完了記載と途中の判断。
+- 判定 = `application/sequence_runner/input_acceptance.py` の `_select_only_if_needed`（アクションが空の判定の直後・連続実行の開始の前）/ 長押し = `TriggerAction.repeat`（router が KeyStateManager の押下状態で付ける）→ `on_trigger(key, repeat)` → `handle_key(key, repeat)` / 待機明け = `send_wait.py:66-68`
+- 保存 = keymap_set と sequence の `select_before_run`（task_01）/ 注入 = `presentation/app.py` の `SequenceRunner(...)` / UI = `controllers/trigger_panel/select_before_run.py`・フック欄（フルは個別指定の右隣・省略は次の行で表示のみ）・シーケンス欄（連続実行の直下）
+- 直前フェーズ 49（ツールチップの共有部品 `hover_tooltip.py`）の要点は `decisions_archive/49`。
 
 ## 運用インフラ
 
@@ -72,7 +73,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **blockers: なし（次フェーズのユーザー判断待ち）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **blockers: ユーザー判断 2 点と実機目視（phase 50 task_04）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **【罠・phase 50 で実証】フル表示の高さに余裕は無い**（フォント +3 で画面上限 927px 近く・`tests_ui/test_full_view_min_height.py`）。フック欄・ボタン列に行を足すと落ちる。**Codex は互換の工夫（`inspect` での引数判定・`getattr` の逃げ道）を足すことがある**＝レビューで外す。
 - **【罠・phase 49 で実証】共有 App の tests_ui で `<Enter>` を送ったら後始末で `<Leave>` も送る**（乗せた状態が次のテストに漏れてツールチップが重複する）。**実機目視の手順はカーソル・窓の位置まで考えて書く**。
 - **【罠・phase 48 で実証】遅延保存（after 500ms）を持つ部品は、書き込み回数を数えるテストに時間依存で混ざる**。テストでは先に `app.compact_window.cancel_save()`。
 - **【罠・phase 48 で実証】Tk の PanedWindow は欄の高さを明示しないと子の要求の高さへ戻し、明示直後の `sash_place` は古い大きさで押さえ込まれる**
