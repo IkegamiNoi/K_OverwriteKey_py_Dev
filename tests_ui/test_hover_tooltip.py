@@ -109,12 +109,50 @@ class HoverTooltipTests(unittest.TestCase):
         self.label.event_generate("<Leave>")
         self.root.update_idletasks()
         self.assertIsNone(tooltip._window)
+        tooltip.refresh()
+        self.assertIsNone(tooltip._window)
 
         self._enter()
         self.assertIsNotNone(tooltip._window)
         self.label.event_generate("<Button>")
         self.root.update_idletasks()
         self.assertIsNone(tooltip._window)
+        tooltip.refresh()
+        self.assertIsNone(tooltip._window)
+
+    def test_refresh_shows_tooltip_when_truncation_starts_while_hovered(self):
+        content = {"show": False}
+        tooltip = bind_hover_tooltip(self.label, lambda: "全文", lambda: content["show"])
+        self._enter()
+        self.assertIsNone(tooltip._window)
+
+        content["show"] = True
+        tooltip.refresh()
+
+        self.assertIsNotNone(tooltip._window)
+        self.assertEqual(self._tooltip_label(tooltip).cget("text"), "全文")
+
+    def test_refresh_reopens_tooltip_when_truncation_returns_while_hovered(self):
+        content = {"show": True}
+        tooltip = bind_hover_tooltip(self.label, lambda: "全文", lambda: content["show"])
+        self._enter()
+        self.assertIsNotNone(tooltip._window)
+
+        content["show"] = False
+        tooltip.refresh()
+        self.assertIsNone(tooltip._window)
+        content["show"] = True
+        tooltip.refresh()
+
+        self.assertIsNotNone(tooltip._window)
+        self.assertEqual(self._tooltip_label(tooltip).cget("text"), "全文")
+
+    def test_tooltip_toplevel_is_topmost(self):
+        tooltip = bind_hover_tooltip(self.label, lambda: "全文", lambda: True)
+        self._show(tooltip)
+
+        self.assertIsNotNone(tooltip._window)
+        self.assertIn(str(tooltip._window.attributes("-topmost")), ("1", "True"))
 
     def test_refresh_does_nothing_when_tooltip_is_not_visible(self):
         calls = []

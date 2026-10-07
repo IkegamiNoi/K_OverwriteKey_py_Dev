@@ -48,7 +48,8 @@
 
 ## タスク
 
-- task_01: presentation — ツールチップの共有化（子ファイル保存ダイアログは挙動不変）・ステータス欄 / ステータスバーへの適用（見切れ判定・元の全文・表示中の追従）とテスト・`codebase_map.md` の該当行。**実装後にユーザーの実機目視** — **実装・検証済・実機目視待ち**（2026-10-07・codex-delegating-implementer〔Luna サブエージェント使用〕・reviewer 完了可〔N1 = 全文の書き込みの変数名を文字列で組み立てない → メインで修正〕。検証で子ファイル保存ダイアログのテスト 1 件の追随漏れ〔文言が callable になった〕をメインで修正。tests 1325 / tests_ui 890 / smoke pass）
+- task_01: presentation — ツールチップの共有化（子ファイル保存ダイアログは挙動不変）・ステータス欄 / ステータスバーへの適用（見切れ判定・元の全文・表示中の追従）とテスト・`codebase_map.md` の該当行。**実装後にユーザーの実機目視** — **完了**（2026-10-07・ユーザー実機目視 OK・codex-delegating-implementer〔Luna サブエージェント使用〕・reviewer 完了可〔N1 = 全文の書き込みの変数名を文字列で組み立てない → メインで修正〕。検証で子ファイル保存ダイアログのテスト 1 件の追随漏れ〔文言が callable になった〕をメインで修正。tests 1325 / tests_ui 890 / smoke pass）
+- task_02a: presentation — 完了判定前レビューの指摘対応（乗せている間に見切れたら出す・誤って閉じても復帰〔Codex 敵対的 medium・deep-reviewer L1〕/ ツールチップを最前面に〔deep-reviewer M1〕/ 終了時の trace_remove の例外の吸収〔L5〕）とテスト。**実装後にユーザーの実機目視（常に最前面オンを含む）** — **実装・検証済・実機目視待ち**（2026-10-07・codex-implementer・reviewer 修正要〔範囲外のマウス追従＝窓を動かす部分を除外〕→ メインで修正。検証でテストの後始末〔乗せた状態の解除漏れ〕をメインで修正。変異検査: 修正前の refresh で「狭めると出る」は落ちる / Codex の順序の統合テストは修正前でも通る＝実機相当では再現せず・復帰の仕組みは単体テストで確認。tests 1325 / tests_ui 895 / smoke pass）
 - task_02: 正本反映（`features.md` へ確定 1〜4・`codebase_map.md`）・`decisions_archive/49_status_truncation_tooltip.md`・decisions.md のアーカイブ索引・current.md の完了記載・idea_40 を INDEX_done へ・`/refactor_check`
 
 ## レビュー方針

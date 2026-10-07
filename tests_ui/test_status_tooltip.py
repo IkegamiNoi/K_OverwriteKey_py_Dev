@@ -67,6 +67,9 @@ class StatusTooltipTest(unittest.TestCase):
         self.app.update()
 
     def tearDown(self):
+        # App を共有するため、乗せている状態も解除してから後片付けする
+        for label in self._labels().values():
+            label.event_generate("<Leave>")
         for popup in self._popups():
             popup.destroy()
         self.app._clear_flash_message()
@@ -213,6 +216,40 @@ class StatusTooltipTest(unittest.TestCase):
         self.assertLessEqual(label.winfo_reqwidth(), label.winfo_width())
         self.assertFalse(popup.winfo_exists())
         self.assertEqual(self._popups(), [])
+
+    def test_flash_tooltip_recovers_after_file_status_relayout_while_hovered(self):
+        self._enter_compact()
+        self._resize(380)
+        self.app.keymap_set_path = "before.json"
+        self.app._update_file_status()
+        message = "中央の長い一時メッセージ " * 30
+        self.app._set_flash_message(message, auto_clear=False)
+        self.app.update()
+        label = self._labels()["flash_message"]
+        self.assertGreater(label.winfo_reqwidth(), label.winfo_width())
+        self._hover(label)
+        self.assertEqual(self._popup_text(), message)
+
+        self.app.keymap_set_path = "changed_file_status_name_that_reflows_the_status_bar.json"
+        self.app._update_file_status()
+        self.app.update()
+
+        self.assertEqual(self._popup_text(), message)
+
+    def test_narrowing_window_shows_tooltip_while_pointer_stays_over_label(self):
+        self._enter_compact()
+        self._resize(2400)
+        message = "Message fits while wide, truncates after narrowing."
+        self.app._set_flash_message(message, auto_clear=False)
+        self.app.update()
+        label = self._labels()["flash_message"]
+        self.assertLessEqual(label.winfo_reqwidth(), label.winfo_width())
+        self._hover(label)
+        self.assertEqual(self._popups(), [])
+        self._resize(360)
+
+        self.assertGreater(label.winfo_reqwidth(), label.winfo_width())
+        self.assertEqual(self._popup_text(), message)
 
     def test_full_text_write_refreshes_and_display_write_closes_tooltip(self):
         self._enter_compact()

@@ -27,9 +27,15 @@ def _bind_status_tooltip(label, display_var, full_var) -> None:
     def cleanup(_event) -> None:
         nonlocal pending
         for var, trace in traces:
-            var.trace_remove("write", trace)
+            try:
+                var.trace_remove("write", trace)
+            except Exception:
+                pass
         if pending is not None:
-            label.after_cancel(pending)
+            try:
+                label.after_cancel(pending)
+            except Exception:
+                pass
             pending = None
 
     label.bind("<Configure>", request_refresh, add="+")
