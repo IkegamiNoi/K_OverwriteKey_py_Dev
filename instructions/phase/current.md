@@ -7,7 +7,9 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 49 は 2026-10-07 完了）。次フェーズはユーザー判断・着手時は `/phase_start`。
+- **アクティブなフェーズ = [phase 50](50_select_before_run/phase.md)**（2026-10-08 起票・選んでから実行。暫定仕様先行モード）。
+  一覧で選ばれていないトリガーの 1 回目の押下は選ぶだけ（一時メッセージ）・選ばれた状態の 2 回目で実行。フック欄の全体のチェック（構成セット）とシーケンス欄のトリガーごとのチェック（シーケンス）のどちらかが ON なら対象。keymap_set / sequence に `select_before_run`（後方互換）。単発の待機明けの選び直しの既存挙動を変える。
+  主入力 = [暫定 34](../history/34_select_before_run.md)（v0.4・ユーザー確定済）。起票元 = ユーザー要望（2026-10-07）。番号対応: phase 50 / 暫定 34 / decisions 50。
 - 直前の完了フェーズ = [phase 49](49_status_truncation_tooltip/phase.md)（2026-10-07・ステータスの見切れのツールチップ。直接改訂モード・判断は [decisions_archive/49](../../.claude_data/state/decisions_archive/49_status_truncation_tooltip.md)）。
 - その前の完了フェーズ = [phase 48](48_compact_sequence_view/phase.md)（2026-10-07・省略表示の出力シーケンス欄。暫定仕様先行モード〔暫定 33 v0.6 凍結〕・判断は [decisions_archive/48](../../.claude_data/state/decisions_archive/48_compact_sequence_view.md)）/
   [phase 47](47_action_dialog_layout_cleanup/phase.md)（2026-10-06・アクションの追加・編集ダイアログの整理。直接改訂モード・判断は [decisions_archive/47](../../.claude_data/state/decisions_archive/47_action_dialog_layout_cleanup.md)）/
@@ -73,7 +75,8 @@
   **phase 47 は 2026-10-06 完了**（`47_action_dialog_layout_cleanup` / 暫定なし〔直接改訂モード〕/ decisions 47〔アーカイブ済〕）。
   **phase 48 は 2026-10-07 完了**（`48_compact_sequence_view` / 暫定 33〔v0.6・凍結〕/ decisions 48〔アーカイブ済〕）。
   **phase 49 は 2026-10-07 完了**（`49_status_truncation_tooltip` / 暫定なし〔直接改訂モード〕/ decisions 49〔アーカイブ済〕）。
-  次フェーズは **`50_<topic>`**・decisions も **50** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 50 は 2026-10-08 起票**（`50_select_before_run` / 暫定 34〔v0.4〕/ decisions 50）。
+  次フェーズは **`51_<topic>`**・decisions も **51** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -103,8 +106,9 @@
   30=一覧のドラッグ移動・範囲選択・複製〔v0.11・凍結〕 /
   31=呼び出しのステップ実行と呼び出し先の表示〔**v0.6・凍結**〕 /
   32=戻す・先頭への対象トリガー指定〔**v0.3・凍結**〕 /
-  33=省略表示の出力シーケンス欄〔**v0.6・凍結**〕）。
-  次採番は **`34_<topic>`**。
+  33=省略表示の出力シーケンス欄〔**v0.6・凍結**〕 /
+  34=選んでから実行〔v0.4・ユーザー確定済・phase 50 の主入力〕）。
+  次採番は **`35_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**20 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
