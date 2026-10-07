@@ -49,6 +49,8 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         poll_file_line: Callable[[object], bool | None] | None = None,
         notify_call_view: Callable[[], None] | None = None,
         list_trigger_keys: Callable[[], Sequence[str]] | None = None,
+        get_selected_trigger_key: Callable[[], str | None] | None = None,
+        is_select_before_run_enabled: Callable[[], bool] | None = None,
     ):
         self.state = state
         self._find_trigger = find_trigger
@@ -56,6 +58,9 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         self._single_finishing_steps: dict[tuple[str, str], tuple[StepSnapshot, bool]] = {}
         self._perform_action = perform_action
         self._select_trigger = select_trigger
+        self._get_selected_trigger_key = get_selected_trigger_key
+        self._is_select_before_run_enabled = is_select_before_run_enabled
+        self._select_only_key: str | None = None
         self._refresh_actions = refresh_actions
         self._update_status = update_status
         self._after = after
@@ -298,8 +303,11 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                 action, message = format_system_error_notification(action, message)
             self._notify_error(action, message)
 
-    def handle_key(self, key: str) -> None:
+    def handle_key(self, key: str, repeat: bool = False) -> None:
         key = normalize_key_name(key)
+        if repeat and key == self._select_only_key:
+            return
+        self._select_only_key = None
         if (self._pending_control_discard is not None
                 and key != self._pending_control_discard[0]):
             self._pending_control_discard = None

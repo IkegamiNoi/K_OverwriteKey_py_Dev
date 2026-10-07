@@ -214,7 +214,7 @@ class InputRouterTest(unittest.TestCase):
                     on_stop_hook=lambda: None,
                     on_toggle_mode=lambda: None,
                     on_select_keymap=select_keymap,
-                    on_trigger=lambda _key: None,
+                    on_trigger=lambda _key, _repeat: None,
                     can_switch_keymap=lambda _keymap_id: can_switch,
                     on_keymap_switch_blocked=lambda: self.assertTrue(switching.is_set()),
                     keymap_switch_in_progress=switching,
@@ -225,7 +225,11 @@ class InputRouterTest(unittest.TestCase):
                 else:
                     executor.execute_router_action(route.actions[0])
                 self.assertFalse(switching.is_set())
-                self.assertEqual(router.handle(down("f1")).actions, (TriggerAction(key="f1"),))
+                # f1 は前の押下を離していないため repeat の印が付く（ここでは素通しの種類とキーだけを見る）
+                self.assertEqual(
+                    [(type(action), action.key) for action in router.handle(down("f1")).actions],
+                    [(TriggerAction, "f1")],
+                )
                 self.assertEqual(
                     router.handle(down("a")).actions,
                     (SendKeyAction(source_key="a", target_key="z"),),
@@ -245,6 +249,91 @@ class InputRouterTest(unittest.TestCase):
         ).handle(down("a"))
         self.assertEqual(route.actions, ())
         self.assertEqual(route.shadowed, ())
+
+    def test_trigger_repeat_tracks_down_up_and_suppress(self):
+        for suppress in (True, False):
+            with self.subTest(suppress=suppress):
+                trigger = {"actions": [{"type": "text", "value": "x"}],
+                           "suppress": suppress}
+                router = make_router(trigger=trigger)
+                first = router.handle(down("F1"))
+                repeated = router.handle(down("f1"))
+                released = router.handle(
+                    SimpleNamespace(event_type="up", name="f1", scan_code=None))
+                next_press = router.handle(down("f1"))
+                self.assertEqual(first.actions, (TriggerAction("f1", False),))
+                self.assertEqual(repeated.actions, (TriggerAction("f1", True),))
+                self.assertEqual(released, InputRoute())
+                self.assertEqual(next_press.actions, first.actions)
+                self.assertEqual(
+                    [route.accept for route in (first, repeated, next_press)],
+                    [not suppress] * 3,
+                )
+
+    def test_repeat_does_not_change_other_router_actions(self):
+        cases = (
+            ({"stop_key": "f1"}, StopHookAction()),
+            ({"toggle_key": "f1"}, ToggleModeAction()),
+            ({"switch_target": "km2"}, SelectKeymapAction("km2")),
+            ({"keymap_target": "z"}, SendKeyAction("f1", "z")),
+        )
+        for options, action in cases:
+            with self.subTest(options=options):
+                router = make_router(**options)
+                first = router.handle(down("f1"))
+                self.assertEqual(first.actions, (action,))
+                self.assertFalse(first.accept)
+                self.assertEqual(router.handle(down("f1")), first)
+
+    def test_repeat_uses_resolved_scan_code_before_updating_state(self):
+        state = KeyStateManager(resolve_scan_code=lambda _code: "f1")
+        router = make_router(trigger={"actions": [{"type": "text", "value": "x"}]})
+        router._key_state_manager = state
+        router._resolve_scan_code = lambda _code: "F1"
+        event = SimpleNamespace(event_type="down", name="unknown", scan_code=59)
+        self.assertEqual(router.handle(event).actions, (TriggerAction("f1"),))
+        self.assertEqual(router.handle(event).actions, (TriggerAction("f1", True),))
+
+    def test_executor_forwards_repeat(self):
+        received = []
+
+        def on_trigger(key, repeat):
+            received.append((key, repeat))
+
+        executor = ActionExecutor(
+            input_gateway=None,
+            validate_hotkey=lambda _key: ("", ""),
+            on_action_error=Mock(),
+            on_runtime_error=Mock(),
+            on_stop_hook=Mock(),
+            on_toggle_mode=Mock(),
+            on_select_keymap=Mock(),
+            on_trigger=on_trigger,
+        )
+        executor.execute_router_action(TriggerAction("f1"))
+        executor.execute_router_action(TriggerAction("f1", True))
+        self.assertEqual(received, [("f1", False), ("f1", True)])
+
+    def test_executor_does_not_retry_callback_type_error(self):
+        received = []
+
+        def on_trigger(key, repeat=False):
+            received.append((key, repeat))
+            raise TypeError("callback failed")
+
+        executor = ActionExecutor(
+            input_gateway=None,
+            validate_hotkey=lambda _key: ("", ""),
+            on_action_error=Mock(),
+            on_runtime_error=Mock(),
+            on_stop_hook=Mock(),
+            on_toggle_mode=Mock(),
+            on_select_keymap=Mock(),
+            on_trigger=on_trigger,
+        )
+        with self.assertRaisesRegex(TypeError, "callback failed"):
+            executor.execute_router_action(TriggerAction("f1", True))
+        self.assertEqual(received, [("f1", True)])
 
     def test_no_match_passes_through(self):
         route = make_router().handle(down("a"))

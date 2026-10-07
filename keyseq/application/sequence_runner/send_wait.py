@@ -63,7 +63,9 @@ class SendWaitMixin:
             self._commit_step_and_publish(
                 pending.snapshot, pending.resume.counter_deltas + settled.counter_deltas,
             )
-        self._select_trigger(key)
+        if (self._get_selected_trigger_key is None
+                or self._get_selected_trigger_key() == key):
+            self._select_trigger(key)
 
     def _finish_single_normal_action(
         self, key: str, actions: list[dict[str, Any]], index: int,

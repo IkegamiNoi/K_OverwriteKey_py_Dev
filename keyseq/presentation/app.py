@@ -132,7 +132,7 @@ class App(tk.Tk):
             on_stop_hook=lambda: self.hook.stop_hook(),
             on_toggle_mode=lambda: self.hook.toggle_custom_input_enabled(),
             on_select_keymap=lambda keymap_id: self.keymap_panel.activate_keymap_by_id(keymap_id, show_flash=True),
-            on_trigger=lambda key: self.sequence_runner.handle_key(key),
+            on_trigger=lambda key, repeat: self.sequence_runner.handle_key(key, repeat),
             resolve_file_line_path=lambda p: resolve_file_line_path(p, self.config_root),
             get_counter=lambda name: self.state.counters.get(name, 0),
             file_line_loader=self.file_line_loader,

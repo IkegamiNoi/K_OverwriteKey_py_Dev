@@ -26,6 +26,7 @@ class SelectKeymapAction:
 @dataclass(frozen=True)
 class TriggerAction:
     key: str
+    repeat: bool = False
 
 
 @dataclass(frozen=True)
@@ -78,13 +79,14 @@ class InputRouter:
         if not switching and self._get_hook_pause_count() > 0:
             return InputRoute()
 
+        event_type = normalize_key_name(str(getattr(event, "event_type", "")))
+        key = self._extract_key_name(event) if event_type == "down" else ""
+        repeat = event_type == "down" and self._key_state_manager.is_pressed(key)
         self._key_state_manager.handle_event(event)
 
-        event_type = normalize_key_name(str(getattr(event, "event_type", "")))
         if event_type != "down":
             return InputRoute()
 
-        key = self._extract_key_name(event)
         if not key:
             return InputRoute()
 
@@ -120,7 +122,7 @@ class InputRouter:
         trigger = self._find_trigger(key)
         if self._has_actions(trigger):
             suppress = bool(trigger.get("suppress", True))
-            return InputRoute(actions=(TriggerAction(key=key),), accept=not suppress, shadowed=shadowed)
+            return InputRoute(actions=(TriggerAction(key=key, repeat=repeat),), accept=not suppress, shadowed=shadowed)
 
         keymap_target = normalize_key_name(self._find_keymap_target(key))
         if keymap_target:

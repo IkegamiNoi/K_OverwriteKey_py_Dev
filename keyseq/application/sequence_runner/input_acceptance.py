@@ -185,6 +185,8 @@ class InputAcceptanceMixin:
         trigger = self._find_trigger(key)
         if not trigger or not trigger.get("actions", []):
             return
+        if self._select_only_if_needed(key, trigger):
+            return
         if bool(trigger.get("run_to_end", False)):
             actions = trigger.get("actions", [])
             if self._is_standalone_control(actions):
@@ -194,6 +196,23 @@ class InputAcceptanceMixin:
             self._start_run_to_end(key)
             return
         self._run_single_action(key, trigger.get("actions", []))
+
+    def _select_only_if_needed(self, key: str, trigger: dict[str, Any]) -> bool:
+        if (self._get_selected_trigger_key is None
+                or self._is_select_before_run_enabled is None):
+            return False
+        if not (self._is_select_before_run_enabled()
+                or bool(trigger.get("select_before_run", False))):
+            return False
+        if self._is_standalone_control(trigger.get("actions", [])):
+            return False
+        if self._get_selected_trigger_key() == key:
+            return False
+        self._select_trigger(key)
+        if self._notify_message is not None:
+            self._notify_message(f"{key} を選びました（もう一度押すと実行します）")
+        self._select_only_key = key
+        return True
 
     @staticmethod
     def _is_standalone_control(actions: Sequence[Any]) -> bool:

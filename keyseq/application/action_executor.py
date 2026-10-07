@@ -60,7 +60,7 @@ class ActionExecutor:
         on_stop_hook: Callable[[], None],
         on_toggle_mode: Callable[[], None],
         on_select_keymap: Callable[[str], None],
-        on_trigger: Callable[[str], None],
+        on_trigger: Callable[[str, bool], None],
         resolve_file_line_path: Callable[[str], str] | None = None,
         get_counter: Callable[[str], int] | None = None,
         file_line_loader: FileLineLoader | None = None,
@@ -198,7 +198,7 @@ class ActionExecutor:
                 if self._keymap_switch_in_progress is not None:
                     self._keymap_switch_in_progress.clear()
         elif isinstance(action, TriggerAction):
-            self._on_trigger(action.key)
+            self._on_trigger(action.key, action.repeat)
         elif isinstance(action, SendKeyAction):
             self._send_mapped_key(action.target_key)
         else:

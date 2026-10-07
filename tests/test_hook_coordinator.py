@@ -203,7 +203,7 @@ def _make_executor(*, on_stop_hook, on_shadowed_action):
         on_stop_hook=on_stop_hook,
         on_toggle_mode=lambda: None,
         on_select_keymap=lambda _keymap_id: None,
-        on_trigger=lambda _key: None,
+        on_trigger=lambda _key, _repeat: None,
         on_shadowed_action=on_shadowed_action,
     )
 
