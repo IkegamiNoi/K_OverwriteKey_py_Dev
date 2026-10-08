@@ -11,6 +11,7 @@ last_commit_location: `claude/status-field-tooltip-e6161e`（phase 50 task_04a �
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
+presence: away（戻る予定 2026-10-09T07:30）
 focus: **phase 50 task_01〜03・04a 完了・統合レビュー済（判断 2 点は案 A で暫定 34 v0.5 に反映）。ユーザーの実機目視待ち（task_04）→ OK なら task_05（正本反映）。**
 mode: blocked
 

@@ -93,18 +93,25 @@ class SelectBeforeRunUiTest(unittest.TestCase):
             self.assertTrue(self.app.dirty_tracker.config_dirty)
             self.assertTrue(self.app.dirty_tracker.is_dirty)
 
-    def test_compact_global_check_is_disabled_and_shares_value(self):
+    def test_compact_global_check_is_operable_and_syncs_full_view(self):
         compact = self.app.compact_view.hook_frame.select_before_run_check
         self.app.show_compact_view()
-        self.assertTrue(compact.instate(["disabled"]))
+        self.assertFalse(compact.instate(["disabled"]))
         self.assertEqual(str(compact.cget("variable")),
                          str(self.app.ui_vars.select_before_run_var))
-        for expected in (True, False):
-            self.app.ui_vars.select_before_run_var.set(expected)
-            self.app.toggle_select_before_run()
-            self.assertEqual(compact.instate(["selected"]), expected)
-            compact.invoke()
-            self.assertIs(self.app.data["select_before_run"], expected)
+        full = self.global_check
+        self.app.dirty_tracker.set_dirty(False)
+        compact.invoke()
+        self.assertIs(self.app.data["select_before_run"], True)
+        self.assertTrue(self.app.dirty_tracker.config_dirty)
+        self.assertTrue(self.app.dirty_tracker.is_dirty)
+        self.assertTrue(full.instate(["selected"]))
+        self.app.dirty_tracker.set_dirty(False)
+        compact.invoke()
+        self.assertIs(self.app.data["select_before_run"], False)
+        self.assertTrue(self.app.dirty_tracker.config_dirty)
+        self.assertTrue(self.app.dirty_tracker.is_dirty)
+        self.assertFalse(full.instate(["selected"]))
         def checks(widget):
             result = []
             for child in widget.winfo_children():
@@ -115,7 +122,7 @@ class SelectBeforeRunUiTest(unittest.TestCase):
 
         self.assertEqual(
             [check for check in checks(self.app.compact_view)
-             if check.cget("text") == "選んでから実行"], [compact],
+             if check.cget("text") == "確認して実行"], [compact],
         )
 
     def test_data_replacement_syncs_global_value_without_dirty(self):
@@ -174,18 +181,19 @@ class SelectBeforeRunUiTest(unittest.TestCase):
     def test_checkbox_positions(self):
         full = self.app.full_view.hook_frame
         compact = self.app.compact_view.hook_frame
-        # フル表示は個別指定と同じ行（右隣）・省略表示は次の行
-        self.assertIs(full.select_before_run_check.master, full.hook_keys_individual_check.master)
-        siblings = full.hook_keys_individual_check.master.pack_slaves()
-        self.assertEqual(siblings.index(full.select_before_run_check),
-                         siblings.index(full.hook_keys_individual_check) + 1)
+        # フル表示は個別指定の下の行、省略表示も個別指定の次の行
+        self.assertEqual(int(full.hook_keys_individual_check.grid_info()["row"]), 2)
+        self.assertEqual(int(full.select_before_run_check.grid_info()["row"]), 3)
+        self.assertEqual(full.select_before_run_check.grid_info()["sticky"], "w")
+        self.assertEqual(int(full.select_before_run_check.grid_info()["columnspan"]), 4)
         self.assertEqual(int(compact.select_before_run_check.grid_info()["row"]),
                          int(compact.hook_keys_individual_check.grid_info()["row"]) + 1)
         box = self.app.full_view.sequence_box
         children = box.run_to_end_chk.master.pack_slaves()
-        self.assertIs(children[children.index(box.run_to_end_chk) + 1], self.sequence_check)
-        self.assertLess(children.index(self.sequence_check),
-                        children.index(box.run_to_end_delay_entry.master))
+        self.assertLess(children.index(box.run_to_end_delay_entry.master),
+                        children.index(self.sequence_check))
+        self.assertEqual(children.index(box.run_to_end_delay_entry.master) + 1,
+                         children.index(self.sequence_check))
 
     def test_global_wiring_selects_then_executes_in_both_views(self):
         for compact in (False, True):

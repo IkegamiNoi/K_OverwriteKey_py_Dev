@@ -45,22 +45,23 @@ class FullHookFrame(ttk.LabelFrame):
         self.toggle_key_clear_btn = ttk.Button(self.full_hook_line2, text="クリア", command=app.toggle_key_capture.clear)
         self.toggle_key_clear_btn.grid(row=1, column=3, sticky="w", padx=(8, 0))
 
-        # 個別指定と選んでから実行は同じ行に並べる（行を増やすとフル表示の最小の高さが上がるため）
-        checks_line = ttk.Frame(self.full_hook_line2)
-        checks_line.grid(row=2, column=0, columnspan=4, sticky="w", pady=(4, 0))
         self.hook_keys_individual_check = ttk.Checkbutton(
-            checks_line,
+            self.full_hook_line2,
             text="このキーマップセットで個別指定する",
             variable=app.ui_vars.hook_keys_individual_var,
             command=app.toggle_hook_keys_individual,
         )
-        self.hook_keys_individual_check.pack(side="left")
+        self.hook_keys_individual_check.grid(
+            row=2, column=0, columnspan=4, sticky="w", pady=(4, 0),
+        )
         self.select_before_run_check = ttk.Checkbutton(
-            checks_line, text="選んでから実行",
+            self.full_hook_line2, text="確認して実行",
             variable=app.ui_vars.select_before_run_var,
             command=app.toggle_select_before_run,
         )
-        self.select_before_run_check.pack(side="left", padx=(12, 0))
+        self.select_before_run_check.grid(
+            row=3, column=0, columnspan=4, sticky="w", pady=(4, 0),
+        )
 
         app.hook.register_hook_buttons(self.hook_toggle_btn, self.trigger_toggle_btn, fixed_width=True)
         app.stop_key_capture.register_widgets(self.stop_key_entry, self.stop_key_capture_btn, self.stop_key_clear_btn)

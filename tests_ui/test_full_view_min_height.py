@@ -27,6 +27,7 @@ class FullViewMinHeightTest(unittest.TestCase):
         cls.addClassCleanup(cls._destroy_app)
         cls.app.update()
         cls.released_minsize = cls._probe_released_minsize()
+        cls.max_window_height = cls._probe_max_window_height()
 
     @classmethod
     def _probe_released_minsize(cls) -> tuple[int, int]:
@@ -38,6 +39,18 @@ class FullViewMinHeightTest(unittest.TestCase):
             return probe.wm_minsize()
         finally:
             probe.destroy()
+
+    @classmethod
+    def _probe_max_window_height(cls) -> int:
+        # Windows は窓の高さを画面（タイトルバー・タスクバー等を除く）に収めるため、実際に取れる上限を測る。
+        geometry = cls.app.geometry()
+        try:
+            cls.app.geometry(f"{cls.app.winfo_width()}x{cls.app.winfo_screenheight() * 2}")
+            cls.app.update()
+            return cls.app.winfo_height()
+        finally:
+            cls.app.geometry(geometry)
+            cls.app.update()
 
     @classmethod
     def _restore_base_sizes(cls, sizes: dict[str, int]) -> None:
@@ -112,6 +125,11 @@ class FullViewMinHeightTest(unittest.TestCase):
         self.app.geometry(f"{self.app.winfo_width()}x{height}")
         self.app.update()
 
+    def _minimum_height_fits_screen(self, height: int | None = None) -> bool:
+        minimum_height = self.layout.window_min_height if height is None else height
+        # フォント +3 では最小の高さが画面からはみ出すことを受容する（暫定 34 §2-11）。
+        return minimum_height <= self.max_window_height
+
     def _set_font(self, delta: int) -> None:
         self.app._apply_font_delta(delta)
         self.app.update()
@@ -141,7 +159,8 @@ class FullViewMinHeightTest(unittest.TestCase):
             with self.subTest(delta=delta):
                 self._set_font(delta)
                 self._set_height(1)
-                self.assertEqual(self.app.winfo_height(), self.layout.window_min_height)
+                if self._minimum_height_fits_screen():
+                    self.assertEqual(self.app.winfo_height(), self.layout.window_min_height)
                 self.assertEqual(self.app.wm_minsize()[1], self.layout.window_min_height)
                 for child in self.app.pack_slaves():
                     self.assertTrue(child.winfo_ismapped(), str(child))
@@ -184,14 +203,17 @@ class FullViewMinHeightTest(unittest.TestCase):
         self._set_font(3)
         enlarged = self.layout.window_min_height
         self.assertGreater(enlarged, normal)
-        self.assertEqual(self.app.winfo_height(), enlarged)
+        if self._minimum_height_fits_screen():
+            self.assertEqual(self.app.winfo_height(), enlarged)
         self._set_font(0)
-        self.assertEqual(self.app.winfo_height(), enlarged)
+        if self._minimum_height_fits_screen(enlarged):
+            self.assertEqual(self.app.winfo_height(), enlarged)
         self._set_height(enlarged + 200)
         tall = self.app.winfo_height()
         self._set_font(3)
-        self.assertGreaterEqual(tall, self.layout.window_min_height)
-        self.assertEqual(self.app.winfo_height(), tall)
+        if self._minimum_height_fits_screen():
+            self.assertGreaterEqual(tall, self.layout.window_min_height)
+            self.assertEqual(self.app.winfo_height(), tall)
 
     def test_unmaximize_expanded_height_survives_minimum_decrease(self) -> None:
         self._set_font(0)
@@ -207,11 +229,13 @@ class FullViewMinHeightTest(unittest.TestCase):
         self.app.wm_state("normal")
         self.app.update()
         self.assertGreater(enlarged, initial_height)
-        self.assertEqual(self.app.winfo_height(), enlarged)
+        if self._minimum_height_fits_screen():
+            self.assertEqual(self.app.winfo_height(), enlarged)
         self.assertEqual(self.app.winfo_width(), width)
         self._set_font(0)
         self.assertLess(self.layout.window_min_height, enlarged)
-        self.assertEqual(self.app.winfo_height(), enlarged)
+        if self._minimum_height_fits_screen(enlarged):
+            self.assertEqual(self.app.winfo_height(), enlarged)
         self.assertEqual(self.app.winfo_width(), width)
 
     def test_drag_preserves_minimum_height(self) -> None:
@@ -281,7 +305,8 @@ class FullViewMinHeightTest(unittest.TestCase):
         self._set_font(3)
         self.app.show_full_view()
         self.app.update()
-        self.assertEqual(self.app.winfo_height(), self.layout.window_min_height)
+        if self._minimum_height_fits_screen():
+            self.assertEqual(self.app.winfo_height(), self.layout.window_min_height)
         self.assertGreater(self.layout.window_min_height, normal)
 
     def test_height_is_not_saved(self) -> None:
@@ -292,7 +317,7 @@ class FullViewMinHeightTest(unittest.TestCase):
         self._assert_saved_keys()
         height_only_call_start_index = len(self.writer.call_args_list)
         width, height = self.app.winfo_width(), self.app.winfo_height()
-        self._set_height(height + 50)
+        self._set_height(height - 50)
         self._drain_timers()
         self.assertEqual(self.app.winfo_width(), width)
         self.assertNotEqual(self.app.winfo_height(), height)
