@@ -32,7 +32,8 @@ A2 = {"type": "text", "value": "two"}
 
 
 def make_runner(triggers, *, selected_key=None, enabled=False, inject=True,
-                include_selected=True, include_enabled=True):
+                include_selected=True, include_enabled=True,
+                include_control_selection=False):
     state = AppState()
     scheduler = FakeScheduler()
     performed = []
@@ -53,6 +54,8 @@ def make_runner(triggers, *, selected_key=None, enabled=False, inject=True,
             kwargs["get_selected_trigger_key"] = lambda: selected["key"]
         if include_enabled:
             kwargs["is_select_before_run_enabled"] = lambda: enabled
+    if include_control_selection:
+        kwargs["get_selected_trigger_key"] = lambda: selected["key"]
 
     runner = SequenceRunner(
         state=state,
@@ -143,8 +146,88 @@ class SelectBeforeRunTest(unittest.TestCase):
                 )
                 runner.handle_key("f1")
                 self.assertEqual(performed, [])
-                self.assertEqual(selections, ["f1"])
+                self.assertEqual(selections, [])
                 self.assertEqual(messages, ["戻す対象のトリガーがありません"])
+
+    def test_back_and_rewind_use_selected_trigger_when_target_is_omitted(self):
+        for op in ("back", "rewind"):
+            with self.subTest(op=op):
+                target = {"key": "x", "actions": [A1, A2]}
+                control = {"key": "b", "actions": [{"type": "system", "op": op}]}
+                runner, state, _scheduler, performed, selected, _selections, _messages = (
+                    make_runner([target, control], selected_key="x",
+                                include_control_selection=True)
+                )
+                runner.handle_key("x")
+                selected["key"] = "x"
+                runner.handle_key("b")
+
+                self.assertEqual(state.indices_for("").get("x", 0), 0)
+                self.assertEqual(state.history_for("").get("x", []), [])
+                self.assertEqual(state.last_trigger, ("", "x"))
+                self.assertEqual(performed, [A1])
+
+    def test_selected_self_or_standalone_control_falls_back_to_last_trigger(self):
+        target = {"key": "x", "actions": [A1, A2]}
+        control = {"key": "b", "actions": [{"type": "system", "op": "back"}]}
+        standalone = {"key": "c", "actions": [{"type": "system", "op": "rewind"}]}
+        for selected_key in ("b", "c"):
+            with self.subTest(selected_key=selected_key):
+                runner, state, _scheduler, _performed, selected, _selections, _messages = (
+                    make_runner([target, control, standalone], selected_key=selected_key,
+                                include_control_selection=True)
+                )
+                runner.handle_key("x")
+                selected["key"] = selected_key
+                runner.handle_key("b")
+                self.assertEqual(state.indices_for("").get("x", 0), 0)
+                self.assertEqual(state.history_for("").get("x", []), [])
+
+    def test_control_target_is_resolved_again_on_each_confirmation_press(self):
+        first = {"key": "x", "actions": [A1, A2]}
+        second = {"key": "y", "actions": [A2, A1]}
+        control = {"key": "b", "actions": [{"type": "system", "op": "back"}]}
+        runner, _state, _scheduler, _performed, selected, _selections, _messages = (
+            make_runner([first, second, control], selected_key="x",
+                        include_control_selection=True)
+        )
+        resolved = []
+        runner._prepare_control_targets = lambda identities: resolved.append(identities) or False
+
+        self.assertIsNone(runner._control("b", "back"))
+        selected["key"] = "y"
+        self.assertIsNone(runner._control("b", "back"))
+
+        self.assertEqual(resolved, [(('', 'x'),), (('', 'y'),)])
+
+    def test_paused_selected_target_stays_selected_through_two_press_back(self):
+        paused = {"key": "x", "run_to_end": True, "run_to_end_delay_ms": 0,
+                  "actions": [A1, {"type": "system", "op": "wait", "ms": 25}, A2]}
+        other = {"key": "y", "actions": [A2, A1]}
+        control = {"key": "b", "actions": [{"type": "system", "op": "back"}]}
+        runner, state, _scheduler, _performed, selected, selections, messages = make_runner(
+            [paused, other, control], selected_key="y", include_control_selection=True,
+        )
+        runner.handle_key("y")
+        selected["key"] = "x"
+        runner.handle_key("x")
+        runner.handle_key("x")
+        self.assertTrue(state.run_to_end_paused)
+        # 選んでいる X と直前のトリガー Y が異なる状態（暫定 34 §10 の 9c）
+        state.last_trigger = ("", "y")
+        selections.clear()
+
+        runner.handle_key("b")
+        self.assertEqual(selected["key"], "x")
+        self.assertEqual(selections, [])
+        self.assertIn("一時停止中の x を破棄します。もう一度押すと実行します", messages)
+        runner.handle_key("b")
+
+        self.assertFalse(state.run_to_end_paused)
+        self.assertEqual(state.indices_for("").get("x", 0), 0)
+        self.assertEqual(state.indices_for("").get("y", 0), 1)
+        self.assertEqual(selected["key"], "x")
+        self.assertEqual(selections, ["x"])
 
     def test_pause_resume_and_own_pending_wait_keep_existing_handling(self):
         continuous = {"key": "f1", "run_to_end": True, "run_to_end_delay_ms": 0,

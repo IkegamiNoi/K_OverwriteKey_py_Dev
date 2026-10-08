@@ -288,10 +288,17 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
 
     def _control(self, key: str, op: str, target_key: str | None = None) -> str | None:
         self._control_source = key
+        selected_key = None
+        if target_key is None and self._get_selected_trigger_key is not None:
+            candidate = self._get_selected_trigger_key()
+            selected = self._find_trigger(candidate) if candidate else None
+            if (candidate != key and selected is not None
+                    and not self._is_standalone_control(selected.get("actions", []))):
+                selected_key = candidate
         target, message = apply_control(self.state, (self._get_trigger_set_id(), key),
                                         op, self._find_trigger,
                                         prepare_targets=self._prepare_control_targets,
-                                        target_key=target_key)
+                                        target_key=target_key, selected_key=selected_key)
         self._publish_call_view()
         if message and self._notify_message is not None:
             self._notify_message(message)
@@ -381,6 +388,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             with self.state.lock:
                 self.state.reentry_guard.discard(key)
             self._publish_call_view()
-            self._select_trigger(key)
+            if not self._is_standalone_control(actions):
+                self._select_trigger(key)
             if target is not None:
                 self._select_trigger(target)

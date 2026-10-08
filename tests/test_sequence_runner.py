@@ -359,7 +359,7 @@ class BackRewindRunnerTest(unittest.TestCase):
         self.assertEqual(state.history_for("")["t"], [])
         self.assertEqual(len(state.history_for("")["x"]), 1)
         self.assertEqual(state.last_trigger, ("", "x"))
-        self.assertEqual(selected, ["b", "t"])
+        self.assertEqual(selected, ["t"])
         self.assertEqual(performed, [A1, A2])
 
     def test_back_restores_each_step_position_frames_and_counter(self):
@@ -400,7 +400,7 @@ class BackRewindRunnerTest(unittest.TestCase):
         self.assertEqual(state.deferred_counters["f1"], [("counter_inc", "n")])
         self.assertEqual(len(state.history_for("")["f1"]), 1)
         self.assertEqual(state.last_trigger, ("", "f1"))
-        self.assertEqual(selected, ["f2", "f1"])
+        self.assertEqual(selected, ["f1"])
 
         selected.clear()
         runner.handle_key("f2")
@@ -410,7 +410,7 @@ class BackRewindRunnerTest(unittest.TestCase):
         self.assertEqual(state.deferred_counters["f1"], [])
         self.assertEqual(state.history_for("")["f1"], [])
         self.assertEqual(state.last_trigger, ("", "f1"))
-        self.assertEqual(selected, ["f2", "f1"])
+        self.assertEqual(selected, ["f1"])
 
         # 履歴が空なら位置 0 のままで、何も選択・通知しない。
         selected.clear()
@@ -418,7 +418,7 @@ class BackRewindRunnerTest(unittest.TestCase):
         self.assertEqual(state.indices["f1"], 0)
         self.assertEqual(state.counters["n"], 0)
         self.assertEqual(state.history_for("")["f1"], [])
-        self.assertEqual(selected, ["f2"])
+        self.assertEqual(selected, [])
         self.assertEqual(messages, [])
 
     def test_rewind_clears_position_frames_and_history_without_changing_counters(self):
@@ -448,7 +448,7 @@ class BackRewindRunnerTest(unittest.TestCase):
         self.assertEqual(state.history_for("")["f1"], [])
         self.assertEqual(state.counters["n"], 23)
         self.assertEqual(state.last_trigger, ("", "f1"))
-        self.assertEqual(selected, ["f2", "f1"])
+        self.assertEqual(selected, ["f1"])
 
     def test_back_only_trigger_does_not_replace_last_trigger_and_error_step_does(self):
         failed = {
@@ -494,7 +494,7 @@ class BackRewindRunnerTest(unittest.TestCase):
                 runner.handle_key("f2")
 
                 self.assertEqual(messages, ["戻す対象のトリガーがありません"])
-                self.assertEqual(selected, ["f2"])
+                self.assertEqual(selected, [])
                 self.assertEqual(performed, [])
                 self.assertEqual(state.indices_for(""), {"f2": 0})
                 self.assertEqual(state.history_for(""), {})
@@ -520,7 +520,7 @@ class BackRewindRunnerTest(unittest.TestCase):
         runner.handle_key("f2")
 
         self.assertEqual(messages, ["対象のトリガーが待機中のため操作できません"])
-        self.assertEqual(selected, ["f2"])
+        self.assertEqual(selected, [])
         self.assertEqual(performed, [A1, A2])
         self.assertEqual(len(scheduler.queue), 1)
         self.assertEqual(state.indices["f1"], 2)
@@ -1180,7 +1180,7 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         self.assertEqual(state.history_for("").get("t", []), [])
         self.assertEqual(state.last_trigger, before[1])
         self.assertEqual(control_results, [None, None])
-        self.assertEqual(selected, ["b", "b"])
+        self.assertEqual(selected, [])
 
     def test_single_wait_expiring_during_continuous_run_skips_next_action(self):
         triggers = [
