@@ -23,8 +23,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜33）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 50（選んでから実行）task_01〜03・04a 完了・統合レビュー済。ユーザーの実機目視待ち（task_04）→ OK なら task_05（正本反映）。**
-ブランチ `claude/status-field-tooltip-e6161e`（phase 48 task_05 の目視以降・phase 49 も同じ）。それ以前は `claude/jikki-mokushi-ok-5df544`（**main への取り込み状況は git で確認**・マージはユーザー）。
+**phase 50（確認して実行・旧称 選んでから実行）task_01〜04c 完了。実機目視の指摘を暫定 34 v0.6 で確定・実装済み。ユーザーの再実機目視待ち → OK なら task_05（正本反映）。**
+ブランチ `claude/device-review-feedback-c4d3cd`（task_04b 以降）。それ以前は `claude/status-field-tooltip-e6161e`（**main への取り込み状況は git で確認**・マージはユーザー）。
 ユーザーはフェーズ内のタスクの連続実行を許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -54,15 +54,15 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **ユーザーの実機目視の結果を受ける**（task_04・確認項目 ①〜⑨ は session.md の next_action）。NG なら枝番で修正
-- OK 後に task_05: 暫定 34 §12 の正本反映・低の指摘 L4 / L7 / L8 の文言・暫定 34 の行番号表記と条件 8 / §8 の言い回しの統一・凍結・decisions_archive/50・decisions.md 索引・current.md 完了記載・/refactor_check・完了判定前 deep-reviewer + codex-adversarial-reviewer
+- **【起きたら最初に】ユーザーの再実機目視**（task_04b・04c・確認項目 ①〜⑦ は session.md の next_action）。NG なら枝番で修正
+- OK 後に task_05: 暫定 34 §12 の正本反映（§4.2.6 の対象の変更を含む）・L4 / L7 / L8 の文言・行番号表記と条件 8 / §8 の言い回しの統一・凍結・decisions_archive/50（v0.6 の判断・idea_39 の一部取り込み）・decisions.md 索引・idea_39 の扱い・current.md 完了記載・/refactor_check・完了判定前 deep-reviewer + codex-adversarial-reviewer
 - **main へのマージはユーザーが行う**。
 
-## 現フェーズ（phase 50 = 選んでから実行）の要点
+## 現フェーズ（phase 50 = 確認して実行）の要点
 
-主入力 = 暫定 34（`instructions/history/34_select_before_run.md`）。phase.md に各タスクの完了記載と途中の判断。
+主入力 = 暫定 34 v0.6（`instructions/history/34_select_before_run.md`）。phase.md に各タスクの完了記載と途中の判断。
 - 判定 = `application/sequence_runner/input_acceptance.py` の `_select_only_if_needed`（アクションが空の判定の直後・連続実行の開始の前）/ 長押し = `TriggerAction.repeat`（router が KeyStateManager の押下状態で付ける）→ `on_trigger(key, repeat)` → `handle_key(key, repeat)` / 待機明け = `send_wait.py:66-68`（待機明けの時点の選択が K のときだけ選び直す・v0.5）/ 長押しの無視は K の up か K 以外のトリガーの押下で終わる（v0.5）
-- 保存 = keymap_set と sequence の `select_before_run`（task_01）/ 注入 = `presentation/app.py` の `SequenceRunner(...)` / UI = `controllers/trigger_panel/select_before_run.py`・フック欄（フルは個別指定の右隣・省略は次の行で表示のみ）・シーケンス欄（連続実行の直下）
+- 保存 = keymap_set と sequence の `select_before_run`（task_01）/ 注入 = `presentation/app.py` の `SequenceRunner(...)` / UI = `controllers/trigger_panel/select_before_run.py`・フック欄（フルも省略も個別指定の下の行・省略でも操作可）・シーケンス欄（間隔の下）/ 戻す・先頭への対象（v0.6 §3a）= `sequence_runner.py` の `_control` が選択の注入口から取り `apply_control(selected_key=)`・戻す・先頭へだけのトリガー自身は選ばない（単発の実行の finally）
 - 直前フェーズ 49（ツールチップの共有部品 `hover_tooltip.py`）の要点は `decisions_archive/49`。
 
 ## 運用インフラ
@@ -73,8 +73,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **blockers: ユーザーの実機目視（phase 50 task_04）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
-- **【罠・phase 50 で実証】フル表示の高さに余裕は無い**（フォント +3 で画面上限 927px 近く・`tests_ui/test_full_view_min_height.py`）。フック欄・ボタン列に行を足すと落ちる。**Codex は互換の工夫（`inspect` での引数判定・`getattr` の逃げ道）を足すことがある**＝レビューで外す。
+- **blockers: ユーザーの再実機目視（phase 50 task_04b・04c）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **【罠・phase 50 で実証】フル表示の高さ**: フォント +3 で最小 931 px が窓の取れる上限 927 px（画面 966 px）を超える（はみ出しは受容・v0.6）。`test_full_view_min_height.py` は実測の上限に収まるときだけ一致を確かめる。**Codex は互換の工夫（`inspect` での引数判定・`getattr` の逃げ道）を足すことがある**＝レビューで外す。
 - **【罠・phase 49 で実証】共有 App の tests_ui で `<Enter>` を送ったら後始末で `<Leave>` も送る**（乗せた状態が次のテストに漏れてツールチップが重複する）。**実機目視の手順はカーソル・窓の位置まで考えて書く**。
 - **【罠・phase 48 で実証】遅延保存（after 500ms）を持つ部品は、書き込み回数を数えるテストに時間依存で混ざる**。テストでは先に `app.compact_window.cancel_save()`。
 - **【罠・phase 48 で実証】Tk の PanedWindow は欄の高さを明示しないと子の要求の高さへ戻し、明示直後の `sash_place` は古い大きさで押さえ込まれる**
