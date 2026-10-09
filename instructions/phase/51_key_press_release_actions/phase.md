@@ -10,7 +10,7 @@
 **domain / application / infrastructure / presentation。アクションの JSON に種類 `key_hold`（`edge` / `value` / `button` / `x` / `y`）を追加（後方互換・読込の正規化は変えない）。**
 
 - 起票元: [idea_23](../../backlog/idea_23_key_press_release_actions.md)（2026-09-18 ユーザー要望・2026-10-09 着手決定）。
-- 主入力（暫定仕様）: [35_key_press_release_actions.md](../../history/35_key_press_release_actions.md)（v0.3・ユーザー確定済 2026-10-10。§4.4・§6 は task_01 の probe の結果で見直す）
+- 主入力（暫定仕様）: [35_key_press_release_actions.md](../../history/35_key_press_release_actions.md)（v0.5・ユーザー確定済 2026-10-10。v0.5・§4.4・§6 は task_01 の probe とその後のレビューで改訂済み）
 - モード: **暫定仕様先行モード**。番号対応: phase 51 / 暫定 35 / decisions 51。
 
 ## 確定（ユーザー 2026-10-09〜10）
@@ -42,7 +42,7 @@
 
 ## タスク
 
-- task_01: probe（暫定 35 §6 の 1〜3: 合成の修飾キーを押したままのトリガー判定・text / 改行 / バックスペースへの影響・左右の ctrl / alt の押し離し）。安全な送り先（テスト用の Tk の入力欄）で `.venv` の小スクリプトを走らせて実測し、結果で §4.4・§6 を見直す（違えばユーザー確認）。メイン + verifier
+- task_01: probe（暫定 35 §6 の 1〜3: 合成の修飾キーを押したままのトリガー判定・text / 改行 / バックスペースへの影響・左右の ctrl / alt の押し離し）。安全な送り先（テスト用の Tk の入力欄）で `.venv` の小スクリプトを走らせて実測し、結果で §4.4・§6 を見直す（違えばユーザー確認）。メイン + verifier — **完了**（2026-10-10・メイン実測。右 ctrl を押したまま text で左 ctrl が残る不具合を発見 → 暫定 35 v0.4・ユーザー判断 1 点。記録は tasks/task_01_probe.md）
 - task_02: domain — 種類 `key_hold` の定数・検証（`edge` / `value` / `button` / `x` / `y` の実行時エラーの判定）・一覧の書式（1 関数）とテスト（§3・§7 の書式）
 - task_03: infrastructure + application — InputGateway のマウスのボタンの押す / 離す（座標への移動・FAILSAFE）・押下中の集合 `HeldInputs`（同じキーの判定・送る前の記録・失敗時の補償）・ActionExecutor の `key_hold` の実行（持ち主の受け取り・止まる系のエラー・知らせる前の解放）とテスト（§4・§8）
 - task_04: application — 自動で離す入口（§5 の表: 連続実行の終わり・一時停止・破棄・待機の取り消し・先頭へ・状態を消す契機〔キー変更は旧キーの分〕・末尾の時点・連動の末尾・実行を終えるエラー）と runner から持ち主を渡す配線とテスト（§5）。
