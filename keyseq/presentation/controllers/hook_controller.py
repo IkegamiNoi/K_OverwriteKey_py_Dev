@@ -156,14 +156,18 @@ class HookController:
         self._app.trigger_panel.update_status()
 
     def stop_hook(self, *, reset_custom_input_mode: bool = True):
-        self._clear_keymap_switch_in_progress()
-        self._app.sequence_runner.stop_run_to_end()
-        self._app.sequence_runner.cancel_pending_waits()
-        self._app.hook_coordinator.stop()
-        self._app.key_state_manager.clear()
-        self.hook_active = False
-        if reset_custom_input_mode:
-            self.custom_input_enabled = True
+        try:
+            self._clear_keymap_switch_in_progress()
+            self._app.sequence_runner.stop_run_to_end()
+            self._app.sequence_runner.cancel_pending_waits()
+            self._app.hook_coordinator.stop()
+            self._app.key_state_manager.clear()
+            self.hook_active = False
+            if reset_custom_input_mode:
+                self.custom_input_enabled = True
+        finally:
+            # 停止処理が例外でも、押したままのキーは必ず離す（暫定 35 §5）。
+            self._release_held_inputs()
 
         self.sync_hook_toggle_buttons()
         self.sync_trigger_toggle_buttons()
@@ -186,6 +190,7 @@ class HookController:
             self._app.sequence_runner.stop_run_to_end()
             self._app.sequence_runner.cancel_pending_waits()
             self.custom_input_enabled = False
+            self._release_held_inputs()
         else:
             def _on_error(title: str, msg: str) -> None:
                 self._app.after(0, lambda: messagebox.showerror(title, msg))
@@ -210,6 +215,14 @@ class HookController:
 
     def toggle_triggers_enabled(self):
         self.toggle_custom_input_enabled()
+
+    def _release_held_inputs(self) -> None:
+        errors = self._app.held_inputs.release_all()
+        if errors:
+            self.show_action_error(
+                "", {"type": "key_hold", "value": "すべて解放"},
+                RuntimeError("\n".join(str(error) for error in errors)),
+            )
 
     def validate_hook_configuration(self) -> bool:
         overlap = self._key_overlap_report()

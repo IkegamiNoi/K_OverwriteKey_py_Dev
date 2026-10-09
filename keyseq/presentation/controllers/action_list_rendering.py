@@ -56,7 +56,7 @@ def format_next_action_summary(
 ) -> str:
     """省略表示の要約を作る。制御アクションは一覧と同じ値表示にする。"""
     action_kind = (action.get("type") or "").strip().lower()
-    if action_kind in ("system", "file_line"):
+    if action_kind in ("system", "file_line", "key_hold"):
         return format_action_list_item(
             index,
             action,

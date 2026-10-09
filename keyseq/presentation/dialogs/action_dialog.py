@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING, Callable
 from pynput import mouse
 
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
+from keyseq.domain.key_hold import parse_key_hold
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
 from keyseq.presentation.dialogs.action_control_fields import ActionControlFields
+from keyseq.presentation.dialogs.action_key_hold_fields import ActionKeyHoldFields
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_keysym
@@ -46,7 +48,7 @@ class ActionDialog(tk.Toplevel):
 
         ttk.Label(frm, text="種類").grid(row=0, column=0, sticky="w")
         self.type_var = tk.StringVar(value="hotkey")
-        self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=["hotkey", "text", "mouse_click"] + ([] if mode is None else ["system", "file_line"]), state="readonly", width=12)
+        self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=["hotkey", "text", "mouse_click", "key_hold"] + ([] if mode is None else ["system", "file_line"]), state="readonly", width=12)
         self.type_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
         self.type_combo.bind("<<ComboboxSelected>>", lambda _e: self._sync_capture_ui())
 
@@ -119,6 +121,13 @@ class ActionDialog(tk.Toplevel):
         self.mouse_hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(6, 0))
         self._build_drag_ui()
 
+        self.key_hold_fields = ActionKeyHoldFields(
+            frm,
+            capture_mouse_position=self._capture_mouse_position,
+        )
+        self.key_hold_fields.frame.grid(row=7, column=0, columnspan=4, sticky="we", pady=(10, 0))
+        self.key_hold_fields.frame.grid_remove()
+
         self.control_fields = ActionControlFields(
             frm, counter_names=counter_names or [], config_root=config_root,
             config_service=parent.config_service, mode=mode,
@@ -158,9 +167,11 @@ class ActionDialog(tk.Toplevel):
                     self.mouse_to_x_var.set(str(initial.get("to_x", "")))
                     self.mouse_to_y_var.set(str(initial.get("to_y", "")))
                     self.mouse_drag_speed_var.set(str(initial.get("drag_speed", DEFAULT_DRAG_SPEED_PX_PER_SEC)))
+            if (initial.get("type") or "").strip().lower() == "key_hold":
+                self.key_hold_fields.load(initial)
 
         self._sync_capture_ui()
-        bind_escape_close(self, is_busy=lambda: getattr(self, "_recording", False), stop=self._stop_recording)
+        bind_escape_close(self, is_busy=lambda: self._recording or self.key_hold_fields.recording, stop=self._stop_recording)
         grab_modal(self, parent, focus=self._initial_focus_widget())
 
     def on_ok(self):
@@ -174,7 +185,7 @@ class ActionDialog(tk.Toplevel):
             if self.mode == "add": self.append_to_end = bool(self.append_to_end_var.get())
             self.destroy()
             return
-        if t not in ("hotkey", "text", "mouse_click"):
+        if t not in ("hotkey", "text", "mouse_click", "key_hold"):
             messagebox.showerror("入力エラー", "種類が不正です。")
             return
         if t in ("hotkey", "text"):
@@ -182,7 +193,7 @@ class ActionDialog(tk.Toplevel):
                 messagebox.showerror("入力エラー", "値が空です。")
                 return
             self.parent._dialog_result = {"type": t, "value": v, "label": label}
-        else:
+        elif t == "mouse_click":
             # mouse_click
             sx = self.mouse_x_var.get().strip()
             sy = self.mouse_y_var.get().strip()
@@ -210,6 +221,28 @@ class ActionDialog(tk.Toplevel):
                 if drag_fields is None:
                     return
                 action.update(drag_fields)
+            self.parent._dialog_result = action
+        else:
+            action = self.key_hold_fields.build_action(label)
+            if self.key_hold_fields.target_var.get() == "マウスのボタン" and self.key_hold_fields.coordinates_var.get():
+                if not action.get("x") or not action.get("y"):
+                    messagebox.showerror("入力エラー", "マウス座標の X/Y は両方入力してください。")
+                    return
+            parsed = parse_key_hold(action)
+            if isinstance(parsed, str):
+                messagebox.showerror("入力エラー", parsed)
+                return
+            if parsed.key is not None:
+                try:
+                    self.parent.input_gateway.validate_key_name(parsed.key)
+                except Exception as exc:
+                    messagebox.showerror("入力エラー", f"キー名が不正です: {exc}")
+                    return
+                action = {"type": "key_hold", "edge": parsed.edge, "value": parsed.key, "label": label}
+            else:
+                action = {"type": "key_hold", "edge": parsed.edge, "button": parsed.button, "label": label}
+                if parsed.position is not None:
+                    action["x"], action["y"] = parsed.position
             self.parent._dialog_result = action
         if self.mode == "add": self.append_to_end = bool(self.append_to_end_var.get())
         self.destroy()
@@ -271,6 +304,7 @@ class ActionDialog(tk.Toplevel):
     def _set_mouse_capture_state(self, state: str) -> None:
         self.mouse_capture_btn.configure(state=state)
         self.mouse_to_capture_btn.configure(state=state)
+        self.key_hold_fields.capture_button.configure(state=state)
 
     def _capture_mouse_position(self, x_var: tk.StringVar, y_var: tk.StringVar,
                                 button_widget: ttk.Button, hint_widget: ttk.Label) -> None:
@@ -319,6 +353,7 @@ class ActionDialog(tk.Toplevel):
         self.bind("<KeyRelease>", self._on_key_release, add="+")
 
     def _stop_recording(self):
+        self.key_hold_fields.stop_recording()
         if not getattr(self, "_recording", False):
             return
         self._recording = False
@@ -388,6 +423,9 @@ class ActionDialog(tk.Toplevel):
         self._sync_type_visibility(t)
         self._sync_hotkey_controls(t == "hotkey")
         self._sync_mouse_visibility(t)
+        self.key_hold_fields.frame.grid() if t == "key_hold" else self.key_hold_fields.frame.grid_remove()
+        if t != "key_hold":
+            self.key_hold_fields.stop_recording()
         if hidden_focus:
             self.type_combo.focus_set()
 
@@ -439,6 +477,12 @@ class ActionDialog(tk.Toplevel):
         if action_type != "hotkey":
             hidden_widgets.extend((self.capture_btn, self.capture_hint, self.presets_frame,
                                    self.preset_edit_btn, *self.preset_buttons))
+        if action_type != "key_hold":
+            fields = self.key_hold_fields
+            hidden_widgets.extend((
+                fields.edge_combo, fields.target_combo, fields.key_entry,
+                fields.record_button, fields.button_combo, fields.capture_button,
+            ))
         return any(focused is widget for focused in candidates for widget in hidden_widgets)
 
     def _initial_focus_widget(self) -> tk.Misc:
@@ -448,6 +492,8 @@ class ActionDialog(tk.Toplevel):
             return self.control_fields.loop_count_entry
         if (self.type_var.get() or "").strip().lower() in ("hotkey", "text"):
             return self.value_entry
+        if (self.type_var.get() or "").strip().lower() == "key_hold":
+            return self.key_hold_fields.key_entry
         return self.type_combo
 
     def _apply_preset(self, hotkey: str):

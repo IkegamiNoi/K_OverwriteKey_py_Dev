@@ -10,7 +10,7 @@ last_commit_location: `claude/focus-undo-behavior-refactor-de11a6`（phase 50 �
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: present
+presence: away（戻る予定 未定）
 focus: **phase 50 完了（2026-10-09）。アクティブなフェーズなし・次フェーズはユーザー判断待ち。**
 mode: completed
 

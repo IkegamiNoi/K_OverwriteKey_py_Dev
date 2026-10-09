@@ -5,6 +5,8 @@ from contextlib import contextmanager
 from dataclasses import dataclass
 from typing import Callable, Iterator
 
+from keyseq.domain.key_hold import held_display_name
+
 
 _logger = logging.getLogger(__name__)
 InputIdentity = tuple[str, int, bool] | tuple[str, str]
@@ -51,7 +53,7 @@ class HeldInputs:
     @property
     def display_names(self) -> tuple[str, ...]:
         return tuple(
-            record.name if identity[0] == "key" else f"マウス{record.name}"
+            held_display_name(identity[0], record.name)
             for identity, record in self._ordered_records()
         )
 

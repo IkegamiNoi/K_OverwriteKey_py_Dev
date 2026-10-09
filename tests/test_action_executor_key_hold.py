@@ -121,7 +121,7 @@ class ActionExecutorKeyHoldTests(unittest.TestCase):
 
         self.assertIs(self.executor.execute(down, owner="f8"), True)
         self.assertEqual(self.events[-1], ("mouse_down", "left", 12, 34))
-        self.assertEqual(self.executor.held_inputs.display_names, ("マウスleft",))
+        self.assertEqual(self.executor.held_inputs.display_names, ("マウス左",))
         self.assertIs(self.executor.execute(up, owner="f8"), True)
         self.assertEqual(self.events[-1], ("mouse_up", "left", 56, 78))
         self.assertEqual(self.executor.held_inputs.display_names, ())
@@ -297,7 +297,7 @@ class ActionExecutorKeyHoldTests(unittest.TestCase):
             ],
         )
         self.assertEqual(
-            self.executor.held_inputs.display_names, ("shift", "ctrl", "マウスleft")
+            self.executor.held_inputs.display_names, ("shift", "ctrl", "マウス左")
         )
 
     def test_text_error_does_not_restore_and_releases_owner_before_notification(self) -> None:
@@ -339,7 +339,7 @@ class ActionExecutorKeyHoldTests(unittest.TestCase):
 
         self.assertNotIn(("key_down", "ctrl"), self.events)
         self.assertEqual(self.events[-1], ("action_error",))
-        self.assertEqual(self.executor.held_inputs.display_names, ("マウスleft",))
+        self.assertEqual(self.executor.held_inputs.display_names, ("マウス左",))
 
     def test_text_resume_error_compensates_failed_press_then_releases_owner_before_notice(self) -> None:
         self._press_shift()

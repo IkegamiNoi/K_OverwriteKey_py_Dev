@@ -16,13 +16,15 @@ class AppImeShutdownTests(unittest.TestCase):
             hook=SimpleNamespace(begin_shutdown=trace.begin, stop_hook=trace.stop),
             layout=SimpleNamespace(keyboard_window=None),
             input_gateway=SimpleNamespace(restore_ime_now=trace.restore),
+            held_inputs=SimpleNamespace(release_all=trace.release),
             destroy=trace.destroy,
         )
         trace.confirm.return_value = True
+        trace.release.return_value = []
         App.on_close(app)
         self.assertEqual(trace.mock_calls, [
             call.confirm("終了"), call.cancel(), call.cancel(), call.begin(), call.stop(),
-            call.restore(), call.destroy(),
+            call.release(), call.restore(), call.destroy(),
         ])
 
     def test_restore_runs_if_hook_stop_raises(self) -> None:
@@ -34,10 +36,12 @@ class AppImeShutdownTests(unittest.TestCase):
             hook=SimpleNamespace(begin_shutdown=trace.begin, stop_hook=trace.stop),
             layout=SimpleNamespace(keyboard_window=None),
             input_gateway=SimpleNamespace(restore_ime_now=trace.restore),
+            held_inputs=SimpleNamespace(release_all=trace.release),
             destroy=trace.destroy,
         )
         trace.confirm.return_value = True
+        trace.release.return_value = []
         trace.stop.side_effect = RuntimeError("stop failed")
         with self.assertRaisesRegex(RuntimeError, "stop failed"):
             App.on_close(app)
-        self.assertEqual(trace.mock_calls[-2:], [call.restore(), call.destroy()])
+        self.assertEqual(trace.mock_calls[-3:], [call.release(), call.restore(), call.destroy()])

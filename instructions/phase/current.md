@@ -267,6 +267,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 - phase 43 由来（完了判定前の Codex 敵対的レビュー）: シーケンスの個別保存（`sequence_file_io.py:54-86`）はパスのダイアログ中にアクティブが変わると、保持した A の行を保存しつつ参照元・未保存の印を現在のアクティブ B へ付ける（phase 43 より前からの挙動・キーマップの個別保存の固定なし〔decisions 43 の task_06b 保留 L1〕と同類）
 
 ### テスト負債
+- `tests_ui/test_action_dialog_control.py` の 2 件（`test_focus_moves_to_type_combo_when_*_is_hidden`）は、Tk のルートを作るモジュール（`test_modal_grab`・`test_action_dialog_key_hold` 等）の**後に同じプロセスで走らせると**フォーカスが取れず落ちる（実行順への依存。名前順の一括実行では先に走るので落ちない。phase 51 task_05 で判明・既存）
 
 - phase 36 の完了判定前レビューで判明したテストの無い経路: `save_runtime_data` の `keep_legacy_copy=True`（本番の呼び出し元 `keymap_set_io.py:136` は常に False・実質未使用の引数）/  `post_save_warnings=None` のときの `warnings.warn`（`assertWarns` の検査なし）/ `build_runtime_data_from_split` のアクティブキーマップ補完（一覧に無い `active_keymap_path` を読む分岐・専用テスト未確認）（phase 36 由来）
 - `tests/test_input_gateway_drag.py::test_initial_move_failure_restores` が `mouseUp` の

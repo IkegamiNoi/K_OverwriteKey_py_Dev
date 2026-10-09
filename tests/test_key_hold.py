@@ -1,7 +1,7 @@
 import unittest
 
 from keyseq.domain.config import format_action_list_item
-from keyseq.domain.key_hold import KeyHoldSpec, format_key_hold_value, parse_key_hold
+from keyseq.domain.key_hold import KeyHoldSpec, format_key_hold_value, held_display_name, parse_key_hold
 
 
 class ParseKeyHoldTests(unittest.TestCase):
@@ -70,6 +70,12 @@ class ParseKeyHoldTests(unittest.TestCase):
 
 
 class FormatKeyHoldTests(unittest.TestCase):
+    def test_held_display_names(self):
+        self.assertEqual(held_display_name("key", "right ctrl"), "right ctrl")
+        for button, expected in (("left", "マウス左"), ("right", "マウス右"), ("middle", "マウス中")):
+            with self.subTest(button=button):
+                self.assertEqual(held_display_name("mouse", button), expected)
+
     def test_formats_keyboard_and_mouse_rows(self):
         self.assertEqual(format_key_hold_value({"edge": "down", "value": "shift"}), "[押す] shift")
         self.assertEqual(format_key_hold_value({"edge": "up", "value": "shift"}), "[離す] shift")

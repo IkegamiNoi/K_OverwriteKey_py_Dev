@@ -18,6 +18,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
     def test_stop_hook_cancels_all_pending_waits(self):
         app = SimpleNamespace(
             sequence_runner=SimpleNamespace(stop_run_to_end=Mock(), cancel_pending_waits=Mock()),
+            held_inputs=SimpleNamespace(release_all=Mock(return_value=[])),
             hook_coordinator=SimpleNamespace(stop=Mock()), key_state_manager=SimpleNamespace(clear=Mock()),
             layout=SimpleNamespace(refresh_keyboard_window=Mock()), trigger_panel=SimpleNamespace(update_status=Mock()),
         )
@@ -38,6 +39,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         controller = HookController.__new__(HookController)
         controller._app = SimpleNamespace(
             sequence_runner=runner,
+            held_inputs=SimpleNamespace(release_all=Mock(return_value=[])),
             trigger_panel=SimpleNamespace(refresh_actions=Mock(), update_status=Mock()),
             layout=SimpleNamespace(refresh_keyboard_window=Mock()),
         )

@@ -17,6 +17,7 @@ class HookControllerTeardownTest(unittest.TestCase):
         self.hook = HookController(self.app)
         # OS フックやアプリ全体を起動せず、実際の開始・停止処理を隔離する。
         self.app.sequence_runner = Mock()
+        self.app.held_inputs = SimpleNamespace(release_all=Mock(return_value=[]))
         self.app.hook_coordinator = Mock()
         self.app.key_state_manager = Mock()
         self.app.keymap_service = Mock()

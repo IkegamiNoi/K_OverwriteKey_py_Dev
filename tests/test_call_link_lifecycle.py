@@ -93,6 +93,7 @@ class CallLinkLifecycleTests(unittest.TestCase):
     def stop_hook(self):
         app = SimpleNamespace(
             sequence_runner=self.runner,
+            held_inputs=SimpleNamespace(release_all=lambda: []),
             hook_coordinator=SimpleNamespace(stop=lambda: None),
             key_state_manager=SimpleNamespace(clear=lambda: None),
             layout=SimpleNamespace(refresh_keyboard_window=lambda: None),

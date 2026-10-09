@@ -53,6 +53,13 @@ def parse_key_hold(action: Mapping[str, Any]) -> KeyHoldSpec | str:
     return KeyHoldSpec(edge=edge, button=None, key=key, position=None)
 
 
+def held_display_name(kind: str, name: str) -> str:
+    if kind == "key":
+        return name
+    button_names = {"left": "左", "right": "右", "middle": "中"}
+    return f"マウス{button_names[name]}"
+
+
 def format_key_hold_value(action: Mapping[str, Any]) -> str:
     parsed = parse_key_hold(action)
     if isinstance(parsed, str):
@@ -63,8 +70,7 @@ def format_key_hold_value(action: Mapping[str, Any]) -> str:
     direction = "押す" if parsed.edge == EDGE_DOWN else "離す"
     if parsed.button is None:
         return f"[{direction}] {parsed.key}"
-    button_names = {"left": "左", "right": "右", "middle": "中"}
-    display = f"[{direction}] マウス{button_names[parsed.button]}"
+    display = f"[{direction}] {held_display_name('mouse', parsed.button)}"
     if parsed.position is not None:
         display += f" ({parsed.position[0]}, {parsed.position[1]})"
     return display

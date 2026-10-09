@@ -54,6 +54,15 @@ class FakeInputGateway:
 
 
 class HeldInputsTests(unittest.TestCase):
+    def test_display_names_localize_all_mouse_buttons_in_press_order(self) -> None:
+        gateway = FakeInputGateway()
+        held = HeldInputs(gateway)
+        held.press_mouse("f1", "right")
+        held.press_key("f1", "shift")
+        held.press_mouse("f1", "middle")
+        held.press_mouse("f1", "left")
+        self.assertEqual(held.display_names, ("マウス右", "shift", "マウス中", "マウス左"))
+
     def setUp(self) -> None:
         self.gateway = FakeInputGateway()
         self.guard_calls: list[str] = []
@@ -111,7 +120,7 @@ class HeldInputsTests(unittest.TestCase):
             self.held.press_mouse("trigger", "left", (10, 20))
 
         self.assertIs(caught.exception, send_error)
-        self.assertEqual(observed, [("マウスleft",)])
+        self.assertEqual(observed, [("マウス左",)])
         self.assertEqual(self.gateway.calls, [
             ("mouse_down", "left", 10, 20), ("mouse_up", "left", None, None),
         ])
@@ -148,7 +157,7 @@ class HeldInputsTests(unittest.TestCase):
             self.held.release_mouse("left")
 
         self.assertIs(caught.exception, release_error)
-        self.assertEqual(self.held.display_names, ("マウスleft",))
+        self.assertEqual(self.held.display_names, ("マウス左",))
         self.gateway.failures.clear()
         self.held.release_mouse("left")
         self.assertEqual(self.held.display_names, ())
@@ -246,7 +255,7 @@ class HeldInputsTests(unittest.TestCase):
         self.assertEqual(self.gateway.calls[before_suspend:], [
             ("release_key", "a"), ("release_key", "b"),
         ])
-        self.assertEqual(self.held.display_names, ("a", "b", "マウスleft"))
+        self.assertEqual(self.held.display_names, ("a", "b", "マウス左"))
 
     def test_resume_keyboard_compensates_failed_repress(self) -> None:
         self.held.press_key("owner", "a")
@@ -293,7 +302,7 @@ class HeldInputsTests(unittest.TestCase):
         self.held.release_mouse("left")
 
         self.assertEqual(self.changes, [
-            ("a",), ("a", "マウスleft"), ("マウスleft",), (),
+            ("a",), ("a", "マウス左"), ("マウス左",), (),
         ])
 
 

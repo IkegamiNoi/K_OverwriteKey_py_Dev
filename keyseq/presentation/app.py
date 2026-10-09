@@ -57,6 +57,7 @@ from keyseq.application.file_line_reader import resolve_file_line_path
 from keyseq.application.config_service import ConfigService
 from keyseq.application.app_state import AppState
 from keyseq.application.hotkey_service import HotkeyService
+from keyseq.application.held_inputs import HeldInputs
 from keyseq.application.hook_coordinator import HookCoordinator
 from keyseq.application.input_router import InputRouter
 from keyseq.application.key_overlap import KeyOverlapAnalysis, analyze_key_overlaps
@@ -120,12 +121,17 @@ class App(tk.Tk):
         self.trigger_service = TriggerService()
         self.keymap_service = KeymapService()
         self.input_gateway = InputGateway()
+        self.held_inputs = HeldInputs(
+            self.input_gateway,
+            on_change=lambda _names: self.after(0, self.trigger_panel.update_status),
+        )
         self.hotkey_service = HotkeyService(validate_key_name=self.input_gateway.validate_key_name)
         self.key_state_manager = KeyStateManager(resolve_scan_code=lambda sc: self.layout.resolve_key_name_from_scan_code(sc))
         self._keymap_switch_in_progress = threading.Event()
         self.file_line_loader = FileLineLoader()
         self.action_executor = ActionExecutor(
             input_gateway=self.input_gateway,
+            held_inputs=self.held_inputs,
             validate_hotkey=self.hotkey_service.validate,
             on_action_error=lambda action, err: self.hook.show_action_error("", action, err),
             on_runtime_error=lambda title, msg: messagebox.showerror(title, msg),
@@ -218,6 +224,7 @@ class App(tk.Tk):
         self.hook_coordinator = HookCoordinator(self.input_gateway)
         self.sequence_runner = SequenceRunner(
             state=self.state,
+            held_inputs=self.held_inputs,
             find_trigger=self._find_trigger_by_key,
             list_trigger_keys=lambda: [t["key"] for t in self.trigger_service.get_triggers(self.data)
                                        if self._find_trigger_by_key(t["key"]) is t],
@@ -660,8 +667,18 @@ class App(tk.Tk):
                     pass
             self.hook.stop_hook()
         finally:
-            self.input_gateway.restore_ime_now()
-            self.destroy()
+            try:
+                errors = self.held_inputs.release_all()
+                if errors:
+                    self.hook.show_action_error(
+                        "", {"type": "key_hold", "value": "すべて解放"},
+                        RuntimeError("\n".join(str(error) for error in errors)),
+                    )
+            finally:
+                try:
+                    self.input_gateway.restore_ime_now()
+                finally:
+                    self.destroy()
 
 
 if __name__ == "__main__":
