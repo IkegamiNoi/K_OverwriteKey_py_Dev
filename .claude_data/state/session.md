@@ -4,49 +4,56 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-09T12:00:00
-phase: なし（**phase 50 `instructions/phase/50_select_before_run` は 2026-10-09 完了**・判断は `decisions_archive/50_select_before_run.md`）。次採番 = phase 51 / 暫定 35 / decisions 51 / 提案書 21。
-last_commit_location: `claude/focus-undo-behavior-refactor-de11a6`（phase 50 完了まで。main へのマージはユーザー）
+last_updated: 2026-10-10T02:10:00
+phase: `instructions/phase/51_key_press_release_actions`（キーの押下 / 解放アクション `key_hold`・暫定仕様先行・主入力 = 暫定 35 v0.7 確定済）。番号対応 phase 51 / 暫定 35 / decisions 51。次採番 = phase 52 / 暫定 36 / 提案書 21。
+直前の完了フェーズ = **phase 50**（確認して実行・`decisions_archive/50_select_before_run.md`）。
+last_commit_location: `claude/focus-undo-behavior-refactor-de11a6`（phase 51 task_05 まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: away（戻る予定 未定）
-focus: **phase 50 完了（2026-10-09）。アクティブなフェーズなし・次フェーズはユーザー判断待ち。**
-mode: completed
+focus: **phase 51 task_01〜05 完了（task_05 は実装・検証済）。ユーザーの実機目視待ち → OK なら task_06（統合確認）→ task_07（正本反映）。**
+mode: blocked
 
 ## last_action
-ts: 2026-10-09T12:00:00
+ts: 2026-10-10T02:10:00
 who: main
 summary: |
-  再実機目視（2026-10-09）: 大体 OK。指摘 3 点のうち「直接クリックの選択が戻すの対象にならない」は再現せず（コード上も選択は同じ値）。
-  直前のトリガーの廃止・戻す系を直前の実行に記録しない・戻す段が無いときの無反応は idea_39 の残りへ追記（ユーザー判断）。フォント +3 で個別の確認して実行が数 px 切れるのは受容（ユーザー判断）。
-  task_05: 暫定 34 を正本へ昇格（features §4.2.5・§4.2.6・§4.2.10・§4.2.11 新設・§4.5・§4.6 / data_schema §5.3・§5.6・§5.9.1・アクション表 / key_input §7.3 / codebase_map）・凍結・decisions_archive/50・索引・current.md。
-  完了判定前: deep-reviewer 修正要（正本の文言 3 件 → 修正）/ codex 敵対的 needs-attention 2 件 → ユーザー採用: task_04d（application・待機明けに選択を残すときも選ばれているトリガーの表示を描き直す・codex-implementer・reviewer 完了可・テストの期待値 1 件をメインで修正）+ data_schema のアクション表の修正。
-  /refactor_check: 不要（境界の 1 行を current.md「別タスク化候補」へ）。
+  phase 51 起票（暫定 35 v0.1 → 起票時 deep-reviewer・確定前 Codex 敵対的 5 件・task_01 の probe・v0.4 の Codex 敵対的 3 件・task_03 / task_04 のレビューの未定義 2 点をすべてユーザー判断で反映 → v0.7）。
+  task_01 probe（右 ctrl を押したまま text で左 ctrl が残る既存の不具合を発見 → 送信後に keyboard に修飾キーを押し直させない・本機能の送信を keyboard の記録に載せない）。
+  task_02 domain（codex-implementer）/ task_03 HeldInputs・ActionExecutor（codex-delegating）/ task_04 離す入口・持ち主の受け渡し（codex-delegating・最後の行の停止は末尾として離す）/ task_05 画面（codex-delegating）。いずれも reviewer 完了可・小修正はメイン。
+  task_05 の新規 UI テストの Esc はフォーカス取得が要る（acquire_focus）・Tk ルートはクラスで共有。既存の test_action_dialog_control の実行順依存を current.md「テスト負債」へ記録。
 result_files:
-  - instructions/common/spec_detail/features.md・data_schema.md・key_input.md / instructions/common/codebase_map.md / instructions/history/34_select_before_run.md（凍結）
-  - instructions/phase/50_select_before_run/phase.md・tasks/task_04d・task_05 / instructions/phase/current.md / instructions/backlog/idea_39・INDEX.md
-  - .claude_data/state/decisions_archive/50_select_before_run.md・decisions.md
-  - keyseq/application/sequence_runner/send_wait.py / tests/test_sequence_runner_select_before_run.py
+  - instructions/history/35_key_press_release_actions.md（v0.7）/ instructions/phase/51_key_press_release_actions/（phase.md・tasks/task_01〜05）
+  - keyseq/domain/key_hold.py / keyseq/application/held_inputs.py・action_executor.py・sequence_runner/ / keyseq/infrastructure/input_gateway.py / keyseq/presentation/（app.py・hook_controller.py・trigger_panel_controller.py・action_list_rendering.py・dialogs/action_dialog.py・dialogs/action_key_hold_fields.py）/ tests・tests_ui
 verified:
   compile: clean
-  tests: 1357 OK（skipped 7）
-  tests_ui: 907 OK
+  tests: 1443 OK（skipped 7）
+  tests_ui: 929 OK
   smoke: pass
-  review: task_04d reviewer 完了可 / phase 50 完了判定 deep-reviewer + codex-adversarial-reviewer（指摘は反映済み）
+  review: task_02〜05 reviewer 完了可（指摘は反映済）
 
 ## next_action
-- 次フェーズの方針をユーザーに確認する（候補: idea_39 の残り〔直前のトリガーの廃止ほか〕/ idea_37 カウンター条件分岐 / `instructions/backlog/INDEX.md` の他の idea）。着手時は `/phase_start`
-- main へのマージはユーザーが行う（ブランチ `claude/focus-undo-behavior-refactor-de11a6`）
+- **【戻ったら最初に】ユーザーの実機目視（task_05・暫定 35 §10 の 8〜11）**。アクション編集で種類 `key_hold` を選んで行を作り、テキストエディタ等で確かめる:
+  ①ダイアログ: 「押す / 離す」・キー / マウスのボタン・「1 キーを記録」（1 キーだけ・Esc で中止）・「座標を指定する」+ X / Y・座標の取得ボタン・不正な入力で理由が出る
+  ②一覧・省略表示の書式が `[押す] shift` / `[離す] shift` / `[押す] マウス左 (100, 200)`
+  ③単発で `[押す shift, →, →, 離す shift]` を押していくと範囲選択になり、最後に shift が残らない。押している間ステータス欄に「押下中: shift」
+  ④shift を押したままの状態で、フック停止・アクション編集等のダイアログを開く・キーマップ一時停止・アプリ終了のそれぞれで shift が離れる（ステータスの表示も消える）
+  ⑤マウスの左を押す → 手でマウスを動かす → 離す でドラッグになる。座標つきの押す → 座標つきの離す で 2 点間のドラッグになる
+  ⑥shift / ctrl を押したまま text（改行入り）を送っても文字どおり入る（ctrl のショートカットにならない）
+  ⑦押したままの間も他のトリガーが反応する（手で押したとき）
+  NG なら枝番で修正
+- OK 後に task_06: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）→ task_07: 正本反映（暫定 35 §12）・凍結・decisions_archive/51・decisions.md 索引・current.md 完了記載・idea_23 を INDEX_done へ・/refactor_check・完了判定前 deep-reviewer + codex-adversarial-reviewer
+- main へのマージはユーザーが行う
 
 ## blockers
-- なし（次フェーズのユーザー判断待ち）
+- ユーザーの実機目視（phase 51 task_05）
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
 - **tests_ui は同時に 1 本だけ**走らせる。verifier には **`taskkill` で python.exe を一括終了しないこと**を必ず書く。
-- **素の `python` を Bash で呼ばない**（必ず `..\..\..\.venv\Scripts\python.exe`）。
-- **Codex は互換の工夫（内省・getattr の逃げ道）や範囲外の挙動を足すことがある・テストの期待値を推測で書くことがある**。差分を直読みしてから verifier / reviewer へ。
-- idea_39 の残りに着手する場合: 対象の決定 = `sequence_runner.py` の `_control` → `sequence_history.apply_control(selected_key=)`・直前のトリガー = `AppState.last_trigger`（`sequence_history.commit_step` / `commit_press` で更新）。経緯は `decisions_archive/50` の判断 13 と idea_39 の 2026-10-09 追記。
-- フル表示の高さ: フォント +3 で最小 931 px > 窓の取れる上限 927 px（受容）。`tests_ui/test_full_view_min_height.py` は実測した上限に収まるときだけ窓の高さの一致を確かめる。
+- **素の `python` を Bash で呼ばない**（必ず `..\..\..\.venv\Scripts\python.exe`）。Bash の heredoc の前に `cat > file` を単独で書かない（stdin 待ちでハングする）。
+- **Codex は互換の工夫・テストの期待値の推測を足すことがある**。差分を直読みしてから verifier / reviewer へ。Codex は LF を混ぜることがある（コミットは git が正規化）。
+- phase 51 の配線: 押下中の集合 = `application/held_inputs.py`（App で 1 つ作り ActionExecutor / SequenceRunner で共有・`owner_scope` で最上段のキーを持ち主に）/ 送信 = `infrastructure/input_gateway.py`（拡張キーは `keyboard._listener.is_replaying` で記録に載せない・`write_text` は `restore_state_after=False`・`mouse_down` / `mouse_up` は FAILSAFE を外す）/ 離す入口 = runner（`stop_run_to_end` / `pause_run_to_end` / `_cancel_pending_steps` / `reset_loop_frames` / `cancel_pending_wait` / `_control` の rewind / 末尾 / `_propagate_linked_completion` / `_report_error` / `on_runtime_reset`）と presentation（`stop_hook` の finally / キーマップ一時停止 / `on_close`）
+- `tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・current.md「テスト負債」）。
 - 過去の判断は `decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。凍結済の暫定仕様（`instructions/history/` の 04〜34）の条項を実装の根拠に引かない。
