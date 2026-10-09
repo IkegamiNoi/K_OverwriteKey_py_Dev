@@ -343,7 +343,8 @@ class SelectBeforeRunTest(unittest.TestCase):
         selections.clear()
         selected["key"] = "f2"
         scheduler.run_one()
-        self.assertEqual(selections, [])
+        self.assertEqual(selected["key"], "f2")
+        self.assertEqual(selections, ["f2"])
 
         runner, _state, scheduler, _performed, _selected, selections, _messages = make_runner(
             [trigger], selected_key="f1", enabled=True,
@@ -368,6 +369,21 @@ class SelectBeforeRunTest(unittest.TestCase):
         selections.clear()
         selected["key"] = "f2"
         scheduler.run_one()
+        self.assertEqual(selected["key"], "f2")
+        self.assertEqual(selections, ["f2"])
+
+    def test_single_wait_does_not_reselect_when_no_trigger_is_selected(self):
+        trigger = {"key": "f1", "actions": [A1, {"type": "system", "op": "wait", "ms": 5}]}
+        runner, _state, scheduler, _performed, selected, selections, _messages = make_runner(
+            [trigger], selected_key="f1", enabled=True,
+        )
+        runner.handle_key("f1")
+        selections.clear()
+        selected["key"] = None
+
+        scheduler.run_one()
+
+        self.assertIsNone(selected["key"])
         self.assertEqual(selections, [])
 
     def test_step_call_caller_can_be_pressed_again_without_select_only_interruption(self):
@@ -501,7 +517,7 @@ class SelectBeforeRunTest(unittest.TestCase):
         scheduler.run_one()
 
         self.assertEqual(selected["key"], "f2")
-        self.assertEqual(selections, ["f2"])
+        self.assertEqual(selections, ["f2", "f2"])
 
     def test_repeated_waits_keep_selection_made_by_trigger_press(self):
         waiting = {"key": "f1", "actions": [
@@ -521,10 +537,36 @@ class SelectBeforeRunTest(unittest.TestCase):
 
         scheduler.run_one()
         self.assertEqual(selected["key"], "f2")
-        self.assertEqual(selections, ["f2"])
+        self.assertEqual(selections, ["f2", "f2"])
         scheduler.run_one()
         self.assertEqual(selected["key"], "f2")
-        self.assertEqual(selections, ["f2"])
+        self.assertEqual(selections, ["f2", "f2"])  # 2 つ目の待機は次の押下まで始まらない
+
+    def test_wait_refreshes_linked_caller_after_callee_completes(self):
+        caller = {"key": "x", "actions": [
+            {"type": "system", "op": "call", "target": "a"},
+            {"type": "text", "value": "c"},
+        ]}
+        callee = {"key": "a", "actions": [
+            A1, A2, {"type": "system", "op": "wait", "ms": 5},
+        ]}
+        runner, state, scheduler, _performed, selected, selections, _messages = make_runner(
+            [caller, callee], selected_key="a", enabled=True,
+        )
+        # X has already called A to send a; A is about to send b and wait.
+        state.indices_for("")["x"] = 0
+        state.indices_for("")["a"] = 1
+        state.call_refs_for("").add("x")
+
+        runner.handle_key("a")
+        self.assertIn(("", "a"), state.pending_steps)
+        selected["key"] = "x"
+        selections.clear()
+        scheduler.run_one()
+
+        self.assertEqual(selected["key"], "x")
+        self.assertEqual(selections[-1], "x")
+        self.assertEqual(state.indices_for("")["x"], 1)
 
 
 if __name__ == "__main__":
