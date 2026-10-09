@@ -43,7 +43,7 @@
 ## タスク
 
 - task_01: probe（暫定 35 §6 の 1〜3: 合成の修飾キーを押したままのトリガー判定・text / 改行 / バックスペースへの影響・左右の ctrl / alt の押し離し）。安全な送り先（テスト用の Tk の入力欄）で `.venv` の小スクリプトを走らせて実測し、結果で §4.4・§6 を見直す（違えばユーザー確認）。メイン + verifier — **完了**（2026-10-10・メイン実測。右 ctrl を押したまま text で左 ctrl が残る不具合を発見 → 暫定 35 v0.4・ユーザー判断 1 点。記録は tasks/task_01_probe.md）
-- task_02: domain — 種類 `key_hold` の定数・検証（`edge` / `value` / `button` / `x` / `y` の実行時エラーの判定）・一覧の書式（1 関数）とテスト（§3・§7 の書式）
+- task_02: domain — 種類 `key_hold` の定数・検証（`edge` / `value` / `button` / `x` / `y` の実行時エラーの判定）・一覧の書式（1 関数）とテスト（§3・§7 の書式） — **完了**（2026-10-10・codex-implementer・reviewer 採用・不正な行の null の表示をメインで 1 行修正。tests 1368 pass）
 - task_03: infrastructure + application — InputGateway のマウスのボタンの押す / 離す（座標への移動・FAILSAFE）・押下中の集合 `HeldInputs`（同じキーの判定・送る前の記録・失敗時の補償）・ActionExecutor の `key_hold` の実行（持ち主の受け取り・止まる系のエラー・知らせる前の解放）とテスト（§4・§8）
 - task_04: application — 自動で離す入口（§5 の表: 連続実行の終わり・一時停止・破棄・待機の取り消し・先頭へ・状態を消す契機〔キー変更は旧キーの分〕・末尾の時点・連動の末尾・実行を終えるエラー）と runner から持ち主を渡す配線とテスト（§5）。
   **状態を消す契機の解放は application 側で受ける**（presentation の各呼び出し元に解放を書き足さず、状態を消す application の処理〔`AppState.reset_indices`・トリガーの状態の消去等〕から解放の口を呼ぶ。入口の実体は task_04 の起票時に特定する。`_cancel_pending_steps` は `sequence_runner.py:195` と `wait_stop.py:36` の 2 か所にあるため実体を特定する）
