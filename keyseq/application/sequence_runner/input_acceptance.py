@@ -77,6 +77,7 @@ class InputAcceptanceMixin:
         return step
 
     def _pause_single_call(self, key: str) -> None:
+        self._release_owner(key)
         with self.state.lock:
             pending = self.state.pending_steps[(self._get_trigger_set_id(), key)]
             pending.call_paused = True

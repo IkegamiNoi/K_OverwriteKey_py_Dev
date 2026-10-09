@@ -41,6 +41,7 @@ class SendWaitMixin:
                 return
         trigger = self._find_trigger(key) if self._get_trigger_set_id() == trigger_set_id else None
         if trigger is None:
+            self._release_owner(key)
             with self.state.lock:
                 if self.state.pending_steps.get(identity) is pending:
                     self.state.pending_steps.pop(identity)
@@ -52,6 +53,8 @@ class SendWaitMixin:
             deferred_counters=pending.resume.deferred_counters, wait_mode="wait",
         )
         self._record_single_completion(pending.snapshot, settled.wrapped)
+        if (settled.wrapped and not pending.resume.wrapped) or settled.position == 0:
+            self._release_owner(key)
         self._save_progress(key, settled.position, settled.frames,
                             settled.deferred_counters)
         with self.state.lock:
@@ -75,6 +78,9 @@ class SendWaitMixin:
         outcome: StepOutcome | StepResume, snapshot: StepSnapshot,
     ) -> tuple[tuple[str, int], ...] | None:
         position, frames = after_normal_action(actions, index, self._get_frames(key))
+        reached_end = position == 0
+        if reached_end:
+            self._release_owner(key)
         deferred = ()
         if not (position == 0 and outcome.wrapped):
             settled = settle_after_normal(
@@ -84,6 +90,9 @@ class SendWaitMixin:
                 wrapped=position == 0 or outcome.wrapped,
             )
             self._record_single_completion(snapshot, settled.wrapped)
+            if not reached_end and ((settled.wrapped and not outcome.wrapped)
+                                    or settled.position == 0):
+                self._release_owner(key)
             position, frames = settled.position, settled.frames
             deltas = outcome.counter_deltas + settled.counter_deltas
             deferred = settled.deferred_counters
@@ -149,7 +158,7 @@ class SendWaitMixin:
         self._commit_step_and_publish(snapshot, deltas)
         self._select_trigger(key)
         if position == 0 or stopped:
-            self.stop_run_to_end()
+            self.stop_run_to_end(release_held=not stopped or position == 0)
         else:
             self._schedule_run_to_end_step(key, 0)
 

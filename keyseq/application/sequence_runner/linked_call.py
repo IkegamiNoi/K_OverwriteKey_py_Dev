@@ -110,6 +110,10 @@ class LinkedCallMixin:
                         apply_deferred_counters(deferred, self.state.counters))
                     deferred = ()
                 self._save_progress(caller, position, frames, deferred)
+                if position == 0:
+                    # Only a caller that reaches its own root end releases its keys.
+                    # Completing the target/callee above does not release the target.
+                    self._release_owner(caller)
                 if paused:
                     self._discard_run_to_end_call()
                     self._run_to_end_resume = None

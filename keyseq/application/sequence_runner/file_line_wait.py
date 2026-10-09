@@ -52,11 +52,12 @@ class FileLineWaitMixin:
                 return
         trigger = self._find_trigger(key) if self._get_trigger_set_id() == trigger_set_id else None
         if trigger is None:
+            self._release_owner(key)
             with self.state.lock:
                 if self.state.pending_steps.get(identity) is pending:
                     self.state.pending_steps.pop(identity)
             return
-        result = self._poll_file_line(pending.file_line)
+        result = self._poll_owned_file_line(pending.file_line, key)
         if result is None:
             pending.after_id = self._after(
                 FILE_LINE_POLL_INTERVAL_MS,
@@ -89,9 +90,9 @@ class FileLineWaitMixin:
         outcome: StepOutcome, snapshot: StepSnapshot, initial_position: int,
     ) -> bool:
         if self._file_line_unavailable():
-            self._report_error(action, FILE_LINE_UNAVAILABLE_MESSAGE)
+            self._report_error(action, FILE_LINE_UNAVAILABLE_MESSAGE, key)
             return False
-        handle = self._begin_file_line(action)
+        handle = self._begin_owned_file_line(action, key)
         if handle is None:
             return False
         self._run_to_end_resume = resume_for_pending(outcome, initial_position)
@@ -127,7 +128,7 @@ class FileLineWaitMixin:
             self._run_to_end_wait_position = None
             self.stop_run_to_end()
             return
-        result = self._poll_file_line(handle)
+        result = self._poll_owned_file_line(handle, key)
         if result is None:
             self.state.run_to_end_after_id = self._after(
                 FILE_LINE_POLL_INTERVAL_MS,
@@ -158,6 +159,7 @@ class FileLineWaitMixin:
             DEFAULT_RUN_TO_END_DELAY_MS,
         )
         stop = not result
+        stopped = False
         if result:
             self._run_to_end_sent = True
             trigger = self._find_trigger(key)
@@ -176,6 +178,6 @@ class FileLineWaitMixin:
         self._run_to_end_snapshot = None
         self._select_trigger(key)
         if stop:
-            self.stop_run_to_end()
+            self.stop_run_to_end(release_held=not stopped or self._get_index(key) == 0)
         else:
             self._schedule_run_to_end_step(key, delay)

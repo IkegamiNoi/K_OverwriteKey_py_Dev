@@ -98,6 +98,8 @@ class ActionExecutor:
             return int(self._send_guard_count)
 
     def execute(self, action: dict, owner: str | None = None) -> bool:
+        if owner is None:
+            owner = self.held_inputs.current_owner
         raw = action.get("type")
         type_text = raw.strip() if isinstance(raw, str) else ""
         action_type = type_text.lower()
@@ -116,8 +118,8 @@ class ActionExecutor:
         if action_type == "key_hold":
             return self._execute_key_hold(action, owner or "")
         if action_type == "file_line":
-            self._on_action_error(
-                action,
+            self._report_held_error(
+                action, owner,
                 _file_line_error_message(
                     action,
                     FileLineError(
@@ -133,7 +135,7 @@ class ActionExecutor:
         notified_action = action.copy()
         notified_action["type"] = type_text
         err = self._invalid_type_message(type_text, action)
-        self._on_action_error(notified_action, err)
+        self._report_held_error(notified_action, owner, err)
         return False
 
     def begin_file_line(self, action: dict) -> FileLineHandle | None:
@@ -155,10 +157,13 @@ class ActionExecutor:
             request = self._file_line_loader.request(resolved_path, encoding)
             return FileLineHandle(request, line_number, out_of_range, resolved_path, action)
         except Exception as exc:
-            self._on_action_error(action, _file_line_error_message(action, exc))
+            self._report_held_error(action, self.held_inputs.current_owner,
+                                    _file_line_error_message(action, exc))
             return None
 
     def poll_file_line(self, handle: FileLineHandle, owner: str | None = None) -> bool | None:
+        if owner is None:
+            owner = self.held_inputs.current_owner
         try:
             if self._file_line_loader is None:
                 raise FileLineError("ファイル読込の仕組みが未設定です")

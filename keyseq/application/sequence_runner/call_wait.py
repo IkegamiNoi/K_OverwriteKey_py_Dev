@@ -99,7 +99,8 @@ class CallWaitMixin:
         if (self._single_call_pending(trigger_set_id, key, generation) is pending
                 and (self._get_trigger_set_id() != trigger_set_id
                      or self._find_trigger(key) is None)):
-            self._drop_single_call(trigger_set_id, key, generation, pending)
+            if self._drop_single_call(trigger_set_id, key, generation, pending):
+                self._release_owner(key)
 
     def _schedule_single_call(
         self, trigger_set_id: str, key: str, generation: int,
@@ -124,7 +125,8 @@ class CallWaitMixin:
             return
         if (self._get_trigger_set_id() != ctx.trigger_set_id
                 or self._find_trigger(key) is None):
-            self._drop_single_call(trigger_set_id, key, generation, pending)
+            if self._drop_single_call(trigger_set_id, key, generation, pending):
+                self._release_owner(key)
             return
         if ctx.root_continuation is not None:
             self._complete_single_call(trigger_set_id, key, generation, pending)
@@ -135,7 +137,8 @@ class CallWaitMixin:
                 self._pause_single_call(key)
             else:
                 self._rollback_linked_press(ctx)
-                self._drop_single_call(trigger_set_id, key, generation, pending)
+                if self._drop_single_call(trigger_set_id, key, generation, pending):
+                    self._release_owner(key)
             return
         self._add_call_deltas(pending)
         if step.kind == "action":
@@ -175,7 +178,7 @@ class CallWaitMixin:
         ctx = pending.call
         ctx.performing = True
         try:
-            succeeded = self._perform_action(action)
+            succeeded = self._send_action(action, key)
         finally:
             ctx.performing = False
         if (pending.call_paused
@@ -191,8 +194,10 @@ class CallWaitMixin:
                 self._add_call_deltas(pending)
                 if following.kind == "error":
                     message = following.message or "呼び出しを実行できません"
-                    self._report_error(self._call_action(key, pending),
-                                       message + self._call_chain_suffix(following))
+                    self._report_error(
+                        self._call_action(key, pending),
+                        message + self._call_chain_suffix(following), owner=key,
+                    )
                     self._fail_single_call(trigger_set_id, key, pending.generation, pending)
                 elif following.kind == "done":
                     self._complete_single_call(trigger_set_id, key, pending.generation, pending)
@@ -225,13 +230,14 @@ class CallWaitMixin:
             self._report_error(
                 self._call_action(key, pending),
                 FILE_LINE_UNAVAILABLE_MESSAGE + self._call_chain_suffix(step),
+                owner=key,
             )
             if self._call_parent_is_current(trigger_set_id, key, generation, pending):
                 self._fail_single_call(trigger_set_id, key, generation, pending)
             else:
                 self._discard_if_parent_invalid(trigger_set_id, key, generation, pending)
             return
-        handle = self._begin_file_line(step.action or {})
+        handle = self._begin_owned_file_line(step.action or {}, key)
         if not self._call_parent_is_current(trigger_set_id, key, generation, pending):
             self._discard_if_parent_invalid(trigger_set_id, key, generation, pending)
             return
@@ -260,7 +266,7 @@ class CallWaitMixin:
         if not self._call_parent_is_current(trigger_set_id, key, generation, pending):
             self._discard_if_parent_invalid(trigger_set_id, key, generation, pending)
             return
-        result = self._poll_file_line(pending.call_file_line)
+        result = self._poll_owned_file_line(pending.call_file_line, key)
         if not self._call_parent_is_current(trigger_set_id, key, generation, pending):
             self._discard_if_parent_invalid(trigger_set_id, key, generation, pending)
             return
@@ -312,7 +318,7 @@ class CallWaitMixin:
         suffix = f" / {chain_text(step.chain)}" if step.chain else ""
         pending.call.failed = True
         self._write_linked_progress(pending.call, failed=True)
-        self._report_error(self._call_action(key, pending), message + suffix)
+        self._report_error(self._call_action(key, pending), message + suffix, owner=key)
         if self._call_parent_is_current(trigger_set_id, key, generation, pending):
             self._fail_single_call(trigger_set_id, key, generation, pending)
         elif (pending.call_paused
@@ -339,6 +345,7 @@ class CallWaitMixin:
     ) -> None:
         if not self._drop_single_call(trigger_set_id, key, generation, pending):
             return
+        self._release_owner(key)
         self._commit_linked_call(pending, failed=True)
         self._select_trigger(key)
 
@@ -370,6 +377,8 @@ class CallWaitMixin:
                 self._schedule_single_call(trigger_set_id, key, generation, pending, settled.wait_ms)
                 return
         if position == 0:
+            # The pressed trigger's sequence ended; callee completion alone does not release.
+            self._release_owner(key)
             ctx.record_deltas(key, apply_deferred_counters(deferred, self.state.counters))
             deferred = ()
             ctx.completed.append(key)

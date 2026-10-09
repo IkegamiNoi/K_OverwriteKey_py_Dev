@@ -1,9 +1,11 @@
 from __future__ import annotations
 
 from collections.abc import Iterable, Sequence
+from contextlib import AbstractContextManager, nullcontext
 from typing import Any, Callable
 
 from keyseq.application.call_context import CallContext
+from keyseq.application.held_inputs import HeldInputs
 from keyseq.application.call_chain import chain_from
 from keyseq.application.sequence_history import (
     StepSnapshot, apply_control, commit_step, commit_press, snapshot_for,
@@ -51,8 +53,10 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         list_trigger_keys: Callable[[], Sequence[str]] | None = None,
         get_selected_trigger_key: Callable[[], str | None] | None = None,
         is_select_before_run_enabled: Callable[[], bool] | None = None,
+        held_inputs: HeldInputs | None = None,
     ):
         self.state = state
+        self.held_inputs = held_inputs
         self._find_trigger = find_trigger
         self._list_trigger_keys = list_trigger_keys
         self._single_finishing_steps: dict[tuple[str, str], tuple[StepSnapshot, bool]] = {}
@@ -84,6 +88,49 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         self._run_to_end_call: CallContext | None = None
         self._run_to_end_call_token = 0
         self._run_to_end_call_file_line: object | None = None
+
+    def _owner_scope(self, key: str) -> AbstractContextManager[None]:
+        return self.held_inputs.owner_scope(key) if self.held_inputs is not None else nullcontext()
+
+    def _notify_release_errors(self, errors: list[Exception]) -> None:
+        if errors and self._notify_error is not None:
+            message = "押下中の入力の解放に失敗しました: " + "; ".join(str(exc) for exc in errors)
+            notify = self._notify_error
+            # モーダル通知による再入は、取消・停止等の状態遷移を終えた後にする。
+            self._after(0, lambda: notify({}, message))
+
+    def _release_owner(self, key: str | None) -> None:
+        if key is not None:
+            self._release_owners((key,))
+
+    def _release_owners(self, keys: Iterable[str]) -> None:
+        if self.held_inputs is None:
+            return
+        errors: list[Exception] = []
+        for key in dict.fromkeys(keys):
+            errors.extend(self.held_inputs.release_owner(key))
+        self._notify_release_errors(errors)
+
+    def _send_action(self, action: dict[str, Any], key: str) -> bool | None:
+        with self._owner_scope(key):
+            result = self._perform_action(action)
+        if result is False:
+            self._release_owner(key)
+        return result
+
+    def _begin_owned_file_line(self, action: dict[str, Any], key: str) -> object | None:
+        with self._owner_scope(key):
+            handle = self._begin_file_line(action)
+        if handle is None:
+            self._release_owner(key)
+        return handle
+
+    def _poll_owned_file_line(self, handle: object, key: str) -> bool | None:
+        with self._owner_scope(key):
+            result = self._poll_file_line(handle)
+        if result is False:
+            self._release_owner(key)
+        return result
 
     def _get_index(self, key: str) -> int:
         return int(self.state.indices_for(self._get_trigger_set_id()).get(key, 0) or 0)
@@ -198,6 +245,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
         # Paused calls already published their live progress when they paused.
         cancelling = tuple((current, pending) for current, pending in self.state.pending_steps.items()
                            if identity is None or current == identity)
+        self._release_owners(current[1] for current, _pending in cancelling)
         for current, pending in cancelling:
             ctx = pending.call
             if ((identity is not None and current != identity)
@@ -235,6 +283,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
 
     def reset_loop_frames(self, key: str) -> None:
         key = normalize_key_name(key)
+        self._release_owner(key)
         self._cancel_calls_for_reset(key)
         reschedule_run_to_end = (
             self.state.run_to_end_key == key
@@ -281,6 +330,8 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
 
     def cancel_pending_wait(self, key: str) -> None:
         identity = (self._get_trigger_set_id(), normalize_key_name(key))
+        if identity not in self.state.pending_steps:
+            self._release_owner(identity[1])
         self._cancel_pending_steps(identity)
 
     def cancel_pending_waits(self) -> None:
@@ -299,12 +350,22 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                                         op, self._find_trigger,
                                         prepare_targets=self._prepare_control_targets,
                                         target_key=target_key, selected_key=selected_key)
+        if op == "rewind" and target is not None:
+            self._release_owner(target)
         self._publish_call_view()
         if message and self._notify_message is not None:
             self._notify_message(message)
         return target
 
-    def _report_error(self, action: dict[str, Any], message: str) -> None:
+    def _report_error(self, action: dict[str, Any], message: str,
+                      owner: str | None = None) -> None:
+        if self.held_inputs is not None:
+            if owner is None:
+                owner = self.held_inputs.current_owner
+            if owner is not None:
+                errors = self.held_inputs.release_owner(owner)
+                if errors:
+                    message += " / 解放エラー: " + "; ".join(str(exc) for exc in errors)
         if self._notify_error is not None:
             if action.get("type") == "system":
                 action, message = format_system_error_notification(action, message)
@@ -343,9 +404,11 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                                   self._get_trigger_set_id()).get(key, ()),
                               on_control=on_control)
             self._save_progress(key, outcome.position, outcome.frames)
+            if outcome.reached_end or outcome.wrapped:
+                self._release_owner(key)
             if outcome.error:
                 index, message = outcome.error
-                self._report_error(actions[index], message)
+                self._report_error(actions[index], message, key)
                 return
             if outcome.normal_index is None:
                 if outcome.reached_end:
@@ -357,9 +420,9 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             action_type = raw_type.strip().lower() if isinstance(raw_type, str) else ""
             if action_type == ACTION_TYPE_FILE_LINE:
                 if self._file_line_unavailable():
-                    self._report_error(action, FILE_LINE_UNAVAILABLE_MESSAGE)
+                    self._report_error(action, FILE_LINE_UNAVAILABLE_MESSAGE, key)
                     return
-                handle = self._begin_file_line(action)
+                handle = self._begin_owned_file_line(action, key)
                 if handle is None:
                     return
                 self._queue_single_file_line(
@@ -376,7 +439,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
                 self._start_single_call(key, actions, outcome, snapshot, initial_position)
                 waiting = True
                 return
-            if self._perform_action(action) is False:
+            if self._send_action(action, key) is False:
                 return
             outcome.counter_deltas = self._finish_single_normal_action(
                 key, actions, index, outcome, snapshot,

@@ -128,6 +128,7 @@ class CallRunToEndMixin:
                 # Keep progress through actions already sent in this call context.
                 self._commit_run_to_end_call(ctx)
                 self.state.run_to_end_paused = True
+                self._release_owner(key)
             else:
                 self._rollback_linked_press(ctx)
                 self._discard_run_to_end_call()
@@ -136,7 +137,9 @@ class CallRunToEndMixin:
                 self._run_to_end_wait_position = None
                 if sent_before_step:
                     self.state.run_to_end_paused = True
+                    self._release_owner(key)
                 else:
+                    self._release_owner(key)
                     self.state.run_to_end_key = None
                     self.state.run_to_end_paused = False
                     self.state.run_to_end_after_id = None
@@ -182,7 +185,7 @@ class CallRunToEndMixin:
             return
         ctx.performing = True
         try:
-            succeeded = self._perform_action(action)
+            succeeded = self._send_action(action, key)
         finally:
             ctx.performing = False
         if succeeded is False:
@@ -220,7 +223,7 @@ class CallRunToEndMixin:
                 FILE_LINE_UNAVAILABLE_MESSAGE, step,
             )
             return
-        handle = self._begin_file_line(step.action or {})
+        handle = self._begin_owned_file_line(step.action or {}, key)
         if handle is None:
             if not self._run_to_end_call_failure_matches(generation, key, token, ctx):
                 return
@@ -253,7 +256,7 @@ class CallRunToEndMixin:
             return
         ctx.performing = True
         try:
-            result = self._poll_file_line(handle)
+            result = self._poll_owned_file_line(handle, key)
         finally:
             ctx.performing = False
         if result is False:
@@ -328,7 +331,7 @@ class CallRunToEndMixin:
             self._complete_run_to_end_call(generation, key, token, ctx, stopped_call=True)
         else:
             self._commit_run_to_end_call(ctx)
-            self.pause_run_to_end()
+            self.pause_run_to_end(release_held=False)
             self._update_status()
 
     def _report_run_to_end_call_error(
@@ -351,7 +354,7 @@ class CallRunToEndMixin:
         suffix = f" / {chain_text(step.chain)}" if step.chain else ""
         ctx.failed = True
         self._write_linked_progress(ctx, failed=True)
-        self._report_error(action, message + suffix)
+        self._report_error(action, message + suffix, owner=key)
         if not self._run_to_end_call_failure_matches(generation, key, token, ctx):
             return
         if not self._run_to_end_call_parent_is_current(ctx):
@@ -405,7 +408,8 @@ class CallRunToEndMixin:
         self._run_to_end_wait_position = None
         self._select_trigger(key)
         if position == 0 or stopped or stopped_call:
-            self.stop_run_to_end()
+            # A stop row is only a run boundary unless it is the last row (the run wrapped to 0).
+            self.stop_run_to_end(release_held=position == 0 or not (stopped or stopped_call))
         else:
             delay = coerce_nonnegative_int(
                 trigger.get("run_to_end_delay_ms", DEFAULT_RUN_TO_END_DELAY_MS),
@@ -464,7 +468,7 @@ class CallRunToEndMixin:
             self._run_to_end_snapshot = None
             self._run_to_end_wait_position = None
             if position == 0 or step.kind == "stopped":
-                self.stop_run_to_end()
+                self.stop_run_to_end(release_held=position == 0 or step.kind != "stopped")
         else:
             self._commit_run_to_end_call(ctx)
 

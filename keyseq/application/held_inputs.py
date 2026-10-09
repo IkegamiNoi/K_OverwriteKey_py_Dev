@@ -29,8 +29,18 @@ class HeldInputs:
         self.input_gateway = input_gateway
         self._records: dict[InputIdentity, HeldInput] = {}
         self._next_order = 0
+        self.current_owner: str | None = None
         self._on_change = on_change
         self.set_send_guard(enter_send_guard, exit_send_guard)
+
+    @contextmanager
+    def owner_scope(self, owner: str) -> Iterator[None]:
+        previous = self.current_owner
+        self.current_owner = owner
+        try:
+            yield
+        finally:
+            self.current_owner = previous
 
     def set_send_guard(
         self, enter: Callable[[], None] | None, exit: Callable[[], None] | None,

@@ -21,6 +21,8 @@ class RunToEndMixin:
         if not actions:
             return
 
+        self._release_owner(self.state.run_to_end_key)
+
         # Starting a run finishes ordinary single waits, never paused calls.
         for identity, pending in tuple(self.state.pending_steps.items()):
             if (identity[0] == self._get_trigger_set_id()
@@ -38,7 +40,9 @@ class RunToEndMixin:
         self._select_trigger(key)
         self._run_to_end_step(generation=self._run_to_end_generation, key=key)
 
-    def pause_run_to_end(self) -> None:
+    def pause_run_to_end(self, *, release_held: bool = True) -> None:
+        if release_held:
+            self._release_owner(self.state.run_to_end_key)
         self.state.run_to_end_paused = True
         if self.state.run_to_end_after_id is not None:
             try:
@@ -47,7 +51,7 @@ class RunToEndMixin:
                 pass
             self.state.run_to_end_after_id = None
         if self._finish_run_to_end_wait():
-            self.stop_run_to_end()
+            self.stop_run_to_end(release_held=release_held)
             return
         self._discard_run_to_end_file_line()
         if self._run_to_end_call is not None:
@@ -82,7 +86,10 @@ class RunToEndMixin:
                 return
         self._run_to_end_step(schedule_only=True)
 
-    def stop_run_to_end(self) -> None:
+    def stop_run_to_end(self, *, release_held: bool = True) -> None:
+        key = self.state.run_to_end_key
+        if release_held:
+            self._release_owner(key)
         self._run_to_end_generation += 1
         if self.state.run_to_end_after_id is not None:
             try:
@@ -115,6 +122,8 @@ class RunToEndMixin:
         self._update_status()
 
     def on_runtime_reset(self) -> None:
+        if self.held_inputs is not None:
+            self._notify_release_errors(self.held_inputs.release_all())
         self._single_finishing_steps.clear()
         if self.state.run_to_end_key is None:
             self._publish_call_view()
@@ -207,9 +216,10 @@ class RunToEndMixin:
         self._run_to_end_resume = None
         self._run_to_end_wait_position = None
         stop = outcome.error is not None or outcome.normal_index is None
+        stopped = outcome.stopped
         if outcome.error:
             index, message = outcome.error
-            self._report_error(actions[index], message)
+            self._report_error(actions[index], message, key)
         elif outcome.normal_index is not None:
             index = outcome.normal_index
             action = actions[index]
@@ -237,7 +247,7 @@ class RunToEndMixin:
                 if target is not None:
                     self._select_trigger(target)
                 return
-            elif self._perform_action(action) is False:
+            elif self._send_action(action, key) is False:
                 stop = True
             else:
                 self._run_to_end_sent = True
@@ -257,7 +267,7 @@ class RunToEndMixin:
             self._record_single_completion(snapshot, True)
         self._commit_step_and_publish(snapshot, outcome.counter_deltas)
         if stop:
-            self.stop_run_to_end()
+            self.stop_run_to_end(release_held=not stopped or self._get_index(key) == 0)
         else:
             self._schedule_run_to_end_step(key, delay)
         self._run_to_end_snapshot = None
