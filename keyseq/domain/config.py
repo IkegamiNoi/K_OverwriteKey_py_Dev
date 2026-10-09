@@ -3,7 +3,7 @@
 import json
 from typing import Any, Callable, Mapping
 
-from . import sequence_control
+from . import key_hold, sequence_control
 
 
 DEFAULT_RUN_TO_END_DELAY_MS = 300
@@ -428,10 +428,13 @@ def format_action_list_item(
         sequence_control.ACTION_TYPE_SYSTEM,
         sequence_control.ACTION_TYPE_FILE_LINE,
     )
+    is_key_hold_action = action_type == key_hold.ACTION_TYPE_KEY_HOLD
     if is_control_action:
         value_display = sequence_control.format_control_value(
             action, loop_iteration=loop_iteration, counters=counters, resolve_call=resolve_call
         )
+    elif is_key_hold_action:
+        value_display = key_hold.format_key_hold_value(action)
     elif action_type == "mouse_click":
         x = action.get("x", "")
         y = action.get("y", "")
@@ -448,7 +451,7 @@ def format_action_list_item(
         value_display = action.get("value", "")
 
     label = (action.get("label") or "").strip()
-    if is_control_action:
+    if is_control_action or is_key_hold_action:
         if label:
             return f"{index + 1:02d}. {value_display}: {label}"
         return f"{index + 1:02d}. {value_display}"
