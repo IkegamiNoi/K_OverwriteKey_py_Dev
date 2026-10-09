@@ -7,11 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 50](50_select_before_run/phase.md)**（2026-10-08 起票・選んでから実行。暫定仕様先行モード）。
-  一覧で選ばれていないトリガーの 1 回目の押下は選ぶだけ（一時メッセージ）・選ばれた状態の 2 回目で実行。フック欄の全体のチェック（構成セット）とシーケンス欄のトリガーごとのチェック（シーケンス）のどちらかが ON なら対象。keymap_set / sequence に `select_before_run`（後方互換）。単発の待機明けの選び直しの既存挙動を変える。
-  主入力 = [暫定 34](../history/34_select_before_run.md)（v0.4・ユーザー確定済）。起票元 = ユーザー要望（2026-10-07）。番号対応: phase 50 / 暫定 34 / decisions 50。
-- 直前の完了フェーズ = [phase 49](49_status_truncation_tooltip/phase.md)（2026-10-07・ステータスの見切れのツールチップ。直接改訂モード・判断は [decisions_archive/49](../../.claude_data/state/decisions_archive/49_status_truncation_tooltip.md)）。
-- その前の完了フェーズ = [phase 48](48_compact_sequence_view/phase.md)（2026-10-07・省略表示の出力シーケンス欄。暫定仕様先行モード〔暫定 33 v0.6 凍結〕・判断は [decisions_archive/48](../../.claude_data/state/decisions_archive/48_compact_sequence_view.md)）/
+- **アクティブなフェーズ = なし**（phase 50 は 2026-10-09 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- 直前の完了フェーズ = [phase 50](50_select_before_run/phase.md)（2026-10-09・確認して実行〔select_before_run〕と戻す・先頭への対象を一覧の選択へ。暫定仕様先行モード〔暫定 34 v0.6 凍結〕・判断は [decisions_archive/50](../../.claude_data/state/decisions_archive/50_select_before_run.md)）。
+- その前の完了フェーズ = [phase 49](49_status_truncation_tooltip/phase.md)（2026-10-07・ステータスの見切れのツールチップ。直接改訂モード・判断は [decisions_archive/49](../../.claude_data/state/decisions_archive/49_status_truncation_tooltip.md)）/
+  [phase 48](48_compact_sequence_view/phase.md)（2026-10-07・省略表示の出力シーケンス欄。暫定仕様先行モード〔暫定 33 v0.6 凍結〕・判断は [decisions_archive/48](../../.claude_data/state/decisions_archive/48_compact_sequence_view.md)）/
   [phase 47](47_action_dialog_layout_cleanup/phase.md)（2026-10-06・アクションの追加・編集ダイアログの整理。直接改訂モード・判断は [decisions_archive/47](../../.claude_data/state/decisions_archive/47_action_dialog_layout_cleanup.md)）/
   [phase 46](46_back_rewind_target/phase.md)（2026-10-06・戻す・先頭への対象トリガー指定。暫定仕様先行モード・判断は [decisions_archive/46](../../.claude_data/state/decisions_archive/46_back_rewind_target.md)）/
   [phase 45](45_call_step_and_view/phase.md)（2026-10-05・呼び出しのステップ実行と呼び出し先の表示・
@@ -35,7 +34,8 @@
   phase 40 で呼び出し（`op: call`・`target`・**JSON スキーマ変更あり**・§4.2.9）と入力の受け付け・一時停止（§4.2.10）を加え、待機を「送った後の待ち」に改めた（§4.2.5）。
   phase 45 で呼び出しの行ごとにステップ（既定）/ 一括（`all`・**JSON スキーマ変更あり**）を選べるようにし、写しをやめて参照中の印で呼び出し元と呼び出し先を連動させ、呼び出し先の表示枠（`call_view_heights`）を加えた（§4.2.6・§4.2.8・§4.2.9・§4.2.10・§4.6）。
   phase 46 で戻す・先頭への行に任意キー `target`（**JSON スキーマ変更あり**）を加え、指定があれば直前のトリガーに関係なく指定先を戻す / 先頭へ移す（§4.1・§4.2.6・§4.6）。
-  **残件** = カウンター条件分岐（idea_37）/ 表示中のトリガーを戻す・先頭への対象にする（idea_39）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
+  phase 50 で確認して実行（§4.2.11・`select_before_run`・**JSON スキーマ変更あり**）を加え、`target` の無い戻す・先頭への対象を一覧の選択へ（使えなければ直前のトリガー・§4.2.6）・待機明けに選択が変わっていれば選び直さない（§4.2.5）とした。
+  **残件** = カウンター条件分岐（idea_37）/ 直前のトリガーの廃止ほか（idea_39 の残り）/ 下記「別タスク化候補 > 出力シーケンスの制御アクション」。
   phase 41 で text / file_line の送信中は送り先の IME をオフにした（`key_input.md` §7.7・`infrastructure/ime_control.py`。IME オンでカタカナがひらがなの変換待ちになる不具合）。
   phase 42 で一覧のクリックで選択と下線がずれる不具合を直した（presentation の `listbox_utils.py`。押している間は帯だけ・離したときに反映）。
 - その前の領域 = **トリガー一覧のキーマップ従属化**（phase 34）。
@@ -75,7 +75,7 @@
   **phase 47 は 2026-10-06 完了**（`47_action_dialog_layout_cleanup` / 暫定なし〔直接改訂モード〕/ decisions 47〔アーカイブ済〕）。
   **phase 48 は 2026-10-07 完了**（`48_compact_sequence_view` / 暫定 33〔v0.6・凍結〕/ decisions 48〔アーカイブ済〕）。
   **phase 49 は 2026-10-07 完了**（`49_status_truncation_tooltip` / 暫定なし〔直接改訂モード〕/ decisions 49〔アーカイブ済〕）。
-  **phase 50 は 2026-10-08 起票**（`50_select_before_run` / 暫定 34〔v0.4〕/ decisions 50）。
+  **phase 50 は 2026-10-09 完了**（`50_select_before_run` / 暫定 34〔v0.6・凍結〕/ decisions 50〔アーカイブ済〕）。
   次フェーズは **`51_<topic>`**・decisions も **51** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -107,7 +107,7 @@
   31=呼び出しのステップ実行と呼び出し先の表示〔**v0.6・凍結**〕 /
   32=戻す・先頭への対象トリガー指定〔**v0.3・凍結**〕 /
   33=省略表示の出力シーケンス欄〔**v0.6・凍結**〕 /
-  34=選んでから実行〔v0.4・ユーザー確定済・phase 50 の主入力〕）。
+  34=確認して実行〔**v0.6・凍結**〕）。
   次採番は **`35_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**20 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -183,6 +183,8 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   - `controllers/config_io/` の IO クラス骨格（`__init__` + `run_*` → `config_service` 呼び出し →
     `format_*` → `messagebox`）と `presentation/*_text.py` の整形関数が **3 系統目**に達した（phase 11 由来）
 
+- トリガー / シーケンスの属性（`run_to_end`・`select_before_run`）の読み書きの列挙が `domain/config.py`・`config_service/__init__.py`・`split_loading.py`・`split_payloads.py` の 4 モジュールに分かれている。
+  phase 50 は既存の列挙箇所に 1 属性を並べただけで箇所数は不変（M4 非該当）。属性がさらに増えるなら属性の表から読み書きする形を検討（phase 50 由来）
 - `split_payloads.py` の既存の 80 行超の関数 2 つ: `build_keymap_payloads`（100 行）/ `build_trigger_set_payloads`（106 行）。phase 36 では未変更（phase 36 由来）
 - 引数の多い位置指定の補助関数（phase 36 の分割で生じた）: `split_payloads.py::_append_split_trigger_set_payloads` / `_build_split_trigger_set_entry`（13〜15 個）/
   `child_save_rows.py::_append_trigger_set_row`（13 個・同型の str を位置で並べる）/ `domain/config.py` の内部キー 4 要素タプル。

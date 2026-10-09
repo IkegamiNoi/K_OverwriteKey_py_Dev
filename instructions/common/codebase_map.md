@@ -730,6 +730,18 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     `trigger_panel/action_edit.py` の `_call_dialog_options` が `edit_control_target_violation` を `control_target_check` として渡す /
     `trigger_panel/trigger_row_edit.py` の改名で `rename_call_targets` に続けて `rename_control_targets`
   - テスト: `tests/test_control_target.py` / `test_sequence_control.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_sequence_steps.py` / `test_list_clipboard.py` / `tests_ui/test_action_dialog_control.py` / `test_action_list_rendering.py` / `test_trigger_effective_row.py`
+- phase 50（確認して実行 `select_before_run`・戻す・先頭への対象を一覧の選択へ。仕様 = `features.md` §4.2.5・§4.2.6・§4.2.10・§4.2.11・§4.5・§4.6 / `data_schema.md` §5.3・§5.6・§5.9.1 / `key_input.md` §7.3。判断 = `decisions_archive/50_select_before_run.md`）:
+  - 保存: `domain/config.py`（単一 JSON の最上位キー・`normalize_triggers`）/ `config_service/split_loading.py`（keymap_set の読込・trigger_set 内の trigger）/ `split_payloads.py`（keymap_set・sequence の保存）/
+    `config_service/__init__.py` の `_normalize_sequence_payload`（sequence の読込・個別読込も同じ）
+  - リピートの印: `input_router.py` が down の前の押下状態（`KeyStateManager.is_pressed`）で `TriggerAction.repeat` を付ける → `action_executor.py` が `on_trigger(key, repeat)` → runner `handle_key(key, repeat)`（選ぶだけにしたキー `_select_only_key` のリピートを無視）
+  - 判定: `input_acceptance.py` の `_select_only_if_needed`（`_accept_key` の空の判定の後・連続実行の開始 / 単発の前）。runner の注入口（省略可・省略時は機能 OFF）=
+    `is_select_before_run_enabled`（全体の設定）・`get_selected_trigger_key`（一覧で選ばれている有効な行のキー・無ければ None）
+  - 待機明けの選び直し: `send_wait.py`（注入口の選択が待機していたキーのときだけ選ぶ・注入なしは従来どおり選ぶ）
+  - 戻す・先頭への対象: runner `_control` が `get_selected_trigger_key` から候補を取り（自分自身・戻す・先頭へだけ〔`_is_standalone_control`〕を除く）→ `sequence_history.apply_control(selected_key=)`（使えなければ直前のトリガー）。
+    `_run_single_action` の `finally` は戻す・先頭へだけのトリガー自身を選ばない
+  - presentation: `app.py`（runner への注入・`_sync_control_vars_from_data` の同期）/ `controllers/trigger_panel/select_before_run.py`（シーケンス欄のチェックの同期・書き戻し）/
+    `views/full_view/hook_frame.py`・`views/compact_view/hook_frame.py`（全体のチェック・個別指定の下の行）/ `views/full_view/sequence_box.py`（トリガーごとのチェック・間隔の下）/ `ui_vars.py`
+  - テスト: `tests/test_sequence_runner_select_before_run.py` / `test_input_router.py` / `test_config_service.py` / `test_domain_config.py` / `tests_ui/test_select_before_run_ui.py` / `test_full_view_min_height.py`
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 

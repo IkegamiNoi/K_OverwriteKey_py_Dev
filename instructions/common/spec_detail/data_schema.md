@@ -76,6 +76,16 @@
 * 型: int
 * デフォルト: 300
 
+#### select_before_run（phase 50）
+
+UI 上の「確認して実行」（`features.md` §4.2.11）。全体（構成セット）とトリガーごと（シーケンス）の 2 か所に持ち、**どちらかが真なら対象**。
+
+* **keymap_set**（全体）: bool・**既定 false**。**bool 型でなければ false**（`hotkey_presets_individual` と同じ・キーの有無や他の値から推論しない）。保存では**常に出力する**。
+  単一 JSON（Import / Export）では**最上位キー** `select_before_run` に同じ規則で持つ（§5.2）
+* **sequence**（トリガーごと）: bool・**既定 false**。`run_to_end` と同じ解釈（キーが無ければ false・値があれば `bool()`）。保存（一括・個別）では**常に出力する**
+* **trigger_set 内の trigger / 単一 JSON の trigger**（インライン）: `run_to_end` と同じく trigger の `select_before_run` も読む。trigger_set 内の trigger は、**参照先 sequence を読めたら sequence 側の値で上書き**する（sequence にキーが無ければ false・`run_to_end` と同じ）
+* キーを持たない既存ファイルは false（OFF）として読む。複製・貼り付け・Export はトリガーを丸ごと写すため値を保つ
+
 ### 5.4 分離JSONの本流
 
 | 機能 | 形式 |
@@ -203,6 +213,7 @@
   | `sequence_path` | str | **空扱い**（参照なし＝同 trigger のインライン `actions` を使う） |
   | `suppress` | bool | **キーが無ければ true**。値があれば `bool()` で解釈するため **`null` / `0` / `""` / `[]` は false** になる（不正値を既定 true へ倒すのではない） |
   | `run_to_end` | bool | 同上（既定 false） |
+  | `select_before_run` | bool | 同上（既定 false・参照先 sequence を読めたらその値で上書き・§5.3。phase 50） |
   | `run_to_end_delay_ms` | int | 変換不能なら 300（`"500"` のような数値文字列は 500 として受け入れる） |
 
 * **参照先 sequence の `label` も同じ規則で正規化する**。読込時に参照元 trigger の `label` を
@@ -240,8 +251,8 @@
 #### sequence
 
 * `config/user/sequences/` 配下に保存する
-* `label` / `run_to_end` / `run_to_end_delay_ms` / `actions` を持つ
-* `run_to_end` / `run_to_end_delay_ms` は UI 上の「連続実行」「間隔(ms)」
+* `label` / `run_to_end` / `run_to_end_delay_ms` / `select_before_run`（phase 50・§5.3）/ `actions` を持つ
+* `run_to_end` / `run_to_end_delay_ms` / `select_before_run` は UI 上の「連続実行」「間隔(ms)」「確認して実行」
 * `actions[]` の要素のスキーマは §5.11（アクション要素）
 * sequence の新規保存ファイル名は label 由来にし、日本語 label もそのまま候補に使う
 * ファイル名では Windows 禁止文字のみ `_` に置換する
@@ -308,7 +319,7 @@
 
 * **`config/config.json`（全体デフォルト）**: `hook_stop_key` / `hook_toggle_key` を持つ。
   **正規化して保持**し、空文字を許す（**初期値は空**）。未設定のときは空として扱う
-* **keymap_set（個別）**: `hook_keys_individual`（bool・**既定 false**）+ 既存キー
+* **keymap_set（個別）**: `hook_keys_individual`（bool・**既定 false**）+ 既存キー（同じ keymap_set に持つ「確認して実行」の全体の設定 `select_before_run` は §5.3）
   `hook_stop_key` / `hook_toggle_key`
 * keymap_set の保存では**この 3 キーを常に出力する**（値が空でも省略しない・§5.1 の既存キー削除禁止）
 
@@ -497,7 +508,7 @@ hotkey の検証エラー・`x` / `y` 不正（§5.11.2）・`to_x` / `to_y` 不
 | `loop_end` | — | ループの終わり（始まりとの対応は括弧の対応で決める。ID は持たない） |
 | `counter_inc` / `counter_reset` | `counter` | カウンター `counter` を +1 / 0 にする |
 | `wait` | `ms` | `ms` ミリ秒（1 以上の整数）待つ |
-| `back` / `rewind` | `target`（任意・phase 46） | `target`（トリガーキー・1 つ）があれば同じトリガー一覧のそのトリガーを、無ければ直前のトリガーを 1 段戻す / 先頭へ（`features.md` §4.2.6・出力シーケンスにそれ 1 つだけで登録する） |
+| `back` / `rewind` | `target`（任意・phase 46） | `target`（トリガーキー・1 つ）があれば同じトリガー一覧のそのトリガーを、無ければ一覧で選ばれているトリガー（使えなければ直前のトリガー・phase 50）を 1 段戻す / 先頭へ（`features.md` §4.2.6・出力シーケンスにそれ 1 つだけで登録する） |
 | `stop` | — | 連続実行の区切り（phase 39・`features.md` §4.2.8）。他の行と混ぜてよい |
 | `call` | `target` / `all` | 同じトリガー一覧のトリガー `target`（トリガーキー）の出力シーケンスを、呼び出し先自身の状態で実行する（phase 40・phase 45 で連動へ改訂・`features.md` §4.2.9）。`all` = true で一括 / 無い・偽ならステップ（phase 45）。他の行と混ぜてよい |
 
