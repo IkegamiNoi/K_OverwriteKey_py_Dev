@@ -48,7 +48,18 @@ def _resolve_extended_key(name: str) -> tuple[int, int] | None:
 
 def _send_extended_event(vk: int, scan: int, key_up: bool) -> None:
     flags = _KEYEVENTF_EXTENDEDKEY | (_KEYEVENTF_KEYUP if key_up else 0)
-    ctypes.windll.user32.keybd_event(vk, scan, flags, 0)
+    try:
+        listener = keyboard._listener
+        previous_replaying = listener.is_replaying
+    except AttributeError:
+        ctypes.windll.user32.keybd_event(vk, scan, flags, 0)
+        return
+
+    listener.is_replaying = True
+    try:
+        ctypes.windll.user32.keybd_event(vk, scan, flags, 0)
+    finally:
+        listener.is_replaying = previous_replaying
 
 
 class InputGateway:
@@ -122,13 +133,34 @@ class InputGateway:
 
     def write_text(self, text: str) -> None:
         if not text:
-            keyboard.write(text)
+            keyboard.write(text, restore_state_after=False)
             return
         reservation = ime_control.disable_for_text()
         try:
-            keyboard.write(text)
+            keyboard.write(text, restore_state_after=False)
         finally:
             ime_control.restore_after_text(reservation, len(text))
+
+    def key_identity(self, key: str) -> tuple[int, bool]:
+        extended = _resolve_extended_key(key)
+        if extended is not None:
+            return extended[1], True
+
+        scan_codes: tuple[int, ...] = ()
+        try:
+            scan_codes = tuple(keyboard.key_to_scan_codes(key))
+        except Exception:
+            scan_code = resolve_known_scan_code_from_key_name(str(key or ""))
+            if scan_code is None:
+                raise
+            return scan_code, False
+
+        if scan_codes:
+            return scan_codes[0], False
+        scan_code = resolve_known_scan_code_from_key_name(str(key or ""))
+        if scan_code is None:
+            raise ValueError(f"Unknown key name: {key!r}")
+        return scan_code, False
 
     def restore_ime_now(self) -> None:
         try:
@@ -146,6 +178,32 @@ class InputGateway:
 
     def click_mouse(self, x: int, y: int, button: str, clicks: int) -> None:
         pyautogui.click(x=x, y=y, button=button, clicks=clicks)
+
+    def mouse_down(
+        self, button: str, x: int | None = None, y: int | None = None
+    ) -> None:
+        self._send_mouse_button(button, x, y, is_down=True)
+
+    def mouse_up(
+        self, button: str, x: int | None = None, y: int | None = None
+    ) -> None:
+        self._send_mouse_button(button, x, y, is_down=False)
+
+    @staticmethod
+    def _send_mouse_button(
+        button: str, x: int | None, y: int | None, *, is_down: bool
+    ) -> None:
+        failsafe = pyautogui.FAILSAFE
+        pyautogui.FAILSAFE = False
+        try:
+            if x is not None and y is not None:
+                pyautogui.moveTo(x, y)
+            if is_down:
+                pyautogui.mouseDown(button=button)
+            else:
+                pyautogui.mouseUp(button=button)
+        finally:
+            pyautogui.FAILSAFE = failsafe
 
     def drag_mouse(
         self, x: int, y: int, to_x: int, to_y: int, button: str, duration_sec: float

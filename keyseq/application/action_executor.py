@@ -20,7 +20,9 @@ from keyseq.application.file_line_reader import (
     validate_file_line_request,
 )
 from keyseq.application.file_line_loader import FileLineLoadRequest, FileLineLoader
+from keyseq.application.held_inputs import HeldInputs
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
+from keyseq.domain.key_hold import EDGE_DOWN, parse_key_hold
 
 
 MIN_DRAG_DURATION_SEC = 0.15
@@ -68,6 +70,7 @@ class ActionExecutor:
         can_switch_keymap: Callable[[str], bool] | None = None,
         on_keymap_switch_blocked: Callable[[], None] | None = None,
         keymap_switch_in_progress: threading.Event | None = None,
+        held_inputs: HeldInputs | None = None,
     ) -> None:
         self.input_gateway = input_gateway
         self._validate_hotkey = validate_hotkey
@@ -86,13 +89,15 @@ class ActionExecutor:
         self._keymap_switch_in_progress = keymap_switch_in_progress
         self._send_guard_count = 0
         self._send_guard_lock = threading.RLock()
+        self.held_inputs = held_inputs if held_inputs is not None else HeldInputs(input_gateway)
+        self.held_inputs.set_send_guard(self._enter_send_guard, self._exit_send_guard)
 
     @property
     def send_guard_count(self) -> int:
         with self._send_guard_lock:
             return int(self._send_guard_count)
 
-    def execute(self, action: dict) -> bool:
+    def execute(self, action: dict, owner: str | None = None) -> bool:
         raw = action.get("type")
         type_text = raw.strip() if isinstance(raw, str) else ""
         action_type = type_text.lower()
@@ -102,8 +107,14 @@ class ActionExecutor:
             self._execute_hotkey(action, str(value))
             return True
         if action_type == "text":
-            self._write_text(str(value))
+            try:
+                self._write_text(str(value))
+            except Exception as exc:
+                self._report_held_error(action, owner, f"text の送信に失敗しました: {exc}")
+                return False
             return True
+        if action_type == "key_hold":
+            return self._execute_key_hold(action, owner or "")
         if action_type == "file_line":
             self._on_action_error(
                 action,
@@ -147,7 +158,7 @@ class ActionExecutor:
             self._on_action_error(action, _file_line_error_message(action, exc))
             return None
 
-    def poll_file_line(self, handle: FileLineHandle) -> bool | None:
+    def poll_file_line(self, handle: FileLineHandle, owner: str | None = None) -> bool | None:
         try:
             if self._file_line_loader is None:
                 raise FileLineError("ファイル読込の仕組みが未設定です")
@@ -166,13 +177,13 @@ class ActionExecutor:
                 self._write_text(line)
             return True
         except Exception as exc:
-            self._on_action_error(handle.action, _file_line_error_message(handle.action, exc))
+            self._report_held_error(handle.action, owner, _file_line_error_message(handle.action, exc))
             return False
 
     @staticmethod
     def _invalid_type_message(type_text: str, action: dict) -> str:
         err = (
-            "種類が不正です（hotkey / text / mouse_click / system / file_line のいずれか）。"
+            "種類が不正です（hotkey / text / mouse_click / system / file_line / key_hold のいずれか）。"
             f"種類: {type_text or '(なし)'}"
         )
         label = action.get("label")
@@ -221,9 +232,44 @@ class ActionExecutor:
     def _write_text(self, text: str) -> None:
         self._enter_send_guard()
         try:
-            self.input_gateway.write_text(text)
+            self.held_inputs.suspend_keyboard()
+            try:
+                self.input_gateway.write_text(text)
+            except Exception:
+                # 一時的に離した他の持ち主の分も押し直さず、集合を OS の実態にそろえる。
+                self.held_inputs.release_keyboard()
+                raise
+            self.held_inputs.resume_keyboard()
         finally:
             self._exit_send_guard()
+
+    def _report_held_error(self, action: dict, owner: str | None, message: str) -> None:
+        release_errors = self.held_inputs.release_owner(owner or "")
+        if release_errors:
+            message += " / 解放エラー: " + "; ".join(str(exc) for exc in release_errors)
+        self._on_action_error(action, message)
+
+    def _execute_key_hold(self, action: dict, owner: str) -> bool:
+        parsed = parse_key_hold(action)
+        if isinstance(parsed, str):
+            self._report_held_error(action, owner, parsed)
+            return False
+        try:
+            if parsed.key is not None:
+                self.input_gateway.validate_key_name(parsed.key)
+                if parsed.edge == EDGE_DOWN:
+                    self.held_inputs.press_key(owner, parsed.key)
+                else:
+                    self.held_inputs.release_key(parsed.key)
+            else:
+                if parsed.edge == EDGE_DOWN:
+                    self.held_inputs.press_mouse(owner, parsed.button, parsed.position)
+                else:
+                    self.held_inputs.release_mouse(parsed.button, parsed.position)
+        except Exception as exc:
+            self._report_held_error(action, owner, f"key_hold の実行に失敗しました: {exc}")
+            return False
+        return True
 
     def _send_mapped_key(self, key: str) -> None:
         self._enter_send_guard()
