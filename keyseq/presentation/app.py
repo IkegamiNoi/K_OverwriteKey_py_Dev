@@ -1,6 +1,7 @@
 ﻿import os
 import copy
 import threading
+from contextlib import contextmanager
 import tkinter as tk
 from typing import Callable
 from tkinter import messagebox, ttk
@@ -64,6 +65,7 @@ from keyseq.application.key_overlap import KeyOverlapAnalysis, analyze_key_overl
 from keyseq.application.keymap_service import KeymapService
 from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.sequence_runner import SequenceRunner
+from keyseq.application.key_repeat import KeyRepeater
 from keyseq.application.trigger_service import TriggerService
 from keyseq.domain.config import (
     HOOK_KEY_FIELDS,
@@ -72,7 +74,7 @@ from keyseq.domain.config import (
     normalize_key_name,
     safe_deepcopy,
 )
-from keyseq.infrastructure.input_gateway import InputGateway
+from keyseq.infrastructure.input_gateway import InputGateway, keyboard_repeat_timing
 from keyseq.infrastructure.json_repository import JsonRepository
 
 class App(tk.Tk):
@@ -121,9 +123,18 @@ class App(tk.Tk):
         self.trigger_service = TriggerService()
         self.keymap_service = KeymapService()
         self.input_gateway = InputGateway()
+        self.key_repeater = KeyRepeater(
+            after=self.after,
+            after_cancel=self.after_cancel,
+            get_timing=keyboard_repeat_timing,
+        )
         self.held_inputs = HeldInputs(
             self.input_gateway,
             on_change=lambda _names: self.after(0, self.trigger_panel.update_status),
+            repeater=self.key_repeater,
+            on_repeat_error=lambda action, message: self.hook.show_action_error(
+                "", action, message,
+            ),
         )
         self.hotkey_service = HotkeyService(validate_key_name=self.input_gateway.validate_key_name)
         self.key_state_manager = KeyStateManager(resolve_scan_code=lambda sc: self.layout.resolve_key_name_from_scan_code(sc))
@@ -134,7 +145,7 @@ class App(tk.Tk):
             held_inputs=self.held_inputs,
             validate_hotkey=self.hotkey_service.validate,
             on_action_error=lambda action, err: self.hook.show_action_error("", action, err),
-            on_runtime_error=lambda title, msg: messagebox.showerror(title, msg),
+            on_runtime_error=self._show_runtime_error,
             on_stop_hook=lambda: self.hook.stop_hook(),
             on_toggle_mode=lambda: self.hook.toggle_custom_input_enabled(),
             on_select_keymap=lambda keymap_id: self.keymap_panel.activate_keymap_by_id(keymap_id, show_flash=True),
@@ -271,6 +282,25 @@ class App(tk.Tk):
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         install_minimize_grab_custody(self)
+
+    @contextmanager
+    def repeat_suppressed(self):
+        """知らせの表示中に、キーリピートの開始と発火を抑止する。"""
+        repeater = getattr(self, "key_repeater", None)
+        if repeater is None:
+            yield
+            return
+        repeater.begin_suppress()
+        try:
+            yield
+        finally:
+            repeater.end_suppress()
+
+    def _show_runtime_error(self, title: str, message: str) -> None:
+        """リピートを抑止して実行エラーを表示する。"""
+        with self.repeat_suppressed():
+            messagebox.showerror(title, message)
+
     # ---------------- State compatibility aliases ----------------
     @property
     def _selected_trigger_idx(self) -> int:

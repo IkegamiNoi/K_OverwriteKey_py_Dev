@@ -239,6 +239,8 @@ class ActionDialog(tk.Toplevel):
                     messagebox.showerror("入力エラー", f"キー名が不正です: {exc}")
                     return
                 action = {"type": "key_hold", "edge": parsed.edge, "value": parsed.key, "label": label}
+                if parsed.edge == "down":
+                    action["repeat"] = self.key_hold_fields.repeat_var.get()
             else:
                 action = {"type": "key_hold", "edge": parsed.edge, "button": parsed.button, "label": label}
                 if parsed.position is not None:

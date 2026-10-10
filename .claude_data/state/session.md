@@ -4,45 +4,46 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-11T12:00:00
-phase: なし（phase 51 は 2026-10-11 完了）。次採番 = phase 52 / 暫定 36 / decisions 52 / 提案書 21。
+last_updated: 2026-10-11T01:25:00
+phase: `instructions/phase/52_key_hold_auto_repeat`（key_hold のキーリピート・暫定仕様先行・主入力 = 暫定 36 v0.4 確定済）。番号対応 phase 52 / 暫定 36 / decisions 52。次採番 = phase 53 / 暫定 37 / 提案書 21。
 直前の完了フェーズ = **phase 51**（キーの押下 / 解放 `key_hold`・`decisions_archive/51_key_press_release_actions.md`）。
 last_commit_location: `claude/keypress-hold-behavior-a25946`（phase 51 完了まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: present
-focus: **phase 51 完了（2026-10-11）。アクティブなフェーズなし・次フェーズはユーザー判断待ち。**
-mode: idle
+presence: away（戻る予定 未定）
+focus: **phase 52 task_01〜03 完了（task_03 は実装・検証済）。ユーザーの実機目視待ち（ホスト OS）→ OK なら task_04（統合確認）→ task_05（正本反映）。**
+mode: blocked
 
 ## last_action
-ts: 2026-10-11T12:00:00
+ts: 2026-10-11T01:25:00
 who: main
 summary: |
-  phase 51 起票（暫定 35 v0.1 → 起票時 deep-reviewer・確定前 Codex 敵対的 5 件・task_01 の probe・v0.4 の Codex 敵対的 3 件・task_03 / task_04 のレビューの未定義 2 点をすべてユーザー判断で反映 → v0.7）。
-  task_01 probe（右 ctrl を押したまま text で左 ctrl が残る既存の不具合を発見 → 送信後に keyboard に修飾キーを押し直させない・本機能の送信を keyboard の記録に載せない）。
-  task_02 domain（codex-implementer）/ task_03 HeldInputs・ActionExecutor（codex-delegating）/ task_04 離す入口・持ち主の受け渡し（codex-delegating・最後の行の停止は末尾として離す）/ task_05 画面（codex-delegating）。いずれも reviewer 完了可・小修正はメイン。
-  task_05 の新規 UI テストの Esc はフォーカス取得が要る（acquire_focus）・Tk ルートはクラスで共有。既存の test_action_dialog_control の実行順依存を current.md「テスト負債」へ記録。
-  task_05 実機目視 OK（2026-10-10）。key_hold の `a` がメモ帳で 1 文字しか出ないのは Windows が合成入力にキーリピートを付けないため（仕様どおり）→ リピートは idea_41 として起票。
-  task_06 統合確認: テスト pass・deep-reviewer H1（キーマップの切替で離れない＝暫定 35 の前提の誤り）ほか・codex-reviewer P2×2 → 暫定 35 v0.8・task_06a（codex-implementer）で修正。
-  task_07 正本反映・完了判定前レビュー（deep 修正要〔文言〕/ Codex 敵対的 high 2）→ v0.9 + task_07a（停止後の予約済み入力・解放失敗の保持）→ 凍結・decisions_archive/51・idea_23 を INDEX_done・refactor_check 不要。
-  task_06a 実機目視 OK（2026-10-10。右 ctrl の記録は VirtualBox のゲストでは物理キーが届かないだけ・ホスト OS で動作）。
+  phase 51 完了（2026-10-11・decisions_archive/51）。続けて idea_41 → phase 52 起票（暫定 36 v0.1 → 起票時 deep-reviewer 修正して採用 → v0.2 → ユーザー確定 3 点 → v0.3 → 確定前 Codex 敵対的 high 1・medium 1 をユーザー判断で採用 → v0.4 確定）。
+  task_01 domain + OS のリピート設定（codex-implementer・reviewer 採用）/ task_02 KeyRepeater と HeldInputs / ActionExecutor（codex-delegating〔Luna がテスト〕・reviewer 修正して採用 → 解けないキー名・再予約の失敗をメインで修正）/
+  task_03 App の配線・知らせの表示中の抑止・ダイアログの「リピートする」（codex-implementer・reviewer 採用・Mock の App で落ちる抑止の書き方等をメインで修正）。ユーザーは不在（/away・戻る予定 未定）。
 result_files:
-  - instructions/history/35_key_press_release_actions.md（v0.7）/ instructions/phase/51_key_press_release_actions/（phase.md・tasks/task_01〜05）
-  - keyseq/domain/key_hold.py / keyseq/application/held_inputs.py・action_executor.py・sequence_runner/ / keyseq/infrastructure/input_gateway.py / keyseq/presentation/（app.py・hook_controller.py・trigger_panel_controller.py・action_list_rendering.py・dialogs/action_dialog.py・dialogs/action_key_hold_fields.py）/ tests・tests_ui
+  - instructions/history/36_key_hold_auto_repeat.md（v0.4）/ instructions/phase/52_key_hold_auto_repeat/（phase.md・tasks/task_01〜03）
+  - keyseq/domain/key_hold.py / keyseq/application/key_repeat.py（新規）・held_inputs.py・action_executor.py / keyseq/infrastructure/input_gateway.py / keyseq/presentation/app.py・controllers/hook_controller.py・dialogs/action_key_hold_fields.py・action_dialog.py / tests・tests_ui
 verified:
   compile: clean
-  tests: 1447 OK（skipped 7）
-  tests_ui: 935 OK
+  tests: 1490 OK（skipped 7）
+  tests_ui: 942 OK
   smoke: pass
-  review: task_02〜07a reviewer 完了可 / 統合 deep + codex / 完了判定前 deep + codex 敵対的（指摘はすべて反映）
+  review: task_01〜03 reviewer 完了可（指摘は反映済）
 
 ## next_action
-- 次フェーズはユーザー判断（候補: idea_41 キーリピート ほか backlog）。着手時は `/phase_start`
+- **【戻ったら最初に】ユーザーの実機目視（phase 52 task_03・ホスト OS で。VirtualBox のゲストでは物理キーが届かない場合がある）**。アクション編集で key_hold の押す + キーに「リピートする」チェックが出ること、次をメモ帳で確かめる:
+  ①`[押す a（リピートする ON）, 待機 2000ms, 離す a]` を実行すると、実キーボードの長押しとおおむね同じ速さで `a` が連続して入り、離すで止まる（暫定 36 §8-12）
+  ②`a` をリピート中に、フック停止・ダイアログを開く・アプリ終了のそれぞれでリピートが止まる（§8-13）
+  ③`[押す shift, 押す a（リピート）, 待機, 離す a, 離す shift]` で大文字の `A` が連続して入る（§8-14）
+  ④一覧の書式が `[押す] a (リピート)`・離す / マウスではチェックが隠れる・既存の押す行（phase 51 で作った行）を開くとチェックが OFF
+  NG なら枝番で修正
+- OK 後に task_04: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）と実機目視 §8-15（リピート中に物理の停止キー・トリガーが効く・エラーの知らせで止まる）→ task_05: 正本反映（暫定 36 §10）・凍結・decisions_archive/52・current.md・idea_41 を INDEX_done・/refactor_check・完了判定前 deep-reviewer + codex-adversarial-reviewer
 - main へのマージはユーザーが行う
 
 ## blockers
-- なし
+- ユーザーの実機目視（phase 52 task_03）
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。

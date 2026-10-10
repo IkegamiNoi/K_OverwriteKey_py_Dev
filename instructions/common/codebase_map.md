@@ -105,7 +105,7 @@ keyseq/presentation/
     config_paths.py            # 以下は presentation 直下（複数種から使われる共有モジュール）
     dialogs/                   # ダイアログ群（計画07 項目2 で dialogs.py 1026 行から分割・1クラス1ファイル）
       __init__.py              # 公開面（明示列挙の再輸出のみ。tk / messagebox は持たない）
-      action_dialog.py         # ActionDialog（+ キーキャプチャ）。mode = add / edit / edit_loop（phase 37）。種別ごとの表示 = `_sync_capture_ui` → `_sync_type_visibility` / `_sync_hotkey_controls` / `_sync_mouse_visibility`（grid_remove）・非表示の欄からのフォーカス移動 = `_focus_is_hidden_for_type`・初期フォーカス = `_initial_focus_widget`（phase 47）
+      action_dialog.py         # ActionDialog（+ キーキャプチャ）。mode = add / edit / edit_loop（phase 37）。種別ごとの表示 = `_sync_capture_ui` → `_sync_type_visibility` / `_sync_hotkey_controls` / `_sync_mouse_visibility`（grid_remove）・非表示の欄からのフォーカス移動 = `_focus_is_hidden_for_type`・初期フォーカス = `_initial_focus_widget`（phase 47）。key_hold のリピート設定の組み直し（phase 52）
       action_control_fields.py # system / file_line の入力欄の組み立て・値の読み取り・検証（ActionDialog 専用の補助・再輸出しない・phase 37）
       preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）
@@ -754,9 +754,9 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     キーマップの切替 / アクティブの削除は `release_all_held`（presentation の `keymap_panel_controller.py` が呼ぶ）。離す送信が失敗したものは集合に残る（`held_inputs.py` の `_release_records`・`_press` の補償）
   - 停止後の予約済み入力: `hook_controller.py` の `on_input_event` が `after(0)` のコールバックの実行時に、フック停止中・キーマップ一時停止中なら `TriggerAction` / `SendKeyAction` を実行しない
   - 送信: `infrastructure/input_gateway.py`（マウスのボタンの `mouse_down` / `mouse_up`・FAILSAFE を外す / 拡張キーは `keyboard._listener.is_replaying` を立てて記録に載せない / `write_text` は `restore_state_after=False`）。text の前後の離す / 押し直すは `ActionExecutor._write_text`
-  - presentation: `app.py`（`HeldInputs` の生成・`on_close` の finally で `release_all`）/ `controllers/hook_controller.py`（`stop_hook`・`toggle_custom_input_enabled` の finally で解放）/
+  - presentation: `app.py`（`KeyRepeater` と OS の `keyboard_repeat_timing` を `HeldInputs` に注入・知らせ表示中の抑止・`on_close` の finally で `release_all`）/ `controllers/hook_controller.py`（知らせの表示中にリピートを抑止・`stop_hook` / `toggle_custom_input_enabled` の finally で解放）/
     `controllers/trigger_panel/trigger_panel_controller.py`（ステータスの「押下中: ...」）/ `controllers/action_list_rendering.py`（省略表示の要約）/
-    `dialogs/action_key_hold_fields.py`（ダイアログの入力欄・「1 キーを記録」は `tk_keys.normalize_key_hold_tk_keysym` で修飾キーの左右を区別）
+    `dialogs/action_key_hold_fields.py`（ダイアログの入力欄・押すキー行のリピートチェック・「1 キーを記録」は `tk_keys.normalize_key_hold_tk_keysym` で修飾キーの左右を区別・phase 52）
   - テスト: `tests/test_key_hold.py` / `test_held_inputs.py` / `test_action_executor_key_hold.py` / `test_sequence_runner_key_hold.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_task06_keymap_management_ui.py` / `test_sequence_control_review_fixes.py`
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。

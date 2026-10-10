@@ -72,6 +72,7 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         dialog.on_ok()
         self.assertEqual(self.root._dialog_result, {
             "type": "key_hold", "edge": "down", "value": "left shift", "label": "selection",
+            "repeat": True,
         })
         self.assertEqual(self.root.input_gateway.validated, ["left shift"])
 
@@ -268,6 +269,64 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
                 dialog.on_ok()
                 self.assertTrue(dialog.winfo_exists())
                 self.assertIsNone(self.root._dialog_result)
+
+    def test_repeat_control_is_visible_only_for_down_key_and_keeps_its_value(self) -> None:
+        dialog = self.make_dialog()
+        fields = dialog.key_hold_fields
+        dialog.type_var.set("key_hold")
+        dialog._sync_capture_ui()
+        self.assertEqual(fields.repeat_var.get(), True)
+        self.assertEqual(fields.repeat_frame.winfo_manager(), "grid")
+
+        fields.repeat_var.set(False)
+        fields.edge_var.set("離す")
+        fields.edge_combo.event_generate("<<ComboboxSelected>>")
+        self.assertEqual(fields.repeat_frame.winfo_manager(), "")
+        fields.edge_var.set("押す")
+        fields.edge_combo.event_generate("<<ComboboxSelected>>")
+        fields.target_var.set("マウスのボタン")
+        fields.target_combo.event_generate("<<ComboboxSelected>>")
+        self.assertEqual(fields.repeat_frame.winfo_manager(), "")
+        fields.target_var.set("キー")
+        fields.target_combo.event_generate("<<ComboboxSelected>>")
+        self.assertEqual(fields.repeat_frame.winfo_manager(), "grid")
+        self.assertFalse(fields.repeat_var.get())
+
+    def test_repeat_initial_values_for_new_and_existing_rows(self) -> None:
+        cases = (
+            (None, True),
+            ({"type": "text", "value": "a"}, True),
+            ({"type": "key_hold", "edge": "up", "value": "a"}, True),
+            ({"type": "key_hold", "edge": "down", "button": "left"}, True),
+            ({"type": "key_hold", "edge": "down", "value": "a"}, False),
+            ({"type": "key_hold", "edge": "down", "value": "a", "repeat": False}, False),
+            ({"type": "key_hold", "edge": "down", "value": "a", "repeat": True}, True),
+        )
+        for initial, expected in cases:
+            with self.subTest(initial=initial):
+                dialog = self.make_dialog(initial, mode="edit" if initial else "add")
+                self.assertEqual(dialog.key_hold_fields.repeat_var.get(), expected)
+
+    def test_repeat_is_saved_only_for_down_key_rows(self) -> None:
+        down = self.make_dialog()
+        down.type_var.set("key_hold")
+        down._sync_capture_ui()
+        down.key_hold_fields.key_var.set("a")
+        down.key_hold_fields.repeat_var.set(False)
+        down.on_ok()
+        self.assertEqual(self.root._dialog_result["repeat"], False)
+
+        up = self.make_dialog({"type": "key_hold", "edge": "up", "value": "a"}, mode="edit")
+        up.on_ok()
+        self.assertNotIn("repeat", self.root._dialog_result)
+
+        mouse = self.make_dialog()
+        mouse.type_var.set("key_hold")
+        mouse._sync_capture_ui()
+        mouse.key_hold_fields.target_var.set("マウスのボタン")
+        mouse.key_hold_fields.sync_target()
+        mouse.on_ok()
+        self.assertNotIn("repeat", self.root._dialog_result)
 
 
 if __name__ == "__main__":

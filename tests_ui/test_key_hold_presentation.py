@@ -10,6 +10,7 @@ from keyseq.presentation.controllers.action_list_rendering import (
     build_action_rows, format_next_action_summary,
 )
 from keyseq.presentation.controllers.call_view_controller import CallViewController
+from keyseq.presentation.controllers.hook_controller import HookController
 
 
 class KeyHoldRenderingTests(unittest.TestCase):
@@ -17,22 +18,27 @@ class KeyHoldRenderingTests(unittest.TestCase):
         frame = SimpleNamespace(action_list=Mock())
         app = SimpleNamespace(trigger_panel=SimpleNamespace(_resolve_call_target=Mock()))
         summary = SimpleNamespace(
-            actions=[{"type": "key_hold", "edge": "down", "button": "right", "label": "保持"}],
+            actions=[
+                {"type": "key_hold", "edge": "down", "button": "right", "label": "保持"},
+                {"type": "key_hold", "edge": "down", "value": "a", "repeat": True},
+            ],
             loop_frames=(), counters={}, position=0,
         )
         CallViewController(app)._render_rows(frame, summary)
-        self.assertEqual(frame.action_list.insert.call_args.args[1], "▶ 01. [押す] マウス右: 保持")
+        self.assertEqual(frame.action_list.insert.call_args_list[0].args[1], "▶ 01. [押す] マウス右: 保持")
+        self.assertEqual(frame.action_list.insert.call_args_list[1].args[1], "　 02. [押す] a (リピート)")
 
     def test_full_and_compact_rows_share_key_hold_format(self):
         actions = [
             {"type": "key_hold", "edge": "down", "value": "shift"},
+            {"type": "key_hold", "edge": "down", "value": "a", "repeat": True},
             {"type": "key_hold", "edge": "up", "value": "shift", "label": "解除"},
             {"type": "key_hold", "edge": "down", "button": "left"},
             {"type": "key_hold", "edge": "up", "button": "middle", "x": 100, "y": 200},
         ]
         expected = [
-            "01. [押す] shift", "02. [離す] shift: 解除",
-            "03. [押す] マウス左", "04. [離す] マウス中 (100, 200)",
+            "01. [押す] shift", "02. [押す] a (リピート)", "03. [離す] shift: 解除",
+            "04. [押す] マウス左", "05. [離す] マウス中 (100, 200)",
         ]
         rows = build_action_rows(actions, loop_iterations={}, counters={})
         self.assertEqual([row[0] for row in rows], expected)
@@ -70,6 +76,48 @@ class KeyHoldPresentationTests(unittest.TestCase):
     def press_inputs(self):
         self.app.held_inputs.press_key("f1", "shift")
         self.app.held_inputs.press_mouse("f1", "left")
+
+    def test_repeater_is_wired_to_held_inputs_and_os_timing(self):
+        self.assertIs(self.app.held_inputs._repeater, self.app.key_repeater)
+        self.assertIs(self.app.key_repeater._get_timing, app_module.keyboard_repeat_timing)
+        self.assertIs(self.app.key_repeater._after.__self__, self.app)
+        self.assertIs(self.app.key_repeater._after_cancel.__self__, self.app)
+
+    def test_repeat_error_uses_the_existing_action_error_notice(self):
+        action = {"type": "key_hold", "edge": "down", "value": "a", "repeat": True}
+        self.app.held_inputs._on_repeat_error(action, "repeat failed")
+        self.errors.assert_called_once_with("", action, "repeat failed")
+
+    def test_error_notices_suppress_repeat_until_they_close(self):
+        repeater = self.app.key_repeater
+        begin = Mock(wraps=repeater.begin_suppress)
+        end = Mock(wraps=repeater.end_suppress)
+        with patch.object(repeater, "begin_suppress", begin), patch.object(repeater, "end_suppress", end):
+            def show_error(*_args):
+                self.assertGreater(repeater._suppress_count, 0)
+                repeater.start(("key", 97, False), "a", {"type": "key_hold"})
+                self.assertFalse(repeater.has_target)
+                HookController.show_action_error(self.app.hook, "", {}, RuntimeError("nested"))
+
+            with patch.object(app_module.messagebox, "showerror", side_effect=show_error) as showerror:
+                HookController.show_action_error(self.app.hook, "", {}, RuntimeError("outer"))
+            showerror.assert_called_once()
+            begin.assert_called_once_with()
+            end.assert_called_once_with()
+            self.assertEqual(repeater._suppress_count, 0)
+
+    def test_runtime_error_notice_also_suppresses_repeat(self):
+        repeater = self.app.key_repeater
+
+        def show_error(*_args):
+            self.assertGreater(repeater._suppress_count, 0)
+            repeater.start(("key", 97, False), "a", {"type": "key_hold"})
+            self.assertFalse(repeater.has_target)
+
+        with patch.object(app_module.messagebox, "showerror", side_effect=show_error) as showerror:
+            self.app.action_executor._on_runtime_error("エラー", "失敗")
+        showerror.assert_called_once_with("エラー", "失敗")
+        self.assertEqual(repeater._suppress_count, 0)
 
     def test_shared_instance_and_change_notification_updates_both_views(self):
         self.assertIs(self.app.action_executor.held_inputs, self.app.held_inputs)

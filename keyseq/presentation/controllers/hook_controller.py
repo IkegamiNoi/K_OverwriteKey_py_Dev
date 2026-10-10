@@ -320,6 +320,14 @@ class HookController:
                 f"値: {v}\n\n"
                 f"エラー: {err}"
             )
-            messagebox.showerror("送信エラー", msg)
+            # 知らせの表示中はキーリピートを止めて抑止する（暫定 36 §4.8）。
+            repeater = getattr(self._app, "key_repeater", None)
+            if repeater is not None:
+                repeater.begin_suppress()
+            try:
+                messagebox.showerror("送信エラー", msg)
+            finally:
+                if repeater is not None:
+                    repeater.end_suppress()
         finally:
             self.error_dialog_open = False

@@ -4,11 +4,12 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Callable
 
+from keyseq.domain.key_hold import wants_repeat
 from keyseq.presentation.tk_keys import normalize_key_hold_tk_keysym
 
 
 class ActionKeyHoldFields:
-    """Input controls for one key_hold action."""
+    """key_hold 1 行分の入力欄。"""
 
     def __init__(self, parent: tk.Misc, *, capture_mouse_position: Callable) -> None:
         self.parent = parent
@@ -27,6 +28,7 @@ class ActionKeyHoldFields:
             state="readonly", width=10,
         )
         self.edge_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
+        self.edge_combo.bind("<<ComboboxSelected>>", lambda _event: self.sync_repeat_visibility())
 
         ttk.Label(self.frame, text="対象").grid(row=1, column=0, sticky="w", pady=(8, 0))
         self.target_var = tk.StringVar(value="キー")
@@ -89,6 +91,14 @@ class ActionKeyHoldFields:
             text="※押したあと、画面上の任意の場所を1回クリックすると座標が入ります",
         )
         self.capture_hint.grid(row=2, column=0, columnspan=4, sticky="w", pady=(4, 0))
+        self.repeat_var = tk.BooleanVar(value=True)
+        self.repeat_frame = ttk.Frame(self.frame)
+        self.repeat_frame.grid(row=4, column=0, columnspan=2, sticky="w", pady=(8, 0))
+        self.repeat_check = ttk.Checkbutton(
+            self.repeat_frame, text="リピートする", variable=self.repeat_var,
+        )
+        self.repeat_check.pack(side="left")
+        ttk.Label(self.repeat_frame, text="（修飾キーは除く）").pack(side="left", padx=(4, 0))
         self.sync_target()
 
     def load(self, action: dict) -> None:
@@ -105,6 +115,10 @@ class ActionKeyHoldFields:
         else:
             self.target_var.set("キー")
             self.key_var.set(str(action.get("value") or ""))
+        if self.edge_var.get() == "押す" and self.target_var.get() == "キー":
+            self.repeat_var.set(wants_repeat(action))
+        else:
+            self.repeat_var.set(True)
         self.sync_target()
 
     def build_action(self, label: str) -> dict:
@@ -130,6 +144,14 @@ class ActionKeyHoldFields:
             self.key_frame.grid_remove()
             self.button_frame.grid()
             self.sync_coordinates()
+        self.sync_repeat_visibility()
+
+    def sync_repeat_visibility(self) -> None:
+        """押すキー行のときだけリピート欄を表示する。"""
+        if self.edge_var.get() == "押す" and self.target_var.get() == "キー":
+            self.repeat_frame.grid()
+        else:
+            self.repeat_frame.grid_remove()
 
     def sync_coordinates(self) -> None:
         if self.coordinates_var.get():
