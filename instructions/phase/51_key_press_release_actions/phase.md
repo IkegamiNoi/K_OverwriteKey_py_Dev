@@ -10,7 +10,7 @@
 **domain / application / infrastructure / presentation。アクションの JSON に種類 `key_hold`（`edge` / `value` / `button` / `x` / `y`）を追加（後方互換・読込の正規化は変えない）。**
 
 - 起票元: [idea_23](../../backlog/idea_23_key_press_release_actions.md)（2026-09-18 ユーザー要望・2026-10-09 着手決定）。
-- 主入力（暫定仕様）: [35_key_press_release_actions.md](../../history/35_key_press_release_actions.md)（v0.7・ユーザー確定済 2026-10-10。§4.4・§6 は task_01 の probe とその後のレビューで改訂済み）
+- 主入力（暫定仕様）: [35_key_press_release_actions.md](../../history/35_key_press_release_actions.md)（**v0.9・凍結 2026-10-11**・ユーザー確定済。§4.4・§6 は task_01 の probe とその後のレビューで改訂済み）
 - モード: **暫定仕様先行モード**。番号対応: phase 51 / 暫定 35 / decisions 51。
 
 ## 確定（ユーザー 2026-10-09〜10）
@@ -50,8 +50,8 @@
 - task_05: presentation — ダイアログの `key_hold` の入力欄（別モジュール）・一覧 / 省略表示 / 呼び出し先の表示枠の書式・ステータス欄の押下中の表示・フック停止 / キーマップ一時停止 / アプリ終了の解放の配線とテスト（§5・§7）。**実装後にユーザーの実機目視** — **完了**（2026-10-10 実機目視 OK〔`a` 等の通常キーはキーリピートしない＝Windows の合成入力の仕様。リピートは idea_41 へ分離〕・codex-delegating-implementer〔サブエージェント使用〕・reviewer 完了可・指摘 2 件〔座標取得中の key_hold のボタン無効化・stop_hook の解放を finally へ〕と新規テストの Esc のフォーカス・Tk のルートの共有をメインで修正。tests 1443 / tests_ui 929 / smoke pass）
 - task_06: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）と**ユーザーの実機目視**（暫定 35 §10 の 8〜11）。2026-10-10: tests 1443 / tests_ui 929 / smoke pass・deep-reviewer 要修正（H1 キーマップの切替で離れない）・codex-reviewer P2 × 2 → 暫定 35 v0.8 + task_06a（ユーザー確定）。実機目視の 8〜11 は task_05 の目視で確認済み・task_06a の分だけ再目視 — **完了**（2026-10-10）
   - task_06a: 統合レビューの修正（キーマップの切替 / アクティブの削除で離す・一時的な離すの途中失敗・記録の左右・一時停止の finally）とテスト。**実装後にユーザーの実機目視** — **完了**（2026-10-10 実機目視 OK〔右 ctrl の記録は VirtualBox のゲストでは物理キーが届かず、ホスト OS で確認〕・codex-implementer・reviewer 採用・既存テストの期待値〔記録の left shift〕と Codex が足したテストの save_json の全体差し替え〔一時フォルダへの書き込みまで止めた〕をメインで修正。tests 1446 / tests_ui 932 / smoke pass）
-  - task_07a: 完了判定前レビューの修正（停止後の予約済み入力・解放失敗の保持）とテスト（暫定 35 v0.9 §2-21〜22）
-- task_07: 正本反映（暫定 35 §12 の昇格・凍結）・`decisions_archive/51_key_press_release_actions.md`・decisions.md の索引・current.md の完了記載・idea_23 を INDEX_done へ・`/refactor_check`
+  - task_07a: 完了判定前レビューの修正（停止後の予約済み入力・解放失敗の保持）とテスト（暫定 35 v0.9 §2-21〜22） — **完了**（2026-10-11・codex-implementer・reviewer 採用・file_line の解放エラーの知らせと既存テストの期待値〔§2-22〕をメインで修正。tests 1447 / tests_ui 935 / smoke pass）
+- task_07: 正本反映（暫定 35 §12 の昇格・凍結）・`decisions_archive/51_key_press_release_actions.md`・decisions.md の索引・current.md の完了記載・idea_23 を INDEX_done へ・`/refactor_check` — **完了**（2026-10-11・メイン。完了判定前 deep-reviewer 修正要〔正本の文言〕/ codex 敵対的 needs-attention high 2 → v0.9 + task_07a。refactor_check: 不要）
 
 ## レビュー方針
 

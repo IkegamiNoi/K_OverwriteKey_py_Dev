@@ -15,6 +15,7 @@ class FakeGateway:
         self.invalid_keys: set[str] = set()
         self.fail_press: set[str] = set()
         self.fail_press_once: set[str] = set()
+        self.fail_release: set[str] = set()
         self.fail_release_once: set[str] = set()
         self.fail_mouse_down: set[str] = set()
         self.fail_text = False
@@ -43,6 +44,8 @@ class FakeGateway:
         self.events.append(("key_up", key))
         if self.guard_probe is not None:
             self.events.append(("guard_count", self.guard_probe()))
+        if key in self.fail_release:
+            raise RuntimeError(f"release failed: {key}")
         if key in self.fail_release_once:
             self.fail_release_once.remove(key)
             raise RuntimeError(f"release failed once: {key}")
@@ -340,6 +343,25 @@ class ActionExecutorKeyHoldTests(unittest.TestCase):
         self.assertNotIn(("key_down", "ctrl"), self.events)
         self.assertEqual(self.events[-1], ("action_error",))
         self.assertEqual(self.executor.held_inputs.display_names, ("マウス左",))
+
+    def test_text_error_reports_failed_release_for_other_owner_and_keeps_key(self) -> None:
+        self._press_shift("f8")
+        self.assertIs(
+            self.executor.execute(
+                {"type": "key_hold", "edge": "down", "value": "ctrl"}, owner="f9"
+            ),
+            True,
+        )
+        self.gateway.fail_text = True
+        self.gateway.fail_release.add("ctrl")
+
+        self.assertIs(
+            self.executor.execute({"type": "text", "value": "hello"}, owner="f8"), False
+        )
+
+        self.assertEqual(self.executor.held_inputs.display_names, ("ctrl",))
+        self.assertIn("解放エラー", self.on_action_error.call_args.args[1])
+        self.assertIn("release failed: ctrl", self.on_action_error.call_args.args[1])
 
     def test_text_suspend_error_releases_all_owners_keyboard_keys_but_keeps_mouse(self) -> None:
         self._press_shift("f8")

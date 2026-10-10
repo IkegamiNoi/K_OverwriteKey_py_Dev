@@ -122,12 +122,18 @@ class KeyHoldPresentationTests(unittest.TestCase):
         self.press_inputs()
         self.gateway.release_key.side_effect = RuntimeError("key failed")
         self.gateway.mouse_up.side_effect = RuntimeError("mouse failed")
+        held_before = self.app.held_inputs.display_names
         self.app.hook.stop_hook()
-        self.assertEqual(self.app.held_inputs.display_names, ())
+        # 離す送信が失敗したものは集合に残し、次の解放で送り直す（暫定 35 §2-22）。
+        self.assertEqual(self.app.held_inputs.display_names, held_before)
         self.errors.assert_called_once()
         error = str(self.errors.call_args.args[2])
         self.assertIn("key failed", error)
         self.assertIn("mouse failed", error)
+        self.gateway.release_key.side_effect = None
+        self.gateway.mouse_up.side_effect = None
+        self.assertEqual(self.app.held_inputs.release_all(), [])
+        self.assertEqual(self.app.held_inputs.display_names, ())
 
     def test_dialog_suspend_releases_inputs(self):
         self.app.hook.hook_active = True
@@ -157,9 +163,12 @@ class KeyHoldPresentationTests(unittest.TestCase):
                 patch.object(self.app.hook, "stop_hook"), \
                 patch.object(self.app, "destroy") as destroy:
             self.app.on_close()
-        self.assertEqual(self.app.held_inputs.display_names, ())
+        # 離す送信が失敗した shift は集合に残る（暫定 35 §2-22）。マウスは離れる。
+        self.assertEqual(self.app.held_inputs.display_names, ("shift",))
         self.gateway.mouse_up.assert_called_once_with("left")
         self.errors.assert_called_once()
         self.assertIn("key failed", str(self.errors.call_args.args[2]))
         self.gateway.restore_ime_now.assert_called_once_with()
         destroy.assert_called_once_with()
+        self.gateway.release_key.side_effect = None
+        self.assertEqual(self.app.held_inputs.release_all(), [])

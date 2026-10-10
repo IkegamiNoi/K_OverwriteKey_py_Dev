@@ -746,9 +746,13 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - domain: `domain/key_hold.py`（種類の定数・`parse_key_hold`〔実行時エラーの判定・文字列ならエラー文言〕・`held_display_name`・一覧の書式 `format_key_hold_value`。`format_action_list_item` から使う）
   - 押下中の集合: `application/held_inputs.py` の `HeldInputs`（App で 1 つ作り `ActionExecutor` と `SequenceRunner` で共有）。同じキーの判定はスキャンコード + 拡張フラグ。
     解放の口 = `release_owner` / `release_all` / `release_keyboard`（例外は集めて返す）・text の前後 = `suspend_keyboard` / `resume_keyboard`。変化は `on_change` で presentation のステータス更新へ
-  - 持ち主の受け渡し: `perform_action` の引数ではなく、runner の `_owner_scope(key)`（`sequence_runner.py:92`）が `HeldInputs.owner_scope` で**最上段のキー**を一時的に差し替え、`ActionExecutor._execute_key_hold` がそれを読む（入れ子・例外時も元に戻る。スコープ外の実行は持ち主 `""`＝`release_all` でだけ離れる）
-  - 離す入口（runner）: `_release_owner` / `_release_owners` を `run_to_end.py`（停止・一時停止・`on_runtime_reset` は全部）・`call_run_to_end.py`・`call_wait.py`・`send_wait.py`・`file_line_wait.py`・`input_acceptance.py`（`discard_paused`）・`linked_call.py`（連動の末尾）・
-    `sequence_runner.py`（`cancel_pending_waits`・末尾・エラーの通知前）から呼ぶ。キーマップの切替 / アクティブの削除は `release_all_held`（presentation の `keymap_panel_controller.py` が呼ぶ）
+  - 持ち主の受け渡し: `perform_action` の引数ではなく、runner の `_owner_scope(key)`（`sequence_runner.py:92`）が `HeldInputs.owner_scope` で**最上段のキー**を一時的に差し替え、`ActionExecutor._execute_key_hold` がそれを読む（入れ子・例外時も元に戻る。スコープ外の実行は持ち主 `""`＝`release_all` か、その実行自身のエラーの通知前〔`_report_held_error`〕で離れる）
+  - 離す入口（runner・`features.md` §4.2.12 の表の行との対応）: 連続実行の終わり / 一時停止 = `run_to_end.py` の `stop_run_to_end` / `pause_run_to_end`（呼び出し先の中の停止の行の一時停止は `call_run_to_end.py` が `release_held=False`）・開始時の破棄（`run_to_end.py:24`）/
+    状態を消す契機 = `run_to_end.py` の `on_runtime_reset`（全部）/ 一時停止中のものを捨てる = `discard_paused` → `stop_run_to_end` / `cancel_pending_wait` 経由 / 単発の呼び出しの一時停止 = `input_acceptance.py` の `_pause_single_call` /
+    単発の待機の取り消し = `sequence_runner.py` の `cancel_pending_waits` / トリガーの削除・キー変更・有効な行の交代 = `cancel_pending_wait`（`trigger_row_edit.py` 等から）/ 編集・位置の変更 = `reset_loop_frames` / 先頭へ = `_control` の rewind /
+    末尾 = `sequence_runner.py`（単発の回り込みの前）・`send_wait.py`（待機の前）・`call_wait.py`（最上段の末尾だけ）・`call_run_to_end.py` / `file_line_wait.py`（最後の行の停止）/ 連動の末尾 = `linked_call.py` / エラーの通知前 = `_report_error`・`ActionExecutor._report_held_error`。
+    キーマップの切替 / アクティブの削除は `release_all_held`（presentation の `keymap_panel_controller.py` が呼ぶ）。離す送信が失敗したものは集合に残る（`held_inputs.py` の `_release_records`・`_press` の補償）
+  - 停止後の予約済み入力: `hook_controller.py` の `on_input_event` が `after(0)` のコールバックの実行時に、フック停止中・キーマップ一時停止中なら `TriggerAction` / `SendKeyAction` を実行しない
   - 送信: `infrastructure/input_gateway.py`（マウスのボタンの `mouse_down` / `mouse_up`・FAILSAFE を外す / 拡張キーは `keyboard._listener.is_replaying` を立てて記録に載せない / `write_text` は `restore_state_after=False`）。text の前後の離す / 押し直すは `ActionExecutor._write_text`
   - presentation: `app.py`（`HeldInputs` の生成・`on_close` の finally で `release_all`）/ `controllers/hook_controller.py`（`stop_hook`・`toggle_custom_input_enabled` の finally で解放）/
     `controllers/trigger_panel/trigger_panel_controller.py`（ステータスの「押下中: ...」）/ `controllers/action_list_rendering.py`（省略表示の要約）/

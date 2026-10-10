@@ -7,11 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 51](51_key_press_release_actions/phase.md)**（2026-10-10 起票・キーの押下 / 解放アクション。暫定仕様先行モード）。
-  出力シーケンスに種類 `key_hold`（キー / マウスのボタンを押したまま・離す・**JSON スキーマ変更あり**）を加え、押したままのキーを止まる経路すべてで自動で離す・押下中をステータス欄に表示。
-  主入力 = [暫定 35](../history/35_key_press_release_actions.md)（v0.5・ユーザー確定済）。起票元 = [idea_23](../backlog/idea_23_key_press_release_actions.md)。番号対応: phase 51 / 暫定 35 / decisions 51。
-- 直前の完了フェーズ = [phase 50](50_select_before_run/phase.md)（2026-10-09・確認して実行〔select_before_run〕と戻す・先頭への対象を一覧の選択へ。暫定仕様先行モード〔暫定 34 v0.6 凍結〕・判断は [decisions_archive/50](../../.claude_data/state/decisions_archive/50_select_before_run.md)）。
-- その前の完了フェーズ = [phase 49](49_status_truncation_tooltip/phase.md)（2026-10-07・ステータスの見切れのツールチップ。直接改訂モード・判断は [decisions_archive/49](../../.claude_data/state/decisions_archive/49_status_truncation_tooltip.md)）/
+- **アクティブなフェーズ = なし**（phase 51 は 2026-10-11 完了）。次フェーズはユーザー判断・着手時は `/phase_start`。
+- 直前の完了フェーズ = [phase 51](51_key_press_release_actions/phase.md)（2026-10-11・キーの押下 / 解放アクション `key_hold` と自動で離す安全策。暫定仕様先行モード〔暫定 35 v0.9 凍結〕・判断は [decisions_archive/51](../../.claude_data/state/decisions_archive/51_key_press_release_actions.md)）。
+- その前の完了フェーズ = [phase 50](50_select_before_run/phase.md)（2026-10-09・確認して実行〔select_before_run〕と戻す・先頭への対象を一覧の選択へ。暫定仕様先行モード〔暫定 34 v0.6 凍結〕・判断は [decisions_archive/50](../../.claude_data/state/decisions_archive/50_select_before_run.md)）/
+  [phase 49](49_status_truncation_tooltip/phase.md)（2026-10-07・ステータスの見切れのツールチップ。直接改訂モード・判断は [decisions_archive/49](../../.claude_data/state/decisions_archive/49_status_truncation_tooltip.md)）/
   [phase 48](48_compact_sequence_view/phase.md)（2026-10-07・省略表示の出力シーケンス欄。暫定仕様先行モード〔暫定 33 v0.6 凍結〕・判断は [decisions_archive/48](../../.claude_data/state/decisions_archive/48_compact_sequence_view.md)）/
   [phase 47](47_action_dialog_layout_cleanup/phase.md)（2026-10-06・アクションの追加・編集ダイアログの整理。直接改訂モード・判断は [decisions_archive/47](../../.claude_data/state/decisions_archive/47_action_dialog_layout_cleanup.md)）/
   [phase 46](46_back_rewind_target/phase.md)（2026-10-06・戻す・先頭への対象トリガー指定。暫定仕様先行モード・判断は [decisions_archive/46](../../.claude_data/state/decisions_archive/46_back_rewind_target.md)）/
@@ -78,7 +77,7 @@
   **phase 48 は 2026-10-07 完了**（`48_compact_sequence_view` / 暫定 33〔v0.6・凍結〕/ decisions 48〔アーカイブ済〕）。
   **phase 49 は 2026-10-07 完了**（`49_status_truncation_tooltip` / 暫定なし〔直接改訂モード〕/ decisions 49〔アーカイブ済〕）。
   **phase 50 は 2026-10-09 完了**（`50_select_before_run` / 暫定 34〔v0.6・凍結〕/ decisions 50〔アーカイブ済〕）。
-  **phase 51 は 2026-10-10 起票**（`51_key_press_release_actions` / 暫定 35〔v0.5〕/ decisions 51）。
+  **phase 51 は 2026-10-11 完了**（`51_key_press_release_actions` / 暫定 35〔v0.9・凍結〕/ decisions 51〔アーカイブ済〕）。
   次フェーズは **`52_<topic>`**・decisions も **52** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -111,7 +110,7 @@
   32=戻す・先頭への対象トリガー指定〔**v0.3・凍結**〕 /
   33=省略表示の出力シーケンス欄〔**v0.6・凍結**〕 /
   34=確認して実行〔**v0.6・凍結**〕 /
-  35=キーの押下 / 解放アクション〔v0.5・ユーザー確定済・phase 51 の主入力〕）。
+  35=キーの押下 / 解放アクション〔**v0.9・凍結**〕）。
   次採番は **`36_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**20 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /

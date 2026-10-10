@@ -38,6 +38,16 @@ class FileLineHandle:
     action: dict
 
 
+class _TextWriteError(Exception):
+    """text / file_line の送信失敗に、他の持ち主の分の解放エラーを添える（暫定 35 §2-22）。"""
+
+    def __init__(self, cause: Exception, release_errors: list[Exception]) -> None:
+        super().__init__(
+            f"{cause} / 解放エラー: " + "; ".join(str(error) for error in release_errors)
+        )
+        self.release_errors = release_errors
+
+
 def _file_line_error_message(action: dict, exc: BaseException) -> str:
     values = ", ".join(
         f"{key}={action.get(key)!r}"
@@ -240,9 +250,11 @@ class ActionExecutor:
             try:
                 self.held_inputs.suspend_keyboard()
                 self.input_gateway.write_text(text)
-            except Exception:
+            except Exception as exc:
                 # 一時的に離した他の持ち主の分も押し直さず、集合を OS の実態にそろえる。
-                self.held_inputs.release_keyboard()
+                release_errors = self.held_inputs.release_keyboard()
+                if release_errors:
+                    raise _TextWriteError(exc, release_errors) from exc
                 raise
             self.held_inputs.resume_keyboard()
         finally:

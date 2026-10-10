@@ -105,7 +105,7 @@ class HeldInputs:
                 release()
             except Exception:
                 _logger.exception("Failed to compensate held input press: %s", name)
-            finally:
+            else:
                 self._remove(identity)
             raise
 
@@ -154,7 +154,7 @@ class HeldInputs:
                     self.input_gateway.mouse_up(record.name)
             except Exception as exc:
                 errors.append(exc)
-            finally:
+            else:
                 self._remove(identity)
         return errors
 

@@ -60,6 +60,7 @@
 | 48_compact_sequence_view | [48_compact_sequence_view.md](decisions_archive/48_compact_sequence_view.md) | 省略表示の出力シーケンス欄（2026-10-07 完了・暫定 33 v0.6 凍結・presentation のみ・config.json にキー 2 つ追加）。トリガー一覧と呼び出し先の間に開閉・境界ドラッグできるシーケンス欄（見る + 次に実行の変更・押した行で離したときだけ）・3 段の高さを `CompactPaneLayout` へ集約・省略表示の窓の大きさの記録と最小の高さ・ステータス 2 行 / 1 行の固定。提案書 20 を task_07 で実施。ステータスの見切れのツールチップは idea_40 |
 | 49_status_truncation_tooltip | [49_status_truncation_tooltip.md](decisions_archive/49_status_truncation_tooltip.md) | ステータスの見切れのツールチップ（2026-10-07 完了・直接改訂・presentation のみ）。ステータス欄・ステータスバーの左 / 中央が見切れているとき、1 行化前の改行入りの全文をツールチップで出す（フル・省略の両方・乗せている間の追従・最前面）。子ファイル保存ダイアログのツールチップを共有部品 `hover_tooltip.py` へ昇格。idea_40 |
 | 50_select_before_run | [50_select_before_run.md](decisions_archive/50_select_before_run.md) | 確認して実行（2026-10-09 完了・暫定 34 v0.6 凍結・domain / application / presentation・keymap_set と sequence に `select_before_run`）。選ばれていないトリガーの 1 回目は選ぶだけ・2 回目で実行（全体 / トリガーごと）・長押しの無視・待機明けに選択が変わっていれば選び直さない（表示は描き直す）。`target` の無い戻す・先頭への対象を一覧の選択へ（使えなければ直前のトリガー）・戻す・先頭へだけのトリガー自身は選ばない。idea_39 の一部取り込み（残り = 直前のトリガーの廃止ほか）。refactor_check: 不要 |
+| 51_key_press_release_actions | [51_key_press_release_actions.md](decisions_archive/51_key_press_release_actions.md) | キーの押下 / 解放アクション（2026-10-11 完了・暫定 35 v0.9 凍結・domain / application / infrastructure / presentation・アクションの種類 `key_hold`）。押したままは押下をまたぎ、止まる経路すべてで自動で離す（入口の関数の単位・持ち主 = 最上段のトリガー・呼び出し先の末尾 / 停止の行の区切り / 戻すでは離さない）。text / file_line は送る間だけ離して押し直す・送信の例外は止まる系・keyboard の記録に載せない。キーマップの切替 / 削除で離す・停止中は予約済みの入力を実行しない・離す失敗は集合に残す。キーリピートは idea_41。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -609,21 +610,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - M2（ユーザー確定・コード変更 task_07a）: 単発の呼び出しの実行中に連鎖の呼び出し先の位置を一覧で変えたら、待機・file_line・呼び出し元の位置変更と同じく実行中の単発の呼び出しを取り消し（そこまでの進みは書き戻す）、変えた位置を優先する。今は次の書き戻しで上書きされる（要再現）。
 - M3（ユーザー確定・受容）: 呼び出し先の完了で外から進めた呼び出し元の次の待機は待たない（直前に呼び出し元が送っていないので「送った後の待ち」に当たらない。次に押すと送る前の待機として読み飛ばす）。
 - M4（ユーザー確定・コード変更 task_07a）: 呼び出し先 U が単発の呼び出しの一時停止中に T が U を呼んだら、U の一時停止を捨てて（通知）T が進める。今は黙って無視。
-
-## 2026-10-10 (phase 51: キーの押下 / 解放アクション key_hold・暫定 35)
-
-### 【task_05 実機目視】OK・キーリピートは idea_41 へ分離（2026-10-10・ユーザー判断）
-- key_hold の `a` がメモ帳で 1 文字しか出ないのは、Windows が合成入力（keydown 1 回）にキーリピートを付けないため。key_hold としては問題なし。
-### 【task_06 統合確認】deep-reviewer 要修正（H1・M1・L1〜L11・S1〜S4）/ codex-reviewer P2 × 2 → 暫定 35 v0.8 + task_06a（2026-10-10・ユーザー確定）
-- H1（採用）: キーマップの切替で `reset_indices` は呼ばれず押下中のキーが残る。暫定 35 の前提の誤りを訂正し、キーマップの切替 / アクティブの削除を独立した解放の入口に（§2-19・S1 案 A。M1 も同時）。
-- Codex P2（採用）: 送る前の一時的な離すの途中失敗も送信の失敗と同じく集合をそろえる（= L1）/「1 キーを記録」は修飾キーの左右を区別（§2-20）。L6（`toggle_custom_input_enabled` の解放を finally へ）も task_06a で。
-- 現状維持で注記（S2・S3・L2）: hotkey の送信の例外では離さない / text の後の押し直しの失敗は止まる系 / 離すの送信の失敗は集合に残す。
-- task_07 で正本に書く: L3・L4・L8・L11。見送り: L5・L7・L9（実害なし）。
-### 【task_06a 実機目視】OK（2026-10-10）
-- 「1 キーを記録」で右 ctrl が反応しないのは開発環境（VirtualBox のゲスト）で物理の右 ctrl が届かないため。ホスト OS で動作確認（合成入力の probe でも Tk は `Control_R` を受け取る）。
-### 【task_07 完了判定前レビュー】deep-reviewer 修正要（M1〜M3・L1〜L7・正本の文言のみ）/ codex 敵対的 needs-attention（high 2）→ 暫定 35 v0.9 + task_07a（2026-10-11・ユーザー確定）
-- Codex high 1（採用・コード）: フック停止 / キーマップ一時停止中は予約済みのトリガー・直接置換を実行しない（§2-21・既存の種類にも効く挙動の変更）。
-- Codex high 2 = deep M2（採用・コード）: 自動の解放・押すの補償で送信が失敗したものは集合に残し次の自動の解放で送り直す（§2-22）。L1 も同時（text 失敗時の他の分の解放エラーを知らせる）。
-- deep M1（ユーザー確定・実装のまま）: 呼び出し先の中の停止の行による連続実行の一時停止では離さない（区切り扱い・§2-23）。
-- 正本の文言のみ（判断不要）: M3（text の送信の例外は止まる系 → data_schema §5.11.1）・L2・L3（codebase_map）・L6（§6 の受容 2 点）。見送り: L4・L7。
-- /refactor_check: 不要（M1〜M6 該当なし・M3 の `_release_owner` 20 か所は入口単位の設計どおり・M6 の mouse の直値は既存）。

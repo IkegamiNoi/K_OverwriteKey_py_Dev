@@ -105,8 +105,11 @@ class HeldInputsTests(unittest.TestCase):
         self.assertEqual(self.gateway.calls, [
             ("press_key", "a"), ("release_key", "a"),
         ])
+        self.assertEqual(self.held.display_names, ("a",))
+        self.assertEqual(self.changes, [("a",)])
+        self.gateway.failures.clear()
+        self.assertEqual(self.held.release_all(), [])
         self.assertEqual(self.held.display_names, ())
-        self.assertEqual(self.changes, [("a",), ()])
 
     def test_mouse_press_records_before_sending_and_compensates_failure(self) -> None:
         send_error = RuntimeError("mouse down failed")
@@ -206,6 +209,9 @@ class HeldInputsTests(unittest.TestCase):
         self.assertEqual(self.gateway.calls[-2:], [
             ("mouse_up", "left", None, None), ("release_key", "b"),
         ])
+        self.assertEqual(self.held.display_names, ("マウス左", "c"))
+        self.gateway.failures.clear()
+        self.assertEqual(self.held.release_owner("owner"), [])
         self.assertEqual(self.held.display_names, ("c",))
 
     def test_release_all_collects_errors_and_continues(self) -> None:
@@ -222,6 +228,10 @@ class HeldInputsTests(unittest.TestCase):
             ("release_key", "a"), ("mouse_up", "right", None, None),
             ("release_key", "b"),
         ])
+        self.assertEqual(self.held.display_names, ("a",))
+        self.gateway.failures.clear()
+        self.assertEqual(self.held.release_all(), [])
+        self.assertEqual(self.gateway.calls[-1], ("release_key", "a"))
         self.assertEqual(self.held.display_names, ())
 
     def test_suspend_and_resume_keyboard_preserve_set_and_skip_mouse(self) -> None:

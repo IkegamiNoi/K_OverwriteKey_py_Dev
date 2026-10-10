@@ -4,19 +4,19 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-10T12:00:00
-phase: `instructions/phase/51_key_press_release_actions`（キーの押下 / 解放アクション `key_hold`・暫定仕様先行・主入力 = 暫定 35 v0.7 確定済）。番号対応 phase 51 / 暫定 35 / decisions 51。次採番 = phase 52 / 暫定 36 / 提案書 21。
-直前の完了フェーズ = **phase 50**（確認して実行・`decisions_archive/50_select_before_run.md`）。
-last_commit_location: `claude/focus-undo-behavior-refactor-de11a6`（phase 51 task_05 まで。main へのマージはユーザー）
+last_updated: 2026-10-11T12:00:00
+phase: なし（phase 51 は 2026-10-11 完了）。次採番 = phase 52 / 暫定 36 / decisions 52 / 提案書 21。
+直前の完了フェーズ = **phase 51**（キーの押下 / 解放 `key_hold`・`decisions_archive/51_key_press_release_actions.md`）。
+last_commit_location: `claude/keypress-hold-behavior-a25946`（phase 51 完了まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 51 task_01〜06（06a 含む）完了。次 = task_07（正本反映・フェーズ完了処理）。**
-mode: active
+focus: **phase 51 完了（2026-10-11）。アクティブなフェーズなし・次フェーズはユーザー判断待ち。**
+mode: idle
 
 ## last_action
-ts: 2026-10-10T12:00:00
+ts: 2026-10-11T12:00:00
 who: main
 summary: |
   phase 51 起票（暫定 35 v0.1 → 起票時 deep-reviewer・確定前 Codex 敵対的 5 件・task_01 の probe・v0.4 の Codex 敵対的 3 件・task_03 / task_04 のレビューの未定義 2 点をすべてユーザー判断で反映 → v0.7）。
@@ -25,19 +25,20 @@ summary: |
   task_05 の新規 UI テストの Esc はフォーカス取得が要る（acquire_focus）・Tk ルートはクラスで共有。既存の test_action_dialog_control の実行順依存を current.md「テスト負債」へ記録。
   task_05 実機目視 OK（2026-10-10）。key_hold の `a` がメモ帳で 1 文字しか出ないのは Windows が合成入力にキーリピートを付けないため（仕様どおり）→ リピートは idea_41 として起票。
   task_06 統合確認: テスト pass・deep-reviewer H1（キーマップの切替で離れない＝暫定 35 の前提の誤り）ほか・codex-reviewer P2×2 → 暫定 35 v0.8・task_06a（codex-implementer）で修正。
+  task_07 正本反映・完了判定前レビュー（deep 修正要〔文言〕/ Codex 敵対的 high 2）→ v0.9 + task_07a（停止後の予約済み入力・解放失敗の保持）→ 凍結・decisions_archive/51・idea_23 を INDEX_done・refactor_check 不要。
   task_06a 実機目視 OK（2026-10-10。右 ctrl の記録は VirtualBox のゲストでは物理キーが届かないだけ・ホスト OS で動作）。
 result_files:
   - instructions/history/35_key_press_release_actions.md（v0.7）/ instructions/phase/51_key_press_release_actions/（phase.md・tasks/task_01〜05）
   - keyseq/domain/key_hold.py / keyseq/application/held_inputs.py・action_executor.py・sequence_runner/ / keyseq/infrastructure/input_gateway.py / keyseq/presentation/（app.py・hook_controller.py・trigger_panel_controller.py・action_list_rendering.py・dialogs/action_dialog.py・dialogs/action_key_hold_fields.py）/ tests・tests_ui
 verified:
   compile: clean
-  tests: 1446 OK（skipped 7）
-  tests_ui: 932 OK
+  tests: 1447 OK（skipped 7）
+  tests_ui: 935 OK
   smoke: pass
-  review: task_02〜05・06a reviewer 完了可 / task_06 統合 deep-reviewer 要修正 + codex-reviewer P2×2 → v0.8・task_06a で対応
+  review: task_02〜07a reviewer 完了可 / 統合 deep + codex / 完了判定前 deep + codex 敵対的（指摘はすべて反映）
 
 ## next_action
-- **次 = task_07**: 正本反映（暫定 35 §12）・凍結・decisions_archive/51・decisions.md 索引・current.md 完了記載・idea_23 を INDEX_done へ・/refactor_check・完了判定前 deep-reviewer + codex-adversarial-reviewer
+- 次フェーズはユーザー判断（候補: idea_41 キーリピート ほか backlog）。着手時は `/phase_start`
 - main へのマージはユーザーが行う
 
 ## blockers

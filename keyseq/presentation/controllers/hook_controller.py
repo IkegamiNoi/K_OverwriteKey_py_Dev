@@ -3,7 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox
 
-from keyseq.application.input_router import StopHookAction
+from keyseq.application.input_router import SendKeyAction, StopHookAction, TriggerAction
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis, analyze_key_overlaps
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY, normalize_key_name
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
@@ -291,11 +291,18 @@ class HookController:
         for action in route.actions:
             self._app.after(
                 0,
-                lambda aa=action, ss=route.shadowed: self._app.action_executor.execute_router_action(
-                    aa, shadowed=ss
-                ),
+                lambda aa=action, ss=route.shadowed: self._execute_reserved_action(aa, ss),
             )
         return route.accept
+
+    def _execute_reserved_action(
+        self, action: object, shadowed: tuple[AssignmentConflict, ...],
+    ) -> None:
+        if isinstance(action, (TriggerAction, SendKeyAction)) and not (
+            self.hook_active and self.custom_input_enabled
+        ):
+            return
+        self._app.action_executor.execute_router_action(action, shadowed=shadowed)
 
     def show_action_error(self, trigger_key: str, action: dict, err: Exception):
         """送信エラーをUIスレッドで表示（多重表示は抑止）"""
