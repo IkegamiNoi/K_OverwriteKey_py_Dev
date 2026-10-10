@@ -9,6 +9,34 @@ ACTION_TYPE_KEY_HOLD = "key_hold"
 EDGE_DOWN = "down"
 EDGE_UP = "up"
 MOUSE_BUTTONS = ("left", "right", "middle")
+MODIFIER_KEY_NAMES = frozenset(
+    {
+        "alt",
+        "alt gr",
+        "ctrl",
+        "shift",
+        "windows",
+        "left alt",
+        "right alt",
+        "left ctrl",
+        "right ctrl",
+        "left shift",
+        "right shift",
+        "left windows",
+        "right windows",
+        "altgr",
+        "cmd",
+        "command",
+        "control",
+        "left control",
+        "right control",
+        "left menu",
+        "left win",
+        "right win",
+        "win",
+        "option",
+    }
+)
 
 
 @dataclass(frozen=True)
@@ -53,6 +81,28 @@ def parse_key_hold(action: Mapping[str, Any]) -> KeyHoldSpec | str:
     return KeyHoldSpec(edge=edge, button=None, key=key, position=None)
 
 
+def is_modifier_key(name: str) -> bool:
+    """キー名を正規化して修飾キーか判定する。"""
+    return name.strip().lower() in MODIFIER_KEY_NAMES
+
+
+def wants_repeat(action: Mapping[str, Any]) -> bool:
+    """repeat が bool の True ならリピートを求める。"""
+    return action.get("repeat") is True
+
+
+def is_repeat_enabled(action: Mapping[str, Any]) -> bool:
+    """正しいキーボードの押す行でリピートが有効か判定する。"""
+    parsed = parse_key_hold(action)
+    return (
+        not isinstance(parsed, str)
+        and parsed.edge == EDGE_DOWN
+        and parsed.button is None
+        and wants_repeat(action)
+        and not is_modifier_key(parsed.key or "")
+    )
+
+
 def held_display_name(kind: str, name: str) -> str:
     if kind == "key":
         return name
@@ -69,7 +119,10 @@ def format_key_hold_value(action: Mapping[str, Any]) -> str:
 
     direction = "押す" if parsed.edge == EDGE_DOWN else "離す"
     if parsed.button is None:
-        return f"[{direction}] {parsed.key}"
+        display = f"[{direction}] {parsed.key}"
+        if is_repeat_enabled(action):
+            display += " (リピート)"
+        return display
     display = f"[{direction}] {held_display_name('mouse', parsed.button)}"
     if parsed.position is not None:
         display += f" ({parsed.position[0]}, {parsed.position[1]})"

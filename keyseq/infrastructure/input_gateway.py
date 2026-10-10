@@ -2,6 +2,8 @@
 
 import ctypes
 import logging
+import sys
+from ctypes import wintypes
 from typing import Callable
 
 import keyboard
@@ -36,6 +38,50 @@ _EXTENDED_KEYS = {
 }
 _KEYEVENTF_EXTENDEDKEY = 0x0001
 _KEYEVENTF_KEYUP = 0x0002
+_SPI_GETKEYBOARDSPEED = 0x000A
+_SPI_GETKEYBOARDDELAY = 0x0016
+_DEFAULT_REPEAT_DELAY_MS = 500
+_DEFAULT_REPEAT_INTERVAL_MS = 33
+
+
+def repeat_delay_ms(value: int) -> int | None:
+    """Windows のキーボード待ち設定をミリ秒へ換算する。"""
+    if not 0 <= value <= 3:
+        return None
+    return 250 * (value + 1)
+
+
+def repeat_interval_ms(value: int) -> int | None:
+    """Windows のキーボード間隔設定をミリ秒へ換算する。"""
+    if not 0 <= value <= 31:
+        return None
+    return round(1000 / (2.5 + value * 27.5 / 31))
+
+
+def _read_keyboard_setting(action: int, value_type) -> int | None:
+    try:
+        value = value_type()
+        succeeded = ctypes.windll.user32.SystemParametersInfoW(
+            action, 0, ctypes.byref(value), 0
+        )
+        return int(value.value) if succeeded else None
+    except Exception:
+        return None
+
+
+def keyboard_repeat_timing() -> tuple[int, int]:
+    """OS のキーリピート待ち時間と間隔をミリ秒で返す。"""
+    if sys.platform != "win32":
+        return _DEFAULT_REPEAT_DELAY_MS, _DEFAULT_REPEAT_INTERVAL_MS
+
+    delay_value = _read_keyboard_setting(_SPI_GETKEYBOARDDELAY, wintypes.UINT)
+    interval_value = _read_keyboard_setting(_SPI_GETKEYBOARDSPEED, wintypes.DWORD)
+    delay = repeat_delay_ms(delay_value) if delay_value is not None else None
+    interval = repeat_interval_ms(interval_value) if interval_value is not None else None
+    return (
+        delay if delay is not None else _DEFAULT_REPEAT_DELAY_MS,
+        interval if interval is not None else _DEFAULT_REPEAT_INTERVAL_MS,
+    )
 
 
 def _resolve_extended_key(name: str) -> tuple[int, int] | None:

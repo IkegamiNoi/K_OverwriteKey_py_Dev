@@ -41,7 +41,7 @@ key_hold で押したままにした通常キーを、離すまで OS の設定�
 
 ## タスク
 
-- task_01: domain + infrastructure — `repeat` の判定・修飾キーの判定（keyboard の別名を列挙）・一覧の書式 ` (リピート)`（§3・§4.6・§5）/ OS のリピート設定の取得と換算（§6）とテスト
+- task_01: domain + infrastructure — `repeat` の判定・修飾キーの判定（keyboard の別名を列挙）・一覧の書式 ` (リピート)`（§3・§4.6・§5）/ OS のリピート設定の取得と換算（§6）とテスト — **完了**（2026-10-11・codex-implementer・reviewer 採用・import の並びをメインで修正。tests 1458 / tests_ui 935 / smoke pass〔tests_ui の 1 回目に無関係の flaky 1 件・再実行で pass〕）
 - task_02: application — `KeyRepeater`（開始・切替・止める・text の前後・送り直し・古い予約・失敗・表示中の抑止の口）と `HeldInputs` / `ActionExecutor`（key_hold の repeat・対象を含む hotkey・直接置換の前に止める）の連携とテスト（§4・§6）
 - task_03: presentation — App の配線（`after` / 間隔の取得 / 知らせの口）・知らせの前に止める / 表示中の抑止・ダイアログの「リピートする」チェック（表示の切替・ON で始まる場合・組み直し）とテスト（§4.8・§5）。**実装後にユーザーの実機目視**（暫定 36 §8 の 12〜14。15 は task_04）
 - task_04: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）と**ユーザーの実機目視**（暫定 36 §8 の 15・修正があればその分の再目視）
