@@ -48,7 +48,8 @@
 - task_04: application — 自動で離す入口（§5 の表: 連続実行の終わり・一時停止・破棄・待機の取り消し・先頭へ・状態を消す契機〔キー変更は旧キーの分〕・末尾の時点・連動の末尾・実行を終えるエラー）と runner から持ち主を渡す配線とテスト（§5）。 — **完了**（2026-10-10・codex-delegating-implementer〔サブエージェント 3 つ使用〕・reviewer 完了可・境界 1 点〔最後の行の停止は末尾として離す〕をユーザー判断で暫定 35 v0.7 に補足しメインで実装。tests 1441 / tests_ui 907 / smoke pass）
   **状態を消す契機の解放は application 側で受ける**（presentation の各呼び出し元に解放を書き足さず、状態を消す application の処理〔`AppState.reset_indices`・トリガーの状態の消去等〕から解放の口を呼ぶ。入口の実体は task_04 の起票時に特定する。`_cancel_pending_steps` は `sequence_runner.py:195` と `wait_stop.py:36` の 2 か所にあるため実体を特定する）
 - task_05: presentation — ダイアログの `key_hold` の入力欄（別モジュール）・一覧 / 省略表示 / 呼び出し先の表示枠の書式・ステータス欄の押下中の表示・フック停止 / キーマップ一時停止 / アプリ終了の解放の配線とテスト（§5・§7）。**実装後にユーザーの実機目視** — **完了**（2026-10-10 実機目視 OK〔`a` 等の通常キーはキーリピートしない＝Windows の合成入力の仕様。リピートは idea_41 へ分離〕・codex-delegating-implementer〔サブエージェント使用〕・reviewer 完了可・指摘 2 件〔座標取得中の key_hold のボタン無効化・stop_hook の解放を finally へ〕と新規テストの Esc のフォーカス・Tk のルートの共有をメインで修正。tests 1443 / tests_ui 929 / smoke pass）
-- task_06: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）と**ユーザーの実機目視**（暫定 35 §10 の 8〜11）
+- task_06: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）と**ユーザーの実機目視**（暫定 35 §10 の 8〜11）。2026-10-10: tests 1443 / tests_ui 929 / smoke pass・deep-reviewer 要修正（H1 キーマップの切替で離れない）・codex-reviewer P2 × 2 → 暫定 35 v0.8 + task_06a（ユーザー確定）。実機目視の 8〜11 は task_05 の目視で確認済み・task_06a の分だけ再目視
+  - task_06a: 統合レビューの修正（キーマップの切替 / アクティブの削除で離す・一時的な離すの途中失敗・記録の左右・一時停止の finally）とテスト。**実装後にユーザーの実機目視**
 - task_07: 正本反映（暫定 35 §12 の昇格・凍結）・`decisions_archive/51_key_press_release_actions.md`・decisions.md の索引・current.md の完了記載・idea_23 を INDEX_done へ・`/refactor_check`
 
 ## レビュー方針
