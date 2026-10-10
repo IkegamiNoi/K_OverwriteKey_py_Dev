@@ -237,8 +237,8 @@ class ActionExecutor:
     def _write_text(self, text: str) -> None:
         self._enter_send_guard()
         try:
-            self.held_inputs.suspend_keyboard()
             try:
+                self.held_inputs.suspend_keyboard()
                 self.input_gateway.write_text(text)
             except Exception:
                 # 一時的に離した他の持ち主の分も押し直さず、集合を OS の実態にそろえる。

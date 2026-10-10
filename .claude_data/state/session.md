@@ -12,8 +12,8 @@ last_commit_location: `claude/focus-undo-behavior-refactor-de11a6`（phase 51 ta
 
 ## current
 presence: present
-focus: **phase 51 task_01〜05 完了（task_05 は 2026-10-10 実機目視 OK）。次 = task_06（統合確認）→ task_07（正本反映）。**
-mode: active
+focus: **phase 51 task_06（統合確認）→ 暫定 35 v0.8 + task_06a 実装・検証済。ユーザーの実機目視待ち → OK なら task_06 完了 → task_07（正本反映）。**
+mode: blocked
 
 ## last_action
 ts: 2026-10-10T12:00:00
@@ -24,22 +24,23 @@ summary: |
   task_02 domain（codex-implementer）/ task_03 HeldInputs・ActionExecutor（codex-delegating）/ task_04 離す入口・持ち主の受け渡し（codex-delegating・最後の行の停止は末尾として離す）/ task_05 画面（codex-delegating）。いずれも reviewer 完了可・小修正はメイン。
   task_05 の新規 UI テストの Esc はフォーカス取得が要る（acquire_focus）・Tk ルートはクラスで共有。既存の test_action_dialog_control の実行順依存を current.md「テスト負債」へ記録。
   task_05 実機目視 OK（2026-10-10）。key_hold の `a` がメモ帳で 1 文字しか出ないのは Windows が合成入力にキーリピートを付けないため（仕様どおり）→ リピートは idea_41 として起票。
+  task_06 統合確認: テスト pass・deep-reviewer H1（キーマップの切替で離れない＝暫定 35 の前提の誤り）ほか・codex-reviewer P2×2 → 暫定 35 v0.8・task_06a（codex-implementer）で修正。
 result_files:
   - instructions/history/35_key_press_release_actions.md（v0.7）/ instructions/phase/51_key_press_release_actions/（phase.md・tasks/task_01〜05）
   - keyseq/domain/key_hold.py / keyseq/application/held_inputs.py・action_executor.py・sequence_runner/ / keyseq/infrastructure/input_gateway.py / keyseq/presentation/（app.py・hook_controller.py・trigger_panel_controller.py・action_list_rendering.py・dialogs/action_dialog.py・dialogs/action_key_hold_fields.py）/ tests・tests_ui
 verified:
   compile: clean
-  tests: 1443 OK（skipped 7）
-  tests_ui: 929 OK
+  tests: 1446 OK（skipped 7）
+  tests_ui: 932 OK
   smoke: pass
-  review: task_02〜05 reviewer 完了可（指摘は反映済）
+  review: task_02〜05・06a reviewer 完了可 / task_06 統合 deep-reviewer 要修正 + codex-reviewer P2×2 → v0.8・task_06a で対応
 
 ## next_action
-- **次 = task_06**: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）→ task_07: 正本反映（暫定 35 §12）・凍結・decisions_archive/51・decisions.md 索引・current.md 完了記載・idea_23 を INDEX_done へ・/refactor_check・完了判定前 deep-reviewer + codex-adversarial-reviewer
+- **ユーザーの実機目視（task_06a）**: shift を押したままキーマップを切替キー / 一覧のクリックで切り替えると離れる・同じキーマップでは離れない・「1 キーを記録」で右 ctrl が `right ctrl` になる。OK なら task_06 完了 → task_07: 正本反映（暫定 35 §12）・凍結・decisions_archive/51・decisions.md 索引・current.md 完了記載・idea_23 を INDEX_done へ・/refactor_check・完了判定前 deep-reviewer + codex-adversarial-reviewer
 - main へのマージはユーザーが行う
 
 ## blockers
-- なし
+- ユーザーの実機目視（phase 51 task_06a）
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。

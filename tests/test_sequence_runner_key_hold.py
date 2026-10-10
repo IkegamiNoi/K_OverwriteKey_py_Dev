@@ -135,6 +135,27 @@ class SequenceRunnerKeyHoldTests(unittest.TestCase):
     def down():
         return {"type": "key_hold", "edge": "down", "value": "shift"}
 
+    def test_release_all_held_reports_gateway_errors(self):
+        errors = []
+        runner, _state, scheduler, gateway, _held = self.make_runner(
+            [], notify_error=lambda action, message: errors.append((action, message)),
+            release_all_errors=(RuntimeError("up failed"),),
+        )
+
+        runner.release_all_held()
+        self.assertEqual(gateway.events, [("release_all",)])
+        self.assertEqual(errors, [])
+        scheduler.run_pending()
+        self.assertEqual(errors[0][0], {})
+        self.assertIn("up failed", errors[0][1])
+
+    def test_release_all_held_without_held_inputs_is_a_noop(self):
+        runner, _state, _scheduler, gateway, _held = self.make_runner([], inject_held=False)
+
+        runner.release_all_held()
+
+        self.assertEqual(gateway.events, [])
+
     def test_single_steps_keep_the_top_level_owner_without_releasing_between_presses(self):
         trigger = {"key": "f1", "actions": [
             self.down(), {"type": "text", "value": "x"}, {"type": "text", "value": "y"},

@@ -67,13 +67,36 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         # Tk へ渡るイベントを直接渡す。OS のキー入力は送らない。
         fields._on_key_press(SimpleNamespace(keysym="Shift_L"))
         self.assertFalse(fields.recording)
-        self.assertEqual(fields.key_var.get(), "shift")
+        self.assertEqual(fields.key_var.get(), "left shift")
         dialog.action_label_var.set("selection")
         dialog.on_ok()
         self.assertEqual(self.root._dialog_result, {
-            "type": "key_hold", "edge": "down", "value": "shift", "label": "selection",
+            "type": "key_hold", "edge": "down", "value": "left shift", "label": "selection",
         })
-        self.assertEqual(self.root.input_gateway.validated, ["shift"])
+        self.assertEqual(self.root.input_gateway.validated, ["left shift"])
+
+    def test_key_hold_recording_preserves_modifier_sides(self) -> None:
+        cases = (
+            ("Control_R", "right ctrl"),
+            ("Shift_R", "right shift"),
+            ("Alt_L", "left alt"),
+            ("Alt_R", "right alt"),
+            ("Control_L", "left ctrl"),
+            ("Shift_L", "left shift"),
+            ("Super_L", "left windows"),
+            ("Win_R", "right windows"),
+        )
+        for keysym, expected in cases:
+            with self.subTest(keysym=keysym):
+                dialog = self.make_dialog(mode=None)
+                fields = dialog.key_hold_fields
+                fields.start_recording()
+                fields._on_key_press(SimpleNamespace(keysym=keysym))
+                self.assertEqual(fields.key_var.get(), expected)
+                dialog.type_var.set("key_hold")
+                dialog.on_ok()
+                self.assertEqual(self.root._dialog_result["value"], expected)
+                self.assertEqual(self.root.input_gateway.validated[-1], expected)
 
     def test_key_hold_is_available_in_every_dialog_context(self) -> None:
         for mode in (None, "add", "edit"):

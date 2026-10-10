@@ -53,11 +53,34 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
         runner.cancel_pending_waits.assert_called_once_with()
         self.assertFalse(controller.custom_input_enabled)
 
+    def test_disabling_custom_input_releases_even_when_stopping_run_raises(self):
+        runner = SimpleNamespace(
+            stop_run_to_end=Mock(side_effect=RuntimeError("stop failed")),
+            cancel_pending_waits=Mock(),
+        )
+        release_all = Mock(return_value=[])
+        controller = HookController.__new__(HookController)
+        controller._app = SimpleNamespace(
+            sequence_runner=runner,
+            held_inputs=SimpleNamespace(release_all=release_all),
+        )
+        controller.hook_active = True
+        controller.custom_input_enabled = True
+        controller._clear_keymap_switch_in_progress = Mock()
+
+        with self.assertRaisesRegex(RuntimeError, "stop failed"):
+            controller.toggle_custom_input_enabled()
+
+        release_all.assert_called_once_with()
+        runner.cancel_pending_waits.assert_not_called()
+        self.assertFalse(controller.custom_input_enabled)
+
     def test_keymap_switch_cancels_waits_only_when_keymap_changes(self):
         for changed in (True, False):
             target_id = "new" if changed else "old"
             runner = SimpleNamespace(cancel_pending_waits=Mock(),
-                                     discard_paused=Mock(return_value=()))
+                                     discard_paused=Mock(return_value=()),
+                                     release_all_held=Mock())
             service = SimpleNamespace(
                 get_active_keymap_id=Mock(side_effect=["old", target_id]),
                 set_active_keymap_id=Mock(return_value=changed), get_keymaps=Mock(return_value=[{"id": target_id}]),
@@ -80,8 +103,10 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
 
             if changed:
                 runner.cancel_pending_waits.assert_called_once_with()
+                runner.release_all_held.assert_called_once_with()
             else:
                 runner.cancel_pending_waits.assert_not_called()
+                runner.release_all_held.assert_not_called()
 
     def test_action_selection_resets_and_renders_only_when_position_changes(self):
         controller = TriggerPanelController.__new__(TriggerPanelController)

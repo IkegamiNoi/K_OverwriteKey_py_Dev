@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import unittest
 from types import SimpleNamespace
-from unittest.mock import Mock
+from unittest.mock import Mock, patch
 
 from keyseq.application.action_executor import ActionExecutor
 
@@ -340,6 +340,38 @@ class ActionExecutorKeyHoldTests(unittest.TestCase):
         self.assertNotIn(("key_down", "ctrl"), self.events)
         self.assertEqual(self.events[-1], ("action_error",))
         self.assertEqual(self.executor.held_inputs.display_names, ("マウス左",))
+
+    def test_text_suspend_error_releases_all_owners_keyboard_keys_but_keeps_mouse(self) -> None:
+        self._press_shift("f8")
+        self.assertIs(
+            self.executor.execute(
+                {"type": "key_hold", "edge": "down", "value": "ctrl"}, owner="f9"
+            ),
+            True,
+        )
+        self.assertIs(
+            self.executor.execute(
+                {"type": "key_hold", "edge": "down", "button": "left"}, owner="f9"
+            ),
+            True,
+        )
+        self.events.clear()
+        self.gateway.fail_release_once.add("ctrl")
+
+        with patch.object(
+            self.executor.held_inputs, "release_keyboard",
+            wraps=self.executor.held_inputs.release_keyboard,
+        ) as release_keyboard:
+            result = self.executor.execute(
+                {"type": "text", "value": "hello"}, owner="f8"
+            )
+
+        self.assertIs(result, False)
+        release_keyboard.assert_called_once_with()
+        self.assertFalse(any(event[0] == "key_down" for event in self.events))
+        self.assertEqual(self.events[-1], ("action_error",))
+        self.assertEqual(self.executor.held_inputs.display_names, ("マウス左",))
+        self.on_action_error.assert_called_once()
 
     def test_text_resume_error_compensates_failed_press_then_releases_owner_before_notice(self) -> None:
         self._press_shift()

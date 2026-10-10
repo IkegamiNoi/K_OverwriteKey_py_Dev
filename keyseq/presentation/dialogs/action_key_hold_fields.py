@@ -4,7 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Callable
 
-from keyseq.presentation.tk_keys import normalize_tk_keysym
+from keyseq.presentation.tk_keys import normalize_key_hold_tk_keysym
 
 
 class ActionKeyHoldFields:
@@ -164,6 +164,6 @@ class ActionKeyHoldFields:
         if keysym.lower() == "escape":
             self.stop_recording()
             return "break"
-        self.key_var.set(normalize_tk_keysym(keysym))
+        self.key_var.set(normalize_key_hold_tk_keysym(keysym))
         self.stop_recording()
         return "break"

@@ -187,10 +187,12 @@ class HookController:
         if self.custom_input_enabled:
             # 無効化した瞬間に連続実行中を止める
             self._clear_keymap_switch_in_progress()
-            self._app.sequence_runner.stop_run_to_end()
-            self._app.sequence_runner.cancel_pending_waits()
-            self.custom_input_enabled = False
-            self._release_held_inputs()
+            try:
+                self._app.sequence_runner.stop_run_to_end()
+                self._app.sequence_runner.cancel_pending_waits()
+            finally:
+                self.custom_input_enabled = False
+                self._release_held_inputs()
         else:
             def _on_error(title: str, msg: str) -> None:
                 self._app.after(0, lambda: messagebox.showerror(title, msg))

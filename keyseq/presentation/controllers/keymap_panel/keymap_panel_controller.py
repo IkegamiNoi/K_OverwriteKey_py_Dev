@@ -324,6 +324,7 @@ class KeymapPanelController:
         if target_id == self._app.keymap_service.get_active_keymap_id(self._app.data):
             discarded = self._app.sequence_runner.discard_paused()
             self._app.sequence_runner.cancel_pending_waits()
+            self._app.sequence_runner.release_all_held()
 
         deleted, next_active_id = self._app.keymap_service.delete_keymap(self._app.data, target.get("id", ""))
         if not deleted:
@@ -463,6 +464,8 @@ class KeymapPanelController:
         active_id = self._app.keymap_service.get_active_keymap_id(self._app.data)
         if active_id != target_id:
             return False
+        if target_id != active_before:
+            self._app.sequence_runner.release_all_held()
 
         if preferred_index is None:
             keymaps = self._app.keymap_service.get_keymaps(self._app.data)

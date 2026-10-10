@@ -111,6 +111,12 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             errors.extend(self.held_inputs.release_owner(key))
         self._notify_release_errors(errors)
 
+    def release_all_held(self) -> None:
+        """押下中のキー / ボタンをすべて離し、送信の失敗を知らせる（キーマップの切替 / アクティブの削除・暫定 35 §2-19）。"""
+        if self.held_inputs is None:
+            return
+        self._notify_release_errors(self.held_inputs.release_all())
+
     def _send_action(self, action: dict[str, Any], key: str) -> bool | None:
         with self._owner_scope(key):
             result = self._perform_action(action)

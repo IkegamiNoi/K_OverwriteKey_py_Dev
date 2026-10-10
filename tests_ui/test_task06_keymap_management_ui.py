@@ -60,6 +60,10 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         cls.app.destroy()
 
     def setUp(self):
+        with patch.object(self.app.input_gateway, "release_key"), patch.object(
+            self.app.input_gateway, "mouse_up"
+        ):
+            self.app.held_inputs.release_all()
         self.original_data = self.app.data
         self.app.data = self.app.config_service.normalize_runtime_data(make_runtime())
         self.app.state.reset_indices()
@@ -195,6 +199,20 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         ask.assert_not_called()
         self.assertTrue(self.app.state.run_to_end_paused)
 
+    def test_switch_releases_held_keyboard_key_but_same_map_keeps_it(self):
+        with patch.object(self.app.input_gateway, "press_key"), patch.object(
+            self.app.input_gateway, "release_key"
+        ) as release_key:
+            self.app.held_inputs.press_key("f1", "shift")
+            self.assertTrue(self.app.keymap_panel.activate_keymap_by_id("km1"))
+            self.assertEqual(self.app.held_inputs.display_names, ("shift",))
+            release_key.assert_not_called()
+
+            self.assertTrue(self.app.keymap_panel.activate_keymap_by_id("km2"))
+
+        self.assertEqual(self.app.held_inputs.display_names, ())
+        release_key.assert_called_once_with("shift")
+
     def test_active_delete_uses_only_delete_confirmation(self):
         self.app.state.run_to_end_key = "f1"
         self.app.state.run_to_end_paused = True
@@ -216,11 +234,16 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         with patch(
             "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.askyesno",
             return_value=True,
-        ), patch("keyseq.presentation.app.messagebox.askokcancel") as confirm:
+        ), patch("keyseq.presentation.app.messagebox.askokcancel") as confirm, patch.object(
+            self.app.input_gateway, "press_key"
+        ), patch.object(self.app.input_gateway, "release_key") as release_key:
+            self.app.held_inputs.press_key("f1", "shift")
             self.app.keymap_panel.delete_keymap()
         confirm.assert_not_called()
         self.assertEqual(len(self.app.data["keymaps"]), 1)
         self.assertFalse(self.app.state.run_to_end_paused)
+        self.assertEqual(self.app.held_inputs.display_names, ())
+        release_key.assert_called_once_with("shift")
 
     def test_add_prompts_for_missing_switch_keys_and_requires_new_switch_key(self):
         self.app.data = self.app.config_service.normalize_runtime_data(
