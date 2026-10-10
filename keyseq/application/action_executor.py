@@ -22,7 +22,7 @@ from keyseq.application.file_line_reader import (
 from keyseq.application.file_line_loader import FileLineLoadRequest, FileLineLoader
 from keyseq.application.held_inputs import HeldInputs
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
-from keyseq.domain.key_hold import EDGE_DOWN, parse_key_hold
+from keyseq.domain.key_hold import EDGE_DOWN, is_repeat_enabled, parse_key_hold
 
 
 MIN_DRAG_DURATION_SEC = 0.15
@@ -240,6 +240,8 @@ class ActionExecutor:
 
         self._enter_send_guard()
         try:
+            keys = (key.strip() for chord in normalized.split(",") for key in chord.split("+"))
+            self.held_inputs.stop_repeat_for_keys(keys)
             self.input_gateway.send_hotkey(normalized)
         finally:
             self._exit_send_guard()
@@ -275,7 +277,10 @@ class ActionExecutor:
             if parsed.key is not None:
                 self.input_gateway.validate_key_name(parsed.key)
                 if parsed.edge == EDGE_DOWN:
-                    self.held_inputs.press_key(owner, parsed.key)
+                    self.held_inputs.press_key(
+                        owner, parsed.key,
+                        repeat_action=action if is_repeat_enabled(action) else None,
+                    )
                 else:
                     self.held_inputs.release_key(parsed.key)
             else:
@@ -291,6 +296,7 @@ class ActionExecutor:
     def _send_mapped_key(self, key: str) -> None:
         self._enter_send_guard()
         try:
+            self.held_inputs.stop_repeat_for_keys((key,))
             self.input_gateway.press_key(key)
             self.input_gateway.release_key(key)
         except Exception as e:

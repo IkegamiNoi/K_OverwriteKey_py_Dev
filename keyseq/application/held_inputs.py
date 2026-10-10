@@ -3,8 +3,9 @@ from __future__ import annotations
 import logging
 from contextlib import contextmanager
 from dataclasses import dataclass
-from typing import Callable, Iterator
+from typing import Callable, Iterable, Iterator
 
+from keyseq.application.key_repeat import KeyRepeater, RepeatTarget
 from keyseq.domain.key_hold import held_display_name
 
 
@@ -27,13 +28,20 @@ class HeldInputs:
         enter_send_guard: Callable[[], None] | None = None,
         exit_send_guard: Callable[[], None] | None = None,
         on_change: Callable[[tuple[str, ...]], None] | None = None,
+        repeater: KeyRepeater | None = None,
+        on_repeat_error: Callable[[dict, str], None] | None = None,
     ) -> None:
         self.input_gateway = input_gateway
         self._records: dict[InputIdentity, HeldInput] = {}
         self._next_order = 0
         self.current_owner: str | None = None
         self._on_change = on_change
+        self._repeater = repeater
+        self._repeat_before_text: RepeatTarget | None = None
+        self._on_repeat_error = on_repeat_error
         self.set_send_guard(enter_send_guard, exit_send_guard)
+        if repeater is not None:
+            repeater.set_callbacks(self._send_repeat, self._repeat_failed)
 
     @contextmanager
     def owner_scope(self, owner: str) -> Iterator[None]:
@@ -109,12 +117,57 @@ class HeldInputs:
                 self._remove(identity)
             raise
 
-    def press_key(self, owner: str, key: str) -> None:
+    def _stop_repeat(self, identity: InputIdentity) -> None:
+        if self._repeater is not None and self._repeater.is_target(identity):
+            self._repeater.stop()
+        if self._repeat_before_text is not None and self._repeat_before_text[0] == identity:
+            self._repeat_before_text = None
+
+    def stop_repeat_for_keys(self, keys: Iterable[str]) -> None:
+        """保持入力を経由しない送信の前にも、対象キーを止める（暫定 36 §2-9）。
+
+        解けないキー名・空のキー名は対象になり得ないので飛ばし、送信そのものは妨げない。
+        """
+        if self._repeater is None or not self._repeater.has_target:
+            return
+        for key in keys:
+            if not key:
+                continue
+            try:
+                identity = self._key_identity(key)
+            except Exception:
+                _logger.debug("リピート停止の判定でキー名を解けませんでした: %s", key)
+                continue
+            self._stop_repeat(identity)
+
+    def _send_repeat(self, key: str) -> None:
+        with self._guard():
+            self.input_gateway.press_key(key)
+
+    def _repeat_failed(
+        self, identity: InputIdentity, key: str, action: dict, exc: Exception,
+    ) -> None:
+        message = f"キーのリピート送信に失敗しました: {exc}"
+        try:
+            self.release_key(key)
+        except Exception as release_error:
+            message += f" / 解放エラー: {release_error}"
+        if self._on_repeat_error is not None:
+            self._on_repeat_error(action, message)
+        else:
+            _logger.error("%s", message)
+
+    def press_key(
+        self, owner: str, key: str, *, repeat_action: dict | None = None,
+    ) -> None:
         identity = self._key_identity(key)
+        self._stop_repeat(identity)
         with self._guard():
             self._press(identity, owner, key,
                         lambda: self.input_gateway.press_key(key),
                         lambda: self.input_gateway.release_key(key))
+        if repeat_action is not None and self._repeater is not None:
+            self._repeater.start(identity, key, repeat_action)
 
     def press_mouse(
         self, owner: str, button: str, position: tuple[int, int] | None = None,
@@ -126,6 +179,7 @@ class HeldInputs:
 
     def release_key(self, key: str) -> None:
         identity = self._key_identity(key)
+        self._stop_repeat(identity)
         with self._guard():
             self.input_gateway.release_key(key)
         self._remove(identity)
@@ -148,6 +202,7 @@ class HeldInputs:
                 continue
             try:
                 if identity[0] == "key":
+                    self._stop_repeat(identity)
                     with self._guard():
                         self.input_gateway.release_key(record.name)
                 else:
@@ -166,9 +221,20 @@ class HeldInputs:
 
     def release_keyboard(self) -> list[Exception]:
         """持ち主によらずキーボードの分だけ離す（text の送信失敗の後始末・暫定 35 §4.4）。"""
+        self._repeat_before_text = None
         return self._release_records(None, keyboard_only=True)
 
     def suspend_keyboard(self) -> None:
+        self._repeat_before_text = None
+        if self._repeater is not None:
+            self._repeat_before_text = self._repeater.pause_for_text()
+        try:
+            self._suspend_keyboard()
+        except Exception:
+            self._repeat_before_text = None
+            raise
+
+    def _suspend_keyboard(self) -> None:
         errors: list[Exception] = []
         with self._guard():
             for identity, record in self._ordered_records():
@@ -181,6 +247,8 @@ class HeldInputs:
             raise errors[0]
 
     def resume_keyboard(self) -> None:
+        saved = self._repeat_before_text
+        self._repeat_before_text = None
         errors: list[Exception] = []
         for identity, record in self._ordered_records():
             if identity[0] == "key":
@@ -191,3 +259,5 @@ class HeldInputs:
                     errors.append(exc)
         if errors:
             raise errors[0]
+        if saved is not None and saved[0] in self._records and self._repeater is not None:
+            self._repeater.resume_after_text(saved)

@@ -5,6 +5,8 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from keyseq.application.action_executor import ActionExecutor
+from keyseq.application.held_inputs import HeldInputs
+from keyseq.application.key_repeat import KeyRepeater
 
 
 class FakeGateway:
@@ -117,6 +119,173 @@ class ActionExecutorKeyHoldTests(unittest.TestCase):
         self.assertIs(self.executor.execute(up, owner="f8"), True)
         self.assertEqual(self.events[-1], ("key_up", "shift"))
         self.assertEqual(self.executor.held_inputs.display_names, ())
+
+    def _repeat_executor(self) -> tuple[KeyRepeater, list[tuple]]:
+        reservations: list[tuple] = []
+        repeater = KeyRepeater(
+            after=lambda ms, callback: reservations.append((ms, callback)) or len(reservations),
+            after_cancel=lambda token: self.events.append(("cancel", token)),
+            get_timing=lambda: (500, 33),
+        )
+        self.gateway.key_identity = lambda key: (ord(key[0]), key.startswith("right "))
+        held = HeldInputs(self.gateway, repeater=repeater, on_repeat_error=self.on_action_error)
+        self.executor = self._executor(held_inputs=held)
+        return repeater, reservations
+
+    def test_repeat_enabled_action_is_forwarded_and_up_stops_before_send(self) -> None:
+        repeater, reservations = self._repeat_executor()
+        action = {"type": "key_hold", "edge": "down", "value": "a", "repeat": True}
+        self.assertTrue(self.executor.execute(action, owner="f8"))
+        self.assertEqual(reservations[0][0], 500)
+        self.gateway.guard_probe = lambda: self.executor.send_guard_count
+        reservations[0][1]()
+        self.assertEqual(self.events[-2:], [("key_down", "a"), ("guard_count", 1)])
+        self.assertEqual(self.executor.send_guard_count, 0)
+        self.events.clear()
+        self.assertTrue(self.executor.execute({"type": "key_hold", "edge": "up", "value": "a"}))
+        self.assertLess(self.events.index(("cancel", 2)), self.events.index(("key_up", "a")))
+        self.assertFalse(repeater.is_target(("key", ord("a"), False)))
+        before = list(self.events)
+        reservations[1][1]()
+        self.assertEqual(self.events, before)
+
+    def test_non_repeat_and_modifier_actions_do_not_schedule(self) -> None:
+        _, reservations = self._repeat_executor()
+        for action in (
+            {"type": "key_hold", "edge": "down", "value": "a"},
+            {"type": "key_hold", "edge": "down", "value": "b", "repeat": False},
+            {"type": "key_hold", "edge": "down", "value": "shift", "repeat": True},
+            {"type": "key_hold", "edge": "down", "button": "left", "repeat": True},
+        ):
+            with self.subTest(action=action):
+                self.assertTrue(self.executor.execute(action))
+                self.assertEqual(reservations, [])
+
+    def test_only_another_repeat_enabled_press_switches_target_without_fallback(self) -> None:
+        repeater, reservations = self._repeat_executor()
+        self.assertTrue(self.executor.execute(
+            {"type": "key_hold", "edge": "down", "value": "a", "repeat": True},
+        ))
+        for action in (
+            {"type": "key_hold", "edge": "down", "value": "b"},
+            {"type": "key_hold", "edge": "down", "value": "shift", "repeat": True},
+            {"type": "key_hold", "edge": "down", "button": "left", "repeat": True},
+            {"type": "key_hold", "edge": "up", "button": "left"},
+        ):
+            self.assertTrue(self.executor.execute(action))
+            self.assertTrue(repeater.is_target(("key", ord("a"), False)))
+            self.assertEqual(len(reservations), 1)
+        self.assertTrue(self.executor.execute(
+            {"type": "key_hold", "edge": "down", "value": "b", "repeat": True},
+        ))
+        self.assertTrue(repeater.is_target(("key", ord("b"), False)))
+        self.assertEqual(self.executor.held_inputs.display_names, ("a", "b", "shift"))
+        self.assertTrue(self.executor.execute({"type": "key_hold", "edge": "up", "value": "b"}))
+        self.assertFalse(repeater.is_target(("key", ord("a"), False)))
+        before = list(self.events)
+        for _, callback in reservations:
+            callback()
+        self.assertEqual(self.events, before)
+
+    def test_same_key_without_repeat_stops_before_press_even_if_compensation_fails(self) -> None:
+        for fail in (False, True):
+            with self.subTest(fail=fail):
+                self.setUp()
+                repeater, reservations = self._repeat_executor()
+                self.assertTrue(self.executor.execute(
+                    {"type": "key_hold", "edge": "down", "value": "a", "repeat": True},
+                ))
+                self.events.clear()
+                if fail:
+                    self.gateway.fail_press.add("a")
+                    self.gateway.fail_release.add("a")
+                result = self.executor.execute({"type": "key_hold", "edge": "down", "value": "a"})
+                self.assertIs(result, not fail)
+                self.assertLess(self.events.index(("cancel", 1)), self.events.index(("key_down", "a")))
+                self.assertFalse(repeater.is_target(("key", ord("a"), False)))
+                self.assertEqual(self.executor.held_inputs.display_names, ("a",))
+                before = list(self.events)
+                reservations[0][1]()
+                self.assertEqual(self.events, before)
+
+    def test_normalized_hotkey_stops_target_before_send_and_only_if_included(self) -> None:
+        repeater, reservations = self._repeat_executor()
+        identity = ("key", ord("a"), False)
+        action = {"type": "key_hold", "edge": "down", "value": "a", "repeat": True}
+        self.assertTrue(self.executor.execute(action))
+        self.gateway.send_hotkey = lambda value: self.events.append(("hotkey", value))
+        self.executor._validate_hotkey = lambda _value: ("", " ctrl + b , c ")
+        self.assertTrue(self.executor.execute({"type": "hotkey", "value": "ignored"}))
+        self.assertTrue(repeater.is_target(identity))
+        self.executor._validate_hotkey = lambda _value: ("", " ctrl + b , a ")
+        self.events.clear()
+        self.assertTrue(self.executor.execute({"type": "hotkey", "value": "ignored"}))
+        self.assertEqual(self.events, [("cancel", 1), ("hotkey", " ctrl + b , a ")])
+        self.assertFalse(repeater.is_target(identity))
+        reservations[0][1]()
+        self.assertEqual(len(self.events), 2)
+
+    def test_mapped_key_stops_target_before_send_and_does_not_restart(self) -> None:
+        repeater, reservations = self._repeat_executor()
+        self.assertTrue(self.executor.execute(
+            {"type": "key_hold", "edge": "down", "value": "a", "repeat": True},
+        ))
+        self.executor._send_mapped_key("b")
+        self.assertTrue(repeater.is_target(("key", ord("a"), False)))
+        self.events.clear()
+        self.executor._send_mapped_key("a")
+        self.assertEqual(self.events, [("cancel", 1), ("key_down", "a"), ("key_up", "a")])
+        reservations[0][1]()
+        self.assertEqual(len(self.events), 3)
+
+    def test_repeat_error_reports_original_action_and_execution_can_continue(self) -> None:
+        repeater, reservations = self._repeat_executor()
+        action = {"type": "key_hold", "edge": "down", "value": "a", "repeat": True}
+        self.assertTrue(self.executor.execute(action, owner="f8"))
+        self.gateway.fail_press.add("a")
+        reservations[0][1]()
+        self.assertFalse(repeater.is_target(("key", ord("a"), False)))
+        self.assertEqual(self.executor.held_inputs.display_names, ())
+        self.assertIs(self.on_action_error.call_args.args[0], action)
+        self.assertIn("press failed: a", self.on_action_error.call_args.args[1])
+        self.assertTrue(self.executor.execute(
+            {"type": "key_hold", "edge": "down", "value": "b"}, owner="f8",
+        ))
+
+    def test_text_and_file_line_restart_original_repeat_from_delay(self) -> None:
+        for file_line in (False, True):
+            with self.subTest(file_line=file_line):
+                self.setUp()
+                repeater, reservations = self._repeat_executor()
+                self.assertTrue(self.executor.execute(
+                    {"type": "key_hold", "edge": "down", "value": "a", "repeat": True},
+                ))
+                self.assertTrue(self.executor.execute(
+                    {"type": "key_hold", "edge": "down", "value": "b"},
+                ))
+                if file_line:
+                    self.executor._file_line_loader = FakeLoader()
+                    handle = self.executor.begin_file_line(
+                        {"type": "file_line", "path": "lines.txt", "counter": "rows"},
+                    )
+                    self.assertTrue(self.executor.poll_file_line(handle))
+                else:
+                    self.assertTrue(self.executor.execute({"type": "text", "value": "hello"}))
+                self.assertEqual([ms for ms, _ in reservations], [500, 500])
+                self.assertTrue(repeater.is_target(("key", ord("a"), False)))
+
+    def test_failed_text_discards_repeat_backup_even_when_release_fails(self) -> None:
+        repeater, reservations = self._repeat_executor()
+        self.assertTrue(self.executor.execute(
+            {"type": "key_hold", "edge": "down", "value": "a", "repeat": True}, owner="other",
+        ))
+        self.gateway.fail_text = True
+        self.gateway.fail_release.add("a")
+        self.assertFalse(self.executor.execute({"type": "text", "value": "hello"}, owner="f8"))
+        self.gateway.fail_release.clear()
+        self.executor.held_inputs.resume_keyboard()
+        self.assertEqual(len(reservations), 1)
+        self.assertFalse(repeater.is_target(("key", ord("a"), False)))
 
     def test_key_hold_sends_mouse_down_and_up_with_positions(self) -> None:
         down = {"type": "key_hold", "edge": "down", "button": "left", "x": 12, "y": 34}
