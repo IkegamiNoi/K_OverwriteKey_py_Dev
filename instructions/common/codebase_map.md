@@ -742,6 +742,18 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - presentation: `app.py`（runner への注入・`_sync_control_vars_from_data` の同期）/ `controllers/trigger_panel/select_before_run.py`（シーケンス欄のチェックの同期・書き戻し）/
     `views/full_view/hook_frame.py`・`views/compact_view/hook_frame.py`（全体のチェック・個別指定の下の行）/ `views/full_view/sequence_box.py`（トリガーごとのチェック・間隔の下）/ `ui_vars.py`
   - テスト: `tests/test_sequence_runner_select_before_run.py` / `test_input_router.py` / `test_config_service.py` / `test_domain_config.py` / `tests_ui/test_select_before_run_ui.py` / `test_full_view_min_height.py`
+- phase 51（キーの押下 / 解放 `key_hold`・自動で離す安全策。仕様 = `features.md` §4.2.3・§4.2.8・§4.2.12・§4.5・§4.6 / `data_schema.md` §5.11.1・§5.11.9 / `key_input.md` §7.7。判断 = `decisions_archive/51_key_press_release_actions.md`）:
+  - domain: `domain/key_hold.py`（種類の定数・`parse_key_hold`〔実行時エラーの判定・文字列ならエラー文言〕・`held_display_name`・一覧の書式 `format_key_hold_value`。`format_action_list_item` から使う）
+  - 押下中の集合: `application/held_inputs.py` の `HeldInputs`（App で 1 つ作り `ActionExecutor` と `SequenceRunner` で共有）。同じキーの判定はスキャンコード + 拡張フラグ。
+    解放の口 = `release_owner` / `release_all` / `release_keyboard`（例外は集めて返す）・text の前後 = `suspend_keyboard` / `resume_keyboard`。変化は `on_change` で presentation のステータス更新へ
+  - 持ち主の受け渡し: `perform_action` の引数ではなく、runner の `_owner_scope(key)`（`sequence_runner.py:92`）が `HeldInputs.owner_scope` で**最上段のキー**を一時的に差し替え、`ActionExecutor._execute_key_hold` がそれを読む（入れ子・例外時も元に戻る。スコープ外の実行は持ち主 `""`＝`release_all` でだけ離れる）
+  - 離す入口（runner）: `_release_owner` / `_release_owners` を `run_to_end.py`（停止・一時停止・`on_runtime_reset` は全部）・`call_run_to_end.py`・`call_wait.py`・`send_wait.py`・`file_line_wait.py`・`input_acceptance.py`（`discard_paused`）・`linked_call.py`（連動の末尾）・
+    `sequence_runner.py`（`cancel_pending_waits`・末尾・エラーの通知前）から呼ぶ。キーマップの切替 / アクティブの削除は `release_all_held`（presentation の `keymap_panel_controller.py` が呼ぶ）
+  - 送信: `infrastructure/input_gateway.py`（マウスのボタンの `mouse_down` / `mouse_up`・FAILSAFE を外す / 拡張キーは `keyboard._listener.is_replaying` を立てて記録に載せない / `write_text` は `restore_state_after=False`）。text の前後の離す / 押し直すは `ActionExecutor._write_text`
+  - presentation: `app.py`（`HeldInputs` の生成・`on_close` の finally で `release_all`）/ `controllers/hook_controller.py`（`stop_hook`・`toggle_custom_input_enabled` の finally で解放）/
+    `controllers/trigger_panel/trigger_panel_controller.py`（ステータスの「押下中: ...」）/ `controllers/action_list_rendering.py`（省略表示の要約）/
+    `dialogs/action_key_hold_fields.py`（ダイアログの入力欄・「1 キーを記録」は `tk_keys.normalize_key_hold_tk_keysym` で修飾キーの左右を区別）
+  - テスト: `tests/test_key_hold.py` / `test_held_inputs.py` / `test_action_executor_key_hold.py` / `test_sequence_runner_key_hold.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_task06_keymap_management_ui.py` / `test_sequence_control_review_fixes.py`
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 
