@@ -12,8 +12,8 @@ last_commit_location: `claude/focus-undo-behavior-refactor-de11a6`（phase 51 ta
 
 ## current
 presence: present
-focus: **phase 51 task_06（統合確認）→ 暫定 35 v0.8 + task_06a 実装・検証済。ユーザーの実機目視待ち → OK なら task_06 完了 → task_07（正本反映）。**
-mode: blocked
+focus: **phase 51 task_01〜06（06a 含む）完了。次 = task_07（正本反映・フェーズ完了処理）。**
+mode: active
 
 ## last_action
 ts: 2026-10-10T12:00:00
@@ -25,6 +25,7 @@ summary: |
   task_05 の新規 UI テストの Esc はフォーカス取得が要る（acquire_focus）・Tk ルートはクラスで共有。既存の test_action_dialog_control の実行順依存を current.md「テスト負債」へ記録。
   task_05 実機目視 OK（2026-10-10）。key_hold の `a` がメモ帳で 1 文字しか出ないのは Windows が合成入力にキーリピートを付けないため（仕様どおり）→ リピートは idea_41 として起票。
   task_06 統合確認: テスト pass・deep-reviewer H1（キーマップの切替で離れない＝暫定 35 の前提の誤り）ほか・codex-reviewer P2×2 → 暫定 35 v0.8・task_06a（codex-implementer）で修正。
+  task_06a 実機目視 OK（2026-10-10。右 ctrl の記録は VirtualBox のゲストでは物理キーが届かないだけ・ホスト OS で動作）。
 result_files:
   - instructions/history/35_key_press_release_actions.md（v0.7）/ instructions/phase/51_key_press_release_actions/（phase.md・tasks/task_01〜05）
   - keyseq/domain/key_hold.py / keyseq/application/held_inputs.py・action_executor.py・sequence_runner/ / keyseq/infrastructure/input_gateway.py / keyseq/presentation/（app.py・hook_controller.py・trigger_panel_controller.py・action_list_rendering.py・dialogs/action_dialog.py・dialogs/action_key_hold_fields.py）/ tests・tests_ui
@@ -40,7 +41,7 @@ verified:
 - main へのマージはユーザーが行う
 
 ## blockers
-- ユーザーの実機目視（phase 51 task_06a）
+- なし
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
