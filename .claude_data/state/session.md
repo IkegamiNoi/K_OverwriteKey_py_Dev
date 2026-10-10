@@ -37,7 +37,7 @@ verified:
   review: task_02〜05・06a reviewer 完了可 / task_06 統合 deep-reviewer 要修正 + codex-reviewer P2×2 → v0.8・task_06a で対応
 
 ## next_action
-- **ユーザーの実機目視（task_06a）**: shift を押したままキーマップを切替キー / 一覧のクリックで切り替えると離れる・同じキーマップでは離れない・「1 キーを記録」で右 ctrl が `right ctrl` になる。OK なら task_06 完了 → task_07: 正本反映（暫定 35 §12）・凍結・decisions_archive/51・decisions.md 索引・current.md 完了記載・idea_23 を INDEX_done へ・/refactor_check・完了判定前 deep-reviewer + codex-adversarial-reviewer
+- **次 = task_07**: 正本反映（暫定 35 §12）・凍結・decisions_archive/51・decisions.md 索引・current.md 完了記載・idea_23 を INDEX_done へ・/refactor_check・完了判定前 deep-reviewer + codex-adversarial-reviewer
 - main へのマージはユーザーが行う
 
 ## blockers
