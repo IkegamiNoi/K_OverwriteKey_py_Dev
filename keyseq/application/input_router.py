@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.numpad_keys import is_numpad_key_name, numpad_name_from_event
 
 
 @dataclass(frozen=True)
@@ -141,9 +142,14 @@ class InputRouter:
         )
 
     def _extract_key_name(self, event: object) -> str:
+        numpad_name = numpad_name_from_event(
+            getattr(event, "scan_code", None), getattr(event, "is_keypad", False)
+        )
+        if numpad_name:
+            return numpad_name
         if callable(self._resolve_scan_code):
             normalized = normalize_key_name(str(self._resolve_scan_code(getattr(event, "scan_code", None)) or ""))
-            if normalized:
+            if normalized and not is_numpad_key_name(normalized):
                 return normalized
         for value in (getattr(event, "name", ""), getattr(event, "key", "")):
             normalized = normalize_key_name(str(value or ""))

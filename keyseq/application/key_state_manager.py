@@ -4,6 +4,7 @@ import threading
 from typing import Iterable
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.numpad_keys import is_numpad_key_name, numpad_name_from_event
 
 
 _MODIFIER_ALIASES = {
@@ -91,9 +92,15 @@ class KeyStateManager:
             return normalized in self._pressed_keys
 
     def _extract_key_name(self, event: object) -> str:
+        numpad_name = numpad_name_from_event(
+            getattr(event, "scan_code", None), getattr(event, "is_keypad", False)
+        )
+        if numpad_name:
+            return self._normalize_key(numpad_name)
         if callable(self._resolve_scan_code):
-            normalized = self._normalize_key(self._resolve_scan_code(getattr(event, "scan_code", None)))
-            if normalized:
+            resolved_name = self._resolve_scan_code(getattr(event, "scan_code", None))
+            normalized = self._normalize_key(resolved_name)
+            if normalized and not is_numpad_key_name(normalized):
                 return normalized
         candidates: Iterable[object] = (
             getattr(event, "name", ""),

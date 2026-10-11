@@ -56,6 +56,52 @@ def down(name):
 
 
 class InputRouterTest(unittest.TestCase):
+    def test_keypad_scan_code_precedes_event_name(self):
+        for event_name in ("end", "1"):
+            with self.subTest(event_name=event_name):
+                router = make_router(
+                    trigger=lambda key: {"actions": [{}]} if key == "num 1" else None
+                )
+                route = router.handle(SimpleNamespace(
+                    event_type="down", name=event_name, scan_code=79, is_keypad=True
+                ))
+                self.assertEqual(route.actions, (TriggerAction("num 1"),))
+
+    def test_non_keypad_ignores_layout_numpad_name_and_uses_event_name(self):
+        router = make_router(
+            trigger=lambda key: {"actions": [{}]} if key == "end" else None
+        )
+        router._resolve_scan_code = lambda _code: "num 1"
+        route = router.handle(SimpleNamespace(
+            event_type="down", name="end", scan_code=79, is_keypad=False
+        ))
+        self.assertEqual(route.actions, (TriggerAction("end"),))
+
+    def test_event_without_keypad_attribute_keeps_resolved_scan_code(self):
+        router = make_router(
+            trigger=lambda key: {"actions": [{}]} if key == "f1" else None
+        )
+        router._resolve_scan_code = lambda _code: "F1"
+        route = router.handle(SimpleNamespace(
+            event_type="down", name="unknown", scan_code=59
+        ))
+        self.assertEqual(route.actions, (TriggerAction("f1"),))
+
+    def test_trigger_names_distinguish_numpad_digit_main_digit_and_end(self):
+        for name, is_keypad, expected in (
+            ("1", True, "num 1"),
+            ("1", False, "1"),
+            ("end", False, "end"),
+        ):
+            with self.subTest(expected=expected):
+                router = make_router(
+                    trigger=lambda key: {"actions": [{}]} if key == expected else None
+                )
+                event = SimpleNamespace(
+                    event_type="down", name=name, scan_code=79, is_keypad=is_keypad
+                )
+                self.assertEqual(router.handle(event).actions, (TriggerAction(expected),))
+
     def test_send_guard_passes_through(self):
         route = make_router(send_guard=1, stop_key="f12").handle(down("f12"))
         self.assertEqual(route.actions, ())

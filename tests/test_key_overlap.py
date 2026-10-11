@@ -28,6 +28,23 @@ def make_runtime():
 
 
 class KeyOverlapAnalysisTest(unittest.TestCase):
+    def test_numpad_digit_and_main_digit_do_not_overlap(self):
+        runtime = {
+            "keymaps": [{
+                "id": "km1",
+                "triggers": [
+                    {"key": "num 1", "actions": []},
+                    {"key": "1", "actions": []},
+                ],
+                "mappings": {},
+            }],
+            "active_keymap_id": "km1",
+        }
+        report = analyze_key_overlaps(runtime, "", "")
+        self.assertEqual(report.active_trigger_keys, frozenset({"num 1", "1"}))
+        self.assertIsNone(report.trigger_conflict("num 1"))
+        self.assertIsNone(report.trigger_conflict("1"))
+
     def test_trigger_and_switch_conflicts_follow_priority(self):
         report = analyze_key_overlaps(make_runtime(), "s", "t")
         self.assertEqual(

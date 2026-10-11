@@ -12,6 +12,7 @@ import keyboard
 import pyautogui
 
 from keyseq.domain.key_identifiers import resolve_known_scan_code_from_key_name
+from keyseq.domain.numpad_keys import is_numpad_key_name, is_reserved_numpad_name
 from keyseq.infrastructure import ime_control
 
 
@@ -253,6 +254,13 @@ class InputGateway:
             _logger.exception("Failed to restore destination IME during shutdown")
 
     def validate_key_name(self, key_name: str) -> None:
+        if is_numpad_key_name(key_name):
+            return
+        if is_reserved_numpad_name(key_name):
+            raise ValueError(
+                "テンキーのキー名は num 0〜num 9 / num add / num subtract / "
+                "num multiply / num divide / num decimal / num enter のいずれかで指定してください。"
+            )
         try:
             keyboard.key_to_scan_codes(key_name)
         except Exception:

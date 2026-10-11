@@ -227,6 +227,27 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
     def setUp(self) -> None:
         self.gateway = input_gateway.InputGateway()
 
+    def test_validate_numpad_names_without_keyboard_resolution(self) -> None:
+        with patch.object(input_gateway.keyboard, "key_to_scan_codes") as resolve:
+            self.gateway.validate_key_name("  NUM 1 ")
+        resolve.assert_not_called()
+
+    def test_validate_rejects_reserved_numpad_names(self) -> None:
+        for name in ("num +", "num plus", "num del", "num_1", "NUM_ADD", "num_plus"):
+            with self.subTest(name=name), patch.object(
+                input_gateway.keyboard, "key_to_scan_codes"
+            ) as resolve:
+                with self.assertRaises(ValueError):
+                    self.gateway.validate_key_name(name)
+                resolve.assert_not_called()
+
+    def test_validate_num_lock_keeps_keyboard_validation(self) -> None:
+        with patch.object(
+            input_gateway.keyboard, "key_to_scan_codes", return_value=[69]
+        ) as resolve:
+            self.gateway.validate_key_name("num lock")
+        resolve.assert_called_once_with("num lock")
+
     def test_extended_event_sets_and_restores_keyboard_replaying(self) -> None:
         listener = Mock(is_replaying=False)
         with patch.object(input_gateway.keyboard, "_listener", listener), \
