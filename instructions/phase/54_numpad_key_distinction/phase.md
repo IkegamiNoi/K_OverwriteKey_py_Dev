@@ -36,7 +36,7 @@
 2. `keyseq/application/input_router.py`（`_extract_key_name` :143-152）・`keyseq/application/key_state_manager.py`（:88-112）
 3. `keyseq/domain/key_identifiers.py`・`keyseq/domain/config.py`（`normalize_key_name` :84-89）・`keyseq/presentation/keyboard_layouts.py`（:320-340）
 4. `keyseq/infrastructure/input_gateway.py`（拡張キー :21-40・送信 :125-216・`key_identity` :228-247・`validate_key_name` :255-261）・`keyseq/domain/hotkey.py`・`keyseq/domain/key_hold.py`（`parse_key_hold`）
-5. `keyseq/presentation/tk_keys.py`・`controllers/key_capture.py`・記録を使うダイアログ（`action_dialog.py` :369-410・`action_key_hold_fields.py`・`trigger_dialog.py`・`keymap_edit_dialog.py`・`keymap_switch_batch_dialog.py`）
+5. `keyseq/presentation/tk_keys.py`・`keyseq/presentation/controllers/key_capture.py`・記録を使うダイアログ（`keyseq/presentation/dialogs/` の `action_dialog.py` :369-410・`action_key_hold_fields.py`・`trigger_dialog.py`・`keymap_edit_dialog.py`・`keymap_switch_batch_dialog.py`）
 6. keyboard ライブラリ（参照のみ）: `../../../.venv/Lib/site-packages/keyboard/_winkeyboard.py`（`keypad_keys` :442・`is_keypad` :528）
 7. 正本: `instructions/common/spec_detail/key_input.md` §7.3・§7.7 / `data_schema.md` §5.11 / `features.md` §4.1・§4.2.12 / `codebase_map.md` のキーの送信の節
 
