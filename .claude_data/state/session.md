@@ -12,7 +12,7 @@ last_commit_location: `claude/keypress-hold-behavior-a25946`（phase 51 完了�
 
 ## current
 presence: present
-focus: **phase 54 task_01〜02 完了。次 = task_03（送信と key_identity）。**
+focus: **phase 54 task_01〜03 完了。次 = task_04（記録・実装後に実機目視）。**
 mode: active
 
 ## last_action
@@ -27,7 +27,7 @@ result_files:
   - keyseq/domain/key_hold.py / keyseq/application/key_repeat.py（新規）・held_inputs.py・action_executor.py / keyseq/infrastructure/input_gateway.py / keyseq/presentation/app.py・controllers/hook_controller.py・dialogs/action_key_hold_fields.py・action_dialog.py / tests・tests_ui
 verified:
   compile: clean
-  tests: 1515 OK（skipped 7）
+  tests: 1522 OK（skipped 7）
   tests_ui: 942 OK
   smoke: pass
   review: task_01〜03 reviewer 完了可（指摘は反映済）

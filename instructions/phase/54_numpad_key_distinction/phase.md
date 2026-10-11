@@ -44,7 +44,7 @@
 
 - task_01: probe（ユーザーの実機・ホスト OS・テンキーのあるキーボード）— 送り方（`SendInput` のスキャンコード入力で NumLock オン / オフに 1 / End が入るか・`shift+num 1`）・Tk の keysym（テンキー各キー・NumLock オフ・Enter / `/`）・偽の shift のフックのイベント列。結果で暫定 38 §5・§6・§4 を確かめ、違えば改訂してユーザー確認 — **完了**（2026-10-11・メイン実測・フック / 送信 / 偽の shift は前提どおり・Tk の記録は keycode + 拡張ビットで区別できると判明 → 暫定 38 v0.5〔§2-6・§6 改訂〕をユーザー確定）
 - task_02: domain の名前の表・入力の名前の関数（`input_router` / `key_state_manager` の両方・外部レイアウトの表の名前はテンキーだけ）・名前の検査（`num ` / `num_` の予約）とテスト（暫定 38 §3・§4・§6 の検査・§8 の 1〜5・7・7a） — **完了**（2026-10-11・codex-implementer・reviewer 修正して採用 → 予約名の判定で `num_1` 等が表の名前に一致して弾かれない不具合をメインで修正・tests 1515 / tests_ui 942 / smoke pass〔tests_ui・smoke は修正前に実測・修正は domain の 1 関数のみ〕）
-- task_03: 送信（表の名前をスキャンコード + 拡張フラグで・hotkey の分岐）と `key_identity` とテスト（§5・§8 の 6）
+- task_03: 送信（表の名前をスキャンコード + 拡張フラグで・hotkey の分岐）と `key_identity` とテスト（§5・§8 の 6） — **完了**（2026-10-11・codex-implementer・reviewer 採用・新規テストの Mock が戻り値を返さない誤りをメインで修正・tests 1522 / tests_ui 942 / smoke pass〔tests_ui・smoke は修正前に実測・修正はテスト 1 行のみ〕）
 - task_04: 記録（`tk_keys.py` に keycode + 拡張ビットの純関数・記録を使う各所から呼ぶ）とテスト（§6・§8 の 8）。**実装後にユーザーの実機目視**（§8 の 10〜12）
 - task_05: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）
 - task_06: 正本反映（暫定 38 §10 の昇格・凍結）・`decisions_archive/54_numpad_key_distinction.md`・decisions.md の索引・current.md の完了記載・idea_43 を INDEX_done へ・`/refactor_check`

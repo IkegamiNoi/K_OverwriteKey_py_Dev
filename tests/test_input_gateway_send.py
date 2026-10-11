@@ -15,6 +15,7 @@ class InputGatewaySendTests(unittest.TestCase):
             ("press", "keyboard.press"),
             ("release", "keyboard.release"),
             ("ext", "_send_extended_event"),
+            ("numpad", "_send_numpad_event"),
         ):
             patcher = patch(f"keyseq.infrastructure.input_gateway.{target}")
             mocked = patcher.start()
@@ -78,6 +79,36 @@ class InputGatewaySendTests(unittest.TestCase):
             call.ext(0x27, 0x4D, key_up=True),
             call.press("a"),
         ])
+
+    def test_numpad_keys_use_scan_code_sender(self) -> None:
+        cases = {
+            "num 1": (79, False),
+            "num enter": (28, True),
+            "num divide": (53, True),
+            " NUM 1 ": (79, False),
+        }
+        for name, (scan, extended) in cases.items():
+            with self.subTest(name=name):
+                self.events.reset_mock()
+                self.gateway.press_key(name)
+                self.gateway.release_key(name)
+                self.assertEqual(self.events.mock_calls, [
+                    call.numpad(scan, extended, key_up=False),
+                    call.numpad(scan, extended, key_up=True),
+                ])
+
+    def test_hotkey_with_numpad_key_uses_ordered_press_and_release(self) -> None:
+        self.gateway.send_hotkey("ctrl+num 1")
+        self.assertEqual(self.events.mock_calls, [
+            call.press("ctrl"),
+            call.numpad(79, False, key_up=False),
+            call.numpad(79, False, key_up=True),
+            call.release("ctrl"),
+        ])
+
+    def test_non_extended_hotkey_still_uses_keyboard_send(self) -> None:
+        self.gateway.send_hotkey("ctrl+a")
+        self.assertEqual(self.events.mock_calls, [call.send("ctrl+a")])
 
     def test_aliases_and_sides(self) -> None:
         cases = {
@@ -281,6 +312,47 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
             0x27, 0x4D, 0x0001, 0,
         )
 
+    def test_numpad_event_sends_scan_code_input_without_win32(self) -> None:
+        listener = Mock(is_replaying=False)
+        send_input = Mock(return_value=1)
+
+        def inspect_input(count, pointer, size):
+            self.assertTrue(listener.is_replaying)
+            event = input_gateway.ctypes.cast(
+                pointer, input_gateway.ctypes.POINTER(input_gateway._INPUT),
+            ).contents
+            self.assertEqual(count, 1)
+            self.assertEqual(size, input_gateway.ctypes.sizeof(input_gateway._INPUT))
+            self.assertEqual(event.type, input_gateway._INPUT_KEYBOARD)
+            self.assertEqual(event.ki.wVk, 0)
+            self.assertEqual(event.ki.wScan, 53)
+            self.assertEqual(event.ki.dwFlags, 0x0008 | 0x0001 | 0x0002)
+            return 1
+
+        send_input.side_effect = inspect_input
+        with patch.object(input_gateway.keyboard, "_listener", listener), \
+             patch.object(input_gateway, "_send_input_api", return_value=send_input):
+            input_gateway._send_numpad_event(53, extended=True, key_up=True)
+        send_input.assert_called_once()
+        self.assertFalse(listener.is_replaying)
+
+    def test_numpad_event_raises_oserror_when_sendinput_fails(self) -> None:
+        listener = Mock(is_replaying=True)
+        with patch.object(input_gateway.keyboard, "_listener", listener), \
+             patch.object(input_gateway, "_send_input_api", return_value=Mock(return_value=0)), \
+             patch.object(input_gateway.ctypes, "get_last_error", return_value=5):
+            with self.assertRaises(OSError) as caught:
+                input_gateway._send_numpad_event(79, extended=False, key_up=False)
+        self.assertEqual(caught.exception.errno, 5)
+        self.assertTrue(listener.is_replaying)
+
+    def test_numpad_event_sends_without_listener_replaying_attribute(self) -> None:
+        send_input = Mock(return_value=1)
+        with patch.object(input_gateway.keyboard, "_listener", object()), \
+             patch.object(input_gateway, "_send_input_api", return_value=send_input):
+            input_gateway._send_numpad_event(79, extended=False, key_up=False)
+        send_input.assert_called_once()
+
     def test_key_identity_uses_scan_code_and_extended_flag(self) -> None:
         with patch.object(
             input_gateway.keyboard, "key_to_scan_codes", return_value=[0x1D],
@@ -288,6 +360,17 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
             self.assertEqual(self.gateway.key_identity("ctrl"), (0x1D, False))
         resolve.assert_called_once_with("ctrl")
         self.assertEqual(self.gateway.key_identity("right"), (0x4D, True))
+
+    def test_key_identity_distinguishes_numpad_main_digit_and_extended_end(self) -> None:
+        with patch.object(
+            input_gateway.keyboard, "key_to_scan_codes", return_value=[2],
+        ) as resolve:
+            self.assertEqual(self.gateway.key_identity("num 1"), (79, False))
+            resolve.assert_not_called()
+            self.assertEqual(self.gateway.key_identity("1"), (2, False))
+            resolve.assert_called_once_with("1")
+        self.assertEqual(self.gateway.key_identity("num enter"), (28, True))
+        self.assertEqual(self.gateway.key_identity("end"), (79, True))
 
     def test_key_identity_falls_back_to_known_scan_code(self) -> None:
         with patch.object(

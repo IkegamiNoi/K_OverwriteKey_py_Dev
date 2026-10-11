@@ -12,7 +12,11 @@ import keyboard
 import pyautogui
 
 from keyseq.domain.key_identifiers import resolve_known_scan_code_from_key_name
-from keyseq.domain.numpad_keys import is_numpad_key_name, is_reserved_numpad_name
+from keyseq.domain.numpad_keys import (
+    is_numpad_key_name,
+    is_reserved_numpad_name,
+    numpad_key_spec,
+)
 from keyseq.infrastructure import ime_control
 
 
@@ -41,11 +45,43 @@ _EXTENDED_KEYS = {
 }
 _KEYEVENTF_EXTENDEDKEY = 0x0001
 _KEYEVENTF_KEYUP = 0x0002
+_KEYEVENTF_SCANCODE = 0x0008
+_INPUT_KEYBOARD = 1
 _SPI_GETKEYBOARDSPEED = 0x000A
 _SPI_GETKEYBOARDDELAY = 0x0016
 _DEFAULT_REPEAT_DELAY_MS = 500
 _DEFAULT_REPEAT_INTERVAL_MS = 33
 _foreground_error_logged = False
+
+
+class _KEYBDINPUT(ctypes.Structure):
+    _fields_ = [
+        ("wVk", wintypes.WORD),
+        ("wScan", wintypes.WORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ctypes.c_size_t),
+    ]
+
+
+class _MOUSEINPUT(ctypes.Structure):
+    _fields_ = [
+        ("dx", wintypes.LONG),
+        ("dy", wintypes.LONG),
+        ("mouseData", wintypes.DWORD),
+        ("dwFlags", wintypes.DWORD),
+        ("time", wintypes.DWORD),
+        ("dwExtraInfo", ctypes.c_size_t),
+    ]
+
+
+class _INPUT_UNION(ctypes.Union):
+    _fields_ = [("ki", _KEYBDINPUT), ("mi", _MOUSEINPUT)]
+
+
+class _INPUT(ctypes.Structure):
+    _anonymous_ = ("union",)
+    _fields_ = [("type", wintypes.DWORD), ("union", _INPUT_UNION)]
 
 
 @cache
@@ -147,6 +183,48 @@ def _send_extended_event(vk: int, scan: int, key_up: bool) -> None:
         listener.is_replaying = previous_replaying
 
 
+@cache
+def _send_input_api():
+    """専用 user32 インスタンスから SendInput を取得する。"""
+    user32 = ctypes.WinDLL("user32", use_last_error=True)
+    send_input = user32.SendInput
+    send_input.argtypes = [
+        wintypes.UINT, ctypes.POINTER(_INPUT), ctypes.c_int,
+    ]
+    send_input.restype = wintypes.UINT
+    return send_input
+
+
+def _send_numpad_event(scan: int, extended: bool, key_up: bool) -> None:
+    flags = _KEYEVENTF_SCANCODE
+    if extended:
+        flags |= _KEYEVENTF_EXTENDEDKEY
+    if key_up:
+        flags |= _KEYEVENTF_KEYUP
+    event = _INPUT(
+        type=_INPUT_KEYBOARD,
+        ki=_KEYBDINPUT(wVk=0, wScan=scan, dwFlags=flags, time=0, dwExtraInfo=0),
+    )
+
+    def send() -> None:
+        if _send_input_api()(1, ctypes.byref(event), ctypes.sizeof(_INPUT)) != 1:
+            error_code = ctypes.get_last_error()
+            raise OSError(error_code, "SendInput failed")
+
+    try:
+        listener = keyboard._listener
+        previous_replaying = listener.is_replaying
+    except AttributeError:
+        send()
+        return
+
+    listener.is_replaying = True
+    try:
+        send()
+    finally:
+        listener.is_replaying = previous_replaying
+
+
 class InputGateway:
     def register_global_hook(
         self,
@@ -179,6 +257,10 @@ class InputGateway:
         keyboard.unhook(handle)
 
     def press_key(self, key: str) -> None:
+        numpad = numpad_key_spec(key)
+        if numpad is not None:
+            _send_numpad_event(*numpad, key_up=False)
+            return
         extended = _resolve_extended_key(key)
         if extended is not None:
             _send_extended_event(*extended, key_up=False)
@@ -186,6 +268,10 @@ class InputGateway:
             keyboard.press(key)
 
     def release_key(self, key: str) -> None:
+        numpad = numpad_key_spec(key)
+        if numpad is not None:
+            _send_numpad_event(*numpad, key_up=True)
+            return
         extended = _resolve_extended_key(key)
         if extended is not None:
             _send_extended_event(*extended, key_up=True)
@@ -194,7 +280,10 @@ class InputGateway:
 
     def send_hotkey(self, hotkey: str) -> None:
         keys = [key.strip() for key in hotkey.split("+")]
-        if not any(_resolve_extended_key(key) is not None for key in keys):
+        if not any(
+            _resolve_extended_key(key) is not None or numpad_key_spec(key) is not None
+            for key in keys
+        ):
             keyboard.send(hotkey)
             return
 
@@ -227,6 +316,9 @@ class InputGateway:
             ime_control.restore_after_text(reservation, len(text))
 
     def key_identity(self, key: str) -> tuple[int, bool]:
+        numpad = numpad_key_spec(key)
+        if numpad is not None:
+            return numpad
         extended = _resolve_extended_key(key)
         if extended is not None:
             return extended[1], True
