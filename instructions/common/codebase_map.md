@@ -754,9 +754,9 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     キーマップの切替 / アクティブの削除は `release_all_held`（presentation の `keymap_panel_controller.py` が呼ぶ）。離す送信が失敗したものは集合に残る（`held_inputs.py` の `_release_records`・`_press` の補償）
   - 停止後の予約済み入力: `hook_controller.py` の `on_input_event` が `after(0)` のコールバックの実行時に、フック停止中・キーマップ一時停止中なら `TriggerAction` / `SendKeyAction` を実行しない
   - 送信: `infrastructure/input_gateway.py`（マウスのボタンの `mouse_down` / `mouse_up`・FAILSAFE を外す / 拡張キーは `keyboard._listener.is_replaying` を立てて記録に載せない / `write_text` は `restore_state_after=False`）。text の前後の離す / 押し直すは `ActionExecutor._write_text`
-  - presentation: `app.py`（`KeyRepeater` と OS の `keyboard_repeat_timing` を `HeldInputs` に注入・知らせ表示中の抑止・`on_close` の finally で `release_all`）/ `controllers/hook_controller.py`（知らせの表示中にリピートを抑止・`stop_hook` / `toggle_custom_input_enabled` の finally で解放）/
+  - presentation: `app.py`（`on_close` の finally で `release_all`。キーリピートの配線は phase 52 の項）/ `controllers/hook_controller.py`（`stop_hook` / `toggle_custom_input_enabled` の finally で解放）/
     `controllers/trigger_panel/trigger_panel_controller.py`（ステータスの「押下中: ...」）/ `controllers/action_list_rendering.py`（省略表示の要約）/
-    `dialogs/action_key_hold_fields.py`（ダイアログの入力欄・押すキー行のリピートチェック・「1 キーを記録」は `tk_keys.normalize_key_hold_tk_keysym` で修飾キーの左右を区別・phase 52）
+    `dialogs/action_key_hold_fields.py`（ダイアログの入力欄・「1 キーを記録」は `tk_keys.normalize_key_hold_tk_keysym` で修飾キーの左右を区別・phase 52）
   - テスト: `tests/test_key_hold.py` / `test_held_inputs.py` / `test_action_executor_key_hold.py` / `test_sequence_runner_key_hold.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_task06_keymap_management_ui.py` / `test_sequence_control_review_fixes.py`
 - phase 52（key_hold のキーリピート `repeat`。仕様 = `features.md` §4.2.12「キーリピート」・§4.6 / `data_schema.md` §5.11.9 / `key_input.md` §7.7。判断 = `decisions_archive/52_key_hold_auto_repeat.md`）:
   - domain: `domain/key_hold.py`（`MODIFIER_KEY_NAMES`・`is_modifier_key`・`wants_repeat`・`is_repeat_enabled`・一覧の ` (リピート)`）

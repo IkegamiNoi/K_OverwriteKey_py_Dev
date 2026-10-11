@@ -45,7 +45,7 @@ key_hold で押したままにした通常キーを、離すまで OS の設定�
 - task_02: application — `KeyRepeater`（開始・切替・止める・text の前後・送り直し・古い予約・失敗・表示中の抑止の口）と `HeldInputs` / `ActionExecutor`（key_hold の repeat・対象を含む hotkey・直接置換の前に止める）の連携とテスト（§4・§6） — **完了**（2026-10-11・codex-delegating-implementer〔Luna サブエージェントがテスト 2 ファイル・自己申告〕・reviewer 修正して採用 → 解けないキー名で hotkey・直接置換を妨げない・再予約の失敗で止める をメインで修正。tests 1490 / tests_ui 935 / smoke pass〔tests_ui・smoke は修正前に実測・修正は application の 2 か所のみ〕）
 - task_03: presentation — App の配線（`after` / 間隔の取得 / 知らせの口）・知らせの前に止める / 表示中の抑止・ダイアログの「リピートする」チェック（表示の切替・ON で始まる場合・組み直し）とテスト（§4.8・§5）。**実装後にユーザーの実機目視**（暫定 36 §8 の 12〜14。15 は task_04） — **完了**（2026-10-11・ユーザー実機目視 OK〔§8 の 12〜14〕・codex-implementer・reviewer 採用・既存テストが Mock の App で落ちる知らせの抑止の書き方・新規テストの期待値・無関係な空行の削除をメインで修正。tests 1490 / tests_ui 942 / smoke pass）
 - task_04: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）と**ユーザーの実機目視**（暫定 36 §8 の 15・修正があればその分の再目視） — **完了**（2026-10-11・tests 1490 / tests_ui 942 / smoke pass・ユーザー実機目視 OK〔§8-15〕・deep-reviewer 採用〔low 8〕・codex-reviewer P2 1 件〔`left_shift` 等の `_` 綴りが修飾キー判定から漏れる・deep-reviewer の low 1 と同一・実測確認済〕→ task_04-1 で修正〔codex-implementer・reviewer 採用・tests 1491〕・抑止の重複は保留）
-- task_05: 正本反映（暫定 36 §10 の昇格・凍結）・`decisions_archive/52_key_hold_auto_repeat.md`・decisions.md の索引・current.md の完了記載・idea_41 を INDEX_done へ・`/refactor_check`
+- task_05: 正本反映（暫定 36 §10 の昇格・凍結）・`decisions_archive/52_key_hold_auto_repeat.md`・decisions.md の索引・current.md の完了記載・idea_41 を INDEX_done へ・`/refactor_check` — **完了**（2026-10-11・正本反映 + 暫定 36 凍結・完了判定前 deep-reviewer 修正要〔転記の誤り H1・L1 を修正〕・Codex 敵対的 medium〔UI のダイアログで抑止されない〕→ ユーザー判断で範囲を正本に明記し idea_42 へ分離・refactor_check 不要）
 
 ## レビュー方針
 

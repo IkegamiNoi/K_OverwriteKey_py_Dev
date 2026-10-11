@@ -61,6 +61,7 @@
 | 49_status_truncation_tooltip | [49_status_truncation_tooltip.md](decisions_archive/49_status_truncation_tooltip.md) | ステータスの見切れのツールチップ（2026-10-07 完了・直接改訂・presentation のみ）。ステータス欄・ステータスバーの左 / 中央が見切れているとき、1 行化前の改行入りの全文をツールチップで出す（フル・省略の両方・乗せている間の追従・最前面）。子ファイル保存ダイアログのツールチップを共有部品 `hover_tooltip.py` へ昇格。idea_40 |
 | 50_select_before_run | [50_select_before_run.md](decisions_archive/50_select_before_run.md) | 確認して実行（2026-10-09 完了・暫定 34 v0.6 凍結・domain / application / presentation・keymap_set と sequence に `select_before_run`）。選ばれていないトリガーの 1 回目は選ぶだけ・2 回目で実行（全体 / トリガーごと）・長押しの無視・待機明けに選択が変わっていれば選び直さない（表示は描き直す）。`target` の無い戻す・先頭への対象を一覧の選択へ（使えなければ直前のトリガー）・戻す・先頭へだけのトリガー自身は選ばない。idea_39 の一部取り込み（残り = 直前のトリガーの廃止ほか）。refactor_check: 不要 |
 | 51_key_press_release_actions | [51_key_press_release_actions.md](decisions_archive/51_key_press_release_actions.md) | キーの押下 / 解放アクション（2026-10-11 完了・暫定 35 v0.9 凍結・domain / application / infrastructure / presentation・アクションの種類 `key_hold`）。押したままは押下をまたぎ、止まる経路すべてで自動で離す（入口の関数の単位・持ち主 = 最上段のトリガー・呼び出し先の末尾 / 停止の行の区切り / 戻すでは離さない）。text / file_line は送る間だけ離して押し直す・送信の例外は止まる系・keyboard の記録に載せない。キーマップの切替 / 削除で離す・停止中は予約済みの入力を実行しない・離す失敗は集合に残す。キーリピートは idea_41。refactor_check: 不要 |
+| 52_key_hold_auto_repeat | [52_key_hold_auto_repeat.md](decisions_archive/52_key_hold_auto_repeat.md) | key_hold のキーリピート（2026-10-11 完了・暫定 36 v0.4 凍結・domain / application / infrastructure / presentation・key_hold の任意キー `repeat`）。間隔は OS の設定・修飾キー以外・同時に 1 つ（最後に始めたキー）・押す / 離す送信の前に止める・対象を含む hotkey / 直接置換の前に止める・text の前後で控えてやり直す・実行系のエラーの知らせの表示中は抑止。全ダイアログの抑止は idea_42。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -610,13 +611,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - M2（ユーザー確定・コード変更 task_07a）: 単発の呼び出しの実行中に連鎖の呼び出し先の位置を一覧で変えたら、待機・file_line・呼び出し元の位置変更と同じく実行中の単発の呼び出しを取り消し（そこまでの進みは書き戻す）、変えた位置を優先する。今は次の書き戻しで上書きされる（要再現）。
 - M3（ユーザー確定・受容）: 呼び出し先の完了で外から進めた呼び出し元の次の待機は待たない（直前に呼び出し元が送っていないので「送った後の待ち」に当たらない。次に押すと送る前の待機として読み飛ばす）。
 - M4（ユーザー確定・コード変更 task_07a）: 呼び出し先 U が単発の呼び出しの一時停止中に T が U を呼んだら、U の一時停止を捨てて（通知）T が進める。今は黙って無視。
-
-## 2026-10-11 (phase 52: key_hold のキーリピート・暫定 36)
-
-### 【起票】モード = **暫定仕様先行**（探索的・4 レイヤ）。ユーザー確定（2026-10-11）: 間隔は OS の設定 / 修飾キー以外 / 押す行に「リピートする」チェック（新規 ON・既存のキー無しは OFF）
-### 【暫定 36】v0.1 → deep-reviewer 修正して採用（高 1: 止める場所を「押す・離す送信の前」1 本に・中 9・低 7）→ v0.2 → ユーザー確定 3 点（最後のキーだけ・一覧に ` (リピート)`・知らせの前に止める）→ v0.3 → Codex 敵対的 needs-attention（high: 知らせの表示中もリピートが始まり得る / medium: 対象を含む hotkey・直接置換）→ ユーザー判断で両方採用（表示中はリピートしない・送る前に止める）→ v0.4 確定
-### 【task_04 統合レビュー】deep-reviewer 採用（low 8）/ codex-reviewer P2 1 件 → ユーザー判断（2026-10-11）
-- 修正して採用（task_04-1）: `left_shift` 等の `_` 綴りが修飾キー判定から漏れていた（keyboard の normalize_name は `_` → 空白）。`is_modifier_key` で照合前に置換・テスト追加・reviewer 採用。
-- 保留: 知らせの抑止の begin/end が `hook_controller.py` と `App.repeat_suppressed()` で重複（task_03 で Mock の App で落ちないよう意図的に選んだ書き方）。
-- task_05 の正本反映で合わせる: §4.6 の別名の例は keyboard に実在する名前（`command` / `left menu` 等）+ `_` の正規化 / §6 の置き場は実装の形（取得はモジュール関数・知らせの口は HeldInputs が持ち `set_callbacks` で渡す）/ text の後の押し直しが一部だけ失敗したら対象のリピートは再開しない（安全側）。
-- 実機目視 §8-15 OK（停止キー・トリガーが効く・エラーの知らせで止まる）。

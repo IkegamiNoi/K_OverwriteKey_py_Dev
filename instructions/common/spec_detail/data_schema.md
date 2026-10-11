@@ -578,9 +578,9 @@ hotkey の検証エラー・`x` / `y` 不正（§5.11.2）・`to_x` / `to_y` 不
 | `repeat` | bool | 任意（phase 52）。**キーボードの押す行だけ**で意味を持ち、`true`（bool）のときだけキーリピートを求める（`features.md` §4.2.12「キーリピート」）。キー無し・`false`・非 bool（文字列 `"true"`・数値を含む）は求めない |
 | `label` | str | 一覧表示用（他の種類と同じ） |
 
-* 例: `{"type": "key_hold", "edge": "down", "value": "shift", "label": ""}` / `{"type": "key_hold", "edge": "down", "value": "a", "repeat": true, "label": ""}`
+* 例: `{"type": "key_hold", "edge": "down", "value": "shift", "label": ""}` / `{"type": "key_hold", "edge": "down", "value": "a", "repeat": true, "label": ""}` / `{"type": "key_hold", "edge": "up", "button": "left", "x": 400, "y": 200, "label": ""}`
 * **`repeat`**（phase 52）: 読込で正規化しない（実行時に判定）。型不正は実行時エラーにせず「求めない」扱いで押すは送る。離す行・マウスの行・修飾キーの押す行の `repeat` は無視する。
-  ダイアログは押す + キーの行に常に書き、それ以外の行からは消す（`features.md` §4.6）。**キーの無い既存の行（phase 51 で作った行）はリピートしない**。旧版アプリは未定義キーとして無視する（リピートしないだけ） / `{"type": "key_hold", "edge": "up", "button": "left", "x": 400, "y": 200, "label": ""}`
+  ダイアログは押す + キーの行に常に書き、それ以外の行からは消す（`features.md` §4.6）。**キーの無い既存の行（phase 51 で作った行）はリピートしない**。旧版アプリは未定義キーとして無視する（リピートしないだけ）
 * **読込の正規化は他の種類と同じ**（`edge` / `value` / `button` / `x` / `y` は読込で書き換えず、実行時に判定する。`value` を全種類で正規化すると hotkey・text の数値の value の扱いが変わるため）。`type` / `button` / `label` の型不正は §5.1 の共通規則どおり
 * **実行時エラー**（止まる系・§5.11.8 と同じく位置はエラーの行に残る）: `edge` 不正 / キーボードの行で `value` が空・非文字列・`+` や `,` を含む・キー名の検査で不正 / マウスの行で `button` が 3 つ以外 / `x` と `y` の片方だけ・変換不能 / 送信の例外。
   mouse_click の「不正なら left」とは扱いを分ける（押したままの対象を取り違えると離せないため）。止まる前に押下中のキーを離してから知らせる（`features.md` §4.2.12）

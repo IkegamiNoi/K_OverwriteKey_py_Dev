@@ -5,14 +5,14 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-10-11T01:25:00
-phase: `instructions/phase/52_key_hold_auto_repeat`（key_hold のキーリピート・暫定仕様先行・主入力 = 暫定 36 v0.4 確定済）。番号対応 phase 52 / 暫定 36 / decisions 52。次採番 = phase 53 / 暫定 37 / 提案書 21。
+phase: なし（phase 52 は 2026-10-11 完了）。次採番 = phase 53 / 暫定 37 / decisions 53 / 提案書 21。次 = phase 53（idea_42 全ダイアログでのキーリピートの抑止・ユーザー希望）を `/phase_start` で起票
 直前の完了フェーズ = **phase 51**（キーの押下 / 解放 `key_hold`・`decisions_archive/51_key_press_release_actions.md`）。
 last_commit_location: `claude/keypress-hold-behavior-a25946`（phase 51 完了まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 52 task_01〜04 完了。次 = task_05（正本反映・凍結・decisions_archive/52・/refactor_check・完了判定前レビュー）。**
+focus: **phase 52 完了。次 = phase 53 起票（idea_42）。**
 mode: active
 
 ## last_action
@@ -33,7 +33,7 @@ verified:
   review: task_01〜03 reviewer 完了可（指摘は反映済）
 
 ## next_action
-- **【戻ったら最初に】ユーザーの実機目視（phase 52 task_03・ホスト OS で。VirtualBox のゲストでは物理キーが届かない場合がある）**。アクション編集で key_hold の押す + キーに「リピートする」チェックが出ること、次をメモ帳で確かめる:
+- phase 53 を `/phase_start` で起票（idea_42・暫定仕様先行の見込み）
   ①`[押す a（リピートする ON）, 待機 2000ms, 離す a]` を実行すると、実キーボードの長押しとおおむね同じ速さで `a` が連続して入り、離すで止まる（暫定 36 §8-12）
   ②`a` をリピート中に、フック停止・ダイアログを開く・アプリ終了のそれぞれでリピートが止まる（§8-13）
   ③`[押す shift, 押す a（リピート）, 待機, 離す a, 離す shift]` で大文字の `A` が連続して入る（§8-14）
