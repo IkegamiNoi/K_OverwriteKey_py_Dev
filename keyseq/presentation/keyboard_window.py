@@ -36,6 +36,15 @@ _LOOKUP_KEY_BY_ID = {
     "quote": "'",
 }
 
+
+def keyboard_window_title(layout_name: str, editing_key: str | None) -> str:
+    if editing_key:
+        return f"Keyboard UI — 編集中: {editing_key}（Escでキャンセル）"
+    if layout_name:
+        return f"Keyboard UI — {layout_name}"
+    return "Keyboard UI"
+
+
 class KeyboardWindow(tk.Toplevel):
     def __init__(
         self,
@@ -63,9 +72,6 @@ class KeyboardWindow(tk.Toplevel):
         container = ttk.Frame(self, padding=10)
         container.pack(fill="both", expand=True)
 
-        self.summary_var = tk.StringVar(value="")
-        ttk.Label(container, textvariable=self.summary_var, anchor="w").pack(fill="x", pady=(0, 8))
-
         self.canvas = tk.Canvas(container, background="#f5f7fb", highlightthickness=0)
         self.canvas.pack(fill="both", expand=True)
         self.canvas.bind("<Configure>", self._on_canvas_configure)
@@ -73,11 +79,11 @@ class KeyboardWindow(tk.Toplevel):
         self.canvas.bind("<Button-3>", self._on_canvas_right_click)
         self.bind("<KeyPress>", self._on_key_press, add="+")
         self.protocol("WM_DELETE_WINDOW", self._handle_close)
-        self._update_summary()
+        self._update_title()
 
     def update_layout(self, layout: KeyboardLayout | None) -> None:
         self._layout = layout or resolve_keyboard_layout()
-        self._update_summary()
+        self._update_title()
         self.redraw()
 
     def update_from_config(
@@ -142,7 +148,7 @@ class KeyboardWindow(tk.Toplevel):
 
         self._display_map = display_map
         self._kind_map = kind_map
-        self._update_summary()
+        self._update_title()
         self.redraw()
 
     def _handle_close(self) -> None:
@@ -272,7 +278,7 @@ class KeyboardWindow(tk.Toplevel):
         self._editing_source_key = normalize_key_name(source_key)
         self.focus_force()
         self.canvas.focus_set()
-        self._update_summary()
+        self._update_title()
         self.redraw()
 
     def _cancel_edit(self, *, resume_hook: bool) -> None:
@@ -281,7 +287,7 @@ class KeyboardWindow(tk.Toplevel):
         self._editing_source_key = None
         if resume_hook and hasattr(self.master, "hook"):
             self.master.hook.resume_hook_after_dialog()
-        self._update_summary()
+        self._update_title()
         self.redraw()
 
     def _on_key_press(self, event) -> str | None:
@@ -324,52 +330,6 @@ class KeyboardWindow(tk.Toplevel):
 
         return k
 
-    def _update_summary(self) -> None:
+    def _update_title(self) -> None:
         layout_name = getattr(self._layout, "display_name", "") or getattr(self._layout, "layout_id", "")
-        if self._editing_source_key:
-            self.summary_var.set(
-                f"レイアウト: {layout_name} / 編集中: {self._editing_source_key} / 置換先キーを押してください（Escでキャンセル、右クリックでクリア）"
-            )
-            return
-        if not self._kind_map:
-            self.summary_var.set(
-                f"レイアウト: {layout_name} / 予約キー・trigger・keymap が無い状態です。左クリックで編集、右クリックでクリアできます。"
-            )
-            return
-
-        has_trigger = any(kind == "trigger" for kind in self._kind_map.values())
-        has_keymap = any(kind == "keymap" for kind in self._kind_map.values())
-        has_reserved = any(kind in {"stop", "mode_toggle", "keymap_switch"} for kind in self._kind_map.values())
-        if has_reserved and has_trigger and has_keymap:
-            self.summary_var.set(
-                f"レイアウト: {layout_name} / STOP・MODE・KM切替・trigger・keymap を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
-            )
-            return
-        if has_reserved and has_trigger:
-            self.summary_var.set(
-                f"レイアウト: {layout_name} / STOP・MODE・KM切替 と trigger を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
-            )
-            return
-        if has_reserved and has_keymap:
-            self.summary_var.set(
-                f"レイアウト: {layout_name} / STOP・MODE・KM切替 と keymap を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
-            )
-            return
-        if has_reserved:
-            self.summary_var.set(
-                f"レイアウト: {layout_name} / STOP・MODE・KM切替 を色分け表示しています。左クリックで編集、右クリックでクリアできます。"
-            )
-            return
-        if has_trigger and has_keymap:
-            self.summary_var.set(
-                f"レイアウト: {layout_name} / trigger は番号、keymap は出力キー、未設定キーは元キーです。左クリックで編集、右クリックでクリアできます。"
-            )
-            return
-        if has_trigger:
-            self.summary_var.set(
-                f"レイアウト: {layout_name} / trigger は番号、未設定キーは元キーです。左クリックで編集、右クリックでクリアできます。"
-            )
-            return
-        self.summary_var.set(
-            f"レイアウト: {layout_name} / keymap は出力キー、未設定キーは元キーです。左クリックで編集、右クリックでクリアできます。"
-        )
+        self.title(keyboard_window_title(layout_name, self._editing_source_key))

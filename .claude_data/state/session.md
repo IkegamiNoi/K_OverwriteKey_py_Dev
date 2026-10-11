@@ -4,40 +4,41 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-11T23:30:00
-phase: なし（phase 54 は 2026-10-11 完了）。次採番 = phase 55 / 暫定 39 / decisions 55 / 提案書 21。次フェーズはユーザー判断
-直前の完了フェーズ = **phase 54**（テンキーの区別・`decisions_archive/54_numpad_key_distinction.md`）。その前 = phase 53（アプリの窓が前面のときはキーリピートしない）/ phase 52（key_hold のキーリピート）
-last_commit_location: `claude/physical-device-inspection-a9201a`（phase 52〜54 完了まで。main へのマージはユーザー）
+last_updated: 2026-10-12T00:00:00
+phase: instructions/phase/55_keyboard_ui_window（暫定 39 v0.3・ユーザー確定済 / decisions 55）。次採番 = phase 56 / 暫定 40 / decisions 56 / 提案書 21
+直前の完了フェーズ = **phase 54**（テンキーの区別・`decisions_archive/54_numpad_key_distinction.md`）
+last_commit_location: `claude/keyboard-input-priority-999558`（main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 52・53・54 完了。アクティブなフェーズなし・次フェーズはユーザー判断待ち。main へのマージはユーザー。**
-mode: active
+focus: **phase 55（キーボードUIのウィンドウ改善）task_01 完了・task_02（縦横比固定）着手。タスクの連続実行は許可済み（実機目視・スペックフラグでは止まる）。**
+mode: implementing
 
 ## last_action
-ts: 2026-10-11T23:30:00
+ts: 2026-10-12T00:00:00
 who: main
 summary: |
-  phase 52 完了（task_03〜05・実機目視 §8-12〜15 OK・修飾キー判定の `_` 綴りを修正・UI 操作のダイアログの抑止は idea_42 へ分離）。
-  phase 53 完了（暫定 37 v0.4・送り直しの発火ごとに前面の窓が自プロセスなら止める・実機目視 OK・レビュー指摘は文書のみ）。
-  phase 54 完了（暫定 38 v0.5・テンキーを `num 0`〜`num 9` / `num add` 等で入力〔is_keypad + スキャンコード〕・送信〔SendInput スキャンコード入力〕・記録〔Tk の keycode + 拡張ビット〕で区別・既存の名前は入力では主キーボードだけ・実機目視 OK・`/` の key_identity の 0xE0xx を修正）。
+  phase 55 起票（暫定 39 v0.1 → deep-reviewer + Codex 敵対的レビュー反映 → ユーザー判断〔ダイアログ表示中は前面の窓の監視で一時解除 / 手を離して 150ms 後に補正 / 斜めは今の大きさに収まる最大の形・スナップ後の補正は受容〕→ v0.3 確定）。
+  task_01（ステータス欄の削除・タイトル表示）完了: codex-implementer・reviewer 採用・tests 1529 / tests_ui 946 / smoke pass。
+  task_02 のタスク定義を起票済み（未実装）。
 result_files:
-  - instructions/history/36〜38（凍結）/ instructions/phase/52〜54/ / decisions_archive/52〜54
-  - keyseq/domain/numpad_keys.py（新規）・key_hold.py / keyseq/application/key_repeat.py・input_router.py・key_state_manager.py / keyseq/infrastructure/input_gateway.py / keyseq/presentation/app.py・tk_keys.py・記録の入口 / tests・tests_ui
+  - instructions/history/39_keyboard_ui_window.md / instructions/phase/55_keyboard_ui_window/（phase.md・tasks/task_01・task_02）/ instructions/phase/current.md
+  - keyseq/presentation/keyboard_window.py / tests/test_keyboard_window_title.py（新規）/ tests_ui/test_app_ui_flows.py
 verified:
   compile: clean
-  tests: 1525 OK（skipped 7）
-  tests_ui: 945 OK
+  tests: 1529 OK（skipped 7）
+  tests_ui: 946 OK
   smoke: pass
-  review: phase 52〜54 の完了判定前 deep-reviewer + codex-adversarial-reviewer の指摘は反映 / 裁定済
+  review: task_01 reviewer 採用
 
 ## next_action
-- 次フェーズはユーザー判断（着手時は `/phase_start`）。main へのマージはユーザーが行う
-- 別タスク化候補に `input_gateway.py` の責務の並び（phase 54 の /refactor_check・境界事例）を追記済み
+- codex-implementer に `instructions/phase/55_keyboard_ui_window/tasks/task_02_aspect_ratio_resize.md` の実装を依頼 → verifier 実測 + reviewer → ユーザー実機目視（暫定 39 §6 の 1・2・8・10）
+- その後 task_03（前面化・一時解除。着手時に所有関係を実測）のタスク定義を起票
 
 ## blockers
 - なし
+
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。

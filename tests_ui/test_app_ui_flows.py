@@ -2327,6 +2327,15 @@ class AppUiFlowsTest(unittest.TestCase):
         self.app.layout.keyboard_window._handle_close()
         self.assertIsNone(self.app.layout.keyboard_window)
 
+    def test_keyboard_window_title_and_status_label(self):
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        try:
+            self.assertTrue(window.title().startswith("Keyboard UI — "))
+            self.assertFalse(hasattr(window, "summary_var"))
+        finally:
+            window._handle_close()
+
     def test_validate_hotkey_empty(self):
         self.assertEqual(
             self.app.validate_hotkey(""),
