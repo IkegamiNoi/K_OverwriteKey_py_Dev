@@ -2,8 +2,10 @@
 
 import ctypes
 import logging
+import os
 import sys
 from ctypes import wintypes
+from functools import cache
 from typing import Callable
 
 import keyboard
@@ -42,6 +44,42 @@ _SPI_GETKEYBOARDSPEED = 0x000A
 _SPI_GETKEYBOARDDELAY = 0x0016
 _DEFAULT_REPEAT_DELAY_MS = 500
 _DEFAULT_REPEAT_INTERVAL_MS = 33
+_foreground_error_logged = False
+
+
+@cache
+def _foreground_process_api():
+    """共有 windll を変更せず、前面窓取得用の user32 関数を作る。"""
+    user32 = ctypes.WinDLL("user32")
+    get_foreground_window = user32.GetForegroundWindow
+    get_foreground_window.argtypes = []
+    get_foreground_window.restype = wintypes.HWND
+    get_window_thread_process_id = user32.GetWindowThreadProcessId
+    get_window_thread_process_id.argtypes = [
+        wintypes.HWND, ctypes.POINTER(wintypes.DWORD),
+    ]
+    get_window_thread_process_id.restype = wintypes.DWORD
+    return get_foreground_window, get_window_thread_process_id
+
+
+def is_own_process_foreground() -> bool:
+    """前面窓が自プロセスなら真。取得不能時は初回だけ記録して偽にする。"""
+    global _foreground_error_logged
+    if sys.platform != "win32":
+        return False
+    try:
+        get_foreground_window, get_window_thread_process_id = _foreground_process_api()
+        foreground = get_foreground_window()
+        if foreground is None or not foreground:
+            return True
+        process_id = wintypes.DWORD()
+        get_window_thread_process_id(foreground, ctypes.byref(process_id))
+        return bool(process_id.value and process_id.value == os.getpid())
+    except Exception:
+        if not _foreground_error_logged:
+            _logger.exception("前面ウィンドウのプロセス判定に失敗しました")
+            _foreground_error_logged = True
+        return False
 
 
 def repeat_delay_ms(value: int) -> int | None:

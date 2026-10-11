@@ -7,6 +7,7 @@ from typing import Callable
 InputIdentity = tuple[str, int, bool] | tuple[str, str]
 RepeatTarget = tuple[InputIdentity, str, dict]
 _logger = logging.getLogger(__name__)
+_blocked_error_logged = False
 
 
 class KeyRepeater:
@@ -18,12 +19,14 @@ class KeyRepeater:
         get_timing: Callable[[], tuple[int, int]],
         send: Callable[[str], None] | None = None,
         on_failure: Callable[[InputIdentity, str, dict, Exception], None] | None = None,
+        is_blocked: Callable[[], bool] | None = None,
     ) -> None:
         self._after = after
         self._after_cancel = after_cancel
         self._get_timing = get_timing
         self._send = send
         self._on_failure = on_failure
+        self._is_blocked = is_blocked
         self._target: RepeatTarget | None = None
         self._reservation: object | None = None
         self._generation = 0
@@ -75,6 +78,7 @@ class KeyRepeater:
         )
 
     def _fire(self, generation: int, target: RepeatTarget, interval: int) -> None:
+        global _blocked_error_logged
         if generation != self._generation or self._target is not target:
             return
         self._reservation = None
@@ -82,6 +86,17 @@ class KeyRepeater:
             self.stop()
             return
         identity, key, action = target
+        if self._is_blocked is not None:
+            try:
+                blocked = self._is_blocked()
+            except Exception:
+                if not _blocked_error_logged:
+                    _logger.exception("リピートのブロック判定に失敗しました")
+                    _blocked_error_logged = True
+                blocked = False
+            if blocked:
+                self.stop()
+                return
         try:
             self._send(key)
         except Exception as exc:

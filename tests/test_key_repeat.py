@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import unittest
 from collections.abc import Callable
+from unittest.mock import Mock
 
+from keyseq.application import key_repeat
 from keyseq.application.key_repeat import KeyRepeater
 
 
@@ -62,6 +64,77 @@ class KeyRepeaterTests(unittest.TestCase):
         self.assertEqual(self.sent, ["a", "a"])
         self.assertEqual(self.timer.calls[-1], ("after-2", 45))
         self.assertEqual(self.timing_calls, 1)
+
+    def test_blocked_first_fire_stops_without_sending_or_rescheduling(self) -> None:
+        is_blocked = Mock(return_value=True)
+        self.repeater._is_blocked = is_blocked
+
+        self.repeater.start(self.identity, "a", self.action)
+        self.assertTrue(self.repeater.has_target)
+        self.assertEqual(self.timer.calls, [("after-0", 350)])
+        self.timer.fire("after-0")
+
+        self.assertEqual(self.sent, [])
+        self.assertFalse(self.repeater.has_target)
+        self.assertEqual(self.timer.calls, [("after-0", 350)])
+        is_blocked.assert_called_once_with()
+
+    def test_blocking_during_repeat_stops_and_stale_reservations_stay_stale(self) -> None:
+        is_blocked = Mock(return_value=False)
+        self.repeater._is_blocked = is_blocked
+        self.repeater.start(self.identity, "a", self.action)
+        self.timer.fire("after-0")
+        self.assertEqual(self.sent, ["a"])
+
+        is_blocked.return_value = True
+        self.timer.fire("after-1")
+        self.assertEqual(self.sent, ["a"])
+        self.assertFalse(self.repeater.has_target)
+
+        is_blocked.return_value = False
+        self.timer.fire("after-1")
+        self.assertEqual(self.sent, ["a"])
+        self.assertEqual(len(self.timer.calls), 2)
+
+    def test_resume_after_text_checks_blocking_on_first_fire(self) -> None:
+        is_blocked = Mock(return_value=False)
+        self.repeater._is_blocked = is_blocked
+        self.repeater.start(self.identity, "a", self.action)
+        saved = self.repeater.pause_for_text()
+        is_blocked.return_value = True
+
+        self.repeater.resume_after_text(saved)
+        self.assertTrue(self.repeater.has_target)
+        self.assertEqual(len(self.timer.calls), 2)
+        is_blocked.assert_not_called()
+        self.timer.fire("after-1")
+
+        self.assertEqual(self.sent, [])
+        self.assertFalse(self.repeater.has_target)
+        is_blocked.assert_called_once_with()
+
+    def test_start_does_not_call_blocking_check(self) -> None:
+        is_blocked = Mock(return_value=True)
+        self.repeater._is_blocked = is_blocked
+
+        self.repeater.start(self.identity, "a", self.action)
+
+        is_blocked.assert_not_called()
+        self.assertTrue(self.repeater.has_target)
+
+    def test_blocking_check_exception_is_logged_once_and_repeat_continues(self) -> None:
+        key_repeat._blocked_error_logged = False
+        is_blocked = Mock(side_effect=RuntimeError("check failed"))
+        self.repeater._is_blocked = is_blocked
+
+        with self.assertLogs("keyseq.application.key_repeat", level="ERROR") as logs:
+            self.repeater.start(self.identity, "a", self.action)
+            self.timer.fire("after-0")
+            self.timer.fire("after-1")
+
+        self.assertEqual(self.sent, ["a", "a"])
+        self.assertEqual(len(logs.records), 1)
+        self.assertTrue(self.repeater.has_target)
 
     def test_reschedule_failure_stops_without_leaving_target(self) -> None:
         self.repeater.start(self.identity, "a", self.action)

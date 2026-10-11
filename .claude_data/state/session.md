@@ -12,7 +12,7 @@ last_commit_location: `claude/keypress-hold-behavior-a25946`（phase 51 完了�
 
 ## current
 presence: present
-focus: **phase 53 起票済。次 = task_01（前面判定・KeyRepeater の is_blocked・App の配線）の起票と実装。**
+focus: **phase 53 task_01 実装・検証済（reviewer 採用・tests 1501 / tests_ui 942 / smoke pass）。ユーザーの実機目視待ち（暫定 37 §8 の 9〜11）。**
 mode: active
 
 ## last_action

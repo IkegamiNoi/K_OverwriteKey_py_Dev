@@ -74,7 +74,9 @@ from keyseq.domain.config import (
     normalize_key_name,
     safe_deepcopy,
 )
-from keyseq.infrastructure.input_gateway import InputGateway, keyboard_repeat_timing
+from keyseq.infrastructure.input_gateway import (
+    InputGateway, is_own_process_foreground, keyboard_repeat_timing,
+)
 from keyseq.infrastructure.json_repository import JsonRepository
 
 class App(tk.Tk):
@@ -127,6 +129,7 @@ class App(tk.Tk):
             after=self.after,
             after_cancel=self.after_cancel,
             get_timing=keyboard_repeat_timing,
+            is_blocked=is_own_process_foreground,
         )
         self.held_inputs = HeldInputs(
             self.input_gateway,
