@@ -764,6 +764,10 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     `after` / `after_cancel` / `get_timing` はコンストラクタで、送り直しの送信と失敗の口は `HeldInputs` が `set_callbacks` で渡す（後始末の離すを `HeldInputs` 経由にするため）
   - 連携: `HeldInputs`（押す・離す・自動の解放・`suspend_keyboard` の前で止める・`_send_repeat` / `_repeat_failed`・`on_repeat_error`）/ `ActionExecutor`（key_hold で `is_repeat_enabled` を渡す・hotkey・直接置換の前に `stop_repeat_for_keys`）
   - OS の設定: `infrastructure/input_gateway.py` のモジュール関数 `keyboard_repeat_timing`（換算・既定値）
+- phase 53（アプリの窓が前面のときはキーリピートしない。仕様 = `features.md` §4.2.12「キーリピート」/ `key_input.md` §7.7。判断 = `decisions_archive/53_repeat_stop_on_own_foreground.md`）:
+  - 前面判定: `infrastructure/input_gateway.py` のモジュール関数 `is_own_process_foreground`（`@cache` の `_foreground_process_api` で専用の user32）
+  - `KeyRepeater` の任意引数 `is_blocked`（`_fire` でだけ呼ぶ・真なら `stop`）。App の `KeyRepeater` 生成で注入（`app.py`）
+  - テスト: `tests/test_key_repeat.py` / `test_input_gateway_repeat.py` / `tests_ui/test_key_hold_presentation.py`
   - presentation: `app.py`（`KeyRepeater` の生成と注入・`repeat_suppressed`・`_show_runtime_error`）/ `controllers/hook_controller.py` の `show_action_error`（表示中の抑止）/ `dialogs/action_key_hold_fields.py`（チェックと表示の切替）・`dialogs/action_dialog.py`（組み直しで `repeat`）
   - テスト: `tests/test_key_repeat.py` / `test_held_inputs_repeat.py` / `test_input_gateway_repeat.py` / `test_key_hold.py` / `test_action_executor_key_hold.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_key_hold_presentation.py`
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /

@@ -1,6 +1,6 @@
 # 暫定仕様 37: アプリの窓が前面のときはキーリピートしない（repeat_stop_on_own_foreground）
 
-> 状態: **未凍結・v0.4・主入力・ユーザー確定済（2026-10-11）・実装着手可**（v0.1 起票時 deep-reviewer「修正して採用」〔中 3・低 6〕を反映 → v0.2 → §7-1 をユーザー確定〔開始時は判定しない〕→ v0.3 → 確定前の Codex 敵対的 needs-attention〔medium 2〕をユーザー判断で反映〔§2-6〜7〕→ v0.4）。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
+> 状態: **凍結（2026-10-11・phase 53 完了）・v0.4。正本へ昇格済み（`features.md` §4.2.12「キーリピート」/ `key_input.md` §7.7 / `codebase_map.md` の phase 53 の項）。以後は正本が正で、本書の条項を実装の根拠に引かない**（v0.1 起票時 deep-reviewer「修正して採用」〔中 3・低 6〕を反映 → v0.2 → §7-1 をユーザー確定〔開始時は判定しない〕→ v0.3 → 確定前の Codex 敵対的 needs-attention〔medium 2〕をユーザー判断で反映〔§2-6〜7〕→ v0.4）。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: [idea_42](../backlog/idea_42_suppress_repeat_on_all_dialogs.md)（2026-10-11・phase 52 完了判定前レビュー〔Codex 敵対的 medium・deep-reviewer L3〕・ユーザーが次フェーズで実装を希望）。
 > 番号対応: phase 53 / 暫定 37 / decisions 53。
