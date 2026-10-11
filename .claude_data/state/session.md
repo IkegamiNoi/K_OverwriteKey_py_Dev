@@ -12,7 +12,7 @@ last_commit_location: `claude/keypress-hold-behavior-a25946`（phase 51 完了�
 
 ## current
 presence: present
-focus: **phase 54 起票済。次 = task_01（probe・ユーザーの実機）の起票。**
+focus: **phase 54 task_01 完了（暫定 38 v0.5 確定）。次 = task_02（名前の表・入力の名前の関数・名前の検査）。**
 mode: active
 
 ## last_action

@@ -9,7 +9,7 @@
 
 - **アクティブなフェーズ = [phase 54](54_numpad_key_distinction/phase.md)**（2026-10-11 起票・テンキーの区別。暫定仕様先行モード）。
   テンキーを専用の名前（`num 1` / `num add` 等）で入力の判定・出力・記録で区別し、既存の名前は入力の判定では主キーボードだけを指す（**既存設定の意味が変わる**・JSON の形は変えない）。
-  主入力 = [暫定 38](../history/38_numpad_key_distinction.md)（v0.4・ユーザー確定済）。起票元 = [idea_43](../backlog/idea_43_numpad_key_distinction.md)。番号対応: phase 54 / 暫定 38 / decisions 54。
+  主入力 = [暫定 38](../history/38_numpad_key_distinction.md)（v0.5・ユーザー確定済）。起票元 = [idea_43](../backlog/idea_43_numpad_key_distinction.md)。番号対応: phase 54 / 暫定 38 / decisions 54。
 - 直前の完了フェーズ = [phase 53](53_repeat_stop_on_own_foreground/phase.md)（2026-10-11・アプリの窓が前面のときはキーリピートしない〔送り直しの発火ごとに前面の窓のプロセスを判定〕。暫定仕様先行モード〔暫定 37 v0.4 凍結〕・判断は [decisions_archive/53](../../.claude_data/state/decisions_archive/53_repeat_stop_on_own_foreground.md)）。
 - その前の完了フェーズ = [phase 52](52_key_hold_auto_repeat/phase.md)（2026-10-11・key_hold のキーリピート〔key_hold の任意キー `repeat`・**JSON スキーマ変更あり**〕。暫定仕様先行モード〔暫定 36 v0.4 凍結〕・判断は [decisions_archive/52](../../.claude_data/state/decisions_archive/52_key_hold_auto_repeat.md)） /
   [phase 51](51_key_press_release_actions/phase.md)（2026-10-11・キーの押下 / 解放アクション `key_hold` と自動で離す安全策。暫定仕様先行モード〔暫定 35 v0.9 凍結〕・判断は [decisions_archive/51](../../.claude_data/state/decisions_archive/51_key_press_release_actions.md)） /
