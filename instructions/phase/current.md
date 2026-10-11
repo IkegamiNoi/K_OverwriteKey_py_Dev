@@ -7,7 +7,9 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 52 は 2026-10-11 完了。次は phase 53 = 全ダイアログでのキーリピートの抑止〔[idea_42](../backlog/idea_42_suppress_repeat_on_all_dialogs.md)〕をユーザーが希望・`/phase_start` で起票）。
+- **アクティブなフェーズ = [phase 53](53_repeat_stop_on_own_foreground/phase.md)**（2026-10-11 起票・アプリの窓が前面のときはキーリピートしない。暫定仕様先行モード）。
+  key_hold のキーリピート中にアプリ自身のダイアログが前面に来たら、送り直しの前に前面の窓のプロセスを確かめて止める（再開しない・ダイアログを出す側は変えない・JSON の変更なし）。
+  主入力 = [暫定 37](../history/37_repeat_stop_on_own_foreground.md)（v0.4・ユーザー確定済）。起票元 = [idea_42](../backlog/idea_42_suppress_repeat_on_all_dialogs.md)。番号対応: phase 53 / 暫定 37 / decisions 53。
 - 直前の完了フェーズ = [phase 52](52_key_hold_auto_repeat/phase.md)（2026-10-11・key_hold のキーリピート〔key_hold の任意キー `repeat`・**JSON スキーマ変更あり**〕。暫定仕様先行モード〔暫定 36 v0.4 凍結〕・判断は [decisions_archive/52](../../.claude_data/state/decisions_archive/52_key_hold_auto_repeat.md)）。
 - その前の完了フェーズ = [phase 51](51_key_press_release_actions/phase.md)（2026-10-11・キーの押下 / 解放アクション `key_hold` と自動で離す安全策。暫定仕様先行モード〔暫定 35 v0.9 凍結〕・判断は [decisions_archive/51](../../.claude_data/state/decisions_archive/51_key_press_release_actions.md)） /
   [phase 50](50_select_before_run/phase.md)（2026-10-09・確認して実行〔select_before_run〕と戻す・先頭への対象を一覧の選択へ。暫定仕様先行モード〔暫定 34 v0.6 凍結〕・判断は [decisions_archive/50](../../.claude_data/state/decisions_archive/50_select_before_run.md)）/
@@ -80,7 +82,8 @@
   **phase 50 は 2026-10-09 完了**（`50_select_before_run` / 暫定 34〔v0.6・凍結〕/ decisions 50〔アーカイブ済〕）。
   **phase 51 は 2026-10-11 完了**（`51_key_press_release_actions` / 暫定 35〔v0.9・凍結〕/ decisions 51〔アーカイブ済〕）。
   **phase 52 は 2026-10-11 完了**（`52_key_hold_auto_repeat` / 暫定 36〔v0.4・凍結〕/ decisions 52〔アーカイブ済〕）。
-  次フェーズは **`53_<topic>`**・decisions も **53** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 53 は 2026-10-11 起票**（`53_repeat_stop_on_own_foreground` / 暫定 37〔v0.4〕/ decisions 53）。
+  次フェーズは **`54_<topic>`**・decisions も **54** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -113,8 +116,9 @@
   33=省略表示の出力シーケンス欄〔**v0.6・凍結**〕 /
   34=確認して実行〔**v0.6・凍結**〕 /
   35=キーの押下 / 解放アクション〔**v0.9・凍結**〕 /
-  36=key_hold のキーリピート〔**v0.4・凍結**〕）。
-  次採番は **`37_<topic>`**。
+  36=key_hold のキーリピート〔**v0.4・凍結**〕 /
+  37=アプリの窓が前面のときはキーリピートしない〔v0.4・ユーザー確定済・phase 53 の主入力〕）。
+  次採番は **`38_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**20 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/

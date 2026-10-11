@@ -5,14 +5,14 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-10-11T01:25:00
-phase: なし（phase 52 は 2026-10-11 完了）。次採番 = phase 53 / 暫定 37 / decisions 53 / 提案書 21。次 = phase 53（idea_42 全ダイアログでのキーリピートの抑止・ユーザー希望）を `/phase_start` で起票
+phase: `instructions/phase/53_repeat_stop_on_own_foreground`（アプリの窓が前面のときはキーリピートしない・暫定仕様先行・主入力 = 暫定 37 v0.4 確定済）。番号対応 phase 53 / 暫定 37 / decisions 53。次採番 = phase 54 / 暫定 38 / 提案書 21。
 直前の完了フェーズ = **phase 51**（キーの押下 / 解放 `key_hold`・`decisions_archive/51_key_press_release_actions.md`）。
 last_commit_location: `claude/keypress-hold-behavior-a25946`（phase 51 完了まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 52 完了。次 = phase 53 起票（idea_42）。**
+focus: **phase 53 起票済。次 = task_01（前面判定・KeyRepeater の is_blocked・App の配線）の起票と実装。**
 mode: active
 
 ## last_action

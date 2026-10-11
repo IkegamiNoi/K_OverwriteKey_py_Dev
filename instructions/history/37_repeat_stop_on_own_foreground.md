@@ -1,6 +1,6 @@
 # 暫定仕様 37: アプリの窓が前面のときはキーリピートしない（repeat_stop_on_own_foreground）
 
-> 状態: **未凍結・v0.3・主入力・確定前の Codex 敵対的レビュー待ち**（v0.1 起票時 deep-reviewer「修正して採用」〔中 3・低 6〕を反映 → v0.2 → §7-1 をユーザー確定〔開始時は判定しない〕→ v0.3）。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
+> 状態: **未凍結・v0.4・主入力・ユーザー確定済（2026-10-11）・実装着手可**（v0.1 起票時 deep-reviewer「修正して採用」〔中 3・低 6〕を反映 → v0.2 → §7-1 をユーザー確定〔開始時は判定しない〕→ v0.3 → 確定前の Codex 敵対的 needs-attention〔medium 2〕をユーザー判断で反映〔§2-6〜7〕→ v0.4）。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: [idea_42](../backlog/idea_42_suppress_repeat_on_all_dialogs.md)（2026-10-11・phase 52 完了判定前レビュー〔Codex 敵対的 medium・deep-reviewer L3〕・ユーザーが次フェーズで実装を希望）。
 > 番号対応: phase 53 / 暫定 37 / decisions 53。
@@ -30,11 +30,14 @@ phase 52 は実行系のエラーの知らせ（`show_action_error` / `_show_run
 3. **アプリのメイン画面が前面のときもリピートしない**（アプリ自身へ文字を連打する用途は無い想定）
 4. 「常に前面」の設定とは無関係（表示が最上位なだけでキー入力は受けないため、前面の窓で判定する）。他のアプリが前面の間にアプリがダイアログを出しても、Windows が前面を奪わせなければキーはそのアプリへ届き続けるので止めない（ユーザーがダイアログを前面にした時点で止まる）
 5. **開始時（`start`・text の後のやり直し）には前面を判定せず、送り直しの発火時だけ判定する**（v0.3・起票時 deep-reviewer 中・ユーザー確定）。アプリの画面から実行したシーケンスが前面を切り替えた直後の押す行でも始まるようにするため。アプリが前面なら 1 回目の発火で止まる
+6. **前面の窓が NULL なら止める・Win32 の例外 / Windows 以外は止めない**（v0.4・確定前 Codex 敵対的 medium・ユーザー判断）
+7. **判定と送信の間の競合（1 回分がアプリの窓へ届き得る）は受容**（v0.4・確定前 Codex 敵対的 medium・ユーザー判断）
 
 ## §3 判定
 
 - **アプリの窓が前面** = `GetForegroundWindow` の窓の**プロセス ID が自プロセス**（`GetWindowThreadProcessId` → `GetCurrentProcessId` / `os.getpid()` と比較）。メイン窓・独自ダイアログ・messagebox・ファイル選択・キーボード表示の窓（`keyboard_window.py`）を区別しない
-- **判定できない場合**（前面の窓が無い〔NULL〕・取得の例外・Windows 以外）は「アプリの窓ではない」として扱う（＝止めない・phase 52 までの挙動。リピートは付加機能で、判定の失敗で押す / 離すの安全側の動作は変わらないため）
+- **前面の窓が無い（`GetForegroundWindow` が NULL・Windows）** は「止める」として扱う（その回は送らずに止める・再開しない）（v0.4・確定前 Codex 敵対的 medium）。アクティブの切替の途中で一瞬 NULL になり、ユーザーがダイアログをクリックした瞬間と重なり得るため。ロック画面等でも止まるだけで害はない
+- **判定できない場合**（Win32 の呼び出しの例外・プロセス ID が取れない〔0〕・Windows 以外）は「アプリの窓ではない」として扱う（＝止めない・phase 52 までの挙動）。例外は DLL の読み込みの失敗のように続けて起きるもので、止めるとリピートがずっと使えなくなるため。**ログは初回だけ**出す
 - 判定は infrastructure に 1 関数で置き、`KeyRepeater` へ注入する（application は Win32 に依存しない）
 - 補足: 従来のコンソール窓（conhost）から起動した場合、コンソール窓の前面でも自プロセスと判定され得る（止まるだけで害はない・Windows Terminal では起きない）。ツールチップ（`hover_tooltip.py`・overrideredirect）は前面にならない。キーボード表示の窓は `focus_force` するため対象に含めるのが妥当
 
@@ -48,6 +51,7 @@ phase 52 は実行系のエラーの知らせ（`show_action_error` / `_show_run
 ### 4.2 送り直し
 - 予約の発火（`_fire`）で、世代・抑止の確認の後、**送る前に前面を確かめ、アプリの窓が前面なら止めて**終える（送らない・予約を取り直さない・再開しない）
 - 前面の確認は毎回の送り直しの直前に行う（間隔 33〜400 ms ごと。`GetForegroundWindow` 等は軽い呼び出し）
+- **判定と送信の間の競合は受容**（v0.4・確定前 Codex 敵対的 medium）: 判定は送信の直前だが不可分ではなく、判定の直後・送信の前にユーザーがアプリの窓を前面にすると、その 1 回分がアプリの窓へ届き得る。判定を重ねても幅は無くせないため受容し、§8 の目視の「勝手に閉じない」はこの競合を除いた保証とする
 
 ### 4.3 既存の仕組みとの関係
 - phase 52 の**知らせの前に止める・表示中の抑止**（`begin_suppress` / `end_suppress`）は**残す**（知らせのダイアログが前面に来ない場合でも止める・表示中の開始を断る既存の保証を変えない）
@@ -60,8 +64,8 @@ phase 52 は実行系のエラーの知らせ（`show_action_error` / `_show_run
 
 ## §6 責務の置き場（実装の方針）
 
-- **前面判定** = infrastructure（例: `infrastructure/input_gateway.py` のモジュール関数 `is_own_process_foreground()`・`keyboard_repeat_timing` と同じ形）。`GetForegroundWindow() -> HWND` / `GetWindowThreadProcessId(HWND, POINTER(DWORD)) -> DWORD` の `argtypes` / `restype` を明示し、共有の `windll` の属性を書き換えない（`modal.py:15-21` と同じく `@cache` + `ctypes.WinDLL("user32")` の専用インスタンス）。例外は吸収して偽。**判定の失敗はログを出さない**（発火ごと〔33 ms〜〕に呼ばれるため）
-- **`KeyRepeater`** = コンストラクタに任意の `is_blocked: Callable[[], bool] | None`（既定 None = 判定しない＝既存テストの形を保つ）を足し、`_fire` でだけ呼ぶ（`start` では呼ばない・§4.1）。呼び出しの例外は吸収して「ブロックしない」（ログは出さない）
+- **前面判定** = infrastructure（例: `infrastructure/input_gateway.py` のモジュール関数 `is_own_process_foreground()`・`keyboard_repeat_timing` と同じ形）。`GetForegroundWindow() -> HWND` / `GetWindowThreadProcessId(HWND, POINTER(DWORD)) -> DWORD` の `argtypes` / `restype` を明示し、共有の `windll` の属性を書き換えない（`modal.py:15-21` と同じく `@cache` + `ctypes.WinDLL("user32")` の専用インスタンス）。前面の窓が NULL なら真（止める）・例外 / プロセス ID が 0 / Windows 以外は偽（止めない）。**例外のログは初回だけ**（発火ごと〔33 ms〜〕に呼ばれるため）
+- **`KeyRepeater`** = コンストラクタに任意の `is_blocked: Callable[[], bool] | None`（既定 None = 判定しない＝既存テストの形を保つ）を足し、`_fire` でだけ呼ぶ（`start` では呼ばない・§4.1）。`is_blocked` の呼び出しの例外は吸収して「ブロックしない」（ログは初回だけ）
 - **App の配線** = `app.py` の `KeyRepeater(...)` の生成で `is_blocked=is_own_process_foreground` を渡す
 
 ## §7 確認事項（ユーザー判断）
@@ -74,8 +78,8 @@ phase 52 は実行系のエラーの知らせ（`show_action_error` / `_show_run
 1. 前面判定が真のとき、リピートが有効な押す行で押すは送り、予約はするが **1 回目の発火で送らずに止まる**。前の対象のリピートは §4.2.12 どおり止まる（§4.1・§4.2）
 2. リピート中に前面判定が真になると、次の発火で送らずに止まり、以後偽に戻っても再開しない（§4.2・§2-2）
 3. text の後のやり直しで前面判定が真なら、やり直した後の 1 回目の発火で止まる（§4.1）
-4. 前面判定が例外 / 未注入のときは従来どおりリピートする（§3・§6）
-5. 前面判定の関数: 前面の窓のプロセス ID が自プロセスなら真・他なら偽・前面の窓が無い / 例外 / Windows 以外なら偽（Win32 の呼び出しは偽物に差し替える）（§3）
+4. 前面判定（`is_blocked`）が例外 / 未注入のときは従来どおりリピートする（§3・§6）
+5. 前面判定の関数: 前面の窓のプロセス ID が自プロセスなら真・他なら偽・**前面の窓が NULL なら真**（その発火で送らずに止まる）・例外 / プロセス ID が 0 / Windows 以外なら偽。例外のログは初回だけ（Win32 の呼び出しは偽物に差し替える）（§3）
 6. App の配線: `app.key_repeater` に `is_own_process_foreground` が注入されている（§6）
 7. phase 52 の抑止（知らせの前に止める・表示中の抑止）の既存テストが通る。**本物の App の `key_repeater` を使う tests_ui（`tests_ui/test_key_hold_presentation.py` の抑止のテスト）は前面判定を偽に差し替える**（テストの Tk 窓が前面だと抑止が壊れていても通ってしまうため）（§4.3）
 8. 既存テスト（tests / tests_ui / smoke）が通る
