@@ -1,6 +1,6 @@
 # 暫定仕様 38: テンキーの区別（numpad_key_distinction）
 
-> 状態: **未凍結・v0.5・主入力・ユーザー確定済（2026-10-11）・実装着手可**（v0.1 起票時 deep-reviewer「修正して採用」〔高 1・中 5・低 4〕を反映 → v0.2 → §7 の 4 点をユーザー確定 → v0.3 → 確定前の Codex 敵対的 needs-attention〔high 1・medium 1〕をユーザー判断で反映〔§2-9〜10〕→ v0.4 確定 → task_01 の probe で Tk の keysym に `KP_` が付かないと判明・keycode + 拡張ビットで記録を区別する案へ §2-6・§6 を改訂 → v0.5 ユーザー確定）。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
+> 状態: **凍結（2026-10-11・phase 54 完了）・v0.5。正本へ昇格済み（`key_input.md` §7.7・§7.8 / `data_schema.md` §5.1 / `features.md` §4.2.12・§4.6 / `codebase_map.md` の phase 54 の項）。以後は正本が正で、本書の条項を実装の根拠に引かない**（昇格時に実装へ合わせた点: `key_identity` の 0xE0xx の読み替え〔task_05-1〕・`num_lock` は有効。以前の経緯: v0.1 起票時 deep-reviewer「修正して採用」〔高 1・中 5・低 4〕を反映 → v0.2 → §7 の 4 点をユーザー確定 → v0.3 → 確定前の Codex 敵対的 needs-attention〔high 1・medium 1〕をユーザー判断で反映〔§2-9〜10〕→ v0.4 確定 → task_01 の probe で Tk の keysym に `KP_` が付かないと判明・keycode + 拡張ビットで記録を区別する案へ §2-6・§6 を改訂 → v0.5 ユーザー確定）。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: [idea_43](../backlog/idea_43_numpad_key_distinction.md)（2026-10-11・ユーザー要望）。
 > 番号対応: phase 54 / 暫定 38 / decisions 54。

@@ -770,6 +770,11 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - 前面判定: `infrastructure/input_gateway.py` のモジュール関数 `is_own_process_foreground`（`@cache` の `_foreground_process_api` で専用の user32）
   - `KeyRepeater` の任意引数 `is_blocked`（`_fire` でだけ呼ぶ・真なら `stop`・呼び出しの例外は吸収して止めない〔ログは初回だけ〕）。App の `KeyRepeater` 生成で注入（`app.py`）
   - テスト: `tests/test_key_repeat.py` / `test_input_gateway_repeat.py` / `tests_ui/test_key_hold_presentation.py`
+- phase 54（テンキーの区別。仕様 = `key_input.md` §7.7・§7.8 / `data_schema.md` §5.1 / `features.md` §4.2.12。判断 = `decisions_archive/54_numpad_key_distinction.md`）:
+  - 名前の表と入力の名前: `domain/numpad_keys.py`（16 名 ↔ スキャンコード + 拡張・`numpad_name_from_event(scan_code, is_keypad)`・予約名 `is_reserved_numpad_name`）。`application/input_router.py` と `key_state_manager.py` の `_extract_key_name` が最初に使い、テンキーでないイベントではレイアウトの表の名前を捨てる
+  - 検査・送信・同じキー: `infrastructure/input_gateway.py`（`validate_key_name` が表の名前を許可・予約名を拒否 / `press_key`・`release_key`・`send_hotkey` は表の名前を `_send_numpad_event`〔専用 user32 の `SendInput` スキャンコード入力・`is_replaying`〕で送る / `key_identity` は表 → 拡張キー表 → keyboard の先頭〔0xE0xx は拡張に読み替え〕）
+  - 記録: `presentation/tk_keys.py` の `numpad_name_from_tk_event(keycode, state)`・`normalize_tk_key_event` / `normalize_key_hold_tk_key_event`（hotkey の記録・key_hold の「1 キーを記録」・トリガー / 切替キー / 停止キーの取得・`keyboard_window.py` の置換先の取得から呼ぶ）
+  - テスト: `tests/test_numpad_keys.py` / `test_tk_keys.py` / `test_input_router.py` / `test_key_state_manager.py` / `test_key_overlap.py` / `test_input_gateway_send.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_keymap_switch_batch_dialog.py`
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 
