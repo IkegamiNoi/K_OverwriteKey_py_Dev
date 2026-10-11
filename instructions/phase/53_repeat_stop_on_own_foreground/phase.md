@@ -40,7 +40,7 @@ key_hold のキーリピート（phase 52）の最中に、アプリ自身のダ
 
 ## タスク
 
-- task_01: 前面判定の関数（infrastructure）・`KeyRepeater` の `is_blocked`（`_fire` だけ）・App の配線とテスト（暫定 37 §3・§4・§6・§8 の 1〜7）。**実装後にユーザーの実機目視**（§8 の 9〜11）
+- task_01: 前面判定の関数（infrastructure）・`KeyRepeater` の `is_blocked`（`_fire` だけ）・App の配線とテスト（暫定 37 §3・§4・§6・§8 の 1〜8）。**実装後にユーザーの実機目視**（§8 の 9〜11）
 - task_02: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）
 - task_03: 正本反映（暫定 37 §10 の昇格・凍結）・`decisions_archive/53_repeat_stop_on_own_foreground.md`・decisions.md の索引・current.md の完了記載・idea_42 を INDEX_done へ・`/refactor_check`
 
