@@ -63,6 +63,7 @@
 | 51_key_press_release_actions | [51_key_press_release_actions.md](decisions_archive/51_key_press_release_actions.md) | キーの押下 / 解放アクション（2026-10-11 完了・暫定 35 v0.9 凍結・domain / application / infrastructure / presentation・アクションの種類 `key_hold`）。押したままは押下をまたぎ、止まる経路すべてで自動で離す（入口の関数の単位・持ち主 = 最上段のトリガー・呼び出し先の末尾 / 停止の行の区切り / 戻すでは離さない）。text / file_line は送る間だけ離して押し直す・送信の例外は止まる系・keyboard の記録に載せない。キーマップの切替 / 削除で離す・停止中は予約済みの入力を実行しない・離す失敗は集合に残す。キーリピートは idea_41。refactor_check: 不要 |
 | 52_key_hold_auto_repeat | [52_key_hold_auto_repeat.md](decisions_archive/52_key_hold_auto_repeat.md) | key_hold のキーリピート（2026-10-11 完了・暫定 36 v0.4 凍結・domain / application / infrastructure / presentation・key_hold の任意キー `repeat`）。間隔は OS の設定・修飾キー以外・同時に 1 つ（最後に始めたキー）・押す / 離す送信の前に止める・対象を含む hotkey / 直接置換の前に止める・text の前後で控えてやり直す・実行系のエラーの知らせの表示中は抑止。全ダイアログの抑止は idea_42。refactor_check: 不要 |
 | 53_repeat_stop_on_own_foreground | [53_repeat_stop_on_own_foreground.md](decisions_archive/53_repeat_stop_on_own_foreground.md) | アプリの窓が前面のときはキーリピートしない（2026-10-11 完了・暫定 37 v0.4 凍結・application / infrastructure / presentation の配線・JSON 変更なし）。送り直しの発火ごとに前面の窓が自プロセスなら止める（再開しない・メイン画面でも止める・開始時は判定しない・NULL は止める / Win32 の例外は止めない・判定と送信の競合は受容）。refactor_check: 不要 |
+| 54_numpad_key_distinction | [54_numpad_key_distinction.md](decisions_archive/54_numpad_key_distinction.md) | テンキーの区別（2026-10-11 完了・暫定 38 v0.5 凍結・domain / application / infrastructure / presentation・JSON の形は不変・**既存設定の意味が変わる**）。テンキーは `num 0`〜`num 9` / `num add` 等の名前で入力の判定（`is_keypad` + スキャンコード）・送信（`SendInput` スキャンコード入力・NumLock に従う）・記録（Tk の keycode + 拡張ビット）を区別。既存の名前は入力では主キーボードだけ・記号の出力は従来どおり・`num_1` 等はエラー。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -612,13 +613,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - M2（ユーザー確定・コード変更 task_07a）: 単発の呼び出しの実行中に連鎖の呼び出し先の位置を一覧で変えたら、待機・file_line・呼び出し元の位置変更と同じく実行中の単発の呼び出しを取り消し（そこまでの進みは書き戻す）、変えた位置を優先する。今は次の書き戻しで上書きされる（要再現）。
 - M3（ユーザー確定・受容）: 呼び出し先の完了で外から進めた呼び出し元の次の待機は待たない（直前に呼び出し元が送っていないので「送った後の待ち」に当たらない。次に押すと送る前の待機として読み飛ばす）。
 - M4（ユーザー確定・コード変更 task_07a）: 呼び出し先 U が単発の呼び出しの一時停止中に T が U を呼んだら、U の一時停止を捨てて（通知）T が進める。今は黙って無視。
-
-## 2026-10-11 (phase 54: テンキーの区別・暫定 38)
-
-### 【起票】モード = **暫定仕様先行**。起票元 idea_43（ユーザー要望）。ユーザー選択: 入力の判定・出力・記録・表示のすべてで区別 / 既存の名前は主キーボードだけ / `num` + 数字・単語の名前 / NumLock に関係なく物理キーで同じ名前
-### 【暫定 38】v0.1 → deep-reviewer 修正して採用（高 1: 記号の名前は今テンキーで送られている・中 5・低 4）→ v0.2 → ユーザー確定 4 点（外部レイアウトより表の名前・記録で区別できないキーは受容・キーボード表示は足さない・記号の出力は従来どおりで「主キーボードだけ」は入力に限る）→ v0.3 →
-Codex 敵対的 needs-attention（high: 外部レイアウトの `id` で End が `num 1` になる / medium: `num_1` 等が検査をすり抜け主キーボードを送る）→ ユーザー判断で両方採用（表の名前はテンキーのイベントだけ・`num_` 等はエラー）→ v0.4 確定
-### 【task_01 probe】Tk の keysym に KP_ が付かない → 記録は keycode + 拡張ビット（state 0x40000）で 16 キーとも区別する（§2-6 改訂・v0.5・ユーザー確定 2026-10-11）。フック・SendInput スキャンコード送信・偽の shift は前提どおり
-### 【task_04〜05】実機目視 §8-10〜12 OK / 統合レビュー: deep-reviewer 採用（中 1・低 5）・codex-reviewer 指摘なし（2026-10-11）
-- 修正して採用（task_05-1・ユーザー判断）: `key_identity` で keyboard の先頭スキャンコードが 0xE0xx なら (xx, 拡張) に読み替え（`/` と `num divide` を同じキーに・§2-8 どおり）
-- 保留: SendInput の失敗時の例外（既存の後始末で離せる）/ 一部の記録の入口にテンキーのテストなし（共通関数は単体テスト済み・実機目視 OK）。除外: 前段の重複（目安内）・キーボード表示の窓の VK とスキャンコードの既存の取り違え（範囲外・悪化なし）。昇格時に記述: `num_lock` は有効

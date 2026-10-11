@@ -47,7 +47,7 @@
 - task_03: 送信（表の名前をスキャンコード + 拡張フラグで・hotkey の分岐）と `key_identity` とテスト（§5・§8 の 6） — **完了**（2026-10-11・codex-implementer・reviewer 採用・新規テストの Mock が戻り値を返さない誤りをメインで修正・tests 1522 / tests_ui 942 / smoke pass〔tests_ui・smoke は修正前に実測・修正はテスト 1 行のみ〕）
 - task_04: 記録（`tk_keys.py` に keycode + 拡張ビットの純関数・記録を使う各所から呼ぶ）とテスト（§6・§8 の 8）。**実装後にユーザーの実機目視**（§8 の 10〜12） — **完了**（2026-10-11・ユーザー実機目視 OK〔§8 の 10〜12〕・codex-implementer・reviewer 採用・新規テストの期待値の誤り〔関数単体で `end` を期待〕をメインで修正・tests 1524 / tests_ui 945 / smoke pass〔tests_ui・smoke は修正前に実測・修正はテスト 1 行のみ〕）
 - task_05: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer） — **完了**（2026-10-11・deep-reviewer 採用〔中 1・低 5〕・codex-reviewer 指摘なし → 中 1〔`/` の key_identity が 0xE035 のまま〕を task_05-1 で修正〔codex-implementer・reviewer 採用・tests 1525〕・低は保留 / 除外 / 昇格時に記述）
-- task_06: 正本反映（暫定 38 §10 の昇格・凍結）・`decisions_archive/54_numpad_key_distinction.md`・decisions.md の索引・current.md の完了記載・idea_43 を INDEX_done へ・`/refactor_check`
+- task_06: 正本反映（暫定 38 §10 の昇格・凍結）・`decisions_archive/54_numpad_key_distinction.md`・decisions.md の索引・current.md の完了記載・idea_43 を INDEX_done へ・`/refactor_check` — **完了**（2026-10-11・正本反映〔key_input §7.8 新設〕+ 暫定 38 凍結・完了判定前 deep-reviewer 修正して採用〔文書の追従漏れ L1〜L4 を修正〕・Codex 敵対的 needs-attention〔既存の `num 0`〜`num 9` の出力の変化の書き漏れ〕→ ユーザー判断で §7.8 に追記・refactor_check 不要）
 
 ## レビュー方針
 

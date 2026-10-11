@@ -7,11 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 54](54_numpad_key_distinction/phase.md)**（2026-10-11 起票・テンキーの区別。暫定仕様先行モード）。
-  テンキーを専用の名前（`num 1` / `num add` 等）で入力の判定・出力・記録で区別し、既存の名前は入力の判定では主キーボードだけを指す（**既存設定の意味が変わる**・JSON の形は変えない）。
-  主入力 = [暫定 38](../history/38_numpad_key_distinction.md)（v0.5・ユーザー確定済）。起票元 = [idea_43](../backlog/idea_43_numpad_key_distinction.md)。番号対応: phase 54 / 暫定 38 / decisions 54。
-- 直前の完了フェーズ = [phase 53](53_repeat_stop_on_own_foreground/phase.md)（2026-10-11・アプリの窓が前面のときはキーリピートしない〔送り直しの発火ごとに前面の窓のプロセスを判定〕。暫定仕様先行モード〔暫定 37 v0.4 凍結〕・判断は [decisions_archive/53](../../.claude_data/state/decisions_archive/53_repeat_stop_on_own_foreground.md)）。
-- その前の完了フェーズ = [phase 52](52_key_hold_auto_repeat/phase.md)（2026-10-11・key_hold のキーリピート〔key_hold の任意キー `repeat`・**JSON スキーマ変更あり**〕。暫定仕様先行モード〔暫定 36 v0.4 凍結〕・判断は [decisions_archive/52](../../.claude_data/state/decisions_archive/52_key_hold_auto_repeat.md)） /
+- **アクティブなフェーズ = なし**（phase 54 は 2026-10-11 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- 直前の完了フェーズ = [phase 54](54_numpad_key_distinction/phase.md)（2026-10-11・テンキーの区別〔`num 1` 等の名前で入力・送信・記録を区別・既存の名前は入力では主キーボードだけ〕。暫定仕様先行モード〔暫定 38 v0.5 凍結〕・判断は [decisions_archive/54](../../.claude_data/state/decisions_archive/54_numpad_key_distinction.md)）。
+- その前の完了フェーズ = [phase 53](53_repeat_stop_on_own_foreground/phase.md)（2026-10-11・アプリの窓が前面のときはキーリピートしない〔送り直しの発火ごとに前面の窓のプロセスを判定〕。暫定仕様先行モード〔暫定 37 v0.4 凍結〕・判断は [decisions_archive/53](../../.claude_data/state/decisions_archive/53_repeat_stop_on_own_foreground.md)） /
+  [phase 52](52_key_hold_auto_repeat/phase.md)（2026-10-11・key_hold のキーリピート〔key_hold の任意キー `repeat`・**JSON スキーマ変更あり**〕。暫定仕様先行モード〔暫定 36 v0.4 凍結〕・判断は [decisions_archive/52](../../.claude_data/state/decisions_archive/52_key_hold_auto_repeat.md)） /
   [phase 51](51_key_press_release_actions/phase.md)（2026-10-11・キーの押下 / 解放アクション `key_hold` と自動で離す安全策。暫定仕様先行モード〔暫定 35 v0.9 凍結〕・判断は [decisions_archive/51](../../.claude_data/state/decisions_archive/51_key_press_release_actions.md)） /
   [phase 50](50_select_before_run/phase.md)（2026-10-09・確認して実行〔select_before_run〕と戻す・先頭への対象を一覧の選択へ。暫定仕様先行モード〔暫定 34 v0.6 凍結〕・判断は [decisions_archive/50](../../.claude_data/state/decisions_archive/50_select_before_run.md)）/
   [phase 49](49_status_truncation_tooltip/phase.md)（2026-10-07・ステータスの見切れのツールチップ。直接改訂モード・判断は [decisions_archive/49](../../.claude_data/state/decisions_archive/49_status_truncation_tooltip.md)）/
@@ -84,7 +83,7 @@
   **phase 51 は 2026-10-11 完了**（`51_key_press_release_actions` / 暫定 35〔v0.9・凍結〕/ decisions 51〔アーカイブ済〕）。
   **phase 52 は 2026-10-11 完了**（`52_key_hold_auto_repeat` / 暫定 36〔v0.4・凍結〕/ decisions 52〔アーカイブ済〕）。
   **phase 53 は 2026-10-11 完了**（`53_repeat_stop_on_own_foreground` / 暫定 37〔v0.4・凍結〕/ decisions 53〔アーカイブ済〕）。
-  **phase 54 は 2026-10-11 起票**（`54_numpad_key_distinction` / 暫定 38〔v0.4〕/ decisions 54）。
+  **phase 54 は 2026-10-11 完了**（`54_numpad_key_distinction` / 暫定 38〔v0.5・凍結〕/ decisions 54〔アーカイブ済〕）。
   次フェーズは **`55_<topic>`**・decisions も **55** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -120,7 +119,7 @@
   35=キーの押下 / 解放アクション〔**v0.9・凍結**〕 /
   36=key_hold のキーリピート〔**v0.4・凍結**〕 /
   37=アプリの窓が前面のときはキーリピートしない〔**v0.4・凍結**〕 /
-  38=テンキーの区別〔v0.4・ユーザー確定済・phase 54 の主入力〕）。
+  38=テンキーの区別〔**v0.5・凍結**〕）。
   次採番は **`39_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**20 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -203,6 +202,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
   次に触るときに keyword-only 化または文脈用の dataclass を検討（phase 36 由来）
 - **phase 34 統合レビューの保留**: L-1 移行先キーマップと一覧を共有する別キーマップを個別保存すると移行先も一緒に書かれる（「移行先は必ず保存」の副作用・害なし）/
   L-7 「保存しない」共有メンバーの予想パスが一括保存の親参照に入る（安全側・掃除で除去）（phase 34 由来）
+- `infrastructure/input_gateway.py` が 408 行に増え、送信（keyboard・拡張キー・テンキーの `SendInput`）・OS のリピート設定の取得・前面判定・名前の検査の責務が 1 ファイルに並ぶ。`_send_extended_event` と `_send_numpad_event` の `is_replaying` の退避が同型（2 個目）。次に送信系を足すときに送信の補助を別モジュールへ分けるかを再判定（phase 54 の /refactor_check・境界事例として不要に倒した）
 
 ### 定数・直値の重複（M6 の境界）
 

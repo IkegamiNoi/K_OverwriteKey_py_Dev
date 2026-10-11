@@ -39,4 +39,3 @@
 | idea_36 | [idea_36_common_trigger_layer.md](idea_36_common_trigger_layer.md) | トリガー一覧のキーマップ従属化（phase 34 予定）の後、全キーマップで有効な共通トリガー層を追加する（共通 + キーマップ別の 2 層）。 | 未着手（検討段階・2026-09-24 設計議論から分離・現時点では不要とユーザー判断）|
 | idea_37 | [idea_37_counter_conditional_branch.md](idea_37_counter_conditional_branch.md) | 出力シーケンスの system 種別にカウンター値による条件分岐（N 以上でループを抜ける / 停止 等）を加える。file_line の終端で止める用途。 | 未着手（検討段階・2026-09-26 暫定 26 の設計対話から分離・第 2 弾の完了後に要否判断）|
 | idea_39 | [idea_39_back_rewind_visible_trigger.md](idea_39_back_rewind_visible_trigger.md) | 対象を指定しない戻す・先頭への対象を「直前のトリガー」から「押した時点で一覧に表示されているトリガー」へ変える。 | 一部取り込み（phase 50 暫定 34 v0.6 §3a）・残り = 直前のトリガーの廃止ほか（2026-10-09 追記）|
-| idea_43 | [idea_43_numpad_key_distinction.md](idea_43_numpad_key_distinction.md) | テンキーのキーを主キーボードのキーと区別する（入力の判定・出力・記録・表示のすべて。既存の `1` 等は主キーボードだけを指す）。 | **着手**（→ 暫定仕様 [38](../history/38_numpad_key_distinction.md) / phase [54_numpad_key_distinction](../phase/54_numpad_key_distinction/phase.md)・2026-10-11）|
