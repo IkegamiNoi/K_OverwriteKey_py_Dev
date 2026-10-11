@@ -15,17 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 52**〔`52_key_hold_auto_repeat`・暫定仕様先行・主入力 = 暫定 36 v0.4 確定済〕）。
-   次採番 = phase 53 / 暫定 37 / decisions 53 / 提案書 21。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 54 は 2026-10-11 完了〕）。
+   次採番 = phase 55 / 暫定 39 / decisions 55 / 提案書 21。次フェーズはユーザー判断・着手時は `/phase_start`
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜35）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜38）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 52（key_hold のキーリピート）task_01〜03 完了（task_03 は実装・検証済）。ユーザーの実機目視待ち（ホスト OS）→ OK なら task_04（統合確認）→ task_05（正本反映）。**
-ブランチ `claude/keypress-hold-behavior-a25946`（phase 51 task_05 の目視以降〜phase 52）。**main への取り込み状況は git で確認**・マージはユーザー。
-ユーザーは不在モード（/away・戻る予定 未定）で終了。再開したら `presence: away` の行は消してよい。フェーズ内のタスクの連続実行は許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
+**phase 52・53・54 完了。アクティブなフェーズなし・次フェーズはユーザー判断待ち。main へのマージはユーザー。**
+ブランチ `claude/physical-device-inspection-a9201a`（phase 52 task_03 の目視以降〜phase 54）。**main への取り込み状況は git で確認**・マージはユーザー。
+フェーズ内のタスクの連続実行は許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 52 task_03 = 2026-10-11**）:
-compile **clean** / tests **1490 OK**（skip 7）/ tests_ui **942 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1447〔phase 51〕→ 1490 / tests_ui: 935〔phase 51〕→ 942）。
+直近の実測（**phase 54 完了 = 2026-10-11**）:
+compile **clean** / tests **1525 OK**（skip 7）/ tests_ui **945 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1490〔phase 52 task_03〕→ 1525 / tests_ui: 942 → 945）。
 `tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が 1 回だけ `1 != 0` で落ちた（単独 2 回・全体 2 回で再現せず）。再発したら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,23 +55,16 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【戻ったら最初に】ユーザーの実機目視（phase 52 task_03・ホスト OS）**。確認項目 ①〜④ は session.md の next_action（メモ帳で `a` が連続して入り離すで止まる / フック停止・ダイアログ・終了で止まる / shift と組み合わせて `A` / 一覧の ` (リピート)` とチェックの表示）。NG なら枝番で修正
-- OK 後に task_04（統合確認・deep-reviewer + codex-reviewer・実機目視 §8-15）→ task_05（正本反映〔暫定 36 §10〕・凍結・decisions_archive/52・idea_41 を INDEX_done・/refactor_check・完了判定前 deep-reviewer + codex-adversarial-reviewer）
-- **main へのマージはユーザーが行う**。
+- 次フェーズはユーザー判断（着手時は `/phase_start`）。**main へのマージはユーザーが行う**。
+- 別タスク化候補に `input_gateway.py` の責務の並び（phase 54 の /refactor_check・境界事例）を追記済み
 
-## 現フェーズ（phase 52 = key_hold のキーリピート）の要点
+## 直前フェーズ（phase 54 = テンキーの区別）の要点
 
-主入力 = 暫定 36 v0.4（`instructions/history/36_key_hold_auto_repeat.md`・§2 の 1〜9 がユーザー確定）。
-- JSON = key_hold の任意キー `repeat`（bool の True だけ。キーの無い既存の行はリピートしない）。判定・修飾キー（別名を含む 24 名）・書式 ` (リピート)` = `domain/key_hold.py`
-- タイマー = `application/key_repeat.py` の `KeyRepeater`（対象は 1 つ・UI スレッドの `after`・世代で古い予約を無効化・抑止は入れ子）。`HeldInputs` が押す・離す送信の**前**に止め、成功した押すで始める。text の前後は元の対象だけ再開
-- 間隔 = `input_gateway.keyboard_repeat_timing`（OS の SPI_GETKEYBOARDDELAY / SPEED を換算）。知らせの表示中は `show_action_error` / `_show_runtime_error` で抑止
-
-## 直前フェーズ（phase 51 = キーの押下 / 解放アクション）の要点
-
-正本 = `features.md` §4.2.12（自動で離す契機の表）・`data_schema.md` §5.11.9・`key_input.md` §7.7・codebase_map の phase 51 の項。判断 = `decisions_archive/51`。
-- 押下中の集合 = `application/held_inputs.py`（持ち主 = 最上段のトリガー・`owner_scope` で受け渡し・離す送信が失敗したものは集合に残す）
-- 停止中・キーマップ一時停止中は予約済みのトリガー・直接置換を実行しない（`hook_controller._execute_reserved_action`・既存の種類にも効く）
-- text / file_line の送信の例外は止まる系（phase 51 から）。合成の押下は Windows がリピートしない（idea_41）
+正本 = `key_input.md` §7.8（名前の表・入力・送信・同じキー・記録・既存設定の意味の変化）・§7.7 / codebase_map の phase 54 の項。判断 = `decisions_archive/54`。
+- 名前 = `num 0`〜`num 9` / `num add` / `num subtract` / `num multiply` / `num divide` / `num decimal` / `num enter`（`domain/numpad_keys.py`・`num_1` 等はエラー）。**既存の `1` / `enter` / `end` 等は入力の判定では主キーボードだけ**
+- 入力 = フックの `is_keypad` + スキャンコード（`input_router` / `key_state_manager` の両方）/ 送信 = `SendInput` のスキャンコード入力（NumLock に従う）/ 記録 = Tk の keycode（VK）+ `state & 0x40000`（**Windows の Tk の keysym に `KP_` は付かない**）
+- 記号の名前（`+` / `*` / `-` / `/`）の出力は従来どおり keyboard の解決（テンキーで送られ得る）。`key_identity` は 0xE0xx を拡張に読み替え
+- phase 52 = key_hold の `repeat`（`application/key_repeat.py`）/ phase 53 = 送り直しの発火ごとに前面の窓が自プロセスなら止める（`input_gateway.is_own_process_foreground`）
 - **VirtualBox のゲストでは物理の右 ctrl が Tk に届かない**（記録の確認はホスト OS で）
 
 ## 運用インフラ
@@ -82,7 +75,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **blockers: ユーザーの実機目視（phase 52 task_03）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **blockers: なし**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **【罠・phase 54 で実証】合成入力の probe で NumLock を切り替えるなら VK（`keybd_event(0x90, ..., EXTENDEDKEY)`）**。スキャンコード入力（69）では切り替わらない。probe の後は元の状態へ戻す。**Codex の新規テストの Mock の戻り値・期待値の誤り**が 1 フェーズで 2 件出た（実装は正しい）＝失敗時はまずテストを疑い、実装の仕様と照合する
 - **【罠・phase 51 で実証】keyboard ライブラリの `write` は送信前後に押下中のキーを離して修飾キーを押し直す**（拡張キーの right ctrl が left ctrl に化けて残った・probe）。合成の入力の扱いは `.venv` の小スクリプトで probe してから決める。**新しい tests_ui でテストごとに `tk.Tk()` を作り直すと後のモジュールのフォーカスが取れなくなる**（クラスで共有する）。Esc 等のキーの event_generate は `tests_ui/escape_delivery.acquire_focus` でフォーカスを取ってから
 - **【罠・phase 50 で実証】フル表示の高さ**: フォント +3 で最小 931 px が窓の取れる上限 927 px（画面 966 px）を超え、シーケンス欄のボタン列の最下段が数 px 切れる（受容・2026-10-09）。`test_full_view_min_height.py` は実測の上限に収まるときだけ一致を確かめる。**Codex は互換の工夫（`inspect` での引数判定・`getattr` の逃げ道）を足す・テストの期待値を推測で書くことがある**（task_04d で 2 つ目の待機が次の押下まで始まらないのを見落とした）＝差分の直読みと実測で外す。
 - **【罠・phase 49 で実証】共有 App の tests_ui で `<Enter>` を送ったら後始末で `<Leave>` も送る**（乗せた状態が次のテストに漏れてツールチップが重複する）。**実機目視の手順はカーソル・窓の位置まで考えて書く**。
@@ -150,8 +144,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 51_key_press_release_actions / 50_select_before_run / 49_status_truncation_tooltip）。
-- 着手中 idea: **idea_41**（phase 52）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
+  （直近 3 件: 54_numpad_key_distinction / 53_repeat_stop_on_own_foreground / 52_key_hold_auto_repeat）。
+- 着手中 idea: なし（idea_41〜43 は phase 52〜54 で完了）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
   idea_29〜idea_31 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
