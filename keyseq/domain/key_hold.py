@@ -83,7 +83,7 @@ def parse_key_hold(action: Mapping[str, Any]) -> KeyHoldSpec | str:
 
 def is_modifier_key(name: str) -> bool:
     """キー名を正規化して修飾キーか判定する。"""
-    return name.strip().lower() in MODIFIER_KEY_NAMES
+    return name.strip().lower().replace("_", " ") in MODIFIER_KEY_NAMES
 
 
 def wants_repeat(action: Mapping[str, Any]) -> bool:

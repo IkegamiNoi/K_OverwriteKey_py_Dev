@@ -89,6 +89,11 @@ class KeyRepeatDomainTests(unittest.TestCase):
             with self.subTest(name=name):
                 self.assertFalse(is_modifier_key(name))
 
+    def test_modifier_names_with_underscores(self):
+        for name in ("left_shift", "right_ctrl", "LEFT_WINDOWS"):
+            with self.subTest(name=name):
+                self.assertTrue(is_modifier_key(name))
+
     def test_wants_repeat_requires_boolean_true(self):
         for action, expected in (
             ({"repeat": True}, True),
