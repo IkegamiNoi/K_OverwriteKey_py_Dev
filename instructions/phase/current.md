@@ -7,7 +7,8 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 54 は 2026-10-11 完了。次フェーズはユーザー判断・着手時は `/phase_start`）。
+- **アクティブなフェーズ = [phase 55](55_keyboard_ui_window/phase.md)**（2026-10-12 起票・キーボードUIのウィンドウ改善〔ステータス欄の削除とタイトル表示 / 「キーボードUIを常に手前」とダイアログ表示中の一時解除 / リサイズの縦横比固定〕。presentation のみ・JSON スキーマ変更なし。
+  暫定仕様先行モード・主入力 = [暫定 39](../history/39_keyboard_ui_window.md)〔v0.3・ユーザー確定済〕・番号対応 phase 55 / 暫定 39 / decisions 55・起票元 = ユーザー要望 2026-10-12）。
 - 直前の完了フェーズ = [phase 54](54_numpad_key_distinction/phase.md)（2026-10-11・テンキーの区別〔`num 1` 等の名前で入力・送信・記録を区別・既存の名前は入力では主キーボードだけ〕。暫定仕様先行モード〔暫定 38 v0.5 凍結〕・判断は [decisions_archive/54](../../.claude_data/state/decisions_archive/54_numpad_key_distinction.md)）。
 - その前の完了フェーズ = [phase 53](53_repeat_stop_on_own_foreground/phase.md)（2026-10-11・アプリの窓が前面のときはキーリピートしない〔送り直しの発火ごとに前面の窓のプロセスを判定〕。暫定仕様先行モード〔暫定 37 v0.4 凍結〕・判断は [decisions_archive/53](../../.claude_data/state/decisions_archive/53_repeat_stop_on_own_foreground.md)） /
   [phase 52](52_key_hold_auto_repeat/phase.md)（2026-10-11・key_hold のキーリピート〔key_hold の任意キー `repeat`・**JSON スキーマ変更あり**〕。暫定仕様先行モード〔暫定 36 v0.4 凍結〕・判断は [decisions_archive/52](../../.claude_data/state/decisions_archive/52_key_hold_auto_repeat.md)） /
@@ -84,7 +85,8 @@
   **phase 52 は 2026-10-11 完了**（`52_key_hold_auto_repeat` / 暫定 36〔v0.4・凍結〕/ decisions 52〔アーカイブ済〕）。
   **phase 53 は 2026-10-11 完了**（`53_repeat_stop_on_own_foreground` / 暫定 37〔v0.4・凍結〕/ decisions 53〔アーカイブ済〕）。
   **phase 54 は 2026-10-11 完了**（`54_numpad_key_distinction` / 暫定 38〔v0.5・凍結〕/ decisions 54〔アーカイブ済〕）。
-  次フェーズは **`55_<topic>`**・decisions も **55** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 55 は 2026-10-12 起票・進行中**（`55_keyboard_ui_window` / 暫定 39 / decisions 55）。
+  次フェーズは **`56_<topic>`**・decisions も **56** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -119,8 +121,9 @@
   35=キーの押下 / 解放アクション〔**v0.9・凍結**〕 /
   36=key_hold のキーリピート〔**v0.4・凍結**〕 /
   37=アプリの窓が前面のときはキーリピートしない〔**v0.4・凍結**〕 /
-  38=テンキーの区別〔**v0.5・凍結**〕）。
-  次採番は **`39_<topic>`**。
+  38=テンキーの区別〔**v0.5・凍結**〕 /
+  39=キーボードUIのウィンドウ改善〔v0.3・未凍結・phase 55 の主入力〕）。
+  次採番は **`40_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**20 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
