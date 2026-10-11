@@ -12,7 +12,7 @@ last_commit_location: `claude/keypress-hold-behavior-a25946`（phase 51 完了�
 
 ## current
 presence: present
-focus: **phase 54 task_01〜03 完了・task_04 実装・検証済。ユーザーの実機目視待ち（暫定 38 §8 の 10〜12）。**
+focus: **phase 54 task_01〜04 完了（実機目視 OK）。task_05（統合確認）実施中。**
 mode: active
 
 ## last_action
