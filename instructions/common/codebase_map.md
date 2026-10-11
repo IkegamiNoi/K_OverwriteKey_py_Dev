@@ -758,6 +758,14 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     `controllers/trigger_panel/trigger_panel_controller.py`（ステータスの「押下中: ...」）/ `controllers/action_list_rendering.py`（省略表示の要約）/
     `dialogs/action_key_hold_fields.py`（ダイアログの入力欄・押すキー行のリピートチェック・「1 キーを記録」は `tk_keys.normalize_key_hold_tk_keysym` で修飾キーの左右を区別・phase 52）
   - テスト: `tests/test_key_hold.py` / `test_held_inputs.py` / `test_action_executor_key_hold.py` / `test_sequence_runner_key_hold.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_task06_keymap_management_ui.py` / `test_sequence_control_review_fixes.py`
+- phase 52（key_hold のキーリピート `repeat`。仕様 = `features.md` §4.2.12「キーリピート」・§4.6 / `data_schema.md` §5.11.9 / `key_input.md` §7.7。判断 = `decisions_archive/52_key_hold_auto_repeat.md`）:
+  - domain: `domain/key_hold.py`（`MODIFIER_KEY_NAMES`・`is_modifier_key`・`wants_repeat`・`is_repeat_enabled`・一覧の ` (リピート)`）
+  - タイマー: `application/key_repeat.py` の `KeyRepeater`（対象は高々 1 つ・世代番号で古い予約を捨てる・`pause_for_text` / `resume_after_text`・`begin_suppress` / `end_suppress` の入れ子）。
+    `after` / `after_cancel` / `get_timing` はコンストラクタで、送り直しの送信と失敗の口は `HeldInputs` が `set_callbacks` で渡す（後始末の離すを `HeldInputs` 経由にするため）
+  - 連携: `HeldInputs`（押す・離す・自動の解放・`suspend_keyboard` の前で止める・`_send_repeat` / `_repeat_failed`・`on_repeat_error`）/ `ActionExecutor`（key_hold で `is_repeat_enabled` を渡す・hotkey・直接置換の前に `stop_repeat_for_keys`）
+  - OS の設定: `infrastructure/input_gateway.py` のモジュール関数 `keyboard_repeat_timing`（換算・既定値）
+  - presentation: `app.py`（`KeyRepeater` の生成と注入・`repeat_suppressed`・`_show_runtime_error`）/ `controllers/hook_controller.py` の `show_action_error`（表示中の抑止）/ `dialogs/action_key_hold_fields.py`（チェックと表示の切替）・`dialogs/action_dialog.py`（組み直しで `repeat`）
+  - テスト: `tests/test_key_repeat.py` / `test_held_inputs_repeat.py` / `test_input_gateway_repeat.py` / `test_key_hold.py` / `test_action_executor_key_hold.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_key_hold_presentation.py`
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 
