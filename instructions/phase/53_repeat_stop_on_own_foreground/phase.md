@@ -42,7 +42,7 @@ key_hold のキーリピート（phase 52）の最中に、アプリ自身のダ
 
 - task_01: 前面判定の関数（infrastructure）・`KeyRepeater` の `is_blocked`（`_fire` だけ）・App の配線とテスト（暫定 37 §3・§4・§6・§8 の 1〜8）。**実装後にユーザーの実機目視**（§8 の 9〜11） — **完了**（2026-10-11・ユーザー実機目視 OK〔§8 の 9〜11〕・codex-implementer・reviewer 採用・tests 1501 / tests_ui 942 / smoke pass）
 - task_02: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer） — **完了**（2026-10-11・tests 1501 / tests_ui 942 / smoke pass〔task_01 の検証と同じコミット〕・deep-reviewer 採用〔low 5・保留 / 除外〕・codex-reviewer 指摘なし）
-- task_03: 正本反映（暫定 37 §10 の昇格・凍結）・`decisions_archive/53_repeat_stop_on_own_foreground.md`・decisions.md の索引・current.md の完了記載・idea_42 を INDEX_done へ・`/refactor_check`
+- task_03: 正本反映（暫定 37 §10 の昇格・凍結）・`decisions_archive/53_repeat_stop_on_own_foreground.md`・decisions.md の索引・current.md の完了記載・idea_42 を INDEX_done へ・`/refactor_check` — **完了**（2026-10-11・正本反映 + 暫定 37 凍結・完了判定前 deep-reviewer 修正して採用〔転記の誤り H1・L1・L2 を修正〕・Codex 敵対的 approve・refactor_check 不要）
 
 ## レビュー方針
 

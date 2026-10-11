@@ -5,14 +5,14 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-10-11T01:25:00
-phase: `instructions/phase/53_repeat_stop_on_own_foreground`（アプリの窓が前面のときはキーリピートしない・暫定仕様先行・主入力 = 暫定 37 v0.4 確定済）。番号対応 phase 53 / 暫定 37 / decisions 53。次採番 = phase 54 / 暫定 38 / 提案書 21。
+phase: なし（phase 53 は 2026-10-11 完了）。次採番 = phase 54 / 暫定 38 / decisions 54 / 提案書 21。次フェーズはユーザー判断
 直前の完了フェーズ = **phase 51**（キーの押下 / 解放 `key_hold`・`decisions_archive/51_key_press_release_actions.md`）。
 last_commit_location: `claude/keypress-hold-behavior-a25946`（phase 51 完了まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 53 task_01 完了（実機目視 OK）。task_02（統合確認）実施中。**
+focus: **phase 52・53 完了。アクティブなフェーズなし・次フェーズはユーザー判断待ち。main へのマージはユーザー。**
 mode: active
 
 ## last_action
@@ -27,13 +27,13 @@ result_files:
   - keyseq/domain/key_hold.py / keyseq/application/key_repeat.py（新規）・held_inputs.py・action_executor.py / keyseq/infrastructure/input_gateway.py / keyseq/presentation/app.py・controllers/hook_controller.py・dialogs/action_key_hold_fields.py・action_dialog.py / tests・tests_ui
 verified:
   compile: clean
-  tests: 1491 OK（skipped 7）
+  tests: 1501 OK（skipped 7）
   tests_ui: 942 OK
   smoke: pass
   review: task_01〜03 reviewer 完了可（指摘は反映済）
 
 ## next_action
-- phase 53 を `/phase_start` で起票（idea_42・暫定仕様先行の見込み）
+- 次フェーズはユーザー判断（main へのマージもユーザー）
   ①`[押す a（リピートする ON）, 待機 2000ms, 離す a]` を実行すると、実キーボードの長押しとおおむね同じ速さで `a` が連続して入り、離すで止まる（暫定 36 §8-12）
   ②`a` をリピート中に、フック停止・ダイアログを開く・アプリ終了のそれぞれでリピートが止まる（§8-13）
   ③`[押す shift, 押す a（リピート）, 待機, 離す a, 離す shift]` で大文字の `A` が連続して入る（§8-14）

@@ -62,6 +62,7 @@
 | 50_select_before_run | [50_select_before_run.md](decisions_archive/50_select_before_run.md) | 確認して実行（2026-10-09 完了・暫定 34 v0.6 凍結・domain / application / presentation・keymap_set と sequence に `select_before_run`）。選ばれていないトリガーの 1 回目は選ぶだけ・2 回目で実行（全体 / トリガーごと）・長押しの無視・待機明けに選択が変わっていれば選び直さない（表示は描き直す）。`target` の無い戻す・先頭への対象を一覧の選択へ（使えなければ直前のトリガー）・戻す・先頭へだけのトリガー自身は選ばない。idea_39 の一部取り込み（残り = 直前のトリガーの廃止ほか）。refactor_check: 不要 |
 | 51_key_press_release_actions | [51_key_press_release_actions.md](decisions_archive/51_key_press_release_actions.md) | キーの押下 / 解放アクション（2026-10-11 完了・暫定 35 v0.9 凍結・domain / application / infrastructure / presentation・アクションの種類 `key_hold`）。押したままは押下をまたぎ、止まる経路すべてで自動で離す（入口の関数の単位・持ち主 = 最上段のトリガー・呼び出し先の末尾 / 停止の行の区切り / 戻すでは離さない）。text / file_line は送る間だけ離して押し直す・送信の例外は止まる系・keyboard の記録に載せない。キーマップの切替 / 削除で離す・停止中は予約済みの入力を実行しない・離す失敗は集合に残す。キーリピートは idea_41。refactor_check: 不要 |
 | 52_key_hold_auto_repeat | [52_key_hold_auto_repeat.md](decisions_archive/52_key_hold_auto_repeat.md) | key_hold のキーリピート（2026-10-11 完了・暫定 36 v0.4 凍結・domain / application / infrastructure / presentation・key_hold の任意キー `repeat`）。間隔は OS の設定・修飾キー以外・同時に 1 つ（最後に始めたキー）・押す / 離す送信の前に止める・対象を含む hotkey / 直接置換の前に止める・text の前後で控えてやり直す・実行系のエラーの知らせの表示中は抑止。全ダイアログの抑止は idea_42。refactor_check: 不要 |
+| 53_repeat_stop_on_own_foreground | [53_repeat_stop_on_own_foreground.md](decisions_archive/53_repeat_stop_on_own_foreground.md) | アプリの窓が前面のときはキーリピートしない（2026-10-11 完了・暫定 37 v0.4 凍結・application / infrastructure / presentation の配線・JSON 変更なし）。送り直しの発火ごとに前面の窓が自プロセスなら止める（再開しない・メイン画面でも止める・開始時は判定しない・NULL は止める / Win32 の例外は止めない・判定と送信の競合は受容）。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -611,12 +612,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - M2（ユーザー確定・コード変更 task_07a）: 単発の呼び出しの実行中に連鎖の呼び出し先の位置を一覧で変えたら、待機・file_line・呼び出し元の位置変更と同じく実行中の単発の呼び出しを取り消し（そこまでの進みは書き戻す）、変えた位置を優先する。今は次の書き戻しで上書きされる（要再現）。
 - M3（ユーザー確定・受容）: 呼び出し先の完了で外から進めた呼び出し元の次の待機は待たない（直前に呼び出し元が送っていないので「送った後の待ち」に当たらない。次に押すと送る前の待機として読み飛ばす）。
 - M4（ユーザー確定・コード変更 task_07a）: 呼び出し先 U が単発の呼び出しの一時停止中に T が U を呼んだら、U の一時停止を捨てて（通知）T が進める。今は黙って無視。
-
-## 2026-10-11 (phase 53: アプリの窓が前面のときはキーリピートしない・暫定 37)
-
-### 【起票】モード = **暫定仕様先行**。起票元 idea_42（phase 52 完了判定前 Codex 敵対的 medium・deep-reviewer L3）。ユーザー判断: phase 52 を閉じてから別フェーズで実装
-### 【暫定 37】方式 = 前面ウィンドウ判定（ユーザー選択。messagebox を包む / 共通入口へ置き換え は採らない = 網羅できない・差分とテスト波及が大きい）・閉じた後も再開しない →
-v0.1 → deep-reviewer 修正して採用（中 3・低 6）→ v0.2 → ユーザー確定: 開始時は判定せず発火時だけ（前面の切替直後の押す行で永久に始まらないのを避ける）→ v0.3 →
-Codex 敵対的 needs-attention（medium 2）→ ユーザー判断: 前面が NULL なら止める・Win32 の例外は止めない（ログ初回だけ）/ 判定と送信の間の競合は受容 → v0.4 確定
-### 【task_01〜02】実機目視 §8-9〜11 OK / 統合レビュー: deep-reviewer 採用（low 5）・codex-reviewer 指摘なし（2026-10-11）
-- low は保留 / 除外: テストのモジュールフラグを事後に戻していない（実害なし）/ `WinDLL` の読み込み失敗時に `@cache` が保持せず毎回再試行（性能のみ・ログは初回だけ）/ ログ済みフラグがモジュール共有（infra と同じ形）/ ブロック下の切替・抑止との順序の直接テストなし（既存テストで担保・結果同じ）
