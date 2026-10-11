@@ -11,9 +11,9 @@ last_commit_location: `claude/keypress-hold-behavior-a25946`（phase 51 完了�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: away（戻る予定 未定）
-focus: **phase 52 task_01〜03 完了（task_03 は実装・検証済）。ユーザーの実機目視待ち（ホスト OS）→ OK なら task_04（統合確認）→ task_05（正本反映）。**
-mode: blocked
+presence: present
+focus: **phase 52 task_01〜03 完了（task_03 は 2026-10-11 ユーザー実機目視 OK）。task_04（統合確認）着手。**
+mode: active
 
 ## last_action
 ts: 2026-10-11T01:25:00
@@ -43,7 +43,7 @@ verified:
 - main へのマージはユーザーが行う
 
 ## blockers
-- ユーザーの実機目視（phase 52 task_03）
+- なし
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
