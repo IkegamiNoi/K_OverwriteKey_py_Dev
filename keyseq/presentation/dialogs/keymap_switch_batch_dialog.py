@@ -12,7 +12,7 @@ from keyseq.presentation.hook_button_texts import (
     CAPTURE_TEXTS,
 )
 from keyseq.presentation.modal import grab_modal
-from keyseq.presentation.tk_keys import normalize_tk_keysym
+from keyseq.presentation.tk_keys import normalize_tk_key_event
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -228,7 +228,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         if event.keysym == "Escape":
             self._on_escape(event)
             return "break"
-        key = normalize_tk_keysym(event.keysym)
+        key = normalize_tk_key_event(event)
         if key in ("ctrl", "shift", "alt", "windows"):
             return "break"
         self.key_vars[self._capture_index].set(key)

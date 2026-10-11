@@ -8,7 +8,7 @@ from keyseq.presentation.controllers.button_width import apply_fixed_button_widt
 from keyseq.presentation.hook_button_texts import (
     CAPTURE_ACTIVE_TEXT, CAPTURE_IDLE_TEXT, CAPTURE_TEXTS,
 )
-from keyseq.presentation.tk_keys import normalize_tk_keysym
+from keyseq.presentation.tk_keys import normalize_tk_key_event
 
 
 class SingleKeyCaptureController:
@@ -126,7 +126,7 @@ class SingleKeyCaptureController:
         if not self.capturing:
             return
 
-        key = normalize_tk_keysym(event.keysym)
+        key = normalize_tk_key_event(event)
 
         # Esc はキャンセル
         if key == "esc":

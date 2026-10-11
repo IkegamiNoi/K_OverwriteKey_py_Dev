@@ -76,6 +76,22 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         })
         self.assertEqual(self.root.input_gateway.validated, ["left shift"])
 
+    def test_key_hold_recording_distinguishes_numpad_digit(self) -> None:
+        dialog = self.make_dialog(mode=None)
+        fields = dialog.key_hold_fields
+        fields.start_recording()
+        fields._on_key_press(SimpleNamespace(keysym="End", keycode=97, state=0))
+        self.assertEqual(fields.key_var.get(), "num 1")
+
+    def test_hotkey_recording_distinguishes_numpad_digit(self) -> None:
+        dialog = self.make_dialog(mode=None)
+        dialog._start_recording()
+
+        dialog._on_key_press(SimpleNamespace(keysym="End", keycode=97, state=0))
+
+        self.assertEqual(dialog.value_var.get(), "num 1")
+        self.assertFalse(dialog._recording)
+
     def test_key_hold_recording_preserves_modifier_sides(self) -> None:
         cases = (
             ("Control_R", "right ctrl"),

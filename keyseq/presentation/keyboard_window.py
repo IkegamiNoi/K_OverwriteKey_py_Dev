@@ -12,7 +12,7 @@ from keyseq.presentation.keyboard_layouts import (
     resolve_key_id_from_scan_code,
     resolve_keyboard_layout,
 )
-from keyseq.presentation.tk_keys import TK_KEYSYM_TO_KEYBOARD_NAME
+from keyseq.presentation.tk_keys import TK_KEYSYM_TO_KEYBOARD_NAME, numpad_name_from_tk_event
 
 _LOOKUP_KEY_BY_ID = {
     "shift_l": "shift",
@@ -308,6 +308,11 @@ class KeyboardWindow(tk.Toplevel):
         return "break"
 
     def _normalize_tk_key(self, event: object) -> str:
+        numpad_name = numpad_name_from_tk_event(
+            getattr(event, "keycode", None), getattr(event, "state", 0)
+        )
+        if numpad_name:
+            return numpad_name
         keysym = str(getattr(event, "keysym", "") or "")
         k = keysym.lower()
         if k in TK_KEYSYM_TO_KEYBOARD_NAME:

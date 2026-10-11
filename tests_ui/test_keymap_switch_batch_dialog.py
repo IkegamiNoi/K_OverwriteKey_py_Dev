@@ -99,6 +99,17 @@ class KeymapSwitchBatchDialogTest(unittest.TestCase):
             [int(button.cget("width")) for button in dialog.capture_buttons], widths
         )
 
+    def test_capture_keeps_extended_end_as_main_keyboard_key(self):
+        dialog = self._dialog([("新規", "Other", "", "")])
+        dialog._start_capture(0)
+
+        dialog._on_capture_keypress(SimpleNamespace(
+            keysym="End", keycode=35, state=0x40000,
+        ))
+
+        self.assertEqual(dialog.key_vars[0].get(), "end")
+        self.assertFalse(dialog._capturing)
+
     def test_validation_error_keeps_dialog_open_and_focuses_row(self):
         dialog = self._dialog(
             [("既存", "Main", "Main", "f8"), ("新規", "Other", "Other", "f9")],

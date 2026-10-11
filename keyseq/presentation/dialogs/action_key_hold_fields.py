@@ -5,7 +5,7 @@ from tkinter import ttk
 from typing import Callable
 
 from keyseq.domain.key_hold import wants_repeat
-from keyseq.presentation.tk_keys import normalize_key_hold_tk_keysym
+from keyseq.presentation.tk_keys import normalize_key_hold_tk_key_event
 
 
 class ActionKeyHoldFields:
@@ -186,6 +186,6 @@ class ActionKeyHoldFields:
         if keysym.lower() == "escape":
             self.stop_recording()
             return "break"
-        self.key_var.set(normalize_key_hold_tk_keysym(keysym))
+        self.key_var.set(normalize_key_hold_tk_key_event(event))
         self.stop_recording()
         return "break"

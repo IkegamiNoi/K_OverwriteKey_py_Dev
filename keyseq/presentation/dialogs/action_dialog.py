@@ -13,7 +13,7 @@ from keyseq.presentation.dialogs.action_control_fields import ActionControlField
 from keyseq.presentation.dialogs.action_key_hold_fields import ActionKeyHoldFields
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.modal import grab_modal
-from keyseq.presentation.tk_keys import normalize_tk_keysym
+from keyseq.presentation.tk_keys import normalize_tk_key_event
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -369,7 +369,7 @@ class ActionDialog(tk.Toplevel):
     def _on_key_press(self, event):
         if not self._recording:
             return
-        key = self._normalize_tk_key(event.keysym)
+        key = normalize_tk_key_event(event)
         if key in ("ctrl", "shift", "alt", "windows"):
             self._mods_down.add(key)
             # 修飾キーだけでは確定しない
@@ -386,7 +386,7 @@ class ActionDialog(tk.Toplevel):
     def _on_key_release(self, event):
         if not self._recording:
             return
-        key = self._normalize_tk_key(event.keysym)
+        key = normalize_tk_key_event(event)
         if key in self._mods_down:
             self._mods_down.discard(key)
             self._update_hotkey_preview()
@@ -404,10 +404,6 @@ class ActionDialog(tk.Toplevel):
         self.value_var.set("+".join(parts))
         if finalize:
             self.value_entry.icursor(tk.END)
-
-    def _normalize_tk_key(self, keysym: str) -> str:
-        # Tk の keysym を keyboard ライブラリで使う表記に寄せる
-        return normalize_tk_keysym(keysym)
 
     def destroy(self):
         # 記録中のバインドを剥がす

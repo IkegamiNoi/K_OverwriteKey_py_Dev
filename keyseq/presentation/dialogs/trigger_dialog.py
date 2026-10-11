@@ -13,7 +13,7 @@ from keyseq.presentation.hook_button_texts import (
     CAPTURE_TEXTS,
 )
 from keyseq.presentation.modal import grab_modal
-from keyseq.presentation.tk_keys import normalize_tk_keysym
+from keyseq.presentation.tk_keys import normalize_tk_key_event
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -102,7 +102,7 @@ class TriggerDialog(tk.Toplevel):
     def _on_capture_keypress(self, event):
         if not self._capturing:
             return
-        k = self._normalize_tk_key(event.keysym)
+        k = normalize_tk_key_event(event)
         # 修飾キー単体は無視（ctrl/shift/alt/windows）
         if k in ("ctrl", "shift", "alt", "windows"):
             return "break"
@@ -111,7 +111,3 @@ class TriggerDialog(tk.Toplevel):
         self.key_entry.icursor(tk.END)
         self._stop_capture()
         return "break"
-
-    def _normalize_tk_key(self, keysym: str) -> str:
-        # Tkのkeysymを keyboard ライブラリの表記に寄せる（トリガー用）
-        return normalize_tk_keysym(keysym)
