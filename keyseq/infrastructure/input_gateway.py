@@ -333,7 +333,10 @@ class InputGateway:
             return scan_code, False
 
         if scan_codes:
-            return scan_codes[0], False
+            scan_code = scan_codes[0]
+            if (scan_code & 0xFF00) == 0xE000:
+                return scan_code & 0xFF, True
+            return scan_code, False
         scan_code = resolve_known_scan_code_from_key_name(str(key or ""))
         if scan_code is None:
             raise ValueError(f"Unknown key name: {key!r}")

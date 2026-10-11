@@ -361,6 +361,20 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
         resolve.assert_called_once_with("ctrl")
         self.assertEqual(self.gateway.key_identity("right"), (0x4D, True))
 
+    def test_key_identity_decodes_extended_scan_code_prefix(self) -> None:
+        def scan_codes_for(key: str) -> tuple[int, ...]:
+            return {"/": (57397, 53), "a": (2, 79)}[key]
+
+        with patch.object(
+            input_gateway.keyboard, "key_to_scan_codes", side_effect=scan_codes_for,
+        ):
+            self.assertEqual(self.gateway.key_identity("/"), (53, True))
+            self.assertEqual(
+                self.gateway.key_identity("/"),
+                self.gateway.key_identity("num divide"),
+            )
+            self.assertEqual(self.gateway.key_identity("a"), (2, False))
+
     def test_key_identity_distinguishes_numpad_main_digit_and_extended_end(self) -> None:
         with patch.object(
             input_gateway.keyboard, "key_to_scan_codes", return_value=[2],
