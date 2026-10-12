@@ -58,6 +58,7 @@
 * **トリガー一覧はキーマップごとに `keymaps[].triggers` に持つ**（phase 34・§5.13）。list 以外なら `[]` で、その場合も「キーあり」とみなす。
 * トップレベル `triggers` は**旧形式の読込元（移行用）**。Export では `[]` を書く。読込時の移行は §5.13.3
 * `triggers[].actions`（`keymaps[].triggers[].actions` を含む）の要素のスキーマは §5.11（アクション要素）
+* `keymaps[].grid`（任意・phase 56）は個別 JSON と同じ規則（§5.6.1）。単一 JSON の正規化でも保持する
 * `triggers[].key` / `triggers[].label` / `keymaps[].id` / `keymaps[].label` の型が不正な場合は
   §5.1「型不正の共通規則」に従う
 * ただし **`keymaps[].id` の扱いだけは個別 JSON と異なる**。単一 JSON にはファイル名が無く
@@ -222,7 +223,7 @@ UI 上の「確認して実行」（`features.md` §4.2.11）。全体（構成�
 #### keymap
 
 * `config/user/keymaps/` 配下に保存する
-* `id` / `label` / `mappings` / `trigger_set_path` を持つ。未定義キーは無視する（§5.1）
+* `id` / `label` / `mappings` / `trigger_set_path` と任意キー `grid`（phase 56・§5.6.1）を持つ。それ以外の未定義キーは無視する（§5.1）
 * **保存時は `id` と `trigger_set_path` を常に書く**（phase 34）。既定名が id 由来でなくなったため、
   `id` を書かないと再読込で stem 由来の別 id になる。`trigger_set_path` はトリガー一覧が無くても `""` を書く
   （**項目の有無が旧形式の移行対象かどうかの判定に使われる**・§5.13.3）
@@ -234,6 +235,9 @@ UI 上の「確認して実行」（`features.md` §4.2.11）。全体（構成�
   | `label` | str | **空扱い** |
   | `mappings` | dict（str → str） | 値（target）が非文字列なら**その対を除去**する |
   | `trigger_set_path` | str | **空扱い**（＝トリガー一覧なし・項目ありとして扱う。表記は §5.7） |
+  | `grid` | dict | **無いものとして扱う**（＝枠 OFF）。中身の規則は §5.6.1 |
+
+- [5.6.1 keymap の `grid`](data_schema/5_06_01_keymap_grid.md) — 画面の枠（phase 56）の形・画面の識別子・正規化・保存の規則（`label_position` は左上のときだけ書く）
 
 * **既定ファイル名**（初回保存時のみ・source_path があればそれを使う）:
   source_path（`user/keymaps` 配下）の stem →（`label` が空なら構成セットの stem / `label` があれば `label`）→ `id` → `keymap`。

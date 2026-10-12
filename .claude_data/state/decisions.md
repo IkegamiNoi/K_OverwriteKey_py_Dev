@@ -65,6 +65,7 @@
 | 53_repeat_stop_on_own_foreground | [53_repeat_stop_on_own_foreground.md](decisions_archive/53_repeat_stop_on_own_foreground.md) | アプリの窓が前面のときはキーリピートしない（2026-10-11 完了・暫定 37 v0.4 凍結・application / infrastructure / presentation の配線・JSON 変更なし）。送り直しの発火ごとに前面の窓が自プロセスなら止める（再開しない・メイン画面でも止める・開始時は判定しない・NULL は止める / Win32 の例外は止めない・判定と送信の競合は受容）。refactor_check: 不要 |
 | 54_numpad_key_distinction | [54_numpad_key_distinction.md](decisions_archive/54_numpad_key_distinction.md) | テンキーの区別（2026-10-11 完了・暫定 38 v0.5 凍結・domain / application / infrastructure / presentation・JSON の形は不変・**既存設定の意味が変わる**）。テンキーは `num 0`〜`num 9` / `num add` 等の名前で入力の判定（`is_keypad` + スキャンコード）・送信（`SendInput` スキャンコード入力・NumLock に従う）・記録（Tk の keycode + 拡張ビット）を区別。既存の名前は入力では主キーボードだけ・記号の出力は従来どおり・`num_1` 等はエラー。refactor_check: 不要 |
 | 55_keyboard_ui_window | [55_keyboard_ui_window.md](decisions_archive/55_keyboard_ui_window.md) | キーボードUIのウィンドウ改善（2026-10-12 完了・暫定 39 v0.6 凍結・presentation が主 + infrastructure に Win32 問い合わせ 3 関数・JSON スキーマ変更なし）。ステータス欄を削除しタイトルへ / 「キーボードUIを常に手前」〔保存しない・ダイアログ前面 or grab 中は一時解除しダイアログ直下へ〕/ 縦横比固定〔手を離して 150ms 後・マウスのボタンが離れた後に補正〕。refactor_check: 推奨（M3 → 提案書 21 → task_06_refactor で実施済・`infrastructure/win32_window.py`） |
+| 56_screen_grid_cursor | [56_screen_grid_cursor.md](decisions_archive/56_screen_grid_cursor.md) | 画面の枠でカーソル移動・クリック（2026-10-13 完了・暫定 40 v0.7 凍結・domain / application / infrastructure / presentation・**JSON スキーマ変更あり**〔keymap の任意キー `grid`〕）。枠 ON の keymap がアクティブな間だけ枠を表示・キーで枠を選びカーソルを中心へ・Enter で左 / Shift+Enter で右クリック・Space で細分化・Tab で画面の切替・最上段は画面ごとに編集の窓でドラッグして記録・キーの表示位置（中央 / 左上）。座標は SYSTEM_AWARE のまま・カーソル移動とクリックは pyautogui。refactor_check: 推奨（M3・M4 = `grid` の受け渡しの 3 か所・M6 = 振り直しの段の直値）→ [提案書 22](../../instructions/modified_proposal/22_refactor_screen_grid.md)（ユーザー判断待ち） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -614,23 +615,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - M2（ユーザー確定・コード変更 task_07a）: 単発の呼び出しの実行中に連鎖の呼び出し先の位置を一覧で変えたら、待機・file_line・呼び出し元の位置変更と同じく実行中の単発の呼び出しを取り消し（そこまでの進みは書き戻す）、変えた位置を優先する。今は次の書き戻しで上書きされる（要再現）。
 - M3（ユーザー確定・受容）: 呼び出し先の完了で外から進めた呼び出し元の次の待機は待たない（直前に呼び出し元が送っていないので「送った後の待ち」に当たらない。次に押すと送る前の待機として読み飛ばす）。
 - M4（ユーザー確定・コード変更 task_07a）: 呼び出し先 U が単発の呼び出しの一時停止中に T が U を呼んだら、U の一時停止を捨てて（通知）T が進める。今は黙って無視。
-
-## 2026-10-12〜 (phase 56: 画面の枠でカーソル移動・クリック・暫定 40)
-
-### 【暫定 40 起票〜確定】v0.6 でユーザー確定（2026-10-12）
-- 確定事項は暫定 40 §2 の 1〜12 が正。ユーザー判断: 追加ダイアログ（まとめて設定の新規の行）にも「枠を使う」/ 枠だけの構成でもフックを開始・再開できる / 最上段の Esc は素通し・BackSpace は suppress（v0.5 で素通しにしたが文字を消す危険で v0.6 に戻す）/ 最上段は段ごとに列を独立・既定 3×4。
-- 起票時レビュー（deep-reviewer・修正要 16 件）→ 修正して採用（v0.2）: 予約キーは固定分だけ読込時に検査・設定で変わる分は編集の OK でだけ拒否 / suppress は和集合で段に依存させない / ctrl・alt・windows を押している間は素通し / `top.default` は JSON に持たず組み込み定数。
-- 敵対的レビュー（Codex・needs-attention 5 件）→ 全件採用（v0.4）: pyautogui の import で `SetProcessDPIAware()` が呼ばれシステム DPI 対応になっている（裏取り済 `_pyautogui_win.py:17`）ため §6 の検証は本番の起動経路で / 状態の世代 / 画面は識別子で保持 / Shift は振り分け時に採取 / 再開の条件にも grid。
-
-### 【task_01 画面・座標の検証】既定案で成立（2026-10-12）
-- 実測（VirtualBox ゲスト・2 画面〔主の上が負の y〕・100%）: SYSTEM_AWARE のまま、列挙の矩形・窓の位置・カーソル移動・クリックがすべて一致、フォーカスを取らずクリックを素通し。詳細は `tasks/task_01_display_coordinate_spike.md`「結果」。
-- 確定: 既定案（DPI の状態は今のまま）/ 画面の識別子は暫定 40 §3 のまま（矩形由来。`szDevice` は配置の変更でも変わらないため補助情報に留める）/ 枠の窓の拡張スタイル = Tk の透過色 + `TRANSPARENT | NOACTIVATE | TOOLWINDOW` を表示前にラッパーへ。
-- 手段 = **pyautogui**（ユーザー判断: Win32 も同等だったが、Mac 対応の予定があり既存のクリックと経路をそろえる）。`_pause=False`（既定の `PAUSE` は約 100ms UI を止める）・FAILSAFE は既存の `_send_mouse_button` と同じく一時的に外す。`input_gateway.py` に置く。
-
-### 【task_06 実機目視 → 暫定 40 v0.7】ユーザー判断（2026-10-12〜13）
-- キー名の不一致（`period` と `.`）は**編集の窓だけ**直す（フックと同じ名前: テンキー → 配列のスキャンコード → 修飾なしの文字 → Tk の名前）。既存のキー取得（トリガー等・`tk_keys.py`）は変えず別の idea に。
-- 表記: 一度「行」にしたが**「段」に戻す**（段は列を内包し、段はまとめて追加・削除・列は段の中で追加・削除という挙動に合わせる）。
-- 編集の窓の重なり順 = 操作パネル → 編集の窓 → 他（不具合として直す）。
-- v0.7: キーの表示位置（中央 / 枠の左上）を **keymap ごと**に・**細分化後も同じ**・**編集の窓も追従**。左上の文字は UI フォント（`TkDefaultFont`）の大きさ。
-- 細分化のキーは行ごとの入力欄 → 敵対的レビュー（空白を含むキー名を入れられない）を受けて**クリックしてキーを押す**方式に変更。
-- v0.7 の敵対的レビュー（Codex・needs-attention 3 件）全件採用: `label_position` は既定のとき書かない / 細分化のキーを入力欄にしない / 文字の収まりの判定（実寸 + 各辺 4px の余白・収まらなければ描かない）。

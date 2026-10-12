@@ -211,6 +211,30 @@ class ScreenGridSessionTest(unittest.TestCase):
         self.assertTrue(self.session.view().visible)
         self.assertEqual(self.session.view().monitor, self.above)
 
+    def test_tab_with_empty_monitor_refresh_raises_without_changing_state(self):
+        before_view = self.session.view()
+        before_snapshot = self.session.snapshot()
+        self.monitors = []
+
+        with self.assertRaisesRegex(RuntimeError, "画面（モニタ）を取得できませんでした"):
+            self.action("tab")
+
+        self.assertEqual(self.session.view(), before_view)
+        self.assertEqual(self.session.snapshot(), before_snapshot)
+
+    def test_enter_with_empty_monitor_refresh_raises_without_clicking(self):
+        self.action(self.session.view().cells[0][1])
+        before_view = self.session.view()
+        before_snapshot = self.session.snapshot()
+        self.monitors = []
+
+        with self.assertRaisesRegex(RuntimeError, "画面（モニタ）を取得できませんでした"):
+            self.action("enter")
+
+        self.assertEqual(self.clicks, [])
+        self.assertEqual(self.session.view(), before_view)
+        self.assertEqual(self.session.snapshot(), before_snapshot)
+
     def test_abort_advances_generation_discards_state_and_publishes_hidden_snapshot(self):
         previous_generation = self.session.view().generation
         previous_changed = self.changed

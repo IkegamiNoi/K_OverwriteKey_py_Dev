@@ -341,6 +341,33 @@ class ScreenGridOverlayTest(unittest.TestCase):
         self.assertFalse(self.app.screen_grid.snapshot().visible)
         self.assertTrue(self.app.hook.hook_active)
 
+    def test_empty_monitor_refresh_aborts_once_until_visibility_condition_turns_off(self):
+        self.sync()
+        self.assertTrue(self.app.screen_grid.snapshot().visible)
+        self.monitors.return_value = []
+
+        with self.assertLogs("keyseq.presentation.screen_grid.screen_grid_controller", "ERROR"):
+            self.execute("tab")
+
+        snapshot = self.app.screen_grid.snapshot()
+        self.assertFalse(snapshot.visible)
+        self.assertFalse(snapshot.suppress_keys)
+        self.assertFalse(self.app.screen_grid.session.view().visible)
+        self.assertEqual(self.app._set_flash_message.call_count, 1)
+        self.assertIn("画面（モニタ）を取得できませんでした", self.app._set_flash_message.call_args.args[0])
+        self.assertTrue(self.app.hook.hook_active)
+        self.sync()
+        self.assertFalse(self.app.screen_grid.snapshot().visible)
+        self.assertEqual(self.app._set_flash_message.call_count, 1)
+
+        self.app.hook.hook_active = False
+        self.sync()
+        self.monitors.return_value = [((0, -768, 1024, 0), True)]
+        self.app.hook.hook_active = True
+        self.sync()
+        self.assertTrue(self.app.screen_grid.snapshot().visible)
+        self.assertEqual(self.app._set_flash_message.call_count, 1)
+
     def _reshow(self):
         self.sync()
         self.assertFalse(self.app.screen_grid.snapshot().visible)

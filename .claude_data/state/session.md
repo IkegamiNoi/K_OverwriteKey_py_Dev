@@ -4,41 +4,33 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-13T02:40:00
-phase: instructions/phase/56_screen_grid_cursor（task_08 = 正本反映の途中・完了判定前レビューの判断待ち）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 23
+last_updated: 2026-10-13T08:30:00
+phase: instructions/phase/56_screen_grid_cursor（task_08・08a 完了 → 残り task_09_refactor）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 23
 直前の完了フェーズ = **phase 55**（キーボードUIのウィンドウ改善・`decisions_archive/55_keyboard_ui_window.md`）
-last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_07 のコミット `a53b500`。**task_08 の文書一式は未コミット**〔正本 5 ファイル + data_schema/5_06_01・暫定 40 凍結・phase.md・current.md・decisions.md・decisions_archive/56・提案書 22・task_08 定義〕）
+last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_08 + task_08a のコミット）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: away（戻る予定 2026-10-13T07:30）
-focus: **phase 56 task_08（正本反映）の文書作業は済み・完了判定前レビューの判断待ちで停止**。フェーズ内のタスクの連続実行は許可済み。
+presence: present
+focus: **phase 56 task_08（正本反映）・task_08a（完了判定前レビューの修正）完了。残り = task_09_refactor（提案書 22・ユーザー承認 (a)）。** フェーズ内のタスクの連続実行は許可済み。
 mode: implementing
 
 ## last_action
-ts: 2026-10-13T02:40:00
+ts: 2026-10-13T08:30:00
 who: main
 summary: |
-  実施: task_08 を起票し、正本へ昇格（data_schema §5.6 / §5.2 + 子 5_06_01_keymap_grid.md・features §4.7 + §4.3 / §4.5 / §4.6 の参照・key_input §7.3 / §7.4・nonfunctional「画面の枠の座標系」・codebase_map「画面の枠」）。
-  暫定 40 を v0.7 で凍結（§4.2 の文言を直す）・phase.md（v0.7・目視対象に task_06b）・decisions_archive/56・decisions.md の索引・current.md の完了記載（次採番 57 / 41 / 57 / 23）。
-  /refactor_check = 推奨 → 提案書 22（M3・M4 = grid の受け渡し 3 か所 / M6 = 振り直しの段の直値）。
-  完了判定前レビュー: deep-reviewer = 修正要（M1 = 再列挙が空で suppress が残る〔実装〕/ M2・L1・L3〜L7 = 文書 → **反映済**）/ codex-adversarial = needs-attention 2 件（下記・裏取り済）。
+  ユーザー判断: 完了判定前レビューの 2 件は実装を直す / 提案書 22 は (a) phase 56 末尾の task_09_refactor。
+  task_08a（codex-implementer）: 再列挙が空なら状態を変える前に例外 → 既存の失敗処理で畳む / 予約 = {停止, トグル} ∪（全切替キー − 自分の元の切替キー）。テストの期待文言をメインが実装へ合わせた。reviewer 採用。
+  task_08 の文書（正本 5 + 子 1・暫定 40 凍結・phase.md・current.md・decisions・archive/56・提案書 22）を一緒にコミット。
 verified:
-  compile / tests: task_07 のまま（コード変更なし）
-  review: 完了判定前レビュー 2 本 → 判断待ち
+  compile: pass / tests: pass（1627 件〔期待文言の修正後に該当モジュール pass〕）/ tests_ui: pass（1023 件中 1 件 = 同じ文言 → 修正後 pass）/ smoke OK
+  review: deep-reviewer + codex-adversarial → 採否反映 → task_08a reviewer 採用
 
 ## next_action
-- **【起きたら最初に答えてほしい確認 3 点】**（採否はユーザー判断。根拠は裏取り済み）
-  1. **再列挙が空になると、窓は消えるのに操作キーの suppress が続く**（Codex [high]・deep M1 と同じ）: `keyseq/application/screen_grid_session.py:214-229` `_refresh_monitors` が列挙 `[]` のとき画面を None にするだけで `_visible` を真のまま残す（Tab・クリックの直前の再列挙。`win32_window.list_monitor_rects` は失敗も `[]` で返す）。
-     **推奨 = 実装を直す**（空なら `abort()` と同じく畳んで知らせ、表示の条件が一度偽になるまで出し直さない・回帰テスト）。代替 = 正本を緩める（確定設計を後から緩めるので非推奨）
-  2. **自分の切替キーを予約から除くと、停止 / トグルの予約まで消える**（Codex [medium]）: `keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:425-436` が停止・トグル・切替キーを 1 つの集合に入れてから自分の切替キーを `discard`。停止キーと自分の元の切替キーが同じ（既存仕様で許される重なり）だと停止キーを枠に付けられてしまう。
-     **推奨 = 実装を直す**（除外は切替キーの集合だけに適用してから停止・トグルを足す・テスト）
-  3. **提案書 22 の実施**（`instructions/modified_proposal/22_refactor_screen_grid.md`・2 項目・挙動不変・テストあり）: **推奨 = (a) phase 56 の末尾に task_09_refactor** / (b) 次フェーズ前のミニフェーズ / (c) 見送り。(a) なら current.md の「アクティブなフェーズ = なし」の記載は task_09 の後に確定する
-- 1・2 が「直す」なら: task_08a として起票 → codex-implementer → verifier（tests / tests_ui / smoke）→ reviewer → decisions_archive/56 の「完了判定前レビュー」欄（今は仮置き）に採否を記入 → task_08 をコミット →（3 が (a) なら）task_09_refactor
-- deep-reviewer の保留・除外: L8（data_schema の §5.6.1 の置き方）保留 / L9（key_input §7.3 の文言・nonfunctional の ctypes の範囲・凍結ヘッダの慣例）保留・除外
+- task_09_refactor（提案書 22 の項目 0〜2）を起票 → codex-implementer → verifier（tests / tests_ui / smoke）→ reviewer → コミット → current.md・decisions_archive/56・提案書 22 の状態を「実施済」に → phase 56 完了
 
 ## blockers
-- ユーザー判断待ち（上の 3 点）
+- なし
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。

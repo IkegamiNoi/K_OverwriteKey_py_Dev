@@ -422,6 +422,10 @@ class KeymapPanelController:
         if monitor is None and monitors:
             monitor = monitors[0]
 
+        own_switch_key = self._app.keymap_service.find_switch_key_for_keymap(
+            self._app.data, editing_keymap_id
+        ) if editing_keymap_id else ""
+        own_switch_key = normalize_key_name(own_switch_key)
         reserved = {
             normalize_key_name(self._app.data.get("hook_stop_key", "")),
             normalize_key_name(self._app.data.get("hook_toggle_key", "")),
@@ -429,11 +433,8 @@ class KeymapPanelController:
         reserved.update(
             normalize_key_name(key)
             for key in self._app.data.get("keymap_switch_keys", {})
+            if normalize_key_name(key) != own_switch_key
         )
-        own_switch_key = self._app.keymap_service.find_switch_key_for_keymap(
-            self._app.data, editing_keymap_id
-        ) if editing_keymap_id else ""
-        reserved.discard(normalize_key_name(own_switch_key))
         reserved.discard("")
         return monitors, monitor.id if monitor is not None else "", reserved
 

@@ -213,6 +213,8 @@ class ScreenGridSession:
 
     def _refresh_monitors(self) -> bool:
         monitors = self._list_monitors()
+        if not monitors:
+            raise RuntimeError("画面（モニタ）を取得できませんでした")
         if monitors != self._monitors:
             self._monitors = monitors
             self._rebuild_suppression()

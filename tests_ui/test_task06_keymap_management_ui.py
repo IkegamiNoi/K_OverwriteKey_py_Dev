@@ -471,6 +471,27 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
             self.assertIn("f9", editor_factory.call_args.kwargs["reserved"])
             dialog.destroy()
 
+    def test_grid_editor_context_keeps_reserved_hook_keys_when_own_switch_key_matches(self):
+        monitors = [MonitorInfo("m1", (0, 0, 100, 100), True)]
+        with patch.object(self.app.screen_grid, "list_monitors", return_value=monitors), patch.object(
+            self.app.input_gateway, "cursor_position", return_value=(10, 10)
+        ):
+            self.app.data = self.app.config_service.normalize_runtime_data(
+                make_runtime(switch_keys={"f8": "km1", "f9": "km2"})
+            )
+            self.app.data["hook_stop_key"] = "f8"
+            self.app.data["hook_toggle_key"] = "f7"
+            _monitors, _monitor_id, reserved = self.app.keymap_panel._grid_editor_context("km1")
+            self.assertIn("f8", reserved)
+            self.assertIn("f7", reserved)
+
+            self.app.data["hook_stop_key"] = "f12"
+            self.app.data["hook_toggle_key"] = "f11"
+            _monitors, _monitor_id, reserved = self.app.keymap_panel._grid_editor_context("km1")
+            self.assertNotIn("f8", reserved)
+            self.assertIn("f12", reserved)
+            self.assertIn("f11", reserved)
+
     def test_keymap_edit_dialog_passes_grid_key_resolver_to_editor(self):
         from types import SimpleNamespace
 

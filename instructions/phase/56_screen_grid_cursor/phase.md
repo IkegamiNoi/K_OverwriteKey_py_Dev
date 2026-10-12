@@ -11,7 +11,7 @@
 **domain（形・細分化・キー割当・検証の純関数）/ application（枠の操作の状態機械・入力の振り分け・フックの開始条件）/ infrastructure（モニタの列挙・カーソル移動とクリック・窓の拡張スタイル）/ presentation（枠の窓・編集の窓・ダイアログのチェック）に跨る。JSON スキーマ変更あり（keymap に任意キー `grid`・後方互換）。**
 
 - 起票元: ユーザー要望（2026-10-12）。
-- 主入力（暫定仕様）: [40_screen_grid_cursor.md](../../history/40_screen_grid_cursor.md)（v0.6・ユーザー確定済 2026-10-12）
+- 主入力（暫定仕様）: [40_screen_grid_cursor.md](../../history/40_screen_grid_cursor.md)（v0.7・ユーザー確定済 2026-10-13〔v0.6 = 2026-10-12〕・phase 完了で凍結）
 - モード: **暫定仕様先行モード**。番号対応: phase 56 / 暫定 40 / decisions 56。
 
 ## 確定（ユーザー 2026-10-12）
@@ -55,6 +55,8 @@
 - task_06b: 暫定 40 v0.7 の実装（キーの表示位置〔keymap ごと・中央 / 左上〕・文字の収まりの判定・細分化のキーをクリックで取り込む・編集の窓の重なり順・表記を「段」に戻す）。**実装後にユーザーの実機目視**
 - task_07: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）
 - task_08: 正本反映（暫定 40 §13 の昇格・凍結）・`decisions_archive/56_screen_grid_cursor.md`・decisions.md の索引・current.md の完了記載・`/refactor_check`
+- task_08a: 完了判定前レビューの指摘 2 件の実装修正（再列挙が空のとき畳む・停止 / トグルの予約を残す）
+- task_09_refactor: 提案書 22 の実施（keymap の任意キーの受け渡しを 1 定義に・振り直しの段を自動割当の順から）
 
 ## レビュー方針
 
@@ -63,4 +65,4 @@
   画面が変わったらクリックしない / `grid` が全経路で落ちない・`grid` の無い keymap に差分が出ない / presentation から ctypes を直接呼ばない /
   domain に tkinter・Win32 を持ち込まない / 枠の窓がフォーカスを取らずクリックを素通しする
 - 統合確認（task_07）: `deep-reviewer` + `codex-reviewer` / 完了判定前（task_08）: `deep-reviewer` + `codex-adversarial-reviewer`
-- 実機（ユーザー）: task_01・task_04・task_06
+- 実機（ユーザー）: task_01・task_04・task_06・task_06b
