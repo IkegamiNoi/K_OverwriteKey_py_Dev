@@ -33,7 +33,7 @@
   判断は [decisions_archive/40](../../.claude_data/state/decisions_archive/40_sequence_call.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近のフェーズが扱った領域 = 画面の枠でカーソル移動・クリック**（phase 56）。正本 = `features.md` §4.7 / `data_schema.md` §5.6.1 / `key_input.md` §7.3・§7.4 / `nonfunctional.md`「画面の枠の座標系」/ 地図 = `codebase_map.md`「画面の枠（phase 56）」。**残件** = [提案書 22](../modified_proposal/22_refactor_screen_grid.md)（refactor_check 推奨・ユーザー判断待ち）/ idea_44（枠の配色）/ idea_45（既存のキー取得の記号キー名）/ task_07 の保留 L1・L5（decisions_archive/56）。その前の phase 55 の領域（キーボード表示のウィンドウ）の残件 = 下記「別タスク化候補」の keyboard_window の 1 行。
+- **直近のフェーズが扱った領域 = 画面の枠でカーソル移動・クリック**（phase 56）。正本 = `features.md` §4.7 / `data_schema.md` §5.6.1 / `key_input.md` §7.3・§7.4 / `nonfunctional.md`「画面の枠の座標系」/ 地図 = `codebase_map.md`「画面の枠（phase 56）」。**残件** = idea_44（枠の配色）/ idea_45（既存のキー取得の記号キー名）/ task_07 の保留 L1・L5（decisions_archive/56）。その前の phase 55 の領域（キーボード表示のウィンドウ）の残件 = 下記「別タスク化候補」の keyboard_window の 1 行。
 - **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37〜40）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**・phase 37）。
   phase 38 で file_line の読込をワーカー + UI 側 50 ms 確認タイマーへ移し、上限 5 秒・同じ読込キーの待ち合わせ・読込結果のキャッシュを加えた。構成セットの読込等で連続実行を常に停止する（既存挙動の変更）。
   正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.10・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
@@ -143,7 +143,7 @@
   **19 = phase 45 由来・実施済＝phase 45 task_12_refactor**〔`sequence_runner.py` 649 行の連続実行の進行を mixin へ・`apply_control` 104 行の分割〕 /
   **20 = phase 48 由来・実施済＝phase 48 task_07_refactor**〔`CallViewController` の省略表示の分岐を置き場の配置役へ・保存の待ち時間の定数共有〕 /
   **21 = phase 55 由来・実施済＝phase 55 task_06_refactor**〔Win32 の窓・マウスの問い合わせを `infrastructure/win32_window.py` へ・初回だけ記録の同型 4 個を共通補助へ〕 /
-  **22 = phase 56 由来・提案（ユーザー判断待ち）**〔keymap の任意キーの受け渡しの 3 か所を 1 定義へ・振り直しの段を自動割当の順から作る〕 /
+  **22 = phase 56 由来・実施済＝phase 56 task_09_refactor**〔keymap の任意キーの受け渡しの 3 か所を 1 定義へ・振り直しの段を自動割当の順から作る〕 /
   次採番は **`23_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 

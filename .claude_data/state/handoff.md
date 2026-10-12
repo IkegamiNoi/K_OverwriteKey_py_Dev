@@ -15,16 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（phase 56 は task_08 の途中。current.md は完了記載を先に書いてあるが、**完了判定前レビューの判断待ちで未完了**）→ `instructions/phase/56_screen_grid_cursor/phase.md` →
-   正本 `spec_detail/features.md` §4.7 ほか（暫定 40 は v0.7 で凍結済）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 23
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 56 は 2026-10-13 完了〕）。次フェーズはユーザー判断・着手時は `/phase_start`。
+   次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 23
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜39）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 56 task_08（正本反映）の文書作業は済み・未コミット。完了判定前レビュー（deep-reviewer + Codex 敵対的）の判断待ちで停止中（ユーザー不在・07:30 戻り予定）。** 判断事項は下の「次アクション」の 3 点。
-ブランチ `claude/virtual-monitor-resolution-1c744e`（phase 56 起票 `c58a817`・最新のコミット = task_07 `a53b500`）。main へのマージはユーザー。フェーズ内のタスクの連続実行は許可済み（スペックフラグ・フォールバック・実機目視・Codex レビューの採否では止まる）。
+**phase 56（画面の枠でカーソル移動・クリック）完了 2026-10-13。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+ブランチ `claude/virtual-monitor-resolution-1c744e`（phase 56 一式）。main へのマージはユーザー。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -54,23 +54,13 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【起きたら最初に答えてほしい確認 3 点】**（採否はユーザー判断。根拠は裏取り済み）
-  1. **再列挙が空になると、窓は消えるのに操作キーの suppress が続く**（Codex [high]・deep M1 と同じ）: `keyseq/application/screen_grid_session.py:214-229` `_refresh_monitors` が列挙 `[]` のとき画面を None にするだけで `_visible` を真のまま残す（Tab・クリックの直前の再列挙。`win32_window.list_monitor_rects` は失敗も `[]` で返す）。
-     **推奨 = 実装を直す**（空なら `abort()` と同じく畳んで知らせ、表示の条件が一度偽になるまで出し直さない・回帰テスト）。代替 = 正本を緩める（確定設計を後から緩めるので非推奨）
-  2. **自分の切替キーを予約から除くと、停止 / トグルの予約まで消える**（Codex [medium]）: `keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:425-436` が停止・トグル・切替キーを 1 つの集合に入れてから自分の切替キーを `discard`。停止キーと自分の元の切替キーが同じ（既存仕様で許される重なり）だと停止キーを枠に付けられてしまう。
-     **推奨 = 実装を直す**（除外は切替キーの集合だけに適用してから停止・トグルを足す・テスト）
-  3. **提案書 22 の実施**（`instructions/modified_proposal/22_refactor_screen_grid.md`・2 項目・挙動不変・テストあり）: **推奨 = (a) phase 56 の末尾に task_09_refactor** / (b) 次フェーズ前のミニフェーズ / (c) 見送り。(a) なら current.md の「アクティブなフェーズ = なし」の記載は task_09 の後に確定する
-- 1・2 が「直す」なら: task_08a として起票 → codex-implementer → verifier（tests / tests_ui / smoke）→ reviewer → decisions_archive/56 の「完了判定前レビュー」欄（今は仮置き）に採否を記入 → task_08 をコミット →（3 が (a) なら）task_09_refactor
-- deep-reviewer の保留・除外: L8（data_schema の §5.6.1 の置き方）保留 / L9（key_input §7.3 の文言・nonfunctional の ctypes の範囲・凍結ヘッダの慣例）保留・除外
+- 次フェーズはユーザー判断。候補 = idea_44（画面の枠の配色）/ idea_45（既存のキー取得の記号キー名）/ backlog の他の idea / current.md「別タスク化候補」
+- main へのマージはユーザー（ブランチ `claude/virtual-monitor-resolution-1c744e`）
 
-## 現フェーズ（phase 56 = 画面の枠でカーソル移動・クリック）の要点
-
-確定事項 = 暫定 40 §2 の 1〜12。判断の経緯 = `decisions.md` の phase 56 節。
-- 枠 ON のキーマップがアクティブな間だけ枠を表示（トリガー・置換は効かない）/ 既定 最上段 3×4・細分化 3×3 / 最上段は段ごとに列を独立・画面ごとに比率で記録（keymap の任意キー `grid`・**JSON スキーマ変更あり**）
-- 振り分け = `application/input_router.py:76` の直接切替キーの後・トリガーの前。suppress は和集合で段に依存させない・Esc だけ段で分ける（最上段は素通し）・ctrl/alt/win 押下中は素通し・Shift は振り分け時に採取・状態は世代と画面の識別子で持つ
-- `grid` が落ちる経路 4 つ = `domain/config.py:311`・`config_service/__init__.py:156-186`・`split_loading.py:439-455`・`split_payloads.py:507-521`（複製・貼り付けは既存のまま写る）。開始・再開の判定 = `hook_coordinator.py:78`
-- **【実証】プロセスは pyautogui の import でシステム DPI 対応**（`.venv/Lib/site-packages/pyautogui/_pyautogui_win.py:17`）。検証環境 = VirtualBox ゲスト・仮想モニタ 2 台縦並び・100%（拡大率の混在は検証せず受容）
-- 直前の完了フェーズ = phase 55（キーボードUIのウィンドウ改善・`decisions_archive/55`。Win32 の問い合わせは `infrastructure/win32_window.py` に集約済）
+## 直前のフェーズ（phase 56 = 画面の枠でカーソル移動・クリック）の要点
+- 正本 = `features.md` §4.7 / `data_schema.md` §5.6.1 / `key_input.md` §7.3・§7.4 / `nonfunctional.md`「画面の枠の座標系」/ 地図 = `codebase_map.md`「画面の枠（phase 56）」/ 判断 = `decisions_archive/56_screen_grid_cursor.md`
+- 座標は SYSTEM_AWARE のまま・カーソル移動とクリックは pyautogui（`_pause=False`）・Win32 は `infrastructure/win32_window.py`（user32 は `use_last_error=True`）
+- 失敗（窓の生成・列挙・移動 / クリック）では枠を畳み suppress をやめ、表示の条件が一度偽になるまで出し直さない
 
 ## 運用インフラ
 
@@ -80,7 +70,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **blockers: ユーザー判断待ち（次アクションの 3 点）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **blockers: なし**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
 - **【罠・phase 54 で実証】合成入力の probe で NumLock を切り替えるなら VK（`keybd_event(0x90, ..., EXTENDEDKEY)`）**。スキャンコード入力（69）では切り替わらない。probe の後は元の状態へ戻す。**Codex の新規テストの Mock の戻り値・期待値の誤り**が 1 フェーズで 2 件出た（実装は正しい）＝失敗時はまずテストを疑い、実装の仕様と照合する
 - **【罠・phase 51 で実証】keyboard ライブラリの `write` は送信前後に押下中のキーを離して修飾キーを押し直す**（拡張キーの right ctrl が left ctrl に化けて残った・probe）。合成の入力の扱いは `.venv` の小スクリプトで probe してから決める。**新しい tests_ui でテストごとに `tk.Tk()` を作り直すと後のモジュールのフォーカスが取れなくなる**（クラスで共有する）。Esc 等のキーの event_generate は `tests_ui/escape_delivery.acquire_focus` でフォーカスを取ってから
 - **【罠・phase 50 で実証】フル表示の高さ**: フォント +3 で最小 931 px が窓の取れる上限 927 px（画面 966 px）を超え、シーケンス欄のボタン列の最下段が数 px 切れる（受容・2026-10-09）。`test_full_view_min_height.py` は実測の上限に収まるときだけ一致を確かめる。**Codex は互換の工夫（`inspect` での引数判定・`getattr` の逃げ道）を足す・テストの期待値を推測で書くことがある**（task_04d で 2 つ目の待機が次の押下まで始まらないのを見落とした）＝差分の直読みと実測で外す。

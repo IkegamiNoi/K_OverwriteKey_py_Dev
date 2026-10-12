@@ -9,6 +9,7 @@ from keyseq.domain.config import (
     HOOK_KEY_FIELDS,
     HOOK_STOP_KEY,
     HOOK_TOGGLE_KEY,
+    copy_keymap_optional_keys,
     coerce_key_name,
     coerce_label,
     ensure_config_compatibility,
@@ -454,8 +455,7 @@ def load_keymap_entry(
             service.INTERNAL_KEYMAP_DIRTY: False,
         },
     }
-    if "grid" in raw_keymap:
-        loaded_entry["keymap"]["grid"] = safe_deepcopy(raw_keymap["grid"])
+    copy_keymap_optional_keys(raw_keymap, loaded_entry["keymap"])
     parent_refs = service._normalize_parent_refs(raw_keymap.get(service.PARENT_REFS_KEY))
     if parent_refs is not None:
         loaded_entry["keymap"][service.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs

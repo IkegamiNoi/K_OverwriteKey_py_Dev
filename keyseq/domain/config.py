@@ -128,6 +128,15 @@ def safe_deepcopy(obj: Any) -> Any:
     return json.loads(json.dumps(obj, ensure_ascii=False))
 
 
+KEYMAP_OPTIONAL_KEYS: tuple[str, ...] = ("grid",)
+
+
+def copy_keymap_optional_keys(source: dict[str, Any], target: dict[str, Any]) -> None:
+    for key in KEYMAP_OPTIONAL_KEYS:
+        if key in source:
+            target[key] = safe_deepcopy(source[key])
+
+
 def normalize_hotkey_presets(presets: Any) -> list[dict[str, Any]]:
     """プリセット一覧を正規化する（非 dict 要素は除去・label は trim・value は trim + 小文字化）。"""
     if not isinstance(presets, list):

@@ -7,11 +7,9 @@ from .models import (
 from .normalize import FIXED_RESERVED_KEYS, grid_key_name
 
 
-_LETTER_ROWS = (
-    tuple("qwertyuiop"),
-    tuple("asdfghjkl;"),
-    tuple("zxcvbnm,./"),
-    tuple("1234567890"),
+_LETTER_ROWS = tuple(
+    AUTO_ASSIGN_ORDER[index:index + 10]
+    for index in range(0, len(AUTO_ASSIGN_ORDER), 10)
 )
 
 

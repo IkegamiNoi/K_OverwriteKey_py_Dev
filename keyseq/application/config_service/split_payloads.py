@@ -10,6 +10,7 @@ from keyseq.domain.config import (
     DEFAULT_RUN_TO_END_DELAY_MS,
     HOOK_STOP_KEY,
     HOOK_TOGGLE_KEY,
+    copy_keymap_optional_keys,
     normalize_key_name,
     resolve_hook_keys_individual,
     safe_deepcopy,
@@ -519,8 +520,7 @@ def build_keymap_file_payload(service,
         if isinstance(keymap.get("mappings"), dict)
         else {},
     }
-    if "grid" in keymap:
-        payload["grid"] = safe_deepcopy(keymap["grid"])
+    copy_keymap_optional_keys(keymap, payload)
     parent_refs = service._parent_refs_for_save(
         service._normalize_parent_refs(keymap.get(service.INTERNAL_KEYMAP_PARENT_REFS)),
         target_path=target_path,

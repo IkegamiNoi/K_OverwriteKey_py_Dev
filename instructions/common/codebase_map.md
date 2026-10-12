@@ -867,7 +867,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `normalize.py`（`normalize_grid`・`monitor_identifier`・`top_layout_for` / `sub_layout_of`・`label_position_of`・`has_enabled_grid`・`FIXED_RESERVED_KEYS`・`grid_key_name`〔config との循環を避ける〕）/
   `geometry.py`（`top_cell_rects` / `sub_cell_rects`・`rect_center`・`can_subdivide`〔4px〕）/ `assignment.py`（`next_free_key`・`reassign_top_keys`・`auto_fill_sub_keys`・`validate_top` / `validate_sub`）/
   `editing.py`（段・列の分割と削除・境界の移動〔8px〕・キーの設定）
-- **JSON の 4 経路**: `domain/config.py` `_normalize_keymap_compat_fields`（`grid` を正規化して保持）/ `config_service/__init__.py` `_normalize_loaded_keymap` / `split_loading.py` `load_keymap_entry` / `split_payloads.py` `build_keymap_file_payload`（`grid` があれば書く）
+- **JSON の 4 経路**: `domain/config.py` `_normalize_keymap_compat_fields`（`grid` を正規化して保持）/ `config_service/__init__.py` `_normalize_loaded_keymap` / `split_loading.py` `load_keymap_entry` / `split_payloads.py` `build_keymap_file_payload`（`grid` があれば書く）。後ろの 3 つは `domain/config.py` の `copy_keymap_optional_keys`（任意キーの一覧 `KEYMAP_OPTIONAL_KEYS`）で写す（提案書 22）
 - **application `application/screen_grid_session.py`**: `ScreenGridSession`（UI スレッドの状態機械。`sync(keymap_id, grid, active)`・`handle(GridKeyAction)`・`abort()`・世代・suppress する集合・`esc_active`・モニタは `MonitorInfo`〔識別子 + 矩形〕で持つ。
   移動・クリック・列挙・カーソル位置は注入）。フックのスレッドへは不変の `GridRouteSnapshot` を差し替えて公開、窓へは `GridView`
 - **振り分け**: `application/input_router.py` `GridKeyAction` と `get_grid_snapshot`（直接切替の後・トリガーの前の `_route_grid_key`）/ 開始・再開の条件 = `hook_coordinator.py` の `has_grid_keymaps`（`hook_controller.py` が `has_enabled_grid` で渡す）

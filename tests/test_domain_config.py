@@ -2,6 +2,7 @@ import unittest
 
 from keyseq.domain.config import (
     DEFAULT_CONFIG,
+    copy_keymap_optional_keys,
     coerce_key_name,
     coerce_label,
     ensure_config_compatibility,
@@ -34,6 +35,31 @@ class CoerceStringFieldsTest(unittest.TestCase):
         self.assertEqual(coerce_key_name("  F1  "), "f1")
         self.assertEqual(coerce_label("  x  "), "x")
         self.assertEqual(coerce_label("  Copy 日本語  "), "Copy 日本語")
+
+
+class CopyKeymapOptionalKeysTest(unittest.TestCase):
+    def test_present_keys_are_deep_copied_without_mutating_source(self):
+        nested_grid = {"sub": {"keys": ["f1", "f2"]}}
+        source = {"grid": nested_grid}
+        original = {"grid": {"sub": {"keys": ["f1", "f2"]}}}
+        target = {"id": "km1"}
+
+        copy_keymap_optional_keys(source, target)
+
+        self.assertEqual(target["grid"], original["grid"])
+        self.assertIsNot(target["grid"], source["grid"])
+        self.assertIsNot(target["grid"]["sub"], source["grid"]["sub"])
+        self.assertIsNot(target["grid"]["sub"]["keys"], source["grid"]["sub"]["keys"])
+        self.assertEqual(source, original)
+
+    def test_missing_optional_keys_leave_target_unchanged(self):
+        source = {"id": "source"}
+        target = {"id": "target"}
+
+        copy_keymap_optional_keys(source, target)
+
+        self.assertEqual(target, {"id": "target"})
+        self.assertEqual(source, {"id": "source"})
 
 
 class NormalizeActionsTest(unittest.TestCase):

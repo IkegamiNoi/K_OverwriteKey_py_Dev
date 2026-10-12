@@ -35,7 +35,9 @@
 - task_06 編集の窓（codex-delegating-implementer）→ 構造テスト（grab_modal は dialogs 直下）で dialogs へ移動・テスト修正（メイン）→ reviewer 修正要 1 件 → 実機目視で 6 件の指摘 → 修正（vk_to_char はメイン）→ 2 回目の目視で追加の要望 4 件 → task_06b
 - task_06b 暫定 40 v0.7（codex-delegating-implementer）→ reviewer 修正要（パネルの KeyPress の直結・列数が空で例外）→ 修正 → 実機で文字の見た目を調整（メイン）→ 目視 OK
 - task_07 統合確認（verifier・deep-reviewer + codex-reviewer）→ 構造テスト（子のダイアログの区分）をメインが登録 → 採用分を codex-implementer で修正 → reviewer 採用
-- task_08 正本反映・暫定 40 凍結・本書・refactor_check
+- task_08 正本反映・暫定 40 凍結・本書・refactor_check（推奨 → 提案書 22）→ 完了判定前レビュー（deep + Codex 敵対的）
+- task_08a 完了判定前レビューの修正 2 件（codex-implementer・テストの期待文言をメインが追従）→ reviewer 採用
+- task_09_refactor 提案書 22 の実施（codex-implementer）→ reviewer 採用
 
 ## 統合レビュー（task_07）の低・参考の扱い
 
@@ -45,7 +47,7 @@
 
 ## refactor_check
 
-**推奨** → [提案書 22](../../../instructions/modified_proposal/22_refactor_screen_grid.md)（ユーザー判断待ち）。
+**推奨** → [提案書 22](../../../instructions/modified_proposal/22_refactor_screen_grid.md) → **ユーザー判断 (a) で task_09_refactor として実施済**（reviewer 採用・tests 1629 / tests_ui 1023 / smoke OK）。
 M3・M4（keymap の `grid` をそのまま写す分岐が 3 か所に同形で増えた）・M6（`assignment.py` の振り直しの段が `AUTO_ASSIGN_ORDER` と同じ直値）。
 既知: 色の重複 → idea_44 / `keymap_panel_controller.py` 641 行と枠の関数の置き場所 → task_07 L6・idea_45。M1・M2・M5 非該当。
 

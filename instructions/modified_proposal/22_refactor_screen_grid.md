@@ -1,6 +1,6 @@
 # 提案書 22: phase 56（画面の枠でカーソル移動・クリック）後のリファクタ
 
-> 状態: **承認（2026-10-13）→ phase 56 task_09_refactor で実施**（phase 56 task_08 の `/refactor_check` で起票）。
+> 状態: **実施済**（2026-10-13・phase 56 task_09_refactor。`domain/config.py` に `KEYMAP_OPTIONAL_KEYS` / `copy_keymap_optional_keys` を置き 3 か所を置換・`_LETTER_ROWS` を `AUTO_ASSIGN_ORDER` から作る・reviewer 採用）。
 
 ## 判定の要約
 

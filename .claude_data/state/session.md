@@ -4,30 +4,30 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-13T08:30:00
-phase: instructions/phase/56_screen_grid_cursor（task_08・08a 完了 → 残り task_09_refactor）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 23
-直前の完了フェーズ = **phase 55**（キーボードUIのウィンドウ改善・`decisions_archive/55_keyboard_ui_window.md`）
-last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_08 + task_08a のコミット）
+last_updated: 2026-10-13T09:30:00
+phase: なし（**phase 56 は 2026-10-13 完了**・画面の枠でカーソル移動・クリック・`decisions_archive/56_screen_grid_cursor.md`）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 23
+直前の完了フェーズ = **phase 56**（画面の枠でカーソル移動・クリック・`decisions_archive/56_screen_grid_cursor.md`）
+last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_09_refactor のコミット = phase 56 の最終）。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 56 task_08（正本反映）・task_08a（完了判定前レビューの修正）完了。残り = task_09_refactor（提案書 22・ユーザー承認 (a)）。** フェーズ内のタスクの連続実行は許可済み。
-mode: implementing
+focus: **phase 56 完了。アクティブなフェーズなし・次フェーズはユーザー判断（着手時は `/phase_start`）。**
+mode: idle
 
 ## last_action
-ts: 2026-10-13T08:30:00
+ts: 2026-10-13T09:30:00
 who: main
 summary: |
-  ユーザー判断: 完了判定前レビューの 2 件は実装を直す / 提案書 22 は (a) phase 56 末尾の task_09_refactor。
-  task_08a（codex-implementer）: 再列挙が空なら状態を変える前に例外 → 既存の失敗処理で畳む / 予約 = {停止, トグル} ∪（全切替キー − 自分の元の切替キー）。テストの期待文言をメインが実装へ合わせた。reviewer 採用。
-  task_08 の文書（正本 5 + 子 1・暫定 40 凍結・phase.md・current.md・decisions・archive/56・提案書 22）を一緒にコミット。
+  task_09_refactor（提案書 22・codex-implementer）: `domain/config.py` に `KEYMAP_OPTIONAL_KEYS` / `copy_keymap_optional_keys` を置き config_service の 3 か所を置換・`_LETTER_ROWS` を `AUTO_ASSIGN_ORDER` から作る。reviewer 採用。
+  提案書 22 = 実施済・current.md / decisions.md / decisions_archive/56 / codebase_map を最終化。phase 56 完了。
 verified:
-  compile: pass / tests: pass（1627 件〔期待文言の修正後に該当モジュール pass〕）/ tests_ui: pass（1023 件中 1 件 = 同じ文言 → 修正後 pass）/ smoke OK
-  review: deep-reviewer + codex-adversarial → 採否反映 → task_08a reviewer 採用
+  compile: pass / tests: 1629 件 pass / tests_ui: 1023 件 pass / smoke OK（verifier）
+  review: reviewer 採用
 
 ## next_action
-- task_09_refactor（提案書 22 の項目 0〜2）を起票 → codex-implementer → verifier（tests / tests_ui / smoke）→ reviewer → コミット → current.md・decisions_archive/56・提案書 22 の状態を「実施済」に → phase 56 完了
+- 次フェーズはユーザー判断。候補 = idea_44（画面の枠の配色）/ idea_45（既存のキー取得の記号キー名）/ backlog の他の idea / current.md「別タスク化候補」
+- main へのマージはユーザー（ブランチ `claude/virtual-monitor-resolution-1c744e`）
 
 ## blockers
 - なし
