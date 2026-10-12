@@ -305,6 +305,12 @@ class KeyboardWindow(tk.Toplevel):
             current = (self.winfo_width(), self.winfo_height())
         except tk.TclError:
             return
+        if self._ratio_pending and self._ratio is not None:
+            self._ratio_pending = False
+            try:
+                self.minsize(*minimum_size(self._ratio))
+            except tk.TclError:
+                pass
         if self._ratio is None:
             self._size_base = current
             return

@@ -17,6 +17,7 @@ from keyseq.presentation.app import App
 from keyseq.presentation.keyboard_window_size import (
     RESIZE_SETTLE_MS,
     corrected_size,
+    minimum_size,
     size_from_width,
 )
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
@@ -2559,12 +2560,15 @@ class AppUiFlowsTest(unittest.TestCase):
         window = self.app.layout.keyboard_window
         try:
             window._size_base = (600, 400)
+            window._ratio_pending = True
             window._resize_job = "pending"
             with patch.object(window, "state", return_value="normal"), patch.object(
                 window, "winfo_width", return_value=700
             ), patch.object(window, "winfo_height", return_value=500), patch.object(
                 window, "geometry"
             ) as geometry, patch.object(
+                window, "minsize"
+            ) as minsize, patch.object(
                 window, "after", return_value="rescheduled"
             ) as after, patch.object(
                 window, "_is_mouse_button_down", return_value=True
@@ -2572,9 +2576,31 @@ class AppUiFlowsTest(unittest.TestCase):
                 window._settle_size()
 
             geometry.assert_not_called()
+            minsize.assert_not_called()
             after.assert_called_once_with(RESIZE_SETTLE_MS, window._settle_size)
             self.assertEqual(window._resize_job, "rescheduled")
             self.assertEqual(window._size_base, (600, 400))
+            self.assertTrue(window._ratio_pending)
+        finally:
+            window._handle_close()
+
+    def test_keyboard_window_settle_applies_pending_ratio_minimum_size(self):
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        try:
+            window._size_base = (600, 400)
+            window._ratio_pending = True
+            with patch.object(window, "state", return_value="normal"), patch.object(
+                window, "winfo_width", return_value=700
+            ), patch.object(window, "winfo_height", return_value=500), patch.object(
+                window, "minsize"
+            ) as minsize, patch.object(
+                window, "_is_mouse_button_down", return_value=False
+            ):
+                window._settle_size()
+
+            minsize.assert_called_once_with(*minimum_size(window._ratio))
+            self.assertFalse(window._ratio_pending)
         finally:
             window._handle_close()
 
