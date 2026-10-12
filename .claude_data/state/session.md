@@ -4,36 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-12T20:30:00
+last_updated: 2026-10-12T22:00:00
 phase: instructions/phase/56_screen_grid_cursor（画面の枠でカーソル移動・クリック・暫定 40 v0.6 ユーザー確定済）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 22
 直前の完了フェーズ = **phase 55**（キーボードUIのウィンドウ改善・`decisions_archive/55_keyboard_ui_window.md`）
-last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_01 のコミット）
+last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_02 のコミット）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 56 task_01（画面・座標の検証スパイク）完了。次は task_02（`grid` の domain と JSON 全経路）の起票と実装。**
+focus: **phase 56 task_02（`grid` の domain と JSON 全経路）完了。次は task_03（application の枠の操作の状態機械と input_router への組み込み）の起票。**
 mode: implementing
 
 ## last_action
-ts: 2026-10-12T20:30:00
+ts: 2026-10-12T22:00:00
 who: main
 summary: |
-  実施: task_01 を起票し、scratchpad のプローブ（コミットしない）でユーザーの実機（VirtualBox ゲスト・主 (0,0)-(1920,966) / 主の上 (0,-768)-(1024,0)・100%）を測定。結果は task_01「結果」節。
-  結論: 既定案（SYSTEM_AWARE のまま）で列挙の矩形・窓の位置・カーソル移動・クリック・フォーカスを取らない・クリック素通し・構成の変化の検出・連打がすべて OK（ユーザー目視も全項目問題なし）。
-  ユーザー判断: カーソル移動・クリックの手段 = pyautogui（Mac 対応の予定のため既存のクリックと経路をそろえる・`_pause=False`・FAILSAFE は一時的に外す）。識別子は暫定 40 §3 のまま（矩形由来・`szDevice` は補助）。
-  レビュー: reviewer = 修正して採用（識別子の書き方・記録漏れ・時間の注記を反映済）。
+  実施: task_02 を起票し codex-implementer（Luna high・単独）で実装。新規 `keyseq/domain/screen_grid/`（models / normalize / geometry / assignment）と、`grid` を保持する 4 経路（domain/config.py・config_service/__init__.py・split_loading.py・split_payloads.py）とテスト。
+  レビュー: reviewer = 修正要（比率判定の重複・`__all__` の明示・private import・`type(cell)`・正規化の簡素化・ログの理由・補強テスト）→ codex-implementer で修正 → メインが差分を直読みして確認（再レビュー不要との判定）。
+  判断（タスク定義）: domain から標準 logging で警告 / 不正な形はその画面の記録を落とす / 正規化後の `grid` に `sub` を常に書く / `normalize_key_name` 相当を screen_grid 側に持ち循環 import を避ける。
 result_files:
-  - instructions/phase/56_screen_grid_cursor/tasks/task_01_display_coordinate_spike.md（新規）
-  - instructions/history/40_screen_grid_cursor.md（§6 に実構成を追記）/ .claude_data/state/decisions.md
+  - keyseq/domain/screen_grid/（新規 5 ファイル）/ tests/test_screen_grid.py（新規）
+  - keyseq/domain/config.py / keyseq/application/config_service/{__init__,split_loading,split_payloads}.py
+  - tests/test_config_service.py / tests/test_domain_config.py / tests/test_per_keymap_triggers_load.py
+  - instructions/phase/56_screen_grid_cursor/tasks/task_02_grid_domain_and_json.md（新規）
 verified:
-  compile: not_run（文書のみ・製品コード変更なし）
-  tests: not_run（文書のみ）
-  review: reviewer 修正して採用 → 反映済
+  compile: pass（verifier）
+  tests: pass（verifier・tests 1574 件 OK・skip 7。tests_ui は未実行 = 本タスクは UI を触らない）
+  review: reviewer 修正要 → 修正反映済
 
 ## next_action
-- `/task_new` で task_02（`grid` の domain〔形のモデル・既定・正規化・セルの矩形・細分化・自動割当 / 振り直し・検証の純関数〕と JSON 全経路の保持・暫定 40 §3・§5）を起票し codex-implementer へ
-- task_04 への申し送り: 自アプリの窓が前面のとき `tk.Toplevel` の作成で前面を取られる / フック動作中のクリック所要時間を一度測る / 右クリックを実機目視
+- `/task_new` で task_03（application の枠の操作の状態機械・世代・画面の識別子・suppress する集合と Esc の印・Shift の採取・モニタ構成の変化・`input_router` への組み込み・フックの開始 / 再開の条件・暫定 40 §4）を起票し実装へ
+- task_04 への申し送り: 自アプリの窓が前面のとき `tk.Toplevel` の作成で前面を取られる / フック動作中のクリック所要時間を一度測る / 右クリックを実機目視 / 手段 = pyautogui（`_pause=False`・FAILSAFE を一時的に外す）
 
 ## blockers
 - なし

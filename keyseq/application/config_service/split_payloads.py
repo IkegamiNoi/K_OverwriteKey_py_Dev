@@ -519,6 +519,8 @@ def build_keymap_file_payload(service,
         if isinstance(keymap.get("mappings"), dict)
         else {},
     }
+    if "grid" in keymap:
+        payload["grid"] = safe_deepcopy(keymap["grid"])
     parent_refs = service._parent_refs_for_save(
         service._normalize_parent_refs(keymap.get(service.INTERNAL_KEYMAP_PARENT_REFS)),
         target_path=target_path,

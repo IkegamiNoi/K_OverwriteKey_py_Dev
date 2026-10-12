@@ -2013,6 +2013,56 @@ class KeymapFileIoTest(unittest.TestCase):
             self.assertEqual(loaded["_keymap_source_path"], path)
             self.assertTrue(loaded["_keymap_imported"])
 
+    def test_grid_round_trips_individual_file_and_absent_grid_is_not_written(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            service = ConfigService(JsonRepository())
+            path = os.path.join(tmp, "grid_map.json")
+            grid = {"enabled": True, "sub": {"rows": 1, "cols": 2, "keys": ["F1", "F2"]}}
+            service.repository.save_json(path, {"id": "grid_map", "mappings": {}, "grid": grid})
+            loaded = service.load_keymap_file(path, used_keymap_ids=set())
+            self.assertEqual(loaded["grid"]["sub"]["keys"], ["f1", "f2"])
+            service.save_keymap_file(path, loaded)
+            saved = service.repository.load_json(path)
+            self.assertEqual(saved["grid"], loaded["grid"])
+
+            plain = service.save_keymap_file(os.path.join(tmp, "plain.json"), {
+                "id": "plain", "mappings": {},
+            })
+            self.assertNotIn("grid", plain)
+            self.assertNotIn("grid", service.repository.load_json(os.path.join(tmp, "plain.json")))
+
+    def test_split_loading_preserves_grid_and_invalid_grid_does_not_raise(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            service = ConfigService(JsonRepository())
+            path = os.path.join(tmp, "map.json")
+            raw_grid = {"sub": "bad"}
+            service.repository.save_json(path, {"id": "km", "mappings": {}, "grid": raw_grid})
+            loaded = split_loading.load_keymap_entry(
+                service, "map.json", config_root=tmp, used_keymap_ids=set(),
+            )
+            self.assertIsNotNone(loaded)
+            self.assertEqual(loaded["keymap"]["grid"], raw_grid)
+            self.assertIsNot(loaded["keymap"]["grid"], raw_grid)
+            runtime = split_loading.build_runtime_data_from_split(
+                service, {"keymaps": ["map.json"]}, config_root=tmp,
+            )
+            self.assertEqual(runtime["keymaps"][0]["grid"]["sub"], {
+                "rows": 3, "cols": 3, "keys": list("qweasdzxc")
+            })
+
+    def test_single_json_export_keeps_grid_after_compatibility_normalization(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            service = ConfigService(JsonRepository())
+            path = os.path.join(tmp, "config.json")
+            service.export_runtime_data(path, {"keymaps": [{
+                "id": "km", "grid": {"enabled": True},
+            }]})
+            payload = service.repository.load_json(path)
+            self.assertEqual(payload["keymaps"][0]["grid"], {
+                "enabled": True, "monitors": {},
+                "sub": {"rows": 3, "cols": 3, "keys": list("qweasdzxc")},
+            })
+
 
 class SequenceFileIoTest(unittest.TestCase):
     def test_load_sequence_file_coerces_non_string_labels(self):

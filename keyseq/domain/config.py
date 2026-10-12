@@ -4,6 +4,7 @@ import json
 from typing import Any, Callable, Mapping
 
 from . import key_hold, sequence_control
+from .screen_grid import normalize_grid
 
 
 DEFAULT_RUN_TO_END_DELAY_MS = 300
@@ -303,6 +304,10 @@ def _normalize_keymap_compat_fields(
         normalized_keymap[source_path_key] = coerce_label(item[source_path_key])
     if "_keymap_source_path" in item:
         normalized_keymap["_keymap_source_path"] = coerce_label(item["_keymap_source_path"])
+    if "grid" in item:
+        normalized_grid = normalize_grid(item["grid"])
+        if normalized_grid is not None:
+            normalized_keymap["grid"] = normalized_grid
     for key in ("_keymap_imported", "_keymap_dirty"):
         if key in item:
             normalized_keymap[key] = safe_deepcopy(item.get(key))

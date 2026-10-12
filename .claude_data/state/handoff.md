@@ -23,7 +23,7 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜39）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 56 task_01（画面・座標の検証）完了・既定案で成立・手段 = pyautogui（ユーザー判断）。次は task_02 の起票と実装。**
+**phase 56 task_02（`grid` の domain と JSON 全経路）完了。次は task_03（application の状態機械と input_router）の起票。**
 ブランチ `claude/screen-grid-cursor-tool-2cd348`（phase 56 起票 `c58a817`）。main へのマージはユーザー。フェーズ内のタスクの連続実行は許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）

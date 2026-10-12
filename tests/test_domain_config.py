@@ -430,6 +430,21 @@ class EnsureConfigCompatibilityTest(unittest.TestCase):
         self.assertEqual(config["active_keymap_id"], "km1")
         self.assertEqual(config["keymap_switch_keys"], {"1": "km1"})
 
+    def test_keymap_grid_is_normalized_and_invalid_grid_is_ignored(self):
+        config = ensure_config_compatibility({"keymaps": [
+            {"id": "with_grid", "grid": {"enabled": True, "sub": {
+                "rows": 1, "cols": 2, "keys": [" F1 ", "F2"]}}},
+            {"id": "bad_grid", "grid": "invalid"},
+        ]})
+        self.assertEqual(config["keymaps"][0]["grid"], {
+            "enabled": True, "monitors": {},
+            "sub": {"rows": 1, "cols": 2, "keys": ["f1", "f2"]},
+        })
+        self.assertNotIn("grid", config["keymaps"][1])
+        self.assertNotIn("grid", ensure_config_compatibility({"keymaps": [
+            {"id": "plain"}
+        ]})["keymaps"][0])
+
 
 class PathFieldCoercionTest(unittest.TestCase):
     def test_internal_source_paths_non_strings_become_empty(self):

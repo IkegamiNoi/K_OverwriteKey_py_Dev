@@ -155,6 +155,16 @@ class PerKeymapLoadingTest(unittest.TestCase):
                 self.assertEqual(data["_legacy_trigger_set"]["state"], state)
                 self.assertEqual(data["triggers"], [])
 
+    def test_import_normalization_preserves_grid_by_deep_copy(self):
+        raw_grid = {"enabled": True, "sub": {"rows": 1, "cols": 2, "keys": ["F1", "F2"]}}
+        normalized = self.service._normalize_loaded_keymap(
+            "import.json", {"id": "imported", "grid": raw_grid},
+            used_keymap_ids=set(), imported=True, config_root="",
+        )
+        self.assertEqual(normalized["grid"]["sub"]["keys"], ["f1", "f2"])
+        self.assertIsNot(normalized["grid"], raw_grid)
+        self.assertTrue(normalized["_keymap_imported"])
+
     def test_split_explicit_empty_reference_moves_legacy_list_to_new_keymap(self):
         self.write("old.json", {"triggers": [{"key": "f8"}]})
         self.write("own.json", {"triggers": [{"key": "f9"}]})

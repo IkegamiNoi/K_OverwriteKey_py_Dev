@@ -179,6 +179,8 @@ class ConfigService:
             self.INTERNAL_KEYMAP_IMPORTED: bool(imported),
             self.INTERNAL_KEYMAP_DIRTY: False,
         }
+        if "grid" in raw_keymap:
+            keymap["grid"] = safe_deepcopy(raw_keymap["grid"])
         parent_refs = self._normalize_parent_refs(raw_keymap.get(self.PARENT_REFS_KEY))
         normalized = ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [keymap])[0]
         if parent_refs is not None:

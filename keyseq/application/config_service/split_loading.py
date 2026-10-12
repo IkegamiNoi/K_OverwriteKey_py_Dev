@@ -454,6 +454,8 @@ def load_keymap_entry(
             service.INTERNAL_KEYMAP_DIRTY: False,
         },
     }
+    if "grid" in raw_keymap:
+        loaded_entry["keymap"]["grid"] = safe_deepcopy(raw_keymap["grid"])
     parent_refs = service._normalize_parent_refs(raw_keymap.get(service.PARENT_REFS_KEY))
     if parent_refs is not None:
         loaded_entry["keymap"][service.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
