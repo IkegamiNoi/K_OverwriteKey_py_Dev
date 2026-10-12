@@ -9,6 +9,7 @@ class UiVars:
 
     def __init__(self, master, ui_font_delta_pt: int) -> None:
         self.always_on_top_var = tk.BooleanVar(master=master, value=False)
+        self.keyboard_always_on_top_var = tk.BooleanVar(master=master, value=False)
         self.stop_key_var = tk.StringVar(master=master, value=str(master.data.get(HOOK_STOP_KEY, "")))
         self.toggle_key_var = tk.StringVar(master=master, value=str(master.data.get(HOOK_TOGGLE_KEY, "")))
         self.hook_keys_individual_var = tk.BooleanVar(

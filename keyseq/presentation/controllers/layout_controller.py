@@ -17,6 +17,9 @@ from keyseq.presentation.keyboard_layouts import (
 from keyseq.presentation.keyboard_window import KeyboardWindow
 
 
+_TOPMOST_WATCH_MS = 200
+
+
 class LayoutController:
     """キーボードレイアウト辞書・表示名マップと KeyboardWindow のライフサイクル管理。"""
 
@@ -27,6 +30,8 @@ class LayoutController:
         self._keyboard_layout_display_to_id = {}
         self._keyboard_layout_id_to_display = {}
         self.keyboard_window = None
+        self._topmost_watch_job = None
+        self._topmost_released = False
         self.keyboard_layouts_dir = app.paths.resolve_keylayout_dir()
         self._layout_combos = []
 
@@ -44,8 +49,12 @@ class LayoutController:
                     window.lift()
                     window.focus_force()
                     self.refresh_keyboard_window()
+                    self.apply_keyboard_topmost()
+                    self._update_topmost_watch()
                     return
             except Exception:
+                self._cancel_topmost_watch()
+                self._topmost_released = False
                 self.keyboard_window = None
 
         self.keyboard_window = KeyboardWindow(
@@ -57,9 +66,89 @@ class LayoutController:
             is_mouse_button_down=getattr(self._app, "is_mouse_button_down", None),
         )
         self.refresh_keyboard_window()
+        self.apply_keyboard_topmost()
+        self._update_topmost_watch()
 
     def on_keyboard_window_closed(self):
+        self._cancel_topmost_watch()
+        self._topmost_released = False
         self.keyboard_window = None
+
+    def on_keyboard_topmost_changed(self) -> None:
+        self._topmost_released = False
+        self.apply_keyboard_topmost()
+        self._update_topmost_watch()
+
+    def apply_keyboard_topmost(self) -> None:
+        window = self.keyboard_window
+        if window is None:
+            return
+        try:
+            if window.winfo_exists():
+                enabled = bool(self._app.ui_vars.keyboard_always_on_top_var.get())
+                window.attributes("-topmost", enabled and not self._topmost_released)
+        except Exception:
+            pass
+
+    def _cancel_topmost_watch(self) -> None:
+        job = self._topmost_watch_job
+        self._topmost_watch_job = None
+        if job is not None:
+            try:
+                self._app.after_cancel(job)
+            except Exception:
+                pass
+
+    def _update_topmost_watch(self) -> None:
+        window = self.keyboard_window
+        try:
+            enabled = bool(self._app.ui_vars.keyboard_always_on_top_var.get())
+            opened = window is not None and bool(window.winfo_exists())
+        except Exception:
+            opened = False
+            enabled = False
+        if enabled and opened:
+            if self._topmost_watch_job is None:
+                try:
+                    self._topmost_watch_job = self._app.after(
+                        _TOPMOST_WATCH_MS, self._watch_topmost_tick
+                    )
+                except Exception:
+                    self._topmost_watch_job = None
+            return
+        self._cancel_topmost_watch()
+        self._topmost_released = False
+
+    def _watch_topmost_tick(self) -> None:
+        self._topmost_watch_job = None
+        try:
+            window = self.keyboard_window
+            enabled = bool(self._app.ui_vars.keyboard_always_on_top_var.get())
+            if not enabled or window is None or not window.winfo_exists():
+                self._topmost_released = False
+                return
+
+            get_foreground = getattr(self._app, "foreground_own_window", None)
+            foreground = get_foreground() if callable(get_foreground) else None
+            is_dialog = False
+            if foreground is not None:
+                main_hwnd = int(self._app.wm_frame(), 16)
+                keyboard_hwnd = int(window.wm_frame(), 16)
+                is_dialog = int(foreground) not in (main_hwnd, keyboard_hwnd)
+            if is_dialog != self._topmost_released:
+                was_released = self._topmost_released
+                self._topmost_released = is_dialog
+                self.apply_keyboard_topmost()
+                if is_dialog and not was_released:
+                    place_below = getattr(self._app, "place_window_below", None)
+                    if callable(place_below):
+                        place_below(
+                            int(window.wm_frame(), 16), int(foreground)
+                        )
+        except Exception:
+            pass
+        finally:
+            self._update_topmost_watch()
 
     def refresh_keyboard_window(self):
         window = self.keyboard_window

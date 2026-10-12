@@ -480,7 +480,7 @@ class CompactSequenceViewTest(unittest.TestCase):
         self._open()
         self.app.call_view.on_heading_click()
         self.app.minsize(1, 1)
-        self.app.geometry("270x820")
+        self.app.geometry("270x860")  # 表示欄の行（phase 55 の「キーボードUIを常に手前」）の分だけ高くして区切りを動かす余地を残す
         self.app.update()
         desired = max(1, self.panes.winfo_height() // 3)
         self.app.compact_sequence.desired_height = desired

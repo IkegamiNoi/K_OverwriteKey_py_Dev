@@ -2328,6 +2328,109 @@ class AppUiFlowsTest(unittest.TestCase):
         self.app.layout.keyboard_window._handle_close()
         self.assertIsNone(self.app.layout.keyboard_window)
 
+    def test_keyboard_topmost_check_is_shared_by_display_frames(self):
+        full_check = self.app.full_view.display_frame.keyboard_always_on_top_chk
+        compact_check = self.app.compact_view.display_frame.keyboard_always_on_top_chk
+        variable = self.app.ui_vars.keyboard_always_on_top_var
+        self.assertEqual(full_check.cget("text"), "キーボードUIを常に手前")
+        self.assertEqual(compact_check.cget("text"), "キーボードUIを常に手前")
+        self.assertEqual(full_check.cget("variable"), str(variable))
+        self.assertEqual(compact_check.cget("variable"), str(variable))
+
+    def test_keyboard_topmost_toggle_applies_to_open_and_closed_window(self):
+        variable = self.app.ui_vars.keyboard_always_on_top_var
+        layout = self.app.layout
+        window = None
+        variable.set(False)
+        try:
+            layout.open_keyboard_window()
+            window = layout.keyboard_window
+            variable.set(True)
+            layout.on_keyboard_topmost_changed()
+            self.assertTrue(bool(window.attributes("-topmost")))
+            variable.set(False)
+            layout.on_keyboard_topmost_changed()
+            self.assertFalse(bool(window.attributes("-topmost")))
+            window._handle_close()
+            window = None
+
+            variable.set(True)
+            layout.on_keyboard_topmost_changed()
+            self.assertIsNone(layout._topmost_watch_job)
+            layout.open_keyboard_window()
+            window = layout.keyboard_window
+            self.assertTrue(bool(window.attributes("-topmost")))
+        finally:
+            variable.set(False)
+            layout.on_keyboard_topmost_changed()
+            if window is not None:
+                window._handle_close()
+
+    def test_keyboard_topmost_watch_releases_only_for_other_own_window(self):
+        variable = self.app.ui_vars.keyboard_always_on_top_var
+        layout = self.app.layout
+        foreground_provider = self.app.foreground_own_window
+        place_below_provider = self.app.place_window_below
+        window = None
+        variable.set(False)
+        try:
+            with patch.object(self.app, "after", return_value="watch-job"):
+                variable.set(True)
+                layout.open_keyboard_window()
+                window = layout.keyboard_window
+                self.assertIsNotNone(layout._topmost_watch_job)
+
+                main_hwnd = int(self.app.wm_frame(), 16)
+                dialog_hwnd = main_hwnd + 100
+                self.app.foreground_own_window = Mock(return_value=dialog_hwnd)
+                self.app.place_window_below = Mock(return_value=True)
+                layout._watch_topmost_tick()
+                self.assertFalse(bool(window.attributes("-topmost")))
+                self.app.place_window_below.assert_called_once_with(
+                    int(window.wm_frame(), 16), dialog_hwnd
+                )
+
+                self.app.foreground_own_window = Mock(return_value=main_hwnd)
+                layout._watch_topmost_tick()
+                self.assertTrue(bool(window.attributes("-topmost")))
+                self.app.place_window_below.assert_called_once()
+        finally:
+            variable.set(False)
+            layout.on_keyboard_topmost_changed()
+            self.app.foreground_own_window = foreground_provider
+            self.app.place_window_below = place_below_provider
+            if window is not None:
+                window._handle_close()
+            self.assertIsNone(layout._topmost_watch_job)
+
+    def test_keyboard_topmost_watch_stops_when_disabled_or_window_closes(self):
+        variable = self.app.ui_vars.keyboard_always_on_top_var
+        layout = self.app.layout
+        variable.set(False)
+        layout.on_keyboard_topmost_changed()
+        self.assertIsNone(layout._topmost_watch_job)
+
+        layout.open_keyboard_window()
+        window = layout.keyboard_window
+        try:
+            variable.set(True)
+            with patch.object(self.app, "after", return_value="watch-job"):
+                layout.on_keyboard_topmost_changed()
+            self.assertIsNotNone(layout._topmost_watch_job)
+            variable.set(False)
+            layout.on_keyboard_topmost_changed()
+            self.assertIsNone(layout._topmost_watch_job)
+
+            variable.set(True)
+            with patch.object(self.app, "after", return_value="watch-job"):
+                layout.on_keyboard_topmost_changed()
+            window._handle_close()
+            self.assertIsNone(layout._topmost_watch_job)
+        finally:
+            variable.set(False)
+            if layout.keyboard_window is not None:
+                layout.keyboard_window._handle_close()
+
     def test_keyboard_window_refresh_with_same_layout_does_not_set_geometry(self):
         self.app.layout.open_keyboard_window()
         window = self.app.layout.keyboard_window

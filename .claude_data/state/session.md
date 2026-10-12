@@ -4,38 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-12T04:00:00
-phase: instructions/phase/55_keyboard_ui_window（暫定 39 v0.4・ユーザー確定済 / decisions 55）。次採番 = phase 56 / 暫定 40 / decisions 56 / 提案書 21
+last_updated: 2026-10-12T07:00:00
+phase: instructions/phase/55_keyboard_ui_window（暫定 39 v0.5・ユーザー確定済 / decisions 55）。次採番 = phase 56 / 暫定 40 / decisions 56 / 提案書 21
 直前の完了フェーズ = **phase 54**（テンキーの区別・`decisions_archive/54_numpad_key_distinction.md`）
-last_commit_location: `claude/keyboard-input-priority-999558`（task_02・02b まで。main へのマージはユーザー）
+last_commit_location: `claude/keyboard-input-priority-999558`（task_03・03b まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 55（キーボードUIのウィンドウ改善）task_01・02・02b 完了・task_03（キーボードUIを常に手前 + ダイアログ表示中の一時解除）着手。タスクの連続実行は許可済み（実機目視・スペックフラグでは止まる）。**
+focus: **phase 55（キーボードUIのウィンドウ改善）task_01〜03b 完了・task_04（統合確認 = deep-reviewer + codex-reviewer）着手。タスクの連続実行は許可済み。**
 mode: implementing
 
 ## last_action
-ts: 2026-10-12T04:00:00
+ts: 2026-10-12T07:00:00
 who: main
 summary: |
-  task_02（縦横比固定）初回の実機目視で「縮めると大きく・広げると小さく」NG → 原因 = ドラッグ中に止まった間の補正を Windows のサイズ変更ループが上書きし基準がずれる。
-  ユーザー確定で暫定 39 v0.4（マウスのボタンが押されている間は補正しない）→ task_02b（infrastructure `is_mouse_button_down`・App 注入・`_settle_size` 延期）。Codex が消した BOM 2 件（input_gateway.py / app.py）をメインで復元。
-  verifier: tests 1542 / tests_ui 949 / smoke pass。reviewer 採用。ユーザー実機目視 OK。Codex 敵対的レビュー（v0.4）2 件はユーザー判断で受容（他アプリのドラッグ中は補正が延びる / Alt+Space のキーボードでのサイズ変更は保証外）として §5 に明記。
+  task_03（キーボードUIを常に手前 + ダイアログ表示中の一時解除）: 所有関係は probe で None（前提成立）。codex-implementer・reviewer 採用。表示欄の行追加で tests_ui の `test_compact_sequence_view` の固定高さ 820 が不足 → 860 へ（メイン・原因を実測で切り分け）。
+  初回目視で「ダイアログがキーボードUIに覆われる」NG → 原因 = topmost を外すと非 topmost の最上位へ来る（probe 確認）→ 暫定 39 v0.5・task_03b（infrastructure `place_window_below` = SetWindowPos でダイアログ直下へ）。
+  verifier: tests 1550 / tests_ui 953 / smoke pass。reviewer 採用。ユーザー実機目視 OK。
 result_files:
-  - keyseq/presentation/keyboard_window_size.py（新規）/ keyboard_window.py / controllers/layout_controller.py / app.py / keyseq/infrastructure/input_gateway.py
-  - tests/test_keyboard_window_size.py（新規）/ tests/test_input_gateway_repeat.py / tests_ui/test_app_ui_flows.py
-  - instructions/history/39_keyboard_ui_window.md（v0.4）/ instructions/phase/55_keyboard_ui_window/（phase.md・tasks/task_02b）
+  - keyseq/infrastructure/input_gateway.py（foreground_own_window・place_window_below）/ keyseq/presentation/app.py・ui_vars.py・controllers/layout_controller.py・views/*/display_frame.py
+  - tests/test_input_gateway_repeat.py / tests_ui/test_app_ui_flows.py・test_compact_sequence_view.py
+  - instructions/history/39_keyboard_ui_window.md（v0.5）/ instructions/phase/55_keyboard_ui_window/（phase.md・tasks/task_03・03b）
 verified:
   compile: clean
-  tests: 1542 OK（skipped 7）
-  tests_ui: 949 OK
+  tests: 1550 OK（skipped 7）
+  tests_ui: 953 OK
   smoke: pass
-  review: task_02・02b reviewer 採用・ユーザー実機目視 OK
+  review: task_03・03b reviewer 採用・ユーザー実機目視 OK
 
 ## next_action
-- task_03（「キーボードUIを常に手前」+ ダイアログ表示中の一時解除・暫定 39 §4）のタスク定義を起票 → 着手時に所有関係（`GetWindow(hwnd, GW_OWNER)`）を実測（成り立たなければ止めてユーザー確認）→ codex-implementer → verifier + reviewer → ユーザー実機目視（§6 の 5・7）
-- 前面の窓の判定は `infrastructure/input_gateway.py` の前面窓 API（`_foreground_process_api`）の再利用・App で注入（task_02b の `is_mouse_button_down` と同じ経路）
+- task_04（統合確認）: phase 55 の差分（`git diff f8a3b8a..HEAD`）に deep-reviewer + codex-reviewer。テストは task_03b 後の verifier 実測（上記）を統合の実測として使う。指摘の採否はユーザー
+- task_05（正本反映）: 暫定 39 §8 の昇格（features.md §4.6 に「キーボード表示のウィンドウ」新設・codebase_map）・凍結・decisions_archive/55・decisions.md 索引・current.md 完了記載・/refactor_check
 
 ## blockers
 - なし

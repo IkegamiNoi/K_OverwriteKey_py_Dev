@@ -163,6 +163,119 @@ class OwnProcessForegroundTests(unittest.TestCase):
         load_user32.assert_not_called()
 
 
+class ForegroundOwnWindowTests(unittest.TestCase):
+    def setUp(self) -> None:
+        input_gateway._foreground_window_error_logged = False
+        input_gateway._foreground_process_api.cache_clear()
+        self.addCleanup(input_gateway._foreground_process_api.cache_clear)
+
+    def _user32(self, foreground, process_id: int = 42, *, error=None):
+        user32 = Mock()
+        user32.GetForegroundWindow.return_value = foreground
+
+        def get_process_id(_window, process_id_pointer):
+            if error is not None:
+                raise error
+            process_id_pointer._obj.value = process_id
+            return 1
+
+        user32.GetWindowThreadProcessId.side_effect = get_process_id
+        return user32
+
+    def _check_with_user32(self, user32):
+        with patch.object(input_gateway.sys, "platform", "win32"), patch.object(
+            input_gateway.ctypes, "WinDLL", return_value=user32, create=True
+        ), patch.object(input_gateway.os, "getpid", return_value=42):
+            input_gateway._foreground_process_api.cache_clear()
+            return input_gateway.foreground_own_window()
+
+    def test_own_process_foreground_returns_handle(self):
+        user32 = self._user32(100, 42)
+        self.assertEqual(self._check_with_user32(user32), 100)
+        user32.GetForegroundWindow.assert_called_once_with()
+        user32.GetWindowThreadProcessId.assert_called_once()
+
+    def test_other_process_foreground_returns_none(self):
+        self.assertIsNone(self._check_with_user32(self._user32(101, 43)))
+
+    def test_no_foreground_window_returns_none(self):
+        for foreground in (None, 0):
+            user32 = self._user32(foreground)
+            with self.subTest(foreground=foreground):
+                self.assertIsNone(self._check_with_user32(user32))
+                user32.GetWindowThreadProcessId.assert_not_called()
+
+    def test_exception_returns_none_and_logs_only_once(self):
+        user32 = self._user32(100, error=OSError("foreground failed"))
+        with patch.object(input_gateway.sys, "platform", "win32"), patch.object(
+            input_gateway.ctypes, "WinDLL", return_value=user32, create=True
+        ), patch.object(input_gateway.os, "getpid", return_value=42), self.assertLogs(
+            "keyseq.infrastructure.input_gateway", level="ERROR"
+        ) as logs:
+            input_gateway._foreground_process_api.cache_clear()
+            self.assertIsNone(input_gateway.foreground_own_window())
+            self.assertIsNone(input_gateway.foreground_own_window())
+        self.assertEqual(len(logs.records), 1)
+
+
+class PlaceWindowBelowTests(unittest.TestCase):
+    def setUp(self) -> None:
+        input_gateway._place_window_below_error_logged = False
+        input_gateway._place_window_below_api.cache_clear()
+        self.addCleanup(input_gateway._place_window_below_api.cache_clear)
+
+    def _check_with_user32(self, user32, hwnd=100, above_hwnd=200):
+        with patch.object(input_gateway.sys, "platform", "win32"), patch.object(
+            input_gateway.ctypes, "WinDLL", return_value=user32, create=True
+        ):
+            input_gateway._place_window_below_api.cache_clear()
+            return input_gateway.place_window_below(hwnd, above_hwnd)
+
+    def test_success_passes_handles_and_flags(self):
+        user32 = Mock()
+        user32.SetWindowPos.return_value = 1
+        self.assertTrue(self._check_with_user32(user32))
+        self.assertEqual(
+            user32.SetWindowPos.call_args.args,
+            (100, 200, 0, 0, 0, 0, 0x0013),
+        )
+        self.assertEqual(
+            user32.SetWindowPos.argtypes,
+            [
+                input_gateway.wintypes.HWND, input_gateway.wintypes.HWND,
+                input_gateway.ctypes.c_int, input_gateway.ctypes.c_int,
+                input_gateway.ctypes.c_int, input_gateway.ctypes.c_int,
+                input_gateway.ctypes.c_uint,
+            ],
+        )
+        self.assertIs(user32.SetWindowPos.restype, input_gateway.wintypes.BOOL)
+
+    def test_api_false_returns_false(self):
+        user32 = Mock()
+        user32.SetWindowPos.return_value = 0
+        self.assertFalse(self._check_with_user32(user32))
+
+    def test_exception_returns_false_and_logs_only_once(self):
+        user32 = Mock()
+        user32.SetWindowPos.side_effect = OSError("window placement failed")
+        with patch.object(input_gateway.sys, "platform", "win32"), patch.object(
+            input_gateway.ctypes, "WinDLL", return_value=user32, create=True
+        ), self.assertLogs(
+            "keyseq.infrastructure.input_gateway", level="ERROR"
+        ) as logs:
+            input_gateway._place_window_below_api.cache_clear()
+            self.assertFalse(input_gateway.place_window_below(100, 200))
+            self.assertFalse(input_gateway.place_window_below(100, 200))
+        self.assertEqual(len(logs.records), 1)
+
+    def test_non_windows_returns_false_without_loading_user32(self):
+        with patch.object(input_gateway.sys, "platform", "linux"), patch.object(
+            input_gateway.ctypes, "WinDLL", create=True
+        ) as load_user32:
+            self.assertFalse(input_gateway.place_window_below(100, 200))
+        load_user32.assert_not_called()
+
+
 class MouseButtonDownTests(unittest.TestCase):
     def setUp(self) -> None:
         input_gateway._mouse_button_error_logged = False

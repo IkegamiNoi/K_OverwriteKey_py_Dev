@@ -75,7 +75,8 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from keyseq.infrastructure.input_gateway import (
-    InputGateway, is_mouse_button_down, is_own_process_foreground,
+    InputGateway, foreground_own_window, is_mouse_button_down, is_own_process_foreground,
+    place_window_below,
     keyboard_repeat_timing,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
@@ -227,6 +228,8 @@ class App(tk.Tk):
         self.orphan_sweep_io = OrphanSweepIo(self)
         self.quarantine_manage_io = QuarantineManageIo(self)
         self.is_mouse_button_down = is_mouse_button_down
+        self.foreground_own_window = foreground_own_window
+        self.place_window_below = place_window_below
         self.layout = LayoutController(self)
         self.pane_layout = PaneLayoutController(self)
         self.keymap_panel = KeymapPanelController(self)

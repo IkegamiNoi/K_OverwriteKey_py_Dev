@@ -52,6 +52,8 @@ _SPI_GETKEYBOARDDELAY = 0x0016
 _DEFAULT_REPEAT_DELAY_MS = 500
 _DEFAULT_REPEAT_INTERVAL_MS = 33
 _foreground_error_logged = False
+_foreground_window_error_logged = False
+_place_window_below_error_logged = False
 _mouse_button_error_logged = False
 VK_LBUTTON = 0x01
 VK_RBUTTON = 0x02
@@ -119,6 +121,57 @@ def is_own_process_foreground() -> bool:
         if not _foreground_error_logged:
             _logger.exception("前面ウィンドウのプロセス判定に失敗しました")
             _foreground_error_logged = True
+        return False
+
+
+def foreground_own_window() -> int | None:
+    """自プロセスの前面窓 HWND を返す。取得不能時は初回だけ記録して None。"""
+    global _foreground_window_error_logged
+    if sys.platform != "win32":
+        return None
+    try:
+        get_foreground_window, get_window_thread_process_id = _foreground_process_api()
+        foreground = get_foreground_window()
+        if foreground is None or not foreground:
+            return None
+        process_id = wintypes.DWORD()
+        get_window_thread_process_id(foreground, ctypes.byref(process_id))
+        if not process_id.value or process_id.value != os.getpid():
+            return None
+        return int(foreground)
+    except Exception:
+        if not _foreground_window_error_logged:
+            _logger.exception("前面ウィンドウ HWND の取得に失敗しました")
+            _foreground_window_error_logged = True
+        return None
+
+
+@cache
+def _place_window_below_api():
+    """共有 windll を変更せず、窓の順序変更用の user32 関数を作る。"""
+    user32 = ctypes.WinDLL("user32")
+    set_window_pos = user32.SetWindowPos
+    set_window_pos.argtypes = [
+        wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int,
+        ctypes.c_int, ctypes.c_int, ctypes.c_uint,
+    ]
+    set_window_pos.restype = wintypes.BOOL
+    return set_window_pos
+
+
+def place_window_below(hwnd: int, above_hwnd: int) -> bool:
+    """hwnd を above_hwnd の直下へ置く。失敗時は初回だけ記録して偽にする。"""
+    global _place_window_below_error_logged
+    if sys.platform != "win32":
+        return False
+    try:
+        set_window_pos = _place_window_below_api()
+        flags = 0x0001 | 0x0002 | 0x0010
+        return bool(set_window_pos(hwnd, above_hwnd, 0, 0, 0, 0, flags))
+    except Exception:
+        if not _place_window_below_error_logged:
+            _logger.exception("ウィンドウ位置の変更に失敗しました")
+            _place_window_below_error_logged = True
         return False
 
 

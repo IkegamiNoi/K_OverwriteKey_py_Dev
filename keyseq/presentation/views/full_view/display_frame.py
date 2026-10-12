@@ -36,3 +36,12 @@ class FullDisplayFrame(ttk.LabelFrame):
         self.keyboard_layout_combo.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(10, 0))
         self.keyboard_layout_combo.bind("<<ComboboxSelected>>", app.layout.on_keyboard_layout_selected)
         app.layout.register_layout_combo(self.keyboard_layout_combo)
+        self.keyboard_always_on_top_chk = ttk.Checkbutton(
+            self,
+            text="キーボードUIを常に手前",
+            variable=app.ui_vars.keyboard_always_on_top_var,
+            command=app.layout.on_keyboard_topmost_changed,
+        )
+        self.keyboard_always_on_top_chk.grid(
+            row=3, column=0, columnspan=2, sticky="w", pady=(10, 0)
+        )
