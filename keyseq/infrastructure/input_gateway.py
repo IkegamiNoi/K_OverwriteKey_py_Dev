@@ -2,7 +2,6 @@
 
 import ctypes
 import logging
-import os
 import sys
 from ctypes import wintypes
 from functools import cache
@@ -51,12 +50,6 @@ _SPI_GETKEYBOARDSPEED = 0x000A
 _SPI_GETKEYBOARDDELAY = 0x0016
 _DEFAULT_REPEAT_DELAY_MS = 500
 _DEFAULT_REPEAT_INTERVAL_MS = 33
-_foreground_error_logged = False
-_foreground_window_error_logged = False
-_place_window_below_error_logged = False
-_mouse_button_error_logged = False
-VK_LBUTTON = 0x01
-VK_RBUTTON = 0x02
 
 
 class _KEYBDINPUT(ctypes.Structure):
@@ -87,120 +80,6 @@ class _INPUT_UNION(ctypes.Union):
 class _INPUT(ctypes.Structure):
     _anonymous_ = ("union",)
     _fields_ = [("type", wintypes.DWORD), ("union", _INPUT_UNION)]
-
-
-@cache
-def _foreground_process_api():
-    """共有 windll を変更せず、前面窓取得用の user32 関数を作る。"""
-    user32 = ctypes.WinDLL("user32")
-    get_foreground_window = user32.GetForegroundWindow
-    get_foreground_window.argtypes = []
-    get_foreground_window.restype = wintypes.HWND
-    get_window_thread_process_id = user32.GetWindowThreadProcessId
-    get_window_thread_process_id.argtypes = [
-        wintypes.HWND, ctypes.POINTER(wintypes.DWORD),
-    ]
-    get_window_thread_process_id.restype = wintypes.DWORD
-    return get_foreground_window, get_window_thread_process_id
-
-
-def is_own_process_foreground() -> bool:
-    """前面窓が自プロセスなら真。取得不能時は初回だけ記録して偽にする。"""
-    global _foreground_error_logged
-    if sys.platform != "win32":
-        return False
-    try:
-        get_foreground_window, get_window_thread_process_id = _foreground_process_api()
-        foreground = get_foreground_window()
-        if foreground is None or not foreground:
-            return True
-        process_id = wintypes.DWORD()
-        get_window_thread_process_id(foreground, ctypes.byref(process_id))
-        return bool(process_id.value and process_id.value == os.getpid())
-    except Exception:
-        if not _foreground_error_logged:
-            _logger.exception("前面ウィンドウのプロセス判定に失敗しました")
-            _foreground_error_logged = True
-        return False
-
-
-def foreground_own_window() -> int | None:
-    """自プロセスの前面窓 HWND を返す。取得不能時は初回だけ記録して None。"""
-    global _foreground_window_error_logged
-    if sys.platform != "win32":
-        return None
-    try:
-        get_foreground_window, get_window_thread_process_id = _foreground_process_api()
-        foreground = get_foreground_window()
-        if foreground is None or not foreground:
-            return None
-        process_id = wintypes.DWORD()
-        get_window_thread_process_id(foreground, ctypes.byref(process_id))
-        if not process_id.value or process_id.value != os.getpid():
-            return None
-        return int(foreground)
-    except Exception:
-        if not _foreground_window_error_logged:
-            _logger.exception("前面ウィンドウ HWND の取得に失敗しました")
-            _foreground_window_error_logged = True
-        return None
-
-
-@cache
-def _place_window_below_api():
-    """共有 windll を変更せず、窓の順序変更用の user32 関数を作る。"""
-    user32 = ctypes.WinDLL("user32")
-    set_window_pos = user32.SetWindowPos
-    set_window_pos.argtypes = [
-        wintypes.HWND, wintypes.HWND, ctypes.c_int, ctypes.c_int,
-        ctypes.c_int, ctypes.c_int, ctypes.c_uint,
-    ]
-    set_window_pos.restype = wintypes.BOOL
-    return set_window_pos
-
-
-def place_window_below(hwnd: int, above_hwnd: int) -> bool:
-    """hwnd を above_hwnd の直下へ置く。失敗時は初回だけ記録して偽にする。"""
-    global _place_window_below_error_logged
-    if sys.platform != "win32":
-        return False
-    try:
-        set_window_pos = _place_window_below_api()
-        flags = 0x0001 | 0x0002 | 0x0010
-        return bool(set_window_pos(hwnd, above_hwnd, 0, 0, 0, 0, flags))
-    except Exception:
-        if not _place_window_below_error_logged:
-            _logger.exception("ウィンドウ位置の変更に失敗しました")
-            _place_window_below_error_logged = True
-        return False
-
-
-@cache
-def _mouse_button_api():
-    """共有 windll を変更せず、物理マウスボタン状態取得用の user32 関数を作る。"""
-    user32 = ctypes.WinDLL("user32")
-    get_async_key_state = user32.GetAsyncKeyState
-    get_async_key_state.argtypes = [ctypes.c_int]
-    get_async_key_state.restype = ctypes.c_short
-    return get_async_key_state
-
-
-def is_mouse_button_down() -> bool:
-    """物理的な左右のマウスボタンが押されていれば真。取得失敗時は偽にする。"""
-    global _mouse_button_error_logged
-    if sys.platform != "win32":
-        return False
-    try:
-        get_async_key_state = _mouse_button_api()
-        return any(
-            get_async_key_state(button) & 0x8000
-            for button in (VK_LBUTTON, VK_RBUTTON)
-        )
-    except Exception:
-        if not _mouse_button_error_logged:
-            _logger.exception("マウスボタン状態の取得に失敗しました")
-            _mouse_button_error_logged = True
-        return False
 
 
 def repeat_delay_ms(value: int) -> int | None:

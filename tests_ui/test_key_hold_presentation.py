@@ -5,7 +5,7 @@ from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
 from keyseq.application.config_service import ConfigService, contracts
-from keyseq.infrastructure import input_gateway
+from keyseq.infrastructure import win32_window
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.action_list_rendering import (
     build_action_rows, format_next_action_summary,
@@ -85,7 +85,7 @@ class KeyHoldPresentationTests(unittest.TestCase):
         self.assertIs(self.app.key_repeater._after_cancel.__self__, self.app)
         self.assertIs(
             self.app.key_repeater._is_blocked,
-            input_gateway.is_own_process_foreground,
+            win32_window.is_own_process_foreground,
         )
 
     def test_repeat_error_uses_the_existing_action_error_notice(self):

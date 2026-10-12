@@ -30,9 +30,15 @@
 
 - 画面の大きさで頭打ちになり比率がずれたまま残る → 受容（正本の受容事項に明記）
 - 保留の当て直しの予約がリサイズ補正で上書きされうる（task_04b reviewer 参考）→ 補正が新しい比率で行われるため受容
-- `foreground_own_window` と `is_own_process_foreground` の重複・Win32 の初回ログの同型 4 個・フラグ直値 → `/refactor_check` で M3 該当 → [提案書 21](../../../instructions/modified_proposal/21_refactor_keyboard_ui_window.md)（ユーザー判断待ち）
+- `foreground_own_window` と `is_own_process_foreground` の重複・Win32 の初回ログの同型 4 個・フラグ直値 → `/refactor_check` で M3 該当 → [提案書 21](../../../instructions/modified_proposal/21_refactor_keyboard_ui_window.md) → task_06_refactor で実施済
 - `getattr(self._app, ...)` の防御的取り出し・`keyboard_window.py` 509 行 → 保留（refactor_check の M1 は非該当）
 
 ## refactor_check
 
-推奨（M3: `input_gateway.py` の Win32 問い合わせの同型 4 個）→ 提案書 21（項目 1 = `infrastructure/win32_window.py` への切り出し）。M1・M2・M4・M5・M6 非該当。
+推奨（M3: `input_gateway.py` の Win32 問い合わせの同型 4 個）→ 提案書 21 → **ユーザー判断で task_06_refactor として実施済**（`infrastructure/win32_window.py`）。M1・M2・M4・M5・M6 非該当。
+
+## 完了判定前レビュー（task_05）
+
+- deep-reviewer 修正要（軽微・文書）: タイトルの表示名の `layout_id` 段の書き漏れ・凍結ヘッダの差分の記述・正本の細部・提案書の例示 → メインで反映
+- Codex 敵対的 medium 2: ①両方 topmost でモーダル中にキーボードUIのタイトルバーを押すと覆う → ユーザー実機で「押している間だけ・離すと下へ戻る」と確認し受容（正本の受容事項）/ ②保留の当て直しが補正の予約に置き換わると新しい minsize が当たらない → task_05a で修正
+- deep 指摘 4（表示欄の行追加でフル表示の下端）→ ユーザー目視で以前と変わらず（標準フォントでも下端が切れるのは既存）

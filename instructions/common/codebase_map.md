@@ -28,6 +28,7 @@ domain
 infrastructure
 - keyboard フック
 - JSON入出力
+- `keyseq/infrastructure/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ
 
 ---
 
@@ -768,7 +769,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - presentation: `app.py`（`KeyRepeater` の生成と注入・`repeat_suppressed`・`_show_runtime_error`）/ `controllers/hook_controller.py` の `show_action_error`（表示中の抑止）/ `dialogs/action_key_hold_fields.py`（チェックと表示の切替）・`dialogs/action_dialog.py`（組み直しで `repeat`）
   - テスト: `tests/test_key_repeat.py` / `test_held_inputs_repeat.py` / `test_input_gateway_repeat.py` / `test_key_hold.py` / `test_action_executor_key_hold.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_key_hold_presentation.py`
 - phase 53（アプリの窓が前面のときはキーリピートしない。仕様 = `features.md` §4.2.12「キーリピート」/ `key_input.md` §7.7。判断 = `decisions_archive/53_repeat_stop_on_own_foreground.md`）:
-  - 前面判定: `infrastructure/input_gateway.py` のモジュール関数 `is_own_process_foreground`（`@cache` の `_foreground_process_api` で専用の user32）
+  - 前面判定: `infrastructure/win32_window.py` のモジュール関数 `is_own_process_foreground`（`@cache` の `_user32` で専用の user32）
   - `KeyRepeater` の任意引数 `is_blocked`（`_fire` でだけ呼ぶ・真なら `stop`・呼び出しの例外は吸収して止めない〔ログは初回だけ〕）。App の `KeyRepeater` 生成で注入（`app.py`）
   - テスト: `tests/test_key_repeat.py` / `test_input_gateway_repeat.py` / `tests_ui/test_key_hold_presentation.py`
 - phase 54（テンキーの区別。仕様 = `key_input.md` §7.7・§7.8 / `data_schema.md` §5.1 / `features.md` §4.2.12。判断 = `decisions_archive/54_numpad_key_distinction.md`）:
@@ -781,9 +782,9 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - 縦横比: 計算は `presentation/keyboard_window_size.py`（`layout_aspect` / `size_from_width` / `size_from_height` / `minimum_size` / `corrected_size`・tkinter 非依存）。
     補正は `KeyboardWindow` の `<Configure>`（`event.widget is self` のみ）→ 150ms の予約 `_settle_size`（マウスのボタンが押されていれば置き直し）/ `update_layout` は比率が変わったときだけ `_apply_ratio_to_base` / 最大化・最小化中は `_ratio_pending` → 通常へ戻った Configure または `<Map>` で `_apply_pending_ratio`
   - 前面化: `LayoutController` の `on_keyboard_topmost_changed` / `apply_keyboard_topmost`（実効値 = `ui_vars.keyboard_always_on_top_var` ∧ ¬`_topmost_released`）/ 監視 `_watch_topmost_tick`（200ms・前面がダイアログ or `grab_current()` 有りで一時解除・ダイアログ前面で入ったときは直下へ置く）
-  - Win32 は `infrastructure/input_gateway.py` のモジュール関数 `is_mouse_button_down`（`GetAsyncKeyState` 左右）/ `foreground_own_window`（自プロセスの前面 HWND）/ `place_window_below`（`SetWindowPos` NOSIZE|NOMOVE|NOACTIVATE）。
+  - Win32 は `infrastructure/win32_window.py` のモジュール関数 `is_mouse_button_down`（`GetAsyncKeyState` 左右）/ `foreground_own_window`（自プロセスの前面 HWND）/ `place_window_below`（`SetWindowPos` NOSIZE|NOMOVE|NOACTIVATE）。
     **App が属性として注入**（`app.is_mouse_button_down` / `app.foreground_own_window` / `app.place_window_below`）し、presentation の他所は ctypes を呼ばない
-  - テスト: `tests/test_keyboard_window_title.py` / `test_keyboard_window_size.py` / `test_input_gateway_repeat.py` / `tests_ui/test_app_ui_flows.py`（`test_keyboard_window_*`）
+  - テスト: `tests/test_keyboard_window_title.py` / `test_keyboard_window_size.py` / `test_win32_window.py` / `tests_ui/test_app_ui_flows.py`（`test_keyboard_window_*`）
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 

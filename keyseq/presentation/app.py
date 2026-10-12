@@ -75,9 +75,11 @@ from keyseq.domain.config import (
     safe_deepcopy,
 )
 from keyseq.infrastructure.input_gateway import (
-    InputGateway, foreground_own_window, is_mouse_button_down, is_own_process_foreground,
+    InputGateway, keyboard_repeat_timing,
+)
+from keyseq.infrastructure.win32_window import (
+    foreground_own_window, is_mouse_button_down, is_own_process_foreground,
     place_window_below,
-    keyboard_repeat_timing,
 )
 from keyseq.infrastructure.json_repository import JsonRepository
 

@@ -4,37 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-12T11:00:00
-phase: instructions/phase/55_keyboard_ui_window（暫定 39 v0.6・ユーザー確定済 / decisions 55）。次採番 = phase 56 / 暫定 40 / decisions 56 / 提案書 22
-直前の完了フェーズ = **phase 54**（テンキーの区別・`decisions_archive/54_numpad_key_distinction.md`）
-last_commit_location: `claude/keyboard-input-priority-999558`（task_04・04b まで。main へのマージはユーザー）
+last_updated: 2026-10-12T13:00:00
+phase: なし（phase 55 は 2026-10-12 完了）。次採番 = phase 56 / 暫定 40 / decisions 56 / 提案書 22。次フェーズはユーザー判断
+直前の完了フェーズ = **phase 55**（キーボードUIのウィンドウ改善・`decisions_archive/55_keyboard_ui_window.md`）。その前 = phase 54（テンキーの区別）/ phase 53（アプリの窓が前面のときはキーリピートしない）
+last_commit_location: `claude/keyboard-input-priority-999558`（phase 55 完了まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 55 task_05（正本反映・暫定 39 凍結・decisions_archive/55）済み。追加タスク task_05a（保留比率の minsize）→ task_06_refactor（提案書 21）進行中。**
-mode: implementing
+focus: **phase 55 完了。アクティブなフェーズなし・次フェーズはユーザー判断待ち。main へのマージはユーザー。**
+mode: completed
 
 ## last_action
-ts: 2026-10-12T07:00:00
+ts: 2026-10-12T13:00:00
 who: main
 summary: |
-  task_03（キーボードUIを常に手前 + ダイアログ表示中の一時解除）: 所有関係は probe で None（前提成立）。codex-implementer・reviewer 採用。表示欄の行追加で tests_ui の `test_compact_sequence_view` の固定高さ 820 が不足 → 860 へ（メイン・原因を実測で切り分け）。
-  初回目視で「ダイアログがキーボードUIに覆われる」NG → 原因 = topmost を外すと非 topmost の最上位へ来る（probe 確認）→ 暫定 39 v0.5・task_03b（infrastructure `place_window_below` = SetWindowPos でダイアログ直下へ）。
-  verifier: tests 1550 / tests_ui 953 / smoke pass。reviewer 採用。ユーザー実機目視 OK。
+  phase 55 完了（暫定 39 v0.6 凍結・正本 `features.md` §4.6「キーボード表示のウィンドウ」）。ステータス欄を削除しタイトルへ / 「キーボードUIを常に手前」〔保存しない・ダイアログ前面 or grab 中は一時解除しダイアログ直下へ〕/ 縦横比固定〔手を離して 150ms 後・マウスのボタンが離れた後〕。
+  実機目視で 2 回 NG（リサイズの基準ずれ → ボタン判定 / ダイアログが覆われる → 直下へ置く）を修正。統合・完了判定前レビューの指摘は task_04b・05a で修正・一部受容。
+  /refactor_check 推奨（M3）→ 提案書 21 をユーザー判断で task_06_refactor として実施（`infrastructure/win32_window.py`）。
 result_files:
-  - keyseq/infrastructure/input_gateway.py（foreground_own_window・place_window_below）/ keyseq/presentation/app.py・ui_vars.py・controllers/layout_controller.py・views/*/display_frame.py
-  - tests/test_input_gateway_repeat.py / tests_ui/test_app_ui_flows.py・test_compact_sequence_view.py
-  - instructions/history/39_keyboard_ui_window.md（v0.5）/ instructions/phase/55_keyboard_ui_window/（phase.md・tasks/task_03・03b）
+  - keyseq/infrastructure/win32_window.py（新規）/ input_gateway.py / keyseq/presentation/keyboard_window.py・keyboard_window_size.py（新規）・controllers/layout_controller.py・app.py・ui_vars.py・views/*/display_frame.py
+  - tests/test_win32_window.py・test_keyboard_window_size.py・test_keyboard_window_title.py（新規）/ tests_ui/test_app_ui_flows.py ほか
+  - instructions/history/39（凍結）/ instructions/phase/55_keyboard_ui_window/ / spec_detail/features.md / codebase_map.md / decisions_archive/55 / modified_proposal/21（実施済）
 verified:
   compile: clean
   tests: 1550 OK（skipped 7）
-  tests_ui: 953 OK
+  tests_ui: 959 OK
   smoke: pass
-  review: task_03・03b reviewer 採用・ユーザー実機目視 OK
+  review: 各タスク reviewer 採用 / 統合 deep + codex / 完了判定前 deep + codex-adversarial の指摘は反映・受容を decisions_archive/55 に記録
 
 ## next_action
-- task_05（正本反映）: 暫定 39 v0.6 §8 の昇格（features.md §4.6 に「キーボード表示のウィンドウ」新設〔deep 統合レビュー指摘 5 の書く事項〕・モーダルダイアログの作法の残存リスク追記・codebase_map :306 / :593 / :604 / 前面判定の節・新規モジュール）・暫定 39 凍結・phase.md の目的 / 主入力の記述更新・decisions_archive/55・decisions.md 索引・current.md 完了記載・/refactor_check（verifier でメトリクス）・完了判定前 deep-reviewer + codex-adversarial-reviewer
+- 次フェーズはユーザー判断（着手時は `/phase_start`）。main へのマージはユーザーが行う
+- 別タスク化候補に keyboard_window の同型 2 個（current.md「キーボード表示（phase 55 由来）」）を追記済み
 
 ## blockers
 - なし

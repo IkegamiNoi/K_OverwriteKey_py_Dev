@@ -1,6 +1,6 @@
 # 提案書 21: phase 55（キーボードUIのウィンドウ改善）後のリファクタ
 
-> 状態: **実施予定**（2026-10-12・phase 55 の `/refactor_check`。ユーザー判断で phase 55 task_06_refactor として実施）。
+> 状態: **実施済**（2026-10-12・phase 55 task_06_refactor。`infrastructure/win32_window.py` 新設・`_user32` / `_log_once` / `_guarded` の共通補助・SWP_* / `_KEY_DOWN` の定数化・テスト 18 件を `tests/test_win32_window.py` へ移動）。
 
 ## 判定の要約
 
