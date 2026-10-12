@@ -54,6 +54,7 @@ class LayoutController:
             on_close=self.on_keyboard_window_closed,
             on_assign_keymap=self._app.keymap_panel.assign_keymap_from_keyboard_ui,
             on_clear_keymap=self._app.keymap_panel.clear_keymap_from_keyboard_ui,
+            is_mouse_button_down=getattr(self._app, "is_mouse_button_down", None),
         )
         self.refresh_keyboard_window()
 

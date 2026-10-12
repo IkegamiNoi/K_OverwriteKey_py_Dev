@@ -52,6 +52,9 @@ _SPI_GETKEYBOARDDELAY = 0x0016
 _DEFAULT_REPEAT_DELAY_MS = 500
 _DEFAULT_REPEAT_INTERVAL_MS = 33
 _foreground_error_logged = False
+_mouse_button_error_logged = False
+VK_LBUTTON = 0x01
+VK_RBUTTON = 0x02
 
 
 class _KEYBDINPUT(ctypes.Structure):
@@ -116,6 +119,34 @@ def is_own_process_foreground() -> bool:
         if not _foreground_error_logged:
             _logger.exception("前面ウィンドウのプロセス判定に失敗しました")
             _foreground_error_logged = True
+        return False
+
+
+@cache
+def _mouse_button_api():
+    """共有 windll を変更せず、物理マウスボタン状態取得用の user32 関数を作る。"""
+    user32 = ctypes.WinDLL("user32")
+    get_async_key_state = user32.GetAsyncKeyState
+    get_async_key_state.argtypes = [ctypes.c_int]
+    get_async_key_state.restype = ctypes.c_short
+    return get_async_key_state
+
+
+def is_mouse_button_down() -> bool:
+    """物理的な左右のマウスボタンが押されていれば真。取得失敗時は偽にする。"""
+    global _mouse_button_error_logged
+    if sys.platform != "win32":
+        return False
+    try:
+        get_async_key_state = _mouse_button_api()
+        return any(
+            get_async_key_state(button) & 0x8000
+            for button in (VK_LBUTTON, VK_RBUTTON)
+        )
+    except Exception:
+        if not _mouse_button_error_logged:
+            _logger.exception("マウスボタン状態の取得に失敗しました")
+            _mouse_button_error_logged = True
         return False
 
 

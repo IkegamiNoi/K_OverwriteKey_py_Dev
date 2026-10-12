@@ -47,7 +47,8 @@
 ## タスク
 
 - task_01: ステータス欄の削除とタイトル表示（暫定 39 §3・§6 の 1・2）とテスト — **完了**（2026-10-12・codex-implementer・reviewer 採用・tests 1529 / tests_ui 946 / smoke pass・実機目視は task_02 でまとめて）
-- task_02: 縦横比固定（純関数モジュール + `<Configure>` 補正 + `update_layout` の比率判定・暫定 39 §5・§6 の 8〜10）と単体テスト。**実装後にユーザーの実機目視**（§6 の 8・10）
+- task_02: 縦横比固定（純関数モジュール + `<Configure>` 補正 + `update_layout` の比率判定・暫定 39 §5・§6 の 8〜10）と単体テスト。**実装後にユーザーの実機目視**（§6 の 8・10） — **完了**（2026-10-12・codex-implementer・reviewer 採用・初回目視でリサイズが意図とずれる NG → task_02b で修正後にユーザー実機目視 OK〔§6 の 1・2・8・10〕）
+- task_02b: task_02 の実機目視 NG（縮めると大きく・広げると小さく）への修正 = マウスのボタンが押されている間は補正しない（暫定 39 v0.4 §5・infrastructure に `is_mouse_button_down`）。task_02 と合わせて実機目視 — **完了**（2026-10-12・codex-implementer・reviewer 採用・Codex が消した BOM 2 件をメインで復元・tests 1542 / tests_ui 949 / smoke pass・Codex 敵対的レビュー〔v0.4〕の 2 件はユーザー判断で受容として §5 に明記）
 - task_03: 「キーボードUIを常に手前」とダイアログ表示中の一時解除（暫定 39 §4・§6 の 3〜7・11）と UI テスト。着手時に所有関係の前提を実測。**実装後にユーザーの実機目視**（§6 の 5・7）
 - task_04: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）
 - task_05: 正本反映（暫定 39 §8 の昇格・凍結）・`decisions_archive/55_keyboard_ui_window.md`・decisions.md の索引・current.md の完了記載・`/refactor_check`

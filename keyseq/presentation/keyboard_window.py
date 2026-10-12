@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import font as tkfont
 from tkinter import ttk
+from typing import Callable
 
 from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import get_active_triggers
@@ -11,6 +12,15 @@ from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
     resolve_key_id_from_scan_code,
     resolve_keyboard_layout,
+)
+from keyseq.presentation.keyboard_window_size import (
+    KEYBOARD_WINDOW_MIN_WIDTH,
+    KEYBOARD_WINDOW_PADDING,
+    RESIZE_SETTLE_MS,
+    corrected_size,
+    layout_aspect,
+    minimum_size,
+    size_from_width,
 )
 from keyseq.presentation.tk_keys import TK_KEYSYM_TO_KEYBOARD_NAME, numpad_name_from_tk_event
 
@@ -54,22 +64,41 @@ class KeyboardWindow(tk.Toplevel):
         on_close=None,
         on_assign_keymap=None,
         on_clear_keymap=None,
+        is_mouse_button_down: Callable[[], bool] | None = None,
     ):
         super().__init__(parent)
         self.title("Keyboard UI")
-        self.geometry("510x210")
-        self.minsize(510, 210)
         self._on_close = on_close
         self._on_assign_keymap = on_assign_keymap
         self._on_clear_keymap = on_clear_keymap
+        self._is_mouse_button_down = is_mouse_button_down
         self._layout = layout or resolve_keyboard_layout()
+        self._ratio = layout_aspect(self._layout.keys)
+        initial_size = (
+            minimum_size(self._ratio)
+            if self._ratio is not None
+            else (KEYBOARD_WINDOW_MIN_WIDTH, 210)
+        )
+        self._size_base = initial_size
+        self._resize_job = None
+        self._applied_size: tuple[int, int] | None = None
+        self._suspended = False
+        self._ratio_pending = False
+        try:
+            self.geometry(f"{initial_size[0]}x{initial_size[1]}")
+        except tk.TclError:
+            pass
+        try:
+            self.minsize(*initial_size)
+        except tk.TclError:
+            pass
         self._display_map: dict[str, str] = {}
         self._kind_map: dict[str, str] = {}
         self._key_bounds: list[tuple[str, float, float, float, float]] = []
         self._editing_source_key: str | None = None
         self._show_physical_key_labels = False
 
-        container = ttk.Frame(self, padding=10)
+        container = ttk.Frame(self, padding=KEYBOARD_WINDOW_PADDING)
         container.pack(fill="both", expand=True)
 
         self.canvas = tk.Canvas(container, background="#f5f7fb", highlightthickness=0)
@@ -78,11 +107,24 @@ class KeyboardWindow(tk.Toplevel):
         self.canvas.bind("<Button-1>", self._on_canvas_left_click)
         self.canvas.bind("<Button-3>", self._on_canvas_right_click)
         self.bind("<KeyPress>", self._on_key_press, add="+")
+        self.bind("<Configure>", self._on_window_configure, add="+")
         self.protocol("WM_DELETE_WINDOW", self._handle_close)
         self._update_title()
 
     def update_layout(self, layout: KeyboardLayout | None) -> None:
         self._layout = layout or resolve_keyboard_layout()
+        ratio = layout_aspect(self._layout.keys)
+        if ratio != self._ratio:
+            self._ratio = ratio
+            try:
+                suspended = self.state() in ("zoomed", "iconic")
+            except tk.TclError:
+                suspended = True
+            if suspended:
+                self._suspended = True
+                self._ratio_pending = True
+            elif ratio is not None:
+                self._apply_ratio_to_base()
         self._update_title()
         self.redraw()
 
@@ -152,6 +194,7 @@ class KeyboardWindow(tk.Toplevel):
         self.redraw()
 
     def _handle_close(self) -> None:
+        self._cancel_resize_job()
         callback = self._on_close
         self._on_close = None
         try:
@@ -160,6 +203,95 @@ class KeyboardWindow(tk.Toplevel):
         finally:
             if callable(callback):
                 callback()
+
+    def _cancel_resize_job(self) -> None:
+        job = self._resize_job
+        self._resize_job = None
+        if job is None:
+            return
+        try:
+            self.after_cancel(job)
+        except tk.TclError:
+            pass
+
+    def _on_window_configure(self, event) -> None:
+        if event.widget is not self:
+            return
+        try:
+            state = self.state()
+        except tk.TclError:
+            return
+        if state in ("zoomed", "iconic"):
+            self._cancel_resize_job()
+            self._suspended = True
+            return
+        current = (event.width, event.height)
+        if self._suspended:
+            self._suspended = False
+            self._size_base = current
+            if self._ratio_pending:
+                self._ratio_pending = False
+                self._apply_ratio_to_base()
+            return
+        if self._applied_size is not None:
+            self._size_base = current
+            self._applied_size = None
+            return
+        if current == self._size_base:
+            return
+        self._cancel_resize_job()
+        try:
+            self._resize_job = self.after(RESIZE_SETTLE_MS, self._settle_size)
+        except tk.TclError:
+            self._resize_job = None
+
+    def _settle_size(self) -> None:
+        self._resize_job = None
+        is_mouse_button_down = self._is_mouse_button_down
+        if callable(is_mouse_button_down):
+            try:
+                if is_mouse_button_down():
+                    try:
+                        self._resize_job = self.after(
+                            RESIZE_SETTLE_MS, self._settle_size
+                        )
+                    except tk.TclError:
+                        self._resize_job = None
+                    return
+            except Exception:
+                pass
+        try:
+            if self.state() in ("zoomed", "iconic"):
+                return
+            current = (self.winfo_width(), self.winfo_height())
+        except tk.TclError:
+            return
+        if self._ratio is None:
+            self._size_base = current
+            return
+        target = corrected_size(self._size_base, current, self._ratio)
+        if target is None or target == current:
+            self._size_base = current
+            return
+        try:
+            self.geometry(f"{target[0]}x{target[1]}")
+        except tk.TclError:
+            return
+        self._applied_size = target
+        self._size_base = target
+
+    def _apply_ratio_to_base(self) -> None:
+        ratio = self._ratio
+        if ratio is None:
+            return
+        target = size_from_width(self._size_base[0], ratio)
+        try:
+            self.minsize(*minimum_size(ratio))
+            self.geometry(f"{target[0]}x{target[1]}")
+        except tk.TclError:
+            return
+        self._applied_size = target
+        self._size_base = target
 
     def _on_canvas_configure(self, _event=None) -> None:
         self.redraw()

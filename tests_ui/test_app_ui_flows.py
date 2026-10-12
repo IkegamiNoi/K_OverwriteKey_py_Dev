@@ -14,6 +14,7 @@ from unittest.mock import Mock, call, patch
 from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import SavePlan
 from keyseq.presentation.app import App
+from keyseq.presentation.keyboard_window_size import RESIZE_SETTLE_MS, corrected_size
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs import PresetManagerDialog, format_preset_manager_source_labels
 from tests_ui.hook_resume_wait import wait_for_hook_pause_count
@@ -2326,6 +2327,60 @@ class AppUiFlowsTest(unittest.TestCase):
         self.assertIsNotNone(self.app.layout.keyboard_window)
         self.app.layout.keyboard_window._handle_close()
         self.assertIsNone(self.app.layout.keyboard_window)
+
+    def test_keyboard_window_refresh_with_same_layout_does_not_set_geometry(self):
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        try:
+            with patch.object(window, "geometry") as geometry:
+                self.app.layout.refresh_keyboard_window()
+            geometry.assert_not_called()
+        finally:
+            window._handle_close()
+
+    def test_keyboard_window_settle_defers_while_mouse_button_is_down(self):
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        try:
+            window._size_base = (600, 400)
+            window._resize_job = "pending"
+            with patch.object(window, "state", return_value="normal"), patch.object(
+                window, "winfo_width", return_value=700
+            ), patch.object(window, "winfo_height", return_value=500), patch.object(
+                window, "geometry"
+            ) as geometry, patch.object(
+                window, "after", return_value="rescheduled"
+            ) as after, patch.object(
+                window, "_is_mouse_button_down", return_value=True
+            ):
+                window._settle_size()
+
+            geometry.assert_not_called()
+            after.assert_called_once_with(RESIZE_SETTLE_MS, window._settle_size)
+            self.assertEqual(window._resize_job, "rescheduled")
+            self.assertEqual(window._size_base, (600, 400))
+        finally:
+            window._handle_close()
+
+    def test_keyboard_window_settle_corrects_when_mouse_button_is_up(self):
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        try:
+            window._size_base = (600, 400)
+            with patch.object(window, "state", return_value="normal"), patch.object(
+                window, "winfo_width", return_value=700
+            ), patch.object(window, "winfo_height", return_value=500), patch.object(
+                window, "geometry"
+            ) as geometry, patch.object(
+                window, "_is_mouse_button_down", return_value=False
+            ):
+                window._settle_size()
+
+            expected = corrected_size((600, 400), (700, 500), window._ratio)
+            geometry.assert_called_once_with(f"{expected[0]}x{expected[1]}")
+            self.assertEqual(window._size_base, window._applied_size)
+        finally:
+            window._handle_close()
 
     def test_keyboard_window_title_and_status_label(self):
         self.app.layout.open_keyboard_window()

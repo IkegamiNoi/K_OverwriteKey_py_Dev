@@ -161,3 +161,49 @@ class OwnProcessForegroundTests(unittest.TestCase):
         ) as load_user32:
             self.assertFalse(input_gateway.is_own_process_foreground())
         load_user32.assert_not_called()
+
+
+class MouseButtonDownTests(unittest.TestCase):
+    def setUp(self) -> None:
+        input_gateway._mouse_button_error_logged = False
+        input_gateway._mouse_button_api.cache_clear()
+        self.addCleanup(input_gateway._mouse_button_api.cache_clear)
+
+    def _check_with_user32(self, left_state: int, right_state: int) -> bool:
+        user32 = Mock()
+        user32.GetAsyncKeyState.side_effect = (left_state, right_state)
+        with patch.object(input_gateway.sys, "platform", "win32"), patch.object(
+            input_gateway.ctypes, "WinDLL", return_value=user32, create=True
+        ):
+            input_gateway._mouse_button_api.cache_clear()
+            result = input_gateway.is_mouse_button_down()
+        self.assertEqual(user32.GetAsyncKeyState.argtypes, [input_gateway.ctypes.c_int])
+        self.assertIs(user32.GetAsyncKeyState.restype, input_gateway.ctypes.c_short)
+        return result
+
+    def test_left_button_down(self):
+        self.assertTrue(self._check_with_user32(0x8000, 0))
+
+    def test_right_button_down(self):
+        self.assertTrue(self._check_with_user32(0, 0x8000))
+
+    def test_no_button_down(self):
+        self.assertFalse(self._check_with_user32(0, 0))
+
+    def test_api_exception_returns_false_and_logs_only_once(self):
+        user32 = Mock()
+        user32.GetAsyncKeyState.side_effect = OSError("mouse state failed")
+        with patch.object(input_gateway.sys, "platform", "win32"), patch.object(
+            input_gateway.ctypes, "WinDLL", return_value=user32, create=True
+        ), self.assertLogs("keyseq.infrastructure.input_gateway", level="ERROR") as logs:
+            input_gateway._mouse_button_api.cache_clear()
+            self.assertFalse(input_gateway.is_mouse_button_down())
+            self.assertFalse(input_gateway.is_mouse_button_down())
+        self.assertEqual(len(logs.records), 1)
+
+    def test_non_windows_does_not_load_user32(self):
+        with patch.object(input_gateway.sys, "platform", "linux"), patch.object(
+            input_gateway.ctypes, "WinDLL", create=True
+        ) as load_user32:
+            self.assertFalse(input_gateway.is_mouse_button_down())
+        load_user32.assert_not_called()
