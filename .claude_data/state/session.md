@@ -4,34 +4,41 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-13T05:00:00
-phase: instructions/phase/56_screen_grid_cursor（画面の枠でカーソル移動・クリック・暫定 40 v0.6 ユーザー確定済）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 22
+last_updated: 2026-10-13T02:40:00
+phase: instructions/phase/56_screen_grid_cursor（task_08 = 正本反映の途中・完了判定前レビューの判断待ち）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 23
 直前の完了フェーズ = **phase 55**（キーボードUIのウィンドウ改善・`decisions_archive/55_keyboard_ui_window.md`）
-last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_07 のコミット）
+last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_07 のコミット `a53b500`。**task_08 の文書一式は未コミット**〔正本 5 ファイル + data_schema/5_06_01・暫定 40 凍結・phase.md・current.md・decisions.md・decisions_archive/56・提案書 22・task_08 定義〕）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: present
-focus: **phase 56 task_07（統合確認）完了。次は task_08（正本反映・暫定 40 の凍結・decisions_archive・current.md・/refactor_check）。** フェーズ内のタスクの連続実行は許可済み。
+presence: away（戻る予定 2026-10-13T07:30）
+focus: **phase 56 task_08（正本反映）の文書作業は済み・完了判定前レビューの判断待ちで停止**。フェーズ内のタスクの連続実行は許可済み。
 mode: implementing
 
 ## last_action
-ts: 2026-10-13T05:00:00
+ts: 2026-10-13T02:40:00
 who: main
 summary: |
-  実施: task_07 を起票し verifier で全体を実測（tests_ui の構造テスト 1 件 → GridEditorWindow を NESTED_CHILD_DIALOGS へ）。deep-reviewer = 修正要（軽微）・codex-reviewer = P2 ×3（重複）。
-  採否（ユーザー判断・推奨どおり）: 今直す = M1（1×1）・M2（窓が無いのに suppress・abort と再試行の抑止）・M3（on_font_changed の例外）・L2（自分の切替キーを予約から除く）・LastError（use_last_error）/ task_08 = L7（暫定 40 §4.2 の文言・phase.md の版数と目視対象）/ 保留 = L1・L3（正本に明記）・L5・L6（idea_45）/ 除外 = L4・L8。
-  codex-implementer で修正 → テスト追従（メイン）→ reviewer 採用 → on_font_changed も畳む（メイン）。
+  実施: task_08 を起票し、正本へ昇格（data_schema §5.6 / §5.2 + 子 5_06_01_keymap_grid.md・features §4.7 + §4.3 / §4.5 / §4.6 の参照・key_input §7.3 / §7.4・nonfunctional「画面の枠の座標系」・codebase_map「画面の枠」）。
+  暫定 40 を v0.7 で凍結（§4.2 の文言を直す）・phase.md（v0.7・目視対象に task_06b）・decisions_archive/56・decisions.md の索引・current.md の完了記載（次採番 57 / 41 / 57 / 23）。
+  /refactor_check = 推奨 → 提案書 22（M3・M4 = grid の受け渡し 3 か所 / M6 = 振り直しの段の直値）。
+  完了判定前レビュー: deep-reviewer = 修正要（M1 = 再列挙が空で suppress が残る〔実装〕/ M2・L1・L3〜L7 = 文書 → **反映済**）/ codex-adversarial = needs-attention 2 件（下記・裏取り済）。
 verified:
-  compile: pass
-  tests: pass（tests 1625 件 / tests_ui 1021 件〔追従した 2 件は修正後に単体で pass〕/ smoke OK）
-  review: deep-reviewer + codex-reviewer → 採用分を反映 → reviewer 採用
+  compile / tests: task_07 のまま（コード変更なし）
+  review: 完了判定前レビュー 2 本 → 判断待ち
 
 ## next_action
-- task_08 を `/task_new` で起票して実施（メインの文書作業）: 暫定 40 v0.7 の §13 の昇格（data_schema.md §5.6・§5.2 / features.md §4.3・§4.5・§4.6 / key_input.md / nonfunctional.md / codebase_map.md）+ 凍結 / L7 / L3 の明記 / decisions_archive/56 / decisions.md の索引 / current.md の完了記載（次採番 phase 57 / 暫定 41 / decisions 57 / 提案書 22）/ /refactor_check（M1〜M6 は verifier）/ フェーズ完了判定前の deep-reviewer + codex-adversarial-reviewer
+- **【起きたら最初に答えてほしい確認 3 点】**（採否はユーザー判断。根拠は裏取り済み）
+  1. **再列挙が空になると、窓は消えるのに操作キーの suppress が続く**（Codex [high]・deep M1 と同じ）: `keyseq/application/screen_grid_session.py:214-229` `_refresh_monitors` が列挙 `[]` のとき画面を None にするだけで `_visible` を真のまま残す（Tab・クリックの直前の再列挙。`win32_window.list_monitor_rects` は失敗も `[]` で返す）。
+     **推奨 = 実装を直す**（空なら `abort()` と同じく畳んで知らせ、表示の条件が一度偽になるまで出し直さない・回帰テスト）。代替 = 正本を緩める（確定設計を後から緩めるので非推奨）
+  2. **自分の切替キーを予約から除くと、停止 / トグルの予約まで消える**（Codex [medium]）: `keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:425-436` が停止・トグル・切替キーを 1 つの集合に入れてから自分の切替キーを `discard`。停止キーと自分の元の切替キーが同じ（既存仕様で許される重なり）だと停止キーを枠に付けられてしまう。
+     **推奨 = 実装を直す**（除外は切替キーの集合だけに適用してから停止・トグルを足す・テスト）
+  3. **提案書 22 の実施**（`instructions/modified_proposal/22_refactor_screen_grid.md`・2 項目・挙動不変・テストあり）: **推奨 = (a) phase 56 の末尾に task_09_refactor** / (b) 次フェーズ前のミニフェーズ / (c) 見送り。(a) なら current.md の「アクティブなフェーズ = なし」の記載は task_09 の後に確定する
+- 1・2 が「直す」なら: task_08a として起票 → codex-implementer → verifier（tests / tests_ui / smoke）→ reviewer → decisions_archive/56 の「完了判定前レビュー」欄（今は仮置き）に採否を記入 → task_08 をコミット →（3 が (a) なら）task_09_refactor
+- deep-reviewer の保留・除外: L8（data_schema の §5.6.1 の置き方）保留 / L9（key_input §7.3 の文言・nonfunctional の ctypes の範囲・凍結ヘッダの慣例）保留・除外
 
 ## blockers
-- なし
+- ユーザー判断待ち（上の 3 点）
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
