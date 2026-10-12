@@ -13,6 +13,7 @@ from keyseq.application.input_router import (
     StopHookAction,
     ToggleModeAction,
     TriggerAction,
+    GridKeyAction,
 )
 from keyseq.application.key_state_manager import KeyStateManager
 from keyseq.application.trigger_service import TriggerService
@@ -51,11 +52,63 @@ def make_router(
     )
 
 
+def make_grid_router(*, grid_snapshot, key_state_manager=None, **kwargs):
+    router = make_router(**kwargs)
+    if key_state_manager is not None:
+        router._key_state_manager = key_state_manager
+    router._get_grid_snapshot = lambda: grid_snapshot
+    return router
+
+
 def down(name):
     return SimpleNamespace(event_type="down", name=name, scan_code=None)
 
 
 class InputRouterTest(unittest.TestCase):
+    def test_grid_suppresses_grid_keys_and_passes_unrelated_keys_without_triggering(self):
+        snapshot = SimpleNamespace(visible=True, generation=7,
+                                   suppress_keys=frozenset({"q", "space"}), esc_active=False)
+        for key in ("q", "space"):
+            route = make_grid_router(grid_snapshot=snapshot,
+                                trigger={"actions": [{}]}, keymap_target="z").handle(down(key))
+            self.assertEqual(route.actions, (GridKeyAction(key, 7, False, False),))
+            self.assertFalse(route.accept)
+        route = make_grid_router(grid_snapshot=snapshot, trigger={"actions": [{}]},
+                            keymap_target="z").handle(down("b"))
+        self.assertEqual(route.actions, ())
+        self.assertTrue(route.accept)
+
+    def test_grid_modifiers_shift_and_escape_routing(self):
+        snapshot = SimpleNamespace(visible=True, generation=4,
+                                   suppress_keys=frozenset({"enter"}), esc_active=False)
+        manager = KeyStateManager()
+        manager.key_down("right shift")
+        route = make_grid_router(grid_snapshot=snapshot, key_state_manager=manager).handle(down("enter"))
+        self.assertEqual(route.actions, (GridKeyAction("enter", 4, True, False),))
+        self.assertFalse(route.accept)
+        for modifier in ("ctrl", "alt", "left windows", "right alt", "alt gr"):
+            manager = KeyStateManager()
+            manager.key_down(modifier)
+            route = make_grid_router(grid_snapshot=snapshot, key_state_manager=manager,
+                                trigger={"actions": [{}]}).handle(down("enter"))
+            self.assertEqual(route.actions, ())
+            self.assertTrue(route.accept)
+        route = make_grid_router(grid_snapshot=snapshot).handle(down("esc"))
+        self.assertEqual(route.actions, ())
+        snapshot.esc_active = True
+        route = make_grid_router(grid_snapshot=snapshot).handle(down("esc"))
+        self.assertEqual(route.actions[0].key, "esc")
+        self.assertFalse(route.accept)
+
+    def test_grid_reserved_actions_precede_grid_and_unspecified_keeps_old_behavior(self):
+        snapshot = SimpleNamespace(visible=True, generation=1,
+                                   suppress_keys=frozenset({"f12", "f11", "f10"}), esc_active=True)
+        self.assertIsInstance(make_grid_router(stop_key="f12", grid_snapshot=snapshot).handle(down("f12")).actions[0], StopHookAction)
+        self.assertIsInstance(make_grid_router(toggle_key="f11", grid_snapshot=snapshot).handle(down("f11")).actions[0], ToggleModeAction)
+        self.assertIsInstance(make_grid_router(switch_target="km2", grid_snapshot=snapshot).handle(down("f10")).actions[0], SelectKeymapAction)
+        legacy = make_router(trigger={"actions": [{}]}).handle(down("q"))
+        self.assertEqual(legacy.actions, (TriggerAction("q"),))
+
     def test_keypad_scan_code_precedes_event_name(self):
         for event_name in ("end", "1"):
             with self.subTest(event_name=event_name):

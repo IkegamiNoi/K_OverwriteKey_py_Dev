@@ -3,6 +3,7 @@ import unittest
 
 from keyseq.domain.screen_grid import (
     FIXED_RESERVED_KEYS,
+    has_enabled_grid,
     GridCell,
     GridRow,
     SubLayout,
@@ -26,6 +27,13 @@ from keyseq.domain.screen_grid import (
 
 
 class ScreenGridNormalizationTest(unittest.TestCase):
+    def test_has_enabled_grid_checks_keymap_grid_dict_and_true_flag(self):
+        self.assertTrue(has_enabled_grid([{"grid": {"enabled": True}}]))
+        for keymaps in (None, {}, [{"grid": None}], [{"grid": {"enabled": 1}}],
+                        [{"grid": {"enabled": False}}], [None]):
+            with self.subTest(keymaps=keymaps):
+                self.assertFalse(has_enabled_grid(keymaps))
+
     def test_monitor_identifier_keeps_signed_origin(self):
         self.assertEqual(monitor_identifier(0, -768, 1024, 0), "1024x768+0-768")
         self.assertEqual(monitor_identifier(0, 0, 1920, 966), "1920x966+0+0")

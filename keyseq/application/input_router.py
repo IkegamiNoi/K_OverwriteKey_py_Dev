@@ -6,6 +6,7 @@ from typing import Any, Callable
 
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.key_hold import MODIFIER_KEY_NAMES
 from keyseq.domain.numpad_keys import is_numpad_key_name, numpad_name_from_event
 
 
@@ -28,6 +29,14 @@ class SelectKeymapAction:
 class TriggerAction:
     key: str
     repeat: bool = False
+
+
+@dataclass(frozen=True)
+class GridKeyAction:
+    key: str
+    generation: int
+    shift: bool
+    repeat: bool
 
 
 @dataclass(frozen=True)
@@ -59,6 +68,7 @@ class InputRouter:
         find_keymap_target: Callable[[str], str],
         keymap_switch_in_progress: threading.Event | None = None,
         resolve_scan_code: Callable[[object], str] | None = None,
+        get_grid_snapshot: Callable[[], object] | None = None,
     ) -> None:
         self._key_state_manager = key_state_manager
         self._get_send_guard_count = get_send_guard_count
@@ -72,6 +82,7 @@ class InputRouter:
         self._find_keymap_target = find_keymap_target
         self._keymap_switch_in_progress = keymap_switch_in_progress
         self._resolve_scan_code = resolve_scan_code
+        self._get_grid_snapshot = get_grid_snapshot
 
     def handle(self, event: object) -> InputRoute:
         switching = self._is_keymap_switch_in_progress()
@@ -120,6 +131,10 @@ class InputRouter:
                 shadowed=shadowed,
             )
 
+        grid_route = self._route_grid_key(key, repeat, shadowed)
+        if grid_route is not None:
+            return grid_route
+
         trigger = self._find_trigger(key)
         if self._has_actions(trigger):
             suppress = bool(trigger.get("suppress", True))
@@ -134,6 +149,34 @@ class InputRouter:
             )
 
         return InputRoute()
+
+    def _route_grid_key(self, key: str, repeat: bool, shadowed: tuple) -> InputRoute | None:
+        if self._get_grid_snapshot is None:
+            return None
+        snapshot = self._get_grid_snapshot()
+        if not getattr(snapshot, "visible", False):
+            return None
+        passthrough_modifiers = (
+            "ctrl", "left ctrl", "right ctrl", "alt", "left alt", "right alt",
+            "alt gr", "windows", "left windows", "right windows",
+        )
+        if any(self._key_state_manager.is_pressed(name) for name in passthrough_modifiers):
+            return InputRoute()
+        if key in MODIFIER_KEY_NAMES:
+            return InputRoute()
+        if key == "esc":
+            if not getattr(snapshot, "esc_active", False):
+                return InputRoute()
+        elif key not in getattr(snapshot, "suppress_keys", frozenset()):
+            return InputRoute()
+        shift = any(self._key_state_manager.is_pressed(name) for name in (
+            "shift", "left shift", "right shift",
+        ))
+        return InputRoute(
+            actions=(GridKeyAction(key, snapshot.generation, shift, repeat),),
+            accept=False,
+            shadowed=shadowed,
+        )
 
     def _is_keymap_switch_in_progress(self) -> bool:
         return bool(

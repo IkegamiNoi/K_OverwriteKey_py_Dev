@@ -22,6 +22,15 @@ FIXED_RESERVED_KEYS = frozenset({
 }) | MODIFIER_KEY_NAMES
 
 
+def has_enabled_grid(keymaps: Any) -> bool:
+    return isinstance(keymaps, (list, tuple)) and any(
+        isinstance(keymap, dict)
+        and isinstance(keymap.get("grid"), dict)
+        and keymap["grid"].get("enabled") is True
+        for keymap in keymaps
+    )
+
+
 def monitor_identifier(left: int, top: int, right: int, bottom: int) -> str:
     return f"{right - left}x{bottom - top}{left:+d}{top:+d}"
 

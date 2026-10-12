@@ -4,37 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-12T22:00:00
+last_updated: 2026-10-12T23:30:00
 phase: instructions/phase/56_screen_grid_cursor（画面の枠でカーソル移動・クリック・暫定 40 v0.6 ユーザー確定済）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 22
 直前の完了フェーズ = **phase 55**（キーボードUIのウィンドウ改善・`decisions_archive/55_keyboard_ui_window.md`）
-last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_02 のコミット）
+last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_03 のコミット）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 56 task_02（`grid` の domain と JSON 全経路）完了。次は task_03（application の枠の操作の状態機械と input_router への組み込み）の起票。**
+focus: **phase 56 task_03（枠の操作の状態機械・input_router・フックの開始 / 再開の条件）完了。次は task_04（infrastructure・枠の窓・app.py の配線）の起票と実装 → ユーザーの実機目視。** ユーザーがフェーズ内のタスクの連続実行を許可（2026-10-12）。
 mode: implementing
 
 ## last_action
-ts: 2026-10-12T22:00:00
+ts: 2026-10-12T23:30:00
 who: main
 summary: |
-  実施: task_02 を起票し codex-implementer（Luna high・単独）で実装。新規 `keyseq/domain/screen_grid/`（models / normalize / geometry / assignment）と、`grid` を保持する 4 経路（domain/config.py・config_service/__init__.py・split_loading.py・split_payloads.py）とテスト。
-  レビュー: reviewer = 修正要（比率判定の重複・`__all__` の明示・private import・`type(cell)`・正規化の簡素化・ログの理由・補強テスト）→ codex-implementer で修正 → メインが差分を直読みして確認（再レビュー不要との判定）。
-  判断（タスク定義）: domain から標準 logging で警告 / 不正な形はその画面の記録を落とす / 正規化後の `grid` に `sub` を常に書く / `normalize_key_name` 相当を screen_grid 側に持ち循環 import を避ける。
+  実施: task_03 を起票し codex-implementer（Luna high・単独）で実装。新規 `keyseq/application/screen_grid_session.py`（MonitorInfo / GridRouteSnapshot / GridView / ScreenGridSession。sync・handle・世代・suppress する集合・esc_active）、
+  `input_router.py` に `GridKeyAction` と `get_grid_snapshot`（直接切替キーの後・トリガーの前）、`hook_coordinator.py` に `has_grid_keymaps`、`hook_controller.py` は引数の受け渡しのみ、domain に `has_enabled_grid`。
+  レビュー: reviewer = 採用（必須修正なし）。推奨の補強テスト T1〜T4 を codex-implementer で追加。
 result_files:
-  - keyseq/domain/screen_grid/（新規 5 ファイル）/ tests/test_screen_grid.py（新規）
-  - keyseq/domain/config.py / keyseq/application/config_service/{__init__,split_loading,split_payloads}.py
-  - tests/test_config_service.py / tests/test_domain_config.py / tests/test_per_keymap_triggers_load.py
-  - instructions/phase/56_screen_grid_cursor/tasks/task_02_grid_domain_and_json.md（新規）
+  - keyseq/application/screen_grid_session.py（新規）/ tests/test_screen_grid_session.py（新規）
+  - keyseq/application/{input_router,hook_coordinator}.py / keyseq/presentation/controllers/hook_controller.py / keyseq/domain/screen_grid/{__init__,normalize}.py
+  - tests/test_input_router.py / tests/test_hook_coordinator.py / tests/test_screen_grid.py
+  - instructions/phase/56_screen_grid_cursor/tasks/task_03_grid_session_and_router.md（新規）
 verified:
   compile: pass（verifier）
-  tests: pass（verifier・tests 1574 件 OK・skip 7。tests_ui は未実行 = 本タスクは UI を触らない）
-  review: reviewer 修正要 → 修正反映済
+  tests: pass（verifier・tests 1590 件 OK・skip 7 / tests_ui 959 件 OK〔補強テスト前に実行〕）
+  review: reviewer 採用
 
 ## next_action
-- `/task_new` で task_03（application の枠の操作の状態機械・世代・画面の識別子・suppress する集合と Esc の印・Shift の採取・モニタ構成の変化・`input_router` への組み込み・フックの開始 / 再開の条件・暫定 40 §4）を起票し実装へ
-- task_04 への申し送り: 自アプリの窓が前面のとき `tk.Toplevel` の作成で前面を取られる / フック動作中のクリック所要時間を一度測る / 右クリックを実機目視 / 手段 = pyautogui（`_pause=False`・FAILSAFE を一時的に外す）
+- `/task_new` で task_04 を起票（infrastructure: モニタの列挙〔`win32_window.py`〕・カーソル移動 / クリック〔`input_gateway.py`・pyautogui・`_pause=False`・FAILSAFE を一時的に外す〕/ 窓の拡張スタイル / presentation: 枠の窓と描画・`app.py` で ScreenGridSession を作り InputRouter へ注入・`refresh_keyboard_window` と同じ所での `sync`・`GridKeyAction` の UI スレッドでの実行）→ 実装 → **ユーザーの実機目視で止まる**
+- task_04 への申し送り: 自アプリの窓が前面のとき `tk.Toplevel` の作成で前面を取られる / フック動作中のクリック所要時間を一度測る / 右クリックを実機目視 / sync でモニタ 0 個のとき monitor=None・cells 空の view を窓が許容すること
 
 ## blockers
 - なし

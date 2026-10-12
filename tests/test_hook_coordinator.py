@@ -34,6 +34,18 @@ def make_runtime(
 
 
 class HookCoordinatorTest(unittest.TestCase):
+    def test_grid_keymaps_allow_start_and_resume_without_triggers_or_mappings(self):
+        gateway = SimpleNamespace(register_global_hook=Mock(return_value="handle"),
+                                  unregister_hook=Mock())
+        coordinator = HookCoordinator(gateway)
+        errors = Mock()
+        self.assertTrue(coordinator.start([], lambda _event: None, errors,
+                                          has_grid_keymaps=True, has_trigger_keys=False))
+        self.assertTrue(coordinator.can_enable_custom_input([], errors,
+                                                            has_grid_keymaps=True,
+                                                            has_trigger_keys=False))
+        self.assertEqual(errors.call_count, 0)
+
     def test_start_accepts_all_map_triggers_and_replacement_sources(self):
         data = make_runtime(active_has_trigger=False, include_mappings=False)
         controller = HookController(

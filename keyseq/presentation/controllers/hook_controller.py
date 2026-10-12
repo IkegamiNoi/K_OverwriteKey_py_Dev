@@ -6,6 +6,7 @@ from tkinter import messagebox
 from keyseq.application.input_router import SendKeyAction, StopHookAction, TriggerAction
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis, analyze_key_overlaps
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY, normalize_key_name
+from keyseq.domain.screen_grid import has_enabled_grid
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.hook_button_texts import (
     HOOK_START_TEXT, HOOK_STOP_TEXT, HOOK_TOGGLE_TEXTS,
@@ -141,6 +142,7 @@ class HookController:
             on_error=_on_error,
             has_keymaps=bool(overlap.all_source_keys),
             has_trigger_keys=bool(overlap.all_trigger_keys),
+            has_grid_keymaps=has_enabled_grid(self._app.data.get("keymaps")),
         )
 
         if not started:
@@ -203,6 +205,7 @@ class HookController:
                 on_error=_on_error,
                 has_keymaps=bool(overlap.all_source_keys),
                 has_trigger_keys=bool(overlap.all_trigger_keys),
+                has_grid_keymaps=has_enabled_grid(self._app.data.get("keymaps")),
             )
             if not enabled:
                 self.sync_trigger_toggle_buttons()
