@@ -8,10 +8,10 @@
 
 キーボードUI（`KeyboardWindow`）を、スペースを取らず・前面に置け・大きさを変えても空白が出ない窓にする
 （ステータス欄の削除とタイトル表示 / 「キーボードUIを常に手前」とダイアログ表示中の一時解除 / リサイズの縦横比固定）。
-**presentation 層のみ（前面の窓の判定は既存の infrastructure を再利用）。JSON スキーマ変更なし（前面化の状態は保存しない）。**
+**presentation が主 + infrastructure に Win32 問い合わせ 3 関数（`is_mouse_button_down` / `foreground_own_window` / `place_window_below`・App が注入・v0.4〜v0.5）。JSON スキーマ変更なし（前面化の状態は保存しない）。**
 
 - 起票元: ユーザー要望（2026-10-12）。
-- 主入力（暫定仕様）: [39_keyboard_ui_window.md](../../history/39_keyboard_ui_window.md)（v0.3・ユーザー確定済 2026-10-12）
+- 主入力（暫定仕様）: [39_keyboard_ui_window.md](../../history/39_keyboard_ui_window.md)（v0.6・ユーザー確定済 2026-10-12・凍結）
 - モード: **暫定仕様先行モード**。番号対応: phase 55 / 暫定 39 / decisions 55。
 
 ## 確定（ユーザー 2026-10-12）
@@ -53,7 +53,9 @@
 - task_03b: task_03 の実機目視 NG（一時解除でキーボードUIがダイアログを覆う）への修正 = 外した直後にダイアログの直下へ置く（暫定 39 v0.5 §4・infrastructure に `place_window_below`）。task_03 と合わせて実機目視 — **完了**（2026-10-12・HWND_NOTOPMOST で非 topmost 最上位へ来ることを probe で確認・codex-implementer・reviewer 採用・tests 1550 / tests_ui 953 / smoke pass・ユーザー実機目視 OK）
 - task_04: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer） — **完了**（2026-10-12・テストは task_03b 後の verifier 実測〔tests 1550 / tests_ui 953 / smoke pass〕を使用・deep-reviewer 修正要〔軽微〕・codex-reviewer P2 1 件 → grab 中の一時解除はユーザー確定で v0.6・実装の修正は task_04b・正本の書き漏れ / phase.md の古い記述は task_05・重複 / 行数は /refactor_check へ）
 - task_04b: 統合確認の指摘の修正（grab 中も一時解除・比率の当て直しの印 / 予約の取り消し / 保留の当て直しをボタン判定つきの予約で・暫定 39 v0.6）。軽い実機目視 — **完了**（2026-10-12・codex-implementer・reviewer 採用〔参考: 保留の当て直しが補正で上書きされうる → 新しい比率で補正されるため受容〕・tests 1550 / tests_ui 958 / smoke pass・ユーザー実機目視 OK）
-- task_05: 正本反映（暫定 39 §8 の昇格・凍結）・`decisions_archive/55_keyboard_ui_window.md`・decisions.md の索引・current.md の完了記載・`/refactor_check`
+- task_05: 正本反映（暫定 39 §8 の昇格・凍結）・`decisions_archive/55_keyboard_ui_window.md`・decisions.md の索引・current.md の完了記載・`/refactor_check` — **正本反映は済**（2026-10-12・完了判定前 deep-reviewer 修正要〔軽微・文書〕→ メインで反映 / Codex 敵対的 medium 2 → 1 は実機で一時的と確認し受容・2 は task_05a / refactor_check 推奨〔M3〕→ ユーザー判断で task_06_refactor）
+- task_05a: 完了判定前の Codex 敵対的 medium（保留した比率の当て直しが補正の予約に置き換わると新しい minsize が当たらない）の修正 = `_settle_size` で保留中の比率を引き取る
+- task_06_refactor: 提案書 21 項目 1 の実施（Win32 の窓・マウスの問い合わせを `infrastructure/win32_window.py` へ・同型 4 個を共通補助へ・挙動不変）
 
 ## レビュー方針
 

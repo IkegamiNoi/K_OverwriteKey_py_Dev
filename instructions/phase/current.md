@@ -7,10 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 55](55_keyboard_ui_window/phase.md)**（2026-10-12 起票・キーボードUIのウィンドウ改善〔ステータス欄の削除とタイトル表示 / 「キーボードUIを常に手前」とダイアログ表示中の一時解除 / リサイズの縦横比固定〕。presentation のみ・JSON スキーマ変更なし。
-  暫定仕様先行モード・主入力 = [暫定 39](../history/39_keyboard_ui_window.md)〔v0.3・ユーザー確定済〕・番号対応 phase 55 / 暫定 39 / decisions 55・起票元 = ユーザー要望 2026-10-12）。
-- 直前の完了フェーズ = [phase 54](54_numpad_key_distinction/phase.md)（2026-10-11・テンキーの区別〔`num 1` 等の名前で入力・送信・記録を区別・既存の名前は入力では主キーボードだけ〕。暫定仕様先行モード〔暫定 38 v0.5 凍結〕・判断は [decisions_archive/54](../../.claude_data/state/decisions_archive/54_numpad_key_distinction.md)）。
-- その前の完了フェーズ = [phase 53](53_repeat_stop_on_own_foreground/phase.md)（2026-10-11・アプリの窓が前面のときはキーリピートしない〔送り直しの発火ごとに前面の窓のプロセスを判定〕。暫定仕様先行モード〔暫定 37 v0.4 凍結〕・判断は [decisions_archive/53](../../.claude_data/state/decisions_archive/53_repeat_stop_on_own_foreground.md)） /
+- **アクティブなフェーズ = [phase 55](55_keyboard_ui_window/phase.md)**（2026-10-12・正本反映〔task_05〕まで済み。完了判定前レビューを受けた追加タスク task_05a〔保留比率の最小サイズ〕・task_06_refactor〔提案書 21 の実施〕が進行中）。
+- 直前の完了フェーズ = [phase 55](55_keyboard_ui_window/phase.md)（2026-10-12・キーボードUIのウィンドウ改善〔ステータス欄の削除とタイトル表示 / 「キーボードUIを常に手前」とダイアログ表示中の一時解除 / 縦横比固定〕。暫定仕様先行モード〔暫定 39 v0.6 凍結〕・判断は [decisions_archive/55](../../.claude_data/state/decisions_archive/55_keyboard_ui_window.md)）。
+- その前の完了フェーズ = [phase 54](54_numpad_key_distinction/phase.md)（2026-10-11・テンキーの区別。暫定 38 v0.5 凍結・判断は [decisions_archive/54](../../.claude_data/state/decisions_archive/54_numpad_key_distinction.md)） /
+  [phase 53](53_repeat_stop_on_own_foreground/phase.md)（2026-10-11・アプリの窓が前面のときはキーリピートしない〔送り直しの発火ごとに前面の窓のプロセスを判定〕。暫定仕様先行モード〔暫定 37 v0.4 凍結〕・判断は [decisions_archive/53](../../.claude_data/state/decisions_archive/53_repeat_stop_on_own_foreground.md)） /
   [phase 52](52_key_hold_auto_repeat/phase.md)（2026-10-11・key_hold のキーリピート〔key_hold の任意キー `repeat`・**JSON スキーマ変更あり**〕。暫定仕様先行モード〔暫定 36 v0.4 凍結〕・判断は [decisions_archive/52](../../.claude_data/state/decisions_archive/52_key_hold_auto_repeat.md)） /
   [phase 51](51_key_press_release_actions/phase.md)（2026-10-11・キーの押下 / 解放アクション `key_hold` と自動で離す安全策。暫定仕様先行モード〔暫定 35 v0.9 凍結〕・判断は [decisions_archive/51](../../.claude_data/state/decisions_archive/51_key_press_release_actions.md)） /
   [phase 50](50_select_before_run/phase.md)（2026-10-09・確認して実行〔select_before_run〕と戻す・先頭への対象を一覧の選択へ。暫定仕様先行モード〔暫定 34 v0.6 凍結〕・判断は [decisions_archive/50](../../.claude_data/state/decisions_archive/50_select_before_run.md)）/
@@ -32,6 +32,7 @@
   判断は [decisions_archive/40](../../.claude_data/state/decisions_archive/40_sequence_call.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
+- **直近のフェーズが扱った領域 = キーボード表示のウィンドウ**（phase 55）。正本 = `features.md` §4.6「キーボード表示のウィンドウ」/ 地図 = `codebase_map.md` の phase 55 の項。**残件** = 提案書 21（Win32 問い合わせの切り出し・判断待ち）/ 下記「別タスク化候補」の keyboard_window の 1 行。
 - **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37〜40）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**・phase 37）。
   phase 38 で file_line の読込をワーカー + UI 側 50 ms 確認タイマーへ移し、上限 5 秒・同じ読込キーの待ち合わせ・読込結果のキャッシュを加えた。構成セットの読込等で連続実行を常に停止する（既存挙動の変更）。
   正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.10・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
@@ -54,7 +55,7 @@
   **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**20 まで起票済**・次採番は「次採番」節が正）。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**21 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -85,7 +86,7 @@
   **phase 52 は 2026-10-11 完了**（`52_key_hold_auto_repeat` / 暫定 36〔v0.4・凍結〕/ decisions 52〔アーカイブ済〕）。
   **phase 53 は 2026-10-11 完了**（`53_repeat_stop_on_own_foreground` / 暫定 37〔v0.4・凍結〕/ decisions 53〔アーカイブ済〕）。
   **phase 54 は 2026-10-11 完了**（`54_numpad_key_distinction` / 暫定 38〔v0.5・凍結〕/ decisions 54〔アーカイブ済〕）。
-  **phase 55 は 2026-10-12 起票・進行中**（`55_keyboard_ui_window` / 暫定 39 / decisions 55）。
+  **phase 55 は 2026-10-12 完了**（`55_keyboard_ui_window` / 暫定 39〔v0.6・凍結〕/ decisions 55〔アーカイブ済〕）。
   次フェーズは **`56_<topic>`**・decisions も **56** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -122,9 +123,9 @@
   36=key_hold のキーリピート〔**v0.4・凍結**〕 /
   37=アプリの窓が前面のときはキーリピートしない〔**v0.4・凍結**〕 /
   38=テンキーの区別〔**v0.5・凍結**〕 /
-  39=キーボードUIのウィンドウ改善〔v0.3・未凍結・phase 55 の主入力〕）。
+  39=キーボードUIのウィンドウ改善〔**v0.6・凍結**〕）。
   次採番は **`40_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**20 まで起票済**
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**21 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
   **10 = phase 19 由来・実施済＝phase 19 task_07** /
@@ -138,7 +139,7 @@
   **18 = phase 43 由来・実施済＝phase 43 task_10**〔トリガーの追加・改名・削除を `trigger_row_edit.py` へ・まとめて設定のダイアログの `__init__` 分割・`range_or_index` の共通化〕 /
   **19 = phase 45 由来・実施済＝phase 45 task_12_refactor**〔`sequence_runner.py` 649 行の連続実行の進行を mixin へ・`apply_control` 104 行の分割〕 /
   **20 = phase 48 由来・実施済＝phase 48 task_07_refactor**〔`CallViewController` の省略表示の分岐を置き場の配置役へ・保存の待ち時間の定数共有〕 /
-  次採番は **`21_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  次採番は **`22_<topic>`**（21 = phase 55 の /refactor_check 由来・ユーザー判断待ち）。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
@@ -156,6 +157,10 @@
 （継続保留、ソース変更を伴う細かい負債。`/refactor_check` からの追記先もここ。
 **領域別に並べ、由来フェーズは各項の末尾に括弧で示す**。
 idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32 を昇格〕）
+
+### キーボード表示（phase 55 由来）
+
+- `presentation/keyboard_window.py`（509 行）の「マウスのボタンが押されていれば置き直す」が `_settle_size` / `_apply_pending_ratio` で同型 2 個・表示欄 2 つの「キーボードUIを常に手前」Checkbutton が同一 2 個（3 個目が出たら共通化。Win32 問い合わせの同型 4 個は提案書 21）（phase 55）
 
 ### ダイアログ・モーダル
 

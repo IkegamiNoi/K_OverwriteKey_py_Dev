@@ -119,7 +119,8 @@ keyseq/presentation/
       reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 隔離 / 復元 / 削除で再利用）
       keymap_set_history_dialog.py # KeymapSetHistoryDialog（読み込み履歴・**リポジトリ唯一の ttk.Treeview**〔2 列 / 名前列は stretch=False〕・操作のたびに永続化済みの履歴を読み直して再描画）+ CategoryChooserDialog（コピー先の分類選択・同ファイル内のネストした子）
     keyboard_layouts.py
-    keyboard_window.py
+    keyboard_window.py         # KeyboardWindow: キーボード表示の窓（タイトル表示・縦横比の補正・phase 55）
+    keyboard_window_size.py    # キーボード表示の縦横比と大きさの計算（tkinter 非依存・phase 55）
     listbox_utils.py
     listbox_range_drag.py      # ListboxRangeDrag / bind_listbox_range_drag: 対象 4 一覧の連続範囲選択・ドラッグ移動のプレビューと確定・Escape の取り消し・自動スクロール・Tk 既定バインドの置き換え。range_or_index: 有効な選択範囲か代替の 1 行を取得（compact は範囲を無視・phase 43）
     list_clipboard.py          # ListClipboard: 一覧の Ctrl+C / V のアプリ内保管庫（種類つきの写し・構成セットの読込 / 新規作成で空にする・phase 43）
@@ -303,7 +304,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     - `KeymapSetIo.load_keymap_set_path(path)`: **パス指定の共通読込入口**（メニュー読込と履歴ダイアログの
       双方が使う。成否を `KEYMAP_SET_LOAD_OK` / `..._FAILED` で返す）
     - **メニュー配線は `views/menu_bar.py` のファイルメニュー 1 行**（「読込（構成セット）…」の直後）
-- LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理
+- LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理・キーボードUIの前面化と一時解除の監視（phase 55）
 - PaneLayoutController（controllers/pane_layout/ = `app.pane_layout`）: フル表示の幅配分（仕様は `spec_detail/features.md` §4.6「フル表示の幅配分」・
   `data_schema.md` §5.4）。計算は `pane_width_rules.py` の純関数、最小幅の実測は `pane_measure.py`。
   - 初回適用（FullView の `PanedWindow` の最初の `<Configure>`）: 最小幅とヘッダ幅の実測 → 保存値の検証 or 既定幅（780 基準）→ 一括適用 →
@@ -590,7 +591,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - 構成 Widget:
   - FullHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの表示と**取得・クリア**・
     「このキーマップセットで個別指定する」チェック（操作可能なのは full のみ）
-  - FullDisplayFrame（display_frame.py）: 常に手前・省略表示へ・キーボードUI・レイアウト選択
+  - FullDisplayFrame（display_frame.py）: 常に手前・省略表示へ・キーボードUI・レイアウト選択・キーボードUIを常に手前（phase 55）
   - FileFrame（file_frame.py）: 保存 / 別名で保存 / 読込 / 新規作成
   - KeymapBox（keymap_box.py）: キーマップ一覧と管理ボタン（追加・変更・削除・保存系。phase 34 で「選択」ボタンを削除し一覧の選択 = アクティブ化）
   - FullTriggerBox（trigger_box.py）: トリガー一覧・編集ボタン・suppress チェック。範囲ドラッグ部品で選択/移動を接続し、一覧内の Ctrl+C/V（大小両方）でトリガーをコピー/末尾貼り付けする。編集対象は下線の行、削除/コピー/移動対象は選択範囲。省略表示は単一選択のまま
@@ -601,7 +602,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - 構成 Widget:
   - CompactHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの**表示のみ**
     （個別指定チェックも `state="disabled"` の状態表示のみ）
-  - CompactDisplayFrame（display_frame.py）: 常に手前・フルに戻す・キーボードUI・レイアウト選択
+  - CompactDisplayFrame（display_frame.py）: 常に手前・フルに戻す・キーボードUI・レイアウト選択・キーボードUIを常に手前（phase 55）
   - CompactTriggerBox（trigger_box.py）: 上から トリガー一覧 / シーケンス欄（CompactSequenceFrame・phase 48）/ 呼び出し先の表示枠（phase 45）。仕様 = `features.md` §4.6「省略表示のシーケンス欄」「省略表示のウィンドウ」
 
 ### メニュー / ステータス
@@ -775,6 +776,14 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - 検査・送信・同じキー: `infrastructure/input_gateway.py`（`validate_key_name` が表の名前を許可・予約名を拒否 / `press_key`・`release_key`・`send_hotkey` は表の名前を `_send_numpad_event`〔専用 user32 の `SendInput` スキャンコード入力・`is_replaying`〕で送る / `key_identity` は表 → 拡張キー表 → keyboard の先頭〔0xE0xx は拡張に読み替え〕）
   - 記録: `presentation/tk_keys.py` の `numpad_name_from_tk_event(keycode, state)`・`normalize_tk_key_event` / `normalize_key_hold_tk_key_event`（hotkey の記録・key_hold の「1 キーを記録」・トリガー / 切替キー / 停止キーの取得・`keyboard_window.py` の置換先の取得から呼ぶ）
   - テスト: `tests/test_numpad_keys.py` / `test_tk_keys.py` / `test_input_router.py` / `test_key_state_manager.py` / `test_key_overlap.py` / `test_input_gateway_send.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_keymap_switch_batch_dialog.py`
+- phase 55（キーボードUIのウィンドウ改善。仕様 = `features.md` §4.6「キーボード表示のウィンドウ」。判断 = `decisions_archive/55_keyboard_ui_window.md`）:
+  - タイトル: `presentation/keyboard_window.py` の `keyboard_window_title(layout_name, editing_key)`（純関数）→ `_update_title`（ステータス欄は削除）
+  - 縦横比: 計算は `presentation/keyboard_window_size.py`（`layout_aspect` / `size_from_width` / `size_from_height` / `minimum_size` / `corrected_size`・tkinter 非依存）。
+    補正は `KeyboardWindow` の `<Configure>`（`event.widget is self` のみ）→ 150ms の予約 `_settle_size`（マウスのボタンが押されていれば置き直し）/ `update_layout` は比率が変わったときだけ `_apply_ratio_to_base` / 最大化・最小化中は `_ratio_pending` → 通常へ戻った Configure または `<Map>` で `_apply_pending_ratio`
+  - 前面化: `LayoutController` の `on_keyboard_topmost_changed` / `apply_keyboard_topmost`（実効値 = `ui_vars.keyboard_always_on_top_var` ∧ ¬`_topmost_released`）/ 監視 `_watch_topmost_tick`（200ms・前面がダイアログ or `grab_current()` 有りで一時解除・ダイアログ前面で入ったときは直下へ置く）
+  - Win32 は `infrastructure/input_gateway.py` のモジュール関数 `is_mouse_button_down`（`GetAsyncKeyState` 左右）/ `foreground_own_window`（自プロセスの前面 HWND）/ `place_window_below`（`SetWindowPos` NOSIZE|NOMOVE|NOACTIVATE）。
+    **App が属性として注入**（`app.is_mouse_button_down` / `app.foreground_own_window` / `app.place_window_below`）し、presentation の他所は ctypes を呼ばない
+  - テスト: `tests/test_keyboard_window_title.py` / `test_keyboard_window_size.py` / `test_input_gateway_repeat.py` / `tests_ui/test_app_ui_flows.py`（`test_keyboard_window_*`）
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 

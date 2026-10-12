@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-12T09:00:00
-phase: instructions/phase/55_keyboard_ui_window（暫定 39 v0.6・ユーザー確定済 / decisions 55）。次採番 = phase 56 / 暫定 40 / decisions 56 / 提案書 21
+last_updated: 2026-10-12T11:00:00
+phase: instructions/phase/55_keyboard_ui_window（暫定 39 v0.6・ユーザー確定済 / decisions 55）。次採番 = phase 56 / 暫定 40 / decisions 56 / 提案書 22
 直前の完了フェーズ = **phase 54**（テンキーの区別・`decisions_archive/54_numpad_key_distinction.md`）
 last_commit_location: `claude/keyboard-input-priority-999558`（task_04・04b まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 55（キーボードUIのウィンドウ改善）task_01〜04b 完了・task_05（正本反映・凍結・decisions_archive・refactor_check・完了判定前レビュー）着手。**
+focus: **phase 55 task_05（正本反映・暫定 39 凍結・decisions_archive/55）済み。追加タスク task_05a（保留比率の minsize）→ task_06_refactor（提案書 21）進行中。**
 mode: implementing
 
 ## last_action
