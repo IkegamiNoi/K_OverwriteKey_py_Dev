@@ -621,3 +621,8 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 確定事項は暫定 40 §2 の 1〜12 が正。ユーザー判断: 追加ダイアログ（まとめて設定の新規の行）にも「枠を使う」/ 枠だけの構成でもフックを開始・再開できる / 最上段の Esc は素通し・BackSpace は suppress（v0.5 で素通しにしたが文字を消す危険で v0.6 に戻す）/ 最上段は段ごとに列を独立・既定 3×4。
 - 起票時レビュー（deep-reviewer・修正要 16 件）→ 修正して採用（v0.2）: 予約キーは固定分だけ読込時に検査・設定で変わる分は編集の OK でだけ拒否 / suppress は和集合で段に依存させない / ctrl・alt・windows を押している間は素通し / `top.default` は JSON に持たず組み込み定数。
 - 敵対的レビュー（Codex・needs-attention 5 件）→ 全件採用（v0.4）: pyautogui の import で `SetProcessDPIAware()` が呼ばれシステム DPI 対応になっている（裏取り済 `_pyautogui_win.py:17`）ため §6 の検証は本番の起動経路で / 状態の世代 / 画面は識別子で保持 / Shift は振り分け時に採取 / 再開の条件にも grid。
+
+### 【task_01 画面・座標の検証】既定案で成立（2026-10-12）
+- 実測（VirtualBox ゲスト・2 画面〔主の上が負の y〕・100%）: SYSTEM_AWARE のまま、列挙の矩形・窓の位置・カーソル移動・クリックがすべて一致、フォーカスを取らずクリックを素通し。詳細は `tasks/task_01_display_coordinate_spike.md`「結果」。
+- 確定: 既定案（DPI の状態は今のまま）/ 画面の識別子は暫定 40 §3 のまま（矩形由来。`szDevice` は配置の変更でも変わらないため補助情報に留める）/ 枠の窓の拡張スタイル = Tk の透過色 + `TRANSPARENT | NOACTIVATE | TOOLWINDOW` を表示前にラッパーへ。
+- 手段 = **pyautogui**（ユーザー判断: Win32 も同等だったが、Mac 対応の予定があり既存のクリックと経路をそろえる）。`_pause=False`（既定の `PAUSE` は約 100ms UI を止める）・FAILSAFE は既存の `_send_mouse_button` と同じく一時的に外す。`input_gateway.py` に置く。

@@ -4,41 +4,39 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-12T18:00:00
+last_updated: 2026-10-12T20:30:00
 phase: instructions/phase/56_screen_grid_cursor（画面の枠でカーソル移動・クリック・暫定 40 v0.6 ユーザー確定済）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 22
 直前の完了フェーズ = **phase 55**（キーボードUIのウィンドウ改善・`decisions_archive/55_keyboard_ui_window.md`）
-last_commit_location: `claude/screen-grid-cursor-tool-2cd348`（phase 56 起票 `c58a817`。以降の未コミット = 暫定 40 §6 の検証環境の追記・本ファイル・handoff.md）
+last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_01 のコミット）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 56 起票済・task_01（画面・座標の検証スパイク）未着手。ユーザーが VirtualBox のゲストを仮想モニタ 2 台（縦並び）にするため一時シャットダウン中。**
+focus: **phase 56 task_01（画面・座標の検証スパイク）完了。次は task_02（`grid` の domain と JSON 全経路）の起票と実装。**
 mode: implementing
 
 ## last_action
-ts: 2026-10-12T18:00:00
+ts: 2026-10-12T20:30:00
 who: main
 summary: |
-  実施: ユーザー要望（画面の枠でカーソル移動・クリック）から暫定 40（`instructions/history/40_screen_grid_cursor.md`）を起票し v0.6 でユーザー確定、phase 56 を起票（phase.md・current.md・decisions.md）してコミット `c58a817`。
-  レビュー: 起票時 deep-reviewer（修正要 16 件 → v0.2 反映）/ Codex 敵対的（needs-attention 5 件 → v0.4 全件採用・DPI の前提訂正〔pyautogui が import 時に SetProcessDPIAware〕）/ phase.md 整合 reviewer（重大なし・軽微 2 件反映）。
-  ユーザー判断: 追加ダイアログの新規の行にも「枠を使う」/ 枠だけでもフック開始・再開可 / 最上段の Esc は素通し・BackSpace は suppress / 検証環境 = VirtualBox ゲストに仮想モニタ 2 台縦並び（2 枚目を主の上 = 負の y）・100%・拡大率の混在は検証せず受容（暫定 40 §6 に追記）。
+  実施: task_01 を起票し、scratchpad のプローブ（コミットしない）でユーザーの実機（VirtualBox ゲスト・主 (0,0)-(1920,966) / 主の上 (0,-768)-(1024,0)・100%）を測定。結果は task_01「結果」節。
+  結論: 既定案（SYSTEM_AWARE のまま）で列挙の矩形・窓の位置・カーソル移動・クリック・フォーカスを取らない・クリック素通し・構成の変化の検出・連打がすべて OK（ユーザー目視も全項目問題なし）。
+  ユーザー判断: カーソル移動・クリックの手段 = pyautogui（Mac 対応の予定のため既存のクリックと経路をそろえる・`_pause=False`・FAILSAFE は一時的に外す）。識別子は暫定 40 §3 のまま（矩形由来・`szDevice` は補助）。
+  レビュー: reviewer = 修正して採用（識別子の書き方・記録漏れ・時間の注記を反映済）。
 result_files:
-  - instructions/history/40_screen_grid_cursor.md（新規）
-  - instructions/phase/56_screen_grid_cursor/phase.md（新規）
-  - instructions/phase/current.md / .claude_data/state/decisions.md
+  - instructions/phase/56_screen_grid_cursor/tasks/task_01_display_coordinate_spike.md（新規）
+  - instructions/history/40_screen_grid_cursor.md（§6 に実構成を追記）/ .claude_data/state/decisions.md
 verified:
-  compile: not_run（文書のみ）
+  compile: not_run（文書のみ・製品コード変更なし）
   tests: not_run（文書のみ）
-  review: 暫定 40 = deep-reviewer + codex-adversarial 反映済 / phase.md = reviewer 整合確認済
+  review: reviewer 修正して採用 → 反映済
 
 ## next_action
-- ユーザーが仮想モニタ 2 台（Windows の表示設定で 2 枚目を主モニタの上）にして戻ったら、モニタ数と配置（2 枚目が主の上か）をユーザーに確認する
-- `/task_new` で `instructions/phase/56_screen_grid_cursor/tasks/task_01_display_coordinate_spike.md` を起票（暫定 40 §6 の 0〜5 と末尾の抜き差し・連打。本番の起動経路 = `main.py` と同じ import 順・Tk 初期化後で測る）
-- task_01 の実測スクリプト（scratchpad に置く検証用 probe・製品コードではない）を用意し、ユーザーの実機で実行・目視してもらう。既定案（DPI の状態は今のまま）で座標が一致しなければ止めてユーザーへ §6 の (a)〜(c) を確認
-- task_01 完了後に task_02（`grid` の domain と JSON 全経路）を codex-implementer へ
+- `/task_new` で task_02（`grid` の domain〔形のモデル・既定・正規化・セルの矩形・細分化・自動割当 / 振り直し・検証の純関数〕と JSON 全経路の保持・暫定 40 §3・§5）を起票し codex-implementer へ
+- task_04 への申し送り: 自アプリの窓が前面のとき `tk.Toplevel` の作成で前面を取られる / フック動作中のクリック所要時間を一度測る / 右クリックを実機目視
 
 ## blockers
-- ユーザーの検証環境の準備待ち（仮想モニタ 2 台）
+- なし
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。

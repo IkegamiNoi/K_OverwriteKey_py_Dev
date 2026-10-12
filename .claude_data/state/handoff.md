@@ -23,7 +23,7 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜39）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 56 起票済・task_01（画面・座標の検証スパイク）未着手。ユーザーが VirtualBox のゲストを仮想モニタ 2 台（縦並び）にするため一時シャットダウン中。**
+**phase 56 task_01（画面・座標の検証）完了・既定案で成立・手段 = pyautogui（ユーザー判断）。次は task_02 の起票と実装。**
 ブランチ `claude/screen-grid-cursor-tool-2cd348`（phase 56 起票 `c58a817`）。main へのマージはユーザー。フェーズ内のタスクの連続実行は許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -54,7 +54,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- ユーザーが仮想モニタ 2 台（Windows の表示設定で 2 枚目を主モニタの上 = 負の y）にして戻ったら、モニタ数と配置をユーザーに確認する
+- （完了）検証環境 = モニター 1 主 (0,0)-(1920,966) / モニター 2 主の上 (0,-768)-(1024,0)・100%（EnumDisplayMonitors で実測・暫定 40 §6 に追記済）
 - `/task_new` で `instructions/phase/56_screen_grid_cursor/tasks/task_01_display_coordinate_spike.md` を起票（暫定 40 §6 の 0〜5 と末尾の抜き差し・連打。**本番の起動経路 = `main.py` と同じ import 順・Tk 初期化後で測る**）
 - task_01 の実測スクリプト（scratchpad の probe・製品コードではない）を用意し、ユーザーの実機で実行・目視してもらう。既定案（DPI の状態は今のまま）で座標が一致しなければ止めて §6 の (a)〜(c) をユーザーへ確認
 - task_01 完了後に task_02（`grid` の domain と JSON 全経路）を codex-implementer へ
@@ -76,7 +76,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **blockers: ユーザーの検証環境の準備待ち（仮想モニタ 2 台）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **blockers: なし（検証環境の準備完了）**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
 - **【罠・phase 54 で実証】合成入力の probe で NumLock を切り替えるなら VK（`keybd_event(0x90, ..., EXTENDEDKEY)`）**。スキャンコード入力（69）では切り替わらない。probe の後は元の状態へ戻す。**Codex の新規テストの Mock の戻り値・期待値の誤り**が 1 フェーズで 2 件出た（実装は正しい）＝失敗時はまずテストを疑い、実装の仕様と照合する
 - **【罠・phase 51 で実証】keyboard ライブラリの `write` は送信前後に押下中のキーを離して修飾キーを押し直す**（拡張キーの right ctrl が left ctrl に化けて残った・probe）。合成の入力の扱いは `.venv` の小スクリプトで probe してから決める。**新しい tests_ui でテストごとに `tk.Tk()` を作り直すと後のモジュールのフォーカスが取れなくなる**（クラスで共有する）。Esc 等のキーの event_generate は `tests_ui/escape_delivery.acquire_focus` でフォーカスを取ってから
 - **【罠・phase 50 で実証】フル表示の高さ**: フォント +3 で最小 931 px が窓の取れる上限 927 px（画面 966 px）を超え、シーケンス欄のボタン列の最下段が数 px 切れる（受容・2026-10-09）。`test_full_view_min_height.py` は実測の上限に収まるときだけ一致を確かめる。**Codex は互換の工夫（`inspect` での引数判定・`getattr` の逃げ道）を足す・テストの期待値を推測で書くことがある**（task_04d で 2 つ目の待機が次の押下まで始まらないのを見落とした）＝差分の直読みと実測で外す。
