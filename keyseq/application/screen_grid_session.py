@@ -7,7 +7,7 @@ from typing import Callable
 from keyseq.application.input_router import GridKeyAction
 from keyseq.domain.screen_grid.geometry import Rect
 from keyseq.domain.screen_grid import (
-    can_subdivide, default_sub_layout, rect_center,
+    can_subdivide, default_sub_layout, label_position_of, rect_center,
     sub_cell_rects, sub_layout_of, top_cell_rects, top_layout_for,
 )
 
@@ -36,6 +36,7 @@ class GridView:
     cells: tuple[tuple[Rect, str], ...]
     selected: int | None
     generation: int
+    label_position: str = "center"
 
 
 class ScreenGridSession:
@@ -71,6 +72,7 @@ class ScreenGridSession:
         return GridView(
             self._visible, self._monitor, max(0, len(self._regions) - 1),
             region, cells, self._selected, self._generation,
+            label_position_of(self._grid),
         )
 
     def sync(self, *, keymap_id: str, grid: dict | None, active: bool) -> None:

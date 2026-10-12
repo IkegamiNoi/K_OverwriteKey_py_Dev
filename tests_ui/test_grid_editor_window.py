@@ -37,8 +37,9 @@ class GridEditorWindowTest(unittest.TestCase):
     def set_sub_keys(editor, keys):
         values = keys.split()
         cols = int(editor.panel.cols_var.get())
-        for row, variable in enumerate(editor.panel.sub_key_vars):
-            variable.set(" ".join(values[row * cols:(row + 1) * cols]))
+        editor.panel.sub_keys = values[:cols * int(editor.panel.rows_var.get())]
+        for index, key in enumerate(editor.panel.sub_keys):
+            editor.panel.sub_key_buttons[index].configure(text=key)
 
     def test_opens_on_start_monitor_and_switches_between_two_monitors(self):
         editor = self.open_editor(start="secondary")
@@ -79,13 +80,13 @@ class GridEditorWindowTest(unittest.TestCase):
         self.addCleanup(editor.destroy)
         self.select_cell(editor)
 
-        editor.panel.buttons["行の追加"].invoke()
+        editor.panel.buttons["段の追加"].invoke()
         self.assertEqual(len(editor.layout.rows), 4)
         editor.panel.buttons["列の追加"].invoke()
         self.assertEqual(len(editor.layout.rows[0].cells), 5)
         editor.panel.buttons["列の削除"].invoke()
         self.assertEqual(len(editor.layout.rows[0].cells), 4)
-        editor.panel.buttons["行の削除"].invoke()
+        editor.panel.buttons["段の削除"].invoke()
         self.assertEqual(len(editor.layout.rows), 3)
 
     def test_row_and_cell_boundaries_move_by_drag(self):
@@ -141,17 +142,13 @@ class GridEditorWindowTest(unittest.TestCase):
         editor.accept()
         self.assertNotIn("secondary", editor.result["monitors"])
 
-    def test_changing_subdivision_counts_rebuilds_one_key_entry_per_row(self):
+    def test_changing_subdivision_counts_rebuilds_key_buttons(self):
         editor = self.open_editor()
         self.addCleanup(editor.destroy)
-        editor.panel.sub_key_vars[0].set("invalid")
         editor.panel.rows_var.set("2")
-        self.assertEqual(len(editor.panel.sub_key_vars), 2)
-        self.assertEqual(sum(len(var.get().split()) for var in editor.panel.sub_key_vars), 6)
+        self.assertEqual(len(editor.panel.sub_key_buttons), 6)
         editor.panel.cols_var.set("4")
-        self.assertEqual(len(editor.panel.sub_key_vars), 2)
-        self.assertEqual(sum(len(var.get().split()) for var in editor.panel.sub_key_vars), 8)
-        self.assertNotIn("invalid", " ".join(var.get() for var in editor.panel.sub_key_vars))
+        self.assertEqual(len(editor.panel.sub_key_buttons), 8)
 
     def test_ok_rejects_reserved_and_duplicate_sub_keys_without_closing(self):
         cases = (("f9 w a s", {"f9"}), ("q q a s", set()))
@@ -235,7 +232,7 @@ class GridEditorWindowTest(unittest.TestCase):
         editor = self.open_editor()
         self.addCleanup(editor.destroy)
         self.assertEqual(editor.selected, (0, 0))
-        self.assertEqual(str(editor.panel.buttons["行の追加"].cget("state")), "normal")
+        self.assertEqual(str(editor.panel.buttons["段の追加"].cget("state")), "normal")
         self.assertIn("キーを押す", editor.panel.hint.cget("text"))
 
     def test_first_map_reapplies_monitor_geometry_once(self):
@@ -250,18 +247,127 @@ class GridEditorWindowTest(unittest.TestCase):
         switch_monitor.assert_called_once_with("primary")
         attributes.assert_called_once_with("-alpha", 0.5)
 
+    def test_label_position_check_redraws_and_is_saved_only_when_on(self):
+        for initial, toggle, expected in ((None, True, "top_left"),
+                                           ({"label_position": "top_left"}, False, "top_left"),
+                                           ({"label_position": "top_left"}, True, "center")):
+            with self.subTest(initial=initial, toggle=toggle):
+                editor = self.open_editor(grid=initial)
+                with patch("keyseq.presentation.dialogs.grid_editor_window.draw_cell_label") as draw:
+                    if toggle:
+                        editor.panel.label_position_check.invoke()
+                    else:
+                        editor.draw()
+                self.assertEqual(editor.label_position, expected)
+                self.assertTrue(draw.called)
+                self.assertTrue(all(call.kwargs["position"] == expected for call in draw.call_args_list))
+                editor.accept()
+                if expected == "top_left":
+                    self.assertEqual(editor.result["label_position"], expected)
+                else:
+                    self.assertNotIn("label_position", editor.result)
+
+    def test_sub_buttons_capture_symbols_and_names_with_spaces_exclusively(self):
+        editor = GridEditorWindow(
+            self.root, grid=None, monitors=self.monitors, start_monitor_id="primary",
+            reserved=set(), key_name_from_event=lambda event: event.name,
+        )
+        self.addCleanup(editor.destroy)
+        for index, key in enumerate((".", "num 1")):
+            editor.panel.sub_key_buttons[index].invoke()
+            self.assertIsNone(editor.selected)
+            self.assertEqual(editor.panel.sub_selected, index)
+            self.assertEqual(editor.panel.sub_key_buttons[index].cget("relief"), tk.SUNKEN)
+            editor.on_key(SimpleNamespace(name=key))
+            self.assertEqual(editor.panel.sub_key_buttons[index].cget("text"), key)
+        editor.on_key(SimpleNamespace(name="right shift"))
+        self.assertEqual(editor.panel.sub_key_rows()[0][1], "num 1")
+        editor.on_key(SimpleNamespace(name="esc"))
+        self.assertIsNone(editor.panel.sub_selected)
+        self.assertTrue(editor.winfo_exists())
+        editor.panel.sub_key_buttons[0].invoke()
+        self.select_cell(editor)
+        self.assertIsNone(editor.panel.sub_selected)
+        self.assertEqual(editor.selected, (0, 0))
+        editor.accept()
+        self.assertEqual(editor.result["sub"]["keys"][:2], [".", "num 1"])
+
+    def test_sub_count_changes_replace_buttons_and_clear_sub_selection(self):
+        from keyseq.domain.screen_grid import auto_fill_sub_keys
+
+        editor = self.open_editor(reserved={"q"})
+        self.addCleanup(editor.destroy)
+        old_buttons = list(editor.panel.sub_key_buttons)
+        old_buttons[0].invoke()
+        editor.panel.rows_var.set("2")
+        self.assertIsNone(editor.panel.sub_selected)
+        self.assertEqual(len(editor.panel.sub_key_buttons), 6)
+        self.assertTrue(all(not button.winfo_exists() for button in old_buttons))
+        editor.panel.cols_var.set("4")
+        self.assertEqual([button.cget("text") for button in editor.panel.sub_key_buttons],
+                         list(auto_fill_sub_keys(2, 4, {"q"})))
+        self.assertFalse(any(isinstance(child, tk.Entry)
+                             for child in editor.panel.sub_keys_frame.winfo_children()))
+
+    def test_count_spinbox_key_input_does_not_change_selected_grid_or_sub_key(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        top_key = editor.layout.rows[0].cells[0].key
+        sub_key = editor.panel.sub_keys[0]
+        for spinbox in editor.panel.count_spinboxes:
+            spinbox.focus_force()
+            spinbox.event_generate("<KeyPress>", keysym="x")
+        self.assertEqual(editor.layout.rows[0].cells[0].key, top_key)
+        self.assertEqual(editor.selected, (0, 0))
+        editor.panel.sub_key_buttons[0].invoke()
+        for spinbox in editor.panel.count_spinboxes:
+            spinbox.focus_force()
+            spinbox.event_generate("<KeyPress>", keysym="y")
+        self.assertEqual(editor.panel.sub_keys[0], sub_key)
+
+    def test_typing_sub_key_with_empty_column_count_uses_built_layout(self):
+        editor = GridEditorWindow(
+            self.root, grid=None, monitors=self.monitors, start_monitor_id="primary",
+            reserved=set(), key_name_from_event=lambda event: event.name,
+        )
+        self.addCleanup(editor.destroy)
+        editor.panel.sub_key_buttons[4].invoke()
+        editor.panel.cols_var.set("")
+        editor.on_key(SimpleNamespace(name="num 1"))
+        self.assertEqual(editor.panel.sub_keys[4], "num 1")
+        self.assertEqual(editor.panel.sub_key_buttons[4].cget("text"), "num 1")
+
+    def test_switch_and_first_map_reapply_editor_then_panel_stacking(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        calls = []
+        with patch.object(editor, "wm_attributes", side_effect=lambda *args: calls.append(("editor", args))), \
+                patch.object(editor, "lift", side_effect=lambda: calls.append(("editor", "lift"))), \
+                patch.object(editor.panel, "wm_attributes", side_effect=lambda *args: calls.append(("panel", args))), \
+                patch.object(editor.panel, "lift", side_effect=lambda: calls.append(("panel", "lift"))), \
+                patch.object(editor, "after_idle", side_effect=lambda callback: callback()):
+            for action in (lambda: editor.switch_monitor("secondary"), editor._on_first_map):
+                calls.clear()
+                editor._first_map_seen = False
+                action()
+                self.assertEqual(calls, [("editor", ("-topmost", True)), ("editor", "lift"),
+                                         ("panel", ("-topmost", True)), ("panel", "lift")])
+
     def test_subdivision_rows_require_column_count_and_accept_punctuation_keys(self):
         editor = self.open_editor()
         self.addCleanup(editor.destroy)
         editor.panel.rows_var.set("2")
         editor.panel.cols_var.set("2")
-        editor.panel.sub_key_vars[0].set("a ,")
-        editor.panel.sub_key_vars[1].set("x")
+        editor.panel.sub_keys = ["a", ",", "x"]
+        for index, key in enumerate(editor.panel.sub_keys):
+            editor.panel.sub_key_buttons[index].configure(text=key)
         with patch("keyseq.presentation.dialogs.grid_editor_window.messagebox.showerror") as showerror:
             editor.accept()
-        self.assertIn("細分化・行 2: キーは 2 個にしてください", showerror.call_args.args[1])
+        self.assertIn("細分化・段 2: キーは 2 個にしてください", showerror.call_args.args[1])
         self.assertTrue(editor.winfo_exists())
-        editor.panel.sub_key_vars[1].set("/ .")
+        editor.panel.sub_keys = ["a", ",", "/", "."]
+        for index, key in enumerate(editor.panel.sub_keys):
+            editor.panel.sub_key_buttons[index].configure(text=key)
         editor.accept()
         self.assertEqual(editor.result["sub"]["keys"], ["a", ",", "/", "."])
 

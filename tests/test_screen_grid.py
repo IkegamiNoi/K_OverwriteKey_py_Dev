@@ -12,6 +12,7 @@ from keyseq.domain.screen_grid import (
     can_subdivide,
     default_sub_layout,
     default_top_layout,
+    label_position_of,
     monitor_identifier,
     next_free_key,
     normalize_grid,
@@ -64,6 +65,18 @@ class ScreenGridNormalizationTest(unittest.TestCase):
         self.assertEqual(sub_layout_of(grid), default_sub_layout())
         self.assertEqual(normalize_grid({"monitors": []})["monitors"], {})
 
+    def test_label_position_is_optional_and_preserves_only_top_left(self):
+        expected = normalize_grid({"enabled": True})
+        self.assertEqual(normalize_grid({"enabled": True, "label_position": "center"}), expected)
+        self.assertEqual(normalize_grid({"enabled": True, "label_position": "invalid"}), expected)
+        self.assertEqual(normalize_grid({"enabled": True, "label_position": "top_left"})["label_position"], "top_left")
+        self.assertEqual(label_position_of({"label_position": "top_left"}), "top_left")
+        for grid in (None, {}, {"label_position": "center"}, {"label_position": "invalid"}):
+            with self.subTest(grid=grid):
+                self.assertEqual(label_position_of(grid), "center")
+        old_grid = {"enabled": True, "monitors": {}, "sub": {"rows": 3, "cols": 3, "keys": list("qweasdzxc")}}
+        self.assertEqual(normalize_grid(old_grid), old_grid)
+
     def test_ratios_are_normalized_and_keys_are_normalized(self):
         raw = {"monitors": {"m": {"rows": [
             {"h": 2, "cells": [{"w": 2, "key": " Q "}, {"w": 6, "key": "W"}]},
@@ -87,6 +100,11 @@ class ScreenGridNormalizationTest(unittest.TestCase):
             normalize_grid({"monitors": {"bad": {"rows": [{"h": 1, "cells": []}]}}})
         self.assertEqual(len(captured.records), 1)
         self.assertIn("列がありません", captured.output[0])
+
+    def test_invalid_top_shape_reason_uses_step_wording(self):
+        with self.assertLogs("keyseq.domain.screen_grid.normalize", level="WARNING") as captured:
+            normalize_grid({"monitors": {"bad": {"rows": []}}})
+        self.assertIn("段がありません", captured.output[0])
 
     def test_sub_rows_above_limit_revert_to_default(self):
         grid = normalize_grid({"sub": {"rows": 10, "cols": 2, "keys": list("abcdefghijklmnopqrst")}})
@@ -204,7 +222,7 @@ class ScreenGridValidationTest(unittest.TestCase):
             TopLayout((GridRow(1, (GridCell(1, "f1"),)),)), {"F1"},
         )
         self.assertTrue(any("予約キー" in error for error in reserved_error))
-        self.assertTrue(any("行がありません" in error for error in validate_top(TopLayout(()), set())))
+        self.assertTrue(any("段がありません" in error for error in validate_top(TopLayout(()), set())))
         self.assertTrue(any("列がありません" in error for error in validate_top(
             TopLayout((GridRow(1, ()),)), set(),
         )))
@@ -214,7 +232,7 @@ class ScreenGridValidationTest(unittest.TestCase):
         self.assertTrue(any("予約キー" in error for error in errors))
         self.assertTrue(any("重複" in error for error in errors))
         self.assertTrue(any("枠を2つ以上" in error for error in validate_sub(SubLayout(1, 1, ("q",)), set())))
-        self.assertTrue(any("行数" in error for error in validate_sub(SubLayout(10, 1, ()), set())))
+        self.assertTrue(any("段数" in error for error in validate_sub(SubLayout(10, 1, ()), set())))
         self.assertTrue(any("列数" in error for error in validate_sub(SubLayout(1, 10, ()), set())))
         self.assertTrue(any("キー数" in error for error in validate_sub(SubLayout(2, 2, ("q",)), set())))
         self.assertTrue(any("キーが空" in error for error in validate_sub(SubLayout(1, 2, ("", "q")), set())))
@@ -224,12 +242,12 @@ class ScreenGridValidationTest(unittest.TestCase):
         self.assertEqual(validate_sub(default_sub_layout(), set()), [])
         self.assertEqual(validate_top(default_top_layout(), set()), [])
 
-    def test_validate_top_uses_row_wording_for_top_layout_locations(self):
-        self.assertIn("行がありません", validate_top(TopLayout(()), set()))
+    def test_validate_top_uses_step_wording_for_top_layout_locations(self):
+        self.assertIn("段がありません", validate_top(TopLayout(()), set()))
         location_errors = validate_top(
             TopLayout((GridRow(1, (GridCell(1, "f1"),)),)), {"f1"},
         )
-        self.assertIn("行 1・列 1: 予約キー 'f1' は使えません", location_errors)
+        self.assertIn("段 1・列 1: 予約キー 'f1' は使えません", location_errors)
 
 
 if __name__ == "__main__":

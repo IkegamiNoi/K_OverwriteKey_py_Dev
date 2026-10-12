@@ -39,3 +39,5 @@
 | idea_36 | [idea_36_common_trigger_layer.md](idea_36_common_trigger_layer.md) | トリガー一覧のキーマップ従属化（phase 34 予定）の後、全キーマップで有効な共通トリガー層を追加する（共通 + キーマップ別の 2 層）。 | 未着手（検討段階・2026-09-24 設計議論から分離・現時点では不要とユーザー判断）|
 | idea_37 | [idea_37_counter_conditional_branch.md](idea_37_counter_conditional_branch.md) | 出力シーケンスの system 種別にカウンター値による条件分岐（N 以上でループを抜ける / 停止 等）を加える。file_line の終端で止める用途。 | 未着手（検討段階・2026-09-26 暫定 26 の設計対話から分離・第 2 弾の完了後に要否判断）|
 | idea_39 | [idea_39_back_rewind_visible_trigger.md](idea_39_back_rewind_visible_trigger.md) | 対象を指定しない戻す・先頭への対象を「直前のトリガー」から「押した時点で一覧に表示されているトリガー」へ変える。 | 一部取り込み（phase 50 暫定 34 v0.6 §3a）・残り = 直前のトリガーの廃止ほか（2026-10-09 追記）|
+| idea_44 | [idea_44_screen_grid_colors.md](idea_44_screen_grid_colors.md) | 画面の枠（phase 56）の線・文字・選択の強調・左上の文字の下地の色の組み合わせを、明るい / 暗い画面の上で見分けやすく見直す。 | 未着手（検討段階・2026-10-13 phase 56 task_06b の実機目視）|
+| idea_45 | [idea_45_tk_key_capture_symbol_names.md](idea_45_tk_key_capture_symbol_names.md) | 既存のキー取得で記号キーが `period` 等の Tk の名前になり、フックの名前（`.` 等）と一致しない可能性を調べて直す（phase 56 では編集の窓だけ対応）。 | 未着手（検討段階・2026-10-13 phase 56 task_06 の実機目視から分離）|

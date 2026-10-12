@@ -498,6 +498,13 @@ class KeymapPanelController:
                 grid["monitors"] = monitors
                 grid["sub"] = sub
                 changed = True
+            if "label_position" in new_grid_shapes:
+                if grid.get("label_position") != "top_left":
+                    grid["label_position"] = "top_left"
+                    changed = True
+            elif "label_position" in grid:
+                del grid["label_position"]
+                changed = True
 
         if new_grid_enabled is not None:
             grid = keymap.get("grid")

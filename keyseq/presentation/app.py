@@ -420,6 +420,7 @@ class App(tk.Tk):
         self.call_view.on_font_changed()
         self.pane_layout.on_font_changed()
         self.compact_window.on_font_changed()
+        self.screen_grid.on_font_changed()
         self.startup_io.write_startup({"ui_font_delta_pt": new_delta})
         return True
 

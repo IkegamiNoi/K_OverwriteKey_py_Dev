@@ -36,6 +36,10 @@ class ScreenGridController:
     def _show_view(self) -> None:
         self._overlay.show(self.session.view())
 
+    def on_font_changed(self) -> None:
+        """左上の文字の下地は描いた時点の寸法なので、フォントの変更で描き直す。"""
+        self._show_view()
+
     def snapshot(self) -> GridRouteSnapshot:
         return self.session.snapshot()
 

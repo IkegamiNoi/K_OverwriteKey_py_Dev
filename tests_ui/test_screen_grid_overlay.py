@@ -1,5 +1,6 @@
 """偽の画面・入力を使い、実際の Tk 窓と予約済み操作を確認する。"""
 import tkinter as tk
+from tkinter import font as tkfont
 import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
@@ -8,6 +9,7 @@ from keyseq.application.input_router import GridKeyAction, InputRoute
 from keyseq.application.keymap_service import KeymapService
 from keyseq.presentation.controllers.hook_controller import HookController
 from keyseq.presentation.controllers.layout_controller import LayoutController
+from keyseq.presentation.screen_grid.cell_label import draw_cell_label
 from keyseq.presentation.screen_grid import ScreenGridController
 
 
@@ -170,6 +172,102 @@ class ScreenGridOverlayTest(unittest.TestCase):
         self.execute("enter")
         self.app.input_gateway.click_at.assert_not_called()
         self.app._set_flash_message.assert_not_called()
+
+    def test_top_left_cell_label_uses_ui_named_font_and_inset(self):
+        canvas = Mock()
+        ui_font = tkfont.nametofont("TkDefaultFont", root=self.root)
+
+        draw_cell_label(
+            canvas, (10, 20, 120, 60), "a", position="top_left", fill="white",
+            center_font=ui_font, corner_font=ui_font,
+        )
+
+        canvas.create_text.assert_called_once()
+        args, kwargs = canvas.create_text.call_args
+        self.assertEqual(args, (13, 22))
+        self.assertEqual(kwargs["anchor"], "nw")
+        self.assertIs(kwargs["font"], ui_font)
+        self.assertEqual(ui_font.name, "TkDefaultFont")
+
+    def test_font_change_redraws_visible_overlay(self):
+        with patch.object(self.app.screen_grid, "_show_view") as show:
+            self.app.screen_grid.on_font_changed()
+        show.assert_called_once_with()
+
+    def test_corner_label_font_is_ui_named_font(self):
+        from keyseq.presentation.screen_grid.cell_label import corner_label_font
+
+        self.assertEqual(corner_label_font(self.root).name, "TkDefaultFont")
+
+    def test_top_left_label_has_dark_backing_and_center_has_none(self):
+        from keyseq.presentation.screen_grid.cell_label import LABEL_BACKING
+
+        ui_font = tkfont.nametofont("TkDefaultFont", root=self.root)
+        width, height = ui_font.measure("a"), ui_font.metrics("linespace")
+        canvas = Mock()
+        calls = []
+        canvas.create_rectangle.side_effect = lambda *a, **k: calls.append("rect")
+        canvas.create_text.side_effect = lambda *a, **k: calls.append("text")
+        draw_cell_label(canvas, (10, 20, 120, 60), "a", position="top_left", fill="white",
+                        center_font=ui_font, corner_font=ui_font)
+        self.assertEqual(calls, ["rect", "text"])
+        args, kwargs = canvas.create_rectangle.call_args
+        self.assertEqual(args, (11, 21, 13 + width + 2, 22 + height + 1))
+        self.assertEqual(kwargs["fill"], LABEL_BACKING)
+
+        canvas = Mock()
+        draw_cell_label(canvas, (10, 20, 120, 60), "a", position="center", fill="white",
+                        center_font=ui_font, corner_font=ui_font)
+        canvas.create_rectangle.assert_not_called()
+        self.assertEqual(canvas.create_text.call_args.args, (65, 40))
+        self.assertEqual(canvas.create_text.call_args.kwargs["anchor"], "center")
+
+    def test_cell_label_that_exceeds_small_cell_is_not_drawn(self):
+        key = "a very long key name that cannot fit"
+        ui_font = tkfont.nametofont("TkDefaultFont", root=self.root)
+        rect = (0, 0, ui_font.measure(key) + 7, ui_font.metrics("linespace") + 9)
+
+        for position in ("center", "top_left"):
+            with self.subTest(position=position):
+                canvas = Mock()
+                draw_cell_label(
+                    canvas, rect, key, position=position, fill="white",
+                    center_font=ui_font, corner_font=ui_font,
+                )
+                canvas.create_text.assert_not_called()
+
+    def test_cell_label_that_exceeds_cell_height_is_not_drawn(self):
+        key = "a"
+        ui_font = tkfont.nametofont("TkDefaultFont", root=self.root)
+        rect = (0, 0, ui_font.measure(key) + 9, ui_font.metrics("linespace") + 7)
+
+        for position in ("center", "top_left"):
+            with self.subTest(position=position):
+                canvas = Mock()
+                draw_cell_label(
+                    canvas, rect, key, position=position, fill="white",
+                    center_font=ui_font, corner_font=ui_font,
+                )
+                canvas.create_text.assert_not_called()
+
+    def test_overlay_draw_uses_top_left_label_position_on_real_canvas(self):
+        self.app.data["keymaps"][0]["grid"]["label_position"] = "top_left"
+        self.sync()
+        view = self.app.screen_grid.session.view()
+        canvas = self.app.screen_grid._overlay._canvas
+        text_item = next(
+            item for item in canvas.find_all() if canvas.type(item) == "text"
+        )
+        first_rect, first_key = view.cells[0]
+        left, top, _right, _bottom = view.monitor.rect
+
+        self.assertEqual(view.label_position, "top_left")
+        self.assertEqual(canvas.itemcget(text_item, "text"), first_key)
+        self.assertEqual(canvas.itemcget(text_item, "anchor"), "nw")
+        self.assertEqual(
+            tuple(canvas.coords(text_item)),
+            (first_rect[0] - left + 3, first_rect[1] - top + 2),
+        )
 
     def test_snapshot_does_not_touch_tk(self):
         self.sync()

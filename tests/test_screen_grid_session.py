@@ -53,6 +53,11 @@ class ScreenGridSessionTest(unittest.TestCase):
         self.assertFalse(self.session.view().visible)
         self.assertEqual(self.session.view().generation, hidden_generation + 1)
 
+    def test_view_label_position_defaults_to_center_and_reads_top_left(self):
+        self.assertEqual(self.session.view().label_position, "center")
+        self.session.sync(keymap_id="top-left", grid={"enabled": True, "label_position": "top_left"}, active=True)
+        self.assertEqual(self.session.view().label_position, "top_left")
+
     def test_starts_on_cursor_monitor_including_negative_coordinates(self):
         self.assertEqual(self.session.view().monitor, self.above)
         self.assertEqual(self.session.view().region, self.above.rect)

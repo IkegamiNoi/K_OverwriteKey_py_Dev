@@ -77,14 +77,14 @@ def validate_top(layout: TopLayout, reserved: set[str]) -> list[str]:
     used: set[str] = set()
     reserved_names = _normalized_reserved(reserved)
     if not layout.rows:
-        errors.append("行がありません")
+        errors.append("段がありません")
     for row_index, row in enumerate(layout.rows, start=1):
         if not is_positive_ratio(row.h):
-            errors.append(f"行 {row_index}: 高さの比率は正の有限数にしてください")
+            errors.append(f"段 {row_index}: 高さの比率は正の有限数にしてください")
         if not row.cells:
-            errors.append(f"行 {row_index}: 列がありません")
+            errors.append(f"段 {row_index}: 列がありません")
         for col_index, cell in enumerate(row.cells, start=1):
-            location = f"行 {row_index}・列 {col_index}"
+            location = f"段 {row_index}・列 {col_index}"
             if not is_positive_ratio(cell.w):
                 errors.append(f"{location}: 幅の比率は正の有限数にしてください")
             _check_shape_key(cell.key, location, used, reserved_names, errors)
@@ -95,7 +95,7 @@ def validate_sub(sub: SubLayout, reserved: set[str]) -> list[str]:
     errors: list[str] = []
     if (not isinstance(sub.rows, int) or isinstance(sub.rows, bool)
             or not MIN_SUBDIVIDE_COUNT <= sub.rows <= MAX_SUBDIVIDE_COUNT):
-        errors.append("細分化: 行数は1〜9にしてください")
+        errors.append("細分化: 段数は1〜9にしてください")
     if (not isinstance(sub.cols, int) or isinstance(sub.cols, bool)
             or not MIN_SUBDIVIDE_COUNT <= sub.cols <= MAX_SUBDIVIDE_COUNT):
         errors.append("細分化: 列数は1〜9にしてください")

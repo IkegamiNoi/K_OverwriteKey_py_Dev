@@ -4,6 +4,9 @@ import tkinter as tk
 
 from keyseq.application.screen_grid_session import GridView
 from keyseq.infrastructure import win32_window
+from keyseq.presentation.screen_grid.cell_label import (
+    center_font_for_rect, corner_label_font, draw_cell_label,
+)
 
 
 _TRANSPARENT = "#ff00fe"
@@ -61,6 +64,7 @@ class GridOverlayWindow:
         left, top, right, bottom = view.monitor.rect
         if view.level >= 1 and view.region is not None:
             self._shade_outside(view, right - left, bottom - top)
+        corner_font = corner_label_font(canvas)
         for index, (rect, key) in enumerate(view.cells):
             x1, y1, x2, y2 = rect
             x1, x2 = x1 - left, x2 - left
@@ -68,13 +72,11 @@ class GridOverlayWindow:
             selected = index == view.selected
             color = _SELECTED if selected else _LINE
             canvas.create_rectangle(x1, y1, x2, y2, outline=color, width=3 if selected else 1)
-            size = min(x2 - x1, y2 - y1)
-            if size >= 32:
-                font_size = 24 if size >= 160 else 16 if size >= 80 else 10
-                canvas.create_text(
-                    (x1 + x2) / 2, (y1 + y2) / 2, text=key,
-                    fill=color, font=("Segoe UI", font_size, "bold"),
-                )
+            draw_cell_label(
+                canvas, (x1, y1, x2, y2), key, position=view.label_position, fill=color,
+                center_font=center_font_for_rect((x1, y1, x2, y2)),
+                corner_font=corner_font,
+            )
 
     def _shade_outside(self, view: GridView, width: int, height: int) -> None:
         left, top, _right, _bottom = view.monitor.rect

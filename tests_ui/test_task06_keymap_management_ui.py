@@ -554,6 +554,37 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.assertEqual(keymap["grid"], {"enabled": False, "monitors": {}, "sub": {}})
         self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
 
+    def test_keymap_edit_grid_label_position_add_remove_marks_dirty(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(one_keymap=True, switch_keys={"f8": "km1"})
+        )
+        keymap = self.app.data["keymaps"][0]
+        keymap["grid"] = {"enabled": True, "monitors": {}, "sub": {}}
+        self.app.dirty_tracker.set_dirty(False)
+
+        changed = self.app.keymap_panel.apply_keymap_edit(
+            keymap,
+            new_label="Main",
+            new_key="f8",
+            new_grid_shapes={"monitors": {}, "sub": {}, "label_position": "top_left"},
+        )
+
+        self.assertTrue(changed)
+        self.assertEqual(keymap["grid"]["label_position"], "top_left")
+        self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+
+        self.app.dirty_tracker.set_dirty(False)
+        changed = self.app.keymap_panel.apply_keymap_edit(
+            keymap,
+            new_label="Main",
+            new_key="f8",
+            new_grid_shapes={"monitors": {}, "sub": {}},
+        )
+
+        self.assertTrue(changed)
+        self.assertNotIn("label_position", keymap["grid"])
+        self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+
     def test_keymap_edit_dialog_receives_grid_and_applies_returned_shapes(self):
         self.app.data = self.app.config_service.normalize_runtime_data(
             make_runtime(one_keymap=True, switch_keys={"f8": "km1"})

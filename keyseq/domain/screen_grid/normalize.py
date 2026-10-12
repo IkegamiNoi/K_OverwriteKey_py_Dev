@@ -53,12 +53,12 @@ def _key_error(key: str, seen: set[str]) -> str | None:
 
 def _top_layout_with_reason(raw: Any) -> tuple[TopLayout | None, str | None]:
     if not isinstance(raw, dict) or not isinstance(raw.get("rows"), list) or not raw["rows"]:
-        return None, "行がありません"
+        return None, "段がありません"
     rows: list[GridRow] = []
     seen: set[str] = set()
     for raw_row in raw["rows"]:
         if not isinstance(raw_row, dict):
-            return None, "行の形が不正です"
+            return None, "段の形が不正です"
         if not is_positive_ratio(raw_row.get("h")):
             return None, "比率が不正です"
         raw_cells = raw_row.get("cells")
@@ -100,11 +100,11 @@ def _sub_layout_with_reason(raw: Any) -> tuple[SubLayout | None, str | None]:
         return None, "形が不正です"
     rows, cols, raw_keys = raw.get("rows"), raw.get("cols"), raw.get("keys")
     if not isinstance(rows, int) or isinstance(rows, bool) or not 1 <= rows <= 9:
-        return None, "行数が不正です"
+        return None, "段数が不正です"
     if not isinstance(cols, int) or isinstance(cols, bool) or not 1 <= cols <= 9:
         return None, "列数が不正です"
     if rows * cols < 2:
-        return None, "行数・列数が不正です（枠を2つ以上にしてください）"
+        return None, "段数・列数が不正です（枠を2つ以上にしてください）"
     if not isinstance(raw_keys, list) or len(raw_keys) != rows * cols:
         return None, "キー数が不正です"
     keys = [grid_key_name(key) for key in raw_keys]
@@ -147,7 +147,14 @@ def normalize_grid(raw: Any) -> dict[str, Any] | None:
             logger.warning("Invalid screen grid sub layout (%s); using default layout", reason)
         sub = default_sub_layout()
     enabled = raw.get("enabled") if isinstance(raw.get("enabled"), bool) else False
-    return {"enabled": enabled, "monitors": monitors, "sub": sub_layout_to_json(sub)}
+    normalized = {"enabled": enabled, "monitors": monitors, "sub": sub_layout_to_json(sub)}
+    if raw.get("label_position") == "top_left":
+        normalized["label_position"] = "top_left"
+    return normalized
+
+
+def label_position_of(grid: Any) -> str:
+    return "top_left" if isinstance(grid, dict) and grid.get("label_position") == "top_left" else "center"
 
 
 def top_layout_for(grid: dict[str, Any] | None, monitor_id: str) -> TopLayout:
