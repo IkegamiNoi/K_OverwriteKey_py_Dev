@@ -102,6 +102,38 @@ class Win32ScreenGridTests(unittest.TestCase):
             self.assertFalse(win32_window.make_click_through_overlay(10))
         load_user32.assert_not_called()
 
+    def test_vk_to_scan_code_uses_map_virtual_key_and_returns_none_on_failure(self) -> None:
+        user32 = Mock()
+        user32.MapVirtualKeyW.return_value = 0x1E
+        self.assertEqual(self._run_win32(user32, lambda: win32_window.vk_to_scan_code(0x41)), 0x1E)
+        user32.MapVirtualKeyW.assert_called_once_with(0x41, win32_window.MAPVK_VK_TO_VSC)
+
+        user32.MapVirtualKeyW.return_value = 0
+        self.assertIsNone(self._run_win32(user32, lambda: win32_window.vk_to_scan_code(0x41)))
+
+        broken = Mock()
+        broken.MapVirtualKeyW.side_effect = OSError("mapping failed")
+        with self.assertLogs("keyseq.infrastructure.win32_window", level="ERROR"):
+            self.assertIsNone(self._run_win32(broken, lambda: win32_window.vk_to_scan_code(0x41)))
+
+    def test_vk_to_char_returns_unshifted_char_and_empty_on_failure(self) -> None:
+        user32 = Mock()
+        user32.MapVirtualKeyW.return_value = ord(".")
+        self.assertEqual(self._run_win32(user32, lambda: win32_window.vk_to_char(0xBE)), ".")
+        user32.MapVirtualKeyW.assert_called_once_with(0xBE, win32_window.MAPVK_VK_TO_CHAR)
+
+        user32.MapVirtualKeyW.return_value = 0x80000000 | ord("^")
+        self.assertEqual(self._run_win32(user32, lambda: win32_window.vk_to_char(0xDE)), "^")
+
+        for code in (0, 0x20):
+            user32.MapVirtualKeyW.return_value = code
+            self.assertEqual(self._run_win32(user32, lambda: win32_window.vk_to_char(0x74)), "")
+
+        broken = Mock()
+        broken.MapVirtualKeyW.side_effect = OSError("mapping failed")
+        with self.assertLogs("keyseq.infrastructure.win32_window", level="ERROR"):
+            self.assertEqual(self._run_win32(broken, lambda: win32_window.vk_to_char(0xBE)), "")
+
     def test_click_through_overlay_adds_extended_styles(self) -> None:
         user32 = Mock()
         user32.GetParent.return_value = 200

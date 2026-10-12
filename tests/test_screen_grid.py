@@ -204,7 +204,7 @@ class ScreenGridValidationTest(unittest.TestCase):
             TopLayout((GridRow(1, (GridCell(1, "f1"),)),)), {"F1"},
         )
         self.assertTrue(any("予約キー" in error for error in reserved_error))
-        self.assertTrue(any("段がありません" in error for error in validate_top(TopLayout(()), set())))
+        self.assertTrue(any("行がありません" in error for error in validate_top(TopLayout(()), set())))
         self.assertTrue(any("列がありません" in error for error in validate_top(
             TopLayout((GridRow(1, ()),)), set(),
         )))
@@ -223,6 +223,13 @@ class ScreenGridValidationTest(unittest.TestCase):
         )))
         self.assertEqual(validate_sub(default_sub_layout(), set()), [])
         self.assertEqual(validate_top(default_top_layout(), set()), [])
+
+    def test_validate_top_uses_row_wording_for_top_layout_locations(self):
+        self.assertIn("行がありません", validate_top(TopLayout(()), set()))
+        location_errors = validate_top(
+            TopLayout((GridRow(1, (GridCell(1, "f1"),)),)), {"f1"},
+        )
+        self.assertIn("行 1・列 1: 予約キー 'f1' は使えません", location_errors)
 
 
 if __name__ == "__main__":

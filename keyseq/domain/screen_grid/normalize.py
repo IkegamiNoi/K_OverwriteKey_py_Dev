@@ -53,12 +53,12 @@ def _key_error(key: str, seen: set[str]) -> str | None:
 
 def _top_layout_with_reason(raw: Any) -> tuple[TopLayout | None, str | None]:
     if not isinstance(raw, dict) or not isinstance(raw.get("rows"), list) or not raw["rows"]:
-        return None, "段がありません"
+        return None, "行がありません"
     rows: list[GridRow] = []
     seen: set[str] = set()
     for raw_row in raw["rows"]:
         if not isinstance(raw_row, dict):
-            return None, "段の形が不正です"
+            return None, "行の形が不正です"
         if not is_positive_ratio(raw_row.get("h")):
             return None, "比率が不正です"
         raw_cells = raw_row.get("cells")

@@ -21,7 +21,7 @@ class ScreenGridController:
         self._app = app
         self._overlay = GridOverlayWindow(app)
         self.session = ScreenGridSession(
-            list_monitors=self._list_monitors,
+            list_monitors=self.list_monitors,
             cursor_position=app.input_gateway.cursor_position,
             move_cursor=app.input_gateway.move_cursor,
             click=app.input_gateway.click_at,
@@ -29,7 +29,7 @@ class ScreenGridController:
         )
 
     @staticmethod
-    def _list_monitors() -> list[MonitorInfo]:
+    def list_monitors() -> list[MonitorInfo]:
         return [MonitorInfo(monitor_identifier(*rect), rect, primary)
                 for rect, primary in win32_window.list_monitor_rects()]
 

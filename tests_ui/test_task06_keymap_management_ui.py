@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from keyseq.application.input_router import SelectKeymapAction
+from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
@@ -405,6 +406,201 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
                 self.assertEqual(dialog.grid_enabled_var.get(), expected)
                 dialog._ok()
                 self.assertEqual(dialog.result["grid_enabled"], expected)
+
+    def test_keymap_edit_dialog_hides_grid_editor_without_context(self):
+        dialog = KeymapEditDialog(self.app, "変更")
+        self.assertFalse(hasattr(dialog, "grid_editor_btn"))
+        dialog.destroy()
+
+    def test_keymap_edit_dialog_grid_editor_result_is_returned_as_draft(self):
+        from types import SimpleNamespace
+
+        monitors = [MonitorInfo("1920x1080+0+0", (0, 0, 1920, 1080), True)]
+        shapes = {
+            "monitors": {"m1": {"rows": [{"h": 1, "cells": [{"w": 1, "key": "a"}]}]}},
+            "sub": {"rows": 1, "cols": 2, "keys": ["a", "b"]},
+        }
+        context = (monitors, "m1", {"f12", "f11", "f9"})
+        with patch(
+            "keyseq.presentation.dialogs.keymap_edit_dialog.GridEditorWindow",
+            return_value=SimpleNamespace(result=shapes, wait_window=lambda: None),
+        ) as editor_factory:
+            dialog = KeymapEditDialog(
+                self.app, "変更", initial_key="f8", grid_editor_context=lambda: context
+            )
+            dialog.grid_editor_btn.invoke()
+            editor_factory.assert_called_once()
+            self.assertEqual(editor_factory.call_args.kwargs["reserved"], {"f12", "f11", "f9", "f8"})
+            dialog._ok()
+
+        self.assertEqual(dialog.result["grid"], shapes)
+        self.assertEqual(dialog.result["grid_enabled"], False)
+
+    def test_keymap_edit_dialog_passes_grid_key_resolver_to_editor(self):
+        from types import SimpleNamespace
+
+        resolver = lambda _event: "."
+        context = ([MonitorInfo("m1", (0, 0, 100, 100), True)], "m1", set())
+        with patch(
+            "keyseq.presentation.dialogs.keymap_edit_dialog.GridEditorWindow",
+            return_value=SimpleNamespace(result=None, wait_window=lambda: None),
+        ) as editor_factory:
+            dialog = KeymapEditDialog(
+                self.app, "変更", grid_editor_context=lambda: context,
+                key_name_from_event=resolver,
+            )
+            dialog.grid_editor_btn.invoke()
+            self.assertIs(editor_factory.call_args.kwargs["key_name_from_event"], resolver)
+            dialog.destroy()
+
+    def test_keymap_panel_resolves_grid_key_through_scan_code_with_tk_fallback(self):
+        from types import SimpleNamespace
+
+        event = SimpleNamespace(keycode=190, state=0, keysym="period")
+        with patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.win32_window.vk_to_scan_code",
+            return_value=0x34,
+        ) as to_scan_code, patch.object(
+            self.app.layout, "resolve_key_name_from_scan_code", return_value="period-key"
+        ) as resolve:
+            self.assertEqual(self.app.keymap_panel._grid_key_name_from_event(event), "period-key")
+        to_scan_code.assert_called_once_with(190)
+        resolve.assert_called_once_with(0x34)
+
+        module = "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.win32_window"
+        with patch(f"{module}.vk_to_scan_code", return_value=None), patch(
+            f"{module}.vk_to_char", return_value="."
+        ) as to_char:
+            self.assertEqual(self.app.keymap_panel._grid_key_name_from_event(event), ".")
+        to_char.assert_called_once_with(190)
+
+        with patch(f"{module}.vk_to_scan_code", return_value=None), patch(
+            f"{module}.vk_to_char", return_value=""
+        ):
+            self.assertEqual(self.app.keymap_panel._grid_key_name_from_event(event), "period")
+
+    def test_keymap_edit_dialog_grid_editor_without_monitors_reports_error(self):
+        dialog = KeymapEditDialog(
+            self.app, "変更", initial_key="f8", grid_editor_context=lambda: ([], "", set())
+        )
+        try:
+            with patch("keyseq.presentation.dialogs.keymap_edit_dialog.messagebox.showerror") as error, patch(
+                "keyseq.presentation.dialogs.keymap_edit_dialog.GridEditorWindow"
+            ) as editor:
+                dialog.grid_editor_btn.invoke()
+            error.assert_called_once()
+            editor.assert_not_called()
+            self.assertTrue(dialog.winfo_exists())
+        finally:
+            dialog.destroy()
+
+    def test_keymap_edit_dialog_grid_editor_cancel_keeps_initial_draft(self):
+        from types import SimpleNamespace
+
+        initial_grid = {
+            "enabled": True,
+            "monitors": {"m1": {"rows": [{"h": 1, "cells": [{"w": 1, "key": "a"}]}]}},
+            "sub": {"rows": 1, "cols": 2, "keys": ["a", "b"]},
+        }
+        original_grid = copy.deepcopy(initial_grid)
+        with patch(
+            "keyseq.presentation.dialogs.keymap_edit_dialog.GridEditorWindow",
+            return_value=SimpleNamespace(result=None, wait_window=lambda: None),
+        ):
+            dialog = KeymapEditDialog(
+                self.app, "変更", initial_grid=initial_grid,
+                grid_editor_context=lambda: ([MonitorInfo("m1", (0, 0, 1920, 1080), True)], "m1", set()),
+            )
+            dialog.grid_editor_btn.invoke()
+            self.assertEqual(dialog._grid_draft, original_grid)
+            dialog._ok()
+
+        self.assertEqual(dialog.result["grid"], original_grid)
+
+    def test_keymap_edit_grid_shapes_replace_shapes_and_mark_dirty(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(one_keymap=True, switch_keys={"f8": "km1"})
+        )
+        keymap = self.app.data["keymaps"][0]
+        keymap["grid"] = {"enabled": True, "monitors": {"old": "layout"}, "sub": {"old": True}}
+        shapes = {
+            "monitors": {"new": {"rows": [{"h": 1, "cells": [{"w": 1, "key": "x"}]}]}},
+            "sub": {"rows": 1, "cols": 2, "keys": ["x", "y"]},
+        }
+        self.app.dirty_tracker.set_dirty(False)
+
+        changed = self.app.keymap_panel.apply_keymap_edit(
+            keymap, new_label="Main", new_key="f8", new_grid_shapes=shapes
+        )
+
+        self.assertTrue(changed)
+        self.assertEqual(keymap["grid"], {"enabled": True, **shapes})
+        self.assertIsNot(keymap["grid"]["monitors"], shapes["monitors"])
+        self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+
+    def test_keymap_edit_grid_shapes_create_disabled_grid_when_missing(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(one_keymap=True, switch_keys={"f8": "km1"})
+        )
+        keymap = self.app.data["keymaps"][0]
+        keymap.pop("grid", None)
+        self.app.dirty_tracker.set_dirty(False)
+
+        changed = self.app.keymap_panel.apply_keymap_edit(
+            keymap, new_label="Main", new_key="f8", new_grid_shapes={}
+        )
+
+        self.assertTrue(changed)
+        self.assertEqual(keymap["grid"], {"enabled": False, "monitors": {}, "sub": {}})
+        self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+
+    def test_keymap_edit_dialog_receives_grid_and_applies_returned_shapes(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(one_keymap=True, switch_keys={"f8": "km1"})
+        )
+        keymap = self.app.data["keymaps"][0]
+        initial_grid = {"enabled": True, "monitors": {"old": []}, "sub": {"old": 1}}
+        keymap["grid"] = copy.deepcopy(initial_grid)
+        shapes = {
+            "monitors": {"edited": {"rows": [{"h": 1, "cells": [{"w": 1, "key": "x"}]}]}},
+            "sub": {"rows": 1, "cols": 2, "keys": ["x", "y"]},
+        }
+        dialog_result = _DialogResult({
+            "key": "f8", "label": "Main", "grid_enabled": True, "grid": shapes,
+        })
+        self.app.dirty_tracker.set_dirty(False)
+        received = []
+
+        with patch.object(self.app.keymap_panel, "_grid_editor_context", return_value=([], "", set())) as context, patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.KeymapEditDialog",
+            side_effect=lambda *args, **kwargs: (
+                received.append(copy.deepcopy(kwargs["initial_grid"])) or dialog_result
+            ),
+        ) as dialog_factory:
+            self.app.keymap_panel.edit_selected_keymap()
+
+        self.assertEqual(received, [initial_grid])
+        self.assertIs(dialog_factory.call_args.kwargs["grid_editor_context"], context)
+        self.assertEqual(keymap["grid"], {"enabled": True, **shapes})
+        self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+
+    def test_keymap_edit_cancel_does_not_apply_grid_shapes(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(one_keymap=True, switch_keys={"f8": "km1"})
+        )
+        keymap = self.app.data["keymaps"][0]
+        original_grid = {"enabled": True, "monitors": {"saved": []}, "sub": {"x": 1}}
+        keymap["grid"] = copy.deepcopy(original_grid)
+        self.app.dirty_tracker.set_dirty(False)
+
+        with patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.KeymapEditDialog",
+            return_value=_DialogResult(None),
+        ):
+            self.app.keymap_panel.edit_selected_keymap()
+
+        self.assertEqual(keymap["grid"], original_grid)
+        self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
 
     def test_keymap_edit_grid_on_creates_default_grid_and_marks_dirty(self):
         from keyseq.domain.screen_grid import new_enabled_grid

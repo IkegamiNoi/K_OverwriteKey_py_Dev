@@ -4,37 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-12T23:00:00
+last_updated: 2026-10-13T01:30:00
 phase: instructions/phase/56_screen_grid_cursor（画面の枠でカーソル移動・クリック・暫定 40 v0.6 ユーザー確定済）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 22
 直前の完了フェーズ = **phase 55**（キーボードUIのウィンドウ改善・`decisions_archive/55_keyboard_ui_window.md`）
-last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_05 のコミット）
+last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_06 のコミット。暫定 40 v0.7・phase.md の task_06b 追記は未コミット → task_06b のコミットに含める）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 56 task_05（ダイアログの「枠を使う」）完了。次は task_06（「枠を編集…」ボタンと編集の窓）の起票と実装 → 実機目視（task_05 の分もまとめて）。** フェーズ内のタスクの連続実行は許可済み（2026-10-12）。
+focus: **phase 56 task_06（編集の窓）完了。暫定 40 v0.7 をユーザー確定（敵対的レビュー 3 件反映）。次は task_06b（v0.7 の実装）の起票と実装 → 実機目視。** フェーズ内のタスクの連続実行は許可済み。
 mode: implementing
 
 ## last_action
-ts: 2026-10-12T23:00:00
+ts: 2026-10-13T01:30:00
 who: main
 summary: |
-  実施: task_05 を起票し codex-implementer（Luna high・単独）で実装。domain に `new_enabled_grid()`、`KeymapEditDialog` に「枠を使う」と結果の `grid_enabled`、`apply_keymap_edit` の `new_grid_enabled`（ON で grid が無ければ作る・OFF でも消さない）、
-  `KeymapSwitchBatchDialog` の `grid_option_rows`（新規の行だけ）、`keymap_add_flow` で新規の行に渡し OK で grid を作る。「枠を編集…」ボタンは task_06 へ回した。
-  メインのテスト修正: 既存テストの結果 dict の完全一致 2 か所に `grid_enabled: False`（§8.1 で結果に加わるため）/ 新規テストの未保存判定の 1 行を削除（keymap の未保存の印が set_dirty(False) で消えず前提が成り立たない）。
-  レビュー: reviewer = 採用（指摘なし）。
-result_files:
-  - keyseq/domain/screen_grid/{models,__init__}.py / keyseq/presentation/dialogs/{keymap_edit_dialog,keymap_switch_batch_dialog}.py / keyseq/presentation/controllers/keymap_panel/{keymap_panel_controller,keymap_add_flow}.py
-  - tests/test_screen_grid.py / tests_ui/test_keymap_switch_batch_dialog.py / tests_ui/test_task06_keymap_management_ui.py
-  - instructions/phase/56_screen_grid_cursor/tasks/task_05_grid_checkbox_in_dialogs.md（新規）
+  実施: task_06 を codex-delegating-implementer（Sol medium + Luna high ×3）で実装 → 実機目視で 6 件の指摘 → codex-implementer で修正 + メインが vk_to_char（配列にスキャンコードが無いため）・既定に戻した後の選択・テスト修正。
+  2 回目の実機目視: 他は問題なし。追加の要望 = 表記を「段」に戻す / 編集の窓が背面に回る（不具合）/ キーの表示位置（中央 / 左上）の切替（新機能）。
+  暫定 40 v0.7: 表示位置（keymap ごと・細分化後も・編集の窓も追従・左上は TkDefaultFont）/ 重なり順 / 取り込み名 / 細分化のキーはクリックで取り込む。codex-adversarial-reviewer = needs-attention 3 件 → 全件反映（label_position は既定で書かない・入力欄をやめる・文字の収まりの判定）。判断は decisions.md の「task_06 実機目視 → 暫定 40 v0.7」。
+  レビュー: reviewer（task_06 本体 = 修正要 1 件 → 反映 / 指摘の修正 = 採用）。
 verified:
-  compile: pass（verifier）
-  tests: pass（verifier・tests 1605 件 / tests_ui 976 件中 2 件失敗 → メインがテスト修正 → 該当 2 モジュール 40 件 pass）
-  review: reviewer 採用
+  compile: pass
+  tests: pass（tests 1619 件〔vk_to_char 前〕/ 関係 tests_ui 5 モジュール pass / 修正後 3 モジュール pass。**tests_ui 全体は task_07 で**）
+  review: reviewer 採用 / ユーザー実機目視 = 4 件の要望以外は問題なし（→ task_06b）
 
 ## next_action
-- `/task_new` で task_06（`KeymapEditDialog` の「枠を編集…」ボタン・編集の窓〔境界のドラッグ・段 / 列の追加と削除・キーの変更・振り直し・既定に戻す・細分化の設定・OK の検査・暫定 40 §8.2〕・UI テスト）を起票し実装 → **実機目視で止まる**（task_05 のチェックと追加の流れも一緒に）
-- 申し送り: **フック動作中のクリック所要時間のログが未取得**（grid_check.log が空で上書き）→ task_06 の実機目視で scratchpad/run_grid_check.py を使って記録 / 参考指摘（未対応）: win32_window の LastError は `WinDLL(use_last_error=True)` + `ctypes.get_last_error` の方が堅牢・窓の生成失敗時にセッションが visible のまま再試行と通知が繰り返される
+- `/task_new` で `tasks/task_06b_label_position_and_editor_polish.md` を起票（暫定 40 v0.7 の §2-13・§3・§5・§7・§8.2）→ 実装 → 実機目視 → コミット（暫定 40 と phase.md も含める）→ task_07
+- 別の idea として起票: 既存のキー取得（トリガー等）も `tk_keys.py` で記号キーが `period` 等になりフックの名前と一致しない可能性（`/idea`）
+- 申し送り: **フック動作中のクリック所要時間のログが未取得** → task_06b の目視で grid_check.log を確認 / 参考指摘（未対応）: win32_window の LastError は `WinDLL(use_last_error=True)` の方が堅牢・窓の生成失敗時にセッションが visible のまま再試行と通知が繰り返される
 
 ## blockers
 - なし

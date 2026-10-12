@@ -1,9 +1,11 @@
 from __future__ import annotations
 
+from copy import deepcopy
 import tkinter as tk
-from tkinter import ttk
+from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Callable
 
+from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
@@ -13,6 +15,7 @@ from keyseq.presentation.hook_button_texts import (
     CAPTURE_TEXTS,
 )
 from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.dialogs.grid_editor_window import GridEditorWindow
 from keyseq.presentation.tk_keys import normalize_tk_key_event
 
 if TYPE_CHECKING:
@@ -29,6 +32,9 @@ class KeymapEditDialog(tk.Toplevel):
         initial_label: str = "",
         validate: Callable[[dict], bool] | None = None,
         initial_grid_enabled: bool = False,
+        initial_grid: dict | None = None,
+        grid_editor_context: Callable[[], tuple[list[MonitorInfo], str, set[str]]] | None = None,
+        key_name_from_event: Callable[[object], str] | None = None,
     ):
         super().__init__(parent)
         self.parent = parent
@@ -37,6 +43,9 @@ class KeymapEditDialog(tk.Toplevel):
         self.resizable(False, False)
         self.result = None
         self._capturing = False
+        self._grid_draft = deepcopy(initial_grid) if isinstance(initial_grid, dict) else None
+        self._grid_editor_context = grid_editor_context
+        self._key_name_from_event = key_name_from_event
 
         self.parent.hook.suspend_hook_for_dialog(self)
 
@@ -63,7 +72,11 @@ class KeymapEditDialog(tk.Toplevel):
 
         self.grid_enabled_var = tk.BooleanVar(value=initial_grid_enabled)
         self.grid_enabled_check = ttk.Checkbutton(frm, text="枠を使う", variable=self.grid_enabled_var)
-        self.grid_enabled_check.grid(row=2, column=0, columnspan=4, sticky="w", pady=(8, 0))
+        editor_columns = 2 if grid_editor_context is not None else 4
+        self.grid_enabled_check.grid(row=2, column=0, columnspan=editor_columns, sticky="w", pady=(8, 0))
+        if grid_editor_context is not None:
+            self.grid_editor_btn = ttk.Button(frm, text="枠を編集…", command=self._edit_grid)
+            self.grid_editor_btn.grid(row=2, column=2, columnspan=2, sticky="e", padx=(8, 0))
 
         self.hint = ttk.Label(frm, text="例) 切替キー: 1\nラベル: numpad")
         self.hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(8, 0))
@@ -85,8 +98,33 @@ class KeymapEditDialog(tk.Toplevel):
         if self._validate is not None and not self._validate(result):
             self.key_entry.focus_set()
             return
+        if self._grid_draft is not None:
+            result["grid"] = deepcopy(self._grid_draft)
         self.result = result
         self.destroy()
+
+    def _edit_grid(self) -> None:
+        if self._grid_editor_context is None:
+            return
+        monitors, start_monitor_id, reserved = self._grid_editor_context()
+        if not monitors:
+            messagebox.showerror("枠を編集できません", "画面（モニタ）を取得できませんでした。", parent=self)
+            return
+        reserved = set(reserved)
+        switch_key = normalize_key_name(self.key_var.get())
+        if switch_key:
+            reserved.add(switch_key)
+        editor = GridEditorWindow(
+            self,
+            grid=deepcopy(self._grid_draft),
+            monitors=monitors,
+            start_monitor_id=start_monitor_id,
+            reserved=reserved,
+            key_name_from_event=self._key_name_from_event,
+        )
+        editor.wait_window()
+        if editor.result is not None:
+            self._grid_draft = deepcopy(editor.result)
 
     def destroy(self):
         self._stop_capture()

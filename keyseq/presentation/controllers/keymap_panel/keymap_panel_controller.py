@@ -1,14 +1,18 @@
 from __future__ import annotations
 
 import tkinter as tk
+from copy import deepcopy
 from tkinter import messagebox, simpledialog
 
+from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.application.key_overlap import KeyOverlapAnalysis
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.keymap_triggers import INTERNAL_TRIGGER_SET_DIRTY, iter_trigger_sets, trigger_set_members
 from keyseq.domain.screen_grid import new_enabled_grid
+from keyseq.infrastructure import win32_window
 from keyseq.presentation.dialogs import KeymapEditDialog
 from keyseq.presentation.listbox_range_drag import select_range
+from keyseq.presentation.tk_keys import numpad_name_from_tk_event, normalize_tk_key_event
 from .keymap_add_flow import KeymapAddFlow
 from .keymap_list_edit import KeymapListEditFlow
 
@@ -387,6 +391,9 @@ class KeymapPanelController:
             initial_grid_enabled=(
                 isinstance(target.get("grid"), dict) and target["grid"].get("enabled") is True
             ),
+            initial_grid=target.get("grid") if isinstance(target.get("grid"), dict) else None,
+            grid_editor_context=self._grid_editor_context,
+            key_name_from_event=self._grid_key_name_from_event,
         )
         dlg.wait_window()
         result = getattr(dlg, "result", None)
@@ -398,12 +405,55 @@ class KeymapPanelController:
             new_label=result.get("label", ""),
             new_key=result.get("key", ""),
             new_grid_enabled=result.get("grid_enabled"),
+            new_grid_shapes=result.get("grid"),
             preferred_index=index,
         )
 
+    def _grid_editor_context(self) -> tuple[list[MonitorInfo], str, set[str]]:
+        monitors = self._app.screen_grid.list_monitors()
+        x, y = self._app.input_gateway.cursor_position()
+        monitor = next(
+            (item for item in monitors
+             if item.rect[0] <= x < item.rect[2] and item.rect[1] <= y < item.rect[3]),
+            None,
+        )
+        if monitor is None:
+            monitor = next((item for item in monitors if item.primary), None)
+        if monitor is None and monitors:
+            monitor = monitors[0]
+
+        reserved = {
+            normalize_key_name(self._app.data.get("hook_stop_key", "")),
+            normalize_key_name(self._app.data.get("hook_toggle_key", "")),
+        }
+        reserved.update(
+            normalize_key_name(key)
+            for key in self._app.data.get("keymap_switch_keys", {})
+        )
+        reserved.discard("")
+        return monitors, monitor.id if monitor is not None else "", reserved
+
+    def _grid_key_name_from_event(self, event: object) -> str:
+        numpad_name = numpad_name_from_tk_event(
+            getattr(event, "keycode", None), getattr(event, "state", 0)
+        )
+        if numpad_name:
+            return numpad_name
+        scan_code = win32_window.vk_to_scan_code(getattr(event, "keycode", 0))
+        if scan_code:
+            key_name = self._app.layout.resolve_key_name_from_scan_code(scan_code)
+            if key_name:
+                return key_name
+        # 配列にスキャンコードが無いときは、フック（keyboard）と同じく修飾なしの文字を名前にする。
+        char = win32_window.vk_to_char(getattr(event, "keycode", 0))
+        if char:
+            return normalize_key_name(char)
+        return normalize_tk_key_event(event)
+
     def apply_keymap_edit(
         self, keymap: dict, *, new_label: str, new_key: str,
-        new_grid_enabled: bool | None = None, preferred_index: int | None = None,
+        new_grid_enabled: bool | None = None, new_grid_shapes: dict | None = None,
+        preferred_index: int | None = None,
     ) -> bool:
         keymap_id = normalize_key_name(keymap.get("id", ""))
         if not keymap_id:
@@ -435,6 +485,19 @@ class KeymapPanelController:
 
         if normalized_key and normalized_key != current_switch_key:
             changed = self._app.keymap_service.set_keymap_switch_key(self._app.data, normalized_key, keymap_id) or changed
+
+        if isinstance(new_grid_shapes, dict):
+            grid = keymap.get("grid")
+            if not isinstance(grid, dict):
+                grid = {"enabled": False, "monitors": {}, "sub": {}}
+                keymap["grid"] = grid
+                changed = True
+            monitors = deepcopy(new_grid_shapes.get("monitors", {}))
+            sub = deepcopy(new_grid_shapes.get("sub", {}))
+            if grid.get("monitors") != monitors or grid.get("sub") != sub:
+                grid["monitors"] = monitors
+                grid["sub"] = sub
+                changed = True
 
         if new_grid_enabled is not None:
             grid = keymap.get("grid")
