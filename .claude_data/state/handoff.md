@@ -15,16 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 55**〔キーボードUIのウィンドウ改善・`instructions/phase/55_keyboard_ui_window/phase.md`・主入力 = 暫定 39 v0.3〕）。
-   次採番 = phase 56 / 暫定 40 / decisions 56 / 提案書 21
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 55 は 2026-10-12 完了〕）。次フェーズはユーザー判断・着手時は `/phase_start`。
+   次採番 = phase 56 / 暫定 40 / decisions 56 / 提案書 22
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜38）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜39）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 55（キーボードUIのウィンドウ改善）task_02（縦横比固定）実装・検証・レビュー済み・未コミット・ユーザー実機目視待ち。タスクの連続実行は許可済み（実機目視・スペックフラグでは止まる）。**
-ブランチ `claude/keyboard-input-priority-999558`（task_01 = c34fd40 まで commit 済）。main へのマージはユーザー。
+**phase 55 完了。アクティブなフェーズなし・次フェーズはユーザー判断待ち。main へのマージはユーザー。**
+ブランチ `claude/keyboard-input-priority-999558`（phase 55 一式）。**main への取り込み状況は git で確認**・マージはユーザー。フェーズ内のタスクの連続実行は許可済み（スペックフラグ・フォールバック・実機目視では止まる）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,9 +34,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 55 task_02 = 2026-10-12・未コミット差分込み**）:
-compile **clean** / tests **1537 OK**（skip 7）/ tests_ui **947 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1525〔phase 54〕→ 1537 / tests_ui: 945 → 947）。
+直近の実測（**phase 55 完了 = 2026-10-12**）:
+compile **clean** / tests **1550 OK**（skip 7）/ tests_ui **959 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1525〔phase 54〕→ 1550 / tests_ui: 945 → 959）。
 `tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が 1 回だけ `1 != 0` で落ちた（単独 2 回・全体 2 回で再現せず）。再発したら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -54,18 +54,16 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- ユーザーの実機目視結果を受ける（暫定 39 §6 の 1・2・8・10。起動: `../../../.venv/Scripts/python.exe main.py`）。OK なら phase.md の task_02 行に完了記載 → `/save_state` → `/task_commit`
-- 続いて task_03（「キーボードUIを常に手前」+ ダイアログ表示中の一時解除・暫定 39 §4）を `/task_new` で起票。着手時に所有関係（`GetWindow(hwnd, GW_OWNER)`）を実測し、成り立たなければ止めてユーザー確認。前面判定は `input_gateway.is_own_process_foreground` の供給経路を再利用
-- 目視 NG なら task_02 を修正（codex-implementer → verifier → reviewer）。**main へのマージはユーザーが行う**
+- 次フェーズはユーザー判断（着手時は `/phase_start`）。**main へのマージはユーザーが行う**。
+- 別タスク化候補に keyboard_window の同型 2 個（current.md「キーボード表示（phase 55 由来）」）を追記済み
 
-## 直前フェーズ（phase 54 = テンキーの区別）の要点
+## 直前フェーズ（phase 55 = キーボードUIのウィンドウ改善）の要点
 
-正本 = `key_input.md` §7.8（名前の表・入力・送信・同じキー・記録・既存設定の意味の変化）・§7.7 / codebase_map の phase 54 の項。判断 = `decisions_archive/54`。
-- 名前 = `num 0`〜`num 9` / `num add` / `num subtract` / `num multiply` / `num divide` / `num decimal` / `num enter`（`domain/numpad_keys.py`・`num_1` 等はエラー）。**既存の `1` / `enter` / `end` 等は入力の判定では主キーボードだけ**
-- 入力 = フックの `is_keypad` + スキャンコード（`input_router` / `key_state_manager` の両方）/ 送信 = `SendInput` のスキャンコード入力（NumLock に従う）/ 記録 = Tk の keycode（VK）+ `state & 0x40000`（**Windows の Tk の keysym に `KP_` は付かない**）
-- 記号の名前（`+` / `*` / `-` / `/`）の出力は従来どおり keyboard の解決（テンキーで送られ得る）。`key_identity` は 0xE0xx を拡張に読み替え
-- phase 52 = key_hold の `repeat`（`application/key_repeat.py`）/ phase 53 = 送り直しの発火ごとに前面の窓が自プロセスなら止める（`input_gateway.is_own_process_foreground`）
-- **VirtualBox のゲストでは物理の右 ctrl が Tk に届かない**（記録の確認はホスト OS で）
+正本 = `features.md` §4.6「キーボード表示のウィンドウ」/ codebase_map の phase 55 の項。判断 = `decisions_archive/55`。
+- ステータス欄を削除しタイトルへ（`keyboard_window_title`）/ 「キーボードUIを常に手前」= `ui_vars.keyboard_always_on_top_var`（保存しない）・`LayoutController` の 200ms 監視で、前面がダイアログ or `grab_current()` 有りの間は一時解除し、ダイアログ前面で入ったら `place_window_below` で直下へ
+- 縦横比固定 = `presentation/keyboard_window_size.py`（純関数）+ `KeyboardWindow` の `<Configure>`→150ms `_settle_size`（**マウスのボタンが押されていれば延ばす**）・比率が変わったときだけ当て直し
+- Win32 の窓・マウスの問い合わせ = `infrastructure/win32_window.py`（`is_own_process_foreground` / `foreground_own_window` / `place_window_below` / `is_mouse_button_down`・App が注入。task_06_refactor で `input_gateway.py` から移動）
+- **【実証】topmost を外した窓は非 topmost の最上位へ来る**（`HWND_NOTOPMOST`）/ **Windows の対話的サイズ変更中に当てた大きさは次のマウス移動で上書きされる** / 素の Tk の `Toplevel` はメインの所有窓ではない（`GW_OWNER` = None）
 
 ## 運用インフラ
 
@@ -144,7 +142,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 54_numpad_key_distinction / 53_repeat_stop_on_own_foreground / 52_key_hold_auto_repeat）。
+  （直近 3 件: 55_keyboard_ui_window / 54_numpad_key_distinction / 53_repeat_stop_on_own_foreground）。
 - 着手中 idea: なし（idea_41〜43 は phase 52〜54 で完了）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
   idea_29〜idea_31 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
