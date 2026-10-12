@@ -3,7 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox
 
-from keyseq.application.input_router import SendKeyAction, StopHookAction, TriggerAction
+from keyseq.application.input_router import GridKeyAction, SendKeyAction, StopHookAction, TriggerAction
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis, analyze_key_overlaps
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY, normalize_key_name
 from keyseq.domain.screen_grid import has_enabled_grid
@@ -301,6 +301,10 @@ class HookController:
     def _execute_reserved_action(
         self, action: object, shadowed: tuple[AssignmentConflict, ...],
     ) -> None:
+        if isinstance(action, GridKeyAction):
+            if self.hook_active and self.custom_input_enabled:
+                self._app.screen_grid.handle(action)
+            return
         if isinstance(action, (TriggerAction, SendKeyAction)) and not (
             self.hook_active and self.custom_input_enabled
         ):

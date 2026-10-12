@@ -50,6 +50,7 @@ from keyseq.presentation.startup_settings import load_startup_settings
 from keyseq.presentation.theme import apply_global_theme, coerce_font_delta
 from keyseq.presentation.modal import install_minimize_grab_custody
 from keyseq.presentation.status_text import one_line
+from keyseq.presentation.screen_grid import ScreenGridController
 
 
 from keyseq.application.action_executor import ActionExecutor
@@ -167,6 +168,7 @@ class App(tk.Tk):
             on_keymap_switch_blocked=lambda: self.keymap_panel.show_keymap_switch_blocked(),
             keymap_switch_in_progress=self._keymap_switch_in_progress,
         )
+        self.screen_grid = ScreenGridController(self)
         self.input_router = InputRouter(
             key_state_manager=self.key_state_manager,
             get_send_guard_count=self._get_send_guard_count,
@@ -175,6 +177,7 @@ class App(tk.Tk):
             get_toggle_key=lambda: self.data.get(HOOK_TOGGLE_KEY, ""),
             get_key_overlap_report=self._key_overlap_report,
             get_custom_input_enabled=lambda: bool(self.hook.custom_input_enabled),
+            get_grid_snapshot=self.screen_grid.snapshot,
             find_keymap_switch_target=self._find_keymap_switch_target_id,
             find_trigger=self._find_trigger_by_key,
             find_keymap_target=self._find_keymap_target,
@@ -718,7 +721,12 @@ class App(tk.Tk):
                 try:
                     self.input_gateway.restore_ime_now()
                 finally:
-                    self.destroy()
+                    try:
+                        screen_grid = getattr(self, "screen_grid", None)
+                        if screen_grid is not None:
+                            screen_grid.shutdown()
+                    finally:
+                        self.destroy()
 
 
 if __name__ == "__main__":

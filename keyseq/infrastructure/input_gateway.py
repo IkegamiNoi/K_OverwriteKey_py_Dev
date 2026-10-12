@@ -189,6 +189,30 @@ def _send_numpad_event(scan: int, extended: bool, key_up: bool) -> None:
 
 
 class InputGateway:
+    def cursor_position(self) -> tuple[int, int]:
+        """Return the current cursor position in screen coordinates."""
+        position = pyautogui.position()
+        return int(position.x), int(position.y)
+
+    def move_cursor(self, x: int, y: int) -> None:
+        """Move the cursor without pyautogui's default post-call pause."""
+        failsafe = pyautogui.FAILSAFE
+        pyautogui.FAILSAFE = False
+        try:
+            pyautogui.moveTo(x, y, _pause=False)
+        finally:
+            pyautogui.FAILSAFE = failsafe
+
+    def click_at(self, x: int, y: int, button: str) -> None:
+        """Move and click without blocking the UI for pyautogui's default pause."""
+        failsafe = pyautogui.FAILSAFE
+        pyautogui.FAILSAFE = False
+        try:
+            pyautogui.moveTo(x, y, _pause=False)
+            pyautogui.click(button=button, _pause=False)
+        finally:
+            pyautogui.FAILSAFE = failsafe
+
     def register_global_hook(
         self,
         callback: Callable[[object], bool | None],

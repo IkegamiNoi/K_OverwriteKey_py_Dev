@@ -20,6 +20,12 @@ SWP_NOSIZE = 0x0001
 SWP_NOMOVE = 0x0002
 SWP_NOACTIVATE = 0x0010
 _KEY_DOWN = 0x8000
+GWL_EXSTYLE = -20
+WS_EX_LAYERED = 0x00080000
+WS_EX_TRANSPARENT = 0x00000020
+WS_EX_NOACTIVATE = 0x08000000
+WS_EX_TOOLWINDOW = 0x00000080
+MONITORINFOF_PRIMARY = 0x00000001
 
 _T = TypeVar("_T")
 
@@ -28,6 +34,15 @@ _T = TypeVar("_T")
 def _user32(name: str, argtypes: tuple, restype):
     """Return a typed function from a dedicated user32 instance."""
     function = getattr(ctypes.WinDLL("user32"), name)
+    function.argtypes = list(argtypes)
+    function.restype = restype
+    return function
+
+
+@cache
+def _kernel32(name: str, argtypes: tuple, restype):
+    """Return a typed kernel32 function for native thread error state."""
+    function = getattr(ctypes.WinDLL("kernel32"), name)
     function.argtypes = list(argtypes)
     function.restype = restype
     return function
@@ -54,7 +69,122 @@ _ERROR_MESSAGES = {
     "foreground_window": "前面ウィンドウ HWND の取得に失敗しました",
     "place_window_below": "ウィンドウ位置の変更に失敗しました",
     "mouse_button": "マウスボタン状態の取得に失敗しました",
+    "monitor_rects": "モニター領域の列挙に失敗しました",
+    "click_through_overlay": "クリック透過ウィンドウの設定に失敗しました",
 }
+
+
+class _MONITORINFO(ctypes.Structure):
+    _fields_ = [
+        ("cbSize", wintypes.DWORD),
+        ("rcMonitor", wintypes.RECT),
+        ("rcWork", wintypes.RECT),
+        ("dwFlags", wintypes.DWORD),
+    ]
+
+
+def list_monitor_rects() -> list[tuple[tuple[int, int, int, int], bool]]:
+    """Return monitor bounds in enumeration order with primary flags."""
+    def enumerate_monitors() -> list[tuple[tuple[int, int, int, int], bool]]:
+        monitor_rects: list[tuple[tuple[int, int, int, int], bool]] = []
+        failed = False
+        callback_type = getattr(ctypes, "WINFUNCTYPE", ctypes.CFUNCTYPE)(
+            wintypes.BOOL,
+            wintypes.HANDLE,
+            wintypes.HDC,
+            ctypes.POINTER(wintypes.RECT),
+            ctypes.c_ssize_t,
+        )
+
+        def collect(monitor, _dc, _rect, _data):
+            nonlocal failed
+            try:
+                info = _MONITORINFO()
+                info.cbSize = ctypes.sizeof(_MONITORINFO)
+                get_monitor_info = _user32(
+                    "GetMonitorInfoW",
+                    (wintypes.HANDLE, ctypes.POINTER(_MONITORINFO)),
+                    wintypes.BOOL,
+                )
+                if not get_monitor_info(monitor, ctypes.byref(info)):
+                    failed = True
+                    return False
+                rect = info.rcMonitor
+                monitor_rects.append(
+                    (
+                        (rect.left, rect.top, rect.right, rect.bottom),
+                        bool(info.dwFlags & MONITORINFOF_PRIMARY),
+                    )
+                )
+                return True
+            except Exception:
+                failed = True
+                _log_once("monitor_rects", _ERROR_MESSAGES["monitor_rects"])
+                return False
+
+        callback = callback_type(collect)
+        enum_display_monitors = _user32(
+            "EnumDisplayMonitors",
+            (
+                wintypes.HDC,
+                ctypes.POINTER(wintypes.RECT),
+                callback_type,
+                ctypes.c_ssize_t,
+            ),
+            wintypes.BOOL,
+        )
+        if not enum_display_monitors(None, None, callback, 0) or failed:
+            return []
+        return monitor_rects
+
+    return _guarded("monitor_rects", [], enumerate_monitors)
+
+
+def _last_error() -> int:
+    return int(_kernel32("GetLastError", (), wintypes.DWORD)())
+
+
+def _clear_last_error() -> None:
+    # Resolve both functions before the Win32 call whose error we inspect.
+    _kernel32("GetLastError", (), wintypes.DWORD)
+    _kernel32("SetLastError", (wintypes.DWORD,), None)(0)
+
+
+def make_click_through_overlay(widget_id: int) -> bool:
+    """Make a Tk child window click-through and non-activating."""
+    def update_extended_style() -> bool:
+        get_parent = _user32("GetParent", (wintypes.HWND,), wintypes.HWND)
+        hwnd = get_parent(widget_id)
+        if not hwnd:
+            return False
+
+        long_ptr = ctypes.c_ssize_t
+        get_window_long = _user32(
+            "GetWindowLongPtrW",
+            (wintypes.HWND, ctypes.c_int),
+            long_ptr,
+        )
+        set_window_long = _user32(
+            "SetWindowLongPtrW",
+            (wintypes.HWND, ctypes.c_int, long_ptr),
+            long_ptr,
+        )
+        _clear_last_error()
+        style = get_window_long(hwnd, GWL_EXSTYLE)
+        if not style and _last_error():
+            return False
+
+        new_style = style | (
+            WS_EX_LAYERED
+            | WS_EX_TRANSPARENT
+            | WS_EX_NOACTIVATE
+            | WS_EX_TOOLWINDOW
+        )
+        _clear_last_error()
+        previous_style = set_window_long(hwnd, GWL_EXSTYLE, new_style)
+        return bool(previous_style or not _last_error())
+
+    return _guarded("click_through_overlay", False, update_extended_style)
 
 
 def _foreground_process_id(foreground) -> int:

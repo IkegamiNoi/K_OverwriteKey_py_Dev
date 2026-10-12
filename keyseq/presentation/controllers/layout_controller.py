@@ -156,6 +156,9 @@ class LayoutController:
             self._update_topmost_watch()
 
     def refresh_keyboard_window(self):
+        screen_grid = getattr(self._app, "screen_grid", None)
+        if screen_grid is not None:
+            screen_grid.sync()
         window = self.keyboard_window
         if window is None:
             return
