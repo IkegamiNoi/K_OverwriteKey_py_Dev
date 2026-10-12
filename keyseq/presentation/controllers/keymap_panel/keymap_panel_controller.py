@@ -6,6 +6,7 @@ from tkinter import messagebox, simpledialog
 from keyseq.application.key_overlap import KeyOverlapAnalysis
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.keymap_triggers import INTERNAL_TRIGGER_SET_DIRTY, iter_trigger_sets, trigger_set_members
+from keyseq.domain.screen_grid import new_enabled_grid
 from keyseq.presentation.dialogs import KeymapEditDialog
 from keyseq.presentation.listbox_range_drag import select_range
 from .keymap_add_flow import KeymapAddFlow
@@ -383,6 +384,9 @@ class KeymapPanelController:
             title="キーマップ変更",
             initial_key=current_switch_key,
             initial_label=str(target.get("label") or "").strip(),
+            initial_grid_enabled=(
+                isinstance(target.get("grid"), dict) and target["grid"].get("enabled") is True
+            ),
         )
         dlg.wait_window()
         result = getattr(dlg, "result", None)
@@ -393,10 +397,14 @@ class KeymapPanelController:
             target,
             new_label=result.get("label", ""),
             new_key=result.get("key", ""),
+            new_grid_enabled=result.get("grid_enabled"),
             preferred_index=index,
         )
 
-    def apply_keymap_edit(self, keymap: dict, *, new_label: str, new_key: str, preferred_index: int | None = None) -> bool:
+    def apply_keymap_edit(
+        self, keymap: dict, *, new_label: str, new_key: str,
+        new_grid_enabled: bool | None = None, preferred_index: int | None = None,
+    ) -> bool:
         keymap_id = normalize_key_name(keymap.get("id", ""))
         if not keymap_id:
             return False
@@ -427,6 +435,16 @@ class KeymapPanelController:
 
         if normalized_key and normalized_key != current_switch_key:
             changed = self._app.keymap_service.set_keymap_switch_key(self._app.data, normalized_key, keymap_id) or changed
+
+        if new_grid_enabled is not None:
+            grid = keymap.get("grid")
+            current_grid_enabled = isinstance(grid, dict) and grid.get("enabled") is True
+            if bool(new_grid_enabled) != current_grid_enabled:
+                if isinstance(grid, dict):
+                    grid["enabled"] = bool(new_grid_enabled)
+                elif new_grid_enabled:
+                    keymap["grid"] = new_enabled_grid()
+                changed = True
 
         if not changed:
             self._app._set_flash_message(f"キーマップは変更なしです: {self.format_keymap_display_name(keymap) or keymap_id}")

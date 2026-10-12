@@ -28,6 +28,7 @@ class KeymapEditDialog(tk.Toplevel):
         initial_key: str = "",
         initial_label: str = "",
         validate: Callable[[dict], bool] | None = None,
+        initial_grid_enabled: bool = False,
     ):
         super().__init__(parent)
         self.parent = parent
@@ -60,11 +61,15 @@ class KeymapEditDialog(tk.Toplevel):
         self.label_entry = ttk.Entry(frm, textvariable=self.label_var, width=42)
         self.label_entry.grid(row=1, column=1, columnspan=3, sticky="we", padx=(8, 0), pady=(10, 0))
 
+        self.grid_enabled_var = tk.BooleanVar(value=initial_grid_enabled)
+        self.grid_enabled_check = ttk.Checkbutton(frm, text="枠を使う", variable=self.grid_enabled_var)
+        self.grid_enabled_check.grid(row=2, column=0, columnspan=4, sticky="w", pady=(8, 0))
+
         self.hint = ttk.Label(frm, text="例) 切替キー: 1\nラベル: numpad")
-        self.hint.grid(row=2, column=0, columnspan=4, sticky="w", pady=(8, 0))
+        self.hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(8, 0))
 
         btns = ttk.Frame(frm)
-        btns.grid(row=3, column=0, columnspan=4, sticky="e", pady=(14, 0))
+        btns.grid(row=4, column=0, columnspan=4, sticky="e", pady=(14, 0))
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 
@@ -75,6 +80,7 @@ class KeymapEditDialog(tk.Toplevel):
         result = {
             "key": normalize_key_name(self.key_var.get()),
             "label": (self.label_var.get() or "").strip(),
+            "grid_enabled": bool(self.grid_enabled_var.get()),
         }
         if self._validate is not None and not self._validate(result):
             self.key_entry.focus_set()

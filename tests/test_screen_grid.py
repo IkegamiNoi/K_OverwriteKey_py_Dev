@@ -27,6 +27,17 @@ from keyseq.domain.screen_grid import (
 
 
 class ScreenGridNormalizationTest(unittest.TestCase):
+    def test_new_enabled_grid_has_default_shape_and_normalizes_unchanged(self):
+        from keyseq.domain.screen_grid import new_enabled_grid
+
+        grid = new_enabled_grid()
+        self.assertEqual(grid["enabled"], True)
+        self.assertEqual(grid["monitors"], {})
+        self.assertEqual(grid["sub"], {
+            "rows": 3, "cols": 3, "keys": list("qweasdzxc"),
+        })
+        self.assertEqual(normalize_grid(grid), grid)
+
     def test_has_enabled_grid_checks_keymap_grid_dict_and_true_flag(self):
         self.assertTrue(has_enabled_grid([{"grid": {"enabled": True}}]))
         for keymaps in (None, {}, [{"grid": None}], [{"grid": {"enabled": 1}}],

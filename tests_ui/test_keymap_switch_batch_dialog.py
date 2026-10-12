@@ -189,3 +189,42 @@ class KeymapSwitchBatchDialogTest(unittest.TestCase):
         self.assertIsNotNone(dialog._canvas)
         self.assertEqual(int(dialog._canvas.cget("height")), dialog._SCROLL_HEIGHT)
         self.assertGreater(dialog._rows_frame.winfo_reqheight(), dialog._canvas.winfo_height())
+
+    def test_grid_checkbox_is_rendered_only_on_configured_rows_and_added_to_result(self):
+        dialog = KeymapSwitchBatchDialog(
+            self.app,
+            "切替キー設定",
+            [("既存", "Existing", "", ""), ("新規", "New", "", "")],
+            lambda _values: None,
+            grid_option_rows=(1,),
+        )
+        self.dialogs.append(dialog)
+
+        def has_grid_checkbox(index):
+            return any(
+                isinstance(child, ttk.Checkbutton) and child.cget("text") == "枠を使う"
+                for child in dialog._row_frames[index].winfo_children()
+            )
+
+        self.assertFalse(has_grid_checkbox(0))
+        self.assertTrue(has_grid_checkbox(1))
+        dialog.grid_vars[1].set(True)
+        dialog._ok()
+        self.assertEqual(dialog.result, [
+            {"key": "", "label": ""},
+            {"key": "", "label": "", "grid_enabled": True},
+        ])
+
+    def test_single_row_grid_option_renders_checkbox(self):
+        dialog = KeymapSwitchBatchDialog(
+            self.app,
+            "切替キー設定",
+            [("新規", "New", "", "")],
+            lambda _values: None,
+            grid_option_rows=(0,),
+        )
+        self.dialogs.append(dialog)
+        self.assertTrue(any(
+            isinstance(child, ttk.Checkbutton) and child.cget("text") == "枠を使う"
+            for child in dialog._row_frames[0].winfo_children()
+        ))

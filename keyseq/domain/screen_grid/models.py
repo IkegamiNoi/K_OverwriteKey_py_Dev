@@ -65,6 +65,10 @@ def default_sub_layout() -> SubLayout:
     return SubLayout(DEFAULT_SUB_ROWS, DEFAULT_SUB_COLS, DEFAULT_SUB_KEYS)
 
 
+def new_enabled_grid() -> dict[str, Any]:
+    return {"enabled": True, "monitors": {}, "sub": sub_layout_to_json(default_sub_layout())}
+
+
 def top_layout_to_json(layout: TopLayout) -> dict[str, Any]:
     return {"rows": [
         {"h": row.h, "cells": [{"w": cell.w, "key": cell.key} for cell in row.cells]}

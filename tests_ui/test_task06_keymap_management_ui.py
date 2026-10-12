@@ -376,14 +376,127 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         valid.key_var.set("f7")
         valid.label_var.set(" Extra ")
         valid._ok()
-        self.assertEqual(valid.result, {"key": "f7", "label": "Extra"})
+        self.assertEqual(valid.result, {"key": "f7", "label": "Extra", "grid_enabled": False})
         self.assertEqual(accepted_values, [valid.result])
         self.assertFalse(valid.winfo_exists())
 
         unchanged = KeymapEditDialog(self.app, "変更", initial_key="f8", initial_label="Main")
         unchanged._ok()
-        self.assertEqual(unchanged.result, {"key": "f8", "label": "Main"})
+        self.assertEqual(unchanged.result, {"key": "f8", "label": "Main", "grid_enabled": False})
         self.assertFalse(unchanged.winfo_exists())
+
+    def test_keymap_edit_dialog_grid_checkbox_initial_value_and_result(self):
+        for grid, expected in (({"enabled": True}, True), ({"enabled": False}, False), (None, False)):
+            with self.subTest(grid=grid):
+                self.app.data["keymaps"][0].pop("grid", None)
+                if grid is not None:
+                    self.app.data["keymaps"][0]["grid"] = grid
+                dialog_result = _DialogResult(None)
+                with patch(
+                    "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.KeymapEditDialog",
+                    return_value=dialog_result,
+                ) as edit_dialog:
+                    self.app.keymap_panel.edit_selected_keymap()
+                self.assertEqual(edit_dialog.call_args.kwargs["initial_grid_enabled"], expected)
+
+                dialog = KeymapEditDialog(
+                    self.app, "変更", initial_grid_enabled=expected
+                )
+                self.assertEqual(dialog.grid_enabled_var.get(), expected)
+                dialog._ok()
+                self.assertEqual(dialog.result["grid_enabled"], expected)
+
+    def test_keymap_edit_grid_on_creates_default_grid_and_marks_dirty(self):
+        from keyseq.domain.screen_grid import new_enabled_grid
+
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(one_keymap=True, switch_keys={"f8": "km1"})
+        )
+        self.app.dirty_tracker.set_dirty(False)
+        keymap = self.app.data["keymaps"][0]
+        changed = self.app.keymap_panel.apply_keymap_edit(
+            keymap, new_label="Main", new_key="f8", new_grid_enabled=True
+        )
+        self.assertTrue(changed)
+        self.assertEqual(keymap["grid"], new_enabled_grid())
+        self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
+
+    def test_keymap_edit_grid_off_keeps_grid_and_unchanged_value_does_not_touch_it(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(one_keymap=True, switch_keys={"f8": "km1"})
+        )
+        keymap = self.app.data["keymaps"][0]
+        keymap["grid"] = {"enabled": True, "monitors": {}, "sub": {"kept": True}}
+        self.app.dirty_tracker.set_dirty(False)
+        changed = self.app.keymap_panel.apply_keymap_edit(
+            keymap, new_label="Main", new_key="f8", new_grid_enabled=False
+        )
+        self.assertTrue(changed)
+        self.assertEqual(keymap["grid"], {
+            "enabled": False, "monitors": {}, "sub": {"kept": True},
+        })
+
+        retained_grid = keymap["grid"]
+        self.app.dirty_tracker.set_dirty(False)
+        changed = self.app.keymap_panel.apply_keymap_edit(
+            keymap, new_label="Main", new_key="f8", new_grid_enabled=False
+        )
+        self.assertFalse(changed)
+        self.assertIs(keymap["grid"], retained_grid)
+
+    def test_keymap_edit_without_grid_value_does_not_add_grid(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(one_keymap=True, switch_keys={"f8": "km1"})
+        )
+        keymap = self.app.data["keymaps"][0]
+        self.app.dirty_tracker.set_dirty(False)
+        changed = self.app.keymap_panel.apply_keymap_edit(
+            keymap, new_label="Main", new_key="f8"
+        )
+        self.assertFalse(changed)
+        self.assertNotIn("grid", keymap)
+        self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
+
+    def test_batch_new_grid_option_is_only_passed_for_new_keymaps(self):
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(switch_keys={})
+        )
+        with patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
+            return_value=_DialogResult(None),
+        ) as batch_dialog:
+            self.app.keymap_panel._keymap_add_flow._run_batch("新規", [{"id": "km3", "label": "", "mappings": {}}])
+            self.assertEqual(tuple(batch_dialog.call_args.kwargs["grid_option_rows"]), (2,))
+            self.app.keymap_panel._keymap_add_flow._run_batch("読込", [{"id": "km3", "label": "", "mappings": {}}])
+            self.assertEqual(batch_dialog.call_args.kwargs["grid_option_rows"], ())
+            self.app.keymap_panel._keymap_add_flow._run_batch("貼り付け", [{"id": "km3", "label": "", "mappings": {}}])
+            self.assertEqual(batch_dialog.call_args.kwargs["grid_option_rows"], ())
+
+    def test_batch_new_grid_option_creates_grid_only_when_checked(self):
+        from keyseq.domain.screen_grid import new_enabled_grid
+
+        for enabled in (True, False):
+            with self.subTest(enabled=enabled):
+                self.app.data = self.app.config_service.normalize_runtime_data(
+                    make_runtime(switch_keys={})
+                )
+                result = _DialogResult([
+                    {"key": "f8", "label": "Main"},
+                    {"key": "f6", "label": "Other"},
+                    {"key": "f7", "label": "Added", "grid_enabled": enabled},
+                ])
+                with patch(
+                    "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
+                    return_value=result,
+                ):
+                    self.app.keymap_panel._keymap_add_flow._run_batch(
+                        "新規", [{"id": "km3", "label": "", "mappings": {}}]
+                    )
+                added = self.app.data["keymaps"][-1]
+                if enabled:
+                    self.assertEqual(added["grid"], new_enabled_grid())
+                else:
+                    self.assertNotIn("grid", added)
 
     def test_add_with_no_existing_keymaps_skips_batch_dialog(self):
         self.app.data = self.app.config_service.normalize_runtime_data(make_runtime(one_keymap=True))

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import messagebox, ttk
-from typing import TYPE_CHECKING, Callable
+from typing import TYPE_CHECKING, Callable, Collection
 
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
@@ -30,6 +30,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         title: str,
         rows: list[tuple[str, str, str, str]],
         validate: Callable[[list[dict]], tuple[int, str] | None],
+        grid_option_rows: Collection[int] = (),
     ):
         super().__init__(parent)
         self.parent = parent
@@ -45,6 +46,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         self.key_entries: list[ttk.Entry] = []
         self.capture_buttons: list[ttk.Button] = []
         self.label_entries: list[ttk.Entry] = []
+        self.grid_vars: dict[int, tk.BooleanVar] = {}
         self._row_frames: list[ttk.Frame] = []
         self._rows_frame: ttk.Frame | None = None
 
@@ -55,7 +57,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         single_row = len(rows) == 1
         rows_frame = self._build_rows_area(outer, rows)
         self.hint = ttk.Label(outer, text="例) 切替キー: 1\nラベル: numpad")
-        self._build_rows(rows_frame, rows, single_row)
+        self._build_rows(rows_frame, rows, single_row, set(grid_option_rows))
         self.hint.pack(anchor="w", pady=(0, 0))
         self._build_buttons(outer)
         self._bind_dialog_events()
@@ -98,6 +100,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         rows_frame: ttk.Frame,
         rows: list[tuple[str, str, str, str]],
         single_row: bool,
+        grid_option_rows: set[int],
     ) -> None:
         for index, (kind, name, initial_label, initial_key) in enumerate(rows):
             row = ttk.Frame(rows_frame, padding=(0, 0, 0, 10))
@@ -135,6 +138,13 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             self.key_entries.append(key_entry)
             self.capture_buttons.append(capture_btn)
             self.label_entries.append(label_entry)
+            if index in grid_option_rows:
+                line += 1
+                grid_var = tk.BooleanVar(value=False)
+                ttk.Checkbutton(row, text="枠を使う", variable=grid_var).grid(
+                    row=line, column=0, columnspan=3, sticky="w", pady=(6, 0)
+                )
+                self.grid_vars[index] = grid_var
 
     def _build_buttons(self, outer: ttk.Frame) -> None:
         btns = ttk.Frame(outer)
@@ -148,10 +158,12 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self._cancel)
 
     def _ok(self) -> None:
-        values = [
-            {"key": normalize_key_name(key.get()), "label": (label.get() or "").strip()}
-            for key, label in zip(self.key_vars, self.label_vars)
-        ]
+        values = []
+        for index, (key, label) in enumerate(zip(self.key_vars, self.label_vars)):
+            value = {"key": normalize_key_name(key.get()), "label": (label.get() or "").strip()}
+            if index in self.grid_vars:
+                value["grid_enabled"] = bool(self.grid_vars[index].get())
+            values.append(value)
         error = self._validate(values)
         if error is not None:
             row_index, reason = error

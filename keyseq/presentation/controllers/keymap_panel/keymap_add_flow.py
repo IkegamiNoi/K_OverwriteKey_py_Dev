@@ -3,6 +3,7 @@ from __future__ import annotations
 from keyseq.application.keymap_switch_batch import validate_switch_batch
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.keymap_triggers import duplicate_keymap, keymap_trigger_list
+from keyseq.domain.screen_grid import new_enabled_grid
 from keyseq.domain.list_editing import numbered_labels
 from keyseq.presentation.dialogs import KeymapSwitchBatchDialog
 
@@ -79,6 +80,8 @@ class KeymapAddFlow:
         dialog = KeymapSwitchBatchDialog(
             self._app, title=titles[kind], rows=rows,
             validate=lambda values: self._validate_values(values, targets, rows, new_keymaps),
+            grid_option_rows=(range(len(missing), len(missing) + len(new_keymaps))
+                              if kind == "新規" else ()),
         )
         dialog.wait_window()
         values = dialog.result
@@ -120,6 +123,9 @@ class KeymapAddFlow:
         targets = missing + new_keymaps
         for keymap, value in zip(targets, values):
             keymap["label"] = value["label"]
+        for keymap, value in zip(new_keymaps, values[len(missing):]):
+            if value.get("grid_enabled"):
+                keymap["grid"] = new_enabled_grid()
         for keymap in new_keymaps:
             self._append_keymap(keymap)
         for keymap, value in zip(targets, values):
