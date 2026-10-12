@@ -392,7 +392,7 @@ class KeymapPanelController:
                 isinstance(target.get("grid"), dict) and target["grid"].get("enabled") is True
             ),
             initial_grid=target.get("grid") if isinstance(target.get("grid"), dict) else None,
-            grid_editor_context=self._grid_editor_context,
+            grid_editor_context=lambda: self._grid_editor_context(target_id),
             key_name_from_event=self._grid_key_name_from_event,
         )
         dlg.wait_window()
@@ -409,7 +409,7 @@ class KeymapPanelController:
             preferred_index=index,
         )
 
-    def _grid_editor_context(self) -> tuple[list[MonitorInfo], str, set[str]]:
+    def _grid_editor_context(self, editing_keymap_id: str = "") -> tuple[list[MonitorInfo], str, set[str]]:
         monitors = self._app.screen_grid.list_monitors()
         x, y = self._app.input_gateway.cursor_position()
         monitor = next(
@@ -430,6 +430,10 @@ class KeymapPanelController:
             normalize_key_name(key)
             for key in self._app.data.get("keymap_switch_keys", {})
         )
+        own_switch_key = self._app.keymap_service.find_switch_key_for_keymap(
+            self._app.data, editing_keymap_id
+        ) if editing_keymap_id else ""
+        reserved.discard(normalize_key_name(own_switch_key))
         reserved.discard("")
         return monitors, monitor.id if monitor is not None else "", reserved
 

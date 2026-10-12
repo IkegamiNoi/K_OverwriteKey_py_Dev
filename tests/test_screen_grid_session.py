@@ -200,9 +200,29 @@ class ScreenGridSessionTest(unittest.TestCase):
 
         self.monitors = []
         self.session.sync(keymap_id="empty", grid=self.grid, active=True)
-        self.assertTrue(self.session.view().visible)
+        self.assertFalse(self.session.view().visible)
+        self.assertFalse(self.session.snapshot().visible)
         self.assertIsNone(self.session.view().monitor)
         self.assertEqual(self.session.view().cells, ())
+        self.assertEqual(self.session.snapshot().suppress_keys, frozenset())
+
+        self.monitors = [self.left, self.above]
+        self.session.sync(keymap_id="empty", grid=self.grid, active=True)
+        self.assertTrue(self.session.view().visible)
+        self.assertEqual(self.session.view().monitor, self.above)
+
+    def test_abort_advances_generation_discards_state_and_publishes_hidden_snapshot(self):
+        previous_generation = self.session.view().generation
+        previous_changed = self.changed
+
+        self.session.abort()
+
+        self.assertEqual(self.session.view().generation, previous_generation + 1)
+        self.assertFalse(self.session.snapshot().visible)
+        self.assertFalse(self.session.snapshot().suppress_keys)
+        self.assertFalse(self.session.snapshot().esc_active)
+        self.assertFalse(self.session.view().visible)
+        self.assertEqual(self.changed, previous_changed + 1)
 
 
 if __name__ == "__main__":

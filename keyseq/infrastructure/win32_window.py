@@ -35,16 +35,7 @@ _T = TypeVar("_T")
 @cache
 def _user32(name: str, argtypes: tuple, restype):
     """Return a typed function from a dedicated user32 instance."""
-    function = getattr(ctypes.WinDLL("user32"), name)
-    function.argtypes = list(argtypes)
-    function.restype = restype
-    return function
-
-
-@cache
-def _kernel32(name: str, argtypes: tuple, restype):
-    """Return a typed kernel32 function for native thread error state."""
-    function = getattr(ctypes.WinDLL("kernel32"), name)
+    function = getattr(ctypes.WinDLL("user32", use_last_error=True), name)
     function.argtypes = list(argtypes)
     function.restype = restype
     return function
@@ -169,16 +160,6 @@ def vk_to_char(vk: int) -> str:
     return _guarded("vk_char", "", convert)
 
 
-def _last_error() -> int:
-    return int(_kernel32("GetLastError", (), wintypes.DWORD)())
-
-
-def _clear_last_error() -> None:
-    # Resolve both functions before the Win32 call whose error we inspect.
-    _kernel32("GetLastError", (), wintypes.DWORD)
-    _kernel32("SetLastError", (wintypes.DWORD,), None)(0)
-
-
 def make_click_through_overlay(widget_id: int) -> bool:
     """Make a Tk child window click-through and non-activating."""
     def update_extended_style() -> bool:
@@ -198,9 +179,9 @@ def make_click_through_overlay(widget_id: int) -> bool:
             (wintypes.HWND, ctypes.c_int, long_ptr),
             long_ptr,
         )
-        _clear_last_error()
+        ctypes.set_last_error(0)
         style = get_window_long(hwnd, GWL_EXSTYLE)
-        if not style and _last_error():
+        if not style and ctypes.get_last_error():
             return False
 
         new_style = style | (
@@ -209,9 +190,9 @@ def make_click_through_overlay(widget_id: int) -> bool:
             | WS_EX_NOACTIVATE
             | WS_EX_TOOLWINDOW
         )
-        _clear_last_error()
+        ctypes.set_last_error(0)
         previous_style = set_window_long(hwnd, GWL_EXSTYLE, new_style)
-        return bool(previous_style or not _last_error())
+        return bool(previous_style or not ctypes.get_last_error())
 
     return _guarded("click_through_overlay", False, update_extended_style)
 

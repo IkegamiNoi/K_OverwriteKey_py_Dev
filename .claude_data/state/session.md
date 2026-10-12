@@ -4,32 +4,31 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-13T03:30:00
+last_updated: 2026-10-13T05:00:00
 phase: instructions/phase/56_screen_grid_cursor（画面の枠でカーソル移動・クリック・暫定 40 v0.6 ユーザー確定済）。次採番 = phase 57 / 暫定 41 / decisions 57 / 提案書 22
 直前の完了フェーズ = **phase 55**（キーボードUIのウィンドウ改善・`decisions_archive/55_keyboard_ui_window.md`）
-last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_06b のコミット）
+last_commit_location: `claude/virtual-monitor-resolution-1c744e`（task_07 のコミット）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 56 task_06b（暫定 40 v0.7）完了・ユーザー実機目視 OK。次は task_07（統合確認: tests / tests_ui 全体 / smoke・deep-reviewer + codex-reviewer）。** フェーズ内のタスクの連続実行は許可済み。
+focus: **phase 56 task_07（統合確認）完了。次は task_08（正本反映・暫定 40 の凍結・decisions_archive・current.md・/refactor_check）。** フェーズ内のタスクの連続実行は許可済み。
 mode: implementing
 
 ## last_action
-ts: 2026-10-13T03:30:00
+ts: 2026-10-13T05:00:00
 who: main
 summary: |
-  実施: task_06b を codex-delegating-implementer（Sol medium + Luna high ×2）で実装（label_position・cell_label.py の収まり判定・細分化のキーのクリック取り込み・重なり順・表記「段」）。
-  reviewer = 修正要（M1・M2）→ codex-implementer で修正。実機目視で文字の見た目を調整（メイン: 左上 = UI フォント + 下地を角に・中央 = 下地なし・フォント変更で描き直し）。idea_44（配色）・idea_45（既存のキー取得の記号キー名）を起票。
+  実施: task_07 を起票し verifier で全体を実測（tests_ui の構造テスト 1 件 → GridEditorWindow を NESTED_CHILD_DIALOGS へ）。deep-reviewer = 修正要（軽微）・codex-reviewer = P2 ×3（重複）。
+  採否（ユーザー判断・推奨どおり）: 今直す = M1（1×1）・M2（窓が無いのに suppress・abort と再試行の抑止）・M3（on_font_changed の例外）・L2（自分の切替キーを予約から除く）・LastError（use_last_error）/ task_08 = L7（暫定 40 §4.2 の文言・phase.md の版数と目視対象）/ 保留 = L1・L3（正本に明記）・L5・L6（idea_45）/ 除外 = L4・L8。
+  codex-implementer で修正 → テスト追従（メイン）→ reviewer 採用 → on_font_changed も畳む（メイン）。
 verified:
   compile: pass
-  tests: pass（tests 1623 件 / 関係 tests_ui 4 モジュール pass。**tests_ui 全体は task_07 で**）
-  review: reviewer 修正要 → 反映。最後のメインの調整は task_07 の統合レビューで
-  user_check: 実機目視 OK（クリック時間 2〜36ms）
+  tests: pass（tests 1625 件 / tests_ui 1021 件〔追従した 2 件は修正後に単体で pass〕/ smoke OK）
+  review: deep-reviewer + codex-reviewer → 採用分を反映 → reviewer 採用
 
 ## next_action
-- `/task_new` で task_07（統合確認）を起票 → verifier で compileall / tests / tests_ui 全体（1 本）/ smoke → deep-reviewer + codex-reviewer（phase 56 の全差分 = `git diff c58a817..HEAD`）
-- 参考指摘（未対応・task_07 で扱いを判断）: win32_window の LastError は `WinDLL(use_last_error=True)` の方が堅牢 / 窓の生成失敗時にセッションが visible のまま再試行と通知が繰り返される
+- task_08 を `/task_new` で起票して実施（メインの文書作業）: 暫定 40 v0.7 の §13 の昇格（data_schema.md §5.6・§5.2 / features.md §4.3・§4.5・§4.6 / key_input.md / nonfunctional.md / codebase_map.md）+ 凍結 / L7 / L3 の明記 / decisions_archive/56 / decisions.md の索引 / current.md の完了記載（次採番 phase 57 / 暫定 41 / decisions 57 / 提案書 22）/ /refactor_check（M1〜M6 は verifier）/ フェーズ完了判定前の deep-reviewer + codex-adversarial-reviewer
 
 ## blockers
 - なし

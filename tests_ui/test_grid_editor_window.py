@@ -150,6 +150,27 @@ class GridEditorWindowTest(unittest.TestCase):
         editor.panel.cols_var.set("4")
         self.assertEqual(len(editor.panel.sub_key_buttons), 8)
 
+    def test_one_by_one_subdivision_keeps_existing_key_arrangement(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        editor.panel.rows_var.set("1")
+        original_rows = editor.panel.sub_rows
+        original_cols = editor.panel.sub_cols
+        original_keys = list(editor.panel.sub_keys)
+        original_buttons = list(editor.panel.sub_key_buttons)
+
+        editor.panel.cols_var.set("1")
+
+        self.assertEqual((editor.panel.sub_rows, editor.panel.sub_cols),
+                         (original_rows, original_cols))
+        self.assertEqual(editor.panel.sub_keys, original_keys)
+        self.assertEqual(editor.panel.sub_key_buttons, original_buttons)
+        with patch("keyseq.presentation.dialogs.grid_editor_window.messagebox.showerror") as showerror:
+            editor.accept()
+        showerror.assert_called_once()
+        self.assertTrue(editor.winfo_exists())
+        self.assertIsNone(editor.result)
+
     def test_ok_rejects_reserved_and_duplicate_sub_keys_without_closing(self):
         cases = (("f9 w a s", {"f9"}), ("q q a s", set()))
         for keys, reserved in cases:

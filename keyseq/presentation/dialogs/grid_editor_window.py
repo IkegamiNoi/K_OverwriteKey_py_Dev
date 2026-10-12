@@ -240,7 +240,7 @@ class GridEditorWindow(tk.Toplevel):
             rows, cols = int(self.panel.rows_var.get()), int(self.panel.cols_var.get())
         except ValueError:
             return
-        if 1 <= rows <= 9 and 1 <= cols <= 9:
+        if 1 <= rows <= 9 and 1 <= cols <= 9 and rows * cols >= 2:
             keys = auto_fill_sub_keys(rows, cols, self.reserved)
             self.panel.rebuild_sub_key_entries(rows, cols, keys)
             self.sub = SubLayout(rows, cols, keys)

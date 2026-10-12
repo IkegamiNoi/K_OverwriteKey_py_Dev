@@ -436,6 +436,41 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.assertEqual(dialog.result["grid"], shapes)
         self.assertEqual(dialog.result["grid_enabled"], False)
 
+    def test_grid_editor_context_excludes_edited_switch_key_but_dialog_adds_current_value(self):
+        from types import SimpleNamespace
+
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            make_runtime(switch_keys={"f8": "km1", "f9": "km2"})
+        )
+        keymap_list = self.app.full_view.keymap_box.keymap_listbox
+        keymap_list.selection_clear(0, "end")
+        keymap_list.selection_set(0)
+        keymap_list.activate(0)
+        monitors = [MonitorInfo("m1", (0, 0, 100, 100), True)]
+        with patch.object(self.app.screen_grid, "list_monitors", return_value=monitors), patch.object(
+            self.app.input_gateway, "cursor_position", return_value=(10, 10)
+        ), patch(
+            "keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.KeymapEditDialog",
+            return_value=_DialogResult(None),
+        ) as edit_dialog:
+            self.app.keymap_panel.edit_selected_keymap()
+
+        context = edit_dialog.call_args.kwargs["grid_editor_context"]()
+        self.assertNotIn("f8", context[2])
+        self.assertIn("f9", context[2])
+        with patch(
+            "keyseq.presentation.dialogs.keymap_edit_dialog.GridEditorWindow",
+            return_value=SimpleNamespace(result=None, wait_window=lambda: None),
+        ) as editor_factory:
+            dialog = KeymapEditDialog(
+                self.app, "変更", initial_key="f8",
+                grid_editor_context=lambda: context,
+            )
+            dialog.grid_editor_btn.invoke()
+            self.assertIn("f8", editor_factory.call_args.kwargs["reserved"])
+            self.assertIn("f9", editor_factory.call_args.kwargs["reserved"])
+            dialog.destroy()
+
     def test_keymap_edit_dialog_passes_grid_key_resolver_to_editor(self):
         from types import SimpleNamespace
 
@@ -609,9 +644,11 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
             ),
         ) as dialog_factory:
             self.app.keymap_panel.edit_selected_keymap()
+            # 編集中の keymap の id を渡して予約キーから自分の切替キーを除くため、lambda で包んで渡す（task_07 L2）。
+            self.assertEqual(dialog_factory.call_args.kwargs["grid_editor_context"](), ([], "", set()))
+            context.assert_called_once_with(keymap["id"])
 
         self.assertEqual(received, [initial_grid])
-        self.assertIs(dialog_factory.call_args.kwargs["grid_editor_context"], context)
         self.assertEqual(keymap["grid"], {"enabled": True, **shapes})
         self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
 

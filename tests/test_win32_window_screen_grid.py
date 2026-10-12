@@ -10,9 +10,7 @@ class Win32ScreenGridTests(unittest.TestCase):
     def setUp(self) -> None:
         win32_window._logged_errors.clear()
         win32_window._user32.cache_clear()
-        win32_window._kernel32.cache_clear()
         self.addCleanup(win32_window._user32.cache_clear)
-        self.addCleanup(win32_window._kernel32.cache_clear)
 
     def _run_win32(self, user32, operation):
         with patch.object(win32_window.sys, "platform", "win32"), patch.object(
@@ -139,9 +137,9 @@ class Win32ScreenGridTests(unittest.TestCase):
         user32.GetParent.return_value = 200
         user32.GetWindowLongPtrW.return_value = 0
         user32.SetWindowLongPtrW.return_value = 0
-        with patch.object(win32_window, "_clear_last_error"), patch.object(
-            win32_window, "_last_error", return_value=0
-        ):
+        with patch.object(win32_window.ctypes, "set_last_error", create=True) as set_error, patch.object(
+            win32_window.ctypes, "get_last_error", return_value=0, create=True
+        ) as get_error:
             result = self._run_win32(
                 user32, lambda: win32_window.make_click_through_overlay(100)
             )
@@ -153,6 +151,9 @@ class Win32ScreenGridTests(unittest.TestCase):
             | win32_window.WS_EX_TOOLWINDOW
         )
         self.assertTrue(result)
+        self.assertEqual(set_error.call_args_list[0].args, (0,))
+        self.assertEqual(set_error.call_args_list[1].args, (0,))
+        self.assertEqual(get_error.call_count, 2)
         user32.GetParent.assert_called_once_with(100)
         user32.GetWindowLongPtrW.assert_called_once_with(200, win32_window.GWL_EXSTYLE)
         user32.SetWindowLongPtrW.assert_called_once_with(
@@ -164,8 +165,8 @@ class Win32ScreenGridTests(unittest.TestCase):
         failed.GetParent.return_value = 200
         failed.GetWindowLongPtrW.return_value = 16
         failed.SetWindowLongPtrW.return_value = 0
-        with patch.object(win32_window, "_clear_last_error"), patch.object(
-            win32_window, "_last_error", return_value=5
+        with patch.object(win32_window.ctypes, "set_last_error", create=True), patch.object(
+            win32_window.ctypes, "get_last_error", return_value=5, create=True
         ):
             self.assertFalse(self._run_win32(
                 failed, lambda: win32_window.make_click_through_overlay(100)
@@ -182,13 +183,22 @@ class Win32ScreenGridTests(unittest.TestCase):
         user32 = Mock()
         user32.GetParent.return_value = 200
         user32.GetWindowLongPtrW.return_value = 0
-        with patch.object(win32_window, "_clear_last_error"), patch.object(
-            win32_window, "_last_error", return_value=5
+        with patch.object(win32_window.ctypes, "set_last_error", create=True), patch.object(
+            win32_window.ctypes, "get_last_error", return_value=5, create=True
         ):
             self.assertFalse(self._run_win32(
                 user32, lambda: win32_window.make_click_through_overlay(100)
             ))
         user32.SetWindowLongPtrW.assert_not_called()
+
+    def test_user32_is_loaded_with_thread_local_last_error_capture(self) -> None:
+        user32 = Mock()
+        with patch.object(
+            win32_window.ctypes, "WinDLL", return_value=user32, create=True
+        ) as load_user32:
+            win32_window._user32.cache_clear()
+            win32_window._user32("GetParent", (), win32_window.wintypes.HWND)
+        load_user32.assert_called_once_with("user32", use_last_error=True)
 
     def test_click_through_without_parent_returns_false(self) -> None:
         user32 = Mock()

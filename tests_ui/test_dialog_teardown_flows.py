@@ -20,6 +20,7 @@ from keyseq.presentation.dialogs.quarantine_manage_dialog import QuarantineManag
 NESTED_CHILD_DIALOGS: frozenset[tuple[str, str]] = frozenset({
     ("preset_dialog.py", "PresetDialog"),
     ("keymap_set_history_dialog.py", "CategoryChooserDialog"),
+    ("grid_editor_window.py", "GridEditorWindow"),
 })
 
 # T2（ウィジェットに触る後始末）が残るため destroy override を保持するファイル。

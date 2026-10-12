@@ -141,7 +141,21 @@ class ScreenGridOverlayTest(unittest.TestCase):
             self.sync()
         self.assertIsNone(self.app.screen_grid._overlay._window)
         self.assertEqual(self.root.winfo_children(), [])
+        self.assertFalse(self.app.screen_grid.snapshot().visible)
+        self.assertFalse(self.app.screen_grid.snapshot().suppress_keys)
         self.assertIn("クリック透過", self.app._set_flash_message.call_args.args[0])
+        self.assertEqual(self.app._set_flash_message.call_count, 1)
+
+        self.sync()
+        self.assertEqual(self.styles.call_count, 1)
+        self.assertEqual(self.app._set_flash_message.call_count, 1)
+
+        self.app.hook.hook_active = False
+        self.sync()
+        self.app.hook.hook_active = True
+        self.sync()
+        self.assertEqual(self.styles.call_count, 2)
+        self.assertEqual(self.app._set_flash_message.call_count, 2)
 
     def test_stopped_paused_and_old_generation_actions_are_ignored(self):
         self.sync()
@@ -193,6 +207,17 @@ class ScreenGridOverlayTest(unittest.TestCase):
         with patch.object(self.app.screen_grid, "_show_view") as show:
             self.app.screen_grid.on_font_changed()
         show.assert_called_once_with()
+
+    def test_font_change_view_error_is_reported_and_does_not_escape(self):
+        self.sync()
+        self.assertTrue(self.app.screen_grid.snapshot().visible)
+        error = RuntimeError("redraw failed")
+        with patch.object(self.app.screen_grid, "_show_view", side_effect=error), patch.object(
+            self.app.screen_grid, "_report_error"
+        ) as report:
+            self.app.screen_grid.on_font_changed()
+        report.assert_called_once_with(error)
+        self.assertFalse(self.app.screen_grid.snapshot().visible)
 
     def test_corner_label_font_is_ui_named_font(self):
         from keyseq.presentation.screen_grid.cell_label import corner_label_font
@@ -298,17 +323,32 @@ class ScreenGridOverlayTest(unittest.TestCase):
         with self.assertLogs("keyseq.presentation.screen_grid.screen_grid_controller", "ERROR"):
             self.execute(key)
         self.assertIn("move failed", self.app._set_flash_message.call_args.args[0])
+        # 失敗すると枠は畳まれ（suppress しない）、表示の条件が一度偽になるまで出し直さない（task_07 M2）。
+        self.assertFalse(self.app.screen_grid.snapshot().visible)
         self.app.input_gateway.move_cursor.side_effect = None
+        self._reshow()
         self.execute(key)
         self.app.input_gateway.click_at.side_effect = RuntimeError("click failed")
         with self.assertLogs("keyseq.presentation.screen_grid.screen_grid_controller", "ERROR"):
             self.execute("enter")
         self.assertIn("click failed", self.app._set_flash_message.call_args.args[0])
+        self.assertFalse(self.app.screen_grid.snapshot().visible)
+        self._reshow()
         self.monitors.side_effect = RuntimeError("enumeration failed")
         with self.assertLogs("keyseq.presentation.screen_grid.screen_grid_controller", "ERROR"):
             self.execute("tab")
         self.assertIn("enumeration failed", self.app._set_flash_message.call_args.args[0])
+        self.assertFalse(self.app.screen_grid.snapshot().visible)
         self.assertTrue(self.app.hook.hook_active)
+
+    def _reshow(self):
+        self.sync()
+        self.assertFalse(self.app.screen_grid.snapshot().visible)
+        self.app.hook.hook_active = False
+        self.sync()
+        self.app.hook.hook_active = True
+        self.sync()
+        self.assertTrue(self.app.screen_grid.snapshot().visible)
 
     def test_layout_refresh_during_startup_without_screen_grid(self):
         layout = LayoutController.__new__(LayoutController)

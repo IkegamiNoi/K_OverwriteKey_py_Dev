@@ -88,6 +88,13 @@ class ScreenGridSession:
                 self._changed()
             return
         monitors = self._list_monitors()
+        if not monitors:
+            if self._visible:
+                self._generation += 1
+                self._clear_state()
+                self._publish_snapshot()
+                self._changed()
+            return
         selected_monitor = self._cursor_monitor(monitors)
         self._generation += 1
         self._visible = True
@@ -96,6 +103,13 @@ class ScreenGridSession:
         self._monitors = monitors
         self._set_monitor(selected_monitor)
         self._rebuild_suppression()
+        self._publish_snapshot()
+        self._changed()
+
+    def abort(self) -> None:
+        """Discard the current display state after a presentation failure."""
+        self._generation += 1
+        self._clear_state()
         self._publish_snapshot()
         self._changed()
 
