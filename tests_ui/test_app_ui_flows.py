@@ -14,7 +14,11 @@ from unittest.mock import Mock, call, patch
 from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import SavePlan
 from keyseq.presentation.app import App
-from keyseq.presentation.keyboard_window_size import RESIZE_SETTLE_MS, corrected_size
+from keyseq.presentation.keyboard_window_size import (
+    RESIZE_SETTLE_MS,
+    corrected_size,
+    size_from_width,
+)
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs import PresetManagerDialog, format_preset_manager_source_labels
 from tests_ui.hook_resume_wait import wait_for_hook_pause_count
@@ -2403,6 +2407,38 @@ class AppUiFlowsTest(unittest.TestCase):
                 window._handle_close()
             self.assertIsNone(layout._topmost_watch_job)
 
+    def test_keyboard_topmost_watch_releases_while_app_has_grab(self):
+        variable = self.app.ui_vars.keyboard_always_on_top_var
+        layout = self.app.layout
+        foreground_provider = self.app.foreground_own_window
+        place_below_provider = self.app.place_window_below
+        window = None
+        variable.set(False)
+        try:
+            with patch.object(self.app, "after", return_value="watch-job"):
+                variable.set(True)
+                layout.open_keyboard_window()
+                window = layout.keyboard_window
+            main_hwnd = int(self.app.wm_frame(), 16)
+            self.app.foreground_own_window = Mock(return_value=main_hwnd)
+            self.app.place_window_below = Mock(return_value=True)
+            with patch.object(self.app, "grab_current", return_value=window):
+                layout._watch_topmost_tick()
+                self.assertFalse(bool(window.attributes("-topmost")))
+                self.app.place_window_below.assert_not_called()
+
+            with patch.object(self.app, "grab_current", return_value=None):
+                layout._watch_topmost_tick()
+                self.assertTrue(bool(window.attributes("-topmost")))
+        finally:
+            variable.set(False)
+            layout.on_keyboard_topmost_changed()
+            self.app.foreground_own_window = foreground_provider
+            self.app.place_window_below = place_below_provider
+            if window is not None:
+                window._handle_close()
+            self.assertIsNone(layout._topmost_watch_job)
+
     def test_keyboard_topmost_watch_stops_when_disabled_or_window_closes(self):
         variable = self.app.ui_vars.keyboard_always_on_top_var
         layout = self.app.layout
@@ -2438,6 +2474,83 @@ class AppUiFlowsTest(unittest.TestCase):
             with patch.object(window, "geometry") as geometry:
                 self.app.layout.refresh_keyboard_window()
             geometry.assert_not_called()
+        finally:
+            window._handle_close()
+
+    def test_keyboard_window_ratio_apply_skips_geometry_when_size_matches(self):
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        try:
+            window._size_base = (600, 400)
+            target = size_from_width(window._size_base[0], window._ratio)
+            with patch.object(window, "winfo_width", return_value=target[0]), patch.object(
+                window, "winfo_height", return_value=target[1]
+            ), patch.object(window, "minsize"), patch.object(
+                window, "geometry"
+            ) as geometry:
+                window._apply_ratio_to_base()
+
+            geometry.assert_not_called()
+            self.assertIsNone(window._applied_size)
+            self.assertEqual(window._size_base, target)
+        finally:
+            window._handle_close()
+
+    def test_keyboard_window_ratio_apply_cancels_resize_job(self):
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        try:
+            window._resize_job = "pending"
+            with patch.object(window, "after_cancel") as after_cancel, patch.object(
+                window, "winfo_width", return_value=700
+            ), patch.object(window, "winfo_height", return_value=500), patch.object(
+                window, "minsize"
+            ), patch.object(window, "geometry"):
+                window._apply_ratio_to_base()
+
+            after_cancel.assert_called_once_with("pending")
+            self.assertIsNone(window._resize_job)
+        finally:
+            window._handle_close()
+
+    def test_keyboard_window_pending_ratio_waits_while_mouse_button_is_down(self):
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        try:
+            window._ratio_pending = True
+            with patch.object(window, "state", return_value="normal"), patch.object(
+                window, "after", return_value="pending-ratio-job"
+            ) as after, patch.object(
+                window, "_is_mouse_button_down", return_value=True
+            ), patch.object(window, "geometry") as geometry:
+                window._apply_pending_ratio()
+
+            geometry.assert_not_called()
+            after.assert_called_once_with(
+                RESIZE_SETTLE_MS, window._apply_pending_ratio
+            )
+            self.assertEqual(window._resize_job, "pending-ratio-job")
+            self.assertTrue(window._ratio_pending)
+        finally:
+            window._handle_close()
+
+    def test_keyboard_window_pending_ratio_applies_when_mouse_button_is_up(self):
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        try:
+            window._ratio_pending = True
+            window._size_base = (600, 400)
+            with patch.object(window, "state", return_value="normal"), patch.object(
+                window, "winfo_width", return_value=700
+            ), patch.object(window, "winfo_height", return_value=500), patch.object(
+                window, "minsize"
+            ), patch.object(window, "geometry") as geometry, patch.object(
+                window, "_is_mouse_button_down", return_value=False
+            ):
+                window._apply_pending_ratio()
+
+            geometry.assert_called_once()
+            self.assertFalse(window._ratio_pending)
         finally:
             window._handle_close()
 

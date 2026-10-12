@@ -4,15 +4,15 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-12T07:00:00
-phase: instructions/phase/55_keyboard_ui_window（暫定 39 v0.5・ユーザー確定済 / decisions 55）。次採番 = phase 56 / 暫定 40 / decisions 56 / 提案書 21
+last_updated: 2026-10-12T09:00:00
+phase: instructions/phase/55_keyboard_ui_window（暫定 39 v0.6・ユーザー確定済 / decisions 55）。次採番 = phase 56 / 暫定 40 / decisions 56 / 提案書 21
 直前の完了フェーズ = **phase 54**（テンキーの区別・`decisions_archive/54_numpad_key_distinction.md`）
-last_commit_location: `claude/keyboard-input-priority-999558`（task_03・03b まで。main へのマージはユーザー）
+last_commit_location: `claude/keyboard-input-priority-999558`（task_04・04b まで。main へのマージはユーザー）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 55（キーボードUIのウィンドウ改善）task_01〜03b 完了・task_04（統合確認 = deep-reviewer + codex-reviewer）着手。タスクの連続実行は許可済み。**
+focus: **phase 55（キーボードUIのウィンドウ改善）task_01〜04b 完了・task_05（正本反映・凍結・decisions_archive・refactor_check・完了判定前レビュー）着手。**
 mode: implementing
 
 ## last_action
@@ -34,8 +34,7 @@ verified:
   review: task_03・03b reviewer 採用・ユーザー実機目視 OK
 
 ## next_action
-- task_04（統合確認）: phase 55 の差分（`git diff f8a3b8a..HEAD`）に deep-reviewer + codex-reviewer。テストは task_03b 後の verifier 実測（上記）を統合の実測として使う。指摘の採否はユーザー
-- task_05（正本反映）: 暫定 39 §8 の昇格（features.md §4.6 に「キーボード表示のウィンドウ」新設・codebase_map）・凍結・decisions_archive/55・decisions.md 索引・current.md 完了記載・/refactor_check
+- task_05（正本反映）: 暫定 39 v0.6 §8 の昇格（features.md §4.6 に「キーボード表示のウィンドウ」新設〔deep 統合レビュー指摘 5 の書く事項〕・モーダルダイアログの作法の残存リスク追記・codebase_map :306 / :593 / :604 / 前面判定の節・新規モジュール）・暫定 39 凍結・phase.md の目的 / 主入力の記述更新・decisions_archive/55・decisions.md 索引・current.md 完了記載・/refactor_check（verifier でメトリクス）・完了判定前 deep-reviewer + codex-adversarial-reviewer
 
 ## blockers
 - なし

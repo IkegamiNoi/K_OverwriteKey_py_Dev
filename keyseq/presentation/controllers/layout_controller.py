@@ -135,9 +135,14 @@ class LayoutController:
                 main_hwnd = int(self._app.wm_frame(), 16)
                 keyboard_hwnd = int(window.wm_frame(), 16)
                 is_dialog = int(foreground) not in (main_hwnd, keyboard_hwnd)
-            if is_dialog != self._topmost_released:
+            try:
+                has_grab = self._app.grab_current() is not None
+            except Exception:
+                has_grab = False
+            should_release = is_dialog or has_grab
+            if should_release != self._topmost_released:
                 was_released = self._topmost_released
-                self._topmost_released = is_dialog
+                self._topmost_released = should_release
                 self.apply_keyboard_topmost()
                 if is_dialog and not was_released:
                     place_below = getattr(self._app, "place_window_below", None)

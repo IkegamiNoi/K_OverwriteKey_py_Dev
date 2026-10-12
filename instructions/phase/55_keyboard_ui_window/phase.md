@@ -51,7 +51,8 @@
 - task_02b: task_02 の実機目視 NG（縮めると大きく・広げると小さく）への修正 = マウスのボタンが押されている間は補正しない（暫定 39 v0.4 §5・infrastructure に `is_mouse_button_down`）。task_02 と合わせて実機目視 — **完了**（2026-10-12・codex-implementer・reviewer 採用・Codex が消した BOM 2 件をメインで復元・tests 1542 / tests_ui 949 / smoke pass・Codex 敵対的レビュー〔v0.4〕の 2 件はユーザー判断で受容として §5 に明記）
 - task_03: 「キーボードUIを常に手前」とダイアログ表示中の一時解除（暫定 39 §4・§6 の 3〜7・11）と UI テスト。着手時に所有関係の前提を実測。**実装後にユーザーの実機目視**（§6 の 5・7） — **完了**（2026-10-12・所有関係は probe で None〔前提成立〕・codex-implementer・reviewer 採用・表示欄の行追加で `test_compact_sequence_view` の固定高さ 820 が足りず 860 へ〔メイン・行を外すと 820 で通ることを実測〕・初回目視でダイアログが覆われる NG → task_03b 修正後にユーザー実機目視 OK〔§6 の 3〜7・11〕）
 - task_03b: task_03 の実機目視 NG（一時解除でキーボードUIがダイアログを覆う）への修正 = 外した直後にダイアログの直下へ置く（暫定 39 v0.5 §4・infrastructure に `place_window_below`）。task_03 と合わせて実機目視 — **完了**（2026-10-12・HWND_NOTOPMOST で非 topmost 最上位へ来ることを probe で確認・codex-implementer・reviewer 採用・tests 1550 / tests_ui 953 / smoke pass・ユーザー実機目視 OK）
-- task_04: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）
+- task_04: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer） — **完了**（2026-10-12・テストは task_03b 後の verifier 実測〔tests 1550 / tests_ui 953 / smoke pass〕を使用・deep-reviewer 修正要〔軽微〕・codex-reviewer P2 1 件 → grab 中の一時解除はユーザー確定で v0.6・実装の修正は task_04b・正本の書き漏れ / phase.md の古い記述は task_05・重複 / 行数は /refactor_check へ）
+- task_04b: 統合確認の指摘の修正（grab 中も一時解除・比率の当て直しの印 / 予約の取り消し / 保留の当て直しをボタン判定つきの予約で・暫定 39 v0.6）。軽い実機目視 — **完了**（2026-10-12・codex-implementer・reviewer 採用〔参考: 保留の当て直しが補正で上書きされうる → 新しい比率で補正されるため受容〕・tests 1550 / tests_ui 958 / smoke pass・ユーザー実機目視 OK）
 - task_05: 正本反映（暫定 39 §8 の昇格・凍結）・`decisions_archive/55_keyboard_ui_window.md`・decisions.md の索引・current.md の完了記載・`/refactor_check`
 
 ## レビュー方針

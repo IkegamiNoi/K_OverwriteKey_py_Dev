@@ -108,6 +108,7 @@ class KeyboardWindow(tk.Toplevel):
         self.canvas.bind("<Button-3>", self._on_canvas_right_click)
         self.bind("<KeyPress>", self._on_key_press, add="+")
         self.bind("<Configure>", self._on_window_configure, add="+")
+        self.bind("<Map>", self._on_window_map, add="+")
         self.protocol("WM_DELETE_WINDOW", self._handle_close)
         self._update_title()
 
@@ -230,8 +231,7 @@ class KeyboardWindow(tk.Toplevel):
             self._suspended = False
             self._size_base = current
             if self._ratio_pending:
-                self._ratio_pending = False
-                self._apply_ratio_to_base()
+                self._schedule_pending_ratio()
             return
         if self._applied_size is not None:
             self._size_base = current
@@ -244,6 +244,45 @@ class KeyboardWindow(tk.Toplevel):
             self._resize_job = self.after(RESIZE_SETTLE_MS, self._settle_size)
         except tk.TclError:
             self._resize_job = None
+
+    def _on_window_map(self, event) -> None:
+        if event.widget is not self or not self._ratio_pending:
+            return
+        try:
+            if self.state() != "normal":
+                return
+            self._suspended = False
+            self._size_base = (self.winfo_width(), self.winfo_height())
+        except tk.TclError:
+            return
+        self._schedule_pending_ratio()
+
+    def _schedule_pending_ratio(self) -> None:
+        self._cancel_resize_job()
+        try:
+            self._resize_job = self.after(
+                RESIZE_SETTLE_MS, self._apply_pending_ratio
+            )
+        except tk.TclError:
+            self._resize_job = None
+
+    def _apply_pending_ratio(self) -> None:
+        self._resize_job = None
+        is_mouse_button_down = self._is_mouse_button_down
+        if callable(is_mouse_button_down):
+            try:
+                if is_mouse_button_down():
+                    self._schedule_pending_ratio()
+                    return
+            except Exception:
+                pass
+        try:
+            if self.state() in ("zoomed", "iconic"):
+                return
+        except tk.TclError:
+            return
+        self._ratio_pending = False
+        self._apply_ratio_to_base()
 
     def _settle_size(self) -> None:
         self._resize_job = None
@@ -281,16 +320,19 @@ class KeyboardWindow(tk.Toplevel):
         self._size_base = target
 
     def _apply_ratio_to_base(self) -> None:
+        self._cancel_resize_job()
         ratio = self._ratio
         if ratio is None:
             return
         target = size_from_width(self._size_base[0], ratio)
         try:
+            current = (self.winfo_width(), self.winfo_height())
             self.minsize(*minimum_size(ratio))
-            self.geometry(f"{target[0]}x{target[1]}")
+            if current != target:
+                self.geometry(f"{target[0]}x{target[1]}")
+                self._applied_size = target
         except tk.TclError:
             return
-        self._applied_size = target
         self._size_base = target
 
     def _on_canvas_configure(self, _event=None) -> None:
