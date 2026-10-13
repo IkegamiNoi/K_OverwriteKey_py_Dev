@@ -1,5 +1,8 @@
 from .assignment import auto_fill_sub_keys, next_free_key, reassign_top_keys, validate_sub, validate_top
-from .geometry import can_subdivide, rect_center, sub_cell_rects, top_cell_rects
+from .geometry import (
+    NUDGE_DIVISOR, NUDGE_MAX_PX, can_subdivide, clamp_point, nudge_step,
+    rect_center, sub_cell_rects, top_cell_rects,
+)
 from .editing import (
     delete_cell, delete_row, move_cell_boundary, move_row_boundary,
     set_cell_key, split_cell, split_row,
@@ -58,9 +61,10 @@ __all__ = [
     "MAX_SUBDIVIDE_COUNT", "MIN_EDIT_CELL_PX", "MIN_SUBDIVIDE_COUNT",
     "MIN_SUBDIVIDE_PX", "SubLayout", "TopLayout", "auto_fill_sub_keys",
     "delete_cell", "delete_row", "move_cell_boundary", "move_row_boundary",
-    "can_subdivide", "default_sub_layout", "default_top_layout", "grid_key_name", "has_enabled_grid",
+    "NUDGE_DIVISOR", "NUDGE_MAX_PX", "can_subdivide", "clamp_point",
+    "default_sub_layout", "default_top_layout", "grid_key_name", "has_enabled_grid",
     "is_positive_ratio", "label_position_of", "monitor_identifier", "new_enabled_grid", "next_free_key", "normalize_grid",
-    "rect_center", "reassign_top_keys", "sub_cell_rects", "sub_layout_from_json",
+    "nudge_step", "rect_center", "reassign_top_keys", "sub_cell_rects", "sub_layout_from_json",
     "sub_layout_of", "sub_layout_to_json", "top_cell_rects", "top_layout_for",
     "top_layout_from_json", "top_layout_to_json", "validate_sub", "validate_top",
     "set_cell_key", "split_cell", "split_row",

@@ -2,7 +2,7 @@ import unittest
 
 from keyseq.application.input_router import GridKeyAction
 from keyseq.application.screen_grid_session import MonitorInfo, ScreenGridSession
-from keyseq.domain.screen_grid import monitor_identifier
+from keyseq.domain.screen_grid import monitor_identifier, nudge_step
 
 
 def monitor(rect, primary=False):
@@ -90,8 +90,10 @@ class ScreenGridSessionTest(unittest.TestCase):
         ]}}, "sub": {"rows": 3, "cols": 3, "keys": list("qweasdzxc")}}
         self.session.sync(keymap_id="tiny", grid=tiny, active=True)
         self.action("q")
+        tiny_point = self.session.view().click_point
         self.action("space")
         self.assertEqual(self.session.view().level, 0)
+        self.assertEqual(self.session.view().click_point, tiny_point)
 
     def test_enter_left_right_repeat_and_center_without_selection(self):
         self.action("enter")
@@ -102,6 +104,9 @@ class ScreenGridSessionTest(unittest.TestCase):
         self.action("enter", shift=True)
         self.assertEqual(self.clicks[-1][2], "right")
         self.assertEqual(self.session.view().level, 0)
+        self.action(self.session.view().cells[0][1])
+        self.action("num enter", shift=True)
+        self.assertEqual(self.clicks[-1][2], "right")
         self.action(self.session.view().cells[0][1])
         self.action("space")
         region = self.session.view().region
@@ -126,7 +131,7 @@ class ScreenGridSessionTest(unittest.TestCase):
         self.action("tab")
         self.assertEqual(self.session.view().monitor, self.above)
 
-    def test_stale_action_suppression_set_and_esc_flag(self):
+    def test_stale_action_suppression_set_updates_with_session_state(self):
         generation = self.session.view().generation
         custom_grid = {"enabled": True, "monitors": {self.above.id: {"rows": [
             {"h": 1, "cells": [{"w": 1, "key": "p"}]}
@@ -139,21 +144,26 @@ class ScreenGridSessionTest(unittest.TestCase):
         self.assertTrue(set("qweasdzxc").issubset(snap.suppress_keys))
         self.assertTrue({"enter", "num enter", "space", "backspace", "tab"}.issubset(snap.suppress_keys))
         self.assertNotIn("esc", snap.suppress_keys)
+        self.assertFalse({"up", "down", "left", "right"} & snap.suppress_keys)
         self.assertEqual(snap.suppress_keys,
                          set("qwerasdfzxcv") | {"p"} | set("qweasdzxc") |
                          {"enter", "num enter", "space", "backspace", "tab"})
         before = snap.suppress_keys
         self.action(self.session.view().cells[0][1])
         self.action("space")
-        self.assertEqual(self.session.snapshot().suppress_keys, before)
-        self.assertTrue(self.session.snapshot().esc_active)
+        self.assertEqual(self.session.snapshot().suppress_keys, before | {"esc"})
+        self.assertIn("esc", self.session.snapshot().suppress_keys)
 
     def test_escape_and_backspace_do_nothing_at_level_zero(self):
+        self.moves.clear()
+        self.action(self.session.view().cells[0][1])
+        selected_point = self.session.view().click_point
         self.moves.clear()
         for key in ("esc", "backspace"):
             with self.subTest(key=key):
                 self.action(key)
                 self.assertEqual(self.session.view().level, 0)
+                self.assertEqual(self.session.view().click_point, selected_point)
                 self.assertEqual(self.moves, [])
 
     def test_repeated_grid_actions_are_ignored(self):
@@ -169,23 +179,129 @@ class ScreenGridSessionTest(unittest.TestCase):
                 self.assertEqual(self.session.view(), before)
                 self.assertEqual(self.moves, [])
 
-    def test_esc_active_tracks_back_navigation(self):
+    def test_effective_suppression_tracks_depth_selection_and_frame_key_conflicts(self):
+        self.assertNotIn("esc", self.session.snapshot().suppress_keys)
+        self.assertFalse({"up", "down", "left", "right"} & self.session.snapshot().suppress_keys)
         self.action(self.session.view().cells[0][1])
+        self.assertTrue({"up", "down", "left", "right"}.issubset(self.session.snapshot().suppress_keys))
         self.action("space")
-        self.assertTrue(self.session.snapshot().esc_active)
+        self.assertIn("esc", self.session.snapshot().suppress_keys)
+        self.assertFalse({"up", "down", "left", "right"} & self.session.snapshot().suppress_keys)
         self.action("esc")
         self.assertEqual(self.session.view().level, 0)
-        self.assertFalse(self.session.snapshot().esc_active)
+        self.assertNotIn("esc", self.session.snapshot().suppress_keys)
 
+        custom = {"enabled": True, "ops": {"deepen": "h", "up": "up"},
+                  "sub": {"rows": 3, "cols": 3, "keys": ["esc", "up", "x", "a", "s", "d", "z", "c", "v"]}}
+        self.session.sync(keymap_id="conflicts", grid=custom, active=True)
+        self.assertNotIn("esc", self.session.snapshot().suppress_keys)
+        self.assertNotIn("up", self.session.snapshot().suppress_keys)
         self.action(self.session.view().cells[0][1])
-        self.action("space")
-        self.action(self.session.view().cells[0][1])
-        self.action("space")
-        self.assertEqual(self.session.view().level, 2)
-        self.action("backspace")
+        self.action("h")
         self.assertEqual(self.session.view().level, 1)
-        self.assertTrue(self.session.snapshot().esc_active)
-        self.assertIsNotNone(self.session.view().selected)
+        self.assertIn("esc", self.session.snapshot().suppress_keys)
+        self.assertIn("up", self.session.snapshot().suppress_keys)
+        self.action("esc")
+        self.assertEqual(self.session.view().selected, 0)
+        self.action("up")
+        self.assertEqual(self.session.view().selected, 1)
+
+    def test_custom_ops_replace_default_keys(self):
+        custom = {"enabled": True, "ops": {"deepen": "h", "click": "k"}}
+        self.session.sync(keymap_id="custom-ops", grid=custom, active=True)
+        self.assertIn("h", self.session.snapshot().suppress_keys)
+        self.assertIn("k", self.session.snapshot().suppress_keys)
+        self.assertNotIn("space", self.session.snapshot().suppress_keys)
+        self.assertNotIn("enter", self.session.snapshot().suppress_keys)
+        self.action("space")
+        self.action("enter")
+        self.assertEqual(self.session.view().level, 0)
+        self.assertEqual(self.clicks, [])
+        self.action(self.session.view().cells[0][1])
+        self.action("h")
+        self.assertEqual(self.session.view().level, 1)
+        self.action("k")
+        self.assertEqual(len(self.clicks), 1)
+
+    def test_click_point_nudge_shift_edges_and_click_uses_point(self):
+        self.assertIsNone(self.session.view().click_point)
+        key = self.session.view().cells[0][1]
+        rect = self.session.view().cells[0][0]
+        self.action(key)
+        center = ((rect[0] + rect[2]) // 2, (rect[1] + rect[3]) // 2)
+        self.assertEqual(self.session.view().click_point, center)
+        self.action("right")
+        step = max(1, min(16, (rect[2] - rect[0]) // 8))
+        self.assertEqual(self.session.view().click_point, (center[0] + step, center[1]))
+        for _ in range(rect[2] - rect[0] + 1):
+            self.action("right")
+        self.assertEqual(self.session.view().click_point, (rect[2] - 1, center[1]))
+        move_count = len(self.moves)
+        self.action("right")
+        self.assertEqual(len(self.moves), move_count)
+        self.action("left")
+        self.action("down", shift=True)
+        expected_point = (rect[2] - 1 - step, center[1] + 1)
+        self.assertEqual(self.session.view().click_point, expected_point)
+        self.action("enter", shift=True)
+        self.assertEqual(self.clicks[-1], (*self.moves[-1], "right"))
+        self.assertEqual(self.clicks[-1][:2], expected_point)
+        self.assertIsNone(self.session.view().click_point)
+
+    def test_click_point_resets_on_select_back_and_monitor_change(self):
+        first_key = self.session.view().cells[0][1]
+        self.action(first_key)
+        self.action("right")
+        second_key = self.session.view().cells[1][1]
+        self.action(second_key)
+        second_rect = self.session.view().cells[1][0]
+        self.assertEqual(self.session.view().click_point,
+                         ((second_rect[0] + second_rect[2]) // 2,
+                          (second_rect[1] + second_rect[3]) // 2))
+        self.action("space")
+        self.assertIsNone(self.session.view().click_point)
+        self.action("esc")
+        self.assertEqual(self.session.view().click_point,
+                         ((second_rect[0] + second_rect[2]) // 2,
+                          (second_rect[1] + second_rect[3]) // 2))
+        self.action("tab")
+        self.assertIsNone(self.session.view().click_point)
+
+    def test_nudge_step_and_noop_paths_preserve_click_point(self):
+        self.assertEqual(nudge_step(1000, False), 16)
+        self.assertEqual(nudge_step(7, False), 1)
+        self.assertEqual(nudge_step(80, False), 10)
+        self.assertEqual(nudge_step(80, True), 1)
+        self.monitors = [self.left]
+        self.session.sync(keymap_id="one-monitor", grid=self.grid, active=True)
+        self.assertIsNone(self.session.view().click_point)
+        self.action("right")
+        self.assertIsNone(self.session.view().click_point)
+        self.action(self.session.view().cells[0][1])
+        self.action("right")
+        point = self.session.view().click_point
+        self.action("tab")
+        self.assertEqual(self.session.view().click_point, point)
+
+    def test_arrow_repeat_moves_selected_click_point(self):
+        key = self.session.view().cells[0][1]
+        rect = self.session.view().cells[0][0]
+        self.action(key)
+        start = self.session.view().click_point
+        step = max(1, min(16, (rect[2] - rect[0]) // 8))
+        self.action("right", repeat=True)
+        self.assertEqual(self.session.view().click_point, (start[0] + step, start[1]))
+
+    def test_zero_pixel_frame_nudge_stays_at_its_only_point(self):
+        zero_width = monitor((5, 5, 5, 20), True)
+        self.monitors = [zero_width]
+        self.session.sync(keymap_id="zero-width", grid=self.grid, active=True)
+        cell_key = self.session.view().cells[0][1]
+        self.action(cell_key)
+        point = self.session.view().click_point
+        self.action("right")
+        self.action("left")
+        self.assertEqual(self.session.view().click_point, point)
 
     def test_monitor_refresh_rebuilds_suppression_and_empty_monitor_sync(self):
         custom_grid = {"enabled": True, "monitors": {self.above.id: {"rows": [
@@ -244,7 +360,6 @@ class ScreenGridSessionTest(unittest.TestCase):
         self.assertEqual(self.session.view().generation, previous_generation + 1)
         self.assertFalse(self.session.snapshot().visible)
         self.assertFalse(self.session.snapshot().suppress_keys)
-        self.assertFalse(self.session.snapshot().esc_active)
         self.assertFalse(self.session.view().visible)
         self.assertEqual(self.changed, previous_changed + 1)
 

@@ -67,7 +67,7 @@ def down(name):
 class InputRouterTest(unittest.TestCase):
     def test_grid_suppresses_grid_keys_and_passes_unrelated_keys_without_triggering(self):
         snapshot = SimpleNamespace(visible=True, generation=7,
-                                   suppress_keys=frozenset({"q", "space"}), esc_active=False)
+                                   suppress_keys=frozenset({"q", "space"}))
         for key in ("q", "space"):
             route = make_grid_router(grid_snapshot=snapshot,
                                 trigger={"actions": [{}]}, keymap_target="z").handle(down(key))
@@ -80,7 +80,7 @@ class InputRouterTest(unittest.TestCase):
 
     def test_grid_modifiers_shift_and_escape_routing(self):
         snapshot = SimpleNamespace(visible=True, generation=4,
-                                   suppress_keys=frozenset({"enter"}), esc_active=False)
+                                   suppress_keys=frozenset({"enter"}))
         manager = KeyStateManager()
         manager.key_down("right shift")
         route = make_grid_router(grid_snapshot=snapshot, key_state_manager=manager).handle(down("enter"))
@@ -95,14 +95,14 @@ class InputRouterTest(unittest.TestCase):
             self.assertTrue(route.accept)
         route = make_grid_router(grid_snapshot=snapshot).handle(down("esc"))
         self.assertEqual(route.actions, ())
-        snapshot.esc_active = True
+        snapshot.suppress_keys = frozenset({"enter", "esc"})
         route = make_grid_router(grid_snapshot=snapshot).handle(down("esc"))
         self.assertEqual(route.actions[0].key, "esc")
         self.assertFalse(route.accept)
 
     def test_grid_reserved_actions_precede_grid_and_unspecified_keeps_old_behavior(self):
         snapshot = SimpleNamespace(visible=True, generation=1,
-                                   suppress_keys=frozenset({"f12", "f11", "f10"}), esc_active=True)
+                                   suppress_keys=frozenset({"f12", "f11", "f10"}))
         self.assertIsInstance(make_grid_router(stop_key="f12", grid_snapshot=snapshot).handle(down("f12")).actions[0], StopHookAction)
         self.assertIsInstance(make_grid_router(toggle_key="f11", grid_snapshot=snapshot).handle(down("f11")).actions[0], ToggleModeAction)
         self.assertIsInstance(make_grid_router(switch_target="km2", grid_snapshot=snapshot).handle(down("f10")).actions[0], SelectKeymapAction)

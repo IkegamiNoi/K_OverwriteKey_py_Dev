@@ -7,8 +7,9 @@ from typing import Callable
 from keyseq.application.input_router import GridKeyAction
 from keyseq.domain.screen_grid.geometry import Rect
 from keyseq.domain.screen_grid import (
-    can_subdivide, default_sub_layout, label_position_of, rect_center,
-    sub_cell_rects, sub_layout_of, top_cell_rects, top_layout_for,
+    FIXED_BACK_KEY, FIXED_CLICK_KEY, GRID_OPS, can_subdivide, clamp_point,
+    label_position_of, nudge_step, ops_of, rect_center, sub_cell_rects,
+    sub_layout_of, top_cell_rects, top_layout_for,
 )
 
 
@@ -24,7 +25,6 @@ class GridRouteSnapshot:
     visible: bool
     generation: int
     suppress_keys: frozenset[str]
-    esc_active: bool
 
 
 @dataclass(frozen=True)
@@ -37,6 +37,7 @@ class GridView:
     selected: int | None
     generation: int
     label_position: str = "center"
+    click_point: tuple[int, int] | None = None
 
 
 class ScreenGridSession:
@@ -60,8 +61,9 @@ class ScreenGridSession:
         self._monitor: MonitorInfo | None = None
         self._regions: list[Rect] = []
         self._selected: int | None = None
+        self._click_point: tuple[int, int] | None = None
         self._suppress_keys: frozenset[str] = frozenset()
-        self._snapshot = GridRouteSnapshot(False, 0, frozenset(), False)
+        self._snapshot = GridRouteSnapshot(False, 0, frozenset())
 
     def snapshot(self) -> GridRouteSnapshot:
         return self._snapshot
@@ -72,7 +74,7 @@ class ScreenGridSession:
         return GridView(
             self._visible, self._monitor, max(0, len(self._regions) - 1),
             region, cells, self._selected, self._generation,
-            label_position_of(self._grid),
+            label_position_of(self._grid), self._click_point,
         )
 
     def sync(self, *, keymap_id: str, grid: dict | None, active: bool) -> None:
@@ -117,29 +119,41 @@ class ScreenGridSession:
         if not self._visible or action.generation != self._generation:
             return
         key = action.key
-        if key == "esc" and not self._snapshot.esc_active:
-            return
-        if key in ("enter", "num enter"):
-            if not action.repeat:
-                self._click_action(action.shift)
-            return
-        if action.repeat:
-            return
-        if key == "tab":
-            self._next_monitor()
-            return
-        if key in ("esc", "backspace"):
-            self._back()
-            return
-        if key == "space":
-            self._subdivide()
-            return
         for index, (rect, cell_key) in enumerate(self._current_cells()):
             if key == cell_key:
-                self._move_cursor(*rect_center(rect))
+                if action.repeat:
+                    return
+                point = rect_center(rect)
+                self._move_cursor(*point)
+                self._click_point = point
                 self._selected = index
                 self._changed()
                 return
+        ops = ops_of(self._grid)
+        operation = next((name for name in GRID_OPS if ops[name] == key), None)
+        if operation is None:
+            if key == FIXED_BACK_KEY:
+                operation = "back"
+            elif key == FIXED_CLICK_KEY:
+                operation = "click"
+        if operation is None:
+            return
+        if operation in ("deepen", "back", "next_screen"):
+            if action.repeat:
+                return
+            if operation == "deepen":
+                self._subdivide()
+            elif operation == "back":
+                if key == FIXED_BACK_KEY and len(self._regions) <= 1:
+                    return
+                self._back()
+            else:
+                self._next_monitor()
+        elif operation == "click":
+            if not action.repeat:
+                self._click_action(action.shift)
+        else:
+            self._nudge(operation, action.shift)
 
     def _current_cells(self) -> tuple[tuple[Rect, str], ...]:
         if not self._monitor or not self._regions:
@@ -163,19 +177,32 @@ class ScreenGridSession:
         self._monitor = monitor
         self._regions = [monitor.rect] if monitor else []
         self._selected = None
+        self._click_point = None
 
     def _rebuild_suppression(self) -> None:
         keys = {key for monitor in self._monitors for row in top_cell_rects(
             monitor.rect, top_layout_for(self._grid, monitor.id)
         ) for _rect, key in row}
         keys.update(default_sub_layout().keys if self._grid is None else sub_layout_of(self._grid).keys)
-        keys.update(("enter", "num enter", "space", "backspace", "tab"))
+        ops = ops_of(self._grid)
+        keys.update(ops[name] for name in ("deepen", "back", "click", "next_screen"))
+        keys.add(FIXED_CLICK_KEY)
+        keys.difference_update({FIXED_BACK_KEY, *(ops[name] for name in ("up", "down", "left", "right"))})
         self._suppress_keys = frozenset(keys)
 
     def _publish_snapshot(self) -> None:
+        keys = set(self._suppress_keys) if self._visible else set()
+        if self._visible:
+            ops = ops_of(self._grid)
+            arrow_keys = {ops[name] for name in ("up", "down", "left", "right")}
+            if len(self._regions) > 1:
+                keys.add(FIXED_BACK_KEY)
+            if self._selected is not None:
+                keys.update(arrow_keys)
+            frame_keys = {key for _rect, key in self._current_cells()}
+            keys.update(frame_keys & ({FIXED_BACK_KEY} | arrow_keys))
         self._snapshot = GridRouteSnapshot(
-            self._visible, self._generation, self._suppress_keys,
-            self._visible and len(self._regions) > 1,
+            self._visible, self._generation, frozenset(keys),
         )
 
     def _subdivide(self) -> None:
@@ -188,7 +215,7 @@ class ScreenGridSession:
             return
         self._regions.append(rect)
         self._selected = None
-        self._publish_snapshot()
+        self._click_point = None
         self._changed()
 
     def _back(self) -> None:
@@ -205,10 +232,13 @@ class ScreenGridSession:
         selected = next((i for i, (rect, _) in enumerate(parent_cells)
                          if rect == child_region), None)
         if selected is not None:
-            self._move_cursor(*rect_center(parent_cells[selected][0]))
+            point = rect_center(parent_cells[selected][0])
+            self._move_cursor(*point)
+            self._click_point = point
+        else:
+            self._click_point = None
         self._regions.pop()
         self._selected = selected
-        self._publish_snapshot()
         self._changed()
 
     def _refresh_monitors(self) -> bool:
@@ -236,12 +266,12 @@ class ScreenGridSession:
             return
         if not self._refresh_monitors():
             return
-        target = self._current_cells()[self._selected][0] if self._selected is not None else self._regions[-1]
-        x, y = rect_center(target)
+        x, y = self._click_point or rect_center(self._regions[-1])
         self._move_cursor(x, y)
         self._click(x, y, "right" if right else "left")
         self._regions = [self._monitor.rect] if self._monitor else []
         self._selected = None
+        self._click_point = None
         self._changed()
 
     def _next_monitor(self) -> None:
@@ -251,6 +281,7 @@ class ScreenGridSession:
         self._monitor = self._monitors[(index + 1) % len(self._monitors)]
         self._regions = [self._monitor.rect]
         self._selected = None
+        self._click_point = None
         self._changed()
 
     def _clear_state(self) -> None:
@@ -261,7 +292,24 @@ class ScreenGridSession:
         self._monitor = None
         self._regions = []
         self._selected = None
+        self._click_point = None
         self._suppress_keys = frozenset()
+
+    def _nudge(self, operation: str, fine: bool) -> None:
+        if self._selected is None or self._click_point is None:
+            return
+        rect = self._current_cells()[self._selected][0]
+        left, top, right, bottom = rect
+        dx = nudge_step(right - left, fine) if operation in ("left", "right") else 0
+        dy = nudge_step(bottom - top, fine) if operation in ("up", "down") else 0
+        direction = -1 if operation in ("left", "up") else 1
+        x, y = self._click_point
+        point = clamp_point(rect, x + direction * dx, y + direction * dy)
+        if point == self._click_point:
+            return
+        self._move_cursor(*point)
+        self._click_point = point
+        self._changed()
 
     def _changed(self) -> None:
         self._publish_snapshot()

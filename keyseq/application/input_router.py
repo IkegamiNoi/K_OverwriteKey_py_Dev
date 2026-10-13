@@ -164,10 +164,7 @@ class InputRouter:
             return InputRoute()
         if key in MODIFIER_KEY_NAMES:
             return InputRoute()
-        if key == "esc":
-            if not getattr(snapshot, "esc_active", False):
-                return InputRoute()
-        elif key not in getattr(snapshot, "suppress_keys", frozenset()):
+        if key not in getattr(snapshot, "suppress_keys", frozenset()):
             return InputRoute()
         shift = any(self._key_state_manager.is_pressed(name) for name in (
             "shift", "left shift", "right shift",

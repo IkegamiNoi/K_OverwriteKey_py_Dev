@@ -3,6 +3,20 @@ from __future__ import annotations
 from .models import MIN_SUBDIVIDE_PX, SubLayout, TopLayout
 
 Rect = tuple[int, int, int, int]
+NUDGE_MAX_PX = 16
+NUDGE_DIVISOR = 8
+
+
+def nudge_step(length: int, fine: bool) -> int:
+    if fine:
+        return 1
+    return max(1, min(NUDGE_MAX_PX, length // NUDGE_DIVISOR))
+
+
+def clamp_point(rect: Rect, x: int, y: int) -> tuple[int, int]:
+    left, top, right, bottom = rect
+    return (min(max(x, left), max(left, right - 1)),
+            min(max(y, top), max(top, bottom - 1)))
 
 
 def _boundaries(start: int, length: int, ratios: tuple[float, ...]) -> list[int]:

@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 57](57_grid_crosshair_nudge/phase.md)**（2026-10-14 起票・画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化〔Esc = 戻る・num enter = クリックは固定〕。暫定仕様先行モード・主入力 = [暫定 41](../history/41_grid_crosshair_nudge.md)〔v0.4・ユーザー確定済 2026-10-14〕・**JSON スキーマ変更あり**〔`grid` に任意キー `ops`〕・起票元 = ユーザー要望 2026-10-13・番号対応 phase 57 / 暫定 41 / decisions 57）。進捗: task_01 完了・次は task_02。
+- **アクティブなフェーズ = [phase 57](57_grid_crosshair_nudge/phase.md)**（2026-10-14 起票・画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化〔Esc = 戻る・num enter = クリックは固定〕。暫定仕様先行モード・主入力 = [暫定 41](../history/41_grid_crosshair_nudge.md)〔v0.4・ユーザー確定済 2026-10-14〕・**JSON スキーマ変更あり**〔`grid` に任意キー `ops`〕・起票元 = ユーザー要望 2026-10-13・番号対応 phase 57 / 暫定 41 / decisions 57）。進捗: task_01・task_02 完了・次は task_03。
 - 直前の完了フェーズ = [phase 56](56_screen_grid_cursor/phase.md)（2026-10-13・画面の枠でカーソル移動・クリック〔枠 ON のキーマップがアクティブな間だけ枠を表示・キーで枠を選びカーソルを中心へ・Enter で左 / Shift+Enter で右クリック・Space で細分化・Tab で画面の切替・最上段は画面ごとに編集の窓でドラッグして記録・キーの表示位置〕。暫定仕様先行モード〔暫定 40 v0.7 凍結〕・**JSON スキーマ変更あり**〔keymap の任意キー `grid`〕・判断は [decisions_archive/56](../../.claude_data/state/decisions_archive/56_screen_grid_cursor.md)）。
 - その前の完了フェーズ = [phase 55](55_keyboard_ui_window/phase.md)（2026-10-12・キーボードUIのウィンドウ改善〔ステータス欄の削除とタイトル表示 / 「キーボードUIを常に手前」とダイアログ表示中の一時解除 / 縦横比固定〕。暫定仕様先行モード〔暫定 39 v0.6 凍結〕・判断は [decisions_archive/55](../../.claude_data/state/decisions_archive/55_keyboard_ui_window.md)） /
   [phase 54](54_numpad_key_distinction/phase.md)（2026-10-11・テンキーの区別。暫定 38 v0.5 凍結・判断は [decisions_archive/54](../../.claude_data/state/decisions_archive/54_numpad_key_distinction.md)） /
@@ -294,7 +294,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 - phase 43 由来（完了判定前の Codex 敵対的レビュー）: シーケンスの個別保存（`sequence_file_io.py:54-86`）はパスのダイアログ中にアクティブが変わると、保持した A の行を保存しつつ参照元・未保存の印を現在のアクティブ B へ付ける（phase 43 より前からの挙動・キーマップの個別保存の固定なし〔decisions 43 の task_06b 保留 L1〕と同類）
 
 ### テスト負債
-- tests_ui で 1 回だけ `write_startup` が呼ばれた失敗（`compact_window_size` の保存・テスト名は未取得）。同じ実行を繰り返すと再現せず（phase 52 task_01 の検証で 2026-10-11 に発生・task_01 の変更とは無関係）。再発したらテスト名を取って切り分ける
+- tests_ui で 1 回だけ `write_startup` が呼ばれた失敗（`compact_window_size` の保存・テスト名は未取得）。同じ実行を繰り返すと再現せず（phase 52 task_01 の検証で 2026-10-11 に発生・task_01 の変更とは無関係）。再発したらテスト名を取って切り分ける。**2026-10-14 再発（phase 57 task_02 の検証・tests_ui 全体の実行時のみ）: `tests_ui.test_compact_window.CompactWindowTest.test_automatic_full_view_and_maximized_sizes_are_not_saved`**（単独・モジュール単独では pass・実行順依存）
 - `tests_ui/test_action_dialog_control.py` の 2 件（`test_focus_moves_to_type_combo_when_*_is_hidden`）は、Tk のルートを作るモジュール（`test_modal_grab`・`test_action_dialog_key_hold` 等）の**後に同じプロセスで走らせると**フォーカスが取れず落ちる（実行順への依存。名前順の一括実行では先に走るので落ちない。phase 51 task_05 で判明・既存）
 
 - phase 36 の完了判定前レビューで判明したテストの無い経路: `save_runtime_data` の `keep_legacy_copy=True`（本番の呼び出し元 `keymap_set_io.py:136` は常に False・実質未使用の引数）/  `post_save_warnings=None` のときの `warnings.warn`（`assertWarns` の検査なし）/ `build_runtime_data_from_split` のアクティブキーマップ補完（一覧に無い `active_keymap_path` を読む分岐・専用テスト未確認）（phase 36 由来）
