@@ -51,6 +51,11 @@ def is_positive_ratio(value: object) -> bool:
         return False
 
 
+def grid_key_name(value: Any) -> str:
+    """Normalize a grid key (trim + lower) without importing config."""
+    return (value or "").strip().lower() if isinstance(value, str) else ""
+
+
 def default_top_layout() -> TopLayout:
     """Build the immutable, equally divided three by four default layout."""
     return TopLayout(tuple(

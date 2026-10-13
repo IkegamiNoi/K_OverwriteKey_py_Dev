@@ -4,36 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-14T00:30:00
+last_updated: 2026-10-14T02:00:00
 phase: instructions/phase/57_grid_crosshair_nudge（画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化。主入力 = 暫定 41 v0.4・ユーザー確定済）。次採番 = phase 58 / 暫定 42 / decisions 58 / 提案書 23
 直前の完了フェーズ = **phase 56**（画面の枠でカーソル移動・クリック・`decisions_archive/56_screen_grid_cursor.md`）
-last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 の起票）
+last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_01）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 57 起票済（暫定 41 v0.4 確定・phase.md・current.md）。次は task_01（domain の `grid.ops`）のタスク定義の起票と実装。**
+focus: **phase 57 task_01（domain の `grid.ops`）完了。次は task_02（振り分けとクリック点の移動）。**
 mode: implementing
 
 ## last_action
-ts: 2026-10-14T00:30:00
+ts: 2026-10-14T02:00:00
 who: main
 summary: |
-  ユーザー要望（選んだ枠に十字・矢印でクリック位置の微調整・操作キーの任意化）を暫定 41 に起票。deep-reviewer「修正して採用」→ v0.2 / ユーザー判断（各操作のキーは 1 つ・Esc と num enter は固定）→ v0.3 /
-  Codex 敵対的 needs-attention 2 件を採用 → v0.4 → ユーザー確定（2026-10-14）。
-  phase 57 を起票（phase.md・current.md・decisions.md）。reviewer の整合チェック = 採用（軽微 1 件を反映）。
+  task_01（codex-implementer・Luna high 単独）: `domain/screen_grid/ops.py` 新規（操作キーの正規化・`ops_of`・`ops_to_json`・`validate_ops`）・固定の予約キーを修飾キーだけに・自動割当 / 検査に `op_keys`（既定 = 既定の操作キー）。
+  メイン補正: 循環回避の関数内 import をやめ `grid_key_name` を models.py へ移動 / Codex のテスト期待値の誤り 2 件を修正。reviewer 採用（低 2 件は参考）。
 result_files:
-  - instructions/history/41_grid_crosshair_nudge.md
-  - instructions/phase/57_grid_crosshair_nudge/phase.md
-  - instructions/phase/current.md
-  - .claude_data/state/decisions.md
+  - keyseq/domain/screen_grid/ops.py・normalize.py・assignment.py・models.py・__init__.py
+  - tests/test_screen_grid.py・tests/test_screen_grid_ops.py
+  - instructions/phase/57_grid_crosshair_nudge/tasks/task_01_grid_ops_domain.md
 verified:
-  compile/tests: not_run（文書のみ）
-  review: deep-reviewer 修正して採用→反映 / codex-adversarial needs-attention→反映 / reviewer（整合）採用
+  compile: pass / tests: 1636 件 OK（skipped 7）/ tests_ui: 1023 件 OK / smoke OK
+  review: reviewer 採用
 
 ## next_action
-- `/task_new` で `instructions/phase/57_grid_crosshair_nudge/tasks/task_01_grid_ops_domain.md` を起票（暫定 41 §4・§8 の検査の純関数・既存の固定予約テストの書き換え）→ `codex-implementer` に実装を依頼 → verifier → reviewer
-- 以降 phase.md のタスク順（task_02 振り分けとクリック点 → task_03 十字の描画〔実機目視〕→ task_04 操作キーの欄〔実機目視〕→ task_05 ドラッグ中の十字〔実機目視〕→ task_06 統合 → task_07 正本反映）
+- `/task_new` で `tasks/task_02_grid_session_ops_and_nudge.md` を起票（暫定 41 §5・§6: 枠のキー > 操作キー・実効の suppress 集合を `suppress_keys` 1 本で公開・router の esc 固定分岐と `esc_active` の廃止・Shift・クリック点の移動）→ codex 実装 → verifier → reviewer
+- 以降 phase.md のタスク順（task_03〜05 は実機目視あり）
 
 ## blockers
 - なし

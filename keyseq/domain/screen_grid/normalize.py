@@ -11,15 +11,12 @@ from .models import (
     TopLayout,
     default_sub_layout,
     default_top_layout,
+    grid_key_name,
     is_positive_ratio,
     sub_layout_to_json,
     top_layout_to_json,
 )
-
-
-FIXED_RESERVED_KEYS = frozenset({
-    "enter", "num enter", "space", "esc", "backspace", "tab",
-}) | MODIFIER_KEY_NAMES
+from .ops import normalize_ops, ops_to_json
 
 
 def has_enabled_grid(keymaps: Any) -> bool:
@@ -35,18 +32,13 @@ def monitor_identifier(left: int, top: int, right: int, bottom: int) -> str:
     return f"{right - left}x{bottom - top}{left:+d}{top:+d}"
 
 
-def grid_key_name(value: Any) -> str:
-    """Normalize a grid key without importing config and creating a cycle."""
-    return (value or "").strip().lower() if isinstance(value, str) else ""
-
-
 def _key_error(key: str, seen: set[str]) -> str | None:
     if not key:
         return "キーが空です"
     if key in seen:
         return "キーが重複しています"
-    if key in FIXED_RESERVED_KEYS:
-        return f"固定の予約キー {key!r} です"
+    if key in MODIFIER_KEY_NAMES:
+        return f"修飾キー {key!r} です"
     seen.add(key)
     return None
 
@@ -150,6 +142,15 @@ def normalize_grid(raw: Any) -> dict[str, Any] | None:
     normalized = {"enabled": enabled, "monitors": monitors, "sub": sub_layout_to_json(sub)}
     if raw.get("label_position") == "top_left":
         normalized["label_position"] = "top_left"
+    if "ops" in raw:
+        ops, reverted = normalize_ops(raw["ops"])
+        if not isinstance(raw["ops"], dict):
+            logger.warning("Invalid screen grid ops; using defaults")
+        elif reverted:
+            logger.warning("Invalid screen grid ops (%s); using defaults", ", ".join(reverted))
+        ops_json = ops_to_json(ops)
+        if ops_json is not None:
+            normalized["ops"] = ops_json
     return normalized
 
 

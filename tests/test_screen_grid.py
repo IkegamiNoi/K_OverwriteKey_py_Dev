@@ -2,7 +2,6 @@ import copy
 import unittest
 
 from keyseq.domain.screen_grid import (
-    FIXED_RESERVED_KEYS,
     has_enabled_grid,
     GridCell,
     GridRow,
@@ -125,16 +124,21 @@ class ScreenGridNormalizationTest(unittest.TestCase):
             {"rows": 1, "cols": 2, "keys": ["q", "Q"]},
             {"rows": 1, "cols": 2, "keys": ["q", ""]},
             {"rows": True, "cols": 2, "keys": ["q", "w"]},
-            {"rows": 1, "cols": 2, "keys": ["enter", "w"]},
         ):
             with self.subTest(raw=raw):
                 self.assertEqual(normalize_grid({"sub": raw})["sub"], {
                     "rows": 3, "cols": 3, "keys": list("qweasdzxc")})
 
-    def test_fixed_reserved_empty_bool_ratio_and_input_immutability(self):
-        for key in FIXED_RESERVED_KEYS:
+    def test_modifiers_revert_but_operation_keys_load_and_input_is_immutable(self):
+        for key in ("shift", "ctrl", "left alt"):
             raw = {"monitors": {"m": {"rows": [{"h": 1, "cells": [{"w": 1, "key": key}]}]}}}
             self.assertNotIn("m", normalize_grid(raw)["monitors"])
+        for key in ("enter", "space", "esc", "backspace", "tab", "num enter"):
+            raw = {"monitors": {"m": {"rows": [{"h": 1, "cells": [{"w": 1, "key": key}]}]}}}
+            self.assertEqual(normalize_grid(raw)["monitors"]["m"]["rows"][0]["cells"][0]["key"], key)
+        for key in ("enter", "space", "esc", "backspace", "tab", "num enter"):
+            grid = normalize_grid({"sub": {"rows": 1, "cols": 2, "keys": [key, "w"]}})
+            self.assertEqual(grid["sub"]["keys"], [key, "w"])
         for bad_ratio in (0, -1, True, False, float("inf"), float("nan")):
             raw = {"monitors": {"m": {"rows": [{"h": bad_ratio, "cells": [{"w": 1, "key": "q"}]}]}}}
             self.assertNotIn("m", normalize_grid(raw)["monitors"])
@@ -217,7 +221,7 @@ class ScreenGridValidationTest(unittest.TestCase):
         self.assertTrue(any("幅" in error for error in errors))
         self.assertTrue(any("空" in error for error in errors))
         self.assertTrue(any("重複" in error for error in errors))
-        self.assertTrue(any("固定予約" in error for error in errors))
+        self.assertTrue(any("操作キー" in error for error in errors))
         reserved_error = validate_top(
             TopLayout((GridRow(1, (GridCell(1, "f1"),)),)), {"F1"},
         )
@@ -236,8 +240,11 @@ class ScreenGridValidationTest(unittest.TestCase):
         self.assertTrue(any("列数" in error for error in validate_sub(SubLayout(1, 10, ()), set())))
         self.assertTrue(any("キー数" in error for error in validate_sub(SubLayout(2, 2, ("q",)), set())))
         self.assertTrue(any("キーが空" in error for error in validate_sub(SubLayout(1, 2, ("", "q")), set())))
-        self.assertTrue(any("固定予約" in error for error in validate_sub(
+        self.assertTrue(any("操作キー" in error for error in validate_sub(
             SubLayout(1, 2, ("enter", "q")), set(),
+        )))
+        self.assertTrue(any("修飾キー" in error for error in validate_sub(
+            SubLayout(1, 2, ("shift", "q")), set(),
         )))
         self.assertEqual(validate_sub(default_sub_layout(), set()), [])
         self.assertEqual(validate_top(default_top_layout(), set()), [])
@@ -248,6 +255,23 @@ class ScreenGridValidationTest(unittest.TestCase):
             TopLayout((GridRow(1, (GridCell(1, "f1"),)),)), {"f1"},
         )
         self.assertIn("段 1・列 1: 予約キー 'f1' は使えません", location_errors)
+
+    def test_custom_operation_keys_are_blocked_for_assignment_and_validation(self):
+        layout = TopLayout((GridRow(1, tuple(GridCell(1, "x") for _ in range(3))),))
+        self.assertEqual(next_free_key(set(), set(), op_keys={"q", "w"}), "e")
+        reassigned = reassign_top_keys(layout, set(), op_keys={"q", "w"})
+        self.assertEqual([cell.key for cell in reassigned.rows[0].cells], ["e", "r", "t"])
+        self.assertEqual(auto_fill_sub_keys(1, 3, set(), op_keys={"q", "w"}), ("e", "r", "t"))
+        self.assertTrue(any("操作キー 'h' と重なっています" in error for error in validate_top(
+            TopLayout((GridRow(1, (GridCell(1, "h"),)),)), set(), op_keys={"h"},
+        )))
+        self.assertTrue(any("操作キー 'h' と重なっています" in error for error in validate_sub(
+            SubLayout(1, 2, ("h", "q")), set(), op_keys={"h"},
+        )))
+        self.assertEqual(next_free_key(set(), set()), "q")
+        self.assertTrue(any("操作キー" in error for error in validate_top(
+            TopLayout((GridRow(1, (GridCell(1, "enter"),)),)), set(),
+        )))
 
 
 if __name__ == "__main__":
