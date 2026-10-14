@@ -15,6 +15,11 @@ class GridEditorPanel(tk.Toplevel):
         self.sub_selected = None
         self.op_selected: str | None = None
         self.op_key_buttons: dict[str, tk.Button] = {}
+        self._max_height: int | None = None
+        self._measure_pending = False
+        self._measuring_scroll_area = False
+        # 窓が未表示のとき winfo_ismapped は 0 になるので、スクロールバーの表示は自前の印で持つ。
+        self._scrollbar_shown = False
         self.title("枠を編集")
         self.transient(editor)
         self.attributes("-topmost", True)
@@ -22,51 +27,77 @@ class GridEditorPanel(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", editor.destroy)
         frame = ttk.Frame(self, padding=10)
         frame.pack(fill="both", expand=True)
+        self.scroll_frame = ttk.Frame(frame)
+        self.scroll_frame.pack(fill="both", expand=True)
+        self.canvas = tk.Canvas(self.scroll_frame, width=1, highlightthickness=0, borderwidth=0)
+        self.scrollbar = ttk.Scrollbar(self.scroll_frame, orient="vertical", command=self.canvas.yview)
+        self.canvas.configure(yscrollcommand=self.scrollbar.set)
+        self.canvas.grid(row=0, column=0, sticky="nsew")
+        self.scroll_frame.grid_rowconfigure(0, weight=1)
+        self.scroll_frame.grid_columnconfigure(0, weight=1)
+        self.scrollbar.grid(row=0, column=1, sticky="ns")
+        self.scrollbar.grid_remove()
+        content = ttk.Frame(self.canvas)
+        self._scroll_content = content
+        self._content_window = self.canvas.create_window((0, 0), window=content, anchor="nw")
+        self.canvas.bind("<Configure>", self._on_scroll_canvas_configure)
+        self.bind("<<ThemeChanged>>", lambda _event: self._schedule_scroll_measurement())
+
         labels = [f"{index + 1}: {monitor.id}" for index, monitor in enumerate(editor.monitors)]
-        self.monitor_combo = ttk.Combobox(frame, values=labels, state="readonly", width=38)
+        self.monitor_combo = ttk.Combobox(content, values=labels, state="readonly", width=38)
         self.monitor_combo.current(editor.monitors.index(editor.monitor))
         self.monitor_combo.pack(fill="x")
         self.monitor_combo.bind("<<ComboboxSelected>>", lambda _e: self._then_focus_editor(
             editor, lambda: editor.switch_monitor(editor.monitors[self.monitor_combo.current()].id)))
-        self.hint = ttk.Label(frame, text="枠をクリックして選ぶ → キーを押すとその枠のキー")
+        self.hint = ttk.Label(content, text="枠をクリックして選ぶ → キーを押すとその枠のキー")
         self.hint.pack(anchor="w", pady=(4, 2))
         self.buttons = {}
-        for text, command in (
+        button_frame = ttk.Frame(content)
+        button_frame.pack(fill="x")
+        button_frame.grid_columnconfigure(0, weight=1, uniform="actions")
+        button_frame.grid_columnconfigure(1, weight=1, uniform="actions")
+        for index, (text, command) in enumerate((
             ("段の追加", editor.add_row), ("段の削除", editor.remove_row),
             ("列の追加", editor.add_cell), ("列の削除", editor.remove_cell),
             ("振り直し", editor.reassign), ("この画面を既定に戻す", editor.reset_monitor),
-        ):
+        )):
             # 押した後もキーで枠のキーを変えられるよう、フォーカスを編集の窓へ戻す。
             button = ttk.Button(
-                frame, text=text, command=lambda c=command: self._then_focus_editor(editor, c)
+                button_frame, text=text, command=lambda c=command: self._then_focus_editor(editor, c)
             )
-            button.pack(fill="x", pady=2)
+            button.grid(row=index // 2, column=index % 2, sticky="ew", padx=1, pady=2)
             self.buttons[text] = button
         self.label_position_var = tk.BooleanVar(value=editor.label_position == "top_left")
         self.label_position_check = ttk.Checkbutton(
-            frame, text="キーを枠の左上に表示", variable=self.label_position_var,
+            content, text="キーを枠の左上に表示", variable=self.label_position_var,
             command=editor.label_position_changed,
         )
         self.label_position_check.pack(anchor="w")
-        self.ops_frame = ttk.LabelFrame(frame, text="操作キー（Esc = 戻る・テンキーの Enter = クリック は固定）")
+        self.ops_frame = ttk.LabelFrame(content, text="操作キー（Esc = 戻る・テンキーの Enter = クリック は固定）")
         self.ops_frame.pack(fill="x", pady=(4, 2))
-        for row, operation in enumerate(GRID_OPS):
-            ttk.Label(self.ops_frame, text=OP_LABELS[operation]).grid(row=row, column=0, sticky="w", padx=3, pady=1)
+        for column in (1, 3):
+            self.ops_frame.grid_columnconfigure(column, weight=1)
+        for index, operation in enumerate(GRID_OPS):
+            grid_row, group = divmod(index, 2)
+            label_column = group * 2
+            ttk.Label(self.ops_frame, text=OP_LABELS[operation]).grid(
+                row=grid_row, column=label_column, sticky="w", padx=3, pady=1
+            )
             button = tk.Button(
-                self.ops_frame, text=editor.ops[operation], width=8, relief=tk.RAISED,
+                self.ops_frame, text=editor.ops[operation], relief=tk.RAISED,
                 background="#e0e0e0", activebackground="#d0d0d0",
                 command=lambda name=operation: self.select_op_key(name),
             )
-            button.grid(row=row, column=1, padx=2, pady=1)
+            button.grid(row=grid_row, column=label_column + 1, padx=2, pady=1, sticky="ew")
             self.op_key_buttons[operation] = button
         self.update_op_buttons()
         reset_ops = ttk.Button(
             self.ops_frame, text="操作キーを既定に戻す",
             command=lambda: self._then_focus_editor(editor, editor.reset_ops),
         )
-        reset_ops.grid(row=len(GRID_OPS), column=0, columnspan=2, sticky="ew", padx=3, pady=(3, 2))
-        ttk.Label(frame, text="細分化（段数・列数 / 枠をクリックしてキーを押す）").pack(anchor="w")
-        counts = ttk.Frame(frame)
+        reset_ops.grid(row=4, column=0, columnspan=4, sticky="ew", padx=3, pady=(3, 2))
+        ttk.Label(content, text="細分化（段数・列数 / 枠をクリックしてキーを押す）").pack(anchor="w")
+        counts = ttk.Frame(content)
         counts.pack(fill="x")
         self.rows_var = tk.StringVar(value=str(editor.sub.rows))
         self.cols_var = tk.StringVar(value=str(editor.sub.cols))
@@ -76,7 +107,7 @@ class GridEditorPanel(tk.Toplevel):
             spinbox = ttk.Spinbox(counts, from_=1, to=9, width=4, textvariable=variable)
             spinbox.pack(side="left")
             self.count_spinboxes.append(spinbox)
-        self.sub_keys_frame = ttk.Frame(frame)
+        self.sub_keys_frame = ttk.Frame(content)
         self.sub_keys_frame.pack(fill="x", pady=4)
         self.sub_keys: list[str] = []
         self.sub_rows = 0
@@ -84,11 +115,85 @@ class GridEditorPanel(tk.Toplevel):
         self.rebuild_sub_key_entries(editor.sub.rows, editor.sub.cols, editor.sub.keys)
         self.rows_var.trace_add("write", editor.sub_counts_changed)
         self.cols_var.trace_add("write", editor.sub_counts_changed)
-        actions = ttk.Frame(frame)
-        actions.pack(anchor="e")
+        self.actions = ttk.Frame(frame)
+        self.actions.pack(anchor="e")
         for text, command in (("OK", editor.accept), ("キャンセル", editor.destroy)):
-            ttk.Button(actions, text=text, command=command).pack(side="left", padx=3)
+            ttk.Button(self.actions, text=text, command=command).pack(side="left", padx=3)
         self.bind("<Escape>", editor.on_escape)
+        self._bind_mousewheel_tree(content, bind_configure=True)
+        self._schedule_scroll_measurement()
+
+    def _bind_mousewheel_tree(self, widget, *, bind_configure: bool = False) -> None:
+        widget.bind("<MouseWheel>", self._on_mousewheel)
+        if bind_configure:
+            widget.bind("<Configure>", self._on_scroll_content_configure, add="+")
+        for child in widget.winfo_children():
+            self._bind_mousewheel_tree(child)
+
+    def _on_mousewheel(self, event):
+        if self._scrollbar_shown:
+            units = int(-event.delta / 120) or (-1 if event.delta > 0 else 1)
+            self.canvas.yview_scroll(units, "units")
+        return "break"
+
+    def _on_scroll_content_configure(self, _event=None) -> None:
+        self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        if not self._measuring_scroll_area:
+            self._schedule_scroll_measurement()
+
+    def _on_scroll_canvas_configure(self, event) -> None:
+        item_width = self.canvas.itemcget(self._content_window, "width")
+        if not item_width or int(float(item_width)) != event.width:
+            self.canvas.itemconfigure(self._content_window, width=event.width)
+
+    def _schedule_scroll_measurement(self) -> None:
+        if self._measure_pending or self._measuring_scroll_area:
+            return
+        self._measure_pending = True
+        self.after_idle(self._measure_scroll_area)
+
+    def _measure_scroll_area(self) -> None:
+        self._measure_pending = False
+        if self._measuring_scroll_area:
+            return
+        # 窓を閉じた後に after_idle の予約が残っていても何もしない。
+        if not self.winfo_exists():
+            return
+        self._measuring_scroll_area = True
+        try:
+            # 作り直したボタン等の要求サイズを反映してから測る（after_idle は配置の計算より先に走ることがある）。
+            self._scroll_content.update_idletasks()
+            content_height = self._scroll_content.winfo_reqheight()
+            if self._max_height is None:
+                available_height = content_height
+            else:
+                available_height = max(1, self._max_height - self.actions.winfo_reqheight() - 20)
+            canvas_height = min(content_height, available_height)
+            if int(self.canvas.cget("height")) != canvas_height:
+                self.canvas.configure(height=canvas_height)
+            if int(self.scroll_frame.cget("height")) != canvas_height:
+                self.scroll_frame.configure(height=canvas_height)
+
+            show_scrollbar = content_height > available_height
+            if self._scrollbar_shown != show_scrollbar:
+                self._scrollbar_shown = show_scrollbar
+                if show_scrollbar:
+                    self.scrollbar.grid()
+                else:
+                    self.scrollbar.grid_remove()
+
+            content_width = max(
+                self._scroll_content.winfo_reqwidth(), self.monitor_combo.winfo_reqwidth()
+            )
+            if int(self.canvas.cget("width")) != content_width:
+                self.canvas.configure(width=content_width)
+            self.canvas.configure(scrollregion=self.canvas.bbox("all"))
+        finally:
+            self._measuring_scroll_area = False
+
+    def set_max_height(self, height: int) -> None:
+        self._max_height = max(1, height)
+        self._measure_scroll_area()
 
     @staticmethod
     def _then_focus_editor(editor, command) -> None:
@@ -117,6 +222,7 @@ class GridEditorPanel(tk.Toplevel):
                 relief=tk.SUNKEN if selected else tk.RAISED,
                 background="#ffcc66" if selected else "#e0e0e0",
             )
+        self._schedule_scroll_measurement()
 
     def update_selection(self, selected) -> None:
         state = "normal" if selected is not None else "disabled"
@@ -142,6 +248,8 @@ class GridEditorPanel(tk.Toplevel):
                 )
                 button.grid(row=row_index, column=col_index, padx=1, pady=1)
                 self.sub_key_buttons.append(button)
+                self._bind_mousewheel_tree(button)
+        self._schedule_scroll_measurement()
 
     def select_sub_key(self, index: int) -> None:
         self.clear_op_selection()
@@ -173,3 +281,4 @@ class GridEditorPanel(tk.Toplevel):
             return
         self.sub_keys[self.sub_selected] = key
         self.sub_key_buttons[self.sub_selected].configure(text=key)
+        self._schedule_scroll_measurement()

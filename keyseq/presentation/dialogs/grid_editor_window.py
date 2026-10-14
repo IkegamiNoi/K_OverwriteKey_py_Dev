@@ -80,7 +80,9 @@ class GridEditorWindow(tk.Toplevel):
         self._drag = None
         left, top, right, bottom = self.monitor.rect
         self.geometry(f"{right - left}x{bottom - top}+{left}+{top}")
+        self.update_idletasks()
         self.panel.geometry(f"+{left + 12}+{top + 12}")
+        self.panel.set_max_height(bottom - top - 80)
         self.panel.monitor_combo.current(self.monitors.index(self.monitor))
         self.draw()
         self._reapply_stacking()

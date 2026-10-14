@@ -183,7 +183,7 @@ class ScreenGridSession:
         keys = {key for monitor in self._monitors for row in top_cell_rects(
             monitor.rect, top_layout_for(self._grid, monitor.id)
         ) for _rect, key in row}
-        keys.update(default_sub_layout().keys if self._grid is None else sub_layout_of(self._grid).keys)
+        keys.update(sub_layout_of(self._grid).keys)
         ops = ops_of(self._grid)
         keys.update(ops[name] for name in ("deepen", "back", "click", "next_screen"))
         keys.add(FIXED_CLICK_KEY)

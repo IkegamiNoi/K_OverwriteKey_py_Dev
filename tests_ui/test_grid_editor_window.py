@@ -1,6 +1,7 @@
 """偽のモニタを使って枠編集窓の操作を確認する。"""
 import copy
 import tkinter as tk
+from tkinter import font as tkfont
 from tkinter import ttk
 import unittest
 from types import SimpleNamespace
@@ -637,6 +638,114 @@ class GridEditorWindowTest(unittest.TestCase):
         editor._replace(set_cell_key(editor.layout, 0, 0, "space"))
         editor.accept()
         self.assertEqual(editor.result["monitors"]["secondary"]["rows"][0]["cells"][0]["key"], "space")
+
+
+    def test_panel_buttons_and_operation_keys_use_two_column_layout(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        self.root.update()
+
+        button_columns = {button.grid_info()["column"] for button in editor.panel.buttons.values()}
+        self.assertEqual(button_columns, {0, 1})
+        for index, operation in enumerate(GRID_OPS):
+            info = editor.panel.op_key_buttons[operation].grid_info()
+            self.assertEqual(info["row"], index // 2)
+            self.assertEqual(info["column"], (index % 2) * 2 + 1)
+
+    def test_panel_scroll_area_respects_height_and_keeps_actions_visible(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        # 初回の表示で switch_monitor がやり直され上限が画面の高さから決まり直すので、表示が落ち着いてから設定する。
+        self.root.update()
+        editor.panel.set_max_height(200)
+        self.root.update()
+
+        self.assertTrue(editor.panel.scrollbar.winfo_ismapped())
+        self.assertLessEqual(editor.panel.winfo_height(), 200)
+        self.assertTrue(all(child.winfo_ismapped() for child in editor.panel.actions.winfo_children()))
+
+    def test_panel_scrollbar_hides_when_content_fits(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        # 初回の表示で switch_monitor がやり直され上限が画面の高さから決まり直すので、表示が落ち着いてから設定する。
+        self.root.update()
+        editor.panel.set_max_height(2000)
+        self.root.update()
+
+        self.assertFalse(editor.panel.scrollbar.winfo_ismapped())
+
+    def test_rebuilding_nine_subdivision_rows_remeasures_scroll_region(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        # 初回の表示で switch_monitor がやり直され上限が画面の高さから決まり直すので、表示が落ち着いてから設定する。
+        self.root.update()
+        editor.panel.set_max_height(200)
+        self.root.update()
+        before = editor.panel.canvas.bbox("all")
+        before_height = before[3] - before[1]
+
+        editor.panel.rows_var.set("9")
+        self.root.update()
+        after = editor.panel.canvas.bbox("all")
+        after_height = after[3] - after[1]
+
+        self.assertGreater(after_height, before_height)
+
+    def test_nine_subdivision_columns_expand_scroll_area_width(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        self.root.update()
+        before_width = editor.panel.canvas.winfo_reqwidth()
+
+        editor.panel.cols_var.set("9")
+        self.root.update()
+
+        self.assertGreater(editor.panel.canvas.winfo_reqwidth(), before_width)
+
+    def test_nine_by_nine_subdivision_shows_scrollbar_and_full_scrollregion(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        # 初回の表示で switch_monitor がやり直され上限が画面の高さから決まり直すので、表示が落ち着いてから設定する。
+        self.root.update()
+        editor.panel.set_max_height(200)
+        editor.panel.rows_var.set("9")
+        editor.panel.cols_var.set("9")
+        self.root.update()
+
+        self.assertTrue(editor.panel.scrollbar.winfo_ismapped())
+        bounds = editor.panel.canvas.bbox("all")
+        self.assertEqual(bounds[3] - bounds[1], editor.panel._scroll_content.winfo_reqheight())
+
+    def test_scroll_measurement_does_not_loop_after_nine_by_nine_rebuild(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        self.root.update()
+
+        with patch.object(
+            editor.panel, "_measure_scroll_area", wraps=editor.panel._measure_scroll_area
+        ) as measure:
+            editor.panel.set_max_height(200)
+            editor.panel.rows_var.set("9")
+            editor.panel.cols_var.set("9")
+            for _ in range(3):
+                self.root.update()
+
+            self.assertLessEqual(measure.call_count, 10)
+
+    def test_operation_key_button_fits_page_down_text(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        self.root.update()
+        operation = GRID_OPS[0]
+        editor.ops[operation] = "page down"
+        editor.panel.update_op_buttons()
+        self.root.update()
+        button = editor.panel.op_key_buttons[operation]
+        measured_text_width = tkfont.Font(
+            root=button, font=button.cget("font")
+        ).measure("page down")
+
+        self.assertGreaterEqual(button.winfo_reqwidth(), measured_text_width)
 
 
 if __name__ == "__main__":
