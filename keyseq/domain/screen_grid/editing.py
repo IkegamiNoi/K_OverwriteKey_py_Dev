@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Collection
+
 from .assignment import next_free_key
 from .models import GridCell, GridRow, TopLayout
 
@@ -8,7 +10,9 @@ def _all_keys(layout: TopLayout) -> set[str]:
     return {cell.key for row in layout.rows for cell in row.cells}
 
 
-def split_row(layout: TopLayout, row_index: int, reserved: set[str]) -> TopLayout:
+def split_row(
+    layout: TopLayout, row_index: int, reserved: set[str], *, op_keys: Collection[str] | None = None,
+) -> TopLayout:
     """Split one row into equal-height rows, assigning fresh keys below it."""
     if not 0 <= row_index < len(layout.rows):
         return layout
@@ -16,7 +20,7 @@ def split_row(layout: TopLayout, row_index: int, reserved: set[str]) -> TopLayou
     used = _all_keys(layout)
     new_cells = []
     for cell in row.cells:
-        key = next_free_key(used, reserved)
+        key = next_free_key(used, reserved, op_keys=op_keys)
         if key:
             used.add(key)
         new_cells.append(GridCell(cell.w, key))
@@ -29,7 +33,8 @@ def split_row(layout: TopLayout, row_index: int, reserved: set[str]) -> TopLayou
 
 
 def split_cell(
-    layout: TopLayout, row_index: int, col_index: int, reserved: set[str]
+    layout: TopLayout, row_index: int, col_index: int, reserved: set[str], *,
+    op_keys: Collection[str] | None = None,
 ) -> TopLayout:
     """Split one cell into equal-width cells, placing a fresh key on the right."""
     if not 0 <= row_index < len(layout.rows):
@@ -38,7 +43,7 @@ def split_cell(
     if not 0 <= col_index < len(row.cells):
         return layout
     used = _all_keys(layout)
-    key = next_free_key(used, reserved)
+    key = next_free_key(used, reserved, op_keys=op_keys)
     half = row.cells[col_index].w / 2
     cells = list(row.cells)
     cells[col_index:col_index + 1] = [GridCell(half, row.cells[col_index].key), GridCell(half, key)]

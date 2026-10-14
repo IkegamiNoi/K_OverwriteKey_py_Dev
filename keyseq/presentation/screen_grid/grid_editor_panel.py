@@ -3,6 +3,8 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import ttk
 
+from keyseq.domain.screen_grid import GRID_OPS, OP_LABELS
+
 
 class GridEditorPanel(tk.Toplevel):
     """編集窓に付属する操作と細分化のキー選択。"""
@@ -11,6 +13,8 @@ class GridEditorPanel(tk.Toplevel):
         super().__init__(editor)
         self.editor = editor
         self.sub_selected = None
+        self.op_selected: str | None = None
+        self.op_key_buttons: dict[str, tk.Button] = {}
         self.title("枠を編集")
         self.transient(editor)
         self.attributes("-topmost", True)
@@ -44,6 +48,23 @@ class GridEditorPanel(tk.Toplevel):
             command=editor.label_position_changed,
         )
         self.label_position_check.pack(anchor="w")
+        self.ops_frame = ttk.LabelFrame(frame, text="操作キー（Esc = 戻る・テンキーの Enter = クリック は固定）")
+        self.ops_frame.pack(fill="x", pady=(4, 2))
+        for row, operation in enumerate(GRID_OPS):
+            ttk.Label(self.ops_frame, text=OP_LABELS[operation]).grid(row=row, column=0, sticky="w", padx=3, pady=1)
+            button = tk.Button(
+                self.ops_frame, text=editor.ops[operation], width=8, relief=tk.RAISED,
+                background="#e0e0e0", activebackground="#d0d0d0",
+                command=lambda name=operation: self.select_op_key(name),
+            )
+            button.grid(row=row, column=1, padx=2, pady=1)
+            self.op_key_buttons[operation] = button
+        self.update_op_buttons()
+        reset_ops = ttk.Button(
+            self.ops_frame, text="操作キーを既定に戻す",
+            command=lambda: self._then_focus_editor(editor, editor.reset_ops),
+        )
+        reset_ops.grid(row=len(GRID_OPS), column=0, columnspan=2, sticky="ew", padx=3, pady=(3, 2))
         ttk.Label(frame, text="細分化（段数・列数 / 枠をクリックしてキーを押す）").pack(anchor="w")
         counts = ttk.Frame(frame)
         counts.pack(fill="x")
@@ -75,12 +96,35 @@ class GridEditorPanel(tk.Toplevel):
         if editor.winfo_exists():
             editor.canvas.focus_set()
 
+    def select_op_key(self, name: str) -> None:
+        self.editor.selected = None
+        self.editor._drag = None
+        self.clear_sub_selection()
+        self.op_selected = name
+        self.update_op_buttons()
+        self.editor.draw()
+        self.editor.canvas.focus_set()
+
+    def clear_op_selection(self) -> None:
+        self.op_selected = None
+        self.update_op_buttons()
+
+    def update_op_buttons(self) -> None:
+        for operation, button in self.op_key_buttons.items():
+            selected = operation == self.op_selected
+            button.configure(
+                text=self.editor.ops[operation],
+                relief=tk.SUNKEN if selected else tk.RAISED,
+                background="#ffcc66" if selected else "#e0e0e0",
+            )
+
     def update_selection(self, selected) -> None:
         state = "normal" if selected is not None else "disabled"
         for text in ("段の追加", "段の削除", "列の追加", "列の削除"):
             self.buttons[text].configure(state=state)
 
     def rebuild_sub_key_entries(self, rows: int, cols: int, keys) -> None:
+        self.clear_op_selection()
         for child in self.sub_keys_frame.winfo_children():
             child.destroy()
         self.sub_rows = rows
@@ -100,6 +144,7 @@ class GridEditorPanel(tk.Toplevel):
                 self.sub_key_buttons.append(button)
 
     def select_sub_key(self, index: int) -> None:
+        self.clear_op_selection()
         self.editor.selected = None
         self.editor._drag = None
         self.sub_selected = index

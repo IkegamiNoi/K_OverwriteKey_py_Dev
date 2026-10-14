@@ -38,6 +38,16 @@ class ScreenGridEditingTests(unittest.TestCase):
         self.assertEqual(len(all_keys), len(set(all_keys)))
         self.assertNotIn("a", all_keys)
 
+    def test_split_row_skips_current_operation_keys(self):
+        result = split_row(self.layout, 0, set(), op_keys={"r"})
+
+        self.assertEqual([cell.key for cell in result.rows[1].cells], ["t", "y"])
+
+    def test_split_cell_skips_current_operation_keys(self):
+        result = split_cell(self.layout, 0, 1, set(), op_keys={"r"})
+
+        self.assertEqual(result.rows[0].cells[2].key, "t")
+
     def test_delete_row_expands_next_or_previous_and_preserves_total(self):
         removed_first = delete_row(self.layout, 0)
         removed_last = delete_row(self.layout, 1)

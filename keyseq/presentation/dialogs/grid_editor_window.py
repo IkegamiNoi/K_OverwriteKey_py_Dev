@@ -8,10 +8,11 @@ from typing import Callable
 from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.domain.key_hold import MODIFIER_KEY_NAMES
 from keyseq.domain.screen_grid import (
-    MIN_EDIT_CELL_PX, SubLayout, TopLayout, auto_fill_sub_keys, delete_cell, delete_row,
-    grid_key_name, label_position_of, move_cell_boundary, move_row_boundary, reassign_top_keys,
-    set_cell_key, split_cell, split_row, sub_layout_of, sub_layout_to_json,
-    top_cell_rects, top_layout_for, top_layout_to_json, validate_sub, validate_top,
+    DEFAULT_OPS, MIN_EDIT_CELL_PX, SubLayout, TopLayout, auto_fill_sub_keys, delete_cell, delete_row,
+    default_top_layout, grid_key_name, label_position_of, move_cell_boundary, move_row_boundary,
+    operation_keys, ops_of, ops_to_json, reassign_top_keys, set_cell_key, split_cell, split_row,
+    sub_layout_of, sub_layout_to_json, top_cell_rects, top_layout_for, top_layout_to_json,
+    validate_ops, validate_sub, validate_top,
 )
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_key_event
@@ -36,6 +37,7 @@ class GridEditorWindow(tk.Toplevel):
         self._key_name_from_event = key_name_from_event or normalize_tk_key_event
         self._grid = deepcopy(grid) if isinstance(grid, dict) else {}
         self.label_position = label_position_of(self._grid)
+        self.ops: dict[str, str] = ops_of(self._grid)
         records = self._grid.get("monitors")
         self._records: dict = deepcopy(records) if isinstance(records, dict) else {}
         self._layouts: dict[str, TopLayout] = {}
@@ -60,6 +62,9 @@ class GridEditorWindow(tk.Toplevel):
         self.switch_monitor(self.monitor.id)
         grab_modal(self, parent, focus=self.canvas)
 
+    def _op_keys(self) -> frozenset[str]:
+        return operation_keys(self.ops)
+
     @property
     def layout(self) -> TopLayout:
         return self._layouts[self.monitor.id]
@@ -70,6 +75,7 @@ class GridEditorWindow(tk.Toplevel):
             self._layouts[monitor_id] = top_layout_for(self._grid, monitor_id)
         self.selected = (0, 0)
         self.panel.clear_sub_selection()
+        self.panel.clear_op_selection()
         self._drag = None
         left, top, right, bottom = self.monitor.rect
         self.geometry(f"{right - left}x{bottom - top}+{left}+{top}")
@@ -129,6 +135,7 @@ class GridEditorWindow(tk.Toplevel):
 
     def on_press(self, event) -> None:
         self.panel.clear_sub_selection()
+        self.panel.clear_op_selection()
         self.canvas.focus_set()
         rows = self.cell_rects()
         self._drag = None
@@ -178,6 +185,8 @@ class GridEditorWindow(tk.Toplevel):
     def on_escape(self, _event=None):
         if self.panel.sub_selected is not None:
             self.panel.clear_sub_selection()
+        elif self.panel.op_selected is not None:
+            self.panel.clear_op_selection()
         elif self.selected is not None:
             self.selected = None
             self.draw()
@@ -191,7 +200,10 @@ class GridEditorWindow(tk.Toplevel):
             return self.on_escape(event)
         if key in MODIFIER_KEY_NAMES:
             return "break"
-        if self.panel.sub_selected is not None:
+        if self.panel.op_selected is not None:
+            self.ops[self.panel.op_selected] = key
+            self.panel.update_op_buttons()
+        elif self.panel.sub_selected is not None:
             self.panel.set_selected_sub_key(key)
         elif self.selected is not None:
             self._replace(set_cell_key(self.layout, *self.selected, key))
@@ -199,11 +211,11 @@ class GridEditorWindow(tk.Toplevel):
 
     def add_row(self) -> None:
         if self.selected is not None:
-            self._replace(split_row(self.layout, self.selected[0], self.reserved))
+            self._replace(split_row(self.layout, self.selected[0], self.reserved, op_keys=self._op_keys()))
 
     def add_cell(self) -> None:
         if self.selected is not None:
-            self._replace(split_cell(self.layout, *self.selected, self.reserved))
+            self._replace(split_cell(self.layout, *self.selected, self.reserved, op_keys=self._op_keys()))
 
     def remove_row(self) -> None:
         if self.selected is None:
@@ -223,7 +235,7 @@ class GridEditorWindow(tk.Toplevel):
         self.draw()
 
     def reassign(self) -> None:
-        self._replace(reassign_top_keys(self.layout, self.reserved))
+        self._replace(reassign_top_keys(self.layout, self.reserved, op_keys=self._op_keys()))
 
     def reset_monitor(self) -> None:
         monitor_id = self.monitor.id
@@ -232,8 +244,14 @@ class GridEditorWindow(tk.Toplevel):
         self._layouts[monitor_id] = top_layout_for(None, monitor_id)
         self.selected = (0, 0)
         self.panel.clear_sub_selection()
+        self.panel.clear_op_selection()
         self._drag = None
         self.draw()
+
+    def reset_ops(self) -> None:
+        self.ops = dict(DEFAULT_OPS)
+        self.panel.update_op_buttons()
+        self.panel.clear_op_selection()
 
     def sub_counts_changed(self, *_args) -> None:
         try:
@@ -241,7 +259,7 @@ class GridEditorWindow(tk.Toplevel):
         except ValueError:
             return
         if 1 <= rows <= 9 and 1 <= cols <= 9 and rows * cols >= 2:
-            keys = auto_fill_sub_keys(rows, cols, self.reserved)
+            keys = auto_fill_sub_keys(rows, cols, self.reserved, op_keys=self._op_keys())
             self.panel.rebuild_sub_key_entries(rows, cols, keys)
             self.sub = SubLayout(rows, cols, keys)
 
@@ -249,7 +267,7 @@ class GridEditorWindow(tk.Toplevel):
         errors = []
         for monitor_id in self._edited:
             errors.extend(f"{monitor_id}: {reason}"
-                          for reason in validate_top(self._layouts[monitor_id], self.reserved))
+                          for reason in validate_top(self._layouts[monitor_id], self.reserved, op_keys=self._op_keys()))
         try:
             rows, cols = int(self.panel.rows_var.get()), int(self.panel.cols_var.get())
             entries = self.panel.sub_key_rows()
@@ -261,7 +279,15 @@ class GridEditorWindow(tk.Toplevel):
                 return
             sub = SubLayout(int(self.panel.rows_var.get()), int(self.panel.cols_var.get()),
                             tuple(grid_key_name(k) for row in entries for k in row))
-            errors.extend(validate_sub(sub, self.reserved))
+            errors.extend(validate_sub(sub, self.reserved, op_keys=self._op_keys()))
+            frame_keys = set(sub.keys)
+            for monitor in self.monitors:
+                layout = self._layouts.get(monitor.id)
+                if layout is None:
+                    layout = top_layout_for({"monitors": self._records}, monitor.id)
+                frame_keys.update(cell.key for row in layout.rows for cell in row.cells)
+            frame_keys.update(cell.key for row in default_top_layout().rows for cell in row.cells)
+            errors.extend(validate_ops(self.ops, self.reserved, frame_keys))
         except (ValueError, tk.TclError):
             errors.append("細分化: 段数・列数は1〜9の整数にしてください")
         if errors:
@@ -273,4 +299,7 @@ class GridEditorWindow(tk.Toplevel):
         self.result = {"monitors": records, "sub": sub_layout_to_json(sub)}
         if self.label_position == "top_left":
             self.result["label_position"] = "top_left"
+        ops_json = ops_to_json(self.ops)
+        if ops_json is not None:
+            self.result["ops"] = ops_json
         self.destroy()

@@ -4,31 +4,32 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-14T08:00:00
+last_updated: 2026-10-14T10:00:00
 phase: instructions/phase/57_grid_crosshair_nudge（画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化。主入力 = 暫定 41 v0.4・ユーザー確定済）。次採番 = phase 58 / 暫定 42 / decisions 58 / 提案書 23
 直前の完了フェーズ = **phase 56**（画面の枠でカーソル移動・クリック・`decisions_archive/56_screen_grid_cursor.md`）
-last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_03）
+last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_04）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 57 task_03（枠の窓の十字マーク）完了（実機目視 OK）。次は task_04（編集の窓の操作キーの欄・OK の検査・取り込み）。**
+focus: **phase 57 task_04（編集の窓の操作キーの欄・OK の検査・取り込み）完了（実機目視 OK）。次は task_05（編集の窓のドラッグ中の十字）。**
 mode: implementing
 
 ## last_action
-ts: 2026-10-14T08:00:00
+ts: 2026-10-14T10:00:00
 who: user
 summary: |
-  task_03 の実機目視 OK（暫定 41 §9 の 1〜4。最上段の Esc / BackSpace は十字を変えない〔仕様どおり〕・深さ 1 の戻るで元の枠の中心・Enter で十字が消える、を追加確認）。
-  task_03 = codex-implementer・reviewer 採用（軽微 1 件をメインで反映）。
+  task_04（codex-implementer）: パネルに操作キーの欄（8 操作・既定に戻す・選択の排他・Esc の順）・OK の検査（`validate_ops`・今つながる画面 + 既定 + 細分化）・自動割当 / 振り直し / 検査に `op_keys`・`keymap_panel_controller` で `ops` を写す / 消す。
+  メイン補正: テスト 1 件（keymap 単位の未保存の印を `clear_individual_dirty_flags()` で消す）・空行。reviewer 採用（Tk ルートの共有化は既知の罠の作法なので残す）。実機目視 OK。
 result_files:
-  - keyseq/presentation/screen_grid/crosshair.py（新規）・grid_overlay_window.py / tests_ui/test_screen_grid_overlay.py
+  - keyseq/presentation/dialogs/grid_editor_window.py・screen_grid/grid_editor_panel.py・controllers/keymap_panel/keymap_panel_controller.py / keyseq/domain/screen_grid/editing.py
+  - tests/test_screen_grid_editing.py・tests_ui/test_grid_editor_window.py・tests_ui/test_task06_keymap_management_ui.py
 verified:
-  compile: pass / tests: 1644 件 OK（skipped 7）/ tests_ui: 1029 件 OK / smoke OK
+  compile: pass / tests: 1646 件 OK（skipped 7）/ tests_ui: 1036 件（修正したテスト以外 OK・修正後に対象 88 件 OK）/ smoke OK
   review: reviewer 採用 / 実機目視 OK
 
 ## next_action
-- `/task_new` で `tasks/task_04_grid_editor_ops_panel.md`（暫定 41 §4 取り込み・§8: 操作キーの欄・既定に戻す・Esc は選択の解除・OK の検査〔`validate_ops`・今つながる画面 + 既定 + 細分化の枠のキー〕・`op_keys` を validate / 自動割当へ渡す・`keymap_panel_controller.py:494-512` で `ops` を写す / 消す）→ codex → verifier → reviewer → 実機目視
+- `/task_new` で `tasks/task_05_grid_editor_drag_crosshair.md`（暫定 41 §7 編集の窓: 境界の上で押してから離すまで・段の境界 = 上下 2 段の全部の枠 / 列の境界 = 左右 2 枠の中心に `draw_crosshair`・中央表示ではその枠のキーの文字を置き換え・`on_release` で描き直して消す）→ codex → verifier → reviewer → 実機目視
 - task_06 で補うテスト: _refresh_monitors で画面が変わったとき / _back で親が見つからないとき click_point None・deepen/back/next_screen の Shift 無視・Shift+枠のキー・手編集の ops 重なり・最上段で手編集の esc / 矢印が集合に入らない
 
 ## blockers

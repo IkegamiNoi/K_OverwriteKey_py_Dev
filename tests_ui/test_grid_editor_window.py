@@ -1,24 +1,36 @@
 """偽のモニタを使って枠編集窓の操作を確認する。"""
 import copy
 import tkinter as tk
+from tkinter import ttk
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
 from keyseq.application.screen_grid_session import MonitorInfo
-from keyseq.domain.screen_grid import default_top_layout, set_cell_key, top_layout_to_json
+from keyseq.domain.screen_grid import (
+    DEFAULT_OPS, GRID_OPS, GridCell, GridRow, TopLayout, default_top_layout,
+    set_cell_key, top_layout_to_json,
+)
 from keyseq.presentation.dialogs.grid_editor_window import GridEditorWindow
 
 
 class GridEditorWindowTest(unittest.TestCase):
-    def setUp(self):
-        self.root = tk.Tk()
-        self.root.withdraw()
-        self.addCleanup(self.root.destroy)
-        self.monitors = [
+    @classmethod
+    def setUpClass(cls):
+        cls.root = tk.Tk()
+        cls.root.withdraw()
+        cls.monitors = [
             MonitorInfo("primary", (0, 0, 100, 100), True),
             MonitorInfo("secondary", (100, 0, 200, 100), False),
         ]
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.root.destroy()
+
+    def setUp(self):
+        self.root = self.__class__.root
+        self.monitors = self.__class__.monitors
 
     def open_editor(self, *, grid=None, start="primary", reserved=None):
         return GridEditorWindow(
@@ -391,6 +403,139 @@ class GridEditorWindowTest(unittest.TestCase):
             editor.panel.sub_key_buttons[index].configure(text=key)
         editor.accept()
         self.assertEqual(editor.result["sub"]["keys"], ["a", ",", "/", "."])
+
+
+    def test_operation_buttons_show_default_and_customized_grid_values(self):
+        editor = self.open_editor()
+        self.assertEqual(tuple(editor.panel.op_key_buttons), GRID_OPS)
+        self.assertEqual(
+            {name: button.cget("text") for name, button in editor.panel.op_key_buttons.items()},
+            dict(DEFAULT_OPS),
+        )
+
+        custom = {name: f"f{index + 1}" for index, name in enumerate(GRID_OPS)}
+        editor.destroy()
+        editor = self.open_editor(grid={"ops": custom})
+        self.addCleanup(editor.destroy)
+        self.assertEqual(
+            {name: button.cget("text") for name, button in editor.panel.op_key_buttons.items()},
+            custom,
+        )
+
+    def test_operation_key_selection_is_exclusive_and_kept_after_typing(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        original_top_key = editor.layout.rows[0].cells[0].key
+        editor.panel.op_key_buttons["deepen"].invoke()
+        self.assertIsNone(editor.selected)
+        self.assertIsNone(editor.panel.sub_selected)
+        self.assertEqual(editor.panel.op_selected, "deepen")
+        editor.on_key(SimpleNamespace(keysym="g", char="g", state=0))
+        self.assertEqual(editor.ops["deepen"], "g")
+        self.assertEqual(editor.panel.op_key_buttons["deepen"].cget("text"), "g")
+        self.assertEqual(editor.panel.op_selected, "deepen")
+        self.assertEqual(editor.layout.rows[0].cells[0].key, original_top_key)
+
+        editor.panel.sub_key_buttons[0].invoke()
+        self.assertIsNone(editor.panel.op_selected)
+        self.assertIsNone(editor.selected)
+        editor.panel.op_key_buttons["back"].invoke()
+        self.assertIsNone(editor.panel.sub_selected)
+        self.select_cell(editor)
+        self.assertIsNone(editor.panel.op_selected)
+        self.assertIsNone(editor.panel.sub_selected)
+        self.assertIsNotNone(editor.selected)
+
+    def test_escape_clears_operation_selection_before_closing(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        editor.panel.op_key_buttons["deepen"].invoke()
+
+        editor.on_escape()
+
+        self.assertIsNone(editor.panel.op_selected)
+        self.assertTrue(editor.winfo_exists())
+        self.assertIsNone(editor.result)
+
+    def test_reset_operation_keys_restores_defaults_and_result_omits_defaults(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        editor.ops["deepen"] = "g"
+        editor.panel.update_op_buttons()
+        editor.panel.op_key_buttons["deepen"].invoke()
+        reset = next(child for child in editor.panel.ops_frame.winfo_children()
+                     if isinstance(child, ttk.Button) and child.cget("text") == "操作キーを既定に戻す")
+        reset.invoke()
+        self.assertEqual(editor.ops, dict(DEFAULT_OPS))
+        self.assertIsNone(editor.panel.op_selected)
+        editor.accept()
+        self.assertNotIn("ops", editor.result)
+
+    def test_accept_saves_custom_operations_and_rejects_conflicts(self):
+        custom = {name: f"f{index + 1}" for index, name in enumerate(GRID_OPS)}
+        editor = self.open_editor()
+        editor.ops = dict(custom)
+        editor.accept()
+        self.assertEqual(editor.result["ops"], custom)
+
+        cases = (
+            ("duplicate", "deepen", "f2", {"ops": custom}, set()),
+            ("reserved", "deepen", "f9", None, {"f9"}),
+            ("fixed esc", "deepen", "esc", None, set()),
+            ("fixed num enter", "click", "num enter", None, set()),
+            ("current frame", "deepen", "t", {"monitors": {"primary": top_layout_to_json(
+                TopLayout((GridRow(1.0, (GridCell(1.0, "t"),)),)))}}, set()),
+            ("default frame", "deepen", "r", {"monitors": {
+                "primary": top_layout_to_json(TopLayout((GridRow(1.0, (GridCell(1.0, "g"),)),))),
+                "secondary": top_layout_to_json(TopLayout((GridRow(1.0, (GridCell(1.0, "h"),)),))),
+            }}, set()),
+            ("subdivision", "deepen", "m", {"sub": {"rows": 2, "cols": 2,
+                "keys": ["m", "n", "b", "v"]}}, set()),
+        )
+        for reason, operation, key, initial, reserved in cases:
+            with self.subTest(reason=reason):
+                editor = self.open_editor(grid=initial, reserved=reserved)
+                editor.ops[operation] = key
+                with patch("keyseq.presentation.dialogs.grid_editor_window.messagebox.showerror") as showerror:
+                    editor.accept()
+                showerror.assert_called_once()
+                self.assertTrue(editor.winfo_exists())
+                self.assertIsNone(editor.result)
+                editor.destroy()
+
+        editor = self.open_editor()
+        editor.ops["deepen"] = "h"
+        editor._replace(set_cell_key(editor.layout, 0, 0, "h"))
+        with patch("keyseq.presentation.dialogs.grid_editor_window.messagebox.showerror") as showerror:
+            editor.accept()
+        showerror.assert_called_once()
+        self.assertTrue(editor.winfo_exists())
+        editor.destroy()
+
+    def test_split_and_refill_skip_custom_operation_keys_and_default_key_can_be_used(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        editor.ops["deepen"] = "t"
+        editor.selected = (0, 0)
+        editor.add_cell()
+        self.assertNotIn("t", [cell.key for row in editor.layout.rows for cell in row.cells])
+        editor.reassign()
+        self.assertNotIn("t", [cell.key for row in editor.layout.rows for cell in row.cells])
+
+        editor.panel.op_key_buttons["deepen"].invoke()
+        editor.panel.rows_var.set("2")
+        self.assertIsNone(editor.panel.op_selected)
+        self.assertNotIn("t", editor.panel.sub_keys)
+        editor.panel.op_key_buttons["deepen"].invoke()
+        editor.switch_monitor("secondary")
+        self.assertIsNone(editor.panel.op_selected)
+        editor.panel.op_key_buttons["deepen"].invoke()
+        editor.reset_monitor()
+        self.assertIsNone(editor.panel.op_selected)
+        editor.ops["deepen"] = "g"
+        editor._replace(set_cell_key(editor.layout, 0, 0, "space"))
+        editor.accept()
+        self.assertEqual(editor.result["monitors"]["secondary"]["rows"][0]["cells"][0]["key"], "space")
 
 
 if __name__ == "__main__":

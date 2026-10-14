@@ -510,6 +510,14 @@ class KeymapPanelController:
             elif "label_position" in grid:
                 del grid["label_position"]
                 changed = True
+            if "ops" in new_grid_shapes:
+                ops = deepcopy(new_grid_shapes["ops"])
+                if grid.get("ops") != ops:
+                    grid["ops"] = ops
+                    changed = True
+            elif "ops" in grid:
+                del grid["ops"]
+                changed = True
 
         if new_grid_enabled is not None:
             grid = keymap.get("grid")
