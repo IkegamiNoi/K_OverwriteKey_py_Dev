@@ -7,7 +7,7 @@ from typing import Callable
 from keyseq.application.input_router import GridKeyAction
 from keyseq.domain.screen_grid.geometry import Rect
 from keyseq.domain.screen_grid import (
-    FIXED_BACK_KEY, FIXED_CLICK_KEY, GRID_OPS, can_subdivide, clamp_point,
+    FIXED_BACK_KEY, FIXED_CLICK_KEY, GRID_OPS, arrow_keys, can_subdivide, clamp_point,
     label_position_of, nudge_step, ops_of, rect_center, sub_cell_rects,
     sub_layout_of, top_cell_rects, top_layout_for,
 )
@@ -187,20 +187,20 @@ class ScreenGridSession:
         ops = ops_of(self._grid)
         keys.update(ops[name] for name in ("deepen", "back", "click", "next_screen"))
         keys.add(FIXED_CLICK_KEY)
-        keys.difference_update({FIXED_BACK_KEY, *(ops[name] for name in ("up", "down", "left", "right"))})
+        keys.difference_update({FIXED_BACK_KEY, *arrow_keys(ops)})
         self._suppress_keys = frozenset(keys)
 
     def _publish_snapshot(self) -> None:
         keys = set(self._suppress_keys) if self._visible else set()
         if self._visible:
             ops = ops_of(self._grid)
-            arrow_keys = {ops[name] for name in ("up", "down", "left", "right")}
+            arrows = arrow_keys(ops)
             if len(self._regions) > 1:
                 keys.add(FIXED_BACK_KEY)
             if self._selected is not None:
-                keys.update(arrow_keys)
+                keys.update(arrows)
             frame_keys = {key for _rect, key in self._current_cells()}
-            keys.update(frame_keys & ({FIXED_BACK_KEY} | arrow_keys))
+            keys.update(frame_keys & ({FIXED_BACK_KEY} | arrows))
         self._snapshot = GridRouteSnapshot(
             self._visible, self._generation, frozenset(keys),
         )

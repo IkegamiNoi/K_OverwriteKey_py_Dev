@@ -33,6 +33,7 @@
 - task_06b 完了判定前レビュー（Codex 敵対的 medium）の対応 = パネルの 2 列化とスクロール（codex-implementer）→ reviewer 採用 → **実機目視 NG**（画面 2 へ移らない・文字が切れる・列を増やしても見えない・段 9 が途中まで）→
   メインの probe で ①位置の反映の保留中の `-topmost` の再設定が `0,0` へ戻す（phase 56 からの既存の不具合）と特定 ②「幅は画面の切替の欄で決まる」という正本の前提の誤りを訂正 → 修正（codex）で測り直しが無限ループ → 修正（codex）→ 測り直しの時機（after_idle が配置の計算より先）をメインが修正 → reviewer 採用 → 実機目視 OK
 - task_07 正本反映・暫定 41 凍結・本書・refactor_check（推奨 → 提案書 23）→ 完了判定前レビュー（下記）
+- task_08_refactor 提案書 23 の実施 → reviewer 採用
 
 ## 残存リスク・既知
 
@@ -42,7 +43,7 @@
 
 ## refactor_check
 
-**推奨** → [提案書 23](../../../instructions/modified_proposal/23_refactor_grid_ops.md)（ユーザー判断待ち）。
+**推奨** → [提案書 23](../../../instructions/modified_proposal/23_refactor_grid_ops.md) → **ユーザー判断 (a) で task_08_refactor として実施済**（codex-implementer〔1 回目は Codex のシェル起動の失敗で未編集・再実行で完了〕・reviewer 採用・tests 1656 / tests_ui 1047 / smoke OK）。
 M4（矢印の 4 操作のタプルの直書き 0 → 3 か所）・M3（選択の解除の 2 行の組が 3 か所）・M6（パネルのキーのボタンの色の直値の重複）。
 既知: 枠の窓・編集の窓の線や強調の色の共有 → idea_44。M1・M2・M5 非該当。
 

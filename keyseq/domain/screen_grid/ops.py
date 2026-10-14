@@ -9,6 +9,7 @@ from .models import grid_key_name
 
 
 GRID_OPS = ("deepen", "back", "click", "next_screen", "up", "down", "left", "right")
+ARROW_OPS = ("up", "down", "left", "right")
 DEFAULT_OPS: Mapping[str, str] = MappingProxyType({
     "deepen": "space",
     "back": "backspace",
@@ -32,6 +33,10 @@ OP_LABELS: Mapping[str, str] = MappingProxyType({
     "left": "左へ",
     "right": "右へ",
 })
+
+
+def arrow_keys(ops: Mapping[str, str]) -> frozenset[str]:
+    return frozenset(ops[name] for name in ARROW_OPS)
 
 
 def normalize_ops(raw: Any) -> tuple[dict[str, str], tuple[str, ...]]:

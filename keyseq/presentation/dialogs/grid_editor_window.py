@@ -75,8 +75,7 @@ class GridEditorWindow(tk.Toplevel):
         if monitor_id not in self._layouts:
             self._layouts[monitor_id] = top_layout_for(self._grid, monitor_id)
         self.selected = (0, 0)
-        self.panel.clear_sub_selection()
-        self.panel.clear_op_selection()
+        self.panel.clear_key_button_selections()
         self._drag = None
         left, top, right, bottom = self.monitor.rect
         self.geometry(f"{right - left}x{bottom - top}+{left}+{top}")
@@ -155,8 +154,7 @@ class GridEditorWindow(tk.Toplevel):
         self.draw()
 
     def on_press(self, event) -> None:
-        self.panel.clear_sub_selection()
-        self.panel.clear_op_selection()
+        self.panel.clear_key_button_selections()
         self.canvas.focus_set()
         rows = self.cell_rects()
         self._drag = None
@@ -267,8 +265,7 @@ class GridEditorWindow(tk.Toplevel):
         self._edited.discard(monitor_id)
         self._layouts[monitor_id] = top_layout_for(None, monitor_id)
         self.selected = (0, 0)
-        self.panel.clear_sub_selection()
-        self.panel.clear_op_selection()
+        self.panel.clear_key_button_selections()
         self._drag = None
         self.draw()
 

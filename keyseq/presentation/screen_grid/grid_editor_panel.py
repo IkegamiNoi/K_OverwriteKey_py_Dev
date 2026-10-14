@@ -6,6 +6,11 @@ from tkinter import ttk
 from keyseq.domain.screen_grid import GRID_OPS, OP_LABELS
 
 
+_KEY_BUTTON_BG = "#e0e0e0"
+_KEY_BUTTON_ACTIVE_BG = "#d0d0d0"
+_KEY_BUTTON_SELECTED_BG = "#ffcc66"
+
+
 class GridEditorPanel(tk.Toplevel):
     """編集窓に付属する操作と細分化のキー選択。"""
 
@@ -85,7 +90,7 @@ class GridEditorPanel(tk.Toplevel):
             )
             button = tk.Button(
                 self.ops_frame, text=editor.ops[operation], relief=tk.RAISED,
-                background="#e0e0e0", activebackground="#d0d0d0",
+                background=_KEY_BUTTON_BG, activebackground=_KEY_BUTTON_ACTIVE_BG,
                 command=lambda name=operation: self.select_op_key(name),
             )
             button.grid(row=grid_row, column=label_column + 1, padx=2, pady=1, sticky="ew")
@@ -214,13 +219,17 @@ class GridEditorPanel(tk.Toplevel):
         self.op_selected = None
         self.update_op_buttons()
 
+    def clear_key_button_selections(self) -> None:
+        self.clear_sub_selection()
+        self.clear_op_selection()
+
     def update_op_buttons(self) -> None:
         for operation, button in self.op_key_buttons.items():
             selected = operation == self.op_selected
             button.configure(
                 text=self.editor.ops[operation],
                 relief=tk.SUNKEN if selected else tk.RAISED,
-                background="#ffcc66" if selected else "#e0e0e0",
+                background=_KEY_BUTTON_SELECTED_BG if selected else _KEY_BUTTON_BG,
             )
         self._schedule_scroll_measurement()
 
@@ -243,7 +252,7 @@ class GridEditorPanel(tk.Toplevel):
                 index = row_index * cols + col_index
                 button = tk.Button(
                     self.sub_keys_frame, text=self.sub_keys[index], width=6,
-                    relief=tk.RAISED, background="#e0e0e0", activebackground="#d0d0d0",
+                    relief=tk.RAISED, background=_KEY_BUTTON_BG, activebackground=_KEY_BUTTON_ACTIVE_BG,
                     command=lambda i=index: self.select_sub_key(i),
                 )
                 button.grid(row=row_index, column=col_index, padx=1, pady=1)
@@ -265,7 +274,7 @@ class GridEditorPanel(tk.Toplevel):
             selected = index == self.sub_selected
             button.configure(
                 relief=tk.SUNKEN if selected else tk.RAISED,
-                background="#ffcc66" if selected else "#e0e0e0",
+                background=_KEY_BUTTON_SELECTED_BG if selected else _KEY_BUTTON_BG,
             )
 
     def clear_sub_selection(self) -> None:

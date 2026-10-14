@@ -1,6 +1,6 @@
 # 提案書 23: phase 57（画面の枠の十字マーク・操作キーの任意化）後のリファクタ
 
-> 状態: **未実施・ユーザー判断待ち**（2026-10-14・phase 57 task_07 の /refactor_check）。
+> 状態: **実施済**（2026-10-14・phase 57 task_08_refactor。`ARROW_OPS` / `arrow_keys` を ops.py に置き session の 2 か所を置換・`clear_key_button_selections()` で window の 3 か所を 1 行に・パネルのボタンの色を Private 定数に・reviewer 採用・tests 1656 / tests_ui 1047 / smoke OK）。
 
 ## 判定の要約
 

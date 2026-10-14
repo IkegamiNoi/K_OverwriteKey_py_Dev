@@ -3,12 +3,14 @@ import unittest
 
 from keyseq.domain.screen_grid import (
     DEFAULT_OPS,
+    ARROW_OPS,
     FIXED_BACK_KEY,
     FIXED_CLICK_KEY,
     FIXED_OP_KEYS,
     GRID_OPS,
     OP_LABELS,
     default_operation_keys,
+    arrow_keys,
     default_top_layout,
     normalize_grid,
     normalize_ops,
@@ -20,6 +22,14 @@ from keyseq.domain.screen_grid import (
 
 
 class ScreenGridOperationsTest(unittest.TestCase):
+    def test_arrow_keys_uses_configured_arrow_operations(self):
+        self.assertEqual(ARROW_OPS, ("up", "down", "left", "right"))
+        self.assertEqual(arrow_keys(DEFAULT_OPS), {"up", "down", "left", "right"})
+
+        custom_ops = dict(DEFAULT_OPS)
+        custom_ops.update({"up": "i", "down": "k", "left": "j", "right": "l"})
+        self.assertEqual(arrow_keys(custom_ops), {"i", "k", "j", "l"})
+
     def test_normalize_ops_defaults_invalid_values_and_drops_unknown_operations(self):
         normalized, reverted = normalize_ops({
             "deepen": " H ", "back": "", "click": 12, "next_screen": "shift",
