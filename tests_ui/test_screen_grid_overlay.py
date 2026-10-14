@@ -10,6 +10,7 @@ from keyseq.application.keymap_service import KeymapService
 from keyseq.presentation.controllers.hook_controller import HookController
 from keyseq.presentation.controllers.layout_controller import LayoutController
 from keyseq.presentation.screen_grid.cell_label import draw_cell_label
+from keyseq.presentation.screen_grid.crosshair import draw_crosshair
 from keyseq.presentation.screen_grid import ScreenGridController
 
 
@@ -203,6 +204,39 @@ class ScreenGridOverlayTest(unittest.TestCase):
         self.assertIs(kwargs["font"], ui_font)
         self.assertEqual(ui_font.name, "TkDefaultFont")
 
+    def test_draw_crosshair_uses_two_clipped_arms_and_fixed_style(self):
+        canvas = Mock()
+
+        draw_crosshair(canvas, (10, 20, 40, 50), (25, 35), fill="#ffcc66")
+
+        self.assertEqual(canvas.create_line.call_count, 2)
+        self.assertEqual(canvas.create_line.call_args_list[0].args, (13, 35, 37, 35))
+        self.assertEqual(canvas.create_line.call_args_list[1].args, (25, 23, 25, 47))
+        for call in canvas.create_line.call_args_list:
+            self.assertEqual(call.kwargs["fill"], "#ffcc66")
+            self.assertEqual(call.kwargs["width"], 2)
+            self.assertEqual(call.kwargs["tags"], "crosshair")
+
+    def test_draw_crosshair_clips_arms_at_nearby_cell_edges(self):
+        canvas = Mock()
+
+        draw_crosshair(canvas, (10, 20, 30, 40), (11, 21), fill="gold")
+
+        self.assertEqual(canvas.create_line.call_args_list[0].args, (10, 21, 23, 21))
+        self.assertEqual(canvas.create_line.call_args_list[1].args, (11, 20, 11, 33))
+
+    def test_draw_crosshair_skips_zero_length_arms(self):
+        canvas = Mock()
+
+        draw_crosshair(canvas, (10, 20, 10, 40), (10, 30), fill="gold")
+        self.assertEqual(canvas.create_line.call_count, 1)
+        self.assertEqual(canvas.create_line.call_args.args, (10, 20, 10, 39))
+
+        canvas = Mock()
+        draw_crosshair(canvas, (10, 20, 40, 20), (25, 20), fill="gold")
+        self.assertEqual(canvas.create_line.call_count, 1)
+        self.assertEqual(canvas.create_line.call_args.args, (13, 20, 37, 20))
+
     def test_font_change_redraws_visible_overlay(self):
         with patch.object(self.app.screen_grid, "_show_view") as show:
             self.app.screen_grid.on_font_changed()
@@ -293,6 +327,68 @@ class ScreenGridOverlayTest(unittest.TestCase):
             tuple(canvas.coords(text_item)),
             (first_rect[0] - left + 3, first_rect[1] - top + 2),
         )
+
+    def test_overlay_crosshair_tracks_selection_and_nudges_on_real_canvas(self):
+        self.sync()
+        overlay = self.app.screen_grid._overlay
+        canvas = overlay._canvas
+        self.assertEqual(canvas.find_withtag("crosshair"), ())
+
+        view = self.app.screen_grid.session.view()
+        self.execute(view.cells[0][1])
+        view = self.app.screen_grid.session.view()
+        crosshair = canvas.find_withtag("crosshair")
+        self.assertEqual(len(crosshair), 2)
+        left, top, _right, _bottom = view.monitor.rect
+        point = (view.click_point[0] - left, view.click_point[1] - top)
+        lines = [tuple(canvas.coords(item)) for item in crosshair]
+        self.assertTrue(any(line[1] == point[1] and line[3] == point[1] for line in lines))
+        self.assertTrue(any(line[0] == point[0] and line[2] == point[0] for line in lines))
+
+        before = lines
+        self.execute("right")
+        view = self.app.screen_grid.session.view()
+        crosshair = canvas.find_withtag("crosshair")
+        after = [tuple(canvas.coords(item)) for item in crosshair]
+        dx = view.click_point[0] - left - point[0]
+        dy = view.click_point[1] - top - point[1]
+        self.assertEqual(len(crosshair), 2)
+        self.assertEqual(after, [
+            (line[0] + dx, line[1] + dy, line[2] + dx, line[3] + dy)
+            for line in before
+        ])
+
+    def test_selected_center_label_is_replaced_but_top_left_label_remains(self):
+        self.sync()
+        view = self.app.screen_grid.session.view()
+        selected_key = view.cells[0][1]
+        other_key = view.cells[1][1]
+        self.execute(selected_key)
+        canvas = self.app.screen_grid._overlay._canvas
+        texts = [canvas.itemcget(item, "text") for item in canvas.find_all()
+                 if canvas.type(item) == "text"]
+        self.assertNotIn(selected_key, texts)
+        self.assertIn(other_key, texts)
+
+        self.app.data["keymaps"][0]["grid"]["label_position"] = "top_left"
+        self.sync()
+        texts = [canvas.itemcget(item, "text") for item in canvas.find_all()
+                 if canvas.type(item) == "text"]
+        self.assertIn(selected_key, texts)
+
+    def test_enter_clears_crosshair_after_selected_click(self):
+        self.sync()
+        view = self.app.screen_grid.session.view()
+        self.execute(view.cells[0][1])
+        canvas = self.app.screen_grid._overlay._canvas
+        self.assertEqual(len(canvas.find_withtag("crosshair")), 2)
+
+        self.execute("enter")
+
+        view = self.app.screen_grid.session.view()
+        self.assertIsNone(view.selected)
+        self.assertIsNone(view.click_point)
+        self.assertEqual(canvas.find_withtag("crosshair"), ())
 
     def test_snapshot_does_not_touch_tk(self):
         self.sync()

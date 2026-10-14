@@ -4,40 +4,31 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-14T00:50:00
+last_updated: 2026-10-14T08:00:00
 phase: instructions/phase/57_grid_crosshair_nudge（画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化。主入力 = 暫定 41 v0.4・ユーザー確定済）。次採番 = phase 58 / 暫定 42 / decisions 58 / 提案書 23
 直前の完了フェーズ = **phase 56**（画面の枠でカーソル移動・クリック・`decisions_archive/56_screen_grid_cursor.md`）
-last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_02）
+last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_03）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: away（戻る予定 2026-10-14T07:30）
-focus: **phase 57 task_03（枠の窓の十字マーク）実装・検証・reviewer 採用済み・ユーザーの実機目視待ち（未コミット）。task_01・task_02 は完了・コミット済み。**
-mode: pending_review
+presence: present
+focus: **phase 57 task_03（枠の窓の十字マーク）完了（実機目視 OK）。次は task_04（編集の窓の操作キーの欄・OK の検査・取り込み）。**
+mode: implementing
 
 ## last_action
-ts: 2026-10-14T00:50:00
-who: main
+ts: 2026-10-14T08:00:00
+who: user
 summary: |
-  task_03（codex-implementer）: `presentation/screen_grid/crosshair.py` 新規（`draw_crosshair`・腕 12px・線幅 2・枠へ切り詰め・0px の向きは描かない）・`grid_overlay_window.py` で選んだ枠のクリック点に十字・中央表示では選んだ枠のキーの文字を描かない。
-  メイン補正: 条件式を 1 変数にまとめる（reviewer の軽微な指摘）。reviewer 採用。**コード差分は未コミット**（実機目視の後に /task_commit）。
-  ユーザーが /away（戻る予定 07:30）→ 実機目視の判断待ちで終了処理。
+  task_03 の実機目視 OK（暫定 41 §9 の 1〜4。最上段の Esc / BackSpace は十字を変えない〔仕様どおり〕・深さ 1 の戻るで元の枠の中心・Enter で十字が消える、を追加確認）。
+  task_03 = codex-implementer・reviewer 採用（軽微 1 件をメインで反映）。
 result_files:
-  - keyseq/presentation/screen_grid/crosshair.py（新規・未コミット）・grid_overlay_window.py（未コミット）
-  - tests_ui/test_screen_grid_overlay.py（未コミット）
-  - instructions/phase/57_grid_crosshair_nudge/tasks/task_03_grid_overlay_crosshair.md（未コミット）
+  - keyseq/presentation/screen_grid/crosshair.py（新規）・grid_overlay_window.py / tests_ui/test_screen_grid_overlay.py
 verified:
-  compile: pass / tests: 1644 件 OK（skipped 7）/ tests_ui: 1029 件 OK / smoke OK（verifier・補正後に tests_ui.test_screen_grid_overlay を再実行 OK）
-  review: reviewer 採用
+  compile: pass / tests: 1644 件 OK（skipped 7）/ tests_ui: 1029 件 OK / smoke OK
+  review: reviewer 採用 / 実機目視 OK
 
 ## next_action
-- **【ユーザー判断待ち】task_03 の実機目視**（暫定 41 §9 の 1〜4）。起動 = worktree ルートで `../../../.venv/Scripts/python.exe main.py`・枠 ON の keymap をアクティブにしてフック開始。確認点:
-  1. 枠を選ぶと中心に十字・中央表示ではキーの文字が十字に置き換わる（左上表示では残る）
-  2. 矢印で十字とカーソルが min(16px, 枠の 1/8) ずつ動く・Shift+矢印で 1px・端で止まる・押しっぱなしで連続
-  3. 選択なしの矢印はアプリへ届く（メモ帳等）・選択中は届かない
-  4. Enter / Shift+Enter がずらした位置を左 / 右クリック・別の枠 / Space / Esc・BackSpace / Tab / クリックの後は中心へ戻るか消える
-  → OK なら `/save_state` + `/task_commit`（task_03）。NG なら内容を聞いて修正タスク（task_03a）
-- その後 `/task_new` で `tasks/task_04_grid_editor_ops_panel.md`（暫定 41 §4 取り込み・§8: 操作キーの欄・既定に戻す・Esc は選択の解除・OK の検査〔`validate_ops`・今つながる画面 + 既定 + 細分化の枠のキー〕・`op_keys` を validate / 自動割当へ渡す・`keymap_panel_controller.py:494-512` で `ops` を写す / 消す）→ codex → verifier → reviewer → 実機目視
+- `/task_new` で `tasks/task_04_grid_editor_ops_panel.md`（暫定 41 §4 取り込み・§8: 操作キーの欄・既定に戻す・Esc は選択の解除・OK の検査〔`validate_ops`・今つながる画面 + 既定 + 細分化の枠のキー〕・`op_keys` を validate / 自動割当へ渡す・`keymap_panel_controller.py:494-512` で `ops` を写す / 消す）→ codex → verifier → reviewer → 実機目視
 - task_06 で補うテスト: _refresh_monitors で画面が変わったとき / _back で親が見つからないとき click_point None・deepen/back/next_screen の Shift 無視・Shift+枠のキー・手編集の ops 重なり・最上段で手編集の esc / 矢印が集合に入らない
 
 ## blockers

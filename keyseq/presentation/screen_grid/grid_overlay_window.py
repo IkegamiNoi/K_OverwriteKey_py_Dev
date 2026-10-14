@@ -7,6 +7,7 @@ from keyseq.infrastructure import win32_window
 from keyseq.presentation.screen_grid.cell_label import (
     center_font_for_rect, corner_label_font, draw_cell_label,
 )
+from keyseq.presentation.screen_grid.crosshair import draw_crosshair
 
 
 _TRANSPARENT = "#ff00fe"
@@ -72,11 +73,18 @@ class GridOverlayWindow:
             selected = index == view.selected
             color = _SELECTED if selected else _LINE
             canvas.create_rectangle(x1, y1, x2, y2, outline=color, width=3 if selected else 1)
-            draw_cell_label(
-                canvas, (x1, y1, x2, y2), key, position=view.label_position, fill=color,
-                center_font=center_font_for_rect((x1, y1, x2, y2)),
-                corner_font=corner_font,
-            )
+            crosshair_on = selected and view.click_point is not None
+            if crosshair_on:
+                px, py = view.click_point
+                draw_crosshair(
+                    canvas, (x1, y1, x2, y2), (px - left, py - top), fill=_SELECTED,
+                )
+            if not (crosshair_on and view.label_position == "center"):
+                draw_cell_label(
+                    canvas, (x1, y1, x2, y2), key, position=view.label_position, fill=color,
+                    center_font=center_font_for_rect((x1, y1, x2, y2)),
+                    corner_font=corner_font,
+                )
 
     def _shade_outside(self, view: GridView, width: int, height: int) -> None:
         left, top, _right, _bottom = view.monitor.rect
