@@ -35,8 +35,8 @@
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
 直近の実測（**phase 57 完了 = 2026-10-14**）:
-compile **clean** / tests **1656 OK**（skip 7）/ tests_ui **1047 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1629〔phase 56〕→ 1656 / tests_ui: 1023 → 1047）。
+compile **clean** / tests **1656 OK**（skip 7）/ tests_ui **1049 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1629〔phase 56〕→ 1656 / tests_ui: 1023 → 1049）。
 `tests_ui.test_compact_window` の `test_automatic_full_view_and_maximized_sizes_are_not_saved` が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が 1 回だけ `1 != 0` で落ちた（単独 2 回・全体 2 回で再現せず）。再発したら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -60,7 +60,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 ## 直前のフェーズ（phase 57 = 画面の枠の十字マーク・操作キーの任意化）の要点
 - 正本 = `features.md` §4.7 / `data_schema.md` §5.6.1（`grid.ops`）/ `key_input.md` §7.3 / 地図 = `codebase_map.md`「画面の枠（phase 56・57）」/ 判断 = `decisions_archive/57_grid_crosshair_nudge.md`
 - 振り分けは「枠のキー > 操作キー」・フックが見るのは `suppress_keys` 1 本（esc・矢印は状態と今の深さの枠のキーで足す）。操作キーは keymap ごと各 1 つ（Esc = 戻る・num enter = クリックは固定）・既定と同じなら JSON に書かない
-- 【罠】Windows の Tk: 位置の反映の保留中の `-topmost` で窓が `0,0` へ戻る / after_idle の測り直しは配置の計算より先に走ることがある / `<Configure>` で configure し返すと無限ループ
+- 【罠】Windows の Tk: 子のモーダルを閉じても入力フォーカスは戻らない（`focus_force()` で戻す・`focus_set()` は効かない）/ 位置の反映の保留中の `-topmost` で窓が `0,0` へ戻る / after_idle の測り直しは配置の計算より先に走ることがある / `<Configure>` で configure し返すと無限ループ
 
 ## 運用インフラ
 

@@ -436,6 +436,43 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         self.assertEqual(dialog.result["grid"], shapes)
         self.assertEqual(dialog.result["grid_enabled"], False)
 
+    def test_keymap_edit_dialog_grid_editor_returns_focus_after_close(self):
+        from types import SimpleNamespace
+
+        context = ([MonitorInfo("m1", (0, 0, 100, 100), True)], "m1", set())
+        for result in ({"monitors": {}}, None):
+            with self.subTest(result=result):
+                dialog = KeymapEditDialog(
+                    self.app, "変更", grid_editor_context=lambda: context
+                )
+                try:
+                    with patch.object(dialog.grid_editor_btn, "focus_force") as focus_force, patch(
+                        "keyseq.presentation.dialogs.keymap_edit_dialog.GridEditorWindow",
+                        return_value=SimpleNamespace(result=result, wait_window=lambda: None),
+                    ):
+                        dialog._edit_grid()
+                    focus_force.assert_called_once_with()
+                finally:
+                    dialog.destroy()
+
+    def test_keymap_edit_dialog_grid_editor_does_not_focus_after_dialog_destroyed(self):
+        from types import SimpleNamespace
+
+        context = ([MonitorInfo("m1", (0, 0, 100, 100), True)], "m1", set())
+        dialog = KeymapEditDialog(self.app, "変更", grid_editor_context=lambda: context)
+        try:
+            with patch.object(dialog.grid_editor_btn, "focus_force") as focus_force, patch(
+                "keyseq.presentation.dialogs.keymap_edit_dialog.GridEditorWindow",
+                return_value=SimpleNamespace(
+                    result=None, wait_window=lambda: dialog.destroy()
+                ),
+            ):
+                dialog._edit_grid()
+            focus_force.assert_not_called()
+        finally:
+            if dialog.winfo_exists():
+                dialog.destroy()
+
     def test_grid_editor_context_excludes_edited_switch_key_but_dialog_adds_current_value(self):
         from types import SimpleNamespace
 

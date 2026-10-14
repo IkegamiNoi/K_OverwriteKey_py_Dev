@@ -123,6 +123,9 @@ class KeymapEditDialog(tk.Toplevel):
             key_name_from_event=self._key_name_from_event,
         )
         editor.wait_window()
+        if self.winfo_exists():
+            # 編集の窓の破棄で grab は戻るが入力フォーカスは戻らず Esc が届かなくなるため、戻す（focus_set では効かない・probe で確認）。
+            self.grid_editor_btn.focus_force()
         if editor.result is not None:
             self._grid_draft = deepcopy(editor.result)
 

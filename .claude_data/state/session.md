@@ -4,10 +4,10 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-14T18:00:00
+last_updated: 2026-10-14T20:00:00
 phase: なし（**phase 57 は 2026-10-14 完了**・画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化・`decisions_archive/57_grid_crosshair_nudge.md`）。次採番 = phase 58 / 暫定 42 / decisions 58 / 提案書 24
 直前の完了フェーズ = **phase 57**（`decisions_archive/57_grid_crosshair_nudge.md`）
-last_commit_location: `claude/crosshair-selection-frame-f4b464`（task_08_refactor のコミット = phase 57 の最終）。main へのマージはユーザー
+last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_09_fix = phase 57 の最終）。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
@@ -16,14 +16,14 @@ focus: **phase 57 完了。アクティブなフェーズなし・次フェー�
 mode: idle
 
 ## last_action
-ts: 2026-10-14T18:00:00
-who: main
+ts: 2026-10-14T20:00:00
+who: user
 summary: |
-  task_06b（パネルの 2 列化・スクロール・画面 2 へ移らない不具合）→ 実機目視 OK / task_07（正本反映・暫定 41 凍結・decisions_archive/57・refactor_check 推奨 → 提案書 23・完了判定前レビュー deep + Codex 敵対的の採用分を反映）/
-  task_08_refactor（提案書 23・codex-implementer・reviewer 採用）。phase 57 完了。
+  phase 57 完了後のユーザー報告で task_09_fix（「枠を編集…」の窓を閉じた後に入力フォーカスが戻らずキーマップ変更のダイアログが Esc で閉じない）を追記・修正。
+  `keymap_edit_dialog._edit_grid` の後に `grid_editor_btn.focus_force()`（focus_set では効かない・probe で確認）。reviewer 採用・実機目視 OK。
 verified:
-  compile: pass / tests: 1656 件 OK（skipped 7）/ tests_ui: 1047 件 OK / smoke OK / config 副作用なし（verifier）
-  review: reviewer 採用
+  compile: pass / tests: 1656 件 OK（skipped 7）/ tests_ui: 1049 件 OK / smoke OK
+  review: reviewer 採用 / 実機目視 OK
 
 ## next_action
 - 次フェーズはユーザー判断。候補 = idea_44（画面の枠の配色）/ idea_45（既存のキー取得の記号キー名）/ backlog の他の idea / current.md「別タスク化候補」
