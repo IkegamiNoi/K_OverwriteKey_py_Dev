@@ -100,4 +100,8 @@ def validate_ops(
         if reason:
             errors.append(prefix + reason)
         seen.add(key)
+    if FIXED_BACK_KEY in frame_names:
+        errors.append(f"操作キー（戻る・固定）: 枠のキー {FIXED_BACK_KEY!r} と重なっています")
+    if FIXED_CLICK_KEY in frame_names:
+        errors.append(f"操作キー（クリック・固定）: 枠のキー {FIXED_CLICK_KEY!r} と重なっています")
     return errors

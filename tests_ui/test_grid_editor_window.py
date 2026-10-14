@@ -578,6 +578,12 @@ class GridEditorWindowTest(unittest.TestCase):
             ("reserved", "deepen", "f9", None, {"f9"}),
             ("fixed esc", "deepen", "esc", None, set()),
             ("fixed num enter", "click", "num enter", None, set()),
+            ("fixed esc on unselected connected monitor", "deepen", "space", {"monitors": {
+                "secondary": top_layout_to_json(TopLayout((GridRow(1.0, (GridCell(1.0, "esc"),)),)))
+            }}, set()),
+            ("fixed num enter on unselected connected monitor", "deepen", "space", {"monitors": {
+                "secondary": top_layout_to_json(TopLayout((GridRow(1.0, (GridCell(1.0, "num enter"),)),)))
+            }}, set()),
             ("current frame", "deepen", "t", {"monitors": {"primary": top_layout_to_json(
                 TopLayout((GridRow(1.0, (GridCell(1.0, "t"),)),)))}}, set()),
             ("default frame", "deepen", "r", {"monitors": {

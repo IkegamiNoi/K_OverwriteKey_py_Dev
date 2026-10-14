@@ -51,6 +51,7 @@ OK では重なりを拒否・既存 / 手編集の重なりは枠のキーを�
 - task_04: 編集の窓の操作キーの欄（ボタン・既定に戻す・Esc / 選択の解除・OK の検査）と結果の取り込み（`ops` の写し・消し）（暫定 41 §4 取り込み・§8）と UI テスト。**実装後にユーザーの実機目視**
 - task_05: 編集の窓の境界のドラッグ中の十字マーク（暫定 41 §7 編集の窓）と UI テスト。**実装後にユーザーの実機目視**
 - task_06: 統合確認（tests / tests_ui / smoke・deep-reviewer + codex-reviewer）
+- task_06a: 統合レビューの指摘（OK の検査で固定の esc / num enter と未編集の今つながる画面の枠のキーの重なり）の修正 + §5 のテストの抜け 2 件
 - task_07: 正本反映（暫定 41 §11 の昇格・凍結・`codebase_map.md`「画面の枠」節の更新）・`decisions_archive/57_grid_crosshair_nudge.md`・decisions.md の索引・current.md の完了記載・`/refactor_check`
 
 ## レビュー方針

@@ -95,6 +95,37 @@ class ScreenGridSessionTest(unittest.TestCase):
         self.assertEqual(self.session.view().level, 0)
         self.assertEqual(self.session.view().click_point, tiny_point)
 
+    def test_too_small_deepen_preserves_nudged_click_point_and_selection(self):
+        tiny_monitor = monitor((-4, -4, 0, 0))
+        self.monitors = [tiny_monitor]
+        self.cursor = (-2, -2)
+        tiny = {"enabled": True, "monitors": {tiny_monitor.id: {"rows": [
+            {"h": 1, "cells": [{"w": 1, "key": "q"}]}
+        ]}}, "sub": {"rows": 3, "cols": 3, "keys": list("qweasdzxc")}}
+        self.session.sync(keymap_id="tiny-nudge", grid=tiny, active=True)
+        self.action("q")
+        self.action("right")
+        before = self.session.view()
+
+        self.action("space")
+
+        after = self.session.view()
+        self.assertEqual(after.level, before.level)
+        self.assertEqual(after.selected, before.selected)
+        self.assertEqual(after.click_point, before.click_point)
+
+    def test_backspace_at_top_level_preserves_nudged_click_point_and_selection(self):
+        self.action(self.session.view().cells[0][1])
+        self.action("right")
+        before = self.session.view()
+
+        self.action("backspace")
+
+        after = self.session.view()
+        self.assertEqual(after.level, before.level)
+        self.assertEqual(after.selected, before.selected)
+        self.assertEqual(after.click_point, before.click_point)
+
     def test_enter_left_right_repeat_and_center_without_selection(self):
         self.action("enter")
         self.assertEqual(self.clicks, [])
@@ -362,6 +393,96 @@ class ScreenGridSessionTest(unittest.TestCase):
         self.assertFalse(self.session.snapshot().suppress_keys)
         self.assertFalse(self.session.view().visible)
         self.assertEqual(self.changed, previous_changed + 1)
+
+    def test_click_after_current_monitor_disappears_resets_to_top_without_selection(self):
+        self.action(self.session.view().cells[0][1])
+        self.assertIsNotNone(self.session.view().click_point)
+
+        self.monitors = [self.left]
+        self.action("enter")
+
+        view = self.session.view()
+        self.assertEqual(self.clicks, [])
+        self.assertEqual(view.monitor, self.left)
+        self.assertEqual(view.level, 0)
+        self.assertIsNone(view.selected)
+        self.assertIsNone(view.click_point)
+
+    def test_back_without_matching_parent_frame_clears_selection_and_click_point(self):
+        self.action(self.session.view().cells[0][1])
+        self.action("space")
+        self.action(self.session.view().cells[0][1])
+        self.action("space")
+        self.action(self.session.view().cells[0][1])
+        self.assertEqual(self.session.view().level, 2)
+        self.assertIsNotNone(self.session.view().click_point)
+
+        left, top, right, bottom = self.session._regions[-1]
+        self.session._regions[-1] = (left, top, right + 1, bottom)
+        self.action("backspace")
+
+        view = self.session.view()
+        self.assertEqual(view.level, 1)
+        self.assertIsNone(view.selected)
+        self.assertIsNone(view.click_point)
+
+    def test_shift_is_ignored_by_deepen_back_and_next_screen(self):
+        self.action(self.session.view().cells[0][1])
+        self.action("space", shift=True)
+        self.assertEqual(self.session.view().level, 1)
+
+        self.action("backspace", shift=True)
+        self.assertEqual(self.session.view().level, 0)
+        self.assertIsNotNone(self.session.view().selected)
+
+        self.action("tab", shift=True)
+        self.assertEqual(self.session.view().monitor, self.left)
+        self.assertEqual(self.session.view().level, 0)
+        self.assertIsNone(self.session.view().selected)
+
+    def test_shift_frame_key_selects_frame_and_sets_center_click_point(self):
+        rect, key = self.session.view().cells[0]
+        expected_center = ((rect[0] + rect[2]) // 2, (rect[1] + rect[3]) // 2)
+
+        self.action(key, shift=True)
+
+        self.assertEqual(self.session.view().selected, 0)
+        self.assertEqual(self.session.view().click_point, expected_center)
+        self.assertEqual(self.clicks, [])
+
+    def test_overlapping_manual_ops_use_grid_ops_order(self):
+        custom = {"enabled": True, "ops": {"deepen": "h", "back": "h"}}
+        self.session.sync(keymap_id="overlapping-ops", grid=custom, active=True)
+        self.action(self.session.view().cells[0][1])
+
+        self.action("h")
+
+        self.assertEqual(self.session.view().level, 1)
+        self.assertIsNone(self.session.view().selected)
+
+    def test_esc_and_arrows_are_suppressed_only_when_their_frame_or_state_requires_it(self):
+        no_reserved_frames = {
+            "enabled": True,
+            "sub": {"rows": 3, "cols": 3, "keys": list("qweasdzxc")},
+        }
+        self.session.sync(keymap_id="no-esc-arrow-frames", grid=no_reserved_frames, active=True)
+        self.assertNotIn("esc", self.session.snapshot().suppress_keys)
+        self.assertFalse({"up", "down", "left", "right"} & self.session.snapshot().suppress_keys)
+
+        top_up = {
+            "enabled": True,
+            "monitors": {self.above.id: {"rows": [
+                {"h": 1, "cells": [{"w": 1, "key": "up"}]}
+            ]}},
+            "sub": {"rows": 3, "cols": 3, "keys": list("qweasdzxc")},
+        }
+        self.session.sync(keymap_id="top-up-frame", grid=top_up, active=True)
+        self.assertIn("up", self.session.snapshot().suppress_keys)
+
+        self.action("up")
+
+        self.assertEqual(self.session.view().selected, 0)
+        self.assertIsNotNone(self.session.view().click_point)
 
 
 if __name__ == "__main__":
