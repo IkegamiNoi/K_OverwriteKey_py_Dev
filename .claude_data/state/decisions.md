@@ -66,6 +66,7 @@
 | 54_numpad_key_distinction | [54_numpad_key_distinction.md](decisions_archive/54_numpad_key_distinction.md) | テンキーの区別（2026-10-11 完了・暫定 38 v0.5 凍結・domain / application / infrastructure / presentation・JSON の形は不変・**既存設定の意味が変わる**）。テンキーは `num 0`〜`num 9` / `num add` 等の名前で入力の判定（`is_keypad` + スキャンコード）・送信（`SendInput` スキャンコード入力・NumLock に従う）・記録（Tk の keycode + 拡張ビット）を区別。既存の名前は入力では主キーボードだけ・記号の出力は従来どおり・`num_1` 等はエラー。refactor_check: 不要 |
 | 55_keyboard_ui_window | [55_keyboard_ui_window.md](decisions_archive/55_keyboard_ui_window.md) | キーボードUIのウィンドウ改善（2026-10-12 完了・暫定 39 v0.6 凍結・presentation が主 + infrastructure に Win32 問い合わせ 3 関数・JSON スキーマ変更なし）。ステータス欄を削除しタイトルへ / 「キーボードUIを常に手前」〔保存しない・ダイアログ前面 or grab 中は一時解除しダイアログ直下へ〕/ 縦横比固定〔手を離して 150ms 後・マウスのボタンが離れた後に補正〕。refactor_check: 推奨（M3 → 提案書 21 → task_06_refactor で実施済・`infrastructure/win32_window.py`） |
 | 56_screen_grid_cursor | [56_screen_grid_cursor.md](decisions_archive/56_screen_grid_cursor.md) | 画面の枠でカーソル移動・クリック（2026-10-13 完了・暫定 40 v0.7 凍結・domain / application / infrastructure / presentation・**JSON スキーマ変更あり**〔keymap の任意キー `grid`〕）。枠 ON の keymap がアクティブな間だけ枠を表示・キーで枠を選びカーソルを中心へ・Enter で左 / Shift+Enter で右クリック・Space で細分化・Tab で画面の切替・最上段は画面ごとに編集の窓でドラッグして記録・キーの表示位置（中央 / 左上）。座標は SYSTEM_AWARE のまま・カーソル移動とクリックは pyautogui。refactor_check: 推奨（M3・M4 = `grid` の受け渡しの 3 か所・M6 = 振り直しの段の直値）→ [提案書 22](../../instructions/modified_proposal/22_refactor_screen_grid.md) → task_09_refactor で実施済 |
+| 57_grid_crosshair_nudge | [57_grid_crosshair_nudge.md](decisions_archive/57_grid_crosshair_nudge.md) | 画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化（2026-10-14 完了・暫定 41 v0.4 凍結・domain / application / presentation・**JSON スキーマ変更あり**〔`grid` の任意キー `ops`〕）。選んだ枠のクリック点に十字（中央表示はキーの文字を置き換え）・矢印で min(16px, 枠の 1/8)・Shift で 1px・操作キーは keymap ごとに各 1 つで付け替え可（Esc = 戻る / num enter = クリックは固定）・重なりは OK で拒否 / 実行時は枠のキー > 操作キー・suppress は実効の集合 1 本・編集の窓はドラッグ中に関係する枠へ十字。refactor_check: 推奨（M3・M4・M6）→ [提案書 23](../../instructions/modified_proposal/23_refactor_grid_ops.md)（ユーザー判断待ち） |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -615,17 +616,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - M2（ユーザー確定・コード変更 task_07a）: 単発の呼び出しの実行中に連鎖の呼び出し先の位置を一覧で変えたら、待機・file_line・呼び出し元の位置変更と同じく実行中の単発の呼び出しを取り消し（そこまでの進みは書き戻す）、変えた位置を優先する。今は次の書き戻しで上書きされる（要再現）。
 - M3（ユーザー確定・受容）: 呼び出し先の完了で外から進めた呼び出し元の次の待機は待たない（直前に呼び出し元が送っていないので「送った後の待ち」に当たらない。次に押すと送る前の待機として読み飛ばす）。
 - M4（ユーザー確定・コード変更 task_07a）: 呼び出し先 U が単発の呼び出しの一時停止中に T が U を呼んだら、U の一時停止を捨てて（通知）T が進める。今は黙って無視。
-
-## 2026-10-13〜 (phase 57: 画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化・暫定 41)
-
-### 【起票】暫定 41 の確定（2026-10-13〜14・ユーザー確定 v0.4）
-- 移動量 = min(16px, 枠の 1/8)（縦横別）・Shift で 1px。枠の中だけ・クリック点は覚えない・カーソルも動かす・矢印は選択中だけ suppress（ユーザー）。
-- 操作キーは keymap ごとに各 1 つで付け替え可（`grid.ops`・既定と同じなら書かない）。**Esc = 戻る・num enter = クリックは固定**（ユーザー案「付け替えは BackSpace 側だけ」を一般化）。右クリック = Shift + click のキー。
-- 重なり: 編集の窓の OK では拒否 / 既存・手編集は枠のキー > 操作キーの優先順位で解決（ユーザー）。枠のキーの読込時の固定予約は修飾キーだけに縮小。
-- 起票時 deep-reviewer「修正して採用」→ 全件反映（esc の固定分岐の廃止と suppress 集合 1 本化・取り込み経路・OK 検査は今つながる画面 + 既定）。
-- Codex 敵対的 needs-attention 2 件 → 採用（esc / 矢印は条件か今の深さの枠のキーのときだけ suppress・0px の枠で範囲を 1 点に）。
-
-### 【task_06 統合レビュー】deep-reviewer 修正して採用 / codex-reviewer P2 1 件（同旨）→ ユーザー判断（2026-10-14）
-- 採用（task_06a）: OK の検査で固定の esc / num enter と枠のキー（未編集の今つながる画面を含む）の重なりを拒否（暫定 41 §8 との不一致）+ テスト追加（4px 未満の deepen・最上段の選択ありの back でクリック点不変）。
-- 受容・task_07 で明記: 編集の窓の十字の色 = その枠の線の色（黄 = 選んでいる段 / 青）/ 手編集で操作キーが矢印の操作キーと重なると選択なしでは素通し（§5 の式の帰結）/ 別名（"escape" 等）は効かない（既存の枠のキーと同じ）。
-- 見送り: 拒否のメッセージに画面名を出す（手編集のときだけ・参考）/ 4 経路の ops の往復の結合テスト（経路は normalize_grid 1 点）。

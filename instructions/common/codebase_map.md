@@ -859,24 +859,30 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 ---
 
-## 画面の枠（phase 56）
+## 画面の枠（phase 56・57）
 
-仕様は `spec_detail/features.md` §4.7（挙動・窓・ダイアログ・編集の窓）/ `data_schema.md` §5.6.1（`grid`）/ `key_input.md` §7.3・§7.4（振り分け・予約キー・取り込みの名前）/ `nonfunctional.md`「画面の枠の座標系」。判断は `decisions_archive/56_screen_grid_cursor.md`。
+仕様は `spec_detail/features.md` §4.7（挙動・窓・ダイアログ・編集の窓）/ `data_schema.md` §5.6.1（`grid`）/ `key_input.md` §7.3・§7.4（振り分け・予約キー・取り込みの名前）/ `nonfunctional.md`「画面の枠の座標系」。判断は `decisions_archive/56_screen_grid_cursor.md`・`decisions_archive/57_grid_crosshair_nudge.md`。
 
-- **domain `domain/screen_grid/`**（純関数・tkinter / Win32 非依存）: `models.py`（不変の形 `TopLayout` / `SubLayout`・既定・`new_enabled_grid`・`is_positive_ratio`）/
-  `normalize.py`（`normalize_grid`・`monitor_identifier`・`top_layout_for` / `sub_layout_of`・`label_position_of`・`has_enabled_grid`・`FIXED_RESERVED_KEYS`・`grid_key_name`〔config との循環を避ける〕）/
-  `geometry.py`（`top_cell_rects` / `sub_cell_rects`・`rect_center`・`can_subdivide`〔4px〕）/ `assignment.py`（`next_free_key`・`reassign_top_keys`・`auto_fill_sub_keys`・`validate_top` / `validate_sub`）/
-  `editing.py`（段・列の分割と削除・境界の移動〔8px〕・キーの設定）
+- **domain `domain/screen_grid/`**（純関数・tkinter / Win32 非依存）: `models.py`（不変の形 `TopLayout` / `SubLayout`・既定・`new_enabled_grid`・`is_positive_ratio`・`grid_key_name`〔config との循環を避ける・phase 57 で normalize.py から移動〕）/
+  `normalize.py`（`normalize_grid`〔`ops` も正規化・既定と同じなら書かない〕・`monitor_identifier`・`top_layout_for` / `sub_layout_of`・`label_position_of`・`has_enabled_grid`。読込時の固定の予約キー = `MODIFIER_KEY_NAMES`）/
+  `ops.py`（phase 57: `GRID_OPS`〔重なりの優先順〕・`DEFAULT_OPS`・`OP_LABELS`・`FIXED_BACK_KEY` / `FIXED_CLICK_KEY` / `FIXED_OP_KEYS`・`normalize_ops`・`ops_of`〔守りの読み出し〕・`ops_to_json`・`operation_keys` / `default_operation_keys`・`validate_ops`〔編集の窓の OK・固定キーと枠のキーの重なりを含む〕）/
+  `geometry.py`（`top_cell_rects` / `sub_cell_rects`・`rect_center`・`can_subdivide`〔4px〕・phase 57: `nudge_step`〔min(16, 1/8)・Shift で 1〕/ `clamp_point`〔0px は 1 点〕）/
+  `assignment.py`（`next_free_key`・`reassign_top_keys`・`auto_fill_sub_keys`・`validate_top` / `validate_sub`。phase 57 でキーワード引数 `op_keys`〔None = 既定の操作キー〕を足し、操作キーを飛ばす / 「操作キーと重なっています」で拒否）/
+  `editing.py`（段・列の分割と削除・境界の移動〔8px〕・キーの設定。`split_row` / `split_cell` も `op_keys` を受ける）
 - **JSON の 4 経路**: `domain/config.py` `_normalize_keymap_compat_fields`（`grid` を正規化して保持）/ `config_service/__init__.py` `_normalize_loaded_keymap` / `split_loading.py` `load_keymap_entry` / `split_payloads.py` `build_keymap_file_payload`（`grid` があれば書く）。後ろの 3 つは `domain/config.py` の `copy_keymap_optional_keys`（任意キーの一覧 `KEYMAP_OPTIONAL_KEYS`）で写す（提案書 22）
-- **application `application/screen_grid_session.py`**: `ScreenGridSession`（UI スレッドの状態機械。`sync(keymap_id, grid, active)`・`handle(GridKeyAction)`・`abort()`・世代・suppress する集合・`esc_active`・モニタは `MonitorInfo`〔識別子 + 矩形〕で持つ。
-  移動・クリック・列挙・カーソル位置は注入）。フックのスレッドへは不変の `GridRouteSnapshot` を差し替えて公開、窓へは `GridView`
-- **振り分け**: `application/input_router.py` `GridKeyAction` と `get_grid_snapshot`（直接切替の後・トリガーの前の `_route_grid_key`）/ 開始・再開の条件 = `hook_coordinator.py` の `has_grid_keymaps`（`hook_controller.py` が `has_enabled_grid` で渡す）
+- **application `application/screen_grid_session.py`**: `ScreenGridSession`（UI スレッドの状態機械。`sync(keymap_id, grid, active)`・`handle(GridKeyAction)`〔枠のキー > 操作キー・`ops_of` で引き当て〕・`abort()`・世代・クリック点と矢印の移動〔phase 57〕・モニタは `MonitorInfo`〔識別子 + 矩形〕で持つ。
+  suppress する集合は `_rebuild_suppression`（常時の集合）+ `_publish_snapshot`（深さ・選択・今の深さの枠のキーで足す実効の集合）で 1 本にする〔phase 57 で `esc_active` を廃止〕。
+  移動・クリック・列挙・カーソル位置は注入）。フックのスレッドへは不変の `GridRouteSnapshot`（`visible` / `generation` / `suppress_keys`）を差し替えて公開、窓へは `GridView`（phase 57 で `click_point`）
+- **振り分け**: `application/input_router.py` `GridKeyAction` と `get_grid_snapshot`（直接切替の後・トリガーの前の `_route_grid_key`。全キーを `key in suppress_keys` だけで判定）/ 開始・再開の条件 = `hook_coordinator.py` の `has_grid_keymaps`（`hook_controller.py` が `has_enabled_grid` で渡す）
 - **infrastructure**: `win32_window.py` `list_monitor_rects`・`make_click_through_overlay`・`vk_to_scan_code`・`vk_to_char`（user32 は `use_last_error=True`）/ `input_gateway.py` `cursor_position`・`move_cursor`・`click_at`（pyautogui・`_pause=False`）
 - **presentation**: `app.py` が `ScreenGridController` を作り `InputRouter` へ `snapshot` を渡す・終了で `shutdown` / `layout_controller.refresh_keyboard_window` の先頭で `screen_grid.sync()`（表示の同期の 1 か所）/
   `hook_controller._execute_reserved_action` が `GridKeyAction` を `screen_grid.handle` へ / フォントの変更で `screen_grid.on_font_changed()` /
   ダイアログ: `KeymapEditDialog`（「枠を使う」・「枠を編集…」・下書き・`key_name_from_event`）・`KeymapSwitchBatchDialog`（`grid_option_rows`）/
-  `keymap_panel_controller.py`（`apply_keymap_edit` の `new_grid_enabled` / `new_grid_shapes`・`_grid_editor_context`〔自分の切替キーを除く〕・`_grid_key_name_from_event`）/ `keymap_add_flow.py`（新規の行だけ）
-- テスト: `tests/test_screen_grid*.py`・`tests/test_input_router.py`・`tests/test_hook_coordinator.py`・`tests/test_*_screen_grid.py`（infrastructure）/ `tests_ui/test_screen_grid_overlay.py`・`tests_ui/test_grid_editor_window.py`・`tests_ui/test_task06_keymap_management_ui.py`・`tests_ui/test_keymap_switch_batch_dialog.py`
+  `screen_grid/`: `grid_overlay_window.py`（選んだ枠のクリック点に十字・中央表示は文字を置き換え）・`crosshair.py`（phase 57: `draw_crosshair`〔12px・線幅 2・枠へ切り詰め〕・枠の窓と編集の窓で共有）・`cell_label.py`・
+  `grid_editor_panel.py`（phase 57: 操作キーの欄〔`op_selected` / `select_op_key` / `clear_op_selection` / `update_op_buttons`〕・「操作キーを既定に戻す」・操作のボタンと操作キーの欄の 2 列化・OK / キャンセルより上のスクロール領域〔`set_max_height`・`_measure_scroll_area` は値が変わったときだけ configure・中身の Frame 1 つの `<Configure>` だけで測り直し・再入防止・`_scrollbar_shown`〕）/
+  `dialogs/grid_editor_window.py`（phase 57: `switch_monitor` は `geometry` の直後に `update_idletasks()`〔位置の反映の保留中に `-topmost` を再設定すると Windows で `0,0` に戻るため〕・`set_max_height`〔画面の高さ − 80〕・`ops`・`reset_ops`・選択の排他と Esc の順・`op_keys` を自動割当 / 検査へ・OK で `validate_ops`〔今つながる画面 + 既定 + 細分化の枠のキー〕・結果の `ops`・ドラッグ中の十字 `_drag_related_cells`）/
+  `keymap_panel_controller.py`（`apply_keymap_edit` の `new_grid_enabled` / `new_grid_shapes`〔phase 57 で `ops` の写し / 消し〕・`_grid_editor_context`〔自分の切替キーを除く〕・`_grid_key_name_from_event`）/ `keymap_add_flow.py`（新規の行だけ）
+- テスト: `tests/test_screen_grid*.py`（phase 57: `test_screen_grid_ops.py`・`test_screen_grid_geometry_nudge.py`）・`tests/test_input_router.py`・`tests/test_hook_coordinator.py`・`tests/test_*_screen_grid.py`（infrastructure）/ `tests_ui/test_screen_grid_overlay.py`・`tests_ui/test_grid_editor_window.py`・`tests_ui/test_task06_keymap_management_ui.py`・`tests_ui/test_keymap_switch_batch_dialog.py`
 - 構造テストの区分: `GridEditorWindow` は `tests_ui/test_dialog_teardown_flows.py` の `NESTED_CHILD_DIALOGS`（親のダイアログがフックを止める子）
 
 ---

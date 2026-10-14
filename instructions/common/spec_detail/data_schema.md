@@ -237,7 +237,7 @@ UI 上の「確認して実行」（`features.md` §4.2.11）。全体（構成�
   | `trigger_set_path` | str | **空扱い**（＝トリガー一覧なし・項目ありとして扱う。表記は §5.7） |
   | `grid` | dict | **無いものとして扱う**（＝枠 OFF）。中身の規則は §5.6.1 |
 
-- [5.6.1 keymap の `grid`](data_schema/5_06_01_keymap_grid.md) — 画面の枠（phase 56）の形・画面の識別子・正規化・保存の規則（`label_position` は左上のときだけ書く）
+- [5.6.1 keymap の `grid`](data_schema/5_06_01_keymap_grid.md) — 画面の枠（phase 56・57）の形・画面の識別子・操作キー `ops`・正規化・保存の規則（`label_position` は左上のとき・`ops` は既定と違うときだけ書く）
 
 * **既定ファイル名**（初回保存時のみ・source_path があればそれを使う）:
   source_path（`user/keymaps` 配下）の stem →（`label` が空なら構成セットの stem / `label` があれば `label`）→ `id` → `keymap`。
