@@ -128,7 +128,7 @@ class StatusTooltipTest(unittest.TestCase):
         self.app.update()
 
     def test_full_status_is_shown_only_when_truncated_and_leave_destroys_popup(self):
-        with patch.object(self.app.keymap_panel, "get_active_keymap_text",
+        with patch.object(self.app.keymap_panel, "get_active_keymap_name",
                           return_value="long map " * 40):
             self.app.trigger_panel.update_status()
         self._resize(780)
@@ -155,7 +155,7 @@ class StatusTooltipTest(unittest.TestCase):
 
     def test_compact_status_keeps_original_line_breaks_and_tracks_next_action(self):
         self._enter_compact()
-        with patch.object(self.app.keymap_panel, "get_active_keymap_text",
+        with patch.object(self.app.keymap_panel, "get_active_keymap_name",
                           return_value="map\n" + "label " * 35):
             self.app.trigger_panel.update_status()
         self.app.update()
@@ -172,7 +172,7 @@ class StatusTooltipTest(unittest.TestCase):
         popup = self._popups()[0]
         with patch.object(self.app.trigger_panel, "get_next_action_summary",
                           return_value="changed\n" + "next " * 40), \
-                patch.object(self.app.keymap_panel, "get_active_keymap_text", return_value="map"):
+                patch.object(self.app.keymap_panel, "get_active_keymap_name", return_value="map"):
             self.app.trigger_panel.update_status()
         self.app.update()
         self.assertIs(self._popups()[0], popup)
@@ -205,7 +205,7 @@ class StatusTooltipTest(unittest.TestCase):
     def test_widening_window_closes_open_status_tooltip(self):
         self._enter_compact()
         self._resize(270)
-        with patch.object(self.app.keymap_panel, "get_active_keymap_text", return_value="Main " * 10):
+        with patch.object(self.app.keymap_panel, "get_active_keymap_name", return_value="Main " * 10):
             self.app.trigger_panel.update_status()
         self.app.update()
         label = self._labels()["status"]

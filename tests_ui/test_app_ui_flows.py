@@ -137,9 +137,11 @@ class AppUiFlowsTest(unittest.TestCase):
 
     def test_status_shows_hook_off(self):
         self.app.trigger_panel.update_status()
-        self.assertIn("フック: OFF", self.app.ui_vars.status_var.get())
+        status = self.app.ui_vars.status_var.get()
+        self.assertIn("フック: OFF", status)
         label = self.app.keymap_service.get_active_keymap_label(self.app.data)
-        self.assertIn(f"キーマップ: {label}（フック停止中）", self.app.ui_vars.status_var.get())
+        self.assertIn(f"キーマップ: {label}", status)
+        self.assertNotIn("（フック停止中）", status)
 
     def test_status_shows_keymap_paused_when_toggle_is_off(self):
         original_hook_active = self.app.hook.hook_active
@@ -152,14 +154,37 @@ class AppUiFlowsTest(unittest.TestCase):
                 with self.subTest(compact_mode=compact_mode):
                     self.app._compact_mode = compact_mode
                     self.app.trigger_panel.update_status()
-                    status = self.app.ui_vars.status_var.get()
+                    status = self.app.ui_vars.status_full_var.get()
                     label = self.app.keymap_service.get_active_keymap_label(self.app.data)
-                    self.assertIn(f"キーマップ: {label}（一時停止）", status)
+                    self.assertIn("フック: 一時停止", status)
+                    self.assertIn(f"キーマップ: {label}", status)
+                    self.assertNotIn("（一時停止）", status)
+                    self.assertIn("フック: 一時停止", self.app.ui_vars.status_var.get())
+                    self.assertIn(f"キーマップ: {label}", self.app.ui_vars.status_var.get())
+                    self.assertNotIn("（一時停止）", self.app.ui_vars.status_var.get())
                     self.assertNotIn("通常トリガー:", status)
         finally:
             self.app.hook.hook_active = original_hook_active
             self.app.hook.custom_input_enabled = original_custom_input_enabled
             self.app._compact_mode = original_compact_mode
+            self.app.trigger_panel.update_status()
+
+    def test_status_hook_off_takes_priority_and_on_is_reported(self):
+        original_hook_active = self.app.hook.hook_active
+        original_custom_input_enabled = self.app.hook.custom_input_enabled
+        try:
+            self.app.hook.hook_active = False
+            self.app.hook.custom_input_enabled = False
+            self.app.trigger_panel.update_status()
+            self.assertIn("フック: OFF", self.app.ui_vars.status_var.get())
+
+            self.app.hook.hook_active = True
+            self.app.hook.custom_input_enabled = True
+            self.app.trigger_panel.update_status()
+            self.assertIn("フック: ON", self.app.ui_vars.status_var.get())
+        finally:
+            self.app.hook.hook_active = original_hook_active
+            self.app.hook.custom_input_enabled = original_custom_input_enabled
             self.app.trigger_panel.update_status()
 
     def test_dirty_flag_reflected_in_file_status(self):

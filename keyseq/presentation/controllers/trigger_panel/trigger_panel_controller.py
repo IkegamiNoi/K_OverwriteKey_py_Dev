@@ -407,8 +407,13 @@ class TriggerPanelController:
             pass
 
     def update_status(self):
-        hook_state = "ON" if self._app.hook.hook_active else "OFF"
-        keymap_text = self._app.keymap_panel.get_active_keymap_text()
+        if not self._app.hook.hook_active:
+            hook_state = "OFF"
+        elif not self._app.hook.custom_input_enabled:
+            hook_state = "一時停止"
+        else:
+            hook_state = "ON"
+        keymap_text = self._app.keymap_panel.get_active_keymap_name()
         sel_key = self.selected_trigger_key() or "(未選択)"
         effective = self.selected_trigger_is_effective()
         held_names = self._app.held_inputs.display_names

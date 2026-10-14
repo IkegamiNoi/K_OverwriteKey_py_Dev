@@ -266,7 +266,7 @@ class CompactWindowTest(unittest.TestCase):
         self.app._selected_trigger_idx = 0
         self.app._indices["f1"] = 0
         self.app.trigger_panel.refresh_triggers()
-        with patch.object(self.app.keymap_panel, "get_active_keymap_text", return_value="map\nlabel"), \
+        with patch.object(self.app.keymap_panel, "get_active_keymap_name", return_value="map\nlabel"), \
                 patch.object(self.app, "keymap_set_path", "file\nstate"):
             self.app._update_file_status()
             self.app._set_flash_message("first\nsecond", auto_clear=False)

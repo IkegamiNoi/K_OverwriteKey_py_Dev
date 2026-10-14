@@ -4,23 +4,25 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-14T23:25:00
+last_updated: 2026-10-15T00:30:00
 phase: **58_window_size_fit**（画面サイズの調整・2026-10-14 起票・主入力 = 暫定 42 v0.3 ユーザー確定済）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 24
 直前の完了フェーズ = **phase 57**（`decisions_archive/57_grid_crosshair_nudge.md`）
 last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_09_fix = phase 57 の最終）。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: present
-focus: **phase 58 起票済（phase.md・current.md・reviewer 整合チェック = 軽微 2 件反映）。次 = task_01（ステータス欄の 3 状態）。**
+presence: away（戻る予定 2026-10-15T07:30）
+focus: **phase 58 task_01 完了（codex-implementer・reviewer 完了可・verifier 全 pass）。次 = task_02（定義起票済）。**
 mode: implementing
 
 ## last_action
-ts: 2026-10-14T22:00:00
+ts: 2026-10-15T00:30:00
 who: main
 summary: |
-  ユーザー要望（フル表示の 3 枠を枠ごとにスクロール・下限はメイン領域の今の最小の半分 / 省略表示のフック・表示を Expander で開閉し保存 / ステータス欄のフックを ON・OFF・一時停止の 3 状態）を
-  暫定 42 `instructions/history/42_window_size_fit.md` v0.1 に起票（確定事項 = §2）。起票時 deep-reviewer = 修正して採用（未反映）。利用上限で中断。
+  phase 58 task_01（ステータス欄のフックの 3 状態・get_active_keymap_name）を codex-implementer で実装（Codex の書き込み不具合は unelevated で回避）。
+verified:
+  compile: pass / tests: 1658 OK（skip 7）/ tests_ui: 1050 OK / smoke OK / 生成物なし（verifier）
+  review: reviewer 完了可（参考 2 件は見送り）
 
 ## next_action
 - **暫定 42 v0.2 反映済（起票時 deep-reviewer の指摘をすべて反映）・Codex 敵対的レビュー = needs-attention 1 件（medium: §8-1 案 B は吸収先が無く切れる〔`pane_width_rules.py:114-124`・`features.md` §4.6 で裏取り済〕→ 案 A を必須にし受け入れ条件へ「最小幅で 3 枠ともスクロールバーが出ても切れない」を追加）**
@@ -28,7 +30,7 @@ summary: |
 - main へのマージはユーザー（ブランチ `claude/crosshair-selection-frame-f4b464`）
 
 ## blockers
-- なし
+- **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
@@ -41,4 +43,4 @@ summary: |
 - `tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・current.md「テスト負債」）。
 - 過去の判断は `decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。凍結済の暫定仕様（`instructions/history/` の 04〜41）の条項を実装の根拠に引かない。
 - **【Codex のプロセス・2026-10-14 実測】** companion は作業フォルダ（cwd）ごとに `app-server-broker.mjs serve` を常駐させ、その下の `codex app-server`（+ sandbox の runner・node）は**呼び出し後も残る（再利用のための設計）**。
-  worktree ごとに 1 組ずつ増えるため、worktree を多く使うと codex.exe が溜まる。Codex デスクトップアプリ（ChatGPT.exe）配下の codex.exe は別物。不調時は Windows の再起動で解消した
+  worktree ごとに 1 組ずつ増えるため、worktree を多く使うと codex.exe が溜まる。Codex デスクトップアプリ（ChatGPT.exe）配下の codex.exe は別物。2026-10-14 の不調はプロセスの溜まりではなく Codex の更新が原因（blockers 参照・再起動では直らない）

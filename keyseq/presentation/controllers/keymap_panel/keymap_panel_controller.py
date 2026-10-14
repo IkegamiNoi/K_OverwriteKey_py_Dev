@@ -599,6 +599,10 @@ class KeymapPanelController:
             return f"{label}（一時停止）"
         return label
 
+    def get_active_keymap_name(self) -> str:
+        label = self._app.keymap_service.get_active_keymap_label(self._app.data)
+        return label or "(なし)"
+
     def assign_keymap_from_keyboard_ui(self, source_key: str, target_key: str) -> bool:
         source = normalize_key_name(source_key)
         target = normalize_key_name(target_key)
