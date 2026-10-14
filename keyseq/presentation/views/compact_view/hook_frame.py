@@ -13,7 +13,12 @@ if TYPE_CHECKING:
 
 class CompactHookFrame(ttk.LabelFrame):
     def __init__(self, parent, app: App):
-        super().__init__(parent, text="フック", padding=10)
+        super().__init__(parent, padding=10)
+        self.heading = ttk.Label(
+            self, text="▾ フック", anchor="w", cursor="hand2",
+            style="TLabelframe.Label",
+        )
+        self.configure(labelwidget=self.heading)
 
         # フックラベルフレーム1行目
         self.compact_hook_line1 = ttk.Frame(self)

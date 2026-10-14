@@ -25,9 +25,11 @@ class CompactView(ttk.Frame):
         # フックラベルフレーム
         self.hook_frame = CompactHookFrame(self.header_area, app)
         self.hook_frame.pack(side="top", fill="x", expand=False)
+        self.hook_heading = ttk.Label(self.header_area, text="▸ フック", anchor="w", cursor="hand2")
 
         self.display_frame = CompactDisplayFrame(self.header_area, app)
         self.display_frame.pack(side="top", fill="x", expand=False, pady=(8, 0))
+        self.display_heading = ttk.Label(self.header_area, text="▸ 表示", anchor="w", cursor="hand2")
 
         # トリガー一覧のみ
         self.main_area = ttk.Frame(self)

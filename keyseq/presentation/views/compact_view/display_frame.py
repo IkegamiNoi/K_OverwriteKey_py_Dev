@@ -12,7 +12,12 @@ if TYPE_CHECKING:
 
 class CompactDisplayFrame(ttk.LabelFrame):
     def __init__(self, parent, app: App):
-        super().__init__(parent, text="表示", padding=(10, 6))
+        super().__init__(parent, padding=(10, 6))
+        self.heading = ttk.Label(
+            self, text="▾ 表示", anchor="w", cursor="hand2",
+            style="TLabelframe.Label",
+        )
+        self.configure(labelwidget=self.heading)
 
         self.topmost_chk = ttk.Checkbutton(
             self,

@@ -34,6 +34,7 @@ from keyseq.presentation.controllers.keymap_panel.keymap_panel_controller import
 from keyseq.presentation.controllers.layout_controller import LayoutController
 from keyseq.presentation.controllers.call_view_controller import CallViewController
 from keyseq.presentation.controllers.compact_sequence_controller import CompactSequenceController
+from keyseq.presentation.controllers.compact_header_controller import CompactHeaderController
 from keyseq.presentation.controllers.compact_pane_layout import CompactPaneLayout
 from keyseq.presentation.controllers.compact_window_controller import CompactWindowController
 from keyseq.presentation.controllers.pane_layout import PaneLayoutController
@@ -241,6 +242,7 @@ class App(tk.Tk):
         self.trigger_panel = TriggerPanelController(self)
         self.call_view = CallViewController(self)
         self.compact_sequence = CompactSequenceController(self)
+        self.compact_header = CompactHeaderController(self)
         self.compact_pane_layout = CompactPaneLayout(self)
         self.compact_window = CompactWindowController(self)
         self.hook = HookController(self)
@@ -351,6 +353,15 @@ class App(tk.Tk):
         # 2画面（フル/省略）を用意し、pack_forgetで切替
         self.full_view = FullView(self.outer, app=self)
         self.compact_view = CompactView(self.outer, app=self)
+        self.compact_header.register_section(
+            "hook", self.compact_view.hook_frame, self.compact_view.hook_frame.heading,
+            self.compact_view.hook_heading,
+        )
+        self.compact_header.register_section(
+            "display", self.compact_view.display_frame, self.compact_view.display_frame.heading,
+            self.compact_view.display_heading,
+        )
+        self.compact_header.apply_initial_state()
 
         self.full_view.pack(fill="both", expand=True)
         # compact_view は最初は非表示

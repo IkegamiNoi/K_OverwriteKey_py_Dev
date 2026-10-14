@@ -88,6 +88,9 @@ class CompactWindowController:
         self.cancel_save()
 
     def on_font_changed(self) -> None:
+        self.refresh_minimum_height()
+
+    def refresh_minimum_height(self) -> None:
         if not self.app._compact_mode:
             return
         self.minimum_height = self._measure()
