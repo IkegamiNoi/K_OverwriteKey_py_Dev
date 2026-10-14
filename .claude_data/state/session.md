@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-14T22:00:00
+last_updated: 2026-10-14T23:25:00
 phase: なし（**phase 57 は 2026-10-14 完了**・画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化・`decisions_archive/57_grid_crosshair_nudge.md`）。次採番 = phase 58 / 暫定 42 / decisions 58 / 提案書 24
 直前の完了フェーズ = **phase 57**（`decisions_archive/57_grid_crosshair_nudge.md`）
 last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_09_fix = phase 57 の最終）。main へのマージはユーザー
@@ -12,8 +12,8 @@ last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_
 
 ## current
 presence: present
-focus: **暫定 42（画面サイズの調整）v0.1 起票済・起票時 deep-reviewer「修正して採用」の反映待ち。phase 58 は未起票（暫定 42 のユーザー確定後に /phase_start）。**
-mode: pending_review
+focus: **暫定 42 v0.3（画面サイズの調整）・§8 の 3 件ユーザー確定済・本書全体のユーザー確定待ち。phase 58 は未起票。**
+mode: pending_user_confirm
 
 ## last_action
 ts: 2026-10-14T22:00:00
@@ -23,14 +23,8 @@ summary: |
   暫定 42 `instructions/history/42_window_size_fit.md` v0.1 に起票（確定事項 = §2）。起票時 deep-reviewer = 修正して採用（未反映）。利用上限で中断。
 
 ## next_action
-- **暫定 42 に起票時レビューの指摘を反映して v0.2**: 高1 §3.1 中身の窓の高さ = max(Canvas 高さ, 中身の要求高さ)・測り直しの契機を列挙（Canvas の Configure・フォント変更・ThemeChanged・フル表示の呼び出し先の開閉・フル表示へ戻る）・pane_layout が測る前に同期 /
-  高2 §3.2 H は各枠の「飾りの高さ + 中身の要求高さ」の最大として直接測る（推奨 b）・最小 = app.winfo_reqheight() − panes の要求高さ + ceil(H/2) /
-  高3 §3.3 最小幅は中身の Frame の子から測る（`pane_measure._stacked_width` :68-74 が枠直下の子を見ているため）+ §8-1（スクロールバーの幅・推奨 案 A = 常に含める）をユーザー確定 /
-  中1 スクロールバーを隠すとき yview_moveto(0) / 中2 ホイール: Listbox には結ばず既定に任せる・それ以外〔LabelFrame・Canvas・容器〕は枠をスクロールして break・一覧のスクロールバーの上の扱いを決める・間隔欄は ttk.Entry（Spinbox ではない）/
-  中3 §4 閉じたら LabelFrame ごと pack_forget して見出しの Label を置く（シーケンス欄の show_heading_at と同じ）・開いたときの見出しの二重表示を避ける / 中4 保存は両方の値を書く・未知のキーは保持しない /
-  中5 書き換えるテストに tests_ui/test_app_ui_flows.py:142,157 と get_active_keymap_text を差し替える test_status_tooltip.py・test_compact_window.py:269・test_sequence_control_review_fixes.py:100 を追加 /
-  低2 §5 hook_active 偽なら OFF を優先 / 低3 §6・§10 は「スクロール位置は保存しない」だけに / 低4 「表示」を閉じると「フルに戻す」が隠れる点を明記 / 低5 Tab で隠れたボタンへ移っても自動スクロールしない（受容か決める）/ 低1 931/927/966px は実機目視と明記
-- その後: Codex 敵対的レビュー（Codex のシェルが不調なら deep-reviewer へ縮退）→ ユーザー確定 → `/phase_start`（phase 58）
+- **暫定 42 v0.2 反映済（起票時 deep-reviewer の指摘をすべて反映）・Codex 敵対的レビュー = needs-attention 1 件（medium: §8-1 案 B は吸収先が無く切れる〔`pane_width_rules.py:114-124`・`features.md` §4.6 で裏取り済〕→ 案 A を必須にし受け入れ条件へ「最小幅で 3 枠ともスクロールバーが出ても切れない」を追加）**
+- **v0.3 反映済（§8 の 3 件を推奨どおり確定・2026-10-14）**。次 = 暫定 42 全体のユーザー確定 → `/phase_start`（phase 58）
 - main へのマージはユーザー（ブランチ `claude/crosshair-selection-frame-f4b464`）
 
 ## blockers
@@ -46,3 +40,5 @@ summary: |
 - **プロセスは pyautogui の import でシステム DPI 対応**（`.venv/Lib/site-packages/pyautogui/_pyautogui_win.py:17`）。検証は本番の起動経路で
 - `tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・current.md「テスト負債」）。
 - 過去の判断は `decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。凍結済の暫定仕様（`instructions/history/` の 04〜41）の条項を実装の根拠に引かない。
+- **【Codex のプロセス・2026-10-14 実測】** companion は作業フォルダ（cwd）ごとに `app-server-broker.mjs serve` を常駐させ、その下の `codex app-server`（+ sandbox の runner・node）は**呼び出し後も残る（再利用のための設計）**。
+  worktree ごとに 1 組ずつ増えるため、worktree を多く使うと codex.exe が溜まる。Codex デスクトップアプリ（ChatGPT.exe）配下の codex.exe は別物。不調時は Windows の再起動で解消した
