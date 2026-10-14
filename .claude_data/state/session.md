@@ -4,33 +4,32 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-14T10:00:00
+last_updated: 2026-10-14T11:00:00
 phase: instructions/phase/57_grid_crosshair_nudge（画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化。主入力 = 暫定 41 v0.4・ユーザー確定済）。次採番 = phase 58 / 暫定 42 / decisions 58 / 提案書 23
 直前の完了フェーズ = **phase 56**（画面の枠でカーソル移動・クリック・`decisions_archive/56_screen_grid_cursor.md`）
-last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_04）
+last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_05）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **phase 57 task_04（編集の窓の操作キーの欄・OK の検査・取り込み）完了（実機目視 OK）。次は task_05（編集の窓のドラッグ中の十字）。**
+focus: **phase 57 task_05（編集の窓のドラッグ中の十字）完了（実機目視 OK）。次は task_06（統合確認・deep-reviewer + codex-reviewer）。**
 mode: implementing
 
 ## last_action
-ts: 2026-10-14T10:00:00
+ts: 2026-10-14T11:00:00
 who: user
 summary: |
-  task_04（codex-implementer）: パネルに操作キーの欄（8 操作・既定に戻す・選択の排他・Esc の順）・OK の検査（`validate_ops`・今つながる画面 + 既定 + 細分化）・自動割当 / 振り直し / 検査に `op_keys`・`keymap_panel_controller` で `ops` を写す / 消す。
-  メイン補正: テスト 1 件（keymap 単位の未保存の印を `clear_individual_dirty_flags()` で消す）・空行。reviewer 採用（Tk ルートの共有化は既知の罠の作法なので残す）。実機目視 OK。
+  task_05（codex-implementer）: `grid_editor_window.py` で境界の押下〜離すまで関係する枠の中心に `draw_crosshair`・中央表示は文字を置き換え・押下 / 離すで描き直し。
+  メイン補正: テストの誤り 2 件（十字の中心を交点で判定・境界を動かす前に離して文字の復帰を確認）・import の並び。reviewer 採用。実機目視 OK。
 result_files:
-  - keyseq/presentation/dialogs/grid_editor_window.py・screen_grid/grid_editor_panel.py・controllers/keymap_panel/keymap_panel_controller.py / keyseq/domain/screen_grid/editing.py
-  - tests/test_screen_grid_editing.py・tests_ui/test_grid_editor_window.py・tests_ui/test_task06_keymap_management_ui.py
+  - keyseq/presentation/dialogs/grid_editor_window.py / tests_ui/test_grid_editor_window.py
 verified:
-  compile: pass / tests: 1646 件 OK（skipped 7）/ tests_ui: 1036 件（修正したテスト以外 OK・修正後に対象 88 件 OK）/ smoke OK
+  compile: pass / tests: 1646 件 OK（skipped 7）/ tests_ui: 1039 件 OK / smoke OK
   review: reviewer 採用 / 実機目視 OK
 
 ## next_action
-- `/task_new` で `tasks/task_05_grid_editor_drag_crosshair.md`（暫定 41 §7 編集の窓: 境界の上で押してから離すまで・段の境界 = 上下 2 段の全部の枠 / 列の境界 = 左右 2 枠の中心に `draw_crosshair`・中央表示ではその枠のキーの文字を置き換え・`on_release` で描き直して消す）→ codex → verifier → reviewer → 実機目視
-- task_06 で補うテスト: _refresh_monitors で画面が変わったとき / _back で親が見つからないとき click_point None・deepen/back/next_screen の Shift 無視・Shift+枠のキー・手編集の ops 重なり・最上段で手編集の esc / 矢印が集合に入らない
+- `/task_new` で `tasks/task_06_integration_check.md`: ①task_02 レビューの抜けのテストを追加（_refresh_monitors で画面が変わったとき / _back で親が見つからないとき click_point None・deepen/back/next_screen の Shift 無視・Shift+枠のキー・手編集の ops 重なり〔GRID_OPS 順〕・最上段で手編集の esc / 矢印が集合に入らない）②verifier で全体（tests / tests_ui / smoke）③deep-reviewer + codex-reviewer（phase 57 の全差分 = `git diff d585e7f..HEAD`）
+- その後 task_07（正本反映・暫定 41 凍結・decisions_archive/57・codebase_map〔:871 の esc_active 等〕・current.md・/refactor_check）
 
 ## blockers
 - なし

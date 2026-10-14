@@ -118,6 +118,101 @@ class GridEditorWindowTest(unittest.TestCase):
         self.assertNotEqual(tuple(cell.w for cell in editor.layout.rows[0].cells), original_widths)
         editor.on_release()
 
+    @staticmethod
+    def crosshair_centers(editor):
+        """Return the crosshair lines and the centers where a horizontal and a vertical arm cross."""
+        lines = editor.canvas.find_withtag("crosshair")
+        horizontal, vertical = [], []
+        for item in lines:
+            x1, y1, x2, y2 = editor.canvas.coords(item)
+            (horizontal if y1 == y2 else vertical).append((x1, y1, x2, y2))
+        centers = {
+            (int(vx1), int(hy1))
+            for hx1, hy1, hx2, _hy2 in horizontal
+            for vx1, vy1, _vx2, vy2 in vertical
+            if hx1 <= vx1 <= hx2 and vy1 <= hy1 <= vy2
+        }
+        return lines, centers
+
+    def assert_crosshair_centers(self, editor, cells):
+        expected = {
+            ((rect[0] + rect[2]) // 2, (rect[1] + rect[3]) // 2)
+            for row_index, col_index in cells
+            for rect, _key in [editor.cell_rects()[row_index][col_index]]
+        }
+        lines, centers = self.crosshair_centers(editor)
+        self.assertEqual(centers, expected)
+        self.assertEqual(len(lines), len(expected) * 2)
+
+    def test_row_boundary_crosshairs_follow_related_cells_and_disappear_on_release(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        rows = editor.cell_rects()
+        boundary = rows[0][0][0][3]
+        related = {(row, col) for row in (0, 1) for col in range(len(rows[row]))}
+        editor.on_press(SimpleNamespace(x=50, y=boundary))
+        self.assertEqual(editor._drag, ("row", 0))
+        self.assert_crosshair_centers(editor, related)
+        labels = {
+            editor.canvas.itemcget(item, "text")
+            for item in editor.canvas.find_all()
+            if editor.canvas.type(item) == "text"
+        }
+        related_keys = {rows[row][col][1] for row, col in related}
+        other_keys = {key for row in rows for _rect, key in row} - related_keys
+        self.assertTrue(related_keys.isdisjoint(labels))
+        self.assertTrue(other_keys.issubset(labels))
+
+        # 境界を動かさずに離すと、関係した枠の文字が戻る（動かすと文字が収まらない枠が出るため先に確かめる）。
+        editor.on_release()
+        labels = {
+            editor.canvas.itemcget(item, "text")
+            for item in editor.canvas.find_all()
+            if editor.canvas.type(item) == "text"
+        }
+        self.assertTrue(related_keys.issubset(labels))
+
+        editor.on_press(SimpleNamespace(x=50, y=boundary))
+        editor.on_drag(SimpleNamespace(x=50, y=boundary + 11))
+        self.assert_crosshair_centers(editor, related)
+        editor.on_release()
+        self.assertEqual(len(editor.canvas.find_withtag("crosshair")), 0)
+
+    def test_cell_boundary_crosshairs_follow_moved_cells(self):
+        editor = self.open_editor()
+        self.addCleanup(editor.destroy)
+        rect = editor.cell_rects()[0][0][0]
+        x, y = rect[2], (rect[1] + rect[3]) // 2
+        related = {(0, 0), (0, 1)}
+        editor.on_press(SimpleNamespace(x=x, y=y))
+        self.assertEqual(editor._drag, ("cell", 0, 0))
+        self.assert_crosshair_centers(editor, related)
+
+        editor.on_drag(SimpleNamespace(x=x + 10, y=y))
+        self.assert_crosshair_centers(editor, related)
+        editor.on_release()
+        self.assertEqual(len(editor.canvas.find_withtag("crosshair")), 0)
+
+    def test_left_top_labels_remain_during_drag_and_cell_selection_has_no_crosshair(self):
+        editor = self.open_editor(grid={"label_position": "top_left"})
+        self.addCleanup(editor.destroy)
+        rows = editor.cell_rects()
+        editor.on_press(SimpleNamespace(x=50, y=rows[0][0][0][3]))
+        labels = {
+            editor.canvas.itemcget(item, "text")
+            for item in editor.canvas.find_all()
+            if editor.canvas.type(item) == "text"
+        }
+        self.assertTrue({key for row in rows for _rect, key in row}.issubset(labels))
+        self.assertGreater(len(editor.canvas.find_withtag("crosshair")), 0)
+        editor.on_release()
+
+        rect = editor.cell_rects()[0][0][0]
+        editor.on_press(SimpleNamespace(x=(rect[0] + rect[2]) // 2,
+                                        y=(rect[1] + rect[3]) // 2))
+        self.assertIsNone(editor._drag)
+        self.assertEqual(len(editor.canvas.find_withtag("crosshair")), 0)
+
     def test_switching_and_accepting_records_edited_monitor_only(self):
         original = {
             "monitors": {"primary": top_layout_to_json(default_top_layout())},

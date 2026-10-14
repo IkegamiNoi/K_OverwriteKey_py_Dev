@@ -10,7 +10,7 @@ from keyseq.domain.key_hold import MODIFIER_KEY_NAMES
 from keyseq.domain.screen_grid import (
     DEFAULT_OPS, MIN_EDIT_CELL_PX, SubLayout, TopLayout, auto_fill_sub_keys, delete_cell, delete_row,
     default_top_layout, grid_key_name, label_position_of, move_cell_boundary, move_row_boundary,
-    operation_keys, ops_of, ops_to_json, reassign_top_keys, set_cell_key, split_cell, split_row,
+    operation_keys, ops_of, ops_to_json, reassign_top_keys, rect_center, set_cell_key, split_cell, split_row,
     sub_layout_of, sub_layout_to_json, top_cell_rects, top_layout_for, top_layout_to_json,
     validate_ops, validate_sub, validate_top,
 )
@@ -20,6 +20,7 @@ from keyseq.presentation.screen_grid.grid_editor_panel import GridEditorPanel
 from keyseq.presentation.screen_grid.cell_label import (
     center_font_for_rect, corner_label_font, draw_cell_label,
 )
+from keyseq.presentation.screen_grid.crosshair import draw_crosshair
 
 
 class GridEditorWindow(tk.Toplevel):
@@ -112,6 +113,7 @@ class GridEditorWindow(tk.Toplevel):
     def draw(self) -> None:
         self.canvas.delete("all")
         corner_font = corner_label_font(self.canvas)
+        related_cells = self._drag_related_cells()
         for row_index, row in enumerate(self.cell_rects()):
             for col_index, (rect, key) in enumerate(row):
                 selected = self.selected == (row_index, col_index)
@@ -119,12 +121,29 @@ class GridEditorWindow(tk.Toplevel):
                 color = "#ffcc66" if in_row else "#66d9ef"
                 self.canvas.create_rectangle(*rect, outline=color, width=3 if selected else 1,
                                              fill="#484838" if selected else "")
-                draw_cell_label(
-                    self.canvas, rect, key, position=self.label_position, fill=color,
-                    center_font=center_font_for_rect(rect),
-                    corner_font=corner_font,
-                )
+                if (row_index, col_index) in related_cells:
+                    draw_crosshair(self.canvas, rect, rect_center(rect), fill=color)
+                if not (self.label_position == "center" and
+                        (row_index, col_index) in related_cells):
+                    draw_cell_label(
+                        self.canvas, rect, key, position=self.label_position, fill=color,
+                        center_font=center_font_for_rect(rect),
+                        corner_font=corner_font,
+                    )
         self.panel.update_selection(self.selected)
+
+    def _drag_related_cells(self) -> set[tuple[int, int]]:
+        if self._drag is None:
+            return set()
+        rows = self.cell_rects()
+        if self._drag[0] == "row":
+            return {
+                (row_index, col_index)
+                for row_index in (self._drag[1], self._drag[1] + 1)
+                for col_index in range(len(rows[row_index]))
+            }
+        row_index, col_index = self._drag[1:]
+        return {(row_index, col_index), (row_index, col_index + 1)}
 
     def _replace(self, layout: TopLayout) -> None:
         if layout == self.layout:
@@ -142,6 +161,7 @@ class GridEditorWindow(tk.Toplevel):
         for index, row in enumerate(rows[:-1]):
             if abs(event.y - row[0][0][3]) <= 4:
                 self._drag = ("row", index)
+                self.draw()
                 return
         for row_index, row in enumerate(rows):
             for col_index, (rect, _key) in enumerate(row):
@@ -149,6 +169,7 @@ class GridEditorWindow(tk.Toplevel):
                 if y1 <= event.y < y2:
                     if col_index < len(row) - 1 and abs(event.x - x2) <= 4:
                         self._drag = ("cell", row_index, col_index)
+                        self.draw()
                         return
                     if x1 <= event.x < x2:
                         self.selected = (row_index, col_index)
@@ -181,6 +202,7 @@ class GridEditorWindow(tk.Toplevel):
 
     def on_release(self, _event=None) -> None:
         self._drag = None
+        self.draw()
 
     def on_escape(self, _event=None):
         if self.panel.sub_selected is not None:
