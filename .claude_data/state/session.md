@@ -5,15 +5,15 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-10-14T23:25:00
-phase: なし（**phase 57 は 2026-10-14 完了**・画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化・`decisions_archive/57_grid_crosshair_nudge.md`）。次採番 = phase 58 / 暫定 42 / decisions 58 / 提案書 24
+phase: **58_window_size_fit**（画面サイズの調整・2026-10-14 起票・主入力 = 暫定 42 v0.3 ユーザー確定済）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 24
 直前の完了フェーズ = **phase 57**（`decisions_archive/57_grid_crosshair_nudge.md`）
 last_commit_location: `claude/crosshair-selection-frame-f4b464`（phase 57 task_09_fix = phase 57 の最終）。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: present
-focus: **暫定 42 v0.3（画面サイズの調整）・§8 の 3 件ユーザー確定済・本書全体のユーザー確定待ち。phase 58 は未起票。**
-mode: pending_user_confirm
+focus: **phase 58 起票済（phase.md・current.md・reviewer 整合チェック = 軽微 2 件反映）。次 = task_01（ステータス欄の 3 状態）。**
+mode: implementing
 
 ## last_action
 ts: 2026-10-14T22:00:00
@@ -24,7 +24,7 @@ summary: |
 
 ## next_action
 - **暫定 42 v0.2 反映済（起票時 deep-reviewer の指摘をすべて反映）・Codex 敵対的レビュー = needs-attention 1 件（medium: §8-1 案 B は吸収先が無く切れる〔`pane_width_rules.py:114-124`・`features.md` §4.6 で裏取り済〕→ 案 A を必須にし受け入れ条件へ「最小幅で 3 枠ともスクロールバーが出ても切れない」を追加）**
-- **v0.3 反映済（§8 の 3 件を推奨どおり確定・2026-10-14）**。次 = 暫定 42 全体のユーザー確定 → `/phase_start`（phase 58）
+- **phase 58 起票済（2026-10-14）**。次 = task_01 → task_02 → task_03 → task_04 → task_05（統合）→ task_06（正本反映）
 - main へのマージはユーザー（ブランチ `claude/crosshair-selection-frame-f4b464`）
 
 ## blockers
