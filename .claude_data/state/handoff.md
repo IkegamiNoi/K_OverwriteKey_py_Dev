@@ -15,16 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 57 は 2026-10-14 完了〕）。次フェーズはユーザー判断・着手時は `/phase_start`。
-   次採番 = phase 58 / 暫定 42 / decisions 58 / 提案書 24
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 58**〔画面サイズの調整・`instructions/phase/58_window_size_fit/phase.md`・主入力 = 暫定 42 v0.3 ユーザー確定済〕）。
+   次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 24
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜41）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 57 完了済。次 = 暫定 42（画面サイズの調整）v0.1 起票済・起票時 deep-reviewer「修正して採用」の反映待ち（指摘の一覧は session.md の next_action）。phase 58 は未起票。**
-ブランチ `claude/crosshair-selection-frame-f4b464`。main へのマージはユーザー。
+**phase 58 task_02 実装・検証済（コミット済）・ユーザーの実機目視待ち。task_03 は未着手（task_02 の目視 OK 後に着手）。**
+ブランチ `claude/codex-process-management-9b8bfd`（phase 58）。phase 57 = `claude/crosshair-selection-frame-f4b464`。main へのマージはユーザー。
+**ユーザーは不在モード（session.md の `presence: away`・戻る予定 2026-10-15T07:30）。新セッションで再開したら presence 行は消してよい。**
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 57 完了 = 2026-10-14**）:
-compile **clean** / tests **1656 OK**（skip 7）/ tests_ui **1049 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1629〔phase 56〕→ 1656 / tests_ui: 1023 → 1049）。
+直近の実測（**phase 58 task_02 = 2026-10-15**）:
+compile **clean** / tests **1662 OK**（skip 7）/ tests_ui **1061 OK** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1656〔phase 57〕→ 1662 / tests_ui: 1049 → 1061）。
 `tests_ui.test_compact_window` の `test_automatic_full_view_and_maximized_sizes_are_not_saved` が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が 1 回だけ `1 != 0` で落ちた（単独 2 回・全体 2 回で再現せず）。再発したら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -54,8 +55,13 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 暫定 42 `instructions/history/42_window_size_fit.md` に起票時レビューの指摘（高 3・中 5・低 5・詳細は session.md）を反映して v0.2 → §8-1（スクロールバーの幅）をユーザー確定 → Codex 敵対的レビュー → ユーザー確定 → `/phase_start`（phase 58）
-- 注意: 2026-10-14 時点で Codex のシェル起動が不調（helper_unknown_error）。調査は Explore へ縮退可・実装の代替はユーザー許可が要る
+- **【ユーザー確認待ち】task_02 の実機目視**（`main.py` を .venv で起動 → 省略表示へ）:
+  1. 「フック」「表示」の見出しをクリック → 閉じると `▸ フック` / `▸ 表示` の 1 行・トリガー一覧の欄が伸びる・ウィンドウの大きさが変わらない
+  2. 開いたときの見出し（`▾ フック`）の見た目が従来の枠の見出しと同じ（高さ・色）
+  3. 閉じた状態で再起動 → 閉じたまま起動する
+  4. （task_01）キーマップを一時停止 → 幅 270 の省略表示のステータス欄に `フック: 一時停止` が見える
+  → OK なら task_02 完了（実装はコミット `cd9b455` に含む・記録のみ）→ task_03（定義を起票して codex-implementer）
+- その後: task_03 → task_04（実機目視あり）→ task_05（統合）→ task_06（正本反映）
 
 ## 直前のフェーズ（phase 57 = 画面の枠の十字マーク・操作キーの任意化）の要点
 - 正本 = `features.md` §4.7 / `data_schema.md` §5.6.1（`grid.ops`）/ `key_input.md` §7.3 / 地図 = `codebase_map.md`「画面の枠（phase 56・57）」/ 判断 = `decisions_archive/57_grid_crosshair_nudge.md`
@@ -70,7 +76,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - **`.gitignore` は追跡ファイルだけを根拠にしない**。確認は `git check-ignore -v`。
 
 ## 注意事項・blockers
-- **blockers: なし**（Codex 利用可。Codex 不可時の実装代替はユーザー許可が必須）。
+- **blockers: 【回避中】Codex の書き込み実行の不具合**（2026-10-14 18:24 の Codex 更新〔0.162.x〕以降、書き込みのサンドボックス準備が `setup refresh had errors`〔node_repl.exe の ACL 更新が「使用中」で失敗〕・`~/.codex/.sandbox/sandbox.2026-10-14.log`）。
+  **ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更して回避中**（Codex の更新で直ったら `elevated` に戻す = ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない。
+  companion は作業フォルダごとに broker + app-server を常駐させる（呼び出し後も残る設計・worktree ごとに増える）。Codex 不可時の実装代替はユーザー許可が必須。
+- **【罠・phase 58 task_02 で実測】ttk.LabelFrame の `labelwidget` に既定の ttk.Label を使うと枠が 4px 高くなる**（vista・58 → 62px）。`style="TLabelframe.Label"` なら元と同じ
 - **【罠・phase 54 で実証】合成入力の probe で NumLock を切り替えるなら VK（`keybd_event(0x90, ..., EXTENDEDKEY)`）**。スキャンコード入力（69）では切り替わらない。probe の後は元の状態へ戻す。**Codex の新規テストの Mock の戻り値・期待値の誤り**が 1 フェーズで 2 件出た（実装は正しい）＝失敗時はまずテストを疑い、実装の仕様と照合する
 - **【罠・phase 51 で実証】keyboard ライブラリの `write` は送信前後に押下中のキーを離して修飾キーを押し直す**（拡張キーの right ctrl が left ctrl に化けて残った・probe）。合成の入力の扱いは `.venv` の小スクリプトで probe してから決める。**新しい tests_ui でテストごとに `tk.Tk()` を作り直すと後のモジュールのフォーカスが取れなくなる**（クラスで共有する）。Esc 等のキーの event_generate は `tests_ui/escape_delivery.acquire_focus` でフォーカスを取ってから
 - **【罠・phase 50 で実証】フル表示の高さ**: フォント +3 で最小 931 px が窓の取れる上限 927 px（画面 966 px）を超え、シーケンス欄のボタン列の最下段が数 px 切れる（受容・2026-10-09）。`test_full_view_min_height.py` は実測の上限に収まるときだけ一致を確かめる。**Codex は互換の工夫（`inspect` での引数判定・`getattr` の逃げ道）を足す・テストの期待値を推測で書くことがある**（task_04d で 2 つ目の待機が次の押下まで始まらないのを見落とした）＝差分の直読みと実測で外す。
