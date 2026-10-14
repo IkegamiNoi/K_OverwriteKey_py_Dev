@@ -23,8 +23,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜41）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 57（画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化）完了 2026-10-14。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-ブランチ `claude/crosshair-selection-frame-f4b464`（phase 57 一式）。main へのマージはユーザー。
+**phase 57 完了済。次 = 暫定 42（画面サイズの調整）v0.1 起票済・起票時 deep-reviewer「修正して採用」の反映待ち（指摘の一覧は session.md の next_action）。phase 58 は未起票。**
+ブランチ `claude/crosshair-selection-frame-f4b464`。main へのマージはユーザー。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -54,8 +54,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズはユーザー判断。候補 = idea_44（画面の枠の配色）/ idea_45（既存のキー取得の記号キー名）/ backlog の他の idea / current.md「別タスク化候補」
-- main へのマージはユーザー（ブランチ `claude/crosshair-selection-frame-f4b464`）
+- 暫定 42 `instructions/history/42_window_size_fit.md` に起票時レビューの指摘（高 3・中 5・低 5・詳細は session.md）を反映して v0.2 → §8-1（スクロールバーの幅）をユーザー確定 → Codex 敵対的レビュー → ユーザー確定 → `/phase_start`（phase 58）
+- 注意: 2026-10-14 時点で Codex のシェル起動が不調（helper_unknown_error）。調査は Explore へ縮退可・実装の代替はユーザー許可が要る
 
 ## 直前のフェーズ（phase 57 = 画面の枠の十字マーク・操作キーの任意化）の要点
 - 正本 = `features.md` §4.7 / `data_schema.md` §5.6.1（`grid.ops`）/ `key_input.md` §7.3 / 地図 = `codebase_map.md`「画面の枠（phase 56・57）」/ 判断 = `decisions_archive/57_grid_crosshair_nudge.md`
