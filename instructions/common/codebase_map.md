@@ -84,7 +84,7 @@ keyseq/presentation/
         compact_sequence_controller.py  # CompactSequenceController（`app.compact_sequence`）: 省略表示のシーケンス欄の描画（`refresh_actions` から `render`）・見出しの開閉・押した行で離したときだけ次に実行を変える / キー操作（共有処理 `TriggerPanelController.set_next_action_index(idx, refuse_running_callee=True)` を呼ぶ）・押している間の取り消し（phase 48）
         compact_pane_layout.py     # CompactPaneLayout（`app.compact_pane_layout`）: 省略表示の縦の PanedWindow（トリガー一覧 / シーケンス欄 / 呼び出し先の枠）の配置・ドラッグ・高さの保存を 1 か所で受け持つ（欄の高さは paneconfigure height で明示し、境界を置く前に update_idletasks・phase 48）
         compact_window_controller.py  # CompactWindowController（`app.compact_window`）: 省略表示のウィンドウの大きさの適用・最小の高さ（`refresh_minimum_height`）・500ms の遅延保存（`compact_window_size`・phase 48）
-        compact_header_controller.py  # CompactHeaderController（`app.compact_header`）: 省略表示の上部の「フック」「表示」の開閉（見出しのクリック・閉じる枠の中のフォーカスをトリガー一覧へ・最小の高さの測り直し）と `compact_header_view` の保存（両方の値・起動時は書かない・phase 58）
+        compact_header_controller.py  # CompactHeaderController（`app.compact_header`）: 省略表示の上部の「フック」「表示」の開閉（見出しのクリック / Tab で選んで Enter・Space〔キー操作ではフォーカスを同じ区画の見出しへ・task_06a〕・閉じる枠の中のフォーカスをトリガー一覧へ・最小の高さの測り直し）と `compact_header_view` の保存（両方の値・起動時は書かない・phase 58）
         action_list_rendering.py   # build_action_rows / format_next_action_summary: 出力シーケンス一覧の 1 行の文字列と背景色（tkinter 非依存・phase 37）
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)

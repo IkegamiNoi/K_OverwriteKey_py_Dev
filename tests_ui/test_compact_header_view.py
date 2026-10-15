@@ -79,6 +79,53 @@ class CompactHeaderViewTest(unittest.TestCase):
         self.assertEqual(view.hook_frame.cget("text"), "")
         self.assertEqual(view.display_frame.cget("text"), "")
 
+    def test_return_on_collapsed_display_heading_opens_and_keeps_focus(self):
+        app = self.app
+        view = app.compact_view
+        app.compact_header.toggle("display")
+        app.update()
+        acquire_focus(app, view.display_heading)
+
+        with patch.object(app.startup_io, "write_startup", return_value=True) as write:
+            view.display_heading.event_generate("<Return>")
+            app.update()
+
+        self.assertTrue(app.compact_header.open["display"])
+        self._assert_focus(app, view.display_frame.heading)
+        write.assert_called_once_with({
+            COMPACT_HEADER_VIEW_KEY: {"hook": True, "display": True},
+        })
+
+    def test_space_on_open_hook_heading_closes_and_keeps_focus_on_collapsed_heading(self):
+        app = self.app
+        view = app.compact_view
+        acquire_focus(app, view.hook_frame.heading)
+
+        view.hook_frame.heading.event_generate("<space>")
+        app.update()
+
+        self.assertFalse(app.compact_header.open["hook"])
+        self.assertEqual(view.hook_heading.cget("text"), "▸ フック")
+        self._assert_focus(app, view.hook_heading)
+
+    def _assert_focus(self, app, expected):
+        deadline = time.monotonic() + 2.0
+        while time.monotonic() < deadline and app.focus_get() is not expected:
+            app.update()
+            time.sleep(0.001)
+        self.assertIs(app.focus_get(), expected)
+
+    def test_both_open_and_collapsed_headings_accept_tab_focus(self):
+        view = self.app.compact_view
+        for heading in (
+            view.hook_frame.heading,
+            view.hook_heading,
+            view.display_frame.heading,
+            view.display_heading,
+        ):
+            with self.subTest(heading=heading):
+                self.assertTrue(heading.cget("takefocus"))
+
     def test_closing_hook_keeps_order_and_window_size_and_grows_trigger_list(self):
         app = self.app
         view = app.compact_view

@@ -27,14 +27,30 @@ class CompactHeaderController:
         collapsed_heading: ttk.Label,
     ) -> None:
         self._sections[name] = (frame, heading, collapsed_heading)
+        heading.configure(takefocus=True)
         heading.configure(text=f"▾ {self._title(name)}")
         heading.bind("<Button-1>", lambda _event, section=name: self.toggle(section))
+        for sequence in ("<Return>", "<space>", "<KP_Enter>"):
+            heading.bind(
+                sequence,
+                lambda event, section=name: self._toggle_from_keyboard(event, section),
+            )
+        collapsed_heading.configure(takefocus=True)
         collapsed_heading.configure(cursor="hand2")
         collapsed_heading.bind("<Button-1>", lambda _event, section=name: self.toggle(section))
+        for sequence in ("<Return>", "<space>", "<KP_Enter>"):
+            collapsed_heading.bind(
+                sequence,
+                lambda event, section=name: self._toggle_from_keyboard(event, section),
+            )
         collapsed_heading.configure(
             text=f"▾ {self._title(name)}" if self.open[name]
             else f"▸ {self._title(name)}",
         )
+
+    def _toggle_from_keyboard(self, _event: tk.Event, name: str) -> str:
+        self.toggle(name, from_keyboard=True)
+        return "break"
 
     def apply_initial_state(self) -> None:
         for name in ("hook", "display"):
@@ -83,7 +99,7 @@ class CompactHeaderController:
                 return order
         return 2
 
-    def toggle(self, name: str) -> None:
+    def toggle(self, name: str, *, from_keyboard: bool = False) -> None:
         frame, heading, collapsed = self._sections[name]
         self.open[name] = not self.open[name]
         heading.configure(text=f"▾ {self._title(name)}")
@@ -101,6 +117,8 @@ class CompactHeaderController:
             if focus is frame or (focus is not None and str(focus).startswith(f"{frame}.")):
                 self.app.compact_view.trigger_box.trigger_list.focus_set()
             self._show_collapsed(name)
+        if from_keyboard:
+            (heading if self.open[name] else collapsed).focus_set()
         self.app.compact_window.refresh_minimum_height()
         self.app.startup_io.write_startup({
             COMPACT_HEADER_VIEW_KEY: dict(self.open),
