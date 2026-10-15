@@ -16,9 +16,15 @@
     {"id": "enter", "label": "Enter", "x": 12.0, "y": 2.2, "w": 2.0, "h": 2.0},
     {"id": "shift_l", "label": "Shift", "x": 0.0, "y": 4.2, "w": 2.25, "h": 1.0},
     {"id": "shift_r", "label": "Shift", "x": 11.0, "y": 4.2, "w": 2.75, "h": 1.0},
+    {"id": "ctrl_l", "label": "Ctrl", "x": 0.0, "y": 5.2, "w": 1.0, "h": 1.0},
+    {"id": "windows_l", "label": "Win", "x": 1.0, "y": 5.2, "w": 1.0, "h": 1.0},
+    {"id": "alt_l", "label": "Alt", "x": 2.0, "y": 5.2, "w": 1.0, "h": 1.0},
     {"id": "muhenkan", "label": "無変換", "scan_code": 123, "x": 3.0, "y": 5.2, "w": 1.5, "h": 1.0},
     {"id": "henkan", "label": "変換", "scan_code": 121, "x": 4.5, "y": 5.2, "w": 1.5, "h": 1.0},
     {"id": "kana", "label": "かな", "scan_code": 112, "x": 6.0, "y": 5.2, "w": 1.5, "h": 1.0},
-    {"id": "space", "label": "Space", "x": 7.5, "y": 5.2, "w": 3.0, "h": 1.0}
+    {"id": "space", "label": "Space", "x": 7.5, "y": 5.2, "w": 3.0, "h": 1.0},
+    {"id": "alt_r", "label": "Alt", "x": 10.5, "y": 5.2, "w": 1.0, "h": 1.0},
+    {"id": "windows_r", "label": "Win", "x": 11.5, "y": 5.2, "w": 1.0, "h": 1.0},
+    {"id": "ctrl_r", "label": "Ctrl", "x": 12.5, "y": 5.2, "w": 1.5, "h": 1.0}
   ]
 }

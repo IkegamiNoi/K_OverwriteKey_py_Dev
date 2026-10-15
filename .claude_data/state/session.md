@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-15T23:45:00
+last_updated: 2026-10-16T00:15:00
 phase: **59_keyboard_ui_left_right_modifiers**（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー・2026-10-15 起票・主入力 = 暫定 43 v0.4 ユーザー確定済）。次採番 = phase 60 / 暫定 44 / decisions 60 / 提案書 25
 直前の完了フェーズ = **phase 58**（`decisions_archive/58_window_size_fit.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 一式・完了）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
@@ -12,22 +12,25 @@ last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 �
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 59 task_03 完了（alt_gr の id と de.json・検証・レビュー済）。次 = task_04（jis.json と実機目視）。**
-mode: implementing
+focus: **phase 59 task_04 実装・テスト・レビュー済（コミット済）・ユーザーの実機目視待ち（task_01〜03 分を含む）。task_05 は目視 OK 後。**
+mode: pending_user_check
 
 ## last_action
-ts: 2026-10-15T23:45:00
+ts: 2026-10-16T00:15:00
 who: main
 summary: |
-  task_02 コミット（9818a82）。task_03（`_LOOKUP_KEY_BY_ID` に `alt_gr` → `alt gr`・新規 `config/user/keylayout/de.json`〔.gitignore の config/ に当たるので jis.json と同じく `git add -f`〕・テスト）を codex-implementer で実装。
-  reviewer 参考の UI テストの後始末（レイアウトの選択の表示を戻す）をメインが `set_keyboard_layout_selection(元の id)` に直した。
+  task_03 コミット（114c4b1）。task_04（jis.json に左右の Ctrl・Alt・Win の 6 行・scan_code なし / tests/test_keyboard_layout_files.py を de・jis の両方へ）を codex-implementer で実装。
 verified:
-  compile: pass / tests: 1670 OK（skip 7）/ tests_ui: 1090 OK / smoke OK / config 不変（verifier）+ 後始末の修正後に該当 3 モジュール OK（メイン）
+  tests: 1671 OK（skip 7・メイン実行）/ コードの変更なし（tests_ui・smoke は task_05 で回す）
   review: reviewer 採用
 
 ## next_action
-- **task_04**（jis.json に左右の Ctrl・Alt・Win・静的確認・実機目視〔JIS〕）: 定義を起票して実装 → 検証 → **ユーザーの実機目視**
-- その後: task_02 割り当て禁止 → task_03 alt_gr と de.json → task_04 jis.json と実機目視 → task_05 統合 → task_06 正本反映
+- **【ユーザー確認待ち】task_04 の実機目視**（worktree で `..\..\..\.venv\Scripts\python.exe main.py`・キーボードUI のレイアウトに `config/user/keylayout/jis.json` を登録して選ぶ・画面の枠は非表示）:
+  1. 左右の Ctrl・Alt・Shift の枠に別々に割り当て → 右 Ctrl・右 Shift・右 Alt の割り当てがそのキーで効き、反対側では効かない / 左の `ctrl` 等は従来どおり
+  2. 左右の Win・Caps の枠が灰色で、クリックしても編集が始まらない
+  3. キーマップの編集ダイアログの「キー入力で取得」で Caps キーを単独 / Shift 付きで押しても切替キーにならない
+  4. 右クリックで左右それぞれの割り当てだけが消える
+  → OK なら task_04 完了 → task_05（統合: deep-reviewer + codex-reviewer）→ task_06（正本反映）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
