@@ -242,7 +242,11 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             self._on_escape(event)
             return "break"
         key = normalize_tk_key_event(event)
-        if key in ("ctrl", "shift", "alt", "windows") or is_prohibited_assign_key(key):
+        if (
+            key == "??"
+            or key in ("ctrl", "shift", "alt", "windows")
+            or is_prohibited_assign_key(key)
+        ):
             return "break"
         self.key_vars[self._capture_index].set(key)
         self._stop_capture()

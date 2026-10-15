@@ -178,3 +178,20 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
         self.assertEqual(batch._on_capture_keypress(SimpleNamespace(keysym="Caps_Lock")), "break")
         self.assertEqual(batch.key_vars[0].get(), "")
         self.assertTrue(batch._capturing)
+
+    def test_capture_dialogs_ignore_unknown_keysym_and_continue(self):
+        edit = KeymapEditDialog(self.app, "Edit")
+        self.dialogs.append(edit)
+        edit._start_capture()
+        self.assertEqual(edit._on_capture_keypress(SimpleNamespace(keysym="??")), "break")
+        self.assertEqual(edit.key_var.get(), "")
+        self.assertTrue(edit._capturing)
+
+        batch = KeymapSwitchBatchDialog(
+            self.app, "Batch", [("新規", "Map", "", "")], lambda _values: None
+        )
+        self.dialogs.append(batch)
+        batch._start_capture(0)
+        self.assertEqual(batch._on_capture_keypress(SimpleNamespace(keysym="??")), "break")
+        self.assertEqual(batch.key_vars[0].get(), "")
+        self.assertTrue(batch._capturing)

@@ -168,7 +168,11 @@ class KeymapEditDialog(tk.Toplevel):
         if not self._capturing:
             return
         key = normalize_tk_key_event(event)
-        if key in ("ctrl", "shift", "alt", "windows") or is_prohibited_assign_key(key):
+        if (
+            key == "??"
+            or key in ("ctrl", "shift", "alt", "windows")
+            or is_prohibited_assign_key(key)
+        ):
             return "break"
         self.key_var.set(key)
         self.key_entry.icursor(tk.END)

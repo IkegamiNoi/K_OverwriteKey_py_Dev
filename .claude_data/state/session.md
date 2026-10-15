@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-16T00:15:00
+last_updated: 2026-10-16T01:00:00
 phase: **59_keyboard_ui_left_right_modifiers**（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー・2026-10-15 起票・主入力 = 暫定 43 v0.4 ユーザー確定済）。次採番 = phase 60 / 暫定 44 / decisions 60 / 提案書 25
 直前の完了フェーズ = **phase 58**（`decisions_archive/58_window_size_fit.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 一式・完了）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
@@ -12,25 +12,22 @@ last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 �
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 59 task_04 実装・テスト・レビュー済（コミット済）・ユーザーの実機目視待ち（task_01〜03 分を含む）。task_05 は目視 OK 後。**
+focus: **phase 59 task_04 実機目視: 4 項目中 3 項目 OK・Caps 単独が `??` で取得される問題 → task_04a で修正（検証・レビュー済・コミット済）。Caps 単独の再確認待ち。**
 mode: pending_user_check
 
 ## last_action
-ts: 2026-10-16T00:15:00
+ts: 2026-10-16T01:00:00
 who: main
 summary: |
-  task_03 コミット（114c4b1）。task_04（jis.json に左右の Ctrl・Alt・Win の 6 行・scan_code なし / tests/test_keyboard_layout_files.py を de・jis の両方へ）を codex-implementer で実装。
+  task_04 コミット（23567cb）。ユーザーの実機目視: 左右の対応・禁止の枠・右クリックは OK / キーマップの編集ダイアログの取得で JIS の Caps キー単独が `??`（Tk が「英数」の仮想キーを判別できない）として入る。
+  → 暫定 43 v0.5（§3.5 の取得で `??` も無視・禁止の集合には入れない）+ task_04a（切替キーの 2 つのダイアログで `??` を無視・テスト）。
 verified:
-  tests: 1671 OK（skip 7・メイン実行）/ コードの変更なし（tests_ui・smoke は task_05 で回す）
+  compile: pass / tests: 1671 OK（skip 7）/ tests_ui: 1091 OK / smoke OK / config 不変（verifier）
   review: reviewer 採用
 
 ## next_action
-- **【ユーザー確認待ち】task_04 の実機目視**（worktree で `..\..\..\.venv\Scripts\python.exe main.py`・キーボードUI のレイアウトに `config/user/keylayout/jis.json` を登録して選ぶ・画面の枠は非表示）:
-  1. 左右の Ctrl・Alt・Shift の枠に別々に割り当て → 右 Ctrl・右 Shift・右 Alt の割り当てがそのキーで効き、反対側では効かない / 左の `ctrl` 等は従来どおり
-  2. 左右の Win・Caps の枠が灰色で、クリックしても編集が始まらない
-  3. キーマップの編集ダイアログの「キー入力で取得」で Caps キーを単独 / Shift 付きで押しても切替キーにならない
-  4. 右クリックで左右それぞれの割り当てだけが消える
-  → OK なら task_04 完了 → task_05（統合: deep-reviewer + codex-reviewer）→ task_06（正本反映）
+- **【ユーザー確認待ち】task_04a の実機目視**: キーマップの編集ダイアログの「キー入力で取得」で JIS の Caps キー単独を押しても何も入らず取得が続く
+  → OK なら task_04 / 04a 完了 → task_05（統合: deep-reviewer + codex-reviewer）→ task_06（正本反映）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
