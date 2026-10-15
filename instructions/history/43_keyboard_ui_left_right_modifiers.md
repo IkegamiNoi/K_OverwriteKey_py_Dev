@@ -1,6 +1,6 @@
 # 暫定仕様 43: キーボードUI の左右の修飾キーの区別と割り当て禁止のキー（keyboard_ui_left_right_modifiers）
 
-> 状態: **未凍結・v0.3・主入力（v0.2 = 起票時 deep-reviewer「修正して採用」・Codex 敵対的 needs-attention 2 件の反映 / v0.3 = §4 のユーザー判断の反映・Windows キーと Caps Lock の割り当て禁止を追加・差分の deep-reviewer「修正して採用」の反映）**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
+> 状態: **未凍結・v0.4・主入力（v0.2 = 起票時 deep-reviewer「修正して採用」・Codex 敵対的 needs-attention 2 件の反映 / v0.3 = §4 のユーザー判断の反映・Windows キーと Caps Lock の割り当て禁止を追加・差分の deep-reviewer「修正して採用」の反映 / v0.4 = AltGr 配列の右 Alt を標準の id `alt_gr`〔キー名 `alt gr`〕で書き分けて割り当て禁止に・ドイツ語配列の見本を同梱・差分の deep-reviewer「修正して採用」の反映）**。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: ユーザー要望（2026-10-15・キーボードUI は入力では左右を区別できるが、表示・編集が左右を区別せず、左右両方の枠に同じ割り当てが出て左のキーにしか効かない）。番号対応: phase 59 / 暫定 43 / decisions 59（予定）。
 
@@ -10,7 +10,7 @@
 
 キーボードUI（キーボード表示のウィンドウ）で、左右の修飾キー（Shift・Ctrl・Alt・Windows）の枠を**左右別のキー**として表示・編集できるようにする。
 枠のラベル（`Ctrl` 等）は変えず、内部で引くキー名だけを左右で分ける。
-あわせて、抑止しても OS 側の動作が止まらない **Windows キー（左右）と Caps Lock** を、キーマップの元キーと切替キーに割り当てられないようにする（§3.5）。
+あわせて、抑止しても OS 側の動作が止まらない **Windows キー（左右）・Caps Lock・AltGr 配列の右 Alt** を、キーマップの元キーと切替キーに割り当てられないようにする（§3.5・§3.6）。
 
 ### 現状監査（2026-10-15・codex-explorer の調査 + メインの裏取り）
 
@@ -38,7 +38,8 @@
 * **レイアウトの id → キー名の対応を左右で分ける**。左は今のキー名のまま（既存のキーマップの `ctrl` 等は左として効き続ける）、右は `right ctrl` 等（§3.1）
 * **レイアウト JSON の書式は変えない**（任意の `"key"` 等の新しい記述方法は足さない。左右は既定の id で区別する）
 * `config/user/keylayout/jis.json` に左右の Ctrl・Alt・Windows の行を既定の id で足す
-* **右 Alt は JIS・US 等（AltGr を使わない配列）を対象**とし `alt_r` → `right alt` で固定する。AltGr の配列（`alt gr` で届く）はスコープ外（Codex 敵対的の指摘・v0.3）
+* **右 Alt**: JIS・US 等（AltGr を使わない配列）では `alt_r` → `right alt` で**割り当て可**。**AltGr 配列**（ドイツ語等。右 Alt が `alt gr` で届く）では、レイアウトの JSON で右 Alt を**標準の id `alt_gr`**（キー名 `alt gr`）で書き、Windows キーと同じく**割り当て禁止**にする。入力配列はアプリが判定せず、**レイアウトのファイルが表す**（v0.4・§3.6）。AltGr 配列の実機確認はせず自動テストだけ（未確認として記録）
+* **ドイツ語配列（AltGr 配列）の見本のレイアウト**を同梱する（右 Alt = `alt_gr`）
 * **修飾キーの行の `scan_code` は「書かない」と規定するだけ**（コードで防がない）（§3.3）
 * **Windows キー（左右）と Caps Lock は割り当て禁止**（抑止しても OS 側の動作〔スタートメニュー・Caps のロックの切替〕が止まらず、置き換えたキーと本来の機能が両方動くため）。
   **キーボードUI**（専用の色・クリックで編集を始めない・割り当ての入口でも拒否）と**切替キーの取得**（キーマップの編集ダイアログ・切替キーのまとめて設定ダイアログ）の両方で禁止する（§3.5）
@@ -56,11 +57,13 @@
 |---|---|---|
 | `shift_l` / `shift_r` | `shift` / `right shift` | 左は今のまま |
 | `ctrl_l` / `ctrl_r` | `ctrl` / `right ctrl` | 左は今のまま |
-| `alt_l` / `alt_r` | `alt` / `right alt` | 左は今のまま。右は JIS・US 等（§2）。実機目視で確かめる |
+| `alt_l` / `alt_r` | `alt` / `right alt` | 左は今のまま。右は JIS・US 等で割り当て可（JIS は実機目視で確かめる） |
+| `alt_gr`（新しい標準の id） | `alt gr` | AltGr 配列のレイアウトの右 Alt に使う。割り当て禁止（§3.5・§3.6） |
 | `windows_l` / `windows_r` | `left windows` / `right windows` | 今は両方 `windows`。割り当て禁止（§3.5） |
 
 * 根拠: 実行時にフックが届ける名前（§1 の表）と同じ名前で引けば、キーボードUI で設定した元キーがそのキーの押下で効く
 * 修飾キー以外の id の対応（`grave` → `` ` `` 等・`keyboard_window.py:36-46`）は変えない
+* `_LOOKUP_KEY_BY_ID` は固定の対応表のまま（配列の判定は持たない）。`alt_gr` の行を足すだけ
 
 ### §3.2 キーボードUI の挙動（左右を分けた結果）
 
@@ -88,12 +91,12 @@
 
 ### §3.5 割り当て禁止のキー（v0.3）
 
-* **禁止のキー**: Windows キー（左右）と Caps Lock を、**キーマップの元キー**と**キーマップの切替キー**にできない。
+* **禁止のキー**: Windows キー（左右）・Caps Lock・AltGr 配列の右 Alt（`alt gr`・§3.6）を、**キーマップの元キー**と**キーマップの切替キー**にできない。
   判定は 1 か所の関数（例 `is_prohibited_assign_key(name)`）で行い、キーボードUI・割り当ての入口・切替キーの検査で共有する。
-  判定する名前の集合 = `left windows` / `right windows` / `windows` / `caps lock` / `caps_lock` / `capslock`
+  判定する名前の集合 = `left windows` / `right windows` / `windows` / `caps lock` / `caps_lock` / `capslock` / `alt gr` / `altgr`（`alt gr` は §3.6）
   （Tk の取得は Caps を `caps_lock` と記録する〔`tk_keys.normalize_tk_keysym('Caps_Lock')`・実測〕。アプリの正規化は小文字化だけで下線を空白にしないため、表記の揺れも含める）
 * **キーボードUI**（判定は枠の id ではなく `_LOOKUP_KEY_BY_ID` を通した後の**キー名**で行う。組み込みの US 配列の Caps の id は `caps lock`、jis.json の見本は `caps_lock`）:
-  * 禁止のキー名の枠は**専用の色**（「禁止」の種類。既存の種類と区別できる灰色系）で出す。
+  * 禁止のキー名の枠（`windows_l` / `windows_r` / Caps / `alt_gr`）は**専用の色**（「禁止」の種類。既存の種類と区別できる灰色系）で出す。
     ただし**トリガー・停止 / トグルキー・切替キー（`KM<n>`）の役割があればその色を優先**する（禁止の色は役割の無い枠と、キーマップの割り当て〔元キー〕だけの枠に使う）
   * 禁止の枠を左クリックしても**編集を始めない**（何もしない。別の枠を編集中ならその編集を続ける）
   * 既存の割り当て（元キー → 送信先）があれば送信先の文言を出し、**右クリックで消せる**（右クリックで消えるのは割り当てだけ。切替キーは消えない＝従来どおり）
@@ -105,6 +108,25 @@
   * **今の切替キーから変えたときだけ検査する**（既存の切替キーが `caps lock` のキーマップでラベルだけ変えて OK しても拒否しない。`apply_keymap_edit` の `current_switch_key` と同じ考え方）
   * 既存の禁止キーの切替キーを外すには、編集ダイアログで別のキーへ取得し直す（2 つ以上のキーマップがあると空にはできない・`features.md` §4.3）
 * 読込（構成セット・keymap ファイル）では検査しない（既存データを拒否しない・一覧のグレー表示もしない・§3.4・§6）
+
+### §3.6 AltGr 配列の右 Alt（v0.4）
+
+* **背景**（keyboard ライブラリ `keyboard/_winkeyboard.py:421-427`・`:501-529`）: AltGr 配列で右 Alt を押すと、Windows は偽の左 Ctrl（走査コード 541・仮想キー 0xA2）と右 Alt（0xA5）の 2 つを送る。
+  ライブラリは偽の左 Ctrl を名前 `alt gr` のイベントとしてアプリへ届け、**押下では続く右 Alt を必ずアプリへ見せずに OS へ通す**（抑止できない）。
+  → 割り当てると、割り当ての動作と OS 側の右 Alt（離したときのメニューバーの起動、AltGr との組み合わせの文字が Alt との組み合わせとして渡る等）が両方起きる（Windows キーと同じ状況）。
+  **解放の順**（右 Alt の解放がアプリへ届くか）は Windows の送出の順しだいで、未確認（ライブラリの既存の挙動・結論〔禁止〕は押下だけで成り立つ）
+* **実行時のキー名**: OS が偽 Ctrl を出せば必ず `alt gr`（走査コード 541 は配列の表によらずライブラリが `alt gr` と名付ける・`:424-427`。レイアウトの `scan_code` にも既知の特殊キーにも 541 は無いので `input_router._extract_key_name` は `event.name` を使う）。
+  偽 Ctrl を出すかは入力を受けるウィンドウの配列で OS が決める（アプリ・ライブラリの判定に依らない）。`input_router` は変えない（`key_state_manager.py:31` は `alt gr` を `alt` にまとめる＝既存どおり）
+* **配列の書き分けはレイアウトのファイルで行う**: 新しい標準の id **`alt_gr`**（キー名 `alt gr`）を足す。AltGr 配列のレイアウトは右 Alt の行を `alt_gr` で書く。JIS・US 等は `alt_r`（`right alt`）。
+  アプリは入力配列を判定しない（ユーザーが今の入力配列に合うレイアウトを選ぶ）
+* **禁止**: §3.5 の判定の集合に `alt gr` / `altgr` を足す（元キー・切替キーとも）。キーボードUI では `alt_gr` の枠が禁止の色・クリックで編集しない（§3.5 の規則のまま）
+* **見本のレイアウト**: `config/user/keylayout/de.json`（`layout_id` = `de`・`display_name` = `Deutsch (QWERTZ)`）を同梱する。`jis.json` と同程度の見本
+  （最上段の Esc・F1・F2 / 数字の 1・2 / Q・W・**Z**〔QWERTZ の位置〕/ Caps・A・Enter / 左右の Shift / 最下段の Ctrl・Win・Alt・Space・**AltGr〔`alt_gr`・ラベル `AltGr`〕**・Win・Ctrl）。
+  修飾キー・Caps・Windows・AltGr の行は `scan_code` を持たない（§3.3）。座標は jis.json の作法（y = 0.0 / 1.2 / 2.2 / 3.2 / 4.2 / 5.2・高さ 1.0）で重ならないように置く（具体値はタスクで決める）
+* **既存の割り当て**（§3.4 と同じく消さない）:
+  * 元キー `alt gr` の割り当ては、`alt_gr` の枠があるレイアウト（AltGr 配列）では禁止の枠に重ねて表示し右クリックで消せる。`alt_gr` の枠が無いレイアウト（JIS・US）ではどの枠にも出ない（キーマップのデータには残る・受容）。抑止すると偽 Ctrl だけ止まり右 Alt は OS へ届く（既存どおり・受容）
+  * 元キー `right alt` の割り当ては AltGr 配列の PC では届かず効かない（`alt gr` で届くため。二重には動かない・受容）。AltGr 配列のレイアウトでは右 Alt の枠が `alt_gr` なので表示もされない
+* **取得のダイアログ**（切替キー）で AltGr 配列の右 Alt を押したときに何が記録されるか（偽の左 Ctrl が先に来るため Ctrl になる見込み）は未確認・スコープ外（§6）。切替キーの検査に `alt gr` を入れるのは、読込以外の経路への保険
 
 ---
 
@@ -129,7 +151,9 @@
 8. 【実機・画面の枠は非表示・JIS 配列】右 Ctrl・右 Shift・右 Alt の枠に割り当てると、そのキーの押下で効き、反対側のキーでは効かない。左の枠の `ctrl` 等は従来どおり左で効く（§2・§3.1）
 9. 【実機・JIS 配列】Caps キーを単独 / Shift 付きで押したときの、フックで届く名前と取得のダイアログで記録される名前を確かめ、どちらも禁止の判定に当たる（JIS の Caps キーは Shift なしで英数〔`VK_OEM_ATTN`〕を送る可能性があり、名前が `caps lock` にならないかもしれない・未確認）。当たらなければそのフェーズの中で判定の集合を直す（§3.5）
 10. 【静的】`jis.json` に左右の Ctrl・Alt・Windows の行があり、修飾キー・Caps・Windows の行は `scan_code` を持たない（§3.3）
-11. 既存のテスト（compileall / tests / tests_ui / smoke）が通る
+11. 【tests / tests_ui・実機なし】`alt_gr` の枠のキー名が `alt gr` で禁止の色・クリックで編集しない / `alt_r` の枠は `right alt` で割り当て可 / `alt gr` が割り当ての入口・切替キーの検査で拒否される /
+    走査コード 541・名前 `alt gr` の偽のイベントを `InputRouter` に渡すと入力のキー名が `alt gr` になる / `de.json` を読み込めて `alt_gr` の行がある（§3.6。ライブラリが右 Alt を通す挙動・AltGr 配列の実機確認はしない＝未確認として記録）
+12. 既存のテスト（compileall / tests / tests_ui / smoke）が通る
 
 ---
 
@@ -138,7 +162,8 @@
 * キーの取得のダイアログ（通常の取得）で修飾キーの左右を区別すること / キーボードUI の送信先の取得で左右を区別すること
 * トリガーのキー・停止 / トグルキー・送信先（キーマップの送信先・hotkey）での Windows キー・Caps Lock の禁止（禁止の理由はトリガーにも当てはまるが、ユーザーの指定の範囲 = 元キーと切替キー）/
   既存の禁止のキーの割り当て・切替キーの自動の削除・移行 / 読込時のグレー表示・理由の表示
-* AltGr を使う配列での右 Alt（`alt gr`）の対応（§2）
+* AltGr 配列の実機確認（§2・自動テストだけ）/ ライブラリが通す右 Alt（AltGr 配列）の抑止（禁止で回避・§3.6）/ アプリによる入力配列の判定（レイアウトのファイルで書き分ける）
+* AltGr 配列で切替キーの取得のダイアログが右 Alt を何として記録するか（§3.6・未確認）/ 元キー `alt gr` の割り当てを JIS・US のレイアウトのキーボードUI から消すこと（キーマップのデータに残る）
 * 画面の枠の表示中に修飾キーの割り当てを効かせること（入力の優先順位の変更が要る）
 * キーボードUI の編集中の送信先の取得で、Tk の `keycode`（Windows では仮想キーコード）を走査コードとして解決しているため F1 / F10 / F12 が `kana` / `henkan` / `muhenkan` になる見込みの既存の不具合（`keyboard_window.py:507`・deep-reviewer の指摘・別 idea に起票）
 * 押しているキーの枠を光らせる表示（今も無い）
@@ -148,14 +173,14 @@
 
 ## §7 正本反映（フェーズ末昇格・予定）
 
-* 正本: `features.md`「キーボード表示のウィンドウ（phase 55）」に左右の修飾キーの枠の規則（§3.1 の表・§3.2）・レイアウトの修飾キーの行に `scan_code` を書かない規則（§3.3）・禁止の枠（§3.5）/
+* 正本: `features.md`「キーボード表示のウィンドウ（phase 55）」に左右の修飾キーの枠の規則（§3.1 の表・§3.2）・標準の id `alt_gr` と AltGr 配列のレイアウトの書き方（§3.6）・レイアウトの修飾キーの行に `scan_code` を書かない規則（§3.3）・禁止の枠（§3.5）/
   `features.md` §4.3（keymap）に割り当て禁止のキー（元キー・切替キー）
 * 実装: `presentation/keyboard_window.py`（`_LOOKUP_KEY_BY_ID`・禁止の色と編集の抑止）/ `controllers/keymap_panel/keymap_panel_controller.py`（`assign_keymap_from_keyboard_ui` の拒否）/
   `dialogs/keymap_edit_dialog.py`・`dialogs/keymap_switch_batch_dialog.py`（取得の無視）/ `keymap_panel_controller.validate_keymap_switch_assignment`・`application/keymap_switch_batch.py`（検査）/
-  禁止の判定の関数（置き場はタスクで決める）/ `config/user/keylayout/jis.json`
+  禁止の判定の関数（置き場はタスクで決める）/ `config/user/keylayout/jis.json`・`config/user/keylayout/de.json`（新規・見本）
 * テスト: `tests_ui/` にキーボードUI の左右の枠の表示・編集・禁止の枠のテスト、切替キーのダイアログの禁止のテスト / `tests/` に割り当ての入口の拒否
 * `codebase_map.md`（キーボードUI の節）
-* タスク見込み: task_01 左右の対応表とテスト / task_02 割り当て禁止（キーボードUI・入口・切替キーのダイアログ）とテスト / task_03 jis.json と実機目視 / task_04 統合確認 / task_05 正本反映
+* タスク見込み: task_01 左右の対応表とテスト / task_02 割り当て禁止（キーボードUI・入口・切替キーのダイアログ）とテスト / task_03 `alt_gr` の id・`de.json` の見本（§3.6）とテスト / task_04 jis.json と実機目視（JIS）/ task_05 統合確認 / task_06 正本反映
 
 ---
 
