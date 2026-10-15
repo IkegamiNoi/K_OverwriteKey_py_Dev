@@ -46,6 +46,7 @@ class VerticalScrollArea(ttk.Frame):
                 bind_tree(child)
 
         bind_tree(self)
+        self.master.bind("<MouseWheel>", self._on_mousewheel, add="+")
 
     def sync(self) -> None:
         """Synchronize requested dimensions and the canvas window immediately."""

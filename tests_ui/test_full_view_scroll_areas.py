@@ -192,6 +192,34 @@ class FullViewScrollAreasTest(unittest.TestCase):
         self.app.update()
         self.assertEqual(self.app.ui_vars.run_to_end_delay_var.get(), before_delay)
 
+    def test_wheel_on_labelframe_scrolls_overflowing_pane(self) -> None:
+        self.app.minsize(1, 1)
+        self._set_height(self._reduced_height())
+        scrollable = next(
+            (box for box in self.boxes if box.scroll_area.scrollbar_shown), None,
+        )
+        if scrollable is None:
+            self.fail("No full-view pane overflowed at the reduced height")
+        area = scrollable.scroll_area
+        area.sync()
+        self.assertTrue(area.scrollbar_shown)
+        area.canvas.yview_moveto(0)
+        before = area.canvas.yview()
+        scrollable.event_generate("<MouseWheel>", delta=-120)
+        self.app.update()
+        self.assertNotEqual(area.canvas.yview(), before)
+
+    def test_wheel_on_labelframe_does_not_scroll_fitting_panes(self) -> None:
+        self._set_height(self.app.winfo_reqheight())
+        for box in self.boxes:
+            area = box.scroll_area
+            area.sync()
+            self.assertFalse(area.scrollbar_shown)
+            before = area.canvas.yview()
+            box.event_generate("<MouseWheel>", delta=-120)
+            self.app.update()
+            self.assertEqual(area.canvas.yview(), before)
+
     def test_wheel_on_hidden_pane_call_list_and_action_list_does_not_scroll_sequence(self) -> None:
         sequence = self.view.sequence_box
         # 今の測り方の高さ（要求の高さ）では 3 枠とも収まり、スクロールバーは出ない。

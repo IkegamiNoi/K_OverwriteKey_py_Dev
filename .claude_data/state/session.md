@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-15T11:30:00
+last_updated: 2026-10-15T13:30:00
 phase: **58_window_size_fit**（画面サイズの調整・2026-10-14 起票・主入力 = 暫定 42 v0.3 ユーザー確定済）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 24
 直前の完了フェーズ = **phase 57**（`decisions_archive/57_grid_crosshair_nudge.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 task_02 完了・実機目視 OK）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
@@ -12,26 +12,22 @@ last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 ta
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 58 task_04 完了（2026-10-15 ユーザー実機目視 OK）。task_05（統合確認）実施中 = deep-reviewer + codex-reviewer。**
-mode: reviewing
+focus: **phase 58 task_05・task_05a 完了（統合確認・枠本体のホイール）。次 = task_06（正本反映・凍結・decisions_archive・current.md・/refactor_check・完了判定前レビュー）。**
+mode: implementing
 
 ## last_action
-ts: 2026-10-15T11:00:00
+ts: 2026-10-15T13:30:00
 who: main
 summary: |
-  task_03 コミット（750ee83）。task_04（pane_measure: H = 3 枠の「飾り + 中身の要求高さ」の最大・最小の高さ = 今の値 − panes の要求高さ + ceil(H/2)・
-  3 枠の最小幅に各枠のスクロールバーの要求幅を常に加算）を codex-implementer で実装。既存テストの「最小で何も切れない」を「最下段までスクロールで届く」へ置換。
-  verifier の失敗 2 件をメインが修正: ①省略表示の minsize（+3 で高さ 707）が残ったままフル表示の geometry を復元して 707 で止まる既存の潜在不具合
-  （以前はフル表示の最小 931 が常に大きく隠れていた）→ `app.show_full_view` で復元前に `release_window_min_size()` ②新規テストの前提（最小で出力シーケンスにスクロールバーが出ない）の誤り。
-  reviewer 指摘 1（一時メッセージのラベルが無いと新しい式を通らない）も修正。
-  参考値: 最小の高さ フォント 0 = 541（旧 798）/ +3 = 635（旧 931・画面 966 に収まる）。
+  task_04 完了（ユーザー実機目視 OK）。task_05 統合確認: codex-reviewer 指摘なし / deep-reviewer 修正して採用（中 3・低 6）→ ユーザー確定:
+  指摘 1 = task_05a（LabelFrame 本体にもホイールを結び付け・scroll_area.py 1 行 + テスト 2 件）/ 2〜4 = task_06 と decisions / 5〜9 = 保留・除外（decisions の phase 58 節）。
 verified:
-  compile: pass / tests: 1662 OK（skip 7）/ tests_ui: 1072 OK / smoke OK / config 不変（verifier）
-  review: reviewer 採用（本体）+ 追加修正 3 点も採用。参考: テスト補強の残り（ホイールの配送が vacuous になり得る・テスト内の補助の重複）
+  compile: pass / tests: 1662 OK（skip 7）/ tests_ui: 1074 OK / smoke OK / config 不変（verifier）
+  review: task_05a reviewer 採用（参考: 収まっている枠のテストは結び付けの有無を区別できない）
 
 ## next_action
-- **task_05**（統合確認）: 退行テストは task_04 の最終検証（da679a3 と同じコード・全 pass）を流用。`deep-reviewer` + `codex-reviewer`（`git diff 33dea2a..HEAD`）→ 指摘の裏取り → 採否をユーザーと決める
-- その後: task_06（正本反映・凍結・decisions_archive・current.md・/refactor_check・完了判定前レビュー deep-reviewer + codex-adversarial-reviewer）
+- **task_06**（正本反映）: 定義を起票 → 暫定 42 §11 + decisions phase 58 の指摘 2・3（features.md §4.6 に 3 枠のスクロールの規則とフル表示へ戻るときの最小の解除 / data_schema §5.4 に `compact_header_view` の検証 / codebase_map に新しい 3 モジュールと `get_active_keymap_name`・ステータスの書式）
+  → 暫定 42 の凍結 → `decisions_archive/58_window_size_fit.md`・decisions.md の索引 → current.md の完了記載（次採番 phase 59 / 暫定 43 / decisions 59）→ `/refactor_check` → 完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
