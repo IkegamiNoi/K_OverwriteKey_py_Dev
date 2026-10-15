@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-15T13:30:00
+last_updated: 2026-10-15T15:30:00
 phase: **58_window_size_fit**（画面サイズの調整・2026-10-14 起票・主入力 = 暫定 42 v0.3 ユーザー確定済）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 24
 直前の完了フェーズ = **phase 57**（`decisions_archive/57_grid_crosshair_nudge.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 task_02 完了・実機目視 OK）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
@@ -12,22 +12,22 @@ last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 ta
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 58 task_05・task_05a 完了（統合確認・枠本体のホイール）。次 = task_06（正本反映・凍結・decisions_archive・current.md・/refactor_check・完了判定前レビュー）。**
-mode: implementing
+focus: **phase 58 task_06（正本反映）実施中: 正本・codebase_map・凍結・decisions_archive・提案書 24 まで済。ユーザー判断待ち 2 件（Codex 敵対的の指摘 = 表示を閉じるとキーボードでフル表示へ戻れない / 提案書 24 の承認と時期）。**
+mode: pending_user_decision
 
 ## last_action
-ts: 2026-10-15T13:30:00
+ts: 2026-10-15T15:30:00
 who: main
 summary: |
-  task_04 完了（ユーザー実機目視 OK）。task_05 統合確認: codex-reviewer 指摘なし / deep-reviewer 修正して採用（中 3・低 6）→ ユーザー確定:
-  指摘 1 = task_05a（LabelFrame 本体にもホイールを結び付け・scroll_area.py 1 行 + テスト 2 件）/ 2〜4 = task_06 と decisions / 5〜9 = 保留・除外（decisions の phase 58 節）。
-verified:
-  compile: pass / tests: 1662 OK（skip 7）/ tests_ui: 1074 OK / smoke OK / config 不変（verifier）
-  review: task_05a reviewer 採用（参考: 収まっている枠のテストは結び付けの有無を区別できない）
+  task_05a コミット（787f83a）。task_06: features.md §4.5・§4.6（新節「フル表示の 3 枠のスクロール」「省略表示の上部の開閉」）・data_schema §5.4（compact_header_view）・codebase_map を更新、
+  暫定 42 を凍結、decisions.md の phase 58 節を decisions_archive/58 へ移した（索引行は未追加）。/refactor_check = 推奨（M3・M4）→ 提案書 24（compact_header_controller の見出しの文言・区画の列挙と余白・pane_measure の 3 枠のタプル）。
+  完了判定前レビュー: deep-reviewer 修正して採用（文書の修正は反映済・残りは索引 / current.md / handoff の完了記載）/
+  codex-adversarial needs-attention 1 件（裏取り済: 省略表示の「表示」を閉じるとフル表示へ戻る手段が「フルに戻す」ボタンだけで、閉じた見出しは ttk.Label でキーボードで開けない。
+  暫定 42 §4 の「キーボード操作の表示切替は効く」は前提の誤り = 表示切替のショートカットは無い）。
 
 ## next_action
-- **task_06**（正本反映）: 定義を起票 → 暫定 42 §11 + decisions phase 58 の指摘 2・3（features.md §4.6 に 3 枠のスクロールの規則とフル表示へ戻るときの最小の解除 / data_schema §5.4 に `compact_header_view` の検証 / codebase_map に新しい 3 モジュールと `get_active_keymap_name`・ステータスの書式）
-  → 暫定 42 の凍結 → `decisions_archive/58_window_size_fit.md`・decisions.md の索引 → current.md の完了記載（次採番 phase 59 / 暫定 43 / decisions 59）→ `/refactor_check` → 完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
+- **【ユーザー判断待ち】** ①Codex の指摘（キーボードだけで戻れない）の扱い ②提案書 24 の承認と実施時期
+- 判断後: （①でコード修正なら task_06a）→（②承認なら task_07_refactor）→ decisions.md の索引に 58 の行 → current.md の完了記載（次採番 phase 59 / 暫定 43 / decisions 59 / 提案書 25）→ handoff の既知の問題「フル表示の高さ（phase 50）」を解消済みに
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
