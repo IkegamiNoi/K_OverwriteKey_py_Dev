@@ -68,6 +68,7 @@
 | 56_screen_grid_cursor | [56_screen_grid_cursor.md](decisions_archive/56_screen_grid_cursor.md) | 画面の枠でカーソル移動・クリック（2026-10-13 完了・暫定 40 v0.7 凍結・domain / application / infrastructure / presentation・**JSON スキーマ変更あり**〔keymap の任意キー `grid`〕）。枠 ON の keymap がアクティブな間だけ枠を表示・キーで枠を選びカーソルを中心へ・Enter で左 / Shift+Enter で右クリック・Space で細分化・Tab で画面の切替・最上段は画面ごとに編集の窓でドラッグして記録・キーの表示位置（中央 / 左上）。座標は SYSTEM_AWARE のまま・カーソル移動とクリックは pyautogui。refactor_check: 推奨（M3・M4 = `grid` の受け渡しの 3 か所・M6 = 振り直しの段の直値）→ [提案書 22](../../instructions/modified_proposal/22_refactor_screen_grid.md) → task_09_refactor で実施済 |
 | 57_grid_crosshair_nudge | [57_grid_crosshair_nudge.md](decisions_archive/57_grid_crosshair_nudge.md) | 画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化（2026-10-14 完了・暫定 41 v0.4 凍結・domain / application / presentation・**JSON スキーマ変更あり**〔`grid` の任意キー `ops`〕）。選んだ枠のクリック点に十字（中央表示はキーの文字を置き換え）・矢印で min(16px, 枠の 1/8)・Shift で 1px・操作キーは keymap ごとに各 1 つで付け替え可（Esc = 戻る / num enter = クリックは固定）・重なりは OK で拒否 / 実行時は枠のキー > 操作キー・suppress は実効の集合 1 本・編集の窓はドラッグ中に関係する枠へ十字。refactor_check: 推奨（M3・M4・M6）→ [提案書 23](../../instructions/modified_proposal/23_refactor_grid_ops.md) → task_08_refactor で実施済 |
 | 58_window_size_fit | [58_window_size_fit.md](decisions_archive/58_window_size_fit.md) | 画面サイズの調整（2026-10-15 完了・暫定 42 v0.3 凍結・presentation のみ・**JSON スキーマ変更あり**〔config.json の任意キー `compact_header_view`〕）。フル表示の 3 枠を枠ごとに縦スクロール（共通の `VerticalScrollArea`）・最小の高さ = 要求高さ − メイン領域 + ceil(H/2)（+3 で 931 → 635px）・各枠の最小幅にスクロールバーの幅・フル表示へ戻るとき省略表示の最小を解除してから復元 / 省略表示の「フック」「表示」を Expander で開閉・保存・見出しは Tab + Enter / Space でも開閉（Codex 敵対的の指摘 = 表示を閉じるとキーボードで戻れない）/ ステータス欄のフックを ON・OFF・一時停止に。refactor_check: 推奨（M3・M4）→ [提案書 24](../../instructions/modified_proposal/24_refactor_compact_header.md) → task_07_refactor で実施済 |
+| 59_keyboard_ui_left_right_modifiers | [59_keyboard_ui_left_right_modifiers.md](decisions_archive/59_keyboard_ui_left_right_modifiers.md) | キーボードUI の左右の修飾キーの区別と割り当て禁止のキー（2026-10-16 完了・暫定 43 v0.6 凍結・presentation 中心 + domain の禁止の判定・JSON スキーマ不変）。左右の修飾キーの枠を左右別のキー名（左は今の名前・右は `right ctrl` 等・Win は `left/right windows`）/ Windows キー・Caps Lock・AltGr 配列の右 Alt（標準の id `alt_gr`・レイアウトのファイルで書き分け・配列は判定しない）をキーマップの元キーと切替キーに割り当て禁止（既存データは拒否しない・消さない・切替キーは変えたときだけ検査）/ 切替キーの取得で `??`（JIS の Caps 単独・IME ON）は無視して案内 / jis.json・de.json の見本。refactor_check: 不要（境界の候補を current.md の別タスク化候補へ）|
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -617,12 +618,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - M2（ユーザー確定・コード変更 task_07a）: 単発の呼び出しの実行中に連鎖の呼び出し先の位置を一覧で変えたら、待機・file_line・呼び出し元の位置変更と同じく実行中の単発の呼び出しを取り消し（そこまでの進みは書き戻す）、変えた位置を優先する。今は次の書き戻しで上書きされる（要再現）。
 - M3（ユーザー確定・受容）: 呼び出し先の完了で外から進めた呼び出し元の次の待機は待たない（直前に呼び出し元が送っていないので「送った後の待ち」に当たらない。次に押すと送る前の待機として読み飛ばす）。
 - M4（ユーザー確定・コード変更 task_07a）: 呼び出し先 U が単発の呼び出しの一時停止中に T が U を呼んだら、U の一時停止を捨てて（通知）T が進める。今は黙って無視。
-
-## 2026-10-15 (phase 59: キーボードUI の左右の修飾キーの区別と割り当て禁止のキー・暫定 43)
-
-### 【起票】モード = **暫定仕様先行**（presentation 中心・タスク 6・ユーザーと反復して詰めた）
-- 暫定 43: v0.1 起票 → deep-reviewer 修正して採用 + Codex 敵対的 needs-attention 2 件（右 Alt の配列・画面の枠の表示中は修飾キーが素通し）→ v0.2 →
-  ユーザー判断（Windows キー・Caps Lock を割り当て禁止〔キーボードUI と切替キーの取得〕・scan_code は規定だけ）→ v0.3（差分の deep-reviewer 修正して採用）→
-  ユーザー判断（AltGr 配列は対応する = 認識して禁止・実機確認なし）→ 配列の判定ではなく標準の id `alt_gr` でレイアウトのファイルが書き分ける（ユーザー提案）・de.json を同梱 → v0.4 → ユーザー確定（2026-10-15）
-- 採らなかった案: レイアウト JSON に任意の `"key"`（id の規約で足りる・過剰）/ AltGr 配列の判定（アプリごとの入力方式で外れうる・描き直しまで追従しない）/ AltGr の割り当てを許して漏れを受容
-

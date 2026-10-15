@@ -113,9 +113,9 @@ keyseq/presentation/
       preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）
       trigger_dialog.py        # TriggerDialog（取得ボタンは最大文言幅で固定 = `apply_fixed_button_width`・phase 43）
-      keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集・取得ボタンは最大文言幅で固定（apply_fixed_button_width）。phase 43 以降はダブルクリック編集だけで使う。「枠を使う」/「枠を編集…」・phase 56）
+      keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集・取得で禁止のキー・`??` を取らない〔`??` は案内の欄に理由・phase 59〕・取得ボタンは最大文言幅で固定（apply_fixed_button_width）。phase 43 以降はダブルクリック編集だけで使う。「枠を使う」/「枠を編集…」・phase 56）
       grid_editor_window.py    # GridEditorWindow: 画面の枠の編集の窓（KeymapEditDialog の子・フックは親が止める・半透明の全画面・境界のドラッグ・キーの取り込み・OK の検査・phase 56）
-      keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・クリアボタンなし・取得ボタンは最大文言幅で固定（apply_fixed_button_width）・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・行/スクロール領域/ボタンとバインドの生成は専用メソッド・phase 43）
+      keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・取得で禁止のキー・`??` を取らない〔phase 59〕・クリアボタンなし・取得ボタンは最大文言幅で固定（apply_fixed_button_width）・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・行/スクロール領域/ボタンとバインドの生成は専用メソッド・phase 43）
       layout_delete_dialog.py  # LayoutDeleteDialog
       escape_close.py          # bind_escape_close（Esc に別用途がある 4 ダイアログの Escape 結線。印はクロージャに持つ・提案書 11 / phase 28 task_07）
       orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
@@ -123,7 +123,7 @@ keyseq/presentation/
       reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 隔離 / 復元 / 削除で再利用）
       keymap_set_history_dialog.py # KeymapSetHistoryDialog（読み込み履歴・**リポジトリ唯一の ttk.Treeview**〔2 列 / 名前列は stretch=False〕・操作のたびに永続化済みの履歴を読み直して再描画）+ CategoryChooserDialog（コピー先の分類選択・同ファイル内のネストした子）
     keyboard_layouts.py
-    keyboard_window.py         # KeyboardWindow: キーボード表示の窓（タイトル表示・縦横比の補正・phase 55）
+    keyboard_window.py         # KeyboardWindow: キーボード表示の窓（タイトル表示・縦横比の補正・phase 55）。`_LOOKUP_KEY_BY_ID` = レイアウトの id → 引くキー名（左右の修飾キーを分ける・`alt_gr` → `alt gr`・phase 59）/ 禁止の枠の色 `"prohibited"`・禁止の枠は左クリックで編集しない（phase 59）
     keyboard_window_size.py    # キーボード表示の縦横比と大きさの計算（tkinter 非依存・phase 55）
     listbox_utils.py
     listbox_range_drag.py      # ListboxRangeDrag / bind_listbox_range_drag: 対象 4 一覧の連続範囲選択・ドラッグ移動のプレビューと確定・Escape の取り消し・自動スクロール・Tk 既定バインドの置き換え。range_or_index: 有効な選択範囲か代替の 1 行を取得（compact は範囲を無視・phase 43）
@@ -143,7 +143,7 @@ keyseq/presentation/
     status_text.py             # one_line: 省略表示中のステータス欄・ステータスバーの文言の改行を空白へ（phase 48）
     pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
-    hook_button_texts.py       # フックの枠の切替ボタンの文言とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
+    hook_button_texts.py       # フックの枠の切替ボタンの文言・取得の案内の文言（`UNKNOWN_CAPTURE_KEY_HINT_TEXT`・phase 59）とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
     orphan_sweep_text.py       # 孤児ファイルの棚卸しの提示テキスト整形（警告 / 候補一覧 / 隔離結果。純関数）
     quarantine_manage_text.py  # 隔離の管理の提示テキスト整形（単位一覧 / 復元・削除の計画と結果。純関数）
     keymap_set_history_text.py # 読み込み履歴の表示文言（ノード名・ボタン文言・確認文・失敗理由。純関数と定数のみ）
@@ -797,6 +797,11 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - Win32 は `infrastructure/win32_window.py` のモジュール関数 `is_mouse_button_down`（`GetAsyncKeyState` 左右）/ `foreground_own_window`（自プロセスの前面 HWND）/ `place_window_below`（`SetWindowPos` NOSIZE|NOMOVE|NOACTIVATE）。
     **App が属性として注入**（`app.is_mouse_button_down` / `app.foreground_own_window` / `app.place_window_below`）し、presentation の他所は ctypes を呼ばない
   - テスト: `tests/test_keyboard_window_title.py` / `test_keyboard_window_size.py` / `test_win32_window.py` / `tests_ui/test_app_ui_flows.py`（`test_keyboard_window_*`）
+- phase 59（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー。仕様 = `features.md` §4.3「割り当て禁止のキー」・§4.6「キーボード表示のウィンドウ」/ `key_input.md` §7.1・§7.4。判断 = `decisions_archive/59_keyboard_ui_left_right_modifiers.md`）:
+  - 左右の修飾キー: `presentation/keyboard_window.py` の `_LOOKUP_KEY_BY_ID` だけで決まる（`redraw` で引いたキー名が表示・色・`_key_bounds`・編集・右クリック・タイトルへ渡る）
+  - 禁止の判定: `domain/key_identifiers.py` の `PROHIBITED_ASSIGN_KEY_NAMES` / `is_prohibited_assign_key(name)`。使う側 = `keyboard_window.py`（色・左クリック）/ `KeymapPanelController.assign_keymap_from_keyboard_ui`（割り当ての入口で拒否）・`validate_keymap_switch_assignment`（`exclude_switch_key` = 今の切替キーと違うときだけ拒否）/ `application/keymap_switch_batch.validate_switch_batch`（`_current_switches` で今の切替キーを逆引き）/ 2 つの切替キーのダイアログの取得
+  - レイアウトの見本: `config/user/keylayout/jis.json`・`de.json`（`.gitignore` の `config/` に当たるので `git add -f` で追跡）。検査 = `tests/test_keyboard_layout_files.py`
+  - テスト: `tests/test_prohibited_assign_keys.py`・`test_keyboard_layout_files.py`・`test_input_router.py`（`alt gr`）・`test_keymap_switch_batch.py` / `tests_ui/test_keyboard_window_left_right.py`・`test_prohibited_assign_keys_ui.py`
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 

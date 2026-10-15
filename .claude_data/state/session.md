@@ -4,32 +4,29 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-16T09:00:00
-phase: **59_keyboard_ui_left_right_modifiers**（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー・2026-10-15 起票・主入力 = 暫定 43 v0.4 ユーザー確定済）。次採番 = phase 60 / 暫定 44 / decisions 60 / 提案書 25
-直前の完了フェーズ = **phase 58**（`decisions_archive/58_window_size_fit.md`）
+last_updated: 2026-10-16T11:00:00
+phase: **なし**（phase 59 = キーボードUI の左右の修飾キーの区別と割り当て禁止のキーは 2026-10-16 完了）。次採番 = phase 60 / 暫定 44 / decisions 60 / 提案書 25
+直前の完了フェーズ = **phase 59**（`decisions_archive/59_keyboard_ui_left_right_modifiers.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 一式・完了）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 59 task_04 / 04a / 04b 完了（2026-10-16 ユーザー実機目視 OK）。task_05（統合確認）実施中 = deep-reviewer + codex-reviewer。**
-mode: reviewing
+focus: **phase 59 完了（2026-10-16）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+mode: idle
 
 ## last_action
-ts: 2026-10-16T02:00:00
+ts: 2026-10-16T11:00:00
 who: main
 summary: |
-  task_04a コミット（bf6a926）・実機目視 OK。ユーザーの追加の観察: IME ON だと取得がどのキーも `??` になり IME の変換に流れる → ユーザー判断（2026-10-16）:
-  `??` のときは取得中の案内の欄に理由（IME が ON なら OFF にして押す）を出し取得は続ける・ダイアログは出さない（暫定 43 v0.6 + task_04b）/ 取得中に IME を OFF にする対策は idea_46。
-  暫定 43 §6 の F1 → kana 見込みの不具合を idea_47 として起票。
+  task_05 統合確認（codex-reviewer 指摘なし / deep-reviewer 採用・中-1 は未確認の受容）→ task_06: features.md §4.3「割り当て禁止のキー」・§4.6「キーボード表示のウィンドウ」・key_input.md §7.1・§7.4・§7.3 の表・codebase_map へ昇格、
+  暫定 43 を凍結、decisions_archive/59・索引・current.md の完了記載。/refactor_check = 不要（M3 の境界は別タスク化候補へ）。
+  完了判定前レビュー: Codex 敵対的 approve（指摘なし）/ deep-reviewer 修正して採用 → 文書の指摘（中 2・低）を反映済み。
 verified:
-  compile: pass / tests: 1671 OK（skip 7）/ tests_ui: 1091 OK / smoke OK / config 不変（verifier）
-  review: reviewer 採用
+  コードは task_04b から不変（tests 1671 / tests_ui 1091 / smoke OK）
 
 ## next_action
-- **task_05**（統合確認）: 退行テストは task_04b の最終検証（9e13d20 と同じコード・全 pass）を流用。`deep-reviewer` + `codex-reviewer`（`git diff 224762e..HEAD`）→ 裏取り → 採否をユーザーと決める
-- 実機目視の記録: task_04b の Caps 単独で IME の ON/OFF が点滅した件はメモ帳でも起きた Windows / IME 側の一時的な動き（アプリの不具合ではない）・その後期待どおり（2026-10-16）
-- その後: task_06（正本反映・凍結・decisions_archive・current.md・/refactor_check・完了判定前レビュー）
+- **次フェーズはユーザー判断**（`/phase_start`）。残件 = idea_46（取得中の IME）・idea_47（キーボードUI の取得で F キーが kana 等になる見込み）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
