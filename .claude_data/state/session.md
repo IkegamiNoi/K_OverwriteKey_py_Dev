@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-15T18:30:00
+last_updated: 2026-10-15T19:00:00
 phase: **なし**（phase 58 = 画面サイズの調整は 2026-10-15 完了）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 25
 直前の完了フェーズ = **phase 58**（`decisions_archive/58_window_size_fit.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 一式・完了）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
@@ -24,17 +24,13 @@ summary: |
 verified:
   task_06a: tests 1662 OK / tests_ui 1077 OK / smoke OK（verifier）・reviewer 採用
   task_07_refactor: compileall / tests 1662 OK / smoke OK / 対象 UI 5 モジュール OK・reviewer 修正して採用（範囲外の整形を戻した）。
-  tests_ui 全体は `test_compact_window` の 3 件が FAIL（下記 blockers）= 環境要因（phase 開始時点 33dea2a でも同じ 3 件が落ちることを一時 worktree で確認）
+  tests_ui 全体では `test_compact_window` の 3 件が一時 FAIL → 環境要因（phase 開始時点 33dea2a でも同じく落ちた）。ユーザーが 2 台目のモニタを外して再実行 → 8 件 OK（2026-10-15）
 
 ## next_action
 - **次フェーズはユーザー判断**（`/phase_start`）
-- **`tests_ui.test_compact_window` の 3 件を、2 台目のモニタを外した状態（または画面構成を戻した状態）で再実行して pass を確認する**（下記 blockers）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
-- **【環境】`tests_ui.test_compact_window` の 3 件が 2026-10-15 夕方から FAIL**（`test_automatic_full_view_and_maximized_sizes_are_not_saved` / `test_compact_resize_is_saved_after_quiet_period_once` / `test_destroy_cancels_pending_size_save`）。
-  phase 58 開始時点（33dea2a）でも同じく落ち、同日の昼の全体実行では pass。測定時は 2 台目のモニタが接続（仮想画面の高さ 1734・最大化の高さ 895）・CPU 66%。
-  省略表示で +45px 広げた直後に WM が大きさを変え（315×865）`compact_window_size` の保存が走る。画面構成を戻して再実行し、pass ならコードの問題ではない
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
 
 ## resume_hints
