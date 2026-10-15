@@ -228,6 +228,48 @@ class CompactHeaderViewTest(unittest.TestCase):
         siblings = app.compact_view.header_area.pack_slaves()
         self.assertLess(siblings.index(app.compact_view.hook_frame), siblings.index(app.compact_view.display_frame))
 
+    def test_collapsed_and_reopened_sections_keep_original_padding_and_order(self):
+        view = self.app.compact_view
+
+        def normalized_pady(widget):
+            pady = widget.pack_info()["pady"]
+            if isinstance(pady, str):
+                return tuple(map(int, pady.split()))
+            return tuple(pady) if isinstance(pady, (tuple, list)) else (pady,)
+
+        sections = (
+            ("hook", view.hook_frame, view.hook_heading),
+            ("display", view.display_frame, view.display_heading),
+        )
+        original_siblings = view.header_area.pack_slaves()
+        original_order = {
+            name: original_siblings.index(frame)
+            for name, frame, _collapsed in sections
+        }
+
+        for name, frame, collapsed in sections:
+            with self.subTest(section=name):
+                original_pady = normalized_pady(frame)
+                other_name, other_frame, _other_collapsed = next(
+                    section for section in sections if section[0] != name
+                )
+                self.app.compact_header.toggle(name)
+
+                self.assertEqual(normalized_pady(collapsed), original_pady)
+                siblings = view.header_area.pack_slaves()
+                if original_order[name] < original_order[other_name]:
+                    self.assertLess(siblings.index(collapsed), siblings.index(other_frame))
+                else:
+                    self.assertLess(siblings.index(other_frame), siblings.index(collapsed))
+
+                self.app.compact_header.toggle(name)
+                self.assertEqual(normalized_pady(frame), original_pady)
+                siblings = view.header_area.pack_slaves()
+                if original_order[name] < original_order[other_name]:
+                    self.assertLess(siblings.index(frame), siblings.index(other_frame))
+                else:
+                    self.assertLess(siblings.index(other_frame), siblings.index(frame))
+
     def test_focus_lookup_keyerror_still_closes_and_saves_once(self):
         app = self.app
         frame = app.compact_view.hook_frame

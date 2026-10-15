@@ -4,33 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-15T15:30:00
-phase: **58_window_size_fit**（画面サイズの調整・2026-10-14 起票・主入力 = 暫定 42 v0.3 ユーザー確定済）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 24
-直前の完了フェーズ = **phase 57**（`decisions_archive/57_grid_crosshair_nudge.md`）
-last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 task_02 完了・実機目視 OK）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
+last_updated: 2026-10-15T18:30:00
+phase: **なし**（phase 58 = 画面サイズの調整は 2026-10-15 完了）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 25
+直前の完了フェーズ = **phase 58**（`decisions_archive/58_window_size_fit.md`）
+last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 一式・完了）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 58 task_06（正本反映）実施中: 正本・codebase_map・凍結・decisions_archive・提案書 24 まで済。ユーザー判断待ち 2 件（Codex 敵対的の指摘 = 表示を閉じるとキーボードでフル表示へ戻れない / 提案書 24 の承認と時期）。**
-mode: pending_user_decision
+focus: **phase 58 完了（2026-10-15）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+mode: idle
 
 ## last_action
-ts: 2026-10-15T15:30:00
+ts: 2026-10-15T18:30:00
 who: main
 summary: |
-  task_05a コミット（787f83a）。task_06: features.md §4.5・§4.6（新節「フル表示の 3 枠のスクロール」「省略表示の上部の開閉」）・data_schema §5.4（compact_header_view）・codebase_map を更新、
-  暫定 42 を凍結、decisions.md の phase 58 節を decisions_archive/58 へ移した（索引行は未追加）。/refactor_check = 推奨（M3・M4）→ 提案書 24（compact_header_controller の見出しの文言・区画の列挙と余白・pane_measure の 3 枠のタプル）。
-  完了判定前レビュー: deep-reviewer 修正して採用（文書の修正は反映済・残りは索引 / current.md / handoff の完了記載）/
-  codex-adversarial needs-attention 1 件（裏取り済: 省略表示の「表示」を閉じるとフル表示へ戻る手段が「フルに戻す」ボタンだけで、閉じた見出しは ttk.Label でキーボードで開けない。
-  暫定 42 §4 の「キーボード操作の表示切替は効く」は前提の誤り = 表示切替のショートカットは無い）。
+  ユーザー判断 2 件（2026-10-15）: ①Codex 敵対的の指摘 → task_06a（省略表示の上部の見出しを Tab + Enter / Space で開閉・07058a0）②提案書 24 → task_07_refactor で実施。
+  正本反映（task_06）・凍結・decisions_archive/58・decisions.md の索引・current.md の完了記載・handoff の既知の問題の解消まで済。
+verified:
+  task_06a: tests 1662 OK / tests_ui 1077 OK / smoke OK（verifier）・reviewer 採用
+  task_07_refactor: compileall / tests 1662 OK / smoke OK / 対象 UI 5 モジュール OK・reviewer 修正して採用（範囲外の整形を戻した）。
+  tests_ui 全体は `test_compact_window` の 3 件が FAIL（下記 blockers）= 環境要因（phase 開始時点 33dea2a でも同じ 3 件が落ちることを一時 worktree で確認）
 
 ## next_action
-- **【ユーザー判断待ち】** ①Codex の指摘（キーボードだけで戻れない）の扱い ②提案書 24 の承認と実施時期
-- 判断後: （①でコード修正なら task_06a）→（②承認なら task_07_refactor）→ decisions.md の索引に 58 の行 → current.md の完了記載（次採番 phase 59 / 暫定 43 / decisions 59 / 提案書 25）→ handoff の既知の問題「フル表示の高さ（phase 50）」を解消済みに
+- **次フェーズはユーザー判断**（`/phase_start`）
+- **`tests_ui.test_compact_window` の 3 件を、2 台目のモニタを外した状態（または画面構成を戻した状態）で再実行して pass を確認する**（下記 blockers）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
+- **【環境】`tests_ui.test_compact_window` の 3 件が 2026-10-15 夕方から FAIL**（`test_automatic_full_view_and_maximized_sizes_are_not_saved` / `test_compact_resize_is_saved_after_quiet_period_once` / `test_destroy_cancels_pending_size_save`）。
+  phase 58 開始時点（33dea2a）でも同じく落ち、同日の昼の全体実行では pass。測定時は 2 台目のモニタが接続（仮想画面の高さ 1734・最大化の高さ 895）・CPU 66%。
+  省略表示で +45px 広げた直後に WM が大きさを変え（315×865）`compact_window_size` の保存が走る。画面構成を戻して再実行し、pass ならコードの問題ではない
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
 
 ## resume_hints

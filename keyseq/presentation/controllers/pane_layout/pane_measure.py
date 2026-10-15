@@ -37,8 +37,13 @@ def measure_main_area_basis_height(app: App) -> int:
     return max(
         box.winfo_reqheight() - box.scroll_area.winfo_reqheight()
         + box.scroll_area.content.winfo_reqheight()
-        for box in (app.full_view.keymap_box, app.full_view.trigger_box, app.full_view.sequence_box)
+        for box in _full_view_boxes(app)
     )
+
+
+def _full_view_boxes(app: App) -> tuple[ttk.LabelFrame, ttk.LabelFrame, ttk.LabelFrame]:
+    view = app.full_view
+    return view.keymap_box, view.trigger_box, view.sequence_box
 
 
 def _find_flash_message_label(app: App) -> ttk.Label | None:
@@ -95,8 +100,7 @@ def _stacked_width(app: App, box: ttk.LabelFrame, listing: tk.Listbox) -> int:
 
 
 def _sync_full_view_scroll_areas(app: App) -> None:
-    view = app.full_view
-    for box in (view.keymap_box, view.trigger_box, view.sequence_box):
+    for box in _full_view_boxes(app):
         box.scroll_area.sync()
 
 

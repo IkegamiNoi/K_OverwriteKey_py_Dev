@@ -7,9 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 58](58_window_size_fit/phase.md)（画面サイズの調整・2026-10-14 起票）**: フル表示の 3 枠を枠ごとに縦スクロール（最小の高さ = メイン領域の今の最小の半分・各枠の最小幅にスクロールバーの幅を含める）/ 省略表示の「フック」「表示」を Expander で開閉・保存 / ステータス欄のフックを ON・OFF・一時停止の 3 状態に。暫定仕様先行モード・主入力 = [暫定 42 v0.3](../history/42_window_size_fit.md)（ユーザー確定 2026-10-14）・**JSON スキーマ変更あり**（config.json の任意キー `compact_header_view`）。番号対応: phase 58 / 暫定 42 / decisions 58。
-- 直前の完了フェーズ = [phase 57](57_grid_crosshair_nudge/phase.md)（2026-10-14・画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化〔選んだ枠のクリック点に十字・矢印で min(16px, 枠の 1/8)・Shift で 1px・操作キーは keymap ごとに各 1 つで付け替え可〔Esc = 戻る・num enter = クリックは固定〕・編集の窓のドラッグ中の十字・パネルの 2 列化とスクロール〕。暫定仕様先行モード〔暫定 41 v0.4 凍結〕・**JSON スキーマ変更あり**〔`grid` の任意キー `ops`〕・判断は [decisions_archive/57](../../.claude_data/state/decisions_archive/57_grid_crosshair_nudge.md)）。
-- その前の完了フェーズ = [phase 56](56_screen_grid_cursor/phase.md)（2026-10-13・画面の枠でカーソル移動・クリック〔枠 ON のキーマップがアクティブな間だけ枠を表示・キーで枠を選びカーソルを中心へ・Enter で左 / Shift+Enter で右クリック・Space で細分化・Tab で画面の切替・最上段は画面ごとに編集の窓でドラッグして記録・キーの表示位置〕。暫定仕様先行モード〔暫定 40 v0.7 凍結〕・**JSON スキーマ変更あり**〔keymap の任意キー `grid`〕・判断は [decisions_archive/56](../../.claude_data/state/decisions_archive/56_screen_grid_cursor.md)）。
+- **アクティブなフェーズ = なし**（phase 58 は 2026-10-15 完了）。次フェーズはユーザー判断・着手時は `/phase_start`。
+- 直前の完了フェーズ = [phase 58](58_window_size_fit/phase.md)（2026-10-15・画面サイズの調整〔フル表示の 3 枠を枠ごとに縦スクロール・最小の高さ = 要求高さ − メイン領域 + ceil(H/2)〔+3 で 931 → 635px〕・各枠の最小幅にスクロールバーの幅 / 省略表示の「フック」「表示」を Expander で開閉・保存・見出しはキーでも開閉 / ステータス欄のフックを ON・OFF・一時停止の 3 状態に〕。暫定仕様先行モード〔暫定 42 v0.3 凍結〕・**JSON スキーマ変更あり**〔config.json の任意キー `compact_header_view`〕・判断は [decisions_archive/58](../../.claude_data/state/decisions_archive/58_window_size_fit.md)）。
+- その前の完了フェーズ = [phase 57](57_grid_crosshair_nudge/phase.md)（2026-10-14・画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化〔選んだ枠のクリック点に十字・矢印で min(16px, 枠の 1/8)・Shift で 1px・操作キーは keymap ごとに各 1 つで付け替え可〔Esc = 戻る・num enter = クリックは固定〕・編集の窓のドラッグ中の十字・パネルの 2 列化とスクロール〕。暫定仕様先行モード〔暫定 41 v0.4 凍結〕・**JSON スキーマ変更あり**〔`grid` の任意キー `ops`〕・判断は [decisions_archive/57](../../.claude_data/state/decisions_archive/57_grid_crosshair_nudge.md)）。
+  [phase 56](56_screen_grid_cursor/phase.md)（2026-10-13・画面の枠でカーソル移動・クリック〔枠 ON のキーマップがアクティブな間だけ枠を表示・キーで枠を選びカーソルを中心へ・Enter で左 / Shift+Enter で右クリック・Space で細分化・Tab で画面の切替・最上段は画面ごとに編集の窓でドラッグして記録・キーの表示位置〕。暫定仕様先行モード〔暫定 40 v0.7 凍結〕・**JSON スキーマ変更あり**〔keymap の任意キー `grid`〕・判断は [decisions_archive/56](../../.claude_data/state/decisions_archive/56_screen_grid_cursor.md)） /
   [phase 55](55_keyboard_ui_window/phase.md)（2026-10-12・キーボードUIのウィンドウ改善〔ステータス欄の削除とタイトル表示 / 「キーボードUIを常に手前」とダイアログ表示中の一時解除 / 縦横比固定〕。暫定仕様先行モード〔暫定 39 v0.6 凍結〕・判断は [decisions_archive/55](../../.claude_data/state/decisions_archive/55_keyboard_ui_window.md)） /
   [phase 54](54_numpad_key_distinction/phase.md)（2026-10-11・テンキーの区別。暫定 38 v0.5 凍結・判断は [decisions_archive/54](../../.claude_data/state/decisions_archive/54_numpad_key_distinction.md)） /
   [phase 53](53_repeat_stop_on_own_foreground/phase.md)（2026-10-11・アプリの窓が前面のときはキーリピートしない〔送り直しの発火ごとに前面の窓のプロセスを判定〕。暫定仕様先行モード〔暫定 37 v0.4 凍結〕・判断は [decisions_archive/53](../../.claude_data/state/decisions_archive/53_repeat_stop_on_own_foreground.md)） /
@@ -34,7 +35,8 @@
   判断は [decisions_archive/40](../../.claude_data/state/decisions_archive/40_sequence_call.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近のフェーズが扱った領域 = 画面の枠でカーソル移動・クリック**（phase 56・57）。正本 = `features.md` §4.7 / `data_schema.md` §5.6.1 / `key_input.md` §7.3・§7.4 / `nonfunctional.md`「画面の枠の座標系」/ 地図 = `codebase_map.md`「画面の枠（phase 56・57）」。**残件** = idea_44（枠の配色）/ idea_45（既存のキー取得の記号キー名）/ phase 56 task_07 の保留 L1・L5（decisions_archive/56）/ phase 57 の見送り（OK の拒否の理由に画面名・4 経路の ops の往復の結合テスト・decisions_archive/57）。その前の phase 55 の領域（キーボード表示のウィンドウ）の残件 = 下記「別タスク化候補」の keyboard_window の 1 行。
+- **直近のフェーズが扱った領域 = 画面サイズの調整**（phase 58）。正本 = `features.md` §4.5（ステータス欄のフックの 3 状態）・§4.6「フル表示の幅配分」「フル表示の 3 枠のスクロール」「省略表示の上部の開閉」「省略表示のウィンドウ」/ `data_schema.md` §5.4（`compact_header_view`）/ 地図 = `codebase_map.md`（`views/full_view/scroll_area.py`・`controllers/compact_header_controller.py`・`pane_measure`）。**残件** = decisions_archive/58 の保留（スクロールバーの出し入れで枠の要求幅が約 17px 増減・3 枠同時のスクロールバー / 一覧のスクロールバーの上のホイールの自動テストなし・開いた見出しと閉じた見出しの様式の違い）。
+- その前の領域 = **画面の枠でカーソル移動・クリック**（phase 56・57）。正本 = `features.md` §4.7 / `data_schema.md` §5.6.1 / `key_input.md` §7.3・§7.4 / `nonfunctional.md`「画面の枠の座標系」/ 地図 = `codebase_map.md`「画面の枠（phase 56・57）」。**残件** = idea_44（枠の配色）/ idea_45（既存のキー取得の記号キー名）/ phase 56 task_07 の保留 L1・L5（decisions_archive/56）/ phase 57 の見送り（OK の拒否の理由に画面名・4 経路の ops の往復の結合テスト・decisions_archive/57）。その前の phase 55 の領域（キーボード表示のウィンドウ）の残件 = 下記「別タスク化候補」の keyboard_window の 1 行。
 - **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37〜40）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**・phase 37）。
   phase 38 で file_line の読込をワーカー + UI 側 50 ms 確認タイマーへ移し、上限 5 秒・同じ読込キーの待ち合わせ・読込結果のキャッシュを加えた。構成セットの読込等で連続実行を常に停止する（既存挙動の変更）。
   正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.10・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
@@ -57,7 +59,7 @@
   **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**23 まで起票済**・次採番は「次採番」節が正）。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**24 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -91,7 +93,7 @@
   **phase 55 は 2026-10-12 完了**（`55_keyboard_ui_window` / 暫定 39〔v0.6・凍結〕/ decisions 55〔アーカイブ済〕）。
   **phase 56 は 2026-10-13 完了**（`56_screen_grid_cursor` / 暫定 40〔v0.7・凍結〕/ decisions 56〔アーカイブ済〕）。
   **phase 57 は 2026-10-14 完了**（`57_grid_crosshair_nudge` / 暫定 41〔v0.4・凍結〕/ decisions 57〔アーカイブ済〕）。
-  **phase 58 は着手中**（`58_window_size_fit` / 暫定 42 / decisions 58）。
+  **phase 58 は 2026-10-15 完了**（`58_window_size_fit` / 暫定 42〔v0.3・凍結〕/ decisions 58〔アーカイブ済〕）。
   次フェーズは **`59_<topic>`**・decisions も **59** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -131,9 +133,9 @@
   39=キーボードUIのウィンドウ改善〔**v0.6・凍結**〕 /
   40=画面の枠でカーソル移動・クリック〔**v0.7・凍結**〕 /
   41=画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化〔**v0.4・凍結**〕 /
-  42=画面サイズの調整〔v0.3・ユーザー確定・phase 58 の主入力〕）。
+  42=画面サイズの調整〔**v0.3・凍結**〕）。
   次採番は **`43_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**23 まで起票済**
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**24 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
   **10 = phase 19 由来・実施済＝phase 19 task_07** /
@@ -150,7 +152,8 @@
   **21 = phase 55 由来・実施済＝phase 55 task_06_refactor**〔Win32 の窓・マウスの問い合わせを `infrastructure/win32_window.py` へ・初回だけ記録の同型 4 個を共通補助へ〕 /
   **22 = phase 56 由来・実施済＝phase 56 task_09_refactor**〔keymap の任意キーの受け渡しの 3 か所を 1 定義へ・振り直しの段を自動割当の順から作る〕 /
   **23 = phase 57 由来・実施済＝phase 57 task_08_refactor**〔矢印の操作キーの集合を 1 か所に・選択の解除を 1 つの呼び出しに・パネルのボタンの色を定数に〕 /
-  次採番は **`24_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **24 = phase 58 由来・実施済＝phase 58 task_07_refactor**〔省略表示の上部の見出しの文言を 1 関数に・区画の題名と配置を登録時に受け取る・フル表示の 3 枠のタプルを 1 か所に〕 /
+  次採番は **`25_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）

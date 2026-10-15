@@ -1,6 +1,6 @@
 # 提案書 24: phase 58（画面サイズの調整）後のリファクタ
 
-> 状態: **起票（2026-10-15・ユーザー判断待ち）**。
+> 状態: **実施済**（2026-10-15・phase 58 task_07_refactor。見出しの文言を `_heading_text` に・区画の題名と pack の引数を登録時に受け取り `_title` / `("hook", "display")` / `pady=(8, 0)` の重複を削除・`_full_view_boxes` で 3 枠のタプルを 1 か所に・項目 0 のテスト追加・reviewer 採用）。
 
 ## 判定の要約
 
@@ -55,7 +55,7 @@
 
 - 対象: `controllers/pane_layout/pane_measure.py:40`・`:99`
 - 変更: `def _full_view_boxes(app) -> tuple[...]: view = app.full_view; return (view.keymap_box, view.trigger_box, view.sequence_box)` を置き、2 か所をこれに置き換える（`measure_min_widths` の枠ごとの式は枠ごとに違うので対象外）
-- 完了条件: 項目 0 のコマンドが全 pass。`grep -c "keymap_box, " keyseq/presentation/controllers/pane_layout/pane_measure.py` が 1（関数の中だけ）
+- 完了条件: 項目 0 のコマンドが全 pass。`grep -c "keymap_box, .*trigger_box, .*sequence_box" keyseq/presentation/controllers/pane_layout/pane_measure.py` が 1（`_full_view_boxes` の中だけ。`measure_min_widths` の `_stacked_width(app, view.keymap_box, ...)` は枠ごとの式なので数えない・実施時に訂正）
 - リスクと戻し方: 挙動不変。戻すならタプルを 2 か所に書き戻す
 - 依存: なし
 

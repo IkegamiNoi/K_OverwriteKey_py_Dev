@@ -355,11 +355,11 @@ class App(tk.Tk):
         self.compact_view = CompactView(self.outer, app=self)
         self.compact_header.register_section(
             "hook", self.compact_view.hook_frame, self.compact_view.hook_frame.heading,
-            self.compact_view.hook_heading,
+            self.compact_view.hook_heading, "フック",
         )
         self.compact_header.register_section(
             "display", self.compact_view.display_frame, self.compact_view.display_frame.heading,
-            self.compact_view.display_heading,
+            self.compact_view.display_heading, "表示",
         )
         self.compact_header.apply_initial_state()
 
