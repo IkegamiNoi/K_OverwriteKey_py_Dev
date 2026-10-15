@@ -24,7 +24,7 @@ summary: |
 verified:
   task_06a: tests 1662 OK / tests_ui 1077 OK / smoke OK（verifier）・reviewer 採用
   task_07_refactor: compileall / tests 1662 OK / smoke OK / 対象 UI 5 モジュール OK・reviewer 修正して採用（範囲外の整形を戻した）。
-  tests_ui 全体では `test_compact_window` の 3 件が一時 FAIL → 環境要因（phase 開始時点 33dea2a でも同じく落ちた）。ユーザーが 2 台目のモニタを外して再実行 → 8 件 OK（2026-10-15）
+  tests_ui 全体では `test_compact_window` の 3 件が一時 FAIL → 環境要因（phase 開始時点 33dea2a でも同じく落ちた）。再実行で 8 件 OK。モニタ 2 台の認識のままでも OK（CPU 19%・16〜18 秒）のため、原因はモニタではなく失敗時の高負荷（CPU 66%・1 回 48 秒・全体 3.5 倍遅い）による 500ms 待ちのずれとみる（2026-10-15）
 
 ## next_action
 - **次フェーズはユーザー判断**（`/phase_start`）
