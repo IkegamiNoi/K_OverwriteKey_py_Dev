@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-16T02:00:00
+last_updated: 2026-10-16T09:00:00
 phase: **59_keyboard_ui_left_right_modifiers**（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー・2026-10-15 起票・主入力 = 暫定 43 v0.4 ユーザー確定済）。次採番 = phase 60 / 暫定 44 / decisions 60 / 提案書 25
 直前の完了フェーズ = **phase 58**（`decisions_archive/58_window_size_fit.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 一式・完了）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
@@ -12,8 +12,8 @@ last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 �
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 59 task_04a 実機目視 OK（Caps 単独で何も入らない）。task_04b（`??` のとき案内の欄に理由）実装・検証・レビュー済・コミット済。task_04b の実機目視待ち。**
-mode: pending_user_check
+focus: **phase 59 task_04 / 04a / 04b 完了（2026-10-16 ユーザー実機目視 OK）。task_05（統合確認）実施中 = deep-reviewer + codex-reviewer。**
+mode: reviewing
 
 ## last_action
 ts: 2026-10-16T02:00:00
@@ -27,8 +27,9 @@ verified:
   review: reviewer 採用
 
 ## next_action
-- **【ユーザー確認待ち】task_04b の実機目視**: キーマップの編集ダイアログの取得中に Caps キー単独 / IME ON で文字キー → 案内の欄に理由が出て取得が続く
-  → OK なら task_04 系を完了 → task_05（統合: deep-reviewer + codex-reviewer）→ task_06（正本反映・idea は起票元ではないので backlog の移動なし）
+- **task_05**（統合確認）: 退行テストは task_04b の最終検証（9e13d20 と同じコード・全 pass）を流用。`deep-reviewer` + `codex-reviewer`（`git diff 224762e..HEAD`）→ 裏取り → 採否をユーザーと決める
+- 実機目視の記録: task_04b の Caps 単独で IME の ON/OFF が点滅した件はメモ帳でも起きた Windows / IME 側の一時的な動き（アプリの不具合ではない）・その後期待どおり（2026-10-16）
+- その後: task_06（正本反映・凍結・decisions_archive・current.md・/refactor_check・完了判定前レビュー）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
