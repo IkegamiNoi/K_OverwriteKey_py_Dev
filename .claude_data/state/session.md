@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-15T09:30:00
+last_updated: 2026-10-15T11:00:00
 phase: **58_window_size_fit**（画面サイズの調整・2026-10-14 起票・主入力 = 暫定 42 v0.3 ユーザー確定済）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 24
 直前の完了フェーズ = **phase 57**（`decisions_archive/57_grid_crosshair_nudge.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 task_02 完了・実機目視 OK）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
@@ -12,24 +12,31 @@ last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 ta
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 58 task_03 完了（検証・レビュー済・コミット済）。次 = task_04（未着手・定義の起票から・実装後に実機目視 = task_03 分も含む）。**
-mode: implementing
+focus: **phase 58 task_04 実装・検証・レビュー済（コミット済）・ユーザーの実機目視待ち（task_03 分を含む）。task_05 は目視 OK 後。**
+mode: pending_user_check
 
 ## last_action
-ts: 2026-10-15T09:30:00
+ts: 2026-10-15T11:00:00
 who: main
 summary: |
-  task_02 完了（ユーザー実機目視 OK）。task_03（フル表示 3 枠の縦スクロール領域 = 新規 `views/full_view/scroll_area.py` の VerticalScrollArea・3 枠の中身を移す・
-  pane_measure を中身の Frame の子から測る + 測る前に sync）を codex-implementer で実装。verifier の失敗を 3 回で解消:
-  初回の配置前にスクロールバーを出して初期幅 +17px / 測定中の <Configure> を捨てて伸びた後に測り直さない / 新規テストが高さ 1 で素通り。
-  test_full_view_panes.py の `_assert_children_fit` は構造の変化で最小修正（タスク定義に例外として追記・期待値は不変）。最小の幅・高さの値は不変。
+  task_03 コミット（750ee83）。task_04（pane_measure: H = 3 枠の「飾り + 中身の要求高さ」の最大・最小の高さ = 今の値 − panes の要求高さ + ceil(H/2)・
+  3 枠の最小幅に各枠のスクロールバーの要求幅を常に加算）を codex-implementer で実装。既存テストの「最小で何も切れない」を「最下段までスクロールで届く」へ置換。
+  verifier の失敗 2 件をメインが修正: ①省略表示の minsize（+3 で高さ 707）が残ったままフル表示の geometry を復元して 707 で止まる既存の潜在不具合
+  （以前はフル表示の最小 931 が常に大きく隠れていた）→ `app.show_full_view` で復元前に `release_window_min_size()` ②新規テストの前提（最小で出力シーケンスにスクロールバーが出ない）の誤り。
+  reviewer 指摘 1（一時メッセージのラベルが無いと新しい式を通らない）も修正。
+  参考値: 最小の高さ フォント 0 = 541（旧 798）/ +3 = 635（旧 931・画面 966 に収まる）。
 verified:
-  compile: pass / tests: 1662 OK（skip 7）/ tests_ui: 1068 OK / smoke OK / config 不変（verifier）
-  review: reviewer 採用。参考指摘（テストの補強）: 間隔欄のホイール確認が ttk.Entry の既定で素通りに近い / スクロールバー非表示時に枠が動かないこと・呼び出し先の一覧の上で動かないことが未確認 → task_04 でテスト補強を検討
+  compile: pass / tests: 1662 OK（skip 7）/ tests_ui: 1072 OK / smoke OK / config 不変（verifier）
+  review: reviewer 採用（本体）+ 追加修正 3 点も採用。参考: テスト補強の残り（ホイールの配送が vacuous になり得る・テスト内の補助の重複）
 
 ## next_action
-- **task_04**（フル表示の最小の高さを下げる = H の測り方・ceil(H/2) / 各枠の最小幅にスクロールバーの幅を加算・既存の最小の高さ / 幅のテストの書き換え）: 定義を起票して codex-implementer → verifier → reviewer → **ユーザーの実機目視**（task_03 分も含む）
-- その後: task_05（統合）→ task_06（正本反映）
+- **【ユーザー確認待ち】task_04 の実機目視**（task_03 分を含む・`main.py` を .venv で起動 → フル表示）:
+  1. フォント +3 でフル表示が画面に収まる（最小の高さ 635 前後）
+  2. ウィンドウを最小幅・最小の高さまで縮める → 収まらない枠にだけスクロールバーが出て、ボタン・チェック・間隔欄が横に切れない
+  3. スクロールバー・ホイールで各枠の最下段まで届く / 一覧の上のホイールは一覧だけがスクロール / 間隔欄の上のホイールで値が変わらない
+  4. 高さを戻すとスクロールバーが消えて先頭へ戻る / 今までの大きさ以上では見た目が今と同じ
+  5. 省略表示 ↔ フル表示の往復（フォントを変えてから戻るを含む）で高さがおかしくならない
+  → OK なら task_04 完了 → task_05（統合: deep-reviewer + codex-reviewer）→ task_06（正本反映）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers

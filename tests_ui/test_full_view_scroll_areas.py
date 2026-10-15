@@ -4,6 +4,7 @@ from unittest.mock import patch
 from keyseq.presentation import app as app_module, theme
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.pane_layout.pane_measure import measure_min_widths
+from keyseq.application.call_view import CallViewSummary
 
 
 class FullViewScrollAreasTest(unittest.TestCase):
@@ -66,18 +67,38 @@ class FullViewScrollAreasTest(unittest.TestCase):
         self.app._apply_font_delta(delta)
         self.app.update()
 
-    def test_default_and_minimum_height_fit_without_scrollbars(self) -> None:
-        for height in (self.app.winfo_height(), self.app.pane_layout.window_min_height):
-            with self.subTest(height=height):
-                self._set_height(height)
-                for box in self.boxes:
-                    area = box.scroll_area
-                    area.sync()
-                    self.assertFalse(area.scrollbar_shown)
-                    self.assertGreaterEqual(
-                        int(float(area.canvas.itemcget(area._content_window, "height"))),
-                        area.content.winfo_reqheight(),
-                    )
+    def _ending_widget(self, box):
+        if box is self.view.keymap_box:
+            return box.scroll_area.content.winfo_children()[-1].winfo_children()[-1]
+        if box is self.view.trigger_box:
+            return box.suppress_chk
+        return box.select_before_run_chk
+
+    def test_default_height_fits_and_minimum_height_keeps_contents_reachable(self) -> None:
+        self._set_height(self.app.winfo_height())
+        for box in self.boxes:
+            area = box.scroll_area
+            area.sync()
+            self.assertFalse(area.scrollbar_shown)
+            self.assertGreaterEqual(
+                int(float(area.canvas.itemcget(area._content_window, "height"))),
+                area.content.winfo_reqheight(),
+            )
+        self._set_height(self.app.pane_layout.window_min_height)
+        for box in self.boxes:
+            area = box.scroll_area
+            area.sync()
+            if area.content.winfo_reqheight() > area.canvas.winfo_height():
+                self.assertTrue(area.scrollbar_shown)
+                area.canvas.yview_moveto(1)
+                self.app.update()
+                ending = self._ending_widget(box)
+                top = area.canvas.winfo_rooty()
+                bottom = top + area.canvas.winfo_height()
+                self.assertLess(ending.winfo_rooty(), bottom)
+                self.assertGreater(ending.winfo_rooty() + ending.winfo_height(), top)
+            else:
+                self.assertFalse(area.scrollbar_shown)
 
     def test_scroll_area_request_sizes_match_content(self) -> None:
         for box in self.boxes:
@@ -133,7 +154,7 @@ class FullViewScrollAreasTest(unittest.TestCase):
             box.scroll_area.sync()
             if box.scroll_area.scrollbar_shown:
                 box.scroll_area.canvas.yview_moveto(1)
-        self._set_height(self.app.pane_layout.window_min_height)
+        self._set_height(self.app.winfo_reqheight())
         for box in self.boxes:
             area = box.scroll_area
             area.sync()
@@ -171,6 +192,46 @@ class FullViewScrollAreasTest(unittest.TestCase):
         self.app.update()
         self.assertEqual(self.app.ui_vars.run_to_end_delay_var.get(), before_delay)
 
+    def test_wheel_on_hidden_pane_call_list_and_action_list_does_not_scroll_sequence(self) -> None:
+        sequence = self.view.sequence_box
+        # 今の測り方の高さ（要求の高さ）では 3 枠とも収まり、スクロールバーは出ない。
+        self._set_height(self.app.winfo_reqheight())
+        sequence.scroll_area.sync()
+        self.assertFalse(sequence.scroll_area.scrollbar_shown)
+        before = sequence.scroll_area.canvas.yview()
+        sequence.scroll_area.content.event_generate("<MouseWheel>", delta=-120)
+        self.app.update()
+        self.assertEqual(sequence.scroll_area.canvas.yview(), before)
+
+        summary = CallViewSummary(
+            path=("f1", "f5", "f7"), actions=(), position=0,
+            loop_frames=(), counters={},
+        )
+        with patch.object(self.app.sequence_runner, "call_view_summary_for", return_value=summary), \
+                patch.object(self.app.trigger_panel, "selected_trigger_key", return_value="f1"):
+            identity = self.app.call_view._identity
+            self.app.call_view._manually_operated.discard(identity)
+            self.app.call_view.on_changed()
+        self.app.update()
+        self.assertTrue(self.app.call_view.is_open)
+        try:
+            self.app.minsize(1, 1)
+            self._set_height(max(2, self.app.pane_layout.window_min_height - 150))
+            sequence.scroll_area.sync()
+            self.assertTrue(sequence.scroll_area.scrollbar_shown)
+            call_list = self.view.sequence_box.call_view_frame.action_list
+            before = sequence.scroll_area.canvas.yview()
+            call_list.event_generate("<MouseWheel>", delta=-120)
+            self.app.update()
+            self.assertEqual(sequence.scroll_area.canvas.yview(), before)
+
+            sequence.action_list.event_generate("<MouseWheel>", delta=-120)
+            self.app.update()
+            self.assertEqual(sequence.scroll_area.canvas.yview(), before)
+        finally:
+            self.app.call_view.on_changed()
+            self.app.update()
+
     def test_measurement_does_not_reschedule_forever(self) -> None:
         area = self.view.keymap_box.scroll_area
         with patch.object(area, "_measure_scroll_area", wraps=area._measure_scroll_area) as measure:
@@ -182,11 +243,11 @@ class FullViewScrollAreasTest(unittest.TestCase):
             self.assertEqual(measure.call_count, settled_count)
             self.assertFalse(area._measure_pending)
 
-    def test_font_minus_three_and_plus_three_keep_fit_invariants(self) -> None:
+    def test_font_minus_three_and_plus_three_fit_at_full_request_height(self) -> None:
         for delta in (-3, 3):
             with self.subTest(delta=delta):
                 self._set_font(delta)
-                self._set_height(self.app.pane_layout.window_min_height)
+                self._set_height(self.app.winfo_reqheight())
                 for box in self.boxes:
                     area = box.scroll_area
                     area.sync()

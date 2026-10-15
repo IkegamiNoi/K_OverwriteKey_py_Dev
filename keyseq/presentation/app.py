@@ -523,6 +523,8 @@ class App(tk.Tk):
         except Exception:
             pass
         self.full_view.pack(fill="both", expand=True)
+        # 省略表示の最小の大きさが残ると、フル表示の高さの復元が省略表示の最小で止まる。
+        self.pane_layout.release_window_min_size()
         self._restore_full_geometry()
         self.trigger_panel.sync_trigger_selection_to_views()
         self.trigger_panel.refresh_actions()  # full側のシーケンス表示を復帰

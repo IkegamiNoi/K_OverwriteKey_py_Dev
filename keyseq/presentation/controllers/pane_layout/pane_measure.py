@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from math import ceil
 from tkinter import font as tkfont, ttk
 from typing import TYPE_CHECKING
 
@@ -13,20 +14,31 @@ if TYPE_CHECKING:
 
 
 def measure_window_min_height(app: App) -> int:
-    """paneconfigure 適用後、一時メッセージは 1 行分として測る（暫定仕様18 §2-7）。"""
+    """メイン領域の半分を下限にし、一時メッセージは 1 行分として測る。"""
     _sync_full_view_scroll_areas(app)
     app.update_idletasks()
     height = app.winfo_reqheight()
     label = _find_flash_message_label(app)
-    if label is None:
-        return height
-    other_heights = [
+    other_heights = [] if label is None else [
         child.winfo_reqheight() for child in label.master.winfo_children()
         if isinstance(child, ttk.Label) and child is not label
     ]
-    if not other_heights:
-        return height
-    return height - max(0, label.winfo_reqheight() - max(other_heights))
+    if other_heights:
+        height -= max(0, label.winfo_reqheight() - max(other_heights))
+    return height - app.full_view.panes.winfo_reqheight() + ceil(
+        measure_main_area_basis_height(app) / 2
+    )
+
+
+def measure_main_area_basis_height(app: App) -> int:
+    """3 枠の飾りと中身の要求高さからメイン領域の基準高さ H を測る。"""
+    _sync_full_view_scroll_areas(app)
+    app.update_idletasks()
+    return max(
+        box.winfo_reqheight() - box.scroll_area.winfo_reqheight()
+        + box.scroll_area.content.winfo_reqheight()
+        for box in (app.full_view.keymap_box, app.full_view.trigger_box, app.full_view.sequence_box)
+    )
 
 
 def _find_flash_message_label(app: App) -> ttk.Label | None:
@@ -58,12 +70,18 @@ def measure_min_widths(app: App) -> MinWidths:
     if len(gap_parts) == 1:
         gap *= 2
     return MinWidths(
-        keymap=_stacked_width(app, view.keymap_box, view.keymap_box.keymap_listbox),
-        trigger=_stacked_width(app, view.trigger_box, view.trigger_box.trigger_list),
+        keymap=(
+            _stacked_width(app, view.keymap_box, view.keymap_box.keymap_listbox)
+            + view.keymap_box.scroll_area.scrollbar.winfo_reqwidth()
+        ),
+        trigger=(
+            _stacked_width(app, view.trigger_box, view.trigger_box.trigger_list)
+            + view.trigger_box.scroll_area.scrollbar.winfo_reqwidth()
+        ),
         sequence=side_by_side_min_width(
             _list_row(app, sequence.action_list), buttons.winfo_reqwidth(),
             gap, chrome, title,
-        ),
+        ) + sequence.scroll_area.scrollbar.winfo_reqwidth(),
     )
 
 

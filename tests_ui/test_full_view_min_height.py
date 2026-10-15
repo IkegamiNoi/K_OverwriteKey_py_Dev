@@ -154,7 +154,7 @@ class FullViewMinHeightTest(unittest.TestCase):
         self.panes.event_generate("<ButtonRelease-1>", x=x + dx, y=y)
         self.app.update()
 
-    def test_minimum_height_keeps_contents_visible(self) -> None:
+    def test_minimum_height_keeps_pane_contents_reachable(self) -> None:
         for delta in (-3, 0, 3):
             with self.subTest(delta=delta):
                 self._set_font(delta)
@@ -167,21 +167,26 @@ class FullViewMinHeightTest(unittest.TestCase):
                     self.assertLessEqual(
                         child.winfo_y() + child.winfo_height(), self.app.winfo_height(),
                     )
-                for box in self.boxes:
-                    for child in box.winfo_children():
-                        if child.winfo_manager() == "pack":
-                            self.assertTrue(child.winfo_ismapped(), str(child))
-                            self.assertGreaterEqual(child.winfo_height(), child.winfo_reqheight())
-                            self.assertLessEqual(
-                                child.winfo_y() + child.winfo_height(), box.winfo_height(),
-                            )
-                for listing in (
-                    self.view.keymap_box.keymap_listbox, self.view.trigger_box.trigger_list,
-                    self.view.sequence_box.action_list,
-                ):
-                    self.assertGreaterEqual(listing.winfo_height(), listing.winfo_reqheight())
                 header = self.view.header_area
                 self.assertGreaterEqual(header.winfo_height(), header.winfo_reqheight())
+                endings = (
+                    self.view.keymap_box.scroll_area.content.winfo_children()[-1].winfo_children()[-1],
+                    self.view.trigger_box.suppress_chk,
+                    self.view.sequence_box.select_before_run_chk,
+                )
+                for box, ending in zip(self.boxes, endings):
+                    area = box.scroll_area
+                    area.sync()
+                    if area.content.winfo_reqheight() > area.canvas.winfo_height():
+                        self.assertTrue(area.scrollbar_shown)
+                        area.canvas.yview_moveto(1)
+                        self.app.update()
+                        top = area.canvas.winfo_rooty()
+                        bottom = top + area.canvas.winfo_height()
+                        self.assertLess(ending.winfo_rooty(), bottom)
+                        self.assertGreater(ending.winfo_rooty() + ending.winfo_height(), top)
+                    else:
+                        self.assertFalse(area.scrollbar_shown)
 
     def test_font_changes_recalculate_minimum_height(self) -> None:
         self._set_font(0)
