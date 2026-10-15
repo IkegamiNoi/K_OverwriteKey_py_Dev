@@ -192,16 +192,23 @@ class FullViewPanesTest(unittest.TestCase):
                 self.assertEqual(self.app.wm_minsize(), before_minimum)
 
     def _assert_children_fit(self, parent: tk.Misc, listing: tk.Listbox) -> None:
+        area = next(box.scroll_area for box in self.boxes if str(listing).startswith(str(box)))
+        # スクロール領域の中継の容器は要求幅に既定幅の一覧を含むため、幅の比較から外す。
+        excluded_widths = {str(area), str(area.canvas), str(area.content)}
         for child in parent.winfo_children():
             if isinstance(parent, tk.PanedWindow) and str(child) not in {
                 str(pane) for pane in parent.panes()
             }:
                 # 閉じた呼び出し枠は管理対象外であり、表示する中身に含めない。
                 continue
+            if child is area.scrollbar and not area.scrollbar_shown:
+                # 収まっている枠のスクロールバーは隠れている。
+                continue
             # 一覧の幅は要求幅ではなく、上で 10 文字相当を確認する。
             if child is not listing and child is not listing.master:
                 self.assertTrue(child.winfo_ismapped(), str(child))
-                self.assertGreaterEqual(child.winfo_width(), child.winfo_reqwidth(), str(child))
+                if str(child) not in excluded_widths:
+                    self.assertGreaterEqual(child.winfo_width(), child.winfo_reqwidth(), str(child))
                 self.assertGreaterEqual(child.winfo_x(), 0, str(child))
                 self.assertLessEqual(child.winfo_x() + child.winfo_width(), parent.winfo_width(), str(child))
             self._assert_children_fit(child, listing)

@@ -5,6 +5,7 @@ from tkinter import ttk
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag
+from keyseq.presentation.views.full_view.scroll_area import VerticalScrollArea
 
 
 if TYPE_CHECKING:
@@ -14,9 +15,11 @@ if TYPE_CHECKING:
 class FullTriggerBox(ttk.LabelFrame):
     def __init__(self, parent, app: App):
         super().__init__(parent, text="トリガー一覧（選択して編集）", padding=10)
+        self.scroll_area = VerticalScrollArea(self)
+        self.scroll_area.pack(fill="both", expand=True)
 
         # トリガー一覧（スクロール）
-        tl_frame = ttk.Frame(self)
+        tl_frame = ttk.Frame(self.scroll_area.content)
         tl_frame.pack(side="top", fill="both", expand=True)
         # 既定12行の半分をフル表示の最小高さの基準にする（表示行数は伸びた分で決まる）。
         self.trigger_list = tk.Listbox(tl_frame, height=6, width=26, exportselection=False)
@@ -38,7 +41,7 @@ class FullTriggerBox(ttk.LabelFrame):
         )
         app.trigger_panel.register_trigger_list(self.trigger_list)
 
-        tbtns = ttk.Frame(self)
+        tbtns = ttk.Frame(self.scroll_area.content)
         tbtns.pack(fill="x", pady=(6, 0))
         ttk.Button(tbtns, text="追加", command=app.trigger_panel.add_trigger).pack(fill="x", pady=(0, 3))
         ttk.Button(tbtns, text="トリガー変更", command=app.trigger_panel.rename_trigger).pack(fill="x", pady=3)
@@ -49,9 +52,10 @@ class FullTriggerBox(ttk.LabelFrame):
         ttk.Button(tbtns, text="読込", command=app.trigger_set_io.load_trigger_set_file).pack(fill="x", pady=3)
 
         self.suppress_chk = ttk.Checkbutton(
-            self,
+            self.scroll_area.content,
             text="トリガーキーを抑止（suppress）",
             variable=app.ui_vars.suppress_var,
             command=app.trigger_panel.update_suppress,
         )
         self.suppress_chk.pack(anchor="w", pady=(6, 0))
+        self.scroll_area.bind_wheel(skip=(self.trigger_list, sb))

@@ -14,6 +14,7 @@ if TYPE_CHECKING:
 
 def measure_window_min_height(app: App) -> int:
     """paneconfigure 適用後、一時メッセージは 1 行分として測る（暫定仕様18 §2-7）。"""
+    _sync_full_view_scroll_areas(app)
     app.update_idletasks()
     height = app.winfo_reqheight()
     label = _find_flash_message_label(app)
@@ -46,6 +47,7 @@ def measure_header_window_width(app: App) -> int:
 
 
 def measure_min_widths(app: App) -> MinWidths:
+    _sync_full_view_scroll_areas(app)
     view = app.full_view
     view.update_idletasks()
     sequence = view.sequence_box
@@ -68,10 +70,16 @@ def measure_min_widths(app: App) -> MinWidths:
 def _stacked_width(app: App, box: ttk.LabelFrame, listing: tk.Listbox) -> int:
     chrome, title = _frame_widths(app, box)
     others = [
-        child.winfo_reqwidth() for child in box.winfo_children()
+        child.winfo_reqwidth() for child in box.scroll_area.content.winfo_children()
         if child is not listing.master
     ]
     return stacked_min_width(_list_row(app, listing), others, chrome, title)
+
+
+def _sync_full_view_scroll_areas(app: App) -> None:
+    view = app.full_view
+    for box in (view.keymap_box, view.trigger_box, view.sequence_box):
+        box.scroll_area.sync()
 
 
 def _list_row(app: App, listing: tk.Listbox) -> int:

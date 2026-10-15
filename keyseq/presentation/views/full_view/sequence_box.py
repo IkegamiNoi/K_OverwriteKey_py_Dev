@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag
 from keyseq.presentation.pane_width_rules import MIN_LIST_CHARS
 from keyseq.presentation.views.full_view.call_view_frame import CallViewFrame
+from keyseq.presentation.views.full_view.scroll_area import VerticalScrollArea
 
 
 if TYPE_CHECKING:
@@ -16,9 +17,11 @@ if TYPE_CHECKING:
 class SequenceBox(ttk.LabelFrame):
     def __init__(self, parent, app: App):
         super().__init__(parent, text="出力シーケンス（選択中トリガーの内容）", padding=10)
+        self.scroll_area = VerticalScrollArea(self)
+        self.scroll_area.pack(fill="both", expand=True)
 
         # 既定18行の半分をフル表示の最小高さの基準にする（表示行数は伸びた分で決まる）。
-        self.action_column = ttk.Frame(self)
+        self.action_column = ttk.Frame(self.scroll_area.content)
         self.action_column.pack(side="left", fill="both", expand=True)
         self.action_panes = tk.PanedWindow(
             self.action_column, orient="vertical", borderwidth=0, sashwidth=4,
@@ -44,7 +47,7 @@ class SequenceBox(ttk.LabelFrame):
         asb = ttk.Scrollbar(self.action_frame, orient="vertical", command=self.action_list.yview)
         self.action_list.configure(yscrollcommand=asb.set)
 
-        abtns = ttk.Frame(self)
+        abtns = ttk.Frame(self.scroll_area.content)
         abtns.pack(side="right", fill="y", padx=(12, 0))
         asb.pack(side="right", fill="y")
         self.action_list.pack(side="left", fill="both", expand=True)
@@ -89,3 +92,7 @@ class SequenceBox(ttk.LabelFrame):
         self.run_to_end_delay_entry.bind("<Return>", app.trigger_panel.update_run_to_end_delay)
         self.run_to_end_delay_entry.bind("<FocusOut>", app.trigger_panel.update_run_to_end_delay)
         self.select_before_run_chk.pack(anchor="w", pady=(6, 0))
+        self.scroll_area.bind_wheel(skip=(
+            self.action_list, asb,
+            self.call_view_frame.action_list, self.call_view_frame.scrollbar,
+        ))

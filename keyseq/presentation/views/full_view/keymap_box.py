@@ -5,6 +5,7 @@ from tkinter import ttk
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag
+from keyseq.presentation.views.full_view.scroll_area import VerticalScrollArea
 
 
 if TYPE_CHECKING:
@@ -14,8 +15,10 @@ if TYPE_CHECKING:
 class KeymapBox(ttk.LabelFrame):
     def __init__(self, parent, app: App):
         super().__init__(parent, text="キーマップ管理", padding=10)
+        self.scroll_area = VerticalScrollArea(self)
+        self.scroll_area.pack(fill="both", expand=True)
 
-        keymap_list_frame = ttk.Frame(self)
+        keymap_list_frame = ttk.Frame(self.scroll_area.content)
         keymap_list_frame.pack(side="top", fill="both", expand=True)
         # 既定12行の半分をフル表示の最小高さの基準にする（表示行数は伸びた分で決まる）。
         self.keymap_listbox = tk.Listbox(keymap_list_frame, height=6, width=26, exportselection=False)
@@ -37,7 +40,7 @@ class KeymapBox(ttk.LabelFrame):
         self.keymap_listbox.pack(side="left", fill="both", expand=True)
         self.keymap_listbox.configure(yscrollcommand=keymap_list_scrollbar.set)
 
-        keymap_btns = ttk.Frame(self)
+        keymap_btns = ttk.Frame(self.scroll_area.content)
         keymap_btns.pack(fill="x", pady=(6, 0))
         self.keymap_add_btn = ttk.Button(keymap_btns, text="追加", command=app.keymap_panel.add_keymap)
         self.keymap_add_btn.pack(fill="x", pady=(0, 3))
@@ -49,3 +52,4 @@ class KeymapBox(ttk.LabelFrame):
         ttk.Button(keymap_btns, text="保存", command=app.keymap_io.save_selected_keymap).pack(fill="x", pady=3)
         ttk.Button(keymap_btns, text="別名で保存", command=app.keymap_io.save_selected_keymap_as).pack(fill="x", pady=3)
         ttk.Button(keymap_btns, text="読込", command=app.keymap_io.load_keymap_file).pack(fill="x", pady=3)
+        self.scroll_area.bind_wheel(skip=(self.keymap_listbox, keymap_list_scrollbar))

@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-15T08:00:00
+last_updated: 2026-10-15T09:30:00
 phase: **58_window_size_fit**（画面サイズの調整・2026-10-14 起票・主入力 = 暫定 42 v0.3 ユーザー確定済）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 24
 直前の完了フェーズ = **phase 57**（`decisions_archive/57_grid_crosshair_nudge.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 task_02 完了・実機目視 OK）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
@@ -12,20 +12,25 @@ last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 ta
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 58 task_02 完了（2026-10-15 ユーザー実機目視 OK・問題なし）。次 = task_03（未着手・定義の起票から）。**
+focus: **phase 58 task_03 完了（検証・レビュー済・コミット済）。次 = task_04（未着手・定義の起票から・実装後に実機目視 = task_03 分も含む）。**
 mode: implementing
 
 ## last_action
-ts: 2026-10-15T08:00:00
+ts: 2026-10-15T09:30:00
 who: main
 summary: |
-  ユーザーが task_02 の実機目視（Expander の開閉・見出しの見た目・閉じたままの再起動・task_01 の `フック: 一時停止`）を OK と報告（問題なし）→ task_02 完了。
-  実装は cd9b455（検証: tests 1662 OK / tests_ui 1061 OK / smoke OK・reviewer 修正して採用→反映済）。
+  task_02 完了（ユーザー実機目視 OK）。task_03（フル表示 3 枠の縦スクロール領域 = 新規 `views/full_view/scroll_area.py` の VerticalScrollArea・3 枠の中身を移す・
+  pane_measure を中身の Frame の子から測る + 測る前に sync）を codex-implementer で実装。verifier の失敗を 3 回で解消:
+  初回の配置前にスクロールバーを出して初期幅 +17px / 測定中の <Configure> を捨てて伸びた後に測り直さない / 新規テストが高さ 1 で素通り。
+  test_full_view_panes.py の `_assert_children_fit` は構造の変化で最小修正（タスク定義に例外として追記・期待値は不変）。最小の幅・高さの値は不変。
+verified:
+  compile: pass / tests: 1662 OK（skip 7）/ tests_ui: 1068 OK / smoke OK / config 不変（verifier）
+  review: reviewer 採用。参考指摘（テストの補強）: 間隔欄のホイール確認が ttk.Entry の既定で素通りに近い / スクロールバー非表示時に枠が動かないこと・呼び出し先の一覧の上で動かないことが未確認 → task_04 でテスト補強を検討
 
 ## next_action
-- **task_03**（フル表示の 3 枠のスクロール領域・最小の幅 / 高さの値は変えない）: 定義を起票して codex-implementer → verifier → reviewer
-- その後: task_04（実機目視あり・task_03 とまとめて見る）→ task_05（統合）→ task_06（正本反映）
-- main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58 = `claude/codex-process-management-9b8bfd` → 現在は `claude/physical-device-visual-check-79fcd3`）
+- **task_04**（フル表示の最小の高さを下げる = H の測り方・ceil(H/2) / 各枠の最小幅にスクロールバーの幅を加算・既存の最小の高さ / 幅のテストの書き換え）: 定義を起票して codex-implementer → verifier → reviewer → **ユーザーの実機目視**（task_03 分も含む）
+- その後: task_05（統合）→ task_06（正本反映）
+- main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
