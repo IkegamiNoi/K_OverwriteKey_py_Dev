@@ -8,6 +8,7 @@ from typing import Callable
 from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
     resolve_key_id_from_scan_code,
@@ -374,6 +375,8 @@ class KeyboardWindow(tk.Toplevel):
             display = self._display_map.get(lookup_key, spec.label)
             sub_display = spec.label if self._show_physical_key_labels else ""
             kind = self._kind_map.get(lookup_key, "normal")
+            if kind in ("normal", "keymap") and is_prohibited_assign_key(lookup_key):
+                kind = "prohibited"
             self._key_bounds.append((lookup_key, x1, y1, x2, y2))
 
             fill, outline, text_fill = self.set_key_color(kind)
@@ -425,6 +428,8 @@ class KeyboardWindow(tk.Toplevel):
             return "#dcecff", "#4c7ed9", "#163a78"
         if kind == "keymap":
             return "#e8f6df", "#5c9c3b", "#214d18"
+        if kind == "prohibited":
+            return "#e5e7eb", "#9ca3af", "#6b7280"
         return "#ffffff", "#aab4c3", "#24313f"
 
     def _find_key_at_point(self, x: float, y: float) -> str:
@@ -437,6 +442,8 @@ class KeyboardWindow(tk.Toplevel):
         key = self._find_key_at_point(event.x, event.y)
         if not key:
             return None
+        if is_prohibited_assign_key(key):
+            return "break"
         self._begin_edit(key)
         return "break"
 

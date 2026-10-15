@@ -6,6 +6,7 @@ from typing import Any
 
 from keyseq.application.key_overlap import analyze_key_overlaps
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.key_identifiers import is_prohibited_assign_key
 
 
 def validate_switch_batch(
@@ -21,10 +22,17 @@ def validate_switch_batch(
     analysis = analyze_key_overlaps(completed_runtime, stop_key, toggle_key)
     target_ids = {normalize_key_name(keymap_id) for keymap_id in row_keymap_ids}
     external_switches = _external_switches(completed_runtime, target_ids)
+    current_switches = _current_switches(runtime)
     normalized_keys: list[str] = []
 
     for index, raw_key in enumerate(row_keys):
         key = normalize_key_name(raw_key)
+        keymap_id = normalize_key_name(
+            row_keymap_ids[index] if index < len(row_keymap_ids) else ""
+        )
+        current_key = current_switches.get(keymap_id, "")
+        if is_prohibited_assign_key(key) and key != current_key:
+            return index, f"Windows キー・Caps Lock・AltGr は切替キーにできません:\n{key}"
         error = _validate_row_key(
             key,
             index,
@@ -39,6 +47,17 @@ def validate_switch_batch(
             return error
         normalized_keys.append(key)
     return None
+
+
+def _current_switches(runtime: dict[str, Any]) -> dict[str, str]:
+    raw_switches = runtime.get("keymap_switch_keys")
+    if not isinstance(raw_switches, dict):
+        return {}
+    return {
+        normalize_key_name(str(keymap_id or "")): normalize_key_name(str(key or ""))
+        for key, keymap_id in raw_switches.items()
+        if normalize_key_name(str(keymap_id or ""))
+    }
 
 
 def _runtime_with_new_keymaps(runtime: dict[str, Any], new_keymaps: list[dict[str, Any]]) -> dict[str, Any]:

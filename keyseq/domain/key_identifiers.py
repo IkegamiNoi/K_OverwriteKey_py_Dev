@@ -14,6 +14,18 @@ _SPECIAL_SCAN_CODE_TO_KEY_NAME = {
     scan_code: key_name for key_name, scan_code in _SPECIAL_KEY_NAME_TO_SCAN_CODE.items()
 }
 SPECIAL_KEY_NAMES = frozenset(_SPECIAL_KEY_NAME_TO_SCAN_CODE)
+PROHIBITED_ASSIGN_KEY_NAMES = frozenset(
+    {
+        "left windows",
+        "right windows",
+        "windows",
+        "caps lock",
+        "caps_lock",
+        "capslock",
+        "alt gr",
+        "altgr",
+    }
+)
 
 
 def resolve_known_scan_code_from_key_name(key_name: str) -> int | None:
@@ -33,3 +45,7 @@ def resolve_known_key_name_from_scan_code(scan_code: object) -> str:
 
 def is_special_key_name(key_name: str) -> bool:
     return normalize_key_name(key_name) in SPECIAL_KEY_NAMES
+
+
+def is_prohibited_assign_key(name: str) -> bool:
+    return normalize_key_name(name) in PROHIBITED_ASSIGN_KEY_NAMES

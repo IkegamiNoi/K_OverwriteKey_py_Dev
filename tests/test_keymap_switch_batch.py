@@ -25,6 +25,22 @@ def make_runtime():
 
 
 class ValidateSwitchBatchTest(unittest.TestCase):
+    def test_prohibited_switch_keys_are_rejected_for_the_row(self):
+        for key in ("caps lock", "caps_lock", "left windows", "alt gr"):
+            with self.subTest(key=key):
+                self.assertEqual(
+                    validate_switch_batch(make_runtime(), "", "", [], [key], ["new"]),
+                    (0, f"Windows キー・Caps Lock・AltGr は切替キーにできません:\n{key.strip().lower()}"),
+                )
+
+    def test_unchanged_prohibited_switch_key_is_accepted(self):
+        runtime = make_runtime()
+        runtime["keymap_switch_keys"]["caps lock"] = "existing"
+
+        self.assertIsNone(
+            validate_switch_batch(runtime, "", "", [], ["caps lock"], ["existing"])
+        )
+
     def test_empty_key_is_reported_at_its_zero_based_row(self):
         result = validate_switch_batch(make_runtime(), "stop", "toggle", [], ["ok", "  "], ["a", "b"])
         self.assertEqual(result, (1, "切替キーは必須です。"))

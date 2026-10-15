@@ -5,6 +5,7 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING, Callable, Collection
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.hook_button_texts import (
     CAPTURE_ACTIVE_TEXT,
@@ -241,7 +242,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             self._on_escape(event)
             return "break"
         key = normalize_tk_key_event(event)
-        if key in ("ctrl", "shift", "alt", "windows"):
+        if key in ("ctrl", "shift", "alt", "windows") or is_prohibited_assign_key(key):
             return "break"
         self.key_vars[self._capture_index].set(key)
         self._stop_capture()

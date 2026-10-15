@@ -7,6 +7,7 @@ from tkinter import messagebox, simpledialog
 from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.application.key_overlap import KeyOverlapAnalysis
 from keyseq.domain.config import normalize_key_name
+from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.keymap_triggers import INTERNAL_TRIGGER_SET_DIRTY, iter_trigger_sets, trigger_set_members
 from keyseq.domain.screen_grid import new_enabled_grid
 from keyseq.infrastructure import win32_window
@@ -171,6 +172,16 @@ class KeymapPanelController:
         exclude_switch_key: str = "",
         message_parent: tk.Misc | None = None,
     ) -> bool:
+        if (
+            is_prohibited_assign_key(key)
+            and normalize_key_name(key) != normalize_key_name(exclude_switch_key)
+        ):
+            messagebox.showerror(
+                "設定できません",
+                f"Windows キー・Caps Lock・AltGr は切替キーにできません:\n{key}",
+                parent=message_parent,
+            )
+            return False
         if self._app.trigger_service.is_stop_key_conflict(self._app.data, key):
             messagebox.showerror(
                 "設定できません", f"直接切替キーが停止キーと重複しています:\n{key}", parent=message_parent
@@ -607,6 +618,12 @@ class KeymapPanelController:
         source = normalize_key_name(source_key)
         target = normalize_key_name(target_key)
         if not source or not target:
+            return False
+        if is_prohibited_assign_key(source):
+            messagebox.showerror(
+                "設定できません",
+                "Windows キー・Caps Lock・AltGr はキーマップの元キーにできません。",
+            )
             return False
         if "+" in target:
             messagebox.showerror("設定できません", "キーマップは単キーのみ対応です。")

@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-15T22:00:00
+last_updated: 2026-10-15T23:00:00
 phase: **59_keyboard_ui_left_right_modifiers**（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー・2026-10-15 起票・主入力 = 暫定 43 v0.4 ユーザー確定済）。次採番 = phase 60 / 暫定 44 / decisions 60 / 提案書 25
 直前の完了フェーズ = **phase 58**（`decisions_archive/58_window_size_fit.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 一式・完了）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
@@ -12,20 +12,21 @@ last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 �
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 59 task_01 完了（キーボードUI の左右の対応・検証・レビュー済）。次 = task_02（割り当て禁止）。**
+focus: **phase 59 task_02 完了（割り当て禁止・検証・レビュー済）。次 = task_03（alt_gr の id と de.json）。**
 mode: implementing
 
 ## last_action
-ts: 2026-10-15T22:00:00
+ts: 2026-10-15T23:00:00
 who: main
 summary: |
-  phase 59 を起票（224762e）。task_01（`_LOOKUP_KEY_BY_ID` の修飾キー 8 行を左右で分ける + tests_ui 5 件）を codex-implementer で実装。
+  task_01 コミット（c242cb5）。task_02（`domain/key_identifiers.is_prohibited_assign_key`・キーボードUI の禁止の色と左クリックで編集しない・割り当ての入口の拒否・
+  切替キーの取得の無視と検査〔今の切替キーから変えたときだけ〕・まとめて設定の検査）を codex-implementer で実装。
 verified:
-  compile: pass / tests: 1662 OK（skip 7）/ tests_ui: 1083 OK / smoke OK / config 不変（verifier）
-  review: reviewer 採用。参考: キーボードUI の編集中に右 Ctrl 等を単独で押すと送信先として割り当たりうる（`keyboard_window.py:481` の修飾キー単独の判定が共通名だけ・既存の挙動）→ task_02 で確認
+  compile: pass / tests: 1666 OK（skip 7）/ tests_ui: 1089 OK / smoke OK / config 不変（verifier）
+  review: reviewer 採用
 
 ## next_action
-- **task_02**（割り当て禁止）: 定義を起票して codex-implementer → verifier → reviewer
+- **task_03**（標準の id `alt_gr` と `de.json` の見本）: 定義を起票して codex-implementer → verifier → reviewer
 - その後: task_02 割り当て禁止 → task_03 alt_gr と de.json → task_04 jis.json と実機目視 → task_05 統合 → task_06 正本反映
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`）
 
