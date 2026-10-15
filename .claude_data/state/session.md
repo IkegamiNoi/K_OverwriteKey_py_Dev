@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-15T11:00:00
+last_updated: 2026-10-15T11:30:00
 phase: **58_window_size_fit**（画面サイズの調整・2026-10-14 起票・主入力 = 暫定 42 v0.3 ユーザー確定済）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 24
 直前の完了フェーズ = **phase 57**（`decisions_archive/57_grid_crosshair_nudge.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 task_02 完了・実機目視 OK）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
@@ -12,8 +12,8 @@ last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 ta
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 58 task_04 実装・検証・レビュー済（コミット済）・ユーザーの実機目視待ち（task_03 分を含む）。task_05 は目視 OK 後。**
-mode: pending_user_check
+focus: **phase 58 task_04 完了（2026-10-15 ユーザー実機目視 OK）。task_05（統合確認）実施中 = deep-reviewer + codex-reviewer。**
+mode: reviewing
 
 ## last_action
 ts: 2026-10-15T11:00:00
@@ -30,13 +30,8 @@ verified:
   review: reviewer 採用（本体）+ 追加修正 3 点も採用。参考: テスト補強の残り（ホイールの配送が vacuous になり得る・テスト内の補助の重複）
 
 ## next_action
-- **【ユーザー確認待ち】task_04 の実機目視**（task_03 分を含む・`main.py` を .venv で起動 → フル表示）:
-  1. フォント +3 でフル表示が画面に収まる（最小の高さ 635 前後）
-  2. ウィンドウを最小幅・最小の高さまで縮める → 収まらない枠にだけスクロールバーが出て、ボタン・チェック・間隔欄が横に切れない
-  3. スクロールバー・ホイールで各枠の最下段まで届く / 一覧の上のホイールは一覧だけがスクロール / 間隔欄の上のホイールで値が変わらない
-  4. 高さを戻すとスクロールバーが消えて先頭へ戻る / 今までの大きさ以上では見た目が今と同じ
-  5. 省略表示 ↔ フル表示の往復（フォントを変えてから戻るを含む）で高さがおかしくならない
-  → OK なら task_04 完了 → task_05（統合: deep-reviewer + codex-reviewer）→ task_06（正本反映）
+- **task_05**（統合確認）: 退行テストは task_04 の最終検証（da679a3 と同じコード・全 pass）を流用。`deep-reviewer` + `codex-reviewer`（`git diff 33dea2a..HEAD`）→ 指摘の裏取り → 採否をユーザーと決める
+- その後: task_06（正本反映・凍結・decisions_archive・current.md・/refactor_check・完了判定前レビュー deep-reviewer + codex-adversarial-reviewer）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
