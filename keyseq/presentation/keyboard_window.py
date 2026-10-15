@@ -32,6 +32,7 @@ _LOOKUP_KEY_BY_ID = {
     "ctrl_r": "right ctrl",
     "alt_l": "alt",
     "alt_r": "right alt",
+    "alt_gr": "alt gr",
     "windows_l": "left windows",
     "windows_r": "right windows",
     "grave": "`",

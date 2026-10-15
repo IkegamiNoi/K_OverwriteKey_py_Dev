@@ -140,6 +140,20 @@ class InputRouterTest(unittest.TestCase):
         ))
         self.assertEqual(route.actions, (TriggerAction("f1"),))
 
+    def test_alt_gr_event_name_is_used_when_layout_does_not_resolve_scan_code(self):
+        resolved_scan_codes = []
+        router = make_router(
+            trigger=lambda key: {"actions": [{}]} if key == "alt gr" else None
+        )
+        router._resolve_scan_code = lambda code: resolved_scan_codes.append(code) or ""
+
+        route = router.handle(SimpleNamespace(
+            event_type="down", name="alt gr", scan_code=541
+        ))
+
+        self.assertEqual(resolved_scan_codes, [541])
+        self.assertEqual(route.actions, (TriggerAction("alt gr"),))
+
     def test_trigger_names_distinguish_numpad_digit_main_digit_and_end(self):
         for name, is_keypad, expected in (
             ("1", True, "num 1"),
