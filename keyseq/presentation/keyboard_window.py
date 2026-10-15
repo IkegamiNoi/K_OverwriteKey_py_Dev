@@ -26,13 +26,13 @@ from keyseq.presentation.tk_keys import TK_KEYSYM_TO_KEYBOARD_NAME, numpad_name_
 
 _LOOKUP_KEY_BY_ID = {
     "shift_l": "shift",
-    "shift_r": "shift",
+    "shift_r": "right shift",
     "ctrl_l": "ctrl",
-    "ctrl_r": "ctrl",
+    "ctrl_r": "right ctrl",
     "alt_l": "alt",
-    "alt_r": "alt",
-    "windows_l": "windows",
-    "windows_r": "windows",
+    "alt_r": "right alt",
+    "windows_l": "left windows",
+    "windows_r": "right windows",
     "grave": "`",
     "caps_lock": "caps lock",
     "page_up": "page up",
