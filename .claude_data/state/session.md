@@ -4,37 +4,28 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-15T00:50:00
+last_updated: 2026-10-15T08:00:00
 phase: **58_window_size_fit**（画面サイズの調整・2026-10-14 起票・主入力 = 暫定 42 v0.3 ユーザー確定済）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 24
 直前の完了フェーズ = **phase 57**（`decisions_archive/57_grid_crosshair_nudge.md`）
-last_commit_location: `claude/codex-process-management-9b8bfd`（phase 58 task_02 = 実機目視待ち）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
+last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 task_02 完了・実機目視 OK）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 58 task_02 実装・検証済（コミット済）・ユーザーの実機目視待ち。task_03 は未着手（task_02 の目視 OK 後に着手）。**
-mode: pending_user_check
+focus: **phase 58 task_02 完了（2026-10-15 ユーザー実機目視 OK・問題なし）。次 = task_03（未着手・定義の起票から）。**
+mode: implementing
 
 ## last_action
-ts: 2026-10-15T00:50:00
+ts: 2026-10-15T08:00:00
 who: main
 summary: |
-  task_01 コミット（d8135d7）。task_02（省略表示の「フック」「表示」の Expander・compact_header_view の保存・refresh_minimum_height）を codex-implementer で実装 →
-  reviewer 修正して採用（focus_get の KeyError 吸収・重複の整理・テスト追加）+ verifier の失敗 2 件（labelwidget の TLabel で枠が 4px 高くなり区切りのテストが失敗〔probe で実測〕/ 全件実行でフォーカスが取れない）を修正。
-  見出しは style="TLabelframe.Label"（元と同じ 58px）。
-verified:
-  compile: pass / tests: 1662 OK（skip 7）/ tests_ui: 1061 OK / smoke OK / 生成物なし（verifier）
-  review: reviewer 修正して採用 → 指摘 1〜3 を反映済（4・3(d) は参考のため見送り）
+  ユーザーが task_02 の実機目視（Expander の開閉・見出しの見た目・閉じたままの再起動・task_01 の `フック: 一時停止`）を OK と報告（問題なし）→ task_02 完了。
+  実装は cd9b455（検証: tests 1662 OK / tests_ui 1061 OK / smoke OK・reviewer 修正して採用→反映済）。
 
 ## next_action
-- **【ユーザー確認待ち】task_02 の実機目視**（`main.py` を .venv で起動 → 省略表示へ）:
-  1. 「フック」「表示」の見出しをクリック → 閉じると `▸ フック` / `▸ 表示` の 1 行・トリガー一覧の欄が伸びる・ウィンドウの大きさが変わらない
-  2. 開いたときの見出し（`▾ フック`）の見た目が従来の枠の見出しと同じ（高さ・色）
-  3. 閉じた状態で再起動 → 閉じたまま起動する
-  4. （task_01）キーマップを一時停止 → 幅 270 の省略表示のステータス欄に `フック: 一時停止` が見える
-  → OK なら task_02 を完了（/task_commit は不要・実装は 2026-10-15 のコミットに含む。session と current の記録のみ）→ task_03（定義を起票して codex-implementer）
-- その後: task_03 → task_04（実機目視あり）→ task_05（統合）→ task_06（正本反映）
-- main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58 = `claude/codex-process-management-9b8bfd`）
+- **task_03**（フル表示の 3 枠のスクロール領域・最小の幅 / 高さの値は変えない）: 定義を起票して codex-implementer → verifier → reviewer
+- その後: task_04（実機目視あり・task_03 とまとめて見る）→ task_05（統合）→ task_06（正本反映）
+- main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58 = `claude/codex-process-management-9b8bfd` → 現在は `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
