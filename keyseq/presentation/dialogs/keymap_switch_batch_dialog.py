@@ -11,6 +11,7 @@ from keyseq.presentation.hook_button_texts import (
     CAPTURE_ACTIVE_TEXT,
     CAPTURE_IDLE_TEXT,
     CAPTURE_TEXTS,
+    UNKNOWN_CAPTURE_KEY_HINT_TEXT,
 )
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.tk_keys import normalize_tk_key_event
@@ -242,9 +243,11 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             self._on_escape(event)
             return "break"
         key = normalize_tk_key_event(event)
+        if key == "??":
+            self.hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+            return "break"
         if (
-            key == "??"
-            or key in ("ctrl", "shift", "alt", "windows")
+            key in ("ctrl", "shift", "alt", "windows")
             or is_prohibited_assign_key(key)
         ):
             return "break"

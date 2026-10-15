@@ -9,6 +9,7 @@ from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs.keymap_edit_dialog import KeymapEditDialog
 from keyseq.presentation.dialogs.keymap_switch_batch_dialog import KeymapSwitchBatchDialog
+from keyseq.presentation.hook_button_texts import UNKNOWN_CAPTURE_KEY_HINT_TEXT
 from keyseq.presentation.keyboard_layouts import KeyboardLayoutEntry, load_layout_from_json
 
 
@@ -163,29 +164,42 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
         )
 
     def test_capture_dialogs_ignore_caps_lock_and_continue(self):
+        capture_hint = "取得中：切替キーにしたいキーを1回押してください（Escでキャンセル）"
         edit = KeymapEditDialog(self.app, "Edit")
         self.dialogs.append(edit)
         edit._start_capture()
+        self.assertEqual(edit.hint.cget("text"), capture_hint)
         self.assertEqual(edit._on_capture_keypress(SimpleNamespace(keysym="Caps_Lock")), "break")
         self.assertEqual(edit.key_var.get(), "")
         self.assertTrue(edit._capturing)
+        self.assertEqual(edit.hint.cget("text"), capture_hint)
+        self.assertEqual(edit._on_capture_keypress(SimpleNamespace(keysym="Control_L")), "break")
+        self.assertEqual(edit.hint.cget("text"), capture_hint)
 
         batch = KeymapSwitchBatchDialog(
             self.app, "Batch", [("新規", "Map", "", "")], lambda _values: None
         )
         self.dialogs.append(batch)
         batch._start_capture(0)
+        self.assertEqual(batch.hint.cget("text"), capture_hint)
         self.assertEqual(batch._on_capture_keypress(SimpleNamespace(keysym="Caps_Lock")), "break")
         self.assertEqual(batch.key_vars[0].get(), "")
         self.assertTrue(batch._capturing)
+        self.assertEqual(batch.hint.cget("text"), capture_hint)
+        self.assertEqual(batch._on_capture_keypress(SimpleNamespace(keysym="Control_L")), "break")
+        self.assertEqual(batch.hint.cget("text"), capture_hint)
 
-    def test_capture_dialogs_ignore_unknown_keysym_and_continue(self):
+    def test_capture_dialogs_show_hint_for_unknown_keysym_and_continue(self):
+        default_hint = "例) 切替キー: 1\nラベル: numpad"
         edit = KeymapEditDialog(self.app, "Edit")
         self.dialogs.append(edit)
         edit._start_capture()
         self.assertEqual(edit._on_capture_keypress(SimpleNamespace(keysym="??")), "break")
         self.assertEqual(edit.key_var.get(), "")
         self.assertTrue(edit._capturing)
+        self.assertEqual(edit.hint.cget("text"), UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+        edit._stop_capture()
+        self.assertEqual(edit.hint.cget("text"), default_hint)
 
         batch = KeymapSwitchBatchDialog(
             self.app, "Batch", [("新規", "Map", "", "")], lambda _values: None
@@ -195,3 +209,6 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
         self.assertEqual(batch._on_capture_keypress(SimpleNamespace(keysym="??")), "break")
         self.assertEqual(batch.key_vars[0].get(), "")
         self.assertTrue(batch._capturing)
+        self.assertEqual(batch.hint.cget("text"), UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+        batch._stop_capture()
+        self.assertEqual(batch.hint.cget("text"), default_hint)

@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-16T01:00:00
+last_updated: 2026-10-16T02:00:00
 phase: **59_keyboard_ui_left_right_modifiers**（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー・2026-10-15 起票・主入力 = 暫定 43 v0.4 ユーザー確定済）。次採番 = phase 60 / 暫定 44 / decisions 60 / 提案書 25
 直前の完了フェーズ = **phase 58**（`decisions_archive/58_window_size_fit.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 一式・完了）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
@@ -12,22 +12,23 @@ last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 �
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 59 task_04 実機目視: 4 項目中 3 項目 OK・Caps 単独が `??` で取得される問題 → task_04a で修正（検証・レビュー済・コミット済）。Caps 単独の再確認待ち。**
+focus: **phase 59 task_04a 実機目視 OK（Caps 単独で何も入らない）。task_04b（`??` のとき案内の欄に理由）実装・検証・レビュー済・コミット済。task_04b の実機目視待ち。**
 mode: pending_user_check
 
 ## last_action
-ts: 2026-10-16T01:00:00
+ts: 2026-10-16T02:00:00
 who: main
 summary: |
-  task_04 コミット（23567cb）。ユーザーの実機目視: 左右の対応・禁止の枠・右クリックは OK / キーマップの編集ダイアログの取得で JIS の Caps キー単独が `??`（Tk が「英数」の仮想キーを判別できない）として入る。
-  → 暫定 43 v0.5（§3.5 の取得で `??` も無視・禁止の集合には入れない）+ task_04a（切替キーの 2 つのダイアログで `??` を無視・テスト）。
+  task_04a コミット（bf6a926）・実機目視 OK。ユーザーの追加の観察: IME ON だと取得がどのキーも `??` になり IME の変換に流れる → ユーザー判断（2026-10-16）:
+  `??` のときは取得中の案内の欄に理由（IME が ON なら OFF にして押す）を出し取得は続ける・ダイアログは出さない（暫定 43 v0.6 + task_04b）/ 取得中に IME を OFF にする対策は idea_46。
+  暫定 43 §6 の F1 → kana 見込みの不具合を idea_47 として起票。
 verified:
   compile: pass / tests: 1671 OK（skip 7）/ tests_ui: 1091 OK / smoke OK / config 不変（verifier）
   review: reviewer 採用
 
 ## next_action
-- **【ユーザー確認待ち】task_04a の実機目視**: キーマップの編集ダイアログの「キー入力で取得」で JIS の Caps キー単独を押しても何も入らず取得が続く
-  → OK なら task_04 / 04a 完了 → task_05（統合: deep-reviewer + codex-reviewer）→ task_06（正本反映）
+- **【ユーザー確認待ち】task_04b の実機目視**: キーマップの編集ダイアログの取得中に Caps キー単独 / IME ON で文字キー → 案内の欄に理由が出て取得が続く
+  → OK なら task_04 系を完了 → task_05（統合: deep-reviewer + codex-reviewer）→ task_06（正本反映・idea は起票元ではないので backlog の移動なし）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers

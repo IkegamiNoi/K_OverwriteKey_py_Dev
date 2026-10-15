@@ -14,6 +14,7 @@ from keyseq.presentation.hook_button_texts import (
     CAPTURE_ACTIVE_TEXT,
     CAPTURE_IDLE_TEXT,
     CAPTURE_TEXTS,
+    UNKNOWN_CAPTURE_KEY_HINT_TEXT,
 )
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.dialogs.grid_editor_window import GridEditorWindow
@@ -168,9 +169,11 @@ class KeymapEditDialog(tk.Toplevel):
         if not self._capturing:
             return
         key = normalize_tk_key_event(event)
+        if key == "??":
+            self.hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+            return "break"
         if (
-            key == "??"
-            or key in ("ctrl", "shift", "alt", "windows")
+            key in ("ctrl", "shift", "alt", "windows")
             or is_prohibited_assign_key(key)
         ):
             return "break"

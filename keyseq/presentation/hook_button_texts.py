@@ -1,8 +1,12 @@
-"""ヘッダのボタン文言とキーボード選択幅の共通定数。"""
+"""入力取得UIで使う共通文言とキーボード選択幅の定数。"""
 
 CAPTURE_IDLE_TEXT = "キー入力で取得"
 CAPTURE_ACTIVE_TEXT = "取得中…（Escで停止）"
 CAPTURE_TEXTS = (CAPTURE_IDLE_TEXT, CAPTURE_ACTIVE_TEXT)
+UNKNOWN_CAPTURE_KEY_HINT_TEXT = (
+    "このキーは取得できません。IME が ON の場合は OFF にしてから押してください。"
+    "（Escでキャンセル）"
+)
 
 HOOK_START_TEXT = "開始（フックON）"
 HOOK_STOP_TEXT = "停止（フックOFF）"
