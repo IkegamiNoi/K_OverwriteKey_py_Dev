@@ -4,31 +4,28 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-15T19:00:00
-phase: **なし**（phase 58 = 画面サイズの調整は 2026-10-15 完了）。次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 25
+last_updated: 2026-10-15T21:00:00
+phase: **59_keyboard_ui_left_right_modifiers**（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー・2026-10-15 起票・主入力 = 暫定 43 v0.4 ユーザー確定済）。次採番 = phase 60 / 暫定 44 / decisions 60 / 提案書 25
 直前の完了フェーズ = **phase 58**（`decisions_archive/58_window_size_fit.md`）
 last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 一式・完了）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
 presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 58 完了（2026-10-15）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-mode: idle
+focus: **phase 59 起票済。次 = task_01（キーボードUI の左右の対応）。**
+mode: implementing
 
 ## last_action
-ts: 2026-10-15T18:30:00
+ts: 2026-10-15T21:00:00
 who: main
 summary: |
-  ユーザー判断 2 件（2026-10-15）: ①Codex 敵対的の指摘 → task_06a（省略表示の上部の見出しを Tab + Enter / Space で開閉・07058a0）②提案書 24 → task_07_refactor で実施。
-  正本反映（task_06）・凍結・decisions_archive/58・decisions.md の索引・current.md の完了記載・handoff の既知の問題の解消まで済。
-verified:
-  task_06a: tests 1662 OK / tests_ui 1077 OK / smoke OK（verifier）・reviewer 採用
-  task_07_refactor: compileall / tests 1662 OK / smoke OK / 対象 UI 5 モジュール OK・reviewer 修正して採用（範囲外の整形を戻した）。
-  tests_ui 全体では `test_compact_window` の 3 件が一時 FAIL → 環境要因（phase 開始時点 33dea2a でも同じく落ちた）。再実行で 8 件 OK。モニタ 2 台の認識のままでも OK（CPU 19%・16〜18 秒）のため、原因はモニタではなく失敗時の高負荷（CPU 66%・1 回 48 秒・全体 3.5 倍遅い）による 500ms 待ちのずれとみる（2026-10-15）
+  ユーザー要望（キーボードUI の左右の修飾キー）から暫定 43 を起票 → v0.2（起票時 deep-reviewer・Codex 敵対的）→ v0.3（Windows キー・Caps Lock の割り当て禁止）→ v0.4（AltGr 配列の右 Alt は標準の id `alt_gr` で書き分けて禁止・de.json の見本）→ ユーザー確定。
+  /phase_start で phase 59 を起票。
 
 ## next_action
-- **次フェーズはユーザー判断**（`/phase_start`）
-- main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58 = `claude/physical-device-visual-check-79fcd3`）
+- **task_01**（キーボードUI の左右の対応）: 定義を起票して codex-implementer → verifier → reviewer
+- その後: task_02 割り当て禁止 → task_03 alt_gr と de.json → task_04 jis.json と実機目視 → task_05 統合 → task_06 正本反映
+- main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない

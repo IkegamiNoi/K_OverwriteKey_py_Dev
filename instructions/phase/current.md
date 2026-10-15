@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 58 は 2026-10-15 完了）。次フェーズはユーザー判断・着手時は `/phase_start`。
+- **アクティブなフェーズ = [phase 59](59_keyboard_ui_left_right_modifiers/phase.md)（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー・2026-10-15 起票）**: キーボードUI の左右の Shift・Ctrl・Alt・Win の枠を左右別のキーとして表示・編集（左は今の名前・右は `right ctrl` 等）/ Windows キー・Caps Lock・AltGr 配列の右 Alt〔標準の id `alt_gr`〕をキーマップの元キーと切替キーに割り当て禁止 / `jis.json` に左右の修飾キー・ドイツ語配列の見本 `de.json`。暫定仕様先行モード・主入力 = [暫定 43 v0.4](../history/43_keyboard_ui_left_right_modifiers.md)（ユーザー確定 2026-10-15）・JSON スキーマ不変。番号対応: phase 59 / 暫定 43 / decisions 59。
 - 直前の完了フェーズ = [phase 58](58_window_size_fit/phase.md)（2026-10-15・画面サイズの調整〔フル表示の 3 枠を枠ごとに縦スクロール・最小の高さ = 要求高さ − メイン領域 + ceil(H/2)〔+3 で 931 → 635px〕・各枠の最小幅にスクロールバーの幅 / 省略表示の「フック」「表示」を Expander で開閉・保存・見出しはキーでも開閉 / ステータス欄のフックを ON・OFF・一時停止の 3 状態に〕。暫定仕様先行モード〔暫定 42 v0.3 凍結〕・**JSON スキーマ変更あり**〔config.json の任意キー `compact_header_view`〕・判断は [decisions_archive/58](../../.claude_data/state/decisions_archive/58_window_size_fit.md)）。
 - その前の完了フェーズ = [phase 57](57_grid_crosshair_nudge/phase.md)（2026-10-14・画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化〔選んだ枠のクリック点に十字・矢印で min(16px, 枠の 1/8)・Shift で 1px・操作キーは keymap ごとに各 1 つで付け替え可〔Esc = 戻る・num enter = クリックは固定〕・編集の窓のドラッグ中の十字・パネルの 2 列化とスクロール〕。暫定仕様先行モード〔暫定 41 v0.4 凍結〕・**JSON スキーマ変更あり**〔`grid` の任意キー `ops`〕・判断は [decisions_archive/57](../../.claude_data/state/decisions_archive/57_grid_crosshair_nudge.md)）。
   [phase 56](56_screen_grid_cursor/phase.md)（2026-10-13・画面の枠でカーソル移動・クリック〔枠 ON のキーマップがアクティブな間だけ枠を表示・キーで枠を選びカーソルを中心へ・Enter で左 / Shift+Enter で右クリック・Space で細分化・Tab で画面の切替・最上段は画面ごとに編集の窓でドラッグして記録・キーの表示位置〕。暫定仕様先行モード〔暫定 40 v0.7 凍結〕・**JSON スキーマ変更あり**〔keymap の任意キー `grid`〕・判断は [decisions_archive/56](../../.claude_data/state/decisions_archive/56_screen_grid_cursor.md)） /
@@ -94,7 +94,8 @@
   **phase 56 は 2026-10-13 完了**（`56_screen_grid_cursor` / 暫定 40〔v0.7・凍結〕/ decisions 56〔アーカイブ済〕）。
   **phase 57 は 2026-10-14 完了**（`57_grid_crosshair_nudge` / 暫定 41〔v0.4・凍結〕/ decisions 57〔アーカイブ済〕）。
   **phase 58 は 2026-10-15 完了**（`58_window_size_fit` / 暫定 42〔v0.3・凍結〕/ decisions 58〔アーカイブ済〕）。
-  次フェーズは **`59_<topic>`**・decisions も **59** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 59 は着手中**（`59_keyboard_ui_left_right_modifiers` / 暫定 43 / decisions 59）。
+  次フェーズは **`60_<topic>`**・decisions も **60** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -133,8 +134,9 @@
   39=キーボードUIのウィンドウ改善〔**v0.6・凍結**〕 /
   40=画面の枠でカーソル移動・クリック〔**v0.7・凍結**〕 /
   41=画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化〔**v0.4・凍結**〕 /
-  42=画面サイズの調整〔**v0.3・凍結**〕）。
-  次採番は **`43_<topic>`**。
+  42=画面サイズの調整〔**v0.3・凍結**〕 /
+  43=キーボードUI の左右の修飾キーの区別と割り当て禁止のキー〔v0.4・ユーザー確定・phase 59 の主入力〕）。
+  次採番は **`44_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**24 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
