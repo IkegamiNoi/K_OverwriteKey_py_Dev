@@ -4,28 +4,27 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-16T18:00:00
-phase: **phase 61**（キーボードUI の取得で VK を走査コードへ変換する・`instructions/phase/61_keyboard_ui_vk_to_scan_code/phase.md`・直接改訂モード）。次採番 = phase 62 / 暫定 45 / decisions 62 / 提案書 25
-直前の完了フェーズ = **phase 60**（`decisions_archive/60_ime_off_during_key_capture.md`）
-last_commit_location: `claude/idea-46-3c4cb6`（phase 60 一式・完了）。phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
+last_updated: 2026-10-17T12:00:00
+phase: **なし**（phase 61 = キーボードUI の取得で VK を走査コードへ変換するは 2026-10-17 完了）。次採番 = phase 62 / 暫定 45 / decisions 62 / 提案書 25
+直前の完了フェーズ = **phase 61**（`decisions_archive/61_keyboard_ui_vk_to_scan_code.md`）
+last_commit_location: `claude/idea-46-3c4cb6`（phase 60・61 一式・完了）。phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 61 task_01 実装・検証・レビュー済（コミット済）・ユーザーの実機目視待ち（JIS・jis.json で F1/F10/F12・無変換・変換・半角/全角・かな）。目視 OK 後に task_02（正本反映）。**
-mode: active
+focus: **phase 61 完了（2026-10-17・F キーの修正・JIS の特殊キーの取得は idea_50）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+mode: idle
 
 ## last_action
-ts: 2026-10-16T18:00:00
+ts: 2026-10-17T12:00:00
 who: main
 summary: |
-  task_01〜03（Codex 実装・取得の 8 入口で取得中の IME を OFF・`??` の統一）→ 実機目視 OK → task_04 統合確認（全 pass・codex-reviewer 指摘なし・deep-reviewer 完了可）→
-  task_05: key_input.md §7.4「取得の入口」「取得中の IME」「判別できないキー」・features.md §4.3・codebase_map へ昇格、暫定 44 を凍結、decisions_archive/60・索引・current.md の完了記載・idea_46 を INDEX_done へ。
-  /refactor_check = 不要。完了判定前レビュー: Codex 敵対的 approve / deep-reviewer 修正して採用 → 文書の指摘（中 1・低 3）を反映済み。
+  phase 60 完了（取得中の IME）に続き phase 61（idea_47・直接改訂）: task_01 = キーボードUI の取得で VK を走査コードへ変換しレイアウトだけで引く（Codex 実装・reviewer 採用）→
+  実機目視で F1/F10/F12 OK・JIS の特殊キーは IME に横取りされ取れない（確認用の窓で実測）→ ユーザー判断で idea_50 へ分離。task_02 = key_input.md §7.4・codebase_map へ反映・decisions_archive/61・idea_47 を INDEX_done へ。
 verified:
-  コードは task_03 から不変（tests 1686 / tests_ui 1105 / smoke OK）
+  tests 1689 / tests_ui は test_compact_window の 3 件のみタイミング系で失敗（単独再実行 OK）/ smoke OK
 
 ## next_action
-- **次フェーズはユーザー判断**（`/phase_start`）。残件 = idea_47（キーボードUI の取得で F キーが kana 等になる見込み）・idea_48（取得中のフック再開）
+- **次フェーズはユーザー判断**（`/phase_start`）。残件 = idea_48（取得中のフック再開）・idea_49（特殊キーの名前をレイアウトだけが決める）・idea_50（取得で JIS の特殊キーを取る）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers

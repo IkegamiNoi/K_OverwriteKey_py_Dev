@@ -7,7 +7,7 @@
 ## フェーズの目的
 
 キーボードUI の編集中に押したキーの名前を作るとき、Tk の `keycode`（Windows では仮想キーコード = VK）を**走査コードとして**レイアウトに引いているため、どのレイアウトでも F1 → `kana`・F10 → `henkan`・F12 → `muhenkan` になる不具合を直す。
-あわせて、この経路の本来の目的（JIS の特殊キー〔無変換・変換・半角/全角〕をレイアウトの `scan_code` で解決する）が効くようにする。
+あわせて、この経路の本来の目的（JIS の特殊キー〔無変換・変換・半角/全角〕をレイアウトの `scan_code` で解決する）が効くようにする（**未達**: 実機では IME に横取りされ Tk に届かない → [idea_50](../../backlog/idea_50_capture_jis_special_keys.md)。下の「確定」）。
 **presentation 限定（`keyboard_window._normalize_tk_key` に VK → 走査コードの変換〔`win32_window.vk_to_scan_code`〕を挟む・画面の枠の編集の窓〔phase 56〕と同じ）。application・domain・フック・送信・JSON スキーマ不変。**
 
 - 起票元: [idea_47](../../backlog/idea_47_keyboard_ui_keycode_as_scan_code.md)（2026-10-16・phase 59 暫定 43 の起票時の deep-reviewer の指摘 → 2026-10-16 にメインがコードの経路を実測して確認）。
@@ -20,6 +20,7 @@
 - **変換後は外部レイアウトの `scan_code` だけで引き、既知の特殊キーの表（`domain/key_identifiers.py`）へは落とさない**（JIS の特殊キーはレイアウトのファイル〔jis.json〕に閉じ込める方針の第一歩・2026-10-17 ユーザー判断。整合チェックの reviewer 指摘 = 既知の表へ落とすと US 入力配列のバッククォート〔走査コード 41〕が `zenkaku_hankaku` になる）
 - 受容: US 入力配列の「`」はキーボードUI では `grave`・フックの実行時は `zenkaku_hankaku` と名前が違ったまま（今と同じ）/ JIS キーボードで jis.json 以外のレイアウトを選んでいるとキーボードUI では特殊キーが名前にならない
 - フックの実行時と送信の側も「特殊キーはレイアウトが決める」に寄せる話は [idea_49](../../backlog/idea_49_special_keys_from_layout_only.md) へ分離
+- **task_01 の実機目視（2026-10-17）: F1 / F10 / F12 は置換される（OK）。JIS の特殊キー（無変換・変換・半角/全角・かな）は IME に横取りされて取れない** → 確認用の窓で実測（Tk には `??`・VK 229 で届く・IME が OFF でも同じ・`ImmGetVirtualKey` でも元の VK を戻せない・入力コンテキストを外すと IME の設定に従った VK で届くが Tk は物理の走査コードを持たない）。**phase 61 は F キーの修正で完了とし、JIS の特殊キーの取得は [idea_50](../../backlog/idea_50_capture_jis_special_keys.md) へ分離**（ユーザー判断 2026-10-17）。目的の後半（JIS の特殊キーを解決できるようにする）は未達として記録する。コードの解決（VK → 走査コード → jis.json）は JIS の特殊キーが VK で届く場合の経路として残す
 
 ## スコープ
 
@@ -49,6 +50,7 @@
 ## タスク
 
 - task_01: `_normalize_tk_key` に VK → 走査コードの変換を挟む・テスト。**実装後にユーザーの実機目視**（JIS: F1 / F10 / F12・無変換・変換・半角/全角・かな）
+- task_01b: 走査コードからレイアウトを引いた名前がテンキーのキー名なら採らない（フックの実行時と同じガード・完了判定前の Codex 敵対的レビューの指摘〔中〕をユーザーが採用 2026-10-17）
 - task_02: 正本反映（`key_input.md` §7.4 に #7 の名前の作り方〔順序・レイアウトだけで引く・変換失敗時は keysym・受容〕を追記・`codebase_map.md`）・`decisions_archive/61_keyboard_ui_vk_to_scan_code.md`・decisions.md の索引・current.md の完了記載・idea_47 を INDEX_done へ・`/refactor_check`・完了判定前レビュー
 
 ## レビュー方針

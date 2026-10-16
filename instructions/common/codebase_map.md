@@ -123,8 +123,8 @@ keyseq/presentation/
       quarantine_manage_dialog.py  # QuarantineManageDialog（隔離の管理・実行単位のリスト選択 + 復元 / 削除ボタン）
       reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 隔離 / 復元 / 削除で再利用）
       keymap_set_history_dialog.py # KeymapSetHistoryDialog（読み込み履歴・**リポジトリ唯一の ttk.Treeview**〔2 列 / 名前列は stretch=False〕・操作のたびに永続化済みの履歴を読み直して再描画）+ CategoryChooserDialog（コピー先の分類選択・同ファイル内のネストした子）
-    keyboard_layouts.py
-    keyboard_window.py         # KeyboardWindow: キーボード表示の窓（タイトル表示・縦横比の補正・phase 55）。`_LOOKUP_KEY_BY_ID` = レイアウトの id → 引くキー名（左右の修飾キーを分ける・`alt_gr` → `alt gr`・phase 59）/ 禁止の枠の色 `"prohibited"`・禁止の枠は左クリックで編集しない（phase 59）
+    keyboard_layouts.py        # レイアウトの読込・検証 / `resolve_layout_key_id_from_scan_code`（レイアウトの `scan_code` だけで引く・phase 61）/ `resolve_key_id_from_scan_code`（レイアウト → 既知の特殊キーの表・フックの実行時と画面の枠の編集の窓が `LayoutController` 経由で使う）
+    keyboard_window.py         # KeyboardWindow: キーボード表示の窓（タイトル表示・縦横比の補正・phase 55）。`_LOOKUP_KEY_BY_ID` = レイアウトの id → 引くキー名（左右の修飾キーを分ける・`alt_gr` → `alt gr`・phase 59）/ 禁止の枠の色 `"prohibited"`・禁止の枠は左クリックで編集しない（phase 59）/ 編集のキーの名前 `_normalize_tk_key` は VK を `win32_window.vk_to_scan_code` で走査コードへ変換してレイアウトだけで引く（phase 61・`key_input.md` §7.4・テスト = `tests_ui/test_keyboard_window_scan_code.py`・`tests/test_keyboard_layout_files.py`）
     keyboard_window_size.py    # キーボード表示の縦横比と大きさの計算（tkinter 非依存・phase 55）
     listbox_utils.py
     listbox_range_drag.py      # ListboxRangeDrag / bind_listbox_range_drag: 対象 4 一覧の連続範囲選択・ドラッグ移動のプレビューと確定・Escape の取り消し・自動スクロール・Tk 既定バインドの置き換え。range_or_index: 有効な選択範囲か代替の 1 行を取得（compact は範囲を無視・phase 43）
