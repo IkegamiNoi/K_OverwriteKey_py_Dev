@@ -4,29 +4,28 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-16T11:00:00
-phase: **なし**（phase 59 = キーボードUI の左右の修飾キーの区別と割り当て禁止のキーは 2026-10-16 完了）。次採番 = phase 60 / 暫定 44 / decisions 60 / 提案書 25
+last_updated: 2026-10-16T14:00:00
+phase: **phase 60**（キーの取得中は IME を OFF にする・`instructions/phase/60_ime_off_during_key_capture/phase.md`・主入力 = 暫定 44 v0.4 ユーザー確定済）。次採番 = phase 61 / 暫定 45 / decisions 61 / 提案書 25
 直前の完了フェーズ = **phase 59**（`decisions_archive/59_keyboard_ui_left_right_modifiers.md`）
-last_commit_location: `claude/physical-device-visual-check-79fcd3`（phase 58 一式・完了）。phase 57 のブランチ `claude/crosshair-selection-frame-f4b464` と合わせ main へのマージはユーザー
+last_commit_location: `claude/idea-46-3c4cb6`（phase 60）。phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-presence: away（戻る予定 2026-10-15T07:30）
-focus: **phase 59 完了（2026-10-16）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-mode: idle
+focus: **phase 60 起票済（2026-10-16）。次 = task_01（土台: 自アプリの IME の開閉の口・取得の寿命の部品・`??` 判定・案内の文言）。タスク定義は未起票（`/task_new`）。**
+mode: active
 
 ## last_action
-ts: 2026-10-16T11:00:00
+ts: 2026-10-16T14:00:00
 who: main
 summary: |
-  task_05 統合確認（codex-reviewer 指摘なし / deep-reviewer 採用・中-1 は未確認の受容）→ task_06: features.md §4.3「割り当て禁止のキー」・§4.6「キーボード表示のウィンドウ」・key_input.md §7.1・§7.4・§7.3 の表・codebase_map へ昇格、
-  暫定 43 を凍結、decisions_archive/59・索引・current.md の完了記載。/refactor_check = 不要（M3 の境界は別タスク化候補へ）。
-  完了判定前レビュー: Codex 敵対的 approve（指摘なし）/ deep-reviewer 修正して採用 → 文書の指摘（中 2・低）を反映済み。
+  idea_46 から暫定 44 を起票（codex-explorer の監査 → v0.1 → deep-reviewer 修正要〔H1 は Tk の全 HWND が同じ入力コンテキストを共有することを probe で実測し解消〕→ v0.2 → Codex 敵対的 needs-attention → v0.3）。
+  ユーザーが §7 の 1〜4 を提案どおり確定（v0.4）。取得中のフック再開を idea_48 に分離。/phase_start で phase 60 を起票（reviewer の整合チェック = 採用・任意指摘 (a) を反映）。
 verified:
-  コードは task_04b から不変（tests 1671 / tests_ui 1091 / smoke OK）
+  文書のみ（コード不変）
 
 ## next_action
-- **次フェーズはユーザー判断**（`/phase_start`）。残件 = idea_46（取得中の IME）・idea_47（キーボードUI の取得で F キーが kana 等になる見込み）
+- `/task_new` で task_01 を起票 → codex-implementer へ委任
+- 残件 = idea_47（キーボードUI の取得で F キーが kana 等になる見込み）・idea_48（取得中のフック再開）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers
