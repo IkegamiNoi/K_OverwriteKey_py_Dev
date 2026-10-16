@@ -15,17 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 58**〔画面サイズの調整・`instructions/phase/58_window_size_fit/phase.md`・主入力 = 暫定 42 v0.3 ユーザー確定済〕）。
-   次採番 = phase 59 / 暫定 43 / decisions 59 / 提案書 24
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 61 は 2026-10-17 完了〕・次フェーズはユーザー判断で `/phase_start`）。
+   次採番 = phase 62 / 暫定 45 / decisions 62 / 提案書 25
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜41）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜44）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 58 task_02 実装・検証済（コミット済）・ユーザーの実機目視待ち。task_03 は未着手（task_02 の目視 OK 後に着手）。**
-ブランチ `claude/codex-process-management-9b8bfd`（phase 58）。phase 57 = `claude/crosshair-selection-frame-f4b464`。main へのマージはユーザー。
-**ユーザーは不在モード（session.md の `presence: away`・戻る予定 2026-10-15T07:30）。新セッションで再開したら presence 行は消してよい。**
+**phase 61 完了（2026-10-17・F キーの修正・JIS の特殊キーの取得は idea_50）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+ブランチ `claude/idea-46-3c4cb6`（phase 60・61 一式・完了）。phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,10 +34,10 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 58 task_02 = 2026-10-15**）:
-compile **clean** / tests **1662 OK**（skip 7）/ tests_ui **1061 OK** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1656〔phase 57〕→ 1662 / tests_ui: 1049 → 1061）。
-`tests_ui.test_compact_window` の `test_automatic_full_view_and_maximized_sizes_are_not_saved` が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
+直近の実測（**phase 61 = 2026-10-17**）:
+compile **clean** / tests **1689 OK**（skip 7）/ tests_ui **1110 件**（`test_compact_window` の 3 件のみ全体実行が 1136 秒と遅いときにタイミングで失敗・単独 8 件 OK）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1662〔phase 58〕→ 1689 / tests_ui: 1061 → 1110）。
+`tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が 1 回だけ `1 != 0` で落ちた（単独 2 回・全体 2 回で再現せず）。再発したら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
 **verifier に `taskkill` で python.exe を一括終了させない**（2026-10-04 に全 python が落ちた）。tests_ui は 260〜730 秒・タイムアウト 1800 秒・出力はファイルへ。
@@ -55,18 +54,14 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー確認待ち】task_02 の実機目視**（`main.py` を .venv で起動 → 省略表示へ）:
-  1. 「フック」「表示」の見出しをクリック → 閉じると `▸ フック` / `▸ 表示` の 1 行・トリガー一覧の欄が伸びる・ウィンドウの大きさが変わらない
-  2. 開いたときの見出し（`▾ フック`）の見た目が従来の枠の見出しと同じ（高さ・色）
-  3. 閉じた状態で再起動 → 閉じたまま起動する
-  4. （task_01）キーマップを一時停止 → 幅 270 の省略表示のステータス欄に `フック: 一時停止` が見える
-  → OK なら task_02 完了（実装はコミット `cd9b455` に含む・記録のみ）→ task_03（定義を起票して codex-implementer）
-- その後: task_03 → task_04（実機目視あり）→ task_05（統合）→ task_06（正本反映）
+- **次フェーズはユーザー判断**（`/phase_start`）。残件 = idea_48（取得中のフック再開）・idea_49（特殊キーの名前をレイアウトだけが決める）・idea_50（取得で JIS の特殊キーを取る）
+- main へのマージはユーザー
 
-## 直前のフェーズ（phase 57 = 画面の枠の十字マーク・操作キーの任意化）の要点
-- 正本 = `features.md` §4.7 / `data_schema.md` §5.6.1（`grid.ops`）/ `key_input.md` §7.3 / 地図 = `codebase_map.md`「画面の枠（phase 56・57）」/ 判断 = `decisions_archive/57_grid_crosshair_nudge.md`
-- 振り分けは「枠のキー > 操作キー」・フックが見るのは `suppress_keys` 1 本（esc・矢印は状態と今の深さの枠のキーで足す）。操作キーは keymap ごと各 1 つ（Esc = 戻る・num enter = クリックは固定）・既定と同じなら JSON に書かない
-- 【罠】Windows の Tk: 子のモーダルを閉じても入力フォーカスは戻らない（`focus_force()` で戻す・`focus_set()` は効かない）/ 位置の反映の保留中の `-topmost` で窓が `0,0` へ戻る / after_idle の測り直しは配置の計算より先に走ることがある / `<Configure>` で configure し返すと無限ループ
+## 直前のフェーズ（phase 61 = キーボードUI の取得で VK を走査コードへ変換する）の要点
+- 正本 = `key_input.md` §7.4「キーボードUI の編集のキーの名前」/ 地図 = `codebase_map.md` の `keyboard_layouts.py`・`keyboard_window.py` の行 / 判断 = `decisions_archive/61_keyboard_ui_vk_to_scan_code.md`
+- `_normalize_tk_key` = テンキー → keysym の表 → VK を `win32_window.vk_to_scan_code` で走査コードへ → **レイアウトの `scan_code` だけ**（`resolve_layout_key_id_from_scan_code`・既知の特殊キーの表へ落とさない・テンキー名は採らない）→ keysym。フックの実行時・画面の枠の編集の窓は `resolve_key_id_from_scan_code`（既知の表へ落ちる）のまま
+- 【実測・2026-10-17】**JIS の特殊キー（無変換・変換・半角/全角・かな）は IME に横取りされ、IME が OFF でも Tk に `??`（VK 229）で届く**。`ImmGetVirtualKey` も 0xE5。入力コンテキストを外すと IME の設定に従った VK（無変換 = 0x1A `VK_IME_OFF` 等）で届くが、**Tk のイベントは物理の走査コードを持たない**ので判別不能 → idea_50（取得中にフックで走査コードを読む案）
+- 前の phase 60（取得中の IME）: 取得の 8 入口で取得の間だけアプリ自身の IME を OFF（`presentation/key_capture_ime.py`・`infrastructure/own_ime_status.py`）・`??` は全入口で記録しない。**Tk の窓はすべて同じ入力コンテキスト（HIMC）を共有する**（probe で実測）
 
 ## 運用インフラ
 
@@ -148,8 +143,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 57_grid_crosshair_nudge / 56_screen_grid_cursor / 55_keyboard_ui_window）。
-- 着手中 idea: なし（idea_41〜43 は phase 52〜54 で完了）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
+  （直近 3 件: 61_keyboard_ui_vk_to_scan_code / 60_ime_off_during_key_capture / 59_keyboard_ui_left_right_modifiers）。
+- 着手中 idea: なし（idea_46・47 は phase 60・61 で完了）。新規の未着手: **idea_48**（取得中のフック再開）/ **idea_49**（特殊キーの名前をレイアウトだけが決める）/ **idea_50**（取得で JIS の特殊キーを取る）/ idea_45（取得の記号キーの名前）/ idea_44（枠の配色）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
   idea_29〜idea_31 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
