@@ -5,14 +5,14 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-10-16T18:00:00
-phase: **なし**（phase 60 = キーの取得中は IME を OFF にするは 2026-10-16 完了）。次採番 = phase 61 / 暫定 45 / decisions 61 / 提案書 25
+phase: **phase 61**（キーボードUI の取得で VK を走査コードへ変換する・`instructions/phase/61_keyboard_ui_vk_to_scan_code/phase.md`・直接改訂モード）。次採番 = phase 62 / 暫定 45 / decisions 62 / 提案書 25
 直前の完了フェーズ = **phase 60**（`decisions_archive/60_ime_off_during_key_capture.md`）
 last_commit_location: `claude/idea-46-3c4cb6`（phase 60 一式・完了）。phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 60 完了（2026-10-16）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-mode: idle
+focus: **phase 61 起票済（2026-10-16・idea_47）。次 = task_01（`_normalize_tk_key` に VK → 走査コードの変換・実装後に実機目視）。**
+mode: active
 
 ## last_action
 ts: 2026-10-16T18:00:00
