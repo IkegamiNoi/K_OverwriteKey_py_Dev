@@ -4,28 +4,28 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-16T14:00:00
-phase: **phase 60**（キーの取得中は IME を OFF にする・`instructions/phase/60_ime_off_during_key_capture/phase.md`・主入力 = 暫定 44 v0.4 ユーザー確定済）。次採番 = phase 61 / 暫定 45 / decisions 61 / 提案書 25
-直前の完了フェーズ = **phase 59**（`decisions_archive/59_keyboard_ui_left_right_modifiers.md`）
-last_commit_location: `claude/idea-46-3c4cb6`（phase 60）。phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
+last_updated: 2026-10-16T18:00:00
+phase: **なし**（phase 60 = キーの取得中は IME を OFF にするは 2026-10-16 完了）。次採番 = phase 61 / 暫定 45 / decisions 61 / 提案書 25
+直前の完了フェーズ = **phase 60**（`decisions_archive/60_ime_off_during_key_capture.md`）
+last_commit_location: `claude/idea-46-3c4cb6`（phase 60 一式・完了）。phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 60 task_04 完了（統合確認 全 pass・codex-reviewer 指摘なし・deep-reviewer 完了可・指摘の扱いはユーザー確定）。次 = task_05（正本反映）。**
-mode: active
+focus: **phase 60 完了（2026-10-16）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+mode: idle
 
 ## last_action
-ts: 2026-10-16T14:00:00
+ts: 2026-10-16T18:00:00
 who: main
 summary: |
-  idea_46 から暫定 44 を起票（codex-explorer の監査 → v0.1 → deep-reviewer 修正要〔H1 は Tk の全 HWND が同じ入力コンテキストを共有することを probe で実測し解消〕→ v0.2 → Codex 敵対的 needs-attention → v0.3）。
-  ユーザーが §7 の 1〜4 を提案どおり確定（v0.4）。取得中のフック再開を idea_48 に分離。/phase_start で phase 60 を起票（reviewer の整合チェック = 採用・任意指摘 (a) を反映）。
+  task_01〜03（Codex 実装・取得の 8 入口で取得中の IME を OFF・`??` の統一）→ 実機目視 OK → task_04 統合確認（全 pass・codex-reviewer 指摘なし・deep-reviewer 完了可）→
+  task_05: key_input.md §7.4「取得の入口」「取得中の IME」「判別できないキー」・features.md §4.3・codebase_map へ昇格、暫定 44 を凍結、decisions_archive/60・索引・current.md の完了記載・idea_46 を INDEX_done へ。
+  /refactor_check = 不要。完了判定前レビュー: Codex 敵対的 approve / deep-reviewer 修正して採用 → 文書の指摘（中 1・低 3）を反映済み。
 verified:
-  文書のみ（コード不変）
+  コードは task_03 から不変（tests 1686 / tests_ui 1105 / smoke OK）
 
 ## next_action
-- `/task_new` で task_01 を起票 → codex-implementer へ委任
-- 残件 = idea_47（キーボードUI の取得で F キーが kana 等になる見込み）・idea_48（取得中のフック再開）
+- **次フェーズはユーザー判断**（`/phase_start`）。残件 = idea_47（キーボードUI の取得で F キーが kana 等になる見込み）・idea_48（取得中のフック再開）
 - main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`）
 
 ## blockers

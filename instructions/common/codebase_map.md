@@ -29,6 +29,7 @@ infrastructure
 - keyboard フック
 - JSON入出力
 - `keyseq/infrastructure/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）
+- `keyseq/infrastructure/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `keyseq/infrastructure/own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（`get_open_status` / `set_open_status`・キーの取得中・phase 60）
 
 ---
 
@@ -62,7 +63,7 @@ keyseq/presentation/
         dirty_state.py
         button_width.py        # apply_fixed_button_width: TButton のフォントで文言を測り、ボタンの width を最大文言幅で固定（phase 19）
         hook_controller.py
-        key_capture.py
+        key_capture.py         # SingleKeyCaptureController: 停止キー / トグルキーの取得（取得中の IME = key_capture_ime・phase 60）
         keymap_panel/          # キーマップ管理（所有者フォルダ・phase 34 task_09）
             __init__.py        # KeymapPanelController の再輸出
             keymap_panel_controller.py  # KeymapPanelController: 一覧・選択 = アクティブ化・編集・削除・グレー表示
@@ -113,9 +114,9 @@ keyseq/presentation/
       preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）
       trigger_dialog.py        # TriggerDialog（取得ボタンは最大文言幅で固定 = `apply_fixed_button_width`・phase 43）
-      keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集・取得で禁止のキー・`??` を取らない〔`??` は案内の欄に理由・phase 59〕・取得ボタンは最大文言幅で固定（apply_fixed_button_width）。phase 43 以降はダブルクリック編集だけで使う。「枠を使う」/「枠を編集…」・phase 56）
+      keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集・取得で禁止のキー・`??` を取らない〔`??` は案内の欄に理由・phase 59・全入口共通は phase 60〕・取得ボタンは最大文言幅で固定（apply_fixed_button_width）。phase 43 以降はダブルクリック編集だけで使う。「枠を使う」/「枠を編集…」・phase 56）
       grid_editor_window.py    # GridEditorWindow: 画面の枠の編集の窓（KeymapEditDialog の子・フックは親が止める・半透明の全画面・境界のドラッグ・キーの取り込み・OK の検査・phase 56）
-      keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・取得で禁止のキー・`??` を取らない〔phase 59〕・クリアボタンなし・取得ボタンは最大文言幅で固定（apply_fixed_button_width）・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・行/スクロール領域/ボタンとバインドの生成は専用メソッド・phase 43）
+      keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・取得で禁止のキー・`??` を取らない〔phase 59・全入口共通は phase 60〕・クリアボタンなし・取得ボタンは最大文言幅で固定（apply_fixed_button_width）・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・行/スクロール領域/ボタンとバインドの生成は専用メソッド・phase 43）
       layout_delete_dialog.py  # LayoutDeleteDialog
       escape_close.py          # bind_escape_close（Esc に別用途がある 4 ダイアログの Escape 結線。印はクロージャに持つ・提案書 11 / phase 28 task_07）
       orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
@@ -143,13 +144,14 @@ keyseq/presentation/
     status_text.py             # one_line: 省略表示中のステータス欄・ステータスバーの文言の改行を空白へ（phase 48）
     pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
-    hook_button_texts.py       # フックの枠の切替ボタンの文言・取得の案内の文言（`UNKNOWN_CAPTURE_KEY_HINT_TEXT`・phase 59）とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
+    key_capture_ime.py         # KeyCaptureImeTracker / begin_key_capture・end_key_capture: キーの取得中は IME を OFF にする寿命の部品（入口ごとの数と「OFF にした」印・開始 / 終了の冪等・窓自身の `<Destroy>` で終了・既定インスタンスはモジュール変数・phase 60）
+    hook_button_texts.py       # フックの枠の切替ボタンの文言・取得の案内の文言（`UNKNOWN_CAPTURE_KEY_HINT_TEXT`・phase 59 / 60 で文言変更）とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
     orphan_sweep_text.py       # 孤児ファイルの棚卸しの提示テキスト整形（警告 / 候補一覧 / 隔離結果。純関数）
     quarantine_manage_text.py  # 隔離の管理の提示テキスト整形（単位一覧 / 復元・削除の計画と結果。純関数）
     keymap_set_history_text.py # 読み込み履歴の表示文言（ノード名・ボタン文言・確認文・失敗理由。純関数と定数のみ）
     startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
     theme.py                   # フォント/テーマ適用 + coerce_font_delta（フォント差分 -3..+3 正規化の唯一点）
-    tk_keys.py
+    tk_keys.py                 # Tk のキーイベント → キー名（テンキー・key_hold の左右）/ `is_unresolved_capture_key`（`??`・phase 60）
 ```
 
 - **FullView と CompactView で Widget は共通化しない**（部品構成・配置が異なるため View ごとに専用 Widget を持つ）。
@@ -802,6 +804,15 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - 禁止の判定: `domain/key_identifiers.py` の `PROHIBITED_ASSIGN_KEY_NAMES` / `is_prohibited_assign_key(name)`。使う側 = `keyboard_window.py`（色・左クリック）/ `KeymapPanelController.assign_keymap_from_keyboard_ui`（割り当ての入口で拒否）・`validate_keymap_switch_assignment`（`exclude_switch_key` = 今の切替キーと違うときだけ拒否）/ `application/keymap_switch_batch.validate_switch_batch`（`_current_switches` で今の切替キーを逆引き）/ 2 つの切替キーのダイアログの取得
   - レイアウトの見本: `config/user/keylayout/jis.json`・`de.json`（`.gitignore` の `config/` に当たるので `git add -f` で追跡）。検査 = `tests/test_keyboard_layout_files.py`
   - テスト: `tests/test_prohibited_assign_keys.py`・`test_keyboard_layout_files.py`・`test_input_router.py`（`alt gr`）・`test_keymap_switch_batch.py` / `tests_ui/test_keyboard_window_left_right.py`・`test_prohibited_assign_keys_ui.py`
+- phase 60（キーの取得中は IME を OFF にする。仕様 = `key_input.md` §7.4「取得の入口」「取得中の IME」「判別できないキー」。判断 = `decisions_archive/60_ime_off_during_key_capture.md`）:
+  - 口: `infrastructure/own_ime_status.py`（状態なし・`_Win32OwnImeApi` は初回に 1 回生成・失敗は `None` / `False`）。送信用の `ime_control.py` とは別物で状態も共有しない
+  - 部品: `presentation/key_capture_ime.py` の `KeyCaptureImeTracker`（hwnd はルートの窓の `winfo_id()`・取得した窓が破棄された後も戻せるため）。`own_ime_status` を presentation から直接 import する（application は経由しない・自アプリの IME は UI の都合で業務の状態ではない）。入口は既存の開始 / 停止の関数から `begin_key_capture(owner, window)` / `end_key_capture(owner)` を呼ぶ:
+    #1 `controllers/key_capture.py`（`start` / `stop`・window = App）/ #2 `dialogs/trigger_dialog.py` / #3 `dialogs/keymap_edit_dialog.py` / #4 `dialogs/keymap_switch_batch_dialog.py`（`_start_capture` / `_stop_capture`）/
+    #5 `dialogs/action_dialog.py`（`_start_recording` / `_stop_recording`）/ #6 `dialogs/action_key_hold_fields.py`（`start_recording` / `stop_recording`・owner = 欄・window = ダイアログ）/
+    #7 `keyboard_window.py`（`_begin_edit` の編集中でないときだけ / `_cancel_edit`）/ #8 `dialogs/grid_editor_window.py`（`__init__` の `grab_modal` の直前・終了は `<Destroy>` のみ）
+  - `??`: 各入口で `tk_keys.is_unresolved_capture_key` を見て記録しない。案内の欄 = #2・#3・#4・#6
+  - 前提: `unbind("<Destroy>", funcid)` が自分の結び付けだけを外すのは Python 3.13 以降（それより前は同じ窓の `<Destroy>` を全部外す）
+  - テスト: `tests/test_own_ime_status.py`・`test_key_capture_ime.py`・`test_tk_keys.py` / `tests_ui/test_capture_ime_entries.py`（`key_capture_ime._default_tracker` を偽の get / set の tracker に差し替え）
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 

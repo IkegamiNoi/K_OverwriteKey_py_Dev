@@ -1,7 +1,6 @@
 # 暫定仕様 44: キーの取得中は IME を OFF にする（ime_off_during_key_capture）
 
-> 状態: **未凍結・v0.4・主入力・ユーザー確定済（2026-10-16）・実装着手可**（起票時 deep-reviewer・Codex 敵対的レビューを反映済）。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
-> フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
+> 状態: **凍結（2026-10-16・phase 60 完了）・v0.4**。正本へ昇格済み = `key_input.md` §7.4「取得の入口」「取得中の IME」「判別できないキー」・§7.7（相互参照）/ `features.md` §4.3「割り当て禁止のキー」（切替キーの `??` は §7.4 を参照）/ `codebase_map.md`。**以後は正本が正**（本書の条項を実装の根拠に引かない）。
 > 起票元: [idea_46](../backlog/idea_46_ime_off_during_key_capture.md)（2026-10-16・phase 59 task_04a の実機目視から分離）。
 
 ---
