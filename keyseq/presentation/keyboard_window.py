@@ -9,6 +9,7 @@ from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
+from keyseq.domain.numpad_keys import is_numpad_key_name
 from keyseq.infrastructure import win32_window
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
@@ -534,8 +535,9 @@ class KeyboardWindow(tk.Toplevel):
             if scan_code is not None
             else ""
         )
-        if resolved:
-            return normalize_key_name(resolved)
+        normalized = normalize_key_name(resolved)
+        if normalized and not is_numpad_key_name(normalized):
+            return normalized
 
         return k
 

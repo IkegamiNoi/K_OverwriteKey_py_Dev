@@ -3,7 +3,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from keyseq.presentation.keyboard_layouts import load_layout_from_json, resolve_keyboard_layout
+from keyseq.presentation.keyboard_layouts import (
+    KeyboardLayout,
+    KeySpec,
+    load_layout_from_json,
+    resolve_keyboard_layout,
+)
 from keyseq.presentation.keyboard_window import KeyboardWindow
 
 
@@ -13,8 +18,8 @@ JIS_LAYOUT_PATH = (
 
 
 class KeyboardWindowScanCodeTest(unittest.TestCase):
-    def _normalize(self, layout, keysym, keycode, scan_code):
-        event = SimpleNamespace(keysym=keysym, keycode=keycode, state=0)
+    def _normalize(self, layout, keysym, keycode, scan_code, state=0):
+        event = SimpleNamespace(keysym=keysym, keycode=keycode, state=state)
         window = SimpleNamespace(_layout=layout)
         with patch(
             "keyseq.presentation.keyboard_window.win32_window.vk_to_scan_code",
@@ -71,6 +76,23 @@ class KeyboardWindowScanCodeTest(unittest.TestCase):
         self.assertEqual(numpad, "num 0")
         self.assertEqual(enter, "enter")
         convert.assert_not_called()
+
+    def test_numpad_layout_name_does_not_override_extended_insert(self):
+        layout = KeyboardLayout(
+            layout_id="numpad_scan_code_collision",
+            display_name="Numpad scan code collision",
+            keys=(KeySpec("num 0", "0", 0.0, 0.0, scan_code=82),),
+        )
+
+        insert, insert_convert = self._normalize(
+            layout, "Insert", 45, 82, state=0x40000
+        )
+        numpad_zero, numpad_convert = self._normalize(layout, "End", 96, 82)
+
+        self.assertEqual(insert, "insert")
+        insert_convert.assert_called_once_with(45)
+        self.assertEqual(numpad_zero, "num 0")
+        numpad_convert.assert_not_called()
 
 
 if __name__ == "__main__":
