@@ -8,7 +8,11 @@ from keyseq.presentation.controllers.button_width import apply_fixed_button_widt
 from keyseq.presentation.hook_button_texts import (
     CAPTURE_ACTIVE_TEXT, CAPTURE_IDLE_TEXT, CAPTURE_TEXTS,
 )
-from keyseq.presentation.tk_keys import normalize_tk_key_event
+from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
+from keyseq.presentation.tk_keys import (
+    is_unresolved_capture_key,
+    normalize_tk_key_event,
+)
 
 
 class SingleKeyCaptureController:
@@ -56,6 +60,7 @@ class SingleKeyCaptureController:
 
     def start(self) -> None:
         """キャプチャ開始（キャプチャ中はフックを一時停止）"""
+        begin_key_capture(self, self._app)
         self.capturing = True
         if self._capture_btn is not None:
             self._capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
@@ -76,6 +81,7 @@ class SingleKeyCaptureController:
         if not self.capturing:
             return
         self.capturing = False
+        end_key_capture(self)
         try:
             self._app.unbind("<KeyPress>")
         except Exception:
@@ -127,6 +133,9 @@ class SingleKeyCaptureController:
             return
 
         key = normalize_tk_key_event(event)
+
+        if is_unresolved_capture_key(key):
+            return "break"
 
         # Esc はキャンセル
         if key == "esc":

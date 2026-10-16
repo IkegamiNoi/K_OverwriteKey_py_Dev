@@ -13,8 +13,12 @@ from keyseq.presentation.hook_button_texts import (
     CAPTURE_TEXTS,
     UNKNOWN_CAPTURE_KEY_HINT_TEXT,
 )
+from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
 from keyseq.presentation.modal import grab_modal
-from keyseq.presentation.tk_keys import normalize_tk_key_event
+from keyseq.presentation.tk_keys import (
+    is_unresolved_capture_key,
+    normalize_tk_key_event,
+)
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -211,6 +215,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             self._start_capture(index)
 
     def _start_capture(self, index: int) -> None:
+        begin_key_capture(self, self)
         self._capturing = True
         self._capture_index = index
         self.capture_buttons[index].configure(text=CAPTURE_ACTIVE_TEXT)
@@ -224,6 +229,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         if not self._capturing:
             return
         self._capturing = False
+        end_key_capture(self)
         index = self._capture_index
         self._capture_index = None
         if index is not None:
@@ -243,7 +249,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             self._on_escape(event)
             return "break"
         key = normalize_tk_key_event(event)
-        if key == "??":
+        if is_unresolved_capture_key(key):
             self.hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
             return "break"
         if (

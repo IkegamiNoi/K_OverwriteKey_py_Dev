@@ -11,9 +11,14 @@ from keyseq.presentation.hook_button_texts import (
     CAPTURE_ACTIVE_TEXT,
     CAPTURE_IDLE_TEXT,
     CAPTURE_TEXTS,
+    UNKNOWN_CAPTURE_KEY_HINT_TEXT,
 )
+from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
 from keyseq.presentation.modal import grab_modal
-from keyseq.presentation.tk_keys import normalize_tk_key_event
+from keyseq.presentation.tk_keys import (
+    is_unresolved_capture_key,
+    normalize_tk_key_event,
+)
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -81,6 +86,7 @@ class TriggerDialog(tk.Toplevel):
 
     def _start_capture(self):
         # 単キーの取得（F1等）を想定。Escでキャンセル。
+        begin_key_capture(self, self)
         self._capturing = True
         self.capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
         self.hint.configure(text="取得中：トリガーにしたいキーを1回押してください（Escでキャンセル）")
@@ -92,6 +98,7 @@ class TriggerDialog(tk.Toplevel):
         if not getattr(self, "_capturing", False):
             return
         self._capturing = False
+        end_key_capture(self)
         self.capture_btn.configure(text=CAPTURE_IDLE_TEXT)
         self.hint.configure(text="例）トリガー: f1 / ラベル: コピー→ウィンドウ切替→貼り")
         try:
@@ -103,6 +110,9 @@ class TriggerDialog(tk.Toplevel):
         if not self._capturing:
             return
         k = normalize_tk_key_event(event)
+        if is_unresolved_capture_key(k):
+            self.hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+            return "break"
         # 修飾キー単体は無視（ctrl/shift/alt/windows）
         if k in ("ctrl", "shift", "alt", "windows"):
             return "break"
