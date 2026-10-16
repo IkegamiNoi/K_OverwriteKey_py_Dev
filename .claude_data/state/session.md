@@ -11,7 +11,7 @@ last_commit_location: `claude/idea-46-3c4cb6`（phase 60）。phase 57 = `claude
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 60 起票済（2026-10-16）。次 = task_01（土台: 自アプリの IME の開閉の口・取得の寿命の部品・`??` 判定・案内の文言）。タスク定義は未起票（`/task_new`）。**
+focus: **phase 60 task_01 完了（土台・コミット済）。次 = task_02（入口 #1〜#4 の配線と `??` の統一）。**
 mode: active
 
 ## last_action

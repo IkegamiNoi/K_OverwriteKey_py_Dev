@@ -2,6 +2,7 @@ import unittest
 from types import SimpleNamespace
 
 from keyseq.presentation.tk_keys import (
+    is_unresolved_capture_key,
     normalize_key_hold_tk_key_event,
     normalize_key_hold_tk_keysym,
     normalize_tk_key_event,
@@ -11,6 +12,11 @@ from keyseq.presentation.tk_keys import (
 
 
 class TkKeysTest(unittest.TestCase):
+    def test_unresolved_capture_key(self):
+        self.assertTrue(is_unresolved_capture_key("??"))
+        self.assertFalse(is_unresolved_capture_key("a"))
+        self.assertFalse(is_unresolved_capture_key(""))
+
     def test_numpad_names_by_keycode_and_extended_state(self):
         cases = {
             **{keycode: f"num {digit}" for digit, keycode in enumerate(range(96, 106))},

@@ -1,6 +1,13 @@
 from __future__ import annotations
 
 
+UNRESOLVED_KEY_NAME = "??"
+
+
+def is_unresolved_capture_key(name: str) -> bool:
+    return name == UNRESOLVED_KEY_NAME
+
+
 _NUMPAD_NAMES_BY_KEYCODE = {
     **{keycode: f"num {digit}" for digit, keycode in enumerate(range(96, 106))},
     110: "num decimal",
