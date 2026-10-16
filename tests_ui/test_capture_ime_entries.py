@@ -3,14 +3,18 @@ import tkinter as tk
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.presentation import app as app_module
 from keyseq.presentation import key_capture_ime
 from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
+from keyseq.presentation.dialogs.action_dialog import ActionDialog
+from keyseq.presentation.dialogs.grid_editor_window import GridEditorWindow
 from keyseq.presentation.dialogs.keymap_edit_dialog import KeymapEditDialog
 from keyseq.presentation.dialogs.keymap_switch_batch_dialog import KeymapSwitchBatchDialog
 from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
 from keyseq.presentation.hook_button_texts import UNKNOWN_CAPTURE_KEY_HINT_TEXT
+from keyseq.presentation.keyboard_window import KeyboardWindow
 from tests_ui.escape_delivery import acquire_focus
 
 
@@ -212,6 +216,137 @@ class CaptureImeEntriesUiTest(unittest.TestCase):
         self.assertTrue(dialog._capturing)
         self.assertEqual(dialog.key_vars[0].get(), "")
         dialog.destroy()
+        self.assertTrue(self.ime_open)
+
+    def test_action_dialog_capture_restores_ime_and_ignores_unresolved_key(self):
+        dialog = ActionDialog(self.app, "Action")
+        dialog._start_recording()
+        self.assertFalse(self.ime_open)
+        self.assertEqual(dialog._on_key_press(self._key("??")), "break")
+        self.assertTrue(dialog._recording)
+        self.assertEqual(dialog.value_var.get(), "")
+        self.assertEqual(dialog._on_key_press(self._key("a")), "break")
+        self.assertEqual(dialog.value_var.get(), "a")
+        self.assertFalse(dialog._recording)
+        self.assertTrue(self.ime_open)
+
+        dialog._start_recording()
+        acquire_focus(self.app, dialog)
+        dialog.event_generate("<Escape>")
+        dialog.update()
+        self.assertFalse(dialog._recording)
+        self.assertTrue(self.ime_open)
+
+        dialog._start_recording()
+        dialog._sync_hotkey_controls(False)
+        self.assertTrue(self.ime_open)
+        dialog._start_recording()
+        dialog._stop_recording()
+        self.assertTrue(self.ime_open)
+        dialog._start_recording()
+        dialog.destroy()
+        self.assertTrue(self.ime_open)
+
+    def test_key_hold_capture_restores_ime_and_shows_unresolved_hint(self):
+        dialog = ActionDialog(self.app, "Action")
+        fields = dialog.key_hold_fields
+        dialog.type_var.set("key_hold")
+        fields.start_recording()
+        self.assertFalse(self.ime_open)
+        self.assertEqual(fields._on_key_press(self._key("??")), "break")
+        self.assertTrue(fields.recording)
+        self.assertEqual(fields.key_var.get(), "")
+        self.assertEqual(fields.key_hint.cget("text"), UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+        self.assertEqual(fields._on_key_press(self._key("a")), "break")
+        self.assertEqual(fields.key_var.get(), "a")
+        self.assertFalse(fields.recording)
+        self.assertTrue(self.ime_open)
+
+        fields.start_recording()
+        acquire_focus(self.app, dialog)
+        dialog.event_generate("<Escape>")
+        dialog.update()
+        self.assertFalse(fields.recording)
+        self.assertTrue(self.ime_open)
+
+        fields.start_recording()
+        fields.sync_target()
+        self.assertTrue(self.ime_open)
+        fields.start_recording()
+        dialog.destroy()
+        self.assertTrue(self.ime_open)
+
+    def test_action_and_key_hold_recording_overlap_restores_ime(self):
+        dialog = ActionDialog(self.app, "Action")
+        dialog._start_recording()
+        dialog.key_hold_fields.start_recording()
+        self.assertFalse(self.ime_open)
+        dialog._stop_recording()
+        self.assertFalse(dialog.key_hold_fields.recording)
+        self.assertTrue(self.ime_open)
+        dialog.destroy()
+
+    def test_keyboard_window_capture_is_idempotent_and_restores_ime(self):
+        window = KeyboardWindow(self.app)
+        get_open = self.tracker._get_open
+        with patch.object(self.tracker, "_get_open", wraps=get_open) as get_status:
+            window._begin_edit("a")
+            self.assertFalse(self.ime_open)
+            first_call_count = get_status.call_count
+            window._begin_edit("b")
+            self.assertEqual(get_status.call_count, first_call_count)
+            self.assertEqual(window._editing_source_key, "b")
+
+        with patch.object(window, "_normalize_tk_key", return_value="??"):
+            self.assertEqual(window._on_key_press(self._key("a")), "break")
+        self.assertEqual(window._editing_source_key, "b")
+        acquire_focus(self.app, window)
+        window.event_generate("<Escape>")
+        window.update()
+        self.assertIsNone(window._editing_source_key)
+        self.assertTrue(self.ime_open)
+
+        window._begin_edit("a")
+        window._key_bounds = [("b", 0, 0, 20, 20)]
+        window._on_canvas_right_click(SimpleNamespace(x=5, y=5))
+        self.assertTrue(self.ime_open)
+        window._begin_edit("a")
+        window._handle_close()
+        self.assertTrue(self.ime_open)
+
+        window = KeyboardWindow(self.app)
+        window._begin_edit("a")
+        window.destroy()
+        self.assertTrue(self.ime_open)
+
+    def test_grid_editor_capture_restores_ime_and_ignores_unresolved_key(self):
+        monitor = MonitorInfo("primary", (0, 0, 100, 100), True)
+        window = GridEditorWindow(
+            self.app, grid=None, monitors=[monitor], start_monitor_id="primary",
+            reserved=set(), key_name_from_event=lambda _event: "??",
+        )
+        self.assertFalse(self.ime_open)
+        original_layout = window.layout
+        original_ops = dict(window.ops)
+        original_sub_keys = window.panel.sub_key_rows()
+        self.assertEqual(window.on_key(self._key("a")), "break")
+        self.assertEqual(window.layout, original_layout)
+        self.assertEqual(window.ops, original_ops)
+        self.assertEqual(window.panel.sub_key_rows(), original_sub_keys)
+        window.destroy()
+        self.assertTrue(self.ime_open)
+
+        window = GridEditorWindow(
+            self.app, grid=None, monitors=[monitor], start_monitor_id="primary",
+            reserved=set(),
+        )
+        self.assertFalse(self.ime_open)
+        # Esc は選択の解除が先で、何も選んでいなければ閉じる（段階式）
+        for _ in range(4):
+            if not window.winfo_exists():
+                break
+            window.on_escape()
+        self.assertFalse(window.winfo_exists())
         self.assertTrue(self.ime_open)
 
 

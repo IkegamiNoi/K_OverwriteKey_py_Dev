@@ -11,7 +11,7 @@ last_commit_location: `claude/idea-46-3c4cb6`（phase 60）。phase 57 = `claude
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 60 task_02 完了（入口 #1〜#4・コミット済）。次 = task_03（入口 #5〜#8 の配線・実装後にユーザーの実機目視）。**
+focus: **phase 60 task_03 実装・検証・レビュー済（コミット済）・ユーザーの実機目視待ち（task_03 の確認 a〜d）。目視 OK 後に task_04（統合確認）。**
 mode: active
 
 ## last_action

@@ -13,7 +13,8 @@ from keyseq.presentation.dialogs.action_control_fields import ActionControlField
 from keyseq.presentation.dialogs.action_key_hold_fields import ActionKeyHoldFields
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.modal import grab_modal
-from keyseq.presentation.tk_keys import normalize_tk_key_event
+from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
+from keyseq.presentation.tk_keys import is_unresolved_capture_key, normalize_tk_key_event
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -345,6 +346,7 @@ class ActionDialog(tk.Toplevel):
 
     def _start_recording(self):
         self._recording = True
+        begin_key_capture(self, self)
         self._mods_down.clear()
         self._last_nonmod = None
         self.capture_btn.configure(text="記録停止")
@@ -359,6 +361,7 @@ class ActionDialog(tk.Toplevel):
         if not getattr(self, "_recording", False):
             return
         self._recording = False
+        end_key_capture(self)
         self.capture_btn.configure(text="キー入力で記録")
         try:
             self.unbind("<KeyPress>")
@@ -370,6 +373,8 @@ class ActionDialog(tk.Toplevel):
         if not self._recording:
             return
         key = normalize_tk_key_event(event)
+        if is_unresolved_capture_key(key):
+            return "break"
         if key in ("ctrl", "shift", "alt", "windows"):
             self._mods_down.add(key)
             # 修飾キーだけでは確定しない

@@ -15,7 +15,8 @@ from keyseq.domain.screen_grid import (
     validate_ops, validate_sub, validate_top,
 )
 from keyseq.presentation.modal import grab_modal
-from keyseq.presentation.tk_keys import normalize_tk_key_event
+from keyseq.presentation.key_capture_ime import begin_key_capture
+from keyseq.presentation.tk_keys import is_unresolved_capture_key, normalize_tk_key_event
 from keyseq.presentation.screen_grid.grid_editor_panel import GridEditorPanel
 from keyseq.presentation.screen_grid.cell_label import (
     center_font_for_rect, corner_label_font, draw_cell_label,
@@ -61,6 +62,7 @@ class GridEditorWindow(tk.Toplevel):
         self.bind("<Map>", self._on_first_map, add="+")
         self._first_map_seen = False
         self.switch_monitor(self.monitor.id)
+        begin_key_capture(self, self)
         grab_modal(self, parent, focus=self.canvas)
 
     def _op_keys(self) -> frozenset[str]:
@@ -218,6 +220,8 @@ class GridEditorWindow(tk.Toplevel):
 
     def on_key(self, event):
         key = self._key_name_from_event(event) or normalize_tk_key_event(event)
+        if is_unresolved_capture_key(key):
+            return "break"
         if key == "esc":
             return self.on_escape(event)
         if key in MODIFIER_KEY_NAMES:

@@ -5,7 +5,12 @@ from tkinter import ttk
 from typing import Callable
 
 from keyseq.domain.key_hold import wants_repeat
-from keyseq.presentation.tk_keys import normalize_key_hold_tk_key_event
+from keyseq.presentation.hook_button_texts import UNKNOWN_CAPTURE_KEY_HINT_TEXT
+from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
+from keyseq.presentation.tk_keys import (
+    is_unresolved_capture_key,
+    normalize_key_hold_tk_key_event,
+)
 
 
 class ActionKeyHoldFields:
@@ -164,6 +169,7 @@ class ActionKeyHoldFields:
             self.stop_recording()
             return
         self.recording = True
+        begin_key_capture(self, self.dialog)
         self.record_button.configure(text="記録中…")
         self.key_hint.configure(text="キーを 1 つ押してください（Esc で停止）")
         self.key_entry.focus_set()
@@ -173,6 +179,7 @@ class ActionKeyHoldFields:
         if not self.recording:
             return
         self.recording = False
+        end_key_capture(self)
         self.record_button.configure(text="1 キーを記録")
         self.key_hint.configure(text="キーを 1 つ押すと記録します")
         if self._key_press_bind_id:
@@ -186,6 +193,10 @@ class ActionKeyHoldFields:
         if keysym.lower() == "escape":
             self.stop_recording()
             return "break"
-        self.key_var.set(normalize_key_hold_tk_key_event(event))
+        key = normalize_key_hold_tk_key_event(event)
+        if is_unresolved_capture_key(key):
+            self.key_hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+            return "break"
+        self.key_var.set(key)
         self.stop_recording()
         return "break"

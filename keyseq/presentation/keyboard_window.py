@@ -23,7 +23,12 @@ from keyseq.presentation.keyboard_window_size import (
     minimum_size,
     size_from_width,
 )
-from keyseq.presentation.tk_keys import TK_KEYSYM_TO_KEYBOARD_NAME, numpad_name_from_tk_event
+from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
+from keyseq.presentation.tk_keys import (
+    TK_KEYSYM_TO_KEYBOARD_NAME,
+    is_unresolved_capture_key,
+    numpad_name_from_tk_event,
+)
 
 _LOOKUP_KEY_BY_ID = {
     "shift_l": "shift",
@@ -461,8 +466,10 @@ class KeyboardWindow(tk.Toplevel):
         return "break"
 
     def _begin_edit(self, source_key: str) -> None:
-        if not self._editing_source_key and hasattr(self.master, "hook"):
-            self.master.hook.suspend_hook_for_dialog()
+        if not self._editing_source_key:
+            begin_key_capture(self, self)
+            if hasattr(self.master, "hook"):
+                self.master.hook.suspend_hook_for_dialog()
         self._editing_source_key = normalize_key_name(source_key)
         self.focus_force()
         self.canvas.focus_set()
@@ -473,6 +480,7 @@ class KeyboardWindow(tk.Toplevel):
         if not self._editing_source_key:
             return
         self._editing_source_key = None
+        end_key_capture(self)
         if resume_hook and hasattr(self.master, "hook"):
             self.master.hook.resume_hook_after_dialog()
         self._update_title()
@@ -483,6 +491,8 @@ class KeyboardWindow(tk.Toplevel):
             return None
 
         key = self._normalize_tk_key(event)
+        if is_unresolved_capture_key(key):
+            return "break"
         if key == "esc":
             self._cancel_edit(resume_hook=True)
             return "break"
