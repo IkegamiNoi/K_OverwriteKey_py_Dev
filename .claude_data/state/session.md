@@ -11,7 +11,7 @@ last_commit_location: `claude/idea-46-3c4cb6`（phase 60 一式・完了）。ph
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 61 起票済（2026-10-16・idea_47）。次 = task_01（`_normalize_tk_key` に VK → 走査コードの変換・実装後に実機目視）。**
+focus: **phase 61 task_01 実装・検証・レビュー済（コミット済）・ユーザーの実機目視待ち（JIS・jis.json で F1/F10/F12・無変換・変換・半角/全角・かな）。目視 OK 後に task_02（正本反映）。**
 mode: active
 
 ## last_action

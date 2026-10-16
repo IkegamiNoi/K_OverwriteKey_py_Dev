@@ -1,7 +1,12 @@
 import unittest
 from pathlib import Path
 
-from keyseq.presentation.keyboard_layouts import load_layout_from_json
+from keyseq.presentation.keyboard_layouts import (
+    load_layout_from_json,
+    resolve_key_id_from_scan_code,
+    resolve_layout_key_id_from_scan_code,
+    resolve_keyboard_layout,
+)
 
 
 LAYOUT_DIR = Path(__file__).resolve().parents[1] / "config" / "user" / "keylayout"
@@ -18,6 +23,25 @@ _NO_SCAN_CODE_IDS = (
 
 
 class KeyboardLayoutFilesTest(unittest.TestCase):
+    def test_layout_scan_code_lookup_does_not_use_known_key_fallback(self):
+        layout = resolve_keyboard_layout()
+
+        for scan_code in (41, 112, 121, 123):
+            with self.subTest(scan_code=scan_code):
+                self.assertEqual(resolve_layout_key_id_from_scan_code(layout, scan_code), "")
+        self.assertEqual(resolve_layout_key_id_from_scan_code(layout, "invalid"), "")
+        self.assertEqual(resolve_layout_key_id_from_scan_code(None, 41), "")
+
+    def test_scan_code_lookup_keeps_known_key_fallback(self):
+        layout = resolve_keyboard_layout()
+
+        self.assertEqual(resolve_key_id_from_scan_code(layout, 41), "zenkaku_hankaku")
+
+    def test_layout_scan_code_lookup_returns_matching_jis_id(self):
+        layout = load_layout_from_json(str(LAYOUT_PATHS["jis"]))
+
+        self.assertEqual(resolve_layout_key_id_from_scan_code(layout, 41), "zenkaku_hankaku")
+
     def test_de_layout_loads_and_contains_alt_gr(self):
         layout = load_layout_from_json(str(LAYOUT_PATHS["de"]))
 

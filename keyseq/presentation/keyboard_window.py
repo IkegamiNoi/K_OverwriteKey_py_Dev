@@ -9,9 +9,10 @@ from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
+from keyseq.infrastructure import win32_window
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
-    resolve_key_id_from_scan_code,
+    resolve_layout_key_id_from_scan_code,
     resolve_keyboard_layout,
 )
 from keyseq.presentation.keyboard_window_size import (
@@ -522,7 +523,17 @@ class KeyboardWindow(tk.Toplevel):
         if k in TK_KEYSYM_TO_KEYBOARD_NAME:
             return TK_KEYSYM_TO_KEYBOARD_NAME[k]
 
-        resolved = resolve_key_id_from_scan_code(self._layout, getattr(event, "keycode", None))
+        keycode = getattr(event, "keycode", None)
+        try:
+            vk = int(keycode)
+        except (TypeError, ValueError, OverflowError):
+            vk = None
+        scan_code = win32_window.vk_to_scan_code(vk) if vk is not None else None
+        resolved = (
+            resolve_layout_key_id_from_scan_code(self._layout, scan_code)
+            if scan_code is not None
+            else ""
+        )
         if resolved:
             return normalize_key_name(resolved)
 

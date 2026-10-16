@@ -324,7 +324,7 @@ def _resolve_layout_path(path: str, base_dir: str | None) -> str:
     return os.path.join(base_dir, path)
 
 
-def resolve_key_id_from_scan_code(layout: KeyboardLayout | None, scan_code: object) -> str:
+def resolve_layout_key_id_from_scan_code(layout: KeyboardLayout | None, scan_code: object) -> str:
     try:
         normalized_scan_code = int(scan_code)
     except Exception:
@@ -337,4 +337,16 @@ def resolve_key_id_from_scan_code(layout: KeyboardLayout | None, scan_code: obje
             if int(key_spec.scan_code) == normalized_scan_code:
                 return str(key_spec.id or "").strip()
 
+    return ""
+
+
+def resolve_key_id_from_scan_code(layout: KeyboardLayout | None, scan_code: object) -> str:
+    try:
+        normalized_scan_code = int(scan_code)
+    except Exception:
+        return ""
+
+    key_id = resolve_layout_key_id_from_scan_code(layout, normalized_scan_code)
+    if key_id:
+        return key_id
     return resolve_known_key_name_from_scan_code(normalized_scan_code)
