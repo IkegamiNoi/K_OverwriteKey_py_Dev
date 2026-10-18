@@ -123,7 +123,7 @@ keyseq/presentation/
       quarantine_manage_dialog.py  # QuarantineManageDialog（隔離の管理・実行単位のリスト選択 + 復元 / 削除ボタン）
       reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 隔離 / 復元 / 削除で再利用）
       keymap_set_history_dialog.py # KeymapSetHistoryDialog（読み込み履歴・**リポジトリ唯一の ttk.Treeview**〔2 列 / 名前列は stretch=False〕・操作のたびに永続化済みの履歴を読み直して再描画）+ CategoryChooserDialog（コピー先の分類選択・同ファイル内のネストした子）
-    keyboard_layouts.py        # レイアウトの読込・検証 / `resolve_layout_key_id_from_scan_code`（レイアウトの `scan_code` だけで引く・phase 61）/ `resolve_key_id_from_scan_code`（レイアウト → 既知の特殊キーの表・フックの実行時と画面の枠の編集の窓が `LayoutController` 経由で使う）
+    keyboard_layouts.py        # レイアウトの読込・検証 / `resolve_layout_key_id_from_scan_code`（走査コード → `id`・レイアウトの `scan_code` だけで引く・フックの実行時 / 画面の枠の編集の窓〔`LayoutController` 経由〕/ キーボードUI の取得が使う・phase 61 / 62）/ `resolve_layout_scan_code_from_key_name`（キー名 → `scan_code`・最初の行・1〜255・送信用・phase 62）
     keyboard_window.py         # KeyboardWindow: キーボード表示の窓（タイトル表示・縦横比の補正・phase 55）。`_LOOKUP_KEY_BY_ID` = レイアウトの id → 引くキー名（左右の修飾キーを分ける・`alt_gr` → `alt gr`・phase 59）/ 禁止の枠の色 `"prohibited"`・禁止の枠は左クリックで編集しない（phase 59）/ 編集のキーの名前 `_normalize_tk_key` は VK を `win32_window.vk_to_scan_code` で走査コードへ変換してレイアウトだけで引く（phase 61・`key_input.md` §7.4・テスト = `tests_ui/test_keyboard_window_scan_code.py`・`tests/test_keyboard_layout_files.py`）
     keyboard_window_size.py    # キーボード表示の縦横比と大きさの計算（tkinter 非依存・phase 55）
     listbox_utils.py
@@ -316,7 +316,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     - `KeymapSetIo.load_keymap_set_path(path)`: **パス指定の共通読込入口**（メニュー読込と履歴ダイアログの
       双方が使う。成否を `KEYMAP_SET_LOAD_OK` / `..._FAILED` で返す）
     - **メニュー配線は `views/menu_bar.py` のファイルメニュー 1 行**（「読込（構成セット）…」の直後）
-- LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理・キーボードUIの前面化と一時解除の監視（phase 55）
+- LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理・キーボードUIの前面化と一時解除の監視（phase 55）/ 走査コード → キー名 `resolve_key_name_from_scan_code`・キー名 → 走査コード `resolve_scan_code_from_key_name`（登録済みの `entry.layout` を読むだけ・`App` が `InputGateway` へ注入）/ レイアウトの読み直し（起動・追加・削除・構成の読込〔`App._sync_control_vars_from_data`〕）・選ぶ id の変更の前に `held_inputs.release_all`（`_release_held_inputs_before_layout_change`）/ デバッグ出力（`debug_jis_special_key_events`）の対象 = 走査コードが選んでいるレイアウトの `scan_code` を持つ行に当たる押下（phase 62）/ テスト = `tests/test_layout_controller_scan_code.py`・`tests/test_keyboard_layout_files.py`・`tests/test_input_gateway_send.py`
 - PaneLayoutController（controllers/pane_layout/ = `app.pane_layout`）: フル表示の幅配分（仕様は `spec_detail/features.md` §4.6「フル表示の幅配分」・
   `data_schema.md` §5.4）。計算は `pane_width_rules.py` の純関数、最小幅の実測は `pane_measure.py`。
   - 初回適用（FullView の `PanedWindow` の最初の `<Configure>`）: 最小幅とヘッダ幅の実測 → 保存値の検証 or 既定幅（780 基準）→ 一括適用 →
@@ -788,7 +788,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - テスト: `tests/test_key_repeat.py` / `test_input_gateway_repeat.py` / `tests_ui/test_key_hold_presentation.py`
 - phase 54（テンキーの区別。仕様 = `key_input.md` §7.7・§7.8 / `data_schema.md` §5.1 / `features.md` §4.2.12。判断 = `decisions_archive/54_numpad_key_distinction.md`）:
   - 名前の表と入力の名前: `domain/numpad_keys.py`（16 名 ↔ スキャンコード + 拡張・`numpad_name_from_event(scan_code, is_keypad)`・予約名 `is_reserved_numpad_name`）。`application/input_router.py` と `key_state_manager.py` の `_extract_key_name` が最初に使い、テンキーでないイベントではレイアウトの表の名前を捨てる
-  - 検査・送信・同じキー: `infrastructure/input_gateway.py`（`validate_key_name` が表の名前を許可・予約名を拒否 / `press_key`・`release_key`・`send_hotkey` は表の名前を `_send_numpad_event`〔専用 user32 の `SendInput` スキャンコード入力・`is_replaying`〕で送る / `key_identity` は表 → 拡張キー表 → keyboard の先頭〔0xE0xx は拡張に読み替え〕）
+  - 検査・送信・同じキー: `infrastructure/input_gateway.py`（`validate_key_name` が表の名前を許可・予約名を拒否 / `press_key`・`release_key`・`send_hotkey` は表の名前を `_send_numpad_event`〔専用 user32 の `SendInput` スキャンコード入力・`is_replaying`〕で送る / `key_identity` は表 → 拡張キー表 → keyboard の先頭〔0xE0xx は拡張に読み替え〕→ レイアウトの `scan_code`〔phase 62〕）
   - 記録: `presentation/tk_keys.py` の `numpad_name_from_tk_event(keycode, state)`・`normalize_tk_key_event` / `normalize_key_hold_tk_key_event`（hotkey の記録・key_hold の「1 キーを記録」・トリガー / 切替キー / 停止キーの取得・`keyboard_window.py` の置換先の取得から呼ぶ）
   - テスト: `tests/test_numpad_keys.py` / `test_tk_keys.py` / `test_input_router.py` / `test_key_state_manager.py` / `test_key_overlap.py` / `test_input_gateway_send.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_keymap_switch_batch_dialog.py`
 - phase 55（キーボードUIのウィンドウ改善。仕様 = `features.md` §4.6「キーボード表示のウィンドウ」。判断 = `decisions_archive/55_keyboard_ui_window.md`）:
@@ -819,6 +819,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 ### キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）
 
 - 呼び出し元は `ActionExecutor` だけ（hotkey アクション = `send_hotkey(normalized)` / キーマップの送信先 = `press_key` → `release_key`。send guard は呼び出し元が張る）。
+- **キー名の解決**（phase 62・仕様 = `spec_detail/key_input.md` §7.7「キー名 → 走査コードの解決の順」）: `_resolve_key` が テンキー → 拡張キー → keyboard（成功・非空）→ 注入された `resolve_layout_scan_code`（`InputGateway(resolve_layout_scan_code=...)`・`int` で 1〜255・例外は当たらない）→ `ValueError` の順に種類と値を返し、`press_key` / `release_key` / `send_hotkey` / `key_identity` / `validate_key_name` が共通に使う。レイアウトのキーは `_send_numpad_event(scan, False, ...)` で送る。`send_hotkey` は全キーが keyboard のときだけ `keyboard.send`
 - **Windows の拡張キー**（矢印・Home・End・PageUp/PageDown・Insert・Delete・右 Ctrl / 右 Alt・Windows・menu・PrintScreen・NumLock）は、
   ファイル内の表（正規化後のキー名 → 仮想キー / スキャンコード）で解決し、`user32.keybd_event` に KEYEVENTF_EXTENDEDKEY を付けて送る
   （`keyboard` ライブラリは拡張フラグを付けないため、`shift+right` 等がテンキー扱いになり範囲選択にならない。仕様は `spec_detail/key_input.md` §7.7）。

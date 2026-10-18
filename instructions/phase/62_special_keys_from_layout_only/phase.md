@@ -59,6 +59,7 @@ JIS の特殊キー（無変換・変換・かな・半角/全角）の名前を
 - task_02: 送る側と既知の表の削除（§4・§5）。`keyboard_layouts` の純関数・`LayoutController` の「キー名 → 走査コード」・`InputGateway` の解決の一本化と走査コードでの送信・注入（`app.py`）・既知の表と参照元の削除・テスト
 - task_03: レイアウトが変わる前の離し（§6）・テスト。**実装後にユーザーの実機目視**（§7 #12）
 - **task_03b（取り下げ・2026-10-18）**: 受け取り用の追加の走査コード `extra_scan_codes`（暫定 45 §3.1・v0.4 で追加〔2026-10-18 の実機目視で無変換・変換が 241 / 242 で届くと判明〕）。読込・`KeySpec`・受け取りの照合・デバッグ出力の判定・見本 jis.json・テスト。**実装後にユーザーの実機目視**（無変換・変換の受け取り）
+- task_04b: 構成の読込でレイアウトの登録を読み直す（`App._sync_control_vars_from_data` → `reload_keyboard_layouts`・完了判定前レビューの指摘・ユーザー判断 案 a 2026-10-18）
 - task_04: 正本反映（§9）・暫定 45 の凍結・`decisions_archive/62_special_keys_from_layout_only.md`・decisions.md の索引・current.md の完了記載・idea_49 を INDEX_done へ・`/refactor_check`・完了判定前レビュー
 
 ## レビュー方針

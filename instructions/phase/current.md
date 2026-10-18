@@ -7,9 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 62](62_special_keys_from_layout_only/phase.md)**（2026-10-18 起票・task_01〜03 済〔task_03b は取り下げ → idea_52〕・task_04 正本反映へ・特殊キーの名前をレイアウトだけが決める〔受け取り・送信とも選んでいるレイアウトの `scan_code` で名前を引き、既知の特殊キーの表を削除 / 送れていなかった `muhenkan` 等をレイアウトの走査コードで送る / レイアウトが変わる前に押したままのキーを離す〕。暫定仕様先行モード〔主入力 = [暫定 45](../history/45_special_keys_from_layout_only.md) v0.5・ユーザー確定済〕・JSON スキーマ不変・起票元 [idea_49](../backlog/idea_49_special_keys_from_layout_only.md)・番号対応 phase 62 / 暫定 45 / decisions 62）。
-- 直前の完了フェーズ = [phase 61](61_keyboard_ui_vk_to_scan_code/phase.md)（2026-10-17・キーボードUI の取得で VK を走査コードへ変換する〔F1 / F10 / F12 が `kana` / `henkan` / `muhenkan` になる不具合の修正・変換後はレイアウトの `scan_code` だけで引く〕。直接改訂モード・JSON スキーマ不変・JIS の特殊キーの取得は未達で idea_50 へ・判断は [decisions_archive/61](../../.claude_data/state/decisions_archive/61_keyboard_ui_vk_to_scan_code.md)）。
-- その前の完了フェーズ = [phase 60](60_ime_off_during_key_capture/phase.md)（2026-10-16・キーの取得中は IME を OFF にする〔取得の 8 入口で取得の間だけアプリ自身の IME を OFF・終了で復元 / `??` を全入口で記録せず取得を続ける〕。暫定仕様先行モード〔暫定 44 v0.4 凍結〕・JSON スキーマ不変・判断は [decisions_archive/60](../../.claude_data/state/decisions_archive/60_ime_off_during_key_capture.md)）。
+- **アクティブなフェーズ = なし**（phase 62 は 2026-10-18 完了）。次フェーズはユーザー判断・着手時は `/phase_start`。
+- 直前の完了フェーズ = [phase 62](62_special_keys_from_layout_only/phase.md)（2026-10-18・特殊キーの名前をレイアウトだけが決める〔受け取り・送信とも選んでいるレイアウトの `scan_code` で名前を引き、既知の特殊キーの表を削除 / 送れていなかった `muhenkan` 等をレイアウトの走査コードで送る / レイアウトが変わる前に押したままのキーを離す / 構成の読込でレイアウトを読み直す〕。暫定仕様先行モード〔暫定 45 v0.5 凍結・§3.1 の `extra_scan_codes` は取り下げ〕・JSON スキーマ不変・判断は [decisions_archive/62](../../.claude_data/state/decisions_archive/62_special_keys_from_layout_only.md)）。
+- その前の完了フェーズ = [phase 61](61_keyboard_ui_vk_to_scan_code/phase.md)（2026-10-17・キーボードUI の取得で VK を走査コードへ変換する。直接改訂モード・判断は [decisions_archive/61](../../.claude_data/state/decisions_archive/61_keyboard_ui_vk_to_scan_code.md)）。
+  [phase 60](60_ime_off_during_key_capture/phase.md)（2026-10-16・キーの取得中は IME を OFF にする〔取得の 8 入口で取得の間だけアプリ自身の IME を OFF・終了で復元 / `??` を全入口で記録せず取得を続ける〕。暫定仕様先行モード〔暫定 44 v0.4 凍結〕・JSON スキーマ不変・判断は [decisions_archive/60](../../.claude_data/state/decisions_archive/60_ime_off_during_key_capture.md)）。
   [phase 59](59_keyboard_ui_left_right_modifiers/phase.md)（2026-10-16・キーボードUI の左右の修飾キーの区別と割り当て禁止のキー〔左右の Shift・Ctrl・Alt・Win の枠を左右別のキー名で表示・編集 / Windows キー・Caps Lock・AltGr 配列の右 Alt〔標準の id `alt_gr`〕をキーマップの元キーと切替キーに割り当て禁止 / 切替キーの取得で判別できないキー〔`??`〕は案内 / jis.json・de.json の見本〕。暫定仕様先行モード〔暫定 43 v0.6 凍結〕・JSON スキーマ不変・判断は [decisions_archive/59](../../.claude_data/state/decisions_archive/59_keyboard_ui_left_right_modifiers.md)）。
   [phase 58](58_window_size_fit/phase.md)（2026-10-15・画面サイズの調整〔フル表示の 3 枠を枠ごとに縦スクロール・最小の高さ = 要求高さ − メイン領域 + ceil(H/2)〔+3 で 931 → 635px〕・各枠の最小幅にスクロールバーの幅 / 省略表示の「フック」「表示」を Expander で開閉・保存・見出しはキーでも開閉 / ステータス欄のフックを ON・OFF・一時停止の 3 状態に〕。暫定仕様先行モード〔暫定 42 v0.3 凍結〕・**JSON スキーマ変更あり**〔config.json の任意キー `compact_header_view`〕・判断は [decisions_archive/58](../../.claude_data/state/decisions_archive/58_window_size_fit.md)）。
   [phase 57](57_grid_crosshair_nudge/phase.md)（2026-10-14・画面の枠の十字マーク・矢印でクリック位置の微調整・操作キーの任意化〔選んだ枠のクリック点に十字・矢印で min(16px, 枠の 1/8)・Shift で 1px・操作キーは keymap ごとに各 1 つで付け替え可〔Esc = 戻る・num enter = クリックは固定〕・編集の窓のドラッグ中の十字・パネルの 2 列化とスクロール〕。暫定仕様先行モード〔暫定 41 v0.4 凍結〕・**JSON スキーマ変更あり**〔`grid` の任意キー `ops`〕・判断は [decisions_archive/57](../../.claude_data/state/decisions_archive/57_grid_crosshair_nudge.md)） /
@@ -38,7 +39,7 @@
   判断は [decisions_archive/40](../../.claude_data/state/decisions_archive/40_sequence_call.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近のフェーズが扱った領域 = キーの取得の名前**（phase 60・61）。phase 61 = キーボードUI の編集のキーの名前（VK → 走査コード → レイアウトだけ・正本 `key_input.md` §7.4「キーボードUI の編集のキーの名前」・地図 = `codebase_map.md` の `keyboard_layouts.py`・`keyboard_window.py` の行）。**残件（phase 61）** = idea_49（特殊キーの名前をレイアウトだけが決める）/ idea_50（取得で JIS の特殊キーを取る）。phase 60 = キーの取得中の IME と判別できないキー。正本 = `key_input.md` §7.4「取得の入口」「取得中の IME」「判別できないキー」/ 地図 = `codebase_map.md`（phase 60 の節）。**残件** = idea_48（取得中のフック再開）/ decisions_archive/60 の保留（L4〜L6）・入口の重なりは実機未確認（受容）。
+- **直近のフェーズが扱った領域 = キーの名前（取得・フック・送信）**（phase 60〜62）。phase 62 = フックの実行時と送信のキー名をレイアウトだけが決める（正本 `key_input.md` §7.1「フックの実行時のキー名の出どころ」・§7.7「キー名 → 走査コードの解決の順」・`features.md` §4.6「レイアウトの JSON の `scan_code`」/ 地図 = `codebase_map.md` の `keyboard_layouts.py`・`LayoutController`・キーの送信の節）。**残件（phase 62）** = idea_50（取得で JIS の特殊キーを取る）/ idea_51（受け取りと送信で同じレイアウトの写し・離しの失敗で記録が消える受容）/ idea_52（押下だけが続けて届くキー〔無変換 241・変換 242〕）/ 下記「別タスク化候補 > キーの名前の解決と送信」。phase 61 = キーボードUI の編集のキーの名前（VK → 走査コード → レイアウトだけ・正本 `key_input.md` §7.4）。phase 60 = キーの取得中の IME と判別できないキー。正本 = `key_input.md` §7.4「取得の入口」「取得中の IME」「判別できないキー」/ 地図 = `codebase_map.md`（phase 60 の節）。**残件** = idea_48（取得中のフック再開）/ decisions_archive/60 の保留（L4〜L6）・入口の重なりは実機未確認（受容）。
 - その前の領域 = **キーボードUI の左右の修飾キーと割り当て禁止のキー**（phase 59）。正本 = `features.md` §4.3「割り当て禁止のキー」・§4.6「キーボード表示のウィンドウ」/ `key_input.md` §7.1・§7.4 / 地図 = `codebase_map.md`（phase 59 の節）。**残件** = （idea_47 は phase 61 で対応済み）/ decisions_archive/59 の保留（低-1〜3）・JIS の Caps 単独のフック側の名前は未実測（受容）。
 - その前の領域 = **画面サイズの調整**（phase 58）。正本 = `features.md` §4.5（ステータス欄のフックの 3 状態）・§4.6「フル表示の幅配分」「フル表示の 3 枠のスクロール」「省略表示の上部の開閉」「省略表示のウィンドウ」/ `data_schema.md` §5.4（`compact_header_view`）/ 地図 = `codebase_map.md`（`views/full_view/scroll_area.py`・`controllers/compact_header_controller.py`・`pane_measure`）。**残件** = decisions_archive/58 の保留（スクロールバーの出し入れで枠の要求幅が約 17px 増減・3 枠同時のスクロールバー / 一覧のスクロールバーの上のホイールの自動テストなし・開いた見出しと閉じた見出しの様式の違い）。
 - その前の領域 = **画面の枠でカーソル移動・クリック**（phase 56・57）。正本 = `features.md` §4.7 / `data_schema.md` §5.6.1 / `key_input.md` §7.3・§7.4 / `nonfunctional.md`「画面の枠の座標系」/ 地図 = `codebase_map.md`「画面の枠（phase 56・57）」。**残件** = idea_44（枠の配色）/ idea_45（既存のキー取得の記号キー名）/ phase 56 task_07 の保留 L1・L5（decisions_archive/56）/ phase 57 の見送り（OK の拒否の理由に画面名・4 経路の ops の往復の結合テスト・decisions_archive/57）。その前の phase 55 の領域（キーボード表示のウィンドウ）の残件 = 下記「別タスク化候補」の keyboard_window の 1 行。
@@ -102,7 +103,7 @@
   **phase 59 は 2026-10-16 完了**（`59_keyboard_ui_left_right_modifiers` / 暫定 43〔v0.6・凍結〕/ decisions 59〔アーカイブ済〕）。
   **phase 60 は 2026-10-16 完了**（`60_ime_off_during_key_capture` / 暫定 44〔v0.4・凍結〕/ decisions 60〔アーカイブ済〕）。
   **phase 61 は 2026-10-17 完了**（`61_keyboard_ui_vk_to_scan_code` / 暫定なし〔直接改訂モード〕/ decisions 61〔アーカイブ済〕）。
-  **phase 62 は 2026-10-18 起票・進行中**（`62_special_keys_from_layout_only` / 暫定 45 / decisions 62）。
+  **phase 62 は 2026-10-18 完了**（`62_special_keys_from_layout_only` / 暫定 45〔v0.5・凍結〕/ decisions 62〔アーカイブ済〕）。
   次フェーズは **`63_<topic>`**・decisions も **63** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -145,7 +146,7 @@
   42=画面サイズの調整〔**v0.3・凍結**〕 /
   43=キーボードUI の左右の修飾キーの区別と割り当て禁止のキー〔**v0.6・凍結**〕 /
   44=キーの取得中は IME を OFF にする〔**v0.4・凍結**〕 /
-  45=特殊キーの名前をレイアウトだけが決める〔**v0.5・ユーザー確定済・phase 62 で進行中**〕）。
+  45=特殊キーの名前をレイアウトだけが決める〔**v0.5・凍結**〕）。
   次採番は **`46_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**24 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -187,6 +188,10 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 ### 画面の枠（phase 56 由来）
 
 - task_07 統合レビューの保留: L1（`ScreenGridController.sync` のたびに枠を描き直す）/ L5（`cell_label.py` の中央の文字のフォントを描くたびに作る）/ L6（`keymap_panel_controller.py` 671 行に枠の編集の文脈とキー名の解決がある → idea_45 と一緒に移す）。色の直値の重複（`#202028` が `dialogs/grid_editor_window.py` と `screen_grid/grid_overlay_window.py`）→ idea_44 の配色の見直しで定数化（phase 56）
+
+### キーの名前の解決と送信（phase 62 由来）
+
+- `/refactor_check` M6 の参考: 走査コードの範囲 1〜255 の直値が `infrastructure/input_gateway._resolve_key` と `presentation/keyboard_layouts.resolve_layout_scan_code_from_key_name` の 2 か所（既存の定数と同値ではなく非該当・増えたら定数化）/ `LayoutController.should_debug_special_key_event` の未使用の引数 `resolved_key`（phase 62）
 
 ### キーボード表示（phase 55・59 由来）
 
