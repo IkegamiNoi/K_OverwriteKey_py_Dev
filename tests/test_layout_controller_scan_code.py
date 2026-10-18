@@ -128,7 +128,9 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
         expected = {
             41: "zenkaku_hankaku",
             123: "muhenkan",
+            241: "muhenkan",
             121: "henkan",
+            242: "henkan",
             112: "kana",
         }
         for scan_code, key_name in expected.items():
@@ -196,6 +198,16 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
         self.assertFalse(
             us_controller.should_debug_special_key_event(
                 SimpleNamespace(event_type="down", scan_code=123, name="muhenkan"), "muhenkan"
+            )
+        )
+
+    def test_should_debug_special_key_event_matches_extra_scan_code(self):
+        jis_controller = self._controller(load_layout_from_json(str(JIS_LAYOUT_PATH)))
+
+        self.assertTrue(
+            jis_controller.should_debug_special_key_event(
+                SimpleNamespace(event_type="down", scan_code=242, name="unrelated"),
+                "unrelated",
             )
         )
 
