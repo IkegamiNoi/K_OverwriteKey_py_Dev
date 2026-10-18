@@ -11,7 +11,7 @@ last_commit_location: `claude/idea-49-50-execution-c565e4`（phase 62 の task_0
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 62（特殊キーの名前をレイアウトだけが決める・idea_49）: task_01〜03 実装・検証・レビュー済。task_03 の実機目視待ち → task_04（正本反映）。**
+focus: **phase 62（idea_49）: task_01〜03 済。実機目視の 1 で「半角/全角」「かな」OK・「変換」「無変換」NG（フックに走査コード 0 → keyboard が -VK を渡す疑い・未確認）。確認用スクリプトでの実測待ち。**
 mode: pending_review
 
 ## last_action
@@ -31,7 +31,8 @@ verified:
   compile clean / tests 1706 pass（task_03 の修正後に対象モジュール 13 件 OK）/ tests_ui 1111 pass / smoke OK
 
 ## next_action
-- **ユーザーの実機目視**（task_03 の確認節: JIS キーボード・jis.json で 無変換のトリガー / 出力の `muhenkan`・`zenkaku_hankaku` が物理キーと同じ動き / 任意で US TKL での検査エラー）
+- **「変換」「無変換」が受け取りで効かない件の実測**: ユーザーが確認用スクリプト（フックの down の name・scan_code・is_keypad を表示）で 4 キーを押す。scan_code が -26 / -22（VK_IME_OFF / ON の負値・`keyboard/_winkeyboard.py:529` の `scan_code or -vk`）なら、仕様フラグとしてユーザーへ報告し対処を決める（暫定 45 の改訂候補）
+- 残りの実機目視（task_03 の確認節: JIS キーボード・jis.json で 無変換のトリガー / 出力の `muhenkan`・`zenkaku_hankaku` が物理キーと同じ動き / 任意で US TKL での検査エラー）
 - 目視 OK なら task_04 を `/task_new` で起票: 暫定 45 §9 の正本反映（key_input.md §7.1/§7.4/§7.7/§7.8・features.md §4.6・codebase_map）・暫定 45 凍結・decisions_archive/62・decisions.md 索引・current.md 完了記載・idea_49 を INDEX_done へ・`/refactor_check`・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
 - main へのマージはユーザー
 
