@@ -15,16 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 62 は 2026-10-18 完了〕・次フェーズはユーザー判断で `/phase_start`）。
-   次採番 = phase 63 / 暫定 46 / decisions 63 / 提案書 25
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 63**〔`instructions/phase/63_make_only_keys/phase.md`・主入力 = 暫定 46 v0.3 ユーザー確定済〕）。
+   次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜45）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 62 完了（2026-10-18・フック・送信のキー名をレイアウトだけが決める・既知の特殊キーの表を削除）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-ブランチ `claude/idea-49-50-execution-c565e4`（phase 62 一式・完了）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー（PR は作らない）。
+**phase 63（idea_52・押下だけが続けて届くキー）: task_01〜03 実装・検証・レビュー済。task_03 の実機目視待ち → task_04（正本反映）。**
+ユーザーは不在（`presence: away`・戻る予定 2026-10-19T07:30。再開 = 戻った合図なので session.md の presence 行を消してよい）。
+ブランチ `claude/idea-49-50-execution-c565e4`（phase 62 完了・phase 63 の task_01〜03）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 62 = 2026-10-18**）:
-compile **clean** / tests **1707 pass**（skip 7）/ tests_ui **1111 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1689〔phase 61〕→ 1707 / tests_ui: 1110 → 1111）。
+直近の実測（**phase 63 task_03 = 2026-10-19**）:
+compile **clean** / tests **1743 pass**（skip 7）/ tests_ui **1117 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1707〔phase 62〕→ 1743 / tests_ui: 1111 → 1117）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -54,8 +55,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **次フェーズはユーザー判断**（`/phase_start`）。残件 = idea_52（押下だけが続けて届くキー・無変換 / 変換）・idea_50（取得で JIS の特殊キーを取る）・idea_51（受け取りと送信で同じレイアウトの写し）・idea_48（取得中のフック再開）・idea_45（取得の記号キーの名前）
-- main へのマージはユーザー
+- **【ユーザー確認待ち・最優先】phase 63 task_03 の実機目視**（3 項目・手順は **session.md の next_action 先頭**と `instructions/phase/63_make_only_keys/tasks/task_03_hook_integration.md` の「確認」節）。NG なら状態機械（`keyseq/application/make_only_keys.py`・暫定 46 §3.2）と照らして切り分ける
+- 目視 OK なら task_04（正本反映・暫定 46 凍結・decisions_archive/63・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー）を `/task_new` で起票
+- タスクの連続実行はユーザー許可済み（仕様フラグ・実機目視では止まる）。main へのマージはユーザー
+- phase 63 の設計の要点: 押下だけのキー（241 / 242）を `MakeOnlyKeyFilter`（application・1 本のロック・世代・`on_routes` はロックの外）が押した / リピート（16 ms 待って判定）/ 離した（16 ms 以下の 2 回組）に組み直す。古い押下（リピート待ち + 300 ms 超）は次の押下で判断。`hook_controller.on_input_event` が先に通し、actions は世代つきで `after(0)`。タイマーは `application/delayed_calls.DelayedCallWorker`
 
 ## 直前のフェーズ（phase 62 = 特殊キーの名前をレイアウトだけが決める）の要点
 - 正本 = `key_input.md` §7.1「フックの実行時のキー名の出どころ」・§7.7「キー名 → 走査コードの解決の順」・§7.8 / `features.md` §4.6「レイアウトの JSON の `scan_code`」/ 地図 = `codebase_map.md`（`keyboard_layouts.py`・`LayoutController`・キーの送信の節）/ 判断 = `decisions_archive/62_special_keys_from_layout_only.md`

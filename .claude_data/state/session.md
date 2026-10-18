@@ -4,29 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-18T22:30:00
-phase: **なし**（phase 62 = 特殊キーの名前をレイアウトだけが決めるは 2026-10-18 完了）。次採番 = phase 63 / 暫定 46 / decisions 63 / 提案書 25
+last_updated: 2026-10-19T01:05:00
+phase: `instructions/phase/63_make_only_keys`（phase 63・暫定 46 v0.3 ユーザー確定済・decisions 63）。次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25
 直前の完了フェーズ = **phase 62**（`decisions_archive/62_special_keys_from_layout_only.md`）
-last_commit_location: `claude/idea-49-50-execution-c565e4`（phase 62 一式・完了）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
+last_commit_location: `claude/idea-49-50-execution-c565e4`（phase 62 完了・phase 63 の task_01〜03）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 62 完了（2026-10-18・フック・送信のキー名をレイアウトだけが決める・既知の特殊キーの表を削除）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-mode: idle
+focus: **phase 63（idea_52・押下だけが続けて届くキー）: task_01〜03 実装・検証・レビュー済。task_03 の実機目視待ち → task_04（正本反映）。**
+mode: blocked
+presence: away（戻る予定 2026-10-19T07:30）
 
 ## last_action
-ts: 2026-10-18T22:30:00
+ts: 2026-10-19T01:05:00
 who: main
 summary: |
-  phase 62（idea_49・暫定 45 v0.5 凍結）を完了。task_01〜03 = 受け取り / 送信と表の削除 / レイアウトが変わる前の離し。
-  実機目視で、無変換・変換は離しの無い押下が約 60 ms に 3 回（241 / 242）届くと判明 → task_03b（extra_scan_codes）は戻して idea_52 へ（ユーザー判断 A）。
-  完了判定前レビュー（deep 修正して完了 / Codex needs-attention）→ ユーザー「推奨どおり」: task_04b = 構成の読込でもレイアウトを読み直す・離しの失敗で記録が消える件は受容（idea_51 に追記）・正本の文言修正。
-  task_04 = 正本反映・decisions_archive/62・idea_49 を INDEX_done へ・/refactor_check 不要。
+  実測（2026-10-18・生のフック）: 無変換 = DOWN vk 0x1A scan 241・変換 = DOWN vk 0x16 scan 242（ext・UP なし）。1 回押す = 押した瞬間 1 回 + 離したとき約 11〜13 ms 間隔の 2 回組 / 押し続ける = 約 0.5 秒後から約 33 ms ごと（21〜46 ms）+ 離したとき 2 回組。
+  ユーザー判断: 241 / 242 の表で見分ける・案 B（16 ms 以下の 2 回組 = 離した）・リピートあり（直接置換で別キーに置き換えるため）・名前は extra_scan_codes。暫定 46 v0.3 確定（deep 14 件・Codex 4 件を反映）→ phase 63 起票。タスクの連続実行はユーザー許可済み。
+  task_01 = extra_scan_codes（phase 62 で戻した 722a1e9 の当て直し）/ task_02 = domain の表 + application の状態機械 MakeOnlyKeyFilter（単体 22 件）/ task_03 = DelayedCallWorker（application）・hook_controller の分岐・世代つきの予約・開始 / 停止での消去・app.py の組み立て（presentation）。いずれも Codex 実装・reviewer 採用。
 verified:
-  compile clean / tests 1707 pass / tests_ui 1111 pass（1 回目は test_dialog_teardown_flows の t4a・t4b・t5 が既知の flaky で失敗 → 単独 2 回・全体再実行 1 回で OK）/ smoke OK
+  compile clean / tests 1743 pass / tests_ui 1117 pass / smoke OK
 
 ## next_action
-- **次フェーズはユーザー判断**（`/phase_start`）。残件 = idea_52（押下だけが続けて届くキー・無変換 / 変換）・idea_50（取得で JIS の特殊キーを取る）・idea_51（受け取りと送信で同じレイアウトの写し）・idea_48（取得中のフック再開）・idea_45（取得の記号キーの名前）
+- **【ユーザー確認待ち・最優先】task_03 の実機目視**（`instructions/phase/63_make_only_keys/tasks/task_03_hook_integration.md` の「確認」節・JIS 外付けキーボード・jis.json を選ぶ）
+  1. キーボードUI で無変換を BackSpace に置き換える → 1 回押すと 1 文字消える / 押し続けると続けて消える / 離すと止まる
+  2. 変換を別のキー（例: Enter）に置き換えて押す → IME が切り替わらない / 1 回だけ入る
+  3. 無変換を押したまま Shift を押し、無変換を離す → 余計な出力が出ない
+  - NG なら、何を押して何が起きたかを聞き、状態機械（`keyseq/application/make_only_keys.py`）の遷移（暫定 46 §3.2）と照らして切り分ける
+- 目視 OK なら task_04 を `/task_new` で起票: 暫定 46 §8 の正本反映（key_input.md §7.1 :16-17 の受容の書き換え・§7.2・§7.3・§7.7 / features.md §4.6 の `extra_scan_codes` と :711 の受容の書き換え / codebase_map）・暫定 46 凍結・decisions_archive/63・decisions.md 索引・current.md 完了記載・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
 - main へのマージはユーザー
 
 ## blockers
