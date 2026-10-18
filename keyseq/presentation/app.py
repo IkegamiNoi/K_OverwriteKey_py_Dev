@@ -596,7 +596,7 @@ class App(tk.Tk):
         self.ui_vars.keyboard_show_physical_key_labels_var.set(
             bool(self.data.get("keyboard_show_physical_key_labels", False))
         )
-        self.layout.sync_keyboard_layout_controls()
+        self.layout.reload_keyboard_layouts()
 
     def open_preset_manager(self):
         before = copy.deepcopy(self.data.get("hotkey_presets", []))
