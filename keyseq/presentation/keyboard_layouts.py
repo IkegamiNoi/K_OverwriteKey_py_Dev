@@ -5,7 +5,6 @@ import os
 from dataclasses import dataclass
 
 from keyseq.domain.config import DEFAULT_KEYBOARD_LAYOUT_ID
-from keyseq.domain.key_identifiers import resolve_known_key_name_from_scan_code
 
 @dataclass(frozen=True)
 class KeySpec:
@@ -338,15 +337,3 @@ def resolve_layout_key_id_from_scan_code(layout: KeyboardLayout | None, scan_cod
                 return str(key_spec.id or "").strip()
 
     return ""
-
-
-def resolve_key_id_from_scan_code(layout: KeyboardLayout | None, scan_code: object) -> str:
-    try:
-        normalized_scan_code = int(scan_code)
-    except Exception:
-        return ""
-
-    key_id = resolve_layout_key_id_from_scan_code(layout, normalized_scan_code)
-    if key_id:
-        return key_id
-    return resolve_known_key_name_from_scan_code(normalized_scan_code)

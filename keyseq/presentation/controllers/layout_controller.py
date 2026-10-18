@@ -4,14 +4,13 @@ import os
 from tkinter import filedialog, messagebox
 
 from keyseq.domain.config import normalize_key_name
-from keyseq.domain.key_identifiers import SPECIAL_KEY_NAMES, is_special_key_name
 from keyseq.presentation.dialogs import LayoutDeleteDialog
 from keyseq.presentation.keyboard_layouts import (
     DEFAULT_LAYOUT_ID,
     collect_keyboard_layouts,
     load_layout_from_json,
-    resolve_key_id_from_scan_code,
     resolve_keyboard_layout,
+    resolve_layout_key_id_from_scan_code,
     resolve_registered_layout_path,
 )
 from keyseq.presentation.keyboard_window import KeyboardWindow
@@ -355,17 +354,15 @@ class LayoutController:
             self._keyboard_layout_id_to_display[layout_id] = display_name
 
     def resolve_key_name_from_scan_code(self, scan_code: object) -> str:
-        return normalize_key_name(resolve_key_id_from_scan_code(self.get_current_keyboard_layout(), scan_code))
+        return normalize_key_name(
+            resolve_layout_key_id_from_scan_code(self.get_current_keyboard_layout(), scan_code)
+        )
 
     def should_debug_special_key_event(self, event: object, resolved_key: str) -> bool:
         if not bool(self._app.data.get("debug_jis_special_key_events", False)):
             return False
         if normalize_key_name(str(getattr(event, "event_type", "") or "")) != "down":
             return False
-
-        raw_name = normalize_key_name(str(getattr(event, "name", "") or ""))
-        if is_special_key_name(raw_name) or is_special_key_name(resolved_key):
-            return True
 
         try:
             scan_code = int(getattr(event, "scan_code", None))
@@ -374,8 +371,6 @@ class LayoutController:
 
         layout = self.get_current_keyboard_layout()
         for key_spec in getattr(layout, "keys", ()) or ():
-            if str(getattr(key_spec, "id", "") or "").strip() not in SPECIAL_KEY_NAMES:
-                continue
             try:
                 if int(getattr(key_spec, "scan_code", None)) == scan_code:
                     return True
