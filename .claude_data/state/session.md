@@ -13,7 +13,6 @@ last_commit_location: `claude/idea-49-50-execution-c565e4`（phase 62 の task_0
 ## current
 focus: **phase 62（idea_49）: task_01〜03 済。実機目視の 1 で「半角/全角」「かな」OK・「変換」「無変換」NG（フックに走査コード 0 → keyboard が -VK を渡す疑い・未確認）。確認用スクリプトでの実測待ち。**
 mode: blocked
-presence: away（戻る予定 2026-10-18T21:20）
 
 ## last_action
 ts: 2026-10-18T18:30:00

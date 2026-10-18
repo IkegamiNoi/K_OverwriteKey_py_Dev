@@ -1,6 +1,6 @@
 # 暫定仕様 45: 特殊キーの名前をレイアウトだけが決める（special_keys_from_layout_only）
 
-> 状態: **未凍結・v0.3・主入力・ユーザー確定済（2026-10-18）・実装着手可**（v0.1 起票 → v0.2 deep-reviewer「修正して採用」の反映 → v0.3 Codex 敵対的レビューの指摘を §6 案 B で反映〔ユーザー判断〕）。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
+> 状態: **未凍結・v0.4・主入力・ユーザー確定済（2026-10-18）・実装着手可**（v0.1 起票 → v0.2 deep-reviewer「修正して採用」の反映 → v0.3 Codex 敵対的レビューの指摘を §6 案 B で反映〔ユーザー判断〕→ v0.4 実機目視の実測で §3.1 受け取り用の追加の走査コードを追加〔ユーザー判断 案 B〕・Codex 敵対的レビューの指摘 2 件〔修飾キーの禁止の適用・受け取り専用の行の送信〕を反映）。本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: idea_49（2026-10-17・phase 61 の起票時の議論から分離）。番号対応: phase 62 / 暫定 45 / decisions 62。
 
@@ -44,6 +44,7 @@ JIS の特殊キー（無変換・変換・かな・半角/全角）の名前を
 - **既定の US TKL など特殊キーを書いていないレイアウトを選んでいるときは、`muhenkan` 等は送れない**（検査でエラー）
 - **後方互換は考慮しない**（既存のキーマップ・トリガーの `muhenkan` 等が、jis.json 以外では効かなくなってよい）
 - **レイアウトが変わるときは、置き換える前に押したままのキーをすべて離す**（§6・案 B。起動中の JSON 書き換えによる受け取りと送信のずれは受容）
+- **レイアウトの行に受け取り用の追加の走査コード `extra_scan_codes` を書ける**（§3.1・v0.4。IME の設定で無変換・変換の走査コードが 241 / 242 に変わるため。送信は `scan_code` だけ）
 
 ## §3 受け取る側（名前の解決）
 
@@ -58,6 +59,37 @@ JIS の特殊キー（無変換・変換・かな・半角/全角）の名前を
   （jis.json なら特殊キー 4 つ。設定キー `debug_jis_special_key_events` の名前・既定値は変えない）。
   受容: 特殊キーを書いていないレイアウト（US TKL 等）では何も出ない
 - 受け取る側の外部レイアウトの取得（`get_current_keyboard_layout` が呼ぶたびに JSON を読み直す・`layout_controller.py:178`）は変えない（既存の挙動・本フェーズの範囲外）
+
+### §3.1 受け取り用の追加の走査コード（v0.4・ユーザー確定 2026-10-18 案 B）
+
+**背景（2026-10-18 実測）**: Windows 11・JIS・MS-IME の PC で、フック（keyboard）に届く走査コードを測った。
+無変換 = **241**・変換 = **242**（name は `None`）・半角/全角 = 41・かな = 112。
+MS-IME の割り当て（無変換 = IME オフ / 変換 = IME オン）によって、Windows が `VK_IME_OFF` / `VK_IME_ON` に置き換え、走査コードも 241 / 242 に変えていると見られる（phase 61 の `MapVirtualKeyW(0x1A / 0x16)` = 241 / 242 と一致）。
+同じ物理キーでも、IME の設定によって走査コードが変わる（割り当てを変えていない環境では 123 / 121 の見込み・未確認）。
+前の既知の表も 123 / 121 だけだったので、この環境では元から効いていなかった（退行ではない）。
+
+- **レイアウトの行に任意キー `extra_scan_codes`（整数の配列）を足せる**（JSON スキーマの追加・既存キーは不変）
+  - 受け取る側は、イベントの走査コードが **`scan_code` か `extra_scan_codes` のどれかに一致する最初の行**の `id` を名前にする
+    - 行の順に見て、行ごとに `scan_code` → `extra_scan_codes` の順に照合する
+    - テンキーの名前を採らないガード（§7.8）は同じに効く
+  - **送る側は `scan_code` だけを使う**（§4.1-4 は変えない。`extra_scan_codes` は送信・検査・同じキーの判定に使わない）
+    - `scan_code` が無く `extra_scan_codes` だけの行は、§4.1-4（レイアウト由来の送信）の候補にならない。
+      その `id` が §4.1 の 1〜3（テンキー・拡張キー・keyboard）で決まる名前なら、それで送る（例: `id: "a"` の行は通常の A キーで送る）。決まらなければ送れない
+  - **修飾キー・Caps Lock・Windows キー・AltGr の行に `extra_scan_codes` を書かない**（`features.md` §4.6 の `scan_code` の禁止と同じ理由・同じく規定のみでコードでは防がない）。
+    これらのキーの走査コードを、別の行の `extra_scan_codes` に書くことも同じく書かない（書くとフックの名前がその `id` に変わり、修飾キーの押下状態・Windows 押下中の素通し等が効かなくなる）
+  - 同じ走査コードを複数の行が持つ（`scan_code` 同士・`extra_scan_codes` との重なりを含む）ときは、行の順で最初の行を採る。読込で拒否しない
+  - 読込の検証:
+    - 無い・`null` → 空として扱う
+    - 配列でなければ読込エラー（他の項目の検証と同じく `ValueError`・`keys[i].extra_scan_codes`）
+    - 要素は `_coerce_int` で整数にする。整数にできなければ読込エラー
+    - 値の範囲は問わない（keyboard は走査コード 0 のとき -VK を渡すため・`keyboard/_winkeyboard.py:529`）
+  - `KeySpec` に `extra_scan_codes: tuple[int, ...] = ()` を足す（組み込みの US TKL は空のまま）
+  - **キーボードUI の取得**（phase 61・`keyboard_window.py:534` が `resolve_layout_key_id_from_scan_code` を使う）にも同じく効く
+    - VK から変換した走査コードが `extra_scan_codes` に当たれば、その `id` になる
+    - JIS の特殊キーは今は Tk に届かないため、実害も効果もない（idea_50）
+  - デバッグ出力の対象（§3）も `extra_scan_codes` を含めて判定する
+- **見本 `config/user/keylayout/jis.json`**: `muhenkan` に `"extra_scan_codes": [241]`、`henkan` に `"extra_scan_codes": [242]` を足す（`scan_code` 123 / 121 は送信用に残す）
+- 受容: 送信の 123 / 121 が、241 / 242 の環境でも物理キーと同じ動きになることは、2026-10-18 の実機目視（出力の `muhenkan` で確認済み）による。他の環境・他の IME は未確認
 
 ## §4 送る側（名前 → 走査コード）
 
@@ -143,24 +175,26 @@ key_hold 等で §4.1-4 のキーを押したままレイアウトが変わる�
 9. 「キー名 → 走査コード」の関数が未設定・例外のとき、4 は当たらず他の名前の送信は通る（§4.4）
 10. `keyboard_layouts` の純関数: 大文字小文字・別名の正規化・最初の行の採用・`scan_code` なしの行は当たらない・1〜255 の範囲外は当たらない（§4.1）
 11. §6: レイアウトの読み直し・選ぶ id の変更の前に押したままのキーが古い値で離される / id が変わらない選び直しでは離さない / 離しの失敗が通知され切替は進む（単体テスト）
-12. 実機目視（JIS キーボード・jis.json）: 無変換をトリガーにして反応する / 出力の `muhenkan`・`zenkaku_hankaku` が物理キーを押したときと同じ動きになる
+12. 実機目視（JIS キーボード・jis.json）: 無変換・変換をキーボードUI で割り当てて反応する（§3.1）/ 出力の `muhenkan`・`zenkaku_hankaku` が物理キーを押したときと同じ動きになる（2026-10-18 確認済）
+13. `extra_scan_codes`: 読込（無い・null・配列・整数にできない要素・配列でない）/ 受け取りで `scan_code` と `extra_scan_codes` のどちらでも当たる・最初の行を採る / 送信・検査・同じキーの判定は `extra_scan_codes` を使わない / デバッグ出力の対象に含む（§3.1・単体テスト）
 
 ## §8 スコープ外（本フェーズでやらない）
 
 - キーの取得（Tk）で JIS の特殊キーを取る（idea_50）
 - キーボードUI の取得の名前（phase 61 で済み）
 - 既存の構成の `muhenkan` 等の移行・警告（後方互換は考慮しない）
-- レイアウトの JSON の書式変更（`scan_code` の意味が送信にも広がるだけで、書式は不変）
+- レイアウトの JSON の書式変更のうち §3.1 の `extra_scan_codes` 以外（`scan_code` の意味は送信にも広がる）
 - 受け取りと送信で同じレイアウトの写しを使う・フックのスレッドでの JSON の読み直しをやめる（[idea_51](../backlog/idea_51_layout_snapshot_for_hook.md)）
 
 ## §9 正本反映（フェーズ末昇格・予定）
 
 - `key_input.md`: §7.1（フックの名前の出どころ）/ §7.4（:91 の受容の書き換え）/ §7.7（§4.1〜4.4 の送信）/
   §7.8（:195 の「JIS の特殊キーの表」→ レイアウト）
-- `features.md` §4.6「レイアウトの JSON」: `scan_code` を書いた行の `id` は受け取りと送信の両方の名前になる・
+- `features.md` §4.6「レイアウトの JSON」: 任意キー `extra_scan_codes`（§3.1・受け取り専用・IME の設定で走査コードが変わる例）・`scan_code` を書いた行の `id` は受け取りと送信の両方の名前になる・
   keyboard が知る名前の `id` に別の `scan_code` を書かない・拡張キーの走査コードは送信で拡張なしになる・`scan_code` は 1〜255・
   特殊キーを使うなら特殊キーを書いたレイアウトを選ぶ
 - `codebase_map.md`: :126（`keyboard_layouts`）・`key_identifiers`・`InputGateway` の注入・`LayoutController` の追加メソッド
+- 見本: `config/user/keylayout/jis.json`（§3.1）。`data_schema.md` にレイアウトの JSON の記載があれば追従
 - 実装: `domain/key_identifiers.py` / `presentation/keyboard_layouts.py` / `presentation/controllers/layout_controller.py` /
   `infrastructure/input_gateway.py` / `presentation/app.py`
 - テスト: `tests/test_key_identifiers.py` ほか、送信・検査・名前の解決の単体テスト
