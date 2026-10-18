@@ -12,10 +12,11 @@ last_commit_location: `claude/idea-49-50-execution-c565e4`（phase 62 の task_0
 
 ## current
 focus: **phase 62（idea_49）: task_01〜03 済。実機目視の 1 で「半角/全角」「かな」OK・「変換」「無変換」NG（フックに走査コード 0 → keyboard が -VK を渡す疑い・未確認）。確認用スクリプトでの実測待ち。**
-mode: pending_review
+mode: blocked
+presence: away（戻る予定 2026-10-18T21:20）
 
 ## last_action
-ts: 2026-10-18T15:00:00
+ts: 2026-10-18T18:30:00
 who: main
 summary: |
   ユーザー判断（2026-10-18）: 受け取り・送信ともレイアウトの scan_code・既知の表を削除・後方互換不要・レイアウトが変わる前に離す = 案 B（案 A は idea_51）。暫定 45 v0.3 確定 → phase 62 起票。
@@ -31,7 +32,14 @@ verified:
   compile clean / tests 1706 pass（task_03 の修正後に対象モジュール 13 件 OK）/ tests_ui 1111 pass / smoke OK
 
 ## next_action
-- **「変換」「無変換」が受け取りで効かない件の実測**: ユーザーが確認用スクリプト（フックの down の name・scan_code・is_keypad を表示）で 4 キーを押す。scan_code が -26 / -22（VK_IME_OFF / ON の負値・`keyboard/_winkeyboard.py:529` の `scan_code or -vk`）なら、仕様フラグとしてユーザーへ報告し対処を決める（暫定 45 の改訂候補）
+- **【ユーザー確認待ち・最優先】「変換」「無変換」が受け取りで効かない件の実測**（実機目視 1 で 半角/全角・かな OK / 変換・無変換 NG）
+  - 依頼: アプリを止めた状態で `..\..\..\.venv\Scripts\python.exe .claude_data\state\probe_hook_keys.py`（フックの down の name・scan_code・is_keypad を 20 秒表示・抑止しない）を実行し、無変換・変換・半角/全角・かな を 1 回ずつ押して出力を貼ってもらう（スクリプトは確認後に削除する一時ファイル）
+  - 見立て（未確認）: 今回の変更による退行ではない（jis.json 選択時の受け取りの値は変更前と同じ 123 / 121）。MS-IME の設定で無変換 = `VK_IME_OFF`（0x1A）・変換 = `VK_IME_ON`（0x16）になり（phase 61 の Tk での実測）、フックに走査コード 0 で届くと keyboard が `scan_code or -vk`（`.venv/Lib/site-packages/keyboard/_winkeyboard.py:529`）で -26 / -22 を渡し、jis.json の 123 / 121 と一致しない
+  - 結果が -26 / -22 なら: 仕様フラグ（暫定 45 の前提の誤り = 走査コードで物理キーが分からないキーがある）としてユーザーへ報告し、対処を決める。案（下調べのみ・未判断）:
+    - 案 1（推奨候補）: 暫定 45 の範囲外として受容し idea_50 と合わせて別 idea へ（IME の設定に依存する VK しか来ないため、レイアウトの走査コードでは決められない）
+    - 案 2: レイアウトの `scan_code` に負の値（-26 / -22 = keyboard の -VK）を書けるようにして jis.json に別 id の行を足す（受け取りだけ。IME の設定に依存・送信は 1〜255 の制限のまま）
+    - 案 3: VK_IME_OFF / ON を `muhenkan` / `henkan` へ写す表をアプリに持つ（既知の表の削除〔§2〕と矛盾。不採用候補）
+  - 結果が 123 / 121 なら: 別の原因（`input_router` / キーマップの照合 等）を切り分ける
 - 残りの実機目視（task_03 の確認節: JIS キーボード・jis.json で 無変換のトリガー / 出力の `muhenkan`・`zenkaku_hankaku` が物理キーと同じ動き / 任意で US TKL での検査エラー）
 - 目視 OK なら task_04 を `/task_new` で起票: 暫定 45 §9 の正本反映（key_input.md §7.1/§7.4/§7.7/§7.8・features.md §4.6・codebase_map）・暫定 45 凍結・decisions_archive/62・decisions.md 索引・current.md 完了記載・idea_49 を INDEX_done へ・`/refactor_check`・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
 - main へのマージはユーザー
