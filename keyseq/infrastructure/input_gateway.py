@@ -10,7 +10,6 @@ from typing import Callable
 import keyboard
 import pyautogui
 
-from keyseq.domain.key_identifiers import resolve_known_scan_code_from_key_name
 from keyseq.domain.numpad_keys import (
     is_numpad_key_name,
     is_reserved_numpad_name,
@@ -189,6 +188,39 @@ def _send_numpad_event(scan: int, extended: bool, key_up: bool) -> None:
 
 
 class InputGateway:
+    def __init__(
+        self,
+        *,
+        resolve_layout_scan_code: Callable[[str], int | None] | None = None,
+    ) -> None:
+        self._resolve_layout_scan_code = resolve_layout_scan_code
+
+    def _resolve_key(self, key: str) -> tuple[str, tuple[int, ...]]:
+        numpad = numpad_key_spec(key)
+        if numpad is not None:
+            return "numpad", (numpad[0], int(numpad[1]))
+        extended = _resolve_extended_key(key)
+        if extended is not None:
+            return "extended", extended
+        try:
+            scan_codes = tuple(keyboard.key_to_scan_codes(key))
+        except Exception:
+            scan_codes = ()
+        if scan_codes:
+            return "keyboard", scan_codes
+        if self._resolve_layout_scan_code is not None:
+            try:
+                scan_code = self._resolve_layout_scan_code(key)
+            except Exception:
+                scan_code = None
+            if (
+                isinstance(scan_code, int)
+                and not isinstance(scan_code, bool)
+                and 1 <= scan_code <= 255
+            ):
+                return "layout", (scan_code,)
+        raise ValueError(f"Unknown key name: {key!r}")
+
     def cursor_position(self) -> tuple[int, int]:
         """Return the current cursor position in screen coordinates."""
         position = pyautogui.position()
@@ -244,33 +276,42 @@ class InputGateway:
         keyboard.unhook(handle)
 
     def press_key(self, key: str) -> None:
-        numpad = numpad_key_spec(key)
-        if numpad is not None:
-            _send_numpad_event(*numpad, key_up=False)
+        kind, values = self._resolve_key(key)
+        if kind == "numpad":
+            _send_numpad_event(values[0], bool(values[1]), key_up=False)
             return
-        extended = _resolve_extended_key(key)
-        if extended is not None:
-            _send_extended_event(*extended, key_up=False)
+        if kind == "extended":
+            _send_extended_event(values[0], values[1], key_up=False)
+        elif kind == "layout":
+            _send_numpad_event(values[0], False, key_up=False)
         else:
             keyboard.press(key)
 
     def release_key(self, key: str) -> None:
-        numpad = numpad_key_spec(key)
-        if numpad is not None:
-            _send_numpad_event(*numpad, key_up=True)
+        kind, values = self._resolve_key(key)
+        if kind == "numpad":
+            _send_numpad_event(values[0], bool(values[1]), key_up=True)
             return
-        extended = _resolve_extended_key(key)
-        if extended is not None:
-            _send_extended_event(*extended, key_up=True)
+        if kind == "extended":
+            _send_extended_event(values[0], values[1], key_up=True)
+        elif kind == "layout":
+            _send_numpad_event(values[0], False, key_up=True)
         else:
             keyboard.release(key)
 
     def send_hotkey(self, hotkey: str) -> None:
         keys = [key.strip() for key in hotkey.split("+")]
-        if not any(
-            _resolve_extended_key(key) is not None or numpad_key_spec(key) is not None
-            for key in keys
-        ):
+        all_keyboard = True
+        for key in keys:
+            try:
+                kind, _values = self._resolve_key(key)
+            except ValueError:
+                all_keyboard = False
+                break
+            if kind != "keyboard":
+                all_keyboard = False
+                break
+        if all_keyboard:
             keyboard.send(hotkey)
             return
 
@@ -303,31 +344,19 @@ class InputGateway:
             ime_control.restore_after_text(reservation, len(text))
 
     def key_identity(self, key: str) -> tuple[int, bool]:
-        numpad = numpad_key_spec(key)
-        if numpad is not None:
-            return numpad
-        extended = _resolve_extended_key(key)
-        if extended is not None:
-            return extended[1], True
-
-        scan_codes: tuple[int, ...] = ()
-        try:
-            scan_codes = tuple(keyboard.key_to_scan_codes(key))
-        except Exception:
-            scan_code = resolve_known_scan_code_from_key_name(str(key or ""))
-            if scan_code is None:
-                raise
-            return scan_code, False
-
-        if scan_codes:
-            scan_code = scan_codes[0]
+        kind, values = self._resolve_key(key)
+        if kind == "numpad":
+            return values[0], bool(values[1])
+        if kind == "extended":
+            return values[1], True
+        if kind == "layout":
+            return values[0], False
+        if kind == "keyboard":
+            scan_code = values[0]
             if (scan_code & 0xFF00) == 0xE000:
                 return scan_code & 0xFF, True
             return scan_code, False
-        scan_code = resolve_known_scan_code_from_key_name(str(key or ""))
-        if scan_code is None:
-            raise ValueError(f"Unknown key name: {key!r}")
-        return scan_code, False
+        raise ValueError(f"Unknown key name: {key!r}")
 
     def restore_ime_now(self) -> None:
         try:
@@ -343,12 +372,7 @@ class InputGateway:
                 "テンキーのキー名は num 0〜num 9 / num add / num subtract / "
                 "num multiply / num divide / num decimal / num enter のいずれかで指定してください。"
             )
-        try:
-            keyboard.key_to_scan_codes(key_name)
-        except Exception:
-            scan_code = resolve_known_scan_code_from_key_name(str(key_name or ""))
-            if scan_code is None:
-                raise
+        self._resolve_key(key_name)
 
     def click_mouse(self, x: int, y: int, button: str, clicks: int) -> None:
         pyautogui.click(x=x, y=y, button=button, clicks=clicks)

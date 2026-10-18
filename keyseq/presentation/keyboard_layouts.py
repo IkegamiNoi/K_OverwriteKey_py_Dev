@@ -4,7 +4,8 @@ import json
 import os
 from dataclasses import dataclass
 
-from keyseq.domain.config import DEFAULT_KEYBOARD_LAYOUT_ID
+from keyseq.domain.config import DEFAULT_KEYBOARD_LAYOUT_ID, normalize_key_name
+
 
 @dataclass(frozen=True)
 class KeySpec:
@@ -337,3 +338,22 @@ def resolve_layout_key_id_from_scan_code(layout: KeyboardLayout | None, scan_cod
                 return str(key_spec.id or "").strip()
 
     return ""
+
+
+def resolve_layout_scan_code_from_key_name(
+    layout: KeyboardLayout | None, key_name: str
+) -> int | None:
+    normalized_name = normalize_key_name(key_name)
+    if layout is None or not normalized_name:
+        return None
+
+    for key_spec in layout.keys:
+        if normalize_key_name(key_spec.id) != normalized_name:
+            continue
+        scan_code = key_spec.scan_code
+        if scan_code is None:
+            continue
+        if not 1 <= scan_code <= 255:
+            return None
+        return scan_code
+    return None

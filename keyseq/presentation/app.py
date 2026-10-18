@@ -130,7 +130,11 @@ class App(tk.Tk):
 
         self.trigger_service = TriggerService()
         self.keymap_service = KeymapService()
-        self.input_gateway = InputGateway()
+        self.input_gateway = InputGateway(
+            resolve_layout_scan_code=lambda name: self.layout.resolve_scan_code_from_key_name(
+                name
+            )
+        )
         self.key_repeater = KeyRepeater(
             after=self.after,
             after_cancel=self.after_cancel,

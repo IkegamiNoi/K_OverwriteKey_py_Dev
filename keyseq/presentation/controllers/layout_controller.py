@@ -9,6 +9,7 @@ from keyseq.presentation.keyboard_layouts import (
     DEFAULT_LAYOUT_ID,
     collect_keyboard_layouts,
     load_layout_from_json,
+    resolve_layout_scan_code_from_key_name,
     resolve_keyboard_layout,
     resolve_layout_key_id_from_scan_code,
     resolve_registered_layout_path,
@@ -357,6 +358,12 @@ class LayoutController:
         return normalize_key_name(
             resolve_layout_key_id_from_scan_code(self.get_current_keyboard_layout(), scan_code)
         )
+
+    def resolve_scan_code_from_key_name(self, key_name: str) -> int | None:
+        entry = self._keyboard_layout_entries.get(str(self.keyboard_layout_id).strip())
+        if entry is None:
+            return None
+        return resolve_layout_scan_code_from_key_name(entry.layout, key_name)
 
     def should_debug_special_key_event(self, event: object, resolved_key: str) -> bool:
         if not bool(self._app.data.get("debug_jis_special_key_events", False)):

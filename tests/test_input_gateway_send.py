@@ -253,6 +253,28 @@ class InputGatewayExtendedFlagTests(unittest.TestCase):
                 call(0x27, 0x4D, 0x0003, 0),
             ])
 
+    def test_layout_key_uses_sendinput_scan_code_and_keyup_flag(self) -> None:
+        gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda name: 123)
+        send_input = Mock(return_value=1)
+        flags = []
+
+        def inspect_event(count, pointer, size):
+            event = input_gateway.ctypes.cast(
+                pointer, input_gateway.ctypes.POINTER(input_gateway._INPUT),
+            ).contents
+            self.assertEqual(event.ki.wScan, 123)
+            flags.append(event.ki.dwFlags)
+            return 1
+
+        send_input.side_effect = inspect_event
+        with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[]), \
+             patch.object(input_gateway.keyboard, "_listener", object()), \
+             patch.object(input_gateway, "_send_input_api", return_value=send_input):
+            gateway.press_key("muhenkan")
+            gateway.release_key("muhenkan")
+        self.assertEqual(flags, [0x0008, 0x0008 | 0x0002])
+        self.assertEqual(send_input.call_count, 2)
+
 
 class InputGatewayIdentityAndMouseTests(unittest.TestCase):
     def setUp(self) -> None:
@@ -272,12 +294,12 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
                     self.gateway.validate_key_name(name)
                 resolve.assert_not_called()
 
-    def test_validate_num_lock_keeps_keyboard_validation(self) -> None:
+    def test_validate_num_lock_is_not_rejected_as_reserved_numpad_name(self) -> None:
+        # num lock は §7.7 の拡張キーとして解決されるため keyboard へは問い合わせない（暫定 45 §4.1）
         with patch.object(
-            input_gateway.keyboard, "key_to_scan_codes", return_value=[69]
-        ) as resolve:
+            input_gateway.keyboard, "key_to_scan_codes", side_effect=ValueError
+        ):
             self.gateway.validate_key_name("num lock")
-        resolve.assert_called_once_with("num lock")
 
     def test_extended_event_sets_and_restores_keyboard_replaying(self) -> None:
         listener = Mock(is_replaying=False)
@@ -386,17 +408,83 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
         self.assertEqual(self.gateway.key_identity("num enter"), (28, True))
         self.assertEqual(self.gateway.key_identity("end"), (79, True))
 
-    def test_key_identity_falls_back_to_known_scan_code(self) -> None:
-        with patch.object(
-            input_gateway.keyboard, "key_to_scan_codes", return_value=[],
-        ):
-            self.assertEqual(self.gateway.key_identity("muhenkan"), (123, False))
+    def test_key_identity_uses_layout_resolution_after_keyboard_misses(self) -> None:
+        gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda name: 123)
+        with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[]):
+            self.assertEqual(gateway.key_identity("muhenkan"), (123, False))
 
-    def test_key_identity_falls_back_after_resolution_exception(self) -> None:
+    def test_key_identity_uses_layout_resolution_after_keyboard_exception(self) -> None:
+        gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda name: 123)
         with patch.object(input_gateway.keyboard, "key_to_scan_codes", side_effect=ValueError):
-            self.assertEqual(self.gateway.key_identity("muhenkan"), (123, False))
+            self.assertEqual(gateway.key_identity("muhenkan"), (123, False))
+        with patch.object(input_gateway.keyboard, "key_to_scan_codes", side_effect=ValueError):
             with self.assertRaises(ValueError):
                 self.gateway.key_identity("no such key")
+
+    def test_layout_key_validation_and_sendinput_press_release(self) -> None:
+        gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda name: 123)
+        with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[]), \
+             patch.object(input_gateway, "_send_numpad_event") as send_scan_code:
+            self.assertEqual(gateway.key_identity("muhenkan"), (123, False))
+            gateway.validate_key_name("muhenkan")
+            gateway.press_key("muhenkan")
+            gateway.release_key("muhenkan")
+        self.assertEqual(send_scan_code.call_args_list, [
+            call(123, False, key_up=False),
+            call(123, False, key_up=True),
+        ])
+
+    def test_layout_hotkey_uses_ordered_press_and_release(self) -> None:
+        gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda name: 123)
+        with patch.object(
+            input_gateway.keyboard, "key_to_scan_codes",
+            side_effect=lambda key: [29] if key == "ctrl" else [],
+        ), patch.object(input_gateway.keyboard, "press") as press, \
+             patch.object(input_gateway.keyboard, "release") as release, \
+             patch.object(input_gateway.keyboard, "send") as send, \
+             patch.object(input_gateway, "_send_numpad_event") as send_scan_code:
+            gateway.send_hotkey("ctrl+muhenkan")
+        press.assert_called_once_with("ctrl")
+        release.assert_called_once_with("ctrl")
+        self.assertEqual(send_scan_code.call_args_list, [
+            call(123, False, key_up=False),
+            call(123, False, key_up=True),
+        ])
+        send.assert_not_called()
+
+    def test_layout_fallback_must_return_valid_scan_code(self) -> None:
+        resolvers = (
+            None,
+            lambda name: None,
+            lambda name: 0,
+            lambda name: 256,
+            lambda name: "123",
+            lambda name: (_ for _ in ()).throw(RuntimeError()),
+        )
+        for resolver in resolvers:
+            gateway = input_gateway.InputGateway(resolve_layout_scan_code=resolver)
+            with self.subTest(resolver=resolver), patch.object(
+                input_gateway.keyboard, "key_to_scan_codes", return_value=[],
+            ):
+                with self.assertRaises(ValueError):
+                    gateway.key_identity("muhenkan")
+                with self.assertRaises(ValueError):
+                    gateway.validate_key_name("muhenkan")
+                with self.assertRaises(ValueError):
+                    gateway.press_key("muhenkan")
+
+    def test_keyboard_names_take_precedence_over_layout_and_keep_send(self) -> None:
+        resolver = Mock(return_value=123)
+        gateway = input_gateway.InputGateway(resolve_layout_scan_code=resolver)
+        with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[2]), \
+             patch.object(input_gateway.keyboard, "press") as press:
+            gateway.press_key("a")
+        press.assert_called_once_with("a")
+        resolver.assert_not_called()
+        with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[29]), \
+             patch.object(input_gateway.keyboard, "send") as send:
+            gateway.send_hotkey("ctrl+a")
+        send.assert_called_once_with("ctrl+a")
 
     def test_key_identity_rejects_unresolved_empty_scan_codes(self) -> None:
         with patch.object(input_gateway.keyboard, "key_to_scan_codes", return_value=[]):

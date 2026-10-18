@@ -5,6 +5,7 @@ from types import SimpleNamespace
 from keyseq.presentation.controllers.layout_controller import LayoutController
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
+    KeyboardLayoutEntry,
     KeySpec,
     load_layout_from_json,
     resolve_keyboard_layout,
@@ -49,6 +50,27 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
         controller = self._controller(layout)
 
         self.assertEqual(controller.resolve_key_name_from_scan_code(50), "my_key")
+
+    def test_resolve_scan_code_uses_registered_layout_without_reloading(self):
+        layout = load_layout_from_json(str(JIS_LAYOUT_PATH))
+        controller = self._controller(layout)
+        controller.keyboard_layout_id = "jis"
+        controller._keyboard_layout_entries = {
+            "jis": KeyboardLayoutEntry(layout=layout, source="external")
+        }
+        controller.get_current_keyboard_layout = lambda: self.fail(
+            "resolve_scan_code_from_key_name must not reload the current layout"
+        )
+
+        self.assertEqual(controller.resolve_scan_code_from_key_name("muhenkan"), 123)
+
+    def test_resolve_scan_code_returns_none_for_unregistered_layout(self):
+        layout = load_layout_from_json(str(JIS_LAYOUT_PATH))
+        controller = self._controller(layout)
+        controller.keyboard_layout_id = "missing"
+        controller._keyboard_layout_entries = {"jis": KeyboardLayoutEntry(layout, "external")}
+
+        self.assertIsNone(controller.resolve_scan_code_from_key_name("muhenkan"))
 
     def test_should_debug_special_key_event_requires_setting_and_key_down(self):
         layout = load_layout_from_json(str(JIS_LAYOUT_PATH))
