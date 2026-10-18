@@ -1,6 +1,7 @@
-import unittest
 from pathlib import Path
 from types import SimpleNamespace
+import unittest
+from unittest.mock import Mock, patch
 
 from keyseq.presentation.controllers.layout_controller import LayoutController
 from keyseq.presentation.keyboard_layouts import (
@@ -23,6 +24,99 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
         controller._app = SimpleNamespace(data={"debug_jis_special_key_events": debug_enabled})
         controller.get_current_keyboard_layout = lambda: layout
         return controller
+
+    def _selection_controller(self, selected="new"):
+        held_inputs = Mock()
+        held_inputs.release_all.return_value = []
+        hook = Mock()
+        app = SimpleNamespace(
+            data={"keyboard_layout": selected},
+            base_dir="base",
+            held_inputs=held_inputs,
+            hook=hook,
+            ui_vars=SimpleNamespace(keyboard_layout_var=Mock()),
+        )
+        controller = LayoutController.__new__(LayoutController)
+        controller._app = app
+        controller.keyboard_layout_id = "old"
+        controller._keyboard_layout_entries = {"old": object(), "new": object()}
+        controller._keyboard_layout_display_to_id = {"Old": "old", "New": "new"}
+        controller._keyboard_layout_id_to_display = {"old": "Old", "new": "New"}
+        controller._layout_combos = []
+        controller.rebuild_keyboard_layout_display_maps = Mock()
+        controller.refresh_keyboard_window = Mock()
+        return controller, held_inputs, hook
+
+    def test_reload_releases_held_inputs_before_replacing_layout_entries(self):
+        controller, held_inputs, _hook = self._selection_controller()
+        old_entries = controller._keyboard_layout_entries
+        held_inputs.release_all.side_effect = lambda: self.assertIs(
+            controller._keyboard_layout_entries, old_entries
+        )
+        controller.sync_keyboard_layout_controls = Mock()
+
+        with patch(
+            "keyseq.presentation.controllers.layout_controller.collect_keyboard_layouts",
+            side_effect=lambda *_args, **_kwargs: {
+                "replacement": object()
+            },
+        ) as collect:
+            controller.reload_keyboard_layouts()
+
+        held_inputs.release_all.assert_called_once_with()
+        collect.assert_called_once_with([], base_dir="base")
+        self.assertIsNot(controller._keyboard_layout_entries, old_entries)
+
+    def test_set_selection_releases_before_changing_id(self):
+        controller, held_inputs, _hook = self._selection_controller()
+        held_inputs.release_all.side_effect = lambda: self.assertEqual(
+            controller.keyboard_layout_id, "old"
+        )
+
+        controller.set_keyboard_layout_selection("new")
+
+        held_inputs.release_all.assert_called_once_with()
+        self.assertEqual(controller.keyboard_layout_id, "new")
+
+    def test_set_selection_does_not_release_when_id_is_unchanged(self):
+        controller, held_inputs, _hook = self._selection_controller(selected="old")
+
+        controller.set_keyboard_layout_selection("old")
+
+        held_inputs.release_all.assert_not_called()
+
+    def test_sync_releases_only_when_selected_id_changes(self):
+        controller, held_inputs, _hook = self._selection_controller()
+
+        controller.sync_keyboard_layout_controls()
+
+        held_inputs.release_all.assert_called_once_with()
+        self.assertEqual(controller.keyboard_layout_id, "new")
+
+        unchanged, unchanged_held, _hook = self._selection_controller(selected="old")
+        unchanged.sync_keyboard_layout_controls()
+
+        unchanged_held.release_all.assert_not_called()
+
+    def test_release_errors_are_reported_and_selection_continues(self):
+        controller, held_inputs, hook = self._selection_controller()
+        held_inputs.release_all.return_value = [RuntimeError("release failed")]
+
+        controller.set_keyboard_layout_selection("new")
+
+        hook.show_action_error.assert_called_once()
+        args = hook.show_action_error.call_args.args
+        self.assertEqual(args[:2], ("", {"type": "key_hold", "value": "すべて解放"}))
+        self.assertEqual(str(args[2]), "release failed")
+        self.assertEqual(controller.keyboard_layout_id, "new")
+
+    def test_selection_continues_when_app_has_no_held_inputs(self):
+        controller, _held_inputs, _hook = self._selection_controller()
+        del controller._app.held_inputs
+
+        controller.set_keyboard_layout_selection("new")
+
+        self.assertEqual(controller.keyboard_layout_id, "new")
 
     def test_resolve_key_name_uses_only_current_layout_scan_codes(self):
         us_controller = self._controller(resolve_keyboard_layout())

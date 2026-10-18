@@ -201,11 +201,26 @@ class LayoutController:
         return DEFAULT_LAYOUT_ID
 
     def reload_keyboard_layouts(self):
+        self._release_held_inputs_before_layout_change()
         self._keyboard_layout_entries = collect_keyboard_layouts(
             self._app.data.get("external_keyboard_layouts", []),
             base_dir=self._app.base_dir,
         )
         self.sync_keyboard_layout_controls()
+
+    def _release_held_inputs_before_layout_change(self) -> None:
+        held_inputs = getattr(self._app, "held_inputs", None)
+        if held_inputs is None:
+            return
+
+        errors = held_inputs.release_all()
+        hook = getattr(self._app, "hook", None)
+        if errors and hook is not None:
+            hook.show_action_error(
+                "",
+                {"type": "key_hold", "value": "すべて解放"},
+                RuntimeError("\n".join(str(error) for error in errors)),
+            )
 
     def sync_keyboard_layout_controls(self):
         self.rebuild_keyboard_layout_display_maps()
@@ -214,6 +229,8 @@ class LayoutController:
         if selected not in self._keyboard_layout_entries:
             selected = self.get_fallback_keyboard_layout_id()
 
+        if selected != self.keyboard_layout_id:
+            self._release_held_inputs_before_layout_change()
         self.keyboard_layout_id = selected
         self._app.data["keyboard_layout"] = selected
         self._app.ui_vars.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
@@ -249,6 +266,8 @@ class LayoutController:
         if selected not in self._keyboard_layout_entries:
             selected = self.get_fallback_keyboard_layout_id()
 
+        if selected != self.keyboard_layout_id:
+            self._release_held_inputs_before_layout_change()
         self.keyboard_layout_id = selected
         self._app.data["keyboard_layout"] = selected
         self._app.ui_vars.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
