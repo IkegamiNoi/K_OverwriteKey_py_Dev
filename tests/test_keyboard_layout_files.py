@@ -4,6 +4,7 @@ from pathlib import Path
 from keyseq.presentation.keyboard_layouts import (
     KeyboardLayout,
     KeySpec,
+    keyboard_layout_from_dict,
     load_layout_from_json,
     resolve_layout_key_id_from_scan_code,
     resolve_layout_scan_code_from_key_name,
@@ -25,6 +26,51 @@ _NO_SCAN_CODE_IDS = (
 
 
 class KeyboardLayoutFilesTest(unittest.TestCase):
+    @staticmethod
+    def _layout_data(key_data):
+        return {
+            "layout_id": "extra_scan_test",
+            "display_name": "Extra scan test",
+            "keys": [
+                {
+                    "id": "custom",
+                    "label": "Custom",
+                    "x": 0,
+                    "y": 0,
+                    "w": 1,
+                    "h": 1,
+                    **key_data,
+                }
+            ],
+        }
+
+    def test_extra_scan_codes_load_as_empty_when_missing_or_null(self):
+        for extra_scan_codes in ("missing", None):
+            key_data = {} if extra_scan_codes == "missing" else {"extra_scan_codes": None}
+            with self.subTest(extra_scan_codes=extra_scan_codes):
+                layout = keyboard_layout_from_dict(self._layout_data(key_data))
+                self.assertEqual(layout.keys[0].extra_scan_codes, ())
+
+    def test_extra_scan_codes_are_coerced_to_integers(self):
+        layout = keyboard_layout_from_dict(
+            self._layout_data({"extra_scan_codes": [241, "242"]})
+        )
+
+        self.assertEqual(layout.keys[0].extra_scan_codes, (241, 242))
+
+    def test_extra_scan_codes_reject_non_lists_and_non_integer_values(self):
+        for extra_scan_codes in ("241", ["x"]):
+            with self.subTest(extra_scan_codes=extra_scan_codes):
+                with self.assertRaises(ValueError):
+                    keyboard_layout_from_dict(
+                        self._layout_data({"extra_scan_codes": extra_scan_codes})
+                    )
+
+    def test_extra_scan_codes_allow_negative_values(self):
+        layout = keyboard_layout_from_dict(self._layout_data({"extra_scan_codes": [-26]}))
+
+        self.assertEqual(layout.keys[0].extra_scan_codes, (-26,))
+
     def test_layout_scan_code_lookup_requires_a_scan_code_in_layout(self):
         layout = resolve_keyboard_layout()
 
@@ -38,11 +84,52 @@ class KeyboardLayoutFilesTest(unittest.TestCase):
         layout = load_layout_from_json(str(LAYOUT_PATHS["jis"]))
 
         self.assertEqual(resolve_layout_key_id_from_scan_code(layout, 41), "zenkaku_hankaku")
+        self.assertEqual(resolve_layout_key_id_from_scan_code(layout, 241), "muhenkan")
+        self.assertEqual(resolve_layout_key_id_from_scan_code(layout, 242), "henkan")
+        self.assertEqual(resolve_layout_key_id_from_scan_code(layout, 123), "muhenkan")
+        self.assertEqual(resolve_layout_key_id_from_scan_code(layout, 121), "henkan")
+
+    def test_extra_scan_code_only_row_is_used_for_receive_not_send(self):
+        layout = KeyboardLayout(
+            layout_id="test",
+            display_name="Test",
+            keys=(
+                KeySpec(
+                    id="receive_only",
+                    label="Receive only",
+                    x=0,
+                    y=0,
+                    extra_scan_codes=(241,),
+                ),
+            ),
+        )
+
+        self.assertEqual(resolve_layout_key_id_from_scan_code(layout, 241), "receive_only")
+        self.assertIsNone(resolve_layout_scan_code_from_key_name(layout, "receive_only"))
+
+    def test_receive_scan_code_lookup_uses_first_matching_row(self):
+        layout = KeyboardLayout(
+            layout_id="test",
+            display_name="Test",
+            keys=(
+                KeySpec(id="first", label="First", x=0, y=0, scan_code=241),
+                KeySpec(
+                    id="second",
+                    label="Second",
+                    x=1,
+                    y=0,
+                    extra_scan_codes=(241,),
+                ),
+            ),
+        )
+
+        self.assertEqual(resolve_layout_key_id_from_scan_code(layout, 241), "first")
 
     def test_layout_scan_code_lookup_from_key_name(self):
         jis = load_layout_from_json(str(LAYOUT_PATHS["jis"]))
         us_tkl = resolve_keyboard_layout()
         self.assertEqual(resolve_layout_scan_code_from_key_name(jis, "muhenkan"), 123)
+        self.assertEqual(resolve_layout_scan_code_from_key_name(jis, "henkan"), 121)
         self.assertEqual(resolve_layout_scan_code_from_key_name(jis, "MUHENKAN"), 123)
         self.assertEqual(resolve_layout_scan_code_from_key_name(jis, "zenkaku_hankaku"), 41)
         self.assertIsNone(resolve_layout_scan_code_from_key_name(us_tkl, "muhenkan"))
