@@ -23,7 +23,7 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜45）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 63（idea_52・押下だけが続けて届くキー）: task_01〜03 実装・検証・レビュー済。task_03 の実機目視待ち → task_04（正本反映）。**
+**phase 63（idea_52）: task_01〜03 済。実機目視で NG（リピート中に IME が切り替わる・離してもリピートがすぐ止まらない）→ task_03c で時刻つきのデバッグ出力を追加済み。ユーザーの計測待ち。**
 ユーザーは不在（`presence: away`・戻る予定 2026-10-19T07:30。再開 = 戻った合図なので session.md の presence 行を消してよい）。
 ブランチ `claude/idea-49-50-execution-c565e4`（phase 62 完了・phase 63 の task_01〜03）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー（PR は作らない）。
 
@@ -35,8 +35,8 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 63 task_03 = 2026-10-19**）:
-compile **clean** / tests **1743 pass**（skip 7）/ tests_ui **1117 pass** / smoke **pass**。
+直近の実測（**phase 63 task_03c = 2026-10-19**）:
+compile **clean** / tests **1745 pass**（skip 7）/ tests_ui **1117 pass** / smoke **pass**。
 **件数が減ったら退行を疑う**（tests: 1707〔phase 62〕→ 1743 / tests_ui: 1111 → 1117）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
@@ -55,7 +55,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー確認待ち・最優先】phase 63 task_03 の実機目視**（3 項目・手順は **session.md の next_action 先頭**と `instructions/phase/63_make_only_keys/tasks/task_03_hook_integration.md` の「確認」節）。NG なら状態機械（`keyseq/application/make_only_keys.py`・暫定 46 §3.2）と照らして切り分ける
+- **【ユーザー確認待ち・最優先】実機目視の NG の計測**（デバッグ出力つきで操作してもらい、出力ファイルを受け取る。手順・見立て〔(1) フックのたびの JSON の読み直し (2) ロック待ちでフックの時間切れ (3) 送信ガード中の押し直し〕は **session.md の next_action 先頭**が正）
 - 目視 OK なら task_04（正本反映・暫定 46 凍結・decisions_archive/63・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー）を `/task_new` で起票
 - タスクの連続実行はユーザー許可済み（仕様フラグ・実機目視では止まる）。main へのマージはユーザー
 - phase 63 の設計の要点: 押下だけのキー（241 / 242）を `MakeOnlyKeyFilter`（application・1 本のロック・世代・`on_routes` はロックの外）が押した / リピート（16 ms 待って判定）/ 離した（16 ms 以下の 2 回組）に組み直す。古い押下（リピート待ち + 300 ms 超）は次の押下で判断。`hook_controller.on_input_event` が先に通し、actions は世代つきで `after(0)`。タイマーは `application/delayed_calls.DelayedCallWorker`

@@ -4,15 +4,16 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-19T01:05:00
+last_updated: 2026-10-19T01:45:00
 phase: `instructions/phase/63_make_only_keys`（phase 63・暫定 46 v0.3 ユーザー確定済・decisions 63）。次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25
 直前の完了フェーズ = **phase 62**（`decisions_archive/62_special_keys_from_layout_only.md`）
 last_commit_location: `claude/idea-49-50-execution-c565e4`（phase 62 完了・phase 63 の task_01〜03）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 63（idea_52・押下だけが続けて届くキー）: task_01〜03 実装・検証・レビュー済。task_03 の実機目視待ち → task_04（正本反映）。**
+focus: **phase 63（idea_52）: task_01〜03 済。実機目視で NG（リピート中に IME が切り替わる・離してもリピートがすぐ止まらない）→ task_03c で時刻つきのデバッグ出力を追加済み。ユーザーの計測待ち。**
 mode: blocked
+presence: away（戻る予定 2026-10-19T07:30）
 
 ## last_action
 ts: 2026-10-19T01:05:00
@@ -25,12 +26,15 @@ verified:
   compile clean / tests 1743 pass / tests_ui 1117 pass / smoke OK
 
 ## next_action
-- **【ユーザー確認待ち・最優先】task_03 の実機目視**（`instructions/phase/63_make_only_keys/tasks/task_03_hook_integration.md` の「確認」節・JIS 外付けキーボード・jis.json を選ぶ）
-  1. キーボードUI で無変換を BackSpace に置き換える → 1 回押すと 1 文字消える / 押し続けると続けて消える / 離すと止まる
-  2. 変換を別のキー（例: Enter）に置き換えて押す → IME が切り替わらない / 1 回だけ入る
-  3. 無変換を押したまま Shift を押し、無変換を離す → 余計な出力が出ない
-  - NG なら、何を押して何が起きたかを聞き、状態機械（`keyseq/application/make_only_keys.py`）の遷移（暫定 46 §3.2）と照らして切り分ける
-- 目視 OK なら task_04 を `/task_new` で起票: 暫定 46 §8 の正本反映（key_input.md §7.1 :16-17 の受容の書き換え・§7.2・§7.3・§7.7 / features.md §4.6 の `extra_scan_codes` と :711 の受容の書き換え / codebase_map）・暫定 46 凍結・decisions_archive/63・decisions.md 索引・current.md 完了記載・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
+- **【ユーザー確認待ち・最優先】task_03 の実機目視の NG の計測**（2026-10-19 01:00 の目視: リピートの途中で IME が切り替わる / キーを離してもリピートがすぐ終わらない）
+  - 依頼済みの手順: アプリが読む `config/config.json` の `"debug_jis_special_key_events": true` → 出力をファイルに残して起動（例 `../../../.venv/Scripts/python.exe main.py > make_only_trace.txt 2>&1`）→ jis.json・キーボードUI で無変換 → BackSpace・フック開始 → メモ帳で無変換を約 1 秒押して離すを 2〜3 回 → 閉じて、ファイルの場所を教えてもらう
+  - 出力の形: `[hook] t= type= scan= name= make_only= accept= actions= guard= dur_ms=`（全イベント）/ `[make-only] ...`（状態機械の遷移・保留からの経過 ms）/ `[ui] ...`（UI スレッドでの実行・世代）
+  - 見立て（未確認）:
+    - (1) フックのイベントのたびに外部レイアウトの JSON を読み直していて（`layout_controller.get_current_keyboard_layout`・idea_51）、アプリが送る BackSpace のイベントと重なってフックのスレッドが詰まり、離しの 2 回組の間隔が 16 ms を超えて見えてリピートと取り違える
+    - (2) タイマーのスレッドが状態機械のロックを持って `input_router.handle` を呼ぶ間、フックのスレッドが待たされ、Windows の低レベルフックの時間切れで押下が OS へ素通りする（IME の切替）
+    - (3) リピートの確定・古い押下の押し直しが送信ガード中に走り、素通しの決定を覚え直す（`make_only_keys._confirm_pending`）
+  - 計測を読んで原因を特定 → 修正の方針（暫定 46 の改訂が要るなら仕様フラグとしてユーザーへ）
+- 直ったら実機目視をやり直し → task_04（正本反映・凍結・decisions_archive/63・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー）
 - main へのマージはユーザー
 
 ## blockers
