@@ -1,6 +1,8 @@
 ﻿import os
 import copy
+import logging
 import threading
+import time
 from contextlib import contextmanager
 import tkinter as tk
 from typing import Callable
@@ -63,6 +65,8 @@ from keyseq.application.hotkey_service import HotkeyService
 from keyseq.application.held_inputs import HeldInputs
 from keyseq.application.hook_coordinator import HookCoordinator
 from keyseq.application.input_router import InputRouter
+from keyseq.application.delayed_calls import DelayedCallWorker
+from keyseq.application.make_only_keys import MakeOnlyKeyFilter
 from keyseq.application.key_overlap import KeyOverlapAnalysis, analyze_key_overlaps
 from keyseq.application.keymap_service import KeymapService
 from keyseq.application.key_state_manager import KeyStateManager
@@ -188,6 +192,18 @@ class App(tk.Tk):
             find_keymap_target=self._find_keymap_target,
             keymap_switch_in_progress=self._keymap_switch_in_progress,
             resolve_scan_code=lambda sc: self.layout.resolve_key_name_from_scan_code(sc),
+        )
+        self.delayed_calls = DelayedCallWorker()
+        self.make_only_keys = MakeOnlyKeyFilter(
+            route=self.input_router.handle,
+            release_state=self.key_state_manager.handle_event,
+            clock=time.perf_counter,
+            schedule=self.delayed_calls.schedule,
+            get_hook_pause_count=lambda: self.hook.get_hook_pause_count(),
+            get_repeat_delay_ms=lambda: keyboard_repeat_timing()[0],
+            on_routes=lambda routes, generation: self.hook.schedule_make_only_routes(
+                routes, generation,
+            ),
         )
         self.state = AppState()
         self.state.reset_listeners.append(self.file_line_loader.clear_cache)
@@ -728,6 +744,10 @@ class App(tk.Tk):
                     pass
             self.hook.stop_hook()
         finally:
+            try:
+                self.delayed_calls.stop()
+            except Exception:
+                logging.getLogger(__name__).exception("Could not stop delayed callbacks")
             try:
                 errors = self.held_inputs.release_all()
                 if errors:

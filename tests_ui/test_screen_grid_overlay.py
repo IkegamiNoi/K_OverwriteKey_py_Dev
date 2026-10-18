@@ -407,6 +407,7 @@ class ScreenGridOverlayTest(unittest.TestCase):
         )
         self.app.input_router = Mock()
         self.app.input_router.handle.return_value = InputRoute(actions=(action,), accept=False)
+        self.app.make_only_keys = SimpleNamespace(handle=Mock(return_value=None))
         self.assertFalse(self.app.hook.on_input_event(SimpleNamespace(scan_code=1)))
         self.app.input_gateway.move_cursor.assert_not_called()
         self.root.update()

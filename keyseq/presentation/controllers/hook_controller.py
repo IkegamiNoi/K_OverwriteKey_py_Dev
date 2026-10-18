@@ -1,9 +1,10 @@
 from __future__ import annotations
 
+import logging
 import tkinter as tk
 from tkinter import messagebox
 
-from keyseq.application.input_router import GridKeyAction, SendKeyAction, StopHookAction, TriggerAction
+from keyseq.application.input_router import GridKeyAction, InputRoute, SendKeyAction, StopHookAction, TriggerAction
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis, analyze_key_overlaps
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY, normalize_key_name
 from keyseq.domain.screen_grid import has_enabled_grid
@@ -136,6 +137,7 @@ class HookController:
             self._app.after(0, lambda: messagebox.showerror(title, msg))
 
         self._app.key_state_manager.clear()
+        self._app.make_only_keys.clear()
         started = self._app.hook_coordinator.start(
             triggers=overlap.all_triggers,
             on_input_event=self.on_input_event,
@@ -164,6 +166,7 @@ class HookController:
             self._app.sequence_runner.cancel_pending_waits()
             self._app.hook_coordinator.stop()
             self._app.key_state_manager.clear()
+            self._app.make_only_keys.clear()
             self.hook_active = False
             if reset_custom_input_mode:
                 self.custom_input_enabled = True
@@ -290,6 +293,10 @@ class HookController:
         resolved_key = self._app.layout.resolve_key_name_from_scan_code(getattr(event, "scan_code", None))
         if self._app.layout.should_debug_special_key_event(event, resolved_key):
             self._app.layout.debug_special_key_event(event, resolved_key)
+        result = self._app.make_only_keys.handle(event)
+        if result is not None:
+            self._schedule_make_only_routes(result.routes, result.generation)
+            return result.accept
         route = self._app.input_router.handle(event)
         for action in route.actions:
             self._app.after(
@@ -297,6 +304,33 @@ class HookController:
                 lambda aa=action, ss=route.shadowed: self._execute_reserved_action(aa, ss),
             )
         return route.accept
+
+    def _schedule_make_only_routes(
+        self, routes: tuple[InputRoute, ...], generation: int,
+    ) -> None:
+        for route in routes:
+            for action in route.actions:
+                self._app.after(
+                    0,
+                    lambda aa=action, ss=route.shadowed: self._execute_make_only_action(
+                        aa, ss, generation,
+                    ),
+                )
+
+    def _execute_make_only_action(
+        self, action: object, shadowed: tuple[AssignmentConflict, ...], generation: int,
+    ) -> None:
+        if generation != self._app.make_only_keys.generation:
+            return
+        self._execute_reserved_action(action, shadowed)
+
+    def schedule_make_only_routes(
+        self, routes: tuple[InputRoute, ...], generation: int,
+    ) -> None:
+        try:
+            self._schedule_make_only_routes(routes, generation)
+        except Exception:
+            logging.getLogger(__name__).exception("Could not schedule make-only key actions")
 
     def _execute_reserved_action(
         self, action: object, shadowed: tuple[AssignmentConflict, ...],

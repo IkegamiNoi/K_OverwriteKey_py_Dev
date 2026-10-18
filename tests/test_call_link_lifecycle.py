@@ -96,6 +96,7 @@ class CallLinkLifecycleTests(unittest.TestCase):
             held_inputs=SimpleNamespace(release_all=lambda: []),
             hook_coordinator=SimpleNamespace(stop=lambda: None),
             key_state_manager=SimpleNamespace(clear=lambda: None),
+            make_only_keys=SimpleNamespace(clear=lambda: None),
             layout=SimpleNamespace(refresh_keyboard_window=lambda: None),
             trigger_panel=SimpleNamespace(update_status=lambda: None),
         )

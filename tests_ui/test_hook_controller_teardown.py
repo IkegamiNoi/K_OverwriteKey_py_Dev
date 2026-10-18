@@ -20,6 +20,7 @@ class HookControllerTeardownTest(unittest.TestCase):
         self.app.held_inputs = SimpleNamespace(release_all=Mock(return_value=[]))
         self.app.hook_coordinator = Mock()
         self.app.key_state_manager = Mock()
+        self.app.make_only_keys = Mock()
         self.app.keymap_service = Mock()
         self.app.layout = Mock()
         self.app.trigger_panel = Mock()

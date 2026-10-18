@@ -20,6 +20,7 @@ class SequenceControlReviewFixesTest(unittest.TestCase):
             sequence_runner=SimpleNamespace(stop_run_to_end=Mock(), cancel_pending_waits=Mock()),
             held_inputs=SimpleNamespace(release_all=Mock(return_value=[])),
             hook_coordinator=SimpleNamespace(stop=Mock()), key_state_manager=SimpleNamespace(clear=Mock()),
+            make_only_keys=SimpleNamespace(clear=Mock()),
             layout=SimpleNamespace(refresh_keyboard_window=Mock()), trigger_panel=SimpleNamespace(update_status=Mock()),
         )
         controller = HookController.__new__(HookController)

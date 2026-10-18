@@ -52,6 +52,7 @@ class HookCoordinatorTest(unittest.TestCase):
             SimpleNamespace(
                 data=data,
                 key_state_manager=SimpleNamespace(clear=Mock()),
+                make_only_keys=SimpleNamespace(clear=Mock()),
                 hook_coordinator=SimpleNamespace(start=Mock(return_value=True)),
                 layout=SimpleNamespace(refresh_keyboard_window=Mock()),
                 trigger_panel=SimpleNamespace(update_status=Mock()),
@@ -76,6 +77,7 @@ class HookCoordinatorTest(unittest.TestCase):
             SimpleNamespace(
                 data=data,
                 key_state_manager=SimpleNamespace(clear=Mock()),
+                make_only_keys=SimpleNamespace(clear=Mock()),
                 hook_coordinator=coordinator,
                 layout=SimpleNamespace(refresh_keyboard_window=Mock()),
                 trigger_panel=SimpleNamespace(update_status=Mock()),
@@ -121,6 +123,7 @@ class HookCoordinatorTest(unittest.TestCase):
             SimpleNamespace(
                 data=data,
                 key_state_manager=SimpleNamespace(clear=Mock()),
+                make_only_keys=SimpleNamespace(clear=Mock()),
                 hook_coordinator=coordinator,
                 layout=SimpleNamespace(refresh_keyboard_window=Mock()),
                 trigger_panel=SimpleNamespace(update_status=Mock()),
