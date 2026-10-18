@@ -1,12 +1,14 @@
 from __future__ import annotations
 
 import logging
+import time
 import tkinter as tk
 from tkinter import messagebox
 
 from keyseq.application.input_router import GridKeyAction, InputRoute, SendKeyAction, StopHookAction, TriggerAction
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis, analyze_key_overlaps
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY, normalize_key_name
+from keyseq.domain.make_only_keys import is_make_only_scan_code
 from keyseq.domain.screen_grid import has_enabled_grid
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.hook_button_texts import (
@@ -290,20 +292,39 @@ class HookController:
         return f"{conflict.key} は{reason}と重複しているため、トリガーは実行されません。トリガーのキーを変更してください"
 
     def on_input_event(self, event: object):
+        debug = bool((getattr(self._app, "data", None) or {}).get("debug_jis_special_key_events", False))
+        started_at = time.perf_counter() if debug else 0.0
         resolved_key = self._app.layout.resolve_key_name_from_scan_code(getattr(event, "scan_code", None))
         if self._app.layout.should_debug_special_key_event(event, resolved_key):
             self._app.layout.debug_special_key_event(event, resolved_key)
         result = self._app.make_only_keys.handle(event)
         if result is not None:
             self._schedule_make_only_routes(result.routes, result.generation)
-            return result.accept
-        route = self._app.input_router.handle(event)
-        for action in route.actions:
-            self._app.after(
-                0,
-                lambda aa=action, ss=route.shadowed: self._execute_reserved_action(aa, ss),
+            accept = result.accept
+            actions = sum(len(route.actions) for route in result.routes)
+        else:
+            route = self._app.input_router.handle(event)
+            for action in route.actions:
+                self._app.after(
+                    0,
+                    lambda aa=action, ss=route.shadowed: self._execute_reserved_action(aa, ss),
+                )
+            accept = route.accept
+            actions = len(route.actions)
+        if debug:
+            ended_at = time.perf_counter()
+            print(
+                f"[hook] t={started_at:.4f}"
+                f" type={getattr(event, 'event_type', None)}"
+                f" scan={getattr(event, 'scan_code', None)}"
+                f" name={getattr(event, 'name', None)}"
+                f" make_only={is_make_only_scan_code(getattr(event, 'scan_code', None))}"
+                f" accept={accept} actions={actions}"
+                f" guard={self._app._get_send_guard_count()}"
+                f" dur_ms={(ended_at - started_at) * 1000:.3f}",
+                flush=True,
             )
-        return route.accept
+        return accept
 
     def _schedule_make_only_routes(
         self, routes: tuple[InputRoute, ...], generation: int,
@@ -320,7 +341,9 @@ class HookController:
     def _execute_make_only_action(
         self, action: object, shadowed: tuple[AssignmentConflict, ...], generation: int,
     ) -> None:
-        if generation != self._app.make_only_keys.generation:
+        discarded = generation != self._app.make_only_keys.generation
+        self._trace_ui_action(action, f"generation={generation} discarded={discarded}")
+        if discarded:
             return
         self._execute_reserved_action(action, shadowed)
 
@@ -335,6 +358,7 @@ class HookController:
     def _execute_reserved_action(
         self, action: object, shadowed: tuple[AssignmentConflict, ...],
     ) -> None:
+        self._trace_ui_action(action, "generation_check=not_applicable discarded=False")
         if isinstance(action, GridKeyAction):
             if self.hook_active and self.custom_input_enabled:
                 self._app.screen_grid.handle(action)
@@ -344,6 +368,14 @@ class HookController:
         ):
             return
         self._app.action_executor.execute_router_action(action, shadowed=shadowed)
+
+    def _trace_ui_action(self, action: object, generation_result: str) -> None:
+        if (getattr(self._app, "data", None) or {}).get("debug_jis_special_key_events"):
+            print(
+                f"[ui] t={time.perf_counter():.4f} action={type(action).__name__} "
+                f"{generation_result}",
+                flush=True,
+            )
 
     def show_action_error(self, trigger_key: str, action: dict, err: Exception):
         """送信エラーをUIスレッドで表示（多重表示は抑止）"""

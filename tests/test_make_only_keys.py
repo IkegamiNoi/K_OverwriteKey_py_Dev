@@ -50,6 +50,7 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
         self,
         *,
         on_routes: Callable[[tuple[InputRoute, ...], int], None] | None = None,
+        trace: Callable[[str], None] | None = None,
     ) -> MakeOnlyKeyFilter:
         def route(event: object) -> InputRoute:
             self.routed.append(event)
@@ -68,7 +69,28 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
             get_hook_pause_count=lambda: self.pause_count,
             get_repeat_delay_ms=lambda: self.repeat_delay_ms,
             on_routes=timer_routes,
+            trace=trace,
         )
+
+    def test_trace_reports_press_release_and_repeat_transitions(self) -> None:
+        trace: list[str] = []
+        self.filter = self.make_filter(trace=trace.append)
+
+        self.send_down(0.0)
+        self.send_up(0.005)
+        self.send_down(1.0)
+        self.send_down(1.020)
+        self.time.now = 1.0361
+        self.time.fire()
+
+        self.assertTrue(any("down accept=False has_actions=True" in line for line in trace))
+        self.assertTrue(any("up accept=False actions=1" in line for line in trace))
+        self.assertTrue(any("pending confirmed kind=repeat" in line for line in trace))
+        self.assertTrue(all("t=" in line and "scan=241" in line and "generation=" in line for line in trace))
+
+    def test_trace_is_optional(self) -> None:
+        self.filter = self.make_filter()
+        self.assertIsNotNone(self.send_down(0.0))
 
     def send_down(
         self, at: float, scan_code: int = 241, name: str | None = None

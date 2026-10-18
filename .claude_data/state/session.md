@@ -13,7 +13,6 @@ last_commit_location: `claude/idea-49-50-execution-c565e4`（phase 62 完了・p
 ## current
 focus: **phase 63（idea_52・押下だけが続けて届くキー）: task_01〜03 実装・検証・レビュー済。task_03 の実機目視待ち → task_04（正本反映）。**
 mode: blocked
-presence: away（戻る予定 2026-10-19T07:30）
 
 ## last_action
 ts: 2026-10-19T01:05:00

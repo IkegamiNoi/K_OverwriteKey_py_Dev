@@ -204,6 +204,7 @@ class App(tk.Tk):
             on_routes=lambda routes, generation: self.hook.schedule_make_only_routes(
                 routes, generation,
             ),
+            trace=self._make_only_trace,
         )
         self.state = AppState()
         self.state.reset_listeners.append(self.file_line_loader.clear_cache)
@@ -364,6 +365,10 @@ class App(tk.Tk):
 
     def _get_send_guard_count(self) -> int:
         return int(self.action_executor.send_guard_count)
+
+    def _make_only_trace(self, line: str) -> None:
+        if self.data.get("debug_jis_special_key_events"):
+            print("[make-only] " + line, flush=True)
 
     # ---------------- UI ----------------
     def _build_ui(self):

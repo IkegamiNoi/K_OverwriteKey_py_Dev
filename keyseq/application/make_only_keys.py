@@ -49,6 +49,7 @@ class MakeOnlyKeyFilter:
         get_hook_pause_count: Callable[[], int],
         get_repeat_delay_ms: Callable[[], int],
         on_routes: Callable[[tuple[InputRoute, ...], int], None],
+        trace: Callable[[str], None] | None = None,
     ) -> None:
         self._route = route
         self._release_state = release_state
@@ -57,6 +58,7 @@ class MakeOnlyKeyFilter:
         self._get_hook_pause_count = get_hook_pause_count
         self._get_repeat_delay_ms = get_repeat_delay_ms
         self._on_routes = on_routes
+        self._trace_callback = trace
         self._lock = threading.Lock()
         self._states: dict[int, _KeyState] = {}
         self._generation = 0
@@ -87,6 +89,10 @@ class MakeOnlyKeyFilter:
                 state.pressed = False
                 self._release_state(event)
                 route = self._route(event)
+                self._trace(
+                    now, scan_code,
+                    f"up accept={route.accept} actions={len(route.actions)}",
+                )
                 return MakeOnlyResult(route.accept, (route,), self._generation)
             return self._handle_down(event, scan_code, state, now)
 
@@ -95,30 +101,41 @@ class MakeOnlyKeyFilter:
     ) -> MakeOnlyResult:
         if not state.pressed:
             if state.released_at is not None and now <= state.released_at + PAIR_WINDOW_S:
+                self._trace(now, scan_code, "dropped after release")
                 return self._result(state.released_accept)
             route = self._route(event)
             self._remember_press(state, route)
             state.last_down_at = now
+            self._trace(
+                now, scan_code,
+                f"down accept={route.accept} has_actions={bool(route.actions)}",
+            )
             return MakeOnlyResult(route.accept, (route,), self._generation)
 
         routes: tuple[InputRoute, ...] = ()
         if state.pending_at is not None:
             if now <= state.pending_at + PAIR_WINDOW_S:
+                pending_ms = (now - state.pending_at) * 1000
                 state.pending_at = None
                 self._release_state(SyntheticKeyEvent("up", scan_code, getattr(event, "name", None)))
                 state.pressed = False
                 state.released_at = now
                 state.released_accept = state.accept
-                return self._result(state.accept)
-            routes = self._confirm_pending(scan_code, state)
+                self._trace(now, scan_code, f"released pending_elapsed_ms={pending_ms:.3f}")
+                return self._result(state.accept, scan_code=scan_code, now=now)
+            routes = self._confirm_pending(scan_code, state, now)
         self._start_pending(event, scan_code, state, now)
-        return self._result(state.accept, routes)
+        return self._result(state.accept, routes, scan_code=scan_code, now=now)
 
     def _result(
-        self, accept: bool, routes: tuple[InputRoute, ...] = (),
+        self, accept: bool, routes: tuple[InputRoute, ...] = (), *,
+        scan_code: int | None = None, now: float | None = None,
     ) -> MakeOnlyResult:
+        pause_count = self._get_hook_pause_count()
+        if pause_count > 0 and scan_code is not None and now is not None:
+            self._trace(now, scan_code, "stop-request pass-through")
         return MakeOnlyResult(
-            True if self._get_hook_pause_count() > 0 else accept,
+            True if pause_count > 0 else accept,
             routes, self._generation,
         )
 
@@ -137,38 +154,67 @@ class MakeOnlyKeyFilter:
         state.name = getattr(event, "name", None)
         state.last_down_at = now
         generation = self._generation
+        self._trace(now, scan_code, f"pending started stale_old_press={state.stale}")
         self._schedule(
             PAIR_WINDOW_S, lambda: self._expire(scan_code, now, generation),
         )
 
-    def _confirm_pending(self, scan_code: int, state: _KeyState) -> tuple[InputRoute, ...]:
+    def _confirm_pending(
+        self, scan_code: int, state: _KeyState, now: float,
+    ) -> tuple[InputRoute, ...]:
         routes: tuple[InputRoute, ...] = ()
+        route_info = "accept=- actions=0"
         if state.stale:
             self._release_state(SyntheticKeyEvent("up", scan_code, state.name))
             route = self._route(SyntheticKeyEvent("down", scan_code, state.name))
             self._remember_press(state, route)
             routes = (route,)
+            kind = "stale-press-repress"
+            route_info = f"accept={route.accept} actions={len(route.actions)}"
         elif state.has_actions:
-            routes = (self._route(SyntheticKeyEvent("down", scan_code, state.name)),)
+            route = self._route(SyntheticKeyEvent("down", scan_code, state.name))
+            routes = (route,)
+            kind = "repeat"
+            route_info = f"accept={route.accept} actions={len(route.actions)}"
+        else:
+            kind = "nothing"
+        elapsed_ms = (now - state.pending_at) * 1000 if state.pending_at is not None else 0.0
         state.pending_at = None
+        self._trace(
+            now, scan_code,
+            f"pending confirmed kind={kind} elapsed_ms={elapsed_ms:.3f} {route_info}",
+        )
         return routes
 
     def _expire(self, scan_code: int, pending_at: float, generation: int) -> None:
         with self._lock:
+            trace_now = self._clock()
+            self._trace(trace_now, scan_code, f"expire called callback_generation={generation}")
             if generation != self._generation:
+                self._trace(trace_now, scan_code, f"expire discarded generation_mismatch={generation}!={self._generation}")
                 return
             state = self._states.get(scan_code)
             if state is None or state.pending_at != pending_at:
+                self._trace(trace_now, scan_code, "expire discarded pending_mismatch")
                 return
             now = self._clock()
             # 差の丸めで「16 ms ちょうど」を超過扱いしないよう期限と比較する。
             deadline = pending_at + PAIR_WINDOW_S
             if now <= deadline:
+                self._trace(now, scan_code, "expire early; rescheduling")
                 self._schedule(
                     deadline - now,
                     lambda: self._expire(scan_code, pending_at, generation),
                 )
                 return
-            routes = self._confirm_pending(scan_code, state)
+            elapsed_ms = (now - pending_at) * 1000
+            self._trace(now, scan_code, f"expire confirmed late elapsed_ms={elapsed_ms:.3f}")
+            routes = self._confirm_pending(scan_code, state, now)
         if routes:
             self._on_routes(routes, generation)
+
+    def _trace(self, now: float, scan_code: int, detail: str) -> None:
+        if self._trace_callback is not None:
+            self._trace_callback(
+                f"t={now:.4f} scan={scan_code} generation={self._generation} {detail}"
+            )
