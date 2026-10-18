@@ -4,28 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-17T12:00:00
-phase: **なし**（phase 61 = キーボードUI の取得で VK を走査コードへ変換するは 2026-10-17 完了）。次採番 = phase 62 / 暫定 45 / decisions 62 / 提案書 25
+last_updated: 2026-10-18T15:00:00
+phase: `instructions/phase/62_special_keys_from_layout_only`（phase 62・暫定 45 v0.3 ユーザー確定済・decisions 62）。次採番 = phase 63 / 暫定 46 / decisions 63 / 提案書 25
 直前の完了フェーズ = **phase 61**（`decisions_archive/61_keyboard_ui_vk_to_scan_code.md`）
-last_commit_location: `claude/idea-46-3c4cb6`（phase 60・61 一式・完了）。phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
+last_commit_location: `claude/idea-49-50-execution-c565e4`（phase 62 の task_01〜03）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 61 完了（2026-10-17・F キーの修正・JIS の特殊キーの取得は idea_50）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-mode: idle
+focus: **phase 62（特殊キーの名前をレイアウトだけが決める・idea_49）: task_01〜03 実装・検証・レビュー済。task_03 の実機目視待ち → task_04（正本反映）。**
+mode: pending_review
 
 ## last_action
-ts: 2026-10-17T12:00:00
+ts: 2026-10-18T15:00:00
 who: main
 summary: |
-  phase 60 完了（取得中の IME）に続き phase 61（idea_47・直接改訂）: task_01 = キーボードUI の取得で VK を走査コードへ変換しレイアウトだけで引く（Codex 実装・reviewer 採用）→
-  実機目視で F1/F10/F12 OK・JIS の特殊キーは IME に横取りされ取れない（確認用の窓で実測）→ ユーザー判断で idea_50 へ分離。task_02 = key_input.md §7.4・codebase_map へ反映・decisions_archive/61・idea_47 を INDEX_done へ。
+  ユーザー判断（2026-10-18）: 受け取り・送信ともレイアウトの scan_code・既知の表を削除・後方互換不要・レイアウトが変わる前に離す = 案 B（案 A は idea_51）。暫定 45 v0.3 確定 → phase 62 起票。
+  task_01 = フック・画面の枠の編集の窓の名前をレイアウトだけで引く（presentation）。
+  task_02 = 送信・検査・同じキーの判定を テンキー→拡張→keyboard→レイアウト に一本化し、レイアウトのキーは SendInput の走査コードで送る（今まで muhenkan は送れていなかった）・domain の既知の表を削除（domain・presentation・infrastructure。infrastructure は関数の注入のみで presentation を import しない）。
+  task_03 = レイアウトの読み直し・選ぶ id の変更の前に held_inputs.release_all（presentation）。
+  いずれも Codex（codex-implementer）実装・reviewer 採用・tests のスタブ / 期待値の不備 2 件をメインが修正。タスクの連続実行はユーザー許可済み。
+result_files:
+  - keyseq/domain/key_identifiers.py / keyseq/infrastructure/input_gateway.py / keyseq/presentation/{app.py,keyboard_layouts.py,controllers/layout_controller.py}
+  - tests/test_input_gateway_send.py / tests/test_keyboard_layout_files.py / tests/test_layout_controller_scan_code.py（新規）/ tests/test_key_identifiers.py（削除）
+  - instructions/history/45_special_keys_from_layout_only.md / instructions/phase/62_special_keys_from_layout_only/ / instructions/backlog/idea_51_layout_snapshot_for_hook.md
 verified:
-  tests 1689 / tests_ui は test_compact_window の 3 件のみタイミング系で失敗（単独再実行 OK）/ smoke OK
+  compile clean / tests 1706 pass（task_03 の修正後に対象モジュール 13 件 OK）/ tests_ui 1111 pass / smoke OK
 
 ## next_action
-- **次フェーズはユーザー判断**（`/phase_start`）。残件 = idea_48（取得中のフック再開）・idea_49（特殊キーの名前をレイアウトだけが決める）・idea_50（取得で JIS の特殊キーを取る）
-- main へのマージはユーザー（phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`）
+- **ユーザーの実機目視**（task_03 の確認節: JIS キーボード・jis.json で 無変換のトリガー / 出力の `muhenkan`・`zenkaku_hankaku` が物理キーと同じ動き / 任意で US TKL での検査エラー）
+- 目視 OK なら task_04 を `/task_new` で起票: 暫定 45 §9 の正本反映（key_input.md §7.1/§7.4/§7.7/§7.8・features.md §4.6・codebase_map）・暫定 45 凍結・decisions_archive/62・decisions.md 索引・current.md 完了記載・idea_49 を INDEX_done へ・`/refactor_check`・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
+- main へのマージはユーザー
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
