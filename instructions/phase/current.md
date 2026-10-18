@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 62](62_special_keys_from_layout_only/phase.md)**（2026-10-18 起票・task_01〜03 済・task_03b（extra_scan_codes）→ task_04 正本反映・特殊キーの名前をレイアウトだけが決める〔受け取り・送信とも選んでいるレイアウトの `scan_code` で名前を引き、既知の特殊キーの表を削除 / 送れていなかった `muhenkan` 等をレイアウトの走査コードで送る / レイアウトが変わる前に押したままのキーを離す〕。暫定仕様先行モード〔主入力 = [暫定 45](../history/45_special_keys_from_layout_only.md) v0.4・ユーザー確定済〕・レイアウトの JSON に任意キー `extra_scan_codes` を追加・起票元 [idea_49](../backlog/idea_49_special_keys_from_layout_only.md)・番号対応 phase 62 / 暫定 45 / decisions 62）。
+- **アクティブなフェーズ = [phase 62](62_special_keys_from_layout_only/phase.md)**（2026-10-18 起票・task_01〜03 済〔task_03b は取り下げ → idea_52〕・task_04 正本反映へ・特殊キーの名前をレイアウトだけが決める〔受け取り・送信とも選んでいるレイアウトの `scan_code` で名前を引き、既知の特殊キーの表を削除 / 送れていなかった `muhenkan` 等をレイアウトの走査コードで送る / レイアウトが変わる前に押したままのキーを離す〕。暫定仕様先行モード〔主入力 = [暫定 45](../history/45_special_keys_from_layout_only.md) v0.5・ユーザー確定済〕・JSON スキーマ不変・起票元 [idea_49](../backlog/idea_49_special_keys_from_layout_only.md)・番号対応 phase 62 / 暫定 45 / decisions 62）。
 - 直前の完了フェーズ = [phase 61](61_keyboard_ui_vk_to_scan_code/phase.md)（2026-10-17・キーボードUI の取得で VK を走査コードへ変換する〔F1 / F10 / F12 が `kana` / `henkan` / `muhenkan` になる不具合の修正・変換後はレイアウトの `scan_code` だけで引く〕。直接改訂モード・JSON スキーマ不変・JIS の特殊キーの取得は未達で idea_50 へ・判断は [decisions_archive/61](../../.claude_data/state/decisions_archive/61_keyboard_ui_vk_to_scan_code.md)）。
 - その前の完了フェーズ = [phase 60](60_ime_off_during_key_capture/phase.md)（2026-10-16・キーの取得中は IME を OFF にする〔取得の 8 入口で取得の間だけアプリ自身の IME を OFF・終了で復元 / `??` を全入口で記録せず取得を続ける〕。暫定仕様先行モード〔暫定 44 v0.4 凍結〕・JSON スキーマ不変・判断は [decisions_archive/60](../../.claude_data/state/decisions_archive/60_ime_off_during_key_capture.md)）。
   [phase 59](59_keyboard_ui_left_right_modifiers/phase.md)（2026-10-16・キーボードUI の左右の修飾キーの区別と割り当て禁止のキー〔左右の Shift・Ctrl・Alt・Win の枠を左右別のキー名で表示・編集 / Windows キー・Caps Lock・AltGr 配列の右 Alt〔標準の id `alt_gr`〕をキーマップの元キーと切替キーに割り当て禁止 / 切替キーの取得で判別できないキー〔`??`〕は案内 / jis.json・de.json の見本〕。暫定仕様先行モード〔暫定 43 v0.6 凍結〕・JSON スキーマ不変・判断は [decisions_archive/59](../../.claude_data/state/decisions_archive/59_keyboard_ui_left_right_modifiers.md)）。
@@ -145,7 +145,7 @@
   42=画面サイズの調整〔**v0.3・凍結**〕 /
   43=キーボードUI の左右の修飾キーの区別と割り当て禁止のキー〔**v0.6・凍結**〕 /
   44=キーの取得中は IME を OFF にする〔**v0.4・凍結**〕 /
-  45=特殊キーの名前をレイアウトだけが決める〔**v0.4・ユーザー確定済・phase 62 で進行中**〕）。
+  45=特殊キーの名前をレイアウトだけが決める〔**v0.5・ユーザー確定済・phase 62 で進行中**〕）。
   次採番は **`46_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**24 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /

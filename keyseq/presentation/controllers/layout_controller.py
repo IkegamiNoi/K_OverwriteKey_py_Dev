@@ -401,14 +401,6 @@ class LayoutController:
                 if int(getattr(key_spec, "scan_code", None)) == scan_code:
                     return True
             except Exception:
-                pass
-            try:
-                if any(
-                    int(extra_scan_code) == scan_code
-                    for extra_scan_code in getattr(key_spec, "extra_scan_codes", ())
-                ):
-                    return True
-            except Exception:
                 continue
         return False
 

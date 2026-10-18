@@ -16,7 +16,6 @@ class KeySpec:
     w: float = 1.0
     h: float = 1.0
     scan_code: int | None = None
-    extra_scan_codes: tuple[int, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -208,17 +207,6 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
         if "scan_code" in raw_key and raw_key.get("scan_code") not in ("", None):
             scan_code = _coerce_int(raw_key.get("scan_code"), f"{key_prefix}.scan_code")
 
-        raw_extra_scan_codes = raw_key.get("extra_scan_codes")
-        if raw_extra_scan_codes is None:
-            extra_scan_codes = ()
-        elif not isinstance(raw_extra_scan_codes, list):
-            raise ValueError(f"{key_prefix}.extra_scan_codes は整数の配列である必要があります。")
-        else:
-            extra_scan_codes = tuple(
-                _coerce_int(value, f"{key_prefix}.extra_scan_codes[{index}]")
-                for index, value in enumerate(raw_extra_scan_codes)
-            )
-
         normalized_keys.append(
             {
                 "id": key_id,
@@ -228,7 +216,6 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
                 "w": w,
                 "h": h,
                 "scan_code": scan_code,
-                "extra_scan_codes": extra_scan_codes,
             }
         )
 
@@ -250,7 +237,6 @@ def keyboard_layout_from_dict(data: dict, *, existing_layout_ids: set[str] | Non
             w=key_data["w"],
             h=key_data["h"],
             scan_code=key_data.get("scan_code"),
-            extra_scan_codes=key_data.get("extra_scan_codes", ()),
         )
         for key_data in normalized["keys"]
     ]
@@ -346,12 +332,9 @@ def resolve_layout_key_id_from_scan_code(layout: KeyboardLayout | None, scan_cod
 
     if layout is not None:
         for key_spec in getattr(layout, "keys", ()) or ():
-            if (
-                key_spec.scan_code is not None
-                and int(key_spec.scan_code) == normalized_scan_code
-            ):
-                return str(key_spec.id or "").strip()
-            if normalized_scan_code in getattr(key_spec, "extra_scan_codes", ()):
+            if key_spec.scan_code is None:
+                continue
+            if int(key_spec.scan_code) == normalized_scan_code:
                 return str(key_spec.id or "").strip()
 
     return ""
