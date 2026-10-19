@@ -4,42 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-20T02:30:00
+last_updated: 2026-10-20T04:00:00
 phase: `instructions/phase/63_make_only_keys`（phase 63・暫定 46 v0.4 ユーザー確定済 2026-10-20・decisions 63）。次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25 / idea 54
 直前の完了フェーズ = **phase 62**（`decisions_archive/62_special_keys_from_layout_only.md`）
-last_commit_location: `claude/phase62-trace-file-empty-ddc0c0`（phase 63 の task_01〜03c + 暫定 46 v0.4・task_03d / 03e の起票）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
+last_commit_location: `claude/phase62-trace-file-empty-ddc0c0`（phase 63 の task_01〜03e・暫定 46 v0.4）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 63（idea_52）: 計測で原因を特定し暫定 46 を v0.4（リピートなし + 直接置換の枠を灰色がかった緑）へ改訂・ユーザー確定。task_03d / task_03e を起票済み・実装待ち。**
-mode: implementing
+focus: **phase 63（idea_52）: 暫定 46 v0.4（リピートなし + 直接置換の枠を灰色がかった緑）で task_03d・03e を実装・検証・レビュー済み。ユーザーの実機目視（§6 #6）待ち。**
+mode: blocked
 presence: present
 
 ## last_action
-ts: 2026-10-20T02:30:00
+ts: 2026-10-20T04:00:00
 who: main
 summary: |
-  計測（Operation_check の make_only_trace.txt）: 送信の最中に届いた物理の押下が keyboard の `is_replaying`（`keyboard/__init__.py:233`・`:377-389`）でフックを通らず OS へ素通り → 無変換（VK_IME_OFF）で IME 切替・リピートの押下が 1 回ずつ抜け・離しの 2 回組の 2 回目が抜けてリピートと取り違え。短い押下は全て正常。
-  ユーザー判断（2026-10-20）: 送信の見直しは phase 63 に入れず idea_53 へ。v0.4 = リピートなし・押下だけのキーの直接置換の枠を灰色がかった緑（トリガーは青のまま・内蔵キーボードでも同色は受容）・片方の取りこぼし対策は案 A（「押した」から待ち時間 − 100 ms より前の単独の押下 = 片方の「離した」）。
-  Codex 敵対的 needs-attention（high 1・medium 2）→ 全件反映（high は §9 #3 の案 A）。decisions.md に phase 63 の節を新設。
-  文書のみ（コード変更なし）。
+  task_03d（2347367・application 限定）: 押し続けている間の押下は捨てる・「押した」から待ち時間 − 100 ms より前の単独の押下は片方の「離した」・覚えるのは戻り値だけ。Codex のテストの期待値の誤り 2 か所をメインが修正。reviewer 完了可。
+  task_03e（ebf2e6e・presentation 限定）: キーボードUI の押下だけのキーの直接置換の枠を灰色がかった緑（#e4ebe1 / #7f9a74 / #2f4429）・UI テスト 5 件。reviewer 採用。
+  その前: 暫定 46 v0.4 ユーザー確定・idea_53 起票（c1a954d）。
 result_files:
-  - instructions/history/46_make_only_keys.md
-  - instructions/backlog/idea_53_send_without_dropping_physical_input.md
-  - instructions/backlog/INDEX.md
-  - instructions/phase/63_make_only_keys/phase.md
-  - instructions/phase/63_make_only_keys/tasks/task_03d_no_repeat.md
-  - instructions/phase/63_make_only_keys/tasks/task_03e_make_only_key_color.md
-  - instructions/phase/current.md
-  - .claude_data/state/decisions.md
+  - keyseq/application/make_only_keys.py
+  - tests/test_make_only_keys.py
+  - tests/test_make_only_keys_integration.py
+  - keyseq/presentation/keyboard_window.py
+  - tests_ui/test_make_only_key_color_ui.py
 verified:
-  コード変更なし（前回: compile clean / tests 1743 pass / tests_ui 1117 pass / smoke OK）
+  compile clean / tests 1749 pass / tests_ui 1122 pass / smoke OK
 
 ## next_action
-- `codex-implementer` に `instructions/phase/63_make_only_keys/tasks/task_03d_no_repeat.md` の実装を依頼（application 限定・`make_only_keys.py` と tests 2 本・テスト実行は依頼しない）→ 差分を直読み → verifier（compile・対象テスト・tests / tests_ui / smoke。tests_ui は 1 本だけ・taskkill 禁止）→ reviewer → `/task_commit`
-- 続けて task_03e（`task_03e_make_only_key_color.md`・presentation 限定・`keyboard_window.py` と新規 `tests_ui/test_make_only_key_color_ui.py`）を同じ流れで
-- 両方済んだらユーザーへ実機目視を依頼（暫定 46 §6 #6: 長押しでも 1 文字だけ・IME が切り替わらない・枠の色）。Operation_check の `phase62.json` の `debug_jis_special_key_events` は計測後 false へ戻すよう伝える（起動は Operation_check の `.venv\Scripts\python.exe`）
-- 目視 OK → task_04（正本反映・凍結・decisions_archive/63・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー）
+- **【ユーザー確認待ち】実機目視（暫定 46 §6 #6）**: Operation_check を本ブランチへ早送り（`git merge --ff-only claude/phase62-trace-file-empty-ddc0c0`）→ Operation_check の `.venv\Scripts\python.exe main.py` で起動 → jis.json・無変換 → BackSpace・フック開始 → メモ帳で 1 回押す（1 文字）/ 1 秒以上長押し（1 文字だけ・離した後に余計に消えない）/ IME が切り替わらない / キーボードUI の無変換・変換の枠が灰色がかった緑で緑・灰色と見分けられる。計測が要らなければ `phase62.json` の `debug_jis_special_key_events` を false に
+- 目視 NG → 内容に応じて task 起票 or 仕様フラグ / OK → task_04（正本反映〔§8・色の値を codebase_map へ〕・暫定 46 の凍結・decisions_archive/63・decisions.md の phase 63 節を索引へ・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
 - 別件: external_keyboard_layouts のパスが入れ子に増える件は idea_13 に追記済み（別セッション・ブランチ `claude/lucid-wiles-a6c8d3`・未マージ）
 - main へのマージはユーザー
 
