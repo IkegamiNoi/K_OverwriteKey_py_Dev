@@ -15,7 +15,7 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 63**〔`instructions/phase/63_make_only_keys/phase.md`・主入力 = 暫定 46 v0.4 ユーザー確定済 2026-10-20〕）。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 63**〔`instructions/phase/63_make_only_keys/phase.md`・主入力 = 暫定 46 v0.5 ユーザー確定済 2026-10-20〕）。
    次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
@@ -23,9 +23,9 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜45）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 63（idea_52）: 暫定 46 v0.4（リピートなし + 直接置換の枠を灰色がかった緑）で task_03d・03e を実装・検証・レビュー済み。ユーザーの実機目視（§6 #6）待ち。**
-ユーザーは不在（`presence: away`・戻る予定 2026-10-20T07:30。再開 = 戻った合図なので session.md の presence 行を消してよい）。
-ブランチ `claude/phase62-trace-file-empty-ddc0c0`（phase 62 完了・phase 63 の task_01〜03e・暫定 46 v0.4）。実機目視用の worktree = `K_OverwriteKey_py_Dev.worktrees/Operation_check`（自前の `.venv` あり）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー（PR は作らない）。
+**phase 63（idea_52）: 暫定 46 v0.5（離した直後の押下は押し続けの続き）で task_03f を実装・検証・レビュー済み。ユーザーの実機目視（§6 #6）待ち。**
+ユーザーは不在（`presence: away`・戻る予定 未定。再開 = 戻った合図なので session.md の presence 行を消してよい）。
+ブランチ `claude/ime-switch-color-adjust-ac5df9`（暫定 46 v0.5 = ce89b3a・task_03f = 9832895）。task_01〜03e は `claude/phase62-trace-file-empty-ddc0c0`（Operation_check へ早送り済み）。実機目視用の worktree = `K_OverwriteKey_py_Dev.worktrees/Operation_check`（自前の `.venv` あり・`config/user/keymap_sets/phase62.json` の `debug_jis_special_key_events` = true）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 63 task_03e = 2026-10-20**）:
-compile **clean** / tests **1749 pass**（skip 7）/ tests_ui **1122 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1707〔phase 62〕→ 1749 / tests_ui: 1111 → 1122）。
+直近の実測（**phase 63 task_03f = 2026-10-20**）:
+compile **clean** / tests **1759 pass**（skip 7）/ tests_ui **1122 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1707〔phase 62〕→ 1759 / tests_ui: 1111 → 1122）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,10 +55,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー確認待ち・最優先】(1) Operation_check を本ブランチへ早送りしてよいか**（推奨: はい・`git merge --ff-only claude/phase62-trace-file-empty-ddc0c0`・早送り可能を確認済み）**/ (2) 実機目視（暫定 46 §6 #6）**: 長押しでも 1 文字だけ・離した後に余計に消えない・IME が切り替わらない・無変換 / 変換の枠が灰色がかった緑。手順の詳細は **session.md の next_action 先頭**が正
-- 目視 OK → task_04（正本反映〔§8・色の値を codebase_map へ〕・暫定 46 凍結・decisions_archive/63〔decisions.md の phase 63 節を切り出す〕・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー）を `/task_new` で起票
+- **【ユーザー判断待ち・最優先】(1) Operation_check を本ブランチへ早送りしてよいか**（推奨: はい・Operation_check で `git merge --ff-only claude/ime-switch-color-adjust-ac5df9`・Operation_check = ff61938 は本ブランチの祖先）**/ (2) 実機目視（暫定 46 §6 #6）**: **241 / 242 で届く環境（リモート実行では 123 の普通のキーになり対象外）**で、1 回押す / 2 秒以上の長押しを 3 回以上（途中で消え続けない・デバッグ出力で `released` の後に `down accept` が続かない）/ 約 0.1 秒の連打（回数どおり）/ IME が切り替わらない。手順の詳細は **session.md の next_action 先頭**が正
+- 目視の後: 色の最終判断（灰色がかった緑のまま / 緑に戻す = 暫定 46 の改訂）/ 前回の目視で出た IME の切り替えの操作をユーザーから聞いて暫定 46 §9 #7 を判断 → task_04（正本反映〔§8〕・暫定 46 凍結・decisions_archive/63・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー）を `/task_new` で起票
 - タスクの連続実行はユーザー許可済み（仕様フラグ・実機目視では止まる）。main へのマージはユーザー
-- phase 63 の設計の要点（v0.4）: 押下だけのキー（241 / 242）を `MakeOnlyKeyFilter`（application・1 本のロック・世代・`on_routes` はロックの外）が「押した / 離した」に組み直す。**リピートなし**（押し続けている間の押下は捨てる）。離し = 16 ms 以下の 2 回組 /「押した」から待ち時間 − 100 ms より前の単独の押下（片方の取りこぼし）/ 古い押下（待ち時間 + 300 ms 超）は次の押下で「離した」→「押した」。リピートを捨てた理由 = 送信の最中の物理の押下が keyboard の `is_replaying` で OS へ素通りする（**idea_53**）
+- phase 63 の設計の要点（v0.5）: 押下だけのキー（241 / 242）を `MakeOnlyKeyFilter`（application・1 本のロック・世代・`on_routes` はロックの外）が「押した / 離した」に組み直す。**リピートなし**（押し続けている間の押下は捨てる）。離し = 16 ms 以下の 2 回組 / 案 A =「押した」から待ち時間 − 100 ms より前の単独の押下 / 古い押下（待ち時間 + 300 ms 超）は次の押下で「離した」→「押した」。**v0.5: 長押しの途中の 2 回組・案 A の「離した」から 16 ms 超〜60 ms 以内の押下は続き（`handle` を呼ばない・「押した」の時刻を置き直す）** = フックの詰まりによる取り違えからの連鎖の防止。リピートを捨てた理由 = 送信の最中の物理の押下が keyboard の `is_replaying` で OS へ素通りする（**idea_53**）
 
 ## 直前のフェーズ（phase 62 = 特殊キーの名前をレイアウトだけが決める）の要点
 - 正本 = `key_input.md` §7.1「フックの実行時のキー名の出どころ」・§7.7「キー名 → 走査コードの解決の順」・§7.8 / `features.md` §4.6「レイアウトの JSON の `scan_code`」/ 地図 = `codebase_map.md`（`keyboard_layouts.py`・`LayoutController`・キーの送信の節）/ 判断 = `decisions_archive/62_special_keys_from_layout_only.md`

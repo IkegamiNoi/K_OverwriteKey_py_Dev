@@ -13,7 +13,7 @@ last_commit_location: `claude/ime-switch-color-adjust-ac5df9`（暫定 46 v0.5�
 ## current
 focus: **phase 63（idea_52）: 暫定 46 v0.5（離した直後の押下は押し続けの続き）で task_03f を実装・検証・レビュー済み。ユーザーの実機目視（§6 #6）待ち。**
 mode: blocked
-presence: present
+presence: away（戻る予定 未定）
 
 ## last_action
 ts: 2026-10-20T08:43:00
