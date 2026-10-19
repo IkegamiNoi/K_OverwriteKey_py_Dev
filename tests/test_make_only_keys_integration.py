@@ -136,6 +136,20 @@ class MakeOnlyKeysIntegrationTests(unittest.TestCase):
         self.assert_send_actions(1)
         self.assertFalse(self.key_state_manager.is_pressed("muhenkan"))
 
+    def test_repeat_misclassified_pair_sends_replacement_once(self) -> None:
+        times = [0.0]
+        times.extend(0.500 + index * 0.033 for index in range(6))
+        times.append(0.500 + 5 * 0.033 + 0.015)
+        times.extend(0.710 + index * 0.030 for index in range(6))
+        times.extend((0.710 + 5 * 0.030 + 0.022, 0.710 + 5 * 0.030 + 0.035))
+
+        for at in times:
+            self.time.advance_and_fire(at)
+            self.send_down(at)
+
+        self.assert_send_actions(1)
+        self.assertFalse(self.key_state_manager.is_pressed("muhenkan"))
+
 
 if __name__ == "__main__":
     unittest.main()

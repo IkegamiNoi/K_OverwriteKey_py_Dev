@@ -11,6 +11,7 @@ from keyseq.domain.make_only_keys import is_make_only_scan_code
 
 
 PAIR_WINDOW_S = 0.016
+CONTINUATION_WINDOW_S = 0.060
 
 
 @dataclass(frozen=True)
@@ -37,6 +38,7 @@ class _KeyState:
     pending_at: float | None = None
     stale: bool = False
     released_at: float | None = None
+    released_continuable: bool = False
     released_accept: bool = True
     name: str | None = None
 
@@ -87,6 +89,8 @@ class MakeOnlyKeyFilter:
             if event_type == "up":
                 state.pending_at = None
                 state.pressed = False
+                state.released_at = None
+                state.released_continuable = False
                 self._release_state(event)
                 route = self._route(event)
                 self._trace(
@@ -103,10 +107,28 @@ class MakeOnlyKeyFilter:
             if state.released_at is not None and now <= state.released_at + PAIR_WINDOW_S:
                 self._trace(now, scan_code, "dropped after release")
                 return self._result(state.released_accept)
+            if (
+                state.released_at is not None
+                and state.released_continuable
+                and now <= state.released_at + CONTINUATION_WINDOW_S
+            ):
+                since_release_ms = (now - state.released_at) * 1000
+                state.pressed = True
+                state.pressed_at = now
+                state.released_at = None
+                state.released_continuable = False
+                self._trace(
+                    now, scan_code,
+                    f"continuation since_release_ms={since_release_ms:.3f}",
+                )
+                self._start_pending(event, scan_code, state, now)
+                return self._result(state.accept, scan_code=scan_code, now=now)
             route = self._route(event)
             self._remember_press(state, route)
             state.pressed_at = now
             state.last_down_at = now
+            state.released_at = None
+            state.released_continuable = False
             self._trace(
                 now, scan_code,
                 f"down accept={route.accept}",
@@ -121,9 +143,16 @@ class MakeOnlyKeyFilter:
                 self._release_state(SyntheticKeyEvent("up", scan_code, getattr(event, "name", None)))
                 state.pressed = False
                 state.released_at = now
+                state.released_continuable = (
+                    now - state.pressed_at >= self._half_pair_release_s()
+                )
                 state.released_accept = state.accept
                 state.stale = False
-                self._trace(now, scan_code, f"released pending_elapsed_ms={pending_ms:.3f}")
+                self._trace(
+                    now, scan_code,
+                    f"released pending_elapsed_ms={pending_ms:.3f} "
+                    f"continuable={state.released_continuable}",
+                )
                 return self._result(state.accept, scan_code=scan_code, now=now)
             routes, released = self._confirm_pending(scan_code, state, now)
             if released:
@@ -162,6 +191,9 @@ class MakeOnlyKeyFilter:
             PAIR_WINDOW_S, lambda: self._expire(scan_code, now, generation),
         )
 
+    def _half_pair_release_s(self) -> float:
+        return self._get_repeat_delay_ms() / 1000 - 0.1
+
     def _confirm_pending(
         self, scan_code: int, state: _KeyState, now: float,
     ) -> tuple[tuple[InputRoute, ...], bool]:
@@ -183,12 +215,13 @@ class MakeOnlyKeyFilter:
         elif (
             state.pending_at is not None
             and state.pending_at - state.pressed_at
-            < self._get_repeat_delay_ms() / 1000 - 0.1
+            < self._half_pair_release_s()
         ):
             pending_at = state.pending_at
             self._release_state(SyntheticKeyEvent("up", scan_code, state.name))
             state.pressed = False
             state.released_at = pending_at
+            state.released_continuable = True
             state.released_accept = state.accept
             kind = "half-pair-release"
             released = True

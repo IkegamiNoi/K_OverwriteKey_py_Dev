@@ -79,8 +79,11 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
         self.send_down(0.0)
         self.send_up(0.005)
         self.send_down(0.100)
-        self.send_down(0.200)
-        self.time.now = 0.2161
+        self.send_down(0.150)
+        self.send_down(0.163)
+        self.send_down(0.300)
+        self.send_down(0.400)
+        self.time.now = 0.4161
         self.time.fire()
         self.send_down(1.0)
         self.send_down(1.500)
@@ -90,6 +93,7 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
         self.assertTrue(any("down accept=False" in line for line in trace))
         self.assertTrue(any("up accept=False actions=1" in line for line in trace))
         self.assertTrue(any("kind=half-pair-release" in line for line in trace))
+        self.assertTrue(any("continuable=False" in line for line in trace))
         self.assertTrue(any("pending confirmed kind=discarded-hold" in line for line in trace))
         self.assertTrue(all("t=" in line and "scan=241" in line and "generation=" in line for line in trace))
 
@@ -230,15 +234,155 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
         self.assertEqual(len(self.time.scheduled), 2)
         self.assertEqual(len(self.timer_routes), 0)
 
-    def test_late_pending_half_release_reprocesses_next_down_as_press(self) -> None:
+    def test_late_pending_half_release_reprocesses_next_down_as_continuation(self) -> None:
         self.send_down(0.0)
         self.send_down(0.100)
         result = self.send_down(0.120)
 
-        self.assertEqual([e.event_type for e in self.routed], ["down", "down"])
-        self.assertEqual(len(result.routes), 1)
+        self.assertEqual([e.event_type for e in self.routed], ["down"])
+        self.assertEqual(result.routes, ())
         self.assertEqual(len(self.released), 1)
         self.assertEqual(len(self.timer_routes), 0)
+
+    def test_continuation_after_late_half_release_does_not_route(self) -> None:
+        self.send_down(0.0)
+        self.send_down(0.100)
+        self.send_down(0.130)
+
+        self.assertEqual([e.event_type for e in self.routed], ["down"])
+        self.assertEqual(len(self.released), 1)
+        self.assertTrue(self.filter._states[241].pressed)
+        self.assertEqual(self.filter._states[241].pressed_at, 0.130)
+
+    def test_repeat_misclassified_pair_does_not_start_output_chain(self) -> None:
+        trace: list[str] = []
+        self.filter = self.make_filter(trace=trace.append)
+        self.send_down(0.0)
+        for index in range(6):
+            at = 0.500 + index * 0.033
+            self.send_down(at)
+            if index < 5:
+                self.time.now = at + 0.0161
+                self.time.fire()
+        self.send_down(0.500 + 5 * 0.033 + 0.015)
+        for index in range(6):
+            at = 0.710 + index * 0.030
+            self.send_down(at)
+            if index < 5:
+                self.time.now = at + 0.0161
+                self.time.fire()
+        self.send_down(0.710 + 5 * 0.030 + 0.022)
+        self.send_down(0.710 + 5 * 0.030 + 0.035)
+
+        self.assertEqual([event.event_type for event in self.routed], ["down"])
+        self.assertEqual(self.filter._states[241].pressed, False)
+        self.assertTrue(any("continuation since_release_ms=" in line for line in trace))
+
+    def test_long_release_continuation_boundaries(self) -> None:
+        trace: list[str] = []
+        self.filter = self.make_filter(trace=trace.append)
+        self.send_down(0.0)
+        self.send_down(0.500)
+        self.send_down(0.516)
+        continuation = self.send_down(0.516 + 0.060)
+        self.assertEqual(len(self.routed), 1)
+        self.assertFalse(continuation.accept)
+        self.assertTrue(any("continuable=True" in line for line in trace))
+
+        self.filter.clear()
+        self.routed.clear()
+        self.send_down(1.0)
+        self.send_down(1.500)
+        self.send_down(1.516)
+        self.send_down(1.516 + 0.061)
+        self.assertEqual(len(self.routed), 2)
+
+        self.filter.clear()
+        self.routed.clear()
+        self.send_down(2.0)
+        self.send_down(2.500)
+        self.send_down(2.516)
+        dropped = self.send_down(2.516 + 0.016)
+        self.assertEqual(len(self.routed), 1)
+        self.assertEqual(dropped.routes, ())
+
+    def test_two_pair_spans_half_pair_release_threshold(self) -> None:
+        self.send_down(0.0)
+        self.send_down(0.390)
+        self.send_down(0.420)
+        self.send_down(0.509)
+
+        self.assertEqual(len(self.routed), 2)
+        self.assertEqual(len(self.released), 2)
+
+    def test_short_release_pairs_do_not_make_continuations(self) -> None:
+        for press, release, second in (
+            (0.0, 0.050, 0.063),
+            (0.100, 0.150, 0.163),
+            (0.200, 0.250, 0.263),
+        ):
+            self.send_down(press)
+            self.send_down(release)
+            self.send_down(second)
+
+        self.assertEqual(len(self.routed), 3)
+        self.assertEqual(len(self.released), 3)
+
+    def test_long_hold_continuation_rebases_press_time_for_later_taps(self) -> None:
+        self.send_down(0.0, name="0.000")
+        repeat_times = [0.500 + index * 0.033 for index in range(16)]
+        for at in repeat_times:
+            self.send_down(at, name=f"{at:.3f}")
+            if at != repeat_times[-1]:
+                self.time.now = at + 0.0161
+                self.time.fire()
+        for at in (1.050, 1.063, 1.100, 1.150, 1.163, 1.200,
+                   1.250, 1.263, 1.300, 1.350, 1.363):
+            self.send_down(at, name=f"{at:.3f}")
+
+        self.assertEqual(
+            [event.name for event in self.routed], ["0.000", "1.200", "1.300"]
+        )
+        self.assertEqual(self.filter._states[241].pressed, False)
+
+    def test_continuation_preserves_saved_decision_and_pause_passes_through(self) -> None:
+        first = self.send_down(0.0)
+        self.send_down(0.500)
+        self.send_down(0.516)
+        continued = self.send_down(0.550)
+        self.assertFalse(first.accept)
+        self.assertFalse(continued.accept)
+        self.assertEqual(len(self.routed), 1)
+
+        self.filter.clear()
+        self.routed.clear()
+        self.send_down(1.0)
+        self.send_down(1.500)
+        self.send_down(1.516)
+        self.pause_count = 1
+        paused = self.send_down(1.550)
+        self.assertTrue(paused.accept)
+        self.assertEqual(len(self.routed), 1)
+
+    def test_real_up_clears_continuation_window(self) -> None:
+        self.send_down(0.0)
+        self.send_down(0.500)
+        self.send_down(0.516)
+        self.send_up(0.520)
+        self.send_down(0.550)
+
+        self.assertEqual(len(self.routed), 3)
+
+    def test_push_80ms_after_continuation_pair_is_a_new_press(self) -> None:
+        self.send_down(0.0)
+        self.send_down(0.500)
+        self.send_down(0.516)
+        self.send_down(0.550)
+        self.send_down(0.600)
+        self.send_down(0.613)
+        self.send_down(0.693)
+
+        self.assertEqual(len(self.routed), 2)
 
     def test_held_single_release_is_discarded_then_stale_represses(self) -> None:
         self.send_down(0.000)

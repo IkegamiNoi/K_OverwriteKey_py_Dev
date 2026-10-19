@@ -4,36 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-20T01:40:00
-phase: `instructions/phase/63_make_only_keys`（phase 63・暫定 46 v0.4 ユーザー確定済 2026-10-20・decisions 63）。次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25 / idea 54
+last_updated: 2026-10-20T08:43:00
+phase: `instructions/phase/63_make_only_keys`（phase 63・暫定 46 v0.5 ユーザー確定済 2026-10-20・decisions 63）。次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25 / idea 54
 直前の完了フェーズ = **phase 62**（`decisions_archive/62_special_keys_from_layout_only.md`）
-last_commit_location: `claude/phase62-trace-file-empty-ddc0c0`（phase 63 の task_01〜03e・暫定 46 v0.4）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
+last_commit_location: `claude/ime-switch-color-adjust-ac5df9`（暫定 46 v0.5・task_03f）。task_01〜03e = `claude/phase62-trace-file-empty-ddc0c0`（Operation_check へ早送り済み = ff61938）。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 63（idea_52）: 暫定 46 v0.4（リピートなし + 直接置換の枠を灰色がかった緑）で task_03d・03e を実装・検証・レビュー済み。ユーザーの実機目視（§6 #6）待ち。**
+focus: **phase 63（idea_52）: 暫定 46 v0.5（離した直後の押下は押し続けの続き）で task_03f を実装・検証・レビュー済み。ユーザーの実機目視（§6 #6）待ち。**
 mode: blocked
-presence: away（戻る予定 2026-10-20T07:30）
+presence: present
 
 ## last_action
-ts: 2026-10-20T01:35:00
+ts: 2026-10-20T08:43:00
 who: main
 summary: |
-  task_03d（2347367・application 限定）: 押し続けている間の押下は捨てる・「押した」から待ち時間 − 100 ms より前の単独の押下は片方の「離した」・覚えるのは戻り値だけ。Codex のテストの期待値の誤り 2 か所をメインが修正。reviewer 完了可。
-  task_03e（ebf2e6e・presentation 限定）: キーボードUI の押下だけのキーの直接置換の枠を灰色がかった緑（#e4ebe1 / #7f9a74 / #2f4429）・UI テスト 5 件。reviewer 採用。
-  その前: 暫定 46 v0.4 ユーザー確定・idea_53 起票（c1a954d）。
+  実機目視（v0.4）: 123 で届いたのはリモート実行のため（普通のキー）と切り分け。241/242 の計測で、長押しの途中のフックの詰まり（約 30 ms）による「離した」の取り違え → 案 A と連鎖してリピートのように出続ける、を特定。IME の切り替えは未特定（ユーザーが操作を後で伝える）。
+  暫定 46 v0.5 確定（ce89b3a）: 「長押しの途中の 2 回組」「案 A の片方」の「離した」から 16 ms 超〜60 ms 以内の押下は続き・続きで「押した」の時刻を置き直す。Codex 敵対的 2 回（high 2・medium 1）反映。decisions 記録・task_03f 起票。
+  task_03f（application 限定・codex-implementer）: `CONTINUATION_WINDOW_S`・`released_continuable`・続きの分岐・実の up で消去・テスト 10 件 + 結合 1 件。既存 1 件の期待値が「押した」→「続き」（注 5 どおり・テスト名を直した）。reviewer 完了可。
 result_files:
   - keyseq/application/make_only_keys.py
   - tests/test_make_only_keys.py
   - tests/test_make_only_keys_integration.py
-  - keyseq/presentation/keyboard_window.py
-  - tests_ui/test_make_only_key_color_ui.py
 verified:
-  compile clean / tests 1749 pass / tests_ui 1122 pass / smoke OK
+  compile clean / tests 1759 pass / tests_ui 1122 pass / smoke OK
 
 ## next_action
-- **【ユーザー確認待ち・最優先】(1) Operation_check を本ブランチへ早送りしてよいか（推奨: はい・`git merge --ff-only claude/phase62-trace-file-empty-ddc0c0`・早送り可能を確認済み・未追跡は make_only_trace.txt だけ）/ (2) 実機目視（暫定 46 §6 #6）**: 早送り→ Operation_check の `.venv\Scripts\python.exe main.py` で起動 → jis.json・無変換 → BackSpace・フック開始 → メモ帳で 1 回押す（1 文字）/ 1 秒以上長押し（1 文字だけ・離した後に余計に消えない）/ IME が切り替わらない / キーボードUI の無変換・変換の枠が灰色がかった緑で緑・灰色と見分けられる。計測が要らなければ `phase62.json` の `debug_jis_special_key_events` を false に
-- 目視 NG → 内容に応じて task 起票 or 仕様フラグ / OK → task_04（正本反映〔§8・色の値を codebase_map へ〕・暫定 46 の凍結・decisions_archive/63・decisions.md の phase 63 節を索引へ・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
+- **【ユーザー・実機目視（暫定 46 §6 #6）】** Operation_check を本ブランチ（`claude/ime-switch-color-adjust-ac5df9`）へ早送り → `.venv\Scripts\python.exe main.py`（`phase62.json` の `debug_jis_special_key_events` は true のまま）→ jis.json・無変換 / 変換 → BackSpace・**241 / 242 で届く環境（リモートでない）**で: 1 回押す / 2 秒以上の長押しを 3 回以上（途中で消え続けない・`released` の後に `down accept` が続かない）/ 約 0.1 秒の連打（回数どおり）/ IME が切り替わらない
+- 目視の後: 色の最終判断（灰色がかった緑のまま / 緑に戻す＝暫定 46 の改訂）→ IME の切り替えの操作をユーザーから聞いて §9 #7 を判断 → task_04（正本反映〔§8〕・暫定 46 の凍結・decisions_archive/63・decisions.md の phase 63 節を索引へ・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
 - 別件: external_keyboard_layouts のパスが入れ子に増える件は idea_13 に追記済み（別セッション・ブランチ `claude/lucid-wiles-a6c8d3`・未マージ）
 - main へのマージはユーザー
 
