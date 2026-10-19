@@ -9,6 +9,7 @@ from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.domain.config import normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
+from keyseq.domain.make_only_keys import is_make_only_scan_code
 from keyseq.domain.numpad_keys import is_numpad_key_name
 from keyseq.infrastructure import win32_window
 from keyseq.presentation.keyboard_layouts import (
@@ -385,6 +386,11 @@ class KeyboardWindow(tk.Toplevel):
             kind = self._kind_map.get(lookup_key, "normal")
             if kind in ("normal", "keymap") and is_prohibited_assign_key(lookup_key):
                 kind = "prohibited"
+            if kind == "keymap" and (
+                is_make_only_scan_code(spec.scan_code)
+                or any(is_make_only_scan_code(code) for code in spec.extra_scan_codes)
+            ):
+                kind = "keymap_make_only"
             self._key_bounds.append((lookup_key, x1, y1, x2, y2))
 
             fill, outline, text_fill = self.set_key_color(kind)
@@ -436,6 +442,8 @@ class KeyboardWindow(tk.Toplevel):
             return "#dcecff", "#4c7ed9", "#163a78"
         if kind == "keymap":
             return "#e8f6df", "#5c9c3b", "#214d18"
+        if kind == "keymap_make_only":
+            return "#e4ebe1", "#7f9a74", "#2f4429"
         if kind == "prohibited":
             return "#e5e7eb", "#9ca3af", "#6b7280"
         return "#ffffff", "#aab4c3", "#24313f"
