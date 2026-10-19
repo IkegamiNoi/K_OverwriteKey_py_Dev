@@ -123,7 +123,7 @@ class MakeOnlyKeysIntegrationTests(unittest.TestCase):
         self.assert_send_actions(1)
         self.assertFalse(self.key_state_manager.is_pressed("muhenkan"))
 
-    def test_hold_repeats_replacement_then_release_clears_pressed_state(self) -> None:
+    def test_hold_replaces_once_then_release_clears_pressed_state(self) -> None:
         self.send_down(0.0)
         self.send_down(0.500)
         self.time.advance_and_fire(0.5161)
@@ -133,7 +133,7 @@ class MakeOnlyKeysIntegrationTests(unittest.TestCase):
         self.send_down(0.601)
         self.time.advance_and_fire(0.650)
 
-        self.assert_send_actions(3)
+        self.assert_send_actions(1)
         self.assertFalse(self.key_state_manager.is_pressed("muhenkan"))
 
 

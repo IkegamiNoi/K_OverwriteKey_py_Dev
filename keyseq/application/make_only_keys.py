@@ -32,7 +32,7 @@ class MakeOnlyResult:
 class _KeyState:
     pressed: bool = False
     accept: bool = True
-    has_actions: bool = False
+    pressed_at: float = 0.0
     last_down_at: float = 0.0
     pending_at: float | None = None
     stale: bool = False
@@ -105,10 +105,11 @@ class MakeOnlyKeyFilter:
                 return self._result(state.released_accept)
             route = self._route(event)
             self._remember_press(state, route)
+            state.pressed_at = now
             state.last_down_at = now
             self._trace(
                 now, scan_code,
-                f"down accept={route.accept} has_actions={bool(route.actions)}",
+                f"down accept={route.accept}",
             )
             return MakeOnlyResult(route.accept, (route,), self._generation)
 
@@ -121,9 +122,12 @@ class MakeOnlyKeyFilter:
                 state.pressed = False
                 state.released_at = now
                 state.released_accept = state.accept
+                state.stale = False
                 self._trace(now, scan_code, f"released pending_elapsed_ms={pending_ms:.3f}")
                 return self._result(state.accept, scan_code=scan_code, now=now)
-            routes = self._confirm_pending(scan_code, state, now)
+            routes, released = self._confirm_pending(scan_code, state, now)
+            if released:
+                return self._handle_down(event, scan_code, state, now)
         self._start_pending(event, scan_code, state, now)
         return self._result(state.accept, routes, scan_code=scan_code, now=now)
 
@@ -143,7 +147,6 @@ class MakeOnlyKeyFilter:
     def _remember_press(state: _KeyState, route: InputRoute) -> None:
         state.pressed = True
         state.accept = route.accept
-        state.has_actions = bool(route.actions)
 
     def _start_pending(
         self, event: object, scan_code: int, state: _KeyState, now: float,
@@ -161,30 +164,44 @@ class MakeOnlyKeyFilter:
 
     def _confirm_pending(
         self, scan_code: int, state: _KeyState, now: float,
-    ) -> tuple[InputRoute, ...]:
+    ) -> tuple[tuple[InputRoute, ...], bool]:
         routes: tuple[InputRoute, ...] = ()
+        kind = "discarded-hold"
         route_info = "accept=- actions=0"
+        released = False
         if state.stale:
             self._release_state(SyntheticKeyEvent("up", scan_code, state.name))
             route = self._route(SyntheticKeyEvent("down", scan_code, state.name))
             self._remember_press(state, route)
+            state.pressed_at = (
+                state.pending_at if state.pending_at is not None else now
+            )
+            state.last_down_at = state.pressed_at
             routes = (route,)
             kind = "stale-press-repress"
             route_info = f"accept={route.accept} actions={len(route.actions)}"
-        elif state.has_actions:
-            route = self._route(SyntheticKeyEvent("down", scan_code, state.name))
-            routes = (route,)
-            kind = "repeat"
-            route_info = f"accept={route.accept} actions={len(route.actions)}"
+        elif (
+            state.pending_at is not None
+            and state.pending_at - state.pressed_at
+            < self._get_repeat_delay_ms() / 1000 - 0.1
+        ):
+            pending_at = state.pending_at
+            self._release_state(SyntheticKeyEvent("up", scan_code, state.name))
+            state.pressed = False
+            state.released_at = pending_at
+            state.released_accept = state.accept
+            kind = "half-pair-release"
+            released = True
         else:
-            kind = "nothing"
+            kind = "discarded-hold"
         elapsed_ms = (now - state.pending_at) * 1000 if state.pending_at is not None else 0.0
         state.pending_at = None
+        state.stale = False
         self._trace(
             now, scan_code,
             f"pending confirmed kind={kind} elapsed_ms={elapsed_ms:.3f} {route_info}",
         )
-        return routes
+        return routes, released
 
     def _expire(self, scan_code: int, pending_at: float, generation: int) -> None:
         with self._lock:
@@ -209,7 +226,7 @@ class MakeOnlyKeyFilter:
                 return
             elapsed_ms = (now - pending_at) * 1000
             self._trace(now, scan_code, f"expire confirmed late elapsed_ms={elapsed_ms:.3f}")
-            routes = self._confirm_pending(scan_code, state, now)
+            routes, _released = self._confirm_pending(scan_code, state, now)
         if routes:
             self._on_routes(routes, generation)
 

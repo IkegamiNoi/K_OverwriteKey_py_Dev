@@ -72,20 +72,25 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
             trace=trace,
         )
 
-    def test_trace_reports_press_release_and_repeat_transitions(self) -> None:
+    def test_trace_reports_press_release_and_pending_discard(self) -> None:
         trace: list[str] = []
         self.filter = self.make_filter(trace=trace.append)
 
         self.send_down(0.0)
         self.send_up(0.005)
+        self.send_down(0.100)
+        self.send_down(0.200)
+        self.time.now = 0.2161
+        self.time.fire()
         self.send_down(1.0)
-        self.send_down(1.020)
-        self.time.now = 1.0361
+        self.send_down(1.500)
+        self.time.now = 1.5161
         self.time.fire()
 
-        self.assertTrue(any("down accept=False has_actions=True" in line for line in trace))
+        self.assertTrue(any("down accept=False" in line for line in trace))
         self.assertTrue(any("up accept=False actions=1" in line for line in trace))
-        self.assertTrue(any("pending confirmed kind=repeat" in line for line in trace))
+        self.assertTrue(any("kind=half-pair-release" in line for line in trace))
+        self.assertTrue(any("pending confirmed kind=discarded-hold" in line for line in trace))
         self.assertTrue(all("t=" in line and "scan=241" in line and "generation=" in line for line in trace))
 
     def test_trace_is_optional(self) -> None:
@@ -119,7 +124,7 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
         self.assertEqual(len(self.timer_routes), 0)
         self.assertEqual(self.released[0], SyntheticKeyEvent("up", 241, "muhenkan"))
 
-    def test_hold_repeats_three_times_then_releases(self) -> None:
+    def test_hold_does_not_repeat_then_releases(self) -> None:
         self.send_down(0.0)
         for repeat_time in (0.500, 0.533, 0.566):
             self.send_down(repeat_time)
@@ -128,9 +133,44 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
         self.send_down(0.588)  # +22 ms after the last physical repeat
         self.send_down(0.601)  # +13 ms: the release pair
 
-        self.assertEqual([e.event_type for e in self.routed], ["down"] * 4)
-        self.assertEqual(len(self.timer_routes), 3)
+        self.assertEqual([e.event_type for e in self.routed], ["down"])
+        self.assertEqual(len(self.timer_routes), 0)
         self.assertEqual(len(self.released), 1)
+
+    def test_single_missed_release_allows_next_press_and_pair(self) -> None:
+        self.send_down(0.000)
+        self.send_down(0.045)
+        self.send_down(0.120)
+        self.send_down(0.165)
+        self.send_down(0.176)
+
+        self.assertEqual([e.event_type for e in self.routed], ["down", "down"])
+        self.assertEqual(len(self.released), 2)
+        self.assertEqual(len(self.timer_routes), 0)
+
+    def test_half_release_threshold_uses_repeat_delay(self) -> None:
+        self.repeat_delay_ms = 500
+        self.send_down(0.000, scan_code=241)
+        self.send_down(0.399, scan_code=241)
+        self.time.now = 0.4151
+        self.time.fire(index=0)
+        self.send_down(0.500, scan_code=242)
+        self.send_down(0.901, scan_code=242)
+        self.time.now = 0.9171
+        self.time.fire(index=1)
+
+        self.assertEqual([e.scan_code for e in self.released], [241])
+        self.filter.clear()
+        self.repeat_delay_ms = 250
+        self.send_down(1.000, scan_code=241)
+        self.send_down(1.149, scan_code=241)
+        self.time.now = 1.1651
+        self.time.fire(index=2)
+        self.send_down(1.300, scan_code=241)
+        self.send_down(1.451, scan_code=241)
+        self.time.now = 1.4671
+        self.time.fire(index=3)
+        self.assertEqual([e.scan_code for e in self.released], [241, 241])
 
     def test_three_quick_taps_each_produce_one_press_and_release(self) -> None:
         for first, second, third in (
@@ -166,7 +206,7 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
         self.assertEqual(len(self.timer_routes), 1)
         self.assertEqual(len(self.timer_routes[0][0]), 1)
 
-    def test_pair_within_window_after_last_repeat_is_release_and_second_is_dropped(self) -> None:
+    def test_pair_after_discarded_hold_releases_and_second_is_dropped(self) -> None:
         self.send_down(0.0)
         self.send_down(0.500)
         self.time.now = 0.5161
@@ -175,20 +215,44 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
         self.send_down(0.544)
         dropped = self.send_down(0.550)
 
-        self.assertEqual(len(self.routed), 2)  # initial press plus one repeat
+        self.assertEqual(len(self.routed), 1)
         self.assertEqual(len(self.released), 1)
         self.assertEqual(dropped.routes, ())
-        self.assertEqual(len(self.timer_routes), 1)
+        self.assertEqual(len(self.timer_routes), 0)
 
-    def test_late_timer_is_confirmed_by_the_next_press_then_new_pending_is_created(self) -> None:
+    def test_late_old_hold_is_discarded_then_new_pending_is_created(self) -> None:
         self.send_down(0.0)
-        self.send_down(0.020)
-        result = self.send_down(0.041)
+        self.send_down(0.500)
+        result = self.send_down(0.521)
 
-        self.assertEqual(len(self.routed), 2)
-        self.assertEqual(len(result.routes), 1)
+        self.assertEqual(len(self.routed), 1)
+        self.assertEqual(result.routes, ())
         self.assertEqual(len(self.time.scheduled), 2)
         self.assertEqual(len(self.timer_routes), 0)
+
+    def test_late_pending_half_release_reprocesses_next_down_as_press(self) -> None:
+        self.send_down(0.0)
+        self.send_down(0.100)
+        result = self.send_down(0.120)
+
+        self.assertEqual([e.event_type for e in self.routed], ["down", "down"])
+        self.assertEqual(len(result.routes), 1)
+        self.assertEqual(len(self.released), 1)
+        self.assertEqual(len(self.timer_routes), 0)
+
+    def test_held_single_release_is_discarded_then_stale_represses(self) -> None:
+        self.send_down(0.000)
+        for at in (0.500, 0.533, 0.566, 0.599, 0.621, 0.654):
+            self.send_down(at)
+        self.time.now = 0.6701
+        self.time.fire()
+        self.send_down(1.554)
+        self.time.now = 1.5701
+        self.time.fire()
+
+        self.assertEqual([e.event_type for e in self.routed], ["down", "down"])
+        self.assertEqual(len(self.released), 1)
+        self.assertEqual(len(self.timer_routes), 1)
 
     def test_early_timer_reschedules_without_confirming(self) -> None:
         self.send_down(0.0)
@@ -202,8 +266,9 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
 
         self.time.now = 0.0361
         self.time.fire()
-        self.assertEqual(len(self.routed), 2)
-        self.assertEqual(len(self.timer_routes), 1)
+        self.assertEqual(len(self.routed), 1)
+        self.assertEqual(len(self.released), 1)
+        self.assertEqual(len(self.timer_routes), 0)
 
     def test_exact_window_input_first_then_timer_releases(self) -> None:
         # If input wins at the boundary, it consumes the pending pair before
@@ -250,24 +315,24 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
     def test_passthrough_without_actions_does_not_route_repeats(self) -> None:
         self.next_route = InputRoute(actions=(), accept=True)
         self.send_down(0.0)
-        repeated = self.send_down(0.020)
-        self.time.now = 0.0361
+        repeated = self.send_down(0.500)
+        self.time.now = 0.5161
         self.time.fire()
 
         self.assertTrue(repeated.accept)
         self.assertEqual(len(self.routed), 1)
         self.assertEqual(len(self.timer_routes), 0)
 
-    def test_passthrough_with_actions_routes_repeats(self) -> None:
+    def test_passthrough_with_actions_does_not_route_repeats(self) -> None:
         self.next_route = InputRoute(actions=(object(),), accept=True)
         self.send_down(0.0)
-        self.send_down(0.020)
-        self.time.now = 0.0361
+        repeated = self.send_down(0.500)
+        self.time.now = 0.5161
         self.time.fire()
 
-        self.assertEqual(len(self.routed), 2)
-        self.assertEqual(len(self.timer_routes), 1)
-        self.assertTrue(self.timer_routes[0][0][0].accept)
+        self.assertTrue(repeated.accept)
+        self.assertEqual(len(self.routed), 1)
+        self.assertEqual(len(self.timer_routes), 0)
 
     def test_real_up_cancels_pending_and_updates_release_state_and_route(self) -> None:
         self.send_down(0.0)
@@ -333,7 +398,7 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
 
         self.assertEqual(self.released, [SyntheticKeyEvent("up", 241, None)])
 
-    def test_stale_repress_remembers_new_accept_and_actions_state(self) -> None:
+    def test_stale_repress_remembers_new_accept_only(self) -> None:
         self.next_route = InputRoute(actions=(object(),), accept=False)
         self.send_down(0.0)
         self.send_down(1.000)  # old press: mark pending as stale
@@ -350,7 +415,7 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
 
         self.assertTrue(followup.accept)
         self.assertEqual(len(self.routed), 2)
-        self.assertEqual(len(self.released), 1)
+        self.assertEqual(len(self.released), 2)
         self.assertEqual(len(self.timer_routes), 1)  # only the stale re-press
 
     def test_on_routes_runs_outside_lock_and_can_reenter_filter(self) -> None:
@@ -364,8 +429,8 @@ class MakeOnlyKeyFilterTests(unittest.TestCase):
 
         self.filter = self.make_filter(on_routes=reenter)
         self.send_down(0.0)
-        self.send_down(0.020)
-        self.time.now = 0.0361
+        self.send_down(1.000)
+        self.time.now = 1.0161
         timer_thread = threading.Thread(target=self.time.fire, daemon=True)
         timer_thread.start()
         timer_thread.join(timeout=1.0)
