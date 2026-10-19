@@ -4,7 +4,7 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-20T04:00:00
+last_updated: 2026-10-20T01:40:00
 phase: `instructions/phase/63_make_only_keys`（phase 63・暫定 46 v0.4 ユーザー確定済 2026-10-20・decisions 63）。次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25 / idea 54
 直前の完了フェーズ = **phase 62**（`decisions_archive/62_special_keys_from_layout_only.md`）
 last_commit_location: `claude/phase62-trace-file-empty-ddc0c0`（phase 63 の task_01〜03e・暫定 46 v0.4）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー
@@ -13,10 +13,10 @@ last_commit_location: `claude/phase62-trace-file-empty-ddc0c0`（phase 63 の ta
 ## current
 focus: **phase 63（idea_52）: 暫定 46 v0.4（リピートなし + 直接置換の枠を灰色がかった緑）で task_03d・03e を実装・検証・レビュー済み。ユーザーの実機目視（§6 #6）待ち。**
 mode: blocked
-presence: present
+presence: away（戻る予定 2026-10-20T07:30）
 
 ## last_action
-ts: 2026-10-20T04:00:00
+ts: 2026-10-20T01:35:00
 who: main
 summary: |
   task_03d（2347367・application 限定）: 押し続けている間の押下は捨てる・「押した」から待ち時間 − 100 ms より前の単独の押下は片方の「離した」・覚えるのは戻り値だけ。Codex のテストの期待値の誤り 2 か所をメインが修正。reviewer 完了可。
@@ -32,7 +32,7 @@ verified:
   compile clean / tests 1749 pass / tests_ui 1122 pass / smoke OK
 
 ## next_action
-- **【ユーザー確認待ち】実機目視（暫定 46 §6 #6）**: Operation_check を本ブランチへ早送り（`git merge --ff-only claude/phase62-trace-file-empty-ddc0c0`）→ Operation_check の `.venv\Scripts\python.exe main.py` で起動 → jis.json・無変換 → BackSpace・フック開始 → メモ帳で 1 回押す（1 文字）/ 1 秒以上長押し（1 文字だけ・離した後に余計に消えない）/ IME が切り替わらない / キーボードUI の無変換・変換の枠が灰色がかった緑で緑・灰色と見分けられる。計測が要らなければ `phase62.json` の `debug_jis_special_key_events` を false に
+- **【ユーザー確認待ち・最優先】(1) Operation_check を本ブランチへ早送りしてよいか（推奨: はい・`git merge --ff-only claude/phase62-trace-file-empty-ddc0c0`・早送り可能を確認済み・未追跡は make_only_trace.txt だけ）/ (2) 実機目視（暫定 46 §6 #6）**: 早送り→ Operation_check の `.venv\Scripts\python.exe main.py` で起動 → jis.json・無変換 → BackSpace・フック開始 → メモ帳で 1 回押す（1 文字）/ 1 秒以上長押し（1 文字だけ・離した後に余計に消えない）/ IME が切り替わらない / キーボードUI の無変換・変換の枠が灰色がかった緑で緑・灰色と見分けられる。計測が要らなければ `phase62.json` の `debug_jis_special_key_events` を false に
 - 目視 NG → 内容に応じて task 起票 or 仕様フラグ / OK → task_04（正本反映〔§8・色の値を codebase_map へ〕・暫定 46 の凍結・decisions_archive/63・decisions.md の phase 63 節を索引へ・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
 - 別件: external_keyboard_layouts のパスが入れ子に増える件は idea_13 に追記済み（別セッション・ブランチ `claude/lucid-wiles-a6c8d3`・未マージ）
 - main へのマージはユーザー
