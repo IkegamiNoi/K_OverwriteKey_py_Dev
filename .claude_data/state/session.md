@@ -4,41 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-20T12:30:00
-phase: instructions/phase/64_external_layout_path_base（進行中・直接改訂モード・暫定なし / decisions 64）。次採番 = phase 65 / 暫定 47 / decisions 65 / 提案書 25 / idea 55
-直前の完了フェーズ = **phase 63**（`decisions_archive/63_make_only_keys.md`）
-last_commit_location: `claude/external-key-layout-persistence-a9eaa2`（phase 64 task_01）。main へのマージはユーザー
+last_updated: 2026-10-21T12:00:00
+phase: なし（phase 64 は 2026-10-21 完了）。次採番 = phase 65 / 暫定 47 / decisions 65 / 提案書 25 / idea 55
+直前の完了フェーズ = **phase 64**（`decisions_archive/64_external_layout_path_base.md`）
+last_commit_location: `claude/external-key-layout-persistence-a9eaa2`（phase 64 task_01a・task_02・完了）。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 64 進行中（外部キーレイアウトのパス基準の統一・idea_13）。task_01 実装・検証・reviewer 採用済み → ユーザーの実機目視待ち。**
-mode: pending_review
+focus: **phase 64 完了（2026-10-21・外部キーレイアウトのパス基準の統一・idea_13）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+mode: idle
 presence: present
 
 ## last_action
-ts: 2026-10-20T12:30:00
+ts: 2026-10-21T12:00:00
 who: main
 summary: |
-  phase 64 起票（ユーザー判断: 移行・重複除去はしない〔JSON は手で直す〕/ 孤児検出の superset は残す）。起票の整合チェック reviewer 軽微 3 件を反映。
-  task_01（codex-implementer）: split_loading.normalize_external_keyboard_layouts を config ルート基準の相対へ（冪等）・layout_controller の登録 / 表示の基準を paths.config_root へ・ConfigPaths.to_rel_if_possible 削除・テスト更新と新規 tests/test_layout_controller_registration.py。application + presentation に跨る（スキーマ不変）。
-  reviewer: 完了可（指摘なし）。ユーザーから phase 内タスクの連続実行の許可あり（2026-10-20）。
+  task_01 実機目視 OK（ユーザー）。task_02: 正本 5_08_09_orphan_sweep.md（superset の理由・旧表記は移行しない）・codebase_map・decisions_archive/64・索引・current.md 完了・idea_13 を INDEX_done へ。/refactor_check 不要。
+  完了判定前レビュー: Codex 敵対的 中 1（解決 2 回で相対 config_root のとき config/ が増える）→ task_01a で修正（codex-implementer・reviewer 完了可）/ deep-reviewer 完了可・中 1（単一 JSON の取り込みは正規化しない）= ユーザー判断で受容・低 2 を文書へ。
 result_files:
   - keyseq/application/config_service/split_loading.py
-  - keyseq/presentation/controllers/layout_controller.py
-  - keyseq/presentation/config_paths.py
   - tests/test_config_service.py
-  - tests/test_layout_controller_scan_code.py
   - tests/test_layout_controller_registration.py
-  - instructions/phase/64_external_layout_path_base/
+  - instructions/common/spec_detail/data_schema/5_08_09_orphan_sweep.md
+  - instructions/common/codebase_map.md
+  - .claude_data/state/decisions_archive/64_external_layout_path_base.md
 verified:
   compile: clean
-  tests: pass 1761（skipped 7）
+  tests: pass 1763（skipped 7）
   tests_ui: pass 1122
   smoke: pass
 
 ## next_action
-- ユーザーの実機目視（task_01 完了条件）: 既存 JSON の外部レイアウト要素を手で直すか削除 → 外部レイアウトを登録 → 再起動して一覧に残る → 再度再起動しても構成セットの JSON が `user/keylayout/jis.json` のまま
-- 目視 OK 後 task_02 を `/task_new` で起票し実施（正本 `data_schema/5_08_09_orphan_sweep.md:38-42` の理由の記述・codebase_map・decisions_archive/64・decisions.md 索引・current.md 完了・idea_13 を INDEX_done へ・/refactor_check・完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
+- 次フェーズはユーザー判断（残件: idea_53 送信の最中の素通り / idea_54 IME の切り替え / idea_50・51・48・45 ほか）
+- main へのマージはユーザー（本ブランチ `claude/external-key-layout-persistence-a9eaa2`）
+- 利用者側: 既存の構成セット JSON の `external_keyboard_layouts` の旧表記（`config\user\…`・`config/config/…`・`keylayout\…`）は手で `user/keylayout/<file>.json` へ直す
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
