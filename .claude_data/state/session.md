@@ -11,25 +11,31 @@ last_commit_location: `claude/external-key-layout-persistence-a9eaa2`。main へ
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 65 進行中（受け取りと送信が同じレイアウトの写しを使う・idea_51）。task_01 済（reviewer 完了可）→ task_02 実装中。**
-mode: implementing
+focus: **phase 65 進行中（受け取りと送信が同じレイアウトの写しを使う・idea_51）。task_01 済（コミット e6166db）→ task_02 は Codex の利用上限で未着手（判断待ち）。**
+mode: blocked
 presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-10-21T15:30:00
+ts: 2026-10-21T02:15:00
 who: main
 summary: |
-  暫定 48 起票 → deep-reviewer 修正して採用 12 件 → v0.2 → Codex 敵対的 2 件（選び直しで読み直す = 採用 / 1 打鍵の中の 2 回の解決 = 受容）→ v0.3 ユーザー確定。phase 65 起票・整合チェック reviewer 軽微 2 件を反映。
-  ユーザーから phase 内タスクの連続実行の許可あり（2026-10-20）。
+  task_01（レイアウトの写し）: codex-implementer・tests 1769 / tests_ui 1122 / smoke OK・reviewer 完了可 → コミット e6166db。
+  task_02 の定義を起票（instructions/phase/65_layout_snapshot_for_hook/tasks/task_02_held_send_record.md）→ codex-implementer へ委任したが **Codex の利用上限**（「try again at 6:37 AM」）で失敗・ファイル変更なし。implementer（Claude）への切り替えはユーザー許可が要るため不在中は止めた。
 result_files:
-  - instructions/history/48_layout_snapshot_for_hook.md
-  - instructions/phase/65_layout_snapshot_for_hook/phase.md
+  - keyseq/presentation/controllers/layout_controller.py
+  - tests/test_layout_controller_scan_code.py
+  - instructions/phase/65_layout_snapshot_for_hook/tasks/task_02_held_send_record.md
 verified:
-  文書のみ
+  compile: clean
+  tests: pass 1769（skipped 7）
+  tests_ui: pass 1122
+  smoke: pass
 
 ## next_action
-- task_02（instructions/phase/65_layout_snapshot_for_hook/tasks/task_02_held_send_record.md・起票済み）を codex-implementer → verifier + reviewer
-- 続けて task_02（送り方の記録）→ task_03（実機目視・正本反映・完了処理）
+- **【判断待ち】task_02 の実装をどうするか**（Codex の利用上限・2026-10-21 02:10 時点で「6:37 AM に再試行可」）:
+  - 案 A（推奨）: 6:37 以降に codex-implementer で再実行（既定の運用どおり・タスク定義は起票済み）
+  - 案 B: implementer（Claude）へのフォールバックを許可して今すぐ実装（`.claude/rules/agent_selection.md`「フォールバック」）
+- task_02 の後: verifier + reviewer → コミット → task_03（実機目視〔暫定 48 §7-7 ①②〕→ 正本反映 → 暫定 48 凍結 → decisions_archive/65 → current.md 完了 → idea_51 を INDEX_done へ → /refactor_check → 完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
