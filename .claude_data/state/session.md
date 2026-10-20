@@ -11,9 +11,9 @@ last_commit_location: `claude/external-key-layout-persistence-a9eaa2`。main へ
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 65 進行中（受け取りと送信が同じレイアウトの写しを使う・idea_51）。起票済み → task_01 着手。**
+focus: **phase 65 進行中（受け取りと送信が同じレイアウトの写しを使う・idea_51）。task_01 済（reviewer 完了可）→ task_02 実装中。**
 mode: implementing
-presence: present
+presence: away（戻る予定 未定）
 
 ## last_action
 ts: 2026-10-21T15:30:00
@@ -28,7 +28,7 @@ verified:
   文書のみ
 
 ## next_action
-- task_01（レイアウトの写し・選び直しで読み直し）を `/task_new` で起票 → codex-implementer → verifier + reviewer
+- task_02（instructions/phase/65_layout_snapshot_for_hook/tasks/task_02_held_send_record.md・起票済み）を codex-implementer → verifier + reviewer
 - 続けて task_02（送り方の記録）→ task_03（実機目視・正本反映・完了処理）
 
 ## blockers

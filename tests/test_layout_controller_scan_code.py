@@ -5,6 +5,8 @@ from unittest.mock import Mock, patch
 
 from keyseq.presentation.controllers.layout_controller import LayoutController
 from keyseq.presentation.keyboard_layouts import (
+    BUILTIN_LAYOUTS,
+    DEFAULT_LAYOUT_ID,
     KeyboardLayout,
     KeyboardLayoutEntry,
     KeySpec,
@@ -22,7 +24,7 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
     def _controller(self, layout, *, debug_enabled=True):
         controller = LayoutController.__new__(LayoutController)
         controller._app = SimpleNamespace(data={"debug_jis_special_key_events": debug_enabled})
-        controller.get_current_keyboard_layout = lambda: layout
+        controller._active_layout = layout
         return controller
 
     def _selection_controller(self, selected="new"):
@@ -40,7 +42,17 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
         controller = LayoutController.__new__(LayoutController)
         controller._app = app
         controller.keyboard_layout_id = "old"
-        controller._keyboard_layout_entries = {"old": object(), "new": object()}
+        old_layout = KeyboardLayout(
+            "old", "Old", (KeySpec("old_key", "Old", 0, 0, scan_code=10),)
+        )
+        new_layout = KeyboardLayout(
+            "new", "New", (KeySpec("new_key", "New", 0, 0, scan_code=20),)
+        )
+        controller._keyboard_layout_entries = {
+            "old": KeyboardLayoutEntry(old_layout, "external"),
+            "new": KeyboardLayoutEntry(new_layout, "external"),
+        }
+        controller._active_layout = old_layout
         controller._keyboard_layout_display_to_id = {"Old": "old", "New": "new"}
         controller._keyboard_layout_id_to_display = {"old": "Old", "new": "New"}
         controller._layout_combos = []
@@ -68,6 +80,82 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
         collect.assert_called_once_with([], base_dir="cfg")
         self.assertIsNot(controller._keyboard_layout_entries, old_entries)
 
+    def test_initial_snapshot_is_builtin_default_and_get_current_does_not_read_file(self):
+        app = SimpleNamespace(
+            paths=SimpleNamespace(resolve_keylayout_dir=lambda: "layouts"),
+            _set_flash_message=Mock(),
+        )
+        controller = LayoutController(app)
+        external_layout = KeyboardLayout("external", "External", ())
+        controller._keyboard_layout_entries = {
+            "external": KeyboardLayoutEntry(external_layout, "external", "x.json")
+        }
+
+        with patch(
+            "keyseq.presentation.keyboard_layouts.load_layout_from_json",
+            side_effect=AssertionError("get_current_keyboard_layout read a file"),
+        ) as load:
+            self.assertIs(controller.get_current_keyboard_layout(), BUILTIN_LAYOUTS[DEFAULT_LAYOUT_ID])
+
+        load.assert_not_called()
+        app._set_flash_message.assert_not_called()
+
+    def test_selection_and_sync_refresh_snapshot_even_for_same_id(self):
+        controller, _held_inputs, _hook = self._selection_controller(selected="old")
+        first_layout = controller._keyboard_layout_entries["old"].layout
+        controller.set_keyboard_layout_selection("old")
+        self.assertIs(controller._active_layout, first_layout)
+
+        refreshed_layout = KeyboardLayout(
+            "old", "Old updated", (KeySpec("updated", "Updated", 0, 0, scan_code=11),)
+        )
+        controller._keyboard_layout_entries["old"] = KeyboardLayoutEntry(
+            refreshed_layout, "external"
+        )
+        controller.set_keyboard_layout_selection("old")
+        self.assertIs(controller._active_layout, refreshed_layout)
+
+        synced_layout = KeyboardLayout("old", "Synced", ())
+        controller._keyboard_layout_entries["old"] = KeyboardLayoutEntry(
+            synced_layout, "external"
+        )
+        controller.sync_keyboard_layout_controls()
+        self.assertIs(controller._active_layout, synced_layout)
+
+    def test_snapshot_falls_back_to_builtin_when_selected_entry_is_missing(self):
+        controller, _held_inputs, _hook = self._selection_controller(selected="missing")
+        controller._keyboard_layout_entries = {}
+        controller.sync_keyboard_layout_controls()
+        self.assertEqual(controller.keyboard_layout_id, DEFAULT_LAYOUT_ID)
+        self.assertIs(controller._active_layout, BUILTIN_LAYOUTS[DEFAULT_LAYOUT_ID])
+
+    def test_dropdown_selection_reloads_before_persisting(self):
+        controller, _held_inputs, _hook = self._selection_controller()
+        order = []
+        controller._app.ui_vars.keyboard_layout_var.get.return_value = "New"
+        controller.reload_keyboard_layouts = Mock(
+            side_effect=lambda: order.append(("reload", controller._app.data["keyboard_layout"]))
+        )
+        controller.persist_keyboard_layout_selection = Mock(
+            side_effect=lambda: order.append(("persist", controller._app.data["keyboard_layout"]))
+        )
+
+        controller.on_keyboard_layout_selected()
+
+        self.assertEqual(order, [("reload", "new"), ("persist", "new")])
+
+    def test_dropdown_selection_with_unknown_display_uses_fallback(self):
+        controller, _held_inputs, _hook = self._selection_controller(selected="old")
+        controller._app.ui_vars.keyboard_layout_var.get.return_value = "unknown"
+        controller.reload_keyboard_layouts = Mock()
+        controller.persist_keyboard_layout_selection = Mock()
+
+        controller.on_keyboard_layout_selected()
+
+        self.assertEqual(controller._app.data["keyboard_layout"], "old")
+        controller.reload_keyboard_layouts.assert_called_once_with()
+        controller.persist_keyboard_layout_selection.assert_called_once_with()
+
     def test_set_selection_releases_before_changing_id(self):
         controller, held_inputs, _hook = self._selection_controller()
         held_inputs.release_all.side_effect = lambda: self.assertEqual(
@@ -78,6 +166,9 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
 
         held_inputs.release_all.assert_called_once_with()
         self.assertEqual(controller.keyboard_layout_id, "new")
+        self.assertIs(
+            controller._active_layout, controller._keyboard_layout_entries["new"].layout
+        )
 
     def test_set_selection_does_not_release_when_id_is_unchanged(self):
         controller, held_inputs, _hook = self._selection_controller(selected="old")
@@ -93,6 +184,9 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
 
         held_inputs.release_all.assert_called_once_with()
         self.assertEqual(controller.keyboard_layout_id, "new")
+        self.assertIs(
+            controller._active_layout, controller._keyboard_layout_entries["new"].layout
+        )
 
         unchanged, unchanged_held, _hook = self._selection_controller(selected="old")
         unchanged.sync_keyboard_layout_controls()
@@ -155,17 +249,38 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
         controller._keyboard_layout_entries = {
             "jis": KeyboardLayoutEntry(layout=layout, source="external")
         }
-        controller.get_current_keyboard_layout = lambda: self.fail(
-            "resolve_scan_code_from_key_name must not reload the current layout"
+        controller._active_layout = layout
+        controller._keyboard_layout_entries["jis"] = KeyboardLayoutEntry(
+            KeyboardLayout("jis", "changed", ()), "external"
         )
 
         self.assertEqual(controller.resolve_scan_code_from_key_name("muhenkan"), 123)
+
+    def test_scan_code_resolvers_keep_using_snapshot_until_it_is_refreshed(self):
+        first = KeyboardLayout(
+            "first", "First", (KeySpec("first_key", "First", 0, 0, scan_code=50),)
+        )
+        changed = KeyboardLayout(
+            "first", "Changed", (KeySpec("changed_key", "Changed", 0, 0, scan_code=51),)
+        )
+        controller = self._controller(first)
+        controller.keyboard_layout_id = "first"
+        controller._keyboard_layout_entries = {
+            "first": KeyboardLayoutEntry(changed, "external")
+        }
+
+        self.assertEqual(controller.resolve_key_name_from_scan_code(50), "first_key")
+        self.assertEqual(controller.resolve_scan_code_from_key_name("first_key"), 50)
+        controller._refresh_active_layout()
+        self.assertEqual(controller.resolve_key_name_from_scan_code(51), "changed_key")
+        self.assertEqual(controller.resolve_scan_code_from_key_name("changed_key"), 51)
 
     def test_resolve_scan_code_returns_none_for_unregistered_layout(self):
         layout = load_layout_from_json(str(JIS_LAYOUT_PATH))
         controller = self._controller(layout)
         controller.keyboard_layout_id = "missing"
         controller._keyboard_layout_entries = {"jis": KeyboardLayoutEntry(layout, "external")}
+        controller._active_layout = BUILTIN_LAYOUTS[DEFAULT_LAYOUT_ID]
 
         self.assertIsNone(controller.resolve_scan_code_from_key_name("muhenkan"))
 

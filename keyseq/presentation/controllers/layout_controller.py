@@ -6,13 +6,12 @@ from tkinter import filedialog, messagebox
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.dialogs import LayoutDeleteDialog
 from keyseq.presentation.keyboard_layouts import (
+    BUILTIN_LAYOUTS,
     DEFAULT_LAYOUT_ID,
     collect_keyboard_layouts,
     load_layout_from_json,
     resolve_layout_scan_code_from_key_name,
-    resolve_keyboard_layout,
     resolve_layout_key_id_from_scan_code,
-    resolve_registered_layout_path,
 )
 from keyseq.presentation.keyboard_window import KeyboardWindow
 
@@ -26,6 +25,7 @@ class LayoutController:
     def __init__(self, app) -> None:
         self._app = app
         self.keyboard_layout_id = DEFAULT_LAYOUT_ID
+        self._active_layout = BUILTIN_LAYOUTS[DEFAULT_LAYOUT_ID]
         self._keyboard_layout_entries = {}
         self._keyboard_layout_display_to_id = {}
         self._keyboard_layout_id_to_display = {}
@@ -176,22 +176,13 @@ class LayoutController:
             pass
 
     def get_current_keyboard_layout(self):
-        entry = self._keyboard_layout_entries.get(str(self.keyboard_layout_id).strip())
-        if entry is not None:
-            if entry.source == "external" and entry.path:
-                try:
-                    return load_layout_from_json(
-                        resolve_registered_layout_path(
-                            entry.path, base_dir=self._app.paths.config_root
-                        )
-                    )
-                except Exception as e:
-                    self._app._set_flash_message(
-                        f"構成セットの読込に失敗したため、空の状態で起動しました: {e}",
-                        auto_clear=False,
-                    )
-            return entry.layout
-        return resolve_keyboard_layout(layout_id=self.keyboard_layout_id)
+        return self._active_layout
+
+    def _refresh_active_layout(self) -> None:
+        entry = self._keyboard_layout_entries.get(self.keyboard_layout_id)
+        self._active_layout = (
+            entry.layout if entry is not None else BUILTIN_LAYOUTS[DEFAULT_LAYOUT_ID]
+        )
 
     def get_fallback_keyboard_layout_id(self, *, exclude: str | None = None) -> str:
         excluded = (exclude or "").strip()
@@ -234,6 +225,7 @@ class LayoutController:
         if selected != self.keyboard_layout_id:
             self._release_held_inputs_before_layout_change()
         self.keyboard_layout_id = selected
+        self._refresh_active_layout()
         self._app.data["keyboard_layout"] = selected
         self._app.ui_vars.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
 
@@ -271,6 +263,7 @@ class LayoutController:
         if selected != self.keyboard_layout_id:
             self._release_held_inputs_before_layout_change()
         self.keyboard_layout_id = selected
+        self._refresh_active_layout()
         self._app.data["keyboard_layout"] = selected
         self._app.ui_vars.keyboard_layout_var.set(self._keyboard_layout_id_to_display.get(selected, ""))
 
@@ -287,7 +280,11 @@ class LayoutController:
 
     def on_keyboard_layout_selected(self, _event=None):
         selected = self._keyboard_layout_display_to_id.get(str(self._app.ui_vars.keyboard_layout_var.get() or "").strip(), "")
-        self.set_keyboard_layout_selection(selected, persist=True)
+        if not selected:
+            selected = self.get_fallback_keyboard_layout_id()
+        self._app.data["keyboard_layout"] = selected
+        self.reload_keyboard_layouts()
+        return self.persist_keyboard_layout_selection()
 
     def add_external_keyboard_layout(self):
         path = filedialog.askopenfilename(
@@ -376,15 +373,14 @@ class LayoutController:
             self._keyboard_layout_id_to_display[layout_id] = display_name
 
     def resolve_key_name_from_scan_code(self, scan_code: object) -> str:
+        layout = self._active_layout
         return normalize_key_name(
-            resolve_layout_key_id_from_scan_code(self.get_current_keyboard_layout(), scan_code)
+            resolve_layout_key_id_from_scan_code(layout, scan_code)
         )
 
     def resolve_scan_code_from_key_name(self, key_name: str) -> int | None:
-        entry = self._keyboard_layout_entries.get(str(self.keyboard_layout_id).strip())
-        if entry is None:
-            return None
-        return resolve_layout_scan_code_from_key_name(entry.layout, key_name)
+        layout = self._active_layout
+        return resolve_layout_scan_code_from_key_name(layout, key_name)
 
     def should_debug_special_key_event(self, event: object, resolved_key: str) -> bool:
         if not bool(self._app.data.get("debug_jis_special_key_events", False)):
@@ -397,7 +393,7 @@ class LayoutController:
         except Exception:
             return False
 
-        layout = self.get_current_keyboard_layout()
+        layout = self._active_layout
         for key_spec in getattr(layout, "keys", ()) or ():
             try:
                 if int(getattr(key_spec, "scan_code", None)) == scan_code:

@@ -635,3 +635,4 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 ### 【暫定 48】v0.1 → deep-reviewer 修正して採用（12 件・`KeySend` にキー名・application は中身を知らない値で持つ・リピートの callback に identity・「実行用のスレッド」は実在せず隙間は解放の失敗のモーダルの間）→ v0.2 → Codex 敵対的 needs-attention 2 件 → ユーザー確定（推奨どおり）→ v0.3
 - high（採用）: ユーザーの選び直しでは JSON を読み直していなかった → 選んだときに `reload_keyboard_layouts` を通す（同じレイアウトでも）
 - medium（受容）: 1 打鍵の中で `InputRouter` と `KeyStateManager` が別々に名前を引くため、切替の瞬間は判定と押下状態の記録が別の写しになり得る（今の作りでも同じ）
+### 【task_01】codex-implementer・tests 1769 / tests_ui 1122 / smoke OK・reviewer 完了可（低 3: 選択で release_all が最大 2 回〔冪等〕・読込失敗の flash の削除は正本反映で触れる・テストの冗長）・実機目視は task_03
