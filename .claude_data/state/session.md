@@ -5,7 +5,7 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-10-20T09:00:00
-phase: `instructions/phase/63_make_only_keys`（phase 63・暫定 46 v0.5 ユーザー確定済 2026-10-20・decisions 63）。次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25 / idea 54
+phase: `instructions/phase/63_make_only_keys`（phase 63・暫定 46 v0.5 ユーザー確定済 2026-10-20・decisions 63）。次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25 / idea 55
 直前の完了フェーズ = **phase 62**（`decisions_archive/62_special_keys_from_layout_only.md`）
 last_commit_location: `claude/ime-switch-color-adjust-ac5df9`（暫定 46 v0.5・task_03f）。task_01〜03e = `claude/phase62-trace-file-empty-ddc0c0`（Operation_check へ早送り済み = ff61938）。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
