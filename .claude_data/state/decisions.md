@@ -73,6 +73,7 @@
 | 61_keyboard_ui_vk_to_scan_code | [61_keyboard_ui_vk_to_scan_code.md](decisions_archive/61_keyboard_ui_vk_to_scan_code.md) | キーボードUI の取得で VK を走査コードへ変換する（2026-10-17 完了・直接改訂モード・presentation のみ・JSON スキーマ不変）。Tk の keycode（VK）を走査コードとして引いていたため F1 / F10 / F12 が `kana` / `henkan` / `muhenkan` になっていた不具合を修正 / 変換後はレイアウトの `scan_code` だけで引く（既知の特殊キーの表へ落とさない・特殊キーをレイアウトだけが決める話 = idea_49）/ JIS の特殊キーは IME に横取りされ Tk から判別できない（実測）→ idea_50。refactor_check: 不要（2 ファイル +26 / -3・閾値の候補なし）|
 | 62_special_keys_from_layout_only | [62_special_keys_from_layout_only.md](decisions_archive/62_special_keys_from_layout_only.md) | 特殊キーの名前をレイアウトだけが決める（2026-10-18 完了・暫定 45 v0.5 凍結・domain の既知の表を削除・presentation・infrastructure の注入・JSON スキーマ不変）。フック・画面の枠の編集の窓の名前はレイアウトの `scan_code` だけ / 送信・検査・同じキーは テンキー → 拡張 → keyboard → レイアウトの `id` → `scan_code`（SendInput の走査コード・今まで送れなかった `muhenkan` を修正）/ レイアウトの読み直し・選び直しの前に release_all・構成の読込でも読み直す（task_04b）/ 無変換・変換が押下だけ 3 回（241 / 242・離し無し）で届く機種は idea_52（`extra_scan_codes` は取り下げ）。refactor_check: 不要（M6 の参考を別タスク化候補へ）|
 | 63_make_only_keys | [63_make_only_keys.md](decisions_archive/63_make_only_keys.md) | 押下だけが続けて届くキー（2026-10-20 完了・暫定 46 v0.5 凍結・domain の走査コードの表 241 / 242・application の状態機械・presentation のフックの分岐 / 色・**JSON スキーマ追加**〔レイアウトの任意キー `extra_scan_codes`〕）。押した / 離した に組み直す・リピートなし・離した直後 60 ms 以内の押下は押し続けの続き・直接置換の枠は灰色がかった緑 / 送信の最中の素通りは idea_53・IME の切り替えは idea_54。計測用デバッグ出力は残す・タイマー確定の actions の順のずれは受容。refactor_check: 不要 |
+| 64_external_layout_path_base | [64_external_layout_path_base.md](decisions_archive/64_external_layout_path_base.md) | 外部キーレイアウトのパス基準の統一（2026-10-21 完了・直接改訂モード・application + presentation・JSON スキーマ不変・§5.7 不変）。登録・読込・表示を `config_root` 基準の相対へそろえ、読込のたびに `config/` が増えて登録が消える不具合を修正（読込は解決 1 回・冪等）。既存の壊れた値の移行・重複除去はしない（利用者が JSON を手で直す・単一 JSON の取り込みも同じ）・孤児検出の両基準 superset は残す。idea_13。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -623,12 +624,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - M3（ユーザー確定・受容）: 呼び出し先の完了で外から進めた呼び出し元の次の待機は待たない（直前に呼び出し元が送っていないので「送った後の待ち」に当たらない。次に押すと送る前の待機として読み飛ばす）。
 - M4（ユーザー確定・コード変更 task_07a）: 呼び出し先 U が単発の呼び出しの一時停止中に T が U を呼んだら、U の一時停止を捨てて（通知）T が進める。今は黙って無視。
 
----
-
-## 2026-10-20 (phase 64: 外部キーレイアウトのパス基準の統一・暫定なし)
-
-### 【起票】モード = **直接改訂**（idea_13・§5.7 は不変で実装を仕様へ合わせる・タスク 2）
-- 記録表記は §5.7 どおり `config` ルート基準の相対（`/` 区切り・config 外は絶対）へ、登録・読込・表示の 3 か所をそろえる。
-- **既存の壊れた値の移行・同一ファイルの重複除去はしない**（ユーザー判断: 余計な処理を入れず利用者が JSON を手で直す）。登録時の重複判定は文字列比較のまま（旧表記が残ると同じファイルを再登録できるのは受容）。
-- **孤児検出（§5.8.9）の両基準 superset は残す**（ユーザー確定: 手で直していない旧表記の JSON が指すレイアウトを隔離しない・コード不変・正本の理由の記述のみ task_02 で更新）。
-- 起票の整合チェック（reviewer）: 軽微 3 件をすべて phase.md へ反映（テスト `test_layout_controller_scan_code.py` の追加・重複判定の受容の明記・superset の確定）。

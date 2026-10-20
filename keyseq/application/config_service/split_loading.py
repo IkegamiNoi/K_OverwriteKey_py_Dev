@@ -555,7 +555,6 @@ def normalize_external_keyboard_layouts(
         if not stored_path:
             continue
 
-        resolved_path = service._resolve_config_relative_path(stored_path, config_root)
-        runtime_path = service.to_config_relative_or_absolute(resolved_path, config_root)
+        runtime_path = service.to_config_relative_or_absolute(stored_path, config_root)
         normalized.append({"path": runtime_path})
     return normalized

@@ -53,6 +53,7 @@
 ## タスク
 
 - task_01: 登録・読込・表示の基準を `config` ルートへそろえる・テスト（期待値の見直し・往復で値が変わらない）。**実装後にユーザーの実機目視**（登録 → 再起動で残る）
+- task_01a: 読込の解決を 1 回にする（相対の `config_root` で `config/` が増える・完了判定前の Codex 敵対的レビューの指摘〔中〕をユーザーが採用 2026-10-21）・config 外の絶対パスの登録のテスト
 - task_02: 正本反映（`5_08_09_orphan_sweep.md` の理由の記述・`codebase_map.md`）・`decisions_archive/64_external_layout_path_base.md`・decisions.md の索引・current.md の完了記載・idea_13 を INDEX_done へ・`/refactor_check`・完了判定前レビュー
 
 ## レビュー方針

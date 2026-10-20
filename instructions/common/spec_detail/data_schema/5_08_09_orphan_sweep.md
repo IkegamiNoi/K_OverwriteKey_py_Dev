@@ -37,9 +37,9 @@ keymap_set は従来どおり拾う）。**走査はリンク / ジャンクシ�
 keymap ファイルは参照収集のために 1 回だけ読む（形状検証のために再読込しない）。
 `external_keyboard_layouts[].path` は、**`config_root` 基準と、その親
 （`dirname(config_root)`）基準の両方で解決した superset** を入れる。
-読み込みが `config_root` 基準で解決するのに runtime は親基準の相対表記で保持する**既存の非対称**
-（是正は [idea_13](../../../backlog/idea_13_external_layout_path_base_asymmetry.md)）があり、
-**どちらの基準で記録された値でも保護する**ため。
+登録・読込・表示は phase 64 で §5.7 どおり `config_root` 基準の相対へそろえたが、それ以前は親基準の相対表記
+（例 `config\user\keylayout\jis.json`・旧既定の置き場所から登録した `keylayout\jis.json` など）で記録していた。
+**旧表記の値は移行しない**（構成セットの読込でも単一 JSON の取り込みでも、読み込めず一覧から外れるだけで、利用者が JSON を手で直す）ため、**手で直していない旧表記の値が指すレイアウトも誤って隔離しない**よう両基準を残す。
 **`config/config.json` が指すグローバルプリセット（§5.10.1）も参照集合へ入れる**
 （走査した keymap_set からは辿れないため。個別指定と違い上位を持たない）。
 

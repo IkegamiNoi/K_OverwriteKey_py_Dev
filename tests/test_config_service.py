@@ -1970,6 +1970,18 @@ class SplitPathFieldCoercionTest(unittest.TestCase):
             )
             self.assertEqual(outside, [{"path": outside_path.replace("\\", "/")}])
 
+    def test_external_layout_paths_with_relative_config_root_are_idempotent(self):
+        service = ConfigService(JsonRepository())
+
+        for root in ("config", "./config"):
+            with self.subTest(config_root=root):
+                registrations = [{"path": "user/keylayout/jis.json"}]
+                for _ in range(3):
+                    registrations = split_loading.normalize_external_keyboard_layouts(
+                        service, registrations, config_root=root,
+                    )
+                self.assertEqual(registrations, [{"path": "user/keylayout/jis.json"}])
+
 
 class KeymapFileIoTest(unittest.TestCase):
     def test_split_loading_coerces_referenced_keymap_non_string_label(self):

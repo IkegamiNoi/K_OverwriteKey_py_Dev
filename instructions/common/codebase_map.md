@@ -878,6 +878,12 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `ensure_config_compatibility` を通らないため個別に適用が要る）。
   **未対応の残件** = `presentation/controllers/config_io/startup_io.py` の `keymap_set_path`
   （config.json の生値。presentation 層のため phase 25 のスコープ外）。
+- **外部レイアウトのパス `external_keyboard_layouts[].path`**（phase 64）: 登録（`LayoutController.add_external_keyboard_layout` →
+  `ConfigPaths.to_config_relative_or_absolute`）・読込（`split_loading.normalize_external_keyboard_layouts` →
+  `ConfigService.to_config_relative_or_absolute`・冪等）・表示（`collect_keyboard_layouts` / `resolve_registered_layout_path` に
+  `paths.config_root` を渡す）が**すべて `config_root` 基準**（§5.7）。親基準の旧表記は移行しない
+（単一 JSON の取り込み `keymap_set_io` → `load_legacy_runtime_data` は split_loading を通らず生の値のまま入る = 受容）。
+  孤児検出（`reference_scan._add_external_layout_references`）だけは旧表記も保護するため両基準の superset のまま（§5.8.9）。
 - **runtime 内部キーのパス値 3 種**（`_keymap_source_path` / `_sequence_source_path` / `_trigger_set_source_path`）も
   `ensure_config_compatibility` で**キーがある場合のみ** `coerce_label` する（phase 30・`data_schema.md` §5.7）。
   domain は内部キー名を文字列直値で持つ（application の `ConfigService.INTERNAL_*` を import しない）。

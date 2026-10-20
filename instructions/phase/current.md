@@ -7,9 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 64](64_external_layout_path_base/phase.md)**（2026-10-20 起票・外部キーレイアウトのパス基準の統一〔登録・読込・表示を正本 §5.7 どおりの `config` ルート基準の相対へそろえ、再起動のたびに登録が消える不具合を直す〕。直接改訂モード〔暫定なし〕・JSON スキーマ不変・起票元 [idea_13](../backlog/idea_13_external_layout_path_base_asymmetry.md)。確定 = 既存の壊れた値の移行・重複除去はしない〔利用者が JSON を手で直す〕。番号対応: phase 64 / 暫定なし / decisions 64）。進捗: task_01 実装・検証済み・実機目視待ち → 次 task_02（正本反映）。
-- 直前の完了フェーズ = [phase 63](63_make_only_keys/phase.md)（2026-10-20・押下だけが続けて届くキー〔無変換 241・変換 242 を「押した / 離した」に組み直す・リピートなし・離した直後 60 ms 以内の押下は押し続けの続き・直接置換の枠は灰色がかった緑・名前は `extra_scan_codes`〕。暫定仕様先行モード〔暫定 46 v0.5 凍結〕・**JSON スキーマ追加**〔レイアウトの任意キー `extra_scan_codes`〕・判断は [decisions_archive/63](../../.claude_data/state/decisions_archive/63_make_only_keys.md)）。
-- その前の完了フェーズ = [phase 62](62_special_keys_from_layout_only/phase.md)（2026-10-18・特殊キーの名前をレイアウトだけが決める。暫定仕様先行モード〔暫定 45 v0.5 凍結〕・判断は [decisions_archive/62](../../.claude_data/state/decisions_archive/62_special_keys_from_layout_only.md)）。
+- **アクティブなフェーズ = なし**（phase 64 は 2026-10-21 完了）。次フェーズはユーザー判断・着手時は `/phase_start`。
+- 直前の完了フェーズ = [phase 64](64_external_layout_path_base/phase.md)（2026-10-21・外部キーレイアウトのパス基準の統一〔登録・読込・表示を正本 §5.7 どおりの `config` ルート基準の相対へそろえ、再起動のたびに登録が消える不具合を修正〕。直接改訂モード〔暫定なし〕・JSON スキーマ不変・起票元 idea_13。既存の壊れた値の移行・重複除去はしない〔利用者が JSON を手で直す〕・判断は [decisions_archive/64](../../.claude_data/state/decisions_archive/64_external_layout_path_base.md)）。
+- その前の完了フェーズ = [phase 63](63_make_only_keys/phase.md)（2026-10-20・押下だけが続けて届くキー〔無変換 241・変換 242 を「押した / 離した」に組み直す・リピートなし・離した直後 60 ms 以内の押下は押し続けの続き・直接置換の枠は灰色がかった緑・名前は `extra_scan_codes`〕。暫定仕様先行モード〔暫定 46 v0.5 凍結〕・**JSON スキーマ追加**〔レイアウトの任意キー `extra_scan_codes`〕・判断は [decisions_archive/63](../../.claude_data/state/decisions_archive/63_make_only_keys.md)）。
+  [phase 62](62_special_keys_from_layout_only/phase.md)（2026-10-18・特殊キーの名前をレイアウトだけが決める。暫定仕様先行モード〔暫定 45 v0.5 凍結〕・判断は [decisions_archive/62](../../.claude_data/state/decisions_archive/62_special_keys_from_layout_only.md)）。
   [phase 61](61_keyboard_ui_vk_to_scan_code/phase.md)（2026-10-17・キーボードUI の取得で VK を走査コードへ変換する。直接改訂モード・判断は [decisions_archive/61](../../.claude_data/state/decisions_archive/61_keyboard_ui_vk_to_scan_code.md)）。
   [phase 60](60_ime_off_during_key_capture/phase.md)（2026-10-16・キーの取得中は IME を OFF にする〔取得の 8 入口で取得の間だけアプリ自身の IME を OFF・終了で復元 / `??` を全入口で記録せず取得を続ける〕。暫定仕様先行モード〔暫定 44 v0.4 凍結〕・JSON スキーマ不変・判断は [decisions_archive/60](../../.claude_data/state/decisions_archive/60_ime_off_during_key_capture.md)）。
   [phase 59](59_keyboard_ui_left_right_modifiers/phase.md)（2026-10-16・キーボードUI の左右の修飾キーの区別と割り当て禁止のキー〔左右の Shift・Ctrl・Alt・Win の枠を左右別のキー名で表示・編集 / Windows キー・Caps Lock・AltGr 配列の右 Alt〔標準の id `alt_gr`〕をキーマップの元キーと切替キーに割り当て禁止 / 切替キーの取得で判別できないキー〔`??`〕は案内 / jis.json・de.json の見本〕。暫定仕様先行モード〔暫定 43 v0.6 凍結〕・JSON スキーマ不変・判断は [decisions_archive/59](../../.claude_data/state/decisions_archive/59_keyboard_ui_left_right_modifiers.md)）。
@@ -106,7 +107,7 @@
   **phase 61 は 2026-10-17 完了**（`61_keyboard_ui_vk_to_scan_code` / 暫定なし〔直接改訂モード〕/ decisions 61〔アーカイブ済〕）。
   **phase 62 は 2026-10-18 完了**（`62_special_keys_from_layout_only` / 暫定 45〔v0.5・凍結〕/ decisions 62〔アーカイブ済〕）。
   **phase 63 は 2026-10-20 完了**（`63_make_only_keys` / 暫定 46〔v0.5・凍結〕/ decisions 63〔アーカイブ済〕）。
-  **phase 64 は 2026-10-20 起票・進行中**（`64_external_layout_path_base` / 暫定なし〔直接改訂モード〕/ decisions 64）。
+  **phase 64 は 2026-10-21 完了**（`64_external_layout_path_base` / 暫定なし〔直接改訂モード〕/ decisions 64〔アーカイブ済〕）。
   次フェーズは **`65_<topic>`**・decisions も **65** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
