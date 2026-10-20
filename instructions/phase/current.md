@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 64 は 2026-10-21 完了）。次フェーズはユーザー判断・着手時は `/phase_start`。
+- **アクティブなフェーズ = [phase 65](65_layout_snapshot_for_hook/phase.md)**（2026-10-21 起票・受け取りと送信が同じレイアウトの写しを使う〔受け取り・送信・キーボードUI を写し 1 つへ・選び直しと読み直しのときだけ反映・押したままのキーは押したときの送り方で送る〕。暫定仕様先行モード・主入力 [暫定 48](../history/48_layout_snapshot_for_hook.md) v0.3〔ユーザー確定〕・JSON スキーマ不変・起票元 [idea_51](../backlog/idea_51_layout_snapshot_for_hook.md)。番号対応: phase 65 / 暫定 48 / decisions 65）。
 - 直前の完了フェーズ = [phase 64](64_external_layout_path_base/phase.md)（2026-10-21・外部キーレイアウトのパス基準の統一〔登録・読込・表示を正本 §5.7 どおりの `config` ルート基準の相対へそろえ、再起動のたびに登録が消える不具合を修正〕。直接改訂モード〔暫定なし〕・JSON スキーマ不変・起票元 idea_13。既存の壊れた値の移行・重複除去はしない〔利用者が JSON を手で直す〕・判断は [decisions_archive/64](../../.claude_data/state/decisions_archive/64_external_layout_path_base.md)）。
 - その前の完了フェーズ = [phase 63](63_make_only_keys/phase.md)（2026-10-20・押下だけが続けて届くキー〔無変換 241・変換 242 を「押した / 離した」に組み直す・リピートなし・離した直後 60 ms 以内の押下は押し続けの続き・直接置換の枠は灰色がかった緑・名前は `extra_scan_codes`〕。暫定仕様先行モード〔暫定 46 v0.5 凍結〕・**JSON スキーマ追加**〔レイアウトの任意キー `extra_scan_codes`〕・判断は [decisions_archive/63](../../.claude_data/state/decisions_archive/63_make_only_keys.md)）。
   [phase 62](62_special_keys_from_layout_only/phase.md)（2026-10-18・特殊キーの名前をレイアウトだけが決める。暫定仕様先行モード〔暫定 45 v0.5 凍結〕・判断は [decisions_archive/62](../../.claude_data/state/decisions_archive/62_special_keys_from_layout_only.md)）。
@@ -108,7 +108,8 @@
   **phase 62 は 2026-10-18 完了**（`62_special_keys_from_layout_only` / 暫定 45〔v0.5・凍結〕/ decisions 62〔アーカイブ済〕）。
   **phase 63 は 2026-10-20 完了**（`63_make_only_keys` / 暫定 46〔v0.5・凍結〕/ decisions 63〔アーカイブ済〕）。
   **phase 64 は 2026-10-21 完了**（`64_external_layout_path_base` / 暫定なし〔直接改訂モード〕/ decisions 64〔アーカイブ済〕）。
-  次フェーズは **`65_<topic>`**・decisions も **65** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 65 は 2026-10-21 起票・進行中**（`65_layout_snapshot_for_hook` / 暫定 48 / decisions 65）。
+  次フェーズは **`66_<topic>`**・decisions も **66** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -152,8 +153,9 @@
   44=キーの取得中は IME を OFF にする〔**v0.4・凍結**〕 /
   45=特殊キーの名前をレイアウトだけが決める〔**v0.5・凍結**〕 /
   46=押下だけが続けて届くキー〔**v0.5・凍結**〕 /
-  47=送信の最中の物理の入力を素通りさせない〔**v0.2・保留**・2026-10-21 ユーザー判断・phase 未起票・idea_53〕）。
-  次採番は **`48_<topic>`**。
+  47=送信の最中の物理の入力を素通りさせない〔**v0.2・保留**・2026-10-21 ユーザー判断・phase 未起票・idea_53〕 /
+  48=受け取りと送信が同じレイアウトの写しを使う〔v0.3・ユーザー確定・phase 65 の主入力〕）。
+  次採番は **`49_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**24 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/

@@ -4,33 +4,32 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-21T12:00:00
-phase: なし（phase 64 は 2026-10-21 完了）。次採番 = phase 65 / 暫定 48〔47 は保留〕 / decisions 65 / 提案書 25 / idea 55
+last_updated: 2026-10-21T15:30:00
+phase: instructions/phase/65_layout_snapshot_for_hook（進行中・暫定仕様先行・暫定 48 v0.3 確定 / decisions 65）。次採番 = phase 66 / 暫定 49 / decisions 66 / 提案書 25 / idea 55
 直前の完了フェーズ = **phase 64**（`decisions_archive/64_external_layout_path_base.md`）
-last_commit_location: `claude/external-key-layout-persistence-a9eaa2`（phase 64 task_01a・task_02・完了）。main へのマージはユーザー
+last_commit_location: `claude/external-key-layout-persistence-a9eaa2`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 64 完了（2026-10-21・外部キーレイアウトのパス基準の統一・idea_13）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-mode: idle
+focus: **phase 65 進行中（受け取りと送信が同じレイアウトの写しを使う・idea_51）。起票済み → task_01 着手。**
+mode: implementing
 presence: present
 
 ## last_action
-ts: 2026-10-21T14:00:00
+ts: 2026-10-21T15:30:00
 who: main
 summary: |
-  idea_53 で暫定 47 を起票（v0.1 → 起票時 deep-reviewer 修正して採用 15 件 → v0.2・案 A1 = 自分の送信に dwExtraInfo の目印・keyboard の LowLevelKeyboardProc / _send_event / is_replaying を差し替え・揃わなければ縮退）。
-  ユーザー判断: **保留・優先度 低**（keyboard の内部への依存と版の固定で維持の負担が大きい・実害は送信の最中に押したときだけでまれ）。phase 65 は起票しない。暫定 47 は保留のまま残し、idea_53 の行に理由とリンク。
+  暫定 48 起票 → deep-reviewer 修正して採用 12 件 → v0.2 → Codex 敵対的 2 件（選び直しで読み直す = 採用 / 1 打鍵の中の 2 回の解決 = 受容）→ v0.3 ユーザー確定。phase 65 起票・整合チェック reviewer 軽微 2 件を反映。
+  ユーザーから phase 内タスクの連続実行の許可あり（2026-10-20）。
 result_files:
-  - instructions/history/47_send_without_dropping_physical_input.md
-  - instructions/backlog/INDEX.md
-  - instructions/phase/current.md
+  - instructions/history/48_layout_snapshot_for_hook.md
+  - instructions/phase/65_layout_snapshot_for_hook/phase.md
 verified:
-  文書のみ（コード変更なし）
+  文書のみ
 
 ## next_action
-- 次フェーズはユーザー判断（残件: idea_51 レイアウトの写し / idea_50 JIS の特殊キーの取得 / idea_54 IME の切り替え〔再発時〕/ idea_48・45 ほか。idea_53 は保留）
-- main へのマージはユーザー（本ブランチ `claude/external-key-layout-persistence-a9eaa2`）
+- task_01（レイアウトの写し・選び直しで読み直し）を `/task_new` で起票 → codex-implementer → verifier + reviewer
+- 続けて task_02（送り方の記録）→ task_03（実機目視・正本反映・完了処理）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
