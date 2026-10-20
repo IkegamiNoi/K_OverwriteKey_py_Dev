@@ -546,7 +546,6 @@ def normalize_external_keyboard_layouts(
     if not isinstance(registrations, list):
         return []
 
-    base_dir = os.path.dirname(config_root)
     normalized: list[dict[str, str]] = []
     for item in registrations:
         if isinstance(item, dict):
@@ -557,12 +556,6 @@ def normalize_external_keyboard_layouts(
             continue
 
         resolved_path = service._resolve_config_relative_path(stored_path, config_root)
-        runtime_path = resolved_path
-        try:
-            relative_path = os.path.relpath(runtime_path, base_dir)
-            if not relative_path.startswith(".."):
-                runtime_path = service._normalize_path_separators(relative_path)
-        except Exception:
-            runtime_path = service._normalize_path_separators(runtime_path)
+        runtime_path = service.to_config_relative_or_absolute(resolved_path, config_root)
         normalized.append({"path": runtime_path})
     return normalized

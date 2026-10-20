@@ -181,7 +181,9 @@ class LayoutController:
             if entry.source == "external" and entry.path:
                 try:
                     return load_layout_from_json(
-                        resolve_registered_layout_path(entry.path, base_dir=self._app.base_dir)
+                        resolve_registered_layout_path(
+                            entry.path, base_dir=self._app.paths.config_root
+                        )
                     )
                 except Exception as e:
                     self._app._set_flash_message(
@@ -204,7 +206,7 @@ class LayoutController:
         self._release_held_inputs_before_layout_change()
         self._keyboard_layout_entries = collect_keyboard_layouts(
             self._app.data.get("external_keyboard_layouts", []),
-            base_dir=self._app.base_dir,
+            base_dir=self._app.paths.config_root,
         )
         self.sync_keyboard_layout_controls()
 
@@ -299,7 +301,7 @@ class LayoutController:
         try:
             layout = load_layout_from_json(path, existing_layout_ids=set(self._keyboard_layout_entries.keys()))
             registrations = list(self._app.data.get("external_keyboard_layouts", []))
-            stored_path = self._app.paths.to_rel_if_possible(path)
+            stored_path = self._app.paths.to_config_relative_or_absolute(path)
             if any(str(item.get("path") or "").strip() == stored_path for item in registrations if isinstance(item, dict)):
                 raise ValueError("同じJSONファイルは既に登録されています。")
             registrations.append({"path": stored_path})

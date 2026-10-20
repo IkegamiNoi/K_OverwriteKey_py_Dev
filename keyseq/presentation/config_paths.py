@@ -122,6 +122,3 @@ class ConfigPaths:
     def keymap_set_file_stem(self, current_keymap_set_path: str) -> str:
         stem = self.filename_stem(str(current_keymap_set_path or ""))
         return self._config_service.slugify_file_stem(stem) or "trigger_set"
-
-    def to_rel_if_possible(self, path: str) -> str:
-        return self._config_service.resolve_startup_relative_path(path, self.base_dir)

@@ -32,6 +32,7 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
         app = SimpleNamespace(
             data={"keyboard_layout": selected},
             base_dir="base",
+            paths=SimpleNamespace(config_root="cfg"),
             held_inputs=held_inputs,
             hook=hook,
             ui_vars=SimpleNamespace(keyboard_layout_var=Mock()),
@@ -64,7 +65,7 @@ class LayoutControllerScanCodeTest(unittest.TestCase):
             controller.reload_keyboard_layouts()
 
         held_inputs.release_all.assert_called_once_with()
-        collect.assert_called_once_with([], base_dir="base")
+        collect.assert_called_once_with([], base_dir="cfg")
         self.assertIsNot(controller._keyboard_layout_entries, old_entries)
 
     def test_set_selection_releases_before_changing_id(self):
