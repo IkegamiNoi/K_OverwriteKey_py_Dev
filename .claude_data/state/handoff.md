@@ -23,9 +23,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46）。**暫定 47 は保留（未確定）・暫定 48 は phase 65 の主入力（未凍結）**の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 65 進行中（受け取りと送信が同じレイアウトの写しを使う・idea_51）。task_01 済（コミット e6166db）→ task_02 は Codex の利用上限で未着手（判断待ち）。**
-ブランチ `claude/external-key-layout-persistence-a9eaa2`（phase 64 完了 + phase 65 進行中）。main へのマージはユーザー（PR は作らない）。
-**ユーザーは不在モード**（`session.md` の `presence: away`・戻る予定 未定）。新しいセッションで再開したらこの行は消してよい。
+**phase 65 進行中（受け取りと送信が同じレイアウトの写しを使う・idea_51）。task_01・task_02 済 → task_03 の実機目視待ち。**
+ブランチ `claude/external-key-layout-persistence-a9eaa2`（phase 64 完了 + phase 65 task_01 = e6166db / task_02 = b6d2ea5）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +34,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 65 task_01 = 2026-10-21**）:
-compile **clean** / tests **1769 pass**（skip 7）/ tests_ui **1122 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1759〔phase 63〕→ 1769 / tests_ui: 1122）。
+直近の実測（**phase 65 task_02 = 2026-10-21**）:
+compile **clean** / tests **1778 pass**（skip 7）/ tests_ui **1122 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1759〔phase 63〕→ 1778 / tests_ui: 1122）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,11 +54,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【判断待ち】task_02 の実装をどうするか**（Codex の利用上限・2026-10-21 02:10 時点で「6:37 AM に再試行可」）:
-  - 案 A（推奨）: 6:37 以降に codex-implementer で再実行（既定の運用どおり・タスク定義 `instructions/phase/65_layout_snapshot_for_hook/tasks/task_02_held_send_record.md` は起票済み）
-  - 案 B: implementer（Claude）へのフォールバックを許可して今すぐ実装（`.claude/rules/agent_selection.md`「フォールバック」）
-- task_02 の後: verifier + reviewer → コミット → task_03（実機目視〔暫定 48 §7-7 ①②〕→ 正本反映 → 暫定 48 凍結 → decisions_archive/65 → current.md 完了 → idea_51 を INDEX_done へ → /refactor_check → 完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
+- **ユーザーの実機目視**（暫定 48 §7-7）: ① jis.json を選んだまま JSON の `muhenkan` の `scan_code` を書き換え → 選び直す（同じ jis.json をドロップダウンで選び直す / 別のレイアウトを経由して戻す）・再起動するまではキーボードUI の表示も受け取りも変わらず、選び直した後は変わる ② jis.json の `muhenkan` を key_hold で押したまま別のレイアウトへ選び直すと離れる
+- 目視 OK 後 task_03 を `/task_new` で起票して実施（正本反映〔暫定 48 §9〕・暫定 48 凍結・decisions_archive/65・decisions.md 索引・current.md 完了・idea_51 を INDEX_done へ・/refactor_check・完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
 - main へのマージはユーザー。タスクの連続実行はユーザー許可済み（仕様フラグ・実機目視では止まる）
+- 【Codex の利用上限】2026-10-21 02:10 に上限で失敗した（「try again at 6:37 AM」）。回復後は通常どおり。再発したら implementer へのフォールバックはユーザー許可が要る
 
 ## 直前のフェーズ（phase 64 = 外部キーレイアウトのパス基準の統一・判断は `decisions_archive/64_external_layout_path_base.md`）
 - 登録・読込・表示を `config_root` 基準の相対（`/` 区切り）へ統一（§5.7 は不変）。旧表記の移行・重複除去はしない（利用者が JSON を手で直す・単一 JSON の取り込みも同じ）。孤児検出の両基準 superset は残す（§5.8.9）
