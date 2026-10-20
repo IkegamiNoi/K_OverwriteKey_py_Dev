@@ -4,16 +4,16 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-20T08:43:00
+last_updated: 2026-10-20T09:00:00
 phase: `instructions/phase/63_make_only_keys`（phase 63・暫定 46 v0.5 ユーザー確定済 2026-10-20・decisions 63）。次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25 / idea 54
 直前の完了フェーズ = **phase 62**（`decisions_archive/62_special_keys_from_layout_only.md`）
 last_commit_location: `claude/ime-switch-color-adjust-ac5df9`（暫定 46 v0.5・task_03f）。task_01〜03e = `claude/phase62-trace-file-empty-ddc0c0`（Operation_check へ早送り済み = ff61938）。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 63（idea_52）: 暫定 46 v0.5（離した直後の押下は押し続けの続き）で task_03f を実装・検証・レビュー済み。ユーザーの実機目視（§6 #6）待ち。**
-mode: blocked
-presence: away（戻る予定 未定）
+focus: **phase 63（idea_52）: 暫定 46 v0.5（離した直後の押下は押し続けの続き）で task_03f を実装・検証・レビュー済み。ユーザーの実機目視（§6 #6）OK（2026-10-20）。色の最終判断・§9 #7 の判断待ち → task_04。**
+mode: waiting_user
+presence: present
 
 ## last_action
 ts: 2026-10-20T08:43:00
