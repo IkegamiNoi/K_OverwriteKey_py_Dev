@@ -15,17 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 63**〔`instructions/phase/63_make_only_keys/phase.md`・主入力 = 暫定 46 v0.5 ユーザー確定済 2026-10-20〕）。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 63 は 2026-10-20 完了〕・次フェーズはユーザー判断で `/phase_start`）。
    次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜45）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
 
 ## 現在の作業の 1 行サマリ
-**phase 63（idea_52）: 暫定 46 v0.5（離した直後の押下は押し続けの続き）で task_03f を実装・検証・レビュー済み。ユーザーの実機目視（§6 #6）待ち。**
-ユーザーは不在（`presence: away`・戻る予定 未定。再開 = 戻った合図なので session.md の presence 行を消してよい）。
-ブランチ `claude/ime-switch-color-adjust-ac5df9`（暫定 46 v0.5 = ce89b3a・task_03f = 9832895）。task_01〜03e は `claude/phase62-trace-file-empty-ddc0c0`（Operation_check へ早送り済み）。実機目視用の worktree = `K_OverwriteKey_py_Dev.worktrees/Operation_check`（自前の `.venv` あり・`config/user/keymap_sets/phase62.json` の `debug_jis_special_key_events` = true）。phase 60・61 = `claude/idea-46-3c4cb6` / phase 57 = `claude/crosshair-selection-frame-f4b464` / phase 58・59 = `claude/physical-device-visual-check-79fcd3`。main へのマージはユーザー（PR は作らない）。
+**phase 63 完了（2026-10-20・押下だけが続けて届くキー・暫定 46 v0.5 凍結）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+ブランチ `claude/physical-device-verification-d64c61`（task_04 = ff98a00）。task_03f = `claude/ime-switch-color-adjust-ac5df9` / task_01〜03e = `claude/phase62-trace-file-empty-ddc0c0`。実機目視用の worktree = `K_OverwriteKey_py_Dev.worktrees/Operation_check`。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -55,17 +54,14 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー判断待ち・最優先】(1) Operation_check を本ブランチへ早送りしてよいか**（推奨: はい・Operation_check で `git merge --ff-only claude/ime-switch-color-adjust-ac5df9`・Operation_check = ff61938 は本ブランチの祖先）**/ (2) 実機目視（暫定 46 §6 #6）**: **241 / 242 で届く環境（リモート実行では 123 の普通のキーになり対象外）**で、1 回押す / 2 秒以上の長押しを 3 回以上（途中で消え続けない・デバッグ出力で `released` の後に `down accept` が続かない）/ 約 0.1 秒の連打（回数どおり）/ IME が切り替わらない。手順の詳細は **session.md の next_action 先頭**が正
-- 目視の後: 色の最終判断（灰色がかった緑のまま / 緑に戻す = 暫定 46 の改訂）/ 前回の目視で出た IME の切り替えの操作をユーザーから聞いて暫定 46 §9 #7 を判断 → task_04（正本反映〔§8〕・暫定 46 凍結・decisions_archive/63・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー）を `/task_new` で起票
-- タスクの連続実行はユーザー許可済み（仕様フラグ・実機目視では止まる）。main へのマージはユーザー
-- phase 63 の設計の要点（v0.5）: 押下だけのキー（241 / 242）を `MakeOnlyKeyFilter`（application・1 本のロック・世代・`on_routes` はロックの外）が「押した / 離した」に組み直す。**リピートなし**（押し続けている間の押下は捨てる）。離し = 16 ms 以下の 2 回組 / 案 A =「押した」から待ち時間 − 100 ms より前の単独の押下 / 古い押下（待ち時間 + 300 ms 超）は次の押下で「離した」→「押した」。**v0.5: 長押しの途中の 2 回組・案 A の「離した」から 16 ms 超〜60 ms 以内の押下は続き（`handle` を呼ばない・「押した」の時刻を置き直す）** = フックの詰まりによる取り違えからの連鎖の防止。リピートを捨てた理由 = 送信の最中の物理の押下が keyboard の `is_replaying` で OS へ素通りする（**idea_53**）
+- 次フェーズはユーザー判断（残件: idea_53 送信の最中の素通り〔直れば押下だけのキーのリピートを戻せる〕/ idea_54 IME の切り替え〔再発時〕/ idea_50・51・48・45 ほか）
+- main へのマージはユーザー。タスクの連続実行はユーザー許可済み（仕様フラグ・実機目視では止まる）
 
-## 直前のフェーズ（phase 62 = 特殊キーの名前をレイアウトだけが決める）の要点
-- 正本 = `key_input.md` §7.1「フックの実行時のキー名の出どころ」・§7.7「キー名 → 走査コードの解決の順」・§7.8 / `features.md` §4.6「レイアウトの JSON の `scan_code`」/ 地図 = `codebase_map.md`（`keyboard_layouts.py`・`LayoutController`・キーの送信の節）/ 判断 = `decisions_archive/62_special_keys_from_layout_only.md`
-- 受け取り: テンキー → 選んでいるレイアウトの `scan_code` だけ → `event.name`。送信・検査・同じキー: `InputGateway._resolve_key` = テンキー → 拡張 → keyboard → 注入された `resolve_layout_scan_code`（`LayoutController.resolve_scan_code_from_key_name`・登録済みの `entry.layout`・1〜255）→ `ValueError`。レイアウトのキーは SendInput の走査コードで送る（以前は `muhenkan` が送れていなかった）
-- レイアウトの読み直し（起動・追加・削除・構成の読込）と選ぶ id の変更の前に `held_inputs.release_all`
-- 【実測・2026-10-18】この PC の無変換・変換は、**押下（`VK_IME_OFF` / `VK_IME_ON`・走査コード 241 / 242・`ext=1`）が約 60 ms に 3 回届き離しが無い**（MS-IME の割り当てオフ・`Scancode Map` 無し・キーボード本体が LANG2 / LANG1 で送る見込み）→ 二重送信・送信ガード中の素通りになるため扱えない → idea_52。`extra_scan_codes` は取り下げ
-- 受容: 離しに失敗したまま切り替えると記録が消え得る / 起動中の JSON 書き換えで受け取りと送信がずれる（いずれも idea_51）
+## 直前のフェーズ（phase 63 = 押下だけが続けて届くキー・判断は `decisions_archive/63_make_only_keys.md`）
+- 正本 = `key_input.md` §7.1「押下だけが届くキー」・§7.3「押下だけのキーの組み直し」・§7.2・§7.4・§7.7 / `features.md` §4.6「`extra_scan_codes`」「押下だけのキーの直接置換の枠」/ 地図 = `codebase_map.md` の phase 63 の項
+- 241 / 242（domain の表）を `MakeOnlyKeyFilter`（application・1 本のロック・世代）が「押した / 離した」に組み直す。リピートなし・離した直後 16 ms 超〜60 ms の押下は押し続けの続き。名前はレイアウトの `extra_scan_codes`（受け取り専用・送信に使わない）。直接置換の枠は灰色がかった緑
+- 計測用のデバッグ出力（`debug_jis_special_key_events` が真で `[hook]` 全キー・`[ui]`・`[make-only]`）は残す（ユーザー判断）。タイマー確定の actions の順のずれは受容
+- 保留: decisions_archive/63 の L4〜L7（docstring・codebase_map の既存テスト行の位置 ほか）
 
 ## 運用インフラ
 
@@ -147,8 +143,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 62_special_keys_from_layout_only / 61_keyboard_ui_vk_to_scan_code / 60_ime_off_during_key_capture）。
-- 着手中 = **idea_52**（phase 63）。新規の未着手: **idea_53**（送信の最中の物理の入力の素通り・直れば押下だけのキーのリピートを戻せる）/ **idea_48**（取得中のフック再開）/ **idea_50**（取得で JIS の特殊キーを取る）/ **idea_51**（受け取りと送信で同じレイアウトの写し・フックのスレッドで JSON を読み直さない）/ idea_45（取得の記号キーの名前）/ idea_44（枠の配色）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
+  （直近 3 件: 63_make_only_keys / 62_special_keys_from_layout_only / 61_keyboard_ui_vk_to_scan_code）。
+- 新規の未着手: **idea_54**（押下だけのキーで IME が切り替わった件・再発時）/ **idea_53**（送信の最中の物理の入力の素通り・直れば押下だけのキーのリピートを戻せる）/ **idea_48**（取得中のフック再開）/ **idea_50**（取得で JIS の特殊キーを取る）/ **idea_51**（受け取りと送信で同じレイアウトの写し・フックのスレッドで JSON を読み直さない）/ idea_45（取得の記号キーの名前）/ idea_44（枠の配色）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
   idea_29〜idea_31 / idea_13 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/
