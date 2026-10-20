@@ -4,36 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-20T09:00:00
-phase: `instructions/phase/63_make_only_keys`（phase 63・暫定 46 v0.5 ユーザー確定済 2026-10-20・decisions 63）。次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25 / idea 55
-直前の完了フェーズ = **phase 62**（`decisions_archive/62_special_keys_from_layout_only.md`）
-last_commit_location: `claude/ime-switch-color-adjust-ac5df9`（暫定 46 v0.5・task_03f）。task_01〜03e = `claude/phase62-trace-file-empty-ddc0c0`（Operation_check へ早送り済み = ff61938）。main へのマージはユーザー
+last_updated: 2026-10-20T10:30:00
+phase: なし（phase 63 は 2026-10-20 完了）。次採番 = phase 64 / 暫定 47 / decisions 64 / 提案書 25 / idea 55
+直前の完了フェーズ = **phase 63**（`decisions_archive/63_make_only_keys.md`）
+last_commit_location: `claude/physical-device-verification-d64c61`（phase 63 task_04・完了）。task_03f = `claude/ime-switch-color-adjust-ac5df9`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 63（idea_52）: 暫定 46 v0.5（離した直後の押下は押し続けの続き）で task_03f を実装・検証・レビュー済み。ユーザーの実機目視（§6 #6）OK（2026-10-20）。色の最終判断・§9 #7 の判断待ち → task_04。**
-mode: waiting_user
+focus: **phase 63 完了（2026-10-20・押下だけが続けて届くキー・暫定 46 v0.5 凍結）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+mode: idle
 presence: present
 
 ## last_action
-ts: 2026-10-20T08:43:00
+ts: 2026-10-20T10:30:00
 who: main
 summary: |
-  実機目視（v0.4）: 123 で届いたのはリモート実行のため（普通のキー）と切り分け。241/242 の計測で、長押しの途中のフックの詰まり（約 30 ms）による「離した」の取り違え → 案 A と連鎖してリピートのように出続ける、を特定。IME の切り替えは未特定（ユーザーが操作を後で伝える）。
-  暫定 46 v0.5 確定（ce89b3a）: 「長押しの途中の 2 回組」「案 A の片方」の「離した」から 16 ms 超〜60 ms 以内の押下は続き・続きで「押した」の時刻を置き直す。Codex 敵対的 2 回（high 2・medium 1）反映。decisions 記録・task_03f 起票。
-  task_03f（application 限定・codex-implementer）: `CONTINUATION_WINDOW_S`・`released_continuable`・続きの分岐・実の up で消去・テスト 10 件 + 結合 1 件。既存 1 件の期待値が「押した」→「続き」（注 5 どおり・テスト名を直した）。reviewer 完了可。
+  task_03f の実機目視 OK（ユーザー）。色は灰色がかった緑で確定・IME の切り替え（§9 #7）は idea_54 へ分離。
+  task_04: 正本反映（key_input.md §7.1〜§7.4・§7.7 / features.md §4.6 / codebase_map の phase 63 の項）・暫定 46 凍結・decisions_archive/63・索引・current.md 完了・idea_52 を INDEX_done へ。
+  完了判定前レビュー: deep-reviewer 修正して採用（文書で反映 M2・M3・L1〜L3 / 保留 L4〜L7）・Codex 敵対的 medium 1（タイマー確定の actions の順のずれ）= ユーザー判断で受容し正本に一文。計測用デバッグ出力は残す（ユーザー判断）。/refactor_check 不要。
 result_files:
-  - keyseq/application/make_only_keys.py
-  - tests/test_make_only_keys.py
-  - tests/test_make_only_keys_integration.py
+  - instructions/common/spec_detail/key_input.md
+  - instructions/common/spec_detail/features.md
+  - instructions/common/codebase_map.md
+  - .claude_data/state/decisions_archive/63_make_only_keys.md
 verified:
-  compile clean / tests 1759 pass / tests_ui 1122 pass / smoke OK
+  文書のみ（コード変更なし）。実装の検証は task_03f 時点 tests 1759 / tests_ui 1122 / smoke OK
 
 ## next_action
-- **【ユーザー・実機目視（暫定 46 §6 #6）】** Operation_check を本ブランチ（`claude/ime-switch-color-adjust-ac5df9`）へ早送り → `.venv\Scripts\python.exe main.py`（`phase62.json` の `debug_jis_special_key_events` は true のまま）→ jis.json・無変換 / 変換 → BackSpace・**241 / 242 で届く環境（リモートでない）**で: 1 回押す / 2 秒以上の長押しを 3 回以上（途中で消え続けない・`released` の後に `down accept` が続かない）/ 約 0.1 秒の連打（回数どおり）/ IME が切り替わらない
-- 目視の後: 色の最終判断（灰色がかった緑のまま / 緑に戻す＝暫定 46 の改訂）→ IME の切り替えの操作をユーザーから聞いて §9 #7 を判断 → task_04（正本反映〔§8〕・暫定 46 の凍結・decisions_archive/63・decisions.md の phase 63 節を索引へ・idea_52 を INDEX_done へ・`/refactor_check`・完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
-- 別件: external_keyboard_layouts のパスが入れ子に増える件は idea_13 に追記済み（別セッション・ブランチ `claude/lucid-wiles-a6c8d3`・未マージ）
-- main へのマージはユーザー
+- 次フェーズはユーザー判断（残件: idea_53 送信の最中の素通り / idea_54 IME の切り替え / idea_50・51・48・45 ほか）
+- main へのマージはユーザー（本ブランチ `claude/physical-device-verification-d64c61`）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
