@@ -18,6 +18,7 @@ class HeldInput:
     name: str
     owner: str
     order: int
+    send: object | None = None
 
 
 class HeldInputs:
@@ -83,15 +84,19 @@ class HeldInputs:
                 self._exit_send_guard()
 
     def _key_identity(self, key: str) -> InputIdentity:
-        scan, extended = self.input_gateway.key_identity(key)
+        send = self.input_gateway.resolve_send(key)
+        scan, extended = self.input_gateway.identity_of(send)
         return ("key", scan, extended)
 
-    def _record(self, identity: InputIdentity, owner: str, name: str) -> None:
+    def _record(
+        self, identity: InputIdentity, owner: str, name: str,
+        send: object | None = None,
+    ) -> None:
         previous = self._records.get(identity)
         order = previous.order if previous is not None else self._next_order
         if previous is None:
             self._next_order += 1
-        record = HeldInput(name, owner, order)
+        record = HeldInput(name, owner, order, send)
         self._records[identity] = record
         if record != previous:
             self._notify()
@@ -104,8 +109,9 @@ class HeldInputs:
     def _press(
         self, identity: InputIdentity, owner: str, name: str,
         send: Callable[[], None], release: Callable[[], None],
+        send_record: object | None = None,
     ) -> None:
-        self._record(identity, owner, name)
+        self._record(identity, owner, name, send_record)
         try:
             send()
         except Exception:
@@ -140,16 +146,29 @@ class HeldInputs:
                 continue
             self._stop_repeat(identity)
 
-    def _send_repeat(self, key: str) -> None:
+    def _send_repeat(self, identity: InputIdentity, key: str) -> None:
+        record = self._records.get(identity)
+        if record is None or record.send is None:
+            if self._repeater is not None:
+                self._repeater.stop()
+            return
         with self._guard():
-            self.input_gateway.press_key(key)
+            self.input_gateway.press_send(record.send)
 
     def _repeat_failed(
         self, identity: InputIdentity, key: str, action: dict, exc: Exception,
     ) -> None:
+        self._stop_repeat(identity)
         message = f"キーのリピート送信に失敗しました: {exc}"
         try:
-            self.release_key(key)
+            record = self._records.get(identity)
+            if record is None:
+                with self._guard():
+                    self.input_gateway.release_key(key)
+            else:
+                with self._guard():
+                    self.input_gateway.release_send(record.send)
+                self._remove(identity)
         except Exception as release_error:
             message += f" / 解放エラー: {release_error}"
         if self._on_repeat_error is not None:
@@ -160,12 +179,14 @@ class HeldInputs:
     def press_key(
         self, owner: str, key: str, *, repeat_action: dict | None = None,
     ) -> None:
-        identity = self._key_identity(key)
+        send = self.input_gateway.resolve_send(key)
+        scan, extended = self.input_gateway.identity_of(send)
+        identity = ("key", scan, extended)
         self._stop_repeat(identity)
         with self._guard():
             self._press(identity, owner, key,
-                        lambda: self.input_gateway.press_key(key),
-                        lambda: self.input_gateway.release_key(key))
+                        lambda: self.input_gateway.press_send(send),
+                        lambda: self.input_gateway.release_send(send), send)
         if repeat_action is not None and self._repeater is not None:
             self._repeater.start(identity, key, repeat_action)
 
@@ -178,10 +199,16 @@ class HeldInputs:
                     lambda: self.input_gateway.mouse_up(button))
 
     def release_key(self, key: str) -> None:
-        identity = self._key_identity(key)
+        send = self.input_gateway.resolve_send(key)
+        scan, extended = self.input_gateway.identity_of(send)
+        identity = ("key", scan, extended)
         self._stop_repeat(identity)
         with self._guard():
-            self.input_gateway.release_key(key)
+            record = self._records.get(identity)
+            if record is not None and record.send is not None:
+                self.input_gateway.release_send(record.send)
+            else:
+                self.input_gateway.release_key(key)
         self._remove(identity)
 
     def release_mouse(
@@ -204,7 +231,7 @@ class HeldInputs:
                 if identity[0] == "key":
                     self._stop_repeat(identity)
                     with self._guard():
-                        self.input_gateway.release_key(record.name)
+                        self.input_gateway.release_send(record.send)
                 else:
                     self.input_gateway.mouse_up(record.name)
             except Exception as exc:
@@ -240,7 +267,7 @@ class HeldInputs:
             for identity, record in self._ordered_records():
                 if identity[0] == "key":
                     try:
-                        self.input_gateway.release_key(record.name)
+                        self.input_gateway.release_send(record.send)
                     except Exception as exc:
                         errors.append(exc)
         if errors:
@@ -252,9 +279,15 @@ class HeldInputs:
         errors: list[Exception] = []
         for identity, record in self._ordered_records():
             if identity[0] == "key":
-                # 押し直しの失敗も通常の押下と同じ補償を行う。
+                # 記録済みの送り方で押し直し、失敗時は同じ送り方で補償する。
                 try:
-                    self.press_key(record.owner, record.name)
+                    with self._guard():
+                        self._press(
+                            identity, record.owner, record.name,
+                            lambda: self.input_gateway.press_send(record.send),
+                            lambda: self.input_gateway.release_send(record.send),
+                            record.send,
+                        )
                 except Exception as exc:
                     errors.append(exc)
         if errors:

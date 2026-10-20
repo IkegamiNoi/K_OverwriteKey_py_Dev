@@ -17,7 +17,7 @@ class KeyRepeater:
         self, *, after: Callable[[int, Callable[[], None]], object] | None = None,
         after_cancel: Callable[[object], None] | None = None,
         get_timing: Callable[[], tuple[int, int]],
-        send: Callable[[str], None] | None = None,
+        send: Callable[[InputIdentity, str], None] | None = None,
         on_failure: Callable[[InputIdentity, str, dict, Exception], None] | None = None,
         is_blocked: Callable[[], bool] | None = None,
     ) -> None:
@@ -33,7 +33,7 @@ class KeyRepeater:
         self._suppress_count = 0
 
     def set_callbacks(
-        self, send: Callable[[str], None],
+        self, send: Callable[[InputIdentity, str], None],
         on_failure: Callable[[InputIdentity, str, dict, Exception], None],
     ) -> None:
         """保持入力の集合から送信と後始末を受け取る。"""
@@ -98,7 +98,7 @@ class KeyRepeater:
                 self.stop()
                 return
         try:
-            self._send(key)
+            self._send(identity, key)
         except Exception as exc:
             self.stop()
             if self._on_failure is not None:

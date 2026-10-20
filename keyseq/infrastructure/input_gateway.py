@@ -3,6 +3,7 @@
 import ctypes
 import logging
 import sys
+from dataclasses import dataclass
 from ctypes import wintypes
 from functools import cache
 from typing import Callable
@@ -79,6 +80,13 @@ class _INPUT_UNION(ctypes.Union):
 class _INPUT(ctypes.Structure):
     _anonymous_ = ("union",)
     _fields_ = [("type", wintypes.DWORD), ("union", _INPUT_UNION)]
+
+
+@dataclass(frozen=True)
+class KeySend:
+    kind: str
+    values: tuple[int, ...]
+    key: str
 
 
 def repeat_delay_ms(value: int) -> int | None:
@@ -276,7 +284,14 @@ class InputGateway:
         keyboard.unhook(handle)
 
     def press_key(self, key: str) -> None:
+        self.press_send(self.resolve_send(key))
+
+    def resolve_send(self, key: str) -> KeySend:
         kind, values = self._resolve_key(key)
+        return KeySend(kind, values, key)
+
+    def press_send(self, send: KeySend) -> None:
+        kind, values = send.kind, send.values
         if kind == "numpad":
             _send_numpad_event(values[0], bool(values[1]), key_up=False)
             return
@@ -285,10 +300,13 @@ class InputGateway:
         elif kind == "layout":
             _send_numpad_event(values[0], False, key_up=False)
         else:
-            keyboard.press(key)
+            keyboard.press(send.key)
 
     def release_key(self, key: str) -> None:
-        kind, values = self._resolve_key(key)
+        self.release_send(self.resolve_send(key))
+
+    def release_send(self, send: KeySend) -> None:
+        kind, values = send.kind, send.values
         if kind == "numpad":
             _send_numpad_event(values[0], bool(values[1]), key_up=True)
             return
@@ -297,7 +315,7 @@ class InputGateway:
         elif kind == "layout":
             _send_numpad_event(values[0], False, key_up=True)
         else:
-            keyboard.release(key)
+            keyboard.release(send.key)
 
     def send_hotkey(self, hotkey: str) -> None:
         keys = [key.strip() for key in hotkey.split("+")]
@@ -344,7 +362,10 @@ class InputGateway:
             ime_control.restore_after_text(reservation, len(text))
 
     def key_identity(self, key: str) -> tuple[int, bool]:
-        kind, values = self._resolve_key(key)
+        return self.identity_of(self.resolve_send(key))
+
+    def identity_of(self, send: KeySend) -> tuple[int, bool]:
+        kind, values = send.kind, send.values
         if kind == "numpad":
             return values[0], bool(values[1])
         if kind == "extended":

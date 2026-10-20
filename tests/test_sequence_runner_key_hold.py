@@ -42,6 +42,18 @@ class FakeGateway:
     def key_identity(self, key):
         return {"shift": (42, False), "ctrl": (29, False)}.get(key, (30, False))
 
+    def resolve_send(self, key):
+        return key, self.key_identity(key)
+
+    def identity_of(self, send):
+        return send[1]
+
+    def press_send(self, send):
+        self.press_key(send[0])
+
+    def release_send(self, send):
+        self.release_key(send[0])
+
     def validate_key_name(self, key):
         self.events.append(("validate", key))
 

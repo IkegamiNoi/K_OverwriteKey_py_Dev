@@ -80,6 +80,42 @@ class InputGatewaySendTests(unittest.TestCase):
             call.press("a"),
         ])
 
+    def test_resolved_keyboard_send_preserves_key_name_and_identity(self) -> None:
+        send = self.gateway.resolve_send("a")
+        self.assertEqual(send.kind, "keyboard")
+        self.assertEqual(send.key, "a")
+        self.assertEqual(self.gateway.identity_of(send), self.gateway.key_identity("a"))
+
+        self.gateway.press_send(send)
+        self.gateway.release_send(send)
+        self.assertEqual(self.events.mock_calls, [call.press("a"), call.release("a")])
+
+    def test_resolved_special_sends_preserve_their_original_routes(self) -> None:
+        gateway = input_gateway.InputGateway(resolve_layout_scan_code=lambda _key: 123)
+        layout_send = gateway.resolve_send("muhenkan")
+        numpad_send = gateway.resolve_send("num 1")
+        extended_send = gateway.resolve_send("right")
+        self.assertEqual((layout_send.kind, layout_send.values), ("layout", (123,)))
+        self.assertEqual((numpad_send.kind, numpad_send.values), ("numpad", (79, 0)))
+        self.assertEqual((extended_send.kind, extended_send.values), ("extended", (0x27, 0x4D)))
+        self.assertEqual(gateway.identity_of(layout_send), (123, False))
+        self.assertEqual(gateway.identity_of(numpad_send), (79, False))
+        self.assertEqual(gateway.identity_of(extended_send), (0x4D, True))
+        gateway.press_send(layout_send)
+        gateway.release_send(layout_send)
+        gateway.press_send(numpad_send)
+        gateway.release_send(numpad_send)
+        gateway.press_send(extended_send)
+        gateway.release_send(extended_send)
+        self.assertEqual(self.events.mock_calls, [
+            call.numpad(123, False, key_up=False),
+            call.numpad(123, False, key_up=True),
+            call.numpad(79, False, key_up=False),
+            call.numpad(79, False, key_up=True),
+            call.ext(0x27, 0x4D, key_up=False),
+            call.ext(0x27, 0x4D, key_up=True),
+        ])
+
     def test_numpad_keys_use_scan_code_sender(self) -> None:
         cases = {
             "num 1": (79, False),

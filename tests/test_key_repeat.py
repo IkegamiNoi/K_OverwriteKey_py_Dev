@@ -34,7 +34,7 @@ class ManualAfter:
 class KeyRepeaterTests(unittest.TestCase):
     def setUp(self) -> None:
         self.timer = ManualAfter()
-        self.sent: list[str] = []
+        self.sent: list[tuple[tuple[str, int, bool], str]] = []
         self.failures: list[tuple] = []
         self.timing_calls = 0
         self.action = {"type": "key_hold", "edge": "down", "value": "a", "repeat": True}
@@ -48,7 +48,7 @@ class KeyRepeaterTests(unittest.TestCase):
             after=self.timer.after,
             after_cancel=self.timer.after_cancel,
             get_timing=get_timing,
-            send=self.sent.append,
+            send=lambda identity, key: self.sent.append((identity, key)),
             on_failure=lambda *args: self.failures.append(args),
         )
 
@@ -58,10 +58,10 @@ class KeyRepeaterTests(unittest.TestCase):
         self.assertEqual(self.timer.calls, [("after-0", 350)])
         self.assertEqual(self.sent, [])
         self.timer.fire("after-0")
-        self.assertEqual(self.sent, ["a"])
+        self.assertEqual(self.sent, [(self.identity, "a")])
         self.assertEqual(self.timer.calls[-1], ("after-1", 45))
         self.timer.fire("after-1")
-        self.assertEqual(self.sent, ["a", "a"])
+        self.assertEqual(self.sent, [(self.identity, "a")] * 2)
         self.assertEqual(self.timer.calls[-1], ("after-2", 45))
         self.assertEqual(self.timing_calls, 1)
 
@@ -84,16 +84,16 @@ class KeyRepeaterTests(unittest.TestCase):
         self.repeater._is_blocked = is_blocked
         self.repeater.start(self.identity, "a", self.action)
         self.timer.fire("after-0")
-        self.assertEqual(self.sent, ["a"])
+        self.assertEqual(self.sent, [(self.identity, "a")])
 
         is_blocked.return_value = True
         self.timer.fire("after-1")
-        self.assertEqual(self.sent, ["a"])
+        self.assertEqual(self.sent, [(self.identity, "a")])
         self.assertFalse(self.repeater.has_target)
 
         is_blocked.return_value = False
         self.timer.fire("after-1")
-        self.assertEqual(self.sent, ["a"])
+        self.assertEqual(self.sent, [(self.identity, "a")])
         self.assertEqual(len(self.timer.calls), 2)
 
     def test_resume_after_text_checks_blocking_on_first_fire(self) -> None:
@@ -132,7 +132,7 @@ class KeyRepeaterTests(unittest.TestCase):
             self.timer.fire("after-0")
             self.timer.fire("after-1")
 
-        self.assertEqual(self.sent, ["a", "a"])
+        self.assertEqual(self.sent, [(self.identity, "a")] * 2)
         self.assertEqual(len(logs.records), 1)
         self.assertTrue(self.repeater.has_target)
 
@@ -146,7 +146,7 @@ class KeyRepeaterTests(unittest.TestCase):
         self.repeater._after = failing_after
         with self.assertLogs("keyseq.application.key_repeat", level="ERROR"):
             self.timer.fire("after-0")
-        self.assertEqual(self.sent, ["a"])
+        self.assertEqual(self.sent, [(self.identity, "a")])
         self.assertFalse(self.repeater.has_target)
         self.repeater._after = original_after
 
@@ -158,7 +158,7 @@ class KeyRepeaterTests(unittest.TestCase):
         self.timer.fire("after-1")
 
         self.assertEqual(self.timer.cancelled, {"after-0"})
-        self.assertEqual(self.sent, ["a"])
+        self.assertEqual(self.sent, [(self.identity, "a")])
         self.assertEqual(self.timer.calls, [("after-0", 350), ("after-1", 350), ("after-2", 45)])
         self.assertEqual(self.timing_calls, 2)
 
@@ -189,7 +189,7 @@ class KeyRepeaterTests(unittest.TestCase):
                 after=after,
                 after_cancel=after_cancel,
                 get_timing=lambda: (350, 45),
-                send=self.sent.append,
+                send=lambda identity, key: self.sent.append((identity, key)),
             )
 
             repeater.start(self.identity, "a", self.action)
@@ -231,7 +231,7 @@ class KeyRepeaterTests(unittest.TestCase):
     def test_send_failure_stops_and_reports_original_target_and_exception(self) -> None:
         error = RuntimeError("repeat failed")
         self.repeater.set_callbacks(
-            lambda _key: (_ for _ in ()).throw(error),
+            lambda _identity, _key: (_ for _ in ()).throw(error),
             lambda identity, key, action, exc: self.failures.append(
                 (identity, key, action, exc)
             ),

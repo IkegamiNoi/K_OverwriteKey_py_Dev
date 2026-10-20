@@ -13,6 +13,7 @@ class FakeInputGateway:
         self.failures: dict[tuple, Exception] = {}
         self.on_press_key = None
         self.on_mouse_down = None
+        self.send_routes: list[tuple[str, str, tuple[int, bool]]] = []
         self.identities = {
             "ctrl": (29, False),
             "left ctrl": (29, False),
@@ -21,6 +22,22 @@ class FakeInputGateway:
 
     def key_identity(self, key: str) -> tuple[int, bool]:
         return self.identities.get(key, (ord(key[0]), False))
+
+    def resolve_send(self, key: str) -> tuple[str, tuple[int, bool]]:
+        return key, self.key_identity(key)
+
+    def identity_of(self, send: tuple[str, tuple[int, bool]]) -> tuple[int, bool]:
+        return send[1]
+
+    def press_send(self, send: tuple[str, tuple[int, bool]]) -> None:
+        key, identity = send
+        self.send_routes.append(("press", key, identity))
+        self.press_key(key)
+
+    def release_send(self, send: tuple[str, tuple[int, bool]]) -> None:
+        key, identity = send
+        self.send_routes.append(("release", key, identity))
+        self.release_key(key)
 
     def _record(self, call: tuple) -> None:
         self.calls.append(call)
@@ -232,6 +249,73 @@ class HeldInputsTests(unittest.TestCase):
         self.gateway.failures.clear()
         self.assertEqual(self.held.release_all(), [])
         self.assertEqual(self.gateway.calls[-1], ("release_key", "a"))
+        self.assertEqual(self.held.display_names, ())
+
+    def test_recorded_send_is_used_after_gateway_resolution_changes(self) -> None:
+        self.held.press_key("owner", "a")
+        original_send = self.gateway.send_routes[-1][2]
+        self.gateway.identities["a"] = (77, True)
+
+        self.assertEqual(self.held.release_owner("owner"), [])
+        self.assertEqual(self.gateway.send_routes[-1], ("release", "a", original_send))
+
+    def test_explicit_release_uses_record_send_when_identity_matches(self) -> None:
+        self.held.press_key("owner", "a")
+        original_send = self.gateway.send_routes[-1][2]
+
+        self.held.release_key("a")
+
+        self.assertEqual(self.gateway.send_routes[-1], ("release", "a", original_send))
+
+    def test_release_keyboard_uses_each_recorded_send(self) -> None:
+        self.held.press_key("owner", "a")
+        original_send = self.gateway.send_routes[-1][2]
+        self.gateway.identities["a"] = (77, True)
+
+        self.assertEqual(self.held.release_keyboard(), [])
+
+        self.assertEqual(self.gateway.send_routes[-1], ("release", "a", original_send))
+
+    def test_failed_release_retry_uses_recorded_send_after_resolution_changes(self) -> None:
+        self.held.press_key("owner", "a")
+        original_send = self.gateway.send_routes[-1][2]
+        self.gateway.failures[("release_key", "a")] = RuntimeError("failed")
+        self.gateway.identities["a"] = (77, True)
+
+        self.assertEqual(len(self.held.release_all()), 1)
+        self.gateway.failures.clear()
+        self.assertEqual(self.held.release_all(), [])
+
+        self.assertEqual(
+            [route for route in self.gateway.send_routes if route[0] == "release"],
+            [("release", "a", original_send)] * 2,
+        )
+
+    def test_suspend_resume_and_compensation_keep_recorded_send(self) -> None:
+        self.held.press_key("owner", "a")
+        original_send = self.gateway.send_routes[-1][2]
+        self.gateway.identities["a"] = (77, True)
+
+        self.held.suspend_keyboard()
+        self.held.resume_keyboard()
+
+        self.assertEqual(self.gateway.send_routes[-2:], [
+            ("release", "a", original_send), ("press", "a", original_send),
+        ])
+
+    def test_failed_resume_compensates_with_recorded_send(self) -> None:
+        self.held.press_key("owner", "a")
+        original_send = self.gateway.send_routes[-1][2]
+        self.held.suspend_keyboard()
+        self.gateway.identities["a"] = (77, True)
+        self.gateway.failures[("press_key", "a")] = RuntimeError("repress failed")
+
+        with self.assertRaisesRegex(RuntimeError, "repress failed"):
+            self.held.resume_keyboard()
+
+        self.assertEqual(self.gateway.send_routes[-2:], [
+            ("press", "a", original_send), ("release", "a", original_send),
+        ])
         self.assertEqual(self.held.display_names, ())
 
     def test_suspend_and_resume_keyboard_preserve_set_and_skip_mouse(self) -> None:

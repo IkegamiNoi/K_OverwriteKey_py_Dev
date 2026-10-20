@@ -11,31 +11,37 @@ last_commit_location: `claude/external-key-layout-persistence-a9eaa2`。main へ
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 65 進行中（受け取りと送信が同じレイアウトの写しを使う・idea_51）。task_01 済（コミット e6166db）→ task_02 は Codex の利用上限で未着手（判断待ち）。**
-mode: blocked
-presence: away（戻る予定 未定）
+focus: **phase 65 進行中（受け取りと送信が同じレイアウトの写しを使う・idea_51）。task_01・task_02 済 → task_03 の実機目視待ち。**
+mode: pending_review
+presence: present
 
 ## last_action
-ts: 2026-10-21T02:15:00
+ts: 2026-10-21T09:30:00
 who: main
 summary: |
-  task_01（レイアウトの写し）: codex-implementer・tests 1769 / tests_ui 1122 / smoke OK・reviewer 完了可 → コミット e6166db。
-  task_02 の定義を起票（instructions/phase/65_layout_snapshot_for_hook/tasks/task_02_held_send_record.md）→ codex-implementer へ委任したが **Codex の利用上限**（「try again at 6:37 AM」）で失敗・ファイル変更なし。implementer（Claude）への切り替えはユーザー許可が要るため不在中は止めた。
+  task_02（押したままのキーを押したときの送り方で送る）: Codex の利用上限の回復後に codex-implementer で再実行（ユーザー判断 案 A）。input_gateway に KeySend / resolve_send / press_send / release_send / identity_of・held_inputs が送り方を記録し離し・一時的な離し・押し直し・リピート・補償に使う・key_repeat の callback を send(identity, key) に。infrastructure + application（application は KeySend を import しない）。
+  reviewer 完了可（低 1 を修正）・verifier 1 回目は既存テスト 11 件の期待のずれ（実装は正しい）→ テスト修正 → 全 pass。
 result_files:
-  - keyseq/presentation/controllers/layout_controller.py
-  - tests/test_layout_controller_scan_code.py
-  - instructions/phase/65_layout_snapshot_for_hook/tasks/task_02_held_send_record.md
+  - keyseq/infrastructure/input_gateway.py
+  - keyseq/application/held_inputs.py
+  - keyseq/application/key_repeat.py
+  - tests/test_held_inputs.py
+  - tests/test_held_inputs_repeat.py
+  - tests/test_key_repeat.py
+  - tests/test_input_gateway_send.py
+  - tests/test_action_executor_key_hold.py
+  - tests/test_sequence_runner_key_hold.py
+  - tests_ui/test_key_hold_presentation.py
+  - tests_ui/test_task06_keymap_management_ui.py
 verified:
   compile: clean
-  tests: pass 1769（skipped 7）
+  tests: pass 1778（skipped 7）
   tests_ui: pass 1122
   smoke: pass
 
 ## next_action
-- **【判断待ち】task_02 の実装をどうするか**（Codex の利用上限・2026-10-21 02:10 時点で「6:37 AM に再試行可」）:
-  - 案 A（推奨）: 6:37 以降に codex-implementer で再実行（既定の運用どおり・タスク定義は起票済み）
-  - 案 B: implementer（Claude）へのフォールバックを許可して今すぐ実装（`.claude/rules/agent_selection.md`「フォールバック」）
-- task_02 の後: verifier + reviewer → コミット → task_03（実機目視〔暫定 48 §7-7 ①②〕→ 正本反映 → 暫定 48 凍結 → decisions_archive/65 → current.md 完了 → idea_51 を INDEX_done へ → /refactor_check → 完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
+- ユーザーの実機目視（暫定 48 §7-7）: ① jis.json を選んだまま JSON の `muhenkan` の `scan_code` を書き換え → 選び直す（同じ jis.json をドロップダウンで選び直す / 別のレイアウトを経由して戻す）・再起動するまではキーボードUI の表示も受け取りも変わらず、選び直した後は変わる ② jis.json の `muhenkan` を key_hold で押したまま別のレイアウトへ選び直すと離れる
+- 目視 OK 後 task_03 を `/task_new` で起票して実施（正本反映〔暫定 48 §9〕・暫定 48 凍結・decisions_archive/65・decisions.md 索引・current.md 完了・idea_51 を INDEX_done へ・/refactor_check・完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない

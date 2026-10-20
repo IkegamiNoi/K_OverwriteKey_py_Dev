@@ -36,11 +36,29 @@ class FakeInputGateway:
     def __init__(self) -> None:
         self.calls: list[tuple] = []
         self.failures: dict[tuple, Exception] = {}
+        self.identities = {"a": (30, False), "a alias": (30, False)}
+        self.send_routes: list[tuple[str, str, tuple[int, bool]]] = []
 
     def key_identity(self, key: str) -> tuple[int, bool]:
         if key in {"", "unknown"}:
             raise ValueError(f"unknown key: {key!r}")
-        return (30 if key in {"a", "a alias"} else 31, False)
+        return self.identities.get(key, (31, False))
+
+    def resolve_send(self, key: str) -> tuple[str, tuple[int, bool]]:
+        return key, self.key_identity(key)
+
+    def identity_of(self, send: tuple[str, tuple[int, bool]]) -> tuple[int, bool]:
+        return send[1]
+
+    def press_send(self, send: tuple[str, tuple[int, bool]]) -> None:
+        key, identity = send
+        self.send_routes.append(("press", key, identity))
+        self.press_key(key)
+
+    def release_send(self, send: tuple[str, tuple[int, bool]]) -> None:
+        key, identity = send
+        self.send_routes.append(("release", key, identity))
+        self.release_key(key)
 
     def press_key(self, key: str) -> None:
         call = ("press_key", key)
@@ -94,6 +112,20 @@ class HeldInputsRepeatTests(unittest.TestCase):
         self.assertEqual(self.gateway.calls, [("press_key", "a"), ("press_key", "a")])
         self.assertEqual(self.guards, ["enter", "exit", "enter", "exit"])
         self.assertEqual(self.changes, [("a",)])
+
+    def test_repeat_uses_recorded_send_and_missing_record_stops_without_sending(self) -> None:
+        self.held.press_key("owner", "a", repeat_action=self.action)
+        initial_route = self.gateway.send_routes[0][2]
+        self.gateway.identities["a"] = (88, True)
+
+        self.timer.fire("after-0")
+        self.assertEqual(self.gateway.send_routes[-1], ("press", "a", initial_route))
+
+        self.held._remove(("key", 30, False))
+        call_count = len(self.gateway.calls)
+        self.timer.fire("after-1")
+        self.assertEqual(len(self.gateway.calls), call_count)
+        self.assertFalse(self.repeater.has_target)
 
     def test_stop_repeat_for_keys_skips_unresolvable_names_and_still_stops_target(self) -> None:
         self.held.press_key("f1", "a", repeat_action=self.action)
@@ -171,14 +203,14 @@ class HeldInputsRepeatTests(unittest.TestCase):
 
     def test_alias_with_same_identity_stops_repeat_before_release_send(self) -> None:
         self.held.press_key("owner", "a", repeat_action=self.action)
-        self.gateway.failures[("release_key", "a alias")] = RuntimeError("stop after")
+        self.gateway.failures[("release_key", "a")] = RuntimeError("stop after")
 
         with self.assertRaises(RuntimeError):
             self.held.release_key("a alias")
 
         self.assertFalse(self.repeater.is_target(("key", 30, False)))
         self.assertEqual(self.timer.cancelled, {"after-0"})
-        self.assertEqual(self.gateway.calls[-1], ("release_key", "a alias"))
+        self.assertEqual(self.gateway.send_routes[-1], ("release", "a", (30, False)))
 
     def test_release_owner_all_and_keyboard_stop_even_when_release_fails(self) -> None:
         for release in (

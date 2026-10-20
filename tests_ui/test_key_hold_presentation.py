@@ -64,7 +64,8 @@ class KeyHoldPresentationTests(unittest.TestCase):
             side_effect=AssertionError("unexpected history save"),
         ))
         self.gateway = Mock(spec=app_module.InputGateway)
-        self.gateway.key_identity.side_effect = lambda key: (ord(key[0]), False)
+        self.gateway.resolve_send.side_effect = lambda key: key
+        self.gateway.identity_of.side_effect = lambda key: (ord(key[0]), False)
         stack.enter_context(patch.object(app_module, "InputGateway", return_value=self.gateway))
         self.app = app_module.App()
         self.addCleanup(self.app.destroy)
@@ -150,7 +151,7 @@ class KeyHoldPresentationTests(unittest.TestCase):
         self.press_inputs()
         order = Mock()
         order.attach_mock(self.app.hook_coordinator.stop, "stop")
-        order.attach_mock(self.gateway.release_key, "key_up")
+        order.attach_mock(self.gateway.release_send, "key_up")
         order.attach_mock(self.gateway.mouse_up, "mouse_up")
         with patch.object(self.app.held_inputs, "release_all", wraps=self.app.held_inputs.release_all) as release:
             self.app.hook.stop_hook()
@@ -173,7 +174,7 @@ class KeyHoldPresentationTests(unittest.TestCase):
 
     def test_release_errors_are_aggregated_after_all_inputs_are_released(self):
         self.press_inputs()
-        self.gateway.release_key.side_effect = RuntimeError("key failed")
+        self.gateway.release_send.side_effect = RuntimeError("key failed")
         self.gateway.mouse_up.side_effect = RuntimeError("mouse failed")
         held_before = self.app.held_inputs.display_names
         self.app.hook.stop_hook()
@@ -183,7 +184,7 @@ class KeyHoldPresentationTests(unittest.TestCase):
         error = str(self.errors.call_args.args[2])
         self.assertIn("key failed", error)
         self.assertIn("mouse failed", error)
-        self.gateway.release_key.side_effect = None
+        self.gateway.release_send.side_effect = None
         self.gateway.mouse_up.side_effect = None
         self.assertEqual(self.app.held_inputs.release_all(), [])
         self.assertEqual(self.app.held_inputs.display_names, ())
@@ -204,14 +205,14 @@ class KeyHoldPresentationTests(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "stop failed"):
                 self.app.on_close()
         self.assertEqual(self.app.held_inputs.display_names, ())
-        self.gateway.release_key.assert_called_once_with("shift")
+        self.gateway.release_send.assert_called_once_with("shift")
         self.gateway.mouse_up.assert_called_once_with("left")
         self.gateway.restore_ime_now.assert_called_once_with()
         destroy.assert_called_once_with()
 
     def test_close_reports_release_errors_and_still_restores_and_destroys(self):
         self.press_inputs()
-        self.gateway.release_key.side_effect = RuntimeError("key failed")
+        self.gateway.release_send.side_effect = RuntimeError("key failed")
         with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True), \
                 patch.object(self.app.hook, "stop_hook"), \
                 patch.object(self.app, "destroy") as destroy:
@@ -223,5 +224,5 @@ class KeyHoldPresentationTests(unittest.TestCase):
         self.assertIn("key failed", str(self.errors.call_args.args[2]))
         self.gateway.restore_ime_now.assert_called_once_with()
         destroy.assert_called_once_with()
-        self.gateway.release_key.side_effect = None
+        self.gateway.release_send.side_effect = None
         self.assertEqual(self.app.held_inputs.release_all(), [])

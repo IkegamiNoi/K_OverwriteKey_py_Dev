@@ -32,6 +32,18 @@ class FakeGateway:
         scan_code = {"shift": 42, "ctrl": 29, "left ctrl": 29, "right ctrl": 29}.get(key, 30)
         return scan_code, key == "right ctrl"
 
+    def resolve_send(self, key: str) -> tuple[str, tuple[int, bool]]:
+        return key, self.key_identity(key)
+
+    def identity_of(self, send: tuple[str, tuple[int, bool]]) -> tuple[int, bool]:
+        return send[1]
+
+    def press_send(self, send: tuple[str, tuple[int, bool]]) -> None:
+        self.press_key(send[0])
+
+    def release_send(self, send: tuple[str, tuple[int, bool]]) -> None:
+        self.release_key(send[0])
+
     def press_key(self, key: str) -> None:
         self.events.append(("key_down", key))
         if self.guard_probe is not None:

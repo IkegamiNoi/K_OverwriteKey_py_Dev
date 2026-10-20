@@ -70,6 +70,15 @@
 - `-m unittest discover -s tests` 全 pass / `-m unittest discover -s tests_ui` 全 pass（単独実行）/ `-m tests.smoke_app` pass
 - grep: `keyseq/application` に `from keyseq.infrastructure` の追加が無い
 
+## 追加修正（2026-10-21・verifier と reviewer で判明）
+
+実装は正しく、既存テストの期待が新しい作り（記録の送り方で送る）に追いついていない。テストを新しい作りに合わせる + reviewer 低 1:
+
+1. `tests/test_held_inputs_repeat.py:204-213` `test_alias_with_same_identity_stops_repeat_before_release_send`: `release_key("a alias")` は同じ identity の記録（"a" で押した）の送り方で離す（暫定 48 §4-6）。失敗の仕込みと最後の呼び出しの期待を、記録の送り方での離し（偽 gateway の release_send の記録の形）へ直す。テストの意図（離しが失敗してもリピートは先に止まる）は保つ
+2. `tests_ui/test_key_hold_presentation.py:66-67`: `Mock(spec=InputGateway)` に `resolve_send.side_effect`（キー名をそのまま返す等の中身を知らない値）と `identity_of.side_effect`（今の `key_identity` と同じ `(ord(key[0]), False)`）を設定する。`release_key` を期待している検査（:151-221 付近）は、押したままのキーの離しが `release_send` になったので `release_send` へ（引数は resolve_send が返した値）
+3. `tests_ui/test_task06_keymap_management_ui.py:64-65`・`:204-215`・`:239-247`: `patch.object(self.app.input_gateway, "release_key")` で押したままのキーの離しを数えている箇所は `release_send` を patch し、`assert_called_once` + 引数の `.key == "shift"` を確かめる（押す側を patch している箇所は `press_send` も要るか確認）
+4. `keyseq/application/held_inputs.py` `_repeat_failed`: `record.send is None` の分岐（到達しない互換コード）を削除し、記録があれば `release_send(record.send)` + 記録を消す・無ければ `release_key(key)` の 2 分岐にする
+
 ## 完了条件
 
 - 上記確認 pass・**reviewer 採用**。
