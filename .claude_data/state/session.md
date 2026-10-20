@@ -5,7 +5,7 @@
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
 last_updated: 2026-10-21T12:00:00
-phase: なし（phase 64 は 2026-10-21 完了）。次採番 = phase 65 / 暫定 47 / decisions 65 / 提案書 25 / idea 55
+phase: なし（phase 64 は 2026-10-21 完了）。次採番 = phase 65 / 暫定 48〔47 は保留〕 / decisions 65 / 提案書 25 / idea 55
 直前の完了フェーズ = **phase 64**（`decisions_archive/64_external_layout_path_base.md`）
 last_commit_location: `claude/external-key-layout-persistence-a9eaa2`（phase 64 task_01a・task_02・完了）。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
@@ -16,28 +16,21 @@ mode: idle
 presence: present
 
 ## last_action
-ts: 2026-10-21T12:00:00
+ts: 2026-10-21T14:00:00
 who: main
 summary: |
-  task_01 実機目視 OK（ユーザー）。task_02: 正本 5_08_09_orphan_sweep.md（superset の理由・旧表記は移行しない）・codebase_map・decisions_archive/64・索引・current.md 完了・idea_13 を INDEX_done へ。/refactor_check 不要。
-  完了判定前レビュー: Codex 敵対的 中 1（解決 2 回で相対 config_root のとき config/ が増える）→ task_01a で修正（codex-implementer・reviewer 完了可）/ deep-reviewer 完了可・中 1（単一 JSON の取り込みは正規化しない）= ユーザー判断で受容・低 2 を文書へ。
+  idea_53 で暫定 47 を起票（v0.1 → 起票時 deep-reviewer 修正して採用 15 件 → v0.2・案 A1 = 自分の送信に dwExtraInfo の目印・keyboard の LowLevelKeyboardProc / _send_event / is_replaying を差し替え・揃わなければ縮退）。
+  ユーザー判断: **保留・優先度 低**（keyboard の内部への依存と版の固定で維持の負担が大きい・実害は送信の最中に押したときだけでまれ）。phase 65 は起票しない。暫定 47 は保留のまま残し、idea_53 の行に理由とリンク。
 result_files:
-  - keyseq/application/config_service/split_loading.py
-  - tests/test_config_service.py
-  - tests/test_layout_controller_registration.py
-  - instructions/common/spec_detail/data_schema/5_08_09_orphan_sweep.md
-  - instructions/common/codebase_map.md
-  - .claude_data/state/decisions_archive/64_external_layout_path_base.md
+  - instructions/history/47_send_without_dropping_physical_input.md
+  - instructions/backlog/INDEX.md
+  - instructions/phase/current.md
 verified:
-  compile: clean
-  tests: pass 1763（skipped 7）
-  tests_ui: pass 1122
-  smoke: pass
+  文書のみ（コード変更なし）
 
 ## next_action
-- 次フェーズはユーザー判断（残件: idea_53 送信の最中の素通り / idea_54 IME の切り替え / idea_50・51・48・45 ほか）
+- 次フェーズはユーザー判断（残件: idea_51 レイアウトの写し / idea_50 JIS の特殊キーの取得 / idea_54 IME の切り替え〔再発時〕/ idea_48・45 ほか。idea_53 は保留）
 - main へのマージはユーザー（本ブランチ `claude/external-key-layout-persistence-a9eaa2`）
-- 利用者側: 既存の構成セット JSON の `external_keyboard_layouts` の旧表記（`config\user\…`・`config/config/…`・`keylayout\…`）は手で `user/keylayout/<file>.json` へ直す
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
