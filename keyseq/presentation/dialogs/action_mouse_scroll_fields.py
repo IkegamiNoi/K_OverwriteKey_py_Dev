@@ -4,13 +4,21 @@ import tkinter as tk
 from tkinter import ttk
 from typing import Callable
 
-from keyseq.domain.mouse_scroll import parse_mouse_scroll
+from keyseq.domain.mouse_scroll import (
+    ACTION_TYPE_MOUSE_SCROLL,
+    DEFAULT_NOTCHES,
+    DIRECTIONS,
+    UNIT_DELTA,
+    UNIT_NOTCH,
+    WHEEL_DELTA,
+    parse_mouse_scroll,
+)
 
 
 class ActionMouseScrollFields:
     """mouse_scroll 1 行分の入力欄。"""
 
-    _DIRECTION_VALUES = {"上": "up", "下": "down", "左": "left", "右": "right"}
+    _DIRECTION_VALUES = dict(zip(("上", "下", "左", "右"), DIRECTIONS))
     _DIRECTION_LABELS = {value: label for label, value in _DIRECTION_VALUES.items()}
 
     def __init__(self, parent: tk.Misc, *, capture_mouse_position: Callable) -> None:
@@ -27,21 +35,22 @@ class ActionMouseScrollFields:
         )
         self.direction_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
 
-        self.unit_var = tk.StringVar(value="notch")
+        self.unit_var = tk.StringVar(value=UNIT_NOTCH)
         self.notch_radio = ttk.Radiobutton(
-            self.frame, text="ノッチ数", variable=self.unit_var, value="notch",
+            self.frame, text="ノッチ数", variable=self.unit_var, value=UNIT_NOTCH,
             command=self.sync_amount,
         )
         self.notch_radio.grid(row=1, column=0, sticky="w", pady=(8, 0))
-        self.amount_notch_var = tk.StringVar(value="1")
+        self.amount_notch_var = tk.StringVar(value=str(DEFAULT_NOTCHES))
         self.amount_notch_entry = ttk.Entry(self.frame, textvariable=self.amount_notch_var, width=12)
         self.amount_notch_entry.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
         self.delta_radio = ttk.Radiobutton(
-            self.frame, text="生の値（120 = 1 ノッチ）", variable=self.unit_var, value="delta",
+            self.frame, text=f"生の値（{WHEEL_DELTA} = 1 ノッチ）",
+            variable=self.unit_var, value=UNIT_DELTA,
             command=self.sync_amount,
         )
         self.delta_radio.grid(row=2, column=0, sticky="w", pady=(6, 0))
-        self.amount_delta_var = tk.StringVar(value="120")
+        self.amount_delta_var = tk.StringVar(value=str(WHEEL_DELTA))
         self.amount_delta_entry = ttk.Entry(self.frame, textvariable=self.amount_delta_var, width=12)
         self.amount_delta_entry.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
 
@@ -74,13 +83,13 @@ class ActionMouseScrollFields:
         self.sync_coordinates()
 
     def load(self, action: dict) -> None:
-        raw_unit = action.get("unit", "notch")
+        raw_unit = action.get("unit", UNIT_NOTCH)
         if not isinstance(raw_unit, str):
             unit = ""
         else:
             normalized_unit = raw_unit.strip().lower()
-            unit = "notch" if not normalized_unit or normalized_unit == "notch" else (
-                "delta" if normalized_unit == "delta" else ""
+            unit = UNIT_NOTCH if not normalized_unit or normalized_unit == UNIT_NOTCH else (
+                UNIT_DELTA if normalized_unit == UNIT_DELTA else ""
             )
         self.unit_var.set(unit)
 
@@ -89,10 +98,18 @@ class ActionMouseScrollFields:
         self.direction_var.set(self._DIRECTION_LABELS.get(direction, "下"))
 
         amount_text = self._parsed_amount(action, unit)
-        if "amount" in action:
-            if unit == "notch":
+        if "amount" not in action:
+            if unit == UNIT_NOTCH:
+                self.amount_notch_var.set("")
+            elif unit == UNIT_DELTA:
+                self.amount_delta_var.set("")
+            else:
+                self.amount_notch_var.set("")
+                self.amount_delta_var.set("")
+        else:
+            if unit == UNIT_NOTCH:
                 self.amount_notch_var.set(amount_text)
-            elif unit == "delta":
+            elif unit == UNIT_DELTA:
                 self.amount_delta_var.set(amount_text)
             else:
                 self.amount_notch_var.set(amount_text)
@@ -112,10 +129,10 @@ class ActionMouseScrollFields:
     def build_action(self, label: str) -> dict:
         unit = self.unit_var.get()
         action = {
-            "type": "mouse_scroll",
+            "type": ACTION_TYPE_MOUSE_SCROLL,
             "direction": self._DIRECTION_VALUES.get(self.direction_var.get(), self.direction_var.get()),
             "unit": unit,
-            "amount": (self.amount_notch_var if unit == "notch" else self.amount_delta_var).get().strip(),
+            "amount": (self.amount_notch_var if unit == UNIT_NOTCH else self.amount_delta_var).get().strip(),
             "label": label,
         }
         if self.coordinates_var.get():
@@ -125,8 +142,8 @@ class ActionMouseScrollFields:
 
     def sync_amount(self) -> None:
         unit = self.unit_var.get()
-        self.amount_notch_entry.configure(state="disabled" if unit == "delta" else "normal")
-        self.amount_delta_entry.configure(state="disabled" if unit == "notch" else "normal")
+        self.amount_notch_entry.configure(state="disabled" if unit == UNIT_DELTA else "normal")
+        self.amount_delta_entry.configure(state="disabled" if unit == UNIT_NOTCH else "normal")
 
     def sync_coordinates(self, capture_state: str | None = None) -> None:
         if capture_state is not None:
@@ -141,16 +158,14 @@ class ActionMouseScrollFields:
 
     @staticmethod
     def _parsed_amount(action: dict, unit: str) -> str:
-        candidates = (unit,) if unit else ("notch", "delta")
+        candidates = (unit,) if unit else (UNIT_NOTCH, UNIT_DELTA)
         for candidate in candidates:
             parsed = parse_mouse_scroll({
-                "type": "mouse_scroll", "direction": "down", "unit": candidate,
+                "type": ACTION_TYPE_MOUSE_SCROLL, "direction": DIRECTIONS[1], "unit": candidate,
                 "amount": action.get("amount"),
             })
             if not isinstance(parsed, str):
                 return str(parsed.amount)
-        if not unit:
-            return str(action.get("amount"))
         return str(action.get("amount"))
 
     @staticmethod

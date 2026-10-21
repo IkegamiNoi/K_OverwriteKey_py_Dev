@@ -131,6 +131,55 @@ class ActionDialogMouseScrollTest(unittest.TestCase):
         self.assertEqual((fields.x_var.get(), fields.y_var.get()), ("12", "bad"))
         self.assertEqual(str(fields.x_entry.cget("state")), "normal")
 
+    def test_load_without_amount_leaves_selected_amount_empty_and_ok_rejects(self) -> None:
+        cases = (
+            ({"type": "mouse_scroll", "unit": "notch"}, "notch", "", "120"),
+            ({"type": "mouse_scroll", "unit": "delta"}, "delta", "1", ""),
+            ({"type": "mouse_scroll"}, "notch", "", "120"),
+            ({"type": "mouse_scroll", "unit": ""}, "notch", "", "120"),
+            ({"type": "mouse_scroll", "unit": "invalid"}, "", "", ""),
+        )
+        for initial, unit, notch, delta in cases:
+            with self.subTest(initial=initial):
+                dialog = self.make_dialog(initial, mode="edit")
+                fields = dialog.mouse_scroll_fields
+                self.assertEqual(fields.unit_var.get(), unit)
+                self.assertEqual(
+                    (fields.amount_notch_var.get(), fields.amount_delta_var.get()),
+                    (notch, delta),
+                )
+                dialog.action_label_var.set("changed")
+                error_count = self.showerror.call_count
+                dialog.on_ok()
+                self.assertIsNone(self.root._dialog_result)
+                self.assertEqual(self.showerror.call_count, error_count + 1)
+                expected_error = "量は整数に変換できる値" if unit else "単位を選んで"
+                self.assertIn(expected_error, self.showerror.call_args.args[1])
+
+    def test_mouse_scroll_capture_button_stays_disabled_during_mouse_capture(self) -> None:
+        dialog = self.make_dialog()
+        fields = dialog.mouse_scroll_fields
+        fields.coordinates_var.set(True)
+        fields.sync_coordinates()
+
+        dialog.type_var.set("mouse_click")
+        dialog._set_mouse_capture_state("disabled")
+        self.assertEqual(str(dialog.mouse_capture_btn.cget("state")), "disabled")
+        self.assertEqual(str(fields.capture_button.cget("state")), "disabled")
+
+        dialog.type_var.set("mouse_scroll")
+        dialog._sync_capture_ui()
+        self.assertEqual(str(fields.capture_button.cget("state")), "disabled")
+
+        fields.coordinates_var.set(False)
+        fields.sync_coordinates()
+        fields.coordinates_var.set(True)
+        fields.sync_coordinates()
+        self.assertEqual(str(fields.capture_button.cget("state")), "disabled")
+
+        dialog._set_mouse_capture_state("normal")
+        self.assertEqual(str(fields.capture_button.cget("state")), "normal")
+
     def test_ok_saves_normalized_action_with_and_without_coordinates(self) -> None:
         dialog = self.make_dialog()
         fields = dialog.mouse_scroll_fields

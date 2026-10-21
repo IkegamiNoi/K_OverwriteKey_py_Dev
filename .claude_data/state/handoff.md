@@ -15,16 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 66 は 2026-10-21 完了〕・次フェーズはユーザー判断で `/phase_start`）。
-   次採番 = phase 67 / 暫定 50 / decisions 67 / 提案書 25 / idea 55（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 67 は 2026-10-21 完了〕・次フェーズはユーザー判断で `/phase_start`）。
+   次採番 = phase 68 / 暫定 51 / decisions 68 / 提案書 25 / idea 55（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48・49）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜50）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 66 完了（2026-10-21・キーの取得で JIS の特殊キーを取る）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-ブランチ `claude/muhenkan-key-hold-error-dialog-a77a67`（phase 65・66 一式）。main へのマージはユーザー（PR は作らない）。
+**phase 67 完了（2026-10-21・出力シーケンスのマウススクロール）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+ブランチ `claude/nice-banach-b5d556`（phase 67 一式）。phase 65・66 = `claude/muhenkan-key-hold-error-dialog-a77a67`。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,9 +34,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 66 task_04a = 2026-10-21**）:
-compile **clean** / tests **1794 pass**（skip 7）/ tests_ui **1130 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1779〔phase 65〕→ 1794 / tests_ui: 1122 → 1130）。
+直近の実測（**phase 67 task_03a = 2026-10-21**）:
+compile **clean** / tests **1815 pass**（skip 7）/ tests_ui **1143 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1794〔phase 66〕→ 1815 / tests_ui: 1130 → 1143）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -57,9 +57,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - 次フェーズの選択はユーザー判断（`/phase_start`）。候補: idea_48（取得中のフック再開）/ idea_54 / idea_45 / その他 `instructions/backlog/INDEX.md`
 - main へのマージはユーザー（PR は作らない）
 
-## 直前のフェーズ（phase 66 = キーの取得で JIS の特殊キーを取る・判断は `decisions_archive/66_capture_jis_special_keys.md`）
-- 取得の間だけ suppress フック（`presentation/key_capture_hook.py`）でレイアウトの行に当たるキーを抑止し、フックの実行時と同じ名前を 8 入口へ渡す（`key_capture_ime.begin_key_capture(owner, window, on_hook_key)`・世代・前面のときだけ・押下中は最後の押下から OS のリピートの待ち + 200 ms・余韻 5 秒）
-- 実測: 半角/全角は押下のたびに「離し → 押下」・無変換 / 変換は 241 / 242 の押下だけ・かなは押下が止まらない（正本 key_input §7.4）。tests_ui の App も本物の取得用のフックを設定するが既定のレイアウトでは素通し
+## 直前のフェーズ（phase 67 = 出力シーケンスのマウススクロール・判断は `decisions_archive/67_mouse_scroll_action.md`）
+- 新しい種類 `mouse_scroll`（`direction` / `unit` = notch・delta / `amount` / 任意 `x` / `y`・正本 data_schema §5.11.10）。domain `mouse_scroll.py`・`ActionExecutor._execute_mouse_scroll`（不正は止まる系）・`InputGateway.scroll_mouse`（`move_cursor` + `SendInput` 1 回で WHEEL / HWHEEL）・ダイアログ `action_mouse_scroll_fields.py`
+- **pyautogui のスクロールは使わない**（Windows の `hscroll` が縦に回る・量が生のまま・例外を握りつぶす）。FailSafe は画面の 4 隅（`pyautogui/__init__.py:2169-2171`）
+- 保留 = decisions_archive/67 の L6・L7
 
 ## 運用インフラ
 

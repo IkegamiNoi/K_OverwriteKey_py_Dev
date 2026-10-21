@@ -646,9 +646,10 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 ### アクションの実行（application/action_executor.py / sequence_runner.py・phase 31）
 
-- `ActionExecutor.execute(action) -> bool`: `type`（非文字列は空扱い）が `hotkey` / `text` / `mouse_click` なら送って `True`
+- `ActionExecutor.execute(action) -> bool`: `type`（非文字列は空扱い）が `hotkey` / `text` / `mouse_click` なら送って `True`（`key_hold`・`mouse_scroll`・`file_line` は下の各項）
   （内部の hotkey 検証エラー・`x` / `y`〔`to_x` / `to_y`〕不正・mouse_click の送信失敗も通知して `True`。**hotkey / text の送信例外は従来どおり `execute` の外へ抜ける**）。**それ以外は送らず** `on_action_error` へ
   `type` を文字列化した浅いコピーと理由を渡して `False`（`App` が `HookController.show_action_error` を注入）。
+- phase 67: `mouse_scroll` は `_execute_mouse_scroll`（`domain/mouse_scroll.py` の `parse_mouse_scroll` → `scroll_deltas` → `InputGateway.scroll_mouse`）。不正・送信の例外は `_report_held_error` で持ち主の押下中を離して通知し `False`（止まる系・通知に `describe_mouse_scroll` とラベル）・成功で `True`。send guard には入らない。
 - phase 37: `system` は executor へ渡らない（runner の `sequence_steps` が処理）。
 - phase 38: `file_line` は `execute()` では実行しない（渡されたら通知して `False`）。runner が `begin_file_line(action)`（準備 + 読込要求・札を返す / エラーは通知して `None`）と `poll_file_line(handle)`（未了 `None` / 行を選んで送り `True` / エラーを通知して `False`）を使う。
 - `SequenceRunner` は `perform_action`（= `App._perform_action` → `execute`）の戻り値が **`is False`** のときだけ止める:
@@ -851,7 +852,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 ### マウス操作（infrastructure/input_gateway.py の InputGateway・phase 22）
 
-- 呼び出し元は `ActionExecutor._execute_mouse_click` だけ（`mouse_click` アクション）。**send guard には入らない**
+- 呼び出し元は `ActionExecutor._execute_mouse_click`（`mouse_click` アクション）と、ホイールの `_execute_mouse_scroll`（下の phase 67 の項）。**send guard には入らない**
   （フックはキーボードのみで自己受信しないため。仕様は `spec_detail/data_schema.md` §5.11.2）。
 - `click_mouse`（`pyautogui.click`）= 従来の単発クリック。**FailSafe は従来どおり有効**（触らない）。
 - `drag_mouse` = `moveTo → mouseDown → moveTo(duration) → mouseUp`。`mouseUp` は `finally` に置き、
@@ -860,6 +861,11 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `dragTo` は使わない（try/finally が無い）。`ctypes` も使わない（pyautogui が OS 別実装を内部で選ぶため）。
 - **所要時間の算出は application 層**（`action_executor._execute_mouse_drag` が距離 ÷ `drag_speed` を
   0.15〜5.0 秒へクランプして秒数を渡す）。infrastructure は受け取った秒数で動かすだけ。
+- **マウスのホイール（phase 67・仕様 = `data_schema.md` §5.11.10・`features.md` §4.6・判断 = `decisions_archive/67_mouse_scroll_action.md`）**:
+  - domain: `domain/mouse_scroll.py`（種類の定数・上限・`MouseScrollSpec`・`parse_mouse_scroll`〔実行時エラーの判定・文字列ならエラー文言〕・`scroll_deltas`〔縦横と 1 事象ごとの符号つきの量〕・一覧の書式 `format_mouse_scroll_value`〔`format_action_list_item` から〕・通知用の `describe_mouse_scroll`）
+  - infrastructure: `InputGateway.scroll_mouse(vertical, deltas, position)` = 座標があれば `move_cursor`（FailSafe を外し待ちなし）→ `_build_wheel_inputs` で `INPUT_MOUSE` の配列（`MOUSEEVENTF_WHEEL` / `HWHEEL`・`mouseData` は `& 0xFFFFFFFF`）→ `SendInput` 1 回（送れた数が足りなければ `OSError`）。**pyautogui のスクロールは使わない**（Windows の `hscroll` が縦に回る・量が生のまま・例外を握りつぶすため）
+  - presentation: `dialogs/action_mouse_scroll_fields.py`（ダイアログの欄・`load` / `build_action` / `sync_amount` / `sync_coordinates`）・`dialogs/action_dialog.py`（種類の候補・OK の検査・`_set_mouse_capture_state`・隠れる欄のフォーカス）・`controllers/action_list_rendering.py`（「次に実行」の要約は `format_action_list_item` へ）
+  - テスト: `tests/test_mouse_scroll.py` / `test_action_executor_mouse_scroll.py` / `test_input_gateway_scroll.py` / `tests_ui/test_action_dialog_mouse_scroll.py` / `test_action_list_rendering.py`
 - ドラッグの入力 UI は `dialogs/action_dialog.py`（「ドラッグ」チェックで離す位置 X/Y・取得ボタン・速度欄を
   `grid_remove` で出し入れし、X/Y ラベルを「掴む位置」へ、回数欄を `disabled` にして保存値を 1 に固定。
   座標取得は掴む用 / 離す用で排他）。一覧表示の整形は `domain/config.py` の `format_action_list_item`。
