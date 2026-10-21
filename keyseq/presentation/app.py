@@ -54,6 +54,13 @@ from keyseq.presentation.theme import apply_global_theme, coerce_font_delta
 from keyseq.presentation.modal import install_minimize_grab_custody
 from keyseq.presentation.status_text import one_line
 from keyseq.presentation.screen_grid import ScreenGridController
+from keyseq.presentation.key_capture_hook import KeyCaptureHook
+from keyseq.presentation.key_capture_ime import (
+    capture_key_generation,
+    configure_capture_hook,
+    deliver_captured_key,
+    shutdown_capture_hook,
+)
 
 
 from keyseq.application.action_executor import ActionExecutor
@@ -80,6 +87,7 @@ from keyseq.domain.config import (
     normalize_key_name,
     safe_deepcopy,
 )
+from keyseq.domain.numpad_keys import numpad_name_from_event
 from keyseq.infrastructure.input_gateway import (
     InputGateway, keyboard_repeat_timing,
 )
@@ -258,6 +266,19 @@ class App(tk.Tk):
         self.foreground_own_window = foreground_own_window
         self.place_window_below = place_window_below
         self.layout = LayoutController(self)
+        configure_capture_hook(KeyCaptureHook(
+            register_hook=lambda callback: self.input_gateway.register_global_hook(
+                callback, suppress=True,
+            ),
+            unregister_hook=self.input_gateway.unregister_hook,
+            resolve_name=self.layout.resolve_key_name_from_scan_code,
+            numpad_name=numpad_name_from_event,
+            is_foreground=is_own_process_foreground,
+            after=self.after,
+            repeat_delay_ms=lambda: keyboard_repeat_timing()[0],
+            deliver=deliver_captured_key,
+            get_generation=capture_key_generation,
+        ))
         self.pane_layout = PaneLayoutController(self)
         self.keymap_panel = KeymapPanelController(self)
         self.trigger_panel = TriggerPanelController(self)
@@ -741,6 +762,10 @@ class App(tk.Tk):
         self.compact_window.cancel_save()
         self.hook.begin_shutdown()
         try:
+            try:
+                shutdown_capture_hook()
+            except Exception:
+                logging.getLogger(__name__).exception("Could not shut down key capture hook")
             if self.layout.keyboard_window is not None:
                 try:
                     if self.layout.keyboard_window.winfo_exists():
