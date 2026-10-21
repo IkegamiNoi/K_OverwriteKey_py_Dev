@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 66 は 2026-10-21 完了・次フェーズはユーザー判断で `/phase_start`）。**次採番 = phase 67 / 暫定 50 / decisions 67 / 提案書 25 / idea 55**（暫定 47 は idea_53 で保留中の番号）。
+- **アクティブなフェーズ = [phase 67](67_mouse_scroll_action/phase.md)**（2026-10-21 起票・出力シーケンスのマウススクロール〔新しい種類 `mouse_scroll`・上下左右・ノッチ数 / 生の値・座標は任意〕。暫定仕様先行モード〔主入力 [暫定 50](../history/50_mouse_scroll_action.md) v0.4・ユーザー確定済〕・**JSON スキーマ = 種類の追加**・起票元 = ユーザー要望 2026-10-21）。番号対応: phase 67 / 暫定 50 / decisions 67。**次採番 = phase 68 / 暫定 51 / decisions 68 / 提案書 25 / idea 55**（暫定 47 は idea_53 で保留中の番号）。
 - 直前の完了フェーズ = [phase 66](66_capture_jis_special_keys/phase.md)（2026-10-21・キーの取得で JIS の特殊キーを取る〔取得の間だけ suppress フックでレイアウトの行に当たるキーを抑止し、フックの実行時と同じ名前を 8 入口へ渡す・アプリの窓が前面のときだけ〕。暫定仕様先行モード〔暫定 49 v0.5 凍結〕・JSON スキーマ不変・起票元 idea_50・判断は [decisions_archive/66](../../.claude_data/state/decisions_archive/66_capture_jis_special_keys.md)）。
 - その前の完了フェーズ = [phase 65](65_layout_snapshot_for_hook/phase.md)（2026-10-21・受け取りと送信が同じレイアウトの写しを使う〔受け取り・送信・キーボードUI を `LayoutController` の写し 1 つへ・外部レイアウトの JSON の変更は選び直し〔同じレイアウトでも〕・読み直しのときだけ反映・押したままのキーは押したときの送り方で送る〕。暫定仕様先行モード〔暫定 48 v0.3 凍結〕・JSON スキーマ不変・起票元 idea_51・判断は [decisions_archive/65](../../.claude_data/state/decisions_archive/65_layout_snapshot_for_hook.md)）。
   [phase 64](64_external_layout_path_base/phase.md)（2026-10-21・外部キーレイアウトのパス基準の統一〔登録・読込・表示を正本 §5.7 どおりの `config` ルート基準の相対へそろえ、再起動のたびに登録が消える不具合を修正〕。直接改訂モード〔暫定なし〕・JSON スキーマ不変・起票元 idea_13。既存の壊れた値の移行・重複除去はしない〔利用者が JSON を手で直す〕・判断は [decisions_archive/64](../../.claude_data/state/decisions_archive/64_external_layout_path_base.md)）。
