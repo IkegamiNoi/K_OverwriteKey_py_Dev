@@ -11,31 +11,29 @@ last_commit_location: `claude/muhenkan-key-hold-error-dialog-a77a67`。main へ�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 66 起票済（キーの取得で JIS の特殊キーを取る・idea_50・暫定 49 v0.3 確定）。次は task_01（4 キーのフックでの届き方の実測・ユーザーの実機の打鍵が要る）。**
-mode: implementing
+focus: **phase 66 進行中（キーの取得で JIS の特殊キーを取る・idea_50・暫定 49 v0.5）。task_01〜03 済 → task_04 の実機目視待ち。**
+mode: pending_review
 presence: present
 
 ## last_action
-ts: 2026-10-21T19:00:00
+ts: 2026-10-21T21:00:00
 who: main
 summary: |
-  phase 66 起票: 暫定 49 v0.1 → deep-reviewer 修正して採用 → v0.2 → Codex 敵対的 needs-attention 2 件 → v0.3 → ユーザー確定（§6 の 3 点を推奨どおり）。
-  phase.md（タスク 4）・current.md・INDEX（idea_50 着手）・decisions.md の phase 66 節。/phase_start の整合確認 reviewer 修正して採用（軽微 2 件を反映）。
+  task_01 実測 → 暫定 49 v0.4（押下中は最後の押下から OS のリピートの待ち + 200 ms・余韻 5 秒）ユーザー確定。
+  task_02 取得用のフック（codex-implementer・テストの期待値 2 件をメインが修正）・task_03 8 入口の受け取り（codex-delegating-implementer）。どちらも reviewer 採用。
 result_files:
-  - instructions/history/49_capture_jis_special_keys.md
-  - instructions/phase/66_capture_jis_special_keys/phase.md
-  - instructions/phase/current.md
-  - instructions/backlog/INDEX.md
-  - .claude_data/state/decisions.md
+  - keyseq/presentation/key_capture_hook.py・key_capture_ime.py・app.py
+  - 8 入口（controllers/key_capture.py・dialogs/trigger_dialog.py・keymap_edit_dialog.py・keymap_switch_batch_dialog.py・action_dialog.py・action_key_hold_fields.py・keyboard_window.py・dialogs/grid_editor_window.py）・screen_grid/grid_editor_panel.py
+  - tests/test_key_capture_hook.py・tests/test_key_capture_ime.py・tests_ui/test_capture_hook_entries.py
 verified:
-  compile: clean（phase 65 task_03a 時点・本ターンは文書のみ）
-  tests: pass 1779（skipped 7）
-  tests_ui: pass 1122
+  compile: clean
+  tests: pass 1791（skipped 7）
+  tests_ui: pass 1130
   smoke: pass
 
 ## next_action
-- task_01 を `/task_new` で起票し、実測用の小スクリプト（`.venv`・keyboard の suppress フック・時間で自動終了）を用意して、ユーザーに実機で 4 キー（半角/全角・無変換・変換・かな）と押下だけのキーボードを押してもらう（暫定 49 §7a）→ 届き方と IME の切替を記録し、§3-4・§3-5 の一定時間と上限を暫定 49 へ書く（ユーザー確認）
-- その後 task_02（取得用のフック）を `codex-delegating-implementer` か `codex-implementer` へ
+- ユーザーの実機目視（暫定 49 §7-8）: jis.json を選び、トリガー・key_hold の「1 キーを記録」・hotkey（ctrl+無変換）・キーボードUI の編集で無変換・変換を記録できる / 記録の後に IME の状態が変わっていない / 記録したトリガーが実行時に動く / 取得中に Esc でキャンセルできる / 取得の終了直後に特殊キーを連打しても固まらない（task_02 reviewer の参考）
+- 目視 OK 後 task_04 を `/task_new` で起票して実施（正本反映〔暫定 49 §9〕・暫定 49 凍結・decisions_archive/66・decisions.md 索引・current.md 完了・idea_50 を INDEX_done へ・/refactor_check・完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
