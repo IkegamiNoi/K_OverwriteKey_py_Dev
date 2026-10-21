@@ -4,39 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-21T23:00:00
-phase: なし（phase 66 = instructions/phase/66_capture_jis_special_keys は 2026-10-21 完了）。次採番 = phase 67 / 暫定 50 / decisions 67 / 提案書 25 / idea 55
+last_updated: 2026-10-21T23:59:00
+phase: instructions/phase/67_mouse_scroll_action（出力シーケンスのマウススクロール・暫定 50 v0.4 ユーザー確定済）。次採番 = phase 68 / 暫定 51 / decisions 68 / 提案書 25 / idea 55
 直前の完了フェーズ = **phase 66**（キーの取得で JIS の特殊キーを取る・`decisions_archive/66_capture_jis_special_keys.md`）
-last_commit_location: `claude/muhenkan-key-hold-error-dialog-a77a67`（phase 65・66 一式）。main へのマージはユーザー
+last_commit_location: `claude/nice-banach-b5d556`（phase 67 の task_01・02）。phase 65・66 は `claude/muhenkan-key-hold-error-dialog-a77a67`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 66 完了（2026-10-21・キーの取得で JIS の特殊キーを取る）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-mode: completed
+focus: **phase 67 task_01・02 済（mouse_scroll の domain / executor / gateway・ダイアログ・要約）。task_03 の実機目視待ち。**
+mode: waiting_user_check
 presence: present
 
 ## last_action
-ts: 2026-10-21T23:00:00
+ts: 2026-10-21T23:59:00
 who: main
 summary: |
-  phase 66 task_04: 実機目視 8 項目 OK → 正本反映（key_input §7.4「取得用のフック」・§7.1・features §4.3・codebase_map）・暫定 49 凍結・decisions_archive/66・current.md 完了・idea_50 を INDEX_done へ。
-  完了判定前レビュー: Codex 敵対的 needs-attention 2 / deep-reviewer 修正要（軽微）→ ユーザー確定（推奨どおり）= task_04a（テンキーの名前を除く・世代を入口で読む・余韻の離しで時刻を延ばさない・メインが直接・reviewer 採用）+ 文書 4 件・保留 2 件。/refactor_check 不要。
+  暫定 50 v0.1 起票 → deep-reviewer 修正して採用 → v0.2 → Codex 敵対的 needs-attention 3 件 → v0.3 → ユーザー確定（Q1〜Q5 推奨どおり）= v0.4。phase 67 起票（reviewer 整合確認 採用）。
+  task_01（codex-implementer・テスト 3 件をメインが修正・reviewer 採用）/ task_02（codex-implementer・テスト 4 件をメインが修正〔cget の str 化・focus_lastfor〕・reviewer 採用）。
 result_files:
-  - keyseq/presentation/key_capture_hook.py・tests/test_key_capture_hook.py
-  - instructions/common/spec_detail/key_input.md・features.md・codebase_map.md
-  - instructions/history/49_capture_jis_special_keys.md
-  - instructions/phase/66_capture_jis_special_keys/（phase.md・tasks/task_04・task_04a）・current.md
-  - instructions/backlog/INDEX.md・INDEX_done.md
-  - .claude_data/state/decisions.md・decisions_archive/66_capture_jis_special_keys.md
+  - instructions/history/50_mouse_scroll_action.md
+  - instructions/phase/67_mouse_scroll_action/（phase.md・tasks/task_01〜03）・current.md
+  - keyseq/domain/mouse_scroll.py・domain/config.py・application/action_executor.py・infrastructure/input_gateway.py
+  - keyseq/presentation/dialogs/action_mouse_scroll_fields.py・action_dialog.py・controllers/action_list_rendering.py
+  - tests/test_mouse_scroll.py・test_action_executor_mouse_scroll.py・test_input_gateway_scroll.py / tests_ui/test_action_dialog_mouse_scroll.py
 verified:
   compile: clean
-  tests: pass 1794（skipped 7）
-  tests_ui: pass 1130
+  tests: pass 1815（skipped 7）
+  tests_ui: pass 1141
   smoke: pass
 
 ## next_action
-- 次フェーズの選択はユーザー判断（`/phase_start`）。候補: idea_48（取得中のフック再開）/ idea_54 / idea_45 / その他 `instructions/backlog/INDEX.md`
-- main へのマージはユーザー（PR は作らない）
+- ユーザーの実機目視（`instructions/phase/67_mouse_scroll_action/tasks/task_03_visual_check_and_spec.md` の 1〜6）の結果を受ける
+- OK なら task_03 の正本反映（暫定 50 §11）・凍結・decisions_archive/67・current.md 完了・/refactor_check・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
