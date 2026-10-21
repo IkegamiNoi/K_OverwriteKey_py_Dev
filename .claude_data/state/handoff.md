@@ -15,16 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 65 は 2026-10-21 完了〕・次フェーズはユーザー判断で `/phase_start`）。
-   次採番 = phase 66 / 暫定 49 / decisions 66 / 提案書 25 / idea 55（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 66**〔キーの取得で JIS の特殊キーを取る・主入力 暫定 49 v0.3 確定〕）。
+   次採番 = phase 67 / 暫定 50 / decisions 67 / 提案書 25 / idea 55（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 65 完了（2026-10-21・受け取りと送信が同じレイアウトの写し・押したままのキーは押したときの送り方）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-ブランチ `claude/muhenkan-key-hold-error-dialog-a77a67`（phase 65 一式）。main へのマージはユーザー（PR は作らない）。
+**phase 66 起票済（キーの取得で JIS の特殊キーを取る・idea_50・暫定 49 v0.3 確定）。次は task_01（4 キーのフックでの届き方の実測・ユーザーの実機の打鍵が要る）。**
+ブランチ `claude/muhenkan-key-hold-error-dialog-a77a67`（phase 65 完了 + phase 66 起票）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -54,9 +54,9 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズの選択はユーザー判断（`/phase_start`）。候補: idea_50（取得で JIS の特殊キーを取る・2026-10-21 に key_hold / トリガーの記録ボタンの要望を追記）/ idea_48 / idea_54 / その他 `instructions/backlog/INDEX.md`
-- main へのマージはユーザー（PR は作らない）
-- 【Codex の利用上限】2026-10-21 02:10 に上限で失敗した。再発したら implementer へのフォールバックはユーザー許可が要る
+- task_01 を `/task_new` で起票し、実測用の小スクリプト（`.venv`・keyboard の suppress フック・時間で自動終了）を用意して、ユーザーに実機で 4 キーと押下だけのキーボードを押してもらう（暫定 49 §7a）→ §3-4・§3-5 の一定時間と上限を暫定 49 へ書く（ユーザー確認）
+- その後 task_02（取得用のフック）を Codex 実装エージェントへ
+- main へのマージはユーザー。タスクの連続実行はユーザー許可済み（仕様フラグ・実機目視では止まる）
 
 ## 直前のフェーズ（phase 65 = 受け取りと送信が同じレイアウトの写し・判断は `decisions_archive/65_layout_snapshot_for_hook.md`）
 - 受け取り・送信・キーボードUI を `LayoutController._active_layout` 1 つへ（UI スレッドだけで差し替え）・外部レイアウトの JSON の変更は選び直し（同じレイアウトでも）・読み直しのときだけ反映

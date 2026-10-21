@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 65 は 2026-10-21 完了・次フェーズはユーザー判断で `/phase_start`）。**次採番 = phase 66 / 暫定 49 / decisions 66 / 提案書 25**（暫定 47 は idea_53 で保留中の番号）。
+- **アクティブなフェーズ = [phase 66](66_capture_jis_special_keys/phase.md)**（2026-10-21 起票・キーの取得で JIS の特殊キーを取る〔取得の間だけ suppress フックで選んでいるレイアウトの行に当たるキーを抑止し、フックの実行時と同じ名前を取得中の入口へ渡す・8 入口すべて・アプリの窓が前面のときだけ〕。暫定仕様先行モード・主入力 [暫定 49](../history/49_capture_jis_special_keys.md) v0.3〔ユーザー確定〕・JSON スキーマ不変・起票元 [idea_50](../backlog/idea_50_capture_jis_special_keys.md)。番号対応: phase 66 / 暫定 49 / decisions 66）。次採番 = phase 67 / 暫定 50 / decisions 67 / 提案書 25 / idea 55（暫定 47 は idea_53 で保留中の番号）。
 - 直前の完了フェーズ = [phase 65](65_layout_snapshot_for_hook/phase.md)（2026-10-21・受け取りと送信が同じレイアウトの写しを使う〔受け取り・送信・キーボードUI を `LayoutController` の写し 1 つへ・外部レイアウトの JSON の変更は選び直し〔同じレイアウトでも〕・読み直しのときだけ反映・押したままのキーは押したときの送り方で送る〕。暫定仕様先行モード〔暫定 48 v0.3 凍結〕・JSON スキーマ不変・起票元 idea_51・判断は [decisions_archive/65](../../.claude_data/state/decisions_archive/65_layout_snapshot_for_hook.md)）。
 - その前の完了フェーズ = [phase 64](64_external_layout_path_base/phase.md)（2026-10-21・外部キーレイアウトのパス基準の統一〔登録・読込・表示を正本 §5.7 どおりの `config` ルート基準の相対へそろえ、再起動のたびに登録が消える不具合を修正〕。直接改訂モード〔暫定なし〕・JSON スキーマ不変・起票元 idea_13。既存の壊れた値の移行・重複除去はしない〔利用者が JSON を手で直す〕・判断は [decisions_archive/64](../../.claude_data/state/decisions_archive/64_external_layout_path_base.md)）。
   [phase 63](63_make_only_keys/phase.md)（2026-10-20・押下だけが続けて届くキー〔無変換 241・変換 242 を「押した / 離した」に組み直す・リピートなし・離した直後 60 ms 以内の押下は押し続けの続き・直接置換の枠は灰色がかった緑・名前は `extra_scan_codes`〕。暫定仕様先行モード〔暫定 46 v0.5 凍結〕・**JSON スキーマ追加**〔レイアウトの任意キー `extra_scan_codes`〕・判断は [decisions_archive/63](../../.claude_data/state/decisions_archive/63_make_only_keys.md)）。

@@ -4,44 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-21T18:00:00
-phase: なし（phase 65 = instructions/phase/65_layout_snapshot_for_hook は 2026-10-21 完了）。次採番 = phase 66 / 暫定 49 / decisions 66 / 提案書 25 / idea 55
-直前の完了フェーズ = **phase 65**（受け取りと送信が同じレイアウトの写しを使う・`decisions_archive/65_layout_snapshot_for_hook.md`）
-last_commit_location: `claude/muhenkan-key-hold-error-dialog-a77a67`（phase 65 task_01〜03a 一式を含む）。main へのマージはユーザー
+last_updated: 2026-10-21T19:00:00
+phase: instructions/phase/66_capture_jis_special_keys（進行中・暫定仕様先行・暫定 49 v0.3 確定 / decisions 66）。次採番 = phase 67 / 暫定 50 / decisions 67 / 提案書 25 / idea 55
+直前の完了フェーズ = **phase 65**（`decisions_archive/65_layout_snapshot_for_hook.md`）
+last_commit_location: `claude/muhenkan-key-hold-error-dialog-a77a67`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 65 完了（2026-10-21・受け取りと送信が同じレイアウトの写し・押したままのキーは押したときの送り方）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-mode: completed
+focus: **phase 66 起票済（キーの取得で JIS の特殊キーを取る・idea_50・暫定 49 v0.3 確定）。次は task_01（4 キーのフックでの届き方の実測・ユーザーの実機の打鍵が要る）。**
+mode: implementing
 presence: present
 
 ## last_action
-ts: 2026-10-21T18:00:00
+ts: 2026-10-21T19:00:00
 who: main
 summary: |
-  ユーザー要望の確認: key_hold の `muhenkan` はテキスト入力なら JIS レイアウトで動く（実機 OK）・トリガー / key_hold の記録ボタンでは `??` で取れない → 既存 idea_50 へ追記（新規起票せず）。
-  phase 65 task_03: 実機目視 ①② ユーザー OK → 正本反映（key_input §7.1 / §7.7・features §4.6・codebase_map）・暫定 48 凍結・decisions_archive/65・current.md 完了・idea_51 を INDEX_done へ。
-  完了判定前レビュー: Codex 敵対的 approve（指摘なし）/ deep-reviewer 修正要（軽微）→ ユーザー確定（推奨どおり）= 文書の修正 4 件 + task_03a（`identity_of` の未定義名 `key` → `send.key`・メインが直接・reviewer 採用）・保留 4 件。
-  /refactor_check: M3 該当（held_inputs の 3 行組 3 か所）→ ユーザー判断で保留（current.md 別タスク化候補）。
+  phase 66 起票: 暫定 49 v0.1 → deep-reviewer 修正して採用 → v0.2 → Codex 敵対的 needs-attention 2 件 → v0.3 → ユーザー確定（§6 の 3 点を推奨どおり）。
+  phase.md（タスク 4）・current.md・INDEX（idea_50 着手）・decisions.md の phase 66 節。/phase_start の整合確認 reviewer 修正して採用（軽微 2 件を反映）。
 result_files:
-  - instructions/common/spec_detail/key_input.md
-  - instructions/common/spec_detail/features.md
-  - instructions/common/codebase_map.md
-  - instructions/history/48_layout_snapshot_for_hook.md
-  - instructions/phase/65_layout_snapshot_for_hook/（phase.md・tasks/task_03・task_03a）
+  - instructions/history/49_capture_jis_special_keys.md
+  - instructions/phase/66_capture_jis_special_keys/phase.md
   - instructions/phase/current.md
-  - instructions/backlog/INDEX.md・INDEX_done.md・idea_50_capture_jis_special_keys.md
-  - .claude_data/state/decisions.md・decisions_archive/65_layout_snapshot_for_hook.md
-  - keyseq/infrastructure/input_gateway.py・tests/test_input_gateway_send.py
+  - instructions/backlog/INDEX.md
+  - .claude_data/state/decisions.md
 verified:
-  compile: clean
+  compile: clean（phase 65 task_03a 時点・本ターンは文書のみ）
   tests: pass 1779（skipped 7）
-  tests_ui: pass 1122（task_02 時点・task_03a は presentation 不変）
+  tests_ui: pass 1122
   smoke: pass
 
 ## next_action
-- 次フェーズの選択はユーザー判断（`/phase_start`）。候補: idea_50（取得で JIS の特殊キーを取る・2026-10-21 に key_hold / トリガーの記録ボタンの要望を追記）/ idea_48 / idea_54 / その他 `instructions/backlog/INDEX.md`
-- main へのマージはユーザー（PR は作らない）
+- task_01 を `/task_new` で起票し、実測用の小スクリプト（`.venv`・keyboard の suppress フック・時間で自動終了）を用意して、ユーザーに実機で 4 キー（半角/全角・無変換・変換・かな）と押下だけのキーボードを押してもらう（暫定 49 §7a）→ 届き方と IME の切替を記録し、§3-4・§3-5 の一定時間と上限を暫定 49 へ書く（ユーザー確認）
+- その後 task_02（取得用のフック）を `codex-delegating-implementer` か `codex-implementer` へ
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
