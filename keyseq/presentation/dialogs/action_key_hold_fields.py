@@ -169,7 +169,7 @@ class ActionKeyHoldFields:
             self.stop_recording()
             return
         self.recording = True
-        begin_key_capture(self, self.dialog)
+        begin_key_capture(self, self.dialog, self._record_key)
         self.record_button.configure(text="記録中…")
         self.key_hint.configure(text="キーを 1 つ押してください（Esc で停止）")
         self.key_entry.focus_set()
@@ -197,6 +197,11 @@ class ActionKeyHoldFields:
         if is_unresolved_capture_key(key):
             self.key_hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
             return "break"
+        self._record_key(key)
+        return "break"
+
+    def _record_key(self, key: str) -> None:
+        if not self.recording:
+            return
         self.key_var.set(key)
         self.stop_recording()
-        return "break"

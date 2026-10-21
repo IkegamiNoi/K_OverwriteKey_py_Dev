@@ -86,7 +86,7 @@ class TriggerDialog(tk.Toplevel):
 
     def _start_capture(self):
         # 単キーの取得（F1等）を想定。Escでキャンセル。
-        begin_key_capture(self, self)
+        begin_key_capture(self, self, self._record_key)
         self._capturing = True
         self.capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
         self.hint.configure(text="取得中：トリガーにしたいキーを1回押してください（Escでキャンセル）")
@@ -113,6 +113,11 @@ class TriggerDialog(tk.Toplevel):
         if is_unresolved_capture_key(k):
             self.hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
             return "break"
+        return self._record_key(k)
+
+    def _record_key(self, k: str) -> str | None:
+        if not self._capturing:
+            return None
         # 修飾キー単体は無視（ctrl/shift/alt/windows）
         if k in ("ctrl", "shift", "alt", "windows"):
             return "break"

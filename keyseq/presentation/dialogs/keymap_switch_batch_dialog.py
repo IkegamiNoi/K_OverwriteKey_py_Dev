@@ -215,7 +215,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             self._start_capture(index)
 
     def _start_capture(self, index: int) -> None:
-        begin_key_capture(self, self)
+        begin_key_capture(self, self, self._record_key)
         self._capturing = True
         self._capture_index = index
         self.capture_buttons[index].configure(text=CAPTURE_ACTIVE_TEXT)
@@ -252,6 +252,11 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         if is_unresolved_capture_key(key):
             self.hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
             return "break"
+        return self._record_key(key)
+
+    def _record_key(self, key: str) -> str | None:
+        if not self._capturing or self._capture_index is None:
+            return None
         if (
             key in ("ctrl", "shift", "alt", "windows")
             or is_prohibited_assign_key(key)

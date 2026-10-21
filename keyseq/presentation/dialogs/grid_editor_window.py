@@ -45,6 +45,7 @@ class GridEditorWindow(tk.Toplevel):
         self._layouts: dict[str, TopLayout] = {}
         self._edited: set[str] = set()
         self.selected: tuple[int, int] | None = None
+        self._capture_active = False
         self._drag: tuple | None = None
         self.sub = sub_layout_of(self._grid)
         self.monitor = next((m for m in monitors if m.id == start_monitor_id), monitors[0])
@@ -59,11 +60,21 @@ class GridEditorWindow(tk.Toplevel):
         self.canvas.bind("<Motion>", self.on_motion)
         self.bind("<KeyPress>", self.on_key)
         self.panel = GridEditorPanel(self)
+        self.bind("<Destroy>", self._on_destroy, add="+")
         self.bind("<Map>", self._on_first_map, add="+")
         self._first_map_seen = False
         self.switch_monitor(self.monitor.id)
-        begin_key_capture(self, self)
+        begin_key_capture(self, self, self._record_key)
+        self._capture_active = True
         grab_modal(self, parent, focus=self.canvas)
+
+    def _on_destroy(self, event) -> None:
+        if event.widget is self:
+            self._capture_active = False
+
+    def _capture_target_changed(self) -> None:
+        if self._capture_active:
+            begin_key_capture(self, self, self._record_key)
 
     def _op_keys(self) -> frozenset[str]:
         return operation_keys(self.ops)
@@ -77,6 +88,7 @@ class GridEditorWindow(tk.Toplevel):
         if monitor_id not in self._layouts:
             self._layouts[monitor_id] = top_layout_for(self._grid, monitor_id)
         self.selected = (0, 0)
+        self._capture_target_changed()
         self.panel.clear_key_button_selections()
         self._drag = None
         left, top, right, bottom = self.monitor.rect
@@ -174,7 +186,10 @@ class GridEditorWindow(tk.Toplevel):
                         self.draw()
                         return
                     if x1 <= event.x < x2:
-                        self.selected = (row_index, col_index)
+                        selected = (row_index, col_index)
+                        if self.selected != selected:
+                            self.selected = selected
+                            self._capture_target_changed()
         self.draw()
 
     def on_motion(self, event) -> None:
@@ -213,6 +228,7 @@ class GridEditorWindow(tk.Toplevel):
             self.panel.clear_op_selection()
         elif self.selected is not None:
             self.selected = None
+            self._capture_target_changed()
             self.draw()
         else:
             self.destroy()
@@ -222,6 +238,11 @@ class GridEditorWindow(tk.Toplevel):
         key = self._key_name_from_event(event) or normalize_tk_key_event(event)
         if is_unresolved_capture_key(key):
             return "break"
+        return self._record_key(key, event)
+
+    def _record_key(self, key: str, event=None) -> str | None:
+        if not self._capture_active:
+            return None
         if key == "esc":
             return self.on_escape(event)
         if key in MODIFIER_KEY_NAMES:
@@ -248,6 +269,7 @@ class GridEditorWindow(tk.Toplevel):
             return
         layout = delete_row(self.layout, self.selected[0])
         self.selected = (min(self.selected[0], len(layout.rows) - 1), 0)
+        self._capture_target_changed()
         self._replace(layout)
         self.draw()
 
@@ -257,6 +279,7 @@ class GridEditorWindow(tk.Toplevel):
         row, col = self.selected
         layout = delete_cell(self.layout, row, col)
         self.selected = (row, min(col, len(layout.rows[row].cells) - 1))
+        self._capture_target_changed()
         self._replace(layout)
         self.draw()
 
@@ -269,6 +292,7 @@ class GridEditorWindow(tk.Toplevel):
         self._edited.discard(monitor_id)
         self._layouts[monitor_id] = top_layout_for(None, monitor_id)
         self.selected = (0, 0)
+        self._capture_target_changed()
         self.panel.clear_key_button_selections()
         self._drag = None
         self.draw()

@@ -346,7 +346,7 @@ class ActionDialog(tk.Toplevel):
 
     def _start_recording(self):
         self._recording = True
-        begin_key_capture(self, self)
+        begin_key_capture(self, self, self._record_nonmod_key)
         self._mods_down.clear()
         self._last_nonmod = None
         self.capture_btn.configure(text="記録停止")
@@ -381,12 +381,17 @@ class ActionDialog(tk.Toplevel):
             self._update_hotkey_preview()
             return "break"
 
+        self._record_nonmod_key(key)
+        return "break"
+
+    def _record_nonmod_key(self, key: str) -> None:
+        if not self._recording:
+            return
         # 非修飾キー：ここで確定（ctrl+tab など）
         self._last_nonmod = key
         self._update_hotkey_preview(finalize=True)
         # 1回の組み合わせを取ったら自動で記録を止める（好みで外せる）
         self._stop_recording()
-        return "break"
 
     def _on_key_release(self, event):
         if not self._recording:

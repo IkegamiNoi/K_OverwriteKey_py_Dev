@@ -150,7 +150,7 @@ class KeymapEditDialog(tk.Toplevel):
             self._start_capture()
 
     def _start_capture(self):
-        begin_key_capture(self, self)
+        begin_key_capture(self, self, self._record_key)
         self._capturing = True
         self.capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
         self.label_entry.configure(state="disabled")
@@ -178,6 +178,11 @@ class KeymapEditDialog(tk.Toplevel):
         if is_unresolved_capture_key(key):
             self.hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
             return "break"
+        return self._record_key(key)
+
+    def _record_key(self, key: str) -> str | None:
+        if not self._capturing:
+            return None
         if (
             key in ("ctrl", "shift", "alt", "windows")
             or is_prohibited_assign_key(key)

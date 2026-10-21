@@ -210,13 +210,19 @@ class GridEditorPanel(tk.Toplevel):
         self.editor.selected = None
         self.editor._drag = None
         self.clear_sub_selection()
+        changed = self.op_selected != name
         self.op_selected = name
+        if changed:
+            self.editor._capture_target_changed()
         self.update_op_buttons()
         self.editor.draw()
         self.editor.canvas.focus_set()
 
     def clear_op_selection(self) -> None:
+        changed = self.op_selected is not None
         self.op_selected = None
+        if changed:
+            self.editor._capture_target_changed()
         self.update_op_buttons()
 
     def clear_key_button_selections(self) -> None:
@@ -245,7 +251,10 @@ class GridEditorPanel(tk.Toplevel):
         self.sub_rows = rows
         self.sub_cols = cols
         self.sub_keys = list(keys)
+        changed = self.sub_selected is not None
         self.sub_selected = None
+        if changed:
+            self.editor._capture_target_changed()
         self.sub_key_buttons = []
         for row_index in range(rows):
             for col_index in range(cols):
@@ -264,7 +273,10 @@ class GridEditorPanel(tk.Toplevel):
         self.clear_op_selection()
         self.editor.selected = None
         self.editor._drag = None
+        changed = self.sub_selected != index
         self.sub_selected = index
+        if changed:
+            self.editor._capture_target_changed()
         self.update_sub_selection()
         self.editor.draw()
         self.editor.canvas.focus_set()
@@ -278,7 +290,10 @@ class GridEditorPanel(tk.Toplevel):
             )
 
     def clear_sub_selection(self) -> None:
+        changed = self.sub_selected is not None
         self.sub_selected = None
+        if changed:
+            self.editor._capture_target_changed()
         self.update_sub_selection()
 
     def sub_key_rows(self) -> list[list[str]]:

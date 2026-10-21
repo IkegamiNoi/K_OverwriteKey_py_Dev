@@ -476,8 +476,8 @@ class KeyboardWindow(tk.Toplevel):
         return "break"
 
     def _begin_edit(self, source_key: str) -> None:
+        begin_key_capture(self, self, self._record_key)
         if not self._editing_source_key:
-            begin_key_capture(self, self)
             if hasattr(self.master, "hook"):
                 self.master.hook.suspend_hook_for_dialog()
         self._editing_source_key = normalize_key_name(source_key)
@@ -503,6 +503,11 @@ class KeyboardWindow(tk.Toplevel):
         key = self._normalize_tk_key(event)
         if is_unresolved_capture_key(key):
             return "break"
+        return self._record_key(key)
+
+    def _record_key(self, key: str) -> str | None:
+        if not self._editing_source_key:
+            return None
         if key == "esc":
             self._cancel_edit(resume_hook=True)
             return "break"

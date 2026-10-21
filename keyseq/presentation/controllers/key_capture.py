@@ -60,7 +60,7 @@ class SingleKeyCaptureController:
 
     def start(self) -> None:
         """キャプチャ開始（キャプチャ中はフックを一時停止）"""
-        begin_key_capture(self, self._app)
+        begin_key_capture(self, self._app, self._record_key)
         self.capturing = True
         if self._capture_btn is not None:
             self._capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
@@ -137,6 +137,11 @@ class SingleKeyCaptureController:
         if is_unresolved_capture_key(key):
             return "break"
 
+        return self._record_key(key)
+
+    def _record_key(self, key: str) -> str | None:
+        if not self.capturing:
+            return None
         # Esc はキャンセル
         if key == "esc":
             self.stop(cancel=True)
