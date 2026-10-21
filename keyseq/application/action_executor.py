@@ -23,6 +23,11 @@ from keyseq.application.file_line_loader import FileLineLoadRequest, FileLineLoa
 from keyseq.application.held_inputs import HeldInputs
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
 from keyseq.domain.key_hold import EDGE_DOWN, is_repeat_enabled, parse_key_hold
+from keyseq.domain.mouse_scroll import (
+    describe_mouse_scroll,
+    parse_mouse_scroll,
+    scroll_deltas,
+)
 
 
 MIN_DRAG_DURATION_SEC = 0.15
@@ -141,6 +146,8 @@ class ActionExecutor:
         if action_type == "mouse_click":
             self._execute_mouse_click(action)
             return True
+        if action_type == "mouse_scroll":
+            return self._execute_mouse_scroll(action, owner)
 
         notified_action = action.copy()
         notified_action["type"] = type_text
@@ -198,7 +205,7 @@ class ActionExecutor:
     @staticmethod
     def _invalid_type_message(type_text: str, action: dict) -> str:
         err = (
-            "種類が不正です（hotkey / text / mouse_click / system / file_line / key_hold のいずれか）。"
+            "種類が不正です（hotkey / text / mouse_click / mouse_scroll / system / file_line / key_hold のいずれか）。"
             f"種類: {type_text or '(なし)'}"
         )
         label = action.get("label")
@@ -290,6 +297,30 @@ class ActionExecutor:
                     self.held_inputs.release_mouse(parsed.button, parsed.position)
         except Exception as exc:
             self._report_held_error(action, owner, f"key_hold の実行に失敗しました: {exc}")
+            return False
+        return True
+
+    def _execute_mouse_scroll(self, action: dict, owner: str | None) -> bool:
+        parsed = parse_mouse_scroll(action)
+        label = action.get("label")
+        label_text = f" ラベル: {label.strip()}" if isinstance(label, str) and label.strip() else ""
+        details = f"{describe_mouse_scroll(action)}{label_text}"
+        if isinstance(parsed, str):
+            self._report_held_error(
+                action, owner,
+                f"mouse_scroll の指定が不正です: {parsed}（{details}）",
+            )
+            return False
+        try:
+            vertical, deltas = scroll_deltas(parsed)
+            self.input_gateway.scroll_mouse(
+                vertical=vertical, deltas=deltas, position=parsed.position,
+            )
+        except Exception as exc:
+            self._report_held_error(
+                action, owner,
+                f"mouse_scroll の送信に失敗しました: {exc}（{details}）",
+            )
             return False
         return True
 
