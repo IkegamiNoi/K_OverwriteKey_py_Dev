@@ -8,9 +8,11 @@ from pynput import mouse
 
 from keyseq.domain.config import DEFAULT_DRAG_SPEED_PX_PER_SEC
 from keyseq.domain.key_hold import parse_key_hold
+from keyseq.domain.mouse_scroll import parse_mouse_scroll
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
 from keyseq.presentation.dialogs.action_control_fields import ActionControlFields
 from keyseq.presentation.dialogs.action_key_hold_fields import ActionKeyHoldFields
+from keyseq.presentation.dialogs.action_mouse_scroll_fields import ActionMouseScrollFields
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
@@ -49,7 +51,7 @@ class ActionDialog(tk.Toplevel):
 
         ttk.Label(frm, text="種類").grid(row=0, column=0, sticky="w")
         self.type_var = tk.StringVar(value="hotkey")
-        self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=["hotkey", "text", "mouse_click", "key_hold"] + ([] if mode is None else ["system", "file_line"]), state="readonly", width=12)
+        self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=["hotkey", "text", "mouse_click", "mouse_scroll", "key_hold"] + ([] if mode is None else ["system", "file_line"]), state="readonly", width=12)
         self.type_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
         self.type_combo.bind("<<ComboboxSelected>>", lambda _e: self._sync_capture_ui())
 
@@ -84,10 +86,10 @@ class ActionDialog(tk.Toplevel):
         self._rebuild_preset_buttons()
 
         self.preset_edit_btn = ttk.Button(frm, text="プリセット編集…", command=self._open_preset_manager)
-        self.preset_edit_btn.grid(row=8, column=0, sticky="w", padx=(8, 0), pady=(14, 0))
+        self.preset_edit_btn.grid(row=9, column=0, sticky="w", padx=(8, 0), pady=(14, 0))
 
         btns = ttk.Frame(frm)
-        btns.grid(row=8, column=2, columnspan=2, sticky="e", pady=(14, 0))
+        btns.grid(row=9, column=2, columnspan=2, sticky="e", pady=(14, 0))
         ttk.Button(btns, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left", padx=(0, 8))
 
@@ -126,8 +128,14 @@ class ActionDialog(tk.Toplevel):
             frm,
             capture_mouse_position=self._capture_mouse_position,
         )
-        self.key_hold_fields.frame.grid(row=7, column=0, columnspan=4, sticky="we", pady=(10, 0))
+        self.key_hold_fields.frame.grid(row=8, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.key_hold_fields.frame.grid_remove()
+
+        self.mouse_scroll_fields = ActionMouseScrollFields(
+            frm, capture_mouse_position=self._capture_mouse_position,
+        )
+        self.mouse_scroll_fields.frame.grid(row=7, column=0, columnspan=4, sticky="we", pady=(10, 0))
+        self.mouse_scroll_fields.frame.grid_remove()
 
         self.control_fields = ActionControlFields(
             frm, counter_names=counter_names or [], config_root=config_root,
@@ -170,7 +178,10 @@ class ActionDialog(tk.Toplevel):
                     self.mouse_drag_speed_var.set(str(initial.get("drag_speed", DEFAULT_DRAG_SPEED_PX_PER_SEC)))
             if (initial.get("type") or "").strip().lower() == "key_hold":
                 self.key_hold_fields.load(initial)
+            if (initial.get("type") or "").strip().lower() == "mouse_scroll":
+                self.mouse_scroll_fields.load(initial)
 
+        self._mouse_capture_active = False
         self._sync_capture_ui()
         bind_escape_close(self, is_busy=lambda: self._recording or self.key_hold_fields.recording, stop=self._stop_recording)
         grab_modal(self, parent, focus=self._initial_focus_widget())
@@ -186,7 +197,7 @@ class ActionDialog(tk.Toplevel):
             if self.mode == "add": self.append_to_end = bool(self.append_to_end_var.get())
             self.destroy()
             return
-        if t not in ("hotkey", "text", "mouse_click", "key_hold"):
+        if t not in ("hotkey", "text", "mouse_click", "mouse_scroll", "key_hold"):
             messagebox.showerror("入力エラー", "種類が不正です。")
             return
         if t in ("hotkey", "text"):
@@ -222,6 +233,25 @@ class ActionDialog(tk.Toplevel):
                 if drag_fields is None:
                     return
                 action.update(drag_fields)
+            self.parent._dialog_result = action
+        elif t == "mouse_scroll":
+            fields = self.mouse_scroll_fields
+            if not fields.unit_var.get():
+                messagebox.showerror("入力エラー", "単位を選んでください。")
+                return
+            if fields.coordinates_var.get() and (not fields.x_var.get().strip() or not fields.y_var.get().strip()):
+                messagebox.showerror("入力エラー", "マウス座標の X/Y は両方入力してください。")
+                return
+            parsed = parse_mouse_scroll(fields.build_action(label))
+            if isinstance(parsed, str):
+                messagebox.showerror("入力エラー", parsed)
+                return
+            action = {
+                "type": "mouse_scroll", "direction": parsed.direction,
+                "unit": parsed.unit, "amount": parsed.amount, "label": label,
+            }
+            if parsed.position is not None:
+                action["x"], action["y"] = parsed.position
             self.parent._dialog_result = action
         else:
             action = self.key_hold_fields.build_action(label)
@@ -305,9 +335,11 @@ class ActionDialog(tk.Toplevel):
         return {"drag": True, "to_x": to_x, "to_y": to_y, "drag_speed": speed, "clicks": 1}
 
     def _set_mouse_capture_state(self, state: str) -> None:
+        self._mouse_capture_active = state == "disabled"
         self.mouse_capture_btn.configure(state=state)
         self.mouse_to_capture_btn.configure(state=state)
         self.key_hold_fields.capture_button.configure(state=state)
+        self.mouse_scroll_fields.sync_coordinates(state)
 
     def _capture_mouse_position(self, x_var: tk.StringVar, y_var: tk.StringVar,
                                 button_widget: ttk.Button, hint_widget: ttk.Label) -> None:
@@ -432,6 +464,8 @@ class ActionDialog(tk.Toplevel):
         self._sync_hotkey_controls(t == "hotkey")
         self._sync_mouse_visibility(t)
         self.key_hold_fields.frame.grid() if t == "key_hold" else self.key_hold_fields.frame.grid_remove()
+        self.mouse_scroll_fields.frame.grid() if t == "mouse_scroll" else self.mouse_scroll_fields.frame.grid_remove()
+        self.mouse_scroll_fields.sync_coordinates("disabled" if self._mouse_capture_active else None)
         if t != "key_hold":
             self.key_hold_fields.stop_recording()
         if hidden_focus:
@@ -490,6 +524,14 @@ class ActionDialog(tk.Toplevel):
             hidden_widgets.extend((
                 fields.edge_combo, fields.target_combo, fields.key_entry,
                 fields.record_button, fields.button_combo, fields.capture_button,
+            ))
+        if action_type != "mouse_scroll":
+            fields = self.mouse_scroll_fields
+            hidden_widgets.extend((
+                fields.direction_combo, fields.notch_radio, fields.delta_radio,
+                fields.amount_notch_entry, fields.amount_delta_entry,
+                fields.coordinates_check, fields.x_entry, fields.y_entry,
+                fields.capture_button,
             ))
         return any(focused is widget for focused in candidates for widget in hidden_widgets)
 

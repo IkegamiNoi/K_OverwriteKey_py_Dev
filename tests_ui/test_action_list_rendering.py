@@ -148,6 +148,26 @@ class ActionListRenderingTest(unittest.TestCase):
             "03. [file_line] list.txt #line (=5)",
         )
 
+    def test_next_summary_formats_mouse_scroll_values_and_invalid_rows(self):
+        cases = (
+            ({"type": "mouse_scroll", "direction": "down", "unit": "notch", "amount": 3},
+             "01. [スクロール] 下 3"),
+            ({"type": "mouse_scroll", "direction": "right", "unit": "delta", "amount": 60},
+             "02. [スクロール] 右 60 (生)"),
+            ({"type": "mouse_scroll", "direction": "down", "unit": "notch", "amount": 3,
+              "x": 100, "y": 200}, "03. [スクロール] 下 3 (100, 200)"),
+            ({"type": "mouse_scroll", "direction": "bad", "unit": "notch", "amount": 3},
+             "04. [mouse_scroll] bad"),
+        )
+        for index, (action, expected) in enumerate(cases):
+            with self.subTest(action=action):
+                self.assertEqual(
+                    format_next_action_summary(
+                        index, action, loop_iterations={}, counters={},
+                    ),
+                    expected,
+                )
+
     def test_existing_next_summary_format_is_unchanged(self):
         self.assertEqual(
             format_next_action_summary(
