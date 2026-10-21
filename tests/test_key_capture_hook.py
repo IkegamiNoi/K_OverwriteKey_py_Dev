@@ -144,6 +144,33 @@ class KeyCaptureHookTests(unittest.TestCase):
         self._run_timer(100)
         self.assertEqual(self.unregistered, [self.registered[0][1]])
 
+    def test_layout_name_that_is_numpad_name_passes_through(self) -> None:
+        self.names[45] = "num 0"
+        self.hook.activate()
+        self.assertIs(self._dispatch(self._event(45)), True)
+        self.assertEqual(self.events, [])
+
+    def test_generation_is_read_before_resolving_the_name(self) -> None:
+        def resolve_and_switch(scan_code: int) -> str:
+            self.generation = 5
+            return self.names.get(scan_code, "")
+
+        self.hook._resolve_name = resolve_and_switch
+        self.hook.activate()
+        self._dispatch(self._event(41))
+        self.events.pop(0)[1]()
+        self.assertEqual(self.delivered, [("zenkaku_hankaku", 4)])
+
+    def test_up_during_idle_does_not_extend_pressed_entry(self) -> None:
+        self.hook.activate()
+        self._dispatch(self._event(41))
+        self.events.pop(0)[1]()
+        self.hook.deactivate()
+        self.now = 0.6
+        self.assertIs(self._dispatch(self._event(41, "up")), False)
+        self.now = 0.71
+        self.assertIs(self._dispatch(self._event(41, "up")), True)
+
     def test_idle_timeout_and_reactivation(self) -> None:
         self.hook.activate()
         self._dispatch(self._event(41))

@@ -75,6 +75,7 @@
 | 63_make_only_keys | [63_make_only_keys.md](decisions_archive/63_make_only_keys.md) | 押下だけが続けて届くキー（2026-10-20 完了・暫定 46 v0.5 凍結・domain の走査コードの表 241 / 242・application の状態機械・presentation のフックの分岐 / 色・**JSON スキーマ追加**〔レイアウトの任意キー `extra_scan_codes`〕）。押した / 離した に組み直す・リピートなし・離した直後 60 ms 以内の押下は押し続けの続き・直接置換の枠は灰色がかった緑 / 送信の最中の素通りは idea_53・IME の切り替えは idea_54。計測用デバッグ出力は残す・タイマー確定の actions の順のずれは受容。refactor_check: 不要 |
 | 64_external_layout_path_base | [64_external_layout_path_base.md](decisions_archive/64_external_layout_path_base.md) | 外部キーレイアウトのパス基準の統一（2026-10-21 完了・直接改訂モード・application + presentation・JSON スキーマ不変・§5.7 不変）。登録・読込・表示を `config_root` 基準の相対へそろえ、読込のたびに `config/` が増えて登録が消える不具合を修正（読込は解決 1 回・冪等）。既存の壊れた値の移行・重複除去はしない（利用者が JSON を手で直す・単一 JSON の取り込みも同じ）・孤児検出の両基準 superset は残す。idea_13。refactor_check: 不要 |
 | 65_layout_snapshot_for_hook | [65_layout_snapshot_for_hook.md](decisions_archive/65_layout_snapshot_for_hook.md) | 受け取りと送信が同じレイアウトの写しを使う（2026-10-21 完了・暫定仕様先行モード〔暫定 48 v0.3 凍結〕・presentation + application + infrastructure・JSON スキーマ不変）。受け取り・送信・キーボードUI を `LayoutController` の写し 1 つへ（UI スレッドだけで差し替え・フックのスレッドはファイルを読まない）・JSON の変更は選び直し（同じレイアウトでも）・読み直しのときだけ反映・押したままのキーは押したときの送り方（`KeySend`）で送る。idea_51。refactor_check: M3 該当（held_inputs の 3 行組 3 か所）→ ユーザー判断で保留 |
+| 66_capture_jis_special_keys | [66_capture_jis_special_keys.md](decisions_archive/66_capture_jis_special_keys.md) | キーの取得で JIS の特殊キーを取る（2026-10-21 完了・暫定仕様先行モード〔暫定 49 v0.5 凍結〕・presentation・JSON スキーマ不変）。取得の間だけ suppress フックでレイアウトの行に当たるキーを抑止し、フックの実行時と同じ名前を 8 入口へ渡す（アプリの窓が前面のときだけ・押下中は最後の押下から OS のリピートの待ち + 200 ms・余韻 5 秒・世代で古い名前を捨てる）。idea_50。refactor_check: 不要 |
 
 ※ 下記「2026-07-15〜07-17 (計画04)」はフェーズではなくリファクタ計画
 （`instructions/modified_proposal/04_widget_split_plan.md`）の記録のため、本ファイルに残置している。
@@ -624,15 +625,3 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - M2（ユーザー確定・コード変更 task_07a）: 単発の呼び出しの実行中に連鎖の呼び出し先の位置を一覧で変えたら、待機・file_line・呼び出し元の位置変更と同じく実行中の単発の呼び出しを取り消し（そこまでの進みは書き戻す）、変えた位置を優先する。今は次の書き戻しで上書きされる（要再現）。
 - M3（ユーザー確定・受容）: 呼び出し先の完了で外から進めた呼び出し元の次の待機は待たない（直前に呼び出し元が送っていないので「送った後の待ち」に当たらない。次に押すと送る前の待機として読み飛ばす）。
 - M4（ユーザー確定・コード変更 task_07a）: 呼び出し先 U が単発の呼び出しの一時停止中に T が U を呼んだら、U の一時停止を捨てて（通知）T が進める。今は黙って無視。
-
----
-
-## 2026-10-21 (phase 66: キーの取得で JIS の特殊キーを取る・暫定 49)
-
-### 【起票】モード = **暫定仕様先行**（presentation〔取得用のフック・8 入口〕+ infrastructure の既存の口・探索的・タスク 4）
-### 【暫定 49】v0.1 → deep-reviewer 修正して採用（高 2・中 6・低 11 = 記録の後の余韻・アプリの窓が前面のときだけ・テンキーの順・Esc と修飾キーは対象外・入口へ渡す口 等）→ v0.2 → Codex 敵対的 needs-attention 2 件（押下だけのキーが取得の続く間ずっと押下中・予約の古い名前の混入 → 押下中は離し / 一定時間で外す・世代）→ v0.3 → ユーザー確定（2026-10-21・§6 の 3 点を推奨どおり = 8 入口すべて / レイアウトの行に当たるキー〔テンキー・Esc・修飾キーを除く〕/ 抑止する）
-### 【/phase_start 整合確認】reviewer 修正して採用（軽微 2 件 = 暫定 49 の §6-1 の宙に浮いた参照 → §2 / current.md の暫定 47 の注記）→ 反映
-### 【task_01 実測】4 キーの届き方（半角/全角は押下のたびに「離し → 押下」・離しは届かない / 無変換・変換は 241 / 242 の押下だけ / かなは押下が止まらない）・抑止すれば IME は変わらない → 暫定 49 v0.4 = 押下中は最後の押下から「リピートの待ち + 200 ms」で外す（離しでは外さない）・余韻の上限 5 秒 → ユーザー確定（2026-10-21）・reviewer 採用
-### 【task_02】codex-implementer（取得用のフック `key_capture_hook.py`・`key_capture_ime` の `on_hook_key` / 世代 / 渡し先・App の配線）・verifier: 新規テスト 2 件 fail = Codex のテストの期待値の誤り（一定時間を最初の押下から数えていた・実装は仕様どおり「最後の押下から」）→ メインがテストを修正 → tests 1791 / tests_ui 1122 / smoke OK・reviewer 採用（参考: ロックを持ったまま unhook → keyboard の remove は待たないので受容・task_04 の実機目視で取得の終了直後の連打を見る）
-### 【task_03 起票】暫定 49 v0.5 = §3-8 の前提の訂正（tests_ui でも App が差し替えた tracker に取得用のフックを設定するので本物のフックは登録され得る・既定のレイアウトでは素通しで実害なし・挙動は不変）/ #7・#8 は今 begin を 1 回しか呼ばない → 対象の変更ごとに begin を通す（§3-6 どおり）
-### 【task_03】codex-delegating-implementer（Luna high のサブエージェント 3 体で #1–4・#5–6・#7–8 を分担）・tests 1791 / tests_ui 1130（新規 8）/ smoke OK・reviewer 採用（参考: panel から editor の非公開メソッドを呼ぶ形〔既存の `_drag` と同じ〕・フックの道筋の重複 / 検査の失敗の直接のテストなし〔共通の関数で担保〕）

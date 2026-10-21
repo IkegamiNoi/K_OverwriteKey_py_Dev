@@ -144,7 +144,8 @@ keyseq/presentation/
     status_text.py             # one_line: 省略表示中のステータス欄・ステータスバーの文言の改行を空白へ（phase 48）
     pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
-    key_capture_ime.py         # KeyCaptureImeTracker / begin_key_capture・end_key_capture: キーの取得中は IME を OFF にする寿命の部品（入口ごとの数と「OFF にした」印・開始 / 終了の冪等・窓自身の `<Destroy>` で終了・既定インスタンスはモジュール変数・phase 60）
+    key_capture_ime.py         # KeyCaptureImeTracker / begin_key_capture・end_key_capture: キーの取得中は IME を OFF にする寿命の部品（入口ごとの数と「OFF にした」印・開始 / 終了の冪等・窓自身の `<Destroy>` で終了・既定インスタンスはモジュール変数・phase 60）/ 受け取りの関数 `on_hook_key`・世代・フォーカスの窓への受け渡し `deliver`・取得用のフックの設定 `configure_capture_hook`（phase 66）
+    key_capture_hook.py        # KeyCaptureHook: キーの取得の間だけの suppress フック（レイアウトの行に当たるキーを抑止して名前を渡す・押下中・余韻・前面の判定。infrastructure は呼び出し可能な値で受ける・phase 66）
     hook_button_texts.py       # フックの枠の切替ボタンの文言・取得の案内の文言（`UNKNOWN_CAPTURE_KEY_HINT_TEXT`・phase 59 / 60 で文言変更）とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
     orphan_sweep_text.py       # 孤児ファイルの棚卸しの提示テキスト整形（警告 / 候補一覧 / 隔離結果。純関数）
     quarantine_manage_text.py  # 隔離の管理の提示テキスト整形（単位一覧 / 復元・削除の計画と結果。純関数）
@@ -814,6 +815,10 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - `??`: 各入口で `tk_keys.is_unresolved_capture_key` を見て記録しない。案内の欄 = #2・#3・#4・#6
   - 前提: `unbind("<Destroy>", funcid)` が自分の結び付けだけを外すのは Python 3.13 以降（それより前は同じ窓の `<Destroy>` を全部外す）
   - テスト: `tests/test_own_ime_status.py`・`test_key_capture_ime.py`・`test_tk_keys.py` / `tests_ui/test_capture_ime_entries.py`（`key_capture_ime._default_tracker` を偽の get / set の tracker に差し替え）
+- phase 66（キーの取得で JIS の特殊キーを取る。仕様 = `key_input.md` §7.4「取得用のフック」。判断 = `decisions_archive/66_capture_jis_special_keys.md`）:
+  - フック: `presentation/key_capture_hook.py` の `KeyCaptureHook`（`App` の `__init__` で `self.layout` の後に作り `configure_capture_hook`・`on_close` で `shutdown_capture_hook`）。tracker の 0 → 1 / 1 → 0 で `activate` / `deactivate`
+  - 入口: 8 入口とも KeyPress の処理を「名前を作る」と「名前を受けて記録する（`_record_key` / #5 は `_record_nonmod_key`）」に分け、後者を `begin_key_capture(owner, window, on_hook_key)` に渡す。#7 `keyboard_window._begin_edit` は元キーのクリックごとに begin / #8 `grid_editor_window` は記録先の選択の変更ごとに `_capture_target_changed`（`screen_grid/grid_editor_panel.py` の操作キー・細分化の選択からも呼ぶ）
+  - テスト: `tests/test_key_capture_hook.py`・`test_key_capture_ime.py` / `tests_ui/test_capture_hook_entries.py`（tracker の取得用のフックを外して受け取りの関数を直接呼ぶ）。tests_ui の App は差し替えた tracker に本物の取得用のフックを設定するが、既定のレイアウトでは対象のキーが無く素通し
 - phase 63（押下だけが届くキー〔無変換 241・変換 242〕の組み直し。仕様 = `key_input.md` §7.1・§7.2・§7.3「押下だけのキーの組み直し」・§7.7 / `features.md` §4.6「レイアウトの JSON の `extra_scan_codes`」「押下だけのキーの直接置換の枠」。判断 = `decisions_archive/63_make_only_keys.md`）:
   - 表: `domain/make_only_keys.py`（`MAKE_ONLY_SCAN_CODES` = {241, 242}・`is_make_only_scan_code`）
   - 状態機械: `application/make_only_keys.py` の `MakeOnlyKeyFilter`（`handle(event)` は表に無い走査コードなら `None`・ある場合は `MakeOnlyResult`〔accept・routes・generation〕/ `clear()` で世代を上げる / 1 本のロック / 定数 `PAIR_WINDOW_S` = 16 ms・`CONTINUATION_WINDOW_S` = 60 ms / 作るイベント `SyntheticKeyEvent`）。依存は外から注入（`route` = `input_router.handle`・`release_state` = `key_state_manager.handle_event`・`clock` = `time.perf_counter`・`schedule` = `application/delayed_calls.py` の `DelayedCallWorker.schedule`〔1 本のワーカー〕・`get_hook_pause_count`・`get_repeat_delay_ms` = `keyboard_repeat_timing()[0]`・`on_routes`・`trace`）

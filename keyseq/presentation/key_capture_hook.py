@@ -6,6 +6,7 @@ import time
 from collections.abc import Callable
 
 from keyseq.domain.key_hold import is_modifier_key
+from keyseq.domain.numpad_keys import is_numpad_key_name
 
 
 HookCallback = Callable[[object], bool]
@@ -123,6 +124,7 @@ class KeyCaptureHook:
         event_type = event.event_type
         if event_type not in ("down", "up"):
             return True
+        generation = self._get_generation()
         scan_code = event.scan_code
         name = self._target_name(scan_code, event.is_keypad)
         if name is None:
@@ -133,7 +135,8 @@ class KeyCaptureHook:
                 self._has_pressed_locked()
                 if scan_code not in self._pressed:
                     return True
-                self._pressed[scan_code] = now
+                if event_type == "down":
+                    self._pressed[scan_code] = now
                 return False
             is_new = scan_code not in self._pressed
             if not is_new:
@@ -142,7 +145,7 @@ class KeyCaptureHook:
                 self._pressed[scan_code] = now
             should_deliver = event_type == "down" and is_new
         if should_deliver:
-            self._queue_delivery(name)
+            self._queue_delivery(name, generation)
         return False
 
     def _target_name(self, scan_code: object, is_keypad: bool) -> str | None:
@@ -151,13 +154,17 @@ class KeyCaptureHook:
         if self._numpad_name(scan_code, is_keypad):
             return None
         name = self._resolve_name(scan_code)
-        if not name or name.strip().lower() == "esc" or is_modifier_key(name):
+        if (
+            not name
+            or name.strip().lower() == "esc"
+            or is_modifier_key(name)
+            or is_numpad_key_name(name)
+        ):
             return None
         return name
 
-    def _queue_delivery(self, name: str) -> None:
+    def _queue_delivery(self, name: str, generation: int) -> None:
         try:
-            generation = self._get_generation()
             self._after(0, lambda: self._deliver(name, generation))
         except Exception:
             self._logger.exception("Could not queue captured key")

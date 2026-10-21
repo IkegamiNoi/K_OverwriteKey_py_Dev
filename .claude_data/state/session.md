@@ -4,36 +4,39 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-21T19:00:00
-phase: instructions/phase/66_capture_jis_special_keys（進行中・暫定仕様先行・暫定 49 v0.3 確定 / decisions 66）。次採番 = phase 67 / 暫定 50 / decisions 67 / 提案書 25 / idea 55
-直前の完了フェーズ = **phase 65**（`decisions_archive/65_layout_snapshot_for_hook.md`）
-last_commit_location: `claude/muhenkan-key-hold-error-dialog-a77a67`。main へのマージはユーザー
+last_updated: 2026-10-21T23:00:00
+phase: なし（phase 66 = instructions/phase/66_capture_jis_special_keys は 2026-10-21 完了）。次採番 = phase 67 / 暫定 50 / decisions 67 / 提案書 25 / idea 55
+直前の完了フェーズ = **phase 66**（キーの取得で JIS の特殊キーを取る・`decisions_archive/66_capture_jis_special_keys.md`）
+last_commit_location: `claude/muhenkan-key-hold-error-dialog-a77a67`（phase 65・66 一式）。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 66 進行中（キーの取得で JIS の特殊キーを取る・idea_50・暫定 49 v0.5）。task_01〜03 済 → task_04 の実機目視待ち。**
-mode: pending_review
+focus: **phase 66 完了（2026-10-21・キーの取得で JIS の特殊キーを取る）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+mode: completed
 presence: present
 
 ## last_action
-ts: 2026-10-21T21:00:00
+ts: 2026-10-21T23:00:00
 who: main
 summary: |
-  task_01 実測 → 暫定 49 v0.4（押下中は最後の押下から OS のリピートの待ち + 200 ms・余韻 5 秒）ユーザー確定。
-  task_02 取得用のフック（codex-implementer・テストの期待値 2 件をメインが修正）・task_03 8 入口の受け取り（codex-delegating-implementer）。どちらも reviewer 採用。
+  phase 66 task_04: 実機目視 8 項目 OK → 正本反映（key_input §7.4「取得用のフック」・§7.1・features §4.3・codebase_map）・暫定 49 凍結・decisions_archive/66・current.md 完了・idea_50 を INDEX_done へ。
+  完了判定前レビュー: Codex 敵対的 needs-attention 2 / deep-reviewer 修正要（軽微）→ ユーザー確定（推奨どおり）= task_04a（テンキーの名前を除く・世代を入口で読む・余韻の離しで時刻を延ばさない・メインが直接・reviewer 採用）+ 文書 4 件・保留 2 件。/refactor_check 不要。
 result_files:
-  - keyseq/presentation/key_capture_hook.py・key_capture_ime.py・app.py
-  - 8 入口（controllers/key_capture.py・dialogs/trigger_dialog.py・keymap_edit_dialog.py・keymap_switch_batch_dialog.py・action_dialog.py・action_key_hold_fields.py・keyboard_window.py・dialogs/grid_editor_window.py）・screen_grid/grid_editor_panel.py
-  - tests/test_key_capture_hook.py・tests/test_key_capture_ime.py・tests_ui/test_capture_hook_entries.py
+  - keyseq/presentation/key_capture_hook.py・tests/test_key_capture_hook.py
+  - instructions/common/spec_detail/key_input.md・features.md・codebase_map.md
+  - instructions/history/49_capture_jis_special_keys.md
+  - instructions/phase/66_capture_jis_special_keys/（phase.md・tasks/task_04・task_04a）・current.md
+  - instructions/backlog/INDEX.md・INDEX_done.md
+  - .claude_data/state/decisions.md・decisions_archive/66_capture_jis_special_keys.md
 verified:
   compile: clean
-  tests: pass 1791（skipped 7）
+  tests: pass 1794（skipped 7）
   tests_ui: pass 1130
   smoke: pass
 
 ## next_action
-- ユーザーの実機目視（暫定 49 §7-8）: jis.json を選び、トリガー・key_hold の「1 キーを記録」・hotkey（ctrl+無変換）・キーボードUI の編集で無変換・変換を記録できる / 記録の後に IME の状態が変わっていない / 記録したトリガーが実行時に動く / 取得中に Esc でキャンセルできる / 取得の終了直後に特殊キーを連打しても固まらない（task_02 reviewer の参考）
-- 目視 OK 後 task_04 を `/task_new` で起票して実施（正本反映〔暫定 49 §9〕・暫定 49 凍結・decisions_archive/66・decisions.md 索引・current.md 完了・idea_50 を INDEX_done へ・/refactor_check・完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
+- 次フェーズの選択はユーザー判断（`/phase_start`）。候補: idea_48（取得中のフック再開）/ idea_54 / idea_45 / その他 `instructions/backlog/INDEX.md`
+- main へのマージはユーザー（PR は作らない）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
