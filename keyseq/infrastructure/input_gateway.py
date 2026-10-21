@@ -377,7 +377,7 @@ class InputGateway:
             if (scan_code & 0xFF00) == 0xE000:
                 return scan_code & 0xFF, True
             return scan_code, False
-        raise ValueError(f"Unknown key name: {key!r}")
+        raise ValueError(f"Unknown key name: {send.key!r}")
 
     def restore_ime_now(self) -> None:
         try:

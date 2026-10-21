@@ -15,16 +15,16 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 65**〔受け取りと送信が同じレイアウトの写しを使う・主入力 暫定 48 v0.3 確定〕）。
-   次採番 = phase 66 / 暫定 49 / decisions 66 / 提案書 25（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 65 は 2026-10-21 完了〕・次フェーズはユーザー判断で `/phase_start`）。
+   次採番 = phase 66 / 暫定 49 / decisions 66 / 提案書 25 / idea 55（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46）。**暫定 47 は保留（未確定）・暫定 48 は phase 65 の主入力（未凍結）**の条項を実装の根拠に引かない**（正本 `spec_detail/` が正）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 65 進行中（受け取りと送信が同じレイアウトの写しを使う・idea_51）。task_01・task_02 済 → task_03 の実機目視待ち。**
-ブランチ `claude/external-key-layout-persistence-a9eaa2`（phase 64 完了 + phase 65 task_01 = e6166db / task_02 = b6d2ea5）。main へのマージはユーザー（PR は作らない）。
+**phase 65 完了（2026-10-21・受け取りと送信が同じレイアウトの写し・押したままのキーは押したときの送り方）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
+ブランチ `claude/muhenkan-key-hold-error-dialog-a77a67`（phase 65 一式）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,9 +34,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 65 task_02 = 2026-10-21**）:
-compile **clean** / tests **1778 pass**（skip 7）/ tests_ui **1122 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1759〔phase 63〕→ 1778 / tests_ui: 1122）。
+直近の実測（**phase 65 task_03a = 2026-10-21**）:
+compile **clean** / tests **1779 pass**（skip 7）/ tests_ui **1122 pass**（task_02 時点）/ smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1759〔phase 63〕→ 1779 / tests_ui: 1122）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -54,14 +54,13 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **ユーザーの実機目視**（暫定 48 §7-7）: ① jis.json を選んだまま JSON の `muhenkan` の `scan_code` を書き換え → 選び直す（同じ jis.json をドロップダウンで選び直す / 別のレイアウトを経由して戻す）・再起動するまではキーボードUI の表示も受け取りも変わらず、選び直した後は変わる ② jis.json の `muhenkan` を key_hold で押したまま別のレイアウトへ選び直すと離れる
-- 目視 OK 後 task_03 を `/task_new` で起票して実施（正本反映〔暫定 48 §9〕・暫定 48 凍結・decisions_archive/65・decisions.md 索引・current.md 完了・idea_51 を INDEX_done へ・/refactor_check・完了判定前レビュー〔deep-reviewer + codex-adversarial-reviewer〕）
-- main へのマージはユーザー。タスクの連続実行はユーザー許可済み（仕様フラグ・実機目視では止まる）
-- 【Codex の利用上限】2026-10-21 02:10 に上限で失敗した（「try again at 6:37 AM」）。回復後は通常どおり。再発したら implementer へのフォールバックはユーザー許可が要る
+- 次フェーズの選択はユーザー判断（`/phase_start`）。候補: idea_50（取得で JIS の特殊キーを取る・2026-10-21 に key_hold / トリガーの記録ボタンの要望を追記）/ idea_48 / idea_54 / その他 `instructions/backlog/INDEX.md`
+- main へのマージはユーザー（PR は作らない）
+- 【Codex の利用上限】2026-10-21 02:10 に上限で失敗した。再発したら implementer へのフォールバックはユーザー許可が要る
 
-## 直前のフェーズ（phase 64 = 外部キーレイアウトのパス基準の統一・判断は `decisions_archive/64_external_layout_path_base.md`）
-- 登録・読込・表示を `config_root` 基準の相対（`/` 区切り）へ統一（§5.7 は不変）。旧表記の移行・重複除去はしない（利用者が JSON を手で直す・単一 JSON の取り込みも同じ）。孤児検出の両基準 superset は残す（§5.8.9）
-- idea_53（送信の最中の物理の入力）は暫定 47 v0.2 まで起票して**保留**（keyboard の内部への依存が大きく実害がまれ = ユーザー判断）
+## 直前のフェーズ（phase 65 = 受け取りと送信が同じレイアウトの写し・判断は `decisions_archive/65_layout_snapshot_for_hook.md`）
+- 受け取り・送信・キーボードUI を `LayoutController._active_layout` 1 つへ（UI スレッドだけで差し替え）・外部レイアウトの JSON の変更は選び直し（同じレイアウトでも）・読み直しのときだけ反映
+- 押したままのキーは押したときの送り方（`KeySend`・application は中身を知らない）で送る。保留 = deep 低 3・5・10・/refactor_check M3（held_inputs の 3 行組 3 か所・current.md 別タスク化候補）
 
 ## 運用インフラ
 
@@ -144,7 +143,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
   （直近 3 件: 64_external_layout_path_base / 63_make_only_keys / 62_special_keys_from_layout_only）。
-- 新規の未着手: **idea_54**（押下だけのキーで IME が切り替わった件・再発時）/ **idea_53**（**保留・優先度 低**・暫定 47 v0.2）/ **idea_48**（取得中のフック再開）/ **idea_50**（取得で JIS の特殊キーを取る）/ idea_51 は phase 65 で着手中 / idea_45（取得の記号キーの名前）/ idea_44（枠の配色）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
+- 新規の未着手: **idea_54**（押下だけのキーで IME が切り替わった件・再発時）/ **idea_53**（**保留・優先度 低**・暫定 47 v0.2）/ **idea_48**（取得中のフック再開）/ **idea_50**（取得で JIS の特殊キーを取る）/ idea_51 は phase 65 で完了 / idea_45（取得の記号キーの名前）/ idea_44（枠の配色）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
   idea_29〜idea_31 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
   `tests_ui/test_minimize_grab_custody.py`（603 行）の分割 / 「キーがあれば coerce_label」5 箇所（提案書 12 見送り）/

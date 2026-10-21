@@ -316,7 +316,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     - `KeymapSetIo.load_keymap_set_path(path)`: **パス指定の共通読込入口**（メニュー読込と履歴ダイアログの
       双方が使う。成否を `KEYMAP_SET_LOAD_OK` / `..._FAILED` で返す）
     - **メニュー配線は `views/menu_bar.py` のファイルメニュー 1 行**（「読込（構成セット）…」の直後）
-- LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理・キーボードUIの前面化と一時解除の監視（phase 55）/ 走査コード → キー名 `resolve_key_name_from_scan_code`・キー名 → 走査コード `resolve_scan_code_from_key_name`（登録済みの `entry.layout` を読むだけ・`App` が `InputGateway` へ注入）/ レイアウトの読み直し（起動・追加・削除・構成の読込〔`App._sync_control_vars_from_data`〕）・選ぶ id の変更の前に `held_inputs.release_all`（`_release_held_inputs_before_layout_change`）/ デバッグ出力（`debug_jis_special_key_events`）の対象 = 走査コードが選んでいるレイアウトの `scan_code`・`extra_scan_codes`（phase 63）を持つ行に当たる押下（phase 62）/ テスト = `tests/test_layout_controller_scan_code.py`・`tests/test_keyboard_layout_files.py`・`tests/test_input_gateway_send.py`
+- LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理・キーボードUIの前面化と一時解除の監視（phase 55）/ 走査コード → キー名 `resolve_key_name_from_scan_code`・キー名 → 走査コード `resolve_scan_code_from_key_name`（どちらもレイアウトの写し `_active_layout` を 1 回読むだけ・`App` が後者を `InputGateway` へ注入）/ 写し `_active_layout`（phase 65・不変の `KeyboardLayout`・初期値は組み込みの既定・`get_current_keyboard_layout` もこれを返す〔ファイルを読み直さない〕・差し替えは `_refresh_active_layout` を `sync_keyboard_layout_controls` / `set_keyboard_layout_selection` が id を決めた直後に毎回〔UI スレッド〕）/ レイアウトの読み直し（起動・追加・削除・構成の読込〔`App._sync_control_vars_from_data`〕・ドロップダウンの選択 `on_keyboard_layout_selected`〔同じレイアウトでも `reload_keyboard_layouts`・phase 65〕）・選ぶ id の変更の前に `held_inputs.release_all`（`_release_held_inputs_before_layout_change`）/ デバッグ出力（`debug_jis_special_key_events`）の対象 = 走査コードが選んでいるレイアウトの `scan_code`・`extra_scan_codes`（phase 63）を持つ行に当たる押下（phase 62）/ テスト = `tests/test_layout_controller_scan_code.py`・`tests/test_keyboard_layout_files.py`・`tests/test_input_gateway_send.py`
 - PaneLayoutController（controllers/pane_layout/ = `app.pane_layout`）: フル表示の幅配分（仕様は `spec_detail/features.md` §4.6「フル表示の幅配分」・
   `data_schema.md` §5.4）。計算は `pane_width_rules.py` の純関数、最小幅の実測は `pane_measure.py`。
   - 初回適用（FullView の `PanedWindow` の最初の `<Configure>`）: 最小幅とヘッダ幅の実測 → 保存値の検証 or 既定幅（780 基準）→ 一括適用 →
@@ -761,6 +761,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - phase 51（キーの押下 / 解放 `key_hold`・自動で離す安全策。仕様 = `features.md` §4.2.3・§4.2.8・§4.2.12・§4.5・§4.6 / `data_schema.md` §5.11.1・§5.11.9 / `key_input.md` §7.7。判断 = `decisions_archive/51_key_press_release_actions.md`）:
   - domain: `domain/key_hold.py`（種類の定数・`parse_key_hold`〔実行時エラーの判定・文字列ならエラー文言〕・`held_display_name`・一覧の書式 `format_key_hold_value`。`format_action_list_item` から使う）
   - 押下中の集合: `application/held_inputs.py` の `HeldInputs`（App で 1 つ作り `ActionExecutor` と `SequenceRunner` で共有）。同じキーの判定はスキャンコード + 拡張フラグ。
+    キーの記録 `HeldInput.send` は押したときの送り方（gateway の `resolve_send` の値・application は中身を知らず gateway へ返すだけ・phase 65）。離す・一時的な離しと押し直し（`resume_keyboard` は公開の `press_key` を経由しない）・リピートの送り直し（`_send_repeat(identity, key)`・記録が無ければ止める）・補償の離しは `press_send` / `release_send` で記録の送り方を使う
     解放の口 = `release_owner` / `release_all` / `release_keyboard`（例外は集めて返す）・text の前後 = `suspend_keyboard` / `resume_keyboard`。変化は `on_change` で presentation のステータス更新へ
   - 持ち主の受け渡し: `perform_action` の引数ではなく、runner の `_owner_scope(key)`（`sequence_runner.py:92`）が `HeldInputs.owner_scope` で**最上段のキー**を一時的に差し替え、`ActionExecutor._execute_key_hold` がそれを読む（入れ子・例外時も元に戻る。スコープ外の実行は持ち主 `""`＝`release_all` か、その実行自身のエラーの通知前〔`_report_held_error`〕で離れる）
   - 離す入口（runner・`features.md` §4.2.12 の表の行との対応）: 連続実行の終わり / 一時停止 = `run_to_end.py` の `stop_run_to_end` / `pause_run_to_end`（呼び出し先の中の停止の行の一時停止は `call_run_to_end.py` が `release_held=False`）・開始時の破棄（`run_to_end.py:24`）/
@@ -777,7 +778,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - phase 52（key_hold のキーリピート `repeat`。仕様 = `features.md` §4.2.12「キーリピート」・§4.6 / `data_schema.md` §5.11.9 / `key_input.md` §7.7。判断 = `decisions_archive/52_key_hold_auto_repeat.md`）:
   - domain: `domain/key_hold.py`（`MODIFIER_KEY_NAMES`・`is_modifier_key`・`wants_repeat`・`is_repeat_enabled`・一覧の ` (リピート)`）
   - タイマー: `application/key_repeat.py` の `KeyRepeater`（対象は高々 1 つ・世代番号で古い予約を捨てる・`pause_for_text` / `resume_after_text`・`begin_suppress` / `end_suppress` の入れ子）。
-    `after` / `after_cancel` / `get_timing` はコンストラクタで、送り直しの送信と失敗の口は `HeldInputs` が `set_callbacks` で渡す（後始末の離すを `HeldInputs` 経由にするため）
+    `after` / `after_cancel` / `get_timing` はコンストラクタで、送り直しの送信と失敗の口は `HeldInputs` が `set_callbacks` で渡す（後始末の離すを `HeldInputs` 経由にするため）。送信の callback は `send(identity, key)`（phase 65・key は表示・エラー用）
   - 連携: `HeldInputs`（押す・離す・自動の解放・`suspend_keyboard` の前で止める・`_send_repeat` / `_repeat_failed`・`on_repeat_error`）/ `ActionExecutor`（key_hold で `is_repeat_enabled` を渡す・hotkey・直接置換の前に `stop_repeat_for_keys`）
   - OS の設定: `infrastructure/input_gateway.py` のモジュール関数 `keyboard_repeat_timing`（換算・既定値）
   - presentation: `app.py`（`KeyRepeater` の生成と注入・`repeat_suppressed`・`_show_runtime_error`）/ `controllers/hook_controller.py` の `show_action_error`（表示中の抑止）/ `dialogs/action_key_hold_fields.py`（チェックと表示の切替）・`dialogs/action_dialog.py`（組み直しで `repeat`）
@@ -827,7 +828,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 ### キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）
 
 - 呼び出し元は `ActionExecutor` だけ（hotkey アクション = `send_hotkey(normalized)` / キーマップの送信先 = `press_key` → `release_key`。send guard は呼び出し元が張る）。
-- **キー名の解決**（phase 62・仕様 = `spec_detail/key_input.md` §7.7「キー名 → 走査コードの解決の順」）: `_resolve_key` が テンキー → 拡張キー → keyboard（成功・非空）→ 注入された `resolve_layout_scan_code`（`InputGateway(resolve_layout_scan_code=...)`・`int` で 1〜255・例外は当たらない）→ `ValueError` の順に種類と値を返し、`press_key` / `release_key` / `send_hotkey` / `key_identity` / `validate_key_name` が共通に使う。レイアウトのキーは `_send_numpad_event(scan, False, ...)` で送る。`send_hotkey` は全キーが keyboard のときだけ `keyboard.send`
+- **キー名の解決**（phase 62・仕様 = `spec_detail/key_input.md` §7.7「キー名 → 走査コードの解決の順」）: `_resolve_key` が テンキー → 拡張キー → keyboard（成功・非空）→ 注入された `resolve_layout_scan_code`（`InputGateway(resolve_layout_scan_code=...)`・`int` で 1〜255・例外は当たらない）→ `ValueError` の順に種類と値を返し、`press_key` / `release_key` / `send_hotkey` / `key_identity` / `validate_key_name` が共通に使う。
+  **送り方の値**（phase 65）: `resolve_send(key) -> KeySend`（不変の dataclass・種類・値・キー名）と `press_send` / `release_send` / `identity_of(send)` を公開し、`press_key` / `release_key` / `key_identity` はこれらで書く（挙動は不変・keyboard の種類はキー名で送る）。`HeldInputs` が記録に持ち、押したときの送り方で送り直す。レイアウトのキーは `_send_numpad_event(scan, False, ...)` で送る。`send_hotkey` は全キーが keyboard のときだけ `keyboard.send`
 - **Windows の拡張キー**（矢印・Home・End・PageUp/PageDown・Insert・Delete・右 Ctrl / 右 Alt・Windows・menu・PrintScreen・NumLock）は、
   ファイル内の表（正規化後のキー名 → 仮想キー / スキャンコード）で解決し、`user32.keybd_event` に KEYEVENTF_EXTENDEDKEY を付けて送る
   （`keyboard` ライブラリは拡張フラグを付けないため、`shift+right` 等がテンキー扱いになり範囲選択にならない。仕様は `spec_detail/key_input.md` §7.7）。

@@ -419,6 +419,11 @@ class InputGatewayIdentityAndMouseTests(unittest.TestCase):
         resolve.assert_called_once_with("ctrl")
         self.assertEqual(self.gateway.key_identity("right"), (0x4D, True))
 
+    def test_identity_of_unknown_kind_raises_value_error_with_key_name(self) -> None:
+        send = input_gateway.KeySend("unknown", (1,), "foo")
+        with self.assertRaisesRegex(ValueError, "'foo'"):
+            self.gateway.identity_of(send)
+
     def test_key_identity_decodes_extended_scan_code_prefix(self) -> None:
         def scan_codes_for(key: str) -> tuple[int, ...]:
             return {"/": (57397, 53), "a": (2, 79)}[key]

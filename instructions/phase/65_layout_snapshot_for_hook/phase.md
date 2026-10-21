@@ -51,6 +51,7 @@
 
 - task_01: レイアウトの写し（presentation・暫定 48 §3）・ユーザーの選び直しで読み直し・テスト
 - task_02: 押したままのキーを押したときの送り方で送る（infrastructure `KeySend` + application `held_inputs` / `key_repeat`・暫定 48 §4。押し直しは公開の `press_key` を経由せず記録の送り方で送る内部の道筋〔§4-4〕）・テスト（偽 gateway の更新）
+- task_03a: `identity_of` の未定義名 `key` を `send.key` へ（task_03 の完了判定前レビュー deep 指摘 2・infrastructure 1 行 + テスト 1 件）
 - task_03: 実機目視（暫定 48 §7-7）・正本反映（暫定 48 §9）・暫定 48 凍結・`decisions_archive/65_layout_snapshot_for_hook.md`・decisions.md の索引・current.md の完了記載・idea_51 を INDEX_done へ・`/refactor_check`・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
 
 ## レビュー方針
