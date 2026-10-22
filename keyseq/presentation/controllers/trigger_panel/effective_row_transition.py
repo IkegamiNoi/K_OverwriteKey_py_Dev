@@ -26,7 +26,7 @@ def apply_effective_row_transition(
     removed = effective_rows_by_key(before).keys() - effective_rows_by_key(after).keys()
     for key in sorted(replaced):
         if app.sequence_runner.has_active_execution(key):
-            app._set_flash_message(f"{key} は実行中のため、有効なトリガーを入れ替えられません")
+            app._set_flash_message(f"{key}は実行中のため、有効なトリガーを入れ替えられません")
             return False
     apply()
     for key in sorted(replaced | removed):

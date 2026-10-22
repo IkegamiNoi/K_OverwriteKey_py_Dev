@@ -27,7 +27,7 @@ class KeymapStatusTextTest(unittest.TestCase):
             ("Main", False, True, "Main（フック停止中）"),
             ("Main", True, False, "Main（一時停止）"),
             ("Main", True, True, "Main"),
-            ("", False, False, "(なし)"),
+            ("", False, False, "（なし）"),
         )
         for label, hook_active, custom_input_enabled, expected in cases:
             with self.subTest(label=label, hook_active=hook_active,
@@ -40,7 +40,7 @@ class KeymapStatusTextTest(unittest.TestCase):
                 self.assertEqual(controller.get_active_keymap_text(), expected)
 
     def test_get_active_keymap_name_returns_name_or_none_label(self):
-        for label, expected in (("Main", "Main"), ("", "(なし)")):
+        for label, expected in (("Main", "Main"), ("", "（なし）")):
             with self.subTest(label=label):
                 controller = self._controller(label)
                 self.assertEqual(controller.get_active_keymap_name(), expected)

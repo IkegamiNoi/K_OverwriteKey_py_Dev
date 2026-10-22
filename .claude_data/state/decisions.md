@@ -660,3 +660,4 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 ### 【phase 68 task_06 準備】D3「…」の付与 / 除去の一覧（tools/d3_ellipsis_list.md）をユーザー確定（2026-10-23・案どおり）
 ### 【task_02】「次回保存で反映」→「次回の保存で反映」（§3.4 の確定文と揃える・メイン判断）。save_plan_execution.py:440「ディレクトリ」は M9 の範囲外として据え置き（全体へ広げるかは task_07 でまとめてユーザー確認）。
 ### 【phase 68】Codex 復帰（2026-10-23 ユーザー指示）→ task_03 以降の実装は既定どおり codex-implementer（判断が要るものは codex-delegating-implementer）。task_01・02 は implementer（Claude）で実装済み。
+### 【task_03】D4 の解釈: 行末（直後が改行）のコロンには空白を入れない（Codex が「: \n」にしていたのをメインで「:\n」に戻した・2026-10-23）。

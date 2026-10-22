@@ -36,13 +36,13 @@ class TriggerRowEditFlow:
             return
         # フック停止トリガーとの重複チェック
         if self._panel._app.trigger_service.is_stop_key_conflict(self._panel._app.data, key):
-            messagebox.showerror("追加できません", f"このキーはフック停止トリガーに設定されています:\n{key}")
+            messagebox.showerror("追加できません", f"このキーは停止キーに設定されています:\n{key}")
             return
         if self._panel._app.trigger_service.is_toggle_key_conflict(self._panel._app.data, key):
             messagebox.showerror("追加できません", f"このキーは一時停止/再開キーに設定されています:\n{key}")
             return
         if self._panel._app.keymap_service.get_keymap_by_switch_key(self._panel._app.data, key):
-            messagebox.showerror("追加できません", f"このキーはキーマップ直接切替キーに設定されています:\n{key}")
+            messagebox.showerror("追加できません", f"このキーは切替キーに設定されています:\n{key}")
             return
         if key in self._panel._app._key_overlap_report().active_source_keys:
             messagebox.showerror("追加できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{key}")
@@ -60,7 +60,7 @@ class TriggerRowEditFlow:
     def rename_trigger(self):
         t = self._panel.selected_trigger()
         if not t:
-            messagebox.showinfo("変更", "変更したいトリガーを選択してください。")
+            messagebox.showinfo("編集", "編集したいトリガーを選択してください。")
             return
         old = normalize_key_name(t.get("key", ""))
         triggers = get_active_triggers(self._panel._app.data)
@@ -71,7 +71,7 @@ class TriggerRowEditFlow:
             trigger_index is not None and is_effective_trigger(triggers, trigger_index)
         )
         cur_label = (t.get("label") or "").strip()
-        dlg = TriggerDialog(self._panel._app, title="トリガー変更", initial_key=old, initial_label=cur_label)
+        dlg = TriggerDialog(self._panel._app, title="トリガー編集", initial_key=old, initial_label=cur_label)
         dlg.wait_window()
         res = getattr(dlg, "result", None)
         if not res:
@@ -84,19 +84,19 @@ class TriggerRowEditFlow:
             if self._panel._app.trigger_service.key_exists(
                 self._panel._app.data, new, exclude_trigger=t
             ):
-                messagebox.showerror("変更できません", f"すでに存在します: {new}")
+                messagebox.showerror("編集できません", f"すでに存在します: {new}")
                 return
             if self._panel._app.trigger_service.is_stop_key_conflict(self._panel._app.data, new):
-                messagebox.showerror("変更できません", f"このキーはフック停止トリガーに設定されています:\n{new}")
+                messagebox.showerror("編集できません", f"このキーは停止キーに設定されています:\n{new}")
                 return
             if self._panel._app.trigger_service.is_toggle_key_conflict(self._panel._app.data, new):
-                messagebox.showerror("変更できません", f"このキーは一時停止/再開キーに設定されています:\n{new}")
+                messagebox.showerror("編集できません", f"このキーは一時停止/再開キーに設定されています:\n{new}")
                 return
             if self._panel._app.keymap_service.get_keymap_by_switch_key(self._panel._app.data, new):
-                messagebox.showerror("変更できません", f"このキーはキーマップ直接切替キーに設定されています:\n{new}")
+                messagebox.showerror("編集できません", f"このキーは切替キーに設定されています:\n{new}")
                 return
             if new in self._panel._app._key_overlap_report().active_source_keys:
-                messagebox.showerror("変更できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{new}")
+                messagebox.showerror("編集できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{new}")
                 return
         after = list(triggers)
         if old != new and trigger_index is not None:
@@ -160,7 +160,7 @@ class TriggerRowEditFlow:
         if idx < 0 or idx >= len(triggers):
             return
         key = normalize_key_name(triggers[idx].get("key", ""))
-        if messagebox.askyesno("確認", f"トリガー {key} を削除しますか？"):
+        if messagebox.askyesno("確認", f"トリガー{key}を削除しますか？"):
             after = triggers[:idx] + triggers[idx + 1:]
             if not apply_effective_row_transition(
                 self._panel._app, triggers, after, lambda: triggers.__delitem__(idx),

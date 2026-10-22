@@ -32,7 +32,7 @@ def validate_switch_batch(
         )
         current_key = current_switches.get(keymap_id, "")
         if is_prohibited_assign_key(key) and key != current_key:
-            return index, f"Windows キー・Caps Lock・AltGr は切替キーにできません:\n{key}"
+            return index, f"Windowsキー・Caps Lock・AltGrは切替キーにできません:\n{key}"
         error = _validate_row_key(
             key,
             index,
@@ -104,16 +104,16 @@ def _validate_row_key(
     if not key:
         return row_number, "切替キーは必須です。"
     if key == stop_key and stop_key:
-        return row_number, f"直接切替キーが停止キーと重複しています:\n{key}"
+        return row_number, f"切替キーが停止キーと重複しています:\n{key}"
     if key == toggle_key and toggle_key:
-        return row_number, f"直接切替キーが一時停止/再開キーと重複しています:\n{key}"
+        return row_number, f"切替キーが一時停止/再開キーと重複しています:\n{key}"
     if key in trigger_keys:
-        return row_number, f"直接切替キーが通常トリガーと重複しています:\n{key}"
+        return row_number, f"切替キーがトリガーキーと重複しています:\n{key}"
     if key in source_keys:
-        return row_number, f"直接切替キーがキーマップ元キーと重複しています:\n{key}"
+        return row_number, f"切替キーが置換元キーと重複しています:\n{key}"
     existing_target_name = external_switches.get(key)
     if existing_target_name:
-        return row_number, f"この切替キーは既に使用されています:\n{key} -> {existing_target_name}"
+        return row_number, f"この切替キーはすでに使用されています:\n{key} -> {existing_target_name}"
     if key in previous_keys:
-        return row_number, f"直接切替キーは既に使用されています:\n{key}"
+        return row_number, f"切替キーはすでに使用されています:\n{key}"
     return None

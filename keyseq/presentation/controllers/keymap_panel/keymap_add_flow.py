@@ -75,7 +75,7 @@ class KeymapAddFlow:
         ]
         targets = missing + new_keymaps
         rows = self._make_rows(kind, missing, new_keymaps)
-        titles = {"新規": "キーマップ追加", "読込": "読込キーマップの追加",
+        titles = {"新規": "キーマップ追加", "読込": "ファイルからキーマップを追加",
                   "貼り付け": "キーマップ貼り付け"}
         dialog = KeymapSwitchBatchDialog(
             self._app, title=titles[kind], rows=rows,

@@ -1,10 +1,10 @@
 """入力取得UIで使う共通文言とキーボード選択幅の定数。"""
 
-CAPTURE_IDLE_TEXT = "キー入力で取得"
-CAPTURE_ACTIVE_TEXT = "取得中…（Escで停止）"
+CAPTURE_IDLE_TEXT = "キー入力で記録"
+CAPTURE_ACTIVE_TEXT = "記録中…（Escで停止）"
 CAPTURE_TEXTS = (CAPTURE_IDLE_TEXT, CAPTURE_ACTIVE_TEXT)
 UNKNOWN_CAPTURE_KEY_HINT_TEXT = (
-    "このキーは取得できません。別のキーを押してください。（Escでキャンセル）"
+    "このキーは記録できません。別のキーを押してください。（Escでキャンセル）"
 )
 
 HOOK_START_TEXT = "開始（フックON）"

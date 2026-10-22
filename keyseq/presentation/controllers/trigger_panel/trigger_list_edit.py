@@ -51,8 +51,8 @@ class TriggerListEditFlow:
         triggers = get_active_triggers(self._app.data)
         count = end - start + 1
         key = normalize_key_name(triggers[start].get("key", ""))
-        question = (f"トリガー {count} 件を削除しますか？" if count > 1
-                    else f"トリガー {key} を削除しますか？")
+        question = (f"トリガー{count}件を削除しますか？" if count > 1
+                    else f"トリガー{key}を削除しますか？")
         if not messagebox.askyesno("確認", question):
             return
         after = triggers[:start] + triggers[end + 1:]

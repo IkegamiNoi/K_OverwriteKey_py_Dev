@@ -163,7 +163,7 @@ class HookCoordinatorTest(unittest.TestCase):
         set_flash_message.assert_called_once()
         message = set_flash_message.call_args.args[0]
         self.assertIn("停止しました", message)
-        self.assertIn("f12 は停止キーと重複しているため、トリガーは実行されません。", message)
+        self.assertIn("f12は停止キーと重複しているため、トリガーは実行されません。", message)
         self.assertEqual(status.value, "フック: OFF")
 
     def test_shadow_notice_uses_pause_resume_name_and_keymap_label(self):
@@ -184,14 +184,14 @@ class HookCoordinatorTest(unittest.TestCase):
         controller.show_shadowed_assignments(SendKeyAction("x", "y"), conflicts)
         set_flash_message.assert_called_once()
         message = set_flash_message.call_args.args[0]
-        self.assertIn("f11 は一時停止/再開キーと重複しているため、トリガーは実行されません。", message)
-        self.assertIn("f3 は切替キーと重複しているため、トリガーは実行されません。", message)
-        self.assertIn("f9 は停止キーと重複しているため、キーマップ Other へ切り替えられません。", message)
-        self.assertIn("f8 は一時停止/再開キーと重複しているため、キーマップ Third へ切り替えられません。", message)
+        self.assertIn("f11は一時停止/再開キーと重複しているため、トリガーは実行されません。", message)
+        self.assertIn("f3は切替キーと重複しているため、トリガーは実行されません。", message)
+        self.assertIn("f9は停止キーと重複しているため、キーマップ Other へ切り替えられません。", message)
+        self.assertIn("f8は一時停止/再開キーと重複しているため、キーマップ Third へ切り替えられません。", message)
         self.assertEqual(status.value, "キーマップ: Main")
         controller.show_shadowed_assignments(SendKeyAction("x", "y"), conflicts)
         repeated_message = set_flash_message.call_args.args[0]
-        self.assertEqual(repeated_message.count("f11 は"), 1)
+        self.assertEqual(repeated_message.count("f11は"), 1)
         self.assertEqual(repeated_message, message)
         self.assertEqual(set_flash_message.call_count, 2)
 

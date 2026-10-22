@@ -159,12 +159,12 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
             ))
         showerror.assert_called_once_with(
             "設定できません",
-            "Windows キー・Caps Lock・AltGr は切替キーにできません:\ncaps lock",
+            "Windowsキー・Caps Lock・AltGrは切替キーにできません:\ncaps lock",
             parent=None,
         )
 
     def test_capture_dialogs_ignore_caps_lock_and_continue(self):
-        capture_hint = "取得中：切替キーにしたいキーを1回押してください（Escでキャンセル）"
+        capture_hint = "記録中: 切替キーにしたいキーを1回押してください（Escでキャンセル）"
         edit = KeymapEditDialog(self.app, "Edit")
         self.dialogs.append(edit)
         edit._start_capture()
@@ -190,7 +190,7 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
         self.assertEqual(batch.hint.cget("text"), capture_hint)
 
     def test_capture_dialogs_show_hint_for_unknown_keysym_and_continue(self):
-        default_hint = "例) 切替キー: 1\nラベル: numpad"
+        default_hint = "例: 切替キー: 1\nラベル: numpad"
         edit = KeymapEditDialog(self.app, "Edit")
         self.dialogs.append(edit)
         edit._start_capture()

@@ -62,7 +62,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         outer.pack(fill="both", expand=True)
         single_row = len(rows) == 1
         rows_frame = self._build_rows_area(outer, rows)
-        self.hint = ttk.Label(outer, text="例) 切替キー: 1\nラベル: numpad")
+        self.hint = ttk.Label(outer, text="例: 切替キー: 1\nラベル: numpad")
         self._build_rows(rows_frame, rows, single_row, set(grid_option_rows))
         self.hint.pack(anchor="w", pady=(0, 0))
         self._build_buttons(outer)
@@ -221,7 +221,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         self.capture_buttons[index].configure(text=CAPTURE_ACTIVE_TEXT)
         for label_entry in self.label_entries:
             label_entry.configure(state="disabled")
-        self.hint.configure(text="取得中：切替キーにしたいキーを1回押してください（Escでキャンセル）")
+        self.hint.configure(text="記録中: 切替キーにしたいキーを1回押してください（Escでキャンセル）")
         self.capture_buttons[index].focus_set()
         self.bind("<KeyPress>", self._on_capture_keypress, add="+")
 
@@ -236,7 +236,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             self.capture_buttons[index].configure(text=CAPTURE_IDLE_TEXT)
         for label_entry in self.label_entries:
             label_entry.configure(state="normal")
-        self.hint.configure(text="例) 切替キー: 1\nラベル: numpad")
+        self.hint.configure(text="例: 切替キー: 1\nラベル: numpad")
         try:
             self.unbind("<KeyPress>")
         except tk.TclError:

@@ -189,7 +189,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
 
         self.assertEqual(self.trigger["actions"], before)
         self.showinfo.assert_called_once_with(
-            "追加", "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。"
+            "追加", "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。"
         )
         self.app.mark_sequence_dirty.assert_not_called()
 
@@ -202,7 +202,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
 
         self.assertEqual(self.trigger["actions"], [{"type": "system", "op": "rewind"}])
         self.showinfo.assert_called_once_with(
-            "追加", "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。"
+            "追加", "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。"
         )
         self.app.mark_sequence_dirty.assert_not_called()
 
@@ -215,7 +215,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
 
         self.assertEqual(self.trigger["actions"], before)
         self.showinfo.assert_called_once_with(
-            "編集", "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。"
+            "編集", "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。"
         )
         self.app.mark_sequence_dirty.assert_not_called()
 
@@ -260,7 +260,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
 
         self.assertEqual(self.trigger["actions"], before)
         self.showinfo.assert_called_once()
-        self.assertIn("9 段", self.showinfo.call_args.args[1])
+        self.assertIn("9段", self.showinfo.call_args.args[1])
 
     def test_editing_loop_end_updates_its_start_configuration(self):
         start = {"type": "system", "op": "loop_start", "count": 2,

@@ -105,9 +105,9 @@ class KeymapListEditFlow:
                 self._panel.show_keymap_switch_blocked()
                 self._panel.refresh_keymap_list_ui()
                 return
-        prompt = f"キーマップ {len(targets)} 件を削除しますか？"
+        prompt = f"キーマップ{len(targets)}件を削除しますか？"
         if self._range_has_unsaved_children(targets):
-            prompt += "\n\n未保存のトリガー一覧・シーケンスも破棄されます。"
+            prompt += "\n\n未保存のトリガーセット・出力シーケンスも破棄されます。"
         if not messagebox.askyesno("確認", prompt):
             return
         for target in targets:

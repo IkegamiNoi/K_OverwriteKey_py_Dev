@@ -89,7 +89,7 @@ class ActionExecutorDragTests(unittest.TestCase):
                 })
                 self.on_runtime_error.assert_called_once_with(
                     "送信エラー",
-                    "mouse_click の to_x/to_y が不正です（ドラッグの離す位置を整数で指定してください）。",
+                    "mouse_clickのto_x/to_yが正しくありません（ドラッグの離す位置を整数で指定してください）。",
                 )
                 self.gateway.drag_mouse.assert_not_called()
                 self.gateway.click_mouse.assert_not_called()
@@ -99,7 +99,7 @@ class ActionExecutorDragTests(unittest.TestCase):
             "x": "bad", "y": 0, "to_x": 300, "to_y": 400, "drag": True,
         })
         self.on_runtime_error.assert_called_once_with(
-            "送信エラー", "mouse_click の x/y が不正です（整数で指定してください）。"
+            "送信エラー", "mouse_clickのx/yが正しくありません（整数で指定してください）。"
         )
         self.gateway.drag_mouse.assert_not_called()
         self.gateway.click_mouse.assert_not_called()
@@ -114,5 +114,5 @@ class ActionExecutorDragTests(unittest.TestCase):
         )
         self.gateway.click_mouse.assert_not_called()
         self.on_runtime_error.assert_called_once_with(
-            "送信エラー", "mouse_click の実行に失敗しました。\nRuntimeError: drag failed"
+            "送信エラー", "mouse_clickの実行に失敗しました。\nRuntimeError: drag failed"
         )

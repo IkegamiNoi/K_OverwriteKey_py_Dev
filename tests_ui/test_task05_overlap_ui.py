@@ -129,7 +129,7 @@ class Task05OverlapUiTest(unittest.TestCase):
                 self.app.hook.show_shadowed_assignments(StopHookAction(), conflicts)
                 first_message = flash_var.get()
                 self.assertIn("停止しました", first_message)
-                self.assertIn("f12 は停止キーと重複", first_message)
+                self.assertIn("f12は停止キーと重複", first_message)
                 self.assertEqual(self.app.ui_vars.status_var.get(), status_before)
                 self.assertEqual(set_flash_message.call_args.args[0], first_message)
 

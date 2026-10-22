@@ -298,7 +298,7 @@ class SequenceListOperationsTest(unittest.TestCase):
         with patch.object(action_edit_module.messagebox, "askyesno", return_value=True) as ask:
             self.controller.delete_action()
 
-        self.assertIn("選択した 3 行を削除しますか？", ask.call_args.args[1])
+        self.assertIn("選択した3行を削除しますか？", ask.call_args.args[1])
         self.assertIn("中の行は残ります", ask.call_args.args[1])
         ask.assert_called_once()
         self.assertEqual(self.trigger["actions"], [tail])

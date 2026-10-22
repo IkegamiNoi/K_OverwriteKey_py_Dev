@@ -811,7 +811,7 @@ class ActionExecutorRunnerTest(unittest.TestCase):
         self.on_action_error.assert_called_once_with(bad_hotkey, "エラー")
         scheduler.run_pending()
         self.on_runtime_error.assert_called_once_with(
-            "送信エラー", "mouse_click の x/y が不正です（整数で指定してください）。"
+            "送信エラー", "mouse_clickのx/yが正しくありません（整数で指定してください）。"
         )
         self.assertEqual(self.gateway.method_calls, [call.write_text("two")])
         self.assertEqual(state.indices["f1"], 0)

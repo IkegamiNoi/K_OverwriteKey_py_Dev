@@ -227,13 +227,13 @@ class App(tk.Tk):
             self,
             data_key=HOOK_STOP_KEY,
             var=self.ui_vars.stop_key_var,
-            label="停止トリガー",
+            label="停止キー",
             single_key_example="f12",
             conflict_checks=[
-                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, "トリガー一覧"),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, "トリガーキー"),
                 (lambda app, key: app.trigger_service.is_toggle_key_conflict(app.data, key), "一時停止/再開キー"),
-                (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), "キーマップ直接切替キー"),
-                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_source_keys, "キーマップ元キー"),
+                (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), "切替キー"),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_source_keys, "置換元キー"),
             ],
         )
         self.toggle_key_capture = SingleKeyCaptureController(
@@ -243,10 +243,10 @@ class App(tk.Tk):
             label="一時停止/再開キー",
             single_key_example="f11",
             conflict_checks=[
-                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, "トリガー一覧"),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, "トリガーキー"),
                 (lambda app, key: app.trigger_service.is_stop_key_conflict(app.data, key), "停止キー"),
-                (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), "キーマップ直接切替キー"),
-                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_source_keys, "キーマップ元キー"),
+                (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), "切替キー"),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_source_keys, "置換元キー"),
             ],
         )
         self.keymap_set_io = KeymapSetIo(self)
@@ -416,7 +416,7 @@ class App(tk.Tk):
         build_status_area(self, self)
 
     def _update_file_status(self):
-        name = os.path.basename(self.keymap_set_path or "") or "(未設定)"
+        name = os.path.basename(self.keymap_set_path or "") or "（未設定）"
         save_state = "未保存" if self.dirty_tracker.has_unsaved_changes() else "保存済み"
         text = f"ファイル: {name} / {save_state}"
         self._write_status_bar_text(self.ui_vars.file_status_var, self.ui_vars.file_status_full_var, text)
@@ -491,7 +491,7 @@ class App(tk.Tk):
         if new_delta == 0:
             self._set_flash_message("フォントサイズを標準にしました。")
         else:
-            self._set_flash_message(f"フォントサイズを {new_delta:+d} にしました。")
+            self._set_flash_message(f"フォントサイズを{new_delta:+d}にしました。")
 
 
     def _is_menu_shortcut_enabled(self) -> bool:
@@ -642,7 +642,7 @@ class App(tk.Tk):
 
     def open_preset_manager(self):
         before = copy.deepcopy(self.data.get("hotkey_presets", []))
-        PresetManagerDialog(self, title="ホットキープリセット編集").wait_window()
+        PresetManagerDialog(self, title="プリセット編集").wait_window()
         after = self.data.get("hotkey_presets", [])
         if before != after:
             self._set_flash_message("プリセットを更新しました。")

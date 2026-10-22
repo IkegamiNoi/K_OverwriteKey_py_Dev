@@ -88,7 +88,7 @@ class ActionEditFlow:
         if standalone_violation(actions, result):
             messagebox.showinfo(
                 "追加",
-                "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。",
+                "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。",
             )
             self._app._dialog_result = None
             return
@@ -101,7 +101,7 @@ class ActionEditFlow:
         if is_loop and not can_insert_loop(actions, after_index):
             messagebox.showinfo(
                 "追加",
-                f"ループの入れ子が {MAX_LOOP_DEPTH} 段を超えるため追加できません。",
+                f"ループの入れ子が{MAX_LOOP_DEPTH}段を超えるため追加できません。",
             )
             self._app._dialog_result = None
             return
@@ -178,8 +178,8 @@ class ActionEditFlow:
     def _show_append_violation(title: str, reason: str) -> None:
         messages = {
             PASTE_UNBALANCED_LOOP: "対になっていないループの始まり / 終わりは複製 / 貼り付けできません。",
-            PASTE_TOO_DEEP: f"ループの入れ子が {MAX_LOOP_DEPTH} 段を超えるため複製 / 貼り付けできません。",
-            PASTE_STANDALONE: "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。",
+            PASTE_TOO_DEEP: f"ループの入れ子が{MAX_LOOP_DEPTH}段を超えるため複製 / 貼り付けできません。",
+            PASTE_STANDALONE: "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。",
         }
         messagebox.showinfo(title, messages[reason])
 
@@ -230,7 +230,7 @@ class ActionEditFlow:
             if standalone_violation(actions, result, replace_index=target_idx):
                 messagebox.showinfo(
                     "編集",
-                    "戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。",
+                    "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。",
                 )
                 self._app._dialog_result = None
                 return
@@ -277,7 +277,7 @@ class ActionEditFlow:
         first = min(indices)
         if len(indices) == 2 and set(delete_indices(actions, first)) == indices:
             return "ループの始まりと終わりを削除します（中の行は残ります）。よろしいですか？"
-        prompt = f"選択した {len(indices)} 行を削除しますか？"
+        prompt = f"選択した{len(indices)}行を削除しますか？"
         if indices - selected:
             prompt += "\nループの始まりと終わりは対で削除します（中の行は残ります）。"
         return prompt

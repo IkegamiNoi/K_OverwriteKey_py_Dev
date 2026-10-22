@@ -253,7 +253,7 @@ class TriggerPanelController:
             "stop": "停止キーと重複",
             "toggle": "一時停止/再開キーと重複",
             "switch": "切替キーと重複",
-        }.get(winner, "上位の割り当てと重複")
+        }.get(winner, "他のキー設定と重複")
 
     @staticmethod
     def _set_trigger_row_color(listbox, index: int, is_shadowed: bool) -> None:
@@ -414,7 +414,7 @@ class TriggerPanelController:
         else:
             hook_state = "ON"
         keymap_text = self._app.keymap_panel.get_active_keymap_name()
-        sel_key = self.selected_trigger_key() or "(未選択)"
+        sel_key = self.selected_trigger_key() or "（未選択）"
         effective = self.selected_trigger_is_effective()
         held_names = self._app.held_inputs.display_names
         held_suffix = f" / 押下中: {', '.join(held_names)}" if held_names else ""
@@ -429,7 +429,7 @@ class TriggerPanelController:
 
         triggers = get_active_triggers(self._app.data)
         keys = [normalize_key_name(t.get("key", "")) for t in triggers if t.get("key")]
-        keys_text = ", ".join(keys) if keys else "(未設定)"
+        keys_text = ", ".join(keys) if keys else "（未設定）"
         # 「次」は run_to_end の場合、終端（len）なら次回は先頭なので 1 を出す
         next_i = 0
         try:
@@ -453,12 +453,12 @@ class TriggerPanelController:
         key = normalize_key_name(trigger_key or "")
         if not self.selected_trigger_is_effective():
             return ""
-        trig = self._app._find_trigger_by_key(key) if key and key != "(未選択)" else None
+        trig = self._app._find_trigger_by_key(key) if key and key != "（未選択）" else None
         if not trig:
-            return "(なし)"
+            return "（なし）"
         actions = trig.get("actions", [])
         if not actions:
-            return "(なし)"
+            return "（なし）"
         idx_raw = int(self._app._indices.get(key, 0) or 0)
         # run_to_end で終端にいる（len）なら、次回は先頭から
         if bool(trig.get("run_to_end", False)) and idx_raw >= len(actions):
@@ -467,7 +467,7 @@ class TriggerPanelController:
             idx = idx_raw % len(actions)
         a = actions[idx] if 0 <= idx < len(actions) else None
         if not isinstance(a, dict):
-            return "(なし)"
+            return "（なし）"
 
         loop_iterations = self._app.state.loop_iterations_for(
             self._app._active_trigger_set_id(), key

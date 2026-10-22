@@ -282,14 +282,14 @@ class HookController:
             "stop": "停止キー",
             "toggle": "一時停止/再開キー",
             "switch": "切替キー",
-        }.get(conflict.winner, "上位の割り当て")
+        }.get(conflict.winner, "他のキー設定")
         if conflict.kind == "keymap_switch":
             name = conflict.keymap_label or conflict.keymap_id
             return (
-                f"{conflict.key} は{reason}と重複しているため、キーマップ {name} へ切り替えられません。"
+                f"{conflict.key}は{reason}と重複しているため、キーマップ {name} へ切り替えられません。"
                 "切替キーを変更してください"
             )
-        return f"{conflict.key} は{reason}と重複しているため、トリガーは実行されません。トリガーのキーを変更してください"
+        return f"{conflict.key}は{reason}と重複しているため、トリガーは実行されません。トリガーキーを変更してください"
 
     def on_input_event(self, event: object):
         debug = bool((getattr(self._app, "data", None) or {}).get("debug_jis_special_key_events", False))
@@ -387,7 +387,7 @@ class HookController:
             v = action.get("value") or ""
             msg = (
                 "キー送信中にエラーが発生しました。\n"
-                f"送信キーに間違いがあります。修正してください。\n\n"
+                f"送信キーの指定に誤りがある可能性があります。内容を確認してください。\n\n"
                 #f"トリガー: {normalize_key_name(trigger_key)}\n"
                 f"種別: {t}\n"
                 f"値: {v}\n\n"

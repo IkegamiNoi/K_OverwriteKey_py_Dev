@@ -184,7 +184,7 @@ class StartupFontCharacterizationTest(unittest.TestCase):
 
             self.assertEqual(self.app._ui_font_delta_pt, 2)
             self.assertEqual(self.app.ui_vars.ui_font_delta_var.get(), 2)
-            self.assertEqual(self.app.ui_vars.flash_message_var.get(), "フォントサイズを +2 にしました。")
+            self.assertEqual(self.app.ui_vars.flash_message_var.get(), "フォントサイズを+2にしました。")
             apply_global_theme.assert_called_once_with(self.app, font_delta_pt=2)
             write_startup.assert_called_once_with({"ui_font_delta_pt": 2})
             build_menu_bar.assert_called_once_with(self.app)

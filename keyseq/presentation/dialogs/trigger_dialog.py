@@ -54,7 +54,7 @@ class TriggerDialog(tk.Toplevel):
         self.label_entry = ttk.Entry(frm, textvariable=self.label_var, width=42)
         self.label_entry.grid(row=1, column=1, columnspan=2, sticky="we", padx=(8, 0), pady=(10, 0))
 
-        self.hint = ttk.Label(frm, text="例）トリガー: f1 \n   ラベル: コピー→ウィンドウ切替→貼り付け")
+        self.hint = ttk.Label(frm, text="例: トリガー: f1 \n   ラベル: コピー→ウィンドウ切替→貼り付け")
         self.hint.grid(row=2, column=0, columnspan=3, sticky="w", pady=(8, 0))
 
         btns = ttk.Frame(frm)
@@ -69,7 +69,7 @@ class TriggerDialog(tk.Toplevel):
         key = normalize_key_name(self.key_var.get())
         label = (self.label_var.get() or "").strip()
         if not key:
-            messagebox.showerror("入力エラー", "トリガーが空です。")
+            messagebox.showerror("入力エラー", "トリガーを入力してください。")
             return
         self.result = {"key": key, "label": label}
         self.destroy()
@@ -89,7 +89,7 @@ class TriggerDialog(tk.Toplevel):
         begin_key_capture(self, self, self._record_key)
         self._capturing = True
         self.capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
-        self.hint.configure(text="取得中：トリガーにしたいキーを1回押してください（Escでキャンセル）")
+        self.hint.configure(text="記録中: トリガーにしたいキーを1回押してください（Escでキャンセル）")
         self.key_entry.focus_set()
         # ダイアログ全体で拾う（Entryにフォーカスが無くてもOK）
         self.bind("<KeyPress>", self._on_capture_keypress, add="+")
@@ -100,7 +100,7 @@ class TriggerDialog(tk.Toplevel):
         self._capturing = False
         end_key_capture(self)
         self.capture_btn.configure(text=CAPTURE_IDLE_TEXT)
-        self.hint.configure(text="例）トリガー: f1 / ラベル: コピー→ウィンドウ切替→貼り")
+        self.hint.configure(text="例: トリガー: f1 \n   ラベル: コピー→ウィンドウ切替→貼り付け")
         try:
             self.unbind("<KeyPress>")
         except Exception:

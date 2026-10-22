@@ -20,6 +20,7 @@
 
 ### 設計メモ / 制約
 
+- **D4 の行末**: 直後が改行のコロンには空白を入れない（`:\n` のまま。`: \n` にしない・decisions 2026-10-23）。
 - 据え置き: 退避の回の ID 表示（`unit_id`）・フォルダ名・パス・ログ専用の文言・docstring・コメント。
 - `keymap_set_history_text.py` の「＋分類を追加」等のボタンは「…」を付けない（task_06 の一覧で確定済み）。本タスクでは語・表記だけ。
 - 文言を検査している既存テスト（`tests/test_orphan_sweep_text.py`・`test_reference_cleanup_text.py`・`tests_ui/test_orphan_sweep_flow.py` ほか）は新しい文言へ追従させる（期待する挙動は変えない）。

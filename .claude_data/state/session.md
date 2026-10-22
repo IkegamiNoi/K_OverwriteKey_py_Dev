@@ -11,21 +11,19 @@ last_commit_location: `claude/help-text-review-c94d50`（暫定 51・phase 68 �
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 68 task_02 完了（保存・読込の文言）。次 = task_03（Codex 復帰・codex-implementer）。タスクの連続実行はユーザー許可済み。**
+focus: **phase 68 task_03 完了（キーマップ・トリガー・停止 / 切替 / 置換のキーの文言）。次 = task_04（codex-delegating-implementer）。タスクの連続実行はユーザー許可済み。**
 mode: implementing
 presence: present
 
 ## last_action
-ts: 2026-10-23T15:00:00
+ts: 2026-10-23T18:00:00
 who: main
 summary: |
-  phase 68 task_02: implementer（Claude）で保存・読込・子ファイル保存の文言を置換（A1・A7〜A9・A13・A15・§3.4〔share_text_for に kind〕・A19・C6・C7・Q5・D 規則）。reviewer 完了可。
-  task_04〜06 定義・D3「…」一覧（tools/d3_ellipsis_list.md・ユーザー確定）。Codex 復帰 → task_03 以降は codex-implementer。
-  保留（task_07 でユーザー確認）: save_plan_execution.py:440「ディレクトリ」を全体でフォルダにするか。
+  phase 68 task_03: codex-delegating-implementer（Codex 復帰）で実装。メイン補正 = 行末コロンの空白を除去（D4 の解釈・decisions 記録・task_04〜06 定義へ追記）/ テストの期待文言の追従漏れ 7 件 / key_capture.py の内容なし差分を戻す。
+  reviewer 修正要（テスト 1 件）→ 反映。教訓: Codex は空白だけの文言変更でテストを追従しない → 依頼に「変えた文言は 1 つずつ tests / tests_ui を検索」を明記。
 result_files:
-  - keyseq/application/config_service/・save_plan.py・presentation/app.py・controllers/config_io/（task_02 担当分）
-  - tests/test_child_save_rows.py ほか・tests_ui の追従 6 本
-  - instructions/phase/68_ui_terminology/tasks/task_04〜06・tools/d3_ellipsis_list.md
+  - keyseq/application/action_executor.py・keymap_switch_batch.py・presentation/app.py・hook_button_texts.py・controllers/（keymap_panel・trigger_panel・hook_controller・layout_controller）・dialogs/（keymap_edit・keymap_switch_batch・trigger）
+  - tests / tests_ui の追従 15 本前後
 verified:
   compile: clean
   tests: pass 1819（skipped 7）

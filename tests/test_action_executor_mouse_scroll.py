@@ -49,7 +49,7 @@ class MouseScrollExecutorTests(unittest.TestCase):
         self.assertIs(self.executor.execute(action, owner="f8"), False)
         self.held_inputs.release_owner.assert_called_once_with("f8")
         message = self.on_action_error.call_args.args[1]
-        self.assertIn("mouse_scroll の送信に失敗しました: [Errno 5", message)
+        self.assertIn("mouse_scrollの送信に失敗しました: [Errno 5", message)
         self.assertIn("direction=up unit=(なし) amount=1", message)
 
     def test_unknown_type_message_lists_mouse_scroll(self) -> None:

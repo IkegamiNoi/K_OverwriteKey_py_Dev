@@ -126,7 +126,7 @@ class TriggerListOperationsTest(unittest.TestCase):
              patch.object(self.app.sequence_runner, "has_active_execution", return_value=False), \
              patch.object(self.app.dirty_tracker, "mark_trigger_set_dirty") as dirty:
             self.panel.delete_trigger()
-        confirm.assert_called_once_with("確認", "トリガー 2 件を削除しますか？")
+        confirm.assert_called_once_with("確認", "トリガー2件を削除しますか？")
         self.assertEqual(self.rows, survivors)
         self.assertEqual(tuple(self.listbox.curselection()), (1,))
         self.assertEqual(self.app._indices["f1"], 0)

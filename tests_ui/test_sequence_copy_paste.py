@@ -161,7 +161,10 @@ class SequenceCopyPasteTest(unittest.TestCase):
         self.app.list_clipboard.copy(CLIP_ACTIONS, [{"type": "system", "op": "back"}])
         with patch.object(action_edit_module.messagebox, "showinfo") as showinfo:
             self.controller.paste_actions()
-        self.assertIn("それ 1 つだけ", showinfo.call_args.args[1])
+        self.assertEqual(
+            showinfo.call_args.args[1],
+            "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。",
+        )
         self.assertEqual(len(self.first["actions"]), 2)
 
     def test_loop_depth_violation_shows_limit(self):
@@ -175,7 +178,7 @@ class SequenceCopyPasteTest(unittest.TestCase):
             self.controller.paste_actions()
 
         self.assertEqual(len(self.first["actions"]), 1)
-        self.assertIn("9 段", showinfo.call_args.args[1])
+        self.assertIn("9段", showinfo.call_args.args[1])
 
     def test_run_to_end_endpoint_stays_at_new_endpoint(self):
         self.first["run_to_end"] = True

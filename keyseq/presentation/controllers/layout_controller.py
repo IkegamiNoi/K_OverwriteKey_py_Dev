@@ -300,7 +300,7 @@ class LayoutController:
             registrations = list(self._app.data.get("external_keyboard_layouts", []))
             stored_path = self._app.paths.to_config_relative_or_absolute(path)
             if any(str(item.get("path") or "").strip() == stored_path for item in registrations if isinstance(item, dict)):
-                raise ValueError("同じJSONファイルは既に登録されています。")
+                raise ValueError("同じJSONファイルはすでに登録されています。")
             registrations.append({"path": stored_path})
             self._app.data["external_keyboard_layouts"] = registrations
         except Exception as e:

@@ -81,7 +81,7 @@ class ActionExecutorFileLineTests(unittest.TestCase):
         handle = executor.begin_file_line(missing)
         workers.pop()()
         self.assertIs(executor.poll_file_line(handle), False)
-        self.assertIn("file_line 実行エラー（種類: file_line / 値:", self.on_action_error.call_args.args[1])
+        self.assertIn("file_line実行エラー（種類: file_line / 値:", self.on_action_error.call_args.args[1])
         self.assertIn("/ ラベル: x", self.on_action_error.call_args.args[1])
 
         self.on_action_error.reset_mock()
@@ -135,7 +135,7 @@ class ActionExecutorFileLineTests(unittest.TestCase):
         self.on_action_error.assert_called_once()
         self.assertIs(self.on_action_error.call_args.args[0], action)
         self.assertIn(
-            "file_line は読込の経路（begin_file_line / poll_file_line）で実行します",
+            "file_lineは読み込みの経路（begin_file_line / poll_file_line）で実行します",
             self.on_action_error.call_args.args[1],
         )
         self.gateway.write_text.assert_not_called()

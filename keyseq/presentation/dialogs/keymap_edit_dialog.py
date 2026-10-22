@@ -84,7 +84,7 @@ class KeymapEditDialog(tk.Toplevel):
             self.grid_editor_btn = ttk.Button(frm, text="枠を編集…", command=self._edit_grid)
             self.grid_editor_btn.grid(row=2, column=2, columnspan=2, sticky="e", padx=(8, 0))
 
-        self.hint = ttk.Label(frm, text="例) 切替キー: 1\nラベル: numpad")
+        self.hint = ttk.Label(frm, text="例: 切替キー: 1\nラベル: numpad")
         self.hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(8, 0))
 
         btns = ttk.Frame(frm)
@@ -154,7 +154,7 @@ class KeymapEditDialog(tk.Toplevel):
         self._capturing = True
         self.capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
         self.label_entry.configure(state="disabled")
-        self.hint.configure(text="取得中：切替キーにしたいキーを1回押してください（Escでキャンセル）")
+        self.hint.configure(text="記録中: 切替キーにしたいキーを1回押してください（Escでキャンセル）")
         self.capture_btn.focus_set()
         self.bind("<KeyPress>", self._on_capture_keypress, add="+")
 
@@ -165,7 +165,7 @@ class KeymapEditDialog(tk.Toplevel):
         end_key_capture(self)
         self.capture_btn.configure(text=CAPTURE_IDLE_TEXT)
         self.label_entry.configure(state="normal")
-        self.hint.configure(text="例) 切替キー: 1\nラベル: numpad")
+        self.hint.configure(text="例: 切替キー: 1\nラベル: numpad")
         try:
             self.unbind("<KeyPress>")
         except Exception:

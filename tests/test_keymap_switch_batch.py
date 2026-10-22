@@ -30,7 +30,7 @@ class ValidateSwitchBatchTest(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertEqual(
                     validate_switch_batch(make_runtime(), "", "", [], [key], ["new"]),
-                    (0, f"Windows キー・Caps Lock・AltGr は切替キーにできません:\n{key.strip().lower()}"),
+                    (0, f"Windowsキー・Caps Lock・AltGrは切替キーにできません:\n{key.strip().lower()}"),
                 )
 
     def test_unchanged_prohibited_switch_key_is_accepted(self):
@@ -49,49 +49,49 @@ class ValidateSwitchBatchTest(unittest.TestCase):
         runtime = make_runtime()
         self.assertEqual(
             validate_switch_batch(runtime, "STOP", "toggle", [], [" stop "], ["a"]),
-            (0, "直接切替キーが停止キーと重複しています:\nstop"),
+            (0, "切替キーが停止キーと重複しています:\nstop"),
         )
         self.assertEqual(
             validate_switch_batch(runtime, "stop", "Toggle", [], ["toggle"], ["a"]),
-            (0, "直接切替キーが一時停止/再開キーと重複しています:\ntoggle"),
+            (0, "切替キーが一時停止/再開キーと重複しています:\ntoggle"),
         )
 
     def test_existing_keymap_trigger_conflict(self):
         self.assertEqual(
             validate_switch_batch(make_runtime(), "", "", [], ["OLD_TRIGGER"], ["new"]),
-            (0, "直接切替キーが通常トリガーと重複しています:\nold_trigger"),
+            (0, "切替キーがトリガーキーと重複しています:\nold_trigger"),
         )
 
     def test_new_keymap_own_trigger_is_in_completed_state(self):
         candidate = make_keymap("new", triggers=["candidate_trigger"])
         self.assertEqual(
             validate_switch_batch(make_runtime(), "", "", [candidate], ["candidate_trigger"], ["new"]),
-            (0, "直接切替キーが通常トリガーと重複しています:\ncandidate_trigger"),
+            (0, "切替キーがトリガーキーと重複しています:\ncandidate_trigger"),
         )
 
     def test_trigger_from_another_new_keymap_is_in_completed_state(self):
         candidates = [make_keymap("new1"), make_keymap("new2", triggers=["second_trigger"])]
         self.assertEqual(
             validate_switch_batch(make_runtime(), "", "", candidates, ["second_trigger", "first_switch"], ["new1", "new2"]),
-            (0, "直接切替キーが通常トリガーと重複しています:\nsecond_trigger"),
+            (0, "切替キーがトリガーキーと重複しています:\nsecond_trigger"),
         )
 
     def test_existing_and_new_keymap_source_conflicts(self):
         runtime = make_runtime()
         self.assertEqual(
             validate_switch_batch(runtime, "", "", [], ["old_source"], ["new"]),
-            (0, "直接切替キーがキーマップ元キーと重複しています:\nold_source"),
+            (0, "切替キーが置換元キーと重複しています:\nold_source"),
         )
         candidate = make_keymap("new", mappings={"new_source": "y"})
         self.assertEqual(
             validate_switch_batch(runtime, "", "", [candidate], ["new_source"], ["new"]),
-            (0, "直接切替キーがキーマップ元キーと重複しています:\nnew_source"),
+            (0, "切替キーが置換元キーと重複しています:\nnew_source"),
         )
 
     def test_external_switch_conflict_uses_keymap_display_name(self):
         self.assertEqual(
             validate_switch_batch(make_runtime(), "", "", [], ["OUTSIDE"], ["new"]),
-            (0, "この切替キーは既に使用されています:\noutside -> External map"),
+            (0, "この切替キーはすでに使用されています:\noutside -> External map"),
         )
 
     def test_switches_assigned_to_any_row_target_are_excluded(self):
@@ -112,7 +112,7 @@ class ValidateSwitchBatchTest(unittest.TestCase):
             validate_switch_batch(
                 make_runtime(), "", "", [], ["same", " SAME "], ["new1", "new2"]
             ),
-            (1, "直接切替キーは既に使用されています:\nsame"),
+            (1, "切替キーはすでに使用されています:\nsame"),
         )
 
     def test_stop_conflict_precedes_trigger_source_switch_and_duplicate_conflicts(self):
@@ -122,7 +122,7 @@ class ValidateSwitchBatchTest(unittest.TestCase):
         runtime["keymap_switch_keys"]["stop"] = "external"
         self.assertEqual(
             validate_switch_batch(runtime, "stop", "", [], ["stop", "stop"], ["new1", "new2"]),
-            (0, "直接切替キーが停止キーと重複しています:\nstop"),
+            (0, "切替キーが停止キーと重複しています:\nstop"),
         )
 
     def test_first_invalid_row_precedes_later_row_with_higher_priority_error(self):
@@ -130,7 +130,7 @@ class ValidateSwitchBatchTest(unittest.TestCase):
             validate_switch_batch(
                 make_runtime(), "stop", "", [], ["old_trigger", "stop"], ["new1", "new2"]
             ),
-            (0, "直接切替キーが通常トリガーと重複しています:\nold_trigger"),
+            (0, "切替キーがトリガーキーと重複しています:\nold_trigger"),
         )
 
     def test_valid_batch_returns_none_and_does_not_mutate_runtime(self):
