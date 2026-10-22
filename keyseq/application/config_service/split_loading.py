@@ -47,7 +47,7 @@ class _KeymapLoadState:
 def load_split_config(service, *, config_root: str, keymap_set_path: str) -> dict[str, Any]:
     keymap_set = service._load_optional_json(keymap_set_path)
     if not isinstance(keymap_set, dict):
-        raise ValueError("keymap_set.json の読込に失敗しました。")
+        raise ValueError("構成セットの読み込みに失敗しました。")
     return build_runtime_data_from_split(service, keymap_set, config_root=config_root)
 
 
@@ -378,7 +378,7 @@ def _create_legacy_trigger_keymap(
     stem = os.path.splitext(os.path.basename(legacy_path))[0]
     keymap = {
         "id": KeymapService.next_keymap_id(data),
-        "label": f"旧トリガー一覧（{stem}）",
+        "label": f"旧トリガーセット（{stem}）",
         "mappings": {},
         "triggers": [],
     }

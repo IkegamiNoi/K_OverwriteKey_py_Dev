@@ -23,7 +23,7 @@ def sequence_row_token(trigger_key: str, occurrence: int = 1) -> str:
         or not isinstance(occurrence, int) or isinstance(occurrence, bool)
         or occurrence < 1
     ):
-        raise SavePlanError("sequence の行識別子が不正です。")
+        raise SavePlanError("出力シーケンスの行識別子が正しくありません。")
     if occurrence == 1:
         return trigger_key
     return SEQUENCE_KEY_SEPARATOR.join((trigger_key, str(occurrence)))
@@ -32,15 +32,15 @@ def sequence_row_token(trigger_key: str, occurrence: int = 1) -> str:
 def split_sequence_row_token(token: str) -> tuple[str, int]:
     parts = token.split(SEQUENCE_KEY_SEPARATOR)
     if len(parts) not in (1, 2) or not parts[0]:
-        raise SavePlanError("sequence の行識別子が不正です。")
+        raise SavePlanError("出力シーケンスの行識別子が正しくありません。")
     occurrence = 1
     if len(parts) == 2:
         try:
             occurrence = int(parts[1])
         except ValueError as exc:
-            raise SavePlanError("sequence の行番号が不正です。") from exc
+            raise SavePlanError("出力シーケンスの行番号が正しくありません。") from exc
         if occurrence < 2:
-            raise SavePlanError("sequence の行番号が不正です。")
+            raise SavePlanError("出力シーケンスの行番号が正しくありません。")
     return parts[0], occurrence
 
 
@@ -49,14 +49,14 @@ def compose_sequence_key(trigger_set_id: str, trigger_key: str, occurrence: int 
     if not trigger_set_id or not trigger_key or any(
         SEQUENCE_KEY_SEPARATOR in value for value in (trigger_set_id, trigger_key)
     ):
-        raise SavePlanError("sequence の識別子が不正です。")
+        raise SavePlanError("出力シーケンスの識別子が正しくありません。")
     return SEQUENCE_KEY_SEPARATOR.join((trigger_set_id, sequence_row_token(trigger_key, occurrence)))
 
 
 def split_sequence_key(key: str) -> tuple[str, str, int]:
     parts = key.split(SEQUENCE_KEY_SEPARATOR)
     if len(parts) not in (2, 3) or not all(parts):
-        raise SavePlanError("sequence の合成キーが不正です。")
+        raise SavePlanError("出力シーケンスの合成キーが正しくありません。")
     trigger_key, occurrence = split_sequence_row_token(SEQUENCE_KEY_SEPARATOR.join(parts[1:]))
     return parts[0], trigger_key, occurrence
 

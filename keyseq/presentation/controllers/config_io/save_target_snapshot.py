@@ -11,7 +11,7 @@ from keyseq.domain.keymap_triggers import (
 
 
 SAVE_TARGET_CHANGED_MESSAGE = (
-    "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。"
+    "保存の準備中にトリガーセットが変わったため、保存を中止しました。もう一度保存してください。"
 )
 
 

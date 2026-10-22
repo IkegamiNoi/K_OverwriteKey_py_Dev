@@ -104,7 +104,7 @@ class StartupFontCharacterizationTest(unittest.TestCase):
             self.assertFalse(self.app.startup_io.write_startup({"ui_font_delta_pt": 2}))
 
         self.assertEqual(self.app._startup_settings, previous)
-        showerror.assert_called_once_with("startup.json 保存失敗", "no disk")
+        showerror.assert_called_once_with("startup.json保存失敗", "no disk")
 
     def test_write_startup_failure_pauses_hook_during_dialog(self):
         def show_error(*_args):
@@ -116,7 +116,7 @@ class StartupFontCharacterizationTest(unittest.TestCase):
             side_effect=show_error,
         ) as showerror:
             self.assertFalse(self.app.startup_io.write_startup({"ui_font_delta_pt": 2}))
-        showerror.assert_called_once_with("startup.json 保存失敗", "no disk")
+        showerror.assert_called_once_with("startup.json保存失敗", "no disk")
         self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
 
     def test_write_startup_dialog_exception_resumes_hook(self):
@@ -152,8 +152,8 @@ class StartupFontCharacterizationTest(unittest.TestCase):
             app = app_module.App()
         try:
             showwarning.assert_called_once_with(
-                "startup.json 読込失敗",
-                f"startup.json の読込に失敗しました。\n{read_error}\n\n既定設定で起動します。",
+                "startup.json読込失敗",
+                f"startup.jsonの読み込みに失敗しました。\n{read_error}\n\n既定設定で起動します。",
             )
         finally:
             app.destroy()

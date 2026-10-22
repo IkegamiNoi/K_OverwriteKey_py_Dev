@@ -72,17 +72,24 @@ def judge_share_state(
     return SHARE_SHARED
 
 
-def share_text_for(share_state, ref_count) -> str:
+_PARENT_KIND_LABELS = {
+    CHILD_KEYMAP: "構成セット",
+    CHILD_TRIGGER_SET: "キーマップ",
+    CHILD_SEQUENCE: "トリガーセット",
+}
+
+
+def share_text_for(share_state, ref_count, kind) -> str:
     if share_state == SHARE_NEW_COLLIDES:
         return "同名の既存ファイルあり・安全のため別名"
     if share_state == SHARE_NEW:
         return "新規作成"
     if share_state == SHARE_SOLE:
-        return "この構成のみが所有・既存を上書き"
+        return f"この{_PARENT_KIND_LABELS[kind]}のみが所有・既存を上書き"
     if share_state == SHARE_SHARED:
-        return f"{ref_count} 個の上位で共有中・全てに影響します"
+        return f"{ref_count}個の{_PARENT_KIND_LABELS[kind]}で共有中・全てに影響します"
     if share_state == SHARE_OTHER_PARENT:
-        return "別の構成に属します"
+        return f"別の{_PARENT_KIND_LABELS[kind]}に属します"
     return "所有元不明・安全のため別名"
 
 
@@ -166,7 +173,7 @@ def _append_trigger_set_row(
     ):
         rows.append(build_row(
             kind=CHILD_TRIGGER_SET, key=owner_id,
-            display_name=f"{owner_name} / トリガー一覧", target_path=trigger_target,
+            display_name=f"{owner_name} / トリガーセット", target_path=trigger_target,
             allow_skip=not is_migrated,
             current_parent=_stored_parent_path(config_service, targets[(CHILD_KEYMAP, owner_id)], config_root),
             config_service=config_service, config_root=config_root,
@@ -195,7 +202,7 @@ def _append_sequence_rows(
             continue
         display_name = f"{owner_name} / {trigger.get('label') or trigger['key']}"
         if counts[trigger_key] > 1:
-            display_name += f"（{row_number} 行目）"
+            display_name += f"（{row_number}行目）"
         rows.append(build_row(
             kind=CHILD_SEQUENCE, key=key,
             display_name=display_name,
@@ -284,7 +291,7 @@ def build_row(
         display_name=display_name,
         target_path=target_path,
         share_state=share_state,
-        share_text=share_text_for(share_state, len(normalized_refs or [])),
+        share_text=share_text_for(share_state, len(normalized_refs or []), kind),
         default_action=default_action_for(share_state),
         allow_skip=allow_skip,
     )

@@ -797,7 +797,7 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         self.assertTrue(legacy["auto_created"])
         self.assertEqual(data["active_keymap_id"], "a")
         target = KeymapService.find_keymap(data, legacy["keymap_id"])
-        self.assertEqual(target["label"], "旧トリガー一覧（old）")
+        self.assertEqual(target["label"], "旧トリガーセット（old）")
         self.assertTrue(target["_keymap_dirty"])
         saved = self.save(data)
         self.assertEqual(self.repo.load_json(self.path)["trigger_set_path"], "")
@@ -819,7 +819,7 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         self.assertTrue(legacy["auto_created"])
         self.assertEqual(data["active_keymap_id"], "a")
         migrated = KeymapService.find_keymap(data, legacy["keymap_id"])
-        self.assertEqual(migrated["label"], "旧トリガー一覧（old）")
+        self.assertEqual(migrated["label"], "旧トリガーセット（old）")
         self.assertEqual([item["key"] for item in migrated["triggers"]], ["f1"])
         self.assertEqual(data["keymaps"][0]["triggers"], [])
         app = SimpleNamespace(data=data, keymap_service=KeymapService())
@@ -827,7 +827,7 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
             KeymapSetIo(app).notify_migrated_legacy_trigger_set()
         show.assert_called_once_with(
             "読込",
-            "旧形式のトリガー一覧 user/trigger_sets/old.json を、キーマップ『旧トリガー一覧（old）』に移しました（切替キーは未設定です）",
+            "旧形式のトリガーセット user/trigger_sets/old.json を、キーマップ『旧トリガーセット（old）』に移しました（切替キーは未設定です）",
         )
         saved = self.save(data)
         self.assertEqual(saved[self.service.INTERNAL_LEGACY_TRIGGER_SET]["state"], "none")
@@ -975,7 +975,7 @@ class PerKeymapBulkSaveTest(unittest.TestCase):
         self.assertFalse(io._has_source_path(CHILD_SEQUENCE, second_key))
         self.assertEqual(
             io._blocked_labels([first_key, second_key]),
-            ["Main / Copy（1 行目）", "Main / Copy（2 行目）"],
+            ["Main / Copy（1行目）", "Main / Copy（2行目）"],
         )
 
     def test_duplicate_sequence_rows_individual_save_preserves_runtime_state(self):

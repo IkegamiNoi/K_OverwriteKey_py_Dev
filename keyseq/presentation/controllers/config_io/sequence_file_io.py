@@ -13,7 +13,7 @@ class SequenceFileIo:
             return False
         source_path = str(trigger.get(self._app.config_service.INTERNAL_SEQUENCE_SOURCE_PATH) or "").strip()
         if source_path and bool(trigger.get(self._app.config_service.INTERNAL_SEQUENCE_IMPORTED, False)) and bool(trigger.get(self._app.config_service.INTERNAL_SEQUENCE_DIRTY, False)):
-            if messagebox.askyesno("保存", "読込で持ってきた出力シーケンスです。\n別名で保存しますか？"):
+            if messagebox.askyesno("保存", "読み込んだ出力シーケンスです。\n別名保存しますか？"):
                 return self.save_selected_sequence_as()
         if not source_path:
             label = str(trigger.get("label") or trigger.get("key") or "sequence").strip()
@@ -36,7 +36,7 @@ class SequenceFileIo:
             "sequence",
         )
         path = filedialog.asksaveasfilename(
-            title="出力シーケンスを別名で保存",
+            title="出力シーケンスを別名保存",
             initialdir=os.path.dirname(os.path.abspath(suggested)),
             initialfile=os.path.basename(suggested),
             defaultextension=".json",
@@ -79,8 +79,8 @@ class SequenceFileIo:
             completion_message = "出力シーケンスを保存しました。"
             info_message = f"出力シーケンスを保存しました:\n{path}"
             if source_path_changed:
-                completion_message += "\n上位の索引を保存すると追随します。"
-                info_message += "\n上位の索引を保存すると追随します。"
+                completion_message += "\nトリガーセットを保存すると、トリガーセットに記録されたこの出力シーケンスの保存先も新しい場所に更新されます。"
+                info_message += "\nトリガーセットを保存すると、トリガーセットに記録されたこの出力シーケンスの保存先も新しい場所に更新されます。"
             self._app._set_flash_message(completion_message)
             messagebox.showinfo("保存", info_message)
             return True
@@ -95,7 +95,7 @@ class SequenceFileIo:
             messagebox.showinfo("出力シーケンス", "読込先のトリガーを選択してください。")
             return
         path = filedialog.askopenfilename(
-            title="出力シーケンスを読込",
+            title="出力シーケンスを読み込む",
             initialdir=self._app.paths.json_dialog_initial_dir(self._app.paths.preferred_sequences_dir()),
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         )

@@ -11,24 +11,24 @@ last_commit_location: `claude/help-text-review-c94d50`（暫定 51・phase 68 �
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 68 task_01 完了（はい / いいえ の確認 3 か所をボタン名の共通ダイアログ `choice_dialog.ask_choice` へ）。次 = task_02（保存・読込の文言）。タスクの連続実行はユーザー許可済み。**
+focus: **phase 68 task_02 完了（保存・読込の文言）。次 = task_03（Codex 復帰・codex-implementer）。タスクの連続実行はユーザー許可済み。**
 mode: implementing
 presence: present
 
 ## last_action
-ts: 2026-10-23T12:00:00
+ts: 2026-10-23T15:00:00
 who: main
 summary: |
-  phase 68 task_01: implementer（Claude・Codex 利用上限〔10-27 19:43 まで〕のためユーザー許可で代替）で実装。
-  新規 choice_dialog.py（親 = grab 中の窓・フック停止・既定ボタンに初期フォーカス・Enter / Esc / ×）・io_dialogs / child_save_dialog / keymap_set_io の 3 確認を差し替え・tests_ui 新規 1・追従 4。
-  reviewer 採用（参考: grab_modal 例外時のフック停止の残り = 手本と同じ構造で許容・見送り）。
+  phase 68 task_02: implementer（Claude）で保存・読込・子ファイル保存の文言を置換（A1・A7〜A9・A13・A15・§3.4〔share_text_for に kind〕・A19・C6・C7・Q5・D 規則）。reviewer 完了可。
+  task_04〜06 定義・D3「…」一覧（tools/d3_ellipsis_list.md・ユーザー確定）。Codex 復帰 → task_03 以降は codex-implementer。
+  保留（task_07 でユーザー確認）: save_plan_execution.py:440「ディレクトリ」を全体でフォルダにするか。
 result_files:
-  - keyseq/presentation/controllers/config_io/choice_dialog.py・io_dialogs.py・child_save_dialog.py・keymap_set_io.py
-  - tests_ui/test_choice_dialog.py・test_config_io_characterization*.py・test_child_save_dialog.py・test_nested_modal_grab.py
-  - instructions/phase/68_ui_terminology/tasks/task_01〜03・tools/（task ごとの対象文字列一覧）
+  - keyseq/application/config_service/・save_plan.py・presentation/app.py・controllers/config_io/（task_02 担当分）
+  - tests/test_child_save_rows.py ほか・tests_ui の追従 6 本
+  - instructions/phase/68_ui_terminology/tasks/task_04〜06・tools/d3_ellipsis_list.md
 verified:
   compile: clean
-  tests: pass 1815（skipped 7）
+  tests: pass 1819（skipped 7）
   tests_ui: pass 1148
   smoke: pass
 

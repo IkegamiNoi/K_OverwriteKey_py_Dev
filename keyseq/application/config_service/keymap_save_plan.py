@@ -96,7 +96,7 @@ def _validate_keymap_save_plan(
         save_plan=save_plan,
     )
     if any(kind == CHILD_TRIGGER_SET for kind, _ in blocked):
-        raise SavePlanError("sequence の保存先変更には trigger_set の保存が必要です。")
+        raise SavePlanError("出力シーケンスの保存先変更にはトリガーセットの保存が必要です。")
     save_plan_execution.validate_save_plan(
         service, save_plan, runtime_data, payloads, config_root=config_root,
     )

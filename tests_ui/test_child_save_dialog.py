@@ -620,7 +620,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             long_name,
             "C:/copy.json",
             SHARE_SOLE,
-            "この構成のみが所有・既存を上書き",
+            "このトリガーセットのみが所有・既存を上書き",
             ACTION_SAVE,
         )
         _result, _variables, dialog = self._ask_dialog_internally(
@@ -672,7 +672,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             "Very long target name " * 10,
             "C:/copy.json",
             SHARE_SOLE,
-            "この構成のみが所有・既存を上書きする長い共有状況",
+            "このトリガーセットのみが所有・既存を上書きする長い共有状況",
             ACTION_SAVE,
         )
 
@@ -737,7 +737,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             "Very long target name " * 10,
             "C:/copy.json",
             SHARE_SOLE,
-            "この構成のみが所有・既存を上書きする長い共有状況",
+            "このトリガーセットのみが所有・既存を上書きする長い共有状況",
             ACTION_SAVE,
         )
         _result, _variables, dialog = self._ask_dialog_internally(
@@ -755,7 +755,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         self.assertGreater(width, dialog.screen_width)
 
     def test_configures_track_content_and_text_cell_widths_without_repeat_fitting(self):
-        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "長い対象名" * 7, "C:/" + "long-directory/" * 5, SHARE_SOLE, "この構成のみが所有・既存を上書き", ACTION_SAVE)]
+        rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "長い対象名" * 7, "C:/" + "long-directory/" * 5, SHARE_SOLE, "この構成セットのみが所有・既存を上書き", ACTION_SAVE)]
 
         def configure_content_and_cells(current, _variables):
             current.canvas.bindings["<Configure>"](SimpleNamespace(width=300))
@@ -910,7 +910,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             "very-long-target-name-" * 20,
             "C:/" + "very-long-directory/" * 20 + "target.json",
             SHARE_SOLE,
-            "この構成のみが所有・既存を上書き",
+            "このトリガーセットのみが所有・既存を上書き",
             ACTION_SAVE,
         )
         dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog([row], {})[0]
@@ -948,7 +948,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             "very-long-target-name-" * 20,
             "C:/" + "very-long-directory/" * 20 + "target.json",
             SHARE_SOLE,
-            "この構成のみが所有・既存を上書き",
+            "このトリガーセットのみが所有・既存を上書き",
             ACTION_SAVE,
         )
         dialog = child_save_dialog_module.ChildSaveDialog(root)._create_action_dialog([row], {})[0]
@@ -1055,11 +1055,11 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             self.skipTest(f"Tk を利用できません: {error}")
         root.withdraw()
         try:
-            sole_text = share_text_for(SHARE_SOLE, 1)
-            shared_text = share_text_for(SHARE_SHARED, 2)
+            sole_text = share_text_for(SHARE_SOLE, 1, CHILD_SEQUENCE)
+            shared_text = share_text_for(SHARE_SHARED, 2, CHILD_SEQUENCE)
 
-            self.assertEqual(sole_text, "この構成のみが所有・既存を上書き")
-            self.assertEqual(shared_text, "2 個の上位で共有中・全てに影響します")
+            self.assertEqual(sole_text, "このトリガーセットのみが所有・既存を上書き")
+            self.assertEqual(shared_text, "2個のトリガーセットで共有中・全てに影響します")
             default_font = font.nametofont("TkDefaultFont")
             self.assertLessEqual(
                 default_font.measure(sole_text),
@@ -1081,7 +1081,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 "長い対象名" * 8,
                 "C:/" + "long-directory/" * 12 + "target.json",
                 SHARE_SOLE,
-                "この構成のみが所有・既存を上書き",
+                "このトリガーセットのみが所有・既存を上書き",
                 ACTION_SAVE,
             )
         ]
@@ -1186,7 +1186,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 "Very long target name " * 5,
                 "C:/long-directory/target.json",
                 SHARE_SOLE,
-                "この構成のみが所有・既存を上書き",
+                "このトリガーセットのみが所有・既存を上書き",
                 ACTION_SAVE,
             )
         ] + [
@@ -1318,7 +1318,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         except tkinter.TclError as error:
             self.skipTest(f"Tk を利用できません: {error}")
         root.withdraw()
-        share_text = "この構成のみが所有・既存を上書き"
+        share_text = "このトリガーセットのみが所有・既存を上書き"
         row = ChildSaveRow(
             CHILD_SEQUENCE,
             "f1",
@@ -1500,7 +1500,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
 
                 confirm.assert_not_called()
                 if share_state == SHARE_SOLE:
-                    self.assertIn("トリガー一覧も保存して索引を更新しました。", flash.call_args.args[0])
+                    self.assertIn("トリガーセットも保存して保存先の記録を更新しました。", flash.call_args.args[0])
                 else:
                     self.assertTrue(os.path.exists(trigger_set_path))
                     trigger_set = self.app.config_service.repository.load_json(
@@ -1601,7 +1601,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         # grab_modal ごとモック化し偽ウィジェットで回すため、実 OS フォーカスに依存しない
         # （= skip ガードを付けない）。固定するのはビルダ戻り値が focus 引数まで届くことだけ。
         row = ChildSaveRow(
-            CHILD_TRIGGER_SET, "km1", "トリガー一覧", "C:/trigger.json", SHARE_UNKNOWN, "所有元不明", ACTION_SAVE_AS
+            CHILD_TRIGGER_SET, "km1", "トリガーセット", "C:/trigger.json", SHARE_UNKNOWN, "所有元不明", ACTION_SAVE_AS
         )
         with patch.object(child_save_dialog_module, "grab_modal") as grab_modal:
             _result, _dialog, buttons = self._ask_dependency_internally(
@@ -1613,7 +1613,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
 
     def test_dependency_dialog_defaults_to_save_as_and_escape_or_close_cancels(self):
         row = ChildSaveRow(
-            CHILD_TRIGGER_SET, "km1", "トリガー一覧", "C:/trigger.json", SHARE_UNKNOWN, "所有元不明", ACTION_SAVE_AS
+            CHILD_TRIGGER_SET, "km1", "トリガーセット", "C:/trigger.json", SHARE_UNKNOWN, "所有元不明", ACTION_SAVE_AS
         )
         for close in (
             lambda dialog: dialog.bindings["<Escape>"](None),
@@ -1712,7 +1712,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 row = rows[0]
                 self.assertEqual(row.share_state, SHARE_OTHER_PARENT)
                 self.assertEqual(row.default_action, ACTION_SAVE_AS)
-                self.assertEqual(row.share_text, "別の構成に属します")
+                self.assertEqual(row.share_text, "別の構成セットに属します")
                 return {(CHILD_KEYMAP, "km1"): (ACTION_SKIP, "")}
 
             with patch.object(self.app.child_save_dialog, "ask_child_save_actions", side_effect=choose) as ask:
@@ -1741,7 +1741,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 row = rows[0]
                 self.assertEqual(row.share_state, SHARE_SHARED)
                 self.assertEqual(row.default_action, ACTION_SAVE)
-                self.assertEqual(row.share_text, "2 個の上位で共有中・全てに影響します")
+                self.assertEqual(row.share_text, "2個の構成セットで共有中・全てに影響します")
                 return {(CHILD_KEYMAP, "km1"): (ACTION_SAVE, "")}
 
             with patch.object(self.app.child_save_dialog, "ask_child_save_actions", side_effect=choose) as ask:
@@ -2033,7 +2033,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             "Copy",
             "C:/copy.json",
             SHARE_OTHER_PARENT,
-            "別の構成に属します",
+            "別のトリガーセットに属します",
             ACTION_SAVE,
         )
         expected_kwargs = {
@@ -2043,7 +2043,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 "種別: 出力シーケンス\n"
                 "対象名: Copy\n"
                 "保存先: C:/copy.json\n"
-                "共有状況: 別の構成に属します"
+                "共有状況: 別のトリガーセットに属します"
             ),
             "choices": [("overwrite", "上書き"), ("save_as", "別名保存"), ("abort", "保存を中止")],
             "default": "save_as",
@@ -2074,7 +2074,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
 
     def test_dependency_dialog_returns_save_save_as_and_skip_actions(self):
         row = ChildSaveRow(
-            CHILD_TRIGGER_SET, "km1", "トリガー一覧", "C:/trigger.json", SHARE_UNKNOWN, "所有元不明", ACTION_SAVE_AS
+            CHILD_TRIGGER_SET, "km1", "トリガーセット", "C:/trigger.json", SHARE_UNKNOWN, "所有元不明", ACTION_SAVE_AS
         )
         cases = (
             ("保存", ACTION_SAVE, ""),

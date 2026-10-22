@@ -43,7 +43,7 @@ class KeymapFileIo:
         if source_path and keymap.get(self._app.config_service.INTERNAL_KEYMAP_IMPORTED) and keymap.get(
             self._app.config_service.INTERNAL_KEYMAP_DIRTY
         ):
-            if messagebox.askyesno("保存", "読込で持ってきたキーマップです。\n別名で保存しますか？"):
+            if messagebox.askyesno("保存", "読み込んだキーマップです。\n別名保存しますか？"):
                 return self.save_selected_keymap_as()
         if not source_path:
             label = str(keymap.get("label") or keymap.get("id") or "keymap").strip()
@@ -69,7 +69,7 @@ class KeymapFileIo:
             "keymap",
         )
         path = filedialog.asksaveasfilename(
-            title="キーマップを別名で保存",
+            title="キーマップを別名保存",
             initialdir=os.path.dirname(os.path.abspath(suggested)),
             initialfile=os.path.basename(suggested),
             defaultextension=".json",
@@ -198,7 +198,7 @@ class KeymapFileIo:
             if current is None or current.action != ACTION_SKIP:
                 continue
             if child_id in row_ids:
-                raise SavePlanError("sequence の保存先変更には trigger_set の保存が必要です。")
+                raise SavePlanError("出力シーケンスの保存先変更にはトリガーセットの保存が必要です。")
             replacement = ChildSaveEntry(CHILD_TRIGGER_SET, key, ACTION_SAVE)
             entries[entries.index(current)] = replacement
         return SavePlan(entries=tuple(entries), allow_deferred_index=True)
@@ -227,21 +227,21 @@ class KeymapFileIo:
         completion_message = "キーマップを保存しました。"
         info_message = f"キーマップを保存しました:\n{path}"
         if source_path_changed:
-            completion_message += "\n上位の索引を保存すると追随します。"
-            info_message += "\n上位の索引を保存すると追随します。"
+            completion_message += "\n構成セットを保存すると、構成セットに記録されたこのキーマップの保存先も新しい場所に更新されます。"
+            info_message += "\n構成セットを保存すると、構成セットに記録されたこのキーマップの保存先も新しい場所に更新されます。"
         self._app._set_flash_message(completion_message)
         messagebox.showinfo("保存", info_message)
 
     def load_keymap_file(self) -> None:
         path = filedialog.askopenfilename(
-            title="キーマップを読込",
+            title="キーマップを読み込む",
             initialdir=self._app.paths.json_dialog_initial_dir(self._app.paths.preferred_keymaps_dir()),
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         )
         if not path:
             return
         if self._is_already_loaded_path(path):
-            messagebox.showerror("読込できません", "このキーマップは既に読み込まれています")
+            messagebox.showerror("読み込めません", "このキーマップはすでに読み込まれています")
             return
         try:
             keymap = self._load_keymap(path)

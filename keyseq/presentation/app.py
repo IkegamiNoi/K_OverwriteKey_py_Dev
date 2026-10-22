@@ -120,8 +120,8 @@ class App(tk.Tk):
             self.config_service,
             self.startup_path,
             on_read_error=lambda exc: messagebox.showwarning(
-                "startup.json 読込失敗",
-                f"startup.json の読込に失敗しました。\n{exc}\n\n既定設定で起動します。",
+                "startup.json読込失敗",
+                f"startup.jsonの読み込みに失敗しました。\n{exc}\n\n既定設定で起動します。",
             ),
         )
         self._ui_font_delta_pt = coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))

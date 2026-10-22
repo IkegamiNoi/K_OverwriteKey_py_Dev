@@ -186,7 +186,7 @@ class PerKeymapLoadingTest(unittest.TestCase):
         self.assertEqual(data["active_keymap_id"], "b")
         self.assertEqual([item["id"] for item in data["keymaps"]], ["b", "keymap_1"])
         target = data["keymaps"][1]
-        self.assertEqual(target["label"], "旧トリガー一覧（old）")
+        self.assertEqual(target["label"], "旧トリガーセット（old）")
         self.assertEqual(target["mappings"], {})
         self.assertNotIn("keymap_1", data["keymap_switch_keys"].values())
         self.assertEqual([item["key"] for item in target["triggers"]], ["f8"])
@@ -304,7 +304,7 @@ class PerKeymapLoadingTest(unittest.TestCase):
             "keyseq.presentation.controllers.config_io.keymap_file_io.messagebox.showerror"
         ) as showerror:
             io.load_keymap_file()
-        showerror.assert_called_once_with("読込できません", "このキーマップは既に読み込まれています")
+        showerror.assert_called_once_with("読み込めません", "このキーマップはすでに読み込まれています")
         self.assertEqual(data, before)
 
     def test_single_import_legacy_and_oldest_format(self):
@@ -381,7 +381,7 @@ class LegacyNotificationTest(unittest.TestCase):
                 "state": "migrated", "path": "old.json", "keymap_id": "legacy", "auto_created": True,
             },
         }
-        app.keymap_service.find_keymap.return_value = {"label": "旧トリガー一覧（old）"}
+        app.keymap_service.find_keymap.return_value = {"label": "旧トリガーセット（old）"}
         app.keymap_set_history_io.record.return_value = (True, "")
         io = KeymapSetIo(app)
         with patch("keyseq.presentation.controllers.config_io.keymap_set_io.messagebox.showinfo") as show:
@@ -389,7 +389,7 @@ class LegacyNotificationTest(unittest.TestCase):
         self.assertEqual(show.call_count, 2)
         self.assertEqual(show.call_args_list[0].args, ("読込", "読み込みました:\nset.json"))
         self.assertEqual(show.call_args_list[1].args, (
-            "読込", "旧形式のトリガー一覧 old.json を、キーマップ『旧トリガー一覧（old）』に移しました（切替キーは未設定です）",
+            "読込", "旧形式のトリガーセット old.json を、キーマップ『旧トリガーセット（old）』に移しました（切替キーは未設定です）",
         ))
 
     def test_only_auto_created_migration_shows_information(self):
@@ -406,7 +406,7 @@ class LegacyNotificationTest(unittest.TestCase):
                 io.notify_migrated_legacy_trigger_set()
                 if auto_created:
                     show.assert_called_once_with(
-                        "読込", "旧形式のトリガー一覧 old.json を、キーマップ『Legacy』に移しました（切替キーは未設定です）",
+                        "読込", "旧形式のトリガーセット old.json を、キーマップ『Legacy』に移しました（切替キーは未設定です）",
                     )
                 else:
                     show.assert_not_called()

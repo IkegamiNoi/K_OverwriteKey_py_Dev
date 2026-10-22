@@ -100,7 +100,7 @@ class KeymapSetIo:
             else DEFAULT_KEYMAP_SET_FILENAME
         )
         path = filedialog.asksaveasfilename(
-            title="別名で保存（keymap_set）",
+            title="別名保存（構成セット）",
             initialdir=self._app.suggest_keymap_set_dialog_dir(),
             initialfile=initialfile,
             defaultextension=".json",
@@ -110,7 +110,7 @@ class KeymapSetIo:
             return False
         return self.save_keymap_set_to(
             path,
-            flash_message="別名で保存しました。",
+            flash_message="別名保存しました。",
             show_success_dialog=show_success_dialog,
         )
 
@@ -173,8 +173,8 @@ class KeymapSetIo:
             notices = [notice for notice in (recalculation_notice,) if notice]
             notices.extend(post_save_warnings)
             if deferred_index:
-                label = "トリガー一覧" if all(kind == CHILD_TRIGGER_SET for kind, _ in deferred_parents) else "参照元の子ファイル"
-                notices.append(f"{label}は未保存です。次回保存で索引を更新します。")
+                label = "トリガーセット" if all(kind == CHILD_TRIGGER_SET for kind, _ in deferred_parents) else "参照元の子ファイル"
+                notices.append(f"{label}は未保存です。次回の保存で保存先の記録を更新します。")
             completion_message = "\n".join((flash_message, *notices))
             self._app._set_flash_message(completion_message)
             if show_success_dialog:
@@ -244,7 +244,7 @@ class KeymapSetIo:
                     deferred.add(parent_id)
                     continue
                 if action == ACTION_SAVE and parent_id[0] == CHILD_TRIGGER_SET:
-                    recalculation_notice = "\n".join(filter(None, (recalculation_notice, "トリガー一覧も保存して索引を更新しました。")))
+                    recalculation_notice = "\n".join(filter(None, (recalculation_notice, "トリガーセットも保存して保存先の記録を更新しました。")))
                 target = self._app.child_save_dialog.trigger_set_save_as_path if action == ACTION_SAVE_AS else ""
                 replacement = ChildSaveEntry(*parent_id, action, target)
                 plan = SavePlan(entries=tuple(replacement if (entry.kind, entry.key) == parent_id else entry for entry in plan.entries))
@@ -442,8 +442,8 @@ class KeymapSetIo:
             for row in rows
         )
         return (
-            "トリガー一覧の保存先が変わったため、"
-            f"出力シーケンス {changed_sequences} 件の保存先を再計算しました。"
+            "トリガーセットの保存先が変わったため、"
+            f"出力シーケンス{changed_sequences}件の保存先を再計算しました。"
         )
 
     def _trigger_target_changed(
@@ -476,7 +476,7 @@ class KeymapSetIo:
         parent = targets[(CHILD_KEYMAP, key)] if kind == CHILD_TRIGGER_SET else save_path
         name = str(owner.get("label") or key)
         return build_row(
-            kind=kind, key=key, display_name=f"{name} / トリガー一覧" if kind == CHILD_TRIGGER_SET else name,
+            kind=kind, key=key, display_name=f"{name} / トリガーセット" if kind == CHILD_TRIGGER_SET else name,
             target_path=targets[child_id],
             current_parent=self._app.config_service.to_config_relative_or_absolute(parent, self._app.config_root),
             config_service=self._app.config_service, config_root=self._app.config_root,
@@ -501,7 +501,7 @@ class KeymapSetIo:
         labels = {}
         for owner, _, triggers in iter_trigger_sets(self._app.data):
             name = str(owner.get("label") or owner["id"])
-            labels[str(owner["id"])] = f"{name} / トリガー一覧"
+            labels[str(owner["id"])] = f"{name} / トリガーセット"
             sequence_entries = sequence_rows(triggers)
             counts = {key: occurrence for _, key, occurrence in sequence_entries}
             positions = iter(enumerate(triggers, 1))
@@ -510,7 +510,7 @@ class KeymapSetIo:
                 key = compose_sequence_key(str(owner["id"]), trigger_key, occurrence)
                 label = f"{name} / {trigger.get('label') or trigger['key']}"
                 if counts[trigger_key] > 1:
-                    label += f"（{row_number} 行目）"
+                    label += f"（{row_number}行目）"
                 labels[key] = label
         return [labels.get(key, key) for key in blocked_keys]
 
@@ -551,7 +551,7 @@ class KeymapSetIo:
             return
 
         path = filedialog.askopenfilename(
-            title="keymap_set.json を読込",
+            title="構成セットを読み込む",
             initialdir=self._app.suggest_keymap_set_dialog_dir(),
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
         )
@@ -596,7 +596,7 @@ class KeymapSetIo:
         name = str(keymap.get("label") or "").strip() if keymap else keymap_id
         messagebox.showinfo(
             "読込",
-            f"旧形式のトリガー一覧 {legacy.get('path', '')} を、キーマップ『{name}』に移しました"
+            f"旧形式のトリガーセット {legacy.get('path', '')} を、キーマップ『{name}』に移しました"
             "（切替キーは未設定です）",
         )
 
@@ -646,9 +646,9 @@ class KeymapSetIo:
             messagebox.showerror("Export 失敗", str(e))
 
     def restore_default(self):
-        if not self.confirm_save_if_dirty("例の復元"):
+        if not self.confirm_save_if_dirty("サンプル設定の復元"):
             return
-        if not messagebox.askyesno("確認", "例の設定に戻します。よろしいですか？"):
+        if not messagebox.askyesno("確認", "サンプル設定に戻します。よろしいですか？"):
             return
 
         self._app.data = self._app.config_service.new_default_data()
@@ -666,15 +666,15 @@ class KeymapSetIo:
         self._app.trigger_panel.refresh_triggers()
         self._app.trigger_panel.refresh_actions()
         self._app.dirty_tracker.set_dirty(True)
-        self._app._set_flash_message("例の設定に戻しました（未保存）。")
+        self._app._set_flash_message("サンプル設定に戻しました（未保存）。")
 
     def set_startup_keymap_set(self):
         """ユーザーが起動時に読み込む keymap_set.json を選び、起動設定へ保存する"""
-        if not self.confirm_save_if_dirty("起動時に読むJSONの変更"):
+        if not self.confirm_save_if_dirty("起動時に読む構成セットの変更"):
             return
 
         path = filedialog.askopenfilename(
-            title="起動時に読み込む keymap_set.json を選択",
+            title="起動時に読み込む構成セットを選択",
             initialdir=self._app.suggest_keymap_set_dialog_dir(),
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         )
@@ -705,11 +705,11 @@ class KeymapSetIo:
             self._app.dirty_tracker.set_dirty(False)
         self._app.dirty_tracker.sync_dirty_state()
         if not startup_saved:
-            self._app._set_flash_message("起動時読み込み設定の保存に失敗しました。", auto_clear=False)
+            self._app._set_flash_message("起動時の読み込み設定の保存に失敗しました。", auto_clear=False)
             self.notify_migrated_legacy_trigger_set()
             return
-        self._app._set_flash_message("起動時読み込み設定を更新しました。")
-        messagebox.showinfo("設定", f"次回起動時はこの keymap_set を読み込みます:\n{path}")
+        self._app._set_flash_message("起動時の読み込み設定を更新しました。")
+        messagebox.showinfo("設定", f"次回起動時はこの構成セットを読み込みます:\n{path}")
         self.notify_migrated_legacy_trigger_set()
 
     def apply_loaded_data_to_ui(self):

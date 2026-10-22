@@ -53,7 +53,7 @@ def build_save_plan(
         for index, entry in enumerate(entries):
             if entry.kind in {CHILD_KEYMAP, CHILD_TRIGGER_SET} and entry.key == migrated_id:
                 if choices_by_child.get((entry.kind, entry.key), (None, ""))[0] == ACTION_SKIP:
-                    raise SavePlanError("移行対象は保存しないを選択できません。")
+                    raise SavePlanError("移行対象には「保存しない」を選べません。")
                 if entry.action == ACTION_SKIP:
                     entries[index] = ChildSaveEntry(entry.kind, entry.key, ACTION_SAVE)
     return SavePlan(entries=tuple(entries))

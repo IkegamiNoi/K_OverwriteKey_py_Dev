@@ -24,6 +24,7 @@
 - **A10**: `hook_button_texts.py:3-7`・`keymap_edit_dialog.py:157`・`keymap_switch_batch_dialog.py:224`・`trigger_dialog.py:92` のキーの「取得」→「記録」（D4 で「記録中: …」）
 - **A11**: `keymap_panel_controller.py:387・393・399`・`trigger_row_edit.py:63・74・87-99` →「編集」。`trigger_box.py` / `keymap_box.py` のボタンは task_06。据え置き = 「名前変更」・指示文「〜を変更してください」・「呼び出し先を変更できません」（`trigger_panel_controller.py:34`）・結果通知
 - **A15**: `hook_controller.py:285`・`trigger_panel_controller.py:256` の既定値「上位の割り当て」→「他のキー設定」
+- **C4**: `trigger_panel/action_edit.py:91・182・233` →「「戻す」「先頭へ」は出力シーケンスに単独で登録してください。」（`sequence_steps.py:283` は task_04）。同ファイルの「まずトリガーを選択してください。」等にも D 規則を当てる
 - **C8**: `keymap_add_flow.py:78`「読込キーマップの追加」→「ファイルからキーマップを追加」
 - **C9**: 「〜は変更なしです」→「〜に変更はありません」（`keymap_panel_controller.py:276・544・600・656` ほか担当ファイル内）
 - **C13**: `hook_controller.py:389-390` →「送信キーの指定に誤りがある可能性があります。内容を確認してください。」

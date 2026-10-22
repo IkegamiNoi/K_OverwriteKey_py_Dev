@@ -19,7 +19,7 @@ def load_sequence_file(
 ) -> dict[str, Any]:
     raw_sequence = service.repository.load_json(path)
     if not isinstance(raw_sequence, dict):
-        raise ValueError("sequence JSON の形式が不正です。")
+        raise ValueError("出力シーケンスJSONの形式が正しくありません。")
     sequence = service._normalize_sequence_payload(raw_sequence)
     parent_refs = service._normalize_parent_refs(raw_sequence.get(service.PARENT_REFS_KEY))
     if parent_refs is not None:
@@ -73,7 +73,7 @@ def load_trigger_set_file(
 ) -> list[dict[str, Any]]:
     payload = service.repository.load_json(path)
     if not isinstance(payload, dict):
-        raise ValueError("trigger_set JSON の形式が不正です。")
+        raise ValueError("トリガーセットJSONの形式が正しくありません。")
     triggers, _parent_refs = split_loading.load_triggers_from_trigger_set(
         service,
         payload,

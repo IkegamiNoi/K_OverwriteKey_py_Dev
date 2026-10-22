@@ -255,7 +255,7 @@ def _remove_migration_parent_ref(
     try:
         data = service._load_optional_json(trigger_set_path)
         if not isinstance(data, dict):
-            raise OSError("保存した trigger_set を読み直せません")
+            raise OSError("保存したトリガーセットを読み直せません")
         refs = service._normalize_parent_refs(data.get(service.PARENT_REFS_KEY))
         if refs is None:
             return ""
@@ -267,7 +267,7 @@ def _remove_migration_parent_ref(
         service.repository.save_json(trigger_set_path, data)
         payload[service.PARENT_REFS_KEY] = retained
     except Exception as exc:
-        return f"移行元 keymap_set の参照整理に失敗しました: {trigger_set_path}: {exc}"
+        return f"移行元の構成セットの参照整理に失敗しました: {trigger_set_path}: {exc}"
     return ""
 
 
@@ -414,21 +414,21 @@ def validate_save_plan(service,
         if entry.kind not in {CHILD_KEYMAP, CHILD_TRIGGER_SET, CHILD_SEQUENCE}:
             raise SavePlanError(f"未知の子種別です: {entry.kind}")
         if entry.action not in {ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP}:
-            raise SavePlanError(f"不正な保存操作です: {entry.kind}:{entry.key}")
+            raise SavePlanError(f"保存操作が正しくありません: {entry.kind}:{entry.key}")
         entry_id = (entry.kind, entry.key)
         if entry_id in seen:
             raise SavePlanError(f"保存計画が重複しています: {entry.kind}:{entry.key}")
         seen.add(entry_id)
         if entry.kind == CHILD_KEYMAP and entry.key not in keymap_ids:
-            raise SavePlanError(f"存在しない keymap です: {entry.key}")
+            raise SavePlanError(f"存在しないキーマップです: {entry.key}")
         if entry.kind == CHILD_SEQUENCE and entry.key not in sequence_keys:
-            raise SavePlanError(f"存在しない sequence です: {entry.key}")
+            raise SavePlanError(f"存在しない出力シーケンスです: {entry.key}")
         if entry.kind == CHILD_TRIGGER_SET and entry.key not in trigger_set_ids:
-            raise SavePlanError(f"存在しない trigger_set です: {entry.key}")
+            raise SavePlanError(f"存在しないトリガーセットです: {entry.key}")
         legacy = runtime.get(service.INTERNAL_LEGACY_TRIGGER_SET, {})
         if (entry.kind in {CHILD_KEYMAP, CHILD_TRIGGER_SET} and entry.action == ACTION_SKIP
                 and legacy.get("state") == "migrated" and entry.key == legacy.get("keymap_id")):
-            raise SavePlanError("移行対象は保存しないを選択できません。")
+            raise SavePlanError("移行対象には「保存しない」を選べません。")
         if entry.action == ACTION_SAVE_AS:
             if not entry.target_path.strip():
                 raise SavePlanError(f"別名保存先が空です: {entry.kind}:{entry.key}")
@@ -450,12 +450,12 @@ def validate_save_plan(service,
         destinations.add(canonical)
     blocked_sets = trigger_sets_requiring_keymap_save(save_plan, payloads)
     if blocked_sets and not save_plan.allow_deferred_index:
-        raise SavePlanError(f"trigger_set {blocked_sets[0]} の保存先変更には keymap の保存が必要です。")
+        raise SavePlanError(f"トリガーセット{blocked_sets[0]}の保存先変更にはキーマップの保存が必要です。")
 
     blocked_keys = sequence_keys_requiring_trigger_set_save(service, save_plan, payloads)
     if blocked_keys and not save_plan.allow_deferred_index:
         raise SavePlanError(
-            f"sequence {blocked_keys[0]} の保存先変更には trigger_set の保存が必要です。"
+            f"出力シーケンス{blocked_keys[0]}の保存先変更にはトリガーセットの保存が必要です。"
         )
 
 def apply_saved_child_paths(service,

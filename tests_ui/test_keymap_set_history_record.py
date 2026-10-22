@@ -63,7 +63,7 @@ class KeymapSetHistoryRecordTest(unittest.TestCase):
         self.assertEqual(self.events.mock_calls, [
             call.confirm("読込"),
             call.select(
-                title="keymap_set.json を読込",
+                title="構成セットを読み込む",
                 initialdir=self.app.suggest_keymap_set_dialog_dir(),
                 filetypes=[("JSON", "*.json"), ("All", "*.*")],
             ),
@@ -137,9 +137,9 @@ class KeymapSetHistoryRecordTest(unittest.TestCase):
         self.io.set_startup_keymap_set()
         self._assert_recorded("selected.json")
         write.assert_called_once()
-        self.app._set_flash_message.assert_called_once_with("起動時読み込み設定を更新しました。")
+        self.app._set_flash_message.assert_called_once_with("起動時の読み込み設定を更新しました。")
         self.info.assert_called_once_with(
-            "設定", "次回起動時はこの keymap_set を読み込みます:\nselected.json",
+            "設定", "次回起動時はこの構成セットを読み込みます:\nselected.json",
         )
 
     def test_startup_settings_save_failure_keeps_existing_notice(self) -> None:
@@ -148,7 +148,7 @@ class KeymapSetHistoryRecordTest(unittest.TestCase):
         self.io.set_startup_keymap_set()
         self._assert_recorded("selected.json")
         self.app._set_flash_message.assert_called_once_with(
-            "起動時読み込み設定の保存に失敗しました。", auto_clear=False,
+            "起動時の読み込み設定の保存に失敗しました。", auto_clear=False,
         )
         self.info.assert_not_called()
 
@@ -243,7 +243,7 @@ class KeymapSetHistoryRecordTest(unittest.TestCase):
         self._assert_recorded("normalized.json")
         self.assertEqual(self.app.keymap_set_path, "normalized.json")
         self.assertEqual(self.events.mock_calls, [
-            call.flash("別名で保存しました。"),
+            call.flash("別名保存しました。"),
             call.info("保存", "保存しました:\nnormalized.json"),
             call.record("normalized.json", config_root="config-root"),
         ])
@@ -260,7 +260,7 @@ class KeymapSetHistoryRecordTest(unittest.TestCase):
         self.record.return_value = (False, "理由")
         self.assertTrue(self.io.save_as())
         self.assertEqual(self.events.mock_calls, [
-            call.flash("別名で保存しました。"),
+            call.flash("別名保存しました。"),
             call.info("保存", "保存しました:\nnormalized.json"),
             call.record("normalized.json", config_root="config-root"),
             call.flash("理由", auto_clear=False),
@@ -280,7 +280,7 @@ class KeymapSetHistoryRecordTest(unittest.TestCase):
         self._assert_recorded("normalized.json")
         self.assertEqual(self.app.keymap_set_path, "normalized.json")
         self.assertEqual(self.events.mock_calls, [
-            call.flash("別名で保存しました。"),
+            call.flash("別名保存しました。"),
             call.info("保存", "保存しました:\nnormalized.json"),
             call.record("normalized.json", config_root="config-root"),
             call.flash("構成セットの履歴を記録できませんでした: 履歴例外", auto_clear=False),

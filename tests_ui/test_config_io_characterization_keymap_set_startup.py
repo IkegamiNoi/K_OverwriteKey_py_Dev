@@ -704,7 +704,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         self.assertEqual(ask.call_args.kwargs["initialfile"], "keymap_set.json")
         save_to.assert_called_once_with(
             selected_path,
-            flash_message="別名で保存しました。",
+            flash_message="別名保存しました。",
             show_success_dialog=False,
         )
 
@@ -1163,7 +1163,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 self.assertFalse(self.app.trigger_set_io.save_trigger_set_file())
 
             choose.assert_called_once()
-            self.assertEqual(choose.call_args.kwargs["title"], "トリガー一覧を保存")
+            self.assertEqual(choose.call_args.kwargs["title"], "トリガーセットを保存")
             save.assert_not_called()
             with open(previous_path, "rb") as file:
                 self.assertEqual(file.read(), previous_bytes)
@@ -1194,7 +1194,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
                 self.assertFalse(self.app.trigger_set_io.save_trigger_set_file())
 
             choose.assert_called_once()
-            self.assertEqual(choose.call_args.kwargs["title"], "トリガー一覧を保存")
+            self.assertEqual(choose.call_args.kwargs["title"], "トリガーセットを保存")
             save.assert_not_called()
             with open(previous_path, "rb") as file:
                 self.assertEqual(file.read(), previous_bytes)
@@ -1307,13 +1307,13 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ], patches[2], patches[3]:
             _config_set_io(self.app).set_startup_keymap_set()
         # write_startup 内の保存失敗は showerror で握りつぶされる
-        showerror.assert_called_once_with("startup.json 保存失敗", "disk full")
+        showerror.assert_called_once_with("startup.json保存失敗", "disk full")
         # UI 反映と dirty 解除は続行するが、成功通知は出さない。
         self.assertEqual(self.app.data, {"loaded": True})
         self.assertEqual(self.app.keymap_set_path, "k.json")
         apply_ui.assert_called_once_with()
         set_dirty.assert_called_once_with(False)
-        self.assertIn(("flash", "起動時読み込み設定の保存に失敗しました。", {"auto_clear": False}), calls)
+        self.assertIn(("flash", "起動時の読み込み設定の保存に失敗しました。", {"auto_clear": False}), calls)
         showinfo.assert_not_called()
 
     # ===================== B: write_startup =====================
@@ -1359,7 +1359,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ), patch.object(tkinter.messagebox, "showerror") as showerror:
             # 例外を raise しない（握りつぶす）
             self.assertFalse(_startup_io(self.app).write_startup({"ui_font_delta_pt": 0}))
-            showerror.assert_called_once_with("startup.json 保存失敗", "no disk")
+            showerror.assert_called_once_with("startup.json保存失敗", "no disk")
 
     def test_write_global_hook_keys_persists_normalized_keys_and_round_trips(self):
         with tempfile.TemporaryDirectory() as root:
@@ -1413,7 +1413,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             with open(startup_path, encoding="utf-8") as file:
                 self.assertEqual(json.load(file), previous)
         self.assertEqual(self.app._startup_settings, previous)
-        showerror.assert_called_once_with("startup.json 保存失敗", "no disk")
+        showerror.assert_called_once_with("startup.json保存失敗", "no disk")
 
     def test_keymap_set_save_preserves_global_hook_keys(self):
         with tempfile.TemporaryDirectory() as root:

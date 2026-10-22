@@ -60,7 +60,7 @@ class StartupIo:
         except Exception as e:
             self._app.hook.suspend_hook_for_dialog()
             try:
-                messagebox.showerror("startup.json 保存失敗", str(e))
+                messagebox.showerror("startup.json保存失敗", str(e))
             finally:
                 self._app.hook.resume_hook_after_dialog()
             return False

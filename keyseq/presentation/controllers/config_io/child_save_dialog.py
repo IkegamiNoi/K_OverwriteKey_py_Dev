@@ -168,7 +168,7 @@ class ChildSaveDialog:
         for row in rows:
             action = choice_vars[(row.kind, row.key)].get()
             if action == ACTION_SKIP and not row.allow_skip:
-                raise ValueError("移行対象は保存しないを選択できません。")
+                raise ValueError("移行対象には「保存しない」を選べません。")
             target_path = self._ask_save_as_path(row) if action == ACTION_SAVE_AS else ""
             if action == ACTION_SAVE_AS and not target_path:
                 return None
@@ -185,9 +185,9 @@ class ChildSaveDialog:
             f"{', '.join(blocked_labels)}\n\n"
             f"{parent_name}の保存先: {trigger_set_row.target_path}\n"
             f"共有状況: {trigger_set_row.share_text}\n\n"
-            f"保存 = このまま{parent_name}を保存して索引を更新します。\n"
-            f"別名保存 = 別の保存先へ{parent_name}を保存して索引を更新します。\n"
-            "保存しない = この保存では索引を更新しない（次回保存で反映）。\n"
+            f"保存 = このまま{parent_name}を保存して保存先の記録を更新します。\n"
+            f"別名保存 = 別の保存先へ{parent_name}を保存して保存先の記録を更新します。\n"
+            "保存しない = この保存では保存先の記録を更新しない（次回の保存で反映）。\n"
             "キャンセル = 一覧から選び直します。"
         )
         result = {"action": ""}
@@ -284,7 +284,7 @@ class ChildSaveDialog:
     @staticmethod
     def _ask_save_as_path(row: ChildSaveRow) -> str:
         return filedialog.asksaveasfilename(
-            title=f"{_kind_label(row.kind)}を別名で保存",
+            title=f"{_kind_label(row.kind)}を別名保存",
             initialdir=os.path.dirname(os.path.abspath(row.target_path)),
             initialfile=os.path.basename(row.target_path),
             defaultextension=".json",
@@ -295,7 +295,7 @@ class ChildSaveDialog:
 def _kind_label(kind: str) -> str:
     return {
         "keymap": "キーマップ",
-        "trigger_set": "トリガー一覧",
+        "trigger_set": "トリガーセット",
         "sequence": "出力シーケンス",
     }.get(kind, kind)
 

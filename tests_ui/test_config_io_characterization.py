@@ -552,7 +552,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             tkinter.filedialog, "asksaveasfilename", return_value="C:/as/map.json"
         ), patch.object(_dialog_io(self.app), "ask_link_label_to_filename", return_value=False), p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_keymap_io(self.app).save_selected_keymap())
-            ask.assert_called_once_with("保存", "読込で持ってきたキーマップです。\n別名で保存しますか？")
+            ask.assert_called_once_with("保存", "読み込んだキーマップです。\n別名保存しますか？")
             self.assertEqual(save_calls, [("C:/as/map.json", keymap)])
 
         # imported+dirty+no → 既存 source パスへ保存
@@ -562,7 +562,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             tkinter.messagebox, "askyesno", return_value=False
         ) as ask, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_keymap_io(self.app).save_selected_keymap())
-            ask.assert_called_once_with("保存", "読込で持ってきたキーマップです。\n別名で保存しますか？")
+            ask.assert_called_once_with("保存", "読み込んだキーマップです。\n別名保存しますか？")
             self.assertEqual(save_calls, [(source, keymap)])
 
         # source なし → choose_save_path_with_collision の返すパスへ保存
@@ -587,7 +587,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             _dialog_io(self.app), "ask_link_label_to_filename", return_value=True
         ) as link, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_keymap_io(self.app).save_selected_keymap_as())
-            self.assertEqual(ask_save.call_args.kwargs["title"], "キーマップを別名で保存")
+            self.assertEqual(ask_save.call_args.kwargs["title"], "キーマップを別名保存")
             link.assert_called_once_with(title="キーマップ名の連動", path="C:/new/After.json")
             self.assertEqual(keymap["label"], "After")
             self.assertEqual(save_calls, [("C:/new/After.json", keymap)])
@@ -633,14 +633,14 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 ("sync", {}),
                 (
                     "flash",
-                    "キーマップを保存しました。\n上位の索引を保存すると追随します。",
+                    "キーマップを保存しました。\n構成セットを保存すると、構成セットに記録されたこのキーマップの保存先も新しい場所に更新されます。",
                     {},
                 ),
                 (
                     "info",
                     (
                         "保存",
-                        f"キーマップを保存しました:\n{path}\n上位の索引を保存すると追随します。",
+                        f"キーマップを保存しました:\n{path}\n構成セットを保存すると、構成セットに記録されたこのキーマップの保存先も新しい場所に更新されます。",
                     ),
                 ),
             ],
@@ -716,7 +716,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 "showinfo",
             ) as showinfo:
                 _keymap_io(self.app).load_keymap_file()
-            self.assertEqual(ask_open.call_args.kwargs["title"], "キーマップを読込")
+            self.assertEqual(ask_open.call_args.kwargs["title"], "キーマップを読み込む")
             self.assertEqual(self.app.data["keymaps"][-1]["label"], "Loaded")
             self.assertEqual(self.app.data["active_keymap_id"], "load")
             refresh.assert_called_once()
@@ -832,7 +832,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
         ) as choose, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file())
             ask.assert_not_called()
-            self.assertEqual(choose.call_args.kwargs["title"], "トリガー一覧を保存")
+            self.assertEqual(choose.call_args.kwargs["title"], "トリガーセットを保存")
             self.assertEqual([c[0] for c in save_calls], ["C:/new/triggers.json"])
 
     def test_trigger_set_save_as_never_links_label_and_cancel_returns_false(self):
@@ -842,7 +842,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             _dialog_io(self.app), "ask_link_label_to_filename"
         ) as link, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_trigger_set_io(self.app).save_trigger_set_file_as())
-            self.assertEqual(ask_save.call_args.kwargs["title"], "トリガー一覧を別名で保存")
+            self.assertEqual(ask_save.call_args.kwargs["title"], "トリガーセットを別名保存")
             link.assert_not_called()  # E: save_as はラベル連動を呼ばない
             self.assertEqual([c[0] for c in save_calls], ["C:/new/triggers.json"])
 
@@ -966,12 +966,12 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.assertFalse(os.path.exists(save_path))
             save_runtime.assert_not_called()
             flash.assert_called_once_with(
-                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+                "保存の準備中にトリガーセットが変わったため、保存を中止しました。もう一度保存してください。",
                 auto_clear=False,
             )
             warning.assert_called_once_with(
                 "保存",
-                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+                "保存の準備中にトリガーセットが変わったため、保存を中止しました。もう一度保存してください。",
             )
     def test_bulk_save_shows_abort_when_plan_build_fails_after_rows_change(self):
         with tempfile.TemporaryDirectory() as root:
@@ -1019,12 +1019,12 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             save_runtime.assert_not_called()
             showerror.assert_not_called()
             flash.assert_called_once_with(
-                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+                "保存の準備中にトリガーセットが変わったため、保存を中止しました。もう一度保存してください。",
                 auto_clear=False,
             )
             warning.assert_called_once_with(
                 "保存",
-                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+                "保存の準備中にトリガーセットが変わったため、保存を中止しました。もう一度保存してください。",
             )
 
     def test_individual_trigger_save_aborts_when_active_set_changes_in_child_dialog(self):
@@ -1063,12 +1063,12 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.assertEqual(second_rows, [{"key": "f2", "label": "Second", "actions": []}])
             save_trigger_set.assert_not_called()
             flash.assert_called_once_with(
-                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+                "保存の準備中にトリガーセットが変わったため、保存を中止しました。もう一度保存してください。",
                 auto_clear=False,
             )
             warning.assert_called_once_with(
                 "保存",
-                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+                "保存の準備中にトリガーセットが変わったため、保存を中止しました。もう一度保存してください。",
             )
 
     def _assert_individual_trigger_save_cancels_on_path_dialog_switch(
@@ -1111,12 +1111,12 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             save_trigger_set.assert_not_called()
             showerror.assert_not_called()
             flash.assert_called_once_with(
-                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+                "保存の準備中にトリガーセットが変わったため、保存を中止しました。もう一度保存してください。",
                 auto_clear=False,
             )
             warning.assert_called_once_with(
                 "保存",
-                "保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。",
+                "保存の準備中にトリガーセットが変わったため、保存を中止しました。もう一度保存してください。",
             )
 
     def test_individual_trigger_save_as_aborts_when_active_set_changes_in_path_dialog(self):
@@ -1214,7 +1214,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.assertFalse(os.path.isabs(source_path))
             self.assertTrue(os.path.exists(os.path.join(root, source_path)))
             self.assertFalse(os.path.exists(os.path.join(cwd, "user")))
-            expected_info_message = f"トリガー一覧を保存しました:\n{source_path}"
+            expected_info_message = f"トリガーセットを保存しました:\n{source_path}"
             showinfo.assert_called_once_with(
                 "保存", expected_info_message
             )
@@ -1236,7 +1236,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
             self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
             self.assertIn(
-                "上位の索引を保存すると追随します。",
+                "キーマップを保存すると、キーマップに記録されたこのトリガーセットの保存先も新しい場所に更新されます。",
                 showinfo.call_args.args[1],
             )
             with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda value: value), patch.object(
@@ -1289,7 +1289,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
             self.assertTrue(self.app.dirty_tracker.has_unsaved_changes())
             self.assertIn(
-                "上位の索引を保存すると追随します。",
+                "構成セットを保存すると、構成セットに記録されたこのキーマップの保存先も新しい場所に更新されます。",
                 showinfo.call_args.args[1],
             )
             with patch.object(self.app.paths, "normalize_keymap_set_save_path", side_effect=lambda value: value), patch.object(
@@ -1352,7 +1352,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     self.assertTrue(_trigger_set_io(self.app).save_trigger_set_to_path(trigger_set_path))
                 self.assertFalse(self.app.dirty_tracker.has_unsaved_changes())
                 showinfo.assert_called_once_with(
-                    "保存", f"トリガー一覧を保存しました:\n{trigger_set_path}"
+                    "保存", f"トリガーセットを保存しました:\n{trigger_set_path}"
                 )
 
                 trigger = get_active_triggers(self.app.data)[0]
@@ -1438,14 +1438,14 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 "sync",
                 (
                     "flash",
-                    "トリガー一覧を保存しました。\n上位の索引を保存すると追随します。",
+                    "トリガーセットを保存しました。\nキーマップを保存すると、キーマップに記録されたこのトリガーセットの保存先も新しい場所に更新されます。",
                     {},
                 ),
                 (
                     "info",
                     (
                         "保存",
-                        f"トリガー一覧を保存しました:\n{path}\n上位の索引を保存すると追随します。",
+                        f"トリガーセットを保存しました:\n{path}\nキーマップを保存すると、キーマップに記録されたこのトリガーセットの保存先も新しい場所に更新されます。",
                     ),
                 ),
             ],
@@ -1525,7 +1525,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             "_set_flash_message",
         ) as flash, patch.object(tkinter.messagebox, "showerror") as showerror:
             self.assertFalse(_trigger_set_io(self.app).save_trigger_set_to_path("C:/bad.json"))
-        flash.assert_called_once_with("トリガー一覧保存失敗: disk full", auto_clear=False)
+        flash.assert_called_once_with("トリガーセット保存失敗: disk full", auto_clear=False)
         showerror.assert_called_once_with("保存失敗", "disk full")
 
     def test_trigger_set_load_confirms_first_then_success_empty_and_exception(self):
@@ -1534,7 +1534,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             "askopenfilename",
         ) as ask_open:
             self.assertIsNone(_trigger_set_io(self.app).load_trigger_set_file())
-            confirm.assert_called_once_with("トリガー一覧読込")
+            confirm.assert_called_once_with("トリガーセット読込")
             ask_open.assert_not_called()
 
         with tempfile.TemporaryDirectory() as directory:
@@ -1552,7 +1552,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 "_set_flash_message",
             ) as flash, patch.object(tkinter.messagebox, "showinfo") as showinfo:
                 _trigger_set_io(self.app).load_trigger_set_file()
-            self.assertEqual(ask_open.call_args.kwargs["title"], "トリガー一覧を読込")
+            self.assertEqual(ask_open.call_args.kwargs["title"], "トリガーセットを読み込む")
             self.assertEqual(get_active_triggers(self.app.data), [])
             # 読込時も §5.7 の表記へ正規化される（config 外なので絶対のまま・区切りは `/`）。
             self.assertEqual(
@@ -1569,8 +1569,8 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.assertEqual(set_dirty.call_count, 2)
             set_dirty.assert_any_call(True, config_dirty=False)
             set_dirty.assert_any_call(True)
-            flash.assert_called_once_with("トリガー一覧を読み込みました。")
-            showinfo.assert_called_once_with("読込", f"トリガー一覧を読み込みました:\n{path}")
+            flash.assert_called_once_with("トリガーセットを読み込みました。")
+            showinfo.assert_called_once_with("読込", f"トリガーセットを読み込みました:\n{path}")
 
         with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True), patch.object(
             tkinter.filedialog,
@@ -1590,7 +1590,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             "_set_flash_message",
         ) as flash, patch.object(tkinter.messagebox, "showerror") as showerror:
             _trigger_set_io(self.app).load_trigger_set_file()
-        flash.assert_called_once_with("トリガー一覧読込失敗: bad trigger set", auto_clear=False)
+        flash.assert_called_once_with("トリガーセット読込失敗: bad trigger set", auto_clear=False)
         showerror.assert_called_once_with("読込失敗", "bad trigger set")
 
     def test_trigger_set_individual_load_stores_config_relative_paths_and_resaves_to_loaded_file(self):
@@ -1709,7 +1709,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             tkinter.filedialog, "asksaveasfilename", return_value="C:/as/run.json"
         ), patch.object(_dialog_io(self.app), "ask_link_label_to_filename", return_value=False), p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_sequence_io(self.app).save_selected_sequence())
-            ask.assert_called_once_with("保存", "読込で持ってきた出力シーケンスです。\n別名で保存しますか？")
+            ask.assert_called_once_with("保存", "読み込んだ出力シーケンスです。\n別名保存しますか？")
             self.assertEqual(save_calls, [("C:/as/run.json", trigger)])
 
         # imported+dirty+no → 既存 source パスへ保存
@@ -1719,7 +1719,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             tkinter.messagebox, "askyesno", return_value=False
         ) as ask, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_sequence_io(self.app).save_selected_sequence())
-            ask.assert_called_once_with("保存", "読込で持ってきた出力シーケンスです。\n別名で保存しますか？")
+            ask.assert_called_once_with("保存", "読み込んだ出力シーケンスです。\n別名保存しますか？")
             self.assertEqual(save_calls, [(source, trigger)])
 
         # source なし → choose_save_path_with_collision の返すパスへ保存
@@ -1743,7 +1743,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             _dialog_io(self.app), "ask_link_label_to_filename", return_value=True
         ) as link, p[0], p[1], p[2], p[3], p[4]:
             self.assertTrue(_sequence_io(self.app).save_selected_sequence_as())
-            self.assertEqual(ask_save.call_args.kwargs["title"], "出力シーケンスを別名で保存")
+            self.assertEqual(ask_save.call_args.kwargs["title"], "出力シーケンスを別名保存")
             link.assert_called_once_with(title="出力シーケンス名の連動", path="C:/new/After.json")
             self.assertEqual(trigger["label"], "After")
             self.assertEqual(save_calls, [("C:/new/After.json", trigger)])
@@ -1797,14 +1797,14 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 "actions",
                 (
                     "flash",
-                    "出力シーケンスを保存しました。\n上位の索引を保存すると追随します。",
+                    "出力シーケンスを保存しました。\nトリガーセットを保存すると、トリガーセットに記録されたこの出力シーケンスの保存先も新しい場所に更新されます。",
                     {},
                 ),
                 (
                     "info",
                     (
                         "保存",
-                        f"出力シーケンスを保存しました:\n{path}\n上位の索引を保存すると追随します。",
+                        f"出力シーケンスを保存しました:\n{path}\nトリガーセットを保存すると、トリガーセットに記録されたこの出力シーケンスの保存先も新しい場所に更新されます。",
                     ),
                 ),
             ],
@@ -1888,7 +1888,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 "_set_flash_message",
             ) as flash, patch.object(tkinter.messagebox, "showinfo") as showinfo:
                 _sequence_io(self.app).load_sequence_file()
-            self.assertEqual(ask_open.call_args.kwargs["title"], "出力シーケンスを読込")
+            self.assertEqual(ask_open.call_args.kwargs["title"], "出力シーケンスを読み込む")
             self.assertEqual(trigger["label"], "Loaded")
             mark_dirty.assert_called_once_with()
             refresh_triggers.assert_called_once_with()
@@ -2067,7 +2067,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 self.assertFalse(_trigger_set_io(self.app).save_trigger_set_file())
 
             self.assertEqual(Path(trigger_set_path).read_bytes(), original)
-            flash.assert_called_once_with("トリガー一覧の保存を中止しました。")
+            flash.assert_called_once_with("トリガーセットの保存を中止しました。")
             showinfo.assert_not_called()
 
     def test_individual_trigger_save_applies_sequence_choices_only(self):

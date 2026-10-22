@@ -43,7 +43,7 @@ class TriggerSetFileIo:
                 self._default_trigger_set_stem(),
                 "trigger_set",
             )
-            path = self._app.io_dialogs.choose_save_path_with_collision(title="トリガー一覧を保存", suggested_path=suggested)
+            path = self._app.io_dialogs.choose_save_path_with_collision(title="トリガーセットを保存", suggested_path=suggested)
             if not path:
                 return False
         return self.save_trigger_set_to_path(path, save_target=save_target)
@@ -57,7 +57,7 @@ class TriggerSetFileIo:
             "trigger_set",
         )
         path = filedialog.asksaveasfilename(
-            title="トリガー一覧を別名で保存",
+            title="トリガーセットを別名保存",
             initialdir=os.path.dirname(os.path.abspath(suggested)),
             initialfile=os.path.basename(suggested),
             defaultextension=".json",
@@ -75,7 +75,7 @@ class TriggerSetFileIo:
                 save_target = capture_active(self._app.data)
             save_plan = self._collect_sequence_save_plan(path)
             if save_plan is None:
-                self._app._set_flash_message("トリガー一覧の保存を中止しました。")
+                self._app._set_flash_message("トリガーセットの保存を中止しました。")
                 return False
             if not snapshot_matches(self._app.data, save_target):
                 self._app._set_flash_message(SAVE_TARGET_CHANGED_MESSAGE, auto_clear=False)
@@ -88,7 +88,7 @@ class TriggerSetFileIo:
             if save_target is not None and not snapshot_matches(self._app.data, save_target):
                 self._show_save_target_changed()
                 return False
-            self._app._set_flash_message(f"トリガー一覧保存失敗: {e}", auto_clear=False)
+            self._app._set_flash_message(f"トリガーセット保存失敗: {e}", auto_clear=False)
             messagebox.showerror("保存失敗", str(e))
             return False
 
@@ -137,11 +137,11 @@ class TriggerSetFileIo:
         self._app.trigger_panel.refresh_actions()
 
     def _show_save_success(self, path: str, source_path_changed: bool) -> None:
-        completion = "トリガー一覧を保存しました。"
-        info = f"トリガー一覧を保存しました:\n{path}"
+        completion = "トリガーセットを保存しました。"
+        info = f"トリガーセットを保存しました:\n{path}"
         if source_path_changed:
-            completion += "\n上位の索引を保存すると追随します。"
-            info += "\n上位の索引を保存すると追随します。"
+            completion += "\nキーマップを保存すると、キーマップに記録されたこのトリガーセットの保存先も新しい場所に更新されます。"
+            info += "\nキーマップを保存すると、キーマップに記録されたこのトリガーセットの保存先も新しい場所に更新されます。"
         self._app._set_flash_message(completion)
         messagebox.showinfo("保存", info)
 
@@ -199,10 +199,10 @@ class TriggerSetFileIo:
         return self._app.paths.filename_stem(str(parent_path or "")) or "trigger_set"
 
     def load_trigger_set_file(self) -> None:
-        if not self._app.keymap_set_io.confirm_save_if_dirty("トリガー一覧読込"):
+        if not self._app.keymap_set_io.confirm_save_if_dirty("トリガーセット読込"):
             return
         path = filedialog.askopenfilename(
-            title="トリガー一覧を読込",
+            title="トリガーセットを読み込む",
             initialdir=self._app.paths.json_dialog_initial_dir(self._app.paths.preferred_trigger_sets_dir()),
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         )
@@ -211,7 +211,7 @@ class TriggerSetFileIo:
         try:
             self._apply_loaded_trigger_set(path)
         except Exception as e:
-            self._app._set_flash_message(f"トリガー一覧読込失敗: {e}", auto_clear=False)
+            self._app._set_flash_message(f"トリガーセット読込失敗: {e}", auto_clear=False)
             messagebox.showerror("読込失敗", str(e))
 
     def _apply_loaded_trigger_set(self, path: str) -> None:
@@ -290,5 +290,5 @@ class TriggerSetFileIo:
         self._app.trigger_panel.refresh_triggers()
         self._app.trigger_panel.refresh_actions()
         self._app.dirty_tracker.set_dirty(True)
-        self._app._set_flash_message("トリガー一覧を読み込みました。")
-        messagebox.showinfo("読込", f"トリガー一覧を読み込みました:\n{path}")
+        self._app._set_flash_message("トリガーセットを読み込みました。")
+        messagebox.showinfo("読込", f"トリガーセットを読み込みました:\n{path}")

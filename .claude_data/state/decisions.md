@@ -657,3 +657,6 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 ### 【phase 68 起票】reviewer 整合確認 修正して採用（2026-10-23）
 - タスクの担当をファイル単位で 1 つに決める形へ直した（menu_bar の A9・A13・A16〜A19 は task_06 / A15・§3.4 は task_02・「上位の割り当て」は task_03 / hook_frame は task_06）。「含まない」に暫定 51 の据え置きを明記。D3 の一覧表は task_06 のタスク定義の段階でユーザー確認（保留指摘 5 を手順で吸収）。
 ### 【phase 68 実装】Codex 利用上限（10-27 19:43 まで）のため implementer（Claude）で実装（2026-10-23・ユーザー許可）。タスクの連続実行もユーザー許可。
+### 【phase 68 task_06 準備】D3「…」の付与 / 除去の一覧（tools/d3_ellipsis_list.md）をユーザー確定（2026-10-23・案どおり）
+### 【task_02】「次回保存で反映」→「次回の保存で反映」（§3.4 の確定文と揃える・メイン判断）。save_plan_execution.py:440「ディレクトリ」は M9 の範囲外として据え置き（全体へ広げるかは task_07 でまとめてユーザー確認）。
+### 【phase 68】Codex 復帰（2026-10-23 ユーザー指示）→ task_03 以降の実装は既定どおり codex-implementer（判断が要るものは codex-delegating-implementer）。task_01・02 は implementer（Claude）で実装済み。

@@ -75,7 +75,7 @@ class ChildSaveRowsTest(unittest.TestCase):
                 [(row.kind, row.key, row.display_name) for row in rows],
                 [
                     (CHILD_KEYMAP, "km1", "Main"),
-                    (CHILD_TRIGGER_SET, "km1", "Main / トリガー一覧"),
+                    (CHILD_TRIGGER_SET, "km1", "Main / トリガーセット"),
                     (CHILD_SEQUENCE, compose_sequence_key("km1", "f1"), "Main / Copy"),
                 ],
             )
@@ -103,8 +103,8 @@ class ChildSaveRowsTest(unittest.TestCase):
             self.assertEqual(
                 [(row.key, row.display_name) for row in sequence_rows],
                 [
-                    (compose_sequence_key("km1", "f1"), "Main / Copy（1 行目）"),
-                    (compose_sequence_key("km1", "f1", 2), "Main / Copy（2 行目）"),
+                    (compose_sequence_key("km1", "f1"), "Main / Copy（1行目）"),
+                    (compose_sequence_key("km1", "f1", 2), "Main / Copy（2行目）"),
                 ],
             )
 
@@ -172,13 +172,34 @@ class ChildSaveRowsTest(unittest.TestCase):
                 )
                 self.assertEqual(default_action_for(state), expected_action)
 
-        self.assertIn("2", share_text_for(SHARE_SHARED, 2))
+        self.assertIn("2", share_text_for(SHARE_SHARED, 2, CHILD_KEYMAP))
 
     def test_share_text_for_sole_explicitly_describes_overwrite(self):
         self.assertEqual(
-            share_text_for(SHARE_SOLE, 1),
-            "この構成のみが所有・既存を上書き",
+            share_text_for(SHARE_SOLE, 1, CHILD_KEYMAP),
+            "この構成セットのみが所有・既存を上書き",
         )
+
+    def _assert_parent_share_texts(self, kind, parent_name):
+        self.assertEqual(share_text_for(SHARE_SOLE, 1, kind), f"この{parent_name}のみが所有・既存を上書き")
+        self.assertEqual(share_text_for(SHARE_SHARED, 3, kind), f"3個の{parent_name}で共有中・全てに影響します")
+        self.assertEqual(share_text_for(SHARE_OTHER_PARENT, 1, kind), f"別の{parent_name}に属します")
+
+    def test_share_text_for_keymap_row_names_keymap_set_as_parent(self):
+        self._assert_parent_share_texts(CHILD_KEYMAP, "構成セット")
+
+    def test_share_text_for_trigger_set_row_names_keymap_as_parent(self):
+        self._assert_parent_share_texts(CHILD_TRIGGER_SET, "キーマップ")
+
+    def test_share_text_for_sequence_row_names_trigger_set_as_parent(self):
+        self._assert_parent_share_texts(CHILD_SEQUENCE, "トリガーセット")
+
+    def test_share_text_for_parent_independent_states_ignore_kind(self):
+        for kind in (CHILD_KEYMAP, CHILD_TRIGGER_SET, CHILD_SEQUENCE):
+            with self.subTest(kind=kind):
+                self.assertEqual(share_text_for(SHARE_NEW, 0, kind), "新規作成")
+                self.assertEqual(share_text_for(SHARE_NEW_COLLIDES, 0, kind), "同名の既存ファイルあり・安全のため別名")
+                self.assertEqual(share_text_for(SHARE_UNKNOWN, 0, kind), "所有元不明・安全のため別名")
 
     def test_collect_sole_owned_existing_child_uses_overwrite_text_and_save(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -211,7 +232,7 @@ class ChildSaveRowsTest(unittest.TestCase):
 
             row = rows[0]
             self.assertEqual(row.share_state, SHARE_SOLE)
-            self.assertEqual(row.share_text, "この構成のみが所有・既存を上書き")
+            self.assertEqual(row.share_text, "この構成セットのみが所有・既存を上書き")
             self.assertEqual(row.default_action, ACTION_SAVE)
 
     def test_collect_normalizes_parent_paths_uses_trigger_set_parent_and_scopes_new_collisions(self):
