@@ -7,7 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 67 は 2026-10-21 完了・次フェーズはユーザー判断で `/phase_start`）。**次採番 = phase 68 / 暫定 51 / decisions 68 / 提案書 25 / idea 55**（暫定 47 は idea_53 で保留中の番号）。
+- **アクティブなフェーズ = [phase 68](68_ui_terminology/phase.md)（UI 文言の用語統一）**（2026-10-23 起票）。UI の文言を 1 概念 1 語に揃え、個別の表現と表記ゆれを直す（ヘルプ・多言語化・Mac 対応の土台）。
+  暫定仕様先行モード・主入力 = [暫定 51](../history/51_ui_terminology.md)（v0.7・ユーザー確定済）・JSON スキーマ不変・起票元 = ユーザー要望（2026-10-22）・判断 = `.claude_data/state/decisions.md`「2026-10-22 (phase 68 予定: UI 文言の用語統一・暫定 51)」。
+  確定事項 = 用語表 A1〜A20・個別の表現 C1〜C16・はい / いいえ の確認のボタン名ダイアログ化・表記規則 D1〜D11（内部名の表示名化は含めない）。番号対応: phase 68 / 暫定 51 / decisions 68。
+- **次採番 = phase 69 / 暫定 52 / decisions 69 / 提案書 25 / idea 55**（暫定 47 は idea_53 で保留中の番号）。
 - 直前の完了フェーズ = [phase 67](67_mouse_scroll_action/phase.md)（2026-10-21・出力シーケンスのマウススクロール〔新しい種類 `mouse_scroll`・上下左右・ノッチ数 / 生の値（120 = 1 ノッチ）・座標は任意・1 回の `SendInput` で WHEEL / HWHEEL・不正な行は止まる系〕。暫定仕様先行モード〔暫定 50 v0.4 凍結〕・**JSON スキーマ = 種類の追加**・起票元 = ユーザー要望・判断は [decisions_archive/67](../../.claude_data/state/decisions_archive/67_mouse_scroll_action.md)）。
 - その前の完了フェーズ = [phase 66](66_capture_jis_special_keys/phase.md)（2026-10-21・キーの取得で JIS の特殊キーを取る〔取得の間だけ suppress フックでレイアウトの行に当たるキーを抑止し、フックの実行時と同じ名前を 8 入口へ渡す・アプリの窓が前面のときだけ〕。暫定仕様先行モード〔暫定 49 v0.5 凍結〕・JSON スキーマ不変・起票元 idea_50・判断は [decisions_archive/66](../../.claude_data/state/decisions_archive/66_capture_jis_special_keys.md)）。
   [phase 65](65_layout_snapshot_for_hook/phase.md)（2026-10-21・受け取りと送信が同じレイアウトの写しを使う〔受け取り・送信・キーボードUI を `LayoutController` の写し 1 つへ・外部レイアウトの JSON の変更は選び直し〔同じレイアウトでも〕・読み直しのときだけ反映・押したままのキーは押したときの送り方で送る〕。暫定仕様先行モード〔暫定 48 v0.3 凍結〕・JSON スキーマ不変・起票元 idea_51・判断は [decisions_archive/65](../../.claude_data/state/decisions_archive/65_layout_snapshot_for_hook.md)）。
