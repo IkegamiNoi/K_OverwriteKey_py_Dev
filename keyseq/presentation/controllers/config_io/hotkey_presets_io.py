@@ -30,16 +30,16 @@ class HotkeyPresetsIo:
     def show_save_path_rejection(self, reason: str, *, stored_path: str) -> None:
         if reason == "reserved_dir":
             message = (
-                "global/ はグローバル用のため、専用プリセットの保存先にできません。\n"
+                "global/は共通プリセット用のため、構成セット専用プリセットの保存先にできません。\n"
                 f"現在の保存先: {stored_path}"
             )
         else:
             message = (
-                "保存先がグローバルライブラリと同じファイルです。\n"
-                "config.json の hotkey_presets_path を global/ 配下へ直してください。\n"
+                "保存先が共通プリセットと同じファイルです。\n"
+                "config.jsonのhotkey_presets_pathをglobal/配下へ直してください。\n"
                 f"現在の保存先: {stored_path}"
             )
-        messagebox.showerror("専用プリセットを保存できません", message)
+        messagebox.showerror("構成セット専用プリセットを保存できません", message)
 
     def confirm_overwrite(self, *, stored_path: str, existing: list | None,
                           transient_parent: tk.Misc) -> str:
@@ -50,14 +50,14 @@ class HotkeyPresetsIo:
         """
         result = {"choice": "cancel"}
         dialog = tk.Toplevel(self._app)
-        dialog.title("専用プリセットの上書き確認")
+        dialog.title("構成セット専用プリセットの上書き確認")
         dialog.resizable(False, False)
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill="both", expand=True)
         if existing is None:
-            description = "保存先には既にファイルがありますが、プリセットとして読み込めません。"
+            description = "保存先にはすでにファイルがありますが、プリセットとして読み込めません。"
         else:
-            description = "保存先には既にプリセットファイルがあり、表示中の一覧と内容が異なります。"
+            description = "保存先にはすでにプリセットファイルがあり、表示中の一覧と内容が異なります。"
         ttk.Label(
             frame,
             text=f"{description}\n保存先: {stored_path}",

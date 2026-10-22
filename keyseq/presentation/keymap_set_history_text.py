@@ -2,7 +2,7 @@
 
 from pathlib import PureWindowsPath
 
-RECENT_NODE_LABEL = "直近（最大 20 件）"
+RECENT_NODE_LABEL = "直近（最大20件）"
 MISSING_SUFFIX = "（見つかりません）"
 READ_ONLY_NOTICE = "履歴ファイルを読み込めませんでした。編集できません。"
 TITLE = "構成セットの履歴"
@@ -21,10 +21,10 @@ CHOOSER_TITLE = "コピー先の分類"
 OK = "OK"
 CANCEL = "キャンセル"
 NO_CATEGORIES = "分類がありません。先に分類を追加してください。"
-INVALID_CATEGORY_NAME = "分類名が空か、同名の分類が既にあります。"
+INVALID_CATEGORY_NAME = "分類名が空か、同名の分類がすでにあります。"
 RENAME_REJECTED = "分類が存在しないか、分類名が空または同名です。"
 CATEGORY_NOT_FOUND = "分類が存在しません。"
-COPY_REJECTED = "分類が存在しないか、分類内に既に同じ構成セットがあります。"
+COPY_REJECTED = "分類が存在しないか、分類内にすでに同じ構成セットがあります。"
 ENTRY_NOT_FOUND = "履歴の項目が存在しません。"
 
 

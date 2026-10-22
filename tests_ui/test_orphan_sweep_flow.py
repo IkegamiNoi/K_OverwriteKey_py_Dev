@@ -91,7 +91,7 @@ class OrphanSweepFlowTest(unittest.TestCase):
             self.app.config_service, "scan_orphans",
         ) as scan:
             self.app.orphan_sweep_io.run_sweep()
-        self.ask.assert_called_once_with("孤児ファイルの棚卸し", "棚卸しの前に保存が必要です。保存しますか？")
+        self.ask.assert_called_once_with("未使用ファイルの整理", "整理の前に保存が必要です。保存しますか？")
         self.save.assert_not_called()
         self.save_as.assert_not_called()
         collect.assert_not_called()
@@ -162,7 +162,7 @@ class OrphanSweepFlowTest(unittest.TestCase):
                 with patch.object(self.app.config_service, "scan_orphans", return_value=result):
                     with patch.object(tk.Toplevel, "__init__", side_effect=AssertionError("unexpected dialog")):
                         self.app.orphan_sweep_io.run_sweep()
-                self.info.assert_called_once_with("孤児ファイルの棚卸し", "\n".join(format_orphan_notice(result)))
+                self.info.assert_called_once_with("未使用ファイルの整理", "\n".join(format_orphan_notice(result)))
                 self.open_confirm.assert_not_called()
                 self.quarantine.assert_not_called()
         self.ask.assert_not_called()
@@ -172,8 +172,8 @@ class OrphanSweepFlowTest(unittest.TestCase):
         with patch.object(self.app.config_service, "scan_orphans", return_value=result):
             self.app.orphan_sweep_io.run_sweep()
         self.open_confirm.assert_called_once_with(
-            self.app, title="孤児ファイルの棚卸し", lines=format_orphan_plan(result),
-            header="隔離する孤児候補を確認してください。", run_label="隔離する",
+            self.app, title="未使用ファイルの整理", lines=format_orphan_plan(result),
+            header="退避する未使用の候補を確認してください。", run_label="退避する",
         )
         self.confirm.wait_window.assert_called_once_with()
         self.assertTrue(self.open_confirm.call_args.kwargs["lines"][0].startswith("警告:"))
@@ -204,7 +204,7 @@ class OrphanSweepFlowTest(unittest.TestCase):
             ["user/keymaps/candidate.json"], **scan.call_args.kwargs,
         )
         self.info.assert_called_once_with(
-            "孤児ファイルの棚卸し", "\n".join(format_quarantine_result(quarantined)),
+            "未使用ファイルの整理", "\n".join(format_quarantine_result(quarantined)),
         )
 
     def test_unreadable_sources_do_not_block_quarantine(self):
@@ -419,7 +419,7 @@ class OrphanSweepFlowTest(unittest.TestCase):
             # A-4: 既定ディレクトリの不在は「見つからなかった指定ディレクトリ」に含めない（§3-5-1）。
             self.assertEqual(result.missing_scan_dirs, ("missing",))
         message = self.info.call_args.args[1]
-        self.assertIn("見つからなかった走査ディレクトリ: 1 件", message)
+        self.assertIn("見つからなかった探索フォルダ: 1件", message)
         for path in result.missing_scan_dirs:
             self.assertIn(f"  {path}", message)
         self.assertNotIn("警告", message)
@@ -458,9 +458,9 @@ class ReferenceCleanupDialogLabelTest(unittest.TestCase):
         dialog.destroy()
 
     def test_quarantine_labels_replace_only_header_and_run_button(self):
-        dialog = self._dialog(header="隔離する孤児候補を確認してください。", run_label="隔離する")
-        self.assertEqual(self._texts(dialog, ttk.Label), ["隔離する孤児候補を確認してください。"])
-        self.assertEqual(self._texts(dialog, ttk.Button), ["隔離する", "キャンセル"])
+        dialog = self._dialog(header="退避する未使用の候補を確認してください。", run_label="退避する")
+        self.assertEqual(self._texts(dialog, ttk.Label), ["退避する未使用の候補を確認してください。"])
+        self.assertEqual(self._texts(dialog, ttk.Button), ["退避する", "キャンセル"])
         self.assertFalse(dialog.result)
         dialog._run()
         self.assertTrue(dialog.result)

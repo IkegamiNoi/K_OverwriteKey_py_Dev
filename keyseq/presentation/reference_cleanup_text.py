@@ -5,13 +5,13 @@ CLEANUP_EMPTY_MESSAGE: str = "掃除する項目はありません。"
 
 _KIND_LABELS = {
     "keymap": "キーマップ",
-    "trigger_set": "トリガー一覧",
+    "trigger_set": "トリガーセット",
     "sequence": "出力シーケンス",
 }
 
 _FAILURE_MESSAGES = {
     contracts.PRUNE_FAILURE_UNREADABLE: "読み直せませんでした",
-    contracts.PRUNE_FAILURE_INVALID_DATA: "JSON の形式が不正です",
+    contracts.PRUNE_FAILURE_INVALID_DATA: "JSONの形式が正しくありません",
     contracts.PRUNE_FAILURE_SAVE_FAILED: "保存できませんでした",
 }
 
@@ -28,7 +28,7 @@ def format_cleanup_plan(
         for inspection in inspections
     )
     stale_count = sum(len(inspection.stale_refs) for inspection in inspections)
-    lines = [f"対象ファイル: {target_count} 件、消える参照元: {stale_count} 件"]
+    lines = [f"対象ファイル: {target_count}件、消える参照元: {stale_count}件"]
     for inspection in inspections:
         kind_label = _KIND_LABELS.get(inspection.kind, inspection.kind)
         lines.append(f"{kind_label}: {inspection.stored_path}")
@@ -44,8 +44,8 @@ def format_cleanup_plan(
         if inspection.state == contracts.CLEANUP_ALL_STALE:
             lines.extend(
                 [
-                    "警告: この掃除で参照元が 0 件になります。",
-                    "子ファイル自体は削除しません。孤児かどうかは「孤児ファイルの棚卸し」で確認できます。",
+                    "警告: この掃除で参照元が0件になります。",
+                    "子ファイル自体は削除しません。未使用かどうかは「未使用ファイルの整理」で確認できます。",
                 ]
             )
     return tuple(lines)
@@ -55,7 +55,7 @@ def format_cleanup_result(result: contracts.ParentRefsPruneResult) -> tuple[str,
     """参照元の掃除の実行結果を通知用の行へ組み立てる。"""
     removed_count = sum(count for _, count in result.updated_files)
     lines = [
-        f"更新したファイル: {len(result.updated_files)} 件、除去した参照元: {removed_count} 件"
+        f"更新したファイル: {len(result.updated_files)}件、除去した参照元: {removed_count}件"
     ]
     if result.failed_files:
         lines.append("失敗したファイル:")

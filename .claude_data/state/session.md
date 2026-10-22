@@ -11,20 +11,20 @@ last_commit_location: `claude/help-text-review-c94d50`（暫定 51・phase 68 �
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 68 task_04 完了（出力シーケンスとアクションの文言）。次 = task_05（codex-delegating-implementer）。タスクの連続実行はユーザー許可済み。**
+focus: **phase 68 task_05 完了（プリセット・未使用ファイルの整理・退避の文言）。次 = task_06（表示・メニュー + D3 の「…」一覧の適用）。タスクの連続実行はユーザー許可済み。**
 mode: implementing
 presence: present
 
 ## last_action
-ts: 2026-10-23T20:00:00
+ts: 2026-10-23T22:00:00
 who: main
 summary: |
-  phase 68 task_04: codex-delegating-implementer で実装（C1〜C5・A10・A12・D8・D9・表記）。一覧の書式も D5・D1 で変わる（[スクロール] 下3・（リピート）・（生））→ 正本の書式は task_08 で追従。
-  reviewer 修正要（file_line_loader の「読込」2 か所）→ メイン修正。verifier の失敗 3 件（テストの期待文言）→ メイン修正・該当 4 本 37 件 OK（全体は修正前に 1819 / 1149 で失敗 3 件のみ）。
+  phase 68 task_05: codex-delegating-implementer で実装（A12・A16〜A18 の置換表・フォルダ・結果文の「移動」→「退避」）。reviewer 採用・テストの追従漏れなし。
+  保留（task_07 でユーザー確認）: 「不正なhotkey」の題 / save_plan_execution.py:440「ディレクトリ」。
 verified:
   compile: clean
-  tests: 1819（修正前 failures=1 → 該当テスト再実行 OK）
-  tests_ui: 1149（修正前 failures=2 → 該当テスト再実行 OK）
+  tests: pass 1819（skipped 7）
+  tests_ui: pass 1149
   smoke: pass
 
 ## next_action

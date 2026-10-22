@@ -35,7 +35,7 @@ class OrphanSweepTextTest(unittest.TestCase):
                    ("unknown.json", "new_reason"))
         expected = (
             "  linked.json: リンク / ジャンクションのため参照側として読みませんでした",
-            "  denied: ディレクトリを読み取れませんでした",
+            "  denied: フォルダを読み取れませんでした",
             "  unknown.json: new_reason",
         )
         scan_lines = format_scan_warnings(_result(unreadable_sources=sources))
@@ -51,10 +51,10 @@ class OrphanSweepTextTest(unittest.TestCase):
         for formatter in (format_scan_warnings, format_orphan_plan):
             with self.subTest(formatter=formatter.__name__):
                 lines = formatter(result)
-                self.assertEqual(lines[0], "警告: 読めなかった構成セット / トリガー一覧が 2 件あります。")
-                self.assertEqual(lines[1], "それらが参照していた子ファイルを孤児と誤判定している可能性があります。")
+                self.assertEqual(lines[0], "警告: 読めなかった構成セット / トリガーセットが2件あります。")
+                self.assertEqual(lines[1], "それらが参照していた子ファイルを未使用と誤判定している可能性があります。")
                 self.assertIn("  missing.json: ファイルが見つかりません", lines)
-                self.assertIn("  broken.json: 読み取り / JSON 解析に失敗しました", lines)
+                self.assertIn("  broken.json: 読み取り / JSON解析に失敗しました", lines)
 
     def test_unknown_source_reason_is_preserved(self):
         lines = format_scan_warnings(_result(unreadable_sources=(("other.json", "new_reason"),)))
@@ -62,12 +62,12 @@ class OrphanSweepTextTest(unittest.TestCase):
 
     def test_missing_directories_are_counted_and_listed_without_warning(self):
         lines = format_scan_warnings(_result(missing_scan_dirs=(" Missing/../One ", "Two")))
-        self.assertEqual(lines[:3], ("見つからなかった走査ディレクトリ: 2 件", "   Missing/../One ", "  Two"))
+        self.assertEqual(lines[:3], ("見つからなかった探索フォルダ: 2件", "   Missing/../One ", "  Two"))
         self.assertNotIn("警告", "\n".join(lines))
 
     def test_non_sets_show_only_count(self):
         lines = format_scan_warnings(_result(non_keymap_set_sources=("one.json", "two.json")))
-        self.assertIn("構成セットとして解釈できなかった JSON: 2 件", lines)
+        self.assertIn("構成セットとして解釈できなかったJSON: 2件", lines)
         for path in ("one.json", "two.json"):
             self.assertNotIn(path, "\n".join(lines))
 
@@ -83,7 +83,7 @@ class OrphanSweepTextTest(unittest.TestCase):
             OrphanEntry(KIND_KEYMAP, "protected.json", ORPHAN_PROTECTED),
         ))
         self.assertEqual(format_orphan_plan(result), (
-            SCAN_SCOPE_NOTE, "孤児候補: 1 件", "キーマップ: candidate.json",
+            SCAN_SCOPE_NOTE, "未使用の候補: 1件", "キーマップ: candidate.json",
         ))
 
     def test_excluded_entries_show_only_count(self):
@@ -92,7 +92,7 @@ class OrphanSweepTextTest(unittest.TestCase):
             OrphanEntry(KIND_SEQUENCE, "invalid-two.json", ORPHAN_EXCLUDED),
         ))
         lines = format_orphan_plan(result)
-        self.assertIn("対象外: 2 件", lines)
+        self.assertIn("対象外: 2件", lines)
         self.assertNotIn("invalid-", "\n".join(lines))
 
     def test_empty_notice_includes_all_scan_diagnostics(self):
@@ -103,8 +103,8 @@ class OrphanSweepTextTest(unittest.TestCase):
         ))
 
     def test_all_kind_labels_and_unknown_kind(self):
-        kinds = ((KIND_KEYMAP, "キーマップ"), (KIND_TRIGGER_SET, "トリガー一覧"),
-                 (KIND_SEQUENCE, "出力シーケンス"), (KIND_HOTKEY_PRESETS, "個別プリセット"),
+        kinds = ((KIND_KEYMAP, "キーマップ"), (KIND_TRIGGER_SET, "トリガーセット"),
+                 (KIND_SEQUENCE, "出力シーケンス"), (KIND_HOTKEY_PRESETS, "構成セット専用プリセット"),
                  ("new_kind", "new_kind"))
         result = _result(entries=tuple(
             OrphanEntry(kind, f"{kind}.json", ORPHAN_CANDIDATE) for kind, _ in kinds
@@ -133,12 +133,12 @@ class OrphanSweepTextTest(unittest.TestCase):
 class QuarantineResultTextTest(unittest.TestCase):
     def test_redirected_root_abort_uses_japanese_label_and_unknown_stays_raw(self):
         for reason, label in (
-            (QUARANTINE_ROOT_REDIRECTED, "隔離ルートがリンク / ジャンクションのため中止しました"),
+            (QUARANTINE_ROOT_REDIRECTED, "退避先フォルダがリンク / ジャンクションのため中止しました"),
             ("unknown_abort", "unknown_abort"),
         ):
             with self.subTest(reason=reason):
                 lines = format_quarantine_result(_quarantine_result(unit_id="", aborted_reason=reason))
-                self.assertEqual(lines[:2], (f"隔離を中止しました: {label}", "ファイルは 1 件も移動していません。"))
+                self.assertEqual(lines[:2], (f"退避を中止しました: {label}", "ファイルは1件も退避していません。"))
 
     def test_moved_entries_are_counted_and_listed_with_kind_labels(self):
         result = _quarantine_result(moved=(
@@ -146,7 +146,7 @@ class QuarantineResultTextTest(unittest.TestCase):
             ("new_kind", "user/other/bar.json"),
         ))
         self.assertEqual(format_quarantine_result(result), (
-            "隔離しました: 2 件（実行単位: 20260906_101500）",
+            "退避しました: 2件（回: 20260906_101500）",
             "キーマップ: user/keymaps/foo.json",
             "new_kind: user/other/bar.json",
         ))
@@ -158,35 +158,35 @@ class QuarantineResultTextTest(unittest.TestCase):
             ("user/keymaps/bar.json", "new_reason"),
         ))
         lines = format_quarantine_result(result)
-        self.assertEqual(lines[1], "移動できなかったファイル:")
-        self.assertEqual(lines[2], "  user/keymaps/foo.json: 移動できませんでした")
+        self.assertEqual(lines[1], "退避できなかったファイル:")
+        self.assertEqual(lines[2], "  user/keymaps/foo.json: 退避できませんでした")
         self.assertEqual(lines[3], "  user/keymaps/bar.json: new_reason")
-        self.assertEqual(lines[4], "警告: マニフェストを書き込めず、隔離の記録が古い可能性があります。")
+        self.assertEqual(lines[4], "警告: 退避の記録を書き込めず、記録の内容が古い可能性があります。")
         self.assertEqual(lines[5],
-                         "  quarantine/20260906_101500/manifest.json: マニフェストを書き込めませんでした")
+                         "  quarantine/20260906_101500/manifest.json: 退避の記録を書き込めませんでした")
 
     def test_manifest_failure_after_move_is_separate_from_move_failures(self):
         result = _quarantine_result(moved=((KIND_KEYMAP, "child.json"),), failed=(
             ("quarantine/unit/manifest.json", QUARANTINE_MANIFEST_WRITE_FAILED),
         ))
         lines = format_quarantine_result(result)
-        self.assertTrue(lines[0].startswith("隔離しました: 1 件"))
-        self.assertNotIn("移動できなかったファイル:", lines)
-        self.assertIn("隔離の記録が古い可能性があります", "\n".join(lines))
+        self.assertTrue(lines[0].startswith("退避しました: 1件"))
+        self.assertNotIn("退避できなかったファイル:", lines)
+        self.assertIn("記録の内容が古い可能性があります", "\n".join(lines))
         self.assertIn("quarantine/unit/manifest.json", "\n".join(lines))
 
     def test_all_failed_headline_does_not_claim_success(self):
         result = _quarantine_result(failed=(("child.json", QUARANTINE_SOURCE_REJECTED),))
         lines = format_quarantine_result(result)
-        self.assertTrue(lines[0].startswith("隔離できませんでした: 0 件"))
-        self.assertNotIn("隔離しました", "\n".join(lines))
-        self.assertIn("  child.json: 移動直前の安全確認で対象外になりました", lines)
+        self.assertTrue(lines[0].startswith("退避できませんでした: 0件"))
+        self.assertNotIn("退避しました", "\n".join(lines))
+        self.assertIn("  child.json: 退避直前の安全確認で対象外になりました", lines)
 
     def test_unit_directory_failure_has_japanese_abort_label(self):
         result = _quarantine_result(unit_id="", aborted_reason=QUARANTINE_UNIT_DIR_FAILED)
         self.assertEqual(format_quarantine_result(result)[:2], (
-            "隔離を中止しました: 隔離の実行単位ディレクトリを作成できませんでした",
-            "ファイルは 1 件も移動していません。",
+            "退避を中止しました: 退避先に今回のフォルダを作成できませんでした",
+            "ファイルは1件も退避していません。",
         ))
 
     def test_rescan_warning_precedes_success_and_abort_with_paths_and_reasons(self):
@@ -196,43 +196,43 @@ class QuarantineResultTextTest(unittest.TestCase):
             with self.subTest(abort=abort):
                 result = _quarantine_result(aborted_reason=abort, rescan_unreadable_sources=sources)
                 lines = format_quarantine_result(result)
-                self.assertEqual(lines[0], "警告: 隔離の直前にも読めない参照側が 3 件ありました。")
+                self.assertEqual(lines[0], "警告: 退避の直前にも読めない参照側が3件ありました。")
                 self.assertEqual(lines[2:5], (
                     "  Missing.JSON: ファイルが見つかりません",
-                    "  broken.json: 読み取り / JSON 解析に失敗しました",
+                    "  broken.json: 読み取り / JSON解析に失敗しました",
                     "  other.json: new_reason",
                 ))
-                self.assertTrue(lines[5].startswith("隔離"))
+                self.assertTrue(lines[5].startswith("退避"))
 
     def test_dropped_and_newly_orphan_show_counts_without_paths(self):
         result = _quarantine_result(dropped_paths=("user/keymaps/foo.json", "user/keymaps/bar.json"),
                                     newly_orphan_count=3)
         lines = format_quarantine_result(result)
-        self.assertEqual(lines[-2], "提示後に対象外になったため隔離しなかった: 2 件")
-        self.assertEqual(lines[-1], "再判定で新たに孤児候補になったため今回は隔離しなかった: 3 件")
+        self.assertEqual(lines[-2], "提示後に対象外になったため退避しなかった: 2件")
+        self.assertEqual(lines[-1], "再判定で新たに未使用の候補になったため今回は退避しなかった: 3件")
         for path in result.dropped_paths:
             self.assertNotIn(path, "\n".join(lines))
 
     def test_zero_counts_are_omitted(self):
         lines = format_quarantine_result(_quarantine_result())
-        self.assertEqual(lines, ("隔離しました: 0 件（実行単位: 20260906_101500）",))
+        self.assertEqual(lines, ("退避しました: 0件（回: 20260906_101500）",))
         self.assertEqual(format_quarantine_result(_quarantine_result(unit_id="")),
-                         ("隔離しました: 0 件",))
+                         ("退避しました: 0件",))
 
     def test_aborted_result_states_that_nothing_was_moved(self):
         result = _quarantine_result(unit_id="", aborted_reason=QUARANTINE_MANIFEST_WRITE_FAILED,
                                     dropped_paths=("user/keymaps/foo.json",))
         lines = format_quarantine_result(result)
         self.assertEqual(lines[:2], (
-            "隔離を中止しました: マニフェストを書き込めませんでした",
-            "ファイルは 1 件も移動していません。",
+            "退避を中止しました: 退避の記録を書き込めませんでした",
+            "ファイルは1件も退避していません。",
         ))
-        self.assertNotIn("隔離しました", "\n".join(lines))
-        self.assertEqual(lines[-1], "提示後に対象外になったため隔離しなかった: 1 件")
+        self.assertNotIn("退避しました", "\n".join(lines))
+        self.assertEqual(lines[-1], "提示後に対象外になったため退避しなかった: 1件")
 
     def test_unknown_abort_reason_is_preserved(self):
         lines = format_quarantine_result(_quarantine_result(unit_id="", aborted_reason="new_reason"))
-        self.assertEqual(lines[0], "隔離を中止しました: new_reason")
+        self.assertEqual(lines[0], "退避を中止しました: new_reason")
 
 
 if __name__ == "__main__":

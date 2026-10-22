@@ -18,7 +18,7 @@ class OrphanSweepDialog(tk.Toplevel):
         self.result: bool = False
         self.scan_dirs: tuple[str, ...] = scan_dirs
         self._initial_dir = initial_dir
-        self.title("孤児ファイルの棚卸し")
+        self.title("未使用ファイルの整理")
         self.resizable(False, False)
         self._build_widgets()
         self.bind("<Escape>", lambda _event: self.destroy())
@@ -28,7 +28,7 @@ class OrphanSweepDialog(tk.Toplevel):
     def _build_widgets(self) -> None:
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
-        ttk.Label(frm, text="追加で走査するディレクトリを指定してください。\n"
+        ttk.Label(frm, text="追加で探すフォルダを指定してください。\n"
                   "一覧の変更は「閉じる」でも保存されます。").pack(anchor="w")
         list_frame = ttk.Frame(frm)
         list_frame.pack(fill="both", expand=True, pady=(10, 0))
@@ -45,7 +45,7 @@ class OrphanSweepDialog(tk.Toplevel):
         ttk.Button(edits, text="削除", command=self._remove).pack(side="left")
         actions = ttk.Frame(frm)
         actions.pack(anchor="e", pady=(14, 0))
-        ttk.Button(actions, text="棚卸しを実行", command=self._run).pack(side="left", padx=(0, 8))
+        ttk.Button(actions, text="整理を実行", command=self._run).pack(side="left", padx=(0, 8))
         ttk.Button(actions, text="閉じる", command=self.destroy).pack(side="left")
 
     def _add(self) -> None:

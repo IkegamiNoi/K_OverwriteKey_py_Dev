@@ -127,7 +127,7 @@ class PresetManagerRangeDragTest(unittest.TestCase):
         with patch("keyseq.presentation.dialogs.preset_manager.messagebox.askyesno",
                    return_value=True) as confirm:
             self.dialog.delete()
-        confirm.assert_called_once_with("確認", "選択した 3 件のプリセットを削除しますか？")
+        confirm.assert_called_once_with("確認", "選択した3件のプリセットを削除しますか？")
         self.assertEqual(self.dialog._temp, [self.presets[0], self.presets[4]])
         self.assertEqual(self.app.data["hotkey_presets"], self.presets)
 

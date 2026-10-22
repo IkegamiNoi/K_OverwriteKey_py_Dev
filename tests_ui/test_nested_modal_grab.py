@@ -159,7 +159,7 @@ class NestedModalGrabTest(unittest.TestCase):
                 child = windows[0]
                 self.addCleanup(self.cleanup_window, child)
                 confirmations.append(child)
-                self.assertEqual(child.title(), "専用プリセットの上書き確認")
+                self.assertEqual(child.title(), "構成セット専用プリセットの上書き確認")
                 self.assertIs(self.app.grab_current(), child)
                 if destroy_parent:
                     manager.destroy()
@@ -367,7 +367,7 @@ class NestedModalGrabTest(unittest.TestCase):
                     child = windows[0]
                     self.addCleanup(self.cleanup_window, child)
                     confirmations.append(child)
-                    self.assertEqual(child.title(), "専用プリセットの上書き確認")
+                    self.assertEqual(child.title(), "構成セット専用プリセットの上書き確認")
                     self.assertIs(child.master, self.app)
                     self.assertIs(self.app.grab_current(), child)
                     manager.destroy()

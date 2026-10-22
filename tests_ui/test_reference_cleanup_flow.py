@@ -208,7 +208,7 @@ class ReferenceCleanupFlowTest(unittest.TestCase):
         )
         showinfo.assert_called_once_with(
             "参照元の掃除",
-            "更新したファイル: 1 件、除去した参照元: 1 件",
+            "更新したファイル: 1件、除去した参照元: 1件",
         )
 
     def test_execute_does_not_change_runtime_or_dirty_state(self):

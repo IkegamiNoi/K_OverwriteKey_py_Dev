@@ -39,7 +39,7 @@ class OrphanSweepIo:
             entry.stored_path for entry in result.entries if entry.state == contracts.ORPHAN_CANDIDATE
         ]
         if not presented_paths:
-            messagebox.showinfo("孤児ファイルの棚卸し", "\n".join(format_orphan_notice(result)))
+            messagebox.showinfo("未使用ファイルの整理", "\n".join(format_orphan_notice(result)))
             return
         self._confirm_and_quarantine(result, presented_paths, arguments)
 
@@ -60,24 +60,24 @@ class OrphanSweepIo:
     def _confirm_and_quarantine(self, result, presented_paths: list[str], arguments: dict) -> None:
         dialog = ReferenceCleanupDialog(
             self._app,
-            title="孤児ファイルの棚卸し",
+            title="未使用ファイルの整理",
             lines=format_orphan_plan(result),
-            header="隔離する孤児候補を確認してください。",
-            run_label="隔離する",
+            header="退避する未使用の候補を確認してください。",
+            run_label="退避する",
         )
         dialog.wait_window()
         if not dialog.result:
             return
         quarantined = self._app.config_service.quarantine_orphans(presented_paths, **arguments)
         messagebox.showinfo(
-            "孤児ファイルの棚卸し", "\n".join(format_quarantine_result(quarantined)),
+            "未使用ファイルの整理", "\n".join(format_quarantine_result(quarantined)),
         )
 
     def _save_before_sweep(self) -> bool:
         if not self._app.dirty_tracker.has_unsaved_changes():
             return True
         if not messagebox.askyesno(
-            "孤児ファイルの棚卸し", "棚卸しの前に保存が必要です。保存しますか？",
+            "未使用ファイルの整理", "整理の前に保存が必要です。保存しますか？",
         ):
             return False
         if self._app.keymap_set_path:

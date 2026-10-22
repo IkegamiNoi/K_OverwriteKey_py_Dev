@@ -693,7 +693,7 @@ class AppUiFlowsTest(unittest.TestCase):
                 set_dirty.assert_not_called()
                 self.assertEqual(self.app.data, expected_before)
                 showerror.assert_called_once()
-                self.assertIn("global/ はグローバル用", showerror.call_args.args[1])
+                self.assertIn("global/は共通プリセット用", showerror.call_args.args[1])
                 self.assertNotIn("同じファイル", showerror.call_args.args[1])
                 self.assertIn(reserved_stored_path, showerror.call_args.args[1])
         finally:
@@ -1953,7 +1953,7 @@ class AppUiFlowsTest(unittest.TestCase):
             self.app.data = before
 
         self.assertIn("user/hotkey_presets/main.json", save_destination.replace("\\", "/"))
-        self.assertIn("config 外", source)
+        self.assertIn("config外", source)
         self.assertEqual(availability, "")
         self.assertEqual(individual_state, "external")
 
@@ -2060,7 +2060,7 @@ class AppUiFlowsTest(unittest.TestCase):
         )
         self.assertEqual(
             off,
-            ("保存先: グローバル（user/hotkey_presets/global/default.json）", "", ""),
+            ("保存先: 共通プリセット（user/hotkey_presets/global/default.json）", "", ""),
         )
 
         active = format_preset_manager_source_labels(
@@ -2083,7 +2083,7 @@ class AppUiFlowsTest(unittest.TestCase):
             global_path="user/hotkey_presets/global/default.json",
             keymap_set_saved=True,
         )
-        self.assertEqual(missing[1], "グローバルを表示中")
+        self.assertEqual(missing[1], "共通プリセットを表示中")
 
         external = format_preset_manager_source_labels(
             individual_for_save=True,
@@ -2098,9 +2098,9 @@ class AppUiFlowsTest(unittest.TestCase):
             external,
             (
                 "保存先: user/hotkey_presets/main.json",
-                "config 外のファイルを読み込み中。次の保存で管理下へ移ります。"
+                "config外のファイルを読み込み中。次の保存で管理下へ移ります。"
                 "user/hotkey_presets/main.json へ保存します",
-                "構成セットを保存すると専用にできます",
+                "構成セットを保存すると構成セット専用にできます",
             ),
         )
         self.assertNotIn("無効", external[1])
@@ -2116,11 +2116,11 @@ class AppUiFlowsTest(unittest.TestCase):
         )
         self.assertEqual(
             external_missing_while_global[0],
-            "保存先: グローバル（user/hotkey_presets/global/default.json）",
+            "保存先: 共通プリセット（user/hotkey_presets/global/default.json）",
         )
-        self.assertIn("config 外にあり、読み込めません", external_missing_while_global[1])
+        self.assertIn("config外にあり、読み込めません", external_missing_while_global[1])
         self.assertIn("user/hotkey_presets/main.json", external_missing_while_global[1])
-        self.assertIn("専用を再度有効にすると", external_missing_while_global[1])
+        self.assertIn("構成セット専用を再度有効にすると", external_missing_while_global[1])
         self.assertNotIn("無効", external_missing_while_global[1])
 
         builtin = format_preset_manager_source_labels(
@@ -2132,8 +2132,8 @@ class AppUiFlowsTest(unittest.TestCase):
             global_path="user/hotkey_presets/global/default.json",
             keymap_set_saved=True,
         )
-        self.assertEqual(builtin[1], "読み込めませんでした（既定を表示中）")
-        self.assertNotIn("グローバルを表示中", builtin[1])
+        self.assertEqual(builtin[1], "読み込めませんでした（既定プリセットを表示中）")
+        self.assertNotIn("共通プリセットを表示中", builtin[1])
 
         global_builtin = format_preset_manager_source_labels(
             individual_for_save=False,
@@ -2146,8 +2146,8 @@ class AppUiFlowsTest(unittest.TestCase):
         )
         self.assertEqual(
             global_builtin[1],
-            "グローバルを読み込めませんでした。組込既定を表示中"
-            "（OK でグローバルを作成します）",
+            "共通プリセットを読み込めませんでした。既定プリセットを表示中"
+            "（OKで共通プリセットを作成します）",
         )
 
     def test_open_preset_manager_does_not_mark_keymap_set_dirty(self):

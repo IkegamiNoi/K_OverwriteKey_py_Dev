@@ -31,37 +31,37 @@ def format_preset_manager_source_labels(
     if individual_for_save and individual_path:
         save_destination = f"保存先: {individual_path}"
     else:
-        save_destination = f"保存先: グローバル（{global_path}）"
+        save_destination = f"保存先: 共通プリセット（{global_path}）"
 
     source_messages = []
     if individual_state == "external":
         source_messages.append(
-            "config 外のファイルを読み込み中。次の保存で管理下へ移ります。"
+            "config外のファイルを読み込み中。次の保存で管理下へ移ります。"
             f"{default_individual_path} へ保存します"
         )
     elif individual_state == "external_missing":
         if individual_for_save:
             source_messages.append(
-                "記録されていた個別の保存先は config 外にあり、読み込めません。"
+                "記録されていた構成セット専用プリセットの保存先はconfig外にあり、読み込めません。"
                 f"{default_individual_path} へ保存します"
             )
         else:
             source_messages.append(
-                "記録されていた個別の保存先は config 外にあり、読み込めません。"
-                "専用を再度有効にすると、"
+                "記録されていた構成セット専用プリセットの保存先はconfig外にあり、読み込めません。"
+                "構成セット専用を再度有効にすると、"
                 f"{default_individual_path} へ保存します"
             )
     if not individual_for_save and displayed_source == "builtin":
         source_messages.append(
-            "グローバルを読み込めませんでした。組込既定を表示中"
-            "（OK でグローバルを作成します）"
+            "共通プリセットを読み込めませんでした。既定プリセットを表示中"
+            "（OKで共通プリセットを作成します）"
         )
     elif displayed_source == "global" and individual_state != "off":
-        source_messages.append("グローバルを表示中")
+        source_messages.append("共通プリセットを表示中")
     elif displayed_source == "builtin":
-        source_messages.append("読み込めませんでした（既定を表示中）")
+        source_messages.append("読み込めませんでした（既定プリセットを表示中）")
 
-    availability = "" if keymap_set_saved else "構成セットを保存すると専用にできます"
+    availability = "" if keymap_set_saved else "構成セットを保存すると構成セット専用にできます"
     return save_destination, " / ".join(source_messages), availability
 
 
@@ -311,13 +311,13 @@ class PresetManagerDialog(tk.Toplevel):
 
         # label 重複チェック（同名プリセット禁止）
         if self._label_exists(label):
-            messagebox.showerror("追加できません", f"同名のプリセットが既に存在します。\n\nlabel: {label}")
+            messagebox.showerror("追加できません", f"同名のプリセットがすでに存在します。\n\nlabel: {label}")
             return
 
         # hotkey を検証して不正なら弾く（即時UIエラー）
         err_msg, normalized = self.parent.validate_hotkey(value)
         if err_msg:
-            messagebox.showerror("不正なhotkey", f"プリセットの hotkey 値が不正です。\n\n入力: {value}\n理由: {err_msg}")
+            messagebox.showerror("不正なhotkey", f"プリセットのhotkey値が正しくありません。\n\n入力: {value}\n理由: {err_msg}")
             return
 
         self._temp.append({"label": label, "value": normalized})
@@ -347,13 +347,13 @@ class PresetManagerDialog(tk.Toplevel):
 
         # label 重複チェック（自分以外）
         if self._label_exists(label, exclude_index=idx):
-            messagebox.showerror("変更できません", f"同名のプリセットが既に存在します。\n\nlabel: {label}")
+            messagebox.showerror("編集できません", f"同名のプリセットがすでに存在します。\n\nlabel: {label}")
             return
 
         # hotkey を検証して不正なら弾く（即時UIエラー）
         err_msg, normalized = self.parent.validate_hotkey(value)
         if err_msg:
-            messagebox.showerror("不正なhotkey", f"プリセットの hotkey 値が不正です。\n\n入力: {value}\n理由: {err_msg}")
+            messagebox.showerror("不正なhotkey", f"プリセットのhotkey値が正しくありません。\n\n入力: {value}\n理由: {err_msg}")
             return
 
         selection = selected_range(self.listbox)
@@ -371,7 +371,7 @@ class PresetManagerDialog(tk.Toplevel):
         start, end = selection
         count = end - start + 1
         prompt = ("選択したプリセットを削除しますか？" if count == 1
-                  else f"選択した {count} 件のプリセットを削除しますか？")
+                  else f"選択した{count}件のプリセットを削除しますか？")
         if messagebox.askyesno("確認", prompt):
             del self._temp[start:end + 1]
             self._refresh()

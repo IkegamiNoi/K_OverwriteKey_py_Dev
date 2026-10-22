@@ -17,7 +17,7 @@ class QuarantineManageIo:
     def manage_quarantine(self) -> None:
         units = self._app.config_service.list_quarantine_units(config_root=self._app.config_root)
         if not units:
-            messagebox.showinfo("隔離の管理", "隔離された実行単位はありません。")
+            messagebox.showinfo("退避したファイルの管理", "退避した回はありません。")
             return
         dialog = QuarantineManageDialog(
             self._app, lines=format_unit_list(units),
@@ -33,13 +33,13 @@ class QuarantineManageIo:
             self._confirm_and_delete(unit)
             return
         if not unit.manifest_valid:
-            messagebox.showinfo("隔離の管理", "マニフェストが読めないため復元できません")
+            messagebox.showinfo("退避したファイルの管理", "退避の記録が読めないため復元できません")
             return
         self._confirm_and_restore(unit)
 
     def _confirm_and_restore(self, unit) -> None:
         dialog = ReferenceCleanupDialog(
-            self._app, title="隔離の管理", lines=format_restore_plan(unit),
+            self._app, title="退避したファイルの管理", lines=format_restore_plan(unit),
             header="復元する内容を確認してください。", run_label="復元する",
         )
         dialog.wait_window()
@@ -48,7 +48,7 @@ class QuarantineManageIo:
         result = self._app.config_service.restore_quarantine_unit(
             unit.unit_id, config_root=self._app.config_root,
         )
-        messagebox.showinfo("隔離の管理", "\n".join(format_restore_result(result)))
+        messagebox.showinfo("退避したファイルの管理", "\n".join(format_restore_result(result)))
 
     def _confirm_and_delete(self, unit) -> None:
         try:
@@ -56,10 +56,10 @@ class QuarantineManageIo:
                 unit.unit_id, config_root=self._app.config_root,
             )
         except (OSError, ValueError) as error:
-            messagebox.showinfo("隔離の管理", f"削除対象を列挙できません。削除していません。\n{error}")
+            messagebox.showinfo("退避したファイルの管理", f"削除対象を列挙できません。削除していません。\n{error}")
             return
         dialog = ReferenceCleanupDialog(
-            self._app, title="隔離の管理",
+            self._app, title="退避したファイルの管理",
             lines=format_delete_plan(unit, paths, manifest_valid=unit.manifest_valid),
             header="削除する内容を確認してください。", run_label="削除する",
         )
@@ -70,4 +70,4 @@ class QuarantineManageIo:
             unit.unit_id, config_root=self._app.config_root,
             allow_invalid_manifest=not unit.manifest_valid,
         )
-        messagebox.showinfo("隔離の管理", "\n".join(format_delete_result(result)))
+        messagebox.showinfo("退避したファイルの管理", "\n".join(format_delete_result(result)))

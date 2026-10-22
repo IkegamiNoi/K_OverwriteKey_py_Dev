@@ -55,7 +55,7 @@ class QuarantineManageFlowTest(unittest.TestCase):
         self.app.quarantine_manage_io.manage_quarantine()
         self.assertTrue(self.app.config_root)
         self.listing.assert_called_once_with(config_root=self.app.config_root)
-        self.info.assert_called_once_with("隔離の管理", "隔離された実行単位はありません。")
+        self.info.assert_called_once_with("退避したファイルの管理", "退避した回はありません。")
         self.open_dialog.assert_not_called()
         self.open_confirm.assert_not_called()
         self.restore.assert_not_called()
@@ -82,7 +82,7 @@ class QuarantineManageFlowTest(unittest.TestCase):
     def test_confirmation_has_restore_labels_and_cancel_does_nothing(self):
         self.app.quarantine_manage_io.manage_quarantine()
         self.open_confirm.assert_called_once_with(
-            self.app, title="隔離の管理", lines=format_restore_plan(UNIT),
+            self.app, title="退避したファイルの管理", lines=format_restore_plan(UNIT),
             header="復元する内容を確認してください。", run_label="復元する",
         )
         self.confirm.wait_window.assert_called_once_with()
@@ -94,13 +94,13 @@ class QuarantineManageFlowTest(unittest.TestCase):
         self.app.quarantine_manage_io.manage_quarantine()
         self.assertTrue(self.app.config_root)
         self.restore.assert_called_once_with(UNIT.unit_id, config_root=self.app.config_root)
-        self.info.assert_called_once_with("隔離の管理", "\n".join(format_restore_result(self.result)))
+        self.info.assert_called_once_with("退避したファイルの管理", "\n".join(format_restore_result(self.result)))
 
     def test_invalid_manifest_only_notifies_without_confirmation_or_restore(self):
         self.listing.return_value = (QuarantineUnit(UNIT.unit_id, "", 0, 0, False),)
         self.confirm.result = True
         self.app.quarantine_manage_io.manage_quarantine()
-        self.info.assert_called_once_with("隔離の管理", "マニフェストが読めないため復元できません")
+        self.info.assert_called_once_with("退避したファイルの管理", "退避の記録が読めないため復元できません")
         self.open_confirm.assert_not_called()
         self.restore.assert_not_called()
 
@@ -157,7 +157,7 @@ class QuarantineManageFlowTest(unittest.TestCase):
         self.app.quarantine_manage_io.manage_quarantine()
         collect.assert_called_once_with(UNIT.unit_id, config_root=self.app.config_root)
         self.open_confirm.assert_called_once_with(
-            self.app, title="隔離の管理", lines=format_delete_plan(UNIT, paths, manifest_valid=True),
+            self.app, title="退避したファイルの管理", lines=format_delete_plan(UNIT, paths, manifest_valid=True),
             header="削除する内容を確認してください。", run_label="削除する",
         )
         self.confirm.wait_window.assert_called_once_with()
@@ -172,11 +172,11 @@ class QuarantineManageFlowTest(unittest.TestCase):
         self.app.quarantine_manage_io.manage_quarantine()
         collect.assert_called_once_with(UNIT.unit_id, config_root=self.app.config_root)
         self.open_confirm.assert_called_once_with(
-            self.app, title="隔離の管理", lines=format_delete_plan(UNIT, paths, manifest_valid=True),
+            self.app, title="退避したファイルの管理", lines=format_delete_plan(UNIT, paths, manifest_valid=True),
             header="削除する内容を確認してください。", run_label="削除する",
         )
         delete.assert_called_once_with(UNIT.unit_id, config_root=self.app.config_root, allow_invalid_manifest=False)
-        self.info.assert_called_once_with("隔離の管理", "\n".join(format_delete_result(result)))
+        self.info.assert_called_once_with("退避したファイルの管理", "\n".join(format_delete_result(result)))
         self.restore.assert_not_called()
 
     def test_invalid_manifest_delete_warns_and_forwards_true_with_empty_paths(self):
@@ -186,14 +186,14 @@ class QuarantineManageFlowTest(unittest.TestCase):
         self.confirm.result = True
         self.app.quarantine_manage_io.manage_quarantine()
         self.open_confirm.assert_called_once_with(
-            self.app, title="隔離の管理", lines=format_delete_plan(unit, paths, manifest_valid=False),
+            self.app, title="退避したファイルの管理", lines=format_delete_plan(unit, paths, manifest_valid=False),
             header="削除する内容を確認してください。", run_label="削除する",
         )
         lines = self.open_confirm.call_args.kwargs["lines"]
-        self.assertIn("マニフェストが読めないため、中身を確認できません。", lines)
-        self.assertIn("ディレクトリごと削除します。", lines)
+        self.assertIn("退避の記録が読めないため、中身を確認できません。", lines)
+        self.assertIn("フォルダごと削除します。", lines)
         delete.assert_called_once_with(unit.unit_id, config_root=self.app.config_root, allow_invalid_manifest=True)
-        self.info.assert_called_once_with("隔離の管理", "\n".join(format_delete_result(result)))
+        self.info.assert_called_once_with("退避したファイルの管理", "\n".join(format_delete_result(result)))
         self.restore.assert_not_called()
 
     def test_unselected_or_unknown_delete_does_not_collect_confirm_or_delete(self):
@@ -216,11 +216,11 @@ class QuarantineManageFlowTest(unittest.TestCase):
         self.confirm.result = True
         self.app.quarantine_manage_io.manage_quarantine()
         self.open_confirm.assert_called_once_with(
-            self.app, title="隔離の管理", lines=format_restore_plan(UNIT),
+            self.app, title="退避したファイルの管理", lines=format_restore_plan(UNIT),
             header="復元する内容を確認してください。", run_label="復元する",
         )
         self.restore.assert_called_once_with(UNIT.unit_id, config_root=self.app.config_root)
-        self.info.assert_called_once_with("隔離の管理", "\n".join(format_restore_result(self.result)))
+        self.info.assert_called_once_with("退避したファイルの管理", "\n".join(format_restore_result(self.result)))
         collect.assert_not_called()
         delete.assert_not_called()
 
@@ -282,8 +282,8 @@ class QuarantineManageDialogTest(unittest.TestCase):
         dialog = self._dialog()
         labels = [child.cget("text") for frame in dialog.winfo_children()
                   for child in frame.winfo_children() if isinstance(child, ttk.Label)]
-        self.assertEqual(labels, ["実行単位を選択してください。"])
-        self.assertNotIn("復元する実行単位を選択してください。", labels)
+        self.assertEqual(labels, ["回を選択してください。"])
+        self.assertNotIn("復元する回を選択してください。", labels)
 
     def test_list_buttons_modal_and_no_selection(self):
         dialog = self._dialog()

@@ -15,14 +15,14 @@ class QuarantineManageTextTest(unittest.TestCase):
         invalid = contracts.QuarantineUnit("20260906_101500_2", "", 0, 0, False)
         lines = format_unit_list((self.unit, invalid))
         self.assertEqual(len(lines), 2)
-        self.assertEqual(lines[0], "20260906_101500  作成: 2026-09-06T10:15:00  残り 2/3 件")
-        self.assertIn("マニフェスト不正（復元できません）", lines[1])
+        self.assertEqual(lines[0], "20260906_101500  作成: 2026-09-06T10:15:00  残り2/3件")
+        self.assertIn("記録が正しくありません（復元できません）", lines[1])
         self.assertEqual(format_unit_list(()), ())
 
     def test_restore_plan_identifies_unit_remaining_count_and_no_overwrite(self):
         lines = format_restore_plan(self.unit)
         self.assertEqual(lines[0], format_unit_list((self.unit,))[0])
-        self.assertIn("2 件を元の場所へ復元", lines[1])
+        self.assertIn("退避先に残っている2件を元の場所へ復元", lines[1])
         self.assertIn("上書きせずスキップ", lines[2])
 
     def test_result_groups_skip_reasons_and_keeps_unknown_codes(self):
@@ -35,20 +35,20 @@ class QuarantineManageTextTest(unittest.TestCase):
             False, "",
         )
         lines = format_restore_result(result)
-        self.assertEqual(lines[0], "復元しました: 1 件")
-        self.assertIn("スキップ: 6 件", lines)
-        self.assertIn("  復元先に同名ファイルがあります: 2 件", lines)
-        self.assertIn("  復元先が対象外です: 1 件", lines)
-        self.assertIn("  隔離側にファイルがありません（復元済み等）: 1 件", lines)
-        self.assertIn("  復元できませんでした: 1 件", lines)
-        self.assertIn("  future_code: 1 件", lines)
-        self.assertEqual(lines[-1], "実行単位は残っています。")
+        self.assertEqual(lines[0], "復元しました: 1件")
+        self.assertIn("スキップ: 6件", lines)
+        self.assertIn("  復元先に同名ファイルがあります: 2件", lines)
+        self.assertIn("  復元先が対象外です: 1件", lines)
+        self.assertIn("  退避先にファイルがありません（復元済み等）: 1件", lines)
+        self.assertIn("  復元できませんでした: 1件", lines)
+        self.assertIn("  future_code: 1件", lines)
+        self.assertEqual(lines[-1], "この回のフォルダは残っています。")
 
     def test_abort_notice_comes_first_with_zero_restores(self):
         for reason in (contracts.RESTORE_ABORTED_INVALID_ID, contracts.RESTORE_ABORTED_NO_MANIFEST, "unknown"):
             lines = format_restore_result(contracts.QuarantineRestoreResult("id", (), (), False, reason))
             self.assertTrue(lines[0].startswith("復元を中止しました:"))
-            self.assertEqual(lines[1], "1 件も戻していません。")
+            self.assertEqual(lines[1], "1件も戻していません。")
             if reason == "unknown":
                 self.assertIn(reason, lines[0])
 
@@ -56,7 +56,7 @@ class QuarantineManageTextTest(unittest.TestCase):
         # 確認 14
         lines = format_delete_plan(self.unit, (), manifest_valid=True)
         self.assertEqual(lines[0], "この操作は取り消せません。")
-        self.assertIn(f"削除する実行単位: {self.unit.unit_id}", lines)
+        self.assertIn(f"削除する回: {self.unit.unit_id}", lines)
 
     def test_delete_plan_lists_every_path_including_manifest(self):
         # 確認 15
@@ -70,7 +70,7 @@ class QuarantineManageTextTest(unittest.TestCase):
         paths = ("quarantine/unit/keep.txt",)
         normal = format_delete_plan(self.unit, paths, manifest_valid=True)
         invalid = format_delete_plan(self.unit, paths, manifest_valid=False)
-        warnings = ("マニフェストが読めないため、中身を確認できません。", "ディレクトリごと削除します。")
+        warnings = ("退避の記録が読めないため、中身を確認できません。", "フォルダごと削除します。")
         for warning in warnings:
             self.assertIn(warning, invalid)
             self.assertNotIn(warning, normal)
@@ -80,9 +80,9 @@ class QuarantineManageTextTest(unittest.TestCase):
         # 確認 17
         success = contracts.QuarantineDeleteResult(self.unit.unit_id, True, "")
         self.assertEqual(format_delete_result(success), (f"削除しました: {self.unit.unit_id}",))
-        labels = ((contracts.DELETE_REJECTED_INVALID_ID, "実行単位 ID が不正、または実在しません"),
-                  (contracts.DELETE_REJECTED_IS_ROOT, "隔離ルート自身、または隔離ルート外を指しています"),
-                  (contracts.DELETE_REJECTED_NO_MANIFEST, "マニフェストが読めません"),
+        labels = ((contracts.DELETE_REJECTED_INVALID_ID, "回のIDが正しくないか、存在しません"),
+                  (contracts.DELETE_REJECTED_IS_ROOT, "退避先フォルダ自身、または退避先フォルダの外を指しています"),
+                  (contracts.DELETE_REJECTED_NO_MANIFEST, "退避の記録が読めません"),
                   (contracts.DELETE_FAILED, "削除できませんでした"), ("future_code", "future_code"))
         for reason, label in labels:
             with self.subTest(reason=reason):
@@ -117,7 +117,7 @@ class QuarantineManageTextTest(unittest.TestCase):
             self.assertTrue(all(isinstance(line, str) for line in output))
         self.assertIn(f"  {stored}", outputs[-1])
         self.assertNotIn("  user/keymaps/MixedCase.json", outputs[-1])
-        self.assertEqual(outputs[-1][-1], "実行単位を片付けました。")
+        self.assertEqual(outputs[-1][-1], "この回のフォルダを片付けました。")
 
 
 if __name__ == "__main__":

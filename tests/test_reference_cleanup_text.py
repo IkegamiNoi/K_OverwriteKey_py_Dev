@@ -52,7 +52,7 @@ class ReferenceCleanupTextTest(unittest.TestCase):
         lines = format_cleanup_plan(inspections)
         text = "\n".join(lines)
 
-        self.assertEqual(lines[0], "対象ファイル: 2 件、消える参照元: 4 件")
+        self.assertEqual(lines[0], "対象ファイル: 2件、消える参照元: 4件")
         for path in (
             "missing-a.json",
             "missing-b.json",
@@ -63,8 +63,8 @@ class ReferenceCleanupTextTest(unittest.TestCase):
         ):
             self.assertIn(path, text)
         self.assertNotIn("ほか", text)
-        self.assertLess(lines.index("キーマップ: user/keymaps/main.json"), lines.index("トリガー一覧: D:/shared/triggers.json"))
-        self.assertLess(lines.index("トリガー一覧: D:/shared/triggers.json"), lines.index("出力シーケンス: user/sequences/copy.json"))
+        self.assertLess(lines.index("キーマップ: user/keymaps/main.json"), lines.index("トリガーセット: D:/shared/triggers.json"))
+        self.assertLess(lines.index("トリガーセット: D:/shared/triggers.json"), lines.index("出力シーケンス: user/sequences/copy.json"))
 
     def test_plan_keeps_protected_refs_out_of_disappearing_section(self):
         inspection = ParentRefsCleanupInspection(
@@ -110,7 +110,7 @@ class ReferenceCleanupTextTest(unittest.TestCase):
 
         lines = format_cleanup_plan([inspection])
 
-        self.assertEqual(lines[0], "対象ファイル: 0 件、消える参照元: 0 件")
+        self.assertEqual(lines[0], "対象ファイル: 0件、消える参照元: 0件")
 
     def test_plan_uses_cleanup_state_to_add_all_stale_warning(self):
         all_stale = ParentRefsCleanupInspection(
@@ -133,10 +133,10 @@ class ReferenceCleanupTextTest(unittest.TestCase):
         all_stale_text = "\n".join(format_cleanup_plan([all_stale]))
         target_text = "\n".join(format_cleanup_plan([target]))
 
-        self.assertIn("参照元が 0 件になります", all_stale_text)
+        self.assertIn("参照元が0件になります", all_stale_text)
         self.assertIn("子ファイル自体は削除しません", all_stale_text)
-        self.assertIn("孤児かどうかは「孤児ファイルの棚卸し」で確認できます", all_stale_text)
-        self.assertNotIn("参照元が 0 件になります", target_text)
+        self.assertIn("未使用かどうかは「未使用ファイルの整理」で確認できます", all_stale_text)
+        self.assertNotIn("参照元が0件になります", target_text)
 
     def test_result_reports_counts_and_translates_all_failure_reasons(self):
         result = ParentRefsPruneResult(
@@ -151,10 +151,10 @@ class ReferenceCleanupTextTest(unittest.TestCase):
         lines = format_cleanup_result(result)
         text = "\n".join(lines)
 
-        self.assertEqual(lines[0], "更新したファイル: 2 件、除去した参照元: 3 件")
+        self.assertEqual(lines[0], "更新したファイル: 2件、除去した参照元: 3件")
         self.assertIn("失敗したファイル:", lines)
         self.assertIn("unreadable.json: 読み直せませんでした", text)
-        self.assertIn("invalid.json: JSON の形式が不正です", text)
+        self.assertIn("invalid.json: JSONの形式が正しくありません", text)
         self.assertIn("save-failed.json: 保存できませんでした", text)
 
     def test_result_omits_failure_section_when_no_files_failed(self):
@@ -165,7 +165,7 @@ class ReferenceCleanupTextTest(unittest.TestCase):
 
         lines = format_cleanup_result(result)
 
-        self.assertEqual(lines, ("更新したファイル: 1 件、除去した参照元: 1 件",))
+        self.assertEqual(lines, ("更新したファイル: 1件、除去した参照元: 1件",))
 
 
 if __name__ == "__main__":
