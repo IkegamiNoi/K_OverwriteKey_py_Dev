@@ -5,15 +5,15 @@ from keyseq.domain.hotkey import validate_hotkey_syntax
 
 class HotkeySyntaxTest(unittest.TestCase):
     def test_empty_hotkey(self):
-        self.assertEqual(validate_hotkey_syntax(""), ("hotkey が空です。", "", []))
-        self.assertEqual(validate_hotkey_syntax(None), ("hotkey が空です。", "", []))
+        self.assertEqual(validate_hotkey_syntax(""), ("hotkeyが空です。", "", []))
+        self.assertEqual(validate_hotkey_syntax(None), ("hotkeyが空です。", "", []))
 
     def test_whitespace_only_hotkey(self):
-        self.assertEqual(validate_hotkey_syntax("   "), ("hotkey が空です。", "", []))
+        self.assertEqual(validate_hotkey_syntax("   "), ("hotkeyが空です。", "", []))
 
     def test_empty_component(self):
         expected = (
-            "hotkey の '+' の前後が空です（例: 'ctrl++c' や '+ctrl+c' や 'ctrl+c+' は不可）。",
+            "hotkeyの '+' の前後が空です（例: 'ctrl++c' や '+ctrl+c' や 'ctrl+c+' は不可）。",
             "",
             [],
         )
@@ -24,7 +24,7 @@ class HotkeySyntaxTest(unittest.TestCase):
     def test_duplicate_key(self):
         self.assertEqual(
             validate_hotkey_syntax("ctrl+ctrl+c"),
-            ("hotkey に同じキーが重複しています（例: 'ctrl+ctrl+c'）。", "", []),
+            ("hotkeyに同じキーが重複しています（例: 'ctrl+ctrl+c'）。", "", []),
         )
 
     def test_valid_hotkey(self):

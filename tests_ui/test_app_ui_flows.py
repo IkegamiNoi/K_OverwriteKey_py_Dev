@@ -2661,18 +2661,18 @@ class AppUiFlowsTest(unittest.TestCase):
     def test_validate_hotkey_empty(self):
         self.assertEqual(
             self.app.validate_hotkey(""),
-            ("hotkey が空です。", ""),
+            ("hotkeyが空です。", ""),
         )
 
     def test_validate_hotkey_whitespace_only(self):
         self.assertEqual(
             self.app.validate_hotkey("   "),
-            ("hotkey が空です。", ""),
+            ("hotkeyが空です。", ""),
         )
 
     def test_validate_hotkey_empty_around_plus(self):
         expected = (
-            "hotkey の '+' の前後が空です（例: 'ctrl++c' や '+ctrl+c' や 'ctrl+c+' は不可）。",
+            "hotkeyの '+' の前後が空です（例: 'ctrl++c' や '+ctrl+c' や 'ctrl+c+' は不可）。",
             "",
         )
         for hotkey in ("ctrl++c", "+ctrl+c", "ctrl+c+"):
@@ -2682,7 +2682,7 @@ class AppUiFlowsTest(unittest.TestCase):
     def test_validate_hotkey_duplicate_key(self):
         self.assertEqual(
             self.app.validate_hotkey("ctrl+ctrl+c"),
-            ("hotkey に同じキーが重複しています（例: 'ctrl+ctrl+c'）。", ""),
+            ("hotkeyに同じキーが重複しています（例: 'ctrl+ctrl+c'）。", ""),
         )
 
     def test_validate_hotkey_unknown_key_name(self):

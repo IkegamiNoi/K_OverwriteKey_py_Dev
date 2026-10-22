@@ -90,7 +90,7 @@ class FileLineLoader:
             registration = self._registrations.get(key)
             if registration is not None and registration.timed_out:
                 raise FileLineError(
-                    f"前回のファイル読込が終わっていません（ファイル: {path}）"
+                    f"前回のファイルの読み込みが終わっていません（ファイル: {path}）"
                 )
             request = FileLineLoadRequest(key, path, encoding, started_at)
             if registration is None:
@@ -117,7 +117,7 @@ class FileLineLoader:
                     result = FileLinePoll(
                         "error",
                         error=FileLineError(
-                            f"前回のファイル読込が終わっていません（ファイル: {request.path}）"
+                            f"前回のファイルの読み込みが終わっていません（ファイル: {request.path}）"
                         ),
                     )
                     request._terminal = result
@@ -127,7 +127,7 @@ class FileLineLoader:
                     result = FileLinePoll(
                         "error",
                         error=FileLineError(
-                            f"ファイルの読込が {self._timeout_seconds:g} 秒以内に終わりませんでした"
+                            f"ファイルの読み込みが{self._timeout_seconds:g}秒以内に終わりませんでした"
                             f"（ファイル: {request.path}）"
                         ),
                     )
@@ -145,7 +145,7 @@ class FileLineLoader:
                 result = FileLinePoll(
                     "error",
                     error=FileLineError(
-                        f"ファイルの読込が {self._timeout_seconds:g} 秒以内に終わりませんでした"
+                        f"ファイルの読み込みが{self._timeout_seconds:g}秒以内に終わりませんでした"
                         f"（ファイル: {request.path}）"
                     ),
                 )

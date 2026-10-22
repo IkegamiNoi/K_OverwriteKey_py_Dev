@@ -8,7 +8,7 @@ from keyseq.application.sequence_steps import StepOutcome, resume_for_pending
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
 
 FILE_LINE_POLL_INTERVAL_MS = 50
-FILE_LINE_UNAVAILABLE_MESSAGE = "file_line の読込の仕組みが未設定です"
+FILE_LINE_UNAVAILABLE_MESSAGE = "file_lineの読み込みの仕組みが未設定です"
 
 
 class FileLineWaitMixin:

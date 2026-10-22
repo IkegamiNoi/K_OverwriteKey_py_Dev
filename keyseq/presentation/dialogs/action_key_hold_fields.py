@@ -50,9 +50,9 @@ class ActionKeyHoldFields:
         self.key_var = tk.StringVar(value="")
         self.key_entry = ttk.Entry(self.key_frame, textvariable=self.key_var, width=24)
         self.key_entry.grid(row=0, column=1, sticky="w", padx=(8, 0))
-        self.record_button = ttk.Button(self.key_frame, text="1 キーを記録", command=self.start_recording)
+        self.record_button = ttk.Button(self.key_frame, text="1キーを記録", command=self.start_recording)
         self.record_button.grid(row=0, column=2, sticky="w", padx=(8, 0))
-        self.key_hint = ttk.Label(self.key_frame, text="キーを 1 つ押すと記録します")
+        self.key_hint = ttk.Label(self.key_frame, text="キーを1つ押すと記録します")
         self.key_hint.grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
         self.button_frame = ttk.Frame(self.frame)
@@ -171,7 +171,7 @@ class ActionKeyHoldFields:
         self.recording = True
         begin_key_capture(self, self.dialog, self._record_key)
         self.record_button.configure(text="記録中…")
-        self.key_hint.configure(text="キーを 1 つ押してください（Esc で停止）")
+        self.key_hint.configure(text="キーを1つ押してください（Escで停止）")
         self.key_entry.focus_set()
         self._key_press_bind_id = self.dialog.bind("<KeyPress>", self._on_key_press, add="+")
 
@@ -180,8 +180,8 @@ class ActionKeyHoldFields:
             return
         self.recording = False
         end_key_capture(self)
-        self.record_button.configure(text="1 キーを記録")
-        self.key_hint.configure(text="キーを 1 つ押すと記録します")
+        self.record_button.configure(text="1キーを記録")
+        self.key_hint.configure(text="キーを1つ押すと記録します")
         if self._key_press_bind_id:
             self.dialog.unbind("<KeyPress>", self._key_press_bind_id)
             self._key_press_bind_id = None

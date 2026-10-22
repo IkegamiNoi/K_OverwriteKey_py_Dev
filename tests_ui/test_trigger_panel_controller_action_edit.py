@@ -99,7 +99,7 @@ class TriggerPanelActionEditTest(unittest.TestCase):
     def assert_call_dialog_options(self, factory):
         kwargs = factory.call_args.kwargs
         self.assertEqual(kwargs["call_candidates"], [("b", "Back target"), ("c", "")])
-        self.assertEqual(kwargs["call_check"]("b"), "戻す・先頭へのトリガーは呼び出せません")
+        self.assertEqual(kwargs["call_check"]("b"), "「戻す」「先頭へ」のトリガーは呼び出せません")
 
     def test_add_inserts_after_selected_and_preserves_next_action(self):
         self.set_selection(0)

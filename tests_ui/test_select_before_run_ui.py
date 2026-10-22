@@ -208,7 +208,7 @@ class SelectBeforeRunUiTest(unittest.TestCase):
                 self.assertEqual(self.app.trigger_panel.selected_trigger_key(), "f1")
                 self.execute.assert_not_called()
                 self.assertEqual(self.app._flash_message,
-                                 "f1 を選びました（もう一度押すと実行します）")
+                                 "f1を選びました（もう一度押すと実行します）")
                 self.app.sequence_runner.handle_key("f1")
                 self.execute.assert_called_once_with({"type": "text", "text": "first", "label": ""})
 
@@ -244,6 +244,6 @@ class SelectBeforeRunUiTest(unittest.TestCase):
         self.assertEqual(self.app._selected_trigger_idx, 0)
         self.assertTrue(self.app.trigger_panel.selected_trigger_is_effective())
         self.assertEqual(self.app._flash_message,
-                         "f1 を選びました（もう一度押すと実行します）")
+                         "f1を選びました（もう一度押すと実行します）")
         self.app.sequence_runner.handle_key("f1")
         self.execute.assert_called_once_with({"type": "text", "text": "first", "label": ""})

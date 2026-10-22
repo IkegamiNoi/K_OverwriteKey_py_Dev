@@ -12,7 +12,7 @@ from keyseq.domain.sequence_control import (
 
 MAX_PROCESSED_SYSTEM_ACTIONS = 10000
 PROCESSED_LIMIT_MESSAGE = (
-    "制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）"
+    "制御アクションの処理が10000回を超えました（通常アクションの無いループ等）"
 )
 
 
@@ -42,18 +42,18 @@ def format_system_error_notification(
 ) -> tuple[dict[str, Any], str]:
     """Copy a system action and add its readable operation value for notification."""
     notified = action.copy()
-    op = str(action.get("op") or "(なし)")
+    op = str(action.get("op") or "（なし）")
     normalized_op = system_op(action)
     if normalized_op == "loop_start":
-        value = "無限" if action.get("infinite") else f"回数={action.get('count', '(なし)')}"
+        value = "無限" if action.get("infinite") else f"回数={action.get('count', '（なし）')}"
     elif normalized_op == "wait":
-        value = f"{action.get('ms', '(なし)')}ms"
+        value = f"{action.get('ms', '（なし）')}ms"
     elif normalized_op in ("counter_inc", "counter_reset"):
-        value = f"カウンター={action.get('counter', '(なし)')}"
+        value = f"カウンター={action.get('counter', '（なし）')}"
     elif normalized_op == "call":
         target = action.get("target")
         target = target.strip() if isinstance(target, str) else ""
-        value = f"呼び出し先={target or '(なし)'}"
+        value = f"呼び出し先={target or '（なし）'}"
     else:
         value = ""
     detail = f"{op} {value}".rstrip()
@@ -61,7 +61,7 @@ def format_system_error_notification(
     label = action.get("label")
     if isinstance(label, str) and label.strip():
         detail += f" / ラベル: {label.strip()}"
-    return notified, f"system 実行エラー（{detail}）: {message}"
+    return notified, f"system実行エラー（{detail}）: {message}"
 
 
 def apply_deferred_counters(
@@ -131,9 +131,9 @@ def _loop_start(action: Mapping[str, Any], position: int, frames: list[LoopFrame
     if position in structure.unmatched:
         return position, "ループの始まりに対応する終わりがありません"
     if position in structure.too_deep:
-        return position, f"ループの入れ子が {MAX_LOOP_DEPTH} 段を超えています"
+        return position, f"ループの入れ子が{MAX_LOOP_DEPTH}段を超えています"
     if _loop_count(action) == 0:
-        return position, "ループの回数が不正です（1 以上の整数）"
+        return position, "ループの回数が正しくありません（1以上の整数）"
     frames.append(LoopFrame(position, 1))
     return position + 1, None
 
@@ -144,7 +144,7 @@ def _loop_end(actions: Sequence[Any], position: int, frames: list[LoopFrame], st
         return position, "ループの終わりに対応する始まりがありません"
     count = _loop_count(actions[start])
     if count == 0:
-        return position, "ループの回数が不正です（1 以上の整数）"
+        return position, "ループの回数が正しくありません（1以上の整数）"
     frame = frames[-1]
     if count is None or frame.iteration < count:
         frames[-1] = LoopFrame(start, frame.iteration + 1)
@@ -185,7 +185,7 @@ def _system_step(actions: Sequence[Any], position: int, frames: list[LoopFrame],
         return position + 1, None
     if op == OP_STOP:
         return position + 1, None
-    return position, f"system の操作が不正です。操作: {op}"
+    return position, f"systemの操作が正しくありません。操作: {op}"
 
 
 def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
@@ -264,7 +264,7 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             if wait_ms < 1:
                 return StepOutcome(
                     None, position, current,
-                    (position, "待機時間が不正です（1 以上の整数・ミリ秒）"),
+                    (position, "待機時間が正しくありません（1以上の整数・ミリ秒）"),
                     counter_deltas=tuple(counter_deltas), processed=processed,
                 )
             if in_call:
@@ -280,7 +280,7 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
         op = system_op(action)
         if op in (OP_BACK, OP_REWIND) and len(actions) > 1:
             return StepOutcome(None, position, current,
-                               (position, "戻す・先頭へは単独で登録してください"),
+                               (position, "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。"),
                                counter_deltas=tuple(counter_deltas), processed=processed)
         if op in (OP_BACK, OP_REWIND) and on_control is not None:
             on_control(op, control_target(action))

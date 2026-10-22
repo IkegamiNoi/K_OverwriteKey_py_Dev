@@ -25,8 +25,8 @@ class SequenceStepsTest(unittest.TestCase):
         )
 
         self.assertEqual(notified["value"], "call 呼び出し先=z9")
-        self.assertEqual(missing["value"], "call 呼び出し先=(なし)")
-        self.assertEqual(non_string["value"], "call 呼び出し先=(なし)")
+        self.assertEqual(missing["value"], "call 呼び出し先=（なし）")
+        self.assertEqual(non_string["value"], "call 呼び出し先=（なし）")
 
     def test_advance_stops_at_call_without_counting_it_as_processed(self):
         actions = [control("counter_inc", counter="n"), control("call"), NORMAL]
@@ -419,7 +419,7 @@ class SequenceStepsTest(unittest.TestCase):
                                 wrap_once=False,
                                 on_control=lambda *args: controls.append(args))
                 self.assertEqual(mixed.error,
-                                 (1, "戻す・先頭へは単独で登録してください"))
+                                 (1, "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。"))
                 self.assertEqual(mixed.position, 1)
                 self.assertEqual(controls, [])
                 alone = advance([control(op)], 0, [], {},
@@ -514,7 +514,7 @@ class SequenceStepsTest(unittest.TestCase):
         for value in ("invalid", "1.5", 0, -1, None):
             with self.subTest(ms=value):
                 outcome = advance([control("wait", ms=value)], 0, [], {}, wrap_once=False)
-                self.assertEqual(outcome.error, (0, "待機時間が不正です（1 以上の整数・ミリ秒）"))
+                self.assertEqual(outcome.error, (0, "待機時間が正しくありません（1以上の整数・ミリ秒）"))
                 self.assertEqual(outcome.position, 0)
                 self.assertIsNone(outcome.wait_ms)
                 self.assertIsNone(outcome.resume_position)

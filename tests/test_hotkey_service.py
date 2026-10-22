@@ -21,7 +21,7 @@ class HotkeyServiceTest(unittest.TestCase):
 
         result = service.validate("")
 
-        self.assertEqual(result, ("hotkey が空です。", ""))
+        self.assertEqual(result, ("hotkeyが空です。", ""))
         self.assertEqual(validator.calls, [])
 
     def test_empty_key_around_plus_returns_syntax_error_without_key_name_validation(self):
@@ -32,7 +32,7 @@ class HotkeyServiceTest(unittest.TestCase):
 
         self.assertEqual(
             result,
-            ("hotkey の '+' の前後が空です（例: 'ctrl++c' や '+ctrl+c' や 'ctrl+c+' は不可）。", ""),
+            ("hotkeyの '+' の前後が空です（例: 'ctrl++c' や '+ctrl+c' や 'ctrl+c+' は不可）。", ""),
         )
         self.assertEqual(validator.calls, [])
 
@@ -42,7 +42,7 @@ class HotkeyServiceTest(unittest.TestCase):
 
         result = service.validate("ctrl+ctrl+c")
 
-        self.assertEqual(result, ("hotkey に同じキーが重複しています（例: 'ctrl+ctrl+c'）。", ""))
+        self.assertEqual(result, ("hotkeyに同じキーが重複しています（例: 'ctrl+ctrl+c'）。", ""))
         self.assertEqual(validator.calls, [])
 
     def test_valid_hotkey_returns_normalized_value(self):

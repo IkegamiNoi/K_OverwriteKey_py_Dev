@@ -217,7 +217,7 @@ class CallChainRunToEndIntegrationTests(unittest.TestCase):
         # both paused members together. The second press discards those two;
         # f3 remains paused because its history belongs to another press.
         self.fx.runner.handle_key("f4")
-        self.assertIn("一時停止中の f1, f2 を破棄します", self.fx.messages[-1])
+        self.assertIn("一時停止中のf1, f2を破棄します", self.fx.messages[-1])
         self.assertEqual(set(self.fx.runner.paused_keys()), {"f1", "f2", "f3"})
         self.fx.runner.handle_key("f4")
 
@@ -225,7 +225,7 @@ class CallChainRunToEndIntegrationTests(unittest.TestCase):
         self.assertNotIn(("set", "f1"), self.fx.state.pending_steps)
         self.assertNotIn(("set", "f2"), self.fx.state.pending_steps)
         self.assertIn(("set", "f3"), self.fx.state.pending_steps)
-        self.assertTrue(any("一時停止中の実行を破棄しました（f1, f2）" in message
+        self.assertTrue(any("一時停止中の実行を破棄しました(f1, f2)" in message
                             for message in self.fx.messages))
 
 

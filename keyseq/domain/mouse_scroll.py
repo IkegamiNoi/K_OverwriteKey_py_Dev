@@ -28,18 +28,18 @@ class MouseScrollSpec:
 def parse_mouse_scroll(action: Mapping[str, Any]) -> MouseScrollSpec | str:
     direction_value = action.get("direction")
     if not isinstance(direction_value, str):
-        return "向きは up / down / left / right のいずれかを指定してください。"
+        return "向きはup / down / left / rightのいずれかを指定してください。"
     direction = direction_value.strip().lower()
     if direction not in DIRECTIONS:
-        return "向きは up / down / left / right のいずれかを指定してください。"
+        return "向きはup / down / left / rightのいずれかを指定してください。"
 
     unit_value = action.get("unit", UNIT_NOTCH)
     if isinstance(unit_value, str):
         unit = unit_value.strip().lower() or UNIT_NOTCH
     else:
-        return "単位は notch または delta を指定してください。"
+        return "単位はnotchまたはdeltaを指定してください。"
     if unit not in (UNIT_NOTCH, UNIT_DELTA):
-        return "単位は notch または delta を指定してください。"
+        return "単位はnotchまたはdeltaを指定してください。"
 
     amount_value = action.get("amount")
     if isinstance(amount_value, bool):
@@ -60,18 +60,18 @@ def parse_mouse_scroll(action: Mapping[str, Any]) -> MouseScrollSpec | str:
 
     maximum = MAX_NOTCHES if unit == UNIT_NOTCH else MAX_DELTA
     if not 1 <= amount <= maximum:
-        return f"量は 1〜{maximum} の範囲で指定してください。"
+        return f"量は1〜{maximum}の範囲で指定してください。"
 
     has_x = "x" in action
     has_y = "y" in action
     if has_x != has_y:
-        return "マウス座標は x と y の両方を指定してください。"
+        return "マウス座標はxとyの両方を指定してください。"
     position = None
     if has_x:
         try:
             position = (int(action["x"]), int(action["y"]))
         except (TypeError, ValueError, OverflowError):
-            return "マウス座標 x と y は整数に変換できる値を指定してください。"
+            return "マウス座標xとyは整数に変換できる値を指定してください。"
     return MouseScrollSpec(direction, unit, amount, position)
 
 
@@ -94,9 +94,9 @@ def format_mouse_scroll_value(action: Mapping[str, Any]) -> str:
         if isinstance(direction, str):
             return f"[{ACTION_TYPE_MOUSE_SCROLL}] {direction}"
         return f"[{ACTION_TYPE_MOUSE_SCROLL}]"
-    display = f"[スクロール] {_DIRECTION_NAMES[parsed.direction]} {parsed.amount}"
+    display = f"[スクロール] {_DIRECTION_NAMES[parsed.direction]}{parsed.amount}"
     if parsed.unit == UNIT_DELTA:
-        display += " (生)"
+        display += " （生）"
     if parsed.position is not None:
         display += f" ({parsed.position[0]}, {parsed.position[1]})"
     return display
@@ -105,10 +105,10 @@ def format_mouse_scroll_value(action: Mapping[str, Any]) -> str:
 def describe_mouse_scroll(action: Mapping[str, Any]) -> str:
     parts = []
     for key in ("direction", "unit", "amount"):
-        parts.append(f"{key}={str(action[key]) if key in action else '(なし)'}")
+        parts.append(f"{key}={str(action[key]) if key in action else '（なし）'}")
     if "x" in action or "y" in action:
         parts.extend(
-            f"{key}={str(action[key]) if key in action else '(なし)'}"
+            f"{key}={str(action[key]) if key in action else '（なし）'}"
             for key in ("x", "y")
         )
     return " ".join(parts)

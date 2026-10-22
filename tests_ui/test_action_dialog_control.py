@@ -189,7 +189,7 @@ class ActionDialogControlTest(unittest.TestCase):
         self.showerror.assert_not_called()
 
     def test_system_counter_operations(self) -> None:
-        for display, op in (("カウンター +1", "counter_inc"), ("カウンターを 0 に", "counter_reset")):
+        for display, op in (("カウンター +1", "counter_inc"), ("カウンターを0に", "counter_reset")):
             dialog = self.make_dialog()
             dialog.type_var.set("system")
             dialog.control_fields.system_op_var.set(display)
@@ -276,7 +276,7 @@ class ActionDialogControlTest(unittest.TestCase):
         invalid.control_fields.system_op_var.set("呼び出し")
         invalid.on_ok()
         self.assertTrue(invalid.winfo_exists())
-        self.showerror.assert_called_with("入力エラー", "呼び出し先を選んでください")
+        self.showerror.assert_called_with("入力エラー", "呼び出し先を選択してください")
 
     def test_call_check_rejects_without_closing_and_accepts_none(self) -> None:
         rejected = self.make_dialog(
@@ -317,7 +317,7 @@ class ActionDialogControlTest(unittest.TestCase):
         missing.type_var.set("system")
         missing.on_ok()
         self.assertTrue(missing.winfo_exists())
-        self.assertEqual(self.showerror.call_args.args[1], "呼び出し先のトリガーがありません（f5）")
+        self.assertEqual(self.showerror.call_args.args[1], "呼び出し先のトリガーがありません(f5)")
 
     def test_call_missing_target_display_uses_actual_key(self) -> None:
         # 参照先なしの表示は実際のキーから作る（例示の f5 を固定で出さない）。
@@ -329,7 +329,7 @@ class ActionDialogControlTest(unittest.TestCase):
         missing.type_var.set("system")
         missing.on_ok()
         self.assertTrue(missing.winfo_exists())
-        self.assertEqual(self.showerror.call_args.args[1], "呼び出し先のトリガーがありません（z9）")
+        self.assertEqual(self.showerror.call_args.args[1], "呼び出し先のトリガーがありません(z9)")
 
     def test_call_missing_target_uses_call_check_message(self) -> None:
         checked = []
@@ -393,7 +393,7 @@ class ActionDialogControlTest(unittest.TestCase):
         unselected.control_fields.control_target_var.set(True)
         unselected.on_ok()
         self.assertTrue(unselected.winfo_exists())
-        self.assertEqual(self.showerror.call_args.args[1], "対象のトリガーを選んでください")
+        self.assertEqual(self.showerror.call_args.args[1], "対象のトリガーを選択してください")
 
         rejected = self.make_dialog(
             call_candidates=[("f5", "Macro")],
@@ -410,13 +410,13 @@ class ActionDialogControlTest(unittest.TestCase):
         missing = self.make_dialog(
             mode="edit", initial={"type": "system", "op": "back", "target": "F5"},
             call_candidates=[("f6", "Other")],
-            control_target_check=lambda target: f"対象のトリガーがありません（{target}）",
+            control_target_check=lambda target: f"対象のトリガーがありません({target})",
         )
         self.assertTrue(missing.control_fields.control_target_var.get())
         self.assertEqual(missing.control_fields.call_target_var.get(), "f5（参照先なし）")
         missing.on_ok()
         self.assertTrue(missing.winfo_exists())
-        self.assertEqual(self.showerror.call_args.args[1], "対象のトリガーがありません（f5）")
+        self.assertEqual(self.showerror.call_args.args[1], "対象のトリガーがありません(f5)")
 
         fallback = self.make_dialog(
             mode="edit", initial={"type": "system", "op": "back", "target": "z9"},
@@ -424,7 +424,7 @@ class ActionDialogControlTest(unittest.TestCase):
         )
         fallback.on_ok()
         self.assertTrue(fallback.winfo_exists())
-        self.assertEqual(self.showerror.call_args.args[1], "対象のトリガーがありません（z9）")
+        self.assertEqual(self.showerror.call_args.args[1], "対象のトリガーがありません(z9)")
 
     def test_control_target_load_and_operation_switch_preserve_shared_selection(self) -> None:
         selected = self.make_dialog(
@@ -534,6 +534,17 @@ class ActionDialogControlTest(unittest.TestCase):
             "type": "file_line", "path": "lines.txt", "counter": "line_number",
             "encoding": "utf-8", "out_of_range": "error", "label": "",
         })
+
+    def test_file_line_empty_policy_loads_display_name_and_preserves_value(self) -> None:
+        initial = {
+            "type": "file_line", "path": "lines.txt", "counter": "beta",
+            "encoding": "utf-8", "out_of_range": "empty", "label": "line",
+        }
+        dialog = self.make_dialog(mode="edit", initial=initial)
+        self.assertEqual(dialog.control_fields.out_of_range_var.get(), "何も送らない")
+        with patch.object(self.app.config_service, "to_config_relative_or_absolute", return_value="lines.txt"):
+            dialog.on_ok()
+        self.assertEqual(self.app._dialog_result, initial)
 
     def test_file_browse_uses_parent_dialog(self) -> None:
         dialog = self.make_dialog()

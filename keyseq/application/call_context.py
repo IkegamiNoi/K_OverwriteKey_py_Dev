@@ -135,13 +135,13 @@ def _push_frame(
     chain = _chain(ctx, key)
     if ctx.ancestor_depth + len(ctx.stack) + 1 > sequence_control.MAX_CALL_DEPTH:
         return _error(
-            f"呼び出しの深さが {sequence_control.MAX_CALL_DEPTH} を超えます", chain, deltas,
+            f"呼び出しの深さが{sequence_control.MAX_CALL_DEPTH}を超えます", chain, deltas,
         )
     if key in ctx.ancestors or key == ctx.root_key or any(frame.key == key for frame in ctx.stack):
-        return _error(f"呼び出しが循環します（{key}）", chain, deltas)
+        return _error(f"呼び出しが循環します({key})", chain, deltas)
     entry = ctx.entry_for(key) if key else None
     if key and entry is None:
-        return _error(f"呼び出し先のトリガーがありません（{key}）", chain, deltas)
+        return _error(f"呼び出し先のトリガーがありません({key})", chain, deltas)
     if entry is not None and len(entry.actions) == 1:
         action = entry.actions[0]
         if (
@@ -150,7 +150,7 @@ def _push_frame(
             and sequence_control.system_op(action)
             in (sequence_control.OP_BACK, sequence_control.OP_REWIND)
         ):
-            return _error("戻す・先頭へのトリガーは呼び出せません", chain, deltas)
+            return _error("「戻す」「先頭へ」のトリガーは呼び出せません", chain, deltas)
     if not key:
         return _error("呼び出し先が指定されていません", chain, deltas)
     parent_step = ctx.top_is_step() if ctx.stack else True
@@ -242,7 +242,7 @@ def _advance_frame(
     frame = ctx.stack[-1]
     entry = ctx.entry_for(frame.key)
     if entry is None:
-        return _error(f"呼び出し先のトリガーがありません（{frame.key}）", _chain(ctx), deltas)
+        return _error(f"呼び出し先のトリガーがありません({frame.key})", _chain(ctx), deltas)
     resume = frame.resume
     deferred = () if resume is not None else tuple(frame.deferred)
     if resume is None:
@@ -302,7 +302,7 @@ def _finish_returned_call(
         frame = ctx.stack[-1]
         entry = ctx.entry_for(frame.key)
         if entry is None:
-            return _error(f"呼び出し先のトリガーがありません（{frame.key}）", _chain(ctx), deltas)
+            return _error(f"呼び出し先のトリガーがありません({frame.key})", _chain(ctx), deltas)
         call_index = frame.position
         if call_index + 1 >= len(entry.actions):
             returned_sent = returned_sent or frame.sent
@@ -403,7 +403,7 @@ def finish_call_action(
     frame = ctx.stack[-1]
     entry = ctx.entry_for(frame.key)
     if entry is None:
-        return _error(f"呼び出し先のトリガーがありません（{frame.key}）", _chain(ctx), deltas)
+        return _error(f"呼び出し先のトリガーがありません({frame.key})", _chain(ctx), deltas)
     if frame.position + 1 >= len(entry.actions):
         returned_sent = frame.sent
         deltas.extend(_pop_frame(ctx, counters))

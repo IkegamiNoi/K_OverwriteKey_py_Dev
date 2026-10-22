@@ -40,7 +40,7 @@ class MouseScrollExecutorTests(unittest.TestCase):
         self.gateway.scroll_mouse.assert_not_called()
         self.held_inputs.release_owner.assert_called_once_with("f8")
         message = self.on_action_error.call_args.args[1]
-        self.assertIn("向きは up / down / left / right", message)
+        self.assertIn("向きはup / down / left / right", message)
         self.assertIn("direction=bad unit=notch amount=1 ラベル: memo", message)
 
     def test_gateway_error_reports_details_and_releases_owner(self) -> None:
@@ -50,7 +50,7 @@ class MouseScrollExecutorTests(unittest.TestCase):
         self.held_inputs.release_owner.assert_called_once_with("f8")
         message = self.on_action_error.call_args.args[1]
         self.assertIn("mouse_scrollの送信に失敗しました: [Errno 5", message)
-        self.assertIn("direction=up unit=(なし) amount=1", message)
+        self.assertIn("direction=up unit=（なし） amount=1", message)
 
     def test_unknown_type_message_lists_mouse_scroll(self) -> None:
         self.assertIs(self.executor.execute({"type": "unknown"}), False)

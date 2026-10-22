@@ -50,26 +50,26 @@ class KeyHoldSpec:
 def parse_key_hold(action: Mapping[str, Any]) -> KeyHoldSpec | str:
     edge_value = action.get("edge")
     if not isinstance(edge_value, str):
-        return "押下方向は down または up を指定してください。"
+        return "押下方向はdownまたはupを指定してください。"
     edge = edge_value.strip().lower()
     if edge not in (EDGE_DOWN, EDGE_UP):
-        return "押下方向は down または up を指定してください。"
+        return "押下方向はdownまたはupを指定してください。"
 
     button_value = action.get("button")
     if isinstance(button_value, str) and button_value.strip():
         button = button_value.strip().lower()
         if button not in MOUSE_BUTTONS:
-            return "マウスボタンは left / right / middle のいずれかを指定してください。"
+            return "マウスボタンはleft / right / middleのいずれかを指定してください。"
         has_x = "x" in action
         has_y = "y" in action
         if has_x != has_y:
-            return "マウス座標は x と y の両方を指定してください。"
+            return "マウス座標はxとyの両方を指定してください。"
         position = None
         if has_x:
             try:
                 position = (int(action["x"]), int(action["y"]))
             except (TypeError, ValueError, OverflowError):
-                return "マウス座標 x と y は整数に変換できる値を指定してください。"
+                return "マウス座標xとyは整数に変換できる値を指定してください。"
         return KeyHoldSpec(edge=edge, button=button, key=None, position=position)
 
     value = action.get("value")
@@ -121,7 +121,7 @@ def format_key_hold_value(action: Mapping[str, Any]) -> str:
     if parsed.button is None:
         display = f"[{direction}] {parsed.key}"
         if is_repeat_enabled(action):
-            display += " (リピート)"
+            display += " （リピート）"
         return display
     display = f"[{direction}] {held_display_name('mouse', parsed.button)}"
     if parsed.position is not None:

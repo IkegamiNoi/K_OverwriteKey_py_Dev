@@ -14,11 +14,11 @@ def edit_control_target_violation(
 ) -> str | None:
     target = normalize_key_name(target_key)
     if not target:
-        return "対象のトリガーを選んでください"
+        return "対象のトリガーを選択してください"
 
     target_trigger = find_trigger(target)
     if target_trigger is None:
-        return f"対象のトリガーがありません（{target}）"
+        return f"対象のトリガーがありません({target})"
     if target == normalize_key_name(owner_key):
         return "自分自身は指定できません"
 
@@ -32,7 +32,7 @@ def edit_control_target_violation(
         and sequence_control.system_op(actions[0])
         in (sequence_control.OP_BACK, sequence_control.OP_REWIND)
     ):
-        return "戻す・先頭へのトリガーは指定できません"
+        return "「戻す」「先頭へ」のトリガーは指定できません"
     return None
 
 

@@ -153,7 +153,7 @@ class ActionDialogMouseScrollTest(unittest.TestCase):
                 dialog.on_ok()
                 self.assertIsNone(self.root._dialog_result)
                 self.assertEqual(self.showerror.call_count, error_count + 1)
-                expected_error = "量は整数に変換できる値" if unit else "単位を選んで"
+                expected_error = "量は整数に変換できる値" if unit else "単位を選択して"
                 self.assertIn(expected_error, self.showerror.call_args.args[1])
 
     def test_mouse_scroll_capture_button_stays_disabled_during_mouse_capture(self) -> None:
@@ -214,14 +214,14 @@ class ActionDialogMouseScrollTest(unittest.TestCase):
         dialog.type_var.set("mouse_scroll")
         dialog.mouse_scroll_fields.unit_var.set("")
         dialog.on_ok()
-        self.assertIn("単位を選んで", self.showerror.call_args.args[1])
+        self.assertIn("単位を選択して", self.showerror.call_args.args[1])
         self.assertIsNone(self.root._dialog_result)
 
         invalid_unit = self.make_dialog({
             "type": "mouse_scroll", "direction": "down", "unit": "unknown", "amount": 3,
         }, mode="edit")
         invalid_unit.on_ok()
-        self.assertIn("単位を選んで", self.showerror.call_args.args[1])
+        self.assertIn("単位を選択して", self.showerror.call_args.args[1])
         self.assertIsNone(self.root._dialog_result)
 
         dialog = self.make_dialog()
@@ -236,7 +236,7 @@ class ActionDialogMouseScrollTest(unittest.TestCase):
         dialog.mouse_scroll_fields.sync_coordinates()
         dialog.mouse_scroll_fields.x_var.set("10")
         dialog.on_ok()
-        self.assertIn("X/Y は両方", self.showerror.call_args.args[1])
+        self.assertIn("X/Yは両方", self.showerror.call_args.args[1])
 
     def test_editing_integral_float_amount_saves_integer_after_label_change(self) -> None:
         dialog = self.make_dialog({

@@ -65,10 +65,10 @@ class RenameCallTargetsTest(unittest.TestCase):
 class EditCallViolationTest(unittest.TestCase):
     def test_empty_missing_and_self_checks_follow_required_order(self):
         find = finder({"f1": trigger()})
-        self.assertEqual(edit_call_violation("f1", " ", find), "呼び出し先を選んでください")
+        self.assertEqual(edit_call_violation("f1", " ", find), "呼び出し先を選択してください")
         self.assertEqual(
             edit_call_violation("f1", "f1", finder({})),
-            "呼び出し先のトリガーがありません（f1）",
+            "呼び出し先のトリガーがありません(f1)",
         )
         self.assertEqual(edit_call_violation("F1", "f1", find), "自分自身は呼び出せません")
 
@@ -89,7 +89,7 @@ class EditCallViolationTest(unittest.TestCase):
         }
         self.assertEqual(
             edit_call_violation("f1", "f5", finder(triggers)),
-            "呼び出しが循環します（f5 > f6 > f1）",
+            "呼び出しが循環します(f5 > f6 > f1)",
         )
 
     def test_depth_counts_only_downstream_and_enforces_nine(self):
@@ -109,7 +109,7 @@ class EditCallViolationTest(unittest.TestCase):
         too_deep["f10"] = trigger()
         self.assertEqual(
             edit_call_violation("owner", "f1", finder(too_deep)),
-            "呼び出しの深さが 9 を超えます",
+            "呼び出しの深さが9を超えます",
         )
 
     def test_direct_back_or_rewind_only_trigger_is_rejected(self):
@@ -118,7 +118,7 @@ class EditCallViolationTest(unittest.TestCase):
                 triggers = {"target": trigger({"type": "system", "op": op})}
                 self.assertEqual(
                     edit_call_violation("owner", "target", finder(triggers)),
-                    "戻す・先頭へのトリガーは呼び出せません",
+                    "「戻す」「先頭へ」のトリガーは呼び出せません",
                 )
 
     def test_downstream_existing_cycle_terminates(self):

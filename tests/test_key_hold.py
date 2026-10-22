@@ -140,7 +140,7 @@ class FormatKeyHoldTests(unittest.TestCase):
     def test_repeat_marker_is_shown_only_for_repeat_enabled_rows(self):
         self.assertEqual(
             format_key_hold_value({"edge": "down", "value": "a", "repeat": True}),
-            "[押す] a (リピート)",
+            "[押す] a （リピート）",
         )
         for action in (
             {"edge": "down", "value": "a"},
@@ -150,7 +150,7 @@ class FormatKeyHoldTests(unittest.TestCase):
             {"edge": "bad", "value": "a", "repeat": True},
         ):
             with self.subTest(action=action):
-                self.assertNotIn("(リピート)", format_key_hold_value(action))
+                self.assertNotIn("（リピート）", format_key_hold_value(action))
 
     def test_formats_invalid_row_for_visibility(self):
         self.assertEqual(
@@ -187,5 +187,5 @@ class FormatKeyHoldTests(unittest.TestCase):
             format_action_list_item(
                 4, {"type": "key_hold", "edge": "down", "value": "a", "repeat": True}
             ),
-            "05. [押す] a (リピート)",
+            "05. [押す] a （リピート）",
         )

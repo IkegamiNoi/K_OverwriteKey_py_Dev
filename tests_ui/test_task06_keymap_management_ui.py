@@ -165,7 +165,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         confirm.assert_not_called()
         self.assertEqual(self.app.data["active_keymap_id"], "km2")
         self.assertIsNone(self.app.state.run_to_end_key)
-        self.assertIn("一時停止中の実行を破棄しました（f1）",
+        self.assertIn("一時停止中の実行を破棄しました(f1)",
                       self.app.ui_vars.flash_message_var.get())
 
         self.app.state.run_to_end_key = "f1"
@@ -188,7 +188,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
         with patch("keyseq.presentation.app.messagebox.askokcancel") as ask:
             self.assertEqual(self.app.sequence_runner.discard_paused(), ("f1",))
         ask.assert_not_called()
-        self.assertIn("一時停止中の実行を破棄しました（f1）",
+        self.assertIn("一時停止中の実行を破棄しました(f1)",
                       self.app.ui_vars.flash_message_var.get())
         self.assertFalse(self.app.state.run_to_end_paused)
 

@@ -72,7 +72,7 @@ class FileLineReaderTests(unittest.TestCase):
         self._write(b"a" * MAX_FILE_LINE_BYTES)
         self.assertEqual(len(self._read(1)), MAX_FILE_LINE_BYTES)
         self._write(b"a" * (MAX_FILE_LINE_BYTES + 1))
-        with self.assertRaisesRegex(FileLineError, "上限 1 MB"):
+        with self.assertRaisesRegex(FileLineError, "上限1 MB"):
             self._read(1)
 
     def test_missing_file_is_an_error(self) -> None:
@@ -129,10 +129,10 @@ class FileLineReaderTests(unittest.TestCase):
         path = str(self.path)
         with self.assertRaises(FileLineError) as caught:
             validate_file_line_request(path, 1, encoding="invalid", out_of_range="invalid")
-        self.assertEqual(str(caught.exception), f"文字コードが不正です: invalid（ファイル: {path}）")
+        self.assertEqual(str(caught.exception), f"文字コードが正しくありません: invalid（ファイル: {path}）")
         with self.assertRaises(FileLineError) as caught:
             validate_file_line_request(path, 1, encoding="utf-8", out_of_range="invalid")
-        self.assertEqual(str(caught.exception), f"範囲外の扱いが不正です: invalid（ファイル: {path}）")
+        self.assertEqual(str(caught.exception), f"範囲外の扱いが正しくありません: invalid（ファイル: {path}）")
         for line_number in (True, "1", 1.0):
             with self.subTest(line_number=line_number):
                 with self.assertRaises(FileLineError) as caught:
@@ -149,7 +149,7 @@ class FileLineReaderTests(unittest.TestCase):
         validate_file_line_request(path, 1, encoding="utf-8", out_of_range="error")
         with self.assertRaises(FileLineError) as caught:
             validate_file_line_request(path, 1, encoding="bad", out_of_range="bad")
-        self.assertEqual(str(caught.exception), f"文字コードが不正です: bad（ファイル: {path}）")
+        self.assertEqual(str(caught.exception), f"文字コードが正しくありません: bad（ファイル: {path}）")
 
     def test_load_file_lines_splits_all_newlines_and_ignores_trailing_break(self) -> None:
         self._write(b"one\r\ntwo\rthree\n")
@@ -163,7 +163,7 @@ class FileLineReaderTests(unittest.TestCase):
 
     def test_load_file_lines_preserves_size_and_missing_file_errors(self) -> None:
         self._write(b"a" * (MAX_FILE_LINE_BYTES + 1))
-        with self.assertRaisesRegex(FileLineError, "上限 1 MB"):
+        with self.assertRaisesRegex(FileLineError, "上限1 MB"):
             load_file_lines(str(self.path), encoding="utf-8")
         missing_path = str(self.root / "missing.txt")
         with self.assertRaisesRegex(FileLineError, "読み込めません"):

@@ -493,7 +493,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.index("f1"), 0)
         self.assertEqual(self.index("f5"), 1)
         self.assertEqual(self.performed[-1]["value"], "continuous")
-        self.assertFalse(any("一時停止中の実行を破棄しました（f1）" in message
+        self.assertFalse(any("一時停止中の実行を破棄しました(f1)" in message
                              for message in self.messages))
 
     def test_12_callee_press_completes_marked_caller_without_sending_its_next_action(self):
@@ -1129,13 +1129,13 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.trigger("f3", [call("f6", all=True)])
         self.runner.handle_key("f3")
         self.run_all()
-        self.assertTrue(any("戻す・先頭へのトリガーは呼び出せません" in message
+        self.assertTrue(any("「戻す」「先頭へ」のトリガーは呼び出せません" in message
                             for _, message in self.errors))
         self.assertEqual(self.index("f3"), 0)
         self.trigger("f4", [call("f7", all=True)])
         self.runner.handle_key("f4")
         self.run_all()
-        self.assertEqual(sum("戻す・先頭へのトリガーは呼び出せません" in message
+        self.assertEqual(sum("「戻す」「先頭へ」のトリガーは呼び出せません" in message
                              for _, message in self.errors), 2)
 
     def test_single_call_can_pause_for_other_trigger_then_resume_after_target_interval(self):
@@ -1229,8 +1229,8 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         self.assertEqual(
             self.errors[-1][1],
-            "system 実行エラー（call 呼び出し先=f5）: "
-            "file_line の読込の仕組みが未設定です / 呼び出し: f5",
+            "system実行エラー（call 呼び出し先=f5）: "
+            "file_lineの読み込みの仕組みが未設定です / 呼び出し: f5",
         )
         self.assertNotIn(("set", "f1"), self.state.pending_steps)
 
@@ -1245,8 +1245,8 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         self.assertEqual(
             self.errors[-1][1],
-            "system 実行エラー（call 呼び出し先=f5）: "
-            "file_line の読込の仕組みが未設定です / 呼び出し: f5",
+            "system実行エラー（call 呼び出し先=f5）: "
+            "file_lineの読み込みの仕組みが未設定です / 呼び出し: f5",
         )
         self.assertIsNone(self.state.run_to_end_key)
 
@@ -1718,7 +1718,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.index("f1"), 0)
         self.assertEqual(self.index("f5"), 2)
         self.assertIn("f1", self.state.call_refs_for("set"))
-        self.assertIn("一時停止中の実行を破棄しました（f1）", self.messages)
+        self.assertIn("一時停止中の実行を破棄しました(f1)", self.messages)
 
         self.run_all()
         self.assertEqual([item["value"] for item in self.performed], ["A", "B", "C", "Y"])
@@ -2181,7 +2181,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.runner.paused_keys(), ("f1",))
         self.runner.handle_key("f2")
 
-        self.assertIn("一時停止中の実行を破棄しました（f1）", self.messages)
+        self.assertIn("一時停止中の実行を破棄しました(f1)", self.messages)
         self.assertEqual(self.index("f1"), 0)
         self.assertEqual(len(self.history("f1")), 1)
         self.assertEqual(self.performed[-1]["value"], "other")
@@ -2208,10 +2208,10 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
                 self.runner.handle_key("f3")
                 self.assertEqual(self.runner.paused_keys(), ("f1", "f2"))
-                self.assertIn("一時停止中の f1 を破棄します。もう一度押すと実行します", self.messages)
+                self.assertIn("一時停止中のf1を破棄します。もう一度押すと実行します", self.messages)
                 self.runner.handle_key("f3")
 
-                self.assertIn("一時停止中の実行を破棄しました（f1）", self.messages)
+                self.assertIn("一時停止中の実行を破棄しました(f1)", self.messages)
                 self.assertEqual(self.runner.paused_keys(), ("f2",))
                 self.assertNotIn(("set", "f1"), self.state.pending_steps)
                 self.assertIn(("set", "f2"), self.state.pending_steps)
@@ -2244,7 +2244,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
                 self.runner.handle_key("f2")
                 self.assertEqual(self.index("f1"), position)
                 self.assertEqual(set(self.runner.paused_keys()), {"f1", "f5"})
-                self.assertIn("一時停止中の f1 を破棄します。もう一度押すと実行します",
+                self.assertIn("一時停止中のf1を破棄します。もう一度押すと実行します",
                               self.messages)
                 self.runner.handle_key("f2")
                 self.assertEqual(self.runner.paused_keys(), ("f5",))
@@ -2293,7 +2293,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertEqual(self.state.counters.get("n"), 1)
         self.assertEqual(self.state.counters.get("m"), 1)
         self.assertEqual(self.messages.count(
-            "一時停止中の f1 を破棄します。もう一度押すと実行します"), 2)
+            "一時停止中のf1を破棄します。もう一度押すと実行します"), 2)
 
     def test_changed_state_resets_back_discard_prompt(self):
         self.trigger("f1", [call("f5", all=True)])
@@ -2308,7 +2308,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.runner.handle_key("f2")
         self.assertIn(("set", "f1"), self.state.pending_steps)
         self.assertEqual(self.messages.count(
-            "一時停止中の f1 を破棄します。もう一度押すと実行します"), 2)
+            "一時停止中のf1を破棄します。もう一度押すと実行します"), 2)
 
     def test_26_reset_indices_drops_call_without_history(self):
         self.trigger("f1", [call("f5", all=True)])
@@ -2425,7 +2425,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         self.assertIsNone(self.state.run_to_end_key)
         self.assertTrue(any(
-            "制御アクションの処理が 10000 回を超えました" in message
+            "制御アクションの処理が10000回を超えました" in message
             for _action, message in self.errors
         ))
         self.assertEqual(len(self.history("f1")), 0)
@@ -2751,7 +2751,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
                 self.assertNotIn(("set", "f5"), self.state.pending_steps)
                 self.assertEqual(self.performed, [text("v1"), text("v2")])
-                self.assertEqual(self.messages, ["一時停止中の実行を破棄しました（f5）"])
+                self.assertEqual(self.messages, ["一時停止中の実行を破棄しました(f5)"])
                 self.assertEqual(discarded, [(0, 2, True, history_size)])
                 self.assertEqual(self.runner.paused_keys(), ())
                 self.assertNotIn(("set", "f1"), self.state.pending_steps)
@@ -2772,7 +2772,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
         self.assertNotIn(("set", "f5"), self.state.pending_steps)
         self.assertEqual(self.performed, [text("v1"), text("prefix"), text("v2"), text("after")])
         self.assertEqual(self.state.counters["n"], 1)
-        self.assertEqual(self.messages, ["一時停止中の実行を破棄しました（f5）"])
+        self.assertEqual(self.messages, ["一時停止中の実行を破棄しました(f5)"])
         self.assertNotIn(("set", "f1"), self.state.pending_steps)
 
     def test_resumed_continuous_call_discards_new_paused_single_callee(self):
@@ -2787,7 +2787,7 @@ class SequenceRunnerCallTests(unittest.TestCase):
 
         self.assertNotIn(("set", "f5"), self.state.pending_steps)
         self.assertEqual(self.performed, [text("v1"), text("v2")])
-        self.assertEqual(self.messages, ["一時停止中の実行を破棄しました（f5）"])
+        self.assertEqual(self.messages, ["一時停止中の実行を破棄しました(f5)"])
         self.assertIsNone(self.state.run_to_end_key)
 
 

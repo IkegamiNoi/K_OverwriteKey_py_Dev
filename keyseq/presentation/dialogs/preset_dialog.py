@@ -18,7 +18,7 @@ class PresetDialog(tk.Toplevel):
         frm.pack(fill="both", expand=True)
         frm.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(frm, text="内容（hotkey）").grid(row=0, column=0, sticky="w")
+        ttk.Label(frm, text="内容(hotkey)").grid(row=0, column=0, sticky="w")
         self.value_var = tk.StringVar(value=initial_value or "")
         self.value_entry = ttk.Entry(frm, textvariable=self.value_var, width=34)
         self.value_entry.grid(row=0, column=1, sticky="we", padx=(8, 0))
@@ -28,7 +28,7 @@ class PresetDialog(tk.Toplevel):
         self.label_entry = ttk.Entry(frm, textvariable=self.label_var, width=34)
         self.label_entry.grid(row=1, column=1, sticky="we", padx=(8, 0), pady=(10, 0))
 
-        hint = ttk.Label(frm, text="例）内容: windows+d / ラベル: Win+D（ラベルは重複禁止）")
+        hint = ttk.Label(frm, text="例: 内容: windows+d / ラベル: Win+D（ラベルは重複禁止）")
         hint.grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
 
         btns = ttk.Frame(frm)
@@ -43,10 +43,10 @@ class PresetDialog(tk.Toplevel):
         value = (self.value_var.get() or "").strip()
         label = (self.label_var.get() or "").strip()
         if not value:
-            messagebox.showerror("入力エラー", "内容（hotkey）が空です。")
+            messagebox.showerror("入力エラー", "内容(hotkey)を入力してください。")
             return
         if not label:
-            messagebox.showerror("入力エラー", "ラベルが空です。")
+            messagebox.showerror("入力エラー", "ラベルを入力してください。")
             return
         self.result = {"value": value, "label": label}
         self.destroy()

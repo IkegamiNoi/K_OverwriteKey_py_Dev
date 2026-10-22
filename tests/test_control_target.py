@@ -23,19 +23,19 @@ class EditControlTargetViolationTest(unittest.TestCase):
         }
         find = triggers.get
 
-        self.assertEqual(edit_control_target_violation("f1", "  ", find), "対象のトリガーを選んでください")
+        self.assertEqual(edit_control_target_violation("f1", "  ", find), "対象のトリガーを選択してください")
         self.assertEqual(
             edit_control_target_violation("f1", " F9 ", find),
-            "対象のトリガーがありません（f9）",
+            "対象のトリガーがありません(f9)",
         )
         self.assertEqual(edit_control_target_violation(" F1 ", "f1", find), "自分自身は指定できません")
         self.assertEqual(
             edit_control_target_violation("f1", "f2", find),
-            "戻す・先頭へのトリガーは指定できません",
+            "「戻す」「先頭へ」のトリガーは指定できません",
         )
         self.assertEqual(
             edit_control_target_violation("f1", "f3", find),
-            "戻す・先頭へのトリガーは指定できません",
+            "「戻す」「先頭へ」のトリガーは指定できません",
         )
 
     def test_only_a_single_back_or_rewind_row_is_rejected(self):
@@ -50,7 +50,7 @@ class EditControlTargetViolationTest(unittest.TestCase):
     def test_missing_check_precedes_self_check(self):
         self.assertEqual(
             edit_control_target_violation("f1", " F1 ", lambda key: None),
-            "対象のトリガーがありません（f1）",
+            "対象のトリガーがありません(f1)",
         )
 
     def test_calls_deep_chains_and_cycles_are_allowed(self):

@@ -52,9 +52,9 @@ def validate_file_line_request(
     out_of_range: str,
 ) -> None:
     if encoding not in (ENCODING_UTF_8, ENCODING_SHIFT_JIS):
-        raise FileLineError(f"文字コードが不正です: {encoding or '(空)'}（ファイル: {path}）")
+        raise FileLineError(f"文字コードが正しくありません: {encoding or '（空）'}（ファイル: {path}）")
     if out_of_range not in (OUT_OF_RANGE_ERROR, OUT_OF_RANGE_EMPTY, OUT_OF_RANGE_WRAP):
-        raise FileLineError(f"範囲外の扱いが不正です: {out_of_range or '(空)'}（ファイル: {path}）")
+        raise FileLineError(f"範囲外の扱いが正しくありません: {out_of_range or '（空）'}（ファイル: {path}）")
     if not isinstance(line_number, int) or isinstance(line_number, bool):
         raise FileLineError(f"行番号が整数ではありません: {line_number!r}（ファイル: {path}）")
 
@@ -66,7 +66,7 @@ def load_file_lines(path: str, *, encoding: str) -> list[str]:
         content = content_bytes.decode(codec)
     except UnicodeDecodeError as exc:
         raise FileLineError(
-            f"ファイルを文字コード {encoding} で復号できません（ファイル: {path}）"
+            f"ファイルを文字コード{encoding}で復号できません（ファイル: {path}）"
         ) from exc
     return _split_lines(content)
 
@@ -116,7 +116,7 @@ def _read_bytes(path: str) -> bytes:
         size = os.path.getsize(path)
         if size > MAX_FILE_LINE_BYTES:
             raise FileLineError(
-                f"ファイルサイズが上限 1 MB を超えています（サイズ: {size} バイト, ファイル: {path}）"
+                f"ファイルサイズが上限1 MBを超えています（サイズ: {size}バイト, ファイル: {path}）"
             )
         with open(path, "rb") as file:
             content = file.read(MAX_FILE_LINE_BYTES + 1)
@@ -126,7 +126,7 @@ def _read_bytes(path: str) -> bytes:
         raise FileLineError(f"ファイルを読み込めません（ファイル: {path}）: {exc}") from exc
     if len(content) > MAX_FILE_LINE_BYTES:
         raise FileLineError(
-            f"ファイルサイズが上限 1 MB を超えています（サイズ: 1 MB 超, ファイル: {path}）"
+            f"ファイルサイズが上限1 MBを超えています（サイズ: 1 MB超, ファイル: {path}）"
         )
     return content
 

@@ -45,7 +45,7 @@ class ActionMouseScrollFields:
         self.amount_notch_entry = ttk.Entry(self.frame, textvariable=self.amount_notch_var, width=12)
         self.amount_notch_entry.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
         self.delta_radio = ttk.Radiobutton(
-            self.frame, text=f"生の値（{WHEEL_DELTA} = 1 ノッチ）",
+            self.frame, text=f"生の値（{WHEEL_DELTA} = 1ノッチ）",
             variable=self.unit_var, value=UNIT_DELTA,
             command=self.sync_amount,
         )

@@ -29,7 +29,7 @@ from keyseq.domain.sequence_control import (
 SYSTEM_OPERATIONS = {
     "ループ": OP_LOOP_START,
     "カウンター +1": OP_COUNTER_INC,
-    "カウンターを 0 に": OP_COUNTER_RESET,
+    "カウンターを0に": OP_COUNTER_RESET,
     "待機": OP_WAIT,
     "停止": OP_STOP,
     "呼び出し": OP_CALL,
@@ -40,7 +40,7 @@ SYSTEM_LABELS = {operation: label for label, operation in SYSTEM_OPERATIONS.item
 ENCODINGS = {"UTF-8": ENCODING_UTF_8, "Shift_JIS": ENCODING_SHIFT_JIS}
 OUT_OF_RANGE_VALUES = {
     "エラーで停止": OUT_OF_RANGE_ERROR,
-    "空を送る": OUT_OF_RANGE_EMPTY,
+    "何も送らない": OUT_OF_RANGE_EMPTY,
     "折り返し": OUT_OF_RANGE_WRAP,
 }
 
@@ -66,8 +66,8 @@ class ActionControlFields:
         operation_labels = list(SYSTEM_OPERATIONS)
         if mode == "edit":
             operation_labels.remove("ループ")
-        self.system_frame = ttk.LabelFrame(parent, text="system 設定", padding=8)
-        self.file_frame = ttk.LabelFrame(parent, text="file_line 設定", padding=8)
+        self.system_frame = ttk.LabelFrame(parent, text="system設定", padding=8)
+        self.file_frame = ttk.LabelFrame(parent, text="file_line設定", padding=8)
         self.system_frame.grid_columnconfigure(1, weight=1)
         self.file_frame.grid_columnconfigure(1, weight=1)
         self._build_system_fields(operation_labels)
@@ -127,7 +127,7 @@ class ActionControlFields:
         )
         self.call_target_combo.grid(row=4, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
         self.call_note_label = ttk.Label(
-            self.system_frame, text="呼び出し先の「間隔(ms)」の間隔で実行します（連続実行 OFF でも使います）",
+            self.system_frame, text="呼び出し先の「間隔(ms)」で実行します（連続実行OFFでも使います）",
         )
         self.call_note_label.grid(row=5, column=0, columnspan=3, sticky="w", pady=(4, 0))
         self.call_all_var = tk.BooleanVar(value=False)
@@ -260,7 +260,7 @@ class ActionControlFields:
         if self.mode == "edit" and op == OP_LOOP_START:
             op = None
         if op is None:
-            messagebox.showerror("入力エラー", "操作が不正です。")
+            messagebox.showerror("入力エラー", "操作が正しくありません。")
             return None
         result: dict[str, Any] = {"type": ACTION_TYPE_SYSTEM, "op": op}
         if op == OP_LOOP_START:
@@ -272,7 +272,7 @@ class ActionControlFields:
         if op in (OP_COUNTER_INC, OP_COUNTER_RESET):
             counter = self.system_counter_var.get().strip()
             if not counter:
-                messagebox.showerror("入力エラー", "カウンター名が空です。")
+                messagebox.showerror("入力エラー", "カウンター名を入力してください。")
                 return None
             result.update({"counter": counter, "label": label})
         elif op == OP_WAIT:
@@ -281,7 +281,7 @@ class ActionControlFields:
             except (TypeError, ValueError):
                 milliseconds = 0
             if milliseconds < 1:
-                messagebox.showerror("入力エラー", "ミリ秒は 1 以上の整数で入力してください。")
+                messagebox.showerror("入力エラー", "ミリ秒は1以上の整数で入力してください。")
                 return None
             result.update({"ms": milliseconds, "label": label})
         else:
@@ -312,9 +312,9 @@ class ActionControlFields:
             if self._missing_call_target and display == self._missing_call_display():
                 error = self.call_check(self._missing_call_target) if self.call_check else None
                 messagebox.showerror("入力エラー", error or
-                                     f"呼び出し先のトリガーがありません（{self._missing_call_target}）")
+                                     f"呼び出し先のトリガーがありません({self._missing_call_target})")
             else:
-                messagebox.showerror("入力エラー", "呼び出し先を選んでください")
+                messagebox.showerror("入力エラー", "呼び出し先を選択してください")
             return None
         target = candidate[0]
         if self.call_check is not None:
@@ -337,9 +337,9 @@ class ActionControlFields:
                 error = (self.control_target_validator(self._missing_call_target)
                          if self.control_target_validator else None)
                 messagebox.showerror("入力エラー", error or
-                                     f"対象のトリガーがありません（{self._missing_call_target}）")
+                                     f"対象のトリガーがありません({self._missing_call_target})")
             else:
-                messagebox.showerror("入力エラー", "対象のトリガーを選んでください")
+                messagebox.showerror("入力エラー", "対象のトリガーを選択してください")
             return None
         target = candidate[0]
         if self.control_target_validator is not None:
@@ -357,7 +357,7 @@ class ActionControlFields:
         except (TypeError, ValueError):
             count = 0
         if count < 1 and not infinite:
-            messagebox.showerror("入力エラー", "回数は 1 以上の整数で入力してください。")
+            messagebox.showerror("入力エラー", "回数は1以上の整数で入力してください。")
             return None
         result.update({
             "count": count if count >= 1 else self._last_valid_loop_count,
@@ -369,10 +369,10 @@ class ActionControlFields:
         path = self.file_path_var.get().strip()
         counter = self.file_counter_var.get().strip()
         if not path:
-            messagebox.showerror("入力エラー", "ファイルが空です。")
+            messagebox.showerror("入力エラー", "ファイルを指定してください。")
             return None
         if not counter:
-            messagebox.showerror("入力エラー", "カウンター名が空です。")
+            messagebox.showerror("入力エラー", "カウンター名を入力してください。")
             return None
         stored_path = self.config_service.to_config_relative_or_absolute(path, self.config_root)
         return {

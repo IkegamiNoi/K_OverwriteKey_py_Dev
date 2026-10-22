@@ -168,9 +168,9 @@ class FileLineLoaderTests(unittest.TestCase):
         self.assertEqual(result.status, "error")
         self.assertEqual(
             str(result.error),
-            "ファイルの読込が 5 秒以内に終わりませんでした（ファイル: lines.txt）",
+            "ファイルの読み込みが5秒以内に終わりませんでした（ファイル: lines.txt）",
         )
-        with self.assertRaisesRegex(FileLineError, "前回のファイル読込が終わっていません"):
+        with self.assertRaisesRegex(FileLineError, "前回のファイルの読み込みが終わっていません"):
             self.loader.request("lines.txt", "utf-8")
         self.loader.request("other.txt", "utf-8")
         self.assertEqual(len(self.workers), 2)

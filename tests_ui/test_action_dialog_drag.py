@@ -132,8 +132,8 @@ class ActionDialogDragTest(unittest.TestCase):
             dialog._sync_drag_ui()
             self.assertEqual(str(dialog.mouse_clicks_entry.cget("state")),
                              "disabled" if enabled else "normal")
-            self.assertEqual(dialog.mouse_x_label.cget("text"), "掴む位置 X" if enabled else "X")
-            self.assertEqual(dialog.mouse_y_label.cget("text"), "掴む位置 Y" if enabled else "Y")
+            self.assertEqual(dialog.mouse_x_label.cget("text"), "掴む位置X" if enabled else "X")
+            self.assertEqual(dialog.mouse_y_label.cget("text"), "掴む位置Y" if enabled else "Y")
             for widget in dialog._drag_widgets:
                 self.assertEqual(bool(widget.grid_info()), enabled)
 
@@ -146,8 +146,8 @@ class ActionDialogDragTest(unittest.TestCase):
         dialog.type_var.set("mouse_click")
         dialog._sync_capture_ui()
         self.assertEqual(str(dialog.mouse_clicks_entry.cget("state")), "disabled")
-        self.assertEqual(dialog.mouse_x_label.cget("text"), "掴む位置 X")
-        self.assertEqual(dialog.mouse_y_label.cget("text"), "掴む位置 Y")
+        self.assertEqual(dialog.mouse_x_label.cget("text"), "掴む位置X")
+        self.assertEqual(dialog.mouse_y_label.cget("text"), "掴む位置Y")
         for widget in dialog._drag_widgets:
             self.assertTrue(widget.grid_info())
 

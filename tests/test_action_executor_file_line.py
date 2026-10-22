@@ -126,7 +126,7 @@ class ActionExecutorFileLineTests(unittest.TestCase):
         self.assertIs(executor.poll_file_line(handle), False)
         self.on_action_error.reset_mock()
         self.assertIsNone(executor.begin_file_line(action))
-        self.assertIn("前回のファイル読込が終わっていません", self.on_action_error.call_args.args[1])
+        self.assertIn("前回のファイルの読み込みが終わっていません", self.on_action_error.call_args.args[1])
         self.assertTrue(workers)
 
     def test_execute_file_line_notifies_and_never_sends(self) -> None:

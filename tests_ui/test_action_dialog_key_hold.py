@@ -237,7 +237,7 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         self.root.input_gateway.invalid_names.add("not-a-key")
         invalid_key.on_ok()
         self.assertTrue(invalid_key.winfo_exists())
-        self.assertIn("キー名が不正です", self.showerror.call_args.args[1])
+        self.assertIn("キー名が正しくありません", self.showerror.call_args.args[1])
 
         incomplete = self.make_dialog()
         incomplete.type_var.set("key_hold")
@@ -250,7 +250,7 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         fields.x_var.set("10")
         incomplete.on_ok()
         self.assertTrue(incomplete.winfo_exists())
-        self.assertIn("X/Y は両方", self.showerror.call_args.args[1])
+        self.assertIn("X/Yは両方", self.showerror.call_args.args[1])
 
     def test_empty_composite_key_and_invalid_coordinates_are_rejected(self) -> None:
         for value in ("", "ctrl+shift", "a,b"):

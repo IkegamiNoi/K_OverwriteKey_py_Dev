@@ -27,7 +27,7 @@ class KeyHoldRenderingTests(unittest.TestCase):
         )
         CallViewController(app)._render_rows(frame, summary)
         self.assertEqual(frame.action_list.insert.call_args_list[0].args[1], "▶ 01. [押す] マウス右: 保持")
-        self.assertEqual(frame.action_list.insert.call_args_list[1].args[1], "　 02. [押す] a (リピート)")
+        self.assertEqual(frame.action_list.insert.call_args_list[1].args[1], "　 02. [押す] a （リピート）")
 
     def test_full_and_compact_rows_share_key_hold_format(self):
         actions = [
@@ -38,7 +38,7 @@ class KeyHoldRenderingTests(unittest.TestCase):
             {"type": "key_hold", "edge": "up", "button": "middle", "x": 100, "y": 200},
         ]
         expected = [
-            "01. [押す] shift", "02. [押す] a (リピート)", "03. [離す] shift: 解除",
+            "01. [押す] shift", "02. [押す] a （リピート）", "03. [離す] shift: 解除",
             "04. [押す] マウス左", "05. [離す] マウス中 (100, 200)",
         ]
         rows = build_action_rows(actions, loop_iterations={}, counters={})

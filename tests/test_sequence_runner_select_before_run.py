@@ -113,7 +113,7 @@ class SelectBeforeRunTest(unittest.TestCase):
         runner.handle_key("f2")
         self.assertEqual(performed, [])
         self.assertEqual(selections, ["f2"])
-        self.assertEqual(messages, ["f2 を選びました（もう一度押すと実行します）"])
+        self.assertEqual(messages, ["f2を選びました（もう一度押すと実行します）"])
         self.assertEqual(selected["key"], "f2")
         self.assertEqual((
             state.indices_for("").copy(),
@@ -220,7 +220,7 @@ class SelectBeforeRunTest(unittest.TestCase):
         runner.handle_key("b")
         self.assertEqual(selected["key"], "x")
         self.assertEqual(selections, [])
-        self.assertIn("一時停止中の x を破棄します。もう一度押すと実行します", messages)
+        self.assertIn("一時停止中のxを破棄します。もう一度押すと実行します", messages)
         runner.handle_key("b")
 
         self.assertFalse(state.run_to_end_paused)
@@ -430,7 +430,7 @@ class SelectBeforeRunTest(unittest.TestCase):
         self.assertEqual(performed, [A1])
         self.assertEqual(selected["key"], "f2")
         self.assertEqual(selections, ["f2"])
-        self.assertEqual(messages, ["f2 を選びました（もう一度押すと実行します）"])
+        self.assertEqual(messages, ["f2を選びました（もう一度押すと実行します）"])
 
     def test_call_to_trigger_with_pending_wait_selects_then_keeps_existing_ignore(self):
         caller = {"key": "f1", "actions": [
@@ -451,13 +451,13 @@ class SelectBeforeRunTest(unittest.TestCase):
         self.assertEqual(performed, [])
         self.assertEqual(selected["key"], "f1")
         self.assertEqual(selections, ["f1"])
-        self.assertEqual(messages, ["f1 を選びました（もう一度押すと実行します）"])
+        self.assertEqual(messages, ["f1を選びました（もう一度押すと実行します）"])
 
         runner.handle_key("f1")
         self.assertEqual(performed, [])
         self.assertIn(("", "f2"), state.pending_steps)
         # 2 回目は選ぶだけにならない（案内は 1 回目の分だけ）。選択は実行後の既存の選び直しで f1 のまま
-        self.assertEqual(messages, ["f1 を選びました（もう一度押すと実行します）"])
+        self.assertEqual(messages, ["f1を選びました（もう一度押すと実行します）"])
         self.assertEqual(selected["key"], "f1")
 
     def test_call_to_paused_trigger_selects_then_keeps_existing_discard(self):
@@ -496,8 +496,8 @@ class SelectBeforeRunTest(unittest.TestCase):
         self.assertFalse(runner.paused_keys())
         self.assertEqual(performed, [A2])
         self.assertEqual(messages, [
-            "f1 を選びました（もう一度押すと実行します）",
-            "一時停止中の実行を破棄しました（f2）",
+            "f1を選びました（もう一度押すと実行します）",
+            "一時停止中の実行を破棄しました(f2)",
         ])
 
     def test_single_wait_keeps_selection_made_by_trigger_press(self):

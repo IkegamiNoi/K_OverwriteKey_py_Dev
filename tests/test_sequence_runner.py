@@ -1096,7 +1096,7 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         runner.handle_key("f1")
         runner.handle_key("f1")
         runner.handle_key("f2")
-        self.assertIn("一時停止中の実行を破棄しました（f1）", messages)
+        self.assertIn("一時停止中の実行を破棄しました(f1)", messages)
         self.assertEqual(state.run_to_end_key, "f2")
         self.assertEqual(performed, [A1, A2])
         scheduler.run_pending()
@@ -1120,9 +1120,9 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         state.last_trigger = ("", "f1")
         runner.handle_key("f2")
         self.assertEqual(state.run_to_end_key, "f1")
-        self.assertIn("一時停止中の f1 を破棄します。もう一度押すと実行します", messages)
+        self.assertIn("一時停止中のf1を破棄します。もう一度押すと実行します", messages)
         runner.handle_key("f2")
-        self.assertIn("一時停止中の実行を破棄しました（f1）", messages)
+        self.assertIn("一時停止中の実行を破棄しました(f1)", messages)
         self.assertIsNone(state.run_to_end_key)
         self.assertEqual(state.indices.get("f1", 0), 0)
         self.assertEqual(state.counters.get("n", 0), 0)  # 待機をまたいで控えた操作は反映されずに捨てられる
@@ -1165,7 +1165,7 @@ class WaitSequenceRunnerTest(unittest.TestCase):
         )
 
         runner.handle_key("b")
-        self.assertIn("一時停止中の t を破棄します。もう一度押すと実行します", messages)
+        self.assertIn("一時停止中のtを破棄します。もう一度押すと実行します", messages)
         self.assertTrue(state.run_to_end_paused)
         self.assertEqual((
             state.indices_for("").get("t", 0), state.last_trigger,

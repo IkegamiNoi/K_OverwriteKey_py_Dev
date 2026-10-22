@@ -409,7 +409,7 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
         self.runner._poll_file_line = None
         self.trigger("f1", [{"type": "system", "op": "counter_inc", "counter": "n"}, self.file_line()])
         self.runner.handle_key("f1")
-        self.assertEqual(self.errors[-1][1], "file_line の読込の仕組みが未設定です")
+        self.assertEqual(self.errors[-1][1], "file_lineの読み込みの仕組みが未設定です")
         self.assertEqual(self.performed, [])
         self.assertEqual(len(self.state.history["f1"]), 1)
 
@@ -418,7 +418,7 @@ class SequenceRunnerFileLineTests(unittest.TestCase):
         self.runner._poll_file_line = None
         self.run_to_end_trigger("f1", [{"type": "system", "op": "counter_inc", "counter": "n"}, self.file_line()])
         self.runner.handle_key("f1")
-        self.assertEqual(self.errors[-1][1], "file_line の読込の仕組みが未設定です")
+        self.assertEqual(self.errors[-1][1], "file_lineの読み込みの仕組みが未設定です")
         self.assertEqual(self.performed, [])
         self.assertIsNone(self.state.run_to_end_key)
         self.assertEqual(len(self.state.history["f1"]), 1)

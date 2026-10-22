@@ -426,8 +426,8 @@ class InputGateway:
             return
         if is_reserved_numpad_name(key_name):
             raise ValueError(
-                "テンキーのキー名は num 0〜num 9 / num add / num subtract / "
-                "num multiply / num divide / num decimal / num enter のいずれかで指定してください。"
+                "テンキーのキー名はnum 0〜num 9 / num add / num subtract / "
+                "num multiply / num divide / num decimal / num enterのいずれかで指定してください。"
             )
         self._resolve_key(key_name)
 
