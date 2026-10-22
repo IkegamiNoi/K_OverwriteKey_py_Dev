@@ -4,38 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-22T01:00:00
-phase: なし（phase 67 = instructions/phase/67_mouse_scroll_action は 2026-10-21 完了）。次採番 = phase 68 / 暫定 51 / decisions 68 / 提案書 25 / idea 55
-直前の完了フェーズ = **phase 67**（出力シーケンスのマウススクロール・`decisions_archive/67_mouse_scroll_action.md`）
-last_commit_location: `claude/nice-banach-b5d556`（phase 67 一式）。phase 65・66 は `claude/muhenkan-key-hold-error-dialog-a77a67`。main へのマージはユーザー
+last_updated: 2026-10-23T12:00:00
+phase: **phase 68 = instructions/phase/68_ui_terminology（UI 文言の用語統一）・アクティブ**。主入力 = 暫定 51 v0.7（ユーザー確定済）。次採番 = phase 69 / 暫定 52 / decisions 69 / 提案書 25 / idea 55
+直前の完了フェーズ = phase 67（出力シーケンスのマウススクロール）
+last_commit_location: `claude/help-text-review-c94d50`（暫定 51・phase 68 起票・task_01）。phase 67 は `claude/nice-banach-b5d556`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 67 完了（2026-10-21・出力シーケンスのマウススクロール）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-mode: completed
+focus: **phase 68 task_01 完了（はい / いいえ の確認 3 か所をボタン名の共通ダイアログ `choice_dialog.ask_choice` へ）。次 = task_02（保存・読込の文言）。タスクの連続実行はユーザー許可済み。**
+mode: implementing
 presence: present
 
 ## last_action
-ts: 2026-10-22T01:00:00
+ts: 2026-10-23T12:00:00
 who: main
 summary: |
-  phase 67 task_03: 実機目視 6 項目 OK → 正本反映（data_schema §5.11.1・§5.11.10・features §4.2・§4.6・codebase_map）・暫定 50 凍結・decisions_archive/67・current.md 完了。
-  完了判定前レビュー: deep-reviewer 完了可（中 2・低 7）/ Codex 敵対的 needs-attention 1 → ユーザー確定（推奨どおり）= task_03a（量の欠けた行・M6 の定数・テスト）+ 正本の文言 5 件・保留 L6 / L7。/refactor_check = M6 該当 → task_03a で解消。
+  phase 68 task_01: implementer（Claude・Codex 利用上限〔10-27 19:43 まで〕のためユーザー許可で代替）で実装。
+  新規 choice_dialog.py（親 = grab 中の窓・フック停止・既定ボタンに初期フォーカス・Enter / Esc / ×）・io_dialogs / child_save_dialog / keymap_set_io の 3 確認を差し替え・tests_ui 新規 1・追従 4。
+  reviewer 採用（参考: grab_modal 例外時のフック停止の残り = 手本と同じ構造で許容・見送り）。
 result_files:
-  - keyseq/presentation/dialogs/action_mouse_scroll_fields.py・tests_ui/test_action_dialog_mouse_scroll.py
-  - instructions/common/spec_detail/data_schema.md・features.md・codebase_map.md
-  - instructions/history/50_mouse_scroll_action.md
-  - instructions/phase/67_mouse_scroll_action/（tasks/task_03・task_03a）・current.md
-  - .claude_data/state/decisions.md・decisions_archive/67_mouse_scroll_action.md
+  - keyseq/presentation/controllers/config_io/choice_dialog.py・io_dialogs.py・child_save_dialog.py・keymap_set_io.py
+  - tests_ui/test_choice_dialog.py・test_config_io_characterization*.py・test_child_save_dialog.py・test_nested_modal_grab.py
+  - instructions/phase/68_ui_terminology/tasks/task_01〜03・tools/（task ごとの対象文字列一覧）
 verified:
   compile: clean
   tests: pass 1815（skipped 7）
-  tests_ui: pass 1143
+  tests_ui: pass 1148
   smoke: pass
 
 ## next_action
-- 次フェーズの選択はユーザー判断（`/phase_start`）。候補: idea_48（取得中のフック再開）/ idea_54 / idea_45 / その他 `instructions/backlog/INDEX.md`
-- main へのマージはユーザー（PR は作らない）
+- task_02 → task_06 を連続実行（implementer・ユーザー許可済み）。task_06 は D3（「…」）の一覧表をユーザー確認してから実装
+- 各タスク: 定義（tools/task_NN_strings.md が対象一覧）→ implementer → verifier → reviewer → /save_state + /task_commit
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない

@@ -3,9 +3,10 @@ from __future__ import annotations
 import os
 import tkinter as tk
 from typing import Callable, Sequence
-from tkinter import filedialog, font, messagebox, ttk
+from tkinter import filedialog, font, ttk
 
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP
+from keyseq.presentation.controllers.config_io import choice_dialog
 from keyseq.presentation.controllers.config_io.child_save_rows import ChildSaveRow
 from keyseq.presentation.controllers.config_io.child_save_columns import CELL_GAP, HEADINGS, size_action_dialog
 from keyseq.presentation.hover_tooltip import bind_hover_tooltip
@@ -255,17 +256,20 @@ class ChildSaveDialog:
                 f"共有状況: {row.share_text}"
             )
             for row in rows
-        ) + "\n\n「はい」= このまま上書き / 「いいえ」= 別名で保存 / 「キャンセル」= 保存を中止"
+        )
         self._app.hook.suspend_hook_for_dialog()
         try:
-            result = messagebox.askyesnocancel(
-                "再計算後の保存先を確認",
-                message,
-                default=messagebox.NO,
+            choice = choice_dialog.ask_choice(
+                self._app,
+                title="再計算後の保存先を確認",
+                message=message,
+                choices=[("overwrite", "上書き"), ("save_as", "別名保存"), ("abort", "保存を中止")],
+                default="save_as",
+                cancel="abort",
             )
-            if result is True:
+            if choice == "overwrite":
                 return {}
-            if result is None:
+            if choice == "abort":
                 return None
             choices: dict[tuple[str, str], tuple[str, str]] = {}
             for row in rows:

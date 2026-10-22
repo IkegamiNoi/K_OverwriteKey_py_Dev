@@ -17,6 +17,7 @@ from keyseq.application.save_plan import (
 )
 from keyseq.domain.keymap_triggers import get_active_triggers, set_active_triggers, iter_trigger_sets, trigger_set_members
 from keyseq.domain.config import normalize_key_name
+from keyseq.presentation.controllers.config_io import choice_dialog
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
 from keyseq.presentation.controllers.config_io.child_save_rows import (
     SHARE_NEW,
@@ -730,12 +731,18 @@ class KeymapSetIo:
     def choose_split_base_dir_for_keymap_set(self, save_path: str) -> str:
         if self._app.paths.is_within_config_root(save_path):
             return ""
-        use_nearby = messagebox.askyesno(
-            "保存先の確認",
-            "構成セットがデフォルト外に保存されます。\n"
-            "keymaps / trigger_sets / sequences も構成セット周辺に保存しますか？\n\n"
-            "「いいえ」の場合はデフォルト保存先を使います。",
+        choice = choice_dialog.ask_choice(
+            self._app,
+            title="保存先の確認",
+            message=(
+                "構成セットが既定の保存先の外に保存されます。\n"
+                "キーマップ・トリガーセット・出力シーケンスも構成セットと同じフォルダ"
+                "(keymaps / trigger_sets / sequences)に保存しますか？"
+            ),
+            choices=[("nearby", "構成セットと同じフォルダに保存"), ("default", "既定の保存先に保存")],
+            default="nearby",
+            cancel="default",
         )
-        if not use_nearby:
+        if choice != "nearby":
             return ""
         return os.path.dirname(os.path.abspath(save_path))

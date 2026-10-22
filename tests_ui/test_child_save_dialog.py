@@ -12,6 +12,7 @@ from keyseq.domain.keymap_triggers import get_active_triggers
 from keyseq.application.save_plan import compose_sequence_key, ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP, CHILD_KEYMAP, CHILD_SEQUENCE, CHILD_TRIGGER_SET
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
+from keyseq.presentation.controllers.config_io import choice_dialog as choice_dialog_module
 from keyseq.presentation.controllers.config_io import child_save_columns as child_save_columns_module
 from keyseq.presentation.controllers.config_io.child_save_rows import (
     SHARE_NEW,
@@ -319,6 +320,13 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         self._recalculated_overwrite_guard.start()
         self._showerror_guard.start()
         self._askyesno_guard.start()
+        self._ask_choice_guard = patch.object(
+            choice_dialog_module,
+            "ask_choice",
+            side_effect=AssertionError("想定外の選択肢の確認ダイアログ。期待するならテスト側で patch すること"),
+        )
+        self._ask_choice_guard.start()
+        self.addCleanup(self._ask_choice_guard.stop)
         self.addCleanup(self._child_save_actions_guard.stop)
         self.addCleanup(self._dependency_confirm_guard.stop)
         self.addCleanup(self._recalculated_overwrite_guard.stop)
@@ -2028,16 +2036,41 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             "別の構成に属します",
             ACTION_SAVE,
         )
-        with patch.object(
-            child_save_dialog_module.ChildSaveDialog,
-            "confirm_recalculated_overwrite",
-            _REAL_CONFIRM_RECALCULATED_OVERWRITE,
-        ), patch.object(self.app.hook, "suspend_hook_for_dialog"), patch.object(
-            self.app.hook, "resume_hook_after_dialog"
-        ), patch.object(tkinter.messagebox, "askyesnocancel", return_value=None) as ask:
-            self.assertIsNone(self.app.child_save_dialog.confirm_recalculated_overwrite([row]))
-
-        self.assertEqual(ask.call_args.kwargs["default"], tkinter.messagebox.NO)
+        expected_kwargs = {
+            "title": "再計算後の保存先を確認",
+            "message": (
+                "再計算後の保存先に既存ファイルがあります:\n\n"
+                "種別: 出力シーケンス\n"
+                "対象名: Copy\n"
+                "保存先: C:/copy.json\n"
+                "共有状況: 別の構成に属します"
+            ),
+            "choices": [("overwrite", "上書き"), ("save_as", "別名保存"), ("abort", "保存を中止")],
+            "default": "save_as",
+            "cancel": "abort",
+        }
+        # × / Esc は cancel の id（"abort"）が返るため、"abort" の分岐に入る。
+        cases = (
+            ("overwrite", "", {}),
+            ("save_as", "C:/renamed.json", {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE_AS, "C:/renamed.json")}),
+            ("save_as", "", None),
+            ("abort", "", None),
+        )
+        for choice, save_as_path, expected in cases:
+            with self.subTest(choice=choice, save_as_path=save_as_path), patch.object(
+                child_save_dialog_module.ChildSaveDialog,
+                "confirm_recalculated_overwrite",
+                _REAL_CONFIRM_RECALCULATED_OVERWRITE,
+            ), patch.object(self.app.hook, "suspend_hook_for_dialog") as suspend, patch.object(
+                self.app.hook, "resume_hook_after_dialog"
+            ) as resume, patch.object(choice_dialog_module, "ask_choice", return_value=choice) as ask, patch.object(
+                child_save_dialog_module.ChildSaveDialog, "_ask_save_as_path", return_value=save_as_path
+            ) as ask_save_as:
+                self.assertEqual(self.app.child_save_dialog.confirm_recalculated_overwrite([row]), expected)
+                ask.assert_called_once_with(self.app, **expected_kwargs)
+                suspend.assert_called_once_with()
+                resume.assert_called_once_with()
+                self.assertEqual(ask_save_as.call_count, 1 if choice == "save_as" else 0)
 
     def test_dependency_dialog_returns_save_save_as_and_skip_actions(self):
         row = ChildSaveRow(

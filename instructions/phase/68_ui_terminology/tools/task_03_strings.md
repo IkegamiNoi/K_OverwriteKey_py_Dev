@@ -1,0 +1,315 @@
+# task_03 の対象文字列（実装前・baseline より）
+
+- keyseq/application/action_executor.py:51 `{cause} / 解放エラー: `
+- keyseq/application/action_executor.py:61 `(値なし)`
+- keyseq/application/action_executor.py:62 `file_line 実行エラー（種類: file_line / 値: {values}）: {exc}`
+- keyseq/application/action_executor.py:65 ` / ラベル: {label.strip()}`
+- keyseq/application/action_executor.py:130 `text の送信に失敗しました: {exc}`
+- keyseq/application/action_executor.py:141 `file_line は読込の経路（begin_file_line / poll_file_line）で実行します`
+- keyseq/application/action_executor.py:162 `カウンター名が空です`
+- keyseq/application/action_executor.py:164 `カウンター取得コールバックが未設定です`
+- keyseq/application/action_executor.py:166 `ファイルパス解決コールバックが未設定です`
+- keyseq/application/action_executor.py:168 `ファイル読込の仕組みが未設定です`
+- keyseq/application/action_executor.py:186 `ファイル読込の仕組みが未設定です`
+- keyseq/application/action_executor.py:191 `ファイル読込に失敗しました`
+- keyseq/application/action_executor.py:193 `ファイル読込の結果が不正です`
+- keyseq/application/action_executor.py:208 `種類が不正です（hotkey / text / mouse_click / mouse_scroll / system / file_line / key_hold のいずれか）。種類: {type_text or '(なし)'}`
+- keyseq/application/action_executor.py:209 `(なし)`
+- keyseq/application/action_executor.py:213 ` / ラベル: {label.strip()}`
+- keyseq/application/action_executor.py:275 ` / 解放エラー: `
+- keyseq/application/action_executor.py:299 `key_hold の実行に失敗しました: {exc}`
+- keyseq/application/action_executor.py:306 ` ラベル: {label.strip()}`
+- keyseq/application/action_executor.py:311 `mouse_scroll の指定が不正です: {parsed}（{details}）`
+- keyseq/application/action_executor.py:322 `mouse_scroll の送信に失敗しました: {exc}（{details}）`
+- keyseq/application/action_executor.py:334 `キーマップ送信に失敗しました。⏎{type(e).__name__}: {e}`
+- keyseq/application/action_executor.py:334 `キー送信エラー`
+- keyseq/application/action_executor.py:343 `mouse_click の x/y が不正です（整数で指定してください）。`
+- keyseq/application/action_executor.py:343 `送信エラー`
+- keyseq/application/action_executor.py:364 `mouse_click の実行に失敗しました。⏎{type(e).__name__}: {e}`
+- keyseq/application/action_executor.py:364 `送信エラー`
+- keyseq/application/action_executor.py:371 `mouse_click の to_x/to_y が不正です（ドラッグの離す位置を整数で指定してください）。`
+- keyseq/application/action_executor.py:371 `送信エラー`
+- keyseq/application/hook_coordinator.py:34 `フックの開始に失敗しました。⏎{e}`
+- keyseq/application/hook_coordinator.py:34 `開始失敗`
+- keyseq/application/hook_coordinator.py:71 `フック設定失敗`
+- keyseq/application/hook_coordinator.py:71 `入力イベント監視の登録に失敗しました。⏎⏎{type(e).__name__}: {e}`
+- keyseq/application/hook_coordinator.py:94 `トリガーが1件も登録されていません。`
+- keyseq/application/hook_coordinator.py:94 `開始できません`
+- keyseq/application/hook_coordinator.py:98 `アクションが入っているトリガーがありません。`
+- keyseq/application/hook_coordinator.py:98 `開始できません`
+- keyseq/application/hotkey_service.py:22 `不明なキー名があります: '{p}'（詳細: {e}）`
+- keyseq/application/keymap_switch_batch.py:35 `Windows キー・Caps Lock・AltGr は切替キーにできません:⏎{key}`
+- keyseq/application/keymap_switch_batch.py:105 `切替キーは必須です。`
+- keyseq/application/keymap_switch_batch.py:107 `直接切替キーが停止キーと重複しています:⏎{key}`
+- keyseq/application/keymap_switch_batch.py:109 `直接切替キーが一時停止/再開キーと重複しています:⏎{key}`
+- keyseq/application/keymap_switch_batch.py:111 `直接切替キーが通常トリガーと重複しています:⏎{key}`
+- keyseq/application/keymap_switch_batch.py:113 `直接切替キーがキーマップ元キーと重複しています:⏎{key}`
+- keyseq/application/keymap_switch_batch.py:116 `この切替キーは既に使用されています:⏎{key} -> {existing_target_name}`
+- keyseq/application/keymap_switch_batch.py:118 `直接切替キーは既に使用されています:⏎{key}`
+- keyseq/presentation/app.py:230 `停止トリガー`
+- keyseq/presentation/app.py:233 `トリガー一覧`
+- keyseq/presentation/app.py:234 `一時停止/再開キー`
+- keyseq/presentation/app.py:235 `キーマップ直接切替キー`
+- keyseq/presentation/app.py:236 `キーマップ元キー`
+- keyseq/presentation/app.py:243 `一時停止/再開キー`
+- keyseq/presentation/app.py:246 `トリガー一覧`
+- keyseq/presentation/app.py:247 `停止キー`
+- keyseq/presentation/app.py:248 `キーマップ直接切替キー`
+- keyseq/presentation/app.py:249 `キーマップ元キー`
+- keyseq/presentation/app.py:404 `フック`
+- keyseq/presentation/app.py:408 `表示`
+- keyseq/presentation/app.py:419 `(未設定)`
+- keyseq/presentation/app.py:420 `保存済み`
+- keyseq/presentation/app.py:420 `未保存`
+- keyseq/presentation/app.py:421 `ファイル: {name} / {save_state}`
+- keyseq/presentation/app.py:492 `フォントサイズを標準にしました。`
+- keyseq/presentation/app.py:494 `フォントサイズを {new_delta} にしました。`
+- keyseq/presentation/app.py:645 `ホットキープリセット編集`
+- keyseq/presentation/app.py:648 `プリセットを更新しました。`
+- keyseq/presentation/app.py:759 `終了`
+- keyseq/presentation/app.py:785 `すべて解放`
+- keyseq/presentation/controllers/hook_controller.py:233 `すべて解放`
+- keyseq/presentation/controllers/hook_controller.py:243 `開始できません`
+- keyseq/presentation/controllers/hook_controller.py:244 `停止キーと一時停止/再開キーが重複しています:⏎{stop_key}`
+- keyseq/presentation/controllers/hook_controller.py:274 `停止しました`
+- keyseq/presentation/controllers/hook_controller.py:282 `停止キー`
+- keyseq/presentation/controllers/hook_controller.py:283 `一時停止/再開キー`
+- keyseq/presentation/controllers/hook_controller.py:284 `切替キー`
+- keyseq/presentation/controllers/hook_controller.py:285 `上位の割り当て`
+- keyseq/presentation/controllers/hook_controller.py:289 `{conflict.key} は{reason}と重複しているため、キーマップ {name} へ切り替えられません。切替キーを変更してください`
+- keyseq/presentation/controllers/hook_controller.py:292 `{conflict.key} は{reason}と重複しているため、トリガーは実行されません。トリガーのキーを変更してください`
+- keyseq/presentation/controllers/hook_controller.py:389 `キー送信中にエラーが発生しました。⏎送信キーに間違いがあります。修正してください。⏎⏎種別: {t}⏎値: {v}⏎⏎エラー: {err}`
+- keyseq/presentation/controllers/hook_controller.py:401 `送信エラー`
+- keyseq/presentation/controllers/key_capture.py:156 `{self._label}は単キーのみ対応です（例: {self._single_key_example}）。`
+- keyseq/presentation/controllers/key_capture.py:156 `設定できません`
+- keyseq/presentation/controllers/key_capture.py:162 `{self._label}が{other_name}と重複しています:⏎{key}`
+- keyseq/presentation/controllers/key_capture.py:162 `設定できません`
+- keyseq/presentation/controllers/key_capture.py:169 `不明なキー名です:⏎{key}⏎⏎{e}`
+- keyseq/presentation/controllers/key_capture.py:169 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:24 `新規`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:25 `新規`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:29 `キーマップを追加しました: {normalize_key_name(created.get('id', ''))}`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:34 `読込`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:40 `貼り付け`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:41 `貼り付け`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:56 `貼り付け`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:78 `キーマップ追加`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:78 `新規`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:78 `読込`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:78 `読込キーマップの追加`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:79 `キーマップ貼り付け`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:79 `貼り付け`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:84 `新規`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:99 `既存`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:118 `{rows[index][1]}: 不明なキー名です:⏎{value['key']}⏎⏎{exc}`
+- keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py:136 `貼り付け`
+- keyseq/presentation/controllers/keymap_panel/keymap_list_edit.py:60 `実行中のためキーマップを並べ替えられません`
+- keyseq/presentation/controllers/keymap_panel/keymap_list_edit.py:100 `キーマップをすべて削除することはできません。`
+- keyseq/presentation/controllers/keymap_panel/keymap_list_edit.py:100 `削除できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_list_edit.py:108 `キーマップ {len(targets)} 件を削除しますか？`
+- keyseq/presentation/controllers/keymap_panel/keymap_list_edit.py:110 `⏎⏎未保存のトリガー一覧・シーケンスも破棄されます。`
+- keyseq/presentation/controllers/keymap_panel/keymap_list_edit.py:111 `確認`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:24 `連続実行中のためキーマップを切り替えられません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:55 `一時停止/再開キーと重複`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:55 `停止キーと重複`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:105 `キーマップは未登録です`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:180 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:181 `Windows キー・Caps Lock・AltGr は切替キーにできません:⏎{key}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:187 `直接切替キーが停止キーと重複しています:⏎{key}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:187 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:192 `直接切替キーが一時停止/再開キーと重複しています:⏎{key}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:192 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:197 `直接切替キーが通常トリガーと重複しています:⏎{key}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:197 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:202 `直接切替キーがキーマップ元キーと重複しています:⏎{key}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:202 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:212 `この切替キーは既に使用されています:⏎{key} -> {existing_name}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:212 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:225 `この keymap には既に直接切替キーがあります:⏎{existing_switch_key} -> {target_name}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:225 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:233 `不明なキー名です:⏎{key}⏎⏎{e}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:233 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:255 `名前変更`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:255 `名前変更したい keymap を選択してください。`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:264 `名前変更`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:265 `keymap の表示名を入力してください。⏎空欄にすると id 表示に戻ります。⏎⏎id: {keymap_id}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:276 `keymap 名は変更なしです: {self.format_keymap_display_name(target) or keymap_id}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:285 `keymap 名を変更しました: {normalized_label}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:287 `keymap 名をクリアしました: {keymap_id}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:298 `削除`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:298 `削除したい keymap を選択してください。`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:301 `キーマップが1つだけのため削除できません。`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:301 `削除できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:314 `keymap を削除しますか？⏎⏎{target_name}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:316 `⏎⏎未保存のトリガー一覧・シーケンスも破棄されます。`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:317 `確認`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:326 `キーマップを削除しました: {target_name} / 現在: {self.get_active_keymap_text()}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:328 `キーマップを削除しました: {target_name}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:347 `削除できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:347 `選択した keymap を削除できませんでした。`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:387 `変更`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:387 `編集したい keymap を選択してください。`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:393 `変更できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:393 `選択した keymap を特定できませんでした。`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:399 `キーマップ変更`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:484 `キーマップが2つ以上ある場合、切替キーは空にできません。`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:484 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:544 `キーマップは変更なしです: {self.format_keymap_display_name(keymap) or keymap_id}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:550 `キーマップを変更しました: {self.format_keymap_display_name(keymap) or keymap_id}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:598 `アクティブなキーマップを切り替えました: {self.get_active_keymap_text()}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:600 `アクティブなキーマップは変更なしです: {self.get_active_keymap_text()}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:606 `(なし)`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:608 `{label}（フック停止中）`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:610 `{label}（一時停止）`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:615 `(なし)`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:624 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:625 `Windows キー・Caps Lock・AltGr はキーマップの元キーにできません。`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:629 `キーマップは単キーのみ対応です。`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:629 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:635 `このキーは予約キーのため、キーマップ元キーにできません:⏎{source}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:635 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:638 `このキーはキーマップ直接切替キーに設定されています:⏎{source}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:638 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:641 `このキーはアクティブキーマップのトリガーキーに設定されています:⏎{source}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:641 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:647 `不明なキー名です:⏎{target}⏎⏎{e}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:647 `設定できません`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:654 `キーマップを更新しました: {source} -> {target} ({keymap_id})`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:656 `キーマップは変更なしです: {source} -> {target}`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:667 `キーマップをクリアしました: {source} ({keymap_id})`
+- keyseq/presentation/controllers/keymap_panel/keymap_panel_controller.py:670 `クリア対象のキーマップはありません: {source}`
+- keyseq/presentation/controllers/layout_controller.py:214 `すべて解放`
+- keyseq/presentation/controllers/layout_controller.py:249 `保存失敗: {e}`
+- keyseq/presentation/controllers/layout_controller.py:250 `保存失敗`
+- keyseq/presentation/controllers/layout_controller.py:291 `外部レイアウトを追加`
+- keyseq/presentation/controllers/layout_controller.py:303 `同じJSONファイルは既に登録されています。`
+- keyseq/presentation/controllers/layout_controller.py:307 `レイアウト追加失敗`
+- keyseq/presentation/controllers/layout_controller.py:312 `外部レイアウトを追加しました: {layout.layout_id}`
+- keyseq/presentation/controllers/layout_controller.py:321 `レイアウト削除`
+- keyseq/presentation/controllers/layout_controller.py:321 `削除できる外部レイアウトがありません。`
+- keyseq/presentation/controllers/layout_controller.py:324 `レイアウトを削除`
+- keyseq/presentation/controllers/layout_controller.py:332 `レイアウト削除`
+- keyseq/presentation/controllers/layout_controller.py:332 `削除対象のレイアウト情報を取得できませんでした。`
+- keyseq/presentation/controllers/layout_controller.py:335 `外部レイアウト '{target_id}' を削除しますか？`
+- keyseq/presentation/controllers/layout_controller.py:335 `確認`
+- keyseq/presentation/controllers/layout_controller.py:357 `外部レイアウトを削除しました: {target_id}`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:66 `まずトリガーを選択してください。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:66 `追加`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:75 `追加`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:90 `追加`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:91 `戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:103 `追加`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:104 `ループの入れ子が {MAX_LOOP_DEPTH} 段を超えるため追加できません。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:128 `複製`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:146 `貼り付け`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:180 `対になっていないループの始まり / 終わりは複製 / 貼り付けできません。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:181 `ループの入れ子が {MAX_LOOP_DEPTH} 段を超えるため複製 / 貼り付けできません。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:182 `戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:189 `まずトリガーを選択してください。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:189 `編集`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:194 `編集`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:194 `編集したい行を選択してください。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:208 `編集`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:209 `ループの対応が崩れているため編集できません。削除して追加し直してください`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:219 `編集`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:232 `編集`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:233 `戻す・先頭へは、出力シーケンスにそれ 1 つだけで登録してください。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:249 `まずトリガーを選択してください。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:249 `削除`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:254 `削除`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:254 `削除したい行を選択してください。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:261 `確認`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:276 `選択した行を削除しますか？`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:279 `ループの始まりと終わりを削除します（中の行は残ります）。よろしいですか？`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:280 `選択した {len(indices)} 行を削除しますか？`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:282 `⏎ループの始まりと終わりは対で削除します（中の行は残ります）。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:288 `まずトリガーを選択してください。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:288 `移動`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:292 `移動`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:292 `移動したい行を選択してください。`
+- keyseq/presentation/controllers/trigger_panel/action_edit.py:308 `ループの始まりと終わりの組が変わるため移動できません`
+- keyseq/presentation/controllers/trigger_panel/effective_row_transition.py:29 `{key} は実行中のため、有効なトリガーを入れ替えられません`
+- keyseq/presentation/controllers/trigger_panel/trigger_list_edit.py:54 `トリガー {count} 件を削除しますか？`
+- keyseq/presentation/controllers/trigger_panel/trigger_list_edit.py:55 `トリガー {key} を削除しますか？`
+- keyseq/presentation/controllers/trigger_panel/trigger_list_edit.py:56 `確認`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:34 `連続実行中は呼び出し先を変更できません（一時停止してから操作してください）`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:220 `{s}（上のトリガーと重複）`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:253 `停止キーと重複`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:254 `一時停止/再開キーと重複`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:255 `切替キーと重複`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:256 `上位の割り当てと重複`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:413 `一時停止`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:417 `(未選択)`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:420 ` / 押下中: {', '.join(held_names)}`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:423 ` / 次: {self.get_next_action_summary(sel_key)}`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:424 `フック: {hook_state} / キーマップ: {keymap_text}{held_suffix}⏎選択: {sel_key}{suffix}`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:426 `フック: {one_line(hook_state)} / キーマップ: {one_line(keymap_text)}{one_line(held_suffix)}⏎選択: {one_line(sel_key)}{one_line(suffix)}`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:432 `(未設定)`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:446 ` / 選択中の次: {next_i}`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:447 `フック: {hook_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_key}{suffix}{held_suffix}`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:456 `(未選択)`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:458 `(なし)`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:461 `(なし)`
+- keyseq/presentation/controllers/trigger_panel/trigger_panel_controller.py:470 `(なし)`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:23 `トリガー追加`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:35 `すでに存在します: {key}`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:35 `追加できません`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:39 `このキーはフック停止トリガーに設定されています:⏎{key}`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:39 `追加できません`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:42 `このキーは一時停止/再開キーに設定されています:⏎{key}`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:42 `追加できません`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:45 `このキーはキーマップ直接切替キーに設定されています:⏎{key}`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:45 `追加できません`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:48 `このキーはアクティブキーマップの置換元キーに設定されています:⏎{key}`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:48 `追加できません`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:63 `変更`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:63 `変更したいトリガーを選択してください。`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:74 `トリガー変更`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:87 `すでに存在します: {new}`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:87 `変更できません`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:90 `このキーはフック停止トリガーに設定されています:⏎{new}`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:90 `変更できません`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:93 `このキーは一時停止/再開キーに設定されています:⏎{new}`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:93 `変更できません`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:96 `このキーはキーマップ直接切替キーに設定されています:⏎{new}`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:96 `変更できません`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:99 `このキーはアクティブキーマップの置換元キーに設定されています:⏎{new}`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:99 `変更できません`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:157 `削除`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:157 `削除したいトリガーを選択してください。`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:163 `トリガー {key} を削除しますか？`
+- keyseq/presentation/controllers/trigger_panel/trigger_row_edit.py:163 `確認`
+- keyseq/presentation/dialogs/keymap_edit_dialog.py:62 `切替キー`
+- keyseq/presentation/dialogs/keymap_edit_dialog.py:71 `クリア`
+- keyseq/presentation/dialogs/keymap_edit_dialog.py:74 `ラベル`
+- keyseq/presentation/dialogs/keymap_edit_dialog.py:80 `枠を使う`
+- keyseq/presentation/dialogs/keymap_edit_dialog.py:84 `枠を編集…`
+- keyseq/presentation/dialogs/keymap_edit_dialog.py:87 `例) 切替キー: 1⏎ラベル: numpad`
+- keyseq/presentation/dialogs/keymap_edit_dialog.py:93 `キャンセル`
+- keyseq/presentation/dialogs/keymap_edit_dialog.py:117 `枠を編集できません`
+- keyseq/presentation/dialogs/keymap_edit_dialog.py:117 `画面（モニタ）を取得できませんでした。`
+- keyseq/presentation/dialogs/keymap_edit_dialog.py:157 `取得中：切替キーにしたいキーを1回押してください（Escでキャンセル）`
+- keyseq/presentation/dialogs/keymap_edit_dialog.py:168 `例) 切替キー: 1⏎ラベル: numpad`
+- keyseq/presentation/dialogs/keymap_switch_batch_dialog.py:65 `例) 切替キー: 1⏎ラベル: numpad`
+- keyseq/presentation/dialogs/keymap_switch_batch_dialog.py:123 `切替キー`
+- keyseq/presentation/dialogs/keymap_switch_batch_dialog.py:136 `ラベル`
+- keyseq/presentation/dialogs/keymap_switch_batch_dialog.py:150 `枠を使う`
+- keyseq/presentation/dialogs/keymap_switch_batch_dialog.py:159 `キャンセル`
+- keyseq/presentation/dialogs/keymap_switch_batch_dialog.py:176 `設定できません`
+- keyseq/presentation/dialogs/keymap_switch_batch_dialog.py:224 `取得中：切替キーにしたいキーを1回押してください（Escでキャンセル）`
+- keyseq/presentation/dialogs/keymap_switch_batch_dialog.py:239 `例) 切替キー: 1⏎ラベル: numpad`
+- keyseq/presentation/dialogs/trigger_dialog.py:44 `トリガー`
+- keyseq/presentation/dialogs/trigger_dialog.py:52 `ラベル`
+- keyseq/presentation/dialogs/trigger_dialog.py:57 `例）トリガー: f1 ⏎   ラベル: コピー→ウィンドウ切替→貼り付け`
+- keyseq/presentation/dialogs/trigger_dialog.py:63 `キャンセル`
+- keyseq/presentation/dialogs/trigger_dialog.py:72 `トリガーが空です。`
+- keyseq/presentation/dialogs/trigger_dialog.py:72 `入力エラー`
+- keyseq/presentation/dialogs/trigger_dialog.py:92 `取得中：トリガーにしたいキーを1回押してください（Escでキャンセル）`
+- keyseq/presentation/dialogs/trigger_dialog.py:103 `例）トリガー: f1 / ラベル: コピー→ウィンドウ切替→貼り`
+- keyseq/presentation/hook_button_texts.py:3 `キー入力で取得`
+- keyseq/presentation/hook_button_texts.py:4 `取得中…（Escで停止）`
+- keyseq/presentation/hook_button_texts.py:7 `このキーは取得できません。別のキーを押してください。（Escでキャンセル）`
+- keyseq/presentation/hook_button_texts.py:10 `開始（フックON）`
+- keyseq/presentation/hook_button_texts.py:11 `停止（フックOFF）`
+- keyseq/presentation/hook_button_texts.py:14 `キーマップ一時停止`
+- keyseq/presentation/hook_button_texts.py:15 `キーマップ再開`

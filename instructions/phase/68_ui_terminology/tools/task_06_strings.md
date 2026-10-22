@@ -1,0 +1,198 @@
+# task_06 の対象文字列（実装前・baseline より）
+
+- keyseq/domain/screen_grid/assignment.py:77 `{location}: キーが空です`
+- keyseq/domain/screen_grid/assignment.py:79 `{location}: キー {key} が重複しています`
+- keyseq/domain/screen_grid/assignment.py:81 `{location}: 修飾キー {key} は使えません`
+- keyseq/domain/screen_grid/assignment.py:83 `{location}: 操作キー {key} と重なっています`
+- keyseq/domain/screen_grid/assignment.py:85 `{location}: 予約キー {key} は使えません`
+- keyseq/domain/screen_grid/assignment.py:97 `段がありません`
+- keyseq/domain/screen_grid/assignment.py:100 `段 {row_index}: 高さの比率は正の有限数にしてください`
+- keyseq/domain/screen_grid/assignment.py:102 `段 {row_index}: 列がありません`
+- keyseq/domain/screen_grid/assignment.py:104 `段 {row_index}・列 {col_index}`
+- keyseq/domain/screen_grid/assignment.py:106 `{location}: 幅の比率は正の有限数にしてください`
+- keyseq/domain/screen_grid/assignment.py:117 `細分化: 段数は1〜9にしてください`
+- keyseq/domain/screen_grid/assignment.py:120 `細分化: 列数は1〜9にしてください`
+- keyseq/domain/screen_grid/assignment.py:122 `細分化: 枠を2つ以上にしてください`
+- keyseq/domain/screen_grid/assignment.py:125 `細分化: キー数は{expected}個にしてください`
+- keyseq/domain/screen_grid/assignment.py:130 `細分化・枠 {index}`
+- keyseq/domain/screen_grid/normalize.py:37 `キーが空です`
+- keyseq/domain/screen_grid/normalize.py:39 `キーが重複しています`
+- keyseq/domain/screen_grid/normalize.py:41 `修飾キー {key} です`
+- keyseq/domain/screen_grid/normalize.py:48 `段がありません`
+- keyseq/domain/screen_grid/normalize.py:53 `段の形が不正です`
+- keyseq/domain/screen_grid/normalize.py:55 `比率が不正です`
+- keyseq/domain/screen_grid/normalize.py:58 `列がありません`
+- keyseq/domain/screen_grid/normalize.py:62 `列の形が不正です`
+- keyseq/domain/screen_grid/normalize.py:64 `比率が不正です`
+- keyseq/domain/screen_grid/normalize.py:73 `比率が不正です`
+- keyseq/domain/screen_grid/normalize.py:78 `比率が不正です`
+- keyseq/domain/screen_grid/normalize.py:92 `形が不正です`
+- keyseq/domain/screen_grid/normalize.py:95 `段数が不正です`
+- keyseq/domain/screen_grid/normalize.py:97 `列数が不正です`
+- keyseq/domain/screen_grid/normalize.py:99 `段数・列数が不正です（枠を2つ以上にしてください）`
+- keyseq/domain/screen_grid/normalize.py:101 `キー数が不正です`
+- keyseq/domain/screen_grid/ops.py:27 `深くする`
+- keyseq/domain/screen_grid/ops.py:28 `戻る`
+- keyseq/domain/screen_grid/ops.py:29 `クリック`
+- keyseq/domain/screen_grid/ops.py:30 `次の画面へ`
+- keyseq/domain/screen_grid/ops.py:31 `上へ`
+- keyseq/domain/screen_grid/ops.py:32 `下へ`
+- keyseq/domain/screen_grid/ops.py:33 `左へ`
+- keyseq/domain/screen_grid/ops.py:34 `右へ`
+- keyseq/domain/screen_grid/ops.py:90 `操作キー（{OP_LABELS[operation]}）: `
+- keyseq/domain/screen_grid/ops.py:92 `キーが空です`
+- keyseq/domain/screen_grid/ops.py:94 `修飾キー {key} です`
+- keyseq/domain/screen_grid/ops.py:96 `固定の操作キー {key} です`
+- keyseq/domain/screen_grid/ops.py:98 `キー {key} が先の操作と重複しています`
+- keyseq/domain/screen_grid/ops.py:100 `予約キー {key} と重なっています`
+- keyseq/domain/screen_grid/ops.py:102 `枠のキー {key} と重なっています`
+- keyseq/domain/screen_grid/ops.py:109 `操作キー（戻る・固定）: 枠のキー {FIXED_BACK_KEY} と重なっています`
+- keyseq/domain/screen_grid/ops.py:111 `操作キー（クリック・固定）: 枠のキー {FIXED_CLICK_KEY} と重なっています`
+- keyseq/infrastructure/win32_window.py:61 `前面ウィンドウのプロセス判定に失敗しました`
+- keyseq/infrastructure/win32_window.py:62 `前面ウィンドウ HWND の取得に失敗しました`
+- keyseq/infrastructure/win32_window.py:63 `ウィンドウ位置の変更に失敗しました`
+- keyseq/infrastructure/win32_window.py:64 `マウスボタン状態の取得に失敗しました`
+- keyseq/infrastructure/win32_window.py:65 `モニター領域の列挙に失敗しました`
+- keyseq/infrastructure/win32_window.py:66 `仮想キーコードからスキャンコードへの変換に失敗しました`
+- keyseq/infrastructure/win32_window.py:67 `仮想キーコードから文字への変換に失敗しました`
+- keyseq/infrastructure/win32_window.py:68 `クリック透過ウィンドウの設定に失敗しました`
+- keyseq/presentation/dialogs/grid_editor_window.py:34 `編集できる画面がありません`
+- keyseq/presentation/dialogs/grid_editor_window.py:325 `細分化・段 {index}: キーは {cols} 個にしてください`
+- keyseq/presentation/dialogs/grid_editor_window.py:327 `枠を設定できません`
+- keyseq/presentation/dialogs/grid_editor_window.py:341 `細分化: 段数・列数は1〜9の整数にしてください`
+- keyseq/presentation/dialogs/grid_editor_window.py:343 `枠を設定できません`
+- keyseq/presentation/dialogs/layout_delete_dialog.py:28 `削除する外部レイアウトを選択してください。`
+- keyseq/presentation/dialogs/layout_delete_dialog.py:45 `削除`
+- keyseq/presentation/dialogs/layout_delete_dialog.py:46 `キャンセル`
+- keyseq/presentation/dialogs/layout_delete_dialog.py:58 `レイアウト削除`
+- keyseq/presentation/dialogs/layout_delete_dialog.py:58 `削除するレイアウトを選択してください。`
+- keyseq/presentation/keyboard_layouts.py:139 `JSONルートは object である必要があります。`
+- keyseq/presentation/keyboard_layouts.py:143 `{required_key} がありません。`
+- keyseq/presentation/keyboard_layouts.py:147 `layout_id は文字列である必要があります。`
+- keyseq/presentation/keyboard_layouts.py:150 `layout_id が空です。`
+- keyseq/presentation/keyboard_layouts.py:153 `layout_id '{layout_id}' は既に存在します。`
+- keyseq/presentation/keyboard_layouts.py:157 `display_name は文字列である必要があります。`
+- keyseq/presentation/keyboard_layouts.py:160 `display_name が空です。`
+- keyseq/presentation/keyboard_layouts.py:164 `keys が配列ではありません。`
+- keyseq/presentation/keyboard_layouts.py:166 `keys が空です。`
+- keyseq/presentation/keyboard_layouts.py:173 `{key_prefix} は object である必要があります。`
+- keyseq/presentation/keyboard_layouts.py:177 `{key_prefix}.{required_key} がありません。`
+- keyseq/presentation/keyboard_layouts.py:181 `{key_prefix}.id は文字列である必要があります。`
+- keyseq/presentation/keyboard_layouts.py:184 `{key_prefix}.id が空です。`
+- keyseq/presentation/keyboard_layouts.py:186 `{key_prefix}.id が重複しています: {key_id}`
+- keyseq/presentation/keyboard_layouts.py:191 `{key_prefix}.label は文字列である必要があります。`
+- keyseq/presentation/keyboard_layouts.py:199 `{key_prefix}.x は 0 以上である必要があります。`
+- keyseq/presentation/keyboard_layouts.py:201 `{key_prefix}.y は 0 以上である必要があります。`
+- keyseq/presentation/keyboard_layouts.py:203 `{key_prefix}.w は 0 より大きい必要があります。`
+- keyseq/presentation/keyboard_layouts.py:205 `{key_prefix}.h は 0 より大きい必要があります。`
+- keyseq/presentation/keyboard_layouts.py:215 `{key_prefix}.extra_scan_codes は整数の配列である必要があります。`
+- keyseq/presentation/keyboard_layouts.py:317 `{field_name} は数値である必要があります。`
+- keyseq/presentation/keyboard_layouts.py:324 `{field_name} は整数である必要があります。`
+- keyseq/presentation/keyboard_window.py:62 `Keyboard UI — 編集中: {editing_key}（Escでキャンセル）`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:28 `枠を編集`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:57 `枠をクリックして選ぶ → キーを押すとその枠のキー`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:65 `段の削除`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:65 `段の追加`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:66 `列の削除`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:66 `列の追加`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:67 `この画面を既定に戻す`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:67 `振り直し`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:77 `キーを枠の左上に表示`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:81 `操作キー（Esc = 戻る・テンキーの Enter = クリック は固定）`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:100 `操作キーを既定に戻す`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:104 `細分化（段数・列数 / 枠をクリックしてキーを押す）`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:110 `列`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:110 `段`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:125 `キャンセル`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:244 `列の削除`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:244 `列の追加`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:244 `段の削除`
+- keyseq/presentation/screen_grid/grid_editor_panel.py:244 `段の追加`
+- keyseq/presentation/screen_grid/grid_overlay_window.py:42 `枠の窓のクリック透過設定に失敗しました`
+- keyseq/presentation/screen_grid/screen_grid_controller.py:88 `枠の失敗後に状態を閉じられませんでした`
+- keyseq/presentation/screen_grid/screen_grid_controller.py:92 `枠の操作に失敗しました`
+- keyseq/presentation/screen_grid/screen_grid_controller.py:93 `枠の操作に失敗しました: {exc}`
+- keyseq/presentation/views/compact_view/compact_view.py:28 `▸ フック`
+- keyseq/presentation/views/compact_view/compact_view.py:32 `▸ 表示`
+- keyseq/presentation/views/compact_view/display_frame.py:17 `▾ 表示`
+- keyseq/presentation/views/compact_view/display_frame.py:24 `常に手前`
+- keyseq/presentation/views/compact_view/display_frame.py:29 `フルに戻す`
+- keyseq/presentation/views/compact_view/display_frame.py:31 `キーボードUI`
+- keyseq/presentation/views/compact_view/display_frame.py:45 `キーボードUIを常に手前`
+- keyseq/presentation/views/compact_view/hook_frame.py:18 `▾ フック`
+- keyseq/presentation/views/compact_view/hook_frame.py:37 `フック停止トリガー: `
+- keyseq/presentation/views/compact_view/hook_frame.py:42 `一時停止/再開キー: `
+- keyseq/presentation/views/compact_view/hook_frame.py:48 `このキーマップセットで個別指定する`
+- keyseq/presentation/views/compact_view/hook_frame.py:54 `確認して実行`
+- keyseq/presentation/views/compact_view/sequence_frame.py:40 `▸ シーケンス`
+- keyseq/presentation/views/compact_view/sequence_frame.py:40 `▾ シーケンス`
+- keyseq/presentation/views/compact_view/trigger_box.py:18 `トリガー一覧`
+- keyseq/presentation/views/full_view/call_view_frame.py:61 `▸ 呼び出し先`
+- keyseq/presentation/views/full_view/call_view_frame.py:63 `▾ 呼び出し先`
+- keyseq/presentation/views/full_view/call_view_frame.py:68 `呼び出し中ではありません`
+- keyseq/presentation/views/full_view/display_frame.py:15 `表示`
+- keyseq/presentation/views/full_view/display_frame.py:19 `常に手前`
+- keyseq/presentation/views/full_view/display_frame.py:25 `省略表示`
+- keyseq/presentation/views/full_view/display_frame.py:27 `キーボードUI`
+- keyseq/presentation/views/full_view/display_frame.py:41 `キーボードUIを常に手前`
+- keyseq/presentation/views/full_view/file_frame.py:13 `ファイル`
+- keyseq/presentation/views/full_view/file_frame.py:15 `保存`
+- keyseq/presentation/views/full_view/file_frame.py:16 `別名で保存...`
+- keyseq/presentation/views/full_view/file_frame.py:17 `読込...`
+- keyseq/presentation/views/full_view/file_frame.py:19 `新規作成`
+- keyseq/presentation/views/full_view/hook_frame.py:17 `フック`
+- keyseq/presentation/views/full_view/hook_frame.py:31 `フック停止トリガー: `
+- keyseq/presentation/views/full_view/hook_frame.py:36 `クリア`
+- keyseq/presentation/views/full_view/hook_frame.py:40 `一時停止/再開キー: `
+- keyseq/presentation/views/full_view/hook_frame.py:45 `クリア`
+- keyseq/presentation/views/full_view/hook_frame.py:50 `このキーマップセットで個別指定する`
+- keyseq/presentation/views/full_view/hook_frame.py:58 `確認して実行`
+- keyseq/presentation/views/full_view/keymap_box.py:17 `キーマップ管理`
+- keyseq/presentation/views/full_view/keymap_box.py:45 `追加`
+- keyseq/presentation/views/full_view/keymap_box.py:47 `キーマップ変更`
+- keyseq/presentation/views/full_view/keymap_box.py:49 `削除`
+- keyseq/presentation/views/full_view/keymap_box.py:52 `保存`
+- keyseq/presentation/views/full_view/keymap_box.py:53 `別名で保存`
+- keyseq/presentation/views/full_view/keymap_box.py:54 `読込`
+- keyseq/presentation/views/full_view/sequence_box.py:19 `出力シーケンス（選択中トリガーの内容）`
+- keyseq/presentation/views/full_view/sequence_box.py:59 `追加`
+- keyseq/presentation/views/full_view/sequence_box.py:60 `編集`
+- keyseq/presentation/views/full_view/sequence_box.py:61 `削除`
+- keyseq/presentation/views/full_view/sequence_box.py:62 `複製`
+- keyseq/presentation/views/full_view/sequence_box.py:64 `上へ`
+- keyseq/presentation/views/full_view/sequence_box.py:65 `下へ`
+- keyseq/presentation/views/full_view/sequence_box.py:67 `保存`
+- keyseq/presentation/views/full_view/sequence_box.py:68 `別名で保存`
+- keyseq/presentation/views/full_view/sequence_box.py:69 `読込`
+- keyseq/presentation/views/full_view/sequence_box.py:74 `連続実行`
+- keyseq/presentation/views/full_view/sequence_box.py:80 `確認して実行`
+- keyseq/presentation/views/full_view/sequence_box.py:88 `間隔(ms)`
+- keyseq/presentation/views/full_view/trigger_box.py:17 `トリガー一覧（選択して編集）`
+- keyseq/presentation/views/full_view/trigger_box.py:46 `追加`
+- keyseq/presentation/views/full_view/trigger_box.py:47 `トリガー変更`
+- keyseq/presentation/views/full_view/trigger_box.py:48 `削除`
+- keyseq/presentation/views/full_view/trigger_box.py:50 `保存`
+- keyseq/presentation/views/full_view/trigger_box.py:51 `別名で保存`
+- keyseq/presentation/views/full_view/trigger_box.py:52 `読込`
+- keyseq/presentation/views/full_view/trigger_box.py:56 `トリガーキーを抑止（suppress）`
+- keyseq/presentation/views/menu_bar.py:8 `新規作成`
+- keyseq/presentation/views/menu_bar.py:10 `保存`
+- keyseq/presentation/views/menu_bar.py:11 `別名で保存…`
+- keyseq/presentation/views/menu_bar.py:12 `読込（構成セット）…`
+- keyseq/presentation/views/menu_bar.py:13 `履歴から読み込む…`
+- keyseq/presentation/views/menu_bar.py:18 `起動時に読む構成セットを指定…`
+- keyseq/presentation/views/menu_bar.py:19 `例を復元`
+- keyseq/presentation/views/menu_bar.py:21 `終了`
+- keyseq/presentation/views/menu_bar.py:22 `ファイル`
+- keyseq/presentation/views/menu_bar.py:25 `プリセット編集…`
+- keyseq/presentation/views/menu_bar.py:26 `参照元を掃除…`
+- keyseq/presentation/views/menu_bar.py:27 `孤児ファイルの棚卸し…`
+- keyseq/presentation/views/menu_bar.py:28 `隔離の管理…`
+- keyseq/presentation/views/menu_bar.py:29 `キーボードUIを開く`
+- keyseq/presentation/views/menu_bar.py:31 `外部レイアウトを追加…`
+- keyseq/presentation/views/menu_bar.py:32 `レイアウトを削除…`
+- keyseq/presentation/views/menu_bar.py:35 `物理キー名を表示`
+- keyseq/presentation/views/menu_bar.py:43 `標準 (0)`
+- keyseq/presentation/views/menu_bar.py:50 `フォントサイズ`
+- keyseq/presentation/views/menu_bar.py:52 `設定`
+- keyseq/presentation/views/status_bar.py:47 `ステータス`

@@ -1,0 +1,200 @@
+# task_05 の対象文字列（実装前・baseline より）
+
+- keyseq/application/config_service/keymap_set_history.py:61 `履歴ファイルを保存できませんでした: {exc}`
+- keyseq/application/config_service/keymap_set_history.py:71 `履歴ファイルを読み込めず、退避もできないため記録できません。`
+- keyseq/application/config_service/keymap_set_history.py:73 `構成セットのパスが空のため履歴を記録できません。`
+- keyseq/presentation/controllers/config_io/hotkey_presets_io.py:27 `プリセット保存失敗`
+- keyseq/presentation/controllers/config_io/hotkey_presets_io.py:33 `global/ はグローバル用のため、専用プリセットの保存先にできません。⏎現在の保存先: {stored_path}`
+- keyseq/presentation/controllers/config_io/hotkey_presets_io.py:38 `保存先がグローバルライブラリと同じファイルです。⏎config.json の hotkey_presets_path を global/ 配下へ直してください。⏎現在の保存先: {stored_path}`
+- keyseq/presentation/controllers/config_io/hotkey_presets_io.py:42 `専用プリセットを保存できません`
+- keyseq/presentation/controllers/config_io/hotkey_presets_io.py:53 `専用プリセットの上書き確認`
+- keyseq/presentation/controllers/config_io/hotkey_presets_io.py:58 `保存先には既にファイルがありますが、プリセットとして読み込めません。`
+- keyseq/presentation/controllers/config_io/hotkey_presets_io.py:60 `保存先には既にプリセットファイルがあり、表示中の一覧と内容が異なります。`
+- keyseq/presentation/controllers/config_io/hotkey_presets_io.py:63 `{description}⏎保存先: {stored_path}`
+- keyseq/presentation/controllers/config_io/hotkey_presets_io.py:74 `キャンセル`
+- keyseq/presentation/controllers/config_io/hotkey_presets_io.py:78 `既存を読み込む`
+- keyseq/presentation/controllers/config_io/hotkey_presets_io.py:83 `上書きする`
+- keyseq/presentation/controllers/config_io/keymap_set_history_io.py:27 `構成セットの履歴を記録できませんでした: {exc}`
+- keyseq/presentation/controllers/config_io/orphan_sweep_io.py:42 `孤児ファイルの棚卸し`
+- keyseq/presentation/controllers/config_io/orphan_sweep_io.py:63 `孤児ファイルの棚卸し`
+- keyseq/presentation/controllers/config_io/orphan_sweep_io.py:65 `隔離する孤児候補を確認してください。`
+- keyseq/presentation/controllers/config_io/orphan_sweep_io.py:66 `隔離する`
+- keyseq/presentation/controllers/config_io/orphan_sweep_io.py:73 `孤児ファイルの棚卸し`
+- keyseq/presentation/controllers/config_io/orphan_sweep_io.py:80 `孤児ファイルの棚卸し`
+- keyseq/presentation/controllers/config_io/orphan_sweep_io.py:80 `棚卸しの前に保存が必要です。保存しますか？`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:20 `隔離された実行単位はありません。`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:20 `隔離の管理`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:36 `マニフェストが読めないため復元できません`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:36 `隔離の管理`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:42 `隔離の管理`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:43 `復元する`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:43 `復元する内容を確認してください。`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:51 `隔離の管理`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:59 `削除対象を列挙できません。削除していません。⏎{error}`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:59 `隔離の管理`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:62 `隔離の管理`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:64 `削除する`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:64 `削除する内容を確認してください。`
+- keyseq/presentation/controllers/config_io/quarantine_manage_io.py:73 `隔離の管理`
+- keyseq/presentation/controllers/config_io/reference_cleanup_io.py:19 `参照元の掃除`
+- keyseq/presentation/controllers/config_io/reference_cleanup_io.py:20 `掃除するには構成セットの保存が必要です。保存しますか？`
+- keyseq/presentation/controllers/config_io/reference_cleanup_io.py:35 `参照元の掃除`
+- keyseq/presentation/controllers/config_io/reference_cleanup_io.py:40 `参照元の掃除`
+- keyseq/presentation/controllers/config_io/reference_cleanup_io.py:53 `参照元の掃除`
+- keyseq/presentation/dialogs/orphan_sweep_dialog.py:21 `孤児ファイルの棚卸し`
+- keyseq/presentation/dialogs/orphan_sweep_dialog.py:31 `追加で走査するディレクトリを指定してください。⏎一覧の変更は「閉じる」でも保存されます。`
+- keyseq/presentation/dialogs/orphan_sweep_dialog.py:44 `追加…`
+- keyseq/presentation/dialogs/orphan_sweep_dialog.py:45 `削除`
+- keyseq/presentation/dialogs/orphan_sweep_dialog.py:48 `棚卸しを実行`
+- keyseq/presentation/dialogs/orphan_sweep_dialog.py:49 `閉じる`
+- keyseq/presentation/dialogs/preset_manager.py:32 `保存先: {individual_path}`
+- keyseq/presentation/dialogs/preset_manager.py:34 `保存先: グローバル（{global_path}）`
+- keyseq/presentation/dialogs/preset_manager.py:39 `config 外のファイルを読み込み中。次の保存で管理下へ移ります。{default_individual_path} へ保存します`
+- keyseq/presentation/dialogs/preset_manager.py:45 `記録されていた個別の保存先は config 外にあり、読み込めません。{default_individual_path} へ保存します`
+- keyseq/presentation/dialogs/preset_manager.py:50 `記録されていた個別の保存先は config 外にあり、読み込めません。専用を再度有効にすると、{default_individual_path} へ保存します`
+- keyseq/presentation/dialogs/preset_manager.py:56 `グローバルを読み込めませんでした。組込既定を表示中（OK でグローバルを作成します）`
+- keyseq/presentation/dialogs/preset_manager.py:60 `グローバルを表示中`
+- keyseq/presentation/dialogs/preset_manager.py:62 `読み込めませんでした（既定を表示中）`
+- keyseq/presentation/dialogs/preset_manager.py:64 `構成セットを保存すると専用にできます`
+- keyseq/presentation/dialogs/preset_manager.py:76 `プリセット編集`
+- keyseq/presentation/dialogs/preset_manager.py:125 `プリセット一覧`
+- keyseq/presentation/dialogs/preset_manager.py:136 `追加`
+- keyseq/presentation/dialogs/preset_manager.py:137 `編集`
+- keyseq/presentation/dialogs/preset_manager.py:138 `削除`
+- keyseq/presentation/dialogs/preset_manager.py:140 `上へ`
+- keyseq/presentation/dialogs/preset_manager.py:141 `下へ`
+- keyseq/presentation/dialogs/preset_manager.py:147 `この構成セット専用にする`
+- keyseq/presentation/dialogs/preset_manager.py:173 `キャンセル`
+- keyseq/presentation/dialogs/preset_manager.py:232 `プリセットの切替`
+- keyseq/presentation/dialogs/preset_manager.py:233 `編集中の内容は破棄されます。切り替えますか？`
+- keyseq/presentation/dialogs/preset_manager.py:303 `プリセット追加`
+- keyseq/presentation/dialogs/preset_manager.py:314 `同名のプリセットが既に存在します。⏎⏎label: {label}`
+- keyseq/presentation/dialogs/preset_manager.py:314 `追加できません`
+- keyseq/presentation/dialogs/preset_manager.py:320 `プリセットの hotkey 値が不正です。⏎⏎入力: {value}⏎理由: {err_msg}`
+- keyseq/presentation/dialogs/preset_manager.py:320 `不正なhotkey`
+- keyseq/presentation/dialogs/preset_manager.py:331 `編集`
+- keyseq/presentation/dialogs/preset_manager.py:331 `編集したい行を選択してください。`
+- keyseq/presentation/dialogs/preset_manager.py:336 `プリセット編集`
+- keyseq/presentation/dialogs/preset_manager.py:350 `同名のプリセットが既に存在します。⏎⏎label: {label}`
+- keyseq/presentation/dialogs/preset_manager.py:350 `変更できません`
+- keyseq/presentation/dialogs/preset_manager.py:356 `プリセットの hotkey 値が不正です。⏎⏎入力: {value}⏎理由: {err_msg}`
+- keyseq/presentation/dialogs/preset_manager.py:356 `不正なhotkey`
+- keyseq/presentation/dialogs/preset_manager.py:369 `削除`
+- keyseq/presentation/dialogs/preset_manager.py:369 `削除したい行を選択してください。`
+- keyseq/presentation/dialogs/preset_manager.py:373 `選択したプリセットを削除しますか？`
+- keyseq/presentation/dialogs/preset_manager.py:374 `選択した {count} 件のプリセットを削除しますか？`
+- keyseq/presentation/dialogs/preset_manager.py:375 `確認`
+- keyseq/presentation/dialogs/preset_manager.py:382 `移動`
+- keyseq/presentation/dialogs/preset_manager.py:382 `移動したい行を選択してください。`
+- keyseq/presentation/dialogs/quarantine_manage_dialog.py:21 `隔離の管理`
+- keyseq/presentation/dialogs/quarantine_manage_dialog.py:31 `実行単位を選択してください。`
+- keyseq/presentation/dialogs/quarantine_manage_dialog.py:43 `復元する…`
+- keyseq/presentation/dialogs/quarantine_manage_dialog.py:44 `削除する…`
+- keyseq/presentation/dialogs/quarantine_manage_dialog.py:45 `閉じる`
+- keyseq/presentation/dialogs/reference_cleanup_dialog.py:20 `除去する参照元を確認してください。`
+- keyseq/presentation/dialogs/reference_cleanup_dialog.py:21 `実行`
+- keyseq/presentation/dialogs/reference_cleanup_dialog.py:53 `キャンセル`
+- keyseq/presentation/keymap_set_history_text.py:5 `直近（最大 20 件）`
+- keyseq/presentation/keymap_set_history_text.py:6 `（見つかりません）`
+- keyseq/presentation/keymap_set_history_text.py:7 `履歴ファイルを読み込めませんでした。編集できません。`
+- keyseq/presentation/keymap_set_history_text.py:8 `構成セットの履歴`
+- keyseq/presentation/keymap_set_history_text.py:9 `名前`
+- keyseq/presentation/keymap_set_history_text.py:10 `パス`
+- keyseq/presentation/keymap_set_history_text.py:11 `分類名`
+- keyseq/presentation/keymap_set_history_text.py:12 `＋分類を追加`
+- keyseq/presentation/keymap_set_history_text.py:13 `分類名を変更`
+- keyseq/presentation/keymap_set_history_text.py:14 `分類を削除`
+- keyseq/presentation/keymap_set_history_text.py:15 `読み込む`
+- keyseq/presentation/keymap_set_history_text.py:16 `読込`
+- keyseq/presentation/keymap_set_history_text.py:17 `履歴から削除`
+- keyseq/presentation/keymap_set_history_text.py:18 `分類へコピー…`
+- keyseq/presentation/keymap_set_history_text.py:19 `閉じる`
+- keyseq/presentation/keymap_set_history_text.py:20 `コピー先の分類`
+- keyseq/presentation/keymap_set_history_text.py:22 `キャンセル`
+- keyseq/presentation/keymap_set_history_text.py:23 `分類がありません。先に分類を追加してください。`
+- keyseq/presentation/keymap_set_history_text.py:24 `分類名が空か、同名の分類が既にあります。`
+- keyseq/presentation/keymap_set_history_text.py:25 `分類が存在しないか、分類名が空または同名です。`
+- keyseq/presentation/keymap_set_history_text.py:26 `分類が存在しません。`
+- keyseq/presentation/keymap_set_history_text.py:27 `分類が存在しないか、分類内に既に同じ構成セットがあります。`
+- keyseq/presentation/keymap_set_history_text.py:28 `履歴の項目が存在しません。`
+- keyseq/presentation/keymap_set_history_text.py:37 `履歴を編集できませんでした: {reason}`
+- keyseq/presentation/keymap_set_history_text.py:41 `構成セットを読み込めませんでした: {reason}`
+- keyseq/presentation/keymap_set_history_text.py:45 `分類「{name}」を配下の履歴ごと削除しますか？⏎実ファイルは削除しません。`
+- keyseq/presentation/keymap_set_history_text.py:49 `この項目を履歴から削除しますか？⏎{path}⏎実ファイルは削除しません。`
+- keyseq/presentation/orphan_sweep_text.py:4 `隔離できる孤児ファイルはありません。`
+- keyseq/presentation/orphan_sweep_text.py:7 `キーマップ`
+- keyseq/presentation/orphan_sweep_text.py:8 `トリガー一覧`
+- keyseq/presentation/orphan_sweep_text.py:9 `出力シーケンス`
+- keyseq/presentation/orphan_sweep_text.py:10 `個別プリセット`
+- keyseq/presentation/orphan_sweep_text.py:14 `ファイルが見つかりません`
+- keyseq/presentation/orphan_sweep_text.py:15 `読み取り / JSON 解析に失敗しました`
+- keyseq/presentation/orphan_sweep_text.py:16 `リンク / ジャンクションのため参照側として読みませんでした`
+- keyseq/presentation/orphan_sweep_text.py:17 `ディレクトリを読み取れませんでした`
+- keyseq/presentation/orphan_sweep_text.py:21 `マニフェストを書き込めませんでした`
+- keyseq/presentation/orphan_sweep_text.py:22 `移動できませんでした`
+- keyseq/presentation/orphan_sweep_text.py:23 `移動直前の安全確認で対象外になりました`
+- keyseq/presentation/orphan_sweep_text.py:24 `隔離の実行単位ディレクトリを作成できませんでした`
+- keyseq/presentation/orphan_sweep_text.py:25 `隔離ルートがリンク / ジャンクションのため中止しました`
+- keyseq/presentation/orphan_sweep_text.py:29 `注意: 走査範囲外に保存された構成セットから参照されている可能性があります。`
+- keyseq/presentation/orphan_sweep_text.py:38 `警告: 読めなかった構成セット / トリガー一覧が {len(result.unreadable_sources)} 件あります。`
+- keyseq/presentation/orphan_sweep_text.py:39 `それらが参照していた子ファイルを孤児と誤判定している可能性があります。`
+- keyseq/presentation/orphan_sweep_text.py:46 `見つからなかった走査ディレクトリ: {len(result.missing_scan_dirs)} 件`
+- keyseq/presentation/orphan_sweep_text.py:49 `構成セットとして解釈できなかった JSON: {len(result.non_keymap_set_sources)} 件`
+- keyseq/presentation/orphan_sweep_text.py:57 `孤児候補: {len(candidates)} 件`
+- keyseq/presentation/orphan_sweep_text.py:64 `対象外: {excluded_count} 件`
+- keyseq/presentation/orphan_sweep_text.py:78 `提示後に対象外になったため隔離しなかった: {len(result.dropped_paths)} 件`
+- keyseq/presentation/orphan_sweep_text.py:81 `再判定で新たに孤児候補になったため今回は隔離しなかった: {result.newly_orphan_count} 件`
+- keyseq/presentation/orphan_sweep_text.py:91 `警告: 隔離の直前にも読めない参照側が {len(result.rescan_unreadable_sources)} 件ありました。`
+- keyseq/presentation/orphan_sweep_text.py:92 `それらが参照していた子ファイルを孤児と誤判定している可能性があります。`
+- keyseq/presentation/orphan_sweep_text.py:105 `移動できなかったファイル:`
+- keyseq/presentation/orphan_sweep_text.py:109 `警告: マニフェストを書き込めず、隔離の記録が古い可能性があります。`
+- keyseq/presentation/orphan_sweep_text.py:118 `ファイルは 1 件も移動していません。`
+- keyseq/presentation/orphan_sweep_text.py:118 `隔離を中止しました: {reason}`
+- keyseq/presentation/orphan_sweep_text.py:119 `（実行単位: {result.unit_id}）`
+- keyseq/presentation/orphan_sweep_text.py:121 `隔離できませんでした: 0 件{unit_note}`
+- keyseq/presentation/orphan_sweep_text.py:123 `隔離しました: {len(result.moved)} 件{unit_note}`
+- keyseq/presentation/quarantine_manage_text.py:7 `復元先に同名ファイルがあります`
+- keyseq/presentation/quarantine_manage_text.py:8 `復元先が対象外です`
+- keyseq/presentation/quarantine_manage_text.py:9 `隔離側にファイルがありません（復元済み等）`
+- keyseq/presentation/quarantine_manage_text.py:10 `復元できませんでした`
+- keyseq/presentation/quarantine_manage_text.py:11 `実行単位 ID が不正、または実在しません`
+- keyseq/presentation/quarantine_manage_text.py:12 `マニフェストが読めません`
+- keyseq/presentation/quarantine_manage_text.py:19 `{unit.unit_id}  作成: {unit.created_at}  残り {unit.remaining_count}/{unit.entry_count} 件`
+- keyseq/presentation/quarantine_manage_text.py:20 `  マニフェスト不正（復元できません）`
+- keyseq/presentation/quarantine_manage_text.py:29 `隔離側に残っている {unit.remaining_count} 件を元の場所へ復元します。`
+- keyseq/presentation/quarantine_manage_text.py:30 `復元先に同名ファイルがある場合は上書きせずスキップします。`
+- keyseq/presentation/quarantine_manage_text.py:39 `1 件も戻していません。`
+- keyseq/presentation/quarantine_manage_text.py:39 `復元を中止しました: {reason}`
+- keyseq/presentation/quarantine_manage_text.py:40 `復元しました: {len(result.restored)} 件`
+- keyseq/presentation/quarantine_manage_text.py:43 `スキップ: {len(result.skipped)} 件`
+- keyseq/presentation/quarantine_manage_text.py:44 `  {_REASON_LABELS.get(reason, reason)}: {count} 件`
+- keyseq/presentation/quarantine_manage_text.py:48 `実行単位は残っています。`
+- keyseq/presentation/quarantine_manage_text.py:48 `実行単位を片付けました。`
+- keyseq/presentation/quarantine_manage_text.py:56 `この操作は取り消せません。`
+- keyseq/presentation/quarantine_manage_text.py:56 `削除する実行単位: {unit.unit_id}`
+- keyseq/presentation/quarantine_manage_text.py:58 `マニフェストが読めないため、中身を確認できません。`
+- keyseq/presentation/quarantine_manage_text.py:59 `ディレクトリごと削除します。`
+- keyseq/presentation/quarantine_manage_text.py:67 `削除しました: {result.unit_id}`
+- keyseq/presentation/quarantine_manage_text.py:69 `実行単位 ID が不正、または実在しません`
+- keyseq/presentation/quarantine_manage_text.py:70 `隔離ルート自身、または隔離ルート外を指しています`
+- keyseq/presentation/quarantine_manage_text.py:71 `マニフェストが読めません`
+- keyseq/presentation/quarantine_manage_text.py:72 `削除できませんでした`
+- keyseq/presentation/quarantine_manage_text.py:75 `一部が削除されている可能性があります。`
+- keyseq/presentation/quarantine_manage_text.py:76 `削除していません。`
+- keyseq/presentation/quarantine_manage_text.py:77 `削除を中止しました: {reason}`
+- keyseq/presentation/reference_cleanup_text.py:4 `掃除する項目はありません。`
+- keyseq/presentation/reference_cleanup_text.py:7 `キーマップ`
+- keyseq/presentation/reference_cleanup_text.py:8 `トリガー一覧`
+- keyseq/presentation/reference_cleanup_text.py:9 `出力シーケンス`
+- keyseq/presentation/reference_cleanup_text.py:13 `読み直せませんでした`
+- keyseq/presentation/reference_cleanup_text.py:14 `JSON の形式が不正です`
+- keyseq/presentation/reference_cleanup_text.py:15 `保存できませんでした`
+- keyseq/presentation/reference_cleanup_text.py:31 `対象ファイル: {target_count} 件、消える参照元: {stale_count} 件`
+- keyseq/presentation/reference_cleanup_text.py:36 `消える参照元:`
+- keyseq/presentation/reference_cleanup_text.py:40 `保護のため残す参照元:`
+- keyseq/presentation/reference_cleanup_text.py:47 `警告: この掃除で参照元が 0 件になります。`
+- keyseq/presentation/reference_cleanup_text.py:48 `子ファイル自体は削除しません。孤児かどうかは「孤児ファイルの棚卸し」で確認できます。`
+- keyseq/presentation/reference_cleanup_text.py:58 `更新したファイル: {len(result.updated_files)} 件、除去した参照元: {removed_count} 件`
+- keyseq/presentation/reference_cleanup_text.py:61 `失敗したファイル:`
+- keyseq/presentation/reference_cleanup_text.py:63 `  {path}: {_FAILURE_MESSAGES.get(reason, '不明な理由で失敗しました')}`
+- keyseq/presentation/reference_cleanup_text.py:63 `不明な理由で失敗しました`

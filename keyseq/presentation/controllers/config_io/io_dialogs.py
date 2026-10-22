@@ -1,7 +1,8 @@
 import os
 import tkinter as tk
-from tkinter import filedialog, messagebox, ttk
+from tkinter import filedialog, ttk
 
+from keyseq.presentation.controllers.config_io import choice_dialog
 from keyseq.presentation.modal import grab_modal
 
 
@@ -12,13 +13,17 @@ class IoDialogs:
     def choose_save_path_with_collision(self, *, title: str, suggested_path: str) -> str:
         path = suggested_path
         if os.path.exists(path):
-            result = messagebox.askyesnocancel(
-                "保存先の確認",
-                f"同名ファイルが既にあります。\n\n{path}\n\n上書きしますか？\n「いいえ」で別名保存します。",
+            choice = choice_dialog.ask_choice(
+                self._app,
+                title="保存先の確認",
+                message=f"同名ファイルがすでにあります。\n\n{path}\n\n上書きしますか？",
+                choices=[("overwrite", "上書き"), ("save_as", "別名保存"), ("cancel", "キャンセル")],
+                default="overwrite",
+                cancel="cancel",
             )
-            if result is None:
+            if choice == "cancel":
                 return ""
-            if result is False:
+            if choice == "save_as":
                 path = filedialog.asksaveasfilename(
                     title=title,
                     initialdir=os.path.dirname(os.path.abspath(suggested_path)),

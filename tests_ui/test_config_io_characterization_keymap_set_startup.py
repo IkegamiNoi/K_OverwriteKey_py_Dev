@@ -34,6 +34,20 @@ from keyseq.application.save_plan import (
 )
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
+from keyseq.presentation.controllers.config_io import choice_dialog as choice_dialog_module
+
+
+_SPLIT_BASE_DIR_CHOICE_KWARGS = {
+    "title": "保存先の確認",
+    "message": (
+        "構成セットが既定の保存先の外に保存されます。\n"
+        "キーマップ・トリガーセット・出力シーケンスも構成セットと同じフォルダ"
+        "(keymaps / trigger_sets / sequences)に保存しますか？"
+    ),
+    "choices": [("nearby", "構成セットと同じフォルダに保存"), ("default", "既定の保存先に保存")],
+    "default": "nearby",
+    "cancel": "default",
+}
 
 
 def _unexpected_trigger_set_dependency(*_args, **_kwargs):
@@ -132,6 +146,13 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         self._recalculated_overwrite_guard.start()
         self._showerror_guard.start()
         self._askyesno_guard.start()
+        self._ask_choice_guard = patch.object(
+            choice_dialog_module,
+            "ask_choice",
+            side_effect=AssertionError("想定外の選択肢の確認ダイアログ。期待するならテスト側で patch すること"),
+        )
+        self._ask_choice_guard.start()
+        self.addCleanup(self._ask_choice_guard.stop)
         self.addCleanup(self._dependency_confirm_guard.stop)
         self.addCleanup(self._child_save_actions_guard.stop)
         self.addCleanup(self._recalculated_overwrite_guard.stop)
@@ -506,30 +527,33 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
     # ===================== A: choose_split_base_dir_for_keymap_set =====================
     def test_choose_split_base_dir_within_config_root_returns_empty(self):
         with patch.object(self.app.paths, "is_within_config_root", return_value=True), patch.object(
-            tkinter.messagebox, "askyesno"
+            choice_dialog_module, "ask_choice"
         ) as ask:
             self.assertEqual(
                 _config_set_io(self.app).choose_split_base_dir_for_keymap_set("x.json"), ""
             )
             ask.assert_not_called()
 
-    def test_choose_split_base_dir_outside_yes_returns_dir(self):
+    def test_choose_split_base_dir_outside_nearby_returns_dir(self):
         target = os.path.join(os.getcwd(), "sub", "x.json")
         with patch.object(self.app.paths, "is_within_config_root", return_value=False), patch.object(
-            tkinter.messagebox, "askyesno", return_value=True
-        ):
+            choice_dialog_module, "ask_choice", return_value="nearby"
+        ) as ask:
             self.assertEqual(
                 _config_set_io(self.app).choose_split_base_dir_for_keymap_set(target),
                 os.path.dirname(os.path.abspath(target)),
             )
+        ask.assert_called_once_with(self.app, **_SPLIT_BASE_DIR_CHOICE_KWARGS)
 
-    def test_choose_split_base_dir_outside_no_returns_empty(self):
+    def test_choose_split_base_dir_outside_default_returns_empty(self):
+        # × / Esc も cancel の id（"default"）が返るため、この分岐に入る。
         with patch.object(self.app.paths, "is_within_config_root", return_value=False), patch.object(
-            tkinter.messagebox, "askyesno", return_value=False
-        ):
+            choice_dialog_module, "ask_choice", return_value="default"
+        ) as ask:
             self.assertEqual(
                 _config_set_io(self.app).choose_split_base_dir_for_keymap_set("x.json"), ""
             )
+        ask.assert_called_once_with(self.app, **_SPLIT_BASE_DIR_CHOICE_KWARGS)
 
     # ===================== A: load_keymap_set_from =====================
     def test_load_keymap_set_from_confirm_false_early_return(self):

@@ -21,6 +21,7 @@ from keyseq.application.save_plan import (
 )
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
+from keyseq.presentation.controllers.config_io import choice_dialog as choice_dialog_module
 
 
 def _unexpected_trigger_set_dependency(*_args, **_kwargs):
@@ -47,6 +48,10 @@ def _unexpected_showerror(_title, message, *_args, **_kwargs):
 
 def _unexpected_askyesno(*_args, **_kwargs):
     raise AssertionError("想定外の確認ダイアログ。期待するならテスト側で patch すること")
+
+
+def _unexpected_ask_choice(*_args, **_kwargs):
+    raise AssertionError("想定外の選択肢の確認ダイアログ。期待するならテスト側で patch すること")
 
 
 def _expected_json_bytes(text: str) -> bytes:
@@ -188,16 +193,23 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             "askyesno",
             side_effect=_unexpected_askyesno,
         )
+        self._ask_choice_guard = patch.object(
+            choice_dialog_module,
+            "ask_choice",
+            side_effect=_unexpected_ask_choice,
+        )
         self._dependency_confirm_guard.start()
         self._child_save_actions_guard.start()
         self._recalculated_overwrite_guard.start()
         self._showerror_guard.start()
         self._askyesno_guard.start()
+        self._ask_choice_guard.start()
         self.addCleanup(self._dependency_confirm_guard.stop)
         self.addCleanup(self._child_save_actions_guard.stop)
         self.addCleanup(self._recalculated_overwrite_guard.stop)
         self.addCleanup(self._showerror_guard.stop)
         self.addCleanup(self._askyesno_guard.stop)
+        self.addCleanup(self._ask_choice_guard.stop)
         self.app.data = {"keymaps": [], "triggers": [], "active_keymap_id": ""}
         # production のリセットと同じ 0 を入れる（setter は int 化するため None は不可）。
         # 「未選択」の再現は trigger_panel.selected_trigger / keymap_panel.selected_keymap_list_index の patch で行う。
@@ -431,7 +443,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
     def test_choose_save_path_with_collision_all_branches(self):
         with tempfile.TemporaryDirectory() as directory:
             suggested = os.path.join(directory, "suggested.json")
-            with patch.object(tkinter.messagebox, "askyesnocancel") as ask:
+            with patch.object(choice_dialog_module, "ask_choice") as ask:
                 self.assertEqual(
                     _dialog_io(self.app).choose_save_path_with_collision(
                         title="保存",
@@ -442,11 +454,14 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 ask.assert_not_called()
 
             Path(suggested).touch()
-            expected_message = (
-                f"同名ファイルが既にあります。\n\n{suggested}\n\n"
-                "上書きしますか？\n「いいえ」で別名保存します。"
-            )
-            with patch.object(tkinter.messagebox, "askyesnocancel", return_value=True) as ask:
+            expected_kwargs = {
+                "title": "保存先の確認",
+                "message": f"同名ファイルがすでにあります。\n\n{suggested}\n\n上書きしますか？",
+                "choices": [("overwrite", "上書き"), ("save_as", "別名保存"), ("cancel", "キャンセル")],
+                "default": "overwrite",
+                "cancel": "cancel",
+            }
+            with patch.object(choice_dialog_module, "ask_choice", return_value="overwrite") as ask:
                 self.assertEqual(
                     _dialog_io(self.app).choose_save_path_with_collision(
                         title="保存",
@@ -454,10 +469,10 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     ),
                     suggested,
                 )
-                ask.assert_called_once_with("保存先の確認", expected_message)
+                ask.assert_called_once_with(self.app, **expected_kwargs)
 
             chosen = os.path.join(directory, "chosen.json")
-            with patch.object(tkinter.messagebox, "askyesnocancel", return_value=False) as ask, patch.object(
+            with patch.object(choice_dialog_module, "ask_choice", return_value="save_as") as ask, patch.object(
                 tkinter.filedialog,
                 "asksaveasfilename",
                 return_value=chosen,
@@ -469,7 +484,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     ),
                     chosen,
                 )
-                ask.assert_called_once_with("保存先の確認", expected_message)
+                ask.assert_called_once_with(self.app, **expected_kwargs)
                 ask_save.assert_called_once_with(
                     title="保存",
                     initialdir=os.path.dirname(os.path.abspath(suggested)),
@@ -478,7 +493,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     filetypes=[("JSON", "*.json"), ("All", "*.*")],
                 )
 
-            with patch.object(tkinter.messagebox, "askyesnocancel", return_value=None) as ask:
+            with patch.object(choice_dialog_module, "ask_choice", return_value="cancel") as ask:
                 self.assertEqual(
                     _dialog_io(self.app).choose_save_path_with_collision(
                         title="保存",
@@ -486,7 +501,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     ),
                     "",
                 )
-                ask.assert_called_once_with("保存先の確認", expected_message)
+                ask.assert_called_once_with(self.app, **expected_kwargs)
 
     def test_ask_link_label_to_filename_all_branches_balance_hook(self):
         for mode, checked in (("ok", True), ("ok", False), ("cancel", False), ("close", False)):
@@ -1184,8 +1199,8 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                     self.app.trigger_panel,
                     "refresh_actions",
                 ), patch.object(tkinter.messagebox, "showinfo") as showinfo, patch.object(
-                    tkinter.messagebox,
-                    "askyesnocancel",
+                    choice_dialog_module,
+                    "ask_choice",
                     side_effect=AssertionError("想定外の保存先確認ダイアログ"),
                 ), patch.object(
                     tkinter.filedialog,
@@ -1307,8 +1322,8 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             )
             self.app.keymap_set_io.apply_loaded_data_to_ui()
             with patch.object(
-                tkinter.messagebox,
-                "askyesnocancel",
+                choice_dialog_module,
+                "ask_choice",
                 side_effect=AssertionError("想定外の保存先確認ダイアログ"),
             ), patch.object(
                 tkinter.filedialog,
@@ -1986,8 +2001,8 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
                 return {(CHILD_SEQUENCE, "f1"): (ACTION_SAVE, "")}
 
             with patch.object(
-                tkinter.messagebox,
-                "askyesnocancel",
+                choice_dialog_module,
+                "ask_choice",
                 side_effect=AssertionError("想定外の保存先確認ダイアログ"),
             ), patch.object(
                 tkinter.filedialog,
@@ -2005,8 +2020,8 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
 
             self.assertEqual([(row.kind, row.key) for row in rows_seen], [(CHILD_SEQUENCE, "f1")])
             with patch.object(
-                tkinter.messagebox,
-                "askyesnocancel",
+                choice_dialog_module,
+                "ask_choice",
                 side_effect=AssertionError("想定外の保存先確認ダイアログ"),
             ), patch.object(
                 tkinter.filedialog,
@@ -2034,8 +2049,8 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.app.dirty_tracker.mark_sequence_dirty(get_active_triggers(self.app.data)[0])
 
             with patch.object(
-                tkinter.messagebox,
-                "askyesnocancel",
+                choice_dialog_module,
+                "ask_choice",
                 side_effect=AssertionError("想定外の保存先確認ダイアログ"),
             ), patch.object(
                 tkinter.filedialog,
@@ -2089,8 +2104,8 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             }
 
             with patch.object(
-                tkinter.messagebox,
-                "askyesnocancel",
+                choice_dialog_module,
+                "ask_choice",
                 side_effect=AssertionError("想定外の保存先確認ダイアログ"),
             ), patch.object(
                 tkinter.filedialog,
@@ -2158,8 +2173,8 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             self.app.dirty_tracker.set_trigger_set_source_path(trigger_set_path)
 
             with patch.object(
-                tkinter.messagebox,
-                "askyesnocancel",
+                choice_dialog_module,
+                "ask_choice",
                 side_effect=AssertionError("想定外の保存先確認ダイアログ"),
             ), patch.object(
                 tkinter.filedialog,

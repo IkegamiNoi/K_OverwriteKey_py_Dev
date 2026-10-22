@@ -1,0 +1,195 @@
+# task_02 の対象文字列（実装前・baseline より）
+
+- keyseq/application/config_service/__init__.py:141 `keymap JSON の形式が不正です。`
+- keyseq/application/config_service/__init__.py:233 `保存できる keymap がありません。`
+- keyseq/application/config_service/child_file_io.py:22 `sequence JSON の形式が不正です。`
+- keyseq/application/config_service/child_file_io.py:76 `trigger_set JSON の形式が不正です。`
+- keyseq/application/config_service/keymap_save_plan.py:66 `キーマップの保存計画と保存先が一致しません。`
+- keyseq/application/config_service/keymap_save_plan.py:99 `sequence の保存先変更には trigger_set の保存が必要です。`
+- keyseq/application/config_service/save_plan_execution.py:258 `保存した trigger_set を読み直せません`
+- keyseq/application/config_service/save_plan_execution.py:270 `移行元 keymap_set の参照整理に失敗しました: {trigger_set_path}: {exc}`
+- keyseq/application/config_service/save_plan_execution.py:415 `未知の子種別です: {entry.kind}`
+- keyseq/application/config_service/save_plan_execution.py:417 `不正な保存操作です: {entry.kind}:{entry.key}`
+- keyseq/application/config_service/save_plan_execution.py:420 `保存計画が重複しています: {entry.kind}:{entry.key}`
+- keyseq/application/config_service/save_plan_execution.py:423 `存在しない keymap です: {entry.key}`
+- keyseq/application/config_service/save_plan_execution.py:425 `存在しない sequence です: {entry.key}`
+- keyseq/application/config_service/save_plan_execution.py:427 `存在しない trigger_set です: {entry.key}`
+- keyseq/application/config_service/save_plan_execution.py:431 `移行対象は保存しないを選択できません。`
+- keyseq/application/config_service/save_plan_execution.py:434 `別名保存先が空です: {entry.kind}:{entry.key}`
+- keyseq/application/config_service/save_plan_execution.py:440 `別名保存先のディレクトリを作成できません: {entry.kind}:{entry.key}`
+- keyseq/application/config_service/save_plan_execution.py:449 `子ファイルの保存先が重複しています: {item['resolved_path']}`
+- keyseq/application/config_service/save_plan_execution.py:453 `trigger_set {blocked_sets[0]} の保存先変更には keymap の保存が必要です。`
+- keyseq/application/config_service/save_plan_execution.py:458 `sequence {blocked_keys[0]} の保存先変更には trigger_set の保存が必要です。`
+- keyseq/application/config_service/split_loading.py:50 `keymap_set.json の読込に失敗しました。`
+- keyseq/application/config_service/split_loading.py:381 `旧トリガー一覧（{stem}）`
+- keyseq/application/save_plan.py:26 `sequence の行識別子が不正です。`
+- keyseq/application/save_plan.py:35 `sequence の行識別子が不正です。`
+- keyseq/application/save_plan.py:41 `sequence の行番号が不正です。`
+- keyseq/application/save_plan.py:43 `sequence の行番号が不正です。`
+- keyseq/application/save_plan.py:52 `sequence の識別子が不正です。`
+- keyseq/application/save_plan.py:59 `sequence の合成キーが不正です。`
+- keyseq/presentation/app.py:123 `startup.json 読込失敗`
+- keyseq/presentation/app.py:124 `startup.json の読込に失敗しました。⏎{exc}⏎⏎既定設定で起動します。`
+- keyseq/presentation/controllers/config_io/child_save_columns.py:7 `保存先パス`
+- keyseq/presentation/controllers/config_io/child_save_columns.py:7 `共有状況`
+- keyseq/presentation/controllers/config_io/child_save_columns.py:7 `対象名`
+- keyseq/presentation/controllers/config_io/child_save_columns.py:7 `操作`
+- keyseq/presentation/controllers/config_io/child_save_columns.py:7 `種別`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:37 `子ファイルの保存`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:67 `キャンセル`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:109 `保存`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:109 `保存しない`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:109 `別名保存`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:170 `移行対象は保存しないを選択できません。`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:183 `次の子ファイルの保存先が変わります:⏎{', '.join(blocked_labels)}⏎⏎{parent_name}の保存先: {trigger_set_row.target_path}⏎共有状況: {trigger_set_row.share_text}⏎⏎保存 = このまま{parent_name}を保存して索引を更新します。⏎別名保存 = 別の保存先へ{parent_name}を保存して索引を更新します。⏎保存しない = この保存では索引を更新しない（次回保存で反映）。⏎キャンセル = 一覧から選び直します。`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:210 `{_kind_label(trigger_set_row.kind)}の保存が必要です`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:230 `キャンセル`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:231 `保存しない`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:236 `別名保存`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:240 `保存`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:250 `再計算後の保存先に既存ファイルがあります:⏎⏎`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:252 `種別: {_kind_label(row.kind)}⏎対象名: {row.display_name}⏎保存先: {row.target_path}⏎共有状況: {row.share_text}`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:258 `⏎⏎「はい」= このまま上書き / 「いいえ」= 別名で保存 / 「キャンセル」= 保存を中止`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:262 `再計算後の保存先を確認`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:283 `{_kind_label(row.kind)}を別名で保存`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:293 `キーマップ`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:294 `トリガー一覧`
+- keyseq/presentation/controllers/config_io/child_save_dialog.py:295 `出力シーケンス`
+- keyseq/presentation/controllers/config_io/child_save_plan.py:56 `移行対象は保存しないを選択できません。`
+- keyseq/presentation/controllers/config_io/child_save_plan.py:69 `保存操作が未指定です: {child_id[0]}:{child_id[1]}`
+- keyseq/presentation/controllers/config_io/child_save_rows.py:77 `同名の既存ファイルあり・安全のため別名`
+- keyseq/presentation/controllers/config_io/child_save_rows.py:79 `新規作成`
+- keyseq/presentation/controllers/config_io/child_save_rows.py:81 `この構成のみが所有・既存を上書き`
+- keyseq/presentation/controllers/config_io/child_save_rows.py:83 `{ref_count} 個の上位で共有中・全てに影響します`
+- keyseq/presentation/controllers/config_io/child_save_rows.py:85 `別の構成に属します`
+- keyseq/presentation/controllers/config_io/child_save_rows.py:86 `所有元不明・安全のため別名`
+- keyseq/presentation/controllers/config_io/child_save_rows.py:169 `{owner_name} / トリガー一覧`
+- keyseq/presentation/controllers/config_io/child_save_rows.py:198 `（{row_number} 行目）`
+- keyseq/presentation/controllers/config_io/io_dialogs.py:16 `保存先の確認`
+- keyseq/presentation/controllers/config_io/io_dialogs.py:17 `同名ファイルが既にあります。⏎⏎{path}⏎⏎上書きしますか？⏎「いいえ」で別名保存します。`
+- keyseq/presentation/controllers/config_io/io_dialogs.py:41 `保存名: {self._app.paths.filename_stem(path)}`
+- keyseq/presentation/controllers/config_io/io_dialogs.py:42 `ラベル名も保存名に合わせる`
+- keyseq/presentation/controllers/config_io/io_dialogs.py:55 `キャンセル`
+- keyseq/presentation/controllers/config_io/io_dialogs.py:64 `キャンセルされました。`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:34 `キーマップ`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:34 `対象のキーマップを選択してください。`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:46 `保存`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:46 `読込で持ってきたキーマップです。⏎別名で保存しますか？`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:54 `キーマップを保存`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:72 `キーマップを別名で保存`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:82 `キーマップ名の連動`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:95 `キーマップ保存失敗: {e}`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:96 `保存失敗`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:104 `キーマップの保存を中止しました。`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:201 `sequence の保存先変更には trigger_set の保存が必要です。`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:227 `キーマップを保存しました。`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:228 `キーマップを保存しました:⏎{path}`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:230 `⏎上位の索引を保存すると追随します。`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:231 `⏎上位の索引を保存すると追随します。`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:233 `保存`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:237 `キーマップを読込`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:244 `このキーマップは既に読み込まれています`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:244 `読込できません`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:255 `キーマップ読込失敗: {e}`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:256 `読込失敗`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:316 `キーマップを読み込みました。`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:317 `キーマップを読み込みました:⏎{path}`
+- keyseq/presentation/controllers/config_io/keymap_file_io.py:317 `読込`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:48 `未保存の変更`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:49 `未保存の変更があります。⏎{action_name}の前に保存しますか？`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:61 `新規作成`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:83 `新規作成しました（未保存）。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:90 `保存しました。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:102 `別名で保存（keymap_set）`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:112 `別名で保存しました。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:129 `保存を中止しました。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:135 `保存`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:175 `トリガー一覧`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:175 `参照元の子ファイル`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:176 `{label}は未保存です。次回保存で索引を更新します。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:180 `保存しました:⏎{save_path}`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:183 `保存`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:192 `保存失敗: {e}`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:193 `保存失敗`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:198 `保存`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:246 `トリガー一覧も保存して索引を更新しました。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:444 `トリガー一覧の保存先が変わったため、出力シーケンス {changed_sequences} 件の保存先を再計算しました。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:478 `{name} / トリガー一覧`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:503 `{name} / トリガー一覧`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:512 `（{row_number} 行目）`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:549 `読込`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:553 `keymap_set.json を読込`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:577 `読み込みました。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:578 `読み込みました:⏎{path}`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:578 `読込`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:585 `読込失敗: {e}`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:586 `読込失敗`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:597 `読込`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:598 `旧形式のトリガー一覧 {legacy.get('path', '')} を、キーマップ『{name}』に移しました（切替キーは未設定です）`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:623 `Import しました。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:624 `単一JSONを取り込みました:⏎{path}`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:626 `Import 失敗: {e}`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:627 `Import 失敗`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:641 `Export しました。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:642 `単一JSONを書き出しました:⏎{path}`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:644 `Export 失敗: {e}`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:645 `Export 失敗`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:648 `例の復元`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:650 `例の設定に戻します。よろしいですか？`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:650 `確認`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:668 `例の設定に戻しました（未保存）。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:672 `起動時に読むJSONの変更`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:676 `起動時に読み込む keymap_set.json を選択`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:689 `設定`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:707 `起動時読み込み設定の保存に失敗しました。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:710 `起動時読み込み設定を更新しました。`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:711 `次回起動時はこの keymap_set を読み込みます:⏎{path}`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:711 `設定`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:734 `保存先の確認`
+- keyseq/presentation/controllers/config_io/keymap_set_io.py:735 `構成セットがデフォルト外に保存されます。⏎keymaps / trigger_sets / sequences も構成セット周辺に保存しますか？⏎⏎「いいえ」の場合はデフォルト保存先を使います。`
+- keyseq/presentation/controllers/config_io/save_target_snapshot.py:14 `保存の準備中にトリガー一覧が変わったため、保存を中止しました。もう一度保存してください。`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:12 `出力シーケンス`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:12 `対象のトリガーを選択してください。`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:16 `保存`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:16 `読込で持ってきた出力シーケンスです。⏎別名で保存しますか？`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:21 `出力シーケンスを保存`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:29 `出力シーケンス`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:29 `対象のトリガーを選択してください。`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:39 `出力シーケンスを別名で保存`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:48 `出力シーケンス名の連動`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:79 `出力シーケンスを保存しました。`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:80 `出力シーケンスを保存しました:⏎{path}`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:82 `⏎上位の索引を保存すると追随します。`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:83 `⏎上位の索引を保存すると追随します。`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:85 `保存`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:88 `出力シーケンス保存失敗: {e}`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:89 `保存失敗`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:95 `出力シーケンス`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:95 `読込先のトリガーを選択してください。`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:98 `出力シーケンスを読込`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:114 `出力シーケンスを読み込みました。`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:115 `出力シーケンスを読み込みました:⏎{path}`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:115 `読込`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:117 `出力シーケンス読込失敗: {e}`
+- keyseq/presentation/controllers/config_io/sequence_file_io.py:118 `読込失敗`
+- keyseq/presentation/controllers/config_io/startup_io.py:63 `startup.json 保存失敗`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:46 `トリガー一覧を保存`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:60 `トリガー一覧を別名で保存`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:78 `トリガー一覧の保存を中止しました。`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:82 `保存`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:91 `トリガー一覧保存失敗: {e}`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:92 `保存失敗`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:97 `保存`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:140 `トリガー一覧を保存しました。`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:141 `トリガー一覧を保存しました:⏎{path}`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:143 `⏎上位の索引を保存すると追随します。`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:144 `⏎上位の索引を保存すると追随します。`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:146 `保存`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:202 `トリガー一覧読込`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:205 `トリガー一覧を読込`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:214 `トリガー一覧読込失敗: {e}`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:215 `読込失敗`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:224 `読込先のキーマップがありません。`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:293 `トリガー一覧を読み込みました。`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:294 `トリガー一覧を読み込みました:⏎{path}`
+- keyseq/presentation/controllers/config_io/trigger_set_file_io.py:294 `読込`

@@ -304,7 +304,7 @@ class NestedModalGrabTest(unittest.TestCase):
         config_io = PRESENTATION / "controllers" / "config_io"
         trees = {path: parse(path) for path in sorted(config_io.glob("*.py"))}
         expected_counts = {
-            "child_save_dialog.py": 2, "io_dialogs.py": 1, "hotkey_presets_io.py": 1,
+            "child_save_dialog.py": 2, "io_dialogs.py": 1, "hotkey_presets_io.py": 1, "choice_dialog.py": 1,
         }
         self.assertEqual(
             {path.name for path, tree in trees.items() if find_calls(tree, "grab_modal")},

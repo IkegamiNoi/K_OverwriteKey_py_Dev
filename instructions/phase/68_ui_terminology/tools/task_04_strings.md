@@ -1,0 +1,298 @@
+# task_04 の対象文字列（実装前・baseline より）
+
+- keyseq/application/call_context.py:113 `呼び出し: {' > '.join((key for key in chain if key))}`
+- keyseq/application/call_context.py:138 `呼び出しの深さが {sequence_control.MAX_CALL_DEPTH} を超えます`
+- keyseq/application/call_context.py:141 `呼び出しが循環します（{key}）`
+- keyseq/application/call_context.py:144 `呼び出し先のトリガーがありません（{key}）`
+- keyseq/application/call_context.py:153 `戻す・先頭へのトリガーは呼び出せません`
+- keyseq/application/call_context.py:155 `呼び出し先が指定されていません`
+- keyseq/application/call_context.py:168 `呼び出し先に無限ループがあります`
+- keyseq/application/call_context.py:245 `呼び出し先のトリガーがありません（{frame.key}）`
+- keyseq/application/call_context.py:283 `呼び出し先のステップを進められません`
+- keyseq/application/call_context.py:305 `呼び出し先のトリガーがありません（{frame.key}）`
+- keyseq/application/call_context.py:406 `呼び出し先のトリガーがありません（{frame.key}）`
+- keyseq/application/file_line_loader.py:93 `前回のファイル読込が終わっていません（ファイル: {path}）`
+- keyseq/application/file_line_loader.py:120 `前回のファイル読込が終わっていません（ファイル: {request.path}）`
+- keyseq/application/file_line_loader.py:130 `ファイルの読込が {self._timeout_seconds} 秒以内に終わりませんでした（ファイル: {request.path}）`
+- keyseq/application/file_line_loader.py:148 `ファイルの読込が {self._timeout_seconds} 秒以内に終わりませんでした（ファイル: {request.path}）`
+- keyseq/application/file_line_reader.py:55 `(空)`
+- keyseq/application/file_line_reader.py:55 `文字コードが不正です: {encoding or '(空)'}（ファイル: {path}）`
+- keyseq/application/file_line_reader.py:57 `(空)`
+- keyseq/application/file_line_reader.py:57 `範囲外の扱いが不正です: {out_of_range or '(空)'}（ファイル: {path}）`
+- keyseq/application/file_line_reader.py:59 `行番号が整数ではありません: {line_number}（ファイル: {path}）`
+- keyseq/application/file_line_reader.py:69 `ファイルを文字コード {encoding} で復号できません（ファイル: {path}）`
+- keyseq/application/file_line_reader.py:89 `空ファイルでは行番号を折り返せません（行番号: {line_number}, 行数: 0, ファイル: {path}）`
+- keyseq/application/file_line_reader.py:93 `行番号が範囲外です（行番号: {line_number}, 行数: {line_count}, ファイル: {path}）`
+- keyseq/application/file_line_reader.py:119 `ファイルサイズが上限 1 MB を超えています（サイズ: {size} バイト, ファイル: {path}）`
+- keyseq/application/file_line_reader.py:126 `ファイルを読み込めません（ファイル: {path}）: {exc}`
+- keyseq/application/file_line_reader.py:129 `ファイルサイズが上限 1 MB を超えています（サイズ: 1 MB 超, ファイル: {path}）`
+- keyseq/application/held_inputs.py:145 `リピート停止の判定でキー名を解けませんでした: %s`
+- keyseq/application/held_inputs.py:162 `キーのリピート送信に失敗しました: {exc}`
+- keyseq/application/held_inputs.py:173 ` / 解放エラー: {release_error}`
+- keyseq/application/key_repeat.py:64 `リピート予約の取り消しに失敗しました`
+- keyseq/application/key_repeat.py:94 `リピートのブロック判定に失敗しました`
+- keyseq/application/key_repeat.py:107 `リピートの送信に失敗しました: %s`
+- keyseq/application/key_repeat.py:114 `リピートの再予約に失敗しました: %s`
+- keyseq/application/screen_grid_session.py:247 `画面（モニタ）を取得できませんでした`
+- keyseq/application/sequence_history.py:13 `戻す対象のトリガーがありません`
+- keyseq/application/sequence_history.py:14 `対象のトリガーが待機中のため操作できません`
+- keyseq/application/sequence_runner/call_run_to_end.py:343 `呼び出しを実行できません`
+- keyseq/application/sequence_runner/call_wait.py:196 `呼び出しを実行できません`
+- keyseq/application/sequence_runner/call_wait.py:317 `呼び出しを実行できません`
+- keyseq/application/sequence_runner/file_line_wait.py:11 `file_line の読込の仕組みが未設定です`
+- keyseq/application/sequence_runner/input_acceptance.py:67 `一時停止中の実行を破棄しました（{', '.join(selected)}）`
+- keyseq/application/sequence_runner/input_acceptance.py:149 `一時停止中の {', '.join(paused)} を破棄します。もう一度押すと実行します`
+- keyseq/application/sequence_runner/input_acceptance.py:214 `{key} を選びました（もう一度押すと実行します）`
+- keyseq/application/sequence_runner/sequence_runner.py:97 `押下中の入力の解放に失敗しました: `
+- keyseq/application/sequence_runner/sequence_runner.py:374 ` / 解放エラー: `
+- keyseq/application/sequence_steps.py:15 `制御アクションの処理が 10000 回を超えました（通常アクションの無いループ等）`
+- keyseq/application/sequence_steps.py:45 `(なし)`
+- keyseq/application/sequence_steps.py:48 `(なし)`
+- keyseq/application/sequence_steps.py:48 `回数={action.get('count', '(なし)')}`
+- keyseq/application/sequence_steps.py:48 `無限`
+- keyseq/application/sequence_steps.py:50 `(なし)`
+- keyseq/application/sequence_steps.py:50 `{action.get('ms', '(なし)')}ms`
+- keyseq/application/sequence_steps.py:52 `(なし)`
+- keyseq/application/sequence_steps.py:52 `カウンター={action.get('counter', '(なし)')}`
+- keyseq/application/sequence_steps.py:56 `(なし)`
+- keyseq/application/sequence_steps.py:56 `呼び出し先={target or '(なし)'}`
+- keyseq/application/sequence_steps.py:63 ` / ラベル: {label.strip()}`
+- keyseq/application/sequence_steps.py:64 `system 実行エラー（{detail}）: {message}`
+- keyseq/application/sequence_steps.py:132 `ループの始まりに対応する終わりがありません`
+- keyseq/application/sequence_steps.py:134 `ループの入れ子が {MAX_LOOP_DEPTH} 段を超えています`
+- keyseq/application/sequence_steps.py:136 `ループの回数が不正です（1 以上の整数）`
+- keyseq/application/sequence_steps.py:144 `ループの終わりに対応する始まりがありません`
+- keyseq/application/sequence_steps.py:147 `ループの回数が不正です（1 以上の整数）`
+- keyseq/application/sequence_steps.py:161 `カウンター名が空です`
+- keyseq/application/sequence_steps.py:188 `system の操作が不正です。操作: {op}`
+- keyseq/application/sequence_steps.py:245 `呼び出し先に無限ループがあります`
+- keyseq/application/sequence_steps.py:267 `待機時間が不正です（1 以上の整数・ミリ秒）`
+- keyseq/application/sequence_steps.py:283 `戻す・先頭へは単独で登録してください`
+- keyseq/domain/call_graph.py:54 `呼び出し先を選んでください`
+- keyseq/domain/call_graph.py:58 `呼び出し先のトリガーがありません（{target}）`
+- keyseq/domain/call_graph.py:60 `自分自身は呼び出せません`
+- keyseq/domain/call_graph.py:64 `呼び出しが循環します（{' > '.join(path)}）`
+- keyseq/domain/call_graph.py:67 `呼び出しの深さが {sequence_control.MAX_CALL_DEPTH} を超えます`
+- keyseq/domain/call_graph.py:78 `戻す・先頭へのトリガーは呼び出せません`
+- keyseq/domain/control_target.py:17 `対象のトリガーを選んでください`
+- keyseq/domain/control_target.py:21 `対象のトリガーがありません（{target}）`
+- keyseq/domain/control_target.py:23 `自分自身は指定できません`
+- keyseq/domain/control_target.py:35 `戻す・先頭へのトリガーは指定できません`
+- keyseq/domain/hotkey.py:11 `hotkey が空です。`
+- keyseq/domain/hotkey.py:18 `hotkey の '+' の前後が空です（例: 'ctrl++c' や '+ctrl+c' や 'ctrl+c+' は不可）。`
+- keyseq/domain/hotkey.py:25 `hotkey に同じキーが重複しています（例: 'ctrl+ctrl+c'）。`
+- keyseq/domain/key_hold.py:53 `押下方向は down または up を指定してください。`
+- keyseq/domain/key_hold.py:56 `押下方向は down または up を指定してください。`
+- keyseq/domain/key_hold.py:62 `マウスボタンは left / right / middle のいずれかを指定してください。`
+- keyseq/domain/key_hold.py:66 `マウス座標は x と y の両方を指定してください。`
+- keyseq/domain/key_hold.py:72 `マウス座標 x と y は整数に変換できる値を指定してください。`
+- keyseq/domain/key_hold.py:77 `キー名は空でない文字列で指定してください。`
+- keyseq/domain/key_hold.py:80 `キー名に + または , は使用できません。`
+- keyseq/domain/key_hold.py:109 `中`
+- keyseq/domain/key_hold.py:109 `右`
+- keyseq/domain/key_hold.py:109 `左`
+- keyseq/domain/key_hold.py:110 `マウス{button_names[name]}`
+- keyseq/domain/key_hold.py:120 `押す`
+- keyseq/domain/key_hold.py:120 `離す`
+- keyseq/domain/key_hold.py:124 ` (リピート)`
+- keyseq/domain/mouse_scroll.py:17 `上`
+- keyseq/domain/mouse_scroll.py:17 `下`
+- keyseq/domain/mouse_scroll.py:17 `右`
+- keyseq/domain/mouse_scroll.py:17 `左`
+- keyseq/domain/mouse_scroll.py:31 `向きは up / down / left / right のいずれかを指定してください。`
+- keyseq/domain/mouse_scroll.py:34 `向きは up / down / left / right のいずれかを指定してください。`
+- keyseq/domain/mouse_scroll.py:40 `単位は notch または delta を指定してください。`
+- keyseq/domain/mouse_scroll.py:42 `単位は notch または delta を指定してください。`
+- keyseq/domain/mouse_scroll.py:46 `量は整数で指定してください。`
+- keyseq/domain/mouse_scroll.py:51 `量は整数で指定してください。`
+- keyseq/domain/mouse_scroll.py:57 `量は整数に変換できる値を指定してください。`
+- keyseq/domain/mouse_scroll.py:59 `量は整数で指定してください。`
+- keyseq/domain/mouse_scroll.py:63 `量は 1〜{maximum} の範囲で指定してください。`
+- keyseq/domain/mouse_scroll.py:68 `マウス座標は x と y の両方を指定してください。`
+- keyseq/domain/mouse_scroll.py:74 `マウス座標 x と y は整数に変換できる値を指定してください。`
+- keyseq/domain/mouse_scroll.py:97 `[スクロール] {_DIRECTION_NAMES[parsed.direction]} {parsed.amount}`
+- keyseq/domain/mouse_scroll.py:99 ` (生)`
+- keyseq/domain/mouse_scroll.py:108 `(なし)`
+- keyseq/domain/mouse_scroll.py:108 `{key}={str(action[key]) if key in action else '(なし)'}`
+- keyseq/domain/mouse_scroll.py:111 `(なし)`
+- keyseq/domain/mouse_scroll.py:111 `{key}={str(action[key]) if key in action else '(なし)'}`
+- keyseq/domain/sequence_control.py:202 `{display_name} （呼び出し先なし）`
+- keyseq/domain/sequence_control.py:206 `{display_name} {key}（参照先なし）`
+- keyseq/domain/sequence_control.py:222 `{display_name} → （参照先なし）`
+- keyseq/domain/sequence_control.py:227 `{display_name} → {key}（参照先なし）`
+- keyseq/infrastructure/input_gateway.py:429 `テンキーのキー名は num 0〜num 9 / num add / num subtract / num multiply / num divide / num decimal / num enter のいずれかで指定してください。`
+- keyseq/presentation/dialogs/action_control_fields.py:30 `ループ`
+- keyseq/presentation/dialogs/action_control_fields.py:31 `カウンター +1`
+- keyseq/presentation/dialogs/action_control_fields.py:32 `カウンターを 0 に`
+- keyseq/presentation/dialogs/action_control_fields.py:33 `待機`
+- keyseq/presentation/dialogs/action_control_fields.py:34 `停止`
+- keyseq/presentation/dialogs/action_control_fields.py:35 `呼び出し`
+- keyseq/presentation/dialogs/action_control_fields.py:36 `戻す`
+- keyseq/presentation/dialogs/action_control_fields.py:37 `先頭へ`
+- keyseq/presentation/dialogs/action_control_fields.py:42 `エラーで停止`
+- keyseq/presentation/dialogs/action_control_fields.py:43 `空を送る`
+- keyseq/presentation/dialogs/action_control_fields.py:44 `折り返し`
+- keyseq/presentation/dialogs/action_control_fields.py:68 `ループ`
+- keyseq/presentation/dialogs/action_control_fields.py:69 `system 設定`
+- keyseq/presentation/dialogs/action_control_fields.py:70 `file_line 設定`
+- keyseq/presentation/dialogs/action_control_fields.py:78 `カウンター +1`
+- keyseq/presentation/dialogs/action_control_fields.py:83 `操作`
+- keyseq/presentation/dialogs/action_control_fields.py:90 `回数`
+- keyseq/presentation/dialogs/action_control_fields.py:96 `無限`
+- keyseq/presentation/dialogs/action_control_fields.py:106 `カウンター名`
+- keyseq/presentation/dialogs/action_control_fields.py:111 `ミリ秒`
+- keyseq/presentation/dialogs/action_control_fields.py:117 `呼び出し先`
+- keyseq/presentation/dialogs/action_control_fields.py:130 `呼び出し先の「間隔(ms)」の間隔で実行します（連続実行 OFF でも使います）`
+- keyseq/presentation/dialogs/action_control_fields.py:136 `呼び出し先を一括で実行する（停止の行は読み飛ばす）`
+- keyseq/presentation/dialogs/action_control_fields.py:142 `対象のトリガーを指定する`
+- keyseq/presentation/dialogs/action_control_fields.py:149 `ファイル`
+- keyseq/presentation/dialogs/action_control_fields.py:152 `参照…`
+- keyseq/presentation/dialogs/action_control_fields.py:156 `カウンター名`
+- keyseq/presentation/dialogs/action_control_fields.py:164 `文字コード`
+- keyseq/presentation/dialogs/action_control_fields.py:171 `エラーで停止`
+- keyseq/presentation/dialogs/action_control_fields.py:172 `範囲外`
+- keyseq/presentation/dialogs/action_control_fields.py:200 `呼び出し先`
+- keyseq/presentation/dialogs/action_control_fields.py:200 `対象のトリガー`
+- keyseq/presentation/dialogs/action_control_fields.py:229 `カウンター +1`
+- keyseq/presentation/dialogs/action_control_fields.py:248 `エラーで停止`
+- keyseq/presentation/dialogs/action_control_fields.py:263 `入力エラー`
+- keyseq/presentation/dialogs/action_control_fields.py:263 `操作が不正です。`
+- keyseq/presentation/dialogs/action_control_fields.py:275 `カウンター名が空です。`
+- keyseq/presentation/dialogs/action_control_fields.py:275 `入力エラー`
+- keyseq/presentation/dialogs/action_control_fields.py:284 `ミリ秒は 1 以上の整数で入力してください。`
+- keyseq/presentation/dialogs/action_control_fields.py:284 `入力エラー`
+- keyseq/presentation/dialogs/action_control_fields.py:306 `{self._missing_call_target}（参照先なし）`
+- keyseq/presentation/dialogs/action_control_fields.py:314 `入力エラー`
+- keyseq/presentation/dialogs/action_control_fields.py:315 `呼び出し先のトリガーがありません（{self._missing_call_target}）`
+- keyseq/presentation/dialogs/action_control_fields.py:317 `入力エラー`
+- keyseq/presentation/dialogs/action_control_fields.py:317 `呼び出し先を選んでください`
+- keyseq/presentation/dialogs/action_control_fields.py:323 `入力エラー`
+- keyseq/presentation/dialogs/action_control_fields.py:339 `入力エラー`
+- keyseq/presentation/dialogs/action_control_fields.py:340 `対象のトリガーがありません（{self._missing_call_target}）`
+- keyseq/presentation/dialogs/action_control_fields.py:342 `入力エラー`
+- keyseq/presentation/dialogs/action_control_fields.py:342 `対象のトリガーを選んでください`
+- keyseq/presentation/dialogs/action_control_fields.py:348 `入力エラー`
+- keyseq/presentation/dialogs/action_control_fields.py:360 `入力エラー`
+- keyseq/presentation/dialogs/action_control_fields.py:360 `回数は 1 以上の整数で入力してください。`
+- keyseq/presentation/dialogs/action_control_fields.py:372 `ファイルが空です。`
+- keyseq/presentation/dialogs/action_control_fields.py:372 `入力エラー`
+- keyseq/presentation/dialogs/action_control_fields.py:375 `カウンター名が空です。`
+- keyseq/presentation/dialogs/action_control_fields.py:375 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:52 `種類`
+- keyseq/presentation/dialogs/action_dialog.py:58 `値`
+- keyseq/presentation/dialogs/action_dialog.py:65 `キー入力で記録`
+- keyseq/presentation/dialogs/action_dialog.py:68 `※記録中は、押したキーが hotkey として反映されます（Escで停止）`
+- keyseq/presentation/dialogs/action_dialog.py:72 `ラベル`
+- keyseq/presentation/dialogs/action_dialog.py:78 `OSショートカット（プリセット）`
+- keyseq/presentation/dialogs/action_dialog.py:88 `プリセット編集…`
+- keyseq/presentation/dialogs/action_dialog.py:94 `キャンセル`
+- keyseq/presentation/dialogs/action_dialog.py:97 `マウスクリック設定`
+- keyseq/presentation/dialogs/action_dialog.py:111 `ボタン`
+- keyseq/presentation/dialogs/action_dialog.py:116 `回数`
+- keyseq/presentation/dialogs/action_dialog.py:121 `クリック位置を取得`
+- keyseq/presentation/dialogs/action_dialog.py:123 `※押したあと、画面上の任意の場所を1回クリックすると座標が入ります`
+- keyseq/presentation/dialogs/action_dialog.py:153 `末尾に追加`
+- keyseq/presentation/dialogs/action_dialog.py:160 `ループ`
+- keyseq/presentation/dialogs/action_dialog.py:201 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:201 `種類が不正です。`
+- keyseq/presentation/dialogs/action_dialog.py:205 `値が空です。`
+- keyseq/presentation/dialogs/action_dialog.py:205 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:213 `mouse_click の X/Y が空です。`
+- keyseq/presentation/dialogs/action_dialog.py:213 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:218 `mouse_click の X/Y は整数で入力してください。`
+- keyseq/presentation/dialogs/action_dialog.py:218 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:240 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:240 `単位を選んでください。`
+- keyseq/presentation/dialogs/action_dialog.py:243 `マウス座標の X/Y は両方入力してください。`
+- keyseq/presentation/dialogs/action_dialog.py:243 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:247 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:258 `マウスのボタン`
+- keyseq/presentation/dialogs/action_dialog.py:260 `マウス座標の X/Y は両方入力してください。`
+- keyseq/presentation/dialogs/action_dialog.py:260 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:264 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:270 `キー名が不正です: {exc}`
+- keyseq/presentation/dialogs/action_dialog.py:270 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:285 `ドラッグ（範囲選択・ドラッグ&ドロップ）`
+- keyseq/presentation/dialogs/action_dialog.py:291 `離す位置 X`
+- keyseq/presentation/dialogs/action_dialog.py:292 `離す位置 Y`
+- keyseq/presentation/dialogs/action_dialog.py:293 `速度（px/秒）`
+- keyseq/presentation/dialogs/action_dialog.py:300 `離す位置を取得`
+- keyseq/presentation/dialogs/action_dialog.py:302 `※押したあと、画面上の任意の場所を1回クリックすると座標が入ります`
+- keyseq/presentation/dialogs/action_dialog.py:314 `掴む位置 X`
+- keyseq/presentation/dialogs/action_dialog.py:315 `掴む位置 Y`
+- keyseq/presentation/dialogs/action_dialog.py:322 `mouse_click の離す位置 X/Y が空です。`
+- keyseq/presentation/dialogs/action_dialog.py:322 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:327 `mouse_click の離す位置 X/Y は整数で入力してください。`
+- keyseq/presentation/dialogs/action_dialog.py:327 `入力エラー`
+- keyseq/presentation/dialogs/action_dialog.py:351 `…取得中：画面上の任意の場所を1回クリックしてください（右クリックでも可）`
+- keyseq/presentation/dialogs/action_dialog.py:359 `取得しました: ({int(x)}, {int(y)})`
+- keyseq/presentation/dialogs/action_dialog.py:384 `記録停止`
+- keyseq/presentation/dialogs/action_dialog.py:397 `キー入力で記録`
+- keyseq/presentation/dialogs/action_dialog.py:489 `※記録中は、押したキーが hotkey として反映されます（Escで停止）`
+- keyseq/presentation/dialogs/action_dialog.py:588 `ホットキープリセット編集`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:26 `キーの押下 / 解放`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:29 `動作`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:30 `押す`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:32 `押す`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:32 `離す`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:38 `対象`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:39 `キー`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:41 `キー`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:41 `マウスのボタン`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:49 `キー名`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:53 `1 キーを記録`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:55 `キーを 1 つ押すと記録します`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:60 `ボタン`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:61 `左`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:64 `中`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:64 `右`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:64 `左`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:67 `中`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:67 `右`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:67 `左`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:72 `座標を指定する`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:88 `座標を取得`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:96 `※押したあと、画面上の任意の場所を1回クリックすると座標が入ります`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:103 `リピートする`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:106 `（修飾キーは除く）`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:111 `押す`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:111 `離す`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:113 `マウスのボタン`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:121 `キー`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:123 `キー`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:123 `押す`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:131 `押す`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:131 `離す`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:132 `キー`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:145 `キー`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:156 `キー`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:156 `押す`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:173 `記録中…`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:174 `キーを 1 つ押してください（Esc で停止）`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:183 `1 キーを記録`
+- keyseq/presentation/dialogs/action_key_hold_fields.py:184 `キーを 1 つ押すと記録します`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:21 `上`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:21 `下`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:21 `右`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:21 `左`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:27 `マウススクロール`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:30 `向き`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:31 `下`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:34 `上`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:34 `下`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:34 `右`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:34 `左`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:40 `ノッチ数`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:48 `生の値（{WHEEL_DELTA} = 1 ノッチ）`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:59 `座標を指定する`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:72 `座標を取得`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:79 `※押したあと、画面上の任意の場所を1回クリックすると座標が入ります`
+- keyseq/presentation/dialogs/action_mouse_scroll_fields.py:98 `下`
+- keyseq/presentation/dialogs/preset_dialog.py:21 `内容（hotkey）`
+- keyseq/presentation/dialogs/preset_dialog.py:26 `ラベル`
+- keyseq/presentation/dialogs/preset_dialog.py:31 `例）内容: windows+d / ラベル: Win+D（ラベルは重複禁止）`
+- keyseq/presentation/dialogs/preset_dialog.py:37 `キャンセル`
+- keyseq/presentation/dialogs/preset_dialog.py:46 `入力エラー`
+- keyseq/presentation/dialogs/preset_dialog.py:46 `内容（hotkey）が空です。`
+- keyseq/presentation/dialogs/preset_dialog.py:49 `ラベルが空です。`
+- keyseq/presentation/dialogs/preset_dialog.py:49 `入力エラー`
