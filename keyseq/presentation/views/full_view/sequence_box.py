@@ -56,8 +56,8 @@ class SequenceBox(ttk.LabelFrame):
         self.call_view_frame = CallViewFrame(
             self.action_column, self.action_panes, lambda: app.call_view.on_heading_click(),
         )
-        ttk.Button(abtns, text="追加", width=16, command=app.trigger_panel.add_action).pack(pady=(0, 6))
-        ttk.Button(abtns, text="編集", width=16, command=app.trigger_panel.edit_action).pack(pady=6)
+        ttk.Button(abtns, text="追加…", width=16, command=app.trigger_panel.add_action).pack(pady=(0, 6))
+        ttk.Button(abtns, text="編集…", width=16, command=app.trigger_panel.edit_action).pack(pady=6)
         ttk.Button(abtns, text="削除", width=16, command=app.trigger_panel.delete_action).pack(pady=6)
         ttk.Button(abtns, text="複製", width=16, command=app.trigger_panel.duplicate_action).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
@@ -65,8 +65,8 @@ class SequenceBox(ttk.LabelFrame):
         ttk.Button(abtns, text="下へ", width=16, command=lambda: app.trigger_panel.move_action(+1)).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
         ttk.Button(abtns, text="保存", width=16, command=app.sequence_io.save_selected_sequence).pack(pady=6)
-        ttk.Button(abtns, text="別名で保存", width=16, command=app.sequence_io.save_selected_sequence_as).pack(pady=6)
-        ttk.Button(abtns, text="読込", width=16, command=app.sequence_io.load_sequence_file).pack(pady=6)
+        ttk.Button(abtns, text="別名保存…", width=16, command=app.sequence_io.save_selected_sequence_as).pack(pady=6)
+        ttk.Button(abtns, text="読込…", width=16, command=app.sequence_io.load_sequence_file).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
         # 連続実行（run_to_end）
         self.run_to_end_chk = ttk.Checkbutton(
@@ -77,7 +77,7 @@ class SequenceBox(ttk.LabelFrame):
         )
         self.run_to_end_chk.pack(anchor="w", pady=(8, 0))
         self.select_before_run_chk = ttk.Checkbutton(
-            abtns, text="確認して実行",
+            abtns, text="選んでから実行",
             variable=app.ui_vars.sequence_select_before_run_var,
             command=app.trigger_panel.update_select_before_run,
         )

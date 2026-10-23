@@ -492,7 +492,7 @@ class GridEditorWindowTest(unittest.TestCase):
             editor.panel.sub_key_buttons[index].configure(text=key)
         with patch("keyseq.presentation.dialogs.grid_editor_window.messagebox.showerror") as showerror:
             editor.accept()
-        self.assertIn("細分化・段 2: キーは 2 個にしてください", showerror.call_args.args[1])
+        self.assertIn("細分化・段2: キーは2個にしてください", showerror.call_args.args[1])
         self.assertTrue(editor.winfo_exists())
         editor.panel.sub_keys = ["a", ",", "/", "."]
         for index, key in enumerate(editor.panel.sub_keys):

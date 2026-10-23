@@ -136,59 +136,59 @@ BUILTIN_LAYOUTS: dict[str, KeyboardLayout] = {
 
 def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -> dict:
     if not isinstance(data, dict):
-        raise ValueError("JSONルートは object である必要があります。")
+        raise ValueError("JSONルートはobjectである必要があります。")
 
     for required_key in ("layout_id", "display_name", "keys"):
         if required_key not in data:
-            raise ValueError(f"{required_key} がありません。")
+            raise ValueError(f"{required_key}がありません。")
 
     layout_id_value = data.get("layout_id")
     if not isinstance(layout_id_value, str):
-        raise ValueError("layout_id は文字列である必要があります。")
+        raise ValueError("layout_idは文字列である必要があります。")
     layout_id = layout_id_value.strip()
     if not layout_id:
-        raise ValueError("layout_id が空です。")
+        raise ValueError("layout_idが空です。")
 
     if existing_layout_ids and layout_id in {str(v).strip() for v in existing_layout_ids if str(v).strip()}:
-        raise ValueError(f"layout_id '{layout_id}' は既に存在します。")
+        raise ValueError(f"layout_id '{layout_id}'はすでに存在します。")
 
     display_name_value = data.get("display_name")
     if not isinstance(display_name_value, str):
-        raise ValueError("display_name は文字列である必要があります。")
+        raise ValueError("display_nameは文字列である必要があります。")
     display_name = display_name_value.strip()
     if not display_name:
-        raise ValueError("display_name が空です。")
+        raise ValueError("display_nameが空です。")
 
     raw_keys = data.get("keys")
     if not isinstance(raw_keys, list):
-        raise ValueError("keys が配列ではありません。")
+        raise ValueError("keysが配列ではありません。")
     if not raw_keys:
-        raise ValueError("keys が空です。")
+        raise ValueError("keysが空です。")
 
     normalized_keys: list[dict] = []
     seen_key_ids: set[str] = set()
     for index, raw_key in enumerate(raw_keys):
         key_prefix = f"keys[{index}]"
         if not isinstance(raw_key, dict):
-            raise ValueError(f"{key_prefix} は object である必要があります。")
+            raise ValueError(f"{key_prefix}はobjectである必要があります。")
 
         for required_key in ("id", "label", "x", "y", "w", "h"):
             if required_key not in raw_key:
-                raise ValueError(f"{key_prefix}.{required_key} がありません。")
+                raise ValueError(f"{key_prefix}.{required_key}がありません。")
 
         key_id_value = raw_key.get("id")
         if not isinstance(key_id_value, str):
-            raise ValueError(f"{key_prefix}.id は文字列である必要があります。")
+            raise ValueError(f"{key_prefix}.idは文字列である必要があります。")
         key_id = key_id_value.strip()
         if not key_id:
-            raise ValueError(f"{key_prefix}.id が空です。")
+            raise ValueError(f"{key_prefix}.idが空です。")
         if key_id in seen_key_ids:
-            raise ValueError(f"{key_prefix}.id が重複しています: {key_id}")
+            raise ValueError(f"{key_prefix}.idが重複しています: {key_id}")
         seen_key_ids.add(key_id)
 
         label_value = raw_key.get("label")
         if not isinstance(label_value, str):
-            raise ValueError(f"{key_prefix}.label は文字列である必要があります。")
+            raise ValueError(f"{key_prefix}.labelは文字列である必要があります。")
 
         x = _coerce_float(raw_key.get("x"), f"{key_prefix}.x")
         y = _coerce_float(raw_key.get("y"), f"{key_prefix}.y")
@@ -196,13 +196,13 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
         h = _coerce_float(raw_key.get("h"), f"{key_prefix}.h")
 
         if x < 0:
-            raise ValueError(f"{key_prefix}.x は 0 以上である必要があります。")
+            raise ValueError(f"{key_prefix}.xは0以上である必要があります。")
         if y < 0:
-            raise ValueError(f"{key_prefix}.y は 0 以上である必要があります。")
+            raise ValueError(f"{key_prefix}.yは0以上である必要があります。")
         if w <= 0:
-            raise ValueError(f"{key_prefix}.w は 0 より大きい必要があります。")
+            raise ValueError(f"{key_prefix}.wは0より大きい必要があります。")
         if h <= 0:
-            raise ValueError(f"{key_prefix}.h は 0 より大きい必要があります。")
+            raise ValueError(f"{key_prefix}.hは0より大きい必要があります。")
 
         scan_code = None
         if "scan_code" in raw_key and raw_key.get("scan_code") not in ("", None):
@@ -212,7 +212,7 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
         if raw_extra_scan_codes is None:
             extra_scan_codes = ()
         elif not isinstance(raw_extra_scan_codes, list):
-            raise ValueError(f"{key_prefix}.extra_scan_codes は整数の配列である必要があります。")
+            raise ValueError(f"{key_prefix}.extra_scan_codesは整数の配列である必要があります。")
         else:
             extra_scan_codes = tuple(
                 _coerce_int(value, f"{key_prefix}.extra_scan_codes[{index}]")
@@ -314,14 +314,14 @@ def _coerce_float(value, field_name: str) -> float:
     try:
         return float(value)
     except Exception as exc:
-        raise ValueError(f"{field_name} は数値である必要があります。") from exc
+        raise ValueError(f"{field_name}は数値である必要があります。") from exc
 
 
 def _coerce_int(value, field_name: str) -> int:
     try:
         return int(value)
     except Exception as exc:
-        raise ValueError(f"{field_name} は整数である必要があります。") from exc
+        raise ValueError(f"{field_name}は整数である必要があります。") from exc
 
 
 def _get_registration_path(registration) -> str:

@@ -43,17 +43,17 @@ class FullTriggerBox(ttk.LabelFrame):
 
         tbtns = ttk.Frame(self.scroll_area.content)
         tbtns.pack(fill="x", pady=(6, 0))
-        ttk.Button(tbtns, text="追加", command=app.trigger_panel.add_trigger).pack(fill="x", pady=(0, 3))
-        ttk.Button(tbtns, text="トリガー変更", command=app.trigger_panel.rename_trigger).pack(fill="x", pady=3)
+        ttk.Button(tbtns, text="追加…", command=app.trigger_panel.add_trigger).pack(fill="x", pady=(0, 3))
+        ttk.Button(tbtns, text="トリガー編集…", command=app.trigger_panel.rename_trigger).pack(fill="x", pady=3)
         ttk.Button(tbtns, text="削除", command=app.trigger_panel.delete_trigger).pack(fill="x", pady=3)
         ttk.Separator(tbtns).pack(fill="x", pady=6)
         ttk.Button(tbtns, text="保存", command=app.trigger_set_io.save_trigger_set_file).pack(fill="x", pady=3)
-        ttk.Button(tbtns, text="別名で保存", command=app.trigger_set_io.save_trigger_set_file_as).pack(fill="x", pady=3)
-        ttk.Button(tbtns, text="読込", command=app.trigger_set_io.load_trigger_set_file).pack(fill="x", pady=3)
+        ttk.Button(tbtns, text="別名保存…", command=app.trigger_set_io.save_trigger_set_file_as).pack(fill="x", pady=3)
+        ttk.Button(tbtns, text="読込…", command=app.trigger_set_io.load_trigger_set_file).pack(fill="x", pady=3)
 
         self.suppress_chk = ttk.Checkbutton(
             self.scroll_area.content,
-            text="トリガーキーを抑止（suppress）",
+            text="トリガーキーを抑止(suppress)",
             variable=app.ui_vars.suppress_var,
             command=app.trigger_panel.update_suppress,
         )

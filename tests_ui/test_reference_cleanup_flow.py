@@ -336,9 +336,9 @@ class ReferenceCleanupFlowTest(unittest.TestCase):
         self.addCleanup(build_menu_bar, self.app)
         with patch.object(self.app.reference_cleanup_io, "run_cleanup") as run_cleanup:
             build_menu_bar(self.app)
-            invoked = self._invoke_menu_command("参照元を掃除…")
+            invoked = self._invoke_menu_command("参照元を掃除")
 
-        self.assertTrue(invoked, "参照元を掃除… メニューが見つかりません")
+        self.assertTrue(invoked, "参照元を掃除 メニューが見つかりません")
         run_cleanup.assert_called_once()
 
 

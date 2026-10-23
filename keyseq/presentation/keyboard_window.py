@@ -59,10 +59,10 @@ _LOOKUP_KEY_BY_ID = {
 
 def keyboard_window_title(layout_name: str, editing_key: str | None) -> str:
     if editing_key:
-        return f"Keyboard UI — 編集中: {editing_key}（Escでキャンセル）"
+        return f"キーボードUI — 編集中: {editing_key}（Escでキャンセル）"
     if layout_name:
-        return f"Keyboard UI — {layout_name}"
-    return "Keyboard UI"
+        return f"キーボードUI — {layout_name}"
+    return "キーボードUI"
 
 
 class KeyboardWindow(tk.Toplevel):
@@ -77,7 +77,7 @@ class KeyboardWindow(tk.Toplevel):
         is_mouse_button_down: Callable[[], bool] | None = None,
     ):
         super().__init__(parent)
-        self.title("Keyboard UI")
+        self.title("キーボードUI")
         self._on_close = on_close
         self._on_assign_keymap = on_assign_keymap
         self._on_clear_keymap = on_clear_keymap

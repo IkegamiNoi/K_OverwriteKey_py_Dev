@@ -133,8 +133,8 @@ class PresetManagerDialog(tk.Toplevel):
 
         btns = ttk.Frame(frm)
         btns.grid(row=1, column=2, sticky="n")
-        ttk.Button(btns, text="追加", width=14, command=self.add).pack(pady=(0, 6))
-        ttk.Button(btns, text="編集", width=14, command=self.edit).pack(pady=6)
+        ttk.Button(btns, text="追加…", width=14, command=self.add).pack(pady=(0, 6))
+        ttk.Button(btns, text="編集…", width=14, command=self.edit).pack(pady=6)
         ttk.Button(btns, text="削除", width=14, command=self.delete).pack(pady=6)
         ttk.Separator(btns).pack(fill="x", pady=10)
         ttk.Button(btns, text="上へ", width=14, command=lambda: self.move(-1)).pack(pady=6)

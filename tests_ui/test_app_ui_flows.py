@@ -2362,8 +2362,8 @@ class AppUiFlowsTest(unittest.TestCase):
         full_check = self.app.full_view.display_frame.keyboard_always_on_top_chk
         compact_check = self.app.compact_view.display_frame.keyboard_always_on_top_chk
         variable = self.app.ui_vars.keyboard_always_on_top_var
-        self.assertEqual(full_check.cget("text"), "キーボードUIを常に手前")
-        self.assertEqual(compact_check.cget("text"), "キーボードUIを常に手前")
+        self.assertEqual(full_check.cget("text"), "キーボードUIを最前面に表示")
+        self.assertEqual(compact_check.cget("text"), "キーボードUIを最前面に表示")
         self.assertEqual(full_check.cget("variable"), str(variable))
         self.assertEqual(compact_check.cget("variable"), str(variable))
 
@@ -2653,7 +2653,7 @@ class AppUiFlowsTest(unittest.TestCase):
         self.app.layout.open_keyboard_window()
         window = self.app.layout.keyboard_window
         try:
-            self.assertTrue(window.title().startswith("Keyboard UI — "))
+            self.assertTrue(window.title().startswith("キーボードUI — "))
             self.assertFalse(hasattr(window, "summary_var"))
         finally:
             window._handle_close()

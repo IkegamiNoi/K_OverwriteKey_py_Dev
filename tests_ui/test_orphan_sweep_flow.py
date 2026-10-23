@@ -258,8 +258,8 @@ class OrphanSweepFlowTest(unittest.TestCase):
         self.addCleanup(build_menu_bar, self.app)
         with patch.object(self.app.orphan_sweep_io, "run_sweep") as run:
             build_menu_bar(self.app)
-            invoked = self._invoke_settings_command("孤児ファイルの棚卸し…")
-        self.assertTrue(invoked, "孤児ファイルの棚卸し… メニューが見つかりません")
+            invoked = self._invoke_settings_command("未使用ファイルの整理…")
+        self.assertTrue(invoked, "未使用ファイルの整理… メニューが見つかりません")
         run.assert_called_once()
 
     @staticmethod

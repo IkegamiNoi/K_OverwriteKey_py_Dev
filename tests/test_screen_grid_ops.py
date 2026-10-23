@@ -100,8 +100,8 @@ class ScreenGridOperationsTest(unittest.TestCase):
 
     def test_validate_ops_rejects_fixed_operation_keys_overlapping_frame_keys(self):
         expected = {
-            "esc": "操作キー（戻る・固定）: 枠のキー 'esc' と重なっています",
-            "num enter": "操作キー（クリック・固定）: 枠のキー 'num enter' と重なっています",
+            "esc": "操作キー（戻る・固定）: 枠のキー'esc'と重なっています",
+            "num enter": "操作キー（クリック・固定）: 枠のキー'num enter'と重なっています",
         }
         for frame_keys, errors in (
             ({"esc"}, [expected["esc"]]),

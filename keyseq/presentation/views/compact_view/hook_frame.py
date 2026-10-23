@@ -34,7 +34,7 @@ class CompactHookFrame(ttk.LabelFrame):
         self.compact_hook_line2 = ttk.Frame(self)
         self.compact_hook_line2.pack(side="top", fill="x")
         # 停止トリガー表示のみ（Entryだけ）
-        ttk.Label(self.compact_hook_line2, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.compact_hook_line2, text="停止キー: ").grid(row=0, column=0, sticky="w")
         self.stop_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.ui_vars.stop_key_var, width=8, state="readonly")
         self.stop_key_entry.grid(row=0, column=1, sticky="w")
 
@@ -45,13 +45,13 @@ class CompactHookFrame(ttk.LabelFrame):
 
         self.hook_keys_individual_check = ttk.Checkbutton(
             self.compact_hook_line2,
-            text="このキーマップセットで個別指定する",
+            text="この構成セットで個別指定する",
             variable=app.ui_vars.hook_keys_individual_var,
             state="disabled",
         )
         self.hook_keys_individual_check.grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 0))
         self.select_before_run_check = ttk.Checkbutton(
-            self.compact_hook_line2, text="確認して実行",
+            self.compact_hook_line2, text="選んでから実行",
             variable=app.ui_vars.select_before_run_var,
             command=app.toggle_select_before_run,
         )

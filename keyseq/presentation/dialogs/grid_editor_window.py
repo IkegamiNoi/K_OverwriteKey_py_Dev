@@ -322,7 +322,7 @@ class GridEditorWindow(tk.Toplevel):
             entries = self.panel.sub_key_rows()
             for index, keys in enumerate(entries, start=1):
                 if len(keys) != cols:
-                    errors.append(f"細分化・段 {index}: キーは {cols} 個にしてください")
+                    errors.append(f"細分化・段{index}: キーは{cols}個にしてください")
             if errors:
                 messagebox.showerror("枠を設定できません", "\n".join(errors), parent=self.panel)
                 return

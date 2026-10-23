@@ -126,9 +126,9 @@ class QuarantineManageFlowTest(unittest.TestCase):
             menu = self._settings_menu()
             labels = [menu.entrycget(index, "label") for index in range(menu.index("end") + 1)
                       if menu.type(index) != "separator"]
-            self.assertEqual(labels[labels.index("孤児ファイルの棚卸し…") + 1], "隔離の管理…")
+            self.assertEqual(labels[labels.index("未使用ファイルの整理…") + 1], "退避したファイルの管理…")
             for index in range(menu.index("end") + 1):
-                if menu.type(index) == "command" and menu.entrycget(index, "label") == "隔離の管理…":
+                if menu.type(index) == "command" and menu.entrycget(index, "label") == "退避したファイルの管理…":
                     menu.invoke(index)
                     break
         manage.assert_called_once_with()
@@ -288,7 +288,7 @@ class QuarantineManageDialogTest(unittest.TestCase):
     def test_list_buttons_modal_and_no_selection(self):
         dialog = self._dialog()
         self.assertEqual(dialog.listbox.get(0, tk.END), ("first", "second"))
-        self.assertEqual([button.cget("text") for button in self._buttons(dialog)], ["復元する…", "削除する…", "閉じる"])
+        self.assertEqual([button.cget("text") for button in self._buttons(dialog)], ["復元する", "削除する", "閉じる"])
         self.assertEqual(dialog.grab_current(), dialog)
         self.assertEqual(str(dialog.transient()), str(self.app))
         dialog._restore()
@@ -328,7 +328,7 @@ class QuarantineManageDialogTest(unittest.TestCase):
         with patch.object(self.app.config_service, "delete_quarantine_unit") as delete:
             dialog = self._dialog()
             dialog.listbox.selection_set(1)
-            button = next(button for button in self._buttons(dialog) if button.cget("text") == "削除する…")
+            button = next(button for button in self._buttons(dialog) if button.cget("text") == "削除する")
             button.invoke()
         self.assertEqual((dialog.action, dialog.selected_unit_id), ("delete", "id2"))
         self.assertFalse(dialog.winfo_exists())
@@ -339,7 +339,7 @@ class QuarantineManageDialogTest(unittest.TestCase):
         # 確認 21・24
         with patch.object(self.app.config_service, "delete_quarantine_unit") as delete:
             dialog = self._dialog()
-            button = next(button for button in self._buttons(dialog) if button.cget("text") == "削除する…")
+            button = next(button for button in self._buttons(dialog) if button.cget("text") == "削除する")
             button.invoke()
         self.assertEqual((dialog.action, dialog.selected_unit_id), ("", ""))
         self.assertTrue(dialog.winfo_exists())

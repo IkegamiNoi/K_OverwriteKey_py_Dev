@@ -24,7 +24,7 @@ FIXED_BACK_KEY = "esc"
 FIXED_CLICK_KEY = "num enter"
 FIXED_OP_KEYS = frozenset({FIXED_BACK_KEY, FIXED_CLICK_KEY})
 OP_LABELS: Mapping[str, str] = MappingProxyType({
-    "deepen": "深くする",
+    "deepen": "絞り込む",
     "back": "戻る",
     "click": "クリック",
     "next_screen": "次の画面へ",
@@ -91,22 +91,22 @@ def validate_ops(
         if not key:
             reason = "キーが空です"
         elif key in MODIFIER_KEY_NAMES:
-            reason = f"修飾キー {key!r} です"
+            reason = f"修飾キー{key!r}です"
         elif key in FIXED_OP_KEYS:
-            reason = f"固定の操作キー {key!r} です"
+            reason = f"固定の操作キー{key!r}です"
         elif key in seen:
-            reason = f"キー {key!r} が先の操作と重複しています"
+            reason = f"キー{key!r}が先の操作と重複しています"
         elif key in reserved_names:
-            reason = f"予約キー {key!r} と重なっています"
+            reason = f"予約キー{key!r}と重なっています"
         elif key in frame_names:
-            reason = f"枠のキー {key!r} と重なっています"
+            reason = f"枠のキー{key!r}と重なっています"
         else:
             reason = ""
         if reason:
             errors.append(prefix + reason)
         seen.add(key)
     if FIXED_BACK_KEY in frame_names:
-        errors.append(f"操作キー（戻る・固定）: 枠のキー {FIXED_BACK_KEY!r} と重なっています")
+        errors.append(f"操作キー（戻る・固定）: 枠のキー{FIXED_BACK_KEY!r}と重なっています")
     if FIXED_CLICK_KEY in frame_names:
-        errors.append(f"操作キー（クリック・固定）: 枠のキー {FIXED_CLICK_KEY!r} と重なっています")
+        errors.append(f"操作キー（クリック・固定）: 枠のキー{FIXED_CLICK_KEY!r}と重なっています")
     return errors

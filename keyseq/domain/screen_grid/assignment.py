@@ -76,13 +76,13 @@ def _check_shape_key(
     if not key:
         errors.append(f"{location}: キーが空です")
     elif key in used:
-        errors.append(f"{location}: キー {key!r} が重複しています")
+        errors.append(f"{location}: キー{key!r}が重複しています")
     elif key in MODIFIER_KEY_NAMES:
-        errors.append(f"{location}: 修飾キー {key!r} は使えません")
+        errors.append(f"{location}: 修飾キー{key!r}は使えません")
     elif key in op_keys:
-        errors.append(f"{location}: 操作キー {key!r} と重なっています")
+        errors.append(f"{location}: 操作キー{key!r}と重なっています")
     elif key in reserved:
-        errors.append(f"{location}: 予約キー {key!r} は使えません")
+        errors.append(f"{location}: 予約キー{key!r}は使えません")
     used.add(key)
 
 
@@ -97,11 +97,11 @@ def validate_top(
         errors.append("段がありません")
     for row_index, row in enumerate(layout.rows, start=1):
         if not is_positive_ratio(row.h):
-            errors.append(f"段 {row_index}: 高さの比率は正の有限数にしてください")
+            errors.append(f"段{row_index}: 高さの比率は正の有限数にしてください")
         if not row.cells:
-            errors.append(f"段 {row_index}: 列がありません")
+            errors.append(f"段{row_index}: 列がありません")
         for col_index, cell in enumerate(row.cells, start=1):
-            location = f"段 {row_index}・列 {col_index}"
+            location = f"段{row_index}・列{col_index}"
             if not is_positive_ratio(cell.w):
                 errors.append(f"{location}: 幅の比率は正の有限数にしてください")
             _check_shape_key(cell.key, location, used, reserved_names, operation_names, errors)
@@ -127,5 +127,5 @@ def validate_sub(
     reserved_names = _normalized_reserved(reserved)
     operation_names = _normalized_op_keys(op_keys)
     for index, key in enumerate(sub.keys, start=1):
-        _check_shape_key(key, f"細分化・枠 {index}", used, reserved_names, operation_names, errors)
+        _check_shape_key(key, f"細分化・枠{index}", used, reserved_names, operation_names, errors)
     return errors

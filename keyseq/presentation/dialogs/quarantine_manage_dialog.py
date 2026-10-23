@@ -40,8 +40,8 @@ class QuarantineManageDialog(tk.Toplevel):
             self.listbox.insert(tk.END, line)
         actions = ttk.Frame(frm)
         actions.pack(anchor="e", pady=(14, 0))
-        ttk.Button(actions, text="復元する…", command=self._restore).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="削除する…", command=self._delete).pack(side="left", padx=(0, 8))
+        ttk.Button(actions, text="復元する", command=self._restore).pack(side="left", padx=(0, 8))
+        ttk.Button(actions, text="削除する", command=self._delete).pack(side="left", padx=(0, 8))
         ttk.Button(actions, text="閉じる", command=self.destroy).pack(side="left")
 
     def _restore(self) -> None:

@@ -64,7 +64,7 @@ class GridEditorPanel(tk.Toplevel):
         for index, (text, command) in enumerate((
             ("段の追加", editor.add_row), ("段の削除", editor.remove_row),
             ("列の追加", editor.add_cell), ("列の削除", editor.remove_cell),
-            ("振り直し", editor.reassign), ("この画面を既定に戻す", editor.reset_monitor),
+            ("キーを振り直す", editor.reassign), ("この画面を既定に戻す", editor.reset_monitor),
         )):
             # 押した後もキーで枠のキーを変えられるよう、フォーカスを編集の窓へ戻す。
             button = ttk.Button(
@@ -78,7 +78,7 @@ class GridEditorPanel(tk.Toplevel):
             command=editor.label_position_changed,
         )
         self.label_position_check.pack(anchor="w")
-        self.ops_frame = ttk.LabelFrame(content, text="操作キー（Esc = 戻る・テンキーの Enter = クリック は固定）")
+        self.ops_frame = ttk.LabelFrame(content, text="操作キー（Esc = 戻る・テンキーのEnter = クリックは固定）")
         self.ops_frame.pack(fill="x", pady=(4, 2))
         for column in (1, 3):
             self.ops_frame.grid_columnconfigure(column, weight=1)

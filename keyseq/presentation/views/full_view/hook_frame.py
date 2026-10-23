@@ -28,7 +28,7 @@ class FullHookFrame(ttk.LabelFrame):
         self.full_hook_line2 = ttk.Frame(self)
         self.full_hook_line2.pack(side="top", fill="x")
         # フック停止トリガー（フル：取得/クリアあり）
-        ttk.Label(self.full_hook_line2, text="フック停止トリガー: ").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.full_hook_line2, text="停止キー: ").grid(row=0, column=0, sticky="w")
         self.stop_key_entry = ttk.Entry(self.full_hook_line2, textvariable=app.ui_vars.stop_key_var, width=8, state="readonly")
         self.stop_key_entry.grid(row=0, column=1, sticky="w", padx=(0, 0))
         self.stop_key_capture_btn = ttk.Button(self.full_hook_line2, text=CAPTURE_IDLE_TEXT, command=app.toggle_stop_key_capture)
@@ -47,7 +47,7 @@ class FullHookFrame(ttk.LabelFrame):
 
         self.hook_keys_individual_check = ttk.Checkbutton(
             self.full_hook_line2,
-            text="このキーマップセットで個別指定する",
+            text="この構成セットで個別指定する",
             variable=app.ui_vars.hook_keys_individual_var,
             command=app.toggle_hook_keys_individual,
         )
@@ -55,7 +55,7 @@ class FullHookFrame(ttk.LabelFrame):
             row=2, column=0, columnspan=4, sticky="w", pady=(4, 0),
         )
         self.select_before_run_check = ttk.Checkbutton(
-            self.full_hook_line2, text="確認して実行",
+            self.full_hook_line2, text="選んでから実行",
             variable=app.ui_vars.select_before_run_var,
             command=app.toggle_select_before_run,
         )

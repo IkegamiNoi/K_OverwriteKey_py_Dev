@@ -254,7 +254,7 @@ class ScreenGridValidationTest(unittest.TestCase):
         location_errors = validate_top(
             TopLayout((GridRow(1, (GridCell(1, "f1"),)),)), {"f1"},
         )
-        self.assertIn("段 1・列 1: 予約キー 'f1' は使えません", location_errors)
+        self.assertIn("段1・列1: 予約キー'f1'は使えません", location_errors)
 
     def test_custom_operation_keys_are_blocked_for_assignment_and_validation(self):
         layout = TopLayout((GridRow(1, tuple(GridCell(1, "x") for _ in range(3))),))
@@ -262,10 +262,10 @@ class ScreenGridValidationTest(unittest.TestCase):
         reassigned = reassign_top_keys(layout, set(), op_keys={"q", "w"})
         self.assertEqual([cell.key for cell in reassigned.rows[0].cells], ["e", "r", "t"])
         self.assertEqual(auto_fill_sub_keys(1, 3, set(), op_keys={"q", "w"}), ("e", "r", "t"))
-        self.assertTrue(any("操作キー 'h' と重なっています" in error for error in validate_top(
+        self.assertTrue(any("操作キー'h'と重なっています" in error for error in validate_top(
             TopLayout((GridRow(1, (GridCell(1, "h"),)),)), set(), op_keys={"h"},
         )))
-        self.assertTrue(any("操作キー 'h' と重なっています" in error for error in validate_sub(
+        self.assertTrue(any("操作キー'h'と重なっています" in error for error in validate_sub(
             SubLayout(1, 2, ("h", "q")), set(), op_keys={"h"},
         )))
         self.assertEqual(next_free_key(set(), set()), "q")
