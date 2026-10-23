@@ -165,7 +165,7 @@ class ActionExecutor:
             if self._resolve_file_line_path is None:
                 raise FileLineError("ファイルパス解決コールバックが未設定です")
             if self._file_line_loader is None:
-                raise FileLineError("ファイル読込の仕組みが未設定です")
+                raise FileLineError("ファイルの読み込みの仕組みが未設定です")
             line_number = self._get_counter(counter_name)
             resolved_path = self._resolve_file_line_path(path)
             validate_file_line_request(
@@ -183,14 +183,14 @@ class ActionExecutor:
             owner = self.held_inputs.current_owner
         try:
             if self._file_line_loader is None:
-                raise FileLineError("ファイル読込の仕組みが未設定です")
+                raise FileLineError("ファイルの読み込みの仕組みが未設定です")
             result = self._file_line_loader.poll(handle.request)
             if result.status == "pending":
                 return None
             if result.status == "error":
                 raise result.error or FileLineError("ファイルの読み込みに失敗しました")
             if result.status != "done":
-                raise FileLineError("ファイル読込の結果が正しくありません")
+                raise FileLineError("ファイルの読み込み結果が正しくありません")
             line = pick_file_line(
                 result.lines or [], handle.line_number,
                 out_of_range=handle.out_of_range, path=handle.resolved_path,

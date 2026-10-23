@@ -11,15 +11,16 @@ last_commit_location: `claude/help-text-review-c94d50`（暫定 51・phase 68 �
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 68 task_06 完了（表示・メニュー・画面の枠の文言 + 「…」一覧の適用）。次 = task_07（前後差分・保留の確認・統合レビュー）。**
-mode: implementing
+focus: **phase 68 task_07 / 07a 完了（前後差分・保留の確定・統合レビュー反映）。次 = task_08（ユーザーの実機目視 → 正本反映・凍結・refactor_check・完了判定前レビュー）。**
+mode: waiting_user_visual_check
 presence: present
 
 ## last_action
-ts: 2026-10-24T00:30:00
+ts: 2026-10-24T03:00:00
 who: main
 summary: |
-  phase 68 task_06: codex-delegating-implementer で実装（A1・A5・A11・A14・A19・C10〜C12・C14・D11・D3 一覧を全ファイルへ）。reviewer 採用・D3 一覧と全行一致・テストの追従漏れなし。task_07 定義を起票。
+  phase 68 task_07: 実装後の抽出（tools/after_ja_strings.md）・残存一覧（tools/residual.md・理由なし 0）・保留 2 点ユーザー確定（フォルダ・入力エラー）。
+  統合レビュー: deep-reviewer 修正して採用 / codex-reviewer 指摘なし → ユーザー確定 4 点（別名保存… / 全角括弧の前の空白 / アクティブなキーマップ / どうしますか？）= 暫定 51 v0.8・task_07a（codex-implementer・reviewer 完了可）。task_08 定義（実機目視 6 項目・正本の確認リスト）。
 verified:
   compile: clean
   tests: pass 1819（skipped 7）
@@ -27,8 +28,7 @@ verified:
   smoke: pass
 
 ## next_action
-- task_02 → task_06 を連続実行（implementer・ユーザー許可済み）。task_06 は D3（「…」）の一覧表をユーザー確認してから実装
-- 各タスク: 定義（tools/task_NN_strings.md が対象一覧）→ implementer → verifier → reviewer → /save_state + /task_commit
+- task_08: ユーザーの実機目視（tasks/task_08 の 6 項目）→ 正本反映（ui_terms.md 新設はユーザー確認）→ 暫定 51 凍結・decisions_archive/68・current.md 完了・/refactor_check・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない

@@ -437,7 +437,7 @@ def validate_save_plan(service,
                 os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
             except OSError as exc:
                 raise SavePlanError(
-                    f"別名保存先のディレクトリを作成できません: {entry.kind}:{entry.key}"
+                    f"別名保存先のフォルダを作成できません: {entry.kind}:{entry.key}"
                 ) from exc
 
     destinations: set[str] = set()

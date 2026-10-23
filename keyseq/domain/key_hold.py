@@ -121,7 +121,7 @@ def format_key_hold_value(action: Mapping[str, Any]) -> str:
     if parsed.button is None:
         display = f"[{direction}] {parsed.key}"
         if is_repeat_enabled(action):
-            display += " （リピート）"
+            display += "（リピート）"
         return display
     display = f"[{direction}] {held_display_name('mouse', parsed.button)}"
     if parsed.position is not None:

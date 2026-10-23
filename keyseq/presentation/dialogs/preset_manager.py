@@ -317,7 +317,7 @@ class PresetManagerDialog(tk.Toplevel):
         # hotkey を検証して不正なら弾く（即時UIエラー）
         err_msg, normalized = self.parent.validate_hotkey(value)
         if err_msg:
-            messagebox.showerror("不正なhotkey", f"プリセットのhotkey値が正しくありません。\n\n入力: {value}\n理由: {err_msg}")
+            messagebox.showerror("入力エラー", f"プリセットのhotkey値が正しくありません。\n\n入力: {value}\n理由: {err_msg}")
             return
 
         self._temp.append({"label": label, "value": normalized})
@@ -353,7 +353,7 @@ class PresetManagerDialog(tk.Toplevel):
         # hotkey を検証して不正なら弾く（即時UIエラー）
         err_msg, normalized = self.parent.validate_hotkey(value)
         if err_msg:
-            messagebox.showerror("不正なhotkey", f"プリセットのhotkey値が正しくありません。\n\n入力: {value}\n理由: {err_msg}")
+            messagebox.showerror("入力エラー", f"プリセットのhotkey値が正しくありません。\n\n入力: {value}\n理由: {err_msg}")
             return
 
         selection = selected_range(self.listbox)

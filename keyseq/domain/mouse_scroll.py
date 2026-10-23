@@ -96,7 +96,7 @@ def format_mouse_scroll_value(action: Mapping[str, Any]) -> str:
         return f"[{ACTION_TYPE_MOUSE_SCROLL}]"
     display = f"[スクロール] {_DIRECTION_NAMES[parsed.direction]}{parsed.amount}"
     if parsed.unit == UNIT_DELTA:
-        display += " （生）"
+        display += "（生）"
     if parsed.position is not None:
         display += f" ({parsed.position[0]}, {parsed.position[1]})"
     return display

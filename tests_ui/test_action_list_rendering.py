@@ -153,7 +153,7 @@ class ActionListRenderingTest(unittest.TestCase):
             ({"type": "mouse_scroll", "direction": "down", "unit": "notch", "amount": 3},
              "01. [スクロール] 下3"),
             ({"type": "mouse_scroll", "direction": "right", "unit": "delta", "amount": 60},
-             "02. [スクロール] 右60 （生）"),
+             "02. [スクロール] 右60（生）"),
             ({"type": "mouse_scroll", "direction": "down", "unit": "notch", "amount": 3,
               "x": 100, "y": 200}, "03. [スクロール] 下3 (100, 200)"),
             ({"type": "mouse_scroll", "direction": "bad", "unit": "notch", "amount": 3},

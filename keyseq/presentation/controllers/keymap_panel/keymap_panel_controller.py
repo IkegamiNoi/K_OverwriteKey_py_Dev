@@ -638,7 +638,7 @@ class KeymapPanelController:
             messagebox.showerror("設定できません", f"このキーは切替キーに設定されています:\n{source}")
             return False
         if source in self._app._key_overlap_report().active_trigger_keys:
-            messagebox.showerror("設定できません", f"このキーはアクティブキーマップのトリガーキーに設定されています:\n{source}")
+            messagebox.showerror("設定できません", f"このキーはアクティブなキーマップのトリガーキーに設定されています:\n{source}")
             return False
 
         try:

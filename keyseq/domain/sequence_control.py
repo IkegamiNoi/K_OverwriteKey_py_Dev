@@ -199,7 +199,7 @@ def _format_system_value(
         target = action.get("target")
         if resolve_call is None:
             if not isinstance(target, str) or not target.strip():
-                return f"{display_name} （呼び出し先なし）"
+                return f"{display_name}（呼び出し先なし）"
             return f"{display_name} {target.strip()}"
         key, label = resolve_call(target)
         if label is None:
@@ -219,7 +219,7 @@ def _format_control_target(
     if target is None:
         return display_name
     if not target:
-        return f"{display_name} → （参照先なし）"
+        return f"{display_name} →（参照先なし）"
     if resolve_call is None:
         return f"{display_name} → {target}"
     key, label = resolve_call(action.get("target"))

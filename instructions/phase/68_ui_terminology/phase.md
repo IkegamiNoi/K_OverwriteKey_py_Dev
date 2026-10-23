@@ -65,6 +65,7 @@ UI の文言を 1 概念 1 語に揃え、個別の不自然な表現と表記�
   担当 = `views/`（menu_bar・status_bar・full_view/・compact_view/）・`screen_grid/`・`domain/screen_grid/`・`dialogs/grid_editor_window.py`・`layout_delete_dialog.py`・`keyboard_window.py`・`keyboard_layouts.py`・`infrastructure/win32_window.py` +
   **D3 の「…」を付ける / 外すメニュー・ボタンの一覧表を、実装より前にタスク定義の段階で作りユーザー確認を経てから全ファイルへ適用**（暫定 51 §3.6）
 - task_07: 実装後の抽出と前後差分・残存一覧（§6-1・理由付き）・統合確認（tests / tests_ui / smoke）・統合レビュー
+- task_07a: 統合レビューの指摘のうちユーザー確定分（A21 アクティブなキーマップ・全角括弧の前の空白・再計算確認の「どうしますか？」・確認ダイアログの「別名保存…」）と読込の揃え（2026-10-24 追加）
 - task_08: 実機目視（§6-6）・正本反映（§8・新ファイル `spec_detail/ui_terms.md` の要否はユーザー確認）・暫定 51 凍結・`decisions_archive/68_ui_terminology.md`・decisions.md の索引・current.md の完了記載・`/refactor_check`・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
 
 ## レビュー方針

@@ -1609,7 +1609,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             )
 
         grab_modal.assert_called_once()
-        self.assertIs(grab_modal.call_args.kwargs["focus"], buttons["別名保存"])
+        self.assertIs(grab_modal.call_args.kwargs["focus"], buttons["別名保存…"])
 
     def test_dependency_dialog_defaults_to_save_as_and_escape_or_close_cancels(self):
         row = ChildSaveRow(
@@ -1623,7 +1623,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 result, dialog, buttons = self._ask_dependency_internally(row, close)
                 self.assertEqual(result, "")
                 self.assertTrue(dialog.destroyed)
-                self.assertTrue(buttons["別名保存"].focused)
+                self.assertTrue(buttons["別名保存…"].focused)
 
     def test_new_child_collision_defaults_to_save_as_without_overwriting(self):
         with tempfile.TemporaryDirectory() as root:
@@ -2043,9 +2043,10 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 "種別: 出力シーケンス\n"
                 "対象名: Copy\n"
                 "保存先: C:/copy.json\n"
-                "共有状況: 別のトリガーセットに属します"
+                "共有状況: 別のトリガーセットに属します\n\n"
+                "どうしますか？"
             ),
-            "choices": [("overwrite", "上書き"), ("save_as", "別名保存"), ("abort", "保存を中止")],
+            "choices": [("overwrite", "上書き"), ("save_as", "別名保存…"), ("abort", "保存を中止")],
             "default": "save_as",
             "cancel": "abort",
         }
@@ -2078,8 +2079,8 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         )
         cases = (
             ("保存", ACTION_SAVE, ""),
-            ("別名保存", ACTION_SAVE_AS, "C:/renamed.json"),
-            ("別名保存", "", ""),
+            ("別名保存…", ACTION_SAVE_AS, "C:/renamed.json"),
+            ("別名保存…", "", ""),
             ("保存しない", ACTION_SKIP, ""),
         )
         for button, expected, save_as_path in cases:
@@ -2092,7 +2093,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
                 self.assertEqual(result, expected)
                 self.assertEqual(
                     set(buttons),
-                    {"保存", "別名保存", "保存しない", "キャンセル"},
+                    {"保存", "別名保存…", "保存しない", "キャンセル"},
                 )
 
 

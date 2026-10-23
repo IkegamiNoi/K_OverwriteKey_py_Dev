@@ -45,7 +45,7 @@ class TriggerRowEditFlow:
             messagebox.showerror("追加できません", f"このキーは切替キーに設定されています:\n{key}")
             return
         if key in self._panel._app._key_overlap_report().active_source_keys:
-            messagebox.showerror("追加できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{key}")
+            messagebox.showerror("追加できません", f"このキーはアクティブなキーマップの置換元キーに設定されています:\n{key}")
             return
         triggers.append({"key": key, "label": label, "suppress": True, "run_to_end": False, "actions": []})
         new_index = len(triggers) - 1
@@ -96,7 +96,7 @@ class TriggerRowEditFlow:
                 messagebox.showerror("編集できません", f"このキーは切替キーに設定されています:\n{new}")
                 return
             if new in self._panel._app._key_overlap_report().active_source_keys:
-                messagebox.showerror("編集できません", f"このキーはアクティブキーマップの置換元キーに設定されています:\n{new}")
+                messagebox.showerror("編集できません", f"このキーはアクティブなキーマップの置換元キーに設定されています:\n{new}")
                 return
         after = list(triggers)
         if old != new and trigger_index is not None:

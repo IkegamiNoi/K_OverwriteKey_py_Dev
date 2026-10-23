@@ -234,7 +234,7 @@ class ChildSaveDialog:
         )
         save_as_button = ttk.Button(
             buttons,
-            text="別名保存",
+            text="別名保存…",
             command=lambda: choose(ACTION_SAVE_AS),
         )
         save_as_button.pack(side="right", padx=(0, 8))
@@ -257,13 +257,14 @@ class ChildSaveDialog:
             )
             for row in rows
         )
+        message += "\n\nどうしますか？"
         self._app.hook.suspend_hook_for_dialog()
         try:
             choice = choice_dialog.ask_choice(
                 self._app,
                 title="再計算後の保存先を確認",
                 message=message,
-                choices=[("overwrite", "上書き"), ("save_as", "別名保存"), ("abort", "保存を中止")],
+                choices=[("overwrite", "上書き"), ("save_as", "別名保存…"), ("abort", "保存を中止")],
                 default="save_as",
                 cancel="abort",
             )

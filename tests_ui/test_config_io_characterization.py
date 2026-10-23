@@ -457,7 +457,7 @@ class ConfigIoCharacterizationTest(unittest.TestCase):
             expected_kwargs = {
                 "title": "保存先の確認",
                 "message": f"同名ファイルがすでにあります。\n\n{suggested}\n\n上書きしますか？",
-                "choices": [("overwrite", "上書き"), ("save_as", "別名保存"), ("cancel", "キャンセル")],
+                "choices": [("overwrite", "上書き"), ("save_as", "別名保存…"), ("cancel", "キャンセル")],
                 "default": "overwrite",
                 "cancel": "cancel",
             }

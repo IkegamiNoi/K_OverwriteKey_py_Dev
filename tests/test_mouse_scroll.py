@@ -89,7 +89,7 @@ class MouseScrollFormattingTests(unittest.TestCase):
             {"direction": "down", "amount": 3}), "[スクロール] 下3")
         self.assertEqual(format_mouse_scroll_value(
             {"direction": "right", "unit": "delta", "amount": 60}),
-            "[スクロール] 右60 （生）")
+            "[スクロール] 右60（生）")
         self.assertEqual(format_mouse_scroll_value(
             {"direction": "down", "amount": 3, "x": 100, "y": 200}),
             "[スクロール] 下3 (100, 200)")
@@ -111,7 +111,7 @@ class MouseScrollFormattingTests(unittest.TestCase):
         self.assertEqual(format_action_list_item(
             1, {"type": "mouse_scroll", "direction": "right", "unit": "delta",
                 "amount": 60, "label": " memo "}),
-            "02. [スクロール] 右60 （生）: memo")
+            "02. [スクロール] 右60（生）: memo")
 
 
 if __name__ == "__main__":

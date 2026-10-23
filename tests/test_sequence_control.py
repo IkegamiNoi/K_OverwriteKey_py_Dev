@@ -211,13 +211,13 @@ class FormatControlValueTest(unittest.TestCase):
             format_control_value(system("back", target="F5")),
             "[back] → f5",
         )
-        self.assertEqual(format_control_value(system("rewind", target=" ")), "[rewind] → （参照先なし）")
+        self.assertEqual(format_control_value(system("rewind", target=" ")), "[rewind] →（参照先なし）")
         self.assertEqual(
             format_control_value(
                 system("back", target=""),
                 resolve_call=lambda target: self.fail("resolver must not be called for an empty target"),
             ),
-            "[back] → （参照先なし）",
+            "[back] →（参照先なし）",
         )
 
     def test_call_display_with_resolved_labels(self) -> None:
@@ -255,7 +255,7 @@ class FormatControlValueTest(unittest.TestCase):
         )
         self.assertEqual(
             format_control_value(system("call", target="")),
-            "[call] （呼び出し先なし）",
+            "[call]（呼び出し先なし）",
         )
 
     def test_all_call_display_for_all_target_states(self) -> None:
@@ -276,7 +276,7 @@ class FormatControlValueTest(unittest.TestCase):
         )
         self.assertEqual(
             format_control_value(system("call", all=True, target="")),
-            "[call all] （呼び出し先なし）",
+            "[call all]（呼び出し先なし）",
         )
 
     def test_call_kind_checks_type_operation_and_truthiness(self) -> None:
@@ -297,8 +297,8 @@ class FormatControlValueTest(unittest.TestCase):
 
     def test_call_display_without_resolver_and_empty_target(self) -> None:
         self.assertEqual(format_control_value(system("call", target=" F5 ")), "[call] F5")
-        self.assertEqual(format_control_value(system("call", target=" ")), "[call] （呼び出し先なし）")
-        self.assertEqual(format_control_value(system("call", target=5)), "[call] （呼び出し先なし）")
+        self.assertEqual(format_control_value(system("call", target=" ")), "[call]（呼び出し先なし）")
+        self.assertEqual(format_control_value(system("call", target=5)), "[call]（呼び出し先なし）")
 
     def test_non_call_display_is_unchanged_with_resolver(self) -> None:
         resolver = lambda target: ("f5", "Copy")

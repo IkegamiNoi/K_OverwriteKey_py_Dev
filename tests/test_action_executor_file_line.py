@@ -98,7 +98,7 @@ class ActionExecutorFileLineTests(unittest.TestCase):
             (self.executor, {"type": "file_line", "path": str(self.path), "counter": " "}, "カウンター名が空です"),
             (self._executor(resolve_path=None), {"type": "file_line", "counter": "rows"}, "ファイルパス解決コールバックが未設定です"),
             (self._executor(get_counter=None), {"type": "file_line", "counter": "rows"}, "カウンター取得コールバックが未設定です"),
-            (self._executor(file_line_loader=None), {"type": "file_line", "counter": "rows"}, "ファイル読込の仕組みが未設定です"),
+            (self._executor(file_line_loader=None), {"type": "file_line", "counter": "rows"}, "ファイルの読み込みの仕組みが未設定です"),
         ]
         for executor, action, message in cases:
             with self.subTest(message=message):
