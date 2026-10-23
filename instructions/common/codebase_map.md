@@ -29,7 +29,7 @@ infrastructure
 - keyboard フック
 - JSON入出力
 - `keyseq/infrastructure/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）
-- `keyseq/infrastructure/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `keyseq/infrastructure/own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（`get_open_status` / `set_open_status`・キーの取得中・phase 60）
+- `keyseq/infrastructure/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `keyseq/infrastructure/own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（`get_open_status` / `set_open_status`・キーの記録中・phase 60）
 
 ---
 
@@ -44,68 +44,69 @@ keyseq/presentation/
     ui_vars.py                 # UiVars: View / コントローラ間で共有する Tk 変数ホルダー（ステータスの表示用 / 全文用を保持）
     controllers/               # 種類別フォルダ
         config_io/             # 構成セット・個別JSONの保存/読込を7クラスへ分割（所有者フォルダ・計画04）
-            keymap_set_io.py   # KeymapSetIo: 構成セット（keymap_set）+ 専用ヘルパ
+            keymap_set_io.py   # KeymapSetIo: 構成セット+ 専用ヘルパ
             startup_io.py      # StartupIo: 起動設定（startup.json）read/write
-            hotkey_presets_io.py  # HotkeyPresetsIo: hotkey プリセットの即時保存（グローバル / 個別。唯一の書き手）+ 拒否表示 / 上書き確認の 3 択モーダル
+            hotkey_presets_io.py  # HotkeyPresetsIo: プリセットの即時保存（共通プリセット / 構成セット専用プリセット。唯一の書き手）+ 拒否表示 / 上書き確認の 3 択モーダル
             io_dialogs.py      # IoDialogs: 共有ダイアログヘルパ（保存パス衝突 / ラベル連動）
-            keymap_file_io.py  # KeymapFileIo: keymap 個別 JSON
-            trigger_set_file_io.py  # TriggerSetFileIo: trigger_set 個別 JSON
-            sequence_file_io.py     # SequenceFileIo: sequence 個別 JSON
+            choice_dialog.py   # ask_choice: 操作名をボタンに表示する選択式モーダルダイアログ（上書き / 別名保存… / キャンセル等）
+            keymap_file_io.py  # KeymapFileIo: キーマップ個別 JSON
+            trigger_set_file_io.py  # TriggerSetFileIo: トリガーセット個別 JSON
+            sequence_file_io.py     # SequenceFileIo: 出力シーケンス個別 JSON
             child_save_rows.py      # 子ファイルの共有状況判定と行モデル（判定名 / 表示文言 / 既定アクション）
             child_save_dialog.py    # ChildSaveDialog: 子一覧 / 依存確認 / 再計算先の上書き確認（共有 hover_tooltip を使用）
             child_save_columns.py   # ChildSaveColumns: 子一覧の列幅（保存先パスだけ weight）・見出しの境界 3 つのドラッグ・開いたときの大きさと最小の大きさ（phase 44）
             child_save_plan.py      # 行の選択・確定エントリ・既定規則から保存計画を組み立てる
             save_target_snapshot.py # 保存の対象のトリガー一覧の実体と行の並びの固定（capture_all / capture_active）と書き込み直前の照合（snapshot_matches）（phase 43）
             reference_cleanup_io.py # ReferenceCleanupIo: 参照元の掃除のフロー（保存確認→検査→確認→除去→通知）
-            orphan_sweep_io.py      # OrphanSweepIo: 孤児ファイルの棚卸しのフロー（保存確認→走査→棚卸しダイアログ→確認→隔離→通知）+ 走査先設定の保存（→ StartupIo）
-            quarantine_manage_io.py # QuarantineManageIo: 隔離の管理のフロー（一覧→単位選択→復元 / 削除の確認→実行→通知）
+            orphan_sweep_io.py      # OrphanSweepIo: 未使用ファイルの整理のフロー（保存確認→走査→候補一覧→確認→退避→通知）+ 走査先設定の保存（→ StartupIo）
+            quarantine_manage_io.py # QuarantineManageIo: 退避したファイルの管理のフロー（一覧→回の選択→復元 / 削除の確認→実行→通知）
             keymap_set_history_io.py # KeymapSetHistoryIo: 読み込み履歴の記録の単一の口 record() + 履歴ダイアログの開閉と編集 6 メソッド（phase 27・`data_schema.md` §5.12）
         dirty_state.py
         button_width.py        # apply_fixed_button_width: TButton のフォントで文言を測り、ボタンの width を最大文言幅で固定（phase 19）
         hook_controller.py
-        key_capture.py         # SingleKeyCaptureController: 停止キー / トグルキーの取得（取得中の IME = key_capture_ime・phase 60）
+        key_capture.py         # SingleKeyCaptureController: 停止キー / トグルキーの記録（記録中の IME = key_capture_ime・phase 60）
         keymap_panel/          # キーマップ管理（所有者フォルダ・phase 34 task_09）
             __init__.py        # KeymapPanelController の再輸出
             keymap_panel_controller.py  # KeymapPanelController: 一覧・選択 = アクティブ化・編集・削除・グレー表示
             keymap_add_flow.py # KeymapAddFlow: キーマップを増やす 3 つの流れ（追加・個別読込・貼り付け）を 1 経路で処理（切替キーのまとめて設定 → 一括確定・アクティブ不変・phase 43）
             keymap_list_edit.py   # KeymapListEditFlow: キーマップ一覧の範囲確定 = アクティブ化・ドラッグ並べ替え（禁止条件・代表の付け替え）・範囲削除・Ctrl+C/V（phase 43）
         layout_controller.py
-        pane_layout/           # フル表示の幅配分（所有者フォルダ・phase 18）
+        pane_layout/           # 詳細表示の幅配分（所有者フォルダ・phase 18）
             __init__.py        # PaneLayoutController の再輸出
             pane_layout_controller.py  # PaneLayoutController: 境界線ドラッグ・最小幅・収まらない場合の適用・幅の保存と復元・最小の高さ（phase 20）
             pane_measure.py    # measure_min_widths: 各枠の最小幅 / measure_header_window_width: ヘッダの要求幅から求めたウィンドウ幅を実ウィジェットから測る / measure_window_min_height: 最小の高さ（ウィンドウの要求高さ − PanedWindow の要求高さ + ceil(H/2)・一時メッセージは 1 行分・phase 58）/ measure_main_area_basis_height: H = 3 枠の「飾り + スクロール領域の中身の要求高さ」の最大。最小幅は各枠のスクロール領域の中身から測り、スクロールバーの要求幅を足す。測る前に 3 枠の `scroll_area.sync()`
-        trigger_panel/          # トリガー/シーケンス管理（所有者フォルダ・phase 37 task_09）
+        trigger_panel/          # トリガー/出力シーケンス管理（所有者フォルダ・phase 37 task_09）
             __init__.py        # TriggerPanelController の再輸出
             trigger_panel_controller.py  # TriggerPanelController: トリガー一覧・描画・状態表示・アクション編集の委譲
             action_edit.py     # ActionEditFlow: 出力シーケンスの選択・追加・編集・削除・移動
             trigger_row_edit.py  # TriggerRowEditFlow: トリガー行の追加・改名・削除（controller から遅延生成して委譲）
-            trigger_list_edit.py  # TriggerListEditFlow: フル表示のトリガー範囲移動・削除・コピー/末尾貼り付け（有効行交代の口を使用）
+            trigger_list_edit.py  # TriggerListEditFlow: 詳細表示のトリガー範囲移動・削除・コピー/末尾貼り付け（有効行交代の口を使用）
             effective_row_transition.py  # 有効な行の交代の口: 交代するキーに進行中の実行があれば拒否・交代したキーの状態を削除と同じく消す（phase 43）
-        call_view_controller.py    # CallViewController: 呼び出し先の表示枠（フル / 省略の 2 つの置き場〔_CallViewHost〕・開閉はトリガーごとに共有・高さは置き場ごと・要約の問い合わせと描画・境界線の高さの保存。phase 45。置き場ごとの配置役 = `_FullCallViewLayout`〔フル表示の測定・配置の予約・境界線イベント〕/ `_CompactCallViewLayout`〔省略表示は配置・ドラッグ・保存を `CompactPaneLayout` へ委ねる〕・phase 48）
-        compact_sequence_controller.py  # CompactSequenceController（`app.compact_sequence`）: 省略表示のシーケンス欄の描画（`refresh_actions` から `render`）・見出しの開閉・押した行で離したときだけ次に実行を変える / キー操作（共有処理 `TriggerPanelController.set_next_action_index(idx, refuse_running_callee=True)` を呼ぶ）・押している間の取り消し（phase 48）
-        compact_pane_layout.py     # CompactPaneLayout（`app.compact_pane_layout`）: 省略表示の縦の PanedWindow（トリガー一覧 / シーケンス欄 / 呼び出し先の枠）の配置・ドラッグ・高さの保存を 1 か所で受け持つ（欄の高さは paneconfigure height で明示し、境界を置く前に update_idletasks・phase 48）
-        compact_window_controller.py  # CompactWindowController（`app.compact_window`）: 省略表示のウィンドウの大きさの適用・最小の高さ（`refresh_minimum_height`）・500ms の遅延保存（`compact_window_size`・phase 48）
-        compact_header_controller.py  # CompactHeaderController（`app.compact_header`）: 省略表示の上部の「フック」「表示」の開閉（見出しのクリック / Tab で選んで Enter・Space〔キー操作ではフォーカスを同じ区画の見出しへ・task_06a〕・閉じる枠の中のフォーカスをトリガー一覧へ・最小の高さの測り直し）と `compact_header_view` の保存（両方の値・起動時は書かない・phase 58）
+        call_view_controller.py    # CallViewController: 呼び出し先の表示枠（詳細表示 / 簡易表示の 2 つの置き場〔_CallViewHost〕・開閉はトリガーごとに共有・高さは置き場ごと・要約の問い合わせと描画・境界線の高さの保存。phase 45。置き場ごとの配置役 = `_FullCallViewLayout`〔詳細表示の測定・配置の予約・境界線イベント〕/ `_CompactCallViewLayout`〔簡易表示は配置・ドラッグ・保存を `CompactPaneLayout` へ委ねる〕・phase 48）
+        compact_sequence_controller.py  # CompactSequenceController（`app.compact_sequence`）: 簡易表示の出力シーケンス欄の描画（`refresh_actions` から `render`）・見出しの開閉・押した行で離したときだけ次に実行を変える / キー操作（共有処理 `TriggerPanelController.set_next_action_index(idx, refuse_running_callee=True)` を呼ぶ）・押している間の取り消し（phase 48）
+        compact_pane_layout.py     # CompactPaneLayout（`app.compact_pane_layout`）: 簡易表示の縦の PanedWindow（トリガー一覧 / 出力シーケンス欄 / 呼び出し先の枠）の配置・ドラッグ・高さの保存を 1 か所で受け持つ（欄の高さは paneconfigure height で明示し、境界を置く前に update_idletasks・phase 48）
+        compact_window_controller.py  # CompactWindowController（`app.compact_window`）: 簡易表示のウィンドウの大きさの適用・最小の高さ（`refresh_minimum_height`）・500ms の遅延保存（`compact_window_size`・phase 48）
+        compact_header_controller.py  # CompactHeaderController（`app.compact_header`）: 簡易表示の上部の「フック」「表示」の開閉（見出しのクリック / Tab で選んで Enter・Space〔キー操作ではフォーカスを同じ区画の見出しへ・task_06a〕・閉じる枠の中のフォーカスをトリガー一覧へ・最小の高さの測り直し）と `compact_header_view` の保存（両方の値・起動時は書かない・phase 58）
         action_list_rendering.py   # build_action_rows / format_next_action_summary: 出力シーケンス一覧の 1 行の文字列と背景色（tkinter 非依存・phase 37）
     views/                     # 種類別フォルダ（__init__.py は空のパッケージマーカー）
         menu_bar.py            # build_menu_bar(app) / bind_menu_shortcuts(app)
         status_bar.py          # build_status_area(app, parent): ステータス3欄に見切れ時の全文ツールチップ
         full_view/             # 所有者フォルダ
             full_view.py       # FullView: Widget の生成と pack/grid 配置のみ
-            hook_frame.py      # FullHookFrame（取得/クリアボタン付き）
+            hook_frame.py      # FullHookFrame（記録/クリアボタン付き）
             display_frame.py   # FullDisplayFrame
             file_frame.py      # FileFrame
             keymap_box.py      # KeymapBox
             trigger_box.py     # FullTriggerBox（編集ボタン・suppress 付き）
             sequence_box.py    # SequenceBox（一覧と呼び出し先の表示枠を縦の PanedWindow で上下に分ける・phase 45）
             scroll_area.py     # VerticalScrollArea: 3 枠で共通の縦スクロール領域（Canvas + content + Scrollbar・要求の大きさ = 中身・中身の窓の高さ = max(実際, 要求)・収まらないときだけバー・隠すとき先頭へ・`sync()`・`bind_wheel(skip)`〔枠本体と領域の下・一覧は除外〕・phase 58）
-            call_view_frame.py # CallViewFrame: 呼び出し先の表示枠の Widget（見出しの Expander・読み取り専用の一覧）/ list_minimum_height（3 行の高さ）。省略表示からも使う（phase 45）
+            call_view_frame.py # CallViewFrame: 呼び出し先の表示枠の Widget（見出しの Expander・読み取り専用の一覧）/ list_minimum_height（3 行の高さ）。簡易表示からも使う（phase 45）
         compact_view/
             compact_view.py    # CompactView
             hook_frame.py      # CompactHookFrame（表示のみ）
             display_frame.py   # CompactDisplayFrame
-            trigger_box.py     # CompactTriggerBox（一覧 + シーケンス欄 + 呼び出し先の表示枠〔縦の PanedWindow・phase 45 / 48〕）
-            sequence_frame.py  # CompactSequenceFrame: 省略表示のシーケンス欄の Widget（見出しの Expander・一覧・閉じた見出しの置き場の移動・Tk 既定の選択 / ドラッグ系イベントの無効化・phase 48）
+            trigger_box.py     # CompactTriggerBox（一覧 + 出力シーケンス欄 + 呼び出し先の表示枠〔縦の PanedWindow・phase 45 / 48〕）
+            sequence_frame.py  # CompactSequenceFrame: 簡易表示の出力シーケンス欄の Widget（見出しの Expander・一覧・閉じた見出しの置き場の移動・Tk 既定の選択 / ドラッグ系イベントの無効化・phase 48）
     config_paths.py            # 以下は presentation 直下（複数種から使われる共有モジュール）
     dialogs/                   # ダイアログ群（計画07 項目2 で dialogs.py 1026 行から分割・1クラス1ファイル）
       __init__.py              # 公開面（明示列挙の再輸出のみ。tk / messagebox は持たない）
@@ -113,17 +114,17 @@ keyseq/presentation/
       action_control_fields.py # system / file_line の入力欄の組み立て・値の読み取り・検証（ActionDialog 専用の補助・再輸出しない・phase 37）
       preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）
-      trigger_dialog.py        # TriggerDialog（取得ボタンは最大文言幅で固定 = `apply_fixed_button_width`・phase 43）
-      keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集・取得で禁止のキー・`??` を取らない〔`??` は案内の欄に理由・phase 59・全入口共通は phase 60〕・取得ボタンは最大文言幅で固定（apply_fixed_button_width）。phase 43 以降はダブルクリック編集だけで使う。「枠を使う」/「枠を編集…」・phase 56）
+      trigger_dialog.py        # TriggerDialog（記録ボタンは最大文言幅で固定 = `apply_fixed_button_width`・phase 43）
+      keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集・記録できないキー・`??` を取らない〔`??` は案内の欄に理由・phase 59・全入口共通は phase 60〕・記録ボタンは最大文言幅で固定（apply_fixed_button_width）。phase 43 以降はダブルクリック編集だけで使う。「枠を使う」/「枠を編集…」・phase 56）
       grid_editor_window.py    # GridEditorWindow: 画面の枠の編集の窓（KeymapEditDialog の子・フックは親が止める・半透明の全画面・境界のドラッグ・キーの取り込み・OK の検査・phase 56）
-      keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・取得で禁止のキー・`??` を取らない〔phase 59・全入口共通は phase 60〕・クリアボタンなし・取得ボタンは最大文言幅で固定（apply_fixed_button_width）・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・行/スクロール領域/ボタンとバインドの生成は専用メソッド・phase 43）
+      keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・記録できないキー・`??` を取らない〔phase 59・全入口共通は phase 60〕・クリアボタンなし・記録ボタンは最大文言幅で固定（apply_fixed_button_width）・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・行/スクロール領域/ボタンとバインドの生成は専用メソッド・phase 43）
       layout_delete_dialog.py  # LayoutDeleteDialog
       escape_close.py          # bind_escape_close（Esc に別用途がある 4 ダイアログの Escape 結線。印はクロージャに持つ・提案書 11 / phase 28 task_07）
-      orphan_sweep_dialog.py   # OrphanSweepDialog（棚卸しの入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
-      quarantine_manage_dialog.py  # QuarantineManageDialog（隔離の管理・実行単位のリスト選択 + 復元 / 削除ボタン）
-      reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 隔離 / 復元 / 削除で再利用）
+      orphan_sweep_dialog.py   # OrphanSweepDialog（未使用ファイルの整理の入口・走査先一覧の編集。保存は OrphanSweepIo → StartupIo）
+      quarantine_manage_dialog.py  # QuarantineManageDialog（退避したファイルの管理・回のリスト選択 + 復元 / 削除ボタン）
+      reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 退避 / 復元 / 削除で再利用）
       keymap_set_history_dialog.py # KeymapSetHistoryDialog（読み込み履歴・**リポジトリ唯一の ttk.Treeview**〔2 列 / 名前列は stretch=False〕・操作のたびに永続化済みの履歴を読み直して再描画）+ CategoryChooserDialog（コピー先の分類選択・同ファイル内のネストした子）
-    keyboard_layouts.py        # レイアウトの読込・検証 / `resolve_layout_key_id_from_scan_code`（走査コード → `id`・レイアウトの `scan_code` と `extra_scan_codes` だけで引く〔行ごとに `scan_code` → `extra_scan_codes`・phase 63〕・フックの実行時 / 画面の枠の編集の窓〔`LayoutController` 経由〕/ キーボードUI の取得が使う・phase 61 / 62）/ `resolve_layout_scan_code_from_key_name`（キー名 → `scan_code`・最初の行・1〜255・送信用・phase 62）
+    keyboard_layouts.py        # レイアウトの読込・検証 / `resolve_layout_key_id_from_scan_code`（走査コード → `id`・レイアウトの `scan_code` と `extra_scan_codes` だけで引く〔行ごとに `scan_code` → `extra_scan_codes`・phase 63〕・フックの実行時 / 画面の枠の編集の窓〔`LayoutController` 経由〕/ キーボードUIでキーを記録するときに使う・phase 61 / 62）/ `resolve_layout_scan_code_from_key_name`（キー名 → `scan_code`・最初の行・1〜255・送信用・phase 62）
     keyboard_window.py         # KeyboardWindow: キーボード表示の窓（タイトル表示・縦横比の補正・phase 55）。`_LOOKUP_KEY_BY_ID` = レイアウトの id → 引くキー名（左右の修飾キーを分ける・`alt_gr` → `alt gr`・phase 59）/ 禁止の枠の色 `"prohibited"`・禁止の枠は左クリックで編集しない（phase 59）/ 編集のキーの名前 `_normalize_tk_key` は VK を `win32_window.vk_to_scan_code` で走査コードへ変換してレイアウトだけで引く（phase 61・`key_input.md` §7.4・テスト = `tests_ui/test_keyboard_window_scan_code.py`・`tests/test_keyboard_layout_files.py`） / 押下だけのキーの直接置換の枠の色 `"keymap_make_only"`（地 `#e4ebe1`・枠 `#7f9a74`・文字 `#2f4429`・phase 63）
     keyboard_window_size.py    # キーボード表示の縦横比と大きさの計算（tkinter 非依存・phase 55）
     listbox_utils.py
@@ -137,18 +138,18 @@ keyseq/presentation/
       grid_editor_panel.py     # GridEditorPanel: 編集の窓の操作パネル（GridEditorWindow の補助・Toplevel・grab しない）
       cell_label.py            # 枠のキーの描画（中央 / 左上 + 下地・文字の収まり）。枠の窓と編集の窓で共用
     call_view_heights.py       # 呼び出し先の表示枠の希望の高さの検証・既定・表示の高さ（`call_view_heights`・tkinter 非依存・phase 45）
-    compact_pane_heights.py    # 省略表示の 3 段の表示の高さの計算（下の欄の最小を優先・見出しを残す）と `compact_sequence_view` の検証（tkinter 非依存・phase 48）
+    compact_pane_heights.py    # 簡易表示の 3 段の表示の高さの計算（下の欄の最小を優先・見出しを残す）と `compact_sequence_view` の検証（tkinter 非依存・phase 48）
     compact_header_view.py     # `compact_header_view` の検証（`parse_compact_header_view`: 値ごとに bool 以外は開く・dict でなければ両方開く・tkinter 非依存・phase 58）
-    compact_window_size.py     # `compact_window_size` の検証と省略表示の大きさの計算（最小の高さ・主モニタへの切り詰め・tkinter 非依存・phase 48）
+    compact_window_size.py     # `compact_window_size` の検証と簡易表示の大きさの計算（最小の高さ・主モニタへの切り詰め・tkinter 非依存・phase 48）
     hover_tooltip.py           # HoverTooltip / bind_hover_tooltip: callable の全文をホバーで表示・refresh で差し替え / 閉じる（phase 49）
-    status_text.py             # one_line: 省略表示中のステータス欄・ステータスバーの文言の改行を空白へ（phase 48）
-    pane_width_rules.py        # フル表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
+    status_text.py             # one_line: 簡易表示中のステータス欄・ステータスバーの文言の改行を空白へ（phase 48）
+    pane_width_rules.py        # 詳細表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
-    key_capture_ime.py         # KeyCaptureImeTracker / begin_key_capture・end_key_capture: キーの取得中は IME を OFF にする寿命の部品（入口ごとの数と「OFF にした」印・開始 / 終了の冪等・窓自身の `<Destroy>` で終了・既定インスタンスはモジュール変数・phase 60）/ 受け取りの関数 `on_hook_key`・世代・フォーカスの窓への受け渡し `deliver`・取得用のフックの設定 `configure_capture_hook`（phase 66）
-    key_capture_hook.py        # KeyCaptureHook: キーの取得の間だけの suppress フック（レイアウトの行に当たるキーを抑止して名前を渡す・押下中・余韻・前面の判定。infrastructure は呼び出し可能な値で受ける・phase 66）
-    hook_button_texts.py       # フックの枠の切替ボタンの文言・取得の案内の文言（`UNKNOWN_CAPTURE_KEY_HINT_TEXT`・phase 59 / 60 で文言変更）とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
-    orphan_sweep_text.py       # 孤児ファイルの棚卸しの提示テキスト整形（警告 / 候補一覧 / 隔離結果。純関数）
-    quarantine_manage_text.py  # 隔離の管理の提示テキスト整形（単位一覧 / 復元・削除の計画と結果。純関数）
+    key_capture_ime.py         # KeyCaptureImeTracker / begin_key_capture・end_key_capture: キーの記録中は IME を OFF にする寿命の部品（入口ごとの数と「OFF にした」印・開始 / 終了の冪等・窓自身の `<Destroy>` で終了・既定インスタンスはモジュール変数・phase 60）/ 受け取りの関数 `on_hook_key`・世代・フォーカスの窓への受け渡し `deliver`・記録用のフックの設定 `configure_capture_hook`（phase 66）
+    key_capture_hook.py        # KeyCaptureHook: キーの記録中だけ使う suppress フック（レイアウトの行に当たるキーを抑止して名前を渡す・押下中・余韻・前面の判定。infrastructure は呼び出し可能な値で受ける・phase 66）
+    hook_button_texts.py       # フックの枠の切替ボタンの文言・記録できないキーの案内文言（`UNKNOWN_CAPTURE_KEY_HINT_TEXT`・phase 59 / 60 で文言変更）とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
+    orphan_sweep_text.py       # 未使用ファイルの整理の提示テキスト整形（警告 / 候補一覧 / 退避結果。純関数）
+    quarantine_manage_text.py  # 退避したファイルの管理の提示テキスト整形（回の一覧 / 復元・削除の計画と結果。純関数）
     keymap_set_history_text.py # 読み込み履歴の表示文言（ノード名・ボタン文言・確認文・失敗理由。純関数と定数のみ）
     startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
     theme.py                   # フォント/テーマ適用 + coerce_font_delta（フォント差分 -3..+3 正規化の唯一点）
@@ -168,14 +169,14 @@ keyseq/presentation/
 
 - Tk ルートウィンドウ管理（title / geometry / topmost / フォント適用 / 終了処理）
 - 生成と配線（各サービス・コントローラの生成。コールバックはラムダで包み、実行時に `self.<コントローラ>.…` を解決）
-- View切替（`show_full_view` / `show_compact_view` と geometry の退避・復元）。`show_full_view` は表示内容の更新（選択同期・シーケンス一覧・ステータス）を済ませてから末尾で `pane_layout.on_full_view_shown()` を呼ぶ（最小の高さを 1 行のステータスで測るため・phase 20）。geometry の復元の前に `pane_layout.release_window_min_size()` で省略表示の最小を外す（残ると復元した高さがそこで止まる・phase 58）。`show_compact_view` は逆に、ステータス欄・ステータスバーを 1 行化してから `compact_window.apply()` で大きさと最小の高さを当てる（省略表示の 2 行のステータスで測るため・phase 48）
+- View切替（`show_full_view` / `show_compact_view` と geometry の退避・復元）。`show_full_view` は表示内容の更新（選択同期・出力シーケンス一覧・ステータス）を済ませてから末尾で `pane_layout.on_full_view_shown()` を呼ぶ（最小の高さを 1 行のステータスで測るため・phase 20）。geometry の復元の前に `pane_layout.release_window_min_size()` で簡易表示の最小を外す（残ると復元した高さがそこで止まる・phase 58）。`show_compact_view` は逆に、ステータス欄・ステータスバーを 1 行化してから `compact_window.apply()` で大きさと最小の高さを当てる（簡易表示の 2 行のステータスで測るため・phase 48）
 - 調整役メソッド（キャプチャ相互排他: `toggle_stop_key_capture` / `start_stop_key_capture` / `toggle_toggle_key_capture` / `start_toggle_key_capture`、ダーティ既定解決: `mark_keymap_dirty` / `mark_sequence_dirty`、フラッシュメッセージ、`_sync_control_vars_from_data`）
 - hook キーの個別指定（`spec_detail/data_schema.md` §5.9）: `toggle_hook_keys_individual`（Var → data + dirty +
   ON→OFF で個別値を退避 / OFF→ON で復元・退避が無ければ両キーを `""`。フラグを data へ書いた**後**に
   `apply_global_hook_key_defaults` を呼ぶ）と `discard_retained_hook_keys`。
   退避先は **App の `_retained_hook_keys`**（`app.data` に持たないためスキーマ・保存経路に影響しない）。
   data → Var の同期は `_sync_control_vars_from_data` の 1 本（**ここに退避の破棄を入れない**）
-- hotkey プリセット（`spec_detail/data_schema.md` §5.10）: `save_hotkey_presets(presets, *,
+- プリセット（`spec_detail/data_schema.md` §5.10）: `save_hotkey_presets(presets, *,
   individual=None, loaded_presets=None, on_overwrite_conflict=None) -> bool` が確定点。
   **書き込み前の判定はここに 1 本化されている**（順序は §5.10.3 のとおり
   **保存先算出〔`resolve_hotkey_presets_save_path`〕→ 拒否判定〔`individual_hotkey_presets_save_rejection_reason`〕
@@ -183,7 +184,7 @@ keyseq/presentation/
   **判定は application・モーダルは presentation**（`on_overwrite_conflict` は
   `"overwrite" / "adopt" / "cancel"` を返すコールバックで、**`overwrite` 以外は書かずに `False`**）。
   **成功したときだけ** `app.data` へ反映する（`PresetManagerDialog.on_ok` は戻り値が真のときだけ閉じる）。
-  **プリセットの内容編集は keymap_set を dirty にしない**が、
+  **プリセットの内容編集は構成セットを dirty にしない**が、
   **`hotkey_presets_path` の値が変わったとき / 個別フラグを切り替えたときは dirty にする**（§5.10.3）
   - 切替 UI は `PresetManagerDialog`（`dialogs/preset_manager.py`）。
     「この構成セット専用にする」チェックと保存先表示を持ち、
@@ -195,10 +196,10 @@ keyseq/presentation/
 - dialogs 向け契約（`validate_hotkey` / `_dialog_result` / `open_preset_manager`）・`_perform_action`（`SequenceRunner` へ注入。executor の戻り値を返す・phase 31）と、状態依存でパスを詰め替える薄メソッド（`suggest_keymap_set_dialog_path` / `suggest_keymap_set_dialog_dir` / `keymap_set_file_stem`）
   - `validate_hotkey` は**検証ロジックを持たず** `HotkeyService.validate`（application）への**薄い委譲**（実体は下記 HotkeyService / `domain/hotkey.py`）。dialogs 契約維持のため残す
 - 配線用の薄いヘルパ（`_get_send_guard_count` / `_find_trigger_by_key` / `_find_keymap_target` / `_find_keymap_switch_target_id`）
-- 起動時に設定ディレクトリ骨格
+- 起動時に設定フォルダ骨格
   （`config/user/{keymap_sets,keymaps,trigger_sets,hotkey_presets,hotkey_presets/global,sequences}`）を
   `config_service.ensure_split_config_dirs` で一括作成する。**`config/config.json` は起動時に書かない**
-  （最初に設定が永続化された時点で作成。keymap_set 保存 / フォント変更 / 起動時読込先の指定）
+  （最初に設定が永続化された時点で作成。構成セット保存 / フォント変更 / 起動時読込先の指定）
 - 分離JSONの現在の構成セットパス（keymap_set_path）・startup 設定を保持
   - `keymap_set_path` は「新規作成 / Import 成功 / 起動時に stored セットが読めない」の 3 経路で**空**になる
     （＝ファイルなし。次の保存が別名保存になる。仕様は `spec_detail/data_schema.md` §5.4）
@@ -228,19 +229,19 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
 `app.toggle_key_capture` / `app.paths`）経由で直接参照する**ようにした（App から委譲ボイラープレートを削除）:
 
 - ConfigPaths（config_paths.py ※presentation 直下）: 設定ファイルの配置規約とパス解決
-- DirtyStateTracker（controllers/dirty_state.py）: 未保存状態の一元管理（phase 34: trigger_set の状態はキーマップ要素の内部キーが正・実体を省略したらアクティブの実体。移行先キーマップの未保存化 `mark_migrated_keymap_dirty`）
+- DirtyStateTracker（controllers/dirty_state.py）: 未保存状態の一元管理（phase 34: トリガーセットの状態はキーマップ要素の内部キーが正・実体を省略したらアクティブの実体。移行先キーマップの未保存化 `mark_migrated_keymap_dirty`）
 - SingleKeyCaptureController（controllers/key_capture.py）: 停止キー/トグルキーのキャプチャ。
   **hook キーへの書き込みは `_apply_key` の 1 本のみ**（capture / clear の双方がここを通る）。
   個別指定 ON = `app.data` 更新 + Var 反映 + dirty / OFF = `startup_io.write_global_hook_keys` で
   config.json を更新し**成功時のみ** `app.data` と Var を確定する。OFF 経路は
   `dirty_tracker.capture_dirty_snapshot` / `restore_dirty_snapshot` を `try`/`finally` で使い、
-  例外経路でも keymap_set を dirty にしない（仕様は `spec_detail/data_schema.md` §5.9.4）。
-  取得ボタンは `register_widgets` 時と `apply_fixed_button_width()` で最大文言幅に固定する（phase 19）。
+  例外経路でも構成セットを dirty にしない（仕様は `spec_detail/data_schema.md` §5.9.4）。
+  記録ボタンは `register_widgets` 時と `apply_fixed_button_width()` で最大文言幅に固定する（phase 19）。
   App の `_apply_fixed_button_widths()` が HookController と 2 つのキャプチャの幅を当て直す（`_apply_font_delta` で `apply_global_theme` の後・`pane_layout.on_font_changed()` の前）
 - config_io/（controllers/config_io/）: 構成セット・個別JSONの保存/読込フローを**7クラスへ分割**（計画04で `config_io_controller.py` を廃止）。App が各クラスを直接公開し、`app.<名前>.<method>` で参照する:
-  - KeymapSetIo（keymap_set_io.py = `app.keymap_set_io`）: 構成セット（keymap_set）の new/save/save_as/load/import/export/restore + 起動構成セット指定・読込データのUI適用
+  - KeymapSetIo（keymap_set_io.py = `app.keymap_set_io`）: 構成セットの new/save/save_as/load/import/export/restore + 起動構成セット指定・読込データのUI適用
     - 新規作成は `keymap_set_path` を空にし、`save_keymap_set` は空パスなら `save_as` へ委譲する（別名保存の初期名は `keymap_set.json`）。Import 成功時は**無条件で**空にする
-    - **全体デフォルトの注入（`config_service.apply_global_defaults`）を呼ぶのは入口台帳の 5 経路**
+    - **全体既定の注入（`config_service.apply_global_defaults`）を呼ぶのは入口台帳の 5 経路**
       （E1 `App.__init__` / E2 `new_config` / E3 `restore_default` / E5 Import /
       E4 起動時の空データフォールバック〔StartupIo〕）。**hook キーとプリセットをこの 1 本で供給する**。
       **runtime を新規化・置換する入口を増やしたらここも足す**（漏れるとその経路だけ供給されない）。
@@ -254,13 +255,13 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     - `entry_loaded`（初期 False）は起動エントリの読込成功の事実のみを保持し、更新要否は判定しない。起動読込成功 / 構成セット保存成功 / メニューでの起動対象指定成功の 3 契機で True にする（`write_startup` 自体では変更しない）
     - 起動時は stored `keymap_set_path` が実在すれば読み込み、無い / 読めない場合は**無言で空データ起動**し `keymap_set_path` を空にする
     - `write_startup(data) -> bool`（成功 True / 例外捕捉で False・`showerror` は従来どおり）と
-      `write_global_hook_keys(*, stop_key, toggle_key) -> bool`（hook キーの全体デフォルト書き込み）。
-      **全体デフォルトを書くのはこの 1 本のみ**。ConfigService 側に read-modify-write な保存 API を
+      `write_global_hook_keys(*, stop_key, toggle_key) -> bool`（hook キーの全体既定書き込み）。
+      **全体既定を書くのはこの 1 本のみ**。ConfigService 側に read-modify-write な保存 API を
       作らない（`_startup_settings` と config.json が乖離すると次の `write_startup` が hook キーを消す）
     - `write_startup` の保存失敗表示（`showerror`）は `hook.suspend_hook_for_dialog()` → `finally: resume_hook_after_dialog()` で囲む
       （表示中はフック停止。フォント変更・幅の保存など全呼び出し元に効く。phase 18）
-  - HotkeyPresetsIo（hotkey_presets_io.py = `app.hotkey_presets_io`）: hotkey プリセットの即時保存。
-    `write_presets(presets, *, stored_path) -> bool`（**空文字ならグローバル / 非空なら個別ファイル**。
+  - HotkeyPresetsIo（hotkey_presets_io.py = `app.hotkey_presets_io`）: プリセットの即時保存。
+    `write_presets(presets, *, stored_path) -> bool`（**空文字なら共通プリセット / 非空なら構成セット専用プリセットのファイル**。
     成功 True / 例外捕捉で `showerror` + False）。
     **プリセットファイルを書くのはこの 1 本のみ**（保存カスケードは書かない。
     仕様は `spec_detail/data_schema.md` §5.10.3）。
@@ -269,12 +270,12 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     3 択は `messagebox` で表現できないため **`child_save_dialog.py` と同型の自作 Toplevel**。
     **保存先が読めない（破損）ときは「既存を読み込む」を出さず 2 択**にする
   - IoDialogs（io_dialogs.py = `app.io_dialogs`）: 共有ダイアログヘルパ（保存パス衝突解決 / ラベル連動ファイル名）
-  - KeymapFileIo（keymap_file_io.py = `app.keymap_io`）: keymap 個別 JSON の保存/読込
-  - TriggerSetFileIo（trigger_set_file_io.py = `app.trigger_set_io`）: trigger_set 個別 JSON の保存/読込
-  - SequenceFileIo（sequence_file_io.py = `app.sequence_io`）: sequence 個別 JSON の保存/読込
+  - KeymapFileIo（keymap_file_io.py = `app.keymap_io`）: キーマップ個別 JSON の保存/読込
+  - TriggerSetFileIo（trigger_set_file_io.py = `app.trigger_set_io`）: トリガーセット個別 JSON の保存/読込
+  - SequenceFileIo（sequence_file_io.py = `app.sequence_io`）: 出力シーケンス個別 JSON の保存/読込
   - **子ファイル保存（Phase β。仕様は `spec_detail/data_schema.md` §5.8）**: 保存計画は
     **presentation が決定し application が実行する**（application に tkinter 依存を持ち込まない）
-    - child_save_rows.py: 保存先の `_parent_refs` と現在の上位から**共有状況を判定**し、行モデル
+    - child_save_rows.py: 保存先の `_parent_refs` と現在の親ファイルから**共有状況を判定**し、行モデル
       （判定名 / 表示文言 / 既定アクション）を組み立てる。**分岐は判定名で行い、表示文言では分岐しない**
     - ChildSaveDialog（child_save_dialog.py = `app.child_save_dialog`）: 子一覧ダイアログ・
       依存確認（4 択）・再計算先の上書き確認。見切れたセルの全文表示は共有部品 `hover_tooltip.bind_hover_tooltip` を使う
@@ -284,12 +285,12 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       対象名の上限は OPENING_WIDTH（960px）基準の一覧幅の3割。最小幅が画面を超えるときは対象名・共有状況・種別の順に縮める（操作列は固定、各列の最小幅でも収まらない場合は受容）。
     - child_save_plan.py: 一覧の選択 > 確定エントリ > 既定規則（保存先に実体があれば保存しない /
       無ければ保存）の優先順位で `SavePlan` を組み立てる
-    - **カスケードが書くのは startup / keymap_set / trigger_set / sequence / keymap**。
-      **hotkey プリセットは書かない**（§5.10.3。書き手は `HotkeyPresetsIo` の 1 本）
+    - **カスケードが書くのは startup / 構成セット / トリガーセット / 出力シーケンス / キーマップ**。
+      **プリセットは書かない**（§5.10.3。書き手は `HotkeyPresetsIo` の 1 本）
     - KeymapSetIo が上記を束ね、`config_service.save_runtime_data` へ計画を渡す。
       束ねる本体は `_collect_child_save_plan`（**保存計画が確定するまでのループ**）で、
       1 周は「行と保存先の収集 → 子一覧ダイアログ → 保存先が変わったなら再計算と上書き確認 →
-      依存確認（トリガー一覧）」の並び。各ステップは private メソッドへ分割済み（計画05 項目 2）。
+      依存確認（トリガーセット）」の並び。各ステップは private メソッドへ分割済み（計画05 項目 2）。
       **依存確認で「選び直す」が選ばれた場合はモジュール定数 `_RETRY` を返して一覧へ戻る**
       （戻り値がキャンセル / 再試行 / 確定の 3 系統あるため `None` と区別する）
   - **参照元の掃除（phase 10。仕様は `spec_detail/data_schema.md` §5.8.1）**:
@@ -318,11 +319,11 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
       双方が使う。成否を `KEYMAP_SET_LOAD_OK` / `..._FAILED` で返す）
     - **メニュー配線は `views/menu_bar.py` のファイルメニュー 1 行**（「読込（構成セット）…」の直後）
 - LayoutController（controllers/layout_controller.py）: キーボードレイアウトと KeyboardWindow 管理・キーボードUIの前面化と一時解除の監視（phase 55）/ 走査コード → キー名 `resolve_key_name_from_scan_code`・キー名 → 走査コード `resolve_scan_code_from_key_name`（どちらもレイアウトの写し `_active_layout` を 1 回読むだけ・`App` が後者を `InputGateway` へ注入）/ 写し `_active_layout`（phase 65・不変の `KeyboardLayout`・初期値は組み込みの既定・`get_current_keyboard_layout` もこれを返す〔ファイルを読み直さない〕・差し替えは `_refresh_active_layout` を `sync_keyboard_layout_controls` / `set_keyboard_layout_selection` が id を決めた直後に毎回〔UI スレッド〕）/ レイアウトの読み直し（起動・追加・削除・構成の読込〔`App._sync_control_vars_from_data`〕・ドロップダウンの選択 `on_keyboard_layout_selected`〔同じレイアウトでも `reload_keyboard_layouts`・phase 65〕）・選ぶ id の変更の前に `held_inputs.release_all`（`_release_held_inputs_before_layout_change`）/ デバッグ出力（`debug_jis_special_key_events`）の対象 = 走査コードが選んでいるレイアウトの `scan_code`・`extra_scan_codes`（phase 63）を持つ行に当たる押下（phase 62）/ テスト = `tests/test_layout_controller_scan_code.py`・`tests/test_keyboard_layout_files.py`・`tests/test_input_gateway_send.py`
-- PaneLayoutController（controllers/pane_layout/ = `app.pane_layout`）: フル表示の幅配分（仕様は `spec_detail/features.md` §4.6「フル表示の幅配分」・
+- PaneLayoutController（controllers/pane_layout/ = `app.pane_layout`）: 詳細表示の幅配分（仕様は `spec_detail/features.md` §4.6「詳細表示の幅配分」・
   `data_schema.md` §5.4）。計算は `pane_width_rules.py` の純関数、最小幅の実測は `pane_measure.py`。
   - 初回適用（FullView の `PanedWindow` の最初の `<Configure>`）: 最小幅とヘッダ幅の実測 → 保存値の検証 or 既定幅（780 基準）→ 一括適用 →
     **有効な保存値（切り詰め前）が適用後のウィンドウ幅より狭ければ、適用後の幅を 1 回 `write_startup`**（`startup_window_width_to_save`・phase 19）
-  - **ヘッダ幅** `header_window_width`: `header_area.winfo_reqwidth()` + 外側の余白。最小幅を測る 3 箇所（初回適用 / `on_font_changed` の非省略表示経路 / `on_full_view_shown` の再測定）で一緒に測り保持する。
+  - **ヘッダ幅** `header_window_width`: `header_area.winfo_reqwidth()` + 外側の余白。最小幅を測る 3 箇所（初回適用 / `on_font_changed` の非簡易表示経路 / `on_full_view_shown` の再測定）で一緒に測り保持する。
     ボタン幅の固定（App が先に行う）→ `update_idletasks` → 測定の順
   - ドラッグ: サッシュ上の左ボタンだけを個別バインドで処理し `"break"`（可動範囲の制限・中ボタン無効）。移動は `after_idle` で間引き、
     離したときに接する側の希望幅を更新して `startup_io.write_startup` で `full_view_pane_widths` を保存
@@ -332,15 +333,15 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     末尾（両端の `paneconfigure` の後）で `measure_window_min_height` により測り直し、normal 状態で「現在の高さ < 新しい最小」または「新しい最小 < 前回の最小」なら
     `geometry(現在の幅x max(現在の高さ, 最小))` で Tk の記憶する高さを確定させてから（広げた高さ・最大化解除で広がった高さが後で縮まない）`minsize(最小幅, 最小の高さ)`。
     ドラッグ後の `minsize` も同じ高さを使う（phase 20）。
-    `on_font_changed`（省略表示中は印だけ）/ `on_full_view_shown` / `release_window_min_size`（省略表示へ入る前 / フル表示へ戻るときの高さの復元の前・phase 58）を App が呼ぶ
+    `on_font_changed`（簡易表示中は印だけ）/ `on_full_view_shown` / `release_window_min_size`（簡易表示へ入る前 / 詳細表示へ戻るときの高さの復元の前・phase 58）を App が呼ぶ
   - **自動決定幅** `_auto_window_width`: 初回適用後は常に、`apply_layout` で geometry を変えたときだけ記録。
     ユーザーが幅を変えたと判定したら無効化（`None`）する
   - **ウィンドウ幅の保存**: App の `<Configure>`（App 自身・幅の変化のみ）で 500ms 後に `_save_window_width` を予約し直す。
-    **判定は予約の実行時**（`wm_state() != "normal"` / 省略表示中 / 初回適用前は何もせず自動決定幅も触らない →
+    **判定は予約の実行時**（`wm_state() != "normal"` / 簡易表示中 / 初回適用前は何もせず自動決定幅も触らない →
     自動決定幅と同じなら書かない → 異なれば無効化 → 保存値と同じなら書かない）。
     予約は `on_close`（`cancel_window_width_save`）と App の `<Destroy>` で取り消す。**終了時には書かない**
 - KeymapPanelController（controllers/keymap_panel/keymap_panel_controller.py）: キーマップ管理パネル。追加フローは `KeymapAddFlow`（同フォルダ `keymap_add_flow.py`）へ委譲
-- TriggerPanelController（controllers/trigger_panel/trigger_panel_controller.py）: トリガー/シーケンスパネルとステータス表示。アクション編集は `ActionEditFlow`（同フォルダ `action_edit.py`）、フル表示のトリガー範囲操作は `TriggerListEditFlow`（`trigger_list_edit.py`）、トリガー行の追加・改名・削除は `TriggerRowEditFlow`（`trigger_row_edit.py`）へ遅延生成して委譲。編集再描画では範囲と下線の行を維持し、実行による選択は単一選択へ戻す
+- TriggerPanelController（controllers/trigger_panel/trigger_panel_controller.py）: トリガー/出力シーケンスパネルとステータス表示。アクション編集は `ActionEditFlow`（同フォルダ `action_edit.py`）、詳細表示のトリガー範囲操作は `TriggerListEditFlow`（`trigger_list_edit.py`）、トリガー行の追加・改名・削除は `TriggerRowEditFlow`（`trigger_row_edit.py`）へ遅延生成して委譲。編集再描画では範囲と下線の行を維持し、実行による選択は単一選択へ戻す
 - HookController（controllers/hook_controller.py）: フック開始/停止・サスペンド・入力イベント入口
   - `register_hook_buttons(hook_btn, trigger_btn, *, fixed_width=False)`: `fixed_width=True`（FullHookFrame のみ）の組は登録時と `apply_fixed_button_widths()` で最大文言幅に固定する
   - **`suspend_hook_for_dialog(window)` はウィンドウを渡すと破棄時に自動で解除する**
@@ -354,7 +355,7 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     自分では止めない子を足したら、同テストの `NESTED_CHILD_DIALOGS`（(ファイル名, クラス名) の組）へ追加する**
     （両方から開く `PresetManagerDialog` のような子は自分で止めるので含めない）。
   - **アプリ終了が確定したらフックを再開しない**（終了ガード。解除経路によらず効く）。
-- listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）。一覧の選択と下線（active）の同期（phase 42）。**phase 43 以降、フル表示の 3 一覧のクリック・ドラッグは `listbox_range_drag.bind_listbox_range_drag` が受け持ち、`bind_listbox_click_selection_sync` を使うのは省略表示のトリガー一覧だけ**（`sync_listbox_selection_to_focus` はトリガー / シーケンスの選択の同期で引き続き使う）:
+- listbox_utils.py（presentation 直下）: Listbox 選択ヘルパ（モジュール関数）。一覧の選択と下線（active）の同期（phase 42）。**phase 43 以降、詳細表示の 3 一覧のクリック・ドラッグは `listbox_range_drag.bind_listbox_range_drag` が受け持ち、`bind_listbox_click_selection_sync` を使うのは簡易表示のトリガー一覧だけ**（`sync_listbox_selection_to_focus` はトリガー / 出力シーケンスの選択の同期で引き続き使う）:
   `sync_listbox_selection_to_focus(..., prefer_selection=)` = クリック（`<<ListboxSelect>>`）は選択の行を正・キー操作（`<KeyRelease>`）は下線の行を正 /
   `bind_listbox_click_selection_sync(listbox, callback)` = 一覧自体の `<ButtonPress-1>` / `<ButtonRelease-1>`（`add="+"`・クラスより先に動く）で押下中の印を管理し、
   離したら `after_idle`（Tk の `activate @x,y` の後）で `callback` を呼ぶ。押下中（`listbox_mouse_button_is_down`）の `<<ListboxSelect>>` は帯だけでアプリ側の状態を変えない
@@ -373,9 +374,9 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     （`io_dialogs.py` のみ `on_cancel`、他は `destroy`）。**Esc の別用途がある
     `ActionDialog` / `TriggerDialog` / `KeymapEditDialog` は `dialogs/escape_close.py` の
     `bind_escape_close(window, *, is_busy, stop)` で単一ハンドラ + 状態分岐**
-    （`KeymapSwitchBatchDialog`〔phase 43〕は取得中の Esc を同じ判定順で自前の `_on_escape` / `_on_escape_release` に持つ。
+    （`KeymapSwitchBatchDialog`〔phase 43〕は記録中の Esc を同じ判定順で自前の `_on_escape` / `_on_escape_release` に持つ。
     `PresetManagerDialog` は `bind_escape_close` で単一ハンドラにまとめる)
-    （記録中・取得中は停止して `"break"`。同一 widget では `<Escape>` が `<KeyPress>` より優先して
+    （記録中は停止して `"break"`。同一 widget では `<Escape>` が `<KeyPress>` より優先して
     単独発火するため、ハンドラを重ねると停止処理が死ぬ）。
     **判定順 = `is_busy()`（停止して印を立てる）→ 印（閉じない）→ 閉じる**。印は**クロージャに持つ**（ウィジェット属性を増やさない）。
     印は同関数が結線する `<KeyRelease-Escape>` で消す＝**押しっぱなしのリピートでは閉じない**
@@ -448,21 +449,21 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 
 | ファイル | 責務 |
 |---|---|
-| `__init__.py` | **`ConfigService` 本体**。公開面 / パス基盤（`canonical_path` / `is_path_within` / `to_config_relative_or_absolute`）/ 起動時ロード / 個別キーマップの読込と計画なし保存 / シーケンスの正規化 / ホットキープリセットの委譲 / `_parent_refs` 操作 |
+| `__init__.py` | **`ConfigService` 本体**。公開面 / パス基盤（`canonical_path` / `is_path_within` / `to_config_relative_or_absolute`）/ 起動時ロード / 個別キーマップの読込と計画なし保存 / 出力シーケンスの正規化 / プリセットの委譲 / `_parent_refs` 操作 |
 | `keymap_save_plan.py` | **個別キーマップの保存計画一式**（phase 36 で `__init__.py` から切り出し）。入口 `save_keymap_with_plan(service, ...)`（`ConfigService.save_keymap_file` から呼ぶ）。保存先の検証・payload の書込み・保存後の未保存フラグの解除と保留分の印 |
-| `child_file_io.py` | **シーケンス / トリガー一覧ファイル単体の読み書き**（phase 36 で `__init__.py` から切り出し）。`ConfigService` の `load_sequence_file` / `save_sequence_file` / `load_trigger_set_file` / `save_trigger_set_file` は同シグネチャの 1 行委譲（presentation が呼び、テストが `patch.object` で差し替えるため） |
+| `child_file_io.py` | **出力シーケンス/トリガーセットファイル単体の読み書き**（phase 36 で `__init__.py` から切り出し）。`ConfigService` の `load_sequence_file` / `save_sequence_file` / `load_trigger_set_file` / `save_trigger_set_file` は同シグネチャの 1 行委譲（presentation が呼び、テストが `patch.object` で差し替えるため） |
 | `contracts.py` | **公開面**（phase 12 で新設）。**判定名・理由コード・結果型（dataclass）の唯一の定義**（定数 34 / 型 9）。**`config_service` 内の他モジュールを import しない**（依存は実装モジュール → `contracts` の一方向）。**presentation はこのモジュールと `ConfigService` の委譲メソッドだけを見る**（`spec_detail/architecture.md` §3.2）。実装モジュール側は `from . import contracts` + `contracts.NAME` で参照する（`from .contracts import NAME` は名前が再束縛され逆戻り防止テストが書けないため不可）。**内部表現（`QUARANTINE_DIR_NAME` / `UNIT_ID_PATTERN` / `ENTRY_*` / `CANDIDATE_DIRS`）はここへ置かない** |
 | `save_plan_execution.py` | 保存計画の実行（事前検証 / 保存後パスの適用 / 依存判定） |
-| `split_payloads.py` | 保存 payload の構築（keymap / trigger_set / sequence） |
+| `split_payloads.py` | 保存 payload の構築（キーマップ/トリガーセット/出力シーケンス） |
 | `save_path_resolution.py` | 保存先の解決と既定命名（`slugify_file_stem` の実体・一意パス採番） |
-| `split_loading.py` | split 構成の読込（keymap_set → keymap / trigger_set / sequence の再構成） |
-| `hotkey_presets_files.py` | **ホットキープリセットのファイル解決と読込**（提案書 14 で `split_loading.py` から切り出し・phase 36 task_09）。全体 / 個別のプリセットファイルの場所の解決・読込・個別プリセットの保存先・上書き確認・出所の表示。`ConfigService` のホットキープリセット系メソッドと `split_loading` / `orphan_scan` から呼ぶ。`split_loading` / `__init__` を import しない |
+| `split_loading.py` | split 構成の読込（構成セット→キーマップ/トリガーセット/出力シーケンスの再構成） |
+| `hotkey_presets_files.py` | **プリセットのファイル解決と読込**（提案書 14 で `split_loading.py` から切り出し・phase 36 task_09）。全体 / 個別のプリセットファイルの場所の解決・読込・構成セット専用プリセットの保存先・上書き確認・出所の表示。`ConfigService` のプリセット系メソッドと `split_loading` / `orphan_scan` から呼ぶ。`split_loading` / `__init__` を import しない |
 | `parent_refs_cleanup.py` | **参照元の掃除**（phase 10）。検査（子の列挙 / 実在判定 / 保護対象の分離 / 判定名 / 重複排除）と `prune_parent_refs`（除去） |
-| `reference_scan.py` | **参照集合の構築**（phase 11）。keymap_set の列挙と **3 段辿り**（keymap_set → keymap → trigger_set → sequence・phase 34。旧形式の keymap_set `trigger_set_path` も参照に数える・`mappings` を持つ JSON は keymap_set と判定しない）。読めなかった参照側を理由コード付きで返す |
-| `orphan_scan.py` | **走査と孤児判定**（phase 11）。候補側の列挙と形状検証 / 保護対象の適用 / 判定名 4 種 / `normalize_scan_dirs` |
-| `quarantine.py` | **隔離**（phase 11）。隔離ルートの遅延作成・**マニフェストの原子書込み（移動より先）**・1 件ずつの移動 |
-| `quarantine_manage.py` | **隔離の管理**（phase 11）。実行単位の一覧 / 復元 / **削除**（実行単位 ID + 4 検証・不可逆） |
-| `candidate_dirs.py` | **候補側ディレクトリの唯一の定義**（`CANDIDATE_DIRS` / `RESERVED_DIR`。計画08 で新設）。**孤児判定の対象範囲**（`orphan_scan`）と**復元先ガードの許可範囲**（`quarantine_manage`）が同じ定義を見る。片方だけ変えると「隔離はできるが復元できない」ズレが出るため。**添字で結び付けない**（`zip(strict=True)` を使う） |
+| `reference_scan.py` | **参照集合の構築**（phase 11）。構成セットの列挙と **3 段辿り**（構成セット→キーマップ→トリガーセット→出力シーケンス・phase 34。旧形式の構成セットの `trigger_set_path` も参照に数える・`mappings` を持つ JSON は構成セットと判定しない）。読めなかった参照側を理由コード付きで返す |
+| `orphan_scan.py` | **走査と未使用ファイルの判定**（phase 11）。候補側の列挙と形状検証 / 保護対象の適用 / 判定名 4 種 / `normalize_scan_dirs` |
+| `quarantine.py` | **退避**（phase 11）。退避先フォルダの遅延作成・**退避の記録の原子書込み（移動より先）**・1 件ずつの移動 |
+| `quarantine_manage.py` | **退避したファイルの管理**（phase 11）。回の一覧 / 復元 / **削除**（回 ID + 4 検証・不可逆） |
+| `candidate_dirs.py` | **候補フォルダの唯一の定義**（`CANDIDATE_DIRS` / `RESERVED_DIR`。計画08 で新設）。**未使用ファイル判定の対象範囲**（`orphan_scan`）と**復元先ガードの許可範囲**（`quarantine_manage`）が同じ定義を見る。片方だけ変えると「退避はできるが復元できない」ズレが出るため。**添字で結び付けない**（`zip(strict=True)` を使う） |
 | `keymap_set_history.py` | **構成セットの読み込み履歴**（phase 27・仕様は `data_schema.md` §5.12）。読込（不在と破損の区別 / `*.broken*.json` への退避 = 連番 5 で打ち止め）・原子的書込み・**記録**（保存表記への正規化と `canonical_path` による先頭一致 no-op）。規則そのものは `domain/keymap_set_history.py` の純関数が持つ。`ConfigService` からは `load_keymap_set_history` / `save_keymap_set_history` / `record_keymap_set_history` の 3 つを 1 行委譲 |
 | `path_boundary.py` | **`is_real_path_within` の唯一の定義**（実体〔realpath〕基準の境界判定。ジャンクションを解決する）。**リダイレクト判定 `_is_redirected` は `quarantine.py` / `quarantine_manage.py` が各自持ち、`ConfigService.is_path_within` は別物**（比較専用の表記判定で**同一パスも配下と判定する**）。`orphan_scan` / `quarantine` / `quarantine_manage` が import する。**再定義しない**（`quarantine.py` → `orphan_scan` の import があるため逆向きは循環になる） |
 
@@ -481,18 +482,18 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 - config配下は相対、外部は絶対のパス保存ルールを扱う
   - `normalize_scan_dirs` は `orphan_scan.py` へ委譲し、走査先設定の読み出し・保存で
     非文字列・空文字・同一パスの重複を除く。実在確認はせず、保存表記を返す。
-- **孤児ファイルの棚卸しのファサードを持つ**（実体は上表の 4 モジュール。仕様は
+- **未使用ファイルの整理のファサードを持つ**（実体は上表の 4 モジュール。仕様は
   `spec_detail/data_schema.md` §5.8.9）。いずれも**1 行委譲**で、`__init__.py` に実ロジックを置かない:
   `collect_reference_paths` / `scan_orphans` / `collect_protected_paths` / `normalize_scan_dirs` /
   `quarantine_orphans` / `list_quarantine_units` / `restore_quarantine_unit` /
   `collect_unit_paths` / `delete_quarantine_unit`
-- trigger_set と sequence の分離保存・読込を扱う
-- keymap / trigger_set / sequence の個別ファイル保存・読込を扱う
+- トリガーセットと出力シーケンスの分離保存・読込を扱う
+- キーマップ / トリガーセット / 出力シーケンスの個別ファイル保存・読込を扱う
 - **hook キーの解決点を持つ**（仕様は `spec_detail/data_schema.md` §5.9）。分岐点は次の 4 つで、
   **これ以外へ解決ロジックを置かない**（フック層・UI 層へ分散させない）:
-  - `split_loading.load_global_hook_keys(service, *, config_root)` — config.json の全体デフォルトの
+  - `split_loading.load_global_hook_keys(service, *, config_root)` — config.json の全体既定の
     **読み出し**（正規化・失敗時は `("", "")` へ縮退）。それ自体は選択をしない
-  - `split_loading.build_runtime_data_from_split` — **通常の keymap_set 読込での選択**。
+  - `split_loading.build_runtime_data_from_split` — **通常の構成セット読込での選択**。
     `resolve_hook_keys_individual(keymap_set)` の結果を runtime へ確定させ、
     OFF のときだけ `load_global_hook_keys` の値を注入する
   - `ConfigService.apply_global_hook_key_defaults(runtime, *, config_root)` — **hook キー単独の注入**。
@@ -500,27 +501,27 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
     **直接の呼び出しは `App.toggle_hook_keys_individual` の ON→OFF だけ**
     （runtime の新規化・置換時は下記 `apply_global_defaults` が内部で呼ぶ）
   - `split_payloads.build_keymap_set_payload` — **保存側**。OFF のとき書くのは**常に `""`**
-    （runtime の解決済み値を書くと全体デフォルトが keymap_set へ焼き付く）
-- **全体デフォルトの注入口を 1 本に束ねる**（仕様は `spec_detail/data_schema.md` §5.8.8 の入口台帳）:
+    （runtime の解決済み値を書くと全体既定が構成セットへ焼き付く）
+- **全体既定の注入口を 1 本に束ねる**（仕様は `spec_detail/data_schema.md` §5.8.8 の入口台帳）:
   - `ConfigService.apply_global_defaults(runtime, *, config_root)` — **runtime を新規化・置換した直後**に
-    呼ぶ唯一の注入 API。`apply_global_hook_key_defaults` を呼んだ上で**グローバルプリセットを供給**する。
+    呼ぶ唯一の注入 API。`apply_global_hook_key_defaults` を呼んだ上で**共通プリセットを供給**する。
     **冪等・例外を投げない**（読めなければ縮退）。呼ぶのは**入口台帳 E1〜E5**
   - **通常読込（L1〜L3）はこの API を経由しない**が、プリセットの**供給規則は共通**
-- **hotkey プリセットの解決点を持つ**（仕様は `spec_detail/data_schema.md` §5.10）。
-  **グローバルと個別の分岐・保存先の算出・拒否 / 上書きの判定はすべて application 側**に置き、
+- **プリセットの解決点を持つ**（仕様は `spec_detail/data_schema.md` §5.10）。
+  **共通プリセットと個別の分岐・保存先の算出・拒否 / 上書きの判定はすべて application 側**に置き、
   presentation へ二重化しない。分岐点:
   - `split_loading.load_global_hotkey_presets_path(service, *, config_root)` — config.json の
     `hotkey_presets_path` の**読み出し**（未設定・空・非文字列・読込失敗は既定へ縮退。
     既定は **`user/hotkey_presets/global/default.json`**）。
     返すのは**保存表記のまま**なので、書き込み・存在確認では `resolve_config_path` を通す
   - `split_loading.load_hotkey_presets_file(service, stored_path, *, config_root) -> list | None` —
-    **1 ファイルの読み出し**（グローバル / 個別で共通）。`load_global_hotkey_presets` はこれの薄い包み。
+    **1 ファイルの読み出し**（共通プリセット / 個別で共通）。`load_global_hotkey_presets` はこれの薄い包み。
     **読めた＝`list`（空を含む）/ 読めない＝`None`**。戻り値は
     `domain/config.py::normalize_hotkey_presets` を通した**正規化済み**（**「読めたか」の判定は正規化の前**）。
     **正規化はここ 1 箇所**に置く（注入 API 側・保存側には置かない）
   - `split_loading.build_runtime_data_from_split` — **通常読込での選択**（個別 → 読めなければ
-    グローバル → どちらも読めなければ置き換えない）。**`hotkey_presets_individual` キーを持たない
-    keymap_set は `hotkey_presets_path` も runtime へ載せない**（§5.10.1 の移行規則。
+    共通プリセット → どちらも読めなければ置き換えない）。**`hotkey_presets_individual` キーを持たない
+   構成セットは `hotkey_presets_path` も runtime へ載せない**（§5.10.1 の移行規則。
     フラグ自体は**値**で、残置パスの遮断は**キーの有無**で判定する）
   - **読み出し用と書き込み用でパス解決が分かれる**（意図的な非対称。§5.10.2 / §5.10.3）:
     `resolve_individual_hotkey_presets_read_path(runtime)` = **config 外も許容**（読み出し用）/
@@ -528,9 +529,9 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
   - `split_loading.resolve_hotkey_presets_save_path(..., keymap_set_path, individual=None)` —
     **保存先の算出**。個別かつ有効パスが無ければ
     `save_path_resolution.default_individual_hotkey_presets_path`（`user/hotkey_presets/<stem>.json`）へ
-    寄せる。**グローバル宛は空文字**を返す
+    寄せる。**共通プリセット宛は空文字**を返す
   - `split_loading.individual_hotkey_presets_save_rejection_reason(...)` — **保存先ガード**。
-    `"reserved_dir"`（`global/` 配下）/ `"global_conflict"`（グローバルと同一ファイル。
+    `"reserved_dir"`（`global/` 配下）/ `"global_conflict"`（共通プリセットと同一ファイル。
     判定は `canonical_path`）/ `""`（問題なし）
   - `split_loading.describe_individual_hotkey_presets_overwrite(...)` — **上書き確認の要否**。
     **`{"conflict": bool, "existing": list | None}` を同時に返す**（`existing` は「既存を読み込む」
@@ -541,13 +542,13 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
     （`individual_state` = `off` / `active` / `missing` / `external` / `external_missing`、
     `displayed_source` = `individual` / `global` / `builtin`）
   - `ConfigService.save_hotkey_presets(presets, *, config_root, stored_path)` — **書き込み**
-    （`save_global_hotkey_presets` はグローバル宛の入口）。
+    （`save_global_hotkey_presets` は共通プリセット宛の入口）。
     **例外は握り潰さず送出**し、成否への変換は presentation（`HotkeyPresetsIo`）が行う
   - `ConfigService.clear_individual_hotkey_presets(runtime)` — **Import での強制 OFF**（E5）/
     `relocate_individual_hotkey_presets(...)` — **別名保存での個別ファイル複製と追随**
     （コピー先に実体があれば複製しない / コピー元が無ければ複製しない）
 - 移行判定の純関数は `domain/config.py::resolve_hook_keys_individual`。呼び出しは 3 系統で、
-  **渡すデータが違う**: 読込＝**生の keymap_set dict**（`split_loading`）/ 保存＝**runtime**
+  **渡すデータが違う**: 読込＝**生の構成セット dict**（`split_loading`）/ 保存＝**runtime**
   （`split_payloads`。`.get()` の真偽で見ずに必ずこの純関数を通す＝フラグ無しの旧 runtime を
   従来どおり個別値保存にするため）/ 互換化＝`ensure_config_compatibility` 内（hook キー正規化の直後）
 - **hook キー名の定義元も `domain/config.py`**（`HOOK_STOP_KEY` / `HOOK_TOGGLE_KEY` /
@@ -558,8 +559,8 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
 - **子ファイルの保存計画（`application/save_plan.py` の `SavePlan`）を実行する**
   （仕様は `spec_detail/data_schema.md` §5.8）:
   - 保存対象の解決（`resolve_child_save_targets`）・依存関係の検出・計画の事前検証・
-    **書き込み順序による best-effort 保証**（子 → 上位 → keymap_set → 起動設定。
-    上位の索引を新パスへ進める前に子の成功を確認する。トランザクション / ロールバックは持たない）
+    **書き込み順序による best-effort 保証**（子 → 親ファイル → 構成セット → 起動設定。
+    親ファイルの保存先の記録を新パスへ進める前に子の成功を確認する。トランザクション / ロールバックは持たない）
   - `_parent_refs` の読み書き（best-effort マージ）とパス同一性判定（`canonical_path` /
     `is_path_within` の 2 本のみを使う。正規化文字列は比較専用）
   - **計画を決めるのは presentation 側**（`config_io/child_save_*`）。ConfigService は
@@ -569,7 +570,7 @@ View が App へウィジェット参照を生やす逆流（`app.hook_toggle_bt
     - **子の列挙は runtime の source_path 3 種のみ**。**`resolve_child_save_targets` を使わない**
       （「次に保存するとしたらどこへ書くか」であり、未実体化の子へ既定パスが割り当てられて
       **無関係な既存ファイルを書き換える**）
-    - **保護対象**（現在の keymap_set / keymap / trigger_set への参照）は**実在しなくても除去しない**。
+    - **保護対象**（現在の構成セット/キーマップ/トリガーセットへの参照）は**実在しなくても除去しない**。
       検査の時点で分離し、提示・件数・0 件警告から外す
     - **除去直前に JSON 全体を読み直して再判定する**（検査時のスナップショットを書き戻さない）。
       除去 0 件なら書かず（冪等）、全件除去は `[]`。1 件の失敗で中止せず記録して継続する
@@ -597,40 +598,40 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 各 LabelFrame は View 専用の Widget クラスへ分割されている（計画04 W3 / W4）。
 
 ### FullView（views/full_view/）
-- 編集機能 / トリガー管理 / シーケンス管理 / keymap・trigger_set・sequence の個別保存ボタン
+- 編集機能 / トリガー管理 / 出力シーケンス管理 / キーマップ・トリガーセット・出力シーケンスの個別保存ボタン
 - メイン領域は `tk.PanedWindow`（横・`view.panes`）に KeymapBox | FullTriggerBox | SequenceBox を入れる。
   両端 `stretch="never"`・トリガー一覧 `stretch="always"`・境界線 12px（phase 18）。幅の制御は PaneLayoutController が持ち、FullView は生成と配置のみ
-  一覧の行数指定（KeymapBox・FullTriggerBox = 6 / SequenceBox = 9）は**フル表示のメイン領域の基準の高さ H の基準**（既定の半分。表示行数は伸びた分で決まる・phase 20。phase 58 から最小の高さは ceil(H/2) 基準で、収まらない枠はスクロール = `features.md` §4.6）
+  一覧の行数指定（KeymapBox・FullTriggerBox = 6 / SequenceBox = 9）は**詳細表示のメイン領域の基準の高さ H の基準**（既定の半分。表示行数は伸びた分で決まる・phase 20。phase 58 から最小の高さは ceil(H/2) 基準で、収まらない枠はスクロール = `features.md` §4.6）
 - 構成 Widget:
-  - FullHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの表示と**取得・クリア**・
-    「このキーマップセットで個別指定する」チェック（操作可能なのは full のみ）
-  - FullDisplayFrame（display_frame.py）: 常に手前・省略表示へ・キーボードUI・レイアウト選択・キーボードUIを常に手前（phase 55）
-  - FileFrame（file_frame.py）: 保存 / 別名で保存 / 読込 / 新規作成
+  - FullHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの表示と**記録・クリア**・
+    「この構成セットで個別指定する」チェック（操作可能なのは FullView のみ）
+  - FullDisplayFrame（display_frame.py）: 最前面に表示・簡易表示・キーボードUI・レイアウト選択・キーボードUIを最前面に表示（phase 55）
+  - FileFrame（file_frame.py）: 保存 / 別名保存… / 読込… / 新規作成
   - KeymapBox（keymap_box.py）: キーマップ一覧と管理ボタン（追加・変更・削除・保存系。phase 34 で「選択」ボタンを削除し一覧の選択 = アクティブ化）
-  - FullTriggerBox（trigger_box.py）: トリガー一覧・編集ボタン・suppress チェック。範囲ドラッグ部品で選択/移動を接続し、一覧内の Ctrl+C/V（大小両方）でトリガーをコピー/末尾貼り付けする。編集対象は下線の行、削除/コピー/移動対象は選択範囲。省略表示は単一選択のまま
+  - FullTriggerBox（trigger_box.py）: トリガー一覧・編集ボタン・suppress チェック。範囲ドラッグ部品で選択/移動を接続し、一覧内の Ctrl+C/V（大小両方）でトリガーをコピー/末尾貼り付けする。編集対象は下線の行、削除/コピー/移動対象は選択範囲。簡易表示は単一選択のまま
   - SequenceBox（sequence_box.py）: 出力シーケンス一覧・アクション操作・連続実行と間隔(ms)・一覧の下の呼び出し先の表示枠（phase 45）
-  - 3 枠とも中身は `box.scroll_area.content`（VerticalScrollArea）の下にある（phase 58。仕様 = `features.md` §4.6「フル表示の 3 枠のスクロール」）。中身の部品を辿るテスト・測定は `scroll_area.content` 起点
+  - 3 枠とも中身は `box.scroll_area.content`（VerticalScrollArea）の下にある（phase 58。仕様 = `features.md` §4.6「詳細表示の 3 枠のスクロール」）。中身の部品を辿るテスト・測定は `scroll_area.content` 起点
 
 ### CompactView（views/compact_view/）
 - 簡易表示 / フック制御
 - 構成 Widget:
   - CompactHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの**表示のみ**
-    （個別指定チェックも `state="disabled"` の状態表示のみ）
-  - CompactDisplayFrame（display_frame.py）: 常に手前・フルに戻す・キーボードUI・レイアウト選択・キーボードUIを常に手前（phase 55）
-  - フック・表示の枠は見出し（`▾` / `▸`）のクリックで開閉する（開 = 枠の `labelwidget`・閉 = 枠を外して同じ位置に見出しの Label。制御と保存は CompactHeaderController・phase 58。仕様 = `features.md` §4.6「省略表示の上部の開閉」）
-  - CompactTriggerBox（trigger_box.py）: 上から トリガー一覧 / シーケンス欄（CompactSequenceFrame・phase 48）/ 呼び出し先の表示枠（phase 45）。仕様 = `features.md` §4.6「省略表示のシーケンス欄」「省略表示のウィンドウ」
+    （「この構成セットで個別指定する」チェックも `state="disabled"` の状態表示のみ）
+  - CompactDisplayFrame（display_frame.py）: 最前面に表示・詳細表示・キーボードUI・レイアウト選択・キーボードUIを最前面に表示（phase 55）
+  - フック・表示の枠は見出し（`▾` / `▸`）のクリックで開閉する（開 = 枠の `labelwidget`・閉 = 枠を外して同じ位置に見出しの Label。制御と保存は CompactHeaderController・phase 58。仕様 = `features.md` §4.6「簡易表示の上部の開閉」）
+  - CompactTriggerBox（trigger_box.py）: 上から トリガー一覧 / 出力シーケンス欄（CompactSequenceFrame・phase 48）/ 呼び出し先の表示枠（phase 45）。仕様 = `features.md` §4.6「簡易表示の出力シーケンス欄」「簡易表示のウィンドウ」
 
 ### メニュー / ステータス
 - menu_bar.py: `build_menu_bar(app)`（ファイル / 設定メニュー）と `bind_menu_shortcuts(app)`（Ctrl 系アクセラレータ）。
-  設定メニューは「参照元を掃除…」「**孤児ファイルの棚卸し…**」「**隔離の管理…**」を持つ
+  設定メニューは「参照元を掃除」「**未使用ファイルの整理…**」「**退避したファイルの管理…**」を持つ
   （`features.md` §4.6）。ファイルメニューは「読込（構成セット）…」の直後に
   「**履歴から読み込む…**」を持つ（phase 27・`data_schema.md` §5.12）。**テストはメニュー項目をインデックスで固定しない**
   （top-level menubar には tearoff があり位置がずれる。カスケードとラベルで探す）。
   **build と bind は別関数**（フォントサイズ変更時はメニューのみ再構築し、バインドは再実行しない）。
 - ステータス欄の文言は `TriggerPanelController.update_status`: `フック: ON / OFF / 一時停止`（OFF 優先）+ `キーマップ: <名前>`（`KeymapPanelController.get_active_keymap_name`。一時メッセージは名前 + 状態の `get_active_keymap_text` のまま・phase 58）
 - status_bar.py: `build_status_area(app, parent)`（「ステータス」欄 + 下部ステータスバー: ファイル状態 / 一時メッセージ）。
-  両方とも `side="bottom"` で本体（`app.outer`）より先に pack する（縦を縮めても押し出されない・phase 48）。省略表示中の文言は `status_text.one_line` で 1 行化（ステータス欄 2 行 / ステータスバー 1 行）。
-  フル / 省略とも Label の要求幅が実幅（1 より大）を超える3欄だけ、共有 `hover_tooltip` で改行を残した全文を表示する。全文 / 表示変数の書き込みと `<Configure>` から idle 後に `refresh()` し、表示中の文言変更・幅 / フォント変更に追従（見切れ解消・空文言は閉じる・phase 49）
+  両方とも `side="bottom"` で本体（`app.outer`）より先に pack する（縦を縮めても押し出されない・phase 48）。簡易表示中の文言は `status_text.one_line` で 1 行化（ステータス欄 2 行 / ステータスバー 1 行）。
+  詳細表示 / 簡易表示とも Label の要求幅が実幅（1 より大）を超える3欄だけ、共有 `hover_tooltip` で改行を残した全文を表示する。全文 / 表示変数の書き込みと `<Configure>` から idle 後に `refresh()` し、表示中の文言変更・幅 / フォント変更に追従（見切れ解消・空文言は閉じる・phase 49）
 
 ---
 
@@ -640,7 +641,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - suppress=True 使用
 - UI操作中は停止
 - **停止/トグルキーは解決済みの 1 値のみをフック層が直読みする**（`app.data` の
-  `hook_stop_key` / `hook_toggle_key`）。全体デフォルトと個別指定の切替は application 層で解決済みのため、
+  `hook_stop_key` / `hook_toggle_key`）。全体既定と個別指定の切替は application 層で解決済みのため、
   `hook_controller` / `input_router` / `keyboard_window` / App のフック供給部は供給源を意識しない
   （仕様は `spec_detail/key_input.md` §7.6 / `spec_detail/data_schema.md` §5.9）
 
@@ -673,7 +674,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 | `application/app_state.py` | runtime 状態: 周回スタック・戻す履歴・保留中のカウンター操作（いずれも trigger_set_id → key）・参照中の印（`call_refs_for`・phase 45）・押下の番号の採番・カウンター・直前のトリガー・保留中ステップ。`reset_indices` / `forget_trigger_set` / `rekey_trigger_set` / `forget_trigger` / `rekey_trigger` で一緒に消す・付け替える |
 | `application/file_line_reader.py` | file_line の読込の部品（パス解決 §5.7・`validate_file_line_request`〔I/O なし〕/ `load_file_lines`〔1 MB 上限・utf-8-sig / cp932・改行 3 種のみで分割〕/ `pick_file_line`〔範囲外 3 種〕。`read_file_line` は 3 つの合成で本番からは呼ばない） |
 | `application/file_line_loader.py`（phase 38） | `FileLineLoader`: 読込キー（正規化パス, encoding）ごとの登録簿（同時 1 本・待ち合わせ・上限超過の印）と行の一覧のキャッシュ（stat 確認・世代つき全破棄 `clear_cache`）。共有状態はすべて 1 つの `threading.Lock` 下、`stat` / `load` はロック外。ワーカー起動・時計・stat・load は差し替え可能（テスト用） |
-| `presentation/controllers/action_list_rendering.py` | 一覧の 1 行（周回・カウンターの現在値）と背景色、省略表示の要約。色値（薄 / 中 / 濃）: 青 `#DCEBFF` / `#C2DBFF` / `#A8CBFF`・緑 `#DDF3DD` / `#C4E8C4` / `#ABDDAB`・橙 `#FFEBD2` / `#FFDDB3` / `#FFCF94` |
+| `presentation/controllers/action_list_rendering.py` | 一覧の 1 行（周回・カウンターの現在値）と背景色、簡易表示の要約。色値（薄 / 中 / 濃）: 青 `#DCEBFF` / `#C2DBFF` / `#A8CBFF`・緑 `#DDF3DD` / `#C4E8C4` / `#ABDDAB`・橙 `#FFEBD2` / `#FFDDB3` / `#FFCF94` |
 | `presentation/controllers/trigger_panel/trigger_panel_controller.py` / `presentation/controllers/trigger_panel/action_edit.py` / `presentation/controllers/trigger_panel/trigger_row_edit.py` | トリガーパネルの一覧・描画・状態表示 / `ActionEditFlow` による出力シーケンスの選択・追加・編集・削除・移動 / `TriggerRowEditFlow` によるトリガー行の追加・改名・削除 |
 
 - 取り消しの配線（presentation）: 一時停止中のものを捨てる `SequenceRunner.discard_paused` は `KeymapPanelController` のキーマップの切替・アクティブの削除から（phase 40）/ `HookController.stop_hook` と `toggle_custom_input_enabled`（無効化）→ `cancel_pending_waits` / `KeymapPanelController.activate_keymap_by_id`（切り替わったとき）→ `cancel_pending_waits` /
@@ -682,7 +683,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - phase 38（file_line の非同期読込）: `SequenceRunner` は `begin_file_line` / `poll_file_line` の注入で file_line を読込中の保留にする（単発 = `PendingStep.file_line`〔札〕+ 世代 /
   連続 = `_run_to_end_file_line` + 読込トークン・一時停止で札だけ捨てる）。確認タイマー `FILE_LINE_POLL_INTERVAL_MS = 50`。成功時の後処理は `_finish_single_normal_action` /
   `_finish_run_to_end_normal_action` で通常アクションと共有。連続実行の次ステップ予約は `_schedule_run_to_end_step` に集約。保留の `StepResume` は `sequence_steps.resume_for_pending` で作る。`App` が `FileLineLoader` を作って executor へ渡し、`AppState.reset_listeners` に `clear_cache` と
-  `SequenceRunner.on_runtime_reset`（連続実行を停止）を登録（`reset_indices` = 構成セットの読込等で呼ばれる）。`AppState` は `PendingStep.file_line`（単発の読込中の札）も持つ。
+  `SequenceRunner.on_runtime_reset`（連続実行を停止）を登録（`reset_indices` =構成セットの読込等で呼ばれる）。`AppState` は `PendingStep.file_line`（単発の読込中の札）も持つ。
   テスト: `tests/test_file_line_loader.py` / `tests/test_sequence_runner_file_line.py`。
 - phase 39（停止）: `advance` / `settle_after_normal` の `stop_ends_run` 引数（False = 読み飛ばし）と `StepOutcome.stopped` / `SettleOutcome.stopped`。runner は連続実行ごとの印 `_run_to_end_sent`（開始で False・通常アクションの行の実行 / file_line の成功で True）を `advance` の `stop_ends_run` に渡す（先行処理 `settle_after_normal` には送信の直後なので常に True）。`_finish_run_to_end_normal_action` は `(deltas, position, stopped, waiting)` を返し（`waiting` は phase 40）、停止の行では手前の保留を反映して、停止の次から先行処理（停止の行は通過）をしてから終える。テスト: `tests/test_sequence_runner_stop.py`。
 - phase 40（呼び出し・入力の受け付け・待機の扱い。仕様 = `features.md` §4.2.5・§4.2.9・§4.2.10 / `data_schema.md` §5.11.6・§5.11.8。判断 = `decisions_archive/40_sequence_call.md`）:
@@ -708,7 +709,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     `sequence_history.commit_press`（押下の番号つきで状態が変わった各トリガーへ 1 段）・`apply_control`（同じ番号の段が一番上のトリガーをまとめて戻す）
   - 実行: `call_context.start_linked_call` で押下（連続実行はステップ）ごとに各トリガー自身の状態から `CallContext` を組み立て、`sequence_runner/linked_call.py`（`LinkedCallMixin`）が書き戻し・
     印の更新・一覧順の完了の伝播・履歴を受け持つ（単発 = `call_wait.py` / 連続実行 = `call_run_to_end.py` が共有）。写しは持たない
-  - task 別の補足: phase 45 task_09〜10: 単発・連続実行は `start_linked_call` で押下ごとに実状態（位置・周回・保留）を読み、現在のシーケンスを参照する。
+  - task 別の補足: phase 45 task_09〜10: 単発・連続実行は `start_linked_call` で押下ごとに実状態（位置・周回・保留）を読み、現在の出力シーケンスを参照する。
     残った段と完了した段を書き戻し、参照印を更新・完了を他の参照元へ伝播し、`commit_press` で同じ番号の履歴を各トリガーへ積む。
     押下の合間に `PendingStep` は残さない。待機・読込・一括実行の処理中と明示的一時停止だけ保持する。
     連続実行も各ステップで `commit_press` し、停止の判定は実行全体の `_run_to_end_sent` を使う。
@@ -717,7 +718,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     （`settle_after_normal(stop_before_stop=True, wait_mode="stop")`）。再開は実状態から再構築し、未処理の待機は予約する。
     末尾なら実行を終え、一時停止中の連続実行のキー自身が別の呼び出しの呼び出し先として完了した場合も終える（task_11b・M4/L1）。
     `SequenceRunner.is_running_chain_callee(key)` は実行中の連続実行の呼び出し先だけを問い合わせる口。
-    出力シーケンス欄のクリック確定・ドラッグ・上へ/下へ・貼り付け・複製の入口は、真なら一時メッセージで拒否する。
+   出力シーケンス欄のクリック確定・ドラッグ・上へ/下へ・貼り付け・複製の入口は、真なら一時メッセージで拒否する。
     一時停止中は変更でき、再開は変更後の状態から（task_11b・M3）。
     連続実行の開始は、最初の行が呼び出しでも単発の待機だけを取り消す。全保留の取消しは停止操作用に維持し、
     一時停止中の呼び出しの破棄は入力受付の §4.2.10 の規則だけで扱う（task_11b）。
@@ -735,8 +736,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - task_07a: `SequenceRunner._cancel_calls_for_reset`（`reset_loop_frames` で、変えた呼び出し先を使う一時停止していない単発の呼び出しを取り消し、変えた位置を戻す）/
     `call_context` の `CallStep` kind `paused_callee`（段に入る呼び出し先が単発の呼び出しの一時停止中）→ `input_acceptance._call_step_discarding_paused` が `discard_paused` で捨てて続ける
   - 表示: `application/call_view.py`（`CallViewSummary` = 経路・最上段の行・位置・周回・カウンターの写し）/ `sequence_runner/call_view_notice.py`（`call_view_summary_for(key)`）/
-    presentation の `CallViewController`（`app.call_view`）・`views/full_view/call_view_frame.py`・`views/compact_view/trigger_box.py`・`call_view_heights.py`（省略表示の配置は phase 48 から `CompactPaneLayout`）。
-    選択の変化は `trigger_panel_controller` の `refresh_actions`（phase 48 から省略表示の選び替え・表示の切替も `refresh_actions` を通る）
+    presentation の `CallViewController`（`app.call_view`）・`views/full_view/call_view_frame.py`・`views/compact_view/trigger_box.py`・`call_view_heights.py`（簡易表示の配置は phase 48 から `CompactPaneLayout`）。
+    選択の変化は `trigger_panel_controller` の `refresh_actions`（phase 48 から簡易表示の選び替え・表示の切替も `refresh_actions` を通る）
   - テスト: `tests/test_call_chain*.py` / `test_call_link_lifecycle.py` / `test_sequence_runner_call.py` / `test_call_context.py` / `test_call_view.py` / `test_call_view_heights.py` / `tests_ui/test_call_view_frame.py` / `test_call_view_compact.py`
 - phase 46（戻す・先頭への対象トリガー `target`。仕様 = `features.md` §4.1・§4.2.6・§4.2.10・§4.6 / `data_schema.md` §5.11.6。判断 = `decisions_archive/46_back_rewind_target.md`）:
   - domain: `sequence_control.control_target`（`target` の 3 状態の判定の 1 か所: None = キー無し・従来どおり直前のトリガー / "" = 空 / 正規化キー）と
@@ -748,16 +749,16 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     `trigger_panel/action_edit.py` の `_call_dialog_options` が `edit_control_target_violation` を `control_target_check` として渡す /
     `trigger_panel/trigger_row_edit.py` の改名で `rename_call_targets` に続けて `rename_control_targets`
   - テスト: `tests/test_control_target.py` / `test_sequence_control.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_sequence_steps.py` / `test_list_clipboard.py` / `tests_ui/test_action_dialog_control.py` / `test_action_list_rendering.py` / `test_trigger_effective_row.py`
-- phase 50（確認して実行 `select_before_run`・戻す・先頭への対象を一覧の選択へ。仕様 = `features.md` §4.2.5・§4.2.6・§4.2.10・§4.2.11・§4.5・§4.6 / `data_schema.md` §5.3・§5.6・§5.9.1 / `key_input.md` §7.3。判断 = `decisions_archive/50_select_before_run.md`）:
-  - 保存: `domain/config.py`（単一 JSON の最上位キー・`normalize_triggers`）/ `config_service/split_loading.py`（keymap_set の読込・trigger_set 内の trigger）/ `split_payloads.py`（keymap_set・sequence の保存）/
-    `config_service/__init__.py` の `_normalize_sequence_payload`（sequence の読込・個別読込も同じ）
+- phase 50（選んでから実行 `select_before_run`・戻す・先頭への対象を一覧の選択へ。仕様 = `features.md` §4.2.5・§4.2.6・§4.2.10・§4.2.11・§4.5・§4.6 / `data_schema.md` §5.3・§5.6・§5.9.1 / `key_input.md` §7.3。判断 = `decisions_archive/50_select_before_run.md`）:
+  - 保存: `domain/config.py`（単一 JSON の最上位キー・`normalize_triggers`）/ `config_service/split_loading.py`（構成セットの読込・トリガーセット内の trigger）/ `split_payloads.py`（構成セット・出力シーケンスの保存）/
+    `config_service/__init__.py` の `_normalize_sequence_payload`（出力シーケンスの読込・個別読込も同じ）
   - リピートの印: `input_router.py` が down の前の押下状態（`KeyStateManager.is_pressed`）で `TriggerAction.repeat` を付ける → `action_executor.py` が `on_trigger(key, repeat)` → runner `handle_key(key, repeat)`（選ぶだけにしたキー `_select_only_key` のリピートを無視）
   - 判定: `input_acceptance.py` の `_select_only_if_needed`（`_accept_key` の空の判定の後・連続実行の開始 / 単発の前）。runner の注入口（省略可・省略時は機能 OFF）=
     `is_select_before_run_enabled`（全体の設定）・`get_selected_trigger_key`（一覧で選ばれている有効な行のキー・無ければ None）
   - 待機明けの選び直し: `send_wait.py`（注入口の選択が待機していたキーのときだけ選ぶ・注入なしは従来どおり選ぶ）
   - 戻す・先頭への対象: runner `_control` が `get_selected_trigger_key` から候補を取り（自分自身・戻す・先頭へだけ〔`_is_standalone_control`〕を除く）→ `sequence_history.apply_control(selected_key=)`（使えなければ直前のトリガー）。
     `_run_single_action` の `finally` は戻す・先頭へだけのトリガー自身を選ばない
-  - presentation: `app.py`（runner への注入・`_sync_control_vars_from_data` の同期）/ `controllers/trigger_panel/select_before_run.py`（シーケンス欄のチェックの同期・書き戻し）/
+  - presentation: `app.py`（runner への注入・`_sync_control_vars_from_data` の同期）/ `controllers/trigger_panel/select_before_run.py`（出力シーケンス欄のチェックの同期・書き戻し）/
     `views/full_view/hook_frame.py`・`views/compact_view/hook_frame.py`（全体のチェック・個別指定の下の行）/ `views/full_view/sequence_box.py`（トリガーごとのチェック・間隔の下）/ `ui_vars.py`
   - テスト: `tests/test_sequence_runner_select_before_run.py` / `test_input_router.py` / `test_config_service.py` / `test_domain_config.py` / `tests_ui/test_select_before_run_ui.py` / `test_full_view_min_height.py`
 - phase 51（キーの押下 / 解放 `key_hold`・自動で離す安全策。仕様 = `features.md` §4.2.3・§4.2.8・§4.2.12・§4.5・§4.6 / `data_schema.md` §5.11.1・§5.11.9 / `key_input.md` §7.7。判断 = `decisions_archive/51_key_press_release_actions.md`）:
@@ -770,15 +771,15 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
     状態を消す契機 = `run_to_end.py` の `on_runtime_reset`（全部）/ 一時停止中のものを捨てる = `discard_paused` → `stop_run_to_end` / `cancel_pending_wait` 経由 / 単発の呼び出しの一時停止 = `input_acceptance.py` の `_pause_single_call` /
     単発の待機の取り消し = `sequence_runner.py` の `cancel_pending_waits` / トリガーの削除・キー変更・有効な行の交代 = `cancel_pending_wait`（`trigger_row_edit.py` 等から）/ 編集・位置の変更 = `reset_loop_frames` / 先頭へ = `_control` の rewind /
     末尾 = `sequence_runner.py`（単発の回り込みの前）・`send_wait.py`（待機の前）・`call_wait.py`（最上段の末尾だけ）・`call_run_to_end.py` / `file_line_wait.py`（最後の行の停止）/ 連動の末尾 = `linked_call.py` / エラーの通知前 = `_report_error`・`ActionExecutor._report_held_error`。
-    キーマップの切替 / アクティブの削除は `release_all_held`（presentation の `keymap_panel_controller.py` が呼ぶ）。離す送信が失敗したものは集合に残る（`held_inputs.py` の `_release_records`・`_press` の補償）
+   キーマップの切替 / アクティブの削除は `release_all_held`（presentation の `keymap_panel_controller.py` が呼ぶ）。離す送信が失敗したものは集合に残る（`held_inputs.py` の `_release_records`・`_press` の補償）
   - 停止後の予約済み入力: `hook_controller.py` の `on_input_event` が `after(0)` のコールバックの実行時に、フック停止中・キーマップ一時停止中なら `TriggerAction` / `SendKeyAction` を実行しない
   - 送信: `infrastructure/input_gateway.py`（マウスのボタンの `mouse_down` / `mouse_up`・FAILSAFE を外す / 拡張キーは `keyboard._listener.is_replaying` を立てて記録に載せない / `write_text` は `restore_state_after=False`）。text の前後の離す / 押し直すは `ActionExecutor._write_text`
   - presentation: `app.py`（`on_close` の finally で `release_all`。キーリピートの配線は phase 52 の項）/ `controllers/hook_controller.py`（`stop_hook` / `toggle_custom_input_enabled` の finally で解放）/
-    `controllers/trigger_panel/trigger_panel_controller.py`（ステータスの「押下中: ...」）/ `controllers/action_list_rendering.py`（省略表示の要約）/
-    `dialogs/action_key_hold_fields.py`（ダイアログの入力欄・「1 キーを記録」は `tk_keys.normalize_key_hold_tk_key_event` で修飾キーの左右を区別・phase 52）
+    `controllers/trigger_panel/trigger_panel_controller.py`（ステータスの「押下中: ...」）/ `controllers/action_list_rendering.py`（簡易表示の要約）/
+    `dialogs/action_key_hold_fields.py`（ダイアログの入力欄・「1キーを記録」は `tk_keys.normalize_key_hold_tk_key_event` で修飾キーの左右を区別・phase 52）
   - テスト: `tests/test_key_hold.py` / `test_held_inputs.py` / `test_action_executor_key_hold.py` / `test_sequence_runner_key_hold.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_task06_keymap_management_ui.py` / `test_sequence_control_review_fixes.py`
 - phase 52（key_hold のキーリピート `repeat`。仕様 = `features.md` §4.2.12「キーリピート」・§4.6 / `data_schema.md` §5.11.9 / `key_input.md` §7.7。判断 = `decisions_archive/52_key_hold_auto_repeat.md`）:
-  - domain: `domain/key_hold.py`（`MODIFIER_KEY_NAMES`・`is_modifier_key`・`wants_repeat`・`is_repeat_enabled`・一覧の ` (リピート)`）
+  - domain: `domain/key_hold.py`（`MODIFIER_KEY_NAMES`・`is_modifier_key`・`wants_repeat`・`is_repeat_enabled`・一覧の `（リピート）`）
   - タイマー: `application/key_repeat.py` の `KeyRepeater`（対象は高々 1 つ・世代番号で古い予約を捨てる・`pause_for_text` / `resume_after_text`・`begin_suppress` / `end_suppress` の入れ子）。
     `after` / `after_cancel` / `get_timing` はコンストラクタで、送り直しの送信と失敗の口は `HeldInputs` が `set_callbacks` で渡す（後始末の離すを `HeldInputs` 経由にするため）。送信の callback は `send(identity, key)`（phase 65・key は表示・エラー用）
   - 連携: `HeldInputs`（押す・離す・自動の解放・`suspend_keyboard` の前で止める・`_send_repeat` / `_repeat_failed`・`on_repeat_error`）/ `ActionExecutor`（key_hold で `is_repeat_enabled` を渡す・hotkey・直接置換の前に `stop_repeat_for_keys`）
@@ -792,7 +793,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - phase 54（テンキーの区別。仕様 = `key_input.md` §7.7・§7.8 / `data_schema.md` §5.1 / `features.md` §4.2.12。判断 = `decisions_archive/54_numpad_key_distinction.md`）:
   - 名前の表と入力の名前: `domain/numpad_keys.py`（16 名 ↔ スキャンコード + 拡張・`numpad_name_from_event(scan_code, is_keypad)`・予約名 `is_reserved_numpad_name`）。`application/input_router.py` と `key_state_manager.py` の `_extract_key_name` が最初に使い、テンキーでないイベントではレイアウトの表の名前を捨てる
   - 検査・送信・同じキー: `infrastructure/input_gateway.py`（`validate_key_name` が表の名前を許可・予約名を拒否 / `press_key`・`release_key`・`send_hotkey` は表の名前を `_send_numpad_event`〔専用 user32 の `SendInput` スキャンコード入力・`is_replaying`〕で送る / `key_identity` は表 → 拡張キー表 → keyboard の先頭〔0xE0xx は拡張に読み替え〕→ レイアウトの `scan_code`〔phase 62〕）
-  - 記録: `presentation/tk_keys.py` の `numpad_name_from_tk_event(keycode, state)`・`normalize_tk_key_event` / `normalize_key_hold_tk_key_event`（hotkey の記録・key_hold の「1 キーを記録」・トリガー / 切替キー / 停止キーの取得・`keyboard_window.py` の置換先の取得から呼ぶ）
+  - 記録: `presentation/tk_keys.py` の `numpad_name_from_tk_event(keycode, state)`・`normalize_tk_key_event` / `normalize_key_hold_tk_key_event`（hotkey の記録・key_hold の「1キーを記録」・トリガー / 切替キー / 停止キーの記録・`keyboard_window.py` の置換先キーの記録から呼ぶ）
   - テスト: `tests/test_numpad_keys.py` / `test_tk_keys.py` / `test_input_router.py` / `test_key_state_manager.py` / `test_key_overlap.py` / `test_input_gateway_send.py` / `tests_ui/test_action_dialog_key_hold.py` / `test_keymap_switch_batch_dialog.py`
 - phase 55（キーボードUIのウィンドウ改善。仕様 = `features.md` §4.6「キーボード表示のウィンドウ」。判断 = `decisions_archive/55_keyboard_ui_window.md`）:
   - タイトル: `presentation/keyboard_window.py` の `keyboard_window_title(layout_name, editing_key)`（純関数）→ `_update_title`（ステータス欄は削除）
@@ -807,7 +808,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - 禁止の判定: `domain/key_identifiers.py` の `PROHIBITED_ASSIGN_KEY_NAMES` / `is_prohibited_assign_key(name)`。使う側 = `keyboard_window.py`（色・左クリック）/ `KeymapPanelController.assign_keymap_from_keyboard_ui`（割り当ての入口で拒否）・`validate_keymap_switch_assignment`（`exclude_switch_key` = 今の切替キーと違うときだけ拒否）/ `application/keymap_switch_batch.validate_switch_batch`（`_current_switches` で今の切替キーを逆引き）/ 2 つの切替キーのダイアログの取得
   - レイアウトの見本: `config/user/keylayout/jis.json`・`de.json`（`.gitignore` の `config/` に当たるので `git add -f` で追跡）。検査 = `tests/test_keyboard_layout_files.py`
   - テスト: `tests/test_prohibited_assign_keys.py`・`test_keyboard_layout_files.py`・`test_input_router.py`（`alt gr`）・`test_keymap_switch_batch.py` / `tests_ui/test_keyboard_window_left_right.py`・`test_prohibited_assign_keys_ui.py`
-- phase 60（キーの取得中は IME を OFF にする。仕様 = `key_input.md` §7.4「取得の入口」「取得中の IME」「判別できないキー」。判断 = `decisions_archive/60_ime_off_during_key_capture.md`）:
+- phase 60（キーの記録中は IME を OFF にする。仕様 = `key_input.md` §7.4「記録の入口」「記録中の IME」「判別できないキー」。判断 = `decisions_archive/60_ime_off_during_key_capture.md`）:
   - 口: `infrastructure/own_ime_status.py`（状態なし・`_Win32OwnImeApi` は初回に 1 回生成・失敗は `None` / `False`）。送信用の `ime_control.py` とは別物で状態も共有しない
   - 部品: `presentation/key_capture_ime.py` の `KeyCaptureImeTracker`（hwnd はルートの窓の `winfo_id()`・取得した窓が破棄された後も戻せるため）。`own_ime_status` を presentation から直接 import する（application は経由しない・自アプリの IME は UI の都合で業務の状態ではない）。入口は既存の開始 / 停止の関数から `begin_key_capture(owner, window)` / `end_key_capture(owner)` を呼ぶ:
     #1 `controllers/key_capture.py`（`start` / `stop`・window = App）/ #2 `dialogs/trigger_dialog.py` / #3 `dialogs/keymap_edit_dialog.py` / #4 `dialogs/keymap_switch_batch_dialog.py`（`_start_capture` / `_stop_capture`）/
@@ -816,10 +817,10 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - `??`: 各入口で `tk_keys.is_unresolved_capture_key` を見て記録しない。案内の欄 = #2・#3・#4・#6
   - 前提: `unbind("<Destroy>", funcid)` が自分の結び付けだけを外すのは Python 3.13 以降（それより前は同じ窓の `<Destroy>` を全部外す）
   - テスト: `tests/test_own_ime_status.py`・`test_key_capture_ime.py`・`test_tk_keys.py` / `tests_ui/test_capture_ime_entries.py`（`key_capture_ime._default_tracker` を偽の get / set の tracker に差し替え）
-- phase 66（キーの取得で JIS の特殊キーを取る。仕様 = `key_input.md` §7.4「取得用のフック」。判断 = `decisions_archive/66_capture_jis_special_keys.md`）:
+- phase 66（キーの記録で JIS の特殊キーを記録する。仕様 = `key_input.md` §7.4「記録用のフック」。判断 = `decisions_archive/66_capture_jis_special_keys.md`）:
   - フック: `presentation/key_capture_hook.py` の `KeyCaptureHook`（`App` の `__init__` で `self.layout` の後に作り `configure_capture_hook`・`on_close` で `shutdown_capture_hook`）。tracker の 0 → 1 / 1 → 0 で `activate` / `deactivate`
   - 入口: 8 入口とも KeyPress の処理を「名前を作る」と「名前を受けて記録する（`_record_key` / #5 は `_record_nonmod_key`）」に分け、後者を `begin_key_capture(owner, window, on_hook_key)` に渡す。#7 `keyboard_window._begin_edit` は元キーのクリックごとに begin / #8 `grid_editor_window` は記録先の選択の変更ごとに `_capture_target_changed`（`screen_grid/grid_editor_panel.py` の操作キー・細分化の選択からも呼ぶ）
-  - テスト: `tests/test_key_capture_hook.py`・`test_key_capture_ime.py` / `tests_ui/test_capture_hook_entries.py`（tracker の取得用のフックを外して受け取りの関数を直接呼ぶ）。tests_ui の App は差し替えた tracker に本物の取得用のフックを設定するが、既定のレイアウトでは対象のキーが無く素通し
+  - テスト: `tests/test_key_capture_hook.py`・`test_key_capture_ime.py` / `tests_ui/test_capture_hook_entries.py`（tracker の記録用のフックを外して受け取りの関数を直接呼ぶ）。tests_ui の App は差し替えた tracker に本物の記録用のフックを設定するが、既定のレイアウトでは対象のキーが無く素通し
 - phase 63（押下だけが届くキー〔無変換 241・変換 242〕の組み直し。仕様 = `key_input.md` §7.1・§7.2・§7.3「押下だけのキーの組み直し」・§7.7 / `features.md` §4.6「レイアウトの JSON の `extra_scan_codes`」「押下だけのキーの直接置換の枠」。判断 = `decisions_archive/63_make_only_keys.md`）:
   - 表: `domain/make_only_keys.py`（`MAKE_ONLY_SCAN_CODES` = {241, 242}・`is_make_only_scan_code`）
   - 状態機械: `application/make_only_keys.py` の `MakeOnlyKeyFilter`（`handle(event)` は表に無い走査コードなら `None`・ある場合は `MakeOnlyResult`〔accept・routes・generation〕/ `clear()` で世代を上げる / 1 本のロック / 定数 `PAIR_WINDOW_S` = 16 ms・`CONTINUATION_WINDOW_S` = 60 ms / 作るイベント `SyntheticKeyEvent`）。依存は外から注入（`route` = `input_router.handle`・`release_state` = `key_state_manager.handle_event`・`clock` = `time.perf_counter`・`schedule` = `application/delayed_calls.py` の `DelayedCallWorker.schedule`〔1 本のワーカー〕・`get_hook_pause_count`・`get_repeat_delay_ms` = `keyboard_repeat_timing()[0]`・`on_routes`・`trace`）
@@ -833,7 +834,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 ### キーの送信（infrastructure/input_gateway.py の InputGateway・phase 21）
 
-- 呼び出し元は `ActionExecutor` だけ（hotkey アクション = `send_hotkey(normalized)` / キーマップの送信先 = `press_key` → `release_key`。send guard は呼び出し元が張る）。
+- 呼び出し元は `ActionExecutor` だけ（hotkey アクション = `send_hotkey(normalized)` /キーマップの送信先 = `press_key` → `release_key`。send guard は呼び出し元が張る）。
 - **キー名の解決**（phase 62・仕様 = `spec_detail/key_input.md` §7.7「キー名 → 走査コードの解決の順」）: `_resolve_key` が テンキー → 拡張キー → keyboard（成功・非空）→ 注入された `resolve_layout_scan_code`（`InputGateway(resolve_layout_scan_code=...)`・`int` で 1〜255・例外は当たらない）→ `ValueError` の順に種類と値を返し、`press_key` / `release_key` / `send_hotkey` / `key_identity` / `validate_key_name` が共通に使う。
   **送り方の値**（phase 65）: `resolve_send(key) -> KeySend`（不変の dataclass・種類・値・キー名）と `press_send` / `release_send` / `identity_of(send)` を公開し、`press_key` / `release_key` / `key_identity` はこれらで書く（挙動は不変・keyboard の種類はキー名で送る）。`HeldInputs` が記録に持ち、押したときの送り方で送り直す。レイアウトのキーは `_send_numpad_event(scan, False, ...)` で送る。`send_hotkey` は全キーが keyboard のときだけ `keyboard.send`
 - **Windows の拡張キー**（矢印・Home・End・PageUp/PageDown・Insert・Delete・右 Ctrl / 右 Alt・Windows・menu・PrintScreen・NumLock）は、
@@ -866,12 +867,12 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - infrastructure: `InputGateway.scroll_mouse(vertical, deltas, position)` = 座標があれば `move_cursor`（FailSafe を外し待ちなし）→ `_build_wheel_inputs` で `INPUT_MOUSE` の配列（`MOUSEEVENTF_WHEEL` / `HWHEEL`・`mouseData` は `& 0xFFFFFFFF`）→ `SendInput` 1 回（送れた数が足りなければ `OSError`）。**pyautogui のスクロールは使わない**（Windows の `hscroll` が縦に回る・量が生のまま・例外を握りつぶすため）
   - presentation: `dialogs/action_mouse_scroll_fields.py`（ダイアログの欄・`load` / `build_action` / `sync_amount` / `sync_coordinates`）・`dialogs/action_dialog.py`（種類の候補・OK の検査・`_set_mouse_capture_state`・隠れる欄のフォーカス）・`controllers/action_list_rendering.py`（「次に実行」の要約は `format_action_list_item` へ）
   - テスト: `tests/test_mouse_scroll.py` / `test_action_executor_mouse_scroll.py` / `test_input_gateway_scroll.py` / `tests_ui/test_action_dialog_mouse_scroll.py` / `test_action_list_rendering.py`
-- ドラッグの入力 UI は `dialogs/action_dialog.py`（「ドラッグ」チェックで離す位置 X/Y・取得ボタン・速度欄を
+- ドラッグの入力 UI は `dialogs/action_dialog.py`（「ドラッグ」チェックで「離す位置X/Y」・「離す位置を取得」ボタン・速度欄を
   `grid_remove` で出し入れし、X/Y ラベルを「掴む位置」へ、回数欄を `disabled` にして保存値を 1 に固定。
   座標取得は掴む用 / 離す用で排他）。一覧表示の整形は `domain/config.py` の `format_action_list_item`。
 - **`actions[]` の読込時正規化は `domain/config.py::normalize_actions` に一本化**（dict 以外の要素を除去し
   `label` を整形、`type` / `button` は**キーがある場合のみ** `coerce_label` する純関数・冪等。phase 30）。呼び出しは 2 系統 = `ensure_config_compatibility` 内（split 読込・単一 JSON）と
-  `application/config_service::_normalize_sequence_payload`（個別 sequence JSON の単体読込 / 保存後の戻り値）。
+  `application/config_service::_normalize_sequence_payload`（個別出力シーケンス JSON の単体読込 / 保存後の戻り値）。
   **application 側は整形規則を持たず domain の関数を呼ぶだけ**（規定は `data_schema.md` §5.11）。
 - **JSON 読込時の型正規化は `domain/config.py` の `coerce_key_name` / `coerce_label` に一本化**（phase 24）。
   どちらも**非 str なら `""`** を返す純関数で、`coerce_key_name` は str のとき `normalize_key_name`
@@ -887,7 +888,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   適用先は `split_loading` の `trigger_set_path` / `active_keymap_path` / `keymaps[].path` /
   `keymaps[].switch_key` / 外部レイアウト登録、`domain/config` の `external_keyboard_layouts` /
   `keymap_switch_keys`、および**参照突合経路**（`reference_scan.py::_source_path`。
-  孤児棚卸し・参照元の掃除はディスクから生 JSON を直接読む別実装で、
+  未使用ファイルの整理・参照元の掃除はディスクから生 JSON を直接読む別実装で、
   `ensure_config_compatibility` を通らないため個別に適用が要る）。
   **未対応の残件** = `presentation/controllers/config_io/startup_io.py` の `keymap_set_path`
   （config.json の生値。presentation 層のため phase 25 のスコープ外）。
@@ -896,7 +897,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   `ConfigService.to_config_relative_or_absolute`・冪等）・表示（`collect_keyboard_layouts` / `resolve_registered_layout_path` に
   `paths.config_root` を渡す）が**すべて `config_root` 基準**（§5.7）。親基準の旧表記は移行しない
 （単一 JSON の取り込み `keymap_set_io` → `load_legacy_runtime_data` は split_loading を通らず生の値のまま入る = 受容）。
-  孤児検出（`reference_scan._add_external_layout_references`）だけは旧表記も保護するため両基準の superset のまま（§5.8.9）。
+  未使用ファイルの検出（`reference_scan._add_external_layout_references`）だけは旧表記も保護するため両基準の superset のまま（§5.8.9）。
 - **runtime 内部キーのパス値 3 種**（`_keymap_source_path` / `_sequence_source_path` / `_trigger_set_source_path`）も
   `ensure_config_compatibility` で**キーがある場合のみ** `coerce_label` する（phase 30・`data_schema.md` §5.7）。
   domain は内部キー名を文字列直値で持つ（application の `ConfigService.INTERNAL_*` を import しない）。
@@ -923,7 +924,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - **application `application/screen_grid_session.py`**: `ScreenGridSession`（UI スレッドの状態機械。`sync(keymap_id, grid, active)`・`handle(GridKeyAction)`〔枠のキー > 操作キー・`ops_of` で引き当て〕・`abort()`・世代・クリック点と矢印の移動〔phase 57〕・モニタは `MonitorInfo`〔識別子 + 矩形〕で持つ。
   suppress する集合は `_rebuild_suppression`（常時の集合）+ `_publish_snapshot`（深さ・選択・今の深さの枠のキーで足す実効の集合）で 1 本にする〔phase 57 で `esc_active` を廃止〕。
   移動・クリック・列挙・カーソル位置は注入）。フックのスレッドへは不変の `GridRouteSnapshot`（`visible` / `generation` / `suppress_keys`）を差し替えて公開、窓へは `GridView`（phase 57 で `click_point`）
-- **振り分け**: `application/input_router.py` `GridKeyAction` と `get_grid_snapshot`（直接切替の後・トリガーの前の `_route_grid_key`。全キーを `key in suppress_keys` だけで判定）/ 開始・再開の条件 = `hook_coordinator.py` の `has_grid_keymaps`（`hook_controller.py` が `has_enabled_grid` で渡す）
+- **振り分け**: `application/input_router.py` `GridKeyAction` と `get_grid_snapshot`（キーマップ切替の後・トリガーの前の `_route_grid_key`。全キーを `key in suppress_keys` だけで判定）/ 開始・再開の条件 = `hook_coordinator.py` の `has_grid_keymaps`（`hook_controller.py` が `has_enabled_grid` で渡す）
 - **infrastructure**: `win32_window.py` `list_monitor_rects`・`make_click_through_overlay`・`vk_to_scan_code`・`vk_to_char`（user32 は `use_last_error=True`）/ `input_gateway.py` `cursor_position`・`move_cursor`・`click_at`（pyautogui・`_pause=False`）
 - **presentation**: `app.py` が `ScreenGridController` を作り `InputRouter` へ `snapshot` を渡す・終了で `shutdown` / `layout_controller.refresh_keyboard_window` の先頭で `screen_grid.sync()`（表示の同期の 1 か所）/
   `hook_controller._execute_reserved_action` が `GridKeyAction` を `screen_grid.handle` へ / フォントの変更で `screen_grid.on_font_changed()` /
@@ -937,41 +938,41 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 ---
 
-## キーマップとトリガー一覧（phase 34）
+## キーマップとトリガーセット（phase 34）
 
 仕様は `spec_detail/data_schema.md` §5.13（データ・読込移行・保存）/ `key_input.md` §7.3（優先順位・重複）/ `features.md` §4.1・§4.3・§4.5（UI）。
 
-- **口 `domain/keymap_triggers.py`**: アクティブキーマップのトリガー一覧の取得・確保・代入（`get_active_triggers` / `ensure_active_triggers` /
+- **口 `domain/keymap_triggers.py`**: アクティブなキーマップのトリガー一覧の取得・確保・代入（`get_active_triggers` / `ensure_active_triggers` /
   `set_active_triggers`）と、共有実体の列挙（`iter_trigger_sets` = 同一 list を共有するキーマップ群を一覧順の代表でまとめる / `trigger_set_members` /
-  `trigger_set_owner`）、キーマップ 1 つ以上の保証（`ensure_at_least_one_keymap`）、単一 JSON の移行（`migrate_single_json_triggers`）、
+  `trigger_set_owner`）、キーマップ1 つ以上の保証（`ensure_at_least_one_keymap`）、単一 JSON の移行（`migrate_single_json_triggers`）、
   読み取り専用の `keymap_trigger_list`（保存の対象の固定用）と、キーマップの写し `duplicate_keymap`（内部の値を除く深い写し・トリガー一覧を共有しない。phase 43）。
   **presentation は runtime の `"triggers"` を直接書かない**（`tests/test_keymap_triggers.py` の静的テストで固定）。
-- **runtime の形**: 各 `keymaps[]` 要素が `triggers` と trigger_set の内部キー（`_trigger_set_source_path` / `_parent_refs` / `_dirty` / `_imported`）を持つ。
-  トップレベル `triggers` は `[]`。移行状態はトップレベル `_legacy_trigger_set`（状態・旧値・移行先 keymap id・`auto_created`）。
+- **runtime の形**: 各 `keymaps[]` 要素が `triggers` とトリガーセットの内部キー（`_trigger_set_source_path` / `_parent_refs` / `_dirty` / `_imported`）を持つ。
+  トップレベル `triggers` は `[]`。移行状態はトップレベル `_legacy_trigger_set`（状態・旧値・移行先キーマップ ID・`auto_created`）。
   `DEFAULT_CONFIG` は新形式（`keymaps[0].triggers` に例）。`KeymapService.ensure_active_keymap` は `keymap_1` / label 空へ統一。
-- **読込** `config_service/split_loading.py`: keymap ファイルの `trigger_set_path` を `attach_trigger_set`（同じ解決先は同一 list を共有）で読む。
-  旧形式の移行（項目の無いキーマップのみ・同ファイル参照なら same・移行できなければ「旧トリガー一覧（<stem>）」を自動作成）もここ。
-  キーマップの個別読込（`config_service.load_keymap_file` / `keymap_file_io`）も同じ `attach_trigger_set` を使う。
-- **保存** `config_service/split_payloads.py` / `save_plan_execution.py` / `save_plan.py`: trigger_set の実体ごとの payload と行（識別子 = 代表キーマップ id）、
-  sequence の合成キー（`save_plan.compose_sequence_key` / `split_sequence_key`・区切り `\x1f`）、計画全体の衝突回避、依存 3 段
-  （`find_dependency_blocked_parents`）、§5.13.4 の決定表、移行した trigger_set の `_parent_refs` の後処理。
-  キーマップの個別保存計画は `config_service/keymap_save_plan.py`（phase 36 で `__init__.py` から切り出し）。
+- **読込** `config_service/split_loading.py`: キーマップファイルの `trigger_set_path` を `attach_trigger_set`（同じ解決先は同一 list を共有）で読む。
+  旧形式の移行（項目の無いキーマップのみ・同ファイル参照なら same・移行できなければ「旧トリガーセット（<stem>）」を自動作成。既存ラベルは変更しない）もここ。
+ キーマップの個別読込（`config_service.load_keymap_file` / `keymap_file_io`）も同じ `attach_trigger_set` を使う。
+- **保存** `config_service/split_payloads.py` / `save_plan_execution.py` / `save_plan.py`: トリガーセットの実体ごとの payload と行（識別子 = 代表キーマップ id）、
+ 出力シーケンスの合成キー（`save_plan.compose_sequence_key` / `split_sequence_key`・区切り `\x1f`）、計画全体の衝突回避、依存 3 段
+  （`find_dependency_blocked_parents`）、§5.13.4 の決定表、移行したトリガーセットの `_parent_refs` の後処理。
+ キーマップの個別保存計画は `config_service/keymap_save_plan.py`（phase 36 で `__init__.py` から切り出し）。
   個別キーマップ保存は runtime の list 同一性を保つため意図的に `ensure_config_compatibility` を通さない（入口で正規化済み）。
 - **重なり判定 `application/key_overlap.py`**: `analyze_key_overlaps` が停止 / トグル / 切替 / 置換 / トリガーの重なりを判定し、
   読み取り専用の索引（`MappingProxyType`）を持つ `KeyOverlapAnalysis` を返す。**App が表を保持し差し替える**（`_key_overlap_report` /
   `_refresh_key_overlap_report`）。作り直しの契機はトリガー一覧・キーマップ一覧の再描画・停止 / トグルキーの変更（trace）・読込
   （`KeymapSetIo.apply_loaded_data_to_ui`）。グレー表示・§7.3 の案内・編集時拒否・開始検証が同じ表を使い、`InputRouter` は表を引くだけ。
-- **入力判定** `application/input_router.py`: 停止 > トグル > 直接切替 > トリガー > 置換（枠の表示中は直接切替の後に枠の判定・「画面の枠（phase 56）」節）。案内用の `InputRoute.shadowed` を付け、
+- **入力判定** `application/input_router.py`: 停止 > トグル > キーマップ切替 > トリガー > 置換（枠の表示中はキーマップ切替の後に枠の判定・「画面の枠（phase 56）」節）。案内用の `InputRoute.shadowed` を付け、
   `ActionExecutor.on_shadowed_action` → `HookController` がステータスバーの一時メッセージ（`App._set_flash_message`）に出す（停止時は併記）。
 - **切替と実行位置** `application/app_state.py`: 実行位置・選択行はトリガー一覧の実体（代表キーマップ id）ごと（`indices_for` / `keymap_indices` /
   `selected_trigger_indices`・代表削除で `rekey_trigger_set`）。連続実行中の切替可否は `AppState.can_switch_keymap` の 1 箇所で、
-  一覧の選択・直接切替キー（`ActionExecutor`）・アクティブの削除が共有する。
+  一覧の選択・切替キー（`ActionExecutor`）・アクティブの削除が共有する。
 - **キーマップ管理** `controllers/keymap_panel/`（`keymap_panel_controller.py` + 追加フロー `keymap_add_flow.py` + 一覧の操作 `keymap_list_edit.py`）: 一覧の選択 = アクティブ化（未保存にしない）・
   追加 / 個別読込 / 貼り付けは `KeymapAddFlow` の 1 経路（切替キー未設定の既存と増やすキーマップを `KeymapSwitchBatchDialog` でまとめて設定。検査は
   `application/keymap_switch_batch.py` の `validate_switch_batch` = 反映後の完成予定の状態に `analyze_key_overlaps` を当てる純関数。OK で一括確定・キャンセルで無変更・アクティブ不変。phase 43）・
   編集（ダブルクリック・`KeymapEditDialog`・2 つ以上で切替キー空不可）・削除（1 つなら不可・移行先なら移行記録を消す）・グレー表示。
   並べ替えの禁止条件は `SequenceRunner.has_any_active_execution`（全トリガー一覧の連続実行・呼び出しの文脈・保留中のステップ・待ち・file_line の読込に加え、単発実行中の再入防止〔`reentry_guard`〕も見る＝正本の条件より少し厳しい）。個別読込の二重読込拒否は `keymap_file_io`。
-- **保存計画の sequence の識別子**（phase 43）: `application/save_plan.py` の `compose_sequence_key` / `split_sequence_key`（同じキーの 2 番目以降だけ何番目かを加える・1 番目は従来と同一）/
+- **保存計画の出力シーケンス識別子**（phase 43）: `application/save_plan.py` の `compose_sequence_key` / `split_sequence_key`（同じキーの 2 番目以降だけ何番目かを加える・1 番目は従来と同一）/
   `sequence_rows`。対象の固定と照合は `controllers/config_io/save_target_snapshot.py`。
 
 ---

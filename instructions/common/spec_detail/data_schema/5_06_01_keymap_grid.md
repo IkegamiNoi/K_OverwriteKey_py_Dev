@@ -1,8 +1,8 @@
-#### 5.6.1 keymap の `grid`（画面の枠・phase 56・57）
+#### 5.6.1 キーマップの `grid`（画面の枠・phase 56・57）
 
-親: [data_schema.md](../data_schema.md) §5.6「keymap」。挙動は [features.md](../features.md) §4.7。
+親: [data_schema.md](../data_schema.md) §5.6「キーマップ」。挙動は [features.md](../features.md) §4.7。
 
-keymap の任意キー。**`grid` が無い keymap は枠 OFF**。
+キーマップの任意キー。**`grid` が無いキーマップは枠 OFF**。
 
 ```json
 "grid": {
@@ -34,17 +34,17 @@ keymap の任意キー。**`grid` が無い keymap は枠 OFF**。
   （phase 57 で固定の予約キーを修飾キーだけにした。enter / num enter / space / esc / backspace / tab は操作キーへ移り、**読込時の操作キーとの重なりでは戻さない**＝実行時の優先順位〔枠のキー > 操作キー〕で解決する。
   受容: アプリで保存し直していない手編集のファイルで枠のキーに space・esc 等を含む形は、これまで既定へ戻っていたが今後は戻らず、その深さでは枠のキーが勝つ）
   最上段は画面ごとに判定し、不正な画面の記録は落とす（= 既定）。細分化も独立に判定する。
-  **設定で変わる予約キー（停止 / トグル / 直接切替キー）との重なりでは戻さない**（振り分けで上が勝つ）
+  **設定で変わる予約キー（停止キー / トグル / 切替キー）との重なりでは戻さない**（振り分けで上が勝つ）
 * **`ops` の正規化**（phase 57）: 無い = 全操作が既定（ログなし）/ dict でない = 全操作が既定（警告ログ）/ **操作ごとに独立に**、値が文字列でない・trim + 小文字の後に空・修飾キー・固定の操作キー（`esc` / `num enter`）なら
-  その操作だけ既定へ戻す（警告ログは keymap ごとに 1 回・戻した操作名を並べる）。無い操作は既定（ログなし）・未知の操作名は捨てる。
+  その操作だけ既定へ戻す（警告ログはキーマップごとに 1 回・戻した操作名を並べる）。無い操作は既定（ログなし）・未知の操作名は捨てる。
   **操作どうし・枠のキー・設定で変わる予約キーとの重なりでは戻さない**（編集の窓の OK でだけ拒否・[features.md](../features.md) §4.7）。
   キー名は trim + 小文字だけで正規化するので、手編集の別名（`escape` 等）はフックの名前と一致せず効かない（枠のキーと同じ・受容）
 * `grid` が dict でなければ無いものとして扱う
-* **保存**: keymap の dict に `grid` があれば書く。正規化後の `grid` は `enabled` / `monitors` / `sub` を常に持ち、
+* **保存**: キーマップの dict に `grid` があれば書く。正規化後の `grid` は `enabled` / `monitors` / `sub` を常に持ち、
   **`label_position` は `"top_left"` のときだけ書く**（中央のときは書かない。v0.6 までの `grid` を保存し直しても差分が出ない）。
   **`ops` は 8 操作のどれかが既定と違うときだけ 8 操作すべてを書く**（既定と同じなら書かない。phase 56 の `grid` を保存し直しても差分が出ない）。
   `grid` はダイアログで「枠を使う」を ON にしたとき、または形を編集したときに作り、**OFF に戻しても消さない**（形を失わない）
-* `grid` の無い keymap は読込・保存で差分が出ない
+* `grid` の無いキーマップは読込・保存で差分が出ない
 * 実行時・編集の窓は守りの読み出し `ops_of(grid)`（正規化済みの 8 操作を既定で埋めて返す）を使う。編集の窓の結果は既定と違うときだけ `ops` を持ち、取り込み側は結果に `ops` があれば写し・無ければ消す（`label_position` と同じ作法）
 * **4 経路すべてで保持する**: 単一 JSON の正規化（`domain/config.py` `_normalize_keymap_compat_fields`・`_normalize_keymaps` から呼ばれる）/ 個別読込・取り込み（`config_service` `_normalize_loaded_keymap`）/
-  split の個別 JSON の読込（`split_loading.py`）/ 個別保存（`split_payloads.py` `build_keymap_file_payload`）。複製・貼り付けは keymap を丸ごと写すのでそのまま写る
+  split の個別 JSON の読込（`split_loading.py`）/ 個別保存（`split_payloads.py` `build_keymap_file_payload`）。複製・貼り付けはキーマップを丸ごと写すのでそのまま写る

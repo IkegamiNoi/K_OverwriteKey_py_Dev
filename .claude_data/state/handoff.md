@@ -15,16 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 67 は 2026-10-21 完了〕・次フェーズはユーザー判断で `/phase_start`）。
-   次採番 = phase 68 / 暫定 51 / decisions 68 / 提案書 25 / idea 55（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 68 は 2026-10-24 完了〕・次フェーズはユーザー判断で `/phase_start`）。
+   次採番 = phase 69 / 暫定 52 / decisions 69 / 提案書 26 / idea 55（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜50）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
+   **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md`（UI 用語と表記の正本・phase 68）に従う**。
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜51）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 67 完了（2026-10-21・出力シーケンスのマウススクロール）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-ブランチ `claude/nice-banach-b5d556`（phase 67 一式）。phase 65・66 = `claude/muhenkan-key-hold-error-dialog-a77a67`。main へのマージはユーザー（PR は作らない）。
+**phase 68 完了（2026-10-24・UI 文言の用語統一）。アクティブなフェーズなし・次フェーズはユーザー判断（予定 = ヘルプ → 多言語対応 → Mac 対応）。**
+ブランチ `claude/help-text-review-c94d50`（暫定 51・phase 68 一式）。phase 67 = `claude/nice-banach-b5d556`。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -34,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 67 task_03a = 2026-10-21**）:
-compile **clean** / tests **1815 pass**（skip 7）/ tests_ui **1143 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1794〔phase 66〕→ 1815 / tests_ui: 1130 → 1143）。
+直近の実測（**phase 68 task_07a = 2026-10-24**）:
+compile **clean** / tests **1819 pass**（skip 7）/ tests_ui **1149 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1815〔phase 67〕→ 1819 / tests_ui: 1143 → 1149）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -54,13 +55,14 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズの選択はユーザー判断（`/phase_start`）。候補: idea_48（取得中のフック再開）/ idea_54 / idea_45 / その他 `instructions/backlog/INDEX.md`
+- 次フェーズの選択はユーザー判断（`/phase_start`）。予定 = ヘルプの作成 → 多言語対応（提案書 25・アクションの種類の内部名の表示名化を吸収）→ Mac 対応
 - main へのマージはユーザー（PR は作らない）
 
-## 直前のフェーズ（phase 67 = 出力シーケンスのマウススクロール・判断は `decisions_archive/67_mouse_scroll_action.md`）
-- 新しい種類 `mouse_scroll`（`direction` / `unit` = notch・delta / `amount` / 任意 `x` / `y`・正本 data_schema §5.11.10）。domain `mouse_scroll.py`・`ActionExecutor._execute_mouse_scroll`（不正は止まる系）・`InputGateway.scroll_mouse`（`move_cursor` + `SendInput` 1 回で WHEEL / HWHEEL）・ダイアログ `action_mouse_scroll_fields.py`
-- **pyautogui のスクロールは使わない**（Windows の `hscroll` が縦に回る・量が生のまま・例外を握りつぶす）。FailSafe は画面の 4 隅（`pyautogui/__init__.py:2169-2171`）
-- 保留 = decisions_archive/67 の L6・L7
+## 直前のフェーズ（phase 68 = UI 文言の用語統一・判断は `decisions_archive/68_ui_terminology.md`）
+- 正本 `spec_detail/ui_terms.md`（用語表 A1〜A21・細則・表記規則 D1〜D11）を新設し、正本全体の引用・地の文・見出しを新しい用語へ。画面の文言約 1200 件を置換
+- はい / いいえ の確認 3 か所を `config_io/choice_dialog.py`（`ask_choice`・テストは `choice_dialog.ask_choice` を差し替える）へ
+- **【罠・phase 68】Codex は空白・括弧だけの文言変更でテストを追従しない**（依頼に「変えた文言は 1 つずつ tests / tests_ui を検索」を明記）/ **正本の機械的な置き換えは同音の別概念（「…」の省略・座標の取得）・過去の名称・地の文への表記規則を誤りやすい**（実装前後の文字列リテラルを比べて確かめる）
+- 保留 = 提案書 25（多言語化で吸収）・current.md 別タスク化候補「保存・確認ダイアログ」
 
 ## 運用インフラ
 
@@ -142,7 +144,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 64_external_layout_path_base / 63_make_only_keys / 62_special_keys_from_layout_only）。
+  （直近 3 件: 68_ui_terminology / 67_mouse_scroll_action / 66_capture_jis_special_keys）。
 - 新規の未着手: **idea_54**（押下だけのキーで IME が切り替わった件・再発時）/ **idea_53**（**保留・優先度 低**・暫定 47 v0.2）/ **idea_48**（取得中のフック再開）/ idea_50 は phase 66 で完了 / idea_51 は phase 65 で完了 / idea_45（取得の記号キーの名前）/ idea_44（枠の配色）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
   idea_29〜idea_31 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/

@@ -4,31 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-23T12:00:00
-phase: **phase 68 = instructions/phase/68_ui_terminology（UI 文言の用語統一）・アクティブ**。主入力 = 暫定 51 v0.7（ユーザー確定済）。次採番 = phase 69 / 暫定 52 / decisions 69 / 提案書 25 / idea 55
-直前の完了フェーズ = phase 67（出力シーケンスのマウススクロール）
+last_updated: 2026-10-24T09:00:00
+phase: なし（phase 68 = instructions/phase/68_ui_terminology は 2026-10-24 完了）。次採番 = phase 69 / 暫定 52 / decisions 69 / 提案書 26 / idea 55
+直前の完了フェーズ = **phase 68**（UI 文言の用語統一・`decisions_archive/68_ui_terminology.md`）
 last_commit_location: `claude/help-text-review-c94d50`（暫定 51・phase 68 起票・task_01）。phase 67 は `claude/nice-banach-b5d556`。main へのマージはユーザー
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 68 task_07 / 07a 完了（前後差分・保留の確定・統合レビュー反映）。次 = task_08（ユーザーの実機目視 → 正本反映・凍結・refactor_check・完了判定前レビュー）。**
-mode: waiting_user_visual_check
+focus: **phase 68 完了（2026-10-24・UI 文言の用語統一）。アクティブなフェーズなし・次フェーズはユーザー判断（予定 = ヘルプ → 多言語対応 → Mac 対応）。**
+mode: completed
 presence: present
 
 ## last_action
-ts: 2026-10-24T03:00:00
+ts: 2026-10-24T09:00:00
 who: main
 summary: |
-  phase 68 task_07: 実装後の抽出（tools/after_ja_strings.md）・残存一覧（tools/residual.md・理由なし 0）・保留 2 点ユーザー確定（フォルダ・入力エラー）。
-  統合レビュー: deep-reviewer 修正して採用 / codex-reviewer 指摘なし → ユーザー確定 4 点（別名保存… / 全角括弧の前の空白 / アクティブなキーマップ / どうしますか？）= 暫定 51 v0.8・task_07a（codex-implementer・reviewer 完了可）。task_08 定義（実機目視 6 項目・正本の確認リスト）。
+  phase 68 task_08: 実機目視 OK（保存先を計算し直した後の確認は省略）→ 正本反映（新規 ui_terms.md・正本 19 ファイルの引用と地の文・見出しの改名）・暫定 51 凍結・decisions_archive/68・current.md 完了。
+  完了判定前レビュー: Codex 敵対的 needs-attention 1（「…」の省略を簡易表示に誤置換 → 修正）/ deep-reviewer 修正して完了可（37 件 → tools/promotion_fixes.md で反映）。/refactor_check = 推奨 → 提案書 25 起票・多言語化で吸収（保留）。
+result_files:
+  - instructions/common/spec_detail/ui_terms.md（新規）・features.md・data_schema.md と子ファイル・key_input.md・architecture.md・codebase_map.md・app_overview.md
+  - instructions/history/51_ui_terminology.md（凍結）・instructions/modified_proposal/25_refactor_child_kind_labels.md
+  - .claude_data/state/decisions_archive/68_ui_terminology.md・decisions.md・instructions/phase/current.md
 verified:
-  compile: clean
+  compile: clean（最後のコード変更 a373d08 時点）
   tests: pass 1819（skipped 7）
   tests_ui: pass 1149
   smoke: pass
 
 ## next_action
-- task_08: ユーザーの実機目視（tasks/task_08 の 6 項目）→ 正本反映（ui_terms.md 新設はユーザー確認）→ 暫定 51 凍結・decisions_archive/68・current.md 完了・/refactor_check・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
+- 次フェーズの選択はユーザー判断（`/phase_start`）。予定 = ヘルプの作成 → 多言語対応（提案書 25・内部名の表示名化を吸収）→ Mac 対応
+- main へのマージはユーザー（PR は作らない）。phase 68 のブランチ = `claude/help-text-review-c94d50`
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない

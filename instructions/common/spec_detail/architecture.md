@@ -29,12 +29,12 @@
 
 * トリガー
 * アクション
-* シーケンスのロジック
+* 出力シーケンスのロジック
 
 #### application（`keyseq/application`）
 
 * ユースケース
-* 実行制御（シーケンス実行・run_to_end）
+* 実行制御（出力シーケンス実行・run_to_end）
 
 #### infrastructure（`keyseq/infrastructure`）
 

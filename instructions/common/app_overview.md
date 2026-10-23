@@ -42,5 +42,6 @@
 | JSON 仕様・パス保存ルール | `common/spec_detail/data_schema.md` |
 | キー入力・フック仕様 | `common/spec_detail/key_input.md` |
 | 非機能要件（安全設計） | `common/spec_detail/nonfunctional.md` |
+| UI 用語と表記 | `common/spec_detail/ui_terms.md` |
 | コード構造マップ（実装状態の正） | `common/codebase_map.md` |
 | コーディング規約・実装ルール | `.claude/rules/implementation.md` / `.claude/rules/python_rules.md` |
