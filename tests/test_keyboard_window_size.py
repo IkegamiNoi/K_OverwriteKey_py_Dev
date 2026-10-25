@@ -4,16 +4,37 @@ from types import SimpleNamespace
 from keyseq.presentation.keyboard_window_size import (
     KEYBOARD_KEY_MIN_UNIT,
     KEYBOARD_WINDOW_PADDING,
+    KEYBOARD_WINDOW_WIDTHS_KEY,
     corrected_size,
     layout_aspect,
     layout_extent,
     minimum_size,
+    parse_keyboard_window_widths,
     size_from_height,
     size_from_width,
 )
 
 
 class KeyboardWindowSizeTest(unittest.TestCase):
+    def test_parse_keyboard_window_widths_keeps_only_valid_entries(self):
+        self.assertEqual(KEYBOARD_WINDOW_WIDTHS_KEY, "keyboard_window_widths")
+        self.assertEqual(parse_keyboard_window_widths(None), {})
+        self.assertEqual(
+            parse_keyboard_window_widths(
+                {
+                    "us_tkl": 700,
+                    "jis": 1,
+                    "bool": True,
+                    "zero": 0,
+                    "negative": -1,
+                    "float": 510.0,
+                    "text": "510",
+                    42: 600,
+                }
+            ),
+            {"us_tkl": 700, "jis": 1},
+        )
+
     def test_layout_aspect_uses_outer_key_bounds(self):
         keys = (
             SimpleNamespace(x=0, y=0, w=2, h=1),

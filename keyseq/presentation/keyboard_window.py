@@ -77,6 +77,8 @@ class KeyboardWindow(tk.Toplevel):
         on_assign_keymap=None,
         on_clear_keymap=None,
         is_mouse_button_down: Callable[[], bool] | None = None,
+        get_saved_width: Callable[[str], int | None] | None = None,
+        on_width_settled: Callable[[str, int], None] | None = None,
     ):
         super().__init__(parent)
         self.title("キーボードUI")
@@ -84,6 +86,8 @@ class KeyboardWindow(tk.Toplevel):
         self._on_assign_keymap = on_assign_keymap
         self._on_clear_keymap = on_clear_keymap
         self._is_mouse_button_down = is_mouse_button_down
+        self._get_saved_width = get_saved_width
+        self._on_width_settled = on_width_settled
         self._layout = layout or resolve_keyboard_layout()
         self._layout_id = self._layout.layout_id
         self._extent = layout_extent(self._layout.keys)
@@ -93,10 +97,22 @@ class KeyboardWindow(tk.Toplevel):
             if self._extent is not None
             else (KEYBOARD_WINDOW_MIN_WIDTH, 210)
         )
-        initial_size = self._minimum
+        saved_width = (
+            self._saved_width(self._layout_id)
+            if self._ratio is not None
+            else None
+        )
+        if (
+            saved_width is None
+            or saved_width <= self._minimum[0]
+            or self._ratio is None
+        ):
+            initial_size = self._minimum
+        else:
+            initial_size = size_from_width(saved_width, self._ratio)
         self._size_base = initial_size
         self._resize_job = None
-        self._applied_size: tuple[int, int] | None = None
+        self._applied_size: tuple[int, int] | None = initial_size
         self._suspended = False
         self._ratio_pending = False
         try:
@@ -104,7 +120,7 @@ class KeyboardWindow(tk.Toplevel):
         except tk.TclError:
             pass
         try:
-            self.minsize(*initial_size)
+            self.minsize(*self._minimum)
         except tk.TclError:
             pass
         self._display_map: dict[str, str] = {}
@@ -148,6 +164,16 @@ class KeyboardWindow(tk.Toplevel):
         self._ratio = ratio
         self._minimum = minimum
         if changed:
+            saved_width = (
+                self._saved_width(layout_id) if ratio is not None else None
+            )
+            target_width = (
+                max(saved_width, minimum[0])
+                if ratio is not None and saved_width is not None
+                else minimum[0]
+            )
+            if ratio is not None:
+                self._size_base = (target_width, minimum[1])
             try:
                 suspended = self.state() in ("zoomed", "iconic")
             except tk.TclError:
@@ -260,9 +286,10 @@ class KeyboardWindow(tk.Toplevel):
         current = (event.width, event.height)
         if self._suspended:
             self._suspended = False
-            self._size_base = current
             if self._ratio_pending:
                 self._schedule_pending_ratio()
+            else:
+                self._size_base = current
             return
         if self._applied_size is not None:
             self._size_base = current
@@ -283,7 +310,6 @@ class KeyboardWindow(tk.Toplevel):
             if self.state() != "normal":
                 return
             self._suspended = False
-            self._size_base = (self.winfo_width(), self.winfo_height())
         except tk.TclError:
             return
         self._schedule_pending_ratio()
@@ -350,6 +376,7 @@ class KeyboardWindow(tk.Toplevel):
         )
         if target is None or target == current:
             self._size_base = current
+            self._record_settled_width(current[0])
             return
         try:
             self.geometry(f"{target[0]}x{target[1]}")
@@ -357,6 +384,23 @@ class KeyboardWindow(tk.Toplevel):
             return
         self._applied_size = target
         self._size_base = target
+        self._record_settled_width(target[0])
+
+    def _saved_width(self, layout_id: str) -> int | None:
+        callback = self._get_saved_width
+        return callback(layout_id) if callable(callback) else None
+
+    def _record_settled_width(self, width: int) -> None:
+        callback = self._on_width_settled
+        if not callable(callback):
+            return
+        saved_width = self._saved_width(self._layout_id)
+        if saved_width == width:
+            return
+        try:
+            callback(self._layout_id, width)
+        except Exception:
+            pass
 
     def _apply_ratio_to_base(self) -> None:
         self._cancel_resize_job()
@@ -371,6 +415,8 @@ class KeyboardWindow(tk.Toplevel):
             if current != target:
                 self.geometry(f"{target[0]}x{target[1]}")
                 self._applied_size = target
+            else:
+                self._applied_size = None
         except tk.TclError:
             return
         self._size_base = target

@@ -7,6 +7,25 @@ KEYBOARD_WINDOW_PADDING = 10
 KEYBOARD_WINDOW_MIN_WIDTH = 510
 KEYBOARD_KEY_MIN_UNIT = 27
 RESIZE_SETTLE_MS = 150
+KEYBOARD_WINDOW_WIDTHS_KEY = "keyboard_window_widths"
+
+
+def parse_keyboard_window_widths(raw: object) -> dict[str, int]:
+    """有効なレイアウト別の保存幅だけを返す。"""
+    if not isinstance(raw, dict):
+        return {}
+    return {
+        layout_id: width
+        for layout_id, value in raw.items()
+        if isinstance(layout_id, str)
+        and (width := _positive_int(value)) is not None
+    }
+
+
+def _positive_int(value: object) -> int | None:
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 1:
+        return value
+    return None
 
 
 def layout_extent(key_specs) -> tuple[float, float] | None:

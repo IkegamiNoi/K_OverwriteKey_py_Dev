@@ -11,7 +11,7 @@ last_commit_location: `claude/ryouhou-kyou-fd27f9`（phase 69 起票・task_01�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 69 = キーボードUIのキー名の表示と最小サイズ。task_01〜03 完了・次は task_04（幅の記録・定義済み）。**
+focus: **phase 69 = キーボードUIのキー名の表示と最小サイズ。task_01〜04 完了・次は task_05（統合確認・統合レビュー・定義済み）。**
 mode: in_progress
 presence: present
 
@@ -19,6 +19,7 @@ presence: present
 ts: 2026-10-25T12:00:00
 who: main
 summary: |
+  task_04: 最小化中の切替で記録の幅が失われる不具合（reviewer）・tests_ui が実 config/config.json に書いた件（verifier）を修正。
   暫定 52 起票（deep-reviewer 修正して採用 / Codex 敵対的 needs-attention 2 → 反映）→ ユーザー確定 v0.4 → phase 69 起票（reviewer 整合 修正して採用）。
   task_01（key_display_names の読込・見本 us_tkl.json・jis.json の表と label の改行）: codex-implementer・reviewer 修正して採用（表のループ変数が display_name を上書きするバグ → メインが改名・テストの前提の誤り〔正規化前のキー〕を修正）。
 result_files:
@@ -26,12 +27,12 @@ result_files:
   - keyseq/presentation/keyboard_layouts.py・config/user/keylayout/us_tkl.json（新規・git add -f）・jis.json・tests/test_keyboard_layout_files.py
 verified:
   compile: clean
-  tests: pass 1833（skipped 7）
-  tests_ui: 1155（全体実行で追加テスト 2 件が前提の誤りで失敗 → テストだけ修正・test_app_ui_flows 93 件 pass）
+  tests: pass 1834（skipped 7）
+  tests_ui: 1161（全体で 2 件がテストの誤った期待〔書き込まない〕で失敗 → 2 行削除・test_app_ui_flows 99 件 pass・実 config 不生成）
   smoke: pass
 
 ## next_action
-- task_04（`tasks/task_04_window_width_record.md`）を codex-implementer へ → verifier → reviewer。その後 task_05・06（未起票）
+- task_05（統合確認 + deep-reviewer + codex-reviewer）→ task_06（ユーザーの実機目視 7 項目・正本反映・凍結・/refactor_check・完了判定前レビュー）
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers

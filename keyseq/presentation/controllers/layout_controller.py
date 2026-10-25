@@ -14,6 +14,10 @@ from keyseq.presentation.keyboard_layouts import (
     resolve_layout_key_id_from_scan_code,
 )
 from keyseq.presentation.keyboard_window import KeyboardWindow
+from keyseq.presentation.keyboard_window_size import (
+    KEYBOARD_WINDOW_WIDTHS_KEY,
+    parse_keyboard_window_widths,
+)
 
 
 _TOPMOST_WATCH_MS = 200
@@ -64,10 +68,25 @@ class LayoutController:
             on_assign_keymap=self._app.keymap_panel.assign_keymap_from_keyboard_ui,
             on_clear_keymap=self._app.keymap_panel.clear_keymap_from_keyboard_ui,
             is_mouse_button_down=getattr(self._app, "is_mouse_button_down", None),
+            get_saved_width=self._get_saved_keyboard_window_width,
+            on_width_settled=self._save_keyboard_window_width,
         )
         self.refresh_keyboard_window()
         self.apply_keyboard_topmost()
         self._update_topmost_watch()
+
+    def _get_saved_keyboard_window_width(self, layout_id: str) -> int | None:
+        widths = parse_keyboard_window_widths(
+            self._app._startup_settings.get(KEYBOARD_WINDOW_WIDTHS_KEY)
+        )
+        return widths.get(layout_id)
+
+    def _save_keyboard_window_width(self, layout_id: str, width: int) -> None:
+        widths = parse_keyboard_window_widths(
+            self._app._startup_settings.get(KEYBOARD_WINDOW_WIDTHS_KEY)
+        )
+        widths[layout_id] = width
+        self._app.startup_io.write_startup({KEYBOARD_WINDOW_WIDTHS_KEY: widths})
 
     def on_keyboard_window_closed(self):
         self._cancel_topmost_watch()
