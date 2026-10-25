@@ -15,6 +15,7 @@ from keyseq.application.save_plan import (
 )
 from keyseq.domain.keymap_triggers import iter_trigger_sets, INTERNAL_TRIGGER_SET_DIRTY
 from keyseq.domain.config import normalize_key_name
+from keyseq.presentation.child_kind_labels import parent_kind_label
 
 
 SHARE_UNKNOWN = "unknown"
@@ -72,24 +73,17 @@ def judge_share_state(
     return SHARE_SHARED
 
 
-_PARENT_KIND_LABELS = {
-    CHILD_KEYMAP: "構成セット",
-    CHILD_TRIGGER_SET: "キーマップ",
-    CHILD_SEQUENCE: "トリガーセット",
-}
-
-
 def share_text_for(share_state, ref_count, kind) -> str:
     if share_state == SHARE_NEW_COLLIDES:
         return "同名の既存ファイルあり・安全のため別名"
     if share_state == SHARE_NEW:
         return "新規作成"
     if share_state == SHARE_SOLE:
-        return f"この{_PARENT_KIND_LABELS[kind]}のみが所有・既存を上書き"
+        return f"この{parent_kind_label(kind)}のみが所有・既存を上書き"
     if share_state == SHARE_SHARED:
-        return f"{ref_count}個の{_PARENT_KIND_LABELS[kind]}で共有中・全てに影響します"
+        return f"{ref_count}個の{parent_kind_label(kind)}で共有中・全てに影響します"
     if share_state == SHARE_OTHER_PARENT:
-        return f"別の{_PARENT_KIND_LABELS[kind]}に属します"
+        return f"別の{parent_kind_label(kind)}に属します"
     return "所有元不明・安全のため別名"
 
 

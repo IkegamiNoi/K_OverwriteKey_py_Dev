@@ -32,7 +32,7 @@ verified:
   smoke: pass
 
 ## next_action
-- 次フェーズの選択はユーザー判断（`/phase_start`）。予定 = ヘルプの作成 → 多言語対応（提案書 25・内部名の表示名化を吸収）→ Mac 対応
+- 次フェーズの選択はユーザー判断（`/phase_start`）。予定 = ヘルプの作成 → 多言語対応（内部名の表示名化を吸収。提案書 25 は 2026-10-25 実施済 = 表は `presentation/child_kind_labels.py`）→ Mac 対応
 - main へのマージはユーザー（PR は作らない）。phase 68 のブランチ = `claude/help-text-review-c94d50`
 
 ## blockers

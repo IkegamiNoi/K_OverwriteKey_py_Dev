@@ -55,14 +55,14 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズの選択はユーザー判断（`/phase_start`）。予定 = ヘルプの作成 → 多言語対応（提案書 25・アクションの種類の内部名の表示名化を吸収）→ Mac 対応
+- 次フェーズの選択はユーザー判断（`/phase_start`）。予定 = ヘルプの作成 → 多言語対応（アクションの種類の内部名の表示名化を吸収。提案書 25 は 2026-10-25 実施済）→ Mac 対応
 - main へのマージはユーザー（PR は作らない）
 
 ## 直前のフェーズ（phase 68 = UI 文言の用語統一・判断は `decisions_archive/68_ui_terminology.md`）
 - 正本 `spec_detail/ui_terms.md`（用語表 A1〜A21・細則・表記規則 D1〜D11）を新設し、正本全体の引用・地の文・見出しを新しい用語へ。画面の文言約 1200 件を置換
 - はい / いいえ の確認 3 か所を `config_io/choice_dialog.py`（`ask_choice`・テストは `choice_dialog.ask_choice` を差し替える）へ
 - **【罠・phase 68】Codex は空白・括弧だけの文言変更でテストを追従しない**（依頼に「変えた文言は 1 つずつ tests / tests_ui を検索」を明記）/ **正本の機械的な置き換えは同音の別概念（「…」の省略・座標の取得）・過去の名称・地の文への表記規則を誤りやすい**（実装前後の文字列リテラルを比べて確かめる）
-- 保留 = 提案書 25（多言語化で吸収）・current.md 別タスク化候補「保存・確認ダイアログ」
+- 保留 = current.md 別タスク化候補「保存・確認ダイアログ」
 
 ## 運用インフラ
 

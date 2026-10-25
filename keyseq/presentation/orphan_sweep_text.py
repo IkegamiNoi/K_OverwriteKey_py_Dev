@@ -1,12 +1,11 @@
 from keyseq.application.config_service import contracts
+from keyseq.presentation.child_kind_labels import KIND_LABELS
 
 
 ORPHAN_SWEEP_EMPTY_MESSAGE: str = "退避できる未使用ファイルはありません。"
 
 _KIND_LABELS = {
-    contracts.KIND_KEYMAP: "キーマップ",
-    contracts.KIND_TRIGGER_SET: "トリガーセット",
-    contracts.KIND_SEQUENCE: "出力シーケンス",
+    **KIND_LABELS,
     contracts.KIND_HOTKEY_PRESETS: "構成セット専用プリセット",
 }
 

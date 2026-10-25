@@ -1,6 +1,6 @@
 # 提案書 25: phase 68（UI 文言の用語統一）後のリファクタ
 
-> 状態: **保留（ユーザー判断 2026-10-24・次の多言語化フェーズで文言の外部化と一緒に吸収）**（2026-10-24 起票）。
+> 状態: **実施済**（2026-10-25・フェーズ外で単独実施〔ユーザー指示で保留を解除〕。新規 `presentation/child_kind_labels.py`〔`KIND_LABELS` / `kind_label` / `parent_kind_label`〕へ 4 か所を集約・文言不変・codex-implementer・reviewer 採用・tests 1819 / tests_ui 1149 / smoke OK）。2026-10-24 起票時は保留（多言語化で吸収予定）だった。
 
 ## 判定の要約
 

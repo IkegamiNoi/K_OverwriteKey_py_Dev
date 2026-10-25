@@ -1,13 +1,8 @@
 from keyseq.application.config_service import contracts
+from keyseq.presentation.child_kind_labels import kind_label
 
 
 CLEANUP_EMPTY_MESSAGE: str = "掃除する項目はありません。"
-
-_KIND_LABELS = {
-    "keymap": "キーマップ",
-    "trigger_set": "トリガーセット",
-    "sequence": "出力シーケンス",
-}
 
 _FAILURE_MESSAGES = {
     contracts.PRUNE_FAILURE_UNREADABLE: "読み直せませんでした",
@@ -30,8 +25,7 @@ def format_cleanup_plan(
     stale_count = sum(len(inspection.stale_refs) for inspection in inspections)
     lines = [f"対象ファイル: {target_count}件、消える参照元: {stale_count}件"]
     for inspection in inspections:
-        kind_label = _KIND_LABELS.get(inspection.kind, inspection.kind)
-        lines.append(f"{kind_label}: {inspection.stored_path}")
+        lines.append(f"{kind_label(inspection.kind)}: {inspection.stored_path}")
         if inspection.state in (contracts.CLEANUP_TARGET, contracts.CLEANUP_ALL_STALE):
             lines.extend(["消える参照元:", *(f"  {path}" for path in inspection.stale_refs)])
         if inspection.protected_refs:

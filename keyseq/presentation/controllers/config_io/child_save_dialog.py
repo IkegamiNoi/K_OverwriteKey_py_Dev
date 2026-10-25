@@ -9,6 +9,7 @@ from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKI
 from keyseq.presentation.controllers.config_io import choice_dialog
 from keyseq.presentation.controllers.config_io.child_save_rows import ChildSaveRow
 from keyseq.presentation.controllers.config_io.child_save_columns import CELL_GAP, HEADINGS, size_action_dialog
+from keyseq.presentation.child_kind_labels import kind_label as _kind_label
 from keyseq.presentation.hover_tooltip import bind_hover_tooltip
 from keyseq.presentation.modal import grab_modal
 
@@ -291,14 +292,6 @@ class ChildSaveDialog:
             defaultextension=".json",
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         ) or ""
-
-
-def _kind_label(kind: str) -> str:
-    return {
-        "keymap": "キーマップ",
-        "trigger_set": "トリガーセット",
-        "sequence": "出力シーケンス",
-    }.get(kind, kind)
 
 
 def _ellipsize(text: str, limit: int) -> str:
