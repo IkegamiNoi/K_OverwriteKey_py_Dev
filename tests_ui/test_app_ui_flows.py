@@ -8,15 +8,20 @@ import copy
 import os
 import tempfile
 import unittest
+from dataclasses import replace
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, call, patch
 
 from keyseq.application.config_service import ConfigService
 from keyseq.application.save_plan import SavePlan
 from keyseq.presentation.app import App
+from keyseq.presentation.keyboard_layouts import load_layout_from_json
 from keyseq.presentation.keyboard_window_size import (
     RESIZE_SETTLE_MS,
     corrected_size,
+    layout_aspect,
+    layout_extent,
     minimum_size,
     size_from_width,
 )
@@ -2503,6 +2508,66 @@ class AppUiFlowsTest(unittest.TestCase):
         finally:
             window._handle_close()
 
+    def test_keyboard_window_jis_opens_at_its_minimum_size(self):
+        layout_dir = (
+            Path(__file__).resolve().parents[1]
+            / "config"
+            / "user"
+            / "keylayout"
+        )
+        jis_layout = load_layout_from_json(str(layout_dir / "jis.json"))
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        self.addCleanup(window._handle_close)
+
+        with patch.object(window, "geometry"):
+            window.update_layout(jis_layout)
+
+        self.assertLessEqual(abs(window._minimum[0] - 399), 1)
+        self.assertEqual(window.minsize(), window._minimum)
+
+    def test_keyboard_window_switch_from_jis_to_us_tkl_uses_us_minimum(self):
+        layout_dir = (
+            Path(__file__).resolve().parents[1]
+            / "config"
+            / "user"
+            / "keylayout"
+        )
+        jis_layout = load_layout_from_json(str(layout_dir / "jis.json"))
+        us_layout = load_layout_from_json(str(layout_dir / "us_tkl.json"))
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        self.addCleanup(window._handle_close)
+        window.update_layout(jis_layout)
+        jis_minimum = window._minimum
+        window._size_base = jis_minimum
+
+        us_minimum = minimum_size(layout_extent(us_layout.keys))
+        expected = size_from_width(
+            max(jis_minimum[0], us_minimum[0]),
+            layout_aspect(us_layout.keys),
+        )
+        with patch.object(window, "geometry") as geometry:
+            window.update_layout(us_layout)
+
+        geometry.assert_called_once_with(f"{expected[0]}x{expected[1]}")
+        self.assertGreaterEqual(window._minimum[0], jis_minimum[0])
+        self.assertEqual(window._minimum, us_minimum)
+
+    def test_keyboard_window_reapplies_for_new_layout_id_only(self):
+        self.app.layout.open_keyboard_window()
+        window = self.app.layout.keyboard_window
+        self.addCleanup(window._handle_close)
+        other_layout = replace(
+            window._layout, layout_id=f"{window._layout.layout_id}_same_keys"
+        )
+
+        with patch.object(window, "_apply_ratio_to_base") as apply_ratio:
+            window.update_layout(other_layout)
+            apply_ratio.assert_called_once_with()
+            window.update_layout(other_layout)
+            apply_ratio.assert_called_once_with()
+
     def test_keyboard_window_ratio_apply_skips_geometry_when_size_matches(self):
         self.app.layout.open_keyboard_window()
         window = self.app.layout.keyboard_window
@@ -2624,7 +2689,7 @@ class AppUiFlowsTest(unittest.TestCase):
             ):
                 window._settle_size()
 
-            minsize.assert_called_once_with(*minimum_size(window._ratio))
+            minsize.assert_called_once_with(*minimum_size(window._extent))
             self.assertFalse(window._ratio_pending)
         finally:
             window._handle_close()
@@ -2643,7 +2708,9 @@ class AppUiFlowsTest(unittest.TestCase):
             ):
                 window._settle_size()
 
-            expected = corrected_size((600, 400), (700, 500), window._ratio)
+            expected = corrected_size(
+                (600, 400), (700, 500), window._ratio, window._minimum
+            )
             geometry.assert_called_once_with(f"{expected[0]}x{expected[1]}")
             self.assertEqual(window._size_base, window._applied_size)
         finally:

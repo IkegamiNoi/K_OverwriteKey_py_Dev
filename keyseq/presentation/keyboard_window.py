@@ -24,6 +24,7 @@ from keyseq.presentation.keyboard_window_size import (
     RESIZE_SETTLE_MS,
     corrected_size,
     layout_aspect,
+    layout_extent,
     minimum_size,
     size_from_width,
 )
@@ -84,12 +85,15 @@ class KeyboardWindow(tk.Toplevel):
         self._on_clear_keymap = on_clear_keymap
         self._is_mouse_button_down = is_mouse_button_down
         self._layout = layout or resolve_keyboard_layout()
+        self._layout_id = self._layout.layout_id
+        self._extent = layout_extent(self._layout.keys)
         self._ratio = layout_aspect(self._layout.keys)
-        initial_size = (
-            minimum_size(self._ratio)
-            if self._ratio is not None
+        self._minimum = (
+            minimum_size(self._extent)
+            if self._extent is not None
             else (KEYBOARD_WINDOW_MIN_WIDTH, 210)
         )
+        initial_size = self._minimum
         self._size_base = initial_size
         self._resize_job = None
         self._applied_size: tuple[int, int] | None = None
@@ -126,9 +130,24 @@ class KeyboardWindow(tk.Toplevel):
 
     def update_layout(self, layout: KeyboardLayout | None) -> None:
         self._layout = layout or resolve_keyboard_layout()
+        layout_id = self._layout.layout_id
+        extent = layout_extent(self._layout.keys)
         ratio = layout_aspect(self._layout.keys)
-        if ratio != self._ratio:
-            self._ratio = ratio
+        minimum = (
+            minimum_size(extent)
+            if extent is not None
+            else (KEYBOARD_WINDOW_MIN_WIDTH, 210)
+        )
+        changed = (
+            layout_id != self._layout_id
+            or ratio != self._ratio
+            or minimum != self._minimum
+        )
+        self._layout_id = layout_id
+        self._extent = extent
+        self._ratio = ratio
+        self._minimum = minimum
+        if changed:
             try:
                 suspended = self.state() in ("zoomed", "iconic")
             except tk.TclError:
@@ -320,13 +339,15 @@ class KeyboardWindow(tk.Toplevel):
         if self._ratio_pending and self._ratio is not None:
             self._ratio_pending = False
             try:
-                self.minsize(*minimum_size(self._ratio))
+                self.minsize(*self._minimum)
             except tk.TclError:
                 pass
         if self._ratio is None:
             self._size_base = current
             return
-        target = corrected_size(self._size_base, current, self._ratio)
+        target = corrected_size(
+            self._size_base, current, self._ratio, self._minimum
+        )
         if target is None or target == current:
             self._size_base = current
             return
@@ -342,10 +363,11 @@ class KeyboardWindow(tk.Toplevel):
         ratio = self._ratio
         if ratio is None:
             return
-        target = size_from_width(self._size_base[0], ratio)
+        target_width = max(self._size_base[0], self._minimum[0])
+        target = size_from_width(target_width, ratio)
         try:
             current = (self.winfo_width(), self.winfo_height())
-            self.minsize(*minimum_size(ratio))
+            self.minsize(*self._minimum)
             if current != target:
                 self.geometry(f"{target[0]}x{target[1]}")
                 self._applied_size = target
