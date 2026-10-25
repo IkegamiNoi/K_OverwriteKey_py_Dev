@@ -24,6 +24,14 @@ class KeyboardLayout:
     layout_id: str
     display_name: str
     keys: tuple[KeySpec, ...]
+    key_display_names: tuple[tuple[str, str], ...] = ()
+
+    def key_display_name(self, key_name: str) -> str | None:
+        normalized_name = normalize_key_name(key_name)
+        for stored_name, display_name in reversed(self.key_display_names):
+            if stored_name == normalized_name:
+                return display_name or None
+        return None
 
 
 @dataclass(frozen=True)
@@ -159,6 +167,22 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
     if not display_name:
         raise ValueError("display_nameが空です。")
 
+    raw_key_display_names = data.get("key_display_names")
+    if raw_key_display_names is None:
+        key_display_names = ()
+    elif not isinstance(raw_key_display_names, dict):
+        raise ValueError("key_display_namesはobjectである必要があります。")
+    else:
+        normalized_display_names: dict[str, str] = {}
+        for raw_key_name, shown_name in raw_key_display_names.items():
+            if not isinstance(shown_name, str):
+                raise ValueError(f"key_display_names.{raw_key_name}は文字列である必要があります。")
+            key_name = normalize_key_name(raw_key_name)
+            if not key_name:
+                raise ValueError("key_display_namesのキーが空です。")
+            normalized_display_names[key_name] = shown_name
+        key_display_names = tuple(normalized_display_names.items())
+
     raw_keys = data.get("keys")
     if not isinstance(raw_keys, list):
         raise ValueError("keysが配列ではありません。")
@@ -235,6 +259,7 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
     return {
         "layout_id": layout_id,
         "display_name": display_name,
+        "key_display_names": key_display_names,
         "keys": normalized_keys,
     }
 
@@ -258,6 +283,7 @@ def keyboard_layout_from_dict(data: dict, *, existing_layout_ids: set[str] | Non
         layout_id=normalized["layout_id"],
         display_name=normalized["display_name"],
         keys=tuple(keys),
+        key_display_names=normalized["key_display_names"],
     )
 
 

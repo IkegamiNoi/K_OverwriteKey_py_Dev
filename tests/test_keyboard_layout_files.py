@@ -16,6 +16,7 @@ LAYOUT_DIR = Path(__file__).resolve().parents[1] / "config" / "user" / "keylayou
 LAYOUT_PATHS = {
     "de": LAYOUT_DIR / "de.json",
     "jis": LAYOUT_DIR / "jis.json",
+    "us_tkl": LAYOUT_DIR / "us_tkl.json",
 }
 _NO_SCAN_CODE_IDS = (
     "shift_",
@@ -70,6 +71,67 @@ class KeyboardLayoutFilesTest(unittest.TestCase):
         layout = keyboard_layout_from_dict(self._layout_data({"extra_scan_codes": [-26]}))
 
         self.assertEqual(layout.keys[0].extra_scan_codes, (-26,))
+
+    def test_key_display_names_load_as_empty_when_missing_or_null(self):
+        for key_display_names in ("missing", None):
+            data = self._layout_data({})
+            if key_display_names != "missing":
+                data["key_display_names"] = key_display_names
+            with self.subTest(key_display_names=key_display_names):
+                layout = keyboard_layout_from_dict(data)
+                self.assertEqual(layout.key_display_names, ())
+                self.assertIsNone(layout.key_display_name("custom"))
+
+    def test_key_display_names_reject_invalid_objects_values_and_empty_keys(self):
+        for key_display_names in (["custom"], "custom"):
+            with self.subTest(key_display_names=key_display_names):
+                with self.assertRaisesRegex(ValueError, "key_display_namesはobject"):
+                    keyboard_layout_from_dict(
+                        {**self._layout_data({}), "key_display_names": key_display_names}
+                    )
+
+        for key_display_names in (
+            {"custom": 1},
+            {"custom": None},
+            {"  ": "Empty key"},
+        ):
+            with self.subTest(key_display_names=key_display_names):
+                with self.assertRaises(ValueError):
+                    keyboard_layout_from_dict(
+                        {**self._layout_data({}), "key_display_names": key_display_names}
+                    )
+
+    def test_key_display_names_normalize_keys_keep_last_value_and_preserve_newlines(self):
+        layout = keyboard_layout_from_dict(
+            {
+                **self._layout_data({}),
+                "key_display_names": {
+                    "Page Up": "Old name",
+                    "other": "Other",
+                    "page up": "半角\n全角",
+                    "empty": "",
+                },
+            }
+        )
+
+        self.assertEqual(
+            layout.key_display_names,
+            (("page up", "半角\n全角"), ("other", "Other"), ("empty", "")),
+        )
+        self.assertEqual(layout.display_name, self._layout_data({})["display_name"])
+        self.assertEqual(layout.key_display_name("Page Up"), "半角\n全角")
+        self.assertEqual(layout.key_display_name("page up"), "半角\n全角")
+        self.assertIsNone(layout.key_display_name("empty"))
+
+    def test_key_display_name_uses_later_entry_for_duplicate_normalized_keys(self):
+        layout = KeyboardLayout(
+            layout_id="test",
+            display_name="Test",
+            keys=(),
+            key_display_names=(("same", "First"), ("same", "Later")),
+        )
+
+        self.assertEqual(layout.key_display_name("same"), "Later")
 
     def test_layout_scan_code_lookup_requires_a_scan_code_in_layout(self):
         layout = resolve_keyboard_layout()
@@ -166,6 +228,31 @@ class KeyboardLayoutFilesTest(unittest.TestCase):
 
         self.assertEqual(layout.layout_id, "de")
         self.assertTrue(any(key.id == "alt_gr" for key in layout.keys))
+
+    def test_us_tkl_sample_matches_builtin_rows(self):
+        layout = load_layout_from_json(str(LAYOUT_PATHS["us_tkl"]))
+        builtin = resolve_keyboard_layout()
+
+        self.assertEqual(layout.layout_id, "us_tkl_sample")
+        self.assertEqual(layout.key_display_names, ())
+        self.assertEqual(
+            [
+                (key.id, key.label, key.x, key.y, key.w, key.h, key.scan_code, key.extra_scan_codes)
+                for key in layout.keys
+            ],
+            [
+                (key.id, key.label, key.x, key.y, key.w, key.h, key.scan_code, key.extra_scan_codes)
+                for key in builtin.keys
+            ],
+        )
+
+    def test_jis_key_display_name_and_label_include_newline(self):
+        layout = load_layout_from_json(str(LAYOUT_PATHS["jis"]))
+        key = next(key for key in layout.keys if key.id == "zenkaku_hankaku")
+
+        self.assertEqual(layout.display_name, "JIS")
+        self.assertEqual(layout.key_display_name("zenkaku_hankaku"), "半角\n全角")
+        self.assertEqual(key.label, "半角\n全角")
 
     def test_layouts_have_unique_non_overlapping_keys(self):
         for name, path in LAYOUT_PATHS.items():

@@ -7,7 +7,9 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 68 は 2026-10-24 完了・次フェーズはユーザー判断で `/phase_start`。予定 = ヘルプの作成 → 多言語対応 → Mac 対応）。**次採番 = phase 69 / 暫定 52 / decisions 69 / 提案書 26 / idea 55**（暫定 47 は idea_53 で保留中の番号）。
+- **アクティブなフェーズ = [phase 69](69_keyboard_ui_key_labels/phase.md)**（2026-10-25 起票・キーボードUIのキー名の表示と最小サイズ〔キーの幅に合わせて文字を縮め単語の途中で折り返さない・`label` の `\n` で改行・レイアウトの JSON の `key_display_names` で送信先の表示名・最小 = 1u のキー 27px・変えた幅をレイアウトごとに記録・見本 us_tkl.json〕。
+  暫定仕様先行モード・主入力 = [暫定 52](../history/52_keyboard_ui_key_labels.md)（v0.4・ユーザー確定済）・**JSON スキーマ = 任意キーの追加**（レイアウトの `key_display_names`・config.json の `keyboard_window_widths`）・起票元 = ユーザー要望・番号対応 phase 69 / 暫定 52 / decisions 69）。
+  その後の予定 = ヘルプの作成 → 多言語対応 → Mac 対応。**次採番 = phase 70 / 暫定 53 / decisions 70 / 提案書 26 / idea 55**（暫定 47 は idea_53 で保留中の番号）。
 - 直前の完了フェーズ = [phase 68](68_ui_terminology/phase.md)（2026-10-24・UI 文言の用語統一〔用語表 A1〜A21・個別の表現 C1〜C16・表記規則 D1〜D11・はい / いいえ の確認 3 か所をボタン名の共通ダイアログ `config_io/choice_dialog.py` へ〕。暫定仕様先行モード〔暫定 51 v0.8 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・正本 = 新規 `spec_detail/ui_terms.md` + 正本全体の用語・判断は [decisions_archive/68](../../.claude_data/state/decisions_archive/68_ui_terminology.md)）。
 - その前の完了フェーズ = [phase 67](67_mouse_scroll_action/phase.md)（2026-10-21・出力シーケンスのマウススクロール〔新しい種類 `mouse_scroll`・上下左右・ノッチ数 / 生の値（120 = 1 ノッチ）・座標は任意・1 回の `SendInput` で WHEEL / HWHEEL・不正な行は止まる系〕。暫定仕様先行モード〔暫定 50 v0.4 凍結〕・**JSON スキーマ = 種類の追加**・起票元 = ユーザー要望・判断は [decisions_archive/67](../../.claude_data/state/decisions_archive/67_mouse_scroll_action.md)）。
   [phase 66](66_capture_jis_special_keys/phase.md)（2026-10-21・キーの取得で JIS の特殊キーを取る〔取得の間だけ suppress フックでレイアウトの行に当たるキーを抑止し、フックの実行時と同じ名前を 8 入口へ渡す・アプリの窓が前面のときだけ〕。暫定仕様先行モード〔暫定 49 v0.5 凍結〕・JSON スキーマ不変・起票元 idea_50・判断は [decisions_archive/66](../../.claude_data/state/decisions_archive/66_capture_jis_special_keys.md)）。
