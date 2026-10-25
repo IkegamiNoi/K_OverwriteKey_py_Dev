@@ -11,7 +11,7 @@ last_commit_location: `claude/ryouhou-kyou-fd27f9`（phase 69 起票・task_01�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 69 = キーボードUIのキー名の表示と最小サイズ。task_01 完了・次は task_02（キーの文字合わせ・定義済み）。**
+focus: **phase 69 = キーボードUIのキー名の表示と最小サイズ。task_01・task_02 完了・次は task_03（最小サイズ・定義済み）。**
 mode: in_progress
 presence: present
 
@@ -26,12 +26,12 @@ result_files:
   - keyseq/presentation/keyboard_layouts.py・config/user/keylayout/us_tkl.json（新規・git add -f）・jis.json・tests/test_keyboard_layout_files.py
 verified:
   compile: clean
-  tests: pass 1825（skipped 7）
-  tests_ui: pass 1149（修正前の実行・修正はローダの変数名のみ）
+  tests: pass 1831（skipped 7）
+  tests_ui: pass 1152
   smoke: pass
 
 ## next_action
-- task_02（`tasks/task_02_key_text_fitting.md`）を codex-implementer へ → verifier → reviewer。その後 task_03〜06（task_03 以降は未起票）
+- task_03（`tasks/task_03_minimum_size_per_layout.md`）を codex-implementer へ → verifier → reviewer。その後 task_04〜06（task_04 以降は未起票）
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers

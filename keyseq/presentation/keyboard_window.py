@@ -17,6 +17,7 @@ from keyseq.presentation.keyboard_layouts import (
     resolve_layout_key_id_from_scan_code,
     resolve_keyboard_layout,
 )
+from keyseq.presentation.keyboard_key_text import fit_key_text
 from keyseq.presentation.keyboard_window_size import (
     KEYBOARD_WINDOW_MIN_WIDTH,
     KEYBOARD_WINDOW_PADDING,
@@ -104,6 +105,7 @@ class KeyboardWindow(tk.Toplevel):
             pass
         self._display_map: dict[str, str] = {}
         self._kind_map: dict[str, str] = {}
+        self._key_text_fonts: dict[tuple[int, bool], tkfont.Font] = {}
         self._key_bounds: list[tuple[str, float, float, float, float]] = []
         self._editing_source_key: str | None = None
         self._show_physical_key_labels = False
@@ -382,6 +384,8 @@ class KeyboardWindow(tk.Toplevel):
             y2 = (spec.y + spec.h) * unit - pad
             lookup_key = _LOOKUP_KEY_BY_ID.get(spec.id, spec.id)
             display = self._display_map.get(lookup_key, spec.label)
+            if self._kind_map.get(lookup_key) == "keymap":
+                display = self._layout.key_display_name(display) or display
             sub_display = spec.label if self._show_physical_key_labels else ""
             kind = self._kind_map.get(lookup_key, "normal")
             if kind in ("normal", "keymap") and is_prohibited_assign_key(lookup_key):
@@ -408,26 +412,47 @@ class KeyboardWindow(tk.Toplevel):
                 outline=outline,
                 width=width,
             )
-            show_sub = bool(sub_display)
-            font_size = max(6, int(unit * (0.20 if show_sub else (0.22 if len(display) > 4 else 0.28))))
-            canvas.create_text(
-                (x1 + x2) / 2,
-                (y1 + y2) / 2 - (unit * 0.12 if show_sub else 0),
-                text=display,
-                fill=text_fill,
-                font=(font_family, font_size, "bold"),
-                width=max(10, (x2 - x1) - 8),
-                justify="center",
+            def measure(text_line: str, px_size: int, bold: bool) -> tuple[int, int]:
+                font_key = (px_size, bold)
+                font = self._key_text_fonts.get(font_key)
+                if font is None:
+                    font = tkfont.Font(
+                        root=self,
+                        family=font_family,
+                        size=-px_size,
+                        weight="bold" if bold else "normal",
+                    )
+                    self._key_text_fonts[font_key] = font
+                return int(font.measure(text_line)), int(font.metrics("linespace"))
+
+            fit = fit_key_text(
+                display,
+                sub_display,
+                max(0.0, x2 - x1 - 2),
+                max(0.0, y2 - y1 - 2),
+                unit,
+                measure,
             )
-            if show_sub:
-                sub_font_size = max(5, int(unit * 0.14))
+            main_height = measure("", fit.main_px, True)[1] * len(fit.main_lines)
+            sub_height = measure("", fit.sub_px, False)[1] * len(fit.sub_lines) if fit.sub_lines else 0
+            block_height = main_height + sub_height
+            block_top = (y1 + y2) / 2 - block_height / 2
+            if fit.main_lines:
                 canvas.create_text(
                     (x1 + x2) / 2,
-                    y2 - max(8, unit * 0.18),
-                    text=sub_display,
+                    block_top + main_height / 2,
+                    text="\n".join(fit.main_lines),
+                    fill=text_fill,
+                    font=(font_family, -fit.main_px, "bold"),
+                    justify="center",
+                )
+            if fit.sub_lines:
+                canvas.create_text(
+                    (x1 + x2) / 2,
+                    block_top + main_height + sub_height / 2,
+                    text="\n".join(fit.sub_lines),
                     fill="#4f5d73",
-                    font=(font_family, sub_font_size),
-                    width=max(10, (x2 - x1) - 8),
+                    font=(font_family, -fit.sub_px),
                     justify="center",
                 )
 
