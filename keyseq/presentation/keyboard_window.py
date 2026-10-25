@@ -291,6 +291,9 @@ class KeyboardWindow(tk.Toplevel):
             else:
                 self._size_base = current
             return
+        if self._ratio_pending:
+            self._schedule_pending_ratio()
+            return
         if self._applied_size is not None:
             self._size_base = current
             self._applied_size = None
@@ -362,7 +365,8 @@ class KeyboardWindow(tk.Toplevel):
             current = (self.winfo_width(), self.winfo_height())
         except tk.TclError:
             return
-        if self._ratio_pending and self._ratio is not None:
+        resolving_pending_ratio = self._ratio_pending and self._ratio is not None
+        if resolving_pending_ratio:
             self._ratio_pending = False
             try:
                 self.minsize(*self._minimum)
@@ -376,7 +380,8 @@ class KeyboardWindow(tk.Toplevel):
         )
         if target is None or target == current:
             self._size_base = current
-            self._record_settled_width(current[0])
+            if not resolving_pending_ratio:
+                self._record_settled_width(current[0])
             return
         try:
             self.geometry(f"{target[0]}x{target[1]}")
@@ -384,7 +389,8 @@ class KeyboardWindow(tk.Toplevel):
             return
         self._applied_size = target
         self._size_base = target
-        self._record_settled_width(target[0])
+        if not resolving_pending_ratio:
+            self._record_settled_width(target[0])
 
     def _saved_width(self, layout_id: str) -> int | None:
         callback = self._get_saved_width

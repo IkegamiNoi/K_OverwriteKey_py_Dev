@@ -2513,6 +2513,12 @@ class AppUiFlowsTest(unittest.TestCase):
             window._handle_close()
 
     def test_keyboard_window_jis_opens_at_its_minimum_size(self):
+        old_settings = self.app._startup_settings
+        self.app._startup_settings = {}
+        self.addCleanup(setattr, self.app, "_startup_settings", old_settings)
+        write_startup_patch = patch.object(self.app.startup_io, "write_startup")
+        write_startup_patch.start()
+        self.addCleanup(write_startup_patch.stop)
         layout_dir = (
             Path(__file__).resolve().parents[1]
             / "config"
@@ -2646,7 +2652,7 @@ class AppUiFlowsTest(unittest.TestCase):
 
     def test_keyboard_window_maximized_settle_does_not_save_width(self):
         old_settings = self.app._startup_settings
-        self.app._startup_settings = dict(old_settings)
+        self.app._startup_settings = {}
         write_startup_patch = patch.object(
             self.app.startup_io, "write_startup"
         )
@@ -2657,8 +2663,10 @@ class AppUiFlowsTest(unittest.TestCase):
         self.app.layout.open_keyboard_window()
         window = self.app.layout.keyboard_window
         self.addCleanup(window._handle_close)
-        with patch.object(window, "state", return_value="zoomed"):
-            window._settle_size()
+        event = SimpleNamespace(widget=window, width=1200, height=800)
+        with patch.object(window, "state", side_effect=("zoomed", "normal")):
+            window._on_window_configure(event)
+            window._on_window_configure(event)
         write_startup.assert_not_called()
 
     def test_keyboard_window_restores_pending_layout_width_after_iconify(self):
@@ -2709,7 +2717,68 @@ class AppUiFlowsTest(unittest.TestCase):
             on_width_settled.assert_not_called()
             write_startup.assert_not_called()
 
+    def test_keyboard_window_pending_ratio_survives_restore_configures_without_saving(
+        self,
+    ):
+        layout_dir = (
+            Path(__file__).resolve().parents[1]
+            / "config"
+            / "user"
+            / "keylayout"
+        )
+        sample_layout = load_layout_from_json(str(layout_dir / "us_tkl.json"))
+        old_settings = self.app._startup_settings
+        self.app._startup_settings = {
+            KEYBOARD_WINDOW_WIDTHS_KEY: {sample_layout.layout_id: 700}
+        }
+        self.addCleanup(setattr, self.app, "_startup_settings", old_settings)
+
+        with patch.object(self.app.startup_io, "write_startup") as write_startup:
+            self.app.layout.open_keyboard_window()
+            window = self.app.layout.keyboard_window
+            self.addCleanup(window._handle_close)
+            on_width_settled = Mock()
+            window._on_width_settled = on_width_settled
+            expected = size_from_width(
+                max(700, minimum_size(layout_extent(sample_layout.keys))[0]),
+                layout_aspect(sample_layout.keys),
+            )
+            first_event = SimpleNamespace(widget=window, width=425, height=300)
+            second_event = SimpleNamespace(widget=window, width=430, height=310)
+            with patch.object(
+                window,
+                "state",
+                side_effect=("iconic", "normal", "normal", "normal"),
+            ), patch.object(
+                window, "after", return_value="pending-ratio"
+            ) as after, patch.object(
+                window, "winfo_width", return_value=430
+            ), patch.object(
+                window, "winfo_height", return_value=310
+            ), patch.object(
+                window, "_is_mouse_button_down", return_value=False
+            ), patch.object(window, "geometry") as geometry:
+                window.update_layout(sample_layout)
+                window._on_window_configure(first_event)
+                window._on_window_configure(second_event)
+
+                self.assertEqual(window._resize_job, "pending-ratio")
+                after.assert_called_with(
+                    RESIZE_SETTLE_MS, window._apply_pending_ratio
+                )
+                window._apply_pending_ratio()
+
+            geometry.assert_called_once_with(f"{expected[0]}x{expected[1]}")
+            on_width_settled.assert_not_called()
+            write_startup.assert_not_called()
+
     def test_keyboard_window_switch_from_jis_to_us_tkl_uses_us_minimum(self):
+        old_settings = self.app._startup_settings
+        self.app._startup_settings = {}
+        self.addCleanup(setattr, self.app, "_startup_settings", old_settings)
+        write_startup_patch = patch.object(self.app.startup_io, "write_startup")
+        write_startup_patch.start()
+        self.addCleanup(write_startup_patch.stop)
         layout_dir = (
             Path(__file__).resolve().parents[1]
             / "config"

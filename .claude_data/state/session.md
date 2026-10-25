@@ -11,7 +11,7 @@ last_commit_location: `claude/ryouhou-kyou-fd27f9`（phase 69 起票・task_01�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 69 = キーボードUIのキー名の表示と最小サイズ。task_01〜04 完了・次は task_05（統合確認・統合レビュー・定義済み）。**
+focus: **phase 69 = キーボードUIのキー名の表示と最小サイズ。task_01〜05a 完了・次は task_06（ユーザーの実機目視 12 項目 → 正本反映・凍結）。**
 mode: in_progress
 presence: present
 
@@ -19,6 +19,7 @@ presence: present
 ts: 2026-10-25T12:00:00
 who: main
 summary: |
+  task_05: 統合レビュー codex-reviewer 指摘なし / deep-reviewer 修正して採用 → ユーザー確定（1・3・4 = task_05a で修正・2 = 目視項目 8〜12 追加・5 = 正本反映で文言明確化・6〜9 保留 / 除外）。
   task_04: 最小化中の切替で記録の幅が失われる不具合（reviewer）・tests_ui が実 config/config.json に書いた件（verifier）を修正。
   暫定 52 起票（deep-reviewer 修正して採用 / Codex 敵対的 needs-attention 2 → 反映）→ ユーザー確定 v0.4 → phase 69 起票（reviewer 整合 修正して採用）。
   task_01（key_display_names の読込・見本 us_tkl.json・jis.json の表と label の改行）: codex-implementer・reviewer 修正して採用（表のループ変数が display_name を上書きするバグ → メインが改名・テストの前提の誤り〔正規化前のキー〕を修正）。
@@ -28,11 +29,11 @@ result_files:
 verified:
   compile: clean
   tests: pass 1834（skipped 7）
-  tests_ui: 1161（全体で 2 件がテストの誤った期待〔書き込まない〕で失敗 → 2 行削除・test_app_ui_flows 99 件 pass・実 config 不生成）
+  tests_ui: 1162（全体で 1 件がテストの余白の数字の誤り → 修正し単体 pass・実 config 不生成）
   smoke: pass
 
 ## next_action
-- task_05（統合確認 + deep-reviewer + codex-reviewer）→ task_06（ユーザーの実機目視 7 項目・正本反映・凍結・/refactor_check・完了判定前レビュー）
+- task_06: ユーザーの実機目視 1〜12（`tasks/task_06_visual_check_and_promotion.md`）→ 正本反映・暫定 52 凍結・decisions_archive/69・/refactor_check・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers

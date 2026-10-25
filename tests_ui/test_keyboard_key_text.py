@@ -1,5 +1,6 @@
 import re
 import tkinter as tk
+from tkinter import font as tkfont
 import unittest
 from pathlib import Path
 from unittest.mock import patch
@@ -101,10 +102,23 @@ class KeyboardKeyTextUiTest(unittest.TestCase):
     def test_home_label_stays_on_one_line_at_unit_27(self):
         window = self._window(resolve_keyboard_layout())
 
-        home_text = [window.canvas.itemcget(item, "text") for item in self._texts_in_key(window, "home")]
+        home_items = [
+            item
+            for item in self._texts_in_key(window, "home")
+            if window.canvas.itemcget(item, "text") == "Home"
+        ]
+        self.assertEqual(len(home_items), 1)
+        item = home_items[0]
+        _, x1, _, x2, _ = next(
+            bounds for bounds in window._key_bounds if bounds[0] == "home"
+        )
+        font = tkfont.Font(root=window, font=window.canvas.itemcget(item, "font"))
 
-        self.assertIn("Home", home_text)
-        self.assertNotIn("Home\n", home_text)
+        self.assertEqual(float(window.canvas.itemcget(item, "width")), 0.0)
+        self.assertLessEqual(font.measure("Home"), x2 - x1 - 2)
+        bbox = window.canvas.bbox(item)
+        self.assertIsNotNone(bbox)
+        self.assertLess(bbox[3] - bbox[1], 2 * font.metrics("linespace"))
 
 
 if __name__ == "__main__":
