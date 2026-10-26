@@ -7,7 +7,7 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = なし**（phase 69 は 2026-10-26 完了・次フェーズはユーザー判断で `/phase_start`。予定 = ヘルプの作成 → 多言語対応 → Mac 対応）。**次採番 = phase 70 / 暫定 53 / decisions 70 / 提案書 27 / idea 55**（暫定 47 は idea_53 で保留中の番号）。
+- **アクティブなフェーズ = [phase 70](70_help_window/phase.md)**（2026-10-27 起票・ヘルプの作成〔メニュー「ヘルプ」新設・主要機能 / QA のタブと 2 段の Expander とフィルターを持つ非モーダルのヘルプの窓・主なダイアログの「?」・バージョン情報（`__version__` 0.1.0）・exe 配布を見越した同梱物のライセンス全文〕。暫定仕様先行モード〔主入力 = [暫定 53](../../history/53_help_window.md) v0.5・ユーザー確定済〕・**JSON スキーマ不変**・起票元 = ユーザー要望・番号対応 phase 70 / 暫定 53 / decisions 70）。予定 = ヘルプの作成 → 多言語対応 → Mac 対応。**次採番 = phase 71 / 暫定 54 / decisions 71 / 提案書 27 / idea 55**（暫定 47 は idea_53 で保留中の番号）。
 - 直前の完了フェーズ = [phase 69](69_keyboard_ui_key_labels/phase.md)（2026-10-26・キーボードUIのキー名の表示と最小サイズ〔キーの内側に収まるまで文字を縮め `\n` でだけ改行・レイアウトの JSON の `key_display_names` で送信先の表示名・最小 = 1u のキー 27px・変えた幅をレイアウトごとに `keyboard_window_widths` へ記録・見本 us_tkl.json〕。暫定仕様先行モード〔暫定 52 v0.4 凍結〕・**JSON スキーマ = 任意キーの追加**・起票元 = ユーザー要望・判断は [decisions_archive/69](../../.claude_data/state/decisions_archive/69_keyboard_ui_key_labels.md)・refactor_check 推奨 → [提案書 26](../modified_proposal/26_refactor_keyboard_ui_key_labels.md)（保留））。
 - その前の完了フェーズ = [phase 68](68_ui_terminology/phase.md)（2026-10-24・UI 文言の用語統一〔用語表 A1〜A21・個別の表現 C1〜C16・表記規則 D1〜D11・はい / いいえ の確認 3 か所をボタン名の共通ダイアログ `config_io/choice_dialog.py` へ〕。暫定仕様先行モード〔暫定 51 v0.8 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・正本 = 新規 `spec_detail/ui_terms.md` + 正本全体の用語・判断は [decisions_archive/68](../../.claude_data/state/decisions_archive/68_ui_terminology.md)）。
 - その前の完了フェーズ = [phase 67](67_mouse_scroll_action/phase.md)（2026-10-21・出力シーケンスのマウススクロール〔新しい種類 `mouse_scroll`・上下左右・ノッチ数 / 生の値（120 = 1 ノッチ）・座標は任意・1 回の `SendInput` で WHEEL / HWHEEL・不正な行は止まる系〕。暫定仕様先行モード〔暫定 50 v0.4 凍結〕・**JSON スキーマ = 種類の追加**・起票元 = ユーザー要望・判断は [decisions_archive/67](../../.claude_data/state/decisions_archive/67_mouse_scroll_action.md)）。
@@ -121,7 +121,8 @@
   **phase 67 は 2026-10-21 完了**（`67_mouse_scroll_action` / 暫定 50〔v0.4・凍結〕/ decisions 67〔アーカイブ済〕）。
   **phase 68 は 2026-10-24 完了**（`68_ui_terminology` / 暫定 51〔v0.8・凍結〕/ decisions 68〔アーカイブ済〕）。
   **phase 69 は 2026-10-26 完了**（`69_keyboard_ui_key_labels` / 暫定 52〔v0.4・凍結〕/ decisions 69〔アーカイブ済〕）。
-  次フェーズは **`70_<topic>`**・decisions も **70** を使う（欠番が出た場合はここに明記し、再利用しない）。
+  **phase 70 は 2026-10-27 起票・進行中**（`70_help_window` / 暫定 53 / decisions 70）。
+  次フェーズは **`71_<topic>`**・decisions も **71** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
   → **保存系リデザインは一巡完了**。その派生 = **phase 09〔完了〕**（idea_08）。
@@ -168,7 +169,8 @@
   47=送信の最中の物理の入力を素通りさせない〔**v0.2・保留**・2026-10-21 ユーザー判断・phase 未起票・idea_53〕 /
   48=受け取りと送信が同じレイアウトの写しを使う〔v0.3・ユーザー確定・phase 65 の主入力〕）。
   49〜52 = phase 66〜69 の主入力〔いずれも**凍結**・52 = キーボードUIのキー名の表示と最小サイズ v0.4〕 /
-  次採番は **`53_<topic>`**。
+  53 = ヘルプの作成〔v0.5・ユーザー確定・phase 70 の主入力〕 /
+  次採番は **`54_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**26 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
