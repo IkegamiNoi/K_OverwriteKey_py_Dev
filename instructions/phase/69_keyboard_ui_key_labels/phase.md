@@ -55,6 +55,7 @@
 - task_04: 窓の幅の記録（`keyboard_window_widths` の読込・開く大きさ・書き込み契機・自分が当てた大きさでは書かない）（§8）・tests / tests_ui
 - task_05: 統合確認（tests / tests_ui / smoke）・統合レビュー（deep-reviewer + codex-reviewer）
 - task_05a: 統合レビュー（deep-reviewer）の指摘のうちユーザー確定分（2026-10-26）= 保留中の当て直しが補正に化けて記録が書かれる不具合・tests_ui の検出力・実 config に依存するテスト（指摘 2 は task_06 の目視項目へ・5 は正本反映で文言の明確化・6〜9 は保留 / 除外）
+- task_06a: 完了判定前の Codex 敵対的レビューの指摘（保留中の当て直しの後に通常の状態でもう一度切り替えると `_ratio_pending` が残る）の修正（2026-10-26 追加）
 - task_06: 実機目視・正本反映（§11）・暫定 52 凍結・`decisions_archive/69_keyboard_ui_key_labels.md`・decisions.md の索引・current.md の完了記載・`/refactor_check`・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
 
 ## レビュー方針

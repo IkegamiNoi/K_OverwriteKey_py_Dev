@@ -4,37 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-25T12:00:00
-phase: **69**（instructions/phase/69_keyboard_ui_key_labels・暫定 52 v0.4 確定済）。次採番 = phase 70 / 暫定 53 / decisions 70 / 提案書 26 / idea 55
-直前の完了フェーズ = **phase 68**（UI 文言の用語統一・`decisions_archive/68_ui_terminology.md`）
-last_commit_location: `claude/ryouhou-kyou-fd27f9`（phase 69 起票・task_01）。main へのマージはユーザー
+last_updated: 2026-10-26T12:00:00
+phase: なし（phase 69 = instructions/phase/69_keyboard_ui_key_labels は 2026-10-26 完了）。次採番 = phase 70 / 暫定 53 / decisions 70 / 提案書 27 / idea 55
+直前の完了フェーズ = **phase 69**（キーボードUIのキー名の表示と最小サイズ・`decisions_archive/69_keyboard_ui_key_labels.md`）
+last_commit_location: `claude/ryouhou-kyou-fd27f9`（phase 69 一式）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 69 = キーボードUIのキー名の表示と最小サイズ。task_01〜05a 完了・次は task_06（ユーザーの実機目視 12 項目 → 正本反映・凍結）。**
-mode: in_progress
+focus: **phase 69 完了（2026-10-26・キーボードUIのキー名の表示と最小サイズ）。アクティブなフェーズなし・次フェーズはユーザー判断（予定 = ヘルプ → 多言語対応 → Mac 対応）。**
+mode: completed
 presence: present
 
 ## last_action
-ts: 2026-10-25T12:00:00
+ts: 2026-10-26T12:00:00
 who: main
 summary: |
-  task_05: 統合レビュー codex-reviewer 指摘なし / deep-reviewer 修正して採用 → ユーザー確定（1・3・4 = task_05a で修正・2 = 目視項目 8〜12 追加・5 = 正本反映で文言明確化・6〜9 保留 / 除外）。
-  task_04: 最小化中の切替で記録の幅が失われる不具合（reviewer）・tests_ui が実 config/config.json に書いた件（verifier）を修正。
-  暫定 52 起票（deep-reviewer 修正して採用 / Codex 敵対的 needs-attention 2 → 反映）→ ユーザー確定 v0.4 → phase 69 起票（reviewer 整合 修正して採用）。
-  task_01（key_display_names の読込・見本 us_tkl.json・jis.json の表と label の改行）: codex-implementer・reviewer 修正して採用（表のループ変数が display_name を上書きするバグ → メインが改名・テストの前提の誤り〔正規化前のキー〕を修正）。
+  phase 69 task_06: 実機目視 1〜12 OK → 正本反映（features §4.6 キーボード表示のウィンドウ〔最小の大きさ・幅の記録・キーの文字・label の改行・key_display_names・見本 us_tkl.json〕・data_schema §5.4 keyboard_window_widths・codebase_map）・暫定 52 凍結・decisions_archive/69・current.md 完了。
+  /refactor_check = 推奨（M2: redraw 100 行）→ 提案書 26 = 保留（ユーザー判断）。
+  完了判定前レビュー: Codex 敵対的 needs-attention 1（保留中の当て直しの後の再切替で _ratio_pending が残る）→ task_06a で修正 / deep-reviewer 修正して完了可 → 文書 1〜6・8 反映・7・9〜11 保留 / 除外。
 result_files:
-  - instructions/history/52_keyboard_ui_key_labels.md・instructions/phase/69_keyboard_ui_key_labels/（phase.md・tasks/task_01・task_02）・current.md
-  - keyseq/presentation/keyboard_layouts.py・config/user/keylayout/us_tkl.json（新規・git add -f）・jis.json・tests/test_keyboard_layout_files.py
+  - instructions/common/spec_detail/features.md・data_schema.md・codebase_map.md
+  - instructions/history/52_keyboard_ui_key_labels.md（凍結）・instructions/modified_proposal/26_refactor_keyboard_ui_key_labels.md（保留）
+  - .claude_data/state/decisions_archive/69_keyboard_ui_key_labels.md・decisions.md・instructions/phase/current.md
+  - keyseq/presentation/keyboard_window.py（task_06a）・tests_ui/test_app_ui_flows.py
 verified:
   compile: clean
   tests: pass 1834（skipped 7）
-  tests_ui: 1162（全体で 1 件がテストの余白の数字の誤り → 修正し単体 pass・実 config 不生成）
+  tests_ui: 1164 中 1 fail = 既知の負債 test_compact_window の保存タイミング（全体実行のみ・単体 2 回 pass）
   smoke: pass
 
 ## next_action
-- task_06: ユーザーの実機目視 1〜12（`tasks/task_06_visual_check_and_promotion.md`）→ 正本反映・暫定 52 凍結・decisions_archive/69・/refactor_check・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
-- main へのマージはユーザー（PR は作らない）
+- 次フェーズの選択はユーザー判断（`/phase_start`）。予定 = ヘルプの作成 → 多言語対応 → Mac 対応。提案書 26 は保留
+- main へのマージはユーザー（PR は作らない）。phase 69 のブランチ = `claude/ryouhou-kyou-fd27f9`
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない

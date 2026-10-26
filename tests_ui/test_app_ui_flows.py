@@ -2772,6 +2772,181 @@ class AppUiFlowsTest(unittest.TestCase):
             on_width_settled.assert_not_called()
             write_startup.assert_not_called()
 
+    def test_keyboard_window_layout_reswitch_clears_pending_ratio_before_user_resize(
+        self,
+    ):
+        layout_dir = (
+            Path(__file__).resolve().parents[1]
+            / "config"
+            / "user"
+            / "keylayout"
+        )
+        layout_a = load_layout_from_json(str(layout_dir / "jis.json"))
+        layout_b = load_layout_from_json(str(layout_dir / "us_tkl.json"))
+        old_settings = self.app._startup_settings
+        self.app._startup_settings = {
+            KEYBOARD_WINDOW_WIDTHS_KEY: {layout_b.layout_id: 700}
+        }
+        self.addCleanup(setattr, self.app, "_startup_settings", old_settings)
+
+        with patch.object(self.app.startup_io, "write_startup") as write_startup:
+            self.app.layout.open_keyboard_window()
+            window = self.app.layout.keyboard_window
+            self.addCleanup(window._handle_close)
+            on_width_settled = Mock()
+            window._on_width_settled = on_width_settled
+            expected_a = size_from_width(
+                minimum_size(layout_extent(layout_a.keys))[0],
+                layout_aspect(layout_a.keys),
+            )
+            restore_event = SimpleNamespace(widget=window, width=425, height=300)
+            resize_event = SimpleNamespace(
+                widget=window,
+                width=expected_a[0] + 100,
+                height=expected_a[1] + 30,
+            )
+            with patch.object(
+                window,
+                "state",
+                side_effect=(
+                    "iconic",
+                    "normal",
+                    "normal",
+                    "normal",
+                    "normal",
+                    "normal",
+                ),
+            ), patch.object(
+                window, "after", return_value="pending-ratio"
+            ), patch.object(
+                window, "after_cancel"
+            ) as after_cancel, patch.object(
+                window,
+                "winfo_width",
+                side_effect=(expected_a[0] + 1, resize_event.width),
+            ), patch.object(
+                window,
+                "winfo_height",
+                side_effect=(expected_a[1], resize_event.height),
+            ), patch.object(
+                window, "_is_mouse_button_down", return_value=False
+            ), patch.object(window, "geometry") as geometry:
+                window.update_layout(layout_b)
+                window._on_window_configure(restore_event)
+                self.assertTrue(window._ratio_pending)
+                self.assertEqual(window._resize_job, "pending-ratio")
+
+                window.update_layout(layout_a)
+
+                self.assertFalse(window._ratio_pending)
+                self.assertIsNone(window._resize_job)
+                after_cancel.assert_called_once_with("pending-ratio")
+                geometry.assert_called_once_with(
+                    f"{expected_a[0]}x{expected_a[1]}"
+                )
+                geometry.reset_mock()
+                window._on_window_configure(
+                    SimpleNamespace(
+                        widget=window, width=expected_a[0], height=expected_a[1]
+                    )
+                )
+                window._on_window_configure(resize_event)
+                self.assertEqual(window._resize_job, "pending-ratio")
+                window._settle_size()
+
+            on_width_settled.assert_called_once()
+            settled_layout_id, settled_width = on_width_settled.call_args.args
+            self.assertEqual(settled_layout_id, layout_a.layout_id)
+            self.assertGreaterEqual(settled_width, expected_a[0])
+            geometry.assert_called_once()
+            write_startup.assert_not_called()
+
+    def test_keyboard_window_layout_reswitch_clears_pending_ratio_when_target_matches(
+        self,
+    ):
+        layout_dir = (
+            Path(__file__).resolve().parents[1]
+            / "config"
+            / "user"
+            / "keylayout"
+        )
+        layout_a = load_layout_from_json(str(layout_dir / "jis.json"))
+        layout_b = load_layout_from_json(str(layout_dir / "us_tkl.json"))
+        old_settings = self.app._startup_settings
+        self.app._startup_settings = {
+            KEYBOARD_WINDOW_WIDTHS_KEY: {layout_b.layout_id: 700}
+        }
+        self.addCleanup(setattr, self.app, "_startup_settings", old_settings)
+
+        with patch.object(self.app.startup_io, "write_startup") as write_startup:
+            self.app.layout.open_keyboard_window()
+            window = self.app.layout.keyboard_window
+            self.addCleanup(window._handle_close)
+            on_width_settled = Mock()
+            window._on_width_settled = on_width_settled
+            expected_a = size_from_width(
+                minimum_size(layout_extent(layout_a.keys))[0],
+                layout_aspect(layout_a.keys),
+            )
+            restore_event = SimpleNamespace(widget=window, width=425, height=300)
+            resize_event = SimpleNamespace(
+                widget=window,
+                width=expected_a[0] + 100,
+                height=expected_a[1] + 30,
+            )
+            with patch.object(
+                window,
+                "state",
+                side_effect=(
+                    "iconic",
+                    "normal",
+                    "normal",
+                    "normal",
+                    "normal",
+                    "normal",
+                ),
+            ), patch.object(
+                window, "after", return_value="pending-ratio"
+            ), patch.object(
+                window, "after_cancel"
+            ) as after_cancel, patch.object(
+                window,
+                "winfo_width",
+                side_effect=(expected_a[0], resize_event.width),
+            ), patch.object(
+                window,
+                "winfo_height",
+                side_effect=(expected_a[1], resize_event.height),
+            ), patch.object(
+                window, "_is_mouse_button_down", return_value=False
+            ), patch.object(window, "geometry") as geometry:
+                window.update_layout(layout_b)
+                window._on_window_configure(restore_event)
+                self.assertTrue(window._ratio_pending)
+                self.assertEqual(window._resize_job, "pending-ratio")
+
+                window.update_layout(layout_a)
+
+                self.assertFalse(window._ratio_pending)
+                self.assertIsNone(window._resize_job)
+                after_cancel.assert_called_once_with("pending-ratio")
+                geometry.assert_not_called()
+                window._on_window_configure(
+                    SimpleNamespace(
+                        widget=window, width=expected_a[0], height=expected_a[1]
+                    )
+                )
+                window._on_window_configure(resize_event)
+                self.assertEqual(window._resize_job, "pending-ratio")
+                window._settle_size()
+
+            on_width_settled.assert_called_once()
+            settled_layout_id, settled_width = on_width_settled.call_args.args
+            self.assertEqual(settled_layout_id, layout_a.layout_id)
+            self.assertGreaterEqual(settled_width, expected_a[0])
+            geometry.assert_called_once()
+            write_startup.assert_not_called()
+
     def test_keyboard_window_switch_from_jis_to_us_tkl_uses_us_minimum(self):
         old_settings = self.app._startup_settings
         self.app._startup_settings = {}

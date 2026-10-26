@@ -181,7 +181,8 @@ class KeyboardWindow(tk.Toplevel):
             if suspended:
                 self._suspended = True
                 self._ratio_pending = True
-            elif ratio is not None:
+            else:
+                self._ratio_pending = False
                 self._apply_ratio_to_base()
         self._update_title()
         self.redraw()

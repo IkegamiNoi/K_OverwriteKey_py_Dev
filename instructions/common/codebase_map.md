@@ -126,7 +126,8 @@ keyseq/presentation/
       keymap_set_history_dialog.py # KeymapSetHistoryDialog（読み込み履歴・**リポジトリ唯一の ttk.Treeview**〔2 列 / 名前列は stretch=False〕・操作のたびに永続化済みの履歴を読み直して再描画）+ CategoryChooserDialog（コピー先の分類選択・同ファイル内のネストした子）
     keyboard_layouts.py        # レイアウトの読込・検証 / `resolve_layout_key_id_from_scan_code`（走査コード → `id`・レイアウトの `scan_code` と `extra_scan_codes` だけで引く〔行ごとに `scan_code` → `extra_scan_codes`・phase 63〕・フックの実行時 / 画面の枠の編集の窓〔`LayoutController` 経由〕/ キーボードUIでキーを記録するときに使う・phase 61 / 62）/ `resolve_layout_scan_code_from_key_name`（キー名 → `scan_code`・最初の行・1〜255・送信用・phase 62）
     keyboard_window.py         # KeyboardWindow: キーボード表示の窓（タイトル表示・縦横比の補正・phase 55）。`_LOOKUP_KEY_BY_ID` = レイアウトの id → 引くキー名（左右の修飾キーを分ける・`alt_gr` → `alt gr`・phase 59）/ 禁止の枠の色 `"prohibited"`・禁止の枠は左クリックで編集しない（phase 59）/ 編集のキーの名前 `_normalize_tk_key` は VK を `win32_window.vk_to_scan_code` で走査コードへ変換してレイアウトだけで引く（phase 61・`key_input.md` §7.4・テスト = `tests_ui/test_keyboard_window_scan_code.py`・`tests/test_keyboard_layout_files.py`） / 押下だけのキーの直接置換の枠の色 `"keymap_make_only"`（地 `#e4ebe1`・枠 `#7f9a74`・文字 `#2f4429`・phase 63）
-    keyboard_window_size.py    # キーボード表示の縦横比と大きさの計算（tkinter 非依存・phase 55）
+    keyboard_window_size.py    # キーボード表示の縦横比と大きさの計算（tkinter 非依存・phase 55）/ レイアウトごとの最小 `minimum_size(extent)`（1u = 27px・`layout_extent`）・幅の記録の解釈 `parse_keyboard_window_widths`（config.json の `keyboard_window_widths`・phase 69）
+    keyboard_key_text.py       # キーの文字合わせの純関数 `fit_key_text`（改行の指定でだけ行に分け、計測の関数を受け取りキーの内側に収まる px を決める・tkinter 非依存・phase 69）
     listbox_utils.py
     listbox_range_drag.py      # ListboxRangeDrag / bind_listbox_range_drag: 対象 4 一覧の連続範囲選択・ドラッグ移動のプレビューと確定・Escape の取り消し・自動スクロール・Tk 既定バインドの置き換え。range_or_index: 有効な選択範囲か代替の 1 行を取得（compact は範囲を無視・phase 43）
     list_clipboard.py          # ListClipboard: 一覧の Ctrl+C / V のアプリ内保管庫（種類つきの写し・構成セットの読込 / 新規作成で空にする・phase 43）
@@ -799,7 +800,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - phase 55（キーボードUIのウィンドウ改善。仕様 = `features.md` §4.6「キーボード表示のウィンドウ」。判断 = `decisions_archive/55_keyboard_ui_window.md`）:
   - タイトル: `presentation/keyboard_window.py` の `keyboard_window_title(layout_name, editing_key)`（純関数）→ `_update_title`（ステータス欄は削除）
   - 縦横比: 計算は `presentation/keyboard_window_size.py`（`layout_aspect` / `size_from_width` / `size_from_height` / `minimum_size` / `corrected_size`・tkinter 非依存）。
-    補正は `KeyboardWindow` の `<Configure>`（`event.widget is self` のみ）→ 150ms の予約 `_settle_size`（マウスのボタンが押されていれば置き直し）/ `update_layout` は比率が変わったときだけ `_apply_ratio_to_base` / 最大化・最小化中は `_ratio_pending` → 通常へ戻った Configure または `<Map>` で `_apply_pending_ratio`
+    補正は `KeyboardWindow` の `<Configure>`（`event.widget is self` のみ）→ 150ms の予約 `_settle_size`（マウスのボタンが押されていれば置き直し）/ `update_layout` は `layout_id`・比率・最小のいずれかが変わったときだけ `_apply_ratio_to_base`（phase 69 で条件を拡張・下記 phase 69）/ 最大化・最小化中は `_ratio_pending` → 通常へ戻った Configure または `<Map>` で `_apply_pending_ratio`
   - 前面化: `LayoutController` の `on_keyboard_topmost_changed` / `apply_keyboard_topmost`（実効値 = `ui_vars.keyboard_always_on_top_var` ∧ ¬`_topmost_released`）/ 監視 `_watch_topmost_tick`（200ms・前面がダイアログ or `grab_current()` 有りで一時解除・ダイアログ前面で入ったときは直下へ置く）
   - Win32 は `infrastructure/win32_window.py` のモジュール関数 `is_mouse_button_down`（`GetAsyncKeyState` 左右）/ `foreground_own_window`（自プロセスの前面 HWND）/ `place_window_below`（`SetWindowPos` NOSIZE|NOMOVE|NOACTIVATE）。
     **App が属性として注入**（`app.is_mouse_button_down` / `app.foreground_own_window` / `app.place_window_below`）し、presentation の他所は ctypes を呼ばない
@@ -807,7 +808,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - phase 59（キーボードUI の左右の修飾キーの区別と割り当て禁止のキー。仕様 = `features.md` §4.3「割り当て禁止のキー」・§4.6「キーボード表示のウィンドウ」/ `key_input.md` §7.1・§7.4。判断 = `decisions_archive/59_keyboard_ui_left_right_modifiers.md`）:
   - 左右の修飾キー: `presentation/keyboard_window.py` の `_LOOKUP_KEY_BY_ID` だけで決まる（`redraw` で引いたキー名が表示・色・`_key_bounds`・編集・右クリック・タイトルへ渡る）
   - 禁止の判定: `domain/key_identifiers.py` の `PROHIBITED_ASSIGN_KEY_NAMES` / `is_prohibited_assign_key(name)`。使う側 = `keyboard_window.py`（色・左クリック）/ `KeymapPanelController.assign_keymap_from_keyboard_ui`（割り当ての入口で拒否）・`validate_keymap_switch_assignment`（`exclude_switch_key` = 今の切替キーと違うときだけ拒否）/ `application/keymap_switch_batch.validate_switch_batch`（`_current_switches` で今の切替キーを逆引き）/ 2 つの切替キーのダイアログの取得
-  - レイアウトの見本: `config/user/keylayout/jis.json`・`de.json`（`.gitignore` の `config/` に当たるので `git add -f` で追跡）。検査 = `tests/test_keyboard_layout_files.py`
+  - レイアウトの見本: `config/user/keylayout/jis.json`・`de.json`・`us_tkl.json`（phase 69）（`.gitignore` の `config/` に当たるので `git add -f` で追跡）。検査 = `tests/test_keyboard_layout_files.py`
   - テスト: `tests/test_prohibited_assign_keys.py`・`test_keyboard_layout_files.py`・`test_input_router.py`（`alt gr`）・`test_keymap_switch_batch.py` / `tests_ui/test_keyboard_window_left_right.py`・`test_prohibited_assign_keys_ui.py`
 - phase 60（キーの記録中は IME を OFF にする。仕様 = `key_input.md` §7.4「記録の入口」「記録中の IME」「判別できないキー」。判断 = `decisions_archive/60_ime_off_during_key_capture.md`）:
   - 口: `infrastructure/own_ime_status.py`（状態なし・`_Win32OwnImeApi` は初回に 1 回生成・失敗は `None` / `False`）。送信用の `ime_control.py` とは別物で状態も共有しない
@@ -830,6 +831,13 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   - 呼び出し口: `controllers/hook_controller.py` の `on_input_event` が先に `make_only_keys.handle` を呼び、`None` なら今の経路。actions は `_schedule_make_only_routes` → `after(0)` で世代つきに予約し `_execute_make_only_action` で世代が違えば捨てる。タイマーの確定は `schedule_make_only_routes`（UI スレッドへ）。消去 = `start_hook` / `stop_hook` で `make_only_keys.clear()`
   - 名前: `keyboard_layouts.py`（`KeySpec.extra_scan_codes`・読込の検証）/ `layout_controller.py`（デバッグ出力の判定で `extra_scan_codes` も見る）/ 見本 `config/user/keylayout/jis.json`
   - テスト: `tests/test_make_only_keys.py`・`test_make_only_keys_integration.py`・`test_keyboard_layout_files.py`・`test_layout_controller_scan_code.py`・`test_hook_coordinator.py` / `tests_ui/test_hook_controller_reserved_actions.py`・`test_hook_controller_teardown.py`・`test_make_only_key_color_ui.py`
+- phase 69（キーボードUIのキー名の表示と最小サイズ。仕様 = `features.md` §4.6「キーボード表示のウィンドウ」〔最小の大きさ・幅の記録・キーの文字・レイアウトの JSON の `label` の改行と `key_display_names`〕/ `data_schema.md` §5.4 `keyboard_window_widths`。判断 = `decisions_archive/69_keyboard_ui_key_labels.md`）:
+  - 文字合わせ: `presentation/keyboard_key_text.py` の `fit_key_text` → `keyboard_window.redraw`（フォントは px 指定の負の値・`(px, bold)` ごとに `tkfont.Font` を使い回す・`create_text` に `width` を渡さない）
+  - 送信先の表示名: `keyboard_layouts.KeyboardLayout.key_display_names`（正規化済みの組の tuple）・`key_display_name(key)` → `keyboard_window.redraw` が kind == keymap の枠で引く（描画のたびに今のレイアウトから引く）
+  - 最小と当て直し: `keyboard_window` の `_extent` / `_minimum`・`update_layout` は `layout_id`・比率・最小のいずれかの変化で当て直す・最大化 / 最小化中は `_ratio_pending` で保留し、保留中の Configure は当て直しの予約に回す（補正・記録にしない）
+  - 幅の記録: `KeyboardWindow(get_saved_width=, on_width_settled=)` のコールバック（キーボードUIは config を読み書きしない）→ `controllers/layout_controller.py` の `_get_saved_keyboard_window_width` / `_save_keyboard_window_width`（`StartupIo.write_startup` 1 本）。記録は `_settle_size` の利用者の操作の補正の確定でだけ（`_record_settled_width`・保留を解く経路では書かない）
+  - 見本: `config/user/keylayout/us_tkl.json`（内蔵の US TKL と同じ行・`us_tkl_sample`・`git add -f`）・jis.json の `key_display_names` と `label` の改行
+  - テスト: `tests/test_keyboard_layout_files.py`（表の読込・見本と内蔵の一致）・`test_keyboard_key_text.py`・`test_keyboard_window_size.py` / `tests_ui/test_keyboard_key_text.py`・`test_app_ui_flows.py`（`test_keyboard_window_*`・`write_startup` と `_startup_settings` を差し替えて実 config に書かない）
 - テスト: `tests/test_sequence_control.py` / `test_sequence_editing.py` / `test_sequence_steps.py` / `test_sequence_history.py` / `test_sequence_runner.py` / `test_file_line_reader.py` /
   `test_action_executor_file_line.py` / `tests_ui/test_action_dialog_control.py` / `test_trigger_panel_controller_action_edit.py` / `test_action_list_rendering.py` / `test_sequence_control_review_fixes.py`。
 
