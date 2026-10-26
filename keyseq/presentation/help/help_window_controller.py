@@ -16,16 +16,34 @@ class HelpWindowController:
         self.load_content = load_content
         self._window: HelpWindow | None = None
 
+    def _always_on_top(self) -> bool:
+        return bool(self.app.ui_vars.always_on_top_var.get())
+
+    def apply_topmost(self) -> None:
+        if self._window is not None:
+            self._window.apply_topmost(self._always_on_top())
+
+    def on_font_changed(self) -> None:
+        if self._window is not None:
+            self._window.on_font_changed()
+
     @property
     def window(self) -> HelpWindow | None:
         return self._window
 
     def open(self, tab: str) -> None:
         if self._window is None:
-            self._window = HelpWindow(self.app, self.load_content())
+            self._window = HelpWindow(
+                self.app, self.load_content(),
+                # 呼び出し時に解決する（窓の寿命中に窓口が差し替わっても追従する）。
+                suspend_hook=lambda: self.app.hook.suspend_hook_for_dialog(),
+                resume_hook=lambda: self.app.hook.resume_hook_after_dialog(),
+            )
             self._window.bind("<Destroy>", self._on_destroy, add="+")
+            self.apply_topmost()
             self._window.select_tab(tab)
             return
+        self.apply_topmost()
         self._window.deiconify()
         self._window.lift()
         self._window.focus_set()

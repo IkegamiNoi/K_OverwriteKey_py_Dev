@@ -11,7 +11,7 @@ last_commit_location: `claude/task-sequential-execution-728512`（phase 70 の�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 70 task_02 完了（ヘルプの窓・メニュー「ヘルプ」の骨格）。task_03 起票済・着手へ（ユーザーがタスクの連続実行を許可 2026-10-27）。**
+focus: **phase 70 task_03 完了（フック停止・フォント追従・常に手前・終了時に閉じる）。task_04 着手へ（ユーザーがタスクの連続実行を許可 2026-10-27）。**
 mode: implementing
 presence: present
 
@@ -20,14 +20,16 @@ ts: 2026-10-27T22:30:00
 who: main
 summary: |
   task_01 完了・コミット（ae5216d）。task_02 = codex-delegating-implementer（Sol medium・UI テストを Luna サブエージェントへ）で Text + タグ elide 方式の窓を実装 → tests_ui のテスト側 2 件をメインで修正（メニューバー先頭の tearoff 項目を飛ばす / Windows の Tk では `event_generate("<KP_Enter>")` が束縛に届かないため Return で検査）→ verifier 全緑 → reviewer 採用（参考: エラー表示の wraplength 固定・_refresh の全見出し書き換えは本文が増えたら task_08 の目視で性能確認）。
-  task_03（フック・フォント・常に手前・終了時）のタスク定義を起票。
+  task_02 コミット（4137a8d）。task_03 = codex-implementer → メインで 2 点修正（フックの窓口を窓の作成時に束縛すると spy が届かない → 呼び出し時に解決する lambda に / テストの Mock の import 漏れ）→ verifier 全緑 → reviewer 採用。
+  task_04・05 のタスク定義を起票（未コミット）。task_05 の同梱物のライセンス全文 `help/content/third_party/` をメインが取り込み済（未コミット。mouseinfo・pygetwindow は上流の LICENSE.txt〔履歴 1 コミットのみ〕・Tcl はタグ core-8-6-15）。
+  **報告要**: pyscreeze・pytweening は METADATA = MIT だが同梱の本文は BSD 3 条項（暫定 53 §1 は MIT と記載）→ §2 の「本文を正」の原則で BSD 3 条項として記録。task_08 の正本反映前にユーザーへ確認。
 result_files:
-  - keyseq/presentation/help/（help_window・help_tab_view・help_window_controller）・views/menu_bar.py・app.py
-  - tests_ui/test_help_window.py・instructions/phase/70_help_window/tasks/task_03_hook_font_topmost.md
+  - keyseq/presentation/help/（help_window・help_tab_view・help_window_controller）・controllers/layout_controller.py・app.py
+  - tests_ui/test_help_window.py
 verified:
   compile: pass
   tests: pass（1849・skip 7）
-  tests_ui: pass（1174・既知の負債 test_compact_window も今回は出ず）
+  tests_ui: pass（1181・既知の負債 test_compact_window も今回は出ず）
   smoke: pass
 
 ## next_action

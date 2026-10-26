@@ -480,6 +480,7 @@ class App(tk.Tk):
         self.pane_layout.on_font_changed()
         self.compact_window.on_font_changed()
         self.screen_grid.on_font_changed()
+        self.help.on_font_changed()
         self.startup_io.write_startup({"ui_font_delta_pt": new_delta})
         return True
 
@@ -619,6 +620,14 @@ class App(tk.Tk):
         except Exception:
             # 失敗してもアプリは止めない
             pass
+        try:
+            self.help.apply_topmost()
+        except Exception:
+            logging.getLogger(__name__).exception("Could not apply help window topmost")
+        try:
+            self.layout.resync_keyboard_topmost()
+        except Exception:
+            logging.getLogger(__name__).exception("Could not resync keyboard window topmost")
 
     # ---------------- Startup config ----------------
     def suggest_keymap_set_dialog_path(self) -> str:
@@ -774,6 +783,10 @@ class App(tk.Tk):
                         self.layout.keyboard_window.destroy()
                 except Exception:
                     pass
+            try:
+                self.help.close()
+            except Exception:
+                logging.getLogger(__name__).exception("Could not close help window")
             self.hook.stop_hook()
         finally:
             try:

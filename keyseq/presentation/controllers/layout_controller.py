@@ -98,6 +98,19 @@ class LayoutController:
         self.apply_keyboard_topmost()
         self._update_topmost_watch()
 
+    def resync_keyboard_topmost(self) -> None:
+        window = self.keyboard_window
+        try:
+            opened = window is not None and bool(window.winfo_exists())
+            enabled = bool(self._app.ui_vars.keyboard_always_on_top_var.get())
+        except Exception:
+            return
+        if not opened or not enabled:
+            return
+        self._topmost_released = False
+        self.apply_keyboard_topmost()
+        self._update_topmost_watch()
+
     def apply_keyboard_topmost(self) -> None:
         window = self.keyboard_window
         if window is None:

@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import tkinter as tk
+from tkinter import font as tkfont
 import unittest
 from contextlib import ExitStack
-from unittest.mock import patch
+from unittest.mock import Mock, patch
 
 from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation import app as app_module
@@ -286,6 +287,178 @@ class HelpWindowTest(unittest.TestCase):
             reopened = self._open()
             self.assertIsNotNone(reopened.notebook)
             self.assertEqual(load_content.call_count, 2)
+
+    def test_filter_focus_suspends_and_resumes_hook_once(self) -> None:
+        suspend = patch.object(
+            self.app.hook, "suspend_hook_for_dialog",
+            wraps=self.app.hook.suspend_hook_for_dialog,
+        )
+        resume = patch.object(
+            self.app.hook, "resume_hook_after_dialog",
+            wraps=self.app.hook.resume_hook_after_dialog,
+        )
+        with suspend as suspend_hook, resume as resume_hook:
+            window = self._open()
+            self.assertEqual(suspend_hook.call_count, 0)
+            window.filter_entry.event_generate("<FocusIn>")
+            window.filter_entry.event_generate("<FocusIn>")
+            self.assertEqual(suspend_hook.call_count, 1)
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+            window.filter_entry.event_generate("<FocusOut>")
+            self.assertEqual(resume_hook.call_count, 1)
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+
+            window.tabs["guide"].text.event_generate("<FocusIn>")
+            window.notebook.event_generate("<FocusIn>")
+            self.assertEqual(suspend_hook.call_count, 1)
+            self.assertEqual(resume_hook.call_count, 1)
+
+    def test_destroying_focused_filter_resumes_once(self) -> None:
+        window = self._open()
+        with patch.object(
+            self.app.hook, "resume_hook_after_dialog",
+            wraps=self.app.hook.resume_hook_after_dialog,
+        ) as resume_hook:
+            window.filter_entry.event_generate("<FocusIn>")
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+            self.app.help.close()
+            self.assertEqual(resume_hook.call_count, 1)
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+
+    def test_font_change_tracks_named_font_and_preserves_view_state(self) -> None:
+        window = self._open()
+        view = window.tabs["guide"]
+        window.filter_var.set("ガイド")
+        self.app.update_idletasks()
+        view.toggle("guide-basics")
+        spans = view.highlight_spans("guide-street")
+        named_font = tkfont.nametofont("TkDefaultFont")
+        original_size = int(named_font.cget("size"))
+
+        self.app.set_ui_font_delta(2)
+        self.app.update_idletasks()
+
+        self.assertEqual(int(named_font.cget("size")), original_size + 2)
+        self.assertEqual(view.text.cget("font"), "TkDefaultFont")
+        self.assertEqual(window.filter_text, "ガイド")
+        self.assertFalse(view.is_category_open("guide-basics"))
+        self.assertEqual(view.highlight_spans("guide-street"), spans)
+
+    def test_help_topmost_tracks_main_setting_on_open_and_toggle(self) -> None:
+        variable = self.app.ui_vars.always_on_top_var
+        variable.set(True)
+        window = self._open()
+        self.assertTrue(bool(window.attributes("-topmost")))
+
+        variable.set(False)
+        self.app._apply_always_on_top()
+        self.assertFalse(bool(window.attributes("-topmost")))
+
+        variable.set(True)
+        self.app.help.open("faq")
+        self.assertTrue(bool(window.attributes("-topmost")))
+
+        self.app.help.close()
+        variable.set(False)
+        reopened = self._open()
+        self.assertFalse(bool(reopened.attributes("-topmost")))
+
+    def test_main_topmost_change_resyncs_keyboard_watch_around_help_window(self) -> None:
+        layout = self.app.layout
+        main_topmost = self.app.ui_vars.always_on_top_var
+        keyboard_topmost = self.app.ui_vars.keyboard_always_on_top_var
+        keyboard = None
+        foreground = self.app.foreground_own_window
+        place_below = self.app.place_window_below
+        main_topmost.set(True)
+        keyboard_topmost.set(True)
+        try:
+            help_window = self._open()
+            with patch.object(self.app, "after", return_value="watch-job"):
+                layout.open_keyboard_window()
+            keyboard = layout.keyboard_window
+            self.assertTrue(bool(help_window.attributes("-topmost")))
+            self.assertTrue(bool(keyboard.attributes("-topmost")))
+
+            layout._topmost_released = True
+            layout.apply_keyboard_topmost()
+            self.assertFalse(bool(keyboard.attributes("-topmost")))
+            main_topmost.set(False)
+            self.app.foreground_own_window = Mock(
+                return_value=int(help_window.wm_frame(), 16)
+            )
+            self.app.place_window_below = Mock(return_value=True)
+            with patch.object(self.app, "after", return_value="watch-job"):
+                with patch.object(
+                    layout, "resync_keyboard_topmost",
+                    wraps=layout.resync_keyboard_topmost,
+                ) as resync:
+                    self.app._apply_always_on_top()
+                resync.assert_called_once_with()
+                self.assertFalse(bool(help_window.attributes("-topmost")))
+                self.assertFalse(layout._topmost_released)
+                self.assertTrue(bool(keyboard.attributes("-topmost")))
+
+                layout._watch_topmost_tick()
+            self.assertTrue(layout._topmost_released)
+            self.assertFalse(bool(keyboard.attributes("-topmost")))
+            self.app.place_window_below.assert_called_once_with(
+                int(keyboard.wm_frame(), 16), int(help_window.wm_frame(), 16)
+            )
+        finally:
+            main_topmost.set(False)
+            keyboard_topmost.set(False)
+            layout.on_keyboard_topmost_changed()
+            self.app.foreground_own_window = foreground
+            self.app.place_window_below = place_below
+            if keyboard is not None:
+                keyboard._handle_close()
+            self._close_help()
+
+    def test_keyboard_topmost_resync_is_noop_when_closed_or_disabled(self) -> None:
+        layout = self.app.layout
+        keyboard_topmost = self.app.ui_vars.keyboard_always_on_top_var
+        if layout.keyboard_window is not None:
+            layout.keyboard_window._handle_close()
+        self.assertIsNone(layout.keyboard_window)
+        layout._topmost_released = True
+        layout.resync_keyboard_topmost()
+        self.assertTrue(layout._topmost_released)
+
+        keyboard_topmost.set(False)
+        layout.open_keyboard_window()
+        keyboard = layout.keyboard_window
+        try:
+            layout._topmost_released = True
+            layout.resync_keyboard_topmost()
+            self.assertTrue(layout._topmost_released)
+        finally:
+            keyboard._handle_close()
+
+    def test_app_close_closes_help_without_resuming_hook(self) -> None:
+        self.addCleanup(setattr, self.app.hook, "_shutting_down", False)
+        window = self._open()
+        window.filter_entry.event_generate("<FocusIn>")
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+        with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True), \
+                patch.object(self.app, "destroy"), \
+                patch.object(app_module, "shutdown_capture_hook"), \
+                patch.object(self.app.delayed_calls, "stop"), \
+                patch.object(self.app.held_inputs, "release_all", return_value=[]), \
+                patch.object(self.app.input_gateway, "restore_ime_now"), \
+                patch.object(self.app.screen_grid, "shutdown"), \
+                patch.object(self.app.hook, "stop_hook"), \
+                patch.object(self.app.hook, "start_hook") as start_hook, \
+                patch.object(
+                    self.app.hook, "resume_hook_after_dialog",
+                    wraps=self.app.hook.resume_hook_after_dialog,
+                ) as resume_hook:
+            self.app.on_close()
+        self.assertIsNone(self.app.help.window)
+        self.assertEqual(resume_hook.call_count, 1)
+        self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        start_hook.assert_not_called()
+        self.app.hook._shutting_down = False
 
     def test_destroy_and_wm_delete_clear_controller_reference(self) -> None:
         window = self._open()

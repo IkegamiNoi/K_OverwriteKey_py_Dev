@@ -1,5 +1,6 @@
 """絞り込み欄と二つのタブを持つ非モーダルのヘルプ窓。"""
 
+from collections.abc import Callable
 import tkinter as tk
 from tkinter import ttk
 
@@ -9,8 +10,14 @@ from keyseq.presentation.help.help_tab_view import HelpTabView
 
 
 class HelpWindow(tk.Toplevel):
-    def __init__(self, master: tk.Misc, result: HelpLoadResult) -> None:
+    def __init__(
+        self, master: tk.Misc, result: HelpLoadResult, *,
+        suspend_hook: Callable[[], None], resume_hook: Callable[[], None],
+    ) -> None:
         super().__init__(master)
+        self._suspend_hook = suspend_hook
+        self._resume_hook = resume_hook
+        self._filter_hook_suspended = False
         self.title("ヘルプ")
         self.minsize(420, 300)
         width = min(720, self.winfo_screenwidth())
@@ -20,6 +27,10 @@ class HelpWindow(tk.Toplevel):
         self.notebook: ttk.Notebook | None = None
         self._build_filter()
         self._build_content(result)
+        self.filter_entry.bind("<FocusIn>", self._on_filter_focus_in, add="+")
+        self.filter_entry.bind("<FocusOut>", self._on_filter_focus_out, add="+")
+        self.filter_entry.bind("<Destroy>", self._on_filter_destroy, add="+")
+        self.bind("<Destroy>", self._on_window_destroy, add="+")
         self.filter_var.trace_add("write", self._filter_changed)
         self.bind("<Escape>", self._escape)
         self.protocol("WM_DELETE_WINDOW", self.destroy)
@@ -59,6 +70,37 @@ class HelpWindow(tk.Toplevel):
     def select_tab(self, tab: str) -> None:
         if self.notebook is not None:
             self.notebook.select(self.tabs[tab])
+
+    def _on_filter_focus_in(self, _event: tk.Event) -> None:
+        if not self._filter_hook_suspended:
+            self._suspend_hook()
+            self._filter_hook_suspended = True
+
+    def _on_filter_focus_out(self, _event: tk.Event) -> None:
+        self._resume_filter_hook()
+
+    def _on_filter_destroy(self, event: tk.Event) -> None:
+        if event.widget is self.filter_entry:
+            self._resume_filter_hook()
+
+    def _on_window_destroy(self, event: tk.Event) -> None:
+        if event.widget is self:
+            self._resume_filter_hook()
+
+    def _resume_filter_hook(self) -> None:
+        if self._filter_hook_suspended:
+            self._filter_hook_suspended = False
+            self._resume_hook()
+
+    def on_font_changed(self) -> None:
+        for view in self.tabs.values():
+            view.on_font_changed()
+
+    def apply_topmost(self, enabled: bool) -> None:
+        try:
+            self.attributes("-topmost", bool(enabled))
+        except Exception:
+            pass
 
     def _filter_changed(self, *_args: str) -> None:
         terms = parse_query(self.filter_text)

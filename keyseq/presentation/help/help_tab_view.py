@@ -98,6 +98,10 @@ class HelpTabView(ttk.Frame):
         self._refresh()
         return len(self._matches)
 
+    def on_font_changed(self) -> None:
+        # TkDefaultFont is a named font; rebind it without rebuilding tags or text state.
+        self.text.configure(font="TkDefaultFont")
+
     def _highlight(self, item: HelpItem, terms: tuple[str, ...]) -> None:
         spans: list[tuple[str, int, int]] = []
         for field, value in (("title", item.title), ("body", item_plain_text(item))):
