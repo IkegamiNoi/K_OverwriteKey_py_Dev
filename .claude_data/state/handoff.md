@@ -15,8 +15,8 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 69 は 2026-10-26 完了〕・次フェーズはユーザー判断で `/phase_start`）。
-   次採番 = phase 70 / 暫定 53 / decisions 70 / 提案書 27 / idea 55（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 70**〔`instructions/phase/70_help_window/phase.md`・ヘルプの作成〕）→ その `phase.md` → 主入力の暫定 53（`instructions/history/53_help_window.md` v0.5・ユーザー確定済。各タスクは担当の節と §2 だけ読む）。
+   次採番 = phase 71 / 暫定 54 / decisions 71 / 提案書 27 / idea 55（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜52）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 69 完了（2026-10-26・キーボードUIのキー名の表示と最小サイズ）。アクティブなフェーズなし・次フェーズはユーザー判断（予定 = ヘルプ → 多言語対応 → Mac 対応）。**
-ブランチ `claude/ryouhou-kyou-fd27f9`（暫定 52・phase 69 一式）。phase 68 = `claude/help-text-review-c94d50`。main へのマージはユーザー（PR は作らない）。
+**phase 70 起票済（2026-10-27・ヘルプの作成・暫定 53 v0.5 確定）。task_01 は未着手（ユーザーの着手指示待ち）。**
+ブランチ `claude/help-menu-creation-3be010`（phase 70 起票一式 = 9d90b13）。phase 69 = `claude/ryouhou-kyou-fd27f9`。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,7 +35,7 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 69 task_06a = 2026-10-26**）:
+直近の実測（**phase 69 task_06a = 2026-10-26**。phase 70 は起票のみでコード変更なし = not_run）:
 compile **clean** / tests **1834 pass**（skip 7）/ tests_ui **1164 中 1 fail = 既知の負債 `test_compact_window` の保存タイミング**（全体実行のみ・単体 2 回 pass）/ smoke **pass**。
 **件数が減ったら退行を疑う**（tests: 1819〔phase 68〕→ 1834 / tests_ui: 1149 → 1164）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
@@ -55,8 +55,10 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズの選択はユーザー判断（`/phase_start`）。予定 = ヘルプの作成 → 多言語対応（アクションの種類の内部名の表示名化を吸収）→ Mac 対応。提案書 26 は保留
-- main へのマージはユーザー（PR は作らない）。phase 69 のブランチ = `claude/ryouhou-kyou-fd27f9`
+- ユーザーの着手指示を受けたら `/task_new` で phase 70 の task_01（暫定 53 §4.3・§5・§7.2 の位置の解決 = `__version__`・同梱データの位置の解決 1 か所・本文の読込と検査・フィルターの純関数・大分類だけの help_ja.json・tests）を起票 → `codex-implementer` → verifier → reviewer
+- 以後の予定 = 多言語対応（アクションの種類の内部名の表示名化を吸収）→ Mac 対応。提案書 26 は保留
+- **phase 70 の注意**: grab 中のダイアログの子の Toplevel は操作できる（実測済・暫定 53 §6.3。実 App では task_04 で確かめる）/ `__version__` はユーザーの指示でだけ変える / 同梱物のライセンス全文は記録した版の配布物から取り、取れないものは推測で埋めずに止めて報告する
+- main へのマージはユーザー（PR は作らない）
 
 ## 直前のフェーズ（phase 69 = キーボードUIのキー名の表示と最小サイズ・判断は `decisions_archive/69_keyboard_ui_key_labels.md`）
 - キーの文字はキーの内側に収まるまで縮めて描き `\n` でだけ改行（`presentation/keyboard_key_text.py`・px 指定・下限 主 7 / 下 6）。送信先の表示名 = レイアウトの JSON の最上位 `key_display_names`
