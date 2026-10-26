@@ -4,36 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-27T18:00:00
+last_updated: 2026-10-27T21:00:00
 phase: instructions/phase/70_help_window（2026-10-27 起票・ヘルプの作成・暫定 53 v0.5 ユーザー確定済）。次採番 = phase 71 / 暫定 54 / decisions 71 / 提案書 27 / idea 55
 直前の完了フェーズ = **phase 69**（キーボードUIのキー名の表示と最小サイズ・`decisions_archive/69_keyboard_ui_key_labels.md`）
-last_commit_location: `claude/help-menu-creation-3be010`（phase 70 起票一式 = 9d90b13）。phase 69 = `claude/ryouhou-kyou-fd27f9`。main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/task-sequential-execution-728512`（phase 70 の実装。起票一式 = 9d90b13）。phase 69 = `claude/ryouhou-kyou-fd27f9`。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 70 起票済（2026-10-27・ヘルプの作成・暫定 53 v0.5 確定）。task_01 は未着手（ユーザーの着手指示待ち）。**
-mode: pending_review
+focus: **phase 70 task_01 完了（土台 = `__version__`・同梱データの位置・本文の読込と検査・フィルターの純関数）。task_02 起票済・着手へ（ユーザーがタスクの連続実行を許可 2026-10-27）。**
+mode: implementing
 presence: present
 
 ## last_action
-ts: 2026-10-27T18:00:00
+ts: 2026-10-27T21:00:00
 who: main
 summary: |
-  ヘルプの作成の要件をユーザーと詰め、暫定 53（instructions/history/53_help_window.md）を v0.1 → v0.5 で確定、phase 70 を起票してコミット（9d90b13）。
-  レビュー: 起票時 deep-reviewer 修正して採用（12 件反映）/ Codex 敵対的 needs-attention 2 件（正規化の非対称・メインの topmost 切替時のキーボードUI再同期）→ 修正案どおり反映 / phase.md 整合チェック reviewer 修正して採用（3 点反映）。
-  ユーザー判断: §9 すべて推奨どおり。ただし外部ライブラリのライセンス全文は「exe 配布予定あり」で載せる（同梱物 = 外部 11 + Python + Tcl/Tk）。
-  実測: grab_set 中のダイアログの子の Toplevel は実入力のクリック・キーを受ける（3 回同結果）→「?」は子の窓で開く。
+  task_01（task_01_help_foundation.md）を起票 → codex-implementer で実装 → verifier（tests の期待値の誤り 1 件 = 位置の個数 → メインで修正）→ reviewer 採用（参考指摘 1 = 検査の違反文言に該当文字列を入れる → 反映 / 参考 2 = item_matches が語を再正規化 → 冪等で無害のため据え置き）。
+  task_02（ヘルプの窓とメニュー）のタスク定義を起票。
 result_files:
-  - instructions/history/53_help_window.md・instructions/phase/70_help_window/phase.md
-  - instructions/phase/current.md・.claude_data/state/decisions.md
+  - keyseq/__init__.py・keyseq/presentation/help/（bundled_paths・help_content・help_filter・content/help_ja.json）
+  - tests/test_help_content.py・tests/test_help_filter.py
+  - instructions/phase/70_help_window/tasks/task_01_help_foundation.md・task_02_help_window_and_menu.md
 verified:
-  compile: not_run（文書のみの変更・コード変更なし）
-  tests: not_run（直近の実測は phase 69 task_06a = pass 1834）
-  tests_ui: not_run（直近 = 1164 中 1 fail 既知の負債）
-  smoke: not_run（直近 = pass）
+  compile: pass
+  tests: pass（1849・skip 7）
+  tests_ui: pass（1164・既知の負債 test_compact_window も今回は出ず）
+  smoke: pass
 
 ## next_action
-- ユーザーの着手指示を受けたら `/task_new` で `instructions/phase/70_help_window/tasks/task_01_*.md` を起票（暫定 53 §4.3・§5・§7.2 の位置の解決 = `__version__`・同梱データの位置の解決 1 か所・本文の読込と検査〔NFC・結合文字なし・id 一意〕・フィルターの純関数・大分類だけの help_ja.json の骨組み・tests）→ `codex-implementer` へ委任 → verifier で tests 実測 → reviewer
+- task_02 を `codex-delegating-implementer` へ委任（判断を要する UI 実装）→ verifier → reviewer
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers

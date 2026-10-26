@@ -1,0 +1,24 @@
+{
+  "format": 1,
+  "tabs": {
+    "guide": [
+      {"id": "intro", "title": "はじめに", "items": []},
+      {"id": "config_set", "title": "構成セットとファイル", "items": []},
+      {"id": "keymap", "title": "キーマップ", "items": []},
+      {"id": "trigger", "title": "トリガー", "items": []},
+      {"id": "sequence", "title": "出力シーケンス", "items": []},
+      {"id": "hook", "title": "フック", "items": []},
+      {"id": "view_mode", "title": "表示の切替", "items": []},
+      {"id": "keyboard_ui", "title": "キーボードUI", "items": []},
+      {"id": "screen_grid", "title": "画面の枠", "items": []},
+      {"id": "preset", "title": "プリセット", "items": []},
+      {"id": "file_cleanup", "title": "ファイルの整理", "items": []}
+    ],
+    "faq": [
+      {"id": "trouble", "title": "動かないとき", "items": []},
+      {"id": "limits", "title": "できないこと", "items": []},
+      {"id": "save_files", "title": "保存とファイル", "items": []},
+      {"id": "key_input", "title": "キーの入力", "items": []}
+    ]
+  }
+}
