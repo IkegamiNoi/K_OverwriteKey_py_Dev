@@ -11,28 +11,27 @@ last_commit_location: `claude/task-sequential-execution-728512`（phase 70 の�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 70 task_01 完了（土台 = `__version__`・同梱データの位置・本文の読込と検査・フィルターの純関数）。task_02 起票済・着手へ（ユーザーがタスクの連続実行を許可 2026-10-27）。**
+focus: **phase 70 task_02 完了（ヘルプの窓・メニュー「ヘルプ」の骨格）。task_03 起票済・着手へ（ユーザーがタスクの連続実行を許可 2026-10-27）。**
 mode: implementing
 presence: present
 
 ## last_action
-ts: 2026-10-27T21:00:00
+ts: 2026-10-27T22:30:00
 who: main
 summary: |
-  task_01（task_01_help_foundation.md）を起票 → codex-implementer で実装 → verifier（tests の期待値の誤り 1 件 = 位置の個数 → メインで修正）→ reviewer 採用（参考指摘 1 = 検査の違反文言に該当文字列を入れる → 反映 / 参考 2 = item_matches が語を再正規化 → 冪等で無害のため据え置き）。
-  task_02（ヘルプの窓とメニュー）のタスク定義を起票。
+  task_01 完了・コミット（ae5216d）。task_02 = codex-delegating-implementer（Sol medium・UI テストを Luna サブエージェントへ）で Text + タグ elide 方式の窓を実装 → tests_ui のテスト側 2 件をメインで修正（メニューバー先頭の tearoff 項目を飛ばす / Windows の Tk では `event_generate("<KP_Enter>")` が束縛に届かないため Return で検査）→ verifier 全緑 → reviewer 採用（参考: エラー表示の wraplength 固定・_refresh の全見出し書き換えは本文が増えたら task_08 の目視で性能確認）。
+  task_03（フック・フォント・常に手前・終了時）のタスク定義を起票。
 result_files:
-  - keyseq/__init__.py・keyseq/presentation/help/（bundled_paths・help_content・help_filter・content/help_ja.json）
-  - tests/test_help_content.py・tests/test_help_filter.py
-  - instructions/phase/70_help_window/tasks/task_01_help_foundation.md・task_02_help_window_and_menu.md
+  - keyseq/presentation/help/（help_window・help_tab_view・help_window_controller）・views/menu_bar.py・app.py
+  - tests_ui/test_help_window.py・instructions/phase/70_help_window/tasks/task_03_hook_font_topmost.md
 verified:
   compile: pass
   tests: pass（1849・skip 7）
-  tests_ui: pass（1164・既知の負債 test_compact_window も今回は出ず）
+  tests_ui: pass（1174・既知の負債 test_compact_window も今回は出ず）
   smoke: pass
 
 ## next_action
-- task_02 を `codex-delegating-implementer` へ委任（判断を要する UI 実装）→ verifier → reviewer
+- task_03 を委任 → verifier → reviewer。以降 task_04・05 も同様。task_06 は本文の下書き → ユーザー校正待ちで止まる
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers

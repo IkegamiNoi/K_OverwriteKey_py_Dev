@@ -29,6 +29,7 @@ from keyseq.presentation.config_paths import ConfigPaths
 from keyseq.presentation.list_clipboard import ListClipboard
 from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
 from keyseq.presentation.controllers.hook_controller import HookController
+from keyseq.presentation.help.help_window_controller import HelpWindowController
 from keyseq.presentation.controllers.key_capture import SingleKeyCaptureController
 from keyseq.presentation.controllers.keymap_panel.keymap_panel_controller import (
     KeymapPanelController,
@@ -288,6 +289,7 @@ class App(tk.Tk):
         self.compact_pane_layout = CompactPaneLayout(self)
         self.compact_window = CompactWindowController(self)
         self.hook = HookController(self)
+        self.help = HelpWindowController(self)
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
         self.sequence_runner = SequenceRunner(

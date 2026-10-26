@@ -51,6 +51,12 @@ def build_menu_bar(app):
 
     menubar.add_cascade(label="設定", menu=settings_menu)
 
+    help_menu = tk.Menu(menubar, tearoff=False)
+    help_menu.add_command(label="使い方", command=lambda: app.help.open("guide"))
+    help_menu.add_command(label="よくある質問", command=lambda: app.help.open("faq"))
+    help_menu.add_separator()
+    menubar.add_cascade(label="ヘルプ", menu=help_menu)
+
     app.config(menu=menubar)
     app.menubar = menubar
 
