@@ -66,7 +66,7 @@ class HelpContentTest(unittest.TestCase):
         self.assertEqual([item.id for item in result.content.guide], GUIDE_IDS)
         self.assertEqual([item.title for item in result.content.guide], GUIDE_TITLES)
         self.assertEqual([item.id for item in result.content.faq], FAQ_IDS)
-        self.assertTrue(all(not group.items for group in (*result.content.guide, *result.content.faq)))
+        self.assertTrue(all(group.items for group in (*result.content.guide, *result.content.faq)))
 
     def test_version_and_bundled_paths(self) -> None:
         root = bundled_root()
