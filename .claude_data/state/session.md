@@ -13,30 +13,31 @@ last_commit_location: `claude/task-sequential-execution-728512`（phase 70 の�
 ## current
 focus: **phase 70 task_05 完了（バージョン情報・ライセンスの窓・同梱物の全文）。task_06（本文の初版）= 下書き済・ユーザーの校正待ち。**
 task_05 メモ: codex-implementer。テスト側をメインで修正（Tk の版は Tk のルートで引く / バージョン情報の後始末で after(0) の再開予約まで進める / Escape の前に acquire_focus / 既存の構造検査 test_grab_modal_call_sites の許可リストに help/ を追加〔暫定 53 §8 で help/ に置くため〕）。reviewer 採用（参考: 読み取り専用 Text での Ctrl+C は task_08 で目視）。tests 1856 / tests_ui 1195 / smoke OK。
-task_06 メモ: 下書き = scratchpad の build_help.py → help_ja_draft.json（大分類 15・項目 64・検査 OK）。未反映。§6.1 の飛び先の項目 id への細分化は暫定 53 の表の改訂＝ユーザー承認が要るため提案のみ。
+task_06 メモ: 下書きを help_ja.json に反映済（未コミット・大分類 15・項目 65）。事前 reviewer「修正して採用」→ 指摘 1〜6 を反映（D5 の空白を生成時に一括除去・トリガーセットの用語・画面の枠の表示条件・操作キーの付け替え・簡易表示の説明・停止の読み飛ばし）。校正用の写し = instructions/phase/70_help_window/tools/help_ja_draft.md。生成元 = scratchpad の build_help.py（セッション外では失われるため、校正の反映は help_ja.json を直接直してよい）。tests.test_help_content の「骨組みは items 空」の検査を「全大分類に項目あり」へ。**ユーザーの校正待ち**。§6.1 の飛び先の項目 id への細分化は暫定 53 の表の改訂＝ユーザー承認が要るため提案のみ。
 task_04 メモ: codex-delegating-implementer。実装者が codebase_map.md へ追記 → 範囲外のため取り消し（task_08 で反映）。既存 tests_ui 23 件が「?」の追加で落ちた → テスト側を追従（quarantine・orphan のボタン列に「?」/ child_save のフェイク組立てでは add_help_button を差し替え）。reviewer 採用（参考: 空の大分類を開ける分岐 `_category_visible` は本文が入った task_06 で要否を確認）。tests 1850 / tests_ui 1190 / smoke OK。
 mode: implementing
 presence: present
 
 ## last_action
-ts: 2026-10-27T22:30:00
+ts: 2026-10-27T23:30:00
 who: main
 summary: |
-  task_01 完了・コミット（ae5216d）。task_02 = codex-delegating-implementer（Sol medium・UI テストを Luna サブエージェントへ）で Text + タグ elide 方式の窓を実装 → tests_ui のテスト側 2 件をメインで修正（メニューバー先頭の tearoff 項目を飛ばす / Windows の Tk では `event_generate("<KP_Enter>")` が束縛に届かないため Return で検査）→ verifier 全緑 → reviewer 採用（参考: エラー表示の wraplength 固定・_refresh の全見出し書き換えは本文が増えたら task_08 の目視で性能確認）。
-  task_02 コミット（4137a8d）。task_03 = codex-implementer → メインで 2 点修正（フックの窓口を窓の作成時に束縛すると spy が届かない → 呼び出し時に解決する lambda に / テストの Mock の import 漏れ）→ verifier 全緑 → reviewer 採用。
-  task_04・05 のタスク定義を起票（未コミット）。task_05 の同梱物のライセンス全文 `help/content/third_party/` をメインが取り込み済（未コミット。mouseinfo・pygetwindow は上流の LICENSE.txt〔履歴 1 コミットのみ〕・Tcl はタグ core-8-6-15）。
-  **報告要**: pyscreeze・pytweening は METADATA = MIT だが同梱の本文は BSD 3 条項（暫定 53 §1 は MIT と記載）→ §2 の「本文を正」の原則で BSD 3 条項として記録。task_08 の正本反映前にユーザーへ確認。
+  task_01〜05 完了・コミット（ae5216d / 4137a8d / dadd556 / 80fad3b / fa440b5）。
+  task_06 の下書きを help_ja.json へ反映（未コミット）・校正用の写し tools/help_ja_draft.md をユーザーへ提示し校正待ち。
+  **報告済・回答待ち**: pyscreeze・pytweening は METADATA = MIT だが同梱の本文は BSD 3 条項（暫定 53 §1 は MIT と記載）→ §2 の「本文を正」の原則で BSD 3 条項として記録。
 result_files:
-  - keyseq/presentation/help/（help_window・help_tab_view・help_window_controller）・controllers/layout_controller.py・app.py
-  - tests_ui/test_help_window.py
+  - keyseq/presentation/help/content/help_ja.json・tests/test_help_content.py（未コミット）
+  - instructions/phase/70_help_window/tasks/task_06_help_content_draft.md・tools/help_ja_draft.md（未追跡）
 verified:
   compile: pass
-  tests: pass（1849・skip 7）
-  tests_ui: pass（1181・既知の負債 test_compact_window も今回は出ず）
+  tests: pass（1856・skip 7。task_05 時点）
+  tests_ui: pass（1195。task_05 時点）
   smoke: pass
+  task_06: not_run（本文の差し替え後の全体実行は校正反映後）
 
 ## next_action
-- task_03 を委任 → verifier → reviewer。以降 task_04・05 も同様。task_06 は本文の下書き → ユーザー校正待ちで止まる
+- task_06: ユーザーの校正 → 反映 → reviewer → tests 全体 → コミット。その後 task_07（統合確認・deep-reviewer + codex-reviewer）→ task_08（実機目視・正本反映）
+- ユーザー確認待ち: pyscreeze・pytweening のライセンス名を本文どおり BSD 3 条項とした判断（暫定 53 §1 は MIT と記載）
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers

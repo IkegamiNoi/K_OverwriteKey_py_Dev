@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜52）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 70 起票済（2026-10-27・ヘルプの作成・暫定 53 v0.5 確定）。task_01 は未着手（ユーザーの着手指示待ち）。**
-ブランチ `claude/help-menu-creation-3be010`（phase 70 起票一式 = 9d90b13）。phase 69 = `claude/ryouhou-kyou-fd27f9`。main へのマージはユーザー（PR は作らない）。
+**phase 70 task_05 完了（バージョン情報・ライセンスの窓・同梱物の全文）。task_06（本文の初版）= 下書き済・ユーザーの校正待ち。**
+ブランチ `claude/task-sequential-execution-728512`（task_01〜05 = ae5216d〜fa440b5・起票一式 = 9d90b13）。タスクの連続実行はユーザー許可済（仕様フラグ・フォールバック・ユーザー確認では止まる）。phase 69 = `claude/ryouhou-kyou-fd27f9`。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 69 task_06a = 2026-10-26**。phase 70 は起票のみでコード変更なし = not_run）:
-compile **clean** / tests **1834 pass**（skip 7）/ tests_ui **1164 中 1 fail = 既知の負債 `test_compact_window` の保存タイミング**（全体実行のみ・単体 2 回 pass）/ smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1819〔phase 68〕→ 1834 / tests_ui: 1149 → 1164）。
+直近の実測（**phase 70 task_05 = 2026-10-27**。task_06 の本文差し替え後 = not_run）:
+compile **clean** / tests **1856 pass**（skip 7）/ tests_ui **1195 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1834〔phase 69〕→ 1856 / tests_ui: 1164 → 1195）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,7 +55,9 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- ユーザーの着手指示を受けたら `/task_new` で phase 70 の task_01（暫定 53 §4.3・§5・§7.2 の位置の解決 = `__version__`・同梱データの位置の解決 1 か所・本文の読込と検査・フィルターの純関数・大分類だけの help_ja.json・tests）を起票 → `codex-implementer` → verifier → reviewer
+- task_06: ユーザーの校正（`instructions/phase/70_help_window/tools/help_ja_draft.md`・指摘は項目 id で）→ `help_ja.json` を直接修正（生成元 build_help.py は前セッションの scratchpad で失われる）→ reviewer → tests 全体 → コミット
+- その後 task_07（統合確認・deep-reviewer + codex-reviewer）→ task_08（実機目視・正本反映・暫定 53 凍結・decisions_archive/70・/refactor_check）
+- **ユーザー回答待ち**: pyscreeze・pytweening のライセンス名を同梱本文どおり BSD 3 条項とした判断（暫定 53 §1 は MIT）/ 任意提案: §6.1 の「?」の飛び先を項目 id へ細分化（暫定 53 改訂・承認要）
 - 以後の予定 = 多言語対応（アクションの種類の内部名の表示名化を吸収）→ Mac 対応。提案書 26 は保留
 - **phase 70 の注意**: grab 中のダイアログの子の Toplevel は操作できる（実測済・暫定 53 §6.3。実 App では task_04 で確かめる）/ `__version__` はユーザーの指示でだけ変える / 同梱物のライセンス全文は記録した版の配布物から取り、取れないものは推測で埋めずに止めて報告する
 - main へのマージはユーザー（PR は作らない）
