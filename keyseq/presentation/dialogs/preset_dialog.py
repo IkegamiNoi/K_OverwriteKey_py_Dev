@@ -4,6 +4,8 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.help.help_button import add_help_button
+from keyseq.presentation.help.help_targets import PRESET
 
 
 class PresetDialog(tk.Toplevel):
@@ -33,6 +35,7 @@ class PresetDialog(tk.Toplevel):
 
         btns = ttk.Frame(frm)
         btns.grid(row=3, column=0, columnspan=2, sticky="e", pady=(14, 0))
+        add_help_button(btns, self, PRESET)
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 

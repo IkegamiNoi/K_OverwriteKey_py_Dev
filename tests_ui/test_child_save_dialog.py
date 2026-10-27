@@ -423,6 +423,9 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
             "ask_child_save_actions",
             _REAL_ASK_CHILD_SAVE_ACTIONS,
         ), patch.object(child_save_dialog_module.tk, "Toplevel", return_value=dialog), patch.object(
+            # 「?」は実の ttk で作るため、フェイクのウィジェットで組むこの試験では差し替える。
+            child_save_dialog_module, "add_help_button",
+        ), patch.object(
             child_save_dialog_module.tk,
             "StringVar",
             side_effect=make_string_var,

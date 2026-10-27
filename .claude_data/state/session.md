@@ -11,7 +11,8 @@ last_commit_location: `claude/task-sequential-execution-728512`（phase 70 の�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 70 task_03 完了（フック停止・フォント追従・常に手前・終了時に閉じる）。task_04 着手へ（ユーザーがタスクの連続実行を許可 2026-10-27）。**
+focus: **phase 70 task_04 完了（12 ダイアログの「?」・子の窓で開く）。task_05 着手へ（ユーザーがタスクの連続実行を許可 2026-10-27）。**
+task_04 メモ: codex-delegating-implementer。実装者が codebase_map.md へ追記 → 範囲外のため取り消し（task_08 で反映）。既存 tests_ui 23 件が「?」の追加で落ちた → テスト側を追従（quarantine・orphan のボタン列に「?」/ child_save のフェイク組立てでは add_help_button を差し替え）。reviewer 採用（参考: 空の大分類を開ける分岐 `_category_visible` は本文が入った task_06 で要否を確認）。tests 1850 / tests_ui 1190 / smoke OK。
 mode: implementing
 presence: present
 

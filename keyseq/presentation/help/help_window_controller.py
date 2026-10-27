@@ -33,21 +33,37 @@ class HelpWindowController:
 
     def open(self, tab: str) -> None:
         if self._window is None:
-            self._window = HelpWindow(
-                self.app, self.load_content(),
-                # 呼び出し時に解決する（窓の寿命中に窓口が差し替わっても追従する）。
-                suspend_hook=lambda: self.app.hook.suspend_hook_for_dialog(),
-                resume_hook=lambda: self.app.hook.resume_hook_after_dialog(),
-            )
-            self._window.bind("<Destroy>", self._on_destroy, add="+")
-            self.apply_topmost()
-            self._window.select_tab(tab)
+            self._create_window(self.app).select_tab(tab)
             return
+        self._raise_window().select_tab(tab)
+
+    def _create_window(self, master: tk.Misc) -> HelpWindow:
+        self._window = HelpWindow(
+            master, self.load_content(),
+            # 呼び出し時に解決する（窓の寿命中に窓口が差し替わっても追従する）。
+            suspend_hook=lambda: self.app.hook.suspend_hook_for_dialog(),
+            resume_hook=lambda: self.app.hook.resume_hook_after_dialog(),
+        )
+        self._window.bind("<Destroy>", self._on_destroy, add="+")
+        self.apply_topmost()
+        return self._window
+
+    def _raise_window(self) -> HelpWindow:
+        assert self._window is not None
         self.apply_topmost()
         self._window.deiconify()
         self._window.lift()
         self._window.focus_set()
-        self._window.select_tab(tab)
+        return self._window
+
+    def open_for_dialog(self, dialog: tk.Toplevel, tab: str, target_id: str) -> None:
+        if self._window is not None and self._window.master is not dialog:
+            self.close()
+        window = (self._create_window(dialog) if self._window is None
+                  else self._raise_window())
+        window.select_tab(tab)
+        window.clear_filter()
+        window.reveal(tab, target_id)
 
     def close(self) -> None:
         if self._window is not None:

@@ -5,6 +5,8 @@ from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.help.help_button import add_help_button
+from keyseq.presentation.help.help_targets import KEYBOARD_UI
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -42,6 +44,7 @@ class LayoutDeleteDialog(tk.Toplevel):
 
         btns = ttk.Frame(frm)
         btns.grid(row=2, column=0, sticky="e", pady=(14, 0))
+        add_help_button(btns, self, KEYBOARD_UI)
         ttk.Button(btns, text="削除", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 

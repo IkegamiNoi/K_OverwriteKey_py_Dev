@@ -12,6 +12,8 @@ from keyseq.presentation.listbox_range_drag import (
     bind_listbox_range_drag, selected_range, select_range,
 )
 from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.help.help_button import add_help_button
+from keyseq.presentation.help.help_targets import PRESET
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -169,6 +171,7 @@ class PresetManagerDialog(tk.Toplevel):
 
         bottom = ttk.Frame(frm)
         bottom.grid(row=8, column=0, columnspan=3, sticky="e", pady=(12, 0))
+        add_help_button(bottom, self, PRESET)
         ttk.Button(bottom, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(bottom, text="キャンセル", command=self.destroy).pack(side="left")
 

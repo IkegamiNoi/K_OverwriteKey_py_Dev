@@ -5,6 +5,8 @@ from tkinter import ttk
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.help.help_button import add_help_button
+from keyseq.presentation.help.help_targets import CLEANUP
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -49,6 +51,7 @@ class ReferenceCleanupDialog(tk.Toplevel):
 
         buttons = ttk.Frame(frame)
         buttons.grid(row=2, column=0, sticky="e", pady=(14, 0))
+        add_help_button(buttons, self, CLEANUP)
         ttk.Button(buttons, text=run_label, command=self._run).pack(side="left", padx=(0, 8))
         ttk.Button(buttons, text="キャンセル", command=self.destroy).pack(side="left")
 

@@ -102,6 +102,17 @@ class HelpTabView(ttk.Frame):
         # TkDefaultFont is a named font; rebind it without rebuilding tags or text state.
         self.text.configure(font="TkDefaultFont")
 
+    def reveal(self, target_id: str) -> bool:
+        for category in self.categories:
+            identifiers = {category.id, *(item.id for item in category.items)}
+            if target_id in identifiers:
+                self._open.update((category.id, target_id))
+                self._selected = target_id
+                self._refresh()
+                self.text.yview(self._headings[target_id][0])
+                return True
+        return False
+
     def _highlight(self, item: HelpItem, terms: tuple[str, ...]) -> None:
         spans: list[tuple[str, int, int]] = []
         for field, value in (("title", item.title), ("body", item_plain_text(item))):
@@ -120,7 +131,7 @@ class HelpTabView(ttk.Frame):
     def _refresh(self) -> None:
         self.text.configure(state="normal")
         for category in self.categories:
-            visible = any(item.id in self._matches for item in category.items)
+            visible = self._category_visible(category)
             self._show_heading(category.id, visible)
             for item in category.items:
                 shown = self.is_item_visible(item.id) and self.is_category_open(category.id)
@@ -167,11 +178,15 @@ class HelpTabView(ttk.Frame):
     def _visible_headings(self) -> list[str]:
         result: list[str] = []
         for category in self.categories:
-            if any(item.id in self._matches for item in category.items):
+            if self._category_visible(category):
                 result.append(category.id)
                 if self.is_category_open(category.id):
                     result.extend(item.id for item in category.items if self.is_item_visible(item.id))
         return result
+
+    def _category_visible(self, category: HelpCategory) -> bool:
+        return (any(item.id in self._matches for item in category.items)
+                or (not category.items and category.id in self._open))
 
     def _mark_selected(self) -> None:
         self.text.tag_remove("selected", "1.0", "end")

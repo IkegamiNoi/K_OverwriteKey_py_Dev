@@ -71,6 +71,13 @@ class HelpWindow(tk.Toplevel):
         if self.notebook is not None:
             self.notebook.select(self.tabs[tab])
 
+    def clear_filter(self) -> None:
+        self.filter_var.set("")
+
+    def reveal(self, tab: str, target_id: str) -> bool:
+        view = self.tabs.get(tab)
+        return view.reveal(target_id) if view is not None else False
+
     def _on_filter_focus_in(self, _event: tk.Event) -> None:
         if not self._filter_hook_suspended:
             self._suspend_hook()

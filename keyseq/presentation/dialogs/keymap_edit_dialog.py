@@ -18,6 +18,8 @@ from keyseq.presentation.hook_button_texts import (
 )
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
 from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.help.help_button import add_help_button
+from keyseq.presentation.help.help_targets import KEYMAP
 from keyseq.presentation.dialogs.grid_editor_window import GridEditorWindow
 from keyseq.presentation.tk_keys import (
     is_unresolved_capture_key,
@@ -89,6 +91,7 @@ class KeymapEditDialog(tk.Toplevel):
 
         btns = ttk.Frame(frm)
         btns.grid(row=4, column=0, columnspan=4, sticky="e", pady=(14, 0))
+        add_help_button(btns, self, KEYMAP)
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 

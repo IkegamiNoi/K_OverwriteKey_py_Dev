@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING
 
 from keyseq.presentation import keymap_set_history_text as text
 from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.help.help_button import add_help_button
+from keyseq.presentation.help.help_targets import KEYMAP_SET
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -71,6 +73,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
             self.buttons[label].pack(side="left", padx=3)
         actions = ttk.Frame(frame)
         actions.pack(anchor="e", pady=(12, 0))
+        add_help_button(actions, self, KEYMAP_SET)
         for label, command in (
             (text.LOAD, self._load), (text.REMOVE_ENTRY, self._remove_entry),
             (text.COPY_ENTRY, self._copy_entry), (text.CLOSE, self.destroy),

@@ -15,6 +15,8 @@ from keyseq.presentation.hook_button_texts import (
 )
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
 from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.help.help_button import add_help_button
+from keyseq.presentation.help.help_targets import KEYMAP
 from keyseq.presentation.tk_keys import (
     is_unresolved_capture_key,
     normalize_tk_key_event,
@@ -155,6 +157,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
     def _build_buttons(self, outer: ttk.Frame) -> None:
         btns = ttk.Frame(outer)
         btns.pack(fill="x", pady=(14, 0))
+        add_help_button(btns, self, KEYMAP)
         ttk.Button(btns, text="OK", command=self._ok).pack(side="right", padx=(8, 0))
         ttk.Button(btns, text="キャンセル", command=self._cancel).pack(side="right")
 

@@ -454,13 +454,13 @@ class ReferenceCleanupDialogLabelTest(unittest.TestCase):
     def test_default_header_and_run_label_are_unchanged(self):
         dialog = self._dialog()
         self.assertEqual(self._texts(dialog, ttk.Label), ["除去する参照元を確認してください。"])
-        self.assertEqual(self._texts(dialog, ttk.Button), ["実行", "キャンセル"])
+        self.assertEqual(self._texts(dialog, ttk.Button), ["?", "実行", "キャンセル"])
         dialog.destroy()
 
     def test_quarantine_labels_replace_only_header_and_run_button(self):
         dialog = self._dialog(header="退避する未使用の候補を確認してください。", run_label="退避する")
         self.assertEqual(self._texts(dialog, ttk.Label), ["退避する未使用の候補を確認してください。"])
-        self.assertEqual(self._texts(dialog, ttk.Button), ["退避する", "キャンセル"])
+        self.assertEqual(self._texts(dialog, ttk.Button), ["?", "退避する", "キャンセル"])
         self.assertFalse(dialog.result)
         dialog._run()
         self.assertTrue(dialog.result)

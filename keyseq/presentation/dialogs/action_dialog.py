@@ -15,6 +15,8 @@ from keyseq.presentation.dialogs.action_key_hold_fields import ActionKeyHoldFiel
 from keyseq.presentation.dialogs.action_mouse_scroll_fields import ActionMouseScrollFields
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.help.help_button import add_help_button
+from keyseq.presentation.help.help_targets import SEQUENCE
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
 from keyseq.presentation.tk_keys import is_unresolved_capture_key, normalize_tk_key_event
 
@@ -90,6 +92,7 @@ class ActionDialog(tk.Toplevel):
 
         btns = ttk.Frame(frm)
         btns.grid(row=9, column=2, columnspan=2, sticky="e", pady=(14, 0))
+        add_help_button(btns, self, SEQUENCE)
         ttk.Button(btns, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left", padx=(0, 8))
 

@@ -12,6 +12,8 @@ from keyseq.presentation.controllers.config_io.child_save_columns import CELL_GA
 from keyseq.presentation.child_kind_labels import kind_label as _kind_label
 from keyseq.presentation.hover_tooltip import bind_hover_tooltip
 from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.help.help_button import add_help_button
+from keyseq.presentation.help.help_targets import KEYMAP_SET
 
 
 class ChildSaveDialog:
@@ -42,6 +44,7 @@ class ChildSaveDialog:
         frame.pack(fill="both", expand=True)
         buttons = ttk.Frame(frame)
         buttons.pack(side="bottom", anchor="e", pady=(12, 0))
+        add_help_button(buttons, dialog, KEYMAP_SET)
         list_frame = ttk.Frame(frame)
         list_frame.pack(fill="both", expand=True)
         list_frame.columnconfigure(0, weight=1)

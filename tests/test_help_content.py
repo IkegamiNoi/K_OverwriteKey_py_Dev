@@ -6,6 +6,7 @@ import tempfile
 import unittest
 
 import keyseq
+from keyseq.presentation.help.help_targets import DIALOG_TARGETS
 from keyseq.presentation.help.bundled_paths import (
     bundled_root,
     help_content_dir,
@@ -26,8 +27,8 @@ from keyseq.presentation.help.help_content import (
 
 
 GUIDE_IDS = [
-    "intro", "config_set", "keymap", "trigger", "sequence", "hook",
-    "view_mode", "keyboard_ui", "screen_grid", "preset", "file_cleanup",
+    "intro", "keymap_set", "keymap", "trigger", "sequence", "hook",
+    "view_mode", "keyboard_ui", "screen_grid", "preset", "cleanup",
 ]
 GUIDE_TITLES = [
     "はじめに", "構成セットとファイル", "キーマップ", "トリガー", "出力シーケンス",
@@ -45,6 +46,17 @@ def category(identifier: str = "guide", *, items: list[object] | None = None) ->
 
 
 class HelpContentTest(unittest.TestCase):
+    def test_dialog_targets_exist_in_bundled_guide(self) -> None:
+        result = load_help_content()
+        self.assertIsNotNone(result.content, result.error)
+        assert result.content is not None
+        identifiers = {category.id for category in result.content.guide}
+        identifiers.update(item.id for category in result.content.guide
+                           for item in category.items)
+        for target in DIALOG_TARGETS:
+            with self.subTest(target=target):
+                self.assertIn(target, identifiers)
+
     def test_bundled_content_loads_with_expected_outline(self) -> None:
         result = load_help_content()
         self.assertIsNotNone(result.content)

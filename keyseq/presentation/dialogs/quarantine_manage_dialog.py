@@ -5,6 +5,8 @@ from tkinter import ttk
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.modal import grab_modal
+from keyseq.presentation.help.help_button import add_help_button
+from keyseq.presentation.help.help_targets import CLEANUP
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -40,6 +42,7 @@ class QuarantineManageDialog(tk.Toplevel):
             self.listbox.insert(tk.END, line)
         actions = ttk.Frame(frm)
         actions.pack(anchor="e", pady=(14, 0))
+        add_help_button(actions, self, CLEANUP)
         ttk.Button(actions, text="復元する", command=self._restore).pack(side="left", padx=(0, 8))
         ttk.Button(actions, text="削除する", command=self._delete).pack(side="left", padx=(0, 8))
         ttk.Button(actions, text="閉じる", command=self.destroy).pack(side="left")
