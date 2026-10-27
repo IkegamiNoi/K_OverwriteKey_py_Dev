@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import font as tkfont
+import keyseq
 import unittest
 from contextlib import ExitStack
 from unittest.mock import Mock, patch
@@ -12,6 +13,8 @@ from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation import app as app_module
 from keyseq.presentation.app import App
 from keyseq.presentation.help.help_window import HelpWindow
+from keyseq.presentation.help import version_dialog
+from keyseq.presentation.help.third_party import load_license_text, load_third_party
 from keyseq.presentation.help.help_content import (
     HelpBlock,
     HelpCategory,
@@ -86,12 +89,16 @@ class HelpWindowTest(unittest.TestCase):
     def _destroy_app(cls) -> None:
         if cls.app.help.window is not None:
             cls.app.help.close()
+        if cls.app.license.window is not None:
+            cls.app.license.close()
         cls.app.destroy()
 
     def setUp(self) -> None:
         self.app = type(self).app
         if self.app.help.window is not None:
             self.app.help.close()
+        if self.app.license.window is not None:
+            self.app.license.close()
         self.app.help.load_content = lambda: HelpLoadResult(sample_content())
         self.addCleanup(self._close_help)
         self.addCleanup(self._reset_font_delta)
@@ -130,7 +137,7 @@ class HelpWindowTest(unittest.TestCase):
         self.fail("ヘルプ menu is missing")
 
     def test_help_menu_survives_font_menu_rebuild(self) -> None:
-        expected = ["使い方", "よくある質問", "separator"]
+        expected = ["使い方", "よくある質問", "separator", "バージョン情報", "ライセンス"]
         self.assertEqual(self._menu_labels(self._help_menu()), expected)
         menu = self._help_menu()
         menu.invoke(0)
@@ -148,6 +155,114 @@ class HelpWindowTest(unittest.TestCase):
 
         self.app.set_ui_font_delta(1)
         self.assertEqual(self._menu_labels(self._help_menu()), expected)
+
+    def test_help_menu_commands_use_dynamic_window_entry_points(self) -> None:
+        menu = self._help_menu()
+        with patch.object(version_dialog, "open_version_dialog") as version_spy:
+            menu.invoke(3)
+            version_spy.assert_called_once_with(self.app)
+        with patch.object(self.app.license, "open") as license_spy:
+            menu.invoke(4)
+            license_spy.assert_called_once_with()
+
+    def test_version_dialog_content_and_modal_hook_pause(self) -> None:
+        dialog = version_dialog.open_version_dialog(self.app)
+        try:
+            self.app.update_idletasks()
+            self.assertEqual(dialog.title(), "バージョン情報")
+            self.assertIs(self.app.grab_current(), dialog)
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+            content = "\n".join(
+                child.get("1.0", "end-1c")
+                for child in dialog.winfo_children()
+                if isinstance(child, tk.Text)
+            )
+            self.assertIn(f"バージョン {keyseq.__version__}", content)
+            self.assertIn("Copyright (C) 2026 池上ノイ (Ikegami Noi)", content)
+            self.assertIn("GNU General Public License v3", content)
+            self.assertIn("実行環境: Python ", content)
+        finally:
+            if dialog.winfo_exists():
+                dialog.destroy()
+            # 破棄の後に after(0) で予約されるフックの再開まで進め、次へ持ち越さない。
+            self.app.update()
+
+    def test_version_dialog_escape_and_close_button_resume_hook(self) -> None:
+        dialog = version_dialog.open_version_dialog(self.app)
+        try:
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+            acquire_focus(self.app, dialog)
+            self.app.focus_get().event_generate("<Escape>")
+            self.app.update()
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        finally:
+            if dialog.winfo_exists():
+                dialog.destroy()
+            # 破棄の後に after(0) で予約されるフックの再開まで進め、次へ持ち越さない。
+            self.app.update()
+        dialog = version_dialog.open_version_dialog(self.app)
+        try:
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 1)
+            close_button = next(
+                child for child in dialog.winfo_children()
+                if isinstance(child, tk.Button) or child.winfo_class() == "TButton"
+            )
+            close_button.invoke()
+            self.app.update()
+            self.assertEqual(self.app.hook.get_hook_pause_count(), 0)
+        finally:
+            if dialog.winfo_exists():
+                dialog.destroy()
+            # 破棄の後に after(0) で予約されるフックの再開まで進め、次へ持ち越さない。
+            self.app.update()
+
+    def test_license_window_reuses_and_displays_all_notices(self) -> None:
+        window = self.app.license.open()
+        try:
+            self.app.update_idletasks()
+            self.assertIs(self.app.license.open(), window)
+            content = window.text.get("1.0", "end-1c")
+            self.assertTrue(content.startswith("Key Replacer Sequencer\n"))
+            self.assertEqual(content.count(" — "), 14)
+            notices, error = load_third_party()
+            self.assertEqual(error, "")
+            for notice in notices:
+                heading = f"\n{notice.entry.name} {notice.entry.version}\n"
+                self.assertIn(heading, content)
+            license_text = load_license_text()
+            assert license_text is not None
+            self.assertIn(license_text.splitlines()[0], content)
+            self.assertIsNot(self.app.grab_current(), window)
+            self.assertEqual(window.transient(), "")
+        finally:
+            if self.app.license.window is not None:
+                self.app.license.close()
+
+    def test_license_window_tracks_topmost_and_app_close(self) -> None:
+        variable = self.app.ui_vars.always_on_top_var
+        variable.set(True)
+        window = self.app.license.open()
+        self.addCleanup(setattr, self.app.hook, "_shutting_down", False)
+        try:
+            self.assertTrue(bool(window.attributes("-topmost")))
+            variable.set(False)
+            self.app._apply_always_on_top()
+            self.assertFalse(bool(window.attributes("-topmost")))
+
+            with patch.object(self.app.keymap_set_io, "confirm_save_if_dirty", return_value=True), \
+                    patch.object(self.app, "destroy"), \
+                    patch.object(app_module, "shutdown_capture_hook"), \
+                    patch.object(self.app.delayed_calls, "stop"), \
+                    patch.object(self.app.held_inputs, "release_all", return_value=[]), \
+                    patch.object(self.app.input_gateway, "restore_ime_now"), \
+                    patch.object(self.app.screen_grid, "shutdown"), \
+                    patch.object(self.app.hook, "stop_hook"):
+                self.app.on_close()
+            self.assertIsNone(self.app.license.window)
+        finally:
+            self.app.ui_vars.always_on_top_var.set(False)
+            if self.app.license.window is not None:
+                self.app.license.close()
 
     def test_open_reuses_window_switches_tab_and_preserves_filter(self) -> None:
         window = self._open("guide")

@@ -11,7 +11,9 @@ last_commit_location: `claude/task-sequential-execution-728512`（phase 70 の�
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 70 task_04 完了（12 ダイアログの「?」・子の窓で開く）。task_05 着手へ（ユーザーがタスクの連続実行を許可 2026-10-27）。**
+focus: **phase 70 task_05 完了（バージョン情報・ライセンスの窓・同梱物の全文）。task_06（本文の初版）= 下書き済・ユーザーの校正待ち。**
+task_05 メモ: codex-implementer。テスト側をメインで修正（Tk の版は Tk のルートで引く / バージョン情報の後始末で after(0) の再開予約まで進める / Escape の前に acquire_focus / 既存の構造検査 test_grab_modal_call_sites の許可リストに help/ を追加〔暫定 53 §8 で help/ に置くため〕）。reviewer 採用（参考: 読み取り専用 Text での Ctrl+C は task_08 で目視）。tests 1856 / tests_ui 1195 / smoke OK。
+task_06 メモ: 下書き = scratchpad の build_help.py → help_ja_draft.json（大分類 15・項目 64・検査 OK）。未反映。§6.1 の飛び先の項目 id への細分化は暫定 53 の表の改訂＝ユーザー承認が要るため提案のみ。
 task_04 メモ: codex-delegating-implementer。実装者が codebase_map.md へ追記 → 範囲外のため取り消し（task_08 で反映）。既存 tests_ui 23 件が「?」の追加で落ちた → テスト側を追従（quarantine・orphan のボタン列に「?」/ child_save のフェイク組立てでは add_help_button を差し替え）。reviewer 採用（参考: 空の大分類を開ける分岐 `_category_visible` は本文が入った task_06 で要否を確認）。tests 1850 / tests_ui 1190 / smoke OK。
 mode: implementing
 presence: present

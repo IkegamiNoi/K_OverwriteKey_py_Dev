@@ -272,11 +272,13 @@ class NestedModalGrabTest(unittest.TestCase):
 
     def test_grab_modal_call_sites_are_dialogs_or_config_io(self):
         config_io = PRESENTATION / "controllers" / "config_io"
+        # help はバージョン情報のダイアログ（暫定 53 §7.1・§8 で help/ に置く）。
+        help_package = PRESENTATION / "help"
         for path in sorted(PRESENTATION.rglob("*.py")):
             grabs = find_calls(parse(path), "grab_modal")
             if grabs:
-                self.assertIn(path.parent, (DIALOGS, config_io),
-                              f"{path}:{grabs[0].lineno}: grab_modal は dialogs または config_io の直下だけ")
+                self.assertIn(path.parent, (DIALOGS, config_io, help_package),
+                              f"{path}:{grabs[0].lineno}: grab_modal は dialogs・config_io・help の直下だけ")
 
     def test_grab_modal_is_last_initialization_statement(self):
         classes = dialog_classes()

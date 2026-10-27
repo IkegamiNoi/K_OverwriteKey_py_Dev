@@ -55,10 +55,21 @@ def build_menu_bar(app):
     help_menu.add_command(label="使い方", command=lambda: app.help.open("guide"))
     help_menu.add_command(label="よくある質問", command=lambda: app.help.open("faq"))
     help_menu.add_separator()
+    help_menu.add_command(
+        label="バージョン情報",
+        command=lambda: _open_version_dialog(app),
+    )
+    help_menu.add_command(label="ライセンス", command=lambda: app.license.open())
     menubar.add_cascade(label="ヘルプ", menu=help_menu)
 
     app.config(menu=menubar)
     app.menubar = menubar
+
+
+def _open_version_dialog(app: tk.Misc) -> None:
+    from keyseq.presentation.help.version_dialog import open_version_dialog
+
+    open_version_dialog(app)
 
 
 def bind_menu_shortcuts(app):

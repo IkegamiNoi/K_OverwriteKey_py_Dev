@@ -30,6 +30,7 @@ from keyseq.presentation.list_clipboard import ListClipboard
 from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
 from keyseq.presentation.controllers.hook_controller import HookController
 from keyseq.presentation.help.help_window_controller import HelpWindowController
+from keyseq.presentation.help.license_window import LicenseWindowController
 from keyseq.presentation.controllers.key_capture import SingleKeyCaptureController
 from keyseq.presentation.controllers.keymap_panel.keymap_panel_controller import (
     KeymapPanelController,
@@ -290,6 +291,7 @@ class App(tk.Tk):
         self.compact_window = CompactWindowController(self)
         self.hook = HookController(self)
         self.help = HelpWindowController(self)
+        self.license = LicenseWindowController(self)
 
         self.hook_coordinator = HookCoordinator(self.input_gateway)
         self.sequence_runner = SequenceRunner(
@@ -625,6 +627,10 @@ class App(tk.Tk):
         except Exception:
             logging.getLogger(__name__).exception("Could not apply help window topmost")
         try:
+            self.license.apply_topmost()
+        except Exception:
+            logging.getLogger(__name__).exception("Could not apply license window topmost")
+        try:
             self.layout.resync_keyboard_topmost()
         except Exception:
             logging.getLogger(__name__).exception("Could not resync keyboard window topmost")
@@ -787,6 +793,10 @@ class App(tk.Tk):
                 self.help.close()
             except Exception:
                 logging.getLogger(__name__).exception("Could not close help window")
+            try:
+                self.license.close()
+            except Exception:
+                logging.getLogger(__name__).exception("Could not close license window")
             self.hook.stop_hook()
         finally:
             try:

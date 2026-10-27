@@ -1,0 +1,16 @@
+[
+  {"name": "keyboard", "version": "0.13.5", "license": "MIT License", "file": "keyboard.txt"},
+  {"name": "pyautogui", "version": "0.9.54", "license": "BSD 3 条項ライセンス", "file": "pyautogui.txt"},
+  {"name": "pynput", "version": "1.8.2", "license": "GNU LGPL v3", "file": "pynput.txt"},
+  {"name": "pyscreeze", "version": "1.0.1", "license": "BSD 3 条項ライセンス", "file": "pyscreeze.txt"},
+  {"name": "pymsgbox", "version": "2.0.1", "license": "BSD 3 条項ライセンス", "file": "pymsgbox.txt"},
+  {"name": "pytweening", "version": "1.2.0", "license": "BSD 3 条項ライセンス", "file": "pytweening.txt"},
+  {"name": "mouseinfo", "version": "0.1.3", "license": "GNU GPL v3 以降", "file": "mouseinfo.txt"},
+  {"name": "pygetwindow", "version": "0.0.9", "license": "BSD 3 条項ライセンス", "file": "pygetwindow.txt"},
+  {"name": "pyrect", "version": "0.2.0", "license": "BSD 3 条項ライセンス", "file": "pyrect.txt"},
+  {"name": "pyperclip", "version": "1.11.0", "license": "BSD 3 条項ライセンス", "file": "pyperclip.txt"},
+  {"name": "six", "version": "1.17.0", "license": "MIT License", "file": "six.txt"},
+  {"name": "Python", "version": "3.14.6", "license": "PSF License", "file": "python.txt"},
+  {"name": "Tcl", "version": "8.6.15", "license": "Tcl/Tk License", "file": "tcl.txt"},
+  {"name": "Tk", "version": "8.6.15", "license": "Tcl/Tk License", "file": "tk.txt"}
+]
