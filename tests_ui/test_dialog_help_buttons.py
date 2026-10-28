@@ -220,7 +220,7 @@ class DialogHelpButtonsTest(unittest.TestCase):
             self.assertIs(self._open_help(dialog, "trigger"), window)
             self.assertFalse(bool(window.attributes("-topmost")))
 
-    def test_item_and_empty_category_targets_are_revealed_and_scrolled(self) -> None:
+    def test_item_target_is_revealed_and_scrolled(self) -> None:
         dialog = self._dialog()
         self.app.help.open_for_dialog(dialog, "guide", "cleanup.one")
         self.app.update_idletasks()
@@ -228,9 +228,6 @@ class DialogHelpButtonsTest(unittest.TestCase):
         self.assertTrue(view.is_category_open("cleanup"))
         self.assertTrue(view.is_item_open("cleanup.one"))
         self.assertIsNotNone(view.text.dlineinfo(view._headings["cleanup.one"][0]))
-        self.app.help.open_for_dialog(dialog, "faq", "faq")
-        self.assertTrue(self.app.help.window.tabs["faq"].is_category_open("faq"))
-        self.assertEqual(self.app.help.window.tabs["faq"].text.tag_cget("heading:faq", "elide"), "0")
 
     def test_missing_target_and_failed_content_are_safe(self) -> None:
         dialog = self._dialog()

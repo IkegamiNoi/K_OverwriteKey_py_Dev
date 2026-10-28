@@ -352,6 +352,36 @@ class HelpWindowTest(unittest.TestCase):
         for item in ("guide-street", "guide-save", "guide-advanced-one"):
             self.assertFalse(view.is_item_open(item))
 
+    def test_whitespace_only_filter_is_treated_as_empty(self) -> None:
+        window = self._open()
+        window.filter_var.set("   ")
+        self.app.update_idletasks()
+        self.assertEqual(window.notebook.tab(window.notebook.tabs()[0], "text"), "主要機能")
+        self.assertEqual(window.notebook.tab(window.notebook.tabs()[1], "text"), "QA")
+
+    def _copied(self, view) -> str:
+        view.text.tag_add("sel", "1.0", "end-1c")
+        with patch.object(view.text, "clipboard_clear"),                 patch.object(view.text, "clipboard_append") as append:
+            view._copy()
+        view.text.tag_remove("sel", "1.0", "end")
+        return append.call_args.args[0]
+
+    def test_copy_skips_collapsed_and_filtered_out_text(self) -> None:
+        window = self._open()
+        view = window.tabs["guide"]
+        copied = self._copied(view)
+        self.assertIn("基本操作", copied)
+        self.assertNotIn("設定を保存します。", copied)
+        self.assertNotIn("一致する項目はありません。", copied)
+        view.toggle("guide-basics")
+        view.toggle("guide-save")
+        self.assertIn("設定を保存します。", self._copied(view))
+        window.filter_var.set("詳細項目")
+        self.app.update_idletasks()
+        copied = self._copied(view)
+        self.assertIn("追加情報", copied)
+        self.assertNotIn("基本操作", copied)
+
     def test_unicode_highlight_positions_and_rendered_list_marker(self) -> None:
         window = self._open()
         window.filter_var.set("ss ガイド")

@@ -104,17 +104,14 @@ class HelpWindow(tk.Toplevel):
             view.on_font_changed()
 
     def apply_topmost(self, enabled: bool) -> None:
-        try:
-            self.attributes("-topmost", bool(enabled))
-        except Exception:
-            pass
+        self.attributes("-topmost", bool(enabled))
 
     def _filter_changed(self, *_args: str) -> None:
         terms = parse_query(self.filter_text)
         for name, label in (("guide", "主要機能"), ("faq", "QA")):
             if name in self.tabs and self.notebook is not None:
                 count = self.tabs[name].apply_filter(terms)
-                text = f"{label} ({count})" if self.filter_text else label
+                text = f"{label} ({count})" if terms else label
                 self.notebook.tab(self.tabs[name], text=text)
 
     def _initial_focus(self) -> None:

@@ -43,8 +43,10 @@ class HelpTabView(ttk.Frame):
             for item in category.items:
                 self._insert_heading(item.id, item.title, 18)
                 self._insert_body(item)
-        # Body tags are created per item; raise the shared bullet margin above them.
+        # Body tags are created per item; raise the shared bullet margin above them
+        # and keep the selection drawn over the search highlight.
         self.text.tag_raise("bullet")
+        self.text.tag_raise("sel")
         self.text.insert("end", "一致する項目はありません。\n", "no_matches")
         self.text.configure(state="disabled")
 
@@ -203,8 +205,7 @@ class HelpTabView(ttk.Frame):
         return result
 
     def _category_visible(self, category: HelpCategory) -> bool:
-        return (any(item.id in self._matches for item in category.items)
-                or (not category.items and category.id in self._open))
+        return any(item.id in self._matches for item in category.items)
 
     def _mark_selected(self) -> None:
         self.text.tag_remove("selected", "1.0", "end")
@@ -238,7 +239,9 @@ class HelpTabView(ttk.Frame):
     def _copy(self, _event: tk.Event | None = None) -> str:
         selection = self.text.tag_ranges("sel")
         if selection:
-            value = self.text.get(selection[0], selection[1])
+            # Copy only what is shown; collapsed or filtered-out text is elided, not removed.
+            value = self.text.tk.call(self.text._w, "get", "-displaychars",
+                                      selection[0], selection[1])
             self.text.clipboard_clear()
             self.text.clipboard_append(value)
         return "break"
