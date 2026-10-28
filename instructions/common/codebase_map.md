@@ -5,6 +5,7 @@
 main.py
 
 - App を起動する
+- `keyseq/__init__.py` の `__version__`（`0.1.0`）が版の唯一の定義。バージョン情報はこれを参照する
 
 ---
 
@@ -115,8 +116,8 @@ keyseq/presentation/
       preset_manager.py        # PresetManagerDialog + format_preset_manager_source_labels（純関数）
       preset_dialog.py         # PresetDialog（プリセットの追加・編集）
       trigger_dialog.py        # TriggerDialog（記録ボタンは最大文言幅で固定 = `apply_fixed_button_width`・phase 43）
-      keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集・記録できないキー・`??` を取らない〔`??` は案内の欄に理由・phase 59・全入口共通は phase 60〕・記録ボタンは最大文言幅で固定（apply_fixed_button_width）。phase 43 以降はダブルクリック編集だけで使う。「枠を使う」/「枠を編集…」・phase 56）
-      grid_editor_window.py    # GridEditorWindow: 画面の枠の編集の窓（KeymapEditDialog の子・フックは親が止める・半透明の全画面・境界のドラッグ・キーの取り込み・OK の検査・phase 56）
+      keymap_edit_dialog.py    # KeymapEditDialog（1 キーマップの切替キー + ラベルの編集・記録できないキー・`??` を取らない〔`??` は案内の欄に理由・phase 59・全入口共通は phase 60〕・記録ボタンは最大文言幅で固定（apply_fixed_button_width）。phase 43 以降はダブルクリック編集だけで使う。「カーソルグリッドを使う」/「カーソルグリッドを編集…」・phase 56）
+      grid_editor_window.py    # GridEditorWindow: カーソルグリッドの編集の窓（KeymapEditDialog の子・フックは親が止める・半透明の全画面・境界のドラッグ・キーの取り込み・OK の検査・phase 56）
       keymap_switch_batch_dialog.py  # KeymapSwitchBatchDialog（切替キーのまとめて設定・記録できないキー・`??` を取らない〔phase 59・全入口共通は phase 60〕・クリアボタンなし・記録ボタンは最大文言幅で固定（apply_fixed_button_width）・行ごとのラベル / 切替キー・検証エラーで閉じずその行へフォーカス・1 行なら見出しを省く・行/スクロール領域/ボタンとバインドの生成は専用メソッド・phase 43）
       layout_delete_dialog.py  # LayoutDeleteDialog
       escape_close.py          # bind_escape_close（Esc に別用途がある 4 ダイアログの Escape 結線。印はクロージャに持つ・提案書 11 / phase 28 task_07）
@@ -124,7 +125,7 @@ keyseq/presentation/
       quarantine_manage_dialog.py  # QuarantineManageDialog（退避したファイルの管理・回のリスト選択 + 復元 / 削除ボタン）
       reference_cleanup_dialog.py  # ReferenceCleanupDialog（確認 1 枚・読み取り専用。header / run_label で文言とボタンを引数化し、掃除 / 退避 / 復元 / 削除で再利用）
       keymap_set_history_dialog.py # KeymapSetHistoryDialog（読み込み履歴・**リポジトリ唯一の ttk.Treeview**〔2 列 / 名前列は stretch=False〕・操作のたびに永続化済みの履歴を読み直して再描画）+ CategoryChooserDialog（コピー先の分類選択・同ファイル内のネストした子）
-    keyboard_layouts.py        # レイアウトの読込・検証 / `resolve_layout_key_id_from_scan_code`（走査コード → `id`・レイアウトの `scan_code` と `extra_scan_codes` だけで引く〔行ごとに `scan_code` → `extra_scan_codes`・phase 63〕・フックの実行時 / 画面の枠の編集の窓〔`LayoutController` 経由〕/ キーボードUIでキーを記録するときに使う・phase 61 / 62）/ `resolve_layout_scan_code_from_key_name`（キー名 → `scan_code`・最初の行・1〜255・送信用・phase 62）
+    keyboard_layouts.py        # レイアウトの読込・検証 / `resolve_layout_key_id_from_scan_code`（走査コード → `id`・レイアウトの `scan_code` と `extra_scan_codes` だけで引く〔行ごとに `scan_code` → `extra_scan_codes`・phase 63〕・フックの実行時 / カーソルグリッドの編集の窓〔`LayoutController` 経由〕/ キーボードUIでキーを記録するときに使う・phase 61 / 62）/ `resolve_layout_scan_code_from_key_name`（キー名 → `scan_code`・最初の行・1〜255・送信用・phase 62）
     keyboard_window.py         # KeyboardWindow: キーボード表示の窓（タイトル表示・縦横比の補正・phase 55）。`_LOOKUP_KEY_BY_ID` = レイアウトの id → 引くキー名（左右の修飾キーを分ける・`alt_gr` → `alt gr`・phase 59）/ 禁止の枠の色 `"prohibited"`・禁止の枠は左クリックで編集しない（phase 59）/ 編集のキーの名前 `_normalize_tk_key` は VK を `win32_window.vk_to_scan_code` で走査コードへ変換してレイアウトだけで引く（phase 61・`key_input.md` §7.4・テスト = `tests_ui/test_keyboard_window_scan_code.py`・`tests/test_keyboard_layout_files.py`） / 押下だけのキーの直接置換の枠の色 `"keymap_make_only"`（地 `#e4ebe1`・枠 `#7f9a74`・文字 `#2f4429`・phase 63）
     keyboard_window_size.py    # キーボード表示の縦横比と大きさの計算（tkinter 非依存・phase 55）/ レイアウトごとの最小 `minimum_size(extent)`（1u = 27px・`layout_extent`）・幅の記録の解釈 `parse_keyboard_window_widths`（config.json の `keyboard_window_widths`・phase 69）
     keyboard_key_text.py       # キーの文字合わせの純関数 `fit_key_text`（改行の指定でだけ行に分け、計測の関数を受け取りキーの内側に収まる px を決める・tkinter 非依存・phase 69）
@@ -134,11 +135,24 @@ keyseq/presentation/
     modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰
     child_kind_labels.py       # 子ファイルの種別の表示名の表 + 親の種類名。純関数
     reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
-    screen_grid/               # 画面の枠（phase 56・下の「画面の枠」節）
+    help/                      # ヘルプ・バージョン情報・ライセンス（phase 70・下の「ヘルプ」節）
+      help_window_controller.py # HelpWindowController: ヘルプの単一性・前面化・ダイアログの子として開く入口
+      help_window.py           # HelpWindow: 絞り込み欄・タブ・入力欄のフォーカス中だけフックを一時停止
+      help_tab_view.py         # HelpTabView: 2 段の開閉・本文の選択とコピー・絞り込みの表示とハイライト
+      help_content.py          # 本文の読込・形式検査とデータ型（HelpContent 等）
+      help_filter.py           # 正規化・AND 一致・元の文字位置のハイライト範囲（Tk 非依存）
+      help_button.py           # add_help_button: ダイアログ下端の「?」とツールチップ
+      help_targets.py          # ダイアログから飛ぶタブと大分類 id の対応
+      version_dialog.py        # open_version_dialog: バージョン情報のモーダル
+      license_window.py        # LicenseWindow / LicenseWindowController: ライセンスの表示と単一性・前面化
+      third_party.py           # 同梱物の一覧・全文と本体 LICENSE の読込
+      bundled_paths.py         # bundled_root: 同梱データの基準位置（各パスの解決を集約）
+      content/                 # help_ja.json / third_party/（third_party.json + ライセンス全文 14 個）
+    screen_grid/               # カーソルグリッド（phase 56・下の「カーソルグリッド」節）
       screen_grid_controller.py  # ScreenGridController: ScreenGridSession と infrastructure / 窓の配線・sync / handle / 失敗時に畳む・on_font_changed
       grid_overlay_window.py   # GridOverlayWindow: 今の画面に 1 枚の透過・クリック素通しの窓（遅延生成）
       grid_editor_panel.py     # GridEditorPanel: 編集の窓の操作パネル（GridEditorWindow の補助・Toplevel・grab しない）
-      cell_label.py            # 枠のキーの描画（中央 / 左上 + 下地・文字の収まり）。枠の窓と編集の窓で共用
+      cell_label.py            # マスのキーの描画（中央 / 左上 + 下地・文字の収まり）。カーソルグリッドの窓と編集の窓で共用
     call_view_heights.py       # 呼び出し先の表示枠の希望の高さの検証・既定・表示の高さ（`call_view_heights`・tkinter 非依存・phase 45）
     compact_pane_heights.py    # 簡易表示の 3 段の表示の高さの計算（下の欄の最小を優先・見出しを残す）と `compact_sequence_view` の検証（tkinter 非依存・phase 48）
     compact_header_view.py     # `compact_header_view` の検証（`parse_compact_header_view`: 値ごとに bool 以外は開く・dict でなければ両方開く・tkinter 非依存・phase 58）
@@ -606,7 +620,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   一覧の行数指定（KeymapBox・FullTriggerBox = 6 / SequenceBox = 9）は**詳細表示のメイン領域の基準の高さ H の基準**（既定の半分。表示行数は伸びた分で決まる・phase 20。phase 58 から最小の高さは ceil(H/2) 基準で、収まらない枠はスクロール = `features.md` §4.6）
 - 構成 Widget:
   - FullHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの表示と**記録・クリア**・
-    「この構成セットで個別指定する」チェック（操作可能なのは FullView のみ）
+    「フックキーをこの構成セット専用にする」チェック（操作可能なのは FullView のみ）・「全トリガーを選んでから実行」チェック
   - FullDisplayFrame（display_frame.py）: 最前面に表示・簡易表示・キーボードUI・レイアウト選択・キーボードUIを最前面に表示（phase 55）
   - FileFrame（file_frame.py）: 保存 / 別名保存… / 読込… / 新規作成
   - KeymapBox（keymap_box.py）: キーマップ一覧と管理ボタン（追加・変更・削除・保存系。phase 34 で「選択」ボタンを削除し一覧の選択 = アクティブ化）
@@ -618,13 +632,13 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - 簡易表示 / フック制御
 - 構成 Widget:
   - CompactHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの**表示のみ**
-    （「この構成セットで個別指定する」チェックも `state="disabled"` の状態表示のみ）
+    （「フックキーをこの構成セット専用にする」チェックも `state="disabled"` の状態表示のみ）・「全トリガーを選んでから実行」チェック
   - CompactDisplayFrame（display_frame.py）: 最前面に表示・詳細表示・キーボードUI・レイアウト選択・キーボードUIを最前面に表示（phase 55）
   - フック・表示の枠は見出し（`▾` / `▸`）のクリックで開閉する（開 = 枠の `labelwidget`・閉 = 枠を外して同じ位置に見出しの Label。制御と保存は CompactHeaderController・phase 58。仕様 = `features.md` §4.6「簡易表示の上部の開閉」）
   - CompactTriggerBox（trigger_box.py）: 上から トリガー一覧 / 出力シーケンス欄（CompactSequenceFrame・phase 48）/ 呼び出し先の表示枠（phase 45）。仕様 = `features.md` §4.6「簡易表示の出力シーケンス欄」「簡易表示のウィンドウ」
 
 ### メニュー / ステータス
-- menu_bar.py: `build_menu_bar(app)`（ファイル / 設定メニュー）と `bind_menu_shortcuts(app)`（Ctrl 系アクセラレータ）。
+- menu_bar.py: `build_menu_bar(app)`（ファイル / 設定 / ヘルプメニュー）と `bind_menu_shortcuts(app)`（Ctrl 系アクセラレータ）。
   設定メニューは「参照元を掃除」「**未使用ファイルの整理…**」「**退避したファイルの管理…**」を持つ
   （`features.md` §4.6）。ファイルメニューは「読込（構成セット）…」の直後に
   「**履歴から読み込む…**」を持つ（phase 27・`data_schema.md` §5.12）。**テストはメニュー項目をインデックスで固定しない**
@@ -919,28 +933,42 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 ---
 
-## 画面の枠（phase 56・57）
+## ヘルプ（phase 70）
 
-仕様は `spec_detail/features.md` §4.7（挙動・窓・ダイアログ・編集の窓）/ `data_schema.md` §5.6.1（`grid`）/ `key_input.md` §7.3・§7.4（振り分け・予約キー・取り込みの名前）/ `nonfunctional.md`「画面の枠の座標系」。判断は `decisions_archive/56_screen_grid_cursor.md`・`decisions_archive/57_grid_crosshair_nudge.md`。
+仕様は `spec_detail/features.md` §4.6「ヘルプの窓」「バージョン情報・ライセンス」/ `key_input.md` §7.2（絞り込み欄のフック停止）。
+
+- **`presentation/help/`**: 窓・管理役・本文とライセンスの読込・絞り込みの純関数・同梱データを所有する。domain / application には依存を足さない。
+- **`HelpWindowController`（`app.help`）**: `open(tab)` は既存の窓を再利用して前面化・タブ切替。`open_for_dialog(dialog, tab, target_id)` は親が違えば破棄してダイアログの子として作り直し、絞り込みを空にして飛び先を開く。同じ親なら再利用し、親の破棄で一緒に閉じる。
+- **`HelpWindow` / `HelpTabView`**: 非モーダル・非 transient。入力欄の FocusIn だけ既存の `app.hook.suspend_hook_for_dialog()` を呼び、FocusOut / Destroy の先着で `resume_hook_after_dialog()` を 1 回だけ呼ぶ。本文の開閉・一致箇所の表示・見えている文字のコピーはタブ側で扱う。
+- **`LicenseWindowController`（`app.license`）/ `LicenseWindow`**: 非モーダルの単一の窓。本体 `LICENSE` → 同梱物一覧 → 各全文を表示する。`version_dialog.open_version_dialog` はフックを止めるモーダルで、版は `keyseq.__version__` を参照する。
+- **App の配線**: 生成時に管理役を作り、`_apply_font_delta` から `help.on_font_changed()`、終了時に両管理役の `close()`。メインの最前面の切替で両窓の `apply_topmost()` 後に `LayoutController.resync_keyboard_topmost()` を呼び、キーボードUIの重なり順を再同期する（見張りの判定条件は不変）。
+- **データ**: `content/help_ja.json` は config の対象外。`help_content.py` が全体を検査し、失敗は理由を窓内に表示する。`third_party/third_party.json` の名前・版・ライセンス名・全文ファイル名が同梱物 14 件の正。`bundled_paths.bundled_root()` に基準位置を集約し、リポジトリ直下の `LICENSE` は複製しない。
+- **導線**: `views/menu_bar.py` の「ヘルプ」に「使い方」「よくある質問」・区切り・「バージョン情報」「ライセンス」。各対象ダイアログは `add_help_button` と `help_targets.py` の対応を使う。
+
+---
+
+## カーソルグリッド（phase 56・57）
+
+仕様は `spec_detail/features.md` §4.7（挙動・窓・ダイアログ・編集の窓）/ `data_schema.md` §5.6.1（`grid`）/ `key_input.md` §7.3・§7.4（振り分け・予約キー・取り込みの名前）/ `nonfunctional.md`「カーソルグリッドの座標系」。判断は `decisions_archive/56_screen_grid_cursor.md`・`decisions_archive/57_grid_crosshair_nudge.md`。
 
 - **domain `domain/screen_grid/`**（純関数・tkinter / Win32 非依存）: `models.py`（不変の形 `TopLayout` / `SubLayout`・既定・`new_enabled_grid`・`is_positive_ratio`・`grid_key_name`〔config との循環を避ける・phase 57 で normalize.py から移動〕）/
   `normalize.py`（`normalize_grid`〔`ops` も正規化・既定と同じなら書かない〕・`monitor_identifier`・`top_layout_for` / `sub_layout_of`・`label_position_of`・`has_enabled_grid`。読込時の固定の予約キー = `MODIFIER_KEY_NAMES`）/
-  `ops.py`（phase 57: `GRID_OPS`〔重なりの優先順〕・`DEFAULT_OPS`・`OP_LABELS`・`FIXED_BACK_KEY` / `FIXED_CLICK_KEY` / `FIXED_OP_KEYS`・`normalize_ops`・`ops_of`〔守りの読み出し〕・`ops_to_json`・`operation_keys` / `default_operation_keys`・`validate_ops`〔編集の窓の OK・固定キーと枠のキーの重なりを含む〕）/
+  `ops.py`（phase 57: `GRID_OPS`〔重なりの優先順〕・`DEFAULT_OPS`・`OP_LABELS`・`FIXED_BACK_KEY` / `FIXED_CLICK_KEY` / `FIXED_OP_KEYS`・`normalize_ops`・`ops_of`〔守りの読み出し〕・`ops_to_json`・`operation_keys` / `default_operation_keys`・`validate_ops`〔編集の窓の OK・固定キーとマスのキーの重なりを含む〕）/
   `geometry.py`（`top_cell_rects` / `sub_cell_rects`・`rect_center`・`can_subdivide`〔4px〕・phase 57: `nudge_step`〔min(16, 1/8)・Shift で 1〕/ `clamp_point`〔0px は 1 点〕）/
   `assignment.py`（`next_free_key`・`reassign_top_keys`・`auto_fill_sub_keys`・`validate_top` / `validate_sub`。phase 57 でキーワード引数 `op_keys`〔None = 既定の操作キー〕を足し、操作キーを飛ばす / 「操作キーと重なっています」で拒否）/
   `editing.py`（段・列の分割と削除・境界の移動〔8px〕・キーの設定。`split_row` / `split_cell` も `op_keys` を受ける）
 - **JSON の 4 経路**: `domain/config.py` `_normalize_keymap_compat_fields`（`grid` を正規化して保持）/ `config_service/__init__.py` `_normalize_loaded_keymap` / `split_loading.py` `load_keymap_entry` / `split_payloads.py` `build_keymap_file_payload`（`grid` があれば書く）。後ろの 3 つは `domain/config.py` の `copy_keymap_optional_keys`（任意キーの一覧 `KEYMAP_OPTIONAL_KEYS`）で写す（提案書 22）
-- **application `application/screen_grid_session.py`**: `ScreenGridSession`（UI スレッドの状態機械。`sync(keymap_id, grid, active)`・`handle(GridKeyAction)`〔枠のキー > 操作キー・`ops_of` で引き当て〕・`abort()`・世代・クリック点と矢印の移動〔phase 57〕・モニタは `MonitorInfo`〔識別子 + 矩形〕で持つ。
-  suppress する集合は `_rebuild_suppression`（常時の集合）+ `_publish_snapshot`（深さ・選択・今の深さの枠のキーで足す実効の集合）で 1 本にする〔phase 57 で `esc_active` を廃止〕。
+- **application `application/screen_grid_session.py`**: `ScreenGridSession`（UI スレッドの状態機械。`sync(keymap_id, grid, active)`・`handle(GridKeyAction)`〔マスのキー > 操作キー・`ops_of` で引き当て〕・`abort()`・世代・クリック点と矢印の移動〔phase 57〕・モニタは `MonitorInfo`〔識別子 + 矩形〕で持つ。
+  suppress する集合は `_rebuild_suppression`（常時の集合）+ `_publish_snapshot`（深さ・選択・今の深さのマスのキーで足す実効の集合）で 1 本にする〔phase 57 で `esc_active` を廃止〕。
   移動・クリック・列挙・カーソル位置は注入）。フックのスレッドへは不変の `GridRouteSnapshot`（`visible` / `generation` / `suppress_keys`）を差し替えて公開、窓へは `GridView`（phase 57 で `click_point`）
 - **振り分け**: `application/input_router.py` `GridKeyAction` と `get_grid_snapshot`（キーマップ切替の後・トリガーの前の `_route_grid_key`。全キーを `key in suppress_keys` だけで判定）/ 開始・再開の条件 = `hook_coordinator.py` の `has_grid_keymaps`（`hook_controller.py` が `has_enabled_grid` で渡す）
 - **infrastructure**: `win32_window.py` `list_monitor_rects`・`make_click_through_overlay`・`vk_to_scan_code`・`vk_to_char`（user32 は `use_last_error=True`）/ `input_gateway.py` `cursor_position`・`move_cursor`・`click_at`（pyautogui・`_pause=False`）
 - **presentation**: `app.py` が `ScreenGridController` を作り `InputRouter` へ `snapshot` を渡す・終了で `shutdown` / `layout_controller.refresh_keyboard_window` の先頭で `screen_grid.sync()`（表示の同期の 1 か所）/
   `hook_controller._execute_reserved_action` が `GridKeyAction` を `screen_grid.handle` へ / フォントの変更で `screen_grid.on_font_changed()` /
-  ダイアログ: `KeymapEditDialog`（「枠を使う」・「枠を編集…」・下書き・`key_name_from_event`）・`KeymapSwitchBatchDialog`（`grid_option_rows`）/
-  `screen_grid/`: `grid_overlay_window.py`（選んだ枠のクリック点に十字・中央表示は文字を置き換え）・`crosshair.py`（phase 57: `draw_crosshair`〔12px・線幅 2・枠へ切り詰め〕・枠の窓と編集の窓で共有）・`cell_label.py`・
+  ダイアログ: `KeymapEditDialog`（「カーソルグリッドを使う」・「カーソルグリッドを編集…」・下書き・`key_name_from_event`）・`KeymapSwitchBatchDialog`（`grid_option_rows`）/
+  `screen_grid/`: `grid_overlay_window.py`（選んだマスのクリック点に十字・中央表示は文字を置き換え）・`crosshair.py`（phase 57: `draw_crosshair`〔12px・線幅 2・マスへ切り詰め〕・カーソルグリッドの窓と編集の窓で共有）・`cell_label.py`・
   `grid_editor_panel.py`（phase 57: 操作キーの欄〔`op_selected` / `select_op_key` / `clear_op_selection` / `update_op_buttons`〕・「操作キーを既定に戻す」・操作のボタンと操作キーの欄の 2 列化・OK / キャンセルより上のスクロール領域〔`set_max_height`・`_measure_scroll_area` は値が変わったときだけ configure・中身の Frame 1 つの `<Configure>` だけで測り直し・再入防止・`_scrollbar_shown`〕）/
-  `dialogs/grid_editor_window.py`（phase 57: `switch_monitor` は `geometry` の直後に `update_idletasks()`〔位置の反映の保留中に `-topmost` を再設定すると Windows で `0,0` に戻るため〕・`set_max_height`〔画面の高さ − 80〕・`ops`・`reset_ops`・選択の排他と Esc の順・`op_keys` を自動割当 / 検査へ・OK で `validate_ops`〔今つながる画面 + 既定 + 細分化の枠のキー〕・結果の `ops`・ドラッグ中の十字 `_drag_related_cells`）/
+  `dialogs/grid_editor_window.py`（phase 57: `switch_monitor` は `geometry` の直後に `update_idletasks()`〔位置の反映の保留中に `-topmost` を再設定すると Windows で `0,0` に戻るため〕・`set_max_height`〔画面の高さ − 80〕・`ops`・`reset_ops`・選択の排他と Esc の順・`op_keys` を自動割当 / 検査へ・OK で `validate_ops`〔今つながる画面 + 既定 + 細分化のマスのキー〕・結果の `ops`・ドラッグ中の十字 `_drag_related_cells`）/
   `keymap_panel_controller.py`（`apply_keymap_edit` の `new_grid_enabled` / `new_grid_shapes`〔phase 57 で `ops` の写し / 消し〕・`_grid_editor_context`〔自分の切替キーを除く〕・`_grid_key_name_from_event`）/ `keymap_add_flow.py`（新規の行だけ）
 - テスト: `tests/test_screen_grid*.py`（phase 57: `test_screen_grid_ops.py`・`test_screen_grid_geometry_nudge.py`）・`tests/test_input_router.py`・`tests/test_hook_coordinator.py`・`tests/test_*_screen_grid.py`（infrastructure）/ `tests_ui/test_screen_grid_overlay.py`・`tests_ui/test_grid_editor_window.py`・`tests_ui/test_task06_keymap_management_ui.py`・`tests_ui/test_keymap_switch_batch_dialog.py`
 - 構造テストの区分: `GridEditorWindow` は `tests_ui/test_dialog_teardown_flows.py` の `NESTED_CHILD_DIALOGS`（親のダイアログがフックを止める子）
@@ -971,7 +999,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   読み取り専用の索引（`MappingProxyType`）を持つ `KeyOverlapAnalysis` を返す。**App が表を保持し差し替える**（`_key_overlap_report` /
   `_refresh_key_overlap_report`）。作り直しの契機はトリガー一覧・キーマップ一覧の再描画・停止 / トグルキーの変更（trace）・読込
   （`KeymapSetIo.apply_loaded_data_to_ui`）。グレー表示・§7.3 の案内・編集時拒否・開始検証が同じ表を使い、`InputRouter` は表を引くだけ。
-- **入力判定** `application/input_router.py`: 停止 > トグル > キーマップ切替 > トリガー > 置換（枠の表示中はキーマップ切替の後に枠の判定・「画面の枠（phase 56）」節）。案内用の `InputRoute.shadowed` を付け、
+- **入力判定** `application/input_router.py`: 停止 > トグル > キーマップ切替 > トリガー > 置換（カーソルグリッドの表示中はキーマップ切替の後にカーソルグリッドの判定・「カーソルグリッド（phase 56・57）」節）。案内用の `InputRoute.shadowed` を付け、
   `ActionExecutor.on_shadowed_action` → `HookController` がステータスバーの一時メッセージ（`App._set_flash_message`）に出す（停止時は併記）。
 - **切替と実行位置** `application/app_state.py`: 実行位置・選択行はトリガー一覧の実体（代表キーマップ id）ごと（`indices_for` / `keymap_indices` /
   `selected_trigger_indices`・代表削除で `rekey_trigger_set`）。連続実行中の切替可否は `AppState.can_switch_keymap` の 1 箇所で、

@@ -7,9 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 70](70_help_window/phase.md)**（2026-10-27 起票・ヘルプの作成〔メニュー「ヘルプ」新設・主要機能 / QA のタブと 2 段の Expander とフィルターを持つ非モーダルのヘルプの窓・主なダイアログの「?」・バージョン情報（`__version__` 0.1.0）・exe 配布を見越した同梱物のライセンス全文〕。暫定仕様先行モード〔主入力 = [暫定 53](../../history/53_help_window.md) v0.5・ユーザー確定済〕・**JSON スキーマ不変**・起票元 = ユーザー要望・番号対応 phase 70 / 暫定 53 / decisions 70）。予定 = ヘルプの作成 → 多言語対応 → Mac 対応。**次採番 = phase 71 / 暫定 54 / decisions 71 / 提案書 27 / idea 55**（暫定 47 は idea_53 で保留中の番号）。
-- 直前の完了フェーズ = [phase 69](69_keyboard_ui_key_labels/phase.md)（2026-10-26・キーボードUIのキー名の表示と最小サイズ〔キーの内側に収まるまで文字を縮め `\n` でだけ改行・レイアウトの JSON の `key_display_names` で送信先の表示名・最小 = 1u のキー 27px・変えた幅をレイアウトごとに `keyboard_window_widths` へ記録・見本 us_tkl.json〕。暫定仕様先行モード〔暫定 52 v0.4 凍結〕・**JSON スキーマ = 任意キーの追加**・起票元 = ユーザー要望・判断は [decisions_archive/69](../../.claude_data/state/decisions_archive/69_keyboard_ui_key_labels.md)・refactor_check 推奨 → [提案書 26](../modified_proposal/26_refactor_keyboard_ui_key_labels.md)（保留））。
-- その前の完了フェーズ = [phase 68](68_ui_terminology/phase.md)（2026-10-24・UI 文言の用語統一〔用語表 A1〜A21・個別の表現 C1〜C16・表記規則 D1〜D11・はい / いいえ の確認 3 か所をボタン名の共通ダイアログ `config_io/choice_dialog.py` へ〕。暫定仕様先行モード〔暫定 51 v0.8 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・正本 = 新規 `spec_detail/ui_terms.md` + 正本全体の用語・判断は [decisions_archive/68](../../.claude_data/state/decisions_archive/68_ui_terminology.md)）。
+- **アクティブなフェーズ = なし**（phase 70 は 2026-10-29 完了・次フェーズはユーザー判断で `/phase_start`。予定 = 多言語対応 → Mac 対応）。**次採番 = phase 71 / 暫定 54 / decisions 71 / 提案書 28 / idea 55**（暫定 47 は idea_53 で保留中の番号）。
+- 直前の完了フェーズ = [phase 70](70_help_window/phase.md)（2026-10-29・ヘルプの作成〔メニュー「ヘルプ」・非モーダルで同時に 1 つのヘルプの窓〔タブ「主要機能」「QA」・2 段の開閉・絞り込み・入力欄のフォーカスでフック停止〕・ダイアログ 12 か所の「?」〔下端の左寄せ〕・バージョン情報〔`__version__` 0.1.0〕・同梱物 14 件のライセンス全文・「画面の枠」→ カーソルグリッド / マス〕。暫定仕様先行モード〔暫定 53 v0.7 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・判断は [decisions_archive/70](../../.claude_data/state/decisions_archive/70_help_window.md)・refactor_check 推奨 → [提案書 27](../modified_proposal/27_refactor_help_window.md)（判断待ち））。
+- その前の完了フェーズ = [phase 69](69_keyboard_ui_key_labels/phase.md)（2026-10-26・キーボードUIのキー名の表示と最小サイズ〔キーの内側に収まるまで文字を縮め `\n` でだけ改行・レイアウトの JSON の `key_display_names` で送信先の表示名・最小 = 1u のキー 27px・変えた幅をレイアウトごとに `keyboard_window_widths` へ記録・見本 us_tkl.json〕。暫定仕様先行モード〔暫定 52 v0.4 凍結〕・**JSON スキーマ = 任意キーの追加**・起票元 = ユーザー要望・判断は [decisions_archive/69](../../.claude_data/state/decisions_archive/69_keyboard_ui_key_labels.md)・refactor_check 推奨 → [提案書 26](../modified_proposal/26_refactor_keyboard_ui_key_labels.md)（保留））。
+  [phase 68](68_ui_terminology/phase.md)（2026-10-24・UI 文言の用語統一〔用語表 A1〜A21・個別の表現 C1〜C16・表記規則 D1〜D11・はい / いいえ の確認 3 か所をボタン名の共通ダイアログ `config_io/choice_dialog.py` へ〕。暫定仕様先行モード〔暫定 51 v0.8 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・正本 = 新規 `spec_detail/ui_terms.md` + 正本全体の用語・判断は [decisions_archive/68](../../.claude_data/state/decisions_archive/68_ui_terminology.md)）。
 - その前の完了フェーズ = [phase 67](67_mouse_scroll_action/phase.md)（2026-10-21・出力シーケンスのマウススクロール〔新しい種類 `mouse_scroll`・上下左右・ノッチ数 / 生の値（120 = 1 ノッチ）・座標は任意・1 回の `SendInput` で WHEEL / HWHEEL・不正な行は止まる系〕。暫定仕様先行モード〔暫定 50 v0.4 凍結〕・**JSON スキーマ = 種類の追加**・起票元 = ユーザー要望・判断は [decisions_archive/67](../../.claude_data/state/decisions_archive/67_mouse_scroll_action.md)）。
   [phase 66](66_capture_jis_special_keys/phase.md)（2026-10-21・キーの取得で JIS の特殊キーを取る〔取得の間だけ suppress フックでレイアウトの行に当たるキーを抑止し、フックの実行時と同じ名前を 8 入口へ渡す・アプリの窓が前面のときだけ〕。暫定仕様先行モード〔暫定 49 v0.5 凍結〕・JSON スキーマ不変・起票元 idea_50・判断は [decisions_archive/66](../../.claude_data/state/decisions_archive/66_capture_jis_special_keys.md)）。
   [phase 65](65_layout_snapshot_for_hook/phase.md)（2026-10-21・受け取りと送信が同じレイアウトの写しを使う〔受け取り・送信・キーボードUI を `LayoutController` の写し 1 つへ・外部レイアウトの JSON の変更は選び直し〔同じレイアウトでも〕・読み直しのときだけ反映・押したままのキーは押したときの送り方で送る〕。暫定仕様先行モード〔暫定 48 v0.3 凍結〕・JSON スキーマ不変・起票元 idea_51・判断は [decisions_archive/65](../../.claude_data/state/decisions_archive/65_layout_snapshot_for_hook.md)）。
@@ -46,13 +47,14 @@
   判断は [decisions_archive/40](../../.claude_data/state/decisions_archive/40_sequence_call.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近のフェーズが扱った領域 = キーボードUIのキーの文字・最小の大きさ・幅の記録**（phase 69）。正本 = `features.md` §4.6「キーボード表示のウィンドウ」（最小の大きさ・幅の記録・キーの文字・レイアウトの JSON の `label` の改行と `key_display_names`）/ `data_schema.md` §5.4 `keyboard_window_widths` / 地図 = `codebase_map.md` の phase 69。保留 = `decisions_archive/69` の指摘 6・7・9。
-- その前の領域 = **UI 文言の用語と表記**（phase 68）。正本 = `spec_detail/ui_terms.md`（新しい文言はここに従う）/ 確認ダイアログ = `features.md` §4.6「保存先の確認ダイアログ」・地図 = `codebase_map.md` の `choice_dialog.py`。**残件** = 提案書 25 は 2026-10-25 実施済（表は `presentation/child_kind_labels.py` に 1 つ。多言語化ではこの表を辞書へ移す）/ アクションの種類の内部名の表示名化（多言語化で）/ 下記「別タスク化候補 > 保存・確認ダイアログ」。
+- **直近のフェーズが扱った領域 = ヘルプ・バージョン情報・ライセンスとカーソルグリッドの呼び名**（phase 70）。正本 = `features.md` §4.6（メニュー「ヘルプ」・ヘルプの窓・「?」・モーダルダイアログの作法の例外・バージョン情報・ライセンス）/ `key_input.md` §7.2 / `ui_terms.md` A22 / 本文 = `presentation/help/content/help_ja.json`（多言語化ではここを言語別に増やす）/ 地図 = `codebase_map.md` の `presentation/help/`。
+- その前の領域 = **キーボードUIのキーの文字・最小の大きさ・幅の記録**（phase 69）。正本 = `features.md` §4.6「キーボード表示のウィンドウ」（最小の大きさ・幅の記録・キーの文字・レイアウトの JSON の `label` の改行と `key_display_names`）/ `data_schema.md` §5.4 `keyboard_window_widths` / 地図 = `codebase_map.md` の phase 69。保留 = `decisions_archive/69` の指摘 6・7・9。
+  さらに前 = **UI 文言の用語と表記**（phase 68）。正本 = `spec_detail/ui_terms.md`（新しい文言はここに従う）/ 確認ダイアログ = `features.md` §4.6「保存先の確認ダイアログ」・地図 = `codebase_map.md` の `choice_dialog.py`。**残件** = 提案書 25 は 2026-10-25 実施済（表は `presentation/child_kind_labels.py` に 1 つ。多言語化ではこの表を辞書へ移す）/ アクションの種類の内部名の表示名化（多言語化で）/ 下記「別タスク化候補 > 保存・確認ダイアログ」。
 - その前の領域 = **出力シーケンスのマウススクロール**（phase 67）。正本 = `data_schema.md` §5.11.1・§5.11.10 / `features.md` §4.2 冒頭・§4.2.12・§4.6（一覧の表示形式・出力シーケンスの編集）/ 地図 = `codebase_map.md`「アクションの実行」「マウス操作」の phase 67 の項。**残件** = decisions_archive/67 の保留（L6 = executor のテストの抜け・L7 = `amount` の文字列の受け入れの広さ）・暫定 50 §10 のスコープ外（間隔・速度・押したまま・画面の枠でのスクロール）。
 - その前の領域 = **キーの名前（取得・フック・送信）と押下だけのキー**（phase 60〜63）。phase 63 = 押下だけが届くキーの組み直し（正本 `key_input.md` §7.1「押下だけが届くキー」・§7.3「押下だけのキーの組み直し」・`features.md` §4.6「レイアウトの JSON の `extra_scan_codes`」「押下だけのキーの直接置換の枠」/ 地図 = `codebase_map.md` の phase 63 の項）。**残件（phase 63）** = idea_53（送信の最中の物理の入力の素通り・直ればリピートを戻せる）/ idea_54（IME の切り替え・再発時）/ decisions_archive/63 の保留（L4〜L7）。計測用のデバッグ出力（`debug_jis_special_key_events`）は残している。phase 62 = フックの実行時と送信のキー名をレイアウトだけが決める（正本 `key_input.md` §7.1「フックの実行時のキー名の出どころ」・§7.7「キー名 → 走査コードの解決の順」・`features.md` §4.6「レイアウトの JSON の `scan_code`」/ 地図 = `codebase_map.md` の `keyboard_layouts.py`・`LayoutController`・キーの送信の節）。**残件（phase 62）** = idea_50 は phase 66 で完了（残件 = decisions_archive/66 の保留 deep 8・9）/ idea_51 は phase 65 で完了（残件 = decisions_archive/65 の保留 低 3・5・10）/ idea_52 は phase 63 で完了 / 下記「別タスク化候補 > キーの名前の解決と送信」。phase 61 = キーボードUI の編集のキーの名前（VK → 走査コード → レイアウトだけ・正本 `key_input.md` §7.4）。phase 60 = キーの取得中の IME と判別できないキー。正本 = `key_input.md` §7.4「取得の入口」「取得中の IME」「判別できないキー」/ 地図 = `codebase_map.md`（phase 60 の節）。**残件** = idea_48（取得中のフック再開）/ decisions_archive/60 の保留（L4〜L6）・入口の重なりは実機未確認（受容）。
 - その前の領域 = **キーボードUI の左右の修飾キーと割り当て禁止のキー**（phase 59）。正本 = `features.md` §4.3「割り当て禁止のキー」・§4.6「キーボード表示のウィンドウ」/ `key_input.md` §7.1・§7.4 / 地図 = `codebase_map.md`（phase 59 の節）。**残件** = （idea_47 は phase 61 で対応済み）/ decisions_archive/59 の保留（低-1〜3）・JIS の Caps 単独のフック側の名前は未実測（受容）。
 - その前の領域 = **画面サイズの調整**（phase 58）。正本 = `features.md` §4.5（ステータス欄のフックの 3 状態）・§4.6「フル表示の幅配分」「フル表示の 3 枠のスクロール」「省略表示の上部の開閉」「省略表示のウィンドウ」/ `data_schema.md` §5.4（`compact_header_view`）/ 地図 = `codebase_map.md`（`views/full_view/scroll_area.py`・`controllers/compact_header_controller.py`・`pane_measure`）。**残件** = decisions_archive/58 の保留（スクロールバーの出し入れで枠の要求幅が約 17px 増減・3 枠同時のスクロールバー / 一覧のスクロールバーの上のホイールの自動テストなし・開いた見出しと閉じた見出しの様式の違い）。
-- その前の領域 = **画面の枠でカーソル移動・クリック**（phase 56・57）。正本 = `features.md` §4.7 / `data_schema.md` §5.6.1 / `key_input.md` §7.3・§7.4 / `nonfunctional.md`「画面の枠の座標系」/ 地図 = `codebase_map.md`「画面の枠（phase 56・57）」。**残件** = idea_44（枠の配色）/ idea_45（既存のキー取得の記号キー名）/ phase 56 task_07 の保留 L1・L5（decisions_archive/56）/ phase 57 の見送り（OK の拒否の理由に画面名・4 経路の ops の往復の結合テスト・decisions_archive/57）。その前の phase 55 の領域（キーボード表示のウィンドウ）の残件 = 下記「別タスク化候補」の keyboard_window の 1 行。
+- その前の領域 = **カーソルグリッドでカーソル移動・クリック**（phase 56・57。phase 70 で「画面の枠」から改名）。正本 = `features.md` §4.7 / `data_schema.md` §5.6.1 / `key_input.md` §7.3・§7.4 / `nonfunctional.md`「カーソルグリッドの座標系」/ 地図 = `codebase_map.md`「カーソルグリッド（phase 56・57）」。**残件** = idea_44（枠の配色）/ idea_45（既存のキー取得の記号キー名）/ phase 56 task_07 の保留 L1・L5（decisions_archive/56）/ phase 57 の見送り（OK の拒否の理由に画面名・4 経路の ops の往復の結合テスト・decisions_archive/57）。その前の phase 55 の領域（キーボード表示のウィンドウ）の残件 = 下記「別タスク化候補」の keyboard_window の 1 行。
 - **直近の一連の作業が扱っている領域 = 出力シーケンスの制御アクション**（phase 37〜40）。system 種別（ループ / カウンター / 待機 / 戻す / 先頭へ）と file_line（**JSON スキーマ変更あり**・phase 37）。
   phase 38 で file_line の読込をワーカー + UI 側 50 ms 確認タイマーへ移し、上限 5 秒・同じ読込キーの待ち合わせ・読込結果のキャッシュを加えた。構成セットの読込等で連続実行を常に停止する（既存挙動の変更）。
   正本 = `data_schema.md` §5.11.1・§5.11.5〜5.11.8・§5.13.1 / `features.md` §4.2.1〜4.2.10・§4.5・§4.6 / 地図 = `codebase_map.md`「出力シーケンスの制御アクション」節。
@@ -75,7 +77,7 @@
   **残件** = 統合レビュー保留 L-1・L-7 / phase 36 のレビューで出た引数の多い補助関数・テストの無い経路（いずれも「別タスク化候補」）/
   共通トリガー層は [idea_36](../backlog/idea_36_common_trigger_layer.md)（未着手）。
   その前の領域（JSON の型不正とアクションの実行・phase 23〜31）は [decisions_archive/31](../../.claude_data/state/decisions_archive/31_unknown_action_type_handling.md) から辿る。
-- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**26 まで起票済**・次採番は「次採番」節が正）。
+- 過去のリファクタ計画・提案書は `instructions/modified_proposal/`（**27 まで起票済**・次採番は「次採番」節が正）。
   実施状況と判断は「次採番」節および `decisions.md` の「計画NN」節が正。
   **提案書由来の計画はフェーズ番号を消費していない**。
 - テンプレート導入前の経緯・過去仕様は `instructions/history/archive/` を参照（凍結済み）。
@@ -121,7 +123,7 @@
   **phase 67 は 2026-10-21 完了**（`67_mouse_scroll_action` / 暫定 50〔v0.4・凍結〕/ decisions 67〔アーカイブ済〕）。
   **phase 68 は 2026-10-24 完了**（`68_ui_terminology` / 暫定 51〔v0.8・凍結〕/ decisions 68〔アーカイブ済〕）。
   **phase 69 は 2026-10-26 完了**（`69_keyboard_ui_key_labels` / 暫定 52〔v0.4・凍結〕/ decisions 69〔アーカイブ済〕）。
-  **phase 70 は 2026-10-27 起票・進行中**（`70_help_window` / 暫定 53 / decisions 70）。
+  **phase 70 は 2026-10-29 完了**（`70_help_window` / 暫定 53〔v0.7・凍結〕/ decisions 70〔アーカイブ済〕）。
   次フェーズは **`71_<topic>`**・decisions も **71** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -169,9 +171,9 @@
   47=送信の最中の物理の入力を素通りさせない〔**v0.2・保留**・2026-10-21 ユーザー判断・phase 未起票・idea_53〕 /
   48=受け取りと送信が同じレイアウトの写しを使う〔v0.3・ユーザー確定・phase 65 の主入力〕）。
   49〜52 = phase 66〜69 の主入力〔いずれも**凍結**・52 = キーボードUIのキー名の表示と最小サイズ v0.4〕 /
-  53 = ヘルプの作成〔v0.5・ユーザー確定・phase 70 の主入力〕 /
+  53 = ヘルプの作成〔**v0.7・凍結**・phase 70 の主入力〕 /
   次採番は **`54_<topic>`**。
-- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**26 まで起票済**
+- リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**27 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
   **09 = phase 13 由来・実施済＝計画10**〔`collect_forbidden_refs` を 100 行 → 26 行へ分割〕/
   **10 = phase 19 由来・実施済＝phase 19 task_07** /
@@ -190,8 +192,9 @@
   **23 = phase 57 由来・実施済＝phase 57 task_08_refactor**〔矢印の操作キーの集合を 1 か所に・選択の解除を 1 つの呼び出しに・パネルのボタンの色を定数に〕 /
   **24 = phase 58 由来・実施済＝phase 58 task_07_refactor**〔省略表示の上部の見出しの文言を 1 関数に・区画の題名と配置を登録時に受け取る・フル表示の 3 枠のタプルを 1 か所に〕 /
   **25 = phase 68 由来・実施済**（2026-10-25・フェーズ外で単独実施）〔子ファイルの種別の表示名の表 4 か所を `presentation/child_kind_labels.py` へ〕 /
-  **26 = phase 69 由来・保留**（2026-10-26 ユーザー判断）〔`KeyboardWindow.redraw` 100 行からキーの文字の描画を抽出・キーが無いレイアウトの大きさの定数化〕
-  次採番は **`27_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
+  **26 = phase 69 由来・保留**（2026-10-26 ユーザー判断）〔`KeyboardWindow.redraw` 100 行からキーの文字の描画を抽出・キーが無いレイアウトの大きさの定数化〕 /
+  **27 = phase 70 由来・判断待ち**〔`app.py` の「呼んで失敗をログに残す」同型の try/except 5 個を 1 関数へ〕
+  次採番は **`28_<topic>`**。**「計画09」は提案書を持たない**（`/spec_split` による正本の分割で、
   規範は `.claude/commands/spec_split.md`。**提案書 09 とは別物**）。
 
 ## 次フェーズ候補（参考）
@@ -215,7 +218,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 - `features.md` §4.6「未使用ファイルの整理…」の①が「保存する / 中止する」の 2 択と書かれているが、実装は askyesno「整理の前に保存が必要です。保存しますか？」（`orphan_sweep_io.py`。phase 68 より前からのずれ・phase 68 完了判定前レビューで発見）
 - `/refactor_check` の参考: `config_io/choice_dialog.py`（ボタン名で選ぶ確認）と `config_io/hotkey_presets_io.py` の `confirm_overwrite` が同じ形（2 か所）。3 か所目が出たら共通化（phase 68）
 
-### 画面の枠（phase 56 由来）
+### カーソルグリッド（phase 56 由来・旧称「画面の枠」）
 
 - task_07 統合レビューの保留: L1（`ScreenGridController.sync` のたびに枠を描き直す）/ L5（`cell_label.py` の中央の文字のフォントを描くたびに作る）/ L6（`keymap_panel_controller.py` 671 行に枠の編集の文脈とキー名の解決がある → idea_45 と一緒に移す）。色の直値の重複（`#202028` が `dialogs/grid_editor_window.py` と `screen_grid/grid_overlay_window.py`）→ idea_44 の配色の見直しで定数化（phase 56）
 
