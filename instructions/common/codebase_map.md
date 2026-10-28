@@ -606,7 +606,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   一覧の行数指定（KeymapBox・FullTriggerBox = 6 / SequenceBox = 9）は**詳細表示のメイン領域の基準の高さ H の基準**（既定の半分。表示行数は伸びた分で決まる・phase 20。phase 58 から最小の高さは ceil(H/2) 基準で、収まらない枠はスクロール = `features.md` §4.6）
 - 構成 Widget:
   - FullHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの表示と**記録・クリア**・
-    「フックキーをこの構成セット専用にする」チェック（操作可能なのは FullView のみ）
+    「この構成セットで個別指定する」チェック（操作可能なのは FullView のみ）
   - FullDisplayFrame（display_frame.py）: 最前面に表示・簡易表示・キーボードUI・レイアウト選択・キーボードUIを最前面に表示（phase 55）
   - FileFrame（file_frame.py）: 保存 / 別名保存… / 読込… / 新規作成
   - KeymapBox（keymap_box.py）: キーマップ一覧と管理ボタン（追加・変更・削除・保存系。phase 34 で「選択」ボタンを削除し一覧の選択 = アクティブ化）
@@ -618,7 +618,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - 簡易表示 / フック制御
 - 構成 Widget:
   - CompactHookFrame（hook_frame.py）: フック開始/停止・キーマップ一時停止 / 再開・停止/一時停止・再開キーの**表示のみ**
-    （「フックキーをこの構成セット専用にする」チェックも `state="disabled"` の状態表示のみ）
+    （「この構成セットで個別指定する」チェックも `state="disabled"` の状態表示のみ）
   - CompactDisplayFrame（display_frame.py）: 最前面に表示・詳細表示・キーボードUI・レイアウト選択・キーボードUIを最前面に表示（phase 55）
   - フック・表示の枠は見出し（`▾` / `▸`）のクリックで開閉する（開 = 枠の `labelwidget`・閉 = 枠を外して同じ位置に見出しの Label。制御と保存は CompactHeaderController・phase 58。仕様 = `features.md` §4.6「簡易表示の上部の開閉」）
   - CompactTriggerBox（trigger_box.py）: 上から トリガー一覧 / 出力シーケンス欄（CompactSequenceFrame・phase 48）/ 呼び出し先の表示枠（phase 45）。仕様 = `features.md` §4.6「簡易表示の出力シーケンス欄」「簡易表示のウィンドウ」
