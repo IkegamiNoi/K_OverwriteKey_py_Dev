@@ -119,7 +119,7 @@ def validate_sub(
             or not MIN_SUBDIVIDE_COUNT <= sub.cols <= MAX_SUBDIVIDE_COUNT):
         errors.append("細分化: 列数は1〜9にしてください")
     if isinstance(sub.rows, int) and isinstance(sub.cols, int) and sub.rows * sub.cols < 2:
-        errors.append("細分化: 枠を2つ以上にしてください")
+        errors.append("細分化: マスを2つ以上にしてください")
     expected = sub.rows * sub.cols if isinstance(sub.rows, int) and isinstance(sub.cols, int) else -1
     if len(sub.keys) != expected:
         errors.append(f"細分化: キー数は{expected}個にしてください")
@@ -127,5 +127,5 @@ def validate_sub(
     reserved_names = _normalized_reserved(reserved)
     operation_names = _normalized_op_keys(op_keys)
     for index, key in enumerate(sub.keys, start=1):
-        _check_shape_key(key, f"細分化・枠{index}", used, reserved_names, operation_names, errors)
+        _check_shape_key(key, f"細分化・マス{index}", used, reserved_names, operation_names, errors)
     return errors

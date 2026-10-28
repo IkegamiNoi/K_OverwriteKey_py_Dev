@@ -96,7 +96,7 @@ def _sub_layout_with_reason(raw: Any) -> tuple[SubLayout | None, str | None]:
     if not isinstance(cols, int) or isinstance(cols, bool) or not 1 <= cols <= 9:
         return None, "列数が不正です"
     if rows * cols < 2:
-        return None, "段数・列数が不正です（枠を2つ以上にしてください）"
+        return None, "段数・列数が不正です（マスを2つ以上にしてください）"
     if not isinstance(raw_keys, list) or len(raw_keys) != rows * cols:
         return None, "キー数が不正です"
     keys = [grid_key_name(key) for key in raw_keys]

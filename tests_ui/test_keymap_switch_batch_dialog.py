@@ -202,7 +202,7 @@ class KeymapSwitchBatchDialogTest(unittest.TestCase):
 
         def has_grid_checkbox(index):
             return any(
-                isinstance(child, ttk.Checkbutton) and child.cget("text") == "枠を使う"
+                isinstance(child, ttk.Checkbutton) and child.cget("text") == "カーソルグリッドを使う"
                 for child in dialog._row_frames[index].winfo_children()
             )
 
@@ -225,6 +225,6 @@ class KeymapSwitchBatchDialogTest(unittest.TestCase):
         )
         self.dialogs.append(dialog)
         self.assertTrue(any(
-            isinstance(child, ttk.Checkbutton) and child.cget("text") == "枠を使う"
+            isinstance(child, ttk.Checkbutton) and child.cget("text") == "カーソルグリッドを使う"
             for child in dialog._row_frames[0].winfo_children()
         ))

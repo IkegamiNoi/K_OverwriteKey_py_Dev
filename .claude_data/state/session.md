@@ -11,9 +11,9 @@ last_commit_location: `claude/help-text-review-a8dde5`（task_06 の校正。HEA
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 70 task_06（ヘルプ本文の初版）= 校正 1 回目の指摘 10 件を反映済（未コミット）・ユーザーの確認待ち＋UI 文言 3 件の扱いの判断待ち。**
+focus: **phase 70 task_06a（カーソルグリッド / マスへの改名）完了（tests 1856 / tests_ui 1195 / smoke OK・codex-implementer・reviewer 採用）。task_06（ヘルプ本文）はユーザーの最終確認が済めば完了 → task_07。**
 task_05 メモ: codex-implementer。テスト側をメインで修正（Tk の版は Tk のルートで引く / バージョン情報の後始末で after(0) の再開予約まで進める / Escape の前に acquire_focus / 既存の構造検査 test_grab_modal_call_sites の許可リストに help/ を追加〔暫定 53 §8 で help/ に置くため〕）。reviewer 採用（参考: 読み取り専用 Text での Ctrl+C は task_08 で目視）。tests 1856 / tests_ui 1195 / smoke OK。
-task_06 メモ: 下書きを help_ja.json に反映済（未コミット・大分類 15・項目 65）。事前 reviewer「修正して採用」→ 指摘 1〜6 を反映（D5 の空白を生成時に一括除去・トリガーセットの用語・画面の枠の表示条件・操作キーの付け替え・簡易表示の説明・停止の読み飛ばし）。校正用の写し = instructions/phase/70_help_window/tools/help_ja_draft.md。生成元 = scratchpad の build_help.py（セッション外では失われるため、校正の反映は help_ja.json を直接直してよい）。tests.test_help_content の「骨組みは items 空」の検査を「全大分類に項目あり」へ。**校正 1 回目（2026-10-28）反映済**: キー置換はキーボードUIで設定（紹介・用語）/ 用語に切替キー・アクション・「キーを押す＝実キーボード」を追加 / Import・Export の目的＝ひとまとめにして別環境へ（互換は従）/ キー置換の「枠」を外しキーボードUIと実キーボードを書き分け / 灰色のキーは割り当て不可を先頭へ / 案内＝ステータスバーに一時表示 / 窓→ウィンドウ（全置換）/ 「流れを決める行」→「systemのアクション」＋冒頭説明（「アクションの種類」の題名はダイアログの欄名「種類」に合わせ据え置き）。反映スクリプト = scratchpad の apply_review1.py（写しの md も JSON から再生成）。tests.test_help_content 10 件・tests_ui.test_help_window + test_dialog_help_buttons 31 件 pass。**UI 文言 3 件（task_06 の範囲外・未着手・判断待ち）**: ①フック欄「選んでから実行」→「トリガーを選んでから実行」（sequence_box.py の同名ラベルも変えるかは要判断）②「画面の枠」→ グリッド / カーソルグリッド（UI・正本・ヘルプにまたがる改名＝暫定仕様先行が妥当）③「この構成セットで個別指定する」→「この構成セットでフックキーを個別指定する」。推奨 = idea 起票しヘルプは現 UI 文言で確定。§6.1 の飛び先の項目 id への細分化は暫定 53 の表の改訂＝ユーザー承認が要るため提案のみ。
+task_06 メモ: 下書きを help_ja.json に反映済（未コミット・大分類 15・項目 65）。事前 reviewer「修正して採用」→ 指摘 1〜6 を反映（D5 の空白を生成時に一括除去・トリガーセットの用語・画面の枠の表示条件・操作キーの付け替え・簡易表示の説明・停止の読み飛ばし）。校正用の写し = instructions/phase/70_help_window/tools/help_ja_draft.md。生成元 = scratchpad の build_help.py（セッション外では失われるため、校正の反映は help_ja.json を直接直してよい）。tests.test_help_content の「骨組みは items 空」の検査を「全大分類に項目あり」へ。**校正 1 回目（2026-10-28）反映済**: キー置換はキーボードUIで設定（紹介・用語）/ 用語に切替キー・アクション・「キーを押す＝実キーボード」を追加 / Import・Export の目的＝ひとまとめにして別環境へ（互換は従）/ キー置換の「枠」を外しキーボードUIと実キーボードを書き分け / 灰色のキーは割り当て不可を先頭へ / 案内＝ステータスバーに一時表示 / 窓→ウィンドウ（全置換）/ 「流れを決める行」→「systemのアクション」＋冒頭説明（「アクションの種類」の題名はダイアログの欄名「種類」に合わせ据え置き）。反映スクリプト = scratchpad の apply_review1.py（写しの md も JSON から再生成）。tests.test_help_content 10 件・tests_ui.test_help_window + test_dialog_help_buttons 31 件 pass。**UI 文言 3 件は 2026-10-28 確定・反映済**: ①フック欄「全トリガーを選んでから実行」③「フックキーをこの構成セット専用にする」（task_06 で実装・暫定 53 §13.3）②「画面の枠」→ カーソルグリッド / マス（暫定 53 v0.6 §13・task_06a）。正本・codebase_map は task_08。ヘルプの見た目も改善（文字単位の折り返し・ぶら下げ・行間・大分類の太字）。
 task_04 メモ: codex-delegating-implementer。実装者が codebase_map.md へ追記 → 範囲外のため取り消し（task_08 で反映）。既存 tests_ui 23 件が「?」の追加で落ちた → テスト側を追従（quarantine・orphan のボタン列に「?」/ child_save のフェイク組立てでは add_help_button を差し替え）。reviewer 採用（参考: 空の大分類を開ける分岐 `_category_visible` は本文が入った task_06 で要否を確認）。tests 1850 / tests_ui 1190 / smoke OK。
 mode: implementing
 presence: present
@@ -35,7 +35,7 @@ verified:
   task_06: partial（校正 1 回目の反映後 = tests.test_help_content 10 / tests_ui.test_help_window + test_dialog_help_buttons 31 pass。全体実行は校正確定後）
 
 ## next_action
-- task_06: ユーザーの確認（追加の校正があれば反映）＋UI 文言 3 件の扱いの回答（推奨 = idea 起票・ヘルプは現 UI 文言のまま）→ reviewer → tests 全体 → コミット。その後 task_07（統合確認・deep-reviewer + codex-reviewer）→ task_08（実機目視・正本反映）
+- task_06: ユーザーの最終確認（追加の校正があれば反映）で完了。その後 task_07（統合確認・deep-reviewer + codex-reviewer）→ task_08（実機目視・正本反映）
 - ユーザー確認待ち: pyscreeze・pytweening のライセンス名を本文どおり BSD 3 条項とした判断（暫定 53 §1 は MIT と記載）
 - main へのマージはユーザー（PR は作らない）
 

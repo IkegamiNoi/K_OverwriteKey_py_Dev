@@ -324,7 +324,7 @@ class GridEditorWindow(tk.Toplevel):
                 if len(keys) != cols:
                     errors.append(f"細分化・段{index}: キーは{cols}個にしてください")
             if errors:
-                messagebox.showerror("枠を設定できません", "\n".join(errors), parent=self.panel)
+                messagebox.showerror("カーソルグリッドを設定できません", "\n".join(errors), parent=self.panel)
                 return
             sub = SubLayout(int(self.panel.rows_var.get()), int(self.panel.cols_var.get()),
                             tuple(grid_key_name(k) for row in entries for k in row))
@@ -340,7 +340,7 @@ class GridEditorWindow(tk.Toplevel):
         except (ValueError, tk.TclError):
             errors.append("細分化: 段数・列数は1〜9の整数にしてください")
         if errors:
-            messagebox.showerror("枠を設定できません", "\n".join(errors), parent=self.panel)
+            messagebox.showerror("カーソルグリッドを設定できません", "\n".join(errors), parent=self.panel)
             return
         records = deepcopy(self._records)
         for monitor_id in self._edited:

@@ -149,7 +149,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             if index in grid_option_rows:
                 line += 1
                 grid_var = tk.BooleanVar(value=False)
-                ttk.Checkbutton(row, text="枠を使う", variable=grid_var).grid(
+                ttk.Checkbutton(row, text="カーソルグリッドを使う", variable=grid_var).grid(
                     row=line, column=0, columnspan=3, sticky="w", pady=(6, 0)
                 )
                 self.grid_vars[index] = grid_var

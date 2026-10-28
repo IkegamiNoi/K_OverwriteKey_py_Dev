@@ -79,11 +79,11 @@ class KeymapEditDialog(tk.Toplevel):
         self.label_entry.grid(row=1, column=1, columnspan=3, sticky="we", padx=(8, 0), pady=(10, 0))
 
         self.grid_enabled_var = tk.BooleanVar(value=initial_grid_enabled)
-        self.grid_enabled_check = ttk.Checkbutton(frm, text="枠を使う", variable=self.grid_enabled_var)
+        self.grid_enabled_check = ttk.Checkbutton(frm, text="カーソルグリッドを使う", variable=self.grid_enabled_var)
         editor_columns = 2 if grid_editor_context is not None else 4
         self.grid_enabled_check.grid(row=2, column=0, columnspan=editor_columns, sticky="w", pady=(8, 0))
         if grid_editor_context is not None:
-            self.grid_editor_btn = ttk.Button(frm, text="枠を編集…", command=self._edit_grid)
+            self.grid_editor_btn = ttk.Button(frm, text="カーソルグリッドを編集…", command=self._edit_grid)
             self.grid_editor_btn.grid(row=2, column=2, columnspan=2, sticky="e", padx=(8, 0))
 
         self.hint = ttk.Label(frm, text="例: 切替キー: 1\nラベル: numpad")
@@ -117,7 +117,7 @@ class KeymapEditDialog(tk.Toplevel):
             return
         monitors, start_monitor_id, reserved = self._grid_editor_context()
         if not monitors:
-            messagebox.showerror("枠を編集できません", "画面（モニタ）を取得できませんでした。", parent=self)
+            messagebox.showerror("カーソルグリッドを編集できません", "画面（モニタ）を取得できませんでした。", parent=self)
             return
         reserved = set(reserved)
         switch_key = normalize_key_name(self.key_var.get())

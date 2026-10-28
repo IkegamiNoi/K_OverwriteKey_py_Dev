@@ -25,7 +25,7 @@ class GridEditorPanel(tk.Toplevel):
         self._measuring_scroll_area = False
         # 窓が未表示のとき winfo_ismapped は 0 になるので、スクロールバーの表示は自前の印で持つ。
         self._scrollbar_shown = False
-        self.title("枠を編集")
+        self.title("カーソルグリッドを編集")
         self.transient(editor)
         self.attributes("-topmost", True)
         self.resizable(False, False)
@@ -54,7 +54,7 @@ class GridEditorPanel(tk.Toplevel):
         self.monitor_combo.pack(fill="x")
         self.monitor_combo.bind("<<ComboboxSelected>>", lambda _e: self._then_focus_editor(
             editor, lambda: editor.switch_monitor(editor.monitors[self.monitor_combo.current()].id)))
-        self.hint = ttk.Label(content, text="枠をクリックして選ぶ → キーを押すとその枠のキー")
+        self.hint = ttk.Label(content, text="マスをクリックして選ぶ → キーを押すとそのマスのキー")
         self.hint.pack(anchor="w", pady=(4, 2))
         self.buttons = {}
         button_frame = ttk.Frame(content)
@@ -74,7 +74,7 @@ class GridEditorPanel(tk.Toplevel):
             self.buttons[text] = button
         self.label_position_var = tk.BooleanVar(value=editor.label_position == "top_left")
         self.label_position_check = ttk.Checkbutton(
-            content, text="キーを枠の左上に表示", variable=self.label_position_var,
+            content, text="キーをマスの左上に表示", variable=self.label_position_var,
             command=editor.label_position_changed,
         )
         self.label_position_check.pack(anchor="w")
@@ -101,7 +101,7 @@ class GridEditorPanel(tk.Toplevel):
             command=lambda: self._then_focus_editor(editor, editor.reset_ops),
         )
         reset_ops.grid(row=4, column=0, columnspan=4, sticky="ew", padx=3, pady=(3, 2))
-        ttk.Label(content, text="細分化（段数・列数 / 枠をクリックしてキーを押す）").pack(anchor="w")
+        ttk.Label(content, text="細分化（段数・列数 / マスをクリックしてキーを押す）").pack(anchor="w")
         counts = ttk.Frame(content)
         counts.pack(fill="x")
         self.rows_var = tk.StringVar(value=str(editor.sub.rows))

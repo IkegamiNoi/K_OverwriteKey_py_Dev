@@ -85,12 +85,12 @@ class ScreenGridController:
         try:
             self.session.abort()
         except Exception:
-            _logger.exception("枠の失敗後に状態を閉じられませんでした")
+            _logger.exception("カーソルグリッドの失敗後に状態を閉じられませんでした")
         self._report_error(exc)
 
     def _report_error(self, exc: Exception) -> None:
-        _logger.exception("枠の操作に失敗しました")
-        self._app._set_flash_message(f"枠の操作に失敗しました: {exc}")
+        _logger.exception("カーソルグリッドの操作に失敗しました")
+        self._app._set_flash_message(f"カーソルグリッドの操作に失敗しました: {exc}")
 
     def shutdown(self) -> None:
         self._overlay.destroy()

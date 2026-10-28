@@ -99,14 +99,14 @@ def validate_ops(
         elif key in reserved_names:
             reason = f"予約キー{key!r}と重なっています"
         elif key in frame_names:
-            reason = f"枠のキー{key!r}と重なっています"
+            reason = f"マスのキー{key!r}と重なっています"
         else:
             reason = ""
         if reason:
             errors.append(prefix + reason)
         seen.add(key)
     if FIXED_BACK_KEY in frame_names:
-        errors.append(f"操作キー（戻る・固定）: 枠のキー{FIXED_BACK_KEY!r}と重なっています")
+        errors.append(f"操作キー（戻る・固定）: マスのキー{FIXED_BACK_KEY!r}と重なっています")
     if FIXED_CLICK_KEY in frame_names:
-        errors.append(f"操作キー（クリック・固定）: 枠のキー{FIXED_CLICK_KEY!r}と重なっています")
+        errors.append(f"操作キー（クリック・固定）: マスのキー{FIXED_CLICK_KEY!r}と重なっています")
     return errors

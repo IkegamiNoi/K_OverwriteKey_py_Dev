@@ -39,7 +39,7 @@ class GridOverlayWindow:
             window.attributes("-transparentcolor", _TRANSPARENT)
             window.update_idletasks()
             if not win32_window.make_click_through_overlay(window.winfo_id()):
-                raise RuntimeError("枠のウィンドウをクリック透過にできませんでした")
+                raise RuntimeError("カーソルグリッドのウィンドウをクリック透過にできませんでした")
         except Exception:
             window.destroy()
             raise

@@ -235,7 +235,7 @@ class ScreenGridValidationTest(unittest.TestCase):
         errors = validate_sub(SubLayout(1, 2, ("f1", "f1")), {"f1"})
         self.assertTrue(any("予約キー" in error for error in errors))
         self.assertTrue(any("重複" in error for error in errors))
-        self.assertTrue(any("枠を2つ以上" in error for error in validate_sub(SubLayout(1, 1, ("q",)), set())))
+        self.assertTrue(any("マスを2つ以上" in error for error in validate_sub(SubLayout(1, 1, ("q",)), set())))
         self.assertTrue(any("段数" in error for error in validate_sub(SubLayout(10, 1, ()), set())))
         self.assertTrue(any("列数" in error for error in validate_sub(SubLayout(1, 10, ()), set())))
         self.assertTrue(any("キー数" in error for error in validate_sub(SubLayout(2, 2, ("q",)), set())))
