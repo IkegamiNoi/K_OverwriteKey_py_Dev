@@ -65,6 +65,7 @@
 - task_06a: 「画面の枠」→ カーソルグリッド / マス の改名（§13・画面の文字列・ログ・ヘルプ本文・テストの期待値。識別子・スキーマ不変・正本は task_08）
 - task_07: 統合確認（tests / tests_ui / smoke）・統合レビュー（deep-reviewer + codex-reviewer）
 - task_08a: 実機目視の修正 2 件（§14・「?」を下端の左寄せへ / 「用語」の注記を箇条書きの末尾へ）
+- task_08b: 「?」で記録を止める（§14.3・完了判定前の Codex 敵対的レビュー由来・「プリセット編集…」の経路を含む）
 - task_08: 実機目視・正本反映（§12）・暫定 53 凍結・`decisions_archive/70_help_window.md`・decisions.md の索引・current.md の完了記載・`/refactor_check`・完了判定前レビュー（deep-reviewer + codex-adversarial-reviewer）
 
 ## レビュー方針

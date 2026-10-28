@@ -61,7 +61,7 @@ class TriggerDialog(tk.Toplevel):
 
         btns = ttk.Frame(frm)
         btns.grid(row=3, column=0, columnspan=3, sticky="ew", pady=(14, 0))
-        add_help_button(btns, self, TRIGGER)
+        add_help_button(btns, self, TRIGGER, before_open=self._stop_capture)
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
 

@@ -45,11 +45,7 @@
 
 * UI（tkinter）: FullView / CompactView / KeyboardWindow / ダイアログ
 * イベント処理・各コントローラ
-* ヘルプ・ライセンスの表示は `keyseq/presentation/help/` に置く。`HelpWindowController` はヘルプ窓を、`LicenseWindowController` はライセンス窓をそれぞれ管理し、ヘルプ本文・絞り込み・同梱ライセンスの読込もこのパッケージ内で行う。
-
-#### パッケージ情報
-
-* `keyseq/__init__.py` はアプリの版を `__version__` として公開する。バージョン情報の表示はこの値を参照する。
+* ヘルプ・ライセンスの表示は `keyseq/presentation/help/` に置く。`HelpWindowController` はヘルプ窓を、`LicenseWindowController` はライセンス窓をそれぞれ管理し、ヘルプ本文・絞り込み・同梱ライセンスの読込もこのパッケージ内で行う。バージョン情報の表示は、層の外の `keyseq/__init__.py` が公開する `__version__` を参照する。
 
 ### 3.4 UI スレッド
 

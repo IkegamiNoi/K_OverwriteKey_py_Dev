@@ -943,7 +943,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - **`LicenseWindowController`（`app.license`）/ `LicenseWindow`**: 非モーダルの単一の窓。本体 `LICENSE` → 同梱物一覧 → 各全文を表示する。`version_dialog.open_version_dialog` はフックを止めるモーダルで、版は `keyseq.__version__` を参照する。
 - **App の配線**: 生成時に管理役を作り、`_apply_font_delta` から `help.on_font_changed()`、終了時に両管理役の `close()`。メインの最前面の切替で両窓の `apply_topmost()` 後に `LayoutController.resync_keyboard_topmost()` を呼び、キーボードUIの重なり順を再同期する（見張りの判定条件は不変）。
 - **データ**: `content/help_ja.json` は config の対象外。`help_content.py` が全体を検査し、失敗は理由を窓内に表示する。`third_party/third_party.json` の名前・版・ライセンス名・全文ファイル名が同梱物 14 件の正。`bundled_paths.bundled_root()` に基準位置を集約し、リポジトリ直下の `LICENSE` は複製しない。
-- **導線**: `views/menu_bar.py` の「ヘルプ」に「使い方」「よくある質問」・区切り・「バージョン情報」「ライセンス」。各対象ダイアログは `add_help_button` と `help_targets.py` の対応を使う。
+- **導線**: `views/menu_bar.py` の「ヘルプ」に「使い方」「よくある質問」・区切り・「バージョン情報」「ライセンス」。各対象ダイアログは `add_help_button` と `help_targets.py` の対応を使う（「?」は下端の左寄せ。キーの記録を持つダイアログは `before_open` に Esc と同じ停止の関数を渡し、開く前に記録を止める）。
 
 ---
 

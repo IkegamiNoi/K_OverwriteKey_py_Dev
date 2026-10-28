@@ -12,12 +12,14 @@ from unittest.mock import patch
 
 from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation import app as app_module
+from keyseq.presentation import key_capture_ime
 from keyseq.presentation.controllers.config_io.child_save_dialog import ChildSaveDialog
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs.orphan_sweep_dialog import OrphanSweepDialog
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
 from keyseq.presentation.help.help_button import add_help_button
+from keyseq.presentation.hook_button_texts import CAPTURE_ACTIVE_TEXT, CAPTURE_IDLE_TEXT
 from keyseq.presentation.help.help_content import (
     HelpBlock, HelpCategory, HelpContent, HelpItem, HelpLoadResult,
 )
@@ -256,6 +258,60 @@ class DialogHelpButtonsTest(unittest.TestCase):
         self.assertEqual(
             [child.cget("text") for child in action_row[3:]], ["OK", "キャンセル"]
         )
+
+    def test_help_button_stops_trigger_capture_and_is_safe_when_idle(self) -> None:
+        dialog = self._dialog()
+        button = self._help_button(dialog)
+        button.invoke()
+        self.assertFalse(dialog._capturing)
+        self.assertEqual(dialog.capture_btn.cget("text"), CAPTURE_IDLE_TEXT)
+
+        self.app.help.close()
+        dialog._start_capture()
+        self.assertTrue(dialog._capturing)
+        self.assertEqual(dialog.capture_btn.cget("text"), CAPTURE_ACTIVE_TEXT)
+        self.assertTrue(key_capture_ime._get_tracker().is_capturing(dialog))
+        button.invoke()
+        self.assertFalse(dialog._capturing)
+        self.assertEqual(dialog.capture_btn.cget("text"), CAPTURE_IDLE_TEXT)
+        self.assertFalse(key_capture_ime._get_tracker().is_capturing(dialog))
+
+    def test_help_button_stops_action_recording_in_add_and_edit_dialogs(self) -> None:
+        for mode in ("add", "edit"):
+            with self.subTest(mode=mode):
+                dialog = ActionDialog(self.app, title="アクション", mode=mode)
+                self.addCleanup(self._close_dialog, dialog)
+                dialog.help_button.invoke()
+                self.assertFalse(dialog._recording)
+                self.assertFalse(key_capture_ime._get_tracker().is_capturing(dialog))
+                self.app.help.close()
+
+                dialog._start_recording()
+                self.assertTrue(dialog._recording)
+                self.assertTrue(key_capture_ime._get_tracker().is_capturing(dialog))
+
+                dialog.help_button.invoke()
+
+                self.assertFalse(dialog._recording)
+                self.assertEqual(dialog.capture_btn.cget("text"), "キー入力で記録")
+                self.assertFalse(key_capture_ime._get_tracker().is_capturing(dialog))
+
+    def test_preset_manager_stops_action_recording_before_open(self) -> None:
+        dialog = ActionDialog(self.app, title="アクション", mode="edit")
+        self.addCleanup(self._close_dialog, dialog)
+        dialog._start_recording()
+        self.assertTrue(key_capture_ime._get_tracker().is_capturing(dialog))
+
+        def preset_manager(*_args, **_kwargs):
+            self.assertFalse(dialog._recording)
+            self.assertFalse(key_capture_ime._get_tracker().is_capturing(dialog))
+            return type("PresetManagerStub", (), {"wait_window": lambda _self: None})()
+
+        with patch("keyseq.presentation.dialogs.action_dialog.PresetManagerDialog",
+                   side_effect=preset_manager), patch.object(
+                       dialog, "_rebuild_preset_buttons"
+                   ):
+            dialog._open_preset_manager()
 
     def test_missing_target_and_failed_content_are_safe(self) -> None:
         dialog = self._dialog()

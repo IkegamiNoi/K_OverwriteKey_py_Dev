@@ -157,7 +157,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
     def _build_buttons(self, outer: ttk.Frame) -> None:
         btns = ttk.Frame(outer)
         btns.pack(fill="x", pady=(14, 0))
-        add_help_button(btns, self, KEYMAP)
+        add_help_button(btns, self, KEYMAP, before_open=self._stop_capture)
         ttk.Button(btns, text="OK", command=self._ok).pack(side="right", padx=(8, 0))
         ttk.Button(btns, text="キャンセル", command=self._cancel).pack(side="right")
 

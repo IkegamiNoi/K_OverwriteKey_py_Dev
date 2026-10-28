@@ -90,7 +90,9 @@ class ActionDialog(tk.Toplevel):
         btns = ttk.Frame(frm)
         btns.grid(row=9, column=0, columnspan=4, sticky="ew", pady=(14, 0))
         self.preset_edit_btn = ttk.Button(btns, text="プリセット編集…", command=self._open_preset_manager)
-        self.help_button = add_help_button(btns, self, SEQUENCE)
+        self.help_button = add_help_button(
+            btns, self, SEQUENCE, before_open=self._stop_recording
+        )
         self.preset_edit_btn.pack(side="left", before=self.help_button)
         ttk.Button(btns, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left", padx=(0, 8))
@@ -590,5 +592,6 @@ class ActionDialog(tk.Toplevel):
 
     def _open_preset_manager(self):
         """プリセット編集ダイアログを開き、戻ったらボタンを再生成"""
+        self._stop_recording()
         PresetManagerDialog(self.parent, title="プリセット編集", transient_parent=self).wait_window()
         self._rebuild_preset_buttons()
