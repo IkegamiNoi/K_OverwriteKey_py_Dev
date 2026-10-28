@@ -122,7 +122,7 @@ class SelectBeforeRunUiTest(unittest.TestCase):
 
         self.assertEqual(
             [check for check in checks(self.app.compact_view)
-             if check.cget("text") == "選んでから実行"], [compact],
+             if check.cget("text") == "全トリガーを選んでから実行"], [compact],
         )
 
     def test_data_replacement_syncs_global_value_without_dirty(self):

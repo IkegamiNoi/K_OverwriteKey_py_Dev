@@ -1,12 +1,15 @@
 """Text のタグで開閉・絞り込みを表示するヘルプの一タブ。"""
 
 import tkinter as tk
+from tkinter import font as tkfont
 from tkinter import ttk
 
 from keyseq.presentation.help.help_content import HelpCategory, HelpItem, item_plain_text
 from keyseq.presentation.help.help_filter import highlight_ranges, item_matches
 
 HIGHLIGHT_COLOR = "#fff19c"
+BODY_INDENT = 36
+BULLET = "・"
 
 
 class HelpTabView(ttk.Frame):
@@ -20,7 +23,8 @@ class HelpTabView(ttk.Frame):
         self._spans: dict[str, list[tuple[str, int, int]]] = {}
         self._selected: str | None = None
         self.no_matches = False
-        self.text = tk.Text(self, wrap="word", font="TkDefaultFont", cursor="arrow",
+        self._heading_font = tkfont.Font(root=self, font="TkDefaultFont")
+        self.text = tk.Text(self, wrap="char", font="TkDefaultFont", cursor="arrow",
                             exportselection=False, takefocus=True, padx=8, pady=8)
         scroll = ttk.Scrollbar(self, orient="vertical", command=self.text.yview)
         self.text.configure(yscrollcommand=scroll.set)
@@ -33,11 +37,14 @@ class HelpTabView(ttk.Frame):
     def _build_text(self) -> None:
         self.text.tag_configure("highlight", background=HIGHLIGHT_COLOR)
         self.text.tag_configure("selected", underline=True)
+        self._sync_fonts()
         for category in self.categories:
             self._insert_heading(category.id, category.title, 0)
             for item in category.items:
                 self._insert_heading(item.id, item.title, 18)
                 self._insert_body(item)
+        # Body tags are created per item; raise the shared bullet margin above them.
+        self.text.tag_raise("bullet")
         self.text.insert("end", "一致する項目はありません。\n", "no_matches")
         self.text.configure(state="disabled")
 
@@ -46,11 +53,13 @@ class HelpTabView(ttk.Frame):
         tag = f"heading:{identifier}"
         self.text.insert("end", f"▶ {title}\n", tag)
         self.text.tag_configure(tag, lmargin1=indent, lmargin2=indent)
+        if indent == 0:
+            self.text.tag_configure(tag, font=self._heading_font, spacing1=6)
         self._headings[identifier] = (start, self.text.index("end-1c"))
 
     def _insert_body(self, item: HelpItem) -> None:
         tag = f"body:{item.id}"
-        self.text.tag_configure(tag, lmargin1=36, lmargin2=36)
+        self.text.tag_configure(tag, lmargin1=BODY_INDENT, lmargin2=BODY_INDENT, spacing3=3)
         indices: list[str] = []
         parts = [(line, block.kind == "list")
                  for block in item.body
@@ -59,10 +68,11 @@ class HelpTabView(ttk.Frame):
             if number:
                 indices.append(self.text.index("end-1c"))
                 self.text.insert("end", "\n", tag)
+            tags = (tag, "bullet") if bullet else (tag,)
             if bullet:
-                self.text.insert("end", "・", tag)
+                self.text.insert("end", BULLET, tags)
             start = self.text.index("end-1c")
-            self.text.insert("end", part, tag)
+            self.text.insert("end", part, tags)
             indices.extend(self.text.index(f"{start}+{offset}c")
                            for offset in range(len(part)))
         indices.append(self.text.index("end-1c"))
@@ -101,6 +111,14 @@ class HelpTabView(ttk.Frame):
     def on_font_changed(self) -> None:
         # TkDefaultFont is a named font; rebind it without rebuilding tags or text state.
         self.text.configure(font="TkDefaultFont")
+        self._sync_fonts()
+
+    def _sync_fonts(self) -> None:
+        base = tkfont.nametofont("TkDefaultFont", root=self)
+        self._heading_font.configure(**base.actual())
+        self._heading_font.configure(weight="bold")
+        # Hanging indent: wrapped lines of a bullet start under the text, not the bullet.
+        self.text.tag_configure("bullet", lmargin2=BODY_INDENT + base.measure(BULLET))
 
     def reveal(self, target_id: str) -> bool:
         for category in self.categories:
