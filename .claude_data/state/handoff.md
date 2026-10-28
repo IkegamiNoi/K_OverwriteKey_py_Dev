@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜52）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 70 task_05 完了（バージョン情報・ライセンスの窓・同梱物の全文）。task_06（本文の初版）= 下書き済・ユーザーの校正待ち。**
-ブランチ `claude/task-sequential-execution-728512`（task_01〜05 = ae5216d〜fa440b5・起票一式 = 9d90b13）。タスクの連続実行はユーザー許可済（仕様フラグ・フォールバック・ユーザー確認では止まる）。phase 69 = `claude/ryouhou-kyou-fd27f9`。main へのマージはユーザー（PR は作らない）。
+**phase 70 task_06（ヘルプ本文の初版）= 校正 1 回目の指摘 10 件を反映済（未コミット）・ユーザーの確認待ち＋UI 文言 3 件の扱いの判断待ち。**
+ブランチ `claude/help-text-review-a8dde5`（HEAD = 6fc147e〔task_06 WIP〕。task_01〜05 = ae5216d〜fa440b5 は `claude/task-sequential-execution-728512` から継続・起票一式 = 9d90b13）。タスクの連続実行はユーザー許可済（仕様フラグ・フォールバック・ユーザー確認では止まる）。phase 69 = `claude/ryouhou-kyou-fd27f9`。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,7 +35,7 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 70 task_05 = 2026-10-27**。task_06 の本文差し替え後 = not_run）:
+直近の実測（**phase 70 task_05 = 2026-10-27**。task_06 = partial〔校正 1 回目の反映後に tests.test_help_content 10 / tests_ui.test_help_window + test_dialog_help_buttons 31 pass・全体実行は校正確定後〕）:
 compile **clean** / tests **1856 pass**（skip 7）/ tests_ui **1195 pass** / smoke **pass**。
 **件数が減ったら退行を疑う**（tests: 1834〔phase 69〕→ 1856 / tests_ui: 1164 → 1195）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」）。
@@ -55,7 +55,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- task_06: ユーザーの校正（`instructions/phase/70_help_window/tools/help_ja_draft.md`・指摘は項目 id で）→ `help_ja.json` を直接修正（生成元 build_help.py は前セッションの scratchpad で失われる）→ reviewer → tests 全体 → コミット
+- task_06: 校正 1 回目（2026-10-28・10 件）は反映済（内容は session.md の task_06 メモ）。ユーザーの確認・追加の校正（`instructions/phase/70_help_window/tools/help_ja_draft.md`・指摘は項目 id で）→ `help_ja.json` を直接修正し写しの md も揃える（生成スクリプトは scratchpad で失われる）→ reviewer → tests 全体 → コミット
+- **ユーザー回答待ち（UI 文言 3 件・task_06 の範囲外・未着手）**: ①フック欄「選んでから実行」→「トリガーを選んでから実行」②「画面の枠」→ グリッド / カーソルグリッド（UI・正本・ヘルプにまたがる改名）③「この構成セットで個別指定する」→「…でフックキーを個別指定する」。推奨 = idea 起票しヘルプは現 UI 文言で確定
 - その後 task_07（統合確認・deep-reviewer + codex-reviewer）→ task_08（実機目視・正本反映・暫定 53 凍結・decisions_archive/70・/refactor_check）
 - **ユーザー回答待ち**: pyscreeze・pytweening のライセンス名を同梱本文どおり BSD 3 条項とした判断（暫定 53 §1 は MIT）/ 任意提案: §6.1 の「?」の飛び先を項目 id へ細分化（暫定 53 改訂・承認要）
 - 以後の予定 = 多言語対応（アクションの種類の内部名の表示名化を吸収）→ Mac 対応。提案書 26 は保留
