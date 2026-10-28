@@ -46,7 +46,7 @@ class OrphanSweepDialog(tk.Toplevel):
         ttk.Button(edits, text="追加…", command=self._add).pack(side="left", padx=(0, 8))
         ttk.Button(edits, text="削除", command=self._remove).pack(side="left")
         actions = ttk.Frame(frm)
-        actions.pack(anchor="e", pady=(14, 0))
+        actions.pack(fill="x", pady=(14, 0))
         add_help_button(actions, self, CLEANUP)
         ttk.Button(actions, text="整理を実行", command=self._run).pack(side="left", padx=(0, 8))
         ttk.Button(actions, text="閉じる", command=self.destroy).pack(side="left")

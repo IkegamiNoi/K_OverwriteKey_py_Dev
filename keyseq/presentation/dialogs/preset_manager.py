@@ -170,7 +170,7 @@ class PresetManagerDialog(tk.Toplevel):
         )
 
         bottom = ttk.Frame(frm)
-        bottom.grid(row=8, column=0, columnspan=3, sticky="e", pady=(12, 0))
+        bottom.grid(row=8, column=0, columnspan=3, sticky="ew", pady=(12, 0))
         add_help_button(bottom, self, PRESET)
         ttk.Button(bottom, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(bottom, text="キャンセル", command=self.destroy).pack(side="left")

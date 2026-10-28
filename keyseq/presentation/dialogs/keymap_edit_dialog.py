@@ -90,7 +90,7 @@ class KeymapEditDialog(tk.Toplevel):
         self.hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(8, 0))
 
         btns = ttk.Frame(frm)
-        btns.grid(row=4, column=0, columnspan=4, sticky="e", pady=(14, 0))
+        btns.grid(row=4, column=0, columnspan=4, sticky="ew", pady=(14, 0))
         add_help_button(btns, self, KEYMAP)
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")

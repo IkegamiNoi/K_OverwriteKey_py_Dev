@@ -72,7 +72,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
             self.buttons[label] = ttk.Button(edits, text=label, command=command)
             self.buttons[label].pack(side="left", padx=3)
         actions = ttk.Frame(frame)
-        actions.pack(anchor="e", pady=(12, 0))
+        actions.pack(fill="x", pady=(12, 0))
         add_help_button(actions, self, KEYMAP_SET)
         for label, command in (
             (text.LOAD, self._load), (text.REMOVE_ENTRY, self._remove_entry),

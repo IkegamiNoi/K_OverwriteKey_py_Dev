@@ -43,7 +43,7 @@ class LayoutDeleteDialog(tk.Toplevel):
             self.listbox.insert(tk.END, f"{display_name} [{layout_id}]")
 
         btns = ttk.Frame(frm)
-        btns.grid(row=2, column=0, sticky="e", pady=(14, 0))
+        btns.grid(row=2, column=0, sticky="ew", pady=(14, 0))
         add_help_button(btns, self, KEYBOARD_UI)
         ttk.Button(btns, text="削除", command=self._ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")

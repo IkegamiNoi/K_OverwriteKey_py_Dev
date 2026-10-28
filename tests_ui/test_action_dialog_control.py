@@ -71,6 +71,29 @@ class ActionDialogControlTest(unittest.TestCase):
                 for widget in hotkey_widgets:
                     self.assertEqual(bool(widget.winfo_ismapped()), show_hotkey)
 
+    def test_preset_edit_uses_pack_and_non_hotkey_initial_type_opens(self) -> None:
+        dialog = self.make_dialog()
+        self.assertEqual(dialog.preset_edit_btn.winfo_manager(), "pack")
+        dialog.type_var.set("system")
+        dialog._sync_capture_ui()
+        self.assertEqual(dialog.preset_edit_btn.winfo_manager(), "")
+        self.assertEqual(dialog.help_button.winfo_manager(), "pack")
+        dialog.type_var.set("hotkey")
+        dialog._sync_capture_ui()
+        self.assertEqual(dialog.preset_edit_btn.winfo_manager(), "pack")
+        self.assertIs(dialog.preset_edit_btn.master, dialog.help_button.master)
+        self.assertLess(
+            dialog.preset_edit_btn.master.pack_slaves().index(dialog.preset_edit_btn),
+            dialog.preset_edit_btn.master.pack_slaves().index(dialog.help_button),
+        )
+        dialog.type_var.set("text")
+        dialog._sync_capture_ui()
+        self.assertEqual(dialog.preset_edit_btn.winfo_manager(), "")
+        self.assertEqual(dialog.help_button.winfo_manager(), "pack")
+
+        initial_text = self.make_dialog(initial={"type": "text", "value": "hello"})
+        self.assertEqual(initial_text.preset_edit_btn.winfo_manager(), "")
+
     def test_hotkey_controls_return_normal_after_switching_away_and_back(self) -> None:
         dialog = self.make_dialog()
         for action_type in ("system", "hotkey"):

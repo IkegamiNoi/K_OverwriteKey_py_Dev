@@ -50,7 +50,7 @@ class ReferenceCleanupDialog(tk.Toplevel):
         self.text.configure(state="disabled")
 
         buttons = ttk.Frame(frame)
-        buttons.grid(row=2, column=0, sticky="e", pady=(14, 0))
+        buttons.grid(row=2, column=0, sticky="ew", pady=(14, 0))
         add_help_button(buttons, self, CLEANUP)
         ttk.Button(buttons, text=run_label, command=self._run).pack(side="left", padx=(0, 8))
         ttk.Button(buttons, text="キャンセル", command=self.destroy).pack(side="left")

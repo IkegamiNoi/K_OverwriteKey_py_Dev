@@ -577,7 +577,7 @@ class ChildSaveDialogFlowTest(unittest.TestCase):
         )
         self.assertLess(button_index, list_index)
         self.assertNotIn("expand", _FakeDialogWidget.pack_history[button_index])
-        self.assertEqual(_FakeDialogWidget.pack_history[button_index]["anchor"], "e")
+        self.assertEqual(_FakeDialogWidget.pack_history[button_index]["fill"], "x")
 
     def test_dialog_configures_fixed_and_flexible_columns(self):
         rows = [ChildSaveRow(CHILD_KEYMAP, "km1", "Main", "C:/main.json", SHARE_SOLE, "単独", ACTION_SAVE)]

@@ -87,12 +87,11 @@ class ActionDialog(tk.Toplevel):
         self.preset_buttons = []
         self._rebuild_preset_buttons()
 
-        self.preset_edit_btn = ttk.Button(frm, text="プリセット編集…", command=self._open_preset_manager)
-        self.preset_edit_btn.grid(row=9, column=0, sticky="w", padx=(8, 0), pady=(14, 0))
-
         btns = ttk.Frame(frm)
-        btns.grid(row=9, column=2, columnspan=2, sticky="e", pady=(14, 0))
-        add_help_button(btns, self, SEQUENCE)
+        btns.grid(row=9, column=0, columnspan=4, sticky="ew", pady=(14, 0))
+        self.preset_edit_btn = ttk.Button(btns, text="プリセット編集…", command=self._open_preset_manager)
+        self.help_button = add_help_button(btns, self, SEQUENCE)
+        self.preset_edit_btn.pack(side="left", before=self.help_button)
         ttk.Button(btns, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
         ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left", padx=(0, 8))
 
@@ -482,7 +481,10 @@ class ActionDialog(tk.Toplevel):
         self._show(self.capture_btn, show_hotkey)
         self._show(self.capture_hint, show_hotkey)
         self._show(self.presets_frame, show_hotkey)
-        self._show(self.preset_edit_btn, show_hotkey)
+        if show_hotkey:
+            self.preset_edit_btn.pack(side="left", before=self.help_button)
+        else:
+            self.preset_edit_btn.pack_forget()
 
     def _sync_hotkey_controls(self, is_hotkey: bool) -> None:
         if not is_hotkey:

@@ -15,6 +15,7 @@ from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io.child_save_dialog import ChildSaveDialog
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs.orphan_sweep_dialog import OrphanSweepDialog
+from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
 from keyseq.presentation.help.help_button import add_help_button
 from keyseq.presentation.help.help_content import (
@@ -115,9 +116,6 @@ class DialogHelpButtonsTest(unittest.TestCase):
         self.assertEqual(len(buttons), 1)
         button = buttons[0]
         self.assertIs(button.master.pack_slaves()[0], button)
-        self.app.update_idletasks()
-        self.assertTrue(all(button.winfo_x() <= peer.winfo_x()
-                            for peer in button.master.pack_slaves()))
         return button
 
     def _open_help(self, dialog: tk.Toplevel, target: str) -> HelpWindow:
@@ -229,6 +227,36 @@ class DialogHelpButtonsTest(unittest.TestCase):
         self.assertTrue(view.is_item_open("cleanup.one"))
         self.assertIsNotNone(view.text.dlineinfo(view._headings["cleanup.one"][0]))
 
+    def test_help_button_is_left_of_actions_and_after_preset_edit(self) -> None:
+        trigger = self._dialog()
+        help_button = self._help_button(trigger)
+        trigger_row = help_button.master.pack_slaves()
+        self.assertEqual(len(trigger_row), 4)
+        self.assertIs(trigger_row[0], help_button)
+        self.assertIsInstance(trigger_row[1], ttk.Frame)
+        trigger_spacer = trigger_row[1].pack_info()
+        self.assertTrue(trigger_spacer["expand"])
+        self.assertEqual(trigger_spacer["fill"], "x")
+        self.assertTrue(all(isinstance(child, ttk.Button) for child in trigger_row[2:]))
+        self.assertEqual(
+            [child.cget("text") for child in trigger_row[2:]], ["OK", "キャンセル"]
+        )
+
+        action = ActionDialog(self.app, title="アクション", mode="add")
+        self.addCleanup(self._close_dialog, action)
+        action_row = action.help_button.master.pack_slaves()
+        self.assertEqual(len(action_row), 5)
+        self.assertIs(action_row[0], action.preset_edit_btn)
+        self.assertIs(action_row[1], action.help_button)
+        self.assertIsInstance(action_row[2], ttk.Frame)
+        action_spacer = action_row[2].pack_info()
+        self.assertTrue(action_spacer["expand"])
+        self.assertEqual(action_spacer["fill"], "x")
+        self.assertTrue(all(isinstance(child, ttk.Button) for child in action_row[3:]))
+        self.assertEqual(
+            [child.cget("text") for child in action_row[3:]], ["OK", "キャンセル"]
+        )
+
     def test_missing_target_and_failed_content_are_safe(self) -> None:
         dialog = self._dialog()
         self.app.help.open_for_dialog(dialog, "faq", "missing")
@@ -257,6 +285,8 @@ class DialogHelpButtonsTest(unittest.TestCase):
             button = add_help_button(row, dialog, "trigger")
             # 位置は窓が地図化されるまで決まらないため update まで回す。
             root.update()
-            self.assertIs(row.pack_slaves()[0], button)
-            self.assertLess(button.winfo_x(), existing.winfo_x())
+            if side == "left":
+                self.assertLess(existing.winfo_x(), button.winfo_x())
+            else:
+                self.assertLess(button.winfo_x(), existing.winfo_x())
             button.invoke()

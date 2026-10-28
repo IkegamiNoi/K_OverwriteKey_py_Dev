@@ -43,7 +43,7 @@ class ChildSaveDialog:
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill="both", expand=True)
         buttons = ttk.Frame(frame)
-        buttons.pack(side="bottom", anchor="e", pady=(12, 0))
+        buttons.pack(side="bottom", fill="x", pady=(12, 0))
         add_help_button(buttons, dialog, KEYMAP_SET)
         list_frame = ttk.Frame(frame)
         list_frame.pack(fill="both", expand=True)
