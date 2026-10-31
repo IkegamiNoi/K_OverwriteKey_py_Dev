@@ -46,7 +46,13 @@ class StatusIcon:
                     _logger.exception("Unable to create badge-only status icon for %s", state)
                     self._images[state] = ()
 
-    def _compose(self, state, bases, sizes, full):
+    def _compose(
+        self,
+        state: HookDisplayState,
+        bases: dict[int, tk.PhotoImage],
+        sizes: list[int],
+        full: bool,
+    ) -> tuple[tk.PhotoImage, ...]:
         images = []
         for size in sizes:
             image = tk.PhotoImage(master=self._root, width=size, height=size)

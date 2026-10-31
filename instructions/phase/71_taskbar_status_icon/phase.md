@@ -55,7 +55,7 @@
 - task_02: 土台の部品 — `bundled_paths.py` の昇格（`parents[2]`・`status_icon_dir()`）・`hook_display_state` とステータス欄での利用・`badge_shapes.py`（印の形の純関数）+ tests。
 - task_03: アイコンの反映 — `StatusIcon`（画像の読込・合成・設定・状態の記録）・サンプル画像 2 枚・`update_status` と起動時の結線・AppUserModelID（`set_app_user_model_id` と `main.py`）+ tests / tests_ui。
 - task_04: 統合確認 — tests / tests_ui / smoke・二次レビュー（deep-reviewer + codex-reviewer）。
-- task_05: 実機目視・正本反映（features.md §4.5・codebase_map・architecture・土台の画像のライセンスの扱い〔暫定 54 §12〕）・暫定 54 凍結・decisions_archive/71・current.md 完了記載・idea_55 の完了移動（INDEX.md → INDEX_done.md）・`/refactor_check`。
+- task_05: 実機目視・正本反映（features.md §4.5・features.md「バージョン情報・ライセンス」の `bundled_paths` の旧パス〔1005 行付近〕・codebase_map〔149 行のツリー位置ほか〕・architecture・土台の画像のライセンスの扱い〔暫定 54 §12〕）・暫定 54 凍結・decisions_archive/71・current.md 完了記載・idea_55 の完了移動（INDEX.md → INDEX_done.md）・`/refactor_check`。
 
 ## レビュー方針
 

@@ -254,7 +254,9 @@ class AppUserModelIdTests(unittest.TestCase):
         function.assert_called_once_with("keyseq.app")
         self.assertEqual(function.argtypes, [win32_window.wintypes.LPCWSTR])
         self.assertIs(function.restype, win32_window.ctypes.c_long)
-        self.assertFalse(self._call(1)[0])
+        with self.assertLogs("keyseq.infrastructure.win32_window", level="WARNING") as logs:
+            self.assertFalse(self._call(1)[0])
+        self.assertIn("HRESULT=0x00000001", logs.output[0])
 
     def test_exception_returns_false_and_logs_once(self):
         with patch.object(win32_window.sys, "platform", "win32"), patch.object(

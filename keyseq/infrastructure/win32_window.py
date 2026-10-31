@@ -75,7 +75,11 @@ def set_app_user_model_id(app_id: str) -> bool:
         function = getattr(ctypes.WinDLL("shell32"), "SetCurrentProcessExplicitAppUserModelID")
         function.argtypes = [wintypes.LPCWSTR]
         function.restype = ctypes.c_long
-        return function(app_id) == 0
+        result = function(app_id)
+        if result != 0:
+            _logger.warning("AppUserModelID の設定に失敗しました (HRESULT=0x%08X)", int(result) & 0xFFFFFFFF)
+            return False
+        return True
 
     return _guarded("app_user_model_id", False, call)
 
