@@ -9,7 +9,7 @@
 
 - **アクティブなフェーズ = [phase 71](71_taskbar_status_icon/phase.md)（タスクバーのアイコンで状態を表示）**（2026-10-31 起票・ユーザー判断で多言語対応より先に入れる。その後の予定 = 多言語対応 → Mac 対応）。
   タスクバーのアイコンの右上に色＋形の印（ON = 緑● / OFF = 赤■ / 一時停止 = 黄‖）を重ね、ステータス欄の 3 状態と常に一致させる。土台はサンプル画像（後でユーザーが差し替え）・子窓も同じ・新規依存なし・JSON スキーマ不変。
-  暫定仕様先行モード・主入力 = [暫定 54](../history/54_taskbar_status_icon.md)（v0.3・ユーザー確定済）・起票元 = [idea_55](../backlog/idea_55_taskbar_status_icon.md)・番号対応 phase 71 / 暫定 54 / decisions 71。
+  暫定仕様先行モード・主入力 = [暫定 54](../history/54_taskbar_status_icon.md)（v0.4・ユーザー確定済）・起票元 = [idea_55](../backlog/idea_55_taskbar_status_icon.md)・番号対応 phase 71 / 暫定 54 / decisions 71。
   **次採番 = phase 72 / 暫定 55 / decisions 72 / 提案書 28 / idea 56**（暫定 47 は idea_53 で保留中の番号）。
 - 直前の完了フェーズ = [phase 70](70_help_window/phase.md)（2026-10-29・ヘルプの作成〔メニュー「ヘルプ」・非モーダルで同時に 1 つのヘルプの窓〔タブ「主要機能」「QA」・2 段の開閉・絞り込み・入力欄のフォーカスでフック停止〕・ダイアログ 12 か所の「?」〔下端の左寄せ〕・バージョン情報〔`__version__` 0.1.0〕・同梱物 14 件のライセンス全文・「画面の枠」→ カーソルグリッド / マス〕。暫定仕様先行モード〔暫定 53 v0.7 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・判断は [decisions_archive/70](../../.claude_data/state/decisions_archive/70_help_window.md)・refactor_check 推奨 → [提案書 27](../modified_proposal/27_refactor_help_window.md)（保留））。
 - その前の完了フェーズ = [phase 69](69_keyboard_ui_key_labels/phase.md)（2026-10-26・キーボードUIのキー名の表示と最小サイズ〔キーの内側に収まるまで文字を縮め `\n` でだけ改行・レイアウトの JSON の `key_display_names` で送信先の表示名・最小 = 1u のキー 27px・変えた幅をレイアウトごとに `keyboard_window_widths` へ記録・見本 us_tkl.json〕。暫定仕様先行モード〔暫定 52 v0.4 凍結〕・**JSON スキーマ = 任意キーの追加**・起票元 = ユーザー要望・判断は [decisions_archive/69](../../.claude_data/state/decisions_archive/69_keyboard_ui_key_labels.md)・refactor_check 推奨 → [提案書 26](../modified_proposal/26_refactor_keyboard_ui_key_labels.md)（保留））。
@@ -127,7 +127,7 @@
   **phase 68 は 2026-10-24 完了**（`68_ui_terminology` / 暫定 51〔v0.8・凍結〕/ decisions 68〔アーカイブ済〕）。
   **phase 69 は 2026-10-26 完了**（`69_keyboard_ui_key_labels` / 暫定 52〔v0.4・凍結〕/ decisions 69〔アーカイブ済〕）。
   **phase 70 は 2026-10-29 完了**（`70_help_window` / 暫定 53〔v0.7・凍結〕/ decisions 70〔アーカイブ済〕）。
-  **phase 71 は 2026-10-31 起票・進行中**（`71_taskbar_status_icon` / 暫定 54〔v0.3〕/ decisions 71）。
+  **phase 71 は 2026-10-31 起票・進行中**（`71_taskbar_status_icon` / 暫定 54〔v0.4〕/ decisions 71）。
   次フェーズは **`72_<topic>`**・decisions も **72** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -176,7 +176,7 @@
   48=受け取りと送信が同じレイアウトの写しを使う〔v0.3・ユーザー確定・phase 65 の主入力〕）。
   49〜52 = phase 66〜69 の主入力〔いずれも**凍結**・52 = キーボードUIのキー名の表示と最小サイズ v0.4〕 /
   53 = ヘルプの作成〔**v0.7・凍結**・phase 70 の主入力〕 /
-  54 = タスクバーのアイコンで状態を表示〔v0.3・ユーザー確定・phase 71 の主入力〕 /
+  54 = タスクバーのアイコンで状態を表示〔v0.4・ユーザー確定・phase 71 の主入力〕 /
   次採番は **`55_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**27 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
