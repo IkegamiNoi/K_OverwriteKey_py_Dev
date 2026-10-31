@@ -7,7 +7,7 @@ import unittest
 
 import keyseq
 from keyseq.presentation.help.help_targets import DIALOG_TARGETS
-from keyseq.presentation.help.bundled_paths import (
+from keyseq.presentation.bundled_paths import (
     bundled_root,
     help_content_dir,
     help_content_path,

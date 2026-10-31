@@ -7,7 +7,7 @@ import json
 from pathlib import Path
 import unicodedata
 
-from keyseq.presentation.help.bundled_paths import help_content_path
+from keyseq.presentation.bundled_paths import help_content_path
 
 
 @dataclass(frozen=True)

@@ -9,7 +9,7 @@ import unittest
 from contextlib import contextmanager
 import tempfile
 
-from keyseq.presentation.help import bundled_paths
+from keyseq.presentation import bundled_paths
 from keyseq.presentation.help.third_party import load_license_text, load_third_party
 
 

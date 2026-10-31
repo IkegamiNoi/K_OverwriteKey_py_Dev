@@ -23,7 +23,7 @@ from keyseq.presentation.controllers.trigger_panel.select_before_run import sync
 from keyseq.presentation.controllers.trigger_panel.trigger_list_edit import TriggerListEditFlow
 from keyseq.presentation.controllers.trigger_panel.trigger_row_edit import TriggerRowEditFlow
 from keyseq.presentation.listbox_range_drag import select_range, selected_range
-from keyseq.presentation.status_text import one_line
+from keyseq.presentation.status_text import HOOK_STATE_LABELS, hook_display_state, one_line
 
 
 class TriggerPanelController:
@@ -407,12 +407,9 @@ class TriggerPanelController:
             pass
 
     def update_status(self):
-        if not self._app.hook.hook_active:
-            hook_state = "OFF"
-        elif not self._app.hook.custom_input_enabled:
-            hook_state = "一時停止"
-        else:
-            hook_state = "ON"
+        hook_state = HOOK_STATE_LABELS[hook_display_state(
+            self._app.hook.hook_active, self._app.hook.custom_input_enabled
+        )]
         keymap_text = self._app.keymap_panel.get_active_keymap_name()
         sel_key = self.selected_trigger_key() or "（未選択）"
         effective = self.selected_trigger_is_effective()

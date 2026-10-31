@@ -4,7 +4,7 @@ from dataclasses import dataclass
 import json
 from pathlib import Path
 
-from keyseq.presentation.help.bundled_paths import license_path, third_party_dir
+from keyseq.presentation.bundled_paths import license_path, third_party_dir
 
 
 @dataclass(frozen=True)

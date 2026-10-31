@@ -5,7 +5,7 @@ from pathlib import Path
 
 def bundled_root() -> Path:
     """同梱データの基準位置を返す。exe 化時の位置変更はこの関数に集約する。"""
-    return Path(__file__).resolve().parents[3]
+    return Path(__file__).resolve().parents[2]
 
 
 def license_path() -> Path:
@@ -22,3 +22,7 @@ def help_content_path(lang: str = "ja") -> Path:
 
 def third_party_dir() -> Path:
     return help_content_dir() / "third_party"
+
+
+def status_icon_dir() -> Path:
+    return bundled_root() / "keyseq" / "presentation" / "status_icon" / "images"
