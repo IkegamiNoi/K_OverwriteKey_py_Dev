@@ -58,6 +58,7 @@ def _guarded(name: str, default: _T, call: Callable[[], _T]) -> _T:
 
 
 _ERROR_MESSAGES = {
+    "app_user_model_id": "AppUserModelID の設定に失敗しました",
     "foreground": "前面ウィンドウのプロセス判定に失敗しました",
     "foreground_window": "前面ウィンドウ HWND の取得に失敗しました",
     "place_window_below": "ウィンドウ位置の変更に失敗しました",
@@ -67,6 +68,16 @@ _ERROR_MESSAGES = {
     "vk_char": "仮想キーコードから文字への変換に失敗しました",
     "click_through_overlay": "クリック透過ウィンドウの設定に失敗しました",
 }
+
+
+def set_app_user_model_id(app_id: str) -> bool:
+    def call() -> bool:
+        function = getattr(ctypes.WinDLL("shell32"), "SetCurrentProcessExplicitAppUserModelID")
+        function.argtypes = [wintypes.LPCWSTR]
+        function.restype = ctypes.c_long
+        return function(app_id) == 0
+
+    return _guarded("app_user_model_id", False, call)
 
 
 class _MONITORINFO(ctypes.Structure):

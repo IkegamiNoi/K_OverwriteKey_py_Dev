@@ -55,6 +55,8 @@ from keyseq.presentation.startup_settings import load_startup_settings
 from keyseq.presentation.theme import apply_global_theme, coerce_font_delta
 from keyseq.presentation.modal import install_minimize_grab_custody
 from keyseq.presentation.status_text import one_line
+from keyseq.presentation.status_icon import StatusIcon
+from keyseq.presentation.bundled_paths import status_icon_dir
 from keyseq.presentation.screen_grid import ScreenGridController
 from keyseq.presentation.key_capture_hook import KeyCaptureHook
 from keyseq.presentation.key_capture_ime import (
@@ -137,6 +139,8 @@ class App(tk.Tk):
         self._retained_hook_keys: dict[str, str] | None = None
 
         self.title("Key Replacer Sequencer (Multi Trigger)")
+        self.status_icon = StatusIcon(self, status_icon_dir())
+        self.status_icon.apply("off")
         width = parse_saved_window_width(
             self._startup_settings.get(WINDOW_WIDTH_KEY), self.winfo_screenwidth(),
         )

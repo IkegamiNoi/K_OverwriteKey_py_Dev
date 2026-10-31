@@ -233,3 +233,40 @@ class MouseButtonDownTests(unittest.TestCase):
         ) as load_user32:
             self.assertFalse(win32_window.is_mouse_button_down())
         load_user32.assert_not_called()
+
+
+class AppUserModelIdTests(unittest.TestCase):
+    def setUp(self) -> None:
+        win32_window._logged_errors.clear()
+
+    def _call(self, result=0):
+        function = Mock(return_value=result)
+        shell32 = Mock(SetCurrentProcessExplicitAppUserModelID=function)
+        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+            win32_window.ctypes, "WinDLL", return_value=shell32, create=True
+        ):
+            value = win32_window.set_app_user_model_id("keyseq.app")
+        return value, function
+
+    def test_success_and_failure_hresult(self):
+        success, function = self._call(0)
+        self.assertTrue(success)
+        function.assert_called_once_with("keyseq.app")
+        self.assertEqual(function.argtypes, [win32_window.wintypes.LPCWSTR])
+        self.assertIs(function.restype, win32_window.ctypes.c_long)
+        self.assertFalse(self._call(1)[0])
+
+    def test_exception_returns_false_and_logs_once(self):
+        with patch.object(win32_window.sys, "platform", "win32"), patch.object(
+            win32_window.ctypes, "WinDLL", side_effect=OSError("failed"), create=True
+        ), self.assertLogs("keyseq.infrastructure.win32_window", level="ERROR") as logs:
+            self.assertFalse(win32_window.set_app_user_model_id("keyseq.app"))
+            self.assertFalse(win32_window.set_app_user_model_id("keyseq.app"))
+        self.assertEqual(len(logs.records), 1)
+
+    def test_non_windows_returns_false(self):
+        with patch.object(win32_window.sys, "platform", "linux"), patch.object(
+            win32_window.ctypes, "WinDLL", create=True
+        ) as load_library:
+            self.assertFalse(win32_window.set_app_user_model_id("keyseq.app"))
+        load_library.assert_not_called()
