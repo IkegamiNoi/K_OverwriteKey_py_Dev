@@ -46,6 +46,8 @@
 * UI（tkinter）: FullView / CompactView / KeyboardWindow / ダイアログ
 * イベント処理・各コントローラ
 * ヘルプ・ライセンスの表示は `keyseq/presentation/help/` に置く。`HelpWindowController` はヘルプ窓を、`LicenseWindowController` はライセンス窓をそれぞれ管理し、ヘルプ本文・絞り込み・同梱ライセンスの読込もこのパッケージ内で行う。バージョン情報の表示は、層の外の `keyseq/__init__.py` が公開する `__version__` を参照する。
+* 同梱データ（LICENSE・ヘルプ本文・ライセンス全文・アイコンの土台の画像）の位置は `keyseq/presentation/bundled_paths.py` の `bundled_root()` に集約する（exe 化時の変更点を 1 か所に・phase 71 で `help/` から昇格）。
+* タスクバーのアイコン（フックの状態の印）は `keyseq/presentation/status_icon/` に置く。印の形の計算は Tk に依存しない純関数（`badge_shapes`）、画像の合成と窓への設定は `StatusIcon`。AppUserModelID の設定（Win32）は infrastructure の `win32_window.set_app_user_model_id` で、エントリーポイント `main.py` から呼ぶ（最初の窓を作る前に 1 回だけ設定するため）。
 
 ### 3.4 UI スレッド
 

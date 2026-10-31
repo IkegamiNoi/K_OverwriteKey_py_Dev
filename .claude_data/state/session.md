@@ -4,42 +4,52 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-10-29T18:00:00
-phase: **アクティブなフェーズ = なし**（phase 70 = ヘルプの作成は 2026-10-29 完了・暫定 53 v0.8 凍結・`decisions_archive/70_help_window.md`）。次採番 = phase 71 / 暫定 54 / decisions 71 / 提案書 28 / idea 55
-直前の完了フェーズ = **phase 70**（ヘルプの作成）。予定 = 多言語対応 → Mac 対応（次フェーズはユーザー判断で `/phase_start`）
-last_commit_location: `claude/ui-wording-improvement-4eaa76`（phase 70 の task_06 以降〜完了）。main へのマージはユーザー（PR は作らない）
+last_updated: 2026-11-01T01:30:00
+phase: **アクティブなフェーズ = なし**（phase 71 = タスクバーのアイコンで状態を表示は 2026-11-01 完了・暫定 54 v0.4 凍結・`decisions_archive/71_taskbar_status_icon.md`）。次採番 = phase 72 / 暫定 55 / decisions 72 / 提案書 28 / idea 56
+直前の完了フェーズ = **phase 71**（タスクバーのアイコン）。予定 = 多言語対応 → Mac 対応（次フェーズはユーザー判断で `/phase_start`）
+last_commit_location: `claude/taskbar-app-status-indicator-f73d28`（phase 71 一式）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 70 完了（2026-10-29）。** 実機目視 15 項目 → 2 件を task_08a（「?」を下端の左寄せ・「用語」の注記）で修正 → 正本反映・凍結 → 完了判定前レビュー（Codex 敵対的 1・deep 修正して完了可 10）→ task_08b（「?」とプリセット編集…で記録を止める）・文書の指摘を反映。refactor_check = 推奨（M3）→ 提案書 27 = 保留（ユーザー判断）。
-mode: idle
+focus: **phase 71 完了（2026-11-01）。** 窓のアイコンの右上にステータス欄と同じ 3 状態の印（白い正方形の上の緑の円 / 赤の正方形 / 黄の棒 2 本）・土台はサンプル画像（ユーザーが差し替え）・子窓は既定のアイコンで追従・起動時に AppUserModelID。実機目視すべて OK・refactor_check = 不要。
+mode: completed
 presence: present
 
 ## last_action
-ts: 2026-10-29T18:00:00
+ts: 2026-11-01T01:30:00
 who: main
 summary: |
-  task_08a = 500c3e7 / task_08 正本反映 WIP = 9eaaaff / 完了判定前レビューの反映と task_08b = 最終コミット。
-  ユーザー判断（2026-10-29・推奨どおり）: A = 08b で修正 / B = 正本をライセンスの窓は Ctrl+C のみに（確定設計どおり）/ 文書の指摘を反映 / 提案書 27 保留。
+  task_05 = 実機目視 OK → 正本反映（features §4.5「タスクバーのアイコン」・同梱物の段落・architecture・codebase_map）・暫定 54 凍結・decisions_archive/71・current.md・idea_55 を INDEX_done へ・refactor_check 不要（M4・M6 の境界事例を別タスク化候補へ）。
+  完了判定前レビュー: Codex 敵対的 approve / deep-reviewer 修正して完了可 → 1・2・3 を文書で反映・4 保留・5 除外。コード変更なし（文書のみ）。
+result_files:
+  - instructions/common/spec_detail/features.md
+  - instructions/common/spec_detail/architecture.md
+  - instructions/common/codebase_map.md
+  - instructions/history/54_taskbar_status_icon.md
+  - instructions/phase/current.md
+  - instructions/phase/71_taskbar_status_icon/tasks/task_05_canon_and_close.md
+  - instructions/backlog/INDEX.md / INDEX_done.md
+  - .claude_data/state/decisions_archive/71_taskbar_status_icon.md / decisions.md
 verified:
   compile: pass
-  tests: pass（1856・skip 7）
-  tests_ui: pass（1202）
+  tests: pass（1867・skip 7）
+  tests_ui: pass（1210）
   smoke: pass
 
 ## next_action
 - 次フェーズはユーザー判断（予定 = 多言語対応 → Mac 対応）。`/phase_start`
 - main へのマージはユーザー（PR は作らない）
-- 実機目視（任意）: JIS 配列でトリガーの追加・編集の記録中に「?」→ 絞り込み欄で半角/全角が効く
+- 土台の画像の差し替え（任意・ユーザー）: `keyseq/presentation/status_icon/images/app_icon_16.png` / `app_icon_32.png` を同じ名前の正方形 PNG で置き換え → 起動して見え方を確認
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない
 
 ## resume_hints
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
-- **phase 70 の実測（2026-10-27）**: `dialog.grab_set()` の下で `Toplevel(dialog)` は実入力（SetCursorPos + mouse_event / keybd_event）のクリック・キーを受け、`Toplevel(root)` は受けない（probe の写しは暫定 53 §6.3）。実 App（`grab_modal`・最小化の預かり）での確認は task_04 の tests_ui / 実機目視で行う。
-- **phase 70 の版**: `__version__` はユーザーが直接またはユーザーの指示でだけ変更する（Claude が独断で上げない）。
 - **tests_ui は同時に 1 本だけ**走らせる。verifier には **`taskkill` で python.exe を一括終了しないこと**を必ず書く。
+- **phase 71**: タスクバーのアイコンは AppUserModelID（`main.py`）が無いと出ない。`App()` を直接作る tests_ui / smoke では設定されない。保留 2 件は current.md「別タスク化候補」。
+- **`__version__`** はユーザーが直接またはユーザーの指示でだけ変更する（Claude が独断で上げない）。
+- **Codex は Python で既存ファイルを編集しようとして失敗することがある** → 依頼文に「apply_patch で編集・Python を使わない」と書く（phase 71）。
 - **素の `python` を Bash で呼ばない**（必ず `..\..\..\.venv\Scripts\python.exe`）。Bash の heredoc の前に `cat > file` を単独で書かない（stdin 待ちでハングする）。
 - **Codex は互換の工夫・テストの期待値の推測を足すことがある**。差分を直読みしてから verifier / reviewer へ。Codex は LF を混ぜることがある（コミットは git が正規化）。
 - カーソルグリッド（旧称「画面の枠」・phase 56・57）の地図 = `codebase_map.md`「カーソルグリッド（phase 56・57）」。振り分けは `suppress_keys` 1 本（`screen_grid_session._publish_snapshot`）/ 操作キーは `domain/screen_grid/ops.py`。

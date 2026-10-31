@@ -4,7 +4,7 @@
 
 main.py
 
-- App を起動する
+- 最初の窓を作る前に AppUserModelID（`APP_USER_MODEL_ID = "keyseq.app"`）を `infrastructure/win32_window.set_app_user_model_id` で設定し、App を起動する（phase 71・タスクバーにアイコンの差し替えを出すため）
 - `keyseq/__init__.py` の `__version__`（`0.1.0`）が版の唯一の定義。バージョン情報はこれを参照する
 
 ---
@@ -29,7 +29,7 @@ domain
 infrastructure
 - keyboard フック
 - JSON入出力
-- `keyseq/infrastructure/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）
+- `keyseq/infrastructure/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）/ `set_app_user_model_id`（shell32・失敗は偽とログ・phase 71）
 - `keyseq/infrastructure/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `keyseq/infrastructure/own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（`get_open_status` / `set_open_status`・キーの記録中・phase 60）
 
 ---
@@ -146,7 +146,6 @@ keyseq/presentation/
       version_dialog.py        # open_version_dialog: バージョン情報のモーダル
       license_window.py        # LicenseWindow / LicenseWindowController: ライセンスの表示と単一性・前面化
       third_party.py           # 同梱物の一覧・全文と本体 LICENSE の読込
-      bundled_paths.py         # bundled_root: 同梱データの基準位置（各パスの解決を集約）
       content/                 # help_ja.json / third_party/（third_party.json + ライセンス全文 14 個）
     screen_grid/               # カーソルグリッド（phase 56・下の「カーソルグリッド」節）
       screen_grid_controller.py  # ScreenGridController: ScreenGridSession と infrastructure / 窓の配線・sync / handle / 失敗時に畳む・on_font_changed
@@ -158,7 +157,12 @@ keyseq/presentation/
     compact_header_view.py     # `compact_header_view` の検証（`parse_compact_header_view`: 値ごとに bool 以外は開く・dict でなければ両方開く・tkinter 非依存・phase 58）
     compact_window_size.py     # `compact_window_size` の検証と簡易表示の大きさの計算（最小の高さ・主モニタへの切り詰め・tkinter 非依存・phase 48）
     hover_tooltip.py           # HoverTooltip / bind_hover_tooltip: callable の全文をホバーで表示・refresh で差し替え / 閉じる（phase 49）
-    status_text.py             # one_line: 簡易表示中のステータス欄・ステータスバーの文言の改行を空白へ（phase 48）
+    status_text.py             # one_line: 簡易表示中のステータス欄・ステータスバーの文言の改行を空白へ（phase 48）/ hook_display_state・HOOK_STATE_LABELS: フックの 3 状態の判定（OFF 優先）と文言。ステータス欄とアイコンで共用（phase 71）
+    bundled_paths.py           # bundled_root: 同梱データの基準位置（各パスの解決を集約・phase 71 で help/ から昇格）/ status_icon_dir
+    status_icon/               # タスクバーのアイコン（phase 71・下の「メニュー / ステータス」）
+      badge_shapes.py          # badge_pixels / pixel_runs: 印の形の画素と行ごとのまとめ（Tk 非依存）・BADGE_COLORS
+      status_icon.py           # StatusIcon: 土台の画像の読込・印の合成（失敗は印だけ）・apply(state) でルートの既定のアイコンを差し替え（同じ状態は省略・成功時だけ記録）
+      images/                  # app_icon_16.png / app_icon_32.png（サンプル・ユーザーが差し替える）
     pane_width_rules.py        # 詳細表示の幅配分の純関数（保存値の検証・最小幅・可動範囲・収まらない場合の最終値〔ヘッダ幅込み〕・ドラッグ後の最小幅・既定幅と 780 基準・起動時の保存値更新の判定。tkinter 非依存）
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
     key_capture_ime.py         # KeyCaptureImeTracker / begin_key_capture・end_key_capture: キーの記録中は IME を OFF にする寿命の部品（入口ごとの数と「OFF にした」印・開始 / 終了の冪等・窓自身の `<Destroy>` で終了・既定インスタンスはモジュール変数・phase 60）/ 受け取りの関数 `on_hook_key`・世代・フォーカスの窓への受け渡し `deliver`・記録用のフックの設定 `configure_capture_hook`（phase 66）
@@ -644,7 +648,8 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   「**履歴から読み込む…**」を持つ（phase 27・`data_schema.md` §5.12）。**テストはメニュー項目をインデックスで固定しない**
   （top-level menubar には tearoff があり位置がずれる。カスケードとラベルで探す）。
   **build と bind は別関数**（フォントサイズ変更時はメニューのみ再構築し、バインドは再実行しない）。
-- ステータス欄の文言は `TriggerPanelController.update_status`: `フック: ON / OFF / 一時停止`（OFF 優先）+ `キーマップ: <名前>`（`KeymapPanelController.get_active_keymap_name`。一時メッセージは名前 + 状態の `get_active_keymap_text` のまま・phase 58）
+- ステータス欄の文言は `TriggerPanelController.update_status`: `フック: ON / OFF / 一時停止`（OFF 優先・`status_text.hook_display_state`）+ `キーマップ: <名前>`（`KeymapPanelController.get_active_keymap_name`。一時メッセージは名前 + 状態の `get_active_keymap_text` のまま・phase 58）
+- タスクバーのアイコン（phase 71）: `update_status` が判定の直後・簡易表示の分岐より前に `app.status_icon.apply(state)` を呼ぶ（`status_icon` を持たない App では何もしない）。`App.__init__` が `title` の直後に `StatusIcon(self, status_icon_dir())` を作り `apply("off")`。`iconphoto` の呼び出しは `StatusIcon.apply` の 1 か所（`default=True`・子窓へ個別に設定しない）
 - status_bar.py: `build_status_area(app, parent)`（「ステータス」欄 + 下部ステータスバー: ファイル状態 / 一時メッセージ）。
   両方とも `side="bottom"` で本体（`app.outer`）より先に pack する（縦を縮めても押し出されない・phase 48）。簡易表示中の文言は `status_text.one_line` で 1 行化（ステータス欄 2 行 / ステータスバー 1 行）。
   詳細表示 / 簡易表示とも Label の要求幅が実幅（1 より大）を超える3欄だけ、共有 `hover_tooltip` で改行を残した全文を表示する。全文 / 表示変数の書き込みと `<Configure>` から idle 後に `refresh()` し、表示中の文言変更・幅 / フォント変更に追従（見切れ解消・空文言は閉じる・phase 49）
