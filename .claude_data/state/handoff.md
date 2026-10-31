@@ -15,17 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 70 = ヘルプの作成は 2026-10-29 完了〕・次フェーズはユーザー判断で `/phase_start`。予定 = 多言語対応 → Mac 対応）。
-   次採番 = phase 71 / 暫定 54 / decisions 71 / 提案書 28 / idea 55（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 71 = タスクバーのアイコンで状態を表示は 2026-11-01 完了〕・次フェーズはユーザー判断で `/phase_start`。予定 = 多言語対応 → Mac 対応）。
+   次採番 = phase 72 / 暫定 55 / decisions 72 / 提案書 28 / idea 56（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
    **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md`（UI 用語と表記の正本・phase 68）に従う**。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜53）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜54）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 70 完了（2026-10-29・ヘルプの作成）。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。**
-ブランチ `claude/ui-wording-improvement-4eaa76`（phase 70 の task_06 以降〜完了。task_01〜05 は `claude/task-sequential-execution-728512`）。main へのマージはユーザー（PR は作らない）。
+**phase 71 完了（2026-11-01）。** 窓のアイコンの右上にステータス欄と同じ 3 状態の印（白い正方形の上の緑の円 / 赤の正方形 / 黄の棒 2 本）・土台はサンプル画像（ユーザーが差し替え）・子窓は既定のアイコンで追従・起動時に AppUserModelID。実機目視すべて OK・refactor_check = 不要。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。
+ブランチ `claude/taskbar-app-status-indicator-f73d28`（phase 71 一式）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 70 完了 = 2026-10-29**）:
-compile **clean** / tests **1856 pass**（skip 7）/ tests_ui **1202 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1834〔phase 69〕→ 1856 / tests_ui: 1164 → 1202）。
+直近の実測（**phase 71 完了 = 2026-11-01**）:
+compile **clean** / tests **1867 pass**（skip 7）/ tests_ui **1210 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1856〔phase 70〕→ 1867 / tests_ui: 1202 → 1210）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -56,18 +56,16 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 
 ## 次アクション（session.md.next_action より）
 - 次フェーズはユーザー判断（予定 = 多言語対応〔ヘルプ本文 `help_ja.json` を言語別に増やす・アクションの種類の内部名の表示名化・`child_kind_labels.py` の表を辞書へ〕→ Mac 対応）。`/phase_start`
-- 実機目視（任意）: JIS 配列でトリガーの追加・編集の記録中に「?」→ 絞り込み欄で半角/全角が効く
-- 保留 = 提案書 26（`redraw` 100 行）・提案書 27（`app.py` の同型 try/except 5 個）
+- 土台の画像の差し替え（任意・ユーザー）: `keyseq/presentation/status_icon/images/app_icon_16.png` / `app_icon_32.png` を同じ名前の正方形 PNG で置き換え → 起動して見え方を確認
+- 保留 = 提案書 26（`redraw` 100 行）・提案書 27（`app.py` の同型 try/except 5 個）・phase 71 の保留 2 件（current.md「別タスク化候補」）
 - main へのマージはユーザー（PR は作らない）
 
-## 直前のフェーズ（phase 70 = ヘルプの作成・判断は `decisions_archive/70_help_window.md`）
-- 正本 = `features.md` §4.6（メニュー「ヘルプ」・ヘルプの窓・「?」・モーダルダイアログの作法の例外・バージョン情報・ライセンス）/ `key_input.md` §7.2 / `ui_terms.md` A22 / 地図 = `codebase_map.md` の `presentation/help/`
-- 本文 = `presentation/help/content/help_ja.json`（大分類 15・項目 65・id は不変）。同梱物のライセンス = `content/third_party/third_party.json`（14 件・版は `tests/test_third_party.py` が `.venv` と照合）。`__version__` はユーザーの指示でだけ変える
-- 「画面の枠」→ **カーソルグリッド**（機能・全体）/ **マス**（区画）。「グリッド」単独に略さない。別の意味の「枠」（3 枠・ステータス枠・表示枠・枠線）は変えない。識別子・JSON（`screen_grid`）は不変
-- 「?」= `add_help_button`（下端の左寄せ・後から pack したボタンは右寄せ）。キーの記録を持つダイアログは `before_open` に Esc と同じ停止の関数を渡す
-- **【罠・phase 70】未表示（未マップ）の Toplevel の tests_ui で `winfo_rootx` の座標を比べない**（幅が縮んで並びが詰まる）。pack の順と設定で検証する
-- **【罠・phase 70】grid と pack を同じ親に混ぜると TclError**（表示切替の `_show` は grid 専用。pack へ移すなら切替も pack / pack_forget へ）
-- **【傾向・phase 70】実機目視の項目は確定設計を越えて書かない**（ライセンスの窓の右クリックを目視項目に入れ、実装に無いまま OK と報告された）
+## 直前のフェーズ（phase 71 = タスクバーのアイコン・判断は `decisions_archive/71_taskbar_status_icon.md`）
+- 正本 = `features.md` §4.5「タスクバーのアイコン」/ `architecture.md`（presentation）/ 地図 = `codebase_map.md` の `presentation/status_icon/`・`bundled_paths.py`（`help/` から presentation 直下へ昇格）
+- 状態の判定は `status_text.hook_display_state`（ステータス欄と共用・OFF 優先）。反映は `update_status` の判定直後・簡易表示の分岐より前で `app.status_icon.apply(state)`。`iconphoto` の呼び出しは `StatusIcon.apply` の 1 か所（`default=True`・子窓へ個別に設定しない＝設定すると既定に追従しなくなる）
+- **AppUserModelID（`main.py`）が無いとタスクバーに出ない**（試作で実測）。`App()` を直接作る tests_ui / smoke では設定されない
+- **【罠・phase 71】`PhotoImage.put` に色の平たいタプルを渡すと 1 画素 1 行と解釈される**（行は `put((colors,), to=(x, y))`）
+- **【罠・phase 71】Codex が Python で既存ファイルを編集しようとして失敗する**（依頼文に「apply_patch で編集・Python を使わない」と書く）
 
 ## 運用インフラ
 
@@ -149,7 +147,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 70_help_window / 69_keyboard_ui_key_labels / 68_ui_terminology）。
+  （直近 3 件: 71_taskbar_status_icon / 70_help_window / 69_keyboard_ui_key_labels）。
 - 新規の未着手: **idea_54**（押下だけのキーで IME が切り替わった件・再発時）/ **idea_53**（**保留・優先度 低**・暫定 47 v0.2）/ **idea_48**（取得中のフック再開）/ idea_50 は phase 66 で完了 / idea_51 は phase 65 で完了 / idea_45（取得の記号キーの名前）/ idea_44（カーソルグリッドの配色・題は旧称「画面の枠」のまま＝着手時に直す）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
   idea_29〜idea_31 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
