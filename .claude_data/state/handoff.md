@@ -24,7 +24,7 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜54）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 72 進行中（task_06 完了・task_07 はユーザー判断待ち）。** 画面の文言はすべてキー化済み（全層・ja.json 約 905 キー）。次は英語の表記の規則・用語・アクションの種類の表示名の確定（暫定 55 §8 Q4〜Q6）→ 英訳。
+**phase 72 進行中（task_01〜10 完了・task_11 の統合確認は済み・二次レビューの指摘の採否と task_12〔実機目視・正本反映〕はユーザー判断待ち）。** 日英の切り替え・全層の文言のキー化・en.json（915 キー）・help_en.json・日本語リテラルの静的検査まで入った。
 ブランチ `claude/multilingual-support-ff44eb`（phase 71 一式の上に phase 72）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 72 task_06 = 2026-11-01**）:
-compile **clean** / tests **1891 pass**（skip 7）/ tests_ui **1227 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1867〔phase 71〕→ 1891 / tests_ui: 1210 → 1227）。
+直近の実測（**phase 72 task_11 = 2026-11-01**）:
+compile **clean** / tests **1900 pass**（skip 7）/ tests_ui **1233 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1867〔phase 71〕→ 1900 / tests_ui: 1210 → 1233）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,14 +55,11 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー確認待ち】暫定 55 §8 の Q4〜Q6**（`instructions/history/55_multilingual_ui.md`・各推奨案つき）:
-  - Q4 英語の表記の規則 E1〜E6（推奨 = 文頭だけ大文字〔Windows 11 の作法〕・「…」は D3 と同じ・ラベルに句点なし・数は「Files: {n}」形式・Please を付けない）
-  - Q5 用語の英語（主な判断点 = A1 構成セット → **Profile**〔別案 Config set〕/ A17 退避 → **Archive** / A10 記録・取得 → Record / Pick）
-  - Q6 アクションの種類の表示名（ホットキー / 文字入力 / マウスのクリック / マウスのスクロール / 押下・解放 / 制御 / ファイルの行 ↔ Hotkey / Type text / Mouse click / Mouse scroll / Press / release / Control / File line）と表示する場所（推奨 = 種類のコンボボックスとマウスのボタンは表示名・出力シーケンスの一覧の行頭 `[hotkey]` は内部名のまま〔`domain/config.py:476-478`〕）
-- 確定したら: 暫定 55 を v0.4 へ（§2 へ移す）→ task_07 完了 → task_08（en.json の全キーの英訳・表示名の結線・test_i18n を全キーの検査に戻す）→ task_09（help_en.json）〜 task_12（実機目視・正本反映）
-- 土台の画像の差し替え（任意・ユーザー）: `keyseq/presentation/status_icon/images/app_icon_16.png` / `app_icon_32.png`
-- 保留 = 提案書 26・27・phase 71 の保留 2 件（current.md「別タスク化候補」）
-- main へのマージはユーザー（PR は作らない）
+- **【ユーザー確認待ち 1】二次レビューの指摘の採否**（`instructions/phase/72_multilingual_ui/tasks/task_11_integration.md` の表・各推奨つき）: C1（言語の知らせの間のフック停止・推奨 採用）/ D1（App の言語の決定のテスト・推奨 採用）/ D2（smoke の言語・推奨 §9 に例外として明記）/ D7（キーマップ追加の行の種類・推奨 採用）/ D3・D4 は正本の文面で / D5・D6・D8 は保留・不要
+- **【ユーザー確認待ち 2】英語のヘルプで JIS の特殊キー名に日本語を併記するか**（推奨 = 初出に `Muhenkan (無変換)` の形）
+- 採否が決まったら採用分を task_11a として実装 → verifier → reviewer
+- **【ユーザー作業】task_12 の実機目視**（English を選んで再起動 → 英語になるか・切れないか / 日本語に戻して今と同じか）→ 正本反映（暫定 55 §11 + task_11_integration.md の追加項目）・凍結・decisions_archive/72・current.md・/refactor_check
+- 土台の画像の差し替え（任意・ユーザー）/ 保留 = 提案書 26・27・phase 71 の保留 2 件 / main へのマージはユーザー
 
 ## 進行中のフェーズの要点（phase 72）
 - 文言カタログ = `keyseq/shared/i18n/`（`tr(key, /, **params)`・`tr_in`・選んだ言語 → en → ja → キー・`fix_language` / `reset_for_tests`）・`locales/ja.json`（正）/ `en.json`（今は 4 キーのみ・足りない文言は ja で出る）
