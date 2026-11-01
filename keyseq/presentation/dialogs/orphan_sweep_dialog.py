@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.help.help_button import add_help_button
 from keyseq.presentation.help.help_targets import CLEANUP
+from keyseq.shared.i18n import tr
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -20,7 +21,7 @@ class OrphanSweepDialog(tk.Toplevel):
         self.result: bool = False
         self.scan_dirs: tuple[str, ...] = scan_dirs
         self._initial_dir = initial_dir
-        self.title("未使用ファイルの整理")
+        self.title(tr("orphan_sweep.title"))
         self.resizable(False, False)
         self._build_widgets()
         self.bind("<Escape>", lambda _event: self.destroy())
@@ -30,8 +31,7 @@ class OrphanSweepDialog(tk.Toplevel):
     def _build_widgets(self) -> None:
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
-        ttk.Label(frm, text="追加で探すフォルダを指定してください。\n"
-                  "一覧の変更は「閉じる」でも保存されます。").pack(anchor="w")
+        ttk.Label(frm, text=tr("orphan_sweep.dialog.intro")).pack(anchor="w")
         list_frame = ttk.Frame(frm)
         list_frame.pack(fill="both", expand=True, pady=(10, 0))
         self.listbox = tk.Listbox(list_frame, height=8, width=60, exportselection=False)
@@ -43,13 +43,13 @@ class OrphanSweepDialog(tk.Toplevel):
             self.listbox.insert(tk.END, directory)
         edits = ttk.Frame(frm)
         edits.pack(anchor="e", pady=(8, 0))
-        ttk.Button(edits, text="追加…", command=self._add).pack(side="left", padx=(0, 8))
-        ttk.Button(edits, text="削除", command=self._remove).pack(side="left")
+        ttk.Button(edits, text=tr("common.add"), command=self._add).pack(side="left", padx=(0, 8))
+        ttk.Button(edits, text=tr("common.delete"), command=self._remove).pack(side="left")
         actions = ttk.Frame(frm)
         actions.pack(fill="x", pady=(14, 0))
         add_help_button(actions, self, CLEANUP)
-        ttk.Button(actions, text="整理を実行", command=self._run).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="閉じる", command=self.destroy).pack(side="left")
+        ttk.Button(actions, text=tr("orphan_sweep.dialog.run"), command=self._run).pack(side="left", padx=(0, 8))
+        ttk.Button(actions, text=tr("common.close"), command=self.destroy).pack(side="left")
 
     def _add(self) -> None:
         directory = filedialog.askdirectory(parent=self, initialdir=self._initial_dir)

@@ -9,7 +9,7 @@ from keyseq.presentation import app as app_module
 from keyseq.presentation.button_width_rules import fixed_button_width_chars
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs.keymap_switch_batch_dialog import KeymapSwitchBatchDialog
-from keyseq.presentation.hook_button_texts import CAPTURE_TEXTS
+from keyseq.presentation.hook_button_texts import capture_texts
 from keyseq.shared.i18n import fix_language
 
 fix_language("ja")
@@ -82,7 +82,7 @@ class KeymapSwitchBatchDialogTest(unittest.TestCase):
             font_spec = ttk.Style(button).lookup("TButton", "font")
             font = tkfont.Font(root=button, font=font_spec or "TkDefaultFont")
             expected = fixed_button_width_chars(
-                [font.measure(text) for text in CAPTURE_TEXTS], font.measure("0")
+                [font.measure(text) for text in capture_texts()], font.measure("0")
             )
             width = int(button.cget("width"))
             self.assertEqual(width, expected)

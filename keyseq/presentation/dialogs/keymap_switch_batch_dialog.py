@@ -8,10 +8,10 @@ from keyseq.domain.config import normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.hook_button_texts import (
-    CAPTURE_ACTIVE_TEXT,
-    CAPTURE_IDLE_TEXT,
-    CAPTURE_TEXTS,
-    UNKNOWN_CAPTURE_KEY_HINT_TEXT,
+    capture_active_text,
+    capture_idle_text,
+    capture_texts,
+    unknown_capture_key_hint_text,
 )
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
 from keyseq.presentation.modal import grab_modal
@@ -21,6 +21,7 @@ from keyseq.presentation.tk_keys import (
     is_unresolved_capture_key,
     normalize_tk_key_event,
 )
+from keyseq.shared.i18n import tr
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -64,7 +65,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         outer.pack(fill="both", expand=True)
         single_row = len(rows) == 1
         rows_frame = self._build_rows_area(outer, rows)
-        self.hint = ttk.Label(outer, text="例: 切替キー: 1\nラベル: numpad")
+        self.hint = ttk.Label(outer, text=tr("keymap_switch_batch.hint"))
         self._build_rows(rows_frame, rows, single_row, set(grid_option_rows))
         self.hint.pack(anchor="w", pady=(0, 0))
         self._build_buttons(outer)
@@ -122,20 +123,20 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
                 )
                 line += 1
 
-            ttk.Label(row, text="切替キー").grid(row=line, column=0, sticky="w")
+            ttk.Label(row, text=tr("app.hook.switch_key")).grid(row=line, column=0, sticky="w")
             key_var = tk.StringVar(value=initial_key or "")
             key_entry = ttk.Entry(row, textvariable=key_var, width=24, state="readonly")
             key_entry.grid(row=line, column=1, sticky="we", padx=(8, 0))
             capture_btn = ttk.Button(
                 row,
-                text=CAPTURE_IDLE_TEXT,
+                text=capture_idle_text(),
                 command=lambda i=index: self._toggle_capture(i),
             )
-            apply_fixed_button_width(capture_btn, CAPTURE_TEXTS)
+            apply_fixed_button_width(capture_btn, capture_texts())
             capture_btn.grid(row=line, column=2, sticky="w", padx=(8, 0))
 
             line += 1
-            ttk.Label(row, text="ラベル").grid(row=line, column=0, sticky="w", pady=(8, 0))
+            ttk.Label(row, text=tr("action_dialog.label.label")).grid(row=line, column=0, sticky="w", pady=(8, 0))
             label_var = tk.StringVar(value=initial_label or "")
             label_entry = ttk.Entry(row, textvariable=label_var, width=42)
             label_entry.grid(
@@ -149,7 +150,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             if index in grid_option_rows:
                 line += 1
                 grid_var = tk.BooleanVar(value=False)
-                ttk.Checkbutton(row, text="カーソルグリッドを使う", variable=grid_var).grid(
+                ttk.Checkbutton(row, text=tr("keymap_switch_batch.grid_enabled"), variable=grid_var).grid(
                     row=line, column=0, columnspan=3, sticky="w", pady=(6, 0)
                 )
                 self.grid_vars[index] = grid_var
@@ -159,7 +160,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         btns.pack(fill="x", pady=(14, 0))
         add_help_button(btns, self, KEYMAP, before_open=self._stop_capture)
         ttk.Button(btns, text="OK", command=self._ok).pack(side="right", padx=(8, 0))
-        ttk.Button(btns, text="キャンセル", command=self._cancel).pack(side="right")
+        ttk.Button(btns, text=tr("common.cancel"), command=self._cancel).pack(side="right")
 
     def _bind_dialog_events(self) -> None:
         self.bind("<Escape>", self._on_escape)
@@ -176,7 +177,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         error = self._validate(values)
         if error is not None:
             row_index, reason = error
-            messagebox.showerror("設定できません", reason, parent=self)
+            messagebox.showerror(tr("capture.error.title"), reason, parent=self)
             if 0 <= row_index < len(self.key_entries):
                 self._focus_key(row_index)
             return
@@ -221,10 +222,10 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         begin_key_capture(self, self, self._record_key)
         self._capturing = True
         self._capture_index = index
-        self.capture_buttons[index].configure(text=CAPTURE_ACTIVE_TEXT)
+        self.capture_buttons[index].configure(text=capture_active_text())
         for label_entry in self.label_entries:
             label_entry.configure(state="disabled")
-        self.hint.configure(text="記録中: 切替キーにしたいキーを1回押してください（Escでキャンセル）")
+        self.hint.configure(text=tr("keymap_switch_batch.capture_hint"))
         self.capture_buttons[index].focus_set()
         self.bind("<KeyPress>", self._on_capture_keypress, add="+")
 
@@ -236,10 +237,10 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
         index = self._capture_index
         self._capture_index = None
         if index is not None:
-            self.capture_buttons[index].configure(text=CAPTURE_IDLE_TEXT)
+            self.capture_buttons[index].configure(text=capture_idle_text())
         for label_entry in self.label_entries:
             label_entry.configure(state="normal")
-        self.hint.configure(text="例: 切替キー: 1\nラベル: numpad")
+        self.hint.configure(text=tr("keymap_switch_batch.hint"))
         try:
             self.unbind("<KeyPress>")
         except tk.TclError:
@@ -253,7 +254,7 @@ class KeymapSwitchBatchDialog(tk.Toplevel):
             return "break"
         key = normalize_tk_key_event(event)
         if is_unresolved_capture_key(key):
-            self.hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+            self.hint.configure(text=unknown_capture_key_hint_text())
             return "break"
         return self._record_key(key)
 

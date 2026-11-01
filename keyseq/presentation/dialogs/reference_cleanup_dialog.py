@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.help.help_button import add_help_button
 from keyseq.presentation.help.help_targets import CLEANUP
+from keyseq.shared.i18n import tr
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -19,8 +20,8 @@ class ReferenceCleanupDialog(tk.Toplevel):
         *,
         title: str,
         lines: tuple[str, ...],
-        header: str = "除去する参照元を確認してください。",
-        run_label: str = "実行",
+        header: str | None = None,
+        run_label: str | None = None,
     ):
         super().__init__(parent)
         self.parent = parent
@@ -35,7 +36,8 @@ class ReferenceCleanupDialog(tk.Toplevel):
         frame.grid_columnconfigure(0, weight=1)
         frame.grid_rowconfigure(1, weight=1)
 
-        ttk.Label(frame, text=header).grid(row=0, column=0, sticky="w")
+        header_text = tr("reference_cleanup.dialog.header") if header is None else header
+        ttk.Label(frame, text=header_text).grid(row=0, column=0, sticky="w")
         list_frame = ttk.Frame(frame)
         list_frame.grid(row=1, column=0, sticky="nsew", pady=(10, 0))
         list_frame.grid_columnconfigure(0, weight=1)
@@ -52,8 +54,9 @@ class ReferenceCleanupDialog(tk.Toplevel):
         buttons = ttk.Frame(frame)
         buttons.grid(row=2, column=0, sticky="ew", pady=(14, 0))
         add_help_button(buttons, self, CLEANUP)
-        ttk.Button(buttons, text=run_label, command=self._run).pack(side="left", padx=(0, 8))
-        ttk.Button(buttons, text="キャンセル", command=self.destroy).pack(side="left")
+        run_text = tr("reference_cleanup.dialog.run") if run_label is None else run_label
+        ttk.Button(buttons, text=run_text, command=self._run).pack(side="left", padx=(0, 8))
+        ttk.Button(buttons, text=tr("common.cancel"), command=self.destroy).pack(side="left")
 
         self.bind("<Escape>", lambda _event: self.destroy())
         self.protocol("WM_DELETE_WINDOW", self.destroy)

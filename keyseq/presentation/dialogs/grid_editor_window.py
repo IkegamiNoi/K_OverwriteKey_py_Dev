@@ -22,6 +22,7 @@ from keyseq.presentation.screen_grid.cell_label import (
     center_font_for_rect, corner_label_font, draw_cell_label,
 )
 from keyseq.presentation.screen_grid.crosshair import draw_crosshair
+from keyseq.shared.i18n import tr
 
 
 class GridEditorWindow(tk.Toplevel):
@@ -322,9 +323,9 @@ class GridEditorWindow(tk.Toplevel):
             entries = self.panel.sub_key_rows()
             for index, keys in enumerate(entries, start=1):
                 if len(keys) != cols:
-                    errors.append(f"細分化・段{index}: キーは{cols}個にしてください")
+                    errors.append(tr("screen_grid.editor.error.subdivision_key_count", index=index, columns=cols))
             if errors:
-                messagebox.showerror("カーソルグリッドを設定できません", "\n".join(errors), parent=self.panel)
+                messagebox.showerror(tr("screen_grid.editor.error.title"), "\n".join(errors), parent=self.panel)
                 return
             sub = SubLayout(int(self.panel.rows_var.get()), int(self.panel.cols_var.get()),
                             tuple(grid_key_name(k) for row in entries for k in row))
@@ -338,9 +339,9 @@ class GridEditorWindow(tk.Toplevel):
             frame_keys.update(cell.key for row in default_top_layout().rows for cell in row.cells)
             errors.extend(validate_ops(self.ops, self.reserved, frame_keys))
         except (ValueError, tk.TclError):
-            errors.append("細分化: 段数・列数は1〜9の整数にしてください")
+            errors.append(tr("screen_grid.editor.error.subdivision_range"))
         if errors:
-            messagebox.showerror("カーソルグリッドを設定できません", "\n".join(errors), parent=self.panel)
+            messagebox.showerror(tr("screen_grid.editor.error.title"), "\n".join(errors), parent=self.panel)
             return
         records = deepcopy(self._records)
         for monitor_id in self._edited:

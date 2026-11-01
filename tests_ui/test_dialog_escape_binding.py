@@ -17,7 +17,7 @@ from keyseq.presentation.dialogs.layout_delete_dialog import LayoutDeleteDialog
 from keyseq.presentation.dialogs.preset_dialog import PresetDialog
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
-from keyseq.presentation.hook_button_texts import CAPTURE_TEXTS
+from keyseq.presentation.hook_button_texts import capture_texts
 from tests_ui.escape_delivery import acquire_focus, send_escape
 from tests_ui.hook_resume_wait import wait_for_hook_pause_count
 from keyseq.shared.i18n import fix_language
@@ -176,7 +176,7 @@ class DialogEscapeBindingTest(unittest.TestCase):
         font_spec = ttk.Style(button).lookup("TButton", "font")
         font = tkfont.Font(root=button, font=font_spec or "TkDefaultFont")
         expected = fixed_button_width_chars(
-            [font.measure(text) for text in CAPTURE_TEXTS], font.measure("0")
+            [font.measure(text) for text in capture_texts()], font.measure("0")
         )
         width = int(button.cget("width"))
 

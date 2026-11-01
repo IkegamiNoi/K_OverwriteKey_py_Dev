@@ -88,6 +88,43 @@ class HelpContentTest(unittest.TestCase):
             with self.subTest(data=data), self.assertRaises(ValueError):
                 parse_help_content(data)
 
+    def test_validation_errors_keep_exact_japanese_text(self) -> None:
+        invalid_id = valid_data()
+        invalid_id["tabs"] = {
+            "guide": [category(items=[{
+                "id": "other.item", "title": "項目", "body": [],
+            }])],
+            "faq": [],
+        }
+        cases = (
+            ([], "ルート は object でなければなりません"),
+            ({"format": 2, "tabs": {}}, "format は整数の 1 でなければなりません"),
+            ({"format": 1, "tabs": {}}, "tabs に guide と faq が必要です"),
+            (invalid_id,
+             'tabs.guide[0].items[0].id は "guide.名前" の形式でなければなりません'),
+        )
+        for data, expected in cases:
+            with self.subTest(expected=expected), self.assertRaises(ValueError) as raised:
+                parse_help_content(data)
+            self.assertEqual(str(raised.exception), expected)
+
+    def test_io_error_prefixes_keep_exact_japanese_text(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            bad_json = base / "bad.json"
+            bad_json.write_text("{", encoding="utf-8")
+            bad_utf8 = base / "utf8.json"
+            bad_utf8.write_bytes(b"\xff")
+            self.assertTrue(load_help_content(base / "missing.json").error.startswith(
+                "ファイルを読み込めません: "
+            ))
+            self.assertTrue(load_help_content(bad_json).error.startswith(
+                "JSON の形式が不正です: "
+            ))
+            self.assertTrue(load_help_content(bad_utf8).error.startswith(
+                "UTF-8 として読み込めません: "
+            ))
+
     def test_parse_rejects_empty_ids_bad_prefix_and_duplicates_across_tabs(self) -> None:
         cases = []
         data = valid_data()

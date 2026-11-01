@@ -8,7 +8,7 @@ from keyseq.presentation import app as app_module, theme
 from keyseq.presentation.app import App
 from keyseq.presentation.button_width_rules import fixed_button_width_chars
 from keyseq.presentation.hook_button_texts import (
-    CAPTURE_ACTIVE_TEXT, CAPTURE_IDLE_TEXT, CAPTURE_TEXTS,
+    capture_active_text, capture_idle_text, capture_texts,
     HOOK_TOGGLE_TEXTS, TRIGGER_DISABLE_TEXT, TRIGGER_ENABLE_TEXT,
     TRIGGER_TOGGLE_TEXTS,
 )
@@ -43,8 +43,8 @@ class HeaderButtonWidthsTest(unittest.TestCase):
     def setUp(self) -> None:
         frame = self.app.full_view.hook_frame
         self.button_texts = (
-            (frame.stop_key_capture_btn, CAPTURE_TEXTS),
-            (frame.toggle_key_capture_btn, CAPTURE_TEXTS),
+            (frame.stop_key_capture_btn, capture_texts()),
+            (frame.toggle_key_capture_btn, capture_texts()),
             (frame.hook_toggle_btn, tuple(tr(text) for text in HOOK_TOGGLE_TEXTS)),
             (frame.trigger_toggle_btn, tuple(tr(text) for text in TRIGGER_TOGGLE_TEXTS)),
         )
@@ -135,12 +135,12 @@ class HeaderButtonWidthsTest(unittest.TestCase):
         try:
             self.app.stop_key_capture.start()
             self.app.update_idletasks()
-            self.assertEqual(button.cget("text"), CAPTURE_ACTIVE_TEXT)
+            self.assertEqual(button.cget("text"), capture_active_text())
             self.assertEqual(button.winfo_reqwidth(), width)
             self.assertEqual(self.app.hook.hook_suspend_count, suspend_count + 1)
         finally:
             self.app.stop_key_capture.stop(cancel=True)
-        self.assertEqual(button.cget("text"), CAPTURE_IDLE_TEXT)
+        self.assertEqual(button.cget("text"), capture_idle_text())
         self.assertEqual(self.app.hook.hook_suspend_count, suspend_count)
 
 

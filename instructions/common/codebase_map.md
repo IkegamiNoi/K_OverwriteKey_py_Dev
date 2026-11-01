@@ -167,10 +167,10 @@ keyseq/presentation/
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
     key_capture_ime.py         # KeyCaptureImeTracker / begin_key_capture・end_key_capture: キーの記録中は IME を OFF にする寿命の部品（入口ごとの数と「OFF にした」印・開始 / 終了の冪等・窓自身の `<Destroy>` で終了・既定インスタンスはモジュール変数・phase 60）/ 受け取りの関数 `on_hook_key`・世代・フォーカスの窓への受け渡し `deliver`・記録用のフックの設定 `configure_capture_hook`（phase 66）
     key_capture_hook.py        # KeyCaptureHook: キーの記録中だけ使う suppress フック（レイアウトの行に当たるキーを抑止して名前を渡す・押下中・余韻・前面の判定。infrastructure は呼び出し可能な値で受ける・phase 66）
-    hook_button_texts.py       # フック切替ボタンの文言キー・capture_idle_text / capture_active_text の実行時翻訳とキーボード選択幅。CAPTURE_* / UNKNOWN_CAPTURE_KEY_HINT_TEXT は対象外の dialogs 向けに日本語を維持（phase 72 task_03）
+    hook_button_texts.py       # フック切替ボタンの文言キー・capture_idle_text / capture_active_text / capture_texts / unknown_capture_key_hint_text の実行時翻訳とキーボード選択幅（phase 72 task_05）
     orphan_sweep_text.py       # 未使用ファイルの整理の提示テキスト整形（警告 / 候補一覧 / 退避結果。呼出時に翻訳。公開文言定数はキー）
     quarantine_manage_text.py  # 退避したファイルの管理の提示テキスト整形（回の一覧 / 復元・削除の計画と結果。呼出時に翻訳）
-    keymap_set_history_text.py # 読み込み履歴の表示文言（不在ファイルの名前・確認文・失敗理由等は呼出時に翻訳。公開文言定数は対象外の dialogs / config_io 向けに日本語を維持）
+    keymap_set_history_text.py # 読み込み履歴の表示文言キーと、不在ファイルの名前・確認文・失敗理由等の呼出時翻訳。公開定数は dialogs / config_io の表示時に翻訳（phase 72 task_05）
     startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
     theme.py                   # フォント/テーマ適用 + coerce_font_delta（フォント差分 -3..+3 正規化の唯一点）
     tk_keys.py                 # Tk のキーイベント → キー名（テンキー・key_hold の左右）/ `is_unresolved_capture_key`（`??`・phase 60）

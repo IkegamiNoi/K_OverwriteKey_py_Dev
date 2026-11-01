@@ -8,6 +8,7 @@ from keyseq.presentation import keymap_set_history_text as text
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.help.help_button import add_help_button
 from keyseq.presentation.help.help_targets import KEYMAP_SET
+from keyseq.shared.i18n import tr
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -22,7 +23,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
         self.parent = parent
         self.controller = controller
         self.parent.hook.suspend_hook_for_dialog(self)
-        self.title(text.TITLE)
+        self.title(tr(text.TITLE))
         self._nodes: dict[str, Node] = {}
         self._read_only = False
         self._build_widgets()
@@ -34,7 +35,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
     def _build_widgets(self) -> None:
         frame = ttk.Frame(self, padding=12)
         frame.pack(fill="both", expand=True)
-        self.notice = ttk.Label(frame, text=text.READ_ONLY_NOTICE)
+        self.notice = ttk.Label(frame, text=tr(text.READ_ONLY_NOTICE))
         self.notice.pack(anchor="w")
         listing = ttk.Frame(frame)
         listing.pack(fill="both", expand=True)
@@ -43,8 +44,8 @@ class KeymapSetHistoryDialog(tk.Toplevel):
         style.configure("Treeview", font=default_font, rowheight=default_font.metrics("linespace") + 6)
         style.configure("Treeview.Heading", font=default_font)
         self.tree = ttk.Treeview(listing, columns=("path",), show="tree headings", selectmode="browse")
-        self.tree.heading("#0", text=text.NAME_HEADING)
-        self.tree.heading("path", text=text.PATH_HEADING)
+        self.tree.heading("#0", text=tr(text.NAME_HEADING))
+        self.tree.heading("path", text=tr(text.PATH_HEADING))
         # 枠の拡縮はパス列だけに配分する（名前列の幅は列境界のドラッグで変える）。
         self.tree.column("#0", width=240, minwidth=80, stretch=False)
         self.tree.column("path", width=400, minwidth=120, stretch=True)
@@ -59,7 +60,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
     def _build_actions(self, frame: ttk.Frame) -> None:
         edits = ttk.Frame(frame)
         edits.pack(fill="x", pady=(8, 0))
-        ttk.Label(edits, text=text.CATEGORY_LABEL).pack(side="left")
+        ttk.Label(edits, text=tr(text.CATEGORY_LABEL)).pack(side="left")
         self.category_name = tk.StringVar(self)
         self.category_entry = ttk.Entry(edits, textvariable=self.category_name)
         self.category_entry.pack(side="left", fill="x", expand=True)
@@ -69,7 +70,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
             (text.RENAME_CATEGORY, self._rename_category),
             (text.REMOVE_CATEGORY, self._remove_category),
         ):
-            self.buttons[label] = ttk.Button(edits, text=label, command=command)
+            self.buttons[label] = ttk.Button(edits, text=tr(label), command=command)
             self.buttons[label].pack(side="left", padx=3)
         actions = ttk.Frame(frame)
         actions.pack(fill="x", pady=(12, 0))
@@ -78,7 +79,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
             (text.LOAD, self._load), (text.REMOVE_ENTRY, self._remove_entry),
             (text.COPY_ENTRY, self._copy_entry), (text.CLOSE, self.destroy),
         ):
-            self.buttons[label] = ttk.Button(actions, text=label, command=command)
+            self.buttons[label] = ttk.Button(actions, text=tr(label), command=command)
             self.buttons[label].pack(side="left", padx=3)
 
     def _selected(self) -> Node | None:
@@ -97,7 +98,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
             self.notice.pack_forget()
         self.tree.delete(*self.tree.get_children())
         self._nodes.clear()
-        root = self._insert("", ("recent_root", "", -1, ""), text.RECENT_NODE_LABEL, opened=True)
+        root = self._insert("", ("recent_root", "", -1, ""), tr(text.RECENT_NODE_LABEL), opened=True)
         self._insert_entries(root, "recent_entry", "", history["recent"])
         for category in history["categories"]:
             name = category["name"]
@@ -150,7 +151,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
         success, reason = result
         self._redraw()
         if not success:
-            messagebox.showinfo(text.TITLE, reason, parent=self)
+            messagebox.showinfo(tr(text.TITLE), reason, parent=self)
 
     def _add_category(self) -> None:
         if not self._read_only:
@@ -164,7 +165,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
     def _remove_category(self) -> None:
         selected = self._selected()
         if not self._read_only and selected and selected[0] == "category":
-            if messagebox.askyesno(text.TITLE, text.confirm_remove_category(selected[1]), parent=self):
+            if messagebox.askyesno(tr(text.TITLE), text.confirm_remove_category(selected[1]), parent=self):
                 self._finish_edit(self.controller.remove_category(selected[1]))
 
     def _remove_entry(self) -> None:
@@ -172,7 +173,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
         if self._read_only or not selected or selected[0] not in ("recent_entry", "category_entry"):
             return
         kind, name, index, path = selected
-        if messagebox.askyesno(text.TITLE, text.confirm_remove_entry(path), parent=self):
+        if messagebox.askyesno(tr(text.TITLE), text.confirm_remove_entry(path), parent=self):
             result = (self.controller.remove_recent(index) if kind == "recent_entry"
                       else self.controller.remove_category_entry(name, index))
             self._finish_edit(result)
@@ -187,7 +188,7 @@ class KeymapSetHistoryDialog(tk.Toplevel):
             return
         names = tuple(category["name"] for category in history["categories"])
         if not names:
-            messagebox.showinfo(text.TITLE, text.NO_CATEGORIES, parent=self)
+            messagebox.showinfo(tr(text.TITLE), tr(text.NO_CATEGORIES), parent=self)
             return
         chooser = CategoryChooserDialog(self, names=names)
         chooser.wait_window()
@@ -199,7 +200,7 @@ class CategoryChooserDialog(tk.Toplevel):
     def __init__(self, parent: KeymapSetHistoryDialog, *, names: tuple[str, ...]):
         super().__init__(parent)
         self.result: str = ""
-        self.title(text.CHOOSER_TITLE)
+        self.title(tr(text.CHOOSER_TITLE))
         frame = ttk.Frame(self, padding=12)
         frame.pack(fill="both", expand=True)
         self.listbox = tk.Listbox(frame, exportselection=False)
@@ -208,8 +209,8 @@ class CategoryChooserDialog(tk.Toplevel):
             self.listbox.insert(tk.END, name)
         actions = ttk.Frame(frame)
         actions.pack(anchor="e", pady=(8, 0))
-        ttk.Button(actions, text=text.OK, command=self._ok).pack(side="left")
-        ttk.Button(actions, text=text.CANCEL, command=self.destroy).pack(side="left")
+        ttk.Button(actions, text=tr(text.OK), command=self._ok).pack(side="left")
+        ttk.Button(actions, text=tr(text.CANCEL), command=self.destroy).pack(side="left")
         self.bind("<Escape>", lambda _event: self.destroy())
         self.protocol("WM_DELETE_WINDOW", self.destroy)
         grab_modal(self, parent, focus=self.listbox)

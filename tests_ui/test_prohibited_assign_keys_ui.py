@@ -9,7 +9,7 @@ from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs.keymap_edit_dialog import KeymapEditDialog
 from keyseq.presentation.dialogs.keymap_switch_batch_dialog import KeymapSwitchBatchDialog
-from keyseq.presentation.hook_button_texts import UNKNOWN_CAPTURE_KEY_HINT_TEXT
+from keyseq.presentation.hook_button_texts import unknown_capture_key_hint_text
 from keyseq.presentation.keyboard_layouts import KeyboardLayoutEntry, load_layout_from_json
 
 
@@ -200,7 +200,7 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
         self.assertEqual(edit._on_capture_keypress(SimpleNamespace(keysym="??")), "break")
         self.assertEqual(edit.key_var.get(), "")
         self.assertTrue(edit._capturing)
-        self.assertEqual(edit.hint.cget("text"), UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+        self.assertEqual(edit.hint.cget("text"), unknown_capture_key_hint_text())
         edit._stop_capture()
         self.assertEqual(edit.hint.cget("text"), default_hint)
 
@@ -212,6 +212,6 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
         self.assertEqual(batch._on_capture_keypress(SimpleNamespace(keysym="??")), "break")
         self.assertEqual(batch.key_vars[0].get(), "")
         self.assertTrue(batch._capturing)
-        self.assertEqual(batch.hint.cget("text"), UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+        self.assertEqual(batch.hint.cget("text"), unknown_capture_key_hint_text())
         batch._stop_capture()
         self.assertEqual(batch.hint.cget("text"), default_hint)

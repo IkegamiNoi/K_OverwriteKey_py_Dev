@@ -7,6 +7,7 @@ from tkinter import ttk
 from keyseq.presentation.help.help_content import HelpLoadResult
 from keyseq.presentation.help.help_filter import parse_query
 from keyseq.presentation.help.help_tab_view import HelpTabView
+from keyseq.shared.i18n import tr
 
 
 class HelpWindow(tk.Toplevel):
@@ -18,7 +19,7 @@ class HelpWindow(tk.Toplevel):
         self._suspend_hook = suspend_hook
         self._resume_hook = resume_hook
         self._filter_hook_suspended = False
-        self.title("ヘルプ")
+        self.title(tr("help.window.title"))
         self.minsize(420, 300)
         width = min(720, self.winfo_screenwidth())
         height = min(560, self.winfo_screenheight())
@@ -40,7 +41,7 @@ class HelpWindow(tk.Toplevel):
     def _build_filter(self) -> None:
         bar = ttk.Frame(self, padding=8)
         bar.pack(fill="x")
-        ttk.Label(bar, text="絞り込み:").pack(side="left")
+        ttk.Label(bar, text=tr("help.window.filter_label")).pack(side="left")
         self.filter_var = tk.StringVar(self)
         self.filter_entry = ttk.Entry(bar, textvariable=self.filter_var)
         self.filter_entry.pack(side="left", fill="x", expand=True, padx=6)
@@ -51,14 +52,16 @@ class HelpWindow(tk.Toplevel):
     def _build_content(self, result: HelpLoadResult) -> None:
         if result.content is None:
             self.error_label = ttk.Label(
-                self, text=f"ヘルプを読み込めませんでした。（{result.error}）",
+                self, text=tr("help.window.load_error", error=result.error),
                 wraplength=400, padding=8,
             )
             self.error_label.pack(fill="both", expand=True)
             return
         self.notebook = ttk.Notebook(self)
         self.notebook.pack(fill="both", expand=True, padx=8, pady=(0, 8))
-        for name, label in (("guide", "主要機能"), ("faq", "QA")):
+        tab_labels = (("guide", "help.window.tab.guide"), ("faq", "help.window.tab.faq"))
+        for name, label_key in tab_labels:
+            label = tr(label_key)
             view = HelpTabView(self.notebook, getattr(result.content, name))
             self.tabs[name] = view
             self.notebook.add(view, text=label)
@@ -108,10 +111,14 @@ class HelpWindow(tk.Toplevel):
 
     def _filter_changed(self, *_args: str) -> None:
         terms = parse_query(self.filter_text)
-        for name, label in (("guide", "主要機能"), ("faq", "QA")):
+        tab_labels = (("guide", "help.window.tab.guide"), ("faq", "help.window.tab.faq"))
+        for name, label_key in tab_labels:
             if name in self.tabs and self.notebook is not None:
                 count = self.tabs[name].apply_filter(terms)
-                text = f"{label} ({count})" if terms else label
+                text = (
+                    tr("help.window.tab.count", label=tr(label_key), count=count)
+                    if terms else tr(label_key)
+                )
                 self.notebook.tab(self.tabs[name], text=text)
 
     def _initial_focus(self) -> None:

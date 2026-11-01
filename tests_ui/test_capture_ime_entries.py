@@ -13,7 +13,7 @@ from keyseq.presentation.dialogs.grid_editor_window import GridEditorWindow
 from keyseq.presentation.dialogs.keymap_edit_dialog import KeymapEditDialog
 from keyseq.presentation.dialogs.keymap_switch_batch_dialog import KeymapSwitchBatchDialog
 from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
-from keyseq.presentation.hook_button_texts import UNKNOWN_CAPTURE_KEY_HINT_TEXT
+from keyseq.presentation.hook_button_texts import unknown_capture_key_hint_text
 from keyseq.presentation.keyboard_window import KeyboardWindow
 from tests_ui.escape_delivery import acquire_focus
 from keyseq.shared.i18n import fix_language
@@ -155,7 +155,7 @@ class CaptureImeEntriesUiTest(unittest.TestCase):
         )
         self.assertTrue(dialog._capturing)
         self.assertEqual(dialog.key_var.get(), "")
-        self.assertEqual(dialog.hint.cget("text"), UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+        self.assertEqual(dialog.hint.cget("text"), unknown_capture_key_hint_text())
         dialog.destroy()
         self.assertTrue(self.ime_open)
 
@@ -259,7 +259,7 @@ class CaptureImeEntriesUiTest(unittest.TestCase):
         self.assertEqual(fields._on_key_press(self._key("??")), "break")
         self.assertTrue(fields.recording)
         self.assertEqual(fields.key_var.get(), "")
-        self.assertEqual(fields.key_hint.cget("text"), UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+        self.assertEqual(fields.key_hint.cget("text"), unknown_capture_key_hint_text())
         self.assertEqual(fields._on_key_press(self._key("a")), "break")
         self.assertEqual(fields.key_var.get(), "a")
         self.assertFalse(fields.recording)

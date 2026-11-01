@@ -6,6 +6,7 @@ from tkinter import messagebox, ttk
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.help.help_button import add_help_button
 from keyseq.presentation.help.help_targets import PRESET
+from keyseq.shared.i18n import tr
 
 
 class PresetDialog(tk.Toplevel):
@@ -20,24 +21,24 @@ class PresetDialog(tk.Toplevel):
         frm.pack(fill="both", expand=True)
         frm.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(frm, text="内容(hotkey)").grid(row=0, column=0, sticky="w")
+        ttk.Label(frm, text=tr("preset_dialog.value")).grid(row=0, column=0, sticky="w")
         self.value_var = tk.StringVar(value=initial_value or "")
         self.value_entry = ttk.Entry(frm, textvariable=self.value_var, width=34)
         self.value_entry.grid(row=0, column=1, sticky="we", padx=(8, 0))
 
-        ttk.Label(frm, text="ラベル").grid(row=1, column=0, sticky="w", pady=(10, 0))
+        ttk.Label(frm, text=tr("action_dialog.label.label")).grid(row=1, column=0, sticky="w", pady=(10, 0))
         self.label_var = tk.StringVar(value=initial_label or "")
         self.label_entry = ttk.Entry(frm, textvariable=self.label_var, width=34)
         self.label_entry.grid(row=1, column=1, sticky="we", padx=(8, 0), pady=(10, 0))
 
-        hint = ttk.Label(frm, text="例: 内容: windows+d / ラベル: Win+D（ラベルは重複禁止）")
+        hint = ttk.Label(frm, text=tr("preset_dialog.hint"))
         hint.grid(row=2, column=0, columnspan=2, sticky="w", pady=(8, 0))
 
         btns = ttk.Frame(frm)
         btns.grid(row=3, column=0, columnspan=2, sticky="ew", pady=(14, 0))
         add_help_button(btns, self, PRESET)
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
-        ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
+        ttk.Button(btns, text=tr("common.cancel"), command=self.destroy).pack(side="left")
 
         self.bind("<Escape>", lambda _event: self.destroy())
         grab_modal(self, parent, focus=self.value_entry)
@@ -46,10 +47,10 @@ class PresetDialog(tk.Toplevel):
         value = (self.value_var.get() or "").strip()
         label = (self.label_var.get() or "").strip()
         if not value:
-            messagebox.showerror("入力エラー", "内容(hotkey)を入力してください。")
+            messagebox.showerror(tr("action_dialog.error.input_title"), tr("preset_dialog.value_required"))
             return
         if not label:
-            messagebox.showerror("入力エラー", "ラベルを入力してください。")
+            messagebox.showerror(tr("action_dialog.error.input_title"), tr("preset_dialog.label_required"))
             return
         self.result = {"value": value, "label": label}
         self.destroy()

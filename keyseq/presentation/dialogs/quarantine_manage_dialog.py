@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.help.help_button import add_help_button
 from keyseq.presentation.help.help_targets import CLEANUP
+from keyseq.shared.i18n import tr
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -20,7 +21,7 @@ class QuarantineManageDialog(tk.Toplevel):
         self.selected_unit_id: str = ""
         self.action: str = ""
         self._unit_ids = unit_ids
-        self.title("退避したファイルの管理")
+        self.title(tr("quarantine_manage.title"))
         self.resizable(False, False)
         self._build_widgets(lines)
         self.bind("<Escape>", lambda _event: self.destroy())
@@ -30,7 +31,7 @@ class QuarantineManageDialog(tk.Toplevel):
     def _build_widgets(self, lines: tuple[str, ...]) -> None:
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
-        ttk.Label(frm, text="回を選択してください。").pack(anchor="w")
+        ttk.Label(frm, text=tr("quarantine_manage.dialog.select_unit")).pack(anchor="w")
         list_frame = ttk.Frame(frm)
         list_frame.pack(fill="both", expand=True, pady=(10, 0))
         self.listbox = tk.Listbox(list_frame, height=8, width=85, exportselection=False)
@@ -43,9 +44,9 @@ class QuarantineManageDialog(tk.Toplevel):
         actions = ttk.Frame(frm)
         actions.pack(fill="x", pady=(14, 0))
         add_help_button(actions, self, CLEANUP)
-        ttk.Button(actions, text="復元する", command=self._restore).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="削除する", command=self._delete).pack(side="left", padx=(0, 8))
-        ttk.Button(actions, text="閉じる", command=self.destroy).pack(side="left")
+        ttk.Button(actions, text=tr("quarantine_manage.restore_run"), command=self._restore).pack(side="left", padx=(0, 8))
+        ttk.Button(actions, text=tr("quarantine_manage.delete_run"), command=self._delete).pack(side="left", padx=(0, 8))
+        ttk.Button(actions, text=tr("common.close"), command=self.destroy).pack(side="left")
 
     def _restore(self) -> None:
         selection = self.listbox.curselection()

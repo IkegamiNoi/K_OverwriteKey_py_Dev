@@ -19,7 +19,7 @@ from keyseq.presentation.dialogs.orphan_sweep_dialog import OrphanSweepDialog
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
 from keyseq.presentation.help.help_button import add_help_button
-from keyseq.presentation.hook_button_texts import CAPTURE_ACTIVE_TEXT, CAPTURE_IDLE_TEXT
+from keyseq.presentation.hook_button_texts import capture_active_text, capture_idle_text
 from keyseq.presentation.help.help_content import (
     HelpBlock, HelpCategory, HelpContent, HelpItem, HelpLoadResult,
 )
@@ -267,16 +267,16 @@ class DialogHelpButtonsTest(unittest.TestCase):
         button = self._help_button(dialog)
         button.invoke()
         self.assertFalse(dialog._capturing)
-        self.assertEqual(dialog.capture_btn.cget("text"), CAPTURE_IDLE_TEXT)
+        self.assertEqual(dialog.capture_btn.cget("text"), capture_idle_text())
 
         self.app.help.close()
         dialog._start_capture()
         self.assertTrue(dialog._capturing)
-        self.assertEqual(dialog.capture_btn.cget("text"), CAPTURE_ACTIVE_TEXT)
+        self.assertEqual(dialog.capture_btn.cget("text"), capture_active_text())
         self.assertTrue(key_capture_ime._get_tracker().is_capturing(dialog))
         button.invoke()
         self.assertFalse(dialog._capturing)
-        self.assertEqual(dialog.capture_btn.cget("text"), CAPTURE_IDLE_TEXT)
+        self.assertEqual(dialog.capture_btn.cget("text"), capture_idle_text())
         self.assertFalse(key_capture_ime._get_tracker().is_capturing(dialog))
 
     def test_help_button_stops_action_recording_in_add_and_edit_dialogs(self) -> None:

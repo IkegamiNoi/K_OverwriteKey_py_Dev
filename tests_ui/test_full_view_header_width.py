@@ -4,7 +4,7 @@ from unittest.mock import patch
 
 from keyseq.presentation import app as app_module, theme
 from keyseq.presentation.app import App
-from keyseq.presentation.hook_button_texts import CAPTURE_ACTIVE_TEXT, CAPTURE_IDLE_TEXT
+from keyseq.presentation.hook_button_texts import capture_active_text, capture_idle_text
 from keyseq.presentation.pane_width_rules import (
     PaneWidths, SASH_WIDTH, window_min_width_after_drag,
 )
@@ -85,7 +85,7 @@ class FullViewHeaderWidthTest(unittest.TestCase):
     def test_header_and_each_frame_fit_at_minimum_width(self) -> None:
         for delta in (-3, 0, 3):
             self._set_font(delta)
-            for text in (CAPTURE_IDLE_TEXT, CAPTURE_ACTIVE_TEXT):
+            for text in (capture_idle_text(), capture_active_text()):
                 with self.subTest(delta=delta, text=text):
                     self.button.configure(text=text)
                     self.app.geometry(f"1x{self.app.winfo_height()}")

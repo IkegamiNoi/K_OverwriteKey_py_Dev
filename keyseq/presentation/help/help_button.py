@@ -5,6 +5,7 @@ from tkinter import ttk
 from typing import Callable
 
 from keyseq.presentation.hover_tooltip import bind_hover_tooltip
+from keyseq.shared.i18n import tr
 
 
 def add_help_button(
@@ -25,5 +26,5 @@ def add_help_button(
     button = ttk.Button(row, text="?", width=1, command=open_help)
     button.pack(side="left")
     ttk.Frame(row).pack(side="left", fill="x", expand=True)
-    bind_hover_tooltip(button, lambda: "ヘルプ", lambda: True)
+    bind_hover_tooltip(button, lambda: tr("help.button.tooltip"), lambda: True)
     return button

@@ -75,7 +75,7 @@ class KeymapSetHistoryIo:
                 config_root=self._app.config_root,
             )
             if status == contracts.HISTORY_READ_ONLY:
-                return False, text.READ_ONLY_NOTICE
+                return False, tr(text.READ_ONLY_NOTICE)
             updated = transform(history)
             if updated is None:
                 return False, reason

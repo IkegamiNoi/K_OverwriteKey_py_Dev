@@ -11,10 +11,10 @@ from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.dialogs.escape_close import bind_escape_close
 from keyseq.presentation.hook_button_texts import (
-    CAPTURE_ACTIVE_TEXT,
-    CAPTURE_IDLE_TEXT,
-    CAPTURE_TEXTS,
-    UNKNOWN_CAPTURE_KEY_HINT_TEXT,
+    capture_active_text,
+    capture_idle_text,
+    capture_texts,
+    unknown_capture_key_hint_text,
 )
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
 from keyseq.presentation.modal import grab_modal
@@ -25,6 +25,7 @@ from keyseq.presentation.tk_keys import (
     is_unresolved_capture_key,
     normalize_tk_key_event,
 )
+from keyseq.shared.i18n import tr
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -61,39 +62,39 @@ class KeymapEditDialog(tk.Toplevel):
         frm.pack(fill="both", expand=True)
         frm.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(frm, text="切替キー").grid(row=0, column=0, sticky="w")
+        ttk.Label(frm, text=tr("app.hook.switch_key")).grid(row=0, column=0, sticky="w")
         self.key_var = tk.StringVar(value=initial_key or "")
         self.key_entry = ttk.Entry(frm, textvariable=self.key_var, width=24, state="readonly")
         self.key_entry.grid(row=0, column=1, sticky="we", padx=(8, 0))
         self.capture_btn = ttk.Button(
-            frm, text=CAPTURE_IDLE_TEXT, command=self._toggle_capture
+            frm, text=capture_idle_text(), command=self._toggle_capture
         )
-        apply_fixed_button_width(self.capture_btn, CAPTURE_TEXTS)
+        apply_fixed_button_width(self.capture_btn, capture_texts())
         self.capture_btn.grid(row=0, column=2, sticky="w", padx=(8, 0))
-        self.clear_btn = ttk.Button(frm, text="クリア", command=self._clear_key)
+        self.clear_btn = ttk.Button(frm, text=tr("common.clear"), command=self._clear_key)
         self.clear_btn.grid(row=0, column=3, sticky="w", padx=(8, 0))
 
-        ttk.Label(frm, text="ラベル").grid(row=1, column=0, sticky="w", pady=(10, 0))
+        ttk.Label(frm, text=tr("action_dialog.label.label")).grid(row=1, column=0, sticky="w", pady=(10, 0))
         self.label_var = tk.StringVar(value=initial_label or "")
         self.label_entry = ttk.Entry(frm, textvariable=self.label_var, width=42)
         self.label_entry.grid(row=1, column=1, columnspan=3, sticky="we", padx=(8, 0), pady=(10, 0))
 
         self.grid_enabled_var = tk.BooleanVar(value=initial_grid_enabled)
-        self.grid_enabled_check = ttk.Checkbutton(frm, text="カーソルグリッドを使う", variable=self.grid_enabled_var)
+        self.grid_enabled_check = ttk.Checkbutton(frm, text=tr("keymap_edit.grid_enabled"), variable=self.grid_enabled_var)
         editor_columns = 2 if grid_editor_context is not None else 4
         self.grid_enabled_check.grid(row=2, column=0, columnspan=editor_columns, sticky="w", pady=(8, 0))
         if grid_editor_context is not None:
-            self.grid_editor_btn = ttk.Button(frm, text="カーソルグリッドを編集…", command=self._edit_grid)
+            self.grid_editor_btn = ttk.Button(frm, text=tr("keymap_edit.grid_edit"), command=self._edit_grid)
             self.grid_editor_btn.grid(row=2, column=2, columnspan=2, sticky="e", padx=(8, 0))
 
-        self.hint = ttk.Label(frm, text="例: 切替キー: 1\nラベル: numpad")
+        self.hint = ttk.Label(frm, text=tr("keymap_edit.hint"))
         self.hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(8, 0))
 
         btns = ttk.Frame(frm)
         btns.grid(row=4, column=0, columnspan=4, sticky="ew", pady=(14, 0))
         add_help_button(btns, self, KEYMAP, before_open=self._stop_capture)
         ttk.Button(btns, text="OK", command=self._ok).pack(side="left", padx=(0, 8))
-        ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
+        ttk.Button(btns, text=tr("common.cancel"), command=self.destroy).pack(side="left")
 
         bind_escape_close(self, is_busy=lambda: getattr(self, "_capturing", False), stop=self._stop_capture)
         grab_modal(self, parent, focus=self.label_entry)
@@ -117,7 +118,7 @@ class KeymapEditDialog(tk.Toplevel):
             return
         monitors, start_monitor_id, reserved = self._grid_editor_context()
         if not monitors:
-            messagebox.showerror("カーソルグリッドを編集できません", "画面（モニタ）を取得できませんでした。", parent=self)
+            messagebox.showerror(tr("keymap_edit.grid_unavailable.title"), tr("keymap_edit.grid_unavailable.message"), parent=self)
             return
         reserved = set(reserved)
         switch_key = normalize_key_name(self.key_var.get())
@@ -155,9 +156,9 @@ class KeymapEditDialog(tk.Toplevel):
     def _start_capture(self):
         begin_key_capture(self, self, self._record_key)
         self._capturing = True
-        self.capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
+        self.capture_btn.configure(text=capture_active_text())
         self.label_entry.configure(state="disabled")
-        self.hint.configure(text="記録中: 切替キーにしたいキーを1回押してください（Escでキャンセル）")
+        self.hint.configure(text=tr("keymap_edit.capture_hint"))
         self.capture_btn.focus_set()
         self.bind("<KeyPress>", self._on_capture_keypress, add="+")
 
@@ -166,9 +167,9 @@ class KeymapEditDialog(tk.Toplevel):
             return
         self._capturing = False
         end_key_capture(self)
-        self.capture_btn.configure(text=CAPTURE_IDLE_TEXT)
+        self.capture_btn.configure(text=capture_idle_text())
         self.label_entry.configure(state="normal")
-        self.hint.configure(text="例: 切替キー: 1\nラベル: numpad")
+        self.hint.configure(text=tr("keymap_edit.hint"))
         try:
             self.unbind("<KeyPress>")
         except Exception:
@@ -179,7 +180,7 @@ class KeymapEditDialog(tk.Toplevel):
             return
         key = normalize_tk_key_event(event)
         if is_unresolved_capture_key(key):
-            self.hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+            self.hint.configure(text=unknown_capture_key_hint_text())
             return "break"
         return self._record_key(key)
 

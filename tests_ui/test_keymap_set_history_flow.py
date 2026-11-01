@@ -121,7 +121,7 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
         self.store["recent"].append({"path": "user/missing.set.json"})
         dialog = self._dialog()
         roots = dialog.tree.get_children()
-        self.assertEqual([dialog.tree.item(i, "text") for i in roots], [text.RECENT_NODE_LABEL, "a", "A", "z"])
+        self.assertEqual([dialog.tree.item(i, "text") for i in roots], [tr(text.RECENT_NODE_LABEL), "a", "A", "z"])
         self.assertEqual([bool(dialog.tree.item(i, "open")) for i in roots], [True, False, False, False])
         entries = dialog.tree.get_children(roots[0])
         self.assertEqual(dialog.tree.item(entries[0], "text"), "shared")
@@ -211,7 +211,7 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
                     redraw.assert_called_once_with()
                 self.assertEqual(self._snapshot(dialog), before)
                 self.assertEqual(self.store, disk)
-                self.info.assert_called_with(text.TITLE, "保存不可", parent=dialog)
+                self.info.assert_called_with(tr(text.TITLE), "保存不可", parent=dialog)
         self.assertEqual(self.save.call_count, 4)
 
     def test_failed_edit_redraws_updated_disk_before_showing_reason(self):
@@ -220,7 +220,7 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
         self.store = {"recent": [], "categories": []}
         self.save.side_effect = lambda *a, **kw: (False, "保存不可")
         dialog.category_name.set("new")
-        expected = [(("recent_root", "", -1, ""), text.RECENT_NODE_LABEL, ("",))]
+        expected = [(("recent_root", "", -1, ""), tr(text.RECENT_NODE_LABEL), ("",))]
         self.assertEqual(self._snapshot(dialog), before)
         self.assertNotEqual(before, expected)
         self.info.side_effect = lambda *a, **kw: self.assertEqual(self._snapshot(dialog), expected)
@@ -230,7 +230,7 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
         self.assertEqual(self._snapshot(dialog), expected)
         self.assertEqual(self.store, {"recent": [], "categories": []})
         self.save.assert_called_once()
-        self.info.assert_called_once_with(text.TITLE, "保存不可", parent=dialog)
+        self.info.assert_called_once_with(tr(text.TITLE), "保存不可", parent=dialog)
 
     def test_category_edits_validation_and_fresh_read(self):
         dialog = self._dialog()
@@ -261,12 +261,12 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
         self.assertEqual(self.store["categories"][1]["entries"], self.store["recent"])
         dialog._copy_entry()
         self.assertEqual(self.save.call_count, 1)
-        self.info.assert_called_with(text.TITLE, tr(text.COPY_REJECTED), parent=dialog)
+        self.info.assert_called_with(tr(text.TITLE), tr(text.COPY_REJECTED), parent=dialog)
         self.store["categories"] = []
         chooser.reset_mock()
         dialog._copy_entry()
         chooser.assert_not_called()
-        self.info.assert_called_with(text.TITLE, text.NO_CATEGORIES, parent=dialog)
+        self.info.assert_called_with(tr(text.TITLE), tr(text.NO_CATEGORIES), parent=dialog)
 
     def test_button_states_and_read_only(self):
         dialog = self._dialog()
@@ -293,7 +293,7 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
                      lambda: self.controller.copy_to_category("a", "shared.json"),
                      lambda: self.controller.remove_recent(0),
                      lambda: self.controller.remove_category_entry("z", 0)):
-            self.assertEqual(edit(), (False, text.READ_ONLY_NOTICE))
+            self.assertEqual(edit(), (False, tr(text.READ_ONLY_NOTICE)))
         self.save.assert_not_called()
 
     def test_close_routes_restore_hook_and_parent_grab(self):

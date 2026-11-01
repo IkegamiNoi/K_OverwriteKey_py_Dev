@@ -5,7 +5,7 @@ from tkinter import ttk
 from typing import Callable
 
 from keyseq.domain.key_hold import wants_repeat
-from keyseq.presentation.hook_button_texts import UNKNOWN_CAPTURE_KEY_HINT_TEXT
+from keyseq.presentation.hook_button_texts import unknown_capture_key_hint_text
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
 from keyseq.presentation.tk_keys import (
     is_unresolved_capture_key,
@@ -239,7 +239,7 @@ class ActionKeyHoldFields:
             return "break"
         key = normalize_key_hold_tk_key_event(event)
         if is_unresolved_capture_key(key):
-            self.key_hint.configure(text=UNKNOWN_CAPTURE_KEY_HINT_TEXT)
+            self.key_hint.configure(text=unknown_capture_key_hint_text())
             return "break"
         self._record_key(key)
         return "break"

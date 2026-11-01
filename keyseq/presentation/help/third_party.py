@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 
 from keyseq.presentation.bundled_paths import license_path, third_party_dir
+from keyseq.shared.i18n import tr
 
 
 @dataclass(frozen=True)
@@ -24,17 +25,17 @@ class ThirdPartyNotice:
 
 def _parse_entries(value: object) -> list[ThirdPartyEntry]:
     if not isinstance(value, list):
-        raise ValueError("third_party.json の形式が配列ではありません。")
+        raise ValueError(tr("help.third_party.array_required"))
     entries: list[ThirdPartyEntry] = []
     required = {"name", "version", "license", "file"}
     for index, item in enumerate(value):
         if not isinstance(item, dict) or set(item) != required:
-            raise ValueError(f"{index + 1} 件目の項目が不正です。")
+            raise ValueError(tr("help.third_party.entry_invalid", index=index + 1))
         if any(not isinstance(item[key], str) or not item[key].strip() for key in required):
-            raise ValueError(f"{index + 1} 件目に空または文字列以外の値があります。")
+            raise ValueError(tr("help.third_party.entry_values_invalid", index=index + 1))
         filename = item["file"]
         if "/" in filename or "\\" in filename or ".." in filename:
-            raise ValueError(f"{index + 1} 件目の file 名が不正です。")
+            raise ValueError(tr("help.third_party.filename_invalid", index=index + 1))
         entries.append(ThirdPartyEntry(**item))
     return entries
 

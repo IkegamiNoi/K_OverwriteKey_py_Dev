@@ -3,6 +3,7 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox, ttk
 from typing import TYPE_CHECKING
+from keyseq.shared.i18n import tr
 
 from keyseq.domain.config import format_preset_list_item, safe_deepcopy
 from keyseq.domain.list_editing import move_block, shift_block
@@ -31,39 +32,34 @@ def format_preset_manager_source_labels(
 ) -> tuple[str, str, str]:
     """プリセットマネージャの保存先・出どころ・可否の文言を組み立てる。"""
     if individual_for_save and individual_path:
-        save_destination = f"保存先: {individual_path}"
+        save_destination = tr("preset_manager.destination.individual", path=individual_path)
     else:
-        save_destination = f"保存先: 共通プリセット（{global_path}）"
+        save_destination = tr("preset_manager.destination.global", path=global_path)
 
     source_messages = []
     if individual_state == "external":
         source_messages.append(
-            "config外のファイルを読み込み中。次の保存で管理下へ移ります。"
-            f"{default_individual_path} へ保存します"
+            tr("preset_manager.source.external", path=default_individual_path)
         )
     elif individual_state == "external_missing":
         if individual_for_save:
             source_messages.append(
-                "記録されていた構成セット専用プリセットの保存先はconfig外にあり、読み込めません。"
-                f"{default_individual_path} へ保存します"
+                tr("preset_manager.source.external_missing", path=default_individual_path)
             )
         else:
             source_messages.append(
-                "記録されていた構成セット専用プリセットの保存先はconfig外にあり、読み込めません。"
-                "構成セット専用を再度有効にすると、"
-                f"{default_individual_path} へ保存します"
+                tr("preset_manager.source.external_missing_disabled", path=default_individual_path)
             )
     if not individual_for_save and displayed_source == "builtin":
         source_messages.append(
-            "共通プリセットを読み込めませんでした。既定プリセットを表示中"
-            "（OKで共通プリセットを作成します）"
+            tr("preset_manager.source.global_fallback")
         )
     elif displayed_source == "global" and individual_state != "off":
-        source_messages.append("共通プリセットを表示中")
+        source_messages.append(tr("preset_manager.source.global"))
     elif displayed_source == "builtin":
-        source_messages.append("読み込めませんでした（既定プリセットを表示中）")
+        source_messages.append(tr("preset_manager.source.builtin"))
 
-    availability = "" if keymap_set_saved else "構成セットを保存すると構成セット専用にできます"
+    availability = "" if keymap_set_saved else tr("preset_manager.individual_unavailable")
     return save_destination, " / ".join(source_messages), availability
 
 
@@ -75,10 +71,10 @@ class PresetManagerDialog(tk.Toplevel):
     窓が残る（フック停止は `_init_preset_manager_state` で `grab_modal` より先に行われ、
     解除は破棄まで走らない）。
     """
-    def __init__(self, parent: App, title: str = "プリセット編集", *,
+    def __init__(self, parent: App, title: str | None = None, *,
                  transient_parent: tk.Misc | None = None):
         super().__init__(parent)
-        self._init_preset_manager_state(parent, title)
+        self._init_preset_manager_state(parent, tr("app.preset.title") if title is None else title)
         self._build_preset_manager_widgets()
         self._bind_preset_manager_events()
         self._sync_initial_presets()
@@ -124,7 +120,7 @@ class PresetManagerDialog(tk.Toplevel):
         frm = ttk.Frame(self, padding=12)
         frm.pack(fill="both", expand=True)
 
-        ttk.Label(frm, text="プリセット一覧").grid(row=0, column=0, sticky="w")
+        ttk.Label(frm, text=tr("preset_manager.list")).grid(row=0, column=0, sticky="w")
         self.listbox = tk.Listbox(frm, height=12, width=56, exportselection=False)
         self.listbox.grid(row=1, column=0, rowspan=6, sticky="nsew", padx=(0, 0))
 
@@ -135,18 +131,18 @@ class PresetManagerDialog(tk.Toplevel):
 
         btns = ttk.Frame(frm)
         btns.grid(row=1, column=2, sticky="n")
-        ttk.Button(btns, text="追加…", width=14, command=self.add).pack(pady=(0, 6))
-        ttk.Button(btns, text="編集…", width=14, command=self.edit).pack(pady=6)
-        ttk.Button(btns, text="削除", width=14, command=self.delete).pack(pady=6)
+        ttk.Button(btns, text=tr("common.add"), width=14, command=self.add).pack(pady=(0, 6))
+        ttk.Button(btns, text=tr("common.edit"), width=14, command=self.edit).pack(pady=6)
+        ttk.Button(btns, text=tr("common.delete"), width=14, command=self.delete).pack(pady=6)
         ttk.Separator(btns).pack(fill="x", pady=10)
-        ttk.Button(btns, text="上へ", width=14, command=lambda: self.move(-1)).pack(pady=6)
-        ttk.Button(btns, text="下へ", width=14, command=lambda: self.move(+1)).pack(pady=6)
+        ttk.Button(btns, text=tr("common.move_up"), width=14, command=lambda: self.move(-1)).pack(pady=6)
+        ttk.Button(btns, text=tr("common.move_down"), width=14, command=lambda: self.move(+1)).pack(pady=6)
 
         source_frame = ttk.Frame(frm)
         source_frame.grid(row=7, column=0, columnspan=3, sticky="we", pady=(12, 0))
         self.individual_check = ttk.Checkbutton(
             source_frame,
-            text="この構成セット専用にする",
+            text=tr("preset_manager.individual"),
             variable=self.individual_var,
         )
         self.individual_check.grid(row=0, column=0, sticky="w")
@@ -173,7 +169,7 @@ class PresetManagerDialog(tk.Toplevel):
         bottom.grid(row=8, column=0, columnspan=3, sticky="ew", pady=(12, 0))
         add_help_button(bottom, self, PRESET)
         ttk.Button(bottom, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
-        ttk.Button(bottom, text="キャンセル", command=self.destroy).pack(side="left")
+        ttk.Button(bottom, text=tr("common.cancel"), command=self.destroy).pack(side="left")
 
         frm.grid_columnconfigure(0, weight=1)
         frm.grid_rowconfigure(1, weight=1)
@@ -232,8 +228,8 @@ class PresetManagerDialog(tk.Toplevel):
 
         if self._temp != self._loaded_temp and self._temp != replacement:
             if not messagebox.askyesno(
-                "プリセットの切替",
-                "編集中の内容は破棄されます。切り替えますか？",
+                tr("preset_manager.switch.title"),
+                tr("preset_manager.switch.confirm"),
                 parent=self,
             ):
                 self.individual_var.set(not individual_for_save)
@@ -303,7 +299,7 @@ class PresetManagerDialog(tk.Toplevel):
         return False
 
     def add(self):
-        dlg = PresetDialog(self, title="プリセット追加")
+        dlg = PresetDialog(self, title=tr("preset_manager.add.title"))
         dlg.wait_window()
         res = getattr(dlg, "result", None)
         if not res:
@@ -314,13 +310,13 @@ class PresetManagerDialog(tk.Toplevel):
 
         # label 重複チェック（同名プリセット禁止）
         if self._label_exists(label):
-            messagebox.showerror("追加できません", f"同名のプリセットがすでに存在します。\n\nlabel: {label}")
+            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("preset_manager.duplicate", label=label))
             return
 
         # hotkey を検証して不正なら弾く（即時UIエラー）
         err_msg, normalized = self.parent.validate_hotkey(value)
         if err_msg:
-            messagebox.showerror("入力エラー", f"プリセットのhotkey値が正しくありません。\n\n入力: {value}\n理由: {err_msg}")
+            messagebox.showerror(tr("action_dialog.error.input_title"), tr("preset_manager.invalid_hotkey", value=value, reason=err_msg))
             return
 
         self._temp.append({"label": label, "value": normalized})
@@ -331,12 +327,12 @@ class PresetManagerDialog(tk.Toplevel):
     def edit(self):
         idx = self._sel()
         if idx is None:
-            messagebox.showinfo("編集", "編集したい行を選択してください。")
+            messagebox.showinfo(tr("preset_manager.edit.title"), tr("trigger_panel.action.edit.select_row"))
             return
         cur = self._temp[idx]
         dlg = PresetDialog(
             self,
-            title="プリセット編集",
+            title=tr("app.preset.title"),
             initial_value=str(cur.get("value", "")),
             initial_label=str(cur.get("label", "")),
         )
@@ -350,13 +346,13 @@ class PresetManagerDialog(tk.Toplevel):
 
         # label 重複チェック（自分以外）
         if self._label_exists(label, exclude_index=idx):
-            messagebox.showerror("編集できません", f"同名のプリセットがすでに存在します。\n\nlabel: {label}")
+            messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("preset_manager.duplicate", label=label))
             return
 
         # hotkey を検証して不正なら弾く（即時UIエラー）
         err_msg, normalized = self.parent.validate_hotkey(value)
         if err_msg:
-            messagebox.showerror("入力エラー", f"プリセットのhotkey値が正しくありません。\n\n入力: {value}\n理由: {err_msg}")
+            messagebox.showerror(tr("action_dialog.error.input_title"), tr("preset_manager.invalid_hotkey", value=value, reason=err_msg))
             return
 
         selection = selected_range(self.listbox)
@@ -369,20 +365,20 @@ class PresetManagerDialog(tk.Toplevel):
     def delete(self):
         selection = selected_range(self.listbox)
         if selection is None:
-            messagebox.showinfo("削除", "削除したい行を選択してください。")
+            messagebox.showinfo(tr("common.delete"), tr("trigger_panel.action.delete.select_row"))
             return
         start, end = selection
         count = end - start + 1
-        prompt = ("選択したプリセットを削除しますか？" if count == 1
-                  else f"選択した{count}件のプリセットを削除しますか？")
-        if messagebox.askyesno("確認", prompt):
+        prompt = (tr("preset_manager.delete.one") if count == 1
+                  else tr("preset_manager.delete.range", count=count))
+        if messagebox.askyesno(tr("keyboard.layout.confirm_title"), prompt):
             del self._temp[start:end + 1]
             self._refresh()
 
     def move(self, delta: int):
         selection = selected_range(self.listbox)
         if selection is None:
-            messagebox.showinfo("移動", "移動したい行を選択してください。")
+            messagebox.showinfo(tr("trigger_panel.action.move.title"), tr("trigger_panel.action.move.select_row"))
             return
         start, end = selection
         target = shift_block(len(self._temp), start, end, delta)

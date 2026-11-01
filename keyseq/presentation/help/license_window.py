@@ -4,12 +4,13 @@ import tkinter as tk
 from tkinter import ttk
 
 from keyseq.presentation.help.third_party import load_license_text, load_third_party
+from keyseq.shared.i18n import tr
 
 
 class LicenseWindow(tk.Toplevel):
     def __init__(self, parent: tk.Misc) -> None:
         super().__init__(parent)
-        self.title("ライセンス")
+        self.title(tr("help.license.title"))
         width = min(720, self.winfo_screenwidth())
         height = min(560, self.winfo_screenheight())
         self.geometry(f"{width}x{height}")
@@ -32,17 +33,15 @@ class LicenseWindow(tk.Toplevel):
     @staticmethod
     def _content() -> str:
         lines = [
-            "Key Replacer Sequencer",
-            "Copyright (C) 2026 池上ノイ (Ikegami Noi)",
-            "GNU General Public License v3",
+            tr("help.license.header"),
             "",
-            load_license_text() or "LICENSE を読み込めませんでした。",
+            load_license_text() or tr("help.license.read_error"),
         ]
         notices, error = load_third_party()
         if error:
-            lines.extend(("", f"同梱物の一覧を読み込めませんでした。（{error}）"))
+            lines.extend(("", tr("help.license.third_party_list_error", error=error)))
         else:
-            lines.extend(("", "同梱物一覧"))
+            lines.extend(("", tr("help.license.third_party_list_title")))
             lines.extend(
                 f"{notice.entry.name} {notice.entry.version} — {notice.entry.license}"
                 for notice in notices
@@ -51,7 +50,7 @@ class LicenseWindow(tk.Toplevel):
                 lines.extend(("", f"{notice.entry.name} {notice.entry.version}"))
                 lines.append(
                     notice.text if notice.text is not None
-                    else f"全文を読み込めませんでした。（{notice.error}）"
+                    else tr("help.license.third_party_text_error", error=notice.error)
                 )
         return "\n".join(lines)
 

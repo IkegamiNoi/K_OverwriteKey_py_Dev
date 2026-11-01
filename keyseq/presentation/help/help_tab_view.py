@@ -6,6 +6,7 @@ from tkinter import ttk
 
 from keyseq.presentation.help.help_content import HelpCategory, HelpItem, item_plain_text
 from keyseq.presentation.help.help_filter import highlight_ranges, item_matches
+from keyseq.shared.i18n import tr
 
 HIGHLIGHT_COLOR = "#fff19c"
 BODY_INDENT = 36
@@ -47,7 +48,7 @@ class HelpTabView(ttk.Frame):
         # and keep the selection drawn over the search highlight.
         self.text.tag_raise("bullet")
         self.text.tag_raise("sel")
-        self.text.insert("end", "一致する項目はありません。\n", "no_matches")
+        self.text.insert("end", tr("help.tab.no_matches"), "no_matches")
         self.text.configure(state="disabled")
 
     def _insert_heading(self, identifier: str, title: str, indent: int) -> None:
@@ -90,7 +91,7 @@ class HelpTabView(ttk.Frame):
         self.text.bind("<Control-c>", self._copy)
         self.text.bind("<Control-C>", self._copy)
         self.copy_menu = tk.Menu(self, tearoff=False)
-        self.copy_menu.add_command(label="コピー", command=self._copy)
+        self.copy_menu.add_command(label=tr("help.tab.copy"), command=self._copy)
         self.text.bind("<Button-3>", self._context_menu)
 
     def apply_filter(self, terms: tuple[str, ...]) -> int:

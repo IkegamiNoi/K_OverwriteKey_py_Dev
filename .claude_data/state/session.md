@@ -4,37 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-01T16:30:00
+last_updated: 2026-11-01T17:20:00
 phase: instructions/phase/72_multilingual_ui（**アクティブ** = 画面の文言の多言語対応・暫定 55 v0.3 ユーザー確定済・decisions 72）。次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 71**（タスクバーのアイコン・`decisions_archive/71_taskbar_status_icon.md`）
 last_commit_location: `claude/multilingual-support-ff44eb`（phase 72）。phase 71 一式は `claude/taskbar-app-status-indicator-f73d28` にもあり、main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 72 進行中（task_04 完了・次 task_05）。** i18n 基盤・内部値の分離・キー移行 1 / 1b / 2（presentation のうち残りの dialogs・help 以外すべて・ja.json 約 604 キー）まで済み。
+focus: **phase 72 進行中（task_05 完了・次 task_06）。** presentation の画面の文言はすべてキー化済み（ja.json 約 704 キー・互換定数は解消）。残りは内側の層の文言（task_06）→ 英語の用語の確定（task_07・ユーザー確認）→ 英訳。
 mode: implementing
 presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-01T16:30:00
+ts: 2026-11-01T17:20:00
 who: main
 summary: |
-  task_04（キー移行 2 = アクションの編集の dialogs 4 ファイル）: codex-implementer は着手せず返ったため codex-delegating-implementer（Sol medium・サブエージェント 2）で再依頼 → ja.json に 94 キー・task_02 のラベル関数を tr へ・呼び出し時に tr するテストを追加。
-  reviewer 修正して採用 → 必須 1 件（プリセット編集の窓のタイトルに「…」が付く = `menu.settings.preset_edit` の誤用）をメインで `app.preset.title` へ修正。それ以外は機械照合で不一致 0・差し込み名の食い違い 0・import 時の tr 0。
-  **task_05 へ引き継ぎ（再掲）**: keymap_set_history_text の dialogs も使う定数（READ_ONLY_NOTICE ほか）は `config_io/keymap_set_history_io.py:78`・`tests_ui/test_keymap_set_history_flow.py:296` と一緒に tr へ / hook_button_texts の CAPTURE_* / UNKNOWN_CAPTURE_KEY_HINT_TEXT（`action_key_hold_fields.py:8,242` も使う）は定数ごとキー化。
+  task_05（キー移行 3 = 残りの dialogs・help・互換定数の仕上げ）を codex-delegating-implementer（サブエージェント 3）で実装。ja.json に 100 キー・hook_button_texts の CAPTURE_* / UNKNOWN_CAPTURE_KEY_HINT_TEXT を関数へ・keymap_set_history_text の定数をキーへ（全呼び出し元・テスト追従）・help_content の検証エラー文 14 か所をキー化（日本語の完全一致テスト追加）・ヘルプ本文とライセンス本文はキー化せず。Codex が作った報告ファイル task_05_report.md は削除（内容確認済み）。
+  reviewer 採用（AST の多重集合で完全一致照合・既存キーの使い回しの誤用なし・import 時の tr 0）。参考: preset_manager.py:6 の import の並び（未対応・軽微）。
 result_files:
-  - keyseq/presentation/dialogs/{action_control_fields,action_dialog,action_key_hold_fields,action_mouse_scroll_fields}.py
-  - keyseq/shared/i18n/locales/ja.json / tests_ui/test_internal_value_codes.py
-  - instructions/phase/72_multilingual_ui/tasks/task_04_keys_action_dialogs.md / instructions/phase/current.md
+  - keyseq/presentation/dialogs/ の残り・keyseq/presentation/help/ 一式・hook_button_texts.py・keymap_set_history_text.py・config_io/keymap_set_history_io.py（計 36 ファイル）
+  - keyseq/shared/i18n/locales/ja.json / tests_ui/test_preset_manager_i18n.py（新規）ほかテストの追従
+  - instructions/phase/72_multilingual_ui/tasks/task_05_keys_dialogs_help.md / instructions/phase/current.md
 verified:
   compile: pass
-  tests: pass（1888・skip 7）
-  tests_ui: pass（1225〔タイトル修正の前〕・修正後に test_action_dialog_control pass）
+  tests: pass（1890・skip 7）
+  tests_ui: pass（1227）
   smoke: pass
 
 ## next_action
-- task_05（キー移行 3 = 残りの dialogs〔preset_manager 45・keymap_edit 11・trigger 8・preset 8・keymap_switch_batch 8・grid_editor_window 7・orphan_sweep 6・quarantine_manage 5・layout_delete 5・reference_cleanup 3・keymap_set_history_dialog ほか〕・help/〔help_content の検証エラー文 20・license_window 6・version_dialog 5・help_window 5・third_party 4・help_tab_view 3・help_button 1〕・互換定数の仕上げ〔上記〕）を `instructions/phase/72_multilingual_ui/tasks/task_05_keys_dialogs_help.md` に起票（task_04 の定義を手本に）→ codex-delegating-implementer → verifier + reviewer（並行可・機械照合は完全一致で）
-- 以降 phase.md の順に task_06〜12。task_07（英語の用語・アクションの種類の表示名）と task_12（実機目視）はユーザー判断が要る
+- task_06（キー移行 4 = application / domain / infrastructure の画面に出る文〔約 286 リテラル・ログ専用と仕分け〕・既定の文言 `application/config_service/split_loading.py:381`）を `instructions/phase/72_multilingual_ui/tasks/task_06_keys_inner_layers.md` に起票（task_05 の定義を手本に・内側の層は `keyseq.shared.i18n` を import してよい〔暫定 55 §3.1〕・例外 / 戻り値の文として画面に出るものは作る時点で tr・ログ専用は残す）→ codex-delegating-implementer → verifier + reviewer（並行可・完全一致の照合）
+- その次の task_07（英語の用語・表記の規則・アクションの種類の表示名を暫定 55 へ追記）は**ユーザー確認が要る**ので、起票して案を作ったら止まる（不在なら /away の終了処理）
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers

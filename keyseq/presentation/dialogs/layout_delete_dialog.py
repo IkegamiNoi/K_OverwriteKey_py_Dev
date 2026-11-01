@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.help.help_button import add_help_button
 from keyseq.presentation.help.help_targets import KEYBOARD_UI
+from keyseq.shared.i18n import tr
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -27,7 +28,7 @@ class LayoutDeleteDialog(tk.Toplevel):
         frm.pack(fill="both", expand=True)
         frm.grid_columnconfigure(0, weight=1)
 
-        ttk.Label(frm, text="削除する外部レイアウトを選択してください。").grid(row=0, column=0, sticky="w")
+        ttk.Label(frm, text=tr("layout_delete.dialog.select_layout")).grid(row=0, column=0, sticky="w")
 
         list_frame = ttk.Frame(frm)
         list_frame.grid(row=1, column=0, sticky="nsew", pady=(10, 0))
@@ -45,8 +46,8 @@ class LayoutDeleteDialog(tk.Toplevel):
         btns = ttk.Frame(frm)
         btns.grid(row=2, column=0, sticky="ew", pady=(14, 0))
         add_help_button(btns, self, KEYBOARD_UI)
-        ttk.Button(btns, text="削除", command=self._ok).pack(side="left", padx=(0, 8))
-        ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left")
+        ttk.Button(btns, text=tr("common.delete"), command=self._ok).pack(side="left", padx=(0, 8))
+        ttk.Button(btns, text=tr("common.cancel"), command=self.destroy).pack(side="left")
 
         if self._items:
             self.listbox.selection_set(0)
@@ -58,7 +59,7 @@ class LayoutDeleteDialog(tk.Toplevel):
     def _ok(self):
         selection = self.listbox.curselection()
         if not selection:
-            messagebox.showinfo("レイアウト削除", "削除するレイアウトを選択してください。")
+            messagebox.showinfo(tr("keyboard.layout.delete_title"), tr("layout_delete.dialog.select_item"))
             return
         index = int(selection[0])
         self.result = self._items[index][0]

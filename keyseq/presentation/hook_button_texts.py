@@ -2,13 +2,6 @@
 
 from keyseq.shared.i18n import tr
 
-CAPTURE_IDLE_TEXT = "キー入力で記録"
-CAPTURE_ACTIVE_TEXT = "記録中…（Escで停止）"
-CAPTURE_TEXTS = (CAPTURE_IDLE_TEXT, CAPTURE_ACTIVE_TEXT)
-UNKNOWN_CAPTURE_KEY_HINT_TEXT = (
-    "このキーは記録できません。別のキーを押してください。（Escでキャンセル）"
-)
-
 
 def capture_idle_text() -> str:
     return tr("hook_button.capture_idle")
@@ -16,6 +9,14 @@ def capture_idle_text() -> str:
 
 def capture_active_text() -> str:
     return tr("hook_button.capture_active")
+
+
+def capture_texts() -> tuple[str, str]:
+    return capture_idle_text(), capture_active_text()
+
+
+def unknown_capture_key_hint_text() -> str:
+    return tr("hook_button.capture_unknown_key_hint")
 
 
 HOOK_START_TEXT = "hook_button.start"

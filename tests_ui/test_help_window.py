@@ -190,6 +190,28 @@ class HelpWindowTest(unittest.TestCase):
             # 破棄の後に after(0) で予約されるフックの再開まで進め、次へ持ち越さない。
             self.app.update()
 
+    def test_version_dialog_resolves_translations_when_opened(self) -> None:
+        translate = Mock(side_effect=lambda key, **_params: f"<{key}>")
+        with patch.object(version_dialog, "tr", translate):
+            dialog = version_dialog.open_version_dialog(self.app)
+        try:
+            self.assertEqual(dialog.title(), "<help.version.title>")
+            body = next(child for child in dialog.winfo_children() if isinstance(child, tk.Text))
+            self.assertEqual(body.get("1.0", "end-1c"), "<help.version.content>")
+            close_button = next(
+                child for child in dialog.winfo_children()
+                if child.winfo_class() == "TButton"
+            )
+            self.assertEqual(close_button.cget("text"), "<help.version.close>")
+            self.assertEqual(
+                [entry.args[0] for entry in translate.call_args_list],
+                ["help.version.title", "help.version.content", "help.version.close"],
+            )
+        finally:
+            if dialog.winfo_exists():
+                dialog.destroy()
+            self.app.update()
+
     def test_version_dialog_escape_and_close_button_resume_hook(self) -> None:
         dialog = version_dialog.open_version_dialog(self.app)
         try:

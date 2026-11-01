@@ -8,7 +8,7 @@ from pathlib import Path
 import unicodedata
 
 from keyseq.presentation.bundled_paths import help_content_path
-from keyseq.shared.i18n import current_language
+from keyseq.shared.i18n import current_language, tr
 
 
 @dataclass(frozen=True)
@@ -46,25 +46,27 @@ class HelpLoadResult:
 
 def _object(value: object, location: str) -> dict[str, object]:
     if not isinstance(value, dict):
-        raise ValueError(f"{location} は object でなければなりません")
+        raise ValueError(tr("help.validation.object", location=location))
     return value
 
 
 def _nonempty_string(value: object, location: str) -> str:
     if not isinstance(value, str) or not value:
-        raise ValueError(f"{location} は空でない文字列でなければなりません")
+        raise ValueError(tr("help.validation.nonempty_string", location=location))
     return value
 
 
 def _array(value: object, location: str) -> list[object]:
     if not isinstance(value, list):
-        raise ValueError(f"{location} は配列でなければなりません")
+        raise ValueError(tr("help.validation.array", location=location))
     return value
 
 
 def _unique_id(identifier: str, location: str, seen: set[str]) -> None:
     if identifier in seen:
-        raise ValueError(f"{location} が重複しています: {identifier}")
+        raise ValueError(tr(
+            "help.validation.duplicate_id", location=location, identifier=identifier,
+        ))
     seen.add(identifier)
 
 
@@ -74,16 +76,18 @@ def _parse_block(value: object, location: str) -> HelpBlock:
     if kind == "p":
         text = block.get("text")
         if not isinstance(text, str):
-            raise ValueError(f"{location}.text は文字列でなければなりません")
+            raise ValueError(tr("help.validation.block_text_string", location=location))
         return HelpBlock("p", text=text)
     if kind == "list":
         values = _array(block.get("items"), f"{location}.items")
         if not values:
-            raise ValueError(f"{location}.items は空にできません")
+            raise ValueError(tr("help.validation.items_nonempty", location=location))
         if any(not isinstance(value, str) for value in values):
-            raise ValueError(f"{location}.items の要素はすべて文字列でなければなりません")
+            raise ValueError(tr("help.validation.items_strings", location=location))
         return HelpBlock("list", items=tuple(values))
-    raise ValueError(f'{location}.type が不正です: {kind!r}')
+    raise ValueError(tr(
+        "help.validation.block_type_invalid", location=location, kind=repr(kind),
+    ))
 
 
 def _parse_item(value: object, location: str, category_id: str, seen: set[str]) -> HelpItem:
@@ -91,7 +95,7 @@ def _parse_item(value: object, location: str, category_id: str, seen: set[str]) 
     identifier = _nonempty_string(item.get("id"), f"{location}.id")
     prefix = f"{category_id}."
     if not identifier.startswith(prefix) or not identifier[len(prefix):]:
-        raise ValueError(f'{location}.id は "{prefix}名前" の形式でなければなりません')
+        raise ValueError(tr("help.validation.item_id_format", location=location, prefix=prefix))
     _unique_id(identifier, f"{location}.id", seen)
     title = _nonempty_string(item.get("title"), f"{location}.title")
     body = _array(item.get("body"), f"{location}.body")
@@ -122,13 +126,13 @@ def _parse_categories(value: object, tab: str, seen: set[str]) -> tuple[HelpCate
 
 def parse_help_content(data: object) -> HelpContent:
     """形式を検査し、全タブのデータを不変のデータクラスへ変換する。"""
-    root = _object(data, "ルート")
+    root = _object(data, tr("help.validation.root_location"))
     format_value = root.get("format")
     if type(format_value) is not int or format_value != 1:
-        raise ValueError("format は整数の 1 でなければなりません")
+        raise ValueError(tr("help.validation.format_version"))
     tabs = _object(root.get("tabs"), "tabs")
     if "guide" not in tabs or "faq" not in tabs:
-        raise ValueError("tabs に guide と faq が必要です")
+        raise ValueError(tr("help.validation.tabs_required"))
     seen: set[str] = set()
     guide = _parse_categories(tabs["guide"], "guide", seen)
     faq = _parse_categories(tabs["faq"], "faq", seen)
@@ -154,11 +158,11 @@ def _load_help_file(source: Path) -> HelpLoadResult:
         data = json.loads(source.read_text(encoding="utf-8"))
         return HelpLoadResult(parse_help_content(data))
     except OSError as exc:
-        return HelpLoadResult(None, f"ファイルを読み込めません: {exc}")
+        return HelpLoadResult(None, tr("help.error.file_read", error=exc))
     except UnicodeDecodeError as exc:
-        return HelpLoadResult(None, f"UTF-8 として読み込めません: {exc}")
+        return HelpLoadResult(None, tr("help.error.utf8_read", error=exc))
     except json.JSONDecodeError as exc:
-        return HelpLoadResult(None, f"JSON の形式が不正です: {exc}")
+        return HelpLoadResult(None, tr("help.error.json_invalid", error=exc))
     except ValueError as exc:
         return HelpLoadResult(None, str(exc))
 
