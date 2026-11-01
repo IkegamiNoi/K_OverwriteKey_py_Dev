@@ -15,8 +15,8 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 71 = タスクバーのアイコンで状態を表示は 2026-11-01 完了〕・次フェーズはユーザー判断で `/phase_start`。予定 = 多言語対応 → Mac 対応）。
-   次採番 = phase 72 / 暫定 55 / decisions 72 / 提案書 28 / idea 56（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 72 = 画面の文言の多言語対応**・`instructions/phase/72_multilingual_ui/phase.md`・主入力 = 暫定 55 `instructions/history/55_multilingual_ui.md`〔v0.3 確定 + §8 Q4〜Q6 は未確定の案〕。その次の予定 = Mac 対応）。
+   次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜54）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 71 完了（2026-11-01）。** 窓のアイコンの右上にステータス欄と同じ 3 状態の印（白い正方形の上の緑の円 / 赤の正方形 / 黄の棒 2 本）・土台はサンプル画像（ユーザーが差し替え）・子窓は既定のアイコンで追従・起動時に AppUserModelID。実機目視すべて OK・refactor_check = 不要。アクティブなフェーズなし・次フェーズはユーザー判断（`/phase_start`）。
-ブランチ `claude/taskbar-app-status-indicator-f73d28`（phase 71 一式）。main へのマージはユーザー（PR は作らない）。
+**phase 72 進行中（task_06 完了・task_07 はユーザー判断待ち）。** 画面の文言はすべてキー化済み（全層・ja.json 約 905 キー）。次は英語の表記の規則・用語・アクションの種類の表示名の確定（暫定 55 §8 Q4〜Q6）→ 英訳。
+ブランチ `claude/multilingual-support-ff44eb`（phase 71 一式の上に phase 72）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 71 完了 = 2026-11-01**）:
-compile **clean** / tests **1867 pass**（skip 7）/ tests_ui **1210 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1856〔phase 70〕→ 1867 / tests_ui: 1202 → 1210）。
+直近の実測（**phase 72 task_06 = 2026-11-01**）:
+compile **clean** / tests **1891 pass**（skip 7）/ tests_ui **1227 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1867〔phase 71〕→ 1891 / tests_ui: 1210 → 1227）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,10 +55,23 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- 次フェーズはユーザー判断（予定 = 多言語対応〔ヘルプ本文 `help_ja.json` を言語別に増やす・アクションの種類の内部名の表示名化・`child_kind_labels.py` の表を辞書へ〕→ Mac 対応）。`/phase_start`
-- 土台の画像の差し替え（任意・ユーザー）: `keyseq/presentation/status_icon/images/app_icon_16.png` / `app_icon_32.png` を同じ名前の正方形 PNG で置き換え → 起動して見え方を確認
-- 保留 = 提案書 26（`redraw` 100 行）・提案書 27（`app.py` の同型 try/except 5 個）・phase 71 の保留 2 件（current.md「別タスク化候補」）
+- **【ユーザー確認待ち】暫定 55 §8 の Q4〜Q6**（`instructions/history/55_multilingual_ui.md`・各推奨案つき）:
+  - Q4 英語の表記の規則 E1〜E6（推奨 = 文頭だけ大文字〔Windows 11 の作法〕・「…」は D3 と同じ・ラベルに句点なし・数は「Files: {n}」形式・Please を付けない）
+  - Q5 用語の英語（主な判断点 = A1 構成セット → **Profile**〔別案 Config set〕/ A17 退避 → **Archive** / A10 記録・取得 → Record / Pick）
+  - Q6 アクションの種類の表示名（ホットキー / 文字入力 / マウスのクリック / マウスのスクロール / 押下・解放 / 制御 / ファイルの行 ↔ Hotkey / Type text / Mouse click / Mouse scroll / Press / release / Control / File line）と表示する場所（推奨 = 種類のコンボボックスとマウスのボタンは表示名・出力シーケンスの一覧の行頭 `[hotkey]` は内部名のまま〔`domain/config.py:476-478`〕）
+- 確定したら: 暫定 55 を v0.4 へ（§2 へ移す）→ task_07 完了 → task_08（en.json の全キーの英訳・表示名の結線・test_i18n を全キーの検査に戻す）→ task_09（help_en.json）〜 task_12（実機目視・正本反映）
+- 土台の画像の差し替え（任意・ユーザー）: `keyseq/presentation/status_icon/images/app_icon_16.png` / `app_icon_32.png`
+- 保留 = 提案書 26・27・phase 71 の保留 2 件（current.md「別タスク化候補」）
 - main へのマージはユーザー（PR は作らない）
+
+## 進行中のフェーズの要点（phase 72）
+- 文言カタログ = `keyseq/shared/i18n/`（`tr(key, /, **params)`・`tr_in`・選んだ言語 → en → ja → キー・`fix_language` / `reset_for_tests`）・`locales/ja.json`（正）/ `en.json`（今は 4 キーのみ・足りない文言は ja で出る）
+- **`tr` をモジュール定数・クラス属性・既定引数に書かない**（import 時に ja で固まる）。表は値をキーにして表示の時点で `tr`
+- **App を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`**（無いと `ui_language` 未設定の環境で英語になり落ちる・`tests/test_i18n_test_language_fixed.py` が検出）
+- キー移行の検証 = 削除行の日本語と ja.json の値の**完全一致**の機械照合（reviewer に依頼。既存キーの使い回しで「…」の有無を取り違えた例あり）
+- **【罠・phase 72】Codex は表示用の部品・文字列を取り違えることがある**（見出しの部品を `measure` した・行の種類の列に内部コードを出した・（未選択）の表示を消した）。tests_ui 全体の実測で拾う
+- **【罠・phase 72】Codex の新テストが入力エラーの messagebox（modal）で tests_ui を止めた**。止まったら単独実行 + `timeout` で特定し、`messagebox.showerror` を patch
+- **【Codex 運用・phase 72】`codex-implementer`（Luna 単独）が着手せず返ることがある** → `codex-delegating-implementer` で再依頼。Codex が勝手に報告ファイルを worktree に作ることがある（コミット前に `git status` で確認）
 
 ## 直前のフェーズ（phase 71 = タスクバーのアイコン・判断は `decisions_archive/71_taskbar_status_icon.md`）
 - 正本 = `features.md` §4.5「タスクバーのアイコン」/ `architecture.md`（presentation）/ 地図 = `codebase_map.md` の `presentation/status_icon/`・`bundled_paths.py`（`help/` から presentation 直下へ昇格）

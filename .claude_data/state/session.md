@@ -4,37 +4,40 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-01T17:20:00
+last_updated: 2026-11-01T13:38:00
 phase: instructions/phase/72_multilingual_ui（**アクティブ** = 画面の文言の多言語対応・暫定 55 v0.3 ユーザー確定済・decisions 72）。次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 71**（タスクバーのアイコン・`decisions_archive/71_taskbar_status_icon.md`）
 last_commit_location: `claude/multilingual-support-ff44eb`（phase 72）。phase 71 一式は `claude/taskbar-app-status-indicator-f73d28` にもあり、main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 72 進行中（task_05 完了・次 task_06）。** presentation の画面の文言はすべてキー化済み（ja.json 約 704 キー・互換定数は解消）。残りは内側の層の文言（task_06）→ 英語の用語の確定（task_07・ユーザー確認）→ 英訳。
-mode: implementing
+focus: **phase 72 進行中（task_06 完了・task_07 はユーザー判断待ち）。** 画面の文言はすべてキー化済み（全層・ja.json 約 905 キー）。次は英語の表記の規則・用語・アクションの種類の表示名の確定（暫定 55 §8 Q4〜Q6）→ 英訳。
+mode: blocked
 presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-01T17:20:00
+ts: 2026-11-01T13:38:00
 who: main
 summary: |
-  task_05（キー移行 3 = 残りの dialogs・help・互換定数の仕上げ）を codex-delegating-implementer（サブエージェント 3）で実装。ja.json に 100 キー・hook_button_texts の CAPTURE_* / UNKNOWN_CAPTURE_KEY_HINT_TEXT を関数へ・keymap_set_history_text の定数をキーへ（全呼び出し元・テスト追従）・help_content の検証エラー文 14 か所をキー化（日本語の完全一致テスト追加）・ヘルプ本文とライセンス本文はキー化せず。Codex が作った報告ファイル task_05_report.md は削除（内容確認済み）。
-  reviewer 採用（AST の多重集合で完全一致照合・既存キーの使い回しの誤用なし・import 時の tr 0）。参考: preset_manager.py:6 の import の並び（未対応・軽微）。
+  task_06（キー移行 4 = application / domain / infrastructure の画面に出る文）を codex-delegating-implementer（サブエージェント 3）で実装 → ja.json に 201 キー・ログ専用 31 か所は残す（reviewer が呼び出し元まで確認）・例外は作る時点で tr・旧トリガーセットの既定名は作成時の tr。reviewer 修正して採用 → 必須 1 件（sequence_control の呼び出し先ラベルの組み立て）をメインで修正。コミット 7404ae3。
+  task_07 の案を暫定 55 §8 に Q4（英語の表記の規則 E1〜E6）/ Q5（用語表 A1〜A22 の英語）/ Q6（アクションの種類の表示名と表示する場所）として追記（未確定・未コミット → 本ターンでコミット）。
+  /away（戻る予定 未定）のため、ユーザー判断の手前で終了処理。
 result_files:
-  - keyseq/presentation/dialogs/ の残り・keyseq/presentation/help/ 一式・hook_button_texts.py・keymap_set_history_text.py・config_io/keymap_set_history_io.py（計 36 ファイル）
-  - keyseq/shared/i18n/locales/ja.json / tests_ui/test_preset_manager_i18n.py（新規）ほかテストの追従
-  - instructions/phase/72_multilingual_ui/tasks/task_05_keys_dialogs_help.md / instructions/phase/current.md
+  - keyseq/application・domain・infrastructure の 34 ファイル / keyseq/shared/i18n/locales/ja.json / tests の 4 ファイル / instructions/common/codebase_map.md
+  - instructions/history/55_multilingual_ui.md（§8 Q4〜Q6 の案）
 verified:
   compile: pass
-  tests: pass（1890・skip 7）
+  tests: pass（1891・skip 7）
   tests_ui: pass（1227）
   smoke: pass
 
 ## next_action
-- task_06（キー移行 4 = application / domain / infrastructure の画面に出る文〔約 286 リテラル・ログ専用と仕分け〕・既定の文言 `application/config_service/split_loading.py:381`）を `instructions/phase/72_multilingual_ui/tasks/task_06_keys_inner_layers.md` に起票（task_05 の定義を手本に・内側の層は `keyseq.shared.i18n` を import してよい〔暫定 55 §3.1〕・例外 / 戻り値の文として画面に出るものは作る時点で tr・ログ専用は残す）→ codex-delegating-implementer → verifier + reviewer（並行可・完全一致の照合）
-- その次の task_07（英語の用語・表記の規則・アクションの種類の表示名を暫定 55 へ追記）は**ユーザー確認が要る**ので、起票して案を作ったら止まる（不在なら /away の終了処理）
-- main へのマージはユーザー（PR は作らない）
+- **【ユーザー確認待ち】暫定 55 §8 の Q4〜Q6（`instructions/history/55_multilingual_ui.md`）**。それぞれ推奨案つき:
+  - Q4 英語の表記の規則 E1〜E6（推奨 = 文頭だけ大文字〔Windows 11 の作法〕・「…」は D3 と同じ・ラベルに句点なし・数は「Files: {n}」形式・Please を付けない）
+  - Q5 用語の英語（主な判断点 = A1 構成セット → **Profile**〔別案 Config set〕/ A17 退避 → **Archive** / A10 記録・取得 → Record / Pick）
+  - Q6 アクションの種類の表示名（ホットキー / 文字入力 / マウスのクリック / マウスのスクロール / 押下・解放 / 制御 / ファイルの行 ↔ Hotkey / Type text / Mouse click / Mouse scroll / Press / release / Control / File line）と表示する場所（推奨 = 種類のコンボボックスとマウスのボタン〔left / right / middle → 左 / 右 / 中〕は表示名・出力シーケンスの一覧の行頭 `[hotkey]` は内部名のまま〔`domain/config.py:476-478`〕。一覧も表示名にすると日本語の見た目が変わる）
+- 確定したら: 暫定 55 を v0.4 へ（§2 へ移す）→ task_07 完了 → task_08（en.json の全キーの英訳・表示名の結線・test_i18n を全キーの検査に戻す）を起票 → codex-delegating-implementer → verifier + reviewer
+- 以降 task_09（help_en.json）〜 task_12（実機目視・正本反映）。main へのマージはユーザー（PR は作らない）
 
 ## blockers
 - **【回避中】Codex の書き込み実行（2026-10-14 18:24 以降の不具合）**: Codex の更新（0.162.x・cua_node runtime a9ba…・17:22〜18:25）以降、`~/.codex/.sandbox/sandbox.2026-10-14.log` に `setup refresh had errors`（node_repl.exe の ACL 更新が「別のプロセスが使用中」で失敗）。読み取り専用（レビュー・調査）は通る。再起動では直らない。**2026-10-15 ユーザーが `~/.codex/config.toml` の `[windows] sandbox` を `unelevated` に変更 → 常駐の broker・app-server を止めて再実行で書き込み可**。Codex の更新で直ったら `elevated` に戻す（ユーザー操作）。設定を変えたら常駐の broker（`app-server-broker.mjs`）と app-server を止めないと効かない

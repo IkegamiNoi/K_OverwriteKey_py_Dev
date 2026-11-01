@@ -189,7 +189,61 @@
 
 ## §8 確認事項（ユーザー判断）
 
-なし（v0.2 の Q1〜Q3 は 2026-11-01 にユーザー確定し §2 へ移した）。
+v0.2 の Q1〜Q3 は 2026-11-01 にユーザー確定し §2 へ移した。以下は task_07 の案（**未確定**・確定したら §2 と本節の確定版へ移す）。
+
+### Q4 英語の表記の規則（案）
+
+| # | 規則 | 例 |
+|---|---|---|
+| E1 | 大文字は**文頭だけ**（メニュー・ボタン・窓のタイトルも。Windows 11 の作法に合わせる）。固有名・略語は元の形 | `Save as…`・`Keyboard UI`・`OK` |
+| E2 | 省略記号は D3 と同じ規則で「…」1 文字（Import... / Export... は今の形のまま・D10） | `Load…` |
+| E3 | コロン・括弧は D1・D4 と同じ（半角・コロンの後に空白） | `Key: f1`・`Interval (ms)` |
+| E4 | ラベル・ボタン・見出しは句点を付けない。文のメッセージは「.」で終える | `Stop key` / `The file was not found.` |
+| E5 | 数は「名詞: {n}」の形にして単数 / 複数の書き分けを避ける | `Files: {n}` |
+| E6 | 呼びかけは命令形で短く（`Please` を付けない） | `Select a call target.` |
+
+### Q5 用語表 A1〜A22 の英語（案）
+
+| # | 語 | 英語（案） |
+|---|---|---|
+| A1 | 構成セット | **Profile**（別案 Config set） |
+| A2 | キーマップ | Keymap |
+| A3 / A4 | キー置換 / 置換元キー / 置換先キー | Key remap / Source key / Target key |
+| A5 / A6 | 停止キー / 切替キー | Stop key / Switch key |
+| A7 | 出力シーケンス（簡易表示の見出し「シーケンス」） | Output sequence（Sequence） |
+| A8 | トリガーセット | Trigger set |
+| A9 | 読込 / 読み込む | Load |
+| A10 | 記録（キー）/ 取得（座標） | Record / Pick |
+| A11 | 編集 | Edit |
+| A12 | プリセット / 共通 / 構成セット専用 / 既定 | Preset / Shared preset / Profile preset / Built-in preset |
+| A13 | サンプル設定 | Sample settings |
+| A14 | 簡易表示 / 詳細表示 / 最前面に表示 | Compact view / Full view / Always on top |
+| A15 | 保存先の記録 | Save location record |
+| A16 | 未使用ファイルの整理 / 未使用の候補 | Clean up unused files / Unused candidates |
+| A17 | 退避 / 退避したファイルの管理 / 退避先フォルダ | Archive / Manage archived files / Archive folder |
+| A18 | 回 / 退避の記録 | Run / Archive record |
+| A19 | 別名保存 | Save as |
+| A20 / A21 | トリガーキー / アクティブなキーマップ | Trigger key / Active keymap |
+| A22 | カーソルグリッド / マス | Cursor grid / Cell |
+| — | フォルダ / トリガー / アクション / フック / キーボードUI / 参照元の掃除 | Folder / Trigger / Action / Hook / Keyboard UI / Clean up references |
+
+### Q6 アクションの種類の表示名（案）と表示する場所
+
+| 内部名（保存値・不変） | 日本語 | 英語 |
+|---|---|---|
+| `hotkey` | ホットキー | Hotkey |
+| `text` | 文字入力 | Type text |
+| `mouse_click` | マウスのクリック | Mouse click |
+| `mouse_scroll` | マウスのスクロール | Mouse scroll |
+| `key_hold` | 押下・解放 | Press / release |
+| `system` | 制御 | Control |
+| `file_line` | ファイルの行 | File line |
+
+- 表示する場所: (a) アクションの編集の「種類」のコンボボックス（今は内部名）・(b) 出力シーケンスの一覧の行頭 `[hotkey] ctrl+c`
+  （`domain/config.py:476-478`。今は内部名）・(c) 一覧の mouse_click の `left` / `right` / `middle`（`domain/config.py:463-466`）と
+  編集のボタンのコンボボックス（`action_dialog.py:118`）。
+- 提案: **(a) と (c) は表示名にする / (b) は内部名のまま**（一覧は幅が狭く、行頭の短い印として今の形に慣れているため。英語でも同じ）。
+  (b) も表示名にする場合、日本語の一覧の見た目が変わる（§6.3「日本語は変えない」の例外として扱う）。
 
 ## §9 受け入れ条件（ドラフト）
 
