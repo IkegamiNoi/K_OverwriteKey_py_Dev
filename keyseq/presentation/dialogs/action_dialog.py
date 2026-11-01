@@ -19,6 +19,7 @@ from keyseq.presentation.help.help_button import add_help_button
 from keyseq.presentation.help.help_targets import SEQUENCE
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
 from keyseq.presentation.tk_keys import is_unresolved_capture_key, normalize_tk_key_event
+from keyseq.shared.i18n import tr
 
 if TYPE_CHECKING:
     from keyseq.presentation.app import App
@@ -51,33 +52,33 @@ class ActionDialog(tk.Toplevel):
         frm.grid_columnconfigure(1, weight=1)
         frm.grid_columnconfigure(3, weight=1)
 
-        ttk.Label(frm, text="種類").grid(row=0, column=0, sticky="w")
+        ttk.Label(frm, text=tr("action_dialog.type.label")).grid(row=0, column=0, sticky="w")
         self.type_var = tk.StringVar(value="hotkey")
         self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=["hotkey", "text", "mouse_click", "mouse_scroll", "key_hold"] + ([] if mode is None else ["system", "file_line"]), state="readonly", width=12)
         self.type_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
         self.type_combo.bind("<<ComboboxSelected>>", lambda _e: self._sync_capture_ui())
 
-        self.value_label = ttk.Label(frm, text="値")
+        self.value_label = ttk.Label(frm, text=tr("action_dialog.value.label"))
         self.value_label.grid(row=1, column=0, sticky="w", pady=(10, 0))
         self.value_var = tk.StringVar(value="")
         self.value_entry = ttk.Entry(frm, textvariable=self.value_var, width=42)
         self.value_entry.grid(row=1, column=1, columnspan=3, sticky="we", padx=(8, 0), pady=(10, 0))
 
         # hotkey のときだけ「記録」UIを出す
-        self.capture_btn = ttk.Button(frm, text="キー入力で記録", command=self._toggle_recording)
+        self.capture_btn = ttk.Button(frm, text=tr("hook_button.capture_idle"), command=self._toggle_recording)
         self.capture_btn.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
         # ヒントはボタンの右側に置く（行を空けてラベル欄を下へ移すため）
-        self.capture_hint = ttk.Label(frm, text="※記録中は、押したキーがhotkeyとして反映されます（Escで停止）")
+        self.capture_hint = ttk.Label(frm, text=tr("action_dialog.capture.hint"))
         self.capture_hint.grid(row=2, column=2, columnspan=2, sticky="w", padx=(12, 0), pady=(8, 0))
 
         # シーケンス用ラベル（任意）：キー入力で記録ボタンの1行下へ移動
-        ttk.Label(frm, text="ラベル").grid(row=3, column=0, sticky="w", pady=(6, 0))
+        ttk.Label(frm, text=tr("action_dialog.label.label")).grid(row=3, column=0, sticky="w", pady=(6, 0))
         self.action_label_var = tk.StringVar(value="")
         self.action_label_entry = ttk.Entry(frm, textvariable=self.action_label_var, width=42)
         self.action_label_entry.grid(row=3, column=1, columnspan=3, sticky="we", padx=(8, 0), pady=(6, 0))
         
         # OSショートカット用プリセット（JSONから生成 / hotkeyのときのみ有効）
-        self.presets_frame = ttk.LabelFrame(frm, text="プリセット", padding=8)
+        self.presets_frame = ttk.LabelFrame(frm, text=tr("action_dialog.presets.title"), padding=8)
         self.presets_frame.grid(row=5, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.presets_frame.grid_columnconfigure(0, weight=1)
         self.presets_frame.grid_columnconfigure(1, weight=1)
@@ -89,42 +90,42 @@ class ActionDialog(tk.Toplevel):
 
         btns = ttk.Frame(frm)
         btns.grid(row=9, column=0, columnspan=4, sticky="ew", pady=(14, 0))
-        self.preset_edit_btn = ttk.Button(btns, text="プリセット編集…", command=self._open_preset_manager)
+        self.preset_edit_btn = ttk.Button(btns, text=tr("menu.settings.preset_edit"), command=self._open_preset_manager)
         self.help_button = add_help_button(
             btns, self, SEQUENCE, before_open=self._stop_recording
         )
         self.preset_edit_btn.pack(side="left", before=self.help_button)
-        ttk.Button(btns, text="OK", command=self.on_ok).pack(side="left", padx=(0, 8))
-        ttk.Button(btns, text="キャンセル", command=self.destroy).pack(side="left", padx=(0, 8))
+        ttk.Button(btns, text=tr("common.ok"), command=self.on_ok).pack(side="left", padx=(0, 8))
+        ttk.Button(btns, text=tr("common.cancel"), command=self.destroy).pack(side="left", padx=(0, 8))
 
         # mouse_click 用UI（座標/ボタン/回数）
-        self.mouse_frame = ttk.LabelFrame(frm, text="マウスクリック設定", padding=8)
+        self.mouse_frame = ttk.LabelFrame(frm, text=tr("action_dialog.mouse.title"), padding=8)
         self.mouse_frame.grid(row=6, column=0, columnspan=4, sticky="we", pady=(10, 0))
         self.mouse_frame.grid_columnconfigure(1, weight=1)
 
-        self.mouse_x_label = ttk.Label(self.mouse_frame, text="X")
+        self.mouse_x_label = ttk.Label(self.mouse_frame, text=tr("action_dialog.mouse.axis_x"))
         self.mouse_x_label.grid(row=0, column=0, sticky="w")
         self.mouse_x_var = tk.StringVar(value="")
         ttk.Entry(self.mouse_frame, textvariable=self.mouse_x_var, width=10).grid(row=0, column=1, sticky="w", padx=(8, 0))
 
-        self.mouse_y_label = ttk.Label(self.mouse_frame, text="Y")
+        self.mouse_y_label = ttk.Label(self.mouse_frame, text=tr("action_dialog.mouse.axis_y"))
         self.mouse_y_label.grid(row=0, column=2, sticky="w", padx=(16, 0))
         self.mouse_y_var = tk.StringVar(value="")
         ttk.Entry(self.mouse_frame, textvariable=self.mouse_y_var, width=10).grid(row=0, column=3, sticky="w", padx=(8, 0))
 
-        ttk.Label(self.mouse_frame, text="ボタン").grid(row=1, column=0, sticky="w", pady=(8, 0))
+        ttk.Label(self.mouse_frame, text=tr("action_dialog.button")).grid(row=1, column=0, sticky="w", pady=(8, 0))
         self.mouse_btn_var = tk.StringVar(value="left")
         self.mouse_btn_combo = ttk.Combobox(self.mouse_frame, textvariable=self.mouse_btn_var, values=["left", "right", "middle"], state="readonly", width=10)
         self.mouse_btn_combo.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
 
-        ttk.Label(self.mouse_frame, text="回数").grid(row=1, column=2, sticky="w", padx=(16, 0), pady=(8, 0))
+        ttk.Label(self.mouse_frame, text=tr("action_dialog.count")).grid(row=1, column=2, sticky="w", padx=(16, 0), pady=(8, 0))
         self.mouse_clicks_var = tk.StringVar(value="1")
         self.mouse_clicks_entry = ttk.Entry(self.mouse_frame, textvariable=self.mouse_clicks_var, width=10)
         self.mouse_clicks_entry.grid(row=1, column=3, sticky="w", padx=(8, 0), pady=(8, 0))
 
-        self.mouse_capture_btn = ttk.Button(self.mouse_frame, text="クリック位置を取得", command=lambda: self._capture_mouse_position(self.mouse_x_var, self.mouse_y_var, self.mouse_capture_btn, self.mouse_hint))
+        self.mouse_capture_btn = ttk.Button(self.mouse_frame, text=tr("action_dialog.mouse.capture_click_position"), command=lambda: self._capture_mouse_position(self.mouse_x_var, self.mouse_y_var, self.mouse_capture_btn, self.mouse_hint))
         self.mouse_capture_btn.grid(row=2, column=0, columnspan=4, sticky="w", pady=(8, 0))
-        self.mouse_hint = ttk.Label(self.mouse_frame, text="※押したあと、画面上の任意の場所を1回クリックすると座標が入ります")
+        self.mouse_hint = ttk.Label(self.mouse_frame, text=tr("action_dialog.coordinates.capture_hint"))
         self.mouse_hint.grid(row=3, column=0, columnspan=4, sticky="w", pady=(6, 0))
         self._build_drag_ui()
 
@@ -154,14 +155,14 @@ class ActionDialog(tk.Toplevel):
         if mode == "add":
             self.append_to_end_var = tk.BooleanVar(value=True)
             self.append_to_end_check = ttk.Checkbutton(
-                frm, text="末尾に追加", variable=self.append_to_end_var,
+                frm, text=tr("action_dialog.append_to_end"), variable=self.append_to_end_var,
             )
             self.append_to_end_check.grid(row=0, column=3, sticky="e")
 
         if mode == "edit_loop":
             self.type_var.set("system")
             self.type_combo.configure(state="disabled")
-            self.control_fields.system_op_var.set("ループ")
+            self.control_fields.system_op_var.set(tr("action_dialog.system.op.loop_start"))
             self.control_fields.system_op_combo.configure(state="disabled")
 
         if initial:
@@ -202,11 +203,11 @@ class ActionDialog(tk.Toplevel):
             self.destroy()
             return
         if t not in ("hotkey", "text", "mouse_click", "mouse_scroll", "key_hold"):
-            messagebox.showerror("入力エラー", "種類が正しくありません。")
+            messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.invalid_type"))
             return
         if t in ("hotkey", "text"):
             if not v:
-                messagebox.showerror("入力エラー", "値を入力してください。")
+                messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.value_required"))
                 return
             self.parent._dialog_result = {"type": t, "value": v, "label": label}
         elif t == "mouse_click":
@@ -214,12 +215,12 @@ class ActionDialog(tk.Toplevel):
             sx = self.mouse_x_var.get().strip()
             sy = self.mouse_y_var.get().strip()
             if not sx or not sy:
-                messagebox.showerror("入力エラー", "mouse_clickのX/Yを入力してください。")
+                messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.mouse_coordinates_required"))
                 return
             try:
                 x = int(sx); y = int(sy)
             except Exception:
-                messagebox.showerror("入力エラー", "mouse_clickのX/Yは整数で入力してください。")
+                messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.mouse_coordinates_integer"))
                 return
             btn = (self.mouse_btn_var.get() or "left").strip().lower()
             clicks_s = (self.mouse_clicks_var.get() or "1").strip()
@@ -241,14 +242,14 @@ class ActionDialog(tk.Toplevel):
         elif t == "mouse_scroll":
             fields = self.mouse_scroll_fields
             if not fields.unit_var.get():
-                messagebox.showerror("入力エラー", "単位を選択してください。")
+                messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.scroll_unit_required"))
                 return
             if fields.coordinates_var.get() and (not fields.x_var.get().strip() or not fields.y_var.get().strip()):
-                messagebox.showerror("入力エラー", "マウス座標のX/Yは両方入力してください。")
+                messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.coordinates_both_required"))
                 return
             parsed = parse_mouse_scroll(fields.build_action(label))
             if isinstance(parsed, str):
-                messagebox.showerror("入力エラー", parsed)
+                messagebox.showerror(tr("action_dialog.error.input_title"), parsed)
                 return
             action = {
                 "type": "mouse_scroll", "direction": parsed.direction,
@@ -261,17 +262,20 @@ class ActionDialog(tk.Toplevel):
             action = self.key_hold_fields.build_action(label)
             if self.key_hold_fields.target_kind() == "mouse_button" and self.key_hold_fields.coordinates_var.get():
                 if not action.get("x") or not action.get("y"):
-                    messagebox.showerror("入力エラー", "マウス座標のX/Yは両方入力してください。")
+                    messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.coordinates_both_required"))
                     return
             parsed = parse_key_hold(action)
             if isinstance(parsed, str):
-                messagebox.showerror("入力エラー", parsed)
+                messagebox.showerror(tr("action_dialog.error.input_title"), parsed)
                 return
             if parsed.key is not None:
                 try:
                     self.parent.input_gateway.validate_key_name(parsed.key)
                 except Exception as exc:
-                    messagebox.showerror("入力エラー", f"キー名が正しくありません: {exc}")
+                    messagebox.showerror(
+                        tr("action_dialog.error.input_title"),
+                        tr("action_dialog.error.key_name_invalid", error=exc),
+                    )
                     return
                 action = {"type": "key_hold", "edge": parsed.edge, "value": parsed.key, "label": label}
                 if parsed.edge == "down":
@@ -286,24 +290,24 @@ class ActionDialog(tk.Toplevel):
 
     def _build_drag_ui(self) -> None:
         self.mouse_drag_var = tk.BooleanVar(value=False)
-        ttk.Checkbutton(self.mouse_frame, text="ドラッグ（範囲選択・ドラッグ&ドロップ）", variable=self.mouse_drag_var, command=self._sync_drag_ui).grid(row=4, column=0, columnspan=4, sticky="w", pady=(8, 0))
+        ttk.Checkbutton(self.mouse_frame, text=tr("action_dialog.mouse.drag"), variable=self.mouse_drag_var, command=self._sync_drag_ui).grid(row=4, column=0, columnspan=4, sticky="w", pady=(8, 0))
         self.mouse_to_x_var = tk.StringVar(value="")
         self.mouse_to_y_var = tk.StringVar(value="")
         self.mouse_drag_speed_var = tk.StringVar(value=str(DEFAULT_DRAG_SPEED_PX_PER_SEC))
         self._drag_widgets: list[ttk.Widget] = []
         for text, variable, row, column in (
-            ("離す位置X", self.mouse_to_x_var, 5, 0),
-            ("離す位置Y", self.mouse_to_y_var, 5, 2),
-            ("速度（px/秒）", self.mouse_drag_speed_var, 8, 0),
+            (tr("action_dialog.mouse.release_axis_x"), self.mouse_to_x_var, 5, 0),
+            (tr("action_dialog.mouse.release_axis_y"), self.mouse_to_y_var, 5, 2),
+            (tr("action_dialog.mouse.drag_speed"), self.mouse_drag_speed_var, 8, 0),
         ):
             label = ttk.Label(self.mouse_frame, text=text)
             label.grid(row=row, column=column, sticky="w", pady=(8, 0))
             entry = ttk.Entry(self.mouse_frame, textvariable=variable, width=10)
             entry.grid(row=row, column=column + 1, sticky="w", padx=(8, 0), pady=(8, 0))
             self._drag_widgets.extend((label, entry))
-        self.mouse_to_capture_btn = ttk.Button(self.mouse_frame, text="離す位置を取得", command=lambda: self._capture_mouse_position(self.mouse_to_x_var, self.mouse_to_y_var, self.mouse_to_capture_btn, self.mouse_to_hint))
+        self.mouse_to_capture_btn = ttk.Button(self.mouse_frame, text=tr("action_dialog.mouse.capture_release_position"), command=lambda: self._capture_mouse_position(self.mouse_to_x_var, self.mouse_to_y_var, self.mouse_to_capture_btn, self.mouse_to_hint))
         self.mouse_to_capture_btn.grid(row=6, column=0, columnspan=4, sticky="w", pady=(8, 0))
-        self.mouse_to_hint = ttk.Label(self.mouse_frame, text="※押したあと、画面上の任意の場所を1回クリックすると座標が入ります")
+        self.mouse_to_hint = ttk.Label(self.mouse_frame, text=tr("action_dialog.coordinates.capture_hint"))
         self.mouse_to_hint.grid(row=7, column=0, columnspan=4, sticky="w", pady=(6, 0))
         self._drag_widgets.extend((self.mouse_to_capture_btn, self.mouse_to_hint))
         self._sync_drag_ui()
@@ -315,20 +319,20 @@ class ActionDialog(tk.Toplevel):
                 widget.grid()
             else:
                 widget.grid_remove()
-        self.mouse_x_label.configure(text="掴む位置X" if dragging else "X")
-        self.mouse_y_label.configure(text="掴む位置Y" if dragging else "Y")
+        self.mouse_x_label.configure(text=tr("action_dialog.mouse.drag_axis_x") if dragging else tr("action_dialog.mouse.axis_x"))
+        self.mouse_y_label.configure(text=tr("action_dialog.mouse.drag_axis_y") if dragging else tr("action_dialog.mouse.axis_y"))
         self.mouse_clicks_entry.configure(state="disabled" if dragging else "normal")
 
     def _get_drag_fields(self) -> dict[str, int | bool] | None:
         sx = self.mouse_to_x_var.get().strip()
         sy = self.mouse_to_y_var.get().strip()
         if not sx or not sy:
-            messagebox.showerror("入力エラー", "mouse_clickの離す位置X/Yを入力してください。")
+            messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.mouse_release_coordinates_required"))
             return None
         try:
             to_x, to_y = int(sx), int(sy)
         except ValueError:
-            messagebox.showerror("入力エラー", "mouse_clickの離す位置X/Yは整数で入力してください。")
+            messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.mouse_release_coordinates_integer"))
             return None
         try:
             speed = int(self.mouse_drag_speed_var.get().strip())
@@ -352,7 +356,7 @@ class ActionDialog(tk.Toplevel):
         if button_widget.instate(["disabled"]):
             return
         self._set_mouse_capture_state("disabled")
-        hint_widget.configure(text="取得中: 画面上の任意の場所を1回クリックしてください（右クリックでも可）")
+        hint_widget.configure(text=tr("action_dialog.mouse.capture_in_progress"))
 
         def on_click(x: float, y: float, button: mouse.Button, pressed: bool) -> bool:
             if pressed:
@@ -360,7 +364,10 @@ class ActionDialog(tk.Toplevel):
                 try:
                     self.after(0, lambda: x_var.set(str(int(x))))
                     self.after(0, lambda: y_var.set(str(int(y))))
-                    self.after(0, lambda: hint_widget.configure(text=f"取得しました: ({int(x)}, {int(y)})"))
+                    captured_x, captured_y = int(x), int(y)
+                    self.after(0, lambda: hint_widget.configure(
+                        text=tr("action_dialog.mouse.capture_completed", x=captured_x, y=captured_y)
+                    ))
                 finally:
                     self.after(0, lambda: self._set_mouse_capture_state("normal"))
                 return False  # stop listener
@@ -385,7 +392,7 @@ class ActionDialog(tk.Toplevel):
         begin_key_capture(self, self, self._record_nonmod_key)
         self._mods_down.clear()
         self._last_nonmod = None
-        self.capture_btn.configure(text="記録停止")
+        self.capture_btn.configure(text=tr("action_dialog.capture.stop"))
         # 記録モード中は Entry にフォーカスしておく（表示を分かりやすく）
         self.value_entry.focus_set()
         # キーイベントは dialog 全体で拾う（Entry 以外をクリックしても記録できる）
@@ -398,7 +405,7 @@ class ActionDialog(tk.Toplevel):
             return
         self._recording = False
         end_key_capture(self)
-        self.capture_btn.configure(text="キー入力で記録")
+        self.capture_btn.configure(text=tr("hook_button.capture_idle"))
         try:
             self.unbind("<KeyPress>")
             self.unbind("<KeyRelease>")
@@ -493,7 +500,7 @@ class ActionDialog(tk.Toplevel):
             self._stop_recording()
         self.value_entry.configure(state="normal")
         self.capture_btn.configure(state="normal")
-        self.capture_hint.configure(text="※記録中は、押したキーがhotkeyとして反映されます（Escで停止）")
+        self.capture_hint.configure(text=tr("action_dialog.capture.hint"))
         for button in getattr(self, "preset_buttons", []):
             button.configure(state="normal")
         self.preset_edit_btn.configure(state="normal")
@@ -593,5 +600,5 @@ class ActionDialog(tk.Toplevel):
     def _open_preset_manager(self):
         """プリセット編集ダイアログを開き、戻ったらボタンを再生成"""
         self._stop_recording()
-        PresetManagerDialog(self.parent, title="プリセット編集", transient_parent=self).wait_window()
+        PresetManagerDialog(self.parent, title=tr("app.preset.title"), transient_parent=self).wait_window()
         self._rebuild_preset_buttons()

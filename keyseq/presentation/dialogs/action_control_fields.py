@@ -24,17 +24,22 @@ from keyseq.domain.sequence_control import (
     OUT_OF_RANGE_ERROR,
     OUT_OF_RANGE_WRAP,
 )
+from keyseq.shared.i18n import tr
 
 
 def _system_labels() -> dict[str, str]:
-    return {OP_LOOP_START: "ループ", OP_COUNTER_INC: "カウンター +1",
-            OP_COUNTER_RESET: "カウンターを0に", OP_WAIT: "待機", OP_STOP: "停止",
-            OP_CALL: "呼び出し", OP_BACK: "戻す", OP_REWIND: "先頭へ"}
+    return {OP_LOOP_START: tr("action_dialog.system.op.loop_start"),
+            OP_COUNTER_INC: tr("action_dialog.system.op.counter_inc"),
+            OP_COUNTER_RESET: tr("action_dialog.system.op.counter_reset"),
+            OP_WAIT: tr("action_dialog.system.op.wait"), OP_STOP: tr("action_dialog.system.op.stop"),
+            OP_CALL: tr("action_dialog.system.op.call"), OP_BACK: tr("action_dialog.system.op.back"),
+            OP_REWIND: tr("action_dialog.system.op.rewind")}
 
 
 def _out_of_range_labels() -> dict[str, str]:
-    return {OUT_OF_RANGE_ERROR: "エラーで停止", OUT_OF_RANGE_EMPTY: "何も送らない",
-            OUT_OF_RANGE_WRAP: "折り返し"}
+    return {OUT_OF_RANGE_ERROR: tr("action_dialog.file_line.out_of_range.error"),
+            OUT_OF_RANGE_EMPTY: tr("action_dialog.file_line.out_of_range.empty"),
+            OUT_OF_RANGE_WRAP: tr("action_dialog.file_line.out_of_range.wrap")}
 
 
 ENCODINGS = {"UTF-8": ENCODING_UTF_8, "Shift_JIS": ENCODING_SHIFT_JIS}
@@ -65,8 +70,8 @@ class ActionControlFields:
         operation_labels = list(self._system_ops_by_label)
         if mode == "edit":
             operation_labels.remove(self._system_labels_by_op[OP_LOOP_START])
-        self.system_frame = ttk.LabelFrame(parent, text="system設定", padding=8)
-        self.file_frame = ttk.LabelFrame(parent, text="file_line設定", padding=8)
+        self.system_frame = ttk.LabelFrame(parent, text=tr("action_dialog.system.title"), padding=8)
+        self.file_frame = ttk.LabelFrame(parent, text=tr("action_dialog.file_line.title"), padding=8)
         self.system_frame.grid_columnconfigure(1, weight=1)
         self.file_frame.grid_columnconfigure(1, weight=1)
         self._build_system_fields(operation_labels)
@@ -79,20 +84,20 @@ class ActionControlFields:
             self.system_frame, textvariable=self.system_op_var,
             values=operation_labels, state="readonly", width=20,
         )
-        ttk.Label(self.system_frame, text="操作").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.system_frame, text=tr("config_io.child_save.column.action")).grid(row=0, column=0, sticky="w")
         self.system_op_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
         self.system_op_combo.bind("<<ComboboxSelected>>", lambda _event: self.sync_system())
 
         self.loop_count_var = tk.StringVar(value="1")
         self._last_valid_loop_count = 1
         self.loop_count_var.trace_add("write", self._remember_loop_count)
-        self.loop_count_label = ttk.Label(self.system_frame, text="回数")
+        self.loop_count_label = ttk.Label(self.system_frame, text=tr("action_dialog.count"))
         self.loop_count_label.grid(row=1, column=0, sticky="w", pady=(6, 0))
         self.loop_count_entry = ttk.Entry(self.system_frame, textvariable=self.loop_count_var, width=12)
         self.loop_count_entry.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
         self.loop_infinite_var = tk.BooleanVar(value=False)
         self.loop_infinite_check = ttk.Checkbutton(
-            self.system_frame, text="無限", variable=self.loop_infinite_var,
+            self.system_frame, text=tr("action_dialog.system.infinite"), variable=self.loop_infinite_var,
             command=self.sync_system,
         )
         self.loop_infinite_check.grid(row=1, column=2, sticky="w", padx=(8, 0), pady=(6, 0))
@@ -102,18 +107,18 @@ class ActionControlFields:
             self.system_frame, textvariable=self.system_counter_var,
             values=self.counter_names, state="normal", width=24,
         )
-        self.system_counter_label = ttk.Label(self.system_frame, text="カウンター名")
+        self.system_counter_label = ttk.Label(self.system_frame, text=tr("action_dialog.counter_name"))
         self.system_counter_label.grid(row=2, column=0, sticky="w", pady=(6, 0))
         self.system_counter_combo.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
 
         self.wait_ms_var = tk.StringVar(value="1")
-        self.wait_label = ttk.Label(self.system_frame, text="ミリ秒")
+        self.wait_label = ttk.Label(self.system_frame, text=tr("action_dialog.system.milliseconds"))
         self.wait_label.grid(row=3, column=0, sticky="w", pady=(6, 0))
         self.wait_entry = ttk.Entry(self.system_frame, textvariable=self.wait_ms_var, width=12)
         self.wait_entry.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
 
         self.call_target_var = tk.StringVar(value="")
-        self.call_target_label = ttk.Label(self.system_frame, text="呼び出し先")
+        self.call_target_label = ttk.Label(self.system_frame, text=tr("action_dialog.system.call_target"))
         self.call_target_label.grid(row=4, column=0, sticky="w", pady=(6, 0))
         call_values = []
         for key, target_label in self.call_candidates:
@@ -126,33 +131,33 @@ class ActionControlFields:
         )
         self.call_target_combo.grid(row=4, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
         self.call_note_label = ttk.Label(
-            self.system_frame, text="呼び出し先の「間隔(ms)」で実行します（連続実行OFFでも使います）",
+            self.system_frame, text=tr("action_dialog.system.call_note"),
         )
         self.call_note_label.grid(row=5, column=0, columnspan=3, sticky="w", pady=(4, 0))
         self.call_all_var = tk.BooleanVar(value=False)
         self.call_all_check = ttk.Checkbutton(
             self.system_frame,
-            text="呼び出し先を一括で実行する（停止の行は読み飛ばす）",
+            text=tr("action_dialog.system.call_all"),
             variable=self.call_all_var,
         )
         self.call_all_check.grid(row=6, column=0, columnspan=3, sticky="w", pady=(4, 0))
         self.control_target_var = tk.BooleanVar(value=False)
         self.control_target_check = ttk.Checkbutton(
-            self.system_frame, text="対象のトリガーを指定する",
+            self.system_frame, text=tr("action_dialog.system.control_target_toggle"),
             variable=self.control_target_var, command=self.sync_system,
         )
         self.control_target_check.grid(row=7, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
     def _build_file_fields(self) -> None:
         self.file_path_var = tk.StringVar(value="")
-        ttk.Label(self.file_frame, text="ファイル").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.file_frame, text=tr("view.file.title")).grid(row=0, column=0, sticky="w")
         self.file_path_entry = ttk.Entry(self.file_frame, textvariable=self.file_path_var, width=34)
         self.file_path_entry.grid(row=0, column=1, sticky="we", padx=(8, 0))
-        self.browse_button = ttk.Button(self.file_frame, text="参照…", command=self.browse_file)
+        self.browse_button = ttk.Button(self.file_frame, text=tr("action_dialog.file_line.browse"), command=self.browse_file)
         self.browse_button.grid(row=0, column=2, padx=(8, 0))
 
         self.file_counter_var = tk.StringVar(value="")
-        ttk.Label(self.file_frame, text="カウンター名").grid(row=1, column=0, sticky="w", pady=(6, 0))
+        ttk.Label(self.file_frame, text=tr("action_dialog.counter_name")).grid(row=1, column=0, sticky="w", pady=(6, 0))
         self.file_counter_combo = ttk.Combobox(
             self.file_frame, textvariable=self.file_counter_var,
             values=self.counter_names, state="normal", width=24,
@@ -160,15 +165,15 @@ class ActionControlFields:
         self.file_counter_combo.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
 
         self.encoding_var = tk.StringVar(value="UTF-8")
-        ttk.Label(self.file_frame, text="文字コード").grid(row=2, column=0, sticky="w", pady=(6, 0))
+        ttk.Label(self.file_frame, text=tr("action_dialog.file_line.encoding")).grid(row=2, column=0, sticky="w", pady=(6, 0))
         self.encoding_combo = ttk.Combobox(
             self.file_frame, textvariable=self.encoding_var,
             values=list(ENCODINGS), state="readonly", width=18,
         )
         self.encoding_combo.grid(row=2, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
 
-        self.out_of_range_var = tk.StringVar(value="エラーで停止")
-        ttk.Label(self.file_frame, text="範囲外").grid(row=3, column=0, sticky="w", pady=(6, 0))
+        self.out_of_range_var = tk.StringVar(value=tr("action_dialog.file_line.out_of_range.error"))
+        ttk.Label(self.file_frame, text=tr("action_dialog.file_line.out_of_range_label")).grid(row=3, column=0, sticky="w", pady=(6, 0))
         self.out_of_range_combo = ttk.Combobox(
             self.file_frame, textvariable=self.out_of_range_var,
             values=list(self._out_of_range_values_by_label), state="readonly", width=18,
@@ -196,7 +201,8 @@ class ActionControlFields:
         control_target_op = op in (OP_BACK, OP_REWIND)
         show_target = op == OP_CALL or control_target_op
         self._show(self.control_target_check, control_target_op)
-        self.call_target_label.configure(text="対象のトリガー" if control_target_op else "呼び出し先")
+        self.call_target_label.configure(text=tr("action_dialog.system.control_target") if control_target_op
+                                         else tr("action_dialog.system.call_target"))
         self._show(self.call_target_label, show_target)
         self._show(self.call_target_combo, show_target)
         self.call_target_combo.configure(
@@ -244,7 +250,7 @@ class ActionControlFields:
             out_of_range = str(action.get("out_of_range", DEFAULT_OUT_OF_RANGE)).strip().lower()
             self.out_of_range_var.set(next(
                 (label for label, value in self._out_of_range_values_by_label.items() if value == out_of_range),
-                "エラーで停止",
+                tr("action_dialog.file_line.out_of_range.error"),
             ))
 
     def build_result(self, action_type: str, label: str) -> dict[str, Any] | None:
@@ -259,7 +265,7 @@ class ActionControlFields:
         if self.mode == "edit" and op == OP_LOOP_START:
             op = None
         if op is None:
-            messagebox.showerror("入力エラー", "操作が正しくありません。")
+            messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.operation_invalid"))
             return None
         result: dict[str, Any] = {"type": ACTION_TYPE_SYSTEM, "op": op}
         if op == OP_LOOP_START:
@@ -271,7 +277,7 @@ class ActionControlFields:
         if op in (OP_COUNTER_INC, OP_COUNTER_RESET):
             counter = self.system_counter_var.get().strip()
             if not counter:
-                messagebox.showerror("入力エラー", "カウンター名を入力してください。")
+                messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.counter_required"))
                 return None
             result.update({"counter": counter, "label": label})
         elif op == OP_WAIT:
@@ -280,7 +286,7 @@ class ActionControlFields:
             except (TypeError, ValueError):
                 milliseconds = 0
             if milliseconds < 1:
-                messagebox.showerror("入力エラー", "ミリ秒は1以上の整数で入力してください。")
+                messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.milliseconds_positive"))
                 return None
             result.update({"ms": milliseconds, "label": label})
         else:
@@ -302,7 +308,7 @@ class ActionControlFields:
         self.call_target_var.set(placeholder)
 
     def _missing_call_display(self) -> str:
-        return f"{self._missing_call_target}（参照先なし）"
+        return tr("action_dialog.system.missing_target", target=self._missing_call_target)
 
     def _build_call_result(self, label: str, result: dict[str, Any]) -> dict[str, Any] | None:
         display = self.call_target_var.get()
@@ -310,16 +316,16 @@ class ActionControlFields:
         if candidate is None:
             if self._missing_call_target and display == self._missing_call_display():
                 error = self.call_check(self._missing_call_target) if self.call_check else None
-                messagebox.showerror("入力エラー", error or
-                                     f"呼び出し先のトリガーがありません({self._missing_call_target})")
+                messagebox.showerror(tr("action_dialog.error.input_title"), error or
+                                     tr("action_dialog.error.call_target_missing", target=self._missing_call_target))
             else:
-                messagebox.showerror("入力エラー", "呼び出し先を選択してください")
+                messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.call_target_required"))
             return None
         target = candidate[0]
         if self.call_check is not None:
             error = self.call_check(target)
             if error:
-                messagebox.showerror("入力エラー", error)
+                messagebox.showerror(tr("action_dialog.error.input_title"), error)
                 return None
         result.update({"target": target, "label": label})
         if bool(self.call_all_var.get()):
@@ -335,16 +341,16 @@ class ActionControlFields:
             if self._missing_call_target and display == self._missing_call_display():
                 error = (self.control_target_validator(self._missing_call_target)
                          if self.control_target_validator else None)
-                messagebox.showerror("入力エラー", error or
-                                     f"対象のトリガーがありません({self._missing_call_target})")
+                messagebox.showerror(tr("action_dialog.error.input_title"), error or
+                                     tr("action_dialog.error.control_target_missing", target=self._missing_call_target))
             else:
-                messagebox.showerror("入力エラー", "対象のトリガーを選択してください")
+                messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.control_target_required"))
             return None
         target = candidate[0]
         if self.control_target_validator is not None:
             error = self.control_target_validator(target)
             if error:
-                messagebox.showerror("入力エラー", error)
+                messagebox.showerror(tr("action_dialog.error.input_title"), error)
                 return None
         result.update({"target": target, "label": label})
         return result
@@ -356,7 +362,7 @@ class ActionControlFields:
         except (TypeError, ValueError):
             count = 0
         if count < 1 and not infinite:
-            messagebox.showerror("入力エラー", "回数は1以上の整数で入力してください。")
+            messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.count_positive"))
             return None
         result.update({
             "count": count if count >= 1 else self._last_valid_loop_count,
@@ -368,10 +374,10 @@ class ActionControlFields:
         path = self.file_path_var.get().strip()
         counter = self.file_counter_var.get().strip()
         if not path:
-            messagebox.showerror("入力エラー", "ファイルを指定してください。")
+            messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.file_required"))
             return None
         if not counter:
-            messagebox.showerror("入力エラー", "カウンター名を入力してください。")
+            messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.counter_required"))
             return None
         stored_path = self.config_service.to_config_relative_or_absolute(path, self.config_root)
         return {

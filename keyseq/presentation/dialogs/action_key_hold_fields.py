@@ -11,6 +11,7 @@ from keyseq.presentation.tk_keys import (
     is_unresolved_capture_key,
     normalize_key_hold_tk_key_event,
 )
+from keyseq.shared.i18n import tr
 
 
 class ActionKeyHoldFields:
@@ -18,15 +19,25 @@ class ActionKeyHoldFields:
 
     @staticmethod
     def _target_labels() -> dict[str, str]:
-        return {"key": "キー", "mouse_button": "マウスのボタン"}
+        return {
+            "key": tr("action_dialog.key_hold.target.key"),
+            "mouse_button": tr("action_dialog.key_hold.target.mouse_button"),
+        }
 
     @staticmethod
     def _edge_labels() -> dict[str, str]:
-        return {"down": "押す", "up": "離す"}
+        return {
+            "down": tr("action_dialog.key_hold.edge.down"),
+            "up": tr("action_dialog.key_hold.edge.up"),
+        }
 
     @staticmethod
     def _button_labels() -> dict[str, str]:
-        return {"left": "左", "right": "右", "middle": "中"}
+        return {
+            "left": tr("action_dialog.key_hold.button.left"),
+            "right": tr("action_dialog.key_hold.button.right"),
+            "middle": tr("action_dialog.key_hold.button.middle"),
+        }
 
     def __init__(self, parent: tk.Misc, *, capture_mouse_position: Callable) -> None:
         self.parent = parent
@@ -41,10 +52,12 @@ class ActionKeyHoldFields:
         self._edge_codes_by_label = {v: k for k, v in self._edge_labels_by_code.items()}
         self._button_codes_by_label = {v: k for k, v in self._button_labels_by_code.items()}
 
-        self.frame = ttk.LabelFrame(parent, text="キーの押下 / 解放", padding=8)
+        self.frame = ttk.LabelFrame(parent, text=tr("action_dialog.key_hold.title"), padding=8)
         self.frame.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(self.frame, text="動作").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.frame, text=tr("action_dialog.key_hold.edge.label")).grid(
+            row=0, column=0, sticky="w",
+        )
         self.edge_var = tk.StringVar(value=self._edge_labels_by_code["down"])
         self.edge_combo = ttk.Combobox(
             self.frame, textvariable=self.edge_var, values=tuple(self._edge_labels_by_code.values()),
@@ -53,7 +66,9 @@ class ActionKeyHoldFields:
         self.edge_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
         self.edge_combo.bind("<<ComboboxSelected>>", lambda _event: self.sync_repeat_visibility())
 
-        ttk.Label(self.frame, text="対象").grid(row=1, column=0, sticky="w", pady=(8, 0))
+        ttk.Label(self.frame, text=tr("action_dialog.key_hold.target.label")).grid(
+            row=1, column=0, sticky="w", pady=(8, 0),
+        )
         self.target_var = tk.StringVar(value=self._target_labels_by_code["key"])
         self.target_combo = ttk.Combobox(
             self.frame, textvariable=self.target_var, values=tuple(self._target_labels_by_code.values()),
@@ -64,18 +79,22 @@ class ActionKeyHoldFields:
 
         self.key_frame = ttk.Frame(self.frame)
         self.key_frame.grid(row=2, column=0, columnspan=2, sticky="we", pady=(8, 0))
-        ttk.Label(self.key_frame, text="キー名").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.key_frame, text=tr("action_dialog.key_hold.key_name")).grid(
+            row=0, column=0, sticky="w",
+        )
         self.key_var = tk.StringVar(value="")
         self.key_entry = ttk.Entry(self.key_frame, textvariable=self.key_var, width=24)
         self.key_entry.grid(row=0, column=1, sticky="w", padx=(8, 0))
-        self.record_button = ttk.Button(self.key_frame, text="1キーを記録", command=self.start_recording)
+        self.record_button = ttk.Button(
+            self.key_frame, text=tr("action_dialog.key_hold.record"), command=self.start_recording,
+        )
         self.record_button.grid(row=0, column=2, sticky="w", padx=(8, 0))
-        self.key_hint = ttk.Label(self.key_frame, text="キーを1つ押すと記録します")
+        self.key_hint = ttk.Label(self.key_frame, text=tr("action_dialog.key_hold.record_hint"))
         self.key_hint.grid(row=1, column=0, columnspan=3, sticky="w", pady=(4, 0))
 
         self.button_frame = ttk.Frame(self.frame)
         self.button_frame.grid(row=3, column=0, columnspan=2, sticky="we", pady=(8, 0))
-        ttk.Label(self.button_frame, text="ボタン").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.button_frame, text=tr("action_dialog.button")).grid(row=0, column=0, sticky="w")
         self.button_var = tk.StringVar(value=self._button_labels_by_code["left"])
         self.button_combo = ttk.Combobox(
             self.button_frame, textvariable=self.button_var,
@@ -85,23 +104,27 @@ class ActionKeyHoldFields:
 
         self.coordinates_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(
-            self.button_frame, text="座標を指定する", variable=self.coordinates_var,
+            self.button_frame, text=tr("action_dialog.coordinates.toggle"), variable=self.coordinates_var,
             command=self.sync_coordinates,
         ).grid(row=1, column=0, columnspan=2, sticky="w", pady=(8, 0))
         self.coordinates_frame = ttk.Frame(self.button_frame)
         self.coordinates_frame.grid(row=2, column=0, columnspan=3, sticky="we", pady=(6, 0))
-        ttk.Label(self.coordinates_frame, text="X").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.coordinates_frame, text=tr("action_dialog.mouse.axis_x")).grid(
+            row=0, column=0, sticky="w",
+        )
         self.x_var = tk.StringVar(value="")
         ttk.Entry(self.coordinates_frame, textvariable=self.x_var, width=10).grid(
             row=0, column=1, sticky="w", padx=(8, 16),
         )
-        ttk.Label(self.coordinates_frame, text="Y").grid(row=0, column=2, sticky="w")
+        ttk.Label(self.coordinates_frame, text=tr("action_dialog.mouse.axis_y")).grid(
+            row=0, column=2, sticky="w",
+        )
         self.y_var = tk.StringVar(value="")
         ttk.Entry(self.coordinates_frame, textvariable=self.y_var, width=10).grid(
             row=0, column=3, sticky="w", padx=(8, 0),
         )
         self.capture_button = ttk.Button(
-            self.coordinates_frame, text="座標を取得",
+            self.coordinates_frame, text=tr("action_dialog.coordinates.capture"),
             command=lambda: self.capture_mouse_position(
                 self.x_var, self.y_var, self.capture_button, self.capture_hint,
             ),
@@ -109,17 +132,17 @@ class ActionKeyHoldFields:
         self.capture_button.grid(row=1, column=0, columnspan=4, sticky="w", pady=(8, 0))
         self.capture_hint = ttk.Label(
             self.coordinates_frame,
-            text="※押したあと、画面上の任意の場所を1回クリックすると座標が入ります",
+            text=tr("action_dialog.coordinates.capture_hint"),
         )
         self.capture_hint.grid(row=2, column=0, columnspan=4, sticky="w", pady=(4, 0))
         self.repeat_var = tk.BooleanVar(value=True)
         self.repeat_frame = ttk.Frame(self.frame)
         self.repeat_frame.grid(row=4, column=0, columnspan=2, sticky="w", pady=(8, 0))
         self.repeat_check = ttk.Checkbutton(
-            self.repeat_frame, text="リピートする", variable=self.repeat_var,
+            self.repeat_frame, text=tr("action_dialog.key_hold.repeat"), variable=self.repeat_var,
         )
         self.repeat_check.pack(side="left")
-        ttk.Label(self.repeat_frame, text="（修飾キーは除く）").pack(side="left", padx=(4, 0))
+        ttk.Label(self.repeat_frame, text=tr("action_dialog.key_hold.repeat_hint")).pack(side="left", padx=(4, 0))
         self.sync_target()
 
     def load(self, action: dict) -> None:
@@ -191,8 +214,8 @@ class ActionKeyHoldFields:
             return
         self.recording = True
         begin_key_capture(self, self.dialog, self._record_key)
-        self.record_button.configure(text="記録中…")
-        self.key_hint.configure(text="キーを1つ押してください（Escで停止）")
+        self.record_button.configure(text=tr("action_dialog.key_hold.recording"))
+        self.key_hint.configure(text=tr("action_dialog.key_hold.recording_hint"))
         self.key_entry.focus_set()
         self._key_press_bind_id = self.dialog.bind("<KeyPress>", self._on_key_press, add="+")
 
@@ -201,8 +224,8 @@ class ActionKeyHoldFields:
             return
         self.recording = False
         end_key_capture(self)
-        self.record_button.configure(text="1キーを記録")
-        self.key_hint.configure(text="キーを1つ押すと記録します")
+        self.record_button.configure(text=tr("action_dialog.key_hold.record"))
+        self.key_hint.configure(text=tr("action_dialog.key_hold.record_hint"))
         if self._key_press_bind_id:
             self.dialog.unbind("<KeyPress>", self._key_press_bind_id)
             self._key_press_bind_id = None

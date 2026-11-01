@@ -10,6 +10,7 @@ fix_language("ja")
 from keyseq.domain.sequence_control import OP_COUNTER_INC, OUT_OF_RANGE_WRAP
 from keyseq.presentation.dialogs.action_key_hold_fields import ActionKeyHoldFields
 from keyseq.presentation.dialogs.action_control_fields import ActionControlFields
+from keyseq.presentation.dialogs.action_control_fields import _system_labels, _out_of_range_labels
 from keyseq.presentation.dialogs.action_mouse_scroll_fields import ActionMouseScrollFields
 from keyseq.presentation.controllers.keymap_panel.keymap_add_flow import KeymapAddFlow
 from keyseq.presentation.controllers.trigger_panel.trigger_panel_controller import TriggerPanelController
@@ -24,6 +25,23 @@ class InternalValueCodesTest(unittest.TestCase):
     @classmethod
     def tearDownClass(cls):
         cls.root.destroy()
+
+    def test_dialog_label_functions_translate_at_call_time(self):
+        cases = (
+            ("keyseq.presentation.dialogs.action_control_fields.tr", _system_labels),
+            ("keyseq.presentation.dialogs.action_control_fields.tr", _out_of_range_labels),
+            ("keyseq.presentation.dialogs.action_key_hold_fields.tr", ActionKeyHoldFields._target_labels),
+            ("keyseq.presentation.dialogs.action_key_hold_fields.tr", ActionKeyHoldFields._edge_labels),
+            ("keyseq.presentation.dialogs.action_key_hold_fields.tr", ActionKeyHoldFields._button_labels),
+            ("keyseq.presentation.dialogs.action_mouse_scroll_fields.tr", ActionMouseScrollFields._direction_labels),
+        )
+        for target, labels in cases:
+            original = labels()
+            with self.subTest(labels=labels.__name__), patch(target, side_effect=lambda key: f"translated:{key}"):
+                translated = labels()
+                self.assertEqual(translated.keys(), original.keys())
+                self.assertTrue(all(value.startswith("translated:") for value in translated.values()))
+                self.assertEqual(len(set(translated.values())), len(translated))
 
     def test_key_hold_codes_survive_changed_labels(self):
         with patch.object(ActionKeyHoldFields, "_target_labels", return_value={"key": "Key", "mouse_button": "Mouse"}), \

@@ -13,6 +13,7 @@ from keyseq.domain.mouse_scroll import (
     WHEEL_DELTA,
     parse_mouse_scroll,
 )
+from keyseq.shared.i18n import tr
 
 
 class ActionMouseScrollFields:
@@ -20,17 +21,24 @@ class ActionMouseScrollFields:
 
     @staticmethod
     def _direction_labels() -> dict[str, str]:
-        return dict(zip(DIRECTIONS, ("上", "下", "左", "右")))
+        return dict(zip(DIRECTIONS, (
+            tr("action_dialog.mouse_scroll.direction.up"),
+            tr("action_dialog.mouse_scroll.direction.down"),
+            tr("action_dialog.mouse_scroll.direction.left"),
+            tr("action_dialog.mouse_scroll.direction.right"),
+        )))
 
     def __init__(self, parent: tk.Misc, *, capture_mouse_position: Callable) -> None:
         self.capture_mouse_position = capture_mouse_position
         self._direction_labels_by_code = self._direction_labels()
         self._direction_codes_by_label = {v: k for k, v in self._direction_labels_by_code.items()}
         self._capture_state = "normal"
-        self.frame = ttk.LabelFrame(parent, text="マウススクロール", padding=8)
+        self.frame = ttk.LabelFrame(parent, text=tr("action_dialog.mouse_scroll.title"), padding=8)
         self.frame.grid_columnconfigure(1, weight=1)
 
-        ttk.Label(self.frame, text="向き").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.frame, text=tr("action_dialog.mouse_scroll.direction.label")).grid(
+            row=0, column=0, sticky="w",
+        )
         self.direction_var = tk.StringVar(value=self._direction_labels_by_code[DIRECTIONS[1]])
         self.direction_combo = ttk.Combobox(
             self.frame, textvariable=self.direction_var,
@@ -40,7 +48,8 @@ class ActionMouseScrollFields:
 
         self.unit_var = tk.StringVar(value=UNIT_NOTCH)
         self.notch_radio = ttk.Radiobutton(
-            self.frame, text="ノッチ数", variable=self.unit_var, value=UNIT_NOTCH,
+            self.frame, text=tr("action_dialog.mouse_scroll.unit.notch"),
+            variable=self.unit_var, value=UNIT_NOTCH,
             command=self.sync_amount,
         )
         self.notch_radio.grid(row=1, column=0, sticky="w", pady=(8, 0))
@@ -48,7 +57,7 @@ class ActionMouseScrollFields:
         self.amount_notch_entry = ttk.Entry(self.frame, textvariable=self.amount_notch_var, width=12)
         self.amount_notch_entry.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
         self.delta_radio = ttk.Radiobutton(
-            self.frame, text=f"生の値（{WHEEL_DELTA} = 1ノッチ）",
+            self.frame, text=tr("action_dialog.mouse_scroll.unit.delta", wheel_delta=WHEEL_DELTA),
             variable=self.unit_var, value=UNIT_DELTA,
             command=self.sync_amount,
         )
@@ -59,27 +68,31 @@ class ActionMouseScrollFields:
 
         self.coordinates_var = tk.BooleanVar(value=False)
         self.coordinates_check = ttk.Checkbutton(
-            self.frame, text="座標を指定する", variable=self.coordinates_var,
+            self.frame, text=tr("action_dialog.coordinates.toggle"), variable=self.coordinates_var,
             command=self.sync_coordinates,
         )
         self.coordinates_check.grid(row=3, column=0, columnspan=2, sticky="w", pady=(8, 0))
         self.x_var = tk.StringVar(value="")
         self.y_var = tk.StringVar(value="")
-        ttk.Label(self.frame, text="X").grid(row=4, column=0, sticky="w", pady=(6, 0))
+        ttk.Label(self.frame, text=tr("action_dialog.mouse.axis_x")).grid(
+            row=4, column=0, sticky="w", pady=(6, 0),
+        )
         self.x_entry = ttk.Entry(self.frame, textvariable=self.x_var, width=10)
         self.x_entry.grid(row=4, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
-        ttk.Label(self.frame, text="Y").grid(row=4, column=2, sticky="w", padx=(16, 0), pady=(6, 0))
+        ttk.Label(self.frame, text=tr("action_dialog.mouse.axis_y")).grid(
+            row=4, column=2, sticky="w", padx=(16, 0), pady=(6, 0),
+        )
         self.y_entry = ttk.Entry(self.frame, textvariable=self.y_var, width=10)
         self.y_entry.grid(row=4, column=3, sticky="w", padx=(8, 0), pady=(6, 0))
         self.capture_button = ttk.Button(
-            self.frame, text="座標を取得",
+            self.frame, text=tr("action_dialog.coordinates.capture"),
             command=lambda: self.capture_mouse_position(
                 self.x_var, self.y_var, self.capture_button, self.capture_hint,
             ),
         )
         self.capture_button.grid(row=5, column=0, columnspan=4, sticky="w", pady=(8, 0))
         self.capture_hint = ttk.Label(
-            self.frame, text="※押したあと、画面上の任意の場所を1回クリックすると座標が入ります",
+            self.frame, text=tr("action_dialog.coordinates.capture_hint"),
         )
         self.capture_hint.grid(row=6, column=0, columnspan=4, sticky="w", pady=(4, 0))
         self.sync_amount()
