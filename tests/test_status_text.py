@@ -5,7 +5,7 @@ import unittest
 from keyseq.presentation.status_text import HOOK_STATE_LABELS, hook_display_state, one_line
 
 
-from keyseq.shared.i18n import fix_language
+from keyseq.shared.i18n import fix_language, tr
 
 fix_language("ja")
 
@@ -27,7 +27,10 @@ class HookDisplayStateTest(unittest.TestCase):
                 self.assertEqual(hook_display_state(hook_active, custom_enabled), expected)
 
     def test_labels(self):
-        self.assertEqual(HOOK_STATE_LABELS, {"on": "ON", "off": "OFF", "paused": "一時停止"})
+        self.assertEqual(
+            {state: tr(label) for state, label in HOOK_STATE_LABELS.items()},
+            {"on": "ON", "off": "OFF", "paused": "一時停止"},
+        )
 
 
 if __name__ == "__main__":

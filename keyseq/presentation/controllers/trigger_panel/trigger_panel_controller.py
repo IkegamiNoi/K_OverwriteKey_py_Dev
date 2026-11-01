@@ -24,15 +24,14 @@ from keyseq.presentation.controllers.trigger_panel.trigger_list_edit import Trig
 from keyseq.presentation.controllers.trigger_panel.trigger_row_edit import TriggerRowEditFlow
 from keyseq.presentation.listbox_range_drag import select_range, selected_range
 from keyseq.presentation.status_text import HOOK_STATE_LABELS, hook_display_state, one_line
+from keyseq.shared.i18n import tr
 
 
 class TriggerPanelController:
     """トリガー/シーケンスパネルの選択・表示・編集とステータス表示。"""
     update_select_before_run = update_select_before_run  # 出力シーケンス欄のチェックの書き戻し
 
-    _RUNNING_CALLEE_EDIT_MESSAGE = (
-        "連続実行中は呼び出し先を変更できません（一時停止してから操作してください）"
-    )
+    _RUNNING_CALLEE_EDIT_MESSAGE = "trigger_panel.running_callee_edit_blocked"
 
     def __init__(self, app) -> None:
         self._app = app
@@ -135,7 +134,7 @@ class TriggerPanelController:
         runner = getattr(self._app, "sequence_runner", None)
         query = getattr(runner, "is_running_chain_callee", None)
         if key and callable(query) and query(key):
-            self._app._set_flash_message(self._RUNNING_CALLEE_EDIT_MESSAGE)
+            self._app._set_flash_message(tr(self._RUNNING_CALLEE_EDIT_MESSAGE))
             return True
         return False
 
@@ -215,9 +214,10 @@ class TriggerPanelController:
             conflict = overlap.trigger_conflict(k)
             s = format_trigger_list_item(i, t)
             if conflict is not None:
-                s = f"{s}（{self._trigger_conflict_reason(conflict.winner)}）"
+                s = tr("keymap_panel.entry.conflict", entry=s,
+                       reason=self._trigger_conflict_reason(conflict.winner))
             elif i in duplicate_indices:
-                s = f"{s}（上のトリガーと重複）"
+                s = tr("trigger_panel.entry.duplicate", entry=s)
             for trigger_list in self._trigger_lists:
                 try:
                     trigger_list.insert(tk.END, s)
@@ -249,11 +249,12 @@ class TriggerPanelController:
 
     @staticmethod
     def _trigger_conflict_reason(winner: str) -> str:
-        return {
-            "stop": "停止キーと重複",
-            "toggle": "一時停止/再開キーと重複",
-            "switch": "切替キーと重複",
-        }.get(winner, "他のキー設定と重複")
+        key = {
+            "stop": "trigger_panel.conflict.stop",
+            "toggle": "trigger_panel.conflict.toggle",
+            "switch": "trigger_panel.conflict.switch",
+        }.get(winner, "trigger_panel.conflict.other")
+        return tr(key)
 
     @staticmethod
     def _set_trigger_row_color(listbox, index: int, is_shadowed: bool) -> None:
@@ -410,28 +411,43 @@ class TriggerPanelController:
         state = hook_display_state(
             self._app.hook.hook_active, self._app.hook.custom_input_enabled
         )
-        hook_state = HOOK_STATE_LABELS[state]
+        hook_state = tr(HOOK_STATE_LABELS[state])
         status_icon = getattr(self._app, "status_icon", None)
         if status_icon is not None:
             status_icon.apply(state)
         keymap_text = self._app.keymap_panel.get_active_keymap_name()
         sel_key = self.selected_trigger_key()
-        sel_text = sel_key or "（未選択）"
+        sel_text = sel_key or tr("trigger_panel.selection.none")
         effective = self.selected_trigger_is_effective()
         held_names = self._app.held_inputs.display_names
-        held_suffix = f" / 押下中: {', '.join(held_names)}" if held_names else ""
+        held_text = ", ".join(held_names)
         if getattr(self._app, "_compact_mode", False):
             # 省略表示：欄は各値を1行化し、ツールチップには元の改行を残す。
-            suffix = f" / 次: {self.get_next_action_summary(sel_key)}" if effective else ""
-            self._app.ui_vars.status_full_var.set(f"フック: {hook_state} / キーマップ: {keymap_text}{held_suffix}\n選択: {sel_text}{suffix}")
-            self._app.ui_vars.status_var.set(
-                f"フック: {one_line(hook_state)} / キーマップ: {one_line(keymap_text)}{one_line(held_suffix)}\n選択: {one_line(sel_text)}{one_line(suffix)}"
-            )
+            summary = self.get_next_action_summary(sel_key) if effective else ""
+            one_line_hook = one_line(hook_state)
+            one_line_keymap = one_line(keymap_text)
+            one_line_selected = one_line(sel_text)
+            one_line_summary = one_line(summary)
+            has_held = bool(held_names)
+            one_line_held_text = one_line(held_text)
+            compact_variant = "full"
+            compact_variant += "_held" if has_held else ""
+            compact_variant += "_next" if effective else ""
+            compact_key = f"trigger_panel.status.compact.{compact_variant}"
+            self._app.ui_vars.status_full_var.set(tr(
+                compact_key, hook=hook_state, keymap=keymap_text, held=held_text,
+                selected=sel_text, summary=summary,
+            ))
+            self._app.ui_vars.status_var.set(tr(
+                compact_key, hook=one_line_hook, keymap=one_line_keymap,
+                held=one_line_held_text, selected=one_line_selected,
+                summary=one_line_summary,
+            ))
             return
 
         triggers = get_active_triggers(self._app.data)
         keys = [normalize_key_name(t.get("key", "")) for t in triggers if t.get("key")]
-        keys_text = ", ".join(keys) if keys else "（未設定）"
+        keys_text = ", ".join(keys) if keys else tr("status.file_unset")
         # 「次」は run_to_end の場合、終端（len）なら次回は先頭なので 1 を出す
         next_i = 0
         try:
@@ -445,8 +461,15 @@ class TriggerPanelController:
                 )
         except Exception:
             next_i = 0
-        suffix = f" / 選択中の次: {next_i}" if effective else ""
-        text = f"フック: {hook_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_text}{suffix}{held_suffix}"
+        has_held = bool(held_names)
+        status_variant = "full"
+        status_variant += "_held" if has_held else ""
+        status_variant += "_next" if effective else ""
+        status_key = f"trigger_panel.status.{status_variant}"
+        text = tr(
+            status_key, hook=hook_state, keymap=keymap_text, triggers=keys_text,
+            selected=sel_text, next_index=next_i, held=held_text,
+        )
         self._app.ui_vars.status_full_var.set(text)
         self._app.ui_vars.status_var.set(text)
 
@@ -457,10 +480,10 @@ class TriggerPanelController:
             return ""
         trig = self._app._find_trigger_by_key(key) if key else None
         if not trig:
-            return "（なし）"
+            return tr("common.none")
         actions = trig.get("actions", [])
         if not actions:
-            return "（なし）"
+            return tr("common.none")
         idx_raw = int(self._app._indices.get(key, 0) or 0)
         # run_to_end で終端にいる（len）なら、次回は先頭から
         if bool(trig.get("run_to_end", False)) and idx_raw >= len(actions):
@@ -469,7 +492,7 @@ class TriggerPanelController:
             idx = idx_raw % len(actions)
         a = actions[idx] if 0 <= idx < len(actions) else None
         if not isinstance(a, dict):
-            return "（なし）"
+            return tr("common.none")
 
         loop_iterations = self._app.state.loop_iterations_for(
             self._app._active_trigger_set_id(), key

@@ -17,14 +17,14 @@ from keyseq.presentation.reference_cleanup_text import (
 )
 
 
-from keyseq.shared.i18n import fix_language
+from keyseq.shared.i18n import fix_language, tr
 
 fix_language("ja")
 
 
 class ReferenceCleanupTextTest(unittest.TestCase):
     def test_empty_plan_uses_empty_message(self):
-        self.assertEqual(format_cleanup_plan([]), (CLEANUP_EMPTY_MESSAGE,))
+        self.assertEqual(format_cleanup_plan([]), (tr(CLEANUP_EMPTY_MESSAGE),))
 
     def test_plan_lists_all_stale_refs_in_input_order_and_keeps_stored_paths(self):
         inspections = [

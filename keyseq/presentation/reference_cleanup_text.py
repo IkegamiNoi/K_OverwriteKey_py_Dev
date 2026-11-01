@@ -3,7 +3,7 @@ from keyseq.presentation.child_kind_labels import kind_label
 from keyseq.shared.i18n import tr
 
 
-CLEANUP_EMPTY_MESSAGE: str = "掃除する項目はありません。"
+CLEANUP_EMPTY_MESSAGE: str = "reference_cleanup.empty"
 
 _FAILURE_MESSAGES = {
     contracts.PRUNE_FAILURE_UNREADABLE: "reference_cleanup.failure_unreadable",

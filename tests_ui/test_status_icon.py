@@ -13,6 +13,7 @@ from keyseq.presentation import app as app_module
 from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.status_text import HOOK_STATE_LABELS
+from keyseq.shared.i18n import tr
 from keyseq.shared.i18n import fix_language
 
 fix_language("ja")
@@ -111,7 +112,31 @@ class StatusIconTest(unittest.TestCase):
         controller.selected_trigger_key = Mock(return_value="f1")
         controller.selected_trigger_is_effective = Mock(return_value=False)
         controller.update_status()
-        self.assertIn("フック: " + HOOK_STATE_LABELS["on"], fake.ui_vars.status_full_var.set.call_args.args[0])
+        self.assertIn("フック: " + tr(HOOK_STATE_LABELS["on"]), fake.ui_vars.status_full_var.set.call_args.args[0])
+
+    def test_compact_status_keeps_empty_next_summary_and_held_inputs(self):
+        from keyseq.presentation.controllers.trigger_panel.trigger_panel_controller import TriggerPanelController
+
+        fake = Mock()
+        fake.hook.hook_active = True
+        fake.hook.custom_input_enabled = True
+        fake._compact_mode = True
+        fake.status_icon = None
+        fake.keymap_panel.get_active_keymap_name.return_value = "Main"
+        fake.held_inputs.display_names = ["Ctrl", "Shift"]
+        fake.ui_vars.status_var.set = Mock()
+        fake.ui_vars.status_full_var.set = Mock()
+        controller = TriggerPanelController.__new__(TriggerPanelController)
+        controller._app = fake
+        controller.selected_trigger_key = Mock(return_value="f1")
+        controller.selected_trigger_is_effective = Mock(return_value=True)
+        controller.get_next_action_summary = Mock(return_value="")
+
+        controller.update_status()
+
+        expected = "フック: ON / キーマップ: Main / 押下中: Ctrl, Shift\n選択: f1 / 次: "
+        self.assertEqual(fake.ui_vars.status_full_var.set.call_args.args[0], expected)
+        self.assertEqual(fake.ui_vars.status_var.set.call_args.args[0], expected)
 
     def test_composition_failure_uses_badge_only_images(self):
         self._write_png("app_icon_16.png", 16)
@@ -159,7 +184,7 @@ class StatusIconControllerWiringTest(unittest.TestCase):
             app.hook.custom_input_enabled = enabled
             app.trigger_panel.update_status()
             self.assertEqual(app.status_icon.apply.call_args.args, (expected,))
-            self.assertIn("フック: " + HOOK_STATE_LABELS[expected], app.ui_vars.status_full_var.get())
+            self.assertIn("フック: " + tr(HOOK_STATE_LABELS[expected]), app.ui_vars.status_full_var.get())
         app._compact_mode = True
         app.hook.hook_active = False
         app.trigger_panel.update_status()

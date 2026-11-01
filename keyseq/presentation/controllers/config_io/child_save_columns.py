@@ -3,8 +3,16 @@ from __future__ import annotations
 
 from tkinter import font, ttk
 
+from keyseq.shared.i18n import tr
 
-HEADINGS = ("種別", "対象名", "保存先パス", "共有状況", "操作")
+
+HEADING_KEYS = (
+    "config_io.child_save.column.kind",
+    "config_io.child_save.column.name",
+    "config_io.child_save.column.target_path",
+    "config_io.child_save.column.share_status",
+    "config_io.child_save.column.action",
+)
 CELL_GAP = 8
 OPENING_WIDTH = 960
 
@@ -19,7 +27,7 @@ class ChildSaveColumns:
         self.overhead_width = overhead_width + scrollbar.winfo_reqwidth()
         self.minimum_height = minimum_height
         measure = font.nametofont("TkDefaultFont").measure
-        self.minimums: list[int] = [measure(text) + CELL_GAP for text in HEADINGS]
+        self.minimums: list[int] = [measure(tr(key)) + CELL_GAP for key in HEADING_KEYS]
         self.widths = self.minimums.copy()
         for cell in text_cells:
             column = cell["column"]

@@ -16,6 +16,7 @@ from keyseq.application.save_plan import (
 from keyseq.domain.keymap_triggers import iter_trigger_sets, INTERNAL_TRIGGER_SET_DIRTY
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.child_kind_labels import parent_kind_label
+from keyseq.shared.i18n import tr
 
 
 SHARE_UNKNOWN = "unknown"
@@ -75,16 +76,29 @@ def judge_share_state(
 
 def share_text_for(share_state, ref_count, kind) -> str:
     if share_state == SHARE_NEW_COLLIDES:
-        return "同名の既存ファイルあり・安全のため別名"
+        return tr("config_io.child_save.share.new_collides")
     if share_state == SHARE_NEW:
-        return "新規作成"
+        return tr("menu.file.new")
     if share_state == SHARE_SOLE:
-        return f"この{parent_kind_label(kind)}のみが所有・既存を上書き"
+        parent_name = parent_kind_label(kind)
+        return tr(
+            "config_io.child_save.share.sole",
+            parent=parent_name,
+        )
     if share_state == SHARE_SHARED:
-        return f"{ref_count}個の{parent_kind_label(kind)}で共有中・全てに影響します"
+        parent_name = parent_kind_label(kind)
+        return tr(
+            "config_io.child_save.share.shared",
+            count=ref_count,
+            parent=parent_name,
+        )
     if share_state == SHARE_OTHER_PARENT:
-        return f"別の{parent_kind_label(kind)}に属します"
-    return "所有元不明・安全のため別名"
+        parent_name = parent_kind_label(kind)
+        return tr(
+            "config_io.child_save.share.other_parent",
+            parent=parent_name,
+        )
+    return tr("config_io.child_save.share.unknown")
 
 
 def default_action_for(share_state) -> str:
@@ -165,9 +179,13 @@ def _append_trigger_set_row(
         or (not source_path and bool(triggers))
         or is_migrated
     ):
+        display_name = tr(
+            "config_io.child_save.name.trigger_set",
+            name=owner_name,
+        )
         rows.append(build_row(
             kind=CHILD_TRIGGER_SET, key=owner_id,
-            display_name=f"{owner_name} / トリガーセット", target_path=trigger_target,
+            display_name=display_name, target_path=trigger_target,
             allow_skip=not is_migrated,
             current_parent=_stored_parent_path(config_service, targets[(CHILD_KEYMAP, owner_id)], config_root),
             config_service=config_service, config_root=config_root,
@@ -194,9 +212,20 @@ def _append_sequence_rows(
         target_path = targets.get((CHILD_SEQUENCE, key))
         if not target_path:
             continue
-        display_name = f"{owner_name} / {trigger.get('label') or trigger['key']}"
+        trigger_name = trigger.get("label") or trigger["key"]
         if counts[trigger_key] > 1:
-            display_name += f"（{row_number}行目）"
+            display_name = tr(
+                "config_io.child_save.name.sequence_row",
+                name=owner_name,
+                trigger_name=trigger_name,
+                row=row_number,
+            )
+        else:
+            display_name = tr(
+                "config_io.child_save.name.sequence",
+                name=owner_name,
+                trigger_name=trigger_name,
+            )
         rows.append(build_row(
             kind=CHILD_SEQUENCE, key=key,
             display_name=display_name,

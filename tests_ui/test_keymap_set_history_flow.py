@@ -14,7 +14,7 @@ from keyseq.presentation import app as app_module, keymap_set_history_text as te
 from keyseq.presentation.controllers.config_io import keymap_set_history_io as history_io
 from keyseq.presentation.dialogs import keymap_set_history_dialog as dialogs
 from keyseq.presentation.views.menu_bar import build_menu_bar
-from keyseq.shared.i18n import fix_language
+from keyseq.shared.i18n import fix_language, tr
 
 fix_language("ja")
 
@@ -261,7 +261,7 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
         self.assertEqual(self.store["categories"][1]["entries"], self.store["recent"])
         dialog._copy_entry()
         self.assertEqual(self.save.call_count, 1)
-        self.info.assert_called_with(text.TITLE, text.COPY_REJECTED, parent=dialog)
+        self.info.assert_called_with(text.TITLE, tr(text.COPY_REJECTED), parent=dialog)
         self.store["categories"] = []
         chooser.reset_mock()
         dialog._copy_entry()

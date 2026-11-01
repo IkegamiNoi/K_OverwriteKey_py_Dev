@@ -13,6 +13,7 @@ from keyseq.presentation.listbox_range_drag import (
     select_range,
 )
 from keyseq.presentation.listbox_utils import listbox_mouse_button_is_down
+from keyseq.shared.i18n import tr
 
 
 class KeymapListEditFlow:
@@ -57,7 +58,7 @@ class KeymapListEditFlow:
 
     def can_start_drag(self) -> bool:
         if self._app.sequence_runner.has_any_active_execution():
-            self._app._set_flash_message("実行中のためキーマップを並べ替えられません")
+            self._app._set_flash_message(tr("keymap_panel.reorder_blocked"))
             return False
         box = getattr(getattr(self._app, "full_view", None), "keymap_box", None)
         drag = getattr(box, "keymap_range_drag", None)
@@ -97,7 +98,7 @@ class KeymapListEditFlow:
         keymaps = self._app.keymap_service.get_keymaps(self._app.data)
         targets = keymaps[start:end + 1]
         if len(targets) >= len(keymaps):
-            messagebox.showerror("削除できません", "キーマップをすべて削除することはできません。")
+            messagebox.showerror(tr("keymap_panel.delete.error_title"), tr("keymap_panel.delete.all"))
             return
         active = self._app.keymap_service.get_active_keymap_id(self._app.data)
         if any(normalize_key_name(row.get("id", "")) == active for row in targets):
@@ -105,10 +106,10 @@ class KeymapListEditFlow:
                 self._panel.show_keymap_switch_blocked()
                 self._panel.refresh_keymap_list_ui()
                 return
-        prompt = f"キーマップ{len(targets)}件を削除しますか？"
+        prompt = tr("keymap_panel.delete.range_confirm", count=len(targets))
         if self._range_has_unsaved_children(targets):
-            prompt += "\n\n未保存のトリガーセット・出力シーケンスも破棄されます。"
-        if not messagebox.askyesno("確認", prompt):
+            prompt = tr("keymap_panel.delete.range_confirm_unsaved", count=len(targets))
+        if not messagebox.askyesno(tr("keyboard.layout.confirm_title"), prompt):
             return
         for target in targets:
             deleted, _, _ = self._panel._delete_keymap_confirmed(target)

@@ -18,7 +18,7 @@ from keyseq.presentation.controllers.config_io import keymap_set_io as keymap_se
 from keyseq.presentation.controllers.config_io import reference_cleanup_io as reference_cleanup_io_module
 from keyseq.presentation.reference_cleanup_text import CLEANUP_EMPTY_MESSAGE, format_cleanup_plan
 from keyseq.presentation.views.menu_bar import build_menu_bar
-from keyseq.shared.i18n import fix_language
+from keyseq.shared.i18n import fix_language, tr
 
 fix_language("ja")
 
@@ -114,7 +114,7 @@ class ReferenceCleanupFlowTest(unittest.TestCase):
         )
         dialog.assert_not_called()
         prune.assert_not_called()
-        showinfo.assert_called_once_with("参照元の掃除", CLEANUP_EMPTY_MESSAGE)
+        showinfo.assert_called_once_with("参照元の掃除", tr(CLEANUP_EMPTY_MESSAGE))
 
     def test_protected_only_inspections_notify_without_dialog_or_prune(self):
         self.app.keymap_set_path = "saved.json"
@@ -146,7 +146,7 @@ class ReferenceCleanupFlowTest(unittest.TestCase):
         )
         dialog.assert_not_called()
         prune.assert_not_called()
-        showinfo.assert_called_once_with("参照元の掃除", CLEANUP_EMPTY_MESSAGE)
+        showinfo.assert_called_once_with("参照元の掃除", tr(CLEANUP_EMPTY_MESSAGE))
 
     def test_cancel_does_not_prune_or_change_runtime_dirty_or_file(self):
         self.app.keymap_set_path = "saved.json"

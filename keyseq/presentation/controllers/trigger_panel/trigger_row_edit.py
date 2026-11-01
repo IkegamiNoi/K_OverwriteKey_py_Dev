@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from tkinter import messagebox
+from keyseq.shared.i18n import tr
 
 from keyseq.domain.call_graph import rename_call_targets
 from keyseq.domain.config import normalize_key_name
@@ -20,7 +21,7 @@ class TriggerRowEditFlow:
         self._panel = trigger_panel
 
     def add_trigger(self):
-        dlg = TriggerDialog(self._panel._app, title="トリガー追加")
+        dlg = TriggerDialog(self._panel._app, title=tr("trigger_panel.add.title"))
         dlg.wait_window()
         res = getattr(dlg, "result", None)
         if not res:
@@ -32,20 +33,20 @@ class TriggerRowEditFlow:
         triggers = ensure_active_triggers(self._panel._app.data)
         # 重複チェック
         if self._panel._app.trigger_service.key_exists(self._panel._app.data, key):
-            messagebox.showerror("追加できません", f"すでに存在します: {key}")
+            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.duplicate", key=key))
             return
         # フック停止トリガーとの重複チェック
         if self._panel._app.trigger_service.is_stop_key_conflict(self._panel._app.data, key):
-            messagebox.showerror("追加できません", f"このキーは停止キーに設定されています:\n{key}")
+            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.stop_key", key=key))
             return
         if self._panel._app.trigger_service.is_toggle_key_conflict(self._panel._app.data, key):
-            messagebox.showerror("追加できません", f"このキーは一時停止/再開キーに設定されています:\n{key}")
+            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.toggle_key", key=key))
             return
         if self._panel._app.keymap_service.get_keymap_by_switch_key(self._panel._app.data, key):
-            messagebox.showerror("追加できません", f"このキーは切替キーに設定されています:\n{key}")
+            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.switch_key", key=key))
             return
         if key in self._panel._app._key_overlap_report().active_source_keys:
-            messagebox.showerror("追加できません", f"このキーはアクティブなキーマップの置換元キーに設定されています:\n{key}")
+            messagebox.showerror(tr("trigger_panel.add.error_title"), tr("trigger_panel.add.mapping_source", key=key))
             return
         triggers.append({"key": key, "label": label, "suppress": True, "run_to_end": False, "actions": []})
         new_index = len(triggers) - 1
@@ -60,7 +61,7 @@ class TriggerRowEditFlow:
     def rename_trigger(self):
         t = self._panel.selected_trigger()
         if not t:
-            messagebox.showinfo("編集", "編集したいトリガーを選択してください。")
+            messagebox.showinfo(tr("common.edit_title"), tr("trigger_panel.edit.select"))
             return
         old = normalize_key_name(t.get("key", ""))
         triggers = get_active_triggers(self._panel._app.data)
@@ -71,7 +72,7 @@ class TriggerRowEditFlow:
             trigger_index is not None and is_effective_trigger(triggers, trigger_index)
         )
         cur_label = (t.get("label") or "").strip()
-        dlg = TriggerDialog(self._panel._app, title="トリガー編集", initial_key=old, initial_label=cur_label)
+        dlg = TriggerDialog(self._panel._app, title=tr("trigger_panel.edit.title"), initial_key=old, initial_label=cur_label)
         dlg.wait_window()
         res = getattr(dlg, "result", None)
         if not res:
@@ -84,19 +85,19 @@ class TriggerRowEditFlow:
             if self._panel._app.trigger_service.key_exists(
                 self._panel._app.data, new, exclude_trigger=t
             ):
-                messagebox.showerror("編集できません", f"すでに存在します: {new}")
+                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.duplicate", key=new))
                 return
             if self._panel._app.trigger_service.is_stop_key_conflict(self._panel._app.data, new):
-                messagebox.showerror("編集できません", f"このキーは停止キーに設定されています:\n{new}")
+                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.stop_key", key=new))
                 return
             if self._panel._app.trigger_service.is_toggle_key_conflict(self._panel._app.data, new):
-                messagebox.showerror("編集できません", f"このキーは一時停止/再開キーに設定されています:\n{new}")
+                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.toggle_key", key=new))
                 return
             if self._panel._app.keymap_service.get_keymap_by_switch_key(self._panel._app.data, new):
-                messagebox.showerror("編集できません", f"このキーは切替キーに設定されています:\n{new}")
+                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.switch_key", key=new))
                 return
             if new in self._panel._app._key_overlap_report().active_source_keys:
-                messagebox.showerror("編集できません", f"このキーはアクティブなキーマップの置換元キーに設定されています:\n{new}")
+                messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("trigger_panel.add.mapping_source", key=new))
                 return
         after = list(triggers)
         if old != new and trigger_index is not None:
@@ -154,13 +155,13 @@ class TriggerRowEditFlow:
             return self._panel._trigger_edit.delete_trigger_range()
         idx = self._panel.selected_trigger_index()
         if idx is None:
-            messagebox.showinfo("削除", "削除したいトリガーを選択してください。")
+            messagebox.showinfo(tr("common.delete"), tr("trigger_panel.delete.select"))
             return
         triggers = get_active_triggers(self._panel._app.data)
         if idx < 0 or idx >= len(triggers):
             return
         key = normalize_key_name(triggers[idx].get("key", ""))
-        if messagebox.askyesno("確認", f"トリガー{key}を削除しますか？"):
+        if messagebox.askyesno(tr("keyboard.layout.confirm_title"), tr("trigger_panel.delete.confirm", key=key)):
             after = triggers[:idx] + triggers[idx + 1:]
             if not apply_effective_row_transition(
                 self._panel._app, triggers, after, lambda: triggers.__delitem__(idx),

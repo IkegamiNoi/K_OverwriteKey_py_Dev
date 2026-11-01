@@ -30,6 +30,7 @@ from keyseq.presentation.controllers.config_io.save_target_snapshot import (
     capture_all,
     snapshot_matches,
 )
+from keyseq.shared.i18n import tr
 
 
 DEFAULT_KEYMAP_SET_FILENAME = "keymap_set.json"
@@ -46,8 +47,8 @@ class KeymapSetIo:
             return True
 
         result = messagebox.askyesnocancel(
-            "未保存の変更",
-            f"未保存の変更があります。\n{action_name}の前に保存しますか？",
+            tr("config_io.keymap_set.unsaved_title"),
+            tr("config_io.keymap_set.unsaved_prompt", action=action_name),
         )
         if result is None:
             return False
@@ -59,7 +60,7 @@ class KeymapSetIo:
         return self.save_as(show_success_dialog=False)
 
     def new_config(self):
-        if not self.confirm_save_if_dirty("新規作成"):
+        if not self.confirm_save_if_dirty(tr("menu.file.new")):
             return
 
         clipboard = getattr(self._app, "list_clipboard", None)
@@ -81,14 +82,14 @@ class KeymapSetIo:
         self._app.trigger_panel.refresh_triggers()
         self._app.trigger_panel.refresh_actions()
         self._app.dirty_tracker.set_dirty(True)
-        self._app._set_flash_message("新規作成しました（未保存）。")
+        self._app._set_flash_message(tr("config_io.keymap_set.created_flash"))
 
     def save_keymap_set(self, *, show_success_dialog: bool = True) -> bool:
         if not self._app.keymap_set_path:
             return self.save_as(show_success_dialog=show_success_dialog)
         return self.save_keymap_set_to(
             self._app.keymap_set_path,
-            flash_message="保存しました。",
+            flash_message=tr("config_io.keymap_set.saved_flash"),
             show_success_dialog=show_success_dialog,
         )
 
@@ -100,7 +101,7 @@ class KeymapSetIo:
             else DEFAULT_KEYMAP_SET_FILENAME
         )
         path = filedialog.asksaveasfilename(
-            title="別名保存（構成セット）",
+            title=tr("config_io.keymap_set.save_as_title"),
             initialdir=self._app.suggest_keymap_set_dialog_dir(),
             initialfile=initialfile,
             defaultextension=".json",
@@ -110,7 +111,7 @@ class KeymapSetIo:
             return False
         return self.save_keymap_set_to(
             path,
-            flash_message="別名保存しました。",
+            flash_message=tr("config_io.keymap_set.saved_as_flash"),
             show_success_dialog=show_success_dialog,
         )
 
@@ -127,13 +128,13 @@ class KeymapSetIo:
                 split_base_dir,
             )
             if save_plan is None:
-                self._app._set_flash_message("保存を中止しました。")
+                self._app._set_flash_message(tr("config_io.keymap_set.save_cancelled"))
                 return False
             skipped_dirty_children = self._skipped_dirty_children(save_plan)
             deferred_parents = self._blocked_parents(save_path, split_base_dir, save_plan) if deferred_index else {}
             if not snapshot_matches(self._app.data, save_target):
-                self._app._set_flash_message(SAVE_TARGET_CHANGED_MESSAGE, auto_clear=False)
-                messagebox.showwarning("保存", SAVE_TARGET_CHANGED_MESSAGE)
+                self._app._set_flash_message(tr(SAVE_TARGET_CHANGED_MESSAGE), auto_clear=False)
+                messagebox.showwarning(tr("common.save"), tr(SAVE_TARGET_CHANGED_MESSAGE))
                 return False
             self._app.discard_retained_hook_keys()
             if save_path != self._app.keymap_set_path:
@@ -173,15 +174,25 @@ class KeymapSetIo:
             notices = [notice for notice in (recalculation_notice,) if notice]
             notices.extend(post_save_warnings)
             if deferred_index:
-                label = "トリガーセット" if all(kind == CHILD_TRIGGER_SET for kind, _ in deferred_parents) else "参照元の子ファイル"
-                notices.append(f"{label}は未保存です。次回の保存で保存先の記録を更新します。")
+                notice_key = (
+                    "config_io.keymap_set.deferred_trigger_set_notice"
+                    if all(kind == CHILD_TRIGGER_SET for kind, _ in deferred_parents)
+                    else "config_io.keymap_set.deferred_child_files_notice"
+                )
+                notices.append(tr(notice_key))
             completion_message = "\n".join((flash_message, *notices))
             self._app._set_flash_message(completion_message)
             if show_success_dialog:
-                message = f"保存しました:\n{save_path}"
                 if notices:
-                    message = f"{message}\n\n" + "\n".join(notices)
-                messagebox.showinfo("保存", message)
+                    notice_text = "\n".join(notices)
+                    message = tr(
+                        "config_io.keymap_set.saved_info_with_notices",
+                        path=save_path,
+                        notices=notice_text,
+                    )
+                else:
+                    message = tr("config_io.keymap_set.saved_info", path=save_path)
+                messagebox.showinfo(tr("common.save"), message)
             recorded, reason = self._app.keymap_set_history_io.record(self._app.keymap_set_path)
             if not recorded:
                 self._app._set_flash_message(reason, auto_clear=False)
@@ -190,13 +201,13 @@ class KeymapSetIo:
             if save_target is not None and not snapshot_matches(self._app.data, save_target):
                 self._show_save_target_changed()
                 return False
-            self._app._set_flash_message(f"保存失敗: {e}", auto_clear=False)
-            messagebox.showerror("保存失敗", str(e))
+            self._app._set_flash_message(tr("keyboard.layout.save_failed_message", error=e), auto_clear=False)
+            messagebox.showerror(tr("keyboard.layout.save_failed_title"), str(e))
             return False
 
     def _show_save_target_changed(self) -> None:
-        self._app._set_flash_message(SAVE_TARGET_CHANGED_MESSAGE, auto_clear=False)
-        messagebox.showwarning("保存", SAVE_TARGET_CHANGED_MESSAGE)
+        self._app._set_flash_message(tr(SAVE_TARGET_CHANGED_MESSAGE), auto_clear=False)
+        messagebox.showwarning(tr("common.save"), tr(SAVE_TARGET_CHANGED_MESSAGE))
 
     def _collect_child_save_plan(self, save_path: str, split_base_dir: str) -> tuple[SavePlan | None, str, bool]:
         pending = SavePlan()
@@ -244,7 +255,7 @@ class KeymapSetIo:
                     deferred.add(parent_id)
                     continue
                 if action == ACTION_SAVE and parent_id[0] == CHILD_TRIGGER_SET:
-                    recalculation_notice = "\n".join(filter(None, (recalculation_notice, "トリガーセットも保存して保存先の記録を更新しました。")))
+                    recalculation_notice = "\n".join(filter(None, (recalculation_notice, tr("config_io.keymap_set.trigger_set_saved_notice"))))
                 target = self._app.child_save_dialog.trigger_set_save_as_path if action == ACTION_SAVE_AS else ""
                 replacement = ChildSaveEntry(*parent_id, action, target)
                 plan = SavePlan(entries=tuple(replacement if (entry.kind, entry.key) == parent_id else entry for entry in plan.entries))
@@ -442,8 +453,7 @@ class KeymapSetIo:
             for row in rows
         )
         return (
-            "トリガーセットの保存先が変わったため、"
-            f"出力シーケンス{changed_sequences}件の保存先を再計算しました。"
+            tr("config_io.keymap_set.recalculated_sequences_notice", count=changed_sequences)
         )
 
     def _trigger_target_changed(
@@ -476,7 +486,7 @@ class KeymapSetIo:
         parent = targets[(CHILD_KEYMAP, key)] if kind == CHILD_TRIGGER_SET else save_path
         name = str(owner.get("label") or key)
         return build_row(
-            kind=kind, key=key, display_name=f"{name} / トリガーセット" if kind == CHILD_TRIGGER_SET else name,
+            kind=kind, key=key, display_name=tr("config_io.child_save.name.trigger_set", name=name) if kind == CHILD_TRIGGER_SET else name,
             target_path=targets[child_id],
             current_parent=self._app.config_service.to_config_relative_or_absolute(parent, self._app.config_root),
             config_service=self._app.config_service, config_root=self._app.config_root,
@@ -501,16 +511,27 @@ class KeymapSetIo:
         labels = {}
         for owner, _, triggers in iter_trigger_sets(self._app.data):
             name = str(owner.get("label") or owner["id"])
-            labels[str(owner["id"])] = f"{name} / トリガーセット"
+            labels[str(owner["id"])] = tr("config_io.child_save.name.trigger_set", name=name)
             sequence_entries = sequence_rows(triggers)
             counts = {key: occurrence for _, key, occurrence in sequence_entries}
             positions = iter(enumerate(triggers, 1))
             for trigger, trigger_key, occurrence in sequence_entries:
                 row_number = next(position for position, row in positions if row is trigger)
                 key = compose_sequence_key(str(owner["id"]), trigger_key, occurrence)
-                label = f"{name} / {trigger.get('label') or trigger['key']}"
+                trigger_label = str(trigger.get("label") or trigger["key"])
                 if counts[trigger_key] > 1:
-                    label += f"（{row_number}行目）"
+                    label = tr(
+                        "config_io.keymap_set.sequence_row_label",
+                        name=name,
+                        trigger=trigger_label,
+                        row=row_number,
+                    )
+                else:
+                    label = tr(
+                        "config_io.keymap_set.sequence_label",
+                        name=name,
+                        trigger=trigger_label,
+                    )
                 labels[key] = label
         return [labels.get(key, key) for key in blocked_keys]
 
@@ -547,11 +568,11 @@ class KeymapSetIo:
         return entry is not None and entry.action == ACTION_SKIP
 
     def load_keymap_set_from(self) -> None:
-        if not self.confirm_save_if_dirty("読込"):
+        if not self.confirm_save_if_dirty(tr("keymap_set_history.load_action")):
             return
 
         path = filedialog.askopenfilename(
-            title="構成セットを読み込む",
+            title=tr("config_io.keymap_set.load_title"),
             initialdir=self._app.suggest_keymap_set_dialog_dir(),
             filetypes=[("JSON", "*.json"), ("All", "*.*")]
         )
@@ -575,16 +596,16 @@ class KeymapSetIo:
             if self._app.data.get(ConfigService.INTERNAL_LEGACY_TRIGGER_SET, {}).get("state") != "migrated":
                 self._app.dirty_tracker.set_dirty(False)
             self._app.dirty_tracker.sync_dirty_state()
-            self._app._set_flash_message("読み込みました。")
-            messagebox.showinfo("読込", f"読み込みました:\n{path}")
+            self._app._set_flash_message(tr("config_io.keymap_set.loaded_flash"))
+            messagebox.showinfo(tr("keymap_set_history.load_action"), tr("config_io.keymap_set.loaded_info", path=path))
             recorded, reason = self._app.keymap_set_history_io.record(path)
             if not recorded:
                 self._app._set_flash_message(reason, auto_clear=False)
             self.notify_migrated_legacy_trigger_set()
             return KEYMAP_SET_LOAD_OK
         except Exception as e:
-            self._app._set_flash_message(f"読込失敗: {e}", auto_clear=False)
-            messagebox.showerror("読込失敗", str(e))
+            self._app._set_flash_message(tr("config_io.keymap_set.load_failed_flash", error=e), auto_clear=False)
+            messagebox.showerror(tr("config_io.common.load_failed_title"), str(e))
             return KEYMAP_SET_LOAD_FAILED
 
     def notify_migrated_legacy_trigger_set(self) -> None:
@@ -594,10 +615,10 @@ class KeymapSetIo:
         keymap_id = normalize_key_name(str(legacy.get("keymap_id") or ""))
         keymap = self._app.keymap_service.find_keymap(self._app.data, keymap_id)
         name = str(keymap.get("label") or "").strip() if keymap else keymap_id
+        legacy_path = legacy.get("path", "")
         messagebox.showinfo(
-            "読込",
-            f"旧形式のトリガーセット {legacy.get('path', '')} を、キーマップ『{name}』に移しました"
-            "（切替キーは未設定です）",
+            tr("keymap_set_history.load_action"),
+            tr("config_io.keymap_set.legacy_trigger_set_migrated", path=legacy_path, name=name),
         )
 
     def import_config(self):
@@ -621,11 +642,11 @@ class KeymapSetIo:
             self._app.trigger_panel.refresh_triggers()
             self._app.trigger_panel.refresh_actions()
             self._app.dirty_tracker.set_dirty(True)
-            self._app._set_flash_message("Import しました。")
-            messagebox.showinfo("Import", f"単一JSONを取り込みました:\n{path}")
+            self._app._set_flash_message(tr("config_io.keymap_set.imported_flash"))
+            messagebox.showinfo("Import", tr("config_io.keymap_set.imported_info", path=path))
         except Exception as e:
-            self._app._set_flash_message(f"Import 失敗: {e}", auto_clear=False)
-            messagebox.showerror("Import 失敗", str(e))
+            self._app._set_flash_message(tr("config_io.keymap_set.import_failed_flash", error=e), auto_clear=False)
+            messagebox.showerror(tr("config_io.keymap_set.import_failed_title"), str(e))
 
     def export_config(self):
         path = filedialog.asksaveasfilename(
@@ -639,16 +660,16 @@ class KeymapSetIo:
             return
         try:
             self._app.config_service.export_runtime_data(path, self._app.data)
-            self._app._set_flash_message("Export しました。")
-            messagebox.showinfo("Export", f"単一JSONを書き出しました:\n{path}")
+            self._app._set_flash_message(tr("config_io.keymap_set.exported_flash"))
+            messagebox.showinfo("Export", tr("config_io.keymap_set.exported_info", path=path))
         except Exception as e:
-            self._app._set_flash_message(f"Export 失敗: {e}", auto_clear=False)
-            messagebox.showerror("Export 失敗", str(e))
+            self._app._set_flash_message(tr("config_io.keymap_set.export_failed_flash", error=e), auto_clear=False)
+            messagebox.showerror(tr("config_io.keymap_set.export_failed_title"), str(e))
 
     def restore_default(self):
-        if not self.confirm_save_if_dirty("サンプル設定の復元"):
+        if not self.confirm_save_if_dirty(tr("config_io.keymap_set.restore_action")):
             return
-        if not messagebox.askyesno("確認", "サンプル設定に戻します。よろしいですか？"):
+        if not messagebox.askyesno(tr("keyboard.layout.confirm_title"), tr("config_io.keymap_set.restore_prompt")):
             return
 
         self._app.data = self._app.config_service.new_default_data()
@@ -666,15 +687,15 @@ class KeymapSetIo:
         self._app.trigger_panel.refresh_triggers()
         self._app.trigger_panel.refresh_actions()
         self._app.dirty_tracker.set_dirty(True)
-        self._app._set_flash_message("サンプル設定に戻しました（未保存）。")
+        self._app._set_flash_message(tr("config_io.keymap_set.restored_flash"))
 
     def set_startup_keymap_set(self):
         """ユーザーが起動時に読み込む keymap_set.json を選び、起動設定へ保存する"""
-        if not self.confirm_save_if_dirty("起動時に読む構成セットの変更"):
+        if not self.confirm_save_if_dirty(tr("config_io.keymap_set.startup_action")):
             return
 
         path = filedialog.askopenfilename(
-            title="起動時に読み込む構成セットを選択",
+            title=tr("config_io.keymap_set.startup_select_title"),
             initialdir=self._app.suggest_keymap_set_dialog_dir(),
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         )
@@ -687,7 +708,7 @@ class KeymapSetIo:
                 config_root=self._app.config_root,
             )
         except Exception as e:
-            messagebox.showerror("設定", str(e))
+            messagebox.showerror(tr("menu.settings.title"), str(e))
             return
 
         self._app.keymap_set_path = path
@@ -705,11 +726,11 @@ class KeymapSetIo:
             self._app.dirty_tracker.set_dirty(False)
         self._app.dirty_tracker.sync_dirty_state()
         if not startup_saved:
-            self._app._set_flash_message("起動時の読み込み設定の保存に失敗しました。", auto_clear=False)
+            self._app._set_flash_message(tr("config_io.keymap_set.startup_save_failed"), auto_clear=False)
             self.notify_migrated_legacy_trigger_set()
             return
-        self._app._set_flash_message("起動時の読み込み設定を更新しました。")
-        messagebox.showinfo("設定", f"次回起動時はこの構成セットを読み込みます:\n{path}")
+        self._app._set_flash_message(tr("config_io.keymap_set.startup_updated_flash"))
+        messagebox.showinfo(tr("menu.settings.title"), tr("config_io.keymap_set.startup_updated_info", path=path))
         self.notify_migrated_legacy_trigger_set()
 
     def apply_loaded_data_to_ui(self):
@@ -733,13 +754,11 @@ class KeymapSetIo:
             return ""
         choice = choice_dialog.ask_choice(
             self._app,
-            title="保存先の確認",
+            title=tr("config_io.io_dialogs.collision.title"),
             message=(
-                "構成セットが既定の保存先の外に保存されます。\n"
-                "キーマップ・トリガーセット・出力シーケンスも構成セットと同じフォルダ"
-                "(keymaps / trigger_sets / sequences)に保存しますか？"
+                tr("config_io.keymap_set.save_location_prompt")
             ),
-            choices=[("nearby", "構成セットと同じフォルダに保存"), ("default", "既定の保存先に保存")],
+            choices=[("nearby", tr("config_io.keymap_set.save_nearby")), ("default", tr("config_io.keymap_set.save_default_location"))],
             default="nearby",
             cancel="default",
         )

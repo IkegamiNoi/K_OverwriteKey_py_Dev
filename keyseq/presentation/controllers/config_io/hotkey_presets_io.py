@@ -2,6 +2,7 @@ import tkinter as tk
 from tkinter import messagebox, ttk
 
 from keyseq.presentation.modal import grab_modal
+from keyseq.shared.i18n import tr
 
 
 class HotkeyPresetsIo:
@@ -24,22 +25,15 @@ class HotkeyPresetsIo:
                 )
             return True
         except Exception as e:
-            messagebox.showerror("プリセット保存失敗", str(e))
+            messagebox.showerror(tr("config_io.hotkey_presets.save_failed_title"), str(e))
             return False
 
     def show_save_path_rejection(self, reason: str, *, stored_path: str) -> None:
         if reason == "reserved_dir":
-            message = (
-                "global/は共通プリセット用のため、構成セット専用プリセットの保存先にできません。\n"
-                f"現在の保存先: {stored_path}"
-            )
+            message = tr("config_io.hotkey_presets.reserved_dir", path=stored_path)
         else:
-            message = (
-                "保存先が共通プリセットと同じファイルです。\n"
-                "config.jsonのhotkey_presets_pathをglobal/配下へ直してください。\n"
-                f"現在の保存先: {stored_path}"
-            )
-        messagebox.showerror("構成セット専用プリセットを保存できません", message)
+            message = tr("config_io.hotkey_presets.same_file", path=stored_path)
+        messagebox.showerror(tr("config_io.hotkey_presets.rejection_title"), message)
 
     def confirm_overwrite(self, *, stored_path: str, existing: list | None,
                           transient_parent: tk.Misc) -> str:
@@ -50,17 +44,17 @@ class HotkeyPresetsIo:
         """
         result = {"choice": "cancel"}
         dialog = tk.Toplevel(self._app)
-        dialog.title("構成セット専用プリセットの上書き確認")
+        dialog.title(tr("config_io.hotkey_presets.overwrite_title"))
         dialog.resizable(False, False)
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill="both", expand=True)
         if existing is None:
-            description = "保存先にはすでにファイルがありますが、プリセットとして読み込めません。"
+            description = tr("config_io.hotkey_presets.unreadable_existing", path=stored_path)
         else:
-            description = "保存先にはすでにプリセットファイルがあり、表示中の一覧と内容が異なります。"
+            description = tr("config_io.hotkey_presets.different_existing", path=stored_path)
         ttk.Label(
             frame,
-            text=f"{description}\n保存先: {stored_path}",
+            text=description,
             justify="left",
             wraplength=560,
         ).pack(fill="both", expand=True)
@@ -71,16 +65,16 @@ class HotkeyPresetsIo:
             result["choice"] = choice
             dialog.destroy()
 
-        ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right")
+        ttk.Button(buttons, text=tr("common.cancel"), command=dialog.destroy).pack(side="right")
         if existing is not None:
             ttk.Button(
                 buttons,
-                text="既存を読み込む",
+                text=tr("config_io.hotkey_presets.adopt_existing"),
                 command=lambda: choose("adopt"),
             ).pack(side="right", padx=(0, 8))
         ttk.Button(
             buttons,
-            text="上書きする",
+            text=tr("config_io.hotkey_presets.overwrite"),
             command=lambda: choose("overwrite"),
         ).pack(side="right", padx=(0, 8))
         dialog.protocol("WM_DELETE_WINDOW", dialog.destroy)

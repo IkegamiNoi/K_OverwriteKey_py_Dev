@@ -13,6 +13,7 @@ from keyseq.application.save_plan import (
     SavePlanError,
 )
 from keyseq.domain.config import normalize_key_name
+from keyseq.shared.i18n import tr
 from keyseq.domain.keymap_triggers import (
     INTERNAL_TRIGGER_SET_DIRTY,
     INTERNAL_TRIGGER_SET_IMPORTED,
@@ -31,7 +32,7 @@ class KeymapFileIo:
         index = self._app.keymap_panel.selected_keymap_list_index()
         keymaps = self._app.keymap_service.get_keymaps(self._app.data)
         if index is None or not keymaps or not (0 <= index < len(keymaps)):
-            messagebox.showinfo("キーマップ", "対象のキーマップを選択してください。")
+            messagebox.showinfo(tr("child_kind.keymap"), tr("config_io.keymap.select_target"))
             return None, None
         return index, keymaps[index]
 
@@ -43,7 +44,7 @@ class KeymapFileIo:
         if source_path and keymap.get(self._app.config_service.INTERNAL_KEYMAP_IMPORTED) and keymap.get(
             self._app.config_service.INTERNAL_KEYMAP_DIRTY
         ):
-            if messagebox.askyesno("保存", "読み込んだキーマップです。\n別名保存しますか？"):
+            if messagebox.askyesno(tr("common.save"), tr("config_io.keymap.imported_save_as")):
                 return self.save_selected_keymap_as()
         if not source_path:
             label = str(keymap.get("label") or keymap.get("id") or "keymap").strip()
@@ -51,7 +52,7 @@ class KeymapFileIo:
                 self._app.paths.preferred_keymaps_dir(), label, "keymap"
             )
             source_path = self._app.io_dialogs.choose_save_path_with_collision(
-                title="キーマップを保存", suggested_path=suggested
+                title=tr("config_io.keymap.save_title"), suggested_path=suggested
             )
             if not source_path:
                 return False
@@ -69,7 +70,7 @@ class KeymapFileIo:
             "keymap",
         )
         path = filedialog.asksaveasfilename(
-            title="キーマップを別名保存",
+            title=tr("config_io.keymap.save_as_title"),
             initialdir=os.path.dirname(os.path.abspath(suggested)),
             initialfile=os.path.basename(suggested),
             defaultextension=".json",
@@ -79,7 +80,7 @@ class KeymapFileIo:
             return False
         previous_label = keymap.get("label")
         try:
-            if self._app.io_dialogs.ask_link_label_to_filename(title="キーマップ名の連動", path=path):
+            if self._app.io_dialogs.ask_link_label_to_filename(title=tr("config_io.keymap.link_name_title"), path=path):
                 keymap["label"] = self._app.paths.filename_stem(path)
         except RuntimeError:
             return False
@@ -92,8 +93,8 @@ class KeymapFileIo:
         try:
             return self._perform_keymap_save(index, keymap, path)
         except Exception as e:
-            self._app._set_flash_message(f"キーマップ保存失敗: {e}", auto_clear=False)
-            messagebox.showerror("保存失敗", str(e))
+            self._app._set_flash_message(tr("config_io.keymap.save_failed_flash", error=e), auto_clear=False)
+            messagebox.showerror(tr("keyboard.layout.save_failed_title"), str(e))
             return False
 
     def _perform_keymap_save(self, index: int, keymap: dict, path: str) -> bool:
@@ -101,7 +102,7 @@ class KeymapFileIo:
         runtime_data = self._scope_for_keymap(keymap)
         save_plan = self._collect_keymap_save_plan(runtime_data, keymap, path)
         if save_plan is None:
-            self._app._set_flash_message("キーマップの保存を中止しました。")
+            self._app._set_flash_message(tr("config_io.keymap.save_cancelled"))
             return False
         saved = self._save_keymap_file(path, keymap, runtime_data, save_plan)
         self._sync_saved_keymap(keymap, saved)
@@ -198,7 +199,7 @@ class KeymapFileIo:
             if current is None or current.action != ACTION_SKIP:
                 continue
             if child_id in row_ids:
-                raise SavePlanError("出力シーケンスの保存先変更にはトリガーセットの保存が必要です。")
+                raise SavePlanError(tr("config_io.keymap.trigger_set_save_required"))
             replacement = ChildSaveEntry(CHILD_TRIGGER_SET, key, ACTION_SAVE)
             entries[entries.index(current)] = replacement
         return SavePlan(entries=tuple(entries), allow_deferred_index=True)
@@ -224,24 +225,25 @@ class KeymapFileIo:
         ) != self._app.config_service.canonical_path(current, self._app.config_root)
 
     def _show_save_success(self, path: str, source_path_changed: bool) -> None:
-        completion_message = "キーマップを保存しました。"
-        info_message = f"キーマップを保存しました:\n{path}"
         if source_path_changed:
-            completion_message += "\n構成セットを保存すると、構成セットに記録されたこのキーマップの保存先も新しい場所に更新されます。"
-            info_message += "\n構成セットを保存すると、構成セットに記録されたこのキーマップの保存先も新しい場所に更新されます。"
+            completion_message = tr("config_io.keymap.saved_flash_with_notice")
+            info_message = tr("config_io.keymap.saved_info_with_notice", path=path)
+        else:
+            completion_message = tr("config_io.keymap.saved_flash")
+            info_message = tr("config_io.keymap.saved_info", path=path)
         self._app._set_flash_message(completion_message)
-        messagebox.showinfo("保存", info_message)
+        messagebox.showinfo(tr("common.save"), info_message)
 
     def load_keymap_file(self) -> None:
         path = filedialog.askopenfilename(
-            title="キーマップを読み込む",
+            title=tr("config_io.keymap.load_title"),
             initialdir=self._app.paths.json_dialog_initial_dir(self._app.paths.preferred_keymaps_dir()),
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         )
         if not path:
             return
         if self._is_already_loaded_path(path):
-            messagebox.showerror("読み込めません", "このキーマップはすでに読み込まれています")
+            messagebox.showerror(tr("config_io.keymap.already_loaded_title"), tr("config_io.keymap.already_loaded_message"))
             return
         try:
             keymap = self._load_keymap(path)
@@ -252,8 +254,8 @@ class KeymapFileIo:
                 self._app.dirty_tracker.mark_trigger_set_dirty(str(keymap.get("id") or ""))
             self._refresh_after_load(path)
         except Exception as e:
-            self._app._set_flash_message(f"キーマップ読込失敗: {e}", auto_clear=False)
-            messagebox.showerror("読込失敗", str(e))
+            self._app._set_flash_message(tr("config_io.keymap.load_failed_flash", error=e), auto_clear=False)
+            messagebox.showerror(tr("config_io.common.load_failed_title"), str(e))
 
     def _is_already_loaded_path(self, path: str) -> bool:
         service = self._app.config_service
@@ -313,5 +315,5 @@ class KeymapFileIo:
 
     def _refresh_after_load(self, path: str) -> None:
         self._app.dirty_tracker.set_dirty(True)
-        self._app._set_flash_message("キーマップを読み込みました。")
-        messagebox.showinfo("読込", f"キーマップを読み込みました:\n{path}")
+        self._app._set_flash_message(tr("config_io.keymap.loaded_flash"))
+        messagebox.showinfo(tr("keymap_set_history.load_action"), tr("config_io.keymap.loaded_info", path=path))

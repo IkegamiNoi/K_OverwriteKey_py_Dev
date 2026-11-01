@@ -7,6 +7,7 @@ from keyseq.application.config_service import contracts
 from keyseq.domain import keymap_set_history as domain
 from keyseq.presentation import keymap_set_history_text as text
 from keyseq.presentation.dialogs import KeymapSetHistoryDialog
+from keyseq.shared.i18n import tr
 from .keymap_set_io import KEYMAP_SET_LOAD_OK
 
 if TYPE_CHECKING:
@@ -24,7 +25,7 @@ class KeymapSetHistoryIo:
                 path, config_root=self._app.config_root,
             )
         except Exception as exc:
-            return False, f"構成セットの履歴を記録できませんでした: {exc}"
+            return False, tr("keymap_set_history.record_error", error=exc)
 
     def open_history_dialog(self) -> None:
         """履歴ダイアログを開く（メニューの入口）。"""
@@ -55,7 +56,7 @@ class KeymapSetHistoryIo:
 
     def open_keymap_set(self, stored_path: str) -> bool:
         try:
-            if not self._app.keymap_set_io.confirm_save_if_dirty(text.LOAD_ACTION):
+            if not self._app.keymap_set_io.confirm_save_if_dirty(tr(text.LOAD_ACTION)):
                 return False
             path = self._app.config_service.resolve_config_path(
                 stored_path, self._app.config_root,
@@ -85,15 +86,15 @@ class KeymapSetHistoryIo:
             return False, text.format_edit_error(str(exc))
 
     def add_category(self, name: str) -> tuple[bool, str]:
-        return self._edit(lambda h: domain.add_category(h, name), text.INVALID_CATEGORY_NAME)
+        return self._edit(lambda h: domain.add_category(h, name), tr(text.INVALID_CATEGORY_NAME))
 
     def rename_category(self, old_name: str, new_name: str) -> tuple[bool, str]:
         return self._edit(
-            lambda h: domain.rename_category(h, old_name, new_name), text.RENAME_REJECTED,
+            lambda h: domain.rename_category(h, old_name, new_name), tr(text.RENAME_REJECTED),
         )
 
     def remove_category(self, name: str) -> tuple[bool, str]:
-        return self._edit(lambda h: domain.remove_category(h, name), text.CATEGORY_NOT_FOUND)
+        return self._edit(lambda h: domain.remove_category(h, name), tr(text.CATEGORY_NOT_FOUND))
 
     def copy_to_category(self, name: str, stored_path: str) -> tuple[bool, str]:
         def key_of(path: str) -> str:
@@ -101,13 +102,13 @@ class KeymapSetHistoryIo:
 
         return self._edit(
             lambda h: domain.add_to_category(h, name, stored_path, key_of=key_of),
-            text.COPY_REJECTED,
+            tr(text.COPY_REJECTED),
         )
 
     def remove_recent(self, index: int) -> tuple[bool, str]:
-        return self._edit(lambda h: domain.remove_recent_at(h, index), text.ENTRY_NOT_FOUND)
+        return self._edit(lambda h: domain.remove_recent_at(h, index), tr(text.ENTRY_NOT_FOUND))
 
     def remove_category_entry(self, name: str, index: int) -> tuple[bool, str]:
         return self._edit(
-            lambda h: domain.remove_category_entry_at(h, name, index), text.ENTRY_NOT_FOUND,
+            lambda h: domain.remove_category_entry_at(h, name, index), tr(text.ENTRY_NOT_FOUND),
         )

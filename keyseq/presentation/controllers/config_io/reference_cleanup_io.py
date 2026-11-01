@@ -1,4 +1,5 @@
 from tkinter import messagebox
+from keyseq.shared.i18n import tr
 
 from keyseq.application.config_service import contracts
 from keyseq.presentation.dialogs import ReferenceCleanupDialog
@@ -16,8 +17,8 @@ class ReferenceCleanupIo:
     def run_cleanup(self) -> None:
         if not self._app.keymap_set_path:
             if not messagebox.askyesno(
-                "参照元の掃除",
-                "掃除するには構成セットの保存が必要です。保存しますか？",
+                tr("reference_cleanup.title"),
+                tr("reference_cleanup.save_required"),
             ):
                 return
             if not self._app.keymap_set_io.save_keymap_set(show_success_dialog=False):
@@ -32,12 +33,12 @@ class ReferenceCleanupIo:
             inspection.state in (contracts.CLEANUP_TARGET, contracts.CLEANUP_ALL_STALE)
             for inspection in inspections
         ):
-            messagebox.showinfo("参照元の掃除", CLEANUP_EMPTY_MESSAGE)
+            messagebox.showinfo(tr("reference_cleanup.title"), tr(CLEANUP_EMPTY_MESSAGE))
             return
 
         dialog = ReferenceCleanupDialog(
             self._app,
-            title="参照元の掃除",
+            title=tr("reference_cleanup.title"),
             lines=format_cleanup_plan(inspections),
         )
         dialog.wait_window()
@@ -50,4 +51,4 @@ class ReferenceCleanupIo:
             config_root=self._app.config_root,
             keymap_set_path=self._app.keymap_set_path,
         )
-        messagebox.showinfo("参照元の掃除", "\n".join(format_cleanup_result(result)))
+        messagebox.showinfo(tr("reference_cleanup.title"), "\n".join(format_cleanup_result(result)))

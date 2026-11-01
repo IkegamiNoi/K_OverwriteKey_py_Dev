@@ -4,6 +4,7 @@ from tkinter import filedialog, ttk
 
 from keyseq.presentation.controllers.config_io import choice_dialog
 from keyseq.presentation.modal import grab_modal
+from keyseq.shared.i18n import tr
 
 
 class IoDialogs:
@@ -15,9 +16,16 @@ class IoDialogs:
         if os.path.exists(path):
             choice = choice_dialog.ask_choice(
                 self._app,
-                title="保存先の確認",
-                message=f"同名ファイルがすでにあります。\n\n{path}\n\n上書きしますか？",
-                choices=[("overwrite", "上書き"), ("save_as", "別名保存…"), ("cancel", "キャンセル")],
+                title=tr("config_io.io_dialogs.collision.title"),
+                message=tr(
+                    "config_io.io_dialogs.collision.message",
+                    path=path,
+                ),
+                choices=[
+                    ("overwrite", tr("config_io.io_dialogs.collision.overwrite")),
+                    ("save_as", tr("common.save_as")),
+                    ("cancel", tr("common.cancel")),
+                ],
                 default="overwrite",
                 cancel="cancel",
             )
@@ -43,8 +51,19 @@ class IoDialogs:
 
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill="both", expand=True)
-        ttk.Label(frame, text=f"保存名: {self._app.paths.filename_stem(path)}").pack(anchor="w")
-        ttk.Checkbutton(frame, text="ラベル名も保存名に合わせる", variable=link_var).pack(anchor="w", pady=(10, 0))
+        filename = self._app.paths.filename_stem(path)
+        ttk.Label(
+            frame,
+            text=tr(
+                "config_io.io_dialogs.link_label.filename",
+                name=filename,
+            ),
+        ).pack(anchor="w")
+        ttk.Checkbutton(
+            frame,
+            text=tr("config_io.io_dialogs.link_label.checkbox"),
+            variable=link_var,
+        ).pack(anchor="w", pady=(10, 0))
         buttons = ttk.Frame(frame)
         buttons.pack(fill="x", pady=(12, 0))
 
@@ -56,8 +75,8 @@ class IoDialogs:
         def on_cancel():
             dialog.destroy()
 
-        ttk.Button(buttons, text="OK", command=on_ok).pack(side="right")
-        ttk.Button(buttons, text="キャンセル", command=on_cancel).pack(side="right", padx=(0, 8))
+        ttk.Button(buttons, text=tr("common.ok"), command=on_ok).pack(side="right")
+        ttk.Button(buttons, text=tr("common.cancel"), command=on_cancel).pack(side="right", padx=(0, 8))
         dialog.protocol("WM_DELETE_WINDOW", on_cancel)
         dialog.bind("<Escape>", lambda _event: on_cancel())
         grab_modal(dialog, self._app)
@@ -66,5 +85,5 @@ class IoDialogs:
         finally:
             self._app.hook.resume_hook_after_dialog()
         if not result["ok"]:
-            raise RuntimeError("キャンセルされました。")
+            raise RuntimeError(tr("config_io.io_dialogs.link_label.cancelled"))
         return bool(result["link"])

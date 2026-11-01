@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import messagebox
+from keyseq.shared.i18n import tr
 from typing import Callable
 
 from keyseq.domain.config import normalize_key_name, safe_deepcopy
@@ -63,7 +64,7 @@ class ActionEditFlow:
     def add_action(self):
         trig = self._trigger_panel.selected_trigger()
         if not trig:
-            messagebox.showinfo("追加", "まずトリガーを選択してください。")
+            messagebox.showinfo(tr("common.add_title"), tr("trigger_panel.action.select_trigger"))
             return
         effective = self._is_effective_row(trig)
         actions = trig.setdefault("actions", [])
@@ -72,7 +73,7 @@ class ActionEditFlow:
         call_candidates, call_check, control_target_check = self._call_dialog_options(key)
         dialog = ActionDialog(
             self._app,
-            title="追加",
+            title=tr("common.add_title"),
             mode="add",
             counter_names=self._trigger_panel._counter_names(),
             config_root=getattr(self._app, "config_root", ""),
@@ -87,8 +88,8 @@ class ActionEditFlow:
             return
         if standalone_violation(actions, result):
             messagebox.showinfo(
-                "追加",
-                "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。",
+                tr("common.add_title"),
+                tr("trigger_panel.action.standalone"),
             )
             self._app._dialog_result = None
             return
@@ -100,8 +101,8 @@ class ActionEditFlow:
         )
         if is_loop and not can_insert_loop(actions, after_index):
             messagebox.showinfo(
-                "追加",
-                f"ループの入れ子が{MAX_LOOP_DEPTH}段を超えるため追加できません。",
+                tr("common.add_title"),
+                tr("trigger_panel.action.loop_too_deep", depth=MAX_LOOP_DEPTH),
             )
             self._app._dialog_result = None
             return
@@ -125,7 +126,8 @@ class ActionEditFlow:
         if bounds is None:
             return
         start, end = bounds
-        self._append_actions(trig, safe_deepcopy(closed_loop_range(actions, start, end)), "複製")
+        duplicate_title = tr("common.duplicate")
+        self._append_actions(trig, safe_deepcopy(closed_loop_range(actions, start, end)), duplicate_title)
 
     def copy_actions(self, _event=None) -> str:
         trig = self._trigger_panel.selected_trigger()
@@ -143,7 +145,7 @@ class ActionEditFlow:
         trig = self._trigger_panel.selected_trigger()
         items = self._app.list_clipboard.paste(CLIP_ACTIONS)
         if trig and items:
-            self._append_actions(trig, items, "貼り付け")
+            self._append_actions(trig, items, tr("trigger_panel.action.paste.title"))
         return "break"
 
     def _copy_range(self, actions: list) -> tuple[int, int] | None:
@@ -176,22 +178,23 @@ class ActionEditFlow:
 
     @staticmethod
     def _show_append_violation(title: str, reason: str) -> None:
-        messages = {
-            PASTE_UNBALANCED_LOOP: "対になっていないループの始まり / 終わりは複製 / 貼り付けできません。",
-            PASTE_TOO_DEEP: f"ループの入れ子が{MAX_LOOP_DEPTH}段を超えるため複製 / 貼り付けできません。",
-            PASTE_STANDALONE: "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。",
+        message_keys = {
+            PASTE_UNBALANCED_LOOP: "trigger_panel.action.paste.unbalanced_loop",
+            PASTE_TOO_DEEP: "trigger_panel.action.paste.loop_too_deep",
+            PASTE_STANDALONE: "trigger_panel.action.standalone",
         }
-        messagebox.showinfo(title, messages[reason])
+        params = {"depth": MAX_LOOP_DEPTH} if reason == PASTE_TOO_DEEP else {}
+        messagebox.showinfo(title, tr(message_keys[reason], **params))
 
     def edit_action(self):
         trig = self._trigger_panel.selected_trigger()
         if not trig:
-            messagebox.showinfo("編集", "まずトリガーを選択してください。")
+            messagebox.showinfo(tr("common.edit_title"), tr("trigger_panel.action.select_trigger"))
             return
         effective = self._is_effective_row(trig)
         idx = self._trigger_panel.selected_action_index()
         if idx is None:
-            messagebox.showinfo("編集", "編集したい行を選択してください。")
+            messagebox.showinfo(tr("common.edit_title"), tr("trigger_panel.action.edit.select_row"))
             return
         actions = trig.get("actions", [])
         current = actions[idx]
@@ -205,8 +208,8 @@ class ActionEditFlow:
             paired_idx = pair_index(actions, idx)
             if paired_idx is None:
                 messagebox.showinfo(
-                    "編集",
-                    "ループの対応が崩れているため編集できません。削除して追加し直してください",
+                    tr("common.edit_title"),
+                    tr("trigger_panel.action.edit.invalid_loop"),
                 )
                 return
             target_idx = paired_idx if system_op(current) == OP_LOOP_END else idx
@@ -216,7 +219,7 @@ class ActionEditFlow:
         call_candidates, call_check, control_target_check = self._call_dialog_options(key)
         ActionDialog(
             self._app,
-            title="編集",
+            title=tr("common.edit_title"),
             initial=initial,
             mode=mode,
             counter_names=self._trigger_panel._counter_names(),
@@ -229,8 +232,8 @@ class ActionEditFlow:
         if result:
             if standalone_violation(actions, result, replace_index=target_idx):
                 messagebox.showinfo(
-                    "編集",
-                    "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。",
+                    tr("common.edit_title"),
+                    tr("trigger_panel.action.standalone"),
                 )
                 self._app._dialog_result = None
                 return
@@ -246,19 +249,19 @@ class ActionEditFlow:
     def delete_action(self):
         trig = self._trigger_panel.selected_trigger()
         if not trig:
-            messagebox.showinfo("削除", "まずトリガーを選択してください。")
+            messagebox.showinfo(tr("common.delete"), tr("trigger_panel.action.select_trigger"))
             return
         effective = self._is_effective_row(trig)
         idx = self._trigger_panel.selected_action_index()
         if idx is None:
-            messagebox.showinfo("削除", "削除したい行を選択してください。")
+            messagebox.showinfo(tr("common.delete"), tr("trigger_panel.action.delete.select_row"))
             return
         actions = trig.get("actions", [])
         start, end = self._selection_bounds(idx)
         selected = set(range(start, end + 1))
         indices = {i for row in selected for i in delete_indices(actions, row)}
         prompt = self._delete_prompt(actions, selected, indices)
-        if messagebox.askyesno("確認", prompt):
+        if messagebox.askyesno(tr("keyboard.layout.confirm_title"), prompt):
             before = list(actions)
             key = normalize_key_name(trig.get("key", ""))
             position = int(self._app._indices.get(key, 0) or 0)
@@ -273,23 +276,27 @@ class ActionEditFlow:
 
     def _delete_prompt(self, actions: list, selected: set[int], indices: set[int]) -> str:
         if len(indices) == 1:
-            return "選択した行を削除しますか？"
+            return tr("trigger_panel.action.delete.one_confirm")
         first = min(indices)
         if len(indices) == 2 and set(delete_indices(actions, first)) == indices:
-            return "ループの始まりと終わりを削除します（中の行は残ります）。よろしいですか？"
-        prompt = f"選択した{len(indices)}行を削除しますか？"
-        if indices - selected:
-            prompt += "\nループの始まりと終わりは対で削除します（中の行は残ります）。"
+            return tr("trigger_panel.action.delete.loop_confirm")
+        has_paired_loop = bool(indices - selected)
+        prompt_key = (
+            "trigger_panel.action.delete.range_with_pair_confirm"
+            if has_paired_loop else "trigger_panel.action.delete.range_confirm"
+        )
+        selected_count = len(indices)
+        prompt = tr(prompt_key, count=selected_count)
         return prompt
 
     def move_action(self, delta: int):
         trig = self._trigger_panel.selected_trigger()
         if not trig:
-            messagebox.showinfo("移動", "まずトリガーを選択してください。")
+            messagebox.showinfo(tr("trigger_panel.action.move.title"), tr("trigger_panel.action.select_trigger"))
             return
         idx = self._trigger_panel.selected_action_index()
         if idx is None:
-            messagebox.showinfo("移動", "移動したい行を選択してください。")
+            messagebox.showinfo(tr("trigger_panel.action.move.title"), tr("trigger_panel.action.move.select_row"))
             return
         actions = trig.get("actions", [])
         start, end = self._selection_bounds(idx)
@@ -305,7 +312,7 @@ class ActionEditFlow:
         effective = self._is_effective_row(trig)
         actions = trig.get("actions", [])
         if not can_move_block(actions, start, end, target_start):
-            self._app._set_flash_message("ループの始まりと終わりの組が変わるため移動できません")
+            self._app._set_flash_message(tr("trigger_panel.action.move.loop_pair_blocked"))
             return False
         after = move_block(actions, start, end, target_start)
         if all(old is new for old, new in zip(actions, after)):

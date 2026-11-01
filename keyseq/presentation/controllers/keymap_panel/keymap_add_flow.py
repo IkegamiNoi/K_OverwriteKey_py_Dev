@@ -6,15 +6,19 @@ from keyseq.domain.keymap_triggers import duplicate_keymap, keymap_trigger_list
 from keyseq.domain.screen_grid import new_enabled_grid
 from keyseq.domain.list_editing import numbered_labels
 from keyseq.presentation.dialogs import KeymapSwitchBatchDialog
+from keyseq.shared.i18n import tr
 
 
 def _kind_titles() -> dict[str, str]:
-    return {"new": "キーマップ追加", "load": "ファイルからキーマップを追加",
-            "paste": "キーマップ貼り付け"}
+    return {"new": tr("keymap_panel.add.title"),
+            "load": tr("keymap_panel.add_file.title"),
+            "paste": tr("keymap_panel.paste.title")}
 
 
 def _kind_row_labels() -> dict[str, str]:
-    return {"new": "新規", "load": "読込", "paste": "貼り付け"}
+    return {"new": tr("keymap_panel.add.new"),
+            "load": tr("keymap_set_history.load_action"),
+            "paste": tr("trigger_panel.action.paste.title")}
 
 
 class KeymapAddFlow:
@@ -34,9 +38,8 @@ class KeymapAddFlow:
             if not self._run_batch("new", candidates):
                 return
             created = candidates[0]
-        self._app._set_flash_message(
-            f"キーマップを追加しました: {normalize_key_name(created.get('id', ''))}"
-        )
+        keymap_id = normalize_key_name(created.get("id", ""))
+        self._app._set_flash_message(tr("keymap_panel.added", keymap_id=keymap_id))
 
     def add_imported_keymap(self, keymap: dict) -> bool:
         # 読込側で採番済みの dict を保ち、共有トリガー一覧や読込元の情報を維持する。
@@ -105,7 +108,7 @@ class KeymapAddFlow:
              self._keymap_panel.format_keymap_display_name(keymap)
              or normalize_key_name(keymap.get("id", "")),
              str(keymap.get("label") or ""), "")
-            for row_kind, keymaps in (("既存", missing), (kind, new_keymaps))
+            for row_kind, keymaps in ((tr("keymap_panel.add.existing"), missing), (kind, new_keymaps))
             for keymap in keymaps
         ]
 
@@ -124,7 +127,9 @@ class KeymapAddFlow:
             try:
                 self._app.input_gateway.validate_key_name(value["key"])
             except Exception as exc:
-                return index, f"{rows[index][1]}: 不明なキー名です:\n{value['key']}\n\n{exc}"
+                name = rows[index][1]
+                key = value["key"]
+                return index, tr("keymap_panel.add.invalid_key", name=name, key=key, error=exc)
         return None
 
     def _commit_batch(self, kind: str, missing: list[dict], new_keymaps: list[dict],

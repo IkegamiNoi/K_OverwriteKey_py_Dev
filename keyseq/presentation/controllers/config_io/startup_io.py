@@ -3,6 +3,7 @@ from tkinter import messagebox
 
 from keyseq.domain.config import normalize_hook_key_pair
 from keyseq.presentation.theme import coerce_font_delta
+from keyseq.shared.i18n import tr
 
 
 class StartupIo:
@@ -60,7 +61,7 @@ class StartupIo:
         except Exception as e:
             self._app.hook.suspend_hook_for_dialog()
             try:
-                messagebox.showerror("startup.json保存失敗", str(e))
+                messagebox.showerror(tr("config_io.startup.save_failed_title"), str(e))
             finally:
                 self._app.hook.resume_hook_after_dialog()
             return False

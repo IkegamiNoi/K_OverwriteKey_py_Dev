@@ -2,12 +2,11 @@
 
 from typing import Literal
 
-
 HookDisplayState = Literal["on", "off", "paused"]
 HOOK_STATE_LABELS: dict[HookDisplayState, str] = {
-    "on": "ON",
-    "off": "OFF",
-    "paused": "一時停止",
+    "on": "status.hook.on",
+    "off": "status.hook.off",
+    "paused": "status.hook.paused",
 }
 
 

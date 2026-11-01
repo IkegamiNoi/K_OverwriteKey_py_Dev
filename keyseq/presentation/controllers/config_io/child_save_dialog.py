@@ -8,12 +8,13 @@ from tkinter import filedialog, font, ttk
 from keyseq.application.save_plan import ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP
 from keyseq.presentation.controllers.config_io import choice_dialog
 from keyseq.presentation.controllers.config_io.child_save_rows import ChildSaveRow
-from keyseq.presentation.controllers.config_io.child_save_columns import CELL_GAP, HEADINGS, size_action_dialog
+from keyseq.presentation.controllers.config_io.child_save_columns import CELL_GAP, HEADING_KEYS, size_action_dialog
 from keyseq.presentation.child_kind_labels import kind_label as _kind_label
 from keyseq.presentation.hover_tooltip import bind_hover_tooltip
 from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.help.help_button import add_help_button
 from keyseq.presentation.help.help_targets import KEYMAP_SET
+from keyseq.shared.i18n import tr
 
 
 class ChildSaveDialog:
@@ -38,7 +39,7 @@ class ChildSaveDialog:
 
     def _create_action_dialog(self, rows, result):
         dialog = tk.Toplevel(self._app)
-        dialog.title("子ファイルの保存")
+        dialog.title(tr("config_io.child_save.title"))
         dialog.resizable(True, True)
         frame = ttk.Frame(dialog, padding=12)
         frame.pack(fill="both", expand=True)
@@ -69,7 +70,7 @@ class ChildSaveDialog:
         headers = self._add_headers(header_frame, 0)
         choices, text_cells = self._add_rows(content_frame, rows, 0)
         self._bind_content_width(canvas, content_frame, window_id, text_cells)
-        ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right")
+        ttk.Button(buttons, text=tr("common.cancel"), command=dialog.destroy).pack(side="right")
         ttk.Button(
             buttons,
             text="OK",
@@ -82,7 +83,8 @@ class ChildSaveDialog:
     @staticmethod
     def _add_headers(frame, row: int) -> list:
         headers = []
-        for column, text in enumerate(HEADINGS):
+        for column, key in enumerate(HEADING_KEYS):
+            text = tr(key)
             is_flexible = column < 4
             label_options = {"width": 1, "anchor": "w"} if is_flexible else {}
             label = ttk.Label(frame, text=text, **label_options)
@@ -111,7 +113,12 @@ class ChildSaveDialog:
             text_cells.extend((kind_cell, name_cell, path_cell, share_cell))
             actions = ttk.Frame(frame)
             actions.grid(row=index, column=4, sticky="w")
-            for action, label in ((ACTION_SAVE, "保存"), (ACTION_SAVE_AS, "別名保存"), (ACTION_SKIP, "保存しない")):
+            for action, label_key in (
+                (ACTION_SAVE, "common.save"),
+                (ACTION_SAVE_AS, "config_io.child_save.action.save_as"),
+                (ACTION_SKIP, "config_io.child_save.action.skip"),
+            ):
+                label = tr(label_key)
                 state = "disabled" if action == ACTION_SKIP and not child_row.allow_skip else "normal"
                 ttk.Radiobutton(actions, text=label, variable=choice, value=action, state=state).pack(side="left")
         return choices, text_cells
@@ -172,7 +179,7 @@ class ChildSaveDialog:
         for row in rows:
             action = choice_vars[(row.kind, row.key)].get()
             if action == ACTION_SKIP and not row.allow_skip:
-                raise ValueError("移行対象には「保存しない」を選べません。")
+                raise ValueError(tr("config_io.child_save.skip_migrated_error"))
             target_path = self._ask_save_as_path(row) if action == ACTION_SAVE_AS else ""
             if action == ACTION_SAVE_AS and not target_path:
                 return None
@@ -184,15 +191,13 @@ class ChildSaveDialog:
     ) -> str:
         self.trigger_set_save_as_path = ""
         parent_name = _kind_label(trigger_set_row.kind)
-        message = (
-            "次の子ファイルの保存先が変わります:\n"
-            f"{', '.join(blocked_labels)}\n\n"
-            f"{parent_name}の保存先: {trigger_set_row.target_path}\n"
-            f"共有状況: {trigger_set_row.share_text}\n\n"
-            f"保存 = このまま{parent_name}を保存して保存先の記録を更新します。\n"
-            f"別名保存 = 別の保存先へ{parent_name}を保存して保存先の記録を更新します。\n"
-            "保存しない = この保存では保存先の記録を更新しない（次回の保存で反映）。\n"
-            "キャンセル = 一覧から選び直します。"
+        blocked_text = ", ".join(blocked_labels)
+        message = tr(
+            "config_io.child_save.dependency.message",
+            blocked_labels=blocked_text,
+            parent=parent_name,
+            target_path=trigger_set_row.target_path,
+            share_status=trigger_set_row.share_text,
         )
         result = {"action": ""}
         self._app.hook.suspend_hook_for_dialog()
@@ -212,7 +217,13 @@ class ChildSaveDialog:
 
     def _create_dependency_dialog(self, message, trigger_set_row, result):
         dialog = tk.Toplevel(self._app)
-        dialog.title(f"{_kind_label(trigger_set_row.kind)}の保存が必要です")
+        kind_name = _kind_label(trigger_set_row.kind)
+        dialog.title(
+            tr(
+                "config_io.child_save.dependency.title",
+                kind=kind_name,
+            )
+        )
         dialog.geometry("640x300")
         dialog.resizable(False, False)
         frame = ttk.Frame(dialog, padding=12)
@@ -232,17 +243,17 @@ class ChildSaveDialog:
             result["action"] = action
             dialog.destroy()
 
-        ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right")
-        ttk.Button(buttons, text="保存しない", command=lambda: choose(ACTION_SKIP)).pack(
+        ttk.Button(buttons, text=tr("common.cancel"), command=dialog.destroy).pack(side="right")
+        ttk.Button(buttons, text=tr("config_io.child_save.action.skip"), command=lambda: choose(ACTION_SKIP)).pack(
             side="right", padx=(0, 8)
         )
         save_as_button = ttk.Button(
             buttons,
-            text="別名保存…",
+            text=tr("common.save_as"),
             command=lambda: choose(ACTION_SAVE_AS),
         )
         save_as_button.pack(side="right", padx=(0, 8))
-        ttk.Button(buttons, text="保存", command=lambda: choose(ACTION_SAVE)).pack(
+        ttk.Button(buttons, text=tr("common.save"), command=lambda: choose(ACTION_SAVE)).pack(
             side="right", padx=(0, 8)
         )
         return dialog, save_as_button
@@ -252,23 +263,33 @@ class ChildSaveDialog:
     ) -> dict[tuple[str, str], tuple[str, str]] | None:
         if not rows:
             return {}
-        message = "再計算後の保存先に既存ファイルがあります:\n\n" + "\n\n".join(
-            (
-                f"種別: {_kind_label(row.kind)}\n"
-                f"対象名: {row.display_name}\n"
-                f"保存先: {row.target_path}\n"
-                f"共有状況: {row.share_text}"
+        rows_text = "\n\n".join(
+            tr(
+                "config_io.child_save.overwrite.row",
+                kind=kind_name,
+                name=row.display_name,
+                target_path=row.target_path,
+                share_status=row.share_text,
             )
-            for row in rows
+            for row, kind_name in (
+                (row, _kind_label(row.kind)) for row in rows
+            )
         )
-        message += "\n\nどうしますか？"
+        message = tr(
+            "config_io.child_save.overwrite.message",
+            rows=rows_text,
+        )
         self._app.hook.suspend_hook_for_dialog()
         try:
             choice = choice_dialog.ask_choice(
                 self._app,
-                title="再計算後の保存先を確認",
+                title=tr("config_io.child_save.overwrite.title"),
                 message=message,
-                choices=[("overwrite", "上書き"), ("save_as", "別名保存…"), ("abort", "保存を中止")],
+                choices=[
+                    ("overwrite", tr("config_io.io_dialogs.collision.overwrite")),
+                    ("save_as", tr("common.save_as")),
+                    ("abort", tr("config_io.child_save.overwrite.action.abort")),
+                ],
                 default="save_as",
                 cancel="abort",
             )
@@ -288,8 +309,12 @@ class ChildSaveDialog:
 
     @staticmethod
     def _ask_save_as_path(row: ChildSaveRow) -> str:
+        kind_name = _kind_label(row.kind)
         return filedialog.asksaveasfilename(
-            title=f"{_kind_label(row.kind)}を別名保存",
+            title=tr(
+                "config_io.child_save.save_as.title",
+                kind=kind_name,
+            ),
             initialdir=os.path.dirname(os.path.abspath(row.target_path)),
             initialfile=os.path.basename(row.target_path),
             defaultextension=".json",

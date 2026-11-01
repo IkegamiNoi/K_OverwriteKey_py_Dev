@@ -21,6 +21,7 @@ from keyseq.domain.keymap_triggers import (
     trigger_set_members,
 )
 from keyseq.domain.config import normalize_key_name
+from keyseq.shared.i18n import tr
 from keyseq.presentation.controllers.config_io.child_save_rows import collect_child_save_rows
 from keyseq.presentation.controllers.config_io.save_target_snapshot import (
     SAVE_TARGET_CHANGED_MESSAGE,
@@ -43,7 +44,7 @@ class TriggerSetFileIo:
                 self._default_trigger_set_stem(),
                 "trigger_set",
             )
-            path = self._app.io_dialogs.choose_save_path_with_collision(title="トリガーセットを保存", suggested_path=suggested)
+            path = self._app.io_dialogs.choose_save_path_with_collision(title=tr("config_io.trigger_set.save_title"), suggested_path=suggested)
             if not path:
                 return False
         return self.save_trigger_set_to_path(path, save_target=save_target)
@@ -57,7 +58,7 @@ class TriggerSetFileIo:
             "trigger_set",
         )
         path = filedialog.asksaveasfilename(
-            title="トリガーセットを別名保存",
+            title=tr("config_io.trigger_set.save_as_title"),
             initialdir=os.path.dirname(os.path.abspath(suggested)),
             initialfile=os.path.basename(suggested),
             defaultextension=".json",
@@ -75,11 +76,11 @@ class TriggerSetFileIo:
                 save_target = capture_active(self._app.data)
             save_plan = self._collect_sequence_save_plan(path)
             if save_plan is None:
-                self._app._set_flash_message("トリガーセットの保存を中止しました。")
+                self._app._set_flash_message(tr("config_io.trigger_set.save_cancelled"))
                 return False
             if not snapshot_matches(self._app.data, save_target):
-                self._app._set_flash_message(SAVE_TARGET_CHANGED_MESSAGE, auto_clear=False)
-                messagebox.showwarning("保存", SAVE_TARGET_CHANGED_MESSAGE)
+                self._app._set_flash_message(tr(SAVE_TARGET_CHANGED_MESSAGE), auto_clear=False)
+                messagebox.showwarning(tr("common.save"), tr(SAVE_TARGET_CHANGED_MESSAGE))
                 return False
             source_path_changed = self._save_trigger_set(path, save_plan)
             self._show_save_success(path, source_path_changed)
@@ -88,13 +89,13 @@ class TriggerSetFileIo:
             if save_target is not None and not snapshot_matches(self._app.data, save_target):
                 self._show_save_target_changed()
                 return False
-            self._app._set_flash_message(f"トリガーセット保存失敗: {e}", auto_clear=False)
-            messagebox.showerror("保存失敗", str(e))
+            self._app._set_flash_message(tr("config_io.trigger_set.save_failed_flash", error=e), auto_clear=False)
+            messagebox.showerror(tr("keyboard.layout.save_failed_title"), str(e))
             return False
 
     def _show_save_target_changed(self) -> None:
-        self._app._set_flash_message(SAVE_TARGET_CHANGED_MESSAGE, auto_clear=False)
-        messagebox.showwarning("保存", SAVE_TARGET_CHANGED_MESSAGE)
+        self._app._set_flash_message(tr(SAVE_TARGET_CHANGED_MESSAGE), auto_clear=False)
+        messagebox.showwarning(tr("common.save"), tr(SAVE_TARGET_CHANGED_MESSAGE))
 
     def _save_trigger_set(self, path: str, save_plan: SavePlan) -> bool:
         previous_path = str(self._app.dirty_tracker.trigger_set_source_path or "").strip()
@@ -137,13 +138,14 @@ class TriggerSetFileIo:
         self._app.trigger_panel.refresh_actions()
 
     def _show_save_success(self, path: str, source_path_changed: bool) -> None:
-        completion = "トリガーセットを保存しました。"
-        info = f"トリガーセットを保存しました:\n{path}"
         if source_path_changed:
-            completion += "\nキーマップを保存すると、キーマップに記録されたこのトリガーセットの保存先も新しい場所に更新されます。"
-            info += "\nキーマップを保存すると、キーマップに記録されたこのトリガーセットの保存先も新しい場所に更新されます。"
+            completion = tr("config_io.trigger_set.saved_flash_with_notice")
+            info = tr("config_io.trigger_set.saved_info_with_notice", path=path)
+        else:
+            completion = tr("config_io.trigger_set.saved_flash")
+            info = tr("config_io.trigger_set.saved_info", path=path)
         self._app._set_flash_message(completion)
-        messagebox.showinfo("保存", info)
+        messagebox.showinfo(tr("common.save"), info)
 
     def _path_changed(self, previous: str, current: str) -> bool:
         return self._app.config_service.canonical_path(
@@ -199,10 +201,10 @@ class TriggerSetFileIo:
         return self._app.paths.filename_stem(str(parent_path or "")) or "trigger_set"
 
     def load_trigger_set_file(self) -> None:
-        if not self._app.keymap_set_io.confirm_save_if_dirty("トリガーセット読込"):
+        if not self._app.keymap_set_io.confirm_save_if_dirty(tr("config_io.trigger_set.load_action")):
             return
         path = filedialog.askopenfilename(
-            title="トリガーセットを読み込む",
+            title=tr("config_io.trigger_set.load_title"),
             initialdir=self._app.paths.json_dialog_initial_dir(self._app.paths.preferred_trigger_sets_dir()),
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         )
@@ -211,8 +213,8 @@ class TriggerSetFileIo:
         try:
             self._apply_loaded_trigger_set(path)
         except Exception as e:
-            self._app._set_flash_message(f"トリガーセット読込失敗: {e}", auto_clear=False)
-            messagebox.showerror("読込失敗", str(e))
+            self._app._set_flash_message(tr("config_io.trigger_set.load_failed_flash", error=e), auto_clear=False)
+            messagebox.showerror(tr("config_io.common.load_failed_title"), str(e))
 
     def _apply_loaded_trigger_set(self, path: str) -> None:
         existing = self._existing_trigger_set(path)
@@ -221,7 +223,7 @@ class TriggerSetFileIo:
         active_id = str(self._app.data.get("active_keymap_id") or "")
         active = self._app.keymap_service.find_keymap(self._app.data, active_id)
         if active is None:
-            raise ValueError("読込先のキーマップがありません。")
+            raise ValueError(tr("config_io.trigger_set.no_load_keymap"))
         joins_existing_set = existing is not None and not any(
             member is active
             for member in trigger_set_members(self._app.data, str(existing[1].get("id") or ""))
@@ -290,5 +292,5 @@ class TriggerSetFileIo:
         self._app.trigger_panel.refresh_triggers()
         self._app.trigger_panel.refresh_actions()
         self._app.dirty_tracker.set_dirty(True)
-        self._app._set_flash_message("トリガーセットを読み込みました。")
-        messagebox.showinfo("読込", f"トリガーセットを読み込みました:\n{path}")
+        self._app._set_flash_message(tr("config_io.trigger_set.loaded_flash"))
+        messagebox.showinfo(tr("keymap_set_history.load_action"), tr("config_io.trigger_set.loaded_info", path=path))
