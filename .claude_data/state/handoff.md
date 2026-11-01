@@ -15,7 +15,7 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 72 = 画面の文言の多言語対応**・`instructions/phase/72_multilingual_ui/phase.md`・主入力 = 暫定 55 `instructions/history/55_multilingual_ui.md`〔v0.3 確定 + §8 Q4〜Q6 は未確定の案〕。その次の予定 = Mac 対応）。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 72 = 画面の文言の多言語対応**・`instructions/phase/72_multilingual_ui/phase.md`・主入力 = 暫定 55 `instructions/history/55_multilingual_ui.md`〔v0.4・§8 Q4〜Q6 まで確定〕。その次の予定 = Mac 対応）。
    次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 72 task_11 = 2026-11-01**）:
-compile **clean** / tests **1900 pass**（skip 7）/ tests_ui **1233 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1867〔phase 71〕→ 1900 / tests_ui: 1210 → 1233）。
+直近の実測（**phase 72 task_11a = 2026-11-01**）:
+compile **clean** / tests **1900 pass**（skip 7）/ tests_ui **1236 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1867〔phase 71〕→ 1900 / tests_ui: 1210 → 1236）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
