@@ -13,6 +13,9 @@ from keyseq.presentation.controllers.pane_layout.pane_layout_controller import (
 from keyseq.presentation.pane_width_rules import (
     DEFAULT_WINDOW_WIDTH, PANE_WIDTHS_KEY, SASH_WIDTH, WINDOW_WIDTH_KEY,
 )
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class WindowWidthSchedulingTest(unittest.TestCase):

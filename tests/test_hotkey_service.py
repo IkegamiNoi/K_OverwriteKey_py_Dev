@@ -3,6 +3,11 @@ import unittest
 from keyseq.application.hotkey_service import HotkeyService
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class FakeKeyNameValidator:
     def __init__(self, invalid_keys: set[str] | None = None) -> None:
         self.calls: list[str] = []

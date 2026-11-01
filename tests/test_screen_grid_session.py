@@ -5,6 +5,11 @@ from keyseq.application.screen_grid_session import MonitorInfo, ScreenGridSessio
 from keyseq.domain.screen_grid import monitor_identifier, nudge_step
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 def monitor(rect, primary=False):
     return MonitorInfo(monitor_identifier(*rect), rect, primary)
 

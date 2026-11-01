@@ -20,6 +20,11 @@ from keyseq.presentation.controllers.config_io.keymap_file_io import KeymapFileI
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class PerKeymapDomainTest(unittest.TestCase):
     def test_normalization_preserves_shared_lists_and_internal_keys(self):
         triggers = [None, {"key": " F1 ", "actions": [{"type": " text "}],

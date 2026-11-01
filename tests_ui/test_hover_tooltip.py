@@ -7,6 +7,9 @@ from types import SimpleNamespace
 from unittest.mock import patch
 
 from keyseq.presentation.hover_tooltip import bind_hover_tooltip
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class HoverTooltipTests(unittest.TestCase):

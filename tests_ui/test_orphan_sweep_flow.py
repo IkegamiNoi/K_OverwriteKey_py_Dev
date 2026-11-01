@@ -26,6 +26,9 @@ from keyseq.presentation.orphan_sweep_text import (
     format_orphan_notice, format_orphan_plan, format_quarantine_result,
 )
 from keyseq.presentation.views.menu_bar import build_menu_bar
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class OrphanSweepFlowTest(unittest.TestCase):

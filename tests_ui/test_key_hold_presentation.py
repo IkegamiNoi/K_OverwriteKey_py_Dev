@@ -12,6 +12,9 @@ from keyseq.presentation.controllers.action_list_rendering import (
 )
 from keyseq.presentation.controllers.call_view_controller import CallViewController
 from keyseq.presentation.controllers.hook_controller import HookController
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class KeyHoldRenderingTests(unittest.TestCase):

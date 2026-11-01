@@ -30,6 +30,9 @@ T2_DIALOG_FILES = (
     "orphan_sweep_dialog.py",
     "trigger_dialog.py",
 )
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class DialogTeardownFlowsTest(unittest.TestCase):

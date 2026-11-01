@@ -1,0 +1,6 @@
+{
+  "_meta": {"name": "日本語"},
+  "menu.settings.language": "言語 / Language",
+  "dialog.language_restart.title": "言語",
+  "dialog.language_restart.body": "言語の変更はアプリを再起動すると反映されます。"
+}

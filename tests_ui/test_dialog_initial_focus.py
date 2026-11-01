@@ -17,6 +17,9 @@ from keyseq.presentation.dialogs.preset_dialog import PresetDialog
 from keyseq.presentation.dialogs.quarantine_manage_dialog import QuarantineManageDialog
 from keyseq.presentation.dialogs.reference_cleanup_dialog import ReferenceCleanupDialog
 from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class DialogInitialFocusTest(unittest.TestCase):

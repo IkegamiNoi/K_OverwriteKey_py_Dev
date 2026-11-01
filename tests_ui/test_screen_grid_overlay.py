@@ -12,6 +12,9 @@ from keyseq.presentation.controllers.layout_controller import LayoutController
 from keyseq.presentation.screen_grid.cell_label import draw_cell_label
 from keyseq.presentation.screen_grid.crosshair import draw_crosshair
 from keyseq.presentation.screen_grid import ScreenGridController
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class ScreenGridOverlayTest(unittest.TestCase):

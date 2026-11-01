@@ -13,6 +13,9 @@ from keyseq.presentation.app import App
 from keyseq.presentation.compact_pane_heights import plan_compact_heights
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.views.full_view.call_view_frame import list_minimum_height
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def _trigger(key, values, *, label=None):

@@ -7,6 +7,11 @@ from keyseq.application.held_inputs import HeldInputs
 from keyseq.application.key_repeat import KeyRepeater
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class ManualAfter:
     """予約だけを記録し、必要なときに callback を発火する。"""
 

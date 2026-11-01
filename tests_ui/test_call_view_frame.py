@@ -19,6 +19,9 @@ from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 
 
 SAVED_HEIGHTS = {"full": 180, "compact": 120}
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class CallViewFrameTest(unittest.TestCase):

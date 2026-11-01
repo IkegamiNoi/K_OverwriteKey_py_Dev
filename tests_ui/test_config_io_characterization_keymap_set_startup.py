@@ -48,6 +48,9 @@ _SPLIT_BASE_DIR_CHOICE_KWARGS = {
     "default": "nearby",
     "cancel": "default",
 }
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def _unexpected_trigger_set_dependency(*_args, **_kwargs):

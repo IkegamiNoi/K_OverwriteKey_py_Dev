@@ -4,6 +4,11 @@ import unittest
 from keyseq.application.keymap_switch_batch import validate_switch_batch
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 def make_keymap(keymap_id, *, label="", triggers=None, mappings=None):
     return {
         "id": keymap_id,

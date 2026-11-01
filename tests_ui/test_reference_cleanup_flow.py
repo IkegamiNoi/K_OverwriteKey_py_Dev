@@ -18,6 +18,9 @@ from keyseq.presentation.controllers.config_io import keymap_set_io as keymap_se
 from keyseq.presentation.controllers.config_io import reference_cleanup_io as reference_cleanup_io_module
 from keyseq.presentation.reference_cleanup_text import CLEANUP_EMPTY_MESSAGE, format_cleanup_plan
 from keyseq.presentation.views.menu_bar import build_menu_bar
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def _unexpected_showerror(_title, message, *_args, **_kwargs):

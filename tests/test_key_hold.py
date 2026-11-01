@@ -13,6 +13,11 @@ from keyseq.domain.key_hold import (
 )
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class ParseKeyHoldTests(unittest.TestCase):
     def test_keyboard_down_up_and_normalization(self):
         self.assertEqual(

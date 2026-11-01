@@ -12,6 +12,11 @@ from keyseq.application.file_line_loader import (
 from keyseq.application.file_line_reader import FileLineError
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class FileLineLoaderTests(unittest.TestCase):
     def setUp(self) -> None:
         self.workers: list[Any] = []

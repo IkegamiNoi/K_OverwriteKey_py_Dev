@@ -31,6 +31,11 @@ from keyseq.presentation.controllers.config_io.child_save_rows import (
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class DummyDirtyTracker:
     def __init__(self, *, trigger_set_dirty=False):
         self.trigger_set_dirty = trigger_set_dirty

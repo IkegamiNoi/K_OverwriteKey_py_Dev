@@ -3,6 +3,11 @@ import unittest
 from keyseq.domain.hotkey import validate_hotkey_syntax
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class HotkeySyntaxTest(unittest.TestCase):
     def test_empty_hotkey(self):
         self.assertEqual(validate_hotkey_syntax(""), ("hotkeyが空です。", "", []))

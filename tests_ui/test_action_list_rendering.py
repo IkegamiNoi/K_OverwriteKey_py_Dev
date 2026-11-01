@@ -11,6 +11,9 @@ from keyseq.presentation.controllers.action_list_rendering import (
 )
 from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
 from keyseq.presentation.views.full_view.sequence_box import SequenceBox
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class _Value:

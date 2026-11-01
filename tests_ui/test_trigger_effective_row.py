@@ -5,6 +5,9 @@ from keyseq.application.sequence_history import HistoryEntry
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.controllers.trigger_panel import trigger_row_edit as panel_module
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class _DialogResult:

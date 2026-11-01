@@ -20,6 +20,9 @@ DE_LAYOUT_PATH = (
     / "keylayout"
     / "de.json"
 )
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class ProhibitedAssignKeysUiTest(unittest.TestCase):

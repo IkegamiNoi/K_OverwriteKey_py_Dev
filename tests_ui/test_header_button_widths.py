@@ -12,6 +12,9 @@ from keyseq.presentation.hook_button_texts import (
     HOOK_TOGGLE_TEXTS, TRIGGER_DISABLE_TEXT, TRIGGER_ENABLE_TEXT,
     TRIGGER_TOGGLE_TEXTS,
 )
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class HeaderButtonWidthsTest(unittest.TestCase):

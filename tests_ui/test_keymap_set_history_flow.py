@@ -14,6 +14,9 @@ from keyseq.presentation import app as app_module, keymap_set_history_text as te
 from keyseq.presentation.controllers.config_io import keymap_set_history_io as history_io
 from keyseq.presentation.dialogs import keymap_set_history_dialog as dialogs
 from keyseq.presentation.views.menu_bar import build_menu_bar
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class KeymapSetHistoryFlowTest(unittest.TestCase):

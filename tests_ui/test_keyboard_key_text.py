@@ -12,6 +12,11 @@ from keyseq.presentation.keyboard_layouts import (
 from keyseq.presentation.keyboard_window import KeyboardWindow
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 JIS_LAYOUT_PATH = (
     Path(__file__).resolve().parents[1] / "config" / "user" / "keylayout" / "jis.json"
 )

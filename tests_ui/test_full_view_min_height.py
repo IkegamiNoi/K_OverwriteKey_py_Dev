@@ -6,6 +6,9 @@ from unittest.mock import patch
 from keyseq.presentation import app as app_module, theme
 from keyseq.presentation.app import App
 from keyseq.presentation.pane_width_rules import SASH_WIDTH
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class FullViewMinHeightTest(unittest.TestCase):

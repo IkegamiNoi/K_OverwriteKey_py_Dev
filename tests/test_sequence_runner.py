@@ -9,6 +9,11 @@ from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.application.sequence_steps import LoopFrame
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class FakeScheduler:
     """tk の after / after_cancel の決定的な代替。"""
 

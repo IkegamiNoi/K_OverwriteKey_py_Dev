@@ -3,6 +3,11 @@ import unittest
 from keyseq.domain.control_target import edit_control_target_violation, rename_control_targets
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 def back(target=None):
     action = {"type": "system", "op": "back"}
     if target is not None:

@@ -17,6 +17,11 @@ from keyseq.application.file_line_reader import (
 )
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class FileLineReaderTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()

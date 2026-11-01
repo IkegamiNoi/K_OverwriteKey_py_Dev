@@ -16,6 +16,9 @@ from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
 from keyseq.presentation.hook_button_texts import UNKNOWN_CAPTURE_KEY_HINT_TEXT
 from keyseq.presentation.keyboard_window import KeyboardWindow
 from tests_ui.escape_delivery import acquire_focus
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class CaptureImeEntriesUiTest(unittest.TestCase):

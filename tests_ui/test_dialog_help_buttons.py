@@ -26,6 +26,9 @@ from keyseq.presentation.help.help_content import (
 from keyseq.presentation.help.help_targets import DIALOG_TARGETS
 from keyseq.presentation.help.help_window import HelpWindow
 from tests_ui.escape_delivery import send_escape
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def sample_content() -> HelpContent:

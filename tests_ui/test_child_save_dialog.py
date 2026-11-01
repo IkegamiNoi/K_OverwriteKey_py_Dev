@@ -33,6 +33,9 @@ _REAL_ASK_CHILD_SAVE_ACTIONS = child_save_dialog_module.ChildSaveDialog.ask_chil
 _REAL_CONFIRM_RECALCULATED_OVERWRITE = (
     child_save_dialog_module.ChildSaveDialog.confirm_recalculated_overwrite
 )
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def _unexpected_trigger_set_dependency(*_args, **_kwargs):

@@ -10,6 +10,9 @@ from keyseq.presentation import modal
 from keyseq.presentation.app import App
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class MinimizeGrabCustodyTest(unittest.TestCase):

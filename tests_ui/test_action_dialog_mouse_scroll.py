@@ -6,6 +6,9 @@ from unittest.mock import Mock, patch
 from tkinter import messagebox
 
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class ActionDialogMouseScrollTest(unittest.TestCase):

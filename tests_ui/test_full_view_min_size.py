@@ -11,6 +11,9 @@ from keyseq.presentation.controllers.pane_layout.pane_measure import (
     measure_min_widths,
     measure_window_min_height,
 )
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class FullViewMinSizeTest(unittest.TestCase):

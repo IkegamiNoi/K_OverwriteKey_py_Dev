@@ -8,6 +8,11 @@ from keyseq.application.key_overlap import AssignmentConflict, analyze_key_overl
 from keyseq.presentation.controllers.hook_controller import HookController
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 def make_runtime(
     stop="",
     toggle="",

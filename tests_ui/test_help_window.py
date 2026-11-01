@@ -24,6 +24,9 @@ from keyseq.presentation.help.help_content import (
 )
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from tests_ui.escape_delivery import acquire_focus
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def _item(identifier: str, title: str, text: str) -> HelpItem:

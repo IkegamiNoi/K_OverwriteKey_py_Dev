@@ -4,6 +4,7 @@ import json
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import call, patch
 
 import keyseq
 from keyseq.presentation.help.help_targets import DIALOG_TARGETS
@@ -24,6 +25,9 @@ from keyseq.presentation.help.help_content import (
     load_help_content,
     parse_help_content,
 )
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 GUIDE_IDS = [
@@ -141,6 +145,43 @@ class HelpContentTest(unittest.TestCase):
                     result = load_help_content(path)
                     self.assertIsNone(result.content)
                     self.assertTrue(result.error)
+
+    def test_default_path_falls_back_in_language_order(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            source = base / "en.json"
+            source.write_text(json.dumps(valid_data()), encoding="utf-8")
+            with patch("keyseq.presentation.help.help_content.current_language", return_value="fr"), \
+                    patch("keyseq.presentation.help.help_content.help_content_path",
+                          side_effect=lambda lang: base / f"{lang}.json") as paths:
+                self.assertIsNotNone(load_help_content().content)
+                self.assertEqual(paths.call_args_list, [call("fr"), call("en")])
+                source.write_text("{}", encoding="utf-8")
+                (base / "ja.json").write_text(json.dumps(valid_data()), encoding="utf-8")
+                paths.reset_mock()
+                self.assertIsNotNone(load_help_content().content)
+                self.assertEqual(paths.call_args_list, [call("fr"), call("en"), call("ja")])
+
+    def test_all_fail_returns_first_reason_and_deduplicates_languages(self) -> None:
+        with tempfile.TemporaryDirectory() as folder:
+            base = Path(folder)
+            for language, expected in (("fr", ["fr", "en", "ja"]),
+                                       ("ja", ["ja", "en"]), ("en", ["en", "ja"])):
+                with self.subTest(language=language), \
+                        patch("keyseq.presentation.help.help_content.current_language", return_value=language), \
+                        patch("keyseq.presentation.help.help_content.help_content_path",
+                              side_effect=lambda lang: base / f"{lang}.json") as paths:
+                    result = load_help_content()
+                    self.assertIsNone(result.content)
+                    self.assertEqual(result.error, load_help_content(base / f"{language}.json").error)
+                    self.assertEqual(paths.call_args_list, [call(lang) for lang in expected])
+
+    def test_explicit_path_does_not_fall_back(self) -> None:
+        with tempfile.TemporaryDirectory() as folder, \
+                patch("keyseq.presentation.help.help_content.help_content_path") as paths:
+            result = load_help_content(Path(folder) / "missing.json")
+            self.assertIsNone(result.content)
+            paths.assert_not_called()
 
     def test_item_plain_text_joins_blocks_and_list_entries(self) -> None:
         item = HelpItem("guide.one", "題", (

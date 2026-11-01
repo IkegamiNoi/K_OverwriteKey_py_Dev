@@ -32,6 +32,9 @@ from keyseq.presentation.keyboard_window_size import (
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs import PresetManagerDialog, format_preset_manager_source_labels
 from tests_ui.hook_resume_wait import wait_for_hook_pause_count
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def _unexpected_showerror(_title, message, *_args, **_kwargs):

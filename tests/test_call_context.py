@@ -10,6 +10,11 @@ from keyseq.application.call_context import (
 from keyseq.application.app_state import AppState
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 def control(op, **values):
     return {"type": "system", "op": op, **values}
 

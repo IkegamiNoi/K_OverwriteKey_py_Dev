@@ -13,6 +13,9 @@ from keyseq.domain.screen_grid import (
     set_cell_key, top_layout_to_json,
 )
 from keyseq.presentation.dialogs.grid_editor_window import GridEditorWindow
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class GridEditorWindowTest(unittest.TestCase):

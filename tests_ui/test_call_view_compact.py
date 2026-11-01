@@ -17,6 +17,9 @@ from keyseq.presentation.views.full_view.call_view_frame import list_minimum_hei
 
 SAVED_HEIGHTS = {"full": 180, "compact": 120}
 WRITE_STARTUP = StartupIo.write_startup
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class CallViewCompactTest(unittest.TestCase):

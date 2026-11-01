@@ -10,6 +10,9 @@ from keyseq.presentation.button_width_rules import fixed_button_width_chars
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs.keymap_switch_batch_dialog import KeymapSwitchBatchDialog
 from keyseq.presentation.hook_button_texts import CAPTURE_TEXTS
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class KeymapSwitchBatchDialogTest(unittest.TestCase):

@@ -26,6 +26,11 @@ _NO_SCAN_CODE_IDS = (
 )
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class KeyboardLayoutFilesTest(unittest.TestCase):
     @staticmethod
     def _layout_data(key_data):

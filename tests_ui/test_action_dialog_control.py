@@ -5,6 +5,9 @@ from unittest.mock import patch
 
 from keyseq.presentation.app import App
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class ActionDialogControlTest(unittest.TestCase):

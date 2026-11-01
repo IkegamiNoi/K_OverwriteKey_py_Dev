@@ -21,6 +21,11 @@ from keyseq.domain.screen_grid import (
 )
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class ScreenGridOperationsTest(unittest.TestCase):
     def test_arrow_keys_uses_configured_arrow_operations(self):
         self.assertEqual(ARROW_OPS, ("up", "down", "left", "right"))

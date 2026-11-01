@@ -14,6 +14,9 @@ from tests_ui.hook_resume_wait import wait_for_hook_pause_count
 
 _REAL_GRAB_MODAL = choice_dialog_module.grab_modal
 _CHOICES = [("left", "左の操作"), ("middle", "中の操作"), ("right", "右の操作")]
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class ChoiceDialogTest(unittest.TestCase):

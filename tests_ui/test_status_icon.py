@@ -13,6 +13,9 @@ from keyseq.presentation import app as app_module
 from keyseq.application.config_service import ConfigService, contracts
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.status_text import HOOK_STATE_LABELS
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class StatusIconTest(unittest.TestCase):

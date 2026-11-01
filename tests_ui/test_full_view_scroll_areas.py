@@ -5,6 +5,9 @@ from keyseq.presentation import app as app_module, theme
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.pane_layout.pane_measure import measure_min_widths
 from keyseq.application.call_view import CallViewSummary
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class FullViewScrollAreasTest(unittest.TestCase):

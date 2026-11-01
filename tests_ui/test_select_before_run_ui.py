@@ -7,6 +7,9 @@ from keyseq.application.config_service import ConfigService, contracts
 from keyseq.application.input_router import TriggerAction
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class SelectBeforeRunUiTest(unittest.TestCase):

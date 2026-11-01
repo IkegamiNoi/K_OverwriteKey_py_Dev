@@ -22,6 +22,9 @@ from keyseq.application.save_plan import (
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
 from keyseq.presentation.controllers.config_io import choice_dialog as choice_dialog_module
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def _unexpected_trigger_set_dependency(*_args, **_kwargs):

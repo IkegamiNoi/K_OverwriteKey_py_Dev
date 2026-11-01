@@ -8,6 +8,7 @@ from pathlib import Path
 import unicodedata
 
 from keyseq.presentation.bundled_paths import help_content_path
+from keyseq.shared.i18n import current_language
 
 
 @dataclass(frozen=True)
@@ -136,7 +137,19 @@ def parse_help_content(data: object) -> HelpContent:
 
 def load_help_content(path: Path | None = None) -> HelpLoadResult:
     """UTF-8 の本文を読み込み、失敗理由を含む結果として返す。"""
-    source = path if path is not None else help_content_path("ja")
+    if path is not None:
+        return _load_help_file(path)
+    first_failure = None
+    for lang in dict.fromkeys((current_language(), "en", "ja")):
+        result = _load_help_file(help_content_path(lang))
+        if result.content is not None:
+            return result
+        if first_failure is None:
+            first_failure = result
+    return first_failure
+
+
+def _load_help_file(source: Path) -> HelpLoadResult:
     try:
         data = json.loads(source.read_text(encoding="utf-8"))
         return HelpLoadResult(parse_help_content(data))

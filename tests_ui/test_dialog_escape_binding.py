@@ -20,6 +20,9 @@ from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
 from keyseq.presentation.hook_button_texts import CAPTURE_TEXTS
 from tests_ui.escape_delivery import acquire_focus, send_escape
 from tests_ui.hook_resume_wait import wait_for_hook_pause_count
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class DialogEscapeBindingTest(unittest.TestCase):

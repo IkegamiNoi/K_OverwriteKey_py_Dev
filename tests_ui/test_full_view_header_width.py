@@ -8,6 +8,9 @@ from keyseq.presentation.hook_button_texts import CAPTURE_ACTIVE_TEXT, CAPTURE_I
 from keyseq.presentation.pane_width_rules import (
     PaneWidths, SASH_WIDTH, window_min_width_after_drag,
 )
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class FullViewHeaderWidthTest(unittest.TestCase):

@@ -8,6 +8,9 @@ from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
 from keyseq.presentation.controllers.trigger_panel import action_edit as action_edit_module
 from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
 from keyseq.presentation.list_clipboard import CLIP_ACTIONS, ListClipboard
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class _Listbox:

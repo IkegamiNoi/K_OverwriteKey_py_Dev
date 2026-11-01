@@ -7,6 +7,9 @@ from keyseq.presentation.app import App
 from keyseq.presentation import app as app_module
 from keyseq.presentation import theme
 from keyseq.presentation.pane_width_rules import SASH_WIDTH, PaneWidths
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class PaneDragAndWindowMinTest(unittest.TestCase):

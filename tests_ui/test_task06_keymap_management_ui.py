@@ -10,6 +10,9 @@ from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.keymap_set_io import KeymapSetIo
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs import KeymapEditDialog, KeymapSwitchBatchDialog
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def make_runtime(*, one_keymap=False, switch_keys=None):

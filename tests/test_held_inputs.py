@@ -5,6 +5,11 @@ import unittest
 from keyseq.application.held_inputs import HeldInputs
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class FakeInputGateway:
     """記録だけを行い、実際のキーやマウス入力は送らない gateway。"""
 

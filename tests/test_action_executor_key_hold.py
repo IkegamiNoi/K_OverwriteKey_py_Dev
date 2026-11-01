@@ -9,6 +9,11 @@ from keyseq.application.held_inputs import HeldInputs
 from keyseq.application.key_repeat import KeyRepeater
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class FakeGateway:
     """Record input commands without sending real keyboard or mouse events."""
 

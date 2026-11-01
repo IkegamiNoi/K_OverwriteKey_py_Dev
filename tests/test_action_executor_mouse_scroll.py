@@ -6,6 +6,11 @@ from unittest.mock import Mock
 from keyseq.application.action_executor import ActionExecutor
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class MouseScrollExecutorTests(unittest.TestCase):
     def setUp(self) -> None:
         self.gateway = Mock()

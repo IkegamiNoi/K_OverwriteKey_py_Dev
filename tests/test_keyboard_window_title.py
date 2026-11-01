@@ -3,6 +3,11 @@ import unittest
 from keyseq.presentation.keyboard_window import keyboard_window_title
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class KeyboardWindowTitleTest(unittest.TestCase):
     def test_title_includes_layout_name(self):
         self.assertEqual(keyboard_window_title("US配列", None), "キーボードUI — US配列")

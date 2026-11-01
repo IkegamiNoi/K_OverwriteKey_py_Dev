@@ -14,6 +14,9 @@ from keyseq.presentation.dialogs.keymap_edit_dialog import KeymapEditDialog
 from keyseq.presentation.dialogs.keymap_switch_batch_dialog import KeymapSwitchBatchDialog
 from keyseq.presentation.dialogs.trigger_dialog import TriggerDialog
 from keyseq.presentation.keyboard_window import KeyboardWindow
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class CaptureHookEntriesUiTest(unittest.TestCase):

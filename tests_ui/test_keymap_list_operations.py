@@ -12,6 +12,9 @@ from keyseq.presentation.dialogs import KeymapSwitchBatchDialog
 from keyseq.presentation.list_clipboard import CLIP_KEYMAPS
 from keyseq.presentation.listbox_range_drag import select_range
 from tests_ui.click_time import next_click_time
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def make_runtime():

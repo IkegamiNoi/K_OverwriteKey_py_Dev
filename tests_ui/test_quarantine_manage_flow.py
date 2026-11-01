@@ -20,6 +20,9 @@ from keyseq.presentation.views.menu_bar import build_menu_bar
 
 
 UNIT = QuarantineUnit("20260906_101500", "2026-09-06T10:15:00", 2, 1, True)
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class QuarantineManageFlowTest(unittest.TestCase):

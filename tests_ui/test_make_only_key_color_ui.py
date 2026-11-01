@@ -17,6 +17,9 @@ JIS_LAYOUT_PATH = (
     / "keylayout"
     / "jis.json"
 )
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class MakeOnlyKeyColorUiTest(unittest.TestCase):

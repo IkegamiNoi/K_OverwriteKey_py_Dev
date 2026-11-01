@@ -7,6 +7,11 @@ from keyseq.application.sequence_steps import (
 )
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 def control(op, **values):
     return {"type": "system", "op": op, **values}
 

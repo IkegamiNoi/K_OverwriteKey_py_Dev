@@ -8,6 +8,11 @@ from keyseq.application.sequence_runner import SequenceRunner
 from keyseq.presentation.controllers.hook_controller import HookController
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 def system(op, **values):
     return {"type": "system", "op": op, **values}
 

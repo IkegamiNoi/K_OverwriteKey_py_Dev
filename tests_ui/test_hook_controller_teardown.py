@@ -5,6 +5,9 @@ from unittest.mock import Mock, patch
 
 from keyseq.presentation.controllers.hook_controller import HookController
 from tests_ui.hook_resume_wait import wait_for_hook_pause_count
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class HookControllerTeardownTest(unittest.TestCase):

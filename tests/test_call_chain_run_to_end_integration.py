@@ -9,6 +9,11 @@ from keyseq.application.sequence_history import HistoryEntry, snapshot_for
 from keyseq.application.sequence_steps import StepResume
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 def system(op, **values):
     return {"type": "system", "op": op, **values}
 

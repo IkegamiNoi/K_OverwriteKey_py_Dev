@@ -1,4 +1,5 @@
 import tkinter as tk
+from keyseq.shared.i18n import available_languages, tr
 
 
 def build_menu_bar(app):
@@ -48,6 +49,16 @@ def build_menu_bar(app):
             command=lambda d=delta: app.set_ui_font_delta(d),
         )
     settings_menu.add_cascade(label="フォントサイズ", menu=font_menu)
+
+    language_menu = tk.Menu(settings_menu, tearoff=False)
+    for code, name in available_languages():
+        language_menu.add_radiobutton(
+            label=name,
+            value=code,
+            variable=app.ui_vars.ui_language_var,
+            command=lambda c=code: app.set_ui_language(c),
+        )
+    settings_menu.add_cascade(label=tr("menu.settings.language"), menu=language_menu)
 
     menubar.add_cascade(label="設定", menu=settings_menu)
 

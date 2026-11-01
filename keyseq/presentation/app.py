@@ -8,6 +8,7 @@ import tkinter as tk
 from typing import Callable
 from tkinter import messagebox, ttk
 
+from keyseq.shared.i18n import resolve_language, set_language, tr_in
 from keyseq.presentation.dialogs import (
     PresetManagerDialog,
 )
@@ -120,14 +121,18 @@ class App(tk.Tk):
         )
         self.startup_path = self.paths.resolve_startup_path()
         self.keymap_set_path = self.paths.resolve_keymap_set_path()
+        startup_read_errors: list[Exception] = []
         self._startup_settings = load_startup_settings(
             self.config_service,
             self.startup_path,
-            on_read_error=lambda exc: messagebox.showwarning(
+            on_read_error=startup_read_errors.append,
+        )
+        set_language(resolve_language(self._startup_settings.get("ui_language")))
+        for exc in startup_read_errors:
+            messagebox.showwarning(
                 "startup.json読込失敗",
                 f"startup.jsonの読み込みに失敗しました。\n{exc}\n\n既定設定で起動します。",
-            ),
-        )
+            )
         self._ui_font_delta_pt = coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
         self.data = self.config_service.new_default_data()
@@ -135,7 +140,10 @@ class App(tk.Tk):
         self._key_overlap_analysis = analyze_key_overlaps(
             self.data, self.data.get(HOOK_STOP_KEY, ""), self.data.get(HOOK_TOGGLE_KEY, "")
         )
-        self.ui_vars = UiVars(self, ui_font_delta_pt=self._ui_font_delta_pt)
+        self.ui_vars = UiVars(
+            self, ui_font_delta_pt=self._ui_font_delta_pt,
+            ui_language=self._startup_settings.get("ui_language"),
+        )
         self._retained_hook_keys: dict[str, str] | None = None
 
         self.title("Key Replacer Sequencer (Multi Trigger)")
@@ -502,6 +510,20 @@ class App(tk.Tk):
         else:
             self._set_flash_message(f"フォントサイズを{new_delta:+d}にしました。")
 
+
+    def set_ui_language(self, code: str) -> None:
+        saved = resolve_language(self._startup_settings.get("ui_language"))
+        if code == saved:
+            return
+        if not self.startup_io.write_startup({"ui_language": code}):
+            self.ui_vars.ui_language_var.set(saved)
+            return
+        self.ui_vars.ui_language_var.set(code)
+        messagebox.showinfo(
+            tr_in(code, "dialog.language_restart.title"),
+            tr_in(code, "dialog.language_restart.body"),
+            parent=self,
+        )
 
     def _is_menu_shortcut_enabled(self) -> bool:
         if self.stop_key_capture.capturing or self.toggle_key_capture.capturing:

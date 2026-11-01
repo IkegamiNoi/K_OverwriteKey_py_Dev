@@ -10,6 +10,9 @@ from keyseq.presentation.controllers.config_io import hotkey_presets_io
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from keyseq.presentation.dialogs.preset_dialog import PresetDialog
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def is_call(statement, name):

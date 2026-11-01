@@ -9,6 +9,9 @@ from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.dialogs.preset_manager import PresetManagerDialog
 from keyseq.presentation.listbox_range_drag import select_range
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class PresetManagerRangeDragTest(unittest.TestCase):

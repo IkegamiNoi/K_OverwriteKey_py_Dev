@@ -5,6 +5,11 @@ from unittest.mock import Mock
 from keyseq.presentation.controllers.keymap_panel.keymap_panel_controller import KeymapPanelController
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class KeymapStatusTextTest(unittest.TestCase):
     @staticmethod
     def _controller(label, *, hook_active=True, custom_input_enabled=True):

@@ -9,6 +9,11 @@ from keyseq.domain.call_graph import (
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 def call(target):
     return {"type": "system", "op": "call", "target": target}
 

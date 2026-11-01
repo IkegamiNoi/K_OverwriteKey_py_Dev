@@ -32,6 +32,11 @@ from keyseq.presentation.controllers.config_io.child_save_dialog import ChildSav
 from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class PerKeymapBulkSaveTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()

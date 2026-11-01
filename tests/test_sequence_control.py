@@ -20,6 +20,11 @@ from keyseq.domain.sequence_control import (
 )
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 def system(op: str, **values: object) -> dict[str, object]:
     return {"type": ACTION_TYPE_SYSTEM, "op": op, **values}
 

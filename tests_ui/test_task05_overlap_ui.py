@@ -5,6 +5,9 @@ from unittest.mock import patch
 from keyseq.application.input_router import StopHookAction
 from keyseq.presentation.app import App
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 def make_runtime():

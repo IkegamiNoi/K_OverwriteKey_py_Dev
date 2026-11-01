@@ -9,6 +9,11 @@ from keyseq.application.action_executor import ActionExecutor
 from keyseq.application.file_line_loader import FileLineLoader
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class ActionExecutorFileLineTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp_dir = tempfile.TemporaryDirectory()

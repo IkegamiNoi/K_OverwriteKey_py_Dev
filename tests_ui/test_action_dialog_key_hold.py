@@ -8,6 +8,9 @@ from tkinter import messagebox
 
 from keyseq.presentation.dialogs.action_dialog import ActionDialog
 from tests_ui.escape_delivery import acquire_focus
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class FakeInputGateway:

@@ -9,6 +9,9 @@ from keyseq.presentation.controllers.trigger_panel import action_edit as action_
 from keyseq.presentation.controllers.trigger_panel import trigger_row_edit as panel_module
 from keyseq.presentation.list_clipboard import CLIP_ACTIONS
 from tests_ui.test_trigger_effective_row import _DialogResult, make_runtime
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class _ActionDialogResult:

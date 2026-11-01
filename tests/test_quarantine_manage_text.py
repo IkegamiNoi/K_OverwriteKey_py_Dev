@@ -7,6 +7,11 @@ from keyseq.presentation.quarantine_manage_text import (
 )
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class QuarantineManageTextTest(unittest.TestCase):
     def setUp(self):
         self.unit = contracts.QuarantineUnit("20260906_101500", "2026-09-06T10:15:00", 3, 2, True)

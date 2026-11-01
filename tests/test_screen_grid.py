@@ -26,6 +26,11 @@ from keyseq.domain.screen_grid import (
 )
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class ScreenGridNormalizationTest(unittest.TestCase):
     def test_new_enabled_grid_has_default_shape_and_normalizes_unchanged(self):
         from keyseq.domain.screen_grid import new_enabled_grid

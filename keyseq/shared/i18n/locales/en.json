@@ -1,0 +1,6 @@
+{
+  "_meta": {"name": "English"},
+  "menu.settings.language": "Language / 言語",
+  "dialog.language_restart.title": "Language",
+  "dialog.language_restart.body": "The language change will take effect after you restart the app."
+}

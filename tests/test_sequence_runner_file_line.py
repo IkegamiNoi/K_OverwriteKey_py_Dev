@@ -4,6 +4,11 @@ from keyseq.application.app_state import AppState
 from keyseq.application.sequence_runner import FILE_LINE_POLL_INTERVAL_MS, SequenceRunner
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class FakeScheduler:
     def __init__(self):
         self.queue = []

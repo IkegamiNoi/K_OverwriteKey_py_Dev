@@ -16,6 +16,11 @@ from keyseq.presentation.orphan_sweep_text import (
 )
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 def _result(**overrides):
     fields = dict(entries=(), unreadable_sources=(), non_keymap_set_sources=(), missing_scan_dirs=())
     fields.update(overrides)

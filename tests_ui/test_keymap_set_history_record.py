@@ -11,6 +11,9 @@ from keyseq.application.save_plan import SavePlan
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import keymap_set_io, startup_io
 from keyseq.presentation.controllers.config_io.keymap_set_history_io import KeymapSetHistoryIo
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class KeymapSetHistoryRecordTest(unittest.TestCase):

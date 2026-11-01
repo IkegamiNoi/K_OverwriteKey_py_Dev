@@ -13,6 +13,9 @@ from keyseq.presentation.compact_header_view import COMPACT_HEADER_VIEW_KEY
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.hook_button_texts import HOOK_START_TEXT, HOOK_STOP_TEXT
 from tests_ui.escape_delivery import acquire_focus
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class CompactHeaderViewTest(unittest.TestCase):

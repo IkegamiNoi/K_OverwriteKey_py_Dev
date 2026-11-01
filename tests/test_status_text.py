@@ -5,6 +5,11 @@ import unittest
 from keyseq.presentation.status_text import HOOK_STATE_LABELS, hook_display_state, one_line
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class OneLineTest(unittest.TestCase):
     def test_replaces_all_supported_line_breaks_with_spaces(self):
         self.assertEqual(one_line("first\r\nsecond\rthird\nfourth"), "first second third fourth")

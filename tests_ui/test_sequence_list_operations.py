@@ -6,6 +6,9 @@ from unittest.mock import Mock, patch
 
 from keyseq.presentation.controllers.trigger_panel import action_edit as action_edit_module
 from keyseq.presentation.controllers.trigger_panel import TriggerPanelController
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
 
 
 class _Listbox:

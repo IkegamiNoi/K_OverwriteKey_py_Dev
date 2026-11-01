@@ -10,6 +10,11 @@ from keyseq.domain.config import normalize_actions
 from keyseq.presentation.controllers import hook_controller
 
 
+from keyseq.shared.i18n import fix_language
+
+fix_language("ja")
+
+
 class ActionExecutorTypeTests(unittest.TestCase):
     def setUp(self) -> None:
         self.gateway = Mock()
