@@ -1,0 +1,510 @@
+{
+  "format": 1,
+  "tabs": {
+    "guide": [
+      {
+        "id": "intro", "title": "Getting started",
+        "items": [
+          {
+            "id": "intro.overview", "title": "What this app can do",
+            "body": [
+              {"type": "p", "text": "When you press a designated key (the trigger key), the app runs a saved series of operations (an output sequence) instead. You can combine key sends, text input, clicks, scrolling, and more."},
+              {"type": "p", "text": "You can also remap one key to another. Set up key remaps in the Keyboard UI."},
+              {"type": "p", "text": "The hook receives keyboard input. Triggers and key remaps work only while the hook is running."}
+            ]
+          },
+          {
+            "id": "intro.terms", "title": "Terms",
+            "body": [{"type": "list", "items": [
+              "Profile: The complete settings, including keymaps, trigger sets, and output sequences.",
+              "Keymap: A collection of key remaps and a trigger set. Use a switch key to switch keymaps.",
+              "Switch key: A key that switches to the keymap it is assigned to when pressed.",
+              "Trigger set: A file containing triggers and their output sequences. It is the unit used for saving, loading, and sharing. Its contents appear in the trigger list.",
+              "Trigger: A single key that runs an output sequence when pressed.",
+              "Output sequence: A series of actions run by a trigger.",
+              "Action: One row in an output sequence. Each action performs one operation of its type, such as sending keys, entering text, or clicking.",
+              "Key remap: Replacing a source key with a target key. Set it up in the Keyboard UI; it takes effect when you press the key on the physical keyboard.",
+              "Hook: The mechanism that receives input from the entire keyboard. Nothing is remapped while it is stopped.",
+              "Press a key: Press a key on the physical keyboard. This does not mean clicking a key in the Keyboard UI."
+            ]}]
+          },
+          {
+            "id": "intro.first_steps", "title": "First steps",
+            "body": [{"type": "list", "items": [
+              "Use “Add…” in the trigger list to create a trigger, then use “Record by pressing a key” to assign its key.",
+              "Use “Add…” in the output sequence to arrange the actions you want to send.",
+              "Press “Start (Hook On)” to start the hook.",
+              "Press the trigger key to run from the row marked as next to run (▶) in the output sequence.",
+              "Use “Save” in the “File” menu to save the profile."
+            ]}]
+          }
+        ]
+      },
+      {
+        "id": "keymap_set", "title": "Profiles and files",
+        "items": [
+          {
+            "id": "keymap_set.files", "title": "File structure",
+            "body": [
+              {"type": "p", "text": "A profile is a single file that groups child files such as keymaps, trigger sets, and output sequences by referencing their paths."},
+              {"type": "p", "text": "Manage child files individually with “Save,” “Save as…,” and “Load…” in the “Manage keymaps,” trigger list, and output sequence sections."}
+            ]
+          },
+          {
+            "id": "keymap_set.save", "title": "Save",
+            "body": [
+              {"type": "p", "text": "Use “Save” (Ctrl+S) in the “File” menu to save. Use “Save as…” (Ctrl+Shift+S) to save under a different name or in a different location."},
+              {"type": "p", "text": "If child files have changes, a dialog lets you choose “Save,” “Save as,” or “Do not save” for each child file. The “Sharing status” column shows whether an existing file will be overwritten."},
+              {"type": "p", "text": "The filename and “Unsaved” or “Saved” appear on the left side of the status bar."}
+            ]
+          },
+          {
+            "id": "keymap_set.load", "title": "Load",
+            "body": [{"type": "list", "items": [
+              "Use “Load (profile)…” (Ctrl+O) to open a profile file.",
+              "Use “Load from history…” to reopen files from the 20 most recent entries or categories you create. Missing files are marked “(Not found)”.",
+              "Use “Choose the profile to load at startup…” to choose the profile opened when the app starts.",
+              "Use “Restore sample settings” to return to the bundled sample settings.",
+              "If there are unsaved changes, the app asks whether to save before loading."
+            ]}]
+          },
+          {
+            "id": "keymap_set.import_export", "title": "Import / Export",
+            "body": [
+              {"type": "p", "text": "Export... writes the current settings to a single JSON file, and Import... loads it. Use these to move all settings together to another PC or environment. They also provide compatibility with the single JSON format."},
+              {"type": "p", "text": "For everyday saving and loading, use “Save” and “Load (profile)…”."}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "keymap", "title": "Keymaps",
+        "items": [
+          {
+            "id": "keymap.about", "title": "About keymaps",
+            "body": [
+              {"type": "p", "text": "A keymap is a collection of key remaps and a trigger set. A profile always has at least one keymap. The keymap selected in the “Manage keymaps” list becomes the active keymap."},
+              {"type": "p", "text": "The trigger list and output sequence sections show the contents of the active keymap."}
+            ]
+          },
+          {
+            "id": "keymap.switch", "title": "Switch keymaps",
+            "body": [{"type": "list", "items": [
+              "Click a row in the “Manage keymaps” list, or use the arrow keys, to switch keymaps.",
+              "Press a switch key to switch to its keymap.",
+              "You cannot switch during a continuous run. Switching keymaps discards a paused run."
+            ]}]
+          },
+          {
+            "id": "keymap.manage", "title": "Add, edit, and delete",
+            "body": [{"type": "list", "items": [
+              "Use “Add…” to add a keymap. A switch key is required from the second keymap onward, and a dialog opens to set switch keys together.",
+              "Double-click a row in the list to edit its label, switch key, and cursor grid.",
+              "You cannot delete the only keymap.",
+              "Drag rows to reorder them, and use Ctrl+C / Ctrl+V to paste copies."
+            ]}]
+          },
+          {
+            "id": "keymap.replace", "title": "Key remaps",
+            "body": [
+              {"type": "p", "text": "Set up key remaps in the Keyboard UI. Click the key you want to remap, then press the target key on the physical keyboard. Right-click a key in the Keyboard UI to remove its key remap."},
+              {"type": "p", "text": "If a trigger and a source key are the same, the trigger takes priority. A trigger with an empty output sequence is treated as absent, allowing the key remap to work."}
+            ]
+          },
+          {
+            "id": "keymap.pause", "title": "Pause keymap",
+            "body": [{"type": "p", "text": "Press “Pause keymap” to suspend switch keys, key remaps, and triggers together while keeping the hook running. The stop key and Pause / Resume key still work. Press “Resume keymap” to restore normal operation."}]
+          },
+          {
+            "id": "keymap.forbidden", "title": "Keys that cannot be assigned",
+            "body": [
+              {"type": "p", "text": "Grayed-out keys in the Keyboard UI cannot be assigned."},
+              {"type": "p", "text": "These are the Windows keys (left and right), Caps Lock, and the right Alt key on an AltGr layout. They cannot be source keys or switch keys because suppressing them does not stop their OS behavior, causing both the remapped key and the original function to run."}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "trigger", "title": "Triggers",
+        "items": [
+          {
+            "id": "trigger.add", "title": "Add a trigger",
+            "body": [
+              {"type": "p", "text": "Use “Add…” in the trigger list to open the dialog. Press “Record by pressing a key,” then press the key you want to use as the trigger once. The label is the name shown in the list."},
+              {"type": "p", "text": "Triggers accept a single key only. You cannot add triggers with the same key to the same trigger list."}
+            ]
+          },
+          {
+            "id": "trigger.options", "title": "Trigger settings",
+            "body": [{"type": "list", "items": [
+              "Suppress trigger keys (suppress): When ON, the pressed key is not passed to other apps. When OFF, the original key also reaches them.",
+              "Run continuously: When ON, one press runs the output sequence through to the end. Press the same key during the run to pause it, and press it again to resume.",
+              "Interval (ms): The time between rows in a continuous run. This interval is also used when the trigger is called.",
+              "Select before running: When ON, if the trigger is not selected in the list, the first press only selects it; press again to run it. “Select all triggers before running” in the hook section enables this for all triggers."
+            ]}]
+          },
+          {
+            "id": "trigger.gray", "title": "Grayed-out rows",
+            "body": [
+              {"type": "p", "text": "A trigger that shares a key with the stop key, Pause / Resume key, or a switch key is grayed out with a reason. Pressing that key performs the stop or other higher-priority function."},
+              {"type": "p", "text": "If multiple rows use the same key, only the top row in the list works. Rows below it are grayed out as “duplicates a trigger above”."}
+            ]
+          },
+          {
+            "id": "trigger.list", "title": "Using the list",
+            "body": [{"type": "list", "items": [
+              "Use Shift+click or Shift+arrow keys to select a range.",
+              "Drag rows to reorder them. Press Esc while dragging to cancel.",
+              "Use Ctrl+C / Ctrl+V to paste copies at the end. You can also paste into another keymap's trigger list."
+            ]}]
+          }
+        ]
+      },
+      {
+        "id": "sequence", "title": "Output sequences",
+        "items": [
+          {
+            "id": "sequence.run", "title": "How sequences run",
+            "body": [
+              {"type": "p", "text": "Press the trigger key once to run one output row, starting from the row marked as next to run (▶). This is a single-step run. A trigger with continuous run enabled runs through to the end. After reaching the end, it returns to the beginning."},
+              {"type": "p", "text": "Click a row in the output sequence to change which row runs next."}
+            ]
+          },
+          {
+            "id": "sequence.actions", "title": "Action types",
+            "body": [{"type": "list", "items": [
+              "hotkey: Sends a key combination, such as ctrl+c. You can choose from presets.",
+              "text: Enters a text string.",
+              "mouse_click: Clicks or drags.",
+              "mouse_scroll: Scrolls the mouse wheel.",
+              "file_line: Enters one line from a text file. A counter determines the line number.",
+              "key_hold: Holds down or releases a key or mouse button. For example, hold shift while using arrow keys to select a range.",
+              "system: Changes how the output sequence advances without sending keys: loops, counters, Wait, Stop, Back, Rewind, and Call."
+            ]}]
+          },
+          {
+            "id": "sequence.system", "title": "system actions",
+            "body": [
+              {"type": "p", "text": "Actions of type system change how the output sequence advances, such as repeating, waiting, or stopping, instead of sending keys. Choose from these operations."},
+              {"type": "list", "items": [
+                "Loop: Repeats the rows between the start and end a specified number of times, or indefinitely. Loops can be nested up to 9 levels deep.",
+                "Increment counter by 1 / Reset counter to 0: Changes a named number used as the line number for file_line. Counters are kept until the app exits.",
+                "Wait: Inserts a delay of the specified milliseconds between the previous and next rows.",
+                "Stop: Ends a continuous run at that point. It is skipped if nothing has been sent yet in that continuous run. It is also skipped in single-step runs.",
+                "Back / Rewind: Returns the target trigger to its state before the previous run, or to the beginning.",
+                "Call: Runs another trigger's output sequence from the same trigger list."
+              ]}
+            ]
+          },
+          {
+            "id": "sequence.undo", "title": "Back / Rewind",
+            "body": [
+              {"type": "p", "text": "Use Back or Rewind in a trigger whose output sequence contains only that one row."},
+              {"type": "p", "text": "Set the target with “Specify a target trigger”. If no target is specified, the selected trigger in the list is used, or the most recently run trigger if the selected one is unavailable."},
+              {"type": "p", "text": "If the target is paused, the first press briefly shows guidance in the status bar. Press again to discard the paused run and perform the operation."}
+            ]
+          },
+          {
+            "id": "sequence.call", "title": "Call",
+            "body": [
+              {"type": "p", "text": "A Call row advances the called trigger from its current position. By default, each press sends one row from the called trigger. Enable “Run all call targets (skip stop rows)” to advance the called trigger to the end with one press."},
+              {"type": "p", "text": "A trigger cannot call itself, form a cycle that returns to itself, or make calls deeper than 9 levels."}
+            ]
+          },
+          {
+            "id": "sequence.edit", "title": "Edit",
+            "body": [{"type": "list", "items": [
+              "Use “Add…” to add an action. Clear “Append to end” to insert it immediately after the selected row.",
+              "Use “Move up,” “Move down,” or dragging to reorder rows, and “Duplicate” to make a copy. Use Ctrl+C / Ctrl+V to paste into another trigger as well.",
+              "Loop start and end rows are added and deleted as a pair."
+            ]}]
+          },
+          {
+            "id": "sequence.key_hold", "title": "Held keys",
+            "body": [
+              {"type": "p", "text": "Keys and buttons held down by key_hold appear in the status area, for example, “Held: shift, Left mouse button”."},
+              {"type": "p", "text": "They are released automatically when the hook stops, the keymap is paused or switched, a continuous run ends, the output sequence reaches its end, and in similar situations."}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "hook", "title": "Hook",
+        "items": [
+          {
+            "id": "hook.start", "title": "Start and stop",
+            "body": [
+              {"type": "p", "text": "Press “Start (Hook On)” to start the hook and “Stop (Hook Off)” to stop it. Pressing the stop key also stops it."},
+              {"type": "p", "text": "The hook pauses automatically while a dialog is open and returns to its previous state when the dialog closes. It also stops while the input field labeled “Filter:” in Help has focus."}
+            ]
+          },
+          {
+            "id": "hook.keys", "title": "Stop key and Pause / Resume key",
+            "body": [
+              {"type": "p", "text": "The stop key stops the hook. The Pause / Resume key toggles keymap pause. Set them in the hook section."},
+              {"type": "p", "text": "Enable “Use hook keys only for this profile” to use different keys for each profile for these two keys (hook keys). When OFF, the app-wide default keys are used."},
+              {"type": "p", "text": "If the stop key and Pause / Resume key are the same, the hook cannot start."}
+            ]
+          },
+          {
+            "id": "hook.status", "title": "Reading the status",
+            "body": [
+              {"type": "p", "text": "“Hook:” in the status area shows ON (running), OFF (stopped), or Paused (keymap paused). “Keymap:” shows the active keymap's name."},
+              {"type": "p", "text": "Temporary guidance appears in the center of the status bar. Hover over clipped text to see it in full."}
+            ]
+          }
+        ]
+      },
+      {
+        "id": "view_mode", "title": "Switching views",
+        "items": [
+          {
+            "id": "view_mode.switch", "title": "Full view and compact view",
+            "body": [{"type": "p", "text": "Full view provides all editing features. Compact view is a smaller window limited to the trigger list, a collapsible output sequence, and hook controls. Switch with the “Compact view” and “Full view” buttons in the “Display” section."}]
+          },
+          {
+            "id": "view_mode.compact", "title": "Compact view",
+            "body": [{"type": "list", "items": [
+              "Click the “Hook” or “Display” heading at the top, or use Enter / Space, to expand or collapse it.",
+              "Collapsing “Display” also hides the “Full view” button. Expand the heading to return.",
+              "The window size is remembered and restored the next time you switch to compact view."
+            ]}]
+          },
+          {
+            "id": "view_mode.topmost", "title": "Always on top",
+            "body": [{"type": "p", "text": "Check “Always on top” to keep the main window in front of other windows. This is not saved and is OFF at startup. The Help and License windows are also kept in front."}]
+          },
+          {
+            "id": "view_mode.font", "title": "Font size",
+            "body": [{"type": "p", "text": "Use “Font size” in the “Settings” menu to change the size of text in the UI."}]
+          }
+        ]
+      },
+      {
+        "id": "keyboard_ui", "title": "Keyboard UI",
+        "items": [
+          {
+            "id": "keyboard_ui.open", "title": "Open",
+            "body": [{"type": "p", "text": "Use “Keyboard UI” in the “Display” section or “Open Keyboard UI” in the “Settings” menu to open it. The keyboard diagram uses colors to show key remaps, triggers, the stop key, and other assignments."}]
+          },
+          {
+            "id": "keyboard_ui.edit", "title": "Set up key remaps",
+            "body": [{"type": "list", "items": [
+              "Grayed-out keys cannot be assigned.",
+              "Click the key you want to remap in the Keyboard UI to start editing, then press the target key on the physical keyboard to assign it. Press Esc to cancel.",
+              "Right-click a key in the Keyboard UI to remove its key remap."
+            ]}]
+          },
+          {
+            "id": "keyboard_ui.layout", "title": "Layouts",
+            "body": [
+              {"type": "p", "text": "Select a keyboard layout from the drop-down. Use “Add external layout…” in the “Settings” menu to add a layout defined in JSON. Samples are jis.json, de.json, and us_tkl.json in config/user/keylayout/."},
+              {"type": "p", "text": "Enable “Show physical key names” in the “Settings” menu to show physical key names below each key. The window width is remembered per layout, and the aspect ratio adjusts to the key arrangement."}
+            ]
+          },
+          {
+            "id": "keyboard_ui.topmost", "title": "Keep keyboard UI always on top",
+            "body": [{"type": "p", "text": "Check this option to keep the Keyboard UI in front. This is not saved. When an app dialog or Help window is in the foreground, the Keyboard UI stays behind that window."}]
+          }
+        ]
+      },
+      {
+        "id": "screen_grid", "title": "Cursor grid",
+        "items": [
+          {
+            "id": "screen_grid.about", "title": "About the cursor grid",
+            "body": [
+              {"type": "p", "text": "Use only the keyboard to move the cursor to any position on the screen and click."},
+              {"type": "p", "text": "The cursor grid overlays the screen while a keymap with “Use cursor grid” enabled is active, the hook is running, the keymap is not paused, and no dialog is open. During this time, that keymap's triggers and key remaps are disabled; only cursor grid operation keys work. The stop key, Pause / Resume key, and switch keys still work."}
+            ]
+          },
+          {
+            "id": "screen_grid.keys", "title": "Controls",
+            "body": [
+              {"type": "list", "items": [
+                "Cell keys (default: q w e r / a s d f / z x c v): Select a cell and move the cursor to its center.",
+                "Space: Subdivide the selected cell.",
+                "BackSpace / Esc: Return to the previous level.",
+                "Enter / Numpad Enter: Click. Hold Shift to right-click.",
+                "Tab: Move to the next screen (monitor).",
+                "Arrow keys: Move the click position (crosshair) within the selected cell. Hold Shift to move 1px at a time.",
+                "While Ctrl, Alt, or the Windows key is held down, keys pass through to other apps unchanged."
+              ]},
+              {"type": "p", "text": "Space, BackSpace, Enter, Tab, and the arrow keys are the default operation keys. Reassign them with “Edit cursor grid…”. Esc (back) and numpad Enter (click) cannot be reassigned."}
+            ]
+          },
+          {
+            "id": "screen_grid.edit", "title": "Edit the cursor grid",
+            "body": [{"type": "p", "text": "In the keymap edit dialog, check “Use cursor grid” and use “Edit cursor grid…” to change the row and column divisions, each cell's key, and the operation keys. Drag boundaries to move them. Settings are remembered per screen."}]
+          }
+        ]
+      },
+      {
+        "id": "preset", "title": "Presets",
+        "items": [
+          {
+            "id": "preset.about", "title": "About presets",
+            "body": [{"type": "p", "text": "A preset is a named key combination commonly used in hotkey actions. Select one when editing an action to fill in its value."}]
+          },
+          {
+            "id": "preset.kinds", "title": "Types",
+            "body": [{"type": "list", "items": [
+              "Shared preset: Shared across the app.",
+              "Profile preset: Enable “Use as a profile preset” in the preset editor to make a preset specific to that profile.",
+              "Built-in preset: Included in the app."
+            ]}]
+          },
+          {
+            "id": "preset.edit", "title": "Edit",
+            "body": [{"type": "p", "text": "Open “Edit presets…” (Ctrl+Alt+P) from the “Settings” menu or “Edit presets…” in the action editor. Add, edit, delete, or reorder presets. Press OK to confirm or Cancel to discard changes."}]
+          }
+        ]
+      },
+      {
+        "id": "cleanup", "title": "Organizing files",
+        "items": [
+          {
+            "id": "cleanup.reference", "title": "Clean up references",
+            "body": [{"type": "p", "text": "Child files record which parent files use them (references). Use “Clean up references” in the “Settings” menu to remove old records that are no longer in use. The cleanup runs after confirmation."}]
+          },
+          {
+            "id": "cleanup.orphan", "title": "Clean up unused files",
+            "body": [{"type": "p", "text": "Use “Clean up unused files…” in the “Settings” menu to find child files that no profile uses (unused candidates) and move them to an archive folder. They are not deleted. Add or remove folders to scan in the list."}]
+          },
+          {
+            "id": "cleanup.quarantine", "title": "Manage archived files",
+            "body": [{"type": "p", "text": "Use “Manage archived files…” in the “Settings” menu to restore files to their original locations or delete them, grouped by archive run. Deletion cannot be undone."}]
+          }
+        ]
+      }
+    ],
+    "faq": [
+      {
+        "id": "trouble", "title": "When things do not work",
+        "items": [
+          {
+            "id": "trouble.nothing", "title": "Nothing happens when I press a trigger",
+            "body": [{"type": "list", "items": [
+              "Check whether “Hook:” in the status area is OFF.",
+              "If the status shows “Paused”, the keymap is paused.",
+              "Check whether a dialog is open. The hook is paused while a dialog is open.",
+              "Check whether the active keymap is the one you expect. The trigger list shows triggers for the active keymap.",
+              "Check whether the trigger is grayed out. A reason is shown.",
+              "A trigger with an empty output sequence will not run.",
+              "If “Select before running” is ON, the first press only selects the trigger in the list.",
+              "Triggers and key remaps do not work while a keymap that uses the cursor grid is active."
+            ]}]
+          },
+          {
+            "id": "trouble.cannot_start", "title": "Cannot start the hook",
+            "body": [{"type": "p", "text": "The hook cannot start if the stop key and Pause / Resume key are the same. Set one of them to a different key."}]
+          },
+          {
+            "id": "trouble.switch_key", "title": "The switch key does not switch keymaps",
+            "body": [
+              {"type": "p", "text": "If the switch key is the same as the stop key or Pause / Resume key, it cannot switch keymaps. It is grayed out in the “Manage keymaps” list. You can still select a keymap from the list."},
+              {"type": "p", "text": "You also cannot switch keymaps while a continuous run is in progress."}
+            ]
+          },
+          {
+            "id": "trouble.stuck_key", "title": "A key remains pressed",
+            "body": [
+              {"type": "p", "text": "A key held down by key_hold is released when you stop the hook. Press “Stop (Hook Off)” or press the stop key."},
+              {"type": "p", "text": "If you force quit the app or in similar situations, a key may remain pressed in the OS. Press and release that key once."}
+            ]
+          },
+          {
+            "id": "trouble.undo", "title": "Back / Rewind do not work",
+            "body": [{"type": "list", "items": [
+              "“There is no trigger to rewind.”: No target is set. Specify a target trigger, or select one in the list before pressing the key.",
+              "“Cannot operate because the target trigger is pending.”: Wait for the wait period to end before pressing the key.",
+              "A trigger that has never run, or has already been rewound fully, has nothing to go back to."
+            ]}]
+          }
+        ]
+      },
+      {
+        "id": "limits", "title": "Limitations",
+        "items": [
+          {
+            "id": "limits.single_key", "title": "Triggers and source keys accept one key only",
+            "body": [{"type": "p", "text": "Each trigger, source key, switch key, and stop key must be a single key. Combinations such as ctrl+a cannot be set. The hotkey action can send key combinations."}]
+          },
+          {
+            "id": "limits.forbidden_keys", "title": "Windows key, Caps Lock, and AltGr",
+            "body": [{"type": "p", "text": "The Windows keys (left and right), Caps Lock, and the right Alt key on an AltGr layout cannot be source keys or switch keys. The app may be unable to suppress the right Alt key on an AltGr layout, so it may reach the OS."}]
+          },
+          {
+            "id": "limits.make_only", "title": "Muhenkan (non-convert) and Henkan (convert) do not repeat",
+            "body": [{"type": "p", "text": "Depending on the keyboard, Muhenkan (non-convert) and Henkan (convert) may only send a key-down event. These keys do not repeat when held down, so a trigger or key remap runs only once. If you release and press the key again immediately, that one run may not take effect."}]
+          },
+          {
+            "id": "limits.numpad", "title": "Numeric keypad",
+            "body": [{"type": "p", "text": "Numeric keypad keys have dedicated names such as num 1 and are treated as different keys from the number keys on the main keyboard. When sent, they follow the NumLock state: if NumLock is OFF, num 1 acts like End. The numeric keypad comma is not supported."}]
+          },
+          {
+            "id": "limits.ime_text", "title": "Text input and IME",
+            "body": [{"type": "p", "text": "While text or file_line enters text, the IME in the target app is temporarily turned OFF, then restored after a short wait. Any text you type by hand during that time is also entered with the IME OFF. In slower apps, the last characters may remain in hiragana."}]
+          },
+          {
+            "id": "limits.repeat", "title": "Repeating a held key",
+            "body": [{"type": "p", "text": "The “Repeat” option for key_hold sends the key again at the same interval as the OS setting. Repeated sends pause while this app's window is in the foreground. Modifier keys and mouse buttons do not repeat."}]
+          },
+          {
+            "id": "limits.layout_names", "title": "Names for special keys",
+            "body": [{"type": "p", "text": "JIS special keys such as Muhenkan (non-convert), Henkan (convert), and Hankaku / Zenkaku (half-width / full-width) can be received and sent by those names only when you select the layout that defines them (the sample jis.json). They cannot be sent with the built-in US TKL layout."}]
+          },
+          {
+            "id": "limits.monitor_scale", "title": "Monitors with different scaling",
+            "body": [{"type": "p", "text": "Setups with different scaling on each monitor have not been checked. Cursor grid lines may look blurry or misaligned."}]
+          }
+        ]
+      },
+      {
+        "id": "save_files", "title": "Saving and files",
+        "items": [
+          {
+            "id": "save_files.unsaved", "title": "Unsaved status",
+            "body": [{"type": "p", "text": "The profile filename and “Unsaved” or “Saved” appear on the left side of the status bar. Switching keymaps alone does not make the profile unsaved."}]
+          },
+          {
+            "id": "save_files.shared", "title": "Using the same child file in multiple profiles",
+            "body": [{"type": "p", "text": "A child file can be used by multiple profiles. The save dialog's “Sharing status” shows when the file belongs to another parent file. Choose “Save as” if you do not want to affect another profile."}]
+          },
+          {
+            "id": "save_files.missing", "title": "File not found",
+            "body": [{"type": "p", "text": "In the history list, a missing file is marked “(Not found)”. It is not removed from history automatically. Use “Delete from history” to remove it if you no longer need it."}]
+          },
+          {
+            "id": "save_files.layout_reload", "title": "An external layout was changed",
+            "body": [{"type": "p", "text": "Changes to an external layout JSON file while the app is running do not take effect until you select a layout again from the drop-down, even if you select the same layout."}]
+          }
+        ]
+      },
+      {
+        "id": "key_input", "title": "Key input",
+        "items": [
+          {
+            "id": "key_input.record", "title": "Record a key",
+            "body": [{"type": "p", "text": "Press “Record by pressing a key,” then press the key you want to record. Press Esc to cancel. While recording, the app turns its IME OFF automatically."}]
+          },
+          {
+            "id": "key_input.cannot_record", "title": "Cannot record a key",
+            "body": [
+              {"type": "p", "text": "Keys whose names cannot be identified cannot be recorded. The app shows “This key cannot be recorded. Press another key. (Press Esc to cancel)”. A key also cannot be recorded if you turn the IME ON manually while recording."},
+              {"type": "p", "text": "JIS special keys can be recorded when you select the layout that defines them (the sample jis.json)."}
+            ]
+          },
+          {
+            "id": "key_input.left_right", "title": "Left and right modifier keys",
+            "body": [{"type": "p", "text": "Left and right Shift, Ctrl, and Alt are separate keys. They are named shift / ctrl / alt for the left keys and right shift / right ctrl / right alt for the right keys."}]
+          },
+          {
+            "id": "key_input.priority", "title": "When one key has multiple roles",
+            "body": [{"type": "p", "text": "If one key has multiple roles, the first matching role runs in this order: stop key → Pause / Resume key → switch key → trigger → key remap."}]
+          }
+        ]
+      }
+    ]
+  }
+}

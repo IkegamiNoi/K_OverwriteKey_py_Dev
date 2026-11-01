@@ -25,7 +25,7 @@ from keyseq.presentation.help.help_content import (
     load_help_content,
     parse_help_content,
 )
-from keyseq.shared.i18n import fix_language
+from keyseq.shared.i18n import current_language, fix_language, reset_for_tests
 
 fix_language("ja")
 
@@ -71,6 +71,71 @@ class HelpContentTest(unittest.TestCase):
         self.assertEqual([item.title for item in result.content.guide], GUIDE_TITLES)
         self.assertEqual([item.id for item in result.content.faq], FAQ_IDS)
         self.assertTrue(all(group.items for group in (*result.content.guide, *result.content.faq)))
+
+    def test_bundled_english_content_loads_without_text_issues(self) -> None:
+        result = load_help_content(help_content_path("en"))
+        self.assertEqual(result.error, "")
+        self.assertIsNotNone(result.content)
+        assert result.content is not None
+        self.assertEqual(find_text_issues(result.content), [])
+        self.assertEqual(result.content.guide[0].title, "Getting started")
+
+    def test_english_content_preserves_japanese_structure(self) -> None:
+        japanese = json.loads(help_content_path("ja").read_text(encoding="utf-8"))
+        english = json.loads(help_content_path("en").read_text(encoding="utf-8"))
+
+        def compare(source: object, translated: object, key: str = "") -> None:
+            if isinstance(source, dict):
+                self.assertIsInstance(translated, dict)
+                self.assertEqual(list(source), list(translated))
+                for name, value in source.items():
+                    compare(value, translated[name], name)
+            elif isinstance(source, list):
+                self.assertIsInstance(translated, list)
+                self.assertEqual(len(source), len(translated))
+                for original, translation in zip(source, translated):
+                    compare(original, translation, key)
+            elif key in ("title", "text", "items"):
+                self.assertIsInstance(translated, str)
+            else:
+                self.assertEqual(source, translated)
+
+        compare(japanese, english)
+
+    def test_english_display_strings_contain_no_japanese(self) -> None:
+        result = load_help_content(help_content_path("en"))
+        self.assertIsNotNone(result.content, result.error)
+        assert result.content is not None
+        for group in (*result.content.guide, *result.content.faq):
+            values = [group.title]
+            for item in group.items:
+                values.append(item.title)
+                for block in item.body:
+                    values.extend((block.text,) if block.kind == "p" else block.items)
+            for value in values:
+                with self.subTest(category=group.id, text=value):
+                    self.assertNotRegex(
+                        value,
+                        r"[\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff"
+                        r"\uf900-\ufaff\uff66-\uff9f\U0001b000-\U0001b16f"
+                        r"\U00020000-\U000323af]",
+                    )
+
+    def test_current_english_language_loads_bundled_english_content(self) -> None:
+        previous_language = current_language()
+        try:
+            reset_for_tests()
+            fix_language("en")
+            result = load_help_content()
+            expected = load_help_content(help_content_path("en"))
+            self.assertEqual(result.error, "")
+            self.assertIsNotNone(result.content)
+            self.assertEqual(result.content, expected.content)
+            assert result.content is not None
+            self.assertEqual(result.content.guide[0].title, "Getting started")
+        finally:
+            reset_for_tests()
+            fix_language(previous_language)
 
     def test_version_and_bundled_paths(self) -> None:
         root = bundled_root()
