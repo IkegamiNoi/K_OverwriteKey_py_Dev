@@ -12,7 +12,7 @@ from keyseq.presentation.hook_button_texts import (
     HOOK_TOGGLE_TEXTS, TRIGGER_DISABLE_TEXT, TRIGGER_ENABLE_TEXT,
     TRIGGER_TOGGLE_TEXTS,
 )
-from keyseq.shared.i18n import fix_language
+from keyseq.shared.i18n import fix_language, tr
 
 fix_language("ja")
 
@@ -45,8 +45,8 @@ class HeaderButtonWidthsTest(unittest.TestCase):
         self.button_texts = (
             (frame.stop_key_capture_btn, CAPTURE_TEXTS),
             (frame.toggle_key_capture_btn, CAPTURE_TEXTS),
-            (frame.hook_toggle_btn, HOOK_TOGGLE_TEXTS),
-            (frame.trigger_toggle_btn, TRIGGER_TOGGLE_TEXTS),
+            (frame.hook_toggle_btn, tuple(tr(text) for text in HOOK_TOGGLE_TEXTS)),
+            (frame.trigger_toggle_btn, tuple(tr(text) for text in TRIGGER_TOGGLE_TEXTS)),
         )
         self.original_texts = [(button, button.cget("text"))
                                for button, _texts in self.button_texts]
@@ -79,11 +79,11 @@ class HeaderButtonWidthsTest(unittest.TestCase):
 
     def test_trigger_toggle_texts_and_key_labels_use_pause_resume_wording(self) -> None:
         self.assertEqual(
-            TRIGGER_TOGGLE_TEXTS,
+            tuple(tr(text) for text in TRIGGER_TOGGLE_TEXTS),
             ("キーマップ一時停止", "キーマップ再開"),
         )
-        self.assertEqual(TRIGGER_DISABLE_TEXT, "キーマップ一時停止")
-        self.assertEqual(TRIGGER_ENABLE_TEXT, "キーマップ再開")
+        self.assertEqual(tr(TRIGGER_DISABLE_TEXT), "キーマップ一時停止")
+        self.assertEqual(tr(TRIGGER_ENABLE_TEXT), "キーマップ再開")
 
         full_label = self.app.full_view.hook_frame.full_hook_line2.grid_slaves(
             row=1, column=0

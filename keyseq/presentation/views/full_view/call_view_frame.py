@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
+from keyseq.shared.i18n import tr
 
 
 class CallViewFrame:
@@ -58,14 +59,15 @@ class CallViewFrame:
 
     def set_heading(self, is_open: bool, path: tuple[str, ...] = ()) -> None:
         if not is_open:
-            text = "▸ 呼び出し先"
+            text = tr("view.call_view.heading_closed")
         else:
-            text = "▾ 呼び出し先" + (f"　{' › '.join(path)}" if path else "")
+            path_text = f"　{' › '.join(path)}" if path else ""
+            text = tr("view.call_view.heading_open", path=path_text)
         self.heading.configure(text=text)
 
     def set_empty_state(self) -> None:
         self.action_list.delete(0, tk.END)
-        self.action_list.insert(tk.END, "呼び出し中ではありません")
+        self.action_list.insert(tk.END, tr("view.call_view.empty"))
 
 
 def list_minimum_height(listing: tk.Listbox) -> int:

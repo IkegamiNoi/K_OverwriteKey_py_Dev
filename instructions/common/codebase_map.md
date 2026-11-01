@@ -133,8 +133,8 @@ keyseq/presentation/
     listbox_range_drag.py      # ListboxRangeDrag / bind_listbox_range_drag: 対象 4 一覧の連続範囲選択・ドラッグ移動のプレビューと確定・Escape の取り消し・自動スクロール・Tk 既定バインドの置き換え。range_or_index: 有効な選択範囲か代替の 1 行を取得（compact は範囲を無視・phase 43）
     list_clipboard.py          # ListClipboard: 一覧の Ctrl+C / V のアプリ内保管庫（種類つきの写し・構成セットの読込 / 新規作成で空にする・phase 43）
     modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰
-    child_kind_labels.py       # 子ファイルの種別の表示名の表 + 親の種類名。純関数
-    reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（純関数・tkinter 非依存）
+    child_kind_labels.py       # 子ファイルの種別の文言キーの表 + 親の種類名。kind_label / parent_kind_label の呼出時に shared.i18n.tr で表示名を解決
+    reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（tkinter 非依存・呼出時に翻訳。CLEANUP_EMPTY_MESSAGE は対象外の config_io 向けに日本語を維持）
     help/                      # ヘルプ・バージョン情報・ライセンス（phase 70・下の「ヘルプ」節）
       help_window_controller.py # HelpWindowController: ヘルプの単一性・前面化・ダイアログの子として開く入口
       help_window.py           # HelpWindow: 絞り込み欄・タブ・入力欄のフォーカス中だけフックを一時停止
@@ -167,10 +167,10 @@ keyseq/presentation/
     button_width_rules.py      # fixed_button_width_chars: 文言幅の最大 ÷ 「0」1 文字の幅（`font.measure("0")`）の切り上げ（ttk の文字数単位。純関数・phase 19）
     key_capture_ime.py         # KeyCaptureImeTracker / begin_key_capture・end_key_capture: キーの記録中は IME を OFF にする寿命の部品（入口ごとの数と「OFF にした」印・開始 / 終了の冪等・窓自身の `<Destroy>` で終了・既定インスタンスはモジュール変数・phase 60）/ 受け取りの関数 `on_hook_key`・世代・フォーカスの窓への受け渡し `deliver`・記録用のフックの設定 `configure_capture_hook`（phase 66）
     key_capture_hook.py        # KeyCaptureHook: キーの記録中だけ使う suppress フック（レイアウトの行に当たるキーを抑止して名前を渡す・押下中・余韻・前面の判定。infrastructure は呼び出し可能な値で受ける・phase 66）
-    hook_button_texts.py       # フックの枠の切替ボタンの文言・記録できないキーの案内文言（`UNKNOWN_CAPTURE_KEY_HINT_TEXT`・phase 59 / 60 で文言変更）とキーボード選択のドロップダウン幅の定数（views / controllers の双方から参照する中立モジュール・import なし）
-    orphan_sweep_text.py       # 未使用ファイルの整理の提示テキスト整形（警告 / 候補一覧 / 退避結果。純関数）
-    quarantine_manage_text.py  # 退避したファイルの管理の提示テキスト整形（回の一覧 / 復元・削除の計画と結果。純関数）
-    keymap_set_history_text.py # 読み込み履歴の表示文言（ノード名・ボタン文言・確認文・失敗理由。純関数と定数のみ）
+    hook_button_texts.py       # フック切替ボタンの文言キー・capture_idle_text / capture_active_text の実行時翻訳とキーボード選択幅。CAPTURE_* / UNKNOWN_CAPTURE_KEY_HINT_TEXT は対象外の dialogs 向けに日本語を維持（phase 72 task_03）
+    orphan_sweep_text.py       # 未使用ファイルの整理の提示テキスト整形（警告 / 候補一覧 / 退避結果。呼出時に翻訳。公開文言定数はキー）
+    quarantine_manage_text.py  # 退避したファイルの管理の提示テキスト整形（回の一覧 / 復元・削除の計画と結果。呼出時に翻訳）
+    keymap_set_history_text.py # 読み込み履歴の表示文言（不在ファイルの名前・確認文・失敗理由等は呼出時に翻訳。公開文言定数は対象外の dialogs / config_io 向けに日本語を維持）
     startup_settings.py        # load_startup_settings: startup.json 読込+型ガード+正規化（config_service 直依存・未知キー全保持・UI通知は on_read_error 注入）
     theme.py                   # フォント/テーマ適用 + coerce_font_delta（フォント差分 -3..+3 正規化の唯一点）
     tk_keys.py                 # Tk のキーイベント → キー名（テンキー・key_hold の左右）/ `is_unresolved_capture_key`（`??`・phase 60）
@@ -317,13 +317,13 @@ App の委譲メソッドを介さず、コントローラを `app.<名前>`（`
     - ReferenceCleanupIo（reference_cleanup_io.py = `app.reference_cleanup_io`）: **フローだけ**を持つ。
       未保存なら保存確認 → **いいえ / 保存失敗なら検査もせず終了** → 検査 → **対象 0 件なら一覧を出さず通知** →
       確認ダイアログ → **キャンセルなら 1 件も書かない** → 除去 → 結果通知。**runtime・dirty は変えない**
-    - 検査・除去は `config_service` へ委譲し、文言は `reference_cleanup_text` の純関数が組み立てる
+    - 検査・除去は `config_service` へ委譲し、文言は `reference_cleanup_text` が呼出時に翻訳して組み立てる
       （**このクラス自身は検査・除去・文言のロジックを持たない**。0 件の分岐だけはフロー側にもある）
     - ReferenceCleanupDialog（dialogs/reference_cleanup_dialog.py）: 読み取り専用の一覧 + 実行 / キャンセル。
       `tk.Toplevel` 継承。**フックの停止はウィンドウを渡して行い、解除は破棄時に自動**
       （`layout_delete_dialog.py` と同型。`destroy()` override は持たない）。
       **`result` の既定は `False`**（× / Esc で実行しない）
-    - reference_cleanup_text.py（presentation 直下）: 提示テキストの整形（**tkinter 非依存の純関数**。
+    - reference_cleanup_text.py（presentation 直下）: 提示テキストの整形（**tkinter 非依存・呼出時に翻訳**。
       `dialogs/` に置くと `__init__` が tkinter / pynput を巻き込むため直下）
     - **メニュー配線は `views/menu_bar.py` の設定メニュー 1 行**
   - KeymapSetHistoryIo（keymap_set_history_io.py = `app.keymap_set_history_io`）: 構成セットの読み込み履歴

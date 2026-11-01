@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
+from keyseq.shared.i18n import tr
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag
@@ -16,7 +17,7 @@ if TYPE_CHECKING:
 
 class SequenceBox(ttk.LabelFrame):
     def __init__(self, parent, app: App):
-        super().__init__(parent, text="出力シーケンス（選択中トリガーの内容）", padding=10)
+        super().__init__(parent, text=tr("view.sequence.title"), padding=10)
         self.scroll_area = VerticalScrollArea(self)
         self.scroll_area.pack(fill="both", expand=True)
 
@@ -56,28 +57,28 @@ class SequenceBox(ttk.LabelFrame):
         self.call_view_frame = CallViewFrame(
             self.action_column, self.action_panes, lambda: app.call_view.on_heading_click(),
         )
-        ttk.Button(abtns, text="追加…", width=16, command=app.trigger_panel.add_action).pack(pady=(0, 6))
-        ttk.Button(abtns, text="編集…", width=16, command=app.trigger_panel.edit_action).pack(pady=6)
-        ttk.Button(abtns, text="削除", width=16, command=app.trigger_panel.delete_action).pack(pady=6)
-        ttk.Button(abtns, text="複製", width=16, command=app.trigger_panel.duplicate_action).pack(pady=6)
+        ttk.Button(abtns, text=tr("common.add"), width=16, command=app.trigger_panel.add_action).pack(pady=(0, 6))
+        ttk.Button(abtns, text=tr("common.edit"), width=16, command=app.trigger_panel.edit_action).pack(pady=6)
+        ttk.Button(abtns, text=tr("common.delete"), width=16, command=app.trigger_panel.delete_action).pack(pady=6)
+        ttk.Button(abtns, text=tr("common.duplicate"), width=16, command=app.trigger_panel.duplicate_action).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
-        ttk.Button(abtns, text="上へ", width=16, command=lambda: app.trigger_panel.move_action(-1)).pack(pady=6)
-        ttk.Button(abtns, text="下へ", width=16, command=lambda: app.trigger_panel.move_action(+1)).pack(pady=6)
+        ttk.Button(abtns, text=tr("common.move_up"), width=16, command=lambda: app.trigger_panel.move_action(-1)).pack(pady=6)
+        ttk.Button(abtns, text=tr("common.move_down"), width=16, command=lambda: app.trigger_panel.move_action(+1)).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
-        ttk.Button(abtns, text="保存", width=16, command=app.sequence_io.save_selected_sequence).pack(pady=6)
-        ttk.Button(abtns, text="別名保存…", width=16, command=app.sequence_io.save_selected_sequence_as).pack(pady=6)
-        ttk.Button(abtns, text="読込…", width=16, command=app.sequence_io.load_sequence_file).pack(pady=6)
+        ttk.Button(abtns, text=tr("common.save"), width=16, command=app.sequence_io.save_selected_sequence).pack(pady=6)
+        ttk.Button(abtns, text=tr("common.save_as"), width=16, command=app.sequence_io.save_selected_sequence_as).pack(pady=6)
+        ttk.Button(abtns, text=tr("common.load"), width=16, command=app.sequence_io.load_sequence_file).pack(pady=6)
         ttk.Separator(abtns).pack(fill="x", pady=10)
         # 連続実行（run_to_end）
         self.run_to_end_chk = ttk.Checkbutton(
             abtns,
-            text="連続実行",
+            text=tr("view.sequence.run_continuously"),
             variable=app.ui_vars.run_to_end_var,
             command=app.trigger_panel.update_run_to_end,
         )
         self.run_to_end_chk.pack(anchor="w", pady=(8, 0))
         self.select_before_run_chk = ttk.Checkbutton(
-            abtns, text="選んでから実行",
+            abtns, text=tr("view.sequence.select_before_run"),
             variable=app.ui_vars.sequence_select_before_run_var,
             command=app.trigger_panel.update_select_before_run,
         )
@@ -85,7 +86,7 @@ class SequenceBox(ttk.LabelFrame):
         # 連続実行 間隔（ms） ※トリガーごと / デフォルト300
         delay_line = ttk.Frame(abtns)
         delay_line.pack(fill="x", pady=(6, 0))
-        ttk.Label(delay_line, text="間隔(ms)").pack(side="left")
+        ttk.Label(delay_line, text=tr("view.sequence.interval_ms")).pack(side="left")
         self.run_to_end_delay_entry = ttk.Entry(delay_line, width=8, textvariable=app.ui_vars.run_to_end_delay_var)
         self.run_to_end_delay_entry.pack(side="left", padx=(8, 0))
         # Enter / フォーカスアウトで保存

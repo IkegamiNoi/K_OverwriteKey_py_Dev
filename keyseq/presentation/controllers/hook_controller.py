@@ -5,6 +5,8 @@ import time
 import tkinter as tk
 from tkinter import messagebox
 
+from keyseq.shared.i18n import tr
+
 from keyseq.application.input_router import GridKeyAction, InputRoute, SendKeyAction, StopHookAction, TriggerAction
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis, analyze_key_overlaps
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY, normalize_key_name
@@ -37,13 +39,13 @@ class HookController:
         self._hook_button_pairs.append((hook_btn, trigger_btn))
         if fixed_width:
             self._fixed_width_button_pairs.append((hook_btn, trigger_btn))
-            apply_fixed_button_width(hook_btn, HOOK_TOGGLE_TEXTS)
-            apply_fixed_button_width(trigger_btn, TRIGGER_TOGGLE_TEXTS)
+            apply_fixed_button_width(hook_btn, tuple(tr(key) for key in HOOK_TOGGLE_TEXTS))
+            apply_fixed_button_width(trigger_btn, tuple(tr(key) for key in TRIGGER_TOGGLE_TEXTS))
 
     def apply_fixed_button_widths(self) -> None:
         for hook_btn, trigger_btn in self._fixed_width_button_pairs:
-            apply_fixed_button_width(hook_btn, HOOK_TOGGLE_TEXTS)
-            apply_fixed_button_width(trigger_btn, TRIGGER_TOGGLE_TEXTS)
+            apply_fixed_button_width(hook_btn, tuple(tr(key) for key in HOOK_TOGGLE_TEXTS))
+            apply_fixed_button_width(trigger_btn, tuple(tr(key) for key in TRIGGER_TOGGLE_TEXTS))
 
     # ---------------- Hook suspend/resume for modal dialogs ----------------
     def suspend_hook_for_dialog(self, window: tk.Misc | None = None) -> None:
@@ -85,7 +87,7 @@ class HookController:
 
     # ---------------- Hook toggle button sync ----------------
     def sync_hook_toggle_buttons(self):
-        text = HOOK_STOP_TEXT if self.hook_active else HOOK_START_TEXT
+        text = tr(HOOK_STOP_TEXT if self.hook_active else HOOK_START_TEXT)
         for hook_btn, _trigger_btn in self._hook_button_pairs:
             try:
                 hook_btn.configure(text=text, state="normal")
@@ -94,13 +96,13 @@ class HookController:
 
     def sync_trigger_toggle_buttons(self):
         if not self.hook_active:
-            text = TRIGGER_DISABLE_TEXT
+            text = tr(TRIGGER_DISABLE_TEXT)
             state = "disabled"
         elif self.custom_input_enabled:
-            text = TRIGGER_DISABLE_TEXT
+            text = tr(TRIGGER_DISABLE_TEXT)
             state = "normal"
         else:
-            text = TRIGGER_ENABLE_TEXT
+            text = tr(TRIGGER_ENABLE_TEXT)
             state = "normal"
 
         for _hook_btn, trigger_btn in self._hook_button_pairs:
@@ -230,7 +232,7 @@ class HookController:
         errors = self._app.held_inputs.release_all()
         if errors:
             self.show_action_error(
-                "", {"type": "key_hold", "value": "すべて解放"},
+                "", {"type": "key_hold", "value": tr("action.key_hold.release_all")},
                 RuntimeError("\n".join(str(error) for error in errors)),
             )
 
@@ -240,8 +242,8 @@ class HookController:
             return True
         stop_key = normalize_key_name(self._app.data.get(HOOK_STOP_KEY, ""))
         messagebox.showerror(
-            "開始できません",
-            f"停止キーと一時停止/再開キーが重複しています:\n{stop_key}",
+            tr("hook.configuration.start_failed"),
+            tr("hook.configuration.stop_toggle_conflict", stop_key=stop_key),
         )
         return False
 
@@ -271,25 +273,22 @@ class HookController:
         parts = []
         if isinstance(action, StopHookAction):
             parts.append(current)
-            parts.append("停止しました")
+            parts.append(tr("hook.status.stopped"))
         parts.extend(notices)
         self._last_shadowed_status = "\n".join(dict.fromkeys(part for part in parts if part))
         self._app._set_flash_message(self._last_shadowed_status)
 
     @staticmethod
     def _format_shadowed_assignment(conflict: AssignmentConflict) -> str:
-        reason = {
-            "stop": "停止キー",
-            "toggle": "一時停止/再開キー",
-            "switch": "切替キー",
-        }.get(conflict.winner, "他のキー設定")
+        reason = tr({
+            "stop": "hook.conflict.stop",
+            "toggle": "hook.conflict.toggle",
+            "switch": "hook.conflict.switch",
+        }.get(conflict.winner, "hook.conflict.other"))
         if conflict.kind == "keymap_switch":
             name = conflict.keymap_label or conflict.keymap_id
-            return (
-                f"{conflict.key}は{reason}と重複しているため、キーマップ {name} へ切り替えられません。"
-                "切替キーを変更してください"
-            )
-        return f"{conflict.key}は{reason}と重複しているため、トリガーは実行されません。トリガーキーを変更してください"
+            return tr("hook.conflict.keymap_switch", key=conflict.key, reason=reason, name=name)
+        return tr("hook.conflict.trigger", key=conflict.key, reason=reason)
 
     def on_input_event(self, event: object):
         debug = bool((getattr(self._app, "data", None) or {}).get("debug_jis_special_key_events", False))
@@ -385,20 +384,13 @@ class HookController:
         try:
             t = (action.get("type") or "").strip().lower()
             v = action.get("value") or ""
-            msg = (
-                "キー送信中にエラーが発生しました。\n"
-                f"送信キーの指定に誤りがある可能性があります。内容を確認してください。\n\n"
-                #f"トリガー: {normalize_key_name(trigger_key)}\n"
-                f"種別: {t}\n"
-                f"値: {v}\n\n"
-                f"エラー: {err}"
-            )
+            msg = tr("hook.send_error.body", action_type=t, value=v, error=err)
             # 知らせの表示中はキーリピートを止めて抑止する（暫定 36 §4.8）。
             repeater = getattr(self._app, "key_repeater", None)
             if repeater is not None:
                 repeater.begin_suppress()
             try:
-                messagebox.showerror("送信エラー", msg)
+                messagebox.showerror(tr("hook.send_error.title"), msg)
             finally:
                 if repeater is not None:
                     repeater.end_suppress()

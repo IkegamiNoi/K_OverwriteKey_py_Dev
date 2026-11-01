@@ -4,6 +4,7 @@ import tkinter as tk
 from tkinter import ttk
 
 from keyseq.domain.screen_grid import GRID_OPS, OP_LABELS
+from keyseq.shared.i18n import tr
 
 
 _KEY_BUTTON_BG = "#e0e0e0"
@@ -25,7 +26,7 @@ class GridEditorPanel(tk.Toplevel):
         self._measuring_scroll_area = False
         # 窓が未表示のとき winfo_ismapped は 0 になるので、スクロールバーの表示は自前の印で持つ。
         self._scrollbar_shown = False
-        self.title("カーソルグリッドを編集")
+        self.title(tr("screen_grid.editor.title"))
         self.transient(editor)
         self.attributes("-topmost", True)
         self.resizable(False, False)
@@ -54,18 +55,19 @@ class GridEditorPanel(tk.Toplevel):
         self.monitor_combo.pack(fill="x")
         self.monitor_combo.bind("<<ComboboxSelected>>", lambda _e: self._then_focus_editor(
             editor, lambda: editor.switch_monitor(editor.monitors[self.monitor_combo.current()].id)))
-        self.hint = ttk.Label(content, text="マスをクリックして選ぶ → キーを押すとそのマスのキー")
+        self.hint = ttk.Label(content, text=tr("screen_grid.editor.hint"))
         self.hint.pack(anchor="w", pady=(4, 2))
         self.buttons = {}
         button_frame = ttk.Frame(content)
         button_frame.pack(fill="x")
         button_frame.grid_columnconfigure(0, weight=1, uniform="actions")
         button_frame.grid_columnconfigure(1, weight=1, uniform="actions")
-        for index, (text, command) in enumerate((
-            ("段の追加", editor.add_row), ("段の削除", editor.remove_row),
-            ("列の追加", editor.add_cell), ("列の削除", editor.remove_cell),
-            ("キーを振り直す", editor.reassign), ("この画面を既定に戻す", editor.reset_monitor),
+        for index, (key, command) in enumerate((
+            ("screen_grid.editor.row.add", editor.add_row), ("screen_grid.editor.row.remove", editor.remove_row),
+            ("screen_grid.editor.column.add", editor.add_cell), ("screen_grid.editor.column.remove", editor.remove_cell),
+            ("screen_grid.editor.keys.reassign", editor.reassign), ("screen_grid.editor.monitor.reset", editor.reset_monitor),
         )):
+            text = tr(key)
             # 押した後もキーで枠のキーを変えられるよう、フォーカスを編集の窓へ戻す。
             button = ttk.Button(
                 button_frame, text=text, command=lambda c=command: self._then_focus_editor(editor, c)
@@ -74,11 +76,11 @@ class GridEditorPanel(tk.Toplevel):
             self.buttons[text] = button
         self.label_position_var = tk.BooleanVar(value=editor.label_position == "top_left")
         self.label_position_check = ttk.Checkbutton(
-            content, text="キーをマスの左上に表示", variable=self.label_position_var,
+            content, text=tr("screen_grid.editor.label_position.top_left"), variable=self.label_position_var,
             command=editor.label_position_changed,
         )
         self.label_position_check.pack(anchor="w")
-        self.ops_frame = ttk.LabelFrame(content, text="操作キー（Esc = 戻る・テンキーのEnter = クリックは固定）")
+        self.ops_frame = ttk.LabelFrame(content, text=tr("screen_grid.editor.ops.title"))
         self.ops_frame.pack(fill="x", pady=(4, 2))
         for column in (1, 3):
             self.ops_frame.grid_columnconfigure(column, weight=1)
@@ -97,17 +99,18 @@ class GridEditorPanel(tk.Toplevel):
             self.op_key_buttons[operation] = button
         self.update_op_buttons()
         reset_ops = ttk.Button(
-            self.ops_frame, text="操作キーを既定に戻す",
+            self.ops_frame, text=tr("screen_grid.editor.ops.reset"),
             command=lambda: self._then_focus_editor(editor, editor.reset_ops),
         )
         reset_ops.grid(row=4, column=0, columnspan=4, sticky="ew", padx=3, pady=(3, 2))
-        ttk.Label(content, text="細分化（段数・列数 / マスをクリックしてキーを押す）").pack(anchor="w")
+        ttk.Label(content, text=tr("screen_grid.editor.subdivision.title")).pack(anchor="w")
         counts = ttk.Frame(content)
         counts.pack(fill="x")
         self.rows_var = tk.StringVar(value=str(editor.sub.rows))
         self.cols_var = tk.StringVar(value=str(editor.sub.cols))
         self.count_spinboxes = []
-        for label, variable in (("段", self.rows_var), ("列", self.cols_var)):
+        for key, variable in (("screen_grid.editor.subdivision.rows", self.rows_var), ("screen_grid.editor.subdivision.columns", self.cols_var)):
+            label = tr(key)
             ttk.Label(counts, text=label).pack(side="left")
             spinbox = ttk.Spinbox(counts, from_=1, to=9, width=4, textvariable=variable)
             spinbox.pack(side="left")
@@ -122,7 +125,8 @@ class GridEditorPanel(tk.Toplevel):
         self.cols_var.trace_add("write", editor.sub_counts_changed)
         self.actions = ttk.Frame(frame)
         self.actions.pack(anchor="e")
-        for text, command in (("OK", editor.accept), ("キャンセル", editor.destroy)):
+        for key, command in (("common.ok", editor.accept), ("common.cancel", editor.destroy)):
+            text = tr(key)
             ttk.Button(self.actions, text=text, command=command).pack(side="left", padx=3)
         self.bind("<Escape>", editor.on_escape)
         self._bind_mousewheel_tree(content, bind_configure=True)
@@ -241,7 +245,11 @@ class GridEditorPanel(tk.Toplevel):
 
     def update_selection(self, selected) -> None:
         state = "normal" if selected is not None else "disabled"
-        for text in ("段の追加", "段の削除", "列の追加", "列の削除"):
+        for key in (
+            "screen_grid.editor.row.add", "screen_grid.editor.row.remove",
+            "screen_grid.editor.column.add", "screen_grid.editor.column.remove",
+        ):
+            text = tr(key)
             self.buttons[text].configure(state=state)
 
     def rebuild_sub_key_entries(self, rows: int, cols: int, keys) -> None:

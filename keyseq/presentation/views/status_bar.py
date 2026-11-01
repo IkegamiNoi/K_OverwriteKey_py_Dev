@@ -1,6 +1,7 @@
 from tkinter import ttk
 
 from keyseq.presentation.hover_tooltip import bind_hover_tooltip
+from keyseq.shared.i18n import tr
 
 
 def _bind_status_tooltip(label, display_var, full_var) -> None:
@@ -44,7 +45,7 @@ def _bind_status_tooltip(label, display_var, full_var) -> None:
 
 def build_status_area(app, parent):
     # フック/トリガー状態表示（1行または2行）
-    runtime_status_frame = ttk.LabelFrame(parent, text="ステータス", padding=(10, 6))
+    runtime_status_frame = ttk.LabelFrame(parent, text=tr("status.title"), padding=(10, 6))
     runtime_status_frame.pack(
         side="bottom", fill="x", padx=12, pady=(0, 4), before=app.outer,
     )

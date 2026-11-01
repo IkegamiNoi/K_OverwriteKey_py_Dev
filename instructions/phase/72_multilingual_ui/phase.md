@@ -58,7 +58,8 @@ JSON スキーマ = config.json の任意キー `ui_language` の追加**（キ�
 
 - task_01: 基盤 — `shared/i18n`（暫定 55 §3・§4.1）・`locales/ja.json` / `en.json`（`_meta` と本 task の新規文言のみ）・App の言語の決定（§4.2・画面を作る前）・テストの言語固定・メニューの言語の項目と保存・再起動の知らせ（§4.3・§5）・`help_content.py` の言語の差し替えと読む順（§3.4。本文の検証エラー文のキー化は task_05）+ tests。`startup_settings.py` / `startup_io.py` / `split_payloads.py` は変更せず、`ui_language` が書き込みの 2 経路（構成セットの保存を含む）で残ることをテストで確かめる（§1・§9 条件 4）。
 - task_02: 表示文字列の内部値の分離 — 比較・Combobox の値に使っている表示文字列を仕分けて内部コードへ（§6.3）+ tests（日本語の表示は不変）。
-- task_03: キー移行 1 — 主画面・メニュー・views・controllers・モジュール定数の文言表（`*_text.py` 等）。
+- task_03: キー移行 1 — 主画面・メニュー・views・モジュール定数の文言表（`*_text.py` 等）・キーボード / レイアウト / カーソルグリッド・controllers 直下（約 350 リテラル）。
+- task_03b: キー移行 1b — controllers の `config_io/`・`keymap_panel/`・`trigger_panel/`（約 400 リテラル・2026-11-01 に task_03 から分割）。
 - task_04: キー移行 2 — アクションの編集まわりの dialogs（`action_dialog.py`・`action_control_fields.py`・`action_key_hold_fields.py` ほか）。
 - task_05: キー移行 3 — 残りの dialogs（キーマップ・トリガー・プリセット・グリッド・整理 / 退避 / 履歴・レイアウト ほか）・ヘルプ / バージョン情報 / ライセンスの窓・ヘルプ本文の検証エラー文（`help_content.py`）。
 - task_06: キー移行 4 — application / domain / infrastructure の画面に出る文（ログ専用と仕分け）・既定の文言（`split_loading.py:381`）。

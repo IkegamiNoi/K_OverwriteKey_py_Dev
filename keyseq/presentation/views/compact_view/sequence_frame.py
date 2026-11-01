@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
+from keyseq.shared.i18n import tr
 
 from keyseq.presentation.views.full_view.call_view_frame import list_minimum_height
 
@@ -37,7 +38,9 @@ class CompactSequenceFrame:
             self.action_list.bind(event, on_ignore)
 
     def set_heading(self, is_open: bool) -> None:
-        self.heading.configure(text="▾ シーケンス" if is_open else "▸ シーケンス")
+        self.heading.configure(
+            text=tr("view.sequence.heading_open" if is_open else "view.sequence.heading_closed")
+        )
 
     def show_heading_in_body(self) -> None:
         self.heading.pack(in_=self.body, side="top", fill="x", before=self.content)

@@ -125,7 +125,7 @@ class KeymapSetHistoryFlowTest(unittest.TestCase):
         self.assertEqual([bool(dialog.tree.item(i, "open")) for i in roots], [True, False, False, False])
         entries = dialog.tree.get_children(roots[0])
         self.assertEqual(dialog.tree.item(entries[0], "text"), "shared")
-        self.assertEqual(dialog.tree.item(entries[1], "text"), "missing.set" + text.MISSING_SUFFIX)
+        self.assertEqual(dialog.tree.item(entries[1], "text"), "missing.set（見つかりません）")
         self.assertEqual(dialog.tree.item(entries[1], "values"), ("user/missing.set.json",))
         dialog.tree.item(roots[-1], open=True)
         self._select(dialog, "category_entry", "z")

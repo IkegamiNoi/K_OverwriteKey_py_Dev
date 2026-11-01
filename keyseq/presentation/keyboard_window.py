@@ -34,6 +34,7 @@ from keyseq.presentation.tk_keys import (
     is_unresolved_capture_key,
     numpad_name_from_tk_event,
 )
+from keyseq.shared.i18n import tr
 
 _LOOKUP_KEY_BY_ID = {
     "shift_l": "shift",
@@ -61,10 +62,10 @@ _LOOKUP_KEY_BY_ID = {
 
 def keyboard_window_title(layout_name: str, editing_key: str | None) -> str:
     if editing_key:
-        return f"キーボードUI — 編集中: {editing_key}（Escでキャンセル）"
+        return tr("keyboard.window.title.editing", key=editing_key)
     if layout_name:
-        return f"キーボードUI — {layout_name}"
-    return "キーボードUI"
+        return tr("keyboard.window.title.layout", layout=layout_name)
+    return tr("keyboard.window.title.default")
 
 
 class KeyboardWindow(tk.Toplevel):
@@ -81,7 +82,7 @@ class KeyboardWindow(tk.Toplevel):
         on_width_settled: Callable[[str, int], None] | None = None,
     ):
         super().__init__(parent)
-        self.title("キーボードUI")
+        self.title(tr("keyboard.window.title.default"))
         self._on_close = on_close
         self._on_assign_keymap = on_assign_keymap
         self._on_clear_keymap = on_clear_keymap

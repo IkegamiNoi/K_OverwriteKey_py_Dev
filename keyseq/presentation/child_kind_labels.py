@@ -5,22 +5,25 @@ from keyseq.application.config_service.contracts import (
     KIND_SEQUENCE,
     KIND_TRIGGER_SET,
 )
+from keyseq.shared.i18n import tr
 
 
 KIND_LABELS: dict[str, str] = {
-    KIND_KEYMAP: "キーマップ",
-    KIND_TRIGGER_SET: "トリガーセット",
-    KIND_SEQUENCE: "出力シーケンス",
+    KIND_KEYMAP: "child_kind.keymap",
+    KIND_TRIGGER_SET: "child_kind.trigger_set",
+    KIND_SEQUENCE: "child_kind.sequence",
 }
 
 
 def kind_label(kind: str) -> str:
-    return KIND_LABELS.get(kind, kind)
+    key = KIND_LABELS.get(kind)
+    return tr(key) if key is not None else kind
 
 
 def parent_kind_label(kind: str) -> str:
-    return {
-        KIND_KEYMAP: "構成セット",
-        KIND_TRIGGER_SET: KIND_LABELS[KIND_KEYMAP],
-        KIND_SEQUENCE: KIND_LABELS[KIND_TRIGGER_SET],
+    key = {
+        KIND_KEYMAP: "child_kind.parent_keymap",
+        KIND_TRIGGER_SET: "child_kind.parent_trigger_set",
+        KIND_SEQUENCE: "child_kind.parent_sequence",
     }[kind]
+    return tr(key)

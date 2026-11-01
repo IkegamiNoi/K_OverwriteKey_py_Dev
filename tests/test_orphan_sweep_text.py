@@ -16,7 +16,7 @@ from keyseq.presentation.orphan_sweep_text import (
 )
 
 
-from keyseq.shared.i18n import fix_language
+from keyseq.shared.i18n import fix_language, tr
 
 fix_language("ja")
 
@@ -78,8 +78,8 @@ class OrphanSweepTextTest(unittest.TestCase):
 
     def test_scope_note_is_always_last_warning(self):
         for result in (_result(), _result(missing_scan_dirs=("missing",))):
-            self.assertEqual(format_scan_warnings(result)[-1], SCAN_SCOPE_NOTE)
-        self.assertEqual(format_scan_warnings(_result()), (SCAN_SCOPE_NOTE,))
+            self.assertEqual(format_scan_warnings(result)[-1], tr(SCAN_SCOPE_NOTE))
+        self.assertEqual(format_scan_warnings(_result()), (tr(SCAN_SCOPE_NOTE),))
 
     def test_plan_lists_only_candidates(self):
         result = _result(entries=(
@@ -88,7 +88,7 @@ class OrphanSweepTextTest(unittest.TestCase):
             OrphanEntry(KIND_KEYMAP, "protected.json", ORPHAN_PROTECTED),
         ))
         self.assertEqual(format_orphan_plan(result), (
-            SCAN_SCOPE_NOTE, "未使用の候補: 1件", "キーマップ: candidate.json",
+            tr(SCAN_SCOPE_NOTE), "未使用の候補: 1件", "キーマップ: candidate.json",
         ))
 
     def test_excluded_entries_show_only_count(self):
@@ -104,7 +104,7 @@ class OrphanSweepTextTest(unittest.TestCase):
         result = _result(unreadable_sources=(("missing.json", SOURCE_MISSING),),
                          missing_scan_dirs=("missing-dir",), non_keymap_set_sources=("other.json",))
         self.assertEqual(format_orphan_notice(result), (
-            ORPHAN_SWEEP_EMPTY_MESSAGE, *format_scan_warnings(result),
+            tr(ORPHAN_SWEEP_EMPTY_MESSAGE), *format_scan_warnings(result),
         ))
 
     def test_all_kind_labels_and_unknown_kind(self):

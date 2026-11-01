@@ -8,6 +8,7 @@ from keyseq.application.screen_grid_session import (
 )
 from keyseq.domain.screen_grid import monitor_identifier
 from keyseq.infrastructure import win32_window
+from keyseq.shared.i18n import tr
 from .grid_overlay_window import GridOverlayWindow
 
 
@@ -90,7 +91,7 @@ class ScreenGridController:
 
     def _report_error(self, exc: Exception) -> None:
         _logger.exception("カーソルグリッドの操作に失敗しました")
-        self._app._set_flash_message(f"カーソルグリッドの操作に失敗しました: {exc}")
+        self._app._set_flash_message(tr("screen_grid.operation.failed", error=exc))
 
     def shutdown(self) -> None:
         self._overlay.destroy()

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
+from keyseq.shared.i18n import tr
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.listbox_range_drag import bind_listbox_range_drag
@@ -14,7 +15,7 @@ if TYPE_CHECKING:
 
 class KeymapBox(ttk.LabelFrame):
     def __init__(self, parent, app: App):
-        super().__init__(parent, text="キーマップ管理", padding=10)
+        super().__init__(parent, text=tr("view.keymap.title"), padding=10)
         self.scroll_area = VerticalScrollArea(self)
         self.scroll_area.pack(fill="both", expand=True)
 
@@ -42,14 +43,14 @@ class KeymapBox(ttk.LabelFrame):
 
         keymap_btns = ttk.Frame(self.scroll_area.content)
         keymap_btns.pack(fill="x", pady=(6, 0))
-        self.keymap_add_btn = ttk.Button(keymap_btns, text="追加…", command=app.keymap_panel.add_keymap)
+        self.keymap_add_btn = ttk.Button(keymap_btns, text=tr("common.add"), command=app.keymap_panel.add_keymap)
         self.keymap_add_btn.pack(fill="x", pady=(0, 3))
-        self.keymap_edit_btn = ttk.Button(keymap_btns, text="キーマップ編集…", command=app.keymap_panel.edit_selected_keymap)
+        self.keymap_edit_btn = ttk.Button(keymap_btns, text=tr("view.keymap.edit"), command=app.keymap_panel.edit_selected_keymap)
         self.keymap_edit_btn.pack(fill="x", pady=3)
-        self.keymap_delete_btn = ttk.Button(keymap_btns, text="削除", command=app.keymap_panel.delete_keymap)
+        self.keymap_delete_btn = ttk.Button(keymap_btns, text=tr("common.delete"), command=app.keymap_panel.delete_keymap)
         self.keymap_delete_btn.pack(fill="x", pady=3)
         ttk.Separator(keymap_btns).pack(fill="x", pady=6)
-        ttk.Button(keymap_btns, text="保存", command=app.keymap_io.save_selected_keymap).pack(fill="x", pady=3)
-        ttk.Button(keymap_btns, text="別名保存…", command=app.keymap_io.save_selected_keymap_as).pack(fill="x", pady=3)
-        ttk.Button(keymap_btns, text="読込…", command=app.keymap_io.load_keymap_file).pack(fill="x", pady=3)
+        ttk.Button(keymap_btns, text=tr("common.save"), command=app.keymap_io.save_selected_keymap).pack(fill="x", pady=3)
+        ttk.Button(keymap_btns, text=tr("common.save_as"), command=app.keymap_io.save_selected_keymap_as).pack(fill="x", pady=3)
+        ttk.Button(keymap_btns, text=tr("common.load"), command=app.keymap_io.load_keymap_file).pack(fill="x", pady=3)
         self.scroll_area.bind_wheel(skip=(self.keymap_listbox, keymap_list_scrollbar))

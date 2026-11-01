@@ -4,37 +4,36 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-01T13:20:00
+last_updated: 2026-11-01T14:40:00
 phase: instructions/phase/72_multilingual_ui（**アクティブ** = 画面の文言の多言語対応・暫定 55 v0.3 ユーザー確定済・decisions 72）。次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 71**（タスクバーのアイコン・`decisions_archive/71_taskbar_status_icon.md`）
 last_commit_location: `claude/multilingual-support-ff44eb`（phase 72）。phase 71 一式は `claude/taskbar-app-status-indicator-f73d28` にもあり、main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 72 進行中（task_02 完了・次 task_03）。** i18n 基盤（task_01）と、表示文字列を内部値に使う箇所の内部コード化（task_02）まで済み。既存の文言のキー化は task_03〜06。
+focus: **phase 72 進行中（task_03 完了・次 task_03b）。** i18n 基盤・内部値の分離・キー移行 1（主画面・メニュー・views・文言の表・キーボード / グリッド・controllers 直下・ja.json 254 キー）まで済み。
 mode: implementing
 presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-01T13:20:00
+ts: 2026-11-01T14:40:00
 who: main
 summary: |
-  task_02（表示文字列の内部値の分離）を codex-implementer（3 回に分けて実行）で実装。presentation 6 ファイル: key_hold（対象・押す / 離す・ボタン）/ system の op・範囲外 / mouse_scroll の向き / キーマップの追加の種類（new / load / paste）/ 「（未選択）」の判定を、呼び出し時に作るコード → ラベルの表で持ちコードで判定する形へ。旧名 SYSTEM_OPERATIONS 等は 0 件。
-  メインで修正: 行の種類の列に内部コードが出る退行（`_kind_row_labels`）/ ステータス欄の「（未選択）」が空になる退行（`sel_text`）/ 新テストの入力エラーの modal で tests_ui が止まった件（入力を足し showerror を patch・止まったプロセス 2 本だけ Stop-Process）/ レビュー指摘でボタンの表を `_button_labels()` へ・「（未選択）」の表示のテストを test_app_ui_flows に追加。
-  reviewer 採用（任意 1 = 反映 / テスト補強の推奨 2 = 反映・3 = 未反映〔edit モードのループ除外・load 経路・題名の差し替え等。既存テストで間接的に押さえ済み〕）。
+  task_03（キー移行 1）を codex-delegating-implementer（Sol medium・サブエージェント 3）で実装。presentation の主画面・メニュー・views・`*_text.py`・keyboard / screen_grid・controllers 直下を tr へ・ja.json に 249 キー + メインで「すべて解放」（エラー表示用の仮の action の value・3 か所）を `action.key_hold.release_all` へ。tests/test_i18n.py は移行中の検査（en ⊆ ja・差し込み名の一致）へ。codebase_map の該当行も Codex が更新（採用）。
+  **日本語のまま残した互換定数（後続 task で呼び出し元と一緒にキー化する）**: `hook_button_texts.py` の CAPTURE_* / UNKNOWN_CAPTURE_KEY_HINT_TEXT（dialogs = task_04・05）/ `keymap_set_history_text.py:6-28`（config_io = task_03b・dialogs = task_05）/ `reference_cleanup_text.py` の CLEANUP_EMPTY_MESSAGE（config_io = task_03b）/ `status_text.py` の HOOK_STATE_LABELS（trigger_panel = task_03b・tests/test_status_text.py:30）。
+  reviewer 採用（ja.json と削除行の日本語 285 件を機械照合 → 不一致 0〔7 件は分割・分岐で同じ出力〕・差し込み名の食い違い 0・import 時の tr 0）。
 result_files:
-  - keyseq/presentation/dialogs/{action_key_hold_fields,action_control_fields,action_mouse_scroll_fields,action_dialog}.py
-  - keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py / controllers/trigger_panel/trigger_panel_controller.py
-  - tests_ui/test_internal_value_codes.py（新規）/ tests_ui/test_task06_keymap_management_ui.py / tests_ui/test_app_ui_flows.py
-  - instructions/phase/72_multilingual_ui/tasks/task_02_internal_values.md / instructions/phase/current.md
+  - keyseq/presentation/ の 30 ファイル（app / menu_bar / views 一式 / *_text / keyboard_* / screen_grid / hook・layout_controller / key_capture）
+  - keyseq/shared/i18n/locales/ja.json / tests/test_i18n.py / tests/test_orphan_sweep_text.py / tests_ui の 3 ファイル / instructions/common/codebase_map.md
+  - instructions/phase/72_multilingual_ui/tasks/task_03_keys_main_views.md / phase.md（task_03b を追加）/ instructions/phase/current.md
 verified:
   compile: pass
   tests: pass（1888・skip 7）
-  tests_ui: pass（1222〔レビュー後の小修正の前〕・修正後に該当 3 ファイル 126 件 pass）
+  tests_ui: pass（1223）
   smoke: pass
 
 ## next_action
-- task_03（キー移行 1 = 主画面・メニュー・views・controllers・モジュール定数の文言表 `*_text.py` 等）を `/task_new` で `instructions/phase/72_multilingual_ui/tasks/task_03_keys_main_views.md` に起票 → codex-delegating-implementer → verifier（tests / tests_ui 全体 / smoke）→ reviewer。日本語の文言は 1 文字も変えない・キーは `ja.json` に追加・`en.json` は task_08（ただし en.json の欠けはフォールバックで ja が出るため本 task ではキーを足さない）。task_02 で作ったラベルの関数も対象ファイルなら `tr` へ
+- task_03b（キー移行 1b = controllers の `config_io/`・`keymap_panel/`・`trigger_panel/`・約 400 リテラル）を `instructions/phase/72_multilingual_ui/tasks/task_03b_keys_controllers.md` に起票（task_03 の定義を手本に・上記の互換定数のうち config_io / trigger_panel が使うものを呼び出し元と一緒にキー化し定数を消す）→ codex-delegating-implementer → verifier（tests / tests_ui 全体 / smoke）→ reviewer（削除行の日本語と ja.json の機械照合）
 - 以降 phase.md の順に task_04〜12。task_07（英語の用語・アクションの種類の表示名）と task_12（実機目視）はユーザー判断が要る
 - main へのマージはユーザー（PR は作らない）
 

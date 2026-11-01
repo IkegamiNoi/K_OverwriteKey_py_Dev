@@ -1,9 +1,9 @@
 """構成セット履歴の表示文言（I/O を行わない）。"""
 
 from pathlib import PureWindowsPath
+from keyseq.shared.i18n import tr
 
 RECENT_NODE_LABEL = "直近（最大20件）"
-MISSING_SUFFIX = "（見つかりません）"
 READ_ONLY_NOTICE = "履歴ファイルを読み込めませんでした。編集できません。"
 TITLE = "構成セットの履歴"
 NAME_HEADING = "名前"
@@ -30,20 +30,21 @@ ENTRY_NOT_FOUND = "履歴の項目が存在しません。"
 
 def format_entry_name(path: str, *, exists: bool) -> str:
     """名前列 = 拡張子なしのファイル名。不在なら接尾辞を付す。"""
-    return PureWindowsPath(path).stem + ("" if exists else MISSING_SUFFIX)
+    name = PureWindowsPath(path).stem
+    return name if exists else tr("keymap_set_history.entry_name_missing", name=name)
 
 
 def format_edit_error(reason: str) -> str:
-    return f"履歴を編集できませんでした: {reason}"
+    return tr("keymap_set_history.edit_error", reason=reason)
 
 
 def format_open_error(reason: str) -> str:
-    return f"構成セットを読み込めませんでした: {reason}"
+    return tr("keymap_set_history.open_error", reason=reason)
 
 
 def confirm_remove_category(name: str) -> str:
-    return f"分類「{name}」を配下の履歴ごと削除しますか？\n実ファイルは削除しません。"
+    return tr("keymap_set_history.confirm_remove_category", name=name)
 
 
 def confirm_remove_entry(path: str) -> str:
-    return f"この項目を履歴から削除しますか？\n{path}\n実ファイルは削除しません。"
+    return tr("keymap_set_history.confirm_remove_entry", path=path)

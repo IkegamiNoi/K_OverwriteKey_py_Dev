@@ -8,7 +8,7 @@ import tkinter as tk
 from typing import Callable
 from tkinter import messagebox, ttk
 
-from keyseq.shared.i18n import resolve_language, set_language, tr_in
+from keyseq.shared.i18n import resolve_language, set_language, tr, tr_in
 from keyseq.presentation.dialogs import (
     PresetManagerDialog,
 )
@@ -130,8 +130,8 @@ class App(tk.Tk):
         set_language(resolve_language(self._startup_settings.get("ui_language")))
         for exc in startup_read_errors:
             messagebox.showwarning(
-                "startup.json読込失敗",
-                f"startup.jsonの読み込みに失敗しました。\n{exc}\n\n既定設定で起動します。",
+                tr("app.startup.read_error.title"),
+                tr("app.startup.read_error.body", error=exc),
             )
         self._ui_font_delta_pt = coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
@@ -241,26 +241,26 @@ class App(tk.Tk):
             self,
             data_key=HOOK_STOP_KEY,
             var=self.ui_vars.stop_key_var,
-            label="停止キー",
+            label=tr("app.hook.stop_key"),
             single_key_example="f12",
             conflict_checks=[
-                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, "トリガーキー"),
-                (lambda app, key: app.trigger_service.is_toggle_key_conflict(app.data, key), "一時停止/再開キー"),
-                (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), "切替キー"),
-                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_source_keys, "置換元キー"),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, tr("app.hook.trigger_key")),
+                (lambda app, key: app.trigger_service.is_toggle_key_conflict(app.data, key), tr("app.hook.toggle_key")),
+                (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), tr("app.hook.switch_key")),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_source_keys, tr("app.hook.source_key")),
             ],
         )
         self.toggle_key_capture = SingleKeyCaptureController(
             self,
             data_key=HOOK_TOGGLE_KEY,
             var=self.ui_vars.toggle_key_var,
-            label="一時停止/再開キー",
+            label=tr("app.hook.toggle_key"),
             single_key_example="f11",
             conflict_checks=[
-                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, "トリガーキー"),
-                (lambda app, key: app.trigger_service.is_stop_key_conflict(app.data, key), "停止キー"),
-                (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), "切替キー"),
-                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_source_keys, "置換元キー"),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_trigger_keys, tr("app.hook.trigger_key")),
+                (lambda app, key: app.trigger_service.is_stop_key_conflict(app.data, key), tr("app.hook.stop_key")),
+                (lambda app, key: bool(app.keymap_service.get_keymap_by_switch_key(app.data, key)), tr("app.hook.switch_key")),
+                (lambda app, key: normalize_key_name(key) in app._key_overlap_report().all_source_keys, tr("app.hook.source_key")),
             ],
         )
         self.keymap_set_io = KeymapSetIo(self)
@@ -417,11 +417,11 @@ class App(tk.Tk):
         self.compact_view = CompactView(self.outer, app=self)
         self.compact_header.register_section(
             "hook", self.compact_view.hook_frame, self.compact_view.hook_frame.heading,
-            self.compact_view.hook_heading, "フック",
+            self.compact_view.hook_heading, tr("view.hook.title"),
         )
         self.compact_header.register_section(
             "display", self.compact_view.display_frame, self.compact_view.display_frame.heading,
-            self.compact_view.display_heading, "表示",
+            self.compact_view.display_heading, tr("view.display.title"),
         )
         self.compact_header.apply_initial_state()
 
@@ -432,9 +432,9 @@ class App(tk.Tk):
         build_status_area(self, self)
 
     def _update_file_status(self):
-        name = os.path.basename(self.keymap_set_path or "") or "（未設定）"
-        save_state = "未保存" if self.dirty_tracker.has_unsaved_changes() else "保存済み"
-        text = f"ファイル: {name} / {save_state}"
+        name = os.path.basename(self.keymap_set_path or "") or tr("status.file_unset")
+        save_state = tr("status.file_unsaved") if self.dirty_tracker.has_unsaved_changes() else tr("status.file_saved")
+        text = tr("status.file_state", name=name, save_state=save_state)
         self._write_status_bar_text(self.ui_vars.file_status_var, self.ui_vars.file_status_full_var, text)
 
     def _status_bar_text(self, text: str) -> str:
@@ -506,9 +506,10 @@ class App(tk.Tk):
 
         new_delta = self._ui_font_delta_pt
         if new_delta == 0:
-            self._set_flash_message("フォントサイズを標準にしました。")
+            self._set_flash_message(tr("app.font_size.reset"))
         else:
-            self._set_flash_message(f"フォントサイズを{new_delta:+d}にしました。")
+            delta = f"{new_delta:+d}"
+            self._set_flash_message(tr("app.font_size.changed", delta=delta))
 
 
     def set_ui_language(self, code: str) -> None:
@@ -685,10 +686,10 @@ class App(tk.Tk):
 
     def open_preset_manager(self):
         before = copy.deepcopy(self.data.get("hotkey_presets", []))
-        PresetManagerDialog(self, title="プリセット編集").wait_window()
+        PresetManagerDialog(self, title=tr("app.preset.title")).wait_window()
         after = self.data.get("hotkey_presets", [])
         if before != after:
-            self._set_flash_message("プリセットを更新しました。")
+            self._set_flash_message(tr("app.preset.updated"))
 
     def save_hotkey_presets(
         self,
@@ -799,7 +800,7 @@ class App(tk.Tk):
 
     # ---------------- Close ----------------
     def on_close(self):
-        if not self.keymap_set_io.confirm_save_if_dirty("終了"):
+        if not self.keymap_set_io.confirm_save_if_dirty(tr("common.exit")):
             return
         self.pane_layout.cancel_window_width_save()
         self.compact_window.cancel_save()
@@ -833,7 +834,7 @@ class App(tk.Tk):
                 errors = self.held_inputs.release_all()
                 if errors:
                     self.hook.show_action_error(
-                        "", {"type": "key_hold", "value": "すべて解放"},
+                        "", {"type": "key_hold", "value": tr("action.key_hold.release_all")},
                         RuntimeError("\n".join(str(error) for error in errors)),
                     )
             finally:

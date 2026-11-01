@@ -6,34 +6,34 @@ def build_menu_bar(app):
     menubar = tk.Menu(app)
 
     file_menu = tk.Menu(menubar, tearoff=False)
-    file_menu.add_command(label="新規作成", command=app.keymap_set_io.new_config, accelerator="Ctrl+N")
+    file_menu.add_command(label=tr("menu.file.new"), command=app.keymap_set_io.new_config, accelerator="Ctrl+N")
     file_menu.add_separator()
-    file_menu.add_command(label="保存", command=app.keymap_set_io.save_keymap_set, accelerator="Ctrl+S")
-    file_menu.add_command(label="別名保存…", command=app.keymap_set_io.save_as, accelerator="Ctrl+Shift+S")
-    file_menu.add_command(label="読込（構成セット）…", command=app.keymap_set_io.load_keymap_set_from, accelerator="Ctrl+O")
-    file_menu.add_command(label="履歴から読み込む…", command=app.keymap_set_history_io.open_history_dialog)
+    file_menu.add_command(label=tr("menu.file.save"), command=app.keymap_set_io.save_keymap_set, accelerator="Ctrl+S")
+    file_menu.add_command(label=tr("menu.file.save_as"), command=app.keymap_set_io.save_as, accelerator="Ctrl+Shift+S")
+    file_menu.add_command(label=tr("menu.file.load_keymap_set"), command=app.keymap_set_io.load_keymap_set_from, accelerator="Ctrl+O")
+    file_menu.add_command(label=tr("menu.file.load_history"), command=app.keymap_set_history_io.open_history_dialog)
     file_menu.add_separator()
     file_menu.add_command(label="Import...", command=app.keymap_set_io.import_config)
     file_menu.add_command(label="Export...", command=app.keymap_set_io.export_config)
     file_menu.add_separator()
-    file_menu.add_command(label="起動時に読む構成セットを指定…", command=app.keymap_set_io.set_startup_keymap_set)
-    file_menu.add_command(label="サンプル設定に戻す", command=app.keymap_set_io.restore_default)
+    file_menu.add_command(label=tr("menu.file.set_startup_keymap_set"), command=app.keymap_set_io.set_startup_keymap_set)
+    file_menu.add_command(label=tr("menu.file.restore_sample"), command=app.keymap_set_io.restore_default)
     file_menu.add_separator()
-    file_menu.add_command(label="終了", command=app.on_close)
-    menubar.add_cascade(label="ファイル", menu=file_menu)
+    file_menu.add_command(label=tr("common.exit"), command=app.on_close)
+    menubar.add_cascade(label=tr("menu.file.title"), menu=file_menu)
 
     settings_menu = tk.Menu(menubar, tearoff=False)
-    settings_menu.add_command(label="プリセット編集…", command=app.open_preset_manager, accelerator="Ctrl+Alt+P")
-    settings_menu.add_command(label="参照元を掃除", command=app.reference_cleanup_io.run_cleanup)
-    settings_menu.add_command(label="未使用ファイルの整理…", command=app.orphan_sweep_io.run_sweep)
-    settings_menu.add_command(label="退避したファイルの管理…", command=app.quarantine_manage_io.manage_quarantine)
-    settings_menu.add_command(label="キーボードUIを開く", command=app.layout.open_keyboard_window)
+    settings_menu.add_command(label=tr("menu.settings.preset_edit"), command=app.open_preset_manager, accelerator="Ctrl+Alt+P")
+    settings_menu.add_command(label=tr("menu.settings.reference_cleanup"), command=app.reference_cleanup_io.run_cleanup)
+    settings_menu.add_command(label=tr("menu.settings.orphan_sweep"), command=app.orphan_sweep_io.run_sweep)
+    settings_menu.add_command(label=tr("menu.settings.quarantine_manage"), command=app.quarantine_manage_io.manage_quarantine)
+    settings_menu.add_command(label=tr("menu.settings.keyboard_ui"), command=app.layout.open_keyboard_window)
     settings_menu.add_separator()
-    settings_menu.add_command(label="外部レイアウトを追加…", command=app.layout.add_external_keyboard_layout)
-    settings_menu.add_command(label="レイアウトを削除…", command=app.layout.delete_keyboard_layout)
+    settings_menu.add_command(label=tr("menu.settings.add_external_layout"), command=app.layout.add_external_keyboard_layout)
+    settings_menu.add_command(label=tr("menu.settings.delete_layout"), command=app.layout.delete_keyboard_layout)
     settings_menu.add_separator()
     settings_menu.add_checkbutton(
-        label="物理キー名を表示",
+        label=tr("menu.settings.show_physical_key_names"),
         variable=app.ui_vars.keyboard_show_physical_key_labels_var,
         command=app.layout.toggle_keyboard_show_physical_key_labels,
     )
@@ -41,14 +41,14 @@ def build_menu_bar(app):
 
     font_menu = tk.Menu(settings_menu, tearoff=False)
     for delta in (-3, -2, -1, 0, 1, 2, 3):
-        label = "標準 (0)" if delta == 0 else f"{delta:+d}"
+        label = tr("menu.settings.font_size.standard") if delta == 0 else f"{delta:+d}"
         font_menu.add_radiobutton(
             label=label,
             value=delta,
             variable=app.ui_vars.ui_font_delta_var,
             command=lambda d=delta: app.set_ui_font_delta(d),
         )
-    settings_menu.add_cascade(label="フォントサイズ", menu=font_menu)
+    settings_menu.add_cascade(label=tr("menu.settings.font_size"), menu=font_menu)
 
     language_menu = tk.Menu(settings_menu, tearoff=False)
     for code, name in available_languages():
@@ -60,18 +60,18 @@ def build_menu_bar(app):
         )
     settings_menu.add_cascade(label=tr("menu.settings.language"), menu=language_menu)
 
-    menubar.add_cascade(label="設定", menu=settings_menu)
+    menubar.add_cascade(label=tr("menu.settings.title"), menu=settings_menu)
 
     help_menu = tk.Menu(menubar, tearoff=False)
-    help_menu.add_command(label="使い方", command=lambda: app.help.open("guide"))
-    help_menu.add_command(label="よくある質問", command=lambda: app.help.open("faq"))
+    help_menu.add_command(label=tr("menu.help.guide"), command=lambda: app.help.open("guide"))
+    help_menu.add_command(label=tr("menu.help.faq"), command=lambda: app.help.open("faq"))
     help_menu.add_separator()
     help_menu.add_command(
-        label="バージョン情報",
+        label=tr("menu.help.version"),
         command=lambda: _open_version_dialog(app),
     )
-    help_menu.add_command(label="ライセンス", command=lambda: app.license.open())
-    menubar.add_cascade(label="ヘルプ", menu=help_menu)
+    help_menu.add_command(label=tr("menu.help.license"), command=lambda: app.license.open())
+    menubar.add_cascade(label=tr("menu.help.title"), menu=help_menu)
 
     app.config(menu=menubar)
     app.menubar = menubar

@@ -12,6 +12,7 @@ from keyseq.presentation.app import App
 from keyseq.presentation.compact_header_view import COMPACT_HEADER_VIEW_KEY
 from keyseq.presentation.controllers.config_io.startup_io import StartupIo
 from keyseq.presentation.hook_button_texts import HOOK_START_TEXT, HOOK_STOP_TEXT
+from keyseq.shared.i18n import tr
 from tests_ui.escape_delivery import acquire_focus
 from keyseq.shared.i18n import fix_language
 
@@ -309,7 +310,7 @@ class CompactHeaderViewTest(unittest.TestCase):
         self.addCleanup(setattr, app.hook, "hook_active", old_state)
         app.hook.hook_active = True
         app.hook.sync_hook_toggle_buttons()
-        self.assertEqual(hook.hook_toggle_btn.cget("text"), HOOK_STOP_TEXT)
+        self.assertEqual(hook.hook_toggle_btn.cget("text"), tr(HOOK_STOP_TEXT))
         app.hook.hook_active = False
         app.hook.sync_hook_toggle_buttons()
-        self.assertEqual(hook.hook_toggle_btn.cget("text"), HOOK_START_TEXT)
+        self.assertEqual(hook.hook_toggle_btn.cget("text"), tr(HOOK_START_TEXT))

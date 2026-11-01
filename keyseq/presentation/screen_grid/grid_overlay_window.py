@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import tkinter as tk
+from keyseq.shared.i18n import tr
 
 from keyseq.application.screen_grid_session import GridView
 from keyseq.infrastructure import win32_window
@@ -39,7 +40,7 @@ class GridOverlayWindow:
             window.attributes("-transparentcolor", _TRANSPARENT)
             window.update_idletasks()
             if not win32_window.make_click_through_overlay(window.winfo_id()):
-                raise RuntimeError("カーソルグリッドのウィンドウをクリック透過にできませんでした")
+                raise RuntimeError(tr("screen_grid.overlay.click_through_failed"))
         except Exception:
             window.destroy()
             raise

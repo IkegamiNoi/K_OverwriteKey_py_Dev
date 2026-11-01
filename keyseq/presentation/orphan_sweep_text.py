@@ -1,72 +1,90 @@
 from keyseq.application.config_service import contracts
 from keyseq.presentation.child_kind_labels import KIND_LABELS
+from keyseq.shared.i18n import tr
 
 
-ORPHAN_SWEEP_EMPTY_MESSAGE: str = "退避できる未使用ファイルはありません。"
+ORPHAN_SWEEP_EMPTY_MESSAGE: str = "orphan_sweep.empty"
 
 _KIND_LABELS = {
     **KIND_LABELS,
-    contracts.KIND_HOTKEY_PRESETS: "構成セット専用プリセット",
+    contracts.KIND_HOTKEY_PRESETS: "child_kind.hotkey_presets",
 }
 
 _SOURCE_REASON_LABELS = {
-    contracts.SOURCE_MISSING: "ファイルが見つかりません",
-    contracts.SOURCE_UNREADABLE: "読み取り / JSON解析に失敗しました",
-    contracts.SOURCE_REDIRECTED: "リンク / ジャンクションのため参照側として読みませんでした",
-    contracts.SOURCE_DIRECTORY_UNREADABLE: "フォルダを読み取れませんでした",
+    contracts.SOURCE_MISSING: "orphan_sweep.source_missing",
+    contracts.SOURCE_UNREADABLE: "orphan_sweep.source_unreadable",
+    contracts.SOURCE_REDIRECTED: "orphan_sweep.source_redirected",
+    contracts.SOURCE_DIRECTORY_UNREADABLE: "orphan_sweep.source_directory_unreadable",
 }
 
 _QUARANTINE_REASON_LABELS = {
-    contracts.QUARANTINE_MANIFEST_WRITE_FAILED: "退避の記録を書き込めませんでした",
-    contracts.QUARANTINE_MOVE_FAILED: "退避できませんでした",
-    contracts.QUARANTINE_SOURCE_REJECTED: "退避直前の安全確認で対象外になりました",
-    contracts.QUARANTINE_UNIT_DIR_FAILED: "退避先に今回のフォルダを作成できませんでした",
-    contracts.QUARANTINE_ROOT_REDIRECTED: "退避先フォルダがリンク / ジャンクションのため中止しました",
+    contracts.QUARANTINE_MANIFEST_WRITE_FAILED: "orphan_sweep.quarantine_manifest_write_failed",
+    contracts.QUARANTINE_MOVE_FAILED: "orphan_sweep.quarantine_move_failed",
+    contracts.QUARANTINE_SOURCE_REJECTED: "orphan_sweep.quarantine_source_rejected",
+    contracts.QUARANTINE_UNIT_DIR_FAILED: "orphan_sweep.quarantine_unit_dir_failed",
+    contracts.QUARANTINE_ROOT_REDIRECTED: "orphan_sweep.quarantine_root_redirected",
 }
 
-SCAN_SCOPE_NOTE: str = (
-    "注意: 探す範囲外に保存された構成セットから参照されている可能性があります。"
-)
+SCAN_SCOPE_NOTE: str = "orphan_sweep.scan_scope_note"
+
+
+def _label(labels: dict[str, str], value: str) -> str:
+    key = labels.get(value)
+    return tr(key) if key is not None else value
+
+
+def _kind_path(kind: str, path: str) -> str:
+    kind_text = _label(_KIND_LABELS, kind)
+    return tr("orphan_sweep.kind_path", kind=kind_text, path=path)
+
+
+def _path_reason(path: str, reason: str, labels: dict[str, str]) -> str:
+    reason_text = _label(labels, reason)
+    return tr("orphan_sweep.path_reason", path=path, reason=reason_text)
 
 
 def format_scan_warnings(result: contracts.OrphanScanResult) -> tuple[str, ...]:
     """走査の不完全性を、読めなかった参照側の警告から順に示す。"""
     lines: list[str] = []
     if result.unreadable_sources:
+        unreadable_count = len(result.unreadable_sources)
         lines.extend((
-            f"警告: 読めなかった構成セット / トリガーセットが{len(result.unreadable_sources)}件あります。",
-            "それらが参照していた子ファイルを未使用と誤判定している可能性があります。",
+            tr("orphan_sweep.unreadable_sources_warning", count=unreadable_count),
+            tr("orphan_sweep.possible_orphan_misclassification"),
         ))
         lines.extend(
-            f"  {path}: {_SOURCE_REASON_LABELS.get(reason, reason)}"
+            _path_reason(path, reason, _SOURCE_REASON_LABELS)
             for path, reason in result.unreadable_sources
         )
     if result.missing_scan_dirs:
-        lines.append(f"見つからなかった探索フォルダ: {len(result.missing_scan_dirs)}件")
-        lines.extend(f"  {path}" for path in result.missing_scan_dirs)
+        missing_count = len(result.missing_scan_dirs)
+        lines.append(tr("orphan_sweep.missing_scan_dirs", count=missing_count))
+        lines.extend(tr("orphan_sweep.indented_path", path=path) for path in result.missing_scan_dirs)
     if result.non_keymap_set_sources:
-        lines.append(f"構成セットとして解釈できなかったJSON: {len(result.non_keymap_set_sources)}件")
-    lines.append(SCAN_SCOPE_NOTE)
+        source_count = len(result.non_keymap_set_sources)
+        lines.append(tr("orphan_sweep.unrecognized_json_count", count=source_count))
+    lines.append(tr(SCAN_SCOPE_NOTE))
     return tuple(lines)
 
 
 def format_orphan_plan(result: contracts.OrphanScanResult) -> tuple[str, ...]:
     """警告に続けて、孤児候補だけを保存表記で列挙する。"""
     candidates = [entry for entry in result.entries if entry.state == contracts.ORPHAN_CANDIDATE]
-    lines = [*format_scan_warnings(result), f"未使用の候補: {len(candidates)}件"]
+    candidate_count = len(candidates)
+    lines = [*format_scan_warnings(result), tr("orphan_sweep.candidate_count", count=candidate_count)]
     lines.extend(
-        f"{_KIND_LABELS.get(entry.kind, entry.kind)}: {entry.stored_path}"
+        _kind_path(entry.kind, entry.stored_path)
         for entry in candidates
     )
     excluded_count = sum(entry.state == contracts.ORPHAN_EXCLUDED for entry in result.entries)
     if excluded_count:
-        lines.append(f"対象外: {excluded_count}件")
+        lines.append(tr("orphan_sweep.excluded_count", count=excluded_count))
     return tuple(lines)
 
 
 def format_orphan_notice(result: contracts.OrphanScanResult) -> tuple[str, ...]:
     """候補がない場合も、走査範囲と読めなかった参照側を通知する。"""
-    return (ORPHAN_SWEEP_EMPTY_MESSAGE, *format_scan_warnings(result))
+    return (tr(ORPHAN_SWEEP_EMPTY_MESSAGE), *format_scan_warnings(result))
 
 
 def format_quarantine_result(result: contracts.QuarantineResult) -> tuple[str, ...]:
@@ -74,22 +92,22 @@ def format_quarantine_result(result: contracts.QuarantineResult) -> tuple[str, .
     lines = [*_format_rescan_warnings(result), *_format_quarantine_headline(result)]
     lines.extend(_format_quarantine_failures(result))
     if result.dropped_paths:
-        lines.append(f"提示後に対象外になったため退避しなかった: {len(result.dropped_paths)}件")
+        dropped_count = len(result.dropped_paths)
+        lines.append(tr("orphan_sweep.dropped_paths_count", count=dropped_count))
     if result.newly_orphan_count:
-        lines.append(
-            "再判定で新たに未使用の候補になったため今回は退避しなかった: "
-            f"{result.newly_orphan_count}件"
-        )
+        newly_orphan_count = result.newly_orphan_count
+        lines.append(tr("orphan_sweep.newly_orphan_count", count=newly_orphan_count))
     return tuple(lines)
 
 
 def _format_rescan_warnings(result: contracts.QuarantineResult) -> tuple[str, ...]:
     if not result.rescan_unreadable_sources:
         return ()
+    unreadable_count = len(result.rescan_unreadable_sources)
     return (
-        f"警告: 退避の直前にも読めない参照側が{len(result.rescan_unreadable_sources)}件ありました。",
-        "それらが参照していた子ファイルを未使用と誤判定している可能性があります。",
-        *(f"  {path}: {_SOURCE_REASON_LABELS.get(reason, reason)}"
+        tr("orphan_sweep.rescan_unreadable_sources_warning", count=unreadable_count),
+        tr("orphan_sweep.possible_orphan_misclassification"),
+        *(_path_reason(path, reason, _SOURCE_REASON_LABELS)
           for path, reason in result.rescan_unreadable_sources),
     )
 
@@ -101,24 +119,35 @@ def _format_quarantine_failures(result: contracts.QuarantineResult) -> tuple[str
                          if reason == contracts.QUARANTINE_MANIFEST_WRITE_FAILED]
     lines: list[str] = []
     if move_failures:
-        lines.append("退避できなかったファイル:")
-        lines.extend(f"  {path}: {_QUARANTINE_REASON_LABELS.get(reason, reason)}"
-                     for path, reason in move_failures)
+        lines.append(tr("orphan_sweep.quarantine_failed_files"))
+        for path, reason in move_failures:
+            lines.append(_path_reason(path, reason, _QUARANTINE_REASON_LABELS))
     if manifest_failures:
-        lines.append("警告: 退避の記録を書き込めず、記録の内容が古い可能性があります。")
-        lines.extend(f"  {path}: {_QUARANTINE_REASON_LABELS[contracts.QUARANTINE_MANIFEST_WRITE_FAILED]}"
-                     for path in manifest_failures)
+        lines.append(tr("orphan_sweep.manifest_write_warning"))
+        manifest_reason_key = _QUARANTINE_REASON_LABELS[contracts.QUARANTINE_MANIFEST_WRITE_FAILED]
+        manifest_reason = tr(manifest_reason_key)
+        for path in manifest_failures:
+            lines.append(tr("orphan_sweep.path_reason", path=path, reason=manifest_reason))
     return tuple(lines)
 
 
 def _format_quarantine_headline(result: contracts.QuarantineResult) -> tuple[str, ...]:
+    unit_id = result.unit_id
     if result.aborted_reason:
-        reason = _QUARANTINE_REASON_LABELS.get(result.aborted_reason, result.aborted_reason)
-        return (f"退避を中止しました: {reason}", "ファイルは1件も退避していません。")
-    unit_note = f"（回: {result.unit_id}）" if result.unit_id else ""
+        reason = _label(_QUARANTINE_REASON_LABELS, result.aborted_reason)
+        return (tr("orphan_sweep.quarantine_aborted", reason=reason),
+                tr("orphan_sweep.quarantine_aborted_no_files"))
     if not result.moved and result.failed:
-        return (f"退避できませんでした: 0件{unit_note}",)
+        if unit_id:
+            return (tr("orphan_sweep.quarantine_failed_zero_with_unit", unit_id=unit_id),)
+        return (tr("orphan_sweep.quarantine_failed_zero"),)
+    moved_count = len(result.moved)
+    if unit_id:
+        headline = tr("orphan_sweep.quarantine_succeeded_with_unit", count=moved_count,
+                      unit_id=unit_id)
+    else:
+        headline = tr("orphan_sweep.quarantine_succeeded", count=moved_count)
     return (
-        f"退避しました: {len(result.moved)}件{unit_note}",
-        *(f"{_KIND_LABELS.get(kind, kind)}: {path}" for kind, path in result.moved),
+        headline,
+        *(_kind_path(kind, path) for kind, path in result.moved),
     )

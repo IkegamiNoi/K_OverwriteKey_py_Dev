@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
+from keyseq.shared.i18n import tr
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.listbox_utils import bind_listbox_click_selection_sync
@@ -15,7 +16,7 @@ if TYPE_CHECKING:
 
 class CompactTriggerBox(ttk.LabelFrame):
     def __init__(self, parent, app: App):
-        super().__init__(parent, text="トリガー一覧", padding=10)
+        super().__init__(parent, text=tr("view.trigger_list.title"), padding=10)
 
         self._build_panes()
         tl_frame = self.trigger_frame

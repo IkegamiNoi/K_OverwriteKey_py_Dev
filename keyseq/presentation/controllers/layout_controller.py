@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from tkinter import filedialog, messagebox
 
+from keyseq.shared.i18n import tr
+
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.dialogs import LayoutDeleteDialog
 from keyseq.presentation.keyboard_layouts import (
@@ -243,7 +245,7 @@ class LayoutController:
         if errors and hook is not None:
             hook.show_action_error(
                 "",
-                {"type": "key_hold", "value": "すべて解放"},
+                {"type": "key_hold", "value": tr("action.key_hold.release_all")},
                 RuntimeError("\n".join(str(error) for error in errors)),
             )
 
@@ -278,8 +280,8 @@ class LayoutController:
         try:
             return self._app.keymap_set_io.save_keymap_set(show_success_dialog=False)
         except Exception as e:
-            self._app._set_flash_message(f"保存失敗: {e}", auto_clear=False)
-            messagebox.showerror("保存失敗", str(e))
+            self._app._set_flash_message(tr("keyboard.layout.save_failed_message", error=e), auto_clear=False)
+            messagebox.showerror(tr("keyboard.layout.save_failed_title"), str(e))
             return False
 
     def toggle_keyboard_show_physical_key_labels(self):
@@ -320,7 +322,7 @@ class LayoutController:
 
     def add_external_keyboard_layout(self):
         path = filedialog.askopenfilename(
-            title="外部レイアウトを追加",
+            title=tr("keyboard.layout.add_title"),
             initialdir=self.keyboard_layouts_dir if os.path.isdir(self.keyboard_layouts_dir) else self._app.base_dir,
             filetypes=[("JSON", "*.json"), ("All", "*.*")],
         )
@@ -332,16 +334,16 @@ class LayoutController:
             registrations = list(self._app.data.get("external_keyboard_layouts", []))
             stored_path = self._app.paths.to_config_relative_or_absolute(path)
             if any(str(item.get("path") or "").strip() == stored_path for item in registrations if isinstance(item, dict)):
-                raise ValueError("同じJSONファイルはすでに登録されています。")
+                raise ValueError(tr("keyboard.layout.already_registered"))
             registrations.append({"path": stored_path})
             self._app.data["external_keyboard_layouts"] = registrations
         except Exception as e:
-            messagebox.showerror("レイアウト追加失敗", str(e))
+            messagebox.showerror(tr("keyboard.layout.add_failed_title"), str(e))
             return
 
         self.reload_keyboard_layouts()
         self.persist_keyboard_layout_selection()
-        self._app._set_flash_message(f"外部レイアウトを追加しました: {layout.layout_id}")
+        self._app._set_flash_message(tr("keyboard.layout.added", layout_id=layout.layout_id))
 
     def delete_keyboard_layout(self):
         items = [
@@ -350,10 +352,10 @@ class LayoutController:
             if entry.source == "external" and entry.path
         ]
         if not items:
-            messagebox.showinfo("レイアウト削除", "削除できる外部レイアウトがありません。")
+            messagebox.showinfo(tr("keyboard.layout.delete_title"), tr("keyboard.layout.no_external_layouts"))
             return
 
-        dlg = LayoutDeleteDialog(self._app, title="レイアウトを削除", items=items)
+        dlg = LayoutDeleteDialog(self._app, title=tr("keyboard.layout.delete_dialog_title"), items=items)
         dlg.wait_window()
         target_id = getattr(dlg, "result", None)
         if not target_id:
@@ -361,10 +363,10 @@ class LayoutController:
 
         entry = self._keyboard_layout_entries.get(target_id)
         if entry is None or entry.source != "external" or not entry.path:
-            messagebox.showerror("レイアウト削除", "削除対象のレイアウト情報を取得できませんでした。")
+            messagebox.showerror(tr("keyboard.layout.delete_title"), tr("keyboard.layout.delete_target_missing"))
             return
 
-        if not messagebox.askyesno("確認", f"外部レイアウト '{target_id}' を削除しますか？"):
+        if not messagebox.askyesno(tr("keyboard.layout.confirm_title"), tr("keyboard.layout.delete_confirm", layout_id=target_id)):
             return
 
         registrations = list(self._app.data.get("external_keyboard_layouts", []))
@@ -386,7 +388,7 @@ class LayoutController:
                 return
 
         self.reload_keyboard_layouts()
-        self._app._set_flash_message(f"外部レイアウトを削除しました: {target_id}")
+        self._app._set_flash_message(tr("keyboard.layout.deleted", layout_id=target_id))
 
     def rebuild_keyboard_layout_display_maps(self):
         self._keyboard_layout_display_to_id = {}

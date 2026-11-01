@@ -3,6 +3,7 @@
 import ast
 from concurrent.futures import ThreadPoolExecutor
 import json
+from string import Formatter
 from pathlib import Path
 import tempfile
 import unittest
@@ -144,17 +145,30 @@ class I18nTest(unittest.TestCase):
             values = list(executor.map(lambda _: tr("both"), range(32)))
         self.assertEqual(values, ["JA"] * 32)
 
-    def test_bundled_catalogs_have_matching_keys_and_names(self) -> None:
+    def test_bundled_catalogs_have_valid_keys_placeholders_and_names(self) -> None:
         reset_for_tests()
         self.assertEqual(available_languages(), [("ja", "日本語"), ("en", "English")])
         root = Path(__file__).resolve().parents[1] / "keyseq/shared/i18n/locales"
         ja = json.loads((root / "ja.json").read_text(encoding="utf-8"))
         en = json.loads((root / "en.json").read_text(encoding="utf-8"))
-        self.assertTrue(ja.keys() <= en.keys())
+        self.assertTrue(en.keys() <= ja.keys())
+        formatter = Formatter()
+        for key in en.keys() - {"_meta"}:
+            with self.subTest(key=key):
+                ja_fields = {name for _, name, _, _ in formatter.parse(ja[key]) if name is not None}
+                en_fields = {name for _, name, _, _ in formatter.parse(en[key]) if name is not None}
+                self.assertEqual(ja_fields, en_fields)
         for catalog in (ja, en):
             self.assertIsInstance(catalog["_meta"]["name"], str)
             self.assertTrue(all(isinstance(value, str) for key, value in catalog.items()
                                 if key != "_meta"))
+        for key, value in ja.items():
+            if key == "_meta":
+                continue
+            with self.subTest(key=key):
+                params = {name: "VALUE" for _, name, _, _ in formatter.parse(value)
+                          if name is not None}
+                self.assertEqual(tr(key, **params), value.format_map(params))
 
     def test_shared_imports_only_standard_library_or_relative_modules(self) -> None:
         root = Path(__file__).resolve().parents[1] / "keyseq/shared/i18n"

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from tkinter import ttk
+from keyseq.shared.i18n import tr
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.hook_button_texts import KEYBOARD_LAYOUT_COMBO_WIDTH
@@ -14,21 +15,21 @@ class CompactDisplayFrame(ttk.LabelFrame):
     def __init__(self, parent, app: App):
         super().__init__(parent, padding=(10, 6))
         self.heading = ttk.Label(
-            self, text="▾ 表示", anchor="w", cursor="hand2",
+            self, text=tr("view.display.heading_open"), anchor="w", cursor="hand2",
             style="TLabelframe.Label",
         )
         self.configure(labelwidget=self.heading)
 
         self.topmost_chk = ttk.Checkbutton(
             self,
-            text="最前面に表示",
+            text=tr("view.display.always_on_top"),
             variable=app.ui_vars.always_on_top_var,
             command=app._apply_always_on_top,
         )
         self.topmost_chk.grid(row=0, column=0, sticky="w")
-        self.full_btn = ttk.Button(self, text="詳細表示", command=app.show_full_view)
+        self.full_btn = ttk.Button(self, text=tr("view.display.full"), command=app.show_full_view)
         self.full_btn.grid(row=1, column=0, sticky="w", pady=(10, 0))
-        ttk.Button(self, text="キーボードUI", command=app.layout.open_keyboard_window).grid(
+        ttk.Button(self, text=tr("view.display.keyboard_ui"), command=app.layout.open_keyboard_window).grid(
             row=2, column=0, sticky="w", pady=(10, 0)
         )
         self.compact_keyboard_layout_combo = ttk.Combobox(
@@ -42,7 +43,7 @@ class CompactDisplayFrame(ttk.LabelFrame):
         app.layout.register_layout_combo(self.compact_keyboard_layout_combo)
         self.keyboard_always_on_top_chk = ttk.Checkbutton(
             self,
-            text="キーボードUIを最前面に表示",
+            text=tr("view.display.keyboard_always_on_top"),
             variable=app.ui_vars.keyboard_always_on_top_var,
             command=app.layout.on_keyboard_topmost_changed,
         )

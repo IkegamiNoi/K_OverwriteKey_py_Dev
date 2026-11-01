@@ -3,10 +3,12 @@ from __future__ import annotations
 import tkinter as tk
 from tkinter import messagebox
 
+from keyseq.shared.i18n import tr
+
 from keyseq.domain.config import HOOK_STOP_KEY, HOOK_TOGGLE_KEY
 from keyseq.presentation.controllers.button_width import apply_fixed_button_width
 from keyseq.presentation.hook_button_texts import (
-    CAPTURE_ACTIVE_TEXT, CAPTURE_IDLE_TEXT, CAPTURE_TEXTS,
+    capture_active_text, capture_idle_text,
 )
 from keyseq.presentation.key_capture_ime import begin_key_capture, end_key_capture
 from keyseq.presentation.tk_keys import (
@@ -50,7 +52,8 @@ class SingleKeyCaptureController:
 
     def apply_fixed_button_width(self) -> None:
         if self._capture_btn is not None:
-            apply_fixed_button_width(self._capture_btn, CAPTURE_TEXTS)
+            texts = (capture_idle_text(), capture_active_text())
+            apply_fixed_button_width(self._capture_btn, texts)
 
     def toggle(self) -> None:
         if self.capturing:
@@ -63,7 +66,7 @@ class SingleKeyCaptureController:
         begin_key_capture(self, self._app, self._record_key)
         self.capturing = True
         if self._capture_btn is not None:
-            self._capture_btn.configure(text=CAPTURE_ACTIVE_TEXT)
+            self._capture_btn.configure(text=capture_active_text())
         if self._clear_btn is not None:
             self._clear_btn.configure(state="disabled")
 
@@ -88,7 +91,7 @@ class SingleKeyCaptureController:
             pass
 
         if self._capture_btn is not None:
-            self._capture_btn.configure(text=CAPTURE_IDLE_TEXT)
+            self._capture_btn.configure(text=capture_idle_text())
         if self._clear_btn is not None:
             self._clear_btn.configure(state="normal")
 
@@ -153,20 +156,31 @@ class SingleKeyCaptureController:
 
         # 単キーのみ（ここに来る時点で "+" は入らないが保険）
         if "+" in key:
-            messagebox.showerror("設定できません", f"{self._label}は単キーのみ対応です（例: {self._single_key_example}）。")
+            label = self._label
+            example = self._single_key_example
+            messagebox.showerror(
+                tr("capture.error.title"),
+                tr("capture.error.single_key_only", label=label, example=example),
+            )
             return "break"
 
         # 各種重複禁止（キャプチャ確定時にチェック）
         for check_fn, other_name in self._conflict_checks:
             if check_fn(self._app, key):
-                messagebox.showerror("設定できません", f"{self._label}が{other_name}と重複しています:\n{key}")
+                label = self._label
+                messagebox.showerror(
+                    tr("capture.error.title"),
+                    tr("capture.error.conflict", label=label, other_name=other_name, key=key),
+                )
                 return "break"
 
         # 妥当性チェック
         try:
             self._app.input_gateway.validate_key_name(key)
         except Exception as e:
-            messagebox.showerror("設定できません", f"不明なキー名です:\n{key}\n\n{e}")
+            messagebox.showerror(
+                tr("capture.error.title"), tr("capture.error.unknown_key", key=key, error=e),
+            )
             return "break"
 
         # 重複OKならそのまま適用（保存→表示更新）

@@ -5,6 +5,7 @@ import os
 from dataclasses import dataclass
 
 from keyseq.domain.config import DEFAULT_KEYBOARD_LAYOUT_ID, normalize_key_name
+from keyseq.shared.i18n import tr
 
 
 @dataclass(frozen=True)
@@ -144,75 +145,75 @@ BUILTIN_LAYOUTS: dict[str, KeyboardLayout] = {
 
 def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -> dict:
     if not isinstance(data, dict):
-        raise ValueError("JSONルートはobjectである必要があります。")
+        raise ValueError(tr("keyboard.layout.error.root_type"))
 
     for required_key in ("layout_id", "display_name", "keys"):
         if required_key not in data:
-            raise ValueError(f"{required_key}がありません。")
+            raise ValueError(tr("keyboard.layout.error.required_field", field=required_key))
 
     layout_id_value = data.get("layout_id")
     if not isinstance(layout_id_value, str):
-        raise ValueError("layout_idは文字列である必要があります。")
+        raise ValueError(tr("keyboard.layout.error.layout_id_type"))
     layout_id = layout_id_value.strip()
     if not layout_id:
-        raise ValueError("layout_idが空です。")
+        raise ValueError(tr("keyboard.layout.error.layout_id_empty"))
 
     if existing_layout_ids and layout_id in {str(v).strip() for v in existing_layout_ids if str(v).strip()}:
-        raise ValueError(f"layout_id '{layout_id}'はすでに存在します。")
+        raise ValueError(tr("keyboard.layout.error.layout_id_duplicate", layout_id=layout_id))
 
     display_name_value = data.get("display_name")
     if not isinstance(display_name_value, str):
-        raise ValueError("display_nameは文字列である必要があります。")
+        raise ValueError(tr("keyboard.layout.error.display_name_type"))
     display_name = display_name_value.strip()
     if not display_name:
-        raise ValueError("display_nameが空です。")
+        raise ValueError(tr("keyboard.layout.error.display_name_empty"))
 
     raw_key_display_names = data.get("key_display_names")
     if raw_key_display_names is None:
         key_display_names = ()
     elif not isinstance(raw_key_display_names, dict):
-        raise ValueError("key_display_namesはobjectである必要があります。")
+        raise ValueError(tr("keyboard.layout.error.key_display_names_type"))
     else:
         normalized_display_names: dict[str, str] = {}
         for raw_key_name, shown_name in raw_key_display_names.items():
             if not isinstance(shown_name, str):
-                raise ValueError(f"key_display_names.{raw_key_name}は文字列である必要があります。")
+                raise ValueError(tr("keyboard.layout.error.key_display_name_type", key=raw_key_name))
             key_name = normalize_key_name(raw_key_name)
             if not key_name:
-                raise ValueError("key_display_namesのキーが空です。")
+                raise ValueError(tr("keyboard.layout.error.key_display_name_key_empty"))
             normalized_display_names[key_name] = shown_name
         key_display_names = tuple(normalized_display_names.items())
 
     raw_keys = data.get("keys")
     if not isinstance(raw_keys, list):
-        raise ValueError("keysが配列ではありません。")
+        raise ValueError(tr("keyboard.layout.error.keys_type"))
     if not raw_keys:
-        raise ValueError("keysが空です。")
+        raise ValueError(tr("keyboard.layout.error.keys_empty"))
 
     normalized_keys: list[dict] = []
     seen_key_ids: set[str] = set()
     for index, raw_key in enumerate(raw_keys):
         key_prefix = f"keys[{index}]"
         if not isinstance(raw_key, dict):
-            raise ValueError(f"{key_prefix}はobjectである必要があります。")
+            raise ValueError(tr("keyboard.layout.error.key_entry_type", key=key_prefix))
 
         for required_key in ("id", "label", "x", "y", "w", "h"):
             if required_key not in raw_key:
-                raise ValueError(f"{key_prefix}.{required_key}がありません。")
+                raise ValueError(tr("keyboard.layout.error.key_required_field", key=key_prefix, field=required_key))
 
         key_id_value = raw_key.get("id")
         if not isinstance(key_id_value, str):
-            raise ValueError(f"{key_prefix}.idは文字列である必要があります。")
+            raise ValueError(tr("keyboard.layout.error.key_id_type", key=key_prefix))
         key_id = key_id_value.strip()
         if not key_id:
-            raise ValueError(f"{key_prefix}.idが空です。")
+            raise ValueError(tr("keyboard.layout.error.key_id_empty", key=key_prefix))
         if key_id in seen_key_ids:
-            raise ValueError(f"{key_prefix}.idが重複しています: {key_id}")
+            raise ValueError(tr("keyboard.layout.error.key_id_duplicate", key=key_prefix, key_id=key_id))
         seen_key_ids.add(key_id)
 
         label_value = raw_key.get("label")
         if not isinstance(label_value, str):
-            raise ValueError(f"{key_prefix}.labelは文字列である必要があります。")
+            raise ValueError(tr("keyboard.layout.error.key_label_type", key=key_prefix))
 
         x = _coerce_float(raw_key.get("x"), f"{key_prefix}.x")
         y = _coerce_float(raw_key.get("y"), f"{key_prefix}.y")
@@ -220,13 +221,17 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
         h = _coerce_float(raw_key.get("h"), f"{key_prefix}.h")
 
         if x < 0:
-            raise ValueError(f"{key_prefix}.xは0以上である必要があります。")
+            field_name = f"{key_prefix}.x"
+            raise ValueError(tr("keyboard.layout.error.coordinate_minimum", field=field_name))
         if y < 0:
-            raise ValueError(f"{key_prefix}.yは0以上である必要があります。")
+            field_name = f"{key_prefix}.y"
+            raise ValueError(tr("keyboard.layout.error.coordinate_minimum", field=field_name))
         if w <= 0:
-            raise ValueError(f"{key_prefix}.wは0より大きい必要があります。")
+            field_name = f"{key_prefix}.w"
+            raise ValueError(tr("keyboard.layout.error.dimension_positive", field=field_name))
         if h <= 0:
-            raise ValueError(f"{key_prefix}.hは0より大きい必要があります。")
+            field_name = f"{key_prefix}.h"
+            raise ValueError(tr("keyboard.layout.error.dimension_positive", field=field_name))
 
         scan_code = None
         if "scan_code" in raw_key and raw_key.get("scan_code") not in ("", None):
@@ -236,7 +241,7 @@ def validate_layout_json(data, *, existing_layout_ids: set[str] | None = None) -
         if raw_extra_scan_codes is None:
             extra_scan_codes = ()
         elif not isinstance(raw_extra_scan_codes, list):
-            raise ValueError(f"{key_prefix}.extra_scan_codesは整数の配列である必要があります。")
+            raise ValueError(tr("keyboard.layout.error.extra_scan_codes_type", key=key_prefix))
         else:
             extra_scan_codes = tuple(
                 _coerce_int(value, f"{key_prefix}.extra_scan_codes[{index}]")
@@ -340,14 +345,14 @@ def _coerce_float(value, field_name: str) -> float:
     try:
         return float(value)
     except Exception as exc:
-        raise ValueError(f"{field_name}は数値である必要があります。") from exc
+        raise ValueError(tr("keyboard.layout.error.number_type", field=field_name)) from exc
 
 
 def _coerce_int(value, field_name: str) -> int:
     try:
         return int(value)
     except Exception as exc:
-        raise ValueError(f"{field_name}は整数である必要があります。") from exc
+        raise ValueError(tr("keyboard.layout.error.integer_type", field=field_name)) from exc
 
 
 def _get_registration_path(registration) -> str:

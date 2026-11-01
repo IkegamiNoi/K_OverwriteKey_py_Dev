@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import tkinter as tk
 from tkinter import ttk
+from keyseq.shared.i18n import tr
 from typing import TYPE_CHECKING
 
 from keyseq.presentation.hook_button_texts import HOOK_START_TEXT, TRIGGER_DISABLE_TEXT
@@ -15,7 +16,7 @@ class CompactHookFrame(ttk.LabelFrame):
     def __init__(self, parent, app: App):
         super().__init__(parent, padding=10)
         self.heading = ttk.Label(
-            self, text="▾ フック", anchor="w", cursor="hand2",
+            self, text=tr("view.hook.heading_open"), anchor="w", cursor="hand2",
             style="TLabelframe.Label",
         )
         self.configure(labelwidget=self.heading)
@@ -24,8 +25,8 @@ class CompactHookFrame(ttk.LabelFrame):
         self.compact_hook_line1 = ttk.Frame(self)
         self.compact_hook_line1.pack(side="top", fill="x")
         # 開始/停止（Appの同名メソッドを呼ぶ。ウィジェットは別物でOK）
-        self.hook_toggle_btn = ttk.Button(self.compact_hook_line1, text=HOOK_START_TEXT, command=app.hook.toggle_hook)
-        self.trigger_toggle_btn = ttk.Button(self.compact_hook_line1, text=TRIGGER_DISABLE_TEXT, command=app.hook.toggle_triggers_enabled, state="disabled")
+        self.hook_toggle_btn = ttk.Button(self.compact_hook_line1, text=tr(HOOK_START_TEXT), command=app.hook.toggle_hook)
+        self.trigger_toggle_btn = ttk.Button(self.compact_hook_line1, text=tr(TRIGGER_DISABLE_TEXT), command=app.hook.toggle_triggers_enabled, state="disabled")
         self.hook_toggle_btn.grid(row=0, column=0, padx=(0, 8), sticky="w")
         self.trigger_toggle_btn.grid(row=0, column=1, padx=(8, 0), sticky="w")
         app.hook.register_hook_buttons(self.hook_toggle_btn, self.trigger_toggle_btn)
@@ -34,24 +35,24 @@ class CompactHookFrame(ttk.LabelFrame):
         self.compact_hook_line2 = ttk.Frame(self)
         self.compact_hook_line2.pack(side="top", fill="x")
         # 停止トリガー表示のみ（Entryだけ）
-        ttk.Label(self.compact_hook_line2, text="停止キー: ").grid(row=0, column=0, sticky="w")
+        ttk.Label(self.compact_hook_line2, text=tr("view.hook.stop_key_label")).grid(row=0, column=0, sticky="w")
         self.stop_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.ui_vars.stop_key_var, width=8, state="readonly")
         self.stop_key_entry.grid(row=0, column=1, sticky="w")
 
         # 一時停止/再開キー表示のみ（Entryだけ）
-        ttk.Label(self.compact_hook_line2, text="一時停止/再開キー: ").grid(row=1, column=0, sticky="w")
+        ttk.Label(self.compact_hook_line2, text=tr("view.hook.toggle_key_label")).grid(row=1, column=0, sticky="w")
         self.toggle_key_entry = ttk.Entry(self.compact_hook_line2, textvariable=app.ui_vars.toggle_key_var, width=8, state="readonly")
         self.toggle_key_entry.grid(row=1, column=1, sticky="w")
 
         self.hook_keys_individual_check = ttk.Checkbutton(
             self.compact_hook_line2,
-            text="フックキーをこの構成セット専用にする",
+            text=tr("view.hook.individual_keys"),
             variable=app.ui_vars.hook_keys_individual_var,
             state="disabled",
         )
         self.hook_keys_individual_check.grid(row=2, column=0, columnspan=2, sticky="w", pady=(4, 0))
         self.select_before_run_check = ttk.Checkbutton(
-            self.compact_hook_line2, text="全トリガーを選んでから実行",
+            self.compact_hook_line2, text=tr("view.hook.select_trigger_before_run"),
             variable=app.ui_vars.select_before_run_var,
             command=app.toggle_select_before_run,
         )
