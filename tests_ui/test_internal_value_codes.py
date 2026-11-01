@@ -88,9 +88,12 @@ class InternalValueCodesTest(unittest.TestCase):
             format_keymap_display_name=lambda item: item.get("id", ""),
         )
         with patch("keyseq.presentation.controllers.keymap_panel.keymap_add_flow._kind_row_labels",
-                   return_value={"new": "Create", "load": "Load", "paste": "Paste"}):
+                   return_value={"new": "Create", "load": "Load", "paste": "Paste"}), \
+             patch("keyseq.presentation.controllers.keymap_panel.keymap_add_flow.tr",
+                   side_effect=lambda key: "new" if key == "keymap_panel.add.existing" else key):
             flow = KeymapAddFlow(fake_panel)
-            self.assertEqual(flow._make_rows("new", [], [{"id": "km1", "label": ""}])[0][0], "Create")
+            rows = flow._make_rows("new", [{"id": "old", "label": ""}], [{"id": "km1", "label": ""}])
+            self.assertEqual([row[0] for row in rows], ["new", "Create"])
 
     def test_empty_selection_summary_does_not_depend_on_display_label(self):
         controller = TriggerPanelController.__new__(TriggerPanelController)

@@ -435,7 +435,7 @@
             "body": [{"type": "p", "text": "The Windows keys (left and right), Caps Lock, and the right Alt key on an AltGr layout cannot be source keys or switch keys. The app may be unable to suppress the right Alt key on an AltGr layout, so it may reach the OS."}]
           },
           {
-            "id": "limits.make_only", "title": "Muhenkan (non-convert) and Henkan (convert) do not repeat",
+            "id": "limits.make_only", "title": "Muhenkan (無変換, non-convert) and Henkan (変換, convert) do not repeat",
             "body": [{"type": "p", "text": "Depending on the keyboard, Muhenkan (non-convert) and Henkan (convert) may only send a key-down event. These keys do not repeat when held down, so a trigger or key remap runs only once. If you release and press the key again immediately, that one run may not take effect."}]
           },
           {
@@ -452,7 +452,7 @@
           },
           {
             "id": "limits.layout_names", "title": "Names for special keys",
-            "body": [{"type": "p", "text": "JIS special keys such as Muhenkan (non-convert), Henkan (convert), and Hankaku / Zenkaku (half-width / full-width) can be received and sent by those names only when you select the layout that defines them (the sample jis.json). They cannot be sent with the built-in US TKL layout."}]
+            "body": [{"type": "p", "text": "JIS special keys such as Muhenkan (無変換, non-convert), Henkan (変換, convert), and Hankaku / Zenkaku (半角 / 全角, half-width / full-width) can be received and sent by those names only when you select the layout that defines them (the sample jis.json). They cannot be sent with the built-in US TKL layout."}]
           },
           {
             "id": "limits.monitor_scale", "title": "Monitors with different scaling",

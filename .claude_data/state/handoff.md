@@ -24,7 +24,7 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜54）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 72 進行中（task_01〜10 完了・task_11 の統合確認は済み・二次レビューの指摘の採否と task_12〔実機目視・正本反映〕はユーザー判断待ち）。** 日英の切り替え・全層の文言のキー化・en.json（915 キー）・help_en.json・日本語リテラルの静的検査まで入った。
+**phase 72 進行中（task_01〜11・11a 完了。残り = task_12〔ユーザーの実機目視 → 正本反映〕）。** 日英の切り替え・全層の文言のキー化・en.json（915 キー）・help_en.json・日本語リテラルの静的検査・二次レビューの採用分まで入った。
 ブランチ `claude/multilingual-support-ff44eb`（phase 71 一式の上に phase 72）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -55,14 +55,12 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー確認待ち 1】二次レビューの指摘の採否**（`instructions/phase/72_multilingual_ui/tasks/task_11_integration.md` の表・各推奨つき）: C1（言語の知らせの間のフック停止・推奨 採用）/ D1（App の言語の決定のテスト・推奨 採用）/ D2（smoke の言語・推奨 §9 に例外として明記）/ D7（キーマップ追加の行の種類・推奨 採用）/ D3・D4 は正本の文面で / D5・D6・D8 は保留・不要
-- **【ユーザー確認待ち 2】英語のヘルプで JIS の特殊キー名に日本語を併記するか**（推奨 = 初出に `Muhenkan (無変換)` の形）
-- 採否が決まったら採用分を task_11a として実装 → verifier → reviewer
-- **【ユーザー作業】task_12 の実機目視**（English を選んで再起動 → 英語になるか・切れないか / 日本語に戻して今と同じか）→ 正本反映（暫定 55 §11 + task_11_integration.md の追加項目）・凍結・decisions_archive/72・current.md・/refactor_check
+- **【ユーザー作業】task_12 の実機目視**（「設定」→「Language / 言語」で English → 再起動 → 英語になるか・ボタンや見出しが切れないか / 日本語に戻して今と同じか）→ 結果をメインへ報告
+- 目視の結果を受けて正本反映（暫定 55 §11 + `tasks/task_11_integration.md` の追加項目 + D2〔§9 に smoke の例外〕・D3〔引数なしの波括弧〕・D4〔不正な言語ファイル名は警告して無視〕）・暫定 55 凍結・decisions_archive/72・current.md 完了記載・/refactor_check
 - 土台の画像の差し替え（任意・ユーザー）/ 保留 = 提案書 26・27・phase 71 の保留 2 件 / main へのマージはユーザー
 
 ## 進行中のフェーズの要点（phase 72）
-- 文言カタログ = `keyseq/shared/i18n/`（`tr(key, /, **params)`・`tr_in`・選んだ言語 → en → ja → キー・`fix_language` / `reset_for_tests`）・`locales/ja.json`（正）/ `en.json`（今は 4 キーのみ・足りない文言は ja で出る）
+- 文言カタログ = `keyseq/shared/i18n/`（`tr(key, /, **params)`・`tr_in`・選んだ言語 → en → ja → キー・`fix_language` / `reset_for_tests`）・`locales/ja.json`（正）/ `en.json`（全 915 キー）
 - **`tr` をモジュール定数・クラス属性・既定引数に書かない**（import 時に ja で固まる）。表は値をキーにして表示の時点で `tr`
 - **App を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`**（無いと `ui_language` 未設定の環境で英語になり落ちる・`tests/test_i18n_test_language_fixed.py` が検出）
 - キー移行の検証 = 削除行の日本語と ja.json の値の**完全一致**の機械照合（reviewer に依頼。既存キーの使い回しで「…」の有無を取り違えた例あり）

@@ -104,11 +104,11 @@ class KeymapAddFlow:
 
     def _make_rows(self, kind: str, missing: list[dict], new_keymaps: list[dict]) -> list[tuple[str, str, str, str]]:
         return [
-            (_kind_row_labels()[kind] if row_kind == kind else row_kind,
+            (tr("keymap_panel.add.existing") if row_kind == "existing" else _kind_row_labels()[row_kind],
              self._keymap_panel.format_keymap_display_name(keymap)
              or normalize_key_name(keymap.get("id", "")),
              str(keymap.get("label") or ""), "")
-            for row_kind, keymaps in ((tr("keymap_panel.add.existing"), missing), (kind, new_keymaps))
+            for row_kind, keymaps in (("existing", missing), (kind, new_keymaps))
             for keymap in keymaps
         ]
 

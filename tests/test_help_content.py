@@ -106,6 +106,8 @@ class HelpContentTest(unittest.TestCase):
         result = load_help_content(help_content_path("en"))
         self.assertIsNotNone(result.content, result.error)
         assert result.content is not None
+        allowed_terms = ["無変換", "変換", "半角 / 全角"]
+        all_values = []
         for group in (*result.content.guide, *result.content.faq):
             values = [group.title]
             for item in group.items:
@@ -113,13 +115,21 @@ class HelpContentTest(unittest.TestCase):
                 for block in item.body:
                     values.extend((block.text,) if block.kind == "p" else block.items)
             for value in values:
+                all_values.append(value)
+                checked_value = value
+                # These Japanese terms match the key names shown in the UI.
+                for term in allowed_terms:
+                    checked_value = checked_value.replace(term, "")
                 with self.subTest(category=group.id, text=value):
                     self.assertNotRegex(
-                        value,
+                        checked_value,
                         r"[\u3040-\u30ff\u31f0-\u31ff\u3400-\u4dbf\u4e00-\u9fff"
                         r"\uf900-\ufaff\uff66-\uff9f\U0001b000-\U0001b16f"
                         r"\U00020000-\U000323af]",
                     )
+        for term in allowed_terms:
+            with self.subTest(allowed_term=term):
+                self.assertTrue(any(term in value for value in all_values), f"unused allowed term: {term}")
 
     def test_current_english_language_loads_bundled_english_content(self) -> None:
         previous_language = current_language()

@@ -520,11 +520,15 @@ class App(tk.Tk):
             self.ui_vars.ui_language_var.set(saved)
             return
         self.ui_vars.ui_language_var.set(code)
-        messagebox.showinfo(
-            tr_in(code, "dialog.language_restart.title"),
-            tr_in(code, "dialog.language_restart.body"),
-            parent=self,
-        )
+        self.hook.suspend_hook_for_dialog()
+        try:
+            messagebox.showinfo(
+                tr_in(code, "dialog.language_restart.title"),
+                tr_in(code, "dialog.language_restart.body"),
+                parent=self,
+            )
+        finally:
+            self.hook.resume_hook_after_dialog()
 
     def _is_menu_shortcut_enabled(self) -> bool:
         if self.stop_key_capture.capturing or self.toggle_key_capture.capturing:

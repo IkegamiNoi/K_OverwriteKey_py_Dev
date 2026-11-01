@@ -4,43 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-01T19:13:00
+last_updated: 2026-11-01T23:52:00
 phase: instructions/phase/72_multilingual_ui（**アクティブ** = 画面の文言の多言語対応・暫定 55 v0.3 ユーザー確定済・decisions 72）。次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 71**（タスクバーのアイコン・`decisions_archive/71_taskbar_status_icon.md`）
 last_commit_location: `claude/multilingual-support-ff44eb`（phase 72）。phase 71 一式は `claude/taskbar-app-status-indicator-f73d28` にもあり、main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 72 進行中（task_01〜10 完了・task_11 の統合確認は済み・二次レビューの指摘の採否と task_12〔実機目視・正本反映〕はユーザー判断待ち）。** 日英の切り替え・全層の文言のキー化・en.json（915 キー）・help_en.json・日本語リテラルの静的検査まで入った。
+focus: **phase 72 進行中（task_01〜11・11a 完了。残り = task_12〔ユーザーの実機目視 → 正本反映〕）。** 日英の切り替え・全層の文言のキー化・en.json（915 キー）・help_en.json・日本語リテラルの静的検査・二次レビューの採用分（C1・D1・D7・JIS のキー名の併記）まで入った。
 mode: blocked
-presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-01T19:13:00
+ts: 2026-11-01T23:52:00
 who: main
 summary: |
-  task_07 確定（暫定 55 v0.4・E1 に「/ で並べた語はそれぞれ大文字」）→ task_08（en.json 915 キー・種類とマウスのボタンの表示名・test_i18n を全キーの検査へ・メインで英訳 5 か所と簡易表示の要約のボタン名を修正）→ task_09（help_en.json・65 項目）→ task_10（日本語リテラルの静的テスト・許可 34 件・メインで f-string の断片とネストの除外を修正）。いずれも reviewer 採用でコミット済み。
-  task_11: 統合実測 = tests 1900 / tests_ui 1233 / smoke OK / 英語で起動（File / Settings / Help）。二次レビュー = codex-reviewer P2 1 件・deep-reviewer 修正して完了可（中 2・低 6）。指摘と推奨は `instructions/phase/72_multilingual_ui/tasks/task_11_integration.md` に整理（コードは未変更）。
+  ユーザー判断（2026-11-01）: 二次レビューの指摘と JIS のキー名の扱いは推奨案どおり（C1・D1・D7 採用 / D2 は §9 に意図的な例外として明記・D3・D4 は正本の文面で・task_12 / D5・D6・D8 保留・不要 / 英語のヘルプの JIS のキー名に日本語を併記）。
+  task_11a: C1（言語の知らせの間はフックを止める）・D1（App の言語の決定のテスト）・D7（キーマップの追加の行の種類をコードで判定）・help_en.json の 3 語の併記と許可語のテスト。codex-implementer（D1 は 2 回目の依頼で追加）・reviewer 完了可（任意の指摘 3 件は見送り）。
 result_files:
-  - keyseq/shared/i18n/locales/{ja,en}.json / keyseq/presentation/dialogs/action_dialog.py / controllers/action_list_rendering.py / keyseq/domain/config.py
-  - keyseq/presentation/help/content/help_en.json / tests/test_no_japanese_ui_literals.py / tests/test_i18n.py / tests/test_help_content.py / tests_ui/test_action_dialog_labels.py ほか
-  - instructions/history/55_multilingual_ui.md（v0.4）/ instructions/phase/72_multilingual_ui/tasks/task_07〜11
+  - keyseq/presentation/app.py / keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py / keyseq/presentation/help/content/help_en.json
+  - tests/test_help_content.py / tests_ui/test_ui_language.py / tests_ui/test_internal_value_codes.py
+  - instructions/phase/72_multilingual_ui/tasks/task_11a_review_fixes.md
 verified:
   compile: pass
   tests: pass（1900・skip 7）
-  tests_ui: pass（1233）
+  tests_ui: pass（1236）
   smoke: pass
 
 ## next_action
-- **【ユーザー確認待ち 1】二次レビューの指摘の採否**（`instructions/phase/72_multilingual_ui/tasks/task_11_integration.md` の表・各推奨つき）:
-  - C1（Codex P2）言語の知らせを開く間にフックを止めていない（`app.py:523`）→ 推奨 = 採用（try / finally で suspend / resume・3 行）
-  - D1 App の言語の決定のテストが無い → 推奨 = 採用（patch でキー無し / 不正 → en・ja → ja・警告が決定の後）
-  - D2 smoke は言語を固定しない → 推奨 = 意図的な例外として暫定 55 §9 に明記
-  - D7 キーマップの追加の行の種類を表示名とコードの同じ列で比べている → 推奨 = 採用（小）
-  - D3・D4 は正本の文面で扱う / D5・D6・D8 は保留・不要
-- **【ユーザー確認待ち 2】英語のヘルプで JIS の特殊キー名（無変換・変換・半角 / 全角）に日本語を併記するか**（画面のキー名は日本語のまま〔暫定 55 §6.2〕なので、英語のヘルプの Muhenkan 等だけでは画面のキーを探しにくい。推奨 = 初出に `Muhenkan (無変換)` の形で併記し、help_en の「日本語なし」テストの許可に入れる）
-- 採否が決まったら: 採用分を task_11a として実装（codex-implementer）→ verifier → reviewer → その後 task_12
-- **【ユーザー作業】task_12 の実機目視**: 「設定」→「Language / 言語」で English を選んで再起動 → メニュー・主画面・主なダイアログ・ステータス欄・エラー文・ヘルプが英語か / ボタン・ラベルが切れないか（暫定 55 §7・§9-1・§9-12）/ 日本語に戻して今と同じか。結果を受けて正本反映（暫定 55 §11 + task_11_integration.md の追加項目）・暫定 55 凍結・decisions_archive/72・current.md 完了記載・/refactor_check
+- **【ユーザー作業】task_12 の実機目視**: 「設定」→「Language / 言語」で English を選んで再起動 → メニュー・主画面・主なダイアログ・ステータス欄・エラー文・ヘルプが英語か / ボタン・ラベルが切れないか（暫定 55 §7・§9-1・§9-12）/ 日本語に戻して今と同じか。結果をメインへ報告
+- 目視の結果を受けて task_12 の正本反映: 暫定 55 §11 + `tasks/task_11_integration.md` の「正本反映で足す項目」+ D2（§9 に smoke の例外）・D3（§3.1 に引数なしの波括弧）・D4（言語ファイル名の不正は警告して無視）→ 暫定 55 凍結・decisions_archive/72・current.md 完了記載・/refactor_check
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers

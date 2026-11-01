@@ -1,5 +1,6 @@
 """言語メニューと設定保存の UI 挙動を固定する。"""
 import unittest
+from contextlib import ExitStack
 from unittest.mock import patch
 
 from keyseq.presentation import app as app_module
@@ -11,6 +12,56 @@ fix_language("ja")
 
 
 class UiLanguageTest(unittest.TestCase):
+    def _make_app_with_startup_settings(self, settings, on_read_error=False):
+        events = unittest.mock.Mock()
+        stack = ExitStack()
+        set_language = stack.enter_context(patch.object(app_module, "set_language"))
+        showwarning = stack.enter_context(patch.object(app_module.messagebox, "showwarning"))
+        events.attach_mock(set_language, "set_language")
+        events.attach_mock(showwarning, "showwarning")
+        loader_mock = stack.enter_context(patch.object(app_module, "load_startup_settings"))
+        if on_read_error:
+            loader_mock.side_effect = lambda _service, _path, on_read_error: (
+                on_read_error(RuntimeError("startup read failed")) or settings
+            )
+        else:
+            loader_mock.return_value = settings
+        stack.enter_context(patch.object(app_module.ConfigService, "load_startup", return_value={}))
+        stack.enter_context(patch.object(app_module.ConfigService, "ensure_split_config_dirs"))
+        stack.enter_context(patch.object(StartupIo, "load_startup_and_config"))
+        try:
+            app = app_module.App()
+        except Exception:
+            stack.close()
+            raise
+        return app, events, set_language, showwarning, stack
+
+    def test_app_resolves_startup_language(self):
+        for settings, expected in (({}, "en"), ({"ui_language": "xx"}, "en"),
+                                   ({"ui_language": 7}, "en"), ({"ui_language": "ja"}, "ja")):
+            with self.subTest(settings=settings):
+                app, _events, set_language, showwarning, stack = self._make_app_with_startup_settings(settings)
+                try:
+                    set_language.assert_called_once_with(expected)
+                    showwarning.assert_not_called()
+                finally:
+                    app.destroy()
+                    stack.close()
+
+    def test_startup_read_warning_follows_language_resolution(self):
+        app, events, set_language, showwarning, stack = self._make_app_with_startup_settings({}, True)
+        try:
+            set_language.assert_called_once_with("en")
+            showwarning.assert_called_once()
+            self.assertLess(
+                events.mock_calls.index(unittest.mock.call.set_language("en")),
+                events.mock_calls.index(unittest.mock.call.showwarning(*showwarning.call_args.args,
+                                                                       **showwarning.call_args.kwargs)),
+            )
+        finally:
+            app.destroy()
+            stack.close()
+
     @classmethod
     def setUpClass(cls):
         cls._load_startup_patch = patch.object(
@@ -103,9 +154,11 @@ class UiLanguageTest(unittest.TestCase):
     def test_selecting_different_language_saves_and_announces_without_changing_current_language(self):
         self.app._startup_settings = {"ui_language": "ja"}
         starting_language = current_language()
+        events = []
         with patch.object(self.app.startup_io, "write_startup", return_value=True) as write_startup, patch.object(
-            app_module.messagebox,
-            "showinfo",
+            self.app.hook, "suspend_hook_for_dialog", side_effect=lambda: events.append("suspend")
+        ), patch.object(self.app.hook, "resume_hook_after_dialog", side_effect=lambda: events.append("resume")), patch.object(
+            app_module.messagebox, "showinfo", side_effect=lambda *args, **kwargs: events.append("showinfo")
         ) as showinfo:
             self.app.set_ui_language("en")
 
@@ -117,6 +170,19 @@ class UiLanguageTest(unittest.TestCase):
         )
         self.assertEqual(self.app.ui_vars.ui_language_var.get(), "en")
         self.assertEqual(current_language(), starting_language)
+        self.assertEqual(events, ["suspend", "showinfo", "resume"])
+
+    def test_language_notice_resumes_hook_when_showinfo_raises(self):
+        self.app._startup_settings = {"ui_language": "ja"}
+        events = []
+        with patch.object(self.app.startup_io, "write_startup", return_value=True), patch.object(
+            self.app.hook, "suspend_hook_for_dialog", side_effect=lambda: events.append("suspend")
+        ), patch.object(self.app.hook, "resume_hook_after_dialog", side_effect=lambda: events.append("resume")), patch.object(
+            app_module.messagebox, "showinfo", side_effect=lambda *args, **kwargs: (events.append("showinfo"), (_ for _ in ()).throw(RuntimeError()))
+        ):
+            with self.assertRaises(RuntimeError):
+                self.app.set_ui_language("en")
+        self.assertEqual(events, ["suspend", "showinfo", "resume"])
 
     def test_radio_selection_uses_saved_language_while_current_language_stays_japanese(self):
         variables = UiVars(self.app, ui_font_delta_pt=0, ui_language="en")
