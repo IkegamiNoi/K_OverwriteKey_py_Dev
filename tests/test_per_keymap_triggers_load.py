@@ -200,6 +200,11 @@ class PerKeymapLoadingTest(unittest.TestCase):
         })
         self.assertTrue(target["_keymap_dirty"])
 
+        with patch.object(split_loading, "tr", return_value="translated legacy name"):
+            translated = self.load_split(["b.json"], "old.json")
+        self.assertEqual(translated["keymaps"][1]["label"], "translated legacy name")
+        self.assertEqual(target["label"], "旧トリガーセット（old）")
+
     def test_any_keymap_reference_to_legacy_path_is_same(self):
         self.write("old.json", {"triggers": [{"key": "f8"}]})
         self.write("own.json", {"triggers": [{"key": "f9"}]})

@@ -4,6 +4,8 @@ from collections.abc import Collection, Mapping
 from types import MappingProxyType
 from typing import Any
 
+from keyseq.shared.i18n import tr
+
 from ..key_hold import MODIFIER_KEY_NAMES
 from .models import grid_key_name
 
@@ -23,16 +25,25 @@ DEFAULT_OPS: Mapping[str, str] = MappingProxyType({
 FIXED_BACK_KEY = "esc"
 FIXED_CLICK_KEY = "num enter"
 FIXED_OP_KEYS = frozenset({FIXED_BACK_KEY, FIXED_CLICK_KEY})
-OP_LABELS: Mapping[str, str] = MappingProxyType({
-    "deepen": "絞り込む",
-    "back": "戻る",
-    "click": "クリック",
-    "next_screen": "次の画面へ",
-    "up": "上へ",
-    "down": "下へ",
-    "left": "左へ",
-    "right": "右へ",
+_OP_LABEL_KEYS: Mapping[str, str] = MappingProxyType({
+    "deepen": "deepen", "back": "back", "click": "click",
+    "next_screen": "next_screen", "up": "up", "down": "down",
+    "left": "left", "right": "right",
 })
+
+
+class _TranslatedOperationLabels(Mapping[str, str]):
+    def __getitem__(self, operation: str) -> str:
+        return tr(f"domain.screen_grid.ops.label.{_OP_LABEL_KEYS[operation]}")
+
+    def __iter__(self):
+        return iter(_OP_LABEL_KEYS)
+
+    def __len__(self) -> int:
+        return len(_OP_LABEL_KEYS)
+
+
+OP_LABELS: Mapping[str, str] = _TranslatedOperationLabels()
 
 
 def arrow_keys(ops: Mapping[str, str]) -> frozenset[str]:
@@ -87,26 +98,29 @@ def validate_ops(
     frame_names = {grid_key_name(key) for key in frame_keys if isinstance(key, str)}
     for operation in GRID_OPS:
         key = grid_key_name(ops.get(operation))
-        prefix = f"操作キー（{OP_LABELS[operation]}）: "
         if not key:
-            reason = "キーが空です"
+            reason_key = "key_empty"
         elif key in MODIFIER_KEY_NAMES:
-            reason = f"修飾キー{key!r}です"
+            reason_key = "modifier_key"
         elif key in FIXED_OP_KEYS:
-            reason = f"固定の操作キー{key!r}です"
+            reason_key = "fixed_key"
         elif key in seen:
-            reason = f"キー{key!r}が先の操作と重複しています"
+            reason_key = "duplicate_key"
         elif key in reserved_names:
-            reason = f"予約キー{key!r}と重なっています"
+            reason_key = "reserved_key"
         elif key in frame_names:
-            reason = f"マスのキー{key!r}と重なっています"
+            reason_key = "cell_key"
         else:
-            reason = ""
-        if reason:
-            errors.append(prefix + reason)
+            reason_key = ""
+        if reason_key:
+            errors.append(tr(
+                f"domain.screen_grid.ops.error.{reason_key}",
+                operation=OP_LABELS[operation],
+                key=key,
+            ))
         seen.add(key)
     if FIXED_BACK_KEY in frame_names:
-        errors.append(f"操作キー（戻る・固定）: マスのキー{FIXED_BACK_KEY!r}と重なっています")
+        errors.append(tr("domain.screen_grid.ops.fixed_back_overlap", key=FIXED_BACK_KEY))
     if FIXED_CLICK_KEY in frame_names:
-        errors.append(f"操作キー（クリック・固定）: マスのキー{FIXED_CLICK_KEY!r}と重なっています")
+        errors.append(tr("domain.screen_grid.ops.fixed_click_overlap", key=FIXED_CLICK_KEY))
     return errors

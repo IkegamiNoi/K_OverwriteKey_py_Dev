@@ -4,6 +4,8 @@ from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from typing import Any
 
+from keyseq.shared.i18n import tr
+
 from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM, OP_BACK, OP_CALL, OP_COUNTER_INC, OP_COUNTER_RESET,
     MAX_LOOP_DEPTH, OP_LOOP_END, OP_LOOP_START, OP_REWIND, OP_STOP, OP_WAIT, action_type,
@@ -11,9 +13,10 @@ from keyseq.domain.sequence_control import (
 )
 
 MAX_PROCESSED_SYSTEM_ACTIONS = 10000
-PROCESSED_LIMIT_MESSAGE = (
-    "制御アクションの処理が10000回を超えました（通常アクションの無いループ等）"
-)
+
+
+def processed_limit_message() -> str:
+    return tr("application.sequence_steps.processed_limit")
 
 
 @dataclass(frozen=True)
@@ -42,26 +45,26 @@ def format_system_error_notification(
 ) -> tuple[dict[str, Any], str]:
     """Copy a system action and add its readable operation value for notification."""
     notified = action.copy()
-    op = str(action.get("op") or "（なし）")
+    op = str(action.get("op") or tr("application.sequence_steps.none"))
     normalized_op = system_op(action)
     if normalized_op == "loop_start":
-        value = "無限" if action.get("infinite") else f"回数={action.get('count', '（なし）')}"
+        value = tr("application.sequence_steps.infinite") if action.get("infinite") else tr("application.sequence_steps.count", count=action.get("count", tr("application.sequence_steps.none")))
     elif normalized_op == "wait":
-        value = f"{action.get('ms', '（なし）')}ms"
+        value = tr("application.sequence_steps.milliseconds", value=action.get("ms", tr("application.sequence_steps.none")))
     elif normalized_op in ("counter_inc", "counter_reset"):
-        value = f"カウンター={action.get('counter', '（なし）')}"
+        value = tr("application.sequence_steps.counter", counter=action.get("counter", tr("application.sequence_steps.none")))
     elif normalized_op == "call":
         target = action.get("target")
         target = target.strip() if isinstance(target, str) else ""
-        value = f"呼び出し先={target or '（なし）'}"
+        value = tr("application.sequence_steps.call_target", target=target or tr("application.sequence_steps.none"))
     else:
         value = ""
     detail = f"{op} {value}".rstrip()
     notified["value"] = detail
     label = action.get("label")
     if isinstance(label, str) and label.strip():
-        detail += f" / ラベル: {label.strip()}"
-    return notified, f"system実行エラー（{detail}）: {message}"
+        return notified, tr("application.sequence_steps.system_error_labeled", detail=detail, message=message, label=label.strip())
+    return notified, tr("application.sequence_steps.system_error", detail=detail, message=message)
 
 
 def apply_deferred_counters(
@@ -129,11 +132,11 @@ def _loop_count(action: Mapping[str, Any]) -> int | None:
 
 def _loop_start(action: Mapping[str, Any], position: int, frames: list[LoopFrame], structure: Any) -> tuple[int, str | None]:
     if position in structure.unmatched:
-        return position, "ループの始まりに対応する終わりがありません"
+        return position, tr("application.sequence_steps.loop_start_unmatched")
     if position in structure.too_deep:
-        return position, f"ループの入れ子が{MAX_LOOP_DEPTH}段を超えています"
+        return position, tr("application.sequence_steps.loop_too_deep", depth=MAX_LOOP_DEPTH)
     if _loop_count(action) == 0:
-        return position, "ループの回数が正しくありません（1以上の整数）"
+        return position, tr("application.sequence_steps.loop_count_invalid")
     frames.append(LoopFrame(position, 1))
     return position + 1, None
 
@@ -141,10 +144,10 @@ def _loop_start(action: Mapping[str, Any], position: int, frames: list[LoopFrame
 def _loop_end(actions: Sequence[Any], position: int, frames: list[LoopFrame], structure: Any) -> tuple[int, str | None]:
     start = structure.reverse_pairs.get(position)
     if start is None or not frames or frames[-1].start != start:
-        return position, "ループの終わりに対応する始まりがありません"
+        return position, tr("application.sequence_steps.loop_end_unmatched")
     count = _loop_count(actions[start])
     if count == 0:
-        return position, "ループの回数が正しくありません（1以上の整数）"
+        return position, tr("application.sequence_steps.loop_count_invalid")
     frame = frames[-1]
     if count is None or frame.iteration < count:
         frames[-1] = LoopFrame(start, frame.iteration + 1)
@@ -158,7 +161,7 @@ def _counter(action: Mapping[str, Any], op: str, counters: dict[str, int],
     value = action.get("counter", "")
     name = value.strip() if isinstance(value, str) else ""
     if not name:
-        return "カウンター名が空です"
+        return tr("application.sequence_steps.counter_name_empty")
     current = counters.get(name, 0)
     if op == OP_COUNTER_INC:
         counters[name] = current + 1
@@ -185,7 +188,7 @@ def _system_step(actions: Sequence[Any], position: int, frames: list[LoopFrame],
         return position + 1, None
     if op == OP_STOP:
         return position + 1, None
-    return position, f"systemの操作が正しくありません。操作: {op}"
+    return position, tr("application.sequence_steps.invalid_system_op", op=op)
 
 
 def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
@@ -235,14 +238,14 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
         if processed >= MAX_PROCESSED_SYSTEM_ACTIONS:
             return StepOutcome(
                 None, position, current,
-                (position, PROCESSED_LIMIT_MESSAGE),
+                (position, processed_limit_message()),
                 counter_deltas=tuple(counter_deltas), processed=processed,
             )
         if (in_call and system_op(action) == OP_LOOP_START
                 and bool(action.get("infinite"))):
             return StepOutcome(
                 None, position, current,
-                (position, "呼び出し先に無限ループがあります"),
+                (position, tr("application.sequence_steps.infinite_loop_call")),
                 counter_deltas=tuple(counter_deltas), wrapped=wrapped,
                 processed=processed,
             )
@@ -264,7 +267,7 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
             if wait_ms < 1:
                 return StepOutcome(
                     None, position, current,
-                    (position, "待機時間が正しくありません（1以上の整数・ミリ秒）"),
+                    (position, tr("application.sequence_steps.wait_invalid")),
                     counter_deltas=tuple(counter_deltas), processed=processed,
                 )
             if in_call:
@@ -280,7 +283,7 @@ def advance(actions: Sequence[Any], position: int, frames: list[LoopFrame],
         op = system_op(action)
         if op in (OP_BACK, OP_REWIND) and len(actions) > 1:
             return StepOutcome(None, position, current,
-                               (position, "「戻す」「先頭へ」は出力シーケンスに単独で登録してください。"),
+                               (position, tr("application.sequence_steps.control_standalone")),
                                counter_deltas=tuple(counter_deltas), processed=processed)
         if op in (OP_BACK, OP_REWIND) and on_control is not None:
             on_control(op, control_target(action))

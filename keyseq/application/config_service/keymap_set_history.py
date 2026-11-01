@@ -6,6 +6,7 @@ import os
 from typing import TYPE_CHECKING, Any
 
 from keyseq.domain import keymap_set_history as domain
+from keyseq.shared.i18n import tr
 from . import contracts
 
 if TYPE_CHECKING:
@@ -58,7 +59,7 @@ def save_history(
             domain.normalize_history(history),
         )
     except Exception as exc:
-        return False, f"履歴ファイルを保存できませんでした: {exc}"
+        return False, tr("application.keymap_set_history.save_failed", error=exc)
     return True, ""
 
 
@@ -68,9 +69,9 @@ def record(
     """永続化済みの先頭と比較し、変更があるときだけ記録する。"""
     history, status = load_history(service, config_root=config_root)
     if status == contracts.HISTORY_READ_ONLY:
-        return False, "履歴ファイルを読み込めず、退避もできないため記録できません。"
+        return False, tr("application.keymap_set_history.read_only")
     if not path.strip():
-        return False, "構成セットのパスが空のため履歴を記録できません。"
+        return False, tr("application.keymap_set_history.path_empty")
     stored = service.to_config_relative_or_absolute(path, config_root)
     key_of = lambda p: service.canonical_path(p, config_root)
     if domain.is_recent_head(history, stored, key_of=key_of):

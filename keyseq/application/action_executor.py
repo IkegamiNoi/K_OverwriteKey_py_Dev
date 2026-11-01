@@ -28,6 +28,7 @@ from keyseq.domain.mouse_scroll import (
     parse_mouse_scroll,
     scroll_deltas,
 )
+from keyseq.shared.i18n import tr
 
 
 MIN_DRAG_DURATION_SEC = 0.15
@@ -48,7 +49,7 @@ class _TextWriteError(Exception):
 
     def __init__(self, cause: Exception, release_errors: list[Exception]) -> None:
         super().__init__(
-            f"{cause} / 解放エラー: " + "; ".join(str(error) for error in release_errors)
+            tr("application.action_executor.release_errors", cause=cause, errors="; ".join(str(error) for error in release_errors))
         )
         self.release_errors = release_errors
 
@@ -58,12 +59,11 @@ def _file_line_error_message(action: dict, exc: BaseException) -> str:
         f"{key}={action.get(key)!r}"
         for key in ("path", "counter", "encoding", "out_of_range")
         if key in action
-    ) or "（値なし）"
-    message = f"file_line実行エラー（種類: file_line / 値: {values}）: {exc}"
+    ) or tr("application.action_executor.no_value")
     label = action.get("label")
     if isinstance(label, str) and label.strip():
-        message += f" / ラベル: {label.strip()}"
-    return message
+        return tr("application.action_executor.file_line_error_labeled", values=values, error=exc, label=label.strip())
+    return tr("application.action_executor.file_line_error", values=values, error=exc)
 
 
 class ActionExecutor:
@@ -127,7 +127,7 @@ class ActionExecutor:
             try:
                 self._write_text(str(value))
             except Exception as exc:
-                self._report_held_error(action, owner, f"textの送信に失敗しました: {exc}")
+                self._report_held_error(action, owner, tr("application.action_executor.text_send_failed", error=exc))
                 return False
             return True
         if action_type == "key_hold":
@@ -138,7 +138,7 @@ class ActionExecutor:
                 _file_line_error_message(
                     action,
                     FileLineError(
-                        "file_lineは読み込みの経路（begin_file_line / poll_file_line）で実行します"
+                        tr("application.action_executor.file_line_requires_loader")
                     ),
                 ),
             )
@@ -159,13 +159,13 @@ class ActionExecutor:
         try:
             path, counter_name, encoding, out_of_range = normalize_file_line_options(action)
             if not counter_name:
-                raise FileLineError("カウンター名が空です")
+                raise FileLineError(tr("application.action_executor.counter_empty"))
             if self._get_counter is None:
-                raise FileLineError("カウンター取得コールバックが未設定です")
+                raise FileLineError(tr("application.action_executor.counter_callback_missing"))
             if self._resolve_file_line_path is None:
-                raise FileLineError("ファイルパス解決コールバックが未設定です")
+                raise FileLineError(tr("application.action_executor.path_callback_missing"))
             if self._file_line_loader is None:
-                raise FileLineError("ファイルの読み込みの仕組みが未設定です")
+                raise FileLineError(tr("application.action_executor.loader_missing"))
             line_number = self._get_counter(counter_name)
             resolved_path = self._resolve_file_line_path(path)
             validate_file_line_request(
@@ -183,14 +183,14 @@ class ActionExecutor:
             owner = self.held_inputs.current_owner
         try:
             if self._file_line_loader is None:
-                raise FileLineError("ファイルの読み込みの仕組みが未設定です")
+                raise FileLineError(tr("application.action_executor.loader_missing"))
             result = self._file_line_loader.poll(handle.request)
             if result.status == "pending":
                 return None
             if result.status == "error":
-                raise result.error or FileLineError("ファイルの読み込みに失敗しました")
+                raise result.error or FileLineError(tr("application.action_executor.read_failed"))
             if result.status != "done":
-                raise FileLineError("ファイルの読み込み結果が正しくありません")
+                raise FileLineError(tr("application.action_executor.result_invalid"))
             line = pick_file_line(
                 result.lines or [], handle.line_number,
                 out_of_range=handle.out_of_range, path=handle.resolved_path,
@@ -205,12 +205,11 @@ class ActionExecutor:
     @staticmethod
     def _invalid_type_message(type_text: str, action: dict) -> str:
         err = (
-            "種類が正しくありません（hotkey / text / mouse_click / mouse_scroll / system / file_line / key_holdのいずれか）。"
-            f"種類: {type_text or '（なし）'}"
+            tr("application.action_executor.invalid_type", type=type_text or tr("application.action_executor.none"))
         )
         label = action.get("label")
         if isinstance(label, str) and label.strip():
-            err += f" / ラベル: {label.strip()}"
+            return tr("application.action_executor.invalid_type_labeled", type=type_text or tr("application.action_executor.none"), label=label.strip())
         return err
 
     def execute_router_action(
@@ -272,7 +271,7 @@ class ActionExecutor:
     def _report_held_error(self, action: dict, owner: str | None, message: str) -> None:
         release_errors = self.held_inputs.release_owner(owner or "")
         if release_errors:
-            message += " / 解放エラー: " + "; ".join(str(exc) for exc in release_errors)
+            message = tr("application.action_executor.release_errors", cause=message, errors="; ".join(str(exc) for exc in release_errors))
         self._on_action_error(action, message)
 
     def _execute_key_hold(self, action: dict, owner: str) -> bool:
@@ -296,19 +295,19 @@ class ActionExecutor:
                 else:
                     self.held_inputs.release_mouse(parsed.button, parsed.position)
         except Exception as exc:
-            self._report_held_error(action, owner, f"key_holdの実行に失敗しました: {exc}")
+            self._report_held_error(action, owner, tr("application.action_executor.key_hold_failed", error=exc))
             return False
         return True
 
     def _execute_mouse_scroll(self, action: dict, owner: str | None) -> bool:
         parsed = parse_mouse_scroll(action)
         label = action.get("label")
-        label_text = f" ラベル: {label.strip()}" if isinstance(label, str) and label.strip() else ""
-        details = f"{describe_mouse_scroll(action)}{label_text}"
+        details = describe_mouse_scroll(action)
+        label_text = label.strip() if isinstance(label, str) and label.strip() else None
         if isinstance(parsed, str):
+            message = tr("application.action_executor.scroll_invalid_labeled", reason=parsed, details=details, label=label_text) if label_text else tr("application.action_executor.scroll_invalid", reason=parsed, details=details)
             self._report_held_error(
-                action, owner,
-                f"mouse_scrollの指定が正しくありません: {parsed}（{details}）",
+                action, owner, message,
             )
             return False
         try:
@@ -317,9 +316,9 @@ class ActionExecutor:
                 vertical=vertical, deltas=deltas, position=parsed.position,
             )
         except Exception as exc:
+            message = tr("application.action_executor.scroll_send_failed_labeled", error=exc, details=details, label=label_text) if label_text else tr("application.action_executor.scroll_send_failed", error=exc, details=details)
             self._report_held_error(
-                action, owner,
-                f"mouse_scrollの送信に失敗しました: {exc}（{details}）",
+                action, owner, message,
             )
             return False
         return True
@@ -331,7 +330,7 @@ class ActionExecutor:
             self.input_gateway.press_key(key)
             self.input_gateway.release_key(key)
         except Exception as e:
-            self._on_runtime_error("キー送信エラー", f"キー置換の送信に失敗しました。\n{type(e).__name__}: {e}")
+            self._on_runtime_error(tr("application.action_executor.key_send_title"), tr("application.action_executor.key_send_failed", error_type=type(e).__name__, error=e))
         finally:
             self._exit_send_guard()
 
@@ -340,7 +339,7 @@ class ActionExecutor:
             x = int(action.get("x"))
             y = int(action.get("y"))
         except Exception:
-            self._on_runtime_error("送信エラー", "mouse_clickのx/yが正しくありません（整数で指定してください）。")
+            self._on_runtime_error(tr("application.action_executor.send_error_title"), tr("application.action_executor.click_position_invalid"))
             return
 
         button = (action.get("button") or "left").strip().lower()
@@ -361,14 +360,14 @@ class ActionExecutor:
             else:
                 self.input_gateway.click_mouse(x=x, y=y, button=button, clicks=clicks)
         except Exception as e:
-            self._on_runtime_error("送信エラー", f"mouse_clickの実行に失敗しました。\n{type(e).__name__}: {e}")
+            self._on_runtime_error(tr("application.action_executor.send_error_title"), tr("application.action_executor.click_failed", error_type=type(e).__name__, error=e))
 
     def _execute_mouse_drag(self, action: dict, x: int, y: int, button: str) -> None:
         try:
             to_x = int(action.get("to_x"))
             to_y = int(action.get("to_y"))
         except Exception:
-            self._on_runtime_error("送信エラー", "mouse_clickのto_x/to_yが正しくありません（ドラッグの離す位置を整数で指定してください）。")
+            self._on_runtime_error(tr("application.action_executor.send_error_title"), tr("application.action_executor.drag_target_invalid"))
             return
         try:
             speed = float(action.get("drag_speed", DEFAULT_DRAG_SPEED_PX_PER_SEC))

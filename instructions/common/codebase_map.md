@@ -958,7 +958,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 
 - **domain `domain/screen_grid/`**（純関数・tkinter / Win32 非依存）: `models.py`（不変の形 `TopLayout` / `SubLayout`・既定・`new_enabled_grid`・`is_positive_ratio`・`grid_key_name`〔config との循環を避ける・phase 57 で normalize.py から移動〕）/
   `normalize.py`（`normalize_grid`〔`ops` も正規化・既定と同じなら書かない〕・`monitor_identifier`・`top_layout_for` / `sub_layout_of`・`label_position_of`・`has_enabled_grid`。読込時の固定の予約キー = `MODIFIER_KEY_NAMES`）/
-  `ops.py`（phase 57: `GRID_OPS`〔重なりの優先順〕・`DEFAULT_OPS`・`OP_LABELS`・`FIXED_BACK_KEY` / `FIXED_CLICK_KEY` / `FIXED_OP_KEYS`・`normalize_ops`・`ops_of`〔守りの読み出し〕・`ops_to_json`・`operation_keys` / `default_operation_keys`・`validate_ops`〔編集の窓の OK・固定キーとマスのキーの重なりを含む〕）/
+  `ops.py`（phase 57: `GRID_OPS`〔重なりの優先順〕・`DEFAULT_OPS`・`OP_LABELS`〔遅延評価する `Mapping`。表示時に `shared.i18n.tr` で引く〕・`FIXED_BACK_KEY` / `FIXED_CLICK_KEY` / `FIXED_OP_KEYS`・`normalize_ops`・`ops_of`〔守りの読み出し〕・`ops_to_json`・`operation_keys` / `default_operation_keys`・`validate_ops`〔編集の窓の OK・固定キーとマスのキーの重なりを含む〕）/
   `geometry.py`（`top_cell_rects` / `sub_cell_rects`・`rect_center`・`can_subdivide`〔4px〕・phase 57: `nudge_step`〔min(16, 1/8)・Shift で 1〕/ `clamp_point`〔0px は 1 点〕）/
   `assignment.py`（`next_free_key`・`reassign_top_keys`・`auto_fill_sub_keys`・`validate_top` / `validate_sub`。phase 57 でキーワード引数 `op_keys`〔None = 既定の操作キー〕を足し、操作キーを飛ばす / 「操作キーと重なっています」で拒否）/
   `editing.py`（段・列の分割と削除・境界の移動〔8px〕・キーの設定。`split_row` / `split_cell` も `op_keys` を受ける）

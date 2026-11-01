@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from keyseq.shared.i18n import tr
+
 from keyseq.application.save_plan import (
     CHILD_TRIGGER_SET,
     SavePlan,
@@ -63,7 +65,7 @@ def _validate_requested_keymap_target(
     if item is None or item["skip"] or service.canonical_path(
         item["resolved_path"], config_root
     ) != service.canonical_path(resolved_path, config_root):
-        raise SavePlanError("キーマップの保存計画と保存先が一致しません。")
+        raise SavePlanError(tr("application.keymap_save_plan.target_mismatch"))
 
 
 def _build_keymap_save_payloads(
@@ -96,7 +98,7 @@ def _validate_keymap_save_plan(
         save_plan=save_plan,
     )
     if any(kind == CHILD_TRIGGER_SET for kind, _ in blocked):
-        raise SavePlanError("出力シーケンスの保存先変更にはトリガーセットの保存が必要です。")
+        raise SavePlanError(tr("application.keymap_save_plan.trigger_set_save_required"))
     save_plan_execution.validate_save_plan(
         service, save_plan, runtime_data, payloads, config_root=config_root,
     )

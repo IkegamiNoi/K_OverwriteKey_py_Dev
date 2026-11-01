@@ -4,6 +4,8 @@ import os
 import re
 from collections.abc import Mapping, Sequence
 
+from keyseq.shared.i18n import tr
+
 from keyseq.domain.sequence_control import (
     DEFAULT_ENCODING,
     DEFAULT_OUT_OF_RANGE,
@@ -52,11 +54,11 @@ def validate_file_line_request(
     out_of_range: str,
 ) -> None:
     if encoding not in (ENCODING_UTF_8, ENCODING_SHIFT_JIS):
-        raise FileLineError(f"文字コードが正しくありません: {encoding or '（空）'}（ファイル: {path}）")
+        raise FileLineError(tr("application.file_line.encoding_invalid", encoding=encoding or tr("application.file_line.empty"), path=path))
     if out_of_range not in (OUT_OF_RANGE_ERROR, OUT_OF_RANGE_EMPTY, OUT_OF_RANGE_WRAP):
-        raise FileLineError(f"範囲外の扱いが正しくありません: {out_of_range or '（空）'}（ファイル: {path}）")
+        raise FileLineError(tr("application.file_line.out_of_range_invalid", value=out_of_range or tr("application.file_line.empty"), path=path))
     if not isinstance(line_number, int) or isinstance(line_number, bool):
-        raise FileLineError(f"行番号が整数ではありません: {line_number!r}（ファイル: {path}）")
+        raise FileLineError(tr("application.file_line.line_number_invalid", line_number=repr(line_number), path=path))
 
 
 def load_file_lines(path: str, *, encoding: str) -> list[str]:
@@ -66,7 +68,7 @@ def load_file_lines(path: str, *, encoding: str) -> list[str]:
         content = content_bytes.decode(codec)
     except UnicodeDecodeError as exc:
         raise FileLineError(
-            f"ファイルを文字コード{encoding}で復号できません（ファイル: {path}）"
+            tr("application.file_line.decode_failed", encoding=encoding, path=path)
         ) from exc
     return _split_lines(content)
 
@@ -86,11 +88,11 @@ def pick_file_line(
     if out_of_range == OUT_OF_RANGE_WRAP:
         if line_count == 0:
             raise FileLineError(
-                f"空ファイルでは行番号を折り返せません（行番号: {line_number}, 行数: 0, ファイル: {path}）"
+                tr("application.file_line.empty_wrap", line_number=line_number, path=path)
             )
         return lines[((line_number - 1) % line_count)]
     raise FileLineError(
-        f"行番号が範囲外です（行番号: {line_number}, 行数: {line_count}, ファイル: {path}）"
+        tr("application.file_line.line_out_of_range", line_number=line_number, line_count=line_count, path=path)
     )
 
 
@@ -116,17 +118,17 @@ def _read_bytes(path: str) -> bytes:
         size = os.path.getsize(path)
         if size > MAX_FILE_LINE_BYTES:
             raise FileLineError(
-                f"ファイルサイズが上限1 MBを超えています（サイズ: {size}バイト, ファイル: {path}）"
+                tr("application.file_line.too_large_bytes", size=size, path=path)
             )
         with open(path, "rb") as file:
             content = file.read(MAX_FILE_LINE_BYTES + 1)
     except FileLineError:
         raise
     except (OSError, ValueError) as exc:
-        raise FileLineError(f"ファイルを読み込めません（ファイル: {path}）: {exc}") from exc
+        raise FileLineError(tr("application.file_line.read_failed", path=path, error=exc)) from exc
     if len(content) > MAX_FILE_LINE_BYTES:
         raise FileLineError(
-            f"ファイルサイズが上限1 MBを超えています（サイズ: 1 MB超, ファイル: {path}）"
+            tr("application.file_line.too_large_over", path=path)
         )
     return content
 

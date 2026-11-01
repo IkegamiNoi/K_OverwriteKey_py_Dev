@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from collections.abc import Collection
 
+from keyseq.shared.i18n import tr
+
 from ..key_hold import MODIFIER_KEY_NAMES
 from .models import (
     AUTO_ASSIGN_ORDER, MAX_SUBDIVIDE_COUNT, MIN_SUBDIVIDE_COUNT,
@@ -74,15 +76,15 @@ def _check_shape_key(
     key: str, location: str, used: set[str], reserved: set[str], op_keys: set[str], errors: list[str],
 ) -> None:
     if not key:
-        errors.append(f"{location}: キーが空です")
+        errors.append(tr("domain.screen_grid.assignment.key_empty", location=location))
     elif key in used:
-        errors.append(f"{location}: キー{key!r}が重複しています")
+        errors.append(tr("domain.screen_grid.assignment.key_duplicate", location=location, key=key))
     elif key in MODIFIER_KEY_NAMES:
-        errors.append(f"{location}: 修飾キー{key!r}は使えません")
+        errors.append(tr("domain.screen_grid.assignment.modifier_key", location=location, key=key))
     elif key in op_keys:
-        errors.append(f"{location}: 操作キー{key!r}と重なっています")
+        errors.append(tr("domain.screen_grid.assignment.operation_key", location=location, key=key))
     elif key in reserved:
-        errors.append(f"{location}: 予約キー{key!r}は使えません")
+        errors.append(tr("domain.screen_grid.assignment.reserved_key", location=location, key=key))
     used.add(key)
 
 
@@ -94,16 +96,16 @@ def validate_top(
     reserved_names = _normalized_reserved(reserved)
     operation_names = _normalized_op_keys(op_keys)
     if not layout.rows:
-        errors.append("段がありません")
+        errors.append(tr("domain.screen_grid.assignment.rows_missing"))
     for row_index, row in enumerate(layout.rows, start=1):
         if not is_positive_ratio(row.h):
-            errors.append(f"段{row_index}: 高さの比率は正の有限数にしてください")
+            errors.append(tr("domain.screen_grid.assignment.height_ratio_invalid", row=row_index))
         if not row.cells:
-            errors.append(f"段{row_index}: 列がありません")
+            errors.append(tr("domain.screen_grid.assignment.cells_missing", row=row_index))
         for col_index, cell in enumerate(row.cells, start=1):
-            location = f"段{row_index}・列{col_index}"
+            location = tr("domain.screen_grid.assignment.location", row=row_index, column=col_index)
             if not is_positive_ratio(cell.w):
-                errors.append(f"{location}: 幅の比率は正の有限数にしてください")
+                errors.append(tr("domain.screen_grid.assignment.width_ratio_invalid", location=location))
             _check_shape_key(cell.key, location, used, reserved_names, operation_names, errors)
     return errors
 
@@ -114,18 +116,18 @@ def validate_sub(
     errors: list[str] = []
     if (not isinstance(sub.rows, int) or isinstance(sub.rows, bool)
             or not MIN_SUBDIVIDE_COUNT <= sub.rows <= MAX_SUBDIVIDE_COUNT):
-        errors.append("細分化: 段数は1〜9にしてください")
+        errors.append(tr("domain.screen_grid.assignment.subdivision_rows_invalid"))
     if (not isinstance(sub.cols, int) or isinstance(sub.cols, bool)
             or not MIN_SUBDIVIDE_COUNT <= sub.cols <= MAX_SUBDIVIDE_COUNT):
-        errors.append("細分化: 列数は1〜9にしてください")
+        errors.append(tr("domain.screen_grid.assignment.subdivision_columns_invalid"))
     if isinstance(sub.rows, int) and isinstance(sub.cols, int) and sub.rows * sub.cols < 2:
-        errors.append("細分化: マスを2つ以上にしてください")
+        errors.append(tr("domain.screen_grid.assignment.subdivision_min_cells"))
     expected = sub.rows * sub.cols if isinstance(sub.rows, int) and isinstance(sub.cols, int) else -1
     if len(sub.keys) != expected:
-        errors.append(f"細分化: キー数は{expected}個にしてください")
+        errors.append(tr("domain.screen_grid.assignment.subdivision_key_count", expected=expected))
     used: set[str] = set()
     reserved_names = _normalized_reserved(reserved)
     operation_names = _normalized_op_keys(op_keys)
     for index, key in enumerate(sub.keys, start=1):
-        _check_shape_key(key, f"細分化・マス{index}", used, reserved_names, operation_names, errors)
+        _check_shape_key(key, tr("domain.screen_grid.assignment.subdivision_location", index=index), used, reserved_names, operation_names, errors)
     return errors

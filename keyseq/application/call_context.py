@@ -6,11 +6,12 @@ from typing import Any, Literal
 
 from keyseq.domain import call_graph, sequence_control
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
+from keyseq.shared.i18n import tr
 from keyseq.application.sequence_history import StepSnapshot, snapshot_for
 from keyseq.application.sequence_steps import (
     LoopFrame,
     MAX_PROCESSED_SYSTEM_ACTIONS,
-    PROCESSED_LIMIT_MESSAGE,
+    processed_limit_message,
     StepResume,
     StepOutcome,
     advance,
@@ -110,7 +111,17 @@ def start_linked_call(
 
 
 def chain_text(chain: tuple[str, ...]) -> str:
-    return f"呼び出し: {' > '.join(key for key in chain if key)}"
+    return tr("application.call_context.chain", chain=" > ".join(key for key in chain if key))
+
+
+def message_with_chain(message: str, chain: tuple[str, ...]) -> str:
+    if not chain:
+        return message
+    return tr(
+        "application.call_context.message_with_chain",
+        message=message,
+        chain=" > ".join(key for key in chain if key),
+    )
 
 
 def top_interval(ctx: CallContext) -> int:
@@ -135,13 +146,13 @@ def _push_frame(
     chain = _chain(ctx, key)
     if ctx.ancestor_depth + len(ctx.stack) + 1 > sequence_control.MAX_CALL_DEPTH:
         return _error(
-            f"呼び出しの深さが{sequence_control.MAX_CALL_DEPTH}を超えます", chain, deltas,
+            tr("application.call_context.depth_limit", depth=sequence_control.MAX_CALL_DEPTH), chain, deltas,
         )
     if key in ctx.ancestors or key == ctx.root_key or any(frame.key == key for frame in ctx.stack):
-        return _error(f"呼び出しが循環します({key})", chain, deltas)
+        return _error(tr("application.call_context.cycle", key=key), chain, deltas)
     entry = ctx.entry_for(key) if key else None
     if key and entry is None:
-        return _error(f"呼び出し先のトリガーがありません({key})", chain, deltas)
+        return _error(tr("application.call_context.target_missing", key=key), chain, deltas)
     if entry is not None and len(entry.actions) == 1:
         action = entry.actions[0]
         if (
@@ -150,9 +161,9 @@ def _push_frame(
             and sequence_control.system_op(action)
             in (sequence_control.OP_BACK, sequence_control.OP_REWIND)
         ):
-            return _error("「戻す」「先頭へ」のトリガーは呼び出せません", chain, deltas)
+            return _error(tr("application.call_context.forbidden_action"), chain, deltas)
     if not key:
-        return _error("呼び出し先が指定されていません", chain, deltas)
+        return _error(tr("application.call_context.target_unset"), chain, deltas)
     parent_step = ctx.top_is_step() if ctx.stack else True
     frame = CallFrame(key, step=step and parent_step)
     # Keep this even for a busy target so rollback can restore its press-start state.
@@ -165,7 +176,7 @@ def _push_frame(
         bool(entry.actions[loop.start].get("infinite"))
         for loop in reset_frames(entry.actions, frame.position)
     ):
-        return _error("呼び出し先に無限ループがあります", chain, deltas)
+        return _error(tr("application.call_context.infinite_loop"), chain, deltas)
     if (key not in ctx.ancestors and key != ctx.root_key
             and (ctx.trigger_set_id, key) in ctx.state.pending_steps):
         pending = ctx.state.pending_steps[(ctx.trigger_set_id, key)]
@@ -242,7 +253,7 @@ def _advance_frame(
     frame = ctx.stack[-1]
     entry = ctx.entry_for(frame.key)
     if entry is None:
-        return _error(f"呼び出し先のトリガーがありません({frame.key})", _chain(ctx), deltas)
+        return _error(tr("application.call_context.target_missing", key=frame.key), _chain(ctx), deltas)
     resume = frame.resume
     deferred = () if resume is not None else tuple(frame.deferred)
     if resume is None:
@@ -258,7 +269,7 @@ def _advance_frame(
     frame.resume = None
     frame.frames = outcome.frames
     if processed[0] > MAX_PROCESSED_SYSTEM_ACTIONS:
-        return _error(PROCESSED_LIMIT_MESSAGE, _chain(ctx), deltas)
+        return _error(processed_limit_message(), _chain(ctx), deltas)
     if outcome.error is not None:
         frame.position = outcome.position
         return _error(outcome.error[1], _chain(ctx), deltas)
@@ -280,7 +291,7 @@ def _advance_frame(
             returned_sent=returned_sent,
         )
     if outcome.normal_index is None:
-        return _error("呼び出し先のステップを進められません", _chain(ctx), deltas)
+        return _error(tr("application.call_context.advance_failed"), _chain(ctx), deltas)
     action = entry.actions[outcome.normal_index]
     frame.position = outcome.normal_index
     if _is_call(action):
@@ -302,7 +313,7 @@ def _finish_returned_call(
         frame = ctx.stack[-1]
         entry = ctx.entry_for(frame.key)
         if entry is None:
-            return _error(f"呼び出し先のトリガーがありません({frame.key})", _chain(ctx), deltas)
+            return _error(tr("application.call_context.target_missing", key=frame.key), _chain(ctx), deltas)
         call_index = frame.position
         if call_index + 1 >= len(entry.actions):
             returned_sent = returned_sent or frame.sent
@@ -322,7 +333,7 @@ def _finish_returned_call(
         ctx.record_deltas(frame.key, settled.counter_deltas)
         frame.deferred.extend(settled.deferred_counters)
         if processed[0] > MAX_PROCESSED_SYSTEM_ACTIONS:
-            return _error(PROCESSED_LIMIT_MESSAGE, _chain(ctx), deltas)
+            return _error(processed_limit_message(), _chain(ctx), deltas)
         if settled.stopped:
             return _settle_stopped_call(ctx, counters, deltas, processed)
         if frame.position != 0 or not entry.actions:
@@ -403,7 +414,7 @@ def finish_call_action(
     frame = ctx.stack[-1]
     entry = ctx.entry_for(frame.key)
     if entry is None:
-        return _error(f"呼び出し先のトリガーがありません({frame.key})", _chain(ctx), deltas)
+        return _error(tr("application.call_context.target_missing", key=frame.key), _chain(ctx), deltas)
     if frame.position + 1 >= len(entry.actions):
         returned_sent = frame.sent
         deltas.extend(_pop_frame(ctx, counters))
@@ -434,7 +445,7 @@ def finish_call_action(
     deltas.extend(settled.counter_deltas)
     ctx.record_deltas(frame.key, settled.counter_deltas)
     if processed[0] > MAX_PROCESSED_SYSTEM_ACTIONS:
-        return _error(PROCESSED_LIMIT_MESSAGE, _chain(ctx), deltas)
+        return _error(processed_limit_message(), _chain(ctx), deltas)
     if settled.stopped:
         return _settle_stopped_call(ctx, counters, deltas, processed)
     if frame.position == 0:

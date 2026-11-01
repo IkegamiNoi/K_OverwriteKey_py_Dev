@@ -11,6 +11,7 @@ from keyseq.domain.screen_grid import (
     label_position_of, nudge_step, ops_of, rect_center, sub_cell_rects,
     sub_layout_of, top_cell_rects, top_layout_for,
 )
+from keyseq.shared.i18n import tr
 
 
 @dataclass(frozen=True)
@@ -244,7 +245,7 @@ class ScreenGridSession:
     def _refresh_monitors(self) -> bool:
         monitors = self._list_monitors()
         if not monitors:
-            raise RuntimeError("画面（モニタ）を取得できませんでした")
+            raise RuntimeError(tr("application.screen_grid.monitors_unavailable"))
         if monitors != self._monitors:
             self._monitors = monitors
             self._rebuild_suppression()

@@ -5,6 +5,8 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Callable
 
+from keyseq.shared.i18n import tr
+
 
 ACTION_TYPE_SYSTEM: str = "system"
 ACTION_TYPE_FILE_LINE: str = "file_line"
@@ -199,13 +201,13 @@ def _format_system_value(
         target = action.get("target")
         if resolve_call is None:
             if not isinstance(target, str) or not target.strip():
-                return f"{display_name}（呼び出し先なし）"
+                return tr("domain.sequence_control.call_target_none", display_name=display_name)
             return f"{display_name} {target.strip()}"
         key, label = resolve_call(target)
         if label is None:
-            return f"{display_name} {key}（参照先なし）"
+            return tr("domain.sequence_control.call_target_missing", display_name=display_name, key=key)
         if label:
-            return f"{display_name} {key}（{label}）"
+            return tr("domain.sequence_control.call_target_labeled", display_name=display_name, key=key, label=label)
         return f"{display_name} {key}"
     return f"[system] {action.get('op', '')}"
 
@@ -219,12 +221,12 @@ def _format_control_target(
     if target is None:
         return display_name
     if not target:
-        return f"{display_name} →（参照先なし）"
+        return tr("domain.sequence_control.control_target_missing_empty", display_name=display_name)
     if resolve_call is None:
         return f"{display_name} → {target}"
     key, label = resolve_call(action.get("target"))
     if label is None:
-        return f"{display_name} → {key}（参照先なし）"
+        return tr("domain.sequence_control.control_target_missing", display_name=display_name, key=key)
     return f"{display_name} → {key}"
 
 

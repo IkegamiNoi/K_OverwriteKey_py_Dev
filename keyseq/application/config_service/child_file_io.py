@@ -3,6 +3,8 @@ from __future__ import annotations
 import os
 from typing import Any
 
+from keyseq.shared.i18n import tr
+
 from keyseq.application.save_plan import SavePlan, sequence_row_token, sequence_rows
 from keyseq.domain.config import ensure_config_compatibility, safe_deepcopy
 from keyseq.domain.keymap_triggers import get_active_triggers, trigger_set_members
@@ -19,7 +21,7 @@ def load_sequence_file(
 ) -> dict[str, Any]:
     raw_sequence = service.repository.load_json(path)
     if not isinstance(raw_sequence, dict):
-        raise ValueError("出力シーケンスJSONの形式が正しくありません。")
+        raise ValueError(tr("application.child_file_io.sequence_invalid"))
     sequence = service._normalize_sequence_payload(raw_sequence)
     parent_refs = service._normalize_parent_refs(raw_sequence.get(service.PARENT_REFS_KEY))
     if parent_refs is not None:
@@ -73,7 +75,7 @@ def load_trigger_set_file(
 ) -> list[dict[str, Any]]:
     payload = service.repository.load_json(path)
     if not isinstance(payload, dict):
-        raise ValueError("トリガーセットJSONの形式が正しくありません。")
+        raise ValueError(tr("application.child_file_io.trigger_set_invalid"))
     triggers, _parent_refs = split_loading.load_triggers_from_trigger_set(
         service,
         payload,

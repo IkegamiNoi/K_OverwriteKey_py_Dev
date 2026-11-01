@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Callable, Sequence
 
 from keyseq.domain.config import normalize_key_name
+from keyseq.shared.i18n import tr
 
 
 class HookCoordinator:
@@ -31,7 +32,7 @@ class HookCoordinator:
             self.install_input_event_hook(on_input_event, on_error)
             return True
         except Exception as e:
-            on_error("開始失敗", f"フックの開始に失敗しました。\n{e}")
+            on_error(tr("application.hook.start_failed_title"), tr("application.hook.start_failed", error=e))
             self.stop()
             return False
 
@@ -68,7 +69,7 @@ class HookCoordinator:
             )
         except Exception as e:
             self._input_event_hook_handle = None
-            on_error("フック設定失敗", f"入力イベント監視の登録に失敗しました。\n\n{type(e).__name__}: {e}")
+            on_error(tr("application.hook.install_failed_title"), tr("application.hook.install_failed", error_type=type(e).__name__, error=e))
 
     def uninstall_input_event_hook(self) -> None:
         if self._input_event_hook_handle is None:
@@ -91,11 +92,11 @@ class HookCoordinator:
         if has_trigger_keys is None:
             has_trigger_keys = any(normalize_key_name(item.get("key", "")) for item in triggers)
         if not has_trigger_keys and not has_keymaps and not has_grid_keymaps:
-            on_error("開始できません", "トリガーが1件も登録されていません。")
+            on_error(tr("application.hook.cannot_start_title"), tr("application.hook.no_triggers"))
             return False
         if self._has_usable_triggers(triggers) or has_keymaps or has_grid_keymaps:
             return True
-        on_error("開始できません", "アクションが入っているトリガーがありません。")
+        on_error(tr("application.hook.cannot_start_title"), tr("application.hook.no_actions"))
         return False
 
     def _has_usable_triggers(self, triggers: Sequence[dict]) -> bool:

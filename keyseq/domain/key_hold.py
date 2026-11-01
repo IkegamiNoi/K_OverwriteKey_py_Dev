@@ -4,6 +4,8 @@ from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any
 
+from keyseq.shared.i18n import tr
+
 
 ACTION_TYPE_KEY_HOLD = "key_hold"
 EDGE_DOWN = "down"
@@ -50,34 +52,34 @@ class KeyHoldSpec:
 def parse_key_hold(action: Mapping[str, Any]) -> KeyHoldSpec | str:
     edge_value = action.get("edge")
     if not isinstance(edge_value, str):
-        return "押下方向はdownまたはupを指定してください。"
+        return tr("domain.key_hold.edge_invalid")
     edge = edge_value.strip().lower()
     if edge not in (EDGE_DOWN, EDGE_UP):
-        return "押下方向はdownまたはupを指定してください。"
+        return tr("domain.key_hold.edge_invalid")
 
     button_value = action.get("button")
     if isinstance(button_value, str) and button_value.strip():
         button = button_value.strip().lower()
         if button not in MOUSE_BUTTONS:
-            return "マウスボタンはleft / right / middleのいずれかを指定してください。"
+            return tr("domain.key_hold.button_invalid")
         has_x = "x" in action
         has_y = "y" in action
         if has_x != has_y:
-            return "マウス座標はxとyの両方を指定してください。"
+            return tr("domain.key_hold.coordinates_both")
         position = None
         if has_x:
             try:
                 position = (int(action["x"]), int(action["y"]))
             except (TypeError, ValueError, OverflowError):
-                return "マウス座標xとyは整数に変換できる値を指定してください。"
+                return tr("domain.key_hold.coordinates_convertible")
         return KeyHoldSpec(edge=edge, button=button, key=None, position=position)
 
     value = action.get("value")
     if not isinstance(value, str) or not value.strip():
-        return "キー名は空でない文字列で指定してください。"
+        return tr("domain.key_hold.key_required")
     key = value.strip().lower()
     if "+" in key or "," in key:
-        return "キー名に + または , は使用できません。"
+        return tr("domain.key_hold.key_invalid_chars")
     return KeyHoldSpec(edge=edge, button=None, key=key, position=None)
 
 
@@ -106,8 +108,12 @@ def is_repeat_enabled(action: Mapping[str, Any]) -> bool:
 def held_display_name(kind: str, name: str) -> str:
     if kind == "key":
         return name
-    button_names = {"left": "左", "right": "右", "middle": "中"}
-    return f"マウス{button_names[name]}"
+    button_keys = {
+        "left": "domain.key_hold.mouse_button.left",
+        "right": "domain.key_hold.mouse_button.right",
+        "middle": "domain.key_hold.mouse_button.middle",
+    }
+    return tr(button_keys[name])
 
 
 def format_key_hold_value(action: Mapping[str, Any]) -> str:
@@ -117,13 +123,16 @@ def format_key_hold_value(action: Mapping[str, Any]) -> str:
         raw_value = button if isinstance(button, str) and button.strip() else (action.get("value") or "")
         return f"[{ACTION_TYPE_KEY_HOLD}] {raw_value}"
 
-    direction = "押す" if parsed.edge == EDGE_DOWN else "離す"
+    direction = tr("domain.key_hold.display.down") if parsed.edge == EDGE_DOWN else tr("domain.key_hold.display.up")
     if parsed.button is None:
-        display = f"[{direction}] {parsed.key}"
         if is_repeat_enabled(action):
-            display += "（リピート）"
-        return display
-    display = f"[{direction}] {held_display_name('mouse', parsed.button)}"
+            return tr("domain.key_hold.display.key_repeat", direction=direction, key=parsed.key)
+        return tr("domain.key_hold.display.key", direction=direction, key=parsed.key)
+    display = tr(
+        "domain.key_hold.display.button",
+        direction=direction,
+        button=held_display_name("mouse", parsed.button),
+    )
     if parsed.position is not None:
         display += f" ({parsed.position[0]}, {parsed.position[1]})"
     return display

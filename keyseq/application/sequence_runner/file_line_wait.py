@@ -6,9 +6,10 @@ from keyseq.application.app_state import PendingStep
 from keyseq.application.sequence_history import StepSnapshot
 from keyseq.application.sequence_steps import StepOutcome, resume_for_pending
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
+from keyseq.shared.i18n import tr
 
 FILE_LINE_POLL_INTERVAL_MS = 50
-FILE_LINE_UNAVAILABLE_MESSAGE = "file_lineの読み込みの仕組みが未設定です"
+FILE_LINE_UNAVAILABLE_MESSAGE = "application.file_line_wait.unavailable"
 
 
 class FileLineWaitMixin:
@@ -90,7 +91,7 @@ class FileLineWaitMixin:
         outcome: StepOutcome, snapshot: StepSnapshot, initial_position: int,
     ) -> bool:
         if self._file_line_unavailable():
-            self._report_error(action, FILE_LINE_UNAVAILABLE_MESSAGE, key)
+            self._report_error(action, tr(FILE_LINE_UNAVAILABLE_MESSAGE), key)
             return False
         handle = self._begin_owned_file_line(action, key)
         if handle is None:

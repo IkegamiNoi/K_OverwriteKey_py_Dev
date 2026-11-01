@@ -8,6 +8,7 @@ from dataclasses import dataclass
 from typing import Literal
 
 from keyseq.application.file_line_reader import FileLineError, load_file_lines
+from keyseq.shared.i18n import tr
 
 
 FILE_LINE_LOAD_TIMEOUT_SECONDS = 5.0
@@ -90,7 +91,7 @@ class FileLineLoader:
             registration = self._registrations.get(key)
             if registration is not None and registration.timed_out:
                 raise FileLineError(
-                    f"前回のファイルの読み込みが終わっていません（ファイル: {path}）"
+                    tr("application.file_line_loader.previous_pending", path=path)
                 )
             request = FileLineLoadRequest(key, path, encoding, started_at)
             if registration is None:
@@ -117,7 +118,7 @@ class FileLineLoader:
                     result = FileLinePoll(
                         "error",
                         error=FileLineError(
-                            f"前回のファイルの読み込みが終わっていません（ファイル: {request.path}）"
+                            tr("application.file_line_loader.previous_pending", path=request.path)
                         ),
                     )
                     request._terminal = result
@@ -127,8 +128,7 @@ class FileLineLoader:
                     result = FileLinePoll(
                         "error",
                         error=FileLineError(
-                            f"ファイルの読み込みが{self._timeout_seconds:g}秒以内に終わりませんでした"
-                            f"（ファイル: {request.path}）"
+                            tr("application.file_line_loader.timeout", seconds=f"{self._timeout_seconds:g}", path=request.path)
                         ),
                     )
                     request._terminal = result
@@ -145,8 +145,7 @@ class FileLineLoader:
                 result = FileLinePoll(
                     "error",
                     error=FileLineError(
-                        f"ファイルの読み込みが{self._timeout_seconds:g}秒以内に終わりませんでした"
-                        f"（ファイル: {request.path}）"
+                        tr("application.file_line_loader.timeout", seconds=f"{self._timeout_seconds:g}", path=request.path)
                     ),
                 )
                 request._terminal = result

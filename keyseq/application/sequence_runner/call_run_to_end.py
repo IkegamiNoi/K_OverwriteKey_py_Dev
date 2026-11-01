@@ -6,8 +6,8 @@ from keyseq.application.call_context import (
     CallContext,
     CallStep,
     call_step,
-    chain_text,
     finish_call_action,
+    message_with_chain,
     top_interval,
     start_linked_call,
 )
@@ -23,6 +23,7 @@ from keyseq.application.sequence_runner.file_line_wait import (
 from keyseq.domain.call_graph import call_target
 from keyseq.domain.config import DEFAULT_RUN_TO_END_DELAY_MS, coerce_nonnegative_int
 from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE, OP_CALL, is_step_call, system_op
+from keyseq.shared.i18n import tr
 
 
 class CallRunToEndMixin:
@@ -220,7 +221,7 @@ class CallRunToEndMixin:
         if self._file_line_unavailable():
             self._report_call_error_message(
                 generation, key, token, ctx,
-                FILE_LINE_UNAVAILABLE_MESSAGE, step,
+                tr(FILE_LINE_UNAVAILABLE_MESSAGE), step,
             )
             return
         handle = self._begin_owned_file_line(step.action or {}, key)
@@ -340,7 +341,7 @@ class CallRunToEndMixin:
     ) -> None:
         self._report_call_error_message(
             generation, key, token, ctx,
-            step.message or "呼び出しを実行できません", step,
+            step.message or tr("application.call_run_to_end.call_unavailable"), step,
         )
 
     def _report_call_error_message(
@@ -351,10 +352,9 @@ class CallRunToEndMixin:
         actions = trigger.get("actions", []) if trigger else []
         index = self._run_to_end_wait_position
         action = actions[index] if index is not None and index < len(actions) else {}
-        suffix = f" / {chain_text(step.chain)}" if step.chain else ""
         ctx.failed = True
         self._write_linked_progress(ctx, failed=True)
-        self._report_error(action, message + suffix, owner=key)
+        self._report_error(action, message_with_chain(message, step.chain), owner=key)
         if not self._run_to_end_call_failure_matches(generation, key, token, ctx):
             return
         if not self._run_to_end_call_parent_is_current(ctx):

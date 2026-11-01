@@ -4,6 +4,8 @@ import os
 import shutil
 from typing import Any
 
+from keyseq.shared.i18n import tr
+
 from keyseq.domain.config import (
     DEFAULT_CONFIG,
     DEFAULT_RUN_TO_END_DELAY_MS,
@@ -138,7 +140,7 @@ class ConfigService:
     ) -> dict[str, Any]:
         raw_keymap = self.repository.load_json(path)
         if not isinstance(raw_keymap, dict):
-            raise ValueError("キーマップJSONの形式が正しくありません。")
+            raise ValueError(tr("application.config_service.keymap_invalid"))
         normalized = self._normalize_loaded_keymap(
             path, raw_keymap, used_keymap_ids=used_keymap_ids,
             imported=imported, config_root=config_root,
@@ -230,7 +232,7 @@ class ConfigService:
     def _keymap_item_for_save(self, keymap: dict[str, Any]) -> dict[str, Any]:
         normalized = ensure_config_compatibility({"keymaps": [keymap]}).get("keymaps", [])
         if not normalized:
-            raise ValueError("保存できるキーマップがありません。")
+            raise ValueError(tr("application.config_service.keymap_missing"))
         item = normalized[0]
         parent_refs = self._normalize_parent_refs(keymap.get(self.INTERNAL_KEYMAP_PARENT_REFS))
         if parent_refs is not None:

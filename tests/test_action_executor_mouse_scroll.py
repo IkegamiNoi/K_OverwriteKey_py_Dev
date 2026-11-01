@@ -45,8 +45,12 @@ class MouseScrollExecutorTests(unittest.TestCase):
         self.gateway.scroll_mouse.assert_not_called()
         self.held_inputs.release_owner.assert_called_once_with("f8")
         message = self.on_action_error.call_args.args[1]
-        self.assertIn("向きはup / down / left / right", message)
-        self.assertIn("direction=bad unit=notch amount=1 ラベル: memo", message)
+        self.assertEqual(
+            message,
+            "mouse_scrollの指定が正しくありません: "
+            "向きはup / down / left / rightのいずれかを指定してください。"
+            "（direction=bad unit=notch amount=1 ラベル: memo）",
+        )
 
     def test_gateway_error_reports_details_and_releases_owner(self) -> None:
         self.gateway.scroll_mouse.side_effect = OSError(5, "SendInput failed")

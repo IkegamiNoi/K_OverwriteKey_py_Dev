@@ -4,6 +4,8 @@ from collections import deque
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
+from keyseq.shared.i18n import tr
+
 from . import sequence_control
 from .config import normalize_key_name
 
@@ -51,20 +53,20 @@ def edit_call_violation(
     owner = normalize_key_name(owner_key)
     target = normalize_key_name(target_key)
     if not target:
-        return "呼び出し先を選択してください"
+        return tr("domain.call_graph.target_required")
 
     target_trigger = find_trigger(target)
     if target_trigger is None:
-        return f"呼び出し先のトリガーがありません({target})"
+        return tr("domain.call_graph.target_missing", target=target)
     if target == owner:
-        return "自分自身は呼び出せません"
+        return tr("domain.call_graph.self")
 
     path = _path_to_owner(target, owner, find_trigger)
     if path is not None:
-        return f"呼び出しが循環します({' > '.join(path)})"
+        return tr("domain.call_graph.cycle", path=" > ".join(path))
 
     if _downstream_depth(target, find_trigger) + 1 > sequence_control.MAX_CALL_DEPTH:
-        return f"呼び出しの深さが{sequence_control.MAX_CALL_DEPTH}を超えます"
+        return tr("domain.call_graph.depth_exceeded", depth=sequence_control.MAX_CALL_DEPTH)
 
     actions = target_trigger.get("actions", [])
     if isinstance(actions, (list, tuple)) and len(actions) == 1:
@@ -75,7 +77,7 @@ def edit_call_violation(
             and sequence_control.system_op(action)
             in (sequence_control.OP_BACK, sequence_control.OP_REWIND)
         ):
-            return "「戻す」「先頭へ」のトリガーは呼び出せません"
+            return tr("domain.call_graph.back_rewind")
     return None
 
 

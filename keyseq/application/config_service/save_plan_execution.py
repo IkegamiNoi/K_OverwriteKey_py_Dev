@@ -4,6 +4,8 @@ import os
 import warnings
 from typing import Any
 
+from keyseq.shared.i18n import tr
+
 from keyseq.application.save_plan import (
     ACTION_SAVE,
     ACTION_SAVE_AS,
@@ -255,7 +257,7 @@ def _remove_migration_parent_ref(
     try:
         data = service._load_optional_json(trigger_set_path)
         if not isinstance(data, dict):
-            raise OSError("保存したトリガーセットを読み直せません")
+            raise OSError(tr("application.save_plan_execution.reread_failed"))
         refs = service._normalize_parent_refs(data.get(service.PARENT_REFS_KEY))
         if refs is None:
             return ""
@@ -267,7 +269,7 @@ def _remove_migration_parent_ref(
         service.repository.save_json(trigger_set_path, data)
         payload[service.PARENT_REFS_KEY] = retained
     except Exception as exc:
-        return f"移行元の構成セットの参照整理に失敗しました: {trigger_set_path}: {exc}"
+        return tr("application.save_plan_execution.cleanup_failed", path=trigger_set_path, error=exc)
     return ""
 
 
@@ -412,32 +414,32 @@ def validate_save_plan(service,
     seen: set[tuple[str, str]] = set()
     for entry in save_plan.entries:
         if entry.kind not in {CHILD_KEYMAP, CHILD_TRIGGER_SET, CHILD_SEQUENCE}:
-            raise SavePlanError(f"未知の子種別です: {entry.kind}")
+            raise SavePlanError(tr("application.save_plan_execution.kind_unknown", kind=entry.kind))
         if entry.action not in {ACTION_SAVE, ACTION_SAVE_AS, ACTION_SKIP}:
-            raise SavePlanError(f"保存操作が正しくありません: {entry.kind}:{entry.key}")
+            raise SavePlanError(tr("application.save_plan_execution.action_invalid", kind=entry.kind, key=entry.key))
         entry_id = (entry.kind, entry.key)
         if entry_id in seen:
-            raise SavePlanError(f"保存計画が重複しています: {entry.kind}:{entry.key}")
+            raise SavePlanError(tr("application.save_plan_execution.entry_duplicate", kind=entry.kind, key=entry.key))
         seen.add(entry_id)
         if entry.kind == CHILD_KEYMAP and entry.key not in keymap_ids:
-            raise SavePlanError(f"存在しないキーマップです: {entry.key}")
+            raise SavePlanError(tr("application.save_plan_execution.keymap_missing", key=entry.key))
         if entry.kind == CHILD_SEQUENCE and entry.key not in sequence_keys:
-            raise SavePlanError(f"存在しない出力シーケンスです: {entry.key}")
+            raise SavePlanError(tr("application.save_plan_execution.sequence_missing", key=entry.key))
         if entry.kind == CHILD_TRIGGER_SET and entry.key not in trigger_set_ids:
-            raise SavePlanError(f"存在しないトリガーセットです: {entry.key}")
+            raise SavePlanError(tr("application.save_plan_execution.trigger_set_missing", key=entry.key))
         legacy = runtime.get(service.INTERNAL_LEGACY_TRIGGER_SET, {})
         if (entry.kind in {CHILD_KEYMAP, CHILD_TRIGGER_SET} and entry.action == ACTION_SKIP
                 and legacy.get("state") == "migrated" and entry.key == legacy.get("keymap_id")):
-            raise SavePlanError("移行対象には「保存しない」を選べません。")
+            raise SavePlanError(tr("application.save_plan_execution.migration_skip"))
         if entry.action == ACTION_SAVE_AS:
             if not entry.target_path.strip():
-                raise SavePlanError(f"別名保存先が空です: {entry.kind}:{entry.key}")
+                raise SavePlanError(tr("application.save_plan_execution.target_empty", kind=entry.kind, key=entry.key))
             target_path = service._resolve_config_relative_path(entry.target_path, config_root)
             try:
                 os.makedirs(os.path.dirname(os.path.abspath(target_path)), exist_ok=True)
             except OSError as exc:
                 raise SavePlanError(
-                    f"別名保存先のフォルダを作成できません: {entry.kind}:{entry.key}"
+                    tr("application.save_plan_execution.mkdir_failed", kind=entry.kind, key=entry.key)
                 ) from exc
 
     destinations: set[str] = set()
@@ -446,16 +448,16 @@ def validate_save_plan(service,
             continue
         canonical = service.canonical_path(item["resolved_path"], config_root)
         if canonical in destinations:
-            raise SavePlanError(f"子ファイルの保存先が重複しています: {item['resolved_path']}")
+            raise SavePlanError(tr("application.save_plan_execution.destination_duplicate", path=item['resolved_path']))
         destinations.add(canonical)
     blocked_sets = trigger_sets_requiring_keymap_save(save_plan, payloads)
     if blocked_sets and not save_plan.allow_deferred_index:
-        raise SavePlanError(f"トリガーセット{blocked_sets[0]}の保存先変更にはキーマップの保存が必要です。")
+        raise SavePlanError(tr("application.save_plan_execution.keymap_save_required", key=blocked_sets[0]))
 
     blocked_keys = sequence_keys_requiring_trigger_set_save(service, save_plan, payloads)
     if blocked_keys and not save_plan.allow_deferred_index:
         raise SavePlanError(
-            f"出力シーケンス{blocked_keys[0]}の保存先変更にはトリガーセットの保存が必要です。"
+            tr("application.save_plan_execution.trigger_set_save_required", key=blocked_keys[0])
         )
 
 def apply_saved_child_paths(service,

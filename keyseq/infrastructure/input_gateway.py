@@ -17,6 +17,7 @@ from keyseq.domain.numpad_keys import (
     numpad_key_spec,
 )
 from keyseq.infrastructure import ime_control
+from keyseq.shared.i18n import tr
 
 
 _logger = logging.getLogger(__name__)
@@ -426,8 +427,7 @@ class InputGateway:
             return
         if is_reserved_numpad_name(key_name):
             raise ValueError(
-                "テンキーのキー名はnum 0〜num 9 / num add / num subtract / "
-                "num multiply / num divide / num decimal / num enterのいずれかで指定してください。"
+                tr("infrastructure.input_gateway.reserved_numpad_name")
             )
         self._resolve_key(key_name)
 

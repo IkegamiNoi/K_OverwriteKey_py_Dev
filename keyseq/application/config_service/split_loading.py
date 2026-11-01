@@ -4,6 +4,8 @@ import os
 from dataclasses import dataclass, field
 from typing import Any
 
+from keyseq.shared.i18n import tr
+
 from keyseq.domain.config import (
     DEFAULT_RUN_TO_END_DELAY_MS,
     HOOK_KEY_FIELDS,
@@ -47,7 +49,7 @@ class _KeymapLoadState:
 def load_split_config(service, *, config_root: str, keymap_set_path: str) -> dict[str, Any]:
     keymap_set = service._load_optional_json(keymap_set_path)
     if not isinstance(keymap_set, dict):
-        raise ValueError("構成セットの読み込みに失敗しました。")
+        raise ValueError(tr("application.split_loading.load_failed"))
     return build_runtime_data_from_split(service, keymap_set, config_root=config_root)
 
 
@@ -378,7 +380,7 @@ def _create_legacy_trigger_keymap(
     stem = os.path.splitext(os.path.basename(legacy_path))[0]
     keymap = {
         "id": KeymapService.next_keymap_id(data),
-        "label": f"旧トリガーセット（{stem}）",
+        "label": tr("application.split_loading.legacy_trigger_set", stem=stem),
         "mappings": {},
         "triggers": [],
     }

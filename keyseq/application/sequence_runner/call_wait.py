@@ -4,7 +4,8 @@ from typing import Any
 
 from keyseq.application.app_state import PendingStep
 from keyseq.application.call_context import (
-    CallContext, CallStep, call_step, chain_text, finish_call_action, start_linked_call,
+    CallContext, CallStep, call_step, finish_call_action, message_with_chain,
+    start_linked_call,
 )
 from keyseq.application.call_chain import chain_from
 from keyseq.application.sequence_history import StepSnapshot, snapshot_for
@@ -18,6 +19,7 @@ from keyseq.application.sequence_runner.file_line_wait import (
 )
 from keyseq.domain.call_graph import call_target
 from keyseq.domain.sequence_control import ACTION_TYPE_FILE_LINE, is_step_call
+from keyseq.shared.i18n import tr
 
 
 class CallWaitMixin:
@@ -193,10 +195,10 @@ class CallWaitMixin:
                 following = finish_call_action(ctx, self.state.counters)
                 self._add_call_deltas(pending)
                 if following.kind == "error":
-                    message = following.message or "呼び出しを実行できません"
+                    message = following.message or tr("application.call_wait.call_unavailable")
                     self._report_error(
                         self._call_action(key, pending),
-                        message + self._call_chain_suffix(following), owner=key,
+                        message_with_chain(message, following.chain), owner=key,
                     )
                     self._fail_single_call(trigger_set_id, key, pending.generation, pending)
                 elif following.kind == "done":
@@ -229,7 +231,7 @@ class CallWaitMixin:
             self._write_linked_progress(pending.call, failed=True)
             self._report_error(
                 self._call_action(key, pending),
-                FILE_LINE_UNAVAILABLE_MESSAGE + self._call_chain_suffix(step),
+                message_with_chain(tr(FILE_LINE_UNAVAILABLE_MESSAGE), step.chain),
                 owner=key,
             )
             if self._call_parent_is_current(trigger_set_id, key, generation, pending):
@@ -314,11 +316,12 @@ class CallWaitMixin:
         self, trigger_set_id: str, key: str, generation: int,
         pending: PendingStep, step: CallStep,
     ) -> None:
-        message = step.message or "呼び出しを実行できません"
-        suffix = f" / {chain_text(step.chain)}" if step.chain else ""
+        message = step.message or tr("application.call_wait.call_unavailable")
         pending.call.failed = True
         self._write_linked_progress(pending.call, failed=True)
-        self._report_error(self._call_action(key, pending), message + suffix, owner=key)
+        self._report_error(
+            self._call_action(key, pending), message_with_chain(message, step.chain), owner=key,
+        )
         if self._call_parent_is_current(trigger_set_id, key, generation, pending):
             self._fail_single_call(trigger_set_id, key, generation, pending)
         elif (pending.call_paused
@@ -335,10 +338,6 @@ class CallWaitMixin:
         if 0 <= pending.position < len(actions):
             return actions[pending.position]
         return {"type": "system", "op": "call"}
-
-    @staticmethod
-    def _call_chain_suffix(step: CallStep) -> str:
-        return f" / {chain_text(step.chain)}" if step.chain else ""
 
     def _fail_single_call(
         self, trigger_set_id: str, key: str, generation: int, pending: PendingStep,

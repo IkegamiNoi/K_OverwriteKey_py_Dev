@@ -29,6 +29,7 @@ from keyseq.application.sequence_runner.wait_stop import WaitStopMixin
 from keyseq.application.sequence_runner.send_wait import SendWaitMixin
 from keyseq.application.sequence_runner.call_view_notice import CallViewMixin
 from keyseq.application.sequence_runner.run_to_end import RunToEndMixin
+from keyseq.shared.i18n import tr
 
 
 class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWaitMixin, FileLineWaitMixin,
@@ -94,7 +95,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
 
     def _notify_release_errors(self, errors: list[Exception]) -> None:
         if errors and self._notify_error is not None:
-            message = "押下中の入力の解放に失敗しました: " + "; ".join(str(exc) for exc in errors)
+            message = tr("application.sequence_runner.release_failed", errors="; ".join(str(exc) for exc in errors))
             notify = self._notify_error
             # モーダル通知による再入は、取消・停止等の状態遷移を終えた後にする。
             self._after(0, lambda: notify({}, message))
@@ -371,7 +372,10 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             if owner is not None:
                 errors = self.held_inputs.release_owner(owner)
                 if errors:
-                    message += " / 解放エラー: " + "; ".join(str(exc) for exc in errors)
+                    message = tr(
+                        "application.sequence_runner.release_error_suffix",
+                        message=message, errors="; ".join(str(exc) for exc in errors),
+                    )
         if self._notify_error is not None:
             if action.get("type") == "system":
                 action, message = format_system_error_notification(action, message)
@@ -426,7 +430,7 @@ class SequenceRunner(CallViewMixin, InputAcceptanceMixin, WaitStopMixin, SendWai
             action_type = raw_type.strip().lower() if isinstance(raw_type, str) else ""
             if action_type == ACTION_TYPE_FILE_LINE:
                 if self._file_line_unavailable():
-                    self._report_error(action, FILE_LINE_UNAVAILABLE_MESSAGE, key)
+                    self._report_error(action, tr(FILE_LINE_UNAVAILABLE_MESSAGE), key)
                     return
                 handle = self._begin_owned_file_line(action, key)
                 if handle is None:

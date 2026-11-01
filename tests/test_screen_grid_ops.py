@@ -1,5 +1,8 @@
 import copy
 import unittest
+from unittest.mock import patch
+
+import keyseq.domain.screen_grid.ops as screen_grid_ops
 
 from keyseq.domain.screen_grid import (
     DEFAULT_OPS,
@@ -84,6 +87,13 @@ class ScreenGridOperationsTest(unittest.TestCase):
         self.assertEqual(list(ops_to_json(custom)), list(GRID_OPS))
         self.assertEqual(operation_keys(DEFAULT_OPS), default_operation_keys())
         self.assertTrue(FIXED_OP_KEYS.issubset(operation_keys(DEFAULT_OPS)))
+
+    def test_operation_labels_are_translated_lazily_and_keep_mapping_interface(self):
+        self.assertEqual(list(OP_LABELS), list(GRID_OPS))
+        with patch.object(screen_grid_ops, "tr", side_effect=lambda key: key):
+            self.assertEqual(OP_LABELS["up"], "domain.screen_grid.ops.label.up")
+            self.assertEqual(tuple(OP_LABELS.keys()), GRID_OPS)
+        self.assertEqual(OP_LABELS["up"], "上へ")
 
     def test_validate_ops_reports_each_reason_and_operation_order(self):
         ops = dict(DEFAULT_OPS)

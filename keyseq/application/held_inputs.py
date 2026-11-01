@@ -7,6 +7,7 @@ from typing import Callable, Iterable, Iterator
 
 from keyseq.application.key_repeat import KeyRepeater, RepeatTarget
 from keyseq.domain.key_hold import held_display_name
+from keyseq.shared.i18n import tr
 
 
 _logger = logging.getLogger(__name__)
@@ -159,7 +160,7 @@ class HeldInputs:
         self, identity: InputIdentity, key: str, action: dict, exc: Exception,
     ) -> None:
         self._stop_repeat(identity)
-        message = f"キーのリピート送信に失敗しました: {exc}"
+        message = tr("application.held_inputs.repeat_failed", error=exc)
         try:
             record = self._records.get(identity)
             if record is None:
@@ -170,7 +171,10 @@ class HeldInputs:
                     self.input_gateway.release_send(record.send)
                 self._remove(identity)
         except Exception as release_error:
-            message += f" / 解放エラー: {release_error}"
+            message = tr(
+                "application.held_inputs.release_error_suffix",
+                message=message, error=release_error,
+            )
         if self._on_repeat_error is not None:
             self._on_repeat_error(action, message)
         else:

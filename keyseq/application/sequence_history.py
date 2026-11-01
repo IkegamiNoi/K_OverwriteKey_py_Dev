@@ -6,12 +6,13 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Iterable, Mapping, MutableMapping, Sequence
 
 from keyseq.application.call_chain import chain_top
+from keyseq.shared.i18n import tr
 
 
 MAX_HISTORY_ENTRIES = 100
 CounterDelta = tuple[str, int]
-NO_TARGET_MESSAGE = "戻す対象のトリガーがありません"
-PENDING_TARGET_MESSAGE = "対象のトリガーが待機中のため操作できません"
+NO_TARGET_MESSAGE = "application.sequence_history.no_target"
+PENDING_TARGET_MESSAGE = "application.sequence_history.pending_target"
 
 
 @dataclass(frozen=True)
@@ -203,12 +204,12 @@ def apply_control(
                   and find_trigger(selected_key) is not None else state.last_trigger)
         if (target is None or target == source
                 or target[0] != source[0] or find_trigger(target[1]) is None):
-            return None, NO_TARGET_MESSAGE
+            return None, tr(NO_TARGET_MESSAGE)
     else:
         target = (source[0], target_key)
         if (target_key == "" or target_key == source[1]
                 or find_trigger(target_key) is None):
-            return None, NO_TARGET_MESSAGE
+            return None, tr(NO_TARGET_MESSAGE)
 
     target_id, target_key = target
     restore_key = (_back_origin(state, target_id, target_key, find_trigger)
@@ -217,7 +218,7 @@ def apply_control(
         histories = state.history_for(target_id)
         control_identities = _control_group(state, target_id, op, restore_key, target_key)
         if control_identities is None:
-            return None, PENDING_TARGET_MESSAGE
+            return None, tr(PENDING_TARGET_MESSAGE)
 
     if prepare_targets is not None and not prepare_targets(control_identities):
         return None, None

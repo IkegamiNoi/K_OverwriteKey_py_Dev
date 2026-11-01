@@ -3,6 +3,8 @@ from __future__ import annotations
 from collections.abc import Callable, Mapping, Sequence
 from typing import Any
 
+from keyseq.shared.i18n import tr
+
 from . import sequence_control
 from .config import normalize_key_name
 
@@ -14,13 +16,13 @@ def edit_control_target_violation(
 ) -> str | None:
     target = normalize_key_name(target_key)
     if not target:
-        return "対象のトリガーを選択してください"
+        return tr("domain.control_target.required")
 
     target_trigger = find_trigger(target)
     if target_trigger is None:
-        return f"対象のトリガーがありません({target})"
+        return tr("domain.control_target.missing", target=target)
     if target == normalize_key_name(owner_key):
-        return "自分自身は指定できません"
+        return tr("domain.control_target.self")
 
     actions = target_trigger.get("actions")
     if (
@@ -32,7 +34,7 @@ def edit_control_target_violation(
         and sequence_control.system_op(actions[0])
         in (sequence_control.OP_BACK, sequence_control.OP_REWIND)
     ):
-        return "「戻す」「先頭へ」のトリガーは指定できません"
+        return tr("domain.control_target.back_rewind")
     return None
 
 

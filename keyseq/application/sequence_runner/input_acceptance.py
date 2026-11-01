@@ -13,6 +13,7 @@ from keyseq.domain.sequence_control import (
     ACTION_TYPE_SYSTEM, OP_BACK, OP_REWIND, action_type, system_op, is_step_call,
 )
 from keyseq.domain.sequence_editing import standalone_violation
+from keyseq.shared.i18n import tr
 
 
 class InputAcceptanceMixin:
@@ -64,7 +65,7 @@ class InputAcceptanceMixin:
             if pending is not None and pending.call is not None and pending.call_paused:
                 self.cancel_pending_wait(key)
         if self._notify_message is not None:
-            self._notify_message(f"一時停止中の実行を破棄しました({', '.join(selected)})")
+            self._notify_message(tr("application.input_acceptance.paused_discarded", keys=", ".join(selected)))
         return selected
 
     def _call_step_discarding_paused(self, advance_call: Callable[[], CallStep]) -> CallStep:
@@ -146,7 +147,7 @@ class InputAcceptanceMixin:
             self._pending_control_discard = current
             if self._notify_message is not None:
                 self._notify_message(
-                    f"一時停止中の{', '.join(paused)}を破棄します。もう一度押すと実行します"
+                    tr("application.input_acceptance.paused_discard_confirm", keys=", ".join(paused))
                 )
             return False
         return True
@@ -211,7 +212,7 @@ class InputAcceptanceMixin:
             return False
         self._select_trigger(key)
         if self._notify_message is not None:
-            self._notify_message(f"{key}を選びました（もう一度押すと実行します）")
+            self._notify_message(tr("application.input_acceptance.key_selected", key=key))
         self._select_only_key = key
         return True
 

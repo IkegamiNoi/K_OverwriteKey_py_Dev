@@ -5,8 +5,6 @@ from keyseq.application.app_state import AppState
 from keyseq.application.sequence_history import (
     HistoryEntry,
     MAX_HISTORY_ENTRIES,
-    NO_TARGET_MESSAGE,
-    PENDING_TARGET_MESSAGE,
     StepSnapshot,
     apply_control,
     clear_history,
@@ -220,7 +218,7 @@ class SequenceHistoryControlTest(unittest.TestCase):
                     self.state, ("set-a", "undo-key"), "rewind", self.find_trigger,
                     target_key=target_key,
                 )
-                self.assertEqual(result, (None, NO_TARGET_MESSAGE))
+                self.assertEqual(result, (None, "戻す対象のトリガーがありません"))
                 self.assertEqual((
                     dict(self.state.indices_for("set-a")),
                     dict(self.state.loop_frames_for("set-a")),
@@ -258,7 +256,7 @@ class SequenceHistoryControlTest(unittest.TestCase):
             target_key="target",
         )
 
-        self.assertEqual(result, (None, PENDING_TARGET_MESSAGE))
+        self.assertEqual(result, (None, "対象のトリガーが待機中のため操作できません"))
 
     def test_missing_self_or_inactive_target_returns_no_target_message(self):
         cases = (
@@ -273,7 +271,7 @@ class SequenceHistoryControlTest(unittest.TestCase):
                 self.active_keys = active_keys
                 self.assertEqual(
                     apply_control(self.state, source, "back", self.find_trigger),
-                    (None, NO_TARGET_MESSAGE),
+                    (None, "戻す対象のトリガーがありません"),
                 )
 
     def test_pending_target_returns_pending_message(self):
@@ -283,7 +281,7 @@ class SequenceHistoryControlTest(unittest.TestCase):
             self.state, ("set-a", "undo-key"), "rewind", self.find_trigger
         )
 
-        self.assertEqual(result, (None, PENDING_TARGET_MESSAGE))
+        self.assertEqual(result, (None, "対象のトリガーが待機中のため操作できません"))
 
     def test_commit_step_updates_last_trigger_only_for_a_change(self):
         snapshot = StepSnapshot("set-a", "target", 4, [(1, 2)])
@@ -431,7 +429,7 @@ class SequenceHistoryControlTest(unittest.TestCase):
             prepare_targets=lambda identities: prepared.append(identities) or True,
         )
 
-        self.assertEqual(result, (None, PENDING_TARGET_MESSAGE))
+        self.assertEqual(result, (None, "対象のトリガーが待機中のため操作できません"))
         self.assertEqual(prepared, [])
         self.assertEqual(histories["target"], [HistoryEntry(2, [], [], press_id=92)])
         self.assertEqual(histories["callee"], [HistoryEntry(1, [], [("n", 1)], press_id=92)])
@@ -447,7 +445,7 @@ class SequenceHistoryControlTest(unittest.TestCase):
                 self.assertEqual(apply_control(
                     self.state, ("set-a", "undo-key"), "back", self.find_trigger,
                     prepare_targets=lambda identities: prepared.append(identities) or True,
-                ), (None, PENDING_TARGET_MESSAGE))
+                ), (None, "対象のトリガーが待機中のため操作できません"))
                 self.assertEqual(prepared, [])
                 self.assertEqual(len(histories["target"]), 1)
                 self.assertEqual(len(histories["callee"]), 1)
