@@ -26,23 +26,18 @@ from keyseq.domain.sequence_control import (
 )
 
 
-SYSTEM_OPERATIONS = {
-    "ループ": OP_LOOP_START,
-    "カウンター +1": OP_COUNTER_INC,
-    "カウンターを0に": OP_COUNTER_RESET,
-    "待機": OP_WAIT,
-    "停止": OP_STOP,
-    "呼び出し": OP_CALL,
-    "戻す": OP_BACK,
-    "先頭へ": OP_REWIND,
-}
-SYSTEM_LABELS = {operation: label for label, operation in SYSTEM_OPERATIONS.items()}
+def _system_labels() -> dict[str, str]:
+    return {OP_LOOP_START: "ループ", OP_COUNTER_INC: "カウンター +1",
+            OP_COUNTER_RESET: "カウンターを0に", OP_WAIT: "待機", OP_STOP: "停止",
+            OP_CALL: "呼び出し", OP_BACK: "戻す", OP_REWIND: "先頭へ"}
+
+
+def _out_of_range_labels() -> dict[str, str]:
+    return {OUT_OF_RANGE_ERROR: "エラーで停止", OUT_OF_RANGE_EMPTY: "何も送らない",
+            OUT_OF_RANGE_WRAP: "折り返し"}
+
+
 ENCODINGS = {"UTF-8": ENCODING_UTF_8, "Shift_JIS": ENCODING_SHIFT_JIS}
-OUT_OF_RANGE_VALUES = {
-    "エラーで停止": OUT_OF_RANGE_ERROR,
-    "何も送らない": OUT_OF_RANGE_EMPTY,
-    "折り返し": OUT_OF_RANGE_WRAP,
-}
 
 
 class ActionControlFields:
@@ -58,14 +53,18 @@ class ActionControlFields:
         self.config_root = config_root
         self.config_service = config_service
         self.mode = mode
+        self._system_labels_by_op = _system_labels()
+        self._system_ops_by_label = {v: k for k, v in self._system_labels_by_op.items()}
+        self._out_of_range_labels_by_value = _out_of_range_labels()
+        self._out_of_range_values_by_label = {v: k for k, v in self._out_of_range_labels_by_value.items()}
         self.call_candidates = list(call_candidates or [])
         self.call_check = call_check
         self.control_target_validator = control_target_check
         self._call_candidate_by_label: dict[str, tuple[str, str]] = {}
         self._missing_call_target: str | None = None
-        operation_labels = list(SYSTEM_OPERATIONS)
+        operation_labels = list(self._system_ops_by_label)
         if mode == "edit":
-            operation_labels.remove("ループ")
+            operation_labels.remove(self._system_labels_by_op[OP_LOOP_START])
         self.system_frame = ttk.LabelFrame(parent, text="system設定", padding=8)
         self.file_frame = ttk.LabelFrame(parent, text="file_line設定", padding=8)
         self.system_frame.grid_columnconfigure(1, weight=1)
@@ -75,7 +74,7 @@ class ActionControlFields:
         self.sync_system()
 
     def _build_system_fields(self, operation_labels: list[str]) -> None:
-        self.system_op_var = tk.StringVar(value="カウンター +1")
+        self.system_op_var = tk.StringVar(value=self._system_labels_by_op[OP_COUNTER_INC])
         self.system_op_combo = ttk.Combobox(
             self.system_frame, textvariable=self.system_op_var,
             values=operation_labels, state="readonly", width=20,
@@ -172,7 +171,7 @@ class ActionControlFields:
         ttk.Label(self.file_frame, text="範囲外").grid(row=3, column=0, sticky="w", pady=(6, 0))
         self.out_of_range_combo = ttk.Combobox(
             self.file_frame, textvariable=self.out_of_range_var,
-            values=list(OUT_OF_RANGE_VALUES), state="readonly", width=18,
+            values=list(self._out_of_range_values_by_label), state="readonly", width=18,
         )
         self.out_of_range_combo.grid(row=3, column=1, sticky="w", padx=(8, 0), pady=(6, 0))
 
@@ -182,7 +181,7 @@ class ActionControlFields:
             self.file_path_var.set(selected)
 
     def sync_system(self) -> None:
-        op = SYSTEM_OPERATIONS.get(self.system_op_var.get(), OP_COUNTER_INC)
+        op = self._system_ops_by_label.get(self.system_op_var.get(), OP_COUNTER_INC)
         self._show(self.loop_count_label, op == OP_LOOP_START)
         self._show(self.loop_count_entry, op == OP_LOOP_START)
         self._show(self.loop_infinite_check, op == OP_LOOP_START)
@@ -226,7 +225,7 @@ class ActionControlFields:
         action_type = str(action.get("type", "")).strip().lower()
         if action_type == ACTION_TYPE_SYSTEM:
             op = str(action.get("op", "")).strip().lower()
-            self.system_op_var.set(SYSTEM_LABELS.get(op, "カウンター +1"))
+            self.system_op_var.set(self._system_labels_by_op.get(op, self._system_labels_by_op[OP_COUNTER_INC]))
             self.loop_count_var.set(str(action.get("count", 1)))
             self.loop_infinite_var.set(bool(action.get("infinite", False)))
             self.system_counter_var.set(str(action.get("counter", "")))
@@ -244,7 +243,7 @@ class ActionControlFields:
             self.encoding_var.set(next((label for label, value in ENCODINGS.items() if value == encoding), "UTF-8"))
             out_of_range = str(action.get("out_of_range", DEFAULT_OUT_OF_RANGE)).strip().lower()
             self.out_of_range_var.set(next(
-                (label for label, value in OUT_OF_RANGE_VALUES.items() if value == out_of_range),
+                (label for label, value in self._out_of_range_values_by_label.items() if value == out_of_range),
                 "エラーで停止",
             ))
 
@@ -256,7 +255,7 @@ class ActionControlFields:
         return None
 
     def _build_system_result(self, label: str) -> dict[str, Any] | None:
-        op = OP_LOOP_START if self.mode == "edit_loop" else SYSTEM_OPERATIONS.get(self.system_op_var.get())
+        op = OP_LOOP_START if self.mode == "edit_loop" else self._system_ops_by_label.get(self.system_op_var.get())
         if self.mode == "edit" and op == OP_LOOP_START:
             op = None
         if op is None:
@@ -378,6 +377,6 @@ class ActionControlFields:
         return {
             "type": ACTION_TYPE_FILE_LINE, "path": stored_path, "counter": counter,
             "encoding": ENCODINGS.get(self.encoding_var.get(), DEFAULT_ENCODING),
-            "out_of_range": OUT_OF_RANGE_VALUES.get(self.out_of_range_var.get(), DEFAULT_OUT_OF_RANGE),
+            "out_of_range": self._out_of_range_values_by_label.get(self.out_of_range_var.get(), DEFAULT_OUT_OF_RANGE),
             "label": label,
         }

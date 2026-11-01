@@ -147,6 +147,12 @@ class AppUiFlowsTest(unittest.TestCase):
         self.app.trigger_panel.set_selected_trigger_index(0)
         self.assertIn("選択中: f1", self.app.ui_vars.status_var.get())
 
+    def test_status_shows_unselected_trigger(self):
+        with patch.object(self.app.trigger_panel, "selected_trigger_key", return_value=""):
+            self.app.trigger_panel.update_status()
+            self.assertIn("選択中: （未選択）", self.app.ui_vars.status_var.get())
+        self.app.trigger_panel.update_status()
+
     def test_status_shows_hook_off(self):
         self.app.trigger_panel.update_status()
         status = self.app.ui_vars.status_var.get()

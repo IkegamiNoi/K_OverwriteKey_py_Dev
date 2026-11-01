@@ -842,11 +842,11 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
             "keyseq.presentation.controllers.keymap_panel.keymap_add_flow.KeymapSwitchBatchDialog",
             return_value=_DialogResult(None),
         ) as batch_dialog:
-            self.app.keymap_panel._keymap_add_flow._run_batch("新規", [{"id": "km3", "label": "", "mappings": {}}])
+            self.app.keymap_panel._keymap_add_flow._run_batch("new", [{"id": "km3", "label": "", "mappings": {}}])
             self.assertEqual(tuple(batch_dialog.call_args.kwargs["grid_option_rows"]), (2,))
-            self.app.keymap_panel._keymap_add_flow._run_batch("読込", [{"id": "km3", "label": "", "mappings": {}}])
+            self.app.keymap_panel._keymap_add_flow._run_batch("load", [{"id": "km3", "label": "", "mappings": {}}])
             self.assertEqual(batch_dialog.call_args.kwargs["grid_option_rows"], ())
-            self.app.keymap_panel._keymap_add_flow._run_batch("貼り付け", [{"id": "km3", "label": "", "mappings": {}}])
+            self.app.keymap_panel._keymap_add_flow._run_batch("paste", [{"id": "km3", "label": "", "mappings": {}}])
             self.assertEqual(batch_dialog.call_args.kwargs["grid_option_rows"], ())
 
     def test_batch_new_grid_option_creates_grid_only_when_checked(self):
@@ -867,7 +867,7 @@ class Task06KeymapManagementUiTest(unittest.TestCase):
                     return_value=result,
                 ):
                     self.app.keymap_panel._keymap_add_flow._run_batch(
-                        "新規", [{"id": "km3", "label": "", "mappings": {}}]
+                        "new", [{"id": "km3", "label": "", "mappings": {}}]
                     )
                 added = self.app.data["keymaps"][-1]
                 if enabled:

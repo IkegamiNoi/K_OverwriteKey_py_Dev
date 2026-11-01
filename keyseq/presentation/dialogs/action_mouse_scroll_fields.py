@@ -18,20 +18,23 @@ from keyseq.domain.mouse_scroll import (
 class ActionMouseScrollFields:
     """mouse_scroll 1 行分の入力欄。"""
 
-    _DIRECTION_VALUES = dict(zip(("上", "下", "左", "右"), DIRECTIONS))
-    _DIRECTION_LABELS = {value: label for label, value in _DIRECTION_VALUES.items()}
+    @staticmethod
+    def _direction_labels() -> dict[str, str]:
+        return dict(zip(DIRECTIONS, ("上", "下", "左", "右")))
 
     def __init__(self, parent: tk.Misc, *, capture_mouse_position: Callable) -> None:
         self.capture_mouse_position = capture_mouse_position
+        self._direction_labels_by_code = self._direction_labels()
+        self._direction_codes_by_label = {v: k for k, v in self._direction_labels_by_code.items()}
         self._capture_state = "normal"
         self.frame = ttk.LabelFrame(parent, text="マウススクロール", padding=8)
         self.frame.grid_columnconfigure(1, weight=1)
 
         ttk.Label(self.frame, text="向き").grid(row=0, column=0, sticky="w")
-        self.direction_var = tk.StringVar(value="下")
+        self.direction_var = tk.StringVar(value=self._direction_labels_by_code[DIRECTIONS[1]])
         self.direction_combo = ttk.Combobox(
             self.frame, textvariable=self.direction_var,
-            values=("上", "下", "左", "右"), state="readonly", width=8,
+            values=tuple(self._direction_labels_by_code.values()), state="readonly", width=8,
         )
         self.direction_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
 
@@ -95,7 +98,7 @@ class ActionMouseScrollFields:
 
         raw_direction = action.get("direction")
         direction = raw_direction.strip().lower() if isinstance(raw_direction, str) else ""
-        self.direction_var.set(self._DIRECTION_LABELS.get(direction, "下"))
+        self.direction_var.set(self._direction_labels_by_code.get(direction, self._direction_labels_by_code[DIRECTIONS[1]]))
 
         amount_text = self._parsed_amount(action, unit)
         if "amount" not in action:
@@ -130,7 +133,7 @@ class ActionMouseScrollFields:
         unit = self.unit_var.get()
         action = {
             "type": ACTION_TYPE_MOUSE_SCROLL,
-            "direction": self._DIRECTION_VALUES.get(self.direction_var.get(), self.direction_var.get()),
+            "direction": self._direction_codes_by_label.get(self.direction_var.get(), self.direction_var.get()),
             "unit": unit,
             "amount": (self.amount_notch_var if unit == UNIT_NOTCH else self.amount_delta_var).get().strip(),
             "label": label,

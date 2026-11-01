@@ -8,6 +8,15 @@ from keyseq.domain.list_editing import numbered_labels
 from keyseq.presentation.dialogs import KeymapSwitchBatchDialog
 
 
+def _kind_titles() -> dict[str, str]:
+    return {"new": "キーマップ追加", "load": "ファイルからキーマップを追加",
+            "paste": "キーマップ貼り付け"}
+
+
+def _kind_row_labels() -> dict[str, str]:
+    return {"new": "新規", "load": "読込", "paste": "貼り付け"}
+
+
 class KeymapAddFlow:
     """追加・個別読込・貼り付けの切替キーをまとめて確定する。"""
 
@@ -21,8 +30,8 @@ class KeymapAddFlow:
             self._app.mark_keymap_dirty(created)
             self._keymap_panel._refresh_after_keymap_change()
         else:
-            candidates = self._make_candidates("新規", [{}])
-            if not self._run_batch("新規", candidates):
+            candidates = self._make_candidates("new", [{}])
+            if not self._run_batch("new", candidates):
                 return
             created = candidates[0]
         self._app._set_flash_message(
@@ -31,14 +40,14 @@ class KeymapAddFlow:
 
     def add_imported_keymap(self, keymap: dict) -> bool:
         # 読込側で採番済みの dict を保ち、共有トリガー一覧や読込元の情報を維持する。
-        return self._run_batch("読込", [keymap])
+        return self._run_batch("load", [keymap])
 
     def paste_keymaps(self, sources: list[dict]) -> tuple[int, int] | None:
         if not sources:
             return None
         start = len(self._app.keymap_service.get_keymaps(self._app.data))
-        candidates = self._make_candidates("貼り付け", sources)
-        if not self._run_batch("貼り付け", candidates):
+        candidates = self._make_candidates("paste", sources)
+        if not self._run_batch("paste", candidates):
             return None
         return start, start + len(candidates) - 1
 
@@ -53,7 +62,7 @@ class KeymapAddFlow:
         for source, label in zip(sources, labels):
             keymap_id = self._app.keymap_service.next_keymap_id(planned)
             candidate = (
-                duplicate_keymap(source, keymap_id, label) if kind == "貼り付け"
+                duplicate_keymap(source, keymap_id, label) if kind == "paste"
                 else {"id": keymap_id, "label": "", "mappings": {}}
             )
             candidates.append(candidate)
@@ -75,13 +84,12 @@ class KeymapAddFlow:
         ]
         targets = missing + new_keymaps
         rows = self._make_rows(kind, missing, new_keymaps)
-        titles = {"新規": "キーマップ追加", "読込": "ファイルからキーマップを追加",
-                  "貼り付け": "キーマップ貼り付け"}
+        titles = _kind_titles()
         dialog = KeymapSwitchBatchDialog(
             self._app, title=titles[kind], rows=rows,
             validate=lambda values: self._validate_values(values, targets, rows, new_keymaps),
             grid_option_rows=(range(len(missing), len(missing) + len(new_keymaps))
-                              if kind == "新規" else ()),
+                              if kind == "new" else ()),
         )
         dialog.wait_window()
         values = dialog.result
@@ -93,7 +101,8 @@ class KeymapAddFlow:
 
     def _make_rows(self, kind: str, missing: list[dict], new_keymaps: list[dict]) -> list[tuple[str, str, str, str]]:
         return [
-            (row_kind, self._keymap_panel.format_keymap_display_name(keymap)
+            (_kind_row_labels()[kind] if row_kind == kind else row_kind,
+             self._keymap_panel.format_keymap_display_name(keymap)
              or normalize_key_name(keymap.get("id", "")),
              str(keymap.get("label") or ""), "")
             for row_kind, keymaps in (("既存", missing), (kind, new_keymaps))
@@ -133,7 +142,7 @@ class KeymapAddFlow:
                 self._app.data, value["key"], keymap["id"]
             )
             self._app.mark_keymap_dirty(keymap)
-        if kind == "貼り付け":
+        if kind == "paste":
             for keymap in new_keymaps:
                 self._app.dirty_tracker.mark_trigger_set_dirty(keymap["id"])
                 for row in keymap_trigger_list(keymap) or []:

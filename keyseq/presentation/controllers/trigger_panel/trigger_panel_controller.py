@@ -415,16 +415,17 @@ class TriggerPanelController:
         if status_icon is not None:
             status_icon.apply(state)
         keymap_text = self._app.keymap_panel.get_active_keymap_name()
-        sel_key = self.selected_trigger_key() or "（未選択）"
+        sel_key = self.selected_trigger_key()
+        sel_text = sel_key or "（未選択）"
         effective = self.selected_trigger_is_effective()
         held_names = self._app.held_inputs.display_names
         held_suffix = f" / 押下中: {', '.join(held_names)}" if held_names else ""
         if getattr(self._app, "_compact_mode", False):
             # 省略表示：欄は各値を1行化し、ツールチップには元の改行を残す。
             suffix = f" / 次: {self.get_next_action_summary(sel_key)}" if effective else ""
-            self._app.ui_vars.status_full_var.set(f"フック: {hook_state} / キーマップ: {keymap_text}{held_suffix}\n選択: {sel_key}{suffix}")
+            self._app.ui_vars.status_full_var.set(f"フック: {hook_state} / キーマップ: {keymap_text}{held_suffix}\n選択: {sel_text}{suffix}")
             self._app.ui_vars.status_var.set(
-                f"フック: {one_line(hook_state)} / キーマップ: {one_line(keymap_text)}{one_line(held_suffix)}\n選択: {one_line(sel_key)}{one_line(suffix)}"
+                f"フック: {one_line(hook_state)} / キーマップ: {one_line(keymap_text)}{one_line(held_suffix)}\n選択: {one_line(sel_text)}{one_line(suffix)}"
             )
             return
 
@@ -445,7 +446,7 @@ class TriggerPanelController:
         except Exception:
             next_i = 0
         suffix = f" / 選択中の次: {next_i}" if effective else ""
-        text = f"フック: {hook_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_key}{suffix}{held_suffix}"
+        text = f"フック: {hook_state} / キーマップ: {keymap_text} / トリガー: {keys_text} / 選択中: {sel_text}{suffix}{held_suffix}"
         self._app.ui_vars.status_full_var.set(text)
         self._app.ui_vars.status_var.set(text)
 
@@ -454,7 +455,7 @@ class TriggerPanelController:
         key = normalize_key_name(trigger_key or "")
         if not self.selected_trigger_is_effective():
             return ""
-        trig = self._app._find_trigger_by_key(key) if key and key != "（未選択）" else None
+        trig = self._app._find_trigger_by_key(key) if key else None
         if not trig:
             return "（なし）"
         actions = trig.get("actions", [])

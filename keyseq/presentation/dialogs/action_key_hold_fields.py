@@ -16,29 +16,47 @@ from keyseq.presentation.tk_keys import (
 class ActionKeyHoldFields:
     """key_hold 1 行分の入力欄。"""
 
+    @staticmethod
+    def _target_labels() -> dict[str, str]:
+        return {"key": "キー", "mouse_button": "マウスのボタン"}
+
+    @staticmethod
+    def _edge_labels() -> dict[str, str]:
+        return {"down": "押す", "up": "離す"}
+
+    @staticmethod
+    def _button_labels() -> dict[str, str]:
+        return {"left": "左", "right": "右", "middle": "中"}
+
     def __init__(self, parent: tk.Misc, *, capture_mouse_position: Callable) -> None:
         self.parent = parent
         self.dialog = parent.winfo_toplevel()
         self.capture_mouse_position = capture_mouse_position
         self.recording = False
         self._key_press_bind_id: str | None = None
+        self._target_labels_by_code = self._target_labels()
+        self._edge_labels_by_code = self._edge_labels()
+        self._button_labels_by_code = self._button_labels()
+        self._target_codes_by_label = {v: k for k, v in self._target_labels_by_code.items()}
+        self._edge_codes_by_label = {v: k for k, v in self._edge_labels_by_code.items()}
+        self._button_codes_by_label = {v: k for k, v in self._button_labels_by_code.items()}
 
         self.frame = ttk.LabelFrame(parent, text="キーの押下 / 解放", padding=8)
         self.frame.grid_columnconfigure(1, weight=1)
 
         ttk.Label(self.frame, text="動作").grid(row=0, column=0, sticky="w")
-        self.edge_var = tk.StringVar(value="押す")
+        self.edge_var = tk.StringVar(value=self._edge_labels_by_code["down"])
         self.edge_combo = ttk.Combobox(
-            self.frame, textvariable=self.edge_var, values=("押す", "離す"),
+            self.frame, textvariable=self.edge_var, values=tuple(self._edge_labels_by_code.values()),
             state="readonly", width=10,
         )
         self.edge_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
         self.edge_combo.bind("<<ComboboxSelected>>", lambda _event: self.sync_repeat_visibility())
 
         ttk.Label(self.frame, text="対象").grid(row=1, column=0, sticky="w", pady=(8, 0))
-        self.target_var = tk.StringVar(value="キー")
+        self.target_var = tk.StringVar(value=self._target_labels_by_code["key"])
         self.target_combo = ttk.Combobox(
-            self.frame, textvariable=self.target_var, values=("キー", "マウスのボタン"),
+            self.frame, textvariable=self.target_var, values=tuple(self._target_labels_by_code.values()),
             state="readonly", width=16,
         )
         self.target_combo.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
@@ -58,14 +76,12 @@ class ActionKeyHoldFields:
         self.button_frame = ttk.Frame(self.frame)
         self.button_frame.grid(row=3, column=0, columnspan=2, sticky="we", pady=(8, 0))
         ttk.Label(self.button_frame, text="ボタン").grid(row=0, column=0, sticky="w")
-        self.button_var = tk.StringVar(value="左")
+        self.button_var = tk.StringVar(value=self._button_labels_by_code["left"])
         self.button_combo = ttk.Combobox(
             self.button_frame, textvariable=self.button_var,
-            values=("左", "右", "中"), state="readonly", width=10,
+            values=tuple(self._button_labels_by_code.values()), state="readonly", width=10,
         )
         self.button_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
-        self._button_values = {"左": "left", "右": "right", "中": "middle"}
-        self._button_labels = {value: label for label, value in self._button_values.items()}
 
         self.coordinates_var = tk.BooleanVar(value=False)
         ttk.Checkbutton(
@@ -108,32 +124,31 @@ class ActionKeyHoldFields:
 
     def load(self, action: dict) -> None:
         edge = str(action.get("edge", "down")).strip().lower()
-        self.edge_var.set({"down": "押す", "up": "離す"}.get(edge, edge))
+        self.edge_var.set(self._edge_labels_by_code.get(edge, edge))
         if isinstance(action.get("button"), str) and action["button"].strip():
-            self.target_var.set("マウスのボタン")
+            self.target_var.set(self._target_labels_by_code["mouse_button"])
             raw_button = action["button"].strip().lower()
-            self.button_var.set(self._button_labels.get(raw_button, raw_button))
+            self.button_var.set(self._button_labels_by_code.get(raw_button, raw_button))
             if "x" in action or "y" in action:
                 self.coordinates_var.set(True)
                 self.x_var.set(str(action.get("x", "")))
                 self.y_var.set(str(action.get("y", "")))
         else:
-            self.target_var.set("キー")
+            self.target_var.set(self._target_labels_by_code["key"])
             self.key_var.set(str(action.get("value") or ""))
-        if self.edge_var.get() == "押す" and self.target_var.get() == "キー":
+        if self.edge_code() == "down" and self.target_kind() == "key":
             self.repeat_var.set(wants_repeat(action))
         else:
             self.repeat_var.set(True)
         self.sync_target()
 
     def build_action(self, label: str) -> dict:
-        edge = self.edge_var.get()
-        action = {"type": "key_hold", "edge": {"押す": "down", "離す": "up"}.get(edge, edge)}
-        if self.target_var.get() == "キー":
+        action = {"type": "key_hold", "edge": self.edge_code()}
+        if self.target_kind() == "key":
             action["value"] = self.key_var.get().strip()
         else:
             button = self.button_var.get()
-            action["button"] = self._button_values.get(button, button)
+            action["button"] = self._button_codes_by_label.get(button, button)
             if self.coordinates_var.get():
                 action["x"] = self.x_var.get().strip()
                 action["y"] = self.y_var.get().strip()
@@ -142,7 +157,7 @@ class ActionKeyHoldFields:
 
     def sync_target(self) -> None:
         self.stop_recording()
-        if self.target_var.get() == "キー":
+        if self.target_kind() == "key":
             self.key_frame.grid()
             self.button_frame.grid_remove()
         else:
@@ -153,10 +168,16 @@ class ActionKeyHoldFields:
 
     def sync_repeat_visibility(self) -> None:
         """押すキー行のときだけリピート欄を表示する。"""
-        if self.edge_var.get() == "押す" and self.target_var.get() == "キー":
+        if self.edge_code() == "down" and self.target_kind() == "key":
             self.repeat_frame.grid()
         else:
             self.repeat_frame.grid_remove()
+
+    def target_kind(self) -> str:
+        return self._target_codes_by_label.get(self.target_var.get(), self.target_var.get())
+
+    def edge_code(self) -> str:
+        return self._edge_codes_by_label.get(self.edge_var.get(), self.edge_var.get())
 
     def sync_coordinates(self) -> None:
         if self.coordinates_var.get():

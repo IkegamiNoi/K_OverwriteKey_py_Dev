@@ -259,7 +259,7 @@ class ActionDialog(tk.Toplevel):
             self.parent._dialog_result = action
         else:
             action = self.key_hold_fields.build_action(label)
-            if self.key_hold_fields.target_var.get() == "マウスのボタン" and self.key_hold_fields.coordinates_var.get():
+            if self.key_hold_fields.target_kind() == "mouse_button" and self.key_hold_fields.coordinates_var.get():
                 if not action.get("x") or not action.get("y"):
                     messagebox.showerror("入力エラー", "マウス座標のX/Yは両方入力してください。")
                     return

@@ -4,41 +4,38 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-01T11:45:00
+last_updated: 2026-11-01T13:20:00
 phase: instructions/phase/72_multilingual_ui（**アクティブ** = 画面の文言の多言語対応・暫定 55 v0.3 ユーザー確定済・decisions 72）。次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 71**（タスクバーのアイコン・`decisions_archive/71_taskbar_status_icon.md`）
 last_commit_location: `claude/multilingual-support-ff44eb`（phase 72）。phase 71 一式は `claude/taskbar-app-status-indicator-f73d28` にもあり、main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 72 進行中（task_01 完了・次 task_02）。** 日英の切替（設定・次回起動から反映）の基盤 `keyseq/shared/i18n` とメニュー「言語 / Language」・ヘルプの読む順まで入った。既存の文言のキー化は task_03〜06。
+focus: **phase 72 進行中（task_02 完了・次 task_03）。** i18n 基盤（task_01）と、表示文字列を内部値に使う箇所の内部コード化（task_02）まで済み。既存の文言のキー化は task_03〜06。
 mode: implementing
 presence: away（戻る予定 未定）
 
 ## last_action
-ts: 2026-11-01T11:45:00
+ts: 2026-11-01T13:20:00
 who: main
 summary: |
-  phase 72 起票（暫定 55 v0.3 確定・phase.md 12 タスク・idea_56）→ task_01（i18n 基盤）を codex-delegating-implementer（Sol medium・サブエージェント 2 使用）で実装。
-  新規 `keyseq/shared/i18n`（tr / tr_in 位置専用・en → ja → キーのフォールバック・available_languages・resolve_language〔既定 en〕・fix_language / reset_for_tests）・locales ja / en（4 キー）。
-  presentation: App が画面を作る前に言語を決める（起動時警告は決定後）・`set_ui_language`（保存 + 選んだ言語で再起動の知らせ）・ui_language_var・メニューの言語 cascade・ヘルプの読む順。shared は他層を import しない（層の新設）。
-  テスト: 104 ファイルへ `fix_language("ja")`・静的テスト（`test_*.py` に限定）・メインで tests_ui/test_ui_language.py:79 の str() 化・smoke への固定を取り消し・app.py の import の並び。
-  reviewer 採用（修正不要・参考 2 件 = 過剰な固定は無害 / import の並び → 反映）。
+  task_02（表示文字列の内部値の分離）を codex-implementer（3 回に分けて実行）で実装。presentation 6 ファイル: key_hold（対象・押す / 離す・ボタン）/ system の op・範囲外 / mouse_scroll の向き / キーマップの追加の種類（new / load / paste）/ 「（未選択）」の判定を、呼び出し時に作るコード → ラベルの表で持ちコードで判定する形へ。旧名 SYSTEM_OPERATIONS 等は 0 件。
+  メインで修正: 行の種類の列に内部コードが出る退行（`_kind_row_labels`）/ ステータス欄の「（未選択）」が空になる退行（`sel_text`）/ 新テストの入力エラーの modal で tests_ui が止まった件（入力を足し showerror を patch・止まったプロセス 2 本だけ Stop-Process）/ レビュー指摘でボタンの表を `_button_labels()` へ・「（未選択）」の表示のテストを test_app_ui_flows に追加。
+  reviewer 採用（任意 1 = 反映 / テスト補強の推奨 2 = 反映・3 = 未反映〔edit モードのループ除外・load 経路・題名の差し替え等。既存テストで間接的に押さえ済み〕）。
 result_files:
-  - keyseq/shared/__init__.py / keyseq/shared/i18n/{__init__.py,catalog.py,locales/ja.json,locales/en.json}
-  - keyseq/presentation/app.py / ui_vars.py / views/menu_bar.py / help/help_content.py
-  - tests/test_i18n.py / test_i18n_startup_preservation.py / test_i18n_test_language_fixed.py / test_help_content.py / tests_ui/test_ui_language.py + 既存 104 ファイル（言語固定）
-  - instructions/history/55_multilingual_ui.md / instructions/phase/72_multilingual_ui/ / instructions/phase/current.md / instructions/backlog/{INDEX.md,idea_56_more_ui_languages.md}
-  - .claude_data/state/decisions.md
+  - keyseq/presentation/dialogs/{action_key_hold_fields,action_control_fields,action_mouse_scroll_fields,action_dialog}.py
+  - keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py / controllers/trigger_panel/trigger_panel_controller.py
+  - tests_ui/test_internal_value_codes.py（新規）/ tests_ui/test_task06_keymap_management_ui.py / tests_ui/test_app_ui_flows.py
+  - instructions/phase/72_multilingual_ui/tasks/task_02_internal_values.md / instructions/phase/current.md
 verified:
   compile: pass
   tests: pass（1888・skip 7）
-  tests_ui: fail 1 → 修正後に該当ファイル 6 件 pass（全体の再実行は task_02 の実測で兼ねる）
+  tests_ui: pass（1222〔レビュー後の小修正の前〕・修正後に該当 3 ファイル 126 件 pass）
   smoke: pass
 
 ## next_action
-- task_02（表示文字列の内部値の分離）を `/task_new` で `instructions/phase/72_multilingual_ui/tasks/task_02_internal_values.md` に起票 → codex-implementer で実装 → verifier（tests / tests_ui 全体〔task_01 の修正後の全体確認を兼ねる〕/ smoke）→ reviewer。対象は暫定 55 §1・§6.3 の比較箇所（`dialogs/action_key_hold_fields.py`・`action_dialog.py:262`・`controllers/keymap_panel/keymap_add_flow.py`）＋ 仕分けで見つかる箇所
-- 以降 phase.md のタスク順に task_03〜12。task_07（英語の用語・アクションの種類の表示名）と task_12（実機目視）はユーザー判断が要る
+- task_03（キー移行 1 = 主画面・メニュー・views・controllers・モジュール定数の文言表 `*_text.py` 等）を `/task_new` で `instructions/phase/72_multilingual_ui/tasks/task_03_keys_main_views.md` に起票 → codex-delegating-implementer → verifier（tests / tests_ui 全体 / smoke）→ reviewer。日本語の文言は 1 文字も変えない・キーは `ja.json` に追加・`en.json` は task_08（ただし en.json の欠けはフォールバックで ja が出るため本 task ではキーを足さない）。task_02 で作ったラベルの関数も対象ファイルなら `tr` へ
+- 以降 phase.md の順に task_04〜12。task_07（英語の用語・アクションの種類の表示名）と task_12（実機目視）はユーザー判断が要る
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers
