@@ -151,13 +151,20 @@ class I18nTest(unittest.TestCase):
         root = Path(__file__).resolve().parents[1] / "keyseq/shared/i18n/locales"
         ja = json.loads((root / "ja.json").read_text(encoding="utf-8"))
         en = json.loads((root / "en.json").read_text(encoding="utf-8"))
-        self.assertTrue(en.keys() <= ja.keys())
+        self.assertEqual(en.keys(), ja.keys())
+        self.assertEqual(list(en), list(ja))
+        # Keep the bilingual language selector and the author's copyright credit.
+        japanese_allowed = {"menu.settings.language", "help.license.header", "help.version.content"}
         formatter = Formatter()
         for key in en.keys() - {"_meta"}:
             with self.subTest(key=key):
-                ja_fields = {name for _, name, _, _ in formatter.parse(ja[key]) if name is not None}
-                en_fields = {name for _, name, _, _ in formatter.parse(en[key]) if name is not None}
+                ja_fields = {(name, conversion, spec) for _, name, spec, conversion in formatter.parse(ja[key]) if name is not None}
+                en_fields = {(name, conversion, spec) for _, name, spec, conversion in formatter.parse(en[key]) if name is not None}
                 self.assertEqual(ja_fields, en_fields)
+                self.assertTrue(en[key].strip())
+                if key not in japanese_allowed:
+                    self.assertNotRegex(en[key], r"[\u3040-\u30ff\u3400-\u9fff\uf900-\ufaff]")
+                self.assertEqual("…" in ja[key], "…" in en[key])
         for catalog in (ja, en):
             self.assertIsInstance(catalog["_meta"]["name"], str)
             self.assertTrue(all(isinstance(value, str) for key, value in catalog.items()

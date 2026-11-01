@@ -2,6 +2,7 @@
 
 import json
 from typing import Any, Callable, Mapping
+from keyseq.shared.i18n import tr
 
 from . import key_hold, mouse_scroll, sequence_control
 from .screen_grid import normalize_grid
@@ -429,6 +430,13 @@ def format_trigger_list_item(index: int, trigger: dict[str, Any]) -> str:
     return f"{index + 1:02d}. {key}"
 
 
+def mouse_button_label(button: Any) -> Any:
+    """mouse_click のボタンの保存値を表示名にする。表に無い値はそのまま返す。"""
+    if button in ("left", "right", "middle"):
+        return tr(f"domain.config.mouse_button.{button}")
+    return button
+
+
 def format_action_list_item(
     index: int,
     action: dict[str, Any],
@@ -455,7 +463,7 @@ def format_action_list_item(
     elif action_type == "mouse_click":
         x = action.get("x", "")
         y = action.get("y", "")
-        button = action.get("button", "left")
+        button = mouse_button_label(action.get("button", "left"))
         clicks = action.get("clicks", 1)
         if bool(action.get("drag")):
             to_x = action.get("to_x", "")

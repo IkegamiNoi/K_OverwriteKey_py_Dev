@@ -34,6 +34,8 @@ class ActionDialog(tk.Toplevel):
         super().__init__(parent)
         self.parent = parent
         self.mode = mode
+        self._initial_action = dict(initial or {})
+        self._unknown_type: str | None = None
         self.append_to_end = True
         self.title(title)
         self.resizable(False, False)
@@ -53,10 +55,16 @@ class ActionDialog(tk.Toplevel):
         frm.grid_columnconfigure(3, weight=1)
 
         ttk.Label(frm, text=tr("action_dialog.type.label")).grid(row=0, column=0, sticky="w")
-        self.type_var = tk.StringVar(value="hotkey")
-        self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=["hotkey", "text", "mouse_click", "mouse_scroll", "key_hold"] + ([] if mode is None else ["system", "file_line"]), state="readonly", width=12)
+        self._type_labels = {
+            code: tr(f"action.type.{code}")
+            for code in ("hotkey", "text", "mouse_click", "mouse_scroll", "key_hold", "system", "file_line")
+        }
+        self._type_codes = {label: code for code, label in self._type_labels.items()}
+        type_codes = ["hotkey", "text", "mouse_click", "mouse_scroll", "key_hold"] + ([] if mode is None else ["system", "file_line"])
+        self.type_var = tk.StringVar(value=self._type_labels["hotkey"])
+        self.type_combo = ttk.Combobox(frm, textvariable=self.type_var, values=[self._type_labels[code] for code in type_codes], state="readonly", width=18)
         self.type_combo.grid(row=0, column=1, sticky="w", padx=(8, 0))
-        self.type_combo.bind("<<ComboboxSelected>>", lambda _e: self._sync_capture_ui())
+        self.type_combo.bind("<<ComboboxSelected>>", self._on_type_selected)
 
         self.value_label = ttk.Label(frm, text=tr("action_dialog.value.label"))
         self.value_label.grid(row=1, column=0, sticky="w", pady=(10, 0))
@@ -114,8 +122,13 @@ class ActionDialog(tk.Toplevel):
         ttk.Entry(self.mouse_frame, textvariable=self.mouse_y_var, width=10).grid(row=0, column=3, sticky="w", padx=(8, 0))
 
         ttk.Label(self.mouse_frame, text=tr("action_dialog.button")).grid(row=1, column=0, sticky="w", pady=(8, 0))
-        self.mouse_btn_var = tk.StringVar(value="left")
-        self.mouse_btn_combo = ttk.Combobox(self.mouse_frame, textvariable=self.mouse_btn_var, values=["left", "right", "middle"], state="readonly", width=10)
+        self._mouse_button_labels = {
+            code: tr(f"action_dialog.key_hold.button.{code}")
+            for code in ("left", "right", "middle")
+        }
+        self._mouse_button_codes = {label: code for code, label in self._mouse_button_labels.items()}
+        self.mouse_btn_var = tk.StringVar(value=self._mouse_button_labels["left"])
+        self.mouse_btn_combo = ttk.Combobox(self.mouse_frame, textvariable=self.mouse_btn_var, values=list(self._mouse_button_labels.values()), state="readonly", width=10)
         self.mouse_btn_combo.grid(row=1, column=1, sticky="w", padx=(8, 0), pady=(8, 0))
 
         ttk.Label(self.mouse_frame, text=tr("action_dialog.count")).grid(row=1, column=2, sticky="w", padx=(16, 0), pady=(8, 0))
@@ -160,13 +173,16 @@ class ActionDialog(tk.Toplevel):
             self.append_to_end_check.grid(row=0, column=3, sticky="e")
 
         if mode == "edit_loop":
-            self.type_var.set("system")
+            self.type_var.set(self._type_labels["system"])
             self.type_combo.configure(state="disabled")
             self.control_fields.system_op_var.set(tr("action_dialog.system.op.loop_start"))
             self.control_fields.system_op_combo.configure(state="disabled")
 
         if initial:
-            self.type_var.set("system" if mode == "edit_loop" else (initial.get("type") or "hotkey").strip().lower())
+            initial_type = "system" if mode == "edit_loop" else (initial.get("type") or "hotkey")
+            if initial_type not in self._type_labels:
+                self._unknown_type = initial_type
+            self.type_var.set(self._type_labels.get(initial_type, initial_type))
             self.value_var.set(initial.get("value") or "")
             self.action_label_var.set(initial.get("label") or "")
             self.control_fields.load(initial)
@@ -174,7 +190,9 @@ class ActionDialog(tk.Toplevel):
             if (initial.get("type") or "").strip().lower() == "mouse_click":
                 if "x" in initial: self.mouse_x_var.set(str(initial.get("x")))
                 if "y" in initial: self.mouse_y_var.set(str(initial.get("y")))
-                if "button" in initial: self.mouse_btn_var.set(str(initial.get("button")))
+                if "button" in initial:
+                    button = str(initial["button"])
+                    self.mouse_btn_var.set(self._mouse_button_labels.get(button, button))
                 if "clicks" in initial: self.mouse_clicks_var.set(str(initial.get("clicks")))
                 if bool(initial.get("drag")):
                     self.mouse_drag_var.set(True)
@@ -191,8 +209,18 @@ class ActionDialog(tk.Toplevel):
         bind_escape_close(self, is_busy=lambda: self._recording or self.key_hold_fields.recording, stop=self._stop_recording)
         grab_modal(self, parent, focus=self._initial_focus_widget())
 
+    def _action_type(self) -> str:
+        value = self.type_var.get()
+        if value == self._unknown_type:
+            return value
+        return self._type_codes.get(value, value)
+
+    def _on_type_selected(self, _event) -> None:
+        self._unknown_type = None
+        self._sync_capture_ui()
+
     def on_ok(self):
-        t = (self.type_var.get() or "").strip().lower()
+        t = self._action_type()
         v = self.value_var.get()
         label = (self.action_label_var.get() or "").strip()
         if t in ("system", "file_line"):
@@ -203,6 +231,16 @@ class ActionDialog(tk.Toplevel):
             self.destroy()
             return
         if t not in ("hotkey", "text", "mouse_click", "mouse_scroll", "key_hold"):
+            if t == self._initial_action.get("type"):
+                result = dict(self._initial_action)
+                if "value" in result or v:
+                    result["value"] = v
+                if "label" in result or label:
+                    result["label"] = label
+                self.parent._dialog_result = result
+                if self.mode == "add": self.append_to_end = bool(self.append_to_end_var.get())
+                self.destroy()
+                return
             messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.invalid_type"))
             return
         if t in ("hotkey", "text"):
@@ -222,7 +260,8 @@ class ActionDialog(tk.Toplevel):
             except Exception:
                 messagebox.showerror(tr("action_dialog.error.input_title"), tr("action_dialog.error.mouse_coordinates_integer"))
                 return
-            btn = (self.mouse_btn_var.get() or "left").strip().lower()
+            button_label = self.mouse_btn_var.get() or "left"
+            btn = self._mouse_button_codes.get(button_label, button_label).strip().lower()
             clicks_s = (self.mouse_clicks_var.get() or "1").strip()
             try:
                 clicks = int(clicks_s)
@@ -379,7 +418,7 @@ class ActionDialog(tk.Toplevel):
         listener.start()
 
     def _toggle_recording(self):
-        t = (self.type_var.get() or "").strip().lower()
+        t = self._action_type()
         if t != "hotkey":
             return
         if self._recording:
@@ -464,7 +503,7 @@ class ActionDialog(tk.Toplevel):
         super().destroy()
 
     def _sync_capture_ui(self):
-        t = (self.type_var.get() or "").strip().lower()
+        t = self._action_type()
         if hasattr(self, "control_fields"):
             self.control_fields.system_frame.grid() if t == "system" else self.control_fields.system_frame.grid_remove()
             self.control_fields.file_frame.grid() if t == "file_line" else self.control_fields.file_frame.grid_remove()
@@ -554,9 +593,9 @@ class ActionDialog(tk.Toplevel):
             if self.control_fields.loop_infinite_var.get():
                 return self.control_fields.loop_infinite_check
             return self.control_fields.loop_count_entry
-        if (self.type_var.get() or "").strip().lower() in ("hotkey", "text"):
+        if self._action_type() in ("hotkey", "text"):
             return self.value_entry
-        if (self.type_var.get() or "").strip().lower() == "key_hold":
+        if self._action_type() == "key_hold":
             return self.key_hold_fields.key_entry
         return self.type_combo
 

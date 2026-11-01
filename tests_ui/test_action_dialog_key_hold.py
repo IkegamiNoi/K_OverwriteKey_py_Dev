@@ -62,7 +62,7 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
 
     def test_key_action_records_one_tk_key_and_builds_down_action(self) -> None:
         dialog = self.make_dialog(mode=None)
-        self.assertIn("key_hold", dialog.type_combo.cget("values"))
+        self.assertIn("押下・解放", dialog.type_combo.cget("values"))
         dialog.type_var.set("key_hold")
         dialog._sync_capture_ui()
         fields = dialog.key_hold_fields
@@ -122,7 +122,7 @@ class ActionDialogKeyHoldTest(unittest.TestCase):
         for mode in (None, "add", "edit"):
             with self.subTest(mode=mode):
                 dialog = self.make_dialog(mode=mode)
-                self.assertIn("key_hold", dialog.type_combo.cget("values"))
+                self.assertIn("押下・解放", dialog.type_combo.cget("values"))
 
     def test_escape_stops_key_recording_without_closing_or_recording_escape(self) -> None:
         dialog = self.make_dialog()

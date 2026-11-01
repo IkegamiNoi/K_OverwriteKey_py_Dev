@@ -131,7 +131,7 @@ class ActionListRenderingTest(unittest.TestCase):
 
         self.assertEqual(
             [row[0] for row in rows],
-            ["01. [text] hello: Greeting", "02. [mouse_click] (10, 20) right x2"],
+            ["01. [text] hello: Greeting", "02. [mouse_click] (10, 20) 右 x2"],
         )
 
     def test_next_summary_formats_system_and_file_line(self):
@@ -179,7 +179,7 @@ class ActionListRenderingTest(unittest.TestCase):
                 loop_iterations={},
                 counters={},
             ),
-            "01. [mouse_click] (10, 20) left x1",
+            "01. [mouse_click] (10, 20) 左 x1",
         )
         self.assertEqual(
             format_next_action_summary(

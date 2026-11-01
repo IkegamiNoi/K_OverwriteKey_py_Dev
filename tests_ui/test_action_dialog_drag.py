@@ -89,7 +89,7 @@ class ActionDialogDragTest(unittest.TestCase):
         for variable, expected in (
             (dialog.mouse_x_var, "100"), (dialog.mouse_y_var, "200"),
             (dialog.mouse_to_x_var, "400"), (dialog.mouse_to_y_var, "500"),
-            (dialog.mouse_drag_speed_var, "750"), (dialog.mouse_btn_var, "right"),
+            (dialog.mouse_drag_speed_var, "750"), (dialog.mouse_btn_var, "右"),
             (dialog.mouse_clicks_var, "1"), (dialog.action_label_var, "範囲選択"),
         ):
             self.assertEqual(variable.get(), expected)

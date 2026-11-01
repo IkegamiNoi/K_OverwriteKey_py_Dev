@@ -51,8 +51,8 @@ class ActionDialogMouseScrollTest(unittest.TestCase):
             with self.subTest(mode=mode):
                 dialog = self.make_dialog(mode=mode)
                 values = dialog.type_combo.cget("values")
-                self.assertIn("mouse_scroll", values)
-                self.assertEqual(values[values.index("mouse_click") + 1], "mouse_scroll")
+                self.assertIn("マウスのスクロール", values)
+                self.assertEqual(values[values.index("マウスのクリック") + 1], "マウスのスクロール")
 
     def test_fields_are_shown_only_for_mouse_scroll(self) -> None:
         dialog = self.make_dialog()
