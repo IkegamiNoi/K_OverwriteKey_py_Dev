@@ -15,7 +15,7 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 72 = 画面の文言の多言語対応**・`instructions/phase/72_multilingual_ui/phase.md`・主入力 = 暫定 55 `instructions/history/55_multilingual_ui.md`〔v0.4・§8 Q4〜Q6 まで確定〕。その次の予定 = Mac 対応）。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 72 = 画面の文言の多言語対応**・`instructions/phase/72_multilingual_ui/phase.md`・主入力 = 暫定 55 `instructions/history/55_multilingual_ui.md`〔v0.6・§8 Q4〜Q6 確定・v0.5 = 機能名の大文字 E1・E7・v0.6 = 項目名「Language」と「今すぐ再起動」〕。その次の予定 = Mac 対応）。
    次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜54）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 72 進行中（task_01〜11・11a 完了。残り = task_12〔ユーザーの実機目視 → 正本反映〕）。** 日英の切り替え・全層の文言のキー化・en.json（915 キー）・help_en.json・日本語リテラルの静的検査・二次レビューの採用分まで入った。
-ブランチ `claude/multilingual-support-ff44eb`（phase 71 一式の上に phase 72）。main へのマージはユーザー（PR は作らない）。
+**phase 72 進行中（task_01〜11・11a〜11c 完了・task_12 の実機目視 OK。残り = task_11c の実機目視 → task_12 の正本反映）。** 日英の切り替え・全層の文言のキー化・en.json・help_en.json・静的検査・二次レビューの採用分・英語の文言の見直し（機能名の大文字・記録ボタンの短縮・JIS の特殊キーを例へ）・メニューの項目名「Language」と切り替え後の「今すぐ再起動」まで入った。
+ブランチ `claude/ui-text-length-english-style-f5ba4e`（task_11b・11c。それ以前の phase 72 は `claude/multilingual-support-ff44eb`）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 72 task_11a = 2026-11-01**）:
-compile **clean** / tests **1900 pass**（skip 7）/ tests_ui **1236 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1867〔phase 71〕→ 1900 / tests_ui: 1210 → 1236）。
+直近の実測（**phase 72 task_11c = 2026-11-04**）:
+compile **clean** / tests **1907 pass**（skip 7）/ tests_ui **1238 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1867〔phase 71〕→ 1907 / tests_ui: 1210 → 1238）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,8 +55,8 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー作業】task_12 の実機目視**（「設定」→「Language / 言語」で English → 再起動 → 英語になるか・ボタンや見出しが切れないか / 日本語に戻して今と同じか）→ 結果をメインへ報告
-- 目視の結果を受けて正本反映（暫定 55 §11 + `tasks/task_11_integration.md` の追加項目 + D2〔§9 に smoke の例外〕・D3〔引数なしの波括弧〕・D4〔不正な言語ファイル名は警告して無視〕）・暫定 55 凍結・decisions_archive/72・current.md 完了記載・/refactor_check
+- **【ユーザー作業】task_11c の実機目視**（項目名が日英とも「Language」/ 言語を選ぶと選んだ言語で「今すぐ再起動」「あとで」/ 「今すぐ再起動」で新しい言語で起動し直す・未保存の確認でキャンセルすると再起動しない / 「あとで」・× で何も起きない）→ 結果をメインへ報告
+- 目視 OK を受けて task_12 の正本反映（暫定 55 §11 + `tasks/task_11_integration.md` の追加項目 + D2〔§9 に smoke の例外〕・D3〔引数なしの波括弧〕・D4〔不正な言語ファイル名は警告して無視〕+ v0.5〔E1・E7〕・v0.6〔項目名・再起動〕）・暫定 55 凍結・decisions_archive/72・current.md 完了記載・/refactor_check
 - 土台の画像の差し替え（任意・ユーザー）/ 保留 = 提案書 26・27・phase 71 の保留 2 件 / main へのマージはユーザー
 
 ## 進行中のフェーズの要点（phase 72）
