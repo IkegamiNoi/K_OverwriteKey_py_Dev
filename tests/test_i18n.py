@@ -177,6 +177,24 @@ class I18nTest(unittest.TestCase):
                           if name is not None}
                 self.assertEqual(tr(key, **params), value.format_map(params))
 
+    def test_bundled_english_feature_names_and_capture_labels(self) -> None:
+        reset_for_tests()
+        expected = {
+            "hook_button.capture_idle": "Record key",
+            "hook_button.capture_active": "Recording… (Esc)",
+            "menu.settings.preset_edit": "Edit Presets…",
+            "preset_manager.delete.one": "Delete the selected Preset?",
+            "preset_manager.individual": "Use as a Profile Preset",
+            "keymap_edit.grid_enabled": "Use Cursor Grid",
+            "view.sequence.title": "Output Sequence (selected Trigger contents)",
+            "view.display.always_on_top": "Always on Top",
+            "quarantine_manage.delete_irreversible": "This action cannot be undone.",
+            "application.save_plan_execution.action_invalid": "Invalid save action: x:y.",
+        }
+        for key, text in expected.items():
+            with self.subTest(key=key):
+                self.assertEqual(tr_in("en", key, kind="x", key="y"), text)
+
     def test_shared_imports_only_standard_library_or_relative_modules(self) -> None:
         root = Path(__file__).resolve().parents[1] / "keyseq/shared/i18n"
         for path in root.rglob("*.py"):

@@ -80,6 +80,41 @@ class HelpContentTest(unittest.TestCase):
         self.assertEqual(find_text_issues(result.content), [])
         self.assertEqual(result.content.guide[0].title, "Getting started")
 
+    def test_english_record_button_references_use_short_label(self) -> None:
+        result = load_help_content(help_content_path("en"))
+        self.assertIsNotNone(result.content, result.error)
+        assert result.content is not None
+        items = {item.id: item for group in (*result.content.guide, *result.content.faq)
+                 for item in group.items}
+        for identifier in ("intro.first_steps", "trigger.add", "key_input.record"):
+            with self.subTest(identifier=identifier):
+                text = item_plain_text(items[identifier])
+                self.assertIn("Record key", text)
+                self.assertNotIn("Record by pressing a key", text)
+
+    def test_english_special_key_limits_explain_general_behavior_before_jis_examples(self) -> None:
+        result = load_help_content(help_content_path("en"))
+        self.assertIsNotNone(result.content, result.error)
+        assert result.content is not None
+        items = {item.id: item for group in result.content.faq for item in group.items}
+        make_only = items["limits.make_only"]
+        self.assertEqual(make_only.title, "Some special keys do not repeat")
+        text = item_plain_text(make_only)
+        self.assertIn("some special keys send only a key-down event", text)
+        self.assertIn("do not repeat when held down", text)
+        self.assertIn("a Trigger or Key Remap runs only once", text)
+        self.assertIn("release and press the key again immediately", text)
+        self.assertLess(text.index("may not take effect"), text.index("For example, JIS"))
+        for term in ("Muhenkan (無変換)", "Henkan (変換)"):
+            self.assertIn(term, text)
+        layout_text = item_plain_text(items["limits.layout_names"])
+        self.assertIn("only when you select the layout that defines them", layout_text)
+        self.assertLess(layout_text.index("Keyboard-specific keys"), layout_text.index("For example"))
+        for term in ("jis.json", "Muhenkan (無変換)", "Henkan (変換)",
+                     "Hankaku / Zenkaku (半角 / 全角)"):
+            self.assertIn(term, layout_text)
+        self.assertIn("cannot be sent with the built-in US TKL layout", layout_text)
+
     def test_english_content_preserves_japanese_structure(self) -> None:
         japanese = json.loads(help_content_path("ja").read_text(encoding="utf-8"))
         english = json.loads(help_content_path("en").read_text(encoding="utf-8"))

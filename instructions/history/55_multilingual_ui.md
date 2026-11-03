@@ -1,8 +1,8 @@
 # 暫定仕様 55: 画面の文言の多言語対応（multilingual_ui）
 
-> 状態: **未凍結・v0.4・主入力・ユーザー確定済（2026-11-01）・実装着手可**
+> 状態: **未凍結・v0.5・主入力・ユーザー確定済（2026-11-03）・実装着手可**
 > （v0.1 起票時 deep-reviewer「修正して採用」→ 指摘 14 件を反映 = v0.2 / Codex 敵対的レビュー needs-attention 2 件を採用・
-> §8 Q1〜Q3 をユーザー確定 = v0.3 / task_07 の §8 Q4〜Q6〔英語の表記・用語・アクションの種類の表示名〕をユーザー確定 = v0.4）。
+> §8 Q1〜Q3 をユーザー確定 = v0.3 / task_07 の §8 Q4〜Q6〔英語の表記・用語・アクションの種類の表示名〕をユーザー確定 = v0.4 / E1 を「機能名は常に各語の先頭を大文字」へ改訂し E7 の語の一覧を追加 = v0.5〔2026-11-03・ユーザー判断・task_11b〕）。
 > 本書がこのフェーズの確定設計（フェーズ中は正本を直接改訂しない）。
 > フェーズ末タスクで正本 `instructions/common/spec_detail/` へ昇格し本書を凍結する。
 > 起票元: ユーザー要望（2026-11-01・phase 71 完了後の予定「多言語対応 → Mac 対応」の 1 つ目）。
@@ -196,12 +196,13 @@ v0.2 の Q1〜Q3 は 2026-11-01 にユーザー確定し §2 へ移した。以�
 
 | # | 規則 | 例 |
 |---|---|---|
-| E1 | 大文字は**文頭だけ**（メニュー・ボタン・窓のタイトルも。Windows 11 の作法に合わせる）。固有名・略語は元の形。**`/` で並べた語はそれぞれ先頭を大文字** | `Save as…`・`Keyboard UI`・`OK`・`Press / Release`・`Language / 言語` |
+| E1 | 大文字は**文頭と機能名だけ**（メニュー・ボタン・窓のタイトルも sentence case。Mac でも同じ文言を使う）。**機能名（E7）は文中・メッセージ・ヘルプでも常に各語の先頭を大文字**。固有名・略語は元の形。**`/` で並べた語はそれぞれ先頭を大文字**（v0.5 で改訂。v0.4 は「文頭だけ」） | `Save as…`・`Edit Presets…`・`Delete the selected Action?`・`OK`・`Press / Release`・`Language / 言語` |
 | E2 | 省略記号は D3 と同じ規則で「…」1 文字（Import... / Export... は今の形のまま・D10） | `Load…` |
 | E3 | コロン・括弧は D1・D4 と同じ（半角・コロンの後に空白） | `Key: f1`・`Interval (ms)` |
 | E4 | ラベル・ボタン・見出しは句点を付けない。文のメッセージは「.」で終える | `Stop key` / `The file was not found.` |
 | E5 | 数は「名詞: {n}」の形にして単数 / 複数の書き分けを避ける | `Files: {n}` |
 | E6 | 呼びかけは命令形で短く（`Please` を付けない） | `Select a call target.` |
+| E7 | **機能名の一覧**（E1 で大文字にする語。Q5 の英語をこの形で使う）: Profile / Keymap / Key Remap / Source Key / Target Key / Stop Key / Switch Key / Output Sequence（Sequence）/ Trigger Set / Preset・Shared Preset・Profile Preset・Built-in Preset / Sample Settings / Compact View / Full View / Always on Top / Trigger Key / Active Keymap / Cursor Grid / Cell / Trigger / Action / Hook / Keyboard UI。複数形も同じ（`Presets`）。**対象外** = 操作の語（Load・Record・Pick・Edit・Save as・Run・Archive・Clean up…）・Folder・記録や候補の語（Save location record 等）・アクションの種類の表示名（Q6）。語が機能を指さない一般の用法（動詞の trigger 等）・差し込み名・ファイル名・JSON のキー・内部名は変えない | `Hook: ON`・`Add Trigger…`・`Compact View / Full View`・`Use as a Profile Preset` |
 
 ### Q5 用語表 A1〜A22 の英語（確定）
 

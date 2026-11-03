@@ -4,34 +4,34 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-01T23:52:00
-phase: instructions/phase/72_multilingual_ui（**アクティブ** = 画面の文言の多言語対応・暫定 55 v0.4 ユーザー確定済・decisions 72）。次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57
+last_updated: 2026-11-03T12:00:00
+phase: instructions/phase/72_multilingual_ui（**アクティブ** = 画面の文言の多言語対応・暫定 55 v0.5 ユーザー確定済・decisions 72）。次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 71**（タスクバーのアイコン・`decisions_archive/71_taskbar_status_icon.md`）
-last_commit_location: `claude/multilingual-support-ff44eb`（phase 72）。phase 71 一式は `claude/taskbar-app-status-indicator-f73d28` にもあり、main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/ui-text-length-english-style-f5ba4e`（phase 72 task_11b）。それ以前の phase 72 は `claude/multilingual-support-ff44eb`。phase 71 一式は `claude/taskbar-app-status-indicator-f73d28` にもあり、main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 72 進行中（task_01〜11・11a 完了。残り = task_12〔ユーザーの実機目視 → 正本反映〕）。** 日英の切り替え・全層の文言のキー化・en.json（915 キー）・help_en.json・日本語リテラルの静的検査・二次レビューの採用分（C1・D1・D7・JIS のキー名の併記）まで入った。
+focus: **phase 72 進行中（task_01〜11・11a・11b 完了。残り = task_12〔ユーザーの実機目視 → 正本反映〕）。** 日英の切り替え・全層の文言のキー化・en.json・help_en.json・静的検査・二次レビューの採用分・英語の文言の見直し（機能名の大文字・記録ボタンの短縮・JIS の特殊キーを例へ）まで入った。
 mode: blocked
 
 ## last_action
-ts: 2026-11-01T23:52:00
+ts: 2026-11-03T12:00:00
 who: main
 summary: |
-  ユーザー判断（2026-11-01）: 二次レビューの指摘と JIS のキー名の扱いは推奨案どおり（C1・D1・D7 採用 / D2 は §9 に意図的な例外として明記・D3・D4 は正本の文面で・task_12 / D5・D6・D8 保留・不要 / 英語のヘルプの JIS のキー名に日本語を併記）。
-  task_11a: C1（言語の知らせの間はフックを止める）・D1（App の言語の決定のテスト）・D7（キーマップの追加の行の種類をコードで判定）・help_en.json の 3 語の併記と許可語のテスト。codex-implementer（D1 は 2 回目の依頼で追加）・reviewer 完了可（任意の指摘 3 件は見送り）。
+  ユーザー判断（2026-11-03）: 英語の機能名は文中も大文字（E7 の広い範囲 = 一般語の Trigger / Action / Hook / Compact View 等も含む・Mac でも同じ文言のため）→ 暫定 55 v0.5（E1 改訂・E7 追加）/ 記録ボタンを `Record key`・`Recording… (Esc)` に短縮 / 英語のヘルプの変換・無変換は「一部の特殊キーの注意 + JIS は例」へ。
+  task_11b: codex-delegating-implementer（Sol medium・Luna high のサブエージェント 1 名でヘルプを分担）が en.json 245 値・help_en.json 129 か所を変更・テスト 3 件追加。reviewer 完了可（採用・必須の指摘なし）。
 result_files:
-  - keyseq/presentation/app.py / keyseq/presentation/controllers/keymap_panel/keymap_add_flow.py / keyseq/presentation/help/content/help_en.json
-  - tests/test_help_content.py / tests_ui/test_ui_language.py / tests_ui/test_internal_value_codes.py
-  - instructions/phase/72_multilingual_ui/tasks/task_11a_review_fixes.md
+  - keyseq/shared/i18n/locales/en.json / keyseq/presentation/help/content/help_en.json
+  - tests/test_i18n.py / tests/test_help_content.py
+  - instructions/history/55_multilingual_ui.md / instructions/phase/72_multilingual_ui/phase.md / tasks/task_11b_english_wording.md / .claude_data/state/decisions.md
 verified:
   compile: pass
-  tests: pass（1900・skip 7）
+  tests: pass（1903・skip 7）
   tests_ui: pass（1236）
   smoke: pass
 
 ## next_action
-- **【ユーザー作業】task_12 の実機目視**: 「設定」→「Language / 言語」で English を選んで再起動 → メニュー・主画面・主なダイアログ・ステータス欄・エラー文・ヘルプが英語か / ボタン・ラベルが切れないか（暫定 55 §7・§9-1・§9-12）/ 日本語に戻して今と同じか。結果をメインへ報告
+- **【ユーザー作業】task_12 の実機目視**: 「設定」→「Language / 言語」で English を選んで再起動 → メニュー・主画面・主なダイアログ・ステータス欄・エラー文・ヘルプが英語か / 機能名の大文字（暫定 55 E7）とフックの欄の記録ボタンの幅 / ボタン・ラベルが切れないか（暫定 55 §7・§9-1・§9-12）/ 日本語に戻して今と同じか。結果をメインへ報告
 - 目視の結果を受けて task_12 の正本反映: 暫定 55 §11 + `tasks/task_11_integration.md` の「正本反映で足す項目」+ D2（§9 に smoke の例外）・D3（§3.1 に引数なしの波括弧）・D4（言語ファイル名の不正は警告して無視）→ 暫定 55 凍結・decisions_archive/72・current.md 完了記載・/refactor_check
 - main へのマージはユーザー（PR は作らない）
 

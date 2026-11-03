@@ -69,6 +69,7 @@ JSON スキーマ = config.json の任意キー `ui_language` の追加**（キ�
 - task_10: 静的検査 — 画面に出る日本語リテラルの残り（§9 受け入れ条件 9 の判定規則と検査自身のテスト）。
 - task_11: 統合確認 — tests / tests_ui / smoke・二次レビュー（deep-reviewer + codex-reviewer）。
 - task_11a: 二次レビューの採用分の修正（C1・D1・D7・英語のヘルプの JIS のキー名の併記・ユーザー判断 2026-11-01）。
+- task_11b: 英語の文言の見直し（記録ボタンの短縮・機能名の大文字〔暫定 55 v0.5 E1・E7〕・英語のヘルプの JIS の特殊キーを例へ・ユーザー判断 2026-11-03）。
 - task_12: 実機目視（英語・日本語の切り替えと見え方・必要なら最小幅の見直し）・正本反映（暫定 55 §11: features §4.6 / data_schema §5.4 / ui_terms / architecture §3.2 / codebase_map）・暫定 55 凍結・decisions_archive/72・current.md 完了記載・`/refactor_check`。
 
 ## レビュー方針
