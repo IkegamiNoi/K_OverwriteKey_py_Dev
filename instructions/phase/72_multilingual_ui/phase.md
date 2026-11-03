@@ -12,7 +12,7 @@
 JSON スキーマ = config.json の任意キー `ui_language` の追加**（キーが無いときの既定 = 英語。今の利用者の見え方も変わる・ユーザー確定）。
 
 - 起票元: ユーザー要望（2026-11-01・phase 71 完了後の予定「多言語対応 → Mac 対応」の 1 つ目）。
-- 主入力（暫定仕様）: [55_multilingual_ui.md](../../history/55_multilingual_ui.md)（v0.3・ユーザー確定済）。
+- 主入力（暫定仕様）: [55_multilingual_ui.md](../../history/55_multilingual_ui.md)（v0.7・凍結）。
 - モード: **暫定仕様先行モード**。番号対応: phase 72 / 暫定 55 / decisions 72。
 
 ## 確定（ユーザー 2026-11-01）

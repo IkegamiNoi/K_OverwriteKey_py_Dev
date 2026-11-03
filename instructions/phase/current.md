@@ -7,9 +7,10 @@
 
 ## 現在の参照先
 
-- **アクティブなフェーズ = [phase 72](72_multilingual_ui/phase.md)**（2026-11-01 起票・画面の文言の多言語対応〔日本語・英語・メニュー「設定」で選び次回起動から反映・言語コードごとの文言ファイル `keyseq/shared/i18n/locales/` とヘルプ本文 `help_<code>.json`・訳の無い文言は英語・言語の一覧は置いたファイルから・config.json の `ui_language`〔無いときは英語〕〕。暫定仕様先行モード・主入力 = [暫定 55](../history/55_multilingual_ui.md)〔v0.3・ユーザー確定済〕・**JSON スキーマ = config.json の任意キーの追加**・起票元 = ユーザー要望・3 言語目以降は [idea_56](../backlog/idea_56_more_ui_languages.md)）。番号対応: phase 72 / 暫定 55 / decisions 72。**進捗: task_01（i18n 基盤）・task_02（表示文字列の内部値の分離）・task_03〜06（全層のキー移行）・task_07（英語の用語・表示名の確定 = 暫定 55 v0.4）・task_08（en.json の英訳 915 キー・表示名の結線）・task_09（help_en.json）・task_10（日本語リテラルの静的検査）・task_11（統合確認・二次レビュー）・task_11a（採用した指摘の修正）・task_11b（英語の文言の見直し = 機能名の大文字〔暫定 55 v0.5〕・記録ボタンの短縮・JIS の特殊キーを例へ）・task_11c（メニューの項目名「Language」・切り替え後の「今すぐ再起動」= 暫定 55 v0.6）・task_11d（一覧の行頭の印を全言語共通の英語に = 暫定 55 v0.7）完了・task_12・11c の実機目視 OK → 残り task_12（ユーザーの実機目視・正本反映）**。その次の予定 = Mac 対応。**次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。
-- 直前の完了フェーズ = [phase 71](71_taskbar_status_icon/phase.md)（2026-11-01・タスクバーのアイコンで状態を表示〔窓のアイコンの右上にステータス欄のフックの 3 状態と同じ印 = 緑の円 / 赤の正方形 / 黄の棒 2 本・白い正方形の上・土台はサンプル画像をユーザーが差し替え・子窓は既定のアイコンで追従・起動時に AppUserModelID〕。暫定仕様先行モード〔暫定 54 v0.4 凍結〕・JSON スキーマ不変・起票元 = [idea_55](../backlog/idea_55_taskbar_status_icon.md)・判断は [decisions_archive/71](../../.claude_data/state/decisions_archive/71_taskbar_status_icon.md)）。
-- その前の完了フェーズ = [phase 70](70_help_window/phase.md)（2026-10-29・ヘルプの作成〔メニュー「ヘルプ」・非モーダルで同時に 1 つのヘルプの窓〔タブ「主要機能」「QA」・2 段の開閉・絞り込み・入力欄のフォーカスでフック停止〕・ダイアログ 12 か所の「?」〔下端の左寄せ〕・バージョン情報〔`__version__` 0.1.0〕・同梱物 14 件のライセンス全文・「画面の枠」→ カーソルグリッド / マス〕。暫定仕様先行モード〔暫定 53 v0.7 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・判断は [decisions_archive/70](../../.claude_data/state/decisions_archive/70_help_window.md)・refactor_check 推奨 → [提案書 27](../modified_proposal/27_refactor_help_window.md)（保留））。
+- **アクティブなフェーズ = なし**（次フェーズはユーザー判断で `/phase_start`。予定 = Mac 対応）。**次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。
+- 直前の完了フェーズ = [phase 72](72_multilingual_ui/phase.md)（2026-11-04・画面の文言の多言語対応〔日本語・英語・メニュー「設定」→「Language」で選び次回の起動から反映・「今すぐ再起動」可・文言は `keyseq/shared/i18n/locales/<code>.json`・ヘルプ本文は `help_<code>.json`・訳の無い文言は英語・言語の一覧は置いたファイルから・config.json の `ui_language`〔無いときは英語〕・全層の文言をキー化〔日本語は不変〕・英語の表記 E1〜E7・出力シーケンスの一覧の行頭の印は全言語共通の英語〕。暫定仕様先行モード〔暫定 55 v0.7 凍結〕・起票元 = ユーザー要望・3 言語目以降は [idea_56](../backlog/idea_56_more_ui_languages.md)・判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)）。
+- その前の完了フェーズ = [phase 71](71_taskbar_status_icon/phase.md)（2026-11-01・タスクバーのアイコンで状態を表示〔窓のアイコンの右上にステータス欄のフックの 3 状態と同じ印 = 緑の円 / 赤の正方形 / 黄の棒 2 本・白い正方形の上・土台はサンプル画像をユーザーが差し替え・子窓は既定のアイコンで追従・起動時に AppUserModelID〕。暫定仕様先行モード〔暫定 54 v0.4 凍結〕・JSON スキーマ不変・起票元 = [idea_55](../backlog/idea_55_taskbar_status_icon.md)・判断は [decisions_archive/71](../../.claude_data/state/decisions_archive/71_taskbar_status_icon.md)）。
+  [phase 70](70_help_window/phase.md)（2026-10-29・ヘルプの作成〔メニュー「ヘルプ」・非モーダルで同時に 1 つのヘルプの窓〔タブ「主要機能」「QA」・2 段の開閉・絞り込み・入力欄のフォーカスでフック停止〕・ダイアログ 12 か所の「?」〔下端の左寄せ〕・バージョン情報〔`__version__` 0.1.0〕・同梱物 14 件のライセンス全文・「画面の枠」→ カーソルグリッド / マス〕。暫定仕様先行モード〔暫定 53 v0.7 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・判断は [decisions_archive/70](../../.claude_data/state/decisions_archive/70_help_window.md)・refactor_check 推奨 → [提案書 27](../modified_proposal/27_refactor_help_window.md)（保留））。
   [phase 69](69_keyboard_ui_key_labels/phase.md)（2026-10-26・キーボードUIのキー名の表示と最小サイズ〔キーの内側に収まるまで文字を縮め `\n` でだけ改行・レイアウトの JSON の `key_display_names` で送信先の表示名・最小 = 1u のキー 27px・変えた幅をレイアウトごとに `keyboard_window_widths` へ記録・見本 us_tkl.json〕。暫定仕様先行モード〔暫定 52 v0.4 凍結〕・**JSON スキーマ = 任意キーの追加**・起票元 = ユーザー要望・判断は [decisions_archive/69](../../.claude_data/state/decisions_archive/69_keyboard_ui_key_labels.md)・refactor_check 推奨 → [提案書 26](../modified_proposal/26_refactor_keyboard_ui_key_labels.md)（保留））。
   [phase 68](68_ui_terminology/phase.md)（2026-10-24・UI 文言の用語統一〔用語表 A1〜A21・個別の表現 C1〜C16・表記規則 D1〜D11・はい / いいえ の確認 3 か所をボタン名の共通ダイアログ `config_io/choice_dialog.py` へ〕。暫定仕様先行モード〔暫定 51 v0.8 凍結〕・JSON スキーマ不変・起票元 = ユーザー要望・正本 = 新規 `spec_detail/ui_terms.md` + 正本全体の用語・判断は [decisions_archive/68](../../.claude_data/state/decisions_archive/68_ui_terminology.md)）。
 - その前の完了フェーズ = [phase 67](67_mouse_scroll_action/phase.md)（2026-10-21・出力シーケンスのマウススクロール〔新しい種類 `mouse_scroll`・上下左右・ノッチ数 / 生の値（120 = 1 ノッチ）・座標は任意・1 回の `SendInput` で WHEEL / HWHEEL・不正な行は止まる系〕。暫定仕様先行モード〔暫定 50 v0.4 凍結〕・**JSON スキーマ = 種類の追加**・起票元 = ユーザー要望・判断は [decisions_archive/67](../../.claude_data/state/decisions_archive/67_mouse_scroll_action.md)）。
@@ -48,7 +49,8 @@
   判断は [decisions_archive/40](../../.claude_data/state/decisions_archive/40_sequence_call.md)）。
   **それ以前の完了フェーズは `.claude_data/state/decisions.md`「アーカイブ索引」→
   `decisions_archive/<phase>.md` が正**（要約をここへ積まない）。
-- **直近のフェーズが扱った領域 = ヘルプ・バージョン情報・ライセンスとカーソルグリッドの呼び名**（phase 70）。正本 = `features.md` §4.6（メニュー「ヘルプ」・ヘルプの窓・「?」・モーダルダイアログの作法の例外・バージョン情報・ライセンス）/ `key_input.md` §7.2 / `ui_terms.md` A22 / 本文 = `presentation/help/content/help_ja.json`（多言語化ではここを言語別に増やす）/ 地図 = `codebase_map.md` の `presentation/help/`。
+- **直近のフェーズが扱った領域 = 画面の文言の多言語対応**（phase 72）。正本 = `features.md` §4.6「言語」「一覧の表示形式」「ヘルプの窓」/ `data_schema.md` §5.4 `ui_language` / `ui_terms.md` §1「多言語の扱い」・§2 英語の列・§3「英語の表記の規則」/ `architecture.md` §3.2（shared）/ 地図 = `codebase_map.md`「画面の文言の多言語対応」。**新しい文言は `ja.json` と `en.json` の両方にキーを足し、ソースに日本語を書かない**（静的テストが検出）。残件 = 3 言語目以降（idea_56）/ 保留 D5（実行時に組み立てるキーは照合の対象外）・D6（静的検査が全角記号・半角カナを拾わない）。次の予定 = Mac 対応
+- その前の領域 = **ヘルプ・バージョン情報・ライセンスとカーソルグリッドの呼び名**（phase 70）。正本 = `features.md` §4.6（メニュー「ヘルプ」・ヘルプの窓・「?」・モーダルダイアログの作法の例外・バージョン情報・ライセンス）/ `key_input.md` §7.2 / `ui_terms.md` A22 / 本文 = `presentation/help/content/help_ja.json`（多言語化ではここを言語別に増やす）/ 地図 = `codebase_map.md` の `presentation/help/`。
 - その前の領域 = **キーボードUIのキーの文字・最小の大きさ・幅の記録**（phase 69）。正本 = `features.md` §4.6「キーボード表示のウィンドウ」（最小の大きさ・幅の記録・キーの文字・レイアウトの JSON の `label` の改行と `key_display_names`）/ `data_schema.md` §5.4 `keyboard_window_widths` / 地図 = `codebase_map.md` の phase 69。保留 = `decisions_archive/69` の指摘 6・7・9。
   さらに前 = **UI 文言の用語と表記**（phase 68）。正本 = `spec_detail/ui_terms.md`（新しい文言はここに従う）/ 確認ダイアログ = `features.md` §4.6「保存先の確認ダイアログ」・地図 = `codebase_map.md` の `choice_dialog.py`。**残件** = 提案書 25 は 2026-10-25 実施済（表は `presentation/child_kind_labels.py` に 1 つ。多言語化ではこの表を辞書へ移す）/ アクションの種類の内部名の表示名化（多言語化で）/ 下記「別タスク化候補 > 保存・確認ダイアログ」。
 - その前の領域 = **出力シーケンスのマウススクロール**（phase 67）。正本 = `data_schema.md` §5.11.1・§5.11.10 / `features.md` §4.2 冒頭・§4.2.12・§4.6（一覧の表示形式・出力シーケンスの編集）/ 地図 = `codebase_map.md`「アクションの実行」「マウス操作」の phase 67 の項。**残件** = decisions_archive/67 の保留（L6 = executor のテストの抜け・L7 = `amount` の文字列の受け入れの広さ）・暫定 50 §10 のスコープ外（間隔・速度・押したまま・画面の枠でのスクロール）。
@@ -126,7 +128,7 @@
   **phase 69 は 2026-10-26 完了**（`69_keyboard_ui_key_labels` / 暫定 52〔v0.4・凍結〕/ decisions 69〔アーカイブ済〕）。
   **phase 70 は 2026-10-29 完了**（`70_help_window` / 暫定 53〔v0.7・凍結〕/ decisions 70〔アーカイブ済〕）。
   **phase 71 は 2026-11-01 完了**（`71_taskbar_status_icon` / 暫定 54〔v0.4・凍結〕/ decisions 71〔アーカイブ済〕）。
-  **phase 72 は 2026-11-01 起票・進行中**（`72_multilingual_ui` / 暫定 55 / decisions 72）。
+  **phase 72 は 2026-11-04 完了**（`72_multilingual_ui` / 暫定 55〔v0.7・凍結〕/ decisions 72〔アーカイブ済〕）。
   次フェーズは **`73_<topic>`**・decisions も **73** を使う（欠番が出た場合はここに明記し、再利用しない）。
   （phase 30 は 2026-09-23 完了 = `30_action_and_internal_key_type_coercion` / 暫定なし〔直接改訂モード〕/ decisions 30〔アーカイブ済〕）
   保存系リデザインの予定: **β=phase 06〔完了〕/ γ=phase 07〔完了〕/ プリセット=phase 08〔完了〕**。
@@ -176,7 +178,7 @@
   49〜52 = phase 66〜69 の主入力〔いずれも**凍結**・52 = キーボードUIのキー名の表示と最小サイズ v0.4〕 /
   53 = ヘルプの作成〔**v0.7・凍結**・phase 70 の主入力〕 /
   54 = タスクバーのアイコンで状態を表示〔**v0.4・凍結**・phase 71 の主入力〕 /
-  55 = 画面の文言の多言語対応〔**v0.3・ユーザー確定済**・phase 72 の主入力〕 /
+  55 = 画面の文言の多言語対応〔**v0.7・凍結**・phase 72 の主入力〕 /
   次採番は **`56_<topic>`**。
 - リファクタ提案書（`instructions/modified_proposal/NN_*.md`）も独立採番。**27 まで起票済**
   （07 = phase 09 の `/refactor_check` 由来・**実施済＝計画07** / 08 = phase 11 由来・**実施済＝計画08** /
@@ -217,6 +219,10 @@
 （継続保留、ソース変更を伴う細かい負債。`/refactor_check` からの追記先もここ。
 **領域別に並べ、由来フェーズは各項の末尾に括弧で示す**。
 idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32 を昇格〕）
+
+### 多言語対応（phase 72 由来）
+
+- phase 72 の /refactor_check の境界の候補: `controllers/config_io/keymap_set_io.py` の `save_keymap_set_to` が 80 → 約 90 行（文言を `tr` の複数行の呼び出しへ置き換えた分の増加・処理は不変）/ `dialogs/action_dialog.py` は 597 → 643 行（+105 / −59・純増 46）。次に処理を足すときに再判定する
 
 ### タスクバーのアイコン（phase 71 由来）
 
@@ -376,6 +382,7 @@ idea へ昇格したものはここに残さない〔2026-09-22 に idea_27〜32
 
 ### レビュー保留（判断待ち・判断は decisions_archive が正）
 
+- phase 72 統合レビューの D5（実行時に組み立てる文言キー 93 か所は完全性テストの照合の対象外。足りないと画面にキーがそのまま出るので実機目視で気づける）/ D6（日本語リテラルの静的検査の正規表現が全角記号・半角カナを拾わない。今残るのは全角空白 5 か所だけ）。判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)
 - phase 28 統合レビューの M4（`modal.py` の `_apply_initial_focus` が `grab_set()` と `<Destroy>` 登録の間にあり、
   ここで例外が抜けると復元ハンドラ未登録の窓が残る。現実的な失敗は `TclError` で握っており実害は低い）。
   判断は [decisions_archive/28](../../.claude_data/state/decisions_archive/28_dialog_keyboard_focus.md)

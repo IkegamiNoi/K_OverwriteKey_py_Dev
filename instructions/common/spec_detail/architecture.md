@@ -22,6 +22,9 @@
     （依存は実装モジュール → `contracts` の一方向。stdlib は可）
 * **application は presentation（`app`）を参照しない**。走査対象・保護対象などの入力は
   **引数で明示的に受け取る**
+* **`keyseq/shared/` は全層（presentation / application / domain / infrastructure）から依存してよい**（Global Shared・phase 72）。
+  shared は他の層に依存せず、**標準ライブラリだけ**を使う。今あるのは画面の文言の多言語対応 `shared/i18n/`（`codebase_map.md`）
+  * 内側の層で作られて画面に出る文言も、その層で `shared.i18n.tr` を使って作る（言語は実行中に変わらないので、表示の時点で訳すのと結果は同じ）
 
 ### 3.3 各層の責務
 

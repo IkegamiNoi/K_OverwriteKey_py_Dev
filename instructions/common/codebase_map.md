@@ -6,6 +6,7 @@ main.py
 
 - 最初の窓を作る前に AppUserModelID（`APP_USER_MODEL_ID = "keyseq.app"`）を `infrastructure/win32_window.set_app_user_model_id` で設定し、App を起動する（phase 71・タスクバーにアイコンの差し替えを出すため）
 - `keyseq/__init__.py` の `__version__`（`0.1.0`）が版の唯一の定義。バージョン情報はこれを参照する
+- 起動時の作業フォルダを記録し、`mainloop()` の後に `app.restart_requested` が真なら `infrastructure/app_relaunch.relaunch_app(startup_cwd)` で起動し直す（言語の切り替え後の「今すぐ再起動」・phase 72）。失敗は main が messagebox で知らせる（`relaunch_app` は例外を返すだけで画面・文言に依存しない）
 
 ---
 
@@ -26,10 +27,14 @@ domain
 - アクション
 - ロジック
 
+shared（phase 72・全層から依存可・他の層に依存しない・標準ライブラリのみ。`spec_detail/architecture.md` §3.2）
+- `keyseq/shared/i18n/`: 画面の文言の多言語対応（下の「画面の文言の多言語対応」）
+
 infrastructure
 - keyboard フック
 - JSON入出力
 - `keyseq/infrastructure/win32_window.py`: Win32 の前面窓・ウィンドウ位置・物理マウスボタン状態の問い合わせ / モニタの列挙・クリック素通しの窓のスタイル・VK の変換（phase 56）/ `set_app_user_model_id`（shell32・失敗は偽とログ・phase 71）
+- `keyseq/infrastructure/app_relaunch.py`: `relaunch_app(startup_cwd)` = 同じ Python・引数・作業フォルダでアプリを起動し直す（失敗は例外を返しログ・phase 72）
 - `keyseq/infrastructure/ime_control.py`: 送信中の送り先（別プロセスの前面の窓）の IME の OFF と遅延の復元（phase 41・下の「キーの送信」）/ `keyseq/infrastructure/own_ime_status.py`: アプリ自身の UI スレッドの IME の開閉を読む・変える状態なしの口（`get_open_status` / `set_open_status`・キーの記録中・phase 60）
 
 ---
@@ -134,7 +139,7 @@ keyseq/presentation/
     list_clipboard.py          # ListClipboard: 一覧の Ctrl+C / V のアプリ内保管庫（種類つきの写し・構成セットの読込 / 新規作成で空にする・phase 43）
     modal.py                   # grab_modal: モーダル化と破棄時の grab 復元（dialogs/ と controllers/config_io/ の両方から使う）/ 最小化中の grab 預かりと復元時のフォーカス復帰
     child_kind_labels.py       # 子ファイルの種別の文言キーの表 + 親の種類名。kind_label / parent_kind_label の呼出時に shared.i18n.tr で表示名を解決
-    reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（tkinter 非依存・呼出時に翻訳。CLEANUP_EMPTY_MESSAGE は対象外の config_io 向けに日本語を維持）
+    reference_cleanup_text.py  # 参照元の掃除の提示テキスト整形（tkinter 非依存・呼出時に翻訳）
     help/                      # ヘルプ・バージョン情報・ライセンス（phase 70・下の「ヘルプ」節）
       help_window_controller.py # HelpWindowController: ヘルプの単一性・前面化・ダイアログの子として開く入口
       help_window.py           # HelpWindow: 絞り込み欄・タブ・入力欄のフォーカス中だけフックを一時停止
@@ -146,7 +151,7 @@ keyseq/presentation/
       version_dialog.py        # open_version_dialog: バージョン情報のモーダル
       license_window.py        # LicenseWindow / LicenseWindowController: ライセンスの表示と単一性・前面化
       third_party.py           # 同梱物の一覧・全文と本体 LICENSE の読込
-      content/                 # help_ja.json / third_party/（third_party.json + ライセンス全文 14 個）
+      content/                 # help_ja.json / help_en.json（同じ id・phase 72）/ third_party/（third_party.json + ライセンス全文 14 個）
     screen_grid/               # カーソルグリッド（phase 56・下の「カーソルグリッド」節）
       screen_grid_controller.py  # ScreenGridController: ScreenGridSession と infrastructure / 窓の配線・sync / handle / 失敗時に畳む・on_font_changed
       grid_overlay_window.py   # GridOverlayWindow: 今の画面に 1 枚の透過・クリック素通しの窓（遅延生成）
@@ -232,8 +237,8 @@ keyseq/presentation/
 
 - View / コントローラ間で共有する **Tk 変数（StringVar / BooleanVar / IntVar 等）のホルダー**。
   App 生成直後に 1 度だけ作られ、差し替わらない（`app.ui_vars.<変数名>` で参照）。
-- **App private を直読みしない**: `ui_font_delta_var` の初期値は `__init__(self, master, ui_font_delta_pt: int)` の
-  引数で受け取る（`master._ui_font_delta_pt` の直読みを廃止）。他の初期値は `master.data.get(...)` から取得。
+- **App private を直読みしない**: `ui_font_delta_var` の初期値は `__init__(self, master, ui_font_delta_pt: int, ui_language: object = None)` の
+  引数で受け取る（`master._ui_font_delta_pt` の直読みを廃止）。`ui_language_var` = 保存済みの言語を `resolve_language` した値（メニュー「Language」のチェック・phase 72）。他の初期値は `master.data.get(...)` から取得。
 - **`AppState`（application 層）とは別物**。UiVars は Tk に依存する presentation 層の部品であり、
   選択インデックス等のアプリ状態は引き続き `AppState` が持つ。混ぜない。
 - ステータス3欄は表示用の `status_var / file_status_var / flash_message_var` と、1 行化前の全文用の `status_full_var / file_status_full_var / flash_message_full_var` を対にして保持する（phase 49）。
@@ -947,7 +952,7 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
 - **`HelpWindow` / `HelpTabView`**: 非モーダル・非 transient。入力欄の FocusIn だけ既存の `app.hook.suspend_hook_for_dialog()` を呼び、FocusOut / Destroy の先着で `resume_hook_after_dialog()` を 1 回だけ呼ぶ。本文の開閉・一致箇所の表示・見えている文字のコピーはタブ側で扱う。
 - **`LicenseWindowController`（`app.license`）/ `LicenseWindow`**: 非モーダルの単一の窓。本体 `LICENSE` → 同梱物一覧 → 各全文を表示する。`version_dialog.open_version_dialog` はフックを止めるモーダルで、版は `keyseq.__version__` を参照する。
 - **App の配線**: 生成時に管理役を作り、`_apply_font_delta` から `help.on_font_changed()`、終了時に両管理役の `close()`。メインの最前面の切替で両窓の `apply_topmost()` 後に `LayoutController.resync_keyboard_topmost()` を呼び、キーボードUIの重なり順を再同期する（見張りの判定条件は不変）。
-- **データ**: `content/help_ja.json` は config の対象外。`help_content.py` が全体を検査し、失敗は理由を窓内に表示する。`third_party/third_party.json` の名前・版・ライセンス名・全文ファイル名が同梱物 14 件の正。`bundled_paths.bundled_root()` に基準位置を集約し、リポジトリ直下の `LICENSE` は複製しない。
+- **データ**: `content/help_ja.json` / `help_en.json` は config の対象外（読む順 = 今の言語 → `en` → `ja`・`help_content.py`・phase 72）。`help_content.py` が全体を検査し、失敗は理由を窓内に表示する。`third_party/third_party.json` の名前・版・ライセンス名・全文ファイル名が同梱物 14 件の正。`bundled_paths.bundled_root()` に基準位置を集約し、リポジトリ直下の `LICENSE` は複製しない。
 - **導線**: `views/menu_bar.py` の「ヘルプ」に「使い方」「よくある質問」・区切り・「バージョン情報」「ライセンス」。各対象ダイアログは `add_help_button` と `help_targets.py` の対応を使う（「?」は下端の左寄せ。キーの記録を持つダイアログは `before_open` に Esc と同じ停止の関数を渡し、開く前に記録を止める）。
 
 ---
@@ -1016,6 +1021,30 @@ FullView / CompactView は **Widget の生成と pack/grid 配置のみ**を持�
   並べ替えの禁止条件は `SequenceRunner.has_any_active_execution`（全トリガー一覧の連続実行・呼び出しの文脈・保留中のステップ・待ち・file_line の読込に加え、単発実行中の再入防止〔`reentry_guard`〕も見る＝正本の条件より少し厳しい）。個別読込の二重読込拒否は `keymap_file_io`。
 - **保存計画の出力シーケンス識別子**（phase 43）: `application/save_plan.py` の `compose_sequence_key` / `split_sequence_key`（同じキーの 2 番目以降だけ何番目かを加える・1 番目は従来と同一）/
   `sequence_rows`。対象の固定と照合は `controllers/config_io/save_target_snapshot.py`。
+
+---
+
+## 画面の文言の多言語対応（phase 72）
+
+仕様は `spec_detail/features.md` §4.6「言語」/ `ui_terms.md` §1「多言語の扱い」・§3「英語の表記の規則」/ `data_schema.md` §5.4（`ui_language`）。
+
+- **`keyseq/shared/i18n/`（`catalog.py`）**: `tr(key, /, **params)`（今の言語）/ `tr_in(lang, key, /, **params)`（指定言語で 1 回だけ・切り替え後の知らせ用）。最初の引数は位置専用（文言に `{key}` を差し込む箇所があるため）。
+  `available_languages()`（`locales/` の読めたファイル・`ja`・`en`・コード順）/ `resolve_language(value)`（一覧に無ければ `en`）/ `set_language` / `current_language`。
+  カタログはモジュール内に 1 つ・遅延読込・ロックで保護。言語を決める前の `tr` は `ja`。探す順 = 選んだ言語 → `en` → `ja` → キー（キーごとに 1 回 warning）。
+  テスト用 = `fix_language(code)`（以後 `set_language` を無視）/ `reset_for_tests(locales_dir)`（locales の場所を差し替える口は今これだけ）。
+- **`locales/ja.json` / `en.json`**: `_meta.name` + 文言キー（`<領域>.<画面や部品>.<用途>`）。`ja.json` がキーの正で、`en.json` も全キー・同じ差し込み名を持つ（`tests/test_i18n.py`）。
+- **App**: `__init__` で起動設定を読んだ直後・画面を作る前に `set_language(resolve_language(ui_language))`。読込失敗の警告はその後に出す。
+  `set_ui_language(code)`（メニューから）= 保存済みと同じなら何もしない / `startup_io.write_startup({"ui_language": code})`・失敗したら `ui_vars.ui_language_var` を戻す /
+  `choice_dialog.ask_choice` で選んだ言語の知らせ（「今すぐ再起動」/「あとで」）。`restart()` = `restart_requested` を立てて `on_close()`、窓が残った（キャンセル）なら下ろす。
+- **メニュー**: `views/menu_bar.py` の設定メニューに「Language」のサブメニュー（`available_languages()` のラジオ・`ui_vars.ui_language_var` = 保存済みの言語）。
+- **文言の表**: `child_kind_labels.KIND_LABELS`・`hook_button_texts`・`status_text.HOOK_STATE_LABELS`・`*_text.py`・`screen_grid/ops.OP_LABELS` 等は**文言キーを持ち、表示する時点で `tr`**（import 時に評価しない）。
+- **内部コード**: 表示文字列を値にしていた箇所（`action_key_hold_fields.py`・`action_dialog.py` のボタン・`keymap_add_flow.py` の行の種類）は内部コードを持ち、表示だけ `tr` で写す。
+- **出力シーケンスの一覧の行頭の印**: `domain/config.ACTION_LIST_TAGS`（`mouse_click` → `click`。他は内部名）・`domain/key_hold.py`（`press` / `release`）・`domain/mouse_scroll.py`（`scroll`）。言語ファイルに置かない。省略表示の要約（`controllers/action_list_rendering.py`）も同じ表を使う。
+- **テストの言語固定**: `App(` を作る / 画面の文言を assert するテストモジュールは import 直後に `fix_language("ja")`。`test_*.py` で `App(` を含むものが `fix_language(` を含むことを `tests/test_i18n_test_language_fixed.py` が見張る。
+  **`tests/smoke_app.py` は固定しない**（実際の起動経路で言語の決定を通す意図的な例外）。
+- **日本語リテラルの静的検査**: `tests/test_no_japanese_ui_literals.py`（`keyseq/` の AST の文字列定数・f-string。docstring とログの呼び出し〔`logging` / `logger` / `log` / `_logger` 等・`LOG_NAMES`〕のメッセージを除く）。
+  例外は `ALLOWLIST` に（ファイル, 関数, 内容, 理由）の組で書き、未使用の許可も失敗にする。
+- **見え方**: ボタン幅は `font.measure` の実測で英語に追従する。文字数基準の最小幅（`pane_width_rules.py`）は言語に依らず同じ値。
 
 ---
 

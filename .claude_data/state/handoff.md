@@ -15,17 +15,17 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = phase 72 = 画面の文言の多言語対応**・`instructions/phase/72_multilingual_ui/phase.md`・主入力 = 暫定 55 `instructions/history/55_multilingual_ui.md`〔v0.7・§8 Q4〜Q6 確定・v0.5 = 機能名の大文字 E1・E7・v0.6 = 項目名「Language」と「今すぐ再起動」・v0.7 = 一覧の行頭の印を全言語共通の英語に〕。その次の予定 = Mac 対応）。
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 72 = 画面の文言の多言語対応は 2026-11-04 完了〕・次フェーズはユーザー判断で `/phase_start`。予定 = Mac 対応）。
    次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
-   **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md`（UI 用語と表記の正本・phase 68）に従う**。
-   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜54）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
+   **画面の文言を書くときは `instructions/common/spec_detail/ui_terms.md`（UI 用語と表記・英語の列と表記規則 E1〜E7）に従い、`ja.json` と `en.json` の両方にキーを足す**。
+   **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜55）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 72 進行中（task_01〜11・11a〜11d 完了・task_12・11c の実機目視 OK。残り = task_11d の実機目視 → task_12 の正本反映）。** 日英の切り替え・全層の文言のキー化・en.json・help_en.json・静的検査・二次レビューの採用分・英語の文言の見直し（機能名の大文字・記録ボタンの短縮・JIS の特殊キーを例へ）・メニューの項目名「Language」と切り替え後の「今すぐ再起動」・一覧の行頭の印の統一（`[click]`・`[scroll]`・`[press]` / `[release]`）まで入った。
-ブランチ `claude/ui-text-length-english-style-f5ba4e`（task_11b〜11d。それ以前の phase 72 は `claude/multilingual-support-ff44eb`）。main へのマージはユーザー（PR は作らない）。
+**phase 72 完了（2026-11-04）。** 日英の切り替え（メニュー「Language」・次回起動から反映・「今すぐ再起動」）・全層の文言のキー化・英語の表記 E1〜E7・一覧の行頭の印の統一まで入り、正本反映・暫定 55 凍結・refactor_check 不要。アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
+ブランチ `claude/ui-text-length-english-style-f5ba4e`（task_11b〜12。それ以前の phase 72 は `claude/multilingual-support-ff44eb`）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,7 +35,7 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 72 task_11d = 2026-11-04**）:
+直近の実測（**phase 72 完了時 = 2026-11-04**）:
 compile **clean** / tests **1909 pass**（skip 7）/ tests_ui **1238 pass** / smoke **pass**。
 **件数が減ったら退行を疑う**（tests: 1867〔phase 71〕→ 1909 / tests_ui: 1210 → 1238）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
@@ -55,26 +55,15 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **ユーザーは不在モード**（session.md の `presence` 行。新セッションで再開したら消してよい）
-- **【ユーザー確認・不在中に到達】task_11d の実機目視**（出力シーケンスの一覧〔詳細表示・省略表示〕でクリック `[click]`・スクロール `[scroll]`・押下 / 解放 `[press]` / `[release]` が日英で同じ / 印の後ろ〔向き・（生）・（リピート）・ボタン名〕は言語ごとの文言のまま / 他の印〔`[hotkey]`・`[text]`・`[loop]` 等〕は不変）→ 結果をメインへ報告
-- 目視 OK を受けて task_12 の正本反映（暫定 55 §11 + `tasks/task_11_integration.md` の追加項目 + D2〔§9 に smoke の例外〕・D3〔引数なしの波括弧〕・D4〔不正な言語ファイル名は警告して無視〕+ v0.5〔E1・E7〕・v0.6〔項目名・再起動〕・v0.7〔一覧の印。features.md の `[スクロール]`・`[押す]` 等の記述も直す〕）・暫定 55 凍結・decisions_archive/72・current.md 完了記載・/refactor_check
-- 土台の画像の差し替え（任意・ユーザー）/ 保留 = 提案書 26・27・phase 71 の保留 2 件 / main へのマージはユーザー
+- 次フェーズはユーザー判断（`/phase_start`。予定 = Mac 対応 / 3 言語目以降は idea_56）
+- 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」/ main へのマージはユーザー
 
-## 進行中のフェーズの要点（phase 72）
-- 文言カタログ = `keyseq/shared/i18n/`（`tr(key, /, **params)`・`tr_in`・選んだ言語 → en → ja → キー・`fix_language` / `reset_for_tests`）・`locales/ja.json`（正）/ `en.json`（全 915 キー）
+## 直前のフェーズ（phase 72 = 画面の文言の多言語対応・判断は `decisions_archive/72_multilingual_ui.md`）
+- 正本 = `features.md` §4.6「言語」「一覧の表示形式」/ `data_schema.md` §5.4 `ui_language` / `ui_terms.md` §1〜§3 / `architecture.md` §3.2（shared）/ 地図 = `codebase_map.md`「画面の文言の多言語対応」
+- 文言カタログ = `keyseq/shared/i18n/`（`tr(key, /, **params)`・`tr_in`・選んだ言語 → en → ja → キー）・`locales/ja.json`（正）/ `en.json`
 - **`tr` をモジュール定数・クラス属性・既定引数に書かない**（import 時に ja で固まる）。表は値をキーにして表示の時点で `tr`
-- **App を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`**（無いと `ui_language` 未設定の環境で英語になり落ちる・`tests/test_i18n_test_language_fixed.py` が検出）
-- キー移行の検証 = 削除行の日本語と ja.json の値の**完全一致**の機械照合（reviewer に依頼。既存キーの使い回しで「…」の有無を取り違えた例あり）
-- **【罠・phase 72】Codex は表示用の部品・文字列を取り違えることがある**（見出しの部品を `measure` した・行の種類の列に内部コードを出した・（未選択）の表示を消した）。tests_ui 全体の実測で拾う
-- **【罠・phase 72】Codex の新テストが入力エラーの messagebox（modal）で tests_ui を止めた**。止まったら単独実行 + `timeout` で特定し、`messagebox.showerror` を patch
-- **【Codex 運用・phase 72】`codex-implementer`（Luna 単独）が着手せず返ることがある** → `codex-delegating-implementer` で再依頼。Codex が勝手に報告ファイルを worktree に作ることがある（コミット前に `git status` で確認）
-
-## 直前のフェーズ（phase 71 = タスクバーのアイコン・判断は `decisions_archive/71_taskbar_status_icon.md`）
-- 正本 = `features.md` §4.5「タスクバーのアイコン」/ `architecture.md`（presentation）/ 地図 = `codebase_map.md` の `presentation/status_icon/`・`bundled_paths.py`（`help/` から presentation 直下へ昇格）
-- 状態の判定は `status_text.hook_display_state`（ステータス欄と共用・OFF 優先）。反映は `update_status` の判定直後・簡易表示の分岐より前で `app.status_icon.apply(state)`。`iconphoto` の呼び出しは `StatusIcon.apply` の 1 か所（`default=True`・子窓へ個別に設定しない＝設定すると既定に追従しなくなる）
-- **AppUserModelID（`main.py`）が無いとタスクバーに出ない**（試作で実測）。`App()` を直接作る tests_ui / smoke では設定されない
-- **【罠・phase 71】`PhotoImage.put` に色の平たいタプルを渡すと 1 画素 1 行と解釈される**（行は `put((colors,), to=(x, y))`）
-- **【罠・phase 71】Codex が Python で既存ファイルを編集しようとして失敗する**（依頼文に「apply_patch で編集・Python を使わない」と書く）
+- **App を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`**（`tests/test_i18n_test_language_fixed.py` が検出）。ソースの日本語は `tests/test_no_japanese_ui_literals.py` が検出
+- **【罠・phase 72】Codex は表示用の部品・文字列を取り違えることがある / 新テストが messagebox（modal）で tests_ui を止めることがある**（単独実行 + `timeout` で特定し patch）
 
 ## 運用インフラ
 
@@ -156,7 +145,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 71_taskbar_status_icon / 70_help_window / 69_keyboard_ui_key_labels）。
+  （直近 3 件: 72_multilingual_ui / 71_taskbar_status_icon / 70_help_window）。
 - 新規の未着手: **idea_54**（押下だけのキーで IME が切り替わった件・再発時）/ **idea_53**（**保留・優先度 低**・暫定 47 v0.2）/ **idea_48**（取得中のフック再開）/ idea_50 は phase 66 で完了 / idea_51 は phase 65 で完了 / idea_45（取得の記号キーの名前）/ idea_44（カーソルグリッドの配色・題は旧称「画面の枠」のまま＝着手時に直す）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
   idea_29〜idea_31 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
