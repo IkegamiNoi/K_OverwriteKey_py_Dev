@@ -154,7 +154,7 @@ class I18nTest(unittest.TestCase):
         self.assertEqual(en.keys(), ja.keys())
         self.assertEqual(list(en), list(ja))
         # Keep the bilingual language selector and the author's copyright credit.
-        japanese_allowed = {"menu.settings.language", "help.license.header", "help.version.content"}
+        japanese_allowed = {"help.license.header", "help.version.content"}
         formatter = Formatter()
         for key in en.keys() - {"_meta"}:
             with self.subTest(key=key):

@@ -110,7 +110,7 @@ class UiLanguageTest(unittest.TestCase):
             for index in range(settings.index("end") + 1)
         ]
         font_index = labels.index("フォントサイズ")
-        language_index = labels.index("言語 / Language")
+        language_index = labels.index("Language")
         self.assertEqual(language_index, font_index + 1)
 
         language_menu = self.app.nametowidget(settings.entrycget(language_index, "menu"))
@@ -137,7 +137,7 @@ class UiLanguageTest(unittest.TestCase):
             index
             for index in range(settings.index("end") + 1)
             if settings.type(index) == "cascade"
-            and settings.entrycget(index, "label") == "言語 / Language"
+            and settings.entrycget(index, "label") == "Language"
         )
         language_menu = self.app.nametowidget(settings.entrycget(language_index, "menu"))
         english_index = next(
@@ -151,38 +151,46 @@ class UiLanguageTest(unittest.TestCase):
 
         set_ui_language.assert_called_once_with("en")
 
-    def test_selecting_different_language_saves_and_announces_without_changing_current_language(self):
+    def test_selecting_different_language_asks_in_selected_language_and_restarts(self):
         self.app._startup_settings = {"ui_language": "ja"}
         starting_language = current_language()
         events = []
         with patch.object(self.app.startup_io, "write_startup", return_value=True) as write_startup, patch.object(
-            self.app.hook, "suspend_hook_for_dialog", side_effect=lambda: events.append("suspend")
-        ), patch.object(self.app.hook, "resume_hook_after_dialog", side_effect=lambda: events.append("resume")), patch.object(
-            app_module.messagebox, "showinfo", side_effect=lambda *args, **kwargs: events.append("showinfo")
-        ) as showinfo:
+            app_module.choice_dialog, "ask_choice", return_value="restart"
+        ) as ask_choice, patch.object(self.app, "restart") as restart:
             self.app.set_ui_language("en")
 
         write_startup.assert_called_once_with({"ui_language": "en"})
-        showinfo.assert_called_once_with(
-            tr_in("en", "dialog.language_restart.title"),
-            tr_in("en", "dialog.language_restart.body"),
-            parent=self.app,
-        )
+        ask_choice.assert_called_once_with(self.app,
+            title=tr_in("en", "dialog.language_restart.title"),
+            message=tr_in("en", "dialog.language_restart.body"),
+            choices=[("restart", "Restart now"), ("later", "Later")], default="restart", cancel="later")
+        restart.assert_called_once_with()
         self.assertEqual(self.app.ui_vars.ui_language_var.get(), "en")
         self.assertEqual(current_language(), starting_language)
-        self.assertEqual(events, ["suspend", "showinfo", "resume"])
+        self.assertEqual(events, [])
 
-    def test_language_notice_resumes_hook_when_showinfo_raises(self):
+    def test_later_does_not_restart(self):
         self.app._startup_settings = {"ui_language": "ja"}
-        events = []
         with patch.object(self.app.startup_io, "write_startup", return_value=True), patch.object(
-            self.app.hook, "suspend_hook_for_dialog", side_effect=lambda: events.append("suspend")
-        ), patch.object(self.app.hook, "resume_hook_after_dialog", side_effect=lambda: events.append("resume")), patch.object(
-            app_module.messagebox, "showinfo", side_effect=lambda *args, **kwargs: (events.append("showinfo"), (_ for _ in ()).throw(RuntimeError()))
+            app_module.choice_dialog, "ask_choice", return_value="later"
+        ), patch.object(self.app, "restart") as restart:
+            self.app.set_ui_language("en")
+        restart.assert_not_called()
+
+    def test_restart_clears_request_when_close_is_cancelled(self):
+        with patch.object(self.app, "on_close"), patch.object(self.app, "winfo_exists", return_value=True):
+            self.app.restart()
+        self.assertFalse(self.app.restart_requested)
+
+    def test_restart_keeps_request_when_close_destroys_window(self):
+        import tkinter
+
+        with patch.object(self.app, "on_close"), patch.object(
+            self.app, "winfo_exists", side_effect=tkinter.TclError
         ):
-            with self.assertRaises(RuntimeError):
-                self.app.set_ui_language("en")
-        self.assertEqual(events, ["suspend", "showinfo", "resume"])
+            self.app.restart()
+        self.assertTrue(self.app.restart_requested)
 
     def test_radio_selection_uses_saved_language_while_current_language_stays_japanese(self):
         variables = UiVars(self.app, ui_font_delta_pt=0, ui_language="en")

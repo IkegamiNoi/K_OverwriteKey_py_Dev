@@ -22,6 +22,7 @@ from keyseq.presentation.controllers.config_io import (
     TriggerSetFileIo,
 )
 from keyseq.presentation.controllers.config_io.child_save_dialog import ChildSaveDialog
+from keyseq.presentation.controllers.config_io import choice_dialog
 from keyseq.presentation.controllers.config_io.reference_cleanup_io import ReferenceCleanupIo
 from keyseq.presentation.controllers.config_io.orphan_sweep_io import OrphanSweepIo
 from keyseq.presentation.controllers.config_io.keymap_set_history_io import KeymapSetHistoryIo
@@ -145,6 +146,7 @@ class App(tk.Tk):
             ui_language=self._startup_settings.get("ui_language"),
         )
         self._retained_hook_keys: dict[str, str] | None = None
+        self.restart_requested = False
 
         self.title("Key Replacer Sequencer (Multi Trigger)")
         self.status_icon = StatusIcon(self, status_icon_dir())
@@ -520,15 +522,29 @@ class App(tk.Tk):
             self.ui_vars.ui_language_var.set(saved)
             return
         self.ui_vars.ui_language_var.set(code)
-        self.hook.suspend_hook_for_dialog()
+        choice = choice_dialog.ask_choice(
+            self,
+            title=tr_in(code, "dialog.language_restart.title"),
+            message=tr_in(code, "dialog.language_restart.body"),
+            choices=[
+                ("restart", tr_in(code, "dialog.language_restart.restart_now")),
+                ("later", tr_in(code, "dialog.language_restart.later")),
+            ],
+            default="restart",
+            cancel="later",
+        )
+        if choice == "restart":
+            self.restart()
+
+    def restart(self) -> None:
+        self.restart_requested = True
+        self.on_close()
         try:
-            messagebox.showinfo(
-                tr_in(code, "dialog.language_restart.title"),
-                tr_in(code, "dialog.language_restart.body"),
-                parent=self,
-            )
-        finally:
-            self.hook.resume_hook_after_dialog()
+            exists = bool(self.winfo_exists())
+        except tk.TclError:
+            exists = False
+        if exists:
+            self.restart_requested = False
 
     def _is_menu_shortcut_enabled(self) -> bool:
         if self.stop_key_capture.capturing or self.toggle_key_capture.capturing:
