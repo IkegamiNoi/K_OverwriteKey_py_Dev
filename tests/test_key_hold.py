@@ -1,4 +1,5 @@
 import unittest
+from unittest.mock import patch
 
 from keyseq.domain.config import format_action_list_item
 from keyseq.domain.key_hold import (
@@ -13,7 +14,7 @@ from keyseq.domain.key_hold import (
 )
 
 
-from keyseq.shared.i18n import fix_language
+from keyseq.shared.i18n import fix_language, tr_in
 
 fix_language("ja")
 
@@ -127,6 +128,25 @@ class KeyRepeatDomainTests(unittest.TestCase):
 
 
 class FormatKeyHoldTests(unittest.TestCase):
+    def test_tags_are_language_independent_and_repeat_text_is_translated(self):
+        actions = (
+            {"edge": "down", "value": "a", "repeat": True},
+            {"edge": "up", "value": "a"},
+        )
+        formatted = {}
+        for lang in ("ja", "en"):
+            with self.subTest(lang=lang), patch(
+                "keyseq.domain.key_hold.tr",
+                side_effect=lambda message_key, /, **p: tr_in(lang, message_key, **p),
+            ):
+                formatted[lang] = [format_key_hold_value(action) for action in actions]
+                self.assertTrue(formatted[lang][0].startswith("[press] "))
+                self.assertTrue(formatted[lang][1].startswith("[release] "))
+        self.assertEqual(formatted["ja"][0], "[press] a（リピート）")
+        self.assertEqual(formatted["en"][0], "[press] a (Repeat)")
+        self.assertEqual(formatted["ja"][1], "[release] a")
+        self.assertEqual(formatted["en"][1], "[release] a")
+
     def test_held_display_names(self):
         self.assertEqual(held_display_name("key", "right ctrl"), "right ctrl")
         for button, expected in (("left", "マウス左"), ("right", "マウス右"), ("middle", "マウス中")):
@@ -134,18 +154,18 @@ class FormatKeyHoldTests(unittest.TestCase):
                 self.assertEqual(held_display_name("mouse", button), expected)
 
     def test_formats_keyboard_and_mouse_rows(self):
-        self.assertEqual(format_key_hold_value({"edge": "down", "value": "shift"}), "[押す] shift")
-        self.assertEqual(format_key_hold_value({"edge": "up", "value": "shift"}), "[離す] shift")
-        self.assertEqual(format_key_hold_value({"edge": "down", "button": "left"}), "[押す] マウス左")
+        self.assertEqual(format_key_hold_value({"edge": "down", "value": "shift"}), "[press] shift")
+        self.assertEqual(format_key_hold_value({"edge": "up", "value": "shift"}), "[release] shift")
+        self.assertEqual(format_key_hold_value({"edge": "down", "button": "left"}), "[press] マウス左")
         self.assertEqual(
             format_key_hold_value({"edge": "down", "button": "left", "x": "100", "y": 200}),
-            "[押す] マウス左 (100, 200)",
+            "[press] マウス左 (100, 200)",
         )
 
     def test_repeat_marker_is_shown_only_for_repeat_enabled_rows(self):
         self.assertEqual(
             format_key_hold_value({"edge": "down", "value": "a", "repeat": True}),
-            "[押す] a（リピート）",
+            "[press] a（リピート）",
         )
         for action in (
             {"edge": "down", "value": "a"},
@@ -170,19 +190,19 @@ class FormatKeyHoldTests(unittest.TestCase):
     def test_action_list_item_uses_value_format_with_optional_label(self):
         self.assertEqual(
             format_action_list_item(0, {"type": "key_hold", "edge": "down", "value": "shift"}),
-            "01. [押す] shift",
+            "01. [press] shift",
         )
         self.assertEqual(
             format_action_list_item(
                 1, {"type": "key_hold", "edge": "up", "value": "shift", "label": "解除"}
             ),
-            "02. [離す] shift: 解除",
+            "02. [release] shift: 解除",
         )
         self.assertEqual(
             format_action_list_item(
                 2, {"type": "key_hold", "edge": "down", "button": "middle", "x": 1, "y": 2}
             ),
-            "03. [押す] マウス中 (1, 2)",
+            "03. [press] マウス中 (1, 2)",
         )
         self.assertEqual(
             format_action_list_item(3, {"type": "key_hold", "edge": "bad", "value": "shift"}),
@@ -192,5 +212,5 @@ class FormatKeyHoldTests(unittest.TestCase):
             format_action_list_item(
                 4, {"type": "key_hold", "edge": "down", "value": "a", "repeat": True}
             ),
-            "05. [押す] a（リピート）",
+            "05. [press] a（リピート）",
         )

@@ -11,6 +11,7 @@ from .screen_grid import normalize_grid
 DEFAULT_RUN_TO_END_DELAY_MS = 300
 DEFAULT_DRAG_SPEED_PX_PER_SEC = 1000
 DEFAULT_KEYBOARD_LAYOUT_ID = "us_tkl"
+ACTION_LIST_TAGS = {"mouse_click": "click"}
 
 
 def coerce_nonnegative_int(value: Any, default: int) -> int:
@@ -475,14 +476,16 @@ def format_action_list_item(
     else:
         value_display = action.get("value", "")
 
+    tag = ACTION_LIST_TAGS.get(action_type, action_type)
+
     label = (action.get("label") or "").strip()
     if is_control_action or is_key_hold_action or is_mouse_scroll_action:
         if label:
             return f"{index + 1:02d}. {value_display}: {label}"
         return f"{index + 1:02d}. {value_display}"
     if label:
-        return f"{index + 1:02d}. [{action_type}] {value_display}: {label}"
-    return f"{index + 1:02d}. [{action_type}] {value_display}"
+        return f"{index + 1:02d}. [{tag}] {value_display}: {label}"
+    return f"{index + 1:02d}. [{tag}] {value_display}"
 
 
 def format_preset_list_item(index: int, preset: dict[str, Any]) -> str:

@@ -123,16 +123,17 @@ def format_key_hold_value(action: Mapping[str, Any]) -> str:
         raw_value = button if isinstance(button, str) and button.strip() else (action.get("value") or "")
         return f"[{ACTION_TYPE_KEY_HOLD}] {raw_value}"
 
-    direction = tr("domain.key_hold.display.down") if parsed.edge == EDGE_DOWN else tr("domain.key_hold.display.up")
+    tag = "press" if parsed.edge == EDGE_DOWN else "release"
     if parsed.button is None:
         if is_repeat_enabled(action):
-            return tr("domain.key_hold.display.key_repeat", direction=direction, key=parsed.key)
-        return tr("domain.key_hold.display.key", direction=direction, key=parsed.key)
+            display = tr("domain.key_hold.display.key_repeat", key=parsed.key)
+        else:
+            display = tr("domain.key_hold.display.key", key=parsed.key)
+        return f"[{tag}] {display}"
     display = tr(
         "domain.key_hold.display.button",
-        direction=direction,
         button=held_display_name("mouse", parsed.button),
     )
     if parsed.position is not None:
         display += f" ({parsed.position[0]}, {parsed.position[1]})"
-    return display
+    return f"[{tag}] {display}"

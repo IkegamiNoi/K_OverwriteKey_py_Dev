@@ -4,36 +4,37 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-04T12:00:00
-phase: instructions/phase/72_multilingual_ui（**アクティブ** = 画面の文言の多言語対応・暫定 55 v0.6 ユーザー確定済・decisions 72）。次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57
+last_updated: 2026-11-04T02:00:00
+phase: instructions/phase/72_multilingual_ui（**アクティブ** = 画面の文言の多言語対応・暫定 55 v0.7 ユーザー確定済・decisions 72）。次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 71**（タスクバーのアイコン・`decisions_archive/71_taskbar_status_icon.md`）
-last_commit_location: `claude/ui-text-length-english-style-f5ba4e`（phase 72 task_11b・11c）。それ以前の phase 72 は `claude/multilingual-support-ff44eb`。phase 71 一式は `claude/taskbar-app-status-indicator-f73d28` にもあり、main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/ui-text-length-english-style-f5ba4e`（phase 72 task_11b〜11d）。それ以前の phase 72 は `claude/multilingual-support-ff44eb`。phase 71 一式は `claude/taskbar-app-status-indicator-f73d28` にもあり、main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 72 進行中（task_01〜11・11a〜11c 完了・task_12 の実機目視 OK。残り = task_11c の実機目視 → task_12 の正本反映）。** 日英の切り替え・全層の文言のキー化・en.json・help_en.json・静的検査・二次レビューの採用分・英語の文言の見直し（機能名の大文字・記録ボタンの短縮・JIS の特殊キーを例へ）・メニューの項目名「Language」と切り替え後の「今すぐ再起動」まで入った。
+presence: away（戻る予定 未定）
+focus: **phase 72 進行中（task_01〜11・11a〜11d 完了・task_12・11c の実機目視 OK。残り = task_11d の実機目視 → task_12 の正本反映）。** 日英の切り替え・全層の文言のキー化・en.json・help_en.json・静的検査・二次レビューの採用分・英語の文言の見直し（機能名の大文字・記録ボタンの短縮・JIS の特殊キーを例へ）・メニューの項目名「Language」と切り替え後の「今すぐ再起動」・一覧の行頭の印の統一（`[click]` 等）まで入った。
 mode: blocked
 
 ## last_action
-ts: 2026-11-04T12:00:00
+ts: 2026-11-04T02:00:00
 who: main
 summary: |
-  ユーザー報告（2026-11-04）: task_11b の修正と task_12 の実機目視は問題なし。追加の判断 = メニューの項目名をどの言語でも「Language」/ 言語の切り替え後の知らせに「今すぐ再起動」（既定）/「あとで」→ 暫定 55 v0.6（§4.3・§5）。
-  task_11c: codex-implementer。set_ui_language を choice_dialog.ask_choice へ・App.restart()（on_close を通しキャンセルなら取り消し）・main() が mainloop の後に keyseq/infrastructure/app_relaunch.py で同じ Python・引数・起動時の作業フォルダで起動し直す（失敗は main で showerror）。
-  reviewer 修正して採用 → 採用分（画面表示を infrastructure から main へ・restart の成功側と main の配線のテスト・import の並び）を codex-implementer で修正。
+  ユーザー報告（2026-11-04）: task_11c の実機目視は問題なし。追加の判断 = 出力シーケンスの一覧の行頭の印を全言語共通の英語の短い名前に統一（メイン推奨は言語ごとの表示名だったがユーザーは英語を選択）→ 暫定 55 v0.7（§8 Q6）。
+  task_11d: codex-implementer（2 回 + テスト追加 1 回）。mouse_click → `[click]`・mouse_scroll → `[scroll]`・key_hold → `[press]` / `[release]`（domain/config.py の ACTION_LIST_TAGS・key_hold.py・mouse_scroll.py・省略表示 action_list_rendering.py）・言語ファイルから印を外し、未使用の domain.key_hold.display.down / up を削除。
+  reviewer 修正して採用 → 英語でも印が共通のテストを追加（lambda の引数名の衝突 1 行はメインで修正）。ユーザーは不在モード（2026-11-04 00:53〜・戻り未定）。
 result_files:
-  - keyseq/presentation/app.py / main.py / keyseq/infrastructure/app_relaunch.py（新規）/ keyseq/shared/i18n/locales/ja.json / en.json
-  - tests/test_i18n.py / tests/test_app_relaunch.py（新規）/ tests/test_main_restart.py（新規）/ tests_ui/test_ui_language.py
-  - instructions/history/55_multilingual_ui.md / instructions/phase/72_multilingual_ui/phase.md / tasks/task_11c_language_menu_restart.md / .claude_data/state/decisions.md
+  - keyseq/domain/config.py / keyseq/domain/key_hold.py / keyseq/domain/mouse_scroll.py / keyseq/presentation/controllers/action_list_rendering.py / ja.json / en.json
+  - tests/test_domain_config.py / tests/test_key_hold.py / tests/test_mouse_scroll.py / tests_ui/test_action_dialog_labels.py / tests_ui/test_action_list_rendering.py / tests_ui/test_key_hold_presentation.py
+  - instructions/history/55_multilingual_ui.md / instructions/phase/72_multilingual_ui/phase.md / tasks/task_11d_action_list_tags.md / .claude_data/state/decisions.md
 verified:
   compile: pass
-  tests: pass（1907・skip 7）
-  tests_ui: pass（1238）
+  tests: pass（1909・skip 7・テスト追加後に再実行）
+  tests_ui: pass（1238・テスト追加前の実装で実行。その後の変更は tests/ の 2 ファイルのみ）
   smoke: pass
 
 ## next_action
-- **【ユーザー作業】task_11c の実機目視**: メニュー「設定」の項目名が日本語 / 英語とも「Language」/ 言語を選ぶと選んだ言語で「今すぐ再起動」「あとで」が出る / 「今すぐ再起動」で終了して新しい言語で起動し直す（未保存なら保存の確認・そこでキャンセルすると再起動しない）/ 「あとで」・× で何も起きない。結果をメインへ報告
-- 目視 OK を受けて task_12 の正本反映: 暫定 55 §11 + `tasks/task_11_integration.md` の「正本反映で足す項目」+ D2（§9 に smoke の例外）・D3（§3.1 に引数なしの波括弧）・D4（言語ファイル名の不正は警告して無視）+ v0.5（E1・E7）・v0.6（項目名・再起動）→ 暫定 55 凍結・decisions_archive/72・current.md 完了記載・/refactor_check
+- **【ユーザー確認・不在中に到達】task_11d の実機目視**: 出力シーケンスの一覧（詳細表示・省略表示の両方）で、マウスのクリックが `[click]`・スクロールが `[scroll]`・押下 / 解放が `[press]` / `[release]` になり、日本語と英語で同じ印か / 印の後ろ（向き・（生）・（リピート）・ボタン名）は言語ごとの文言のままか / 他の印（`[hotkey]`・`[text]`・`[loop]` 等）は変わっていないか。結果をメインへ報告
+- 目視 OK を受けて task_12 の正本反映: 暫定 55 §11 + `tasks/task_11_integration.md` の「正本反映で足す項目」+ D2・D3・D4 + v0.5（E1・E7）・v0.6（項目名・再起動）・v0.7（一覧の印。features.md §4.2・§4.6 の `[スクロール]`・`[押す]` 等の記述も直す）→ 暫定 55 凍結・decisions_archive/72・current.md 完了記載・/refactor_check
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers

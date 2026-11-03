@@ -569,7 +569,7 @@ class FormatListItemTest(unittest.TestCase):
 
     def test_action_mouse_click(self):
         action = {"type": "mouse_click", "x": 10, "y": 20, "button": "left", "clicks": 2}
-        self.assertEqual(format_action_list_item(0, action), "01. [mouse_click] (10, 20) 左 x2")
+        self.assertEqual(format_action_list_item(0, action), "01. [click] (10, 20) 左 x2")
 
     def test_action_with_label(self):
         self.assertEqual(
@@ -581,13 +581,13 @@ class FormatListItemTest(unittest.TestCase):
         action = {"type": "mouse_click", "x": 100, "y": 200, "to_x": 400,
                   "to_y": 500, "button": "left", "drag": True, "drag_speed": 1000}
         self.assertEqual(format_action_list_item(0, action),
-                         "01. [mouse_click] (100, 200)→(400, 500) 左 1000px/s")
+                         "01. [click] (100, 200)→(400, 500) 左 1000px/s")
 
     def test_action_mouse_drag_default_speed(self) -> None:
         action = {"type": "mouse_click", "x": 100, "y": 200, "to_x": 400,
                   "to_y": 500, "button": "left", "drag": True}
         self.assertEqual(format_action_list_item(0, action),
-                         "01. [mouse_click] (100, 200)→(400, 500) 左 1000px/s")
+                         "01. [click] (100, 200)→(400, 500) 左 1000px/s")
 
     def test_action_mouse_drag_disabled_or_absent(self) -> None:
         for extra in ({"drag": False}, {}):
@@ -595,7 +595,7 @@ class FormatListItemTest(unittest.TestCase):
                 action = {"type": "mouse_click", "x": 10, "y": 20,
                           "button": "left", "clicks": 2, **extra}
                 self.assertEqual(format_action_list_item(0, action),
-                                 "01. [mouse_click] (10, 20) 左 x2")
+                                 "01. [click] (10, 20) 左 x2")
 
     def test_preset(self):
         self.assertEqual(
@@ -669,7 +669,7 @@ class SequenceControlConfigTest(unittest.TestCase):
         self.assertEqual(format_action_list_item(1, {"type": "text", "value": "abc", "label": "memo"}), "02. [text] abc: memo")
         self.assertEqual(
             format_action_list_item(0, {"type": "mouse_click", "x": 10, "y": 20, "button": "left", "clicks": 2}),
-            "01. [mouse_click] (10, 20) 左 x2",
+            "01. [click] (10, 20) 左 x2",
         )
 
 

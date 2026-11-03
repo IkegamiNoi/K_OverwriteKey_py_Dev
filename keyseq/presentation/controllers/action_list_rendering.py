@@ -5,7 +5,7 @@ from __future__ import annotations
 from collections.abc import Mapping, Sequence
 from typing import Any, Callable
 
-from keyseq.domain.config import format_action_list_item, mouse_button_label
+from keyseq.domain.config import ACTION_LIST_TAGS, format_action_list_item, mouse_button_label
 from keyseq.domain.sequence_control import analyze_loops, loop_depth_style
 
 
@@ -70,7 +70,9 @@ def format_next_action_summary(
         y = action.get("y", "")
         button = mouse_button_label(action.get("button", "left"))
         clicks = action.get("clicks", 1)
-        return f"{index + 1:02d}. [mouse_click] ({x}, {y}) {button} x{clicks}"
+        tag = ACTION_LIST_TAGS.get(action_kind, action_kind)
+        return f"{index + 1:02d}. [{tag}] ({x}, {y}) {button} x{clicks}"
 
     value = action.get("value", "")
-    return f"{index + 1:02d}. [{action_kind}] {value}"
+    tag = ACTION_LIST_TAGS.get(action_kind, action_kind)
+    return f"{index + 1:02d}. [{tag}] {value}"

@@ -131,7 +131,7 @@ class ActionListRenderingTest(unittest.TestCase):
 
         self.assertEqual(
             [row[0] for row in rows],
-            ["01. [text] hello: Greeting", "02. [mouse_click] (10, 20) 右 x2"],
+            ["01. [text] hello: Greeting", "02. [click] (10, 20) 右 x2"],
         )
 
     def test_next_summary_formats_system_and_file_line(self):
@@ -154,13 +154,13 @@ class ActionListRenderingTest(unittest.TestCase):
     def test_next_summary_formats_mouse_scroll_values_and_invalid_rows(self):
         cases = (
             ({"type": "mouse_scroll", "direction": "down", "unit": "notch", "amount": 3},
-             "01. [スクロール] 下3"),
+             "01. [scroll] 下3"),
             ({"type": "mouse_scroll", "direction": "right", "unit": "delta", "amount": 60},
-             "02. [スクロール] 右60（生）"),
+             "02. [scroll] 右60（生）"),
             ({"type": "mouse_scroll", "direction": "down", "unit": "notch", "amount": 3,
-              "x": 100, "y": 200}, "03. [スクロール] 下3 (100, 200)"),
+              "x": 100, "y": 200}, "03. [scroll] 下3 (100, 200)"),
             ({"type": "mouse_scroll", "direction": "bad", "unit": "notch", "amount": 3},
-             "04. [mouse_scroll] bad"),
+             "04. [scroll] bad"),
         )
         for index, (action, expected) in enumerate(cases):
             with self.subTest(action=action):
@@ -179,7 +179,7 @@ class ActionListRenderingTest(unittest.TestCase):
                 loop_iterations={},
                 counters={},
             ),
-            "01. [mouse_click] (10, 20) 左 x1",
+            "01. [click] (10, 20) 左 x1",
         )
         self.assertEqual(
             format_next_action_summary(

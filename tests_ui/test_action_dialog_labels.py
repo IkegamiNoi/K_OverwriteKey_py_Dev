@@ -123,7 +123,7 @@ class ActionDialogLabelsTest(unittest.TestCase):
                     label = tr_in(lang, f"domain.config.mouse_button.{code}") if code != "future" else code
                     action = {"type": "mouse_click", "x": 10, "y": 20, "button": code}
                     self.assertEqual(format_action_list_item(0, action),
-                                     f"01. [mouse_click] (10, 20) {label} x1")
+                                     f"01. [click] (10, 20) {label} x1")
                     action.update(drag=True, to_x=30, to_y=40)
                     self.assertEqual(format_action_list_item(0, action),
-                                     f"01. [mouse_click] (10, 20)→(30, 40) {label} 1000px/s")
+                                     f"01. [click] (10, 20)→(30, 40) {label} 1000px/s")

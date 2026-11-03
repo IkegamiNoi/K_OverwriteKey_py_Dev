@@ -1,6 +1,10 @@
 from __future__ import annotations
 
 import unittest
+from unittest.mock import patch
+from keyseq.shared.i18n import fix_language, tr_in
+
+fix_language("ja")
 
 from keyseq.domain.config import format_action_list_item
 from keyseq.domain.mouse_scroll import (
@@ -86,17 +90,17 @@ class ScrollDeltaTests(unittest.TestCase):
 class MouseScrollFormattingTests(unittest.TestCase):
     def test_valid_and_invalid_values(self) -> None:
         self.assertEqual(format_mouse_scroll_value(
-            {"direction": "down", "amount": 3}), "[スクロール] 下3")
+            {"direction": "down", "amount": 3}), "[scroll] 下3")
         self.assertEqual(format_mouse_scroll_value(
             {"direction": "right", "unit": "delta", "amount": 60}),
-            "[スクロール] 右60（生）")
+            "[scroll] 右60（生）")
         self.assertEqual(format_mouse_scroll_value(
             {"direction": "down", "amount": 3, "x": 100, "y": 200}),
-            "[スクロール] 下3 (100, 200)")
+            "[scroll] 下3 (100, 200)")
         self.assertEqual(format_mouse_scroll_value({"direction": "bad", "amount": 1}),
-                         "[mouse_scroll] bad")
+                         "[scroll] bad")
         self.assertEqual(format_mouse_scroll_value({"direction": 1, "amount": 1}),
-                         "[mouse_scroll]")
+                         "[scroll]")
 
     def test_description_uses_string_values_and_missing_marker(self) -> None:
         self.assertEqual(describe_mouse_scroll({"direction": 1, "unit": None, "amount": 3}),
@@ -107,11 +111,24 @@ class MouseScrollFormattingTests(unittest.TestCase):
     def test_action_list_item_formats_mouse_scroll_without_type_prefix(self) -> None:
         self.assertEqual(format_action_list_item(
             0, {"type": "mouse_scroll", "direction": "down", "amount": 3}),
-            "01. [スクロール] 下3")
+            "01. [scroll] 下3")
         self.assertEqual(format_action_list_item(
             1, {"type": "mouse_scroll", "direction": "right", "unit": "delta",
                 "amount": 60, "label": " memo "}),
-            "02. [スクロール] 右60（生）: memo")
+            "02. [scroll] 右60（生）: memo")
+
+    def test_tag_is_language_independent_and_value_is_translated(self) -> None:
+        action = {"direction": "down", "amount": 3}
+        formatted = {}
+        for lang in ("ja", "en"):
+            with self.subTest(lang=lang), patch(
+                "keyseq.domain.mouse_scroll.tr",
+                side_effect=lambda message_key, /, **p: tr_in(lang, message_key, **p),
+            ):
+                formatted[lang] = format_mouse_scroll_value(action)
+                self.assertTrue(formatted[lang].startswith("[scroll] "))
+        self.assertEqual(formatted["ja"], "[scroll] 下3")
+        self.assertEqual(formatted["en"], "[scroll] Down3")
 
 
 if __name__ == "__main__":

@@ -99,8 +99,8 @@ def format_mouse_scroll_value(action: Mapping[str, Any]) -> str:
     if isinstance(parsed, str):
         direction = action.get("direction")
         if isinstance(direction, str):
-            return f"[{ACTION_TYPE_MOUSE_SCROLL}] {direction}"
-        return f"[{ACTION_TYPE_MOUSE_SCROLL}]"
+            return f"[scroll] {direction}"
+        return "[scroll]"
     direction = tr(_DIRECTION_KEYS[parsed.direction])
     display_key = (
         "domain.mouse_scroll.display_value_raw"
@@ -110,7 +110,7 @@ def format_mouse_scroll_value(action: Mapping[str, Any]) -> str:
     display = tr(display_key, direction=direction, amount=parsed.amount)
     if parsed.position is not None:
         display += f" ({parsed.position[0]}, {parsed.position[1]})"
-    return display
+    return f"[scroll] {display}"
 
 
 def describe_mouse_scroll(action: Mapping[str, Any]) -> str:
