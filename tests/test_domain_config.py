@@ -1,7 +1,7 @@
 import unittest
 
 from keyseq.domain.config import (
-    DEFAULT_CONFIG,
+    build_base_config,
     copy_keymap_optional_keys,
     coerce_key_name,
     coerce_label,
@@ -350,7 +350,7 @@ class EnsureConfigCompatibilityTest(unittest.TestCase):
     def test_empty_input_returns_defaults(self):
         config = ensure_config_compatibility({})
         self.assertEqual(config["triggers"], [])
-        self.assertEqual(config["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
+        self.assertEqual(config["hotkey_presets"], build_base_config()["hotkey_presets"])
         self.assertEqual(config["hook_stop_key"], "")
         self.assertEqual(config["hook_toggle_key"], "")
         self.assertEqual(config["keyboard_layout"], "us_tkl")

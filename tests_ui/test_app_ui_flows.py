@@ -64,6 +64,7 @@ class AppUiFlowsTest(unittest.TestCase):
         cls.app.state.reset_indices()
         cls.app.trigger_panel.refresh_triggers()
         cls.app.trigger_panel.refresh_actions()
+        cls._trigger_test_data = copy.deepcopy(cls.app.data)
 
     @classmethod
     def tearDownClass(cls):
@@ -137,11 +138,22 @@ class AppUiFlowsTest(unittest.TestCase):
         self.app.ui_vars.hook_keys_individual_var.set(False)
         self.app.toggle_hook_keys_individual()
 
+    def _prepare_trigger_list_data(self):
+        # 共有 App を変更する先行テストや既定サンプルに依存させない。
+        self.addCleanup(self.app.trigger_panel.refresh_actions)
+        self.addCleanup(self.app.trigger_panel.refresh_triggers)
+        self.enterContext(patch.object(self.app, "data", copy.deepcopy(self._trigger_test_data)))
+        self.app.state.reset_indices()
+        self.app.trigger_panel.refresh_triggers()
+        self.app.trigger_panel.refresh_actions()
+
     def test_trigger_lists_populated(self):
+        self._prepare_trigger_list_data()
         self.assertEqual(self.app.full_view.trigger_box.trigger_list.size(), 2)
         self.assertEqual(self.app.compact_view.trigger_box.trigger_list.size(), 2)
 
     def test_selection_updates_status(self):
+        self._prepare_trigger_list_data()
         self.app.trigger_panel.set_selected_trigger_index(1)
         self.assertIn("選択中: f2", self.app.ui_vars.status_var.get())
         self.app.trigger_panel.set_selected_trigger_index(0)

@@ -7,7 +7,8 @@ from typing import Any
 from keyseq.shared.i18n import tr
 
 from keyseq.domain.config import (
-    DEFAULT_CONFIG,
+    build_base_config,
+    build_sample_config,
     DEFAULT_RUN_TO_END_DELAY_MS,
     HOOK_KEY_FIELDS,
     copy_keymap_optional_keys,
@@ -60,10 +61,13 @@ class ConfigService:
         self.repository = repository
 
     def new_default_data(self) -> dict[str, Any]:
-        return safe_deepcopy(DEFAULT_CONFIG)
+        return build_sample_config()
+
+    def new_base_data(self) -> dict[str, Any]:
+        return build_base_config()
 
     def new_empty_data(self) -> dict[str, Any]:
-        data = self.new_default_data()
+        data = self.new_base_data()
         data["triggers"] = []
         data["hotkey_presets"] = []
         data["keymaps"] = []

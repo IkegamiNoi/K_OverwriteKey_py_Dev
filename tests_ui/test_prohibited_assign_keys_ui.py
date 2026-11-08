@@ -148,10 +148,16 @@ class ProhibitedAssignKeysUiTest(unittest.TestCase):
         self.assertEqual(self.app.data, before)
 
     def test_switch_validation_rejects_new_caps_but_allows_unchanged_caps(self):
+        # 対象に別の切替キーが割り当てられていない構成を用意する。
+        self.app.data = self.app.config_service.normalize_runtime_data(
+            self.app.config_service.new_base_data()
+        )
         controller = self.app.keymap_panel
         keymap = self.app.keymap_service.get_active_keymap(self.app.data)
         target_id = keymap["id"]
-        self.app.keymap_service.set_keymap_switch_key(self.app.data, "caps lock", target_id)
+        self.assertTrue(self.app.keymap_service.set_keymap_switch_key(
+            self.app.data, "caps lock", target_id
+        ))
         self.app.dirty_tracker.set_dirty(False)
         with patch("keyseq.presentation.controllers.keymap_panel.keymap_panel_controller.messagebox.showerror") as showerror:
             self.assertFalse(controller.validate_keymap_switch_assignment(

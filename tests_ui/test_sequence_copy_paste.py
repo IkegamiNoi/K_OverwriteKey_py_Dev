@@ -202,7 +202,7 @@ class ClipboardResetTest(unittest.TestCase):
         io.confirm_save_if_dirty = Mock(return_value=True)
         new_data = {"active_keymap_id": "main", "keymaps": [{"id": "main", "triggers": []}]}
         app.config_service = SimpleNamespace(
-            new_default_data=Mock(return_value=new_data),
+            new_base_data=Mock(return_value=new_data),
             apply_global_defaults=Mock(),
             normalize_runtime_data=Mock(side_effect=lambda data: data),
         )

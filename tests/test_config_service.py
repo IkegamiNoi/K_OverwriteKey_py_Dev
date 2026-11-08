@@ -20,7 +20,7 @@ from keyseq.application.save_plan import (
     ChildSaveEntry,
     SavePlan,
 )
-from keyseq.domain.config import DEFAULT_CONFIG, safe_deepcopy
+from keyseq.domain.config import build_base_config, safe_deepcopy
 from keyseq.infrastructure.json_repository import JsonRepository
 
 
@@ -95,7 +95,7 @@ class SaveLoadRoundTripTest(unittest.TestCase):
                 [strip_internal(k) for k in loaded["keymaps"]],
                 [strip_internal(k) for k in saved["keymaps"]],
             )
-            self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
+            self.assertEqual(loaded["hotkey_presets"], build_base_config()["hotkey_presets"])
             self.assertEqual(loaded["active_keymap_id"], "km1")
             self.assertEqual(loaded["keymaps"][0]["id"], "km1")
             self.assertEqual(loaded["keymap_switch_keys"], {"1": "km1"})
@@ -1428,7 +1428,7 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
                 },
             )
 
-            self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
+            self.assertEqual(loaded["hotkey_presets"], build_base_config()["hotkey_presets"])
 
     def test_readable_empty_individual_presets_prevent_global_fallback(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1504,7 +1504,7 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
             os.remove(os.path.join(root, global_path))
             self.assertEqual(
                 self._load_keymap_set(root, keymap_set)["hotkey_presets"],
-                DEFAULT_CONFIG["hotkey_presets"],
+                build_base_config()["hotkey_presets"],
             )
 
     def test_reading_outside_individual_presets_path_keeps_stored_path(self):
@@ -1586,7 +1586,7 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
 
                     loaded = self._load_keymap_set(root, {})
 
-                    self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
+                    self.assertEqual(loaded["hotkey_presets"], build_base_config()["hotkey_presets"])
                     if content is not None:
                         os.remove(presets_path)
 
@@ -1598,7 +1598,7 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
 
             loaded = self._load_keymap_set(root, {"hotkey_presets_path": legacy_path})
 
-            self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
+            self.assertEqual(loaded["hotkey_presets"], build_base_config()["hotkey_presets"])
 
     def test_legacy_default_presets_file_is_not_read_without_configured_path(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1610,7 +1610,7 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
 
             loaded = self._load_keymap_set(root, {})
 
-            self.assertEqual(loaded["hotkey_presets"], DEFAULT_CONFIG["hotkey_presets"])
+            self.assertEqual(loaded["hotkey_presets"], build_base_config()["hotkey_presets"])
 
     def test_load_global_hotkey_presets_distinguishes_readable_and_unreadable_files(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -1719,7 +1719,7 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
             os.remove(presets_path)
             self.assertEqual(
                 self._load_keymap_set(root, {})["hotkey_presets"],
-                DEFAULT_CONFIG["hotkey_presets"],
+                build_base_config()["hotkey_presets"],
             )
 
 

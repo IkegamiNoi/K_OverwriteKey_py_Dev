@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 from keyseq.application.config_service import ConfigService, split_loading
 from keyseq.application.keymap_service import KeymapService
-from keyseq.domain.config import DEFAULT_CONFIG, ensure_config_compatibility, normalize_triggers, safe_deepcopy
+from keyseq.domain.config import build_sample_config, ensure_config_compatibility, normalize_triggers, safe_deepcopy
 from keyseq.domain.keymap_triggers import (
     ensure_at_least_one_keymap,
     ensure_active_triggers,
@@ -108,13 +108,19 @@ class PerKeymapDomainTest(unittest.TestCase):
 
     def test_defaults_and_empty_data(self):
         service = ConfigService(JsonRepository())
-        self.assertEqual(len(DEFAULT_CONFIG["keymaps"]), 1)
-        self.assertEqual(DEFAULT_CONFIG["triggers"], [])
-        self.assertEqual([t["key"] for t in get_active_triggers(DEFAULT_CONFIG)], ["f1", "f2"])
+        sample = build_sample_config()
+        self.assertEqual(len(sample["keymaps"]), 3)
+        self.assertEqual(sample["triggers"], [])
+        self.assertEqual([t["key"] for t in get_active_triggers(sample)], ["r", "c", "v", "t", "a"])
         empty = service.new_empty_data()
         self.assertEqual(empty["keymaps"], [{"id": "keymap_1", "label": "", "mappings": {}, "triggers": []}])
         self.assertEqual(empty["active_keymap_id"], "keymap_1")
         self.assertEqual(empty["triggers"], [])
+        self.assertEqual(empty["keymap_switch_keys"], {})
+        self.assertEqual(empty["hotkey_presets"], [])
+        self.assertEqual(empty["hook_stop_key"], "")
+        self.assertEqual(empty["hook_toggle_key"], "")
+        self.assertFalse(empty["hook_keys_individual"])
 
 
 class PerKeymapLoadingTest(unittest.TestCase):
@@ -159,6 +165,22 @@ class PerKeymapLoadingTest(unittest.TestCase):
                 self.assertEqual([t["key"] for t in get_active_triggers(data)], expected)
                 self.assertEqual(data["_legacy_trigger_set"]["state"], state)
                 self.assertEqual(data["triggers"], [])
+                self.assertEqual(data["keymaps"][0]["mappings"], {})
+                self.assertEqual(data["keymap_switch_keys"], {})
+                self.assertEqual(data["hook_stop_key"], "")
+                self.assertEqual(data["hook_toggle_key"], "")
+                self.assertFalse(data["hook_keys_individual"])
+
+    def test_split_individual_hook_keys_missing_values_stay_empty(self):
+        path = self.write("set.json", {"hook_keys_individual": True, "keymaps": []})
+        data = self.service.load_runtime_data_from_keymap_set_path(path, config_root=self.root)
+        self.assertTrue(data["hook_keys_individual"])
+        self.assertEqual(data["hook_stop_key"], "")
+        self.assertEqual(data["hook_toggle_key"], "")
+        self.assertEqual(data["keymap_switch_keys"], {})
+        self.assertEqual(data["keymaps"], [{
+            "id": "keymap_1", "label": "", "mappings": {}, "triggers": [],
+        }])
 
     def test_import_normalization_preserves_grid_by_deep_copy(self):
         raw_grid = {"enabled": True, "sub": {"rows": 1, "cols": 2, "keys": ["F1", "F2"]}}

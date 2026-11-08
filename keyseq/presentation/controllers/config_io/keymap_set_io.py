@@ -15,7 +15,7 @@ from keyseq.application.save_plan import (
     sequence_rows,
     split_sequence_key,
 )
-from keyseq.domain.keymap_triggers import get_active_triggers, set_active_triggers, iter_trigger_sets, trigger_set_members
+from keyseq.domain.keymap_triggers import get_active_triggers, iter_trigger_sets, trigger_set_members
 from keyseq.domain.config import normalize_key_name
 from keyseq.presentation.controllers.config_io import choice_dialog
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
@@ -67,9 +67,8 @@ class KeymapSetIo:
         if clipboard is not None:
             clipboard.clear()
 
-        self._app.data = self._app.config_service.new_default_data()
+        self._app.data = self._app.config_service.new_base_data()
         self._app.config_service.apply_global_defaults(self._app.data, config_root=self._app.config_root)
-        set_active_triggers(self._app.data, [])
         self._app.data = self._app.config_service.normalize_runtime_data(self._app.data)
         self._app.dirty_tracker.reset_trigger_set_state()
         self._app.keymap_set_path = ""

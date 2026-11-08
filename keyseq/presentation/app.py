@@ -136,7 +136,7 @@ class App(tk.Tk):
             )
         self._ui_font_delta_pt = coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
-        self.data = self.config_service.new_default_data()
+        self.data = self.config_service.new_base_data()
         self.config_service.apply_global_defaults(self.data, config_root=self.config_root)
         self._key_overlap_analysis = analyze_key_overlaps(
             self.data, self.data.get(HOOK_STOP_KEY, ""), self.data.get(HOOK_TOGGLE_KEY, "")

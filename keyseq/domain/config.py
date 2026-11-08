@@ -25,64 +25,91 @@ def coerce_nonnegative_int(value: Any, default: int) -> int:
     return number
 
 
-DEFAULT_CONFIG: dict[str, Any] = {
-    "triggers": [],
-    "hotkey_presets": [
-        {"label": "Alt+Tab", "value": "alt+tab"},
-        {"label": "Win+D", "value": "windows+d"},
-        {"label": "Win+E", "value": "windows+e"},
-        {"label": "Ctrl+Shift+Esc", "value": "ctrl+shift+esc"},
-        {"label": "Win+R", "value": "windows+r"},
-        {"label": "Win+Tab", "value": "windows+tab"},
-        {"label": "Win+X", "value": "windows+x"},
-        {"label": "Alt+F4", "value": "alt+f4"},
-    ],
-    "hook_stop_key": "",
-    "hook_toggle_key": "",
-    "hook_keys_individual": False,
-    "hotkey_presets_individual": False,
-    "select_before_run": False,
-    "hotkey_presets_path": "",
-    "keyboard_layout": DEFAULT_KEYBOARD_LAYOUT_ID,
-    "keyboard_show_physical_key_labels": False,
-    "debug_jis_special_key_events": False,
-    "external_keyboard_layouts": [],
-    "keymaps": [{
-        "id": "keymap_1", "label": "", "mappings": {},
-        "triggers": [
-            {
-                "key": "f1",
-                "suppress": True,
-                "label": "",
-                "run_to_end": False,
-                "select_before_run": False,
-                "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
-                "actions": [
-                    {"type": "hotkey", "value": "ctrl+c"},
-                    {"type": "hotkey", "value": "alt+tab"},
-                    {"type": "hotkey", "value": "ctrl+tab"},
-                    {"type": "hotkey", "value": "ctrl+c"},
-                    {"type": "hotkey", "value": "f2"},
-                    {"type": "text", "value": "sample_text"},
-                ],
-            },
-            {
-                "key": "f2",
-                "suppress": True,
-                "label": "",
-                "run_to_end": False,
-                "select_before_run": False,
-                "run_to_end_delay_ms": DEFAULT_RUN_TO_END_DELAY_MS,
-                "actions": [
-                    {"type": "text", "value": "sequence_1"},
-                    {"type": "hotkey", "value": "ctrl+v"},
-                ],
-            },
+def build_base_config() -> dict[str, Any]:
+    return {
+        "triggers": [],
+        "hotkey_presets": [
+            {"label": "Alt+Tab", "value": "alt+tab"},
+            {"label": "Win+D", "value": "windows+d"},
+            {"label": "Win+E", "value": "windows+e"},
+            {"label": "Ctrl+Shift+Esc", "value": "ctrl+shift+esc"},
+            {"label": "Win+R", "value": "windows+r"},
+            {"label": "Win+Tab", "value": "windows+tab"},
+            {"label": "Win+X", "value": "windows+x"},
+            {"label": "Alt+F4", "value": "alt+f4"},
         ],
-    }],
-    "active_keymap_id": "keymap_1",
-    "keymap_switch_keys": {},
-}
+        "hook_stop_key": "",
+        "hook_toggle_key": "",
+        "hook_keys_individual": False,
+        "hotkey_presets_individual": False,
+        "select_before_run": False,
+        "hotkey_presets_path": "",
+        "keyboard_layout": DEFAULT_KEYBOARD_LAYOUT_ID,
+        "keyboard_show_physical_key_labels": False,
+        "debug_jis_special_key_events": False,
+        "external_keyboard_layouts": [],
+        "keymaps": [{"id": "keymap_1", "label": "", "mappings": {}, "triggers": []}],
+        "active_keymap_id": "keymap_1",
+        "keymap_switch_keys": {},
+    }
+
+
+def _sample_trigger(
+    key: str, name: str, values: list[str], *, action_type: str = "hotkey",
+    run_to_end: bool = False, delay_ms: int = DEFAULT_RUN_TO_END_DELAY_MS,
+) -> dict[str, Any]:
+    return {
+        "key": key,
+        "label": tr(f"sample.sequence.{name}"),
+        "suppress": True,
+        "select_before_run": False,
+        "run_to_end": run_to_end,
+        "run_to_end_delay_ms": delay_ms,
+        "actions": [{"type": action_type, "value": value} for value in values],
+    }
+
+
+def build_sample_config() -> dict[str, Any]:
+    data = build_base_config()
+    data.update(hook_keys_individual=True, hook_stop_key="f12", hook_toggle_key="f1")
+    data["keymaps"] = [
+        {
+            "id": "keymap_1", "label": tr("sample.keymap.shortcuts"), "mappings": {},
+            "triggers": [
+                _sample_trigger(
+                    "r", "select_line", ["home", "shift+end"], run_to_end=True, delay_ms=30,
+                ),
+                _sample_trigger("c", "copy", ["ctrl+c"]),
+                _sample_trigger("v", "paste", ["ctrl+v"]),
+                _sample_trigger("t", "switch_app", ["alt+tab"]),
+                _sample_trigger(
+                    "a", "paste_line_to_app",
+                    ["home", "shift+end", "ctrl+c", "alt+tab", "ctrl+v", "alt+tab"],
+                    run_to_end=True, delay_ms=300,
+                ),
+            ],
+        },
+        {
+            "id": "keymap_2", "label": tr("sample.keymap.right_hand"),
+            "mappings": dict(zip("qwertasdfzxc", "poiuylkjhmnb")),
+            "triggers": [_sample_trigger(
+                "h", "right_hand_guide", [tr("sample.guide.right_hand")], action_type="text",
+            )],
+        },
+        {
+            "id": "keymap_3", "label": tr("sample.keymap.numpad"),
+            "mappings": {
+                "z": "0", "x": "1", "c": "2", "v": "3", "a": "plus", "q": "-",
+                "s": "4", "d": "5", "f": "6", "w": "7", "e": "8", "r": "9",
+                "b": "enter", "g": "asterisk", "t": "slash",
+            },
+            "triggers": [_sample_trigger(
+                "h", "numpad_guide", [tr("sample.guide.numpad")], action_type="text",
+            )],
+        },
+    ]
+    data["keymap_switch_keys"] = {"1": "keymap_1", "2": "keymap_2", "3": "keymap_3"}
+    return data
 
 
 def normalize_key_name(value: str) -> str:
@@ -237,7 +264,7 @@ def _migrate_legacy_triggers(config: dict[str, Any]) -> None:
 def _normalize_general_settings(config: dict[str, Any]) -> None:
     raw_presets = config.get("hotkey_presets")
     if not isinstance(raw_presets, list):
-        config["hotkey_presets"] = safe_deepcopy(DEFAULT_CONFIG["hotkey_presets"])
+        config["hotkey_presets"] = build_base_config()["hotkey_presets"]
     else:
         config["hotkey_presets"] = normalize_hotkey_presets(raw_presets)
 

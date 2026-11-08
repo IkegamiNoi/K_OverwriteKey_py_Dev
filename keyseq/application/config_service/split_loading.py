@@ -101,7 +101,7 @@ def _build_runtime_data_from_keymap_set(
     *,
     config_root: str,
 ) -> dict[str, Any]:
-    runtime = service.new_default_data()
+    runtime = service.new_base_data()
     runtime.update(keymaps=[], triggers=[], active_keymap_id="")
 
     for key in (

@@ -48,6 +48,42 @@ _SPLIT_BASE_DIR_CHOICE_KWARGS = {
     "default": "nearby",
     "cancel": "default",
 }
+
+
+def _legacy_default_data():
+    """HEAD 時点の DEFAULT_CONFIG を独立したデータとして返す。"""
+    return {
+        "triggers": [],
+        "hotkey_presets": [
+            {"label": label, "value": value}
+            for label, value in (
+                ("Alt+Tab", "alt+tab"), ("Win+D", "windows+d"),
+                ("Win+E", "windows+e"), ("Ctrl+Shift+Esc", "ctrl+shift+esc"),
+                ("Win+R", "windows+r"), ("Win+Tab", "windows+tab"),
+                ("Win+X", "windows+x"), ("Alt+F4", "alt+f4"),
+            )
+        ],
+        "hook_stop_key": "", "hook_toggle_key": "", "hook_keys_individual": False,
+        "hotkey_presets_individual": False, "select_before_run": False,
+        "hotkey_presets_path": "", "keyboard_layout": "us_tkl",
+        "keyboard_show_physical_key_labels": False,
+        "debug_jis_special_key_events": False, "external_keyboard_layouts": [],
+        "keymaps": [{
+            "id": "keymap_1", "label": "", "mappings": {},
+            "triggers": [
+                {"key": "f1", "suppress": True, "label": "", "run_to_end": False,
+                 "select_before_run": False, "run_to_end_delay_ms": 300,
+                 "actions": [{"type": "hotkey", "value": value} for value in (
+                     "ctrl+c", "alt+tab", "ctrl+tab", "ctrl+c", "f2"
+                 )] + [{"type": "text", "value": "sample_text"}]},
+                {"key": "f2", "suppress": True, "label": "", "run_to_end": False,
+                 "select_before_run": False, "run_to_end_delay_ms": 300,
+                 "actions": [{"type": "text", "value": "sequence_1"},
+                             {"type": "hotkey", "value": "ctrl+v"}]},
+            ],
+        }],
+        "active_keymap_id": "keymap_1", "keymap_switch_keys": {},
+    }
 from keyseq.shared.i18n import fix_language
 
 fix_language("ja")
@@ -114,6 +150,11 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         cls.app.destroy()
 
     def setUp(self):
+        self._legacy_default_patch = patch.object(
+            self.app.config_service, "new_default_data", side_effect=_legacy_default_data
+        )
+        self._legacy_default_patch.start()
+        self.addCleanup(self._legacy_default_patch.stop)
         self._history_record_patch = patch.object(
             app_module.ConfigService, "record_keymap_set_history", return_value=(True, "")
         )
@@ -607,16 +648,56 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
     # ===================== A: new_config / import / export / restore =====================
     def test_new_config_confirm_false_early_return(self):
         with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=False), patch.object(
-            self.app.config_service, "new_default_data"
+            self.app.config_service, "new_base_data"
         ) as new_default:
             _config_set_io(self.app).new_config()
             new_default.assert_not_called()
+
+    def test_new_config_uses_base_and_global_hook_keys(self):
+        with tempfile.TemporaryDirectory() as root:
+            self.app.config_root = root
+            self.app.config_service.save_startup(
+                os.path.join(root, "config.json"),
+                {"hook_stop_key": "f10", "hook_toggle_key": "f9"},
+            )
+            patches = self._silence_refresh()
+            with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+                self.app, "_set_flash_message"
+            ), patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).new_config()
+            self.assertEqual([
+                {key: item[key] for key in ("id", "label", "mappings", "triggers")}
+                for item in self.app.data["keymaps"]
+            ], [{"id": "keymap_1", "label": "", "mappings": {}, "triggers": []}])
+            self.assertEqual(self.app.data["keymap_switch_keys"], {})
+            self.assertFalse(self.app.data["hook_keys_individual"])
+            self.assertEqual(self.app.data["hook_stop_key"], "f10")
+            self.assertEqual(self.app.data["hook_toggle_key"], "f9")
+
+    def test_restore_default_keeps_sample_hook_keys_over_global_defaults(self):
+        # このテストだけは本物のサンプル（既定データ）を使う。
+        self._legacy_default_patch.stop()
+        with tempfile.TemporaryDirectory() as root:
+            self.app.config_root = root
+            self.app.config_service.save_startup(
+                os.path.join(root, "config.json"),
+                {"hook_stop_key": "f10", "hook_toggle_key": "f9"},
+            )
+            patches = self._silence_refresh()
+            with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
+                tkinter.messagebox, "askyesno", return_value=True
+            ), patch.object(self.app, "_set_flash_message"), patches[0], patches[1], patches[2], patches[3]:
+                _config_set_io(self.app).restore_default()
+            self.assertEqual(len(self.app.data["keymaps"]), 3)
+            self.assertTrue(self.app.data["hook_keys_individual"])
+            self.assertEqual(self.app.data["hook_stop_key"], "f12")
+            self.assertEqual(self.app.data["hook_toggle_key"], "f1")
 
     def test_new_config_success(self):
         calls = []
         patches = self._silence_refresh()
         with patch.object(_config_set_io(self.app), "confirm_save_if_dirty", return_value=True), patch.object(
-            self.app.config_service, "new_default_data", return_value={"d": 1}
+            self.app.config_service, "new_base_data", return_value={"d": 1}
         ), patch.object(
             self.app.config_service, "normalize_runtime_data", side_effect=lambda d: d
         ), patch.object(self.app.dirty_tracker, "set_dirty"
@@ -689,7 +770,7 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         calls = []
         patches = self._silence_refresh()
         # 親 keymap_set の別名保存ダイアログだけを固定するため、子保存ダイアログを含む下流は意図的に迂回する。
-        with patch.object(self.app.config_service, "new_default_data", return_value={"d": 1}), patch.object(
+        with patch.object(self.app.config_service, "new_base_data", return_value={"d": 1}), patch.object(
             self.app.config_service, "normalize_runtime_data", side_effect=lambda d: d
         ), patch.object(self.app.dirty_tracker, "set_dirty"), self._record_flash(calls), patches[0], patches[1], patches[2], patches[3], patch.object(
             self.app, "suggest_keymap_set_dialog_path", return_value="default.json"
