@@ -4,21 +4,22 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-09T12:00:00
+last_updated: 2026-11-09T01:13:00
 phase: なし（アクティブなフェーズなし）。次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 73**（初回起動の Welcome とサンプルの作り直し・`decisions_archive/73_welcome_first_launch.md`）
-last_commit_location: `claude/welcome-popup-first-launch-2b70d9`。main へのマージはユーザー（PR は作らない）
+last_commit_location: `claude/gracious-brahmagupta-2e05b1`（phase 73 の本体は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 73 完了（2026-11-09）。** アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
-mode: completed
+presence: away（戻る予定 未定）
+focus: **記号キーのキー名の表示（`bar` → `|`）の検討中・方針のユーザー判断待ち（暫定 57 は未起票）。** phase 73 は 2026-11-09 完了・アクティブなフェーズなし。
+mode: blocked
 
 ## last_action
-ts: 2026-11-09T12:00:00
+ts: 2026-11-09T01:13:00
 who: main
 summary: |
-  task_08d（完了前レビューの採用分）と task_09（実機目視 OK・正本反映・暫定 56 凍結・decisions_archive/73・current.md）完了。deep-reviewer 修正要（軽微・反映済）/ codex-adversarial-reviewer 指摘なし / reviewer 採用。refactor_check = 不要。
+  記号キーのキー名の表示を調査し、記号の割り当て案を作成（コード・仕様書は未変更・暫定仕様は未起票）。/away（戻る予定 未定）のため判断待ちで引き継ぎ。テストの数値は phase 73 完了時のもの。
 verified:
   compile: pass
   tests: pass（1940・skip 7）
@@ -26,6 +27,11 @@ verified:
   smoke: pass
 
 ## next_action
+- **【ユーザー確認待ち】記号キーの表示の方針**: A（推奨）= 保存値は変えず表示だけ記号にする / B = 保存値も記号にする。A の根拠 = JSON の既存キーの意味変更の禁止（`.claude/rules/implementation.md`）・`+` は hotkey の区切りで `ctrl++` は検査でエラー（`keyseq/domain/hotkey.py:17`）。
+  - 表示箇所: キーボードUIの置換の枠 `keyboard_window.py:462` / トリガー一覧 `domain/config.py:460` / 出力シーケンス一覧 `domain/config.py:511`・`domain/key_hold.py:129`。**未確認 = キーマップ編集のキー置換一覧・切替 / 停止 / トグルキーの欄**（起票前に調べる）
+  - 割り当て案: backslash `\`・slash `/`・semicolon `;`・comma `,`・period `.`・equal `=`・grave / quoteleft `` ` ``・apostrophe / quoteright `'`・bracketleft `[`・bracketright `]`・at `@`・asciicircum `^`・bar `|`・underscore `_`・plus `+`・asterisk `*`・colon `:`・less `<`・greater `>`・question `?`・asciitilde `~`・exclam `!`・quotedbl `"`・numbersign `#`・dollar `$`・percent `%`・ampersand `&`・parenleft `(`・parenright `)`・braceleft `{`・braceright `}`
+  - 併せて確認（推奨）: ①hotkey の中の `+` `,` は単語のまま（`ctrl+plus`）・単独キーなら `+` ②レイアウトの `key_display_names` を記号の表より優先（`keyboard_layouts.py:30`）③入力欄は保存値のまま・記号は一覧と枠だけ
+  - 方針が決まったら: 未確認箇所を調べて `/spec_draft`（暫定 57）。別件 = 記録された `period` / `comma` 等がフックの `.` / `,` と一致しない問題（`key_input.md:143`・idea_45・発火の可否は未検証）は表示だけの方針では直らない
 - ブランチ `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 - 次フェーズはユーザー判断で `/phase_start`（予定 = Mac 対応）
 

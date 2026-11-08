@@ -15,8 +15,8 @@
 
 ## 再開手順
 1. `.claude_data/state/session.md` を読む（最重要・最新状態）
-2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 72 = 画面の文言の多言語対応は 2026-11-04 完了〕・次フェーズはユーザー判断で `/phase_start`。予定 = Mac 対応）。
-   次採番 = phase 73 / 暫定 56 / decisions 73 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
+2. `instructions/phase/current.md` を読む（**アクティブなフェーズ = なし**〔phase 73 = 初回起動の Welcome は 2026-11-09 完了〕・次フェーズはユーザー判断で `/phase_start`。予定 = Mac 対応）。
+   次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57（暫定 47 は idea_53 で保留中の番号）
 3. CLAUDE.md → `.claude/rules/` の順に必要分を読む。
    **`.claude/` 配下または `CLAUDE.md` を編集するなら、先に `.claude_data/modes/README.md` を読む**
 4. 過去の判断は `.claude_data/state/decisions.md`「アーカイブ索引」→ `decisions_archive/<phase>.md`。
@@ -24,8 +24,8 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜55）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 72 完了（2026-11-04）。** 日英の切り替え（メニュー「Language」・次回起動から反映・「今すぐ再起動」）・全層の文言のキー化・英語の表記 E1〜E7・一覧の行頭の印の統一まで入り、正本反映・暫定 55 凍結・refactor_check 不要。アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
-ブランチ `claude/ui-text-length-english-style-f5ba4e`（task_11b〜12。それ以前の phase 72 は `claude/multilingual-support-ff44eb`）。main へのマージはユーザー（PR は作らない）。
+**記号キーのキー名の表示（`bar` → `|`）の検討中・方針のユーザー判断待ち（暫定 57 は未起票）。** phase 73 は 2026-11-09 完了・アクティブなフェーズなし。presence: away（戻る予定 未定）は再開時に session.md から消してよい。
+ブランチ `claude/gracious-brahmagupta-2e05b1`（phase 73 の本体は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
 ```bash
@@ -35,9 +35,9 @@
 ../../../.venv/Scripts/python.exe -m unittest discover -s tests_ui
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
-直近の実測（**phase 72 完了時 = 2026-11-04**）:
-compile **clean** / tests **1909 pass**（skip 7）/ tests_ui **1238 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1867〔phase 71〕→ 1909 / tests_ui: 1210 → 1238）。
+直近の実測（**phase 73 完了時 = 2026-11-09**）:
+compile **clean** / tests **1940 pass**（skip 7）/ tests_ui **1266 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1909〔phase 72〕→ 1940 / tests_ui: 1238 → 1266）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,6 +55,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
+- **【ユーザー確認待ち】記号キーの表示の方針**: A（推奨）= 保存値は変えず表示だけ記号にする / B = 保存値も記号にする。割り当て案・根拠の `ファイル:行`・併せて確認する 3 点は session.md の next_action。決まったら未確認の表示箇所を調べて `/spec_draft`（暫定 57）
 - 次フェーズはユーザー判断（`/phase_start`。予定 = Mac 対応 / 3 言語目以降は idea_56）
 - 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」/ main へのマージはユーザー
 
@@ -145,7 +146,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
   **heredoc で書いた行は LF になる**（CRLF のファイルへ差し込んだら `sed -i 's/\r$//; s/$/\r/'` で揃える）。
 - レビュアーは 2 本立て: `reviewer`（sonnet・単一タスクの差分）/ `deep-reviewer`（opus・設計文書/統合/完了判定）。
 - 完了フェーズの詳細・判断は `decisions.md`「アーカイブ索引」+ `decisions_archive/<phase>.md` が正
-  （直近 3 件: 72_multilingual_ui / 71_taskbar_status_icon / 70_help_window）。
+  （直近 3 件: 73_welcome_first_launch / 72_multilingual_ui / 71_taskbar_status_icon）。
 - 新規の未着手: **idea_54**（押下だけのキーで IME が切り替わった件・再発時）/ **idea_53**（**保留・優先度 低**・暫定 47 v0.2）/ **idea_48**（取得中のフック再開）/ idea_50 は phase 66 で完了 / idea_51 は phase 65 で完了 / idea_45（取得の記号キーの名前）/ idea_44（カーソルグリッドの配色・題は旧称「画面の枠」のまま＝着手時に直す）。モデル ID の更新は `/model_update`（系統ごとに版が独立・稼働側とモード変種を揃える）。未着手/保留 idea: **idea_39**（一部取り込み済・残り = 直前のトリガーの廃止ほか）/ **idea_37**（カウンター条件分岐）/ idea_36（共通トリガー層・現時点で不要）/
   idea_29〜idea_31 / idea_11 / idea_03 / idea_09（いずれも低）/ idea_04・idea_06（保留）。
   別タスク化候補に「同型スケルトンの共通化」（単純な `bind("<Escape>", destroy)` 等）/ M4（`_apply_initial_focus` の位置・保留）/
