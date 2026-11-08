@@ -12,6 +12,7 @@ from keyseq.domain.config import (
     normalize_actions,
     normalize_hotkey_presets,
     normalize_key_name,
+    normalize_identifier,
     resolve_hook_keys_individual,
 )
 
@@ -29,6 +30,22 @@ class NormalizeKeyNameTest(unittest.TestCase):
                 self.assertEqual(normalize_key_name(value), "-")
         self.assertEqual(normalize_key_name("-"), "-")
         self.assertEqual(normalize_key_name("equal"), "equal")
+
+    def test_identifier_does_not_apply_key_aliases(self):
+        self.assertEqual(normalize_identifier(" MINUS "), "minus")
+
+    def test_minus_and_hyphen_keymap_ids_remain_distinct(self):
+        config = ensure_config_compatibility({
+            "keymaps": [
+                {"id": "minus", "mappings": {}},
+                {"id": "-", "mappings": {}},
+            ],
+            "active_keymap_id": "minus",
+            "keymap_switch_keys": {"f1": "minus", "f2": "-"},
+        })
+        self.assertEqual([item["id"] for item in config["keymaps"]], ["minus", "-"])
+        self.assertEqual(config["active_keymap_id"], "minus")
+        self.assertEqual(config["keymap_switch_keys"], {"f1": "minus", "f2": "-"})
 
     def test_legacy_keymap_minus_names_are_normalized(self):
         config = ensure_config_compatibility({

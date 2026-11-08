@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.domain.keymap_triggers import ensure_at_least_one_keymap, trigger_set_owner
 
 
@@ -16,22 +16,22 @@ class KeymapService:
 
     @staticmethod
     def find_keymap(data: dict[str, Any], keymap_id: str) -> dict[str, Any] | None:
-        normalized = normalize_key_name(keymap_id)
+        normalized = normalize_identifier(keymap_id)
         if not normalized:
             return None
         for keymap in KeymapService.get_keymaps(data):
-            if normalize_key_name(keymap.get("id", "")) == normalized:
+            if normalize_identifier(keymap.get("id", "")) == normalized:
                 return keymap
         return None
 
     @staticmethod
     def get_active_keymap_id(data: dict[str, Any]) -> str:
         keymaps = KeymapService.get_keymaps(data)
-        configured = normalize_key_name(data.get("active_keymap_id", ""))
+        configured = normalize_identifier(data.get("active_keymap_id", ""))
         if configured and KeymapService.find_keymap(data, configured):
             return configured
         if keymaps:
-            return normalize_key_name(keymaps[0].get("id", ""))
+            return normalize_identifier(keymaps[0].get("id", ""))
         return ""
 
     @staticmethod
@@ -49,9 +49,9 @@ class KeymapService:
     def get_trigger_set_id(data: dict[str, Any], keymap_id: str) -> str:
         keymap = KeymapService.find_keymap(data, keymap_id)
         if not keymap:
-            return normalize_key_name(keymap_id)
+            return normalize_identifier(keymap_id)
         owner = trigger_set_owner(data, str(keymap.get("id") or keymap_id))
-        return normalize_key_name(str(owner.get("id") or keymap.get("id") or ""))
+        return normalize_identifier(str(owner.get("id") or keymap.get("id") or ""))
 
     @staticmethod
     def get_active_keymap_label(data: dict[str, Any]) -> str:
@@ -61,7 +61,7 @@ class KeymapService:
         label = str(keymap.get("label") or "").strip()
         if label:
             return label
-        return normalize_key_name(keymap.get("id", ""))
+        return normalize_identifier(keymap.get("id", ""))
 
     @staticmethod
     def get_keymap_switch_keys(data: dict[str, Any]) -> dict[str, str]:
@@ -72,9 +72,9 @@ class KeymapService:
 
     @staticmethod
     def set_active_keymap_id(data: dict[str, Any], keymap_id: str) -> bool:
-        normalized = normalize_key_name(keymap_id)
+        normalized = normalize_identifier(keymap_id)
         if not normalized:
-            changed = bool(normalize_key_name(data.get("active_keymap_id", "")))
+            changed = bool(normalize_identifier(data.get("active_keymap_id", "")))
             data["active_keymap_id"] = ""
             return changed
 
@@ -110,7 +110,7 @@ class KeymapService:
     @staticmethod
     def next_keymap_id(data: dict[str, Any]) -> str:
         existing_ids = {
-            normalize_key_name(item.get("id", ""))
+            normalize_identifier(item.get("id", ""))
             for item in KeymapService.get_keymaps(data)
             if isinstance(item, dict)
         }
@@ -128,13 +128,13 @@ class KeymapService:
             data["keymap_switch_keys"] = {}
             return False, ""
 
-        target = normalize_key_name(keymap_id)
+        target = normalize_identifier(keymap_id)
         if not target:
             return False, KeymapService.get_active_keymap_id(data)
 
         target_index = None
         for index, keymap in enumerate(keymaps):
-            if normalize_key_name(keymap.get("id", "")) == target:
+            if normalize_identifier(keymap.get("id", "")) == target:
                 target_index = index
                 break
         if target_index is None:
@@ -145,15 +145,15 @@ class KeymapService:
 
         switch_keys = KeymapService.get_keymap_switch_keys(data)
         for switch_key, target_keymap_id in list(switch_keys.items()):
-            if normalize_key_name(target_keymap_id) == target:
+            if normalize_identifier(target_keymap_id) == target:
                 del switch_keys[switch_key]
 
         if not keymaps:
             data["active_keymap_id"] = ""
             return True, ""
 
-        remaining_ids = [normalize_key_name(item.get("id", "")) for item in keymaps]
-        current_active = normalize_key_name(data.get("active_keymap_id", ""))
+        remaining_ids = [normalize_identifier(item.get("id", "")) for item in keymaps]
+        current_active = normalize_identifier(data.get("active_keymap_id", ""))
         if was_active or current_active not in remaining_ids:
             fallback_index = min(target_index, len(keymaps) - 1)
             data["active_keymap_id"] = remaining_ids[fallback_index]
@@ -163,7 +163,7 @@ class KeymapService:
     @staticmethod
     def set_keymap_switch_key(data: dict[str, Any], key: str, keymap_id: str) -> bool:
         switch_key = normalize_key_name(key)
-        normalized_keymap_id = normalize_key_name(keymap_id)
+        normalized_keymap_id = normalize_identifier(keymap_id)
         if not switch_key or not normalized_keymap_id:
             return False
         if not KeymapService.find_keymap(data, normalized_keymap_id):
@@ -178,7 +178,7 @@ class KeymapService:
         if existing_switch_key and existing_switch_key != switch_key:
             return False
 
-        previous = normalize_key_name(switch_keys.get(switch_key, ""))
+        previous = normalize_identifier(switch_keys.get(switch_key, ""))
         switch_keys[switch_key] = normalized_keymap_id
         return previous != normalized_keymap_id
 
@@ -203,7 +203,7 @@ class KeymapService:
         switch_key = normalize_key_name(key)
         if not switch_key:
             return ""
-        keymap_id = normalize_key_name(KeymapService.get_keymap_switch_keys(data).get(switch_key, ""))
+        keymap_id = normalize_identifier(KeymapService.get_keymap_switch_keys(data).get(switch_key, ""))
         if not keymap_id:
             return ""
         if not KeymapService.find_keymap(data, keymap_id):
@@ -212,7 +212,7 @@ class KeymapService:
 
     @staticmethod
     def find_switch_key_for_keymap(data: dict[str, Any], keymap_id: str, *, exclude_key: str = "") -> str:
-        normalized_keymap_id = normalize_key_name(keymap_id)
+        normalized_keymap_id = normalize_identifier(keymap_id)
         excluded = normalize_key_name(exclude_key)
         if not normalized_keymap_id:
             return ""
@@ -223,7 +223,7 @@ class KeymapService:
             normalized_switch_key = normalize_key_name(str(switch_key or ""))
             if not normalized_switch_key or normalized_switch_key == excluded:
                 continue
-            if normalize_key_name(str(target_keymap_id or "")) != normalized_keymap_id:
+            if normalize_identifier(str(target_keymap_id or "")) != normalized_keymap_id:
                 continue
             return normalized_switch_key
         return ""
@@ -259,7 +259,7 @@ class KeymapService:
     def ensure_active_keymap(data: dict[str, Any]) -> dict[str, Any]:
         current = KeymapService.get_active_keymap(data)
         if isinstance(current, dict):
-            data["active_keymap_id"] = normalize_key_name(current.get("id", ""))
+            data["active_keymap_id"] = normalize_identifier(current.get("id", ""))
             mappings = current.get("mappings")
             if not isinstance(mappings, dict):
                 current["mappings"] = {}
@@ -277,13 +277,13 @@ class KeymapService:
         mappings = fallback.get("mappings")
         if not isinstance(mappings, dict):
             fallback["mappings"] = {}
-        data["active_keymap_id"] = normalize_key_name(fallback.get("id", ""))
+        data["active_keymap_id"] = normalize_identifier(fallback.get("id", ""))
         return fallback
 
     @staticmethod
     def set_mapping(data: dict[str, Any], source_key: str, target_key: str) -> tuple[str, bool]:
         keymap = KeymapService.ensure_active_keymap(data)
-        keymap_id = normalize_key_name(keymap.get("id", ""))
+        keymap_id = normalize_identifier(keymap.get("id", ""))
         source = normalize_key_name(source_key)
         target = normalize_key_name(target_key)
         mappings = keymap.setdefault("mappings", {})
@@ -304,11 +304,11 @@ class KeymapService:
         mappings = keymap.get("mappings", {})
         if not isinstance(mappings, dict):
             keymap["mappings"] = {}
-            return normalize_key_name(keymap.get("id", "")), False
+            return normalize_identifier(keymap.get("id", "")), False
 
         source = normalize_key_name(source_key)
         if source not in mappings:
-            return normalize_key_name(keymap.get("id", "")), False
+            return normalize_identifier(keymap.get("id", "")), False
 
         del mappings[source]
-        return normalize_key_name(keymap.get("id", "")), True
+        return normalize_identifier(keymap.get("id", "")), True

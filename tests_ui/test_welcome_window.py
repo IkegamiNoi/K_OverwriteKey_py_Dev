@@ -154,9 +154,13 @@ class WelcomeWindowUiTest(unittest.TestCase):
         self.assertEqual(result, WelcomeResult("ja", "us_tkl", "empty"))
 
     def test_reopen_window_hides_first_launch_sections(self):
+        self.root.deiconify()
         window = WelcomeWindow(self.root, language="ja", reopen=True)
         self.root.update()
         self.addCleanup(lambda: window.destroy() if window.winfo_exists() else None)
+        self.assertEqual(str(window.transient()), str(self.root))
+        self.assertTrue(window.winfo_viewable())
+        self.assertIs(window.grab_current(), window)
         self.assertFalse(hasattr(window, "layout_section"))
         self.assertFalse(hasattr(window, "start_section"))
         self.assertIn(tr_in("ja", "menu.file.restore_sample"),

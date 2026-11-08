@@ -12,7 +12,7 @@ from keyseq.application.save_plan import (
     SavePlan,
     SavePlanError,
 )
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier
 from keyseq.shared.i18n import tr
 from keyseq.domain.keymap_triggers import (
     INTERNAL_TRIGGER_SET_DIRTY,
@@ -131,7 +131,7 @@ class KeymapFileIo:
         )
 
     def _scope_for_keymap(self, keymap: dict) -> dict:
-        key = normalize_key_name(str(keymap.get("id") or ""))
+        key = normalize_identifier(str(keymap.get("id") or ""))
         members = trigger_set_members(self._app.data, key)
         if not any(member is keymap for member in members):
             members = [keymap]
@@ -157,10 +157,10 @@ class KeymapFileIo:
         return self._save_required_trigger_sets(runtime_data, plan, rows)
 
     def _initial_keymap_save_plan(self, runtime_data: dict, keymap: dict, path: str) -> SavePlan:
-        key = normalize_key_name(str(keymap.get("id") or ""))
+        key = normalize_identifier(str(keymap.get("id") or ""))
         entries = []
         for member in runtime_data.get("keymaps", []):
-            member_id = normalize_key_name(str(member.get("id") or ""))
+            member_id = normalize_identifier(str(member.get("id") or ""))
             if member_id != key:
                 entries.append(ChildSaveEntry(CHILD_KEYMAP, member_id, ACTION_SKIP))
                 continue
@@ -271,7 +271,7 @@ class KeymapFileIo:
 
     def _load_keymap(self, path: str) -> dict:
         used_ids = {
-            normalize_key_name(item.get("id", ""))
+            normalize_identifier(item.get("id", ""))
             for item in self._app.keymap_service.get_keymaps(self._app.data)
         }
         return self._app.config_service.load_keymap_file(

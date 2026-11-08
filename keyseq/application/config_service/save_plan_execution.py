@@ -20,7 +20,7 @@ from keyseq.application.save_plan import (
     split_sequence_key,
 )
 from keyseq.domain.keymap_triggers import iter_trigger_sets
-from keyseq.domain.config import ensure_config_compatibility, normalize_key_name, safe_deepcopy
+from keyseq.domain.config import ensure_config_compatibility, normalize_identifier, normalize_key_name, safe_deepcopy
 
 from . import split_payloads
 
@@ -50,19 +50,19 @@ def _restore_input_parent_refs(
     )
     normalized_keymaps = normalized.get("keymaps", [])
     parent_refs_by_id = {
-        normalize_key_name(keymap.get("id", "")): parent_refs
+        normalize_identifier(keymap.get("id", "")): parent_refs
         for keymap in raw_keymaps
         if isinstance(keymap, dict)
         for parent_refs in [service._normalize_parent_refs(keymap.get(service.INTERNAL_KEYMAP_PARENT_REFS))]
         if parent_refs is not None
     }
     for keymap in normalized_keymaps:
-        parent_refs = parent_refs_by_id.get(normalize_key_name(keymap.get("id", "")))
+        parent_refs = parent_refs_by_id.get(normalize_identifier(keymap.get("id", "")))
         if parent_refs is not None:
             keymap[service.INTERNAL_KEYMAP_PARENT_REFS] = parent_refs
 
     raw_groups = {
-        normalize_key_name(str(owner.get("id") or "")): triggers
+        normalize_identifier(str(owner.get("id") or "")): triggers
         for owner, _, triggers in iter_trigger_sets(data)
     }
     for owner, _, triggers in iter_trigger_sets(normalized):
@@ -409,9 +409,9 @@ def validate_save_plan(service,
     config_root: str,
 ) -> None:
     keymap_ids = {
-        normalize_key_name(item.get("id", ""))
+        normalize_identifier(item.get("id", ""))
         for item in runtime.get("keymaps", [])
-        if isinstance(item, dict) and normalize_key_name(item.get("id", ""))
+        if isinstance(item, dict) and normalize_identifier(item.get("id", ""))
     }
     sequence_keys = {item["key"] for item in payloads["sequences"]}
     trigger_set_ids = {item["key"] for item in payloads["trigger_sets"]}

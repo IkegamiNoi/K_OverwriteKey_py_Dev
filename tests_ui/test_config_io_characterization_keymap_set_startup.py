@@ -677,6 +677,11 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
     def test_restore_default_keeps_sample_hook_keys_over_global_defaults(self):
         # このテストだけは本物のサンプル（既定データ）を使う。
         self._legacy_default_patch.stop()
+        self.app.data.update({
+            "keyboard_layout": "jis",
+            "external_keyboard_layouts": [{"path": "user/keylayout/jis.json"}],
+            "keyboard_show_physical_key_labels": True,
+        })
         with tempfile.TemporaryDirectory() as root:
             self.app.config_root = root
             self.app.config_service.save_startup(
@@ -692,6 +697,10 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
             self.assertTrue(self.app.data["hook_keys_individual"])
             self.assertEqual(self.app.data["hook_stop_key"], "f12")
             self.assertEqual(self.app.data["hook_toggle_key"], "f1")
+            self.assertEqual(self.app.data["keyboard_layout"], "jis")
+            self.assertEqual(self.app.data["external_keyboard_layouts"],
+                             [{"path": "user/keylayout/jis.json"}])
+            self.assertIs(self.app.data["keyboard_show_physical_key_labels"], True)
 
     def test_new_config_success(self):
         calls = []
@@ -947,6 +956,11 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ask_save.assert_not_called()
 
     def test_restore_default_yes(self):
+        self.app.data.update({
+            "keyboard_layout": "jis",
+            "external_keyboard_layouts": [{"path": "user/keylayout/jis.json"}],
+            "keyboard_show_physical_key_labels": True,
+        })
         calls = []
         patches = self._silence_refresh()
         with patch.object(tkinter.messagebox, "askyesnocancel", return_value=False), patch.object(
@@ -963,7 +977,12 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         # config.json に全体デフォルトが無いため空文字で入る。
         self.assertEqual(
             self.app.data,
-            {"d": 1, "select_before_run": False, "hook_keys_individual": False, "hook_stop_key": "", "hook_toggle_key": ""},
+            {
+                "d": 1, "select_before_run": False, "hook_keys_individual": False,
+                "hook_stop_key": "", "hook_toggle_key": "", "keyboard_layout": "jis",
+                "external_keyboard_layouts": [{"path": "user/keylayout/jis.json"}],
+                "keyboard_show_physical_key_labels": True,
+            },
         )
         self.assertEqual(set_dirty.call_args.args, (True,))
         self.assertEqual(set_dirty.call_args.kwargs, {})

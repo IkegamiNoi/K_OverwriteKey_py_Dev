@@ -93,6 +93,7 @@ from keyseq.domain.config import (
     HOOK_KEY_FIELDS,
     HOOK_STOP_KEY,
     HOOK_TOGGLE_KEY,
+    normalize_identifier,
     normalize_key_name,
     safe_deepcopy,
 )
@@ -204,7 +205,7 @@ class App(tk.Tk):
             file_line_loader=self.file_line_loader,
             on_shadowed_action=lambda action, conflicts: self.hook.show_shadowed_assignments(action, conflicts),
             can_switch_keymap=lambda keymap_id: self.state.can_switch_keymap(
-                normalize_key_name(keymap_id), self.keymap_service.get_active_keymap_id(self.data)
+                normalize_identifier(keymap_id), self.keymap_service.get_active_keymap_id(self.data)
             ),
             on_keymap_switch_blocked=lambda: self.keymap_panel.show_keymap_switch_blocked(),
             keymap_switch_in_progress=self._keymap_switch_in_progress,

@@ -11,6 +11,7 @@ from keyseq.domain.config import (
     HOOK_STOP_KEY,
     HOOK_TOGGLE_KEY,
     copy_keymap_optional_keys,
+    normalize_identifier,
     normalize_key_name,
     resolve_hook_keys_individual,
     safe_deepcopy,
@@ -224,7 +225,7 @@ def build_keymap_payloads(service,
         if not isinstance(keymap, dict):
             continue
 
-        keymap_id = normalize_key_name(keymap.get("id", ""))
+        keymap_id = normalize_identifier(keymap.get("id", ""))
         if not keymap_id:
             continue
 
@@ -421,7 +422,7 @@ def build_keymap_set_payload(service,
     if isinstance(switch_keys, dict):
         for raw_key, raw_keymap_id in switch_keys.items():
             switch_key = normalize_key_name(str(raw_key or ""))
-            keymap_id = normalize_key_name(str(raw_keymap_id or ""))
+            keymap_id = normalize_identifier(str(raw_keymap_id or ""))
             if switch_key and keymap_id and keymap_id not in switch_keys_by_id:
                 switch_keys_by_id[keymap_id] = switch_key
 
@@ -430,7 +431,7 @@ def build_keymap_set_payload(service,
         for keymap in keymaps:
             if not isinstance(keymap, dict):
                 continue
-            keymap_id = normalize_key_name(keymap.get("id", ""))
+            keymap_id = normalize_identifier(keymap.get("id", ""))
             keymap_path = keymap_paths_by_id.get(keymap_id, "")
             if not keymap_path:
                 continue
@@ -441,7 +442,7 @@ def build_keymap_set_payload(service,
                 }
             )
 
-    active_keymap_id = normalize_key_name(runtime.get("active_keymap_id", ""))
+    active_keymap_id = normalize_identifier(runtime.get("active_keymap_id", ""))
     active_keymap_path = keymap_paths_by_id.get(active_keymap_id, "")
     if not active_keymap_path and keymap_entries:
         active_keymap_path = str(keymap_entries[0].get("path") or "")
@@ -513,7 +514,7 @@ def build_keymap_file_payload(service,
     target_path: str = "",
 ) -> dict[str, Any]:
     payload = {
-        "id": normalize_key_name(keymap.get("id", "")),
+        "id": normalize_identifier(keymap.get("id", "")),
         "trigger_set_path": str(keymap.get(service.INTERNAL_TRIGGER_SET_SOURCE_PATH) or ""),
         "label": str(keymap.get("label") or "").strip(),
         "mappings": safe_deepcopy(keymap.get("mappings", {}))

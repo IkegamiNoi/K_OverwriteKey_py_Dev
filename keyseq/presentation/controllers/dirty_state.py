@@ -7,7 +7,7 @@ from keyseq.domain.keymap_triggers import (
     INTERNAL_TRIGGER_SET_IMPORTED,
 )
 from keyseq.application.save_plan import compose_sequence_key, sequence_rows
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name
 
 
 class DirtyStateTracker:
@@ -139,7 +139,7 @@ class DirtyStateTracker:
         skip_trigger_set: bool = False,
         skipped_trigger_set_ids: Iterable[str] | None = None,
     ) -> None:
-        skipped_keymaps = _normalize_keys(skipped_keymap_ids)
+        skipped_keymaps = _normalize_keys(skipped_keymap_ids, identifiers=True)
         skipped_sequences = _normalize_keys(skipped_sequence_keys)
         skipped_sets = set(skipped_trigger_set_ids or ())
         data = self._get_data()
@@ -158,13 +158,14 @@ class DirtyStateTracker:
                     trigger[self._config_service.INTERNAL_SEQUENCE_DIRTY] = False
                     trigger[self._config_service.INTERNAL_SEQUENCE_IMPORTED] = False
         for keymap in self._keymap_service.get_keymaps(data):
-            key = normalize_key_name(str(keymap.get("id") or "")) if isinstance(keymap, dict) else ""
+            key = normalize_identifier(str(keymap.get("id") or "")) if isinstance(keymap, dict) else ""
             if isinstance(keymap, dict) and key not in skipped_keymaps:
                 keymap[self._config_service.INTERNAL_KEYMAP_DIRTY] = False
                 keymap[self._config_service.INTERNAL_KEYMAP_IMPORTED] = False
 
 
-def _normalize_keys(values: Iterable[str] | None) -> set[str]:
+def _normalize_keys(values: Iterable[str] | None, *, identifiers: bool = False) -> set[str]:
     if values is None:
         return set()
-    return {normalize_key_name(str(value or "")) for value in values if normalize_key_name(str(value or ""))}
+    normalize = normalize_identifier if identifiers else normalize_key_name
+    return {normalize(str(value or "")) for value in values if normalize(str(value or ""))}

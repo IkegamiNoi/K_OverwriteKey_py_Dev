@@ -16,7 +16,7 @@ from keyseq.application.save_plan import (
     split_sequence_key,
 )
 from keyseq.domain.keymap_triggers import get_active_triggers, iter_trigger_sets, trigger_set_members
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier
 from keyseq.presentation.controllers.config_io import choice_dialog
 from keyseq.presentation.controllers.config_io.child_save_plan import build_save_plan
 from keyseq.presentation.controllers.config_io.child_save_rows import (
@@ -546,11 +546,11 @@ class KeymapSetIo:
 
     def _skipped_dirty_children(self, save_plan: SavePlan) -> tuple[list[str], list[str], list[str]]:
         skipped_keymaps = [
-            normalize_key_name(str(item.get("id") or ""))
+            normalize_identifier(str(item.get("id") or ""))
             for item in self._app.data.get("keymaps", [])
             if isinstance(item, dict)
             and bool(item.get(self._app.config_service.INTERNAL_KEYMAP_DIRTY, False))
-            and self._is_skipped(save_plan, CHILD_KEYMAP, normalize_key_name(str(item.get("id") or "")))
+            and self._is_skipped(save_plan, CHILD_KEYMAP, normalize_identifier(str(item.get("id") or "")))
         ]
         skipped_sequences = [
             entry.key for entry in save_plan.entries
@@ -621,7 +621,7 @@ class KeymapSetIo:
         legacy = self._app.data.get(ConfigService.INTERNAL_LEGACY_TRIGGER_SET, {})
         if legacy.get("state") != "migrated" or not legacy.get("auto_created"):
             return
-        keymap_id = normalize_key_name(str(legacy.get("keymap_id") or ""))
+        keymap_id = normalize_identifier(str(legacy.get("keymap_id") or ""))
         keymap = self._app.keymap_service.find_keymap(self._app.data, keymap_id)
         name = str(keymap.get("label") or "").strip() if keymap else keymap_id
         legacy_path = legacy.get("path", "")
@@ -681,8 +681,16 @@ class KeymapSetIo:
         if not messagebox.askyesno(tr("keyboard.layout.confirm_title"), tr("config_io.keymap_set.restore_prompt")):
             return
 
+        layout_settings = {
+            key: self._app.data[key]
+            for key in (
+                "keyboard_layout", "external_keyboard_layouts", "keyboard_show_physical_key_labels",
+            )
+            if key in self._app.data
+        }
         self._app.data = self._app.config_service.new_default_data()
         self._app.config_service.apply_global_defaults(self._app.data, config_root=self._app.config_root)
+        self._app.data.update(layout_settings)
         self._app.dirty_tracker.reset_trigger_set_state()
         self._app.keymap_set_path = ""
         for trigger in get_active_triggers(self._app.data):

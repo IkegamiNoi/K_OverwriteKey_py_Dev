@@ -5,7 +5,7 @@ from tkinter import filedialog, messagebox
 
 from keyseq.shared.i18n import tr
 
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.presentation.dialogs import LayoutDeleteDialog
 from keyseq.presentation.keyboard_layouts import (
     BUILTIN_LAYOUTS,
@@ -419,7 +419,7 @@ class LayoutController:
     def should_debug_special_key_event(self, event: object, resolved_key: str) -> bool:
         if not bool(self._app.data.get("debug_jis_special_key_events", False)):
             return False
-        if normalize_key_name(str(getattr(event, "event_type", "") or "")) != "down":
+        if normalize_identifier(str(getattr(event, "event_type", "") or "")) != "down":
             return False
 
         try:

@@ -8,7 +8,7 @@ from __future__ import annotations
 from copy import deepcopy
 from typing import Any
 
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier
 
 
 INTERNAL_TRIGGER_SET_DIRTY = "_trigger_set_dirty"
@@ -45,7 +45,7 @@ def iter_trigger_sets(data: dict[str, Any]):
     if not isinstance(keymaps, list):
         return
     for keymap in keymaps:
-        if not isinstance(keymap, dict) or not normalize_key_name(str(keymap.get("id") or "")):
+        if not isinstance(keymap, dict) or not normalize_identifier(str(keymap.get("id") or "")):
             continue
         triggers = keymap.get("triggers")
         if not isinstance(triggers, list):
@@ -60,11 +60,11 @@ def iter_trigger_sets(data: dict[str, Any]):
 def trigger_set_members(data: dict[str, Any], key: str | None = None) -> list[dict[str, Any]]:
     """省略時はアクティブ、指定時はそのキーマップと一覧を共有する要素を返す。"""
     target = data.get("active_keymap_id") if key is None and isinstance(data, dict) else key
-    target = normalize_key_name(str(target or ""))
+    target = normalize_identifier(str(target or ""))
     if not target:
         return []
     for _, members, _ in iter_trigger_sets(data):
-        if any(normalize_key_name(str(member.get("id") or "")) == target for member in members):
+        if any(normalize_identifier(str(member.get("id") or "")) == target for member in members):
             return members
     return []
 

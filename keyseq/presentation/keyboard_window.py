@@ -7,7 +7,7 @@ from typing import Callable
 
 from keyseq.application.keymap_service import KeymapService
 from keyseq.domain.keymap_triggers import get_active_triggers
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.make_only_keys import is_make_only_scan_code
 from keyseq.domain.numpad_keys import is_numpad_key_name
@@ -232,7 +232,7 @@ class KeyboardWindow(tk.Toplevel):
             switch_items = sorted(KeymapService.get_keymap_switch_keys(data).items(), key=lambda item: normalize_key_name(item[0]))
             for index, (raw_switch_key, raw_keymap_id) in enumerate(switch_items, start=1):
                 switch_key = normalize_key_name(str(raw_switch_key or ""))
-                keymap_id = normalize_key_name(str(raw_keymap_id or ""))
+                keymap_id = normalize_identifier(str(raw_keymap_id or ""))
                 if not switch_key or not keymap_id or not KeymapService.find_keymap(data, keymap_id):
                     continue
                 display_map[switch_key] = f"KM{index}"

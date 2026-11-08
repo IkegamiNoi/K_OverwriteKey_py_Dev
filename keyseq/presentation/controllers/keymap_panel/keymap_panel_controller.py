@@ -6,7 +6,7 @@ from tkinter import messagebox, simpledialog
 
 from keyseq.application.screen_grid_session import MonitorInfo
 from keyseq.application.key_overlap import KeyOverlapAnalysis
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.domain.keymap_triggers import INTERNAL_TRIGGER_SET_DIRTY, iter_trigger_sets, trigger_set_members
 from keyseq.domain.screen_grid import new_enabled_grid
@@ -32,14 +32,14 @@ class KeymapPanelController:
     def format_keymap_display_name(self, keymap: dict | None) -> str:
         if not isinstance(keymap, dict):
             return ""
-        keymap_id = normalize_key_name(keymap.get("id", ""))
+        keymap_id = normalize_identifier(keymap.get("id", ""))
         label = str(keymap.get("label") or "").strip()
         return label or keymap_id
 
     def format_keymap_list_entry(
         self, index: int, keymap: dict, overlap: KeyOverlapAnalysis | None = None
     ) -> str:
-        keymap_id = normalize_key_name(keymap.get("id", ""))
+        keymap_id = normalize_identifier(keymap.get("id", ""))
         marker = "> " if keymap_id and keymap_id == self._app.keymap_service.get_active_keymap_id(self._app.data) else "  "
         switch_key = self._app.keymap_service.find_switch_key_for_keymap(self._app.data, keymap_id) or "-"
         display_name = self.format_keymap_display_name(keymap)
@@ -73,7 +73,7 @@ class KeymapPanelController:
             (
                 index
                 for index, keymap in enumerate(self._app.keymap_service.get_keymaps(self._app.data))
-                if normalize_key_name(keymap.get("id", "")) == active_id
+                if normalize_identifier(keymap.get("id", "")) == active_id
             ),
             None,
         )
@@ -117,7 +117,7 @@ class KeymapPanelController:
         active_id = self._app.keymap_service.get_active_keymap_id(self._app.data)
         for index, keymap in enumerate(keymaps):
             listbox.insert(tk.END, self.format_keymap_list_entry(index, keymap, overlap))
-            keymap_id = normalize_key_name(keymap.get("id", ""))
+            keymap_id = normalize_identifier(keymap.get("id", ""))
             switch_key = self._app.keymap_service.find_switch_key_for_keymap(self._app.data, keymap_id)
             conflict = overlap.keymap_switch_conflict(keymap_id, switch_key)
             self._set_keymap_row_color(listbox, index, conflict is not None)
@@ -128,7 +128,7 @@ class KeymapPanelController:
                 (
                     index
                     for index, keymap in enumerate(keymaps)
-                    if normalize_key_name(keymap.get("id", "")) == active_id
+                    if normalize_identifier(keymap.get("id", "")) == active_id
                 ),
                 0,
             )
@@ -141,7 +141,7 @@ class KeymapPanelController:
         listbox.see(target_index)
         if select is not None and not getattr(self._app, "_compact_mode", False):
             active_index = next((index for index, row in enumerate(keymaps)
-                                 if normalize_key_name(row.get("id", "")) == active_id), 0)
+                                 if normalize_identifier(row.get("id", "")) == active_id), 0)
             select_range(listbox, *select, active=active_index)
             listbox.see(select[1])
         self.sync_keymap_manage_buttons()
@@ -211,7 +211,7 @@ class KeymapPanelController:
             return False
 
         existing_target_id = self._app.keymap_service.get_keymap_by_switch_key(self._app.data, key)
-        normalized_target_id = normalize_key_name(target_id)
+        normalized_target_id = normalize_identifier(target_id)
         excluded_key = normalize_key_name(exclude_switch_key)
         if existing_target_id and key != excluded_key:
             existing_name = self.format_keymap_display_name(self._app.keymap_service.find_keymap(self._app.data, existing_target_id)) or existing_target_id
@@ -263,7 +263,7 @@ class KeymapPanelController:
             return
 
         target = keymaps[index]
-        keymap_id = normalize_key_name(target.get("id", ""))
+        keymap_id = normalize_identifier(target.get("id", ""))
         current_label = str(target.get("label") or "").strip()
         self._app.hook.suspend_hook_for_dialog()
         try:
@@ -309,7 +309,7 @@ class KeymapPanelController:
             return
 
         target = keymaps[index]
-        target_id = normalize_key_name(target.get("id", ""))
+        target_id = normalize_identifier(target.get("id", ""))
         if target_id == self._app.keymap_service.get_active_keymap_id(self._app.data):
             if not self._app.state.can_switch_keymap(
                 target_id, self._app.keymap_service.get_active_keymap_id(self._app.data), changes_active=True
@@ -317,7 +317,7 @@ class KeymapPanelController:
                 self.show_keymap_switch_blocked()
                 self.refresh_keymap_list_ui()
                 return
-        target_name = self.format_keymap_display_name(target) or normalize_key_name(target.get("id", ""))
+        target_name = self.format_keymap_display_name(target) or normalize_identifier(target.get("id", ""))
         prompt = tr("keymap_panel.delete.confirm", name=target_name)
         if self._has_unsaved_children(target):
             prompt = tr("keymap_panel.delete.confirm_unsaved", name=target_name)
@@ -338,12 +338,12 @@ class KeymapPanelController:
 
     def _delete_keymap_confirmed(self, target: dict) -> tuple[bool, str, tuple]:
         """単件・範囲の両方から使う、確認後の削除と実行状態の後始末。"""
-        target_id = normalize_key_name(target.get("id", ""))
+        target_id = normalize_identifier(target.get("id", ""))
         trigger_set_id = self._app.keymap_service.get_trigger_set_id(self._app.data, target_id)
         members = trigger_set_members(self._app.data, target_id)
         drops_trigger_set = len(members) <= 1
         next_trigger_set_id = next(
-            (normalize_key_name(member.get("id", "")) for member in members if member is not target), "",
+            (normalize_identifier(member.get("id", "")) for member in members if member is not target), "",
         )
         discarded = ()
         if target_id == self._app.keymap_service.get_active_keymap_id(self._app.data):
@@ -368,7 +368,7 @@ class KeymapPanelController:
         return True, next_active_id, discarded
 
     def _has_unsaved_children(self, keymap: dict, *, deleting_members: bool = False) -> bool:
-        keymap_id = normalize_key_name(keymap.get("id", ""))
+        keymap_id = normalize_identifier(keymap.get("id", ""))
         members = trigger_set_members(self._app.data, keymap_id)
         if len(members) > 1 and not deleting_members:
             return False
@@ -397,7 +397,7 @@ class KeymapPanelController:
             return
 
         target = keymaps[index]
-        target_id = normalize_key_name(target.get("id", ""))
+        target_id = normalize_identifier(target.get("id", ""))
         if not target_id:
             messagebox.showerror(tr("keymap_panel.edit.error_title"), tr("keymap_panel.edit.not_found"))
             return
@@ -480,7 +480,7 @@ class KeymapPanelController:
         new_grid_enabled: bool | None = None, new_grid_shapes: dict | None = None,
         preferred_index: int | None = None,
     ) -> bool:
-        keymap_id = normalize_key_name(keymap.get("id", ""))
+        keymap_id = normalize_identifier(keymap.get("id", ""))
         if not keymap_id:
             return False
 
@@ -568,7 +568,7 @@ class KeymapPanelController:
         preferred_index: int | None = None,
         show_flash: bool = True,
     ) -> bool:
-        target_id = normalize_key_name(keymap_id)
+        target_id = normalize_identifier(keymap_id)
         if not target_id:
             return False
         active_before = self._app.keymap_service.get_active_keymap_id(self._app.data)
@@ -578,7 +578,7 @@ class KeymapPanelController:
             return False
         discarded = self._app.sequence_runner.discard_paused() if target_id != active_before else ()
         if target_id != active_before and any(
-            normalize_key_name(item.get("id", "")) == target_id
+            normalize_identifier(item.get("id", "")) == target_id
             for item in self._app.keymap_service.get_keymaps(self._app.data)
         ):
             self._app.sequence_runner.cancel_pending_waits()
@@ -593,7 +593,7 @@ class KeymapPanelController:
         if preferred_index is None:
             keymaps = self._app.keymap_service.get_keymaps(self._app.data)
             preferred_index = next(
-                (index for index, keymap in enumerate(keymaps) if normalize_key_name(keymap.get("id", "")) == target_id),
+                (index for index, keymap in enumerate(keymaps) if normalize_identifier(keymap.get("id", "")) == target_id),
                 None,
             )
 

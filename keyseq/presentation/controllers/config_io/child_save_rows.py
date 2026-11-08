@@ -14,7 +14,7 @@ from keyseq.application.save_plan import (
     sequence_rows,
 )
 from keyseq.domain.keymap_triggers import iter_trigger_sets, INTERNAL_TRIGGER_SET_DIRTY
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier
 from keyseq.presentation.child_kind_labels import parent_kind_label
 from keyseq.shared.i18n import tr
 
@@ -110,7 +110,7 @@ def default_action_for(share_state) -> str:
 def _migrated_keymap_id(data, config_service) -> str:
     legacy = data.get(config_service.INTERNAL_LEGACY_TRIGGER_SET, {})
     return (
-        normalize_key_name(str(legacy.get("keymap_id") or ""))
+        normalize_identifier(str(legacy.get("keymap_id") or ""))
         if legacy.get("state") == "migrated"
         else ""
     )
@@ -128,7 +128,7 @@ def _append_keymap_save_rows(
             source_path = str(keymap.get(config_service.INTERNAL_KEYMAP_SOURCE_PATH) or "").strip()
             if not keymap.get(config_service.INTERNAL_KEYMAP_DIRTY, False) and source_path:
                 continue
-            key = normalize_key_name(str(keymap.get("id") or ""))
+            key = normalize_identifier(str(keymap.get("id") or ""))
             target_path = targets.get((CHILD_KEYMAP, key))
             if not key or not target_path:
                 continue
@@ -152,7 +152,7 @@ def _append_trigger_set_save_rows(
     migration_source_path, keymap_set_path, config_service, config_root,
 ) -> None:
     for owner, _, triggers in iter_trigger_sets(data):
-        owner_id = normalize_key_name(str(owner.get("id") or ""))
+        owner_id = normalize_identifier(str(owner.get("id") or ""))
         if not owner_id:
             continue
         owner_name = str(owner.get("label") or owner_id)

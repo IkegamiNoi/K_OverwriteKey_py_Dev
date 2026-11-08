@@ -107,6 +107,18 @@ class OrphanScanTest(unittest.TestCase):
             self.assertEqual(self._states(self._scan(root, scan_dirs=[outside])),
                              {child: ORPHAN_REFERENCED})
 
+    def test_sample_set_references_user_child_without_expanding_candidates(self):
+        with tempfile.TemporaryDirectory() as root:
+            child = "user/keymaps/extra.json"
+            unused = "user/keymaps/unused.json"
+            self._save(root, child, {"mappings": {}})
+            self._save(root, unused, {"mappings": {}})
+            self._save(root, "sample/keymap_sets/sample.json", {"keymaps": [child]})
+            self._save(root, "sample/keymaps/unused.json", {"mappings": {}})
+            self.assertEqual(self._states(self._scan(root)), {
+                child: ORPHAN_REFERENCED, unused: ORPHAN_CANDIDATE,
+            })
+
     def test_multiple_sets_reference_children_and_second_level_sequences(self):
         with tempfile.TemporaryDirectory() as root:
             expected = {}

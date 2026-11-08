@@ -27,8 +27,11 @@ class WelcomeWindow(tk.Toplevel):
         self.protocol("WM_DELETE_WINDOW", self._finish)
         self.bind("<Escape>", self._finish)
         self._build_content()
-        # The root is withdrawn; passing it would make this window transient.
-        grab_modal(self, focus=self.start_button)
+        if reopen:
+            grab_modal(self, self.master, focus=self.start_button)
+        else:
+            # The root is withdrawn during first launch.
+            grab_modal(self, focus=self.start_button)
 
     def _text(self, key: str) -> str:
         return tr_in(self.language, f"welcome.{key}")

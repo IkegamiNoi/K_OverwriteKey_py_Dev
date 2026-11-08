@@ -4,7 +4,7 @@ from dataclasses import dataclass
 from types import MappingProxyType
 from typing import Any, Literal, Mapping
 
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name
 
 
 OverlapWinner = Literal["stop", "toggle", "switch"]
@@ -40,7 +40,7 @@ class KeyOverlapAnalysis:
         return self._trigger_conflicts_by_key.get(normalized)
 
     def keymap_switch_conflict(self, keymap_id: str, key: str) -> AssignmentConflict | None:
-        normalized_id = normalize_key_name(keymap_id)
+        normalized_id = normalize_identifier(keymap_id)
         normalized_key = normalize_key_name(key)
         return self._switch_conflicts_by_assignment.get((normalized_id, normalized_key))
 
@@ -55,7 +55,7 @@ def analyze_key_overlaps(
     """Resolve loaded key overlaps once for routing, validation, notices, and list styling."""
     keymaps = _valid_keymaps(runtime)
     active = _active_keymap(runtime, keymaps)
-    active_id = normalize_key_name(active.get("id", "")) if active else ""
+    active_id = normalize_identifier(active.get("id", "")) if active else ""
     stop = normalize_key_name(stop_key)
     toggle = normalize_key_name(toggle_key)
     all_triggers, all_trigger_keys, active_trigger_keys = _collect_triggers(keymaps, active_id)
@@ -124,13 +124,13 @@ def _valid_keymaps(runtime: dict[str, Any]) -> list[dict[str, Any]]:
     keymaps = runtime.get("keymaps") if isinstance(runtime, dict) else None
     if not isinstance(keymaps, list):
         return []
-    return [item for item in keymaps if isinstance(item, dict) and normalize_key_name(item.get("id", ""))]
+    return [item for item in keymaps if isinstance(item, dict) and normalize_identifier(item.get("id", ""))]
 
 
 def _active_keymap(runtime: dict[str, Any], keymaps: list[dict[str, Any]]) -> dict[str, Any] | None:
-    active_id = normalize_key_name(runtime.get("active_keymap_id", ""))
+    active_id = normalize_identifier(runtime.get("active_keymap_id", ""))
     return next(
-        (item for item in keymaps if normalize_key_name(item.get("id", "")) == active_id),
+        (item for item in keymaps if normalize_identifier(item.get("id", "")) == active_id),
         keymaps[0] if keymaps else None,
     )
 
@@ -142,7 +142,7 @@ def _collect_triggers(
     all_keys: set[str] = set()
     active_keys: set[str] = set()
     for keymap in keymaps:
-        is_active = normalize_key_name(keymap.get("id", "")) == active_id
+        is_active = normalize_identifier(keymap.get("id", "")) == active_id
         triggers = keymap.get("triggers")
         if not isinstance(triggers, list):
             continue
@@ -168,16 +168,16 @@ def _collect_sources(keymaps: list[dict[str, Any]], active_id: str) -> tuple[set
         sources = {normalize_key_name(str(source or "")) for source in mappings}
         sources.discard("")
         all_sources.update(sources)
-        if normalize_key_name(keymap.get("id", "")) == active_id:
+        if normalize_identifier(keymap.get("id", "")) == active_id:
             active_sources.update(sources)
     return all_sources, active_sources
 
 
 def _collect_switches(runtime: dict[str, Any], keymaps: list[dict[str, Any]]) -> tuple[dict[str, str], dict[str, str]]:
-    valid_ids = {normalize_key_name(item.get("id", "")) for item in keymaps}
+    valid_ids = {normalize_identifier(item.get("id", "")) for item in keymaps}
     labels = {
-        normalize_key_name(item.get("id", "")): str(item.get("label") or "").strip()
-        or normalize_key_name(item.get("id", ""))
+        normalize_identifier(item.get("id", "")): str(item.get("label") or "").strip()
+        or normalize_identifier(item.get("id", ""))
         for item in keymaps
     }
     raw_switches = runtime.get("keymap_switch_keys") if isinstance(runtime, dict) else None
@@ -186,7 +186,7 @@ def _collect_switches(runtime: dict[str, Any], keymaps: list[dict[str, Any]]) ->
     switches: dict[str, str] = {}
     for raw_key, raw_target in raw_switches.items():
         key = normalize_key_name(str(raw_key or ""))
-        target_id = normalize_key_name(str(raw_target or ""))
+        target_id = normalize_identifier(str(raw_target or ""))
         if key and target_id in valid_ids:
             switches[key] = target_id
     return switches, labels

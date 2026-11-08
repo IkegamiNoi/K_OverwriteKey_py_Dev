@@ -17,7 +17,7 @@ from keyseq.application.save_plan import (
     sequence_rows,
 )
 from keyseq.domain.keymap_triggers import iter_trigger_sets
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier
 from keyseq.shared.i18n import tr
 
 
@@ -114,7 +114,7 @@ def _sequence_keys(data: dict[str, Any]) -> list[str]:
 def _unique_normalized_keys(values) -> list[str]:
     result: list[str] = []
     for value in values:
-        key = normalize_key_name(str(value or ""))
+        key = normalize_identifier(str(value or ""))
         if key and key not in result:
             result.append(key)
     return result

@@ -104,6 +104,8 @@ def _collect_source_paths(
     missing_dirs: list[str] = []
     default_dir = os.path.join(os.path.abspath(config_root), "user", "keymap_sets")
     paths = _list_json_files(service, default_dir, config_root, unreadable_sources)
+    sample_dir = os.path.join(os.path.abspath(config_root), "sample", "keymap_sets")
+    paths.extend(_list_json_files(service, sample_dir, config_root, unreadable_sources))
     for value in (startup_keymap_set_path, current_keymap_set_path):
         stored_path = str(value or "").strip()
         if stored_path:

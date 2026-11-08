@@ -3,7 +3,7 @@
 import tkinter as tk
 from tkinter import messagebox
 
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier
 from keyseq.domain.keymap_triggers import iter_trigger_sets
 from keyseq.domain.list_editing import move_block
 from keyseq.presentation.list_clipboard import CLIP_KEYMAPS
@@ -45,7 +45,7 @@ class KeymapListEditFlow:
             return
         bounds = selected_range(box)
         anchor = int(box.index(tk.ANCHOR))
-        key = normalize_key_name(keymaps[index].get("id", ""))
+        key = normalize_identifier(keymaps[index].get("id", ""))
         active = self._app.keymap_service.get_active_keymap_id(self._app.data)
         if key != active and not self._panel.activate_keymap_by_id(
             key, preferred_index=index, show_flash=False
@@ -64,7 +64,7 @@ class KeymapListEditFlow:
         drag = getattr(box, "keymap_range_drag", None)
         active = self._app.keymap_service.get_active_keymap_id(self._app.data)
         for index, row in enumerate(self._app.keymap_service.get_keymaps(self._app.data)):
-            if normalize_key_name(row.get("id", "")) == active and drag is not None:
+            if normalize_identifier(row.get("id", "")) == active and drag is not None:
                 # This list's underline follows the active keymap, even on rollback.
                 drag._original_active = index
                 break
@@ -101,7 +101,7 @@ class KeymapListEditFlow:
             messagebox.showerror(tr("keymap_panel.delete.error_title"), tr("keymap_panel.delete.all"))
             return
         active = self._app.keymap_service.get_active_keymap_id(self._app.data)
-        if any(normalize_key_name(row.get("id", "")) == active for row in targets):
+        if any(normalize_identifier(row.get("id", "")) == active for row in targets):
             if not self._app.state.can_switch_keymap(active, active, changes_active=True):
                 self._panel.show_keymap_switch_blocked()
                 self._panel.refresh_keymap_list_ui()

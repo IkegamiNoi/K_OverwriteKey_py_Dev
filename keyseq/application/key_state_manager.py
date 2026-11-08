@@ -3,7 +3,7 @@ from __future__ import annotations
 import threading
 from typing import Iterable
 
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.domain.numpad_keys import is_numpad_key_name, numpad_name_from_event
 
 
@@ -64,7 +64,7 @@ class KeyStateManager:
         if not key:
             return
 
-        event_type = normalize_key_name(str(getattr(event, "event_type", "")))
+        event_type = normalize_identifier(str(getattr(event, "event_type", "")))
         if event_type == "down":
             self.key_down(key)
         elif event_type == "up":

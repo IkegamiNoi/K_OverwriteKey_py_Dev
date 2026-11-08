@@ -5,7 +5,7 @@ from dataclasses import dataclass
 from typing import Any, Callable
 
 from keyseq.application.key_overlap import AssignmentConflict, KeyOverlapAnalysis
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.domain.key_hold import MODIFIER_KEY_NAMES
 from keyseq.domain.numpad_keys import is_numpad_key_name, numpad_name_from_event
 
@@ -91,7 +91,7 @@ class InputRouter:
         if not switching and self._get_hook_pause_count() > 0:
             return InputRoute()
 
-        event_type = normalize_key_name(str(getattr(event, "event_type", "")))
+        event_type = normalize_identifier(str(getattr(event, "event_type", "")))
         key = self._extract_key_name(event) if event_type == "down" else ""
         repeat = event_type == "down" and self._key_state_manager.is_pressed(key)
         self._key_state_manager.handle_event(event)
@@ -121,7 +121,7 @@ class InputRouter:
         if not custom_enabled:
             return InputRoute()
 
-        direct_keymap_id = normalize_key_name(self._find_keymap_switch_target(key))
+        direct_keymap_id = normalize_identifier(self._find_keymap_switch_target(key))
         if direct_keymap_id:
             if self._keymap_switch_in_progress is not None:
                 self._keymap_switch_in_progress.set()

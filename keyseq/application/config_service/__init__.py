@@ -16,6 +16,7 @@ from keyseq.domain.config import (
     coerce_label,
     coerce_nonnegative_int,
     ensure_config_compatibility,
+    normalize_identifier,
     normalize_actions,
     normalize_key_name,
     safe_deepcopy,
@@ -532,9 +533,9 @@ class ConfigService:
         raw_keymap: dict[str, Any],
         used_keymap_ids: set[str],
     ) -> str:
-        preferred = coerce_key_name(raw_keymap.get("id"))
+        preferred = normalize_identifier(raw_keymap.get("id")) if isinstance(raw_keymap.get("id"), str) else ""
         if not preferred:
-            preferred = normalize_key_name(os.path.splitext(os.path.basename(stored_path))[0])
+            preferred = normalize_identifier(os.path.splitext(os.path.basename(stored_path))[0])
         if not preferred:
             preferred = "keymap"
 

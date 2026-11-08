@@ -20,7 +20,7 @@ from keyseq.domain.keymap_triggers import (
     get_active_triggers, iter_trigger_sets, set_active_triggers, trigger_set_owner,
     trigger_set_members,
 )
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier
 from keyseq.shared.i18n import tr
 from keyseq.presentation.controllers.config_io.child_save_rows import collect_child_save_rows
 from keyseq.presentation.controllers.config_io.save_target_snapshot import (
@@ -154,7 +154,7 @@ class TriggerSetFileIo:
 
     def _collect_sequence_save_plan(self, path: str) -> SavePlan | None:
         owner = trigger_set_owner(self._app.data)
-        owner_id = normalize_key_name(str(owner.get("id") or ""))
+        owner_id = normalize_identifier(str(owner.get("id") or ""))
         if not owner_id:
             return SavePlan()
         scoped_data = {**self._app.data, "keymaps": [owner], "active_keymap_id": owner_id}

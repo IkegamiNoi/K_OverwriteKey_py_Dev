@@ -5,7 +5,7 @@ from __future__ import annotations
 from typing import Any
 
 from keyseq.application.key_overlap import analyze_key_overlaps
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier, normalize_key_name
 from keyseq.domain.key_identifiers import is_prohibited_assign_key
 from keyseq.shared.i18n import tr
 
@@ -21,14 +21,14 @@ def validate_switch_batch(
     """Return the first invalid row (zero-based), or ``None`` when all pass."""
     completed_runtime = _runtime_with_new_keymaps(runtime, new_keymaps)
     analysis = analyze_key_overlaps(completed_runtime, stop_key, toggle_key)
-    target_ids = {normalize_key_name(keymap_id) for keymap_id in row_keymap_ids}
+    target_ids = {normalize_identifier(keymap_id) for keymap_id in row_keymap_ids}
     external_switches = _external_switches(completed_runtime, target_ids)
     current_switches = _current_switches(runtime)
     normalized_keys: list[str] = []
 
     for index, raw_key in enumerate(row_keys):
         key = normalize_key_name(raw_key)
-        keymap_id = normalize_key_name(
+        keymap_id = normalize_identifier(
             row_keymap_ids[index] if index < len(row_keymap_ids) else ""
         )
         current_key = current_switches.get(keymap_id, "")
@@ -55,9 +55,9 @@ def _current_switches(runtime: dict[str, Any]) -> dict[str, str]:
     if not isinstance(raw_switches, dict):
         return {}
     return {
-        normalize_key_name(str(keymap_id or "")): normalize_key_name(str(key or ""))
+        normalize_identifier(str(keymap_id or "")): normalize_key_name(str(key or ""))
         for key, keymap_id in raw_switches.items()
-        if normalize_key_name(str(keymap_id or ""))
+        if normalize_identifier(str(keymap_id or ""))
     }
 
 
@@ -77,18 +77,18 @@ def _external_switches(runtime: dict[str, Any], target_ids: set[str]) -> dict[st
         return {}
     keymaps = runtime.get("keymaps")
     names = {
-        normalize_key_name(keymap.get("id", "")): str(keymap.get("label") or "").strip()
-        or normalize_key_name(keymap.get("id", ""))
+        normalize_identifier(keymap.get("id", "")): str(keymap.get("label") or "").strip()
+        or normalize_identifier(keymap.get("id", ""))
         for keymap in keymaps
         if isinstance(keymap, dict)
     } if isinstance(keymaps, list) else {}
     return {
         normalize_key_name(str(raw_key or "")): names.get(
-            normalize_key_name(str(target_id or "")), normalize_key_name(str(target_id or ""))
+            normalize_identifier(str(target_id or "")), normalize_identifier(str(target_id or ""))
         )
         for raw_key, target_id in raw_switches.items()
         if normalize_key_name(str(raw_key or ""))
-        and normalize_key_name(str(target_id or "")) not in target_ids
+        and normalize_identifier(str(target_id or "")) not in target_ids
     }
 
 

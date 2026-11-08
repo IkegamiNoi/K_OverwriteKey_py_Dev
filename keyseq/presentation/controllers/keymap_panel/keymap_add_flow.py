@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from keyseq.application.keymap_switch_batch import validate_switch_batch
-from keyseq.domain.config import normalize_key_name
+from keyseq.domain.config import normalize_identifier
 from keyseq.domain.keymap_triggers import duplicate_keymap, keymap_trigger_list
 from keyseq.domain.screen_grid import new_enabled_grid
 from keyseq.domain.list_editing import numbered_labels
@@ -38,7 +38,7 @@ class KeymapAddFlow:
             if not self._run_batch("new", candidates):
                 return
             created = candidates[0]
-        keymap_id = normalize_key_name(created.get("id", ""))
+        keymap_id = normalize_identifier(created.get("id", ""))
         self._app._set_flash_message(tr("keymap_panel.added", keymap_id=keymap_id))
 
     def add_imported_keymap(self, keymap: dict) -> bool:
@@ -106,7 +106,7 @@ class KeymapAddFlow:
         return [
             (tr("keymap_panel.add.existing") if row_kind == "existing" else _kind_row_labels()[row_kind],
              self._keymap_panel.format_keymap_display_name(keymap)
-             or normalize_key_name(keymap.get("id", "")),
+             or normalize_identifier(keymap.get("id", "")),
              str(keymap.get("label") or ""), "")
             for row_kind, keymaps in (("existing", missing), (kind, new_keymaps))
             for keymap in keymaps
@@ -159,5 +159,5 @@ class KeymapAddFlow:
             keymaps = []
             self._app.data["keymaps"] = keymaps
         if not keymaps:
-            self._app.data["active_keymap_id"] = normalize_key_name(keymap.get("id", ""))
+            self._app.data["active_keymap_id"] = normalize_identifier(keymap.get("id", ""))
         keymaps.append(keymap)

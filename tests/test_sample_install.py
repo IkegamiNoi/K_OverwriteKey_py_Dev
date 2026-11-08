@@ -7,6 +7,7 @@ from unittest.mock import patch
 from keyseq.application.config_service import ConfigService
 from keyseq.application.config_service.sample_install import SAMPLE_DIR, sample_keymap_set_path
 from keyseq.infrastructure.json_repository import JsonRepository
+from keyseq.shared.i18n import current_language, fix_language, tr
 
 
 class SampleInstallTest(unittest.TestCase):
@@ -71,6 +72,45 @@ class SampleInstallTest(unittest.TestCase):
         before = self.snapshot()
         self.assertEqual(self.install().status, "existing")
         self.assertEqual(self.snapshot(), before)
+
+    def test_sample_round_trip_preserves_settings_and_localized_labels(self):
+        self.addCleanup(fix_language, current_language())
+        sequence_names = (
+            "select_line", "copy", "paste", "switch_app", "paste_line_to_app",
+        )
+        for language in ("ja", "en"):
+            with self.subTest(language=language), tempfile.TemporaryDirectory() as directory:
+                fix_language(language)
+                root = Path(directory) / "config"
+                result = self.service.install_sample(
+                    config_root=str(root), keyboard_layout_id="jis",
+                    external_layout_path="user/keylayout/jis.json",
+                )
+                self.assertEqual(result.status, "written", result.error)
+                loaded = self.service.load_runtime_data_from_keymap_set_path(
+                    str(root / "sample/keymap_sets/sample.json"), config_root=str(root),
+                )
+                self.assertEqual(len(loaded["keymaps"]), 3)
+                self.assertEqual(loaded["active_keymap_id"], "keymap_1")
+                self.assertEqual([item["id"] for item in loaded["keymaps"]],
+                                 ["keymap_1", "keymap_2", "keymap_3"])
+                self.assertEqual([item["key"] for item in loaded["keymaps"][0]["triggers"]],
+                                 ["r", "c", "v", "t", "a"])
+                self.assertIs(loaded["hook_keys_individual"], True)
+                self.assertEqual(loaded["hook_stop_key"], "f12")
+                self.assertEqual(loaded["hook_toggle_key"], "f1")
+                self.assertEqual(loaded["keyboard_layout"], "jis")
+                self.assertEqual(loaded["external_keyboard_layouts"],
+                                 [{"path": "user/keylayout/jis.json"}])
+                for keymap, name in zip(loaded["keymaps"], ("shortcuts", "right_hand", "numpad")):
+                    self.assertEqual(keymap["label"], tr(f"sample.keymap.{name}"))
+                self.assertEqual(
+                    [item["label"] for item in loaded["keymaps"][0]["triggers"]],
+                    [tr(f"sample.sequence.{name}") for name in sequence_names],
+                )
+                for keymap, name in zip(loaded["keymaps"][1:], ("right_hand", "numpad")):
+                    self.assertEqual(keymap["triggers"][0]["label"],
+                                     tr(f"sample.sequence.{name}_guide"))
 
     def test_existing_sample_is_not_written(self):
         self.assertEqual(self.install().status, "written")

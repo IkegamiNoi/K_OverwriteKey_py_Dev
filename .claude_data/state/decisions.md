@@ -644,3 +644,9 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 
 ### 【task_05 前】Welcome を出さない入口 = main.py の引数（2026-11-09・ユーザー判断・暫定 56 v0.5）
 - 暫定 56 §3 の「環境変数」を、`main.py` から `App(first_launch_welcome=True)` で渡す形へ（既定は出さない）。`App()` を直接作る 56 の tests_ui ファイルと smoke を変えずに済み、手元の `config/config.json` の有無にも左右されないため。
+
+### 【task_08 二次レビュー】deep-reviewer 修正要（高 1・中 6・低 6）/ codex-reviewer P2 1 件 → ユーザー 2026-11-09「推奨どおり」
+- 修正（task_08a）: 復元で配列（keyboard_layout・external_keyboard_layouts）を保つ / 再表示の Welcome は本体を親にした modal / minus の読み替えをキーの名前だけに絞る（id・ファイル名・event_type に効かせない・Codex P2）/ 書き出し → 読込の通しのテスト / 孤児の掃除の参照元に `config/sample/keymap_sets/` / phase.md の古い記述。
+- 目視（task_09）: 送ったキーの拾い直し（num の c → 2 等・案内文の F1 / F12 の数字。拾うなら案内文から数字を除く）/ JIS の記号キーの名前。
+- 受容（正本に明記）: 空で始めた配列は保存しないと次の起動で US TKL / 初回の Welcome のヘルプは元の言語 / 書き出したサンプルの読込失敗は知らせない / 用語 = メニュー「Welcome を表示」・窓の題名「ようこそ」・再表示のボタン「閉じる」。
+- 対応しない（参考）: app.py のサンプルのパスの直書き・open_welcome_again の置き場・警告に status の生の値。

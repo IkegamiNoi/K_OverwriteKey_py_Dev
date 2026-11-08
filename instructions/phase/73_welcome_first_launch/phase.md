@@ -12,7 +12,7 @@
 新規依存なし・JSON スキーマ不変**（既定データの中身・書き出し先 `config/sample/`・JIS の配列ファイルの名前が変わる）。
 
 - 起票元: ユーザー要望（2026-11-08・idea は起票しない＝ユーザー指示）。
-- 主入力（暫定仕様）: [56_welcome_first_launch.md](../../history/56_welcome_first_launch.md)（v0.4・ユーザー確定済 2026-11-08）。
+- 主入力（暫定仕様）: [56_welcome_first_launch.md](../../history/56_welcome_first_launch.md)（v0.5・ユーザー確定済 2026-11-08・v0.5 は 2026-11-09）。
 - モード: **暫定仕様先行モード**。番号対応: phase 73 / 暫定 56 / decisions 73。
 
 ## 確定（ユーザー 2026-11-08）
@@ -31,7 +31,7 @@
 ### 含む
 
 - 暫定 56 §3〜§8 の全部（初回の判定と起動の流れ・Welcome の窓・サンプル・JIS の配列ファイル・空で始める・ヘルプからの再表示・minus の修正）
-- Welcome を出さない入口（環境変数）と、smoke / tests_ui への適用
+- Welcome を出すかは `main.py` から `App` の引数で渡す（v0.5。既定は出さない＝smoke / tests_ui は不変）
 - 既定データの F1 / F2 を前提にしたテスト・見本の `jis.json` を参照するテストとヘルプの本文の追従
 
 ### 含まない（後送り）
@@ -64,6 +64,7 @@
 - task_06: Welcome の窓（初回）— Language（その場で切り替え）・キーボード配列（言語への追従）・基本的な使い方・始め方・「ヘルプを開く」（Welcome の子）/「はじめる」・× / Esc（§4）・言語ファイルの文言（日英）+ tests_ui。
 - task_07: ヘルプからの再表示 — メニュー「Welcome を表示」・始め方と配列を除く・`tr_in` で全体の言語を変えない・言語の変更は再起動の知らせ・子のヘルプ（§7）+ tests_ui。
 - task_08: 統合確認 — tests / tests_ui / smoke・二次レビュー（deep-reviewer + codex-reviewer）。
+- task_08a: 二次レビューの採用分の修正（復元で配列を保つ・再表示の modal の親・minus の読み替えをキーの名前だけに・書き出し → 読込の通しのテスト・孤児の掃除の参照元に config/sample・ユーザー判断 2026-11-09）。
 - task_09: 実機目視（初回の Welcome・サンプルでの試行・JIS 表示）・正本反映（暫定 56 §12: features §4.6 / data_schema / ui_terms / codebase_map）・暫定 56 凍結・decisions_archive/73・current.md 完了記載（次採番 phase 74 / 暫定 57 / decisions 74 の明記）・`/refactor_check`。
 
 ## レビュー方針

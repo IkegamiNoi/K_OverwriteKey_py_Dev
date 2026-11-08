@@ -117,6 +117,10 @@ def normalize_key_name(value: str) -> str:
     return _KEY_NAME_ALIASES.get(normalized, normalized)
 
 
+def normalize_identifier(value: str) -> str:
+    return (value or "").strip().lower()
+
+
 def coerce_key_name(value: Any) -> str:
     return normalize_key_name(value) if isinstance(value, str) else ""
 
@@ -364,7 +368,7 @@ def _normalize_keymaps(
         for item in raw_keymaps:
             if not isinstance(item, dict):
                 continue
-            keymap_id = coerce_key_name(item.get("id"))
+            keymap_id = normalize_identifier(item.get("id")) if isinstance(item.get("id"), str) else ""
             if not keymap_id or keymap_id in seen_keymap_ids:
                 continue
             normalized_mappings = _normalize_keymap_mappings(item.get("mappings"))
@@ -383,7 +387,8 @@ def _normalize_keymaps(
 
 
 def _select_active_keymap_id(config: dict[str, Any], keymap_ids: list[str]) -> str:
-    active_keymap_id = coerce_key_name(config.get("active_keymap_id", ""))
+    raw_active_keymap_id = config.get("active_keymap_id", "")
+    active_keymap_id = normalize_identifier(raw_active_keymap_id) if isinstance(raw_active_keymap_id, str) else ""
     if active_keymap_id and active_keymap_id not in keymap_ids:
         active_keymap_id = ""
     if not active_keymap_id and keymap_ids:
@@ -400,7 +405,7 @@ def _normalize_keymap_switch_keys(
     if isinstance(raw_keymap_switch_keys, dict):
         for raw_key, raw_keymap_id in raw_keymap_switch_keys.items():
             switch_key = normalize_key_name(str(raw_key or ""))
-            keymap_id = coerce_key_name(raw_keymap_id)
+            keymap_id = normalize_identifier(raw_keymap_id) if isinstance(raw_keymap_id, str) else ""
             if not switch_key or not keymap_id:
                 continue
             if keymap_id not in keymap_ids:

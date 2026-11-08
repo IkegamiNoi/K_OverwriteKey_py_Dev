@@ -53,6 +53,20 @@ class DirtyStateTrackerTest(unittest.TestCase):
         self.assertTrue(target[self.config_service.INTERNAL_KEYMAP_DIRTY])
         self.assertTrue(self.tracker.has_individual_dirty())
 
+    def test_skipped_keymap_id_minus_does_not_skip_hyphen_id(self):
+        self.data["keymaps"] = [
+            {"id": "minus", "mappings": {}, "triggers": []},
+            {"id": "-", "mappings": {}, "triggers": []},
+        ]
+        self.data["active_keymap_id"] = "minus"
+        for keymap in self.data["keymaps"]:
+            self.tracker.mark_keymap_dirty(keymap)
+
+        self.tracker.clear_individual_dirty_flags(skipped_keymap_ids=["minus"])
+
+        self.assertIs(self.data["keymaps"][0][self.config_service.INTERNAL_KEYMAP_DIRTY], True)
+        self.assertIs(self.data["keymaps"][1][self.config_service.INTERNAL_KEYMAP_DIRTY], False)
+
     def test_clear_individual_dirty_flags_resets_internal_keys(self):
         self.tracker.mark_trigger_set_dirty()
         self.tracker.trigger_set_imported = True
