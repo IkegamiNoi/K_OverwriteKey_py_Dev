@@ -85,7 +85,6 @@ class ConfigService:
     def new_empty_data(self) -> dict[str, Any]:
         data = self.new_base_data()
         data["triggers"] = []
-        data["hotkey_presets"] = []
         data["keymaps"] = []
         data["active_keymap_id"] = ""
         data["keymap_switch_keys"] = {}

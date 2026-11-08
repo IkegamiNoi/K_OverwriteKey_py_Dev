@@ -6,7 +6,7 @@ from unittest.mock import Mock, patch
 
 from keyseq.application.config_service import ConfigService, split_loading
 from keyseq.application.keymap_service import KeymapService
-from keyseq.domain.config import build_sample_config, ensure_config_compatibility, normalize_triggers, safe_deepcopy
+from keyseq.domain.config import build_base_config, build_sample_config, ensure_config_compatibility, normalize_triggers, safe_deepcopy
 from keyseq.domain.keymap_triggers import (
     ensure_at_least_one_keymap,
     ensure_active_triggers,
@@ -117,7 +117,7 @@ class PerKeymapDomainTest(unittest.TestCase):
         self.assertEqual(empty["active_keymap_id"], "keymap_1")
         self.assertEqual(empty["triggers"], [])
         self.assertEqual(empty["keymap_switch_keys"], {})
-        self.assertEqual(empty["hotkey_presets"], [])
+        self.assertEqual(empty["hotkey_presets"], build_base_config()["hotkey_presets"])
         self.assertEqual(empty["hook_stop_key"], "")
         self.assertEqual(empty["hook_toggle_key"], "")
         self.assertFalse(empty["hook_keys_individual"])

@@ -11,9 +11,8 @@ last_commit_location: `claude/cool-perlman-b117fd`（phase 73 の実装は `clau
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 73 完了後の単発の不具合「プリセットが編集画面を開くまで表示されない」= 原因特定済み・スペックフラグのユーザー判断待ち（コード・正本は未変更）。** アクティブなフェーズなし。
-mode: blocked
-presence: away（戻る予定 未定）
+focus: **フェーズ外の不具合「プリセットが編集画面を開くまで表示されない」を修正済み（2026-11-09）。** アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
+mode: completed
 
 ## last_action
 ts: 2026-11-09T01:13:00
@@ -21,16 +20,15 @@ who: main
 summary: |
   原因 = 空データ起動（E4・`startup_io.py:39`）で `new_empty_data()` がプリセットを `[]` にし（`config_service/__init__.py:88`）、共通プリセットが読めないと `apply_global_defaults` が置き換えない（同 `:588`）。アクション編集のボタン（`action_dialog.py:618`）は 0 件、編集画面だけ既定 8 件を表示し（`preset_manager.py:185,257`）OK で保存されて直る。
   再現 = 一時フォルダで本体 0 件 / 編集画面 8 件（報告時の環境そのものは未確認。メインの config では起きない経路）。
-  この挙動は正本 `data_schema/5_10_04_constraints.md:7-11` に明記のためスペックフラグ B として停止。
+  ユーザー判断 = A（E4 も既定プリセットに・正本 §5.10.4 改訂）。`new_empty_data` の `[]` を削除・テスト 2 件追加（codex-implementer）。reviewer 採用。実機目視は未実施。
 verified:
-  compile: not_run（コード変更なし）
-  tests: not_run（コード変更なし。phase 73 完了時 = 1940 pass・skip 7）
-  tests_ui: not_run（コード変更なし。phase 73 完了時 = 1266 pass）
-  smoke: not_run（コード変更なし）
+  compile: pass
+  tests: pass（1942・skip 7）
+  tests_ui: pass（1266。テストの import の 1 行を直す前の実測）
+  smoke: pass
 
 ## next_action
-- **【ユーザー判断待ち】空データ起動（E4）でも既定プリセットを出すよう正本を改訂して直すか。** A（推奨）= `config_service/__init__.py:88` の `[]` をやめ E4 も既定プリセットに・`data_schema/5_10_04_constraints.md:7-11` を改訂（`/spec_update`）・テスト追加 / B = 仕様のまま変更しない / C = 初回起動で共通プリセットのファイルを生成（起動時の書き込みが増え §5.10.2 と関わるので非推奨）。A の影響 = 共通プリセットが読めないときの E4 だけ（空で保存した共通プリセットは「読めた」扱いで空のまま）
-- A なら: 正本改訂 → `codex-implementer` で修正とテスト追加 → `verifier` で実測（`new_empty_data` を使う `tests/test_sample_config.py:118`・`tests/test_per_keymap_triggers_load.py:115`・`tests_ui/test_first_launch_flow.py:41` への影響を確認）→ `reviewer` → コミット
+- ブランチ `claude/cool-perlman-b117fd` の main へのマージ（ユーザー）
 - ブランチ `claude/welcome-popup-first-launch-2b70d9` の main へのマージ（ユーザー）
 - 次フェーズはユーザー判断で `/phase_start`（予定 = Mac 対応）
 
@@ -41,7 +39,7 @@ verified:
 - **ユーザーへの提示は日本語で行う**（2026-09-16 指示）。
 - **tests_ui は同時に 1 本だけ**走らせる。verifier には **`taskkill` で python.exe を一括終了しないこと**を必ず書く。
 - **画面の文言（phase 72 以降）**: 新しい文言は `keyseq/shared/i18n/locales/ja.json` と `en.json` の両方にキーを足し、ソースに日本語を書かない（静的テスト）。`tr` はモジュール定数・import 時に評価しない。`App(` を作る / 文言を assert する新しいテストモジュールは import 直後に `fix_language("ja")`。英語は `ui_terms.md` §2・§3（E1〜E7）に従う。
-- **phase 73**: 報告された不具合 2 件（プリセットが編集で開くまで表示されない / キー名の記号表記）は別セッションの提案カードに出してある（本フェーズ外）。tests_ui の窓の大きさのテスト（`test_compact_window.py:298`・`test_pane_window_width_persistence.py:236,275` の `pending`）が負荷で落ちることがある。**tests_ui の App() は worktree の `config/config.json`（ユーザーの手元の設定・gitignore）を読む**ので結果が手元の設定に左右される（task_05 の Welcome を出さない入口で考える）。Codex は python を実行できずテスト修正が手探りになる → 失敗はメインがトレースを読んで原因を絞ってから委任する。
+- **phase 73**: 報告された不具合のうち、キー名の記号表記は別セッションの提案カードに出してある（本フェーズ外）。tests_ui の窓の大きさのテスト（`test_compact_window.py:298`・`test_pane_window_width_persistence.py:236,275` の `pending`）が負荷で落ちることがある。**tests_ui の App() は worktree の `config/config.json`（ユーザーの手元の設定・gitignore）を読む**ので結果が手元の設定に左右される（task_05 の Welcome を出さない入口で考える）。Codex は python を実行できずテスト修正が手探りになる → 失敗はメインがトレースを読んで原因を絞ってから委任する。
 - **phase 71**: タスクバーのアイコンは AppUserModelID（`main.py`）が無いと出ない。`App()` を直接作る tests_ui / smoke では設定されない。
 - **`__version__`** はユーザーが直接またはユーザーの指示でだけ変更する（Claude が独断で上げない）。
 - **Codex は Python で既存ファイルを編集しようとして失敗することがある** → 依頼文に「apply_patch で編集・Python を使わない」と書く（phase 71）。

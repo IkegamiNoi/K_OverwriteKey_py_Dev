@@ -24,7 +24,7 @@
    **凍結済の暫定仕様（`instructions/history/` の 04〜46・48〜56）の条項を実装の根拠に引かない**（正本 `spec_detail/` が正。暫定 47 は保留・未確定）
 
 ## 現在の作業の 1 行サマリ
-**phase 73 完了後の単発の不具合「プリセットが編集画面を開くまで表示されない」= 原因特定済み・スペックフラグのユーザー判断待ち（コード・正本は未変更）。** アクティブなフェーズなし。
+**フェーズ外の不具合「プリセットが編集画面を開くまで表示されない」を修正済み（2026-11-09）。** アクティブなフェーズなし・次フェーズはユーザー判断（予定 = Mac 対応）。
 ブランチ `claude/cool-perlman-b117fd`（phase 73 の実装は `claude/welcome-popup-first-launch-2b70d9`）。main へのマージはユーザー（PR は作らない）。
 
 ## 最初に確認するコマンド（.venv python 必須）
@@ -36,8 +36,8 @@
 ../../../.venv/Scripts/python.exe -m tests.smoke_app
 ```
 直近の実測（**phase 73 完了時 = 2026-11-09**）:
-compile **clean** / tests **1940 pass**（skip 7）/ tests_ui **1266 pass** / smoke **pass**。
-**件数が減ったら退行を疑う**（tests: 1909〔phase 72〕→ 1940 / tests_ui: 1238 → 1266）。
+compile **clean** / tests **1942 pass**（skip 7・phase 73 後の不具合修正で +2）/ tests_ui **1266 pass** / smoke **pass**。
+**件数が減ったら退行を疑う**（tests: 1909〔phase 72〕→ 1942 / tests_ui: 1238 → 1266）。
 `tests_ui.test_compact_window`（サイズ保存のタイミング系 3 件）が全体実行時だけ落ちることがある（単独 pass・current.md「テスト負債」）。`tests_ui/test_action_dialog_control.py` の 2 件は Tk ルートを作るモジュールの後に同じプロセスで走らせると落ちる（既存の実行順依存・名前順の一括実行では落ちない・current.md「テスト負債」。例: `test_dialog_help_buttons` の後に続けて走らせると落ちる）。
 `tests_ui/test_dialog_teardown_flows.py` の t4a / t4b / t5 が全体実行で `1 != 0`（setUp のフック一時停止の数）で落ちることがある（2026-10-18 にも 1 回。単独 2 回・全体再実行 1 回で再現せず）。再発が続くなら下記の flaky 対処を当てて idea 化を検討。
 **`tests_ui` と smoke を並行実行しない・tests_ui を同時に 2 本走らせない**（複数の verifier・reviewer の UI テストを含む。フックの取り合いで止まる）。
@@ -55,8 +55,7 @@ skip 7 件は**シンボリックリンク作成の特権不足**（`WinError 13
 `ResourceWarning: unclosed file`（`tests/test_config_service.py`）。
 
 ## 次アクション（session.md.next_action より）
-- **【ユーザー判断待ち】空データ起動（E4）でも既定プリセットを出すよう正本を改訂して直すか。** 原因 = `startup_io.py:39` → `config_service/__init__.py:88` の `[]` → 共通プリセットが読めないと `:588` で置き換えない（`action_dialog.py:618` は 0 件、編集画面だけ既定 8 件 `preset_manager.py:185,257`）。正本 `data_schema/5_10_04_constraints.md:7-11` に明記の挙動。A（推奨）= `[]` をやめ E4 も既定プリセットに・正本改訂（`/spec_update`）・テスト追加 / B = 仕様のまま / C = 初回起動で共通プリセットを生成（非推奨）
-- A なら: 正本改訂 → `codex-implementer` で修正とテスト追加 → `verifier` で実測 → `reviewer` → コミット（詳細は session.md の next_action）
+- ブランチ `claude/cool-perlman-b117fd` の main へのマージ（ユーザー）
 - 次フェーズはユーザー判断（`/phase_start`。予定 = Mac 対応 / 3 言語目以降は idea_56）
 - 保留 = 提案書 26・27・phase 71 の保留 2 件・phase 72 の D5・D6 と「一覧に無い言語が保存されているときの比較」/ main へのマージはユーザー
 

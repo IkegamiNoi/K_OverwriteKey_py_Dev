@@ -1663,6 +1663,27 @@ class GlobalHotkeyPresetsLoadingTest(unittest.TestCase):
             self.assertEqual(injected_runtime["hotkey_presets"], expected_presets)
             self.assertEqual(loaded_runtime["hotkey_presets"], expected_presets)
 
+    def test_empty_data_keeps_default_presets_when_global_file_is_unreadable(self):
+        with tempfile.TemporaryDirectory() as root:
+            runtime = self.service.new_empty_data()
+
+            self.service.apply_global_defaults(runtime, config_root=root)
+
+            self.assertEqual(runtime["hotkey_presets"], build_base_config()["hotkey_presets"])
+
+    def test_empty_data_respects_readable_empty_global_presets(self):
+        with tempfile.TemporaryDirectory() as root:
+            self._save_presets(
+                root,
+                ConfigService.HOTKEY_PRESETS_RELATIVE_PATH,
+                [],
+            )
+            runtime = self.service.new_empty_data()
+
+            self.service.apply_global_defaults(runtime, config_root=root)
+
+            self.assertEqual(runtime["hotkey_presets"], [])
+
     def test_load_global_hotkey_presets_returns_empty_list_after_normalization(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = os.path.join(tmp, "config")
