@@ -35,6 +35,9 @@ from keyseq.application.save_plan import (
 from keyseq.presentation import app as app_module
 from keyseq.presentation.controllers.config_io import child_save_dialog as child_save_dialog_module
 from keyseq.presentation.controllers.config_io import choice_dialog as choice_dialog_module
+from keyseq.shared.i18n import fix_language, tr
+
+fix_language("ja")
 
 
 _SPLIT_BASE_DIR_CHOICE_KWARGS = {
@@ -84,9 +87,6 @@ def _legacy_default_data():
         }],
         "active_keymap_id": "keymap_1", "keymap_switch_keys": {},
     }
-from keyseq.shared.i18n import fix_language
-
-fix_language("ja")
 
 
 def _unexpected_trigger_set_dependency(*_args, **_kwargs):
@@ -944,6 +944,43 @@ class KeymapSetStartupCharacterizationTest(unittest.TestCase):
         ) as showerror:
             _config_set_io(self.app).export_config()
             showerror.assert_called_once_with("Export 失敗", "no")
+
+    def test_restore_default_confirmation_parents(self):
+        controller = _config_set_io(self.app)
+        original_data = self.app.data
+        for parent in (None, self.app):
+            options = {} if parent is None else {"parent": parent}
+            for save_answer in (None, False, True):
+                with self.subTest(parent=parent, save_answer=save_answer):
+                    self.app.dirty_tracker.set_dirty(True)
+                    with patch.object(tkinter.messagebox, "askyesnocancel", return_value=save_answer) as ask_save, patch.object(
+                        tkinter.messagebox, "askyesno", return_value=False
+                    ) as ask_restore, patch.object(controller, "save_keymap_set", return_value=True) as save, patch.object(
+                        controller, "save_as", return_value=True
+                    ) as save_as:
+                        if parent is None:
+                            controller.restore_default()
+                        else:
+                            controller.restore_default(parent=parent)
+                    ask_save.assert_called_once_with(
+                        tr("config_io.keymap_set.unsaved_title"),
+                        tr("config_io.keymap_set.unsaved_prompt", action=tr("config_io.keymap_set.restore_action")),
+                        **options,
+                    )
+                    if save_answer is None:
+                        ask_restore.assert_not_called()
+                    else:
+                        ask_restore.assert_called_once_with(
+                            tr("keyboard.layout.confirm_title"),
+                            tr("config_io.keymap_set.restore_prompt"), **options,
+                        )
+                    if save_answer is True:
+                        selected = save if self.app.keymap_set_path else save_as
+                        selected.assert_called_once_with(show_success_dialog=False)
+                    else:
+                        save.assert_not_called()
+                        save_as.assert_not_called()
+                    self.assertIs(self.app.data, original_data)
 
     def test_restore_default_no_does_nothing(self):
         with patch.object(tkinter.messagebox, "askyesnocancel", return_value=False) as ask_save, patch.object(

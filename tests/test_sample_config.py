@@ -97,6 +97,21 @@ class SampleConfigTest(unittest.TestCase):
                         self.assertFalse(any(char.isdigit() for char in without_function_keys))
         self.assertEqual(japanese, english)
 
+    def test_welcome_sample_copy_and_guides_reference_display_keyboard_ui(self):
+        japanese_description = tr("welcome.sample_description")
+        self.assertNotIn(" ", japanese_description)
+        for guide_name in ("right_hand", "numpad"):
+            guide = tr(f"sample.guide.{guide_name}")
+            self.assertIn(tr("view.display.title"), guide)
+            self.assertIn(tr("view.display.keyboard_ui"), guide)
+
+        fix_language("en")
+        self.assertEqual(tr("welcome.sample_settings"), "Sample Settings")
+        for guide_name in ("right_hand", "numpad"):
+            guide = tr(f"sample.guide.{guide_name}")
+            self.assertIn(tr("view.display.title"), guide)
+            self.assertIn(tr("view.display.keyboard_ui"), guide)
+
     def test_each_builder_returns_independent_nested_data(self):
         service = ConfigService(JsonRepository())
         for build in (build_base_config, build_sample_config,

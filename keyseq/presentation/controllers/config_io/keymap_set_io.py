@@ -42,13 +42,14 @@ class KeymapSetIo:
     def __init__(self, app) -> None:
         self._app = app
 
-    def confirm_save_if_dirty(self, action_name: str) -> bool:
+    def confirm_save_if_dirty(self, action_name: str, parent=None) -> bool:
         if not self._app.dirty_tracker.has_unsaved_changes():
             return True
 
         result = messagebox.askyesnocancel(
             tr("config_io.keymap_set.unsaved_title"),
             tr("config_io.keymap_set.unsaved_prompt", action=action_name),
+            **({"parent": parent} if parent is not None else {}),
         )
         if result is None:
             return False
@@ -675,10 +676,14 @@ class KeymapSetIo:
             self._app._set_flash_message(tr("config_io.keymap_set.export_failed_flash", error=e), auto_clear=False)
             messagebox.showerror(tr("config_io.keymap_set.export_failed_title"), str(e))
 
-    def restore_default(self):
-        if not self.confirm_save_if_dirty(tr("config_io.keymap_set.restore_action")):
+    def restore_default(self, parent=None):
+        dialog_options = {"parent": parent} if parent is not None else {}
+        if not self.confirm_save_if_dirty(tr("config_io.keymap_set.restore_action"), **dialog_options):
             return
-        if not messagebox.askyesno(tr("keyboard.layout.confirm_title"), tr("config_io.keymap_set.restore_prompt")):
+        if not messagebox.askyesno(
+            tr("keyboard.layout.confirm_title"), tr("config_io.keymap_set.restore_prompt"),
+            **dialog_options,
+        ):
             return
 
         layout_settings = {

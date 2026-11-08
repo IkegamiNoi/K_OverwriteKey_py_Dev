@@ -65,6 +65,7 @@
 - task_07: ヘルプからの再表示 — メニュー「Welcome を表示」・始め方と配列を除く・`tr_in` で全体の言語を変えない・言語の変更は再起動の知らせ・子のヘルプ（§7）+ tests_ui。
 - task_08: 統合確認 — tests / tests_ui / smoke・二次レビュー（deep-reviewer + codex-reviewer）。
 - task_08a: 二次レビューの採用分の修正（復元で配列を保つ・再表示の modal の親・minus の読み替えをキーの名前だけに・書き出し → 読込の通しのテスト・孤児の掃除の参照元に config/sample・ユーザー判断 2026-11-09）。
+- task_08b: 実機目視の指摘の修正（配列をドロップダウンに・日本語の折り返し・h の案内文の場所・再表示に基本的な使い方と「サンプル設定に戻す」ボタン・暫定 56 v0.6・ユーザー 2026-11-08）。
 - task_09: 実機目視（初回の Welcome・サンプルでの試行・JIS 表示）・正本反映（暫定 56 §12: features §4.6 / data_schema / ui_terms / codebase_map）・暫定 56 凍結・decisions_archive/73・current.md 完了記載（次採番 phase 74 / 暫定 57 / decisions 74 の明記）・`/refactor_check`。
 
 ## レビュー方針

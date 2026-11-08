@@ -17,6 +17,7 @@ class WelcomeWindow(tk.Toplevel):
         self.reopen = reopen
         self.language = language
         self._languages = available_languages()
+        self._layouts = (("us_tkl", "US TKL"), ("jis", "JIS"))
         self._layout_touched = False
         self.layout_var = tk.StringVar(self, value=estimate_layout_id(language))
         self.start_var = tk.StringVar(self, value="sample")
@@ -52,15 +53,8 @@ class WelcomeWindow(tk.Toplevel):
         self.language_combo.pack(side="left")
         self.language_combo.bind("<<ComboboxSelected>>", self._change_language)
         if self.reopen:
-            self.sample_restore_notice = ttk.Label(
-                self._body,
-                text=self._text("reopen.sample_restore").format(
-                    menu=tr_in(self.language, "menu.file.title"),
-                    menu_item=tr_in(self.language, "menu.file.restore_sample"),
-                ),
-                wraplength=520, justify="left",
-            )
-            self.sample_restore_notice.pack(fill="x", pady=(12, 0))
+            self._build_usage()
+            self._build_sample_settings()
         else:
             self._build_layout()
             self._build_usage()
@@ -75,14 +69,38 @@ class WelcomeWindow(tk.Toplevel):
 
     def _build_layout(self) -> None:
         self.layout_section = self._section("layout")
-        self.layout_buttons: dict[str, ttk.Radiobutton] = {}
-        for layout_id, name in (("us_tkl", "US TKL"), ("jis", "JIS")):
-            button = ttk.Radiobutton(
-                self.layout_section, text=name, value=layout_id,
-                variable=self.layout_var, command=self._touch_layout,
-            )
-            button.pack(side="left", padx=(0, 16))
-            self.layout_buttons[layout_id] = button
+        self.layout_combo = ttk.Combobox(
+            self.layout_section, state="readonly", values=[name for _, name in self._layouts],
+        )
+        self.layout_combo.current([layout_id for layout_id, _ in self._layouts].index(
+            self.layout_var.get(),
+        ))
+        self.layout_combo.pack(side="left")
+        self.layout_combo.bind("<<ComboboxSelected>>", self._touch_layout)
+
+    def _build_sample_settings(self) -> None:
+        self.sample_settings_section = self._section("sample_settings")
+        self.sample_description = ttk.Label(
+            self.sample_settings_section, text=self._text("sample_description"),
+            wraplength=520, justify="left",
+        )
+        self.sample_description.pack(anchor="w")
+        self.restore_sample_button = ttk.Button(
+            self.sample_settings_section,
+            text=tr_in(self.language, "menu.file.restore_sample"), command=self._restore_sample,
+        )
+        self.restore_sample_button.pack(anchor="w", pady=(8, 0))
+
+    def _restore_sample(self) -> None:
+        try:
+            self.master.keymap_set_io.restore_default(parent=self)
+        finally:
+            # Keep the original grab_modal destroy handler and its previous holder.
+            if self.winfo_exists() and self.winfo_viewable():
+                holder = self.grab_current()
+                if holder is None or holder is self:
+                    self.grab_set()
+                    self.restore_sample_button.focus_set()
 
     def _build_usage(self) -> None:
         self.usage_section = self._section("usage")
@@ -137,7 +155,8 @@ class WelcomeWindow(tk.Toplevel):
         self._build_content()
         self.language_combo.focus_set()
 
-    def _touch_layout(self) -> None:
+    def _touch_layout(self, _event: tk.Event) -> None:
+        self.layout_var.set(self._layouts[self.layout_combo.current()][0])
         self._layout_touched = True
 
     def _open_help(self) -> None:

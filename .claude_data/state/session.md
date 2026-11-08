@@ -4,35 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-09T08:30:00
-phase: instructions/phase/73_welcome_first_launch（主入力 = 暫定 56 v0.4・ユーザー確定済）。次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57
+last_updated: 2026-11-08T22:30:00
+phase: instructions/phase/73_welcome_first_launch（主入力 = 暫定 56 v0.6・ユーザー確定済）。次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 72**（画面の文言の多言語対応・`decisions_archive/72_multilingual_ui.md`）
 last_commit_location: `claude/welcome-popup-first-launch-2b70d9`（phase 73 起票・task_01）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01〜08a 完了（実装・統合確認・二次レビューの修正）・次は task_09（ユーザーの実機目視 → 正本反映）。
+focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01〜08b 完了（実機目視の指摘の修正まで）・次は task_09（修正箇所の再目視 → 正本反映）。
 mode: pending_review
 
 ## last_action
-ts: 2026-11-09T08:30:00
+ts: 2026-11-08T22:30:00
 who: main
 summary: |
-  task_08（統合確認）: tests / tests_ui / smoke 一式 pass・二次レビュー deep-reviewer 修正要（高 1・中 6・低 6）/ codex-reviewer P2 1 → ユーザー「推奨どおり」（decisions.md「task_08 二次レビュー」）。
-  task_08a 完了: 復元で配列を保つ・再表示の Welcome を本体の子の modal に・`normalize_identifier` 新設で minus の読み替えをキーの名前だけに（id・event_type・ファイル名由来の id は読み替えない・28 ファイル）・書き出し → 読込の通しのテスト・孤児の掃除の参照元に `config/sample/keymap_sets`。実装 = codex-delegating-implementer（Sol medium + Luna high のサブエージェント 1）。reviewer = 採用。
+  実機目視（ユーザー 2026-11-08）: 指摘 = 日本語の説明が半角空白で改行・h の案内文の「キーボード表示」が画面の名前と違う・再表示に基本的な使い方と「サンプル設定に戻す」ボタンがほしい・配列はドロップダウンに。他は問題なし（案内文の数字の拾い直し・JIS の記号キーも問題なし）。
+  ユーザー判断: 再表示の言語の確認は閉じたときのまま / 「サンプル設定に戻す」は Welcome を開いたまま実行。→ 暫定 56 v0.6（§4・§5.1・§7・§10 の 16・17）。
+  task_08b 完了: 実装 = codex-delegating-implementer（Sol medium + Luna high のサブエージェント 1）。reviewer = 採用（参考: 再表示で言語を変えた状態の確認ダイアログは全体の言語のまま）。
 result_files:
-  - keyseq/domain/{config,keymap_triggers}.py / keyseq/application/{input_router,key_overlap,key_state_manager,keymap_service,keymap_switch_batch}.py / keyseq/application/config_service/{__init__,orphan_scan,save_plan_execution,split_payloads}.py
-  - keyseq/presentation/{app,keyboard_window}.py / welcome/welcome_window.py / controllers/{dirty_state,layout_controller}.py / controllers/config_io/{child_save_plan,child_save_rows,keymap_file_io,keymap_set_io,trigger_set_file_io}.py / controllers/keymap_panel/{keymap_add_flow,keymap_list_edit,keymap_panel_controller}.py
-  - tests/{test_dirty_state,test_domain_config,test_orphan_scan,test_sample_install}.py / tests_ui/{test_config_io_characterization_keymap_set_startup,test_welcome_window}.py
+  - instructions/history/56_welcome_first_launch.md / instructions/phase/73_welcome_first_launch/{phase.md,tasks/task_08b_visual_check_fixes.md}
+  - keyseq/presentation/welcome/welcome_window.py / keyseq/presentation/controllers/config_io/keymap_set_io.py / keyseq/shared/i18n/locales/{ja,en}.json
+  - tests/test_sample_config.py / tests_ui/{test_config_io_characterization_keymap_set_startup,test_welcome_window}.py
 verified:
   compile: pass
-  tests: pass（1939・skip 7）
-  tests_ui: pass（1262）
+  tests: pass（1940・skip 7）
+  tests_ui: pass（1266）
   smoke: pass
 
 ## next_action
-- task_09: ユーザーの実機目視（チェックリストは 2026-11-09 の応答。初回は config/config.json を退避して `main.py` で起動）→ 結果で案内文の数字・JIS の記号キーを判断 → 正本反映（暫定 56 §12 + decisions「task_08 二次レビュー」の受容項目）・暫定 56 凍結・decisions_archive/73・current.md 完了記載（次採番 phase 74 / 暫定 57 / decisions 74）・`/refactor_check`
-- 以降 task_03〜09 は phase.md の順（ユーザーはタスクの連続実行を許可済 2026-11-08）
+- task_09: ユーザーの再目視（配列のドロップダウン・説明の折り返し・h の案内文・再表示の使い方と「サンプル設定に戻す」）→ 正本反映（暫定 56 §12 + v0.6 の項目 + decisions「task_08 二次レビュー」の受容項目）・暫定 56 凍結・decisions_archive/73・current.md 完了記載（次採番 phase 74 / 暫定 57 / decisions 74）・`/refactor_check`・完了前レビュー（deep-reviewer + codex-adversarial-reviewer）
 - main へのマージはユーザー（PR は作らない）
 
 ## blockers

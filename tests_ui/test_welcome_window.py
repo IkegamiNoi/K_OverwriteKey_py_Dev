@@ -5,6 +5,7 @@ import unittest
 from unittest.mock import patch
 
 from keyseq.presentation.help.help_content import HelpContent, HelpLoadResult
+from keyseq.presentation.modal import grab_modal
 from keyseq.presentation.welcome.first_launch import run_first_launch_welcome
 from keyseq.presentation.welcome.welcome_result import WelcomeResult, estimate_layout_id
 from keyseq.presentation.welcome.welcome_window import WelcomeWindow
@@ -35,12 +36,27 @@ class WelcomeWindowUiTest(unittest.TestCase):
         window.language_combo.event_generate("<<ComboboxSelected>>")
         self.root.update()
 
+    def _layout(self, window, layout_id):
+        window.layout_combo.current([code for code, _ in window._layouts].index(layout_id))
+        window.layout_combo.event_generate("<<ComboboxSelected>>")
+        self.root.update()
+
+    def _reopen(self):
+        self.root.deiconify()
+        window = WelcomeWindow(self.root, language="ja", reopen=True)
+        self.root.update()
+        self.addCleanup(lambda: window.destroy() if window.winfo_exists() else None)
+        return window
+
     def test_initial_choices_and_modal_visibility_with_withdrawn_root(self):
         for language in ("ja", "en"):
             with self.subTest(language=language):
                 window = self._window(language)
                 self.assertEqual(window.language, language)
                 self.assertEqual(window.layout_var.get(), estimate_layout_id(language))
+                self.assertEqual(window.layout_combo.get(), "JIS" if language == "ja" else "US TKL")
+                self.assertEqual(str(window.layout_combo.cget("state")), "readonly")
+                self.assertEqual(tuple(window.layout_combo.cget("values")), ("US TKL", "JIS"))
                 self.assertEqual(window.start_var.get(), "sample")
                 self.assertEqual(window.language_combo.get(), dict(window._languages)[language])
                 self.assertEqual(str(window.transient()), "")
@@ -74,22 +90,26 @@ class WelcomeWindowUiTest(unittest.TestCase):
         window = self._window()
         self._language(window, "en")
         self.assertEqual(window.layout_var.get(), "us_tkl")
+        self.assertEqual(window.layout_combo.get(), "US TKL")
         self._language(window, "ja")
         self.assertEqual(window.layout_var.get(), "jis")
+        self.assertEqual(window.layout_combo.get(), "JIS")
         # Even selecting the already selected layout counts as touching it.
-        window.layout_buttons["jis"].invoke()
+        self._layout(window, "jis")
         self._language(window, "en")
         self.assertEqual(window.layout_var.get(), "jis")
-        window.layout_buttons["us_tkl"].invoke()
+        self.assertEqual(window.layout_combo.get(), "JIS")
+        self._layout(window, "us_tkl")
         self._language(window, "ja")
         self.assertEqual(window.layout_var.get(), "us_tkl")
+        self.assertEqual(window.layout_combo.get(), "US TKL")
 
     def test_all_close_routes_confirm_current_choices(self):
         for close in ("button", "protocol", "escape"):
             with self.subTest(close=close):
                 window = self._window()
                 self._language(window, "en")
-                window.layout_buttons["jis"].invoke()
+                self._layout(window, "jis")
                 window.start_choices["empty"].invoke()
                 if close == "button":
                     window.start_button.invoke()
@@ -140,7 +160,7 @@ class WelcomeWindowUiTest(unittest.TestCase):
                 window = next(child for child in self.root.winfo_children()
                               if isinstance(child, WelcomeWindow))
                 self._language(window, "ja")
-                window.layout_buttons["us_tkl"].invoke()
+                self._layout(window, "us_tkl")
                 window.start_choices["empty"].invoke()
                 window.start_button.invoke()
             except Exception as exc:
@@ -154,23 +174,69 @@ class WelcomeWindowUiTest(unittest.TestCase):
         self.assertEqual(result, WelcomeResult("ja", "us_tkl", "empty"))
 
     def test_reopen_window_hides_first_launch_sections(self):
-        self.root.deiconify()
-        window = WelcomeWindow(self.root, language="ja", reopen=True)
-        self.root.update()
-        self.addCleanup(lambda: window.destroy() if window.winfo_exists() else None)
+        window = self._reopen()
         self.assertEqual(str(window.transient()), str(self.root))
         self.assertTrue(window.winfo_viewable())
         self.assertIs(window.grab_current(), window)
         self.assertFalse(hasattr(window, "layout_section"))
         self.assertFalse(hasattr(window, "start_section"))
-        self.assertIn(tr_in("ja", "menu.file.restore_sample"),
-                      window.sample_restore_notice.cget("text"))
-        self.assertIn(tr_in("ja", "menu.file.title"),
-                      window.sample_restore_notice.cget("text"))
+        self.assertTrue(window.usage_section.winfo_exists())
+        self.assertFalse(hasattr(window, "sample_restore_notice"))
+        for language in ("ja", "en"):
+            self._language(window, language)
+            self.assertEqual(window.usage_section.cget("text"), tr_in(language, "welcome.usage"))
+            self.assertEqual(window.sample_settings_section.cget("text"),
+                             tr_in(language, "welcome.sample_settings"))
+            self.assertEqual(window.sample_description.cget("text"),
+                             tr_in(language, "welcome.sample_description"))
+            self.assertEqual(window.sample_description.cget("wraplength"), 520)
+            self.assertEqual(window.restore_sample_button.cget("text"),
+                             tr_in(language, "menu.file.restore_sample"))
+        self._language(window, "ja")
         self.assertEqual(window.start_button.cget("text"), tr_in("ja", "welcome.close"))
         initial = self._window("ja")
         self.assertTrue(hasattr(initial, "layout_section"))
         self.assertTrue(hasattr(initial, "start_section"))
+
+    def test_restore_sample_keeps_welcome_open_and_recovers_released_grab(self):
+        self.root.deiconify()
+        self.root.update()
+        self.root.grab_set()
+        window = self._reopen()
+        with patch.object(self.root, "keymap_set_io", create=True) as controller:
+            controller.restore_default.side_effect = lambda **_kwargs: window.grab_release()
+            window.restore_sample_button.invoke()
+        controller.restore_default.assert_called_once_with(parent=window)
+        self.assertTrue(window.winfo_exists())
+        self.assertIs(window.grab_current(), window)
+        window.destroy()
+        self.assertIs(self.root.grab_current(), self.root)
+        self.root.grab_release()
+
+    def test_restore_sample_recovers_grab_after_error(self):
+        window = self._reopen()
+
+        def fail(**_kwargs):
+            window.grab_release()
+            raise RuntimeError("restore failed")
+
+        with patch.object(self.root, "keymap_set_io", create=True) as controller:
+            controller.restore_default.side_effect = fail
+            with self.assertRaisesRegex(RuntimeError, "restore failed"):
+                window._restore_sample()
+        self.assertTrue(window.winfo_exists())
+        self.assertIs(window.grab_current(), window)
+
+    def test_restore_sample_preserves_nested_modal_grab(self):
+        window = self._reopen()
+        child = tk.Toplevel(window)
+        self.root.update()
+        with patch.object(self.root, "keymap_set_io", create=True) as controller:
+            controller.restore_default.side_effect = lambda **_kwargs: grab_modal(child, window)
+            window.restore_sample_button.invoke()
+        self.assertIs(window.grab_current(), child)
+        child.destroy()
+        self.assertIs(window.grab_current(), window)
 
     def test_reopen_help_uses_app_controller(self):
         window = WelcomeWindow(self.root, language="ja", reopen=True)
