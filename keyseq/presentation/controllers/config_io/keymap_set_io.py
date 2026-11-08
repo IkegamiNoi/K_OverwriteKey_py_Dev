@@ -67,8 +67,19 @@ class KeymapSetIo:
         if clipboard is not None:
             clipboard.clear()
 
+        self._start_new_data()
+        self._app._set_flash_message(tr("config_io.keymap_set.created_flash"))
+
+    def start_empty(self, *, layout_id: str, external_layout_path: str = "") -> None:
+        self._start_new_data(layout_id=layout_id, external_layout_path=external_layout_path)
+
+    def _start_new_data(self, *, layout_id: str = "", external_layout_path: str = "") -> None:
         self._app.data = self._app.config_service.new_base_data()
         self._app.config_service.apply_global_defaults(self._app.data, config_root=self._app.config_root)
+        if layout_id:
+            self._app.data["keyboard_layout"] = layout_id
+        if external_layout_path:
+            self._app.data["external_keyboard_layouts"] = [{"path": external_layout_path}]
         self._app.data = self._app.config_service.normalize_runtime_data(self._app.data)
         self._app.dirty_tracker.reset_trigger_set_state()
         self._app.keymap_set_path = ""
@@ -81,7 +92,6 @@ class KeymapSetIo:
         self._app.trigger_panel.refresh_triggers()
         self._app.trigger_panel.refresh_actions()
         self._app.dirty_tracker.set_dirty(True)
-        self._app._set_flash_message(tr("config_io.keymap_set.created_flash"))
 
     def save_keymap_set(self, *, show_success_dialog: bool = True) -> bool:
         if not self._app.keymap_set_path:

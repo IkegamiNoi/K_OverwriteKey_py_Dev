@@ -636,3 +636,11 @@ phase 13 は記録とフェーズ完了処理まで終えて閉じているた�
 - 2026-10-24 の「多言語化で吸収（保留）」をユーザー指示で取り消し、項目 1 のみ実施。子ファイルの種別の表示名の表 4 か所を `presentation/child_kind_labels.py` へ集約（文言不変・既存テスト無変更）。
 - `child_save_dialog._kind_label` は tests_ui が参照するため import 別名で残す。orphan_sweep_text の「構成セット専用プリセット」は同ファイルに残す（提案書どおり）。
 - 多言語化のフェーズではこの表を辞書へ移す。参考の choice_dialog / hotkey_presets_io.confirm_overwrite の重複は対象外のまま。
+
+## phase 73（初回起動の Welcome とサンプルの作り直し・暫定 56）
+
+### 【task_03】起動直後の仮のデータを土台へ（2026-11-08・メイン判断・修正して採用）
+- 既定データ＝サンプルにしたため、`app.py:139` の仮のデータもサンプルになり、読込を止めた tests_ui でサンプルのフックのキーがキーの取得の検査に効いた。仮のデータは読込で上書きされるので `new_base_data()` へ（動作不変・タスク定義に追記）。
+
+### 【task_05 前】Welcome を出さない入口 = main.py の引数（2026-11-09・ユーザー判断・暫定 56 v0.5）
+- 暫定 56 §3 の「環境変数」を、`main.py` から `App(first_launch_welcome=True)` で渡す形へ（既定は出さない）。`App()` を直接作る 56 の tests_ui ファイルと smoke を変えずに済み、手元の `config/config.json` の有無にも左右されないため。

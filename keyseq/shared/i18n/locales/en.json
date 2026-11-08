@@ -1,5 +1,7 @@
 {
   "_meta": {"name":"English"},
+  "welcome.sample_failed.title": "Could not write Sample Settings",
+  "welcome.sample_failed.body": "Sample Settings could not be written. Starting with an empty Profile.\nStatus: {status}\nDetails: {error}",
   "action.type.hotkey": "Hotkey",
   "action.type.text": "Type text",
   "action.type.mouse_click": "Mouse click",

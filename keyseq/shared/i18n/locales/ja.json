@@ -1,5 +1,7 @@
 {
   "_meta": {"name": "日本語"},
+  "welcome.sample_failed.title": "サンプル設定の書き出しに失敗",
+  "welcome.sample_failed.body": "サンプル設定を書き出せなかったため、空の構成セットで始めます。\n状態: {status}\n詳細: {error}",
   "action.type.hotkey": "ホットキー",
   "action.type.text": "文字入力",
   "action.type.mouse_click": "マウスのクリック",

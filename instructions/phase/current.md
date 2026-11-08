@@ -12,7 +12,7 @@
   コードの既定データを新しいサンプル（shortcut / right key / num・停止キー F12・一時停止/再開キー F1）に作り直し、`config/sample/` へ書き出す。
   見本 `jis.json` → `jis_test.json`・全キーの JIS を `jis.json` に。minus のキー置換エラーの修正。JSON スキーマ不変。
   主入力 = [暫定 56](../history/56_welcome_first_launch.md)（v0.4・ユーザー確定済）・暫定仕様先行モード・起票元 = ユーザー要望（idea なし）。番号対応: phase 73 / 暫定 56 / decisions 73。
-  進捗: task_01〜04 完了（2026-11-09）・次 = task_05。
+  進捗: task_01〜05 完了（2026-11-09）・次 = task_06。
   **次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57**（暫定 47 は idea_53 で保留中の番号）。その後の予定 = Mac 対応。
 - 直前の完了フェーズ = [phase 72](72_multilingual_ui/phase.md)（2026-11-04・画面の文言の多言語対応〔日本語・英語・メニュー「設定」→「Language」で選び次回の起動から反映・「今すぐ再起動」可・文言は `keyseq/shared/i18n/locales/<code>.json`・ヘルプ本文は `help_<code>.json`・訳の無い文言は英語・言語の一覧は置いたファイルから・config.json の `ui_language`〔無いときは英語〕・全層の文言をキー化〔日本語は不変〕・英語の表記 E1〜E7・出力シーケンスの一覧の行頭の印は全言語共通の英語〕。暫定仕様先行モード〔暫定 55 v0.7 凍結〕・起票元 = ユーザー要望・3 言語目以降は [idea_56](../backlog/idea_56_more_ui_languages.md)・判断は [decisions_archive/72](../../.claude_data/state/decisions_archive/72_multilingual_ui.md)）。
 - その前の完了フェーズ = [phase 71](71_taskbar_status_icon/phase.md)（2026-11-01・タスクバーのアイコンで状態を表示〔窓のアイコンの右上にステータス欄のフックの 3 状態と同じ印 = 緑の円 / 赤の正方形 / 黄の棒 2 本・白い正方形の上・土台はサンプル画像をユーザーが差し替え・子窓は既定のアイコンで追従・起動時に AppUserModelID〕。暫定仕様先行モード〔暫定 54 v0.4 凍結〕・JSON スキーマ不変・起票元 = [idea_55](../backlog/idea_55_taskbar_status_icon.md)・判断は [decisions_archive/71](../../.claude_data/state/decisions_archive/71_taskbar_status_icon.md)）。

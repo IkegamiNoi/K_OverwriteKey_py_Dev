@@ -4,35 +4,35 @@
 > 通常は SubagentStop / PreCompact の自動セーブと `/save_state` の手動セーブで更新される。
 > 過去の会話履歴は参照せず、このファイルから状態を復元する。
 
-last_updated: 2026-11-09T00:30:00
+last_updated: 2026-11-09T02:30:00
 phase: instructions/phase/73_welcome_first_launch（主入力 = 暫定 56 v0.4・ユーザー確定済）。次採番 = phase 74 / 暫定 57 / decisions 74 / 提案書 28 / idea 57
 直前の完了フェーズ = **phase 72**（画面の文言の多言語対応・`decisions_archive/72_multilingual_ui.md`）
 last_commit_location: `claude/welcome-popup-first-launch-2b70d9`（phase 73 起票・task_01）。main へのマージはユーザー（PR は作らない）
 ※現在地・SHA はセッション開始時の git 実測値が正
 
 ## current
-focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01〜04 完了（minus のキー名・全キーの JIS・既定データ＝新しいサンプル・サンプルの書き出し）・次は task_05（初回の判定と起動の流れ）。
+focus: **phase 73（初回起動の Welcome とサンプルの作り直し）実装中。** task_01〜05 完了（minus・全キーの JIS・既定データ＝サンプル・サンプルの書き出し・初回の判定と起動の流れ）・次は task_06（Welcome の窓）。
 mode: implementing
 
 ## last_action
-ts: 2026-11-09T00:30:00
+ts: 2026-11-09T02:30:00
 who: main
 summary: |
-  task_04 完了: 新規 `application/config_service/sample_install.py`（`install_sample` → written / existing / incomplete / failed・`check_sample_complete`・`sample_keymap_set_path`）。既定データ（サンプル）を SavePlan の固定パス（英語のファイル名 13 + 構成セット）で `config/sample/` へ書く・子 → 構成セットの順・`save_runtime_data(write_startup_entry=False)` で config.json を書かない（既定 True）。application 限定。
-  実装 = codex-delegating-implementer（Sol medium・サブエージェントなし）。reviewer = 採用。契約テストの INTERNAL_MODULE_NAMES に sample_install をメインが追加。
-  走査の調査: orphan_scan 等の既定の走査は `config/user/` 配下のみ → `config/sample/` は孤児の対象外（修正不要）。
+  task_05 完了: `main.py` が `App(first_launch_welcome=True)`（暫定 56 v0.5・ユーザー判断 2026-11-09 = 環境変数をやめ引数で渡す・既定は出さない＝tests_ui / smoke 不変）。
+  `app.py`: パス決定直後に初回の判定と withdraw・テーマの後に `_prepare_first_launch`（差し替え口 `run_first_launch_welcome` の結果で言語・サンプルの書き出し）・読込の後に `_finish_first_launch`（空で始める `keymap_set_io.start_empty`・write_startup・失敗の警告・deiconify）。新規 `presentation/welcome/`（WelcomeResult・estimate_layout_id・is_first_launch・差し替え口）。locales に `welcome.sample_failed.*`。
+  実装 = codex-delegating-implementer（Sol medium・サブエージェントなし）。reviewer = 採用（参考: app.py の肥大・JIS の式の重複）。新しいテストに `fix_language("ja")` をメインが追加。
 result_files:
-  - keyseq/application/config_service/{sample_install,save_plan_execution,__init__}.py
-  - tests/test_sample_install.py（新規）/ tests/test_config_service_contracts.py
-  - instructions/phase/73_welcome_first_launch/tasks/task_04_sample_install.md
+  - main.py / keyseq/presentation/app.py / keyseq/presentation/welcome/{__init__,welcome_result,first_launch}.py / keyseq/presentation/controllers/config_io/keymap_set_io.py / keyseq/shared/i18n/locales/{ja,en}.json
+  - tests/{test_first_launch,test_main_restart}.py / tests_ui/test_first_launch_flow.py
+  - instructions/history/56_welcome_first_launch.md（v0.5）/ instructions/phase/73_welcome_first_launch/{phase.md,tasks/task_05_first_launch_flow.md} / .claude_data/state/decisions.md
 verified:
   compile: pass
-  tests: pass（1931・skip 7）
-  tests_ui: pass（1240）
+  tests: pass（1934・skip 7）
+  tests_ui: pass（1249）
   smoke: pass
 
 ## next_action
-- task_05 を `/task_new` で起票（暫定 56 §3・§6: `super().__init__()` 直後の初回判定と withdraw・Welcome の結果〔言語・配列・始め方〕の受け渡し・サンプル入りは `config_service.install_sample`〔JIS は external_layout_path="user/keylayout/jis.json"〕→ `_startup_settings["keymap_set_path"]`・failed / incomplete は警告して空で始める・空で始めるときは読込の後に新規と同じ構成＋選んだ配列・読込後に write_startup・Welcome を出さない入口〔環境変数〕を smoke / tests_ui に適用。Welcome の窓は仮の差し替え口）→ codex → verifier → reviewer
+- task_06 を `/task_new` で起票（暫定 56 §4: Welcome の窓 = Language〔その場で set_language・窓の文言を作り直す〕・キーボード配列 US TKL / JIS〔言語への追従・触ったら止める〕・基本的な使い方 3〜4 行・始め方〔サンプル入り = 既定 / 空〕とサンプルの説明・「ヘルプを開く」〔Welcome の子・閉じたら閉じる〕/「はじめる」・× / Esc = 確定。`presentation/welcome/first_launch.py` の差し替え口 `run_first_launch_welcome` を窓に替える。文言は ja / en。参考: app.py の `_prepare/_finish_first_launch` を welcome 側へ寄せる余地）→ codex → verifier → reviewer
 - 以降 task_03〜09 は phase.md の順（ユーザーはタスクの連続実行を許可済 2026-11-08）
 - main へのマージはユーザー（PR は作らない）
 

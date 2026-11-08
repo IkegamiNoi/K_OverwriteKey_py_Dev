@@ -28,6 +28,9 @@ from keyseq.presentation.controllers.config_io.orphan_sweep_io import OrphanSwee
 from keyseq.presentation.controllers.config_io.keymap_set_history_io import KeymapSetHistoryIo
 from keyseq.presentation.controllers.config_io.quarantine_manage_io import QuarantineManageIo
 from keyseq.presentation.config_paths import ConfigPaths
+from keyseq.presentation.welcome import (
+    JIS_LAYOUT_ID, JIS_LAYOUT_PATH, is_first_launch, run_first_launch_welcome,
+)
 from keyseq.presentation.list_clipboard import ListClipboard
 from keyseq.presentation.controllers.dirty_state import DirtyStateTracker
 from keyseq.presentation.controllers.hook_controller import HookController
@@ -104,7 +107,7 @@ from keyseq.infrastructure.win32_window import (
 from keyseq.infrastructure.json_repository import JsonRepository
 
 class App(tk.Tk):
-    def __init__(self):
+    def __init__(self, *, first_launch_welcome: bool = False):
         super().__init__()
 
         self.repository = JsonRepository()
@@ -121,6 +124,9 @@ class App(tk.Tk):
             config_service=self.config_service,
         )
         self.startup_path = self.paths.resolve_startup_path()
+        self._first_launch = first_launch_welcome and is_first_launch(self.paths)
+        if self._first_launch:
+            self.withdraw()
         self.keymap_set_path = self.paths.resolve_keymap_set_path()
         startup_read_errors: list[Exception] = []
         self._startup_settings = load_startup_settings(
@@ -136,6 +142,8 @@ class App(tk.Tk):
             )
         self._ui_font_delta_pt = coerce_font_delta(self._startup_settings.get("ui_font_delta_pt", 0))
         apply_global_theme(self, font_delta_pt=self._ui_font_delta_pt)
+        if self._first_launch:
+            self._prepare_first_launch()
         self.data = self.config_service.new_base_data()
         self.config_service.apply_global_defaults(self.data, config_root=self.config_root)
         self._key_overlap_analysis = analyze_key_overlaps(
@@ -347,6 +355,8 @@ class App(tk.Tk):
         self.pane_layout.install()
         self.compact_window.install()
         self.startup_io.load_startup_and_config()
+        if self._first_launch:
+            self._finish_first_launch()
         self.layout.reload_keyboard_layouts()
         self.trigger_panel.refresh_triggers()
         self.trigger_panel.refresh_actions()
@@ -357,6 +367,49 @@ class App(tk.Tk):
 
         self.protocol("WM_DELETE_WINDOW", self.on_close)
         install_minimize_grab_custody(self)
+
+    def _prepare_first_launch(self) -> None:
+        result = run_first_launch_welcome(self)
+        set_language(result.language)
+        self._startup_settings["ui_language"] = result.language
+        self._welcome_result = result
+        self._welcome_sample_error = None
+        if result.start == "sample":
+            installed = self.config_service.install_sample(
+                config_root=self.config_root,
+                keyboard_layout_id=result.layout_id,
+                external_layout_path=(
+                    JIS_LAYOUT_PATH if result.layout_id == JIS_LAYOUT_ID else ""
+                ),
+            )
+            if installed.status in ("written", "existing"):
+                self._startup_settings["keymap_set_path"] = "sample/keymap_sets/sample.json"
+            else:
+                self._welcome_sample_error = installed
+
+    def _finish_first_launch(self) -> None:
+        result = self._welcome_result
+        if result.start == "empty" or self._welcome_sample_error is not None:
+            self.keymap_set_io.start_empty(
+                layout_id=result.layout_id,
+                external_layout_path=(
+                    JIS_LAYOUT_PATH if result.layout_id == JIS_LAYOUT_ID else ""
+                ),
+            )
+        startup = {"ui_language": result.language}
+        if "keymap_set_path" in self._startup_settings:
+            startup["keymap_set_path"] = self._startup_settings["keymap_set_path"]
+        self.startup_io.write_startup(startup)
+        if self._welcome_sample_error is not None:
+            messagebox.showwarning(
+                tr("welcome.sample_failed.title"),
+                tr(
+                    "welcome.sample_failed.body",
+                    status=self._welcome_sample_error.status,
+                    error=self._welcome_sample_error.error,
+                ),
+            )
+        self.deiconify()
 
     @contextmanager
     def repeat_suppressed(self):

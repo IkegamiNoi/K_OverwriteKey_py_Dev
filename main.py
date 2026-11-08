@@ -12,7 +12,7 @@ APP_USER_MODEL_ID = "keyseq.app"
 def main() -> None:
     set_app_user_model_id(APP_USER_MODEL_ID)
     startup_cwd = os.getcwd()
-    app = App()
+    app = App(first_launch_welcome=True)
     app.mainloop()
     if app.restart_requested:
         error = relaunch_app(startup_cwd)
